@@ -3,6 +3,7 @@ require('dotenv').config();
 
 const express = require('express');
 const { Pool } = require('pg');
+const { runMigrations } = require('./scripts/migrate');
 const QRCode = require('qrcode');
 const path = require('path');
 const https = require('https');
@@ -2132,6 +2133,7 @@ async function processDueTeacherReturns() {
 }
 
 async function start() {
+  await runMigrations(pool);
   await processDueTeacherReturns();
   const teacherReturnTimer = setInterval(processDueTeacherReturns, 60 * 1000);
   teacherReturnTimer.unref();
