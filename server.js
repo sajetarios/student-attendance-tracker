@@ -2133,7 +2133,10 @@ async function processDueTeacherReturns() {
 }
 
 async function start() {
-  await runMigrations(pool);
+  console.log('Checking database migrations...');
+  const migrationResult = await runMigrations(pool);
+  console.log(`Database migrations ready: ${migrationResult.applied.length} applied, ${migrationResult.total} total.`);
+
   await processDueTeacherReturns();
   const teacherReturnTimer = setInterval(processDueTeacherReturns, 60 * 1000);
   teacherReturnTimer.unref();
