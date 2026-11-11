@@ -1557,9 +1557,14 @@ app.get('/api/teachers/:userId/qr', authenticateSchoolClient, requireSchoolAdmin
 // QR images are returned only for a student in the authenticated school; teachers must be assigned to that student's class.
 app.get('/api/students/:studentId/qr', authenticateSchoolClient, requireSchoolAdminOrTeacher, async (req, res) => {
   try {
-    if (req.auth.role === 'TEACHER' && !req.auth.teacherDesignations?.includes('SUBJECT_TEACHER')) {
-      return res.status(403).json({ error: 'Only Subject Teachers may view QR codes for their assigned learners.' });
-    }
+    if (
+  req.auth.role === 'TEACHER' &&
+  !req.auth.teacherDesignations?.some(d =>
+    ['CLASS_ADVISER', 'SUBJECT_TEACHER'].includes(d)
+  )
+) {
+  return res.status(403).json({ error: 'Only authorized teachers may view QR codes.' });
+}
     const params = [req.auth.schoolId, req.params.studentId];
     let teacherScope = '';
     if (req.auth.type === 'SCHOOL_USER' && req.auth.role === 'TEACHER') {

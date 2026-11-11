@@ -18,12 +18,16 @@ test('portal keeps all school views inside the school workspace', () => {
   assert.match(html, /id="teacherRows"/);
 });
 
-test('Subject Teachers can render QR previews for assigned learners', () => {
+test('Class Advisers and Subject Teachers can render QR previews only for assigned learners', () => {
   const portal = read('public/portal.js');
   const server = read('server.js');
-  assert.match(portal, /const canViewQr = admin \|\| \(teacher && designations\.includes\('SUBJECT_TEACHER'\)\)/);
+
+  assert.match(portal, /const canViewQr = admin \|\| \(teacher && \(/);
+  assert.match(portal, /designations\.includes\('CLASS_ADVISER'\)/);
+  assert.match(portal, /designations\.includes\('SUBJECT_TEACHER'\)/);
+
   assert.match(server, /app\.get\('\/api\/students\/:studentId\/qr', authenticateSchoolClient, requireSchoolAdminOrTeacher/);
-  assert.match(server, /Only Subject Teachers may view QR codes for their assigned learners/);
+  assert.match(server, /Only authorized teachers may view QR codes/);
   assert.match(server, /teacherScope = ` AND \${TEACHER_STUDENT_SCOPE\.replace\(\/\\\$2\/g, '\$3'\)}`/);
 });
 
@@ -53,5 +57,5 @@ test('new theme is cool neutral blue and all relevant pages use v0.8.2 cache-bus
   const html = ['portal.html','index.html','portal-login.html','parent-portal.html','student-portal.html']
     .map(name => read(`public/${name}`)).join('\n');
   assert.match(html, /comfort-ui\.css\?v=0\.8\.2/);
-  assert.match(read('public/sw.js'), /school-attendance-shell-v12/);
+  assert.match(read('public/sw.js'), /school-attendance-shell-v13/);
 });

@@ -475,7 +475,10 @@
     const designations = Array.isArray(user.teacherDesignations) ? user.teacherDesignations : [];
     const canManage = admin || (teacher && (designations.includes('CLASS_ADVISER') || designations.includes('SUBJECT_TEACHER')));
     const canUploadPhoto = admin || (teacher && designations.includes('CLASS_ADVISER'));
-    const canViewQr = admin || (teacher && designations.includes('SUBJECT_TEACHER'));
+    const canViewQr = admin || (teacher && (
+  designations.includes('CLASS_ADVISER') ||
+  designations.includes('SUBJECT_TEACHER')
+));
     const visible = students.filter(student =>
       (grade === 'ALL' || student.gradeLevel === grade) &&
       (section === 'ALL' || student.section === section) &&
