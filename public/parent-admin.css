@@ -1,0 +1,221 @@
+.parent-page{max-width:1450px;margin:auto;padding:28px}.parent-head{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:20px}.parent-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px}.parent-card{background:#fff;border:1px solid #edf1f5;border-radius:11px;padding:20px;margin-bottom:16px}.parent-card h2{font-size:20px;margin:0 0 6px}.parent-card p{font-size:15px;color:#8291a0}.parent-card table{min-width:650px}.parent-card td{white-space:normal}.parent-form{display:grid;grid-template-columns:1fr 1fr;gap:10px}.parent-form .field-group{margin:0}.parent-form button{grid-column:1/-1}.action-row{display:flex;gap:6px;flex-wrap:wrap}.small-btn{padding:8px 10px;font-size:14px}.parent-note{font-size:15px;color:#607487;background:#f2f8fb;padding:12px;border-radius:8px}@media(max-width:850px){.parent-grid{grid-template-columns:1fr}.parent-page{padding:16px}.parent-form{grid-template-columns:1fr}}
+
+
+/* Parent Management page polish */
+.parent-page { width:min(1450px,100%); }
+.parent-head h1 { margin:6px 0; color:#1e293b; font-size:26px; letter-spacing:-.03em; }
+.parent-head p { margin:6px 0 0; line-height:1.5; }
+.parent-card h2 { color:#1e293b; }
+.parent-card > p { line-height:1.5; }
+.parent-card .field-group label { font-size:14px; }
+.parent-card .field-group input,
+.parent-card .field-group select { width:100%; min-width:0; height:42px; font-size:14px; }
+.parent-card th { font-size:13px; }
+.parent-card td { font-size:14px; }
+.parent-card .table-subtext { display:block; margin-top:4px; font-size:12px; color:#8291a0; white-space:normal; }
+.parent-card .small-btn { min-height:34px; }
+.parent-note { line-height:1.5; }
+
+@media(max-width:850px) {
+  .parent-head { align-items:flex-start; flex-wrap:wrap; }
+  .parent-head > div:first-child { min-width:0; flex:1 1 100%; }
+  .parent-head h1 { font-size:23px; }
+  .parent-head .action-row { width:100%; }
+  .parent-head .action-row button { flex:1 1 auto; }
+  .parent-card { padding:16px; }
+}
+@media(max-width:520px) {
+  .parent-page { padding:12px; }
+  .parent-head { gap:10px; }
+  .parent-head h1 { font-size:21px; }
+  .parent-head p { font-size:14px; }
+  .parent-card { padding:13px; }
+  .parent-card h2 { font-size:18px; }
+  .parent-card > p { font-size:14px; }
+  .parent-form { grid-template-columns:minmax(0,1fr); }
+  .parent-form button { grid-column:auto; width:100%; }
+  .parent-head .action-row { flex-direction:column; }
+  .parent-head .action-row button { width:100%; }
+  .parent-note { font-size:13px; }
+}
+
+
+/* Responsive containment fix for Parent Management */
+.parent-page,
+.parent-page * {
+  box-sizing: border-box;
+}
+.parent-page {
+  width: 100%;
+  max-width: 1450px;
+  min-width: 0;
+  overflow-x: clip;
+}
+.parent-head,
+.parent-grid,
+.parent-card,
+.parent-form,
+.parent-note {
+  min-width: 0;
+  max-width: 100%;
+}
+.parent-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+.parent-card {
+  overflow: hidden;
+}
+.parent-card .table-scroll {
+  display: block;
+  width: 100%;
+  max-width: 100%;
+  overflow-x: auto;
+  overflow-y: hidden;
+  -webkit-overflow-scrolling: touch;
+}
+.parent-card table {
+  width: 100%;
+  min-width: 650px;
+  border-collapse: collapse;
+}
+.parent-form .field-group {
+  min-width: 0;
+}
+.parent-form input,
+.parent-form select,
+.parent-form button,
+.parent-head .action-row button {
+  max-width: 100%;
+  min-width: 0;
+}
+.parent-form input,
+.parent-form select {
+  display: block;
+}
+
+/* Phone layout */
+@media (max-width: 520px) {
+  .parent-page {
+    padding: 12px !important;
+    width: 100% !important;
+    max-width: 100vw !important;
+  }
+  .parent-head {
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    width: 100%;
+    gap: 12px;
+  }
+  .parent-head > div:first-child {
+    width: 100%;
+    min-width: 0;
+  }
+  .parent-head h1 {
+    font-size: 22px !important;
+    line-height: 1.25;
+    overflow-wrap: anywhere;
+  }
+  .parent-head p,
+  .parent-card > p {
+    font-size: 14px !important;
+    line-height: 1.5;
+    overflow-wrap: anywhere;
+  }
+  .parent-head .action-row {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    width: 100%;
+    gap: 8px;
+  }
+  .parent-head .action-row button {
+    width: 100%;
+    min-height: 42px;
+    font-size: 14px !important;
+    white-space: normal;
+  }
+  .parent-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) !important;
+    gap: 12px;
+    width: 100%;
+  }
+  .parent-card {
+    width: 100%;
+    max-width: 100%;
+    padding: 14px !important;
+    margin: 0 0 12px;
+    border-radius: 12px;
+  }
+  .parent-card h2 {
+    font-size: 19px !important;
+    line-height: 1.3;
+    overflow-wrap: anywhere;
+  }
+  .parent-form {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) !important;
+    gap: 12px;
+    width: 100%;
+  }
+  .parent-form .field-group {
+    width: 100%;
+    min-width: 0;
+  }
+  .parent-form .field-group label,
+  .parent-card .field-group label {
+    display: block;
+    font-size: 14px !important;
+    line-height: 1.4;
+    margin-bottom: 5px;
+  }
+  .parent-form input,
+  .parent-form select,
+  .parent-card .field-group input,
+  .parent-card .field-group select {
+    width: 100% !important;
+    max-width: 100% !important;
+    min-width: 0 !important;
+    height: 44px;
+    font-size: 15px !important;
+  }
+  .parent-form button {
+    grid-column: 1 !important;
+    width: 100% !important;
+    min-height: 46px;
+    padding: 10px 12px;
+    font-size: 15px !important;
+    white-space: normal;
+    overflow-wrap: anywhere;
+  }
+  .parent-card .table-scroll {
+    width: 100%;
+    max-width: 100%;
+    margin: 0;
+    overflow-x: auto !important;
+    overscroll-behavior-x: contain;
+  }
+  .parent-card table {
+    min-width: 620px;
+    width: 620px;
+  }
+  .parent-card th,
+  .parent-card td {
+    padding: 10px 9px;
+    font-size: 13px !important;
+    white-space: nowrap;
+  }
+  .parent-card td {
+    line-height: 1.4;
+  }
+  .parent-card .empty-cell {
+    white-space: normal;
+  }
+  .parent-note {
+    width: 100%;
+    padding: 12px;
+    font-size: 13px !important;
+    line-height: 1.5;
+    overflow-wrap: anywhere;
+  }
+}

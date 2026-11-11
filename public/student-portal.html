@@ -1,0 +1,72 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#2463a5">
+  <title>Student Portal · School Attendance</title>
+  <link rel="stylesheet" href="/portal.css">
+  <link rel="stylesheet" href="/responsive.css">
+<link rel="stylesheet" href="/comfort-ui.css?v=0.8.2">
+  <style>
+    .student-page{max-width:1180px;margin:0 auto;padding:28px 20px 48px}
+    .student-header{display:flex;justify-content:space-between;align-items:center;gap:16px;margin-bottom:22px}
+    .student-header h1{margin:3px 0 5px;font-size:clamp(25px,3vw,34px);color:#1e293b}
+    .student-header p{margin:0;color:#718096}
+    .student-actions{display:flex;gap:9px;flex-wrap:wrap}
+    .student-card{background:#fff;border:1px solid #e7edf3;border-radius:16px;padding:22px;margin-bottom:18px;box-shadow:0 8px 25px rgba(20,45,65,.04)}
+    .student-profile-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin-top:16px}
+    .student-summary-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin:0 0 18px}
+    .student-summary-item{padding:17px 18px;background:#fff;border:1px solid #e7edf3;border-radius:14px;box-shadow:0 8px 25px rgba(20,45,65,.04)}
+    .student-summary-item span{display:block;color:#64748b;font-size:14px;margin-bottom:7px}
+    .student-summary-item strong{display:block;color:#1e293b;font-size:27px;font-variant-numeric:tabular-nums}
+    @media(max-width:700px){.student-summary-grid{grid-template-columns:1fr}}
+    .student-profile-item{padding:13px 15px;border-radius:11px;background:#f5f9fc;border:1px solid #e4edf4}
+    .student-profile-item span{display:block;color:#64748b;font-size:13px;margin-bottom:5px}
+    .student-profile-item strong{font-size:17px;color:#24364b;overflow-wrap:anywhere}
+    .student-table{min-width:680px}
+    .password-required{border:2px solid #f59e0b;background:#fffbeb}
+    .password-required[hidden]{display:none!important}
+    .student-feedback{min-height:22px;color:#a12b42;font-size:14px}
+    @media(max-width:700px){.student-page{padding:18px 12px 34px}.student-header{align-items:flex-start;flex-direction:column}.student-profile-grid{grid-template-columns:1fr}.student-card{padding:16px}}
+  </style>
+</head>
+<body class="portal-page">
+  <main class="student-page">
+    <header class="student-header">
+      <div><div class="eyebrow muted" id="studentSchoolLabel">STUDENT PORTAL</div><h1 id="studentWelcome">Welcome</h1><p>View your own learner profile and attendance records.</p></div>
+      <div class="student-actions"><button class="outline-button" id="studentRefresh">↻ Refresh</button><button class="outline-button" id="studentLogout">Sign out</button></div>
+    </header>
+    <section class="student-summary-grid" id="studentAttendanceSummary" aria-label="My attendance summary">
+      <article class="student-summary-item"><span>Accepted records</span><strong id="studentRecordCount">—</strong></article>
+      <article class="student-summary-item"><span>Subject records</span><strong id="studentSubjectCount">—</strong></article>
+      <article class="student-summary-item"><span>Gate records</span><strong id="studentGateCount">—</strong></article>
+    </section>
+    <section class="student-card" id="studentProfileCard">
+      <h2>My profile</h2><p class="muted" id="studentProfileIntro">Your registered school information.</p>
+      <div class="student-profile-grid">
+        <div class="student-profile-item"><span>Student ID</span><strong id="studentIdValue">—</strong></div>
+        <div class="student-profile-item"><span>Grade level</span><strong id="studentGradeValue">—</strong></div>
+        <div class="student-profile-item"><span>Section</span><strong id="studentSectionValue">—</strong></div>
+      </div>
+    </section>
+    <section class="student-card password-required" id="studentPasswordRequired" hidden>
+      <h2>Change your initial password</h2>
+      <p>Your school issued an initial password. Set a private password before viewing your attendance.</p>
+      <form id="studentPasswordForm" class="form-grid">
+        <div class="field-group"><label for="studentCurrentPassword">Initial password</label><input id="studentCurrentPassword" type="password" required autocomplete="current-password"></div>
+        <div class="field-group"><label for="studentNewPassword">New password (at least 12 characters)</label><input id="studentNewPassword" type="password" minlength="12" maxlength="256" required autocomplete="new-password"></div>
+        <div class="field-group"><label for="studentConfirmPassword">Confirm new password</label><input id="studentConfirmPassword" type="password" minlength="12" maxlength="256" required autocomplete="new-password"></div>
+        <div class="form-actions"><button class="primary-button" id="studentSavePassword" type="submit">Save new password</button></div>
+      </form>
+      <p class="student-feedback" id="studentPasswordFeedback" role="status"></p>
+    </section>
+    <section class="student-card" id="studentAttendanceCard">
+      <div class="section-toolbar"><div><h2>My attendance</h2><p>Only your own accepted school-gate and subject attendance events are shown.</p></div></div>
+      <div class="table-scroll"><table class="student-table"><thead><tr><th>Date</th><th>Attendance area</th><th>Class / subject</th><th>Event</th><th>Time</th><th>Status</th></tr></thead><tbody id="studentAttendanceRows"><tr><td colspan="6" class="empty-cell">Loading attendance…</td></tr></tbody></table></div>
+    </section>
+    <p class="student-feedback" id="studentPortalFeedback" role="status"></p>
+  </main>
+  <script src="/student-portal.js" defer></script>
+</body>
+</html>

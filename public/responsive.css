@@ -1,0 +1,464 @@
+/* Responsive layout layer shared by the attendance desk, school portal and parent pages.
+   Loaded after page stylesheets so existing behaviour and branding remain intact. */
+:root {
+  --mobile-gutter: clamp(12px, 3vw, 24px);
+}
+
+html {
+  min-width: 320px;
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+  scroll-padding-top: 76px;
+}
+
+body {
+  min-width: 320px;
+  overflow-x: hidden;
+}
+
+img,
+video,
+canvas,
+svg {
+  max-width: 100%;
+}
+
+.portal-layout,
+.main-area,
+.content-wrap,
+.view-panel,
+.surface-card,
+.section-card,
+.parent-page,
+.parent-card,
+.panel {
+  min-width: 0;
+}
+
+.portal-layout {
+  grid-template-columns: minmax(0, 236px) minmax(0, 1fr);
+}
+
+.content-wrap {
+  width: 100%;
+  max-width: 1500px;
+}
+
+.stats-grid,
+.dashboard-columns,
+.form-grid,
+.parent-grid,
+.platform-module-grid,
+.learner-summary-grid,
+.child-grid,
+.admin-grid {
+  min-width: 0;
+}
+
+.stats-grid > *,
+.dashboard-columns > *,
+.form-grid > *,
+.parent-grid > *,
+.platform-module-grid > *,
+.learner-summary-grid > *,
+.child-grid > *,
+.admin-grid > * {
+  min-width: 0;
+}
+
+.field-group input,
+.field-group select,
+.field-group textarea,
+input,
+select,
+textarea {
+  max-width: 100%;
+}
+
+.table-scroll,
+.table-wrap {
+  display: block;
+  width: 100%;
+  max-width: 100%;
+  overflow-x: auto;
+  overflow-y: hidden;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior-x: contain;
+  scrollbar-width: thin;
+}
+
+.table-scroll table,
+.table-wrap table {
+  max-width: none;
+}
+
+button,
+a,
+input,
+select,
+textarea {
+  touch-action: manipulation;
+}
+
+button,
+input,
+select,
+textarea {
+  overflow-wrap: anywhere;
+}
+
+.student-edit-overlay,
+.student-qr-preview-overlay,
+.student-scan-notice-overlay,
+.student-scan-setup-overlay {
+  padding: max(12px, env(safe-area-inset-top)) max(12px, env(safe-area-inset-right))
+    max(12px, env(safe-area-inset-bottom)) max(12px, env(safe-area-inset-left));
+}
+
+.student-edit-dialog,
+.student-qr-preview-dialog,
+.student-scan-notice-dialog,
+.student-scan-setup-dialog {
+  width: min(650px, 100%);
+  max-width: 100%;
+  max-height: min(90vh, 900px);
+  max-height: min(90dvh, 900px);
+  overflow: auto;
+  overscroll-behavior: contain;
+}
+
+@media (max-width: 1200px) {
+  .content-wrap {
+    padding-left: 24px;
+    padding-right: 24px;
+  }
+
+  .dashboard-columns {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+@media (max-width: 900px) {
+  .portal-layout {
+    grid-template-columns: 210px minmax(0, 1fr);
+  }
+
+  .content-wrap {
+    padding: 22px 18px;
+  }
+
+  .stats-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .learner-summary-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .parent-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+@media (max-width: 700px) {
+  .portal-layout {
+    display: block;
+    min-height: 100vh;
+  }
+
+  .sidebar {
+    position: fixed;
+    top: 0;
+    bottom: 0;
+    left: -260px;
+    z-index: 100;
+    width: min(245px, calc(100vw - 48px));
+    height: 100vh;
+    height: 100dvh;
+    min-height: 0;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    padding-bottom: max(16px, env(safe-area-inset-bottom));
+  }
+
+  .sidebar.open {
+    left: 0;
+  }
+
+  .mobile-menu-toggle {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex: 0 0 auto;
+    min-width: 42px;
+    min-height: 42px;
+  }
+
+  .topbar {
+    min-width: 0;
+    padding-left: var(--mobile-gutter);
+    padding-right: var(--mobile-gutter);
+    gap: 8px;
+  }
+
+  .topbar-right {
+    min-width: 0;
+    gap: 8px;
+  }
+
+  .breadcrumbs {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .content-wrap {
+    padding: 20px var(--mobile-gutter) 24px;
+  }
+
+  .school-heading {
+    align-items: flex-start;
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+
+  .school-title-block {
+    flex: 1 1 180px;
+  }
+
+  .school-title-block h1 {
+    overflow-wrap: anywhere;
+  }
+
+  .heading-actions {
+    flex: 1 1 100%;
+    width: 100%;
+    margin-left: 0;
+    justify-content: flex-start;
+    align-items: center;
+    flex-direction: row;
+    flex-wrap: wrap;
+  }
+
+  .heading-actions > * {
+    max-width: 100%;
+  }
+
+  .form-grid,
+  .parent-form {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .span-2,
+  .parent-form button {
+    grid-column: auto;
+  }
+
+  .form-actions,
+  .action-row,
+  .section-toolbar,
+  .student-scanner-heading,
+  .roster-heading {
+    align-items: stretch;
+    flex-wrap: wrap;
+  }
+
+  .form-actions > button,
+  .action-row > button,
+  .action-row > a {
+    max-width: 100%;
+  }
+
+  .student-edit-overlay,
+  .student-qr-preview-overlay,
+  .student-scan-notice-overlay,
+  .student-scan-setup-overlay {
+    place-items: center;
+    padding: 10px;
+  }
+
+  .student-edit-dialog,
+  .student-qr-preview-dialog,
+  .student-scan-notice-dialog,
+  .student-scan-setup-dialog {
+    width: 100%;
+    max-height: 94vh;
+    max-height: 94dvh;
+    border-radius: 12px;
+  }
+
+  .parent-page {
+    width: 100%;
+    padding: 18px var(--mobile-gutter);
+  }
+
+  .parent-head {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .parent-card {
+    padding: 16px;
+  }
+}
+
+@media (max-width: 480px) {
+  .content-wrap {
+    padding-top: 16px;
+  }
+
+  .school-emblem {
+    width: 46px;
+    height: 46px;
+    border-radius: 12px;
+    font-size: 20px;
+  }
+
+  .school-title-block h1 {
+    font-size: 18px;
+    line-height: 1.25;
+  }
+
+  .school-title-block p {
+    line-height: 1.4;
+  }
+
+  .stats-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 9px;
+  }
+
+  .stat-card {
+    min-height: 112px;
+    padding: 12px;
+  }
+
+  .stat-card > strong {
+    font-size: clamp(21px, 7vw, 27px);
+  }
+
+  .stat-top {
+    align-items: flex-start;
+    gap: 6px;
+    font-size: 10px;
+  }
+
+  .stat-icon {
+    flex: 0 0 30px;
+  }
+
+  .recent-card,
+  .quick-card,
+  .section-card,
+  .parent-card,
+  .learner-summary-card,
+  .sardo-card {
+    padding: 13px;
+  }
+
+  .view-heading h2 {
+    font-size: 18px;
+  }
+
+  .primary-button,
+  .outline-button {
+    min-height: 40px;
+  }
+
+  .login-page {
+    padding: 0;
+    min-height: 100vh;
+    min-height: 100dvh;
+  }
+
+  .login-shell {
+    width: 100%;
+    min-height: 100vh;
+    min-height: 100dvh;
+    border-radius: 0;
+  }
+
+  .login-panel {
+    min-height: 100vh;
+    min-height: 100dvh;
+    padding: 24px var(--mobile-gutter) max(20px, env(safe-area-inset-bottom));
+  }
+
+  .login-panel-inner {
+    width: 100%;
+  }
+
+  .login-panel h2 {
+    font-size: 25px;
+  }
+
+  .parent-form button,
+  .form-actions > button,
+  .form-actions > a {
+    width: 100%;
+    justify-content: center;
+    text-align: center;
+  }
+
+  .summary {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .admin-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 360px) {
+  .topbar {
+    padding-left: 10px;
+    padding-right: 10px;
+  }
+
+  .content-wrap,
+  .parent-page {
+    padding-left: 10px;
+    padding-right: 10px;
+  }
+
+  .stats-grid,
+  .summary,
+  .admin-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .school-heading .heading-actions {
+    gap: 6px;
+  }
+
+  .school-heading .heading-actions > button,
+  .school-heading .heading-actions > a {
+    flex: 1 1 auto;
+  }
+
+  .login-panel h2 {
+    font-size: 23px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* Gate verification photo shown after a QR match. */
+.student-scan-verified-photo { display:block; width:clamp(104px, 22vw, 156px); height:clamp(122px, 27vw, 184px); object-fit:cover; border-radius:12px; border:1px solid #d9e3ec; margin:10px auto; background:#f1f5f9; }
+.student-scan-no-photo { display:grid; place-items:center; color:#64748b; font-size:12px; font-weight:600; }
+
+
+/* Gate Keeper identity verification controls */
+.gate-photo-verification { display:flex; align-items:flex-start; gap:10px; padding:12px 14px; margin:12px 0; border:1px solid #b7d8c5; border-radius:10px; background:#f1fbf4; color:#205b3a; font-weight:600; line-height:1.45; }
+.gate-photo-verification input { width:20px; height:20px; flex:0 0 auto; margin:1px 0 0; }
+.gate-photo-warning { padding:12px 14px; margin:12px 0; border:1px solid #edc98b; border-radius:10px; background:#fff8e9; color:#744b13; line-height:1.45; }

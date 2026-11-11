@@ -1,0 +1,535 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#1c2d45">
+  <title>Dashboard · School Attendance</title>
+  <link rel="stylesheet" href="/portal.css?v=0.8.2">
+  <link rel="stylesheet" href="/password-visibility.css">
+
+<style id="student-scan-setup-styles">
+  .student-scan-setup-overlay[hidden], .student-scan-notice-overlay[hidden] { display:none !important; }
+  .student-scan-setup-overlay, .student-scan-notice-overlay { position:fixed; inset:0; z-index:20000; display:grid; place-items:center; padding:18px; background:rgba(12,25,40,.68); }
+  .student-scan-setup-dialog, .student-scan-notice-dialog { width:min(480px,100%); padding:26px 24px 22px; border-radius:18px; background:#fff; box-shadow:0 24px 70px rgba(0,0,0,.3); }
+  .student-scan-setup-dialog h3 { margin:7px 0; color:#15334a; font-size:25px; }
+  .scan-setup-icon { width:48px; height:48px; display:grid; place-items:center; border-radius:13px; background:#e8f3ff; color:#1766a6; font-size:27px; margin-bottom:13px; }
+  .scan-setup-description { color:#5b6f82; font-size:14px; line-height:1.5; margin:0 0 19px; }
+  .scan-setup-field { display:block; margin:0 0 15px; padding:12px; border:1px solid #d7e1eb; border-radius:11px; color:#28445d; font-weight:700; font-size:14px; background:#f8fbfe; }
+  .scan-setup-field select { display:block; width:100%; min-height:46px; margin-top:8px; padding:9px 12px; border:1px solid #cbd8e5; border-radius:8px; background:#fff; color:#17324a; font-size:15px; }
+  .scan-setup-field small { display:block; margin-top:7px; color:#66788a; font-size:12px; font-weight:400; }
+  .scan-setup-field.field-missing { border:2px solid #c62845; background:#fff6f7; }
+  .scan-setup-field.field-missing small { color:#a31934; font-weight:700; }
+  .scan-setup-actions { display:flex; justify-content:flex-end; gap:10px; margin-top:20px; }
+  .scan-setup-actions button { min-height:46px; padding:0 18px; }
+  .scan-mode-summary { color:#31536d; font-size:14px; font-weight:650; padding:8px 0; }
+  .student-scan-notice-dialog { text-align:center; border:2px solid #16a36a; }
+  .student-scan-success-icon { width:64px; height:64px; display:grid; place-items:center; margin:0 auto 12px; border-radius:50%; background:#dcfce9; color:#087443; font-size:40px; font-weight:800; }
+  .student-scan-success-kicker { color:#087443; font-size:12px; font-weight:800; letter-spacing:.12em; }
+  .student-scan-notice-dialog h3 { margin:7px 0 5px; color:#15334a; font-size:27px; }
+  .student-scan-notice-copy { color:#526579; font-size:14px; }
+  .student-scan-notice-name { display:block; color:#142d43; font-size:20px; }
+  .student-scan-notice-meta { display:block; margin:5px 0 18px; color:#607487; font-size:13px; }
+  .student-scan-notice-dialog button { width:100%; min-height:47px; }
+  .scanner-feedback.is-success { padding:13px 15px; border:2px solid #15965c; border-left-width:7px; border-radius:10px; background:#e8fff2; color:#075c38; font-weight:750; }
+  @media(max-width:560px) { .student-scan-setup-dialog,.student-scan-notice-dialog { padding:22px 17px 18px; } .scan-setup-actions { flex-direction:column-reverse; } .scan-setup-actions button { width:100%; } }
+</style>
+
+
+<style id="student-section-parent-invite-styles">
+.field-hint { display:block; margin-top:6px; color:#64748b; font-size:12px; line-height:1.4; }
+#newSection:disabled { background:#f1f5f9; color:#64748b; cursor:not-allowed; }
+.parent-invite-details { display:grid; gap:5px; padding:12px 14px; margin:0 0 12px; border:1px solid #d8e5ef; border-radius:10px; background:#f5faff; color:#25435c; }
+.parent-invite-details strong { font-size:16px; }
+#parentInviteMessage { width:100%; box-sizing:border-box; padding:12px; border:1px solid #cbd8e5; border-radius:9px; font:inherit; font-size:13px; line-height:1.5; color:#29445b; background:#fff; resize:vertical; }
+.parent-invite-note { display:block; margin-top:12px; color:#64748b; line-height:1.45; }
+</style>
+
+
+<style id="student-roster-readability-responsive-update">
+  .student-scan-setup-overlay,.student-scan-notice-overlay,.student-edit-overlay,.student-qr-preview-overlay {
+    position:fixed; inset:0; z-index:20000; overflow-y:auto; overscroll-behavior:contain;
+    display:flex; align-items:center; justify-content:center; padding:clamp(10px,3vh,28px);
+  }
+  .student-scan-setup-dialog,.student-scan-notice-dialog,.student-edit-dialog,.student-qr-preview-dialog {
+    max-height:calc(100dvh - 24px); overflow-y:auto; overscroll-behavior:contain; width:min(560px,100%);
+  }
+  .student-scan-setup-dialog { width:min(560px,100%); }
+  .student-scan-setup-dialog h3 { font-size:clamp(22px,3vw,28px); }
+  .scan-setup-description { font-size:16px; line-height:1.55; }
+  .scan-setup-field { font-size:16px; }
+  .scan-setup-field select { font-size:16px; min-height:48px; }
+  .scan-setup-field small { font-size:14px; line-height:1.45; }
+  .scan-setup-actions { flex-wrap:wrap; }
+  .student-scanner-heading h3,.student-roster-tools h3 { font-size:20px !important; }
+  .student-scanner-heading p,.student-roster-tools p { font-size:16px !important; line-height:1.5; }
+  .student-roster-tools { gap:14px; }
+  .student-roster-tools label,.student-filter-row label { font-size:16px; }
+  .student-filter-row { display:flex; flex-wrap:wrap; align-items:end; gap:12px; }
+  .student-name-filter { flex:1 1 260px; min-width:220px; }
+  .student-name-filter input { display:block; width:100%; min-height:44px; margin-top:6px; padding:9px 12px; border:1px solid #cbd8e5; border-radius:9px; font:inherit; font-size:16px; box-sizing:border-box; }
+  #bulkQrGrade,#bulkQrSection { min-height:44px; font-size:16px; }
+  .table-scroll table { font-size:16px; }
+  .table-scroll th,.table-scroll td { font-size:16px; padding:12px 10px; }
+  .teacher-monitor-table { width:100%; min-width:1080px; }
+  .teacher-scope-list { display:flex; flex-direction:column; align-items:flex-start; gap:6px; min-width:105px; }
+  .teacher-scope-item { display:inline-flex; align-items:center; max-width:100%; padding:5px 9px; border:1px solid #dce8f2; border-radius:8px; background:#f3f8fc; color:#38546b; font-size:14px; line-height:1.3; white-space:normal; }
+  .student-qr-preview { cursor:zoom-in; }
+  .student-qr-preview img { width:58px !important; height:58px !important; object-fit:contain; }
+  .student-qr-preview-overlay[hidden] { display:none !important; }
+  .student-qr-preview-overlay { background:rgba(12,25,40,.7); }
+  .student-qr-preview-dialog { width:min(460px,100%); padding:22px; border-radius:18px; background:#fff; box-shadow:0 24px 70px rgba(0,0,0,.3); }
+  .student-qr-preview-header { display:flex; justify-content:space-between; align-items:center; gap:12px; }
+  .student-qr-preview-header h3 { margin:4px 0 0; font-size:22px; }
+  .student-qr-preview-content { display:flex; flex-direction:column; align-items:center; gap:10px; padding:20px 8px; text-align:center; }
+  .student-qr-preview-large { width:min(66vw,280px); height:auto; aspect-ratio:1; object-fit:contain; image-rendering:pixelated; }
+  .student-qr-preview-photo { width:76px; height:76px; border-radius:50%; object-fit:cover; }
+  .student-qr-preview-content strong { font-size:20px; color:#18334a; }
+  .student-qr-preview-content span { font-size:15px; color:#607487; }
+  .student-qr-preview-actions { display:flex; justify-content:center; gap:10px; flex-wrap:wrap; }
+  .student-qr-preview-actions button { min-height:46px; }
+  @media(max-width:640px) {
+    .student-scan-setup-overlay,.student-scan-notice-overlay,.student-edit-overlay,.student-qr-preview-overlay { align-items:flex-start; padding:10px; }
+    .student-scan-setup-dialog,.student-scan-notice-dialog,.student-edit-dialog,.student-qr-preview-dialog { margin:auto 0; max-height:calc(100dvh - 20px); padding:18px 15px; }
+    .scan-setup-actions { flex-direction:column-reverse; }
+    .scan-setup-actions button { width:100%; }
+    .student-filter-row { display:grid; grid-template-columns:1fr; }
+    .student-name-filter { min-width:0; }
+    .table-scroll { overflow-x:auto; -webkit-overflow-scrolling:touch; }
+    .table-scroll table { min-width:760px; }
+  }
+</style>
+\n
+<style id="dashboard-quick-scanner-styles">
+  .dashboard-scan-cta {
+    display:flex; align-items:center; justify-content:space-between; gap:24px;
+    margin:0 0 22px; padding:24px 28px; border:1px solid #b9e6fb;
+    border-radius:18px; background:linear-gradient(110deg,#eaf8ff 0%,#f7fcff 62%,#eef7ff 100%);
+    box-shadow:0 8px 24px rgba(20,105,155,.08);
+  }
+  .dashboard-scan-cta-copy { min-width:0; }
+  .dashboard-scan-kicker { display:block; margin-bottom:7px; color:#087eae; font-size:13px; font-weight:800; letter-spacing:1.2px; }
+  .dashboard-scan-cta-copy h2 { margin:0 0 6px; color:#163b5b; font-size:clamp(21px,2.2vw,28px); line-height:1.2; }
+  .dashboard-scan-cta-copy p { margin:0; color:#557087; font-size:16px; line-height:1.5; }
+  .dashboard-open-scanner {
+    display:inline-flex; flex:0 0 auto; align-items:center; justify-content:center; gap:13px;
+    min-height:68px; min-width:270px; padding:15px 24px; border:0; border-radius:14px;
+    background:#079bd5; color:#fff; font-size:18px; font-weight:800; letter-spacing:.3px;
+    cursor:pointer; box-shadow:0 8px 18px rgba(0,145,205,.24); transition:transform .15s ease,background .15s ease,box-shadow .15s ease;
+  }
+  .dashboard-open-scanner:hover { background:#0788bd; transform:translateY(-1px); box-shadow:0 11px 22px rgba(0,145,205,.28); }
+  .dashboard-open-scanner:focus-visible { outline:3px solid #153f5d; outline-offset:3px; }
+  .dashboard-open-scanner-icon { font-size:28px; line-height:1; }
+  .dashboard-open-scanner-arrow { font-size:25px; line-height:1; }
+  @media(max-width:700px) {
+    .dashboard-scan-cta { align-items:stretch; flex-direction:column; padding:20px; gap:16px; }
+    .dashboard-open-scanner { width:100%; min-width:0; min-height:62px; font-size:17px; }
+  }
+</style>
+<style id="role-management-styles">
+.teacher-designation-fields{border:1px solid #d9e4ec;border-radius:10px;padding:12px 14px;margin:14px 0;background:#f8fbfe;display:grid;gap:9px}
+.teacher-designation-fields legend{padding:0 6px;font-weight:750;color:#284760}
+.teacher-designation-fields label{display:flex;align-items:center;gap:9px;font-weight:600;color:#38546b}
+.teacher-designation-fields small{color:#687d90;line-height:1.45}
+.teacher-designation-fields input{width:18px;height:18px}
+.staff-accounts-card,.adviser-assignments-card{margin-top:18px}
+</style>
+<link rel="stylesheet" href="/responsive.css?v=0.8.2">
+<link rel="stylesheet" href="/comfort-ui.css?v=0.8.2">
+</head>
+<body class="portal-page">
+  <div class="portal-layout">
+    <aside class="sidebar" id="sidebar">
+      <div class="sidebar-brand">
+        <div class="brand-mark" aria-hidden="true">A</div>
+        <div><strong>School Attendance</strong><span>Management Portal</span></div>
+      </div>
+      <div class="sidebar-section-label">WORKSPACE</div>
+      <nav class="side-nav" aria-label="Main navigation">
+        <button class="nav-item active" id="dashboardNav" data-view="dashboard" title="Dashboard"><span class="nav-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="5" rx="1"/><rect x="14" y="12" width="7" height="9" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/></svg></span><span class="nav-label">Dashboard</span></button>
+        <div class="nav-group">
+          <button class="nav-group-toggle" type="button" data-nav-group="people" aria-expanded="true"><span class="nav-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M16 20v-1.5a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4V20M9 10a4 4 0 1 0 0-8 4 4 0 0 0 0 8ZM16 4.2a4 4 0 0 1 0 7.6M18 14.5a4 4 0 0 1 4 4V20"/></svg></span><span class="nav-label" id="peopleGroupLabel">People management</span><span class="nav-chevron">⌄</span></button>
+          <div class="nav-submenu" data-submenu="people">
+            <button class="nav-item" id="studentsNav" data-view="students" title="Students"><span class="nav-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 8.5 12 4l9 4.5-9 4.5-9-4.5Z"/><path d="M6 10.5V16c3.5 3 8.5 3 12 0v-5.5M21 9v6"/></svg></span><span class="nav-label">Students</span></button>
+            <button class="nav-item" data-view="teachers" id="teachersNav" hidden title="Teacher management"><span class="nav-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="9" cy="7" r="4"/><path d="M2 21v-2a7 7 0 0 1 14 0v2M17 4a4 4 0 0 1 0 7.8M19 14a5 5 0 0 1 3 4.5V21"/></svg></span><span class="nav-label">Teachers</span></button>
+            <button class="nav-item" id="parentsNav" hidden title="Parent management"><span class="nav-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="9" cy="7" r="3.5"/><circle cx="18" cy="9" r="2.5"/><path d="M2 21v-2a7 7 0 0 1 14 0v2M16 16a5 5 0 0 1 6 5"/></svg></span><span class="nav-label">Parents</span></button>
+          </div>
+        </div>
+        <div class="nav-group">
+          <button class="nav-group-toggle" type="button" data-nav-group="academics" aria-expanded="true"><span class="nav-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 3h16v18H4zM8 7h8M8 11h8M8 15h5"/></svg></span><span class="nav-label" id="academicsGroupLabel">Academics</span><span class="nav-chevron">⌄</span></button>
+          <div class="nav-submenu" data-submenu="academics">
+            <button class="nav-item" id="sf2Nav" data-view="sf2" title="SF2 Report Generator"><span class="nav-icon">▦</span><span class="nav-label">SF2 Report Generator</span></button>
+            <button class="nav-item" id="schedulesNav" data-view="schedules" title="Class schedules"><span class="nav-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="18" height="17" rx="2"/><path d="M16 2v4M8 2v4M3 9h18M7 13h3M7 17h6"/></svg></span><span class="nav-label">Class schedules</span></button>
+          </div>
+        </div>
+      </nav>
+      <div class="sidebar-bottom">
+        <div class="sidebar-status"><span class="status-pulse"></span><span>Connected to local server</span></div>
+        
+      </div>
+    </aside>
+
+    <main class="main-area">
+      <header class="topbar">
+        <button class="mobile-menu-toggle" id="sidebarToggle" type="button"
+          aria-label="Open navigation" aria-expanded="false" title="Open navigation">☰</button>
+        <div class="breadcrumbs"><span>Workspace</span><b>/</b><strong id="breadcrumbCurrent">Dashboard</strong></div>
+        <div class="topbar-right">
+          <span class="connection-chip"><i></i> Local server</span>
+          <div class="account-menu-wrap">
+            <button class="account-trigger" id="accountMenuButton" aria-haspopup="true" aria-expanded="false">
+              <span class="avatar" id="userAvatar">U</span><span class="account-name" id="userDisplay">User</span><span class="account-chevron">▾</span>
+            </button>
+            <div class="account-dropdown" id="accountDropdown" hidden>
+              <div class="account-summary"><strong id="accountMenuName">User</strong><span id="accountMenuRole">Account</span></div>
+              <button class="account-menu-item" id="profileMenuButton" type="button"><span class="menu-symbol">◉</span>My profile <small>(coming soon)</small></button>
+              <button class="account-menu-item" id="settingsMenuButton" type="button"><span class="menu-symbol">⚙</span>Account settings <small>(coming soon)</small></button>
+              <button class="account-menu-item signout" id="logoutButton" type="button"><span class="menu-symbol">↪</span>Sign out</button>
+            </div>
+          </div>
+        </div>
+      </header>
+
+      <div class="content-wrap">
+        <section class="school-heading">
+          <div class="school-emblem" id="schoolEmblem">S</div>
+          <div class="school-title-block">
+            <div class="eyebrow muted" id="schoolCodeLabel">SCHOOL WORKSPACE</div>
+            <h1 id="schoolTitle">Loading school…</h1>
+            <p id="dateLabel">Attendance overview</p>
+          </div>
+          <div class="heading-actions"><span class="role-pill" id="rolePill">Account</span><button class="outline-button" id="refreshButton">↻ Refresh</button></div>
+        </section>
+
+        <section id="schoolWorkspace">
+          <div class="view-heading"><div><h2 id="viewTitle">Dashboard</h2><p id="viewDescription">Today's attendance at a glance.</p></div></div>
+          <div id="dashboardView" class="view-panel">
+            <section id="dashboardScanCta" class="dashboard-scan-cta" aria-label="Quick access to student QR scanner">
+              <div class="dashboard-scan-cta-copy">
+                <span class="dashboard-scan-kicker">QUICK ATTENDANCE</span>
+                <h2>Ready to scan student IDs?</h2>
+                <p>Open the QR scanner to identify a student and record attendance.</p>
+              </div>
+              <div class="dashboard-quick-buttons">
+                <button type="button" id="dashboardAddStudent" class="dashboard-add-student" hidden><span aria-hidden="true">＋</span><span>Add student</span></button>
+                <button type="button" id="dashboardOpenScanner" class="dashboard-open-scanner">
+                  <span class="dashboard-open-scanner-icon" aria-hidden="true">▦</span><span>OPEN QR SCANNER</span><span class="dashboard-open-scanner-arrow" aria-hidden="true">→</span>
+                </button>
+              </div>
+            </section>
+            <div class="stats-grid" id="statsGrid">
+              <article class="stat-card"><div class="stat-top"><span>Active students</span><span class="stat-icon blue">♙</span></div><strong id="statStudents">—</strong><small>In your authorized roster</small></article>
+              <article class="stat-card"><div class="stat-top"><span>School arrivals</span><span class="stat-icon green">↘</span></div><strong id="statArrivals">—</strong><small>Accepted school time-ins today</small></article>
+              <article class="stat-card"><div class="stat-top"><span>Late arrivals</span><span class="stat-icon amber">◷</span></div><strong id="statLate">—</strong><small>Arrivals after the grace period</small></article>
+              <article class="stat-card"><div class="stat-top"><span>Class check-ins</span><span class="stat-icon violet">▤</span></div><strong id="statClasses">—</strong><small>Accepted subject time-ins today</small></article>
+            </div>
+            <section id="adminGatekeeperMonitoringCard" class="surface-card section-card admin-monitoring-card" hidden>
+              <div class="section-toolbar">
+                <div><h3>Gate Keeper monitoring</h3><p>See account status and the number of learner and teacher gate records handled today.</p></div>
+                <button class="outline-button" type="button" id="refreshGateMonitoring">↻ Refresh</button>
+              </div>
+              <div class="table-scroll"><table class="monitoring-table"><thead><tr><th>Gate Keeper</th><th>Account status</th><th>Learner scans today</th><th>Teacher time records</th><th>Last activity</th></tr></thead><tbody id="gateKeeperMonitorRows"><tr><td colspan="5" class="empty-cell">Loading Gate Keeper activity…</td></tr></tbody></table></div>
+            </section>
+            <section id="teacherGateAttendanceCard" class="surface-card section-card admin-monitoring-card" hidden>
+              <div class="section-toolbar">
+                <div><h3>Teacher gate attendance</h3><p>Teacher time-in/time-out records captured by Gate Keepers after photo verification.</p></div>
+                <label class="monitor-date-filter" for="teacherGateDate">Attendance date <input type="date" id="teacherGateDate"></label>
+              </div>
+              <div class="table-scroll"><table class="monitoring-table"><thead><tr><th>Teacher</th><th>Event</th><th>Recorded time</th><th>Gate Keeper</th><th>Identity check</th></tr></thead><tbody id="teacherGateAttendanceRows"><tr><td colspan="5" class="empty-cell">Loading teacher gate attendance…</td></tr></tbody></table></div>
+              <p class="attendance-summary-note">These are gate time records. They are not yet a complete teacher DTR or class-period punctuality report.</p>
+            </section>
+            <section id="departmentHeadOverview" class="surface-card section-card department-head-overview" hidden>
+              <div class="card-heading"><div><h3>Teacher coverage overview</h3><p>Staff availability and temporary class coverage</p></div><span class="mini-tag">Monitoring</span></div>
+              <div class="learner-summary-grid">
+                <article class="learner-metric"><span>Teacher accounts</span><strong id="dhTeacherTotal">—</strong></article>
+                <article class="learner-metric metric-present"><span>Active teachers</span><strong id="dhTeacherActive">—</strong></article>
+                <article class="learner-metric metric-pending"><span>Teachers on leave</span><strong id="dhTeacherLeave">—</strong></article>
+                <article class="learner-metric"><span>Temporary covers</span><strong id="dhTeacherCovers">—</strong></article>
+              </div>
+              <p class="attendance-summary-note">Teacher gate time-in/time-out and DTR are not yet recorded in this release. These figures show account availability and substitute coverage, not proof of teacher attendance.</p>
+            </section>
+            <section class="surface-card learner-summary-card" id="learnerSummaryCard">
+              <div class="card-heading">
+                <div><h3>Learner Attendance Summary</h3><p>Confirmed class/subject attendance only — gate scans are excluded</p></div>
+                <span class="mini-tag">Live summary</span>
+              </div>
+              <div class="learner-summary-grid">
+                <article class="learner-metric"><span>Active learners</span><strong id="learnerTotal">—</strong></article>
+                <article class="learner-metric metric-present"><span>Confirmed present today</span><strong id="learnerPresent">—</strong></article>
+                <article class="learner-metric metric-pending"><span>Pending confirmation</span><strong id="learnerPending">—</strong></article>
+                <article class="learner-metric"><span>Confirmed learner-days this month</span><strong id="learnerMonthDays">—</strong></article>
+              </div>
+              <p class="attendance-summary-note" id="learnerSummaryNote">Loading learner attendance summary…</p>
+            </section>
+            <section class="surface-card sardo-card" id="sardoCard">
+              <div class="card-heading">
+                <div><h3>SARDO Monitoring</h3><p>Five consecutive school days of confirmed unexcused absences</p></div>
+                <span class="sardo-status" id="sardoStatus">Setup required</span>
+              </div>
+              <div class="sardo-empty" id="sardoMessage">Loading SARDO monitoring status…</div>
+            </section>
+            <div class="dashboard-columns">
+              <section class="surface-card recent-card" id="recentActivityCard">
+                <div class="card-heading"><div><h3>Recent attendance activity</h3><p>Latest records visible to your account</p></div><span class="mini-tag">Live data</span></div>
+                <div class="table-scroll"><table><thead><tr><th>Student</th><th>Attendance</th><th>Time</th><th>Status</th></tr></thead><tbody id="recentRows"><tr><td colspan="4" class="empty-cell">Loading attendance activity…</td></tr></tbody></table></div>
+              </section>
+              <section class="surface-card quick-card" id="quickActionsCard">
+                <div class="card-heading"><div><h3>Quick actions</h3><p>Common school tasks</p></div></div>
+                <button class="quick-action" data-go="students"><span class="quick-action-icon blue">♙</span><span><strong>Manage student records</strong><small>View students within your authorized scope</small></span><b>›</b></button>
+                <button class="quick-action" data-go="teachers"><span class="quick-action-icon green">♧</span><span><strong>Manage staff and teachers</strong><small>Review staff accounts and assignments</small></span><b>›</b></button>
+                <button class="quick-action" data-go="schedules"><span class="quick-action-icon purple">▤</span><span><strong>Class schedules</strong><small>View assigned or school schedules</small></span><b>›</b></button>
+                <button class="quick-action" data-go="sf2"><span class="quick-action-icon amber">▦</span><span><strong>SF2 reports</strong><small>Generate, preview, or monitor reports according to your role</small></span><b>›</b></button>
+                <div class="scope-note"><span>✓</span><p>Your dashboard is filtered to the school and permissions assigned to your account.</p></div>
+              </section>
+            </div>
+          </div>
+
+
+          <section id="sf2View" class="view-panel" hidden>
+            <div class="surface-card section-card">
+              <div class="section-toolbar"><div><h3 id="sf2ViewTitle">SF2 Report Generator</h3><p id="sf2ViewDescription">Generate the monthly TUVERA SF2 using confirmed subject attendance. Gate scans are excluded.</p></div></div>
+              <div class="form-grid sf2-filters">
+                <div class="field-group"><label for="sf2Month">Reporting month</label><input id="sf2Month" type="month" required></div>
+                <div class="field-group"><label for="sf2Grade">Grade level</label><select id="sf2Grade" required><option value="">Select grade</option></select></div>
+                <div class="field-group"><label for="sf2Section">Section</label><select id="sf2Section" required disabled><option value="">Select grade first</option></select></div>
+                <div class="field-group" id="sf2ModeWrap" hidden><label for="sf2Mode">Report type</label><select id="sf2Mode"></select></div>
+              </div>
+              <div class="form-actions"><button class="primary-button" id="sf2PreviewButton" type="button">Preview attendance</button><button class="primary-button" id="sf2ExportButton" type="button" disabled>Generate SF2 Excel</button><button class="primary-button" id="sf2SubmitButton" type="button" hidden disabled>Submit official SF2</button></div>
+              <div id="sf2Feedback" class="inline-feedback" role="status"></div>
+              <p id="sf2ModeNote" class="attendance-summary-note" hidden></p>
+              <div id="sf2Summary" class="learner-summary-grid" hidden></div>
+              <div class="table-scroll" id="sf2TableWrap" hidden><table><thead><tr><th>Learner</th><th>Sex</th><th>Attendance review</th></tr></thead><tbody id="sf2Rows"></tbody></table></div>
+              <p class="attendance-summary-note">Official SF2: Present is left blank and confirmed Absent is marked X. Unresolved learner-days block submission. A Subject Teacher’s personal copy uses P and NR; NR is not an absence. Weekends are excluded, but school holidays and suspensions are not yet connected to a calendar.</p>
+            </div>
+            <div class="surface-card section-card" id="sf2SubmissionsCard" hidden>
+              <div class="section-toolbar"><div><h3>Official SF2 submissions</h3><p>Review monthly reports submitted by Class Advisers.</p></div><button class="outline-button" type="button" id="refreshSf2Submissions">↻ Refresh submissions</button></div>
+              <div class="table-scroll"><table><thead><tr><th>Month</th><th>Grade &amp; Section</th><th>Submitted by</th><th>Revision</th><th>Status</th><th>Actions</th></tr></thead><tbody id="sf2SubmissionRows"><tr><td colspan="6" class="empty-cell">No submitted SF2 reports loaded.</td></tr></tbody></table></div>
+            </div>
+          </section>
+          <section id="studentsView" class="view-panel" hidden>
+            <div class="surface-card section-card">
+              <div class="section-toolbar" id="studentManagementHeader"><div><h3>Student roster</h3><p id="studentScopeText">Students available to your account.</p></div><button class="primary-button" id="showStudentForm">＋ Add student</button></div>
+              <form id="studentForm" class="inline-form" hidden>
+                <div class="form-grid">
+                  <div class="field-group"><label for="newStudentId">Student ID *</label><input id="newStudentId" required maxlength="80" placeholder="e.g. G8-001"></div>
+                  <div class="field-group"><label for="newLrn">LRN</label><input id="newLrn" maxlength="32" placeholder="Learner Reference Number"></div>
+                  <div class="field-group span-2"><label for="newFullName">Full name *</label><input id="newFullName" required maxlength="180" placeholder="Last name, First name, Middle name"></div>
+                  <div class="field-group"><label for="newGrade">Grade level *</label><select id="newGrade" required><option>Grade 7</option><option>Grade 8</option><option>Grade 9</option><option>Grade 10</option></select></div>
+                  <div class="field-group"><label for="newSection">Section *</label><select id="newSection" required disabled><option value="">Select grade level first</option></select><small id="newSectionHint" class="field-hint">Choose a grade to load its available sections.</small></div>
+                  <div class="field-group"><label for="newParentName">Parent / guardian</label><input id="newParentName" maxlength="180"></div>
+                  <div class="field-group"><label for="newParentMobile">Parent mobile *</label><input id="newParentMobile" required maxlength="32" placeholder="09XXXXXXXXX"></div>
+                  <div class="field-group span-2"><label for="newStudentPhoto">Student photo (JPG, PNG, WebP · max 5 MB)</label><input id="newStudentPhoto" type="file" accept="image/jpeg,image/png,image/webp"></div>
+                </div>
+                <div class="form-actions"><button class="primary-button" type="submit">Save student</button><button class="outline-button" type="button" id="cancelStudentForm">Cancel</button><span id="studentFormFeedback" class="inline-feedback"></span></div>
+              </form>
+              <div id="parentInviteModal" class="student-scan-setup-overlay" role="dialog" aria-modal="true" aria-labelledby="parentInviteTitle" hidden>
+                <div class="student-scan-setup-dialog">
+                  <div class="scan-setup-icon" aria-hidden="true">👨‍👩‍👧</div>
+                  <div class="eyebrow muted">PARENT PORTAL INVITATION</div>
+                  <h3 id="parentInviteTitle">Student registered successfully</h3>
+                  <p class="scan-setup-description">The guardian details are saved as contact information. They do not create a parent login automatically. Share these instructions so the parent can register and the school administrator can verify the relationship.</p>
+                  <div class="parent-invite-details">
+                    <strong id="parentInviteStudent"></strong>
+                    <span id="parentInviteStudentId"></span>
+                    <span id="parentInviteMobile"></span>
+                  </div>
+                  <textarea id="parentInviteMessage" rows="6" readonly></textarea>
+                  <div class="scan-setup-actions">
+                    <button type="button" class="outline-button" id="parentInviteClose">Close</button>
+                    <button type="button" class="outline-button" id="parentInviteShare">Share</button>
+                    <button type="button" class="primary-button" id="parentInviteCopy">Copy instructions</button>
+                  </div>
+                  <small class="parent-invite-note">No SMS is sent automatically. You can share the copied message through SMS, Messenger, or another channel.</small>
+                </div>
+              </div>
+              <section id="studentScannerCard" class="student-scanner-card" aria-label="Learner and teacher gate QR scanner">
+                <div class="student-scanner-heading"><div><h3 id="gateScannerHeading">Learner and teacher QR scanner</h3><p id="gateScannerDescription">Scan an authorized learner or teacher QR code to identify the person and record attendance.</p></div><button class="outline-button" type="button" id="studentScannerToggle">Open scanner</button></div>
+                <div id="gateScanHelp" class="gate-scan-help" hidden>
+                  <div class="gate-scan-help-item"><strong>Learner gate attendance</strong><span>Scan the learner's JHS QR card.</span></div>
+                  <div class="gate-scan-help-item"><strong>Teacher gate attendance</strong><span>Scan the teacher's TCH QR badge.</span></div>
+                  <label id="gateScanTypeWrap" class="gate-scan-type">Who are you recording?
+                    <select id="gateScanType">
+                      <option value="BOTH">Automatic — learners and teachers</option>
+                      <option value="STUDENT">Learner attendance only</option>
+                      <option value="TEACHER">Teacher attendance only</option>
+                    </select>
+                  </label>
+                  <p>The scanner follows your selection. Compare the registered photo, confirm the match, then record time-in or time-out.</p>
+                </div>
+                <div id="studentScannerPanel" hidden>
+                  <div id="studentQrReader" class="student-qr-reader"></div>
+                  <div class="student-scanner-controls">
+                    <div class="scan-mode-summary" id="scanModeSummary">Attendance settings selected. Camera is ready.</div>
+                    <button class="outline-button" type="button" id="studentScannerStop">Stop camera</button>
+                  </div>
+                  <p id="studentScanFeedback" class="scanner-feedback" role="status">Scanner is ready.</p>
+                  <div id="studentScanResult" class="student-scan-result" hidden></div>
+                  <div id="studentScanNotice" class="student-scan-notice-overlay" role="dialog" aria-modal="true" aria-labelledby="studentScanNoticeTitle" hidden>
+                    <div class="student-scan-notice-dialog">
+                      <div class="student-scan-success-icon" aria-hidden="true">✓</div>
+                      <div class="student-scan-success-kicker">QR CODE RECOGNIZED</div>
+                      <h3 id="studentScanNoticeTitle">Scan successful!</h3>
+                      <p class="student-scan-notice-copy">The person was found. Compare the registered photo before recording gate attendance.</p>
+                      <img id="studentScanNoticePhoto" class="student-scan-verified-photo" alt="Registered student photo" hidden>
+                      <strong id="studentScanNoticeName" class="student-scan-notice-name"></strong>
+                      <span id="studentScanNoticeMeta" class="student-scan-notice-meta"></span>
+                      <button type="button" class="primary-button" id="studentScanNoticeContinue">Continue to attendance action</button>
+                    </div>
+                  </div>
+                </div>
+              </section>
+              <div id="studentScanSetupModal" class="student-scan-setup-overlay" role="dialog" aria-modal="true" aria-labelledby="scanSetupTitle" hidden>
+                <div class="student-scan-setup-dialog">
+                  <div class="scan-setup-icon" aria-hidden="true">▦</div>
+                  <div class="eyebrow muted">ATTENDANCE SETUP</div>
+                  <h3 id="scanSetupTitle">Prepare QR scanner</h3>
+                  <p class="scan-setup-description">Choose where this attendance record should be saved. The camera will start after you confirm.</p>
+                  <label class="scan-setup-field">Attendance scope
+                    <select id="scanSetupScope">
+                      <option value="SCHOOL">School attendance (gate time-in / time-out)</option>
+                      <option value="CLASS">Class / subject attendance</option>
+                    </select>
+                  </label>
+                  <label id="scanSetupPeriodWrap" class="scan-setup-field" hidden>Class / subject
+                    <select id="scanSetupPeriod"><option value="">Select assigned schedule</option></select>
+                    <small id="scanSetupPeriodHint">Choose the assigned schedule for this attendance session.</small>
+                  </label>
+                  <div class="scan-setup-actions">
+                    <button type="button" class="outline-button" id="scanSetupCancel">Cancel</button>
+                    <button type="button" class="primary-button" id="scanSetupStart">Start scanning</button>
+                  </div>
+                </div>
+              </div>
+              <div id="studentRosterPanel">
+              <div class="student-roster-tools">
+                <div><h3>Registered students</h3><p>QR previews remain tied to each student's existing private token. Editing details does not replace the QR code.</p></div>
+                <div class="student-filter-row"><label class="student-name-filter">Search by name or student ID <input id="studentRosterSearch" type="search" placeholder="Type a student name or ID…"></label><label>Filter by grade <select id="bulkQrGrade"><option value="ALL">All grades</option><option>Grade 7</option><option>Grade 8</option><option>Grade 9</option><option>Grade 10</option></select></label><label>Filter by section <select id="bulkQrSection"><option value="ALL">All sections</option></select></label></div>
+                <div class="student-bulk-actions"><label><input type="checkbox" id="selectAllStudents"> Select all visible students</label><span id="selectedStudentCount">0 selected</span><button class="primary-button" type="button" id="printBulkQr">Print selected ID cards</button><span id="bulkQrFeedback" class="inline-feedback" role="status"></span></div>
+              </div>
+              <div class="table-scroll"><table><thead><tr><th>Select</th><th>Photo</th><th>Student ID</th><th>Full name</th><th>Grade</th><th>Section</th><th>QR code</th><th>Actions</th><th>Student portal account</th></tr></thead><tbody id="studentRows"><tr><td colspan="9" class="empty-cell">Loading students…</td></tr></tbody></table></div>
+              </div>
+              <div id="studentAccountModal" class="student-edit-overlay" role="dialog" aria-modal="true" aria-labelledby="studentAccountTitle" hidden>
+                <form id="studentAccountForm" class="student-edit-dialog">
+                  <div class="section-toolbar"><div><h3 id="studentAccountTitle">Create student portal account</h3><p id="studentAccountDescription">Username defaults to the Student ID. The student must change the initial password after first sign-in.</p></div><button type="button" class="outline-button" id="closeStudentAccount">Close</button></div>
+                  <input type="hidden" id="studentAccountStudentId">
+                  <div class="form-grid">
+                    <div class="field-group"><label for="studentAccountUsername">Username</label><input id="studentAccountUsername" maxlength="80" required></div>
+                    <div class="field-group"><label for="studentAccountPassword">Initial / new password *</label><input id="studentAccountPassword" type="password" minlength="12" maxlength="256" required autocomplete="new-password"></div>
+                    <div class="field-group"><label for="studentAccountConfirm">Confirm password *</label><input id="studentAccountConfirm" type="password" minlength="12" maxlength="256" required autocomplete="new-password"></div>
+                  </div>
+                  <div class="form-actions"><button type="submit" class="primary-button" id="saveStudentAccount">Save student login</button><span id="studentAccountFeedback" class="inline-feedback" role="status"></span></div>
+                </form>
+              </div>
+              <div id="studentQrPreviewModal" class="student-qr-preview-overlay" role="dialog" aria-modal="true" aria-labelledby="studentQrPreviewTitle" hidden>
+                <div class="student-qr-preview-dialog">
+                  <div class="student-qr-preview-header"><div><div class="eyebrow muted">STUDENT QR CODE</div><h3 id="studentQrPreviewTitle">QR preview</h3></div><button type="button" class="outline-button" id="closeStudentQrPreview">Close</button></div>
+                  <div class="student-qr-preview-content"><img id="studentQrPreviewPhoto" class="student-qr-preview-photo" alt="Student photo" hidden><img id="studentQrPreviewImage" class="student-qr-preview-large" alt="Enlarged student QR code"><strong id="studentQrPreviewName"></strong><span id="studentQrPreviewMeta"></span></div>
+                  <div class="student-qr-preview-actions"><button type="button" class="primary-button" id="studentQrPreviewPrint">Print ID card</button><button type="button" class="outline-button" id="closeStudentQrPreviewBottom">Close</button></div>
+                </div>
+              </div>
+              <p class="form-help">QR codes contain a random private token, not the student's name, LRN, or phone number. Allow pop-ups for this site to print.</p>
+              <div id="studentEditOverlay" class="student-edit-overlay" hidden>
+                <form id="studentEditForm" class="student-edit-dialog">
+                  <div class="section-toolbar"><div><h3>Edit student information</h3><p>Student ID and private QR token remain unchanged.</p></div><button type="button" class="outline-button" id="closeStudentEdit">Close</button></div>
+                  <input type="hidden" id="editStudentId">
+                  <div class="form-grid">
+                    <div class="field-group"><label>Student ID</label><input id="editStudentIdDisplay" disabled></div>
+                    <div class="field-group" id="editLrnGroup"><label for="editLrn">LRN</label><input id="editLrn" maxlength="30"></div>
+                    <div class="field-group span-2"><label for="editFullName">Full name *</label><input id="editFullName" required maxlength="200"></div>
+                    <div class="field-group" id="editGradeGroup"><label for="editGrade">Grade *</label><select id="editGrade" required><option>Grade 7</option><option>Grade 8</option><option>Grade 9</option><option>Grade 10</option></select></div>
+                    <div class="field-group" id="editSectionGroup"><label for="editSection">Section *</label><input id="editSection" required maxlength="100"></div>
+                    <div class="field-group" id="editParentNameGroup"><label for="editParentName">Parent / guardian</label><input id="editParentName" maxlength="160"></div>
+                    <div class="field-group" id="editParentMobileGroup"><label for="editParentMobile">Parent mobile</label><input id="editParentMobile" maxlength="30"></div>
+                  </div>
+                  <div class="form-actions"><button class="primary-button" type="submit" id="saveStudentEdit">Save changes</button><span id="studentEditFeedback" class="inline-feedback"></span></div>
+                </form>
+              </div>
+            </div>
+          </section>
+
+          <section id="schedulesView" class="view-panel" hidden>
+            <div class="surface-card section-card">
+              <div class="section-toolbar"><div><h3>Class schedules and subjects</h3><p id="scheduleScopeText">Schedules available to your account.</p></div><button class="primary-button" id="showScheduleForm">＋ Add schedule</button></div>
+              <form id="scheduleForm" class="inline-form" hidden>
+                <div class="form-grid">
+                  <div class="field-group"><label for="periodName">Schedule name *</label><input id="periodName" required maxlength="120" placeholder="Period 1"></div>
+                  <div class="field-group"><label for="subjectName">Subject</label><input id="subjectName" maxlength="120" placeholder="Mathematics"></div>
+                  <div class="field-group"><label for="periodGrade">Grade level *</label><select id="periodGrade" required><option>Grade 7</option><option>Grade 8</option><option>Grade 9</option><option>Grade 10</option></select></div>
+                  <div class="field-group"><label for="periodSection">Section <span id="sectionRequiredMark">(optional)</span></label><input id="periodSection" maxlength="100" placeholder="Section name"><small class="field-hint" id="periodSectionHint">Leave blank to make this schedule available to the whole grade.</small></div>
+                  <div class="field-group"><label for="startTime">Start time *</label><input id="startTime" type="time" value="07:30" required></div>
+                  <div class="field-group"><label for="endTime">End time *</label><input id="endTime" type="time" value="08:30" required></div>
+                  <div class="field-group"><label for="graceMinutes">Grace period (minutes)</label><input id="graceMinutes" type="number" min="0" max="240" value="5"></div>
+                </div>
+                <div class="form-actions"><button class="primary-button" type="submit">Save schedule</button><button class="outline-button" type="button" id="cancelScheduleForm">Cancel</button><span id="scheduleFormFeedback" class="inline-feedback"></span></div>
+              </form>
+              <div class="table-scroll"><table><thead><tr><th>Schedule</th><th>Subject</th><th>Grade</th><th>Section</th><th>Time</th></tr></thead><tbody id="scheduleRows"><tr><td colspan="5" class="empty-cell">Loading schedules…</td></tr></tbody></table></div>
+            </div>
+          </section>
+
+          <section id="teachersView" class="view-panel" hidden>
+            <div class="surface-card section-card">
+              <div class="section-toolbar">
+                <div><h3 id="teacherMonitorTitle">Teacher accounts</h3><p id="teacherMonitorDescription">Manage teachers and assign them to this school's class schedules.</p></div>
+                <button class="primary-button" id="showTeacherForm">＋ Add staff account</button>
+              </div>
+              <form id="teacherForm" class="inline-form" hidden>
+                <div class="form-grid">
+                  <div class="field-group"><label for="newAccountRole">Account role *</label><select id="newAccountRole" required><option value="TEACHER">Teacher</option><option value="DEPARTMENT_HEAD">Department Head</option><option value="GATE_KEEPER">Gate Keeper</option></select></div>
+                  <div class="field-group"><label for="newTeacherUsername">Username *</label><input id="newTeacherUsername" required maxlength="80" autocomplete="off" placeholder="e.g. teacher.delacruz"></div>
+                  <div class="field-group"><label for="newTeacherName">Display name *</label><input id="newTeacherName" required maxlength="160" autocomplete="name" placeholder="Teacher full name"></div>
+                  <div class="field-group"><label for="newTeacherPassword">Initial password *</label><input id="newTeacherPassword" type="password" required minlength="12" maxlength="256" autocomplete="new-password" placeholder="At least 12 characters"></div>
+                  <div class="field-group"><label for="confirmTeacherPassword">Confirm password *</label><input id="confirmTeacherPassword" type="password" required minlength="12" maxlength="256" autocomplete="new-password" placeholder="Repeat initial password"></div>
+                </div>
+                <fieldset id="teacherDesignationFields" class="teacher-designation-fields">
+                  <legend>Teacher designation</legend>
+                  <label><input type="checkbox" id="designationSubjectTeacher" value="SUBJECT_TEACHER" checked> Subject Teacher — handles assigned subject schedules</label>
+                  <label><input type="checkbox" id="designationClassAdviser" value="CLASS_ADVISER"> Class Adviser — handles assigned section and consolidated SF2</label>
+                  <small>A teacher may have one designation or both. Existing subject schedule assignments are preserved.</small>
+                </fieldset>
+                <div class="form-actions"><button class="primary-button" type="submit" id="saveTeacherButton">Create account</button><button class="outline-button" type="button" id="cancelTeacherForm">Cancel</button><span id="teacherFormFeedback" class="inline-feedback"></span></div>
+                <p class="form-help">Passwords must be at least 12 characters. The password is stored as a secure hash and is not displayed again.</p>
+              </form>
+              <div class="table-scroll">
+                <table class="teacher-monitor-table">
+                  <thead><tr><th>Teacher / designation</th><th>Status</th><th>Grade level</th><th>Section</th><th>Assigned schedules</th><th id="teacherActionHeader">Account action</th></tr></thead>
+                  <tbody id="teacherRows"><tr><td colspan="6" class="empty-cell">Loading teachers…</td></tr></tbody>
+                </table>
+              </div>
+            </div>
+            <div class="scope-note teacher-management-note"><span>✓</span><p>Assignments are limited to this school. On Leave temporarily disables login while preserving class assignments and attendance history. Teachers can be returned manually or automatically on the expected return date.</p></div>
+            <div class="surface-card section-card staff-accounts-card">
+              <div class="section-toolbar"><div><h3>School staff accounts</h3><p>Department Heads and Gate Keepers have separate permissions from teachers.</p></div></div>
+              <div class="table-scroll"><table><thead><tr><th>Account</th><th>Role</th><th>Status</th></tr></thead><tbody id="staffUserRows"><tr><td colspan="3" class="empty-cell">Loading accounts…</td></tr></tbody></table></div>
+            </div>
+            <div class="surface-card section-card adviser-assignments-card">
+              <div class="section-toolbar"><div><h3>Class Adviser assignments</h3><p>Assign one Class Adviser to each grade-and-section combination.</p></div></div>
+              <form id="adviserAssignmentForm" class="inline-form">
+                <div class="form-grid">
+                  <div class="field-group"><label for="adviserTeacherSelect">Class Adviser *</label><select id="adviserTeacherSelect" required><option value="">Select teacher</option></select></div>
+                  <div class="field-group"><label for="adviserGradeInput">Grade level *</label><select id="adviserGradeInput" required><option>Grade 7</option><option>Grade 8</option><option>Grade 9</option><option>Grade 10</option></select></div>
+                  <div class="field-group"><label for="adviserSectionInput">Section *</label><input id="adviserSectionInput" required maxlength="100" placeholder="e.g. Section A"></div>
+                </div>
+                <div class="form-actions"><button class="primary-button" type="submit" id="saveAdviserAssignment">Save adviser assignment</button><span id="adviserAssignmentFeedback" class="inline-feedback" role="status"></span></div>
+              </form>
+              <div class="table-scroll"><table><thead><tr><th>Grade</th><th>Section</th><th>Class Adviser</th><th>Action</th></tr></thead><tbody id="adviserAssignmentRows"><tr><td colspan="4" class="empty-cell">No class adviser assignments.</td></tr></tbody></table></div>
+            </div>
+          </section>
+        </section>
+
+        <section id="platformWorkspace" class="view-panel" hidden>
+          <div class="platform-welcome surface-card">
+            <div class="platform-icon">⌘</div>
+            <div><div class="eyebrow muted">PLATFORM OWNER</div><h2>Platform authentication verified</h2><p>Your Super Administrator account is signed in. The school onboarding, subscription, and platform-wide management APIs are the next backend milestone; this page does not display invented platform statistics.</p></div>
+          </div>
+          <div class="platform-next surface-card"><h3>Next platform modules</h3><div class="platform-module-grid"><div><strong>School onboarding</strong><span>Register schools and their first administrator.</span></div><div><strong>Subscription management</strong><span>Configure school licensing and plans.</span></div><div><strong>Platform monitoring</strong><span>Review synchronization health and deployment status.</span></div></div></div>
+        </section>
+        <footer class="content-footer">School Attendance · Hybrid deployment · Asia/Manila</footer>
+      </div>
+    </main>
+  </div>
+  <div id="toast" class="toast" role="status" aria-live="polite"></div>
+  <script src="/password-visibility.js" defer></script>
+  <script src="/vendor/html5-qrcode.min.js" defer></script>
+  <script src="/portal.js?v=0.8.2" defer></script>
+</body>
+</html>
