@@ -2079,6 +2079,16 @@ app.get('/api/admin/dashboard', authenticateSchoolClient, requireSchoolUser, asy
 app.get('/vendor/html5-qrcode.min.js', (_req, res) =>
   res.sendFile(path.join(__dirname, 'node_modules', 'html5-qrcode', 'html5-qrcode.min.js'))
 );
+// Main application login page
+app.get('/', (_req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'portal-login.html'));
+});
+
+// Retire the legacy Attendance Desk landing page
+app.get('/index.html', (_req, res) => {
+  res.redirect('/');
+});
+
 app.use(express.static(path.join(__dirname, 'public')));
 app.use('/api', (_req, res) => res.status(404).json({ error: 'API endpoint not found.' }));
 
