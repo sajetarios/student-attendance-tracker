@@ -1760,9 +1760,9 @@ app.post('/api/sync/events', authenticateSchoolClient, requireSchoolClient, asyn
       if (!event || !event.eventId || !event.studentId || !event.eventType || !event.occurredAt ||
           !isValidSchoolDate(event.schoolDate) || !event.attendanceScope ||
           !['TIME_IN', 'TIME_OUT'].includes(event.eventType) ||
-          !['SCHOOL', 'CLASS'].includes(event.attendanceScope) ||
+          !['SCHOOL', 'CLASS', 'ADVISORY'].includes(event.attendanceScope) ||
           (event.attendanceScope === 'CLASS' && !event.periodId) ||
-          (event.attendanceScope === 'SCHOOL' && event.periodId) ||
+          (['SCHOOL', 'ADVISORY'].includes(event.attendanceScope) && event.periodId) ||
           !Number.isFinite(Date.parse(event.occurredAt))) {
         results.push({ eventId: event?.eventId || null, status: 'REJECTED', reason: 'Invalid or missing event fields.' });
         continue;
@@ -1771,13 +1771,16 @@ app.post('/api/sync/events', authenticateSchoolClient, requireSchoolClient, asyn
         results.push({ eventId: event.eventId, status: 'REJECTED', reason: 'Gate device credentials may submit school-level attendance only.' });
         continue;
       }
-      if (req.auth.type === 'SCHOOL_USER' && req.auth.role === 'TEACHER' && event.attendanceScope !== 'CLASS') {
-        results.push({ eventId: event.eventId, status: 'REJECTED', reason: 'Teachers may submit assigned class attendance only.' });
+      if (req.auth.type === 'SCHOOL_USER' && req.auth.role === 'TEACHER' && !['CLASS', 'ADVISORY'].includes(event.attendanceScope)) {
+        results.push({ eventId: event.eventId, status: 'REJECTED', reason: 'Teachers may submit subject or assigned advisory attendance only.' });
         continue;
       }
-      if (req.auth.type === 'SCHOOL_USER' && req.auth.role === 'TEACHER' &&
-          !req.auth.teacherDesignations?.includes('SUBJECT_TEACHER')) {
+      if (req.auth.type === 'SCHOOL_USER' && req.auth.role === 'TEACHER' && event.attendanceScope === 'CLASS' && !req.auth.teacherDesignations?.includes('SUBJECT_TEACHER')) {
         results.push({ eventId: event.eventId, status: 'REJECTED', reason: 'This teacher account is not designated to record subject attendance.' });
+        continue;
+      }
+      if (req.auth.type === 'SCHOOL_USER' && req.auth.role === 'TEACHER' && event.attendanceScope === 'ADVISORY' && !req.auth.teacherDesignations?.includes('CLASS_ADVISER')) {
+        results.push({ eventId: event.eventId, status: 'REJECTED', reason: 'This teacher account is not designated to record advisory attendance.' });
         continue;
       }
       if (req.auth.type === 'SCHOOL_USER' && req.auth.role === 'GATE_KEEPER' && event.attendanceScope !== 'SCHOOL') {
@@ -1836,6 +1839,16 @@ app.post('/api/sync/events', authenticateSchoolClient, requireSchoolClient, asyn
           continue;
         }
         late = event.eventType === 'TIME_IN' && isLateForPeriod(event.occurredAt, period);
+      } else if (event.attendanceScope === 'ADVISORY') {
+        const adviser = await client.query(
+          `SELECT 1 FROM class_adviser_assignments
+           WHERE school_id=$1 AND adviser_user_id=$2 AND grade_level=$3 AND section=$4 LIMIT 1`,
+          [req.auth.schoolId, req.auth.userId, student.rows[0].grade_level, student.rows[0].section]
+        );
+        if (req.auth.type !== 'SCHOOL_USER' || req.auth.role !== 'TEACHER' || !adviser.rowCount) {
+          results.push({ eventId: event.eventId, status: 'REJECTED', reason: 'Teacher is not the assigned Class Adviser for this learner section.' });
+          continue;
+        }
       } else if (event.eventType === 'TIME_IN') {
         const setting = await client.query(
           `SELECT setting_value FROM school_settings
@@ -1897,7 +1910,7 @@ app.post('/api/sync/events', authenticateSchoolClient, requireSchoolClient, asyn
         const action = event.eventType === 'TIME_IN' ? 'checked in' : 'checked out';
         const context = event.attendanceScope === 'CLASS'
           ? ` for ${period.period_name}${period.subject_name ? ` (${period.subject_name})` : ''}`
-          : ' at school';
+          : event.attendanceScope === 'ADVISORY' ? ' in the advisory class' : ' at school';
         const lateText = late ? 'LATE ARRIVAL: ' : '';
         const message = `${lateText}${student.rows[0].full_name} ${action}${context} at ${time}.`;
         await client.query(
