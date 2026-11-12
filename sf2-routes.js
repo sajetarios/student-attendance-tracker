@@ -3,7 +3,7 @@
 const ExcelJS = require('exceljs');
 const path = require('path');
 const fs = require('fs/promises');
-const TEMPLATE = path.join(__dirname, 'templates', 'TUVERA SF2 (SY 2026-2027).xlsx');
+const TEMPLATE = path.join(__dirname, 'templates', 'School Form 2 (SF2) Daily Attendance Report of Learners.xlsx');
 const SF2_STORAGE = path.join(__dirname, 'storage', 'sf2');
 const MONTHS = ['JANUARY','FEBRUARY','MARCH','APRIL','MAY','JUNE','JULY','AUGUST','SEPTEMBER','OCTOBER','NOVEMBER','DECEMBER'];
 const validMonth = value => /^\d{4}-(0[1-9]|1[0-2])$/.test(value || '');
@@ -129,6 +129,7 @@ function registerSf2Routes(app, pool, { authenticateSchoolClient, requireSchoolU
        ORDER BY full_name`,
       [req.auth.schoolId, gradeLevel, section]
     );
+
     let present;
     if (access.mode === 'PERSONAL') {
       present = await pool.query(
@@ -168,6 +169,8 @@ function registerSf2Routes(app, pool, { authenticateSchoolClient, requireSchoolU
     }
 
     let absent = { rows: [] };
+    let tardy = { rows: [] };
+
     if (access.mode === 'OFFICIAL') {
       absent = await pool.query(
         `SELECT o.student_id AS id,o.school_date::text AS date,o.absence_type AS "absenceType"
@@ -177,20 +180,45 @@ function registerSf2Routes(app, pool, { authenticateSchoolClient, requireSchoolU
            AND o.school_date >= $4::date AND o.school_date < ($4::date + INTERVAL '1 month')`,
         [req.auth.schoolId, gradeLevel, section, dateFrom]
       );
+
+      tardy = await pool.query(
+        `SELECT e.student_id AS id,COUNT(DISTINCT e.school_date)::int AS count
+         FROM attendance_events e
+         JOIN students s ON s.school_id=e.school_id AND s.student_id=e.student_id
+         WHERE e.school_id=$1 AND s.grade_level=$2 AND s.section=$3
+           AND e.attendance_scope='SCHOOL'
+           AND e.event_type='TIME_IN'
+           AND e.late=TRUE
+           AND e.sync_status='ACCEPTED'
+           AND e.school_date >= $4::date
+           AND e.school_date < ($4::date + INTERVAL '1 month')
+         GROUP BY e.student_id`,
+        [req.auth.schoolId, gradeLevel, section, dateFrom]
+      );
     }
 
     const dates = datesFor(month);
     const presentSet = new Set(present.rows.map(row => `${row.id}|${String(row.date).slice(0, 10)}`));
     const absentMap = new Map(absent.rows.map(row => [`${row.id}|${String(row.date).slice(0, 10)}`, row.absenceType]));
+    const tardyMap = new Map(tardy.rows.map(row => [row.id, Number(row.count) || 0]));
+
+    const conflictSet = new Set(
+      [...presentSet].filter(key => absentMap.has(key))
+    );
+
     const rows = students.rows.map(student => ({
       ...student,
+      tardyCount: tardyMap.get(student.id) || 0,
       days: dates.map(date => {
-        if (presentSet.has(`${student.id}|${date}`)) return 'PRESENT';
+        const key = `${student.id}|${date}`;
+        if (conflictSet.has(key)) return 'CONFLICT';
+        if (presentSet.has(key)) return 'PRESENT';
         if (access.mode === 'PERSONAL') return 'NO_RECORD';
         if (absentMap.has(`${student.id}|${date}`)) return 'ABSENT';
         return 'PENDING';
       })
     }));
+
     return {
       dates,
       students: rows,
@@ -198,6 +226,7 @@ function registerSf2Routes(app, pool, { authenticateSchoolClient, requireSchoolU
         present: rows.reduce((count, row) => count + row.days.filter(status => status === 'PRESENT').length, 0),
         absent: rows.reduce((count, row) => count + row.days.filter(status => status === 'ABSENT').length, 0),
         pending: rows.reduce((count, row) => count + row.days.filter(status => status === 'PENDING').length, 0),
+        conflicts: rows.reduce((count, row) => count + row.days.filter(status => status === 'CONFLICT').length, 0),
         noRecord: rows.reduce((count, row) => count + row.days.filter(status => status === 'NO_RECORD').length, 0),
         missingSex: rows.filter(row => !['MALE', 'FEMALE'].includes(String(row.sex || '').toUpperCase())).length
       }
@@ -205,69 +234,138 @@ function registerSf2Routes(app, pool, { authenticateSchoolClient, requireSchoolU
   }
 
   async function buildOfficialWorkbook(req, month, gradeLevel, section, data) {
-    try { await fs.access(TEMPLATE); } catch { const error = new Error('TUVERA SF2 template is missing.'); error.status = 500; throw error; }
-    if (data.dates.length > 25) { const error = new Error('The selected month has more than 25 weekdays; confirm the school calendar before exporting.'); error.status = 409; throw error; }
-    if (data.summary.pending) { const error = new Error(`${data.summary.pending} learner-day record(s) are unresolved. A Class Adviser must review the full subject attendance before confirming an absence.`); error.status = 409; throw error; }
-    if (data.summary.missingSex) { const error = new Error(`${data.summary.missingSex} learner(s) need Male/Female classification before official SF2 generation.`); error.status = 409; throw error; }
+    try {
+      await fs.access(TEMPLATE);
+    } catch {
+      const error = new Error('Official DepEd SF2 template is missing.');
+      error.status = 500;
+      throw error;
+    }
+
+    if (data.dates.length > 25) {
+      const error = new Error('The selected month has more than 25 weekdays; confirm the school calendar before exporting.');
+      error.status = 409;
+      throw error;
+    }
+    if (data.summary.conflicts) {
+      const error = new Error(`${data.summary.conflicts} learner-day record(s) have conflicting attendance: an accepted check-in and a confirmed absence exist for the same date. A Class Adviser must resolve these conflicts before official SF2 generation.`);
+      error.status = 409;
+      throw error;
+    }
+    if (data.summary.pending) {
+      const error = new Error(`${data.summary.pending} learner-day record(s) are unresolved. A Class Adviser must review the full subject attendance before confirming an absence.`);
+      error.status = 409;
+      throw error;
+    }
+    if (data.summary.missingSex) {
+      const error = new Error(`${data.summary.missingSex} learner(s) need Male/Female classification before official SF2 generation.`);
+      error.status = 409;
+      throw error;
+    }
+
     const boys = data.students.filter(student => String(student.sex).toUpperCase() === 'MALE');
     const girls = data.students.filter(student => String(student.sex).toUpperCase() === 'FEMALE');
-    if (boys.length > 50 || girls.length > 50) { const error = new Error('Template supports up to 50 male and 50 female learners per section.'); error.status = 409; throw error; }
+
+    if (boys.length > 21 || girls.length > 25) {
+      const error = new Error(`The official SF2 template supports 21 male learners and 25 female learners. Current section: ${boys.length} male, ${girls.length} female.`);
+      error.status = 409;
+      throw error;
+    }
 
     const workbook = new ExcelJS.Workbook();
     await workbook.xlsx.readFile(TEMPLATE);
-    const worksheet = workbook.getWorksheet('Copy') || workbook.worksheets[0];
+
+    const worksheet = workbook.worksheets[0];
+    if (!worksheet) {
+      const error = new Error('The official SF2 workbook does not contain a worksheet.');
+      error.status = 500;
+      throw error;
+    }
+
     const [year, monthNumber] = month.split('-').map(Number);
     const school = await pool.query(
       `SELECT setting_key,setting_value FROM school_settings
        WHERE school_id=$1 AND setting_key IN ('school_name','school_id','school_year')`,
       [req.auth.schoolId]
     );
+
     const config = Object.fromEntries(school.rows.map(row => [row.setting_key, row.setting_value]));
     const setting = key => {
       const value = config[key];
       return typeof value === 'string' ? value : (value?.value || value?.name || '');
     };
-    worksheet.getCell('G6').value = setting('school_id') || String(req.auth.schoolId);
-    worksheet.getCell('G7').value = setting('school_name') || 'SCHOOL NAME';
-    worksheet.getCell('N6').value = setting('school_year') || `${year}-${year + 1}`;
-    worksheet.getCell('AA6').value = MONTHS[monthNumber - 1];
-    worksheet.getCell('AA7').value = gradeLevel;
-    worksheet.getCell('AF7').value = section;
-    worksheet.getCell('AQ9').value = data.dates.length;
-    for (let column = 7; column <= 31; column++) {
-      worksheet.getCell(10, column).value = null;
+
+    // Official template header fields: write only to merged-cell anchors.
+    worksheet.getCell('C6').value = setting('school_id') || String(req.auth.schoolId);
+    worksheet.getCell('K6').value = setting('school_year') || `${year}-${year + 1}`;
+    worksheet.getCell('X6').value = MONTHS[monthNumber - 1];
+    worksheet.getCell('C8').value = setting('school_name') || 'SCHOOL NAME';
+    worksheet.getCell('X8').value = gradeLevel;
+    worksheet.getCell('AC8').value = section;
+
+    // Row 10 is a merged instruction cell and must remain untouched.
+    // Dates go in row 11; weekday abbreviations go in row 12.
+    for (let dayIndex = 0; dayIndex < 25; dayIndex++) {
+      const column = 4 + dayIndex;
       worksheet.getCell(11, column).value = null;
+      worksheet.getCell(12, column).value = null;
     }
+
     data.dates.forEach((date, index) => {
       const day = new Date(`${date}T00:00:00Z`);
-      const column = 7 + index;
-      worksheet.getCell(10, column).value = day;
-      worksheet.getCell(10, column).numFmt = 'd';
-      worksheet.getCell(11, column).value = ['', 'M', 'T', 'W', 'TH', 'F', ''][day.getUTCDay()];
+      const column = 4 + index;
+      worksheet.getCell(11, column).value = day;
+      worksheet.getCell(11, column).numFmt = 'd';
+      worksheet.getCell(12, column).value = ['', 'M', 'T', 'W', 'TH', 'F', ''][day.getUTCDay()];
     });
-    const present = new Set();
-    const absent = new Set();
-    data.students.forEach(student => student.days.forEach((status, index) => {
-      const key = `${student.id}|${data.dates[index]}`;
-      if (status === 'PRESENT') present.add(key);
-      if (status === 'ABSENT') absent.add(key);
-    }));
-    const fill = (students, startRow) => {
-      for (let index = 0; index < 50; index++) {
-        const row = startRow + index;
+
+    const fillGroup = (students, firstRow, capacity, totalRow) => {
+      const dailyPresent = Array(data.dates.length).fill(0);
+
+      for (let index = 0; index < capacity; index++) {
+        const row = firstRow + index;
         const student = students[index];
+
         worksheet.getCell(row, 1).value = student ? index + 1 : null;
         worksheet.getCell(row, 2).value = student ? student.name : null;
+
         for (let dayIndex = 0; dayIndex < 25; dayIndex++) {
-          const cell = worksheet.getCell(row, 7 + dayIndex);
+          const column = 4 + dayIndex;
+          const cell = worksheet.getCell(row, column);
           cell.value = null;
-          if (student && data.dates[dayIndex] && absent.has(`${student.id}|${data.dates[dayIndex]}`)) cell.value = 'X';
+
+          if (!student || dayIndex >= data.dates.length) continue;
+
+          const status = student.days[dayIndex];
+          if (status === 'ABSENT') {
+            cell.value = 'X';
+          } else if (status === 'PRESENT') {
+            dailyPresent[dayIndex]++;
+          }
         }
+
+        worksheet.getCell(row, 29).value = student
+          ? student.days.filter(status => status === 'ABSENT').length
+          : null;
+        worksheet.getCell(row, 30).value = student
+          ? (Number(student.tardyCount) || 0)
+          : null;
       }
+
+      data.dates.forEach((date, index) => {
+        worksheet.getCell(totalRow, 4 + index).value = dailyPresent[index];
+      });
+
+      return dailyPresent;
     };
-    fill(boys, 13);
-    fill(girls, 64);
-    worksheet.getCell('AJ117').value = data.dates.length;
+
+    const maleDaily = fillGroup(boys, 14, 21, 35);
+    const femaleDaily = fillGroup(girls, 36, 25, 61);
+
+    data.dates.forEach((date, index) => {
+      worksheet.getCell(62, 4 + index).value = maleDaily[index] + femaleDaily[index];
+    });
+
     return Buffer.from(await workbook.xlsx.writeBuffer());
   }
 
