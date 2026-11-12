@@ -161,7 +161,7 @@ function registerSf2Routes(app, pool, { authenticateSchoolClient, requireSchoolU
          FROM attendance_events e
          JOIN students s ON s.school_id=e.school_id AND s.student_id=e.student_id
          WHERE e.school_id=$1 AND s.grade_level=$2 AND s.section=$3
-           AND e.attendance_scope='CLASS' AND e.event_type='TIME_IN'
+           AND e.attendance_scope IN ('CLASS','ADVISORY') AND e.event_type='TIME_IN'
            AND COALESCE(e.sync_status,'ACCEPTED')='ACCEPTED'
            AND e.school_date >= $4::date AND e.school_date < ($4::date + INTERVAL '1 month')`,
         [req.auth.schoolId, gradeLevel, section, dateFrom]
@@ -542,7 +542,7 @@ function registerSf2Routes(app, pool, { authenticateSchoolClient, requireSchoolU
         canSubmit: Boolean(access.canSubmit),
         note: access.mode === 'PERSONAL'
           ? 'Personal subject-teacher copy: NR means this teacher has no accepted subject time-in record for that learner/date. NR is not an absence.'
-          : 'Official daily SF2 view: a learner is Present if at least one accepted subject time-in exists. A missing record stays Pending until the assigned Class Adviser reviews all scheduled subjects and confirms the absence.',
+          : 'Official daily SF2 view: a learner is Present if at least one accepted class, subject, or advisory time-in exists. A missing record stays Pending until the assigned Class Adviser reviews attendance and confirms the absence.',
         calendarNote: 'The current report includes weekdays only. School holidays, suspensions, and special non-class days are not yet connected to a school calendar.'
       });
     } catch (err) {
