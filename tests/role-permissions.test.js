@@ -22,7 +22,9 @@ test('Department Head is a monitor, not an SF2 collector', () => {
   assert.equal(hasPermission('DEPARTMENT_HEAD', 'teachers.view'), true);
   assert.equal(hasPermission('DEPARTMENT_HEAD', 'sf2.submissions.collect'), false);
   assert.equal(hasPermission('DEPARTMENT_HEAD', 'teachers.manage'), false);
-  assert.equal(hasPermission('DEPARTMENT_HEAD', 'students.view.all'), true);\n  assert.equal(hasPermission('DEPARTMENT_HEAD', 'students.export'), true);\n  assert.equal(hasPermission('DEPARTMENT_HEAD', 'students.manage'), false);
+  assert.equal(hasPermission('DEPARTMENT_HEAD', 'students.view.all'), true);
+  assert.equal(hasPermission('DEPARTMENT_HEAD', 'students.export'), true);
+  assert.equal(hasPermission('DEPARTMENT_HEAD', 'students.manage'), false);
   assert.equal(hasPermission('DEPARTMENT_HEAD', 'students.photo.view'), false);
   assert.equal(hasPermission('DEPARTMENT_HEAD', 'teachers.substitutions.manage'), true);
   assert.equal(hasPermission('DEPARTMENT_HEAD', 'sf2.official.preview'), true);
