@@ -418,7 +418,7 @@
                 <div><h3>03 · Synchronize school master data</h3><p>Do this after the secure connection test and before attendance forwarding.</p></div>
                 <span class="cloud-sync-state" id="masterDataSyncState">Not yet synchronized</span>
               </div>
-              <p class="cloud-sync-step-copy">This sends the current school identity, learner roster identifiers and class placement, staff identity references, school years and enrollments, schedules, teacher/adviser assignments, calendar entries, and special-program information and the school name / ID / school-year reporting settings. It is a repeatable one-way update; it does not delete cloud records.</p>
+              <p class="cloud-sync-step-copy">This sends the current school identity, learner roster identifiers and class placement, staff identity references, school years and enrollments, schedules, teacher/adviser assignments, calendar entries, and special-program information and the school name / ID / school-year reporting settings. It is a repeatable one-way update; it does not delete cloud records. Source-side deletions or unassignments are not propagated, so review obsolete cloud records manually.</p>
               <div class="cloud-sync-metrics">
                 <div class="cloud-sync-metric"><span>Local learners</span><strong id="masterDataStudentsCount">—</strong></div>
                 <div class="cloud-sync-metric"><span>Staff identities</span><strong id="masterDataStaffCount">—</strong></div>
