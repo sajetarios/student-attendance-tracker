@@ -137,6 +137,45 @@
 </style>
 <link rel="stylesheet" href="/responsive.css?v=0.8.2">
 <link rel="stylesheet" href="/comfort-ui.css?v=0.8.2">
+<style id="cloud-sync-ui-styles">
+  .cloud-sync-intro{display:flex;align-items:flex-start;justify-content:space-between;gap:20px;margin:4px 0 20px;padding:22px 24px;border:1px solid #cfe0ec;border-radius:16px;background:linear-gradient(120deg,#f3f9fd,#fff)}
+  .cloud-sync-eyebrow{display:block;margin-bottom:7px;color:#087ca8;font-size:12px;font-weight:800;letter-spacing:1.2px}
+  .cloud-sync-intro h3{margin:0 0 7px;color:#18364e;font-size:22px}
+  .cloud-sync-intro p,.cloud-sync-step-copy{margin:0;color:#5d7182;font-size:14px;line-height:1.55}
+  .cloud-sync-state{display:inline-flex;align-items:center;white-space:nowrap;padding:7px 11px;border:1px solid #d7e2ea;border-radius:999px;background:#f6f9fb;color:#465e70;font-size:12px;font-weight:750}
+  .cloud-sync-setup-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}
+  .cloud-sync-step{min-width:0}
+  .cloud-sync-step-heading{display:flex;align-items:flex-start;gap:12px;margin-bottom:13px}
+  .cloud-sync-step-heading h3{margin:1px 0 3px;color:#203c52;font-size:18px}
+  .cloud-sync-step-heading p{margin:0;color:#718394;font-size:13px}
+  .cloud-sync-step-number{display:grid;place-items:center;flex:0 0 36px;height:36px;border-radius:11px;background:#eaf4fb;color:#14648e;font-weight:850}
+  .cloud-sync-step-copy{margin:0 0 16px}
+  .cloud-sync-token-panel{display:grid;gap:9px;margin-top:16px;padding:14px;border:1px solid #cfe0ec;border-radius:12px;background:#f7fbfe}
+  .cloud-sync-token-panel textarea{width:100%;box-sizing:border-box;min-height:76px;padding:10px;border:1px solid #cbd8e5;border-radius:8px;font:13px/1.45 ui-monospace,monospace;overflow-wrap:anywhere}
+  .cloud-sync-master-card,.cloud-sync-activation-card{margin-top:16px}
+  .cloud-sync-metrics{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin:15px 0}
+  .cloud-sync-metric{padding:12px 14px;border:1px solid #e0e8ee;border-radius:11px;background:#fbfdff;min-width:0}
+  .cloud-sync-metric span{display:block;color:#687d8e;font-size:12px;font-weight:650}
+  .cloud-sync-metric strong{display:block;margin-top:4px;color:#1d3c54;font-size:22px;font-variant-numeric:tabular-nums}
+  .cloud-sync-receipt-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin:15px 0}
+  .cloud-sync-receipt{display:grid;gap:6px;padding:14px;border:1px solid #dde8ef;border-radius:11px}
+  .cloud-sync-receipt strong{color:#29475f;font-size:13px}
+  .cloud-sync-receipt span{color:#18364e;font-size:14px;font-weight:750}
+  .cloud-sync-receipt small{color:#718394;font-size:12px;line-height:1.45}
+  .cloud-sync-error{padding:10px 12px;border-left:4px solid #c2414d;border-radius:6px;background:#fff6f6;color:#a32936;font-size:13px}
+  .cloud-sync-enable-row{align-items:flex-start;margin:8px 0 16px}
+  .cloud-sync-enable-row input{margin-top:4px}
+  .cloud-sync-enable-row small{display:block;margin-top:4px;color:#6b7e8f;font-size:12px;line-height:1.45;font-weight:400}
+  .cloud-sync-privacy-note{padding:14px 16px;border:1px solid #dce7ed;border-radius:11px;background:#f8fbfd}
+  .cloud-sync-privacy-note strong{color:#29475f;font-size:13px}
+  .cloud-sync-privacy-note p{margin:5px 0 0;color:#667b8d;font-size:12px;line-height:1.5}
+  .cloud-sync-actions{display:flex;flex-wrap:wrap;gap:9px}
+  .cloud-sync-recent{margin-top:12px}
+  .cloud-sync-recent li{overflow-wrap:anywhere;line-height:1.5;padding:9px 0;border-bottom:1px solid #e8eef2}
+  @media(max-width:850px){.cloud-sync-setup-grid{grid-template-columns:1fr}.cloud-sync-metrics{grid-template-columns:repeat(2,minmax(0,1fr))}}
+  @media(max-width:560px){.cloud-sync-intro{display:block;padding:18px}.cloud-sync-intro .cloud-sync-state{margin-top:12px}.cloud-sync-receipt-grid{grid-template-columns:1fr}.cloud-sync-metrics{grid-template-columns:repeat(2,minmax(0,1fr))}}
+</style>
+
 </head>
 <body class="portal-page">
   <div class="portal-layout">
@@ -289,48 +328,119 @@
 
 
           <section id="cloudSyncView" class="view-panel" hidden>
-            <div class="surface-card section-card">
-              <div class="section-toolbar">
-                <div><h3>Cloud destination</h3><p>Configure secure replication from this local school server to its matching cloud school.</p></div>
-                <span class="mini-tag" id="cloudSyncStatus">Not configured</span>
+            <div class="cloud-sync-intro">
+              <div>
+                <span class="cloud-sync-eyebrow">LOCAL-TO-CLOUD REPLICATION</span>
+                <h3>Keep the cloud copy aligned with your school server</h3>
+                <p>The local school database remains the source of truth. Pair the two servers, send the school master data, then enable attendance forwarding.</p>
               </div>
-              <form id="cloudSyncForm">
-                <div class="field-group">
-                  <label for="cloudBaseUrl">Cloud server address</label>
-                  <input id="cloudBaseUrl" type="url" inputmode="url" maxlength="500" placeholder="https://your-cloud-server.example" autocomplete="url">
-                  <small class="field-hint">Use the HTTPS base address of the cloud application.</small>
-                </div>
-                <div class="field-group">
-                  <label for="cloudAuthToken">Cloud receiving credential</label>
-                  <input id="cloudAuthToken" type="password" maxlength="256" placeholder="Paste the one-time credential generated on the cloud server" autocomplete="new-password">
-                  <small class="field-hint">The credential is encrypted on this server and is never returned to the browser after saving. Leave blank to keep the saved credential.</small>
-                </div>
-                <label class="check-row" for="cloudSyncEnabled">
-                  <input id="cloudSyncEnabled" type="checkbox">
-                  <span>Enable automatic cloud forwarding</span>
-                </label>
-                <div class="form-actions">
-                  <button class="primary-button" id="saveCloudDestination" type="submit">Save cloud settings</button>
-                  <button class="outline-button" id="testCloudConnection" type="button">Test connection</button>
-                  <button class="outline-button" id="refreshCloudDestination" type="button">↻ Refresh</button>
-                </div>
-              </form>
-              <div class="form-actions">
-                <button class="outline-button" id="generateCloudCredential" type="button">Generate / rotate receiving credential</button>
-                <button class="outline-button" id="syncCloudNow" type="button">Sync now</button>
-                <button class="outline-button" id="retryCloudFailures" type="button">Retry failed records</button>
-              </div>
-              <div id="cloudSyncTokenPanel" hidden>
-                <label for="cloudSyncTokenOutput">One-time receiving credential — copy it now</label>
-                <textarea id="cloudSyncTokenOutput" rows="3" readonly></textarea>
-                <button class="outline-button" id="copyCloudSyncToken" type="button">Copy credential</button>
-              </div>
-              <div id="cloudSyncFeedback" class="inline-feedback" role="status" aria-live="polite"></div>
-              <div class="scope-note"><span>i</span><p><strong>Important:</strong> Generate the receiving credential while logged into the cloud server, then paste it into this local server's settings. The cloud and local school IDs must match. Before enabling forwarding, the cloud must also contain the matching students, class periods, teacher accounts, and teacher/adviser assignments. This module forwards attendance only; it does not yet provision master data. Parent SMS is sent by the local server only; replicated events do not create a second SMS.</p></div>
-              <div class="section-toolbar"><div><h3>Synchronization status</h3><p>Queue activity and recent server responses.</p></div></div>
-              <p><strong>Pending:</strong> <span id="cloudPendingCount">0</span> · <strong>Sending:</strong> <span id="cloudSendingCount">0</span> · <strong>Synced:</strong> <span id="cloudSyncedCount">0</span> · <strong>Failed:</strong> <span id="cloudFailedCount">0</span></p>
-              <ul id="cloudSyncRecent" class="simple-list"></ul>
+              <span class="cloud-sync-state" id="cloudSyncStatus">Not configured</span>
             </div>
+
+            <div class="cloud-sync-setup-grid">
+              <section class="surface-card section-card cloud-sync-step">
+                <div class="cloud-sync-step-heading">
+                  <span class="cloud-sync-step-number">01</span>
+                  <div><h3>Prepare the cloud receiver</h3><p>Open this same screen on the cloud server first.</p></div>
+                </div>
+                <p class="cloud-sync-step-copy">Generate a one-time receiving credential on the cloud server. Copy it and keep it available for the local server pairing step. Rotating it revokes the previous credential immediately.</p>
+                <button class="primary-button" id="generateCloudCredential" type="button">Generate / rotate receiving credential</button>
+                <div id="cloudSyncTokenPanel" class="cloud-sync-token-panel" hidden>
+                  <label for="cloudSyncTokenOutput">One-time receiving credential — copy it now</label>
+                  <textarea id="cloudSyncTokenOutput" rows="3" readonly autocomplete="off"></textarea>
+                  <button class="outline-button" id="copyCloudSyncToken" type="button">Copy credential</button>
+                </div>
+              </section>
+
+              <section class="surface-card section-card cloud-sync-step">
+                <div class="cloud-sync-step-heading">
+                  <span class="cloud-sync-step-number">02</span>
+                  <div><h3>Pair the local school server</h3><p>Complete this on the server that records attendance.</p></div>
+                </div>
+                <form id="cloudSyncForm">
+                  <div class="field-group">
+                    <label for="cloudBaseUrl">Cloud server address</label>
+                    <input id="cloudBaseUrl" type="url" inputmode="url" maxlength="500" placeholder="https://your-cloud-server.example" autocomplete="url">
+                    <small class="field-hint">Enter the HTTPS base address of the cloud application.</small>
+                  </div>
+                  <div class="field-group">
+                    <label for="cloudAuthToken">Cloud receiving credential</label>
+                    <input id="cloudAuthToken" type="password" maxlength="256" placeholder="Paste the one-time cloud credential" autocomplete="new-password">
+                    <small class="field-hint">The saved credential is encrypted on this server and is never returned to the browser. Leave blank to retain the saved credential.</small>
+                  </div>
+                  <div class="form-actions cloud-sync-actions">
+                    <button class="primary-button" id="saveCloudDestination" type="submit">Save pairing settings</button>
+                    <button class="outline-button" id="testCloudConnection" type="button">Test secure connection</button>
+                    <button class="outline-button" id="refreshCloudDestination" type="button">Refresh</button>
+                  </div>
+                </form>
+              </section>
+            </div>
+
+            <section class="surface-card section-card cloud-sync-master-card">
+              <div class="section-toolbar">
+                <div><h3>03 · Synchronize school master data</h3><p>Do this after the secure connection test and before attendance forwarding.</p></div>
+                <span class="cloud-sync-state" id="masterDataSyncState">Not yet synchronized</span>
+              </div>
+              <p class="cloud-sync-step-copy">This sends the current school identity, learner roster identifiers and class placement, staff identity references, school years and enrollments, schedules, teacher/adviser assignments, calendar entries, and special-program information. It is a repeatable one-way update; it does not delete cloud records.</p>
+              <div class="cloud-sync-metrics">
+                <div class="cloud-sync-metric"><span>Local learners</span><strong id="masterDataStudentsCount">—</strong></div>
+                <div class="cloud-sync-metric"><span>Staff identities</span><strong id="masterDataStaffCount">—</strong></div>
+                <div class="cloud-sync-metric"><span>Class periods</span><strong id="masterDataPeriodsCount">—</strong></div>
+                <div class="cloud-sync-metric"><span>School years</span><strong id="masterDataYearsCount">—</strong></div>
+                <div class="cloud-sync-metric"><span>Enrollments</span><strong id="masterDataEnrollmentsCount">—</strong></div>
+                <div class="cloud-sync-metric"><span>Teacher assignments</span><strong id="masterDataSubjectAssignmentsCount">—</strong></div>
+                <div class="cloud-sync-metric"><span>Adviser assignments</span><strong id="masterDataAdviserAssignmentsCount">—</strong></div>
+              </div>
+              <div class="cloud-sync-receipt-grid">
+                <div class="cloud-sync-receipt">
+                  <strong>Last local push</strong>
+                  <span id="masterDataLastPush">No successful push recorded</span>
+                  <small id="masterDataLastPushCounts">A successful push is required before enabling attendance forwarding.</small>
+                </div>
+                <div class="cloud-sync-receipt">
+                  <strong>Cloud receiver receipt</strong>
+                  <span id="masterDataReceiverStatus">No receipt received yet</span>
+                  <small id="masterDataReceiverCounts">The cloud server will show its last accepted snapshot here.</small>
+                </div>
+              </div>
+              <p id="masterDataSyncError" class="cloud-sync-error" hidden></p>
+              <div class="form-actions cloud-sync-actions">
+                <button class="primary-button" id="pushMasterData" type="button" disabled>Sync master data to cloud</button>
+                <button class="outline-button" id="refreshMasterDataStatus" type="button">Refresh master-data status</button>
+              </div>
+            </section>
+
+            <section class="surface-card section-card cloud-sync-activation-card">
+              <div class="section-toolbar">
+                <div><h3>04 · Enable attendance forwarding</h3><p>Only enable this after the cloud has received the correct school master data.</p></div>
+                <span class="cloud-sync-state" id="cloudForwardingReadiness">Not ready</span>
+              </div>
+              <label class="check-row cloud-sync-enable-row" for="cloudSyncEnabled">
+                <input id="cloudSyncEnabled" type="checkbox" disabled>
+                <span><strong>Enable automatic attendance forwarding</strong><small>New local attendance events will be sent to the paired cloud server. Local scanning and parent SMS continue to work if the cloud is offline.</small></span>
+              </label>
+              <div class="cloud-sync-privacy-note">
+                <strong>Data protection scope</strong>
+                <p>Master-data replication does not copy staff or student passwords, login sessions, parent accounts or contact numbers, student QR tokens, learner or teacher photos, device credentials, SMS outbox records, or locally stored SF2 files. Newly created cloud staff mirrors are non-login identities; existing cloud account credentials are not overwritten. Attendance events are sent separately through the retry queue.</p>
+              </div>
+            </section>
+
+            <section class="surface-card section-card">
+              <div class="section-toolbar"><div><h3>Synchronization queue</h3><p>Attendance event forwarding activity from this local server.</p></div><button class="outline-button" id="refreshCloudQueue" type="button">Refresh queue</button></div>
+              <div class="cloud-sync-metrics cloud-sync-queue-metrics">
+                <div class="cloud-sync-metric"><span>Pending</span><strong id="cloudPendingCount">0</strong></div>
+                <div class="cloud-sync-metric"><span>Sending</span><strong id="cloudSendingCount">0</strong></div>
+                <div class="cloud-sync-metric"><span>Synced</span><strong id="cloudSyncedCount">0</strong></div>
+                <div class="cloud-sync-metric"><span>Failed</span><strong id="cloudFailedCount">0</strong></div>
+              </div>
+              <div class="form-actions cloud-sync-actions">
+                <button class="outline-button" id="syncCloudNow" type="button" disabled>Retry pending and failed events</button>
+                <button class="outline-button" id="retryCloudFailures" type="button" disabled>Retry failed events only</button>
+              </div>
+              <ul id="cloudSyncRecent" class="simple-list cloud-sync-recent"><li>No attendance events have entered the cloud queue yet.</li></ul>
+            </section>
+            <div id="cloudSyncFeedback" class="inline-feedback" role="status" aria-live="polite"></div>
           </section>
 
           <section id="sf2View" class="view-panel" hidden>
