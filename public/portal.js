@@ -944,6 +944,7 @@
       if (action === 'ASSIGN_SECTION') {
         payload.gradeLevel = $('studentBulkGrade').value;
         payload.section = $('studentBulkSection').value.trim();
+        if (!payload.gradeLevel) throw new Error('Enter the target grade level.');
         if (!payload.section) throw new Error('Enter the target section.');
       }
       const result = await api('/api/students/bulk-actions', { method: 'POST', body: JSON.stringify(payload) });
