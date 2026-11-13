@@ -73,8 +73,22 @@ function registerDepartmentRoutes(app, pool, auth) {
         !/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(departmentId || '')) {
       return res.status(400).json({ error: 'Choose a valid staff account and department.' });
     }
+    const client = await pool.connect();
     try {
-      const result = await pool.query(
+      await client.query('BEGIN');
+      const conflicts = await client.query(
+        `SELECT p.period_name, p.department_id
+         FROM teacher_period_assignments a
+         JOIN class_periods p ON p.school_id=a.school_id AND p.period_id=a.period_id
+         WHERE a.school_id=$1 AND a.teacher_user_id=$2 AND p.department_id<>$3
+         LIMIT 1`,
+        [req.auth.schoolId, req.params.userId, departmentId]
+      );
+      if (conflicts.rowCount) {
+        await client.query('ROLLBACK');
+        return res.status(409).json({ error: `Remove or reclassify the teacher's existing schedule "${conflicts.rows[0].period_name}" before changing the teacher's department.` });
+      }
+      const result = await client.query(
         `UPDATE school_users su SET department_id=$3
          FROM school_departments d
          WHERE su.school_id=$1 AND su.user_id=$2 AND su.role IN ('TEACHER','DEPARTMENT_HEAD')
@@ -82,16 +96,23 @@ function registerDepartmentRoutes(app, pool, auth) {
          RETURNING su.user_id AS "userId", su.role, su.department_id AS "departmentId", d.department_name AS "departmentName"`,
         [req.auth.schoolId, req.params.userId, departmentId]
       );
-      if (!result.rowCount) return res.status(404).json({ error: 'Staff account or active department was not found.' });
-      await pool.query(
+      if (!result.rowCount) {
+        await client.query('ROLLBACK');
+        return res.status(404).json({ error: 'Staff account or active department was not found.' });
+      }
+      await client.query(
         `INSERT INTO audit_logs(school_id, actor_type, actor_user_id, action, entity_type, entity_id, details)
          VALUES($1,'SCHOOL',$2,'SCHOOL_ADMIN_CHANGE_STAFF_DEPARTMENT','school_user',$3,$4::jsonb)`,
         [req.auth.schoolId, req.auth.userId, req.params.userId, JSON.stringify({ departmentId })]
       );
+      await client.query('COMMIT');
       return res.json({ user: result.rows[0] });
     } catch (err) {
+      await client.query('ROLLBACK').catch(() => {});
       console.error('Staff department update failed:', err.message);
       return res.status(500).json({ error: 'Could not update staff department.' });
+    } finally {
+      client.release();
     }
   });
 
