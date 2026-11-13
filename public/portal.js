@@ -1987,8 +1987,12 @@
       cloudSavedBaseUrl = input.value.trim();
       $('cloudAuthToken').value = '';
       updateCloudForwardingControls(data);
+      $('cloudReceiverCredentialState').textContent = data.receiverCredentialActive
+        ? 'Receiving credential active since ' + cloudSyncDate(data.receiverCredentialCreatedAt)
+        : 'No active receiving credential on this server';
       $('cloudSyncStatus').textContent = data.connectionStatus === 'ENABLED'
         ? 'Forwarding enabled'
+        : data.receiverCredentialActive && !data.configured ? 'Ready to receive cloud data'
         : data.connectionVerified
           ? (data.masterDataSynced ? 'Paired and synchronized' : 'Connection verified · master data needed')
           : (data.configured ? 'Needs connection test' : 'Not configured');
