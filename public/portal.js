@@ -770,7 +770,7 @@
         const accountCell = admin
           ? `<div class="student-row-actions"><span class="muted-inline">${accountExists ? `Active login · ${esc(student.studentAccountUsername)}` : 'No student login'}</span><button type="button" class="outline-button" data-student-account="${esc(student.studentId)}" data-account-exists="${accountExists ? '1' : '0'}">${accountExists ? 'Reset login' : 'Create login'}</button></div>`
           : '<span class="muted-inline">School admin only</span>';
-        const statusCell = student.active === false ? '<span class="status-tag neutral">Inactive / archived</span>' : '<span class="status-tag">Active</span>';
+        const statusCell = student.active === false ? (student.archivedAt ? '<span class="status-tag neutral">Archived</span>' : '<span class="status-tag neutral">Inactive</span>') : '<span class="status-tag">Active</span>';
         return `<tr><td>${selection}</td><td>${avatar}</td><td>${esc(student.studentId)}</td><td>${esc(student.fullName)}</td><td>${esc(student.sex ? String(student.sex).toLowerCase().replace(/^./, c => c.toUpperCase()) : 'Not set')}</td><td>${statusCell}</td><td>${esc(student.gradeLevel)}</td><td>${esc(student.section)}</td><td>${qrCell}</td><td>${actions}</td><td>${accountCell}</td></tr>`;
       }));
       host.innerHTML = rows.join('');
@@ -841,7 +841,7 @@
   function exportStudentsCsv() {
     const rows = [
       ['Student ID', 'LRN', 'Full Name', 'Sex', 'Grade Level', 'Section', 'Status'],
-      ...students.map(student => [student.studentId, student.lrn || '', student.fullName, student.sex || '', student.gradeLevel, student.section, student.active === false ? 'Inactive' : 'Active'])
+      ...students.map(student => [student.studentId, student.lrn || '', student.fullName, student.sex || '', student.gradeLevel, student.section, student.archivedAt ? 'Archived' : student.active === false ? 'Inactive' : 'Active'])
     ];
     downloadCsv('student-master-roster.csv', rows);
     showToast(`Exported ${students.length} student record(s).`);
