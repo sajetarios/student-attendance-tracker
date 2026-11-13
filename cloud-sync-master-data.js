@@ -1,7 +1,8 @@
 'use strict';
 
 const crypto = require('node:crypto');
-const { decryptCloudToken } = require('./cloud-sync-security');
+const { decryptCloudToken, encryptCloudToken } = require('./cloud-sync-security');
+const { hashPassword, createOpaqueToken, hashToken } = require('./auth-security');
 
 const SCHEMA_VERSION = 1;
 const MAX_ROWS = 25000;
@@ -177,11 +178,214 @@ async function importCollection(client, schoolId, rows, sql, name, allowNoop = f
   return result.rowCount;
 }
 
+
+function safeBootstrapKeyMatch(expected, supplied) {
+  if (!/^[a-f0-9]{64}$/i.test(expected || '') || typeof supplied !== 'string') return false;
+  const a = Buffer.from(expected, 'hex');
+  const b = /^[a-f0-9]{64}$/i.test(supplied) ? Buffer.from(supplied, 'hex') : Buffer.alloc(0);
+  return a.length === b.length && crypto.timingSafeEqual(a, b);
+}
+
+function normalizeBootstrapCloudUrl(raw) {
+  if (typeof raw !== 'string' || raw.trim().length > 500) {
+    throw new Error('Enter a valid HTTPS cloud server address.');
+  }
+  let parsed;
+  try { parsed = new URL(raw.trim()); }
+  catch { throw new Error('Enter a valid HTTPS cloud server address.'); }
+  const localHost = ['localhost', '127.0.0.1', '[::1]'].includes(parsed.hostname);
+  if (!(parsed.protocol === 'https:' || (parsed.protocol === 'http:' && localHost)) ||
+      parsed.username || parsed.password || parsed.search || parsed.hash) {
+    throw new Error('Use HTTPS for cloud provisioning. HTTP is permitted only for localhost testing.');
+  }
+  return parsed.toString().replace(/\\/+$/, '');
+}
+
 function registerCloudMasterDataRoutes(app, pool, {
   authenticateSchoolClient,
   authenticateCloudSync,
   requireSchoolAdmin
 }) {
+  // One-time cloud tenant bootstrap. The destination only accepts a high-entropy
+  // environment key, and refuses to overwrite an existing school or school code.
+  app.post('/api/cloud-sync/bootstrap-school', async (req, res) => {
+    const expectedKey = process.env.CLOUD_SYNC_PROVISIONING_KEY || '';
+    const suppliedKey = req.get('x-cloud-sync-provisioning-key') || '';
+    if (!/^[a-f0-9]{64}$/i.test(expectedKey)) {
+      return res.status(503).json({ error: 'Cloud school provisioning is not enabled on this server.' });
+    }
+    if (!safeBootstrapKeyMatch(expectedKey, suppliedKey)) {
+      return res.status(401).json({ error: 'Cloud provisioning authorization failed.' });
+    }
+
+    const school = req.body?.school || {};
+    const admin = req.body?.admin || {};
+    const validUuid = typeof school.schoolId === 'string' &&
+      /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(school.schoolId);
+    const validCode = typeof school.schoolCode === 'string' &&
+      /^[A-Za-z0-9][A-Za-z0-9_-]{1,79}$/.test(school.schoolCode.trim());
+    const validSchoolName = typeof school.schoolName === 'string' &&
+      school.schoolName.trim().length >= 2 && school.schoolName.trim().length <= 200;
+    const validUsername = typeof admin.username === 'string' &&
+      admin.username.trim().length >= 1 && admin.username.trim().length <= 80;
+    const validDisplayName = typeof admin.displayName === 'string' &&
+      admin.displayName.trim().length >= 1 && admin.displayName.trim().length <= 160;
+    const validPassword = typeof admin.password === 'string' &&
+      admin.password.length >= 12 && admin.password.length <= 256;
+    if (!validUuid || !validCode || !validSchoolName ||
+        !validUsername || !validDisplayName || !validPassword) {
+      return res.status(400).json({
+        error: 'Provide the matching school ID, valid school code/name, and cloud administrator credentials. The password must be 12–256 characters.'
+      });
+    }
+
+    const receivingToken = createOpaqueToken();
+    const client = await pool.connect();
+    try {
+      const passwordHash = await hashPassword(admin.password);
+      await client.query('BEGIN');
+      await client.query('SELECT pg_advisory_xact_lock(hashtext(lower($1)))', [school.schoolCode.trim()]);
+      const existing = await client.query(
+        'SELECT school_id,school_code FROM schools ' +
+        'WHERE school_id=$1 OR lower(school_code)=lower($2) LIMIT 1',
+        [school.schoolId, school.schoolCode.trim()]
+      );
+      if (existing.rowCount) {
+        const error = new Error('A school with this school ID or school code already exists. Sign in to that cloud school and use its Cloud Sync receiving-credential controls instead.');
+        error.status = 409;
+        throw error;
+      }
+
+      await client.query(
+        'INSERT INTO schools(school_id,school_code,school_name,active) VALUES($1,$2,$3,TRUE)',
+        [school.schoolId, school.schoolCode.trim(), school.schoolName.trim()]
+      );
+      const createdAdmin = await client.query(
+        'INSERT INTO school_users(school_id,username,display_name,password_hash,role,teacher_designations,login_enabled) ' +
+        'VALUES($1,$2,$3,$4,\\'SCHOOL_ADMIN\\',ARRAY[]::text[],TRUE) RETURNING user_id',
+        [school.schoolId, admin.username.trim(), admin.displayName.trim(), passwordHash]
+      );
+      await client.query(
+        'INSERT INTO cloud_sync_credentials(school_id,token_hash,label,created_by_user_id) ' +
+        'VALUES($1,$2,$3,$4)',
+        [school.schoolId, hashToken(receivingToken), 'Local school attendance server', createdAdmin.rows[0].user_id]
+      );
+      await client.query('COMMIT');
+      return res.status(201).json({
+        ok: true,
+        schoolId: school.schoolId,
+        schoolCode: school.schoolCode.trim(),
+        schoolName: school.schoolName.trim(),
+        adminUsername: admin.username.trim(),
+        receivingCredential: receivingToken
+      });
+    } catch (err) {
+      await client.query('ROLLBACK').catch(() => {});
+      console.error('Cloud school bootstrap failed:', err.message);
+      return res.status(err.status || 409).json({ error: err.status ? err.message : 'Cloud school could not be provisioned. Check the cloud database migrations and school identity constraints.' });
+    } finally {
+      client.release();
+    }
+  });
+
+  // Local admin starts provisioning. The bootstrap key and initial cloud password
+  // are forwarded only over HTTPS and are never persisted by the local application.
+  app.post('/api/cloud-sync/provision-destination', authenticateSchoolClient, requireSchoolAdmin, async (req, res) => {
+    let cloudBaseUrl;
+    try { cloudBaseUrl = normalizeBootstrapCloudUrl(req.body?.cloudBaseUrl); }
+    catch (err) { return res.status(400).json({ error: err.message }); }
+
+    const bootstrapKey = typeof req.body?.bootstrapKey === 'string' ? req.body.bootstrapKey.trim() : '';
+    const admin = req.body?.admin || {};
+    if (!/^[a-f0-9]{64}$/i.test(bootstrapKey)) {
+      return res.status(400).json({ error: 'The cloud provisioning key must be a 64-character hexadecimal value.' });
+    }
+    if (!/^[A-Za-z0-9][A-Za-z0-9_.-]{0,79}$/.test(String(admin.username || '').trim()) ||
+        typeof admin.displayName !== 'string' || !admin.displayName.trim() || admin.displayName.trim().length > 160 ||
+        typeof admin.password !== 'string' || admin.password.length < 12 || admin.password.length > 256) {
+      return res.status(400).json({ error: 'Enter a valid initial cloud administrator username, display name, and password of at least 12 characters.' });
+    }
+    if (!/^[a-f0-9]{64}$/i.test(process.env.CLOUD_SYNC_ENCRYPTION_KEY || '')) {
+      return res.status(503).json({ error: 'Set CLOUD_SYNC_ENCRYPTION_KEY on the local server before provisioning the cloud destination.' });
+    }
+
+    try {
+      const schoolResult = await pool.query(
+        'SELECT school_id AS "schoolId",school_code AS "schoolCode",school_name AS "schoolName" ' +
+        'FROM schools WHERE school_id=$1 AND active=TRUE',
+        [req.auth.schoolId]
+      );
+      if (!schoolResult.rowCount) return res.status(404).json({ error: 'The active local school identity could not be found.' });
+      const current = await pool.query(
+        'SELECT cloud_base_url,cloud_auth_token_ciphertext FROM school_cloud_sync_settings WHERE school_id=$1',
+        [req.auth.schoolId]
+      );
+      if (current.rows[0]?.cloud_base_url || current.rows[0]?.cloud_auth_token_ciphertext) {
+        return res.status(409).json({ error: 'A cloud destination is already configured. Use the existing pairing controls or clear the current pairing before provisioning another cloud school.' });
+      }
+
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 30000);
+      let response;
+      try {
+        response = await fetch(cloudBaseUrl + '/api/cloud-sync/bootstrap-school', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'x-cloud-sync-provisioning-key': bootstrapKey
+          },
+          body: JSON.stringify({
+            school: schoolResult.rows[0],
+            admin: {
+              username: admin.username.trim(),
+              displayName: admin.displayName.trim(),
+              password: admin.password
+            }
+          }),
+          signal: controller.signal
+        });
+      } finally {
+        clearTimeout(timeout);
+      }
+
+      const remote = await response.json().catch(() => ({}));
+      if (!response.ok || remote.ok !== true || remote.schoolId !== req.auth.schoolId ||
+          typeof remote.receivingCredential !== 'string') {
+        return res.status(response.status >= 400 && response.status < 500 ? response.status : 502)
+          .json({ error: remote.error || 'The cloud server did not confirm school provisioning.' });
+      }
+
+      // Encrypt immediately on the server. The raw bootstrap key, admin password,
+      // and receiver credential are not stored or returned to the browser.
+      const encrypted = encryptCloudToken(remote.receivingCredential);
+      await pool.query(
+        'INSERT INTO school_cloud_sync_settings ' +
+        '(school_id,cloud_base_url,enabled,updated_by_user_id,cloud_auth_token_ciphertext,cloud_auth_token_iv,cloud_auth_token_tag,updated_at) ' +
+        'VALUES($1,$2,FALSE,$3,$4,$5,$6,NOW()) ' +
+        'ON CONFLICT(school_id) DO UPDATE SET cloud_base_url=EXCLUDED.cloud_base_url,enabled=FALSE, ' +
+        'updated_by_user_id=EXCLUDED.updated_by_user_id,cloud_auth_token_ciphertext=EXCLUDED.cloud_auth_token_ciphertext, ' +
+        'cloud_auth_token_iv=EXCLUDED.cloud_auth_token_iv,cloud_auth_token_tag=EXCLUDED.cloud_auth_token_tag, ' +
+        'last_connection_test_at=NULL,last_connection_test_url=NULL,last_master_data_sync_at=NULL, ' +
+        'last_master_data_sync_counts=NULL,last_master_data_sync_hash=NULL,last_master_data_sync_url=NULL, ' +
+        'last_master_data_sync_error=NULL,last_master_data_sync_cloud_received_at=NULL, ' +
+        'last_master_data_sync_cloud_imported=NULL,updated_at=NOW()',
+        [req.auth.schoolId, cloudBaseUrl, req.auth.userId, encrypted.ciphertext, encrypted.iv, encrypted.authTag]
+      );
+      return res.status(201).json({
+        ok: true,
+        cloudBaseUrl,
+        schoolId: remote.schoolId,
+        schoolCode: remote.schoolCode,
+        schoolName: remote.schoolName,
+        cloudAdminUsername: remote.adminUsername,
+        message: 'The matching cloud school and initial cloud administrator were created. The receiving credential was encrypted and saved on this local server. Test the connection, synchronize master data, then enable attendance forwarding.'
+      });
+    } catch (err) {
+      console.error('Cloud destination provisioning failed:', err.message);
+      return res.status(502).json({ error: 'Cloud destination provisioning failed. No local pairing was saved; check the cloud server key, availability, and migrations.' });
+    }
+  });
+
   app.get('/api/cloud-sync/master-data/status', authenticateSchoolClient, requireSchoolAdmin, async (req, res) => {
     try {
       const [settings, receipt, counts] = await Promise.all([
