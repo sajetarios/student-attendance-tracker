@@ -587,6 +587,14 @@
                 </table>
               </div>
             </div>
+            <div class="surface-card section-card bulk-staff-department-card" id="bulkStaffDepartmentCard" hidden>
+              <div class="section-toolbar"><div><h3>Batch assign staff departments</h3><p>Select multiple Teachers and Department Heads, then assign them to one department. Teachers with schedules in another department must be reassigned first.</p></div></div>
+              <form id="bulkStaffDepartmentForm" class="inline-form">
+                <div class="field-group"><label for="bulkStaffDepartmentSelect">Target department *</label><select id="bulkStaffDepartmentSelect" required><option value="">Select department</option></select></div>
+                <div class="field-group"><label><input type="checkbox" id="selectAllBulkStaff"> Select all displayed Teachers and Department Heads</label><div id="bulkStaffDepartmentUsers" class="bulk-assignment-schedule-list"><p class="muted-inline">Loading staff accounts…</p></div></div>
+                <div class="form-actions"><button class="primary-button" type="submit" id="applyBulkStaffDepartment">Assign selected staff</button><span id="bulkStaffDepartmentFeedback" class="inline-feedback" role="status"></span></div>
+              </form>
+            </div>
             <div class="surface-card section-card bulk-teacher-assignment-card" id="bulkTeacherAssignmentCard">
               <div class="section-toolbar"><div><h3>Batch assign teacher to schedules</h3><p>Select one teacher and several unassigned schedules. Department Heads can work only within their assigned department.</p></div></div>
               <form id="bulkTeacherAssignmentForm" class="inline-form">
