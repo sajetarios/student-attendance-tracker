@@ -56,10 +56,7 @@ async function buildMasterDataSnapshot(pool, schoolId) {
                       school_name AS "schoolName", active
                FROM schools WHERE school_id=$1 AND active=TRUE`],
     ['schoolUsers', `SELECT user_id AS "userId", display_name AS "displayName",
-                            role, active, teacher_status AS "teacherStatus", leave_type AS "leaveType",
-                            leave_start_date::text AS "leaveStartDate",
-                            expected_return_date::text AS "expectedReturnDate",
-                            leave_auto_reactivate AS "leaveAutoReactivate",
+                            role, active, teacher_status AS "teacherStatus",
                             teacher_designations AS "teacherDesignations", created_at AS "createdAt",
                             updated_at AS "updatedAt"
                      FROM school_users WHERE school_id=$1 AND role <> 'PARENT'`],
@@ -338,21 +335,16 @@ function registerCloudMasterDataRoutes(app, pool, {
       imported.schoolUsers = await run('staff account', payload.schoolUsers,
         `INSERT INTO school_users
           (school_id,user_id,username,display_name,password_hash,role,active,teacher_status,
-           leave_type,leave_start_date,expected_return_date,leave_auto_reactivate,
            teacher_designations,login_enabled,created_at,updated_at)
          SELECT $1,x.user_id,'mirror_' || replace(x.user_id::text,'-',''),x.display_name,'!CLOUD_SYNC_LOGIN_DISABLED!',x.role,
-                COALESCE(x.active,TRUE),COALESCE(x.teacher_status,'ACTIVE'),x.leave_type,
-                x.leave_start_date,x.expected_return_date,COALESCE(x.leave_auto_reactivate,TRUE),
+                COALESCE(x.active,TRUE),COALESCE(x.teacher_status,'ACTIVE'),
                 COALESCE(x.teacher_designations,ARRAY[]::text[]),FALSE,
                 COALESCE(x.created_at,NOW()),COALESCE(x.updated_at,NOW())
          FROM jsonb_to_recordset($2::jsonb) AS x(
            user_id uuid,display_name text,role text,active boolean,
-           teacher_status text,leave_type text,leave_start_date date,expected_return_date date,
-           leave_auto_reactivate boolean,teacher_designations text[],created_at timestamptz,updated_at timestamptz)
+           teacher_status text,teacher_designations text[],created_at timestamptz,updated_at timestamptz)
          ON CONFLICT(user_id) DO UPDATE SET display_name=EXCLUDED.display_name,role=EXCLUDED.role,active=EXCLUDED.active,
-           teacher_status=EXCLUDED.teacher_status,leave_type=EXCLUDED.leave_type,
-           leave_start_date=EXCLUDED.leave_start_date,expected_return_date=EXCLUDED.expected_return_date,
-           leave_auto_reactivate=EXCLUDED.leave_auto_reactivate,
+           teacher_status=EXCLUDED.teacher_status,
            teacher_designations=EXCLUDED.teacher_designations,updated_at=EXCLUDED.updated_at
          WHERE school_users.school_id=EXCLUDED.school_id
          RETURNING 1`);
@@ -412,9 +404,9 @@ function registerCloudMasterDataRoutes(app, pool, {
       imported.studentEnrollments = await run('student enrollment', payload.studentEnrollments,
         `INSERT INTO student_enrollments
           (school_id,enrollment_id,student_id,school_year_id,grade_level,section,enrollment_date,
-           enrollment_status,status_effective_date,remarks,created_by_user_id,created_at,updated_at)
+           enrollment_status,status_effective_date,created_by_user_id,created_at,updated_at)
          SELECT $1,x.enrollment_id,x.student_id,x.school_year_id,x.grade_level,x.section,x.enrollment_date,
-                COALESCE(x.enrollment_status,'ENROLLED'),x.status_effective_date,x.remarks,
+                COALESCE(x.enrollment_status,'ENROLLED'),x.status_effective_date,
                 x.created_by_user_id,COALESCE(x.created_at,NOW()),COALESCE(x.updated_at,NOW())
          FROM jsonb_to_recordset($2::jsonb) AS x(
            enrollment_id uuid,student_id text,school_year_id uuid,grade_level text,section text,
