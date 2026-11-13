@@ -198,7 +198,7 @@ function normalizeBootstrapCloudUrl(raw) {
       parsed.username || parsed.password || parsed.search || parsed.hash) {
     throw new Error('Use HTTPS for cloud provisioning. HTTP is permitted only for localhost testing.');
   }
-  return parsed.toString().replace(/\\/+$/, '');
+  return parsed.toString().replace(/\/+$/, '');
 }
 
 function registerCloudMasterDataRoutes(app, pool, {
