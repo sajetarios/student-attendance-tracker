@@ -157,3 +157,94 @@ body.attendance-desk .feedback { background: #eff4fa; color: #53677f !important;
   overflow-wrap: anywhere;
 }
 .portal-page .student-photo-thumb { width: 58px; height: 58px; }
+
+@media(max-width:700px){
+ #studentRosterTable{display:block;width:100%}
+ #studentRosterTable thead{display:none}
+ #studentRosterTable tbody{display:block;width:100%}
+ #studentRosterTable tr{display:block;width:100%;margin:0 0 12px;padding:8px;border:1px solid #e2e8f0;border-radius:12px;background:#fff;box-shadow:0 2px 8px rgba(15,23,42,.04)}
+ #studentRosterTable td{display:flex;align-items:center;justify-content:space-between;gap:10px;width:100%;padding:8px 6px;border:0;border-bottom:1px solid #f1f5f9;text-align:right;white-space:normal}
+ #studentRosterTable td:last-child{border-bottom:0}
+ #studentRosterTable td::before{content:attr(data-label);flex:0 0 34%;color:#64748b;font-size:11px;font-weight:700;text-align:left}
+ #studentRosterTable td.empty-cell{display:block;text-align:center}
+ #studentRosterTable td.empty-cell::before{content:none}
+ #studentRosterTable .student-row-actions{justify-content:flex-end;flex-wrap:wrap}
+}
+/* Bulk timetable assignment toolbar. */
+#periodBulkToolbar{margin:12px 0}
+#periodBulkToolbar select{min-width:220px}
+@media(max-width:700px){#periodBulkToolbar{position:sticky;bottom:8px;z-index:5;background:#fff;padding:10px;border-radius:12px;box-shadow:0 4px 16px rgba(15,23,42,.12)}#periodBulkToolbar select{min-width:150px;max-width:100%}}
+/* Student import preview and batch management dialogs. */
+#studentImportModal .student-edit-dialog,#studentBatchModal .student-edit-dialog{width:min(980px,96vw);max-height:90vh;overflow:auto}
+#studentImportPreviewRows td{vertical-align:top;white-space:normal;max-width:280px}
+.student-bulk-actions{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.student-bulk-actions select{max-width:180px}
+@media(max-width:700px){.student-bulk-actions{position:sticky;bottom:6px;z-index:6;background:#fff;padding:10px;border-radius:12px;box-shadow:0 4px 16px rgba(15,23,42,.12)}#studentImportModal .student-edit-dialog,#studentBatchModal .student-edit-dialog{width:100%;max-height:94dvh;padding:16px}}
+/* Final navigation and clarity overrides (loaded after responsive styles). */
+.sidebar{overflow-y:auto;overscroll-behavior:contain;scrollbar-width:thin}
+.nav-group{min-width:0}.nav-group-toggle{min-height:44px}.nav-submenu .nav-item{min-height:44px;padding-left:17px}
+.nav-item:focus-visible,.nav-group-toggle:focus-visible{outline:3px solid #7dd3fc;outline-offset:2px}
+.sidebar-bottom{position:sticky;bottom:0;background:var(--sidebar);padding-top:8px}
+.connection-chip.local-only{padding:7px 10px;border:1px solid #f3d7a4;border-radius:999px;background:#fff8e8;color:#80540a;font-size:11px;font-weight:700;gap:8px;white-space:nowrap}
+.connection-chip.local-only i{background:#d97706;box-shadow:0 0 0 3px rgba(217,119,6,.12)}
+.student-roster-tools .student-bulk-actions{position:sticky;bottom:8px;z-index:5;padding:12px;border:1px solid #d8e5ef;border-radius:12px;background:rgba(255,255,255,.96);box-shadow:0 8px 24px rgba(15,23,42,.09)}
+@media(max-width:700px){
+ .sidebar{position:fixed;z-index:100;left:0;top:0;width:min(300px,86vw);height:100dvh;transform:translateX(-105%);transition:transform .2s ease}
+ .sidebar.open{transform:translateX(0)}.topbar{padding:0 14px}.content-wrap{padding:18px 14px}
+ .connection-chip.local-only{font-size:0;padding:9px}.connection-chip.local-only span{font-size:11px}
+}
+
+.connection-chip.sync-connected{border-color:#b7e4c7;background:#ecfdf3;color:#176b3a}
+.connection-chip.sync-connected i{background:#16a34a;box-shadow:0 0 0 3px rgba(22,163,74,.12)}
+.connection-chip.sync-disconnected{border-color:#f3d7a4;background:#fff8e8;color:#80540a}
+.connection-chip.sync-disconnected i{background:#d97706;box-shadow:0 0 0 3px rgba(217,119,6,.12)}
+
+#staffBulkDepartmentToolbar{margin:12px 0}
+#staffBulkDepartmentToolbar select{min-width:220px}
+@media(max-width:700px){#staffBulkDepartmentToolbar{position:sticky;bottom:8px;z-index:5;background:#fff;padding:10px;border-radius:12px;box-shadow:0 4px 16px rgba(15,23,42,.12)}#staffBulkDepartmentToolbar select{min-width:150px;max-width:100%}}
+
+/* Shared, readable dashboard and modal language across every school role. */
+.portal-page .stat-top{font-size:13px;line-height:1.4}
+.portal-page .stat-card>strong{font-size:32px}
+.portal-page .stat-card small{font-size:12px}
+.portal-page .card-heading h3,.portal-page .section-toolbar h3{font-size:15px;line-height:1.35}
+.portal-page .card-heading p,.portal-page .section-toolbar p{font-size:12px;line-height:1.5;color:#718096}
+.portal-page th{font-size:11px;letter-spacing:.02em}
+.portal-page td{font-size:12px;line-height:1.45}
+.portal-page .nav-label{font-size:13px}
+.portal-page .page-heading h2{font-size:24px;line-height:1.2}
+.portal-page .page-heading p{font-size:13px;line-height:1.5;color:#718096}
+.student-scan-setup-overlay,.student-scan-notice-overlay,.student-qr-preview-overlay{
+ position:fixed;inset:0;z-index:1000;display:grid;place-items:center;padding:18px;
+ background:rgba(15,23,42,.52);backdrop-filter:blur(3px)
+}
+.student-scan-setup-dialog,.student-scan-notice-dialog,.student-qr-preview-dialog{
+ width:min(680px,100%);max-height:90dvh;overflow:auto;background:#fff;border:1px solid #e5ebf1;
+ border-radius:16px;padding:22px;box-shadow:0 24px 70px rgba(15,23,42,.22)
+}
+.student-edit-overlay{background:rgba(15,23,42,.52);backdrop-filter:blur(3px);padding:18px}
+.student-edit-dialog{border:1px solid #e5ebf1;border-radius:16px;box-shadow:0 24px 70px rgba(15,23,42,.22)}
+.portal-page input:not([type=checkbox]):not([type=radio]),.portal-page select,.portal-page textarea{
+ min-height:42px;border-radius:9px;font-size:13px
+}
+.portal-page button{min-height:40px;border-radius:9px;font-size:12px;font-weight:650}
+.portal-page .empty-cell{font-size:13px;padding:28px 12px}
+@media(max-width:700px){
+ .portal-page .page-heading h2{font-size:21px}
+ .portal-page .stat-card{min-height:112px;padding:14px}
+ .portal-page .stat-card>strong{font-size:27px}
+ .portal-page .stat-top{font-size:12px}
+ .student-scan-setup-dialog,.student-scan-notice-dialog,.student-qr-preview-dialog{width:100%;max-height:94dvh;padding:16px;border-radius:14px}
+}
+
+@media(max-width:700px){
+ .teacher-monitor-scroll{overflow:visible}
+ #teacherMonitorTable,#staffAccountsTable{display:block;width:100%}
+ #teacherMonitorTable thead,#staffAccountsTable thead{display:none}
+ #teacherMonitorTable tbody,#staffAccountsTable tbody{display:block;width:100%}
+ #teacherMonitorTable tr,#staffAccountsTable tr{display:block;width:100%;margin:0 0 12px;padding:8px;border:1px solid #e2e8f0;border-radius:12px;background:#fff}
+ #teacherMonitorTable td,#staffAccountsTable td{display:flex;align-items:center;justify-content:space-between;gap:10px;width:100%;padding:8px 6px;border:0;border-bottom:1px solid #f1f5f9;text-align:right;white-space:normal}
+ #teacherMonitorTable td::before,#staffAccountsTable td::before{content:attr(data-label);flex:0 0 34%;color:#64748b;font-size:11px;font-weight:700;text-align:left}
+ #teacherMonitorTable td.empty-cell::before,#staffAccountsTable td.empty-cell::before{content:none}
+ #teacherMonitorTable .teacher-scope-list{justify-content:flex-end}
+}

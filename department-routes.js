@@ -67,6 +67,74 @@ function registerDepartmentRoutes(app, pool, auth) {
     }
   });
 
+  app.post('/api/school-users/bulk-department', authenticateSchoolClient, schoolAdmin, async (req, res) => {
+    const userIds = [...new Set((Array.isArray(req.body?.userIds) ? req.body.userIds : []).filter(value =>
+      /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value)
+    ))];
+    const departmentId = req.body?.departmentId;
+    if (!userIds.length || userIds.length > 200 || userIds.length !== (req.body?.userIds || []).length ||
+        !/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{12}$/i.test(departmentId || '')) {
+      return res.status(400).json({ error: 'Select 1–200 valid teacher/Department Head accounts and an active department.' });
+    }
+    const client = await pool.connect();
+    try {
+      await client.query('BEGIN');
+      const department = await client.query(
+        'SELECT department_id FROM school_departments WHERE school_id=$1 AND department_id=$2 AND active=TRUE',
+        [req.auth.schoolId, departmentId]
+      );
+      if (!department.rowCount) {
+        await client.query('ROLLBACK');
+        return res.status(404).json({ error: 'Active department not found.' });
+      }
+      const staff = await client.query(
+        `SELECT user_id,role FROM school_users
+         WHERE school_id=$1 AND user_id=ANY($2::uuid[]) AND role IN ('TEACHER','DEPARTMENT_HEAD') FOR UPDATE`,
+        [req.auth.schoolId, userIds]
+      );
+      if (staff.rowCount !== userIds.length) {
+        await client.query('ROLLBACK');
+        return res.status(404).json({ error: 'One or more selected accounts are not eligible staff in this school.' });
+      }
+      const conflict = await client.query(
+        `SELECT p.period_name,su.display_name
+         FROM teacher_period_assignments a
+         JOIN class_periods p ON p.school_id=a.school_id AND p.period_id=a.period_id
+         JOIN school_users su ON su.school_id=a.school_id AND su.user_id=a.teacher_user_id
+         WHERE a.school_id=$1 AND a.teacher_user_id=ANY($2::uuid[]) AND p.department_id<>$3
+         UNION ALL
+         SELECT p.period_name,su.display_name
+         FROM teacher_period_substitutions ts
+         JOIN class_periods p ON p.school_id=ts.school_id AND p.period_id=ts.period_id
+         JOIN school_users su ON su.school_id=ts.school_id AND su.user_id=ts.substitute_teacher_user_id
+         WHERE ts.school_id=$1 AND ts.substitute_teacher_user_id=ANY($2::uuid[])
+           AND ts.status='ACTIVE' AND ts.end_date >= (NOW() AT TIME ZONE 'Asia/Manila')::date
+           AND p.department_id<>$3 LIMIT 1`,
+        [req.auth.schoolId, userIds, departmentId]
+      );
+      if (conflict.rowCount) {
+        await client.query('ROLLBACK');
+        return res.status(409).json({ error: conflict.rows[0].display_name + ' has a permanent or substitute schedule in another department (' + conflict.rows[0].period_name + '). Reclassify that schedule first.' });
+      }
+      await client.query(
+        `UPDATE school_users SET department_id=$3
+         WHERE school_id=$1 AND user_id=ANY($2::uuid[]) AND role IN ('TEACHER','DEPARTMENT_HEAD')`,
+        [req.auth.schoolId, userIds, departmentId]
+      );
+      await client.query(
+        `INSERT INTO audit_logs(school_id,actor_type,actor_user_id,action,entity_type,entity_id,details)
+         VALUES($1,'SCHOOL',$2,'SCHOOL_ADMIN_BULK_CHANGE_STAFF_DEPARTMENT','school_users',$3,$4::jsonb)`,
+        [req.auth.schoolId, req.auth.userId, departmentId, JSON.stringify({ userIds, departmentId })]
+      );
+      await client.query('COMMIT');
+      return res.json({ ok: true, updated: userIds.length });
+    } catch (err) {
+      await client.query('ROLLBACK').catch(() => {});
+      console.error('Bulk staff department assignment failed:', err.message);
+      return res.status(500).json({ error: 'Could not complete bulk department assignment.' });
+    } finally { client.release(); }
+  });
+
   app.patch('/api/school-users/:userId/department', authenticateSchoolClient, schoolAdmin, async (req, res) => {
     const { departmentId } = req.body || {};
     if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(req.params.userId || '') ||

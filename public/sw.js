@@ -1,10 +1,10 @@
-const CACHE = "school-attendance-shell-v18-teacher-table-columns";
+const CACHE = "school-attendance-shell-v23-mobile-role-cards";
 
 const SHELL = [
   "/portal-login.html",
-  "/portal.css?v=0.9.3",
+  "/portal.css?v=0.9.13",
   "/portal.css",
-  "/portal.js?v=0.9.3",
+  "/portal.js?v=0.9.13",
   "/academic-admin.css?v=1",
   "/academic-admin.js?v=1",
   "/password-visibility.css",
@@ -12,7 +12,7 @@ const SHELL = [
   "/portal-login.js",
   "/login-routing.js",
   "/responsive.css?v=0.8.3",
-  "/comfort-ui.css?v=0.8.3",
+  "/comfort-ui.css?v=0.8.5",
   "/styles.css",
   "/app.js",
   "/manifest.webmanifest",

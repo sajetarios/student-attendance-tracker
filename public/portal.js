@@ -15,6 +15,10 @@
   let toastTimer;
   const studentQrCache = new Map();
   const selectedStudentIds = new Set();
+  const selectedPeriodIds = new Set();
+  const selectedStaffIds = new Set();
+  let pendingStudentImport = null;
+  let pendingStudentImportPreview = null;
   let studentQrScanner = null;
   let scannedStudent = null;
   let scannedTeacher = null;
@@ -126,7 +130,7 @@
   function allowedViewsForUser() {
     const role = user?.role;
     if (role === 'SCHOOL_ADMIN') return ['dashboard', 'students', 'teachers', 'schedules', 'sf2', 'cloudSync'];
-    if (role === 'DEPARTMENT_HEAD') return ['dashboard', 'teachers', 'schedules', 'sf2'];
+    if (role === 'DEPARTMENT_HEAD') return ['dashboard', 'students', 'teachers', 'schedules', 'sf2'];
     if (role === 'TEACHER') {
       const views = ['dashboard'];
       if (teacherHas('SUBJECT_TEACHER') || teacherHas('CLASS_ADVISER')) {
@@ -152,7 +156,7 @@
     }
     const allowedViews = allowedViewsForUser();
     const departmentHead = user?.role === 'DEPARTMENT_HEAD';
-    if (departmentHead && view === 'students') view = 'dashboard';
+    // Department Heads may view the school-wide roster; write access remains restricted.
     if (!allowedViews.includes(view)) view = allowedViews.includes('dashboard') ? 'dashboard' : (allowedViews[0] || 'dashboard');
     $('platformWorkspace').hidden = true;
     $('schoolWorkspace').hidden = false;
@@ -172,6 +176,7 @@
     if (departmentHead) {
       titles = {
         dashboard: ['Department Head Dashboard', 'Monitor learner attendance, teacher availability, class coverage, schedules, and section report progress.'],
+        students: ['Student roster · View only', 'View learners across the school. Student master-record changes remain with the School Administrator and authorized Class Advisers.'],
         teachers: ['Teacher monitoring', 'Review teacher designations, assigned grade levels and sections, leave, schedules, and temporary substitute coverage.'],
         schedules: ['Department schedule management', 'View every department’s timetable and create or assign class schedules only within your own department.'],
         sf2: ['SF2 monitoring', 'Preview official section reports. Department Heads cannot edit, submit, or collect SF2 reports.']
@@ -229,6 +234,13 @@
     const role = user?.role;
     const admin = role === 'SCHOOL_ADMIN';
     if ($('cloudSyncNav')) $('cloudSyncNav').hidden = !admin;
+    if ($('exportTeachersButton')) $('exportTeachersButton').hidden = !(admin || role === 'DEPARTMENT_HEAD');
+    if ($('bulkImportStudentsButton')) $('bulkImportStudentsButton').hidden = !(admin || teacherHas('CLASS_ADVISER'));
+    if ($('studentStatusFilterWrap')) $('studentStatusFilterWrap').hidden = !admin;
+    if ($('downloadStudentTemplate')) $('downloadStudentTemplate').hidden = !(admin || (teacher && teacherHas('CLASS_ADVISER')));
+    if ($('exportStudentsButton')) $('exportStudentsButton').hidden = !['SCHOOL_ADMIN', 'DEPARTMENT_HEAD', 'TEACHER'].includes(role);
+    if ($('academicAdminNav')) $('academicAdminNav').hidden = !admin;
+    if ($('staffBulkDepartmentToolbar')) $('staffBulkDepartmentToolbar').hidden = !admin;
     const departmentHead = role === 'DEPARTMENT_HEAD';
     const gateKeeper = role === 'GATE_KEEPER';
     const teacher = role === 'TEACHER';
@@ -291,13 +303,14 @@
 
     if ($('dashboardNav')) $('dashboardNav').hidden = gateKeeper;
     if ($('studentsNav')) {
-      $('studentsNav').hidden = departmentHead || (!admin && !teacher && !gateKeeper);
+      $('studentsNav').hidden = !admin && !departmentHead && !teacher && !gateKeeper;
+      if ($('showStudentForm')) $('showStudentForm').hidden = departmentHead || gateKeeper;
       $('studentsNav').querySelector('.nav-label').textContent = gateKeeper ? 'Gate scanner' : teacher ? (classAdviser && !subjectTeacher ? 'My advisory section' : 'My learners') : 'Students';
       $('studentsNav').title = gateKeeper ? 'Gate scanner' : 'Students';
     }
-    if ($('studentRosterPanel')) $('studentRosterPanel').hidden = gateKeeper || departmentHead;
-    if ($('studentManagementHeader')) $('studentManagementHeader').hidden = gateKeeper || departmentHead;
-    if ($('studentRosterPanel')) $('studentRosterPanel').hidden = gateKeeper || departmentHead;
+    if ($('studentRosterPanel')) $('studentRosterPanel').hidden = gateKeeper;
+    if ($('studentManagementHeader')) $('studentManagementHeader').hidden = gateKeeper;
+    if ($('studentRosterPanel')) $('studentRosterPanel').hidden = gateKeeper;
     if ($('studentForm')) $('studentForm').hidden = gateKeeper || departmentHead || $('studentForm').hidden;
     if ($('parentInviteModal')) $('parentInviteModal').hidden = true;
     if ($('schedulesNav')) $('schedulesNav').hidden = gateKeeper || (teacher && !subjectTeacher);
@@ -345,7 +358,7 @@
         else if (teacher) { label.textContent = 'My personal SF2 copy'; if (detail) detail.textContent = 'Generate a non-official copy from your subject records'; }
         else if (admin) { label.textContent = 'SF2 submissions'; if (detail) detail.textContent = 'Review and collect official Class Adviser submissions'; }
       }
-      if (departmentHead && target === 'students') button.hidden = true;
+      if (departmentHead && target === 'students') button.hidden = false;
       if (teacher && target === 'students' && !classAdviser && !subjectTeacher) button.hidden = true;
     });
 
@@ -466,6 +479,15 @@
       accountSelect.innerHTML = options;
       accountSelect.value = usableDepartments.some(item => String(item.departmentId) === String(previous))
         ? previous : '';
+    }
+    const bulkDepartmentSelect = $('bulkStaffDepartment');
+    if (bulkDepartmentSelect) {
+      const previous = bulkDepartmentSelect.value;
+      bulkDepartmentSelect.innerHTML = '<option value="">Choose department</option>' + usableDepartments.map(item =>
+        '<option value="' + esc(item.departmentId) + '">' + esc(item.name) + '</option>'
+      ).join('');
+      if (usableDepartments.some(item => String(item.departmentId) === String(previous))) bulkDepartmentSelect.value = previous;
+      updateStaffBulkUi();
     }
     const list = $('departmentList');
     if (list) list.innerHTML = departments.length
@@ -688,6 +710,15 @@
     $('studentAccountPassword').focus();
   }
 
+  function exportCsv(filename, headers, rows) {
+    const quote = value => '"' + String(value ?? '').replace(/"/g, '""') + '"';
+    const csv = [headers, ...rows].map(row => row.map(quote).join(',')).join(String.fromCharCode(13, 10));
+    const blob = new Blob([String.fromCharCode(0xfeff), csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a'); link.href = url; link.download = filename; link.click();
+    URL.revokeObjectURL(url);
+  }
+
   async function renderStudents() {
     const host = $('studentRows');
     const grade = $('bulkQrGrade').value;
@@ -703,14 +734,19 @@
   designations.includes('CLASS_ADVISER') ||
   designations.includes('SUBJECT_TEACHER')
 ));
+    const statusFilter = $('studentStatusFilter')?.value || 'ACTIVE';
     const visible = students.filter(student =>
       (grade === 'ALL' || student.gradeLevel === grade) &&
       (section === 'ALL' || student.section === section) &&
+      (user.role !== 'SCHOOL_ADMIN' || statusFilter === 'ALL' ||
+        (statusFilter === 'ACTIVE' && student.active !== false && !student.archivedAt) ||
+        (statusFilter === 'INACTIVE' && student.active === false && !student.archivedAt) ||
+        (statusFilter === 'ARCHIVED' && Boolean(student.archivedAt))) &&
       (!search || [student.fullName, student.studentId, student.lrn].some(value => String(value || '').toLocaleLowerCase().includes(search)))
     );
     for (const id of [...selectedStudentIds]) if (!visible.some(student => student.studentId === id)) selectedStudentIds.delete(id);
     if (!visible.length) {
-      host.innerHTML = '<tr><td colspan="9" class="empty-cell">No students are available for this filter.</td></tr>';
+      host.innerHTML = '<tr><td colspan="11" class="empty-cell">No students are available for this filter.</td></tr>';
     } else {
       const rows = await Promise.all(visible.map(async student => {
         const photo = await photoDataUrl(student.photoUrl);
@@ -726,15 +762,16 @@
         const qrCell = canViewQr
           ? (qr ? `<button type="button" class="student-qr-preview" data-view-qr="${esc(student.studentId)}" title="View or print QR"><img src="${qr}" alt="QR code for ${esc(student.studentId)}"></button>` : '<span class="qr-unavailable">QR unavailable</span>')
           : (gateKeeper ? '<span class="muted-inline">Gate scan only</span>' : '<span class="muted-inline">Not available</span>');
-        const selection = admin ? `<input type="checkbox" class="student-select-box" data-select-student="${esc(student.studentId)}" ${selectedStudentIds.has(student.studentId) ? 'checked' : ''} aria-label="Select ${esc(student.fullName)}">` : '';
-        const actions = canManage
+        const selection = (admin || (teacher && designations.includes('CLASS_ADVISER'))) ? `<input type="checkbox" class="student-select-box" data-select-student="${esc(student.studentId)}" ${selectedStudentIds.has(student.studentId) ? 'checked' : ''} aria-label="Select ${esc(student.fullName)}">` : '';
+        const editable = canManage && student.active !== false && !student.archivedAt;
+        const actions = editable
           ? `<div class="student-row-actions"><button type="button" class="outline-button" data-edit-student="${esc(student.studentId)}">Edit</button>${canUploadPhoto ? `<label class="student-photo-upload">${student.hasPhoto ? 'Replace photo' : 'Upload photo'}<input type="file" accept="image/jpeg,image/png,image/webp" data-student-photo="${esc(student.studentId)}" hidden></label>` : ''}</div>`
-          : '<span class="muted-inline">View only</span>';
+          : '<span class="muted-inline">' + (student.archivedAt ? 'Archived' : student.active === false ? 'Inactive' : 'View only') + '</span>';
         const accountExists = Boolean(student.studentAccountUsername);
         const accountCell = admin
           ? `<div class="student-row-actions"><span class="muted-inline">${accountExists ? `Active login · ${esc(student.studentAccountUsername)}` : 'No student login'}</span><button type="button" class="outline-button" data-student-account="${esc(student.studentId)}" data-account-exists="${accountExists ? '1' : '0'}">${accountExists ? 'Reset login' : 'Create login'}</button></div>`
           : '<span class="muted-inline">School admin only</span>';
-        return `<tr><td>${selection}</td><td>${avatar}</td><td>${esc(student.studentId)}</td><td>${esc(student.fullName)}</td><td>${esc(student.gradeLevel)}</td><td>${esc(student.section)}</td><td>${qrCell}</td><td>${actions}</td><td>${accountCell}</td></tr>`;
+        return `<tr><td data-label="Select">${selection}</td><td data-label="Photo">${avatar}</td><td data-label="Student ID">${esc(student.studentId)}</td><td data-label="Full name">${esc(student.fullName)}</td><td data-label="Sex">${esc(student.sex || 'Not set')}</td><td data-label="Grade">${esc(student.gradeLevel)}</td><td data-label="Section">${esc(student.section)}</td><td data-label="Status">${student.archivedAt ? 'Archived' : student.active === false ? 'Inactive' : 'Active'}</td><td data-label="QR code">${qrCell}</td><td data-label="Actions">${actions}</td><td data-label="Student account">${accountCell}</td></tr>`;
       }));
       host.innerHTML = rows.join('');
       host.querySelectorAll('input[data-student-photo]').forEach(input => input.addEventListener('change', async () => {
@@ -766,9 +803,10 @@
           : user.role === 'DEPARTMENT_HEAD'
             ? 'Read-only school-wide learner roster for attendance monitoring.'
             : 'Students registered under this school. Manage student information, photos, and QR cards.';
+    const canBatchManage = admin || (teacher && designations.includes('CLASS_ADVISER'));
     document.querySelectorAll('.student-filter-row label, .student-bulk-actions').forEach(element => {
       if (gateKeeper) element.hidden = element.classList.contains('student-bulk-actions');
-      else if (!admin) element.hidden = element.classList.contains('student-bulk-actions');
+      else if (!canBatchManage) element.hidden = element.classList.contains('student-bulk-actions');
     });
     if (admin) refreshBulkQrSections();
     updateStudentSelectionUi();
@@ -776,12 +814,22 @@
 
   function updateStudentSelectionUi() {
     const search = ($('studentRosterSearch')?.value || '').trim().toLocaleLowerCase();
+    const statusFilter = $('studentStatusFilter')?.value || 'ACTIVE';
     const visible = students.filter(s =>
       ($('bulkQrGrade').value === 'ALL' || s.gradeLevel === $('bulkQrGrade').value) &&
       ($('bulkQrSection').value === 'ALL' || s.section === $('bulkQrSection').value) &&
+      (user.role !== 'SCHOOL_ADMIN' || statusFilter === 'ALL' ||
+        (statusFilter === 'ACTIVE' && s.active !== false && !s.archivedAt) ||
+        (statusFilter === 'INACTIVE' && s.active === false && !s.archivedAt) ||
+        (statusFilter === 'ARCHIVED' && Boolean(s.archivedAt))) &&
       (!search || [s.fullName, s.studentId, s.lrn].some(value => String(value || '').toLocaleLowerCase().includes(search)))
     );
     $('selectedStudentCount').textContent = `${selectedStudentIds.size} selected`;
+    const isAdviser = user.role === 'TEACHER' && teacherHas('CLASS_ADVISER');
+    if ($('applyStudentBatch')) $('applyStudentBatch').disabled = selectedStudentIds.size === 0 || !(user.role === 'SCHOOL_ADMIN' || isAdviser);
+    if ($('studentBatchAction')) [...$('studentBatchAction').options].forEach(option => {
+      if (option.value) option.hidden = isAdviser && !['UPDATE','ASSIGN'].includes(option.value);
+    });
     $('selectAllStudents').checked = visible.length > 0 && visible.every(s => selectedStudentIds.has(s.studentId));
     $('selectAllStudents').indeterminate = visible.some(s => selectedStudentIds.has(s.studentId)) && !$('selectAllStudents').checked;
   }
@@ -829,6 +877,7 @@
     $('editStudentIdDisplay').value = student.studentId;
     $('editLrn').value = student.lrn || '';
     $('editFullName').value = student.fullName || '';
+    $('editSex').value = String(student.sex || '').toUpperCase();
     $('editGrade').value = student.gradeLevel || 'Grade 7';
     $('editSection').value = student.section || '';
     $('editParentName').value = student.parentName || '';
@@ -837,6 +886,8 @@
     const adviserCanEditPlacement = isTeacher && teacherHas('CLASS_ADVISER') &&
       adviserAssignments.some(item => String(item.gradeLevel) === String(student.gradeLevel) && String(item.section) === String(student.section));
     ['editLrnGroup','editParentNameGroup','editParentMobileGroup'].forEach(id => { $(id).hidden = isTeacher; });
+    $('editSexGroup').hidden = isTeacher && !adviserCanEditPlacement;
+    $('editSex').required = !isTeacher || adviserCanEditPlacement;
     $('editGradeGroup').hidden = isTeacher && !adviserCanEditPlacement;
     $('editSectionGroup').hidden = isTeacher && !adviserCanEditPlacement;
     $('studentEditFeedback').textContent = isTeacher
@@ -1040,14 +1091,24 @@
   }
 
   function renderPeriods() {
+    const canBulkAssign = user.role === 'SCHOOL_ADMIN' || user.role === 'DEPARTMENT_HEAD';
+    if ($('periodBulkToolbar')) $('periodBulkToolbar').hidden = !canBulkAssign;
+    if ($('periodSelectHeader')) $('periodSelectHeader').hidden = !canBulkAssign;
+    const eligibleTeachers = teachers.filter(t => t.active && (t.teacherDesignations || []).includes('SUBJECT_TEACHER') &&
+      (user.role !== 'DEPARTMENT_HEAD' || String(t.departmentId) === String(user.departmentId)));
+    if ($('bulkScheduleTeacher')) $('bulkScheduleTeacher').innerHTML = '<option value="">Choose teacher</option>' +
+      eligibleTeachers.map(t => '<option value="' + esc(t.userId) + '">' + esc(t.displayName) + ' · ' + esc(t.departmentName || '') + '</option>').join('');
     $('scheduleRows').innerHTML = periods.length ? periods.map(period => {
+      const canSelectPeriod = user.role === 'SCHOOL_ADMIN' || String(period.departmentId) === String(user.departmentId);
+      const selection = canBulkAssign && canSelectPeriod ? '<td><input type="checkbox" data-select-period="' + esc(period.periodId) + '" ' +
+        (selectedPeriodIds.has(String(period.periodId)) ? 'checked' : '') + ' aria-label="Select ' + esc(period.periodName) + '"></td>' : '';
       const departmentCell = user.role === 'SCHOOL_ADMIN'
         ? `<select class="schedule-department-select" data-change-schedule-department="${esc(period.periodId)}" aria-label="Department for ${esc(period.periodName)}">
             ${departments.map(item => `<option value="${esc(item.departmentId)}" ${String(item.departmentId) === String(period.departmentId) ? 'selected' : ''}>${esc(item.name)}</option>`).join('')}
           </select>`
         : esc(period.departmentName || 'Unassigned');
       return `<tr>
-        <td><strong>${esc(period.periodName)}</strong></td>
+        ${selection}<td><strong>${esc(period.periodName)}</strong></td>
         <td>${esc(period.subjectName || '—')}</td>
         <td>${departmentCell}</td>
         <td>${esc(period.gradeLevel)}</td>
@@ -1056,7 +1117,11 @@
         <td>${esc(period.startTime)}–${esc(period.endTime)}</td>
         <td>${esc(period.assignedTeacherName || 'Unassigned')}</td>
       </tr>`;
-    }).join('') : '<tr><td colspan="8" class="empty-cell">No class schedules are available yet.</td></tr>';
+    }).join('') : '<tr><td colspan="' + (canBulkAssign ? 9 : 8) + '" class="empty-cell">No class schedules are available yet.</td></tr>';
+    document.querySelectorAll('[data-select-period]').forEach(box => box.addEventListener('change', () => {
+      if (box.checked) selectedPeriodIds.add(String(box.dataset.selectPeriod)); else selectedPeriodIds.delete(String(box.dataset.selectPeriod));
+      updatePeriodBatchUi();
+    }));
     $('scheduleScopeText').textContent = user.role === 'TEACHER'
       ? 'View your assigned periods or create a schedule in your department that is assigned to your account.'
       : user.role === 'DEPARTMENT_HEAD'
@@ -1284,17 +1349,21 @@
           </select>`
         : esc(teacher.departmentName || 'Unassigned');
       return `<tr>
-        <td><strong>${esc(teacher.displayName)}</strong><small class="table-subtext">${esc(teacher.username)}</small><small class="table-subtext">${esc(designationLabels)}</small></td>
-        <td>${departmentCell}</td>
-        <td><span class="account-status ${statusClass}">${statusLabel}</span>${leaveDetails}</td>
-        <td>${gradeLevelsHtml}</td>
-        <td>${sectionsHtml}</td>
-        <td>${assignmentsHtml}</td>
-        <td><div class="action-row">${actionMenu}</div></td>
+        <td data-label="Teacher">${user.role === 'SCHOOL_ADMIN' ? '<input type="checkbox" data-select-staff="' + esc(teacher.userId) + '" ' + (selectedStaffIds.has(String(teacher.userId)) ? 'checked' : '') + ' aria-label="Select ' + esc(teacher.displayName) + '">' : ''} <strong>${esc(teacher.displayName)}</strong><small class="table-subtext">${esc(teacher.username)}</small><small class="table-subtext">${esc(designationLabels)}</small></td>
+        <td data-label="Department">${departmentCell}</td>
+        <td data-label="Status"><span class="account-status ${statusClass}">${statusLabel}</span>${leaveDetails}</td>
+        <td data-label="Grade level">${gradeLevelsHtml}</td>
+        <td data-label="Section">${sectionsHtml}</td>
+        <td data-label="Assigned schedules">${assignmentsHtml}</td>
+        <td data-label="Account action"><div class="action-row">${actionMenu}</div></td>
       </tr>`;
     }).join('') : '<tr><td colspan="7" class="empty-cell">No teacher accounts have been created for this school yet.</td></tr>';
 
     $('teacherRows').innerHTML = rows;
+    $('teacherRows').querySelectorAll('[data-select-staff]').forEach(box => box.addEventListener('change', () => {
+      if (box.checked) selectedStaffIds.add(String(box.dataset.selectStaff)); else selectedStaffIds.delete(String(box.dataset.selectStaff));
+      updateStaffBulkUi();
+    }));
     $('teacherRows').querySelectorAll('input[data-teacher-photo]').forEach(input => input.addEventListener('change', async () => {
       const file = input.files?.[0]; if (!file) return;
       input.disabled = true;
@@ -1653,22 +1722,59 @@
     overlay.querySelector('#substitutePeriodInput').focus();
   }
 
+  function updateStaffBulkUi() {
+    const eligible = [...teachers.filter(t => t.active).map(t => String(t.userId)),
+      ...schoolUsers.filter(u => u.role === 'DEPARTMENT_HEAD').map(u => String(u.userId))];
+    if ($('selectedStaffCount')) $('selectedStaffCount').textContent = selectedStaffIds.size + ' selected';
+    if ($('selectAllStaff')) {
+      $('selectAllStaff').checked = eligible.length > 0 && eligible.every(id => selectedStaffIds.has(id));
+      $('selectAllStaff').indeterminate = eligible.some(id => selectedStaffIds.has(id)) && !$('selectAllStaff').checked;
+    }
+    if ($('applyBulkStaffDepartment')) $('applyBulkStaffDepartment').disabled = !selectedStaffIds.size || !$('bulkStaffDepartment').value;
+  }
+  $('selectAllStaff')?.addEventListener('change', () => {
+    const eligible = [...teachers.filter(t => t.active).map(t => String(t.userId)),
+      ...schoolUsers.filter(u => u.role === 'DEPARTMENT_HEAD').map(u => String(u.userId))];
+    eligible.forEach(id => $('selectAllStaff').checked ? selectedStaffIds.add(id) : selectedStaffIds.delete(id));
+    renderTeachers(); renderStaffUsers(); updateStaffBulkUi();
+  });
+  $('bulkStaffDepartment')?.addEventListener('change', updateStaffBulkUi);
+  $('applyBulkStaffDepartment')?.addEventListener('click', async () => {
+    const departmentId = $('bulkStaffDepartment').value;
+    if (!departmentId || !selectedStaffIds.size) return;
+    if (!window.confirm('Assign ' + selectedStaffIds.size + ' selected teachers/Department Heads to this department?')) return;
+    $('applyBulkStaffDepartment').disabled = true; $('staffBulkDepartmentFeedback').textContent = 'Checking existing schedule assignments…';
+    try {
+      const result = await api('/api/school-users/bulk-department', { method:'POST', body:JSON.stringify({userIds:[...selectedStaffIds],departmentId}) });
+      selectedStaffIds.clear(); $('staffBulkDepartmentFeedback').textContent = result.updated + ' staff accounts assigned.';
+      await loadSchoolData(); showToast(result.updated + ' staff accounts assigned.');
+    } catch (error) { $('staffBulkDepartmentFeedback').textContent = error.message; showToast(error.message,true); }
+    finally { updateStaffBulkUi(); }
+  });
+
   function renderStaffUsers() {
     const host = $('staffUserRows');
     if (!host) return;
     host.innerHTML = schoolUsers.length ? schoolUsers.map(account => {
+      const staffSelection = account.role === 'DEPARTMENT_HEAD' && user.role === 'SCHOOL_ADMIN'
+        ? '<input type="checkbox" data-select-staff="' + esc(account.userId) + '" ' + (selectedStaffIds.has(String(account.userId)) ? 'checked' : '') + ' aria-label="Select ' + esc(account.displayName || account.username) + '">'
+        : '';
       const departmentCell = account.role === 'DEPARTMENT_HEAD'
         ? `<select class="staff-department-select" data-change-staff-department="${esc(account.userId)}" aria-label="Department for ${esc(account.displayName || account.username)}">
             ${departments.map(item => `<option value="${esc(item.departmentId)}" ${String(item.departmentId) === String(account.departmentId) ? 'selected' : ''}>${esc(item.name)}</option>`).join('')}
           </select>`
         : '<span class="muted-inline">—</span>';
       return `<tr>
-        <td><strong>${esc(account.displayName || account.username)}</strong><small class="table-subtext">${esc(account.username)}</small></td>
-        <td>${esc(String(account.role || '').replaceAll('_', ' '))}</td>
-        <td>${departmentCell}</td>
-        <td><span class="account-status ${account.active ? 'active' : 'inactive'}">${account.active ? 'Active' : 'Inactive'}</span></td>
+        <td data-label="Account">${staffSelection} <strong>${esc(account.displayName || account.username)}</strong><small class="table-subtext">${esc(account.username)}</small></td>
+        <td data-label="Role">${esc(String(account.role || '').replaceAll('_', ' '))}</td>
+        <td data-label="Department">${departmentCell}</td>
+        <td data-label="Status"><span class="account-status ${account.active ? 'active' : 'inactive'}">${account.active ? 'Active' : 'Inactive'}</span></td>
       </tr>`;
     }).join('') : '<tr><td colspan="4" class="empty-cell">No additional staff accounts have been created.</td></tr>';
+    host.querySelectorAll('[data-select-staff]').forEach(box => box.addEventListener('change', () => {
+      if (box.checked) selectedStaffIds.add(String(box.dataset.selectStaff)); else selectedStaffIds.delete(String(box.dataset.selectStaff));
+      updateStaffBulkUi();
+    }));
   }
 
   function renderAdviserAssignments() {
@@ -1800,7 +1906,7 @@
     if ($('departmentHeadOverview')) $('departmentHeadOverview').hidden = !isDepartmentHead;
     const base = await Promise.all([
       api('/api/admin/dashboard'),
-      isDepartmentHead ? Promise.resolve({ students: [] }) : api('/api/students'),
+      api(role === 'SCHOOL_ADMIN' ? '/api/students?includeInactive=true' : '/api/students'),
       role === 'TEACHER' && !teacherHas('SUBJECT_TEACHER') ? Promise.resolve({ periods: [] }) : api('/api/periods'),
       isSchoolManager ? api('/api/departments') : Promise.resolve({ departments: [] })
     ]);
@@ -1843,7 +1949,7 @@
     }
 
     renderStats(dashboardData);
-    if (!isDepartmentHead) renderStudents();
+    renderStudents();
     renderPeriods();
     if (isSchoolManager) renderTeachers();
     if (isDepartmentHead) renderDepartmentHeadOverview();
@@ -2178,7 +2284,29 @@
         setView('dashboard');
       }
       await loadSchoolData();
+      await loadCloudSyncStatus();
       if (user.role === 'SCHOOL_ADMIN') await loadCloudSyncSettings();
+    }
+  }
+
+  async function loadCloudSyncStatus() {
+    const chip = $('connectionStatus');
+    if (!chip) return;
+    const label = chip.querySelector('span');
+    chip.title = 'Checking the cloud replication configuration.';
+    try {
+      const data = await api('/api/cloud-sync/status');
+      const connected = data.connectionStatus === 'CONNECTED' && data.enabled;
+      chip.classList.toggle('sync-connected', connected);
+      chip.classList.toggle('sync-disconnected', !connected);
+      label.textContent = connected ? 'Cloud sync connected' :
+        data.configured ? 'Cloud destination saved · Not connected' : 'Cloud sync not configured';
+      chip.title = data.message || 'Cloud replication status checked.';
+    } catch (error) {
+      chip.classList.remove('sync-connected');
+      chip.classList.add('sync-disconnected');
+      label.textContent = 'Cloud sync status unavailable';
+      chip.title = error.message || 'Could not verify cloud replication status.';
     }
   }
 
@@ -2208,6 +2336,7 @@
       });
       $('cloudSyncStatus').textContent = data.configured ? 'Saved · Not connected' : 'Not configured';
       $('cloudSyncFeedback').textContent = data.message;
+      await loadCloudSyncStatus();
       showToast('Cloud destination settings saved.');
     } catch (error) {
       $('cloudSyncFeedback').className = 'inline-feedback error';
@@ -2253,6 +2382,15 @@
     });
   });
 
+  document.querySelectorAll('.nav-group-toggle[data-nav-group]').forEach(toggle => {
+    toggle.addEventListener('click', () => {
+      const expanded = toggle.getAttribute('aria-expanded') === 'true';
+      toggle.setAttribute('aria-expanded', String(!expanded));
+      const submenu = document.querySelector('[data-submenu="' + toggle.dataset.navGroup + '"]');
+      if (submenu) submenu.hidden = expanded;
+    });
+  });
+
   $('sidebarToggle').addEventListener('click', () => {
     const sidebar = $('sidebar');
     const layout = document.querySelector('.portal-layout');
@@ -2291,7 +2429,102 @@
     window.location.replace('/portal-login.html');
   });
 
+  $('downloadStudentTemplate')?.addEventListener('click', () => {
+    const template = 'Student ID,Full Name,Sex,Grade Level,Section,LRN,Parent Name,Parent Mobile\\r\\n';
+    const blob = new Blob([String.fromCharCode(0xfeff), template], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob); const a = document.createElement('a'); a.href = url; a.download = 'student-import-template.csv'; a.click(); URL.revokeObjectURL(url);
+  });
+  $('exportStudentsButton')?.addEventListener('click', () => {
+    exportCsv('student-roster.csv', ['Student ID','LRN','Full name','Sex','Grade level','Section','Status'],
+      students.map(s => [s.studentId,s.lrn,s.fullName,s.sex,s.gradeLevel,s.section,s.active === false ? 'Inactive' : 'Active']));
+  });
+  $('exportTeachersButton')?.addEventListener('click', () => {
+    exportCsv('teacher-list.csv', ['Username','Teacher name','Department','Status','Designations','Assigned classes'],
+      teachers.map(t => [t.username,t.displayName,t.departmentName,t.teacherStatus,(t.teacherDesignations || []).join('; '),
+        [...(t.adviserSections || []), ...(t.assignedPeriods || [])].map(x => String(x.gradeLevel || '') + ' ' + String(x.section || '')).join('; ')]));
+  });
+
+  function resetStudentImport() {
+    pendingStudentImport = null; pendingStudentImportPreview = null;
+    $('studentImportFile').value = ''; $('studentImportSummary').textContent = '';
+    $('studentImportPreviewRows').innerHTML = '<tr><td colspan="5" class="empty-cell">Choose a file to preview.</td></tr>';
+    $('confirmStudentImport').disabled = true;
+  }
+  $('bulkImportStudentsButton')?.addEventListener('click', () => { resetStudentImport(); $('studentImportModal').hidden = false; });
+  $('closeStudentImport')?.addEventListener('click', () => { $('studentImportModal').hidden = true; });
+  $('cancelStudentImport')?.addEventListener('click', () => { $('studentImportModal').hidden = true; resetStudentImport(); });
+  $('studentImportFile')?.addEventListener('change', async () => {
+    const file = $('studentImportFile').files?.[0]; if (!file) return;
+    if (file.size > 5 * 1024 * 1024) { showToast('Choose a file no larger than 5 MB.', true); return; }
+    const ext = file.name.toLowerCase().split('.').pop();
+    if (!['csv','xlsx'].includes(ext)) { showToast('Only CSV and Excel .xlsx files are supported.', true); return; }
+    $('studentImportSummary').textContent = 'Reading and validating file…'; $('confirmStudentImport').disabled = true;
+    try {
+      if (ext === 'csv') pendingStudentImport = { csvText: await file.text() };
+      else pendingStudentImport = { fileBase64: await new Promise((resolve,reject) => {
+        const reader = new FileReader(); reader.onerror = () => reject(new Error('Could not read the Excel file.'));
+        reader.onload = () => resolve(String(reader.result).split(',')[1] || ''); reader.readAsDataURL(file);
+      }) };
+      const preview = await api('/api/students/import/preview', { method:'POST', body:JSON.stringify(pendingStudentImport) });
+      pendingStudentImportPreview = preview;
+      $('studentImportSummary').textContent = preview.total + ' rows · ' + preview.summary.create + ' new · ' + preview.summary.update + ' updates · ' + preview.summary.error + ' errors';
+      $('studentImportPreviewRows').innerHTML = preview.rows.map(r => '<tr><td>' + r.rowNumber + '</td><td>' + esc(r.studentId) + '</td><td>' + esc(r.fullName) + '</td><td>' + esc(r.action) + '</td><td>' + esc((r.errors || []).join(' ')) + '</td></tr>').join('');
+      $('confirmStudentImport').disabled = preview.summary.error > 0 || preview.total === 0;
+    } catch (error) { $('studentImportSummary').textContent = error.message; $('studentImportPreviewRows').innerHTML = '<tr><td colspan="5" class="empty-cell">File could not be validated.</td></tr>'; }
+  });
+  $('confirmStudentImport')?.addEventListener('click', async () => {
+    if (!pendingStudentImport || !pendingStudentImportPreview || pendingStudentImportPreview.summary.error) return;
+    if (!window.confirm('Import ' + pendingStudentImportPreview.total + ' student records? Existing Student IDs will be updated, not duplicated.')) return;
+    $('confirmStudentImport').disabled = true; $('studentImportSummary').textContent = 'Saving records…';
+    try {
+      const result = await api('/api/students/import/commit', { method:'POST', body:JSON.stringify(pendingStudentImport) });
+      const summary = 'Completed: ' + result.created + ' created and ' + result.updated + ' updated.';
+      resetStudentImport(); $('studentImportModal').hidden = true; selectedStudentIds.clear(); await loadSchoolData();
+      showToast(summary);
+    } catch (error) { $('studentImportSummary').textContent = error.message; $('confirmStudentImport').disabled = false; }
+  });
+  function openStudentBatch() {
+    const action = $('studentBatchAction').value;
+    if (!action || !selectedStudentIds.size) return;
+    ['batchNameGroup','batchSexGroup','batchLrnGroup','batchParentNameGroup','batchParentMobileGroup'].forEach(id => $(id).hidden = action !== 'UPDATE');
+    $('batchGradeGroup').hidden = action !== 'ASSIGN'; $('batchSectionGroup').hidden = action !== 'ASSIGN';
+    $('batchLrnGroup').hidden = action !== 'UPDATE' || user.role !== 'SCHOOL_ADMIN';
+    $('batchParentNameGroup').hidden = action !== 'UPDATE' || user.role !== 'SCHOOL_ADMIN';
+    $('batchParentMobileGroup').hidden = action !== 'UPDATE' || user.role !== 'SCHOOL_ADMIN';
+    $('studentBatchTitle').textContent = action + ' ' + selectedStudentIds.size + ' students';
+    $('studentBatchDescription').textContent = action === 'ASSIGN' ? 'This changes the active school-year enrollment, not the permanent student identity.' : 'Only the fields you complete will be changed.';
+    $('studentBatchModal').hidden = false;
+  }
+  $('applyStudentBatch')?.addEventListener('click', openStudentBatch);
+  $('studentBatchAction')?.addEventListener('change', () => { $('applyStudentBatch').disabled = !selectedStudentIds.size || !$('studentBatchAction').value; });
+  $('closeStudentBatch')?.addEventListener('click', () => { $('studentBatchModal').hidden = true; });
+  $('studentBatchForm')?.addEventListener('submit', async event => {
+    event.preventDefault(); const action = $('studentBatchAction').value;
+    if (!action || !selectedStudentIds.size) return;
+    if (!window.confirm(action + ' ' + selectedStudentIds.size + ' selected student records?')) return;
+    const body = { action, studentIds:[...selectedStudentIds] };
+    if (action === 'UPDATE') {
+      if ($('batchFullName').value.trim()) body.fullName = $('batchFullName').value.trim();
+      if ($('batchSex').value) body.sex = $('batchSex').value;
+      if ($('batchLrn').value.trim()) body.lrn = $('batchLrn').value.trim();
+      if (user.role === 'SCHOOL_ADMIN') {
+        if ($('batchParentName').value.trim()) body.parentName = $('batchParentName').value.trim();
+        if ($('batchParentMobile').value.trim()) body.parentMobile = $('batchParentMobile').value.trim();
+      }
+      if (!body.fullName && !body.sex && !body.lrn && !body.parentName && !body.parentMobile) { $('studentBatchFeedback').textContent = 'Enter at least one field to update.'; return; }
+    }
+    if (action === 'ASSIGN') { body.gradeLevel = $('batchGrade').value; body.section = $('batchSection').value.trim(); if (!body.section) { $('studentBatchFeedback').textContent = 'Enter a section.'; return; } }
+    $('confirmStudentBatch').disabled = true; $('studentBatchFeedback').textContent = 'Applying changes…';
+    try {
+      const result = await api('/api/students/batch', { method:'POST', body:JSON.stringify(body) });
+      $('studentBatchModal').hidden = true; $('studentBatchFeedback').textContent = '';
+      selectedStudentIds.clear(); $('studentBatchAction').value = ''; await loadSchoolData(); showToast(result.updated + ' student records updated.');
+    } catch (error) { $('studentBatchFeedback').textContent = error.message; }
+    finally { $('confirmStudentBatch').disabled = false; updateStudentSelectionUi(); }
+  });
+
   $('studentRosterSearch').addEventListener('input', () => { renderStudents(); updateStudentSelectionUi(); });
+  $('studentStatusFilter')?.addEventListener('change', () => { selectedStudentIds.clear(); renderStudents(); updateStudentSelectionUi(); });
   $('closeStudentQrPreview').addEventListener('click', () => { $('studentQrPreviewModal').hidden = true; });
   $('closeStudentQrPreviewBottom').addEventListener('click', () => { $('studentQrPreviewModal').hidden = true; });
   $('studentQrPreviewModal').addEventListener('click', event => {
@@ -2302,7 +2535,7 @@
   $('bulkQrSection').addEventListener('change', () => renderStudents());
   $('bulkQrGrade').addEventListener('change', () => { refreshBulkQrSections(); renderStudents(); });
   $('selectAllStudents').addEventListener('change', () => {
-    const visible = students.filter(s => ($('bulkQrGrade').value === 'ALL' || s.gradeLevel === $('bulkQrGrade').value) && ($('bulkQrSection').value === 'ALL' || s.section === $('bulkQrSection').value));
+    const visible = students.filter(s => ($('bulkQrGrade').value === 'ALL' || s.gradeLevel === $('bulkQrGrade').value) && ($('bulkQrSection').value === 'ALL' || s.section === $('bulkQrSection').value) && (user.role !== 'SCHOOL_ADMIN' || $('studentStatusFilter').value === 'ALL' || ($('studentStatusFilter').value === 'ACTIVE' && s.active !== false && !s.archivedAt) || ($('studentStatusFilter').value === 'INACTIVE' && s.active === false && !s.archivedAt) || ($('studentStatusFilter').value === 'ARCHIVED' && Boolean(s.archivedAt))));
     visible.forEach(s => $('selectAllStudents').checked ? selectedStudentIds.add(s.studentId) : selectedStudentIds.delete(s.studentId));
     renderStudents();
   });
@@ -2372,9 +2605,17 @@
     feedback.textContent = 'Saving changes…'; feedback.className = 'inline-feedback';
     const placementEditable = user.role !== 'TEACHER' || !$('editGradeGroup').hidden;
     const payload = { fullName: $('editFullName').value.trim() };
+    const sexEditable = user.role !== 'TEACHER' || (!$('editSexGroup').hidden);
+    if (sexEditable) payload.sex = $('editSex').value;
     if (placementEditable) Object.assign(payload, { gradeLevel: $('editGrade').value, section: $('editSection').value.trim() });
     if (user.role !== 'TEACHER') Object.assign(payload, { lrn: $('editLrn').value.trim() || null, parentName: $('editParentName').value.trim() || null, parentMobile: $('editParentMobile').value.trim() });
-    try { await api(`/api/students/${encodeURIComponent(id)}`, { method: 'PATCH', body: JSON.stringify(payload) }); $('studentEditOverlay').hidden = true; await loadSchoolData(); showToast('Student information updated. Existing QR code was preserved.'); }
+    try {
+      await api(`/api/students/${encodeURIComponent(id)}`, { method: 'PATCH', body: JSON.stringify(payload) });
+      if (user.role === 'TEACHER' && sexEditable) {
+        await api(`/api/sf2/students/${encodeURIComponent(id)}/sex`, { method: 'PATCH', body: JSON.stringify({ sex: payload.sex }) });
+      }
+      $('studentEditOverlay').hidden = true; await loadSchoolData(); showToast('Student information updated. Existing QR code was preserved.');
+    }
     catch (error) { feedback.textContent = error.message; feedback.className = 'inline-feedback error'; }
   });
 
@@ -2465,6 +2706,7 @@
     const payload = {
       studentId: $('newStudentId').value.trim(),
       lrn: $('newLrn').value.trim() || null,
+      sex: $('newSex').value,
       fullName: $('newFullName').value.trim(),
       gradeLevel: $('newGrade').value,
       section: $('newSection').value.trim(),
@@ -2488,6 +2730,33 @@
       feedback.className = 'inline-feedback error';
       feedback.textContent = error.message;
     }
+  });
+
+  function updatePeriodBatchUi() {
+    const visibleIds = periods.filter(p => user.role !== 'DEPARTMENT_HEAD' || String(p.departmentId) === String(user.departmentId)).map(p => String(p.periodId));
+    $('selectedPeriodCount').textContent = selectedPeriodIds.size + ' selected';
+    $('selectAllPeriods').checked = visibleIds.length > 0 && visibleIds.every(id => selectedPeriodIds.has(id));
+    $('selectAllPeriods').indeterminate = visibleIds.some(id => selectedPeriodIds.has(id)) && !$('selectAllPeriods').checked;
+    $('applyBulkScheduleAssignment').disabled = !selectedPeriodIds.size || !$('bulkScheduleTeacher').value;
+  }
+  $('selectAllPeriods')?.addEventListener('change', () => {
+    const visible = periods.filter(p => user.role !== 'DEPARTMENT_HEAD' || String(p.departmentId) === String(user.departmentId));
+    visible.forEach(p => $('selectAllPeriods').checked ? selectedPeriodIds.add(String(p.periodId)) : selectedPeriodIds.delete(String(p.periodId)));
+    renderPeriods(); updatePeriodBatchUi();
+  });
+  $('bulkScheduleTeacher')?.addEventListener('change', updatePeriodBatchUi);
+  $('applyBulkScheduleAssignment')?.addEventListener('click', async () => {
+    if (!selectedPeriodIds.size || !$('bulkScheduleTeacher').value) return;
+    if (!window.confirm('Assign the selected ' + selectedPeriodIds.size + ' schedules to this teacher?')) return;
+    $('applyBulkScheduleAssignment').disabled = true; $('bulkScheduleFeedback').textContent = 'Checking department access and timetable conflicts…';
+    try {
+      const result = await api('/api/periods/bulk-assignments', { method:'POST', body:JSON.stringify({
+        periodIds:[...selectedPeriodIds], teacherUserId:$('bulkScheduleTeacher').value
+      }) });
+      selectedPeriodIds.clear(); $('bulkScheduleFeedback').textContent = result.assigned + ' schedules assigned to ' + result.teacher + '.';
+      await loadSchoolData(); showToast(result.assigned + ' schedules assigned.');
+    } catch (error) { $('bulkScheduleFeedback').textContent = error.message; showToast(error.message,true); }
+    finally { updatePeriodBatchUi(); }
   });
 
   $('showScheduleForm').addEventListener('click', () => {

@@ -6,6 +6,7 @@ on:
       - feature/admin-department-scheduling-coverage
       - feature/compact-staff-ui
       - fix/teacher-monitor-table-columns
+      - feature/student-management-ux
   workflow_dispatch:
 
 permissions:
@@ -44,6 +45,14 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      - name: Check JavaScript syntax
+        run: |
+          node --check server.js
+          node --check student-management-routes.js
+          node --check public/portal.js
+          node --check department-routes.js
+          node --check cloud-sync-routes.js
+          node --check sf2-routes.js
       - name: Run test suite
         run: npm test
 
