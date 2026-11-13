@@ -433,8 +433,9 @@ function registerCloudMasterDataRoutes(app, pool, {
            effective_date date,from_grade_level text,from_section text,to_grade_level text,to_section text,
            destination_school_name text,destination_school_id text,official_code text,
            recorded_by_user_id uuid,created_at timestamptz)
-         ON CONFLICT(movement_id) DO NOTHING
-         RETURNING 1`, true);
+         ON CONFLICT(movement_id) DO UPDATE SET movement_id=EXCLUDED.movement_id
+           WHERE student_movements.school_id=EXCLUDED.school_id
+         RETURNING 1`);
 
       imported.schoolCalendar = await run('school calendar', payload.schoolCalendar,
         `INSERT INTO school_calendar
