@@ -1837,17 +1837,49 @@
     }
   }
 
+  function setCloudSyncFeedback(message, isError = false) {
+    const node = $('cloudSyncFeedback');
+    if (!node) return;
+    node.textContent = message || '';
+    node.className = isError ? 'inline-feedback error' : 'inline-feedback';
+  }
+
+  async function loadCloudSyncStatus() {
+    try {
+      const data = await api('/api/cloud-sync/status');
+      $('cloudPendingCount').textContent = data.summary?.PENDING ?? 0;
+      $('cloudSendingCount').textContent = data.summary?.SENDING ?? 0;
+      $('cloudSyncedCount').textContent = data.summary?.SYNCED ?? 0;
+      $('cloudFailedCount').textContent = data.summary?.FAILED ?? 0;
+      const list = $('cloudSyncRecent');
+      list.innerHTML = '';
+      (data.recent || []).forEach(item => {
+        const li = document.createElement('li');
+        const parts = [item.status, item.eventId, 'attempts ' + item.attempts];
+        if (item.lastError) parts.push(item.lastError);
+        li.textContent = parts.join(' · ');
+        list.append(li);
+      });
+    } catch (error) {
+      setCloudSyncFeedback(error.message, true);
+    }
+  }
+
   async function loadCloudSyncSettings() {
     const input = $('cloudBaseUrl');
     if (!input) return;
     try {
       const data = await api('/api/cloud-sync/settings');
       input.value = data.cloudBaseUrl || '';
-      $('cloudSyncStatus').textContent = data.configured ? 'Saved · Not connected' : 'Not configured';
-      $('cloudSyncFeedback').textContent = data.message || 'Cloud destination settings loaded.';
+      $('cloudAuthToken').value = '';
+      $('cloudSyncEnabled').checked = Boolean(data.enabled);
+      $('cloudSyncStatus').textContent = data.connectionStatus === 'ENABLED'
+        ? 'Forwarding enabled'
+        : data.connectionVerified ? 'Connection verified' : (data.configured ? 'Needs connection test' : 'Not configured');
+      setCloudSyncFeedback(data.message || 'Cloud destination settings loaded.');
+      await loadCloudSyncStatus();
     } catch (error) {
-      $('cloudSyncFeedback').textContent = error.message;
-      $('cloudSyncFeedback').className = 'inline-feedback error';
+      setCloudSyncFeedback(error.message, true);
     }
   }
 
@@ -1855,21 +1887,106 @@
     event.preventDefault();
     const button = $('saveCloudDestination');
     button.disabled = true;
-    $('cloudSyncFeedback').className = 'inline-feedback';
-    $('cloudSyncFeedback').textContent = 'Saving destination…';
+    setCloudSyncFeedback('Saving cloud settings…');
     try {
       const data = await api('/api/cloud-sync/settings', {
-        method: 'PUT', body: JSON.stringify({ cloudBaseUrl: $('cloudBaseUrl').value.trim() })
+        method: 'PUT',
+        body: JSON.stringify({
+          cloudBaseUrl: $('cloudBaseUrl').value.trim(),
+          cloudAuthToken: $('cloudAuthToken').value.trim(),
+          enabled: $('cloudSyncEnabled').checked
+        })
       });
-      $('cloudSyncStatus').textContent = data.configured ? 'Saved · Not connected' : 'Not configured';
-      $('cloudSyncFeedback').textContent = data.message;
-      showToast('Cloud destination settings saved.');
+      $('cloudAuthToken').value = '';
+      $('cloudSyncStatus').textContent = data.enabled ? 'Forwarding enabled' :
+        (data.connectionVerified ? 'Connection verified' : 'Not connected');
+      setCloudSyncFeedback(data.message || 'Cloud settings saved.');
+      showToast('Cloud Sync settings saved.');
+      await loadCloudSyncStatus();
     } catch (error) {
-      $('cloudSyncFeedback').className = 'inline-feedback error';
-      $('cloudSyncFeedback').textContent = error.message;
-    } finally { button.disabled = false; }
+      setCloudSyncFeedback(error.message, true);
+    } finally {
+      button.disabled = false;
+    }
   });
+
   $('refreshCloudDestination')?.addEventListener('click', loadCloudSyncSettings);
+
+  $('testCloudConnection')?.addEventListener('click', async () => {
+    const button = $('testCloudConnection');
+    button.disabled = true;
+    setCloudSyncFeedback('Testing the secure cloud connection…');
+    try {
+      const data = await api('/api/cloud-sync/test', { method: 'POST', body: '{}' });
+      setCloudSyncFeedback(data.message || 'Cloud connection verified.');
+      showToast('Cloud connection verified.');
+      await loadCloudSyncSettings();
+    } catch (error) {
+      setCloudSyncFeedback(error.message, true);
+    } finally {
+      button.disabled = false;
+    }
+  });
+
+  $('generateCloudCredential')?.addEventListener('click', async () => {
+    const button = $('generateCloudCredential');
+    button.disabled = true;
+    setCloudSyncFeedback('Generating a new receiving credential. Any previous credential will be revoked…');
+    try {
+      const data = await api('/api/cloud-sync/inbound-credential', { method: 'POST', body: '{}' });
+      $('cloudSyncTokenOutput').value = data.token || '';
+      $('cloudSyncTokenPanel').hidden = false;
+      setCloudSyncFeedback(data.message || 'Copy the receiving credential now.');
+      showToast('Receiving credential generated. Copy it now.');
+    } catch (error) {
+      setCloudSyncFeedback(error.message, true);
+    } finally {
+      button.disabled = false;
+    }
+  });
+
+  $('copyCloudSyncToken')?.addEventListener('click', async () => {
+    const value = $('cloudSyncTokenOutput').value;
+    if (!value) return;
+    try {
+      await navigator.clipboard.writeText(value);
+      setCloudSyncFeedback('Credential copied. Paste it into the local school server settings.');
+    } catch {
+      $('cloudSyncTokenOutput').focus();
+      $('cloudSyncTokenOutput').select();
+      setCloudSyncFeedback('Select the credential above and copy it manually.');
+    }
+  });
+
+  $('syncCloudNow')?.addEventListener('click', async () => {
+    const button = $('syncCloudNow');
+    button.disabled = true;
+    setCloudSyncFeedback('Preparing pending and failed attendance records for synchronization…');
+    try {
+      const data = await api('/api/cloud-sync/sync-now', { method: 'POST', body: '{}' });
+      setCloudSyncFeedback(data.message + ' The background worker will process the queue.');
+      await loadCloudSyncStatus();
+    } catch (error) {
+      setCloudSyncFeedback(error.message, true);
+    } finally {
+      button.disabled = false;
+    }
+  });
+
+  $('retryCloudFailures')?.addEventListener('click', async () => {
+    const button = $('retryCloudFailures');
+    button.disabled = true;
+    setCloudSyncFeedback('Requeuing failed attendance records…');
+    try {
+      const data = await api('/api/cloud-sync/retry-failed', { method: 'POST', body: '{}' });
+      setCloudSyncFeedback(data.message || ('Requeued ' + data.queued + ' failed record(s).'));
+      await loadCloudSyncStatus();
+    } catch (error) {
+      setCloudSyncFeedback(error.message, true);
+    } finally {
+      button.disabled = false;
+    }
+  });
 
   document.querySelectorAll('.nav-item[data-view]').forEach(button => {
     button.addEventListener('click', () => setView(button.dataset.view));
