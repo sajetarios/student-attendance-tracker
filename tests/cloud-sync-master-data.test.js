@@ -119,7 +119,7 @@ test('master-data import endpoint and UI provide the guided sync controls', () =
   assert.match(portalHtml, /id="pushMasterData"/);
   assert.match(portalHtml, /id="masterDataReceiverStatus"/);
   assert.match(portalHtml, /id="cloudForwardingReadiness"/);
-  assert.match(portalHtml, /does not propagate deletions/i);
+  assert.match(portalHtml, /source-side deletions or unassignments are not propagated/i);
   assert.match(portalJs, /cloud-sync\/master-data\/push/);
   assert.match(portalJs, /cloud-sync\/master-data\/status/);
   const masterRoutes = fs.readFileSync(path.join(root, 'cloud-sync-master-data.js'), 'utf8');
