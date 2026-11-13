@@ -140,6 +140,15 @@ async function buildMasterDataSnapshot(pool, schoolId) {
   }));
   const snapshot = Object.fromEntries(values);
   if (!snapshot.school) throw new Error('The active school record could not be loaded.');
+  // jsonb_to_recordset uses database-style field names. Convert the public snapshot's
+  // camelCase aliases before serialization so every typed import column is populated.
+  for (const key of COLLECTIONS) {
+    snapshot[key] = snapshot[key].map(record => Object.fromEntries(
+      Object.entries(record).map(([field, value]) => [
+        field.replace(/[A-Z]/g, letter => '_' + letter.toLowerCase()), value
+      ])
+    ));
+  }
   snapshot.schemaVersion = SCHEMA_VERSION;
   snapshot.schoolId = schoolId;
   snapshot.generatedAt = new Date().toISOString();
