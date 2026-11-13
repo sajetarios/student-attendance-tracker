@@ -25,7 +25,7 @@ function registerCloudSyncRoutes(app, pool, { authenticateSchoolClient, requireS
 
   app.put('/api/cloud-sync/settings', authenticateSchoolClient, requireSchoolAdmin, async (req, res) => {
     const rawUrl = typeof req.body?.cloudBaseUrl === 'string' ? req.body.cloudBaseUrl.trim() : '';
-    const enabled = req.body?.enabled === true;
+    const enabled = false; // Destination configuration does not activate forwarding.
     let normalizedUrl = null;
     if (rawUrl) {
       if (rawUrl.length > 500) return res.status(400).json({ error: 'Cloud address must be 500 characters or fewer.' });
@@ -38,9 +38,6 @@ function registerCloudSyncRoutes(app, pool, { authenticateSchoolClient, requireS
         return res.status(400).json({ error: 'Use an HTTPS cloud address. HTTP is allowed only for localhost testing; credentials, query strings, and fragments are not allowed.' });
       }
       normalizedUrl = parsed.toString().replace(/\/+$/, '');
-    }
-    if (enabled && !normalizedUrl) {
-      return res.status(400).json({ error: 'Enter a cloud server address before enabling cloud sync.' });
     }
     try {
       await pool.query(
