@@ -10,7 +10,7 @@ const html = fs.readFileSync(path.join(root, 'public', 'portal.html'), 'utf8');
 test('Teacher monitoring table has dedicated Grade level and Section columns', () => {
   assert.match(html, /<th>Grade level<\/th><th>Section<\/th>/);
   assert.match(html, /class=\"teacher-monitor-table\"/);
-  assert.match(html, /id=\"teacherRows\"[\s\S]*?colspan=\"6\"/);
+  assert.match(html, /id=\"teacherRows\"[\s\S]*?colspan=\"7\"/);
 });
 
 test('Teacher monitoring combines adviser, permanent schedule, and substitute grade-section assignments', () => {

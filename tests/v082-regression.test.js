@@ -49,16 +49,19 @@ test('photo column explains missing stored photo and retains upload controls for
   assert.match(portal, /canUploadPhoto = admin \|\| \(teacher && designations\.includes\('CLASS_ADVISER'\)\)/);
 });
 
-test('new theme uses fresh v0.8.3 portal assets and a new service-worker cache', () => {
-  const theme = read('public/comfort-ui.css');
-  assert.match(theme, /--brand: #2463a5/);
-  assert.match(theme, /--sidebar: #1c2d45/);
-  assert.doesNotMatch(theme, /#477f78|#293b3a/);
+test('current portal assets are pre-cached under a new service-worker cache', () => {
+  const theme = read('public/portal.css');
+  assert.match(theme, /--brand:#0ea5e9/);
+  assert.match(theme, /--sidebar:#20232d/);
+  assert.match(theme, /:focus/);
   const portalHtml = read('public/portal.html');
-  assert.match(portalHtml, /comfort-ui\.css\?v=0\.8\.3/);
-  assert.match(portalHtml, /portal\.js\?v=0\.8\.3/);
-  assert.match(read('public/sw.js'), /school-attendance-shell-v15-teacher-workspace/);
-  assert.match(read('public/sw.js'), /portal\.js\?v=0\.8\.3/);
+  assert.match(portalHtml, /portal\.css\?v=0\.9\.1/);
+  assert.match(portalHtml, /portal\.js\?v=0\.9\.1/);
+  assert.match(portalHtml, /academic-admin\.css\?v=1/);
+  const serviceWorker = read('public/sw.js');
+  assert.match(serviceWorker, /school-attendance-shell-v16-department-coverage/);
+  assert.match(serviceWorker, /portal\.js\?v=0\.9\.1/);
+  assert.match(serviceWorker, /academic-admin\.js\?v=1/);
 });
 
 
@@ -74,7 +77,7 @@ test('root URL and legacy index open the login page without serving a stale cach
   assert.ok(server.includes("res.redirect('/');"));
   assert.ok(index.includes('/portal-login.html'));
   assert.ok(serviceWorker.includes('if (request.mode === "navigate")'));
-  assert.ok(serviceWorker.includes('school-attendance-shell-v15-teacher-workspace'));
+  assert.ok(serviceWorker.includes('school-attendance-shell-v16-department-coverage'));
   assert.equal(shell.includes('"/"'), false);
   assert.equal(shell.includes('"/index.html"'), false);
   assert.ok(loginScript.includes("navigator.serviceWorker.register('/sw.js', { updateViaCache: 'none' })"));

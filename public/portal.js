@@ -21,6 +21,10 @@
   let gateScanType = 'BOTH';
   let gateKeeperMonitoring = [];
   let teacherGateAttendance = [];
+  let departments = [];
+  let teacherCoverage = [];
+  let coverageAlertKeys = new Set();
+  let coverageMonitorInitialized = false;
   let activeScanScope = 'SCHOOL';
   let activeScanPeriodId = null;
 
@@ -169,7 +173,7 @@
       titles = {
         dashboard: ['Department Head Dashboard', 'Monitor learner attendance, teacher availability, class coverage, schedules, and section report progress.'],
         teachers: ['Teacher monitoring', 'Review teacher designations, assigned grade levels and sections, leave, schedules, and temporary substitute coverage.'],
-        schedules: ['Class schedule monitoring', 'Review the school schedule and class coverage. Permanent schedule changes remain with the School Administrator.'],
+        schedules: ['Department schedule management', 'View every department’s timetable and create or assign class schedules only within your own department.'],
         sf2: ['SF2 monitoring', 'Preview official section reports. Department Heads cannot edit, submit, or collect SF2 reports.']
       };
     } else if (gateKeeper) {
@@ -439,6 +443,181 @@
     $('dhTeacherActive').textContent = String(active.length);
     $('dhTeacherLeave').textContent = String(onLeave.length);
     $('dhTeacherCovers').textContent = String(coverIds.size);
+    if ($('dhUncoveredClasses')) $('dhUncoveredClasses').textContent = String(teacherCoverage.filter(item => ['NO_TEACHER','ON_LEAVE_UNCOVERED'].includes(item.coverageStatus)).length);
+    if ($('dhCoverageAlerts')) $('dhCoverageAlerts').textContent = String(teacherCoverage.filter(item => ['CHECK_IN_NOT_RECORDED','COVERAGE_CHECK_IN_NOT_RECORDED'].includes(item.coverageStatus)).length);
+  }
+
+  function renderDepartments() {
+    const usableDepartments = departments.filter(item => item.active && item.code !== 'UNASSIGNED');
+    const options = '<option value="">Select department</option>' + usableDepartments.map(item =>
+      `<option value="${esc(item.departmentId)}">${esc(item.name)}</option>`
+    ).join('');
+    const periodSelect = $('periodDepartment');
+    if (periodSelect) {
+      const previous = periodSelect.value;
+      periodSelect.innerHTML = options;
+      periodSelect.value = usableDepartments.some(item => String(item.departmentId) === String(previous))
+        ? previous : (usableDepartments.some(item => String(item.departmentId) === String(user.departmentId)) ? user.departmentId : '');
+      if (user.role !== 'SCHOOL_ADMIN') periodSelect.value = user.departmentId || '';
+    }
+    const accountSelect = $('newTeacherDepartment');
+    if (accountSelect) {
+      const previous = accountSelect.value;
+      accountSelect.innerHTML = options;
+      accountSelect.value = usableDepartments.some(item => String(item.departmentId) === String(previous))
+        ? previous : '';
+    }
+    const list = $('departmentList');
+    if (list) list.innerHTML = departments.length
+      ? departments.map(item => `<span class="department-chip ${item.code === 'UNASSIGNED' ? 'unassigned' : ''}">${esc(item.name)}<small>${esc(item.code)}</small></span>`).join('')
+      : '<span class="muted-inline">No departments created yet.</span>';
+    if ($('departmentManagementCard')) $('departmentManagementCard').hidden = user.role !== 'SCHOOL_ADMIN';
+    if ($('newTeacherDepartmentGroup')) $('newTeacherDepartmentGroup').hidden = user.role !== 'SCHOOL_ADMIN';
+  }
+
+  function coverageStatusLabel(status) {
+    const labels = {
+      NO_TEACHER: 'No teacher assigned',
+      ON_LEAVE_UNCOVERED: 'On leave · no cover',
+      CHECK_IN_NOT_RECORDED: 'Check-in not recorded',
+      COVERAGE_CHECK_IN_NOT_RECORDED: 'Cover check-in not recorded',
+      TEACHER_INACTIVE: 'Teacher inactive',
+      WAITING_FOR_START: 'Waiting for class',
+      SCHEDULED: 'Scheduled',
+      COVERED: 'Covered',
+      ASSIGNED: 'Assigned'
+    };
+    return labels[status] || status;
+  }
+
+  function coverageStatusClass(status) {
+    if (['NO_TEACHER','ON_LEAVE_UNCOVERED','CHECK_IN_NOT_RECORDED','COVERAGE_CHECK_IN_NOT_RECORDED','TEACHER_INACTIVE'].includes(status)) return 'coverage-alert';
+    if (status === 'COVERED') return 'coverage-covered';
+    return 'coverage-normal';
+  }
+
+  function coverageNeedsAction(row) {
+    return ['NO_TEACHER','ON_LEAVE_UNCOVERED','CHECK_IN_NOT_RECORDED','COVERAGE_CHECK_IN_NOT_RECORDED','TEACHER_INACTIVE'].includes(row.coverageStatus);
+  }
+
+  function renderTeacherCoverage() {
+    const host = $('teacherCoverageRows');
+    if (!host) return;
+    const alertRows = teacherCoverage.filter(row => coverageNeedsAction(row));
+    const count = $('coverageAlertCount');
+    if (count) count.textContent = `${alertRows.length} ${alertRows.length === 1 ? 'alert' : 'alerts'}`;
+    const summary = $('coverageAlertSummary');
+    if (summary) {
+      const unassigned = teacherCoverage.filter(row => row.coverageStatus === 'NO_TEACHER').length;
+      const leave = teacherCoverage.filter(row => row.coverageStatus === 'ON_LEAVE_UNCOVERED').length;
+      const missed = teacherCoverage.filter(row => ['CHECK_IN_NOT_RECORDED','COVERAGE_CHECK_IN_NOT_RECORDED'].includes(row.coverageStatus)).length;
+      summary.textContent = `${teacherCoverage.length} scheduled classes · ${unassigned} without a teacher · ${leave} uncovered leave periods · ${missed} missing time-in records.`;
+    }
+    if (!teacherCoverage.length) {
+      host.innerHTML = '<tr><td colspan="6" class="empty-cell">No active class schedules were found. Add department schedules to begin monitoring coverage.</td></tr>';
+      return;
+    }
+    host.innerHTML = teacherCoverage.map(row => {
+      const canManageRow = user.role === 'SCHOOL_ADMIN' ||
+        (user.role === 'DEPARTMENT_HEAD' && user.departmentCode !== 'UNASSIGNED' &&
+         String(row.departmentId) === String(user.departmentId));
+      const options = canManageRow ? teachers.filter(teacher => {
+        const alreadyBooked = (teacher.assignedPeriods || []).some(period =>
+          String(period.periodId) !== String(row.periodId) &&
+          String(period.startTime || '') < String(row.endTime || '') &&
+          String(row.startTime || '') < String(period.endTime || '')
+        );
+        return teacher.active && String(teacher.departmentId) === String(row.departmentId) &&
+          (teacher.teacherDesignations || []).includes('SUBJECT_TEACHER') &&
+          String(teacher.userId) !== String(row.teacherUserId) && !alreadyBooked;
+      }) : [];
+      const action = !canManageRow
+        ? '<span class="muted-inline">Managed by its department</span>'
+        : row.coverageStatus === 'COVERAGE_CHECK_IN_NOT_RECORDED'
+          ? '<span class="muted-inline">Follow up with substitute</span>'
+          : coverageNeedsAction(row) && options.length
+            ? `<div class="coverage-action-controls">
+                 <select aria-label="Choose teacher for ${esc(row.periodName)}" data-coverage-teacher-select="${esc(row.periodId)}">
+                   <option value="">Choose teacher</option>
+                   ${options.map(teacher => `<option value="${esc(teacher.userId)}">${esc(teacher.displayName)}</option>`).join('')}
+                 </select>
+                 <button type="button" class="outline-button compact-button" data-coverage-action="${esc(row.periodId)}">${row.coverageStatus === 'NO_TEACHER' ? 'Assign teacher' : 'Provide cover'}</button>
+               </div>`
+            : coverageNeedsAction(row) ? '<span class="muted-inline">No eligible teacher available</span>' : '<span class="muted-inline">—</span>';
+      const assigned = row.effectiveTeacherName || row.teacherName || 'No permanent teacher';
+      const teacherName = row.substituteTeacherName
+        ? `<strong>${esc(row.substituteTeacherName)}</strong><small class="table-subtext">Covering ${esc(row.teacherName || 'original teacher')}</small>`
+        : esc(assigned);
+      const className = `${row.gradeLevel || ''} · ${row.section || 'All sections'}${row.classroom ? ' · ' + row.classroom : ''}`;
+      return `<tr>
+        <td>${esc(row.departmentName || 'Unassigned')}</td>
+        <td><strong>${esc(className)}</strong></td>
+        <td><strong>${esc(row.subjectName || row.periodName)}</strong><small class="table-subtext">${esc(row.periodName)} · ${esc(row.startTime)}–${esc(row.endTime)}</small></td>
+        <td>${teacherName}</td>
+        <td><span class="coverage-status-pill ${coverageStatusClass(row.coverageStatus)}">${esc(coverageStatusLabel(row.coverageStatus))}</span></td>
+        <td>${row.coverageStatus === 'COVERAGE_CHECK_IN_NOT_RECORDED' ? '<span class="muted-inline">Follow up with substitute</span>' : action}</td>
+      </tr>`;
+    }).join('');
+  }
+
+  async function loadTeacherCoverage(notifyNew = false) {
+    if (!['SCHOOL_ADMIN','DEPARTMENT_HEAD'].includes(user?.role)) return;
+    const data = await api('/api/admin/teacher-coverage');
+    const nextRows = data.coverage || [];
+    const nextAlerts = new Set(nextRows.filter(coverageNeedsAction).map(row => `${data.schoolDate}:${row.periodId}:${row.coverageStatus}`));
+    const newAlerts = coverageMonitorInitialized && notifyNew
+      ? nextRows.filter(row => coverageNeedsAction(row) && !coverageAlertKeys.has(`${data.schoolDate}:${row.periodId}:${row.coverageStatus}`))
+      : [];
+    teacherCoverage = nextRows;
+    coverageAlertKeys = nextAlerts;
+    coverageMonitorInitialized = true;
+    renderTeacherCoverage();
+    renderDepartmentHeadOverview();
+    if (newAlerts.length) {
+      const first = newAlerts[0];
+      const message = `${newAlerts.length} new class coverage alert(s). ${first.gradeLevel} ${first.section || ''} · ${first.periodName}: ${coverageStatusLabel(first.coverageStatus)}.`;
+      if ('Notification' in window && Notification.permission === 'granted') {
+        try { new Notification('Teacher coverage alert', { body: message }); } catch { showToast(message, true); }
+      } else {
+        showToast(message, true);
+      }
+    }
+  }
+
+  async function handleCoverageAction(periodId, button) {
+    const row = teacherCoverage.find(item => String(item.periodId) === String(periodId));
+    const select = document.querySelector(`[data-coverage-teacher-select="${CSS.escape(String(periodId))}"]`);
+    const teacherUserId = select?.value;
+    if (!row || !teacherUserId) { showToast('Choose an eligible teacher first.', true); return; }
+    button.disabled = true;
+    try {
+      if (row.coverageStatus === 'NO_TEACHER') {
+        await api(`/api/periods/${encodeURIComponent(row.periodId)}/assignments`, {
+          method: 'POST', body: JSON.stringify({ teacherUserId })
+        });
+        showToast('Teacher assigned to the class schedule.');
+      } else {
+        let startDate = row.leaveStartDate && row.teacherStatus === 'ON_LEAVE' ? row.leaveStartDate : dataSchoolDate();
+        let endDate = row.expectedReturnDate && row.teacherStatus === 'ON_LEAVE' ? row.expectedReturnDate : dataSchoolDate();
+        if (row.leaveAutoReactivate && row.expectedReturnDate) {
+          const previous = new Date(`${row.expectedReturnDate}T00:00:00Z`);
+          previous.setUTCDate(previous.getUTCDate() - 1);
+          endDate = previous.toISOString().slice(0,10);
+        }
+        await api(`/api/teachers/${encodeURIComponent(row.teacherUserId)}/substitutions`, {
+          method: 'POST', body: JSON.stringify({ periodId: row.periodId, substituteTeacherUserId: teacherUserId, startDate, endDate })
+        });
+        showToast('Temporary teacher cover assigned.');
+      }
+      await loadSchoolData();
+    } catch (error) {
+      showToast(error.message, true);
+      button.disabled = false;
+    }
+  }
+
+  function dataSchoolDate() {
+    return new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Manila' }).format(new Date());
   }
 
   async function getStudentQr(studentId) {
@@ -861,20 +1040,47 @@
   }
 
   function renderPeriods() {
-    $('scheduleRows').innerHTML = periods.length ? periods.map(period =>
-      `<tr><td>${esc(period.periodName)}</td><td>${esc(period.subjectName || '—')}</td><td>${esc(period.gradeLevel)}</td><td>${esc(period.section || 'All sections')}</td><td>${esc(period.startTime)}–${esc(period.endTime)}</td></tr>`
-    ).join('') : '<tr><td colspan="5" class="empty-cell">No class schedules are available yet.</td></tr>';
+    $('scheduleRows').innerHTML = periods.length ? periods.map(period => {
+      const departmentCell = user.role === 'SCHOOL_ADMIN'
+        ? `<select class="schedule-department-select" data-change-schedule-department="${esc(period.periodId)}" aria-label="Department for ${esc(period.periodName)}">
+            ${departments.map(item => `<option value="${esc(item.departmentId)}" ${String(item.departmentId) === String(period.departmentId) ? 'selected' : ''}>${esc(item.name)}</option>`).join('')}
+          </select>`
+        : esc(period.departmentName || 'Unassigned');
+      return `<tr>
+        <td><strong>${esc(period.periodName)}</strong></td>
+        <td>${esc(period.subjectName || '—')}</td>
+        <td>${departmentCell}</td>
+        <td>${esc(period.gradeLevel)}</td>
+        <td>${esc(period.section || 'All sections')}</td>
+        <td>${esc(period.classroom || '—')}</td>
+        <td>${esc(period.startTime)}–${esc(period.endTime)}</td>
+        <td>${esc(period.assignedTeacherName || 'Unassigned')}</td>
+      </tr>`;
+    }).join('') : '<tr><td colspan="8" class="empty-cell">No class schedules are available yet.</td></tr>';
     $('scheduleScopeText').textContent = user.role === 'TEACHER'
-      ? 'View your assigned periods or create a new schedule that will be assigned only to your account.'
-      : user.role === 'DEPARTMENT_HEAD' ? 'Read-only view of active school class schedules.' : 'Active class schedules configured for this school.';
-    const teacherCreatingOwn = user.role === 'TEACHER' && teacherHas('SUBJECT_TEACHER');
-    $('showScheduleForm').hidden = !(user.role === 'SCHOOL_ADMIN' || teacherCreatingOwn);
+      ? 'View your assigned periods or create a schedule in your department that is assigned to your account.'
+      : user.role === 'DEPARTMENT_HEAD'
+        ? 'All departments are visible. You can create and manage schedules only in your own department.'
+        : 'Create and manage schedules for every department in this school.';
+    const teacherCreatingOwn = user.role === 'TEACHER' && teacherHas('SUBJECT_TEACHER') && user.departmentCode !== 'UNASSIGNED';
+    const departmentHeadCanCreate = user.role === 'DEPARTMENT_HEAD' && Boolean(user.departmentId) && user.departmentCode !== 'UNASSIGNED';
+    $('showScheduleForm').hidden = !(user.role === 'SCHOOL_ADMIN' || teacherCreatingOwn || departmentHeadCanCreate);
+    if (user.role === 'DEPARTMENT_HEAD' && !departmentHeadCanCreate) $('scheduleScopeText').textContent = 'Your account is awaiting department assignment. You can monitor all departments until the School Administrator assigns your department.';
     $('showScheduleForm').textContent = teacherCreatingOwn ? '＋ Add my schedule' : '＋ Add schedule';
+    if (user.role === 'TEACHER' && teacherHas('SUBJECT_TEACHER') && !teacherCreatingOwn) $('scheduleScopeText').textContent = 'Your account is awaiting department assignment. Ask the School Administrator to assign your department before creating schedules.';
     $('periodSection').required = teacherCreatingOwn;
     $('sectionRequiredMark').textContent = teacherCreatingOwn ? '*' : '(optional)';
     $('periodSectionHint').textContent = teacherCreatingOwn
       ? 'Required. This schedule will be assigned to your teacher account only.'
-      : 'Leave blank to make this schedule available to the whole grade.';
+      : 'Use a section to identify the class group for this subject period.';
+    const departmentGroup = $('periodDepartmentGroup');
+    if (departmentGroup) departmentGroup.hidden = user.role !== 'SCHOOL_ADMIN';
+    const departmentSelect = $('periodDepartment');
+    if (departmentSelect) {
+      departmentSelect.disabled = user.role !== 'SCHOOL_ADMIN';
+      departmentSelect.required = true;
+      if (user.role !== 'SCHOOL_ADMIN') departmentSelect.value = user.departmentId || '';
+    }
   }
 
   let teacherActionMenuListenersInstalled = false;
@@ -1058,10 +1264,12 @@
              <button type="button" class="teacher-action-item" data-return-teacher="${esc(teacher.userId)}">Reactivate account</button>`);
 
       const designationLabels = (teacher.teacherDesignations || []).map(value => value === 'CLASS_ADVISER' ? 'Class Adviser' : 'Subject Teacher').join(' + ') || 'No designation';
-      const canAssignSubstitute = user.role === 'DEPARTMENT_HEAD' && onLeave && assigned.length > 0;
+      const canManageDepartment = user.role === 'DEPARTMENT_HEAD' && String(teacher.departmentId) === String(user.departmentId);
+      const canAssignSubstitute = canManageDepartment && onLeave && assigned.length > 0;
       const departmentHeadCoverageActions = [
+        ...(canManageDepartment && active ? [`<button type="button" class="teacher-action-item" data-manage-permanent="${esc(teacher.userId)}">Manage department assignments</button>`] : []),
         ...(canAssignSubstitute ? [`<button type="button" class="teacher-action-item" data-assign-substitute="${esc(teacher.userId)}">Assign temporary substitute</button>`] : []),
-        ...(cancelCoverActions ? [cancelCoverActions] : [])
+        ...(canManageDepartment && cancelCoverActions ? [cancelCoverActions] : [])
       ].join('');
       const actionMenu = isSchoolAdmin ? `<details class="teacher-action-menu">
         <summary class="outline-button compact-button teacher-actions-trigger" aria-label="Actions for ${esc(teacher.displayName)}">Actions <span class="teacher-actions-chevron" aria-hidden="true">▾</span></summary>
@@ -1070,15 +1278,21 @@
         ? `<div class="teacher-coverage-actions">${departmentHeadCoverageActions}</div>`
         : '<span class="muted-inline">Read only</span>');
 
+      const departmentCell = user.role === 'SCHOOL_ADMIN'
+        ? `<select class="teacher-department-select" data-change-teacher-department="${esc(teacher.userId)}" aria-label="Department for ${esc(teacher.displayName)}">
+            ${departments.map(item => `<option value="${esc(item.departmentId)}" ${String(item.departmentId) === String(teacher.departmentId) ? 'selected' : ''}>${esc(item.name)}</option>`).join('')}
+          </select>`
+        : esc(teacher.departmentName || 'Unassigned');
       return `<tr>
         <td><strong>${esc(teacher.displayName)}</strong><small class="table-subtext">${esc(teacher.username)}</small><small class="table-subtext">${esc(designationLabels)}</small></td>
+        <td>${departmentCell}</td>
         <td><span class="account-status ${statusClass}">${statusLabel}</span>${leaveDetails}</td>
         <td>${gradeLevelsHtml}</td>
         <td>${sectionsHtml}</td>
         <td>${assignmentsHtml}</td>
         <td><div class="action-row">${actionMenu}</div></td>
       </tr>`;
-    }).join('') : '<tr><td colspan="6" class="empty-cell">No teacher accounts have been created for this school yet.</td></tr>';
+    }).join('') : '<tr><td colspan="7" class="empty-cell">No teacher accounts have been created for this school yet.</td></tr>';
 
     $('teacherRows').innerHTML = rows;
     $('teacherRows').querySelectorAll('input[data-teacher-photo]').forEach(input => input.addEventListener('change', async () => {
@@ -1124,6 +1338,7 @@
       String(period.startTime || '') < String(existing.endTime || '')
     )).map(item => String(item.periodId));
     const available = periods.filter(period =>
+      String(period.departmentId) === String(teacher.departmentId) &&
       !assignedIds.has(String(period.periodId)) &&
       !assignedByOthers.has(String(period.periodId)) &&
       !timeConflicts.includes(String(period.periodId))
@@ -1441,11 +1656,19 @@
   function renderStaffUsers() {
     const host = $('staffUserRows');
     if (!host) return;
-    host.innerHTML = schoolUsers.length ? schoolUsers.map(account => `
-      <tr><td><strong>${esc(account.displayName || account.username)}</strong><small class="table-subtext">${esc(account.username)}</small></td>
-      <td>${esc(String(account.role || '').replaceAll('_', ' '))}</td>
-      <td><span class="account-status ${account.active ? 'active' : 'inactive'}">${account.active ? 'Active' : 'Inactive'}</span></td></tr>`).join('')
-      : '<tr><td colspan="3" class="empty-cell">No additional staff accounts have been created.</td></tr>';
+    host.innerHTML = schoolUsers.length ? schoolUsers.map(account => {
+      const departmentCell = account.role === 'DEPARTMENT_HEAD'
+        ? `<select class="staff-department-select" data-change-staff-department="${esc(account.userId)}" aria-label="Department for ${esc(account.displayName || account.username)}">
+            ${departments.map(item => `<option value="${esc(item.departmentId)}" ${String(item.departmentId) === String(account.departmentId) ? 'selected' : ''}>${esc(item.name)}</option>`).join('')}
+          </select>`
+        : '<span class="muted-inline">—</span>';
+      return `<tr>
+        <td><strong>${esc(account.displayName || account.username)}</strong><small class="table-subtext">${esc(account.username)}</small></td>
+        <td>${esc(String(account.role || '').replaceAll('_', ' '))}</td>
+        <td>${departmentCell}</td>
+        <td><span class="account-status ${account.active ? 'active' : 'inactive'}">${account.active ? 'Active' : 'Inactive'}</span></td>
+      </tr>`;
+    }).join('') : '<tr><td colspan="4" class="empty-cell">No additional staff accounts have been created.</td></tr>';
   }
 
   function renderAdviserAssignments() {
@@ -1572,14 +1795,20 @@
     }
 
     const isDepartmentHead = role === 'DEPARTMENT_HEAD';
+    const isSchoolManager = ['SCHOOL_ADMIN', 'DEPARTMENT_HEAD'].includes(role);
+    $('teacherCoverageCard').hidden = !isSchoolManager;
+    if ($('departmentHeadOverview')) $('departmentHeadOverview').hidden = !isDepartmentHead;
     const base = await Promise.all([
       api('/api/admin/dashboard'),
       isDepartmentHead ? Promise.resolve({ students: [] }) : api('/api/students'),
-      role === 'TEACHER' && !teacherHas('SUBJECT_TEACHER') ? Promise.resolve({ periods: [] }) : api('/api/periods')
+      role === 'TEACHER' && !teacherHas('SUBJECT_TEACHER') ? Promise.resolve({ periods: [] }) : api('/api/periods'),
+      isSchoolManager ? api('/api/departments') : Promise.resolve({ departments: [] })
     ]);
     dashboardData = base[0];
     students = base[1].students || [];
     periods = base[2].periods || [];
+    departments = base[3].departments || [];
+    renderDepartments();
     const scopeSelect = $('scanSetupScope');
     const hasSubjectRole = role === 'TEACHER' && teacherHas('SUBJECT_TEACHER');
     const hasAdviserRole = role === 'TEACHER' && teacherHas('CLASS_ADVISER');
@@ -1616,9 +1845,12 @@
     renderStats(dashboardData);
     if (!isDepartmentHead) renderStudents();
     renderPeriods();
-    if (['SCHOOL_ADMIN', 'DEPARTMENT_HEAD'].includes(role)) renderTeachers();
+    if (isSchoolManager) renderTeachers();
     if (isDepartmentHead) renderDepartmentHeadOverview();
-    if (['SCHOOL_ADMIN', 'DEPARTMENT_HEAD'].includes(role)) await loadGateMonitoring();
+    if (isSchoolManager) {
+      await loadTeacherCoverage(false);
+      await loadGateMonitoring();
+    }
     if (['SCHOOL_ADMIN', 'DEPARTMENT_HEAD', 'TEACHER'].includes(role)) {
       await loadSf2Options();
       if (['SCHOOL_ADMIN', 'DEPARTMENT_HEAD'].includes(role)) {
@@ -2274,6 +2506,8 @@
     const payload = {
       periodName: $('periodName').value.trim(),
       subjectName: $('subjectName').value.trim() || null,
+      departmentId: $('periodDepartment').value || user.departmentId || null,
+      classroom: $('periodClassroom').value.trim() || null,
       gradeLevel: $('periodGrade').value,
       section: $('periodSection').value.trim() || null,
       startTime: $('startTime').value,
@@ -2331,8 +2565,12 @@
 
   if ($('showTeacherForm')) {
     const updateDesignationVisibility = () => {
-      const isTeacherAccount = $('newAccountRole')?.value === 'TEACHER';
+      const selectedRole = $('newAccountRole')?.value || '';
+      const isTeacherAccount = selectedRole === 'TEACHER';
+      const needsDepartment = ['TEACHER', 'DEPARTMENT_HEAD'].includes(selectedRole);
       $('teacherDesignationFields').hidden = !isTeacherAccount;
+      $('newTeacherDepartmentGroup').hidden = !needsDepartment;
+      $('newTeacherDepartment').required = needsDepartment;
       if (!isTeacherAccount) {
         $('designationSubjectTeacher').checked = false;
         $('designationClassAdviser').checked = false;
@@ -2381,9 +2619,11 @@
             ].filter(Boolean)
           : [];
         if (role === 'TEACHER' && !teacherDesignations.length) throw new Error('Select Subject Teacher, Class Adviser, or both.');
+        const departmentId = $('newTeacherDepartment').value || null;
+        if (['TEACHER', 'DEPARTMENT_HEAD'].includes(role) && !departmentId) throw new Error('Select a department for this account.');
         await api('/api/school-users', {
           method: 'POST',
-          body: JSON.stringify({ username, displayName, password, role, teacherDesignations })
+          body: JSON.stringify({ username, displayName, password, role, teacherDesignations, departmentId })
         });
         $('teacherForm').reset();
         updateDesignationVisibility();
@@ -2516,5 +2756,130 @@
     });
   }
 
-  init().then(() => { if ($('studentForm') && !$('studentForm').hidden) loadSectionsForGrade($('newGrade').value); }).catch(error => showToast(error.message || 'Portal initialization failed.', true));
+
+  $('departmentForm')?.addEventListener('submit', async event => {
+    event.preventDefault();
+    const feedback = $('departmentFormFeedback');
+    feedback.className = 'inline-feedback';
+    feedback.textContent = 'Saving department…';
+    const payload = {
+      code: $('departmentCode').value.trim(),
+      name: $('departmentName').value.trim(),
+      description: $('departmentDescription').value.trim() || null
+    };
+    try {
+      await api('/api/departments', { method: 'POST', body: JSON.stringify(payload) });
+      $('departmentForm').reset();
+      await loadSchoolData();
+      feedback.textContent = 'Department created. You can now assign teachers and schedules.';
+      showToast('Department added.');
+    } catch (error) {
+      feedback.className = 'inline-feedback error';
+      feedback.textContent = error.message;
+    }
+  });
+
+  $('teacherRows')?.addEventListener('change', async event => {
+    const select = event.target.closest('[data-change-teacher-department]');
+    if (!select) return;
+    const teacherId = select.dataset.changeTeacherDepartment;
+    const previousDepartment = teachers.find(item => String(item.userId) === String(teacherId))?.departmentId;
+    select.disabled = true;
+    try {
+      await api(`/api/school-users/${encodeURIComponent(teacherId)}/department`, {
+        method: 'PATCH', body: JSON.stringify({ departmentId: select.value })
+      });
+      await loadSchoolData();
+      showToast('Teacher department updated.');
+    } catch (error) {
+      showToast(error.message, true);
+      select.value = previousDepartment || '';
+      select.disabled = false;
+    }
+  });
+
+  $('staffUserRows')?.addEventListener('change', async event => {
+    const select = event.target.closest('[data-change-staff-department]');
+    if (!select) return;
+    const userId = select.dataset.changeStaffDepartment;
+    const previousDepartment = schoolUsers.find(item => String(item.userId) === String(userId))?.departmentId;
+    select.disabled = true;
+    try {
+      await api(`/api/school-users/${encodeURIComponent(userId)}/department`, {
+        method: 'PATCH', body: JSON.stringify({ departmentId: select.value })
+      });
+      await loadSchoolData();
+      showToast('Department Head department updated.');
+    } catch (error) {
+      showToast(error.message, true);
+      select.value = previousDepartment || '';
+      select.disabled = false;
+    }
+  });
+
+  $('scheduleRows')?.addEventListener('change', async event => {
+    const select = event.target.closest('[data-change-schedule-department]');
+    if (!select) return;
+    const periodId = select.dataset.changeScheduleDepartment;
+    const previousDepartment = periods.find(item => String(item.periodId) === String(periodId))?.departmentId;
+    select.disabled = true;
+    try {
+      await api(`/api/periods/${encodeURIComponent(periodId)}/department`, {
+        method: 'PATCH', body: JSON.stringify({ departmentId: select.value })
+      });
+      await loadSchoolData();
+      showToast('Class schedule department updated.');
+    } catch (error) {
+      showToast(error.message, true);
+      select.value = previousDepartment || '';
+      select.disabled = false;
+    }
+  });
+
+  $('teacherCoverageRows')?.addEventListener('click', async event => {
+    const button = event.target.closest('[data-coverage-action]');
+    if (!button) return;
+    await handleCoverageAction(button.dataset.coverageAction, button);
+  });
+
+  $('refreshTeacherCoverage')?.addEventListener('click', async event => {
+    const button = event.currentTarget;
+    button.disabled = true;
+    try {
+      await loadTeacherCoverage(false);
+      showToast('Teacher coverage refreshed.');
+    } catch (error) {
+      showToast(error.message, true);
+    } finally {
+      button.disabled = false;
+    }
+  });
+
+  $('enableCoverageNotifications')?.addEventListener('click', async () => {
+    if (!('Notification' in window)) {
+      showToast('This browser does not support desktop notifications. The in-page alert list will still work.', true);
+      return;
+    }
+    try {
+      const permission = await Notification.requestPermission();
+      if (permission === 'granted') {
+        showToast('Teacher coverage browser notifications are enabled.');
+        await loadTeacherCoverage(false);
+      } else {
+        showToast('Browser notifications were not enabled. Keep the portal open to see in-page coverage alerts.', true);
+      }
+    } catch {
+      showToast('Could not enable browser notifications. Check your browser site settings.', true);
+    }
+  });
+
+  init().then(() => {
+    if ($('studentForm') && !$('studentForm').hidden) loadSectionsForGrade($('newGrade').value);
+    if (['SCHOOL_ADMIN','DEPARTMENT_HEAD'].includes(user?.role)) {
+      window.setInterval(() => {
+        if (document.visibilityState !== 'visible') return;
+        loadTeacherCoverage(true).catch(error => console.warn('Teacher coverage refresh failed:', error.message));
+      }, 60000);
+    }
+  }).catch(error => showToast(error.message || 'Portal initialization failed.', true));
 })();

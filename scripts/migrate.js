@@ -17,7 +17,8 @@ const REQUIRED_MIGRATIONS = [
   '009_advisory_attendance.sql',
   '010_school_year_enrollment_and_movements.sql',
   '011_special_programs.sql',
-  '012_cloud_sync_settings.sql'
+  '012_cloud_sync_settings.sql',
+  '013_departments_and_classroom_assignment.sql'
 ];
 
 function checksum(content) {

@@ -10,6 +10,7 @@ const html = read('public/portal.html');
 const js = read('public/portal.js');
 const server = read('server.js');
 const css = read('public/comfort-ui.css');
+const portalCss = read('public/portal.css');
 const permissions = read('role-permissions.js');
 
 test('Administrator dashboard exposes a working Add Student action for administrators and class advisers', () => {
@@ -77,11 +78,11 @@ test('SF2 Excel copy downloads a non-empty workbook through a temporary download
   assert.match(js, /URL\.revokeObjectURL\(url\)/);
 });
 
-test('Portal uses a calm accessible theme and cache-busted v0.8.3 assets', () => {
-  assert.match(html, /comfort-ui\.css\?v=0\.8\.3/);
-  assert.match(html, /portal\.js\?v=0\.8\.3/);
-  assert.match(css, /--brand: #2463a5/);
-  assert.match(css, /focus-visible/);
+test('Portal uses the current accessible theme and cache-busted v0.9.1 assets', () => {
+  assert.match(html, /portal\.css\?v=0\.9\.1/);
+  assert.match(html, /portal\.js\?v=0\.9\.1/);
+  assert.match(portalCss, /--brand:#0ea5e9/);
+  assert.match(portalCss, /:focus/);
 });
 
 test('self-service and parent workspaces share the calm theme and Gate Keeper has an explicit attendance selector', () => {
@@ -110,7 +111,7 @@ test('Teacher scanner supports designated subject and advisory attendance with a
 });
 
 test('School staff account directory does not duplicate teacher accounts', () => {
-  assert.match(server, /WHERE school_id=\$1 AND role IN \('DEPARTMENT_HEAD', 'GATE_KEEPER'\)/);
-  assert.match(html, /Only Department Heads and Gate Keepers appear here/);
+  assert.match(server, /WHERE su.school_id=\$1 AND su.role IN \('DEPARTMENT_HEAD', 'GATE_KEEPER'\)/);
+  assert.match(html, /Department Heads and Gate Keepers/);
   assert.match(js, /filter\(account => \['DEPARTMENT_HEAD', 'GATE_KEEPER'\]\.includes\(account\.role\)\)/);
 });

@@ -60,3 +60,11 @@ test('Student role has only self-service permissions and no school workspace acc
   assert.equal(hasPermission('STUDENT', 'sf2.official.generate'), false);
   assert.equal(hasPermission('STUDENT', 'teachers.manage'), false);
 });
+
+test('Department Head can manage schedules only in the assigned department and monitor whole-school coverage', () => {
+  assert.equal(hasPermission('DEPARTMENT_HEAD', 'schedules.manage.department'), true);
+  assert.equal(hasPermission('DEPARTMENT_HEAD', 'teachers.assign.department'), true);
+  assert.equal(hasPermission('DEPARTMENT_HEAD', 'teacher.coverage.view.school'), true);
+  assert.equal(hasPermission('DEPARTMENT_HEAD', 'schedules.manage'), false);
+  assert.equal(hasPermission('DEPARTMENT_HEAD', 'teachers.manage'), false);
+});

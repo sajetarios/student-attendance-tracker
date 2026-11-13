@@ -16,6 +16,7 @@ const { createAuthMiddleware } = require('./auth-middleware');
 const { registerParentRoutes } = require('./parent-routes');
 const { registerStudentRoutes } = require('./student-routes');
 const { registerAcademicRoutes } = require('./academic-routes');
+const { registerDepartmentRoutes } = require('./department-routes');
 const registerCloudSyncRoutes = require('./cloud-sync-routes');
 
 const app = express();
@@ -33,12 +34,14 @@ registerAuthRoutes(app, pool);
 const { authenticateSchoolClient, requireSchoolRoles, requireSchoolPermission, requireTeacherDesignations, requireSchoolClient } = createAuthMiddleware(pool);
 const requireSchoolAdmin = requireSchoolRoles('SCHOOL_ADMIN');
 const requireSchoolAdminOrTeacher = requireSchoolRoles('SCHOOL_ADMIN', 'TEACHER');
+const requireSchoolAdminOrDepartmentHeadOrTeacher = requireSchoolRoles('SCHOOL_ADMIN', 'DEPARTMENT_HEAD', 'TEACHER');
 const requireSchoolUser = requireSchoolRoles('SCHOOL_ADMIN', 'DEPARTMENT_HEAD', 'TEACHER');
 const requireSchoolAdminOrDepartmentHead = requireSchoolRoles('SCHOOL_ADMIN', 'DEPARTMENT_HEAD');
 const validText = value => typeof value === 'string' && value.trim().length > 0;
 registerParentRoutes(app, pool, { authenticateSchoolClient, requireSchoolRoles });
 registerStudentRoutes(app, pool, { authenticateSchoolClient, requireSchoolAdmin });
 registerAcademicRoutes(app, pool, { authenticateSchoolClient, requireSchoolRoles });
+registerDepartmentRoutes(app, pool, { authenticateSchoolClient, requireSchoolRoles });
 registerCloudSyncRoutes(app, pool, { authenticateSchoolClient, requireSchoolAdmin });
 const registerSf2Routes = require('./sf2-routes');
 registerSf2Routes(app, pool, { authenticateSchoolClient, requireSchoolUser, requireSchoolAdmin, requireSchoolAdminOrDepartmentHead });
@@ -54,6 +57,8 @@ app.get('/api/teachers', authenticateSchoolClient, requireSchoolAdminOrDepartmen
     const result = await pool.query(
       `SELECT su.user_id AS "userId", su.username,
               su.display_name AS "displayName", su.active,
+              su.department_id AS "departmentId",
+              COALESCE((SELECT d.department_name FROM school_departments d WHERE d.school_id=su.school_id AND d.department_id=su.department_id), 'Unassigned') AS "departmentName",
               su.teacher_designations AS "teacherDesignations",
               (su.teacher_photo_path IS NOT NULL) AS "hasTeacherPhoto",
               COALESCE((SELECT json_agg(json_build_object('gradeLevel', ca.grade_level, 'section', ca.section) ORDER BY ca.grade_level, ca.section)
@@ -79,6 +84,8 @@ app.get('/api/teachers', authenticateSchoolClient, requireSchoolAdminOrDepartmen
                   'subjectName', p.subject_name,
                   'gradeLevel', p.grade_level,
                   'section', p.section,
+                  'classroom', p.classroom,
+                  'departmentId', p.department_id,
                   'startTime', to_char(p.start_time, 'HH24:MI'),
                   'endTime', to_char(p.end_time, 'HH24:MI')
                 ) ORDER BY p.start_time)
@@ -151,13 +158,15 @@ app.get('/api/teachers', authenticateSchoolClient, requireSchoolAdminOrDepartmen
 app.get('/api/school-users', authenticateSchoolClient, requireSchoolAdmin, async (req, res) => {
   try {
     const result = await pool.query(
-      `SELECT user_id AS "userId", username, display_name AS "displayName", role,
-              teacher_designations AS "teacherDesignations", active,
-              created_at AS "createdAt", last_login_at AS "lastLoginAt"
-       FROM school_users
-       WHERE school_id=$1 AND role IN ('DEPARTMENT_HEAD', 'GATE_KEEPER')
-       ORDER BY CASE role WHEN 'DEPARTMENT_HEAD' THEN 1 WHEN 'GATE_KEEPER' THEN 2 ELSE 3 END,
-                display_name, username`,
+      `SELECT su.user_id AS "userId", su.username, su.display_name AS "displayName", su.role,
+              su.teacher_designations AS "teacherDesignations", su.department_id AS "departmentId",
+              COALESCE(d.department_name, 'Unassigned') AS "departmentName", su.active,
+              su.created_at AS "createdAt", su.last_login_at AS "lastLoginAt"
+       FROM school_users su
+       LEFT JOIN school_departments d ON d.school_id=su.school_id AND d.department_id=su.department_id
+       WHERE su.school_id=$1 AND su.role IN ('DEPARTMENT_HEAD', 'GATE_KEEPER')
+       ORDER BY CASE su.role WHEN 'DEPARTMENT_HEAD' THEN 1 WHEN 'GATE_KEEPER' THEN 2 ELSE 3 END,
+                su.display_name, su.username`,
       [req.auth.schoolId]
     );
     return res.json({ users: result.rows });
@@ -170,6 +179,7 @@ app.get('/api/school-users', authenticateSchoolClient, requireSchoolAdmin, async
 app.post('/api/school-users', authenticateSchoolClient, requireSchoolAdmin, async (req, res) => {
   const { username, displayName, password } = req.body || {};
   const role = String(req.body?.role || '').toUpperCase();
+  let departmentId = req.body?.departmentId || null;
   const allowedRoles = ['TEACHER', 'DEPARTMENT_HEAD', 'GATE_KEEPER'];
   let designations = [];
   if (role === 'TEACHER') {
@@ -184,23 +194,40 @@ app.post('/api/school-users', authenticateSchoolClient, requireSchoolAdmin, asyn
       typeof password !== 'string' || password.length < 12 || password.length > 256) {
     return res.status(400).json({ error: 'Provide a valid account role, username, display name, and password of at least 12 characters.' });
   }
+  if (!departmentId && role === 'GATE_KEEPER') {
+    const fallback = await pool.query(
+      "SELECT department_id FROM school_departments WHERE school_id=$1 AND department_code='UNASSIGNED' AND active=TRUE",
+      [req.auth.schoolId]
+    );
+    departmentId = fallback.rows[0]?.department_id || null;
+  }
+  if (['TEACHER', 'DEPARTMENT_HEAD'].includes(role) && !isUuid(departmentId)) {
+    return res.status(400).json({ error: 'Choose the department for this teacher or Department Head account.' });
+  }
+  if (departmentId) {
+    const department = await pool.query(
+      'SELECT 1 FROM school_departments WHERE school_id=$1 AND department_id=$2 AND active=TRUE',
+      [req.auth.schoolId, departmentId]
+    );
+    if (!department.rowCount) return res.status(400).json({ error: 'Choose an active department in this school.' });
+  }
   let passwordHash;
   try { passwordHash = await hashPassword(password); }
   catch (err) { return res.status(400).json({ error: err.message || 'Password does not meet requirements.' }); }
 
   try {
     const created = await pool.query(
-      `INSERT INTO school_users (school_id, username, display_name, password_hash, role, teacher_designations, teacher_qr_token)
-       VALUES ($1,$2,$3,$4,$5,$6, CASE WHEN $5='TEACHER' THEN gen_random_uuid() ELSE NULL END)
+      `INSERT INTO school_users (school_id, username, display_name, password_hash, role, teacher_designations, department_id, teacher_qr_token)
+       VALUES ($1,$2,$3,$4,$5,$6,$7, CASE WHEN $5='TEACHER' THEN gen_random_uuid() ELSE NULL END)
        RETURNING user_id AS "userId", username, display_name AS "displayName", role,
-                 teacher_designations AS "teacherDesignations", active, created_at AS "createdAt"`,
-      [req.auth.schoolId, username.trim(), displayName.trim(), passwordHash, role, designations]
+                 teacher_designations AS "teacherDesignations", department_id AS "departmentId", active, created_at AS "createdAt"`,
+      [req.auth.schoolId, username.trim(), displayName.trim(), passwordHash, role, designations, departmentId]
     );
     await pool.query(
       `INSERT INTO audit_logs(school_id, actor_type, actor_user_id, action, entity_type, entity_id, details)
        VALUES($1,'SCHOOL',$2,'SCHOOL_ADMIN_CREATE_ACCOUNT','school_user',$3,$4::jsonb)`,
       [req.auth.schoolId, req.auth.userId, created.rows[0].userId,
-       JSON.stringify({ username: username.trim(), role, teacherDesignations: designations })]
+       JSON.stringify({ username: username.trim(), role, teacherDesignations: designations, departmentId })]
     );
     return res.status(201).json({ user: created.rows[0] });
   } catch (err) {
@@ -381,6 +408,7 @@ app.patch('/api/teachers/:userId/designations', authenticateSchoolClient, requir
 
 app.post('/api/teachers', authenticateSchoolClient, requireSchoolAdmin, async (req, res) => {
   const { username, displayName, password } = req.body || {};
+  const departmentId = req.body?.departmentId || null;
   const teacherDesignations = Array.isArray(req.body?.teacherDesignations) ? [...new Set(req.body.teacherDesignations.map(value => String(value).toUpperCase()))] : ['SUBJECT_TEACHER'];
   if (!teacherDesignations.length || teacherDesignations.some(value => !['CLASS_ADVISER', 'SUBJECT_TEACHER'].includes(value))) {
     return res.status(400).json({ error: 'Select Subject Teacher, Class Adviser, or both.' });
@@ -390,6 +418,15 @@ app.post('/api/teachers', authenticateSchoolClient, requireSchoolAdmin, async (r
       typeof password !== 'string' || password.length < 12 || password.length > 256) {
     return res.status(400).json({ error: 'Provide a username (1â€“80 characters), display name (1â€“160 characters), and password (12â€“256 characters).' });
   }
+  let assignedDepartmentId = departmentId;
+  if (assignedDepartmentId) {
+    const dept = await pool.query('SELECT 1 FROM school_departments WHERE school_id=$1 AND department_id=$2 AND active=TRUE', [req.auth.schoolId, assignedDepartmentId]);
+    if (!dept.rowCount) return res.status(400).json({ error: 'Choose an active department in this school.' });
+  } else {
+    const dept = await pool.query("SELECT department_id FROM school_departments WHERE school_id=$1 AND department_code='UNASSIGNED' AND active=TRUE", [req.auth.schoolId]);
+    assignedDepartmentId = dept.rows[0]?.department_id || null;
+  }
+  if (!assignedDepartmentId) return res.status(400).json({ error: 'Create departments using the School Administrator account before creating teachers.' });
   let passwordHash;
   try {
     passwordHash = await hashPassword(password);
@@ -400,10 +437,10 @@ app.post('/api/teachers', authenticateSchoolClient, requireSchoolAdmin, async (r
   try {
     await client.query('BEGIN');
     const created = await client.query(
-      `INSERT INTO school_users (school_id, username, display_name, password_hash, role, teacher_designations, teacher_qr_token)
-       VALUES ($1,$2,$3,$4,'TEACHER',$5,gen_random_uuid())
-       RETURNING user_id AS "userId", username, display_name AS "displayName", teacher_designations AS "teacherDesignations", active, created_at AS "createdAt"`,
-      [req.auth.schoolId, username.trim(), displayName.trim(), passwordHash, teacherDesignations]
+      `INSERT INTO school_users (school_id, username, display_name, password_hash, role, teacher_designations, department_id, teacher_qr_token)
+       VALUES ($1,$2,$3,$4,'TEACHER',$5,$6,gen_random_uuid())
+       RETURNING user_id AS "userId", username, display_name AS "displayName", teacher_designations AS "teacherDesignations", department_id AS "departmentId", active, created_at AS "createdAt"`,
+      [req.auth.schoolId, username.trim(), displayName.trim(), passwordHash, teacherDesignations, assignedDepartmentId]
     );
     const teacher = created.rows[0];
     await client.query(
@@ -604,7 +641,7 @@ app.post('/api/teachers/:userId/substitutions', authenticateSchoolClient, requir
   try {
     await client.query('BEGIN');
     const original = await client.query(
-      `SELECT user_id, display_name, teacher_status, active,
+      `SELECT user_id, display_name, teacher_status, active, department_id,
               to_char(leave_start_date, 'YYYY-MM-DD') AS leave_start_date,
               to_char(expected_return_date, 'YYYY-MM-DD') AS expected_return_date,
               leave_auto_reactivate
@@ -618,12 +655,14 @@ app.post('/api/teachers/:userId/substitutions', authenticateSchoolClient, requir
       return res.status(404).json({ error: 'Original teacher was not found in this school.' });
     }
     const absent = original.rows[0];
-    if (absent.active || absent.teacher_status !== 'ON_LEAVE' ||
-        !absent.leave_start_date || !absent.expected_return_date ||
-        startDate < absent.leave_start_date || endDate > absent.expected_return_date ||
-        (absent.leave_auto_reactivate && endDate >= absent.expected_return_date)) {
+    const schoolToday = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Manila' }).format(new Date());
+    const onSavedLeave = !absent.active && absent.teacher_status === 'ON_LEAVE' &&
+      absent.leave_start_date && absent.expected_return_date &&
+      startDate >= absent.leave_start_date && endDate <= absent.expected_return_date &&
+      !(absent.leave_auto_reactivate && endDate >= absent.expected_return_date);
+    if (!onSavedLeave && (startDate !== schoolToday || endDate !== schoolToday)) {
       await client.query('ROLLBACK');
-      return res.status(400).json({ error: 'Coverage dates must fall within this teacherâ€™s saved leave period.' });
+      return res.status(400).json({ error: 'Unplanned teacher coverage is limited to the current school day.' });
     }
     const permanentAssignment = await client.query(
       `SELECT 1 FROM teacher_period_assignments
@@ -635,7 +674,7 @@ app.post('/api/teachers/:userId/substitutions', authenticateSchoolClient, requir
       return res.status(400).json({ error: 'The selected class schedule is not permanently assigned to the teacher on leave.' });
     }
     const substitute = await client.query(
-      `SELECT user_id, username, display_name FROM school_users
+      `SELECT user_id, username, display_name, department_id FROM school_users
        WHERE school_id=$1 AND user_id=$2 AND role='TEACHER' AND active=TRUE
          AND COALESCE(teacher_status, 'ACTIVE')='ACTIVE'
        FOR UPDATE`,
@@ -646,13 +685,41 @@ app.post('/api/teachers/:userId/substitutions', authenticateSchoolClient, requir
       return res.status(400).json({ error: 'The substitute must be an active teacher in this school.' });
     }
     const period = await client.query(
-      `SELECT period_id, period_name, subject_name, grade_level, section, start_time, end_time
+      `SELECT period_id, period_name, subject_name, grade_level, section, classroom, department_id, start_time, end_time, grace_minutes
        FROM class_periods WHERE school_id=$1 AND period_id=$2 AND active=TRUE`,
       [req.auth.schoolId, periodId]
     );
     if (!period.rowCount) {
       await client.query('ROLLBACK');
       return res.status(404).json({ error: 'The selected class schedule is not active.' });
+    }
+    if (String(period.rows[0].department_id) !== String(absent.department_id) ||
+        String(substitute.rows[0].department_id) !== String(period.rows[0].department_id)) {
+      await client.query('ROLLBACK');
+      return res.status(403).json({ error: 'The original teacher, substitute, and schedule must belong to the same department.' });
+    }
+    if (req.auth.role === 'DEPARTMENT_HEAD' && (req.auth.departmentCode === 'UNASSIGNED' || String(period.rows[0].department_id) !== String(req.auth.departmentId))) {
+      await client.query('ROLLBACK');
+      return res.status(403).json({ error: 'You can provide teacher coverage only inside your own department.' });
+    }
+    if (!onSavedLeave) {
+      const missingCheckIn = await client.query(
+        `SELECT (
+           (NOW() AT TIME ZONE 'Asia/Manila')::date=$3::date
+           AND (NOW() AT TIME ZONE 'Asia/Manila')::time > p.start_time + make_interval(mins => p.grace_minutes)
+           AND NOT EXISTS (
+             SELECT 1 FROM teacher_gate_events tge
+             WHERE tge.school_id=p.school_id AND tge.teacher_user_id=$2
+               AND tge.school_date=$3::date AND tge.event_type='TIME_IN'
+           )
+         ) AS eligible
+         FROM class_periods p WHERE p.school_id=$1 AND p.period_id=$4 AND p.active=TRUE`,
+        [req.auth.schoolId, req.params.userId, schoolToday, periodId]
+      );
+      if (!missingCheckIn.rows[0]?.eligible) {
+        await client.query('ROLLBACK');
+        return res.status(409).json({ error: 'A substitute can be assigned only after the class grace time passes without a verified teacher time-in.' });
+      }
     }
     const alreadyPermanent = await client.query(
       `SELECT 1 FROM teacher_period_assignments
@@ -734,6 +801,18 @@ app.delete('/api/teacher-substitutions/:substitutionId', authenticateSchoolClien
   const client = await pool.connect();
   try {
     await client.query('BEGIN');
+    if (req.auth.role === 'DEPARTMENT_HEAD') {
+      const scope = await client.query(
+        `SELECT p.department_id FROM teacher_period_substitutions ts
+         JOIN class_periods p ON p.school_id=ts.school_id AND p.period_id=ts.period_id
+         WHERE ts.school_id=$1 AND ts.substitution_id=$2 AND ts.status='ACTIVE'`,
+        [req.auth.schoolId, req.params.substitutionId]
+      );
+      if (!scope.rowCount || req.auth.departmentCode === 'UNASSIGNED' || String(scope.rows[0].department_id) !== String(req.auth.departmentId)) {
+        await client.query('ROLLBACK');
+        return res.status(403).json({ error: 'You can manage substitute coverage only in your own department.' });
+      }
+    }
     const cancelled = await client.query(
       `UPDATE teacher_period_substitutions
        SET status='CANCELLED', cancelled_at=NOW(), updated_at=NOW()
@@ -765,7 +844,7 @@ app.delete('/api/teacher-substitutions/:substitutionId', authenticateSchoolClien
   }
 });
 
-app.post('/api/periods/:periodId/assignments', authenticateSchoolClient, requireSchoolAdmin, async (req, res) => {
+app.post('/api/periods/:periodId/assignments', authenticateSchoolClient, requireSchoolRoles('SCHOOL_ADMIN', 'DEPARTMENT_HEAD'), async (req, res) => {
   const { teacherUserId } = req.body || {};
   if (!isUuid(req.params.periodId) || !isUuid(teacherUserId)) {
     return res.status(400).json({ error: 'A valid schedule ID and teacher account ID are required.' });
@@ -774,7 +853,7 @@ app.post('/api/periods/:periodId/assignments', authenticateSchoolClient, require
   try {
     await client.query('BEGIN');
     const period = await client.query(
-      `SELECT period_id, period_name FROM class_periods
+      `SELECT period_id, period_name, department_id FROM class_periods
        WHERE school_id=$1 AND period_id=$2 AND active=TRUE FOR UPDATE`,
       [req.auth.schoolId, req.params.periodId]
     );
@@ -782,8 +861,12 @@ app.post('/api/periods/:periodId/assignments', authenticateSchoolClient, require
       await client.query('ROLLBACK');
       return res.status(404).json({ error: 'Active class schedule not found in this school.' });
     }
+    if (req.auth.role === 'DEPARTMENT_HEAD' && (req.auth.departmentCode === 'UNASSIGNED' || String(period.rows[0].department_id) !== String(req.auth.departmentId))) {
+      await client.query('ROLLBACK');
+      return res.status(403).json({ error: 'You can assign teachers only to schedules in your own department.' });
+    }
     const teacher = await client.query(
-      `SELECT user_id, username, display_name FROM school_users
+      `SELECT user_id, username, display_name, department_id FROM school_users
        WHERE school_id=$1 AND user_id=$2 AND role='TEACHER' AND active=TRUE
          AND 'SUBJECT_TEACHER'=ANY(teacher_designations)`,
       [req.auth.schoolId, teacherUserId]
@@ -791,6 +874,10 @@ app.post('/api/periods/:periodId/assignments', authenticateSchoolClient, require
     if (!teacher.rowCount) {
       await client.query('ROLLBACK');
       return res.status(404).json({ error: 'Active teacher account not found in this school.' });
+    }
+    if (String(teacher.rows[0].department_id) !== String(period.rows[0].department_id)) {
+      await client.query('ROLLBACK');
+      return res.status(403).json({ error: 'The teacher and class schedule must belong to the same department.' });
     }
     // A class schedule has one permanent owner. Use the temporary-substitute workflow
     // when the permanent teacher is away; never create a second permanent owner.
@@ -808,6 +895,29 @@ app.post('/api/periods/:periodId/assignments', authenticateSchoolClient, require
         error: `This schedule already has a permanent teacher (${existingOwner.rows[0].display_name}). Use temporary substitute coverage from that teacherâ€™s On Leave row instead.`
       });
     }
+    const scheduleConflict = await client.query(
+      `SELECT p.period_name
+       FROM teacher_period_assignments existing
+       JOIN class_periods p ON p.school_id=existing.school_id AND p.period_id=existing.period_id
+       JOIN class_periods requested ON requested.school_id=$1 AND requested.period_id=$3
+       WHERE existing.school_id=$1 AND existing.teacher_user_id=$2
+         AND existing.period_id<>$3 AND p.active=TRUE
+         AND p.start_time < requested.end_time AND requested.start_time < p.end_time
+       UNION ALL
+       SELECT p.period_name
+       FROM teacher_period_substitutions ts
+       JOIN class_periods p ON p.school_id=ts.school_id AND p.period_id=ts.period_id
+       JOIN class_periods requested ON requested.school_id=$1 AND requested.period_id=$3
+       WHERE ts.school_id=$1 AND ts.substitute_teacher_user_id=$2 AND ts.status='ACTIVE'
+         AND ts.end_date >= (NOW() AT TIME ZONE 'Asia/Manila')::date AND p.active=TRUE
+         AND p.start_time < requested.end_time AND requested.start_time < p.end_time
+       LIMIT 1`,
+      [req.auth.schoolId, teacherUserId, req.params.periodId]
+    );
+    if (scheduleConflict.rowCount) {
+      await client.query('ROLLBACK');
+      return res.status(409).json({ error: `Teacher is already assigned to an overlapping schedule: ${scheduleConflict.rows[0].period_name}.` });
+    }
     const assignment = await client.query(
       `INSERT INTO teacher_period_assignments(school_id, teacher_user_id, period_id)
        VALUES($1,$2,$3)
@@ -817,9 +927,11 @@ app.post('/api/periods/:periodId/assignments', authenticateSchoolClient, require
     );
     await client.query(
       `INSERT INTO audit_logs(school_id, actor_type, actor_user_id, action, entity_type, entity_id, details)
-       VALUES($1,'SCHOOL',$2,'SCHOOL_ADMIN_ASSIGN_TEACHER_PERIOD','teacher_period_assignment',$3,$4::jsonb)`,
-      [req.auth.schoolId, req.auth.userId, `${teacherUserId}:${req.params.periodId}`,
-       JSON.stringify({ teacherUsername: teacher.rows[0].username, periodName: period.rows[0].period_name })]
+       VALUES($1,'SCHOOL',$2,$3,'teacher_period_assignment',$4,$5::jsonb)`,
+      [req.auth.schoolId, req.auth.userId,
+       req.auth.role === 'DEPARTMENT_HEAD' ? 'DEPARTMENT_HEAD_ASSIGN_TEACHER_PERIOD' : 'SCHOOL_ADMIN_ASSIGN_TEACHER_PERIOD',
+       `${teacherUserId}:${req.params.periodId}`,
+       JSON.stringify({ teacherUsername: teacher.rows[0].username, periodName: period.rows[0].period_name, departmentId: period.rows[0].department_id })]
     );
     await client.query('COMMIT');
     return res.status(201).json({
@@ -837,13 +949,23 @@ app.post('/api/periods/:periodId/assignments', authenticateSchoolClient, require
   }
 });
 
-app.delete('/api/periods/:periodId/assignments/:teacherUserId', authenticateSchoolClient, requireSchoolAdmin, async (req, res) => {
+app.delete('/api/periods/:periodId/assignments/:teacherUserId', authenticateSchoolClient, requireSchoolRoles('SCHOOL_ADMIN', 'DEPARTMENT_HEAD'), async (req, res) => {
   if (!isUuid(req.params.periodId) || !isUuid(req.params.teacherUserId)) {
     return res.status(400).json({ error: 'Invalid schedule or teacher account ID.' });
   }
   const client = await pool.connect();
   try {
     await client.query('BEGIN');
+    if (req.auth.role === 'DEPARTMENT_HEAD') {
+      const scope = await client.query(
+        `SELECT department_id FROM class_periods WHERE school_id=$1 AND period_id=$2`,
+        [req.auth.schoolId, req.params.periodId]
+      );
+      if (!scope.rowCount || req.auth.departmentCode === 'UNASSIGNED' || String(scope.rows[0].department_id) !== String(req.auth.departmentId)) {
+        await client.query('ROLLBACK');
+        return res.status(403).json({ error: 'You can change assignments only for schedules in your own department.' });
+      }
+    }
     const activeCover = await client.query(
       `SELECT 1 FROM teacher_period_substitutions
        WHERE school_id=$1 AND period_id=$2 AND original_teacher_user_id=$3
@@ -1656,11 +1778,32 @@ app.get('/api/periods', authenticateSchoolClient, requireSchoolUser, async (req,
     const result = await pool.query(
       `SELECT p.period_id AS "periodId", p.period_name AS "periodName",
               p.grade_level AS "gradeLevel", p.section, p.subject_name AS "subjectName",
+              p.classroom, p.department_id AS "departmentId",
+              COALESCE(d.department_name, 'Unassigned') AS "departmentName",
+              assignment."assignedTeacherUserId", assignment."assignedTeacherName",
               to_char(p.start_time,'HH24:MI') AS "startTime",
               to_char(p.end_time,'HH24:MI') AS "endTime", p.grace_minutes AS "graceMinutes"
        FROM class_periods p
+       LEFT JOIN school_departments d ON d.school_id=p.school_id AND d.department_id=p.department_id
+       LEFT JOIN LATERAL (
+         SELECT COALESCE(ts.substitute_teacher_user_id, a.teacher_user_id) AS "assignedTeacherUserId",
+                COALESCE(substitute.display_name, original.display_name) AS "assignedTeacherName"
+         FROM teacher_period_assignments a
+         JOIN school_users original ON original.school_id=a.school_id AND original.user_id=a.teacher_user_id
+         LEFT JOIN LATERAL (
+           SELECT tsub.substitute_teacher_user_id
+           FROM teacher_period_substitutions tsub
+           WHERE tsub.school_id=a.school_id AND tsub.period_id=a.period_id
+             AND tsub.original_teacher_user_id=a.teacher_user_id AND tsub.status='ACTIVE'
+             AND (NOW() AT TIME ZONE 'Asia/Manila')::date BETWEEN tsub.start_date AND tsub.end_date
+           ORDER BY tsub.created_at DESC LIMIT 1
+         ) ts ON TRUE
+         LEFT JOIN school_users substitute ON substitute.school_id=a.school_id AND substitute.user_id=ts.substitute_teacher_user_id
+         WHERE a.school_id=p.school_id AND a.period_id=p.period_id
+         ORDER BY a.assignment_id LIMIT 1
+       ) assignment ON TRUE
        WHERE p.school_id=$1 AND p.active=TRUE${teacherScope}
-       ORDER BY p.start_time`,
+       ORDER BY p.start_time, p.grade_level, p.section`,
       params
     );
     return res.json({ periods: result.rows });
@@ -1670,23 +1813,39 @@ app.get('/api/periods', authenticateSchoolClient, requireSchoolUser, async (req,
   }
 });
 
-// School Administrators create school schedules. Subject Teachers may create a schedule only for their own account.
-app.post('/api/periods', authenticateSchoolClient, requireSchoolAdminOrTeacher, async (req, res) => {
+// School Administrators, Department Heads, and Subject Teachers may create schedules within their permitted scope.
+app.post('/api/periods', authenticateSchoolClient, requireSchoolAdminOrDepartmentHeadOrTeacher, async (req, res) => {
   const isTeacher = req.auth.role === 'TEACHER';
+  const isDepartmentHead = req.auth.role === 'DEPARTMENT_HEAD';
+  const departmentId = isTeacher || isDepartmentHead ? req.auth.departmentId : (req.body?.departmentId || null);
+  const classroom = typeof req.body?.classroom === 'string' ? req.body.classroom.trim() : '';
   if (isTeacher && !req.auth.teacherDesignations?.includes('SUBJECT_TEACHER')) {
     return res.status(403).json({ error: 'Only a Subject Teacher may create a personal class schedule.' });
   }
   const { periodName, gradeLevel, section, subjectName, startTime, endTime, graceMinutes = 0 } = req.body || {};
+  if (!isUuid(departmentId)) return res.status(400).json({ error: 'Choose a valid department for this schedule.' });
+  if (classroom.length > 100) return res.status(400).json({ error: 'Classroom name must be 100 characters or fewer.' });
   if (![periodName, gradeLevel, startTime, endTime].every(validText) ||
       (isTeacher && !validText(section)) ||
       !/^([01]\d|2[0-3]):[0-5]\d$/.test(startTime) || !/^([01]\d|2[0-3]):[0-5]\d$/.test(endTime) ||
       startTime >= endTime || !Number.isInteger(Number(graceMinutes)) || Number(graceMinutes) < 0 || Number(graceMinutes) > 240 ||
-      String(periodName).trim().length > 120 || String(gradeLevel).trim().length > 40 || String(section || '').trim().length > 100 || String(subjectName || '').trim().length > 120) {
-    return res.status(400).json({ error: 'Provide a valid schedule name, grade, section, time range, and grace period.' });
+      String(periodName).trim().length > 120 || String(gradeLevel).trim().length > 40 ||
+      String(section || '').trim().length > 100 || String(subjectName || '').trim().length > 120) {
+    return res.status(400).json({ error: 'Provide a valid schedule name, grade, section, classroom, time range, and grace period.' });
   }
   const client = await pool.connect();
   try {
     await client.query('BEGIN');
+    const validDepartment = await client.query(
+      isDepartmentHead
+        ? "SELECT 1 FROM school_departments WHERE school_id=$1 AND department_id=$2 AND active=TRUE AND department_code<>'UNASSIGNED'"
+        : 'SELECT 1 FROM school_departments WHERE school_id=$1 AND department_id=$2 AND active=TRUE',
+      [req.auth.schoolId, departmentId]
+    );
+    if (!validDepartment.rowCount) {
+      await client.query('ROLLBACK');
+      return res.status(400).json({ error: 'The selected department is not active in this school.' });
+    }
     if (isTeacher) {
       const conflict = await client.query(
         `SELECT EXISTS (
@@ -1694,12 +1853,13 @@ app.post('/api/periods', authenticateSchoolClient, requireSchoolAdminOrTeacher, 
            LEFT JOIN teacher_period_assignments a ON a.school_id=p.school_id AND a.period_id=p.period_id
            WHERE p.school_id=$1 AND p.active=TRUE
              AND p.start_time < $4::time AND $3::time < p.end_time
+             AND p.department_id=$7
              AND (
                a.teacher_user_id=$2
                OR (p.grade_level=$5 AND (p.section IS NULL OR p.section=$6))
              )
          ) AS conflict`,
-        [req.auth.schoolId, req.auth.userId, startTime, endTime, gradeLevel.trim(), section.trim()]
+        [req.auth.schoolId, req.auth.userId, startTime, endTime, gradeLevel.trim(), section.trim(), departmentId]
       );
       if (conflict.rows[0]?.conflict) {
         await client.query('ROLLBACK');
@@ -1708,13 +1868,14 @@ app.post('/api/periods', authenticateSchoolClient, requireSchoolAdminOrTeacher, 
     }
     const result = await client.query(
       `INSERT INTO class_periods(school_id, period_name, grade_level, section, subject_name,
-                                 start_time, end_time, grace_minutes)
-       VALUES($1,$2,$3,$4,$5,$6,$7,$8)
+                                 start_time, end_time, grace_minutes, department_id, classroom)
+       VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)
        RETURNING period_id AS "periodId", period_name AS "periodName",
                  grade_level AS "gradeLevel", section, subject_name AS "subjectName",
+                 department_id AS "departmentId", classroom,
                  to_char(start_time,'HH24:MI') AS "startTime", to_char(end_time,'HH24:MI') AS "endTime"`,
       [req.auth.schoolId, periodName.trim(), gradeLevel.trim(), section?.trim() || null,
-       subjectName?.trim() || null, startTime, endTime, Number(graceMinutes)]
+       subjectName?.trim() || null, startTime, endTime, Number(graceMinutes), departmentId, classroom || null]
     );
     const period = result.rows[0];
     if (isTeacher) {
@@ -1728,12 +1889,13 @@ app.post('/api/periods', authenticateSchoolClient, requireSchoolAdminOrTeacher, 
       `INSERT INTO audit_logs(school_id, actor_type, actor_user_id, action, entity_type, entity_id, details)
        VALUES($1,'SCHOOL',$2,$3,'class_period',$4,$5::jsonb)`,
       [req.auth.schoolId, req.auth.userId,
-       isTeacher ? 'TEACHER_CREATE_OWN_PERIOD' : 'SCHOOL_ADMIN_CREATE_PERIOD',
+       isTeacher ? 'TEACHER_CREATE_OWN_PERIOD' : isDepartmentHead ? 'DEPARTMENT_HEAD_CREATE_DEPARTMENT_PERIOD' : 'SCHOOL_ADMIN_CREATE_PERIOD',
        period.periodId,
-       JSON.stringify({ periodName: period.periodName, gradeLevel: period.gradeLevel, section: period.section, selfAssigned: isTeacher })]
+       JSON.stringify({ periodName: period.periodName, gradeLevel: period.gradeLevel,
+         section: period.section, classroom, departmentId, selfAssigned: isTeacher })]
     );
     await client.query('COMMIT');
-    return res.status(201).json({ period, assignedToCreator: isTeacher });
+    return res.status(201).json({ period, assignedToCreator: isTeacher, departmentManagedByHead: isDepartmentHead });
   } catch (err) {
     await client.query('ROLLBACK').catch(() => {});
     console.error('Period creation failed:', err.message);

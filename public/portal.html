@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="theme-color" content="#1c2d45">
   <title>Dashboard · School Attendance</title>
-  <link rel="stylesheet" href="/portal.css?v=0.8.3">
+  <link rel="stylesheet" href="/portal.css?v=0.9.1">
   <link rel="stylesheet" href="/academic-admin.css?v=1">
   <link rel="stylesheet" href="/password-visibility.css">
 
@@ -249,8 +249,31 @@
                 <article class="learner-metric metric-present"><span>Active teachers</span><strong id="dhTeacherActive">—</strong></article>
                 <article class="learner-metric metric-pending"><span>Teachers on leave</span><strong id="dhTeacherLeave">—</strong></article>
                 <article class="learner-metric"><span>Temporary covers</span><strong id="dhTeacherCovers">—</strong></article>
+                <article class="learner-metric metric-pending"><span>Classes needing a teacher</span><strong id="dhUncoveredClasses">—</strong></article>
+                <article class="learner-metric"><span>Missing time-in alerts</span><strong id="dhCoverageAlerts">—</strong></article>
               </div>
-              <p class="attendance-summary-note">Teacher gate time-in/time-out and DTR are not yet recorded in this release. These figures show account availability and substitute coverage, not proof of teacher attendance.</p>
+              <p class="attendance-summary-note">Gate time-in events are used to flag a missing check-in after each class period’s grace window; the monitor does not label a teacher absent without a recorded leave or follow-up.</p>
+            </section>
+            <section id="teacherCoverageCard" class="surface-card section-card teacher-coverage-card" hidden>
+              <div class="section-toolbar coverage-toolbar">
+                <div>
+                  <h3>Teacher coverage & class alerts</h3>
+                  <p>Monitor every department. Department Heads can take action only on schedules in their own department.</p>
+                </div>
+                <div class="coverage-toolbar-actions">
+                  <span class="coverage-alert-count" id="coverageAlertCount">0 alerts</span>
+                  <button type="button" class="outline-button" id="enableCoverageNotifications">Enable browser alerts</button>
+                  <button type="button" class="outline-button" id="refreshTeacherCoverage">↻ Refresh</button>
+                </div>
+              </div>
+              <p class="coverage-alert-summary" id="coverageAlertSummary" role="status">Coverage is being checked…</p>
+              <div class="table-scroll">
+                <table class="monitoring-table">
+                  <thead><tr><th>Department</th><th>Class / classroom</th><th>Subject / period</th><th>Assigned teacher</th><th>Coverage status</th><th>Action</th></tr></thead>
+                  <tbody id="teacherCoverageRows"><tr><td colspan="6" class="empty-cell">Loading class coverage…</td></tr></tbody>
+                </table>
+              </div>
+              <p class="attendance-summary-note">“Check-in not recorded” means no verified teacher gate time-in was found after the class start and grace period. It is an alert for follow-up, not automatic proof of absence. Browser alerts work while this portal is open.</p>
             </section>
             <section class="surface-card learner-summary-card" id="learnerSummaryCard">
               <div class="card-heading">
@@ -512,15 +535,17 @@
                 <div class="form-grid">
                   <div class="field-group"><label for="periodName">Schedule name *</label><input id="periodName" required maxlength="120" placeholder="Period 1"></div>
                   <div class="field-group"><label for="subjectName">Subject</label><input id="subjectName" maxlength="120" placeholder="Mathematics"></div>
+                  <div class="field-group" id="periodDepartmentGroup"><label for="periodDepartment">Department *</label><select id="periodDepartment" required><option value="">Select department</option></select><small class="field-hint" id="periodDepartmentHint">Department Heads can create schedules only in their own department.</small></div>
                   <div class="field-group"><label for="periodGrade">Grade level *</label><select id="periodGrade" required><option>Grade 7</option><option>Grade 8</option><option>Grade 9</option><option>Grade 10</option></select></div>
                   <div class="field-group"><label for="periodSection">Section <span id="sectionRequiredMark">(optional)</span></label><input id="periodSection" maxlength="100" placeholder="Section name"><small class="field-hint" id="periodSectionHint">Leave blank to make this schedule available to the whole grade.</small></div>
+                  <div class="field-group"><label for="periodClassroom">Classroom / room</label><input id="periodClassroom" maxlength="100" placeholder="e.g. Room 204"></div>
                   <div class="field-group"><label for="startTime">Start time *</label><input id="startTime" type="time" value="07:30" required></div>
                   <div class="field-group"><label for="endTime">End time *</label><input id="endTime" type="time" value="08:30" required></div>
                   <div class="field-group"><label for="graceMinutes">Grace period (minutes)</label><input id="graceMinutes" type="number" min="0" max="240" value="5"></div>
                 </div>
                 <div class="form-actions"><button class="primary-button" type="submit">Save schedule</button><button class="outline-button" type="button" id="cancelScheduleForm">Cancel</button><span id="scheduleFormFeedback" class="inline-feedback"></span></div>
               </form>
-              <div class="table-scroll"><table><thead><tr><th>Schedule</th><th>Subject</th><th>Grade</th><th>Section</th><th>Time</th></tr></thead><tbody id="scheduleRows"><tr><td colspan="5" class="empty-cell">Loading schedules…</td></tr></tbody></table></div>
+              <div class="table-scroll"><table><thead><tr><th>Schedule</th><th>Subject</th><th>Department</th><th>Grade</th><th>Section</th><th>Classroom</th><th>Time</th><th>Assigned teacher</th></tr></thead><tbody id="scheduleRows"><tr><td colspan="8" class="empty-cell">Loading schedules…</td></tr></tbody></table></div>
             </div>
           </section>
 
@@ -533,6 +558,7 @@
               <form id="teacherForm" class="inline-form" hidden>
                 <div class="form-grid">
                   <div class="field-group"><label for="newAccountRole">Account role *</label><select id="newAccountRole" required><option value="TEACHER">Teacher</option><option value="DEPARTMENT_HEAD">Department Head</option><option value="GATE_KEEPER">Gate Keeper</option></select></div>
+                  <div class="field-group" id="newTeacherDepartmentGroup"><label for="newTeacherDepartment">Department *</label><select id="newTeacherDepartment"><option value="">Select department</option></select><small class="field-hint">Assign each teacher and Department Head to one department.</small></div>
                   <div class="field-group"><label for="newTeacherUsername">Username *</label><input id="newTeacherUsername" required maxlength="80" autocomplete="off" placeholder="e.g. teacher.delacruz"></div>
                   <div class="field-group"><label for="newTeacherName">Display name *</label><input id="newTeacherName" required maxlength="160" autocomplete="name" placeholder="Teacher full name"></div>
                   <div class="field-group"><label for="newTeacherPassword">Initial password *</label><input id="newTeacherPassword" type="password" required minlength="12" maxlength="256" autocomplete="new-password" placeholder="At least 12 characters"></div>
@@ -549,15 +575,27 @@
               </form>
               <div class="table-scroll">
                 <table class="teacher-monitor-table">
-                  <thead><tr><th>Teacher / designation</th><th>Status</th><th>Grade level</th><th>Section</th><th>Assigned schedules</th><th id="teacherActionHeader">Account action</th></tr></thead>
-                  <tbody id="teacherRows"><tr><td colspan="6" class="empty-cell">Loading teachers…</td></tr></tbody>
+                  <thead><tr><th>Teacher / designation</th><th>Department</th><th>Status</th><th>Grade level</th><th>Section</th><th>Assigned schedules</th><th id="teacherActionHeader">Account action</th></tr></thead>
+                  <tbody id="teacherRows"><tr><td colspan="7" class="empty-cell">Loading teachers…</td></tr></tbody>
                 </table>
               </div>
             </div>
             <div class="scope-note teacher-management-note"><span>✓</span><p>Assignments are limited to this school. On Leave temporarily disables login while preserving class assignments and attendance history. Teachers can be returned manually or automatically on the expected return date.</p></div>
             <div class="surface-card section-card staff-accounts-card">
-              <div class="section-toolbar"><div><h3>Other school staff accounts</h3><p>Only Department Heads and Gate Keepers appear here. Teacher accounts and designations are managed in the Teachers table above.</p></div></div>
-              <div class="table-scroll"><table><thead><tr><th>Account</th><th>Role</th><th>Status</th></tr></thead><tbody id="staffUserRows"><tr><td colspan="3" class="empty-cell">Loading accounts…</td></tr></tbody></table></div>
+              <div class="section-toolbar"><div><h3>Other school staff accounts</h3><p>Department Heads and Gate Keepers. Teacher accounts and designations are managed in the Teachers table above.</p></div></div>
+              <div class="table-scroll"><table><thead><tr><th>Account</th><th>Role</th><th>Department</th><th>Status</th></tr></thead><tbody id="staffUserRows"><tr><td colspan="4" class="empty-cell">Loading accounts…</td></tr></tbody></table></div>
+            </div>
+            <div class="surface-card section-card department-management-card" id="departmentManagementCard" hidden>
+              <div class="section-toolbar"><div><h3>Department management</h3><p>Create the school’s departments before assigning staff and class schedules.</p></div></div>
+              <form id="departmentForm" class="inline-form">
+                <div class="form-grid">
+                  <div class="field-group"><label for="departmentCode">Department code *</label><input id="departmentCode" required maxlength="20" placeholder="ENGLISH"></div>
+                  <div class="field-group"><label for="departmentName">Department name *</label><input id="departmentName" required maxlength="100" placeholder="English Department"></div>
+                  <div class="field-group"><label for="departmentDescription">Description</label><input id="departmentDescription" maxlength="500" placeholder="Optional description"></div>
+                </div>
+                <div class="form-actions"><button class="primary-button" type="submit">Add department</button><span class="inline-feedback" id="departmentFormFeedback"></span></div>
+              </form>
+              <div class="department-chip-list" id="departmentList"><span class="muted-inline">Loading departments…</span></div>
             </div>
             <div class="surface-card section-card adviser-assignments-card">
               <div class="section-toolbar"><div><h3>Class Adviser assignments</h3><p>Assign one Class Adviser to each grade-and-section combination.</p></div></div>
@@ -623,7 +661,7 @@
   <div id="toast" class="toast" role="status" aria-live="polite"></div>
   <script src="/password-visibility.js" defer></script>
   <script src="/vendor/html5-qrcode.min.js" defer></script>
-  <script src="/portal.js?v=0.8.3" defer></script>
+  <script src="/portal.js?v=0.9.1" defer></script>
   <script src="/academic-admin.js?v=1" defer></script>
 </body>
 </html>

@@ -8,7 +8,7 @@ const { REQUIRED_MIGRATIONS, stripTransactionWrappers } = require('../scripts/mi
 
 const migrationDir = path.join(__dirname, '..', 'migrations');
 
-test('all eight database migrations are present and in order', () => {
+test('all thirteen database migrations are present and in order', () => {
   const files = fs.readdirSync(migrationDir).filter(name => /^\d{3}_[a-z0-9_]+\.sql$/i.test(name)).sort();
   assert.deepEqual(files, REQUIRED_MIGRATIONS);
 });
@@ -57,4 +57,15 @@ test('teacher gate migration adds private teacher QR/photo fields and verified g
     assert.match(sql, new RegExp(`\\b${name}\\b`, 'i'), `missing ${name}`);
   }
   assert.match(sql, /UNIQUE INDEX IF NOT EXISTS teacher_gate_one_event_per_type_day_uk/i);
+});
+
+test('department migration backfills existing users and schedules to a safe default department', () => {
+  const sql = fs.readFileSync(path.join(migrationDir, '013_departments_and_classroom_assignment.sql'), 'utf8');
+  assert.match(sql, /CREATE TABLE IF NOT EXISTS school_departments/i);
+  assert.match(sql, /department_code, department_name/i);
+  assert.match(sql, /'UNASSIGNED', 'Unassigned'/i);
+  assert.match(sql, /ALTER TABLE school_users ADD COLUMN IF NOT EXISTS department_id UUID/i);
+  assert.match(sql, /ALTER TABLE class_periods ADD COLUMN IF NOT EXISTS department_id UUID/i);
+  assert.match(sql, /ALTER TABLE class_periods ADD COLUMN IF NOT EXISTS classroom TEXT/i);
+  assert.match(sql, /FOREIGN KEY \(school_id, department_id\)/i);
 });
