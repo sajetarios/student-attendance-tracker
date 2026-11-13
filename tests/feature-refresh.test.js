@@ -77,11 +77,11 @@ test('SF2 Excel copy downloads a non-empty workbook through a temporary download
   assert.match(js, /URL\.revokeObjectURL\(url\)/);
 });
 
-test('Portal uses a calm accessible theme and cache-busted v0.8.3 assets', () => {
-  assert.match(html, /comfort-ui\.css\?v=0\.8\.3/);
-  assert.match(html, /portal\.js\?v=0\.8\.3/);
-  assert.match(css, /--brand: #2463a5/);
-  assert.match(css, /focus-visible/);
+test('Portal uses the current accessible theme and cache-busted v0.9.1 assets', () => {
+  assert.match(html, /portal\.css\?v=0\.9\.1/);
+  assert.match(html, /portal\.js\?v=0\.9\.1/);
+  assert.match(css, /--brand:#0ea5e9/);
+  assert.match(css, /:focus/);
 });
 
 test('self-service and parent workspaces share the calm theme and Gate Keeper has an explicit attendance selector', () => {
