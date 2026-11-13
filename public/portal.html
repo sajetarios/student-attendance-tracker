@@ -162,6 +162,7 @@
             <button class="nav-item" id="sf2Nav" data-view="sf2" title="SF2 Report Generator"><span class="nav-icon">▦</span><span class="nav-label">SF2 Report Generator</span></button>
             <button class="nav-item" id="schedulesNav" data-view="schedules" title="Class schedules"><span class="nav-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="18" height="17" rx="2"/><path d="M16 2v4M8 2v4M3 9h18M7 13h3M7 17h6"/></svg></span><span class="nav-label">Class schedules</span></button>
             <button class="nav-item" id="academicAdminNav" type="button" title="School years and programs"><span class="nav-icon">▤</span><span class="nav-label">School Years & Programs</span></button>
+            <button class="nav-item" id="cloudSyncNav" data-view="cloudSync" type="button" title="Cloud Sync" hidden><span class="nav-icon">⇄</span><span class="nav-label">Cloud Sync</span></button>
           </div>
         </div>
       </nav>
@@ -286,6 +287,28 @@
             </div>
           </div>
 
+
+          <section id="cloudSyncView" class="view-panel" hidden>
+            <div class="surface-card section-card">
+              <div class="section-toolbar">
+                <div><h3>Cloud destination</h3><p>Set the address of the cloud copy. Local attendance recording will continue to work independently.</p></div>
+                <span class="mini-tag" id="cloudSyncStatus">Not connected</span>
+              </div>
+              <form id="cloudSyncForm">
+                <div class="field-group">
+                  <label for="cloudBaseUrl">Cloud server address</label>
+                  <input id="cloudBaseUrl" type="url" inputmode="url" maxlength="500" placeholder="https://your-cloud-server.example" autocomplete="url">
+                  <small class="field-hint">Enter the cloud application’s base address. Use HTTPS for remote servers.</small>
+                </div>
+                <div class="form-actions">
+                  <button class="primary-button" id="saveCloudDestination" type="submit">Save destination</button>
+                  <button class="outline-button" id="refreshCloudDestination" type="button">↻ Refresh</button>
+                </div>
+              </form>
+              <div id="cloudSyncFeedback" class="inline-feedback" role="status" aria-live="polite"></div>
+              <div class="scope-note"><span>i</span><p><strong>Important:</strong> Saving the address only configures the destination. Secure cloud authentication, the server-side pending-event queue, automatic retries, and sync history still need to be implemented before attendance records are forwarded. No attendance records are sent by this setup screen.</p></div>
+            </div>
+          </section>
 
           <section id="sf2View" class="view-panel" hidden>
             <div class="surface-card section-card">
