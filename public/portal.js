@@ -518,11 +518,16 @@
       return;
     }
     host.innerHTML = teacherCoverage.map(row => {
-      const options = teachers.filter(teacher =>
-        teacher.active && String(teacher.departmentId) === String(row.departmentId) &&
-        (teacher.teacherDesignations || []).includes('SUBJECT_TEACHER') &&
-        String(teacher.userId) !== String(row.teacherUserId)
-      );
+      const options = teachers.filter(teacher => {
+        const alreadyBooked = (teacher.assignedPeriods || []).some(period =>
+          String(period.periodId) !== String(row.periodId) &&
+          String(period.startTime || '') < String(row.endTime || '') &&
+          String(row.startTime || '') < String(period.endTime || '')
+        );
+        return teacher.active && String(teacher.departmentId) === String(row.departmentId) &&
+          (teacher.teacherDesignations || []).includes('SUBJECT_TEACHER') &&
+          String(teacher.userId) !== String(row.teacherUserId) && !alreadyBooked;
+      });
       const action = coverageNeedsAction(row) && options.length
         ? `<div class="coverage-action-controls">
              <select aria-label="Choose teacher for ${esc(row.periodName)}" data-coverage-teacher-select="${esc(row.periodId)}">
