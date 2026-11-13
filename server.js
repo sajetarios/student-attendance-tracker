@@ -698,7 +698,7 @@ app.post('/api/teachers/:userId/substitutions', authenticateSchoolClient, requir
       await client.query('ROLLBACK');
       return res.status(403).json({ error: 'The original teacher, substitute, and schedule must belong to the same department.' });
     }
-    if (req.auth.role === 'DEPARTMENT_HEAD' && String(period.rows[0].department_id) !== String(req.auth.departmentId)) {
+    if (req.auth.role === 'DEPARTMENT_HEAD' && (req.auth.departmentCode === 'UNASSIGNED' || String(period.rows[0].department_id) !== String(req.auth.departmentId))) {
       await client.query('ROLLBACK');
       return res.status(403).json({ error: 'You can provide teacher coverage only inside your own department.' });
     }
@@ -808,7 +808,7 @@ app.delete('/api/teacher-substitutions/:substitutionId', authenticateSchoolClien
          WHERE ts.school_id=$1 AND ts.substitution_id=$2 AND ts.status='ACTIVE'`,
         [req.auth.schoolId, req.params.substitutionId]
       );
-      if (!scope.rowCount || String(scope.rows[0].department_id) !== String(req.auth.departmentId)) {
+      if (!scope.rowCount || req.auth.departmentCode === 'UNASSIGNED' || String(scope.rows[0].department_id) !== String(req.auth.departmentId)) {
         await client.query('ROLLBACK');
         return res.status(403).json({ error: 'You can manage substitute coverage only in your own department.' });
       }
@@ -861,7 +861,7 @@ app.post('/api/periods/:periodId/assignments', authenticateSchoolClient, require
       await client.query('ROLLBACK');
       return res.status(404).json({ error: 'Active class schedule not found in this school.' });
     }
-    if (req.auth.role === 'DEPARTMENT_HEAD' && String(period.rows[0].department_id) !== String(req.auth.departmentId)) {
+    if (req.auth.role === 'DEPARTMENT_HEAD' && (req.auth.departmentCode === 'UNASSIGNED' || String(period.rows[0].department_id) !== String(req.auth.departmentId))) {
       await client.query('ROLLBACK');
       return res.status(403).json({ error: 'You can assign teachers only to schedules in your own department.' });
     }
@@ -953,7 +953,7 @@ app.delete('/api/periods/:periodId/assignments/:teacherUserId', authenticateScho
         `SELECT department_id FROM class_periods WHERE school_id=$1 AND period_id=$2`,
         [req.auth.schoolId, req.params.periodId]
       );
-      if (!scope.rowCount || String(scope.rows[0].department_id) !== String(req.auth.departmentId)) {
+      if (!scope.rowCount || req.auth.departmentCode === 'UNASSIGNED' || String(scope.rows[0].department_id) !== String(req.auth.departmentId)) {
         await client.query('ROLLBACK');
         return res.status(403).json({ error: 'You can change assignments only for schedules in your own department.' });
       }
@@ -1829,7 +1829,9 @@ app.post('/api/periods', authenticateSchoolClient, requireSchoolAdminOrDepartmen
   try {
     await client.query('BEGIN');
     const validDepartment = await client.query(
-      'SELECT 1 FROM school_departments WHERE school_id=$1 AND department_id=$2 AND active=TRUE',
+      isDepartmentHead
+        ? "SELECT 1 FROM school_departments WHERE school_id=$1 AND department_id=$2 AND active=TRUE AND department_code<>'UNASSIGNED'"
+        : 'SELECT 1 FROM school_departments WHERE school_id=$1 AND department_id=$2 AND active=TRUE',
       [req.auth.schoolId, departmentId]
     );
     if (!validDepartment.rowCount) {
