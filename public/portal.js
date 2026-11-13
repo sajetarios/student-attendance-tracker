@@ -394,6 +394,30 @@
     }
   }
 
+  function renderDashboardMetricGuide() {
+    const list = $('dashboardMetricGuideList');
+    const copy = $('dashboardMetricGuideText');
+    if (!list || !copy) return;
+    const role = user?.role;
+    const items = role === 'TEACHER'
+      ? [
+          'Assigned learners counts students in your assigned sections and subject schedules.',
+          'Confirmed present means at least one accepted subject time-in was recorded today.',
+          'Pending confirmation is not an absence count; do not treat it as a finalized absent list.',
+          'My subject check-ins counts accepted time-in events in your assigned periods.'
+        ]
+      : [
+          'Active students counts active student master records; it is not a count of students present today.',
+          'School arrivals counts accepted gate time-in events for today.',
+          'Late arrivals counts gate time-ins recorded after the configured grace period.',
+          'Class check-ins counts accepted subject or advisory time-in events; one student may have multiple check-ins.'
+        ];
+    copy.textContent = role === 'TEACHER'
+      ? 'Your figures are limited to your assigned classes and schedules. Gate scans are not used to confirm subject attendance.'
+      : 'School-wide figures are based on records accepted by the local school server. Gate attendance and class attendance are different events.';
+    list.innerHTML = items.map(item => `<li>${esc(item)}</li>`).join('');
+  }
+
   function renderStats(data) {
     const role = user?.role;
     const isTeacher = role === 'TEACHER';
@@ -2021,6 +2045,7 @@
     }
 
     renderStats(dashboardData);
+    renderDashboardMetricGuide();
     renderStudents();
     renderPeriods();
     if (isSchoolManager) { renderTeachers(); renderBulkTeacherAssignment(); }
