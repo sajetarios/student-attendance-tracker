@@ -52,7 +52,7 @@ function registerAuthRoutes(app, pool) {
       if (!schoolResult.rowCount) return res.status(401).json({ error: 'Invalid login credentials.' });
       const school = schoolResult.rows[0];
       const userResult = await pool.query(
-        `SELECT user_id, username, display_name, password_hash, role, teacher_designations, active,
+        `SELECT user_id, username, display_name, password_hash, role, teacher_designations, active, login_enabled,
                 failed_login_attempts, locked_until
          FROM school_users
          WHERE school_id=$1 AND lower(username)=lower($2)
@@ -61,7 +61,7 @@ function registerAuthRoutes(app, pool) {
       );
       if (!userResult.rowCount) return res.status(401).json({ error: 'Invalid login credentials.' });
       const user = userResult.rows[0];
-      if (!user.active) return res.status(401).json({ error: 'Invalid login credentials.' });
+      if (!user.active || user.login_enabled === false) return res.status(401).json({ error: 'Invalid login credentials.' });
       if (user.locked_until && new Date(user.locked_until).getTime() > Date.now()) {
         return res.status(423).json({ error: 'Account temporarily locked. Try again later.' });
       }
