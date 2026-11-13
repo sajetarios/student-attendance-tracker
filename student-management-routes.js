@@ -79,6 +79,7 @@ function registerStudentManagementRoutes(app, pool, { authenticateSchoolClient, 
       ) : { rows: [] };
       const lrnOwner = new Map(existingLrns.rows.map(row => [row.lrn, row.studentId]));
       const seenIds = new Set();
+      const seenLrns = new Map();
       const preview = [];
       for (const row of rows) {
         const errors = [];
@@ -91,6 +92,8 @@ function registerStudentManagementRoutes(app, pool, { authenticateSchoolClient, 
         if (row.lrn && row.lrn.length > 30) errors.push('LRN must be 30 characters or fewer.');
         if (row.studentId && seenIds.has(row.studentId)) errors.push('Duplicate Student ID within this file.');
         if (row.studentId) seenIds.add(row.studentId);
+        if (row.lrn && seenLrns.has(row.lrn) && seenLrns.get(row.lrn) !== row.studentId) errors.push('Duplicate LRN within this file.');
+        if (row.lrn) seenLrns.set(row.lrn, row.studentId);
         const existingStudent = existingById.get(row.studentId);
         const owner = row.lrn ? lrnOwner.get(row.lrn) : null;
         if (owner && owner !== row.studentId) errors.push('LRN is already assigned to a different student.');
@@ -122,6 +125,15 @@ function registerStudentManagementRoutes(app, pool, { authenticateSchoolClient, 
     const rows = Array.isArray(req.body?.rows) ? req.body.rows : [];
     if (!rows.length || rows.length > 2000) return res.status(400).json({ error: 'Provide 1 to 2,000 validated student rows.' });
     const isTeacher = req.auth.role === 'TEACHER';
+    const seenIds = new Set();
+    const seenLrns = new Map();
+    for (const row of rows) {
+      const id = clean(row.studentId), lrn = clean(row.lrn);
+      if (seenIds.has(id)) return res.status(400).json({ error: 'Duplicate Student ID in the submitted batch. Run Preview again.' });
+      if (lrn && seenLrns.has(lrn) && seenLrns.get(lrn) !== id) return res.status(400).json({ error: 'Duplicate LRN in the submitted batch. Run Preview again.' });
+      seenIds.add(id);
+      if (lrn) seenLrns.set(lrn, id);
+    }
     if (isTeacher && !req.auth.teacherDesignations?.includes('CLASS_ADVISER')) {
       return res.status(403).json({ error: 'Only Class Advisers may import students.' });
     }
