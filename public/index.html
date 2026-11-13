@@ -1,104 +1,18 @@
 <!doctype html>
 <html lang="en">
 <head>
-<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta name="theme-color" content="#1c2d45"><link rel="manifest" href="/manifest.webmanifest">
-<link rel="stylesheet" href="/styles.css"><title>JHS Attendance Desk</title>
-<link rel="stylesheet" href="/responsive.css">
-<link rel="stylesheet" href="/comfort-ui.css?v=0.8.2" id="comfort-attendance-ui">
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#2463a5">
+  <meta http-equiv="refresh" content="0; url=/portal-login.html">
+  <title>Redirecting to sign in · School Attendance</title>
+  <script>
+    window.location.replace('/portal-login.html' + window.location.search + window.location.hash);
+  </script>
 </head>
-<body class="attendance-desk">
-<header class="topbar"><div><div class="eyebrow">JUNIOR HIGH SCHOOL</div><h1>Attendance Desk</h1></div><div id="connection" class="status">Checking…</div></header>
-<main>
-<section class="summary">
-<article><span>Today's punches</span><strong id="countToday">0</strong></article>
-<article><span>Waiting to sync</span><strong id="countPending">0</strong></article>
-<article><span>Device</span><strong id="deviceShort">—</strong></article>
-</section>
-
-<nav class="tabs">
-<button class="tab active" data-tab="dashboard">Dashboard</button>
-<button class="tab" data-tab="attendance">Attendance</button>
-<button class="tab" data-tab="students">Students & QR IDs</button>
-<button class="tab" data-tab="periods">Class periods</button>
-</nav>
-
-<section id="dashboard" class="panel tab-panel">
-<div class="panel-heading"><div><h2>Administrator dashboard</h2><p>Live summary from the local school server.</p></div><button class="text-button" id="refreshDashboard">Refresh</button></div>
-<div class="admin-grid">
-<article><span>Active students</span><strong id="adminStudents">—</strong></article>
-<article><span>School arrivals today</span><strong id="adminArrivals">—</strong></article>
-<article><span>Late arrivals</span><strong id="adminLate">—</strong></article>
-<article><span>Class check-ins</span><strong id="adminClasses">—</strong></article>
-<article><span>SMS queued / sending</span><strong id="adminSmsPending">—</strong></article>
-<article><span>SMS failed</span><strong id="adminSmsFailed">—</strong></article>
-</div>
-<p id="dashboardFeedback" class="feedback">Connect to the local school server to load dashboard statistics.</p>
-<h3>Recent synchronized attendance</h3>
-<div class="table-wrap"><table><thead><tr><th>Student</th><th>Time</th><th>Scope</th><th>Type</th><th>Result</th></tr></thead><tbody id="adminRecent"><tr><td colspan="5">No server data loaded.</td></tr></tbody></table></div>
-</section>
-<section id="attendance" class="panel tab-panel">
-<div class="panel-heading"><div><h2>Record attendance</h2><p>Scan a student QR code or enter the student ID.</p></div><span class="live-dot"></span></div>
-<label for="scope">Attendance type</label><select id="scope"><option value="SCHOOL">School entrance / departure</option><option value="CLASS">Class-period attendance</option></select>
-<div id="periodWrap" hidden><label for="periodId">Class period</label><select id="periodId"><option value="">Select a period</option></select></div>
-<label for="studentId">Student ID / QR value</label>
-<div class="entry-row"><input id="studentId" autocomplete="off" placeholder="e.g. JHS-0001"><button id="recordButton">Time in</button></div>
-<div class="button-row"><button class="secondary" id="scanButton">Scan QR</button><button class="secondary" id="punchOutButton">Time out</button></div>
-<div id="qr-reader" class="qr-reader" hidden></div>
-<script src="/vendor/html5-qrcode.min.js"></script>
-<p id="feedback" class="feedback" role="status">Ready. Punches are stored on this device while offline.</p>
-</section>
-
-<section id="students" class="panel tab-panel" hidden>
-<h2>Student registration & QR ID cards</h2><p>Register JHS students, generate private QR codes, and print student ID cards. The roster is cached on each device for offline scanning.</p>
-<div class="form-grid">
-<div><label for="newStudentId">Student ID *</label><input id="newStudentId" placeholder="JHS-0001"></div>
-<div><label for="lrn">LRN</label><input id="lrn" placeholder="Learner Reference Number"></div>
-<div class="wide"><label for="fullName">Full name *</label><input id="fullName" placeholder="Last name, First name, Middle name"></div>
-<div><label for="grade">Grade level *</label><select id="grade"><option>Grade 7</option><option>Grade 8</option><option>Grade 9</option><option>Grade 10</option></select></div>
-<div><label for="section">Section *</label><input id="section" placeholder="e.g. Mabini"></div>
-<div><label for="parentName">Parent / guardian name</label><input id="parentName"></div>
-<div><label for="parentMobile">Parent mobile number *</label><input id="parentMobile" placeholder="09XXXXXXXXX"></div>
-</div>
-<button id="registerStudent">Save student</button>
-<p id="studentFeedback" class="feedback">Registration requires connection to the school server. Saved students will sync to devices for offline use.</p>
-<div class="roster-heading"><div><h3>Registered students</h3><p class="hint">QR codes contain a private random token, not the student's name, LRN, or phone number.</p></div><button class="secondary" id="refreshStudents">Refresh roster</button></div>
-<div class="roster-tools"><label for="qrGradeFilter">Filter by grade</label><select id="qrGradeFilter"><option value="ALL">All grades</option><option>Grade 7</option><option>Grade 8</option><option>Grade 9</option><option>Grade 10</option></select><button id="printGradeCards">Print filtered ID cards</button></div>
-<div id="studentRoster" class="student-roster"><p class="hint">Connect to the server and refresh the roster to list students.</p></div>
-</section>
-
-<section id="periods" class="panel tab-panel" hidden>
-<h2>Class-period setup</h2><p>Configure each subject period and its late-arrival grace period. Set up periods before recording class attendance.</p>
-<div class="form-grid">
-<div><label for="periodName">Period name *</label><input id="periodName" placeholder="Period 1"></div>
-<div><label for="subjectName">Subject</label><input id="subjectName" placeholder="Mathematics"></div>
-<div><label for="periodGrade">Grade *</label><select id="periodGrade"><option>Grade 7</option><option>Grade 8</option><option>Grade 9</option><option>Grade 10</option></select></div>
-<div><label for="periodSection">Section (optional)</label><input id="periodSection" placeholder="All sections or e.g. Mabini"></div>
-<div><label for="startTime">Start time *</label><input id="startTime" type="time" value="07:30"></div>
-<div><label for="endTime">End time *</label><input id="endTime" type="time" value="08:30"></div>
-<div><label for="graceMinutes">Late grace period (minutes)</label><input id="graceMinutes" type="number" min="0" value="5"></div>
-</div>
-<button id="savePeriod">Save class period</button>
-<p id="periodFeedback" class="feedback">Period setup requires internet connection.</p>
-<div id="periodList" class="period-list"></div>
-</section>
-
-<section class="panel">
-<div class="panel-heading"><div><h2>Recent punches</h2><p>Attendance saved on this device.</p></div><button class="text-button" id="syncButton">Sync now</button></div>
-<div class="table-wrap"><table><thead><tr><th>Student</th><th>Time</th><th>Scope</th><th>Type</th><th>Sync</th></tr></thead><tbody id="records"><tr><td colspan="5">No punches yet.</td></tr></tbody></table></div>
-</section>
-
-<section class="panel settings">
-<h2>Device connection</h2><p>Enter the deployed school API settings. Use an individual device credential in production.</p>
-<label for="apiUrl">API URL</label><input id="apiUrl" placeholder="https://attendance.yourschool.edu.ph">
-<label for="apiToken">Device / admin token</label><input id="apiToken" type="password" placeholder="API token">
-<button class="secondary" id="saveSettings">Save connection settings</button>
-<div class="form-grid">
-<div><label for="schoolStartTime">Official school start time</label><input id="schoolStartTime" type="time" value="07:30"></div>
-<div><label for="schoolGraceMinutes">School arrival grace (minutes)</label><input id="schoolGraceMinutes" type="number" min="0" value="0"></div>
-</div>
-<button class="secondary" id="saveSchoolSettings">Save school schedule</button>
-<p class="hint">Set the actual first bell and grace period. Late school arrival is evaluated on the server after sync.</p>
-<p class="hint">This prototype stores the token in this browser. Production deployment should use per-device credentials, administrator roles, HTTPS, and credential revocation.</p>
-</section>
-</main><script src="/app.js"></script></body></html>
+<body>
+  <p>Opening the School Attendance sign-in page…
+    <a href="/portal-login.html">Continue to sign in</a>
+  </p>
+</body>
+</html>

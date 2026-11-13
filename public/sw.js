@@ -1,22 +1,24 @@
-
-const CACHE = "school-attendance-shell-v13";
+const CACHE = "school-attendance-shell-v14-login-landing";
 
 const SHELL = [
-  "/",
-  "/index.html",
-  "/styles.css",
+  "/portal-login.html",
+  "/portal.css",
+  "/portal-login.js",
+  "/login-routing.js",
   "/responsive.css",
-  "/comfort-ui.css",
+  "/comfort-ui.css?v=0.8.2",
+  "/styles.css",
   "/app.js",
   "/manifest.webmanifest",
   "/vendor/html5-qrcode.min.js"
 ];
 
 self.addEventListener("install", event => {
-  event.waitUntil(
-    caches.open(CACHE).then(cache => cache.addAll(SHELL))
-  );
-  self.skipWaiting();
+  event.waitUntil((async () => {
+    const cache = await caches.open(CACHE);
+    await cache.addAll(SHELL);
+    await self.skipWaiting();
+  })());
 });
 
 self.addEventListener("activate", event => {
@@ -25,9 +27,8 @@ self.addEventListener("activate", event => {
       Promise.all(
         keys.filter(key => key !== CACHE).map(key => caches.delete(key))
       )
-    )
+    ).then(() => self.clients.claim())
   );
-  self.clients.claim();
 });
 
 self.addEventListener("fetch", event => {
@@ -37,7 +38,7 @@ self.addEventListener("fetch", event => {
 
   const url = new URL(request.url);
 
-  // Never cache authenticated or API requests.
+  // Never cache cross-origin, API, or authenticated requests.
   if (
     url.origin !== self.location.origin ||
     url.pathname.startsWith("/api/") ||
@@ -46,6 +47,32 @@ self.addEventListener("fetch", event => {
     return;
   }
 
+  // Navigation requests must check the server first so an obsolete cached
+  // Attendance Desk page cannot replace the current login landing page.
+  if (request.mode === "navigate") {
+    event.respondWith((async () => {
+      try {
+        const response = await fetch(request);
+        if (response.ok) {
+          const cache = await caches.open(CACHE);
+          await cache.put(request, response.clone()).catch(() => {});
+        }
+        return response;
+      } catch {
+        const cached = await caches.match(request);
+        if (cached) return cached;
+
+        if (url.pathname === "/" || url.pathname === "/index.html") {
+          const loginPage = await caches.match("/portal-login.html");
+          if (loginPage) return loginPage;
+        }
+        return Response.error();
+      }
+    })());
+    return;
+  }
+
+  // Static assets remain cache-first for the offline attendance shell.
   event.respondWith(
     caches.match(request).then(cached => {
       if (cached) return cached;
@@ -53,9 +80,7 @@ self.addEventListener("fetch", event => {
       return fetch(request).then(response => {
         if (response.ok) {
           const copy = response.clone();
-          caches.open(CACHE).then(cache =>
-            cache.put(request, copy)
-          );
+          caches.open(CACHE).then(cache => cache.put(request, copy)).catch(() => {});
         }
         return response;
       });

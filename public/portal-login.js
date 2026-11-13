@@ -84,4 +84,13 @@
 
   // Do not auto-redirect merely because a session token exists. A previous
   // Parent session must not prevent a teacher or administrator from signing in.
+
+  
+  // Visiting the login page also forces an update check. This replaces older
+  // cache-first workers that may still hold the retired Attendance Desk index.
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('/sw.js', { updateViaCache: 'none' })
+      .then(registration => registration.update())
+      .catch(error => console.warn('Service worker update check failed:', error));
+  }
 })();
