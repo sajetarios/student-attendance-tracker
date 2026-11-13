@@ -168,7 +168,7 @@
         </div>
       </nav>
       <div class="sidebar-bottom">
-        <div class="sidebar-status"><span class="status-pulse"></span><span>Connected to local server</span></div>
+        <div class="sidebar-status"><span class="status-pulse"></span><span id="sidebarSyncStatus">Local server connected · Cloud sync inactive</span></div>
         
       </div>
     </aside>
@@ -179,7 +179,7 @@
           aria-label="Open navigation" aria-expanded="false" title="Open navigation">☰</button>
         <div class="breadcrumbs"><span>Workspace</span><b>/</b><strong id="breadcrumbCurrent">Dashboard</strong></div>
         <div class="topbar-right">
-          <span class="connection-chip"><i></i> Local server</span>
+          <span class="connection-chip" id="localServerIndicator"><i></i> Local server connected</span><span class="connection-chip sync-not-connected" id="cloudSyncIndicator"><i></i> Cloud sync: Not active</span>
           <div class="account-menu-wrap">
             <button class="account-trigger" id="accountMenuButton" aria-haspopup="true" aria-expanded="false">
               <span class="avatar" id="userAvatar">U</span><span class="account-name" id="userDisplay">User</span><span class="account-chevron">▾</span>
