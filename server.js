@@ -17,6 +17,7 @@ const { registerParentRoutes } = require('./parent-routes');
 const { registerStudentRoutes } = require('./student-routes');
 const { registerAcademicRoutes } = require('./academic-routes');
 const registerCloudSyncRoutes = require('./cloud-sync-routes');
+const { startCloudSyncWorker } = require('./cloud-sync-worker');
 
 const app = express();
 const pool = new Pool({ connectionString: process.env.DATABASE_URL });
@@ -30,7 +31,7 @@ app.use((req, res, next) => {
 app.use(express.json({ limit: '2mb' }));
 
 registerAuthRoutes(app, pool);
-const { authenticateSchoolClient, requireSchoolRoles, requireSchoolPermission, requireTeacherDesignations, requireSchoolClient } = createAuthMiddleware(pool);
+const { authenticateSchoolClient, authenticateCloudSync, requireSchoolRoles, requireSchoolPermission, requireTeacherDesignations, requireSchoolClient } = createAuthMiddleware(pool);
 const requireSchoolAdmin = requireSchoolRoles('SCHOOL_ADMIN');
 const requireSchoolAdminOrTeacher = requireSchoolRoles('SCHOOL_ADMIN', 'TEACHER');
 const requireSchoolUser = requireSchoolRoles('SCHOOL_ADMIN', 'DEPARTMENT_HEAD', 'TEACHER');
@@ -39,7 +40,7 @@ const validText = value => typeof value === 'string' && value.trim().length > 0;
 registerParentRoutes(app, pool, { authenticateSchoolClient, requireSchoolRoles });
 registerStudentRoutes(app, pool, { authenticateSchoolClient, requireSchoolAdmin });
 registerAcademicRoutes(app, pool, { authenticateSchoolClient, requireSchoolRoles });
-registerCloudSyncRoutes(app, pool, { authenticateSchoolClient, requireSchoolAdmin });
+registerCloudSyncRoutes(app, pool, { authenticateSchoolClient, authenticateCloudSync, requireSchoolAdmin });
 const registerSf2Routes = require('./sf2-routes');
 registerSf2Routes(app, pool, { authenticateSchoolClient, requireSchoolUser, requireSchoolAdmin, requireSchoolAdminOrDepartmentHead });
 
@@ -1894,6 +1895,12 @@ app.post('/api/sync/events', authenticateSchoolClient, requireSchoolClient, asyn
            event.periodId || null, event.eventType, event.occurredAt, event.schoolDate,
            duplicate.rows[0].event_id, safeMetadata, actorUserId]
         );
+        await client.query(
+          'INSERT INTO cloud_sync_outbox (school_id, event_id) ' +
+          'SELECT school_id, event_id FROM attendance_events WHERE school_id=$1 AND event_id=$2 ' +
+          'ON CONFLICT (school_id, event_id) DO NOTHING',
+          [req.auth.schoolId, event.eventId]
+        );
         results.push({ eventId: event.eventId, status: 'DUPLICATE', duplicateOf: duplicate.rows[0].event_id });
         continue;
       }
@@ -1906,6 +1913,11 @@ app.post('/api/sync/events', authenticateSchoolClient, requireSchoolClient, asyn
         [event.eventId, req.auth.schoolId, rawDeviceId, event.studentId, event.attendanceScope,
          event.periodId || null, event.eventType, event.occurredAt, event.schoolDate,
          late, safeMetadata, actorUserId]
+      );
+      await client.query(
+        'INSERT INTO cloud_sync_outbox (school_id, event_id) VALUES($1,$2) ' +
+        'ON CONFLICT (school_id, event_id) DO NOTHING',
+        [req.auth.schoolId, event.eventId]
       );
 
       if (student.rows[0].parent_mobile) {
@@ -2172,6 +2184,7 @@ async function start() {
   console.log('Checking database migrations...');
   const migrationResult = await runMigrations(pool);
   console.log(`Database migrations ready: ${migrationResult.applied.length} applied, ${migrationResult.total} total.`);
+  startCloudSyncWorker(pool);
 
   await processDueTeacherReturns();
   const teacherReturnTimer = setInterval(processDueTeacherReturns, 60 * 1000);
