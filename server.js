@@ -408,6 +408,7 @@ app.patch('/api/teachers/:userId/designations', authenticateSchoolClient, requir
 
 app.post('/api/teachers', authenticateSchoolClient, requireSchoolAdmin, async (req, res) => {
   const { username, displayName, password } = req.body || {};
+  const departmentId = req.body?.departmentId || null;
   const teacherDesignations = Array.isArray(req.body?.teacherDesignations) ? [...new Set(req.body.teacherDesignations.map(value => String(value).toUpperCase()))] : ['SUBJECT_TEACHER'];
   if (!teacherDesignations.length || teacherDesignations.some(value => !['CLASS_ADVISER', 'SUBJECT_TEACHER'].includes(value))) {
     return res.status(400).json({ error: 'Select Subject Teacher, Class Adviser, or both.' });
@@ -417,6 +418,15 @@ app.post('/api/teachers', authenticateSchoolClient, requireSchoolAdmin, async (r
       typeof password !== 'string' || password.length < 12 || password.length > 256) {
     return res.status(400).json({ error: 'Provide a username (1â€“80 characters), display name (1â€“160 characters), and password (12â€“256 characters).' });
   }
+  let assignedDepartmentId = departmentId;
+  if (assignedDepartmentId) {
+    const dept = await pool.query('SELECT 1 FROM school_departments WHERE school_id=$1 AND department_id=$2 AND active=TRUE', [req.auth.schoolId, assignedDepartmentId]);
+    if (!dept.rowCount) return res.status(400).json({ error: 'Choose an active department in this school.' });
+  } else {
+    const dept = await pool.query("SELECT department_id FROM school_departments WHERE school_id=$1 AND department_code='UNASSIGNED' AND active=TRUE", [req.auth.schoolId]);
+    assignedDepartmentId = dept.rows[0]?.department_id || null;
+  }
+  if (!assignedDepartmentId) return res.status(400).json({ error: 'Create departments using the School Administrator account before creating teachers.' });
   let passwordHash;
   try {
     passwordHash = await hashPassword(password);
@@ -427,10 +437,10 @@ app.post('/api/teachers', authenticateSchoolClient, requireSchoolAdmin, async (r
   try {
     await client.query('BEGIN');
     const created = await client.query(
-      `INSERT INTO school_users (school_id, username, display_name, password_hash, role, teacher_designations, teacher_qr_token)
-       VALUES ($1,$2,$3,$4,'TEACHER',$5,gen_random_uuid())
-       RETURNING user_id AS "userId", username, display_name AS "displayName", teacher_designations AS "teacherDesignations", active, created_at AS "createdAt"`,
-      [req.auth.schoolId, username.trim(), displayName.trim(), passwordHash, teacherDesignations]
+      `INSERT INTO school_users (school_id, username, display_name, password_hash, role, teacher_designations, department_id, teacher_qr_token)
+       VALUES ($1,$2,$3,$4,'TEACHER',$5,$6,gen_random_uuid())
+       RETURNING user_id AS "userId", username, display_name AS "displayName", teacher_designations AS "teacherDesignations", department_id AS "departmentId", active, created_at AS "createdAt"`,
+      [req.auth.schoolId, username.trim(), displayName.trim(), passwordHash, teacherDesignations, assignedDepartmentId]
     );
     const teacher = created.rows[0];
     await client.query(
