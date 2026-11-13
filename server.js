@@ -44,7 +44,7 @@ registerStudentRoutes(app, pool, { authenticateSchoolClient, requireSchoolAdmin 
 registerStudentManagementRoutes(app, pool, { authenticateSchoolClient, requireSchoolRoles });
 registerAcademicRoutes(app, pool, { authenticateSchoolClient, requireSchoolRoles });
 registerDepartmentRoutes(app, pool, { authenticateSchoolClient, requireSchoolRoles });
-registerCloudSyncRoutes(app, pool, { authenticateSchoolClient, requireSchoolAdmin });
+registerCloudSyncRoutes(app, pool, { authenticateSchoolClient, requireSchoolAdmin, requireSchoolRoles });
 const registerSf2Routes = require('./sf2-routes');
 registerSf2Routes(app, pool, { authenticateSchoolClient, requireSchoolUser, requireSchoolAdmin, requireSchoolAdminOrDepartmentHead });
 
