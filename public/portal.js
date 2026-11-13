@@ -1939,6 +1939,10 @@
       const data = await api('/api/cloud-sync/master-data/status');
       const source = data.source || {};
       const counts = source.counts || {};
+      const schoolIdentity = [counts.schoolCode, counts.schoolName].filter(Boolean).join(' · ');
+      $('cloudSyncSchoolIdentity').textContent = schoolIdentity
+        ? schoolIdentity + ' · ' + (counts.schoolId || '')
+        : 'School identity is unavailable';
       $('masterDataStudentsCount').textContent = Number(counts.students || 0).toLocaleString('en-PH');
       $('masterDataStaffCount').textContent = Number(counts.staff || 0).toLocaleString('en-PH');
       $('masterDataPeriodsCount').textContent = Number(counts.periods || 0).toLocaleString('en-PH');
