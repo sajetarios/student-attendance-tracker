@@ -583,6 +583,14 @@
                 </table>
               </div>
             </div>
+            <div class="surface-card section-card bulk-teacher-assignment-card" id="bulkTeacherAssignmentCard">
+              <div class="section-toolbar"><div><h3>Batch assign teacher to schedules</h3><p>Select one teacher and several unassigned schedules. Department Heads can work only within their assigned department.</p></div></div>
+              <form id="bulkTeacherAssignmentForm" class="inline-form">
+                <div class="field-group"><label for="bulkAssignmentTeacher">Teacher *</label><select id="bulkAssignmentTeacher" required><option value="">Select an active Subject Teacher</option></select></div>
+                <div class="field-group"><label>Available class schedules *</label><div id="bulkAssignmentSchedules" class="bulk-assignment-schedule-list"><p class="muted-inline">Select a teacher to view available schedules.</p></div></div>
+                <div class="form-actions"><button class="primary-button" type="submit" id="applyBulkTeacherAssignment">Assign selected schedules</button><span id="bulkTeacherAssignmentFeedback" class="inline-feedback" role="status"></span></div>
+              </form>
+            </div>
             <div class="scope-note teacher-management-note"><span>✓</span><p>Assignments are limited to this school. On Leave temporarily disables login while preserving class assignments and attendance history. Teachers can be returned manually or automatically on the expected return date.</p></div>
             <div class="surface-card section-card staff-accounts-card">
               <div class="section-toolbar"><div><h3>Other school staff accounts</h3><p>Department Heads and Gate Keepers. Teacher accounts and designations are managed in the Teachers table above.</p></div></div>
