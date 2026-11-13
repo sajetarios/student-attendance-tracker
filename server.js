@@ -785,7 +785,7 @@ app.delete('/api/teacher-substitutions/:substitutionId', authenticateSchoolClien
   }
 });
 
-app.post('/api/periods/:periodId/assignments', authenticateSchoolClient, requireSchoolAdmin, async (req, res) => {
+app.post('/api/periods/:periodId/assignments', authenticateSchoolClient, requireSchoolRoles('SCHOOL_ADMIN', 'DEPARTMENT_HEAD'), async (req, res) => {
   const { teacherUserId } = req.body || {};
   if (!isUuid(req.params.periodId) || !isUuid(teacherUserId)) {
     return res.status(400).json({ error: 'A valid schedule ID and teacher account ID are required.' });
@@ -794,7 +794,7 @@ app.post('/api/periods/:periodId/assignments', authenticateSchoolClient, require
   try {
     await client.query('BEGIN');
     const period = await client.query(
-      `SELECT period_id, period_name FROM class_periods
+      `SELECT period_id, period_name, department_id FROM class_periods
        WHERE school_id=$1 AND period_id=$2 AND active=TRUE FOR UPDATE`,
       [req.auth.schoolId, req.params.periodId]
     );
@@ -802,8 +802,12 @@ app.post('/api/periods/:periodId/assignments', authenticateSchoolClient, require
       await client.query('ROLLBACK');
       return res.status(404).json({ error: 'Active class schedule not found in this school.' });
     }
+    if (req.auth.role === 'DEPARTMENT_HEAD' && String(period.rows[0].department_id) !== String(req.auth.departmentId)) {
+      await client.query('ROLLBACK');
+      return res.status(403).json({ error: 'You can assign teachers only to schedules in your own department.' });
+    }
     const teacher = await client.query(
-      `SELECT user_id, username, display_name FROM school_users
+      `SELECT user_id, username, display_name, department_id FROM school_users
        WHERE school_id=$1 AND user_id=$2 AND role='TEACHER' AND active=TRUE
          AND 'SUBJECT_TEACHER'=ANY(teacher_designations)`,
       [req.auth.schoolId, teacherUserId]
@@ -811,6 +815,10 @@ app.post('/api/periods/:periodId/assignments', authenticateSchoolClient, require
     if (!teacher.rowCount) {
       await client.query('ROLLBACK');
       return res.status(404).json({ error: 'Active teacher account not found in this school.' });
+    }
+    if (String(teacher.rows[0].department_id) !== String(period.rows[0].department_id)) {
+      await client.query('ROLLBACK');
+      return res.status(403).json({ error: 'The teacher and class schedule must belong to the same department.' });
     }
     // A class schedule has one permanent owner. Use the temporary-substitute workflow
     // when the permanent teacher is away; never create a second permanent owner.
@@ -837,9 +845,11 @@ app.post('/api/periods/:periodId/assignments', authenticateSchoolClient, require
     );
     await client.query(
       `INSERT INTO audit_logs(school_id, actor_type, actor_user_id, action, entity_type, entity_id, details)
-       VALUES($1,'SCHOOL',$2,'SCHOOL_ADMIN_ASSIGN_TEACHER_PERIOD','teacher_period_assignment',$3,$4::jsonb)`,
-      [req.auth.schoolId, req.auth.userId, `${teacherUserId}:${req.params.periodId}`,
-       JSON.stringify({ teacherUsername: teacher.rows[0].username, periodName: period.rows[0].period_name })]
+       VALUES($1,'SCHOOL',$2,$3,'teacher_period_assignment',$4,$5::jsonb)`,
+      [req.auth.schoolId, req.auth.userId,
+       req.auth.role === 'DEPARTMENT_HEAD' ? 'DEPARTMENT_HEAD_ASSIGN_TEACHER_PERIOD' : 'SCHOOL_ADMIN_ASSIGN_TEACHER_PERIOD',
+       `${teacherUserId}:${req.params.periodId}`,
+       JSON.stringify({ teacherUsername: teacher.rows[0].username, periodName: period.rows[0].period_name, departmentId: period.rows[0].department_id })]
     );
     await client.query('COMMIT');
     return res.status(201).json({
@@ -857,13 +867,23 @@ app.post('/api/periods/:periodId/assignments', authenticateSchoolClient, require
   }
 });
 
-app.delete('/api/periods/:periodId/assignments/:teacherUserId', authenticateSchoolClient, requireSchoolAdmin, async (req, res) => {
+app.delete('/api/periods/:periodId/assignments/:teacherUserId', authenticateSchoolClient, requireSchoolRoles('SCHOOL_ADMIN', 'DEPARTMENT_HEAD'), async (req, res) => {
   if (!isUuid(req.params.periodId) || !isUuid(req.params.teacherUserId)) {
     return res.status(400).json({ error: 'Invalid schedule or teacher account ID.' });
   }
   const client = await pool.connect();
   try {
     await client.query('BEGIN');
+    if (req.auth.role === 'DEPARTMENT_HEAD') {
+      const scope = await client.query(
+        `SELECT department_id FROM class_periods WHERE school_id=$1 AND period_id=$2`,
+        [req.auth.schoolId, req.params.periodId]
+      );
+      if (!scope.rowCount || String(scope.rows[0].department_id) !== String(req.auth.departmentId)) {
+        await client.query('ROLLBACK');
+        return res.status(403).json({ error: 'You can change assignments only for schedules in your own department.' });
+      }
+    }
     const activeCover = await client.query(
       `SELECT 1 FROM teacher_period_substitutions
        WHERE school_id=$1 AND period_id=$2 AND original_teacher_user_id=$3
