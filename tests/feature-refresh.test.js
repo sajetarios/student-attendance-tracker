@@ -78,8 +78,8 @@ test('SF2 Excel copy downloads a non-empty workbook through a temporary download
 });
 
 test('Portal uses a calm accessible theme and cache-busted v0.8.3 assets', () => {
-  assert.match(html, /comfort-ui\.css\?v=0\.8\.2/);
-  assert.match(html, /portal\.js\?v=0\.8\.2/);
+  assert.match(html, /comfort-ui\.css\?v=0\.8\.3/);
+  assert.match(html, /portal\.js\?v=0\.8\.3/);
   assert.match(css, /--brand: #2463a5/);
   assert.match(css, /focus-visible/);
 });
