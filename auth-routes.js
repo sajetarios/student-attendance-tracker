@@ -52,7 +52,7 @@ function registerAuthRoutes(app, pool) {
       if (!schoolResult.rowCount) return res.status(401).json({ error: 'Invalid login credentials.' });
       const school = schoolResult.rows[0];
       const userResult = await pool.query(
-        `SELECT user_id, username, display_name, password_hash, role, teacher_designations, active,
+        `SELECT user_id, username, display_name, password_hash, role, teacher_designations, department_id, active,
                 failed_login_attempts, locked_until
          FROM school_users
          WHERE school_id=$1 AND lower(username)=lower($2)
@@ -87,6 +87,7 @@ function registerAuthRoutes(app, pool) {
           displayName: user.display_name,
           role: user.role,
           teacherDesignations: Array.isArray(user.teacher_designations) ? user.teacher_designations : [],
+          departmentId: user.department_id || null,
           schoolId: school.school_id,
           schoolCode: school.school_code,
           schoolName: school.school_name
@@ -223,10 +224,13 @@ function registerAuthRoutes(app, pool) {
                 su.user_id AS school_user_id, su.username AS school_username,
                 su.display_name AS school_display_name, su.role AS school_role,
                 su.teacher_designations AS school_teacher_designations,
+                su.department_id AS school_department_id,
+                sd.department_name AS school_department_name,
                 s.school_code, s.school_name
          FROM user_sessions us
          LEFT JOIN platform_users pu ON pu.user_id=us.platform_user_id AND pu.active=TRUE
          LEFT JOIN school_users su ON su.user_id=us.school_user_id AND su.active=TRUE
+         LEFT JOIN school_departments sd ON sd.school_id=su.school_id AND sd.department_id=su.department_id
          LEFT JOIN schools s ON s.school_id=us.school_id AND s.active=TRUE
          WHERE us.token_hash=$1 AND us.revoked_at IS NULL AND us.expires_at>NOW()
            AND ((us.principal_type='PLATFORM' AND pu.user_id IS NOT NULL)
@@ -272,6 +276,8 @@ function registerAuthRoutes(app, pool) {
         displayName: row.school_display_name,
         role: row.school_role,
         teacherDesignations: Array.isArray(row.school_teacher_designations) ? row.school_teacher_designations : [],
+        departmentId: row.school_department_id || null,
+        departmentName: row.school_department_name || null,
         schoolId: row.school_id,
         schoolCode: row.school_code,
         schoolName: row.school_name
