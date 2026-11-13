@@ -655,3 +655,80 @@ td { font-size:14px; }
     min-width: 680px;
   }
 }
+
+
+/* Fix teacher monitor's seven-column table. Older five/four-column width
+   rules must not collapse the final assignment and action columns. */
+#teachersView .teacher-monitor-scroll {
+  width: 100%;
+  max-width: 100%;
+  overflow-x: auto;
+  overflow-y: visible;
+  scrollbar-gutter: stable;
+}
+#teachersView table.teacher-monitor-table {
+  width: 100% !important;
+  min-width: 1180px !important;
+  table-layout: fixed !important;
+  border-collapse: separate;
+  border-spacing: 0;
+}
+#teachersView table.teacher-monitor-table th,
+#teachersView table.teacher-monitor-table td {
+  box-sizing: border-box;
+  min-width: 0 !important;
+  padding: 12px 12px !important;
+  vertical-align: middle;
+  line-height: 1.4;
+}
+#teachersView table.teacher-monitor-table th:nth-child(1),
+#teachersView table.teacher-monitor-table td:nth-child(1) { width: 21% !important; }
+#teachersView table.teacher-monitor-table th:nth-child(2),
+#teachersView table.teacher-monitor-table td:nth-child(2) { width: 14% !important; }
+#teachersView table.teacher-monitor-table th:nth-child(3),
+#teachersView table.teacher-monitor-table td:nth-child(3) { width: 10% !important; }
+#teachersView table.teacher-monitor-table th:nth-child(4),
+#teachersView table.teacher-monitor-table td:nth-child(4) { width: 10% !important; }
+#teachersView table.teacher-monitor-table th:nth-child(5),
+#teachersView table.teacher-monitor-table td:nth-child(5) { width: 10% !important; }
+#teachersView table.teacher-monitor-table th:nth-child(6),
+#teachersView table.teacher-monitor-table td:nth-child(6) { width: 22% !important; }
+#teachersView table.teacher-monitor-table th:nth-child(7),
+#teachersView table.teacher-monitor-table td:nth-child(7) { width: 13% !important; }
+#teachersView table.teacher-monitor-table th {
+  white-space: normal;
+  overflow-wrap: normal;
+  font-size: 13px;
+  line-height: 1.3;
+}
+#teachersView table.teacher-monitor-table td:nth-child(1),
+#teachersView table.teacher-monitor-table td:nth-child(2),
+#teachersView table.teacher-monitor-table td:nth-child(6),
+#teachersView table.teacher-monitor-table td:nth-child(7) {
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+#teachersView table.teacher-monitor-table td:nth-child(6) .teacher-assignment-summary {
+  align-items: flex-start;
+  gap: 6px;
+}
+#teachersView table.teacher-monitor-table td:nth-child(7) .action-row {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  flex-wrap: wrap;
+  min-width: 0;
+}
+#teachersView table.teacher-monitor-table .teacher-actions-trigger {
+  min-width: 96px;
+  max-width: 100%;
+  white-space: nowrap;
+}
+@media (max-width: 700px) {
+  #teachersView .teacher-monitor-scroll {
+    -webkit-overflow-scrolling: touch;
+  }
+  #teachersView table.teacher-monitor-table {
+    min-width: 1180px !important;
+  }
+}

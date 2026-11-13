@@ -1,10 +1,10 @@
-const CACHE = "school-attendance-shell-v17-compact-staff-ui";
+const CACHE = "school-attendance-shell-v18-teacher-table-columns";
 
 const SHELL = [
   "/portal-login.html",
-  "/portal.css?v=0.9.2",
+  "/portal.css?v=0.9.3",
   "/portal.css",
-  "/portal.js?v=0.9.2",
+  "/portal.js?v=0.9.3",
   "/academic-admin.css?v=1",
   "/academic-admin.js?v=1",
   "/password-visibility.css",
