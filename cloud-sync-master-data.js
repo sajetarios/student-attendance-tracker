@@ -138,10 +138,21 @@ async function buildMasterDataSnapshot(pool, schoolId) {
                                 WHERE sp.school_id=$1 AND sy.status <> 'CLOSED'`]
   ];
 
-  const values = await Promise.all(queries.map(async ([key, sql]) => {
-    const result = await pool.query(sql, [schoolId]);
-    return [key, key === 'school' ? result.rows[0] || null : result.rows];
-  }));
+  const client = await pool.connect();
+  let values;
+  try {
+    await client.query('BEGIN ISOLATION LEVEL REPEATABLE READ READ ONLY');
+    values = await Promise.all(queries.map(async ([key, sql]) => {
+      const result = await client.query(sql, [schoolId]);
+      return [key, key === 'school' ? result.rows[0] || null : result.rows];
+    }));
+    await client.query('COMMIT');
+  } catch (error) {
+    await client.query('ROLLBACK').catch(() => {});
+    throw error;
+  } finally {
+    client.release();
+  }
   const snapshot = Object.fromEntries(values);
   if (!snapshot.school) throw new Error('The active school record could not be loaded.');
   // jsonb_to_recordset uses database-style field names. Convert the public snapshot's
@@ -158,17 +169,6 @@ async function buildMasterDataSnapshot(pool, schoolId) {
   snapshot.generatedAt = new Date().toISOString();
   snapshot.counts = Object.fromEntries(COLLECTIONS.map(key => [key, snapshot[key].length]));
   return snapshot;
-}
-
-function makeRecordsetSql(table, columns, conflictSql) {
-  const definitions = columns.map(([key, type]) => `${key} ${type}`).join(', ');
-  const names = columns.map(([key]) => key).join(', ');
-  const select = columns.map(([key]) => `x.${key}`).join(', ');
-  return `INSERT INTO ${table} (${names})
-          SELECT $1, ${select}
-          FROM jsonb_to_recordset($2::jsonb) AS x(${definitions})
-          ${conflictSql}
-          RETURNING 1`;
 }
 
 async function importCollection(client, schoolId, rows, sql, name, allowNoop = false) {
@@ -302,6 +302,15 @@ function registerCloudMasterDataRoutes(app, pool, {
     try {
       await client.query('BEGIN');
       await client.query('SELECT pg_advisory_xact_lock(hashtext($1))', [req.auth.schoolId]);
+
+      const previousReceipt = await client.query(
+        'SELECT source_generated_at FROM cloud_sync_master_data_receipts WHERE school_id=$1 FOR UPDATE',
+        [req.auth.schoolId]
+      );
+      if (previousReceipt.rowCount &&
+          Date.parse(payload.generatedAt) < new Date(previousReceipt.rows[0].source_generated_at).getTime()) {
+        throw new Error('A newer master-data snapshot has already been received. Refresh the local source and push again.');
+      }
 
       const schoolConflict = await client.query(
         'SELECT school_id FROM schools WHERE lower(school_code)=lower($1) AND school_id<>$2 LIMIT 1',
