@@ -1,18 +1,18 @@
-const CACHE = "school-attendance-shell-v18-teacher-table-columns";
+const CACHE = "school-attendance-shell-v19-student-management-ux";
 
 const SHELL = [
   "/portal-login.html",
   "/portal.css?v=0.9.3",
   "/portal.css",
-  "/portal.js?v=0.9.3",
+  "/portal.js?v=0.9.5",
   "/academic-admin.css?v=1",
-  "/academic-admin.js?v=1",
+  "/academic-admin.js?v=2",
   "/password-visibility.css",
   "/password-visibility.js",
   "/portal-login.js",
   "/login-routing.js",
   "/responsive.css?v=0.8.3",
-  "/comfort-ui.css?v=0.8.3",
+  "/comfort-ui.css?v=0.9.5",
   "/styles.css",
   "/app.js",
   "/manifest.webmanifest",

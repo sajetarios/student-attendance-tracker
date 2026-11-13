@@ -136,7 +136,7 @@
 .staff-accounts-card,.adviser-assignments-card{margin-top:18px}
 </style>
 <link rel="stylesheet" href="/responsive.css?v=0.8.3">
-<link rel="stylesheet" href="/comfort-ui.css?v=0.8.3">
+<link rel="stylesheet" href="/comfort-ui.css?v=0.9.5">
 </head>
 <body class="portal-page">
   <div class="portal-layout">
@@ -168,7 +168,7 @@
         </div>
       </nav>
       <div class="sidebar-bottom">
-        <div class="sidebar-status"><span class="status-pulse"></span><span>Connected to local server</span></div>
+        <div class="sidebar-status"><span class="status-pulse"></span><span id="sidebarSyncStatus">Local server connected · Cloud sync inactive</span></div>
         
       </div>
     </aside>
@@ -179,7 +179,7 @@
           aria-label="Open navigation" aria-expanded="false" title="Open navigation">☰</button>
         <div class="breadcrumbs"><span>Workspace</span><b>/</b><strong id="breadcrumbCurrent">Dashboard</strong></div>
         <div class="topbar-right">
-          <span class="connection-chip"><i></i> Local server</span>
+          <span class="connection-chip" id="localServerIndicator"><i></i> Local server connected</span><span class="connection-chip sync-not-connected" id="cloudSyncIndicator"><i></i> Cloud sync: Not active</span>
           <div class="account-menu-wrap">
             <button class="account-trigger" id="accountMenuButton" aria-haspopup="true" aria-expanded="false">
               <span class="avatar" id="userAvatar">U</span><span class="account-name" id="userDisplay">User</span><span class="account-chevron">▾</span>
@@ -227,6 +227,10 @@
               <article class="stat-card"><div class="stat-top"><span>Late arrivals</span><span class="stat-icon amber">◷</span></div><strong id="statLate">—</strong><small>Arrivals after the grace period</small></article>
               <article class="stat-card"><div class="stat-top"><span>Class check-ins</span><span class="stat-icon violet">▤</span></div><strong id="statClasses">—</strong><small>Accepted subject time-ins today</small></article>
             </div>
+            <section class="dashboard-metric-guide surface-card" id="dashboardMetricGuide" aria-live="polite">
+              <div><span class="eyebrow muted">DASHBOARD GUIDE</span><h3>What these numbers mean</h3><p id="dashboardMetricGuideText">Figures are based on accepted attendance records saved by the local school server.</p></div>
+              <ul id="dashboardMetricGuideList"><li>Active students are current student records, not daily attendance.</li><li>Gate arrivals and class check-ins are separate attendance events.</li><li>Pending confirmation is not automatically an absence.</li></ul>
+            </section>
             <section id="adminGatekeeperMonitoringCard" class="surface-card section-card admin-monitoring-card" hidden>
               <div class="section-toolbar">
                 <div><h3>Gate Keeper monitoring</h3><p>See account status and the number of learner and teacher gate records handled today.</p></div>
@@ -388,12 +392,13 @@
           </section>
           <section id="studentsView" class="view-panel" hidden>
             <div class="surface-card section-card">
-              <div class="section-toolbar" id="studentManagementHeader"><div><h3>Student roster</h3><p id="studentScopeText">Students available to your account.</p></div><button class="primary-button" id="showStudentForm">＋ Add student</button></div>
+              <div class="section-toolbar" id="studentManagementHeader"><div><h3>Student master roster</h3><p id="studentScopeText">One school-wide student record shared by authorized users.</p></div><div class="student-toolbar-actions"><button class="outline-button" id="studentExportButton" type="button">↓ Export CSV</button><button class="outline-button" id="studentImportButton" type="button" hidden>⇧ Bulk import</button><button class="primary-button" id="showStudentForm">＋ Add student</button></div></div>
               <form id="studentForm" class="inline-form" hidden>
                 <div class="form-grid">
                   <div class="field-group"><label for="newStudentId">Student ID *</label><input id="newStudentId" required maxlength="80" placeholder="e.g. G8-001"></div>
                   <div class="field-group"><label for="newLrn">LRN</label><input id="newLrn" maxlength="32" placeholder="Learner Reference Number"></div>
                   <div class="field-group span-2"><label for="newFullName">Full name *</label><input id="newFullName" required maxlength="180" placeholder="Last name, First name, Middle name"></div>
+                  <div class="field-group"><label for="newSex">Sex *</label><select id="newSex" required><option value="">Select sex</option><option value="MALE">Male</option><option value="FEMALE">Female</option></select></div>
                   <div class="field-group"><label for="newGrade">Grade level *</label><select id="newGrade" required><option>Grade 7</option><option>Grade 8</option><option>Grade 9</option><option>Grade 10</option></select></div>
                   <div class="field-group"><label for="newSection">Section *</label><select id="newSection" required disabled><option value="">Select grade level first</option></select><small id="newSectionHint" class="field-hint">Choose a grade to load its available sections.</small></div>
                   <div class="field-group"><label for="newParentName">Parent / guardian</label><input id="newParentName" maxlength="180"></div>
@@ -402,6 +407,7 @@
                 </div>
                 <div class="form-actions"><button class="primary-button" type="submit">Save student</button><button class="outline-button" type="button" id="cancelStudentForm">Cancel</button><span id="studentFormFeedback" class="inline-feedback"></span></div>
               </form>
+              <div id="studentImportModal" class="student-edit-overlay" role="dialog" aria-modal="true" aria-labelledby="studentImportTitle" hidden><div class="student-edit-dialog"><div class="section-toolbar"><div><h3 id="studentImportTitle">Bulk import students</h3><p>Upload an Excel (.xlsx) or CSV file. Student ID matches the existing master record.</p></div><button type="button" class="outline-button" id="closeStudentImport">Close</button></div><p class="form-help">Required columns: Student ID, Full Name, Sex, Grade Level, Section. Optional: LRN, Parent Name, Parent Mobile. Existing IDs are updated by administrators and skipped by teachers.</p><div class="field-group"><label for="studentImportFile">Excel or CSV file</label><input id="studentImportFile" type="file" accept=".xlsx,.csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,text/csv"></div><div class="form-actions"><button class="primary-button" id="previewStudentImport" type="button">Preview import</button><a class="outline-button" href="/student-import-template.csv" download>Download template</a></div><div id="studentImportSummary" class="inline-feedback" role="status"></div><div class="table-scroll" id="studentImportPreviewWrap" hidden><table><thead><tr><th>Row</th><th>Student ID</th><th>Student</th><th>Action</th><th>Validation</th></tr></thead><tbody id="studentImportPreviewRows"></tbody></table></div><div class="form-actions"><button class="primary-button" id="commitStudentImport" type="button" disabled>Import valid rows</button><span id="studentImportFeedback" class="inline-feedback" role="status"></span></div></div></div>
               <div id="parentInviteModal" class="student-scan-setup-overlay" role="dialog" aria-modal="true" aria-labelledby="parentInviteTitle" hidden>
                 <div class="student-scan-setup-dialog">
                   <div class="scan-setup-icon" aria-hidden="true">👨‍👩‍👧</div>
@@ -485,9 +491,9 @@
               <div class="student-roster-tools">
                 <div><h3>Registered students</h3><p>QR previews remain tied to each student's existing private token. Editing details does not replace the QR code.</p></div>
                 <div class="student-filter-row"><label class="student-name-filter">Search by name or student ID <input id="studentRosterSearch" type="search" placeholder="Type a student name or ID…"></label><label>Filter by grade <select id="bulkQrGrade"><option value="ALL">All grades</option><option>Grade 7</option><option>Grade 8</option><option>Grade 9</option><option>Grade 10</option></select></label><label>Filter by section <select id="bulkQrSection"><option value="ALL">All sections</option></select></label></div>
-                <div class="student-bulk-actions"><label><input type="checkbox" id="selectAllStudents"> Select all visible students</label><span id="selectedStudentCount">0 selected</span><button class="primary-button" type="button" id="printBulkQr">Print selected ID cards</button><span id="bulkQrFeedback" class="inline-feedback" role="status"></span></div>
+                <div class="student-bulk-actions"><label><input type="checkbox" id="includeArchivedStudents"> Include inactive &amp; archived</label><label><input type="checkbox" id="selectAllStudents"> Select all visible students</label><span id="selectedStudentCount">0 selected</span><select id="studentBulkAction" aria-label="Batch action"><option value="">Choose batch action</option><option value="ASSIGN_SECTION">Assign grade &amp; section</option><option value="ACTIVATE" data-admin-only>Activate</option><option value="DEACTIVATE" data-admin-only>Deactivate</option><option value="ARCHIVE" data-admin-only>Archive</option></select><div id="studentBulkPlacement" class="student-bulk-placement" hidden><input id="studentBulkGrade" maxlength="40" aria-label="Target grade" placeholder="Target grade level"><input id="studentBulkSection" maxlength="100" placeholder="Target section"></div><button class="outline-button" type="button" id="applyStudentBulkAction">Apply action</button><button class="primary-button" type="button" id="printBulkQr">Print selected ID cards</button><span id="bulkQrFeedback" class="inline-feedback" role="status"></span></div>
               </div>
-              <div class="table-scroll"><table><thead><tr><th>Select</th><th>Photo</th><th>Student ID</th><th>Full name</th><th>Grade</th><th>Section</th><th>QR code</th><th>Actions</th><th>Student portal account</th></tr></thead><tbody id="studentRows"><tr><td colspan="9" class="empty-cell">Loading students…</td></tr></tbody></table></div>
+              <div class="table-scroll"><table><thead><tr><th>Select</th><th>Photo</th><th>Student ID</th><th>Full name</th><th>Sex</th><th>Status</th><th>Grade</th><th>Section</th><th>QR code</th><th>Actions</th><th>Student portal account</th></tr></thead><tbody id="studentRows"><tr><td colspan="11" class="empty-cell">Loading students…</td></tr></tbody></table></div>
               </div>
               <div id="studentAccountModal" class="student-edit-overlay" role="dialog" aria-modal="true" aria-labelledby="studentAccountTitle" hidden>
                 <form id="studentAccountForm" class="student-edit-dialog">
@@ -517,6 +523,7 @@
                     <div class="field-group"><label>Student ID</label><input id="editStudentIdDisplay" disabled></div>
                     <div class="field-group" id="editLrnGroup"><label for="editLrn">LRN</label><input id="editLrn" maxlength="30"></div>
                     <div class="field-group span-2"><label for="editFullName">Full name *</label><input id="editFullName" required maxlength="200"></div>
+                    <div class="field-group" id="editSexGroup"><label for="editSex">Sex *</label><select id="editSex"><option value="">Select sex</option><option value="MALE">Male</option><option value="FEMALE">Female</option></select></div>
                     <div class="field-group" id="editGradeGroup"><label for="editGrade">Grade *</label><select id="editGrade" required><option>Grade 7</option><option>Grade 8</option><option>Grade 9</option><option>Grade 10</option></select></div>
                     <div class="field-group" id="editSectionGroup"><label for="editSection">Section *</label><input id="editSection" required maxlength="100"></div>
                     <div class="field-group" id="editParentNameGroup"><label for="editParentName">Parent / guardian</label><input id="editParentName" maxlength="160"></div>
@@ -553,7 +560,7 @@
             <div class="surface-card section-card">
               <div class="section-toolbar">
                 <div><h3 id="teacherMonitorTitle">Teacher accounts</h3><p id="teacherMonitorDescription">Manage teachers and assign them to this school's class schedules.</p></div>
-                <button class="primary-button" id="showTeacherForm">＋ Create account</button>
+                <div class="student-toolbar-actions"><button class="outline-button" id="teacherExportButton" type="button">↓ Export teachers CSV</button><button class="primary-button" id="showTeacherForm">＋ Create account</button></div>
               </div>
               <form id="teacherForm" class="inline-form" hidden>
                 <div class="form-grid">
@@ -579,6 +586,22 @@
                   <tbody id="teacherRows"><tr><td colspan="7" class="empty-cell">Loading teachers…</td></tr></tbody>
                 </table>
               </div>
+            </div>
+            <div class="surface-card section-card bulk-staff-department-card" id="bulkStaffDepartmentCard" hidden>
+              <div class="section-toolbar"><div><h3>Batch assign staff departments</h3><p>Select multiple Teachers and Department Heads, then assign them to one department. Teachers with schedules in another department must be reassigned first.</p></div></div>
+              <form id="bulkStaffDepartmentForm" class="inline-form">
+                <div class="field-group"><label for="bulkStaffDepartmentSelect">Target department *</label><select id="bulkStaffDepartmentSelect" required><option value="">Select department</option></select></div>
+                <div class="field-group"><label><input type="checkbox" id="selectAllBulkStaff"> Select all displayed Teachers and Department Heads</label><div id="bulkStaffDepartmentUsers" class="bulk-assignment-schedule-list"><p class="muted-inline">Loading staff accounts…</p></div></div>
+                <div class="form-actions"><button class="primary-button" type="submit" id="applyBulkStaffDepartment">Assign selected staff</button><span id="bulkStaffDepartmentFeedback" class="inline-feedback" role="status"></span></div>
+              </form>
+            </div>
+            <div class="surface-card section-card bulk-teacher-assignment-card" id="bulkTeacherAssignmentCard">
+              <div class="section-toolbar"><div><h3>Batch assign teacher to schedules</h3><p>Select one teacher and several unassigned schedules. Department Heads can work only within their assigned department.</p></div></div>
+              <form id="bulkTeacherAssignmentForm" class="inline-form">
+                <div class="field-group"><label for="bulkAssignmentTeacher">Teacher *</label><select id="bulkAssignmentTeacher" required><option value="">Select an active Subject Teacher</option></select></div>
+                <div class="field-group"><label>Available class schedules *</label><div id="bulkAssignmentSchedules" class="bulk-assignment-schedule-list"><p class="muted-inline">Select a teacher to view available schedules.</p></div></div>
+                <div class="form-actions"><button class="primary-button" type="submit" id="applyBulkTeacherAssignment">Assign selected schedules</button><span id="bulkTeacherAssignmentFeedback" class="inline-feedback" role="status"></span></div>
+              </form>
             </div>
             <div class="scope-note teacher-management-note"><span>✓</span><p>Assignments are limited to this school. On Leave temporarily disables login while preserving class assignments and attendance history. Teachers can be returned manually or automatically on the expected return date.</p></div>
             <div class="surface-card section-card staff-accounts-card">
@@ -661,7 +684,7 @@
   <div id="toast" class="toast" role="status" aria-live="polite"></div>
   <script src="/password-visibility.js" defer></script>
   <script src="/vendor/html5-qrcode.min.js" defer></script>
-  <script src="/portal.js?v=0.9.3" defer></script>
-  <script src="/academic-admin.js?v=1" defer></script>
+  <script src="/portal.js?v=0.9.5" defer></script>
+  <script src="/academic-admin.js?v=2" defer></script>
 </body>
 </html>

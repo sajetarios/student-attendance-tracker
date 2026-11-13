@@ -9,10 +9,13 @@ const portal = fs.readFileSync(path.join(root, 'public', 'portal.js'), 'utf8');
 const html = fs.readFileSync(path.join(root, 'public', 'portal.html'), 'utf8');
 const server = fs.readFileSync(path.join(root, 'server.js'), 'utf8');
 
-test('Department Head cannot navigate to or load the raw student roster', () => {
-  assert.match(portal, /departmentHead && view === 'students'\) view = 'dashboard'/);
-  assert.match(portal, /\$\('studentsNav'\)\.hidden = departmentHead \|\|/);
-  assert.match(portal, /isDepartmentHead \? Promise\.resolve\(\{ students: \[\] \}\) : api\('\/api\/students'\)/);
+test('Department Head can view the shared student directory but cannot edit student master records', () => {
+  assert.ok(portal.includes("if (role === 'DEPARTMENT_HEAD') return ['dashboard', 'students', 'teachers', 'schedules', 'sf2']"));
+  assert.ok(portal.includes("api('/api/students' +"));
+  assert.ok(portal.includes('Read-only school-wide learner master roster'));
+  assert.ok(server.includes("requireSchoolPermission('students.view.all')"));
+  assert.ok(server.includes("app.post('/api/students', authenticateSchoolClient, requireSchoolAdminOrTeacher"));
+  assert.ok(server.includes("app.patch('/api/students/:studentId'"));
 });
 
 test('Department Head cannot see student QR scanning controls', () => {

@@ -8,7 +8,7 @@ const { REQUIRED_MIGRATIONS, stripTransactionWrappers } = require('../scripts/mi
 
 const migrationDir = path.join(__dirname, '..', 'migrations');
 
-test('all thirteen database migrations are present and in order', () => {
+test('all fourteen database migrations are present and in order', () => {
   const files = fs.readdirSync(migrationDir).filter(name => /^\d{3}_[a-z0-9_]+\.sql$/i.test(name)).sort();
   assert.deepEqual(files, REQUIRED_MIGRATIONS);
 });
@@ -57,6 +57,13 @@ test('teacher gate migration adds private teacher QR/photo fields and verified g
     assert.match(sql, new RegExp(`\\b${name}\\b`, 'i'), `missing ${name}`);
   }
   assert.match(sql, /UNIQUE INDEX IF NOT EXISTS teacher_gate_one_event_per_type_day_uk/i);
+});
+
+test('student master migration adds normalized sex and archive metadata', () => {
+  const sql = fs.readFileSync(path.join(migrationDir, '014_student_master_sex_and_archive.sql'), 'utf8');
+  assert.match(sql, /ADD COLUMN IF NOT EXISTS sex VARCHAR\(10\)/i);
+  assert.match(sql, /sex IN \('MALE','FEMALE'\)/i);
+  assert.match(sql, /ADD COLUMN IF NOT EXISTS archived_at TIMESTAMPTZ/i);
 });
 
 test('department migration backfills existing users and schedules to a safe default department', () => {
