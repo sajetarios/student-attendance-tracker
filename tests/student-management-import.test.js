@@ -31,5 +31,6 @@ test('student importer reads CSV files and preserves row numbers', async () => {
 });
 
 test('student importer rejects unsupported file types and oversized payloads', async () => {
-  await assert.rejects(() => readImportRows('students.pdf', Buffer.from('x').toString('base64')), /Use an .xlsx or .csv file/);\n  await assert.rejects(() => readImportRows('students.csv', 'A'.repeat(9_000_001)), /smaller than 6 MB/);
+  await assert.rejects(() => readImportRows('students.pdf', Buffer.from('x').toString('base64')), /Use an .xlsx or .csv file/);
+  await assert.rejects(() => readImportRows('students.csv', 'A'.repeat(9_000_001)), /smaller than 6 MB/);
 });
