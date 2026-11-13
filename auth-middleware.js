@@ -110,6 +110,41 @@ function createAuthMiddleware(pool) {
     }
   }
 
+  async function authenticateCloudSync(req, res, next) {
+    const token = bearerToken(req);
+    if (!token) return res.status(401).json({ error: 'Cloud sync credential required.' });
+    try {
+      const result = await pool.query(
+        'SELECT c.credential_id, c.school_id, s.school_code, s.school_name ' +
+        'FROM cloud_sync_credentials c ' +
+        'JOIN schools s ON s.school_id=c.school_id AND s.active=TRUE ' +
+        'WHERE c.token_hash=$1 AND c.active=TRUE AND c.revoked_at IS NULL ' +
+        'LIMIT 1',
+        [hashToken(token)]
+      );
+      if (!result.rowCount) {
+        return res.status(401).json({ error: 'Invalid or revoked cloud sync credential.' });
+      }
+      const row = result.rows[0];
+      await pool.query(
+        'UPDATE cloud_sync_credentials SET last_used_at=NOW() WHERE credential_id=$1',
+        [row.credential_id]
+      );
+      req.auth = {
+        type: 'CLOUD_SYNC',
+        principalType: 'CLOUD_SYNC',
+        schoolId: row.school_id,
+        credentialId: row.credential_id,
+        schoolCode: row.school_code,
+        schoolName: row.school_name
+      };
+      return next();
+    } catch (err) {
+      console.error('Cloud sync authentication failed:', err.message);
+      return res.status(500).json({ error: 'Cloud sync authentication service unavailable.' });
+    }
+  }
+
   function requireSchoolRoles(...roles) {
     return (req, res, next) => {
       if (!req.auth || req.auth.type !== 'SCHOOL_USER') {
@@ -156,7 +191,7 @@ function createAuthMiddleware(pool) {
     return next();
   }
 
-  return { authenticateSchoolClient, requireSchoolRoles, requireSchoolPermission, requireTeacherDesignations, requireSchoolClient };
+  return { authenticateSchoolClient, authenticateCloudSync, requireSchoolRoles, requireSchoolPermission, requireTeacherDesignations, requireSchoolClient };
 }
 
 module.exports = { createAuthMiddleware, bearerToken };
