@@ -1,3 +1,4 @@
+const permissions = read('role-permissions.js');
 'use strict';
 
 const test = require('node:test');
@@ -36,16 +37,13 @@ test('Subject Teachers can create their own section schedule and it is assigned 
   assert.match(server, /INSERT INTO teacher_period_assignments\(school_id, teacher_user_id, period_id\)/);
 });
 
-test('School Administrator dashboard includes Gate Keeper monitoring and teacher gate attendance tables', () => {
+test('School Administrator manages accounts and monitors Gate Keeper activity but cannot scan or submit attendance', () => {
   assert.match(html, /id="adminGatekeeperMonitoringCard"/);
   assert.match(html, /id="gateKeeperMonitorRows"/);
-  assert.match(html, /id="teacherGateAttendanceCard"/);
-  assert.match(html, /id="teacherGateAttendanceRows"/);
-  assert.match(html, /id="teacherGateDate"/);
-  assert.match(js, /renderGateKeeperMonitoring/);
-  assert.match(js, /renderTeacherGateAttendance/);
+  assert.match(js, /const mayScan = gateKeeper \|\| \(teacher && \(subjectTeacher \|\| classAdviser\)\)/);
+  assert.match(server, /role === 'SCHOOL_ADMIN'[\s\S]*?accounts do not record attendance/);
   assert.match(server, /app\.get\('\/api\/admin\/gatekeeper-monitoring', authenticateSchoolClient, requireSchoolAdmin/);
-  assert.match(server, /app\.get\('\/api\/admin\/teacher-gate-attendance', authenticateSchoolClient, requireSchoolAdminOrDepartmentHead/);
+  assert.doesNotMatch(permissions, /SCHOOL_ADMIN:[\s\S]*?attendance\.gate\.record/);
 });
 
 test('Gate Keeper scanner explicitly supports both learner and teacher attendance', () => {
@@ -91,4 +89,22 @@ test('self-service and parent workspaces share the calm theme and Gate Keeper ha
   assert.match(css, /body\.login-page/);
   assert.match(css, /body\.attendance-desk/);
   assert.match(html, /id=\"gateScanType\"/);
+});
+
+
+test('Teacher scanner supports designated subject and advisory attendance with a separate attendance history page', () => {
+  assert.match(html, /id="classAttendanceNav"/);
+  assert.match(html, /id="classAttendanceView"/);
+  assert.match(html, /My advisory attendance/);
+  assert.match(html, /Attendance of other sections I handle/);
+  assert.match(js, /const mayScan = gateKeeper \|\| \(teacher && \(subjectTeacher \|\| classAdviser\)\)/);
+  assert.match(js, /role === 'TEACHER' \? activeScanScope/);
+  assert.match(server, /app\.get\('\/api\/teacher\/class-attendance', authenticateSchoolClient, requireSchoolRoles\('TEACHER'\)/);
+  assert.match(server, /attendance_scope IN \('CLASS','ADVISORY'\)/);
+});
+
+test('School staff account directory does not duplicate teacher accounts', () => {
+  assert.match(server, /WHERE school_id=\$1 AND role IN \('DEPARTMENT_HEAD', 'GATE_KEEPER'\)/);
+  assert.match(html, /Only Department Heads and Gate Keepers appear here/);
+  assert.match(js, /filter\(account => \['DEPARTMENT_HEAD', 'GATE_KEEPER'\]\.includes\(account\.role\)\)/);
 });

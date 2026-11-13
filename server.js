@@ -155,9 +155,8 @@ app.get('/api/school-users', authenticateSchoolClient, requireSchoolAdmin, async
               teacher_designations AS "teacherDesignations", active,
               created_at AS "createdAt", last_login_at AS "lastLoginAt"
        FROM school_users
-       WHERE school_id=$1 AND role <> 'PARENT'
-       ORDER BY CASE role WHEN 'SCHOOL_ADMIN' THEN 1 WHEN 'DEPARTMENT_HEAD' THEN 2
-                          WHEN 'TEACHER' THEN 3 WHEN 'GATE_KEEPER' THEN 4 ELSE 5 END,
+       WHERE school_id=$1 AND role IN ('DEPARTMENT_HEAD', 'GATE_KEEPER')
+       ORDER BY CASE role WHEN 'DEPARTMENT_HEAD' THEN 1 WHEN 'GATE_KEEPER' THEN 2 ELSE 3 END,
                 display_name, username`,
       [req.auth.schoolId]
     );
@@ -1744,14 +1743,96 @@ app.post('/api/periods', authenticateSchoolClient, requireSchoolAdminOrTeacher, 
   }
 });
 
-// School-scoped idempotent event ingestion. Teacher sessions can submit only assigned class periods;
-// school devices can submit gate/school events only; school admins can submit either scope.
+// Teacher attendance history is limited to the signed-in teacher's adviser sections
+// and permanent or active substitute subject periods. Gate records are never included.
+app.get('/api/teacher/class-attendance', authenticateSchoolClient, requireSchoolRoles('TEACHER'), async (req, res) => {
+  const designations = Array.isArray(req.auth.teacherDesignations) ? req.auth.teacherDesignations : [];
+  const hasAdviser = designations.includes('CLASS_ADVISER');
+  const hasSubject = designations.includes('SUBJECT_TEACHER');
+  if (!hasAdviser && !hasSubject) {
+    return res.status(403).json({ error: 'This account has no class-attendance designation.' });
+  }
+
+  const view = String(req.query.view || 'ALL').toUpperCase();
+  if (!['ALL', 'ADVISORY', 'SUBJECT'].includes(view)) {
+    return res.status(400).json({ error: 'Select All, Advisory, or Subject attendance.' });
+  }
+  if (view === 'ADVISORY' && !hasAdviser) {
+    return res.status(403).json({ error: 'Only the assigned Class Adviser can view advisory attendance.' });
+  }
+  if (view === 'SUBJECT' && !hasSubject) {
+    return res.status(403).json({ error: 'Only a Subject Teacher can view subject-class attendance.' });
+  }
+
+  const today = new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'Asia/Manila', year: 'numeric', month: '2-digit', day: '2-digit'
+  }).format(new Date());
+  const from = typeof req.query.from === 'string' ? req.query.from : today;
+  const to = typeof req.query.to === 'string' ? req.query.to : today;
+  if (!isValidSchoolDate(from) || !isValidSchoolDate(to) || from > to) {
+    return res.status(400).json({ error: 'Provide a valid date range.' });
+  }
+
+  const includeAdvisory = hasAdviser && view !== 'SUBJECT';
+  const includeSubject = hasSubject && view !== 'ADVISORY';
+  try {
+    const result = await pool.query(
+      `SELECT e.event_id AS "eventId", e.student_id AS "studentId",
+              s.full_name AS "fullName", s.grade_level AS "gradeLevel", s.section,
+              e.school_date::text AS "schoolDate", e.occurred_at_device AS "occurredAt",
+              e.attendance_scope AS scope, e.event_type AS "eventType", e.late,
+              e.sync_status AS "syncStatus",
+              p.period_name AS "periodName", p.subject_name AS "subjectName"
+       FROM attendance_events e
+       JOIN students s ON s.school_id=e.school_id AND s.student_id=e.student_id
+       LEFT JOIN class_periods p ON p.school_id=e.school_id AND p.period_id=e.period_id
+       WHERE e.school_id=$1 AND e.sync_status='ACCEPTED'
+         AND e.attendance_scope IN ('CLASS','ADVISORY')
+         AND e.school_date BETWEEN $2::date AND $3::date
+         AND (
+           ($4::boolean AND e.attendance_scope='ADVISORY'
+             AND EXISTS (
+               SELECT 1 FROM class_adviser_assignments ca
+               WHERE ca.school_id=e.school_id AND ca.adviser_user_id=$5
+                 AND ca.grade_level=s.grade_level AND ca.section=s.section
+             ))
+           OR
+           ($6::boolean AND e.attendance_scope='CLASS'
+             AND (
+               EXISTS (
+                 SELECT 1 FROM teacher_period_assignments a
+                 WHERE a.school_id=e.school_id AND a.period_id=e.period_id AND a.teacher_user_id=$5
+               )
+               OR EXISTS (
+                 SELECT 1 FROM teacher_period_substitutions ts
+                 WHERE ts.school_id=e.school_id AND ts.period_id=e.period_id
+                   AND ts.substitute_teacher_user_id=$5 AND ts.status='ACTIVE'
+                   AND e.school_date BETWEEN ts.start_date AND ts.end_date
+               )
+             ))
+         )
+       ORDER BY e.school_date DESC, e.occurred_at_device DESC
+       LIMIT 1500`,
+      [req.auth.schoolId, from, to, includeAdvisory, req.auth.userId, includeSubject]
+    );
+    return res.json({ records: result.rows, count: result.rowCount, view, from, to });
+  } catch (err) {
+    console.error('Teacher class attendance history failed:', err.message);
+    return res.status(500).json({ error: 'Could not load your assigned class attendance records.' });
+  }
+});
+
+// School-scoped idempotent event ingestion. Gate Keepers/devices submit school-gate events;
+// teachers submit only designated subject or advisory attendance. School Administrators do not scan.
 app.post('/api/sync/events', authenticateSchoolClient, requireSchoolClient, async (req, res) => {
   if (req.auth.type === 'SCHOOL_USER' && req.auth.role === 'PARENT') {
     return res.status(403).json({ error: 'Parent accounts cannot submit or modify attendance events.' });
   }
   if (req.auth.type === 'SCHOOL_USER' && req.auth.role === 'DEPARTMENT_HEAD') {
     return res.status(403).json({ error: 'Department Head accounts are read-only and cannot submit attendance punches.' });
+  }
+  if (req.auth.type === 'SCHOOL_USER' && req.auth.role === 'SCHOOL_ADMIN') {
+    return res.status(403).json({ error: 'School Administrator accounts do not record attendance. Use a Gate Keeper account for school-gate attendance or a designated teacher account for class attendance.' });
   }
   const events = req.body && req.body.events;
   if (!Array.isArray(events) || events.length < 1 || events.length > 500) {

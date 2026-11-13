@@ -125,7 +125,9 @@
     if (role === 'DEPARTMENT_HEAD') return ['dashboard', 'teachers', 'schedules', 'sf2'];
     if (role === 'TEACHER') {
       const views = ['dashboard'];
-      if (teacherHas('SUBJECT_TEACHER') || teacherHas('CLASS_ADVISER')) views.push('students');
+      if (teacherHas('SUBJECT_TEACHER') || teacherHas('CLASS_ADVISER')) {
+        views.push('students', 'classAttendance');
+      }
       if (teacherHas('SUBJECT_TEACHER')) views.push('schedules');
       if (teacherHas('SUBJECT_TEACHER') || teacherHas('CLASS_ADVISER')) views.push('sf2');
       return views;
@@ -150,7 +152,7 @@
     if (!allowedViews.includes(view)) view = allowedViews.includes('dashboard') ? 'dashboard' : (allowedViews[0] || 'dashboard');
     $('platformWorkspace').hidden = true;
     $('schoolWorkspace').hidden = false;
-    ['dashboard', 'students', 'schedules', 'teachers', 'sf2', 'cloudSync'].forEach(name => {
+    ['dashboard', 'students', 'schedules', 'teachers', 'sf2', 'classAttendance', 'cloudSync'].forEach(name => {
       const panel = $(`${name}View`);
       if (panel) panel.hidden = name !== view;
     });
@@ -178,7 +180,8 @@
         dashboard: [dashboardName, classAdviser && subjectTeacher ? 'Your assigned subjects and advisory section at a glance.' : classAdviser ? 'Monitor your assigned section and official SF2 responsibilities.' : 'Monitor your assigned subject classes and record period attendance.'],
         students: [classAdviser && !subjectTeacher ? 'My advisory section' : 'My assigned learners', 'View only the learners in your assigned sections and subject schedules.'],
         schedules: ['My subject schedules', 'View only your permanent and active substitute class assignments.'],
-        sf2: [classAdviser && subjectTeacher ? 'My SF2 reports' : classAdviser ? 'Official section SF2' : 'Personal SF2 copy', classAdviser ? 'Generate the official consolidated section SF2 only for sections assigned to you as Class Adviser.' : 'Generate a personal attendance copy from your own subject-period records.']
+        sf2: [classAdviser && subjectTeacher ? 'My SF2 reports' : classAdviser ? 'Official section SF2' : 'Personal SF2 copy', classAdviser ? 'Generate the official consolidated section SF2 only for sections assigned to you as Class Adviser.' : 'Generate a personal attendance copy from your own subject-period records.'],
+        classAttendance: ['Class attendance', classAdviser && subjectTeacher ? 'Review your advisory section and the other sections covered by your assigned subject schedules.' : classAdviser ? 'Review attendance for your assigned advisory section.' : 'Review attendance in the sections covered by your assigned subject schedules.']
       };
     } else {
       titles = {
@@ -194,6 +197,14 @@
     $('viewTitle').textContent = title[0];
     $('viewDescription').textContent = title[1];
     $('breadcrumbCurrent').textContent = title[0];
+    if (view === 'classAttendance' && role === 'TEACHER') {
+      loadTeacherClassAttendance().catch(error => {
+        if ($('teacherAttendanceFeedback')) {
+          $('teacherAttendanceFeedback').textContent = error.message;
+          $('teacherAttendanceFeedback').className = 'inline-feedback error';
+        }
+      });
+    }
     if ($('teacherMonitorTitle')) $('teacherMonitorTitle').textContent = departmentHead ? 'Teacher status and class coverage' : 'Teacher accounts';
     if ($('teacherMonitorDescription')) $('teacherMonitorDescription').textContent = departmentHead
       ? 'Review teacher status, assigned grade levels and sections, leave, schedules, and temporary substitute coverage.'
@@ -219,8 +230,13 @@
     const teacher = role === 'TEACHER';
     const subjectTeacher = teacherHas('SUBJECT_TEACHER');
     const classAdviser = teacherHas('CLASS_ADVISER');
-    const mayScan = admin || gateKeeper || (teacher && subjectTeacher);
+    const mayScan = gateKeeper || (teacher && (subjectTeacher || classAdviser));
 
+    if ($('classAttendanceNav')) {
+      $('classAttendanceNav').hidden = !(teacher && (subjectTeacher || classAdviser));
+      $('classAttendanceNav').querySelector('.nav-label').textContent =
+        classAdviser && subjectTeacher ? 'Class attendance' : classAdviser ? 'My advisory attendance' : 'My class attendance';
+    }
     if ($('studentScannerToggle')) $('studentScannerToggle').hidden = !mayScan;
     if ($('studentScannerCard')) $('studentScannerCard').hidden = !mayScan;
     const mayAddStudent = admin || (teacher && classAdviser);
@@ -235,8 +251,18 @@
     if (gateKeeper) {
       if ($('gateScannerHeading')) $('gateScannerHeading').textContent = 'Learner and teacher gate attendance';
       if ($('gateScannerDescription')) $('gateScannerDescription').textContent = 'Scan a learner QR card or teacher QR badge. The system detects the person, displays the registered photo, and records gate time-in or time-out after verification.';
+    } else if (teacher && mayScan) {
+      if ($('gateScannerHeading')) $('gateScannerHeading').textContent =
+        classAdviser && subjectTeacher ? 'Subject and advisory attendance scanner' : classAdviser ? 'My advisory attendance scanner' : 'Subject-class attendance scanner';
+      if ($('gateScannerDescription')) $('gateScannerDescription').textContent =
+        classAdviser && subjectTeacher ? 'Scan learner QR cards for your assigned subject periods or your own advisory section.' : classAdviser ? 'Scan learner QR cards for your assigned advisory section and record homeroom attendance.' : 'Scan learner QR cards for the subject periods assigned to your teacher account.';
     }
-    if (mayAddStudent && !mayScan) {
+    if (admin && !mayScan) {
+      const title = $('dashboardScanCta')?.querySelector('h2');
+      const copy = $('dashboardScanCta')?.querySelector('p');
+      if (title) title.textContent = 'Manage school records';
+      if (copy) copy.textContent = 'Register learners and manage school accounts. Gate attendance is recorded by Gate Keepers.';
+    } else if (mayAddStudent && !mayScan) {
       const title = $('dashboardScanCta')?.querySelector('h2');
       const copy = $('dashboardScanCta')?.querySelector('p');
       if (title) title.textContent = 'Manage your advisory section';
@@ -244,8 +270,8 @@
     } else if ($('dashboardScanCta')) {
       const title = $('dashboardScanCta').querySelector('h2');
       const copy = $('dashboardScanCta').querySelector('p');
-      if (title) title.textContent = gateKeeper ? 'Record learner or teacher gate attendance' : 'Ready to scan student IDs?';
-      if (copy) copy.textContent = gateKeeper ? 'Scan a learner QR card or teacher badge, compare the photo, and record time-in or time-out.' : 'Open the QR scanner to identify a learner and record attendance.';
+      if (title) title.textContent = gateKeeper ? 'Record learner or teacher gate attendance' : teacher && classAdviser && subjectTeacher ? 'Ready for subject or advisory attendance?' : classAdviser ? 'Ready for advisory attendance?' : 'Ready for subject-class attendance?';
+      if (copy) copy.textContent = gateKeeper ? 'Scan a learner QR card or teacher badge, compare the photo, and record gate time-in or time-out.' : teacher ? 'Open the QR scanner and choose an assigned subject class or advisory section.' : 'Open the QR scanner to identify a learner and record attendance.';
     }
 
     if ($('dashboardNav')) $('dashboardNav').hidden = gateKeeper;
@@ -333,7 +359,11 @@
       if ($('scanSetupPeriodWrap')) $('scanSetupPeriodWrap').hidden = true;
       if ($('scanSetupTitle')) $('scanSetupTitle').textContent = 'Gate attendance scanner';
       const desc = document.querySelector('.scan-setup-description');
-      if (desc) desc.textContent = 'Scan the learner QR code, verify the registered photograph, then record gate time-in or time-out.';
+      if (desc) desc.textContent = 'Scan a learner QR card or teacher badge, verify the registered photo, then record gate time-in or time-out.';
+    } else if (teacher) {
+      if ($('scanSetupTitle')) $('scanSetupTitle').textContent = 'Prepare class attendance scanner';
+      const desc = document.querySelector('.scan-setup-description');
+      if (desc) desc.textContent = 'Choose an assigned subject class or advisory section. Only learners within your authorized assignments can be recorded.';
     }
   }
 
@@ -792,7 +822,11 @@
       showToast('Confirm that the registered photo matches the learner before recording attendance.', true);
       return;
     }
-    const scope = user.role === 'TEACHER' ? activeScanScope : (user.role === 'GATE_KEEPER' ? 'SCHOOL' : activeScanScope);
+    if (!['TEACHER', 'GATE_KEEPER'].includes(user.role)) {
+      showToast('Only a Gate Keeper or a designated teacher may record attendance from this scanner.', true);
+      return;
+    }
+    const scope = user.role === 'TEACHER' ? activeScanScope : 'SCHOOL';
     const periodId = scope === 'CLASS' ? activeScanPeriodId : null;
     if (scope === 'CLASS' && !periodId) {
       showToast('Select the assigned class or subject before scanning.', true);
@@ -1538,7 +1572,7 @@
     const scopeSelect = $('scanSetupScope');
     const hasSubjectRole = role === 'TEACHER' && teacherHas('SUBJECT_TEACHER');
     const hasAdviserRole = role === 'TEACHER' && teacherHas('CLASS_ADVISER');
-    scopeSelect.querySelector('option[value="SCHOOL"]').hidden = role === 'TEACHER';
+    scopeSelect.querySelector('option[value="SCHOOL"]').hidden = role !== 'GATE_KEEPER';
     scopeSelect.querySelector('option[value="CLASS"]').hidden = role === 'TEACHER' && !hasSubjectRole;
     const advisoryOption = scopeSelect.querySelector('option[value="ADVISORY"]');
     if (advisoryOption) advisoryOption.hidden = !hasAdviserRole;
@@ -1559,7 +1593,7 @@
     }
     if (role === 'SCHOOL_ADMIN') {
       const [staffData, adviserData] = await Promise.all([api('/api/school-users'), api('/api/class-adviser-assignments')]);
-      schoolUsers = staffData.users || [];
+      schoolUsers = (staffData.users || []).filter(account => ['DEPARTMENT_HEAD', 'GATE_KEEPER'].includes(account.role));
       adviserAssignments = adviserData.assignments || [];
       renderStaffUsers();
       renderAdviserAssignments();
@@ -1583,6 +1617,74 @@
     }
     if (role === 'TEACHER' && (user.teacherDesignations || []).includes('CLASS_ADVISER')) {
       renderAdviserAssignments();
+    }
+  }
+
+  function renderTeacherClassAttendance(records) {
+    const host = $('teacherAttendanceRows');
+    if (!host) return;
+    $('teacherAttendanceCount').textContent = String(records.length);
+    host.innerHTML = records.length ? records.map(item => {
+      const time = item.occurredAt
+        ? new Date(item.occurredAt).toLocaleTimeString('en-PH', { timeZone: 'Asia/Manila', hour: 'numeric', minute: '2-digit' })
+        : '—';
+      const date = formatSchoolDate(item.schoolDate);
+      const className = item.scope === 'ADVISORY'
+        ? 'Advisory / homeroom'
+        : [item.periodName, item.subjectName].filter(Boolean).join(' · ') || 'Assigned subject class';
+      const eventLabel = item.eventType === 'TIME_IN' ? 'Time-in' : 'Time-out';
+      return `<tr>
+        <td>${esc(date)}</td><td>${esc(time)}</td>
+        <td><strong>${esc(item.fullName)}</strong><small class="table-subtext">${esc(item.studentId)}</small></td>
+        <td>${esc(item.gradeLevel)} · ${esc(item.section)}</td>
+        <td>${esc(className)}</td>
+        <td><span class="status-tag ${item.eventType === 'TIME_IN' ? '' : 'neutral'}">${eventLabel}</span></td>
+        <td>${item.late ? '<span class="status-tag late">Late</span>' : '<span class="status-tag neutral">On time / not late</span>'}</td>
+      </tr>`;
+    }).join('') : '<tr><td colspan="7" class="empty-cell">No class attendance records match this date range and your assignments.</td></tr>';
+  }
+
+  async function loadTeacherClassAttendance() {
+    if (user?.role !== 'TEACHER') return;
+    const fromInput = $('teacherAttendanceFrom');
+    const toInput = $('teacherAttendanceTo');
+    const select = $('teacherAttendanceViewSelect');
+    if (!fromInput || !toInput || !select) return;
+    const today = schoolDateManila();
+    if (!toInput.value) toInput.value = today;
+    if (!fromInput.value) {
+      const start = new Date(`${today}T00:00:00+08:00`);
+      start.setDate(start.getDate() - 6);
+      fromInput.value = schoolDateManila(start);
+    }
+    const from = fromInput.value;
+    const to = toInput.value;
+    if (!from || !to || from > to) {
+      $('teacherAttendanceFeedback').textContent = 'Choose a valid date range. The start date must not be after the end date.';
+      $('teacherAttendanceFeedback').className = 'inline-feedback error';
+      return;
+    }
+    const view = select.value || 'ALL';
+    $('teacherAttendanceFeedback').textContent = 'Loading assigned class attendance…';
+    $('teacherAttendanceFeedback').className = 'inline-feedback';
+    $('teacherAttendanceApply').disabled = true;
+    $('teacherAttendanceRefresh').disabled = true;
+    try {
+      const query = new URLSearchParams({ view, from, to });
+      const data = await api(`/api/teacher/class-attendance?${query.toString()}`);
+      renderTeacherClassAttendance(data.records || []);
+      $('teacherAttendanceFeedback').textContent = data.records?.length
+        ? `Showing ${data.records.length} accepted record(s) from ${formatSchoolDate(from)} to ${formatSchoolDate(to)}.`
+        : 'No accepted attendance records were found for this date range and your assigned classes.';
+      $('teacherAttendanceFeedback').className = 'inline-feedback';
+    } catch (error) {
+      $('teacherAttendanceCount').textContent = '—';
+      $('teacherAttendanceRows').innerHTML = '<tr><td colspan="7" class="empty-cell">Attendance records could not be loaded.</td></tr>';
+      $('teacherAttendanceFeedback').textContent = error.message;
+      $('teacherAttendanceFeedback').className = 'inline-feedback error';
+    } finally {
+      $('teacherAttendanceApply').disabled = false;
+      $('teacherAttendanceRefresh').disabled = false;
     }
   }
 
@@ -1978,12 +2080,19 @@
     $('scanSetupPeriodWrap').hidden = $('scanSetupScope').value !== 'CLASS';
     $('scanSetupPeriod').value = '';
   });
+  $('teacherAttendanceApply')?.addEventListener('click', loadTeacherClassAttendance);
+  $('teacherAttendanceRefresh')?.addEventListener('click', loadTeacherClassAttendance);
+  $('teacherAttendanceViewSelect')?.addEventListener('change', loadTeacherClassAttendance);
   $('scanSetupCancel').addEventListener('click', () => { $('studentScanSetupModal').hidden = true; });
   $('studentScanSetupModal').addEventListener('click', event => {
     if (event.target === $('studentScanSetupModal')) $('studentScanSetupModal').hidden = true;
   });
   $('scanSetupStart').addEventListener('click', async () => {
-    activeScanScope = user.role === 'TEACHER' || user.role === 'SCHOOL_ADMIN' ? $('scanSetupScope').value : (user.role === 'GATE_KEEPER' ? 'SCHOOL' : $('scanSetupScope').value);
+    if (user.role === 'SCHOOL_ADMIN') {
+      showToast('School Administrator accounts do not operate attendance scanners. Use an assigned Gate Keeper or teacher account.', true);
+      return;
+    }
+    activeScanScope = user.role === 'TEACHER' ? $('scanSetupScope').value : 'SCHOOL';
     activeScanPeriodId = activeScanScope === 'CLASS' ? $('scanSetupPeriod').value : null;
     if (activeScanScope === 'CLASS' && !activeScanPeriodId) {
       $('scanSetupPeriodWrap').classList.add('field-missing');

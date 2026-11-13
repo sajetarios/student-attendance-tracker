@@ -7,8 +7,7 @@ const ROLE_PERMISSIONS = Object.freeze({
     'dashboard.view.school', 'students.view.all', 'students.manage', 'students.accounts.manage',
     'schedules.view.all', 'schedules.manage', 'teachers.view', 'teachers.manage',
     'class_advisers.manage', 'sf2.official.generate', 'sf2.submissions.collect',
-    'parents.manage', 'attendance.gate.record', 'attendance.subject.record',
-    'attendance.corrections.manage', 'devices.manage'
+    'parents.manage', 'attendance.corrections.manage', 'devices.manage'
   ]),
   DEPARTMENT_HEAD: Object.freeze([
     'dashboard.view.school', 'schedules.view.all', 'teachers.view',
@@ -17,8 +16,8 @@ const ROLE_PERMISSIONS = Object.freeze({
   ]),
   TEACHER: Object.freeze([
     'dashboard.view.assigned', 'students.view.assigned', 'students.update.assigned',
-    'schedules.view.assigned', 'schedules.create.own', 'attendance.subject.record',
-    'sf2.personal.generate'
+    'schedules.view.assigned', 'schedules.create.own',
+    'attendance.subject.record', 'attendance.advisory.record', 'sf2.personal.generate'
   ]),
   GATE_KEEPER: Object.freeze(['gate.lookup', 'attendance.gate.record']),
   PARENT: Object.freeze(['parent.children.view', 'parent.attendance.view']),
