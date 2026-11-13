@@ -847,6 +847,86 @@ app.delete('/api/teacher-substitutions/:substitutionId', authenticateSchoolClien
   }
 });
 
+app.post('/api/teachers/bulk-assignments', authenticateSchoolClient, requireSchoolRoles('SCHOOL_ADMIN', 'DEPARTMENT_HEAD'), async (req, res) => {
+  const teacherUserId = req.body?.teacherUserId;
+  const periodIds = [...new Set((Array.isArray(req.body?.periodIds) ? req.body.periodIds : []))];
+  if (!isUuid(teacherUserId) || !periodIds.length || periodIds.length > 100 || periodIds.some(id => !isUuid(id))) {
+    return res.status(400).json({ error: 'Choose one teacher and between 1 and 100 valid class schedules.' });
+  }
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+    const teacher = await client.query(
+      `SELECT user_id, username, display_name, department_id FROM school_users
+       WHERE school_id=$1 AND user_id=$2 AND role='TEACHER' AND active=TRUE
+         AND 'SUBJECT_TEACHER'=ANY(teacher_designations) FOR UPDATE`,
+      [req.auth.schoolId, teacherUserId]
+    );
+    if (!teacher.rowCount) {
+      await client.query('ROLLBACK');
+      return res.status(404).json({ error: 'Choose an active Subject Teacher.' });
+    }
+    const assigned = [];
+    for (const periodId of periodIds) {
+      const period = await client.query(
+        `SELECT period_id, period_name, department_id, start_time, end_time
+         FROM class_periods WHERE school_id=$1 AND period_id=$2 AND active=TRUE FOR UPDATE`,
+        [req.auth.schoolId, periodId]
+      );
+      if (!period.rowCount) throw Object.assign(new Error('One or more selected schedules are inactive or unavailable.'), { statusCode: 404 });
+      const item = period.rows[0];
+      if (req.auth.role === 'DEPARTMENT_HEAD' &&
+          (req.auth.departmentCode === 'UNASSIGNED' || String(item.department_id) !== String(req.auth.departmentId))) {
+        throw Object.assign(new Error('You may assign teachers only to schedules in your own department.'), { statusCode: 403 });
+      }
+      if (String(teacher.rows[0].department_id) !== String(item.department_id)) {
+        throw Object.assign(new Error('The teacher and every selected schedule must belong to the same department.'), { statusCode: 403 });
+      }
+      const owner = await client.query(
+        `SELECT su.display_name FROM teacher_period_assignments a
+         JOIN school_users su ON su.school_id=a.school_id AND su.user_id=a.teacher_user_id
+         WHERE a.school_id=$1 AND a.period_id=$2 AND a.teacher_user_id<>$3 LIMIT 1`,
+        [req.auth.schoolId, periodId, teacherUserId]
+      );
+      if (owner.rowCount) throw Object.assign(new Error(`"${item.period_name}" already has a permanent teacher (${owner.rows[0].display_name}).`), { statusCode: 409 });
+      const overlap = await client.query(
+        `SELECT p.period_name FROM teacher_period_assignments a
+         JOIN class_periods p ON p.school_id=a.school_id AND p.period_id=a.period_id
+         WHERE a.school_id=$1 AND a.teacher_user_id=$2 AND a.period_id<>$3 AND p.active=TRUE
+           AND p.start_time < $5::time AND $4::time < p.end_time
+         UNION ALL
+         SELECT p.period_name FROM teacher_period_substitutions ts
+         JOIN class_periods p ON p.school_id=ts.school_id AND p.period_id=ts.period_id
+         WHERE ts.school_id=$1 AND ts.substitute_teacher_user_id=$2 AND ts.status='ACTIVE'
+           AND ts.end_date >= (NOW() AT TIME ZONE 'Asia/Manila')::date AND p.active=TRUE
+           AND p.start_time < $5::time AND $4::time < p.end_time
+         LIMIT 1`,
+        [req.auth.schoolId, teacherUserId, periodId, item.start_time, item.end_time]
+      );
+      if (overlap.rowCount) throw Object.assign(new Error(`"${item.period_name}" overlaps with ${overlap.rows[0].period_name} for this teacher.`), { statusCode: 409 });
+      const inserted = await client.query(
+        `INSERT INTO teacher_period_assignments(school_id,teacher_user_id,period_id)
+         VALUES($1,$2,$3) ON CONFLICT(school_id,teacher_user_id,period_id) DO NOTHING
+         RETURNING assignment_id`,
+        [req.auth.schoolId, teacherUserId, periodId]
+      );
+      assigned.push({ periodId, periodName: item.period_name, alreadyAssigned: !inserted.rowCount });
+    }
+    await client.query(
+      `INSERT INTO audit_logs(school_id,actor_type,actor_user_id,action,entity_type,entity_id,details)
+       VALUES($1,'SCHOOL',$2,$3,'teacher_period_assignment_batch',$4,$5::jsonb)`,
+      [req.auth.schoolId, req.auth.userId,
+        req.auth.role === 'DEPARTMENT_HEAD' ? 'DEPARTMENT_HEAD_BULK_ASSIGN_TEACHER' : 'SCHOOL_ADMIN_BULK_ASSIGN_TEACHER',
+        teacherUserId, JSON.stringify({ periodIds, assigned })]
+    );
+    await client.query('COMMIT');
+    return res.status(201).json({ ok: true, teacher: { userId: teacher.rows[0].user_id, displayName: teacher.rows[0].display_name }, assignments: assigned });
+  } catch (error) {
+    await client.query('ROLLBACK').catch(() => {});
+    return res.status(error.statusCode || 500).json({ error: error.message || 'Could not assign teacher to the selected schedules.' });
+  } finally { client.release(); }
+});
+
 app.post('/api/periods/:periodId/assignments', authenticateSchoolClient, requireSchoolRoles('SCHOOL_ADMIN', 'DEPARTMENT_HEAD'), async (req, res) => {
   const { teacherUserId } = req.body || {};
   if (!isUuid(req.params.periodId) || !isUuid(teacherUserId)) {
