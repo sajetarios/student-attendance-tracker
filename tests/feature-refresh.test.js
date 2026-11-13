@@ -123,3 +123,13 @@ test('staff monitoring uses compact assignment summaries and horizontally wrappe
   assert.match(portalCss, /#teachersView \.teacher-scope-list[\s\S]*?flex-direction:\s*row/);
   assert.match(portalCss, /#teachersView \.department-chip-list/);
 });
+
+test('teacher monitoring table keeps all seven columns readable on desktop and scrollable on smaller screens', () => {
+  assert.match(html, /class="table-scroll teacher-monitor-scroll"[\s\S]*?<table class="teacher-monitor-table"/);
+  assert.match(portalCss, /table\.teacher-monitor-table \{[\s\S]*?min-width:\s*1180px !important/);
+  for (let column = 1; column <= 7; column++) {
+    assert.match(portalCss, new RegExp('teacher-monitor-table th:nth-child\\(' + column + '\\)[\\s\\S]*?width: [0-9]+% !important'));
+  }
+  assert.match(portalCss, /teacher-monitor-table td:nth-child\(6\)[\s\S]*?white-space:\s*normal/);
+  assert.match(portalCss, /teacher-monitor-table td:nth-child\(7\)[\s\S]*?white-space:\s*normal/);
+});
