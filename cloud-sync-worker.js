@@ -15,11 +15,11 @@ async function updateRows(pool, rows, status, error, remoteStatus, delayMs = 0) 
   for (const row of rows) {
     const nextAttempt = new Date(Date.now() + delayMs);
     await pool.query(
-      \`UPDATE cloud_sync_outbox
+      `UPDATE cloud_sync_outbox
        SET status=$2, last_error=$3, remote_status=$4,
            next_attempt_at=$5, synced_at=CASE WHEN $2='SYNCED' THEN NOW() ELSE NULL END,
            updated_at=NOW()
-       WHERE sync_id=$1\`,
+       WHERE sync_id=$1`,
       [row.sync_id, status, error ? String(error).slice(0, 1000) : null,
        remoteStatus || null, nextAttempt]
     );
@@ -28,10 +28,10 @@ async function updateRows(pool, rows, status, error, remoteStatus, delayMs = 0) 
 
 async function syncSchool(pool, schoolId) {
   const setting = await pool.query(
-    \`SELECT cloud_base_url, enabled, cloud_auth_token_ciphertext,
+    `SELECT cloud_base_url, enabled, cloud_auth_token_ciphertext,
             cloud_auth_token_iv, cloud_auth_token_tag
      FROM school_cloud_sync_settings
-     WHERE school_id=$1 AND enabled=TRUE\`,
+     WHERE school_id=$1 AND enabled=TRUE`,
     [schoolId]
   );
   if (!setting.rowCount || !setting.rows[0].cloud_base_url) return;
@@ -48,7 +48,7 @@ async function syncSchool(pool, schoolId) {
   try {
     await client.query('BEGIN');
     const selected = await client.query(
-      \`SELECT q.sync_id, q.attempts,
+      `SELECT q.sync_id, q.attempts,
               e.event_id, e.school_id, e.device_id, e.student_id,
               e.attendance_scope, e.period_id, e.event_type,
               e.occurred_at_device, e.received_at_server, e.school_date,
@@ -61,7 +61,7 @@ async function syncSchool(pool, schoolId) {
          AND q.next_attempt_at <= NOW()
        ORDER BY e.received_at_server, q.sync_id
        FOR UPDATE OF q SKIP LOCKED
-       LIMIT $2\`,
+       LIMIT $2`,
       [schoolId, BATCH_SIZE]
     );
     rows = selected.rows;
@@ -71,10 +71,10 @@ async function syncSchool(pool, schoolId) {
     }
     const ids = rows.map(row => row.sync_id);
     await client.query(
-      \`UPDATE cloud_sync_outbox
+      `UPDATE cloud_sync_outbox
        SET status='SENDING', attempts=attempts+1,
            last_attempt_at=NOW(), updated_at=NOW()
-       WHERE sync_id=ANY($1::bigint[])\`,
+       WHERE sync_id=ANY($1::bigint[])`,
       [ids]
     );
     rows.forEach(row => { row.attempts = Number(row.attempts) + 1; });
@@ -173,10 +173,10 @@ async function syncSchool(pool, schoolId) {
   if (synced.length) {
     for (const row of synced) {
       await pool.query(
-        \`UPDATE cloud_sync_outbox
+        `UPDATE cloud_sync_outbox
          SET status='SYNCED', synced_at=NOW(), last_error=NULL,
              remote_status=$2, updated_at=NOW()
-         WHERE sync_id=$1\`,
+         WHERE sync_id=$1`,
         [row.sync_id, row.status]
       );
     }
@@ -184,9 +184,9 @@ async function syncSchool(pool, schoolId) {
   if (rejected.length) {
     for (const row of rejected) {
       await pool.query(
-        \`UPDATE cloud_sync_outbox
+        `UPDATE cloud_sync_outbox
          SET status='FAILED', last_error=$2, remote_status='REJECTED', updated_at=NOW()
-         WHERE sync_id=$1\`,
+         WHERE sync_id=$1`,
         [row.sync_id, row.reason]
       );
     }
@@ -204,9 +204,9 @@ function startCloudSyncWorker(pool) {
     running = true;
     try {
       const schools = await pool.query(
-        \`SELECT school_id FROM school_cloud_sync_settings
+        `SELECT school_id FROM school_cloud_sync_settings
          WHERE enabled=TRUE AND cloud_base_url IS NOT NULL
-         ORDER BY school_id\`
+         ORDER BY school_id`
       );
       for (const row of schools.rows) {
         try { await syncSchool(pool, row.school_id); }
