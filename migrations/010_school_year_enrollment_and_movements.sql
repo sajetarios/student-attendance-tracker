@@ -40,3 +40,65 @@ CREATE TABLE IF NOT EXISTS school_calendar (
  FOREIGN KEY(school_id,school_year_id) REFERENCES school_years(school_id,school_year_id),
  FOREIGN KEY(school_id,created_by_user_id) REFERENCES school_users(school_id,user_id)
 );
+
+-- Keep dates tied to the selected school year and make closed-year records read-only.
+CREATE OR REPLACE FUNCTION validate_school_year_record_dates()
+RETURNS TRIGGER LANGUAGE plpgsql AS $$
+DECLARE d1 DATE; d2 DATE;
+BEGIN
+ SELECT start_date,end_date INTO d1,d2 FROM school_years
+  WHERE school_id=NEW.school_id AND school_year_id=NEW.school_year_id FOR SHARE;
+ IF NOT FOUND THEN RAISE EXCEPTION 'School year not found for this school'; END IF;
+ IF TG_TABLE_NAME='student_enrollments' THEN
+  IF NEW.enrollment_date NOT BETWEEN d1 AND d2 THEN RAISE EXCEPTION 'Enrollment date must be within school year'; END IF;
+  IF NEW.status_effective_date IS NOT NULL AND NEW.status_effective_date NOT BETWEEN d1 AND d2 THEN RAISE EXCEPTION 'Status date must be within school year'; END IF;
+ ELSIF TG_TABLE_NAME='student_movements' AND NEW.effective_date NOT BETWEEN d1 AND d2 THEN
+  RAISE EXCEPTION 'Movement date must be within school year';
+ ELSIF TG_TABLE_NAME='school_calendar' AND NEW.calendar_date NOT BETWEEN d1 AND d2 THEN
+  RAISE EXCEPTION 'Calendar date must be within school year';
+ END IF;
+ RETURN NEW;
+END $$;
+CREATE TRIGGER student_enrollments_date_guard BEFORE INSERT OR UPDATE ON student_enrollments
+ FOR EACH ROW EXECUTE FUNCTION validate_school_year_record_dates();
+CREATE TRIGGER student_movements_date_guard BEFORE INSERT OR UPDATE ON student_movements
+ FOR EACH ROW EXECUTE FUNCTION validate_school_year_record_dates();
+CREATE TRIGGER school_calendar_date_guard BEFORE INSERT OR UPDATE ON school_calendar
+ FOR EACH ROW EXECUTE FUNCTION validate_school_year_record_dates();
+
+CREATE OR REPLACE FUNCTION guard_closed_school_year_records()
+RETURNS TRIGGER LANGUAGE plpgsql AS $$
+DECLARE st VARCHAR(12);
+BEGIN
+ IF TG_OP IN ('UPDATE','DELETE') THEN
+  SELECT status INTO st FROM school_years WHERE school_id=OLD.school_id AND school_year_id=OLD.school_year_id FOR SHARE;
+  IF st='CLOSED' THEN RAISE EXCEPTION 'Records in a closed school year are read-only'; END IF;
+ END IF;
+ IF TG_OP IN ('INSERT','UPDATE') THEN
+  SELECT status INTO st FROM school_years WHERE school_id=NEW.school_id AND school_year_id=NEW.school_year_id FOR SHARE;
+  IF st='CLOSED' THEN RAISE EXCEPTION 'Records in a closed school year are read-only'; END IF;
+ END IF;
+ IF TG_OP='DELETE' THEN RETURN OLD; END IF;
+ RETURN NEW;
+END $$;
+CREATE TRIGGER student_enrollments_closed_guard BEFORE INSERT OR UPDATE OR DELETE ON student_enrollments
+ FOR EACH ROW EXECUTE FUNCTION guard_closed_school_year_records();
+CREATE TRIGGER student_movements_closed_guard BEFORE INSERT OR UPDATE OR DELETE ON student_movements
+ FOR EACH ROW EXECUTE FUNCTION guard_closed_school_year_records();
+CREATE TRIGGER school_calendar_closed_guard BEFORE INSERT OR UPDATE OR DELETE ON school_calendar
+ FOR EACH ROW EXECUTE FUNCTION guard_closed_school_year_records();
+
+CREATE OR REPLACE FUNCTION guard_school_year_status_transition()
+RETURNS TRIGGER LANGUAGE plpgsql AS $$
+BEGIN
+ IF NEW.status IS DISTINCT FROM OLD.status AND NOT (
+  (OLD.status='SETUP' AND NEW.status='ACTIVE') OR
+  (OLD.status='ACTIVE' AND NEW.status='CLOSED') OR
+  (OLD.status='CLOSED' AND NEW.status='ACTIVE')) THEN
+  RAISE EXCEPTION 'Invalid school-year status transition: % to %',OLD.status,NEW.status;
+ END IF;
+ NEW.updated_at=NOW();
+ RETURN NEW;
+END $$;
+CREATE TRIGGER school_year_status_guard BEFORE UPDATE OF status ON school_years
+ FOR EACH ROW EXECUTE FUNCTION guard_school_year_status_transition();
