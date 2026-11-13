@@ -2063,6 +2063,42 @@
     }
   });
 
+  $('cloudProvisionForm')?.addEventListener('submit', async event => {
+    event.preventDefault();
+    const button = $('provisionCloudDestination');
+    const cloudBaseUrl = $('cloudProvisionBaseUrl').value.trim();
+    const bootstrapKey = $('cloudProvisionKey').value.trim();
+    const admin = {
+      username: $('cloudAdminUsername').value.trim(),
+      displayName: $('cloudAdminDisplayName').value.trim(),
+      password: $('cloudAdminPassword').value
+    };
+    const confirmed = window.confirm(
+      'Create a new cloud school using this local school ID and create its initial School Administrator? This cannot overwrite or merge with an existing cloud school.'
+    );
+    if (!confirmed) return;
+    button.disabled = true;
+    setCloudSyncFeedback('Provisioning the matching cloud school and securely saving its receiving credential…');
+    try {
+      const data = await api('/api/cloud-sync/provision-destination', {
+        method: 'POST',
+        body: JSON.stringify({ cloudBaseUrl, bootstrapKey, admin })
+      });
+      $('cloudBaseUrl').value = data.cloudBaseUrl || cloudBaseUrl;
+      $('cloudProvisionKey').value = '';
+      $('cloudAdminPassword').value = '';
+      setCloudSyncFeedback(data.message || 'Matching cloud school provisioned and paired.');
+      showToast('Cloud school created and paired.');
+      await loadCloudSyncSettings();
+    } catch (error) {
+      setCloudSyncFeedback(error.message, true);
+    } finally {
+      $('cloudProvisionKey').value = '';
+      $('cloudAdminPassword').value = '';
+      button.disabled = false;
+    }
+  });
+
   $('generateCloudCredential')?.addEventListener('click', async () => {
     const button = $('generateCloudCredential');
     const confirmed = window.confirm(
