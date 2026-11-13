@@ -1897,6 +1897,12 @@ app.post('/api/sync/events', authenticateSchoolClient, requireSchoolClient, asyn
         );
         await client.query(
           'INSERT INTO cloud_sync_outbox (school_id, event_id) ' +
+          'SELECT school_id, event_id FROM attendance_events WHERE school_id=$1 AND event_id=$2 AND sync_status=$3 ' +
+          'ON CONFLICT (school_id, event_id) DO NOTHING',
+          [req.auth.schoolId, duplicate.rows[0].event_id, 'ACCEPTED']
+        );
+        await client.query(
+          'INSERT INTO cloud_sync_outbox (school_id, event_id) ' +
           'SELECT school_id, event_id FROM attendance_events WHERE school_id=$1 AND event_id=$2 ' +
           'ON CONFLICT (school_id, event_id) DO NOTHING',
           [req.auth.schoolId, event.eventId]
