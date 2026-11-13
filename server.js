@@ -892,16 +892,16 @@ const TEACHER_STUDENT_SCOPE = `
         ON p.school_id = a.school_id AND p.period_id = a.period_id AND p.active = TRUE
       WHERE a.school_id = s.school_id
         AND a.teacher_user_id = $2
-        AND p.grade_level = s.grade_level
-        AND (p.section IS NULL OR p.section = s.section)
+        AND p.grade_level = COALESCE((SELECT en.grade_level FROM student_enrollments en JOIN school_years sy ON sy.school_id=en.school_id AND sy.school_year_id=en.school_year_id WHERE en.school_id=s.school_id AND en.student_id=s.student_id AND sy.status='ACTIVE' AND en.enrollment_status='ENROLLED' ORDER BY en.created_at DESC LIMIT 1),s.grade_level)
+        AND (p.section IS NULL OR p.section = COALESCE((SELECT en.section FROM student_enrollments en JOIN school_years sy ON sy.school_id=en.school_id AND sy.school_year_id=en.school_year_id WHERE en.school_id=s.school_id AND en.student_id=s.student_id AND sy.status='ACTIVE' AND en.enrollment_status='ENROLLED' ORDER BY en.created_at DESC LIMIT 1),s.section))
     )
     OR EXISTS (
       SELECT 1
       FROM class_adviser_assignments ca
       WHERE ca.school_id=s.school_id
         AND ca.adviser_user_id=$2
-        AND ca.grade_level=s.grade_level
-        AND ca.section=s.section
+        AND ca.grade_level=COALESCE((SELECT en.grade_level FROM student_enrollments en JOIN school_years sy ON sy.school_id=en.school_id AND sy.school_year_id=en.school_year_id WHERE en.school_id=s.school_id AND en.student_id=s.student_id AND sy.status='ACTIVE' AND en.enrollment_status='ENROLLED' ORDER BY en.created_at DESC LIMIT 1),s.grade_level)
+        AND ca.section=COALESCE((SELECT en.section FROM student_enrollments en JOIN school_years sy ON sy.school_id=en.school_id AND sy.school_year_id=en.school_year_id WHERE en.school_id=s.school_id AND en.student_id=s.student_id AND sy.status='ACTIVE' AND en.enrollment_status='ENROLLED' ORDER BY en.created_at DESC LIMIT 1),s.section)
     )
     OR EXISTS (
       SELECT 1
@@ -912,8 +912,8 @@ const TEACHER_STUDENT_SCOPE = `
         AND ts.substitute_teacher_user_id=$2
         AND ts.status='ACTIVE'
         AND (NOW() AT TIME ZONE 'Asia/Manila')::date BETWEEN ts.start_date AND ts.end_date
-        AND sp.grade_level=s.grade_level
-        AND (sp.section IS NULL OR sp.section=s.section)
+        AND sp.grade_level=COALESCE((SELECT en.grade_level FROM student_enrollments en JOIN school_years sy ON sy.school_id=en.school_id AND sy.school_year_id=en.school_year_id WHERE en.school_id=s.school_id AND en.student_id=s.student_id AND sy.status='ACTIVE' AND en.enrollment_status='ENROLLED' ORDER BY en.created_at DESC LIMIT 1),s.grade_level)
+        AND (sp.section IS NULL OR sp.section=COALESCE((SELECT en.section FROM student_enrollments en JOIN school_years sy ON sy.school_id=en.school_id AND sy.school_year_id=en.school_year_id WHERE en.school_id=s.school_id AND en.student_id=s.student_id AND sy.status='ACTIVE' AND en.enrollment_status='ENROLLED' ORDER BY en.created_at DESC LIMIT 1),s.section))
     )
   )`;
 
@@ -1304,7 +1304,7 @@ app.patch('/api/students/:studentId', authenticateSchoolClient, requireSchoolAdm
         `SELECT s.grade_level AS "gradeLevel", s.section,
                 EXISTS (SELECT 1 FROM class_adviser_assignments ca
                         WHERE ca.school_id=s.school_id AND ca.adviser_user_id=$3
-                          AND ca.grade_level=s.grade_level AND ca.section=s.section) AS "isAdviserSection"
+                          AND ca.grade_level=COALESCE((SELECT en.grade_level FROM student_enrollments en JOIN school_years sy ON sy.school_id=en.school_id AND sy.school_year_id=en.school_year_id WHERE en.school_id=s.school_id AND en.student_id=s.student_id AND sy.status='ACTIVE' AND en.enrollment_status='ENROLLED' ORDER BY en.created_at DESC LIMIT 1),s.grade_level) AND ca.section=COALESCE((SELECT en.section FROM student_enrollments en JOIN school_years sy ON sy.school_id=en.school_id AND sy.school_year_id=en.school_year_id WHERE en.school_id=s.school_id AND en.student_id=s.student_id AND sy.status='ACTIVE' AND en.enrollment_status='ENROLLED' ORDER BY en.created_at DESC LIMIT 1),s.section)) AS "isAdviserSection"
          FROM students s
          WHERE s.school_id=$1 AND s.student_id=$2 AND s.active=TRUE
            AND ${TEACHER_STUDENT_SCOPE.replace(/\$2/g, '$3')}`,
@@ -1335,7 +1335,7 @@ app.patch('/api/students/:studentId', authenticateSchoolClient, requireSchoolAdm
         updated = await client.query(
           `UPDATE students s SET full_name=$4, grade_level=$5, section=$6, updated_at=NOW()
            WHERE s.school_id=$1 AND s.student_id=$2 AND s.active=TRUE
-             AND EXISTS (SELECT 1 FROM class_adviser_assignments ca WHERE ca.school_id=s.school_id AND ca.adviser_user_id=$3 AND ca.grade_level=s.grade_level AND ca.section=s.section)
+             AND EXISTS (SELECT 1 FROM class_adviser_assignments ca WHERE ca.school_id=s.school_id AND ca.adviser_user_id=$3 AND ca.grade_level=COALESCE((SELECT en.grade_level FROM student_enrollments en JOIN school_years sy ON sy.school_id=en.school_id AND sy.school_year_id=en.school_year_id WHERE en.school_id=s.school_id AND en.student_id=s.student_id AND sy.status='ACTIVE' AND en.enrollment_status='ENROLLED' ORDER BY en.created_at DESC LIMIT 1),s.grade_level) AND ca.section=COALESCE((SELECT en.section FROM student_enrollments en JOIN school_years sy ON sy.school_id=en.school_id AND sy.school_year_id=en.school_year_id WHERE en.school_id=s.school_id AND en.student_id=s.student_id AND sy.status='ACTIVE' AND en.enrollment_status='ENROLLED' ORDER BY en.created_at DESC LIMIT 1),s.section))
            RETURNING s.student_id AS "studentId", s.full_name AS "fullName",
                      s.grade_level AS "gradeLevel", s.section, s.qr_token AS "qrToken"`,
           [req.auth.schoolId, req.params.studentId, req.auth.userId, fullName.trim(), gradeLevel.trim(), section.trim()]
@@ -1461,7 +1461,7 @@ app.put('/api/students/:studentId/photo', authenticateSchoolClient, requireSchoo
       let teacherScope = '';
       if (req.auth.role === 'TEACHER') {
         params.push(req.auth.userId);
-        teacherScope = ` AND EXISTS (SELECT 1 FROM class_adviser_assignments ca WHERE ca.school_id=s.school_id AND ca.adviser_user_id=$3 AND ca.grade_level=s.grade_level AND ca.section=s.section)`;
+        teacherScope = ` AND EXISTS (SELECT 1 FROM class_adviser_assignments ca WHERE ca.school_id=s.school_id AND ca.adviser_user_id=$3 AND ca.grade_level=COALESCE((SELECT en.grade_level FROM student_enrollments en JOIN school_years sy ON sy.school_id=en.school_id AND sy.school_year_id=en.school_year_id WHERE en.school_id=s.school_id AND en.student_id=s.student_id AND sy.status='ACTIVE' AND en.enrollment_status='ENROLLED' ORDER BY en.created_at DESC LIMIT 1),s.grade_level) AND ca.section=COALESCE((SELECT en.section FROM student_enrollments en JOIN school_years sy ON sy.school_id=en.school_id AND sy.school_year_id=en.school_year_id WHERE en.school_id=s.school_id AND en.student_id=s.student_id AND sy.status='ACTIVE' AND en.enrollment_status='ENROLLED' ORDER BY en.created_at DESC LIMIT 1),s.section))`;
       }
       const student = await pool.query(
         `SELECT s.student_id, s.photo_path FROM students s WHERE s.school_id=$1 AND s.student_id=$2 AND s.active=TRUE${teacherScope}`,
