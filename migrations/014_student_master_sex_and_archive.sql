@@ -1,5 +1,7 @@
 -- Migration 014: student master sex and archive metadata.
 -- Existing learners remain editable; legacy sex values are normalized before validation.
+ALTER TABLE students ADD COLUMN IF NOT EXISTS sex VARCHAR(10);
+
 UPDATE students
 SET sex = CASE
   WHEN UPPER(TRIM(COALESCE(sex, ''))) IN ('M','MALE') THEN 'MALE'
@@ -11,7 +13,6 @@ WHERE sex IS NOT NULL OR EXISTS (
   WHERE table_schema='public' AND table_name='students' AND column_name='sex'
 );
 
-ALTER TABLE students ADD COLUMN IF NOT EXISTS sex VARCHAR(10);
 ALTER TABLE students ADD COLUMN IF NOT EXISTS archived_at TIMESTAMPTZ;
 ALTER TABLE students DROP CONSTRAINT IF EXISTS students_sex_valid;
 ALTER TABLE students ADD CONSTRAINT students_sex_valid
