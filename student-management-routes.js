@@ -57,6 +57,7 @@ async function readImportRows(fileName, fileBase64) {
 function registerStudentManagementRoutes(app, pool, { authenticateSchoolClient, requireSchoolRoles }) {
   const importRoles = requireSchoolRoles('SCHOOL_ADMIN', 'TEACHER');
   const adminOnly = requireSchoolRoles('SCHOOL_ADMIN');
+  const studentBatchManagers = requireSchoolRoles('SCHOOL_ADMIN', 'TEACHER');
 
   app.post('/api/students/import/preview', authenticateSchoolClient, importRoles, async (req, res) => {
     try {
@@ -194,12 +195,83 @@ function registerStudentManagementRoutes(app, pool, { authenticateSchoolClient, 
     }
   });
 
-  app.post('/api/students/bulk-actions', authenticateSchoolClient, adminOnly, async (req, res) => {
+  app.post('/api/students/bulk-actions', authenticateSchoolClient, studentBatchManagers, async (req, res) => {
     const ids = [...new Set((Array.isArray(req.body?.studentIds) ? req.body.studentIds : []).map(clean).filter(Boolean))];
     const action = String(req.body?.action || '').toUpperCase();
     if (!ids.length || ids.length > 1000) return res.status(400).json({ error: 'Select between 1 and 1,000 students.' });
-    if (!['ACTIVATE','DEACTIVATE','ARCHIVE'].includes(action)) return res.status(400).json({ error: 'Choose Activate, Deactivate, or Archive.' });
+    if (!['ACTIVATE','DEACTIVATE','ARCHIVE','ASSIGN_SECTION'].includes(action)) return res.status(400).json({ error: 'Choose a valid student batch action.' });
+    const isTeacher = req.auth.role === 'TEACHER';
+    if (isTeacher && (!req.auth.teacherDesignations?.includes('CLASS_ADVISER') || action !== 'ASSIGN_SECTION')) {
+      return res.status(403).json({ error: 'Teachers may batch-assign placement only as an authorized Class Adviser.' });
+    }
     try {
+      if (action === 'ASSIGN_SECTION') {
+        const gradeLevel = clean(req.body?.gradeLevel);
+        const section = clean(req.body?.section);
+        if (!validText(gradeLevel, 40) || !validText(section, 100)) {
+          return res.status(400).json({ error: 'Choose a valid target grade level and section.' });
+        }
+        if (isTeacher) {
+          const target = await pool.query(
+            'SELECT 1 FROM class_adviser_assignments WHERE school_id=$1 AND adviser_user_id=$2 AND grade_level=$3 AND section=$4',
+            [req.auth.schoolId, req.auth.userId, gradeLevel, section]
+          );
+          if (!target.rowCount) return res.status(403).json({ error: 'You may assign students only to a section assigned to you as Class Adviser.' });
+          const outside = await pool.query(
+            `SELECT s.student_id FROM students s
+             WHERE s.school_id=$1 AND s.student_id=ANY($2::text[]) AND s.active=TRUE
+               AND NOT EXISTS (
+                 SELECT 1 FROM class_adviser_assignments ca
+                 WHERE ca.school_id=s.school_id AND ca.adviser_user_id=$3
+                   AND ca.grade_level=s.grade_level AND ca.section=s.section
+               ) LIMIT 1`,
+            [req.auth.schoolId, ids, req.auth.userId]
+          );
+          if (outside.rowCount) return res.status(403).json({ error: 'One or more selected learners are outside your assigned advisory sections.' });
+        }
+        const client = await pool.connect();
+        try {
+          await client.query('BEGIN');
+          const updated = await client.query(
+            `UPDATE students SET grade_level=$3, section=$4, updated_at=NOW()
+             WHERE school_id=$1 AND student_id=ANY($2::text[]) AND active=TRUE
+             RETURNING student_id`,
+            [req.auth.schoolId, ids, gradeLevel, section]
+          );
+          await client.query(
+            `UPDATE student_enrollments en SET grade_level=$3, section=$4, updated_at=NOW()
+             FROM school_years sy
+             WHERE en.school_id=$1 AND en.student_id=ANY($2::text[])
+               AND sy.school_id=en.school_id AND sy.school_year_id=en.school_year_id
+               AND sy.status='ACTIVE' AND en.enrollment_status='ENROLLED'`,
+            [req.auth.schoolId, ids, gradeLevel, section]
+          );
+          await client.query(
+            `INSERT INTO student_enrollments(school_id,student_id,school_year_id,grade_level,section,enrollment_date,enrollment_status,created_by_user_id)
+             SELECT s.school_id,s.student_id,sy.school_year_id,$3,$4,
+               CASE WHEN CURRENT_DATE<sy.start_date THEN sy.start_date WHEN CURRENT_DATE>sy.end_date THEN sy.end_date ELSE CURRENT_DATE END,
+               'ENROLLED',$5
+             FROM students s CROSS JOIN school_years sy
+             WHERE s.school_id=$1 AND s.student_id=ANY($2::text[]) AND s.active=TRUE
+               AND sy.school_id=s.school_id AND sy.status='ACTIVE'
+               AND NOT EXISTS (SELECT 1 FROM student_enrollments en
+                 WHERE en.school_id=s.school_id AND en.student_id=s.student_id AND en.school_year_id=sy.school_year_id)
+             ON CONFLICT(school_id,student_id,school_year_id) DO NOTHING`,
+            [req.auth.schoolId, ids, gradeLevel, section, req.auth.userId]
+          );
+          await client.query(
+            `INSERT INTO audit_logs(school_id,actor_type,actor_user_id,action,entity_type,entity_id,details)
+             VALUES($1,'SCHOOL',$2,'STUDENT_BULK_ASSIGN_SECTION','student_batch',$3,$4::jsonb)`,
+            [req.auth.schoolId, req.auth.userId, String(updated.rowCount), JSON.stringify({ studentIds: ids, gradeLevel, section })]
+          );
+          await client.query('COMMIT');
+          return res.json({ ok: true, affected: updated.rowCount, action });
+        } catch (error) {
+          await client.query('ROLLBACK');
+          throw error;
+        } finally { client.release(); }
+      }
+      if (isTeacher) return res.status(403).json({ error: 'Only administrators may activate, deactivate, or archive student records.' });
       const active = action === 'ACTIVATE';
       const result = await pool.query(
         `UPDATE students SET active=$3,
