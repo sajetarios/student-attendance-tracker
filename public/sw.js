@@ -1,9 +1,14 @@
-const CACHE = "school-attendance-shell-v15-teacher-workspace";
+const CACHE = "school-attendance-shell-v16-department-coverage";
 
 const SHELL = [
   "/portal-login.html",
-  "/portal.css?v=0.8.3",
-  "/portal.js?v=0.8.3",
+  "/portal.css?v=0.9.1",
+  "/portal.css",
+  "/portal.js?v=0.9.1",
+  "/academic-admin.css?v=1",
+  "/academic-admin.js?v=1",
+  "/password-visibility.css",
+  "/password-visibility.js",
   "/portal-login.js",
   "/login-routing.js",
   "/responsive.css?v=0.8.3",
