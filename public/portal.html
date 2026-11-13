@@ -6,6 +6,7 @@
   <meta name="theme-color" content="#1c2d45">
   <title>Dashboard · School Attendance</title>
   <link rel="stylesheet" href="/portal.css?v=0.8.2">
+  <link rel="stylesheet" href="/academic-admin.css?v=1">
   <link rel="stylesheet" href="/password-visibility.css">
 
 <style id="student-scan-setup-styles">
@@ -160,6 +161,7 @@
           <div class="nav-submenu" data-submenu="academics">
             <button class="nav-item" id="sf2Nav" data-view="sf2" title="SF2 Report Generator"><span class="nav-icon">▦</span><span class="nav-label">SF2 Report Generator</span></button>
             <button class="nav-item" id="schedulesNav" data-view="schedules" title="Class schedules"><span class="nav-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="18" height="17" rx="2"/><path d="M16 2v4M8 2v4M3 9h18M7 13h3M7 17h6"/></svg></span><span class="nav-label">Class schedules</span></button>
+            <button class="nav-item" id="academicAdminNav" type="button" title="School years and programs"><span class="nav-icon">▤</span><span class="nav-label">School Years & Programs</span></button>
           </div>
         </div>
       </nav>
@@ -517,6 +519,41 @@
           </section>
         </section>
 
+        <section id="academicAdminWorkspace" class="view-panel" hidden>
+          <div class="page-heading"><div><span class="eyebrow muted">ACADEMIC ADMINISTRATION</span><h2>School Years & Special Programs</h2><p>Manage school-year setup, learner enrollment, and primary special-program assignments.</p></div></div>
+          <div class="academic-admin-grid">
+            <article class="surface-card academic-admin-card">
+              <h3>Create school year</h3><form id="academicYearForm" class="academic-admin-form">
+                <label>School-year label<input name="label" required maxlength="20" placeholder="2026-2027"></label>
+                <label>Start date<input name="startDate" type="date" required></label><label>End date<input name="endDate" type="date" required></label>
+                <button class="primary-button" type="submit">Create school year</button>
+              </form><p id="academicYearFeedback" class="inline-feedback" role="status"></p>
+              <div id="academicYearList" class="academic-year-list"></div>
+            </article>
+            <article class="surface-card academic-admin-card">
+              <h3>Special-program catalog</h3><p>Examples include SPED and ALS. Each learner can have only one active primary program per school year.</p>
+              <form id="academicProgramForm" class="academic-admin-form">
+                <label>Program code<input name="code" required maxlength="30" placeholder="SPED"></label>
+                <label>Program name<input name="name" required maxlength="120" placeholder="Special Education"></label>
+                <label>Description<textarea name="description" rows="2"></textarea></label>
+                <button class="primary-button" type="submit">Add program</button>
+              </form><p id="academicProgramFeedback" class="inline-feedback" role="status"></p><div id="academicProgramList"></div>
+            </article>
+          </div>
+          <article class="surface-card academic-admin-card">
+            <div class="section-toolbar"><div><h3>School-year enrollment</h3><p>Enrollment is stored per school year; the original student record and QR identity remain unchanged.</p></div></div>
+            <label>Selected school year<select id="academicSelectedYear"><option value="">Select a school year</option></select></label>
+            <form id="academicEnrollmentForm" class="academic-enrollment-form">
+              <label>Student ID<input name="studentId" required maxlength="80" placeholder="Existing student ID"></label>
+              <label>Grade level<input name="gradeLevel" required maxlength="40" placeholder="Grade 7"></label>
+              <label>Section<input name="section" required maxlength="100"></label>
+              <label>Enrollment date<input name="enrollmentDate" type="date" required></label>
+              <button class="primary-button" type="submit">Enroll learner</button>
+            </form><p id="academicEnrollmentFeedback" class="inline-feedback" role="status"></p>
+            <div class="table-scroll"><table><thead><tr><th>Student ID</th><th>Learner</th><th>Grade</th><th>Section</th><th>Status</th></tr></thead><tbody id="academicEnrollmentRows"><tr><td colspan="5" class="empty-cell">Select a school year.</td></tr></tbody></table></div>
+          </article>
+          <p class="scope-note">These controls are available to School Administrators. Existing attendance records, parent accounts, QR tokens, and student master records are not rewritten by creating school years or enrollments.</p>
+        </section>
         <section id="platformWorkspace" class="view-panel" hidden>
           <div class="platform-welcome surface-card">
             <div class="platform-icon">⌘</div>
@@ -532,5 +569,6 @@
   <script src="/password-visibility.js" defer></script>
   <script src="/vendor/html5-qrcode.min.js" defer></script>
   <script src="/portal.js?v=0.8.2" defer></script>
+  <script src="/academic-admin.js?v=1" defer></script>
 </body>
 </html>
