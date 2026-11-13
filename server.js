@@ -55,6 +55,9 @@ const isUuid = value => typeof value === 'string' &&
 // Teacher management is available only to the authenticated School Administrator.
 // All reads/writes are scoped to req.auth.schoolId; callers cannot submit a school_id.
 app.get('/api/teachers', authenticateSchoolClient, requireSchoolAdminOrDepartmentHead, async (req, res) => {
+  if (req.auth.role === 'DEPARTMENT_HEAD' && (!req.auth.departmentId || req.auth.departmentCode === 'UNASSIGNED')) {
+    return res.status(403).json({ error: 'Your Department Head account must be assigned to a department before viewing teacher records.' });
+  }
   try {
     const result = await pool.query(
       `SELECT su.user_id AS "userId", su.username,
