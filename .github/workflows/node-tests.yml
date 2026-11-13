@@ -53,6 +53,8 @@ jobs:
         run: |
           node --check server.js
           node --check student-management-routes.js
+          node --check department-routes.js
+          node --check cloud-sync-routes.js
           node --check public/portal.js
           node --check public/academic-admin.js
       - name: Run test suite
