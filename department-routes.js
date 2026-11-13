@@ -67,6 +67,34 @@ function registerDepartmentRoutes(app, pool, auth) {
     }
   });
 
+  app.patch('/api/school-users/:userId/department', authenticateSchoolClient, schoolAdmin, async (req, res) => {
+    const { departmentId } = req.body || {};
+    if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(req.params.userId || '') ||
+        !/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(departmentId || '')) {
+      return res.status(400).json({ error: 'Choose a valid staff account and department.' });
+    }
+    try {
+      const result = await pool.query(
+        `UPDATE school_users su SET department_id=$3
+         FROM school_departments d
+         WHERE su.school_id=$1 AND su.user_id=$2 AND su.role IN ('TEACHER','DEPARTMENT_HEAD')
+           AND d.school_id=su.school_id AND d.department_id=$3 AND d.active=TRUE
+         RETURNING su.user_id AS "userId", su.role, su.department_id AS "departmentId", d.department_name AS "departmentName"`,
+        [req.auth.schoolId, req.params.userId, departmentId]
+      );
+      if (!result.rowCount) return res.status(404).json({ error: 'Staff account or active department was not found.' });
+      await pool.query(
+        `INSERT INTO audit_logs(school_id, actor_type, actor_user_id, action, entity_type, entity_id, details)
+         VALUES($1,'SCHOOL',$2,'SCHOOL_ADMIN_CHANGE_STAFF_DEPARTMENT','school_user',$3,$4::jsonb)`,
+        [req.auth.schoolId, req.auth.userId, req.params.userId, JSON.stringify({ departmentId })]
+      );
+      return res.json({ user: result.rows[0] });
+    } catch (err) {
+      console.error('Staff department update failed:', err.message);
+      return res.status(500).json({ error: 'Could not update staff department.' });
+    }
+  });
+
   app.get('/api/admin/teacher-coverage', authenticateSchoolClient, schoolManagers, async (req, res) => {
     const today = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Manila' }).format(new Date());
     const schoolDate = typeof req.query.date === 'string' ? req.query.date : today;
