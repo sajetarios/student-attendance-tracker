@@ -9,7 +9,9 @@ ALTER TABLE school_cloud_sync_settings
   ADD COLUMN IF NOT EXISTS last_master_data_sync_counts JSONB,
   ADD COLUMN IF NOT EXISTS last_master_data_sync_hash TEXT,
   ADD COLUMN IF NOT EXISTS last_master_data_sync_error TEXT,
-  ADD COLUMN IF NOT EXISTS last_master_data_sync_url TEXT;
+  ADD COLUMN IF NOT EXISTS last_master_data_sync_url TEXT,
+  ADD COLUMN IF NOT EXISTS last_master_data_sync_cloud_received_at TIMESTAMPTZ,
+  ADD COLUMN IF NOT EXISTS last_master_data_sync_cloud_imported JSONB;
 
 -- A pre-existing attendance destination has not necessarily been provisioned. Pause it until
 -- a current connection test and master-data snapshot have completed after this release.
