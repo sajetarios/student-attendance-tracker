@@ -226,7 +226,7 @@ function registerAuthRoutes(app, pool) {
                 s.school_code, s.school_name
          FROM user_sessions us
          LEFT JOIN platform_users pu ON pu.user_id=us.platform_user_id AND pu.active=TRUE
-         LEFT JOIN school_users su ON su.user_id=us.school_user_id AND su.active=TRUE
+         LEFT JOIN school_users su ON su.user_id=us.school_user_id AND su.active=TRUE AND su.login_enabled=TRUE
          LEFT JOIN schools s ON s.school_id=us.school_id AND s.active=TRUE
          WHERE us.token_hash=$1 AND us.revoked_at IS NULL AND us.expires_at>NOW()
            AND ((us.principal_type='PLATFORM' AND pu.user_id IS NOT NULL)
