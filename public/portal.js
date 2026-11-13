@@ -161,7 +161,10 @@
       if (panel) panel.hidden = name !== view;
     });
     document.querySelectorAll('.nav-item').forEach(button => {
-      button.classList.toggle('active', button.dataset.view === view);
+      const active = button.dataset.view === view;
+      button.classList.toggle('active', active);
+      if (active) button.setAttribute('aria-current', 'page');
+      else button.removeAttribute('aria-current');
     });
     const activeNav = document.querySelector(`.nav-item[data-view="${view}"]`);
     const activeGroup = activeNav?.closest('.nav-group');
