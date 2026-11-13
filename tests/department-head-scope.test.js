@@ -11,7 +11,7 @@ const server = fs.readFileSync(path.join(root, 'server.js'), 'utf8');
 
 test('Department Head can view the shared student directory but cannot edit student master records', () => {
   assert.ok(portal.includes("if (role === 'DEPARTMENT_HEAD') return ['dashboard', 'students', 'teachers', 'schedules', 'sf2']"));
-  assert.ok(portal.includes("api('/api/students')"));
+  assert.ok(portal.includes("api('/api/students' +"));
   assert.ok(portal.includes('Read-only school-wide learner master roster'));
   assert.ok(server.includes("requireSchoolPermission('students.view.all')"));
   assert.ok(server.includes("app.post('/api/students', authenticateSchoolClient, requireSchoolAdminOrTeacher"));
