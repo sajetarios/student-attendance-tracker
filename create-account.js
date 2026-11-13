@@ -100,12 +100,18 @@ async function main() {
     );
     console.log(`Created Super Administrator account. User ID: ${result.rows[0].user_id}`);
   } else {
+    const department = await pool.query(
+      "SELECT department_id FROM school_departments WHERE school_id=$1 AND department_code='UNASSIGNED' AND active=TRUE",
+      [schoolId]
+    );
+    if (!department.rowCount) throw new Error('Run npm run db:migrate first so the default department is available.');
     const result = await pool.query(
-      `INSERT INTO school_users (school_id, username, display_name, password_hash, role, teacher_designations)
-       VALUES ($1,$2,$3,$4,$5,$6) RETURNING user_id`,
-      [schoolId, username, displayName, passwordHash, role, role === 'TEACHER' ? ['SUBJECT_TEACHER'] : []]
+      `INSERT INTO school_users (school_id, username, display_name, password_hash, role, teacher_designations, department_id)
+       VALUES ($1,$2,$3,$4,$5,$6,$7) RETURNING user_id`,
+      [schoolId, username, displayName, passwordHash, role, role === 'TEACHER' ? ['SUBJECT_TEACHER'] : [], department.rows[0].department_id]
     );
     console.log(`Created ${role} account. User ID: ${result.rows[0].user_id}`);
+    console.log('Account department: Unassigned. A School Administrator must place teachers and Department Heads in their actual department before scheduling.');
   }
   console.log('Keep the username and password private. The password is not stored in plain text.');
 }
