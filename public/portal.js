@@ -1860,6 +1860,7 @@
     const labels = {
       schoolUsers: 'staff',
       students: 'learners',
+      schoolSettings: 'reporting settings',
       classPeriods: 'class periods',
       teacherPeriodAssignments: 'subject assignments',
       teacherPeriodSubstitutions: 'substitutions',
