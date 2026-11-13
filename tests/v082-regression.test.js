@@ -77,7 +77,7 @@ test('root URL and legacy index open the login page without serving a stale cach
   assert.ok(server.includes("res.redirect('/');"));
   assert.ok(index.includes('/portal-login.html'));
   assert.ok(serviceWorker.includes('if (request.mode === "navigate")'));
-  assert.ok(serviceWorker.includes('school-attendance-shell-v15-teacher-workspace'));
+  assert.ok(serviceWorker.includes('school-attendance-shell-v16-department-coverage'));
   assert.equal(shell.includes('"/"'), false);
   assert.equal(shell.includes('"/index.html"'), false);
   assert.ok(loginScript.includes("navigator.serviceWorker.register('/sw.js', { updateViaCache: 'none' })"));
