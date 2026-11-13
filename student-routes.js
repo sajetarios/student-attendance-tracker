@@ -18,9 +18,16 @@ function registerStudentRoutes(app, pool, auth) {
   app.get('/api/student/profile', authenticateSchoolClient, requireStudent, async (req, res) => {
     try {
       const result = await pool.query(
-        `SELECT student_id AS "studentId", full_name AS "fullName", grade_level AS "gradeLevel",
-                section, sex
-         FROM students WHERE school_id=$1 AND student_id=$2 AND active=TRUE`,
+        `SELECT st.student_id AS "studentId", st.full_name AS "fullName",
+                COALESCE(en.grade_level,st.grade_level) AS "gradeLevel",
+                COALESCE(en.section,st.section) AS section, st.sex
+         FROM students st
+         LEFT JOIN LATERAL (SELECT e.grade_level,e.section FROM student_enrollments e
+           JOIN school_years sy ON sy.school_id=e.school_id AND sy.school_year_id=e.school_year_id
+           WHERE e.school_id=st.school_id AND e.student_id=st.student_id
+             AND sy.status='ACTIVE' AND e.enrollment_status='ENROLLED'
+           ORDER BY e.created_at DESC LIMIT 1) en ON TRUE
+         WHERE st.school_id=$1 AND st.student_id=$2 AND st.active=TRUE`,
         [req.auth.schoolId, req.auth.studentId]
       );
       if (!result.rowCount) return res.status(404).json({ error: 'Student profile not found.' });
