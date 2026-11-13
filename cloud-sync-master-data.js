@@ -314,6 +314,7 @@ function registerCloudMasterDataRoutes(app, pool, {
       return res.status(503).json({ error: 'Set CLOUD_SYNC_ENCRYPTION_KEY on the local server before provisioning the cloud destination.' });
     }
 
+    let cloudSchoolProvisioned = false;
     try {
       const schoolResult = await pool.query(
         'SELECT school_id AS "schoolId",school_code AS "schoolCode",school_name AS "schoolName" ' +
@@ -354,6 +355,7 @@ function registerCloudMasterDataRoutes(app, pool, {
       }
 
       const remote = await response.json().catch(() => ({}));
+      cloudSchoolProvisioned = response.ok && remote.ok === true;
       if (!response.ok || remote.ok !== true || remote.schoolId !== req.auth.schoolId ||
           typeof remote.receivingCredential !== 'string') {
         return res.status(response.status >= 400 && response.status < 500 ? response.status : 502)
@@ -363,24 +365,34 @@ function registerCloudMasterDataRoutes(app, pool, {
       // Encrypt immediately on the server. The raw bootstrap key, admin password,
       // and receiver credential are not stored or returned to the browser.
       const encrypted = encryptCloudToken(remote.receivingCredential);
-      await pool.query(
-        'INSERT INTO audit_logs(school_id,actor_type,actor_user_id,action,entity_type,entity_id,details) ' +
-        'VALUES($1,\'SCHOOL\',$2,\'SCHOOL_ADMIN_PROVISION_CLOUD_DESTINATION\',\'cloud_sync_settings\',$1::text,$3::jsonb)',
-        [req.auth.schoolId, req.auth.userId, JSON.stringify({ cloudBaseUrl, cloudSchoolId: remote.schoolId })]
-      );
-      await pool.query(
-        'INSERT INTO school_cloud_sync_settings ' +
-        '(school_id,cloud_base_url,enabled,updated_by_user_id,cloud_auth_token_ciphertext,cloud_auth_token_iv,cloud_auth_token_tag,updated_at) ' +
-        'VALUES($1,$2,FALSE,$3,$4,$5,$6,NOW()) ' +
-        'ON CONFLICT(school_id) DO UPDATE SET cloud_base_url=EXCLUDED.cloud_base_url,enabled=FALSE, ' +
-        'updated_by_user_id=EXCLUDED.updated_by_user_id,cloud_auth_token_ciphertext=EXCLUDED.cloud_auth_token_ciphertext, ' +
-        'cloud_auth_token_iv=EXCLUDED.cloud_auth_token_iv,cloud_auth_token_tag=EXCLUDED.cloud_auth_token_tag, ' +
-        'last_connection_test_at=NULL,last_connection_test_url=NULL,last_master_data_sync_at=NULL, ' +
-        'last_master_data_sync_counts=NULL,last_master_data_sync_hash=NULL,last_master_data_sync_url=NULL, ' +
-        'last_master_data_sync_error=NULL,last_master_data_sync_cloud_received_at=NULL, ' +
-        'last_master_data_sync_cloud_imported=NULL,updated_at=NOW()',
-        [req.auth.schoolId, cloudBaseUrl, req.auth.userId, encrypted.ciphertext, encrypted.iv, encrypted.authTag]
-      );
+      const localClient = await pool.connect();
+      try {
+        await localClient.query('BEGIN');
+        await localClient.query(
+          'INSERT INTO school_cloud_sync_settings ' +
+          '(school_id,cloud_base_url,enabled,updated_by_user_id,cloud_auth_token_ciphertext,cloud_auth_token_iv,cloud_auth_token_tag,updated_at) ' +
+          'VALUES($1,$2,FALSE,$3,$4,$5,$6,NOW()) ' +
+          'ON CONFLICT(school_id) DO UPDATE SET cloud_base_url=EXCLUDED.cloud_base_url,enabled=FALSE, ' +
+          'updated_by_user_id=EXCLUDED.updated_by_user_id,cloud_auth_token_ciphertext=EXCLUDED.cloud_auth_token_ciphertext, ' +
+          'cloud_auth_token_iv=EXCLUDED.cloud_auth_token_iv,cloud_auth_token_tag=EXCLUDED.cloud_auth_token_tag, ' +
+          'last_connection_test_at=NULL,last_connection_test_url=NULL,last_master_data_sync_at=NULL, ' +
+          'last_master_data_sync_counts=NULL,last_master_data_sync_hash=NULL,last_master_data_sync_url=NULL, ' +
+          'last_master_data_sync_error=NULL,last_master_data_sync_cloud_received_at=NULL, ' +
+          'last_master_data_sync_cloud_imported=NULL,updated_at=NOW()',
+          [req.auth.schoolId, cloudBaseUrl, req.auth.userId, encrypted.ciphertext, encrypted.iv, encrypted.authTag]
+        );
+        await localClient.query(
+          'INSERT INTO audit_logs(school_id,actor_type,actor_user_id,action,entity_type,entity_id,details) ' +
+          'VALUES($1,\'SCHOOL\',$2,\'SCHOOL_ADMIN_PROVISION_CLOUD_DESTINATION\',\'cloud_sync_settings\',$1::text,$3::jsonb)',
+          [req.auth.schoolId, req.auth.userId, JSON.stringify({ cloudBaseUrl, cloudSchoolId: remote.schoolId })]
+        );
+        await localClient.query('COMMIT');
+      } catch (error) {
+        await localClient.query('ROLLBACK').catch(() => {});
+        throw error;
+      } finally {
+        localClient.release();
+      }
       return res.status(201).json({
         ok: true,
         cloudBaseUrl,
@@ -392,7 +404,9 @@ function registerCloudMasterDataRoutes(app, pool, {
       });
     } catch (err) {
       console.error('Cloud destination provisioning failed:', err.message);
-      return res.status(502).json({ error: 'Cloud destination provisioning failed. No local pairing was saved; check the cloud server key, availability, and migrations.' });
+      return res.status(502).json({ error: cloudSchoolProvisioned
+        ? 'The cloud school was created, but the local pairing could not be saved. Do not rerun provisioning. Sign in to the cloud admin account, rotate its receiving credential, then use the manual pairing form.'
+        : 'Cloud destination provisioning failed before the cloud school was confirmed. Check the cloud provisioning key, network, HTTPS address, and migrations.' });
     }
   });
 
