@@ -77,10 +77,17 @@ function registerDepartmentRoutes(app, pool, auth) {
     try {
       await client.query('BEGIN');
       const conflicts = await client.query(
-        `SELECT p.period_name, p.department_id
+        `SELECT p.period_name
          FROM teacher_period_assignments a
          JOIN class_periods p ON p.school_id=a.school_id AND p.period_id=a.period_id
          WHERE a.school_id=$1 AND a.teacher_user_id=$2 AND p.department_id<>$3
+         UNION ALL
+         SELECT p.period_name
+         FROM teacher_period_substitutions ts
+         JOIN class_periods p ON p.school_id=ts.school_id AND p.period_id=ts.period_id
+         WHERE ts.school_id=$1 AND ts.substitute_teacher_user_id=$2
+           AND ts.status='ACTIVE' AND ts.end_date >= (NOW() AT TIME ZONE 'Asia/Manila')::date
+           AND p.department_id<>$3
          LIMIT 1`,
         [req.auth.schoolId, req.params.userId, departmentId]
       );
