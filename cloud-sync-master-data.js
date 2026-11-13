@@ -262,8 +262,8 @@ function registerCloudMasterDataRoutes(app, pool, {
       );
       const createdAdmin = await client.query(
         'INSERT INTO school_users(school_id,username,display_name,password_hash,role,teacher_designations,login_enabled) ' +
-        'VALUES($1,$2,$3,$4,\\'SCHOOL_ADMIN\\',ARRAY[]::text[],TRUE) RETURNING user_id',
-        [school.schoolId, admin.username.trim(), admin.displayName.trim(), passwordHash]
+        'VALUES($1,$2,$3,$4,$5,ARRAY[]::text[],TRUE) RETURNING user_id',
+        [school.schoolId, admin.username.trim(), admin.displayName.trim(), passwordHash, 'SCHOOL_ADMIN']
       );
       await client.query(
         'INSERT INTO cloud_sync_credentials(school_id,token_hash,label,created_by_user_id) ' +
