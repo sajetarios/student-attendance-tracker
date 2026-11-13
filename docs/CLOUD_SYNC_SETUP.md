@@ -8,7 +8,7 @@ The local-to-cloud master-data push is a one-way, repeatable upsert. It provisio
 
 The receiver does not delete records. The push is designed to be retried safely and is committed as one database transaction. Existing records with mismatched tenant IDs or incompatible unique records stop the import rather than moving data between schools.
 
-The following are deliberately not copied: staff or student passwords, staff login sessions, parent accounts and contact details, student portal accounts and sessions, student QR tokens, learner or teacher photos, device credentials, SMS outbox records, confirmed daily-absence overrides, and the files and local file paths for SF2 submissions. Newly created cloud staff identity rows are marked as non-login records. Existing cloud account password hashes are never replaced. Local parent SMS remains the responsibility of the local server.
+The following are deliberately not copied: staff login usernames or passwords, staff login sessions, parent accounts and contact details, student portal accounts and sessions, student QR tokens, learner or teacher photos, device credentials, SMS outbox records, confirmed daily-absence overrides, and the files and local file paths for SF2 submissions. Newly created cloud staff identity rows are marked as non-login records. Existing cloud account password hashes are never replaced. Local parent SMS remains the responsibility of the local server.
 
 Attendance events are sent separately through the retry queue. The source event IDs are preserved, and the cloud receiver does not enqueue duplicate SMS messages. Historical attendance-event backfill is not included in this release.
 
