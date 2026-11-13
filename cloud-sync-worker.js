@@ -8,7 +8,7 @@ const MAX_ATTEMPTS = Math.max(3, Number(process.env.CLOUD_SYNC_MAX_ATTEMPTS || 1
 const REQUEST_TIMEOUT_MS = 20000;
 
 function retryDelayMs(attempts) {
-  return Math.min(6 * 60 * 60 * 1000, 5000 * Math.pow(2, Math.min(10, Math.max(0, attempts - 1))));
+  return Math.min(6 * 60 * 60 * 1000, 5000 * Math.pow(2, Math.min(14, Math.max(0, attempts - 1))));
 }
 
 async function updateRows(pool, rows, status, error, remoteStatus, delayMs = 0) {
