@@ -55,10 +55,10 @@ test('new theme uses fresh v0.8.3 portal assets and a new service-worker cache',
   assert.match(theme, /--sidebar: #1c2d45/);
   assert.doesNotMatch(theme, /#477f78|#293b3a/);
   const portalHtml = read('public/portal.html');
-  assert.match(portalHtml, /comfort-ui\\.css\\?v=0\\.8\\.3/);
-  assert.match(portalHtml, /portal\\.js\\?v=0\\.8\\.3/);
+  assert.match(portalHtml, /comfort-ui\.css\?v=0\.8\.3/);
+  assert.match(portalHtml, /portal\.js\?v=0\.8\.3/);
   assert.match(read('public/sw.js'), /school-attendance-shell-v15-teacher-workspace/);
-  assert.match(read('public/sw.js'), /portal\\.js\\?v=0\\.8\\.3/);
+  assert.match(read('public/sw.js'), /portal\.js\?v=0\.8\.3/);
 });
 
 
@@ -74,7 +74,7 @@ test('root URL and legacy index open the login page without serving a stale cach
   assert.ok(server.includes("res.redirect('/');"));
   assert.ok(index.includes('/portal-login.html'));
   assert.ok(serviceWorker.includes('if (request.mode === "navigate")'));
-  assert.ok(serviceWorker.includes('school-attendance-shell-v14-login-landing'));
+  assert.ok(serviceWorker.includes('school-attendance-shell-v15-teacher-workspace'));
   assert.equal(shell.includes('"/"'), false);
   assert.equal(shell.includes('"/index.html"'), false);
   assert.ok(loginScript.includes("navigator.serviceWorker.register('/sw.js', { updateViaCache: 'none' })"));
