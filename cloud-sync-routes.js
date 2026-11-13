@@ -1,6 +1,26 @@
 'use strict';
 
-function registerCloudSyncRoutes(app, pool, { authenticateSchoolClient, requireSchoolAdmin }) {
+function registerCloudSyncRoutes(app, pool, { authenticateSchoolClient, requireSchoolAdmin, requireSchoolRoles }) {
+  app.get('/api/cloud-sync/status', authenticateSchoolClient, requireSchoolRoles('SCHOOL_ADMIN', 'DEPARTMENT_HEAD', 'TEACHER'), async (req, res) => {
+    try {
+      const result = await pool.query(
+        `SELECT cloud_base_url AS "cloudBaseUrl", enabled, updated_at AS "updatedAt"
+         FROM school_cloud_sync_settings WHERE school_id=$1`,
+        [req.auth.schoolId]
+      );
+      const row = result.rows[0] || {};
+      return res.json({
+        configured: Boolean(row.cloudBaseUrl),
+        enabled: Boolean(row.enabled),
+        connectionStatus: 'NOT_ACTIVE',
+        updatedAt: row.updatedAt || null,
+        message: 'Local server is available. Cloud forwarding is not active.'
+      });
+    } catch (error) {
+      console.error('Cloud sync status failed:', error.message);
+      return res.status(500).json({ error: 'Could not load cloud sync status.' });
+    }
+  });
   app.get('/api/cloud-sync/settings', authenticateSchoolClient, requireSchoolAdmin, async (req, res) => {
     try {
       const result = await pool.query(
