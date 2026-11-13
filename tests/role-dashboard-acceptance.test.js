@@ -33,7 +33,8 @@ test('Department Head dashboard has school monitoring pages and read-only SF2 su
 });
 
 test('Teacher dashboard scope is derived from Subject Teacher and Class Adviser designations', () => {
-  assert.match(portalJs, /if \(teacherHas\('SUBJECT_TEACHER'\) \|\| teacherHas\('CLASS_ADVISER'\)\) views\.push\('students'\)/);
+  assert.match(portalJs, /if \(teacherHas\('SUBJECT_TEACHER'\) \|\| teacherHas\('CLASS_ADVISER'\)\) \{/);
+  assert.match(portalJs, /views\.push\('students', 'classAttendance'\)/);
   assert.match(portalJs, /if \(teacherHas\('SUBJECT_TEACHER'\)\) views\.push\('schedules'\)/);
   assert.match(portalJs, /if \(teacherHas\('SUBJECT_TEACHER'\) \|\| teacherHas\('CLASS_ADVISER'\)\) views\.push\('sf2'\)/);
   assert.match(portalJs, /Not an absence count|not an absence count/i);

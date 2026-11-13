@@ -85,10 +85,13 @@ test('Portal uses a calm accessible theme and cache-busted v0.8.2 assets', () =>
 });
 
 test('self-service and parent workspaces share the calm theme and Gate Keeper has an explicit attendance selector', () => {
-  for (const file of ['public/parent-admin.html','public/parent-portal.html','public/parent-register.html','public/portal-login.html','public/student-portal.html','public/index.html']) {
+  for (const file of ['public/parent-admin.html','public/parent-portal.html','public/parent-register.html','public/portal-login.html','public/student-portal.html']) {
     const source = read(file);
     assert.match(source, /comfort-ui\.css\?v=0\.8\.2/);
   }
+  const index = read('public/index.html');
+  assert.match(index, /window\.location\.replace\('\/portal-login\.html'/);
+  assert.match(index, /url=\/portal-login\.html/);
   assert.match(css, /body\.login-page/);
   assert.match(css, /body\.attendance-desk/);
   assert.match(html, /id=\"gateScanType\"/);
