@@ -1036,7 +1036,7 @@
     $('scheduleRows').innerHTML = periods.length ? periods.map(period => {
       const departmentCell = user.role === 'SCHOOL_ADMIN'
         ? `<select class="schedule-department-select" data-change-schedule-department="${esc(period.periodId)}" aria-label="Department for ${esc(period.periodName)}">
-            ${departments.filter(item => item.code !== 'UNASSIGNED').map(item => `<option value="${esc(item.departmentId)}" ${String(item.departmentId) === String(period.departmentId) ? 'selected' : ''}>${esc(item.name)}</option>`).join('')}
+            ${departments.map(item => `<option value="${esc(item.departmentId)}" ${String(item.departmentId) === String(period.departmentId) ? 'selected' : ''}>${esc(item.name)}</option>`).join('')}
           </select>`
         : esc(period.departmentName || 'Unassigned');
       return `<tr>
@@ -1056,8 +1056,9 @@
         ? 'All departments are visible. You can create and manage schedules only in your own department.'
         : 'Create and manage schedules for every department in this school.';
     const teacherCreatingOwn = user.role === 'TEACHER' && teacherHas('SUBJECT_TEACHER');
-    const departmentHeadCanCreate = user.role === 'DEPARTMENT_HEAD' && Boolean(user.departmentId);
+    const departmentHeadCanCreate = user.role === 'DEPARTMENT_HEAD' && Boolean(user.departmentId) && user.departmentCode !== 'UNASSIGNED';
     $('showScheduleForm').hidden = !(user.role === 'SCHOOL_ADMIN' || teacherCreatingOwn || departmentHeadCanCreate);
+    if (user.role === 'DEPARTMENT_HEAD' && !departmentHeadCanCreate) $('scheduleScopeText').textContent = 'Your account is awaiting department assignment. You can monitor all departments until the School Administrator assigns your department.';
     $('showScheduleForm').textContent = teacherCreatingOwn ? '＋ Add my schedule' : '＋ Add schedule';
     $('periodSection').required = teacherCreatingOwn;
     $('sectionRequiredMark').textContent = teacherCreatingOwn ? '*' : '(optional)';
@@ -1271,7 +1272,7 @@
 
       const departmentCell = user.role === 'SCHOOL_ADMIN'
         ? `<select class="teacher-department-select" data-change-teacher-department="${esc(teacher.userId)}" aria-label="Department for ${esc(teacher.displayName)}">
-            ${departments.filter(item => item.code !== 'UNASSIGNED').map(item => `<option value="${esc(item.departmentId)}" ${String(item.departmentId) === String(teacher.departmentId) ? 'selected' : ''}>${esc(item.name)}</option>`).join('')}
+            ${departments.map(item => `<option value="${esc(item.departmentId)}" ${String(item.departmentId) === String(teacher.departmentId) ? 'selected' : ''}>${esc(item.name)}</option>`).join('')}
           </select>`
         : esc(teacher.departmentName || 'Unassigned');
       return `<tr>
@@ -1650,7 +1651,7 @@
     host.innerHTML = schoolUsers.length ? schoolUsers.map(account => {
       const departmentCell = account.role === 'DEPARTMENT_HEAD'
         ? `<select class="staff-department-select" data-change-staff-department="${esc(account.userId)}" aria-label="Department for ${esc(account.displayName || account.username)}">
-            ${departments.filter(item => item.code !== 'UNASSIGNED').map(item => `<option value="${esc(item.departmentId)}" ${String(item.departmentId) === String(account.departmentId) ? 'selected' : ''}>${esc(item.name)}</option>`).join('')}
+            ${departments.map(item => `<option value="${esc(item.departmentId)}" ${String(item.departmentId) === String(account.departmentId) ? 'selected' : ''}>${esc(item.name)}</option>`).join('')}
           </select>`
         : '<span class="muted-inline">—</span>';
       return `<tr>
