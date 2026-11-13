@@ -65,6 +65,8 @@ function registerCloudSyncRoutes(app, pool, {
         'last_master_data_sync_at AS "lastMasterDataSyncAt", ' +
         'last_master_data_sync_counts AS "lastMasterDataSyncCounts", ' +
         'last_master_data_sync_url AS "lastMasterDataSyncUrl", ' +
+        'last_master_data_sync_cloud_received_at AS "lastMasterDataSyncCloudReceivedAt", ' +
+        'last_master_data_sync_cloud_imported AS "lastMasterDataSyncCloudImported", ' +
         'last_master_data_sync_error AS "lastMasterDataSyncError" ' +
         'FROM school_cloud_sync_settings WHERE school_id=$1',
         [req.auth.schoolId]
@@ -124,7 +126,8 @@ function registerCloudSyncRoutes(app, pool, {
       const current = await pool.query(
         'SELECT cloud_base_url, cloud_auth_token_ciphertext, cloud_auth_token_iv, cloud_auth_token_tag, ' +
         'last_connection_test_at, last_connection_test_url, last_master_data_sync_at, ' +
-        'last_master_data_sync_url, last_master_data_sync_counts, last_master_data_sync_hash, last_master_data_sync_error ' +
+        'last_master_data_sync_url, last_master_data_sync_counts, last_master_data_sync_hash, last_master_data_sync_error, ' +
+        'last_master_data_sync_cloud_received_at, last_master_data_sync_cloud_imported ' +
         'FROM school_cloud_sync_settings WHERE school_id=$1',
         [req.auth.schoolId]
       );
@@ -159,8 +162,9 @@ function registerCloudSyncRoutes(app, pool, {
         '(school_id, cloud_base_url, enabled, updated_by_user_id, cloud_auth_token_ciphertext, ' +
         'cloud_auth_token_iv, cloud_auth_token_tag, last_connection_test_at, last_connection_test_url, ' +
         'last_master_data_sync_at, last_master_data_sync_counts, last_master_data_sync_hash, ' +
-        'last_master_data_sync_url, last_master_data_sync_error, updated_at) ' +
-        'VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,NOW()) ' +
+        'last_master_data_sync_url, last_master_data_sync_error, last_master_data_sync_cloud_received_at, ' +
+        'last_master_data_sync_cloud_imported, updated_at) ' +
+        'VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,NOW()) ' +
         'ON CONFLICT (school_id) DO UPDATE SET ' +
         'cloud_base_url=EXCLUDED.cloud_base_url, enabled=EXCLUDED.enabled, ' +
         'updated_by_user_id=EXCLUDED.updated_by_user_id, ' +
@@ -172,14 +176,18 @@ function registerCloudSyncRoutes(app, pool, {
         'last_master_data_sync_counts=EXCLUDED.last_master_data_sync_counts, ' +
         'last_master_data_sync_hash=EXCLUDED.last_master_data_sync_hash, ' +
         'last_master_data_sync_url=EXCLUDED.last_master_data_sync_url, ' +
-        'last_master_data_sync_error=EXCLUDED.last_master_data_sync_error, updated_at=NOW()',
+        'last_master_data_sync_error=EXCLUDED.last_master_data_sync_error, ' +
+        'last_master_data_sync_cloud_received_at=EXCLUDED.last_master_data_sync_cloud_received_at, ' +
+        'last_master_data_sync_cloud_imported=EXCLUDED.last_master_data_sync_cloud_imported, updated_at=NOW()',
         [req.auth.schoolId, normalizedUrl, enabled, req.auth.userId,
           ciphertext, iv, tag, testAt, testUrl,
           destinationChanged ? null : existing.last_master_data_sync_at || null,
           destinationChanged ? null : existing.last_master_data_sync_counts || null,
           destinationChanged ? null : existing.last_master_data_sync_hash || null,
           destinationChanged ? null : existing.last_master_data_sync_url || null,
-          destinationChanged ? null : existing.last_master_data_sync_error || null]
+          destinationChanged ? null : existing.last_master_data_sync_error || null,
+          destinationChanged ? null : existing.last_master_data_sync_cloud_received_at || null,
+          destinationChanged ? null : existing.last_master_data_sync_cloud_imported || null]
       );
       await pool.query(
         'INSERT INTO audit_logs(school_id, actor_type, actor_user_id, action, entity_type, entity_id, details) ' +
