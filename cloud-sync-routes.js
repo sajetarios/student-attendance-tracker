@@ -147,7 +147,7 @@ function registerCloudSyncRoutes(app, pool, {
       );
       await pool.query(
         'INSERT INTO audit_logs(school_id, actor_type, actor_user_id, action, entity_type, entity_id, details) ' +
-        'VALUES($1,\\'SCHOOL\\',$2,\\'SCHOOL_ADMIN_UPDATE_CLOUD_SYNC_SETTINGS\\',\\'cloud_sync_settings\\',$1::text,$3::jsonb)',
+        'VALUES($1,\'SCHOOL\',$2,\'SCHOOL_ADMIN_UPDATE_CLOUD_SYNC_SETTINGS\',\'cloud_sync_settings\',$1::text,$3::jsonb)',
         [req.auth.schoolId, req.auth.userId,
           JSON.stringify({ cloudBaseUrl: normalizedUrl, enabled, tokenConfigured })]
       );
@@ -185,7 +185,7 @@ function registerCloudSyncRoutes(app, pool, {
       );
       await client.query(
         'INSERT INTO audit_logs(school_id, actor_type, actor_user_id, action, entity_type, entity_id, details) ' +
-        'VALUES($1,\\'SCHOOL\\',$2,\\'SCHOOL_ADMIN_ROTATE_CLOUD_SYNC_CREDENTIAL\\',\\'cloud_sync_credential\\',$1::text,$3::jsonb)',
+        'VALUES($1,\'SCHOOL\',$2,\'SCHOOL_ADMIN_ROTATE_CLOUD_SYNC_CREDENTIAL\',\'cloud_sync_credential\',$1::text,$3::jsonb)',
         [req.auth.schoolId, req.auth.userId, JSON.stringify({ credentialRotated: true })]
       );
       await client.query('COMMIT');
@@ -316,7 +316,7 @@ function registerCloudSyncRoutes(app, pool, {
       }
       const result = await pool.query(
         'UPDATE cloud_sync_outbox SET next_attempt_at=NOW(), updated_at=NOW() ' +
-        'WHERE school_id=$1 AND status IN (\\'PENDING\\',\\'FAILED\\') RETURNING sync_id',
+        'WHERE school_id=$1 AND status IN (\'PENDING\',\'FAILED\') RETURNING sync_id',
         [req.auth.schoolId]
       );
       return res.json({ ok: true, queued: result.rowCount, message: 'Pending and failed records are ready for retry.' });
