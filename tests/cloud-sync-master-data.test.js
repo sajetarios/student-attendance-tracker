@@ -94,6 +94,7 @@ test('master-data import endpoint and UI provide the guided sync controls', () =
   const portalHtml = fs.readFileSync(path.join(root, 'public/portal.html'), 'utf8');
   const portalJs = fs.readFileSync(path.join(root, 'public/portal.js'), 'utf8');
   assert.match(portalHtml, /id="cloudSyncSchoolIdentity"/);
+  assert.match(portalHtml, /id="cloudReceiverCredentialState"/);
   assert.match(portalHtml, /id="pushMasterData"/);
   assert.match(portalHtml, /id="masterDataReceiverStatus"/);
   assert.match(portalHtml, /id="cloudForwardingReadiness"/);
