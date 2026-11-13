@@ -2077,6 +2077,7 @@
       $('cloudSyncTokenPanel').hidden = false;
       setCloudSyncFeedback(data.message || 'Copy the receiving credential now.');
       showToast('Receiving credential generated. Copy it now.');
+      await loadCloudSyncSettings();
     } catch (error) {
       setCloudSyncFeedback(error.message, true);
     } finally {
