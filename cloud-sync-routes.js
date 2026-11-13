@@ -239,7 +239,7 @@ function registerCloudSyncRoutes(app, pool, {
       let response;
       try {
         response = await fetch(
-          result.rows[0].cloud_base_url.replace(/\\/+$/, '') + '/api/cloud-sync/health',
+          result.rows[0].cloud_base_url.replace(/\/+$/, '') + '/api/cloud-sync/health',
           { headers: { Authorization: 'Bearer ' + token }, signal: controller.signal }
         );
       } finally { clearTimeout(timeout); }
