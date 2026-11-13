@@ -81,12 +81,13 @@ function registerParentRoutes(app, pool, auth) {
                 su.active, su.created_at AS "createdAt", su.last_login_at AS "lastLoginAt",
                 COALESCE(json_agg(json_build_object(
                   'studentId', s.student_id, 'fullName', s.full_name,
-                  'gradeLevel', s.grade_level, 'section', s.section,
+                  'gradeLevel', COALESCE(en.grade_level,s.grade_level), 'section', COALESCE(en.section,s.section),
                   'relationship', l.relationship, 'status', l.status
                 ) ORDER BY s.full_name) FILTER (WHERE l.link_id IS NOT NULL), '[]'::json) AS children
          FROM school_users su
          LEFT JOIN parent_student_links l ON l.school_id=su.school_id AND l.parent_user_id=su.user_id
          LEFT JOIN students s ON s.school_id=l.school_id AND s.student_id=l.student_id
+         LEFT JOIN LATERAL (SELECT e.grade_level,e.section FROM student_enrollments e JOIN school_years sy ON sy.school_id=e.school_id AND sy.school_year_id=e.school_year_id WHERE e.school_id=s.school_id AND e.student_id=s.student_id AND sy.status='ACTIVE' AND e.enrollment_status='ENROLLED' ORDER BY e.created_at DESC LIMIT 1) en ON TRUE
          WHERE su.school_id=$1 AND su.role='PARENT'
          GROUP BY su.user_id ORDER BY su.active DESC, su.display_name`,
         [req.auth.schoolId]
@@ -100,10 +101,11 @@ function registerParentRoutes(app, pool, auth) {
       const result = await pool.query(
         `SELECT su.user_id AS "userId", su.username, su.display_name AS "displayName", su.mobile,
                 su.created_at AS "createdAt", l.link_id AS "linkId", l.student_id AS "studentId",
-                s.full_name AS "studentName", s.grade_level AS "gradeLevel", s.section, l.relationship
+                s.full_name AS "studentName", COALESCE(en.grade_level,s.grade_level) AS "gradeLevel", COALESCE(en.section,s.section) AS section, l.relationship
          FROM school_users su
          JOIN parent_student_links l ON l.school_id=su.school_id AND l.parent_user_id=su.user_id AND l.status='PENDING'
          JOIN students s ON s.school_id=l.school_id AND s.student_id=l.student_id
+         LEFT JOIN LATERAL (SELECT e.grade_level,e.section FROM student_enrollments e JOIN school_years sy ON sy.school_id=e.school_id AND sy.school_year_id=e.school_year_id WHERE e.school_id=s.school_id AND e.student_id=s.student_id AND sy.status='ACTIVE' AND e.enrollment_status='ENROLLED' ORDER BY e.created_at DESC LIMIT 1) en ON TRUE
          WHERE su.school_id=$1 AND su.role='PARENT' AND su.active=FALSE
          ORDER BY su.created_at`, [req.auth.schoolId]
       );
@@ -219,13 +221,14 @@ function registerParentRoutes(app, pool, auth) {
   app.get('/api/parent/children', authenticateSchoolClient, requireParent, async (req, res) => {
     try {
       const result = await pool.query(
-        `SELECT s.student_id AS "studentId",s.full_name AS "fullName",s.grade_level AS "gradeLevel",s.section,
+        `SELECT s.student_id AS "studentId",s.full_name AS "fullName",COALESCE(en.grade_level,s.grade_level) AS "gradeLevel",COALESCE(en.section,s.section) AS section,
                 l.relationship, l.status,
                 COUNT(e.event_id) FILTER (WHERE e.sync_status='ACCEPTED' AND e.school_date=(NOW() AT TIME ZONE 'Asia/Manila')::date AND e.event_type='TIME_IN')::int AS "todayTimeIns"
          FROM parent_student_links l JOIN students s ON s.school_id=l.school_id AND s.student_id=l.student_id
+         LEFT JOIN LATERAL (SELECT x.grade_level,x.section FROM student_enrollments x JOIN school_years sy ON sy.school_id=x.school_id AND sy.school_year_id=x.school_year_id WHERE x.school_id=s.school_id AND x.student_id=s.student_id AND sy.status='ACTIVE' AND x.enrollment_status='ENROLLED' ORDER BY x.created_at DESC LIMIT 1) en ON TRUE
          LEFT JOIN attendance_events e ON e.school_id=s.school_id AND e.student_id=s.student_id
          WHERE l.school_id=$1 AND l.parent_user_id=$2 AND l.status='APPROVED'
-         GROUP BY s.student_id,s.full_name,s.grade_level,s.section,l.relationship,l.status ORDER BY s.full_name`,
+         GROUP BY s.student_id,s.full_name,COALESCE(en.grade_level,s.grade_level),COALESCE(en.section,s.section),l.relationship,l.status ORDER BY s.full_name`,
         [req.auth.schoolId, req.auth.userId]
       );
       return res.json({ children: result.rows });
