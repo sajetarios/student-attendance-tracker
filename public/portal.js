@@ -1960,7 +1960,7 @@
 
       const receiver = data.receiver;
       $('masterDataReceiverStatus').textContent = receiver
-        ? 'Snapshot received ' + cloudSyncDate(receiver.receivedAt)
+        ? (receiver.confirmedBySource ? 'Cloud confirmed receipt ' : 'Snapshot received ') + cloudSyncDate(receiver.receivedAt)
         : 'No receipt received yet';
       $('masterDataReceiverCounts').textContent = receiver
         ? 'Source snapshot: ' + cloudSyncDate(receiver.sourceGeneratedAt) +
