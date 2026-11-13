@@ -10,12 +10,12 @@ const html = fs.readFileSync(path.join(root, 'public', 'portal.html'), 'utf8');
 const server = fs.readFileSync(path.join(root, 'server.js'), 'utf8');
 
 test('Department Head can view the shared student directory but cannot edit student master records', () => {
-  assert.match(portal, /if \\(role === 'DEPARTMENT_HEAD'\\) return \\[\'dashboard\', \'students\', \'teachers\', \'schedules\', \'sf2\'\\]/);
-  assert.match(portal, /api\\('\\/api\\/students'\\)/);
-  assert.match(portal, /Read-only school-wide learner master roster/);
-  assert.match(server, /requireSchoolPermission\\('students\\.view\\.all'\\)/);
-  assert.match(server, /app\\.post\\('\\/api\\/students', authenticateSchoolClient, requireSchoolAdminOrTeacher/);
-  assert.match(server, /app\\.patch\\('\\/api\\/students\\/:studentId'/);
+  assert.ok(portal.includes("if (role === 'DEPARTMENT_HEAD') return ['dashboard', 'students', 'teachers', 'schedules', 'sf2']"));
+  assert.ok(portal.includes("api('/api/students')"));
+  assert.ok(portal.includes('Read-only school-wide learner master roster'));
+  assert.ok(server.includes("requireSchoolPermission('students.view.all')"));
+  assert.ok(server.includes("app.post('/api/students', authenticateSchoolClient, requireSchoolAdminOrTeacher"));
+  assert.ok(server.includes("app.patch('/api/students/:studentId'"));
 });
 
 test('Department Head cannot see student QR scanning controls', () => {
