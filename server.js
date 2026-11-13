@@ -99,9 +99,10 @@ app.get('/api/teachers', authenticateSchoolClient, requireSchoolAdminOrDepartmen
        LEFT JOIN class_periods p
          ON p.school_id=a.school_id AND p.period_id=a.period_id AND p.active=TRUE
        WHERE su.school_id=$1 AND su.role='TEACHER'
+         AND ($2::uuid IS NULL OR su.department_id=$2)
        GROUP BY su.user_id
        ORDER BY su.active DESC, su.display_name, su.username`,
-      [req.auth.schoolId]
+      [req.auth.schoolId, req.auth.role === 'DEPARTMENT_HEAD' ? req.auth.departmentId : null]
     );
     const substitutionResult = await pool.query(
       `SELECT ts.substitution_id AS "substitutionId", ts.period_id AS "periodId",
@@ -1277,7 +1278,7 @@ app.post('/api/gate/teacher-events', authenticateSchoolClient, requireSchoolRole
 // Roster: school-scoped for all principals; teacher results are limited to their assigned grade/sections.
 // Device clients receive only the fields needed for offline QR matching (no parent contact data).
 app.get('/api/students', authenticateSchoolClient, requireSchoolClient, requireSchoolPermission('students.view.all'), async (req, res) => {
-  if (req.auth.type === 'SCHOOL_USER' && !['SCHOOL_ADMIN', 'TEACHER'].includes(req.auth.role)) {
+  if (req.auth.type === 'SCHOOL_USER' && !['SCHOOL_ADMIN', 'DEPARTMENT_HEAD', 'TEACHER'].includes(req.auth.role)) {
     return res.status(403).json({ error: 'Parent accounts may only access their approved linked children.' });
   }
   try {
@@ -1288,6 +1289,7 @@ app.get('/api/students', authenticateSchoolClient, requireSchoolClient, requireS
       scope = ` AND ${TEACHER_STUDENT_SCOPE}`;
     }
     const includeParentFields = req.auth.type === 'SCHOOL_USER' && req.auth.role === 'SCHOOL_ADMIN';
+    const includeArchived = req.auth.role === 'SCHOOL_ADMIN' && req.query.includeArchived === 'true';
     const isGateKeeper = req.auth.type === 'SCHOOL_USER' && req.auth.role === 'GATE_KEEPER';
     const canScanQr = req.auth.type === 'DEVICE' || req.auth.role === 'SCHOOL_ADMIN' ||
       (req.auth.role === 'TEACHER' && req.auth.teacherDesignations?.includes('SUBJECT_TEACHER'));
@@ -1297,13 +1299,13 @@ app.get('/api/students', authenticateSchoolClient, requireSchoolClient, requireS
       : '';
     const qrField = canScanQr ? ', s.qr_token AS "qrToken"' : '';
     const result = await pool.query(
-      `SELECT s.student_id AS "studentId", s.full_name AS "fullName",
+      `SELECT s.student_id AS "studentId", s.full_name AS "fullName", s.sex,
               COALESCE(active_enrollment.grade_level,s.grade_level) AS "gradeLevel", COALESCE(active_enrollment.section,s.section) AS section${qrField},
                (s.photo_path IS NOT NULL) AS "hasPhoto", s.updated_at AS "updatedAt"${parentFields}
        FROM students s
        LEFT JOIN LATERAL (SELECT en.grade_level,en.section FROM student_enrollments en JOIN school_years sy ON sy.school_id=en.school_id AND sy.school_year_id=en.school_year_id WHERE en.school_id=s.school_id AND en.student_id=s.student_id AND sy.status='ACTIVE' AND en.enrollment_status='ENROLLED' ORDER BY en.created_at DESC LIMIT 1) active_enrollment ON TRUE
        ${includeParentFields ? 'LEFT JOIN student_accounts sa ON sa.school_id=s.school_id AND sa.student_id=s.student_id' : ''}
-       WHERE s.school_id=$1 AND s.active=TRUE${scope}
+       WHERE s.school_id=$1${includeArchived ? '' : ' AND s.active=TRUE'}${scope}
        ORDER BY s.full_name`,
       params
     );
@@ -1322,9 +1324,9 @@ app.get('/api/students', authenticateSchoolClient, requireSchoolClient, requireS
 // A teacher cannot use this endpoint to edit an existing student or move a learner between sections.
 // The school ID is always derived from the authenticated session, never from the request body.
 app.post('/api/students', authenticateSchoolClient, requireSchoolAdminOrTeacher, async (req, res) => {
-  const { studentId, lrn, fullName, gradeLevel, section, parentName, parentMobile } = req.body || {};
-  if (![studentId, fullName, gradeLevel, section, parentMobile].every(validText)) {
-    return res.status(400).json({ error: 'Student ID, full name, grade, section, and parent mobile are required.' });
+  const { studentId, lrn, fullName, sex, gradeLevel, section, parentName, parentMobile } = req.body || {};
+  if (![studentId, fullName, gradeLevel, section, parentMobile].every(validText) || !['MALE','FEMALE'].includes(String(sex || '').toUpperCase())) {
+    return res.status(400).json({ error: 'Student ID, full name, Male/Female sex, grade, section, and parent mobile are required.' });
   }
   const isTeacher = req.auth.role === 'TEACHER';
   if (isTeacher && !req.auth.teacherDesignations?.includes('CLASS_ADVISER')) {
@@ -1356,18 +1358,18 @@ app.post('/api/students', authenticateSchoolClient, requireSchoolAdminOrTeacher,
       const conflictAction = isTeacher
         ? 'ON CONFLICT(student_id) DO NOTHING'
         : `ON CONFLICT(student_id) DO UPDATE SET
-             lrn=EXCLUDED.lrn, full_name=EXCLUDED.full_name, grade_level=EXCLUDED.grade_level,
+             lrn=EXCLUDED.lrn, full_name=EXCLUDED.full_name, sex=EXCLUDED.sex, grade_level=EXCLUDED.grade_level,
              section=EXCLUDED.section, parent_name=EXCLUDED.parent_name,
-             parent_mobile=EXCLUDED.parent_mobile, active=TRUE, updated_at=NOW()
+             parent_mobile=EXCLUDED.parent_mobile, active=TRUE, archived_at=NULL, updated_at=NOW()
            WHERE students.school_id=EXCLUDED.school_id`;
       const result = await client.query(
-        `INSERT INTO students(school_id, student_id, lrn, full_name, grade_level, section,
+        `INSERT INTO students(school_id, student_id, lrn, full_name, sex, grade_level, section,
                              parent_name, parent_mobile, qr_token)
-         VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9)
+         VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)
          ${conflictAction}
-         RETURNING student_id AS "studentId", full_name AS "fullName",
+         RETURNING student_id AS "studentId", full_name AS "fullName", sex,
                    grade_level AS "gradeLevel", section, qr_token AS "qrToken"`,
-        [req.auth.schoolId, cleanStudentId, lrn || null, fullName.trim(), cleanGrade,
+        [req.auth.schoolId, cleanStudentId, lrn || null, fullName.trim(), String(sex).toUpperCase(), cleanGrade,
          cleanSection, parentName || null, parentMobile.trim(), qrToken]
       );
       if (!result.rowCount) {
@@ -1406,9 +1408,9 @@ app.patch('/api/students/:studentId', authenticateSchoolClient, requireSchoolAdm
   const designations = Array.isArray(req.auth.teacherDesignations) ? req.auth.teacherDesignations : [];
   const isClassAdviser = isTeacher && designations.includes('CLASS_ADVISER');
   const isSubjectTeacher = isTeacher && designations.includes('SUBJECT_TEACHER');
-  const { lrn, fullName, gradeLevel, section, parentName, parentMobile } = req.body || {};
-  if (!validText(fullName) || fullName.trim().length > 200) {
-    return res.status(400).json({ error: 'Provide a valid student full name.' });
+  const { lrn, fullName, sex, gradeLevel, section, parentName, parentMobile } = req.body || {};
+  if (!validText(fullName) || fullName.trim().length > 200 || (!isTeacher && !['MALE','FEMALE'].includes(String(sex || '').toUpperCase())) || (isTeacher && isClassAdviser && !['MALE','FEMALE'].includes(String(sex || '').toUpperCase()))) {
+    return res.status(400).json({ error: 'Provide a valid student full name and Male/Female sex where you have permission to edit it.' });
   }
   if (!isTeacher && (!validText(gradeLevel) || gradeLevel.trim().length > 40 ||
       !validText(section) || section.trim().length > 100 ||
@@ -1458,12 +1460,12 @@ app.patch('/api/students/:studentId', authenticateSchoolClient, requireSchoolAdm
           return res.status(403).json({ error: 'You may move learners only within sections assigned to you as Class Adviser.' });
         }
         updated = await client.query(
-          `UPDATE students s SET full_name=$4, grade_level=$5, section=$6, updated_at=NOW()
+          `UPDATE students s SET full_name=$4, sex=$7, grade_level=$5, section=$6, updated_at=NOW()
            WHERE s.school_id=$1 AND s.student_id=$2 AND s.active=TRUE
              AND EXISTS (SELECT 1 FROM class_adviser_assignments ca WHERE ca.school_id=s.school_id AND ca.adviser_user_id=$3 AND ca.grade_level=COALESCE((SELECT en.grade_level FROM student_enrollments en JOIN school_years sy ON sy.school_id=en.school_id AND sy.school_year_id=en.school_year_id WHERE en.school_id=s.school_id AND en.student_id=s.student_id AND sy.status='ACTIVE' AND en.enrollment_status='ENROLLED' ORDER BY en.created_at DESC LIMIT 1),s.grade_level) AND ca.section=COALESCE((SELECT en.section FROM student_enrollments en JOIN school_years sy ON sy.school_id=en.school_id AND sy.school_year_id=en.school_year_id WHERE en.school_id=s.school_id AND en.student_id=s.student_id AND sy.status='ACTIVE' AND en.enrollment_status='ENROLLED' ORDER BY en.created_at DESC LIMIT 1),s.section))
            RETURNING s.student_id AS "studentId", s.full_name AS "fullName",
-                     s.grade_level AS "gradeLevel", s.section, s.qr_token AS "qrToken"`,
-          [req.auth.schoolId, req.params.studentId, req.auth.userId, fullName.trim(), gradeLevel.trim(), section.trim()]
+                     s.grade_level AS "gradeLevel", s.section, s.sex, s.qr_token AS "qrToken"`,
+          [req.auth.schoolId, req.params.studentId, req.auth.userId, fullName.trim(), gradeLevel.trim(), section.trim(), String(sex).toUpperCase()]
         );
       } else {
         // Subject-only edit; the submitted payload cannot change placement or parent/LRN data.
@@ -1492,15 +1494,15 @@ app.patch('/api/students/:studentId', authenticateSchoolClient, requireSchoolAdm
 
     const updated = await client.query(
       `UPDATE students
-       SET lrn=$3, full_name=$4, grade_level=$5, section=$6,
+       SET lrn=$3, full_name=$4, sex=$9, grade_level=$5, section=$6,
            parent_name=$7, parent_mobile=$8, updated_at=NOW()
        WHERE school_id=$1 AND student_id=$2 AND active=TRUE
        RETURNING student_id AS "studentId", lrn, full_name AS "fullName",
-                 grade_level AS "gradeLevel", section, parent_name AS "parentName",
+                 grade_level AS "gradeLevel", section, sex, parent_name AS "parentName",
                  parent_mobile AS "parentMobile", qr_token AS "qrToken"`,
       [req.auth.schoolId, req.params.studentId, lrn?.trim() || null,
        fullName.trim(), gradeLevel.trim(), section.trim(),
-       parentName?.trim() || null, parentMobile.trim()]
+       parentName?.trim() || null, parentMobile.trim(), String(sex).toUpperCase()]
     );
     if (!updated.rowCount) {
       await client.query('ROLLBACK');
