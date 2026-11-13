@@ -14,7 +14,9 @@ const REQUIRED_MIGRATIONS = [
   '006_sf2_submission_workflow.sql',
   '007_student_portal_accounts.sql',
   '008_teacher_gate_attendance.sql',
-  '009_advisory_attendance.sql'
+  '009_advisory_attendance.sql',
+  '010_school_year_enrollment_and_movements.sql',
+  '011_special_programs.sql'
 ];
 
 function checksum(content) {
