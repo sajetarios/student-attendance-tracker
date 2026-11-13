@@ -55,7 +55,7 @@ async function buildMasterDataSnapshot(pool, schoolId) {
     ['school', `SELECT school_id AS "schoolId", school_code AS "schoolCode",
                       school_name AS "schoolName", active
                FROM schools WHERE school_id=$1 AND active=TRUE`],
-    ['schoolUsers', `SELECT user_id AS "userId", username, display_name AS "displayName",
+    ['schoolUsers', `SELECT user_id AS "userId", display_name AS "displayName",
                             role, active, teacher_status AS "teacherStatus", leave_type AS "leaveType",
                             leave_start_date::text AS "leaveStartDate",
                             expected_return_date::text AS "expectedReturnDate",
@@ -328,17 +328,16 @@ function registerCloudMasterDataRoutes(app, pool, {
           (school_id,user_id,username,display_name,password_hash,role,active,teacher_status,
            leave_type,leave_start_date,expected_return_date,leave_auto_reactivate,
            teacher_designations,login_enabled,created_at,updated_at)
-         SELECT $1,x.user_id,x.username,x.display_name,'!CLOUD_SYNC_LOGIN_DISABLED!',x.role,
+         SELECT $1,x.user_id,'mirror_' || replace(x.user_id::text,'-',''),x.display_name,'!CLOUD_SYNC_LOGIN_DISABLED!',x.role,
                 COALESCE(x.active,TRUE),COALESCE(x.teacher_status,'ACTIVE'),x.leave_type,
                 x.leave_start_date,x.expected_return_date,COALESCE(x.leave_auto_reactivate,TRUE),
                 COALESCE(x.teacher_designations,ARRAY[]::text[]),FALSE,
                 COALESCE(x.created_at,NOW()),COALESCE(x.updated_at,NOW())
          FROM jsonb_to_recordset($2::jsonb) AS x(
-           user_id uuid,username text,display_name text,role text,active boolean,
+           user_id uuid,display_name text,role text,active boolean,
            teacher_status text,leave_type text,leave_start_date date,expected_return_date date,
            leave_auto_reactivate boolean,teacher_designations text[],created_at timestamptz,updated_at timestamptz)
-         ON CONFLICT(user_id) DO UPDATE SET username=EXCLUDED.username,
-           display_name=EXCLUDED.display_name,role=EXCLUDED.role,active=EXCLUDED.active,
+         ON CONFLICT(user_id) DO UPDATE SET display_name=EXCLUDED.display_name,role=EXCLUDED.role,active=EXCLUDED.active,
            teacher_status=EXCLUDED.teacher_status,leave_type=EXCLUDED.leave_type,
            leave_start_date=EXCLUDED.leave_start_date,expected_return_date=EXCLUDED.expected_return_date,
            leave_auto_reactivate=EXCLUDED.leave_auto_reactivate,
