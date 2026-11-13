@@ -443,6 +443,19 @@ function registerCloudSyncRoutes(app, pool, {
           }
         }
 
+        if (event.syncStatus === 'ACCEPTED') {
+          const semanticDuplicate = await client.query(
+            'SELECT event_id FROM attendance_events WHERE school_id=$1 AND student_id=$2 AND school_date=$3 ' +
+            'AND attendance_scope=$4 AND COALESCE(period_id::text, \'SCHOOL\')=COALESCE($5::text, \'SCHOOL\') ' +
+            'AND event_type=$6 AND sync_status=\'ACCEPTED\' LIMIT 1',
+            [req.auth.schoolId, event.studentId, event.schoolDate, event.attendanceScope, event.periodId || null, event.eventType]
+          );
+          if (semanticDuplicate.rowCount) {
+            results.push({ eventId, status: 'REJECTED', reason: 'A different accepted attendance punch already exists for this learner and attendance scope on the cloud server.' });
+            continue;
+          }
+        }
+
         const metadata = event.metadata && typeof event.metadata === 'object' && !Array.isArray(event.metadata)
           ? event.metadata : {};
         await client.query(
