@@ -15,6 +15,7 @@
   let toastTimer;
   const studentQrCache = new Map();
   const selectedStudentIds = new Set();
+  let importPreviewRows = [];
   let studentQrScanner = null;
   let scannedStudent = null;
   let scannedTeacher = null;
@@ -786,6 +787,131 @@
     $('selectedStudentCount').textContent = `${selectedStudentIds.size} selected`;
     $('selectAllStudents').checked = visible.length > 0 && visible.every(s => selectedStudentIds.has(s.studentId));
     $('selectAllStudents').indeterminate = visible.some(s => selectedStudentIds.has(s.studentId)) && !$('selectAllStudents').checked;
+  }
+
+  function csvCell(value) {
+    let text = String(value ?? '');
+    if (/^[=+@\\-\\t\\r]/.test(text)) text = "'" + text;
+    return '"' + text.replace(/"/g, '""') + '"';
+  }
+
+  function downloadCsv(filename, rows) {
+    const csv = rows.map(row => row.map(csvCell).join(',')).join('\\r\\n');
+    const blob = new Blob(['\\uFEFF' + csv], { type: 'text/csv;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url; link.download = filename; link.click();
+    URL.revokeObjectURL(url);
+  }
+
+  function exportStudentsCsv() {
+    const rows = [
+      ['Student ID', 'LRN', 'Full Name', 'Sex', 'Grade Level', 'Section', 'Status'],
+      ...students.map(student => [student.studentId, student.lrn || '', student.fullName, student.sex || '', student.gradeLevel, student.section, student.active === false ? 'Inactive' : 'Active'])
+    ];
+    downloadCsv('student-master-roster.csv', rows);
+    showToast(`Exported ${students.length} student record(s).`);
+  }
+
+  function exportTeachersCsv() {
+    const rows = [
+      ['Teacher ID', 'Username', 'Full Name', 'Department', 'Designation', 'Status', 'Grade Levels', 'Sections', 'Assigned Schedules'],
+      ...teachers.map(teacher => [
+        teacher.userId, teacher.username, teacher.displayName, teacher.departmentName || '',
+        (teacher.teacherDesignations || []).join('; '), teacher.active ? 'Active' : 'Inactive',
+        [...new Set((teacher.assignedPeriods || []).map(item => item.gradeLevel))].join('; '),
+        [...new Set([...(teacher.adviserSections || []), ...(teacher.assignedPeriods || [])].map(item => item.section).filter(Boolean))].join('; '),
+        (teacher.assignedPeriods || []).map(item => [item.periodName, item.subjectName, item.gradeLevel, item.section, item.startTime, item.endTime].filter(Boolean).join(' / ')).join('; ')
+      ])
+    ];
+    downloadCsv('department-teacher-list.csv', rows);
+    showToast(`Exported ${teachers.length} teacher record(s).`);
+  }
+
+  async function fileToBase64(file) {
+    const bytes = new Uint8Array(await file.arrayBuffer());
+    let binary = '';
+    const chunk = 0x8000;
+    for (let i = 0; i < bytes.length; i += chunk) binary += String.fromCharCode(...bytes.subarray(i, i + chunk));
+    return btoa(binary);
+  }
+
+  function renderStudentImportPreview() {
+    const host = $('studentImportPreviewRows');
+    const validCount = importPreviewRows.filter(row => !row.errors?.length).length;
+    const errorCount = importPreviewRows.length - validCount;
+    host.innerHTML = importPreviewRows.map(row => `<tr>
+      <td>${esc(row.rowNumber)}</td><td>${esc(row.studentId)}</td><td>${esc(row.fullName)}</td>
+      <td>${esc(row.action)}</td><td class="${row.errors?.length ? 'student-import-preview-error' : 'student-import-preview-ok'}">${esc(row.errors?.join(' ' ) || 'Ready')}</td>
+    </tr>`).join('');
+    $('studentImportPreviewWrap').hidden = !importPreviewRows.length;
+    $('studentImportSummary').textContent = `${importPreviewRows.length} rows · ${validCount} ready · ${errorCount} need correction. Only valid rows can be imported.`;
+    $('commitStudentImport').disabled = validCount === 0;
+    $('commitStudentImport').textContent = `Import ${validCount} valid row(s)`;
+  }
+
+  async function previewStudentImport() {
+    const file = $('studentImportFile').files?.[0];
+    if (!file) { $('studentImportFeedback').textContent = 'Choose an Excel or CSV file first.'; return; }
+    if (file.size > 6 * 1024 * 1024) { $('studentImportFeedback').textContent = 'File must be smaller than 6 MB.'; return; }
+    $('previewStudentImport').disabled = true;
+    $('studentImportFeedback').textContent = 'Reading file and checking existing student records…';
+    try {
+      const fileBase64 = await fileToBase64(file);
+      const data = await api('/api/students/import/preview', {
+        method: 'POST', body: JSON.stringify({ fileName: file.name, fileBase64 })
+      });
+      importPreviewRows = data.preview || [];
+      renderStudentImportPreview();
+      $('studentImportFeedback').textContent = 'Review the preview carefully before importing.';
+    } catch (error) {
+      importPreviewRows = [];
+      $('studentImportPreviewWrap').hidden = true;
+      $('studentImportSummary').textContent = '';
+      $('studentImportFeedback').textContent = error.message;
+    } finally { $('previewStudentImport').disabled = false; }
+  }
+
+  async function commitStudentImport() {
+    const validRows = importPreviewRows.filter(row => !row.errors?.length);
+    if (!validRows.length) return;
+    if (!window.confirm(`Import ${validRows.length} valid student row(s)? Existing Student IDs will update the same master record for administrators.`)) return;
+    $('commitStudentImport').disabled = true;
+    $('studentImportFeedback').textContent = 'Importing records…';
+    try {
+      const result = await api('/api/students/import/commit', {
+        method: 'POST', body: JSON.stringify({ rows: validRows })
+      });
+      $('studentImportFeedback').textContent = `Completed: ${result.summary.created} created, ${result.summary.updated} updated, ${result.summary.skipped} existing records skipped.`;
+      showToast('Student batch import completed.');
+      importPreviewRows = [];
+      $('studentImportPreviewWrap').hidden = true;
+      $('studentImportSummary').textContent = '';
+      $('studentImportFile').value = '';
+      await loadSchoolData();
+    } catch (error) {
+      $('studentImportFeedback').textContent = error.message;
+      $('studentImportFeedback').className = 'inline-feedback error';
+    } finally { $('commitStudentImport').disabled = false; }
+  }
+
+  async function applyStudentBulkAction() {
+    const action = $('studentBulkAction').value;
+    const ids = [...selectedStudentIds];
+    if (!action || !ids.length) { showToast('Select students and choose a batch action.', true); return; }
+    const labels = { ACTIVATE: 'activate', DEACTIVATE: 'deactivate', ARCHIVE: 'archive' };
+    if (!window.confirm(`${labels[action]} ${ids.length} selected student record(s)?`)) return;
+    $('applyStudentBulkAction').disabled = true;
+    try {
+      const result = await api('/api/students/bulk-actions', {
+        method: 'POST', body: JSON.stringify({ action, studentIds: ids })
+      });
+      selectedStudentIds.clear();
+      $('studentBulkAction').value = '';
+      showToast(`${result.affected} student record(s) updated.`);
+      await loadSchoolData();
+    } catch (error) { showToast(error.message, true); }
+    finally { $('applyStudentBulkAction').disabled = false; }
   }
 
   async function openStudentQrPreview(student) {
@@ -2186,13 +2312,31 @@
     }
   }
 
+  async function loadCloudSyncStatus() {
+    const chip = $('cloudSyncIndicator');
+    if (!chip) return;
+    try {
+      const data = await api('/api/cloud-sync/status');
+      const active = data.connectionStatus === 'CONNECTED';
+      chip.className = 'connection-chip ' + (active ? 'sync-active' : 'sync-not-connected');
+      chip.textContent = active ? 'Cloud sync: Connected' : (data.configured ? 'Cloud sync: Destination saved · inactive' : 'Cloud sync: Not active');
+      if ($('sidebarSyncStatus')) $('sidebarSyncStatus').textContent = active ? 'Local server connected · Cloud synced' : 'Local server connected · Cloud sync inactive';
+      chip.title = data.message || 'Cloud synchronization status';
+    } catch (error) {
+      chip.className = 'connection-chip sync-not-connected';
+      chip.textContent = 'Cloud sync: Status unavailable';
+      if ($('sidebarSyncStatus')) $('sidebarSyncStatus').textContent = 'Local server connected · Cloud status unavailable';
+    }
+  }
+
   async function loadCloudSyncSettings() {
     const input = $('cloudBaseUrl');
     if (!input) return;
     try {
       const data = await api('/api/cloud-sync/settings');
       input.value = data.cloudBaseUrl || '';
-      $('cloudSyncStatus').textContent = data.configured ? 'Saved · Not connected' : 'Not configured';
+      $('cloudSyncStatus').textContent = data.configured ? 'Destination saved · Sync inactive' : 'Not configured';
+      await loadCloudSyncStatus();
       $('cloudSyncFeedback').textContent = data.message || 'Cloud destination settings loaded.';
     } catch (error) {
       $('cloudSyncFeedback').textContent = error.message;
@@ -2210,7 +2354,8 @@
       const data = await api('/api/cloud-sync/settings', {
         method: 'PUT', body: JSON.stringify({ cloudBaseUrl: $('cloudBaseUrl').value.trim() })
       });
-      $('cloudSyncStatus').textContent = data.configured ? 'Saved · Not connected' : 'Not configured';
+      $('cloudSyncStatus').textContent = data.configured ? 'Destination saved · Sync inactive' : 'Not configured';
+      await loadCloudSyncStatus();
       $('cloudSyncFeedback').textContent = data.message;
       showToast('Cloud destination settings saved.');
     } catch (error) {
@@ -2296,6 +2441,21 @@
   });
 
   $('studentRosterSearch').addEventListener('input', () => { renderStudents(); updateStudentSelectionUi(); });
+  $('studentExportButton')?.addEventListener('click', exportStudentsCsv);
+  $('teacherExportButton')?.addEventListener('click', exportTeachersCsv);
+  $('studentImportButton')?.addEventListener('click', () => {
+    $('studentImportModal').hidden = false;
+    $('studentImportFeedback').textContent = '';
+  });
+  $('closeStudentImport')?.addEventListener('click', () => { $('studentImportModal').hidden = true; });
+  $('studentImportModal')?.addEventListener('click', event => { if (event.target === $('studentImportModal')) $('studentImportModal').hidden = true; });
+  $('previewStudentImport')?.addEventListener('click', previewStudentImport);
+  $('commitStudentImport')?.addEventListener('click', commitStudentImport);
+  $('applyStudentBulkAction')?.addEventListener('click', applyStudentBulkAction);
+  $('includeArchivedStudents')?.addEventListener('change', async () => {
+    selectedStudentIds.clear();
+    try { await loadSchoolData(); } catch (error) { showToast(error.message, true); }
+  });
   $('closeStudentQrPreview').addEventListener('click', () => { $('studentQrPreviewModal').hidden = true; });
   $('closeStudentQrPreviewBottom').addEventListener('click', () => { $('studentQrPreviewModal').hidden = true; });
   $('studentQrPreviewModal').addEventListener('click', event => {
