@@ -1226,24 +1226,24 @@
         ? `<div class="teacher-scope-list">${classScopes.map(item => `<span class="teacher-scope-item">${esc(item.section)}</span>`).join('')}</div>`
         : '<span class="muted-inline">Not assigned</span>';
 
-      const permanentAssignmentsHtml = assigned.map(period =>
-        `<div class="assignment-chip permanent-assignment"><div class="assignment-chip-heading"><strong>${esc(period.periodName)}</strong><span class="assignment-kind permanent">PERMANENT</span></div><small>${esc(period.subjectName || 'No subject')} · ${esc(period.gradeLevel)} · ${esc(period.section || 'All sections')}</small></div>`
-      ).join('');
-
-      const substituteAssignmentsHtml = substitutionAssignments.map(item => {
-        const isSubstitute = item.relationship === 'SUBSTITUTE';
-        const title = isSubstitute ? `Temporary cover · ${item.periodName}` : `Covered by ${item.substituteTeacherName}`;
-        const detail = isSubstitute
-          ? `For ${item.originalTeacherName}`
-          : `${item.periodName} · ${item.originalTeacherName}`;
-        return `<div class="assignment-chip substitute-assignment"><div class="assignment-chip-heading"><strong>${esc(title)}</strong><span class="assignment-kind temporary">TEMPORARY</span></div><small>${esc(detail)} · ${esc(formatSchoolDate(item.startDate))} – ${esc(formatSchoolDate(item.endDate))}</small></div>`;
-      }).join('');
+      // Keep the monitoring table compact. Detailed periods remain available in
+      // the assignment manager and Class Schedules view, rather than stretching
+      // each teacher row vertically with a stack of schedule cards.
+      const permanentAssignmentCount = assigned.length;
+      const temporaryCoverageCount = substitutionAssignments.length;
+      const assignmentsHtml = permanentAssignmentCount || temporaryCoverageCount
+        ? `<div class="teacher-assignment-summary" title="${permanentAssignmentCount} permanent schedules; ${temporaryCoverageCount} temporary coverage records">
+             <span class="teacher-assignment-count">${permanentAssignmentCount} permanent ${permanentAssignmentCount === 1 ? 'schedule' : 'schedules'}</span>
+             ${temporaryCoverageCount
+               ? `<span class="teacher-assignment-count temporary">${temporaryCoverageCount} temporary ${temporaryCoverageCount === 1 ? 'coverage' : 'coverage records'}</span>`
+               : ''}
+           </div>`
+        : '<span class="muted-inline">No schedules assigned</span>';
 
       const cancelCoverActions = substitutionAssignments
         .filter(item => item.relationship !== 'SUBSTITUTE')
         .map(item => `<button type="button" class="teacher-action-item danger" data-cancel-substitution="${esc(item.substitutionId)}">End cover · ${esc(item.periodName)}</button>`)
         .join('');
-      const assignmentsHtml = permanentAssignmentsHtml + substituteAssignmentsHtml || '<span class="muted-inline">No schedules assigned</span>';
 
       const isSchoolAdmin = user.role === 'SCHOOL_ADMIN';
       const accountActions = !isSchoolAdmin ? '<span class="muted-inline">View only</span>' : (active
