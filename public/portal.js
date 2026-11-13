@@ -1360,6 +1360,29 @@
     printWindow.document.close();
   }
 
+  function renderBulkStaffDepartment() {
+    const card = $('bulkStaffDepartmentCard');
+    if (!card) return;
+    const allowed = user?.role === 'SCHOOL_ADMIN';
+    card.hidden = !allowed;
+    if (!allowed) return;
+    const departmentSelect = $('bulkStaffDepartmentSelect');
+    const previous = departmentSelect.value;
+    const availableDepartments = departments.filter(item => item.code !== 'UNASSIGNED' && item.active);
+    departmentSelect.innerHTML = '<option value="">Select department</option>' +
+      availableDepartments.map(item => `<option value="${esc(item.departmentId)}">${esc(item.name)}</option>`).join('');
+    if (availableDepartments.some(item => String(item.departmentId) === previous)) departmentSelect.value = previous;
+    const staff = [
+      ...teachers.map(item => ({ userId: item.userId, name: item.displayName, username: item.username, role: 'TEACHER', departmentName: item.departmentName || 'Unassigned' })),
+      ...schoolUsers.filter(item => item.role === 'DEPARTMENT_HEAD').map(item => ({ userId: item.userId, name: item.displayName, username: item.username, role: 'DEPARTMENT_HEAD', departmentName: item.departmentName || 'Unassigned' }))
+    ];
+    $('bulkStaffDepartmentUsers').innerHTML = staff.map(item => `<label class="bulk-assignment-schedule">
+      <input type="checkbox" name="bulkStaffUserId" value="${esc(item.userId)}">
+      <span><strong>${esc(item.name || item.username)}</strong><small>${esc(item.role.replaceAll('_',' '))} · ${esc(item.departmentName)}</small></span>
+    </label>`).join('') || '<p class="muted-inline">No Teachers or Department Heads are available.</p>';
+    $('selectAllBulkStaff').checked = false;
+  }
+
   function renderBulkTeacherAssignment() {
     const card = $('bulkTeacherAssignmentCard');
     if (!card) return;
@@ -2052,6 +2075,7 @@
     renderStudents();
     renderPeriods();
     if (isSchoolManager) { renderTeachers(); renderBulkTeacherAssignment(); }
+    if (user.role === 'SCHOOL_ADMIN') renderBulkStaffDepartment();
     if (isDepartmentHead) renderDepartmentHeadOverview();
     if (isSchoolManager) {
       await loadTeacherCoverage(false);
@@ -3080,6 +3104,30 @@
       select.value = previousDepartment || '';
       select.disabled = false;
     }
+  });
+
+  $('selectAllBulkStaff')?.addEventListener('change', () => {
+    $('bulkStaffDepartmentUsers').querySelectorAll('input[name="bulkStaffUserId"]').forEach(input => { input.checked = $('selectAllBulkStaff').checked; });
+  });
+  $('bulkStaffDepartmentForm')?.addEventListener('submit', async event => {
+    event.preventDefault();
+    const userIds = [...$('bulkStaffDepartmentUsers').querySelectorAll('input[name="bulkStaffUserId"]:checked')].map(input => input.value);
+    const departmentId = $('bulkStaffDepartmentSelect').value;
+    const feedback = $('bulkStaffDepartmentFeedback');
+    if (!userIds.length || !departmentId) { feedback.textContent = 'Select at least one staff account and a target department.'; feedback.className = 'inline-feedback error'; return; }
+    if (!window.confirm(`Assign ${userIds.length} selected Teacher / Department Head account(s) to this department?`)) return;
+    $('applyBulkStaffDepartment').disabled = true;
+    feedback.textContent = 'Checking teacher schedule conflicts…';
+    feedback.className = 'inline-feedback';
+    try {
+      const result = await api('/api/school-users/bulk-department', { method: 'PATCH', body: JSON.stringify({ userIds, departmentId }) });
+      feedback.textContent = `${result.affected} staff account(s) updated.`;
+      showToast('Staff department assignments updated.');
+      await loadSchoolData();
+    } catch (error) {
+      feedback.textContent = error.message;
+      feedback.className = 'inline-feedback error';
+    } finally { $('applyBulkStaffDepartment').disabled = false; }
   });
 
   $('bulkAssignmentTeacher')?.addEventListener('change', renderBulkTeacherAssignment);
