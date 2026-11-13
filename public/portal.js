@@ -121,7 +121,7 @@
 
   function allowedViewsForUser() {
     const role = user?.role;
-    if (role === 'SCHOOL_ADMIN') return ['dashboard', 'students', 'teachers', 'schedules', 'sf2'];
+    if (role === 'SCHOOL_ADMIN') return ['dashboard', 'students', 'teachers', 'schedules', 'sf2', 'cloudSync'];
     if (role === 'DEPARTMENT_HEAD') return ['dashboard', 'teachers', 'schedules', 'sf2'];
     if (role === 'TEACHER') {
       const views = ['dashboard'];
@@ -150,7 +150,7 @@
     if (!allowedViews.includes(view)) view = allowedViews.includes('dashboard') ? 'dashboard' : (allowedViews[0] || 'dashboard');
     $('platformWorkspace').hidden = true;
     $('schoolWorkspace').hidden = false;
-    ['dashboard', 'students', 'schedules', 'teachers', 'sf2'].forEach(name => {
+    ['dashboard', 'students', 'schedules', 'teachers', 'sf2', 'cloudSync'].forEach(name => {
       const panel = $(`${name}View`);
       if (panel) panel.hidden = name !== view;
     });
@@ -186,7 +186,8 @@
         students: ['Student management', 'Register learners, maintain student details and photos, create student portal accounts, and manage QR cards.'],
         schedules: ['Class schedules', 'Create and manage subject periods and permanent teacher assignments.'],
         teachers: ['Teacher and staff management', 'Create school accounts, manage teacher designations, leave, schedules, substitutions, and class adviser assignments.'],
-        sf2: ['SF2 Report Generator', 'Generate the monthly TUVERA SF2 and collect official reports submitted by Class Advisers.']
+        sf2: ['SF2 Report Generator', 'Generate the monthly TUVERA SF2 and collect official reports submitted by Class Advisers.'],
+        cloudSync: ['Cloud Sync', 'Configure the destination for the future secure local-to-cloud attendance synchronization.']
       };
     }
     const title = titles[view] || ['Dashboard', 'Attendance overview.'];
@@ -212,6 +213,7 @@
   function applyRoleNavigation() {
     const role = user?.role;
     const admin = role === 'SCHOOL_ADMIN';
+    if ($('cloudSyncNav')) $('cloudSyncNav').hidden = !admin;
     const departmentHead = role === 'DEPARTMENT_HEAD';
     const gateKeeper = role === 'GATE_KEEPER';
     const teacher = role === 'TEACHER';
@@ -1831,8 +1833,43 @@
         setView('dashboard');
       }
       await loadSchoolData();
+      if (user.role === 'SCHOOL_ADMIN') await loadCloudSyncSettings();
     }
   }
+
+  async function loadCloudSyncSettings() {
+    const input = $('cloudBaseUrl');
+    if (!input) return;
+    try {
+      const data = await api('/api/cloud-sync/settings');
+      input.value = data.cloudBaseUrl || '';
+      $('cloudSyncStatus').textContent = data.configured ? 'Saved · Not connected' : 'Not configured';
+      $('cloudSyncFeedback').textContent = data.message || 'Cloud destination settings loaded.';
+    } catch (error) {
+      $('cloudSyncFeedback').textContent = error.message;
+      $('cloudSyncFeedback').className = 'inline-feedback error';
+    }
+  }
+
+  $('cloudSyncForm')?.addEventListener('submit', async event => {
+    event.preventDefault();
+    const button = $('saveCloudDestination');
+    button.disabled = true;
+    $('cloudSyncFeedback').className = 'inline-feedback';
+    $('cloudSyncFeedback').textContent = 'Saving destination…';
+    try {
+      const data = await api('/api/cloud-sync/settings', {
+        method: 'PUT', body: JSON.stringify({ cloudBaseUrl: $('cloudBaseUrl').value.trim() })
+      });
+      $('cloudSyncStatus').textContent = data.configured ? 'Saved · Not connected' : 'Not configured';
+      $('cloudSyncFeedback').textContent = data.message;
+      showToast('Cloud destination settings saved.');
+    } catch (error) {
+      $('cloudSyncFeedback').className = 'inline-feedback error';
+      $('cloudSyncFeedback').textContent = error.message;
+    } finally { button.disabled = false; }
+  });
+  $('refreshCloudDestination')?.addEventListener('click', loadCloudSyncSettings);
 
   document.querySelectorAll('.nav-item[data-view]').forEach(button => {
     button.addEventListener('click', () => setView(button.dataset.view));
