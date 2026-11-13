@@ -233,6 +233,7 @@
   function applyRoleNavigation() {
     const role = user?.role;
     const admin = role === 'SCHOOL_ADMIN';
+    const teacher = role === 'TEACHER';
     if ($('cloudSyncNav')) $('cloudSyncNav').hidden = !admin;
     if ($('exportTeachersButton')) $('exportTeachersButton').hidden = !(admin || role === 'DEPARTMENT_HEAD');
     if ($('bulkImportStudentsButton')) $('bulkImportStudentsButton').hidden = !(admin || teacherHas('CLASS_ADVISER'));
@@ -246,7 +247,6 @@
     if ($('studentDepartmentScopeNote')) $('studentDepartmentScopeNote').hidden = !departmentHead;
     if ($('printBulkQr')) $('printBulkQr').hidden = departmentHead;
     if ($('applyStudentBatch')) $('applyStudentBatch').hidden = !(admin || departmentHead || (role === 'TEACHER' && teacherHas('CLASS_ADVISER')));
-    const teacher = role === 'TEACHER';
     const subjectTeacher = teacherHas('SUBJECT_TEACHER');
     const classAdviser = teacherHas('CLASS_ADVISER');
     const mayScan = gateKeeper || (teacher && (subjectTeacher || classAdviser));
@@ -888,14 +888,18 @@
     $('editParentName').value = student.parentName || '';
     $('editParentMobile').value = student.parentMobile || '';
     const isTeacher = user.role === 'TEACHER';
+    const isDepartmentHead = user.role === 'DEPARTMENT_HEAD';
     const adviserCanEditPlacement = isTeacher && teacherHas('CLASS_ADVISER') &&
       adviserAssignments.some(item => String(item.gradeLevel) === String(student.gradeLevel) && String(item.section) === String(student.section));
-    ['editLrnGroup','editParentNameGroup','editParentMobileGroup'].forEach(id => { $(id).hidden = isTeacher; });
+    const restrictedStudentEditor = isTeacher || isDepartmentHead;
+    ['editLrnGroup','editParentNameGroup','editParentMobileGroup'].forEach(id => { $(id).hidden = restrictedStudentEditor; });
     $('editSexGroup').hidden = isTeacher && !adviserCanEditPlacement;
-    $('editSex').required = !isTeacher || adviserCanEditPlacement;
-    $('editGradeGroup').hidden = isTeacher && !adviserCanEditPlacement;
-    $('editSectionGroup').hidden = isTeacher && !adviserCanEditPlacement;
-    $('studentEditFeedback').textContent = isTeacher
+    $('editSex').required = !isTeacher || adviserCanEditPlacement || isDepartmentHead;
+    $('editGradeGroup').hidden = restrictedStudentEditor;
+    $('editSectionGroup').hidden = restrictedStudentEditor;
+    $('studentEditFeedback').textContent = isDepartmentHead
+      ? 'As Department Head, you may correct learner name and sex in your department. Grade and section changes use the department-scoped batch assignment action.'
+      : isTeacher
       ? adviserCanEditPlacement
         ? 'As Class Adviser, you may correct the learner name and placement within your assigned section. Student ID and QR code remain unchanged.'
         : 'As Subject Teacher, you may correct the learner name only. Grade, section, LRN, and guardian details remain protected.'
@@ -2608,12 +2612,13 @@
     const id = $('editStudentId').value;
     const feedback = $('studentEditFeedback');
     feedback.textContent = 'Saving changes…'; feedback.className = 'inline-feedback';
-    const placementEditable = user.role !== 'TEACHER' || !$('editGradeGroup').hidden;
+    const restrictedEditor = ['TEACHER','DEPARTMENT_HEAD'].includes(user.role);
+    const placementEditable = !restrictedEditor;
     const payload = { fullName: $('editFullName').value.trim() };
-    const sexEditable = user.role !== 'TEACHER' || (!$('editSexGroup').hidden);
+    const sexEditable = !restrictedEditor || (user.role === 'TEACHER' && !$('editSexGroup').hidden);
     if (sexEditable) payload.sex = $('editSex').value;
     if (placementEditable) Object.assign(payload, { gradeLevel: $('editGrade').value, section: $('editSection').value.trim() });
-    if (user.role !== 'TEACHER') Object.assign(payload, { lrn: $('editLrn').value.trim() || null, parentName: $('editParentName').value.trim() || null, parentMobile: $('editParentMobile').value.trim() });
+    if (!restrictedEditor) Object.assign(payload, { lrn: $('editLrn').value.trim() || null, parentName: $('editParentName').value.trim() || null, parentMobile: $('editParentMobile').value.trim() });
     try {
       await api(`/api/students/${encodeURIComponent(id)}`, { method: 'PATCH', body: JSON.stringify(payload) });
       if (user.role === 'TEACHER' && sexEditable) {
