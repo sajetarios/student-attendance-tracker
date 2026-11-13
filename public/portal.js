@@ -1245,10 +1245,12 @@
              <button type="button" class="teacher-action-item" data-return-teacher="${esc(teacher.userId)}">Reactivate account</button>`);
 
       const designationLabels = (teacher.teacherDesignations || []).map(value => value === 'CLASS_ADVISER' ? 'Class Adviser' : 'Subject Teacher').join(' + ') || 'No designation';
-      const canAssignSubstitute = user.role === 'DEPARTMENT_HEAD' && onLeave && assigned.length > 0;
+      const canManageDepartment = user.role === 'DEPARTMENT_HEAD' && String(teacher.departmentId) === String(user.departmentId);
+      const canAssignSubstitute = canManageDepartment && onLeave && assigned.length > 0;
       const departmentHeadCoverageActions = [
+        ...(canManageDepartment && active ? [`<button type="button" class="teacher-action-item" data-manage-permanent="${esc(teacher.userId)}">Manage department assignments</button>`] : []),
         ...(canAssignSubstitute ? [`<button type="button" class="teacher-action-item" data-assign-substitute="${esc(teacher.userId)}">Assign temporary substitute</button>`] : []),
-        ...(cancelCoverActions ? [cancelCoverActions] : [])
+        ...(canManageDepartment && cancelCoverActions ? [cancelCoverActions] : [])
       ].join('');
       const actionMenu = isSchoolAdmin ? `<details class="teacher-action-menu">
         <summary class="outline-button compact-button teacher-actions-trigger" aria-label="Actions for ${esc(teacher.displayName)}">Actions <span class="teacher-actions-chevron" aria-hidden="true">▾</span></summary>
@@ -1257,15 +1259,21 @@
         ? `<div class="teacher-coverage-actions">${departmentHeadCoverageActions}</div>`
         : '<span class="muted-inline">Read only</span>');
 
+      const departmentCell = user.role === 'SCHOOL_ADMIN'
+        ? `<select class="teacher-department-select" data-change-teacher-department="${esc(teacher.userId)}" aria-label="Department for ${esc(teacher.displayName)}">
+            ${departments.filter(item => item.code !== 'UNASSIGNED').map(item => `<option value="${esc(item.departmentId)}" ${String(item.departmentId) === String(teacher.departmentId) ? 'selected' : ''}>${esc(item.name)}</option>`).join('')}
+          </select>`
+        : esc(teacher.departmentName || 'Unassigned');
       return `<tr>
         <td><strong>${esc(teacher.displayName)}</strong><small class="table-subtext">${esc(teacher.username)}</small><small class="table-subtext">${esc(designationLabels)}</small></td>
+        <td>${departmentCell}</td>
         <td><span class="account-status ${statusClass}">${statusLabel}</span>${leaveDetails}</td>
         <td>${gradeLevelsHtml}</td>
         <td>${sectionsHtml}</td>
         <td>${assignmentsHtml}</td>
         <td><div class="action-row">${actionMenu}</div></td>
       </tr>`;
-    }).join('') : '<tr><td colspan="6" class="empty-cell">No teacher accounts have been created for this school yet.</td></tr>';
+    }).join('') : '<tr><td colspan="7" class="empty-cell">No teacher accounts have been created for this school yet.</td></tr>';
 
     $('teacherRows').innerHTML = rows;
     $('teacherRows').querySelectorAll('input[data-teacher-photo]').forEach(input => input.addEventListener('change', async () => {
@@ -1311,6 +1319,7 @@
       String(period.startTime || '') < String(existing.endTime || '')
     )).map(item => String(item.periodId));
     const available = periods.filter(period =>
+      String(period.departmentId) === String(teacher.departmentId) &&
       !assignedIds.has(String(period.periodId)) &&
       !assignedByOthers.has(String(period.periodId)) &&
       !timeConflicts.includes(String(period.periodId))
@@ -1628,11 +1637,19 @@
   function renderStaffUsers() {
     const host = $('staffUserRows');
     if (!host) return;
-    host.innerHTML = schoolUsers.length ? schoolUsers.map(account => `
-      <tr><td><strong>${esc(account.displayName || account.username)}</strong><small class="table-subtext">${esc(account.username)}</small></td>
-      <td>${esc(String(account.role || '').replaceAll('_', ' '))}</td>
-      <td><span class="account-status ${account.active ? 'active' : 'inactive'}">${account.active ? 'Active' : 'Inactive'}</span></td></tr>`).join('')
-      : '<tr><td colspan="3" class="empty-cell">No additional staff accounts have been created.</td></tr>';
+    host.innerHTML = schoolUsers.length ? schoolUsers.map(account => {
+      const departmentCell = account.role === 'DEPARTMENT_HEAD'
+        ? `<select class="staff-department-select" data-change-staff-department="${esc(account.userId)}" aria-label="Department for ${esc(account.displayName || account.username)}">
+            ${departments.filter(item => item.code !== 'UNASSIGNED').map(item => `<option value="${esc(item.departmentId)}" ${String(item.departmentId) === String(account.departmentId) ? 'selected' : ''}>${esc(item.name)}</option>`).join('')}
+          </select>`
+        : '<span class="muted-inline">—</span>';
+      return `<tr>
+        <td><strong>${esc(account.displayName || account.username)}</strong><small class="table-subtext">${esc(account.username)}</small></td>
+        <td>${esc(String(account.role || '').replaceAll('_', ' '))}</td>
+        <td>${departmentCell}</td>
+        <td><span class="account-status ${account.active ? 'active' : 'inactive'}">${account.active ? 'Active' : 'Inactive'}</span></td>
+      </tr>`;
+    }).join('') : '<tr><td colspan="4" class="empty-cell">No additional staff accounts have been created.</td></tr>';
   }
 
   function renderAdviserAssignments() {
