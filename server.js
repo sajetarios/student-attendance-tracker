@@ -1738,11 +1738,32 @@ app.get('/api/periods', authenticateSchoolClient, requireSchoolUser, async (req,
     const result = await pool.query(
       `SELECT p.period_id AS "periodId", p.period_name AS "periodName",
               p.grade_level AS "gradeLevel", p.section, p.subject_name AS "subjectName",
+              p.classroom, p.department_id AS "departmentId",
+              COALESCE(d.department_name, 'Unassigned') AS "departmentName",
+              assignment."assignedTeacherUserId", assignment."assignedTeacherName",
               to_char(p.start_time,'HH24:MI') AS "startTime",
               to_char(p.end_time,'HH24:MI') AS "endTime", p.grace_minutes AS "graceMinutes"
        FROM class_periods p
+       LEFT JOIN school_departments d ON d.school_id=p.school_id AND d.department_id=p.department_id
+       LEFT JOIN LATERAL (
+         SELECT COALESCE(ts.substitute_teacher_user_id, a.teacher_user_id) AS "assignedTeacherUserId",
+                COALESCE(substitute.display_name, original.display_name) AS "assignedTeacherName"
+         FROM teacher_period_assignments a
+         JOIN school_users original ON original.school_id=a.school_id AND original.user_id=a.teacher_user_id
+         LEFT JOIN LATERAL (
+           SELECT tsub.substitute_teacher_user_id
+           FROM teacher_period_substitutions tsub
+           WHERE tsub.school_id=a.school_id AND tsub.period_id=a.period_id
+             AND tsub.original_teacher_user_id=a.teacher_user_id AND tsub.status='ACTIVE'
+             AND (NOW() AT TIME ZONE 'Asia/Manila')::date BETWEEN tsub.start_date AND tsub.end_date
+           ORDER BY tsub.created_at DESC LIMIT 1
+         ) ts ON TRUE
+         LEFT JOIN school_users substitute ON substitute.school_id=a.school_id AND substitute.user_id=ts.substitute_teacher_user_id
+         WHERE a.school_id=p.school_id AND a.period_id=p.period_id
+         ORDER BY a.assignment_id LIMIT 1
+       ) assignment ON TRUE
        WHERE p.school_id=$1 AND p.active=TRUE${teacherScope}
-       ORDER BY p.start_time`,
+       ORDER BY p.start_time, p.grade_level, p.section`,
       params
     );
     return res.json({ periods: result.rows });
@@ -1752,23 +1773,37 @@ app.get('/api/periods', authenticateSchoolClient, requireSchoolUser, async (req,
   }
 });
 
-// School Administrators create school schedules. Subject Teachers may create a schedule only for their own account.
-app.post('/api/periods', authenticateSchoolClient, requireSchoolAdminOrTeacher, async (req, res) => {
+// School Administrators, Department Heads, and Subject Teachers may create schedules within their permitted scope.
+app.post('/api/periods', authenticateSchoolClient, requireSchoolAdminOrDepartmentHeadOrTeacher, async (req, res) => {
   const isTeacher = req.auth.role === 'TEACHER';
+  const isDepartmentHead = req.auth.role === 'DEPARTMENT_HEAD';
+  const departmentId = isTeacher || isDepartmentHead ? req.auth.departmentId : (req.body?.departmentId || null);
+  const classroom = typeof req.body?.classroom === 'string' ? req.body.classroom.trim() : '';
   if (isTeacher && !req.auth.teacherDesignations?.includes('SUBJECT_TEACHER')) {
     return res.status(403).json({ error: 'Only a Subject Teacher may create a personal class schedule.' });
   }
   const { periodName, gradeLevel, section, subjectName, startTime, endTime, graceMinutes = 0 } = req.body || {};
+  if (!isUuid(departmentId)) return res.status(400).json({ error: 'Choose a valid department for this schedule.' });
+  if (classroom.length > 100) return res.status(400).json({ error: 'Classroom name must be 100 characters or fewer.' });
   if (![periodName, gradeLevel, startTime, endTime].every(validText) ||
       (isTeacher && !validText(section)) ||
       !/^([01]\d|2[0-3]):[0-5]\d$/.test(startTime) || !/^([01]\d|2[0-3]):[0-5]\d$/.test(endTime) ||
       startTime >= endTime || !Number.isInteger(Number(graceMinutes)) || Number(graceMinutes) < 0 || Number(graceMinutes) > 240 ||
-      String(periodName).trim().length > 120 || String(gradeLevel).trim().length > 40 || String(section || '').trim().length > 100 || String(subjectName || '').trim().length > 120) {
-    return res.status(400).json({ error: 'Provide a valid schedule name, grade, section, time range, and grace period.' });
+      String(periodName).trim().length > 120 || String(gradeLevel).trim().length > 40 ||
+      String(section || '').trim().length > 100 || String(subjectName || '').trim().length > 120) {
+    return res.status(400).json({ error: 'Provide a valid schedule name, grade, section, classroom, time range, and grace period.' });
   }
   const client = await pool.connect();
   try {
     await client.query('BEGIN');
+    const validDepartment = await client.query(
+      'SELECT 1 FROM school_departments WHERE school_id=$1 AND department_id=$2 AND active=TRUE',
+      [req.auth.schoolId, departmentId]
+    );
+    if (!validDepartment.rowCount) {
+      await client.query('ROLLBACK');
+      return res.status(400).json({ error: 'The selected department is not active in this school.' });
+    }
     if (isTeacher) {
       const conflict = await client.query(
         `SELECT EXISTS (
@@ -1776,12 +1811,13 @@ app.post('/api/periods', authenticateSchoolClient, requireSchoolAdminOrTeacher, 
            LEFT JOIN teacher_period_assignments a ON a.school_id=p.school_id AND a.period_id=p.period_id
            WHERE p.school_id=$1 AND p.active=TRUE
              AND p.start_time < $4::time AND $3::time < p.end_time
+             AND p.department_id=$7
              AND (
                a.teacher_user_id=$2
                OR (p.grade_level=$5 AND (p.section IS NULL OR p.section=$6))
              )
          ) AS conflict`,
-        [req.auth.schoolId, req.auth.userId, startTime, endTime, gradeLevel.trim(), section.trim()]
+        [req.auth.schoolId, req.auth.userId, startTime, endTime, gradeLevel.trim(), section.trim(), departmentId]
       );
       if (conflict.rows[0]?.conflict) {
         await client.query('ROLLBACK');
@@ -1790,13 +1826,14 @@ app.post('/api/periods', authenticateSchoolClient, requireSchoolAdminOrTeacher, 
     }
     const result = await client.query(
       `INSERT INTO class_periods(school_id, period_name, grade_level, section, subject_name,
-                                 start_time, end_time, grace_minutes)
-       VALUES($1,$2,$3,$4,$5,$6,$7,$8)
+                                 start_time, end_time, grace_minutes, department_id, classroom)
+       VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)
        RETURNING period_id AS "periodId", period_name AS "periodName",
                  grade_level AS "gradeLevel", section, subject_name AS "subjectName",
+                 department_id AS "departmentId", classroom,
                  to_char(start_time,'HH24:MI') AS "startTime", to_char(end_time,'HH24:MI') AS "endTime"`,
       [req.auth.schoolId, periodName.trim(), gradeLevel.trim(), section?.trim() || null,
-       subjectName?.trim() || null, startTime, endTime, Number(graceMinutes)]
+       subjectName?.trim() || null, startTime, endTime, Number(graceMinutes), departmentId, classroom || null]
     );
     const period = result.rows[0];
     if (isTeacher) {
@@ -1810,12 +1847,13 @@ app.post('/api/periods', authenticateSchoolClient, requireSchoolAdminOrTeacher, 
       `INSERT INTO audit_logs(school_id, actor_type, actor_user_id, action, entity_type, entity_id, details)
        VALUES($1,'SCHOOL',$2,$3,'class_period',$4,$5::jsonb)`,
       [req.auth.schoolId, req.auth.userId,
-       isTeacher ? 'TEACHER_CREATE_OWN_PERIOD' : 'SCHOOL_ADMIN_CREATE_PERIOD',
+       isTeacher ? 'TEACHER_CREATE_OWN_PERIOD' : isDepartmentHead ? 'DEPARTMENT_HEAD_CREATE_DEPARTMENT_PERIOD' : 'SCHOOL_ADMIN_CREATE_PERIOD',
        period.periodId,
-       JSON.stringify({ periodName: period.periodName, gradeLevel: period.gradeLevel, section: period.section, selfAssigned: isTeacher })]
+       JSON.stringify({ periodName: period.periodName, gradeLevel: period.gradeLevel,
+         section: period.section, classroom, departmentId, selfAssigned: isTeacher })]
     );
     await client.query('COMMIT');
-    return res.status(201).json({ period, assignedToCreator: isTeacher });
+    return res.status(201).json({ period, assignedToCreator: isTeacher, departmentManagedByHead: isDepartmentHead });
   } catch (err) {
     await client.query('ROLLBACK').catch(() => {});
     console.error('Period creation failed:', err.message);
