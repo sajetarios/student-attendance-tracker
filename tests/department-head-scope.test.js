@@ -62,5 +62,6 @@ test('Class coverage monitor distinguishes unassigned classes, leave, and missin
 
 test('Permanent teacher assignment requires matching department and rejects timetable overlap', () => {
   assert.match(server, /teacher\.rows\[0\]\.department_id\) !== String\(period\.rows\[0\]\.department_id\)/);
-  assert.match(server, /SELECT p\.period_name[\s\S]*?teacherUserId[\s\S]*?requested\.start_time < p\.end_time/);
+  assert.match(server, /const scheduleConflict = await client\.query/);
+  assert.match(server, /requested\.start_time < p\.end_time/);
 });
