@@ -208,3 +208,10 @@ body.attendance-desk .feedback { background: #eff4fa; color: #53677f !important;
  .portal-page .student-edit-overlay,.portal-page .student-qr-preview-overlay,.portal-page .student-scan-setup-overlay{padding:8px}
  .portal-page .student-edit-dialog,.portal-page .student-qr-preview-dialog{width:100%;max-height:calc(100dvh - 16px);overflow:auto}
 }
+
+
+.portal-page .dashboard-metric-guide{display:grid;grid-template-columns:minmax(220px,.8fr) minmax(0,1.2fr);gap:20px;align-items:center;padding:18px 20px;margin:14px 0}
+.portal-page .dashboard-metric-guide h3{margin:4px 0 6px;font-size:16px}
+.portal-page .dashboard-metric-guide p{margin:0;color:var(--muted);font-size:13px;line-height:1.5}
+.portal-page .dashboard-metric-guide ul{margin:0;padding-left:19px;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px 22px;color:var(--muted);font-size:13px;line-height:1.5}
+@media(max-width:760px){.portal-page .dashboard-metric-guide{grid-template-columns:1fr;gap:12px}.portal-page .dashboard-metric-guide ul{grid-template-columns:1fr}}
