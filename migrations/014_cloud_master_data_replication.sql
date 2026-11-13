@@ -11,6 +11,10 @@ ALTER TABLE school_cloud_sync_settings
   ADD COLUMN IF NOT EXISTS last_master_data_sync_error TEXT,
   ADD COLUMN IF NOT EXISTS last_master_data_sync_url TEXT;
 
+-- A pre-existing attendance destination has not necessarily been provisioned. Pause it until
+-- a current connection test and master-data snapshot have completed after this release.
+UPDATE school_cloud_sync_settings SET enabled=FALSE WHERE enabled=TRUE;
+
 CREATE TABLE IF NOT EXISTS cloud_sync_master_data_receipts (
   school_id UUID PRIMARY KEY REFERENCES schools(school_id) ON DELETE CASCADE,
   schema_version INTEGER NOT NULL,
