@@ -17,6 +17,7 @@ function createAuthMiddleware(pool) {
       const session = await pool.query(
         `SELECT us.session_id, us.principal_type, us.school_id,
                 su.user_id, su.role, su.username, su.display_name, su.teacher_designations,
+                su.department_id, d.department_name,
                 s.school_code, s.school_name
          FROM user_sessions us
          JOIN school_users su
@@ -24,6 +25,8 @@ function createAuthMiddleware(pool) {
           AND su.school_id = us.school_id
           AND su.active = TRUE
          JOIN schools s ON s.school_id = us.school_id AND s.active = TRUE
+         LEFT JOIN school_departments d
+           ON d.school_id=su.school_id AND d.department_id=su.department_id
          WHERE us.token_hash = $1
            AND us.principal_type = 'SCHOOL'
            AND us.revoked_at IS NULL
@@ -41,6 +44,8 @@ function createAuthMiddleware(pool) {
           userId: row.user_id,
           role: row.role,
           teacherDesignations: Array.isArray(row.teacher_designations) ? row.teacher_designations : [],
+          departmentId: row.department_id || null,
+          departmentName: row.department_name || null,
           username: row.username,
           displayName: row.display_name,
           schoolCode: row.school_code,
