@@ -256,7 +256,8 @@ function registerCloudMasterDataRoutes(app, pool, {
       await pool.query(
         'UPDATE school_cloud_sync_settings SET last_master_data_sync_at=NOW(), ' +
         'last_master_data_sync_counts=$2::jsonb, last_master_data_sync_hash=$3, ' +
-        'last_master_data_sync_error=NULL, updated_at=NOW() WHERE school_id=$1',
+        'last_master_data_sync_url=cloud_base_url, last_master_data_sync_error=NULL, ' +
+        'updated_at=NOW() WHERE school_id=$1',
         [req.auth.schoolId, JSON.stringify(snapshot.counts), payloadHash]
       );
       return res.json({
