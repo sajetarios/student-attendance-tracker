@@ -388,12 +388,13 @@
           </section>
           <section id="studentsView" class="view-panel" hidden>
             <div class="surface-card section-card">
-              <div class="section-toolbar" id="studentManagementHeader"><div><h3>Student roster</h3><p id="studentScopeText">Students available to your account.</p></div><button class="primary-button" id="showStudentForm">＋ Add student</button></div>
+              <div class="section-toolbar" id="studentManagementHeader"><div><h3>Student master roster</h3><p id="studentScopeText">One school-wide student record shared by authorized users.</p></div><div class="student-toolbar-actions"><button class="outline-button" id="studentExportButton" type="button">↓ Export list</button><button class="outline-button" id="studentImportButton" type="button" hidden>⇧ Bulk import</button><button class="primary-button" id="showStudentForm">＋ Add student</button></div></div>
               <form id="studentForm" class="inline-form" hidden>
                 <div class="form-grid">
                   <div class="field-group"><label for="newStudentId">Student ID *</label><input id="newStudentId" required maxlength="80" placeholder="e.g. G8-001"></div>
                   <div class="field-group"><label for="newLrn">LRN</label><input id="newLrn" maxlength="32" placeholder="Learner Reference Number"></div>
                   <div class="field-group span-2"><label for="newFullName">Full name *</label><input id="newFullName" required maxlength="180" placeholder="Last name, First name, Middle name"></div>
+                  <div class="field-group"><label for="newSex">Sex *</label><select id="newSex" required><option value="">Select sex</option><option value="MALE">Male</option><option value="FEMALE">Female</option></select></div>
                   <div class="field-group"><label for="newGrade">Grade level *</label><select id="newGrade" required><option>Grade 7</option><option>Grade 8</option><option>Grade 9</option><option>Grade 10</option></select></div>
                   <div class="field-group"><label for="newSection">Section *</label><select id="newSection" required disabled><option value="">Select grade level first</option></select><small id="newSectionHint" class="field-hint">Choose a grade to load its available sections.</small></div>
                   <div class="field-group"><label for="newParentName">Parent / guardian</label><input id="newParentName" maxlength="180"></div>
@@ -402,6 +403,7 @@
                 </div>
                 <div class="form-actions"><button class="primary-button" type="submit">Save student</button><button class="outline-button" type="button" id="cancelStudentForm">Cancel</button><span id="studentFormFeedback" class="inline-feedback"></span></div>
               </form>
+              <div id="studentImportModal" class="student-edit-overlay" role="dialog" aria-modal="true" aria-labelledby="studentImportTitle" hidden><div class="student-edit-dialog"><div class="section-toolbar"><div><h3 id="studentImportTitle">Bulk import students</h3><p>Upload an Excel (.xlsx) or CSV file. Student ID matches the existing master record.</p></div><button type="button" class="outline-button" id="closeStudentImport">Close</button></div><p class="form-help">Required columns: Student ID, Full Name, Sex, Grade Level, Section. Optional: LRN, Parent Name, Parent Mobile. Existing IDs are updated by administrators and skipped by teachers.</p><div class="field-group"><label for="studentImportFile">Excel or CSV file</label><input id="studentImportFile" type="file" accept=".xlsx,.csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,text/csv"></div><div class="form-actions"><button class="primary-button" id="previewStudentImport" type="button">Preview import</button><a class="outline-button" href="/student-import-template.csv" download>Download template</a></div><div id="studentImportSummary" class="inline-feedback" role="status"></div><div class="table-scroll" id="studentImportPreviewWrap" hidden><table><thead><tr><th>Row</th><th>Student ID</th><th>Student</th><th>Action</th><th>Validation</th></tr></thead><tbody id="studentImportPreviewRows"></tbody></table></div><div class="form-actions"><button class="primary-button" id="commitStudentImport" type="button" disabled>Import valid rows</button><span id="studentImportFeedback" class="inline-feedback" role="status"></span></div></div></div>
               <div id="parentInviteModal" class="student-scan-setup-overlay" role="dialog" aria-modal="true" aria-labelledby="parentInviteTitle" hidden>
                 <div class="student-scan-setup-dialog">
                   <div class="scan-setup-icon" aria-hidden="true">👨‍👩‍👧</div>
@@ -485,9 +487,9 @@
               <div class="student-roster-tools">
                 <div><h3>Registered students</h3><p>QR previews remain tied to each student's existing private token. Editing details does not replace the QR code.</p></div>
                 <div class="student-filter-row"><label class="student-name-filter">Search by name or student ID <input id="studentRosterSearch" type="search" placeholder="Type a student name or ID…"></label><label>Filter by grade <select id="bulkQrGrade"><option value="ALL">All grades</option><option>Grade 7</option><option>Grade 8</option><option>Grade 9</option><option>Grade 10</option></select></label><label>Filter by section <select id="bulkQrSection"><option value="ALL">All sections</option></select></label></div>
-                <div class="student-bulk-actions"><label><input type="checkbox" id="selectAllStudents"> Select all visible students</label><span id="selectedStudentCount">0 selected</span><button class="primary-button" type="button" id="printBulkQr">Print selected ID cards</button><span id="bulkQrFeedback" class="inline-feedback" role="status"></span></div>
+                <div class="student-bulk-actions"><label><input type="checkbox" id="includeArchivedStudents"> Include archived</label><label><input type="checkbox" id="selectAllStudents"> Select all visible students</label><span id="selectedStudentCount">0 selected</span><select id="studentBulkAction" aria-label="Batch action"><option value="">Choose batch action</option><option value="ACTIVATE">Activate</option><option value="DEACTIVATE">Deactivate</option><option value="ARCHIVE">Archive</option></select><button class="outline-button" type="button" id="applyStudentBulkAction">Apply action</button><button class="primary-button" type="button" id="printBulkQr">Print selected ID cards</button><span id="bulkQrFeedback" class="inline-feedback" role="status"></span></div>
               </div>
-              <div class="table-scroll"><table><thead><tr><th>Select</th><th>Photo</th><th>Student ID</th><th>Full name</th><th>Grade</th><th>Section</th><th>QR code</th><th>Actions</th><th>Student portal account</th></tr></thead><tbody id="studentRows"><tr><td colspan="9" class="empty-cell">Loading students…</td></tr></tbody></table></div>
+              <div class="table-scroll"><table><thead><tr><th>Select</th><th>Photo</th><th>Student ID</th><th>Full name</th><th>Sex</th><th>Grade</th><th>Section</th><th>QR code</th><th>Actions</th><th>Student portal account</th></tr></thead><tbody id="studentRows"><tr><td colspan="10" class="empty-cell">Loading students…</td></tr></tbody></table></div>
               </div>
               <div id="studentAccountModal" class="student-edit-overlay" role="dialog" aria-modal="true" aria-labelledby="studentAccountTitle" hidden>
                 <form id="studentAccountForm" class="student-edit-dialog">
@@ -553,7 +555,7 @@
             <div class="surface-card section-card">
               <div class="section-toolbar">
                 <div><h3 id="teacherMonitorTitle">Teacher accounts</h3><p id="teacherMonitorDescription">Manage teachers and assign them to this school's class schedules.</p></div>
-                <button class="primary-button" id="showTeacherForm">＋ Create account</button>
+                <div class="student-toolbar-actions"><button class="outline-button" id="teacherExportButton" type="button">↓ Export teachers</button><button class="primary-button" id="showTeacherForm">＋ Create account</button></div>
               </div>
               <form id="teacherForm" class="inline-form" hidden>
                 <div class="form-grid">
