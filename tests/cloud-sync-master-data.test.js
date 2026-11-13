@@ -9,6 +9,8 @@ const root = path.resolve(__dirname, '..');
 const {
   validateMasterDataPayload,
   hashPayload,
+  safeBootstrapKeyMatch,
+  normalizeBootstrapCloudUrl,
   COLLECTIONS
 } = require('../cloud-sync-master-data');
 
@@ -29,6 +31,16 @@ function validPayload() {
   for (const collection of COLLECTIONS) payload[collection] = [];
   return payload;
 }
+
+test('cloud bootstrap key uses constant-time matching and requires a secure destination URL', () => {
+  const key = 'a'.repeat(64);
+  assert.equal(safeBootstrapKeyMatch(key, key), true);
+  assert.equal(safeBootstrapKeyMatch(key, 'b'.repeat(64)), false);
+  assert.equal(safeBootstrapKeyMatch(key, 'not-a-key'), false);
+  assert.equal(normalizeBootstrapCloudUrl('https://cloud.example/'), 'https://cloud.example');
+  assert.equal(normalizeBootstrapCloudUrl('http://localhost:3000/'), 'http://localhost:3000');
+  assert.throws(() => normalizeBootstrapCloudUrl('http://cloud.example'), /Use HTTPS/);
+});
 
 test('master-data payload accepts all required collections for the authenticated school', () => {
   assert.equal(validateMasterDataPayload(validPayload(), schoolId), null);
@@ -100,6 +112,9 @@ test('master-data import endpoint and UI provide the guided sync controls', () =
   const portalHtml = fs.readFileSync(path.join(root, 'public/portal.html'), 'utf8');
   const portalJs = fs.readFileSync(path.join(root, 'public/portal.js'), 'utf8');
   assert.match(portalHtml, /id="cloudSyncSchoolIdentity"/);
+  assert.match(portalHtml, /id="cloudProvisionForm"/);
+  assert.match(portalHtml, /id="cloudProvisionKey"/);
+  assert.match(portalJs, /cloud-sync\/provision-destination/);
   assert.match(portalHtml, /id="cloudReceiverCredentialState"/);
   assert.match(portalHtml, /id="pushMasterData"/);
   assert.match(portalHtml, /id="masterDataReceiverStatus"/);
@@ -109,6 +124,9 @@ test('master-data import endpoint and UI provide the guided sync controls', () =
   assert.match(portalJs, /cloud-sync\/master-data\/status/);
   const masterRoutes = fs.readFileSync(path.join(root, 'cloud-sync-master-data.js'), 'utf8');
   assert.match(masterRoutes, /confirmedBySource: true/);
+  assert.match(masterRoutes, /api\/cloud-sync\/bootstrap-school/);
+  assert.match(masterRoutes, /CLOUD_SYNC_PROVISIONING_KEY/);
+  assert.match(masterRoutes, /CLOUD_SYNC_BOOTSTRAP_CREATE_SCHOOL/);
   assert.match(masterRoutes, /last_master_data_sync_cloud_received_at=\$4/);
   assert.match(masterRoutes, /last_master_data_sync_cloud_imported=\$5::jsonb/);
 });
