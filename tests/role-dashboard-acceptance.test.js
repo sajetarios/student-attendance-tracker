@@ -24,7 +24,7 @@ test('School Administrator dashboard includes learner, staff, schedule, and SF2 
 });
 
 test('Department Head dashboard has school monitoring pages and read-only student directory and SF2 submission monitoring', () => {
-  assert.match(portalJs, /if \(role === 'DEPARTMENT_HEAD'\) return \['dashboard', 'teachers', 'schedules', 'sf2'\]/);
+  assert.match(portalJs, /if \(role === 'DEPARTMENT_HEAD'\) return \['dashboard', 'students', 'teachers', 'schedules', 'sf2'\]/);
   assert.match(portalJs, /sf2SubmissionsCard'\)\) \$\('sf2SubmissionsCard'\)\.hidden = !\(admin \|\| departmentHead\)/);
   assert.match(portalJs, /item\.status === 'SUBMITTED' && user\?\.role === 'SCHOOL_ADMIN'/);
   assert.match(sf2Routes, /app\.get\('\/api\/sf2\/submissions', authenticateSchoolClient, requireSchoolAdminOrDepartmentHead/);
