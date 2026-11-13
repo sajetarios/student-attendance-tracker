@@ -78,9 +78,9 @@ test('SF2 Excel copy downloads a non-empty workbook through a temporary download
   assert.match(js, /URL\.revokeObjectURL\(url\)/);
 });
 
-test('Portal uses the current accessible theme and cache-busted v0.9.1 assets', () => {
-  assert.match(html, /portal\.css\?v=0\.9\.1/);
-  assert.match(html, /portal\.js\?v=0\.9\.1/);
+test('Portal uses the current accessible theme and cache-busted v0.9.2 assets', () => {
+  assert.match(html, /portal\.css\?v=0\.9\.2/);
+  assert.match(html, /portal\.js\?v=0\.9\.2/);
   assert.match(portalCss, /--brand:#0ea5e9/);
   assert.match(portalCss, /:focus/);
 });
@@ -114,4 +114,12 @@ test('School staff account directory does not duplicate teacher accounts', () =>
   assert.match(server, /WHERE su.school_id=\$1 AND su.role IN \('DEPARTMENT_HEAD', 'GATE_KEEPER'\)/);
   assert.match(html, /Department Heads and Gate Keepers/);
   assert.match(js, /filter\(account => \['DEPARTMENT_HEAD', 'GATE_KEEPER'\]\.includes\(account\.role\)\)/);
+});
+
+test('staff monitoring uses compact assignment summaries and horizontally wrapped class-scope chips', () => {
+  assert.match(js, /teacher-assignment-summary/);
+  assert.match(js, /teacher-assignment-count/);
+  assert.doesNotMatch(js, /const permanentAssignmentsHtml/);
+  assert.match(portalCss, /#teachersView \.teacher-scope-list[\s\S]*?flex-direction:\s*row/);
+  assert.match(portalCss, /#teachersView \.department-chip-list/);
 });
