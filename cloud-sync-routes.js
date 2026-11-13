@@ -1,7 +1,7 @@
 'use strict';
 
 function registerCloudSyncRoutes(app, pool, { authenticateSchoolClient, requireSchoolAdmin, requireSchoolRoles }) {
-  app.get('/api/cloud-sync/status', authenticateSchoolClient, requireSchoolRoles('SCHOOL_ADMIN', 'DEPARTMENT_HEAD', 'TEACHER'), async (req, res) => {
+  app.get('/api/cloud-sync/status', authenticateSchoolClient, requireSchoolRoles('SCHOOL_ADMIN', 'DEPARTMENT_HEAD', 'TEACHER', 'GATE_KEEPER'), async (req, res) => {
     try {
       const result = await pool.query(
         `SELECT cloud_base_url AS "cloudBaseUrl", enabled, updated_at AS "updatedAt"
