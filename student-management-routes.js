@@ -168,8 +168,10 @@ function registerStudentManagementRoutes(app, pool, { authenticateSchoolClient, 
         }
         if (exists.rowCount) {
           await client.query(
-            `UPDATE students SET lrn=$3, full_name=$4, sex=$5, grade_level=$6, section=$7,
-                    parent_name=$8, parent_mobile=$9, active=TRUE, archived_at=NULL, updated_at=NOW()
+            `UPDATE students SET lrn=COALESCE($3, students.lrn), full_name=$4, sex=$5, grade_level=$6, section=$7,
+                    parent_name=COALESCE($8, students.parent_name),
+                    parent_mobile=CASE WHEN $9='' THEN students.parent_mobile ELSE $9 END,
+                    active=TRUE, archived_at=NULL, updated_at=NOW()
              WHERE school_id=$1 AND student_id=$2`,
             [req.auth.schoolId, studentId, lrn, fullName, sex, gradeLevel, section, parentName, parentMobile]
           );
