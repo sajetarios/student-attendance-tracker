@@ -1,4 +1,3 @@
-const permissions = read('role-permissions.js');
 'use strict';
 
 const test = require('node:test');
@@ -11,6 +10,7 @@ const html = read('public/portal.html');
 const js = read('public/portal.js');
 const server = read('server.js');
 const css = read('public/comfort-ui.css');
+const permissions = read('role-permissions.js');
 
 test('Administrator dashboard exposes a working Add Student action for administrators and class advisers', () => {
   assert.match(html, /id="dashboardAddStudent"/);

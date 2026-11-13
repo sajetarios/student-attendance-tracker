@@ -237,6 +237,17 @@
       $('classAttendanceNav').querySelector('.nav-label').textContent =
         classAdviser && subjectTeacher ? 'Class attendance' : classAdviser ? 'My advisory attendance' : 'My class attendance';
     }
+    const attendanceViewSelect = $('teacherAttendanceViewSelect');
+    if (attendanceViewSelect) {
+      const allOption = attendanceViewSelect.querySelector('option[value="ALL"]');
+      const advisoryOption = attendanceViewSelect.querySelector('option[value="ADVISORY"]');
+      const subjectOption = attendanceViewSelect.querySelector('option[value="SUBJECT"]');
+      if (allOption) allOption.hidden = !(classAdviser && subjectTeacher);
+      if (advisoryOption) advisoryOption.hidden = !classAdviser;
+      if (subjectOption) subjectOption.hidden = !subjectTeacher;
+      attendanceViewSelect.value = classAdviser && subjectTeacher
+        ? 'ALL' : classAdviser ? 'ADVISORY' : subjectTeacher ? 'SUBJECT' : 'ALL';
+    }
     if ($('studentScannerToggle')) $('studentScannerToggle').hidden = !mayScan;
     if ($('studentScannerCard')) $('studentScannerCard').hidden = !mayScan;
     const mayAddStudent = admin || (teacher && classAdviser);
