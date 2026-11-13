@@ -16,6 +16,7 @@ const { createAuthMiddleware } = require('./auth-middleware');
 const { registerParentRoutes } = require('./parent-routes');
 const { registerStudentRoutes } = require('./student-routes');
 const { registerAcademicRoutes } = require('./academic-routes');
+const { registerDepartmentRoutes } = require('./department-routes');
 const registerCloudSyncRoutes = require('./cloud-sync-routes');
 
 const app = express();
@@ -33,12 +34,14 @@ registerAuthRoutes(app, pool);
 const { authenticateSchoolClient, requireSchoolRoles, requireSchoolPermission, requireTeacherDesignations, requireSchoolClient } = createAuthMiddleware(pool);
 const requireSchoolAdmin = requireSchoolRoles('SCHOOL_ADMIN');
 const requireSchoolAdminOrTeacher = requireSchoolRoles('SCHOOL_ADMIN', 'TEACHER');
+const requireSchoolAdminOrDepartmentHeadOrTeacher = requireSchoolRoles('SCHOOL_ADMIN', 'DEPARTMENT_HEAD', 'TEACHER');
 const requireSchoolUser = requireSchoolRoles('SCHOOL_ADMIN', 'DEPARTMENT_HEAD', 'TEACHER');
 const requireSchoolAdminOrDepartmentHead = requireSchoolRoles('SCHOOL_ADMIN', 'DEPARTMENT_HEAD');
 const validText = value => typeof value === 'string' && value.trim().length > 0;
 registerParentRoutes(app, pool, { authenticateSchoolClient, requireSchoolRoles });
 registerStudentRoutes(app, pool, { authenticateSchoolClient, requireSchoolAdmin });
 registerAcademicRoutes(app, pool, { authenticateSchoolClient, requireSchoolRoles });
+registerDepartmentRoutes(app, pool, { authenticateSchoolClient, requireSchoolRoles });
 registerCloudSyncRoutes(app, pool, { authenticateSchoolClient, requireSchoolAdmin });
 const registerSf2Routes = require('./sf2-routes');
 registerSf2Routes(app, pool, { authenticateSchoolClient, requireSchoolUser, requireSchoolAdmin, requireSchoolAdminOrDepartmentHead });
@@ -54,6 +57,8 @@ app.get('/api/teachers', authenticateSchoolClient, requireSchoolAdminOrDepartmen
     const result = await pool.query(
       `SELECT su.user_id AS "userId", su.username,
               su.display_name AS "displayName", su.active,
+              su.department_id AS "departmentId",
+              COALESCE((SELECT d.department_name FROM school_departments d WHERE d.school_id=su.school_id AND d.department_id=su.department_id), 'Unassigned') AS "departmentName",
               su.teacher_designations AS "teacherDesignations",
               (su.teacher_photo_path IS NOT NULL) AS "hasTeacherPhoto",
               COALESCE((SELECT json_agg(json_build_object('gradeLevel', ca.grade_level, 'section', ca.section) ORDER BY ca.grade_level, ca.section)
@@ -79,6 +84,8 @@ app.get('/api/teachers', authenticateSchoolClient, requireSchoolAdminOrDepartmen
                   'subjectName', p.subject_name,
                   'gradeLevel', p.grade_level,
                   'section', p.section,
+                  'classroom', p.classroom,
+                  'departmentId', p.department_id,
                   'startTime', to_char(p.start_time, 'HH24:MI'),
                   'endTime', to_char(p.end_time, 'HH24:MI')
                 ) ORDER BY p.start_time)
