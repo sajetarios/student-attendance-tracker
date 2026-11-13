@@ -158,13 +158,15 @@ app.get('/api/teachers', authenticateSchoolClient, requireSchoolAdminOrDepartmen
 app.get('/api/school-users', authenticateSchoolClient, requireSchoolAdmin, async (req, res) => {
   try {
     const result = await pool.query(
-      `SELECT user_id AS "userId", username, display_name AS "displayName", role,
-              teacher_designations AS "teacherDesignations", active,
-              created_at AS "createdAt", last_login_at AS "lastLoginAt"
-       FROM school_users
-       WHERE school_id=$1 AND role IN ('DEPARTMENT_HEAD', 'GATE_KEEPER')
-       ORDER BY CASE role WHEN 'DEPARTMENT_HEAD' THEN 1 WHEN 'GATE_KEEPER' THEN 2 ELSE 3 END,
-                display_name, username`,
+      `SELECT su.user_id AS "userId", su.username, su.display_name AS "displayName", su.role,
+              su.teacher_designations AS "teacherDesignations", su.department_id AS "departmentId",
+              COALESCE(d.department_name, 'Unassigned') AS "departmentName", su.active,
+              su.created_at AS "createdAt", su.last_login_at AS "lastLoginAt"
+       FROM school_users su
+       LEFT JOIN school_departments d ON d.school_id=su.school_id AND d.department_id=su.department_id
+       WHERE su.school_id=$1 AND su.role IN ('DEPARTMENT_HEAD', 'GATE_KEEPER')
+       ORDER BY CASE su.role WHEN 'DEPARTMENT_HEAD' THEN 1 WHEN 'GATE_KEEPER' THEN 2 ELSE 3 END,
+                su.display_name, su.username`,
       [req.auth.schoolId]
     );
     return res.json({ users: result.rows });
@@ -177,6 +179,7 @@ app.get('/api/school-users', authenticateSchoolClient, requireSchoolAdmin, async
 app.post('/api/school-users', authenticateSchoolClient, requireSchoolAdmin, async (req, res) => {
   const { username, displayName, password } = req.body || {};
   const role = String(req.body?.role || '').toUpperCase();
+  const departmentId = req.body?.departmentId || null;
   const allowedRoles = ['TEACHER', 'DEPARTMENT_HEAD', 'GATE_KEEPER'];
   let designations = [];
   if (role === 'TEACHER') {
@@ -191,23 +194,33 @@ app.post('/api/school-users', authenticateSchoolClient, requireSchoolAdmin, asyn
       typeof password !== 'string' || password.length < 12 || password.length > 256) {
     return res.status(400).json({ error: 'Provide a valid account role, username, display name, and password of at least 12 characters.' });
   }
+  if (['TEACHER', 'DEPARTMENT_HEAD'].includes(role) && !isUuid(departmentId)) {
+    return res.status(400).json({ error: 'Choose the department for this teacher or Department Head account.' });
+  }
+  if (departmentId) {
+    const department = await pool.query(
+      'SELECT 1 FROM school_departments WHERE school_id=$1 AND department_id=$2 AND active=TRUE',
+      [req.auth.schoolId, departmentId]
+    );
+    if (!department.rowCount) return res.status(400).json({ error: 'Choose an active department in this school.' });
+  }
   let passwordHash;
   try { passwordHash = await hashPassword(password); }
   catch (err) { return res.status(400).json({ error: err.message || 'Password does not meet requirements.' }); }
 
   try {
     const created = await pool.query(
-      `INSERT INTO school_users (school_id, username, display_name, password_hash, role, teacher_designations, teacher_qr_token)
-       VALUES ($1,$2,$3,$4,$5,$6, CASE WHEN $5='TEACHER' THEN gen_random_uuid() ELSE NULL END)
+      `INSERT INTO school_users (school_id, username, display_name, password_hash, role, teacher_designations, department_id, teacher_qr_token)
+       VALUES ($1,$2,$3,$4,$5,$6,$7, CASE WHEN $5='TEACHER' THEN gen_random_uuid() ELSE NULL END)
        RETURNING user_id AS "userId", username, display_name AS "displayName", role,
-                 teacher_designations AS "teacherDesignations", active, created_at AS "createdAt"`,
-      [req.auth.schoolId, username.trim(), displayName.trim(), passwordHash, role, designations]
+                 teacher_designations AS "teacherDesignations", department_id AS "departmentId", active, created_at AS "createdAt"`,
+      [req.auth.schoolId, username.trim(), displayName.trim(), passwordHash, role, designations, departmentId]
     );
     await pool.query(
       `INSERT INTO audit_logs(school_id, actor_type, actor_user_id, action, entity_type, entity_id, details)
        VALUES($1,'SCHOOL',$2,'SCHOOL_ADMIN_CREATE_ACCOUNT','school_user',$3,$4::jsonb)`,
       [req.auth.schoolId, req.auth.userId, created.rows[0].userId,
-       JSON.stringify({ username: username.trim(), role, teacherDesignations: designations })]
+       JSON.stringify({ username: username.trim(), role, teacherDesignations: designations, departmentId })]
     );
     return res.status(201).json({ user: created.rows[0] });
   } catch (err) {
