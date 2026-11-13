@@ -100,7 +100,7 @@ async function buildMasterDataSnapshot(pool, schoolId) {
                                    section, enrollment_date::text AS "enrollmentDate",
                                    enrollment_status AS "enrollmentStatus",
                                    status_effective_date::text AS "statusEffectiveDate",
-                                   remarks, created_by_user_id AS "createdByUserId",
+                                   created_by_user_id AS "createdByUserId",
                                    created_at AS "createdAt", updated_at AS "updatedAt"
                             FROM student_enrollments WHERE school_id=$1`],
     ['studentMovements', `SELECT movement_id AS "movementId", student_id AS "studentId",
@@ -410,12 +410,12 @@ function registerCloudMasterDataRoutes(app, pool, {
                 x.created_by_user_id,COALESCE(x.created_at,NOW()),COALESCE(x.updated_at,NOW())
          FROM jsonb_to_recordset($2::jsonb) AS x(
            enrollment_id uuid,student_id text,school_year_id uuid,grade_level text,section text,
-           enrollment_date date,enrollment_status varchar(20),status_effective_date date,remarks text,
+           enrollment_date date,enrollment_status varchar(20),status_effective_date date,
            created_by_user_id uuid,created_at timestamptz,updated_at timestamptz)
          ON CONFLICT(enrollment_id) DO UPDATE SET grade_level=EXCLUDED.grade_level,
            section=EXCLUDED.section,enrollment_date=EXCLUDED.enrollment_date,
            enrollment_status=EXCLUDED.enrollment_status,status_effective_date=EXCLUDED.status_effective_date,
-           remarks=EXCLUDED.remarks,created_by_user_id=EXCLUDED.created_by_user_id,updated_at=EXCLUDED.updated_at
+           created_by_user_id=EXCLUDED.created_by_user_id,updated_at=EXCLUDED.updated_at
          WHERE student_enrollments.school_id=EXCLUDED.school_id
          RETURNING 1`);
 
