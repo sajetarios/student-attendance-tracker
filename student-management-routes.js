@@ -147,6 +147,18 @@ function registerStudentManagementRoutes(app, pool, { authenticateSchoolClient, 
     if (isTeacher && !req.auth.teacherDesignations?.includes('CLASS_ADVISER')) {
       return res.status(403).json({ error: 'Only Class Advisers may import students.' });
     }
+    let validSections = new Set();
+    if (!isTeacher) {
+      const configured = await pool.query(
+        `SELECT grade_level AS "gradeLevel", section FROM class_periods
+         WHERE school_id=$1 AND active=TRUE AND section IS NOT NULL
+         UNION
+         SELECT grade_level AS "gradeLevel", section FROM class_adviser_assignments
+         WHERE school_id=$1`,
+        [req.auth.schoolId]
+      );
+      validSections = new Set(configured.rows.map(item => `${item.gradeLevel}::${item.section}`));
+    }
     const client = await pool.connect();
     const results = [];
     try {
@@ -161,14 +173,8 @@ function registerStudentManagementRoutes(app, pool, { authenticateSchoolClient, 
             !validText(section, 100) || parentMobile.length > 30) {
           throw new Error('Import data changed or contains invalid values. Run Preview again.');
         }
-        if (!isTeacher) {
-          const configured = await client.query(
-            `SELECT 1 FROM class_periods WHERE school_id=$1 AND grade_level=$2 AND section=$3 AND active=TRUE
-             UNION SELECT 1 FROM class_adviser_assignments WHERE school_id=$1 AND grade_level=$2 AND section=$3
-             LIMIT 1`,
-            [req.auth.schoolId, gradeLevel, section]
-          );
-          if (!configured.rowCount) throw new Error('A row targets a grade and section that is not configured in this school. No records were imported.');
+        if (!isTeacher && !validSections.has(`${gradeLevel}::${section}`)) {
+          throw new Error('A row targets a grade and section that is not configured in this school. No records were imported.');
         }
         if (isTeacher) {
           const assignment = await client.query(
