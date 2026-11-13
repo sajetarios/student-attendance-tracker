@@ -179,3 +179,32 @@ body.attendance-desk .feedback { background: #eff4fa; color: #53677f !important;
  .student-edit-dialog{width:100%;max-height:calc(100dvh - 16px);overflow:auto}
  .connection-chip{font-size:11px;padding:5px 7px}
 }
+
+
+/* Consistent navigation, dialogs, and batch assignment controls */
+.portal-page .sidebar{height:100dvh;min-height:100dvh;overflow-y:auto;overscroll-behavior:contain}
+.portal-page .side-nav{min-height:0;overflow-y:auto;overscroll-behavior:contain}
+.portal-page .nav-group[hidden],.portal-page .nav-item[hidden],.portal-page .nav-submenu[hidden]{display:none!important}
+.portal-page .nav-item[aria-current="page"],.portal-page .nav-item.active{background:rgba(255,255,255,.13);color:#fff}
+.portal-page .nav-group-toggle{min-height:46px}
+.portal-page .student-edit-overlay,.portal-page .student-qr-preview-overlay,.portal-page .student-scan-setup-overlay{z-index:1000;backdrop-filter:blur(4px);padding:16px}
+.portal-page .student-edit-dialog,.portal-page .student-qr-preview-dialog{border:1px solid var(--line);border-radius:18px;box-shadow:0 24px 70px rgba(15,23,42,.24);background:#fff}
+.portal-page .student-edit-dialog .section-toolbar{border-bottom:1px solid var(--line);padding-bottom:12px;margin-bottom:16px}
+.portal-page .student-edit-dialog input,.portal-page .student-edit-dialog select,.portal-page .student-edit-dialog textarea{min-height:44px}
+.portal-page .student-bulk-placement{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.portal-page .student-bulk-placement input,.portal-page .student-bulk-placement select{min-height:42px}
+.portal-page .bulk-assignment-schedule-list{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;max-height:310px;overflow:auto;padding:2px}
+.portal-page .bulk-assignment-schedule{display:flex;gap:10px;align-items:flex-start;padding:11px;border:1px solid var(--line);border-radius:12px;background:#fff;min-width:0}
+.portal-page .bulk-assignment-schedule input{width:18px;height:18px;flex:0 0 auto;margin-top:2px}
+.portal-page .bulk-assignment-schedule span{display:flex;flex-direction:column;gap:3px;min-width:0}
+.portal-page .bulk-assignment-schedule small{color:var(--muted);overflow-wrap:anywhere}
+.portal-page .bulk-assignment-schedule em{font-size:11px;font-style:normal;color:var(--success)}
+.portal-page .bulk-assignment-schedule.is-assigned{background:#f6f8fb;color:#738197}
+.portal-page .bulk-assignment-schedule.is-assigned em{color:#8a5d22}
+.portal-page .bulk-teacher-assignment-card .field-group{margin-bottom:14px}
+@media(max-width:760px){
+ .portal-page .bulk-assignment-schedule-list{grid-template-columns:1fr;max-height:38dvh}
+ .portal-page .student-bulk-placement{width:100%;display:grid;grid-template-columns:1fr}
+ .portal-page .student-edit-overlay,.portal-page .student-qr-preview-overlay,.portal-page .student-scan-setup-overlay{padding:8px}
+ .portal-page .student-edit-dialog,.portal-page .student-qr-preview-dialog{width:100%;max-height:calc(100dvh - 16px);overflow:auto}
+}
