@@ -80,6 +80,15 @@ function registerStudentManagementRoutes(app, pool, { authenticateSchoolClient, 
       const lrnOwner = new Map(existingLrns.rows.map(row => [row.lrn, row.studentId]));
       const seenIds = new Set();
       const seenLrns = new Map();
+      const sectionResult = await pool.query(
+        `SELECT grade_level AS "gradeLevel", section FROM class_periods
+         WHERE school_id=$1 AND active=TRUE AND section IS NOT NULL
+         UNION
+         SELECT grade_level AS "gradeLevel", section FROM class_adviser_assignments
+         WHERE school_id=$1`,
+        [req.auth.schoolId]
+      );
+      const validSections = new Set(sectionResult.rows.map(item => `${item.gradeLevel}::${item.section}`));
       const preview = [];
       for (const row of rows) {
         const errors = [];
@@ -88,6 +97,7 @@ function registerStudentManagementRoutes(app, pool, { authenticateSchoolClient, 
         if (!['MALE', 'FEMALE'].includes(row.sex)) errors.push('Sex must be Male or Female.');
         if (!validText(row.gradeLevel, 40)) errors.push('Grade level is required.');
         if (!validText(row.section, 100)) errors.push('Section is required.');
+        else if (!isTeacher && !validSections.has(`${row.gradeLevel}::${row.section}`)) errors.push('This grade and section is not configured in the school schedules.');
         if (row.parentMobile.length > 30) errors.push('Parent mobile must be 30 characters or fewer.');
         if (row.lrn && row.lrn.length > 30) errors.push('LRN must be 30 characters or fewer.');
         if (row.studentId && seenIds.has(row.studentId)) errors.push('Duplicate Student ID within this file.');
@@ -150,6 +160,15 @@ function registerStudentManagementRoutes(app, pool, { authenticateSchoolClient, 
             !['MALE','FEMALE'].includes(sex) || !validText(gradeLevel, 40) ||
             !validText(section, 100) || parentMobile.length > 30) {
           throw new Error('Import data changed or contains invalid values. Run Preview again.');
+        }
+        if (!isTeacher) {
+          const configured = await client.query(
+            `SELECT 1 FROM class_periods WHERE school_id=$1 AND grade_level=$2 AND section=$3 AND active=TRUE
+             UNION SELECT 1 FROM class_adviser_assignments WHERE school_id=$1 AND grade_level=$2 AND section=$3
+             LIMIT 1`,
+            [req.auth.schoolId, gradeLevel, section]
+          );
+          if (!configured.rowCount) throw new Error('A row targets a grade and section that is not configured in this school. No records were imported.');
         }
         if (isTeacher) {
           const assignment = await client.query(
@@ -225,6 +244,13 @@ function registerStudentManagementRoutes(app, pool, { authenticateSchoolClient, 
         if (!validText(gradeLevel, 40) || !validText(section, 100)) {
           return res.status(400).json({ error: 'Choose a valid target grade level and section.' });
         }
+        const configuredTarget = await pool.query(
+          `SELECT 1 FROM class_periods WHERE school_id=$1 AND grade_level=$2 AND section=$3 AND active=TRUE
+           UNION SELECT 1 FROM class_adviser_assignments WHERE school_id=$1 AND grade_level=$2 AND section=$3
+           LIMIT 1`,
+          [req.auth.schoolId, gradeLevel, section]
+        );
+        if (!configuredTarget.rowCount) return res.status(400).json({ error: 'The target grade and section is not configured in this school.' });
         if (isTeacher) {
           const target = await pool.query(
             'SELECT 1 FROM class_adviser_assignments WHERE school_id=$1 AND adviser_user_id=$2 AND grade_level=$3 AND section=$4',
