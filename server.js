@@ -624,7 +624,7 @@ app.post('/api/teachers/:userId/substitutions', authenticateSchoolClient, requir
   try {
     await client.query('BEGIN');
     const original = await client.query(
-      `SELECT user_id, display_name, teacher_status, active,
+      `SELECT user_id, display_name, teacher_status, active, department_id,
               to_char(leave_start_date, 'YYYY-MM-DD') AS leave_start_date,
               to_char(expected_return_date, 'YYYY-MM-DD') AS expected_return_date,
               leave_auto_reactivate
@@ -638,12 +638,14 @@ app.post('/api/teachers/:userId/substitutions', authenticateSchoolClient, requir
       return res.status(404).json({ error: 'Original teacher was not found in this school.' });
     }
     const absent = original.rows[0];
-    if (absent.active || absent.teacher_status !== 'ON_LEAVE' ||
-        !absent.leave_start_date || !absent.expected_return_date ||
-        startDate < absent.leave_start_date || endDate > absent.expected_return_date ||
-        (absent.leave_auto_reactivate && endDate >= absent.expected_return_date)) {
+    const schoolToday = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Manila' }).format(new Date());
+    const onSavedLeave = !absent.active && absent.teacher_status === 'ON_LEAVE' &&
+      absent.leave_start_date && absent.expected_return_date &&
+      startDate >= absent.leave_start_date && endDate <= absent.expected_return_date &&
+      !(absent.leave_auto_reactivate && endDate >= absent.expected_return_date);
+    if (!onSavedLeave && (startDate !== schoolToday || endDate !== schoolToday)) {
       await client.query('ROLLBACK');
-      return res.status(400).json({ error: 'Coverage dates must fall within this teacherâ€™s saved leave period.' });
+      return res.status(400).json({ error: 'Unplanned teacher coverage is limited to the current school day.' });
     }
     const permanentAssignment = await client.query(
       `SELECT 1 FROM teacher_period_assignments
@@ -655,7 +657,7 @@ app.post('/api/teachers/:userId/substitutions', authenticateSchoolClient, requir
       return res.status(400).json({ error: 'The selected class schedule is not permanently assigned to the teacher on leave.' });
     }
     const substitute = await client.query(
-      `SELECT user_id, username, display_name FROM school_users
+      `SELECT user_id, username, display_name, department_id FROM school_users
        WHERE school_id=$1 AND user_id=$2 AND role='TEACHER' AND active=TRUE
          AND COALESCE(teacher_status, 'ACTIVE')='ACTIVE'
        FOR UPDATE`,
@@ -666,13 +668,41 @@ app.post('/api/teachers/:userId/substitutions', authenticateSchoolClient, requir
       return res.status(400).json({ error: 'The substitute must be an active teacher in this school.' });
     }
     const period = await client.query(
-      `SELECT period_id, period_name, subject_name, grade_level, section, start_time, end_time
+      `SELECT period_id, period_name, subject_name, grade_level, section, classroom, department_id, start_time, end_time, grace_minutes
        FROM class_periods WHERE school_id=$1 AND period_id=$2 AND active=TRUE`,
       [req.auth.schoolId, periodId]
     );
     if (!period.rowCount) {
       await client.query('ROLLBACK');
       return res.status(404).json({ error: 'The selected class schedule is not active.' });
+    }
+    if (String(period.rows[0].department_id) !== String(absent.department_id) ||
+        String(substitute.rows[0].department_id) !== String(period.rows[0].department_id)) {
+      await client.query('ROLLBACK');
+      return res.status(403).json({ error: 'The original teacher, substitute, and schedule must belong to the same department.' });
+    }
+    if (req.auth.role === 'DEPARTMENT_HEAD' && String(period.rows[0].department_id) !== String(req.auth.departmentId)) {
+      await client.query('ROLLBACK');
+      return res.status(403).json({ error: 'You can provide teacher coverage only inside your own department.' });
+    }
+    if (!onSavedLeave) {
+      const missingCheckIn = await client.query(
+        `SELECT (
+           (NOW() AT TIME ZONE 'Asia/Manila')::date=$3::date
+           AND (NOW() AT TIME ZONE 'Asia/Manila')::time > p.start_time + make_interval(mins => p.grace_minutes)
+           AND NOT EXISTS (
+             SELECT 1 FROM teacher_gate_events tge
+             WHERE tge.school_id=p.school_id AND tge.teacher_user_id=$2
+               AND tge.school_date=$3::date AND tge.event_type='TIME_IN'
+           )
+         ) AS eligible
+         FROM class_periods p WHERE p.school_id=$1 AND p.period_id=$4 AND p.active=TRUE`,
+        [req.auth.schoolId, req.params.userId, schoolToday, periodId]
+      );
+      if (!missingCheckIn.rows[0]?.eligible) {
+        await client.query('ROLLBACK');
+        return res.status(409).json({ error: 'A substitute can be assigned only after the class grace time passes without a verified teacher time-in.' });
+      }
     }
     const alreadyPermanent = await client.query(
       `SELECT 1 FROM teacher_period_assignments
@@ -754,6 +784,18 @@ app.delete('/api/teacher-substitutions/:substitutionId', authenticateSchoolClien
   const client = await pool.connect();
   try {
     await client.query('BEGIN');
+    if (req.auth.role === 'DEPARTMENT_HEAD') {
+      const scope = await client.query(
+        `SELECT p.department_id FROM teacher_period_substitutions ts
+         JOIN class_periods p ON p.school_id=ts.school_id AND p.period_id=ts.period_id
+         WHERE ts.school_id=$1 AND ts.substitution_id=$2 AND ts.status='ACTIVE'`,
+        [req.auth.schoolId, req.params.substitutionId]
+      );
+      if (!scope.rowCount || String(scope.rows[0].department_id) !== String(req.auth.departmentId)) {
+        await client.query('ROLLBACK');
+        return res.status(403).json({ error: 'You can manage substitute coverage only in your own department.' });
+      }
+    }
     const cancelled = await client.query(
       `UPDATE teacher_period_substitutions
        SET status='CANCELLED', cancelled_at=NOW(), updated_at=NOW()
