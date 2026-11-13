@@ -126,7 +126,7 @@
   function allowedViewsForUser() {
     const role = user?.role;
     if (role === 'SCHOOL_ADMIN') return ['dashboard', 'students', 'teachers', 'schedules', 'sf2', 'cloudSync'];
-    if (role === 'DEPARTMENT_HEAD') return ['dashboard', 'teachers', 'schedules', 'sf2'];
+    if (role === 'DEPARTMENT_HEAD') return ['dashboard', 'students', 'teachers', 'schedules', 'sf2'];
     if (role === 'TEACHER') {
       const views = ['dashboard'];
       if (teacherHas('SUBJECT_TEACHER') || teacherHas('CLASS_ADVISER')) {
@@ -152,7 +152,6 @@
     }
     const allowedViews = allowedViewsForUser();
     const departmentHead = user?.role === 'DEPARTMENT_HEAD';
-    if (departmentHead && view === 'students') view = 'dashboard';
     if (!allowedViews.includes(view)) view = allowedViews.includes('dashboard') ? 'dashboard' : (allowedViews[0] || 'dashboard');
     $('platformWorkspace').hidden = true;
     $('schoolWorkspace').hidden = false;
@@ -172,6 +171,7 @@
     if (departmentHead) {
       titles = {
         dashboard: ['Department Head Dashboard', 'Monitor learner attendance, teacher availability, class coverage, schedules, and section report progress.'],
+        students: ['Student directory', 'View and export the shared student master roster across departments. Student records are read-only in this role.'],
         teachers: ['Teacher monitoring', 'Review teacher designations, assigned grade levels and sections, leave, schedules, and temporary substitute coverage.'],
         schedules: ['Department schedule management', 'View every department’s timetable and create or assign class schedules only within your own department.'],
         sf2: ['SF2 monitoring', 'Preview official section reports. Department Heads cannot edit, submit, or collect SF2 reports.']
@@ -291,14 +291,16 @@
 
     if ($('dashboardNav')) $('dashboardNav').hidden = gateKeeper;
     if ($('studentsNav')) {
-      $('studentsNav').hidden = departmentHead || (!admin && !teacher && !gateKeeper);
-      $('studentsNav').querySelector('.nav-label').textContent = gateKeeper ? 'Gate scanner' : teacher ? (classAdviser && !subjectTeacher ? 'My advisory section' : 'My learners') : 'Students';
+      $('studentsNav').hidden = !admin && !departmentHead && !teacher && !gateKeeper;
+      $('studentsNav').querySelector('.nav-label').textContent = gateKeeper ? 'Gate scanner' : departmentHead ? 'Student directory' : teacher ? (classAdviser && !subjectTeacher ? 'My advisory section' : 'My learners') : 'Students';
       $('studentsNav').title = gateKeeper ? 'Gate scanner' : 'Students';
     }
-    if ($('studentRosterPanel')) $('studentRosterPanel').hidden = gateKeeper || departmentHead;
-    if ($('studentManagementHeader')) $('studentManagementHeader').hidden = gateKeeper || departmentHead;
-    if ($('studentRosterPanel')) $('studentRosterPanel').hidden = gateKeeper || departmentHead;
+    if ($('studentRosterPanel')) $('studentRosterPanel').hidden = gateKeeper;
+    if ($('studentManagementHeader')) $('studentManagementHeader').hidden = gateKeeper;
     if ($('studentForm')) $('studentForm').hidden = gateKeeper || departmentHead || $('studentForm').hidden;
+    if ($('studentImportButton')) $('studentImportButton').hidden = !(admin || (teacher && classAdviser));
+    if ($('studentExportButton')) $('studentExportButton').hidden = gateKeeper;
+    if ($('student-bulk-actions')) $('student-bulk-actions').hidden = !admin;
     if ($('parentInviteModal')) $('parentInviteModal').hidden = true;
     if ($('schedulesNav')) $('schedulesNav').hidden = gateKeeper || (teacher && !subjectTeacher);
     if ($('sf2Nav')) $('sf2Nav').hidden = gateKeeper || (!admin && !departmentHead && !teacher);
@@ -710,7 +712,7 @@
     );
     for (const id of [...selectedStudentIds]) if (!visible.some(student => student.studentId === id)) selectedStudentIds.delete(id);
     if (!visible.length) {
-      host.innerHTML = '<tr><td colspan="9" class="empty-cell">No students are available for this filter.</td></tr>';
+      host.innerHTML = '<tr><td colspan="10" class="empty-cell">No students are available for this filter.</td></tr>';
     } else {
       const rows = await Promise.all(visible.map(async student => {
         const photo = await photoDataUrl(student.photoUrl);
@@ -734,7 +736,7 @@
         const accountCell = admin
           ? `<div class="student-row-actions"><span class="muted-inline">${accountExists ? `Active login · ${esc(student.studentAccountUsername)}` : 'No student login'}</span><button type="button" class="outline-button" data-student-account="${esc(student.studentId)}" data-account-exists="${accountExists ? '1' : '0'}">${accountExists ? 'Reset login' : 'Create login'}</button></div>`
           : '<span class="muted-inline">School admin only</span>';
-        return `<tr><td>${selection}</td><td>${avatar}</td><td>${esc(student.studentId)}</td><td>${esc(student.fullName)}</td><td>${esc(student.gradeLevel)}</td><td>${esc(student.section)}</td><td>${qrCell}</td><td>${actions}</td><td>${accountCell}</td></tr>`;
+        return `<tr><td>${selection}</td><td>${avatar}</td><td>${esc(student.studentId)}</td><td>${esc(student.fullName)}</td><td>${esc(student.sex ? String(student.sex).toLowerCase().replace(/^./, c => c.toUpperCase()) : 'Not set')}</td><td>${esc(student.gradeLevel)}</td><td>${esc(student.section)}</td><td>${qrCell}</td><td>${actions}</td><td>${accountCell}</td></tr>`;
       }));
       host.innerHTML = rows.join('');
       host.querySelectorAll('input[data-student-photo]').forEach(input => input.addEventListener('change', async () => {
@@ -764,7 +766,7 @@
         : teacher
           ? 'View and correct learner names in your assigned subject classes. Class Advisers can also correct placement in their assigned section.'
           : user.role === 'DEPARTMENT_HEAD'
-            ? 'Read-only school-wide learner roster for attendance monitoring.'
+            ? 'Read-only school-wide learner master roster. Export is available; student edits and assignments remain restricted.'
             : 'Students registered under this school. Manage student information, photos, and QR cards.';
     document.querySelectorAll('.student-filter-row label, .student-bulk-actions').forEach(element => {
       if (gateKeeper) element.hidden = element.classList.contains('student-bulk-actions');
@@ -828,6 +830,7 @@
     $('editStudentId').value = student.studentId;
     $('editStudentIdDisplay').value = student.studentId;
     $('editLrn').value = student.lrn || '';
+    $('editSex').value = String(student.sex || '').toUpperCase();
     $('editFullName').value = student.fullName || '';
     $('editGrade').value = student.gradeLevel || 'Grade 7';
     $('editSection').value = student.section || '';
@@ -837,6 +840,7 @@
     const adviserCanEditPlacement = isTeacher && teacherHas('CLASS_ADVISER') &&
       adviserAssignments.some(item => String(item.gradeLevel) === String(student.gradeLevel) && String(item.section) === String(student.section));
     ['editLrnGroup','editParentNameGroup','editParentMobileGroup'].forEach(id => { $(id).hidden = isTeacher; });
+    $('editSexGroup').hidden = isTeacher && !adviserCanEditPlacement;
     $('editGradeGroup').hidden = isTeacher && !adviserCanEditPlacement;
     $('editSectionGroup').hidden = isTeacher && !adviserCanEditPlacement;
     $('studentEditFeedback').textContent = isTeacher
@@ -1800,7 +1804,7 @@
     if ($('departmentHeadOverview')) $('departmentHeadOverview').hidden = !isDepartmentHead;
     const base = await Promise.all([
       api('/api/admin/dashboard'),
-      isDepartmentHead ? Promise.resolve({ students: [] }) : api('/api/students'),
+      api('/api/students' + (role === 'SCHOOL_ADMIN' && $('includeArchivedStudents')?.checked ? '?includeArchived=true' : '')),
       role === 'TEACHER' && !teacherHas('SUBJECT_TEACHER') ? Promise.resolve({ periods: [] }) : api('/api/periods'),
       isSchoolManager ? api('/api/departments') : Promise.resolve({ departments: [] })
     ]);
@@ -1843,7 +1847,7 @@
     }
 
     renderStats(dashboardData);
-    if (!isDepartmentHead) renderStudents();
+    renderStudents();
     renderPeriods();
     if (isSchoolManager) renderTeachers();
     if (isDepartmentHead) renderDepartmentHeadOverview();
@@ -2372,6 +2376,7 @@
     feedback.textContent = 'Saving changes…'; feedback.className = 'inline-feedback';
     const placementEditable = user.role !== 'TEACHER' || !$('editGradeGroup').hidden;
     const payload = { fullName: $('editFullName').value.trim() };
+    if (user.role !== 'TEACHER' || !$('editSexGroup').hidden) payload.sex = $('editSex').value;
     if (placementEditable) Object.assign(payload, { gradeLevel: $('editGrade').value, section: $('editSection').value.trim() });
     if (user.role !== 'TEACHER') Object.assign(payload, { lrn: $('editLrn').value.trim() || null, parentName: $('editParentName').value.trim() || null, parentMobile: $('editParentMobile').value.trim() });
     try { await api(`/api/students/${encodeURIComponent(id)}`, { method: 'PATCH', body: JSON.stringify(payload) }); $('studentEditOverlay').hidden = true; await loadSchoolData(); showToast('Student information updated. Existing QR code was preserved.'); }
@@ -2464,6 +2469,7 @@
     feedback.textContent = 'Saving…';
     const payload = {
       studentId: $('newStudentId').value.trim(),
+      sex: $('newSex').value,
       lrn: $('newLrn').value.trim() || null,
       fullName: $('newFullName').value.trim(),
       gradeLevel: $('newGrade').value,
