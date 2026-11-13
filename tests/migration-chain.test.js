@@ -61,8 +61,8 @@ test('teacher gate migration adds private teacher QR/photo fields and verified g
 
 test('student master migration adds normalized sex and archive metadata', () => {
   const sql = fs.readFileSync(path.join(migrationDir, '014_student_master_sex_and_archive.sql'), 'utf8');
-  assert.match(sql, /ADD COLUMN IF NOT EXISTS sex VARCHAR\\(10\\)/i);
-  assert.match(sql, /sex IN \\('MALE','FEMALE'\\)/i);
+  assert.match(sql, /ADD COLUMN IF NOT EXISTS sex VARCHAR\(10\)/i);
+  assert.match(sql, /sex IN \('MALE','FEMALE'\)/i);
   assert.match(sql, /ADD COLUMN IF NOT EXISTS archived_at TIMESTAMPTZ/i);
 });
 
