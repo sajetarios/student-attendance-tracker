@@ -90,6 +90,16 @@ test('cloud staff mirror rows are inserted as non-login identities', () => {
   assert.match(middleware, /su\.login_enabled = TRUE/);
 });
 
+test('master-data import endpoint and UI provide the guided sync controls', () => {
+  const portalHtml = fs.readFileSync(path.join(root, 'public/portal.html'), 'utf8');
+  const portalJs = fs.readFileSync(path.join(root, 'public/portal.js'), 'utf8');
+  assert.match(portalHtml, /id="pushMasterData"/);
+  assert.match(portalHtml, /id="masterDataReceiverStatus"/);
+  assert.match(portalHtml, /id="cloudForwardingReadiness"/);
+  assert.match(portalJs, /cloud-sync\/master-data\/push/);
+  assert.match(portalJs, /cloud-sync\/master-data\/status/);
+});
+
 test('attendance forwarding requires a master-data push to the current destination', () => {
   const routes = fs.readFileSync(path.join(root, 'cloud-sync-routes.js'), 'utf8');
   assert.match(routes, /last_master_data_sync_url === normalizedUrl/);
