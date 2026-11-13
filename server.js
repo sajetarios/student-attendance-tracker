@@ -903,6 +903,14 @@ app.post('/api/periods/:periodId/assignments', authenticateSchoolClient, require
        WHERE existing.school_id=$1 AND existing.teacher_user_id=$2
          AND existing.period_id<>$3 AND p.active=TRUE
          AND p.start_time < requested.end_time AND requested.start_time < p.end_time
+       UNION ALL
+       SELECT p.period_name
+       FROM teacher_period_substitutions ts
+       JOIN class_periods p ON p.school_id=ts.school_id AND p.period_id=ts.period_id
+       JOIN class_periods requested ON requested.school_id=$1 AND requested.period_id=$3
+       WHERE ts.school_id=$1 AND ts.substitute_teacher_user_id=$2 AND ts.status='ACTIVE'
+         AND ts.end_date >= (NOW() AT TIME ZONE 'Asia/Manila')::date AND p.active=TRUE
+         AND p.start_time < requested.end_time AND requested.start_time < p.end_time
        LIMIT 1`,
       [req.auth.schoolId, teacherUserId, req.params.periodId]
     );
