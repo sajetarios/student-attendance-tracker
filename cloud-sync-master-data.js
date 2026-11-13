@@ -223,7 +223,7 @@ function registerCloudMasterDataRoutes(app, pool, {
     const validUuid = typeof school.schoolId === 'string' &&
       /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(school.schoolId);
     const validCode = typeof school.schoolCode === 'string' &&
-      /^[A-Za-z0-9][A-Za-z0-9_-]{1,79}$/.test(school.schoolCode.trim());
+      /^[A-Za-z0-9][A-Za-z0-9_-]{0,79}$/.test(school.schoolCode.trim());
     const validSchoolName = typeof school.schoolName === 'string' &&
       school.schoolName.trim().length >= 2 && school.schoolName.trim().length <= 200;
     const validUsername = typeof admin.username === 'string' &&
