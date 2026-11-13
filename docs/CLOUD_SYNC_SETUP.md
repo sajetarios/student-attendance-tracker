@@ -25,13 +25,14 @@ The cloud/receiver server does not need this encryption key merely to verify inb
 ## Pairing and first synchronization
 
 1. Deploy this release to both the local and cloud instances. Migration 014 is applied by the normal migration runner when the application starts. Back up both databases before applying it.
-2. On the **cloud/receiver** instance, sign in as School Administrator and open **Academics → Cloud Sync**.
-3. Select **Generate / rotate receiving credential**. Copy the one-time credential. Rotating it immediately revokes the previous credential.
-4. On the **local/source** instance, open **Academics → Cloud Sync**, enter the cloud HTTPS base address and paste the receiving credential, then save the pairing settings.
-5. Select **Test secure connection**. The remote school ID must exactly match the local school ID.
-6. Select **Sync master data to cloud**. Review the local counts, last push timestamp, and cloud receipt. The import is additive/upsert-only and does not delete cloud records.
-7. Only after the successful push, enable **automatic attendance forwarding**. The server enforces this order even if someone tries to bypass the UI.
-8. Review queue counts and recent event responses. Use retry actions after correcting the reason shown for a failed item.
+2. **Provision the cloud school first.** The cloud database must contain the exact same immutable `school_id` as the local school, plus a working School Administrator account. A fresh `node create-school.js CODE "Name"` creates a random UUID and will not match. Use a controlled database copy/restore or an approved provisioning process that preserves the local school UUID; do not create a second unrelated school and expect the test to pair it.
+3. On the **cloud/receiver** instance, sign in as School Administrator and open **Academics → Cloud Sync**.
+4. Select **Generate / rotate receiving credential**. Copy the one-time credential. Rotating it immediately revokes the previous credential.
+5. On the **local/source** instance, open **Academics → Cloud Sync**, enter the cloud HTTPS base address and paste the receiving credential, then save the pairing settings.
+6. Select **Test secure connection**. The remote school ID must exactly match the local school ID.
+7. Select **Sync master data to cloud**. Review the local counts, last push timestamp, and cloud receipt. The import is additive/upsert-only and does not delete cloud records.
+8. Repeat **Sync master data to cloud** after adding or changing learners, staff identities, schedules, school years, enrollments, teacher/adviser assignments, calendar entries, or special-program assignments. This release does not automatically detect and push every later master-data change. Only after the successful push, enable **automatic attendance forwarding**. The server enforces this order even if someone tries to bypass the UI.
+9. Review queue counts and recent event responses. Use retry actions after correcting the reason shown for a failed item.
 
 Migration 014 pauses any previously enabled attendance forwarding so an old pairing cannot begin sending events before master data is provisioned. The forwarding switch becomes available after a current connection test and successful master-data push to the current destination.
 
