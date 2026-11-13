@@ -203,6 +203,14 @@ function startCloudSyncWorker(pool) {
     if (running) return;
     running = true;
     try {
+      await pool.query(
+        `UPDATE cloud_sync_outbox q
+         SET status='PENDING', last_error=COALESCE(q.last_error, 'Recovered stale in-flight sync after server restart'),
+             next_attempt_at=NOW(), updated_at=NOW()
+         FROM school_cloud_sync_settings s
+         WHERE q.school_id=s.school_id AND s.enabled=TRUE AND q.status='SENDING'
+           AND q.last_attempt_at < NOW() - INTERVAL '2 minutes'`
+      );
       const schools = await pool.query(
         `SELECT school_id FROM school_cloud_sync_settings
          WHERE enabled=TRUE AND cloud_base_url IS NOT NULL
