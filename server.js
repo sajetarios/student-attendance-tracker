@@ -1376,7 +1376,7 @@ app.get('/api/students', authenticateSchoolClient, requireSchoolClient, requireS
       (req.auth.role === 'TEACHER' && req.auth.teacherDesignations?.includes('SUBJECT_TEACHER'));
     if (isGateKeeper) return res.status(403).json({ error: 'Gate Keeper accounts use QR lookup only and cannot download the learner roster.' });
     const parentFields = includeParentFields
-      ? ', s.lrn, s.parent_name AS "parentName", s.parent_mobile AS "parentMobile", sa.username AS "studentAccountUsername", sa.active AS "studentAccountActive", sa.must_change_password AS "studentMustChangePassword"'
+      ? ', s.parent_name AS "parentName", s.parent_mobile AS "parentMobile", sa.username AS "studentAccountUsername", sa.active AS "studentAccountActive", sa.must_change_password AS "studentMustChangePassword"'
       : '';
     const qrField = canScanQr ? ', s.qr_token AS "qrToken"' : '';
     const result = await pool.query(
