@@ -315,14 +315,35 @@ function registerCloudSyncRoutes(app, pool, {
         return res.status(409).json({ error: 'Enable cloud forwarding after the connection test and master-data preparation.' });
       }
       const result = await pool.query(
-        'UPDATE cloud_sync_outbox SET next_attempt_at=NOW(), updated_at=NOW() ' +
-        'WHERE school_id=$1 AND status IN (\'PENDING\',\'FAILED\') RETURNING sync_id',
-        [req.auth.schoolId]
+        'UPDATE cloud_sync_outbox SET status=\'PENDING\', attempts=0, last_error=NULL, remote_status=NULL, ' +
+        'next_attempt_at=NOW(), updated_at=NOW() WHERE school_id=$1 AND status = ANY($2::text[]) RETURNING sync_id',
+        [req.auth.schoolId, ['PENDING', 'FAILED']]
       );
       return res.json({ ok: true, queued: result.rowCount, message: 'Pending and failed records are ready for retry.' });
     } catch (err) {
       console.error('Cloud sync manual retry failed:', err.message);
       return res.status(500).json({ error: 'Could not queue cloud sync retry.' });
+    }
+  });
+
+  app.post('/api/cloud-sync/retry-failed', authenticateSchoolClient, requireSchoolAdmin, async (req, res) => {
+    try {
+      const configured = await pool.query(
+        'SELECT enabled FROM school_cloud_sync_settings WHERE school_id=$1',
+        [req.auth.schoolId]
+      );
+      if (!configured.rows[0]?.enabled) {
+        return res.status(409).json({ error: 'Enable cloud forwarding after the connection test and master-data preparation.' });
+      }
+      const result = await pool.query(
+        'UPDATE cloud_sync_outbox SET status=\'PENDING\', attempts=0, last_error=NULL, remote_status=NULL, ' +
+        'next_attempt_at=NOW(), updated_at=NOW() WHERE school_id=$1 AND status=\'FAILED\' RETURNING sync_id',
+        [req.auth.schoolId]
+      );
+      return res.json({ ok: true, queued: result.rowCount, message: 'Failed records were requeued.' });
+    } catch (err) {
+      console.error('Cloud sync failed-record retry failed:', err.message);
+      return res.status(500).json({ error: 'Could not requeue failed cloud sync records.' });
     }
   });
 
