@@ -43,7 +43,10 @@ test('School Administrator manages accounts and monitors Gate Keeper activity bu
   assert.match(js, /const mayScan = gateKeeper \|\| \(teacher && \(subjectTeacher \|\| classAdviser\)\)/);
   assert.match(server, /role === 'SCHOOL_ADMIN'[\s\S]*?accounts do not record attendance/);
   assert.match(server, /app\.get\('\/api\/admin\/gatekeeper-monitoring', authenticateSchoolClient, requireSchoolAdmin/);
-  assert.doesNotMatch(permissions, /SCHOOL_ADMIN:[\s\S]*?attendance\.gate\.record/);
+  const schoolAdminPermissions = permissions.split('DEPARTMENT_HEAD:')[0];
+  assert.doesNotMatch(schoolAdminPermissions, /attendance\.(gate|subject)\.record/);
+  assert.match(permissions, /GATE_KEEPER: Object\.freeze\(\['gate\.lookup', 'attendance\.gate\.record'\]\)/);
+  assert.match(permissions, /attendance\.subject\.record', 'attendance\.advisory\.record/);
 });
 
 test('Gate Keeper scanner explicitly supports both learner and teacher attendance', () => {
