@@ -1,7 +1,7 @@
 'use strict';
 
 const isSchoolDate = value => typeof value === 'string' &&
-  /^\\d{4}-\\d{2}-\\d{2}$/.test(value) &&
+  /^\d{4}-\d{2}-\d{2}$/.test(value) &&
   Number.isFinite(Date.parse(`${value}T00:00:00Z`)) &&
   new Date(`${value}T00:00:00Z`).toISOString().slice(0, 10) === value;
 
@@ -92,6 +92,59 @@ function registerDepartmentRoutes(app, pool, auth) {
     } catch (err) {
       console.error('Staff department update failed:', err.message);
       return res.status(500).json({ error: 'Could not update staff department.' });
+    }
+  });
+
+  app.patch('/api/periods/:periodId/department', authenticateSchoolClient, schoolAdmin, async (req, res) => {
+    const { departmentId } = req.body || {};
+    if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(req.params.periodId || '') ||
+        !/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(departmentId || '')) {
+      return res.status(400).json({ error: 'Choose a valid class schedule and department.' });
+    }
+    const client = await pool.connect();
+    try {
+      await client.query('BEGIN');
+      const target = await client.query(
+        'SELECT 1 FROM school_departments WHERE school_id=$1 AND department_id=$2 AND active=TRUE',
+        [req.auth.schoolId, departmentId]
+      );
+      if (!target.rowCount) {
+        await client.query('ROLLBACK');
+        return res.status(400).json({ error: 'Choose an active department in this school.' });
+      }
+      const assignment = await client.query(
+        'SELECT 1 FROM teacher_period_assignments WHERE school_id=$1 AND period_id=$2 LIMIT 1',
+        [req.auth.schoolId, req.params.periodId]
+      );
+      const coverage = await client.query(
+        "SELECT 1 FROM teacher_period_substitutions WHERE school_id=$1 AND period_id=$2 AND status='ACTIVE' AND end_date >= (NOW() AT TIME ZONE 'Asia/Manila')::date LIMIT 1",
+        [req.auth.schoolId, req.params.periodId]
+      );
+      if (assignment.rowCount || coverage.rowCount) {
+        await client.query('ROLLBACK');
+        return res.status(409).json({ error: 'Remove the current teacher assignment and active cover before changing this schedule department.' });
+      }
+      const changed = await client.query(
+        'UPDATE class_periods SET department_id=$3 WHERE school_id=$1 AND period_id=$2 AND active=TRUE RETURNING period_id',
+        [req.auth.schoolId, req.params.periodId, departmentId]
+      );
+      if (!changed.rowCount) {
+        await client.query('ROLLBACK');
+        return res.status(404).json({ error: 'Active class schedule not found.' });
+      }
+      await client.query(
+        `INSERT INTO audit_logs(school_id, actor_type, actor_user_id, action, entity_type, entity_id, details)
+         VALUES($1,'SCHOOL',$2,'SCHOOL_ADMIN_CHANGE_SCHEDULE_DEPARTMENT','class_period',$3,$4::jsonb)`,
+        [req.auth.schoolId, req.auth.userId, req.params.periodId, JSON.stringify({ departmentId })]
+      );
+      await client.query('COMMIT');
+      return res.json({ ok: true, departmentId });
+    } catch (err) {
+      await client.query('ROLLBACK').catch(() => {});
+      console.error('Schedule department update failed:', err.message);
+      return res.status(500).json({ error: 'Could not change schedule department.' });
+    } finally {
+      client.release();
     }
   });
 
