@@ -8,7 +8,8 @@ ALTER TABLE school_cloud_sync_settings
   ADD COLUMN IF NOT EXISTS last_master_data_sync_at TIMESTAMPTZ,
   ADD COLUMN IF NOT EXISTS last_master_data_sync_counts JSONB,
   ADD COLUMN IF NOT EXISTS last_master_data_sync_hash TEXT,
-  ADD COLUMN IF NOT EXISTS last_master_data_sync_error TEXT;
+  ADD COLUMN IF NOT EXISTS last_master_data_sync_error TEXT,
+  ADD COLUMN IF NOT EXISTS last_master_data_sync_url TEXT;
 
 CREATE TABLE IF NOT EXISTS cloud_sync_master_data_receipts (
   school_id UUID PRIMARY KEY REFERENCES schools(school_id) ON DELETE CASCADE,
