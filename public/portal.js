@@ -135,6 +135,8 @@
   }
 
   function setView(view) {
+    const academicPanel = $('academicAdminWorkspace');
+    if (academicPanel) academicPanel.hidden = true;
     const isPlatform = user?.role === 'SUPER_ADMIN';
     if (isPlatform) {
       $('platformWorkspace').hidden = false;
@@ -152,7 +154,7 @@
       const panel = $(`${name}View`);
       if (panel) panel.hidden = name !== view;
     });
-    document.querySelectorAll('.nav-item[data-view]').forEach(button => {
+    document.querySelectorAll('.nav-item').forEach(button => {
       button.classList.toggle('active', button.dataset.view === view);
     });
 
