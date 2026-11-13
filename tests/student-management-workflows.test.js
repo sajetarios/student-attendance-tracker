@@ -12,6 +12,7 @@ const server = read('server.js');
 const studentRoutes = read('student-management-routes.js');
 const departmentRoutes = read('department-routes.js');
 const permissions = read('role-permissions.js');
+const cloudSyncRoutes = read('cloud-sync-routes.js');
 
 test('student add and edit forms include required Male/Female sex options', () => {
   assert.match(portalHtml, /id="newSex" required/);
@@ -62,5 +63,5 @@ test('teacher schedule batch assignment is department-scoped and checks overlaps
 test('cloud sync status is clearly displayed without falsely reporting an inactive connection as synced', () => {
   assert.match(portalHtml, /id="cloudSyncIndicator"/);
   assert.match(portalJs, /Cloud sync: Not active/);
-  assert.match(server, /connectionStatus: 'NOT_ACTIVE'/);
+  assert.match(cloudSyncRoutes, /connectionStatus: 'NOT_ACTIVE'/);
 });
