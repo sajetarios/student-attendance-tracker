@@ -18,7 +18,8 @@ const REQUIRED_MIGRATIONS = [
   '010_school_year_enrollment_and_movements.sql',
   '011_special_programs.sql',
   '012_cloud_sync_settings.sql',
-  '013_cloud_sync_outbox_and_credentials.sql'
+  '013_cloud_sync_outbox_and_credentials.sql',
+  '014_cloud_master_data_replication.sql'
 ];
 
 function checksum(content) {
