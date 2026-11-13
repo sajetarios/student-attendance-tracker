@@ -800,13 +800,13 @@
 
   function csvCell(value) {
     let text = String(value ?? '');
-    if (/^[-=+@\\t\\r]/.test(text)) text = "'" + text;
+    if (/^[-=+@\t\r]/.test(text)) text = "'" + text;
     return '"' + text.replace(/"/g, '""') + '"';
   }
 
   function downloadCsv(filename, rows) {
-    const csv = rows.map(row => row.map(csvCell).join(',')).join('\\r\\n');
-    const blob = new Blob(['\\uFEFF' + csv], { type: 'text/csv;charset=utf-8' });
+    const csv = rows.map(row => row.map(csvCell).join(',')).join('\r\\n');
+    const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8' });
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.href = url; link.download = filename; link.click();
