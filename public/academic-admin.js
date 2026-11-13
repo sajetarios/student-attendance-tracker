@@ -7,7 +7,19 @@
   const $=id=>document.getElementById(id), headers={'Authorization':'Bearer '+token,'Content-Type':'application/json'};
   async function api(url,options={}){const r=await fetch(url,{...options,headers:{...headers,...options.headers},cache:'no-store'});const d=await r.json().catch(()=>({}));if(!r.ok)throw Error(d.error||'Request failed');return d;}
   function message(id,text,error=false){const el=$(id);el.textContent=text;el.className='inline-feedback '+(error?'error':'');}
-  function show(){['dashboardView','studentsView','schedulesView','teachersView','sf2View'].forEach(id=>{const el=$(id);if(el)el.hidden=true;});panel.hidden=false;document.querySelectorAll('.nav-item').forEach(b=>b.classList.remove('active'));nav.classList.add('active');const crumb=$('breadcrumbCurrent');if(crumb)crumb.textContent='School Years & Programs';$('schoolWorkspace').hidden=false;loadAll();}
+  function show(){
+    ['dashboardView','studentsView','schedulesView','teachersView','sf2View','classAttendanceView','cloudSyncView'].forEach(id=>{const el=$(id);if(el)el.hidden=true;});
+    panel.hidden=false;
+    document.querySelectorAll('.nav-item').forEach(b=>{b.classList.remove('active');b.removeAttribute('aria-current');});
+    nav.classList.add('active');nav.setAttribute('aria-current','page');
+    const crumb=$('breadcrumbCurrent');if(crumb)crumb.textContent='School Years & Programs';
+    if($('viewTitle'))$('viewTitle').textContent='School Years & Programs';
+    if($('viewDescription'))$('viewDescription').textContent='Manage school-year setup, learner enrollment, and primary special-program assignments.';
+    const group=nav.closest('.nav-group'),toggle=group?.querySelector('.nav-group-toggle'),submenu=group?.querySelector('.nav-submenu');
+    if(toggle)toggle.setAttribute('aria-expanded','true');if(submenu)submenu.hidden=false;
+    const sidebar=$('sidebar');if(sidebar)sidebar.classList.remove('open');
+    $('schoolWorkspace').hidden=false;loadAll();
+  }
   nav.addEventListener('click',show);
   async function loadYears(){const d=await api('/api/school-years');const list=$('academicYearList'),select=$('academicSelectedYear'),old=select.value;list.replaceChildren();select.innerHTML='<option value="">Select a school year</option>';d.schoolYears.forEach(y=>{const o=document.createElement('option');o.value=y.schoolYearId;o.textContent=y.label+' · '+y.status;select.append(o);const row=document.createElement('div');row.className='academic-year-row';const info=document.createElement('div');const strong=document.createElement('strong');strong.textContent=y.label;const small=document.createElement('small');small.textContent=y.startDate+' to '+y.endDate+' · '+y.status;info.append(strong,small);row.append(info);if(y.status!=='ACTIVE'){const b=document.createElement('button');b.type='button';b.className='outline-button';b.textContent='Activate';b.addEventListener('click',()=>changeStatus(y.schoolYearId,'ACTIVE'));row.append(b);}else{const b=document.createElement('button');b.type='button';b.className='outline-button';b.textContent='Close year';b.addEventListener('click',()=>changeStatus(y.schoolYearId,'CLOSED'));row.append(b);}list.append(row);});if(old&&d.schoolYears.some(y=>y.schoolYearId===old))select.value=old;else{const active=d.schoolYears.find(y=>y.status==='ACTIVE');if(active)select.value=active.schoolYearId;}await loadEnrollments();}
   async function changeStatus(id,status){if(status==='CLOSED'&&!confirm('Close this school year? Its enrollment records will become read-only.'))return;try{await api('/api/school-years/'+id+'/status',{method:'PATCH',body:JSON.stringify({status})});await loadYears();}catch(e){message('academicYearFeedback',e.message,true);}}
