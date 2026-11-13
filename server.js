@@ -16,6 +16,7 @@ const { createAuthMiddleware } = require('./auth-middleware');
 const { registerParentRoutes } = require('./parent-routes');
 const { registerStudentRoutes } = require('./student-routes');
 const { registerAcademicRoutes } = require('./academic-routes');
+const registerCloudSyncRoutes = require('./cloud-sync-routes');
 
 const app = express();
 const pool = new Pool({ connectionString: process.env.DATABASE_URL });
@@ -38,6 +39,7 @@ const validText = value => typeof value === 'string' && value.trim().length > 0;
 registerParentRoutes(app, pool, { authenticateSchoolClient, requireSchoolRoles });
 registerStudentRoutes(app, pool, { authenticateSchoolClient, requireSchoolAdmin });
 registerAcademicRoutes(app, pool, { authenticateSchoolClient, requireSchoolRoles });
+registerCloudSyncRoutes(app, pool, { authenticateSchoolClient, requireSchoolAdmin });
 const registerSf2Routes = require('./sf2-routes');
 registerSf2Routes(app, pool, { authenticateSchoolClient, requireSchoolUser, requireSchoolAdmin, requireSchoolAdminOrDepartmentHead });
 
@@ -2095,6 +2097,9 @@ app.get('/api/admin/dashboard', authenticateSchoolClient, requireSchoolUser, asy
 app.get('/vendor/html5-qrcode.min.js', (_req, res) =>
   res.sendFile(path.join(__dirname, 'node_modules', 'html5-qrcode', 'html5-qrcode.min.js'))
 );
+// Basic liveness endpoint for deployment and diagnostics. No school data is exposed.
+app.get('/api/health', (_req, res) => res.json({ ok: true, service: 'school-attendance' }));
+
 // Main application login page
 app.get('/', (_req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'portal-login.html'));
