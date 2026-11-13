@@ -1173,9 +1173,10 @@ app.get('/api/students', authenticateSchoolClient, requireSchoolClient, requireS
     const qrField = canScanQr ? ', s.qr_token AS "qrToken"' : '';
     const result = await pool.query(
       `SELECT s.student_id AS "studentId", s.full_name AS "fullName",
-              s.grade_level AS "gradeLevel", s.section${qrField},
+              COALESCE(active_enrollment.grade_level,s.grade_level) AS "gradeLevel", COALESCE(active_enrollment.section,s.section) AS section${qrField},
                (s.photo_path IS NOT NULL) AS "hasPhoto", s.updated_at AS "updatedAt"${parentFields}
        FROM students s
+       LEFT JOIN LATERAL (SELECT en.grade_level,en.section FROM student_enrollments en JOIN school_years sy ON sy.school_id=en.school_id AND sy.school_year_id=en.school_year_id WHERE en.school_id=s.school_id AND en.student_id=s.student_id AND sy.status='ACTIVE' AND en.enrollment_status='ENROLLED' ORDER BY en.created_at DESC LIMIT 1) active_enrollment ON TRUE
        ${includeParentFields ? 'LEFT JOIN student_accounts sa ON sa.school_id=s.school_id AND sa.student_id=s.student_id' : ''}
        WHERE s.school_id=$1 AND s.active=TRUE${scope}
        ORDER BY s.full_name`,
