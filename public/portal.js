@@ -497,7 +497,7 @@
   }
 
   function coverageNeedsAction(row) {
-    return ['NO_TEACHER','ON_LEAVE_UNCOVERED','CHECK_IN_NOT_RECORDED','TEACHER_INACTIVE'].includes(row.coverageStatus);
+    return ['NO_TEACHER','ON_LEAVE_UNCOVERED','CHECK_IN_NOT_RECORDED','COVERAGE_CHECK_IN_NOT_RECORDED','TEACHER_INACTIVE'].includes(row.coverageStatus);
   }
 
   function renderTeacherCoverage() {
@@ -1055,11 +1055,12 @@
       : user.role === 'DEPARTMENT_HEAD'
         ? 'All departments are visible. You can create and manage schedules only in your own department.'
         : 'Create and manage schedules for every department in this school.';
-    const teacherCreatingOwn = user.role === 'TEACHER' && teacherHas('SUBJECT_TEACHER');
+    const teacherCreatingOwn = user.role === 'TEACHER' && teacherHas('SUBJECT_TEACHER') && user.departmentCode !== 'UNASSIGNED';
     const departmentHeadCanCreate = user.role === 'DEPARTMENT_HEAD' && Boolean(user.departmentId) && user.departmentCode !== 'UNASSIGNED';
     $('showScheduleForm').hidden = !(user.role === 'SCHOOL_ADMIN' || teacherCreatingOwn || departmentHeadCanCreate);
     if (user.role === 'DEPARTMENT_HEAD' && !departmentHeadCanCreate) $('scheduleScopeText').textContent = 'Your account is awaiting department assignment. You can monitor all departments until the School Administrator assigns your department.';
     $('showScheduleForm').textContent = teacherCreatingOwn ? '＋ Add my schedule' : '＋ Add schedule';
+    if (user.role === 'TEACHER' && teacherHas('SUBJECT_TEACHER') && !teacherCreatingOwn) $('scheduleScopeText').textContent = 'Your account is awaiting department assignment. Ask the School Administrator to assign your department before creating schedules.';
     $('periodSection').required = teacherCreatingOwn;
     $('sectionRequiredMark').textContent = teacherCreatingOwn ? '*' : '(optional)';
     $('periodSectionHint').textContent = teacherCreatingOwn
