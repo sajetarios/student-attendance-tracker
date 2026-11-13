@@ -659,7 +659,7 @@ td { font-size:14px; }
 
 /* Fix teacher monitor's seven-column table. Older five/four-column width
    rules must not collapse the final assignment and action columns. */
-#teachersView .table-scroll:has(> table.teacher-monitor-table) {
+#teachersView .teacher-monitor-scroll {
   width: 100%;
   max-width: 100%;
   overflow-x: auto;
@@ -725,7 +725,7 @@ td { font-size:14px; }
   white-space: nowrap;
 }
 @media (max-width: 700px) {
-  #teachersView .table-scroll:has(> table.teacher-monitor-table) {
+  #teachersView .teacher-monitor-scroll {
     -webkit-overflow-scrolling: touch;
   }
   #teachersView table.teacher-monitor-table {
