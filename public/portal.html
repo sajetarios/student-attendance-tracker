@@ -291,22 +291,45 @@
           <section id="cloudSyncView" class="view-panel" hidden>
             <div class="surface-card section-card">
               <div class="section-toolbar">
-                <div><h3>Cloud destination</h3><p>Set the address of the cloud copy. Local attendance recording will continue to work independently.</p></div>
-                <span class="mini-tag" id="cloudSyncStatus">Not connected</span>
+                <div><h3>Cloud destination</h3><p>Configure secure replication from this local school server to its matching cloud school.</p></div>
+                <span class="mini-tag" id="cloudSyncStatus">Not configured</span>
               </div>
               <form id="cloudSyncForm">
                 <div class="field-group">
                   <label for="cloudBaseUrl">Cloud server address</label>
                   <input id="cloudBaseUrl" type="url" inputmode="url" maxlength="500" placeholder="https://your-cloud-server.example" autocomplete="url">
-                  <small class="field-hint">Enter the cloud application’s base address. Use HTTPS for remote servers.</small>
+                  <small class="field-hint">Use the HTTPS base address of the cloud application.</small>
                 </div>
+                <div class="field-group">
+                  <label for="cloudAuthToken">Cloud receiving credential</label>
+                  <input id="cloudAuthToken" type="password" maxlength="256" placeholder="Paste the one-time credential generated on the cloud server" autocomplete="new-password">
+                  <small class="field-hint">The credential is encrypted on this server and is never returned to the browser after saving. Leave blank to keep the saved credential.</small>
+                </div>
+                <label class="check-row" for="cloudSyncEnabled">
+                  <input id="cloudSyncEnabled" type="checkbox">
+                  <span>Enable automatic cloud forwarding</span>
+                </label>
                 <div class="form-actions">
-                  <button class="primary-button" id="saveCloudDestination" type="submit">Save destination</button>
+                  <button class="primary-button" id="saveCloudDestination" type="submit">Save cloud settings</button>
+                  <button class="outline-button" id="testCloudConnection" type="button">Test connection</button>
                   <button class="outline-button" id="refreshCloudDestination" type="button">↻ Refresh</button>
                 </div>
               </form>
+              <div class="form-actions">
+                <button class="outline-button" id="generateCloudCredential" type="button">Generate / rotate receiving credential</button>
+                <button class="outline-button" id="syncCloudNow" type="button">Sync now</button>
+                <button class="outline-button" id="retryCloudFailures" type="button">Retry failed records</button>
+              </div>
+              <div id="cloudSyncTokenPanel" hidden>
+                <label for="cloudSyncTokenOutput">One-time receiving credential — copy it now</label>
+                <textarea id="cloudSyncTokenOutput" rows="3" readonly></textarea>
+                <button class="outline-button" id="copyCloudSyncToken" type="button">Copy credential</button>
+              </div>
               <div id="cloudSyncFeedback" class="inline-feedback" role="status" aria-live="polite"></div>
-              <div class="scope-note"><span>i</span><p><strong>Important:</strong> Saving the address only configures the destination. Secure cloud authentication, the server-side pending-event queue, automatic retries, and sync history still need to be implemented before attendance records are forwarded. No attendance records are sent by this setup screen.</p></div>
+              <div class="scope-note"><span>i</span><p><strong>Important:</strong> Generate the receiving credential while logged into the cloud server, then paste it into this local server's settings. The cloud and local school IDs must match. Before enabling forwarding, the cloud must also contain the matching students, class periods, teacher accounts, and teacher/adviser assignments. This module forwards attendance only; it does not yet provision master data. Parent SMS is sent by the local server only; replicated events do not create a second SMS.</p></div>
+              <div class="section-toolbar"><div><h3>Synchronization status</h3><p>Queue activity and recent server responses.</p></div></div>
+              <p><strong>Pending:</strong> <span id="cloudPendingCount">0</span> · <strong>Sending:</strong> <span id="cloudSendingCount">0</span> · <strong>Synced:</strong> <span id="cloudSyncedCount">0</span> · <strong>Failed:</strong> <span id="cloudFailedCount">0</span></p>
+              <ul id="cloudSyncRecent" class="simple-list"></ul>
             </div>
           </section>
 
