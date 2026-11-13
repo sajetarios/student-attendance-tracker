@@ -71,7 +71,7 @@ test('master-data snapshot excludes credentials, contacts, photos, and QR secret
   const source = fs.readFileSync(path.join(root, 'cloud-sync-master-data.js'), 'utf8');
   const builder = source.slice(
     source.indexOf('async function buildMasterDataSnapshot'),
-    source.indexOf('function makeRecordsetSql')
+    source.indexOf('async function importCollection')
   );
   for (const forbidden of ['username', 'password_hash', 'parent_mobile', 'parent_name', 'photo_path', 'qr_token', 'teacher_photo_path', 'teacher_qr_token']) {
     assert.doesNotMatch(builder, new RegExp(forbidden, 'i'), `Snapshot builder must not query ${forbidden}`);
@@ -96,6 +96,7 @@ test('master-data import endpoint and UI provide the guided sync controls', () =
   assert.match(portalHtml, /id="pushMasterData"/);
   assert.match(portalHtml, /id="masterDataReceiverStatus"/);
   assert.match(portalHtml, /id="cloudForwardingReadiness"/);
+  assert.match(portalHtml, /does not propagate deletions/i);
   assert.match(portalJs, /cloud-sync\/master-data\/push/);
   assert.match(portalJs, /cloud-sync\/master-data\/status/);
 });
