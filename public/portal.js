@@ -518,7 +518,10 @@
       return;
     }
     host.innerHTML = teacherCoverage.map(row => {
-      const options = teachers.filter(teacher => {
+      const canManageRow = user.role === 'SCHOOL_ADMIN' ||
+        (user.role === 'DEPARTMENT_HEAD' && user.departmentCode !== 'UNASSIGNED' &&
+         String(row.departmentId) === String(user.departmentId));
+      const options = canManageRow ? teachers.filter(teacher => {
         const alreadyBooked = (teacher.assignedPeriods || []).some(period =>
           String(period.periodId) !== String(row.periodId) &&
           String(period.startTime || '') < String(row.endTime || '') &&
@@ -527,16 +530,20 @@
         return teacher.active && String(teacher.departmentId) === String(row.departmentId) &&
           (teacher.teacherDesignations || []).includes('SUBJECT_TEACHER') &&
           String(teacher.userId) !== String(row.teacherUserId) && !alreadyBooked;
-      });
-      const action = coverageNeedsAction(row) && options.length
-        ? `<div class="coverage-action-controls">
-             <select aria-label="Choose teacher for ${esc(row.periodName)}" data-coverage-teacher-select="${esc(row.periodId)}">
-               <option value="">Choose teacher</option>
-               ${options.map(teacher => `<option value="${esc(teacher.userId)}">${esc(teacher.displayName)}</option>`).join('')}
-             </select>
-             <button type="button" class="outline-button compact-button" data-coverage-action="${esc(row.periodId)}">${row.coverageStatus === 'NO_TEACHER' ? 'Assign teacher' : 'Provide cover'}</button>
-           </div>`
-        : coverageNeedsAction(row) ? '<span class="muted-inline">No eligible teacher available</span>' : '<span class="muted-inline">—</span>';
+      }) : [];
+      const action = !canManageRow
+        ? '<span class="muted-inline">Managed by its department</span>'
+        : row.coverageStatus === 'COVERAGE_CHECK_IN_NOT_RECORDED'
+          ? '<span class="muted-inline">Follow up with substitute</span>'
+          : coverageNeedsAction(row) && options.length
+            ? `<div class="coverage-action-controls">
+                 <select aria-label="Choose teacher for ${esc(row.periodName)}" data-coverage-teacher-select="${esc(row.periodId)}">
+                   <option value="">Choose teacher</option>
+                   ${options.map(teacher => `<option value="${esc(teacher.userId)}">${esc(teacher.displayName)}</option>`).join('')}
+                 </select>
+                 <button type="button" class="outline-button compact-button" data-coverage-action="${esc(row.periodId)}">${row.coverageStatus === 'NO_TEACHER' ? 'Assign teacher' : 'Provide cover'}</button>
+               </div>`
+            : coverageNeedsAction(row) ? '<span class="muted-inline">No eligible teacher available</span>' : '<span class="muted-inline">—</span>';
       const assigned = row.effectiveTeacherName || row.teacherName || 'No permanent teacher';
       const teacherName = row.substituteTeacherName
         ? `<strong>${esc(row.substituteTeacherName)}</strong><small class="table-subtext">Covering ${esc(row.teacherName || 'original teacher')}</small>`
