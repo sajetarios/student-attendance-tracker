@@ -189,7 +189,9 @@ function registerCloudMasterDataRoutes(app, pool, {
           'SELECT last_master_data_sync_at AS "lastPushedAt", ' +
           'last_master_data_sync_counts AS "lastPushedCounts", ' +
           'last_master_data_sync_hash AS "lastPushedHash", ' +
-          'last_master_data_sync_error AS "lastPushError" ' +
+          'last_master_data_sync_error AS "lastPushError", ' +
+          'last_master_data_sync_cloud_received_at AS "cloudReceivedAt", ' +
+          'last_master_data_sync_cloud_imported AS "cloudImported" ' +
           'FROM school_cloud_sync_settings WHERE school_id=$1',
           [req.auth.schoolId]
         ),
@@ -218,7 +220,12 @@ function registerCloudMasterDataRoutes(app, pool, {
           ...(settings.rows[0] || {}),
           counts: counts.rows[0] || {}
         },
-        receiver: receipt.rows[0] || null
+        receiver: receipt.rows[0] || (settings.rows[0]?.cloudReceivedAt ? {
+          receivedAt: settings.rows[0].cloudReceivedAt,
+          sourceGeneratedAt: settings.rows[0].lastPushedAt,
+          counts: { imported: settings.rows[0].cloudImported || {} },
+          confirmedBySource: true
+        } : null)
       });
     } catch (err) {
       console.error('Cloud master-data status failed:', err.message);
@@ -269,9 +276,11 @@ function registerCloudMasterDataRoutes(app, pool, {
       await pool.query(
         'UPDATE school_cloud_sync_settings SET last_master_data_sync_at=NOW(), ' +
         'last_master_data_sync_counts=$2::jsonb, last_master_data_sync_hash=$3, ' +
-        'last_master_data_sync_url=cloud_base_url, last_master_data_sync_error=NULL, ' +
+        'last_master_data_sync_url=cloud_base_url, last_master_data_sync_cloud_received_at=$4, ' +
+        'last_master_data_sync_cloud_imported=$5::jsonb, last_master_data_sync_error=NULL, ' +
         'updated_at=NOW() WHERE school_id=$1',
-        [req.auth.schoolId, JSON.stringify(snapshot.counts), payloadHash]
+        [req.auth.schoolId, JSON.stringify(snapshot.counts), payloadHash,
+          remote.receivedAt || new Date().toISOString(), JSON.stringify(remote.imported || {})]
       );
       return res.json({
         ok: true,
