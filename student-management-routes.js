@@ -231,11 +231,19 @@ function registerStudentManagementRoutes(app, pool, { authenticateSchoolClient, 
           if (!target.rowCount) return res.status(403).json({ error: 'You may assign students only to a section assigned to you as Class Adviser.' });
           const outside = await pool.query(
             `SELECT s.student_id FROM students s
+             LEFT JOIN LATERAL (
+               SELECT en.grade_level,en.section FROM student_enrollments en
+               JOIN school_years sy ON sy.school_id=en.school_id AND sy.school_year_id=en.school_year_id
+               WHERE en.school_id=s.school_id AND en.student_id=s.student_id
+                 AND sy.status='ACTIVE' AND en.enrollment_status='ENROLLED'
+               ORDER BY en.created_at DESC LIMIT 1
+             ) current_enrollment ON TRUE
              WHERE s.school_id=$1 AND s.student_id=ANY($2::text[]) AND s.active=TRUE
                AND NOT EXISTS (
                  SELECT 1 FROM class_adviser_assignments ca
                  WHERE ca.school_id=s.school_id AND ca.adviser_user_id=$3
-                   AND ca.grade_level=s.grade_level AND ca.section=s.section
+                   AND ca.grade_level=COALESCE(current_enrollment.grade_level,s.grade_level)
+                   AND ca.section=COALESCE(current_enrollment.section,s.section)
                ) LIMIT 1`,
             [req.auth.schoolId, ids, req.auth.userId]
           );
