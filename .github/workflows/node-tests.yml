@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - feature/admin-department-scheduling-coverage
+      - feature/compact-staff-ui
   workflow_dispatch:
 
 permissions:
