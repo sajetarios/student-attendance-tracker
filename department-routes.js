@@ -1,0 +1,144 @@
+'use strict';
+
+const isSchoolDate = value => typeof value === 'string' &&
+  /^\\d{4}-\\d{2}-\\d{2}$/.test(value) &&
+  Number.isFinite(Date.parse(`${value}T00:00:00Z`)) &&
+  new Date(`${value}T00:00:00Z`).toISOString().slice(0, 10) === value;
+
+function registerDepartmentRoutes(app, pool, auth) {
+  const { authenticateSchoolClient, requireSchoolRoles } = auth;
+  const schoolManagers = requireSchoolRoles('SCHOOL_ADMIN', 'DEPARTMENT_HEAD');
+  const schoolAdmin = requireSchoolRoles('SCHOOL_ADMIN');
+
+  app.get('/api/departments', authenticateSchoolClient, schoolManagers, async (req, res) => {
+    try {
+      const result = await pool.query(
+        `SELECT department_id AS "departmentId", department_code AS code, department_name AS name, description, active
+         FROM school_departments WHERE school_id=$1 AND active=TRUE
+         ORDER BY CASE WHEN department_code='UNASSIGNED' THEN 1 ELSE 0 END, department_name`,
+        [req.auth.schoolId]
+      );
+      return res.json({ departments: result.rows, ownDepartmentId: req.auth.departmentId || null });
+    } catch (err) {
+      console.error('Department list failed:', err.message);
+      return res.status(500).json({ error: 'Could not load departments.' });
+    }
+  });
+
+  app.post('/api/departments', authenticateSchoolClient, schoolAdmin, async (req, res) => {
+    const { code, name, description } = req.body || {};
+    if (typeof code !== 'string' || !/^[A-Za-z0-9_-]{2,20}$/.test(code.trim()) ||
+        typeof name !== 'string' || !name.trim() || name.trim().length > 100 ||
+        (description != null && (typeof description !== 'string' || description.length > 500))) {
+      return res.status(400).json({ error: 'Enter a department code (2–20 characters) and a name (up to 100 characters).' });
+    }
+    try {
+      const result = await pool.query(
+        `INSERT INTO school_departments(school_id, department_code, department_name, description)
+         VALUES($1,$2,$3,$4)
+         RETURNING department_id AS "departmentId", department_code AS code, department_name AS name, description, active`,
+        [req.auth.schoolId, code.trim().toUpperCase(), name.trim(), description?.trim() || null]
+      );
+      return res.status(201).json({ department: result.rows[0] });
+    } catch (err) {
+      if (err.code === '23505') return res.status(409).json({ error: 'A department with that code already exists.' });
+      console.error('Department creation failed:', err.message);
+      return res.status(500).json({ error: 'Could not create department.' });
+    }
+  });
+
+  app.patch('/api/departments/:departmentId', authenticateSchoolClient, schoolAdmin, async (req, res) => {
+    const { name, description, active } = req.body || {};
+    if (typeof name !== 'string' || !name.trim() || name.trim().length > 100 ||
+        (description != null && (typeof description !== 'string' || description.length > 500)) ||
+        typeof active !== 'boolean') return res.status(400).json({ error: 'Provide a valid department name, description, and active status.' });
+    try {
+      const result = await pool.query(
+        `UPDATE school_departments SET department_name=$3, description=$4, active=$5, updated_at=NOW()
+         WHERE school_id=$1 AND department_id=$2 AND department_code<>'UNASSIGNED'
+         RETURNING department_id AS "departmentId", department_code AS code, department_name AS name, description, active`,
+        [req.auth.schoolId, req.params.departmentId, name.trim(), description?.trim() || null, active]
+      );
+      if (!result.rowCount) return res.status(404).json({ error: 'Department not found or cannot be changed.' });
+      return res.json({ department: result.rows[0] });
+    } catch (err) {
+      console.error('Department update failed:', err.message);
+      return res.status(500).json({ error: 'Could not update department.' });
+    }
+  });
+
+  app.get('/api/admin/teacher-coverage', authenticateSchoolClient, schoolManagers, async (req, res) => {
+    const today = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Manila' }).format(new Date());
+    const schoolDate = typeof req.query.date === 'string' ? req.query.date : today;
+    if (!isSchoolDate(schoolDate)) return res.status(400).json({ error: 'Provide a valid school date (YYYY-MM-DD).' });
+    try {
+      const result = await pool.query(
+        `SELECT p.period_id AS "periodId", p.period_name AS "periodName", p.grade_level AS "gradeLevel",
+                p.section, p.subject_name AS "subjectName", p.classroom, p.department_id AS "departmentId",
+                COALESCE(d.department_name, 'Unassigned') AS "departmentName",
+                to_char(p.start_time,'HH24:MI') AS "startTime", to_char(p.end_time,'HH24:MI') AS "endTime",
+                p.grace_minutes AS "graceMinutes", a.teacher_user_id AS "teacherUserId",
+                teacher.display_name AS "teacherName", teacher.active AS "teacherActive",
+                teacher.teacher_status AS "teacherStatus", teacher.leave_type AS "leaveType",
+                to_char(teacher.leave_start_date,'YYYY-MM-DD') AS "leaveStartDate",
+                to_char(teacher.expected_return_date,'YYYY-MM-DD') AS "expectedReturnDate",
+                teacher.leave_auto_reactivate AS "leaveAutoReactivate",
+                cover.substitution_id AS "substitutionId", cover.substitute_teacher_user_id AS "substituteTeacherUserId",
+                substitute.display_name AS "substituteTeacherName", gate.event_id AS "effectiveTeacherTimeInId",
+                CASE
+                  WHEN a.teacher_user_id IS NULL THEN 'NO_TEACHER'
+                  WHEN cover.substitution_id IS NOT NULL AND $2::date=(NOW() AT TIME ZONE 'Asia/Manila')::date
+                       AND (NOW() AT TIME ZONE 'Asia/Manila')::time > p.start_time + make_interval(mins => p.grace_minutes)
+                       AND gate.event_id IS NULL THEN 'COVERAGE_CHECK_IN_NOT_RECORDED'
+                  WHEN cover.substitution_id IS NOT NULL THEN 'COVERED'
+                  WHEN teacher.teacher_status='ON_LEAVE'
+                       AND $2::date BETWEEN teacher.leave_start_date AND teacher.expected_return_date THEN 'ON_LEAVE_UNCOVERED'
+                  WHEN teacher.active=FALSE THEN 'TEACHER_INACTIVE'
+                  WHEN $2::date > (NOW() AT TIME ZONE 'Asia/Manila')::date THEN 'SCHEDULED'
+                  WHEN $2::date=(NOW() AT TIME ZONE 'Asia/Manila')::date
+                       AND (NOW() AT TIME ZONE 'Asia/Manila')::time <= p.start_time + make_interval(mins => p.grace_minutes) THEN 'WAITING_FOR_START'
+                  WHEN $2::date=(NOW() AT TIME ZONE 'Asia/Manila')::date AND gate.event_id IS NULL THEN 'CHECK_IN_NOT_RECORDED'
+                  ELSE 'ASSIGNED'
+                END AS "coverageStatus"
+         FROM class_periods p
+         LEFT JOIN school_departments d ON d.school_id=p.school_id AND d.department_id=p.department_id
+         LEFT JOIN teacher_period_assignments a ON a.school_id=p.school_id AND a.period_id=p.period_id
+         LEFT JOIN school_users teacher ON teacher.school_id=a.school_id AND teacher.user_id=a.teacher_user_id
+         LEFT JOIN LATERAL (
+           SELECT ts.substitution_id, ts.substitute_teacher_user_id FROM teacher_period_substitutions ts
+           WHERE ts.school_id=p.school_id AND ts.period_id=p.period_id AND ts.status='ACTIVE'
+             AND $2::date BETWEEN ts.start_date AND ts.end_date
+           ORDER BY ts.created_at DESC LIMIT 1
+         ) cover ON TRUE
+         LEFT JOIN school_users substitute ON substitute.school_id=p.school_id AND substitute.user_id=cover.substitute_teacher_user_id
+         LEFT JOIN teacher_gate_events gate ON gate.school_id=p.school_id
+          AND gate.teacher_user_id=COALESCE(cover.substitute_teacher_user_id,a.teacher_user_id)
+          AND gate.school_date=$2::date AND gate.event_type='TIME_IN'
+         WHERE p.school_id=$1 AND p.active=TRUE
+         ORDER BY d.department_name, p.grade_level, p.section, p.start_time, p.period_name`,
+        [req.auth.schoolId, schoolDate]
+      );
+      const rows = result.rows.map(row => ({
+        ...row,
+        effectiveTeacherName: row.substituteTeacherName || row.teacherName || null,
+        effectiveTeacherUserId: row.substituteTeacherUserId || row.teacherUserId || null,
+        checkInRecorded: Boolean(row.effectiveTeacherTimeInId)
+      }));
+      return res.json({
+        schoolDate, isToday: schoolDate === today, coverage: rows,
+        summary: {
+          totalSchedules: rows.length,
+          noTeacher: rows.filter(row => row.coverageStatus === 'NO_TEACHER').length,
+          onLeaveUncovered: rows.filter(row => row.coverageStatus === 'ON_LEAVE_UNCOVERED').length,
+          checkInNotRecorded: rows.filter(row => ['CHECK_IN_NOT_RECORDED','COVERAGE_CHECK_IN_NOT_RECORDED'].includes(row.coverageStatus)).length,
+          covered: rows.filter(row => row.coverageStatus === 'COVERED').length
+        }
+      });
+    } catch (err) {
+      console.error('Teacher coverage monitoring failed:', err.message);
+      return res.status(500).json({ error: 'Could not load class coverage.' });
+    }
+  });
+}
+
+module.exports = { registerDepartmentRoutes };
