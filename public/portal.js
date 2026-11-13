@@ -722,7 +722,7 @@
     );
     for (const id of [...selectedStudentIds]) if (!visible.some(student => student.studentId === id)) selectedStudentIds.delete(id);
     if (!visible.length) {
-      host.innerHTML = '<tr><td colspan="10" class="empty-cell">No students are available for this filter.</td></tr>';
+      host.innerHTML = '<tr><td colspan="11" class="empty-cell">No students are available for this filter.</td></tr>';
     } else {
       const rows = await Promise.all(visible.map(async student => {
         const photo = await photoDataUrl(student.photoUrl);
@@ -739,14 +739,15 @@
           ? (qr ? `<button type="button" class="student-qr-preview" data-view-qr="${esc(student.studentId)}" title="View or print QR"><img src="${qr}" alt="QR code for ${esc(student.studentId)}"></button>` : '<span class="qr-unavailable">QR unavailable</span>')
           : (gateKeeper ? '<span class="muted-inline">Gate scan only</span>' : '<span class="muted-inline">Not available</span>');
         const selection = (admin || (teacher && designations.includes('CLASS_ADVISER'))) ? `<input type="checkbox" class="student-select-box" data-select-student="${esc(student.studentId)}" ${selectedStudentIds.has(student.studentId) ? 'checked' : ''} aria-label="Select ${esc(student.fullName)}">` : '';
-        const actions = canManage
+        const actions = canManage && student.active !== false
           ? `<div class="student-row-actions"><button type="button" class="outline-button" data-edit-student="${esc(student.studentId)}">Edit</button>${canUploadPhoto ? `<label class="student-photo-upload">${student.hasPhoto ? 'Replace photo' : 'Upload photo'}<input type="file" accept="image/jpeg,image/png,image/webp" data-student-photo="${esc(student.studentId)}" hidden></label>` : ''}</div>`
           : '<span class="muted-inline">View only</span>';
         const accountExists = Boolean(student.studentAccountUsername);
         const accountCell = admin
           ? `<div class="student-row-actions"><span class="muted-inline">${accountExists ? `Active login · ${esc(student.studentAccountUsername)}` : 'No student login'}</span><button type="button" class="outline-button" data-student-account="${esc(student.studentId)}" data-account-exists="${accountExists ? '1' : '0'}">${accountExists ? 'Reset login' : 'Create login'}</button></div>`
           : '<span class="muted-inline">School admin only</span>';
-        return `<tr><td>${selection}</td><td>${avatar}</td><td>${esc(student.studentId)}</td><td>${esc(student.fullName)}</td><td>${esc(student.sex ? String(student.sex).toLowerCase().replace(/^./, c => c.toUpperCase()) : 'Not set')}</td><td>${esc(student.gradeLevel)}</td><td>${esc(student.section)}</td><td>${qrCell}</td><td>${actions}</td><td>${accountCell}</td></tr>`;
+        const statusCell = student.active === false ? '<span class="status-tag neutral">Inactive / archived</span>' : '<span class="status-tag">Active</span>';
+        return `<tr><td>${selection}</td><td>${avatar}</td><td>${esc(student.studentId)}</td><td>${esc(student.fullName)}</td><td>${esc(student.sex ? String(student.sex).toLowerCase().replace(/^./, c => c.toUpperCase()) : 'Not set')}</td><td>${statusCell}</td><td>${esc(student.gradeLevel)}</td><td>${esc(student.section)}</td><td>${qrCell}</td><td>${actions}</td><td>${accountCell}</td></tr>`;
       }));
       host.innerHTML = rows.join('');
       host.querySelectorAll('input[data-student-photo]').forEach(input => input.addEventListener('change', async () => {
@@ -780,9 +781,9 @@
             : 'Students registered under this school. Manage student information, photos, and QR cards.';
     document.querySelectorAll('.student-filter-row label').forEach(element => { element.hidden = gateKeeper; });
     document.querySelectorAll('.student-bulk-actions').forEach(element => { element.hidden = gateKeeper || !(admin || (teacher && classAdviser)); });
-    if ($('includeArchivedStudents')) $('includeArchivedStudents').hidden = !admin;
+    if ($('includeArchivedStudents')) $('includeArchivedStudents').closest('label').hidden = !admin;
     document.querySelectorAll('[data-admin-only]').forEach(option => { option.hidden = !admin; option.disabled = !admin; });
-    if (admin || (teacher && classAdviser)) refreshBulkQrSections();
+    if (!gateKeeper) refreshBulkQrSections();
     updateStudentSelectionUi();
   }
 
@@ -2484,7 +2485,8 @@
   $('bulkQrSection').addEventListener('change', () => renderStudents());
   $('bulkQrGrade').addEventListener('change', () => { refreshBulkQrSections(); renderStudents(); });
   $('selectAllStudents').addEventListener('change', () => {
-    const visible = students.filter(s => ($('bulkQrGrade').value === 'ALL' || s.gradeLevel === $('bulkQrGrade').value) && ($('bulkQrSection').value === 'ALL' || s.section === $('bulkQrSection').value));
+    const search = ($('studentRosterSearch')?.value || '').trim().toLocaleLowerCase();
+    const visible = students.filter(s => ($('bulkQrGrade').value === 'ALL' || s.gradeLevel === $('bulkQrGrade').value) && ($('bulkQrSection').value === 'ALL' || s.section === $('bulkQrSection').value) && (!search || [s.fullName,s.studentId,s.lrn].some(value => String(value || '').toLocaleLowerCase().includes(search))));
     visible.forEach(s => $('selectAllStudents').checked ? selectedStudentIds.add(s.studentId) : selectedStudentIds.delete(s.studentId));
     renderStudents();
   });
