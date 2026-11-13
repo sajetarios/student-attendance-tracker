@@ -1,11 +1,16 @@
 name: Node.js tests
 
 on:
+  pull_request:
+    branches:
+      - fix/render-login-landing
+      - main
   push:
     branches:
       - feature/admin-department-scheduling-coverage
       - feature/compact-staff-ui
       - fix/teacher-monitor-table-columns
+      - feature/student-management-ux-bulk-actions
   workflow_dispatch:
 
 permissions:
