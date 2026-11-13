@@ -270,6 +270,11 @@ function registerCloudMasterDataRoutes(app, pool, {
         'VALUES($1,$2,$3,$4)',
         [school.schoolId, hashToken(receivingToken), 'Local school attendance server', createdAdmin.rows[0].user_id]
       );
+      await client.query(
+        'INSERT INTO audit_logs(school_id,actor_type,actor_user_id,action,entity_type,entity_id,details) ' +
+        'VALUES($1,\'SCHOOL\',$2,\'CLOUD_SYNC_BOOTSTRAP_CREATE_SCHOOL\',\'school\',$1::text,$3::jsonb)',
+        [school.schoolId, createdAdmin.rows[0].user_id, JSON.stringify({ schoolProvisioned: true, receivingCredentialCreated: true })]
+      );
       await client.query('COMMIT');
       return res.status(201).json({
         ok: true,
@@ -358,6 +363,11 @@ function registerCloudMasterDataRoutes(app, pool, {
       // Encrypt immediately on the server. The raw bootstrap key, admin password,
       // and receiver credential are not stored or returned to the browser.
       const encrypted = encryptCloudToken(remote.receivingCredential);
+      await pool.query(
+        'INSERT INTO audit_logs(school_id,actor_type,actor_user_id,action,entity_type,entity_id,details) ' +
+        'VALUES($1,\'SCHOOL\',$2,\'SCHOOL_ADMIN_PROVISION_CLOUD_DESTINATION\',\'cloud_sync_settings\',$1::text,$3::jsonb)',
+        [req.auth.schoolId, req.auth.userId, JSON.stringify({ cloudBaseUrl, cloudSchoolId: remote.schoolId })]
+      );
       await pool.query(
         'INSERT INTO school_cloud_sync_settings ' +
         '(school_id,cloud_base_url,enabled,updated_by_user_id,cloud_auth_token_ciphertext,cloud_auth_token_iv,cloud_auth_token_tag,updated_at) ' +
@@ -766,6 +776,8 @@ function registerCloudMasterDataRoutes(app, pool, {
 module.exports = {
   registerCloudMasterDataRoutes,
   validateMasterDataPayload,
+  safeBootstrapKeyMatch,
+  normalizeBootstrapCloudUrl,
   buildMasterDataSnapshot,
   hashPayload,
   COLLECTIONS
