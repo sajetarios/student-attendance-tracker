@@ -112,7 +112,7 @@ async function syncSchool(pool, schoolId) {
     const timeout = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
     try {
       response = await fetch(
-        setting.rows[0].cloud_base_url.replace(/\\/+$/, '') + '/api/cloud-sync/receive-events',
+        setting.rows[0].cloud_base_url.replace(/\/+$/, '') + '/api/cloud-sync/receive-events',
         {
           method: 'POST',
           headers: {
