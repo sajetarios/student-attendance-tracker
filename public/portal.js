@@ -173,7 +173,7 @@
       titles = {
         dashboard: ['Department Head Dashboard', 'Monitor learner attendance, teacher availability, class coverage, schedules, and section report progress.'],
         teachers: ['Teacher monitoring', 'Review teacher designations, assigned grade levels and sections, leave, schedules, and temporary substitute coverage.'],
-        schedules: ['Class schedule monitoring', 'Review the school schedule and class coverage. Permanent schedule changes remain with the School Administrator.'],
+        schedules: ['Department schedule management', 'View every department’s timetable and create or assign class schedules only within your own department.'],
         sf2: ['SF2 monitoring', 'Preview official section reports. Department Heads cannot edit, submit, or collect SF2 reports.']
       };
     } else if (gateKeeper) {
@@ -543,7 +543,7 @@
         <td><strong>${esc(row.subjectName || row.periodName)}</strong><small class="table-subtext">${esc(row.periodName)} · ${esc(row.startTime)}–${esc(row.endTime)}</small></td>
         <td>${teacherName}</td>
         <td><span class="coverage-status-pill ${coverageStatusClass(row.coverageStatus)}">${esc(coverageStatusLabel(row.coverageStatus))}</span></td>
-        <td>${action}</td>
+        <td>${row.coverageStatus === 'COVERAGE_CHECK_IN_NOT_RECORDED' ? '<span class="muted-inline">Follow up with substitute</span>' : action}</td>
       </tr>`;
     }).join('');
   }
@@ -1776,14 +1776,20 @@
     }
 
     const isDepartmentHead = role === 'DEPARTMENT_HEAD';
+    const isSchoolManager = ['SCHOOL_ADMIN', 'DEPARTMENT_HEAD'].includes(role);
+    $('teacherCoverageCard').hidden = !isSchoolManager;
+    if ($('departmentHeadOverview')) $('departmentHeadOverview').hidden = !isDepartmentHead;
     const base = await Promise.all([
       api('/api/admin/dashboard'),
       isDepartmentHead ? Promise.resolve({ students: [] }) : api('/api/students'),
-      role === 'TEACHER' && !teacherHas('SUBJECT_TEACHER') ? Promise.resolve({ periods: [] }) : api('/api/periods')
+      role === 'TEACHER' && !teacherHas('SUBJECT_TEACHER') ? Promise.resolve({ periods: [] }) : api('/api/periods'),
+      isSchoolManager ? api('/api/departments') : Promise.resolve({ departments: [] })
     ]);
     dashboardData = base[0];
     students = base[1].students || [];
     periods = base[2].periods || [];
+    departments = base[3].departments || [];
+    renderDepartments();
     const scopeSelect = $('scanSetupScope');
     const hasSubjectRole = role === 'TEACHER' && teacherHas('SUBJECT_TEACHER');
     const hasAdviserRole = role === 'TEACHER' && teacherHas('CLASS_ADVISER');
@@ -1820,9 +1826,12 @@
     renderStats(dashboardData);
     if (!isDepartmentHead) renderStudents();
     renderPeriods();
-    if (['SCHOOL_ADMIN', 'DEPARTMENT_HEAD'].includes(role)) renderTeachers();
+    if (isSchoolManager) renderTeachers();
     if (isDepartmentHead) renderDepartmentHeadOverview();
-    if (['SCHOOL_ADMIN', 'DEPARTMENT_HEAD'].includes(role)) await loadGateMonitoring();
+    if (isSchoolManager) {
+      await loadTeacherCoverage(false);
+      await loadGateMonitoring();
+    }
     if (['SCHOOL_ADMIN', 'DEPARTMENT_HEAD', 'TEACHER'].includes(role)) {
       await loadSf2Options();
       if (['SCHOOL_ADMIN', 'DEPARTMENT_HEAD'].includes(role)) {
