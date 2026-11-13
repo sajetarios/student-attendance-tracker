@@ -1333,6 +1333,38 @@
     printWindow.document.close();
   }
 
+  function renderBulkTeacherAssignment() {
+    const card = $('bulkTeacherAssignmentCard');
+    if (!card) return;
+    const allowed = ['SCHOOL_ADMIN', 'DEPARTMENT_HEAD'].includes(user?.role);
+    card.hidden = !allowed;
+    if (!allowed) return;
+    const teacherSelect = $('bulkAssignmentTeacher');
+    const previous = teacherSelect.value;
+    const eligibleTeachers = teachers.filter(item => item.active && (item.teacherDesignations || []).includes('SUBJECT_TEACHER'));
+    teacherSelect.innerHTML = '<option value="">Select an active Subject Teacher</option>' +
+      eligibleTeachers.map(item => `<option value="${esc(item.userId)}">${esc(item.displayName)} · ${esc(item.departmentName || 'Unassigned')}</option>`).join('');
+    if (eligibleTeachers.some(item => String(item.userId) === previous)) teacherSelect.value = previous;
+    const selectedTeacher = eligibleTeachers.find(item => String(item.userId) === String(teacherSelect.value));
+    const availablePeriods = periods.filter(item => user.role !== 'DEPARTMENT_HEAD' || String(item.departmentId) === String(user.departmentId));
+    const host = $('bulkAssignmentSchedules');
+    if (!selectedTeacher) {
+      host.innerHTML = '<p class="muted-inline">Select a teacher to view schedules in the authorized department scope.</p>';
+      return;
+    }
+    host.innerHTML = availablePeriods.map(period => {
+      const ownerId = period.assignedTeacherUserId ? String(period.assignedTeacherUserId) : '';
+      const alreadyThisTeacher = ownerId === String(selectedTeacher.userId);
+      const unavailable = Boolean(ownerId && !alreadyThisTeacher);
+      const detail = [period.subjectName, period.gradeLevel, period.section, period.startTime + '–' + period.endTime].filter(Boolean).join(' · ');
+      const status = alreadyThisTeacher ? 'Already assigned to this teacher' : unavailable ? `Assigned to ${period.assignedTeacherName || 'another teacher'}` : 'Available';
+      return `<label class="bulk-assignment-schedule ${unavailable || alreadyThisTeacher ? 'is-assigned' : ''}">
+        <input type="checkbox" name="bulkPeriodId" value="${esc(period.periodId)}" ${unavailable || alreadyThisTeacher ? 'disabled' : ''}>
+        <span><strong>${esc(period.periodName)}</strong><small>${esc(detail)}</small><em>${esc(status)}</em></span>
+      </label>`;
+    }).join('') || '<p class="muted-inline">No active schedules are available in this department.</p>';
+  }
+
   function renderTeachers() {
     ensureTeacherActionMenuStyles();
     const rows = teachers.length ? teachers.map(teacher => {
@@ -1991,7 +2023,7 @@
     renderStats(dashboardData);
     renderStudents();
     renderPeriods();
-    if (isSchoolManager) renderTeachers();
+    if (isSchoolManager) { renderTeachers(); renderBulkTeacherAssignment(); }
     if (isDepartmentHead) renderDepartmentHeadOverview();
     if (isSchoolManager) {
       await loadTeacherCoverage(false);
@@ -3020,6 +3052,28 @@
       select.value = previousDepartment || '';
       select.disabled = false;
     }
+  });
+
+  $('bulkAssignmentTeacher')?.addEventListener('change', renderBulkTeacherAssignment);
+  $('bulkTeacherAssignmentForm')?.addEventListener('submit', async event => {
+    event.preventDefault();
+    const teacherUserId = $('bulkAssignmentTeacher').value;
+    const periodIds = [...$('bulkAssignmentSchedules').querySelectorAll('input[name="bulkPeriodId"]:checked')].map(input => input.value);
+    const feedback = $('bulkTeacherAssignmentFeedback');
+    if (!teacherUserId || !periodIds.length) { feedback.textContent = 'Choose a teacher and select at least one available schedule.'; feedback.className = 'inline-feedback error'; return; }
+    if (!window.confirm(`Assign the selected teacher to ${periodIds.length} schedule(s)? All selected schedules must pass department and time-conflict checks.`)) return;
+    $('applyBulkTeacherAssignment').disabled = true;
+    feedback.textContent = 'Checking schedule ownership and teacher availability…';
+    feedback.className = 'inline-feedback';
+    try {
+      const result = await api('/api/teachers/bulk-assignments', { method: 'POST', body: JSON.stringify({ teacherUserId, periodIds }) });
+      feedback.textContent = `Completed: ${result.assignments.length} schedule(s) processed.`;
+      showToast(`Teacher assigned to ${result.assignments.length} schedule(s).`);
+      await loadSchoolData();
+    } catch (error) {
+      feedback.textContent = error.message;
+      feedback.className = 'inline-feedback error';
+    } finally { $('applyBulkTeacherAssignment').disabled = false; }
   });
 
   $('teacherCoverageRows')?.addEventListener('click', async event => {
