@@ -17,7 +17,7 @@ function createAuthMiddleware(pool) {
       const session = await pool.query(
         `SELECT us.session_id, us.principal_type, us.school_id,
                 su.user_id, su.role, su.username, su.display_name, su.teacher_designations,
-                su.department_id, d.department_name,
+                su.department_id, d.department_name, d.department_code,
                 s.school_code, s.school_name
          FROM user_sessions us
          JOIN school_users su
@@ -46,6 +46,7 @@ function createAuthMiddleware(pool) {
           teacherDesignations: Array.isArray(row.teacher_designations) ? row.teacher_designations : [],
           departmentId: row.department_id || null,
           departmentName: row.department_name || null,
+          departmentCode: row.department_code || null,
           username: row.username,
           displayName: row.display_name,
           schoolCode: row.school_code,
