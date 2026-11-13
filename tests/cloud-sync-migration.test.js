@@ -25,6 +25,8 @@ test('cloud master-data migration adds receipt tracking and pauses old forwardin
   );
   assert.match(sql, /ADD COLUMN IF NOT EXISTS login_enabled BOOLEAN NOT NULL DEFAULT TRUE/);
   assert.match(sql, /last_master_data_sync_url TEXT/);
+  assert.match(sql, /last_master_data_sync_cloud_received_at TIMESTAMPTZ/);
+  assert.match(sql, /last_master_data_sync_cloud_imported JSONB/);
   assert.match(sql, /CREATE TABLE IF NOT EXISTS cloud_sync_master_data_receipts/);
   assert.match(sql, /UPDATE school_cloud_sync_settings SET enabled=FALSE/);
 });
