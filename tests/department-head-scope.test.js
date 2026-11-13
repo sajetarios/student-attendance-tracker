@@ -44,7 +44,7 @@ test('Department Head sees all departments but schedule writes are restricted to
   const departmentRoutes = fs.readFileSync(path.join(root, 'department-routes.js'), 'utf8');
   assert.match(departmentRoutes, /app\.get\('\/api\/departments', authenticateSchoolClient, schoolManagers/);
   assert.match(server, /app\.get\('\/api\/periods', authenticateSchoolClient, requireSchoolUser/);
-  assert.match(server, /req\.auth\.role === 'DEPARTMENT_HEAD' && String\(period\.rows\[0\]\.department_id\) !== String\(req\.auth\.departmentId\)/);
+  assert.match(server, /req\.auth\.role === 'DEPARTMENT_HEAD' && \(req\.auth\.departmentCode === 'UNASSIGNED' \|\| String\(period\.rows\[0\]\.department_id\) !== String\(req\.auth\.departmentId\)\)/);
   assert.match(server, /teacher\.rows\[0\]\.department_id\) !== String\(period\.rows\[0\]\.department_id\)/);
   assert.match(server, /DEPARTMENT_HEAD_CREATE_DEPARTMENT_PERIOD/);
 });
