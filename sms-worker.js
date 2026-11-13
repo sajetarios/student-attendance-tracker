@@ -7,6 +7,17 @@ const MAX_ATTEMPTS = Number(process.env.SMS_MAX_ATTEMPTS || 5);
 
 const sleep = ms => new Promise(resolve => setTimeout(resolve, ms));
 
+// Messages left in SENDING by a crashed worker would otherwise never be retried.
+// Run once at startup; assumes a single worker process (the documented setup).
+async function recoverStuckMessages() {
+  const result = await pool.query(
+    `UPDATE sms_outbox SET status='PENDING', last_error='Recovered after interrupted send'
+     WHERE status='SENDING' AND attempts < $1`,
+    [MAX_ATTEMPTS]
+  ).catch(e => { console.error('Stuck-message recovery skipped:', e.message); return null; });
+  if (result && result.rowCount) console.log(`Recovered ${result.rowCount} stuck SMS message(s).`);
+}
+
 async function claimOne() {
   const client = await pool.connect();
   try {
@@ -64,6 +75,7 @@ async function deliver(row) {
 
 async function run() {
   console.log("Semaphore SMS worker started");
+  await recoverStuckMessages();
   while (true) {
     let row;
     try { row = await claimOne(); }
@@ -78,7 +90,7 @@ async function run() {
       await pool.query(
         "UPDATE sms_outbox SET status=$2,last_error=$3 WHERE id=$1",
         [row.id, nextStatus, e.message.slice(0,1000)]
-      );
+      ).catch(dbErr => console.error(`Could not record failure for outbox ${row.id}:`, dbErr.message));
       // Gentle backoff before the next attempt.
       await sleep(Math.min(30000, POLL_MS * Math.pow(2, Number(row.attempts))));
     }
