@@ -49,6 +49,12 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      - name: Check JavaScript syntax
+        run: |
+          node --check server.js
+          node --check student-management-routes.js
+          node --check public/portal.js
+          node --check public/academic-admin.js
       - name: Run test suite
         run: npm test
 
