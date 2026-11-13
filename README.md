@@ -17,13 +17,13 @@ A Department Head cannot create departments, reassign staff to another departmen
 
 ## Apply the database update
 
-After pulling this branch, run the standard migration command against the intended database:
+On application startup, the server checks and applies pending database migrations before it begins listening. You can also run the migration command manually during a planned release:
 
 ```bash
 npm run db:migrate
 ```
 
-This applies migration `013_departments_and_classroom_assignment.sql`. The migration creates the department table, adds department ownership to staff and class schedules, adds the classroom field, and backfills existing rows into **Unassigned**. It does not delete or replace existing attendance records.
+Back up the target database before deploying. This applies migration `013_departments_and_classroom_assignment.sql`. The migration creates the department table, adds department ownership to staff and class schedules, adds the classroom field, and backfills existing rows into **Unassigned**. It does not delete or replace existing attendance records.
 
 After the migration, sign in as the School Administrator, create the school's departments, and reassign existing teachers and Department Heads from **Unassigned**. Review existing class schedules and move them to the correct departments before making new teacher assignments.
 
