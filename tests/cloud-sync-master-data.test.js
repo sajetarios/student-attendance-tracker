@@ -73,7 +73,7 @@ test('master-data snapshot excludes credentials, contacts, photos, and QR secret
     source.indexOf('async function buildMasterDataSnapshot'),
     source.indexOf('function makeRecordsetSql')
   );
-  for (const forbidden of ['password_hash', 'parent_mobile', 'parent_name', 'photo_path', 'qr_token', 'teacher_photo_path', 'teacher_qr_token']) {
+  for (const forbidden of ['username', 'password_hash', 'parent_mobile', 'parent_name', 'photo_path', 'qr_token', 'teacher_photo_path', 'teacher_qr_token']) {
     assert.doesNotMatch(builder, new RegExp(forbidden, 'i'), `Snapshot builder must not query ${forbidden}`);
   }
   assert.match(source, /field\.replace\(\/\[A-Z\]\/g/);
