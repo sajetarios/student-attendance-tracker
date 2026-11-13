@@ -110,7 +110,7 @@ test('Teacher scanner supports designated subject and advisory attendance with a
 });
 
 test('School staff account directory does not duplicate teacher accounts', () => {
-  assert.match(server, /WHERE school_id=\$1 AND role IN \('DEPARTMENT_HEAD', 'GATE_KEEPER'\)/);
-  assert.match(html, /Only Department Heads and Gate Keepers appear here/);
+  assert.match(server, /WHERE su.school_id=\$1 AND su.role IN \('DEPARTMENT_HEAD', 'GATE_KEEPER'\)/);
+  assert.match(html, /Department Heads and Gate Keepers/);
   assert.match(js, /filter\(account => \['DEPARTMENT_HEAD', 'GATE_KEEPER'\]\.includes\(account\.role\)\)/);
 });
