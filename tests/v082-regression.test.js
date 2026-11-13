@@ -54,7 +54,7 @@ test('new theme is cool neutral blue and all relevant pages use v0.8.2 cache-bus
   assert.match(theme, /--brand: #2463a5/);
   assert.match(theme, /--sidebar: #1c2d45/);
   assert.doesNotMatch(theme, /#477f78|#293b3a/);
-  const html = ['portal.html','index.html','portal-login.html','parent-portal.html','student-portal.html']
+  const html = ['portal.html','portal-login.html','parent-portal.html','student-portal.html']
     .map(name => read(`public/${name}`)).join('\n');
   assert.match(html, /comfort-ui\.css\?v=0\.8\.2/);
   assert.match(read('public/sw.js'), /school-attendance-shell-v14-login-landing/);
@@ -66,12 +66,15 @@ test('root URL and legacy index open the login page without serving a stale cach
   const serviceWorker = read('public/sw.js');
   const loginScript = read('public/portal-login.js');
   const index = read('public/index.html');
+  const shell = serviceWorker.split('const SHELL = [')[1]?.split('];')[0] || '';
 
-  assert.match(server, /res\\.sendFile\\(path\\.join\\(__dirname, 'public', 'portal-login\\.html'\\)\\)/);
-  assert.match(server, /app\\.get\\('\\/index\\.html'[\\s\\S]*?res\\.redirect\\('\\/'\\)/);
-  assert.match(index, /portal-login\\.html/);
-  assert.match(serviceWorker, /request\\.mode === "navigate"/);
-  assert.match(serviceWorker, /school-attendance-shell-v14-login-landing/);
-  assert.doesNotMatch(serviceWorker, /^\\s*"\\/",?\\s*$/m);
-  assert.match(loginScript, /navigator\\.serviceWorker\\.register\\('\\/sw\\.js', \\{ updateViaCache: 'none' \\}\\)/);
+  assert.ok(server.includes("res.sendFile(path.join(__dirname, 'public', 'portal-login.html'));"));
+  assert.ok(server.includes("app.get('/index.html', (_req, res) => {"));
+  assert.ok(server.includes("res.redirect('/');"));
+  assert.ok(index.includes('/portal-login.html'));
+  assert.ok(serviceWorker.includes('if (request.mode === "navigate")'));
+  assert.ok(serviceWorker.includes('school-attendance-shell-v14-login-landing'));
+  assert.equal(shell.includes('"/"'), false);
+  assert.equal(shell.includes('"/index.html"'), false);
+  assert.ok(loginScript.includes("navigator.serviceWorker.register('/sw.js', { updateViaCache: 'none' })"));
 });
