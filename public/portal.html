@@ -379,7 +379,7 @@
                     <button class="primary-button" id="provisionCloudDestination" type="submit">Create matching cloud school and pair it</button>
                   </form>
                 </details>
-                <div class="cloud-sync-prerequisite"><strong>Important school identity requirement</strong><p>The cloud database must already contain this same school ID and an authorized School Administrator account. The local and cloud school IDs shown above must match exactly. Creating a new cloud school with a random ID will not pair with this local school.</p></div>
+                <div class="cloud-sync-prerequisite"><strong>Important school identity requirement</strong><p>For a new cloud database, use the provisioning form below to create the matching school ID and initial cloud administrator. For an existing cloud school, its school ID must match exactly and you must use its existing School Administrator account. The provisioning form never overwrites an existing school.</p></div>
                 <button class="primary-button" id="generateCloudCredential" type="button">Generate / rotate receiving credential</button>
                 <div id="cloudSyncTokenPanel" class="cloud-sync-token-panel" hidden>
                   <label for="cloudSyncTokenOutput">One-time receiving credential — copy it now</label>
