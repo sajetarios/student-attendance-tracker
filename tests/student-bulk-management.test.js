@@ -12,6 +12,8 @@ const migrations=fs.readFileSync(path.join(root,'scripts','migrate.js'),'utf8');
 
 test('bulk import supports CSV and Excel with required Student ID and sex validation',()=>{
   assert.match(routes,/\.xlsx\.load/);
+  assert.match(routes,/in_school/);
+  assert.doesNotMatch(routes,/school_id AS "schoolId"/);
   assert.match(routes,/csvRows\(/);
   assert.match(routes,/MAX_ROWS = 2000/);
   assert.match(routes,/Student ID, Full Name, Sex, Grade Level, Section/);
@@ -21,12 +23,20 @@ test('bulk import supports CSV and Excel with required Student ID and sex valida
   assert.match(routes,/import\/commit/);
 });
 
-test('student batch APIs enforce administrator and Class Adviser role scopes',()=>{
-  assert.match(routes,/requireSchoolRoles\('SCHOOL_ADMIN','TEACHER'\)/);
+test('student batch APIs enforce Administrator, Department Head, and Class Adviser role scopes',()=>{
+  assert.match(routes,/requireSchoolRoles\('SCHOOL_ADMIN','DEPARTMENT_HEAD','TEACHER'\)/);
   assert.match(routes,/req\.auth\.role==='TEACHER'/);
   assert.match(routes,/class_adviser_assignments/);
   assert.match(routes,/students\/batch/);
   assert.match(routes,/\['ACTIVATE','DEACTIVATE','ARCHIVE','UPDATE','ASSIGN'\]/);
+});
+
+test('Department Head student batch actions are scoped to their active department sections',()=>{
+  assert.match(routes,/req\.auth\.departmentId/);
+  assert.match(routes,/p\.department_id=\$3 AND p\.active=TRUE/);
+  assert.match(server,/p\.department_id=\$2 AND p\.active=TRUE/);
+  assert.match(portal,/Department-scoped learner management/);
+  assert.match(html,/id="studentDepartmentScopeNote"/);
 });
 
 test('student enrollment changes are written to the active school year enrollment table',()=>{

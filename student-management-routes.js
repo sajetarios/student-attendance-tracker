@@ -24,7 +24,7 @@ function registerStudentManagementRoutes(app,pool,auth){
  const manager=requireSchoolRoles('SCHOOL_ADMIN','TEACHER'),admin=requireSchoolRoles('SCHOOL_ADMIN');
  async function preview(req,rows){
   const ids=[...new Set(rows.map(r=>clean(r.studentId)).filter(Boolean))],lrns=[...new Set(rows.map(r=>clean(r.lrn)).filter(Boolean))];
-  const ex=ids.length?await pool.query('SELECT student_id AS id,school_id AS "schoolId",active,archived_at FROM students WHERE student_id=ANY($1::text[])',[ids]):{rows:[]};
+  const ex=ids.length?await pool.query('SELECT student_id AS id,(school_id=$1) AS in_school,active,archived_at FROM students WHERE student_id=ANY($2::text[])',[req.auth.schoolId,ids]):{rows:[]};
   const em=new Map(ex.rows.map(x=>[x.id,x]));
   const lx=lrns.length?await pool.query('SELECT lrn,student_id FROM students WHERE school_id=$1 AND lrn=ANY($2::text[])',[req.auth.schoolId,lrns]):{rows:[]};
   const lm=new Map(lx.rows.map(x=>[x.lrn,x.student_id]));
@@ -39,7 +39,7 @@ function registerStudentManagementRoutes(app,pool,auth){
    if(lrn&&seenLrn.has(lrn))errors.push('LRN is duplicated in this file.');if(lrn)seenLrn.add(lrn);
    if(req.auth.role==='TEACHER'&&!allowed.includes(clean(r.gradeLevel)+'|'+clean(r.section)))errors.push('Grade/section is not assigned to your advisory account.');
    let action='CREATE';
-   if(found&&String(found.schoolId)!==String(req.auth.schoolId))errors.push('Student ID belongs to another school.');
+   if(found&&!found.in_school)errors.push('Student ID is already in use and cannot be registered for this school.');
    else if(found&&(!found.active||found.archived_at))errors.push('Student is inactive or archived; ask the administrator to review.');
    else if(found&&req.auth.role==='TEACHER')errors.push('Student already exists. Teacher imports can only add new students.');
    else if(found)action='UPDATE';
@@ -76,11 +76,12 @@ function registerStudentManagementRoutes(app,pool,auth){
    await c.query('COMMIT');res.json({ok:true,created,updated,total:created+updated});
   }catch(e){await c.query('ROLLBACK').catch(()=>{});res.status(e.statusCode|| (e.code==='23505'?409:500)).json({error:e.message||'Import failed. An LRN may already be registered.'});}finally{c.release();}
  });
- app.post('/api/students/batch',authenticateSchoolClient,manager,async(req,res)=>{
-  const isTeacher=req.auth.role==='TEACHER';
+ app.post('/api/students/batch',authenticateSchoolClient,requireSchoolRoles('SCHOOL_ADMIN','DEPARTMENT_HEAD','TEACHER'),async(req,res)=>{
+  const role=req.auth.role,isTeacher=role==='TEACHER',isDepartmentHead=role==='DEPARTMENT_HEAD';
   const ids=[...new Set((Array.isArray(req.body?.studentIds)?req.body.studentIds:[]).map(clean).filter(Boolean))],action=clean(req.body?.action).toUpperCase();
   if(!ids.length||ids.length>500||ids.some(x=>x.length>80)||!['ACTIVATE','DEACTIVATE','ARCHIVE','UPDATE','ASSIGN'].includes(action))return res.status(400).json({error:'Select 1–500 students and a valid action.'});
   if(isTeacher&&(!req.auth.teacherDesignations?.includes('CLASS_ADVISER')||!['UPDATE','ASSIGN'].includes(action)))return res.status(403).json({error:'Class Advisers may batch-edit or assign only students in their assigned sections.'});
+  if(isDepartmentHead&&(!req.auth.departmentId||req.auth.departmentCode==='UNASSIGNED'||!['UPDATE','ASSIGN'].includes(action)))return res.status(403).json({error:'Department Heads may edit or assign only learners in their own department. Activation, deactivation, and archiving remain School Administrator actions.'});
   const b=req.body||{};
   if(action==='ASSIGN'&&(!validText(b.gradeLevel,40)||!validText(b.section,100)))return res.status(400).json({error:'Choose a valid grade and section.'});
   if(action==='UPDATE'&&b.fullName!=null&&!validText(b.fullName,200))return res.status(400).json({error:'Full name must contain 1–200 characters.'});
@@ -88,6 +89,7 @@ function registerStudentManagementRoutes(app,pool,auth){
   if(b.lrn!=null&&clean(b.lrn).length>30)return res.status(400).json({error:'LRN must be 30 characters or fewer.'});
   if(b.parentName!=null&&clean(b.parentName).length>160)return res.status(400).json({error:'Parent name must be 160 characters or fewer.'});
   if(b.parentMobile!=null&&clean(b.parentMobile).length>30)return res.status(400).json({error:'Parent mobile must be 30 characters or fewer.'});
+  if((isTeacher||isDepartmentHead)&&(b.lrn!=null||b.parentName!=null||b.parentMobile!=null))return res.status(403).json({error:'Only School Administrators may update LRN and guardian details.'});
   if(action==='UPDATE'&&![b.fullName,b.sex,b.lrn,b.parentName,b.parentMobile].some(v=>v!=null&&clean(v)))return res.status(400).json({error:'Provide at least one field to update.'});
   const c=await pool.connect();
   try{
@@ -99,31 +101,62 @@ function registerStudentManagementRoutes(app,pool,auth){
       WHERE s.school_id=$1 AND s.student_id=ANY($2::text[]) AND s.active=TRUE AND s.archived_at IS NULL
         AND EXISTS(SELECT 1 FROM class_adviser_assignments ca WHERE ca.school_id=s.school_id AND ca.adviser_user_id=$3 AND ca.grade_level=COALESCE(en.grade_level,s.grade_level) AND ca.section=COALESCE(en.section,s.section))
       FOR UPDATE OF s`,[req.auth.schoolId,ids,req.auth.userId]);
+   }else if(isDepartmentHead){
+    if(!req.auth.departmentId||req.auth.departmentCode==='UNASSIGNED')throw Object.assign(new Error('Your account must be assigned to a department.'),{statusCode:403});
+    found=await c.query(`SELECT s.student_id FROM students s
+      LEFT JOIN LATERAL (SELECT e.grade_level,e.section FROM student_enrollments e JOIN school_years sy ON sy.school_id=e.school_id AND sy.school_year_id=e.school_year_id WHERE e.school_id=s.school_id AND e.student_id=s.student_id AND sy.status='ACTIVE' AND e.enrollment_status='ENROLLED' ORDER BY e.created_at DESC LIMIT 1) en ON TRUE
+      WHERE s.school_id=$1 AND s.student_id=ANY($2::text[]) AND s.active=TRUE AND s.archived_at IS NULL
+        AND EXISTS(SELECT 1 FROM class_periods p WHERE p.school_id=s.school_id AND p.department_id=$3 AND p.active=TRUE
+          AND p.grade_level=COALESCE(en.grade_level,s.grade_level)
+          AND p.section IS NOT NULL AND TRIM(p.section)=COALESCE(en.section,s.section))
+      FOR UPDATE OF s`,[req.auth.schoolId,ids,req.auth.departmentId]);
    }else{
     found=await c.query('SELECT student_id,active,archived_at FROM students WHERE school_id=$1 AND student_id=ANY($2::text[]) FOR UPDATE',[req.auth.schoolId,ids]);
    }
-   if(found.rowCount!==ids.length||(!isTeacher&&!['ACTIVATE','ARCHIVE'].includes(action)&&found.rows.some(x=>!x.active||x.archived_at))||(action==='ARCHIVE'&&found.rows.some(x=>x.archived_at))){await c.query('ROLLBACK');return res.status(409).json({error:'Some selected records are unavailable or outside your authorized section. Refresh and try again.'});}
-   if(isTeacher&&action==='ASSIGN'){
-    const allowed=await c.query('SELECT EXISTS(SELECT 1 FROM class_adviser_assignments WHERE school_id=$1 AND adviser_user_id=$2 AND grade_level=$3 AND section=$4) AS allowed',[req.auth.schoolId,req.auth.userId,clean(b.gradeLevel),clean(b.section)]);
-    if(!allowed.rows[0]?.allowed){await c.query('ROLLBACK');return res.status(403).json({error:'You may assign students only to your own assigned advisory sections.'});}
+   if(found.rowCount!==ids.length||(!isTeacher&&!isDepartmentHead&&!['ACTIVATE','ARCHIVE'].includes(action)&&found.rows.some(x=>!x.active||x.archived_at))||(action==='ARCHIVE'&&found.rows.some(x=>x.archived_at))){
+    await c.query('ROLLBACK');return res.status(409).json({error:'Some selected records are unavailable or outside your authorized scope. Refresh and try again.'});
+   }
+   if(action==='ASSIGN'){
+    if(isTeacher){
+     const dest=await c.query('SELECT 1 FROM class_adviser_assignments WHERE school_id=$1 AND adviser_user_id=$2 AND grade_level=$3 AND section=$4',[req.auth.schoolId,req.auth.userId,clean(b.gradeLevel),clean(b.section)]);
+     if(!dest.rowCount){await c.query('ROLLBACK');return res.status(403).json({error:'You may assign students only to your own assigned advisory sections.'});}
+    }else if(isDepartmentHead){
+     const dest=await c.query(`SELECT 1 FROM class_periods WHERE school_id=$1 AND department_id=$2 AND active=TRUE AND grade_level=$3 AND section IS NOT NULL AND TRIM(section)=$4 LIMIT 1`,[req.auth.schoolId,req.auth.departmentId,clean(b.gradeLevel),clean(b.section)]);
+     if(!dest.rowCount){await c.query('ROLLBACK');return res.status(403).json({error:'You may assign learners only to an active section in your department.'});}
+    }
    }
    if(['ACTIVATE','DEACTIVATE','ARCHIVE'].includes(action)){
     const active=action==='ACTIVATE';
     await c.query('UPDATE students SET active=$3,archived_at=CASE WHEN $4 THEN NOW() WHEN $5 THEN NULL ELSE archived_at END,updated_at=NOW() WHERE school_id=$1 AND student_id=ANY($2::text[])',[req.auth.schoolId,ids,active,action==='ARCHIVE',active]);
     await c.query('UPDATE student_accounts SET active=$3,updated_at=NOW() WHERE school_id=$1 AND student_id=ANY($2::text[])',[req.auth.schoolId,ids,active]);
     if(!active)await c.query('UPDATE student_sessions SET revoked_at=NOW() WHERE school_id=$1 AND student_account_id IN (SELECT student_account_id FROM student_accounts WHERE school_id=$1 AND student_id=ANY($2::text[])) AND revoked_at IS NULL',[req.auth.schoolId,ids]);
-   }
-   else{
-    if(isTeacher){
+   }else{
+    if(isTeacher||isDepartmentHead){
      await c.query('UPDATE students SET full_name=COALESCE($3,full_name),sex=COALESCE($4,sex),updated_at=NOW() WHERE school_id=$1 AND student_id=ANY($2::text[])',[req.auth.schoolId,ids,b.fullName??null,b.sex?clean(b.sex).toUpperCase():null]);
     }else{
      await c.query('UPDATE students SET full_name=COALESCE($3,full_name),sex=COALESCE($4,sex),lrn=COALESCE($5,lrn),parent_name=COALESCE($6,parent_name),parent_mobile=COALESCE($7,parent_mobile),updated_at=NOW() WHERE school_id=$1 AND student_id=ANY($2::text[])',[req.auth.schoolId,ids,b.fullName??null,b.sex?clean(b.sex).toUpperCase():null,b.lrn??null,b.parentName??null,b.parentMobile??null]);
     }
-    if(action==='ASSIGN'){const y=await c.query("SELECT school_year_id FROM school_years WHERE school_id=$1 AND status='ACTIVE'",[req.auth.schoolId]);for(const id of ids){if(y.rowCount)await c.query(`INSERT INTO student_enrollments(school_id,student_id,school_year_id,grade_level,section,enrollment_date,enrollment_status,created_by_user_id) VALUES($1,$2,$3,$4,$5,CURRENT_DATE,'ENROLLED',$6) ON CONFLICT(school_id,student_id,school_year_id) DO UPDATE SET grade_level=EXCLUDED.grade_level,section=EXCLUDED.section,updated_at=NOW() WHERE student_enrollments.enrollment_status='ENROLLED'`,[req.auth.schoolId,id,y.rows[0].school_year_id,b.gradeLevel,b.section,req.auth.userId]);else await c.query('UPDATE students SET grade_level=$3,section=$4 WHERE school_id=$1 AND student_id=$2',[req.auth.schoolId,id,b.gradeLevel,b.section]);}}
+    if(action==='ASSIGN'){
+     const y=await c.query("SELECT school_year_id FROM school_years WHERE school_id=$1 AND status='ACTIVE' FOR SHARE",[req.auth.schoolId]);
+     if(y.rowCount){
+      for(const id of ids){
+       const saved=await c.query(`INSERT INTO student_enrollments(school_id,student_id,school_year_id,grade_level,section,enrollment_date,enrollment_status,created_by_user_id)
+        VALUES($1,$2,$3,$4,$5,CURRENT_DATE,'ENROLLED',$6)
+        ON CONFLICT(school_id,student_id,school_year_id) DO UPDATE SET grade_level=EXCLUDED.grade_level,section=EXCLUDED.section,updated_at=NOW()
+        WHERE student_enrollments.enrollment_status='ENROLLED' RETURNING student_id`,[req.auth.schoolId,id,y.rows[0].school_year_id,b.gradeLevel,b.section,req.auth.userId]);
+       if(!saved.rowCount)throw Object.assign(new Error('A selected learner has a closed or non-active enrollment. Historical enrollment was not changed.'),{statusCode:409});
+      }
+     }else{
+      if(isTeacher||isDepartmentHead)throw Object.assign(new Error('An active school year is required before changing student placement.'),{statusCode:409});
+      for(const id of ids)await c.query('UPDATE students SET grade_level=$3,section=$4,updated_at=NOW() WHERE school_id=$1 AND student_id=$2',[req.auth.schoolId,id,b.gradeLevel,b.section]);
+     }
+    }
    }
-   await c.query(`INSERT INTO audit_logs(school_id,actor_type,actor_user_id,action,entity_type,entity_id,details) VALUES($1,'SCHOOL',$2,'STUDENT_BULK_'||$3,'student_batch',$4,$5::jsonb)`,[req.auth.schoolId,req.auth.userId,action,require('crypto').randomUUID(),JSON.stringify({studentIds:ids})]);
+   await c.query(`INSERT INTO audit_logs(school_id,actor_type,actor_user_id,action,entity_type,entity_id,details)
+     VALUES($1,'SCHOOL',$2,'STUDENT_BULK_'||$3,'student_batch',$4,$5::jsonb)`,
+     [req.auth.schoolId,req.auth.userId,action,require('crypto').randomUUID(),JSON.stringify({studentIds:ids,departmentId:isDepartmentHead?req.auth.departmentId:null})]);
    await c.query('COMMIT');res.json({ok:true,updated:ids.length,action});
-  }catch(e){await c.query('ROLLBACK').catch(()=>{});res.status(e.code==='23505'?409:500).json({error:e.code==='23505'?'An LRN is already assigned to another student.':'Could not complete batch action.'});}finally{c.release();}
+  }catch(e){await c.query('ROLLBACK').catch(()=>{});res.status(e.statusCode||(e.code==='23505'?409:500)).json({error:e.statusCode?e.message:e.code==='23505'?'An LRN is already assigned to another student.':'Could not complete batch action.'});}finally{c.release();}
  });
 }
 module.exports={registerStudentManagementRoutes};

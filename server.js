@@ -1188,7 +1188,11 @@ app.get('/api/sections', authenticateSchoolClient, requireSchoolUser, async (req
   try {
     const params = [req.auth.schoolId, gradeLevel];
     let teacherSections = '';
-    if (req.auth.role === 'TEACHER') {
+    if (req.auth.role === 'DEPARTMENT_HEAD') {
+      if (!req.auth.departmentId || req.auth.departmentCode === 'UNASSIGNED') return res.status(403).json({ error: 'Your account must be assigned to a department.' });
+      params.push(req.auth.departmentId);
+      teacherSections = `SELECT TRIM(p.section) AS section FROM class_periods p WHERE p.school_id=$1 AND p.grade_level=$2 AND p.department_id=$3 AND p.active=TRUE AND p.section IS NOT NULL AND TRIM(p.section) <> ''`;
+    } else if (req.auth.role === 'TEACHER') {
       params.push(req.auth.userId);
       teacherSections = `
         SELECT TRIM(p.section) AS section
@@ -1388,6 +1392,10 @@ app.get('/api/students', authenticateSchoolClient, requireSchoolClient, requireS
     if (req.auth.type === 'SCHOOL_USER' && req.auth.role === 'TEACHER') {
       params.push(req.auth.userId);
       scope = ` AND ${TEACHER_STUDENT_SCOPE}`;
+    } else if (req.auth.type === 'SCHOOL_USER' && req.auth.role === 'DEPARTMENT_HEAD') {
+      if (!req.auth.departmentId || req.auth.departmentCode === 'UNASSIGNED') return res.status(403).json({ error: 'Your account must be assigned to a department.' });
+      params.push(req.auth.departmentId);
+      scope = ` AND EXISTS (SELECT 1 FROM class_periods p WHERE p.school_id=s.school_id AND p.department_id=$2 AND p.active=TRUE AND p.grade_level=COALESCE(active_enrollment.grade_level,s.grade_level) AND p.section IS NOT NULL AND TRIM(p.section)=COALESCE(active_enrollment.section,s.section))`;
     }
     const includeParentFields = req.auth.type === 'SCHOOL_USER' && req.auth.role === 'SCHOOL_ADMIN';
     const isGateKeeper = req.auth.type === 'SCHOOL_USER' && req.auth.role === 'GATE_KEEPER';

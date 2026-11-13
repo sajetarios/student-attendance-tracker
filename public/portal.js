@@ -243,6 +243,9 @@
     if ($('staffBulkDepartmentToolbar')) $('staffBulkDepartmentToolbar').hidden = !admin;
     const departmentHead = role === 'DEPARTMENT_HEAD';
     const gateKeeper = role === 'GATE_KEEPER';
+    if ($('studentDepartmentScopeNote')) $('studentDepartmentScopeNote').hidden = !departmentHead;
+    if ($('printBulkQr')) $('printBulkQr').hidden = departmentHead;
+    if ($('applyStudentBatch')) $('applyStudentBatch').hidden = !(admin || departmentHead || (role === 'TEACHER' && teacherHas('CLASS_ADVISER')));
     const teacher = role === 'TEACHER';
     const subjectTeacher = teacherHas('SUBJECT_TEACHER');
     const classAdviser = teacherHas('CLASS_ADVISER');
@@ -725,10 +728,11 @@
     const section = $('bulkQrSection').value;
     const search = ($('studentRosterSearch')?.value || '').trim().toLocaleLowerCase();
     const admin = user.role === 'SCHOOL_ADMIN';
+    const departmentHead = user.role === 'DEPARTMENT_HEAD';
     const teacher = user.role === 'TEACHER';
     const gateKeeper = user.role === 'GATE_KEEPER';
     const designations = Array.isArray(user.teacherDesignations) ? user.teacherDesignations : [];
-    const canManage = admin || (teacher && (designations.includes('CLASS_ADVISER') || designations.includes('SUBJECT_TEACHER')));
+    const canManage = admin || departmentHead || (teacher && (designations.includes('CLASS_ADVISER') || designations.includes('SUBJECT_TEACHER')));
     const canUploadPhoto = admin || (teacher && designations.includes('CLASS_ADVISER'));
     const canViewQr = admin || (teacher && (
   designations.includes('CLASS_ADVISER') ||
@@ -762,7 +766,7 @@
         const qrCell = canViewQr
           ? (qr ? `<button type="button" class="student-qr-preview" data-view-qr="${esc(student.studentId)}" title="View or print QR"><img src="${qr}" alt="QR code for ${esc(student.studentId)}"></button>` : '<span class="qr-unavailable">QR unavailable</span>')
           : (gateKeeper ? '<span class="muted-inline">Gate scan only</span>' : '<span class="muted-inline">Not available</span>');
-        const selection = (admin || (teacher && designations.includes('CLASS_ADVISER'))) ? `<input type="checkbox" class="student-select-box" data-select-student="${esc(student.studentId)}" ${selectedStudentIds.has(student.studentId) ? 'checked' : ''} aria-label="Select ${esc(student.fullName)}">` : '';
+        const selection = (admin || departmentHead || (teacher && designations.includes('CLASS_ADVISER'))) ? `<input type="checkbox" class="student-select-box" data-select-student="${esc(student.studentId)}" ${selectedStudentIds.has(student.studentId) ? 'checked' : ''} aria-label="Select ${esc(student.fullName)}">` : '';
         const editable = canManage && student.active !== false && !student.archivedAt;
         const actions = editable
           ? `<div class="student-row-actions"><button type="button" class="outline-button" data-edit-student="${esc(student.studentId)}">Edit</button>${canUploadPhoto ? `<label class="student-photo-upload">${student.hasPhoto ? 'Replace photo' : 'Upload photo'}<input type="file" accept="image/jpeg,image/png,image/webp" data-student-photo="${esc(student.studentId)}" hidden></label>` : ''}</div>`
@@ -801,9 +805,9 @@
         : teacher
           ? 'View and correct learner names in your assigned subject classes. Class Advisers can also correct placement in their assigned section.'
           : user.role === 'DEPARTMENT_HEAD'
-            ? 'Read-only school-wide learner roster for attendance monitoring.'
+            ? 'Department-scoped learner management. You may edit names and sex or update current-year placement inside your department.'
             : 'Students registered under this school. Manage student information, photos, and QR cards.';
-    const canBatchManage = admin || (teacher && designations.includes('CLASS_ADVISER'));
+    const canBatchManage = admin || departmentHead || (teacher && designations.includes('CLASS_ADVISER'));
     document.querySelectorAll('.student-filter-row label, .student-bulk-actions').forEach(element => {
       if (gateKeeper) element.hidden = element.classList.contains('student-bulk-actions');
       else if (!canBatchManage) element.hidden = element.classList.contains('student-bulk-actions');
@@ -826,9 +830,10 @@
     );
     $('selectedStudentCount').textContent = `${selectedStudentIds.size} selected`;
     const isAdviser = user.role === 'TEACHER' && teacherHas('CLASS_ADVISER');
-    if ($('applyStudentBatch')) $('applyStudentBatch').disabled = selectedStudentIds.size === 0 || !(user.role === 'SCHOOL_ADMIN' || isAdviser);
+    const isDepartmentHead = user.role === 'DEPARTMENT_HEAD' && Boolean(user.departmentId) && user.departmentCode !== 'UNASSIGNED';
+    if ($('applyStudentBatch')) $('applyStudentBatch').disabled = selectedStudentIds.size === 0 || !(user.role === 'SCHOOL_ADMIN' || isAdviser || isDepartmentHead);
     if ($('studentBatchAction')) [...$('studentBatchAction').options].forEach(option => {
-      if (option.value) option.hidden = isAdviser && !['UPDATE','ASSIGN'].includes(option.value);
+      if (option.value) option.hidden = (isAdviser || isDepartmentHead) && !['UPDATE','ASSIGN'].includes(option.value);
     });
     $('selectAllStudents').checked = visible.length > 0 && visible.every(s => selectedStudentIds.has(s.studentId));
     $('selectAllStudents').indeterminate = visible.some(s => selectedStudentIds.has(s.studentId)) && !$('selectAllStudents').checked;
