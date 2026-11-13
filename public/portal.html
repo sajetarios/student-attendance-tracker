@@ -166,6 +166,9 @@
   .cloud-sync-enable-row{align-items:flex-start;margin:8px 0 16px}
   .cloud-sync-enable-row input{margin-top:4px}
   .cloud-sync-enable-row small{display:block;margin-top:4px;color:#6b7e8f;font-size:12px;line-height:1.45;font-weight:400}
+  .cloud-sync-prerequisite{margin:12px 0;padding:12px 14px;border-left:4px solid #c18a2b;border-radius:8px;background:#fffaf0}
+  .cloud-sync-prerequisite strong{color:#755313;font-size:13px}
+  .cloud-sync-prerequisite p{margin:4px 0 0;color:#776b53;font-size:12px;line-height:1.5}
   .cloud-sync-privacy-note{padding:14px 16px;border:1px solid #dce7ed;border-radius:11px;background:#f8fbfd}
   .cloud-sync-privacy-note strong{color:#29475f;font-size:13px}
   .cloud-sync-privacy-note p{margin:5px 0 0;color:#667b8d;font-size:12px;line-height:1.5}
@@ -345,6 +348,7 @@
                   <div><h3>Prepare the cloud receiver</h3><p>Open this same screen on the cloud server first.</p><small class="cloud-sync-receiver-state" id="cloudReceiverCredentialState">Checking receiving credential…</small></div>
                 </div>
                 <p class="cloud-sync-step-copy">Generate a one-time receiving credential on the cloud server. Copy it and keep it available for the local server pairing step. Rotating it revokes the previous credential immediately.</p>
+                <div class="cloud-sync-prerequisite"><strong>Important school identity requirement</strong><p>The cloud database must already contain this same school ID and an authorized School Administrator account. The local and cloud school IDs shown above must match exactly. Creating a new cloud school with a random ID will not pair with this local school.</p></div>
                 <button class="primary-button" id="generateCloudCredential" type="button">Generate / rotate receiving credential</button>
                 <div id="cloudSyncTokenPanel" class="cloud-sync-token-panel" hidden>
                   <label for="cloudSyncTokenOutput">One-time receiving credential — copy it now</label>
