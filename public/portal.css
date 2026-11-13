@@ -495,3 +495,163 @@ td { font-size:14px; }
   .coverage-toolbar-actions { justify-content: flex-start; width: 100%; }
   .coverage-toolbar-actions button { flex: 1 1 auto; }
 }
+
+
+/* Compact staff directory and department workspace */
+#teachersView .teacher-monitor-table {
+  width: 100%;
+  min-width: 1080px;
+  table-layout: fixed;
+}
+#teachersView .teacher-monitor-table th,
+#teachersView .teacher-monitor-table td {
+  padding: 10px 11px;
+  line-height: 1.4;
+  vertical-align: middle;
+}
+#teachersView #teacherRows td {
+  padding-top: 11px;
+  padding-bottom: 11px;
+}
+#teachersView #teacherRows td:first-child strong {
+  display: block;
+  color: #243b53;
+  font-size: 14px;
+  line-height: 1.35;
+}
+#teachersView #teacherRows td:first-child .table-subtext {
+  display: block;
+  margin-top: 3px;
+  color: #718296;
+  font-size: 12px;
+  line-height: 1.35;
+}
+#teachersView .teacher-scope-list {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 5px;
+  min-width: 0;
+}
+#teachersView .teacher-scope-item {
+  display: inline-flex;
+  align-items: center;
+  max-width: 100%;
+  padding: 4px 7px;
+  border: 1px solid #dce8f2;
+  border-radius: 7px;
+  background: #f3f8fc;
+  color: #38546b;
+  font-size: 12px;
+  line-height: 1.25;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+#teachersView .teacher-assignment-summary {
+  display: flex;
+  align-items: flex-start;
+  flex-wrap: wrap;
+  gap: 5px;
+  min-width: 0;
+}
+#teachersView .teacher-assignment-count {
+  display: inline-flex;
+  align-items: center;
+  padding: 5px 8px;
+  border: 1px solid #d8e8f6;
+  border-radius: 7px;
+  background: #f0f7ff;
+  color: #245b91;
+  font-size: 12px;
+  line-height: 1.25;
+  font-weight: 700;
+}
+#teachersView .teacher-assignment-count.temporary {
+  border-color: #e5dcf5;
+  background: #f8f4ff;
+  color: #7046a4;
+}
+#teachersView .account-status {
+  padding: 5px 9px;
+  font-size: 12px;
+}
+#teachersView .teacher-actions-trigger {
+  min-width: 96px;
+  padding: 8px 10px;
+}
+#teachersView .teacher-management-note {
+  margin: 12px 0 16px;
+  padding: 12px 14px;
+}
+#teachersView .staff-accounts-card,
+#teachersView .department-management-card,
+#teachersView .adviser-assignments-card {
+  margin-top: 14px;
+}
+#teachersView .staff-accounts-card table {
+  min-width: 680px;
+  table-layout: fixed;
+}
+#teachersView .staff-accounts-card th,
+#teachersView .staff-accounts-card td {
+  padding: 11px 13px;
+  vertical-align: middle;
+}
+#teachersView .staff-accounts-card td:first-child strong,
+#teachersView .staff-accounts-card td:first-child small {
+  display: block;
+}
+#teachersView .staff-accounts-card td:first-child small {
+  margin-top: 3px;
+  color: #718296;
+}
+#teachersView .department-management-card .inline-form {
+  padding: 15px;
+  margin-bottom: 12px;
+}
+#teachersView .department-management-card .form-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0 14px;
+}
+#teachersView .department-management-card .field-group {
+  min-width: 0;
+}
+#teachersView .department-management-card .field-group input {
+  width: 100%;
+  min-height: 42px;
+}
+#teachersView .department-chip-list {
+  min-height: 48px;
+  padding: 12px;
+  border: 1px dashed #dbe5ed;
+  border-radius: 9px;
+  background: #fbfdff;
+}
+#teachersView .department-chip {
+  padding: 7px 11px;
+  font-size: 13px;
+}
+#teachersView .department-chip small {
+  font-size: 11px;
+}
+
+@media (max-width: 900px) {
+  #teachersView .section-card {
+    padding: 16px;
+  }
+  #teachersView .department-management-card .form-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+@media (max-width: 700px) {
+  #teachersView .teacher-monitor-table {
+    min-width: 1080px;
+  }
+  #teachersView .teacher-scope-list {
+    align-items: flex-start;
+  }
+  #teachersView .staff-accounts-card table {
+    min-width: 680px;
+  }
+}
