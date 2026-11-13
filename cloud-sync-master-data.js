@@ -209,7 +209,10 @@ function registerCloudMasterDataRoutes(app, pool, {
           '(SELECT COUNT(*)::int FROM school_years WHERE school_id=$1) AS schoolYears, ' +
           '(SELECT COUNT(*)::int FROM student_enrollments WHERE school_id=$1) AS enrollments, ' +
           '(SELECT COUNT(*)::int FROM teacher_period_assignments WHERE school_id=$1) AS subjectAssignments, ' +
-          '(SELECT COUNT(*)::int FROM class_adviser_assignments WHERE school_id=$1) AS adviserAssignments',
+          '(SELECT COUNT(*)::int FROM class_adviser_assignments WHERE school_id=$1) AS adviserAssignments, ' +
+          '(SELECT school_code FROM schools WHERE school_id=$1) AS "schoolCode", ' +
+          '(SELECT school_name FROM schools WHERE school_id=$1) AS "schoolName", ' +
+          '$1::text AS "schoolId",'
           [req.auth.schoolId]
         )
       ]);
