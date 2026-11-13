@@ -23,6 +23,7 @@ function createAuthMiddleware(pool) {
            ON su.user_id = us.school_user_id
           AND su.school_id = us.school_id
           AND su.active = TRUE
+          AND su.login_enabled = TRUE
          JOIN schools s ON s.school_id = us.school_id AND s.active = TRUE
          WHERE us.token_hash = $1
            AND us.principal_type = 'SCHOOL'
