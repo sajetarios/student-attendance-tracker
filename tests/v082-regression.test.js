@@ -59,7 +59,7 @@ test('current portal assets are pre-cached under a new service-worker cache', ()
   assert.match(portalHtml, /portal\.js\?v=0\.9\.3/);
   assert.match(portalHtml, /academic-admin\.css\?v=1/);
   const serviceWorker = read('public/sw.js');
-  assert.match(serviceWorker, /school-attendance-shell-v19-student-management-ux/);
+  assert.match(serviceWorker, /school-attendance-shell-v19-student-management-ux/);\n  assert.match(serviceWorker, /comfort-ui\\.css\\?v=0\\.9\\.5/);
   assert.match(serviceWorker, /portal\.js\?v=0\.9\.3/);
   assert.match(serviceWorker, /academic-admin\.js\?v=1/);
 });
