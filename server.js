@@ -15,6 +15,7 @@ const { hashPassword } = require('./auth-security');
 const { createAuthMiddleware } = require('./auth-middleware');
 const { registerParentRoutes } = require('./parent-routes');
 const { registerStudentRoutes } = require('./student-routes');
+const { registerAcademicRoutes } = require('./academic-routes');
 
 const app = express();
 const pool = new Pool({ connectionString: process.env.DATABASE_URL });
@@ -36,6 +37,7 @@ const requireSchoolAdminOrDepartmentHead = requireSchoolRoles('SCHOOL_ADMIN', 'D
 const validText = value => typeof value === 'string' && value.trim().length > 0;
 registerParentRoutes(app, pool, { authenticateSchoolClient, requireSchoolRoles });
 registerStudentRoutes(app, pool, { authenticateSchoolClient, requireSchoolAdmin });
+registerAcademicRoutes(app, pool, { authenticateSchoolClient, requireSchoolRoles });
 const registerSf2Routes = require('./sf2-routes');
 registerSf2Routes(app, pool, { authenticateSchoolClient, requireSchoolUser, requireSchoolAdmin, requireSchoolAdminOrDepartmentHead });
 
