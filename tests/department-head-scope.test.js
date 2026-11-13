@@ -32,9 +32,35 @@ test('Department Head workspace provides teacher coverage metrics and read-only 
 test('Department Head can assign substitute coverage without gaining account administration', () => {
   assert.match(server, /app\.post\('\/api\/teachers\/:userId\/substitutions', authenticateSchoolClient, requireSchoolAdminOrDepartmentHead/);
   assert.match(server, /app\.delete\('\/api\/teacher-substitutions\/:substitutionId', authenticateSchoolClient, requireSchoolAdminOrDepartmentHead/);
-  assert.match(portal, /canAssignSubstitute = user\.role === 'DEPARTMENT_HEAD'/);
+  assert.match(portal, /canAssignSubstitute = canManageDepartment && onLeave && assigned\.length > 0/);
   assert.match(server, /app\.post\('\/api\/teachers\/:userId\/leave', authenticateSchoolClient, requireSchoolAdmin/);
   assert.match(server, /!\['SCHOOL_ADMIN', 'TEACHER'\]\.includes\(req\.auth\.role\)/);
-  assert.match(server, /app\.post\('\/api\/periods', authenticateSchoolClient, requireSchoolAdminOrTeacher/);
+  assert.match(server, /app\.post\('\/api\/periods', authenticateSchoolClient, requireSchoolAdminOrDepartmentHeadOrTeacher/);
   assert.match(server, /isTeacher && !req\.auth\.teacherDesignations\?\.includes\('SUBJECT_TEACHER'\)/);
+});
+
+
+test('Department Head sees all departments but schedule writes are restricted to their own department', () => {
+  const departmentRoutes = fs.readFileSync(path.join(root, 'department-routes.js'), 'utf8');
+  assert.match(departmentRoutes, /app\.get\('\/api\/departments', authenticateSchoolClient, schoolManagers/);
+  assert.match(server, /app\.get\('\/api\/periods', authenticateSchoolClient, requireSchoolUser/);
+  assert.match(server, /req\.auth\.role === 'DEPARTMENT_HEAD' && String\(period\.rows\[0\]\.department_id\) !== String\(req\.auth\.departmentId\)/);
+  assert.match(server, /teacher\.rows\[0\]\.department_id\) !== String\(period\.rows\[0\]\.department_id\)/);
+  assert.match(server, /DEPARTMENT_HEAD_CREATE_DEPARTMENT_PERIOD/);
+});
+
+test('Class coverage monitor distinguishes unassigned classes, leave, and missing teacher time-in', () => {
+  const departmentRoutes = fs.readFileSync(path.join(root, 'department-routes.js'), 'utf8');
+  for (const status of ['NO_TEACHER','ON_LEAVE_UNCOVERED','CHECK_IN_NOT_RECORDED','COVERED']) {
+    assert.match(departmentRoutes, new RegExp(status));
+  }
+  assert.match(departmentRoutes, /teacher_gate_events/);
+  assert.match(departmentRoutes, /p\.start_time \+ make_interval\(mins => p\.grace_minutes\)/);
+  assert.match(portal, /window\.setInterval\([\s\S]*?loadTeacherCoverage\(true\)[\s\S]*?60000/);
+  assert.match(portal, /Notification\.requestPermission/);
+});
+
+test('Permanent teacher assignment requires matching department and rejects timetable overlap', () => {
+  assert.match(server, /teacher\.rows\[0\]\.department_id\) !== String\(period\.rows\[0\]\.department_id\)/);
+  assert.match(server, /SELECT p\.period_name[\s\S]*?teacherUserId[\s\S]*?requested\.start_time < p\.end_time/);
 });
