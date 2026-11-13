@@ -1,12 +1,13 @@
-const CACHE = "school-attendance-shell-v14-login-landing";
+const CACHE = "school-attendance-shell-v15-teacher-workspace";
 
 const SHELL = [
   "/portal-login.html",
-  "/portal.css",
+  "/portal.css?v=0.8.3",
+  "/portal.js?v=0.8.3",
   "/portal-login.js",
   "/login-routing.js",
-  "/responsive.css",
-  "/comfort-ui.css?v=0.8.2",
+  "/responsive.css?v=0.8.3",
+  "/comfort-ui.css?v=0.8.3",
   "/styles.css",
   "/app.js",
   "/manifest.webmanifest",
@@ -38,7 +39,6 @@ self.addEventListener("fetch", event => {
 
   const url = new URL(request.url);
 
-  // Never cache cross-origin, API, or authenticated requests.
   if (
     url.origin !== self.location.origin ||
     url.pathname.startsWith("/api/") ||
@@ -47,8 +47,6 @@ self.addEventListener("fetch", event => {
     return;
   }
 
-  // Navigation requests must check the server first so an obsolete cached
-  // Attendance Desk page cannot replace the current login landing page.
   if (request.mode === "navigate") {
     event.respondWith((async () => {
       try {
@@ -61,7 +59,6 @@ self.addEventListener("fetch", event => {
       } catch {
         const cached = await caches.match(request);
         if (cached) return cached;
-
         if (url.pathname === "/" || url.pathname === "/index.html") {
           const loginPage = await caches.match("/portal-login.html");
           if (loginPage) return loginPage;
@@ -72,11 +69,9 @@ self.addEventListener("fetch", event => {
     return;
   }
 
-  // Static assets remain cache-first for the offline attendance shell.
   event.respondWith(
     caches.match(request).then(cached => {
       if (cached) return cached;
-
       return fetch(request).then(response => {
         if (response.ok) {
           const copy = response.clone();

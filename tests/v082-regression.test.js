@@ -49,15 +49,16 @@ test('photo column explains missing stored photo and retains upload controls for
   assert.match(portal, /canUploadPhoto = admin \|\| \(teacher && designations\.includes\('CLASS_ADVISER'\)\)/);
 });
 
-test('new theme is cool neutral blue and all relevant pages use v0.8.2 cache-busting', () => {
+test('new theme uses fresh v0.8.3 portal assets and a new service-worker cache', () => {
   const theme = read('public/comfort-ui.css');
   assert.match(theme, /--brand: #2463a5/);
   assert.match(theme, /--sidebar: #1c2d45/);
   assert.doesNotMatch(theme, /#477f78|#293b3a/);
-  const html = ['portal.html','portal-login.html','parent-portal.html','student-portal.html']
-    .map(name => read(`public/${name}`)).join('\n');
-  assert.match(html, /comfort-ui\.css\?v=0\.8\.2/);
-  assert.match(read('public/sw.js'), /school-attendance-shell-v14-login-landing/);
+  const portalHtml = read('public/portal.html');
+  assert.match(portalHtml, /comfort-ui\\.css\\?v=0\\.8\\.3/);
+  assert.match(portalHtml, /portal\\.js\\?v=0\\.8\\.3/);
+  assert.match(read('public/sw.js'), /school-attendance-shell-v15-teacher-workspace/);
+  assert.match(read('public/sw.js'), /portal\\.js\\?v=0\\.8\\.3/);
 });
 
 
