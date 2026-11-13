@@ -2742,5 +2742,130 @@
     });
   }
 
-  init().then(() => { if ($('studentForm') && !$('studentForm').hidden) loadSectionsForGrade($('newGrade').value); }).catch(error => showToast(error.message || 'Portal initialization failed.', true));
+
+  $('departmentForm')?.addEventListener('submit', async event => {
+    event.preventDefault();
+    const feedback = $('departmentFormFeedback');
+    feedback.className = 'inline-feedback';
+    feedback.textContent = 'Saving department…';
+    const payload = {
+      code: $('departmentCode').value.trim(),
+      name: $('departmentName').value.trim(),
+      description: $('departmentDescription').value.trim() || null
+    };
+    try {
+      await api('/api/departments', { method: 'POST', body: JSON.stringify(payload) });
+      $('departmentForm').reset();
+      await loadSchoolData();
+      feedback.textContent = 'Department created. You can now assign teachers and schedules.';
+      showToast('Department added.');
+    } catch (error) {
+      feedback.className = 'inline-feedback error';
+      feedback.textContent = error.message;
+    }
+  });
+
+  $('teacherRows')?.addEventListener('change', async event => {
+    const select = event.target.closest('[data-change-teacher-department]');
+    if (!select) return;
+    const teacherId = select.dataset.changeTeacherDepartment;
+    const previousDepartment = teachers.find(item => String(item.userId) === String(teacherId))?.departmentId;
+    select.disabled = true;
+    try {
+      await api(`/api/school-users/${encodeURIComponent(teacherId)}/department`, {
+        method: 'PATCH', body: JSON.stringify({ departmentId: select.value })
+      });
+      await loadSchoolData();
+      showToast('Teacher department updated.');
+    } catch (error) {
+      showToast(error.message, true);
+      select.value = previousDepartment || '';
+      select.disabled = false;
+    }
+  });
+
+  $('staffUserRows')?.addEventListener('change', async event => {
+    const select = event.target.closest('[data-change-staff-department]');
+    if (!select) return;
+    const userId = select.dataset.changeStaffDepartment;
+    const previousDepartment = schoolUsers.find(item => String(item.userId) === String(userId))?.departmentId;
+    select.disabled = true;
+    try {
+      await api(`/api/school-users/${encodeURIComponent(userId)}/department`, {
+        method: 'PATCH', body: JSON.stringify({ departmentId: select.value })
+      });
+      await loadSchoolData();
+      showToast('Department Head department updated.');
+    } catch (error) {
+      showToast(error.message, true);
+      select.value = previousDepartment || '';
+      select.disabled = false;
+    }
+  });
+
+  $('scheduleRows')?.addEventListener('change', async event => {
+    const select = event.target.closest('[data-change-schedule-department]');
+    if (!select) return;
+    const periodId = select.dataset.changeScheduleDepartment;
+    const previousDepartment = periods.find(item => String(item.periodId) === String(periodId))?.departmentId;
+    select.disabled = true;
+    try {
+      await api(`/api/periods/${encodeURIComponent(periodId)}/department`, {
+        method: 'PATCH', body: JSON.stringify({ departmentId: select.value })
+      });
+      await loadSchoolData();
+      showToast('Class schedule department updated.');
+    } catch (error) {
+      showToast(error.message, true);
+      select.value = previousDepartment || '';
+      select.disabled = false;
+    }
+  });
+
+  $('teacherCoverageRows')?.addEventListener('click', async event => {
+    const button = event.target.closest('[data-coverage-action]');
+    if (!button) return;
+    await handleCoverageAction(button.dataset.coverageAction, button);
+  });
+
+  $('refreshTeacherCoverage')?.addEventListener('click', async event => {
+    const button = event.currentTarget;
+    button.disabled = true;
+    try {
+      await loadTeacherCoverage(false);
+      showToast('Teacher coverage refreshed.');
+    } catch (error) {
+      showToast(error.message, true);
+    } finally {
+      button.disabled = false;
+    }
+  });
+
+  $('enableCoverageNotifications')?.addEventListener('click', async () => {
+    if (!('Notification' in window)) {
+      showToast('This browser does not support desktop notifications. The in-page alert list will still work.', true);
+      return;
+    }
+    try {
+      const permission = await Notification.requestPermission();
+      if (permission === 'granted') {
+        showToast('Teacher coverage browser notifications are enabled.');
+        await loadTeacherCoverage(false);
+      } else {
+        showToast('Browser notifications were not enabled. Keep the portal open to see in-page coverage alerts.', true);
+      }
+    } catch {
+      showToast('Could not enable browser notifications. Check your browser site settings.', true);
+    }
+  });
+
+  init().then(() => {
+    if ($('studentForm') && !$('studentForm').hidden) loadSectionsForGrade($('newGrade').value);
+    if (['SCHOOL_ADMIN','DEPARTMENT_HEAD'].includes(user?.role)) {
+      window.setInterval(() => {
+        if (document.visibilityState !== 'visible') return;
+        loadTeacherCoverage(true).catch(error => console.warn('Teacher coverage refresh failed:', error.message));
+      }, 60000);
+    }
+  }).catch(error => showToast(error.message || 'Portal initialization failed.', true));
 })();
