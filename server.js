@@ -895,6 +895,21 @@ app.post('/api/periods/:periodId/assignments', authenticateSchoolClient, require
         error: `This schedule already has a permanent teacher (${existingOwner.rows[0].display_name}). Use temporary substitute coverage from that teacherâ€™s On Leave row instead.`
       });
     }
+    const scheduleConflict = await client.query(
+      `SELECT p.period_name
+       FROM teacher_period_assignments existing
+       JOIN class_periods p ON p.school_id=existing.school_id AND p.period_id=existing.period_id
+       JOIN class_periods requested ON requested.school_id=$1 AND requested.period_id=$3
+       WHERE existing.school_id=$1 AND existing.teacher_user_id=$2
+         AND existing.period_id<>$3 AND p.active=TRUE
+         AND p.start_time < requested.end_time AND requested.start_time < p.end_time
+       LIMIT 1`,
+      [req.auth.schoolId, teacherUserId, req.params.periodId]
+    );
+    if (scheduleConflict.rowCount) {
+      await client.query('ROLLBACK');
+      return res.status(409).json({ error: `Teacher is already assigned to an overlapping schedule: ${scheduleConflict.rows[0].period_name}.` });
+    }
     const assignment = await client.query(
       `INSERT INTO teacher_period_assignments(school_id, teacher_user_id, period_id)
        VALUES($1,$2,$3)
