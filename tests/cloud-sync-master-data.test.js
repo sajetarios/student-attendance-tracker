@@ -107,6 +107,10 @@ test('master-data import endpoint and UI provide the guided sync controls', () =
   assert.match(portalHtml, /does not propagate deletions/i);
   assert.match(portalJs, /cloud-sync\/master-data\/push/);
   assert.match(portalJs, /cloud-sync\/master-data\/status/);
+  const masterRoutes = fs.readFileSync(path.join(root, 'cloud-sync-master-data.js'), 'utf8');
+  assert.match(masterRoutes, /confirmedBySource: true/);
+  assert.match(masterRoutes, /last_master_data_sync_cloud_received_at=\$4/);
+  assert.match(masterRoutes, /last_master_data_sync_cloud_imported=\$5::jsonb/);
 });
 
 test('attendance forwarding requires a master-data push to the current destination', () => {
