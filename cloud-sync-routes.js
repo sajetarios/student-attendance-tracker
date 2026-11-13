@@ -69,8 +69,15 @@ function registerCloudSyncRoutes(app, pool, {
         'FROM school_cloud_sync_settings WHERE school_id=$1',
         [req.auth.schoolId]
       );
+      const receiverCredential = await pool.query(
+        'SELECT created_at AS "createdAt" FROM cloud_sync_credentials ' +
+        'WHERE school_id=$1 AND active=TRUE AND revoked_at IS NULL ORDER BY created_at DESC LIMIT 1',
+        [req.auth.schoolId]
+      );
       const row = result.rows[0] || {};
       const data = {
+        receiverCredentialActive: Boolean(receiverCredential.rowCount),
+        receiverCredentialCreatedAt: receiverCredential.rows[0]?.createdAt || null,
         cloudBaseUrl: row.cloudBaseUrl || '',
         enabled: Boolean(row.enabled),
         configured: Boolean(row.cloudBaseUrl),
