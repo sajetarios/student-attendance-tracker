@@ -738,7 +738,7 @@
         const qrCell = canViewQr
           ? (qr ? `<button type="button" class="student-qr-preview" data-view-qr="${esc(student.studentId)}" title="View or print QR"><img src="${qr}" alt="QR code for ${esc(student.studentId)}"></button>` : '<span class="qr-unavailable">QR unavailable</span>')
           : (gateKeeper ? '<span class="muted-inline">Gate scan only</span>' : '<span class="muted-inline">Not available</span>');
-        const selection = admin ? `<input type="checkbox" class="student-select-box" data-select-student="${esc(student.studentId)}" ${selectedStudentIds.has(student.studentId) ? 'checked' : ''} aria-label="Select ${esc(student.fullName)}">` : '';
+        const selection = (admin || (teacher && designations.includes('CLASS_ADVISER'))) ? `<input type="checkbox" class="student-select-box" data-select-student="${esc(student.studentId)}" ${selectedStudentIds.has(student.studentId) ? 'checked' : ''} aria-label="Select ${esc(student.fullName)}">` : '';
         const actions = canManage
           ? `<div class="student-row-actions"><button type="button" class="outline-button" data-edit-student="${esc(student.studentId)}">Edit</button>${canUploadPhoto ? `<label class="student-photo-upload">${student.hasPhoto ? 'Replace photo' : 'Upload photo'}<input type="file" accept="image/jpeg,image/png,image/webp" data-student-photo="${esc(student.studentId)}" hidden></label>` : ''}</div>`
           : '<span class="muted-inline">View only</span>';
@@ -779,8 +779,10 @@
             ? 'Read-only school-wide learner master roster. Export is available; student edits and assignments remain restricted.'
             : 'Students registered under this school. Manage student information, photos, and QR cards.';
     document.querySelectorAll('.student-filter-row label').forEach(element => { element.hidden = gateKeeper; });
-    document.querySelectorAll('.student-bulk-actions').forEach(element => { element.hidden = gateKeeper || !admin; });
-    if (admin) refreshBulkQrSections();
+    document.querySelectorAll('.student-bulk-actions').forEach(element => { element.hidden = gateKeeper || !(admin || (teacher && classAdviser)); });
+    if ($('includeArchivedStudents')) $('includeArchivedStudents').hidden = !admin;
+    document.querySelectorAll('[data-admin-only]').forEach(option => { option.hidden = !admin; option.disabled = !admin; });
+    if (admin || (teacher && classAdviser)) refreshBulkQrSections();
     updateStudentSelectionUi();
   }
 
@@ -906,15 +908,20 @@
     const action = $('studentBulkAction').value;
     const ids = [...selectedStudentIds];
     if (!action || !ids.length) { showToast('Select students and choose a batch action.', true); return; }
-    const labels = { ACTIVATE: 'activate', DEACTIVATE: 'deactivate', ARCHIVE: 'archive' };
+    const labels = { ACTIVATE: 'activate', DEACTIVATE: 'deactivate', ARCHIVE: 'archive', ASSIGN_SECTION: 'assign a grade and section to' };
     if (!window.confirm(`${labels[action]} ${ids.length} selected student record(s)?`)) return;
     $('applyStudentBulkAction').disabled = true;
     try {
-      const result = await api('/api/students/bulk-actions', {
-        method: 'POST', body: JSON.stringify({ action, studentIds: ids })
-      });
+      const payload = { action, studentIds: ids };
+      if (action === 'ASSIGN_SECTION') {
+        payload.gradeLevel = $('studentBulkGrade').value;
+        payload.section = $('studentBulkSection').value.trim();
+        if (!payload.section) throw new Error('Enter the target section.');
+      }
+      const result = await api('/api/students/bulk-actions', { method: 'POST', body: JSON.stringify(payload) });
       selectedStudentIds.clear();
       $('studentBulkAction').value = '';
+      $('studentBulkPlacement').hidden = true;
       showToast(`${result.affected} student record(s) updated.`);
       await loadSchoolData();
     } catch (error) { showToast(error.message, true); }
@@ -2462,6 +2469,7 @@
   $('previewStudentImport')?.addEventListener('click', previewStudentImport);
   $('commitStudentImport')?.addEventListener('click', commitStudentImport);
   $('applyStudentBulkAction')?.addEventListener('click', applyStudentBulkAction);
+  $('studentBulkAction')?.addEventListener('change', () => { $('studentBulkPlacement').hidden = $('studentBulkAction').value !== 'ASSIGN_SECTION'; });
   $('includeArchivedStudents')?.addEventListener('change', async () => {
     selectedStudentIds.clear();
     try { await loadSchoolData(); } catch (error) { showToast(error.message, true); }
