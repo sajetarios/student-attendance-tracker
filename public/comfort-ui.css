@@ -157,3 +157,25 @@ body.attendance-desk .feedback { background: #eff4fa; color: #53677f !important;
   overflow-wrap: anywhere;
 }
 .portal-page .student-photo-thumb { width: 58px; height: 58px; }
+
+
+/* Student management actions and shared status indicators */
+.student-toolbar-actions{display:flex;align-items:center;justify-content:flex-end;gap:8px;flex-wrap:wrap}
+.student-bulk-actions{position:sticky;bottom:10px;z-index:5;display:flex;align-items:center;gap:12px;flex-wrap:wrap;padding:12px 14px;margin:12px 0;border:1px solid var(--line);border-radius:14px;background:rgba(255,255,255,.97);box-shadow:0 8px 28px rgba(22,40,62,.12)}
+.student-bulk-actions select{min-height:40px;max-width:190px}
+.student-bulk-actions label{display:inline-flex;align-items:center;gap:7px}
+.student-bulk-actions input[type=checkbox]{width:18px;height:18px}
+.student-import-preview-error{color:#a52b36;font-size:12px;white-space:normal}
+.student-import-preview-ok{color:#247a57;font-size:12px}
+.connection-chip.sync-not-connected{border-color:#f1d5a7;background:#fff8eb;color:#865a17}
+.connection-chip.sync-active{border-color:#b8e2ce;background:#effaf4;color:#176b47}
+.student-toolbar-actions button{min-height:42px}
+@media(max-width:700px){
+ .student-toolbar-actions{width:100%;display:grid;grid-template-columns:1fr 1fr}
+ .student-toolbar-actions button{width:100%;min-width:0}
+ .student-bulk-actions{position:static;align-items:stretch}
+ .student-bulk-actions select,.student-bulk-actions button{width:100%;max-width:none;min-height:44px}
+ .student-bulk-actions label{min-height:36px}
+ .student-edit-dialog{width:100%;max-height:calc(100dvh - 16px);overflow:auto}
+ .connection-chip{font-size:11px;padding:5px 7px}
+}
