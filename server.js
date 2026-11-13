@@ -179,7 +179,7 @@ app.get('/api/school-users', authenticateSchoolClient, requireSchoolAdmin, async
 app.post('/api/school-users', authenticateSchoolClient, requireSchoolAdmin, async (req, res) => {
   const { username, displayName, password } = req.body || {};
   const role = String(req.body?.role || '').toUpperCase();
-  const departmentId = req.body?.departmentId || null;
+  let departmentId = req.body?.departmentId || null;
   const allowedRoles = ['TEACHER', 'DEPARTMENT_HEAD', 'GATE_KEEPER'];
   let designations = [];
   if (role === 'TEACHER') {
@@ -193,6 +193,13 @@ app.post('/api/school-users', authenticateSchoolClient, requireSchoolAdmin, asyn
       !validText(displayName) || displayName.trim().length > 160 ||
       typeof password !== 'string' || password.length < 12 || password.length > 256) {
     return res.status(400).json({ error: 'Provide a valid account role, username, display name, and password of at least 12 characters.' });
+  }
+  if (!departmentId && role === 'GATE_KEEPER') {
+    const fallback = await pool.query(
+      "SELECT department_id FROM school_departments WHERE school_id=$1 AND department_code='UNASSIGNED' AND active=TRUE",
+      [req.auth.schoolId]
+    );
+    departmentId = fallback.rows[0]?.department_id || null;
   }
   if (['TEACHER', 'DEPARTMENT_HEAD'].includes(role) && !isUuid(departmentId)) {
     return res.status(400).json({ error: 'Choose the department for this teacher or Department Head account.' });
