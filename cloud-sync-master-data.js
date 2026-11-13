@@ -8,6 +8,7 @@ const MAX_ROWS = 25000;
 const COLLECTIONS = [
   'schoolUsers',
   'students',
+  'schoolSettings',
   'classPeriods',
   'teacherPeriodAssignments',
   'teacherPeriodSubstitutions',
@@ -66,6 +67,9 @@ async function buildMasterDataSnapshot(pool, schoolId) {
                          grade_level AS "gradeLevel", section, active, sex,
                          created_at AS "createdAt", updated_at AS "updatedAt"
                   FROM students WHERE school_id=$1`],
+    ['schoolSettings', `SELECT setting_key AS "settingKey", setting_value AS "settingValue"
+                       FROM school_settings WHERE school_id=$1
+                         AND setting_key = ANY(ARRAY['school_name','school_id','school_year'])`],
     ['classPeriods', `SELECT period_id AS "periodId", period_name AS "periodName",
                              grade_level AS "gradeLevel", section, subject_name AS "subjectName",
                              start_time::text AS "startTime", end_time::text AS "endTime",
@@ -355,6 +359,14 @@ function registerCloudMasterDataRoutes(app, pool, {
            grade_level=EXCLUDED.grade_level,section=EXCLUDED.section,active=EXCLUDED.active,
            sex=EXCLUDED.sex,updated_at=EXCLUDED.updated_at
          WHERE students.school_id=EXCLUDED.school_id
+         RETURNING 1`);
+
+      imported.schoolSettings = await run('school reporting setting', payload.schoolSettings,
+        `INSERT INTO school_settings(school_id,setting_key,setting_value)
+         SELECT $1,x.setting_key,x.setting_value
+         FROM jsonb_to_recordset($2::jsonb) AS x(setting_key text,setting_value jsonb)
+         ON CONFLICT(school_id,setting_key) DO UPDATE SET
+           setting_value=EXCLUDED.setting_value,updated_at=NOW()
          RETURNING 1`);
 
       imported.classPeriods = await run('class period', payload.classPeriods,
