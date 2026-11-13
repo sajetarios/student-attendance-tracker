@@ -1028,18 +1028,23 @@
   }
 
   function renderPeriods() {
-    $('scheduleRows').innerHTML = periods.length ? periods.map(period =>
-      `<tr>
+    $('scheduleRows').innerHTML = periods.length ? periods.map(period => {
+      const departmentCell = user.role === 'SCHOOL_ADMIN'
+        ? `<select class="schedule-department-select" data-change-schedule-department="${esc(period.periodId)}" aria-label="Department for ${esc(period.periodName)}">
+            ${departments.filter(item => item.code !== 'UNASSIGNED').map(item => `<option value="${esc(item.departmentId)}" ${String(item.departmentId) === String(period.departmentId) ? 'selected' : ''}>${esc(item.name)}</option>`).join('')}
+          </select>`
+        : esc(period.departmentName || 'Unassigned');
+      return `<tr>
         <td><strong>${esc(period.periodName)}</strong></td>
         <td>${esc(period.subjectName || '—')}</td>
-        <td>${esc(period.departmentName || 'Unassigned')}</td>
+        <td>${departmentCell}</td>
         <td>${esc(period.gradeLevel)}</td>
         <td>${esc(period.section || 'All sections')}</td>
         <td>${esc(period.classroom || '—')}</td>
         <td>${esc(period.startTime)}–${esc(period.endTime)}</td>
         <td>${esc(period.assignedTeacherName || 'Unassigned')}</td>
-      </tr>`
-    ).join('') : '<tr><td colspan="8" class="empty-cell">No class schedules are available yet.</td></tr>';
+      </tr>`;
+    }).join('') : '<tr><td colspan="8" class="empty-cell">No class schedules are available yet.</td></tr>';
     $('scheduleScopeText').textContent = user.role === 'TEACHER'
       ? 'View your assigned periods or create a schedule in your department that is assigned to your account.'
       : user.role === 'DEPARTMENT_HEAD'
@@ -2487,6 +2492,8 @@
     const payload = {
       periodName: $('periodName').value.trim(),
       subjectName: $('subjectName').value.trim() || null,
+      departmentId: $('periodDepartment').value || user.departmentId || null,
+      classroom: $('periodClassroom').value.trim() || null,
       gradeLevel: $('periodGrade').value,
       section: $('periodSection').value.trim() || null,
       startTime: $('startTime').value,
@@ -2544,8 +2551,12 @@
 
   if ($('showTeacherForm')) {
     const updateDesignationVisibility = () => {
-      const isTeacherAccount = $('newAccountRole')?.value === 'TEACHER';
+      const selectedRole = $('newAccountRole')?.value || '';
+      const isTeacherAccount = selectedRole === 'TEACHER';
+      const needsDepartment = ['TEACHER', 'DEPARTMENT_HEAD'].includes(selectedRole);
       $('teacherDesignationFields').hidden = !isTeacherAccount;
+      $('newTeacherDepartmentGroup').hidden = !needsDepartment;
+      $('newTeacherDepartment').required = needsDepartment;
       if (!isTeacherAccount) {
         $('designationSubjectTeacher').checked = false;
         $('designationClassAdviser').checked = false;
@@ -2594,9 +2605,11 @@
             ].filter(Boolean)
           : [];
         if (role === 'TEACHER' && !teacherDesignations.length) throw new Error('Select Subject Teacher, Class Adviser, or both.');
+        const departmentId = $('newTeacherDepartment').value || null;
+        if (['TEACHER', 'DEPARTMENT_HEAD'].includes(role) && !departmentId) throw new Error('Select a department for this account.');
         await api('/api/school-users', {
           method: 'POST',
-          body: JSON.stringify({ username, displayName, password, role, teacherDesignations })
+          body: JSON.stringify({ username, displayName, password, role, teacherDesignations, departmentId })
         });
         $('teacherForm').reset();
         updateDesignationVisibility();
