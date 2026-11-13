@@ -1289,6 +1289,7 @@ app.get('/api/students', authenticateSchoolClient, requireSchoolClient, requireS
       scope = ` AND ${TEACHER_STUDENT_SCOPE}`;
     }
     const includeParentFields = req.auth.type === 'SCHOOL_USER' && req.auth.role === 'SCHOOL_ADMIN';
+    const includeLrn = ['SCHOOL_ADMIN', 'DEPARTMENT_HEAD'].includes(req.auth.role);
     const includeArchived = req.auth.role === 'SCHOOL_ADMIN' && req.query.includeArchived === 'true';
     const isGateKeeper = req.auth.type === 'SCHOOL_USER' && req.auth.role === 'GATE_KEEPER';
     const canScanQr = req.auth.type === 'DEVICE' || req.auth.role === 'SCHOOL_ADMIN' ||
@@ -1300,6 +1301,7 @@ app.get('/api/students', authenticateSchoolClient, requireSchoolClient, requireS
     const qrField = canScanQr ? ', s.qr_token AS "qrToken"' : '';
     const result = await pool.query(
       `SELECT s.student_id AS "studentId", s.full_name AS "fullName", s.sex,
+              s.active, s.archived_at AS "archivedAt"${includeLrn ? ', s.lrn' : ''},
               COALESCE(active_enrollment.grade_level,s.grade_level) AS "gradeLevel", COALESCE(active_enrollment.section,s.section) AS section${qrField},
                (s.photo_path IS NOT NULL) AS "hasPhoto", s.updated_at AS "updatedAt"${parentFields}
        FROM students s
@@ -1409,7 +1411,7 @@ app.patch('/api/students/:studentId', authenticateSchoolClient, requireSchoolAdm
   const isClassAdviser = isTeacher && designations.includes('CLASS_ADVISER');
   const isSubjectTeacher = isTeacher && designations.includes('SUBJECT_TEACHER');
   const { lrn, fullName, sex, gradeLevel, section, parentName, parentMobile } = req.body || {};
-  if (!validText(fullName) || fullName.trim().length > 200 || (!isTeacher && !['MALE','FEMALE'].includes(String(sex || '').toUpperCase())) || (isTeacher && isClassAdviser && !['MALE','FEMALE'].includes(String(sex || '').toUpperCase()))) {
+  if (!validText(fullName) || fullName.trim().length > 200 || (!isTeacher && !['MALE','FEMALE'].includes(String(sex || '').toUpperCase()))) {
     return res.status(400).json({ error: 'Provide a valid student full name and Male/Female sex where you have permission to edit it.' });
   }
   if (!isTeacher && (!validText(gradeLevel) || gradeLevel.trim().length > 40 ||
@@ -1445,6 +1447,10 @@ app.patch('/api/students/:studentId', authenticateSchoolClient, requireSchoolAdm
       const canChangePlacement = isClassAdviser && scoped.rows[0].isAdviserSection;
       let updated;
       if (canChangePlacement) {
+        if (!['MALE','FEMALE'].includes(String(sex || '').toUpperCase())) {
+          await client.query('ROLLBACK');
+          return res.status(400).json({ error: 'Select Male or Female for this student.' });
+        }
         if (!validText(gradeLevel) || gradeLevel.trim().length > 40 || !validText(section) || section.trim().length > 100) {
           await client.query('ROLLBACK');
           return res.status(400).json({ error: 'Provide a valid grade and section.' });
