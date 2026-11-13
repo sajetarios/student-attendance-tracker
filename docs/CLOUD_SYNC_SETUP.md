@@ -6,7 +6,7 @@ Cloud Sync keeps the local school server authoritative and sends a replica to th
 
 The local-to-cloud master-data push is a one-way, repeatable upsert. It provisions the matching school identity; non-parent staff identity references and teacher designations; learner identity, LRN, grade, section and sex; school reporting settings; class periods; teacher subject assignments and substitutions; class-adviser assignments; school years and enrollments; learner movement references; school calendar entries; and special-program types and assignments.
 
-The receiver does not delete records. The push is designed to be retried safely and is committed as one database transaction. Existing records with mismatched tenant IDs or incompatible unique records stop the import rather than moving data between schools.
+The receiver does not delete records. Source-side deletions and unassignments are not propagated in this release, so records removed locally may remain on the cloud copy and require review. The push is designed to be retried safely and is committed as one database transaction. Existing records with mismatched tenant IDs or incompatible unique records stop the import rather than moving data between schools.
 
 The following are deliberately not copied: staff login usernames or passwords, staff login sessions, parent accounts and contact details, student portal accounts and sessions, student QR tokens, learner or teacher photos, device credentials, SMS outbox records, confirmed daily-absence overrides, and the files and local file paths for SF2 submissions. Newly created cloud staff identity rows are marked as non-login records. Existing cloud account password hashes are never replaced. Local parent SMS remains the responsibility of the local server.
 
