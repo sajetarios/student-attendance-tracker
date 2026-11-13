@@ -163,6 +163,14 @@
     document.querySelectorAll('.nav-item').forEach(button => {
       button.classList.toggle('active', button.dataset.view === view);
     });
+    const activeNav = document.querySelector(`.nav-item[data-view="${view}"]`);
+    const activeGroup = activeNav?.closest('.nav-group');
+    if (activeGroup) {
+      const toggle = activeGroup.querySelector('.nav-group-toggle');
+      const submenu = activeGroup.querySelector('.nav-submenu');
+      if (toggle) toggle.setAttribute('aria-expanded', 'true');
+      if (submenu) submenu.hidden = false;
+    }
 
     const role = user?.role;
     const gateKeeper = role === 'GATE_KEEPER';
@@ -300,6 +308,7 @@
     if ($('studentManagementHeader')) $('studentManagementHeader').hidden = gateKeeper;
     if ($('studentForm')) $('studentForm').hidden = gateKeeper || departmentHead || $('studentForm').hidden;
     if ($('studentImportButton')) $('studentImportButton').hidden = !(admin || (teacher && classAdviser));
+    if ($('teacherExportButton')) $('teacherExportButton').hidden = !(admin || departmentHead);
     if ($('studentExportButton')) $('studentExportButton').hidden = gateKeeper;
     if ($('student-bulk-actions')) $('student-bulk-actions').hidden = !admin;
     if ($('parentInviteModal')) $('parentInviteModal').hidden = true;
@@ -769,10 +778,8 @@
           : user.role === 'DEPARTMENT_HEAD'
             ? 'Read-only school-wide learner master roster. Export is available; student edits and assignments remain restricted.'
             : 'Students registered under this school. Manage student information, photos, and QR cards.';
-    document.querySelectorAll('.student-filter-row label, .student-bulk-actions').forEach(element => {
-      if (gateKeeper) element.hidden = element.classList.contains('student-bulk-actions');
-      else if (!admin) element.hidden = element.classList.contains('student-bulk-actions');
-    });
+    document.querySelectorAll('.student-filter-row label').forEach(element => { element.hidden = gateKeeper; });
+    document.querySelectorAll('.student-bulk-actions').forEach(element => { element.hidden = gateKeeper || !admin; });
     if (admin) refreshBulkQrSections();
     updateStudentSelectionUi();
   }
@@ -967,6 +974,7 @@
       adviserAssignments.some(item => String(item.gradeLevel) === String(student.gradeLevel) && String(item.section) === String(student.section));
     ['editLrnGroup','editParentNameGroup','editParentMobileGroup'].forEach(id => { $(id).hidden = isTeacher; });
     $('editSexGroup').hidden = isTeacher && !adviserCanEditPlacement;
+    $('editSex').required = !isTeacher || adviserCanEditPlacement;
     $('editGradeGroup').hidden = isTeacher && !adviserCanEditPlacement;
     $('editSectionGroup').hidden = isTeacher && !adviserCanEditPlacement;
     $('studentEditFeedback').textContent = isTeacher
@@ -2307,8 +2315,10 @@
         });
         setView('dashboard');
       }
+      if ($('localServerIndicator')) $('localServerIndicator').textContent = 'Local server connected';
       await loadSchoolData();
       if (user.role === 'SCHOOL_ADMIN') await loadCloudSyncSettings();
+      await loadCloudSyncStatus();
     }
   }
 
