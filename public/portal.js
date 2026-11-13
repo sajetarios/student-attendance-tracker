@@ -187,7 +187,7 @@
         schedules: ['Class schedules', 'Create and manage subject periods and permanent teacher assignments.'],
         teachers: ['Teacher and staff management', 'Create school accounts, manage teacher designations, leave, schedules, substitutions, and class adviser assignments.'],
         sf2: ['SF2 Report Generator', 'Generate the monthly TUVERA SF2 and collect official reports submitted by Class Advisers.'],
-        cloudSync: ['Cloud Sync', 'Configure the destination for the future secure local-to-cloud attendance synchronization.']
+        cloudSync: ['Cloud Sync', 'Pair the cloud receiver, synchronize school master data, and monitor attendance event forwarding.']
       };
     }
     const title = titles[view] || ['Dashboard', 'Attendance overview.'];
@@ -1839,6 +1839,7 @@
 
   let cloudMasterDataConnectionReady = false;
   let cloudMasterDataSynced = false;
+  let cloudSavedBaseUrl = '';
 
   function setCloudSyncFeedback(message, isError = false) {
     const node = $('cloudSyncFeedback');
@@ -1979,6 +1980,7 @@
     try {
       const data = await api('/api/cloud-sync/settings');
       input.value = data.cloudBaseUrl || '';
+      cloudSavedBaseUrl = input.value.trim();
       $('cloudAuthToken').value = '';
       updateCloudForwardingControls(data);
       $('cloudSyncStatus').textContent = data.connectionStatus === 'ENABLED'
@@ -2002,16 +2004,21 @@
     button.disabled = true;
     setCloudSyncFeedback('Saving secure cloud pairing settings…');
     try {
+      const requestedBaseUrl = $('cloudBaseUrl').value.trim();
+      const requestedToken = $('cloudAuthToken').value.trim();
+      const pairingChanged = requestedBaseUrl !== cloudSavedBaseUrl || Boolean(requestedToken);
       const data = await api('/api/cloud-sync/settings', {
         method: 'PUT',
         body: JSON.stringify({
-          cloudBaseUrl: $('cloudBaseUrl').value.trim(),
-          cloudAuthToken: $('cloudAuthToken').value.trim(),
-          enabled: $('cloudSyncEnabled').checked
+          cloudBaseUrl: requestedBaseUrl,
+          cloudAuthToken: requestedToken,
+          enabled: !pairingChanged && $('cloudSyncEnabled').checked
         })
       });
       $('cloudAuthToken').value = '';
-      setCloudSyncFeedback(data.message || 'Cloud settings saved.');
+      setCloudSyncFeedback(pairingChanged
+        ? 'Pairing settings saved. Attendance forwarding is paused; test the new connection and synchronize master data before enabling it again.'
+        : (data.message || 'Cloud settings saved.'));
       showToast('Cloud Sync pairing settings saved.');
       await loadCloudSyncSettings();
     } catch (error) {
@@ -2029,6 +2036,10 @@
   $('refreshCloudQueue')?.addEventListener('click', loadCloudSyncStatus);
 
   $('testCloudConnection')?.addEventListener('click', async () => {
+    if ($('cloudBaseUrl').value.trim() !== cloudSavedBaseUrl || $('cloudAuthToken').value.trim()) {
+      setCloudSyncFeedback('Save the changed cloud address or credential first, then test the saved pairing.', true);
+      return;
+    }
     const button = $('testCloudConnection');
     button.disabled = true;
     setCloudSyncFeedback('Testing the secure cloud connection and school identity…');
@@ -2080,8 +2091,8 @@
 
   $('pushMasterData')?.addEventListener('click', async () => {
     const button = $('pushMasterData');
-    if (!cloudMasterDataConnectionReady) {
-      setCloudSyncFeedback('Save the cloud pairing settings and pass the secure connection test first.', true);
+    if (!cloudMasterDataConnectionReady || $('cloudBaseUrl').value.trim() !== cloudSavedBaseUrl || $('cloudAuthToken').value.trim()) {
+      setCloudSyncFeedback('Save the current cloud address and credential, then pass the secure connection test before pushing master data.', true);
       return;
     }
     const confirmed = window.confirm(
