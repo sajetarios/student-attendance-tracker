@@ -61,7 +61,11 @@ function registerCloudSyncRoutes(app, pool, {
         'SELECT cloud_base_url AS "cloudBaseUrl", enabled, ' +
         'cloud_auth_token_ciphertext IS NOT NULL AS "tokenConfigured", ' +
         'last_connection_test_at AS "lastConnectionTestAt", ' +
-        'last_connection_test_url AS "lastConnectionTestUrl" ' +
+        'last_connection_test_url AS "lastConnectionTestUrl", ' +
+        'last_master_data_sync_at AS "lastMasterDataSyncAt", ' +
+        'last_master_data_sync_counts AS "lastMasterDataSyncCounts", ' +
+        'last_master_data_sync_url AS "lastMasterDataSyncUrl", ' +
+        'last_master_data_sync_error AS "lastMasterDataSyncError" ' +
         'FROM school_cloud_sync_settings WHERE school_id=$1',
         [req.auth.schoolId]
       );
@@ -72,6 +76,12 @@ function registerCloudSyncRoutes(app, pool, {
         configured: Boolean(row.cloudBaseUrl),
         tokenConfigured: Boolean(row.tokenConfigured),
         lastConnectionTestAt: row.lastConnectionTestAt || null,
+        lastMasterDataSyncAt: row.lastMasterDataSyncAt || null,
+        lastMasterDataSyncCounts: row.lastMasterDataSyncCounts || null,
+        lastMasterDataSyncError: row.lastMasterDataSyncError || null,
+        masterDataSynced: Boolean(row.cloudBaseUrl && row.tokenConfigured &&
+          row.lastConnectionTestUrl === row.cloudBaseUrl && row.lastConnectionTestAt &&
+          row.lastMasterDataSyncUrl === row.cloudBaseUrl && row.lastMasterDataSyncAt),
         connectionVerified: Boolean(row.cloudBaseUrl && row.tokenConfigured &&
           row.lastConnectionTestUrl === row.cloudBaseUrl && row.lastConnectionTestAt),
         connectionStatus: 'NOT_CONNECTED'
@@ -106,12 +116,14 @@ function registerCloudSyncRoutes(app, pool, {
     try {
       const current = await pool.query(
         'SELECT cloud_base_url, cloud_auth_token_ciphertext, cloud_auth_token_iv, cloud_auth_token_tag, ' +
-        'last_connection_test_at, last_connection_test_url ' +
+        'last_connection_test_at, last_connection_test_url, last_master_data_sync_at, ' +
+        'last_master_data_sync_url, last_master_data_sync_counts, last_master_data_sync_hash, last_master_data_sync_error ' +
         'FROM school_cloud_sync_settings WHERE school_id=$1',
         [req.auth.schoolId]
       );
       const existing = current.rows[0] || {};
       const tokenChanged = Boolean(encrypted || clearToken);
+      const destinationChanged = existing.cloud_base_url !== normalizedUrl || tokenChanged;
       const tokenConfigured = clearToken ? false : Boolean(encrypted || existing.cloud_auth_token_ciphertext);
       const enabled = req.body?.enabled === true;
       const connectionVerified = !tokenChanged && existing.last_connection_test_at &&
@@ -121,6 +133,11 @@ function registerCloudSyncRoutes(app, pool, {
       }
       if (enabled && !connectionVerified) {
         return res.status(409).json({ error: 'Test the connection after saving the current cloud address and credential before enabling forwarding.' });
+      }
+      const masterDataSynced = !destinationChanged && existing.last_master_data_sync_at &&
+        existing.last_master_data_sync_url === normalizedUrl;
+      if (enabled && !masterDataSynced) {
+        return res.status(409).json({ error: 'Push the current school master data to the verified cloud destination before enabling attendance forwarding.' });
       }
 
       const ciphertext = clearToken ? null : (encrypted ? encrypted.ciphertext : existing.cloud_auth_token_ciphertext || null);
@@ -133,17 +150,29 @@ function registerCloudSyncRoutes(app, pool, {
       await pool.query(
         'INSERT INTO school_cloud_sync_settings ' +
         '(school_id, cloud_base_url, enabled, updated_by_user_id, cloud_auth_token_ciphertext, ' +
-        'cloud_auth_token_iv, cloud_auth_token_tag, last_connection_test_at, last_connection_test_url, updated_at) ' +
-        'VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,NOW()) ' +
+        'cloud_auth_token_iv, cloud_auth_token_tag, last_connection_test_at, last_connection_test_url, ' +
+        'last_master_data_sync_at, last_master_data_sync_counts, last_master_data_sync_hash, ' +
+        'last_master_data_sync_url, last_master_data_sync_error, updated_at) ' +
+        'VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,NOW()) ' +
         'ON CONFLICT (school_id) DO UPDATE SET ' +
         'cloud_base_url=EXCLUDED.cloud_base_url, enabled=EXCLUDED.enabled, ' +
         'updated_by_user_id=EXCLUDED.updated_by_user_id, ' +
         'cloud_auth_token_ciphertext=EXCLUDED.cloud_auth_token_ciphertext, ' +
         'cloud_auth_token_iv=EXCLUDED.cloud_auth_token_iv, cloud_auth_token_tag=EXCLUDED.cloud_auth_token_tag, ' +
         'last_connection_test_at=EXCLUDED.last_connection_test_at, ' +
-        'last_connection_test_url=EXCLUDED.last_connection_test_url, updated_at=NOW()',
+        'last_connection_test_url=EXCLUDED.last_connection_test_url, ' +
+        'last_master_data_sync_at=EXCLUDED.last_master_data_sync_at, ' +
+        'last_master_data_sync_counts=EXCLUDED.last_master_data_sync_counts, ' +
+        'last_master_data_sync_hash=EXCLUDED.last_master_data_sync_hash, ' +
+        'last_master_data_sync_url=EXCLUDED.last_master_data_sync_url, ' +
+        'last_master_data_sync_error=EXCLUDED.last_master_data_sync_error, updated_at=NOW()',
         [req.auth.schoolId, normalizedUrl, enabled, req.auth.userId,
-          ciphertext, iv, tag, testAt, testUrl]
+          ciphertext, iv, tag, testAt, testUrl,
+          destinationChanged ? null : existing.last_master_data_sync_at || null,
+          destinationChanged ? null : existing.last_master_data_sync_counts || null,
+          destinationChanged ? null : existing.last_master_data_sync_hash || null,
+          destinationChanged ? null : existing.last_master_data_sync_url || null,
+          destinationChanged ? null : existing.last_master_data_sync_error || null]
       );
       await pool.query(
         'INSERT INTO audit_logs(school_id, actor_type, actor_user_id, action, entity_type, entity_id, details) ' +
