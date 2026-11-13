@@ -77,6 +77,12 @@ test('master-data snapshot excludes credentials, contacts, photos, and QR secret
     assert.doesNotMatch(builder, new RegExp(forbidden, 'i'), `Snapshot builder must not query ${forbidden}`);
   }
   assert.match(source, /field\.replace\(\/\[A-Z\]\/g/);
+  const staffQuery = builder.slice(builder.indexOf("['schoolUsers'"), builder.indexOf("['students'"));
+  assert.doesNotMatch(staffQuery, /leave_type|leave_start_date|expected_return_date/i);
+  const enrollmentQuery = builder.slice(builder.indexOf("['studentEnrollments'"), builder.indexOf("['studentMovements'"));
+  assert.doesNotMatch(enrollmentQuery, /remarks/i);
+  assert.match(source, /BEGIN ISOLATION LEVEL REPEATABLE READ READ ONLY/);
+  assert.match(source, /A newer master-data snapshot has already been received/);
 });
 
 test('cloud staff mirror rows are inserted as non-login identities', () => {
