@@ -293,6 +293,143 @@ app.patch('/api/school-users/:userId/profile', authenticateSchoolClient, require
 });
 
 
+
+app.get('/api/admin/security/accounts', authenticateSchoolClient, requireSchoolAdmin, async (req, res) => {
+  try {
+    const result = await pool.query(
+      `SELECT su.user_id AS "userId", su.username, su.display_name AS "displayName",
+              su.role, su.active, su.created_at AS "createdAt", su.last_login_at AS "lastLoginAt",
+              su.failed_login_attempts AS "failedLoginAttempts", su.locked_until AS "lockedUntil",
+              su.must_change_password AS "mustChangePassword",
+              su.teacher_designations AS "teacherDesignations",
+              d.department_name AS "departmentName",
+              COALESCE((SELECT COUNT(*)::int FROM user_sessions us
+                        WHERE us.principal_type='SCHOOL' AND us.school_id=su.school_id
+                          AND us.school_user_id=su.user_id AND us.revoked_at IS NULL
+                          AND us.expires_at>NOW()),0) AS "activeSessions"
+       FROM school_users su
+       LEFT JOIN school_departments d ON d.school_id=su.school_id AND d.department_id=su.department_id
+       WHERE su.school_id=$1 AND su.role IN ('TEACHER','DEPARTMENT_HEAD','GATE_KEEPER')
+       ORDER BY su.active DESC, su.role, su.display_name, su.username`,
+      [req.auth.schoolId]
+    );
+    return res.json({ accounts: result.rows });
+  } catch (err) {
+    console.error('Security account list failed:', err.message);
+    return res.status(500).json({ error: 'Could not load account security status.' });
+  }
+});
+
+app.post('/api/admin/security/accounts/:userId/reset-password', authenticateSchoolClient, requireSchoolAdmin, async (req, res) => {
+  if (!isUuid(req.params.userId)) return res.status(400).json({ error: 'Invalid account ID.' });
+  const temporaryPassword = 'Tmp-' + crypto.randomBytes(18).toString('base64url') + '-9a';
+  let passwordHash;
+  try { passwordHash = await hashPassword(temporaryPassword); }
+  catch (err) { return res.status(500).json({ error: 'Could not prepare a secure temporary password.' }); }
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+    const target = await client.query(
+      `SELECT user_id, username, display_name, role, active
+       FROM school_users
+       WHERE school_id=$1 AND user_id=$2 AND role IN ('TEACHER','DEPARTMENT_HEAD','GATE_KEEPER')
+       FOR UPDATE`,
+      [req.auth.schoolId, req.params.userId]
+    );
+    if (!target.rowCount) {
+      await client.query('ROLLBACK');
+      return res.status(404).json({ error: 'Staff account not found.' });
+    }
+    await client.query(
+      `UPDATE school_users
+       SET password_hash=$3, must_change_password=TRUE,
+           failed_login_attempts=0, locked_until=NULL,
+           session_version=session_version+1, updated_at=NOW()
+       WHERE school_id=$1 AND user_id=$2`,
+      [req.auth.schoolId, req.params.userId, passwordHash]
+    );
+    const revoked = await client.query(
+      `UPDATE user_sessions SET revoked_at=NOW()
+       WHERE principal_type='SCHOOL' AND school_id=$1 AND school_user_id=$2 AND revoked_at IS NULL`,
+      [req.auth.schoolId, req.params.userId]
+    );
+    await client.query(
+      `INSERT INTO audit_logs(school_id,actor_type,actor_user_id,action,entity_type,entity_id,details)
+       VALUES($1,'SCHOOL',$2,'SCHOOL_ADMIN_RESET_STAFF_PASSWORD','school_user',$3,$4::jsonb)`,
+      [req.auth.schoolId, req.auth.userId, req.params.userId,
+       JSON.stringify({ username: target.rows[0].username, revokedSessions: revoked.rowCount, mustChangePassword: true })]
+    );
+    await client.query('COMMIT');
+    return res.json({
+      account: { userId: target.rows[0].user_id, username: target.rows[0].username, displayName: target.rows[0].display_name },
+      temporaryPassword,
+      revokedSessions: revoked.rowCount,
+      mustChangePassword: true
+    });
+  } catch (err) {
+    await client.query('ROLLBACK').catch(() => {});
+    console.error('Staff password reset failed:', err.message);
+    return res.status(500).json({ error: 'Could not reset this staff account password.' });
+  } finally { client.release(); }
+});
+
+app.post('/api/admin/security/accounts/:userId/revoke-sessions', authenticateSchoolClient, requireSchoolAdmin, async (req, res) => {
+  if (!isUuid(req.params.userId)) return res.status(400).json({ error: 'Invalid account ID.' });
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+    const target = await client.query(
+      `SELECT user_id, username FROM school_users
+       WHERE school_id=$1 AND user_id=$2 AND role IN ('TEACHER','DEPARTMENT_HEAD','GATE_KEEPER')
+       FOR UPDATE`,
+      [req.auth.schoolId, req.params.userId]
+    );
+    if (!target.rowCount) {
+      await client.query('ROLLBACK');
+      return res.status(404).json({ error: 'Staff account not found.' });
+    }
+    const revoked = await client.query(
+      `UPDATE user_sessions SET revoked_at=NOW()
+       WHERE principal_type='SCHOOL' AND school_id=$1 AND school_user_id=$2
+         AND revoked_at IS NULL AND expires_at>NOW()`,
+      [req.auth.schoolId, req.params.userId]
+    );
+    await client.query(
+      `INSERT INTO audit_logs(school_id,actor_type,actor_user_id,action,entity_type,entity_id,details)
+       VALUES($1,'SCHOOL',$2,'SCHOOL_ADMIN_REVOKE_STAFF_SESSIONS','school_user',$3,$4::jsonb)`,
+      [req.auth.schoolId, req.auth.userId, req.params.userId, JSON.stringify({ username: target.rows[0].username, revokedSessions: revoked.rowCount })]
+    );
+    await client.query('COMMIT');
+    return res.json({ ok: true, revokedSessions: revoked.rowCount });
+  } catch (err) {
+    await client.query('ROLLBACK').catch(() => {});
+    console.error('Staff session revocation failed:', err.message);
+    return res.status(500).json({ error: 'Could not revoke this account’s sessions.' });
+  } finally { client.release(); }
+});
+
+app.post('/api/admin/security/accounts/:userId/unlock', authenticateSchoolClient, requireSchoolAdmin, async (req, res) => {
+  if (!isUuid(req.params.userId)) return res.status(400).json({ error: 'Invalid account ID.' });
+  try {
+    const updated = await pool.query(
+      `UPDATE school_users SET failed_login_attempts=0, locked_until=NULL, updated_at=NOW()
+       WHERE school_id=$1 AND user_id=$2 AND role IN ('TEACHER','DEPARTMENT_HEAD','GATE_KEEPER')
+       RETURNING user_id, username`,
+      [req.auth.schoolId, req.params.userId]
+    );
+    if (!updated.rowCount) return res.status(404).json({ error: 'Staff account not found.' });
+    await pool.query(
+      `INSERT INTO audit_logs(school_id,actor_type,actor_user_id,action,entity_type,entity_id,details)
+       VALUES($1,'SCHOOL',$2,'SCHOOL_ADMIN_UNLOCK_STAFF_ACCOUNT','school_user',$3,$4::jsonb)`,
+      [req.auth.schoolId, req.auth.userId, req.params.userId, JSON.stringify({ username: updated.rows[0].username })]
+    );
+    return res.json({ ok: true });
+  } catch (err) {
+    console.error('Staff account unlock failed:', err.message);
+    return res.status(500).json({ error: 'Could not unlock this staff account.' });
+  }
+});
+
 app.get('/api/admin/security/audit', authenticateSchoolClient, requireSchoolAdmin, async (req, res) => {
   try {
     const result = await pool.query(
