@@ -204,7 +204,9 @@ body.app-dialog-open { overflow: hidden; }
   border-radius: 10px;
   font-size: 25px;
 }
-.portal-page .app-dialog-input {
+.portal-page .app-dialog-card input.app-dialog-input:not([type="checkbox"]):not([type="radio"]),
+.portal-page .app-dialog-card select.app-dialog-input,
+.portal-page .app-dialog-card textarea.app-dialog-input {
   min-height: 46px;
   padding: 11px 13px;
   border-radius: 11px;
