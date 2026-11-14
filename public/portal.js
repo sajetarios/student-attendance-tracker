@@ -1365,10 +1365,9 @@ let teacherActionMenuListenersInstalled = false;
 
       const isSchoolAdmin = user.role === 'SCHOOL_ADMIN';
       const accountActions = !isSchoolAdmin ? '<span class="muted-inline">View only</span>' : (active
-        ? `<div class="teacher-action-menu-label">Assignments</div>
-           <button type="button" class="teacher-action-item" data-manage-permanent="${esc(teacher.userId)}">Manage permanent assignments</button>
-           <button type="button" class="teacher-action-item" data-edit-designations="${esc(teacher.userId)}">Edit teacher designations</button>
-           <button type="button" class="teacher-action-item" data-teacher-qr="${esc(teacher.userId)}">Print gate QR badge</button>
+        ? `<div class="teacher-action-menu-label">Account &amp; permissions</div>
+           <button type="button" class="teacher-action-item" data-edit-teacher-profile="${esc(teacher.userId)}">Edit account profile</button>
+           <button type="button" class="teacher-action-item" data-edit-designations="${esc(teacher.userId)}">Edit teacher permissions</button><button type="button" class="teacher-action-item" data-teacher-qr="${esc(teacher.userId)}">Print gate QR badge</button>
            <label class="teacher-action-item teacher-photo-upload-menu">${teacher.hasTeacherPhoto ? 'Replace teacher photo' : 'Upload teacher photo'}<input type="file" accept="image/jpeg,image/png,image/webp" data-teacher-photo="${esc(teacher.userId)}" hidden></label>
            <div class="teacher-action-menu-divider"></div>
            <div class="teacher-action-menu-label">Account</div>
@@ -1822,8 +1821,9 @@ let teacherActionMenuListenersInstalled = false;
         <td data-label="Role">${esc(String(account.role || '').replaceAll('_', ' '))}</td>
         <td data-label="Department">${departmentCell}</td>
         <td data-label="Status"><span class="account-status ${account.active ? 'active' : 'inactive'}">${account.active ? 'Active' : 'Inactive'}</span></td>
+        <td data-label="Account action"><button type="button" class="outline-button compact-button" data-edit-staff-profile="${esc(account.userId)}">Edit account</button></td>
       </tr>`;
-    }).join('') : '<tr><td colspan="4" class="empty-cell">No additional staff accounts have been created.</td></tr>';
+    }).join('') : '<tr><td colspan="5" class="empty-cell">No additional staff accounts have been created.</td></tr>';
     host.querySelectorAll('[data-select-staff]').forEach(box => box.addEventListener('change', () => {
       if (box.checked) selectedStaffIds.add(String(box.dataset.selectStaff)); else selectedStaffIds.delete(String(box.dataset.selectStaff));
       updateStaffBulkUi();
@@ -3168,6 +3168,22 @@ let teacherActionMenuListenersInstalled = false;
       const designationButton = event.target.closest('[data-edit-designations]');
       const manageAssignmentsButton = event.target.closest('[data-manage-permanent]');
       const leaveButton = event.target.closest('[data-place-leave]');
+      const profileButton = event.target.closest('[data-edit-teacher-profile]');
+      if (profileButton) {
+        const teacher = teachers.find(item => String(item.userId) === String(profileButton.dataset.editTeacherProfile));
+        if (!teacher) return;
+        const values = await AppDialog.form('Update the teacher display name. Department and teacher permissions can be managed separately without replacing the account or QR identity.',
+          [{ name: 'displayName', label: 'Display name', defaultValue: teacher.displayName || '', required: true, maxLength: 160 }],
+          { title: 'Edit teacher account', confirmText: 'Save account' });
+        if (values === null) return;
+        profileButton.disabled = true;
+        try {
+          await api('/api/teachers/' + encodeURIComponent(teacher.userId), { method: 'PATCH', body: JSON.stringify({ displayName: values.displayName.trim() }) });
+          await loadSchoolData();
+          showToast('Teacher account updated. Existing teacher QR identity and schedules were preserved.');
+        } catch (error) { showToast(error.message, true); profileButton.disabled = false; }
+        return;
+      }
       const teacherQrButton = event.target.closest('[data-teacher-qr]');
       if (teacherQrButton) {
         try { await printTeacherGateQr(teacherQrButton.dataset.teacherQr); }
@@ -3369,6 +3385,31 @@ let teacherActionMenuListenersInstalled = false;
     }
   });
 
+  $('staffUserRows')?.addEventListener('click', async event => {
+    const button = event.target.closest('[data-edit-staff-profile]');
+    if (!button) return;
+    const account = schoolUsers.find(item => String(item.userId) === String(button.dataset.editStaffProfile));
+    if (!account) return;
+    const values = await AppDialog.form(
+      'Update the display name or disable/restore sign-in access. Account role and department remain separately controlled.',
+      [
+        { name: 'displayName', label: 'Display name', defaultValue: account.displayName || '', required: true, maxLength: 160 },
+        { name: 'active', label: 'Account access', defaultValue: account.active ? 'true' : 'false', required: true,
+          selectOptions: [{ value: 'true', label: 'Active — sign-in allowed' }, { value: 'false', label: 'Inactive — sign-in disabled' }] }
+      ],
+      { title: 'Edit staff account', confirmText: 'Save account' }
+    );
+    if (values === null) return;
+    button.disabled = true;
+    try {
+      await api('/api/school-users/' + encodeURIComponent(account.userId) + '/profile', { method: 'PATCH', body: JSON.stringify({ displayName: values.displayName.trim(), active: values.active === 'true' }) });
+      await loadSchoolData();
+      showToast('Staff account updated.');
+    } catch (error) {
+      showToast(error.message, true);
+      button.disabled = false;
+    }
+  });
   $('staffUserRows')?.addEventListener('change', async event => {
     const select = event.target.closest('[data-change-staff-department]');
     if (!select) return;
