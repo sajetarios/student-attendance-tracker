@@ -1121,7 +1121,7 @@ function coverageStatusLabel(status) {
     if ($('addScheduleSubject')) $('addScheduleSubject').hidden = !isSchoolManager;
 
     $('scheduleRows').innerHTML = periods.length ? periods.map(period => {
-      const canSelectPeriod = user.role === 'SCHOOL_ADMIN' || String(period.departmentId) === String(user.departmentId);
+      const canSelectPeriod = (user.role === 'SCHOOL_ADMIN' || String(period.departmentId) === String(user.departmentId)) && !period.assignedTeacherName;
       const selection = canBulkAssign && canSelectPeriod ? '<td><input type="checkbox" data-select-period="' + esc(period.periodId) + '" ' +
         (selectedPeriodIds.has(String(period.periodId)) ? 'checked' : '') + ' aria-label="Select ' + esc(period.periodName) + '"></td>' : '';
       return `<tr>
@@ -1150,7 +1150,7 @@ function coverageStatusLabel(status) {
         ? 'View schedules across the school. Create schedules and assign teachers only within your department.'
         : 'Create schedules by choosing a Subject Teacher. Department and subject options follow that teacher’s department.';
 
-    const teacherCreatingOwn = isTeacher && teacherHas('SUBJECT_TEACHER') && user.departmentCode !== 'UNASSIGNED';
+    const teacherCreatingOwn = isTeacher && teacherHas('SUBJECT_TEACHER') && Boolean(user.departmentId) && user.departmentCode !== 'UNASSIGNED';
     const departmentHeadCanCreate = user.role === 'DEPARTMENT_HEAD' && Boolean(user.departmentId) && user.departmentCode !== 'UNASSIGNED';
     $('showScheduleForm').hidden = !(user.role === 'SCHOOL_ADMIN' || teacherCreatingOwn || departmentHeadCanCreate);
     if (user.role === 'DEPARTMENT_HEAD' && !departmentHeadCanCreate) {
