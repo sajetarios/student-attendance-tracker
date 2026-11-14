@@ -1,3 +1,4 @@
+// Final CI verification of the Department Head coverage tabs implementation.
 'use strict';
 
 const test = require('node:test');
