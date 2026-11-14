@@ -341,20 +341,35 @@ function registerDepartmentRoutes(app, pool, auth) {
          ORDER BY d.department_name, p.grade_level, p.section, p.start_time, p.period_name`,
         [req.auth.schoolId, schoolDate]
       );
+      // The server derives each tab's scope from the authenticated Department Head.
+      // Never accept a department ID or scope supplied by the browser for this split.
       const rows = result.rows.map(row => ({
         ...row,
+        departmentScope: req.auth.departmentCode !== 'UNASSIGNED' &&
+          String(row.departmentId || '') === String(req.auth.departmentId || '')
+          ? 'MY_DEPARTMENT' : 'OTHER_DEPARTMENTS',
         effectiveTeacherName: row.substituteTeacherName || row.teacherName || null,
         effectiveTeacherUserId: row.substituteTeacherUserId || row.teacherUserId || null,
         checkInRecorded: Boolean(row.effectiveTeacherTimeInId)
       }));
+      const countScope = scopedRows => ({
+        totalSchedules: scopedRows.length,
+        noTeacher: scopedRows.filter(row => row.coverageStatus === 'NO_TEACHER').length,
+        onLeaveUncovered: scopedRows.filter(row => row.coverageStatus === 'ON_LEAVE_UNCOVERED').length,
+        checkInNotRecorded: scopedRows.filter(row => ['CHECK_IN_NOT_RECORDED','COVERAGE_CHECK_IN_NOT_RECORDED'].includes(row.coverageStatus)).length,
+        activeAlerts: scopedRows.filter(row => ['NO_TEACHER','ON_LEAVE_UNCOVERED','CHECK_IN_NOT_RECORDED','COVERAGE_CHECK_IN_NOT_RECORDED','TEACHER_INACTIVE'].includes(row.coverageStatus)).length
+      });
+      const myDepartmentRows = rows.filter(row => row.departmentScope === 'MY_DEPARTMENT');
+      const otherDepartmentRows = rows.filter(row => row.departmentScope === 'OTHER_DEPARTMENTS');
       return res.json({
         schoolDate, isToday: schoolDate === today, coverage: rows,
         summary: {
-          totalSchedules: rows.length,
-          noTeacher: rows.filter(row => row.coverageStatus === 'NO_TEACHER').length,
-          onLeaveUncovered: rows.filter(row => row.coverageStatus === 'ON_LEAVE_UNCOVERED').length,
-          checkInNotRecorded: rows.filter(row => ['CHECK_IN_NOT_RECORDED','COVERAGE_CHECK_IN_NOT_RECORDED'].includes(row.coverageStatus)).length,
+          ...countScope(rows),
           covered: rows.filter(row => row.coverageStatus === 'COVERED').length
+        },
+        departmentSummary: {
+          myDepartment: countScope(myDepartmentRows),
+          otherDepartments: countScope(otherDepartmentRows)
         }
       });
     } catch (err) {
