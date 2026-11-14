@@ -440,7 +440,7 @@
     if (adviserCard) adviserCard.hidden = true;
     if (teacherPermissionsCard) teacherPermissionsCard.hidden = true;
     if (accountAccessPanel) accountAccessPanel.hidden = activeTab !== 'permissions';
-    if (activeTab === 'permissions') loadSecurityAudit();
+    if (activeTab === 'permissions') { loadSecurityAudit(); loadSecurityAccounts(); }
     if (departmentCard) departmentCard.hidden = activeTab !== 'departments';
     if (note) note.hidden = activeTab !== 'accounts';
     tabs?.querySelectorAll('[data-admin-management-tab]').forEach(button => {
@@ -455,6 +455,109 @@
     const button = event.target.closest('[data-admin-management-tab]');
     if (button) setAdminManagementTab(button.dataset.adminManagementTab);
   });
+  let securityAccounts = [];
+  let securityAccountsLoaded = false;
+  async function loadSecurityAccounts(force = false) {
+    const host = $('securityAccountsRows');
+    if (!host || (securityAccountsLoaded && !force)) return;
+    host.innerHTML = '<tr><td colspan="7" class="empty-cell">Loading staff security status…</td></tr>';
+    try {
+      const result = await api('/api/admin/security/accounts');
+      securityAccounts = result.accounts || [];
+      host.innerHTML = securityAccounts.length ? securityAccounts.map(account => {
+        const locked = account.lockedUntil && new Date(account.lockedUntil).getTime() > Date.now();
+        const status = !account.active ? 'Inactive' : locked ? 'Locked' : account.mustChangePassword ? 'Password change required' : 'Active';
+        const statusClass = !account.active || locked ? 'inactive' : 'active';
+        const lastLogin = account.lastLoginAt ? new Date(account.lastLoginAt).toLocaleString() : 'Never';
+        const department = [String(account.role || '').replaceAll('_',' '), account.departmentName].filter(Boolean).join(' · ');
+        const actions = [
+          '<button type="button" class="outline-button compact-button" data-reset-staff-password="' + esc(account.userId) + '">Reset password</button>',
+          '<button type="button" class="outline-button compact-button" data-revoke-staff-sessions="' + esc(account.userId) + '" ' + (Number(account.activeSessions) ? '' : 'disabled') + '>Revoke sessions</button>',
+          locked ? '<button type="button" class="outline-button compact-button" data-unlock-staff-account="' + esc(account.userId) + '">Unlock</button>' : ''
+        ].join('');
+        return '<tr><td data-label="Employee"><strong>' + esc(account.displayName || account.username) + '</strong><small class="table-subtext">' + esc(account.username) + '</small></td>' +
+          '<td data-label="Role / department">' + esc(department) + '</td>' +
+          '<td data-label="Access status"><span class="account-status ' + statusClass + '">' + esc(status) + '</span></td>' +
+          '<td data-label="Last sign-in">' + esc(lastLogin) + '</td>' +
+          '<td data-label="Failed attempts">' + Number(account.failedLoginAttempts || 0) + ' / 5</td>' +
+          '<td data-label="Sessions">' + Number(account.activeSessions || 0) + '</td>' +
+          '<td data-label="Security actions"><div class="action-row">' + actions + '</div></td></tr>';
+      }).join('') : '<tr><td colspan="7" class="empty-cell">No employee accounts found.</td></tr>';
+      securityAccountsLoaded = true;
+    } catch (error) {
+      host.innerHTML = '<tr><td colspan="7" class="empty-cell">' + esc(error.message || 'Could not load account security status.') + '</td></tr>';
+    }
+  }
+  function closeTemporaryPasswordModal() {
+    $('temporaryPasswordValue').value = '';
+    $('temporaryPasswordModal').hidden = true;
+  }
+  function showTemporaryPassword(result) {
+    $('temporaryPasswordAccount').textContent = 'Temporary password for ' + (result.account.displayName || result.account.username) + ' (' + result.account.username + '). Share it privately.';
+    $('temporaryPasswordValue').value = result.temporaryPassword;
+    $('temporaryPasswordModal').hidden = false;
+    $('copyTemporaryPassword').textContent = 'Copy';
+  }
+  $('closeTemporaryPasswordModal')?.addEventListener('click', closeTemporaryPasswordModal);
+  $('doneTemporaryPasswordModal')?.addEventListener('click', closeTemporaryPasswordModal);
+  $('temporaryPasswordModal')?.addEventListener('click', event => {
+    if (event.target === $('temporaryPasswordModal')) closeTemporaryPasswordModal();
+  });
+  $('copyTemporaryPassword')?.addEventListener('click', async () => {
+    const field = $('temporaryPasswordValue');
+    try {
+      await navigator.clipboard.writeText(field.value);
+      $('copyTemporaryPassword').textContent = 'Copied';
+    } catch {
+      field.focus(); field.select();
+      $('copyTemporaryPassword').textContent = 'Select and copy';
+    }
+  });
+  $('securityAccountsRows')?.addEventListener('click', async event => {
+    const reset = event.target.closest('[data-reset-staff-password]');
+    const revoke = event.target.closest('[data-revoke-staff-sessions]');
+    const unlock = event.target.closest('[data-unlock-staff-account]');
+    const targetId = reset?.dataset.resetStaffPassword || revoke?.dataset.revokeStaffSessions || unlock?.dataset.unlockStaffAccount;
+    if (!targetId) return;
+    const account = securityAccounts.find(item => String(item.userId) === String(targetId));
+    if (!account) return;
+    const button = reset || revoke || unlock;
+    if (reset) {
+      if (!await AppDialog.confirm('Issue a new temporary password for ' + (account.displayName || account.username) + '? All current sessions will be revoked and the employee must change the password at next sign-in.', { title: 'Reset employee password', confirmText: 'Issue temporary password', variant: 'danger' })) return;
+      button.disabled = true;
+      try {
+        const result = await api('/api/admin/security/accounts/' + encodeURIComponent(targetId) + '/reset-password', { method: 'POST', body: JSON.stringify({}) });
+        showTemporaryPassword(result);
+        await loadSecurityAccounts(true);
+        await loadSecurityAudit(true);
+        showToast('Temporary password created. Copy it and share it privately.');
+      } catch (error) { showToast(error.message, true); button.disabled = false; }
+      return;
+    }
+    if (revoke) {
+      if (!await AppDialog.confirm('Revoke all active sessions for ' + (account.displayName || account.username) + '? The employee will need to sign in again.', { title: 'Revoke employee sessions', confirmText: 'Revoke sessions', variant: 'danger' })) return;
+      button.disabled = true;
+      try {
+        const result = await api('/api/admin/security/accounts/' + encodeURIComponent(targetId) + '/revoke-sessions', { method: 'POST', body: JSON.stringify({}) });
+        showToast(result.revokedSessions + ' active session(s) revoked.');
+        await loadSecurityAccounts(true);
+        await loadSecurityAudit(true);
+      } catch (error) { showToast(error.message, true); button.disabled = false; }
+      return;
+    }
+    if (unlock) {
+      if (!await AppDialog.confirm('Unlock ' + (account.displayName || account.username) + ' and clear failed sign-in attempts?', { title: 'Unlock employee account', confirmText: 'Unlock account' })) return;
+      button.disabled = true;
+      try {
+        await api('/api/admin/security/accounts/' + encodeURIComponent(targetId) + '/unlock', { method: 'POST', body: JSON.stringify({}) });
+        showToast('Account unlocked.');
+        await loadSecurityAccounts(true);
+        await loadSecurityAudit(true);
+      } catch (error) { showToast(error.message, true); button.disabled = false; }
+    }
+  });
+  $('refreshSecurityAccounts')?.addEventListener('click', () => loadSecurityAccounts(true));
+
   let securityAuditLoaded = false;
   async function loadSecurityAudit(force = false) {
     const host = $('securityAuditRows');
@@ -2410,6 +2513,7 @@ let teacherActionMenuListenersInstalled = false;
       return;
     }
     user = me.user;
+    if (user.mustChangePassword) { window.location.replace('/force-password-change.html'); return; }
     sessionStorage.setItem(userKey, JSON.stringify(user));
     $('userDisplay').textContent = user.displayName || user.username;
     if ($('userRole')) $('userRole').textContent = user.role.replaceAll('_', ' ');
