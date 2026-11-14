@@ -17,7 +17,7 @@ function createAuthMiddleware(pool) {
       const session = await pool.query(
         `SELECT us.session_id, us.principal_type, us.school_id,
                 su.user_id, su.role, su.username, su.display_name, su.teacher_designations,
-                su.department_id, d.department_name, d.department_code,
+                su.department_id, su.must_change_password, d.department_name, d.department_code,
                 s.school_code, s.school_name
          FROM user_sessions us
          JOIN school_users su
@@ -40,6 +40,7 @@ function createAuthMiddleware(pool) {
         req.auth = {
           type: 'SCHOOL_USER',
           principalType: 'SCHOOL',
+          mustChangePassword: Boolean(row.must_change_password),
           schoolId: row.school_id,
           userId: row.user_id,
           role: row.role,
@@ -52,6 +53,9 @@ function createAuthMiddleware(pool) {
           schoolCode: row.school_code,
           schoolName: row.school_name
         };
+        if (row.must_change_password && req.path !== '/api/auth/school/change-password') {
+          return res.status(428).json({ error: 'Password update required before accessing this account.' });
+        }
         return next();
       }
 
