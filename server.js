@@ -357,6 +357,9 @@ app.get('/api/class-adviser-assignments', authenticateSchoolClient,
       if (req.auth.role === 'TEACHER') {
         params.push(req.auth.userId);
         teacherFilter = ' AND ca.adviser_user_id=$2';
+      } else if (req.auth.role === 'DEPARTMENT_HEAD') {
+        params.push(req.auth.departmentId);
+        teacherFilter = ' AND EXISTS (SELECT 1 FROM class_periods cp WHERE cp.school_id=ca.school_id AND cp.department_id=$2 AND cp.grade_level=ca.grade_level AND cp.section=ca.section)';
       }
       const result = await pool.query(
         `SELECT ca.assignment_id AS "assignmentId", ca.adviser_user_id AS "adviserUserId",
@@ -374,7 +377,7 @@ app.get('/api/class-adviser-assignments', authenticateSchoolClient,
     }
   });
 
-app.post('/api/class-adviser-assignments', authenticateSchoolClient, requireSchoolAdmin, async (req, res) => {
+app.post('/api/class-adviser-assignments', authenticateSchoolClient, requireSchoolRoles('SCHOOL_ADMIN','DEPARTMENT_HEAD'), async (req, res) => {
   const { adviserUserId, gradeLevel, section } = req.body || {};
   if (!isUuid(adviserUserId) || !validText(gradeLevel) || gradeLevel.trim().length > 40 ||
       !validText(section) || section.trim().length > 100) {
@@ -404,7 +407,7 @@ app.post('/api/class-adviser-assignments', authenticateSchoolClient, requireScho
   }
 });
 
-app.patch('/api/class-adviser-assignments/:assignmentId', authenticateSchoolClient, requireSchoolAdmin, async (req, res) => {
+app.patch('/api/class-adviser-assignments/:assignmentId', authenticateSchoolClient, requireSchoolRoles('SCHOOL_ADMIN','DEPARTMENT_HEAD'), async (req, res) => {
   const { adviserUserId, gradeLevel, section } = req.body || {};
   if (!isUuid(req.params.assignmentId) || !isUuid(adviserUserId) ||
       !validText(gradeLevel) || gradeLevel.trim().length > 40 ||
@@ -477,7 +480,7 @@ app.patch('/api/class-adviser-assignments/:assignmentId', authenticateSchoolClie
   }
 });
 
-app.delete('/api/class-adviser-assignments/:assignmentId', authenticateSchoolClient, requireSchoolAdmin, async (req, res) => {
+app.delete('/api/class-adviser-assignments/:assignmentId', authenticateSchoolClient, requireSchoolRoles('SCHOOL_ADMIN','DEPARTMENT_HEAD'), async (req, res) => {
   if (!isUuid(req.params.assignmentId)) return res.status(400).json({ error: 'Invalid class adviser assignment ID.' });
   try {
     const result = await pool.query(
@@ -498,7 +501,7 @@ app.delete('/api/class-adviser-assignments/:assignmentId', authenticateSchoolCli
   }
 });
 
-app.patch('/api/teachers/:userId/designations', authenticateSchoolClient, requireSchoolAdmin, async (req, res) => {
+app.patch('/api/teachers/:userId/designations', authenticateSchoolClient, requireSchoolRoles('SCHOOL_ADMIN','DEPARTMENT_HEAD'), async (req, res) => {
   if (!isUuid(req.params.userId)) return res.status(400).json({ error: 'Invalid teacher account ID.' });
   const incoming = req.body?.teacherDesignations;
   if (!Array.isArray(incoming)) return res.status(400).json({ error: 'Provide teacherDesignations as an array.' });
@@ -507,6 +510,15 @@ app.patch('/api/teachers/:userId/designations', authenticateSchoolClient, requir
     return res.status(400).json({ error: 'Select Subject Teacher, Class Adviser, or both.' });
   }
   try {
+    if (req.auth.role === 'DEPARTMENT_HEAD') {
+      const target = await pool.query(
+        "SELECT department_id FROM school_users WHERE school_id=$1 AND user_id=$2 AND role='TEACHER' AND active=TRUE",
+        [req.auth.schoolId, req.params.userId]
+      );
+      if (!target.rowCount || String(target.rows[0].department_id) !== String(req.auth.departmentId)) {
+        return res.status(403).json({ error: 'You can manage teacher designations only within your own department.' });
+      }
+    }
     if (!designations.includes('CLASS_ADVISER')) {
       const assigned = await pool.query(
         'SELECT 1 FROM class_adviser_assignments WHERE school_id=$1 AND adviser_user_id=$2 LIMIT 1',
@@ -523,7 +535,7 @@ app.patch('/api/teachers/:userId/designations', authenticateSchoolClient, requir
     if (!updated.rowCount) return res.status(404).json({ error: 'Teacher account not found in this school.' });
     await pool.query(
       `INSERT INTO audit_logs(school_id, actor_type, actor_user_id, action, entity_type, entity_id, details)
-       VALUES($1,'SCHOOL',$2,'SCHOOL_ADMIN_UPDATE_TEACHER_DESIGNATIONS','school_user',$3,$4::jsonb)`,
+       VALUES($1,'SCHOOL',$2,req.auth.role === 'DEPARTMENT_HEAD' ? 'DEPARTMENT_HEAD_UPDATE_TEACHER_DESIGNATIONS' : 'SCHOOL_ADMIN_UPDATE_TEACHER_DESIGNATIONS','school_user',$3,$4::jsonb)`,
       [req.auth.schoolId, req.auth.userId, req.params.userId, JSON.stringify({ teacherDesignations: designations })]
     );
     return res.json({ teacher: updated.rows[0] });
@@ -2161,7 +2173,7 @@ app.get('/api/periods', authenticateSchoolClient, requireSchoolUser, async (req,
 
 // School Administrators, Department Heads, and Subject Teachers may create schedules within their permitted scope.
 // A schedule is created together with its teacher assignment. Department comes from the teacher account.
-app.post('/api/periods', authenticateSchoolClient, requireSchoolRoles('SCHOOL_ADMIN', 'DEPARTMENT_HEAD'), async (req, res) => {
+app.post('/api/periods', authenticateSchoolClient, requireSchoolRoles('DEPARTMENT_HEAD'), async (req, res) => {
   const isTeacher = req.auth.role === 'TEACHER';
   const isDepartmentHead = req.auth.role === 'DEPARTMENT_HEAD';
   const teacherUserId = isTeacher ? req.auth.userId : req.body?.teacherUserId;
