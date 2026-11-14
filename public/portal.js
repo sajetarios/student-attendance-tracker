@@ -27,6 +27,7 @@
   let teacherGateAttendance = [];
   let departments = [];
   let teacherCoverage = [];
+  let activeCoverageTab = 'MY_DEPARTMENT';
   let coverageAlertKeys = new Set();
   let coverageMonitorInitialized = false;
   let activeScanScope = 'SCHOOL';
@@ -751,26 +752,65 @@ function coverageStatusLabel(status) {
     return ['NO_TEACHER','ON_LEAVE_UNCOVERED','CHECK_IN_NOT_RECORDED','COVERAGE_CHECK_IN_NOT_RECORDED','TEACHER_INACTIVE'].includes(row.coverageStatus);
   }
 
+  function coverageDisplayLabel(row) {
+    if (row.checkInRecorded && ['ASSIGNED','COVERED'].includes(row.coverageStatus)) return 'Teacher Present';
+    if (row.coverageStatus === 'COVERED') return 'Substitute Assigned';
+    return coverageStatusLabel(row.coverageStatus);
+  }
+
   function renderTeacherCoverage() {
     const host = $('teacherCoverageRows');
     if (!host) return;
-    const alertRows = teacherCoverage.filter(row => coverageNeedsAction(row));
+
+    // Department scope is supplied by the server from the authenticated account.
+    // Rows without a verified scope remain in the read-only Other Departments tab.
+    const myRows = teacherCoverage.filter(row => row.departmentScope === 'MY_DEPARTMENT');
+    const otherRows = teacherCoverage.filter(row => row.departmentScope !== 'MY_DEPARTMENT');
+    const myAlerts = myRows.filter(coverageNeedsAction).length;
+    const otherAlerts = otherRows.filter(coverageNeedsAction).length;
+    const schoolAlerts = myAlerts + otherAlerts;
     const count = $('coverageAlertCount');
-    if (count) count.textContent = `${alertRows.length} ${alertRows.length === 1 ? 'alert' : 'alerts'}`;
-    const summary = $('coverageAlertSummary');
-    if (summary) {
-      const unassigned = teacherCoverage.filter(row => row.coverageStatus === 'NO_TEACHER').length;
-      const leave = teacherCoverage.filter(row => row.coverageStatus === 'ON_LEAVE_UNCOVERED').length;
-      const missed = teacherCoverage.filter(row => ['CHECK_IN_NOT_RECORDED','COVERAGE_CHECK_IN_NOT_RECORDED'].includes(row.coverageStatus)).length;
-      summary.textContent = `${teacherCoverage.length} scheduled classes · ${unassigned} without a teacher · ${leave} uncovered leave periods · ${missed} missing time-in records.`;
+    if (count) count.textContent = `${schoolAlerts} ${schoolAlerts === 1 ? 'alert' : 'alerts'}`;
+
+    const setMetric = (id, value) => { if ($(id)) $(id).textContent = String(value); };
+    setMetric('coverageTotalSchedules', teacherCoverage.length);
+    setMetric('coverageNoTeacher', teacherCoverage.filter(row => row.coverageStatus === 'NO_TEACHER').length);
+    setMetric('coverageUncoveredLeave', teacherCoverage.filter(row => row.coverageStatus === 'ON_LEAVE_UNCOVERED').length);
+    setMetric('coverageMissingCheckins', teacherCoverage.filter(row => ['CHECK_IN_NOT_RECORDED','COVERAGE_CHECK_IN_NOT_RECORDED'].includes(row.coverageStatus)).length);
+    setMetric('coverageActiveAlerts', schoolAlerts);
+
+    const myTab = $('coverageMyDepartmentTab');
+    const otherTab = $('coverageOtherDepartmentsTab');
+    const myCount = $('coverageMyDepartmentCount');
+    const otherCount = $('coverageOtherDepartmentsCount');
+    if (myCount) myCount.textContent = `${myRows.length} classes · ${myAlerts} alerts`;
+    if (otherCount) otherCount.textContent = `${otherRows.length} classes · ${otherAlerts} alerts`;
+
+    const showingMyDepartment = activeCoverageTab === 'MY_DEPARTMENT';
+    if (myTab) {
+      myTab.classList.toggle('is-active', showingMyDepartment);
+      myTab.setAttribute('aria-selected', String(showingMyDepartment));
     }
-    if (!teacherCoverage.length) {
-      host.innerHTML = '<tr><td colspan="6" class="empty-cell">No active class schedules were found. Add department schedules to begin monitoring coverage.</td></tr>';
+    if (otherTab) {
+      otherTab.classList.toggle('is-active', !showingMyDepartment);
+      otherTab.setAttribute('aria-selected', String(!showingMyDepartment));
+    }
+    const panel = $('teacherCoveragePanel');
+    if (panel) panel.setAttribute('aria-labelledby', showingMyDepartment ? 'coverageMyDepartmentTab' : 'coverageOtherDepartmentsTab');
+    const notice = $('coverageOtherDepartmentsNotice');
+    if (notice) notice.hidden = showingMyDepartment;
+
+    const rows = showingMyDepartment ? myRows : otherRows;
+    if (!rows.length) {
+      host.innerHTML = showingMyDepartment
+        ? '<div class="coverage-empty"><strong>No schedules in your department</strong><span>Active class schedules assigned to your department will appear here.</span></div>'
+        : '<div class="coverage-empty"><strong>No other department schedules</strong><span>There are currently no schedules outside your department to monitor.</span></div>';
       return;
     }
-    host.innerHTML = teacherCoverage.map(row => {
-      const canManageRow = user.role === 'DEPARTMENT_HEAD' && user.departmentCode !== 'UNASSIGNED' &&
-        String(row.departmentId) === String(user.departmentId);
+
+    host.innerHTML = rows.map(row => {
+      const canManageRow = showingMyDepartment && row.departmentScope === 'MY_DEPARTMENT' &&
+        user.role === 'DEPARTMENT_HEAD' && user.departmentCode !== 'UNASSIGNED';
       const options = canManageRow ? teachers.filter(teacher => {
         const alreadyBooked = (teacher.assignedPeriods || []).some(period =>
           String(period.periodId) !== String(row.periodId) &&
@@ -781,32 +821,43 @@ function coverageStatusLabel(status) {
           (teacher.teacherDesignations || []).includes('SUBJECT_TEACHER') &&
           String(teacher.userId) !== String(row.teacherUserId) && !alreadyBooked;
       }) : [];
-      const action = !canManageRow
-        ? '<span class="muted-inline">Managed by its department</span>'
-        : row.coverageStatus === 'COVERAGE_CHECK_IN_NOT_RECORDED'
-          ? '<span class="muted-inline">Follow up with substitute</span>'
-          : coverageNeedsAction(row) && options.length
-            ? `<div class="coverage-action-controls">
-                 <select aria-label="Choose teacher for ${esc(row.periodName)}" data-coverage-teacher-select="${esc(row.periodId)}">
-                   <option value="">Choose teacher</option>
-                   ${options.map(teacher => `<option value="${esc(teacher.userId)}">${esc(teacher.displayName)}</option>`).join('')}
-                 </select>
-                 <button type="button" class="outline-button compact-button" data-coverage-action="${esc(row.periodId)}">${row.coverageStatus === 'NO_TEACHER' ? 'Assign teacher' : 'Provide cover'}</button>
-               </div>`
-            : coverageNeedsAction(row) ? '<span class="muted-inline">No eligible teacher available</span>' : '<span class="muted-inline">—</span>';
-      const assigned = row.effectiveTeacherName || row.teacherName || 'No permanent teacher';
+      let action = '';
+      if (canManageRow && row.coverageStatus === 'COVERAGE_CHECK_IN_NOT_RECORDED') {
+        action = '<span class="coverage-action-hint">Follow up with substitute</span>';
+      } else if (canManageRow && coverageNeedsAction(row) && options.length) {
+        action = `<div class="coverage-action-controls">
+          <select aria-label="Choose teacher for ${esc(row.periodName)}" data-coverage-teacher-select="${esc(row.periodId)}">
+            <option value="">Choose teacher</option>
+            ${options.map(teacher => `<option value="${esc(teacher.userId)}">${esc(teacher.displayName)}</option>`).join('')}
+          </select>
+          <button type="button" class="outline-button compact-button" data-coverage-action="${esc(row.periodId)}">${row.coverageStatus === 'NO_TEACHER' ? 'Assign teacher' : 'Provide cover'}</button>
+        </div>`;
+      } else if (canManageRow && coverageNeedsAction(row)) {
+        action = '<span class="coverage-action-hint">No eligible teacher available</span>';
+      }
+
+      const assigned = row.effectiveTeacherName || row.teacherName || 'No teacher assigned';
       const teacherName = row.substituteTeacherName
         ? `<strong>${esc(row.substituteTeacherName)}</strong><small class="table-subtext">Covering ${esc(row.teacherName || 'original teacher')}</small>`
-        : esc(assigned);
-      const className = `${row.gradeLevel || ''} · ${row.section || 'All sections'}${row.classroom ? ' · ' + row.classroom : ''}`;
-      return `<tr>
-        <td>${esc(row.departmentName || 'Unassigned')}</td>
-        <td><strong>${esc(className)}</strong></td>
-        <td><strong>${esc(row.subjectName || row.periodName)}</strong><small class="table-subtext">${esc(row.periodName)} · ${esc(row.startTime)}–${esc(row.endTime)}</small></td>
-        <td>${teacherName}</td>
-        <td><span class="coverage-status-pill ${coverageStatusClass(row.coverageStatus)}">${esc(coverageStatusLabel(row.coverageStatus))}</span></td>
-        <td>${row.coverageStatus === 'COVERAGE_CHECK_IN_NOT_RECORDED' ? '<span class="muted-inline">Follow up with substitute</span>' : action}</td>
-      </tr>`;
+        : `<strong>${esc(assigned)}</strong>`;
+      const className = `${row.gradeLevel || 'Grade not set'} · ${row.section || 'All sections'}`;
+      const statusLabel = coverageDisplayLabel(row);
+      const departmentLine = showingMyDepartment ? '' : `<span class="coverage-department-label">${esc(row.departmentName || 'Unassigned department')}</span>`;
+      return `<article class="coverage-class-card">
+        <div class="coverage-class-main">
+          <div class="coverage-class-heading">
+            <div><h4>${esc(className)}</h4><p>${esc(row.subjectName || row.periodName || 'Class schedule')}</p></div>
+            <span class="coverage-status-pill ${coverageStatusClass(row.coverageStatus)}">${esc(statusLabel)}</span>
+          </div>
+          ${departmentLine}
+          <div class="coverage-class-details">
+            <span><small>Teacher</small>${teacherName}</span>
+            <span><small>Schedule</small>${esc(row.periodName)} · ${esc(row.startTime)}–${esc(row.endTime)}</span>
+            ${row.classroom ? `<span><small>Room</small>${esc(row.classroom)}</span>` : ''}
+          </div>
+          ${action ? `<div class="coverage-card-actions">${action}</div>` : ''}
+        </div>
+      </article>`;
     }).join('');
   }
 
