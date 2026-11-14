@@ -16,7 +16,8 @@ test('class schedule form derives department from teacher and uses a canonical s
   const scheduleForm = html.slice(formStart, formEnd);
   assert.ok(formStart >= 0 && formEnd > formStart);
   assert.match(scheduleForm, /id="periodTeacher"/);
-  assert.match(scheduleForm, /id="periodDepartmentDisplay"/);
+  assert.doesNotMatch(scheduleForm, /Department \(automatic\)|periodDepartmentDisplay/);
+  assert.match(scheduleForm, /department and subject catalogue are loaded automatically from the staff profile/);
   assert.match(scheduleForm, /id="periodSubject"/);
   assert.match(scheduleForm, /id="periodSection"/);
   assert.doesNotMatch(scheduleForm, /<select[^>]+id="periodDepartment"/);
@@ -59,12 +60,16 @@ test('student registration requires guardian details and stores them on the exis
   const server = read('server.js');
   assert.match(html, /id="newParentName" required maxlength="160"/);
   assert.match(html, /id="newParentMobile" type="tel"[^>]*required maxlength="30"/);
+  assert.match(html, /Parent\/guardian full name \*/);
+  assert.match(html, /Parent\/guardian mobile number \*/);
+  assert.match(html, /Guardian contact details update the existing student master record/);
   assert.match(html, /central student record/);
   const start = server.indexOf("app.post('/api/students'");
   const end = server.indexOf("app.patch('/api/students/:studentId'", start);
   const route = server.slice(start, end);
   assert.match(route, /cleanParentName/);
   assert.match(route, /cleanParentMobile/);
+  assert.match(route, /!validText\(parentName\)/);
   assert.match(route, /parent_name, parent_mobile/);
   assert.match(route, /cleanParentName, cleanParentMobile/);
   assert.match(route, /ON CONFLICT\(student_id\)/);
@@ -85,8 +90,23 @@ test('shared form styles are linked into the main and self-service workspaces', 
 test('the refreshed PWA shell precaches the new schedule form script and shared form CSS', () => {
   const html = read('public/portal.html');
   const serviceWorker = read('public/sw.js');
-  assert.ok(html.includes('/portal.js?v=0.9.17'));
-  assert.ok(serviceWorker.includes('school-attendance-shell-v27-schedule-forms'));
-  assert.ok(serviceWorker.includes('/portal.js?v=0.9.17'));
+  assert.ok(html.includes('/portal.js?v=0.9.18'));
+  assert.ok(serviceWorker.includes('school-attendance-shell-v28-guardian-import'));
+  assert.ok(serviceWorker.includes('/portal.js?v=0.9.18'));
   assert.ok(serviceWorker.includes('/form-system.css?v=1'));
 });
+
+test('bulk student imports require guardian details and cannot overwrite the master record with blanks', () => {
+  const routes = read('student-management-routes.js');
+  const html = read('public/portal.html');
+  const portal = read('public/portal.js');
+  assert.match(routes, /'parentName','parentMobile'/);
+  assert.match(routes, /Parent\/guardian full name is required/);
+  assert.match(routes, /Parent\/guardian mobile is required/);
+  assert.match(routes, /r\.parentName,r\.parentMobile/);
+  assert.doesNotMatch(routes, /r\.parentName\|\|null,r\.parentMobile\|\|''/);
+  assert.match(html, /Parent\/guardian full name, and Parent\/guardian mobile/);
+  assert.match(portal, /\$\('editParentName'\)\.required = !restrictedStudentEditor/);
+  assert.match(portal, /\$\('editParentMobile'\)\.required = !restrictedStudentEditor/);
+});
+
