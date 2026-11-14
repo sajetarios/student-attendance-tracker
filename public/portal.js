@@ -918,6 +918,20 @@ function coverageStatusLabel(status) {
     const teacher = user.role === 'TEACHER';
     const gateKeeper = user.role === 'GATE_KEEPER';
     const designations = Array.isArray(user.teacherDesignations) ? user.teacherDesignations : [];
+
+    // Department Heads have a school-wide read-only roster. Keep only fields
+    // useful for reviewing learner identity and class placement.
+    const rosterHeader = $('studentRosterTable')?.querySelector('thead tr');
+    if (rosterHeader && departmentHead) {
+      rosterHeader.innerHTML = '<th>Student ID</th><th>Full name</th><th>Sex</th><th>Grade</th><th>Section</th><th>Status</th>';
+    } else if (rosterHeader) {
+      rosterHeader.innerHTML = '<th>Select</th><th>Photo</th><th>Student ID</th><th>Full name</th><th>Sex</th><th>Grade</th><th>Section</th><th>Status</th><th>QR code</th><th>Actions</th><th>Student portal account</th>';
+    }
+    if ($('studentRosterDescription')) {
+      $('studentRosterDescription').textContent = departmentHead
+        ? 'Review learner identity, sex, and current grade and section placement.'
+        : 'QR previews remain tied to each student\'s existing private token. Editing details does not replace the QR code.';
+    }
     const canManage = admin || (teacher && (designations.includes('CLASS_ADVISER') || designations.includes('SUBJECT_TEACHER')));
     const canUploadPhoto = admin || (teacher && designations.includes('CLASS_ADVISER'));
     const canViewQr = admin || (teacher && (
@@ -941,7 +955,7 @@ function coverageStatusLabel(status) {
         : departmentHead
           ? 'No active learners are registered in this school yet.'
           : 'No students are available for this filter.';
-      host.innerHTML = '<tr><td colspan="11" class="empty-cell">' + esc(emptyMessage) + '</td></tr>';
+      host.innerHTML = '<tr><td colspan="' + (departmentHead ? '6' : '11') + '" class="empty-cell">' + esc(emptyMessage) + '</td></tr>';
     } else {
       const rows = await Promise.all(visible.map(async student => {
         const photo = await photoDataUrl(student.photoUrl);
@@ -966,7 +980,11 @@ function coverageStatusLabel(status) {
         const accountCell = admin
           ? `<div class="student-row-actions"><span class="muted-inline">${accountExists ? `Active login · ${esc(student.studentAccountUsername)}` : 'No student login'}</span><button type="button" class="outline-button" data-student-account="${esc(student.studentId)}" data-account-exists="${accountExists ? '1' : '0'}">${accountExists ? 'Reset login' : 'Create login'}</button></div>`
           : '<span class="muted-inline">School admin only</span>';
-        return `<tr><td data-label="Select">${selection}</td><td data-label="Photo">${avatar}</td><td data-label="Student ID">${esc(student.studentId)}</td><td data-label="Full name">${esc(student.fullName)}</td><td data-label="Sex">${esc(student.sex || 'Not set')}</td><td data-label="Grade">${esc(student.gradeLevel)}</td><td data-label="Section">${esc(student.section)}</td><td data-label="Status">${student.archivedAt ? 'Archived' : student.active === false ? 'Inactive' : 'Active'}</td><td data-label="QR code">${qrCell}</td><td data-label="Actions">${actions}</td><td data-label="Student account">${accountCell}</td></tr>`;
+        const statusLabel = student.archivedAt ? 'Archived' : student.active === false ? 'Inactive' : 'Active';
+        if (departmentHead) {
+          return `<tr><td data-label="Student ID">${esc(student.studentId)}</td><td data-label="Full name"><strong>${esc(student.fullName)}</strong></td><td data-label="Sex">${esc(student.sex || 'Not set')}</td><td data-label="Grade">${esc(student.gradeLevel)}</td><td data-label="Section">${esc(student.section)}</td><td data-label="Status">${statusLabel}</td></tr>`;
+        }
+        return `<tr><td data-label="Select">${selection}</td><td data-label="Photo">${avatar}</td><td data-label="Student ID">${esc(student.studentId)}</td><td data-label="Full name">${esc(student.fullName)}</td><td data-label="Sex">${esc(student.sex || 'Not set')}</td><td data-label="Grade">${esc(student.gradeLevel)}</td><td data-label="Section">${esc(student.section)}</td><td data-label="Status">${statusLabel}</td><td data-label="QR code">${qrCell}</td><td data-label="Actions">${actions}</td><td data-label="Student account">${accountCell}</td></tr>`;
       }));
       host.innerHTML = rows.join('');
       host.querySelectorAll('input[data-student-photo]').forEach(input => input.addEventListener('change', async () => {
