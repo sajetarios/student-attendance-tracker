@@ -1576,7 +1576,7 @@ let teacherActionMenuListenersInstalled = false;
 
       const cancelCoverActions = substitutionAssignments
         .filter(item => item.relationship !== 'SUBSTITUTE')
-        .map(item => `<button type="button" class="teacher-action-item danger" data-cancel-substitution="${esc(item.substitutionId)}">End cover · ${esc(item.periodName)}</button>`)
+        .map(item => `<button type="button" class="outline-button compact-button danger-button" data-cancel-substitution="${esc(item.substitutionId)}">End cover · ${esc(item.periodName)}</button>`)
         .join('');
 
       const isSchoolAdmin = user.role === 'SCHOOL_ADMIN';
