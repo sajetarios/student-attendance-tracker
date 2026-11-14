@@ -11,7 +11,7 @@ const fs = require('fs');
 const fsp = require('fs/promises');
 const crypto = require('crypto');
 const { registerAuthRoutes } = require('./auth-routes');
-const { hashPassword } = require('./auth-security');
+const { hashPassword, verifyPassword } = require('./auth-security');
 const { createAuthMiddleware } = require('./auth-middleware');
 const { registerParentRoutes } = require('./parent-routes');
 const { registerStudentRoutes } = require('./student-routes');
@@ -513,6 +513,10 @@ app.patch('/api/class-adviser-assignments/:assignmentId', authenticateSchoolClie
 
 app.delete('/api/class-adviser-assignments/:assignmentId', authenticateSchoolClient, requireSchoolRoles('SCHOOL_ADMIN','DEPARTMENT_HEAD'), async (req, res) => {
   if (!isUuid(req.params.assignmentId)) return res.status(400).json({ error: 'Invalid class adviser assignment ID.' });
+  const password = req.body?.password;
+  if (typeof password !== 'string' || !password) return res.status(400).json({ error: 'Confirm your password to remove this Class Adviser assignment.' });
+  const actor = await pool.query('SELECT password_hash FROM school_users WHERE school_id=$1 AND user_id=$2 AND active=TRUE', [req.auth.schoolId, req.auth.userId]);
+  if (!actor.rowCount || !await verifyPassword(password, actor.rows[0].password_hash)) return res.status(401).json({ error: 'Password confirmation failed. No changes were made.' });
   try {
     if (req.auth.role === 'DEPARTMENT_HEAD') {
       const scope = await pool.query(
@@ -1236,6 +1240,10 @@ app.delete('/api/periods/:periodId/assignments/:teacherUserId', authenticateScho
     return res.status(400).json({ error: 'Invalid schedule or teacher account ID.' });
   }
   const client = await pool.connect();
+  const password = req.body?.password;
+  if (typeof password !== 'string' || !password) return res.status(400).json({ error: 'Confirm your password to remove this assignment.' });
+  const actor = await pool.query('SELECT password_hash FROM school_users WHERE school_id=$1 AND user_id=$2 AND active=TRUE', [req.auth.schoolId, req.auth.userId]);
+  if (!actor.rowCount || !await verifyPassword(password, actor.rows[0].password_hash)) return res.status(401).json({ error: 'Password confirmation failed. No changes were made.' });
   try {
     await client.query('BEGIN');
     if (req.auth.role === 'DEPARTMENT_HEAD') {
@@ -1274,7 +1282,7 @@ app.delete('/api/periods/:periodId/assignments/:teacherUserId', authenticateScho
     }
     await client.query(
       `INSERT INTO audit_logs(school_id, actor_type, actor_user_id, action, entity_type, entity_id, details)
-       VALUES($1,'SCHOOL',$2,'SCHOOL_ADMIN_UNASSIGN_TEACHER_PERIOD','teacher_period_assignment',$3,'{}'::jsonb)`,
+       VALUES($1,'SCHOOL',$2,'DEPARTMENT_HEAD_UNASSIGN_TEACHER_PERIOD','teacher_period_assignment',$3,'{}'::jsonb)`,
       [req.auth.schoolId, req.auth.userId, `${req.params.teacherUserId}:${req.params.periodId}`]
     );
     await client.query('COMMIT');
@@ -2213,6 +2221,27 @@ app.get('/api/periods', authenticateSchoolClient, requireSchoolUser, async (req,
 
 // School Administrators, Department Heads, and Subject Teachers may create schedules within their permitted scope.
 // A schedule is created together with its teacher assignment. Department comes from the teacher account.
+app.delete('/api/periods/:periodId', authenticateSchoolClient, requireSchoolRoles('DEPARTMENT_HEAD'), async (req, res) => {
+  if (!isUuid(req.params.periodId)) return res.status(400).json({ error: 'Invalid schedule ID.' });
+  const password = req.body?.password;
+  if (typeof password !== 'string' || !password) return res.status(400).json({ error: 'Confirm your password to delete this schedule.' });
+  const actor = await pool.query('SELECT password_hash FROM school_users WHERE school_id=$1 AND user_id=$2 AND active=TRUE', [req.auth.schoolId, req.auth.userId]);
+  if (!actor.rowCount || !await verifyPassword(password, actor.rows[0].password_hash)) return res.status(401).json({ error: 'Password confirmation failed. No changes were made.' });
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+    const target = await client.query('SELECT period_id,period_name,department_id FROM class_periods WHERE school_id=$1 AND period_id=$2 AND active=TRUE FOR UPDATE', [req.auth.schoolId, req.params.periodId]);
+    if (!target.rowCount) { await client.query('ROLLBACK'); return res.status(404).json({ error: 'Active class schedule not found.' }); }
+    if (!req.auth.departmentId || req.auth.departmentCode === 'UNASSIGNED' || String(target.rows[0].department_id) !== String(req.auth.departmentId)) { await client.query('ROLLBACK'); return res.status(403).json({ error: 'You can delete schedules only within your own department.' }); }
+    const cover = await client.query("SELECT 1 FROM teacher_period_substitutions WHERE school_id=$1 AND period_id=$2 AND status='ACTIVE' AND end_date >= (NOW() AT TIME ZONE 'Asia/Manila')::date LIMIT 1", [req.auth.schoolId, req.params.periodId]);
+    if (cover.rowCount) { await client.query('ROLLBACK'); return res.status(409).json({ error: 'End active substitute coverage before deleting this schedule.' }); }
+    await client.query('UPDATE class_periods SET active=FALSE WHERE school_id=$1 AND period_id=$2', [req.auth.schoolId, req.params.periodId]);
+    await client.query("INSERT INTO audit_logs(school_id,actor_type,actor_user_id,action,entity_type,entity_id,details) VALUES($1,'SCHOOL',$2,'DEPARTMENT_HEAD_DEACTIVATE_CLASS_SCHEDULE','class_period',$3,$4::jsonb)", [req.auth.schoolId, req.auth.userId, req.params.periodId, JSON.stringify({periodName:target.rows[0].period_name,departmentId:target.rows[0].department_id})]);
+    await client.query('COMMIT'); return res.json({ ok:true, message:'Schedule deactivated. Attendance history has been preserved.' });
+  } catch (err) { await client.query('ROLLBACK'); console.error('Schedule deactivation failed:',err.message); return res.status(500).json({ error:'Could not delete this class schedule.' }); }
+  finally { client.release(); }
+});
+
 app.post('/api/periods', authenticateSchoolClient, requireSchoolRoles('DEPARTMENT_HEAD'), async (req, res) => {
   const isTeacher = req.auth.role === 'TEACHER';
   const isDepartmentHead = req.auth.role === 'DEPARTMENT_HEAD';
