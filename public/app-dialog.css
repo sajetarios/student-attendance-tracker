@@ -189,3 +189,24 @@ body.app-dialog-open { overflow: hidden; }
   .app-dialog-overlay, .app-dialog-card { animation: none; }
   .app-dialog-input, .app-dialog-button { transition: none; }
 }
+
+/* Respect the existing portal-wide control sizing while keeping dialog controls intentional. */
+.portal-page .app-dialog-button {
+  min-height: 43px;
+  border-radius: 11px;
+  padding: 10px 17px;
+  font-size: 13px;
+}
+.portal-page .app-dialog-close {
+  min-height: 34px;
+  width: 34px;
+  padding: 0;
+  border-radius: 10px;
+  font-size: 25px;
+}
+.portal-page .app-dialog-input {
+  min-height: 46px;
+  padding: 11px 13px;
+  border-radius: 11px;
+  font-size: 14px;
+}
