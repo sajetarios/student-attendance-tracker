@@ -27,6 +27,7 @@
   let teacherGateAttendance = [];
   let departments = [];
   let teacherCoverage = [];
+  let teacherCoverageSummary = null;
   let activeCoverageTab = 'MY_DEPARTMENT';
   let coverageAlertKeys = new Set();
   let coverageMonitorInitialized = false;
@@ -768,15 +769,16 @@ function coverageStatusLabel(status) {
     const otherRows = teacherCoverage.filter(row => row.departmentScope !== 'MY_DEPARTMENT');
     const myAlerts = myRows.filter(coverageNeedsAction).length;
     const otherAlerts = otherRows.filter(coverageNeedsAction).length;
-    const schoolAlerts = myAlerts + otherAlerts;
+    const schoolSummary = teacherCoverageSummary || {};
+    const schoolAlerts = Number(schoolSummary.activeAlerts ?? (myAlerts + otherAlerts));
     const count = $('coverageAlertCount');
     if (count) count.textContent = `${schoolAlerts} ${schoolAlerts === 1 ? 'alert' : 'alerts'}`;
 
     const setMetric = (id, value) => { if ($(id)) $(id).textContent = String(value); };
-    setMetric('coverageTotalSchedules', teacherCoverage.length);
-    setMetric('coverageNoTeacher', teacherCoverage.filter(row => row.coverageStatus === 'NO_TEACHER').length);
-    setMetric('coverageUncoveredLeave', teacherCoverage.filter(row => row.coverageStatus === 'ON_LEAVE_UNCOVERED').length);
-    setMetric('coverageMissingCheckins', teacherCoverage.filter(row => ['CHECK_IN_NOT_RECORDED','COVERAGE_CHECK_IN_NOT_RECORDED'].includes(row.coverageStatus)).length);
+    setMetric('coverageTotalSchedules', schoolSummary.totalSchedules ?? teacherCoverage.length);
+    setMetric('coverageNoTeacher', schoolSummary.noTeacher ?? teacherCoverage.filter(row => row.coverageStatus === 'NO_TEACHER').length);
+    setMetric('coverageUncoveredLeave', schoolSummary.onLeaveUncovered ?? teacherCoverage.filter(row => row.coverageStatus === 'ON_LEAVE_UNCOVERED').length);
+    setMetric('coverageMissingCheckins', schoolSummary.checkInNotRecorded ?? teacherCoverage.filter(row => ['CHECK_IN_NOT_RECORDED','COVERAGE_CHECK_IN_NOT_RECORDED'].includes(row.coverageStatus)).length);
     setMetric('coverageActiveAlerts', schoolAlerts);
 
     const myTab = $('coverageMyDepartmentTab');
@@ -865,6 +867,7 @@ function coverageStatusLabel(status) {
     if (user?.role !== 'DEPARTMENT_HEAD') return;
     const data = await api('/api/admin/teacher-coverage');
     const nextRows = data.coverage || [];
+    teacherCoverageSummary = data.summary || null;
     const nextAlerts = new Set(nextRows.filter(coverageNeedsAction).map(row => `${data.schoolDate}:${row.periodId}:${row.coverageStatus}`));
     const newAlerts = coverageMonitorInitialized && notifyNew
       ? nextRows.filter(row => coverageNeedsAction(row) && !coverageAlertKeys.has(`${data.schoolDate}:${row.periodId}:${row.coverageStatus}`))
