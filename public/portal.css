@@ -1123,3 +1123,51 @@ tbody tr:hover td { background: #f9fbfc; }
   #studentManagementHeader .toolbar-actions { grid-template-columns: minmax(0,1fr); }
   #studentsView #studentRosterTable tbody td { font-size: 11px; }
 }
+
+
+/* Refined responsive navigation: clear hierarchy, predictable collapse and accessible mobile drawer. */
+.sidebar { display:flex; flex-direction:column; gap:0; padding:18px 14px 12px; }
+.sidebar-collapse-control { display:flex; align-items:center; justify-content:flex-start; gap:10px; width:100%; min-height:38px; height:auto; margin:12px 0 8px; padding:7px 11px; border:1px solid rgba(255,255,255,.1); border-radius:9px; background:rgba(255,255,255,.055); color:#dbe7f2; font-size:12px; font-weight:650; }
+.sidebar-collapse-control > span:first-child { display:inline-grid; place-items:center; width:20px; font-size:22px; line-height:1; }
+.sidebar-collapse-control:hover { background:rgba(255,255,255,.12); }
+.side-nav { gap:7px; padding-bottom:16px; }
+.nav-group { gap:4px; }
+.nav-item,.nav-group-toggle { min-height:44px; border-radius:10px; }
+.nav-group-toggle { padding:11px 12px; }
+.nav-submenu { display:flex; flex-direction:column; gap:4px; padding:4px 0 7px 12px; }
+.nav-submenu .nav-item { min-height:40px; padding:9px 11px; border-left:2px solid rgba(255,255,255,.12); border-radius:0 9px 9px 0; }
+.nav-submenu .nav-item.active { border-left-color:#38bdf8; }
+.nav-chevron { margin-left:auto; transition:transform .18s ease; }
+.nav-group-toggle[aria-expanded="false"] .nav-chevron { transform:rotate(-90deg); }
+.nav-group-toggle[aria-expanded="true"] .nav-chevron { transform:rotate(0); }
+.nav-submenu[hidden] { display:none !important; }
+.nav-item:focus-visible,.nav-group-toggle:focus-visible,.sidebar-collapse-control:focus-visible { outline:3px solid #7dd3fc; outline-offset:2px; }
+.sidebar-backdrop { display:none; }
+@media (min-width:701px) {
+  .portal-layout.sidebar-collapsed .sidebar { width:76px !important; padding:18px 10px 12px; }
+  .portal-layout.sidebar-collapsed .sidebar-collapse-control { justify-content:center; padding:7px 4px; }
+  .portal-layout.sidebar-collapsed .collapse-control-label,
+  .portal-layout.sidebar-collapsed .sidebar-brand > div:last-child,
+  .portal-layout.sidebar-collapsed .sidebar-section-label,
+  .portal-layout.sidebar-collapsed .nav-label,
+  .portal-layout.sidebar-collapsed .nav-chevron,
+  .portal-layout.sidebar-collapsed .sidebar-status span:last-child { display:none !important; }
+  .portal-layout.sidebar-collapsed .nav-group-toggle,
+  .portal-layout.sidebar-collapsed .nav-item { justify-content:center; padding:11px 5px; }
+  .portal-layout.sidebar-collapsed .nav-submenu { padding:3px 0; }
+  .portal-layout.sidebar-collapsed .nav-submenu .nav-item { border-left:0; border-radius:9px; }
+  .portal-layout.sidebar-collapsed .nav-icon { flex:0 0 22px; }
+}
+@media (max-width:700px) {
+  .sidebar { width:min(310px,88vw) !important; padding:18px 15px max(18px,env(safe-area-inset-bottom)) !important; gap:0; }
+  .sidebar-collapse-control { display:none !important; }
+  .sidebar-backdrop { display:block; position:fixed; inset:0; z-index:1000; border:0; padding:0; background:rgba(11,24,39,.48); opacity:0; visibility:hidden; pointer-events:none; transition:opacity .2s ease,visibility .2s ease; }
+  .sidebar-backdrop.visible { opacity:1; visibility:visible; pointer-events:auto; }
+  .sidebar { z-index:1001 !important; }
+  .sidebar-brand { padding-bottom:17px; }
+  .side-nav { padding:8px 0 18px; }
+  .nav-item,.nav-group-toggle { min-height:48px; font-size:14px; }
+  .nav-submenu .nav-item { min-height:44px; padding-left:14px; }
+  .sidebar-bottom { margin-top:auto; }
+  body.sidebar-drawer-open { overflow:hidden; }
+}
