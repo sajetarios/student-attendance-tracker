@@ -1436,8 +1436,13 @@ app.get('/api/students', authenticateSchoolClient, requireSchoolClient, requireS
 app.post('/api/students', authenticateSchoolClient, requireSchoolAdminOrTeacher, async (req, res) => {
   const { studentId, lrn, fullName, gradeLevel, section, sex, parentName, parentMobile } = req.body || {};
   const cleanSex = String(sex || '').trim().toUpperCase();
-  if (![studentId, fullName, gradeLevel, section, parentMobile].every(validText) || !['MALE', 'FEMALE'].includes(cleanSex)) {
-    return res.status(400).json({ error: 'Student ID, full name, sex, grade, section, and parent mobile are required. Select Male or Female.' });
+  const cleanParentName = typeof parentName === 'string' ? parentName.trim() : '';
+  const cleanParentMobile = typeof parentMobile === 'string' ? cleanParentMobile : '';
+  const cleanLrn = typeof lrn === 'string' ? lrn.trim() : '';
+  if (![studentId, fullName, gradeLevel, section, cleanParentName, cleanParentMobile].every(validText) ||
+      cleanParentName.length > 160 || cleanParentMobile.length > 30 || cleanLrn.length > 30 ||
+      !['MALE', 'FEMALE'].includes(cleanSex)) {
+    return res.status(400).json({ error: 'Student ID, full name, Male/Female, grade, section, parent/guardian full name, and a valid parent mobile number are required. LRN is optional and must be 30 characters or fewer.' });
   }
   const isTeacher = req.auth.role === 'TEACHER';
   if (isTeacher && !req.auth.teacherDesignations?.includes('CLASS_ADVISER')) {
@@ -1482,8 +1487,8 @@ app.post('/api/students', authenticateSchoolClient, requireSchoolAdminOrTeacher,
          ${conflictAction}
          RETURNING student_id AS "studentId", full_name AS "fullName", sex,
                    grade_level AS "gradeLevel", section, qr_token AS "qrToken"`,
-        [req.auth.schoolId, cleanStudentId, lrn || null, fullName.trim(), masterGrade,
-         masterSection, parentName || null, parentMobile.trim(), cleanSex, qrToken]
+        [req.auth.schoolId, cleanStudentId, cleanLrn || null, fullName.trim(), masterGrade,
+         masterSection, cleanParentName, cleanParentMobile, cleanSex, qrToken]
       );
       if (!result.rowCount) {
         await client.query('ROLLBACK');
