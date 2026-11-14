@@ -9,6 +9,7 @@ function registerDepartmentRoutes(app, pool, auth) {
   const { authenticateSchoolClient, requireSchoolRoles } = auth;
   const schoolManagers = requireSchoolRoles('SCHOOL_ADMIN', 'DEPARTMENT_HEAD');
   const schoolAdmin = requireSchoolRoles('SCHOOL_ADMIN');
+  const departmentHead = requireSchoolRoles('DEPARTMENT_HEAD');
 
   app.get('/api/departments', authenticateSchoolClient, schoolManagers, async (req, res) => {
     try {
@@ -289,7 +290,7 @@ function registerDepartmentRoutes(app, pool, auth) {
     }
   });
 
-  app.get('/api/admin/teacher-coverage', authenticateSchoolClient, schoolManagers, async (req, res) => {
+  app.get('/api/admin/teacher-coverage', authenticateSchoolClient, departmentHead, async (req, res) => {
     const today = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Manila' }).format(new Date());
     const schoolDate = typeof req.query.date === 'string' ? req.query.date : today;
     if (!isSchoolDate(schoolDate)) return res.status(400).json({ error: 'Provide a valid school date (YYYY-MM-DD).' });
