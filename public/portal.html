@@ -598,9 +598,38 @@
           <section id="schedulesView" class="view-panel" hidden>
             <div class="surface-card section-card">
               <div class="section-toolbar"><div><h3>Class &amp; subject schedules</h3><p id="scheduleScopeText">One shared school timetable. Each department manages its own subject assignments.</p></div><button class="primary-button" id="showScheduleForm">＋ Add schedule</button></div>
+              <section id="timetableSettings" class="timetable-settings" hidden>
+                <div class="timetable-settings-heading"><div><h4>School timetable settings</h4><p>Set operating days, reusable shift templates, and special calendar dates.</p></div></div>
+                <div class="timetable-settings-grid">
+                  <form id="operatingDaysForm" class="timetable-setting-card">
+                    <strong>Operating days</strong><p>Choose every day the school normally holds classes.</p>
+                    <div class="weekday-toggle-grid" id="operatingDayChoices">
+                      <label><input type="checkbox" value="0" ><span>Sunday</span></label><label><input type="checkbox" value="1" checked><span>Monday</span></label><label><input type="checkbox" value="2" checked><span>Tuesday</span></label><label><input type="checkbox" value="3" checked><span>Wednesday</span></label><label><input type="checkbox" value="4" checked><span>Thursday</span></label><label><input type="checkbox" value="5" checked><span>Friday</span></label><label><input type="checkbox" value="6" ><span>Saturday</span></label>
+                    </div>
+                    <button class="primary-button" type="submit">Save operating days</button><span class="inline-feedback" id="operatingDaysFeedback" role="status"></span>
+                  </form>
+                  <form id="timetableTemplateForm" class="timetable-setting-card">
+                    <strong>Create timetable template</strong><p>Define reusable periods for a shift. Add one time block per line.</p>
+                    <label>Template name<input id="templateName" required maxlength="100" placeholder="e.g. Regular morning shift"></label>
+                    <label>Shift<select id="templateShift"><option value="REGULAR">Regular</option><option value="MORNING">Morning</option><option value="AFTERNOON">Afternoon</option><option value="EVENING">Evening</option><option value="WEEKEND">Weekend</option><option value="CUSTOM">Custom</option></select></label>
+                    <label>Time blocks<textarea id="templateBlocks" rows="5" required placeholder="Period 1 | 07:30 | 08:30&#10;Break | 08:30 | 08:45 | BREAK&#10;Period 2 | 08:45 | 09:45"></textarea></label>
+                    <small>Format: Label | Start (HH:MM) | End (HH:MM) | Optional type (CLASS, BREAK, LUNCH, HOMEROOM, ADVISORY, OTHER)</small>
+                    <button class="primary-button" type="submit">Save template</button><span class="inline-feedback" id="templateFeedback" role="status"></span>
+                  </form>
+                  <form id="calendarExceptionForm" class="timetable-setting-card">
+                    <strong>Special calendar date</strong><p>Record holidays, suspensions, special classes, or shortened days.</p>
+                    <label>Date<input id="calendarExceptionDate" type="date" required></label>
+                    <label>Description<input id="calendarExceptionTitle" maxlength="140" required placeholder="e.g. School foundation day"></label>
+                    <label>Type<select id="calendarExceptionType"><option value="CLOSED">Closed / holiday</option><option value="OPEN">Additional operating day</option><option value="SPECIAL_CLASS">Special classes</option><option value="SHORTENED_DAY">Shortened day</option></select></label>
+                    <label>Notes (optional)<input id="calendarExceptionNotes" maxlength="500"></label>
+                    <button class="primary-button" type="submit">Save calendar date</button><span class="inline-feedback" id="calendarExceptionFeedback" role="status"></span>
+                  </form>
+                </div>
+                <div class="timetable-template-list" id="timetableTemplateList"><strong>Saved templates</strong><p>Loading templates…</p></div>
+              </section>
               <div id="periodBulkToolbar" class="student-bulk-actions" hidden><label><input type="checkbox" id="selectAllPeriods"> Select all visible schedules</label><span id="selectedPeriodCount">0 selected</span><label for="bulkScheduleTeacher">Assign to unassigned schedules</label><select id="bulkScheduleTeacher"><option value="">Choose Subject Teacher</option></select><button type="button" class="primary-button" id="applyBulkScheduleAssignment" disabled>Assign selected</button><span id="bulkScheduleFeedback" class="inline-feedback" role="status"></span></div>
               <form id="scheduleForm" class="inline-form schedule-editor-form" hidden>
-                <div class="form-context-banner">Choose the active Subject Teacher first. Their department and subject catalogue load automatically. Then choose the class and time; the server checks class, teacher, and room conflicts.</div>
+                <div class="form-context-banner">Choose the Subject Teacher and subject, then select a timetable block or enter a custom time. Select the weekdays this class meets; the system checks overlapping class, teacher, and room times on shared weekdays.</div>
                 <section class="schedule-form-section">
                   <div class="form-section-heading"><strong>1. Teaching assignment</strong><small>Choose the Subject Teacher. Their department and available subjects are loaded automatically.</small></div>
                   <div class="form-grid">
@@ -620,6 +649,8 @@
                 </section>
                 <section class="schedule-form-section">
                   <div class="form-section-heading"><strong>3. Time &amp; room</strong><small>Actual start and end times determine conflicts; period names are labels only.</small></div>
+                  <div class="field-group"><label for="scheduleTemplatePeriod">Timetable template (optional)</label><select id="scheduleTemplatePeriod"><option value="">Custom time</option></select><small class="field-hint">Choose a saved template block to fill the start and end times automatically.</small></div>
+                  <div class="field-group field-group-wide"><label>Class days *</label><div class="schedule-weekday-options" id="scheduleWeekdayChoices"><label><input type="checkbox" value="0" ><span>Sunday</span></label><label><input type="checkbox" value="1" checked><span>Monday</span></label><label><input type="checkbox" value="2" checked><span>Tuesday</span></label><label><input type="checkbox" value="3" checked><span>Wednesday</span></label><label><input type="checkbox" value="4" checked><span>Thursday</span></label><label><input type="checkbox" value="5" checked><span>Friday</span></label><label><input type="checkbox" value="6" ><span>Saturday</span></label></div><small class="field-hint">Select the actual days this class meets. This may differ from the school’s usual operating days.</small></div>
                   <div class="form-grid">
                     <div class="field-group"><label for="startTime">Start time *</label><input id="startTime" type="time" value="07:30" required></div>
                     <div class="field-group"><label for="endTime">End time *</label><input id="endTime" type="time" value="08:30" required></div>
