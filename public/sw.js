@@ -1,8 +1,8 @@
-const CACHE = "school-attendance-shell-v29-dashboard-ui";
+const CACHE = "school-attendance-shell-v30-mobile-roster";
 
 const SHELL = [
   "/portal-login.html",
-  "/portal.css?v=0.9.14",
+  "/portal.css?v=0.9.15",
   "/portal.css",
   "/portal.js?v=0.9.18",
   "/academic-admin.css?v=1",
