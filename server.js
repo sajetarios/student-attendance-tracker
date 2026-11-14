@@ -28,7 +28,7 @@ app.use((req, res, next) => {
   if (req.path.startsWith('/api/')) res.setHeader('Cache-Control', 'no-store');
   next();
 });
-app.use(express.json({ limit: '2mb' }));
+app.use(express.json({ limit: '10mb' }));
 
 registerAuthRoutes(app, pool);
 const { authenticateSchoolClient, requireSchoolRoles, requireSchoolPermission, requireTeacherDesignations, requireSchoolClient } = createAuthMiddleware(pool);
@@ -43,6 +43,8 @@ registerStudentRoutes(app, pool, { authenticateSchoolClient, requireSchoolAdmin 
 registerAcademicRoutes(app, pool, { authenticateSchoolClient, requireSchoolRoles });
 registerDepartmentRoutes(app, pool, { authenticateSchoolClient, requireSchoolRoles });
 registerCloudSyncRoutes(app, pool, { authenticateSchoolClient, requireSchoolAdmin });
+const { registerStudentManagementRoutes } = require('./student-management-routes');
+registerStudentManagementRoutes(app, pool, { authenticateSchoolClient, requireSchoolRoles });
 const registerSf2Routes = require('./sf2-routes');
 registerSf2Routes(app, pool, { authenticateSchoolClient, requireSchoolUser, requireSchoolAdmin, requireSchoolAdminOrDepartmentHead });
 
@@ -844,6 +846,106 @@ app.delete('/api/teacher-substitutions/:substitutionId', authenticateSchoolClien
   }
 });
 
+app.post('/api/periods/bulk-assignments', authenticateSchoolClient, requireSchoolRoles('SCHOOL_ADMIN', 'DEPARTMENT_HEAD'), async (req, res) => {
+  const ids = [...new Set((Array.isArray(req.body?.periodIds) ? req.body.periodIds : []).filter(isUuid))];
+  const teacherUserId = req.body?.teacherUserId;
+  if (!ids.length || ids.length > 100 || ids.length !== (req.body?.periodIds || []).length || !isUuid(teacherUserId)) {
+    return res.status(400).json({ error: 'Select 1–100 valid schedules and one teacher.' });
+  }
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+    const selected = await client.query(
+      `SELECT period_id AS "periodId",period_name AS "periodName",department_id AS "departmentId",
+              start_time AS "startTime",end_time AS "endTime"
+       FROM class_periods WHERE school_id=$1 AND period_id=ANY($2::uuid[]) AND active=TRUE
+       ORDER BY start_time FOR UPDATE`,
+      [req.auth.schoolId, ids]
+    );
+    if (selected.rowCount !== ids.length) {
+      await client.query('ROLLBACK');
+      return res.status(404).json({ error: 'One or more selected schedules are no longer active. Refresh and try again.' });
+    }
+    if (req.auth.role === 'DEPARTMENT_HEAD' &&
+        (req.auth.departmentCode === 'UNASSIGNED' || selected.rows.some(p => String(p.departmentId) !== String(req.auth.departmentId)))) {
+      await client.query('ROLLBACK');
+      return res.status(403).json({ error: 'You can bulk-assign teachers only to schedules in your own department.' });
+    }
+    const teacher = await client.query(
+      `SELECT user_id,username,display_name,department_id FROM school_users
+       WHERE school_id=$1 AND user_id=$2 AND role='TEACHER' AND active=TRUE
+         AND 'SUBJECT_TEACHER'=ANY(teacher_designations)`,
+      [req.auth.schoolId, teacherUserId]
+    );
+    if (!teacher.rowCount) {
+      await client.query('ROLLBACK');
+      return res.status(404).json({ error: 'Active Subject Teacher account not found.' });
+    }
+    if (selected.rows.some(p => String(p.departmentId) !== String(teacher.rows[0].department_id))) {
+      await client.query('ROLLBACK');
+      return res.status(403).json({ error: 'The teacher and every selected schedule must belong to the same department.' });
+    }
+    for (let i = 0; i < selected.rows.length; i += 1) {
+      const p = selected.rows[i];
+      for (let j = i + 1; j < selected.rows.length; j += 1) {
+        const other = selected.rows[j];
+        if (p.startTime < other.endTime && other.startTime < p.endTime) {
+          await client.query('ROLLBACK');
+          return res.status(409).json({ error: 'The selected schedules overlap each other. A teacher cannot cover overlapping periods.' });
+        }
+      }
+      const owner = await client.query(
+        `SELECT su.display_name FROM teacher_period_assignments a
+         JOIN school_users su ON su.school_id=a.school_id AND su.user_id=a.teacher_user_id
+         WHERE a.school_id=$1 AND a.period_id=$2 AND a.teacher_user_id<>$3 LIMIT 1`,
+        [req.auth.schoolId, p.periodId, teacherUserId]
+      );
+      if (owner.rowCount) {
+        await client.query('ROLLBACK');
+        return res.status(409).json({ error: p.periodName + ' already has a permanent teacher (' + owner.rows[0].display_name + ').' });
+      }
+      const conflict = await client.query(
+        `SELECT p.period_name FROM teacher_period_assignments a
+         JOIN class_periods p ON p.school_id=a.school_id AND p.period_id=a.period_id
+         WHERE a.school_id=$1 AND a.teacher_user_id=$2 AND a.period_id<>$3 AND p.active=TRUE
+           AND p.start_time < $5 AND $4 < p.end_time
+         UNION ALL
+         SELECT p.period_name FROM teacher_period_substitutions ts
+         JOIN class_periods p ON p.school_id=ts.school_id AND p.period_id=ts.period_id
+         WHERE ts.school_id=$1 AND ts.substitute_teacher_user_id=$2 AND ts.status='ACTIVE'
+           AND ts.end_date >= (NOW() AT TIME ZONE 'Asia/Manila')::date AND p.active=TRUE
+           AND p.start_time < $5 AND $4 < p.end_time
+         LIMIT 1`,
+        [req.auth.schoolId, teacherUserId, p.periodId, p.startTime, p.endTime]
+      );
+      if (conflict.rowCount) {
+        await client.query('ROLLBACK');
+        return res.status(409).json({ error: 'Teacher has an overlapping schedule: ' + conflict.rows[0].period_name + '.' });
+      }
+    }
+    for (const p of selected.rows) {
+      await client.query(
+        `INSERT INTO teacher_period_assignments(school_id,teacher_user_id,period_id)
+         VALUES($1,$2,$3) ON CONFLICT(school_id,teacher_user_id,period_id) DO NOTHING`,
+        [req.auth.schoolId, teacherUserId, p.periodId]
+      );
+    }
+    await client.query(
+      `INSERT INTO audit_logs(school_id,actor_type,actor_user_id,action,entity_type,entity_id,details)
+       VALUES($1,'SCHOOL',$2,$3,'teacher_period_bulk_assignment',$4,$5::jsonb)`,
+      [req.auth.schoolId, req.auth.userId,
+       req.auth.role === 'DEPARTMENT_HEAD' ? 'DEPARTMENT_HEAD_BULK_ASSIGN_TEACHER' : 'SCHOOL_ADMIN_BULK_ASSIGN_TEACHER',
+       teacherUserId, JSON.stringify({ periodIds: ids, departmentId: selected.rows[0].departmentId })]
+    );
+    await client.query('COMMIT');
+    return res.status(201).json({ ok: true, assigned: selected.rowCount, teacher: teacher.rows[0].display_name });
+  } catch (err) {
+    await client.query('ROLLBACK').catch(() => {});
+    console.error('Bulk teacher schedule assignment failed:', err.message);
+    return res.status(500).json({ error: 'Could not complete bulk teacher assignment.' });
+  } finally { client.release(); }
+});
+
 app.post('/api/periods/:periodId/assignments', authenticateSchoolClient, requireSchoolRoles('SCHOOL_ADMIN', 'DEPARTMENT_HEAD'), async (req, res) => {
   const { teacherUserId } = req.body || {};
   if (!isUuid(req.params.periodId) || !isUuid(teacherUserId)) {
@@ -1086,7 +1188,11 @@ app.get('/api/sections', authenticateSchoolClient, requireSchoolUser, async (req
   try {
     const params = [req.auth.schoolId, gradeLevel];
     let teacherSections = '';
-    if (req.auth.role === 'TEACHER') {
+    if (req.auth.role === 'DEPARTMENT_HEAD') {
+      if (!req.auth.departmentId || req.auth.departmentCode === 'UNASSIGNED') return res.status(403).json({ error: 'Your account must be assigned to a department.' });
+      params.push(req.auth.departmentId);
+      teacherSections = `SELECT TRIM(p.section) AS section FROM class_periods p WHERE p.school_id=$1 AND p.grade_level=$2 AND p.department_id=$3 AND p.active=TRUE AND p.section IS NOT NULL AND TRIM(p.section) <> ''`;
+    } else if (req.auth.role === 'TEACHER') {
       params.push(req.auth.userId);
       teacherSections = `
         SELECT TRIM(p.section) AS section
@@ -1123,10 +1229,12 @@ app.post('/api/gate/lookup', authenticateSchoolClient, requireSchoolRoles('GATE_
   if (!isUuid(qrToken)) return res.status(400).json({ error: 'A valid student QR token is required.' });
   try {
     const result = await pool.query(
-      `SELECT student_id AS "studentId", full_name AS "fullName",
-              grade_level AS "gradeLevel", section, qr_token AS "qrToken",
-              (photo_path IS NOT NULL) AS "hasPhoto"
-       FROM students WHERE school_id=$1 AND qr_token=$2 AND active=TRUE LIMIT 1`,
+      `SELECT s.student_id AS "studentId",s.full_name AS "fullName",
+              COALESCE(en.grade_level,s.grade_level) AS "gradeLevel",COALESCE(en.section,s.section) AS section,
+              s.qr_token AS "qrToken",(s.photo_path IS NOT NULL) AS "hasPhoto"
+       FROM students s
+       LEFT JOIN LATERAL (SELECT e.grade_level,e.section FROM student_enrollments e JOIN school_years sy ON sy.school_id=e.school_id AND sy.school_year_id=e.school_year_id WHERE e.school_id=s.school_id AND e.student_id=s.student_id AND sy.status='ACTIVE' AND e.enrollment_status='ENROLLED' ORDER BY e.created_at DESC LIMIT 1) en ON TRUE
+       WHERE s.school_id=$1 AND s.qr_token=$2 AND s.active=TRUE LIMIT 1`,
       [req.auth.schoolId, qrToken]
     );
     if (!result.rowCount) return res.status(404).json({ error: 'QR code not found or learner is inactive.' });
@@ -1275,7 +1383,7 @@ app.post('/api/gate/teacher-events', authenticateSchoolClient, requireSchoolRole
 // Roster: school-scoped for all principals; teacher results are limited to their assigned grade/sections.
 // Device clients receive only the fields needed for offline QR matching (no parent contact data).
 app.get('/api/students', authenticateSchoolClient, requireSchoolClient, requireSchoolPermission('students.view.all'), async (req, res) => {
-  if (req.auth.type === 'SCHOOL_USER' && !['SCHOOL_ADMIN', 'TEACHER'].includes(req.auth.role)) {
+  if (req.auth.type === 'SCHOOL_USER' && !['SCHOOL_ADMIN', 'DEPARTMENT_HEAD', 'TEACHER'].includes(req.auth.role)) {
     return res.status(403).json({ error: 'Parent accounts may only access their approved linked children.' });
   }
   try {
@@ -1284,9 +1392,14 @@ app.get('/api/students', authenticateSchoolClient, requireSchoolClient, requireS
     if (req.auth.type === 'SCHOOL_USER' && req.auth.role === 'TEACHER') {
       params.push(req.auth.userId);
       scope = ` AND ${TEACHER_STUDENT_SCOPE}`;
+    } else if (req.auth.type === 'SCHOOL_USER' && req.auth.role === 'DEPARTMENT_HEAD') {
+      if (!req.auth.departmentId || req.auth.departmentCode === 'UNASSIGNED') return res.status(403).json({ error: 'Your account must be assigned to a department.' });
+      params.push(req.auth.departmentId);
+      scope = ` AND EXISTS (SELECT 1 FROM class_periods p WHERE p.school_id=s.school_id AND p.department_id=$2 AND p.active=TRUE AND p.grade_level=COALESCE(active_enrollment.grade_level,s.grade_level) AND p.section IS NOT NULL AND TRIM(p.section)=COALESCE(active_enrollment.section,s.section))`;
     }
     const includeParentFields = req.auth.type === 'SCHOOL_USER' && req.auth.role === 'SCHOOL_ADMIN';
     const isGateKeeper = req.auth.type === 'SCHOOL_USER' && req.auth.role === 'GATE_KEEPER';
+    const includeInactive = req.auth.type === 'SCHOOL_USER' && req.auth.role === 'SCHOOL_ADMIN' && req.query.includeInactive === 'true';
     const canScanQr = req.auth.type === 'DEVICE' || req.auth.role === 'SCHOOL_ADMIN' ||
       (req.auth.role === 'TEACHER' && req.auth.teacherDesignations?.includes('SUBJECT_TEACHER'));
     if (isGateKeeper) return res.status(403).json({ error: 'Gate Keeper accounts use QR lookup only and cannot download the learner roster.' });
@@ -1296,12 +1409,13 @@ app.get('/api/students', authenticateSchoolClient, requireSchoolClient, requireS
     const qrField = canScanQr ? ', s.qr_token AS "qrToken"' : '';
     const result = await pool.query(
       `SELECT s.student_id AS "studentId", s.full_name AS "fullName",
-              COALESCE(active_enrollment.grade_level,s.grade_level) AS "gradeLevel", COALESCE(active_enrollment.section,s.section) AS section${qrField},
+              COALESCE(active_enrollment.grade_level,s.grade_level) AS "gradeLevel", COALESCE(active_enrollment.section,s.section) AS section,
+              s.sex, s.active, s.archived_at AS "archivedAt"${qrField},
                (s.photo_path IS NOT NULL) AS "hasPhoto", s.updated_at AS "updatedAt"${parentFields}
        FROM students s
        LEFT JOIN LATERAL (SELECT en.grade_level,en.section FROM student_enrollments en JOIN school_years sy ON sy.school_id=en.school_id AND sy.school_year_id=en.school_year_id WHERE en.school_id=s.school_id AND en.student_id=s.student_id AND sy.status='ACTIVE' AND en.enrollment_status='ENROLLED' ORDER BY en.created_at DESC LIMIT 1) active_enrollment ON TRUE
        ${includeParentFields ? 'LEFT JOIN student_accounts sa ON sa.school_id=s.school_id AND sa.student_id=s.student_id' : ''}
-       WHERE s.school_id=$1 AND s.active=TRUE${scope}
+       WHERE s.school_id=$1 AND (s.active=TRUE OR ${includeInactive ? 'TRUE' : 'FALSE'})${scope}
        ORDER BY s.full_name`,
       params
     );
@@ -1320,9 +1434,10 @@ app.get('/api/students', authenticateSchoolClient, requireSchoolClient, requireS
 // A teacher cannot use this endpoint to edit an existing student or move a learner between sections.
 // The school ID is always derived from the authenticated session, never from the request body.
 app.post('/api/students', authenticateSchoolClient, requireSchoolAdminOrTeacher, async (req, res) => {
-  const { studentId, lrn, fullName, gradeLevel, section, parentName, parentMobile } = req.body || {};
-  if (![studentId, fullName, gradeLevel, section, parentMobile].every(validText)) {
-    return res.status(400).json({ error: 'Student ID, full name, grade, section, and parent mobile are required.' });
+  const { studentId, lrn, fullName, gradeLevel, section, sex, parentName, parentMobile } = req.body || {};
+  const cleanSex = String(sex || '').trim().toUpperCase();
+  if (![studentId, fullName, gradeLevel, section, parentMobile].every(validText) || !['MALE', 'FEMALE'].includes(cleanSex)) {
+    return res.status(400).json({ error: 'Student ID, full name, sex, grade, section, and parent mobile are required. Select Male or Female.' });
   }
   const isTeacher = req.auth.role === 'TEACHER';
   if (isTeacher && !req.auth.teacherDesignations?.includes('CLASS_ADVISER')) {
@@ -1349,30 +1464,45 @@ app.post('/api/students', authenticateSchoolClient, requireSchoolAdminOrTeacher,
     const client = await pool.connect();
     try {
       await client.query('BEGIN');
+      const activeYear = await client.query("SELECT school_year_id FROM school_years WHERE school_id=$1 AND status='ACTIVE'", [req.auth.schoolId]);
+      const masterGrade = activeYear.rowCount ? 'Unassigned' : cleanGrade;
+      const masterSection = activeYear.rowCount ? 'Unassigned' : cleanSection;
       const qrToken = require('crypto').randomUUID();
       // Teachers can create new records only. Admins retain the existing same-school upsert behavior.
       const conflictAction = isTeacher
         ? 'ON CONFLICT(student_id) DO NOTHING'
         : `ON CONFLICT(student_id) DO UPDATE SET
-             lrn=EXCLUDED.lrn, full_name=EXCLUDED.full_name, grade_level=EXCLUDED.grade_level,
-             section=EXCLUDED.section, parent_name=EXCLUDED.parent_name,
+             lrn=EXCLUDED.lrn, full_name=EXCLUDED.full_name, sex=EXCLUDED.sex, parent_name=EXCLUDED.parent_name,
              parent_mobile=EXCLUDED.parent_mobile, active=TRUE, updated_at=NOW()
            WHERE students.school_id=EXCLUDED.school_id`;
       const result = await client.query(
         `INSERT INTO students(school_id, student_id, lrn, full_name, grade_level, section,
-                             parent_name, parent_mobile, qr_token)
-         VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9)
+                             parent_name, parent_mobile, sex, qr_token)
+         VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)
          ${conflictAction}
-         RETURNING student_id AS "studentId", full_name AS "fullName",
+         RETURNING student_id AS "studentId", full_name AS "fullName", sex,
                    grade_level AS "gradeLevel", section, qr_token AS "qrToken"`,
-        [req.auth.schoolId, cleanStudentId, lrn || null, fullName.trim(), cleanGrade,
-         cleanSection, parentName || null, parentMobile.trim(), qrToken]
+        [req.auth.schoolId, cleanStudentId, lrn || null, fullName.trim(), masterGrade,
+         masterSection, parentName || null, parentMobile.trim(), cleanSex, qrToken]
       );
       if (!result.rowCount) {
         await client.query('ROLLBACK');
         return res.status(409).json({ error: isTeacher
           ? 'That student ID is already in use. Teachers cannot edit existing student records.'
           : 'That student ID is already used by another school.' });
+      }
+      if (activeYear.rowCount) {
+        await client.query(
+          `INSERT INTO student_enrollments(school_id,student_id,school_year_id,grade_level,section,enrollment_date,enrollment_status,created_by_user_id)
+           VALUES($1,$2,$3,$4,$5,CURRENT_DATE,'ENROLLED',$6)
+           ON CONFLICT(school_id,student_id,school_year_id) DO UPDATE
+           SET grade_level=EXCLUDED.grade_level,section=EXCLUDED.section,updated_at=NOW()
+           WHERE student_enrollments.enrollment_status='ENROLLED'`,
+          [req.auth.schoolId, cleanStudentId, activeYear.rows[0].school_year_id, cleanGrade, cleanSection, req.auth.userId]
+        );
+      } else if (!isTeacher) {
+        await client.query('UPDATE students SET grade_level=$3,section=$4 WHERE school_id=$1 AND student_id=$2',
+          [req.auth.schoolId, cleanStudentId, cleanGrade, cleanSection]);
       }
       if (isTeacher) {
         await client.query(
@@ -1383,7 +1513,7 @@ app.post('/api/students', authenticateSchoolClient, requireSchoolAdminOrTeacher,
         );
       }
       await client.query('COMMIT');
-      return res.status(201).json({ student: result.rows[0] });
+      return res.status(201).json({ student: { ...result.rows[0], gradeLevel: cleanGrade, section: cleanSection } });
     } catch (err) {
       await client.query('ROLLBACK');
       throw err;
@@ -1404,11 +1534,12 @@ app.patch('/api/students/:studentId', authenticateSchoolClient, requireSchoolAdm
   const designations = Array.isArray(req.auth.teacherDesignations) ? req.auth.teacherDesignations : [];
   const isClassAdviser = isTeacher && designations.includes('CLASS_ADVISER');
   const isSubjectTeacher = isTeacher && designations.includes('SUBJECT_TEACHER');
-  const { lrn, fullName, gradeLevel, section, parentName, parentMobile } = req.body || {};
+  const { lrn, fullName, gradeLevel, section, sex, parentName, parentMobile } = req.body || {};
+  const cleanSex = String(sex || '').trim().toUpperCase();
   if (!validText(fullName) || fullName.trim().length > 200) {
     return res.status(400).json({ error: 'Provide a valid student full name.' });
   }
-  if (!isTeacher && (!validText(gradeLevel) || gradeLevel.trim().length > 40 ||
+  if (!isTeacher && (!['MALE', 'FEMALE'].includes(cleanSex) || !validText(gradeLevel) || gradeLevel.trim().length > 40 ||
       !validText(section) || section.trim().length > 100 ||
       !validText(parentMobile) || parentMobile.trim().length > 30 ||
       (lrn != null && (typeof lrn !== 'string' || lrn.trim().length > 30)) ||
@@ -1456,12 +1587,12 @@ app.patch('/api/students/:studentId', authenticateSchoolClient, requireSchoolAdm
           return res.status(403).json({ error: 'You may move learners only within sections assigned to you as Class Adviser.' });
         }
         updated = await client.query(
-          `UPDATE students s SET full_name=$4, grade_level=$5, section=$6, updated_at=NOW()
+          `UPDATE students s SET full_name=$4, updated_at=NOW()
            WHERE s.school_id=$1 AND s.student_id=$2 AND s.active=TRUE
              AND EXISTS (SELECT 1 FROM class_adviser_assignments ca WHERE ca.school_id=s.school_id AND ca.adviser_user_id=$3 AND ca.grade_level=COALESCE((SELECT en.grade_level FROM student_enrollments en JOIN school_years sy ON sy.school_id=en.school_id AND sy.school_year_id=en.school_year_id WHERE en.school_id=s.school_id AND en.student_id=s.student_id AND sy.status='ACTIVE' AND en.enrollment_status='ENROLLED' ORDER BY en.created_at DESC LIMIT 1),s.grade_level) AND ca.section=COALESCE((SELECT en.section FROM student_enrollments en JOIN school_years sy ON sy.school_id=en.school_id AND sy.school_year_id=en.school_year_id WHERE en.school_id=s.school_id AND en.student_id=s.student_id AND sy.status='ACTIVE' AND en.enrollment_status='ENROLLED' ORDER BY en.created_at DESC LIMIT 1),s.section))
            RETURNING s.student_id AS "studentId", s.full_name AS "fullName",
                      s.grade_level AS "gradeLevel", s.section, s.qr_token AS "qrToken"`,
-          [req.auth.schoolId, req.params.studentId, req.auth.userId, fullName.trim(), gradeLevel.trim(), section.trim()]
+          [req.auth.schoolId, req.params.studentId, req.auth.userId, fullName.trim()]
         );
       } else {
         // Subject-only edit; the submitted payload cannot change placement or parent/LRN data.
@@ -1478,6 +1609,22 @@ app.patch('/api/students/:studentId', authenticateSchoolClient, requireSchoolAdm
         await client.query('ROLLBACK');
         return res.status(404).json({ error: 'Student was not found in your authorized classes.' });
       }
+      if (canChangePlacement) {
+        const activeYear = await client.query("SELECT school_year_id FROM school_years WHERE school_id=$1 AND status='ACTIVE'", [req.auth.schoolId]);
+        if (activeYear.rowCount) {
+          await client.query(
+            `INSERT INTO student_enrollments(school_id,student_id,school_year_id,grade_level,section,enrollment_date,enrollment_status,created_by_user_id)
+             VALUES($1,$2,$3,$4,$5,CURRENT_DATE,'ENROLLED',$6)
+             ON CONFLICT(school_id,student_id,school_year_id) DO UPDATE
+             SET grade_level=EXCLUDED.grade_level,section=EXCLUDED.section,updated_at=NOW()
+             WHERE student_enrollments.enrollment_status='ENROLLED'`,
+            [req.auth.schoolId, req.params.studentId, activeYear.rows[0].school_year_id, gradeLevel.trim(), section.trim(), req.auth.userId]
+          );
+        } else {
+          await client.query('UPDATE students SET grade_level=$3,section=$4 WHERE school_id=$1 AND student_id=$2',
+            [req.auth.schoolId, req.params.studentId, gradeLevel.trim(), section.trim()]);
+        }
+      }
       await client.query(
         `INSERT INTO audit_logs(school_id, actor_type, actor_user_id, action, entity_type, entity_id, details)
          VALUES($1,'SCHOOL',$2,'TEACHER_UPDATE_ASSIGNED_STUDENT','student',$3,$4::jsonb)`,
@@ -1485,24 +1632,37 @@ app.patch('/api/students/:studentId', authenticateSchoolClient, requireSchoolAdm
          JSON.stringify({ nameUpdated: true, placementUpdated: canChangePlacement })]
       );
       await client.query('COMMIT');
-      return res.json({ student: updated.rows[0], qrTokenPreserved: true, placementEditable: canChangePlacement });
+      return res.json({ student: { ...updated.rows[0], ...(canChangePlacement ? { gradeLevel: gradeLevel.trim(), section: section.trim() } : {}) }, qrTokenPreserved: true, placementEditable: canChangePlacement });
     }
 
+    const activeYear = await client.query("SELECT school_year_id FROM school_years WHERE school_id=$1 AND status='ACTIVE'", [req.auth.schoolId]);
     const updated = await client.query(
       `UPDATE students
-       SET lrn=$3, full_name=$4, grade_level=$5, section=$6,
-           parent_name=$7, parent_mobile=$8, updated_at=NOW()
+       SET lrn=$3, full_name=$4,
+           grade_level=CASE WHEN $10 THEN grade_level ELSE $5 END,
+           section=CASE WHEN $10 THEN section ELSE $6 END,
+           parent_name=$7, parent_mobile=$8, sex=$9, updated_at=NOW()
        WHERE school_id=$1 AND student_id=$2 AND active=TRUE
        RETURNING student_id AS "studentId", lrn, full_name AS "fullName",
                  grade_level AS "gradeLevel", section, parent_name AS "parentName",
-                 parent_mobile AS "parentMobile", qr_token AS "qrToken"`,
+                 parent_mobile AS "parentMobile", sex, qr_token AS "qrToken"`,
       [req.auth.schoolId, req.params.studentId, lrn?.trim() || null,
        fullName.trim(), gradeLevel.trim(), section.trim(),
-       parentName?.trim() || null, parentMobile.trim()]
+       parentName?.trim() || null, parentMobile.trim(), cleanSex, Boolean(activeYear.rowCount)]
     );
     if (!updated.rowCount) {
       await client.query('ROLLBACK');
       return res.status(404).json({ error: 'Student not found in your authorized school.' });
+    }
+    if (activeYear.rowCount) {
+      await client.query(
+        `INSERT INTO student_enrollments(school_id,student_id,school_year_id,grade_level,section,enrollment_date,enrollment_status,created_by_user_id)
+         VALUES($1,$2,$3,$4,$5,CURRENT_DATE,'ENROLLED',$6)
+         ON CONFLICT(school_id,student_id,school_year_id) DO UPDATE
+         SET grade_level=EXCLUDED.grade_level,section=EXCLUDED.section,updated_at=NOW()
+         WHERE student_enrollments.enrollment_status='ENROLLED'`,
+        [req.auth.schoolId, req.params.studentId, activeYear.rows[0].school_year_id, gradeLevel.trim(), section.trim(), req.auth.userId]
+      );
     }
     await client.query(
       `INSERT INTO audit_logs(school_id, actor_type, actor_user_id, action, entity_type, entity_id, details)
@@ -1511,7 +1671,7 @@ app.patch('/api/students/:studentId', authenticateSchoolClient, requireSchoolAdm
        JSON.stringify({ gradeLevel: gradeLevel.trim(), section: section.trim() })]
     );
     await client.query('COMMIT');
-    return res.json({ student: updated.rows[0], qrTokenPreserved: true });
+    return res.json({ student: { ...updated.rows[0], ...(activeYear.rowCount ? { gradeLevel: gradeLevel.trim(), section: section.trim() } : {}) }, qrTokenPreserved: true });
   } catch (err) {
     await client.query('ROLLBACK').catch(() => {});
     if (err.code === '23505') return res.status(409).json({ error: 'That LRN is already registered.' });
@@ -1535,7 +1695,7 @@ function photoMimeFromBuffer(buffer) {
 
 // Authenticated photo retrieval also supports gate devices so photos can be cached for offline use.
 app.get('/api/students/:studentId/photo', authenticateSchoolClient, requireSchoolClient, async (req, res) => {
-  if (req.auth.type === 'SCHOOL_USER' && !['SCHOOL_ADMIN', 'TEACHER'].includes(req.auth.role)) {
+  if (req.auth.type === 'SCHOOL_USER' && !['SCHOOL_ADMIN', 'DEPARTMENT_HEAD', 'TEACHER'].includes(req.auth.role)) {
     return res.status(403).json({ error: 'This account cannot access the school student photo roster.' });
   }
   try {
@@ -1940,13 +2100,15 @@ app.get('/api/teacher/class-attendance', authenticateSchoolClient, requireSchool
   try {
     const result = await pool.query(
       `SELECT e.event_id AS "eventId", e.student_id AS "studentId",
-              s.full_name AS "fullName", s.grade_level AS "gradeLevel", s.section,
+              s.full_name AS "fullName", COALESCE(active_enrollment.grade_level,s.grade_level) AS "gradeLevel",
+              COALESCE(active_enrollment.section,s.section) AS section,
               e.school_date::text AS "schoolDate", e.occurred_at_device AS "occurredAt",
               e.attendance_scope AS scope, e.event_type AS "eventType", e.late,
               e.sync_status AS "syncStatus",
               p.period_name AS "periodName", p.subject_name AS "subjectName"
        FROM attendance_events e
        JOIN students s ON s.school_id=e.school_id AND s.student_id=e.student_id
+       LEFT JOIN LATERAL (SELECT en.grade_level,en.section FROM student_enrollments en JOIN school_years sy ON sy.school_id=en.school_id AND sy.school_year_id=en.school_year_id WHERE en.school_id=s.school_id AND en.student_id=s.student_id AND sy.status='ACTIVE' AND en.enrollment_status='ENROLLED' ORDER BY en.created_at DESC LIMIT 1) active_enrollment ON TRUE
        LEFT JOIN class_periods p ON p.school_id=e.school_id AND p.period_id=e.period_id
        WHERE e.school_id=$1 AND e.sync_status='ACCEPTED'
          AND e.attendance_scope IN ('CLASS','ADVISORY')
@@ -1956,7 +2118,7 @@ app.get('/api/teacher/class-attendance', authenticateSchoolClient, requireSchool
              AND EXISTS (
                SELECT 1 FROM class_adviser_assignments ca
                WHERE ca.school_id=e.school_id AND ca.adviser_user_id=$5
-                 AND ca.grade_level=s.grade_level AND ca.section=s.section
+                 AND ca.grade_level=COALESCE(active_enrollment.grade_level,s.grade_level) AND ca.section=COALESCE(active_enrollment.section,s.section)
              ))
            OR
            ($6::boolean AND e.attendance_scope='CLASS'

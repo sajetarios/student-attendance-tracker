@@ -10,7 +10,7 @@ const ROLE_PERMISSIONS = Object.freeze({
     'parents.manage', 'attendance.corrections.manage', 'devices.manage'
   ]),
   DEPARTMENT_HEAD: Object.freeze([
-    'dashboard.view.school', 'schedules.view.all', 'schedules.manage.department',
+    'dashboard.view.school', 'students.view.all', 'students.manage.department', 'schedules.view.all', 'schedules.manage.department',
     'teachers.view', 'teachers.assign.department', 'teachers.substitutions.manage',
     'teacher.coverage.view.school', 'attendance.view.school',
     'reports.attendance.view', 'sf2.official.preview', 'sf2.submissions.view'

@@ -9,12 +9,15 @@ const portal = fs.readFileSync(path.join(root, 'public', 'portal.js'), 'utf8');
 const html = fs.readFileSync(path.join(root, 'public', 'portal.html'), 'utf8');
 const server = fs.readFileSync(path.join(root, 'server.js'), 'utf8');
 
-test('Department Head cannot navigate to or load the raw student roster', () => {
-  assert.match(portal, /departmentHead && view === 'students'\) view = 'dashboard'/);
-  assert.match(portal, /\$\('studentsNav'\)\.hidden = departmentHead \|\|/);
-  assert.match(portal, /isDepartmentHead \? Promise\.resolve\(\{ students: \[\] \}\) : api\('\/api\/students'\)/);
+test('Department Head can view and export the school-wide student roster without student write controls', () => {
+  assert.ok(portal.includes("if (role === 'DEPARTMENT_HEAD') return ['dashboard', 'students', 'teachers', 'schedules', 'sf2']"));
+  assert.ok(portal.includes("$('studentsNav').hidden = !admin && !departmentHead && !teacher && !gateKeeper"));
+  assert.ok(portal.includes("api(role === 'SCHOOL_ADMIN' ? '/api/students?includeInactive=true' : '/api/students')"));
+  assert.ok(portal.includes("exportCsv('student-roster.csv'"));
+  assert.ok(html.includes('id="exportStudentsButton"'));
+  assert.ok(server.includes("'SCHOOL_ADMIN', 'DEPARTMENT_HEAD', 'TEACHER'"));
+  assert.ok(portal.includes("$('studentForm').hidden = gateKeeper || departmentHead"));
 });
-
 test('Department Head cannot see student QR scanning controls', () => {
   assert.match(portal, /studentScannerCard'\)\) \$\('studentScannerCard'\)\.hidden = !mayScan/);
   assert.match(portal, /dashboardScanCta'\)\) \$\('dashboardScanCta'\)\.hidden = !\(mayScan \|\| mayAddStudent\)/);
@@ -36,7 +39,7 @@ test('Department Head can assign substitute coverage without gaining account adm
   assert.match(portal, /const canManageRow = user\.role === 'SCHOOL_ADMIN'[\s\S]*?String\(row\.departmentId\) === String\(user\.departmentId\)/);
   assert.match(portal, /Managed by its department/);
   assert.match(server, /app\.post\('\/api\/teachers\/:userId\/leave', authenticateSchoolClient, requireSchoolAdmin/);
-  assert.match(server, /!\['SCHOOL_ADMIN', 'TEACHER'\]\.includes\(req\.auth\.role\)/);
+  assert.match(server, /app\.post\('\/api\/teachers\/:userId\/leave', authenticateSchoolClient, requireSchoolAdmin/);
   assert.match(server, /app\.post\('\/api\/periods', authenticateSchoolClient, requireSchoolAdminOrDepartmentHeadOrTeacher/);
   assert.match(server, /isTeacher && !req\.auth\.teacherDesignations\?\.includes\('SUBJECT_TEACHER'\)/);
 });

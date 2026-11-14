@@ -124,9 +124,11 @@ function registerSf2Routes(app, pool, { authenticateSchoolClient, requireSchoolU
   async function getReportData(req, month, gradeLevel, section, access) {
     const dateFrom = `${month}-01`;
     const students = await pool.query(
-      `SELECT student_id AS id,full_name AS name,grade_level AS "gradeLevel",section,sex
-       FROM students WHERE school_id=$1 AND active=TRUE AND grade_level=$2 AND section=$3
-       ORDER BY full_name`,
+      `SELECT s.student_id AS id,s.full_name AS name,COALESCE(en.grade_level,s.grade_level) AS "gradeLevel",COALESCE(en.section,s.section) AS section,s.sex
+       FROM students s
+       LEFT JOIN LATERAL (SELECT e.grade_level,e.section FROM student_enrollments e JOIN school_years sy ON sy.school_id=e.school_id AND sy.school_year_id=e.school_year_id WHERE e.school_id=s.school_id AND e.student_id=s.student_id AND sy.status='ACTIVE' AND e.enrollment_status='ENROLLED' ORDER BY e.created_at DESC LIMIT 1) en ON TRUE
+       WHERE s.school_id=$1 AND s.active=TRUE AND COALESCE(en.grade_level,s.grade_level)=$2 AND COALESCE(en.section,s.section)=$3
+       ORDER BY s.full_name`,
       [req.auth.schoolId, gradeLevel, section]
     );
 
@@ -136,7 +138,8 @@ function registerSf2Routes(app, pool, { authenticateSchoolClient, requireSchoolU
         `SELECT DISTINCT e.student_id AS id,e.school_date::text AS date
          FROM attendance_events e
          JOIN students s ON s.school_id=e.school_id AND s.student_id=e.student_id
-         WHERE e.school_id=$1 AND s.grade_level=$3 AND s.section=$4
+         LEFT JOIN LATERAL (SELECT en.grade_level,en.section FROM student_enrollments en JOIN school_years sy ON sy.school_id=en.school_id AND sy.school_year_id=en.school_year_id WHERE en.school_id=s.school_id AND en.student_id=s.student_id AND sy.status='ACTIVE' AND en.enrollment_status='ENROLLED' ORDER BY en.created_at DESC LIMIT 1) active_enrollment ON TRUE
+         WHERE e.school_id=$1 AND COALESCE(active_enrollment.grade_level,s.grade_level)=$3 AND COALESCE(active_enrollment.section,s.section)=$4
            AND e.attendance_scope='CLASS' AND e.event_type='TIME_IN'
            AND COALESCE(e.sync_status,'ACCEPTED')='ACCEPTED'
            AND e.recorded_by_user_id=$2
@@ -160,7 +163,8 @@ function registerSf2Routes(app, pool, { authenticateSchoolClient, requireSchoolU
         `SELECT DISTINCT e.student_id AS id,e.school_date::text AS date
          FROM attendance_events e
          JOIN students s ON s.school_id=e.school_id AND s.student_id=e.student_id
-         WHERE e.school_id=$1 AND s.grade_level=$2 AND s.section=$3
+         LEFT JOIN LATERAL (SELECT en.grade_level,en.section FROM student_enrollments en JOIN school_years sy ON sy.school_id=en.school_id AND sy.school_year_id=en.school_year_id WHERE en.school_id=s.school_id AND en.student_id=s.student_id AND sy.status='ACTIVE' AND en.enrollment_status='ENROLLED' ORDER BY en.created_at DESC LIMIT 1) active_enrollment ON TRUE
+         WHERE e.school_id=$1 AND COALESCE(active_enrollment.grade_level,s.grade_level)=$2 AND COALESCE(active_enrollment.section,s.section)=$3
            AND e.attendance_scope IN ('CLASS','ADVISORY') AND e.event_type='TIME_IN'
            AND COALESCE(e.sync_status,'ACCEPTED')='ACCEPTED'
            AND e.school_date >= $4::date AND e.school_date < ($4::date + INTERVAL '1 month')`,
@@ -176,7 +180,8 @@ function registerSf2Routes(app, pool, { authenticateSchoolClient, requireSchoolU
         `SELECT o.student_id AS id,o.school_date::text AS date,o.absence_type AS "absenceType"
          FROM sf2_daily_overrides o
          JOIN students s ON s.school_id=o.school_id AND s.student_id=o.student_id
-         WHERE o.school_id=$1 AND s.grade_level=$2 AND s.section=$3
+         LEFT JOIN LATERAL (SELECT en.grade_level,en.section FROM student_enrollments en JOIN school_years sy ON sy.school_id=en.school_id AND sy.school_year_id=en.school_year_id WHERE en.school_id=s.school_id AND en.student_id=s.student_id AND sy.status='ACTIVE' AND en.enrollment_status='ENROLLED' ORDER BY en.created_at DESC LIMIT 1) active_enrollment ON TRUE
+         WHERE o.school_id=$1 AND COALESCE(active_enrollment.grade_level,s.grade_level)=$2 AND COALESCE(active_enrollment.section,s.section)=$3
            AND o.school_date >= $4::date AND o.school_date < ($4::date + INTERVAL '1 month')`,
         [req.auth.schoolId, gradeLevel, section, dateFrom]
       );
@@ -185,7 +190,8 @@ function registerSf2Routes(app, pool, { authenticateSchoolClient, requireSchoolU
         `SELECT e.student_id AS id,COUNT(DISTINCT e.school_date)::int AS count
          FROM attendance_events e
          JOIN students s ON s.school_id=e.school_id AND s.student_id=e.student_id
-         WHERE e.school_id=$1 AND s.grade_level=$2 AND s.section=$3
+         LEFT JOIN LATERAL (SELECT en.grade_level,en.section FROM student_enrollments en JOIN school_years sy ON sy.school_id=en.school_id AND sy.school_year_id=en.school_year_id WHERE en.school_id=s.school_id AND en.student_id=s.student_id AND sy.status='ACTIVE' AND en.enrollment_status='ENROLLED' ORDER BY en.created_at DESC LIMIT 1) active_enrollment ON TRUE
+         WHERE e.school_id=$1 AND COALESCE(active_enrollment.grade_level,s.grade_level)=$2 AND COALESCE(active_enrollment.section,s.section)=$3
            AND e.attendance_scope='SCHOOL'
            AND e.event_type='TIME_IN'
            AND e.late=TRUE
@@ -437,9 +443,11 @@ function registerSf2Routes(app, pool, { authenticateSchoolClient, requireSchoolU
       let sections = [];
       if (['SCHOOL_ADMIN', 'DEPARTMENT_HEAD'].includes(req.auth.role)) {
         const result = await pool.query(
-          `SELECT DISTINCT grade_level AS "gradeLevel",section
-           FROM students WHERE school_id=$1 AND active=TRUE
-           ORDER BY grade_level,section`, [req.auth.schoolId]
+          `SELECT DISTINCT COALESCE(en.grade_level,s.grade_level) AS "gradeLevel",COALESCE(en.section,s.section) AS section
+           FROM students s
+           LEFT JOIN LATERAL (SELECT e.grade_level,e.section FROM student_enrollments e JOIN school_years sy ON sy.school_id=e.school_id AND sy.school_year_id=e.school_year_id WHERE e.school_id=s.school_id AND e.student_id=s.student_id AND sy.status='ACTIVE' AND e.enrollment_status='ENROLLED' ORDER BY e.created_at DESC LIMIT 1) en ON TRUE
+           WHERE s.school_id=$1 AND s.active=TRUE
+           ORDER BY "gradeLevel",section`, [req.auth.schoolId]
         );
         sections = result.rows.map(row => ({ ...row, mode: 'OFFICIAL' }));
       } else if (req.auth.role === 'TEACHER') {
@@ -487,8 +495,10 @@ function registerSf2Routes(app, pool, { authenticateSchoolClient, requireSchoolU
     try {
       await migration;
       const result = await pool.query(
-        `SELECT student_id AS "studentId",full_name AS "fullName",grade_level AS "gradeLevel",section,sex
-         FROM students WHERE school_id=$1 AND active=TRUE ORDER BY grade_level,section,full_name`,
+        `SELECT s.student_id AS "studentId",s.full_name AS "fullName",COALESCE(en.grade_level,s.grade_level) AS "gradeLevel",COALESCE(en.section,s.section) AS section,s.sex
+         FROM students s
+         LEFT JOIN LATERAL (SELECT e.grade_level,e.section FROM student_enrollments e JOIN school_years sy ON sy.school_id=e.school_id AND sy.school_year_id=e.school_year_id WHERE e.school_id=s.school_id AND e.student_id=s.student_id AND sy.status='ACTIVE' AND e.enrollment_status='ENROLLED' ORDER BY e.created_at DESC LIMIT 1) en ON TRUE
+         WHERE s.school_id=$1 AND s.active=TRUE ORDER BY "gradeLevel",section,"fullName"`,
         [req.auth.schoolId]
       );
       const visible = [];
@@ -510,8 +520,10 @@ function registerSf2Routes(app, pool, { authenticateSchoolClient, requireSchoolU
     try {
       await migration;
       const student = await pool.query(
-        `SELECT grade_level AS "gradeLevel",section FROM students
-         WHERE school_id=$1 AND student_id=$2 AND active=TRUE`,
+        `SELECT COALESCE(en.grade_level,s.grade_level) AS "gradeLevel",COALESCE(en.section,s.section) AS section
+         FROM students s
+         LEFT JOIN LATERAL (SELECT e.grade_level,e.section FROM student_enrollments e JOIN school_years sy ON sy.school_id=e.school_id AND sy.school_year_id=e.school_year_id WHERE e.school_id=s.school_id AND e.student_id=s.student_id AND sy.status='ACTIVE' AND e.enrollment_status='ENROLLED' ORDER BY e.created_at DESC LIMIT 1) en ON TRUE
+         WHERE s.school_id=$1 AND s.student_id=$2 AND s.active=TRUE`,
         [req.auth.schoolId, studentId]
       );
       if (!student.rowCount) return res.status(404).json({ error: 'Learner not found.' });
@@ -559,8 +571,10 @@ function registerSf2Routes(app, pool, { authenticateSchoolClient, requireSchoolU
     try {
       await migration;
       const student = await pool.query(
-        `SELECT grade_level AS "gradeLevel",section FROM students
-         WHERE school_id=$1 AND student_id=$2 AND active=TRUE`,
+        `SELECT COALESCE(en.grade_level,s.grade_level) AS "gradeLevel",COALESCE(en.section,s.section) AS section
+         FROM students s
+         LEFT JOIN LATERAL (SELECT e.grade_level,e.section FROM student_enrollments e JOIN school_years sy ON sy.school_id=e.school_id AND sy.school_year_id=e.school_year_id WHERE e.school_id=s.school_id AND e.student_id=s.student_id AND sy.status='ACTIVE' AND e.enrollment_status='ENROLLED' ORDER BY e.created_at DESC LIMIT 1) en ON TRUE
+         WHERE s.school_id=$1 AND s.student_id=$2 AND s.active=TRUE`,
         [req.auth.schoolId, studentId]
       );
       if (!student.rowCount) return res.status(404).json({ error: 'Learner not found.' });

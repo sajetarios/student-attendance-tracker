@@ -1,6 +1,35 @@
 'use strict';
 
 function registerCloudSyncRoutes(app, pool, { authenticateSchoolClient, requireSchoolAdmin }) {
+  app.get('/api/cloud-sync/status', authenticateSchoolClient, async (req, res) => {
+    if (req.auth?.type !== 'SCHOOL_USER' ||
+        !['SCHOOL_ADMIN','DEPARTMENT_HEAD','TEACHER','GATE_KEEPER'].includes(req.auth.role)) {
+      return res.status(403).json({ error: 'School staff access is required.' });
+    }
+    try {
+      const result = await pool.query(
+        `SELECT cloud_base_url AS "cloudBaseUrl",enabled,updated_at AS "updatedAt"
+         FROM school_cloud_sync_settings WHERE school_id=$1`,
+        [req.auth.schoolId]
+      );
+      const row = result.rows[0] || {};
+      return res.json({
+        configured: Boolean(row.cloudBaseUrl),
+        enabled: Boolean(row.enabled),
+        connectionStatus: 'NOT_CONNECTED',
+        updatedAt: row.updatedAt || null,
+        message: row.enabled
+          ? 'Cloud forwarding is enabled in settings, but a live replication connection has not been verified.'
+          : row.cloudBaseUrl
+            ? 'Cloud destination is saved, but cloud forwarding is not active.'
+            : 'Cloud destination is not configured. Attendance is stored on this server.'
+      });
+    } catch (err) {
+      console.error('Cloud sync status failed:', err.message);
+      return res.status(500).json({ error: 'Could not check cloud sync status.' });
+    }
+  });
+
   app.get('/api/cloud-sync/settings', authenticateSchoolClient, requireSchoolAdmin, async (req, res) => {
     try {
       const result = await pool.query(

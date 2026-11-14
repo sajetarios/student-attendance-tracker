@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="theme-color" content="#1c2d45">
   <title>Dashboard · School Attendance</title>
-  <link rel="stylesheet" href="/portal.css?v=0.9.3">
+  <link rel="stylesheet" href="/portal.css?v=0.9.13">
   <link rel="stylesheet" href="/academic-admin.css?v=1">
   <link rel="stylesheet" href="/password-visibility.css">
 
@@ -136,7 +136,7 @@
 .staff-accounts-card,.adviser-assignments-card{margin-top:18px}
 </style>
 <link rel="stylesheet" href="/responsive.css?v=0.8.3">
-<link rel="stylesheet" href="/comfort-ui.css?v=0.8.3">
+<link rel="stylesheet" href="/comfort-ui.css?v=0.8.5">
 </head>
 <body class="portal-page">
   <div class="portal-layout">
@@ -179,7 +179,7 @@
           aria-label="Open navigation" aria-expanded="false" title="Open navigation">☰</button>
         <div class="breadcrumbs"><span>Workspace</span><b>/</b><strong id="breadcrumbCurrent">Dashboard</strong></div>
         <div class="topbar-right">
-          <span class="connection-chip"><i></i> Local server</span>
+          <span class="connection-chip local-only" id="connectionStatus" role="status" title="Cloud sync status is being checked."><i></i><span>Checking cloud sync status…</span></span>
           <div class="account-menu-wrap">
             <button class="account-trigger" id="accountMenuButton" aria-haspopup="true" aria-expanded="false">
               <span class="avatar" id="userAvatar">U</span><span class="account-name" id="userDisplay">User</span><span class="account-chevron">▾</span>
@@ -388,12 +388,13 @@
           </section>
           <section id="studentsView" class="view-panel" hidden>
             <div class="surface-card section-card">
-              <div class="section-toolbar" id="studentManagementHeader"><div><h3>Student roster</h3><p id="studentScopeText">Students available to your account.</p></div><button class="primary-button" id="showStudentForm">＋ Add student</button></div>
+              <div class="section-toolbar" id="studentManagementHeader"><div><h3>Student roster</h3><p id="studentScopeText">Students available to your account.</p></div><div class="toolbar-actions"><button class="outline-button" type="button" id="exportStudentsButton">↓ Export list</button><button class="outline-button" type="button" id="downloadStudentTemplate">↓ Template</button><button class="outline-button" type="button" id="bulkImportStudentsButton">↑ Bulk import</button><button class="primary-button" id="showStudentForm">＋ Add student</button></div></div>
               <form id="studentForm" class="inline-form" hidden>
                 <div class="form-grid">
                   <div class="field-group"><label for="newStudentId">Student ID *</label><input id="newStudentId" required maxlength="80" placeholder="e.g. G8-001"></div>
                   <div class="field-group"><label for="newLrn">LRN</label><input id="newLrn" maxlength="32" placeholder="Learner Reference Number"></div>
                   <div class="field-group span-2"><label for="newFullName">Full name *</label><input id="newFullName" required maxlength="180" placeholder="Last name, First name, Middle name"></div>
+                  <div class="field-group"><label for="newSex">Sex *</label><select id="newSex" required><option value="">Select sex</option><option value="MALE">Male</option><option value="FEMALE">Female</option></select></div>
                   <div class="field-group"><label for="newGrade">Grade level *</label><select id="newGrade" required><option>Grade 7</option><option>Grade 8</option><option>Grade 9</option><option>Grade 10</option></select></div>
                   <div class="field-group"><label for="newSection">Section *</label><select id="newSection" required disabled><option value="">Select grade level first</option></select><small id="newSectionHint" class="field-hint">Choose a grade to load its available sections.</small></div>
                   <div class="field-group"><label for="newParentName">Parent / guardian</label><input id="newParentName" maxlength="180"></div>
@@ -484,10 +485,35 @@
               <div id="studentRosterPanel">
               <div class="student-roster-tools">
                 <div><h3>Registered students</h3><p>QR previews remain tied to each student's existing private token. Editing details does not replace the QR code.</p></div>
-                <div class="student-filter-row"><label class="student-name-filter">Search by name or student ID <input id="studentRosterSearch" type="search" placeholder="Type a student name or ID…"></label><label>Filter by grade <select id="bulkQrGrade"><option value="ALL">All grades</option><option>Grade 7</option><option>Grade 8</option><option>Grade 9</option><option>Grade 10</option></select></label><label>Filter by section <select id="bulkQrSection"><option value="ALL">All sections</option></select></label></div>
-                <div class="student-bulk-actions"><label><input type="checkbox" id="selectAllStudents"> Select all visible students</label><span id="selectedStudentCount">0 selected</span><button class="primary-button" type="button" id="printBulkQr">Print selected ID cards</button><span id="bulkQrFeedback" class="inline-feedback" role="status"></span></div>
+                <p id="studentDepartmentScopeNote" class="student-scope-banner" hidden>Department scope: only learners in sections assigned to your department are listed. You may edit names/sex and update current-year placement. School-wide status, account, and QR actions remain restricted.</p>
+                <div class="student-filter-row"><label class="student-name-filter">Search by name or student ID <input id="studentRosterSearch" type="search" placeholder="Type a student name or ID…"></label><label>Filter by grade <select id="bulkQrGrade"><option value="ALL">All grades</option><option>Grade 7</option><option>Grade 8</option><option>Grade 9</option><option>Grade 10</option></select></label><label>Filter by section <select id="bulkQrSection"><option value="ALL">All sections</option></select></label><label id="studentStatusFilterWrap" hidden>Record status <select id="studentStatusFilter"><option value="ACTIVE">Active</option><option value="INACTIVE">Inactive</option><option value="ARCHIVED">Archived</option><option value="ALL">All records</option></select></label></div>
+                <div class="student-bulk-actions"><label><input type="checkbox" id="selectAllStudents"> Select all visible students</label><span id="selectedStudentCount">0 selected</span><button class="primary-button" type="button" id="printBulkQr">Print selected ID cards</button><span id="bulkQrFeedback" class="inline-feedback" role="status"></span><select id="studentBatchAction" aria-label="Batch action"><option value="">Batch action…</option><option value="UPDATE">Edit selected</option><option value="ASSIGN">Assign grade/section</option><option value="ACTIVATE">Activate</option><option value="DEACTIVATE">Deactivate</option><option value="ARCHIVE">Archive</option></select><button type="button" class="outline-button" id="applyStudentBatch" disabled>Apply</button></div>
               </div>
-              <div class="table-scroll"><table><thead><tr><th>Select</th><th>Photo</th><th>Student ID</th><th>Full name</th><th>Grade</th><th>Section</th><th>QR code</th><th>Actions</th><th>Student portal account</th></tr></thead><tbody id="studentRows"><tr><td colspan="9" class="empty-cell">Loading students…</td></tr></tbody></table></div>
+              <div class="table-scroll"><table id="studentRosterTable"><thead><tr><th>Select</th><th>Photo</th><th>Student ID</th><th>Full name</th><th>Sex</th><th>Grade</th><th>Section</th><th>Status</th><th>QR code</th><th>Actions</th><th>Student portal account</th></tr></thead><tbody id="studentRows"><tr><td colspan="11" class="empty-cell">Loading students…</td></tr></tbody></table></div>
+              </div>
+              <div id="studentImportModal" class="student-edit-overlay" role="dialog" aria-modal="true" aria-labelledby="studentImportTitle" hidden>
+                <div class="student-edit-dialog">
+                  <div class="section-toolbar"><div><h3 id="studentImportTitle">Bulk import students</h3><p>Upload a CSV or Excel workbook. Review every row before confirming.</p></div><button type="button" class="outline-button" id="closeStudentImport">Close</button></div>
+                  <div class="field-group"><label for="studentImportFile">Import file (.csv or .xlsx)</label><input id="studentImportFile" type="file" accept=".csv,.xlsx,text/csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"><small class="field-hint">Maximum 5 MB and 2,000 rows. Required: Student ID, Full Name, Sex, Grade Level, Section.</small></div>
+                  <div id="studentImportSummary" class="inline-feedback" role="status"></div>
+                  <div class="table-scroll"><table><thead><tr><th>Row</th><th>Student ID</th><th>Name</th><th>Action</th><th>Validation</th></tr></thead><tbody id="studentImportPreviewRows"><tr><td colspan="5" class="empty-cell">Choose a file to preview.</td></tr></tbody></table></div>
+                  <div class="form-actions"><button type="button" class="primary-button" id="confirmStudentImport" disabled>Confirm import</button><button type="button" class="outline-button" id="cancelStudentImport">Cancel</button></div>
+                </div>
+              </div>
+              <div id="studentBatchModal" class="student-edit-overlay" role="dialog" aria-modal="true" aria-labelledby="studentBatchTitle" hidden>
+                <form id="studentBatchForm" class="student-edit-dialog">
+                  <div class="section-toolbar"><div><h3 id="studentBatchTitle">Edit selected students</h3><p id="studentBatchDescription">Only the fields you complete will be changed.</p></div><button type="button" class="outline-button" id="closeStudentBatch">Close</button></div>
+                  <div class="form-grid">
+                    <div class="field-group" id="batchNameGroup"><label for="batchFullName">Full name (optional)</label><input id="batchFullName" maxlength="200"></div>
+                    <div class="field-group" id="batchSexGroup"><label for="batchSex">Sex (optional)</label><select id="batchSex"><option value="">Do not change</option><option value="MALE">Male</option><option value="FEMALE">Female</option></select></div>
+                    <div class="field-group" id="batchLrnGroup"><label for="batchLrn">LRN (optional)</label><input id="batchLrn" maxlength="30"></div>
+                    <div class="field-group" id="batchParentNameGroup"><label for="batchParentName">Parent / guardian (optional)</label><input id="batchParentName" maxlength="160"></div>
+                    <div class="field-group" id="batchParentMobileGroup"><label for="batchParentMobile">Parent mobile (optional)</label><input id="batchParentMobile" maxlength="30"></div>
+                    <div class="field-group" id="batchGradeGroup"><label for="batchGrade">Grade level</label><select id="batchGrade"><option>Grade 7</option><option>Grade 8</option><option>Grade 9</option><option>Grade 10</option></select></div>
+                    <div class="field-group" id="batchSectionGroup"><label for="batchSection">Section</label><input id="batchSection" maxlength="100"></div>
+                  </div>
+                  <div class="form-actions"><button type="submit" class="primary-button" id="confirmStudentBatch">Confirm batch action</button><span id="studentBatchFeedback" class="inline-feedback" role="status"></span></div>
+                </form>
               </div>
               <div id="studentAccountModal" class="student-edit-overlay" role="dialog" aria-modal="true" aria-labelledby="studentAccountTitle" hidden>
                 <form id="studentAccountForm" class="student-edit-dialog">
@@ -517,6 +543,7 @@
                     <div class="field-group"><label>Student ID</label><input id="editStudentIdDisplay" disabled></div>
                     <div class="field-group" id="editLrnGroup"><label for="editLrn">LRN</label><input id="editLrn" maxlength="30"></div>
                     <div class="field-group span-2"><label for="editFullName">Full name *</label><input id="editFullName" required maxlength="200"></div>
+                    <div class="field-group" id="editSexGroup"><label for="editSex">Sex *</label><select id="editSex" required><option value="">Select sex</option><option value="MALE">Male</option><option value="FEMALE">Female</option></select></div>
                     <div class="field-group" id="editGradeGroup"><label for="editGrade">Grade *</label><select id="editGrade" required><option>Grade 7</option><option>Grade 8</option><option>Grade 9</option><option>Grade 10</option></select></div>
                     <div class="field-group" id="editSectionGroup"><label for="editSection">Section *</label><input id="editSection" required maxlength="100"></div>
                     <div class="field-group" id="editParentNameGroup"><label for="editParentName">Parent / guardian</label><input id="editParentName" maxlength="160"></div>
@@ -531,6 +558,7 @@
           <section id="schedulesView" class="view-panel" hidden>
             <div class="surface-card section-card">
               <div class="section-toolbar"><div><h3>Class schedules and subjects</h3><p id="scheduleScopeText">Schedules available to your account.</p></div><button class="primary-button" id="showScheduleForm">＋ Add schedule</button></div>
+              <div id="periodBulkToolbar" class="student-bulk-actions" hidden><label><input type="checkbox" id="selectAllPeriods"> Select all visible schedules</label><span id="selectedPeriodCount">0 selected</span><label for="bulkScheduleTeacher">Assign teacher</label><select id="bulkScheduleTeacher"><option value="">Choose teacher</option></select><button type="button" class="primary-button" id="applyBulkScheduleAssignment" disabled>Assign selected</button><span id="bulkScheduleFeedback" class="inline-feedback" role="status"></span></div>
               <form id="scheduleForm" class="inline-form" hidden>
                 <div class="form-grid">
                   <div class="field-group"><label for="periodName">Schedule name *</label><input id="periodName" required maxlength="120" placeholder="Period 1"></div>
@@ -545,7 +573,7 @@
                 </div>
                 <div class="form-actions"><button class="primary-button" type="submit">Save schedule</button><button class="outline-button" type="button" id="cancelScheduleForm">Cancel</button><span id="scheduleFormFeedback" class="inline-feedback"></span></div>
               </form>
-              <div class="table-scroll"><table><thead><tr><th>Schedule</th><th>Subject</th><th>Department</th><th>Grade</th><th>Section</th><th>Classroom</th><th>Time</th><th>Assigned teacher</th></tr></thead><tbody id="scheduleRows"><tr><td colspan="8" class="empty-cell">Loading schedules…</td></tr></tbody></table></div>
+              <div class="table-scroll"><table><thead><tr><th id="periodSelectHeader" hidden>Select</th><th>Schedule</th><th>Subject</th><th>Department</th><th>Grade</th><th>Section</th><th>Classroom</th><th>Time</th><th>Assigned teacher</th></tr></thead><tbody id="scheduleRows"><tr><td colspan="8" class="empty-cell">Loading schedules…</td></tr></tbody></table></div>
             </div>
           </section>
 
@@ -553,8 +581,9 @@
             <div class="surface-card section-card">
               <div class="section-toolbar">
                 <div><h3 id="teacherMonitorTitle">Teacher accounts</h3><p id="teacherMonitorDescription">Manage teachers and assign them to this school's class schedules.</p></div>
-                <button class="primary-button" id="showTeacherForm">＋ Create account</button>
+                <div class="toolbar-actions"><button class="outline-button" type="button" id="exportTeachersButton">↓ Export teachers</button><button class="primary-button" id="showTeacherForm">＋ Create account</button></div>
               </div>
+              <div id="staffBulkDepartmentToolbar" class="student-bulk-actions" hidden><label><input type="checkbox" id="selectAllStaff"> Select all teachers and Department Heads</label><span id="selectedStaffCount">0 selected</span><label for="bulkStaffDepartment">Assign department</label><select id="bulkStaffDepartment"><option value="">Choose department</option></select><button type="button" class="primary-button" id="applyBulkStaffDepartment" disabled>Assign selected staff</button><span id="staffBulkDepartmentFeedback" class="inline-feedback" role="status"></span></div>
               <form id="teacherForm" class="inline-form" hidden>
                 <div class="form-grid">
                   <div class="field-group"><label for="newAccountRole">Account role *</label><select id="newAccountRole" required><option value="TEACHER">Teacher</option><option value="DEPARTMENT_HEAD">Department Head</option><option value="GATE_KEEPER">Gate Keeper</option></select></div>
@@ -574,7 +603,7 @@
                 <p class="form-help">Passwords must be at least 12 characters. The password is stored as a secure hash and is not displayed again.</p>
               </form>
               <div class="table-scroll teacher-monitor-scroll">
-                <table class="teacher-monitor-table">
+                <table class="teacher-monitor-table" id="teacherMonitorTable">
                   <thead><tr><th>Teacher / designation</th><th>Department</th><th>Status</th><th>Grade level</th><th>Section</th><th>Assigned schedules</th><th id="teacherActionHeader">Account action</th></tr></thead>
                   <tbody id="teacherRows"><tr><td colspan="7" class="empty-cell">Loading teachers…</td></tr></tbody>
                 </table>
@@ -583,7 +612,7 @@
             <div class="scope-note teacher-management-note"><span>✓</span><p>Assignments are limited to this school. On Leave temporarily disables login while preserving class assignments and attendance history. Teachers can be returned manually or automatically on the expected return date.</p></div>
             <div class="surface-card section-card staff-accounts-card">
               <div class="section-toolbar"><div><h3>Other school staff accounts</h3><p>Department Heads and Gate Keepers. Teacher accounts and designations are managed in the Teachers table above.</p></div></div>
-              <div class="table-scroll"><table><thead><tr><th>Account</th><th>Role</th><th>Department</th><th>Status</th></tr></thead><tbody id="staffUserRows"><tr><td colspan="4" class="empty-cell">Loading accounts…</td></tr></tbody></table></div>
+              <div class="table-scroll"><table id="staffAccountsTable"><thead><tr><th>Account</th><th>Role</th><th>Department</th><th>Status</th></tr></thead><tbody id="staffUserRows"><tr><td colspan="4" class="empty-cell">Loading accounts…</td></tr></tbody></table></div>
             </div>
             <div class="surface-card section-card department-management-card" id="departmentManagementCard" hidden>
               <div class="section-toolbar"><div><h3>Department management</h3><p>Create the school’s departments before assigning staff and class schedules.</p></div></div>
@@ -661,7 +690,7 @@
   <div id="toast" class="toast" role="status" aria-live="polite"></div>
   <script src="/password-visibility.js" defer></script>
   <script src="/vendor/html5-qrcode.min.js" defer></script>
-  <script src="/portal.js?v=0.9.3" defer></script>
+  <script src="/portal.js?v=0.9.13" defer></script>
   <script src="/academic-admin.js?v=1" defer></script>
 </body>
 </html>
