@@ -351,6 +351,79 @@ app.post('/api/class-adviser-assignments', authenticateSchoolClient, requireScho
   }
 });
 
+app.patch('/api/class-adviser-assignments/:assignmentId', authenticateSchoolClient, requireSchoolAdmin, async (req, res) => {
+  const { adviserUserId, gradeLevel, section } = req.body || {};
+  if (!isUuid(req.params.assignmentId) || !isUuid(adviserUserId) ||
+      !validText(gradeLevel) || gradeLevel.trim().length > 40 ||
+      !validText(section) || section.trim().length > 100) {
+    return res.status(400).json({ error: 'Choose an active Class Adviser and provide a valid grade and section.' });
+  }
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+    await client.query('SELECT pg_advisory_xact_lock(hashtext($1::text), 16017)', [req.auth.schoolId]);
+    const existing = await client.query(
+      `SELECT assignment_id AS "assignmentId", adviser_user_id AS "adviserUserId",
+              grade_level AS "gradeLevel", section
+       FROM class_adviser_assignments
+       WHERE school_id=$1 AND assignment_id=$2
+       FOR UPDATE`,
+      [req.auth.schoolId, req.params.assignmentId]
+    );
+    if (!existing.rowCount) {
+      await client.query('ROLLBACK');
+      return res.status(404).json({ error: 'Class Adviser assignment not found.' });
+    }
+    const adviser = await client.query(
+      `SELECT user_id FROM school_users
+       WHERE school_id=$1 AND user_id=$2 AND role='TEACHER' AND active=TRUE
+         AND 'CLASS_ADVISER'=ANY(teacher_designations)`,
+      [req.auth.schoolId, adviserUserId]
+    );
+    if (!adviser.rowCount) {
+      await client.query('ROLLBACK');
+      return res.status(400).json({ error: 'The selected account must be an active teacher with the Class Adviser designation.' });
+    }
+    const duplicate = await client.query(
+      `SELECT 1 FROM class_adviser_assignments
+       WHERE school_id=$1 AND assignment_id<>$2
+         AND lower(btrim(grade_level))=lower(btrim($3))
+         AND upper(btrim(section))=upper(btrim($4))
+       LIMIT 1`,
+      [req.auth.schoolId, req.params.assignmentId, gradeLevel.trim(), section.trim()]
+    );
+    if (duplicate.rowCount) {
+      await client.query('ROLLBACK');
+      return res.status(409).json({ error: 'Another Class Adviser assignment already exists for this grade and section.' });
+    }
+    const updated = await client.query(
+      `UPDATE class_adviser_assignments
+       SET adviser_user_id=$3, grade_level=$4, section=$5, assigned_by=$6, assigned_at=NOW()
+       WHERE school_id=$1 AND assignment_id=$2
+       RETURNING assignment_id AS "assignmentId", adviser_user_id AS "adviserUserId",
+                 grade_level AS "gradeLevel", section`,
+      [req.auth.schoolId, req.params.assignmentId, adviserUserId, gradeLevel.trim(), section.trim(), req.auth.userId]
+    );
+    await client.query(
+      `INSERT INTO audit_logs(school_id, actor_type, actor_user_id, action, entity_type, entity_id, details)
+       VALUES($1,'SCHOOL',$2,'SCHOOL_ADMIN_UPDATE_CLASS_ADVISER','class_adviser_assignment',$3,$4::jsonb)`,
+      [req.auth.schoolId, req.auth.userId, req.params.assignmentId,
+       JSON.stringify({ before: existing.rows[0], after: updated.rows[0] })]
+    );
+    await client.query('COMMIT');
+    return res.json({ assignment: updated.rows[0] });
+  } catch (err) {
+    await client.query('ROLLBACK').catch(() => {});
+    if (err.code === '23505' || err.code === '23514') {
+      return res.status(409).json({ error: err.message || 'This class adviser assignment conflicts with another record.' });
+    }
+    console.error('Class Adviser assignment update failed:', err.message);
+    return res.status(500).json({ error: 'Could not update the Class Adviser assignment.' });
+  } finally {
+    client.release();
+  }
+});
+
 app.delete('/api/class-adviser-assignments/:assignmentId', authenticateSchoolClient, requireSchoolAdmin, async (req, res) => {
   if (!isUuid(req.params.assignmentId)) return res.status(400).json({ error: 'Invalid class adviser assignment ID.' });
   try {
