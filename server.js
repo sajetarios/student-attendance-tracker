@@ -292,6 +292,28 @@ app.patch('/api/school-users/:userId/profile', authenticateSchoolClient, require
   }
 });
 
+
+app.get('/api/admin/security/audit', authenticateSchoolClient, requireSchoolAdmin, async (req, res) => {
+  try {
+    const result = await pool.query(
+      `SELECT a.action, a.entity_type AS "entityType", a.entity_id AS "entityId",
+              a.details, a.created_at AS "createdAt",
+              COALESCE(actor.display_name, actor.username, 'System') AS "actorName"
+       FROM audit_logs a
+       LEFT JOIN school_users actor
+         ON actor.school_id=a.school_id AND actor.user_id=a.actor_user_id
+       WHERE a.school_id=$1
+       ORDER BY a.created_at DESC
+       LIMIT 50`,
+      [req.auth.schoolId]
+    );
+    return res.json({ events: result.rows });
+  } catch (err) {
+    console.error('Security audit history failed:', err.message);
+    return res.status(500).json({ error: 'Could not load account audit history.' });
+  }
+});
+
 // Gate Keeper monitoring is available to the School Administrator only.
 // This summary counts actual gate events recorded by each Gate Keeper, not login activity.
 app.get('/api/admin/gatekeeper-monitoring', authenticateSchoolClient, requireSchoolAdmin, async (req, res) => {
