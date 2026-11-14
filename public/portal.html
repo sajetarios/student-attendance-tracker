@@ -138,6 +138,7 @@
 <link rel="stylesheet" href="/responsive.css?v=0.8.3">
 <link rel="stylesheet" href="/comfort-ui.css?v=0.8.5">
   <link rel="stylesheet" href="/app-dialog.css?v=1">
+  <link rel="stylesheet" href="/form-system.css?v=1">
 </head>
 <body class="portal-page">
   <div class="portal-layout">
@@ -393,15 +394,16 @@
               <form id="studentForm" class="inline-form" hidden>
                 <div class="form-grid">
                   <div class="field-group"><label for="newStudentId">Student ID *</label><input id="newStudentId" required maxlength="80" placeholder="e.g. G8-001"></div>
-                  <div class="field-group"><label for="newLrn">LRN</label><input id="newLrn" maxlength="32" placeholder="Learner Reference Number"></div>
-                  <div class="field-group span-2"><label for="newFullName">Full name *</label><input id="newFullName" required maxlength="180" placeholder="Last name, First name, Middle name"></div>
+                  <div class="field-group"><label for="newLrn">Learner Reference Number (LRN) <span class="optional-label">Optional</span></label><input id="newLrn" maxlength="30" inputmode="numeric" placeholder="Enter the learner's LRN"><small class="field-hint">Leave blank if the learner has no LRN yet.</small></div>
+                  <div class="field-group span-2"><label for="newFullName">Learner's full name *</label><input id="newFullName" required maxlength="200" autocomplete="name" placeholder="Last name, First name, Middle name"></div>
                   <div class="field-group"><label for="newSex">Sex *</label><select id="newSex" required><option value="">Select sex</option><option value="MALE">Male</option><option value="FEMALE">Female</option></select></div>
                   <div class="field-group"><label for="newGrade">Grade level *</label><select id="newGrade" required><option>Grade 7</option><option>Grade 8</option><option>Grade 9</option><option>Grade 10</option></select></div>
                   <div class="field-group"><label for="newSection">Section *</label><select id="newSection" required disabled><option value="">Select grade level first</option></select><small id="newSectionHint" class="field-hint">Choose a grade to load its available sections.</small></div>
-                  <div class="field-group"><label for="newParentName">Parent / guardian</label><input id="newParentName" maxlength="180"></div>
-                  <div class="field-group"><label for="newParentMobile">Parent mobile *</label><input id="newParentMobile" required maxlength="32" placeholder="09XXXXXXXXX"></div>
+                  <div class="field-group"><label for="newParentName">Parent / guardian full name *</label><input id="newParentName" required maxlength="160" autocomplete="name" placeholder="Enter the primary guardian's full name"><small class="field-hint">Saved directly on this learner's central student record.</small></div>
+                  <div class="field-group"><label for="newParentMobile">Parent / guardian mobile number *</label><input id="newParentMobile" type="tel" inputmode="tel" autocomplete="tel" required maxlength="30" placeholder="09XXXXXXXXX"><small class="field-hint">Use the guardian's current mobile number.</small></div>
                   <div class="field-group span-2"><label for="newStudentPhoto">Student photo (JPG, PNG, WebP · max 5 MB)</label><input id="newStudentPhoto" type="file" accept="image/jpeg,image/png,image/webp"></div>
                 </div>
+                <p class="form-context-help">Guardian contact details are stored on the existing student master record. Creating a Parent Portal login is a separate step and does not create another student record.</p>
                 <div class="form-actions"><button class="primary-button" type="submit">Save student</button><button class="outline-button" type="button" id="cancelStudentForm">Cancel</button><span id="studentFormFeedback" class="inline-feedback"></span></div>
               </form>
               <div id="parentInviteModal" class="student-scan-setup-overlay" role="dialog" aria-modal="true" aria-labelledby="parentInviteTitle" hidden>
@@ -543,13 +545,13 @@
                   <input type="hidden" id="editStudentId">
                   <div class="form-grid">
                     <div class="field-group"><label>Student ID</label><input id="editStudentIdDisplay" disabled></div>
-                    <div class="field-group" id="editLrnGroup"><label for="editLrn">LRN</label><input id="editLrn" maxlength="30"></div>
+                    <div class="field-group" id="editLrnGroup"><label for="editLrn">Learner Reference Number (LRN)</label><input id="editLrn" maxlength="30" inputmode="numeric"></div>
                     <div class="field-group span-2"><label for="editFullName">Full name *</label><input id="editFullName" required maxlength="200"></div>
                     <div class="field-group" id="editSexGroup"><label for="editSex">Sex *</label><select id="editSex" required><option value="">Select sex</option><option value="MALE">Male</option><option value="FEMALE">Female</option></select></div>
                     <div class="field-group" id="editGradeGroup"><label for="editGrade">Grade *</label><select id="editGrade" required><option>Grade 7</option><option>Grade 8</option><option>Grade 9</option><option>Grade 10</option></select></div>
                     <div class="field-group" id="editSectionGroup"><label for="editSection">Section *</label><input id="editSection" required maxlength="100"></div>
-                    <div class="field-group" id="editParentNameGroup"><label for="editParentName">Parent / guardian</label><input id="editParentName" maxlength="160"></div>
-                    <div class="field-group" id="editParentMobileGroup"><label for="editParentMobile">Parent mobile</label><input id="editParentMobile" maxlength="30"></div>
+                    <div class="field-group" id="editParentNameGroup"><label for="editParentName">Parent / guardian full name</label><input id="editParentName" maxlength="160" placeholder="Primary guardian's name"></div>
+                    <div class="field-group" id="editParentMobileGroup"><label for="editParentMobile">Parent / guardian mobile number</label><input id="editParentMobile" type="tel" inputmode="tel" maxlength="30" placeholder="09XXXXXXXXX"></div>
                   </div>
                   <div class="form-actions"><button class="primary-button" type="submit" id="saveStudentEdit">Save changes</button><span id="studentEditFeedback" class="inline-feedback"></span></div>
                 </form>
@@ -560,20 +562,36 @@
           <section id="schedulesView" class="view-panel" hidden>
             <div class="surface-card section-card">
               <div class="section-toolbar"><div><h3>Class schedules and subjects</h3><p id="scheduleScopeText">Schedules available to your account.</p></div><button class="primary-button" id="showScheduleForm">＋ Add schedule</button></div>
-              <div id="periodBulkToolbar" class="student-bulk-actions" hidden><label><input type="checkbox" id="selectAllPeriods"> Select all visible schedules</label><span id="selectedPeriodCount">0 selected</span><label for="bulkScheduleTeacher">Assign teacher</label><select id="bulkScheduleTeacher"><option value="">Choose teacher</option></select><button type="button" class="primary-button" id="applyBulkScheduleAssignment" disabled>Assign selected</button><span id="bulkScheduleFeedback" class="inline-feedback" role="status"></span></div>
-              <form id="scheduleForm" class="inline-form" hidden>
-                <div class="form-grid">
-                  <div class="field-group"><label for="periodName">Schedule name *</label><input id="periodName" required maxlength="120" placeholder="Period 1"></div>
-                  <div class="field-group"><label for="subjectName">Subject</label><input id="subjectName" maxlength="120" placeholder="Mathematics"></div>
-                  <div class="field-group" id="periodDepartmentGroup"><label for="periodDepartment">Department *</label><select id="periodDepartment" required><option value="">Select department</option></select><small class="field-hint" id="periodDepartmentHint">Department Heads can create schedules only in their own department.</small></div>
-                  <div class="field-group"><label for="periodGrade">Grade level *</label><select id="periodGrade" required><option>Grade 7</option><option>Grade 8</option><option>Grade 9</option><option>Grade 10</option></select></div>
-                  <div class="field-group"><label for="periodSection">Section <span id="sectionRequiredMark">(optional)</span></label><input id="periodSection" maxlength="100" placeholder="Section name"><small class="field-hint" id="periodSectionHint">Leave blank to make this schedule available to the whole grade.</small></div>
-                  <div class="field-group"><label for="periodClassroom">Classroom / room</label><input id="periodClassroom" maxlength="100" placeholder="e.g. Room 204"></div>
-                  <div class="field-group"><label for="startTime">Start time *</label><input id="startTime" type="time" value="07:30" required></div>
-                  <div class="field-group"><label for="endTime">End time *</label><input id="endTime" type="time" value="08:30" required></div>
-                  <div class="field-group"><label for="graceMinutes">Grace period (minutes)</label><input id="graceMinutes" type="number" min="0" max="240" value="5"></div>
-                </div>
-                <div class="form-actions"><button class="primary-button" type="submit">Save schedule</button><button class="outline-button" type="button" id="cancelScheduleForm">Cancel</button><span id="scheduleFormFeedback" class="inline-feedback"></span></div>
+              <div id="periodBulkToolbar" class="student-bulk-actions" hidden><label><input type="checkbox" id="selectAllPeriods"> Select all visible schedules</label><span id="selectedPeriodCount">0 selected</span><label for="bulkScheduleTeacher">Assign to unassigned schedules</label><select id="bulkScheduleTeacher"><option value="">Choose Subject Teacher</option></select><button type="button" class="primary-button" id="applyBulkScheduleAssignment" disabled>Assign selected</button><span id="bulkScheduleFeedback" class="inline-feedback" role="status"></span></div>
+              <form id="scheduleForm" class="inline-form schedule-editor-form" hidden>
+                <div class="form-context-banner">Choose the Subject Teacher first. The teacher's department is filled in automatically, and the schedule is assigned to that teacher when saved. Duplicate period labels, class overlaps, teacher conflicts, and room conflicts are checked before saving.</div>
+                <section class="schedule-form-section">
+                  <div class="form-section-heading"><strong>1. Teaching assignment</strong><small>Choose the Subject Teacher and a subject from that teacher's department.</small></div>
+                  <div class="form-grid">
+                    <div class="field-group" id="periodTeacherGroup"><label for="periodTeacher">Subject Teacher *</label><select id="periodTeacher" required><option value="">Choose active Subject Teacher</option></select><small class="field-hint" id="periodTeacherHint">Only active Subject Teacher accounts are listed.</small></div>
+                    <div class="field-group" id="periodTeacherSelfGroup" hidden><label>Subject Teacher</label><div class="schedule-derived-field" id="periodTeacherSelfName">Your teacher account</div><small class="field-hint">This schedule will be assigned to your account.</small></div>
+                    <div class="field-group"><label>Department (automatic)</label><div class="schedule-derived-field" id="periodDepartmentDisplay">Choose a teacher to display the department.</div><small class="field-hint">Department comes from the selected teacher's staff profile.</small></div>
+                    <div class="field-group"><label for="periodSubject">Subject *</label><div class="schedule-subject-control"><select id="periodSubject" required disabled><option value="">Choose teacher first</option></select><button type="button" class="outline-button" id="addScheduleSubject" hidden>＋ Add subject</button></div><small class="field-hint" id="periodSubjectHint">Subjects are stored once per department to prevent duplicate names.</small></div>
+                    <div class="field-group"><label for="periodName">Period / schedule block *</label><select id="periodName" required><option value="">Select period</option><option>Period 1</option><option>Period 2</option><option>Period 3</option><option>Period 4</option><option>Period 5</option><option>Period 6</option><option>Period 7</option><option>Period 8</option><option>Period 9</option><option>Period 10</option><option>Homeroom</option><option>Advisory</option></select><small class="field-hint">The same period label can be used in another section, but only once in this section.</small></div>
+                  </div>
+                </section>
+                <section class="schedule-form-section">
+                  <div class="form-section-heading"><strong>2. Class group</strong><small>Select a grade and an existing section from the student and class records.</small></div>
+                  <div class="form-grid">
+                    <div class="field-group"><label for="periodGrade">Grade level *</label><select id="periodGrade" required><option>Grade 7</option><option>Grade 8</option><option>Grade 9</option><option>Grade 10</option></select></div>
+                    <div class="field-group"><label for="periodSection">Section *</label><select id="periodSection" required disabled><option value="">Select grade first</option></select><small class="field-hint" id="periodSectionHint">Choose a grade to load its existing sections.</small></div>
+                    <div class="field-group"><label for="periodClassroom">Classroom / room <span class="optional-label">Optional</span></label><input id="periodClassroom" maxlength="100" placeholder="e.g. Room 204"><small class="field-hint">Room overlaps are checked across all sections.</small></div>
+                  </div>
+                </section>
+                <section class="schedule-form-section">
+                  <div class="form-section-heading"><strong>3. Time</strong><small>The time must not overlap the selected class, teacher, or room timetable.</small></div>
+                  <div class="form-grid">
+                    <div class="field-group"><label for="startTime">Start time *</label><input id="startTime" type="time" value="07:30" required></div>
+                    <div class="field-group"><label for="endTime">End time *</label><input id="endTime" type="time" value="08:30" required></div>
+                    <div class="field-group"><label for="graceMinutes">Grace period (minutes)</label><input id="graceMinutes" type="number" min="0" max="240" value="5"><small class="field-hint">Used when checking late class time-ins.</small></div>
+                  </div>
+                </section>
+                <div class="form-actions"><button class="primary-button" type="submit" id="saveScheduleButton">Save schedule and assign teacher</button><button class="outline-button" type="button" id="cancelScheduleForm">Cancel</button><span id="scheduleFormFeedback" class="inline-feedback" role="status"></span></div>
               </form>
               <div class="table-scroll"><table><thead><tr><th id="periodSelectHeader" hidden>Select</th><th>Schedule</th><th>Subject</th><th>Department</th><th>Grade</th><th>Section</th><th>Classroom</th><th>Time</th><th>Assigned teacher</th></tr></thead><tbody id="scheduleRows"><tr><td colspan="8" class="empty-cell">Loading schedules…</td></tr></tbody></table></div>
             </div>
