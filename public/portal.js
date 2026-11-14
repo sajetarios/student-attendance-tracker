@@ -2319,7 +2319,12 @@ let teacherActionMenuListenersInstalled = false;
     if (advisoryOption) advisoryOption.hidden = !hasAdviserRole;
     if (role === 'TEACHER') {
       scopeSelect.disabled = !(hasSubjectRole && hasAdviserRole);
-      scopeSelect.value = hasAdviserRole && !hasSubjectRole ? 'ADVISORY' : 'CLASS';
+      // When a teacher is also a Class Adviser, default to the assigned advisory
+      // section so advisory-only classes (such as Grade 8 - SPJ) are not treated
+      // as regular subject periods. Subject attendance remains selectable.
+      scopeSelect.value = hasAdviserRole && adviserAssignments.length
+        ? 'ADVISORY'
+        : hasSubjectRole ? 'CLASS' : 'ADVISORY';
     }
     $('scanSetupPeriod').innerHTML = '<option value="">Select assigned schedule</option>' + periods.map(p => `<option value="${esc(p.periodId)}">${esc(p.periodName)} · ${esc(p.gradeLevel)} · ${esc(p.section || 'All sections')}</option>`).join('');
     $('scanSetupPeriodWrap').hidden = scopeSelect.value !== 'CLASS';
