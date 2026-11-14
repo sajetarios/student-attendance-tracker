@@ -958,7 +958,7 @@ function coverageStatusLabel(status) {
       host.innerHTML = '<tr><td colspan="' + (departmentHead ? '6' : '11') + '" class="empty-cell">' + esc(emptyMessage) + '</td></tr>';
     } else {
       const rows = await Promise.all(visible.map(async student => {
-        const photo = await photoDataUrl(student.photoUrl);
+        const photo = departmentHead ? '' : await photoDataUrl(student.photoUrl);
         const avatar = photo ? `<img class="student-photo-thumb" src="${photo}" alt="Student photo for ${esc(student.fullName)}" loading="lazy">` : `<span class="student-photo-placeholder no-photo" aria-label="${student.hasPhoto ? 'Photo file missing' : 'No photo uploaded'}" title="${student.hasPhoto ? 'The database has a photo path but the file is missing from storage. Restore the storage/student-photos folder or upload the photo again.' : 'No photo has been uploaded yet. An administrator or Class Adviser can upload the photo.'}">${student.hasPhoto ? 'Missing' : 'No photo'}</span>`;
         let qr = '';
         if (canViewQr) {
