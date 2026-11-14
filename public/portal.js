@@ -1556,12 +1556,9 @@ let teacherActionMenuListenersInstalled = false;
       const classScopes = [...classScopeMap.values()].sort((a, b) =>
         a.gradeLevel.localeCompare(b.gradeLevel, undefined, { numeric: true }) || a.section.localeCompare(b.section)
       );
-      const gradeLevelsHtml = classScopes.length
-        ? `<div class="teacher-scope-list">${classScopes.map(item => `<span class="teacher-scope-item">${esc(item.gradeLevel)}</span>`).join('')}</div>`
-        : '<span class="muted-inline">Not assigned</span>';
-      const sectionsHtml = classScopes.length
-        ? `<div class="teacher-scope-list">${classScopes.map(item => `<span class="teacher-scope-item">${esc(item.section)}</span>`).join('')}</div>`
-        : '<span class="muted-inline">Not assigned</span>';
+      const classScopesHtml = classScopes.length
+        ? `<div class="teacher-scope-list">${classScopes.map(item => `<span class="teacher-scope-item">${esc(item.gradeLevel)} · ${esc(item.section)}</span>`).join('')}</div>`
+        : '<span class="muted-inline">No assigned classes</span>';
 
       // Keep the monitoring table compact. Detailed periods remain available in
       // the assignment manager and Class Schedules view, rather than stretching
@@ -1622,12 +1619,11 @@ let teacherActionMenuListenersInstalled = false;
         <td data-label="Teacher">${user.role === 'SCHOOL_ADMIN' ? '<input type="checkbox" data-select-staff="' + esc(teacher.userId) + '" ' + (selectedStaffIds.has(String(teacher.userId)) ? 'checked' : '') + ' aria-label="Select ' + esc(teacher.displayName) + '">' : ''} <strong>${esc(teacher.displayName)}</strong><small class="table-subtext">${esc(teacher.username)}</small><small class="table-subtext">${esc(designationLabels)}</small></td>
         <td data-label="Department">${departmentCell}</td>
         <td data-label="Status"><span class="account-status ${statusClass}">${statusLabel}</span>${leaveDetails}</td>
-        <td data-label="Grade level">${gradeLevelsHtml}</td>
-        <td data-label="Section">${sectionsHtml}</td>
+        <td data-label="Assigned classes">${classScopesHtml}</td>
         <td data-label="Assigned schedules">${assignmentsHtml}</td>
         <td data-label="Account action"><div class="action-row">${actionMenu}</div></td>
       </tr>`;
-    }).join('') : '<tr><td colspan="7" class="empty-cell">No teacher accounts have been created for this school yet.</td></tr>';
+    }).join('') : '<tr><td colspan="6" class="empty-cell">No teacher accounts have been created for this school yet.</td></tr>';
 
     $('teacherRows').innerHTML = rows;
     $('teacherRows').querySelectorAll('[data-select-staff]').forEach(box => box.addEventListener('change', () => {
