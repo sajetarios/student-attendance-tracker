@@ -809,7 +809,7 @@ app.post('/api/teachers/:userId/return', authenticateSchoolClient, requireSchool
 });
 
 // Create a date-limited substitute cover. The original teacher's permanent assignment is never changed.
-app.post('/api/teachers/:userId/substitutions', authenticateSchoolClient, requireSchoolAdminOrDepartmentHead, async (req, res) => {
+app.post('/api/teachers/:userId/substitutions', authenticateSchoolClient, requireSchoolRoles('DEPARTMENT_HEAD'), async (req, res) => {
   if (!isUuid(req.params.userId)) return res.status(400).json({ error: 'Invalid original teacher account ID.' });
   const { substituteTeacherUserId, periodId, startDate, endDate } = req.body || {};
   if (!isUuid(substituteTeacherUserId) || !isUuid(periodId) ||
@@ -976,7 +976,7 @@ app.post('/api/teachers/:userId/substitutions', authenticateSchoolClient, requir
 });
 
 // Cancel future/current coverage while retaining the audit record and the original assignment.
-app.delete('/api/teacher-substitutions/:substitutionId', authenticateSchoolClient, requireSchoolAdminOrDepartmentHead, async (req, res) => {
+app.delete('/api/teacher-substitutions/:substitutionId', authenticateSchoolClient, requireSchoolRoles('DEPARTMENT_HEAD'), async (req, res) => {
   if (!isUuid(req.params.substitutionId)) return res.status(400).json({ error: 'Invalid substitution ID.' });
   const client = await pool.connect();
   try {
@@ -1024,7 +1024,7 @@ app.delete('/api/teacher-substitutions/:substitutionId', authenticateSchoolClien
   }
 });
 
-app.post('/api/periods/bulk-assignments', authenticateSchoolClient, requireSchoolRoles('SCHOOL_ADMIN', 'DEPARTMENT_HEAD'), async (req, res) => {
+app.post('/api/periods/bulk-assignments', authenticateSchoolClient, requireSchoolRoles('DEPARTMENT_HEAD'), async (req, res) => {
   const ids = [...new Set((Array.isArray(req.body?.periodIds) ? req.body.periodIds : []).filter(isUuid))];
   const teacherUserId = req.body?.teacherUserId;
   if (!ids.length || ids.length > 100 || ids.length !== (req.body?.periodIds || []).length || !isUuid(teacherUserId)) {
@@ -1125,7 +1125,7 @@ app.post('/api/periods/bulk-assignments', authenticateSchoolClient, requireSchoo
   } finally { client.release(); }
 });
 
-app.post('/api/periods/:periodId/assignments', authenticateSchoolClient, requireSchoolRoles('SCHOOL_ADMIN', 'DEPARTMENT_HEAD'), async (req, res) => {
+app.post('/api/periods/:periodId/assignments', authenticateSchoolClient, requireSchoolRoles('DEPARTMENT_HEAD'), async (req, res) => {
   const { teacherUserId } = req.body || {};
   if (!isUuid(req.params.periodId) || !isUuid(teacherUserId)) {
     return res.status(400).json({ error: 'A valid schedule ID and teacher account ID are required.' });
@@ -1231,7 +1231,7 @@ app.post('/api/periods/:periodId/assignments', authenticateSchoolClient, require
   }
 });
 
-app.delete('/api/periods/:periodId/assignments/:teacherUserId', authenticateSchoolClient, requireSchoolRoles('SCHOOL_ADMIN', 'DEPARTMENT_HEAD'), async (req, res) => {
+app.delete('/api/periods/:periodId/assignments/:teacherUserId', authenticateSchoolClient, requireSchoolRoles('DEPARTMENT_HEAD'), async (req, res) => {
   if (!isUuid(req.params.periodId) || !isUuid(req.params.teacherUserId)) {
     return res.status(400).json({ error: 'Invalid schedule or teacher account ID.' });
   }
