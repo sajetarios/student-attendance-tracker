@@ -30,7 +30,11 @@ test('SF2 sex is read-only and uses the saved student master-record value', () =
   const portal = read('public/portal.js');
   assert.match(portal, /const sexControl = esc\(student\.sex \|\| 'Not set'\)/);
   assert.doesNotMatch(portal, /data-sf2-sex/);
-  assert.doesNotMatch(portal, /\/api\/sf2\/students\/.*\/sex/);
+  assert.doesNotMatch(portal, /data-sf2-sex/);
+  assert.doesNotMatch(portal, /sf2Rows'\)\.addEventListener\('change'/);
+  assert.doesNotMatch(portal, /\/api\/sf2\/students\//);
+  const sf2Routes = read('sf2-routes.js');
+  assert.doesNotMatch(sf2Routes, /app\.patch\('\\/api\\/sf2\\/students\\//);
   assert.match(portal, /Male\/Female set in Student Management/);
 });
 
