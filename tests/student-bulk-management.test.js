@@ -58,8 +58,8 @@ test('student import and batch controls have preview and explicit confirmation U
   assert.match(html,/id="studentImportPreviewRows"/);
   assert.match(html,/id="confirmStudentImport"/);
   assert.match(html,/id="studentBatchModal"/);
-  assert.match(portal,/window\.confirm\('Import '/);
-  assert.match(portal,/window\.confirm\(action/);
+  assert.match(portal,/AppDialog\.confirm\('Import '/);
+  assert.match(portal,/AppDialog\.confirm\(action/);
 });
 
 test('new archive migration is part of the required migration chain',()=>{

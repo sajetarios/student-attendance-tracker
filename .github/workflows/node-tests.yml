@@ -7,6 +7,7 @@ on:
       - feature/compact-staff-ui
       - fix/teacher-monitor-table-columns
       - feature/student-management-ux
+      - feature/app-dialog-ui
   workflow_dispatch:
 
 permissions:
@@ -50,6 +51,9 @@ jobs:
           node --check server.js
           node --check student-management-routes.js
           node --check public/portal.js
+          node --check public/academic-admin.js
+          node --check public/parent-admin.js
+          node --check public/app-dialog.js
           node --check department-routes.js
           node --check cloud-sync-routes.js
           node --check sf2-routes.js

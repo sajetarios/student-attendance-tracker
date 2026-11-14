@@ -1,12 +1,14 @@
-const CACHE = "school-attendance-shell-v23-mobile-role-cards";
+const CACHE = "school-attendance-shell-v24-app-dialogs";
 
 const SHELL = [
   "/portal-login.html",
   "/portal.css?v=0.9.13",
   "/portal.css",
-  "/portal.js?v=0.9.13",
+  "/portal.js?v=0.9.14",
   "/academic-admin.css?v=1",
-  "/academic-admin.js?v=1",
+  "/academic-admin.js?v=2",
+  "/app-dialog.css?v=1",
+  "/app-dialog.js?v=1",
   "/password-visibility.css",
   "/password-visibility.js",
   "/portal-login.js",

@@ -1500,7 +1500,7 @@
           feedback.textContent = 'End temporary cover before removing this permanent assignment.';
           return;
         }
-        if (!window.confirm(`Remove the permanent assignment for ${period?.periodName || 'this schedule'} from ${teacher.displayName}? This does not delete attendance history.`)) return;
+        if (!await AppDialog.confirm(`Remove the permanent assignment for ${period?.periodName || 'this schedule'} from ${teacher.displayName}? This does not delete attendance history.`, { title: 'Remove permanent assignment', confirmText: 'Remove assignment', variant: 'danger' })) return;
         button.disabled = true;
         feedback.textContent = 'Removing permanent assignment…';
         try {
@@ -1751,7 +1751,7 @@
   $('applyBulkStaffDepartment')?.addEventListener('click', async () => {
     const departmentId = $('bulkStaffDepartment').value;
     if (!departmentId || !selectedStaffIds.size) return;
-    if (!window.confirm('Assign ' + selectedStaffIds.size + ' selected teachers/Department Heads to this department?')) return;
+    if (!await AppDialog.confirm('Assign ' + selectedStaffIds.size + ' selected teachers/Department Heads to this department?', { title: 'Assign staff to department', confirmText: 'Assign staff' })) return;
     $('applyBulkStaffDepartment').disabled = true; $('staffBulkDepartmentFeedback').textContent = 'Checking existing schedule assignments…';
     try {
       const result = await api('/api/school-users/bulk-department', { method:'POST', body:JSON.stringify({userIds:[...selectedStaffIds],departmentId}) });
@@ -2177,7 +2177,7 @@
   async function submitOfficialSf2() {
     if (!sf2PreviewData?.canSubmit) return;
     const payload = { month: $('sf2Month').value, gradeLevel: $('sf2Grade').value, section: $('sf2Section').value };
-    if (!window.confirm(`Submit the official monthly SF2 for ${payload.gradeLevel} – ${payload.section}, ${payload.month}?`)) return;
+    if (!await AppDialog.confirm(`Submit the official monthly SF2 for ${payload.gradeLevel} – ${payload.section}, ${payload.month}?`, { title: 'Submit official SF2', confirmText: 'Submit SF2' })) return;
     $('sf2SubmitButton').disabled = true;
     try {
       const response = await api('/api/sf2/submissions', { method: 'POST', body: JSON.stringify(payload) });
@@ -2206,12 +2206,12 @@
       const remove = event.target.closest('[data-sf2-remove-absent]');
       try {
         if (absent) {
-          const type = window.prompt('Type EXCUSED or UNEXCUSED for this confirmed full-day absence:', 'UNEXCUSED');
+          const type = await AppDialog.prompt('Classify this confirmed full-day absence.', 'UNEXCUSED', { title: 'Confirm absence type', label: 'Absence classification', helpText: 'Choose EXCUSED or UNEXCUSED.', placeholder: 'EXCUSED or UNEXCUSED', required: true, validate: value => ['EXCUSED', 'UNEXCUSED'].includes(String(value).trim().toUpperCase()) ? true : 'Enter EXCUSED or UNEXCUSED.' });
           if (!type) return;
           await api('/api/sf2/absence', { method: 'PUT', body: JSON.stringify({ studentId: absent.dataset.sf2Absent, date: absent.dataset.date, absenceType: type.toUpperCase() }) });
           await loadSf2Preview();
         } else if (remove) {
-          if (!window.confirm('Remove this absence confirmation?')) return;
+          if (!await AppDialog.confirm('Remove this absence confirmation?', { title: 'Remove absence confirmation', confirmText: 'Remove', variant: 'danger' })) return;
           await api('/api/sf2/absence', { method: 'DELETE', body: JSON.stringify({ studentId: remove.dataset.sf2RemoveAbsent, date: remove.dataset.date }) });
           await loadSf2Preview();
         }
@@ -2231,7 +2231,7 @@
           anchor.href = url; anchor.download = 'Submitted-SF2.xlsx'; anchor.click(); URL.revokeObjectURL(url);
         } catch (error) { showToast(error.message, true); }
       } else if (collect) {
-        if (!window.confirm('Mark this submitted SF2 as collected?')) return;
+        if (!await AppDialog.confirm('Mark this submitted SF2 as collected?', { title: 'Confirm SF2 collection', confirmText: 'Mark as collected' })) return;
         collect.disabled = true;
         try { await api(`/api/sf2/submissions/${encodeURIComponent(collect.dataset.collectSf2)}/collect`, { method: 'PATCH' }); await loadSf2Submissions(); showToast('SF2 marked as collected.'); }
         catch (error) { showToast(error.message, true); collect.disabled = false; }
@@ -2483,7 +2483,7 @@
   });
   $('confirmStudentImport')?.addEventListener('click', async () => {
     if (!pendingStudentImport || !pendingStudentImportPreview || pendingStudentImportPreview.summary.error) return;
-    if (!window.confirm('Import ' + pendingStudentImportPreview.total + ' student records? Existing Student IDs will be updated, not duplicated.')) return;
+    if (!await AppDialog.confirm('Import ' + pendingStudentImportPreview.total + ' student records? Existing Student IDs will be updated, not duplicated.', { title: 'Import student records', confirmText: 'Import students' })) return;
     $('confirmStudentImport').disabled = true; $('studentImportSummary').textContent = 'Saving records…';
     try {
       const result = await api('/api/students/import/commit', { method:'POST', body:JSON.stringify(pendingStudentImport) });
@@ -2510,7 +2510,7 @@
   $('studentBatchForm')?.addEventListener('submit', async event => {
     event.preventDefault(); const action = $('studentBatchAction').value;
     if (!action || !selectedStudentIds.size) return;
-    if (!window.confirm(action + ' ' + selectedStudentIds.size + ' selected student records?')) return;
+    if (!await AppDialog.confirm(action + ' ' + selectedStudentIds.size + ' selected student records?', { title: 'Confirm bulk student action', confirmText: 'Apply changes', variant: ['DEACTIVATE', 'ARCHIVE'].includes(action) ? 'danger' : 'primary' })) return;
     const body = { action, studentIds:[...selectedStudentIds] };
     if (action === 'UPDATE') {
       if ($('batchFullName').value.trim()) body.fullName = $('batchFullName').value.trim();
@@ -2757,7 +2757,7 @@
   $('bulkScheduleTeacher')?.addEventListener('change', updatePeriodBatchUi);
   $('applyBulkScheduleAssignment')?.addEventListener('click', async () => {
     if (!selectedPeriodIds.size || !$('bulkScheduleTeacher').value) return;
-    if (!window.confirm('Assign the selected ' + selectedPeriodIds.size + ' schedules to this teacher?')) return;
+    if (!await AppDialog.confirm('Assign the selected ' + selectedPeriodIds.size + ' schedules to this teacher?', { title: 'Assign class schedules', confirmText: 'Assign schedules' })) return;
     $('applyBulkScheduleAssignment').disabled = true; $('bulkScheduleFeedback').textContent = 'Checking department access and timetable conflicts…';
     try {
       const result = await api('/api/periods/bulk-assignments', { method:'POST', body:JSON.stringify({
@@ -2835,7 +2835,7 @@
     $('adviserAssignmentRows').addEventListener('click', async event => {
       const button = event.target.closest('[data-remove-adviser]');
       if (!button) return;
-      if (!window.confirm('Remove this Class Adviser assignment?')) return;
+      if (!await AppDialog.confirm('Remove this Class Adviser assignment?', { title: 'Remove Class Adviser assignment', confirmText: 'Remove assignment', variant: 'danger' })) return;
       button.disabled = true;
       try { await api(`/api/class-adviser-assignments/${encodeURIComponent(button.dataset.removeAdviser)}`, { method: 'DELETE' }); await loadSchoolData(); showToast('Class Adviser assignment removed.'); }
       catch (error) { showToast(error.message, true); button.disabled = false; }
@@ -2933,7 +2933,7 @@
         const teacher = teachers.find(item => String(item.userId) === String(designationButton.dataset.editDesignations));
         if (!teacher) return;
         const current = (teacher.teacherDesignations || []).join(',');
-        const answer = window.prompt('Enter one or both values: SUBJECT_TEACHER, CLASS_ADVISER', current);
+        const answer = await AppDialog.prompt('Enter one or both teacher designations. Separate values with a comma.', current, { title: 'Edit teacher designations', label: 'Teacher designations', helpText: 'Use SUBJECT_TEACHER, CLASS_ADVISER, or both.', placeholder: 'SUBJECT_TEACHER,CLASS_ADVISER', validate: value => { const entries = String(value).split(',').map(item => item.trim().toUpperCase()).filter(Boolean); return !entries.length || entries.every(item => ['SUBJECT_TEACHER', 'CLASS_ADVISER'].includes(item)) ? true : 'Use only SUBJECT_TEACHER and/or CLASS_ADVISER.'; } });
         if (answer === null) return;
         const designations = [...new Set(answer.split(',').map(value => value.trim().toUpperCase()).filter(Boolean))];
         try {
@@ -2957,7 +2957,7 @@
         if (teacher) openSubstituteDialog(teacher, substituteButton);
       } else if (cancelSubstitutionButton) {
         const substitutionId = cancelSubstitutionButton.dataset.cancelSubstitution;
-        if (!window.confirm('Cancel this temporary substitute assignment? The original teacher’s permanent schedule will remain unchanged.')) return;
+        if (!await AppDialog.confirm('Cancel this temporary substitute assignment? The original teacher’s permanent schedule will remain unchanged.', { title: 'Cancel substitute assignment', confirmText: 'Cancel assignment', variant: 'danger' })) return;
         cancelSubstitutionButton.disabled = true;
         try {
           await api(`/api/teacher-substitutions/${encodeURIComponent(substitutionId)}`, { method: 'DELETE' });
@@ -2973,7 +2973,7 @@
         openTeacherLeaveDialog(teacherId, teacher?.displayName || 'Teacher', leaveButton);
       } else if (returnButton) {
         const teacherId = returnButton.dataset.returnTeacher;
-        if (!window.confirm('Mark this teacher as returned and restore login access? Previous class assignments will be preserved.')) return;
+        if (!await AppDialog.confirm('Mark this teacher as returned and restore login access? Previous class assignments will be preserved.', { title: 'Return teacher to active status', confirmText: 'Restore access' })) return;
         returnButton.disabled = true;
         try {
           await api(`/api/teachers/${encodeURIComponent(teacherId)}/return`, { method: 'POST' });
@@ -2985,7 +2985,7 @@
         }
       } else if (deactivateButton) {
         const teacherId = deactivateButton.dataset.deactivateTeacher;
-        if (!window.confirm('Deactivate this teacher account permanently? Login will be disabled, but historical attendance and schedule assignments will be preserved.')) return;
+        if (!await AppDialog.confirm('Deactivate this teacher account permanently? Login will be disabled, but historical attendance and schedule assignments will be preserved.', { title: 'Deactivate teacher account', confirmText: 'Deactivate account', variant: 'danger' })) return;
         const button = deactivateButton;
         button.disabled = true;
         try {
