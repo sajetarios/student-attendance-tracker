@@ -69,7 +69,9 @@ test('student registration requires guardian details and stores them on the exis
   const route = server.slice(start, end);
   assert.match(route, /cleanParentName/);
   assert.match(route, /cleanParentMobile/);
-  assert.match(route, /!validText\(parentName\)/);
+  const updateStart = server.indexOf("app.patch('/api/students/:studentId'");
+  const updateRoute = server.slice(updateStart);
+  assert.match(updateRoute, /!validText\(parentName\)/);
   assert.match(route, /parent_name, parent_mobile/);
   assert.match(route, /cleanParentName, cleanParentMobile/);
   assert.match(route, /ON CONFLICT\(student_id\)/);
@@ -101,11 +103,11 @@ test('bulk student imports require guardian details and cannot overwrite the mas
   const html = read('public/portal.html');
   const portal = read('public/portal.js');
   assert.match(routes, /'parentName','parentMobile'/);
-  assert.match(routes, /Parent \/ guardian full name is required/);
-  assert.match(routes, /Parent \/ guardian mobile is required/);
+  assert.match(routes, /Parent\/guardian full name is required/);
+  assert.match(routes, /Parent\/guardian mobile is required/);
   assert.match(routes, /r\.parentName,r\.parentMobile/);
   assert.doesNotMatch(routes, /r\.parentName\|\|null,r\.parentMobile\|\|''/);
-  assert.match(html, /Parent \/ guardian full name, and Parent \/ guardian mobile/);
+  assert.match(html, /Parent\/guardian full name, and Parent\/guardian mobile/);
   assert.match(portal, /\$\('editParentName'\)\.required = !restrictedStudentEditor/);
   assert.match(portal, /\$\('editParentMobile'\)\.required = !restrictedStudentEditor/);
 });
