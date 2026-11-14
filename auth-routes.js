@@ -52,7 +52,7 @@ function registerAuthRoutes(app, pool) {
       if (!schoolResult.rowCount) return res.status(401).json({ error: 'Invalid login credentials.' });
       const school = schoolResult.rows[0];
       const userResult = await pool.query(
-        `SELECT su.user_id, su.username, su.display_name, su.password_hash, su.role, su.teacher_designations, su.department_id, d.department_code, su.active,
+        `SELECT su.user_id, su.username, su.display_name, su.password_hash, su.role, su.teacher_designations, su.department_id, d.department_code, su.active, su.must_change_password,
                 failed_login_attempts, locked_until
          FROM school_users su
          LEFT JOIN school_departments d ON d.school_id=su.school_id AND d.department_id=su.department_id
@@ -92,7 +92,8 @@ function registerAuthRoutes(app, pool) {
           departmentCode: user.department_code || null,
           schoolId: school.school_id,
           schoolCode: school.school_code,
-          schoolName: school.school_name
+          schoolName: school.school_name,
+          mustChangePassword: Boolean(user.must_change_password)
         }
       });
     } catch (err) {
@@ -214,6 +215,87 @@ function registerAuthRoutes(app, pool) {
     }
   });
 
+
+  app.post('/api/auth/school/change-password', async (req, res) => {
+    const token = bearerToken(req);
+    const { currentPassword, newPassword } = req.body || {};
+    if (!token || typeof currentPassword !== 'string' || typeof newPassword !== 'string' ||
+        newPassword.length < 12 || newPassword.length > 256) {
+      return res.status(400).json({ error: 'Provide your temporary password and a new password of at least 12 characters.' });
+    }
+    const client = await pool.connect();
+    try {
+      await client.query('BEGIN');
+      const found = await client.query(
+        `SELECT us.session_id, us.school_id, su.user_id, su.username, su.display_name,
+                su.password_hash, su.must_change_password, su.role, su.teacher_designations,
+                su.department_id, d.department_code, s.school_code, s.school_name
+         FROM user_sessions us
+         JOIN school_users su ON su.school_id=us.school_id AND su.user_id=us.school_user_id AND su.active=TRUE
+         JOIN schools s ON s.school_id=us.school_id AND s.active=TRUE
+         LEFT JOIN school_departments d ON d.school_id=su.school_id AND d.department_id=su.department_id
+         WHERE us.token_hash=$1 AND us.principal_type='SCHOOL'
+           AND us.revoked_at IS NULL AND us.expires_at>NOW()
+         FOR UPDATE OF su`,
+        [hashToken(token)]
+      );
+      if (!found.rowCount) {
+        await client.query('ROLLBACK');
+        return res.status(401).json({ error: 'Your temporary sign-in session is invalid or expired. Please contact the administrator.' });
+      }
+      const account = found.rows[0];
+      if (!account.must_change_password) {
+        await client.query('ROLLBACK');
+        return res.status(409).json({ error: 'A forced password change is not pending for this account.' });
+      }
+      if (!await verifyPassword(currentPassword, account.password_hash)) {
+        await client.query('ROLLBACK');
+        return res.status(401).json({ error: 'The temporary password is incorrect.' });
+      }
+      if (await verifyPassword(newPassword, account.password_hash)) {
+        await client.query('ROLLBACK');
+        return res.status(400).json({ error: 'Choose a new password different from the temporary password.' });
+      }
+      const newHash = await hashPassword(newPassword);
+      await client.query(
+        `UPDATE school_users SET password_hash=$3, must_change_password=FALSE,
+           failed_login_attempts=0, locked_until=NULL, session_version=session_version+1,
+           updated_at=NOW()
+         WHERE school_id=$1 AND user_id=$2`,
+        [account.school_id, account.user_id, newHash]
+      );
+      await client.query(
+        `UPDATE user_sessions SET revoked_at=NOW()
+         WHERE principal_type='SCHOOL' AND school_id=$1 AND school_user_id=$2 AND revoked_at IS NULL`,
+        [account.school_id, account.user_id]
+      );
+      await client.query(
+        `INSERT INTO audit_logs(school_id,actor_type,actor_user_id,action,entity_type,entity_id,details)
+         VALUES($1,'SCHOOL',$2,'SCHOOL_USER_COMPLETE_REQUIRED_PASSWORD_CHANGE','school_user',$3,'{}'::jsonb)`,
+        [account.school_id, account.user_id, account.user_id]
+      );
+      await client.query('COMMIT');
+      const session = await issueSession({ principalType: 'SCHOOL', schoolId: account.school_id, schoolUserId: account.user_id });
+      return res.json({
+        ...session,
+        user: {
+          userId: account.user_id, username: account.username, displayName: account.display_name,
+          role: account.role,
+          teacherDesignations: Array.isArray(account.teacher_designations) ? account.teacher_designations : [],
+          departmentId: account.department_id || null, departmentCode: account.department_code || null,
+          schoolId: account.school_id, schoolCode: account.school_code, schoolName: account.school_name,
+          mustChangePassword: false
+        }
+      });
+    } catch (err) {
+      await client.query('ROLLBACK').catch(() => {});
+      console.error('Required staff password change failed:', err.message);
+      return res.status(500).json({ error: 'Could not update your password. Please try again.' });
+    } finally {
+      client.release();
+    }
+  });
+
   app.get('/api/auth/me', async (req, res) => {
     const token = bearerToken(req);
     if (!token) return res.status(401).json({ error: 'Authentication required.' });
@@ -227,6 +309,7 @@ function registerAuthRoutes(app, pool) {
                 su.display_name AS school_display_name, su.role AS school_role,
                 su.teacher_designations AS school_teacher_designations,
                 su.department_id AS school_department_id,
+                su.must_change_password AS school_must_change_password,
                 sd.department_name AS school_department_name,
                 sd.department_code AS school_department_code,
                 s.school_code, s.school_name
@@ -284,7 +367,8 @@ function registerAuthRoutes(app, pool) {
         departmentCode: row.school_department_code || null,
         schoolId: row.school_id,
         schoolCode: row.school_code,
-        schoolName: row.school_name
+        schoolName: row.school_name,
+        mustChangePassword: Boolean(row.school_must_change_password)
       }});
     } catch (err) {
       console.error('Session lookup failed:', err.message);
