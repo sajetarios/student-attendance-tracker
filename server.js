@@ -2503,19 +2503,7 @@ app.post('/api/periods', authenticateSchoolClient, requireSchoolRoles('DEPARTMEN
       return res.status(400).json({ error: 'That subject is not active in the selected teacher’s department. Refresh the subject list.' });
     }
 
-    const duplicateLabel = await client.query(
-      "SELECT period_name FROM class_periods WHERE school_id=$1 AND active=TRUE " +
-      "AND lower(btrim(grade_level))=lower(btrim($2)) " +
-      "AND upper(btrim(section))=upper(btrim($3)) " +
-      "AND lower(btrim(period_name))=lower(btrim($4)) LIMIT 1",
-      [req.auth.schoolId, gradeLevel.trim(), section.trim(), periodName.trim()]
-    );
-    if (duplicateLabel.rowCount) {
-      await client.query('ROLLBACK');
-      return res.status(409).json({
-        error: periodName.trim() + ' already exists for ' + gradeLevel.trim() + ' · ' + section.trim() + '. Edit the existing schedule instead of adding it again.'
-      });
-    }
+    // Period labels are descriptive only. Actual time intervals determine schedule conflicts.
 
     const sectionConflict = await client.query(
       "SELECT period_name,subject_name,start_time::text AS start_time,end_time::text AS end_time " +
