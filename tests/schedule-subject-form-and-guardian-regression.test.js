@@ -93,7 +93,7 @@ test('the refreshed PWA shell precaches the new schedule form script and shared 
   const html = read('public/portal.html');
   const serviceWorker = read('public/sw.js');
   assert.ok(html.includes('/portal.js?v=0.9.18'));
-  assert.ok(serviceWorker.includes('school-attendance-shell-v28-guardian-import'));
+  assert.ok(serviceWorker.includes('school-attendance-shell-v29-dashboard-ui'));
   assert.ok(serviceWorker.includes('/portal.js?v=0.9.18'));
   assert.ok(serviceWorker.includes('/form-system.css?v=1'));
 });
