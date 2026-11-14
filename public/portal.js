@@ -2055,7 +2055,7 @@ let teacherActionMenuListenersInstalled = false;
     const host = $('adviserAssignmentRows');
     if (!host) return;
     const adviserHint = $('adviserAssignmentForm')?.querySelector('.form-hint, .section-description, p');
-    if (adviserHint && user.role === 'DEPARTMENT_HEAD') adviserHint.textContent = 'Manage Class Adviser assignments for sections in your department only.';
+    if (adviserHint && user.role === 'DEPARTMENT_HEAD') adviserHint.textContent = 'Assign one Class Adviser to an enrolled section in your department. Special-program sections such as SPJ are supported even when they have no regular subject-period schedule.';
     const advisers = teachers.filter(item => Array.isArray(item.teacherDesignations) && item.teacherDesignations.includes('CLASS_ADVISER') && item.active && (user.role !== 'DEPARTMENT_HEAD' || String(item.departmentId) === String(user.departmentId)));
     const select = $('adviserTeacherSelect');
     if (select) {
