@@ -440,6 +440,7 @@
     if (adviserCard) adviserCard.hidden = true;
     if (teacherPermissionsCard) teacherPermissionsCard.hidden = true;
     if (accountAccessPanel) accountAccessPanel.hidden = activeTab !== 'permissions';
+    if (activeTab === 'permissions') loadSecurityAudit();
     if (departmentCard) departmentCard.hidden = activeTab !== 'departments';
     if (note) note.hidden = activeTab !== 'accounts';
     tabs?.querySelectorAll('[data-admin-management-tab]').forEach(button => {
@@ -454,6 +455,27 @@
     const button = event.target.closest('[data-admin-management-tab]');
     if (button) setAdminManagementTab(button.dataset.adminManagementTab);
   });
+  let securityAuditLoaded = false;
+  async function loadSecurityAudit(force = false) {
+    const host = $('securityAuditRows');
+    if (!host || (securityAuditLoaded && !force)) return;
+    host.innerHTML = '<tr><td colspan="4" class="empty-cell">Loading account activity…</td></tr>';
+    try {
+      const result = await api('/api/admin/security/audit');
+      const events = result.events || [];
+      host.innerHTML = events.length ? events.map(item => {
+        const when = item.createdAt ? new Date(item.createdAt).toLocaleString() : '—';
+        const action = String(item.action || 'Administrative change').replaceAll('_',' ').toLowerCase().replace(/\b\w/g, c => c.toUpperCase());
+        const record = [item.entityType, item.entityId].filter(Boolean).join(' · ') || '—';
+        return '<tr><td data-label="Date and time">' + esc(when) + '</td><td data-label="Action">' + esc(action) + '</td><td data-label="Changed by">' + esc(item.actorName || 'System') + '</td><td data-label="Record">' + esc(record) + '</td></tr>';
+      }).join('') : '<tr><td colspan="4" class="empty-cell">No administrative activity has been recorded yet.</td></tr>';
+      securityAuditLoaded = true;
+    } catch (error) {
+      host.innerHTML = '<tr><td colspan="4" class="empty-cell">' + esc(error.message || 'Could not load account activity.') + '</td></tr>';
+    }
+  }
+  $('refreshSecurityAudit')?.addEventListener('click', () => loadSecurityAudit(true));
+
   $('openAccountStatusManager')?.addEventListener('click', () => setAdminManagementTab('accounts'));
   document.querySelectorAll('[data-admin-go]').forEach(button => {
     button.addEventListener('click', () => {
