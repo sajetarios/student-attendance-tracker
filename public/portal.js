@@ -254,7 +254,7 @@
     const gateKeeper = role === 'GATE_KEEPER';
     if ($('studentDepartmentScopeNote')) $('studentDepartmentScopeNote').hidden = !departmentHead;
     if ($('printBulkQr')) $('printBulkQr').hidden = departmentHead;
-    if ($('applyStudentBatch')) $('applyStudentBatch').hidden = !(admin || departmentHead || (role === 'TEACHER' && teacherHas('CLASS_ADVISER')));
+    if ($('applyStudentBatch')) $('applyStudentBatch').hidden = !(admin || (teacher && teacherHas('CLASS_ADVISER')));
     const subjectTeacher = teacherHas('SUBJECT_TEACHER');
     const classAdviser = teacherHas('CLASS_ADVISER');
     const mayScan = gateKeeper || (teacher && (subjectTeacher || classAdviser));
@@ -918,7 +918,7 @@ function coverageStatusLabel(status) {
     const teacher = user.role === 'TEACHER';
     const gateKeeper = user.role === 'GATE_KEEPER';
     const designations = Array.isArray(user.teacherDesignations) ? user.teacherDesignations : [];
-    const canManage = admin || departmentHead || (teacher && (designations.includes('CLASS_ADVISER') || designations.includes('SUBJECT_TEACHER')));
+    const canManage = admin || (teacher && (designations.includes('CLASS_ADVISER') || designations.includes('SUBJECT_TEACHER')));
     const canUploadPhoto = admin || (teacher && designations.includes('CLASS_ADVISER'));
     const canViewQr = admin || (teacher && (
   designations.includes('CLASS_ADVISER') ||
@@ -936,7 +936,12 @@ function coverageStatusLabel(status) {
     );
     for (const id of [...selectedStudentIds]) if (!visible.some(student => student.studentId === id)) selectedStudentIds.delete(id);
     if (!visible.length) {
-      host.innerHTML = '<tr><td colspan="11" class="empty-cell">No students are available for this filter.</td></tr>';
+      const emptyMessage = teacher
+        ? 'No learners match the grade and section currently assigned to your teacher account. Ask your Department Head to verify your active subject schedule or Class Adviser section against the students’ current enrollment.'
+        : departmentHead
+          ? 'No active learners are registered in this school yet.'
+          : 'No students are available for this filter.';
+      host.innerHTML = '<tr><td colspan="11" class="empty-cell">' + esc(emptyMessage) + '</td></tr>';
     } else {
       const rows = await Promise.all(visible.map(async student => {
         const photo = await photoDataUrl(student.photoUrl);
@@ -952,7 +957,7 @@ function coverageStatusLabel(status) {
         const qrCell = canViewQr
           ? (qr ? `<button type="button" class="student-qr-preview" data-view-qr="${esc(student.studentId)}" title="View or print QR"><img src="${qr}" alt="QR code for ${esc(student.studentId)}"></button>` : '<span class="qr-unavailable">QR unavailable</span>')
           : (gateKeeper ? '<span class="muted-inline">Gate scan only</span>' : '<span class="muted-inline">Not available</span>');
-        const selection = (admin || departmentHead || (teacher && designations.includes('CLASS_ADVISER'))) ? `<input type="checkbox" class="student-select-box" data-select-student="${esc(student.studentId)}" ${selectedStudentIds.has(student.studentId) ? 'checked' : ''} aria-label="Select ${esc(student.fullName)}">` : '';
+        const selection = (admin || (teacher && designations.includes('CLASS_ADVISER'))) ? `<input type="checkbox" class="student-select-box" data-select-student="${esc(student.studentId)}" ${selectedStudentIds.has(student.studentId) ? 'checked' : ''} aria-label="Select ${esc(student.fullName)}">` : '';
         const editable = canManage && student.active !== false && !student.archivedAt;
         const actions = editable
           ? `<div class="student-row-actions"><button type="button" class="outline-button" data-edit-student="${esc(student.studentId)}">Edit</button>${canUploadPhoto ? `<label class="student-photo-upload">${student.hasPhoto ? 'Replace photo' : 'Upload photo'}<input type="file" accept="image/jpeg,image/png,image/webp" data-student-photo="${esc(student.studentId)}" hidden></label>` : ''}</div>`
@@ -991,9 +996,9 @@ function coverageStatusLabel(status) {
         : teacher
           ? 'View and correct learner names in your assigned subject classes. Class Advisers can also correct placement in their assigned section.'
           : user.role === 'DEPARTMENT_HEAD'
-            ? 'Department-scoped learner management. You may edit names and sex or update current-year placement inside your department.'
+            ? 'Read-only school-wide learner roster. Student record changes and class placement are handled by the School Administrator and authorized Class Advisers.'
             : 'Students registered under this school. Manage student information, photos, and QR cards.';
-    const canBatchManage = admin || departmentHead || (teacher && designations.includes('CLASS_ADVISER'));
+    const canBatchManage = admin || (teacher && designations.includes('CLASS_ADVISER'));
     document.querySelectorAll('.student-filter-row label, .student-bulk-actions').forEach(element => {
       if (gateKeeper) element.hidden = element.classList.contains('student-bulk-actions');
       else if (!canBatchManage) element.hidden = element.classList.contains('student-bulk-actions');
