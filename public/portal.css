@@ -782,3 +782,29 @@ td { font-size:14px; }
   .admin-management-tabs { display: grid; grid-template-columns: 1fr; }
   .admin-management-tab { width: 100%; text-align: left; }
 }
+
+.teacher-permission-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  margin: 2px 5px 2px 0;
+  padding: 5px 9px;
+  border: 1px solid #d5e7f4;
+  border-radius: 999px;
+  background: #f0f7fc;
+  color: #315e7e;
+  font-size: 11px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+.admin-management-tabs + .surface-card { margin-top: 0; }
+.action-row .danger-button {
+  border-color: #f0c9c9;
+  background: #fff8f8;
+  color: #a83232;
+}
+.action-row .danger-button:hover {
+  border-color: #e5aaaa;
+  background: #fff0f0;
+  color: #8e2222;
+}
