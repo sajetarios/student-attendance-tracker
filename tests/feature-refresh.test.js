@@ -81,7 +81,7 @@ test('SF2 Excel copy downloads a non-empty workbook through a temporary download
   assert.match(js, /URL\.revokeObjectURL\(url\)/);
 });
 
-test('Portal uses the refreshed accessible theme and cache-busted v0.9.22 assets', () => {
+test('Portal uses the refreshed accessible theme and cache-busted v0.9.23 assets', () => {
   assert.match(html, /portal\.css\?v=0\.9\.15/);
   assert.match(html, /portal\.js\?v=0\.9\.18/);
   assert.match(portalCss, /--brand: #2563a6;/);
