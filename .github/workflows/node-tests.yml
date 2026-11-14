@@ -8,6 +8,7 @@ on:
       - fix/teacher-monitor-table-columns
       - feature/student-management-ux
       - feature/app-dialog-ui
+      - feature/class-adviser-schedule-and-student-import-fixes
   workflow_dispatch:
 
 permissions:
