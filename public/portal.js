@@ -2348,6 +2348,10 @@ let teacherActionMenuListenersInstalled = false;
       document.querySelectorAll('#operatingDayChoices input[type="checkbox"]').forEach(input => {
         input.checked = dayMap.has(Number(input.value)) ? dayMap.get(Number(input.value)) : Number(input.value)>=1 && Number(input.value)<=5;
       });
+      const configuredDays = schoolOperatingDays.filter(day=>day.isOperatingDay).map(day=>Number(day.weekday));
+      document.querySelectorAll('#scheduleWeekdayChoices input[type="checkbox"]').forEach(input => {
+        input.checked = configuredDays.length ? configuredDays.includes(Number(input.value)) : Number(input.value)>=1 && Number(input.value)<=5;
+      });
       const select = $('scheduleTemplatePeriod');
       if (select) {
         select.innerHTML = '<option value="">Custom time</option>' + timetableTemplates.flatMap(template =>
