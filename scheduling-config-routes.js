@@ -57,6 +57,13 @@ function registerSchedulingConfigRoutes(app,pool,auth){
       periods.some((p,i)=>!textOk(p?.label,80)||!timeOk(p?.startTime)||!timeOk(p?.endTime)||p.endTime<=p.startTime||
         !Number.isInteger(Number(p?.order??i+1))||!blocks.includes(String(p?.blockType||'CLASS').toUpperCase())))
       return res.status(400).json({error:'Provide a valid template name, date range, and ordered time blocks.'});
+    const orders=periods.map((p,i)=>Number(p.order??i+1));
+    if(new Set(orders).size!==orders.length) return res.status(400).json({error:'Each time block must have a unique order number.'});
+    const chronological=[...periods].sort((a,b)=>a.startTime.localeCompare(b.startTime));
+    for(let i=1;i<chronological.length;i++){
+      if(chronological[i].startTime<chronological[i-1].endTime)
+        return res.status(400).json({error:'Timetable blocks cannot overlap. Check the start and end times.'});
+    }
     const c=await pool.connect();
     try{
       await c.query('BEGIN');
