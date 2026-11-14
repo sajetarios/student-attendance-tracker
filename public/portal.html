@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="theme-color" content="#1c2d45">
   <title>Dashboard · School Attendance</title>
-  <link rel="stylesheet" href="/portal.css?v=0.9.21">
+  <link rel="stylesheet" href="/portal.css?v=0.9.22">
   <link rel="stylesheet" href="/academic-admin.css?v=1">
   <link rel="stylesheet" href="/password-visibility.css">
 
@@ -597,21 +597,21 @@
 
           <section id="schedulesView" class="view-panel" hidden>
             <div class="surface-card section-card">
-              <div class="section-toolbar"><div><h3>Class schedules and subjects</h3><p id="scheduleScopeText">Schedules available to your account.</p></div><button class="primary-button" id="showScheduleForm">＋ Add schedule</button></div>
+              <div class="section-toolbar"><div><h3>Class &amp; subject schedules</h3><p id="scheduleScopeText">One shared school timetable. Each department manages its own subject assignments.</p></div><button class="primary-button" id="showScheduleForm">＋ Add schedule</button></div>
               <div id="periodBulkToolbar" class="student-bulk-actions" hidden><label><input type="checkbox" id="selectAllPeriods"> Select all visible schedules</label><span id="selectedPeriodCount">0 selected</span><label for="bulkScheduleTeacher">Assign to unassigned schedules</label><select id="bulkScheduleTeacher"><option value="">Choose Subject Teacher</option></select><button type="button" class="primary-button" id="applyBulkScheduleAssignment" disabled>Assign selected</button><span id="bulkScheduleFeedback" class="inline-feedback" role="status"></span></div>
               <form id="scheduleForm" class="inline-form schedule-editor-form" hidden>
-                <div class="form-context-banner">Choose the Subject Teacher first. The teacher's department is filled in automatically, and the schedule is assigned to that teacher when saved. Duplicate period labels, class overlaps, teacher conflicts, and room conflicts are checked before saving.</div>
+                <div class="form-context-banner">Choose the subject and class first, then assign an eligible teacher from the subject's department. The department is inherited from the subject catalogue. Actual times are checked for class, teacher, and room conflicts.</div>
                 <section class="schedule-form-section">
-                  <div class="form-section-heading"><strong>1. Teaching assignment</strong><small>Choose the Subject Teacher and a subject from that teacher's department.</small></div>
+                  <div class="form-section-heading"><strong>1. Subject &amp; department</strong><small>Choose the subject. Its department determines who can manage this schedule.</small></div>
                   <div class="form-grid">
                     <div class="field-group" id="periodTeacherGroup"><label for="periodTeacher">Subject Teacher *</label><select id="periodTeacher" required><option value="">Choose active Subject Teacher</option></select><small class="field-hint" id="periodTeacherHint">Choose a teacher. Their department and subject catalogue are loaded automatically from the staff profile.</small></div>
                     <div class="field-group" id="periodTeacherSelfGroup" hidden><label>Subject Teacher</label><div class="schedule-derived-field" id="periodTeacherSelfName">Your teacher account</div><small class="field-hint">This schedule will be assigned to your account.</small></div>
                     <div class="field-group"><label for="periodSubject">Subject *</label><div class="schedule-subject-control"><select id="periodSubject" required disabled><option value="">Choose teacher first</option></select><button type="button" class="outline-button" id="addScheduleSubject" hidden>＋ Add subject</button></div><small class="field-hint" id="periodSubjectHint">Subjects are stored once per department to prevent duplicate names.</small></div>
-                    <div class="field-group"><label for="periodName">Period / schedule block *</label><select id="periodName" required><option value="">Select period</option><option>Period 1</option><option>Period 2</option><option>Period 3</option><option>Period 4</option><option>Period 5</option><option>Period 6</option><option>Period 7</option><option>Period 8</option><option>Period 9</option><option>Period 10</option><option>Homeroom</option><option>Advisory</option></select><small class="field-hint">The same period label can be used in another section, but only once in this section.</small></div>
+                    <div class="field-group"><label for="periodName">Period / schedule block *</label><select id="periodName" required><option value="">Select period</option><option>Period 1</option><option>Period 2</option><option>Period 3</option><option>Period 4</option><option>Period 5</option><option>Period 6</option><option>Period 7</option><option>Period 8</option><option>Period 9</option><option>Period 10</option><option>Homeroom</option><option>Advisory</option></select><small class="field-hint">Use a clear label such as Period 1, Homeroom, or Advisory. The same label may be reused at a different time.</small></div>
                   </div>
                 </section>
                 <section class="schedule-form-section">
-                  <div class="form-section-heading"><strong>2. Class group</strong><small>Select a grade and an existing section from the student and class records.</small></div>
+                  <div class="form-section-heading"><strong>2. Class group</strong><small>Choose an existing grade and section. All departments use the same school-wide section record.</small></div>
                   <div class="form-grid">
                     <div class="field-group"><label for="periodGrade">Grade level *</label><select id="periodGrade" required><option>Grade 7</option><option>Grade 8</option><option>Grade 9</option><option>Grade 10</option></select></div>
                     <div class="field-group"><label for="periodSection">Section *</label><select id="periodSection" required disabled><option value="">Select grade first</option></select><small class="field-hint" id="periodSectionHint">Choose a grade to load its existing sections.</small></div>
@@ -619,16 +619,16 @@
                   </div>
                 </section>
                 <section class="schedule-form-section">
-                  <div class="form-section-heading"><strong>3. Time</strong><small>The time must not overlap the selected class, teacher, or room timetable.</small></div>
+                  <div class="form-section-heading"><strong>3. Time &amp; room</strong><small>Actual start and end times determine conflicts; period names are labels only.</small></div>
                   <div class="form-grid">
                     <div class="field-group"><label for="startTime">Start time *</label><input id="startTime" type="time" value="07:30" required></div>
                     <div class="field-group"><label for="endTime">End time *</label><input id="endTime" type="time" value="08:30" required></div>
                     <div class="field-group"><label for="graceMinutes">Grace period (minutes)</label><input id="graceMinutes" type="number" min="0" max="240" value="5"><small class="field-hint">Used when checking late class time-ins.</small></div>
                   </div>
                 </section>
-                <div class="form-actions"><button class="primary-button" type="submit" id="saveScheduleButton">Save schedule and assign teacher</button><button class="outline-button" type="button" id="cancelScheduleForm">Cancel</button><span id="scheduleFormFeedback" class="inline-feedback" role="status"></span></div>
+                <div class="form-actions"><button class="primary-button" type="submit" id="saveScheduleButton">Save class schedule</button><button class="outline-button" type="button" id="cancelScheduleForm">Cancel</button><span id="scheduleFormFeedback" class="inline-feedback" role="status"></span></div>
               </form>
-              <div id="managerScheduleTableWrap" class="table-scroll"><table><thead><tr><th id="periodSelectHeader" hidden>Select</th><th>Schedule</th><th>Subject</th><th>Department</th><th>Grade</th><th>Section</th><th>Classroom</th><th>Time</th><th>Assigned teacher</th><th>Actions</th></tr></thead><tbody id="scheduleRows"><tr><td colspan="8" class="empty-cell">Loading schedules…</td></tr></tbody></table></div>
+              <div class="schedule-list-intro"><strong>School-wide timetable</strong><span>Schedules from every department appear here. Only your department records can be managed.</span></div><div id="managerScheduleTableWrap" class="table-scroll"><table><thead><tr><th id="periodSelectHeader" hidden>Select</th><th>Schedule</th><th>Subject</th><th>Department</th><th>Grade</th><th>Section</th><th>Classroom</th><th>Time</th><th>Assigned teacher</th><th>Actions</th></tr></thead><tbody id="scheduleRows"><tr><td colspan="8" class="empty-cell">Loading schedules…</td></tr></tbody></table></div>
               <div id="teacherScheduleOverview" class="teacher-schedule-overview" hidden>
                 <section id="myTeachingScheduleCard" class="surface-card section-card" hidden>
                   <div class="section-toolbar"><div><h3>My Teaching Schedule</h3><p>All class periods assigned to your teacher account.</p></div></div>
@@ -804,7 +804,7 @@
   <script src="/sw-refresh.js?v=1" defer></script>
   <script src="/password-visibility.js" defer></script>
   <script src="/vendor/html5-qrcode.min.js" defer></script>
-  <script src="/portal.js?v=0.9.27" defer></script>
+  <script src="/portal.js?v=0.9.28" defer></script>
   <script src="/academic-admin.js?v=2" defer></script>
 </body>
 </html>
