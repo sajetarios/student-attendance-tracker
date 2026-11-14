@@ -239,6 +239,59 @@ app.post('/api/school-users', authenticateSchoolClient, requireSchoolAdmin, asyn
   }
 });
 
+app.patch('/api/school-users/:userId/profile', authenticateSchoolClient, requireSchoolAdmin, async (req, res) => {
+  if (!isUuid(req.params.userId)) return res.status(400).json({ error: 'Invalid school account ID.' });
+  const { displayName, active } = req.body || {};
+  if (typeof displayName !== 'string' || !displayName.trim() || displayName.trim().length > 160 ||
+      typeof active !== 'boolean') {
+    return res.status(400).json({ error: 'Provide a display name (up to 160 characters) and active status.' });
+  }
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+    const before = await client.query(
+      `SELECT user_id AS "userId", username, display_name AS "displayName", role, active
+       FROM school_users
+       WHERE school_id=$1 AND user_id=$2 AND role IN ('DEPARTMENT_HEAD','GATE_KEEPER')
+       FOR UPDATE`,
+      [req.auth.schoolId, req.params.userId]
+    );
+    if (!before.rowCount) {
+      await client.query('ROLLBACK');
+      return res.status(404).json({ error: 'Department Head or Gate Keeper account not found.' });
+    }
+    const updated = await client.query(
+      `UPDATE school_users
+       SET display_name=$3, active=$4, updated_at=NOW(),
+           session_version=CASE WHEN $4 IS FALSE THEN session_version+1 ELSE session_version END
+       WHERE school_id=$1 AND user_id=$2
+       RETURNING user_id AS "userId", username, display_name AS "displayName", role, active`,
+      [req.auth.schoolId, req.params.userId, displayName.trim(), active]
+    );
+    if (!active) {
+      await client.query(
+        `UPDATE user_sessions SET revoked_at=NOW()
+         WHERE principal_type='SCHOOL' AND school_id=$1 AND school_user_id=$2 AND revoked_at IS NULL`,
+        [req.auth.schoolId, req.params.userId]
+      );
+    }
+    await client.query(
+      `INSERT INTO audit_logs(school_id,actor_type,actor_user_id,action,entity_type,entity_id,details)
+       VALUES($1,'SCHOOL',$2,'SCHOOL_ADMIN_UPDATE_STAFF_ACCOUNT','school_user',$3,$4::jsonb)`,
+      [req.auth.schoolId, req.auth.userId, req.params.userId,
+       JSON.stringify({ before: before.rows[0], after: updated.rows[0] })]
+    );
+    await client.query('COMMIT');
+    return res.json({ user: updated.rows[0] });
+  } catch (err) {
+    await client.query('ROLLBACK').catch(() => {});
+    console.error('Staff account profile update failed:', err.message);
+    return res.status(500).json({ error: 'Could not update staff account.' });
+  } finally {
+    client.release();
+  }
+});
+
 // Gate Keeper monitoring is available to the School Administrator only.
 // This summary counts actual gate events recorded by each Gate Keeper, not login activity.
 app.get('/api/admin/gatekeeper-monitoring', authenticateSchoolClient, requireSchoolAdmin, async (req, res) => {
