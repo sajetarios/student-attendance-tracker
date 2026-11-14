@@ -2509,6 +2509,16 @@ app.post('/api/periods', authenticateSchoolClient, requireSchoolRoles('SCHOOL_AD
       return res.status(403).json({ error: 'You can create schedules only for Subject Teachers in your own department.' });
     }
     const departmentId = teacher.rows[0].departmentId;
+    if (timetableTemplateId) {
+      const template = await client.query(
+        "SELECT 1 FROM timetable_templates WHERE school_id=$1 AND template_id=$2 AND active=TRUE",
+        [req.auth.schoolId, timetableTemplateId]
+      );
+      if (!template.rowCount) {
+        await client.query('ROLLBACK');
+        return res.status(400).json({ error: 'The selected timetable template is no longer available. Refresh and choose another.' });
+      }
+    }
     const subject = await client.query(
       "SELECT subject_id AS \"subjectId\",subject_name AS \"subjectName\" FROM school_subjects " +
       "WHERE school_id=$1 AND department_id=$2 AND subject_id=$3 AND active=TRUE",
