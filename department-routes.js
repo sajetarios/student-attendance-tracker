@@ -14,9 +14,10 @@ function registerDepartmentRoutes(app, pool, auth) {
     try {
       const result = await pool.query(
         `SELECT department_id AS "departmentId", department_code AS code, department_name AS name, description, active
-         FROM school_departments WHERE school_id=$1 AND active=TRUE
+         FROM school_departments
+         WHERE school_id=$1 AND ($2::boolean=TRUE OR active=TRUE)
          ORDER BY CASE WHEN department_code='UNASSIGNED' THEN 1 ELSE 0 END, department_name`,
-        [req.auth.schoolId]
+        [req.auth.schoolId, req.auth.role === 'SCHOOL_ADMIN']
       );
       return res.json({ departments: result.rows, ownDepartmentId: req.auth.departmentId || null });
     } catch (err) {
