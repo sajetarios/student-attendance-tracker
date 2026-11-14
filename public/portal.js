@@ -1126,8 +1126,12 @@ function coverageStatusLabel(status) {
 
     $('scheduleRows').innerHTML = periods.length ? periods.map(period => {
       const canSelectPeriod = (user.role === 'SCHOOL_ADMIN' || String(period.departmentId) === String(user.departmentId)) && !period.assignedTeacherName;
-      const selection = canBulkAssign && canSelectPeriod ? '<td><input type="checkbox" data-select-period="' + esc(period.periodId) + '" ' +
-        (selectedPeriodIds.has(String(period.periodId)) ? 'checked' : '') + ' aria-label="Select ' + esc(period.periodName) + '"></td>' : '';
+      const selection = canBulkAssign
+        ? '<td>' + (canSelectPeriod
+          ? '<input type="checkbox" data-select-period="' + esc(period.periodId) + '" ' +
+            (selectedPeriodIds.has(String(period.periodId)) ? 'checked' : '') + ' aria-label="Select ' + esc(period.periodName) + '">'
+          : '—') + '</td>'
+        : '';
       return `<tr>
         ${selection}<td><strong>${esc(period.periodName)}</strong></td>
         <td>${esc(period.subjectName || '—')}</td>
