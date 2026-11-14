@@ -32,8 +32,10 @@ test('Teacher roster exposes scoped editing and the edit form has all field wrap
 
 test('Subject Teachers can create their own section schedule and it is assigned to their account', () => {
   assert.match(js, /teacherCreatingOwn/);
-  assert.match(js, /periodSection'\)\.required = teacherCreatingOwn/);
-  assert.match(html, /id="periodSectionHint"/);
+  assert.match(js, /periodSection.*required/);
+  assert.match(html, /id="periodSection" required/);
+  assert.match(js, /teacherUserId: teacher\?\.userId/);
+  assert.match(server, /subject_id,subject_name,start_time/);
   assert.match(server, /Only a Subject Teacher may create a personal class schedule/);
   assert.match(server, /INSERT INTO teacher_period_assignments\(school_id, teacher_user_id, period_id\)/);
 });
