@@ -59,3 +59,5 @@ test('Coverage cards and tabs have responsive styling for mobile screens', () =>
   assert.match(css, /\.teacher-coverage-card \.coverage-tabs/);
   assert.match(css, /@media \(max-width: 600px\)[\s\S]*?\.teacher-coverage-card \.coverage-class-details/);
 });
+
+// Trigger full-suite CI for the final coverage-tab changes.
