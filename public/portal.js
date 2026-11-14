@@ -136,7 +136,7 @@
       if (teacherHas('SUBJECT_TEACHER') || teacherHas('CLASS_ADVISER')) {
         views.push('students', 'classAttendance');
       }
-      if (teacherHas('SUBJECT_TEACHER')) views.push('schedules');
+      if (teacherHas('SUBJECT_TEACHER') || teacherHas('CLASS_ADVISER')) views.push('schedules');
       if (teacherHas('SUBJECT_TEACHER') || teacherHas('CLASS_ADVISER')) views.push('sf2');
       return views;
     }
@@ -494,8 +494,14 @@
     }
     const list = $('departmentList');
     if (list) list.innerHTML = departments.length
-      ? departments.map(item => `<span class="department-chip ${item.code === 'UNASSIGNED' ? 'unassigned' : ''}">${esc(item.name)}<small>${esc(item.code)}</small></span>`).join('')
-      : '<span class="muted-inline">No departments created yet.</span>';
+      ? departments.map(item => `<tr>
+          <td><strong>${esc(item.code)}</strong></td>
+          <td>${esc(item.name)}</td>
+          <td>${esc(item.description || '—')}</td>
+          <td><span class="account-status active">Active</span></td>
+          <td>${item.code === 'UNASSIGNED' ? '<span class="muted-inline">System department</span>' : `<button type="button" class="outline-button small-btn" data-edit-department="${esc(item.departmentId)}">Edit</button>`}</td>
+        </tr>`).join('')
+      : '<tr><td colspan="5" class="empty-cell">No departments created yet.</td></tr>';
     if ($('departmentManagementCard')) $('departmentManagementCard').hidden = user.role !== 'SCHOOL_ADMIN';
     if ($('newTeacherDepartmentGroup')) $('newTeacherDepartmentGroup').hidden = user.role !== 'SCHOOL_ADMIN';
   }
@@ -1132,7 +1138,11 @@
       updatePeriodBatchUi();
     }));
     $('scheduleScopeText').textContent = user.role === 'TEACHER'
-      ? 'View your assigned periods or create a schedule in your department that is assigned to your account.'
+      ? (teacherHas('CLASS_ADVISER') && !teacherHas('SUBJECT_TEACHER')
+        ? 'View every subject schedule assigned to your advisory section, including the assigned teacher, department, room, and class time.'
+        : teacherHas('CLASS_ADVISER')
+          ? 'View your assigned subject periods and every subject schedule assigned to your advisory section.'
+          : 'View your assigned periods or create a schedule in your department that is assigned to your account.')
       : user.role === 'DEPARTMENT_HEAD'
         ? 'All departments are visible. You can create and manage schedules only in your own department.'
         : 'Create and manage schedules for every department in this school.';
@@ -1916,7 +1926,7 @@
     const base = await Promise.all([
       api('/api/admin/dashboard'),
       api(role === 'SCHOOL_ADMIN' ? '/api/students?includeInactive=true' : '/api/students'),
-      role === 'TEACHER' && !teacherHas('SUBJECT_TEACHER') ? Promise.resolve({ periods: [] }) : api('/api/periods'),
+      role === 'TEACHER' && !(teacherHas('SUBJECT_TEACHER') || teacherHas('CLASS_ADVISER')) ? Promise.resolve({ periods: [] }) : api('/api/periods'),
       isSchoolManager ? api('/api/departments') : Promise.resolve({ departments: [] })
     ]);
     dashboardData = base[0];
@@ -2089,9 +2099,7 @@
       $('sf2ModeNote').hidden = false;
       $('sf2ModeNote').textContent = `${data.note} ${data.calendarNote || ''}`;
       $('sf2Rows').innerHTML = data.students.map(student => {
-        const sexControl = data.canEditSex
-          ? `<select data-sf2-sex="${esc(student.id)}"><option value="">Select</option><option value="MALE" ${String(student.sex).toUpperCase()==='MALE'?'selected':''}>Male</option><option value="FEMALE" ${String(student.sex).toUpperCase()==='FEMALE'?'selected':''}>Female</option></select>`
-          : esc(student.sex || '—');
+        const sexControl = esc(student.sex || 'Not set');
         const attendance = student.days.map((status, index) => {
           const date = data.dates[index];
           if (status === 'PENDING' && data.canConfirmAbsence) return `<button type="button" class="secondary-button" data-sf2-absent="${esc(student.id)}" data-date="${date}">Review ${date}</button>`;
@@ -2114,7 +2122,7 @@
         : data.summary.pending
           ? `${data.summary.pending} learner-day(s) need review. Only the assigned Class Adviser may confirm full-day absences after checking all scheduled subjects.`
           : data.summary.missingSex
-            ? `${data.summary.missingSex} learner(s) need Male/Female classification before official generation.`
+            ? `${data.summary.missingSex} learner(s) need Male/Female set in Student Management before official generation.`
             : data.canSubmit ? 'Official preview ready. The assigned Class Adviser may submit the consolidated monthly SF2.' : 'Read-only or administrative preview ready.';
     } catch (error) {
       $('sf2Feedback').textContent = error.message;
@@ -2195,12 +2203,6 @@
     $('sf2Grade').addEventListener('change', updateSf2SectionOptions);
     $('sf2Section').addEventListener('change', updateSf2ModeOptions);
     $('sf2Mode')?.addEventListener('change', () => { sf2PreviewData = null; $('sf2Summary').hidden = true; $('sf2TableWrap').hidden = true; });
-    $('sf2Rows').addEventListener('change', async event => {
-      const studentId = event.target.dataset.sf2Sex;
-      if (!studentId) return;
-      try { await api(`/api/sf2/students/${encodeURIComponent(studentId)}/sex`, { method: 'PATCH', body: JSON.stringify({ sex: event.target.value }) }); await loadSf2Preview(); }
-      catch (error) { showToast(error.message, true); }
-    });
     $('sf2Rows').addEventListener('click', async event => {
       const absent = event.target.closest('[data-sf2-absent]');
       const remove = event.target.closest('[data-sf2-remove-absent]');
@@ -2453,17 +2455,69 @@
         [...(t.adviserSections || []), ...(t.assignedPeriods || [])].map(x => String(x.gradeLevel || '') + ' ' + String(x.section || '')).join('; ')]));
   });
 
+  function prepareStudentImportAdvisoryScope() {
+    const group = $('studentImportAdvisoryGroup');
+    const select = $('studentImportAdvisoryAssignment');
+    const isAdviser = user.role === 'TEACHER' && teacherHas('CLASS_ADVISER');
+    if (!group || !select) return;
+    group.hidden = !isAdviser;
+    if (!isAdviser) return;
+    const previous = select.value;
+    select.innerHTML = '<option value="">Use grade and section from file</option>' + adviserAssignments.map(item =>
+      '<option value="' + esc(item.assignmentId) + '">' + esc(item.gradeLevel) + ' · ' + esc(item.section) + '</option>'
+    ).join('');
+    select.value = adviserAssignments.some(item => String(item.assignmentId) === String(previous))
+      ? previous : adviserAssignments.length === 1 ? String(adviserAssignments[0].assignmentId) : '';
+  }
+
+  function studentImportRequestPayload() {
+    const payload = { ...(pendingStudentImport || {}) };
+    const select = $('studentImportAdvisoryAssignment');
+    if (user.role === 'TEACHER' && teacherHas('CLASS_ADVISER') && select?.value) {
+      payload.advisoryAssignmentId = select.value;
+    }
+    return payload;
+  }
+
   function resetStudentImport() {
     pendingStudentImport = null; pendingStudentImportPreview = null;
     $('studentImportFile').value = ''; $('studentImportSummary').textContent = '';
-    $('studentImportPreviewRows').innerHTML = '<tr><td colspan="5" class="empty-cell">Choose a file to preview.</td></tr>';
+    $('studentImportPreviewRows').innerHTML = '<tr><td colspan="7" class="empty-cell">Choose a file to preview.</td></tr>';
     $('confirmStudentImport').disabled = true;
   }
-  $('bulkImportStudentsButton')?.addEventListener('click', () => { resetStudentImport(); $('studentImportModal').hidden = false; });
+
+  async function previewStudentImport() {
+    if (!pendingStudentImport) return;
+    $('studentImportSummary').textContent = 'Validating the file and assigned destination…';
+    $('confirmStudentImport').disabled = true;
+    try {
+      const preview = await api('/api/students/import/preview', { method:'POST', body:JSON.stringify(studentImportRequestPayload()) });
+      pendingStudentImportPreview = preview;
+      $('studentImportSummary').textContent = preview.total + ' rows · ' + preview.summary.create + ' new · ' + preview.summary.update + ' updates · ' + preview.summary.error + ' errors';
+      $('studentImportPreviewRows').innerHTML = preview.rows.map(r =>
+        '<tr><td>' + r.rowNumber + '</td><td>' + esc(r.studentId) + '</td><td>' + esc(r.fullName) + '</td><td>' +
+        esc(r.gradeLevel) + '</td><td>' + esc(r.section) + '</td><td>' + esc(r.action) + '</td><td>' +
+        esc((r.errors || []).join(' ')) + '</td></tr>'
+      ).join('') || '<tr><td colspan="7" class="empty-cell">No student rows were found.</td></tr>';
+      $('confirmStudentImport').disabled = preview.summary.error > 0 || preview.total === 0;
+    } catch (error) {
+      pendingStudentImportPreview = null;
+      $('studentImportSummary').textContent = error.message;
+      $('studentImportPreviewRows').innerHTML = '<tr><td colspan="7" class="empty-cell">File could not be validated.</td></tr>';
+    }
+  }
+
+  $('bulkImportStudentsButton')?.addEventListener('click', () => {
+    resetStudentImport();
+    prepareStudentImportAdvisoryScope();
+    $('studentImportModal').hidden = false;
+  });
   $('closeStudentImport')?.addEventListener('click', () => { $('studentImportModal').hidden = true; });
   $('cancelStudentImport')?.addEventListener('click', () => { $('studentImportModal').hidden = true; resetStudentImport(); });
+  $('studentImportAdvisoryAssignment')?.addEventListener('change', () => { previewStudentImport().catch(error => showToast(error.message, true)); });
   $('studentImportFile')?.addEventListener('change', async () => {
     const file = $('studentImportFile').files?.[0]; if (!file) return;
+    pendingStudentImport = null; pendingStudentImportPreview = null;
     if (file.size > 5 * 1024 * 1024) { showToast('Choose a file no larger than 5 MB.', true); return; }
     const ext = file.name.toLowerCase().split('.').pop();
     if (!['csv','xlsx'].includes(ext)) { showToast('Only CSV and Excel .xlsx files are supported.', true); return; }
@@ -2474,19 +2528,18 @@
         const reader = new FileReader(); reader.onerror = () => reject(new Error('Could not read the Excel file.'));
         reader.onload = () => resolve(String(reader.result).split(',')[1] || ''); reader.readAsDataURL(file);
       }) };
-      const preview = await api('/api/students/import/preview', { method:'POST', body:JSON.stringify(pendingStudentImport) });
-      pendingStudentImportPreview = preview;
-      $('studentImportSummary').textContent = preview.total + ' rows · ' + preview.summary.create + ' new · ' + preview.summary.update + ' updates · ' + preview.summary.error + ' errors';
-      $('studentImportPreviewRows').innerHTML = preview.rows.map(r => '<tr><td>' + r.rowNumber + '</td><td>' + esc(r.studentId) + '</td><td>' + esc(r.fullName) + '</td><td>' + esc(r.action) + '</td><td>' + esc((r.errors || []).join(' ')) + '</td></tr>').join('');
-      $('confirmStudentImport').disabled = preview.summary.error > 0 || preview.total === 0;
-    } catch (error) { $('studentImportSummary').textContent = error.message; $('studentImportPreviewRows').innerHTML = '<tr><td colspan="5" class="empty-cell">File could not be validated.</td></tr>'; }
+      await previewStudentImport();
+    } catch (error) {
+      $('studentImportSummary').textContent = error.message;
+      $('studentImportPreviewRows').innerHTML = '<tr><td colspan="7" class="empty-cell">File could not be validated.</td></tr>';
+    }
   });
   $('confirmStudentImport')?.addEventListener('click', async () => {
     if (!pendingStudentImport || !pendingStudentImportPreview || pendingStudentImportPreview.summary.error) return;
     if (!await AppDialog.confirm('Import ' + pendingStudentImportPreview.total + ' student records? Existing Student IDs will be updated, not duplicated.', { title: 'Import student records', confirmText: 'Import students' })) return;
     $('confirmStudentImport').disabled = true; $('studentImportSummary').textContent = 'Saving records…';
     try {
-      const result = await api('/api/students/import/commit', { method:'POST', body:JSON.stringify(pendingStudentImport) });
+      const result = await api('/api/students/import/commit', { method:'POST', body:JSON.stringify(studentImportRequestPayload()) });
       const summary = 'Completed: ' + result.created + ' created and ' + result.updated + ' updated.';
       resetStudentImport(); $('studentImportModal').hidden = true; selectedStudentIds.clear(); await loadSchoolData();
       showToast(summary);
@@ -2621,9 +2674,6 @@
     if (!restrictedEditor) Object.assign(payload, { lrn: $('editLrn').value.trim() || null, parentName: $('editParentName').value.trim() || null, parentMobile: $('editParentMobile').value.trim() });
     try {
       await api(`/api/students/${encodeURIComponent(id)}`, { method: 'PATCH', body: JSON.stringify(payload) });
-      if (user.role === 'TEACHER' && sexEditable) {
-        await api(`/api/sf2/students/${encodeURIComponent(id)}/sex`, { method: 'PATCH', body: JSON.stringify({ sex: payload.sex }) });
-      }
       $('studentEditOverlay').hidden = true; await loadSchoolData(); showToast('Student information updated. Existing QR code was preserved.');
     }
     catch (error) { feedback.textContent = error.message; feedback.className = 'inline-feedback error'; }
@@ -2932,10 +2982,23 @@
       if (designationButton) {
         const teacher = teachers.find(item => String(item.userId) === String(designationButton.dataset.editDesignations));
         if (!teacher) return;
-        const current = (teacher.teacherDesignations || []).join(',');
-        const answer = await AppDialog.prompt('Enter one or both teacher designations. Separate values with a comma.', current, { title: 'Edit teacher designations', label: 'Teacher designations', helpText: 'Use SUBJECT_TEACHER, CLASS_ADVISER, or both.', placeholder: 'SUBJECT_TEACHER,CLASS_ADVISER', validate: value => { const entries = String(value).split(',').map(item => item.trim().toUpperCase()).filter(Boolean); return !entries.length || entries.every(item => ['SUBJECT_TEACHER', 'CLASS_ADVISER'].includes(item)) ? true : 'Use only SUBJECT_TEACHER and/or CLASS_ADVISER.'; } });
+        const currentValues = teacher.teacherDesignations || [];
+        const current = currentValues.includes('SUBJECT_TEACHER') && currentValues.includes('CLASS_ADVISER')
+          ? 'BOTH' : currentValues[0] || '';
+        const answer = await AppDialog.prompt('Choose the designation for this teacher account.', current, {
+          title: 'Edit teacher designations',
+          label: 'Teacher designation',
+          helpText: 'Choose Subject Teacher, Class Adviser, or both. Existing subject schedule assignments are preserved.',
+          placeholder: 'Choose a designation',
+          required: true,
+          selectOptions: [
+            { value: 'SUBJECT_TEACHER', label: 'Subject Teacher — handles assigned subject schedules' },
+            { value: 'CLASS_ADVISER', label: 'Class Adviser — handles an assigned section and SF2' },
+            { value: 'BOTH', label: 'Both — Subject Teacher and Class Adviser' }
+          ]
+        });
         if (answer === null) return;
-        const designations = [...new Set(answer.split(',').map(value => value.trim().toUpperCase()).filter(Boolean))];
+        const designations = answer === 'BOTH' ? ['SUBJECT_TEACHER', 'CLASS_ADVISER'] : [answer];
         try {
           await api(`/api/teachers/${encodeURIComponent(teacher.userId)}/designations`, { method: 'PATCH', body: JSON.stringify({ teacherDesignations: designations }) });
           await loadSchoolData();
@@ -3055,6 +3118,32 @@
     } catch (error) {
       feedback.className = 'inline-feedback error';
       feedback.textContent = error.message;
+    }
+  });
+
+  $('departmentList')?.addEventListener('click', async event => {
+    const button = event.target.closest('[data-edit-department]');
+    if (!button) return;
+    const department = departments.find(item => String(item.departmentId) === String(button.dataset.editDepartment));
+    if (!department || department.code === 'UNASSIGNED') return;
+    const name = await AppDialog.prompt('Update the department name.', department.name, {
+      title: 'Edit department', label: 'Department name', required: true, maxLength: 100
+    });
+    if (name === null) return;
+    const description = await AppDialog.prompt('Update the department description. Leave blank if not needed.', department.description || '', {
+      title: 'Edit department description', label: 'Description', inputType: 'textarea', rows: 3, maxLength: 500
+    });
+    if (description === null) return;
+    button.disabled = true;
+    try {
+      await api('/api/departments/' + encodeURIComponent(department.departmentId), {
+        method: 'PATCH', body: JSON.stringify({ name: name.trim(), description: description.trim(), active: true })
+      });
+      await loadSchoolData();
+      showToast('Department updated.');
+    } catch (error) {
+      showToast(error.message, true);
+      button.disabled = false;
     }
   });
 

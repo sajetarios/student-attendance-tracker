@@ -496,8 +496,9 @@
                 <div class="student-edit-dialog">
                   <div class="section-toolbar"><div><h3 id="studentImportTitle">Bulk import students</h3><p>Upload a CSV or Excel workbook. Review every row before confirming.</p></div><button type="button" class="outline-button" id="closeStudentImport">Close</button></div>
                   <div class="field-group"><label for="studentImportFile">Import file (.csv or .xlsx)</label><input id="studentImportFile" type="file" accept=".csv,.xlsx,text/csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"><small class="field-hint">Maximum 5 MB and 2,000 rows. Required: Student ID, Full Name, Sex, Grade Level, Section.</small></div>
+                  <div class="field-group" id="studentImportAdvisoryGroup" hidden><label for="studentImportAdvisoryAssignment">Import destination · your advisory section</label><select id="studentImportAdvisoryAssignment"><option value="">Use grade and section from file</option></select><small class="field-hint">Choose one of your assigned advisory sections to place every imported learner there. The preview will show the destination before you confirm.</small></div>
                   <div id="studentImportSummary" class="inline-feedback" role="status"></div>
-                  <div class="table-scroll"><table><thead><tr><th>Row</th><th>Student ID</th><th>Name</th><th>Action</th><th>Validation</th></tr></thead><tbody id="studentImportPreviewRows"><tr><td colspan="5" class="empty-cell">Choose a file to preview.</td></tr></tbody></table></div>
+                  <div class="table-scroll"><table><thead><tr><th>Row</th><th>Student ID</th><th>Name</th><th>Grade</th><th>Section</th><th>Action</th><th>Validation</th></tr></thead><tbody id="studentImportPreviewRows"><tr><td colspan="7" class="empty-cell">Choose a file to preview.</td></tr></tbody></table></div>
                   <div class="form-actions"><button type="button" class="primary-button" id="confirmStudentImport" disabled>Confirm import</button><button type="button" class="outline-button" id="cancelStudentImport">Cancel</button></div>
                 </div>
               </div>
@@ -625,7 +626,7 @@
                 </div>
                 <div class="form-actions"><button class="primary-button" type="submit">Add department</button><span class="inline-feedback" id="departmentFormFeedback"></span></div>
               </form>
-              <div class="department-chip-list" id="departmentList"><span class="muted-inline">Loading departments…</span></div>
+              <div class="table-scroll"><table class="department-management-table"><thead><tr><th>Code</th><th>Department</th><th>Description</th><th>Status</th><th>Manage</th></tr></thead><tbody id="departmentList"><tr><td colspan="5" class="empty-cell">Loading departments…</td></tr></tbody></table></div>
             </div>
             <div class="surface-card section-card adviser-assignments-card">
               <div class="section-toolbar"><div><h3>Class Adviser assignments</h3><p>Assign one Class Adviser to each grade-and-section combination.</p></div></div>
@@ -692,7 +693,7 @@
   <script src="/app-dialog.js?v=1" defer></script>
   <script src="/password-visibility.js" defer></script>
   <script src="/vendor/html5-qrcode.min.js" defer></script>
-  <script src="/portal.js?v=0.9.14" defer></script>
+  <script src="/portal.js?v=0.9.15" defer></script>
   <script src="/academic-admin.js?v=2" defer></script>
 </body>
 </html>

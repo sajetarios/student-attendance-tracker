@@ -513,33 +513,6 @@ function registerSf2Routes(app, pool, { authenticateSchoolClient, requireSchoolU
     }
   });
 
-  app.patch('/api/sf2/students/:studentId/sex', authenticateSchoolClient, requireSchoolUser, async (req, res) => {
-    const sex = String(req.body?.sex || '').toUpperCase();
-    const studentId = String(req.params.studentId || '');
-    if (!['MALE', 'FEMALE'].includes(sex)) return res.status(400).json({ error: 'Select Male or Female.' });
-    try {
-      await migration;
-      const student = await pool.query(
-        `SELECT COALESCE(en.grade_level,s.grade_level) AS "gradeLevel",COALESCE(en.section,s.section) AS section
-         FROM students s
-         LEFT JOIN LATERAL (SELECT e.grade_level,e.section FROM student_enrollments e JOIN school_years sy ON sy.school_id=e.school_id AND sy.school_year_id=e.school_year_id WHERE e.school_id=s.school_id AND e.student_id=s.student_id AND sy.status='ACTIVE' AND e.enrollment_status='ENROLLED' ORDER BY e.created_at DESC LIMIT 1) en ON TRUE
-         WHERE s.school_id=$1 AND s.student_id=$2 AND s.active=TRUE`,
-        [req.auth.schoolId, studentId]
-      );
-      if (!student.rowCount) return res.status(404).json({ error: 'Learner not found.' });
-      const access = await getSectionAccess(req, student.rows[0].gradeLevel, student.rows[0].section);
-      if (!access.allowed || !access.canEditSex) return res.status(403).json({ error: 'Only the School Administrator or assigned Class Adviser may update this SF2 learner detail.' });
-      await pool.query(
-        'UPDATE students SET sex=$3,updated_at=NOW() WHERE school_id=$1 AND student_id=$2 AND active=TRUE',
-        [req.auth.schoolId, studentId, sex]
-      );
-      return res.json({ ok: true });
-    } catch (err) {
-      console.error('SF2 sex update failed:', err);
-      return res.status(500).json({ error: 'Could not save learner sex.' });
-    }
-  });
-
   app.get('/api/sf2/preview', authenticateSchoolClient, requireSchoolUser, async (req, res) => {
     const { month, gradeLevel, section } = req.query;
     try {
