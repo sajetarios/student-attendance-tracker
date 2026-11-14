@@ -76,3 +76,21 @@ test('Department Head interface explains that SPJ does not need a subject-period
   assert.match(html, /Special-program sections such as SPJ do not need a regular subject-period schedule/);
   assert.match(portal, /Special-program sections such as SPJ are supported even when they have no regular subject-period schedule/);
 });
+
+
+test('Advisory and subject attendance validate against the active school-year enrollment', () => {
+  const start = server.indexOf("app.post('/api/sync/events'");
+  assert.ok(start >= 0, 'Attendance ingestion route should exist');
+  const route = server.slice(start, start + 18000);
+  assert.match(route, /LEFT JOIN LATERAL \([\s\S]*?FROM student_enrollments en[\s\S]*?sy\.status='ACTIVE'[\s\S]*?en\.enrollment_status='ENROLLED'/);
+  assert.match(route, /COALESCE\(active_enrollment\.grade_level, s\.grade_level\) AS grade_level/);
+  assert.match(route, /COALESCE\(active_enrollment\.section, s\.section\) AS section/);
+  assert.match(route, /period\.grade_level !== student\.rows\[0\]\.grade_level/);
+  assert.match(route, /student\.rows\[0\]\.grade_level, student\.rows\[0\]\.section/);
+});
+
+test('A dual-designated Class Adviser defaults the scanner to an assigned advisory section', () => {
+  assert.match(portal, /scopeSelect\.value = hasAdviserRole && adviserAssignments\.length\s*\? 'ADVISORY'/);
+  assert.match(portal, /function showScanErrorModal\(/);
+  assert.match(portal, /showScanErrorModal\(error\.message/);
+});
