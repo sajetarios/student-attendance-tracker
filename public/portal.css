@@ -1210,3 +1210,25 @@ tbody tr:hover td { background: #f9fbfc; }
  .security-audit-toolbar { align-items:flex-start; flex-direction:column; }
  .security-audit-toolbar button { width:100%; }
 }
+
+
+/* Account security table and one-time password disclosure */
+.security-account-section { margin-top:22px; }
+.security-accounts-table { min-width:1040px; }
+.security-accounts-table .action-row { min-width:235px; }
+.temporary-password-overlay { position:fixed; inset:0; z-index:21000; display:grid; place-items:center; padding:18px; background:rgba(11,24,39,.68); }
+.temporary-password-dialog { position:relative; width:min(520px,100%); padding:28px; border-radius:18px; background:#fff; box-shadow:0 25px 80px rgba(0,0,0,.3); }
+.temporary-password-dialog h3 { margin:8px 34px 8px 0; color:#18364e; font-size:23px; }
+.temporary-password-dialog p { color:#65788a; font-size:13px; line-height:1.55; }
+.temporary-password-dialog label { display:block; margin:20px 0 7px; color:#345269; font-size:12px; font-weight:800; }
+.security-dialog-kicker { color:#087eb6; font-size:10px; font-weight:850; letter-spacing:.14em; }
+.temporary-password-close { position:absolute; top:14px; right:16px; border:0; border-radius:8px; width:34px; height:34px; background:#f1f5f9; color:#40556a; font-size:23px; }
+.temporary-password-value-row { display:flex; gap:8px; }
+.temporary-password-value-row input { min-width:0; flex:1; padding:12px; border:1px solid #cbd8e4; border-radius:9px; background:#f8fbfe; color:#173b56; font-weight:800; font-family:ui-monospace,monospace; }
+.temporary-password-warning { padding:11px 13px; border-radius:9px; background:#fff7e8; color:#81520b !important; }
+.temporary-password-done { display:block; margin-left:auto; }
+@media(max-width:700px) {
+ .temporary-password-dialog { padding:22px 18px; }
+ .temporary-password-value-row { flex-direction:column; }
+ .temporary-password-value-row button { width:100%; }
+}
