@@ -36,8 +36,9 @@ test('Department Head can assign substitute coverage without gaining account adm
   assert.match(server, /app\.post\('\/api\/teachers\/:userId\/substitutions', authenticateSchoolClient, requireSchoolAdminOrDepartmentHead/);
   assert.match(server, /app\.delete\('\/api\/teacher-substitutions\/:substitutionId', authenticateSchoolClient, requireSchoolAdminOrDepartmentHead/);
   assert.match(portal, /canAssignSubstitute = canManageDepartment && onLeave && assigned\.length > 0/);
-  assert.match(portal, /const canManageRow = user\.role === 'SCHOOL_ADMIN'[\s\S]*?String\(row\.departmentId\) === String\(user\.departmentId\)/);
-  assert.match(portal, /Managed by its department/);
+  assert.match(portal, /const canManageRow = showingMyDepartment && row\.departmentScope === 'MY_DEPARTMENT'[\s\S]*?user\.role === 'DEPARTMENT_HEAD'/);
+  assert.match(portal, /coverageOtherDepartmentsNotice/);
+  assert.match(portal, /const rows = showingMyDepartment \? myRows : otherRows/);
   assert.match(server, /app\.post\('\/api\/teachers\/:userId\/leave', authenticateSchoolClient, requireSchoolAdmin/);
   assert.match(server, /app\.post\('\/api\/teachers\/:userId\/leave', authenticateSchoolClient, requireSchoolAdmin/);
   assert.match(server, /app\.post\('\/api\/periods', authenticateSchoolClient, requireSchoolAdminOrDepartmentHeadOrTeacher/);
