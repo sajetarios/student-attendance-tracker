@@ -197,7 +197,7 @@
         dashboard: ['School Administrator Dashboard', 'Manage school attendance operations, users, learner records, devices, schedules, and reporting.'],
         students: ['Student management', 'Register learners, maintain student details and photos, create student portal accounts, and manage QR cards.'],
         schedules: ['Class schedules', 'Create and manage subject periods and permanent teacher assignments.'],
-        teachers: ['Teacher and staff management', 'Create school accounts, manage teacher designations, leave, schedules, substitutions, and class adviser assignments.'],
+        teachers: ['User management', 'Create and update school accounts, assign role-based access, manage departments, and disable or restore account access.'],
         sf2: ['SF2 Report Generator', 'Generate the monthly TUVERA SF2 and collect official reports submitted by Class Advisers.'],
         cloudSync: ['Cloud Sync', 'Configure the destination for the future secure local-to-cloud attendance synchronization.']
       };
@@ -217,7 +217,7 @@
     if ($('teacherMonitorTitle')) $('teacherMonitorTitle').textContent = departmentHead ? 'Teacher status and class coverage' : 'Teacher accounts';
     if ($('teacherMonitorDescription')) $('teacherMonitorDescription').textContent = departmentHead
       ? 'Review teacher status, assigned grade levels and sections, leave, schedules, and temporary substitute coverage.'
-      : 'Manage teacher accounts, designations, schedules, leave, and class adviser assignments.';
+      : 'Manage teacher account profiles and permissions. Schedule ownership and class coverage are managed in the academic workspace.';
     if ($('teacherActionHeader')) $('teacherActionHeader').textContent = departmentHead ? 'Coverage action' : 'Account action';
     if ($('sf2ViewTitle')) $('sf2ViewTitle').textContent = departmentHead ? 'SF2 Monitoring' : 'SF2 Report Generator';
     if ($('sf2ViewDescription')) $('sf2ViewDescription').textContent = departmentHead
@@ -321,7 +321,7 @@
     if ($('teachersNav')) {
       $('teachersNav').hidden = !(admin || departmentHead);
       if (departmentHead) $('teachersNav').querySelector('.nav-label').textContent = 'Teacher monitoring';
-      else $('teachersNav').querySelector('.nav-label').textContent = 'Teachers';
+      else $('teachersNav').querySelector('.nav-label').textContent = 'User management';
     }
     if ($('parentsNav')) $('parentsNav').hidden = !admin;
     if ($('showStudentForm')) $('showStudentForm').hidden = !(admin || (teacher && classAdviser));
@@ -1374,8 +1374,7 @@ let teacherActionMenuListenersInstalled = false;
            <button type="button" class="teacher-action-item" data-place-leave="${esc(teacher.userId)}">Set on leave</button>
            <button type="button" class="teacher-action-item danger" data-deactivate-teacher="${esc(teacher.userId)}">Deactivate account</button>`
         : onLeave
-          ? `<div class="teacher-action-menu-label">Leave management</div>
-             <button type="button" class="teacher-action-item" data-assign-substitute="${esc(teacher.userId)}" ${assigned.length ? '' : 'disabled'}>Assign temporary substitute</button>
+          ? `<div class="teacher-action-menu-label">Account access</div>
              <button type="button" class="teacher-action-item" data-return-teacher="${esc(teacher.userId)}">Mark returned</button>`
           : `<div class="teacher-action-menu-label">Account</div>
              <button type="button" class="teacher-action-item" data-return-teacher="${esc(teacher.userId)}">Reactivate account</button>`);
@@ -1390,7 +1389,7 @@ let teacherActionMenuListenersInstalled = false;
       ].join('');
       const actionMenu = isSchoolAdmin ? `<details class="teacher-action-menu">
         <summary class="outline-button compact-button teacher-actions-trigger" aria-label="Actions for ${esc(teacher.displayName)}">Actions <span class="teacher-actions-chevron" aria-hidden="true">▾</span></summary>
-        <div class="teacher-action-menu-panel" hidden>${accountActions}${cancelCoverActions ? '<div class="teacher-action-menu-divider"></div><div class="teacher-action-menu-label">Temporary coverage</div>' + cancelCoverActions : ''}</div>
+        <div class="teacher-action-menu-panel" hidden>${accountActions}</div>
       </details>` : (user.role === 'DEPARTMENT_HEAD' && departmentHeadCoverageActions
         ? `<div class="teacher-coverage-actions">${departmentHeadCoverageActions}</div>`
         : '<span class="muted-inline">Read only</span>');
