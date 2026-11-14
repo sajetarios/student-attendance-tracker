@@ -1460,3 +1460,81 @@ tbody tr:hover td { background: #f9fbfc; }
   vertical-align:top;
   line-height:1.45;
 }
+
+
+/* Department Head teacher workspace: one teacher directory, one adviser workflow. */
+#teachersView .teacher-coverage-actions {
+  display:flex;
+  align-items:center;
+  flex-wrap:wrap;
+  gap:7px;
+  min-width:0;
+}
+#teachersView .teacher-coverage-actions .outline-button {
+  min-height:34px;
+  padding:7px 10px;
+  font-size:12px;
+  white-space:normal;
+  line-height:1.25;
+}
+#teachersView .adviser-assignments-card { margin-top:18px; }
+#teachersView .adviser-assignments-heading { align-items:center; }
+#teachersView .adviser-assignments-heading > div { min-width:0; }
+#teachersView .adviser-assignments-heading .primary-button { flex:0 0 auto; }
+#teachersView .adviser-assignment-list {
+  padding:13px;
+  border:1px solid #e5edf4;
+  border-radius:12px;
+  background:#fbfdff;
+}
+#teachersView .adviser-list-heading {
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  gap:12px;
+  margin:0 0 10px;
+  color:#29465f;
+  font-size:13px;
+}
+#teachersView .adviser-assignments-table { width:100%; min-width:620px; table-layout:fixed; }
+#teachersView .adviser-assignments-table th,
+#teachersView .adviser-assignments-table td { padding:12px 13px; vertical-align:middle; }
+#teachersView .adviser-section-chip {
+  display:inline-flex;
+  padding:5px 9px;
+  border:1px solid #d7e7f5;
+  border-radius:7px;
+  background:#f0f7fd;
+  color:#245985;
+  font-weight:700;
+}
+#teachersView .adviser-assignment-form {
+  margin-top:14px;
+  padding:16px;
+  border:1px solid #dce8f2;
+  border-radius:12px;
+  background:#f7fbff;
+}
+#teachersView .adviser-assignment-form[hidden] { display:none !important; }
+#teachersView .adviser-form-heading {
+  display:flex;
+  justify-content:space-between;
+  align-items:flex-start;
+  gap:14px;
+  margin-bottom:14px;
+}
+#teachersView .adviser-form-heading h4 { margin:3px 0 4px; color:#203e58; font-size:16px; }
+#teachersView .adviser-form-heading p { margin:0; color:#6b7e90; font-size:13px; line-height:1.45; }
+#teachersView .adviser-assignment-fields {
+  grid-template-columns:repeat(3,minmax(0,1fr));
+  gap:12px;
+}
+#teachersView .adviser-assignment-fields .field-group { min-width:0; }
+#teachersView .adviser-assignment-fields select { width:100%; min-width:0; min-height:43px; }
+@media (max-width:760px) {
+  #teachersView .adviser-assignment-fields { grid-template-columns:minmax(0,1fr); }
+  #teachersView .adviser-assignments-heading { align-items:flex-start; flex-direction:column; }
+  #teachersView .adviser-assignments-heading .primary-button { width:100%; }
+  #teachersView .adviser-form-heading { flex-direction:column; }
+  #teachersView .adviser-form-heading > button { align-self:flex-start; }
+}
