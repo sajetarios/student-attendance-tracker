@@ -11,6 +11,7 @@ on:
       - feature/app-dialog-ui
       - feature/class-adviser-schedule-and-student-import-fixes
       - feature/schedule-subject-catalog-and-form-consistency
+      - fix/guardian-import-and-schedule-form
   workflow_dispatch:
 
 permissions:
