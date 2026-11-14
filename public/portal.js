@@ -1396,7 +1396,7 @@ let teacherActionMenuListenersInstalled = false;
 
       const departmentCell = user.role === 'SCHOOL_ADMIN'
         ? `<select class="teacher-department-select" data-change-teacher-department="${esc(teacher.userId)}" aria-label="Department for ${esc(teacher.displayName)}">
-            ${departments.map(item => `<option value="${esc(item.departmentId)}" ${String(item.departmentId) === String(teacher.departmentId) ? 'selected' : ''}>${esc(item.name)}</option>`).join('')}
+            ${departments.filter(item => item.active || String(item.departmentId) === String(teacher.departmentId)).map(item => `<option value="${esc(item.departmentId)}" ${String(item.departmentId) === String(teacher.departmentId) ? 'selected' : ''} ${item.active ? '' : 'disabled'}>${esc(item.name)}${item.active ? '' : ' (Inactive)'}</option>`).join('')}
           </select>`
         : esc(teacher.departmentName || 'Unassigned');
       return `<tr>
@@ -1812,7 +1812,7 @@ let teacherActionMenuListenersInstalled = false;
         : '';
       const departmentCell = account.role === 'DEPARTMENT_HEAD'
         ? `<select class="staff-department-select" data-change-staff-department="${esc(account.userId)}" aria-label="Department for ${esc(account.displayName || account.username)}">
-            ${departments.map(item => `<option value="${esc(item.departmentId)}" ${String(item.departmentId) === String(account.departmentId) ? 'selected' : ''}>${esc(item.name)}</option>`).join('')}
+            ${departments.filter(item => item.active || String(item.departmentId) === String(account.departmentId)).map(item => `<option value="${esc(item.departmentId)}" ${String(item.departmentId) === String(account.departmentId) ? 'selected' : ''} ${item.active ? '' : 'disabled'}>${esc(item.name)}${item.active ? '' : ' (Inactive)'}</option>`).join('')}
           </select>`
         : '<span class="muted-inline">—</span>';
       return `<tr>
