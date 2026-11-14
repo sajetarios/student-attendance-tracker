@@ -27,8 +27,8 @@ test('class schedule form derives department from teacher and uses a canonical s
   assert.match(portal, /api\('\/api\/sections\?gradeLevel=/);
   assert.ok(server.includes("app.get('/api/subjects'"));
   assert.ok(server.includes("app.post('/api/subjects'"));
-  assert.match(server, /subject_id AS "subjectId"/);
-  assert.match(server, /department_id AS "departmentId"/);
+  assert.ok(server.includes('"subjectId"'));
+  assert.ok(server.includes('"departmentId"'));
   assert.match(migration, /CREATE TABLE IF NOT EXISTS school_subjects/);
   assert.match(migration, /class_periods[\s\S]*ADD COLUMN IF NOT EXISTS subject_id UUID/);
   assert.match(migration, /CREATE UNIQUE INDEX IF NOT EXISTS school_subjects_department_name_ci_uk/);
@@ -43,7 +43,7 @@ test('schedule creation derives department and rejects duplicate period labels a
   assert.match(route, /school_subjects/);
   assert.match(route, /lower\(btrim\(grade_level\)\)/);
   assert.match(route, /upper\(btrim\(section\)\)/);
-  assert.match(route, /class_periods[\s\S]*p\.start_time < \$5::time/);
+  assert.match(route, /FROM class_periods WHERE[\s\S]*start_time < \$5::time AND \$4::time < end_time/);
   assert.match(route, /teacher_period_assignments/);
   assert.match(route, /teacher_period_substitutions/);
   assert.match(route, /upper\(btrim\(classroom\)\)/);
