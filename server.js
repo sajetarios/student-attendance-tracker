@@ -384,6 +384,19 @@ app.post('/api/class-adviser-assignments', authenticateSchoolClient, requireScho
     return res.status(400).json({ error: 'Select an active Class Adviser and provide a valid grade and section.' });
   }
   try {
+    const adviser = await pool.query(
+      "SELECT department_id FROM school_users WHERE school_id=$1 AND user_id=$2 AND role='TEACHER' AND active=TRUE AND 'CLASS_ADVISER'=ANY(teacher_designations)",
+      [req.auth.schoolId, adviserUserId]
+    );
+    if (!adviser.rowCount) return res.status(400).json({ error: 'Choose an active teacher with the Class Adviser designation.' });
+    if (req.auth.role === 'DEPARTMENT_HEAD') {
+      if (String(adviser.rows[0].department_id) !== String(req.auth.departmentId)) return res.status(403).json({ error: 'You can assign only teachers in your own department.' });
+      const section = await pool.query(
+        "SELECT 1 FROM class_periods WHERE school_id=$1 AND department_id=$2 AND grade_level=$3 AND section=$4 AND active=TRUE LIMIT 1",
+        [req.auth.schoolId, req.auth.departmentId, gradeLevel.trim(), section.trim()]
+      );
+      if (!section.rowCount) return res.status(403).json({ error: 'This grade and section is not configured under your department.' });
+    }
     const result = await pool.query(
       `INSERT INTO class_adviser_assignments(school_id, adviser_user_id, grade_level, section, assigned_by)
        VALUES($1,$2,$3,$4,$5)
@@ -436,6 +449,24 @@ app.patch('/api/class-adviser-assignments/:assignmentId', authenticateSchoolClie
          AND 'CLASS_ADVISER'=ANY(teacher_designations)`,
       [req.auth.schoolId, adviserUserId]
     );
+    if (req.auth.role === 'DEPARTMENT_HEAD') {
+      const existingScope = await client.query(
+        "SELECT 1 FROM class_periods WHERE school_id=$1 AND department_id=$2 AND grade_level=$3 AND section=$4 AND active=TRUE LIMIT 1",
+        [req.auth.schoolId, req.auth.departmentId, existing.rows[0].gradeLevel, existing.rows[0].section]
+      );
+      const targetScope = await client.query(
+        "SELECT 1 FROM class_periods WHERE school_id=$1 AND department_id=$2 AND grade_level=$3 AND section=$4 AND active=TRUE LIMIT 1",
+        [req.auth.schoolId, req.auth.departmentId, gradeLevel.trim(), section.trim()]
+      );
+      const adviserScope = await client.query(
+        "SELECT 1 FROM school_users WHERE school_id=$1 AND user_id=$2 AND department_id=$3 AND role='TEACHER'",
+        [req.auth.schoolId, adviserUserId, req.auth.departmentId]
+      );
+      if (!existingScope.rowCount || !targetScope.rowCount || !adviserScope.rowCount) {
+        await client.query('ROLLBACK');
+        return res.status(403).json({ error: 'You can edit Class Adviser assignments only for sections and teachers in your own department.' });
+      }
+    }
     if (!adviser.rowCount) {
       await client.query('ROLLBACK');
       return res.status(400).json({ error: 'The selected account must be an active teacher with the Class Adviser designation.' });
@@ -483,6 +514,15 @@ app.patch('/api/class-adviser-assignments/:assignmentId', authenticateSchoolClie
 app.delete('/api/class-adviser-assignments/:assignmentId', authenticateSchoolClient, requireSchoolRoles('SCHOOL_ADMIN','DEPARTMENT_HEAD'), async (req, res) => {
   if (!isUuid(req.params.assignmentId)) return res.status(400).json({ error: 'Invalid class adviser assignment ID.' });
   try {
+    if (req.auth.role === 'DEPARTMENT_HEAD') {
+      const scope = await pool.query(
+        `SELECT 1 FROM class_adviser_assignments ca
+         WHERE ca.school_id=$1 AND ca.assignment_id=$2
+           AND EXISTS (SELECT 1 FROM class_periods cp WHERE cp.school_id=ca.school_id AND cp.department_id=$3 AND cp.grade_level=ca.grade_level AND cp.section=ca.section AND cp.active=TRUE)`,
+        [req.auth.schoolId, req.params.assignmentId, req.auth.departmentId]
+      );
+      if (!scope.rowCount) return res.status(403).json({ error: 'You can remove only Class Adviser assignments in your own department.' });
+    }
     const result = await pool.query(
       `DELETE FROM class_adviser_assignments
        WHERE school_id=$1 AND assignment_id=$2
@@ -491,7 +531,7 @@ app.delete('/api/class-adviser-assignments/:assignmentId', authenticateSchoolCli
     if (!result.rowCount) return res.status(404).json({ error: 'Class adviser assignment not found.' });
     await pool.query(
       `INSERT INTO audit_logs(school_id, actor_type, actor_user_id, action, entity_type, entity_id, details)
-       VALUES($1,'SCHOOL',$2,'SCHOOL_ADMIN_UNASSIGN_CLASS_ADVISER','class_adviser_assignment',$3,$4::jsonb)`,
+       VALUES($1,'SCHOOL',$2,req.auth.role === 'DEPARTMENT_HEAD' ? 'DEPARTMENT_HEAD_UNASSIGN_CLASS_ADVISER' : 'SCHOOL_ADMIN_UNASSIGN_CLASS_ADVISER','class_adviser_assignment',$3,$4::jsonb)`,
       [req.auth.schoolId, req.auth.userId, req.params.assignmentId, JSON.stringify(result.rows[0])]
     );
     return res.json({ ok: true });
