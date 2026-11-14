@@ -92,9 +92,9 @@ test('shared form styles are linked into the main and self-service workspaces', 
 test('the refreshed PWA shell precaches the new schedule form script and shared form CSS', () => {
   const html = read('public/portal.html');
   const serviceWorker = read('public/sw.js');
-  assert.ok(html.includes('/portal.js?v=0.9.27'));
-  assert.ok(serviceWorker.includes('school-attendance-shell-v31-department-coverage-tabs'));
-  assert.ok(serviceWorker.includes('/portal.js?v=0.9.27'));
+  assert.ok(html.includes('/portal.js?v=0.9.28'));
+  assert.ok(serviceWorker.includes('school-attendance-shell-v32-scheduling-ui'));
+  assert.ok(serviceWorker.includes('/portal.js?v=0.9.28'));
   assert.ok(serviceWorker.includes('/form-system.css?v=1'));
 });
 
