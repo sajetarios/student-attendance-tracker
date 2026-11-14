@@ -1223,6 +1223,7 @@ function coverageStatusLabel(status) {
               (selectedPeriodIds.has(String(period.periodId)) ? 'checked' : '') + ' aria-label="Select ' + esc(period.periodName) + '">'
             : '—') + '</td>'
           : '';
+        const deleteAction = user.role === 'DEPARTMENT_HEAD' && String(period.departmentId) === String(user.departmentId) ? `<button type="button" class="outline-button compact-button danger-button" data-delete-period="${esc(period.periodId)}">Delete</button>` : '—';
         return `<tr>
           ${selection}<td><strong>${esc(period.periodName)}</strong></td>
           <td>${esc(period.subjectName || '—')}</td>
@@ -1231,7 +1232,7 @@ function coverageStatusLabel(status) {
           <td>${esc(period.section || 'All sections')}</td>
           <td>${esc(period.classroom || '—')}</td>
           <td>${esc(period.startTime)}–${esc(period.endTime)}</td>
-          <td>${esc(period.assignedTeacherName || 'Unassigned')}</td>
+          <td>${esc(period.assignedTeacherName || 'Unassigned')}</td><td>${deleteAction}</td>
         </tr>`;
       }).join('') : '<tr><td colspan="' + (canBulkAssign ? 9 : 8) + '" class="empty-cell">No class schedules are available yet.</td></tr>';
 
@@ -1594,11 +1595,13 @@ let teacherActionMenuListenersInstalled = false;
           feedback.textContent = 'End temporary cover before removing this permanent assignment.';
           return;
         }
-        if (!await AppDialog.confirm(`Remove the permanent assignment for ${period?.periodName || 'this schedule'} from ${teacher.displayName}? This does not delete attendance history.`, { title: 'Remove permanent assignment', confirmText: 'Remove assignment', variant: 'danger' })) return;
+        if (!await AppDialog.confirm(`Remove the permanent assignment for ${period?.periodName || 'this schedule'} from ${teacher.displayName}? This does not delete attendance history.`, { title: 'Remove permanent assignment', confirmText: 'Continue to verification', variant: 'danger' })) return;
+        const password = window.prompt('Second authentication required. Enter your account password:');
+        if (password === null || !password) return;
         button.disabled = true;
         feedback.textContent = 'Removing permanent assignment…';
         try {
-          await api(`/api/periods/${encodeURIComponent(periodId)}/assignments/${encodeURIComponent(teacher.userId)}`, { method: 'DELETE' });
+          await api(`/api/periods/${encodeURIComponent(periodId)}/assignments/${encodeURIComponent(teacher.userId)}`, { method: 'DELETE', body: JSON.stringify({ password }) });
           await loadSchoolData();
           const refreshedTeacher = teachers.find(item => String(item.userId) === String(teacher.userId));
           close();
@@ -3116,6 +3119,21 @@ let teacherActionMenuListenersInstalled = false;
       } catch (error) { feedback.className = 'inline-feedback error'; feedback.textContent = error.message; }
     });
     document.addEventListener('click', async event => {
+      const deleteScheduleButton = event.target.closest('[data-delete-period]');
+      if (deleteScheduleButton) {
+        const period = periods.find(item => String(item.periodId) === String(deleteScheduleButton.dataset.deletePeriod));
+        if (!period) return;
+        if (!await AppDialog.confirm('Deactivate ' + period.periodName + ' for ' + period.gradeLevel + ' · ' + period.section + '? Attendance history will be preserved.', { title: 'Delete class schedule', confirmText: 'Continue to verification', variant: 'danger' })) return;
+        const password = window.prompt('Second authentication required. Enter your account password:');
+        if (password === null || !password) return;
+        deleteScheduleButton.disabled = true;
+        try {
+          await api('/api/periods/' + encodeURIComponent(period.periodId), { method: 'DELETE', body: JSON.stringify({ password }) });
+          await loadSchoolData();
+          showToast('Schedule deleted. Attendance history was preserved.');
+        } catch (error) { showToast(error.message, true); deleteScheduleButton.disabled = false; }
+        return;
+      }
       const button = event.target.closest('[data-edit-teacher-permission]');
       if (!button) return;
       const teacher = teachers.find(item => String(item.userId) === String(button.dataset.editTeacherPermission));
@@ -3188,9 +3206,11 @@ let teacherActionMenuListenersInstalled = false;
       if (!await AppDialog.confirm('Remove this Class Adviser assignment? The teacher account and attendance history will remain unchanged.', {
         title: 'Remove Class Adviser assignment', confirmText: 'Remove assignment', variant: 'danger'
       })) return;
+      const password = window.prompt('Second authentication required. Enter your account password to remove this Class Adviser assignment:');
+      if (password === null || !password) return;
       button.disabled = true;
       try {
-        await api('/api/class-adviser-assignments/' + encodeURIComponent(button.dataset.removeAdviser), { method: 'DELETE' });
+        await api('/api/class-adviser-assignments/' + encodeURIComponent(button.dataset.removeAdviser), { method: 'DELETE', body: JSON.stringify({ password }) });
         await loadSchoolData();
         showToast('Class Adviser assignment removed.');
       } catch (error) {
