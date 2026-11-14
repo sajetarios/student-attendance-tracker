@@ -593,7 +593,17 @@
                 </section>
                 <div class="form-actions"><button class="primary-button" type="submit" id="saveScheduleButton">Save schedule and assign teacher</button><button class="outline-button" type="button" id="cancelScheduleForm">Cancel</button><span id="scheduleFormFeedback" class="inline-feedback" role="status"></span></div>
               </form>
-              <div class="table-scroll"><table><thead><tr><th id="periodSelectHeader" hidden>Select</th><th>Schedule</th><th>Subject</th><th>Department</th><th>Grade</th><th>Section</th><th>Classroom</th><th>Time</th><th>Assigned teacher</th></tr></thead><tbody id="scheduleRows"><tr><td colspan="8" class="empty-cell">Loading schedules…</td></tr></tbody></table></div>
+              <div id="managerScheduleTableWrap" class="table-scroll"><table><thead><tr><th id="periodSelectHeader" hidden>Select</th><th>Schedule</th><th>Subject</th><th>Department</th><th>Grade</th><th>Section</th><th>Classroom</th><th>Time</th><th>Assigned teacher</th></tr></thead><tbody id="scheduleRows"><tr><td colspan="8" class="empty-cell">Loading schedules…</td></tr></tbody></table></div>
+              <div id="teacherScheduleOverview" class="teacher-schedule-overview" hidden>
+                <section id="myTeachingScheduleCard" class="surface-card section-card" hidden>
+                  <div class="section-toolbar"><div><h3>My Teaching Schedule</h3><p>All class periods assigned to your teacher account.</p></div></div>
+                  <div class="table-scroll"><table><thead><tr><th>Subject</th><th>Class / Section</th><th>Schedule block</th><th>Time</th><th>Room</th></tr></thead><tbody id="myTeachingScheduleRows"><tr><td colspan="5" class="empty-cell">Loading your teaching schedule…</td></tr></tbody></table></div>
+                </section>
+                <section id="myAdvisoryScheduleCard" class="surface-card section-card" hidden>
+                  <div class="section-toolbar"><div><h3>My Advisory Class Schedule</h3><p>All subjects and the teachers handling your advisory section(s).</p></div></div>
+                  <div class="table-scroll"><table><thead><tr><th>Subject</th><th>Schedule block</th><th>Time</th><th>Room</th><th>Subject Teacher</th></tr></thead><tbody id="myAdvisoryScheduleRows"><tr><td colspan="5" class="empty-cell">Loading your advisory class schedule…</td></tr></tbody></table></div>
+                </section>
+              </div>
             </div>
           </section>
 
