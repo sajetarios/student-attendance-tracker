@@ -1864,7 +1864,7 @@ let teacherActionMenuListenersInstalled = false;
           return;
         }
         if (!await AppDialog.confirm(`Remove the permanent assignment for ${period?.periodName || 'this schedule'} from ${teacher.displayName}? This does not delete attendance history.`, { title: 'Remove permanent assignment', confirmText: 'Continue to verification', variant: 'danger' })) return;
-        const password = window.prompt('Second authentication required. Enter your account password:');
+        const password = await AppDialog.prompt('Enter your account password to confirm this change. The schedule will be deactivated, but attendance history will remain intact.', '', { title: 'Confirm schedule deactivation', label: 'Account password', inputType: 'password', required: true, requiredMessage: 'Enter your password to continue.', confirmText: 'Verify and deactivate' });
         if (password === null || !password) return;
         button.disabled = true;
         feedback.textContent = 'Removing permanent assignment…';
