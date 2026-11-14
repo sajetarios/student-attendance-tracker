@@ -1437,7 +1437,7 @@ app.post('/api/students', authenticateSchoolClient, requireSchoolAdminOrTeacher,
   const { studentId, lrn, fullName, gradeLevel, section, sex, parentName, parentMobile } = req.body || {};
   const cleanSex = String(sex || '').trim().toUpperCase();
   const cleanParentName = typeof parentName === 'string' ? parentName.trim() : '';
-  const cleanParentMobile = typeof parentMobile === 'string' ? cleanParentMobile : '';
+  const cleanParentMobile = typeof parentMobile === 'string' ? parentMobile.trim() : '';
   const cleanLrn = typeof lrn === 'string' ? lrn.trim() : '';
   if (![studentId, fullName, gradeLevel, section, cleanParentName, cleanParentMobile].every(validText) ||
       cleanParentName.length > 160 || cleanParentMobile.length > 30 || cleanLrn.length > 30 ||
