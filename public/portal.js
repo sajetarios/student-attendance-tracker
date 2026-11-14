@@ -730,9 +730,8 @@ function coverageStatusLabel(status) {
       return;
     }
     host.innerHTML = teacherCoverage.map(row => {
-      const canManageRow = user.role === 'SCHOOL_ADMIN' ||
-        (user.role === 'DEPARTMENT_HEAD' && user.departmentCode !== 'UNASSIGNED' &&
-         String(row.departmentId) === String(user.departmentId));
+      const canManageRow = user.role === 'DEPARTMENT_HEAD' && user.departmentCode !== 'UNASSIGNED' &&
+        String(row.departmentId) === String(user.departmentId);
       const options = canManageRow ? teachers.filter(teacher => {
         const alreadyBooked = (teacher.assignedPeriods || []).some(period =>
           String(period.periodId) !== String(row.periodId) &&
@@ -773,7 +772,7 @@ function coverageStatusLabel(status) {
   }
 
   async function loadTeacherCoverage(notifyNew = false) {
-    if (!['SCHOOL_ADMIN','DEPARTMENT_HEAD'].includes(user?.role)) return;
+    if (user?.role !== 'DEPARTMENT_HEAD') return;
     const data = await api('/api/admin/teacher-coverage');
     const nextRows = data.coverage || [];
     const nextAlerts = new Set(nextRows.filter(coverageNeedsAction).map(row => `${data.schoolDate}:${row.periodId}:${row.coverageStatus}`));
@@ -2176,7 +2175,7 @@ let teacherActionMenuListenersInstalled = false;
 
     const isDepartmentHead = role === 'DEPARTMENT_HEAD';
     const isSchoolManager = ['SCHOOL_ADMIN', 'DEPARTMENT_HEAD'].includes(role);
-    $('teacherCoverageCard').hidden = !isSchoolManager;
+    $('teacherCoverageCard').hidden = !isDepartmentHead;
     if ($('departmentHeadOverview')) $('departmentHeadOverview').hidden = !isDepartmentHead;
     const base = await Promise.all([
       api('/api/admin/dashboard'),
@@ -2231,9 +2230,8 @@ let teacherActionMenuListenersInstalled = false;
     if (isSchoolManager) renderTeachers();
     if (role === 'DEPARTMENT_HEAD') renderTeacherPermissions();
     if (isDepartmentHead) renderDepartmentHeadOverview();
-    if (isSchoolManager) {
+    if (isDepartmentHead) {
       await loadTeacherCoverage(false);
-      await loadGateMonitoring();
     }
     if (['SCHOOL_ADMIN', 'DEPARTMENT_HEAD', 'TEACHER'].includes(role)) {
       await loadSf2Options();
@@ -3747,7 +3745,7 @@ $('teacherCoverageRows')?.addEventListener('click', async event => {
 
   init().then(() => {
     if ($('studentForm') && !$('studentForm').hidden) loadSectionsForGrade($('newGrade').value);
-    if (['SCHOOL_ADMIN','DEPARTMENT_HEAD'].includes(user?.role)) {
+    if (user?.role === 'DEPARTMENT_HEAD') {
       window.setInterval(() => {
         if (document.visibilityState !== 'visible') return;
         loadTeacherCoverage(true).catch(error => console.warn('Teacher coverage refresh failed:', error.message));
