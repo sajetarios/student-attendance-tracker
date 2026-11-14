@@ -10,6 +10,7 @@ on:
       - feature/student-management-ux
       - feature/app-dialog-ui
       - feature/class-adviser-schedule-and-student-import-fixes
+      - feature/schedule-subject-catalog-and-form-consistency
   workflow_dispatch:
 
 permissions:
