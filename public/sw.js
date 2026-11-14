@@ -2,7 +2,7 @@ const CACHE = "school-attendance-shell-v34-weekday-timetable";
 
 const SHELL = [
   "/portal-login.html",
-  "/portal.css?v=0.9.23",
+  "/portal.css?v=0.9.24",
   "/portal.css",
   "/portal.js?v=0.9.30",
   "/academic-admin.css?v=1",
