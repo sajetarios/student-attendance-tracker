@@ -1,6 +1,9 @@
 name: Node.js tests
 
 on:
+  pull_request:
+    branches:
+      - fix/render-login-landing
   push:
     branches:
       - feature/admin-department-scheduling-coverage
