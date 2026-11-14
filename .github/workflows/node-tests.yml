@@ -7,6 +7,7 @@ on:
       - feature/compact-staff-ui
       - fix/teacher-monitor-table-columns
       - feature/student-management-ux
+      - feature/app-dialog-ui
   workflow_dispatch:
 
 permissions:
