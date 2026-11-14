@@ -497,7 +497,7 @@
               <div id="studentImportModal" class="student-edit-overlay" role="dialog" aria-modal="true" aria-labelledby="studentImportTitle" hidden>
                 <div class="student-edit-dialog">
                   <div class="section-toolbar"><div><h3 id="studentImportTitle">Bulk import students</h3><p>Upload a CSV or Excel workbook. Review every row before confirming.</p></div><button type="button" class="outline-button" id="closeStudentImport">Close</button></div>
-                  <div class="field-group"><label for="studentImportFile">Import file (.csv or .xlsx)</label><input id="studentImportFile" type="file" accept=".csv,.xlsx,text/csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"><small class="field-hint">Maximum 5 MB and 2,000 rows. Required: Student ID, Full Name, Sex, Grade Level, Section.</small></div>
+                  <div class="field-group"><label for="studentImportFile">Import file (.csv or .xlsx)</label><input id="studentImportFile" type="file" accept=".csv,.xlsx,text/csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"><small class="field-hint">Maximum 5 MB and 2,000 rows. Required: Student ID, Full Name, Sex, Grade Level, Section, Parent/guardian full name, and Parent/guardian mobile. Existing QR/barcode identities are preserved when updating a student.</small></div>
                   <div class="field-group" id="studentImportAdvisoryGroup" hidden><label for="studentImportAdvisoryAssignment">Import destination · your advisory section</label><select id="studentImportAdvisoryAssignment"><option value="">Use grade and section from file</option></select><small class="field-hint">Choose one of your assigned advisory sections to place every imported learner there. The preview will show the destination before you confirm.</small></div>
                   <div id="studentImportSummary" class="inline-feedback" role="status"></div>
                   <div class="table-scroll"><table><thead><tr><th>Row</th><th>Student ID</th><th>Name</th><th>Grade</th><th>Section</th><th>Action</th><th>Validation</th></tr></thead><tbody id="studentImportPreviewRows"><tr><td colspan="7" class="empty-cell">Choose a file to preview.</td></tr></tbody></table></div>
@@ -550,9 +550,10 @@
                     <div class="field-group" id="editSexGroup"><label for="editSex">Sex *</label><select id="editSex" required><option value="">Select sex</option><option value="MALE">Male</option><option value="FEMALE">Female</option></select></div>
                     <div class="field-group" id="editGradeGroup"><label for="editGrade">Grade *</label><select id="editGrade" required><option>Grade 7</option><option>Grade 8</option><option>Grade 9</option><option>Grade 10</option></select></div>
                     <div class="field-group" id="editSectionGroup"><label for="editSection">Section *</label><input id="editSection" required maxlength="100"></div>
-                    <div class="field-group" id="editParentNameGroup"><label for="editParentName">Parent / guardian full name</label><input id="editParentName" maxlength="160" placeholder="Primary guardian's name"></div>
-                    <div class="field-group" id="editParentMobileGroup"><label for="editParentMobile">Parent / guardian mobile number</label><input id="editParentMobile" type="tel" inputmode="tel" maxlength="30" placeholder="09XXXXXXXXX"></div>
+                    <div class="field-group" id="editParentNameGroup"><label for="editParentName">Parent / guardian full name *</label><input id="editParentName" maxlength="160" autocomplete="name" placeholder="Enter the primary guardian's full name"></div>
+                    <div class="field-group" id="editParentMobileGroup"><label for="editParentMobile">Parent / guardian mobile number *</label><input id="editParentMobile" type="tel" inputmode="tel" autocomplete="tel" maxlength="30" placeholder="09XXXXXXXXX"></div>
                   </div>
+                  <p class="form-context-help">Guardian contact details update the existing student master record. They do not create a separate parent account.</p>
                   <div class="form-actions"><button class="primary-button" type="submit" id="saveStudentEdit">Save changes</button><span id="studentEditFeedback" class="inline-feedback"></span></div>
                 </form>
               </div>
@@ -568,9 +569,8 @@
                 <section class="schedule-form-section">
                   <div class="form-section-heading"><strong>1. Teaching assignment</strong><small>Choose the Subject Teacher and a subject from that teacher's department.</small></div>
                   <div class="form-grid">
-                    <div class="field-group" id="periodTeacherGroup"><label for="periodTeacher">Subject Teacher *</label><select id="periodTeacher" required><option value="">Choose active Subject Teacher</option></select><small class="field-hint" id="periodTeacherHint">Only active Subject Teacher accounts are listed.</small></div>
+                    <div class="field-group" id="periodTeacherGroup"><label for="periodTeacher">Subject Teacher *</label><select id="periodTeacher" required><option value="">Choose active Subject Teacher</option></select><small class="field-hint" id="periodTeacherHint">Choose a teacher. Their department and subject catalogue are loaded automatically from the staff profile.</small></div>
                     <div class="field-group" id="periodTeacherSelfGroup" hidden><label>Subject Teacher</label><div class="schedule-derived-field" id="periodTeacherSelfName">Your teacher account</div><small class="field-hint">This schedule will be assigned to your account.</small></div>
-                    <div class="field-group"><label>Department (automatic)</label><div class="schedule-derived-field" id="periodDepartmentDisplay">Choose a teacher to display the department.</div><small class="field-hint">Department comes from the selected teacher's staff profile.</small></div>
                     <div class="field-group"><label for="periodSubject">Subject *</label><div class="schedule-subject-control"><select id="periodSubject" required disabled><option value="">Choose teacher first</option></select><button type="button" class="outline-button" id="addScheduleSubject" hidden>＋ Add subject</button></div><small class="field-hint" id="periodSubjectHint">Subjects are stored once per department to prevent duplicate names.</small></div>
                     <div class="field-group"><label for="periodName">Period / schedule block *</label><select id="periodName" required><option value="">Select period</option><option>Period 1</option><option>Period 2</option><option>Period 3</option><option>Period 4</option><option>Period 5</option><option>Period 6</option><option>Period 7</option><option>Period 8</option><option>Period 9</option><option>Period 10</option><option>Homeroom</option><option>Advisory</option></select><small class="field-hint">The same period label can be used in another section, but only once in this section.</small></div>
                   </div>
@@ -712,7 +712,7 @@
   <script src="/sw-refresh.js?v=1" defer></script>
   <script src="/password-visibility.js" defer></script>
   <script src="/vendor/html5-qrcode.min.js" defer></script>
-  <script src="/portal.js?v=0.9.17" defer></script>
+  <script src="/portal.js?v=0.9.18" defer></script>
   <script src="/academic-admin.js?v=2" defer></script>
 </body>
 </html>

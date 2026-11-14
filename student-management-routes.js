@@ -15,10 +15,10 @@ async function readRows(body){
  else throw Error('Choose a CSV or Excel (.xlsx) file.');
  if(matrix.length<2||matrix.length-1>MAX_ROWS)throw Error('The file must contain 1–2,000 student rows and a header row.');
  const keys=matrix[0].map(h=>headerMap[clean(h).toLowerCase().replace(/[^a-z0-9]/g,'')]||null);
- for(const k of ['studentId','fullName','sex','gradeLevel','section'])if(!keys.includes(k))throw Error('Required columns: Student ID, Full Name, Sex, Grade Level, Section.');
+ for(const k of ['studentId','fullName','sex','gradeLevel','section','parentName','parentMobile'])if(!keys.includes(k))throw Error('Required columns: Student ID, Full Name, Sex, Grade Level, Section, Parent/Guardian Name, Parent/Guardian Mobile.');
  return matrix.slice(1).map((r,i)=>{const o={rowNumber:i+2};keys.forEach((k,j)=>{if(k)o[k]=clean(r[j]);});return o;}).filter(r=>Object.values(r).some(v=>clean(v)));
 }
-function validate(r){const e=[];if(!r.studentId||r.studentId.length>80)e.push('Student ID is required (max 80).');if(!r.fullName||r.fullName.length>200)e.push('Full name is required (max 200).');if(!['MALE','FEMALE'].includes(clean(r.sex).toUpperCase()))e.push('Sex must be Male or Female.');if(!r.gradeLevel||r.gradeLevel.length>40)e.push('Grade level is required (max 40).');if(!r.section||r.section.length>100)e.push('Section is required (max 100).');if((r.lrn||'').length>30)e.push('LRN is too long.');if((r.parentName||'').length>160)e.push('Parent name is too long.');if((r.parentMobile||'').length>30)e.push('Parent mobile is too long.');return e;}
+function validate(r){const e=[];if(!r.studentId||r.studentId.length>80)e.push('Student ID is required (max 80).');if(!r.fullName||r.fullName.length>200)e.push('Full name is required (max 200).');if(!['MALE','FEMALE'].includes(clean(r.sex).toUpperCase()))e.push('Sex must be Male or Female.');if(!r.gradeLevel||r.gradeLevel.length>40)e.push('Grade level is required (max 40).');if(!r.section||r.section.length>100)e.push('Section is required (max 100).');if(!r.parentName||r.parentName.length>160)e.push('Parent/guardian full name is required (max 160).');if(!r.parentMobile||r.parentMobile.length>30)e.push('Parent/guardian mobile is required (max 30).');if((r.lrn||'').length>30)e.push('LRN is too long.');return e;}
 function normalizeGradeLevel(value){const text=clean(value).toUpperCase().replace(/\s+/g,' ');const match=text.match(/^(?:GRADE|GR)\s*(\d+)$/)||text.match(/^(\d+)$/);return match?'GRADE '+Number(match[1]):text;}
 function normalizeSection(value){return clean(value).toUpperCase().replace(/\s+/g,' ');}
 function registerStudentManagementRoutes(app,pool,auth){
@@ -79,7 +79,7 @@ function registerStudentManagementRoutes(app,pool,auth){
      VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,gen_random_uuid())
      ON CONFLICT(student_id) DO UPDATE SET lrn=EXCLUDED.lrn,full_name=EXCLUDED.full_name,parent_name=EXCLUDED.parent_name,parent_mobile=EXCLUDED.parent_mobile,sex=EXCLUDED.sex,qr_token=COALESCE(students.qr_token,EXCLUDED.qr_token),updated_at=NOW()
      WHERE students.school_id=EXCLUDED.school_id AND students.active=TRUE AND students.archived_at IS NULL RETURNING student_id`,
-     [req.auth.schoolId,r.studentId,r.lrn||null,r.fullName,y.rowCount?'Unassigned':r.gradeLevel,y.rowCount?'Unassigned':r.section,r.parentName||null,r.parentMobile||'',r.sex]);
+     [req.auth.schoolId,r.studentId,r.lrn||null,r.fullName,y.rowCount?'Unassigned':r.gradeLevel,y.rowCount?'Unassigned':r.section,r.parentName,r.parentMobile,r.sex]);
     if(!saved.rowCount)throw Object.assign(Error('A record changed during import. Preview again.'),{statusCode:409});
     if(y.rowCount)await c.query(`INSERT INTO student_enrollments(school_id,student_id,school_year_id,grade_level,section,enrollment_date,enrollment_status,created_by_user_id)
      VALUES($1,$2,$3,$4,$5,CURRENT_DATE,'ENROLLED',$6)

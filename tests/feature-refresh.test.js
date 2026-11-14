@@ -83,7 +83,7 @@ test('SF2 Excel copy downloads a non-empty workbook through a temporary download
 
 test('Portal uses the current accessible theme and cache-busted v0.9.13 assets', () => {
   assert.match(html, /portal\.css\?v=0\.9\.13/);
-  assert.match(html, /portal\.js\?v=0\.9\.17/);
+  assert.match(html, /portal\.js\?v=0\.9\.18/);
   assert.match(portalCss, /--brand:#0ea5e9/);
   assert.match(portalCss, /:focus/);
 });
