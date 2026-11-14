@@ -78,13 +78,9 @@
   font-size: 12px;
   line-height: 1.5;
 }
-.field-group:has([required]) label::after {
-  content: "";
-}
-.field-group [aria-invalid="true"],
-.field-group input:invalid:not(:placeholder-shown),
-.field-group select:invalid {
-  border-color: #d34b52;
+.field-group [aria-invalid="true"] {
+  border-color: #d34b52 !important;
+  box-shadow: 0 0 0 3px rgba(211,75,82,.10);
 }
 .form-section-heading {
   display: flex;
