@@ -41,21 +41,26 @@ test('roster exports are available as role-specific CSV actions', () => {
 });
 
 test('all browser-native confirmation and prompt dialogs use the shared in-app dialog component', () => {
-  const portal = read('public/portal.js');
-  const parentAdmin = read('public/parent-admin.js');
-  const academicAdmin = read('public/academic-admin.js');
+  const readFile = name => fs.readFileSync(path.join(root, name), 'utf8');
+  const portal = readFile('public/portal.js');
+  const parentAdmin = readFile('public/parent-admin.js');
+  const academicAdmin = readFile('public/academic-admin.js');
+  const nativeDialog = /\b(?:window\.)?(?:alert|confirm|prompt)\s*\(/;
   for (const [name, source] of [['portal', portal], ['parent admin', parentAdmin], ['academic admin', academicAdmin]]) {
-    assert.doesNotMatch(source, /\\b(?:window\\.)?(?:alert|confirm|prompt)\\s*\\(/, name + ' must not use native browser dialogs');
-    assert.match(source, /AppDialog\\.(?:alert|confirm|prompt)/, name + ' should use the shared dialog component');
+    assert.equal(nativeDialog.test(source), false, name + ' must not use native browser dialogs');
+    assert.match(source, /AppDialog\.(?:alert|confirm|prompt)/, name + ' should use the shared dialog component');
   }
-  const dialog = read('public/app-dialog.js');
-  const portalHtml = read('public/portal.html');
-  const parentHtml = read('public/parent-admin.html');
-  assert.match(dialog, /aria-modal/);
-  assert.match(dialog, /role', 'dialog'/);
-  assert.match(dialog, /aria-invalid/);
-  assert.match(portalHtml, /app-dialog\\.css\\?v=1/);
-  assert.match(portalHtml, /app-dialog\\.js\\?v=1/);
-  assert.match(parentHtml, /app-dialog\\.css\\?v=1/);
-  assert.match(parentHtml, /app-dialog\\.js\\?v=1/);
+  const dialog = readFile('public/app-dialog.js');
+  const portalHtml = readFile('public/portal.html');
+  const parentHtml = readFile('public/parent-admin.html');
+  const serviceWorker = readFile('public/sw.js');
+  assert.ok(dialog.includes("panel.setAttribute('role', 'dialog')"));
+  assert.ok(dialog.includes("panel.setAttribute('aria-modal', 'true')"));
+  assert.ok(dialog.includes("field.setAttribute('aria-invalid', 'true')"));
+  assert.ok(portalHtml.includes('/app-dialog.css?v=1'));
+  assert.ok(portalHtml.includes('/app-dialog.js?v=1'));
+  assert.ok(parentHtml.includes('/app-dialog.css?v=1'));
+  assert.ok(parentHtml.includes('/app-dialog.js?v=1'));
+  assert.ok(serviceWorker.includes('school-attendance-shell-v24-app-dialogs'));
+  assert.ok(serviceWorker.includes('/app-dialog.js?v=1'));
 });
