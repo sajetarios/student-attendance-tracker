@@ -1465,7 +1465,7 @@ function coverageStatusLabel(status) {
             <td>${esc(classLabel(period))}</td>
             <td>${esc(period.periodName || '—')}</td>
             <td>${esc(timeLabel(period))}</td>
-            <td>${esc(period.classroom || '—')}</td>
+            <td data-label="Room">${esc(period.classroom || '—')}</td>
           </tr>`).join('') : emptyRow(5, 'No teaching schedules have been assigned to your account yet.');
       }
       if ($('myAdvisoryScheduleRows')) {
@@ -1490,21 +1490,21 @@ function coverageStatusLabel(status) {
       $('scheduleRows').innerHTML = periods.length ? periods.map(period => {
         const canSelectPeriod = (user.role === 'SCHOOL_ADMIN' || String(period.departmentId) === String(user.departmentId)) && !period.assignedTeacherName;
         const selection = canBulkAssign
-          ? '<td>' + (canSelectPeriod
+          ? '<td data-label="Select">' + (canSelectPeriod
             ? '<input type="checkbox" data-select-period="' + esc(period.periodId) + '" ' +
               (selectedPeriodIds.has(String(period.periodId)) ? 'checked' : '') + ' aria-label="Select ' + esc(period.periodName) + '">'
             : '—') + '</td>'
           : '';
         const deleteAction = user.role === 'DEPARTMENT_HEAD' && String(period.departmentId) === String(user.departmentId) ? `<button type="button" class="outline-button compact-button danger-button" data-delete-period="${esc(period.periodId)}">Delete</button>` : '—';
         return `<tr>
-          ${selection}<td><strong>${esc(period.periodName)}</strong></td>
-          <td>${esc(period.subjectName || '—')}</td>
-          <td>${esc(period.departmentName || 'Unassigned')}</td>
-          <td>${esc(period.gradeLevel)}</td>
-          <td>${esc(period.section || 'All sections')}</td>
+          ${selection}<td data-label="Schedule"><strong>${esc(period.periodName)}</strong></td>
+          <td data-label="Subject">${esc(period.subjectName || '—')}</td>
+          <td data-label="Department">${esc(period.departmentName || 'Unassigned')}</td>
+          <td data-label="Grade">${esc(period.gradeLevel)}</td>
+          <td data-label="Section">${esc(period.section || 'All sections')}</td>
           <td>${esc(period.classroom || '—')}</td>
-          <td>${esc(period.startTime)}–${esc(period.endTime)}</td>
-          <td>${esc(period.assignedTeacherName || 'Unassigned')}</td><td>${deleteAction}</td>
+          <td data-label="Time">${esc(period.startTime)}–${esc(period.endTime)}</td>
+          <td data-label="Assigned teacher">${esc(period.assignedTeacherName || 'Unassigned')}</td><td data-label="Actions">${deleteAction}</td>
         </tr>`;
       }).join('') : '<tr><td colspan="' + (canBulkAssign ? 10 : 9) + '" class="empty-cell">No class schedules are available yet.</td></tr>';
 
