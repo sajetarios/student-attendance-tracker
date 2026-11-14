@@ -136,7 +136,7 @@
       if (teacherHas('SUBJECT_TEACHER') || teacherHas('CLASS_ADVISER')) {
         views.push('students', 'classAttendance');
       }
-      if (teacherHas('SUBJECT_TEACHER')) views.push('schedules');
+      if (teacherHas('SUBJECT_TEACHER') || teacherHas('CLASS_ADVISER')) views.push('schedules');
       if (teacherHas('SUBJECT_TEACHER') || teacherHas('CLASS_ADVISER')) views.push('sf2');
       return views;
     }
