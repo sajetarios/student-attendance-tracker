@@ -396,6 +396,8 @@
       const desc = document.querySelector('.scan-setup-description');
       if (desc) desc.textContent = 'Choose an assigned subject class or advisory section. Only learners within your authorized assignments can be recorded.';
     }
+    const currentAdminTab = $('adminManagementTabs')?.querySelector('.is-active')?.dataset.adminManagementTab || 'accounts';
+    setAdminManagementTab(currentAdminTab);
   }
 
   function setAdminManagementTab(tabName = 'accounts') {
