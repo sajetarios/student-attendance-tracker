@@ -167,6 +167,14 @@
     document.querySelectorAll('.nav-item').forEach(button => {
       button.classList.toggle('active', button.dataset.view === view);
     });
+    const activeNav = document.querySelector('.nav-item[data-view="' + view + '"]');
+    const activeGroup = activeNav?.closest('.nav-group');
+    if (activeGroup) {
+      const groupToggle = activeGroup.querySelector('.nav-group-toggle[data-nav-group]');
+      const submenu = activeGroup.querySelector('.nav-submenu');
+      if (groupToggle) groupToggle.setAttribute('aria-expanded', 'true');
+      if (submenu) submenu.hidden = false;
+    }
 
     const role = user?.role;
     const gateKeeper = role === 'GATE_KEEPER';
@@ -2474,7 +2482,10 @@ let teacherActionMenuListenersInstalled = false;
   $('refreshCloudDestination')?.addEventListener('click', loadCloudSyncSettings);
 
   document.querySelectorAll('.nav-item[data-view]').forEach(button => {
-    button.addEventListener('click', () => setView(button.dataset.view));
+    button.addEventListener('click', () => {
+      setView(button.dataset.view);
+      if (window.matchMedia('(max-width: 700px)').matches) closeMobileSidebar();
+    });
   });
   $('refreshButton').addEventListener('click', refresh);
   $('refreshGateMonitoring')?.addEventListener('click', async () => {
@@ -2496,47 +2507,69 @@ let teacherActionMenuListenersInstalled = false;
   });
 
   if ($('parentsNav')) $('parentsNav').addEventListener('click', () => window.location.assign('/parent-admin.html'));
-  document.querySelectorAll('[data-nav-group]').forEach(button => {
+  document.querySelectorAll('.nav-group-toggle[data-nav-group]').forEach(button => {
     button.addEventListener('click', () => {
       const key = button.dataset.navGroup;
-      const submenu = document.querySelector(`[data-submenu="${key}"]`);
+      const submenu = document.querySelector('[data-submenu="' + key + '"]');
       const opening = button.getAttribute('aria-expanded') !== 'true';
       button.setAttribute('aria-expanded', String(opening));
       if (submenu) submenu.hidden = !opening;
       const layout = document.querySelector('.portal-layout');
       if (layout.classList.contains('sidebar-collapsed') && !window.matchMedia('(max-width: 700px)').matches) {
-        layout.classList.remove('sidebar-collapsed');
+        setSidebarCollapsed(false);
       }
     });
   });
 
-  document.querySelectorAll('.nav-group-toggle[data-nav-group]').forEach(toggle => {
-    toggle.addEventListener('click', () => {
-      const expanded = toggle.getAttribute('aria-expanded') === 'true';
-      toggle.setAttribute('aria-expanded', String(!expanded));
-      const submenu = document.querySelector('[data-submenu="' + toggle.dataset.navGroup + '"]');
-      if (submenu) submenu.hidden = expanded;
-    });
+  function setSidebarCollapsed(collapsed) {
+    const layout = document.querySelector('.portal-layout');
+    const control = $('sidebarCollapseButton');
+    layout.classList.toggle('sidebar-collapsed', Boolean(collapsed));
+    if (control) {
+      control.setAttribute('aria-expanded', String(!collapsed));
+      control.setAttribute('aria-label', collapsed ? 'Expand sidebar' : 'Collapse sidebar');
+      control.title = collapsed ? 'Expand sidebar' : 'Collapse sidebar';
+      control.querySelector('[aria-hidden="true"]').textContent = collapsed ? '›' : '‹';
+      const label = control.querySelector('.collapse-control-label');
+      if (label) label.textContent = collapsed ? 'Expand' : 'Collapse';
+    }
+    try { localStorage.setItem('attendance-sidebar-collapsed', collapsed ? '1' : '0'); } catch {}
+  }
+  function closeMobileSidebar() {
+    $('sidebar').classList.remove('open');
+    $('sidebarBackdrop').classList.remove('visible');
+    $('sidebarToggle').setAttribute('aria-expanded', 'false');
+    $('sidebarToggle').setAttribute('aria-label', 'Open navigation');
+    $('sidebarToggle').title = 'Open navigation';
+    $('sidebarToggle').textContent = '☰';
+  }
+  function openMobileSidebar() {
+    $('sidebar').classList.add('open');
+    $('sidebarBackdrop').classList.add('visible');
+    $('sidebarToggle').setAttribute('aria-expanded', 'true');
+    $('sidebarToggle').setAttribute('aria-label', 'Close navigation');
+    $('sidebarToggle').title = 'Close navigation';
+    $('sidebarToggle').textContent = '×';
+  }
+  try { setSidebarCollapsed(localStorage.getItem('attendance-sidebar-collapsed') === '1'); } catch {}
+  $('sidebarCollapseButton').addEventListener('click', () => {
+    setSidebarCollapsed(!document.querySelector('.portal-layout').classList.contains('sidebar-collapsed'));
+  });
+  $('sidebarToggle').addEventListener('click', () => {
+    if ($('sidebar').classList.contains('open')) closeMobileSidebar();
+    else openMobileSidebar();
+  });
+  $('sidebarBackdrop').addEventListener('click', closeMobileSidebar);
+  document.addEventListener('keydown', event => {
+    if (event.key === 'Escape' && $('sidebar').classList.contains('open')) {
+      closeMobileSidebar();
+      $('sidebarToggle').focus();
+    }
+  });
+  window.addEventListener('resize', () => {
+    if (!window.matchMedia('(max-width: 700px)').matches) closeMobileSidebar();
   });
 
-  $('sidebarToggle').addEventListener('click', () => {
-    const sidebar = $('sidebar');
-    const layout = document.querySelector('.portal-layout');
-    if (window.matchMedia('(max-width: 700px)').matches) {
-      sidebar.classList.toggle('open');
-      const isOpen = sidebar.classList.contains('open');
-      $('sidebarToggle').setAttribute('aria-label', isOpen ? 'Close navigation' : 'Open navigation');
-      $('sidebarToggle').title = isOpen ? 'Close navigation' : 'Open navigation';
-      $('sidebarToggle').textContent = isOpen ? '×' : '☰';
-      $('sidebarToggle').setAttribute('aria-expanded', String(isOpen));
-      return;
-    }
-    layout.classList.toggle('sidebar-collapsed');
-    const collapsed = layout.classList.contains('sidebar-collapsed');
-    $('sidebarToggle').setAttribute('aria-label', collapsed ? 'Expand navigation' : 'Collapse navigation');
-    $('sidebarToggle').title = collapsed ? 'Expand navigation' : 'Collapse navigation';
-    $('sidebarToggle').textContent = collapsed ? '»' : '«';
-  });
   $('accountMenuButton').addEventListener('click', () => {
     const menu = $('accountDropdown');
     const opening = menu.hidden;
