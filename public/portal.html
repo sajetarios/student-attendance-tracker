@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="theme-color" content="#1c2d45">
   <title>Dashboard · School Attendance</title>
-  <link rel="stylesheet" href="/portal.css?v=0.9.16">
+  <link rel="stylesheet" href="/portal.css?v=0.9.17">
   <link rel="stylesheet" href="/academic-admin.css?v=1">
   <link rel="stylesheet" href="/password-visibility.css">
 
@@ -147,7 +147,6 @@
         <div class="brand-mark" aria-hidden="true">A</div>
         <div><strong>School Attendance</strong><span>Management Portal</span></div>
       </div>
-      <button class="sidebar-collapse-control" id="sidebarCollapseButton" type="button" aria-label="Collapse sidebar" aria-expanded="true" title="Collapse sidebar"><span aria-hidden="true">‹</span><span class="collapse-control-label">Collapse</span></button>
       <div class="sidebar-section-label">WORKSPACE</div>
       <nav class="side-nav" aria-label="Main navigation">
         <button class="nav-item active" id="dashboardNav" data-view="dashboard" title="Dashboard"><span class="nav-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="5" rx="1"/><rect x="14" y="12" width="7" height="9" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/></svg></span><span class="nav-label">Dashboard</span></button>
@@ -181,6 +180,11 @@
       <header class="topbar">
         <button class="mobile-menu-toggle" id="sidebarToggle" type="button"
           aria-label="Open navigation" aria-expanded="false" title="Open navigation">☰</button>
+        <button class="desktop-sidebar-toggle" id="sidebarCollapseButton" type="button"
+          aria-label="Collapse sidebar" aria-expanded="true" aria-pressed="false" title="Collapse sidebar">
+          <span class="sidebar-toggle-glyph" aria-hidden="true">‹</span>
+          <span class="collapse-control-label">Collapse</span>
+        </button>
         <div class="breadcrumbs"><span>Workspace</span><b>/</b><strong id="breadcrumbCurrent">Dashboard</strong></div>
         <div class="topbar-right">
           <span class="connection-chip local-only" id="connectionStatus" role="status" title="Cloud sync status is being checked."><i></i><span>Checking cloud sync status…</span></span>
@@ -786,7 +790,7 @@
   <script src="/sw-refresh.js?v=1" defer></script>
   <script src="/password-visibility.js" defer></script>
   <script src="/vendor/html5-qrcode.min.js" defer></script>
-  <script src="/portal.js?v=0.9.19" defer></script>
+  <script src="/portal.js?v=0.9.20" defer></script>
   <script src="/academic-admin.js?v=2" defer></script>
 </body>
 </html>
