@@ -1214,8 +1214,28 @@ tbody tr:hover td { background: #f9fbfc; }
 
 /* Account security table and one-time password disclosure */
 .security-account-section { margin-top:22px; }
-.security-accounts-table { min-width:1040px; }
-.security-accounts-table .action-row { min-width:235px; }
+.security-accounts-table {
+  width:100%;
+  min-width:1280px;
+  table-layout:fixed;
+}
+.security-accounts-table th:nth-child(1), .security-accounts-table td:nth-child(1) { width:180px; }
+.security-accounts-table th:nth-child(2), .security-accounts-table td:nth-child(2) { width:250px; }
+.security-accounts-table th:nth-child(3), .security-accounts-table td:nth-child(3) { width:175px; }
+.security-accounts-table th:nth-child(4), .security-accounts-table td:nth-child(4) { width:190px; }
+.security-accounts-table th:nth-child(5), .security-accounts-table td:nth-child(5) { width:125px; }
+.security-accounts-table th:nth-child(6), .security-accounts-table td:nth-child(6) { width:90px; }
+.security-accounts-table th:nth-child(7), .security-accounts-table td:nth-child(7) { width:270px; }
+.security-accounts-table td:nth-child(2) {
+  white-space:normal;
+  overflow-wrap:anywhere;
+  word-break:normal;
+  line-height:1.45;
+}
+.security-accounts-table td:nth-child(3),
+.security-accounts-table td:nth-child(4) { white-space:normal; }
+.security-accounts-table .account-status { white-space:normal; max-width:100%; }
+.security-accounts-table .action-row { min-width:0; display:flex; flex-wrap:wrap; gap:6px; }
 .temporary-password-overlay { position:fixed; inset:0; z-index:21000; display:grid; place-items:center; padding:18px; background:rgba(11,24,39,.68); }
 .temporary-password-dialog { position:relative; width:min(520px,100%); padding:28px; border-radius:18px; background:#fff; box-shadow:0 25px 80px rgba(0,0,0,.3); }
 .temporary-password-dialog h3 { margin:8px 34px 8px 0; color:#18364e; font-size:23px; }
@@ -1231,4 +1251,41 @@ tbody tr:hover td { background: #f9fbfc; }
  .temporary-password-dialog { padding:22px 18px; }
  .temporary-password-value-row { flex-direction:column; }
  .temporary-password-value-row button { width:100%; }
+}
+
+
+/* Final sidebar collapse behavior: fixed drawer + desktop icon rail. */
+.sidebar-collapse-control { cursor:pointer; pointer-events:auto; touch-action:manipulation; position:relative; z-index:5; }
+@media (min-width:701px) {
+  .portal-layout { grid-template-columns:236px minmax(0,1fr) !important; }
+  .portal-layout.sidebar-collapsed { grid-template-columns:76px minmax(0,1fr) !important; }
+  .portal-layout > .sidebar {
+    width:236px !important;
+    transition:width .18s ease, padding .18s ease;
+  }
+  .portal-layout.sidebar-collapsed > .sidebar {
+    width:76px !important;
+    padding-left:10px !important;
+    padding-right:10px !important;
+  }
+  .portal-layout.sidebar-collapsed > .main-area {
+    grid-column:2 !important;
+    min-width:0 !important;
+    width:100% !important;
+    margin-left:0 !important;
+  }
+  .portal-layout.sidebar-collapsed .sidebar-brand { justify-content:center; padding-left:0; padding-right:0; }
+  .portal-layout.sidebar-collapsed .sidebar-brand > div:last-child,
+  .portal-layout.sidebar-collapsed .sidebar-section-label,
+  .portal-layout.sidebar-collapsed .nav-label,
+  .portal-layout.sidebar-collapsed .nav-chevron,
+  .portal-layout.sidebar-collapsed .sidebar-status span:last-child,
+  .portal-layout.sidebar-collapsed .collapse-control-label { display:none !important; }
+  .portal-layout.sidebar-collapsed .sidebar-collapse-control { justify-content:center; padding:7px 4px; }
+  .portal-layout.sidebar-collapsed .nav-item,
+  .portal-layout.sidebar-collapsed .nav-group-toggle { justify-content:center; padding-left:5px; padding-right:5px; }
+  .portal-layout.sidebar-collapsed .nav-submenu { padding-left:0; }
+}
+@media (max-width:700px) {
+  .sidebar-collapse-control { display:none !important; }
 }
