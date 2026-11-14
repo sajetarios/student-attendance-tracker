@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="theme-color" content="#1c2d45">
   <title>Dashboard · School Attendance</title>
-  <link rel="stylesheet" href="/portal.css?v=0.9.17">
+  <link rel="stylesheet" href="/portal.css?v=0.9.18">
   <link rel="stylesheet" href="/academic-admin.css?v=1">
   <link rel="stylesheet" href="/password-visibility.css">
 
@@ -693,7 +693,7 @@
               </form>
               <div class="table-scroll teacher-monitor-scroll">
                 <table class="teacher-monitor-table" id="teacherMonitorTable">
-                  <thead><tr><th>Teacher / designation</th><th>Department</th><th>Status</th><th>Grade level</th><th>Section</th><th>Assigned schedules</th><th id="teacherActionHeader">Account action</th></tr></thead>
+                  <thead><tr><th>Teacher / designation</th><th>Department</th><th>Status</th><th>Grade level</th><th>Section</th><th>Assigned schedules</th><th id="teacherActionHeader">Manage</th></tr></thead>
                   <tbody id="teacherRows"><tr><td colspan="7" class="empty-cell">Loading teachers…</td></tr></tbody>
                 </table>
               </div>
@@ -715,26 +715,24 @@
               </form>
               <div class="table-scroll"><table class="department-management-table"><thead><tr><th>Code</th><th>Department</th><th>Description</th><th>Status</th><th>Manage</th></tr></thead><tbody id="departmentList"><tr><td colspan="5" class="empty-cell">Loading departments…</td></tr></tbody></table></div>
             </div>
-            <div class="surface-card section-card teacher-permissions-card" id="teacherPermissionsCard" hidden>
-              <div class="section-toolbar">
-                <div><h3>Teacher permissions &amp; designations</h3><p>Choose what each teacher account is allowed to do. Designations do not change the teacher’s department or permanent subject schedules.</p></div>
+            <div class="surface-card section-card adviser-assignments-card" id="adviserAssignmentsCard">
+              <div class="section-toolbar adviser-assignments-heading">
+                <div><h3>Class Adviser assignments</h3><p>Each enrolled class section has one assigned Class Adviser. Special-program sections such as SPJ are included, even without subject schedules.</p></div>
+                <button type="button" class="primary-button" id="addAdviserAssignmentButton">＋ Assign Class Adviser</button>
               </div>
-              <div class="table-scroll"><table class="teacher-permissions-table">
-                <thead><tr><th>Teacher</th><th>Department</th><th>Current permissions</th><th>Manage</th></tr></thead>
-                <tbody id="teacherPermissionRows"><tr><td colspan="4" class="empty-cell">Loading teacher permissions…</td></tr></tbody>
-              </table></div>
-            </div>
-            <div class="surface-card section-card adviser-assignments-card">
-              <div class="section-toolbar"><div><h3>Class Adviser assignments</h3><p>Assign one Class Adviser to each enrolled grade-and-section combination. Special-program sections such as SPJ do not need a regular subject-period schedule.</p></div></div>
-              <form id="adviserAssignmentForm" class="inline-form">
-                <div class="form-grid">
-                  <div class="field-group"><label for="adviserTeacherSelect">Class Adviser *</label><select id="adviserTeacherSelect" required><option value="">Select teacher</option></select></div>
-                  <div class="field-group"><label for="adviserGradeInput">Grade level *</label><select id="adviserGradeInput" required><option>Grade 7</option><option>Grade 8</option><option>Grade 9</option><option>Grade 10</option></select></div>
-                  <div class="field-group"><label for="adviserSectionInput">Section *</label><input id="adviserSectionInput" required maxlength="100" placeholder="e.g. Section A"></div>
+              <div class="adviser-assignment-list">
+                <div class="adviser-list-heading"><strong>Current advisory sections</strong><span id="adviserAssignmentCount" class="muted-inline"></span></div>
+                <div class="table-scroll"><table class="adviser-assignments-table"><thead><tr><th>Grade</th><th>Section</th><th>Assigned Class Adviser</th><th>Actions</th></tr></thead><tbody id="adviserAssignmentRows"><tr><td colspan="4" class="empty-cell">Loading adviser assignments…</td></tr></tbody></table></div>
+              </div>
+              <form id="adviserAssignmentForm" class="inline-form adviser-assignment-form" hidden>
+                <div class="adviser-form-heading"><div><span class="eyebrow muted">NEW ASSIGNMENT</span><h4>Assign a Class Adviser</h4><p>Select an active teacher with the Class Adviser designation, then choose a class section with enrolled learners.</p></div><button type="button" class="outline-button" id="cancelAdviserAssignment">Cancel</button></div>
+                <div class="form-grid adviser-assignment-fields">
+                  <div class="field-group"><label for="adviserTeacherSelect">Class Adviser *</label><select id="adviserTeacherSelect" required><option value="">Choose an eligible teacher</option></select><small class="field-hint">Only active Class Advisers in your department are listed.</small></div>
+                  <div class="field-group"><label for="adviserGradeInput">Grade level *</label><select id="adviserGradeInput" required><option value="">Choose grade level</option></select><small class="field-hint">Grades are based on current active enrollment.</small></div>
+                  <div class="field-group"><label for="adviserSectionInput">Class section *</label><select id="adviserSectionInput" required disabled><option value="">Choose grade level first</option></select><small class="field-hint" id="adviserSectionHint">Available sections will appear after you choose a grade.</small></div>
                 </div>
-                <div class="form-actions"><button class="primary-button" type="submit" id="saveAdviserAssignment">Save adviser assignment</button><span id="adviserAssignmentFeedback" class="inline-feedback" role="status"></span></div>
+                <div class="form-actions"><button class="primary-button" type="submit" id="saveAdviserAssignment">Save assignment</button><span id="adviserAssignmentFeedback" class="inline-feedback" role="status"></span></div>
               </form>
-              <div class="table-scroll"><table><thead><tr><th>Grade</th><th>Section</th><th>Class Adviser</th><th>Action</th></tr></thead><tbody id="adviserAssignmentRows"><tr><td colspan="4" class="empty-cell">No class adviser assignments.</td></tr></tbody></table></div>
             </div>
           </section>
         </section>
@@ -790,7 +788,7 @@
   <script src="/sw-refresh.js?v=1" defer></script>
   <script src="/password-visibility.js" defer></script>
   <script src="/vendor/html5-qrcode.min.js" defer></script>
-  <script src="/portal.js?v=0.9.23" defer></script>
+  <script src="/portal.js?v=0.9.24" defer></script>
   <script src="/academic-admin.js?v=2" defer></script>
 </body>
 </html>
