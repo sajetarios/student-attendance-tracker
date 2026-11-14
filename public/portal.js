@@ -1811,7 +1811,9 @@ let teacherActionMenuListenersInstalled = false;
     }
     host.innerHTML = adviserAssignments.length ? adviserAssignments.map(item => `
       <tr><td>${esc(item.gradeLevel)}</td><td>${esc(item.section)}</td><td>${esc(item.adviserName || item.adviserUserId)}</td>
-      <td>${user.role === 'SCHOOL_ADMIN' ? `<button type="button" class="outline-button compact-button" data-remove-adviser="${esc(item.assignmentId)}">Remove</button>` : '<span class="muted-inline">Read only</span>'}</td></tr>`).join('')
+      <td>${user.role === 'SCHOOL_ADMIN'
+        ? '<div class="action-row"><button type="button" class="outline-button compact-button" data-edit-adviser="' + esc(item.assignmentId) + '">Edit</button><button type="button" class="outline-button compact-button danger-button" data-remove-adviser="' + esc(item.assignmentId) + '">Remove</button></div>'
+        : '<span class="muted-inline">Read only</span>'}</td></tr>`).join('')
       : '<tr><td colspan="4" class="empty-cell">No class adviser assignments have been made.</td></tr>';
   }
 
@@ -3005,12 +3007,52 @@ let teacherActionMenuListenersInstalled = false;
       } catch (error) { feedback.className = 'inline-feedback error'; feedback.textContent = error.message; }
     });
     $('adviserAssignmentRows').addEventListener('click', async event => {
+      const editButton = event.target.closest('[data-edit-adviser]');
+      if (editButton) {
+        const assignment = adviserAssignments.find(item => String(item.assignmentId) === String(editButton.dataset.editAdviser));
+        if (!assignment) return;
+        const activeAdvisers = teachers.filter(item => item.active && Array.isArray(item.teacherDesignations) && item.teacherDesignations.includes('CLASS_ADVISER'));
+        const values = await AppDialog.form(
+          'Update the adviser, grade level, or section. One Class Adviser may be assigned to each grade-and-section combination.',
+          [
+            { name: 'adviserUserId', label: 'Class Adviser', required: true, defaultValue: String(assignment.adviserUserId),
+              selectOptions: activeAdvisers.map(item => ({ value: String(item.userId), label: item.displayName })) },
+            { name: 'gradeLevel', label: 'Grade level', required: true, defaultValue: assignment.gradeLevel, maxLength: 40,
+              validate: value => String(value).trim().length <= 40 || 'Grade level must be 40 characters or fewer.' },
+            { name: 'section', label: 'Section', required: true, defaultValue: assignment.section, maxLength: 100,
+              validate: value => String(value).trim().length <= 100 || 'Section must be 100 characters or fewer.' }
+          ],
+          { title: 'Edit Class Adviser assignment', confirmText: 'Save changes' }
+        );
+        if (values === null) return;
+        editButton.disabled = true;
+        try {
+          await api('/api/class-adviser-assignments/' + encodeURIComponent(assignment.assignmentId), {
+            method: 'PATCH',
+            body: JSON.stringify({ adviserUserId: values.adviserUserId, gradeLevel: values.gradeLevel.trim(), section: values.section.trim() })
+          });
+          await loadSchoolData();
+          showToast('Class Adviser assignment updated.');
+        } catch (error) {
+          showToast(error.message, true);
+          editButton.disabled = false;
+        }
+        return;
+      }
       const button = event.target.closest('[data-remove-adviser]');
       if (!button) return;
-      if (!await AppDialog.confirm('Remove this Class Adviser assignment?', { title: 'Remove Class Adviser assignment', confirmText: 'Remove assignment', variant: 'danger' })) return;
+      if (!await AppDialog.confirm('Remove this Class Adviser assignment? The teacher account and attendance history will remain unchanged.', {
+        title: 'Remove Class Adviser assignment', confirmText: 'Remove assignment', variant: 'danger'
+      })) return;
       button.disabled = true;
-      try { await api(`/api/class-adviser-assignments/${encodeURIComponent(button.dataset.removeAdviser)}`, { method: 'DELETE' }); await loadSchoolData(); showToast('Class Adviser assignment removed.'); }
-      catch (error) { showToast(error.message, true); button.disabled = false; }
+      try {
+        await api('/api/class-adviser-assignments/' + encodeURIComponent(button.dataset.removeAdviser), { method: 'DELETE' });
+        await loadSchoolData();
+        showToast('Class Adviser assignment removed.');
+      } catch (error) {
+        showToast(error.message, true);
+        button.disabled = false;
+      }
     });
   }
 
