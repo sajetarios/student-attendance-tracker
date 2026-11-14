@@ -25,8 +25,8 @@ test('class schedule form derives department from teacher and uses a canonical s
   assert.match(portal, /subjectId:\s*\$\('periodSubject'\)\.value/);
   assert.match(portal, /api\('\/api\/subjects'/);
   assert.match(portal, /api\('\/api\/sections\?gradeLevel=/);
-  assert.match(server, /app\.get\('\\/api\\/subjects'/);
-  assert.match(server, /app\.post\('\\/api\\/subjects'/);
+  assert.ok(server.includes("app.get('/api/subjects'"));
+  assert.ok(server.includes("app.post('/api/subjects'"));
   assert.match(server, /subject_id AS "subjectId"/);
   assert.match(server, /department_id AS "departmentId"/);
   assert.match(migration, /CREATE TABLE IF NOT EXISTS school_subjects/);
