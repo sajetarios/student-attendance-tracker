@@ -36,8 +36,8 @@ test('School-wide coverage metrics and separate tab counts are rendered without 
     assert.ok(html.includes(`id="${id}"`), `Missing metric ${id}`);
   }
   assert.match(portal, /setMetric\('coverageTotalSchedules', schoolSummary\.totalSchedules \?\? teacherCoverage\.length\)/);
-  assert.match(portal, /myRows\\.length\\} classes · \$\{myAlerts\} alerts/);
-  assert.match(portal, /otherRows\\.length\\} classes · \$\{otherAlerts\} alerts/);
+  assert.match(portal, /myRows\.length\} classes · \$\{myAlerts\} alerts/);
+  assert.match(portal, /otherRows\.length\} classes · \$\{otherAlerts\} alerts/);
   assert.match(portal, /teacherCoverageSummary = data\.summary \|\| null/);
   assert.match(portal, /api\('\/api\/admin\/teacher-coverage'\)/);
 });
