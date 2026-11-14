@@ -855,6 +855,7 @@ app.post('/api/periods/bulk-assignments', authenticateSchoolClient, requireSchoo
   const client = await pool.connect();
   try {
     await client.query('BEGIN');
+    await client.query('SELECT pg_advisory_xact_lock(hashtext($1::text), 16016)', [req.auth.schoolId]);
     const selected = await client.query(
       `SELECT period_id AS "periodId",period_name AS "periodName",department_id AS "departmentId",
               start_time AS "startTime",end_time AS "endTime"
@@ -954,6 +955,7 @@ app.post('/api/periods/:periodId/assignments', authenticateSchoolClient, require
   const client = await pool.connect();
   try {
     await client.query('BEGIN');
+    await client.query('SELECT pg_advisory_xact_lock(hashtext($1::text), 16016)', [req.auth.schoolId]);
     const period = await client.query(
       `SELECT period_id, period_name, department_id FROM class_periods
        WHERE school_id=$1 AND period_id=$2 AND active=TRUE FOR UPDATE`,
