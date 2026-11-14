@@ -1784,6 +1784,8 @@ tbody tr:hover td { background: #f9fbfc; }
   .teacher-coverage-card .coverage-tab-count {
     min-height: 20px;
     font-size: 10px;
+    white-space: normal;
+    text-align: center;
   }
   .teacher-coverage-card .coverage-class-card { padding: 13px; }
   .teacher-coverage-card .coverage-class-heading {
