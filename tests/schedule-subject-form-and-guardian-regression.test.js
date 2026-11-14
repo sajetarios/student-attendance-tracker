@@ -35,7 +35,7 @@ test('class schedule form derives department from teacher and uses a canonical s
   assert.match(migration, /CREATE UNIQUE INDEX IF NOT EXISTS school_subjects_department_name_ci_uk/);
 });
 
-test('schedule creation derives department and rejects duplicate period labels and overlapping resources', () => {
+test('schedule creation derives department and rejects overlapping resources without treating labels as unique', () => {
   const server = read('server.js');
   const start = server.indexOf("app.post('/api/periods'");
   const end = server.indexOf("// Teacher attendance history", start);
@@ -49,7 +49,7 @@ test('schedule creation derives department and rejects duplicate period labels a
   assert.match(route, /teacher_period_substitutions/);
   assert.match(route, /upper\(btrim\(classroom\)\)/);
   assert.match(route, /pg_advisory_xact_lock/);
-  assert.match(route, /INSERT INTO teacher_period_assignments/);
+  assert.doesNotMatch(route, /duplicateLabel/);\n  assert.match(route, /INSERT INTO teacher_period_assignments/);
   assert.doesNotMatch(route, /req\.body\?\.departmentId/);
   assert.doesNotMatch(route, /req\.body\?\.subjectName/);
 });
