@@ -518,7 +518,15 @@ app.get('/api/class-adviser-assignments', authenticateSchoolClient,
         teacherFilter = ' AND ca.adviser_user_id=$2';
       } else if (req.auth.role === 'DEPARTMENT_HEAD') {
         params.push(req.auth.departmentId);
-        teacherFilter = ' AND EXISTS (SELECT 1 FROM class_periods cp WHERE cp.school_id=ca.school_id AND cp.department_id=$2 AND cp.grade_level=ca.grade_level AND cp.section=ca.section)';
+        // A section can be advisory-only (for example, SPJ) and have no subject period.
+        // Department Heads see adviser assignments owned by teachers in their department.
+        teacherFilter = ` AND EXISTS (
+          SELECT 1 FROM school_users adviser
+          WHERE adviser.school_id=ca.school_id
+            AND adviser.user_id=ca.adviser_user_id
+            AND adviser.role='TEACHER'
+            AND adviser.department_id=$2
+        )`;
       }
       const result = await pool.query(
         `SELECT ca.assignment_id AS "assignmentId", ca.adviser_user_id AS "adviserUserId",
@@ -550,11 +558,26 @@ app.post('/api/class-adviser-assignments', authenticateSchoolClient, requireScho
     if (!adviser.rowCount) return res.status(400).json({ error: 'Choose an active teacher with the Class Adviser designation.' });
     if (req.auth.role === 'DEPARTMENT_HEAD') {
       if (String(adviser.rows[0].department_id) !== String(req.auth.departmentId)) return res.status(403).json({ error: 'You can assign only teachers in your own department.' });
+      // Advisory sections need not have a regular subject-period schedule.
+      // Permit a section when it has active students in the current school-year enrollment.
       const section = await pool.query(
-        "SELECT 1 FROM class_periods WHERE school_id=$1 AND department_id=$2 AND grade_level=$3 AND section=$4 AND active=TRUE LIMIT 1",
-        [req.auth.schoolId, req.auth.departmentId, gradeLevel.trim(), section.trim()]
+        `SELECT 1
+         FROM students s
+         LEFT JOIN LATERAL (
+           SELECT en.grade_level,en.section
+           FROM student_enrollments en
+           JOIN school_years sy ON sy.school_id=en.school_id AND sy.school_year_id=en.school_year_id
+           WHERE en.school_id=s.school_id AND en.student_id=s.student_id
+             AND sy.status='ACTIVE' AND en.enrollment_status='ENROLLED'
+           ORDER BY en.created_at DESC LIMIT 1
+         ) active_enrollment ON TRUE
+         WHERE s.school_id=$1 AND s.active=TRUE AND s.archived_at IS NULL
+           AND COALESCE(active_enrollment.grade_level,s.grade_level)=$2
+           AND UPPER(BTRIM(COALESCE(active_enrollment.section,s.section)))=UPPER(BTRIM($3))
+         LIMIT 1`,
+        [req.auth.schoolId, gradeLevel.trim(), section.trim()]
       );
-      if (!section.rowCount) return res.status(403).json({ error: 'This grade and section is not configured under your department.' });
+      if (!section.rowCount) return res.status(403).json({ error: 'This grade and section has no active enrolled learners. Choose an existing section, including special-program sections.' });
     }
     const result = await pool.query(
       `INSERT INTO class_adviser_assignments(school_id, adviser_user_id, grade_level, section, assigned_by)
@@ -610,20 +633,40 @@ app.patch('/api/class-adviser-assignments/:assignmentId', authenticateSchoolClie
     );
     if (req.auth.role === 'DEPARTMENT_HEAD') {
       const existingScope = await client.query(
-        "SELECT 1 FROM class_periods WHERE school_id=$1 AND department_id=$2 AND grade_level=$3 AND section=$4 AND active=TRUE LIMIT 1",
-        [req.auth.schoolId, req.auth.departmentId, existing.rows[0].gradeLevel, existing.rows[0].section]
+        `SELECT 1
+         FROM class_adviser_assignments ca
+         JOIN school_users current_adviser
+           ON current_adviser.school_id=ca.school_id
+          AND current_adviser.user_id=ca.adviser_user_id
+         WHERE ca.school_id=$1 AND ca.assignment_id=$2
+           AND current_adviser.role='TEACHER'
+           AND current_adviser.department_id=$3`,
+        [req.auth.schoolId, req.params.assignmentId, req.auth.departmentId]
       );
       const targetScope = await client.query(
-        "SELECT 1 FROM class_periods WHERE school_id=$1 AND department_id=$2 AND grade_level=$3 AND section=$4 AND active=TRUE LIMIT 1",
-        [req.auth.schoolId, req.auth.departmentId, gradeLevel.trim(), section.trim()]
+        `SELECT 1
+         FROM students s
+         LEFT JOIN LATERAL (
+           SELECT en.grade_level,en.section
+           FROM student_enrollments en
+           JOIN school_years sy ON sy.school_id=en.school_id AND sy.school_year_id=en.school_year_id
+           WHERE en.school_id=s.school_id AND en.student_id=s.student_id
+             AND sy.status='ACTIVE' AND en.enrollment_status='ENROLLED'
+           ORDER BY en.created_at DESC LIMIT 1
+         ) active_enrollment ON TRUE
+         WHERE s.school_id=$1 AND s.active=TRUE AND s.archived_at IS NULL
+           AND COALESCE(active_enrollment.grade_level,s.grade_level)=$2
+           AND UPPER(BTRIM(COALESCE(active_enrollment.section,s.section)))=UPPER(BTRIM($3))
+         LIMIT 1`,
+        [req.auth.schoolId, gradeLevel.trim(), section.trim()]
       );
       const adviserScope = await client.query(
-        "SELECT 1 FROM school_users WHERE school_id=$1 AND user_id=$2 AND department_id=$3 AND role='TEACHER'",
+        "SELECT 1 FROM school_users WHERE school_id=$1 AND user_id=$2 AND department_id=$3 AND role='TEACHER' AND active=TRUE AND 'CLASS_ADVISER'=ANY(teacher_designations)",
         [req.auth.schoolId, adviserUserId, req.auth.departmentId]
       );
       if (!existingScope.rowCount || !targetScope.rowCount || !adviserScope.rowCount) {
         await client.query('ROLLBACK');
-        return res.status(403).json({ error: 'You can edit Class Adviser assignments only for sections and teachers in your own department.' });
+        return res.status(403).json({ error: 'You can edit Class Adviser assignments only for enrolled sections and teachers in your own department.' });
       }
     }
     if (!adviser.rowCount) {
@@ -680,8 +723,10 @@ app.delete('/api/class-adviser-assignments/:assignmentId', authenticateSchoolCli
     if (req.auth.role === 'DEPARTMENT_HEAD') {
       const scope = await pool.query(
         `SELECT 1 FROM class_adviser_assignments ca
+         JOIN school_users adviser
+           ON adviser.school_id=ca.school_id AND adviser.user_id=ca.adviser_user_id
          WHERE ca.school_id=$1 AND ca.assignment_id=$2
-           AND EXISTS (SELECT 1 FROM class_periods cp WHERE cp.school_id=ca.school_id AND cp.department_id=$3 AND cp.grade_level=ca.grade_level AND cp.section=ca.section AND cp.active=TRUE)`,
+           AND adviser.role='TEACHER' AND adviser.department_id=$3`,
         [req.auth.schoolId, req.params.assignmentId, req.auth.departmentId]
       );
       if (!scope.rowCount) return res.status(403).json({ error: 'You can remove only Class Adviser assignments in your own department.' });
