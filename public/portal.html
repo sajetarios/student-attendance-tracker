@@ -287,13 +287,29 @@
                   <button type="button" class="outline-button" id="refreshTeacherCoverage">↻ Refresh</button>
                 </div>
               </div>
-              <p class="coverage-alert-summary" id="coverageAlertSummary" role="status">Coverage is being checked…</p>
-              <div class="table-scroll">
-                <table class="monitoring-table">
-                  <thead><tr><th>Department</th><th>Class / classroom</th><th>Subject / period</th><th>Assigned teacher</th><th>Coverage status</th><th>Action</th></tr></thead>
-                  <tbody id="teacherCoverageRows"><tr><td colspan="6" class="empty-cell">Loading class coverage…</td></tr></tbody>
-                </table>
+              <div class="coverage-school-summary" id="coverageSchoolSummary" aria-live="polite">
+                <article><span>Scheduled classes</span><strong id="coverageTotalSchedules">—</strong></article>
+                <article><span>No teacher assigned</span><strong id="coverageNoTeacher">—</strong></article>
+                <article><span>Uncovered leave</span><strong id="coverageUncoveredLeave">—</strong></article>
+                <article><span>Missing check-ins</span><strong id="coverageMissingCheckins">—</strong></article>
+                <article><span>Active alerts</span><strong id="coverageActiveAlerts">—</strong></article>
               </div>
+              <div class="coverage-tabs" role="tablist" aria-label="Teacher coverage department">
+                <button type="button" class="coverage-tab is-active" id="coverageMyDepartmentTab" role="tab" aria-selected="true" aria-controls="teacherCoveragePanel" data-coverage-tab="MY_DEPARTMENT">
+                  My Department <span class="coverage-tab-count" id="coverageMyDepartmentCount">0</span>
+                </button>
+                <button type="button" class="coverage-tab" id="coverageOtherDepartmentsTab" role="tab" aria-selected="false" aria-controls="teacherCoveragePanel" data-coverage-tab="OTHER_DEPARTMENTS">
+                  Other Departments <span class="coverage-tab-count" id="coverageOtherDepartmentsCount">0</span>
+                </button>
+              </div>
+              <section class="coverage-panel" id="teacherCoveragePanel" role="tabpanel" aria-labelledby="coverageMyDepartmentTab">
+                <p class="coverage-readonly-note" id="coverageOtherDepartmentsNotice" hidden>
+                  These schedules belong to other departments. You can monitor their coverage status, but only their respective Department Heads can manage assignments.
+                </p>
+                <div class="coverage-card-list" id="teacherCoverageRows" aria-live="polite">
+                  <div class="coverage-empty">Loading class coverage…</div>
+                </div>
+              </section>
               <p class="attendance-summary-note">“Check-in not recorded” means no verified teacher gate time-in was found after the class start and grace period. It is an alert for follow-up, not automatic proof of absence. Browser alerts work while this portal is open.</p>
             </section>
             <section class="surface-card learner-summary-card" id="learnerSummaryCard">
