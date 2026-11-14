@@ -6,6 +6,8 @@
   let dashboardData = null;
   let students = [];
   let periods = [];
+  let timetableTemplates = [];
+  let schoolOperatingDays = [];
   let teachers = [];
   let schoolUsers = [];
   let adviserAssignments = [];
@@ -1417,8 +1419,9 @@ function coverageStatusLabel(status) {
   function renderPeriods() {
     const canBulkAssign = user.role === 'DEPARTMENT_HEAD';
     const isTeacher = user.role === 'TEACHER';
-    const isSchoolManager = user.role === 'DEPARTMENT_HEAD';
+    const isSchoolManager = user.role === 'SCHOOL_ADMIN' || user.role === 'DEPARTMENT_HEAD';
     if ($('periodBulkToolbar')) $('periodBulkToolbar').hidden = !canBulkAssign;
+    if ($('timetableSettings')) $('timetableSettings').hidden = user.role !== 'SCHOOL_ADMIN';
     if ($('periodSelectHeader')) $('periodSelectHeader').hidden = !canBulkAssign;
 
     const eligibleTeachers = teachers.filter(t => t.active && (t.teacherDesignations || []).includes('SUBJECT_TEACHER') &&
@@ -2331,6 +2334,96 @@ let teacherActionMenuListenersInstalled = false;
     }
   }
 
+  async function loadSchedulingSettings() {
+    const canRead = ['SCHOOL_ADMIN','DEPARTMENT_HEAD','TEACHER'].includes(user.role);
+    if (!canRead) return;
+    try {
+      const [daysResult, templatesResult] = await Promise.all([
+        api('/api/scheduling-config/operating-days'),
+        api('/api/scheduling-config/templates')
+      ]);
+      schoolOperatingDays = daysResult.days || [];
+      timetableTemplates = templatesResult.templates || [];
+      const dayMap = new Map(schoolOperatingDays.map(day => [Number(day.weekday), Boolean(day.isOperatingDay)]));
+      document.querySelectorAll('#operatingDayChoices input[type="checkbox"]').forEach(input => {
+        input.checked = dayMap.has(Number(input.value)) ? dayMap.get(Number(input.value)) : Number(input.value)>=1 && Number(input.value)<=5;
+      });
+      const select = $('scheduleTemplatePeriod');
+      if (select) {
+        select.innerHTML = '<option value="">Custom time</option>' + timetableTemplates.flatMap(template =>
+          (template.periods || []).filter(period => !['BREAK','LUNCH'].includes(period.blockType)).map(period =>
+            '<option value="' + esc(template.templateId + '|' + period.templatePeriodId) + '">' +
+            esc(template.name + ' · ' + period.label + ' (' + period.startTime + '–' + period.endTime + ')') + '</option>')
+        ).join('');
+      }
+      const list = $('timetableTemplateList');
+      if (list) list.innerHTML = '<strong>Saved templates</strong>' + (timetableTemplates.length
+        ? '<div class="timetable-template-chips">' + timetableTemplates.map(template =>
+          '<span><b>' + esc(template.name) + '</b><small>' + esc(template.shiftCode) + ' · ' + (template.periods || []).length + ' blocks</small></span>'
+        ).join('') + '</div>'
+        : '<p>No templates yet. Create a template to reuse period times.</p>');
+    } catch (error) {
+      console.warn('Scheduling settings could not be loaded:', error.message);
+    }
+  }
+
+  function selectedScheduleWeekdays() {
+    return Array.from(document.querySelectorAll('#scheduleWeekdayChoices input[type="checkbox"]:checked'))
+      .map(input => Number(input.value)).filter(day => Number.isInteger(day) && day>=0 && day<=6);
+  }
+
+  function applyTemplatePeriodSelection() {
+    const raw = $('scheduleTemplatePeriod')?.value || '';
+    if (!raw) return;
+    const [templateId, periodId] = raw.split('|');
+    const template = timetableTemplates.find(item => String(item.templateId) === templateId);
+    const period = template?.periods?.find(item => String(item.templatePeriodId) === periodId);
+    if (!period) return;
+    $('periodName').value = period.label;
+    $('startTime').value = period.startTime;
+    $('endTime').value = period.endTime;
+    $('scheduleFormFeedback').textContent = 'Times filled from ' + template.name + '. You can still adjust them if authorized.';
+  }
+
+  function wireSchedulingSettingsForms() {
+    $('operatingDaysForm')?.addEventListener('submit', async event => {
+      event.preventDefault();
+      const feedback = $('operatingDaysFeedback');
+      const days = Array.from({length:7},(_,weekday)=>({weekday,isOperatingDay:Boolean(document.querySelector('#operatingDayChoices input[value="' + weekday + '"]')?.checked)}));
+      if (!days.some(day=>day.isOperatingDay)) { feedback.textContent='Select at least one operating day.'; return; }
+      feedback.textContent='Saving…';
+      try { await api('/api/scheduling-config/operating-days',{method:'PUT',body:JSON.stringify({days})}); schoolOperatingDays=days; feedback.textContent='Operating days saved.'; }
+      catch(error){feedback.textContent=error.message;}
+    });
+    $('timetableTemplateForm')?.addEventListener('submit', async event => {
+      event.preventDefault();
+      const feedback=$('templateFeedback');
+      const periods=String($('templateBlocks').value||'').split(/\\r?\\n/).map(line=>line.trim()).filter(Boolean).map((line,index)=>{
+        const parts=line.split('|').map(value=>value.trim());
+        return {order:index+1,label:parts[0],startTime:parts[1],endTime:parts[2],blockType:(parts[3]||'CLASS').toUpperCase()};
+      });
+      if (!periods.length || periods.some(period=>!period.label||!period.startTime||!period.endTime)) {feedback.textContent='Check each line: Label | Start | End | Optional type.';return;}
+      feedback.textContent='Saving template…';
+      try {
+        await api('/api/scheduling-config/templates',{method:'POST',body:JSON.stringify({name:$('templateName').value.trim(),shiftCode:$('templateShift').value,periods})});
+        $('timetableTemplateForm').reset(); await loadSchedulingSettings(); feedback.textContent='Template saved.';
+      } catch(error){feedback.textContent=error.message;}
+    });
+    $('calendarExceptionForm')?.addEventListener('submit',async event=>{
+      event.preventDefault();const feedback=$('calendarExceptionFeedback');feedback.textContent='Saving…';
+      try{
+        await api('/api/scheduling-config/calendar-exceptions',{method:'POST',body:JSON.stringify({
+          date:$('calendarExceptionDate').value,title:$('calendarExceptionTitle').value.trim(),
+          type:$('calendarExceptionType').value,notes:$('calendarExceptionNotes').value.trim()||null
+        })});
+        $('calendarExceptionForm').reset();feedback.textContent='Calendar date saved.';
+      }catch(error){feedback.textContent=error.message;}
+    });
+    $('scheduleTemplatePeriod')?.addEventListener('change',applyTemplatePeriodSelection);
+  }
+
+  wireSchedulingSettingsForms();
+
   async function loadSchoolData() {
     const role = user.role;
     if (role === 'GATE_KEEPER') {
@@ -2347,7 +2440,7 @@ let teacherActionMenuListenersInstalled = false;
     const isSchoolAdmin = role === 'SCHOOL_ADMIN';
     const isDepartmentHead = role === 'DEPARTMENT_HEAD';
     const isSchoolManager = isSchoolAdmin || isDepartmentHead;
-    const canViewClassSchedules = isDepartmentHead ||
+    const canViewClassSchedules = isSchoolManager ||
       (role === 'TEACHER' && (teacherHas('SUBJECT_TEACHER') || teacherHas('CLASS_ADVISER')));
     $('teacherCoverageCard').hidden = !isDepartmentHead;
     if ($('departmentHeadOverview')) $('departmentHeadOverview').hidden = !isDepartmentHead;
@@ -2406,6 +2499,7 @@ let teacherActionMenuListenersInstalled = false;
       adviserAssignments = adviserData.assignments || [];
     }
 
+    await loadSchedulingSettings();
     renderStats(dashboardData);
     renderStudents();
     renderPeriods();
@@ -3441,8 +3535,14 @@ let teacherActionMenuListenersInstalled = false;
       classroom: $('periodClassroom').value.trim() || null,
       startTime: $('startTime').value,
       endTime: $('endTime').value,
-      graceMinutes: Number($('graceMinutes').value || 0)
+      graceMinutes: Number($('graceMinutes').value || 0),
+      weekdays: selectedScheduleWeekdays()
     };
+    if (!payload.weekdays.length) {
+      feedback.className = 'inline-feedback error';
+      feedback.textContent = 'Select at least one class day.';
+      return;
+    }
     try {
       const saved = await api('/api/periods', { method: 'POST', body: JSON.stringify(payload) });
       $('scheduleForm').reset();
