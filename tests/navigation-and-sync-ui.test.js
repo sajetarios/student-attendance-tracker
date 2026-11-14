@@ -45,12 +45,12 @@ test('all browser-native confirmation and prompt dialogs use the shared in-app d
   const portal = readFile('public/portal.js');
   const parentAdmin = readFile('public/parent-admin.js');
   const academicAdmin = readFile('public/academic-admin.js');
-  const nativeConfirm = /(?<![.\\w])confirm\\s*\\(/;
-  const nativePrompt = /(?<![.\\w])prompt\\s*\\(/;
-  const nativeAlert = /window\\s*\\.\\s*alert\\s*\\(/;
+  const nativeConfirm = /(?:window\s*\.\s*|^|[^.\w])confirm\s*\(/m;
+  const nativePrompt = /(?:window\s*\.\s*|^|[^.\w])prompt\s*\(/m;
+  const nativeAlert = /window\s*\.\s*alert\s*\(/;
   for (const [name, source] of [['portal', portal], ['parent admin', parentAdmin], ['academic admin', academicAdmin]]) {
     assert.equal(nativeConfirm.test(source) || nativePrompt.test(source) || nativeAlert.test(source), false, name + ' must not use native browser dialogs');
-    assert.match(source, /AppDialog\\.(?:alert|confirm|prompt)/, name + ' should use the shared dialog component');
+    assert.match(source, /AppDialog\.(?:alert|confirm|prompt)/, name + ' should use the shared dialog component');
   }
   const dialog = readFile('public/app-dialog.js');
   const portalHtml = readFile('public/portal.html');
