@@ -316,7 +316,7 @@
     if ($('studentRosterPanel')) $('studentRosterPanel').hidden = gateKeeper;
     if ($('studentForm')) $('studentForm').hidden = gateKeeper || departmentHead || $('studentForm').hidden;
     if ($('parentInviteModal')) $('parentInviteModal').hidden = true;
-    if ($('schedulesNav')) $('schedulesNav').hidden = gateKeeper || (teacher && !subjectTeacher);
+    if ($('schedulesNav')) $('schedulesNav').hidden = gateKeeper || (teacher && !(subjectTeacher || classAdviser));
     if ($('sf2Nav')) $('sf2Nav').hidden = gateKeeper || (!admin && !departmentHead && !teacher);
     if ($('teachersNav')) {
       $('teachersNav').hidden = !(admin || departmentHead);
@@ -325,7 +325,7 @@
     }
     if ($('parentsNav')) $('parentsNav').hidden = !admin;
     if ($('showStudentForm')) $('showStudentForm').hidden = !(admin || (teacher && classAdviser));
-    if ($('showScheduleForm')) $('showScheduleForm').hidden = !(admin || (teacher && subjectTeacher));
+    if ($('showScheduleForm')) $('showScheduleForm').hidden = !(admin || departmentHead);
     if ($('dashboardAddStudent')) $('dashboardAddStudent').hidden = !(admin || (teacher && classAdviser));
     if ($('showTeacherForm')) $('showTeacherForm').hidden = !admin;
     if ($('staffUserRows')) $('staffUserRows').closest('.staff-accounts-card').hidden = !admin;
@@ -351,7 +351,7 @@
         else if (admin) { label.textContent = 'Manage staff accounts'; if (detail) detail.textContent = 'Create staff accounts and assign teacher designations'; }
       }
       if (target === 'schedules' && label) {
-        if (teacher) { label.textContent = 'My subject schedules'; if (detail) detail.textContent = 'View only your assigned periods'; }
+        if (teacher) { label.textContent = 'My Schedule'; if (detail) detail.textContent = 'View your teaching assignments and advisory class timetable'; }
         else if (departmentHead) { label.textContent = 'Monitor class schedules'; if (detail) detail.textContent = 'Review school periods and coverage'; }
         else if (admin) { label.textContent = 'Manage class schedules'; if (detail) detail.textContent = 'Create periods and assign permanent teachers'; }
       }
@@ -1149,57 +1149,97 @@ function coverageStatusLabel(status) {
       $('periodTeacher').innerHTML = teacherOptions;
       if (eligibleTeachers.some(t => String(t.userId) === String(previousTeacher))) $('periodTeacher').value = previousTeacher;
     }
-    if ($('periodTeacherGroup')) $('periodTeacherGroup').hidden = isTeacher;
-    if ($('periodTeacherSelfGroup')) $('periodTeacherSelfGroup').hidden = !isTeacher;
-    if ($('periodTeacherSelfName')) $('periodTeacherSelfName').textContent =
-      user.displayName || user.username || 'Signed-in teacher';
+    if ($('periodTeacherGroup')) $('periodTeacherGroup').hidden = false;
+    if ($('periodTeacherSelfGroup')) $('periodTeacherSelfGroup').hidden = true;
     if ($('periodTeacherHint')) $('periodTeacherHint').textContent =
-      'Department and available subjects are determined automatically from the teacher profile.';
+      'The Department Head assigns this class schedule to the selected Subject Teacher.';
     if ($('addScheduleSubject')) $('addScheduleSubject').hidden = !isSchoolManager;
 
-    $('scheduleRows').innerHTML = periods.length ? periods.map(period => {
-      const canSelectPeriod = (user.role === 'SCHOOL_ADMIN' || String(period.departmentId) === String(user.departmentId)) && !period.assignedTeacherName;
-      const selection = canBulkAssign
-        ? '<td>' + (canSelectPeriod
-          ? '<input type="checkbox" data-select-period="' + esc(period.periodId) + '" ' +
-            (selectedPeriodIds.has(String(period.periodId)) ? 'checked' : '') + ' aria-label="Select ' + esc(period.periodName) + '">'
-          : '—') + '</td>'
-        : '';
-      return `<tr>
-        ${selection}<td><strong>${esc(period.periodName)}</strong></td>
-        <td>${esc(period.subjectName || '—')}</td>
-        <td>${esc(period.departmentName || 'Unassigned')}</td>
-        <td>${esc(period.gradeLevel)}</td>
-        <td>${esc(period.section || 'All sections')}</td>
-        <td>${esc(period.classroom || '—')}</td>
-        <td>${esc(period.startTime)}–${esc(period.endTime)}</td>
-        <td>${esc(period.assignedTeacherName || 'Unassigned')}</td>
-      </tr>`;
-    }).join('') : '<tr><td colspan="' + (canBulkAssign ? 9 : 8) + '" class="empty-cell">No class schedules are available yet.</td></tr>';
+    if (isTeacher) {
+      if ($('managerScheduleTableWrap')) $('managerScheduleTableWrap').hidden = true;
+      if ($('teacherScheduleOverview')) $('teacherScheduleOverview').hidden = false;
+      const hasTeachingRole = teacherHas('SUBJECT_TEACHER');
+      const hasAdviserRole = teacherHas('CLASS_ADVISER');
+      if ($('myTeachingScheduleCard')) $('myTeachingScheduleCard').hidden = !hasTeachingRole;
+      if ($('myAdvisoryScheduleCard')) $('myAdvisoryScheduleCard').hidden = !hasAdviserRole;
+
+      const teachingPeriods = periods.filter(period =>
+        String(period.assignedTeacherUserId || '') === String(user.userId || '')
+      );
+      const advisoryPeriods = periods.filter(period =>
+        hasAdviserRole && adviserAssignments.some(assignment =>
+          String(assignment.gradeLevel) === String(period.gradeLevel) &&
+          String(assignment.section) === String(period.section)
+        )
+      );
+      const classLabel = period => `${period.gradeLevel || '—'} · ${period.section || 'All sections'}`;
+      const timeLabel = period => `${period.startTime || '—'}–${period.endTime || '—'}`;
+      const emptyRow = (columns, message) => `<tr><td colspan="${columns}" class="empty-cell">${message}</td></tr>`;
+
+      if ($('myTeachingScheduleRows')) {
+        $('myTeachingScheduleRows').innerHTML = teachingPeriods.length ? teachingPeriods.map(period => `
+          <tr>
+            <td><strong>${esc(period.subjectName || '—')}</strong></td>
+            <td>${esc(classLabel(period))}</td>
+            <td>${esc(period.periodName || '—')}</td>
+            <td>${esc(timeLabel(period))}</td>
+            <td>${esc(period.classroom || '—')}</td>
+          </tr>`).join('') : emptyRow(5, 'No teaching schedules have been assigned to your account yet.');
+      }
+      if ($('myAdvisoryScheduleRows')) {
+        $('myAdvisoryScheduleRows').innerHTML = advisoryPeriods.length ? advisoryPeriods.map(period => `
+          <tr>
+            <td><strong>${esc(period.subjectName || '—')}</strong></td>
+            <td>${esc(period.periodName || '—')}</td>
+            <td>${esc(timeLabel(period))}</td>
+            <td>${esc(period.classroom || '—')}</td>
+            <td>${esc(String(period.assignedTeacherUserId || '') === String(user.userId || '') ? 'You' : (period.assignedTeacherName || 'Unassigned'))}</td>
+          </tr>`).join('') : emptyRow(5, 'No subject schedules have been added to your advisory section yet.');
+      }
+
+      $('scheduleScopeText').textContent = hasTeachingRole && hasAdviserRole
+        ? 'Your schedule combines all subjects you teach with the complete timetable and Subject Teacher list for your advisory class.'
+        : hasAdviserRole
+          ? 'View every subject schedule assigned to your advisory section, including the teacher handling each subject.'
+          : 'View all class schedules assigned to your teacher account.';
+    } else {
+      if ($('managerScheduleTableWrap')) $('managerScheduleTableWrap').hidden = false;
+      if ($('teacherScheduleOverview')) $('teacherScheduleOverview').hidden = true;
+      $('scheduleRows').innerHTML = periods.length ? periods.map(period => {
+        const canSelectPeriod = (user.role === 'SCHOOL_ADMIN' || String(period.departmentId) === String(user.departmentId)) && !period.assignedTeacherName;
+        const selection = canBulkAssign
+          ? '<td>' + (canSelectPeriod
+            ? '<input type="checkbox" data-select-period="' + esc(period.periodId) + '" ' +
+              (selectedPeriodIds.has(String(period.periodId)) ? 'checked' : '') + ' aria-label="Select ' + esc(period.periodName) + '">'
+            : '—') + '</td>'
+          : '';
+        return `<tr>
+          ${selection}<td><strong>${esc(period.periodName)}</strong></td>
+          <td>${esc(period.subjectName || '—')}</td>
+          <td>${esc(period.departmentName || 'Unassigned')}</td>
+          <td>${esc(period.gradeLevel)}</td>
+          <td>${esc(period.section || 'All sections')}</td>
+          <td>${esc(period.classroom || '—')}</td>
+          <td>${esc(period.startTime)}–${esc(period.endTime)}</td>
+          <td>${esc(period.assignedTeacherName || 'Unassigned')}</td>
+        </tr>`;
+      }).join('') : '<tr><td colspan="' + (canBulkAssign ? 9 : 8) + '" class="empty-cell">No class schedules are available yet.</td></tr>';
+
+      $('scheduleScopeText').textContent = user.role === 'DEPARTMENT_HEAD'
+        ? 'Create class schedules and assign Subject Teachers within your department. View schedules across the school.'
+        : 'Create class schedules and assign Subject Teachers. Department and subject options follow the selected teacher profile.';
+    }
 
     document.querySelectorAll('[data-select-period]').forEach(box => box.addEventListener('change', () => {
       if (box.checked) selectedPeriodIds.add(String(box.dataset.selectPeriod)); else selectedPeriodIds.delete(String(box.dataset.selectPeriod));
       updatePeriodBatchUi();
     }));
-    $('scheduleScopeText').textContent = isTeacher
-      ? (teacherHas('CLASS_ADVISER') && !teacherHas('SUBJECT_TEACHER')
-        ? 'View every subject schedule assigned to your advisory section, including the assigned teacher, department, room, and class time.'
-        : teacherHas('CLASS_ADVISER')
-          ? 'View your assigned subject periods and every subject schedule assigned to your advisory section.'
-          : 'View your assigned subject schedules and create a schedule for your own teacher account.')
-      : user.role === 'DEPARTMENT_HEAD'
-        ? 'View schedules across the school. Create schedules and assign teachers only within your department.'
-        : 'Create schedules by choosing a Subject Teacher. Department and subject options follow that teacher’s department.';
 
-    const teacherCreatingOwn = isTeacher && teacherHas('SUBJECT_TEACHER') && Boolean(user.departmentId) && user.departmentCode !== 'UNASSIGNED';
     const departmentHeadCanCreate = user.role === 'DEPARTMENT_HEAD' && Boolean(user.departmentId) && user.departmentCode !== 'UNASSIGNED';
-    $('showScheduleForm').hidden = !(user.role === 'SCHOOL_ADMIN' || teacherCreatingOwn || departmentHeadCanCreate);
+    $('showScheduleForm').hidden = !(user.role === 'SCHOOL_ADMIN' || departmentHeadCanCreate);
+    $('showScheduleForm').textContent = '＋ Create class schedule';
     if (user.role === 'DEPARTMENT_HEAD' && !departmentHeadCanCreate) {
       $('scheduleScopeText').textContent = 'Your account is awaiting department assignment. You can monitor schedules until the School Administrator assigns your department.';
-    }
-    $('showScheduleForm').textContent = teacherCreatingOwn ? '＋ Add my schedule' : '＋ Create class schedule';
-    if (isTeacher && teacherHas('SUBJECT_TEACHER') && !teacherCreatingOwn) {
-      $('scheduleScopeText').textContent = 'Your account is awaiting department assignment. Ask the School Administrator to assign your department before creating schedules.';
     }
   }
 
