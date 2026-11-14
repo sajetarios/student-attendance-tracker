@@ -2450,6 +2450,16 @@ app.post('/api/periods', authenticateSchoolClient, requireSchoolRoles('SCHOOL_AD
   const teacherUserId = isTeacher ? req.auth.userId : req.body?.teacherUserId;
   const classroom = typeof req.body?.classroom === 'string' ? req.body.classroom.trim() : '';
   const { periodName, gradeLevel, section, subjectId, startTime, endTime, graceMinutes = 0 } = req.body || {};
+  let weekdays = Array.isArray(req.body?.weekdays) ? [...new Set(req.body.weekdays.map(Number))] : [];
+  if (!weekdays.length) {
+    const operating = await pool.query('SELECT weekday FROM school_operating_days WHERE school_id=$1 AND is_operating_day=TRUE ORDER BY weekday',[req.auth.schoolId]);
+    weekdays = operating.rows.map(row => Number(row.weekday));
+    if (!weekdays.length) weekdays = [1,2,3,4,5];
+  }
+
+  if (weekdays.some(day => !Number.isInteger(day) || day < 0 || day > 6)) {
+    return res.status(400).json({ error: 'Choose valid class weekdays.' });
+  }
 
   if (isTeacher && !req.auth.teacherDesignations?.includes('SUBJECT_TEACHER')) {
     return res.status(403).json({ error: 'Only a Subject Teacher may create a personal class schedule.' });
@@ -2460,7 +2470,7 @@ app.post('/api/periods', authenticateSchoolClient, requireSchoolRoles('SCHOOL_AD
   if (![periodName, gradeLevel, section, startTime, endTime].every(validText) ||
       !/^([01]\d|2[0-3]):[0-5]\d$/.test(startTime) ||
       !/^([01]\d|2[0-3]):[0-5]\d$/.test(endTime) ||
-      startTime >= endTime || !Number.isInteger(Number(graceMinutes)) ||
+      startTime >= endTime || !weekdays.length || !Number.isInteger(Number(graceMinutes)) ||
       Number(graceMinutes) < 0 || Number(graceMinutes) > 240 ||
       String(periodName).trim().length > 120 || String(gradeLevel).trim().length > 40 ||
       String(section).trim().length > 100 || classroom.length > 100) {
@@ -2511,8 +2521,9 @@ app.post('/api/periods', authenticateSchoolClient, requireSchoolRoles('SCHOOL_AD
       "SELECT period_name,subject_name,start_time::text AS start_time,end_time::text AS end_time " +
       "FROM class_periods WHERE school_id=$1 AND active=TRUE " +
       "AND lower(btrim(grade_level))=lower(btrim($2)) AND upper(btrim(section))=upper(btrim($3)) " +
-      "AND start_time < $5::time AND $4::time < end_time LIMIT 1",
-      [req.auth.schoolId, gradeLevel.trim(), section.trim(), startTime, endTime]
+      "AND start_time < $5::time AND $4::time < end_time " +
+      "AND EXISTS (SELECT 1 FROM class_period_days d WHERE d.school_id=class_periods.school_id AND d.period_id=class_periods.period_id AND d.weekday=ANY($6::smallint[])) LIMIT 1",
+      [req.auth.schoolId, gradeLevel.trim(), section.trim(), startTime, endTime, weekdays]
     );
     if (sectionConflict.rowCount) {
       const conflict = sectionConflict.rows[0];
@@ -2528,13 +2539,15 @@ app.post('/api/periods', authenticateSchoolClient, requireSchoolRoles('SCHOOL_AD
       "FROM teacher_period_assignments a JOIN class_periods p ON p.school_id=a.school_id AND p.period_id=a.period_id " +
       "WHERE a.school_id=$1 AND a.teacher_user_id=$2 AND p.active=TRUE " +
       "AND p.start_time < $4::time AND $3::time < p.end_time " +
+      "AND EXISTS (SELECT 1 FROM class_period_days d WHERE d.school_id=p.school_id AND d.period_id=p.period_id AND d.weekday=ANY($5::smallint[])) " +
       "UNION ALL " +
       "SELECT p.period_name,p.start_time::text AS start_time,p.end_time::text AS end_time " +
       "FROM teacher_period_substitutions ts JOIN class_periods p ON p.school_id=ts.school_id AND p.period_id=ts.period_id " +
       "WHERE ts.school_id=$1 AND ts.substitute_teacher_user_id=$2 AND ts.status='ACTIVE' AND p.active=TRUE " +
       "AND (NOW() AT TIME ZONE 'Asia/Manila')::date BETWEEN ts.start_date AND ts.end_date " +
-      "AND p.start_time < $4::time AND $3::time < p.end_time LIMIT 1",
-      [req.auth.schoolId, teacherUserId, startTime, endTime]
+      "AND p.start_time < $4::time AND $3::time < p.end_time " +
+      "AND EXISTS (SELECT 1 FROM class_period_days d WHERE d.school_id=p.school_id AND d.period_id=p.period_id AND d.weekday=ANY($5::smallint[])) LIMIT 1",
+      [req.auth.schoolId, teacherUserId, startTime, endTime, weekdays]
     );
     if (teacherConflict.rowCount) {
       const conflict = teacherConflict.rows[0];
@@ -2550,8 +2563,9 @@ app.post('/api/periods', authenticateSchoolClient, requireSchoolRoles('SCHOOL_AD
         "SELECT period_name,start_time::text AS start_time,end_time::text AS end_time FROM class_periods " +
         "WHERE school_id=$1 AND active=TRUE AND classroom IS NOT NULL " +
         "AND upper(btrim(classroom))=upper(btrim($2)) " +
-        "AND start_time < $4::time AND $3::time < end_time LIMIT 1",
-        [req.auth.schoolId, classroom, startTime, endTime]
+        "AND start_time < $4::time AND $3::time < end_time " +
+        "AND EXISTS (SELECT 1 FROM class_period_days d WHERE d.school_id=class_periods.school_id AND d.period_id=class_periods.period_id AND d.weekday=ANY($5::smallint[])) LIMIT 1",
+        [req.auth.schoolId, classroom, startTime, endTime, weekdays]
       );
       if (roomConflict.rowCount) {
         const conflict = roomConflict.rows[0];
@@ -2573,6 +2587,12 @@ app.post('/api/periods', authenticateSchoolClient, requireSchoolRoles('SCHOOL_AD
        subject.rows[0].subjectName, startTime, endTime, Number(graceMinutes), departmentId, classroom || null]
     );
     const period = result.rows[0];
+    for (const weekday of weekdays) {
+      await client.query(
+        "INSERT INTO class_period_days(school_id,period_id,weekday) VALUES($1,$2,$3) ON CONFLICT DO NOTHING",
+        [req.auth.schoolId, period.periodId, weekday]
+      );
+    }
     await client.query(
       "INSERT INTO teacher_period_assignments(school_id,teacher_user_id,period_id) VALUES($1,$2,$3) " +
       "ON CONFLICT(school_id,teacher_user_id,period_id) DO NOTHING",
