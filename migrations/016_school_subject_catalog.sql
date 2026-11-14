@@ -16,7 +16,7 @@ CREATE TABLE IF NOT EXISTS school_subjects (
 );
 
 CREATE UNIQUE INDEX IF NOT EXISTS school_subjects_department_name_ci_uk
-  ON school_subjects (school_id, department_id, lower(regexp_replace(btrim(subject_name), '\\s+', ' ', 'g')));
+  ON school_subjects (school_id, department_id, lower(regexp_replace(btrim(subject_name), '[[:space:]]+', ' ', 'g')));
 
 CREATE INDEX IF NOT EXISTS school_subjects_department_active_idx
   ON school_subjects (school_id, department_id, active, subject_name);
@@ -26,11 +26,11 @@ ALTER TABLE class_periods
 
 -- Backfill a single canonical subject entry for every existing department/name pair.
 INSERT INTO school_subjects (school_id, department_id, subject_name)
-SELECT DISTINCT ON (p.school_id, p.department_id, lower(regexp_replace(btrim(p.subject_name), '\\s+', ' ', 'g')))
-       p.school_id, p.department_id, regexp_replace(btrim(p.subject_name), '\\s+', ' ', 'g')
+SELECT DISTINCT ON (p.school_id, p.department_id, lower(regexp_replace(btrim(p.subject_name), '[[:space:]]+', ' ', 'g')))
+       p.school_id, p.department_id, regexp_replace(btrim(p.subject_name), '[[:space:]]+', ' ', 'g')
 FROM class_periods p
 WHERE p.department_id IS NOT NULL AND p.subject_name IS NOT NULL AND btrim(p.subject_name) <> ''
-ORDER BY p.school_id, p.department_id, lower(regexp_replace(btrim(p.subject_name), '\\s+', ' ', 'g')), btrim(p.subject_name)
+ORDER BY p.school_id, p.department_id, lower(regexp_replace(btrim(p.subject_name), '[[:space:]]+', ' ', 'g')), btrim(p.subject_name)
 ON CONFLICT DO NOTHING;
 
 UPDATE class_periods p
@@ -40,7 +40,7 @@ WHERE p.subject_id IS NULL
   AND p.school_id=s.school_id
   AND p.department_id=s.department_id
   AND p.subject_name IS NOT NULL
-  AND lower(regexp_replace(btrim(p.subject_name), '\\s+', ' ', 'g'))=lower(regexp_replace(btrim(s.subject_name), '\\s+', ' ', 'g'));
+  AND lower(regexp_replace(btrim(p.subject_name), '[[:space:]]+', ' ', 'g'))=lower(regexp_replace(btrim(s.subject_name), '[[:space:]]+', ' ', 'g'));
 
 DO $$
 BEGIN
