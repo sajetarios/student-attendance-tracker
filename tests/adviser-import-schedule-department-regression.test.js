@@ -6,15 +6,19 @@ const path = require('node:path');
 const root = path.join(__dirname, '..');
 const read = file => fs.readFileSync(path.join(root, file), 'utf8');
 
-test('teacher designation editing uses a fixed dropdown with the three supported combinations', () => {
+test('teacher designation editing is in the dedicated permissions panel and supports the three combinations', () => {
+  const html = read('public/portal.html');
   const portal = read('public/portal.js');
+  assert.match(html, /id="teacherPermissionsCard"/);
+  assert.match(html, /id="teacherPermissionRows"/);
+  assert.match(portal, /data-edit-teacher-permission/);
   assert.match(portal, /selectOptions:\s*\[/);
   assert.match(portal, /value: 'SUBJECT_TEACHER'/);
   assert.match(portal, /value: 'CLASS_ADVISER'/);
   assert.match(portal, /value: 'BOTH'/);
-  assert.match(portal, /answer === 'BOTH' \? \['SUBJECT_TEACHER', 'CLASS_ADVISER'\]/);
+  assert.match(portal, /answer === 'BOTH' \? \['SUBJECT_TEACHER','CLASS_ADVISER'\]/);
+  assert.match(portal, /\/designations/);
 });
-
 test('School Administrator has a department management table with edit actions', () => {
   const html = read('public/portal.html');
   const portal = read('public/portal.js');

@@ -4,7 +4,8 @@ const test = require('node:test');
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const path = require('node:path');
-const { REQUIRED_MIGRATIONS, stripTransactionWrappers } = require('../scripts/migrate');
+const crypto = require('node:crypto');
+const { REQUIRED_MIGRATIONS, stripTransactionWrappers, runMigrations } = require('../scripts/migrate');
 
 const migrationDir = path.join(__dirname, '..', 'migrations');
 
@@ -68,6 +69,30 @@ test('department migration backfills existing users and schedules to a safe defa
   assert.match(sql, /ALTER TABLE class_periods ADD COLUMN IF NOT EXISTS department_id UUID/i);
   assert.match(sql, /ALTER TABLE class_periods ADD COLUMN IF NOT EXISTS classroom TEXT/i);
   assert.match(sql, /FOREIGN KEY \(school_id, department_id\)/i);
+});
+
+test('DEMO001 data correction remains pending on fresh databases without the optional demo school', async () => {
+  const knownChecksums = new Map();
+  for (const name of REQUIRED_MIGRATIONS.slice(0, -1)) {
+    const raw = fs.readFileSync(path.join(migrationDir, name), 'utf8');
+    knownChecksums.set(name, crypto.createHash('sha256').update(raw, 'utf8').digest('hex'));
+  }
+  const messages = [];
+  const pool = {
+    async query(sql, params = []) {
+      if (String(sql).includes('CREATE TABLE IF NOT EXISTS schema_migrations')) return { rowCount: 0, rows: [] };
+      if (String(sql).includes('SELECT checksum FROM schema_migrations')) {
+        const checksum = knownChecksums.get(params[0]);
+        return checksum ? { rowCount: 1, rows: [{ checksum }] } : { rowCount: 0, rows: [] };
+      }
+      if (String(sql).includes("SELECT 1 FROM schools WHERE school_code='DEMO001'")) return { rowCount: 0, rows: [] };
+      throw new Error('Unexpected migration test query: ' + String(sql).slice(0, 120));
+    }
+  };
+  const result = await runMigrations(pool, { log: message => messages.push(message) });
+  assert.deepEqual(result.applied, []);
+  assert.equal(result.total, REQUIRED_MIGRATIONS.length);
+  assert.ok(messages.some(message => message.includes('Skipped optional demo-only migration')));
 });
 
 test('DEMO001 department correction is school-scoped, backed up, and preserves student/attendance identities', () => {

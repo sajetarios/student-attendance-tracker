@@ -14,9 +14,10 @@ function registerDepartmentRoutes(app, pool, auth) {
     try {
       const result = await pool.query(
         `SELECT department_id AS "departmentId", department_code AS code, department_name AS name, description, active
-         FROM school_departments WHERE school_id=$1 AND active=TRUE
+         FROM school_departments
+         WHERE school_id=$1 AND ($2::boolean=TRUE OR active=TRUE)
          ORDER BY CASE WHEN department_code='UNASSIGNED' THEN 1 ELSE 0 END, department_name`,
-        [req.auth.schoolId]
+        [req.auth.schoolId, req.auth.role === 'SCHOOL_ADMIN']
       );
       return res.json({ departments: result.rows, ownDepartmentId: req.auth.departmentId || null });
     } catch (err) {
@@ -48,22 +49,66 @@ function registerDepartmentRoutes(app, pool, auth) {
   });
 
   app.patch('/api/departments/:departmentId', authenticateSchoolClient, schoolAdmin, async (req, res) => {
-    const { name, description, active } = req.body || {};
-    if (typeof name !== 'string' || !name.trim() || name.trim().length > 100 ||
-        (description != null && (typeof description !== 'string' || description.length > 500)) ||
-        typeof active !== 'boolean') return res.status(400).json({ error: 'Provide a valid department name, description, and active status.' });
+    const { code, name, description, active } = req.body || {};
+    const cleanCode = typeof code === 'string' ? code.trim().toUpperCase() : '';
+    const cleanName = typeof name === 'string' ? name.trim() : '';
+    const cleanDescription = typeof description === 'string' ? description.trim() : '';
+    if (!/^[A-Z0-9_-]{2,20}$/.test(cleanCode) ||
+        !cleanName || cleanName.length > 100 ||
+        cleanDescription.length > 500 ||
+        typeof active !== 'boolean') {
+      return res.status(400).json({ error: 'Provide a valid department code, name, description, and active status.' });
+    }
+    const client = await pool.connect();
     try {
-      const result = await pool.query(
-        `UPDATE school_departments SET department_name=$3, description=$4, active=$5, updated_at=NOW()
+      await client.query('BEGIN');
+      const existing = await client.query(
+        `SELECT department_id AS "departmentId", department_code AS code,
+                department_name AS name, description, active
+         FROM school_departments
          WHERE school_id=$1 AND department_id=$2 AND department_code<>'UNASSIGNED'
-         RETURNING department_id AS "departmentId", department_code AS code, department_name AS name, description, active`,
-        [req.auth.schoolId, req.params.departmentId, name.trim(), description?.trim() || null, active]
+         FOR UPDATE`,
+        [req.auth.schoolId, req.params.departmentId]
       );
-      if (!result.rowCount) return res.status(404).json({ error: 'Department not found or cannot be changed.' });
-      return res.json({ department: result.rows[0] });
+      if (!existing.rowCount) {
+        await client.query('ROLLBACK');
+        return res.status(404).json({ error: 'Department not found or cannot be changed.' });
+      }
+      if (!active) {
+        const references = await client.query(
+          `SELECT
+             EXISTS(SELECT 1 FROM school_users WHERE school_id=$1 AND department_id=$2 AND active=TRUE) AS "hasActiveStaff",
+             EXISTS(SELECT 1 FROM class_periods WHERE school_id=$1 AND department_id=$2 AND active=TRUE) AS "hasActiveSchedules"`,
+          [req.auth.schoolId, req.params.departmentId]
+        );
+        if (references.rows[0].hasActiveStaff || references.rows[0].hasActiveSchedules) {
+          await client.query('ROLLBACK');
+          return res.status(409).json({ error: 'This department still has active staff or class schedules. Reassign or deactivate those records before deactivating the department.' });
+        }
+      }
+      const updated = await client.query(
+        `UPDATE school_departments
+         SET department_code=$3, department_name=$4, description=$5, active=$6, updated_at=NOW()
+         WHERE school_id=$1 AND department_id=$2 AND department_code<>'UNASSIGNED'
+         RETURNING department_id AS "departmentId", department_code AS code,
+                   department_name AS name, description, active`,
+        [req.auth.schoolId, req.params.departmentId, cleanCode, cleanName, cleanDescription || null, active]
+      );
+      await client.query(
+        `INSERT INTO audit_logs(school_id,actor_type,actor_user_id,action,entity_type,entity_id,details)
+         VALUES($1,'SCHOOL',$2,'SCHOOL_ADMIN_UPDATE_DEPARTMENT','school_department',$3,$4::jsonb)`,
+        [req.auth.schoolId, req.auth.userId, req.params.departmentId,
+         JSON.stringify({ before: existing.rows[0], after: updated.rows[0] })]
+      );
+      await client.query('COMMIT');
+      return res.json({ department: updated.rows[0] });
     } catch (err) {
+      await client.query('ROLLBACK').catch(() => {});
+      if (err.code === '23505') return res.status(409).json({ error: 'A department with that code already exists.' });
       console.error('Department update failed:', err.message);
       return res.status(500).json({ error: 'Could not update department.' });
+    } finally {
+      client.release();
     }
   });
 

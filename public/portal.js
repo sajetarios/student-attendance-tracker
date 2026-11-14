@@ -197,7 +197,7 @@
         dashboard: ['School Administrator Dashboard', 'Manage school attendance operations, users, learner records, devices, schedules, and reporting.'],
         students: ['Student management', 'Register learners, maintain student details and photos, create student portal accounts, and manage QR cards.'],
         schedules: ['Class schedules', 'Create and manage subject periods and permanent teacher assignments.'],
-        teachers: ['Teacher and staff management', 'Create school accounts, manage teacher designations, leave, schedules, substitutions, and class adviser assignments.'],
+        teachers: ['User management', 'Create and update school accounts, assign role-based access, manage departments, and disable or restore account access.'],
         sf2: ['SF2 Report Generator', 'Generate the monthly TUVERA SF2 and collect official reports submitted by Class Advisers.'],
         cloudSync: ['Cloud Sync', 'Configure the destination for the future secure local-to-cloud attendance synchronization.']
       };
@@ -217,7 +217,7 @@
     if ($('teacherMonitorTitle')) $('teacherMonitorTitle').textContent = departmentHead ? 'Teacher status and class coverage' : 'Teacher accounts';
     if ($('teacherMonitorDescription')) $('teacherMonitorDescription').textContent = departmentHead
       ? 'Review teacher status, assigned grade levels and sections, leave, schedules, and temporary substitute coverage.'
-      : 'Manage teacher accounts, designations, schedules, leave, and class adviser assignments.';
+      : 'Manage teacher account profiles and permissions. Schedule ownership and class coverage are managed in the academic workspace.';
     if ($('teacherActionHeader')) $('teacherActionHeader').textContent = departmentHead ? 'Coverage action' : 'Account action';
     if ($('sf2ViewTitle')) $('sf2ViewTitle').textContent = departmentHead ? 'SF2 Monitoring' : 'SF2 Report Generator';
     if ($('sf2ViewDescription')) $('sf2ViewDescription').textContent = departmentHead
@@ -321,7 +321,7 @@
     if ($('teachersNav')) {
       $('teachersNav').hidden = !(admin || departmentHead);
       if (departmentHead) $('teachersNav').querySelector('.nav-label').textContent = 'Teacher monitoring';
-      else $('teachersNav').querySelector('.nav-label').textContent = 'Teachers';
+      else $('teachersNav').querySelector('.nav-label').textContent = 'User management';
     }
     if ($('parentsNav')) $('parentsNav').hidden = !admin;
     if ($('showStudentForm')) $('showStudentForm').hidden = !(admin || (teacher && classAdviser));
@@ -396,7 +396,40 @@
       const desc = document.querySelector('.scan-setup-description');
       if (desc) desc.textContent = 'Choose an assigned subject class or advisory section. Only learners within your authorized assignments can be recorded.';
     }
+    const currentAdminTab = $('adminManagementTabs')?.querySelector('.is-active')?.dataset.adminManagementTab || 'accounts';
+    setAdminManagementTab(currentAdminTab);
   }
+
+  function setAdminManagementTab(tabName = 'accounts') {
+    const isAdmin = user?.role === 'SCHOOL_ADMIN';
+    const tabs = $('adminManagementTabs');
+    if (tabs) tabs.hidden = !isAdmin;
+    const teacherCard = $('teacherRows')?.closest('.surface-card');
+    const staffCard = $('staffAccountsTable')?.closest('.surface-card');
+    const adviserCard = $('adviserAssignmentForm')?.closest('.surface-card');
+    const teacherPermissionsCard = $('teacherPermissionsCard');
+    const departmentCard = $('departmentManagementCard');
+    const note = document.querySelector('.teacher-management-note');
+    if (!isAdmin) return;
+    const activeTab = ['accounts','permissions','departments'].includes(tabName) ? tabName : 'accounts';
+    if (teacherCard) teacherCard.hidden = activeTab !== 'accounts';
+    if (staffCard) staffCard.hidden = activeTab !== 'accounts';
+    if (adviserCard) adviserCard.hidden = activeTab !== 'permissions';
+    if (teacherPermissionsCard) teacherPermissionsCard.hidden = activeTab !== 'permissions';
+    if (departmentCard) departmentCard.hidden = activeTab !== 'departments';
+    if (note) note.hidden = activeTab !== 'accounts';
+    tabs?.querySelectorAll('[data-admin-management-tab]').forEach(button => {
+      const selected = button.dataset.adminManagementTab === activeTab;
+      button.classList.toggle('is-active', selected);
+      button.setAttribute('aria-selected', selected ? 'true' : 'false');
+      button.tabIndex = selected ? 0 : -1;
+    });
+  }
+
+  $('adminManagementTabs')?.addEventListener('click', event => {
+    const button = event.target.closest('[data-admin-management-tab]');
+    if (button) setAdminManagementTab(button.dataset.adminManagementTab);
+  });
 
   function renderStats(data) {
     const role = user?.role;
@@ -1334,18 +1367,16 @@ let teacherActionMenuListenersInstalled = false;
 
       const isSchoolAdmin = user.role === 'SCHOOL_ADMIN';
       const accountActions = !isSchoolAdmin ? '<span class="muted-inline">View only</span>' : (active
-        ? `<div class="teacher-action-menu-label">Assignments</div>
-           <button type="button" class="teacher-action-item" data-manage-permanent="${esc(teacher.userId)}">Manage permanent assignments</button>
-           <button type="button" class="teacher-action-item" data-edit-designations="${esc(teacher.userId)}">Edit teacher designations</button>
-           <button type="button" class="teacher-action-item" data-teacher-qr="${esc(teacher.userId)}">Print gate QR badge</button>
+        ? `<div class="teacher-action-menu-label">Account &amp; permissions</div>
+           <button type="button" class="teacher-action-item" data-edit-teacher-profile="${esc(teacher.userId)}">Edit account profile</button>
+<button type="button" class="teacher-action-item" data-teacher-qr="${esc(teacher.userId)}">Print gate QR badge</button>
            <label class="teacher-action-item teacher-photo-upload-menu">${teacher.hasTeacherPhoto ? 'Replace teacher photo' : 'Upload teacher photo'}<input type="file" accept="image/jpeg,image/png,image/webp" data-teacher-photo="${esc(teacher.userId)}" hidden></label>
            <div class="teacher-action-menu-divider"></div>
            <div class="teacher-action-menu-label">Account</div>
            <button type="button" class="teacher-action-item" data-place-leave="${esc(teacher.userId)}">Set on leave</button>
            <button type="button" class="teacher-action-item danger" data-deactivate-teacher="${esc(teacher.userId)}">Deactivate account</button>`
         : onLeave
-          ? `<div class="teacher-action-menu-label">Leave management</div>
-             <button type="button" class="teacher-action-item" data-assign-substitute="${esc(teacher.userId)}" ${assigned.length ? '' : 'disabled'}>Assign temporary substitute</button>
+          ? `<div class="teacher-action-menu-label">Account access</div>
              <button type="button" class="teacher-action-item" data-return-teacher="${esc(teacher.userId)}">Mark returned</button>`
           : `<div class="teacher-action-menu-label">Account</div>
              <button type="button" class="teacher-action-item" data-return-teacher="${esc(teacher.userId)}">Reactivate account</button>`);
@@ -1360,14 +1391,14 @@ let teacherActionMenuListenersInstalled = false;
       ].join('');
       const actionMenu = isSchoolAdmin ? `<details class="teacher-action-menu">
         <summary class="outline-button compact-button teacher-actions-trigger" aria-label="Actions for ${esc(teacher.displayName)}">Actions <span class="teacher-actions-chevron" aria-hidden="true">▾</span></summary>
-        <div class="teacher-action-menu-panel" hidden>${accountActions}${cancelCoverActions ? '<div class="teacher-action-menu-divider"></div><div class="teacher-action-menu-label">Temporary coverage</div>' + cancelCoverActions : ''}</div>
+        <div class="teacher-action-menu-panel" hidden>${accountActions}</div>
       </details>` : (user.role === 'DEPARTMENT_HEAD' && departmentHeadCoverageActions
         ? `<div class="teacher-coverage-actions">${departmentHeadCoverageActions}</div>`
         : '<span class="muted-inline">Read only</span>');
 
       const departmentCell = user.role === 'SCHOOL_ADMIN'
         ? `<select class="teacher-department-select" data-change-teacher-department="${esc(teacher.userId)}" aria-label="Department for ${esc(teacher.displayName)}">
-            ${departments.map(item => `<option value="${esc(item.departmentId)}" ${String(item.departmentId) === String(teacher.departmentId) ? 'selected' : ''}>${esc(item.name)}</option>`).join('')}
+            ${departments.filter(item => item.active || String(item.departmentId) === String(teacher.departmentId)).map(item => `<option value="${esc(item.departmentId)}" ${String(item.departmentId) === String(teacher.departmentId) ? 'selected' : ''} ${item.active ? '' : 'disabled'}>${esc(item.name)}${item.active ? '' : ' (Inactive)'}</option>`).join('')}
           </select>`
         : esc(teacher.departmentName || 'Unassigned');
       return `<tr>
@@ -1783,7 +1814,7 @@ let teacherActionMenuListenersInstalled = false;
         : '';
       const departmentCell = account.role === 'DEPARTMENT_HEAD'
         ? `<select class="staff-department-select" data-change-staff-department="${esc(account.userId)}" aria-label="Department for ${esc(account.displayName || account.username)}">
-            ${departments.map(item => `<option value="${esc(item.departmentId)}" ${String(item.departmentId) === String(account.departmentId) ? 'selected' : ''}>${esc(item.name)}</option>`).join('')}
+            ${departments.filter(item => item.active || String(item.departmentId) === String(account.departmentId)).map(item => `<option value="${esc(item.departmentId)}" ${String(item.departmentId) === String(account.departmentId) ? 'selected' : ''} ${item.active ? '' : 'disabled'}>${esc(item.name)}${item.active ? '' : ' (Inactive)'}</option>`).join('')}
           </select>`
         : '<span class="muted-inline">—</span>';
       return `<tr>
@@ -1791,12 +1822,29 @@ let teacherActionMenuListenersInstalled = false;
         <td data-label="Role">${esc(String(account.role || '').replaceAll('_', ' '))}</td>
         <td data-label="Department">${departmentCell}</td>
         <td data-label="Status"><span class="account-status ${account.active ? 'active' : 'inactive'}">${account.active ? 'Active' : 'Inactive'}</span></td>
+        <td data-label="Account action"><button type="button" class="outline-button compact-button" data-edit-staff-profile="${esc(account.userId)}">Edit account</button></td>
       </tr>`;
-    }).join('') : '<tr><td colspan="4" class="empty-cell">No additional staff accounts have been created.</td></tr>';
+    }).join('') : '<tr><td colspan="5" class="empty-cell">No additional staff accounts have been created.</td></tr>';
     host.querySelectorAll('[data-select-staff]').forEach(box => box.addEventListener('change', () => {
       if (box.checked) selectedStaffIds.add(String(box.dataset.selectStaff)); else selectedStaffIds.delete(String(box.dataset.selectStaff));
       updateStaffBulkUi();
     }));
+  }
+
+  function renderTeacherPermissions() {
+    const host = $('teacherPermissionRows');
+    if (!host) return;
+    host.innerHTML = teachers.length ? teachers.map(teacher => {
+      const labels = (teacher.teacherDesignations || []).map(value =>
+        value === 'CLASS_ADVISER' ? 'Class Adviser' : value === 'SUBJECT_TEACHER' ? 'Subject Teacher' : value
+      );
+      return `<tr>
+        <td><strong>${esc(teacher.displayName || teacher.username)}</strong><small class="table-subtext">${esc(teacher.username)}</small></td>
+        <td>${esc(teacher.departmentName || 'Unassigned')}</td>
+        <td>${labels.length ? labels.map(label => '<span class="teacher-permission-chip">' + esc(label) + '</span>').join(' ') : '<span class="muted-inline">No permissions</span>'}</td>
+        <td><button type="button" class="outline-button compact-button" data-edit-teacher-permission="${esc(teacher.userId)}">Edit permissions</button></td>
+      </tr>`;
+    }).join('') : '<tr><td colspan="4" class="empty-cell">No teacher accounts are available.</td></tr>';
   }
 
   function renderAdviserAssignments() {
@@ -1811,7 +1859,9 @@ let teacherActionMenuListenersInstalled = false;
     }
     host.innerHTML = adviserAssignments.length ? adviserAssignments.map(item => `
       <tr><td>${esc(item.gradeLevel)}</td><td>${esc(item.section)}</td><td>${esc(item.adviserName || item.adviserUserId)}</td>
-      <td>${user.role === 'SCHOOL_ADMIN' ? `<button type="button" class="outline-button compact-button" data-remove-adviser="${esc(item.assignmentId)}">Remove</button>` : '<span class="muted-inline">Read only</span>'}</td></tr>`).join('')
+      <td>${user.role === 'SCHOOL_ADMIN'
+        ? '<div class="action-row"><button type="button" class="outline-button compact-button" data-edit-adviser="' + esc(item.assignmentId) + '">Edit</button><button type="button" class="outline-button compact-button danger-button" data-remove-adviser="' + esc(item.assignmentId) + '">Remove</button></div>'
+        : '<span class="muted-inline">Read only</span>'}</td></tr>`).join('')
       : '<tr><td colspan="4" class="empty-cell">No class adviser assignments have been made.</td></tr>';
   }
 
@@ -1974,6 +2024,7 @@ let teacherActionMenuListenersInstalled = false;
     renderStudents();
     renderPeriods();
     if (isSchoolManager) renderTeachers();
+    if (role === 'SCHOOL_ADMIN') renderTeacherPermissions();
     if (isDepartmentHead) renderDepartmentHeadOverview();
     if (isSchoolManager) {
       await loadTeacherCoverage(false);
@@ -1988,6 +2039,10 @@ let teacherActionMenuListenersInstalled = false;
     }
     if (role === 'TEACHER' && (user.teacherDesignations || []).includes('CLASS_ADVISER')) {
       renderAdviserAssignments();
+    }
+    if (role === 'SCHOOL_ADMIN') {
+      const currentTab = $('adminManagementTabs')?.querySelector('.is-active')?.dataset.adminManagementTab || 'accounts';
+      setAdminManagementTab(currentTab);
     }
   }
 
@@ -3004,13 +3059,88 @@ let teacherActionMenuListenersInstalled = false;
         feedback.textContent = 'Class Adviser assignment saved.';
       } catch (error) { feedback.className = 'inline-feedback error'; feedback.textContent = error.message; }
     });
+    $('teacherPermissionRows')?.addEventListener('click', async event => {
+      const button = event.target.closest('[data-edit-teacher-permission]');
+      if (!button) return;
+      const teacher = teachers.find(item => String(item.userId) === String(button.dataset.editTeacherPermission));
+      if (!teacher) return;
+      const currentValues = teacher.teacherDesignations || [];
+      const current = currentValues.includes('SUBJECT_TEACHER') && currentValues.includes('CLASS_ADVISER')
+        ? 'BOTH' : currentValues[0] || '';
+      const answer = await AppDialog.prompt('Choose the permissions for this teacher account. Existing subject-period and class adviser assignments are preserved. A permission cannot be removed while linked assignments still depend on it.', current, {
+        title: 'Edit teacher permissions',
+        label: 'Teacher permissions',
+        helpText: 'Subject Teacher: manages assigned subject-class attendance. Class Adviser: manages an assigned advisory section and official SF2. Both: enables both responsibilities.',
+        placeholder: 'Choose permissions',
+        required: true,
+        selectOptions: [
+          { value: 'SUBJECT_TEACHER', label: 'Subject Teacher' },
+          { value: 'CLASS_ADVISER', label: 'Class Adviser' },
+          { value: 'BOTH', label: 'Both permissions' }
+        ]
+      });
+      if (answer === null) return;
+      const designations = answer === 'BOTH' ? ['SUBJECT_TEACHER','CLASS_ADVISER'] : [answer];
+      button.disabled = true;
+      try {
+        await api('/api/teachers/' + encodeURIComponent(teacher.userId) + '/designations', {
+          method: 'PATCH', body: JSON.stringify({ teacherDesignations: designations })
+        });
+        await loadSchoolData();
+        showToast('Teacher permissions updated. Existing schedules and advisory assignments were preserved.');
+      } catch (error) {
+        showToast(error.message, true);
+        button.disabled = false;
+      }
+    });
+
     $('adviserAssignmentRows').addEventListener('click', async event => {
+      const editButton = event.target.closest('[data-edit-adviser]');
+      if (editButton) {
+        const assignment = adviserAssignments.find(item => String(item.assignmentId) === String(editButton.dataset.editAdviser));
+        if (!assignment) return;
+        const activeAdvisers = teachers.filter(item => item.active && Array.isArray(item.teacherDesignations) && item.teacherDesignations.includes('CLASS_ADVISER'));
+        const values = await AppDialog.form(
+          'Update the adviser, grade level, or section. One Class Adviser may be assigned to each grade-and-section combination.',
+          [
+            { name: 'adviserUserId', label: 'Class Adviser', required: true, defaultValue: String(assignment.adviserUserId),
+              selectOptions: activeAdvisers.map(item => ({ value: String(item.userId), label: item.displayName })) },
+            { name: 'gradeLevel', label: 'Grade level', required: true, defaultValue: assignment.gradeLevel, maxLength: 40,
+              validate: value => String(value).trim().length <= 40 || 'Grade level must be 40 characters or fewer.' },
+            { name: 'section', label: 'Section', required: true, defaultValue: assignment.section, maxLength: 100,
+              validate: value => String(value).trim().length <= 100 || 'Section must be 100 characters or fewer.' }
+          ],
+          { title: 'Edit Class Adviser assignment', confirmText: 'Save changes' }
+        );
+        if (values === null) return;
+        editButton.disabled = true;
+        try {
+          await api('/api/class-adviser-assignments/' + encodeURIComponent(assignment.assignmentId), {
+            method: 'PATCH',
+            body: JSON.stringify({ adviserUserId: values.adviserUserId, gradeLevel: values.gradeLevel.trim(), section: values.section.trim() })
+          });
+          await loadSchoolData();
+          showToast('Class Adviser assignment updated.');
+        } catch (error) {
+          showToast(error.message, true);
+          editButton.disabled = false;
+        }
+        return;
+      }
       const button = event.target.closest('[data-remove-adviser]');
       if (!button) return;
-      if (!await AppDialog.confirm('Remove this Class Adviser assignment?', { title: 'Remove Class Adviser assignment', confirmText: 'Remove assignment', variant: 'danger' })) return;
+      if (!await AppDialog.confirm('Remove this Class Adviser assignment? The teacher account and attendance history will remain unchanged.', {
+        title: 'Remove Class Adviser assignment', confirmText: 'Remove assignment', variant: 'danger'
+      })) return;
       button.disabled = true;
-      try { await api(`/api/class-adviser-assignments/${encodeURIComponent(button.dataset.removeAdviser)}`, { method: 'DELETE' }); await loadSchoolData(); showToast('Class Adviser assignment removed.'); }
-      catch (error) { showToast(error.message, true); button.disabled = false; }
+      try {
+        await api('/api/class-adviser-assignments/' + encodeURIComponent(button.dataset.removeAdviser), { method: 'DELETE' });
+        await loadSchoolData();
+        showToast('Class Adviser assignment removed.');
+      } catch (error) {
+        showToast(error.message, true);
+        button.disabled = false;
+      }
     });
   }
 
@@ -3089,56 +3219,45 @@ let teacherActionMenuListenersInstalled = false;
       }
     });
 
-    $('teacherRows').addEventListener('click', async event => {
+        $('teacherRows').addEventListener('click', async event => {
       const selectedMenuAction = event.target.closest('.teacher-action-item');
       if (selectedMenuAction) selectedMenuAction.closest('details.teacher-action-menu')?.removeAttribute('open');
-      const designationButton = event.target.closest('[data-edit-designations]');
       const manageAssignmentsButton = event.target.closest('[data-manage-permanent]');
       const leaveButton = event.target.closest('[data-place-leave]');
+      const profileButton = event.target.closest('[data-edit-teacher-profile]');
       const teacherQrButton = event.target.closest('[data-teacher-qr]');
+      const substituteButton = event.target.closest('[data-assign-substitute]');
+      const cancelSubstitutionButton = event.target.closest('[data-cancel-substitution]');
+      const returnButton = event.target.closest('[data-return-teacher]');
+      const deactivateButton = event.target.closest('[data-deactivate-teacher]');
+
+      if (profileButton) {
+        const teacher = teachers.find(item => String(item.userId) === String(profileButton.dataset.editTeacherProfile));
+        if (!teacher) return;
+        const values = await AppDialog.form('Update the teacher display name. Department and teacher permissions can be managed separately without replacing the account or QR identity.',
+          [{ name: 'displayName', label: 'Display name', defaultValue: teacher.displayName || '', required: true, maxLength: 160 }],
+          { title: 'Edit teacher account', confirmText: 'Save account' });
+        if (values === null) return;
+        profileButton.disabled = true;
+        try {
+          await api('/api/teachers/' + encodeURIComponent(teacher.userId), { method: 'PATCH', body: JSON.stringify({ displayName: values.displayName.trim() }) });
+          await loadSchoolData();
+          showToast('Teacher account updated. Existing teacher QR identity and schedules were preserved.');
+        } catch (error) { showToast(error.message, true); profileButton.disabled = false; }
+        return;
+      }
+
       if (teacherQrButton) {
         try { await printTeacherGateQr(teacherQrButton.dataset.teacherQr); }
         catch (error) { showToast(error.message, true); }
         return;
       }
-      if (designationButton) {
-        const teacher = teachers.find(item => String(item.userId) === String(designationButton.dataset.editDesignations));
-        if (!teacher) return;
-        const currentValues = teacher.teacherDesignations || [];
-        const current = currentValues.includes('SUBJECT_TEACHER') && currentValues.includes('CLASS_ADVISER')
-          ? 'BOTH' : currentValues[0] || '';
-        const answer = await AppDialog.prompt('Choose the designation for this teacher account.', current, {
-          title: 'Edit teacher designations',
-          label: 'Teacher designation',
-          helpText: 'Choose Subject Teacher, Class Adviser, or both. Existing subject schedule assignments are preserved.',
-          placeholder: 'Choose a designation',
-          required: true,
-          selectOptions: [
-            { value: 'SUBJECT_TEACHER', label: 'Subject Teacher — handles assigned subject schedules' },
-            { value: 'CLASS_ADVISER', label: 'Class Adviser — handles an assigned section and SF2' },
-            { value: 'BOTH', label: 'Both — Subject Teacher and Class Adviser' }
-          ]
-        });
-        if (answer === null) return;
-        const designations = answer === 'BOTH' ? ['SUBJECT_TEACHER', 'CLASS_ADVISER'] : [answer];
-        try {
-          await api(`/api/teachers/${encodeURIComponent(teacher.userId)}/designations`, { method: 'PATCH', body: JSON.stringify({ teacherDesignations: designations }) });
-          await loadSchoolData();
-          showToast('Teacher designations updated. Existing subject assignments remain unchanged.');
-        } catch (error) { showToast(error.message, true); }
-        return;
-      }
-      const returnButton = event.target.closest('[data-return-teacher]');
-      const deactivateButton = event.target.closest('[data-deactivate-teacher]');
-      const substituteButton = event.target.closest('[data-assign-substitute]');
-      const cancelSubstitutionButton = event.target.closest('[data-cancel-substitution]');
+
       if (manageAssignmentsButton) {
-        const teacherId = manageAssignmentsButton.dataset.managePermanent;
-        const teacher = teachers.find(item => String(item.userId) === String(teacherId));
+        const teacher = teachers.find(item => String(item.userId) === String(manageAssignmentsButton.dataset.managePermanent));
         if (teacher) openPermanentAssignmentDialog(teacher, manageAssignmentsButton);
       } else if (substituteButton) {
-        const teacherId = substituteButton.dataset.assignSubstitute;
-        const teacher = teachers.find(item => String(item.userId) === String(teacherId));
+        const teacher = teachers.find(item => String(item.userId) === String(substituteButton.dataset.assignSubstitute));
         if (teacher) openSubstituteDialog(teacher, substituteButton);
       } else if (cancelSubstitutionButton) {
         const substitutionId = cancelSubstitutionButton.dataset.cancelSubstitution;
@@ -3170,18 +3289,15 @@ let teacherActionMenuListenersInstalled = false;
         }
       } else if (deactivateButton) {
         const teacherId = deactivateButton.dataset.deactivateTeacher;
-        if (!await AppDialog.confirm('Deactivate this teacher account permanently? Login will be disabled, but historical attendance and schedule assignments will be preserved.', { title: 'Deactivate teacher account', confirmText: 'Deactivate account', variant: 'danger' })) return;
-        const button = deactivateButton;
-        button.disabled = true;
+        if (!await AppDialog.confirm('Deactivate this teacher account? Login will be disabled, but historical attendance and schedule assignments will be preserved.', { title: 'Deactivate teacher account', confirmText: 'Deactivate account', variant: 'danger' })) return;
+        deactivateButton.disabled = true;
         try {
-          await api(`/api/teachers/${encodeURIComponent(teacherId)}`, {
-            method: 'PATCH', body: JSON.stringify({ active: false })
-          });
+          await api(`/api/teachers/${encodeURIComponent(teacherId)}`, { method: 'PATCH', body: JSON.stringify({ active: false }) });
           await loadSchoolData();
           showToast('Teacher account deactivated.');
         } catch (error) {
           showToast(error.message, true);
-          button.disabled = false;
+          deactivateButton.disabled = false;
         }
       }
     });
@@ -3248,21 +3364,29 @@ let teacherActionMenuListenersInstalled = false;
     if (!button) return;
     const department = departments.find(item => String(item.departmentId) === String(button.dataset.editDepartment));
     if (!department || department.code === 'UNASSIGNED') return;
-    const name = await AppDialog.prompt('Update the department name.', department.name, {
-      title: 'Edit department', label: 'Department name', required: true, maxLength: 100
-    });
-    if (name === null) return;
-    const description = await AppDialog.prompt('Update the department description. Leave blank if not needed.', department.description || '', {
-      title: 'Edit department description', label: 'Description', inputType: 'textarea', rows: 3, maxLength: 500
-    });
-    if (description === null) return;
+    const values = await AppDialog.form(
+      'Update the department code, name, description, and status. Department codes must remain unique. A department with active staff or schedules cannot be deactivated.',
+      [
+        { name: 'code', label: 'Department code', defaultValue: department.code, required: true, maxLength: 20,
+          helpText: '2–20 characters: letters, numbers, underscores, or hyphens.',
+          validate: value => /^[A-Za-z0-9_-]{2,20}$/.test(String(value).trim()) || 'Use 2–20 letters, numbers, underscores, or hyphens.' },
+        { name: 'name', label: 'Department name', defaultValue: department.name, required: true, maxLength: 100 },
+        { name: 'description', label: 'Description', inputType: 'textarea', rows: 3, defaultValue: department.description || '', maxLength: 500,
+          helpText: 'Optional. Up to 500 characters.' },
+        { name: 'active', label: 'Status', selectOptions: [{ value: 'true', label: 'Active' }, { value: 'false', label: 'Inactive' }],
+          defaultValue: department.active ? 'true' : 'false', required: true }
+      ],
+      { title: 'Edit department', confirmText: 'Save department' }
+    );
+    if (values === null) return;
     button.disabled = true;
     try {
       await api('/api/departments/' + encodeURIComponent(department.departmentId), {
-        method: 'PATCH', body: JSON.stringify({ name: name.trim(), description: description.trim(), active: true })
+        method: 'PATCH',
+        body: JSON.stringify({ code: values.code.trim(), name: values.name.trim(), description: values.description.trim(), active: values.active === 'true' })
       });
       await loadSchoolData();
-      showToast('Department updated.');
+      showToast('Department details updated.');
     } catch (error) {
       showToast(error.message, true);
       button.disabled = false;
@@ -3288,6 +3412,31 @@ let teacherActionMenuListenersInstalled = false;
     }
   });
 
+  $('staffUserRows')?.addEventListener('click', async event => {
+    const button = event.target.closest('[data-edit-staff-profile]');
+    if (!button) return;
+    const account = schoolUsers.find(item => String(item.userId) === String(button.dataset.editStaffProfile));
+    if (!account) return;
+    const values = await AppDialog.form(
+      'Update the display name or disable/restore sign-in access. Account role and department remain separately controlled.',
+      [
+        { name: 'displayName', label: 'Display name', defaultValue: account.displayName || '', required: true, maxLength: 160 },
+        { name: 'active', label: 'Account access', defaultValue: account.active ? 'true' : 'false', required: true,
+          selectOptions: [{ value: 'true', label: 'Active — sign-in allowed' }, { value: 'false', label: 'Inactive — sign-in disabled' }] }
+      ],
+      { title: 'Edit staff account', confirmText: 'Save account' }
+    );
+    if (values === null) return;
+    button.disabled = true;
+    try {
+      await api('/api/school-users/' + encodeURIComponent(account.userId) + '/profile', { method: 'PATCH', body: JSON.stringify({ displayName: values.displayName.trim(), active: values.active === 'true' }) });
+      await loadSchoolData();
+      showToast('Staff account updated.');
+    } catch (error) {
+      showToast(error.message, true);
+      button.disabled = false;
+    }
+  });
   $('staffUserRows')?.addEventListener('change', async event => {
     const select = event.target.closest('[data-change-staff-department]');
     if (!select) return;

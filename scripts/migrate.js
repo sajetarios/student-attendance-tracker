@@ -73,6 +73,19 @@ async function runMigrations(pool, logger = console) {
       continue;
     }
 
+    // This one-time data correction applies only to the seeded DEMO001 school.
+    // Fresh installations and isolated test databases may not contain that demo
+    // tenant yet, so leave the migration pending instead of failing startup.
+    if (name === '017_demo001_subject_department_correction.sql') {
+      const demoSchool = await pool.query(
+        "SELECT 1 FROM schools WHERE school_code='DEMO001' AND active=TRUE LIMIT 1"
+      );
+      if (!demoSchool.rowCount) {
+        logger.log?.(`Skipped optional demo-only migration: ${name} (DEMO001 is not present).`);
+        continue;
+      }
+    }
+
     const client = await pool.connect();
     try {
       await client.query('BEGIN');

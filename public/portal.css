@@ -741,3 +741,70 @@ td { font-size:14px; }
     min-width: 1180px !important;
   }
 }
+
+/* School administrator workspace: keep account maintenance, access permissions,
+   and organization setup in separate, predictable panels. */
+.admin-management-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin: 0 0 18px;
+  padding: 6px;
+  border: 1px solid #dce6ef;
+  border-radius: 13px;
+  background: #edf3f8;
+}
+.admin-management-tab {
+  min-height: 40px;
+  padding: 9px 15px;
+  border: 1px solid transparent;
+  border-radius: 9px;
+  background: transparent;
+  color: #52677d;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background .15s ease, color .15s ease, box-shadow .15s ease;
+}
+.admin-management-tab:hover { background: rgba(255,255,255,.72); color: #1d4f78; }
+.admin-management-tab.is-active {
+  border-color: #d3e2ef;
+  background: #fff;
+  color: #185d91;
+  box-shadow: 0 2px 7px rgba(15, 45, 75, .07);
+}
+.admin-management-tab:focus-visible { outline: 3px solid rgba(28, 115, 178, .2); outline-offset: 2px; }
+.staff-accounts-card .account-status { white-space: nowrap; }
+.staff-accounts-card .action-row { flex-wrap: wrap; }
+@media (max-width: 700px) {
+  .admin-management-tabs { display: grid; grid-template-columns: 1fr; }
+  .admin-management-tab { width: 100%; text-align: left; }
+}
+
+.teacher-permission-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  margin: 2px 5px 2px 0;
+  padding: 5px 9px;
+  border: 1px solid #d5e7f4;
+  border-radius: 999px;
+  background: #f0f7fc;
+  color: #315e7e;
+  font-size: 11px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+.admin-management-tabs + .surface-card { margin-top: 0; }
+.action-row .danger-button {
+  border-color: #f0c9c9;
+  background: #fff8f8;
+  color: #a83232;
+}
+.action-row .danger-button:hover {
+  border-color: #e5aaaa;
+  background: #fff0f0;
+  color: #8e2222;
+}
