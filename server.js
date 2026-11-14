@@ -17,6 +17,7 @@ const { registerParentRoutes } = require('./parent-routes');
 const { registerStudentRoutes } = require('./student-routes');
 const { registerAcademicRoutes } = require('./academic-routes');
 const { registerDepartmentRoutes } = require('./department-routes');
+const { registerSchedulingConfigRoutes } = require('./scheduling-config-routes');
 const registerCloudSyncRoutes = require('./cloud-sync-routes');
 
 const app = express();
@@ -42,6 +43,7 @@ registerParentRoutes(app, pool, { authenticateSchoolClient, requireSchoolRoles }
 registerStudentRoutes(app, pool, { authenticateSchoolClient, requireSchoolAdmin });
 registerAcademicRoutes(app, pool, { authenticateSchoolClient, requireSchoolRoles });
 registerDepartmentRoutes(app, pool, { authenticateSchoolClient, requireSchoolRoles });
+registerSchedulingConfigRoutes(app, pool, { authenticateSchoolClient, requireSchoolRoles });
 registerCloudSyncRoutes(app, pool, { authenticateSchoolClient, requireSchoolAdmin });
 const { registerStudentManagementRoutes } = require('./student-management-routes');
 registerStudentManagementRoutes(app, pool, { authenticateSchoolClient, requireSchoolRoles });
