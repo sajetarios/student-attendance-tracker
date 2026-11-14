@@ -46,8 +46,8 @@ BEGIN
     RAISE EXCEPTION 'SPJ adviser assignment stopped: no active Grade 8 - SPJ learners are enrolled in the active school year.';
   END IF;
 
-  SELECT COUNT(*), MIN(user_id), MIN(department_id)
-    INTO v_student_count, v_adviser_id, v_adviser_department_id
+  SELECT COUNT(*)
+    INTO v_student_count
   FROM school_users
   WHERE school_id=v_school_id
     AND username='Dowthii'
@@ -56,21 +56,42 @@ BEGIN
     AND active=TRUE
     AND 'CLASS_ADVISER'=ANY(teacher_designations);
 
-  IF v_student_count <> 1 OR v_adviser_id IS NULL OR v_adviser_department_id IS NULL THEN
-    RAISE EXCEPTION 'SPJ adviser assignment stopped: expected exactly one active Dorothy Mae Sajetarios teacher account with Class Adviser designation and a department.';
+  IF v_student_count <> 1 THEN
+    RAISE EXCEPTION 'SPJ adviser assignment stopped: expected exactly one active Dorothy Mae Sajetarios teacher account with Class Adviser designation.';
   END IF;
 
-  SELECT COUNT(*), MIN(user_id)
-    INTO v_student_count, v_admin_id
+  SELECT user_id, department_id
+    INTO v_adviser_id, v_adviser_department_id
+  FROM school_users
+  WHERE school_id=v_school_id
+    AND username='Dowthii'
+    AND display_name='Dorothy Mae Sajetarios'
+    AND role='TEACHER'
+    AND active=TRUE
+    AND 'CLASS_ADVISER'=ANY(teacher_designations);
+
+  IF v_adviser_id IS NULL OR v_adviser_department_id IS NULL THEN
+    RAISE EXCEPTION 'SPJ adviser assignment stopped: Dorothy must have an active department assignment.';
+  END IF;
+
+  SELECT COUNT(*)
+    INTO v_student_count
   FROM school_users
   WHERE school_id=v_school_id
     AND display_name='Demo001 School Administrator'
     AND role='SCHOOL_ADMIN'
     AND active=TRUE;
 
-  IF v_student_count <> 1 OR v_admin_id IS NULL THEN
+  IF v_student_count <> 1 THEN
     RAISE EXCEPTION 'SPJ adviser assignment stopped: expected exactly one active DEMO001 School Administrator for assignment audit attribution.';
   END IF;
+
+  SELECT user_id INTO v_admin_id
+  FROM school_users
+  WHERE school_id=v_school_id
+    AND display_name='Demo001 School Administrator'
+    AND role='SCHOOL_ADMIN'
+    AND active=TRUE;
 
   SELECT adviser_user_id INTO v_existing_adviser_id
   FROM class_adviser_assignments
