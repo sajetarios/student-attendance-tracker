@@ -730,15 +730,15 @@
 
 function coverageStatusLabel(status) {
     const labels = {
-      NO_TEACHER: 'No teacher assigned',
-      ON_LEAVE_UNCOVERED: 'On leave · no cover',
-      CHECK_IN_NOT_RECORDED: 'Check-in not recorded',
-      COVERAGE_CHECK_IN_NOT_RECORDED: 'Cover check-in not recorded',
-      TEACHER_INACTIVE: 'Teacher inactive',
-      WAITING_FOR_START: 'Waiting for class',
-      SCHEDULED: 'Scheduled',
-      COVERED: 'Covered',
-      ASSIGNED: 'Assigned'
+      NO_TEACHER: 'No Teacher Assigned',
+      ON_LEAVE_UNCOVERED: 'On Leave',
+      CHECK_IN_NOT_RECORDED: 'Check-in Not Recorded',
+      COVERAGE_CHECK_IN_NOT_RECORDED: 'Check-in Not Recorded',
+      TEACHER_INACTIVE: 'Uncovered Period',
+      WAITING_FOR_START: 'Waiting for Class',
+      SCHEDULED: 'Waiting for Class',
+      COVERED: 'Substitute Assigned',
+      ASSIGNED: 'Teacher Present'
     };
     return labels[status] || status;
   }
