@@ -327,7 +327,7 @@
     if ($('showStudentForm')) $('showStudentForm').hidden = !(admin || (teacher && classAdviser));
     if ($('showScheduleForm')) $('showScheduleForm').hidden = !departmentHead;
     if ($('dashboardAddStudent')) $('dashboardAddStudent').hidden = !(admin || (teacher && classAdviser));
-    if ($('showTeacherForm')) $('showTeacherForm').hidden = true;
+    if ($('showTeacherForm')) $('showTeacherForm').hidden = !admin;
     if ($('staffUserRows')) $('staffUserRows').closest('.staff-accounts-card').hidden = !admin;
     if ($('adviserAssignmentForm')) $('adviserAssignmentForm').hidden = !(admin || departmentHead);
     if ($('adviserAssignmentForm')) $('adviserAssignmentForm').closest('.adviser-assignments-card').hidden = !(admin || departmentHead);
@@ -1901,6 +1901,8 @@ let teacherActionMenuListenersInstalled = false;
   function renderAdviserAssignments() {
     const host = $('adviserAssignmentRows');
     if (!host) return;
+    const adviserHint = $('adviserAssignmentForm')?.querySelector('.form-hint, .section-description, p');
+    if (adviserHint && user.role === 'DEPARTMENT_HEAD') adviserHint.textContent = 'Manage Class Adviser assignments for sections in your department only.';
     const advisers = teachers.filter(item => Array.isArray(item.teacherDesignations) && item.teacherDesignations.includes('CLASS_ADVISER') && item.active && (user.role !== 'DEPARTMENT_HEAD' || String(item.departmentId) === String(user.departmentId)));
     const select = $('adviserTeacherSelect');
     if (select) {
