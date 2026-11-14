@@ -637,7 +637,14 @@
                 <article><span class="access-step">02</span><h4>Disable access</h4><p>Set Account access to Inactive. The server increments the account session version and revokes its active sessions, so the user must sign in again after access is restored.</p></article>
                 <article><span class="access-step">03</span><h4>Restore access</h4><p>Set the account back to Active. The user can sign in again using their existing credentials.</p></article>
               </div>
-              <div class="scope-note"><span>!</span><p><strong>Current limitation:</strong> Password reset for employee accounts and MFA enrollment/recovery are not implemented in this screen yet. The initial password is set when an account is created. Do not treat this tab as a password-reset or MFA tool.</p></div>
+              <div class="security-feature-grid">
+                <article><div class="security-feature-heading"><strong>Password resets</strong><span class="account-status inactive">Not available</span></div><p>Admin-initiated reset and secure temporary credentials are not enabled yet.</p></article>
+                <article><div class="security-feature-heading"><strong>Multi-factor authentication</strong><span class="account-status inactive">Not available</span></div><p>MFA enrollment, verification, recovery codes, and reset still need implementation.</p></article>
+                <article><div class="security-feature-heading"><strong>Session revocation</strong><span class="account-status active">Available</span></div><p>Disabling an account revokes its active sessions and blocks further sign-in.</p></article>
+                <article><div class="security-feature-heading"><strong>Account change history</strong><span class="account-status active">Available</span></div><p>Review recorded account, role, and administrative changes below.</p></article>
+              </div>
+              <div class="section-toolbar security-audit-toolbar"><div><h4>Recent administrative activity</h4><p>Latest 50 recorded changes for this school. This is not a sign-in or failed-login history.</p></div><button type="button" class="outline-button" id="refreshSecurityAudit">↻ Refresh history</button></div>
+              <div class="table-scroll"><table class="security-audit-table"><thead><tr><th>Date and time</th><th>Action</th><th>Changed by</th><th>Record</th></tr></thead><tbody id="securityAuditRows"><tr><td colspan="4" class="empty-cell">Open Account access to load recent activity.</td></tr></tbody></table></div>
               <div class="form-actions"><button type="button" class="primary-button" id="openAccountStatusManager">Open user accounts</button></div>
             </section>
             <div class="surface-card section-card">
