@@ -222,11 +222,11 @@
         }
       });
     }
-    if ($('teacherMonitorTitle')) $('teacherMonitorTitle').textContent = departmentHead ? 'Teacher status and class coverage' : 'Teacher accounts';
+    if ($('teacherMonitorTitle')) $('teacherMonitorTitle').textContent = departmentHead ? 'Teachers in your department' : 'Teacher accounts';
     if ($('teacherMonitorDescription')) $('teacherMonitorDescription').textContent = departmentHead
-      ? 'Review teacher status, assigned grade levels and sections, leave, schedules, and temporary substitute coverage.'
-      : 'Manage teacher account profiles and permissions. Schedule ownership and class coverage are managed in the academic workspace.';
-    if ($('teacherActionHeader')) $('teacherActionHeader').textContent = departmentHead ? 'Coverage action' : 'Account action';
+      ? 'Review each teacher’s designation, assigned sections, teaching schedules, and availability. Use Manage for actions on teachers in your department.'
+      : 'Manage teacher account profiles and access. Academic assignments are managed in the Department Head workspace.';
+    if ($('teacherActionHeader')) $('teacherActionHeader').textContent = departmentHead ? 'Manage' : 'Account action';
     if ($('sf2ViewTitle')) $('sf2ViewTitle').textContent = departmentHead ? 'SF2 Monitoring' : 'SF2 Report Generator';
     if ($('sf2ViewDescription')) $('sf2ViewDescription').textContent = departmentHead
       ? 'Preview official section attendance reports. This role has read-only access and cannot submit or collect reports.'
@@ -341,7 +341,7 @@
     if ($('dashboardAddStudent')) $('dashboardAddStudent').hidden = !(admin || (teacher && classAdviser));
     if ($('showTeacherForm')) $('showTeacherForm').hidden = !admin;
     if ($('staffUserRows')) $('staffUserRows').closest('.staff-accounts-card').hidden = !admin;
-    if ($('adviserAssignmentForm')) $('adviserAssignmentForm').hidden = !(admin || departmentHead);
+    if ($('adviserAssignmentForm') && !(admin || departmentHead)) $('adviserAssignmentForm').hidden = true;
     if ($('adviserAssignmentForm')) $('adviserAssignmentForm').closest('.adviser-assignments-card').hidden = !(admin || departmentHead);
     if ($('sf2SubmissionsCard')) $('sf2SubmissionsCard').hidden = admin || !departmentHead;
     if ($('sardoCard')) $('sardoCard').hidden = admin || !departmentHead;
@@ -419,7 +419,6 @@
     const teacherCard = $('teacherRows')?.closest('.surface-card');
     const staffCard = $('staffAccountsTable')?.closest('.surface-card');
     const adviserCard = $('adviserAssignmentForm')?.closest('.surface-card');
-    const teacherPermissionsCard = $('teacherPermissionsCard');
     const accountAccessPanel = $('accountAccessPanel');
     const departmentCard = $('departmentManagementCard');
     const note = document.querySelector('.teacher-management-note');
@@ -428,7 +427,6 @@
       if (teacherCard) teacherCard.hidden = false;
       if (staffCard) staffCard.hidden = true;
       if (adviserCard) adviserCard.hidden = false;
-      if (teacherPermissionsCard) teacherPermissionsCard.hidden = false;
       if (departmentCard) departmentCard.hidden = true;
       if (note) note.hidden = false;
       return;
@@ -1604,8 +1602,8 @@ let teacherActionMenuListenersInstalled = false;
       const canManageDepartment = user.role === 'DEPARTMENT_HEAD' && String(teacher.departmentId) === String(user.departmentId);
       const canAssignSubstitute = canManageDepartment && onLeave && assigned.length > 0;
       const departmentHeadCoverageActions = [
-        ...(canManageDepartment && active ? [`<button type="button" class="teacher-action-item" data-edit-teacher-permission="${esc(teacher.userId)}">Edit teacher designation</button>`, `<button type="button" class="teacher-action-item" data-manage-permanent="${esc(teacher.userId)}">Manage class schedules</button>`] : []),
-        ...(canAssignSubstitute ? [`<button type="button" class="teacher-action-item" data-assign-substitute="${esc(teacher.userId)}">Assign temporary substitute</button>`] : []),
+        ...(canManageDepartment && active ? [`<button type="button" class="outline-button compact-button" data-edit-teacher-permission="${esc(teacher.userId)}">Edit designation</button>`, `<button type="button" class="outline-button compact-button" data-manage-permanent="${esc(teacher.userId)}">Manage schedules</button>`] : []),
+        ...(canAssignSubstitute ? [`<button type="button" class="outline-button compact-button" data-assign-substitute="${esc(teacher.userId)}">Assign substitute</button>`] : []),
         ...(canManageDepartment && cancelCoverActions ? [cancelCoverActions] : [])
       ].join('');
       const actionMenu = isSchoolAdmin ? `<details class="teacher-action-menu">
@@ -2052,41 +2050,89 @@ let teacherActionMenuListenersInstalled = false;
     }));
   }
 
-  function renderTeacherPermissions() {
-    const host = $('teacherPermissionRows');
-    if (!host) return;
-    const scopedTeachers = user.role === 'DEPARTMENT_HEAD' ? teachers.filter(t => String(t.departmentId) === String(user.departmentId)) : teachers;
-    host.innerHTML = scopedTeachers.length ? scopedTeachers.map(teacher => {
-      const labels = (teacher.teacherDesignations || []).map(value =>
-        value === 'CLASS_ADVISER' ? 'Class Adviser' : value === 'SUBJECT_TEACHER' ? 'Subject Teacher' : value
-      );
-      return `<tr>
-        <td><strong>${esc(teacher.displayName || teacher.username)}</strong><small class="table-subtext">${esc(teacher.username)}</small></td>
-        <td>${esc(teacher.departmentName || 'Unassigned')}</td>
-        <td>${labels.length ? labels.map(label => '<span class="teacher-permission-chip">' + esc(label) + '</span>').join(' ') : '<span class="muted-inline">No permissions</span>'}</td>
-        <td><button type="button" class="outline-button compact-button" data-edit-teacher-permission="${esc(teacher.userId)}">Edit permissions</button></td>
-      </tr>`;
-    }).join('') : '<tr><td colspan="4" class="empty-cell">No teacher accounts are available.</td></tr>';
+  function updateAdviserSections() {
+    const gradeSelect = $('adviserGradeInput');
+    const sectionSelect = $('adviserSectionInput');
+    const hint = $('adviserSectionHint');
+    if (!gradeSelect || !sectionSelect) return;
+    const grade = gradeSelect.value;
+    const previousSection = sectionSelect.value;
+    const availableSections = [...new Set(students
+      .filter(student => student.active !== false && !student.archivedAt && String(student.gradeLevel || '') === grade)
+      .map(student => String(student.section || '').trim())
+      .filter(Boolean))]
+      .sort((a, b) => a.localeCompare(b, undefined, { numeric: true }));
+    sectionSelect.innerHTML = '<option value="">Choose enrolled section</option>' +
+      availableSections.map(section => `<option value="${esc(section)}">${esc(section)}</option>`).join('');
+    sectionSelect.disabled = availableSections.length === 0;
+    if (availableSections.includes(previousSection)) sectionSelect.value = previousSection;
+    if (hint) hint.textContent = availableSections.length
+      ? availableSections.length + ' enrolled section' + (availableSections.length === 1 ? '' : 's') + ' available for ' + grade + '. Special-program sections such as SPJ are included.'
+      : (grade ? 'No active enrolled sections were found for this grade.' : 'Choose a grade to see its enrolled sections.');
   }
 
   function renderAdviserAssignments() {
     const host = $('adviserAssignmentRows');
     if (!host) return;
-    const adviserHint = $('adviserAssignmentForm')?.querySelector('.form-hint, .section-description, p');
-    if (adviserHint && user.role === 'DEPARTMENT_HEAD') adviserHint.textContent = 'Assign one Class Adviser to an enrolled section in your department. Special-program sections such as SPJ are supported even when they have no regular subject-period schedule.';
-    const advisers = teachers.filter(item => Array.isArray(item.teacherDesignations) && item.teacherDesignations.includes('CLASS_ADVISER') && item.active && (user.role !== 'DEPARTMENT_HEAD' || String(item.departmentId) === String(user.departmentId)));
-    const select = $('adviserTeacherSelect');
-    if (select) {
-      const previous = select.value;
-      select.innerHTML = '<option value="">Select teacher</option>' + advisers.map(item => `<option value="${esc(item.userId)}">${esc(item.displayName)}</option>`).join('');
-      if (advisers.some(item => String(item.userId) === previous)) select.value = previous;
+    const advisers = teachers.filter(item => Array.isArray(item.teacherDesignations) &&
+      item.teacherDesignations.includes('CLASS_ADVISER') && item.active &&
+      (user.role !== 'DEPARTMENT_HEAD' || String(item.departmentId) === String(user.departmentId)));
+    const teacherSelect = $('adviserTeacherSelect');
+    if (teacherSelect) {
+      const previous = teacherSelect.value;
+      teacherSelect.innerHTML = '<option value="">Choose an eligible teacher</option>' +
+        advisers.map(item => `<option value="${esc(item.userId)}">${esc(item.displayName)}</option>`).join('');
+      if (advisers.some(item => String(item.userId) === previous)) teacherSelect.value = previous;
     }
+
+    const gradeSelect = $('adviserGradeInput');
+    if (gradeSelect) {
+      const previousGrade = gradeSelect.value;
+      const availableGrades = [...new Set(students
+        .filter(student => student.active !== false && !student.archivedAt && String(student.gradeLevel || '').trim())
+        .map(student => String(student.gradeLevel).trim()))]
+        .sort((a, b) => a.localeCompare(b, undefined, { numeric: true }));
+      gradeSelect.innerHTML = '<option value="">Choose grade level</option>' +
+        availableGrades.map(grade => `<option value="${esc(grade)}">${esc(grade)}</option>`).join('');
+      if (availableGrades.includes(previousGrade)) gradeSelect.value = previousGrade;
+      if (!gradeSelect.dataset.sectionPickerBound) {
+        gradeSelect.addEventListener('change', updateAdviserSections);
+        gradeSelect.dataset.sectionPickerBound = '1';
+      }
+      updateAdviserSections();
+    }
+
+    const addButton = $('addAdviserAssignmentButton');
+    const form = $('adviserAssignmentForm');
+    if (addButton && !addButton.dataset.formToggleBound) {
+      addButton.addEventListener('click', () => {
+        form.hidden = false;
+        $('adviserAssignmentFeedback').textContent = '';
+        addButton.hidden = true;
+        $('adviserTeacherSelect')?.focus();
+      });
+      addButton.dataset.formToggleBound = '1';
+    }
+    if (form && !form.dataset.cancelBound) {
+      $('cancelAdviserAssignment')?.addEventListener('click', () => {
+        form.reset();
+        form.hidden = true;
+        if (addButton) addButton.hidden = false;
+        updateAdviserSections();
+        const feedback = $('adviserAssignmentFeedback');
+        if (feedback) { feedback.textContent = ''; feedback.className = 'inline-feedback'; }
+      });
+      form.dataset.cancelBound = '1';
+    }
+
+    const count = $('adviserAssignmentCount');
+    if (count) count.textContent = adviserAssignments.length + ' assigned section' + (adviserAssignments.length === 1 ? '' : 's');
     host.innerHTML = adviserAssignments.length ? adviserAssignments.map(item => `
-      <tr><td>${esc(item.gradeLevel)}</td><td>${esc(item.section)}</td><td>${esc(item.adviserName || item.adviserUserId)}</td>
+      <tr><td><strong>${esc(item.gradeLevel)}</strong></td><td><span class="adviser-section-chip">${esc(item.section)}</span></td><td>${esc(item.adviserName || item.adviserUserId)}</td>
       <td>${['SCHOOL_ADMIN','DEPARTMENT_HEAD'].includes(user.role)
         ? '<div class="action-row"><button type="button" class="outline-button compact-button" data-edit-adviser="' + esc(item.assignmentId) + '">Edit</button><button type="button" class="outline-button compact-button danger-button" data-remove-adviser="' + esc(item.assignmentId) + '">Remove</button></div>'
-        : '<span class="muted-inline">Read only</span>'}</td></tr>`).join('')
-      : '<tr><td colspan="4" class="empty-cell">No class adviser assignments have been made.</td></tr>';
+        : '<span class="muted-inline">View only</span>'}</td></tr>`).join('')
+      : '<tr><td colspan="4" class="empty-cell">No Class Adviser assignments yet. Use “Assign Class Adviser” to assign the first section.</td></tr>';
   }
 
   async function loadSf2Options() {
@@ -2257,7 +2303,6 @@ let teacherActionMenuListenersInstalled = false;
     renderStudents();
     renderPeriods();
     if (isSchoolManager) renderTeachers();
-    if (role === 'DEPARTMENT_HEAD') renderTeacherPermissions();
     if (isDepartmentHead) renderDepartmentHeadOverview();
     if (isDepartmentHead) {
       await loadTeacherCoverage(false);
@@ -3329,6 +3374,8 @@ let teacherActionMenuListenersInstalled = false;
       try {
         await api('/api/class-adviser-assignments', { method: 'POST', body: JSON.stringify(payload) });
         $('adviserAssignmentForm').reset();
+        $('adviserAssignmentForm').hidden = true;
+        if ($('addAdviserAssignmentButton')) $('addAdviserAssignmentButton').hidden = false;
         await loadSchoolData();
         feedback.textContent = 'Class Adviser assignment saved.';
       } catch (error) { feedback.className = 'inline-feedback error'; feedback.textContent = error.message; }
