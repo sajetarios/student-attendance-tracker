@@ -19,6 +19,8 @@ async function readRows(body){
  return matrix.slice(1).map((r,i)=>{const o={rowNumber:i+2};keys.forEach((k,j)=>{if(k)o[k]=clean(r[j]);});return o;}).filter(r=>Object.values(r).some(v=>clean(v)));
 }
 function validate(r){const e=[];if(!r.studentId||r.studentId.length>80)e.push('Student ID is required (max 80).');if(!r.fullName||r.fullName.length>200)e.push('Full name is required (max 200).');if(!['MALE','FEMALE'].includes(clean(r.sex).toUpperCase()))e.push('Sex must be Male or Female.');if(!r.gradeLevel||r.gradeLevel.length>40)e.push('Grade level is required (max 40).');if(!r.section||r.section.length>100)e.push('Section is required (max 100).');if((r.lrn||'').length>30)e.push('LRN is too long.');if((r.parentName||'').length>160)e.push('Parent name is too long.');if((r.parentMobile||'').length>30)e.push('Parent mobile is too long.');return e;}
+function normalizeGradeLevel(value){const text=clean(value).toUpperCase().replace(/\\s+/g,' ');const match=text.match(/^(?:GRADE|GR)\\s*(\\d+)$/)||text.match(/^(\\d+)$/);return match?'GRADE '+Number(match[1]):text;}
+function normalizeSection(value){return clean(value).toUpperCase().replace(/\\s+/g,' ');}
 function registerStudentManagementRoutes(app,pool,auth){
  const {authenticateSchoolClient,requireSchoolRoles}=auth;
  const manager=requireSchoolRoles('SCHOOL_ADMIN','TEACHER'),admin=requireSchoolRoles('SCHOOL_ADMIN');
@@ -29,15 +31,29 @@ function registerStudentManagementRoutes(app,pool,auth){
   const lx=lrns.length?await pool.query('SELECT lrn,student_id FROM students WHERE school_id=$1 AND lrn=ANY($2::text[])',[req.auth.schoolId,lrns]):{rows:[]};
   const lm=new Map(lx.rows.map(x=>[x.lrn,x.student_id]));
   let allowed=[];
+  let selectedScope=null;
+  let scopeSelectionError=null;
   if(req.auth.role==='TEACHER'){
    if(!req.auth.teacherDesignations?.includes('CLASS_ADVISER'))return rows.map(r=>({...r,action:'ERROR',errors:['Only Class Advisers may bulk-register students.']}));
-   const a=await pool.query('SELECT grade_level,section FROM class_adviser_assignments WHERE school_id=$1 AND adviser_user_id=$2',[req.auth.schoolId,req.auth.userId]);allowed=a.rows.map(x=>x.grade_level+'|'+x.section);
+   const a=await pool.query('SELECT assignment_id AS "assignmentId",grade_level AS "gradeLevel",section FROM class_adviser_assignments WHERE school_id=$1 AND adviser_user_id=$2',[req.auth.schoolId,req.auth.userId]);
+   allowed=a.rows;
+   const requestedAssignmentId=clean(req.body?.advisoryAssignmentId);
+   if(requestedAssignmentId){
+    selectedScope=allowed.find(item=>String(item.assignmentId)===requestedAssignmentId)||null;
+    if(!selectedScope)scopeSelectionError='The selected import destination is not assigned to your advisory account.';
+   }else if(allowed.length===1){
+    selectedScope=allowed[0];
+   }
+   if(selectedScope){
+    rows=rows.map(r=>({...r,gradeLevel:selectedScope.gradeLevel,section:selectedScope.section,advisoryScopeApplied:true}));
+   }
   }
   const seen=new Set(),seenLrn=new Set();
   return rows.map(r=>{
    const errors=validate(r),id=clean(r.studentId),lrn=clean(r.lrn),found=em.get(id);if(seen.has(id))errors.push('Student ID is duplicated in this file.');seen.add(id);
    if(lrn&&seenLrn.has(lrn))errors.push('LRN is duplicated in this file.');if(lrn)seenLrn.add(lrn);
-   if(req.auth.role==='TEACHER'&&!allowed.includes(clean(r.gradeLevel)+'|'+clean(r.section)))errors.push('Grade/section is not assigned to your advisory account.');
+   if(scopeSelectionError)errors.push(scopeSelectionError);
+   if(req.auth.role==='TEACHER'&&!scopeSelectionError&&!allowed.some(item=>normalizeGradeLevel(item.gradeLevel)===normalizeGradeLevel(r.gradeLevel)&&normalizeSection(item.section)===normalizeSection(r.section)))errors.push(allowed.length?'Grade/section is not assigned to your advisory account.':'No advisory section is assigned to your account. Ask the School Administrator to assign your class first.');
    let action='CREATE';
    if(found&&!found.in_school)errors.push('Student ID is already in use and cannot be registered for this school.');
    else if(found&&(!found.active||found.archived_at))errors.push('Student is inactive or archived; ask the administrator to review.');
@@ -61,7 +77,7 @@ function registerStudentManagementRoutes(app,pool,auth){
    for(const r of checked){
     const saved=await c.query(`INSERT INTO students(school_id,student_id,lrn,full_name,grade_level,section,parent_name,parent_mobile,sex,qr_token)
      VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,gen_random_uuid())
-     ON CONFLICT(student_id) DO UPDATE SET lrn=EXCLUDED.lrn,full_name=EXCLUDED.full_name,parent_name=EXCLUDED.parent_name,parent_mobile=EXCLUDED.parent_mobile,sex=EXCLUDED.sex,updated_at=NOW()
+     ON CONFLICT(student_id) DO UPDATE SET lrn=EXCLUDED.lrn,full_name=EXCLUDED.full_name,parent_name=EXCLUDED.parent_name,parent_mobile=EXCLUDED.parent_mobile,sex=EXCLUDED.sex,qr_token=COALESCE(students.qr_token,EXCLUDED.qr_token),updated_at=NOW()
      WHERE students.school_id=EXCLUDED.school_id AND students.active=TRUE AND students.archived_at IS NULL RETURNING student_id`,
      [req.auth.schoolId,r.studentId,r.lrn||null,r.fullName,y.rowCount?'Unassigned':r.gradeLevel,y.rowCount?'Unassigned':r.section,r.parentName||null,r.parentMobile||'',r.sex]);
     if(!saved.rowCount)throw Object.assign(Error('A record changed during import. Preview again.'),{statusCode:409});
