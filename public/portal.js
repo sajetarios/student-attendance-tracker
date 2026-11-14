@@ -891,6 +891,8 @@ function coverageStatusLabel(status) {
       adviserAssignments.some(item => String(item.gradeLevel) === String(student.gradeLevel) && String(item.section) === String(student.section));
     const restrictedStudentEditor = isTeacher || isDepartmentHead;
     ['editLrnGroup','editParentNameGroup','editParentMobileGroup'].forEach(id => { $(id).hidden = restrictedStudentEditor; });
+    $('editParentName').required = !restrictedStudentEditor;
+    $('editParentMobile').required = !restrictedStudentEditor;
     $('editSexGroup').hidden = isTeacher && !adviserCanEditPlacement;
     $('editSex').required = !isTeacher || adviserCanEditPlacement || isDepartmentHead;
     $('editGradeGroup').hidden = restrictedStudentEditor;
@@ -1107,7 +1109,7 @@ function coverageStatusLabel(status) {
     const eligibleTeachers = teachers.filter(t => t.active && (t.teacherDesignations || []).includes('SUBJECT_TEACHER') &&
       (user.role !== 'DEPARTMENT_HEAD' || String(t.departmentId) === String(user.departmentId)));
     const teacherOptions = '<option value="">Choose Subject Teacher</option>' +
-      eligibleTeachers.map(t => '<option value="' + esc(t.userId) + '">' + esc(t.displayName) + ' · ' + esc(t.departmentName || 'Department not set') + '</option>').join('');
+      eligibleTeachers.map(t => '<option value="' + esc(t.userId) + '">' + esc(t.displayName) + '</option>').join('');
     if ($('bulkScheduleTeacher')) $('bulkScheduleTeacher').innerHTML = teacherOptions;
     if ($('periodTeacher')) {
       const previousTeacher = $('periodTeacher').value;
@@ -1117,7 +1119,9 @@ function coverageStatusLabel(status) {
     if ($('periodTeacherGroup')) $('periodTeacherGroup').hidden = isTeacher;
     if ($('periodTeacherSelfGroup')) $('periodTeacherSelfGroup').hidden = !isTeacher;
     if ($('periodTeacherSelfName')) $('periodTeacherSelfName').textContent =
-      (user.displayName || user.username || 'Signed-in teacher') + ' · ' + (user.departmentName || user.departmentCode || 'Department not assigned');
+      user.displayName || user.username || 'Signed-in teacher';
+    if ($('periodTeacherHint')) $('periodTeacherHint').textContent =
+      'Department and available subjects are determined automatically from the teacher profile.';
     if ($('addScheduleSubject')) $('addScheduleSubject').hidden = !isSchoolManager;
 
     $('scheduleRows').innerHTML = periods.length ? periods.map(period => {
@@ -2826,17 +2830,8 @@ let teacherActionMenuListenersInstalled = false;
     return teachers.find(item => String(item.userId) === String($('periodTeacher')?.value)) || null;
   }
 
-  function updateScheduleDepartmentDisplay() {
-    const teacher = selectedScheduleTeacher();
-    const display = $('periodDepartmentDisplay');
-    if (display) display.textContent = teacher
-      ? (teacher.departmentName || 'Department not assigned')
-      : 'Choose a teacher to display the department.';
-    return teacher;
-  }
-
   async function loadScheduleSubjects(preferredSubjectId = '') {
-    const teacher = updateScheduleDepartmentDisplay();
+    const teacher = selectedScheduleTeacher();
     const select = $('periodSubject');
     const hint = $('periodSubjectHint');
     if (!select) return;
@@ -2860,7 +2855,7 @@ let teacherActionMenuListenersInstalled = false;
       }
       select.disabled = subjects.length === 0;
       if (hint) hint.textContent = subjects.length
-        ? subjects.length + ' subjects available in ' + (teacher.departmentName || 'this department') + '.'
+        ? subjects.length + ' subjects available for the selected teacher.'
         : (user.role === 'TEACHER'
           ? 'No subjects have been added to your department. Ask the School Administrator or Department Head to add one.'
           : 'No subjects are listed in this department yet. Use Add subject to create the department catalogue.');
@@ -2894,7 +2889,10 @@ let teacherActionMenuListenersInstalled = false;
     }
   }
 
-  $('periodTeacher')?.addEventListener('change', () => loadScheduleSubjects());
+  $('periodTeacher')?.addEventListener('change', () => {
+    $('periodTeacherHint').textContent = 'Loading this teacher’s subject catalogue…';
+    loadScheduleSubjects();
+  });
   $('periodGrade')?.addEventListener('change', () => loadScheduleSections($('periodGrade').value));
   $('addScheduleSubject')?.addEventListener('click', async () => {
     const teacher = selectedScheduleTeacher();
@@ -2929,7 +2927,7 @@ let teacherActionMenuListenersInstalled = false;
       const eligible = teachers.filter(item => item.active && (item.teacherDesignations || []).includes('SUBJECT_TEACHER') &&
         (user.role !== 'DEPARTMENT_HEAD' || String(item.departmentId) === String(user.departmentId)));
       $('periodTeacher').innerHTML = '<option value="">Choose active Subject Teacher</option>' +
-        eligible.map(item => '<option value="' + esc(item.userId) + '">' + esc(item.displayName) + ' · ' + esc(item.departmentName || 'Department not set') + '</option>').join('');
+        eligible.map(item => '<option value="' + esc(item.userId) + '">' + esc(item.displayName) + '</option>').join('');
       $('periodTeacher').value = eligible.length === 1 ? String(eligible[0].userId) : '';
     }
     await loadScheduleSubjects();
@@ -2941,7 +2939,7 @@ let teacherActionMenuListenersInstalled = false;
     $('scheduleFormFeedback').textContent = '';
     if ($('periodSubject')) { $('periodSubject').innerHTML = '<option value="">Choose teacher first</option>'; $('periodSubject').disabled = true; }
     if ($('periodSection')) { $('periodSection').innerHTML = '<option value="">Select grade first</option>'; $('periodSection').disabled = true; }
-    updateScheduleDepartmentDisplay();
+    $('periodTeacherHint').textContent = 'Department and available subjects are determined automatically from the teacher profile.';
   });
   $('scheduleForm').addEventListener('submit', async event => {
     event.preventDefault();
