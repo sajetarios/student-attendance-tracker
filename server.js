@@ -34,7 +34,7 @@ registerAuthRoutes(app, pool);
 const { authenticateSchoolClient, requireSchoolRoles, requireSchoolPermission, requireTeacherDesignations, requireSchoolClient } = createAuthMiddleware(pool);
 const requireSchoolAdmin = requireSchoolRoles('SCHOOL_ADMIN');
 const requireSchoolAdminOrTeacher = requireSchoolRoles('SCHOOL_ADMIN', 'TEACHER');
-const requireSchoolAdminOrDepartmentHeadOrTeacher = requireSchoolRoles('SCHOOL_ADMIN', 'DEPARTMENT_HEAD', 'TEACHER');
+const requireSchoolAdminOrDepartmentHeadOrTeacher = requireSchoolRoles('DEPARTMENT_HEAD', 'TEACHER');
 const requireSchoolUser = requireSchoolRoles('SCHOOL_ADMIN', 'DEPARTMENT_HEAD', 'TEACHER');
 const requireSchoolAdminOrDepartmentHead = requireSchoolRoles('SCHOOL_ADMIN', 'DEPARTMENT_HEAD');
 const validText = value => typeof value === 'string' && value.trim().length > 0;
@@ -377,7 +377,7 @@ app.get('/api/class-adviser-assignments', authenticateSchoolClient,
     }
   });
 
-app.post('/api/class-adviser-assignments', authenticateSchoolClient, requireSchoolRoles('SCHOOL_ADMIN','DEPARTMENT_HEAD'), async (req, res) => {
+app.post('/api/class-adviser-assignments', authenticateSchoolClient, requireSchoolRoles('DEPARTMENT_HEAD'), async (req, res) => {
   const { adviserUserId, gradeLevel, section } = req.body || {};
   if (!isUuid(adviserUserId) || !validText(gradeLevel) || gradeLevel.trim().length > 40 ||
       !validText(section) || section.trim().length > 100) {
@@ -531,8 +531,8 @@ app.delete('/api/class-adviser-assignments/:assignmentId', authenticateSchoolCli
     if (!result.rowCount) return res.status(404).json({ error: 'Class adviser assignment not found.' });
     await pool.query(
       `INSERT INTO audit_logs(school_id, actor_type, actor_user_id, action, entity_type, entity_id, details)
-       VALUES($1,'SCHOOL',$2,req.auth.role === 'DEPARTMENT_HEAD' ? 'DEPARTMENT_HEAD_UNASSIGN_CLASS_ADVISER' : 'SCHOOL_ADMIN_UNASSIGN_CLASS_ADVISER','class_adviser_assignment',$3,$4::jsonb)`,
-      [req.auth.schoolId, req.auth.userId, req.params.assignmentId, JSON.stringify(result.rows[0])]
+       VALUES($1,'SCHOOL',$2,$5,'class_adviser_assignment',$3,$4::jsonb)`,
+      [req.auth.schoolId, req.auth.userId, req.params.assignmentId, JSON.stringify(result.rows[0]), 'DEPARTMENT_HEAD_UNASSIGN_CLASS_ADVISER']
     );
     return res.json({ ok: true });
   } catch (err) {
