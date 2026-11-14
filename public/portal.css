@@ -1538,3 +1538,25 @@ tbody tr:hover td { background: #f9fbfc; }
   #teachersView .adviser-form-heading { flex-direction:column; }
   #teachersView .adviser-form-heading > button { align-self:flex-start; }
 }
+
+
+/* Teacher overview uses paired class labels so grade/section relationships stay clear. */
+#teachersView table.teacher-monitor-table {
+  min-width:1040px !important;
+}
+#teachersView table.teacher-monitor-table th:nth-child(1),
+#teachersView table.teacher-monitor-table td:nth-child(1) { width:23% !important; }
+#teachersView table.teacher-monitor-table th:nth-child(2),
+#teachersView table.teacher-monitor-table td:nth-child(2) { width:14% !important; }
+#teachersView table.teacher-monitor-table th:nth-child(3),
+#teachersView table.teacher-monitor-table td:nth-child(3) { width:10% !important; }
+#teachersView table.teacher-monitor-table th:nth-child(4),
+#teachersView table.teacher-monitor-table td:nth-child(4) { width:21% !important; }
+#teachersView table.teacher-monitor-table th:nth-child(5),
+#teachersView table.teacher-monitor-table td:nth-child(5) { width:18% !important; }
+#teachersView table.teacher-monitor-table th:nth-child(6),
+#teachersView table.teacher-monitor-table td:nth-child(6) { width:14% !important; }
+#teachersView table.teacher-monitor-table td:nth-child(4) { white-space:normal; }
+@media (max-width:700px) {
+  #teachersView table.teacher-monitor-table { min-width:1040px !important; }
+}
