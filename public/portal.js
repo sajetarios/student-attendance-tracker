@@ -248,7 +248,7 @@
     if ($('studentStatusFilterWrap')) $('studentStatusFilterWrap').hidden = !admin;
     if ($('downloadStudentTemplate')) $('downloadStudentTemplate').hidden = !(admin || (teacher && teacherHas('CLASS_ADVISER')));
     if ($('exportStudentsButton')) $('exportStudentsButton').hidden = !['SCHOOL_ADMIN', 'DEPARTMENT_HEAD', 'TEACHER'].includes(role);
-    if ($('academicAdminNav')) $('academicAdminNav').hidden = !admin;
+    if ($('academicAdminNav')) $('academicAdminNav').hidden = true;
     if ($('staffBulkDepartmentToolbar')) $('staffBulkDepartmentToolbar').hidden = !admin;
     const departmentHead = role === 'DEPARTMENT_HEAD';
     const gateKeeper = role === 'GATE_KEEPER';
@@ -287,6 +287,7 @@
     if ($('adminDashboardCard')) $('adminDashboardCard').hidden = !admin;
     if ($('statsGrid')) $('statsGrid').hidden = admin;
     if ($('dashboardScanCta')) $('dashboardScanCta').hidden = admin;
+    if ($('statsGrid')) $('statsGrid').hidden = admin;
     if ($('gateScanHelp')) $('gateScanHelp').hidden = !gateKeeper;
     if ($('gateScanTypeWrap')) $('gateScanTypeWrap').hidden = !gateKeeper;
     if (gateKeeper) {
@@ -327,8 +328,8 @@
     if ($('studentRosterPanel')) $('studentRosterPanel').hidden = gateKeeper;
     if ($('studentForm')) $('studentForm').hidden = gateKeeper || departmentHead || $('studentForm').hidden;
     if ($('parentInviteModal')) $('parentInviteModal').hidden = true;
-    if ($('schedulesNav')) $('schedulesNav').hidden = gateKeeper || (teacher && !(subjectTeacher || classAdviser));
-    if ($('sf2Nav')) $('sf2Nav').hidden = gateKeeper || (!admin && !departmentHead && !teacher);
+    if ($('schedulesNav')) $('schedulesNav').hidden = admin || gateKeeper || (teacher && !(subjectTeacher || classAdviser));
+    if ($('sf2Nav')) $('sf2Nav').hidden = admin || gateKeeper || (!departmentHead && !teacher);
     if ($('teachersNav')) {
       $('teachersNav').hidden = !(admin || departmentHead);
       if (departmentHead) $('teachersNav').querySelector('.nav-label').textContent = 'Teacher monitoring';
@@ -342,11 +343,11 @@
     if ($('staffUserRows')) $('staffUserRows').closest('.staff-accounts-card').hidden = !admin;
     if ($('adviserAssignmentForm')) $('adviserAssignmentForm').hidden = !(admin || departmentHead);
     if ($('adviserAssignmentForm')) $('adviserAssignmentForm').closest('.adviser-assignments-card').hidden = !(admin || departmentHead);
-    if ($('sf2SubmissionsCard')) $('sf2SubmissionsCard').hidden = !(admin || departmentHead);
-    if ($('sardoCard')) $('sardoCard').hidden = !(admin || departmentHead);
-    if ($('learnerSummaryCard')) $('learnerSummaryCard').hidden = gateKeeper;
-    if ($('recentActivityCard')) $('recentActivityCard').hidden = gateKeeper;
-    if ($('quickActionsCard')) $('quickActionsCard').hidden = gateKeeper;
+    if ($('sf2SubmissionsCard')) $('sf2SubmissionsCard').hidden = admin || !departmentHead;
+    if ($('sardoCard')) $('sardoCard').hidden = admin || !departmentHead;
+    if ($('learnerSummaryCard')) $('learnerSummaryCard').hidden = gateKeeper || admin;
+    if ($('recentActivityCard')) $('recentActivityCard').hidden = gateKeeper || admin;
+    if ($('quickActionsCard')) $('quickActionsCard').hidden = gateKeeper || admin;
     document.querySelectorAll('.quick-action[data-go]').forEach(button => {
       const target = button.dataset.go;
       const allowed = allowedViewsForUser();
@@ -3270,7 +3271,7 @@ let teacherActionMenuListenersInstalled = false;
       const selectedRole = $('newAccountRole')?.value || '';
       const isTeacherAccount = selectedRole === 'TEACHER';
       const needsDepartment = ['TEACHER', 'DEPARTMENT_HEAD'].includes(selectedRole);
-      $('teacherDesignationFields').hidden = !isTeacherAccount;
+      $('teacherDesignationFields').hidden = !isTeacherAccount || user?.role === 'SCHOOL_ADMIN';
       $('newTeacherDepartmentGroup').hidden = !needsDepartment;
       $('newTeacherDepartment').required = needsDepartment;
       if (!isTeacherAccount) {
@@ -3315,10 +3316,12 @@ let teacherActionMenuListenersInstalled = false;
       try {
         const role = $('newAccountRole').value;
         const teacherDesignations = role === 'TEACHER'
-          ? [
-              $('designationSubjectTeacher').checked ? 'SUBJECT_TEACHER' : null,
-              $('designationClassAdviser').checked ? 'CLASS_ADVISER' : null
-            ].filter(Boolean)
+          ? (user?.role === 'SCHOOL_ADMIN'
+              ? ['SUBJECT_TEACHER']
+              : [
+                  $('designationSubjectTeacher').checked ? 'SUBJECT_TEACHER' : null,
+                  $('designationClassAdviser').checked ? 'CLASS_ADVISER' : null
+                ].filter(Boolean))
           : [];
         if (role === 'TEACHER' && !teacherDesignations.length) throw new Error('Select Subject Teacher, Class Adviser, or both.');
         const departmentId = $('newTeacherDepartment').value || null;
