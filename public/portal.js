@@ -3907,7 +3907,16 @@ let teacherActionMenuListenersInstalled = false;
 
   
 
-$('teacherCoverageRows')?.addEventListener('click', async event => {
+$('teacherCoverageCard')?.addEventListener('click', event => {
+    const tab = event.target.closest('[data-coverage-tab]');
+    if (!tab) return;
+    const nextTab = tab.dataset.coverageTab;
+    if (!['MY_DEPARTMENT', 'OTHER_DEPARTMENTS'].includes(nextTab) || nextTab === activeCoverageTab) return;
+    activeCoverageTab = nextTab;
+    renderTeacherCoverage();
+  });
+
+  $('teacherCoverageRows')?.addEventListener('click', async event => {
     const button = event.target.closest('[data-coverage-action]');
     if (!button) return;
     await handleCoverageAction(button.dataset.coverageAction, button);
