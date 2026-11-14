@@ -1442,6 +1442,8 @@ app.post('/api/students', authenticateSchoolClient, requireSchoolAdminOrTeacher,
   const cleanParentMobile = typeof parentMobile === 'string' ? parentMobile.trim() : '';
   const cleanLrn = typeof lrn === 'string' ? lrn.trim() : '';
   if (![studentId, fullName, gradeLevel, section, cleanParentName, cleanParentMobile].every(validText) ||
+      String(studentId).trim().length > 80 || String(fullName).trim().length > 200 ||
+      String(gradeLevel).trim().length > 40 || String(section).trim().length > 100 ||
       cleanParentName.length > 160 || cleanParentMobile.length > 30 || cleanLrn.length > 30 ||
       !['MALE', 'FEMALE'].includes(cleanSex)) {
     return res.status(400).json({ error: 'Student ID, full name, Male/Female, grade, section, parent/guardian full name, and a valid parent mobile number are required. LRN is optional and must be 30 characters or fewer.' });
