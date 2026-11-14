@@ -6,11 +6,11 @@ const path = require('node:path');
 const root = path.join(__dirname, '..');
 const read = file => fs.readFileSync(path.join(root, file), 'utf8');
 
-test('teacher designation editing is in the dedicated permissions panel and supports the three combinations', () => {
+test('Department Head manages teacher designations from the teacher overview without a duplicate permissions table', () => {
   const html = read('public/portal.html');
   const portal = read('public/portal.js');
-  assert.match(html, /id="teacherPermissionsCard"/);
-  assert.match(html, /id="teacherPermissionRows"/);
+  assert.doesNotMatch(html, /id="teacherPermissionsCard"/);
+  assert.doesNotMatch(html, /id="teacherPermissionRows"/);
   assert.match(portal, /data-edit-teacher-permission/);
   assert.match(portal, /selectOptions:\s*\[/);
   assert.match(portal, /value: 'SUBJECT_TEACHER'/);
@@ -18,6 +18,20 @@ test('teacher designation editing is in the dedicated permissions panel and supp
   assert.match(portal, /value: 'BOTH'/);
   assert.match(portal, /answer === 'BOTH' \? \['SUBJECT_TEACHER','CLASS_ADVISER'\]/);
   assert.match(portal, /\/designations/);
+  assert.match(portal, /classScopesHtml/);
+  assert.match(portal, /item\.gradeLevel\)\} · \$\{esc\(item\.section/);
+});
+
+test('Class Adviser assignment is list-first and guides users through enrolled sections', () => {
+  const html = read('public/portal.html');
+  const portal = read('public/portal.js');
+  assert.match(html, /id="addAdviserAssignmentButton"/);
+  assert.match(html, /id="adviserAssignmentForm" class="inline-form adviser-assignment-form" hidden/);
+  assert.match(html, /<select id="adviserSectionInput" required/);
+  assert.match(portal, /function updateAdviserSections\(\)/);
+  assert.match(portal, /Choose enrolled section/);
+  assert.match(portal, /Special-program sections such as SPJ are included/);
+  assert.match(portal, /id="cancelAdviserAssignment"/);
 });
 test('School Administrator has a department management table with edit actions', () => {
   const html = read('public/portal.html');
