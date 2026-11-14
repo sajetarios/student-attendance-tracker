@@ -32,8 +32,11 @@ test('Teacher roster exposes scoped editing and the edit form has all field wrap
 
 test('Subject Teachers can create their own section schedule and it is assigned to their account', () => {
   assert.match(js, /teacherCreatingOwn/);
-  assert.match(js, /periodSection'\)\.required = teacherCreatingOwn/);
-  assert.match(html, /id="periodSectionHint"/);
+  assert.match(html, /id="periodSection" required/);
+  assert.match(js, /section: \$\('periodSection'\)\.value\.trim\(\)/);
+  assert.match(html, /id="periodSection" required/);
+  assert.match(js, /teacherUserId: teacher\?\.userId/);
+  assert.match(server, /subject_id,subject_name,start_time/);
   assert.match(server, /Only a Subject Teacher may create a personal class schedule/);
   assert.match(server, /INSERT INTO teacher_period_assignments\(school_id, teacher_user_id, period_id\)/);
 });
@@ -80,7 +83,7 @@ test('SF2 Excel copy downloads a non-empty workbook through a temporary download
 
 test('Portal uses the current accessible theme and cache-busted v0.9.13 assets', () => {
   assert.match(html, /portal\.css\?v=0\.9\.13/);
-  assert.match(html, /portal\.js\?v=0\.9\.16/);
+  assert.match(html, /portal\.js\?v=0\.9\.17/);
   assert.match(portalCss, /--brand:#0ea5e9/);
   assert.match(portalCss, /:focus/);
 });

@@ -1,15 +1,16 @@
-const CACHE = "school-attendance-shell-v26-forced-portal-update";
+const CACHE = "school-attendance-shell-v27-schedule-forms";
 
 const SHELL = [
   "/portal-login.html",
   "/portal.css?v=0.9.13",
   "/portal.css",
-  "/portal.js?v=0.9.16",
+  "/portal.js?v=0.9.17",
   "/academic-admin.css?v=1",
   "/academic-admin.js?v=2",
   "/app-dialog.css?v=1",
   "/app-dialog.js?v=1",
   "/sw-refresh.js?v=1",
+  "/form-system.css?v=1",
   "/password-visibility.css",
   "/password-visibility.js",
   "/portal-login.js",

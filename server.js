@@ -855,6 +855,7 @@ app.post('/api/periods/bulk-assignments', authenticateSchoolClient, requireSchoo
   const client = await pool.connect();
   try {
     await client.query('BEGIN');
+    await client.query('SELECT pg_advisory_xact_lock(hashtext($1::text), 16016)', [req.auth.schoolId]);
     const selected = await client.query(
       `SELECT period_id AS "periodId",period_name AS "periodName",department_id AS "departmentId",
               start_time AS "startTime",end_time AS "endTime"
@@ -954,6 +955,7 @@ app.post('/api/periods/:periodId/assignments', authenticateSchoolClient, require
   const client = await pool.connect();
   try {
     await client.query('BEGIN');
+    await client.query('SELECT pg_advisory_xact_lock(hashtext($1::text), 16016)', [req.auth.schoolId]);
     const period = await client.query(
       `SELECT period_id, period_name, department_id FROM class_periods
        WHERE school_id=$1 AND period_id=$2 AND active=TRUE FOR UPDATE`,
@@ -1187,42 +1189,52 @@ app.get('/api/sections', authenticateSchoolClient, requireSchoolUser, async (req
   if (!gradeLevel || gradeLevel.length > 40) return res.status(400).json({ error: 'Select a valid grade level.' });
   try {
     const params = [req.auth.schoolId, gradeLevel];
-    let teacherSections = '';
+    let sectionSql = '';
     if (req.auth.role === 'DEPARTMENT_HEAD') {
-      if (!req.auth.departmentId || req.auth.departmentCode === 'UNASSIGNED') return res.status(403).json({ error: 'Your account must be assigned to a department.' });
+      if (!req.auth.departmentId || req.auth.departmentCode === 'UNASSIGNED') {
+        return res.status(403).json({ error: 'Your account must be assigned to a department.' });
+      }
       params.push(req.auth.departmentId);
-      teacherSections = `SELECT TRIM(p.section) AS section FROM class_periods p WHERE p.school_id=$1 AND p.grade_level=$2 AND p.department_id=$3 AND p.active=TRUE AND p.section IS NOT NULL AND TRIM(p.section) <> ''`;
+      sectionSql = "SELECT TRIM(p.section) AS section FROM class_periods p WHERE p.school_id=$1 AND p.grade_level=$2 AND p.department_id=$3 AND p.active=TRUE AND p.section IS NOT NULL AND TRIM(p.section)<>''";
     } else if (req.auth.role === 'TEACHER') {
       params.push(req.auth.userId);
-      teacherSections = `
-        SELECT TRIM(p.section) AS section
-        FROM class_periods p
-        WHERE p.school_id=$1 AND p.grade_level=$2 AND p.active=TRUE
-          AND p.section IS NOT NULL AND TRIM(p.section) <> ''
-          AND (
-            EXISTS (SELECT 1 FROM teacher_period_assignments a
-                    WHERE a.school_id=p.school_id AND a.period_id=p.period_id AND a.teacher_user_id=$3)
-            OR EXISTS (SELECT 1 FROM teacher_period_substitutions ts
-                       WHERE ts.school_id=p.school_id AND ts.period_id=p.period_id
-                         AND ts.substitute_teacher_user_id=$3 AND ts.status='ACTIVE'
-                         AND (NOW() AT TIME ZONE 'Asia/Manila')::date BETWEEN ts.start_date AND ts.end_date)
-          )
-        UNION
-        SELECT ca.section
-        FROM class_adviser_assignments ca
-        WHERE ca.school_id=$1 AND ca.grade_level=$2 AND ca.adviser_user_id=$3`;
+      sectionSql = [
+        "SELECT TRIM(p.section) AS section FROM class_periods p",
+        "WHERE p.school_id=$1 AND p.grade_level=$2 AND p.active=TRUE AND p.section IS NOT NULL AND TRIM(p.section)<>''",
+        "AND (EXISTS (SELECT 1 FROM teacher_period_assignments a WHERE a.school_id=p.school_id AND a.period_id=p.period_id AND a.teacher_user_id=$3)",
+        "OR EXISTS (SELECT 1 FROM teacher_period_substitutions ts WHERE ts.school_id=p.school_id AND ts.period_id=p.period_id AND ts.substitute_teacher_user_id=$3 AND ts.status='ACTIVE' AND (NOW() AT TIME ZONE 'Asia/Manila')::date BETWEEN ts.start_date AND ts.end_date))",
+        "UNION SELECT TRIM(ca.section) AS section FROM class_adviser_assignments ca WHERE ca.school_id=$1 AND ca.grade_level=$2 AND ca.adviser_user_id=$3"
+      ].join(" ");
     } else {
-      teacherSections = `SELECT TRIM(p.section) AS section FROM class_periods p
-        WHERE p.school_id=$1 AND p.grade_level=$2 AND p.active=TRUE
-          AND p.section IS NOT NULL AND TRIM(p.section) <> ''`;
+      sectionSql = [
+        "SELECT TRIM(p.section) AS section FROM class_periods p WHERE p.school_id=$1 AND p.grade_level=$2 AND p.active=TRUE AND p.section IS NOT NULL AND TRIM(p.section)<>''",
+        "UNION SELECT TRIM(ca.section) AS section FROM class_adviser_assignments ca WHERE ca.school_id=$1 AND ca.grade_level=$2",
+        "UNION SELECT COALESCE(NULLIF(TRIM(en.section),''),NULLIF(TRIM(s.section),'')) AS section",
+        "FROM students s LEFT JOIN LATERAL (SELECT e.grade_level,e.section FROM student_enrollments e JOIN school_years sy ON sy.school_id=e.school_id AND sy.school_year_id=e.school_year_id WHERE e.school_id=s.school_id AND e.student_id=s.student_id AND sy.status='ACTIVE' AND e.enrollment_status='ENROLLED' ORDER BY e.created_at DESC LIMIT 1) en ON TRUE",
+        "WHERE s.school_id=$1 AND s.active=TRUE AND s.archived_at IS NULL AND COALESCE(en.grade_level,s.grade_level)=$2"
+      ].join(" ");
     }
-    const result = await pool.query(`SELECT DISTINCT section FROM (${teacherSections}) available_sections ORDER BY section`, params);
+    if (req.auth.role === 'DEPARTMENT_HEAD' || req.auth.role === 'TEACHER') {
+      sectionSql += " UNION SELECT COALESCE(NULLIF(TRIM(en.section),''),NULLIF(TRIM(s.section),'')) AS section " +
+        "FROM students s LEFT JOIN LATERAL (" +
+        "SELECT e.grade_level,e.section FROM student_enrollments e " +
+        "JOIN school_years sy ON sy.school_id=e.school_id AND sy.school_year_id=e.school_year_id " +
+        "WHERE e.school_id=s.school_id AND e.student_id=s.student_id AND sy.status='ACTIVE' " +
+        "AND e.enrollment_status='ENROLLED' ORDER BY e.created_at DESC LIMIT 1" +
+        ") en ON TRUE WHERE s.school_id=$1 AND s.active=TRUE AND s.archived_at IS NULL " +
+        "AND COALESCE(en.grade_level,s.grade_level)=$2";
+    }
+    const result = await pool.query(
+      "SELECT DISTINCT section FROM (" + sectionSql + ") available_sections WHERE section IS NOT NULL AND TRIM(section)<>'' ORDER BY section",
+      params
+    );
     return res.json({ sections: result.rows.map(row => row.section) });
   } catch (err) {
     console.error('Section options failed:', err.message);
     return res.status(500).json({ error: 'Could not load sections.' });
   }
 });
+
 // Gate Keeper lookup resolves only the QR token presented at the entrance; it never downloads the full learner roster.
 app.post('/api/gate/lookup', authenticateSchoolClient, requireSchoolRoles('GATE_KEEPER'), async (req, res) => {
   const qrToken = String(req.body?.qrToken || '').trim();
@@ -1436,8 +1448,15 @@ app.get('/api/students', authenticateSchoolClient, requireSchoolClient, requireS
 app.post('/api/students', authenticateSchoolClient, requireSchoolAdminOrTeacher, async (req, res) => {
   const { studentId, lrn, fullName, gradeLevel, section, sex, parentName, parentMobile } = req.body || {};
   const cleanSex = String(sex || '').trim().toUpperCase();
-  if (![studentId, fullName, gradeLevel, section, parentMobile].every(validText) || !['MALE', 'FEMALE'].includes(cleanSex)) {
-    return res.status(400).json({ error: 'Student ID, full name, sex, grade, section, and parent mobile are required. Select Male or Female.' });
+  const cleanParentName = typeof parentName === 'string' ? parentName.trim() : '';
+  const cleanParentMobile = typeof parentMobile === 'string' ? parentMobile.trim() : '';
+  const cleanLrn = typeof lrn === 'string' ? lrn.trim() : '';
+  if (![studentId, fullName, gradeLevel, section, cleanParentName, cleanParentMobile].every(validText) ||
+      String(studentId).trim().length > 80 || String(fullName).trim().length > 200 ||
+      String(gradeLevel).trim().length > 40 || String(section).trim().length > 100 ||
+      cleanParentName.length > 160 || cleanParentMobile.length > 30 || cleanLrn.length > 30 ||
+      !['MALE', 'FEMALE'].includes(cleanSex)) {
+    return res.status(400).json({ error: 'Student ID, full name, Male/Female, grade, section, parent/guardian full name, and a valid parent mobile number are required. LRN is optional and must be 30 characters or fewer.' });
   }
   const isTeacher = req.auth.role === 'TEACHER';
   if (isTeacher && !req.auth.teacherDesignations?.includes('CLASS_ADVISER')) {
@@ -1482,8 +1501,8 @@ app.post('/api/students', authenticateSchoolClient, requireSchoolAdminOrTeacher,
          ${conflictAction}
          RETURNING student_id AS "studentId", full_name AS "fullName", sex,
                    grade_level AS "gradeLevel", section, qr_token AS "qrToken"`,
-        [req.auth.schoolId, cleanStudentId, lrn || null, fullName.trim(), masterGrade,
-         masterSection, parentName || null, parentMobile.trim(), cleanSex, qrToken]
+        [req.auth.schoolId, cleanStudentId, cleanLrn || null, fullName.trim(), masterGrade,
+         masterSection, cleanParentName, cleanParentMobile, cleanSex, qrToken]
       );
       if (!result.rowCount) {
         await client.query('ROLLBACK');
@@ -1911,59 +1930,100 @@ app.put('/api/settings', authenticateSchoolClient, requireSchoolAdmin, async (re
   }
 });
 
+// Department-owned subject catalogue. New schedules reference a canonical subject.
+app.get('/api/subjects', authenticateSchoolClient, requireSchoolRoles('SCHOOL_ADMIN', 'DEPARTMENT_HEAD', 'TEACHER'), async (req, res) => {
+  const departmentId = req.auth.role === 'SCHOOL_ADMIN'
+    ? (typeof req.query.departmentId === 'string' ? req.query.departmentId : '')
+    : req.auth.departmentId;
+  if (req.auth.role !== 'SCHOOL_ADMIN' && req.query.departmentId &&
+      String(req.query.departmentId) !== String(req.auth.departmentId)) {
+    return res.status(403).json({ error: 'You can view subjects only in your assigned department.' });
+  }
+  if (!isUuid(departmentId)) return res.status(400).json({ error: 'Choose a teacher with an assigned department first.' });
+  try {
+    const result = await pool.query(
+      "SELECT s.subject_id AS \"subjectId\",s.subject_name AS \"subjectName\",s.department_id AS \"departmentId\" " +
+      "FROM school_subjects s JOIN school_departments d ON d.school_id=s.school_id AND d.department_id=s.department_id " +
+      "WHERE s.school_id=$1 AND s.department_id=$2 AND s.active=TRUE AND d.active=TRUE ORDER BY s.subject_name",
+      [req.auth.schoolId, departmentId]
+    );
+    return res.json({ subjects: result.rows });
+  } catch (err) {
+    console.error('Subject catalogue load failed:', err.message);
+    return res.status(500).json({ error: 'Could not load department subjects.' });
+  }
+});
+
+app.post('/api/subjects', authenticateSchoolClient, requireSchoolRoles('SCHOOL_ADMIN', 'DEPARTMENT_HEAD'), async (req, res) => {
+  const departmentId = req.body?.departmentId;
+  const subjectName = typeof req.body?.subjectName === 'string'
+    ? req.body.subjectName.trim().replace(/\s+/g, ' ')
+    : '';
+  if (!isUuid(departmentId) || !subjectName || subjectName.length > 120) {
+    return res.status(400).json({ error: 'Choose a department and enter a subject name (1–120 characters).' });
+  }
+  if (req.auth.role === 'DEPARTMENT_HEAD' &&
+      (!req.auth.departmentId || req.auth.departmentCode === 'UNASSIGNED' ||
+       String(departmentId) !== String(req.auth.departmentId))) {
+    return res.status(403).json({ error: 'You can add subjects only in your own department.' });
+  }
+  try {
+    const department = await pool.query(
+      "SELECT 1 FROM school_departments WHERE school_id=$1 AND department_id=$2 AND active=TRUE",
+      [req.auth.schoolId, departmentId]
+    );
+    if (!department.rowCount) return res.status(404).json({ error: 'Active department not found.' });
+    const result = await pool.query(
+      "INSERT INTO school_subjects(school_id,department_id,subject_name) VALUES($1,$2,$3) " +
+      "RETURNING subject_id AS \"subjectId\",subject_name AS \"subjectName\",department_id AS \"departmentId\"",
+      [req.auth.schoolId, departmentId, subjectName]
+    );
+    return res.status(201).json({ subject: result.rows[0] });
+  } catch (err) {
+    if (err.code === '23505') {
+      return res.status(409).json({ error: 'That subject already exists in this department. Select the existing subject instead.' });
+    }
+    console.error('Subject creation failed:', err.message);
+    return res.status(500).json({ error: 'Could not add the subject.' });
+  }
+});
+
 app.get('/api/periods', authenticateSchoolClient, requireSchoolUser, async (req, res) => {
   try {
     const params = [req.auth.schoolId];
     let teacherScope = '';
     if (req.auth.role === 'TEACHER') {
       params.push(req.auth.userId);
-      teacherScope = ` AND (
-        EXISTS (
-          SELECT 1 FROM teacher_period_assignments a
-          WHERE a.school_id=p.school_id AND a.period_id=p.period_id AND a.teacher_user_id=$2
-        )
-        OR EXISTS (
-          SELECT 1 FROM teacher_period_substitutions ts
-          WHERE ts.school_id=p.school_id AND ts.period_id=p.period_id
-            AND ts.substitute_teacher_user_id=$2 AND ts.status='ACTIVE'
-            AND (NOW() AT TIME ZONE 'Asia/Manila')::date BETWEEN ts.start_date AND ts.end_date
-        )
-        OR EXISTS (
-          SELECT 1 FROM class_adviser_assignments ca
-          WHERE ca.school_id=p.school_id AND ca.adviser_user_id=$2
-            AND ca.grade_level=p.grade_level AND ca.section=p.section
-        )
-      )`;
+      teacherScope = " AND (" +
+        "EXISTS (SELECT 1 FROM teacher_period_assignments a WHERE a.school_id=p.school_id AND a.period_id=p.period_id AND a.teacher_user_id=$2) " +
+        "OR EXISTS (SELECT 1 FROM teacher_period_substitutions ts WHERE ts.school_id=p.school_id AND ts.period_id=p.period_id AND ts.substitute_teacher_user_id=$2 AND ts.status='ACTIVE' AND (NOW() AT TIME ZONE 'Asia/Manila')::date BETWEEN ts.start_date AND ts.end_date) " +
+        "OR EXISTS (SELECT 1 FROM class_adviser_assignments ca WHERE ca.school_id=p.school_id AND ca.adviser_user_id=$2 AND ca.grade_level=p.grade_level AND ca.section=p.section))";
     }
     const result = await pool.query(
-      `SELECT p.period_id AS "periodId", p.period_name AS "periodName",
-              p.grade_level AS "gradeLevel", p.section, p.subject_name AS "subjectName",
-              p.classroom, p.department_id AS "departmentId",
-              COALESCE(d.department_name, 'Unassigned') AS "departmentName",
-              assignment."assignedTeacherUserId", assignment."assignedTeacherName",
-              to_char(p.start_time,'HH24:MI') AS "startTime",
-              to_char(p.end_time,'HH24:MI') AS "endTime", p.grace_minutes AS "graceMinutes"
-       FROM class_periods p
-       LEFT JOIN school_departments d ON d.school_id=p.school_id AND d.department_id=p.department_id
-       LEFT JOIN LATERAL (
-         SELECT COALESCE(ts.substitute_teacher_user_id, a.teacher_user_id) AS "assignedTeacherUserId",
-                COALESCE(substitute.display_name, original.display_name) AS "assignedTeacherName"
-         FROM teacher_period_assignments a
-         JOIN school_users original ON original.school_id=a.school_id AND original.user_id=a.teacher_user_id
-         LEFT JOIN LATERAL (
-           SELECT tsub.substitute_teacher_user_id
-           FROM teacher_period_substitutions tsub
-           WHERE tsub.school_id=a.school_id AND tsub.period_id=a.period_id
-             AND tsub.original_teacher_user_id=a.teacher_user_id AND tsub.status='ACTIVE'
-             AND (NOW() AT TIME ZONE 'Asia/Manila')::date BETWEEN tsub.start_date AND tsub.end_date
-           ORDER BY tsub.created_at DESC LIMIT 1
-         ) ts ON TRUE
-         LEFT JOIN school_users substitute ON substitute.school_id=a.school_id AND substitute.user_id=ts.substitute_teacher_user_id
-         WHERE a.school_id=p.school_id AND a.period_id=p.period_id
-         ORDER BY a.assignment_id LIMIT 1
-       ) assignment ON TRUE
-       WHERE p.school_id=$1 AND p.active=TRUE${teacherScope}
-       ORDER BY p.start_time, p.grade_level, p.section`,
+      "SELECT p.period_id AS \"periodId\",p.period_name AS \"periodName\",p.grade_level AS \"gradeLevel\",p.section," +
+      "p.subject_id AS \"subjectId\",p.subject_name AS \"subjectName\",p.classroom," +
+      "COALESCE(assignment.\"assignedDepartmentId\",p.department_id) AS \"departmentId\"," +
+      "COALESCE(assigned_department.department_name,d.department_name,'Unassigned') AS \"departmentName\"," +
+      "assignment.\"assignedTeacherUserId\",assignment.\"assignedTeacherName\"," +
+      "to_char(p.start_time,'HH24:MI') AS \"startTime\",to_char(p.end_time,'HH24:MI') AS \"endTime\",p.grace_minutes AS \"graceMinutes\" " +
+      "FROM class_periods p " +
+      "LEFT JOIN school_departments d ON d.school_id=p.school_id AND d.department_id=p.department_id " +
+      "LEFT JOIN LATERAL (" +
+      "SELECT COALESCE(ts.substitute_teacher_user_id,a.teacher_user_id) AS \"assignedTeacherUserId\"," +
+      "COALESCE(substitute.display_name,original.display_name) AS \"assignedTeacherName\"," +
+      "COALESCE(substitute.department_id,original.department_id) AS \"assignedDepartmentId\" " +
+      "FROM teacher_period_assignments a " +
+      "JOIN school_users original ON original.school_id=a.school_id AND original.user_id=a.teacher_user_id " +
+      "LEFT JOIN LATERAL (SELECT tsub.substitute_teacher_user_id FROM teacher_period_substitutions tsub " +
+      "WHERE tsub.school_id=a.school_id AND tsub.period_id=a.period_id AND tsub.original_teacher_user_id=a.teacher_user_id " +
+      "AND tsub.status='ACTIVE' AND (NOW() AT TIME ZONE 'Asia/Manila')::date BETWEEN tsub.start_date AND tsub.end_date " +
+      "ORDER BY tsub.created_at DESC LIMIT 1) ts ON TRUE " +
+      "LEFT JOIN school_users substitute ON substitute.school_id=a.school_id AND substitute.user_id=ts.substitute_teacher_user_id " +
+      "WHERE a.school_id=p.school_id AND a.period_id=p.period_id ORDER BY a.assignment_id LIMIT 1" +
+      ") assignment ON TRUE " +
+      "LEFT JOIN school_departments assigned_department ON assigned_department.school_id=p.school_id AND assigned_department.department_id=assignment.\"assignedDepartmentId\" " +
+      "WHERE p.school_id=$1 AND p.active=TRUE" + teacherScope +
+      " ORDER BY p.start_time,p.grade_level,p.section,p.period_name",
       params
     );
     return res.json({ periods: result.rows });
@@ -1974,92 +2034,177 @@ app.get('/api/periods', authenticateSchoolClient, requireSchoolUser, async (req,
 });
 
 // School Administrators, Department Heads, and Subject Teachers may create schedules within their permitted scope.
+// A schedule is created together with its teacher assignment. Department comes from the teacher account.
 app.post('/api/periods', authenticateSchoolClient, requireSchoolAdminOrDepartmentHeadOrTeacher, async (req, res) => {
   const isTeacher = req.auth.role === 'TEACHER';
   const isDepartmentHead = req.auth.role === 'DEPARTMENT_HEAD';
-  const departmentId = isTeacher || isDepartmentHead ? req.auth.departmentId : (req.body?.departmentId || null);
+  const teacherUserId = isTeacher ? req.auth.userId : req.body?.teacherUserId;
   const classroom = typeof req.body?.classroom === 'string' ? req.body.classroom.trim() : '';
+  const { periodName, gradeLevel, section, subjectId, startTime, endTime, graceMinutes = 0 } = req.body || {};
+
   if (isTeacher && !req.auth.teacherDesignations?.includes('SUBJECT_TEACHER')) {
     return res.status(403).json({ error: 'Only a Subject Teacher may create a personal class schedule.' });
   }
-  const { periodName, gradeLevel, section, subjectName, startTime, endTime, graceMinutes = 0 } = req.body || {};
-  if (!isUuid(departmentId)) return res.status(400).json({ error: 'Choose a valid department for this schedule.' });
-  if (classroom.length > 100) return res.status(400).json({ error: 'Classroom name must be 100 characters or fewer.' });
-  if (![periodName, gradeLevel, startTime, endTime].every(validText) ||
-      (isTeacher && !validText(section)) ||
-      !/^([01]\d|2[0-3]):[0-5]\d$/.test(startTime) || !/^([01]\d|2[0-3]):[0-5]\d$/.test(endTime) ||
-      startTime >= endTime || !Number.isInteger(Number(graceMinutes)) || Number(graceMinutes) < 0 || Number(graceMinutes) > 240 ||
-      String(periodName).trim().length > 120 || String(gradeLevel).trim().length > 40 ||
-      String(section || '').trim().length > 100 || String(subjectName || '').trim().length > 120) {
-    return res.status(400).json({ error: 'Provide a valid schedule name, grade, section, classroom, time range, and grace period.' });
+  if (!isUuid(teacherUserId) || !isUuid(subjectId)) {
+    return res.status(400).json({ error: 'Choose an assigned Subject Teacher and a subject from the department list.' });
   }
+  if (![periodName, gradeLevel, section, startTime, endTime].every(validText) ||
+      !/^([01]\d|2[0-3]):[0-5]\d$/.test(startTime) ||
+      !/^([01]\d|2[0-3]):[0-5]\d$/.test(endTime) ||
+      startTime >= endTime || !Number.isInteger(Number(graceMinutes)) ||
+      Number(graceMinutes) < 0 || Number(graceMinutes) > 240 ||
+      String(periodName).trim().length > 120 || String(gradeLevel).trim().length > 40 ||
+      String(section).trim().length > 100 || classroom.length > 100) {
+    return res.status(400).json({ error: 'Complete the period, subject, grade, section, and valid start/end times.' });
+  }
+
   const client = await pool.connect();
   try {
     await client.query('BEGIN');
-    const validDepartment = await client.query(
-      isDepartmentHead
-        ? "SELECT 1 FROM school_departments WHERE school_id=$1 AND department_id=$2 AND active=TRUE AND department_code<>'UNASSIGNED'"
-        : 'SELECT 1 FROM school_departments WHERE school_id=$1 AND department_id=$2 AND active=TRUE',
-      [req.auth.schoolId, departmentId]
+    // Serialize schedule creation within this school so parallel form submissions cannot create conflicts.
+    await client.query('SELECT pg_advisory_xact_lock(hashtext($1::text), 16016)', [req.auth.schoolId]);
+
+    const teacher = await client.query(
+      "SELECT su.user_id AS \"userId\",su.display_name AS \"displayName\",su.department_id AS \"departmentId\",d.department_name AS \"departmentName\",d.department_code AS \"departmentCode\" " +
+      "FROM school_users su JOIN school_departments d ON d.school_id=su.school_id AND d.department_id=su.department_id " +
+      "WHERE su.school_id=$1 AND su.user_id=$2 AND su.role='TEACHER' AND su.active=TRUE " +
+      "AND 'SUBJECT_TEACHER'=ANY(su.teacher_designations) AND d.active=TRUE",
+      [req.auth.schoolId, teacherUserId]
     );
-    if (!validDepartment.rowCount) {
+    if (!teacher.rowCount) {
       await client.query('ROLLBACK');
-      return res.status(400).json({ error: 'The selected department is not active in this school.' });
+      return res.status(404).json({ error: 'The selected account is not an active Subject Teacher with an assigned department.' });
     }
-    if (isTeacher) {
-      const conflict = await client.query(
-        `SELECT EXISTS (
-           SELECT 1 FROM class_periods p
-           LEFT JOIN teacher_period_assignments a ON a.school_id=p.school_id AND a.period_id=p.period_id
-           WHERE p.school_id=$1 AND p.active=TRUE
-             AND p.start_time < $4::time AND $3::time < p.end_time
-             AND p.department_id=$7
-             AND (
-               a.teacher_user_id=$2
-               OR (p.grade_level=$5 AND (p.section IS NULL OR p.section=$6))
-             )
-         ) AS conflict`,
-        [req.auth.schoolId, req.auth.userId, startTime, endTime, gradeLevel.trim(), section.trim(), departmentId]
+    if (isTeacher && String(teacher.rows[0].userId) !== String(req.auth.userId)) {
+      await client.query('ROLLBACK');
+      return res.status(403).json({ error: 'Subject Teachers may create schedules only for their own account.' });
+    }
+    if (isDepartmentHead &&
+        (!req.auth.departmentId || req.auth.departmentCode === 'UNASSIGNED' ||
+         String(teacher.rows[0].departmentId) !== String(req.auth.departmentId))) {
+      await client.query('ROLLBACK');
+      return res.status(403).json({ error: 'You can create schedules only for Subject Teachers in your own department.' });
+    }
+    const departmentId = teacher.rows[0].departmentId;
+    const subject = await client.query(
+      "SELECT subject_id AS \"subjectId\",subject_name AS \"subjectName\" FROM school_subjects " +
+      "WHERE school_id=$1 AND department_id=$2 AND subject_id=$3 AND active=TRUE",
+      [req.auth.schoolId, departmentId, subjectId]
+    );
+    if (!subject.rowCount) {
+      await client.query('ROLLBACK');
+      return res.status(400).json({ error: 'That subject is not active in the selected teacher’s department. Refresh the subject list.' });
+    }
+
+    const duplicateLabel = await client.query(
+      "SELECT period_name FROM class_periods WHERE school_id=$1 AND active=TRUE " +
+      "AND lower(btrim(grade_level))=lower(btrim($2)) " +
+      "AND upper(btrim(section))=upper(btrim($3)) " +
+      "AND lower(btrim(period_name))=lower(btrim($4)) LIMIT 1",
+      [req.auth.schoolId, gradeLevel.trim(), section.trim(), periodName.trim()]
+    );
+    if (duplicateLabel.rowCount) {
+      await client.query('ROLLBACK');
+      return res.status(409).json({
+        error: periodName.trim() + ' already exists for ' + gradeLevel.trim() + ' · ' + section.trim() + '. Edit the existing schedule instead of adding it again.'
+      });
+    }
+
+    const sectionConflict = await client.query(
+      "SELECT period_name,subject_name,start_time::text AS start_time,end_time::text AS end_time " +
+      "FROM class_periods WHERE school_id=$1 AND active=TRUE " +
+      "AND lower(btrim(grade_level))=lower(btrim($2)) AND upper(btrim(section))=upper(btrim($3)) " +
+      "AND start_time < $5::time AND $4::time < end_time LIMIT 1",
+      [req.auth.schoolId, gradeLevel.trim(), section.trim(), startTime, endTime]
+    );
+    if (sectionConflict.rowCount) {
+      const conflict = sectionConflict.rows[0];
+      await client.query('ROLLBACK');
+      return res.status(409).json({
+        error: gradeLevel.trim() + ' · ' + section.trim() + ' already has ' + (conflict.subject_name || conflict.period_name) +
+          ' from ' + String(conflict.start_time).slice(0,5) + ' to ' + String(conflict.end_time).slice(0,5) + '. Choose another time.'
+      });
+    }
+
+    const teacherConflict = await client.query(
+      "SELECT p.period_name,p.start_time::text AS start_time,p.end_time::text AS end_time " +
+      "FROM teacher_period_assignments a JOIN class_periods p ON p.school_id=a.school_id AND p.period_id=a.period_id " +
+      "WHERE a.school_id=$1 AND a.teacher_user_id=$2 AND p.active=TRUE " +
+      "AND p.start_time < $4::time AND $3::time < p.end_time " +
+      "UNION ALL " +
+      "SELECT p.period_name,p.start_time::text AS start_time,p.end_time::text AS end_time " +
+      "FROM teacher_period_substitutions ts JOIN class_periods p ON p.school_id=ts.school_id AND p.period_id=ts.period_id " +
+      "WHERE ts.school_id=$1 AND ts.substitute_teacher_user_id=$2 AND ts.status='ACTIVE' AND p.active=TRUE " +
+      "AND (NOW() AT TIME ZONE 'Asia/Manila')::date BETWEEN ts.start_date AND ts.end_date " +
+      "AND p.start_time < $4::time AND $3::time < p.end_time LIMIT 1",
+      [req.auth.schoolId, teacherUserId, startTime, endTime]
+    );
+    if (teacherConflict.rowCount) {
+      const conflict = teacherConflict.rows[0];
+      await client.query('ROLLBACK');
+      return res.status(409).json({
+        error: teacher.rows[0].displayName + ' already has ' + conflict.period_name + ' from ' +
+          String(conflict.start_time).slice(0,5) + ' to ' + String(conflict.end_time).slice(0,5) + '.'
+      });
+    }
+
+    if (classroom) {
+      const roomConflict = await client.query(
+        "SELECT period_name,start_time::text AS start_time,end_time::text AS end_time FROM class_periods " +
+        "WHERE school_id=$1 AND active=TRUE AND classroom IS NOT NULL " +
+        "AND upper(btrim(classroom))=upper(btrim($2)) " +
+        "AND start_time < $4::time AND $3::time < end_time LIMIT 1",
+        [req.auth.schoolId, classroom, startTime, endTime]
       );
-      if (conflict.rows[0]?.conflict) {
+      if (roomConflict.rowCount) {
+        const conflict = roomConflict.rows[0];
         await client.query('ROLLBACK');
-        return res.status(409).json({ error: 'This time overlaps another active schedule for you or the selected class section.' });
+        return res.status(409).json({
+          error: classroom + ' is already used for ' + conflict.period_name + ' from ' +
+            String(conflict.start_time).slice(0,5) + ' to ' + String(conflict.end_time).slice(0,5) + '.'
+        });
       }
     }
+
     const result = await client.query(
-      `INSERT INTO class_periods(school_id, period_name, grade_level, section, subject_name,
-                                 start_time, end_time, grace_minutes, department_id, classroom)
-       VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)
-       RETURNING period_id AS "periodId", period_name AS "periodName",
-                 grade_level AS "gradeLevel", section, subject_name AS "subjectName",
-                 department_id AS "departmentId", classroom,
-                 to_char(start_time,'HH24:MI') AS "startTime", to_char(end_time,'HH24:MI') AS "endTime"`,
-      [req.auth.schoolId, periodName.trim(), gradeLevel.trim(), section?.trim() || null,
-       subjectName?.trim() || null, startTime, endTime, Number(graceMinutes), departmentId, classroom || null]
+      "INSERT INTO class_periods(school_id,period_name,grade_level,section,subject_id,subject_name,start_time,end_time,grace_minutes,department_id,classroom) " +
+      "VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11) " +
+      "RETURNING period_id AS \"periodId\",period_name AS \"periodName\",grade_level AS \"gradeLevel\",section," +
+      "subject_id AS \"subjectId\",subject_name AS \"subjectName\",department_id AS \"departmentId\",classroom," +
+      "to_char(start_time,'HH24:MI') AS \"startTime\",to_char(end_time,'HH24:MI') AS \"endTime\"",
+      [req.auth.schoolId, periodName.trim(), gradeLevel.trim(), section.trim(), subjectId,
+       subject.rows[0].subjectName, startTime, endTime, Number(graceMinutes), departmentId, classroom || null]
     );
     const period = result.rows[0];
-    if (isTeacher) {
-      await client.query(
-        `INSERT INTO teacher_period_assignments(school_id, teacher_user_id, period_id)
-         VALUES($1,$2,$3)`,
-        [req.auth.schoolId, req.auth.userId, period.periodId]
-      );
-    }
     await client.query(
-      `INSERT INTO audit_logs(school_id, actor_type, actor_user_id, action, entity_type, entity_id, details)
-       VALUES($1,'SCHOOL',$2,$3,'class_period',$4,$5::jsonb)`,
+      "INSERT INTO teacher_period_assignments(school_id,teacher_user_id,period_id) VALUES($1,$2,$3) " +
+      "ON CONFLICT(school_id,teacher_user_id,period_id) DO NOTHING",
+      [req.auth.schoolId, teacherUserId, period.periodId]
+    );
+    await client.query(
+      "INSERT INTO audit_logs(school_id,actor_type,actor_user_id,action,entity_type,entity_id,details) " +
+      "VALUES($1,'SCHOOL',$2,$3,'class_period',$4,$5::jsonb)",
       [req.auth.schoolId, req.auth.userId,
        isTeacher ? 'TEACHER_CREATE_OWN_PERIOD' : isDepartmentHead ? 'DEPARTMENT_HEAD_CREATE_DEPARTMENT_PERIOD' : 'SCHOOL_ADMIN_CREATE_PERIOD',
        period.periodId,
-       JSON.stringify({ periodName: period.periodName, gradeLevel: period.gradeLevel,
-         section: period.section, classroom, departmentId, selfAssigned: isTeacher })]
+       JSON.stringify({
+         periodName: period.periodName, subjectId, subjectName: period.subjectName,
+         gradeLevel: period.gradeLevel, section: period.section, classroom,
+         teacherUserId, teacherName: teacher.rows[0].displayName, departmentId
+       })]
     );
     await client.query('COMMIT');
-    return res.status(201).json({ period, assignedToCreator: isTeacher, departmentManagedByHead: isDepartmentHead });
+    return res.status(201).json({
+      period: { ...period, assignedTeacherUserId: teacherUserId, assignedTeacherName: teacher.rows[0].displayName,
+        departmentName: teacher.rows[0].departmentName },
+      assignedToCreator: isTeacher, teacher: teacher.rows[0].displayName,
+      departmentName: teacher.rows[0].departmentName
+    });
   } catch (err) {
     await client.query('ROLLBACK').catch(() => {});
     console.error('Period creation failed:', err.message);
-    return res.status(400).json({ error: 'Could not create schedule. Check for duplicate or conflicting entries.' });
+    if (err.code === '23505') return res.status(409).json({ error: 'This period or subject has already been added. Refresh the schedule list before saving again.' });
+    return res.status(500).json({ error: 'Could not create the class schedule.' });
   } finally {
     client.release();
   }

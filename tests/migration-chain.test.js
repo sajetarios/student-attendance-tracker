@@ -8,7 +8,7 @@ const { REQUIRED_MIGRATIONS, stripTransactionWrappers } = require('../scripts/mi
 
 const migrationDir = path.join(__dirname, '..', 'migrations');
 
-test('all fifteen database migrations are present and in order', () => {
+test('all sixteen database migrations are present and in order', () => {
   const files = fs.readdirSync(migrationDir).filter(name => /^\d{3}_[a-z0-9_]+\.sql$/i.test(name)).sort();
   assert.deepEqual(files, REQUIRED_MIGRATIONS);
 });
