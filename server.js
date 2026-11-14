@@ -1561,8 +1561,8 @@ app.patch('/api/students/:studentId', authenticateSchoolClient, requireSchoolAdm
   if (!isTeacher && (!['MALE', 'FEMALE'].includes(cleanSex) || !validText(gradeLevel) || gradeLevel.trim().length > 40 ||
       !validText(section) || section.trim().length > 100 ||
       !validText(parentMobile) || parentMobile.trim().length > 30 ||
-      (lrn != null && (typeof lrn !== 'string' || lrn.trim().length > 30)) ||
-      (parentName != null && (typeof parentName !== 'string' || parentName.trim().length > 160)))) {
+      !validText(parentName) || parentName.trim().length > 160 ||
+      (lrn != null && (typeof lrn !== 'string' || lrn.trim().length > 30)))) {
     return res.status(400).json({ error: 'Provide valid student name, grade, section, and permitted student details.' });
   }
   if (isTeacher && !isClassAdviser && !isSubjectTeacher) {
