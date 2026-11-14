@@ -56,11 +56,11 @@ test('current portal assets are pre-cached under a new service-worker cache', ()
   assert.match(theme, /:focus/);
   const portalHtml = read('public/portal.html');
   assert.match(portalHtml, /portal\.css\?v=0\.9\.13/);
-  assert.match(portalHtml, /portal\.js\?v=0\.9\.16/);
+  assert.match(portalHtml, /portal\.js\?v=0\.9\.17/);
   assert.match(portalHtml, /academic-admin\.css\?v=1/);
   const serviceWorker = read('public/sw.js');
-  assert.match(serviceWorker, /school-attendance-shell-v26-forced-portal-update/);
-  assert.match(serviceWorker, /portal\.js\?v=0\.9\.16/);
+  assert.match(serviceWorker, /school-attendance-shell-v27-schedule-forms/);
+  assert.match(serviceWorker, /portal\.js\?v=0\.9\.17/);
   assert.match(serviceWorker, /academic-admin\.js\?v=2/);
 });
 
@@ -77,7 +77,7 @@ test('root URL and legacy index open the login page without serving a stale cach
   assert.ok(server.includes("res.redirect('/');"));
   assert.ok(index.includes('/portal-login.html'));
   assert.ok(serviceWorker.includes('if (request.mode === "navigate")'));
-  assert.ok(serviceWorker.includes('school-attendance-shell-v26-forced-portal-update'));
+  assert.ok(serviceWorker.includes('school-attendance-shell-v27-schedule-forms'));
   assert.equal(shell.includes('"/"'), false);
   assert.equal(shell.includes('"/index.html"'), false);
   assert.ok(loginScript.includes("navigator.serviceWorker.register('/sw.js', { updateViaCache: 'none' })"));
