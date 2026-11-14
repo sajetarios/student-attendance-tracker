@@ -325,12 +325,12 @@
     }
     if ($('parentsNav')) $('parentsNav').hidden = !admin;
     if ($('showStudentForm')) $('showStudentForm').hidden = !(admin || (teacher && classAdviser));
-    if ($('showScheduleForm')) $('showScheduleForm').hidden = !(admin || departmentHead);
+    if ($('showScheduleForm')) $('showScheduleForm').hidden = !departmentHead;
     if ($('dashboardAddStudent')) $('dashboardAddStudent').hidden = !(admin || (teacher && classAdviser));
-    if ($('showTeacherForm')) $('showTeacherForm').hidden = !admin;
+    if ($('showTeacherForm')) $('showTeacherForm').hidden = true;
     if ($('staffUserRows')) $('staffUserRows').closest('.staff-accounts-card').hidden = !admin;
-    if ($('adviserAssignmentForm')) $('adviserAssignmentForm').hidden = !admin;
-    if ($('adviserAssignmentForm')) $('adviserAssignmentForm').closest('.adviser-assignments-card').hidden = !admin;
+    if ($('adviserAssignmentForm')) $('adviserAssignmentForm').hidden = !(admin || departmentHead);
+    if ($('adviserAssignmentForm')) $('adviserAssignmentForm').closest('.adviser-assignments-card').hidden = !(admin || departmentHead);
     if ($('sf2SubmissionsCard')) $('sf2SubmissionsCard').hidden = !(admin || departmentHead);
     if ($('sardoCard')) $('sardoCard').hidden = !(admin || departmentHead);
     if ($('learnerSummaryCard')) $('learnerSummaryCard').hidden = gateKeeper;
@@ -347,12 +347,12 @@
         else if (admin) { label.textContent = 'Manage student records'; if (detail) detail.textContent = 'Register learners, update records, and manage student logins'; }
       }
       if (target === 'teachers' && label) {
-        if (departmentHead) { label.textContent = 'Monitor teachers'; if (detail) detail.textContent = 'Review availability, grade levels, sections, and class coverage'; }
+        if (departmentHead) { label.textContent = 'Manage department teachers'; if (detail) detail.textContent = 'Set teacher designations, advisory sections, and class schedules'; }
         else if (admin) { label.textContent = 'Manage staff accounts'; if (detail) detail.textContent = 'Create staff accounts and assign teacher designations'; }
       }
       if (target === 'schedules' && label) {
         if (teacher) { label.textContent = 'My Schedule'; if (detail) detail.textContent = 'View your teaching assignments and advisory class timetable'; }
-        else if (departmentHead) { label.textContent = 'Monitor class schedules'; if (detail) detail.textContent = 'Review school periods and coverage'; }
+        else if (departmentHead) { label.textContent = 'Manage class schedules'; if (detail) detail.textContent = 'Create schedules and assign teachers in your department'; }
         else if (admin) { label.textContent = 'Manage class schedules'; if (detail) detail.textContent = 'Create periods and assign permanent teachers'; }
       }
       if (target === 'sf2' && label) {
@@ -410,6 +410,16 @@
     const teacherPermissionsCard = $('teacherPermissionsCard');
     const departmentCard = $('departmentManagementCard');
     const note = document.querySelector('.teacher-management-note');
+    const isDepartmentHead = user?.role === 'DEPARTMENT_HEAD';
+    if (isDepartmentHead) {
+      if (teacherCard) teacherCard.hidden = false;
+      if (staffCard) staffCard.hidden = true;
+      if (adviserCard) adviserCard.hidden = false;
+      if (teacherPermissionsCard) teacherPermissionsCard.hidden = false;
+      if (departmentCard) departmentCard.hidden = true;
+      if (note) note.hidden = false;
+      return;
+    }
     if (!isAdmin) return;
     const activeTab = ['accounts','permissions','departments'].includes(tabName) ? tabName : 'accounts';
     if (teacherCard) teacherCard.hidden = activeTab !== 'accounts';
@@ -1425,7 +1435,7 @@ let teacherActionMenuListenersInstalled = false;
       const canManageDepartment = user.role === 'DEPARTMENT_HEAD' && String(teacher.departmentId) === String(user.departmentId);
       const canAssignSubstitute = canManageDepartment && onLeave && assigned.length > 0;
       const departmentHeadCoverageActions = [
-        ...(canManageDepartment && active ? [`<button type="button" class="teacher-action-item" data-manage-permanent="${esc(teacher.userId)}">Manage department assignments</button>`] : []),
+        ...(canManageDepartment && active ? [`<button type="button" class="teacher-action-item" data-edit-teacher-permission="${esc(teacher.userId)}">Edit teacher designation</button>`, `<button type="button" class="teacher-action-item" data-manage-permanent="${esc(teacher.userId)}">Manage class schedules</button>`] : []),
         ...(canAssignSubstitute ? [`<button type="button" class="teacher-action-item" data-assign-substitute="${esc(teacher.userId)}">Assign temporary substitute</button>`] : []),
         ...(canManageDepartment && cancelCoverActions ? [cancelCoverActions] : [])
       ].join('');
@@ -1874,7 +1884,8 @@ let teacherActionMenuListenersInstalled = false;
   function renderTeacherPermissions() {
     const host = $('teacherPermissionRows');
     if (!host) return;
-    host.innerHTML = teachers.length ? teachers.map(teacher => {
+    const scopedTeachers = user.role === 'DEPARTMENT_HEAD' ? teachers.filter(t => String(t.departmentId) === String(user.departmentId)) : teachers;
+    host.innerHTML = scopedTeachers.length ? scopedTeachers.map(teacher => {
       const labels = (teacher.teacherDesignations || []).map(value =>
         value === 'CLASS_ADVISER' ? 'Class Adviser' : value === 'SUBJECT_TEACHER' ? 'Subject Teacher' : value
       );
@@ -1890,7 +1901,7 @@ let teacherActionMenuListenersInstalled = false;
   function renderAdviserAssignments() {
     const host = $('adviserAssignmentRows');
     if (!host) return;
-    const advisers = teachers.filter(item => Array.isArray(item.teacherDesignations) && item.teacherDesignations.includes('CLASS_ADVISER') && item.active);
+    const advisers = teachers.filter(item => Array.isArray(item.teacherDesignations) && item.teacherDesignations.includes('CLASS_ADVISER') && item.active && (user.role !== 'DEPARTMENT_HEAD' || String(item.departmentId) === String(user.departmentId)));
     const select = $('adviserTeacherSelect');
     if (select) {
       const previous = select.value;
@@ -1899,7 +1910,7 @@ let teacherActionMenuListenersInstalled = false;
     }
     host.innerHTML = adviserAssignments.length ? adviserAssignments.map(item => `
       <tr><td>${esc(item.gradeLevel)}</td><td>${esc(item.section)}</td><td>${esc(item.adviserName || item.adviserUserId)}</td>
-      <td>${user.role === 'SCHOOL_ADMIN'
+      <td>${['SCHOOL_ADMIN','DEPARTMENT_HEAD'].includes(user.role) && (user.role !== 'DEPARTMENT_HEAD' || String((teachers.find(t => String(t.userId) === String(item.adviserUserId)) || {}).departmentId) === String(user.departmentId))
         ? '<div class="action-row"><button type="button" class="outline-button compact-button" data-edit-adviser="' + esc(item.assignmentId) + '">Edit</button><button type="button" class="outline-button compact-button danger-button" data-remove-adviser="' + esc(item.assignmentId) + '">Remove</button></div>'
         : '<span class="muted-inline">Read only</span>'}</td></tr>`).join('')
       : '<tr><td colspan="4" class="empty-cell">No class adviser assignments have been made.</td></tr>';
