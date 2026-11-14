@@ -3222,7 +3222,6 @@ let teacherActionMenuListenersInstalled = false;
     $('teacherRows').addEventListener('click', async event => {
       const selectedMenuAction = event.target.closest('.teacher-action-item');
       if (selectedMenuAction) selectedMenuAction.closest('details.teacher-action-menu')?.removeAttribute('open');
-      const designationButton = event.target.closest('[data-edit-designations]');
       const manageAssignmentsButton = event.target.closest('[data-manage-permanent]');
       const leaveButton = event.target.closest('[data-place-leave]');
       const profileButton = event.target.closest('[data-edit-teacher-profile]');
@@ -3248,34 +3247,7 @@ let teacherActionMenuListenersInstalled = false;
         return;
       }
       if (designationButton) {
-        const teacher = teachers.find(item => String(item.userId) === String(designationButton.dataset.editDesignations));
-        if (!teacher) return;
-        const currentValues = teacher.teacherDesignations || [];
-        const current = currentValues.includes('SUBJECT_TEACHER') && currentValues.includes('CLASS_ADVISER')
-          ? 'BOTH' : currentValues[0] || '';
-        const answer = await AppDialog.prompt('Choose the designation for this teacher account.', current, {
-          title: 'Edit teacher designations',
-          label: 'Teacher designation',
-          helpText: 'Choose Subject Teacher, Class Adviser, or both. Existing subject schedule assignments are preserved.',
-          placeholder: 'Choose a designation',
-          required: true,
-          selectOptions: [
-            { value: 'SUBJECT_TEACHER', label: 'Subject Teacher — handles assigned subject schedules' },
-            { value: 'CLASS_ADVISER', label: 'Class Adviser — handles an assigned section and SF2' },
-            { value: 'BOTH', label: 'Both — Subject Teacher and Class Adviser' }
-          ]
-        });
-        if (answer === null) return;
-        const designations = answer === 'BOTH' ? ['SUBJECT_TEACHER', 'CLASS_ADVISER'] : [answer];
-        try {
-          await api(`/api/teachers/${encodeURIComponent(teacher.userId)}/designations`, { method: 'PATCH', body: JSON.stringify({ teacherDesignations: designations }) });
-          await loadSchoolData();
-          showToast('Teacher designations updated. Existing subject assignments remain unchanged.');
-        } catch (error) { showToast(error.message, true); }
-        return;
-      }
-      const returnButton = event.target.closest('[data-return-teacher]');
-      const deactivateButton = event.target.closest('[data-deactivate-teacher]');
+        const teacher = teachers.find(item => Strinonst deactivateButton = event.target.closest('[data-deactivate-teacher]');
       const substituteButton = event.target.closest('[data-assign-substitute]');
       const cancelSubstitutionButton = event.target.closest('[data-cancel-substitution]');
       if (manageAssignmentsButton) {
