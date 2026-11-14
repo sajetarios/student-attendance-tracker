@@ -35,6 +35,7 @@
       const previousFocus = document.activeElement;
       const previousOverflow = document.body.style.overflow;
       const isPrompt = config.kind === 'prompt';
+      const isForm = config.kind === 'form';
       const isConfirm = config.kind === 'confirm';
       const isAlert = config.kind === 'alert';
       const cancelValue = isConfirm ? false : null;
@@ -58,18 +59,18 @@
       const icon = document.createElement('span');
       icon.className = 'app-dialog-icon' + (config.variant === 'danger' ? ' is-danger' : '');
       icon.setAttribute('aria-hidden', 'true');
-      icon.textContent = isPrompt ? '✎' : isAlert ? 'i' : config.variant === 'danger' ? '!' : '?';
+      icon.textContent = (isPrompt || isForm) ? '✎' : isAlert ? 'i' : config.variant === 'danger' ? '!' : '?';
 
       const heading = document.createElement('div');
       heading.className = 'app-dialog-heading';
 
       const eyebrow = document.createElement('span');
       eyebrow.className = 'app-dialog-eyebrow';
-      eyebrow.textContent = config.eyebrow || (isPrompt ? 'INPUT REQUIRED' : isAlert ? 'NOTICE' : 'CONFIRMATION');
+      eyebrow.textContent = config.eyebrow || ((isPrompt || isForm) ? 'INPUT REQUIRED' : isAlert ? 'NOTICE' : 'CONFIRMATION');
 
       const title = document.createElement('h2');
       title.id = 'app-dialog-title-' + id;
-      title.textContent = config.title || (isPrompt ? 'Enter information' : isAlert ? 'Please note' : config.variant === 'danger' ? 'Confirm this action' : 'Please confirm');
+      title.textContent = config.title || ((isPrompt || isForm) ? 'Enter information' : isAlert ? 'Please note' : config.variant === 'danger' ? 'Confirm this action' : 'Please confirm');
 
       heading.append(eyebrow, title);
       header.append(icon, heading);
@@ -94,64 +95,93 @@
 
       let field = null;
       let errorText = null;
+      const fieldControls = [];
+
+      const buildControl = (fieldConfig, fieldId) => {
+        let control;
+        if (Array.isArray(fieldConfig.selectOptions)) {
+          control = document.createElement('select');
+          control.className = 'app-dialog-input';
+          const blank = document.createElement('option');
+          blank.value = '';
+          blank.textContent = fieldConfig.placeholder || 'Choose an option';
+          control.append(blank);
+          for (const optionItem of fieldConfig.selectOptions) {
+            const option = document.createElement('option');
+            option.value = typeof optionItem === 'string' ? optionItem : String(optionItem.value ?? '');
+            option.textContent = typeof optionItem === 'string' ? optionItem : String(optionItem.label ?? optionItem.value ?? '');
+            control.append(option);
+          }
+        } else if ((fieldConfig.inputType || fieldConfig.type) === 'textarea') {
+          control = document.createElement('textarea');
+          control.rows = fieldConfig.rows || 3;
+          control.className = 'app-dialog-input app-dialog-textarea';
+        } else {
+          control = document.createElement('input');
+          const inputType = fieldConfig.inputType || fieldConfig.type || 'text';
+          control.type = ['text','number','email','tel','date','password'].includes(inputType) ? inputType : 'text';
+          control.className = 'app-dialog-input';
+        }
+        control.id = fieldId;
+        control.name = fieldConfig.name;
+        control.autocomplete = 'off';
+        control.spellcheck = false;
+        control.value = String(fieldConfig.defaultValue ?? '');
+        if (fieldConfig.placeholder && !Array.isArray(fieldConfig.selectOptions)) control.placeholder = fieldConfig.placeholder;
+        if (Number.isInteger(fieldConfig.maxLength)) control.maxLength = fieldConfig.maxLength;
+        if (fieldConfig.inputMode) control.inputMode = fieldConfig.inputMode;
+        if (fieldConfig.required) control.setAttribute('aria-required', 'true');
+        return control;
+      };
 
       if (isPrompt) {
         const fieldWrap = document.createElement('div');
         fieldWrap.className = 'app-dialog-field';
-
         const label = document.createElement('label');
         label.className = 'app-dialog-label';
         label.textContent = config.label || 'Your response';
         label.htmlFor = 'app-dialog-input-' + id;
-
-        if (Array.isArray(config.selectOptions)) {
-          field = document.createElement('select');
-          field.className = 'app-dialog-input';
-          const blank = document.createElement('option');
-          blank.value = '';
-          blank.textContent = config.placeholder || 'Choose an option';
-          field.append(blank);
-          for (const item of config.selectOptions) {
-            const option = document.createElement('option');
-            option.value = typeof item === 'string' ? item : String(item.value ?? '');
-            option.textContent = typeof item === 'string' ? item : String(item.label ?? item.value ?? '');
-            field.append(option);
-          }
-        } else if (config.inputType === 'textarea') {
-          field = document.createElement('textarea');
-          field.rows = config.rows || 3;
-          field.className = 'app-dialog-input app-dialog-textarea';
-        } else {
-          field = document.createElement('input');
-          field.type = config.inputType === 'number' ? 'number' : 'text';
-          field.className = 'app-dialog-input';
-        }
-
-        field.id = 'app-dialog-input-' + id;
+        field = buildControl(config, 'app-dialog-input-' + id);
         field.name = 'response';
-        field.autocomplete = 'off';
-        field.spellcheck = false;
-        field.value = String(config.defaultValue ?? '');
-        if (config.placeholder && !Array.isArray(config.selectOptions)) field.placeholder = config.placeholder;
-        if (Number.isInteger(config.maxLength)) field.maxLength = config.maxLength;
-        if (config.inputMode) field.inputMode = config.inputMode;
-        if (config.required) field.setAttribute('aria-required', 'true');
-
         const help = document.createElement('span');
         help.className = 'app-dialog-help';
         help.textContent = config.helpText || '';
-
         errorText = document.createElement('span');
         errorText.className = 'app-dialog-error';
         errorText.setAttribute('role', 'alert');
         errorText.setAttribute('aria-live', 'polite');
-
         fieldWrap.append(label, field);
         if (config.helpText) fieldWrap.append(help);
         fieldWrap.append(errorText);
         form.append(fieldWrap);
+      } else if (isForm) {
+        const fieldsWrap = document.createElement('div');
+        fieldsWrap.className = 'app-dialog-fields';
+        (Array.isArray(config.fields) ? config.fields : []).forEach((fieldConfig, index) => {
+          if (!fieldConfig || typeof fieldConfig.name !== 'string' || !fieldConfig.name.trim()) return;
+          const fieldWrap = document.createElement('div');
+          fieldWrap.className = 'app-dialog-field';
+          const label = document.createElement('label');
+          label.className = 'app-dialog-label';
+          label.textContent = fieldConfig.label || fieldConfig.name;
+          const fieldId = 'app-dialog-input-' + id + '-' + index;
+          label.htmlFor = fieldId;
+          const control = buildControl(fieldConfig, fieldId);
+          const help = document.createElement('span');
+          help.className = 'app-dialog-help';
+          help.textContent = fieldConfig.helpText || '';
+          const fieldError = document.createElement('span');
+          fieldError.className = 'app-dialog-error';
+          fieldError.setAttribute('role', 'alert');
+          fieldError.setAttribute('aria-live', 'polite');
+          fieldWrap.append(label, control);
+          if (fieldConfig.helpText) fieldWrap.append(help);
+          fieldWrap.append(fieldError);
+          fieldsWrap.append(fieldWrap);
+          fieldControls.push({ config: fieldConfig, field: control, error: fieldError });
+        });
+        form.append(fieldsWrap);
       }
-
       const footer = document.createElement('div');
       footer.className = 'app-dialog-actions';
 
@@ -162,9 +192,9 @@
       cancelButton.addEventListener('click', () => finish(cancelValue));
 
       const submitButton = document.createElement('button');
-      submitButton.type = isPrompt || isAlert ? 'submit' : 'button';
+      submitButton.type = isPrompt || isForm || isAlert ? 'submit' : 'button';
       submitButton.className = 'app-dialog-button app-dialog-button-primary' + (config.variant === 'danger' ? ' is-danger' : '');
-      submitButton.textContent = config.confirmText || (isPrompt ? 'Continue' : isAlert ? 'Got it' : 'Confirm');
+      submitButton.textContent = config.confirmText || ((isPrompt || isForm) ? 'Continue' : isAlert ? 'Got it' : 'Confirm');
       submitButton.addEventListener('click', event => {
         if (isConfirm) {
           event.preventDefault();
@@ -196,6 +226,39 @@
             }
           }
           finish(value);
+        } else if (isForm) {
+          const values = {};
+          for (const item of fieldControls) {
+            const value = item.field.value;
+            if (item.config.required && !String(value).trim()) {
+              item.error.textContent = item.config.requiredMessage || 'This field is required.';
+              item.field.setAttribute('aria-invalid', 'true');
+              item.field.focus();
+              return;
+            }
+            if (typeof item.config.validate === 'function') {
+              const validation = item.config.validate(value, values);
+              if (validation !== true && validation !== undefined && validation !== null) {
+                item.error.textContent = typeof validation === 'string' ? validation : 'Please check your entry.';
+                item.field.setAttribute('aria-invalid', 'true');
+                item.field.focus();
+                return;
+              }
+            }
+            values[item.config.name] = value;
+          }
+          if (typeof config.validate === 'function') {
+            const validation = config.validate(values);
+            if (validation !== true && validation !== undefined && validation !== null) {
+              if (fieldControls[0]) {
+                fieldControls[0].error.textContent = typeof validation === 'string' ? validation : 'Please check your entries.';
+                fieldControls[0].field.setAttribute('aria-invalid', 'true');
+                fieldControls[0].field.focus();
+              }
+              return;
+            }
+          }
+          finish(values);
         } else if (isAlert) {
           finish(undefined);
         }
@@ -255,6 +318,8 @@
         if (field) {
           field.focus();
           if (typeof field.select === 'function' && !Array.isArray(config.selectOptions)) field.select();
+        } else if (fieldControls.length) {
+          fieldControls[0].field.focus();
         } else {
           submitButton.focus();
         }
@@ -271,6 +336,9 @@
     },
     prompt(message, defaultValue = '', options = {}) {
       return enqueue({ ...options, kind: 'prompt', message, defaultValue });
+    },
+    form(message, fields, options = {}) {
+      return enqueue({ ...options, kind: 'form', message, fields });
     }
   });
 })();
