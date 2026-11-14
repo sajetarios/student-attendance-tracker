@@ -3545,7 +3545,8 @@ let teacherActionMenuListenersInstalled = false;
       startTime: $('startTime').value,
       endTime: $('endTime').value,
       graceMinutes: Number($('graceMinutes').value || 0),
-      weekdays: selectedScheduleWeekdays()
+      weekdays: selectedScheduleWeekdays(),
+      timetableTemplateId: ($('scheduleTemplatePeriod').value || '').split('|')[0] || null
     };
     if (!payload.weekdays.length) {
       feedback.className = 'inline-feedback error';
