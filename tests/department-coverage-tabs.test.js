@@ -1,3 +1,4 @@
+// CI validation branch: run the complete repository test suite for the Department Head coverage redesign.
 'use strict';
 
 const test = require('node:test');
