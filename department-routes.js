@@ -359,17 +359,11 @@ function registerDepartmentRoutes(app, pool, auth) {
         checkInNotRecorded: scopedRows.filter(row => ['CHECK_IN_NOT_RECORDED','COVERAGE_CHECK_IN_NOT_RECORDED'].includes(row.coverageStatus)).length,
         activeAlerts: scopedRows.filter(row => ['NO_TEACHER','ON_LEAVE_UNCOVERED','CHECK_IN_NOT_RECORDED','COVERAGE_CHECK_IN_NOT_RECORDED','TEACHER_INACTIVE'].includes(row.coverageStatus)).length
       });
-      const myDepartmentRows = rows.filter(row => row.departmentScope === 'MY_DEPARTMENT');
-      const otherDepartmentRows = rows.filter(row => row.departmentScope === 'OTHER_DEPARTMENTS');
       return res.json({
         schoolDate, isToday: schoolDate === today, coverage: rows,
         summary: {
           ...countScope(rows),
           covered: rows.filter(row => row.coverageStatus === 'COVERED').length
-        },
-        departmentSummary: {
-          myDepartment: countScope(myDepartmentRows),
-          otherDepartments: countScope(otherDepartmentRows)
         }
       });
     } catch (err) {
