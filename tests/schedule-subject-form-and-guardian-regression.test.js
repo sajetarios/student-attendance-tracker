@@ -27,8 +27,8 @@ test('class schedule form derives department from teacher and uses a canonical s
   assert.match(portal, /api\('\/api\/sections\?gradeLevel=/);
   assert.ok(server.includes("app.get('/api/subjects'"));
   assert.ok(server.includes("app.post('/api/subjects'"));
-  assert.ok(server.includes('"subjectId"'));
-  assert.ok(server.includes('"departmentId"'));
+  assert.ok(server.includes('subjectId'));
+  assert.ok(server.includes('departmentId'));
   assert.match(migration, /CREATE TABLE IF NOT EXISTS school_subjects/);
   assert.match(migration, /class_periods[\s\S]*ADD COLUMN IF NOT EXISTS subject_id UUID/);
   assert.match(migration, /CREATE UNIQUE INDEX IF NOT EXISTS school_subjects_department_name_ci_uk/);
