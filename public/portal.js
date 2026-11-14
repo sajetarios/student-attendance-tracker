@@ -282,8 +282,11 @@
     if ($('dashboardAddStudent')) $('dashboardAddStudent').hidden = !mayAddStudent;
     if ($('dashboardScanCta')) $('dashboardScanCta').hidden = !(mayScan || mayAddStudent);
     if ($('departmentHeadOverview')) $('departmentHeadOverview').hidden = !departmentHead;
-    if ($('adminGatekeeperMonitoringCard')) $('adminGatekeeperMonitoringCard').hidden = !admin;
-    if ($('teacherGateAttendanceCard')) $('teacherGateAttendanceCard').hidden = !(admin || departmentHead);
+    if ($('adminGatekeeperMonitoringCard')) $('adminGatekeeperMonitoringCard').hidden = true;
+    if ($('teacherGateAttendanceCard')) $('teacherGateAttendanceCard').hidden = true;
+    if ($('adminDashboardCard')) $('adminDashboardCard').hidden = !admin;
+    if ($('statsGrid')) $('statsGrid').hidden = admin;
+    if ($('dashboardScanCta')) $('dashboardScanCta').hidden = admin;
     if ($('gateScanHelp')) $('gateScanHelp').hidden = !gateKeeper;
     if ($('gateScanTypeWrap')) $('gateScanTypeWrap').hidden = !gateKeeper;
     if (gateKeeper) {
@@ -298,8 +301,8 @@
     if (admin && !mayScan) {
       const title = $('dashboardScanCta')?.querySelector('h2');
       const copy = $('dashboardScanCta')?.querySelector('p');
-      if (title) title.textContent = 'Manage school records';
-      if (copy) copy.textContent = 'Register learners and manage school accounts. Gate attendance is recorded by Gate Keepers.';
+      if (title) title.textContent = 'Account administration';
+      if (copy) copy.textContent = 'Manage employee accounts and sign-in permissions.';
     } else if (mayAddStudent && !mayScan) {
       const title = $('dashboardScanCta')?.querySelector('h2');
       const copy = $('dashboardScanCta')?.querySelector('p');
@@ -314,7 +317,7 @@
 
     if ($('dashboardNav')) $('dashboardNav').hidden = gateKeeper;
     if ($('studentsNav')) {
-      $('studentsNav').hidden = !admin && !departmentHead && !teacher && !gateKeeper;
+      $('studentsNav').hidden = admin || (!departmentHead && !teacher && !gateKeeper);
       if ($('showStudentForm')) $('showStudentForm').hidden = departmentHead || gateKeeper;
       $('studentsNav').querySelector('.nav-label').textContent = gateKeeper ? 'Gate scanner' : teacher ? (classAdviser && !subjectTeacher ? 'My advisory section' : 'My learners') : 'Students';
       $('studentsNav').title = gateKeeper ? 'Gate scanner' : 'Students';
@@ -331,7 +334,7 @@
       if (departmentHead) $('teachersNav').querySelector('.nav-label').textContent = 'Teacher monitoring';
       else $('teachersNav').querySelector('.nav-label').textContent = 'User management';
     }
-    if ($('parentsNav')) $('parentsNav').hidden = !admin;
+    if ($('parentsNav')) $('parentsNav').hidden = true;
     if ($('showStudentForm')) $('showStudentForm').hidden = !(admin || (teacher && classAdviser));
     if ($('showScheduleForm')) $('showScheduleForm').hidden = !departmentHead;
     if ($('dashboardAddStudent')) $('dashboardAddStudent').hidden = !(admin || (teacher && classAdviser));
@@ -416,6 +419,7 @@
     const staffCard = $('staffAccountsTable')?.closest('.surface-card');
     const adviserCard = $('adviserAssignmentForm')?.closest('.surface-card');
     const teacherPermissionsCard = $('teacherPermissionsCard');
+    const accountAccessPanel = $('accountAccessPanel');
     const departmentCard = $('departmentManagementCard');
     const note = document.querySelector('.teacher-management-note');
     const isDepartmentHead = user?.role === 'DEPARTMENT_HEAD';
@@ -434,6 +438,7 @@
     if (staffCard) staffCard.hidden = activeTab !== 'accounts';
     if (adviserCard) adviserCard.hidden = true;
     if (teacherPermissionsCard) teacherPermissionsCard.hidden = true;
+    if (accountAccessPanel) accountAccessPanel.hidden = activeTab !== 'permissions';
     if (departmentCard) departmentCard.hidden = activeTab !== 'departments';
     if (note) note.hidden = activeTab !== 'accounts';
     tabs?.querySelectorAll('[data-admin-management-tab]').forEach(button => {
@@ -447,6 +452,13 @@
   $('adminManagementTabs')?.addEventListener('click', event => {
     const button = event.target.closest('[data-admin-management-tab]');
     if (button) setAdminManagementTab(button.dataset.adminManagementTab);
+  });
+  $('openAccountStatusManager')?.addEventListener('click', () => setAdminManagementTab('accounts'));
+  document.querySelectorAll('[data-admin-go]').forEach(button => {
+    button.addEventListener('click', () => {
+      setView('teachers');
+      setAdminManagementTab(button.dataset.adminGo);
+    });
   });
 
   function renderStats(data) {
