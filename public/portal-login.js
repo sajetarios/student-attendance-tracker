@@ -73,6 +73,10 @@
       sessionStorage.setItem('schoolAttendance.accessToken', data.accessToken);
       sessionStorage.setItem('schoolAttendance.user', JSON.stringify(data.user));
       sessionStorage.setItem('schoolAttendance.expiresAt', data.expiresAt || '');
+      if (mode === 'school' && data.user.mustChangePassword) {
+        window.location.assign('/force-password-change.html');
+        return;
+      }
       window.location.assign(destination);
     } catch (error) {
       feedback.textContent = error.message || 'Unable to sign in. Check the local server connection.';
