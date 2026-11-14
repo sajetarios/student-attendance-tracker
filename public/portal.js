@@ -1209,6 +1209,7 @@ function coverageStatusLabel(status) {
       } catch (error) {
         $('studentScanFeedback').textContent = error.message;
         $('studentScanFeedback').className = 'scanner-feedback is-error';
+        showScanErrorModal(error.message, 'Teacher QR could not be verified');
       }
       return;
     }
