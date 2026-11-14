@@ -55,12 +55,12 @@ test('current portal assets are pre-cached under a new service-worker cache', ()
   assert.match(theme, /--sidebar:#20232d/);
   assert.match(theme, /:focus/);
   const portalHtml = read('public/portal.html');
-  assert.match(portalHtml, /portal\.css\?v=0\.9\.15/);
-  assert.match(portalHtml, /portal\.js\?v=0\.9\.18/);
+  assert.match(portalHtml, /portal\.css\?v=0\.9\.21/);
+  assert.match(portalHtml, /portal\.js\?v=0\.9\.27/);
   assert.match(portalHtml, /academic-admin\.css\?v=1/);
   const serviceWorker = read('public/sw.js');
   assert.match(serviceWorker, /school-attendance-shell-v31-department-coverage-tabs/);
-  assert.match(serviceWorker, /portal\.js\?v=0\.9\.18/);
+  assert.match(serviceWorker, /portal\.js\?v=0\.9\.27/);
   assert.match(serviceWorker, /academic-admin\.js\?v=2/);
 });
 
