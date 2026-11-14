@@ -225,6 +225,19 @@
                 </button>
               </div>
             </section>
+            <section id="adminDashboardCard" class="surface-card section-card admin-dashboard-card" hidden>
+              <div class="admin-dashboard-intro">
+                <span class="admin-dashboard-kicker">SCHOOL ADMINISTRATION</span>
+                <h3>Account administration workspace</h3>
+                <p>Manage staff accounts, role-based access, sign-in status, and department records. Teacher designations and class schedules are managed by Department Heads.</p>
+              </div>
+              <div class="admin-dashboard-actions">
+                <button type="button" class="admin-dashboard-action" data-admin-go="accounts"><span class="admin-action-icon">♙</span><span><strong>User accounts</strong><small>Create or update employee and staff accounts</small></span><b>›</b></button>
+                <button type="button" class="admin-dashboard-action" data-admin-go="permissions"><span class="admin-action-icon">⌑</span><span><strong>Account access</strong><small>Review sign-in access and account security controls</small></span><b>›</b></button>
+                <button type="button" class="admin-dashboard-action" data-admin-go="departments"><span class="admin-action-icon">▤</span><span><strong>Departments</strong><small>Maintain department records used by staff accounts</small></span><b>›</b></button>
+              </div>
+              <p class="admin-dashboard-footnote">This role does not handle student attendance operations, Gate Keeper monitoring, teacher gate attendance, teacher designations, or class schedule assignments.</p>
+            </section>
             <div class="stats-grid" id="statsGrid">
               <article class="stat-card"><div class="stat-top"><span>Active students</span><span class="stat-icon blue">♙</span></div><strong id="statStudents">—</strong><small>In your authorized roster</small></article>
               <article class="stat-card"><div class="stat-top"><span>School arrivals</span><span class="stat-icon green">↘</span></div><strong id="statArrivals">—</strong><small>Accepted school time-ins today</small></article>
@@ -615,6 +628,18 @@
               <button type="button" class="admin-management-tab" data-admin-management-tab="permissions" role="tab" aria-selected="false">Account access</button>
               <button type="button" class="admin-management-tab" data-admin-management-tab="departments" role="tab" aria-selected="false">Departments</button>
             </div>
+            <section id="accountAccessPanel" class="surface-card section-card account-access-panel" hidden>
+              <div class="section-toolbar">
+                <div><h3>Account access &amp; security</h3><p>Control whether a staff account can sign in and understand what happens when access is disabled.</p></div>
+              </div>
+              <div class="account-access-grid">
+                <article><span class="access-step">01</span><h4>Review account status</h4><p>Open User accounts and use Edit on a staff account to review its display name and Active/Inactive sign-in status.</p></article>
+                <article><span class="access-step">02</span><h4>Disable access</h4><p>Set Account access to Inactive. The server increments the account session version and revokes its active sessions, so the user must sign in again after access is restored.</p></article>
+                <article><span class="access-step">03</span><h4>Restore access</h4><p>Set the account back to Active. The user can sign in again using their existing credentials.</p></article>
+              </div>
+              <div class="scope-note"><span>!</span><p><strong>Current limitation:</strong> Password reset for employee accounts and MFA enrollment/recovery are not implemented in this screen yet. The initial password is set when an account is created. Do not treat this tab as a password-reset or MFA tool.</p></div>
+              <div class="form-actions"><button type="button" class="primary-button" id="openAccountStatusManager">Open user accounts</button></div>
+            </section>
             <div class="surface-card section-card">
               <div class="section-toolbar">
                 <div><h3 id="teacherMonitorTitle">Teacher accounts</h3><p id="teacherMonitorDescription">Manage teachers and assign them to this school's class schedules.</p></div>
