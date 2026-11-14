@@ -19,8 +19,8 @@ async function readRows(body){
  return matrix.slice(1).map((r,i)=>{const o={rowNumber:i+2};keys.forEach((k,j)=>{if(k)o[k]=clean(r[j]);});return o;}).filter(r=>Object.values(r).some(v=>clean(v)));
 }
 function validate(r){const e=[];if(!r.studentId||r.studentId.length>80)e.push('Student ID is required (max 80).');if(!r.fullName||r.fullName.length>200)e.push('Full name is required (max 200).');if(!['MALE','FEMALE'].includes(clean(r.sex).toUpperCase()))e.push('Sex must be Male or Female.');if(!r.gradeLevel||r.gradeLevel.length>40)e.push('Grade level is required (max 40).');if(!r.section||r.section.length>100)e.push('Section is required (max 100).');if((r.lrn||'').length>30)e.push('LRN is too long.');if((r.parentName||'').length>160)e.push('Parent name is too long.');if((r.parentMobile||'').length>30)e.push('Parent mobile is too long.');return e;}
-function normalizeGradeLevel(value){const text=clean(value).toUpperCase().replace(/\\s+/g,' ');const match=text.match(/^(?:GRADE|GR)\\s*(\\d+)$/)||text.match(/^(\\d+)$/);return match?'GRADE '+Number(match[1]):text;}
-function normalizeSection(value){return clean(value).toUpperCase().replace(/\\s+/g,' ');}
+function normalizeGradeLevel(value){const text=clean(value).toUpperCase().replace(/\s+/g,' ');const match=text.match(/^(?:GRADE|GR)\s*(\d+)$/)||text.match(/^(\d+)$/);return match?'GRADE '+Number(match[1]):text;}
+function normalizeSection(value){return clean(value).toUpperCase().replace(/\s+/g,' ');}
 function registerStudentManagementRoutes(app,pool,auth){
  const {authenticateSchoolClient,requireSchoolRoles}=auth;
  const manager=requireSchoolRoles('SCHOOL_ADMIN','TEACHER'),admin=requireSchoolRoles('SCHOOL_ADMIN');
