@@ -1467,7 +1467,7 @@ function coverageStatusLabel(status) {
             <td><strong>${esc(period.subjectName || '—')}</strong></td>
             <td>${esc(classLabel(period))}</td>
             <td>${esc(period.periodName || '—')}</td>
-            <td>${esc(timeLabel(period))}</td>
+            <td>${esc(timeLabel(period))}<small class="schedule-day-caption">${esc(formatScheduleDays(period.weekdays))}</small></td>
             <td data-label="Room">${esc(period.classroom || '—')}</td>
           </tr>`).join('') : emptyRow(5, 'No teaching schedules have been assigned to your account yet.');
       }
@@ -1506,7 +1506,7 @@ function coverageStatusLabel(status) {
           <td data-label="Grade">${esc(period.gradeLevel)}</td>
           <td data-label="Section">${esc(period.section || 'All sections')}</td>
           <td>${esc(period.classroom || '—')}</td>
-          <td data-label="Time">${esc(period.startTime)}–${esc(period.endTime)}</td>
+          <td data-label="Days">${esc(formatScheduleDays(period.weekdays))}</td><td data-label="Time">${esc(period.startTime)}–${esc(period.endTime)}</td>
           <td data-label="Assigned teacher">${esc(period.assignedTeacherName || 'Unassigned')}</td><td data-label="Actions">${deleteAction}</td>
         </tr>`;
       }).join('') : '<tr><td colspan="' + (canBulkAssign ? 10 : 9) + '" class="empty-cell">No class schedules are available yet.</td></tr>';
@@ -2365,6 +2365,11 @@ let teacherActionMenuListenersInstalled = false;
     } catch (error) {
       console.warn('Scheduling settings could not be loaded:', error.message);
     }
+  }
+
+  function formatScheduleDays(weekdays) {
+    const names=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+    return Array.isArray(weekdays)&&weekdays.length ? weekdays.map(day=>names[Number(day)]).filter(Boolean).join(', ') : 'Mon–Fri';
   }
 
   function selectedScheduleWeekdays() {
