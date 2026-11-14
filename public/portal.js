@@ -424,8 +424,8 @@
     const activeTab = ['accounts','permissions','departments'].includes(tabName) ? tabName : 'accounts';
     if (teacherCard) teacherCard.hidden = activeTab !== 'accounts';
     if (staffCard) staffCard.hidden = activeTab !== 'accounts';
-    if (adviserCard) adviserCard.hidden = activeTab !== 'permissions';
-    if (teacherPermissionsCard) teacherPermissionsCard.hidden = activeTab !== 'permissions';
+    if (adviserCard) adviserCard.hidden = true;
+    if (teacherPermissionsCard) teacherPermissionsCard.hidden = true;
     if (departmentCard) departmentCard.hidden = activeTab !== 'departments';
     if (note) note.hidden = activeTab !== 'accounts';
     tabs?.querySelectorAll('[data-admin-management-tab]').forEach(button => {
@@ -2063,10 +2063,13 @@ let teacherActionMenuListenersInstalled = false;
       teachers = teacherData.teachers || [];
     }
     if (role === 'SCHOOL_ADMIN') {
-      const [staffData, adviserData] = await Promise.all([api('/api/school-users'), api('/api/class-adviser-assignments')]);
+      const staffData = await api('/api/school-users');
       schoolUsers = (staffData.users || []).filter(account => ['DEPARTMENT_HEAD', 'GATE_KEEPER'].includes(account.role));
-      adviserAssignments = adviserData.assignments || [];
       renderStaffUsers();
+    }
+    if (role === 'DEPARTMENT_HEAD') {
+      const adviserData = await api('/api/class-adviser-assignments');
+      adviserAssignments = adviserData.assignments || [];
       renderAdviserAssignments();
     } else if (role === 'TEACHER' && (user.teacherDesignations || []).includes('CLASS_ADVISER')) {
       const adviserData = await api('/api/class-adviser-assignments');
@@ -2077,7 +2080,7 @@ let teacherActionMenuListenersInstalled = false;
     renderStudents();
     renderPeriods();
     if (isSchoolManager) renderTeachers();
-    if (role === 'SCHOOL_ADMIN') renderTeacherPermissions();
+    if (role === 'DEPARTMENT_HEAD') renderTeacherPermissions();
     if (isDepartmentHead) renderDepartmentHeadOverview();
     if (isSchoolManager) {
       await loadTeacherCoverage(false);
