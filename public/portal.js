@@ -2040,6 +2040,10 @@ let teacherActionMenuListenersInstalled = false;
     if (role === 'TEACHER' && (user.teacherDesignations || []).includes('CLASS_ADVISER')) {
       renderAdviserAssignments();
     }
+    if (role === 'SCHOOL_ADMIN') {
+      const currentTab = $('adminManagementTabs')?.querySelector('.is-active')?.dataset.adminManagementTab || 'accounts';
+      setAdminManagementTab(currentTab);
+    }
   }
 
   function renderTeacherClassAttendance(records) {
