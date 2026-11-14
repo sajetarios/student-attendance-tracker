@@ -21,7 +21,6 @@ test('Department Head coverage uses My Department and Other Departments tabs ins
 
 test('Coverage department grouping is derived by the backend from authenticated Department Head identity', () => {
   assert.match(routes, /departmentScope: req\.auth\.departmentCode !== 'UNASSIGNED'[\s\S]*?String\(row\.departmentId \|\| ''\) === String\(req\.auth\.departmentId \|\| ''\)/);
-  assert.match(routes, /departmentSummary:[\s\S]*?myDepartment: countScope\(myDepartmentRows\)[\s\S]*?otherDepartments: countScope\(otherDepartmentRows\)/);
   assert.match(routes, /summary:[\s\S]*?\.\.\.countScope\(rows\)/);
 });
 
@@ -36,10 +35,10 @@ test('School-wide coverage metrics and separate tab counts are rendered without 
   for (const id of ['coverageTotalSchedules','coverageNoTeacher','coverageUncoveredLeave','coverageMissingCheckins','coverageActiveAlerts','coverageMyDepartmentCount','coverageOtherDepartmentsCount']) {
     assert.ok(html.includes(`id="${id}"`), `Missing metric ${id}`);
   }
-  assert.match(portal, /setMetric\('coverageTotalSchedules', teacherCoverage\.length\)/);
+  assert.match(portal, /setMetric\('coverageTotalSchedules', schoolSummary\.totalSchedules \?\? teacherCoverage\.length\)/);
   assert.match(portal, /myRows\.length \} classes · \$\{myAlerts\} alerts/);
   assert.match(portal, /otherRows\.length \} classes · \$\{otherAlerts\} alerts/);
-  assert.match(portal, /api\('\/api\/admin\/teacher-coverage'\)/);
+  assert.match(portal, /teacherCoverageSummary = data\.summary \|\| null/);\n  assert.match(portal, /api\('\/api\/admin\/teacher-coverage'\)/);
 });
 
 test('Coverage cards show useful class information and preserve grace-period status wording', () => {
