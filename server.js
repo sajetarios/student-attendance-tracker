@@ -1333,7 +1333,7 @@ app.post('/api/periods/bulk-assignments', authenticateSchoolClient, requireSchoo
   } finally { client.release(); }
 });
 
-app.post('/api/periods/:periodId/assignments', authenticateSchoolClient, requireSchoolRoles('DEPARTMENT_HEAD'), async (req, res) => {
+app.post('/api/periods/:periodId/assignments', authenticateSchoolClient, requireSchoolRoles('SCHOOL_ADMIN', 'DEPARTMENT_HEAD'), async (req, res) => {
   const { teacherUserId } = req.body || {};
   if (!isUuid(req.params.periodId) || !isUuid(teacherUserId)) {
     return res.status(400).json({ error: 'A valid schedule ID and teacher account ID are required.' });
@@ -2421,7 +2421,7 @@ app.get('/api/periods', authenticateSchoolClient, requireSchoolUser, async (req,
 
 // School Administrators, Department Heads, and Subject Teachers may create schedules within their permitted scope.
 // A schedule is created together with its teacher assignment. Department comes from the teacher account.
-app.delete('/api/periods/:periodId', authenticateSchoolClient, requireSchoolRoles('DEPARTMENT_HEAD'), async (req, res) => {
+app.delete('/api/periods/:periodId', authenticateSchoolClient, requireSchoolRoles('SCHOOL_ADMIN', 'DEPARTMENT_HEAD'), async (req, res) => {
   if (!isUuid(req.params.periodId)) return res.status(400).json({ error: 'Invalid schedule ID.' });
   const password = req.body?.password;
   if (typeof password !== 'string' || !password) return res.status(400).json({ error: 'Confirm your password to delete this schedule.' });
@@ -2432,7 +2432,7 @@ app.delete('/api/periods/:periodId', authenticateSchoolClient, requireSchoolRole
     await client.query('BEGIN');
     const target = await client.query('SELECT period_id,period_name,department_id FROM class_periods WHERE school_id=$1 AND period_id=$2 AND active=TRUE FOR UPDATE', [req.auth.schoolId, req.params.periodId]);
     if (!target.rowCount) { await client.query('ROLLBACK'); return res.status(404).json({ error: 'Active class schedule not found.' }); }
-    if (!req.auth.departmentId || req.auth.departmentCode === 'UNASSIGNED' || String(target.rows[0].department_id) !== String(req.auth.departmentId)) { await client.query('ROLLBACK'); return res.status(403).json({ error: 'You can delete schedules only within your own department.' }); }
+    if (req.auth.role === 'DEPARTMENT_HEAD' && (!req.auth.departmentId || req.auth.departmentCode === 'UNASSIGNED' || String(target.rows[0].department_id) !== String(req.auth.departmentId))) { await client.query('ROLLBACK'); return res.status(403).json({ error: 'You can delete schedules only within your own department.' }); }
     const cover = await client.query("SELECT 1 FROM teacher_period_substitutions WHERE school_id=$1 AND period_id=$2 AND status='ACTIVE' AND end_date >= (NOW() AT TIME ZONE 'Asia/Manila')::date LIMIT 1", [req.auth.schoolId, req.params.periodId]);
     if (cover.rowCount) { await client.query('ROLLBACK'); return res.status(409).json({ error: 'End active substitute coverage before deleting this schedule.' }); }
     await client.query('UPDATE class_periods SET active=FALSE WHERE school_id=$1 AND period_id=$2', [req.auth.schoolId, req.params.periodId]);
@@ -2442,7 +2442,7 @@ app.delete('/api/periods/:periodId', authenticateSchoolClient, requireSchoolRole
   finally { client.release(); }
 });
 
-app.post('/api/periods', authenticateSchoolClient, requireSchoolRoles('DEPARTMENT_HEAD'), async (req, res) => {
+app.post('/api/periods', authenticateSchoolClient, requireSchoolRoles('SCHOOL_ADMIN', 'DEPARTMENT_HEAD'), async (req, res) => {
   const isTeacher = req.auth.role === 'TEACHER';
   const isDepartmentHead = req.auth.role === 'DEPARTMENT_HEAD';
   const teacherUserId = isTeacher ? req.auth.userId : req.body?.teacherUserId;
