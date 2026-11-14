@@ -4,6 +4,7 @@ on:
   pull_request:
     branches:
       - fix/render-login-landing
+      - improve/admin-user-management-edit-forms
   push:
     branches:
       - feature/admin-department-scheduling-coverage
