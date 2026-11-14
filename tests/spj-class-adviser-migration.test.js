@@ -30,7 +30,7 @@ test('SPJ adviser migration does not require a class period and protects existin
   assert.doesNotMatch(migration, /class_periods/);
   assert.match(migration, /already has a different Class Adviser/);
   assert.match(migration, /INSERT INTO class_adviser_assignments/);
-  assert.match(migration, /ON CONFLICT/);
+  assert.match(migration, /v_existing_adviser_id <> v_adviser_id/);
   // No overwrite path is present; the migration stops when a different adviser exists.
 });
 
