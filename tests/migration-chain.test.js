@@ -9,7 +9,7 @@ const { REQUIRED_MIGRATIONS, stripTransactionWrappers, runMigrations } = require
 
 const migrationDir = path.join(__dirname, '..', 'migrations');
 
-test('all seventeen database migrations are present and in order', () => {
+test('all database migrations are present and in order', () => {
   const files = fs.readdirSync(migrationDir).filter(name => /^\d{3}_[a-z0-9_]+\.sql$/i.test(name)).sort();
   assert.deepEqual(files, REQUIRED_MIGRATIONS);
 });
@@ -73,7 +73,7 @@ test('department migration backfills existing users and schedules to a safe defa
 
 test('DEMO001 data correction remains pending on fresh databases without the optional demo school', async () => {
   const knownChecksums = new Map();
-  for (const name of REQUIRED_MIGRATIONS.slice(0, -1)) {
+  for (const name of REQUIRED_MIGRATIONS.filter(name => !['017_demo001_subject_department_correction.sql','019_demo001_grade8_spj_class_adviser.sql'].includes(name))) {
     const raw = fs.readFileSync(path.join(migrationDir, name), 'utf8');
     knownChecksums.set(name, crypto.createHash('sha256').update(raw, 'utf8').digest('hex'));
   }
