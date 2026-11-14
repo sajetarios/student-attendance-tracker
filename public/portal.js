@@ -2674,9 +2674,6 @@
     if (!restrictedEditor) Object.assign(payload, { lrn: $('editLrn').value.trim() || null, parentName: $('editParentName').value.trim() || null, parentMobile: $('editParentMobile').value.trim() });
     try {
       await api(`/api/students/${encodeURIComponent(id)}`, { method: 'PATCH', body: JSON.stringify(payload) });
-      if (user.role === 'TEACHER' && sexEditable) {
-        await api(`/api/sf2/students/${encodeURIComponent(id)}/sex`, { method: 'PATCH', body: JSON.stringify({ sex: payload.sex }) });
-      }
       $('studentEditOverlay').hidden = true; await loadSchoolData(); showToast('Student information updated. Existing QR code was preserved.');
     }
     catch (error) { feedback.textContent = error.message; feedback.className = 'inline-feedback error'; }
