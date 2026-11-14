@@ -103,6 +103,8 @@ body.app-dialog-open { overflow: hidden; }
 }
 
 .app-dialog-form { margin: 0; }
+.app-dialog-fields { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0 16px; max-height: min(52dvh, 520px); overflow-y: auto; padding: 1px 4px 2px 1px; }
+.app-dialog-fields .app-dialog-field { min-width: 0; }
 .app-dialog-field { display: grid; gap: 8px; margin-top: 19px; }
 
 .app-dialog-label {
@@ -177,6 +179,7 @@ body.app-dialog-open { overflow: hidden; }
 @keyframes app-dialog-rise-in { from { opacity: 0; transform: translateY(8px) scale(.985); } to { opacity: 1; transform: translateY(0) scale(1); } }
 
 @media (max-width: 560px) {
+  .app-dialog-fields { grid-template-columns: 1fr; max-height: min(48dvh, 420px); }
   .app-dialog-overlay { align-items: end; padding: 12px; }
   .app-dialog-card { width: 100%; max-height: min(85dvh, 700px); padding: 21px 18px 18px; border-radius: 18px; }
   .app-dialog-heading h2 { font-size: 18px; }
