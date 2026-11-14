@@ -172,7 +172,7 @@
 
   function allowedViewsForUser() {
     const role = user?.role;
-    if (role === 'SCHOOL_ADMIN') return ['dashboard', 'teachers', 'cloudSync'];
+    if (role === 'SCHOOL_ADMIN') return ['dashboard', 'teachers', 'schedules', 'cloudSync'];
     if (role === 'DEPARTMENT_HEAD') return ['dashboard', 'students', 'teachers', 'schedules', 'sf2'];
     if (role === 'TEACHER') {
       const views = ['dashboard'];
@@ -380,7 +380,7 @@
     }
     if ($('parentsNav')) $('parentsNav').hidden = true;
     if ($('showStudentForm')) $('showStudentForm').hidden = !(admin || (teacher && classAdviser));
-    if ($('showScheduleForm')) $('showScheduleForm').hidden = !departmentHead;
+    if ($('showScheduleForm')) $('showScheduleForm').hidden = !(admin || departmentHead);
     if ($('dashboardAddStudent')) $('dashboardAddStudent').hidden = !(admin || (teacher && classAdviser));
     if ($('showTeacherForm')) $('showTeacherForm').hidden = !admin;
     if ($('staffUserRows')) $('staffUserRows').closest('.staff-accounts-card').hidden = !admin;
@@ -1495,7 +1495,7 @@ function coverageStatusLabel(status) {
               (selectedPeriodIds.has(String(period.periodId)) ? 'checked' : '') + ' aria-label="Select ' + esc(period.periodName) + '">'
             : '—') + '</td>'
           : '';
-        const deleteAction = user.role === 'DEPARTMENT_HEAD' && String(period.departmentId) === String(user.departmentId) ? `<button type="button" class="outline-button compact-button danger-button" data-delete-period="${esc(period.periodId)}">Delete</button>` : '—';
+        const deleteAction = (user.role === 'SCHOOL_ADMIN' || (user.role === 'DEPARTMENT_HEAD' && String(period.departmentId) === String(user.departmentId))) ? `<button type="button" class="outline-button compact-button danger-button" data-delete-period="${esc(period.periodId)}">Delete</button>` : '—';
         return `<tr>
           ${selection}<td data-label="Schedule"><strong>${esc(period.periodName)}</strong></td>
           <td data-label="Subject">${esc(period.subjectName || '—')}</td>
@@ -1518,7 +1518,7 @@ function coverageStatusLabel(status) {
       updatePeriodBatchUi();
     }));
 
-    const departmentHeadCanCreate = user.role === 'DEPARTMENT_HEAD' && Boolean(user.departmentId) && user.departmentCode !== 'UNASSIGNED';
+    const departmentHeadCanCreate = user.role === 'SCHOOL_ADMIN' || (user.role === 'DEPARTMENT_HEAD' && Boolean(user.departmentId) && user.departmentCode !== 'UNASSIGNED');
     $('showScheduleForm').hidden = !departmentHeadCanCreate;
     $('showScheduleForm').textContent = '＋ Create class schedule';
     if (user.role === 'DEPARTMENT_HEAD' && !departmentHeadCanCreate) {
