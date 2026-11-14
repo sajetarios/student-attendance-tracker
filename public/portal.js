@@ -129,7 +129,7 @@
 
   function allowedViewsForUser() {
     const role = user?.role;
-    if (role === 'SCHOOL_ADMIN') return ['dashboard', 'students', 'teachers', 'schedules', 'sf2', 'cloudSync'];
+    if (role === 'SCHOOL_ADMIN') return ['dashboard', 'teachers', 'cloudSync'];
     if (role === 'DEPARTMENT_HEAD') return ['dashboard', 'students', 'teachers', 'schedules', 'sf2'];
     if (role === 'TEACHER') {
       const views = ['dashboard'];
@@ -1143,9 +1143,9 @@ function coverageStatusLabel(status) {
   }
 
   function renderPeriods() {
-    const canBulkAssign = user.role === 'SCHOOL_ADMIN' || user.role === 'DEPARTMENT_HEAD';
+    const canBulkAssign = user.role === 'DEPARTMENT_HEAD';
     const isTeacher = user.role === 'TEACHER';
-    const isSchoolManager = user.role === 'SCHOOL_ADMIN' || user.role === 'DEPARTMENT_HEAD';
+    const isSchoolManager = user.role === 'DEPARTMENT_HEAD';
     if ($('periodBulkToolbar')) $('periodBulkToolbar').hidden = !canBulkAssign;
     if ($('periodSelectHeader')) $('periodSelectHeader').hidden = !canBulkAssign;
 
@@ -1912,7 +1912,7 @@ let teacherActionMenuListenersInstalled = false;
     }
     host.innerHTML = adviserAssignments.length ? adviserAssignments.map(item => `
       <tr><td>${esc(item.gradeLevel)}</td><td>${esc(item.section)}</td><td>${esc(item.adviserName || item.adviserUserId)}</td>
-      <td>${['SCHOOL_ADMIN','DEPARTMENT_HEAD'].includes(user.role) && (user.role !== 'DEPARTMENT_HEAD' || String((teachers.find(t => String(t.userId) === String(item.adviserUserId)) || {}).departmentId) === String(user.departmentId))
+      <td>${['SCHOOL_ADMIN','DEPARTMENT_HEAD'].includes(user.role)
         ? '<div class="action-row"><button type="button" class="outline-button compact-button" data-edit-adviser="' + esc(item.assignmentId) + '">Edit</button><button type="button" class="outline-button compact-button danger-button" data-remove-adviser="' + esc(item.assignmentId) + '">Remove</button></div>'
         : '<span class="muted-inline">Read only</span>'}</td></tr>`).join('')
       : '<tr><td colspan="4" class="empty-cell">No class adviser assignments have been made.</td></tr>';
