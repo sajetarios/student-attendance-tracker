@@ -39,3 +39,23 @@ test('roster exports are available as role-specific CSV actions', () => {
   assert.ok(js.includes("exportCsv('student-roster.csv'"));
   assert.ok(js.includes("exportCsv('teacher-list.csv'"));
 });
+
+test('all browser-native confirmation and prompt dialogs use the shared in-app dialog component', () => {
+  const portal = read('public/portal.js');
+  const parentAdmin = read('public/parent-admin.js');
+  const academicAdmin = read('public/academic-admin.js');
+  for (const [name, source] of [['portal', portal], ['parent admin', parentAdmin], ['academic admin', academicAdmin]]) {
+    assert.doesNotMatch(source, /\\b(?:window\\.)?(?:alert|confirm|prompt)\\s*\\(/, name + ' must not use native browser dialogs');
+    assert.match(source, /AppDialog\\.(?:alert|confirm|prompt)/, name + ' should use the shared dialog component');
+  }
+  const dialog = read('public/app-dialog.js');
+  const portalHtml = read('public/portal.html');
+  const parentHtml = read('public/parent-admin.html');
+  assert.match(dialog, /aria-modal/);
+  assert.match(dialog, /role', 'dialog'/);
+  assert.match(dialog, /aria-invalid/);
+  assert.match(portalHtml, /app-dialog\\.css\\?v=1/);
+  assert.match(portalHtml, /app-dialog\\.js\\?v=1/);
+  assert.match(parentHtml, /app-dialog\\.css\\?v=1/);
+  assert.match(parentHtml, /app-dialog\\.js\\?v=1/);
+});
