@@ -123,6 +123,47 @@
     toastTimer = setTimeout(() => toast.classList.remove('show'), 3200);
   }
 
+  function showScanErrorModal(message, title = 'Attendance not recorded') {
+    let modal = $('studentScanErrorModal');
+    if (!modal) {
+      modal = document.createElement('div');
+      modal.id = 'studentScanErrorModal';
+      modal.className = 'student-scan-error-overlay';
+      modal.setAttribute('role', 'alertdialog');
+      modal.setAttribute('aria-modal', 'true');
+      modal.setAttribute('aria-labelledby', 'studentScanErrorTitle');
+      modal.innerHTML = `
+        <section class="student-scan-error-dialog">
+          <div class="student-scan-error-icon" aria-hidden="true">!</div>
+          <p class="student-scan-error-kicker">SCAN ERROR</p>
+          <h3 id="studentScanErrorTitle">Attendance not recorded</h3>
+          <p class="student-scan-error-message"></p>
+          <div class="student-scan-error-actions">
+            <button type="button" class="outline-button" data-scan-error-close>Close</button>
+            <button type="button" class="primary-button" data-scan-error-next>Scan another student</button>
+          </div>
+        </section>`;
+      document.body.append(modal);
+      modal.querySelector('[data-scan-error-close]').addEventListener('click', () => { modal.hidden = true; });
+      modal.querySelector('[data-scan-error-next]').addEventListener('click', () => {
+        scannedStudent = null;
+        scannedTeacher = null;
+        if ($('studentScanNotice')) $('studentScanNotice').hidden = true;
+        if ($('studentScanResult')) $('studentScanResult').hidden = true;
+        if ($('studentScanFeedback')) {
+          $('studentScanFeedback').textContent = 'Ready for the next QR code.';
+          $('studentScanFeedback').className = 'scanner-feedback';
+        }
+        modal.hidden = true;
+      });
+      modal.addEventListener('click', event => { if (event.target === modal) modal.hidden = true; });
+    }
+    modal.querySelector('#studentScanErrorTitle').textContent = title;
+    modal.querySelector('.student-scan-error-message').textContent = String(message || 'The scan could not be completed. Please try again.');
+    modal.hidden = false;
+    modal.querySelector('[data-scan-error-close]')?.focus();
+  }
+
   function teacherHas(designation) {
     return user?.role === 'TEACHER' && Array.isArray(user.teacherDesignations) && user.teacherDesignations.includes(designation);
   }
@@ -1172,7 +1213,10 @@ function coverageStatusLabel(status) {
       return;
     }
     if (!studentMatch) {
-      $('studentScanFeedback').textContent = 'This is not a recognized learner or teacher gate QR code.';
+      const message = 'This is not a recognized learner or teacher gate QR code. Make sure you are scanning the official QR card.';
+      $('studentScanFeedback').textContent = message;
+      $('studentScanFeedback').className = 'scanner-feedback is-error';
+      showScanErrorModal(message, 'QR code not recognized');
       return;
     }
     let student = null;
@@ -1187,6 +1231,7 @@ function coverageStatusLabel(status) {
     } catch (error) {
       $('studentScanFeedback').textContent = error.message;
       $('studentScanFeedback').className = 'scanner-feedback is-error';
+      showScanErrorModal(error.message, 'Student could not be verified');
       return;
     }
     scannedStudent = student;
@@ -1268,6 +1313,7 @@ function coverageStatusLabel(status) {
       showToast(error.message, true);
       $('studentScanFeedback').textContent = error.message;
       $('studentScanFeedback').className = 'scanner-feedback is-error';
+      showScanErrorModal(error.message, 'Teacher attendance not recorded');
     }
   }
 
@@ -1305,7 +1351,12 @@ function coverageStatusLabel(status) {
       scannedStudent = null; scannedTeacher = null;
       $('studentScanNotice').hidden = true;
       $('studentScanResult').hidden = true;
-    } catch (error) { showToast(error.message, true); $('studentScanFeedback').textContent = error.message; }
+    } catch (error) {
+      showToast(error.message, true);
+      $('studentScanFeedback').textContent = error.message;
+      $('studentScanFeedback').className = 'scanner-feedback is-error';
+      showScanErrorModal(error.message);
+    }
   }
 
   function renderPeriods() {
@@ -1616,12 +1667,12 @@ let teacherActionMenuListenersInstalled = false;
           </select>`
         : esc(teacher.departmentName || 'Unassigned');
       return `<tr>
-        <td data-label="Teacher">${user.role === 'SCHOOL_ADMIN' ? '<input type="checkbox" data-select-staff="' + esc(teacher.userId) + '" ' + (selectedStaffIds.has(String(teacher.userId)) ? 'checked' : '') + ' aria-label="Select ' + esc(teacher.displayName) + '">' : ''} <strong>${esc(teacher.displayName)}</strong><small class="table-subtext">${esc(teacher.username)}</small><small class="table-subtext">${esc(designationLabels)}</small></td>
-        <td data-label="Department">${departmentCell}</td>
-        <td data-label="Status"><span class="account-status ${statusClass}">${statusLabel}</span>${leaveDetails}</td>
-        <td data-label="Assigned classes">${classScopesHtml}</td>
-        <td data-label="Assigned schedules">${assignmentsHtml}</td>
-        <td data-label="Account action"><div class="action-row">${actionMenu}</div></td>
+        <td data-label="Teacher"><div class="teacher-cell-value teacher-identity">${user.role === 'SCHOOL_ADMIN' ? '<input type="checkbox" data-select-staff="' + esc(teacher.userId) + '" ' + (selectedStaffIds.has(String(teacher.userId)) ? 'checked' : '') + ' aria-label="Select ' + esc(teacher.displayName) + '">' : ''}<strong>${esc(teacher.displayName)}</strong><small class="table-subtext">${esc(teacher.username)}</small><small class="table-subtext">${esc(designationLabels)}</small></div></td>
+        <td data-label="Department"><div class="teacher-cell-value">${departmentCell}</div></td>
+        <td data-label="Status"><div class="teacher-cell-value"><span class="account-status ${statusClass}">${statusLabel}</span>${leaveDetails}</div></td>
+        <td data-label="Assigned classes"><div class="teacher-cell-value">${classScopesHtml}</div></td>
+        <td data-label="Assigned schedules"><div class="teacher-cell-value">${assignmentsHtml}</div></td>
+        <td data-label="Account action"><div class="teacher-cell-value"><div class="action-row">${actionMenu}</div></div></td>
       </tr>`;
     }).join('') : '<tr><td colspan="6" class="empty-cell">No teacher accounts have been created for this school yet.</td></tr>';
 
