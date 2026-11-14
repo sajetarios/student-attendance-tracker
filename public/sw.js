@@ -1,10 +1,10 @@
-const CACHE = "school-attendance-shell-v24-app-dialogs";
+const CACHE = "school-attendance-shell-v25-adviser-import";
 
 const SHELL = [
   "/portal-login.html",
   "/portal.css?v=0.9.13",
   "/portal.css",
-  "/portal.js?v=0.9.14",
+  "/portal.js?v=0.9.15",
   "/academic-admin.css?v=1",
   "/academic-admin.js?v=2",
   "/app-dialog.css?v=1",
