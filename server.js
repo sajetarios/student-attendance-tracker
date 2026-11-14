@@ -1214,6 +1214,16 @@ app.get('/api/sections', authenticateSchoolClient, requireSchoolUser, async (req
         "WHERE s.school_id=$1 AND s.active=TRUE AND s.archived_at IS NULL AND COALESCE(en.grade_level,s.grade_level)=$2"
       ].join(" ");
     }
+    if (req.auth.role === 'DEPARTMENT_HEAD' || req.auth.role === 'TEACHER') {
+      sectionSql += " UNION SELECT COALESCE(NULLIF(TRIM(en.section),''),NULLIF(TRIM(s.section),'')) AS section " +
+        "FROM students s LEFT JOIN LATERAL (" +
+        "SELECT e.grade_level,e.section FROM student_enrollments e " +
+        "JOIN school_years sy ON sy.school_id=e.school_id AND sy.school_year_id=e.school_year_id " +
+        "WHERE e.school_id=s.school_id AND e.student_id=s.student_id AND sy.status='ACTIVE' " +
+        "AND e.enrollment_status='ENROLLED' ORDER BY e.created_at DESC LIMIT 1" +
+        ") en ON TRUE WHERE s.school_id=$1 AND s.active=TRUE AND s.archived_at IS NULL " +
+        "AND COALESCE(en.grade_level,s.grade_level)=$2";
+    }
     const result = await pool.query(
       "SELECT DISTINCT section FROM (" + sectionSql + ") available_sections WHERE section IS NOT NULL AND TRIM(section)<>'' ORDER BY section",
       params
