@@ -398,6 +398,35 @@
     }
   }
 
+  function setAdminManagementTab(tabName = 'accounts') {
+    const isAdmin = user?.role === 'SCHOOL_ADMIN';
+    const tabs = $('adminManagementTabs');
+    if (tabs) tabs.hidden = !isAdmin;
+    const teacherCard = $('teacherRows')?.closest('.surface-card');
+    const staffCard = $('staffAccountsTable')?.closest('.surface-card');
+    const adviserCard = $('adviserAssignmentForm')?.closest('.surface-card');
+    const departmentCard = $('departmentManagementCard');
+    const note = document.querySelector('.teacher-management-note');
+    if (!isAdmin) return;
+    const activeTab = ['accounts','permissions','departments'].includes(tabName) ? tabName : 'accounts';
+    if (teacherCard) teacherCard.hidden = activeTab !== 'accounts';
+    if (staffCard) staffCard.hidden = activeTab !== 'accounts';
+    if (adviserCard) adviserCard.hidden = activeTab !== 'permissions';
+    if (departmentCard) departmentCard.hidden = activeTab !== 'departments';
+    if (note) note.hidden = activeTab !== 'accounts';
+    tabs?.querySelectorAll('[data-admin-management-tab]').forEach(button => {
+      const selected = button.dataset.adminManagementTab === activeTab;
+      button.classList.toggle('is-active', selected);
+      button.setAttribute('aria-selected', selected ? 'true' : 'false');
+      button.tabIndex = selected ? 0 : -1;
+    });
+  }
+
+  $('adminManagementTabs')?.addEventListener('click', event => {
+    const button = event.target.closest('[data-admin-management-tab]');
+    if (button) setAdminManagementTab(button.dataset.adminManagementTab);
+  });
+
   function renderStats(data) {
     const role = user?.role;
     const isTeacher = role === 'TEACHER';
