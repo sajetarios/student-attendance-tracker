@@ -1560,3 +1560,251 @@ tbody tr:hover td { background: #f9fbfc; }
 @media (max-width:700px) {
   #teachersView table.teacher-monitor-table { min-width:1040px !important; }
 }
+
+
+/* Department Head coverage workspace: compact school-wide metrics, two
+   permission-aware tabs, and responsive class cards instead of a wide table. */
+.teacher-coverage-card .coverage-school-summary {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 10px;
+  margin: 16px 0;
+}
+.teacher-coverage-card .coverage-school-summary article {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 8px;
+  min-width: 0;
+  padding: 13px 14px;
+  border: 1px solid var(--border, #e3eaf2);
+  border-radius: 12px;
+  background: var(--surface, #fff);
+}
+.teacher-coverage-card .coverage-school-summary article span {
+  color: var(--muted, #687b91);
+  font-size: 12px;
+  line-height: 1.35;
+}
+.teacher-coverage-card .coverage-school-summary article strong {
+  color: var(--text, #26384d);
+  font-size: 24px;
+  line-height: 1;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+}
+.teacher-coverage-card .coverage-school-summary article:last-child strong {
+  color: #b93826;
+}
+.teacher-coverage-card .coverage-tabs {
+  display: flex;
+  align-items: stretch;
+  gap: 8px;
+  margin: 18px 0 12px;
+  padding: 4px;
+  border: 1px solid var(--border, #e3eaf2);
+  border-radius: 13px;
+  background: var(--surface-muted, #f5f7fa);
+}
+.teacher-coverage-card .coverage-tab {
+  display: flex;
+  flex: 1 1 50%;
+  align-items: center;
+  justify-content: center;
+  gap: 9px;
+  min-width: 0;
+  min-height: 46px;
+  padding: 9px 12px;
+  border: 1px solid transparent;
+  border-radius: 9px;
+  background: transparent;
+  color: var(--muted, #687b91);
+  font: inherit;
+  font-size: 14px;
+  font-weight: 750;
+  cursor: pointer;
+}
+.teacher-coverage-card .coverage-tab.is-active {
+  border-color: var(--border, #dce5ef);
+  background: var(--surface, #fff);
+  color: var(--text, #26384d);
+  box-shadow: 0 1px 3px rgba(24,39,56,.08);
+}
+.teacher-coverage-card .coverage-tab-count {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 23px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: #edf2f7;
+  color: #53657a;
+  font-size: 11px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+.teacher-coverage-card .coverage-readonly-note {
+  margin: 0 0 12px;
+  padding: 12px 14px;
+  border: 1px solid #dce8f5;
+  border-radius: 11px;
+  background: #f2f7fd;
+  color: #49627e;
+  font-size: 13px;
+  line-height: 1.5;
+}
+.teacher-coverage-card .coverage-card-list {
+  display: grid;
+  gap: 10px;
+}
+.teacher-coverage-card .coverage-class-card {
+  min-width: 0;
+  padding: 15px;
+  border: 1px solid var(--border, #e3eaf2);
+  border-radius: 13px;
+  background: var(--surface, #fff);
+}
+.teacher-coverage-card .coverage-class-heading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+.teacher-coverage-card .coverage-class-heading h4 {
+  margin: 0;
+  color: var(--text, #26384d);
+  font-size: 15px;
+  line-height: 1.35;
+}
+.teacher-coverage-card .coverage-class-heading p {
+  margin: 4px 0 0;
+  color: var(--muted, #687b91);
+  font-size: 13px;
+  line-height: 1.4;
+}
+.teacher-coverage-card .coverage-department-label {
+  display: inline-block;
+  margin-top: 9px;
+  color: var(--muted, #687b91);
+  font-size: 12px;
+  font-weight: 700;
+}
+.teacher-coverage-card .coverage-class-details {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px 16px;
+  margin-top: 14px;
+}
+.teacher-coverage-card .coverage-class-details > span {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+  color: var(--text, #34465c);
+  font-size: 13px;
+  line-height: 1.4;
+  overflow-wrap: anywhere;
+}
+.teacher-coverage-card .coverage-class-details small {
+  color: var(--muted, #77879a);
+  font-size: 11px;
+  font-weight: 700;
+}
+.teacher-coverage-card .coverage-class-details .table-subtext {
+  margin-top: 3px;
+  color: var(--muted, #77879a);
+  font-size: 11px;
+}
+.teacher-coverage-card .coverage-card-actions {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 13px;
+  padding-top: 12px;
+  border-top: 1px solid var(--border, #edf1f5);
+}
+.teacher-coverage-card .coverage-action-controls {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  width: min(100%, 520px);
+  min-width: 0;
+}
+.teacher-coverage-card .coverage-action-controls select {
+  flex: 1 1 auto;
+  min-width: 0;
+  min-height: 40px;
+}
+.teacher-coverage-card .coverage-action-hint {
+  color: var(--muted, #77879a);
+  font-size: 12px;
+}
+.teacher-coverage-card .coverage-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 5px;
+  padding: 28px 16px;
+  border: 1px dashed var(--border, #dce5ef);
+  border-radius: 12px;
+  color: var(--muted, #687b91);
+  text-align: center;
+  font-size: 13px;
+}
+.teacher-coverage-card .coverage-empty strong {
+  color: var(--text, #34465c);
+  font-size: 14px;
+}
+@media (max-width: 900px) {
+  .teacher-coverage-card .coverage-school-summary {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+@media (max-width: 600px) {
+  .teacher-coverage-card .coverage-school-summary {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
+  }
+  .teacher-coverage-card .coverage-school-summary article {
+    padding: 11px 12px;
+  }
+  .teacher-coverage-card .coverage-school-summary article strong { font-size: 21px; }
+  .teacher-coverage-card .coverage-tabs {
+    gap: 4px;
+    margin-top: 14px;
+  }
+  .teacher-coverage-card .coverage-tab {
+    flex-direction: column;
+    gap: 5px;
+    min-height: 64px;
+    padding: 8px 5px;
+    font-size: 12px;
+    text-align: center;
+  }
+  .teacher-coverage-card .coverage-tab-count {
+    min-height: 20px;
+    font-size: 10px;
+  }
+  .teacher-coverage-card .coverage-class-card { padding: 13px; }
+  .teacher-coverage-card .coverage-class-heading {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 9px;
+  }
+  .teacher-coverage-card .coverage-class-details {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 10px;
+  }
+  .teacher-coverage-card .coverage-action-controls {
+    flex-direction: column;
+    align-items: stretch;
+    width: 100%;
+  }
+  .teacher-coverage-card .coverage-action-controls select,
+  .teacher-coverage-card .coverage-action-controls button {
+    width: 100%;
+    max-width: none;
+    min-height: 42px;
+  }
+  .teacher-coverage-card .coverage-card-actions { justify-content: stretch; }
+}
