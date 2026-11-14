@@ -1027,3 +1027,99 @@ tbody tr:hover td { background: #f9fbfc; }
   outline: 3px solid rgba(44, 119, 151, .28);
   outline-offset: 2px;
 }
+
+
+/* Mobile roster redesign: turn the wide student table into readable learner cards. */
+@media (max-width: 700px) {
+  html, body, .portal-page, .portal-layout, .main-area, #schoolWorkspace,
+  .content-wrap, #studentsView { max-width: 100%; min-width: 0; }
+  html, body { overflow-x: hidden; }
+  .main-area { overflow-x: clip; }
+  .topbar { width: auto; max-width: calc(100% - 16px); margin: 8px; border: 1px solid #e5ebf1; border-radius: 14px; }
+  .breadcrumbs { min-width: 0; max-width: calc(100% - 105px); overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+  .content-wrap { width: 100%; min-width: 0; box-sizing: border-box; padding: 14px 12px 24px; }
+  .school-heading { min-width: 0; flex-wrap: wrap; }
+  .school-title-block { flex: 1 1 170px; }
+  .school-title-block h1 { overflow-wrap: anywhere; }
+  .heading-actions { flex: 0 0 auto; flex-direction: row; align-items: center; }
+  #studentsView .section-card { min-width: 0; padding: 13px; }
+  #studentManagementHeader { display: flex; flex-direction: column; align-items: stretch; gap: 12px; }
+  #studentManagementHeader .toolbar-actions { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 8px; width: 100%; }
+  #studentManagementHeader .toolbar-actions > button { width: 100%; min-width: 0; white-space: normal; min-height: 42px; padding: 9px 7px; font-size: 11px; }
+  .student-roster-tools { min-width: 0; }
+  .student-filter-row { display: grid; grid-template-columns: minmax(0,1fr); gap: 9px; }
+  .student-filter-row label { min-width: 0; width: 100%; }
+  .student-filter-row input, .student-filter-row select { width: 100%; min-width: 0; box-sizing: border-box; }
+  .student-bulk-actions { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); align-items: center; gap: 9px; }
+  .student-bulk-actions > label, #selectedStudentCount, #bulkQrFeedback { grid-column: 1 / -1; }
+  .student-bulk-actions > button, .student-bulk-actions > select { width: 100%; min-width: 0; box-sizing: border-box; }
+  #studentsView .table-scroll {
+    width: 100%; max-width: 100%; overflow: visible; border: 0;
+    background: transparent; margin-top: 12px;
+  }
+  #studentsView #studentRosterTable {
+    display: block; width: 100% !important; min-width: 0 !important;
+    table-layout: auto; white-space: normal; border: 0;
+  }
+  #studentsView #studentRosterTable thead { display: none; }
+  #studentsView #studentRosterTable tbody {
+    display: grid; grid-template-columns: minmax(0,1fr); gap: 12px;
+    width: 100%;
+  }
+  #studentsView #studentRosterTable tbody tr {
+    display: grid; grid-template-columns: repeat(2,minmax(0,1fr));
+    gap: 0 12px; width: 100%; min-width: 0; box-sizing: border-box;
+    padding: 10px 12px; border: 1px solid #e2eaf1; border-radius: 13px;
+    background: #fff; box-shadow: 0 4px 13px rgba(20,45,70,.045);
+  }
+  #studentsView #studentRosterTable tbody td {
+    display: flex; flex-direction: column; justify-content: center;
+    align-items: flex-start; gap: 5px; min-width: 0 !important;
+    width: auto !important; padding: 9px 2px; box-sizing: border-box;
+    border-bottom: 1px solid #edf1f5; white-space: normal;
+    overflow-wrap: anywhere; word-break: normal; font-size: 12px;
+    line-height: 1.4; color: #34475b;
+  }
+  #studentsView #studentRosterTable tbody td::before {
+    content: attr(data-label); display: block; color: #8a99a8;
+    font-size: 9px; line-height: 1.2; font-weight: 800;
+    letter-spacing: .055em; text-transform: uppercase;
+  }
+  #studentsView #studentRosterTable tbody td:empty { display: none; }
+  #studentsView #studentRosterTable tbody td[data-label="Full name"],
+  #studentsView #studentRosterTable tbody td[data-label="Actions"],
+  #studentsView #studentRosterTable tbody td[data-label="Student account"] { grid-column: 1 / -1; }
+  #studentsView #studentRosterTable tbody td[data-label="Full name"] {
+    font-size: 14px; font-weight: 800; color: #1d3047;
+  }
+  #studentsView #studentRosterTable tbody td[data-label="Full name"]::before { content: "LEARNER"; }
+  #studentsView #studentRosterTable tbody td[data-label="Photo"] { align-items: flex-start; }
+  #studentsView #studentRosterTable .student-photo-thumb,
+  #studentsView #studentRosterTable .student-photo-placeholder { width: 42px; height: 42px; }
+  #studentsView #studentRosterTable .student-qr-preview img { width: 64px !important; height: 64px !important; }
+  #studentsView #studentRosterTable tbody td[data-label="QR code"] { align-items: flex-start; }
+  #studentsView #studentRosterTable .student-row-actions {
+    display: flex; flex-direction: row; align-items: center; flex-wrap: wrap;
+    gap: 8px; width: 100%;
+  }
+  #studentsView #studentRosterTable .student-row-actions > * { max-width: 100%; }
+  #studentsView #studentRosterTable .student-row-actions .outline-button,
+  #studentsView #studentRosterTable .student-photo-upload {
+    min-height: 38px; display: inline-flex; align-items: center;
+    justify-content: center; padding: 8px 11px; font-size: 11px;
+    white-space: normal; box-sizing: border-box;
+  }
+  #studentsView #studentRosterTable tbody td[data-label="Student account"] .student-row-actions { align-items: flex-start; }
+  #studentsView #studentRosterTable tbody tr:has(td.empty-cell) { display: block; padding: 18px; }
+  #studentsView #studentRosterTable td.empty-cell { display: block; text-align: center; border: 0; }
+  #studentsView #studentRosterTable td.empty-cell::before { content: none; }
+  .student-bulk-actions { position: static !important; }
+  .table-scroll { max-width: 100%; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+  .surface-card, .section-card, .inline-form, .student-roster-tools { max-width: 100%; box-sizing: border-box; }
+  .field-group input, .field-group select, .field-group textarea { max-width: 100%; }
+}
+@media (max-width: 380px) {
+  #studentsView #studentRosterTable tbody tr { padding: 8px 10px; gap: 0 8px; }
+  #studentManagementHeader .toolbar-actions { grid-template-columns: minmax(0,1fr); }
+  #studentsView #studentRosterTable tbody td { font-size: 11px; }
+}

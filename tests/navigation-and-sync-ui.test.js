@@ -63,6 +63,6 @@ test('all browser-native confirmation and prompt dialogs use the shared in-app d
   assert.ok(portalHtml.includes('/app-dialog.js?v=1'));
   assert.ok(parentHtml.includes('/app-dialog.css?v=1'));
   assert.ok(parentHtml.includes('/app-dialog.js?v=1'));
-  assert.ok(serviceWorker.includes('school-attendance-shell-v29-dashboard-ui'));
+  assert.ok(serviceWorker.includes('school-attendance-shell-v30-mobile-roster'));
   assert.ok(serviceWorker.includes('/app-dialog.js?v=1'));
 });
