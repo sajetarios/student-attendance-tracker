@@ -2161,7 +2161,7 @@ app.get('/api/periods', authenticateSchoolClient, requireSchoolUser, async (req,
 
 // School Administrators, Department Heads, and Subject Teachers may create schedules within their permitted scope.
 // A schedule is created together with its teacher assignment. Department comes from the teacher account.
-app.post('/api/periods', authenticateSchoolClient, requireSchoolAdminOrDepartmentHeadOrTeacher, async (req, res) => {
+app.post('/api/periods', authenticateSchoolClient, requireSchoolRoles('SCHOOL_ADMIN', 'DEPARTMENT_HEAD'), async (req, res) => {
   const isTeacher = req.auth.role === 'TEACHER';
   const isDepartmentHead = req.auth.role === 'DEPARTMENT_HEAD';
   const teacherUserId = isTeacher ? req.auth.userId : req.body?.teacherUserId;
