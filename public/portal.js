@@ -407,6 +407,7 @@
     const teacherCard = $('teacherRows')?.closest('.surface-card');
     const staffCard = $('staffAccountsTable')?.closest('.surface-card');
     const adviserCard = $('adviserAssignmentForm')?.closest('.surface-card');
+    const teacherPermissionsCard = $('teacherPermissionsCard');
     const departmentCard = $('departmentManagementCard');
     const note = document.querySelector('.teacher-management-note');
     if (!isAdmin) return;
@@ -414,6 +415,7 @@
     if (teacherCard) teacherCard.hidden = activeTab !== 'accounts';
     if (staffCard) staffCard.hidden = activeTab !== 'accounts';
     if (adviserCard) adviserCard.hidden = activeTab !== 'permissions';
+    if (teacherPermissionsCard) teacherPermissionsCard.hidden = activeTab !== 'permissions';
     if (departmentCard) departmentCard.hidden = activeTab !== 'departments';
     if (note) note.hidden = activeTab !== 'accounts';
     tabs?.querySelectorAll('[data-admin-management-tab]').forEach(button => {
@@ -1367,7 +1369,7 @@ let teacherActionMenuListenersInstalled = false;
       const accountActions = !isSchoolAdmin ? '<span class="muted-inline">View only</span>' : (active
         ? `<div class="teacher-action-menu-label">Account &amp; permissions</div>
            <button type="button" class="teacher-action-item" data-edit-teacher-profile="${esc(teacher.userId)}">Edit account profile</button>
-           <button type="button" class="teacher-action-item" data-edit-designations="${esc(teacher.userId)}">Edit teacher permissions</button><button type="button" class="teacher-action-item" data-teacher-qr="${esc(teacher.userId)}">Print gate QR badge</button>
+<button type="button" class="teacher-action-item" data-teacher-qr="${esc(teacher.userId)}">Print gate QR badge</button>
            <label class="teacher-action-item teacher-photo-upload-menu">${teacher.hasTeacherPhoto ? 'Replace teacher photo' : 'Upload teacher photo'}<input type="file" accept="image/jpeg,image/png,image/webp" data-teacher-photo="${esc(teacher.userId)}" hidden></label>
            <div class="teacher-action-menu-divider"></div>
            <div class="teacher-action-menu-label">Account</div>
@@ -1829,6 +1831,22 @@ let teacherActionMenuListenersInstalled = false;
     }));
   }
 
+  function renderTeacherPermissions() {
+    const host = $('teacherPermissionRows');
+    if (!host) return;
+    host.innerHTML = teachers.length ? teachers.map(teacher => {
+      const labels = (teacher.teacherDesignations || []).map(value =>
+        value === 'CLASS_ADVISER' ? 'Class Adviser' : value === 'SUBJECT_TEACHER' ? 'Subject Teacher' : value
+      );
+      return `<tr>
+        <td><strong>${esc(teacher.displayName || teacher.username)}</strong><small class="table-subtext">${esc(teacher.username)}</small></td>
+        <td>${esc(teacher.departmentName || 'Unassigned')}</td>
+        <td>${labels.length ? labels.map(label => '<span class="teacher-permission-chip">' + esc(label) + '</span>').join(' ') : '<span class="muted-inline">No permissions</span>'}</td>
+        <td><button type="button" class="outline-button compact-button" data-edit-teacher-permission="${esc(teacher.userId)}">Edit permissions</button></td>
+      </tr>`;
+    }).join('') : '<tr><td colspan="4" class="empty-cell">No teacher accounts are available.</td></tr>';
+  }
+
   function renderAdviserAssignments() {
     const host = $('adviserAssignmentRows');
     if (!host) return;
@@ -2006,6 +2024,7 @@ let teacherActionMenuListenersInstalled = false;
     renderStudents();
     renderPeriods();
     if (isSchoolManager) renderTeachers();
+    if (role === 'SCHOOL_ADMIN') renderTeacherPermissions();
     if (isDepartmentHead) renderDepartmentHeadOverview();
     if (isSchoolManager) {
       await loadTeacherCoverage(false);
@@ -3036,6 +3055,41 @@ let teacherActionMenuListenersInstalled = false;
         feedback.textContent = 'Class Adviser assignment saved.';
       } catch (error) { feedback.className = 'inline-feedback error'; feedback.textContent = error.message; }
     });
+    $('teacherPermissionRows')?.addEventListener('click', async event => {
+      const button = event.target.closest('[data-edit-teacher-permission]');
+      if (!button) return;
+      const teacher = teachers.find(item => String(item.userId) === String(button.dataset.editTeacherPermission));
+      if (!teacher) return;
+      const currentValues = teacher.teacherDesignations || [];
+      const current = currentValues.includes('SUBJECT_TEACHER') && currentValues.includes('CLASS_ADVISER')
+        ? 'BOTH' : currentValues[0] || '';
+      const answer = await AppDialog.prompt('Choose the permissions for this teacher account. Existing subject-period and class adviser assignments are preserved. A permission cannot be removed while linked assignments still depend on it.', current, {
+        title: 'Edit teacher permissions',
+        label: 'Teacher permissions',
+        helpText: 'Subject Teacher: manages assigned subject-class attendance. Class Adviser: manages an assigned advisory section and official SF2. Both: enables both responsibilities.',
+        placeholder: 'Choose permissions',
+        required: true,
+        selectOptions: [
+          { value: 'SUBJECT_TEACHER', label: 'Subject Teacher' },
+          { value: 'CLASS_ADVISER', label: 'Class Adviser' },
+          { value: 'BOTH', label: 'Both permissions' }
+        ]
+      });
+      if (answer === null) return;
+      const designations = answer === 'BOTH' ? ['SUBJECT_TEACHER','CLASS_ADVISER'] : [answer];
+      button.disabled = true;
+      try {
+        await api('/api/teachers/' + encodeURIComponent(teacher.userId) + '/designations', {
+          method: 'PATCH', body: JSON.stringify({ teacherDesignations: designations })
+        });
+        await loadSchoolData();
+        showToast('Teacher permissions updated. Existing schedules and advisory assignments were preserved.');
+      } catch (error) {
+        showToast(error.message, true);
+        button.disabled = false;
+      }
+    });
+
     $('adviserAssignmentRows').addEventListener('click', async event => {
       const editButton = event.target.closest('[data-edit-adviser]');
       if (editButton) {
