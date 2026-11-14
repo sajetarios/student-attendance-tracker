@@ -90,7 +90,7 @@ test('Portal uses the refreshed accessible theme and cache-busted v0.9.15 assets
 
 test('mobile student roster switches to labeled learner cards without horizontal clipping', () => {
   assert.match(portalCss, /#studentsView #studentRosterTable tbody tr/);
-  assert.match(portalCss, /content: attr\\(data-label\\)/);
+  assert.match(portalCss, /content: attr\(data-label\)/);
   assert.match(portalCss, /#studentsView #studentRosterTable \\.student-qr-preview img/);
   assert.match(html, /<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">/);
 });
