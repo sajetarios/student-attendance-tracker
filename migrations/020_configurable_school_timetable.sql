@@ -118,7 +118,7 @@ CROSS JOIN LATERAL (
   SELECT weekday FROM school_operating_days sod
   WHERE sod.school_id=p.school_id AND sod.is_operating_day=TRUE
   UNION ALL
-  SELECT weekday FROM generate_series(1,5) AS weekday
+  SELECT weekday FROM generate_series(1,5) AS gs(weekday)
   WHERE NOT EXISTS (SELECT 1 FROM school_operating_days sod WHERE sod.school_id=p.school_id AND sod.is_operating_day=TRUE)
 ) d
 ON CONFLICT DO NOTHING;
