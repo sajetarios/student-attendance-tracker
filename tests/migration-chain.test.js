@@ -8,7 +8,7 @@ const { REQUIRED_MIGRATIONS, stripTransactionWrappers } = require('../scripts/mi
 
 const migrationDir = path.join(__dirname, '..', 'migrations');
 
-test('all sixteen database migrations are present and in order', () => {
+test('all seventeen database migrations are present and in order', () => {
   const files = fs.readdirSync(migrationDir).filter(name => /^\d{3}_[a-z0-9_]+\.sql$/i.test(name)).sort();
   assert.deepEqual(files, REQUIRED_MIGRATIONS);
 });
@@ -68,4 +68,23 @@ test('department migration backfills existing users and schedules to a safe defa
   assert.match(sql, /ALTER TABLE class_periods ADD COLUMN IF NOT EXISTS department_id UUID/i);
   assert.match(sql, /ALTER TABLE class_periods ADD COLUMN IF NOT EXISTS classroom TEXT/i);
   assert.match(sql, /FOREIGN KEY \(school_id, department_id\)/i);
+});
+
+test('DEMO001 department correction is school-scoped, backed up, and preserves student/attendance identities', () => {
+  const sql = fs.readFileSync(path.join(migrationDir, '017_demo001_subject_department_correction.sql'), 'utf8');
+  assert.match(sql, /school_code='DEMO001'/i);
+  assert.match(sql, /'ENG-2026'/);
+  assert.match(sql, /'MATH2026'/);
+  assert.match(sql, /'SCI-2026'/);
+  assert.match(sql, /demo001_department_correction_backup/);
+  assert.match(sql, /to_jsonb\(p\)/);
+  assert.match(sql, /to_jsonb\(su\)/);
+  assert.match(sql, /DELETE FROM teacher_period_assignments/);
+  assert.match(sql, /'Class_Adviser001'/);
+  assert.match(sql, /'Dowthii'/);
+  assert.match(sql, /INSERT INTO audit_logs/);
+  assert.doesNotMatch(sql, /UPDATE\s+students\b/i);
+  assert.doesNotMatch(sql, /DELETE\s+FROM\s+students\b/i);
+  assert.doesNotMatch(sql, /UPDATE\s+attendance_events\b/i);
+  assert.doesNotMatch(sql, /DELETE\s+FROM\s+attendance_events\b/i);
 });

@@ -21,7 +21,8 @@ const REQUIRED_MIGRATIONS = [
   '013_departments_and_classroom_assignment.sql',
   '014_student_sex_and_roster_management.sql',
   '015_student_archive_and_batch_management.sql',
-  '016_school_subject_catalog.sql'
+  '016_school_subject_catalog.sql',
+  '017_demo001_subject_department_correction.sql'
 ];
 
 function checksum(content) {
