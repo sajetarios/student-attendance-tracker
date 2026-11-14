@@ -23,7 +23,7 @@ test('School Administrator has a department management table with edit actions',
   assert.match(html, /id="departmentList"/);
   assert.match(portal, /data-edit-department/);
   assert.match(portal, /api\('\/api\/departments\/' \+ encodeURIComponent\(department\.departmentId\)/);
-  assert.match(routes, /app\.patch\('\\/api\\/departments\\/:departmentId'/);
+  assert.ok(routes.includes("app.patch('/api/departments/:departmentId'"));
 });
 
 test('SF2 sex is read-only and uses the saved student master-record value', () => {
