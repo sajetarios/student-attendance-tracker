@@ -1021,3 +1021,9 @@ tbody tr:hover td { background: #f9fbfc; }
   .stat-card, .quick-card .quick-action { transition: none; }
   .stat-card:hover, .quick-card .quick-action:hover { transform: none; }
 }
+
+/* Keyboard navigation states for refreshed dashboard controls. */
+.portal-page :is(.nav-item,.nav-group-toggle,.quick-action,.dashboard-open-scanner,.dashboard-add-student,.primary-button,.outline-button,.admin-management-tab):focus-visible {
+  outline: 3px solid rgba(44, 119, 151, .28);
+  outline-offset: 2px;
+}
