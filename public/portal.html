@@ -651,6 +651,15 @@
               </form>
               <div class="table-scroll"><table class="department-management-table"><thead><tr><th>Code</th><th>Department</th><th>Description</th><th>Status</th><th>Manage</th></tr></thead><tbody id="departmentList"><tr><td colspan="5" class="empty-cell">Loading departments…</td></tr></tbody></table></div>
             </div>
+            <div class="surface-card section-card teacher-permissions-card" id="teacherPermissionsCard" hidden>
+              <div class="section-toolbar">
+                <div><h3>Teacher permissions &amp; designations</h3><p>Choose what each teacher account is allowed to do. Designations do not change the teacher’s department or permanent subject schedules.</p></div>
+              </div>
+              <div class="table-scroll"><table class="teacher-permissions-table">
+                <thead><tr><th>Teacher</th><th>Department</th><th>Current permissions</th><th>Manage</th></tr></thead>
+                <tbody id="teacherPermissionRows"><tr><td colspan="4" class="empty-cell">Loading teacher permissions…</td></tr></tbody>
+              </table></div>
+            </div>
             <div class="surface-card section-card adviser-assignments-card">
               <div class="section-toolbar"><div><h3>Class Adviser assignments</h3><p>Assign one Class Adviser to each grade-and-section combination.</p></div></div>
               <form id="adviserAssignmentForm" class="inline-form">
