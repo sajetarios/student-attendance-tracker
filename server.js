@@ -2762,9 +2762,25 @@ app.post('/api/sync/events', authenticateSchoolClient, requireSchoolClient, asyn
         continue;
       }
 
+      // Current enrollment is authoritative for class membership. The legacy
+      // students.grade_level/section fields may be stale after a school-year move.
       const student = await client.query(
-        `SELECT student_id, full_name, parent_mobile, grade_level, section, photo_path
-         FROM students WHERE school_id=$1 AND student_id=$2 AND active=TRUE`,
+        `SELECT s.student_id, s.full_name, s.parent_mobile,
+                COALESCE(active_enrollment.grade_level, s.grade_level) AS grade_level,
+                COALESCE(active_enrollment.section, s.section) AS section,
+                s.photo_path
+         FROM students s
+         LEFT JOIN LATERAL (
+           SELECT en.grade_level, en.section
+           FROM student_enrollments en
+           JOIN school_years sy
+             ON sy.school_id=en.school_id AND sy.school_year_id=en.school_year_id
+           WHERE en.school_id=s.school_id AND en.student_id=s.student_id
+             AND sy.status='ACTIVE' AND en.enrollment_status='ENROLLED'
+           ORDER BY en.created_at DESC
+           LIMIT 1
+         ) active_enrollment ON TRUE
+         WHERE s.school_id=$1 AND s.student_id=$2 AND s.active=TRUE`,
         [req.auth.schoolId, event.studentId]
       );
       if (!student.rowCount) {
