@@ -3248,21 +3248,29 @@ let teacherActionMenuListenersInstalled = false;
     if (!button) return;
     const department = departments.find(item => String(item.departmentId) === String(button.dataset.editDepartment));
     if (!department || department.code === 'UNASSIGNED') return;
-    const name = await AppDialog.prompt('Update the department name.', department.name, {
-      title: 'Edit department', label: 'Department name', required: true, maxLength: 100
-    });
-    if (name === null) return;
-    const description = await AppDialog.prompt('Update the department description. Leave blank if not needed.', department.description || '', {
-      title: 'Edit department description', label: 'Description', inputType: 'textarea', rows: 3, maxLength: 500
-    });
-    if (description === null) return;
+    const values = await AppDialog.form(
+      'Update the department code, name, description, and status. Department codes must remain unique. A department with active staff or schedules cannot be deactivated.',
+      [
+        { name: 'code', label: 'Department code', defaultValue: department.code, required: true, maxLength: 20,
+          helpText: '2–20 characters: letters, numbers, underscores, or hyphens.',
+          validate: value => /^[A-Za-z0-9_-]{2,20}$/.test(String(value).trim()) || 'Use 2–20 letters, numbers, underscores, or hyphens.' },
+        { name: 'name', label: 'Department name', defaultValue: department.name, required: true, maxLength: 100 },
+        { name: 'description', label: 'Description', inputType: 'textarea', rows: 3, defaultValue: department.description || '', maxLength: 500,
+          helpText: 'Optional. Up to 500 characters.' },
+        { name: 'active', label: 'Status', selectOptions: [{ value: 'true', label: 'Active' }, { value: 'false', label: 'Inactive' }],
+          defaultValue: department.active ? 'true' : 'false', required: true }
+      ],
+      { title: 'Edit department', confirmText: 'Save department' }
+    );
+    if (values === null) return;
     button.disabled = true;
     try {
       await api('/api/departments/' + encodeURIComponent(department.departmentId), {
-        method: 'PATCH', body: JSON.stringify({ name: name.trim(), description: description.trim(), active: true })
+        method: 'PATCH',
+        body: JSON.stringify({ code: values.code.trim(), name: values.name.trim(), description: values.description.trim(), active: values.active === 'true' })
       });
       await loadSchoolData();
-      showToast('Department updated.');
+      showToast('Department details updated.');
     } catch (error) {
       showToast(error.message, true);
       button.disabled = false;
