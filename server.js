@@ -2452,6 +2452,8 @@ app.post('/api/periods', authenticateSchoolClient, requireSchoolRoles('SCHOOL_AD
   const teacherUserId = isTeacher ? req.auth.userId : req.body?.teacherUserId;
   const classroom = typeof req.body?.classroom === 'string' ? req.body.classroom.trim() : '';
   const { periodName, gradeLevel, section, subjectId, startTime, endTime, graceMinutes = 0 } = req.body || {};
+  const timetableTemplateId = req.body?.timetableTemplateId || null;
+  if (timetableTemplateId && !isUuid(timetableTemplateId)) return res.status(400).json({ error: 'Choose a valid timetable template.' });
   let weekdays = Array.isArray(req.body?.weekdays) ? [...new Set(req.body.weekdays.map(Number))] : [];
   if (!weekdays.length) {
     const operating = await pool.query('SELECT weekday FROM school_operating_days WHERE school_id=$1 AND is_operating_day=TRUE ORDER BY weekday',[req.auth.schoolId]);
@@ -2580,13 +2582,13 @@ app.post('/api/periods', authenticateSchoolClient, requireSchoolRoles('SCHOOL_AD
     }
 
     const result = await client.query(
-      "INSERT INTO class_periods(school_id,period_name,grade_level,section,subject_id,subject_name,start_time,end_time,grace_minutes,department_id,classroom) " +
-      "VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11) " +
+      "INSERT INTO class_periods(school_id,period_name,grade_level,section,subject_id,subject_name,start_time,end_time,grace_minutes,department_id,classroom,timetable_template_id) " +
+      "VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12) " +
       "RETURNING period_id AS \"periodId\",period_name AS \"periodName\",grade_level AS \"gradeLevel\",section," +
       "subject_id AS \"subjectId\",subject_name AS \"subjectName\",department_id AS \"departmentId\",classroom," +
       "to_char(start_time,'HH24:MI') AS \"startTime\",to_char(end_time,'HH24:MI') AS \"endTime\"",
       [req.auth.schoolId, periodName.trim(), gradeLevel.trim(), section.trim(), subjectId,
-       subject.rows[0].subjectName, startTime, endTime, Number(graceMinutes), departmentId, classroom || null]
+       subject.rows[0].subjectName, startTime, endTime, Number(graceMinutes), departmentId, classroom || null, timetableTemplateId]
     );
     const period = result.rows[0];
     for (const weekday of weekdays) {
