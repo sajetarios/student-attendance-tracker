@@ -12,6 +12,7 @@ on:
       - feature/class-adviser-schedule-and-student-import-fixes
       - feature/schedule-subject-catalog-and-form-consistency
       - fix/guardian-import-and-schedule-form
+      - improve/admin-user-management-edit-forms
   workflow_dispatch:
 
 permissions:
