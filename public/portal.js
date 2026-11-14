@@ -2173,14 +2173,20 @@ let teacherActionMenuListenersInstalled = false;
       return;
     }
 
+    const isSchoolAdmin = role === 'SCHOOL_ADMIN';
     const isDepartmentHead = role === 'DEPARTMENT_HEAD';
-    const isSchoolManager = ['SCHOOL_ADMIN', 'DEPARTMENT_HEAD'].includes(role);
+    const isSchoolManager = isSchoolAdmin || isDepartmentHead;
+    const canViewClassSchedules = isDepartmentHead ||
+      (role === 'TEACHER' && (teacherHas('SUBJECT_TEACHER') || teacherHas('CLASS_ADVISER')));
     $('teacherCoverageCard').hidden = !isDepartmentHead;
     if ($('departmentHeadOverview')) $('departmentHeadOverview').hidden = !isDepartmentHead;
+
+    // School Administrators manage staff accounts and departments, not attendance
+    // operations. Do not request APIs whose access is limited to teachers/Department Heads.
     const base = await Promise.all([
-      api('/api/admin/dashboard'),
-      api(role === 'SCHOOL_ADMIN' ? '/api/students?includeInactive=true' : '/api/students'),
-      role === 'TEACHER' && !(teacherHas('SUBJECT_TEACHER') || teacherHas('CLASS_ADVISER')) ? Promise.resolve({ periods: [] }) : api('/api/periods'),
+      isSchoolAdmin ? Promise.resolve({}) : api('/api/admin/dashboard'),
+      isSchoolAdmin ? Promise.resolve({ students: [] }) : api('/api/students'),
+      canViewClassSchedules ? api('/api/periods') : Promise.resolve({ periods: [] }),
       isSchoolManager ? api('/api/departments') : Promise.resolve({ departments: [] })
     ]);
     dashboardData = base[0];
@@ -2233,12 +2239,14 @@ let teacherActionMenuListenersInstalled = false;
     if (isDepartmentHead) {
       await loadTeacherCoverage(false);
     }
-    if (['SCHOOL_ADMIN', 'DEPARTMENT_HEAD', 'TEACHER'].includes(role)) {
+    // SF2 options are for Department Heads and teachers only.
+    // School Administrators do not use the academic reporting workflow.
+    if (['DEPARTMENT_HEAD', 'TEACHER'].includes(role)) {
       await loadSf2Options();
-      if (['SCHOOL_ADMIN', 'DEPARTMENT_HEAD'].includes(role)) {
-        $('sf2SubmissionsCard').hidden = false;
-        await loadSf2Submissions();
-      }
+    }
+    if (role === 'DEPARTMENT_HEAD') {
+      $('sf2SubmissionsCard').hidden = false;
+      await loadSf2Submissions();
     }
     if (role === 'TEACHER' && (user.teacherDesignations || []).includes('CLASS_ADVISER')) {
       renderAdviserAssignments();
@@ -2661,20 +2669,27 @@ let teacherActionMenuListenersInstalled = false;
   function setSidebarCollapsed(collapsed) {
     const layout = document.querySelector('.portal-layout');
     const control = $('sidebarCollapseButton');
-    layout.classList.toggle('sidebar-collapsed', Boolean(collapsed));
+    if (!layout) return;
+    const nextCollapsed = Boolean(collapsed);
+    layout.classList.toggle('sidebar-collapsed', nextCollapsed);
+    layout.dataset.sidebarCollapsed = String(nextCollapsed);
+    document.body.classList.toggle('portal-sidebar-collapsed', nextCollapsed);
     if (control) {
-      control.setAttribute('aria-expanded', String(!collapsed));
-      control.setAttribute('aria-label', collapsed ? 'Expand sidebar' : 'Collapse sidebar');
-      control.title = collapsed ? 'Expand sidebar' : 'Collapse sidebar';
-      control.querySelector('[aria-hidden="true"]').textContent = collapsed ? '›' : '‹';
+      control.setAttribute('aria-expanded', String(!nextCollapsed));
+      control.setAttribute('aria-pressed', String(nextCollapsed));
+      control.setAttribute('aria-label', nextCollapsed ? 'Expand sidebar' : 'Collapse sidebar');
+      control.title = nextCollapsed ? 'Expand sidebar' : 'Collapse sidebar';
+      const arrow = control.querySelector('[aria-hidden="true"]');
+      if (arrow) arrow.textContent = nextCollapsed ? '›' : '‹';
       const label = control.querySelector('.collapse-control-label');
-      if (label) label.textContent = collapsed ? 'Expand' : 'Collapse';
+      if (label) label.textContent = nextCollapsed ? 'Expand' : 'Collapse';
     }
-    try { localStorage.setItem('attendance-sidebar-collapsed', collapsed ? '1' : '0'); } catch {}
+    try { localStorage.setItem('attendance-sidebar-collapsed', nextCollapsed ? '1' : '0'); } catch {}
   }
   function closeMobileSidebar() {
     $('sidebar').classList.remove('open');
     $('sidebarBackdrop').classList.remove('visible');
+    document.body.classList.remove('sidebar-drawer-open');
     $('sidebarToggle').setAttribute('aria-expanded', 'false');
     $('sidebarToggle').setAttribute('aria-label', 'Open navigation');
     $('sidebarToggle').title = 'Open navigation';
@@ -2683,14 +2698,19 @@ let teacherActionMenuListenersInstalled = false;
   function openMobileSidebar() {
     $('sidebar').classList.add('open');
     $('sidebarBackdrop').classList.add('visible');
+    document.body.classList.add('sidebar-drawer-open');
     $('sidebarToggle').setAttribute('aria-expanded', 'true');
     $('sidebarToggle').setAttribute('aria-label', 'Close navigation');
     $('sidebarToggle').title = 'Close navigation';
     $('sidebarToggle').textContent = '×';
   }
   try { setSidebarCollapsed(localStorage.getItem('attendance-sidebar-collapsed') === '1'); } catch {}
-  $('sidebarCollapseButton').addEventListener('click', () => {
-    setSidebarCollapsed(!document.querySelector('.portal-layout').classList.contains('sidebar-collapsed'));
+  $('sidebarCollapseButton')?.addEventListener('click', event => {
+    event.preventDefault();
+    const layout = document.querySelector('.portal-layout');
+    const currentlyCollapsed = layout?.dataset.sidebarCollapsed === 'true' ||
+      layout?.classList.contains('sidebar-collapsed');
+    setSidebarCollapsed(!currentlyCollapsed);
   });
   $('sidebarToggle').addEventListener('click', () => {
     if ($('sidebar').classList.contains('open')) closeMobileSidebar();
