@@ -2376,7 +2376,7 @@ app.post('/api/subjects', authenticateSchoolClient, requireSchoolRoles('SCHOOL_A
   }
 });
 
-app.get('/api/periods', authenticateSchoolClient, requireSchoolUser, async (req, res) => {
+app.get('/api/periods', authenticateSchoolClient, requireSchoolRoles('SCHOOL_ADMIN','DEPARTMENT_HEAD','TEACHER'), async (req, res) => {
   try {
     const params = [req.auth.schoolId];
     let teacherScope = '';
@@ -2393,7 +2393,9 @@ app.get('/api/periods', authenticateSchoolClient, requireSchoolUser, async (req,
       "COALESCE(assignment.\"assignedDepartmentId\",p.department_id) AS \"departmentId\"," +
       "COALESCE(assigned_department.department_name,d.department_name,'Unassigned') AS \"departmentName\"," +
       "assignment.\"assignedTeacherUserId\",assignment.\"assignedTeacherName\"," +
-      "to_char(p.start_time,'HH24:MI') AS \"startTime\",to_char(p.end_time,'HH24:MI') AS \"endTime\",p.grace_minutes AS \"graceMinutes\" " +
+      "to_char(p.start_time,'HH24:MI') AS \"startTime\",to_char(p.end_time,'HH24:MI') AS \"endTime\",p.grace_minutes AS \"graceMinutes\"," +
+      "COALESCE((SELECT array_agg(d.weekday ORDER BY d.weekday) FROM class_period_days d WHERE d.school_id=p.school_id AND d.period_id=p.period_id),'{}') AS weekdays," +
+      "to_char(p.effective_from,'YYYY-MM-DD') AS \"effectiveFrom\",to_char(p.effective_to,'YYYY-MM-DD') AS \"effectiveTo\" " +
       "FROM class_periods p " +
       "LEFT JOIN school_departments d ON d.school_id=p.school_id AND d.department_id=p.department_id " +
       "LEFT JOIN LATERAL (" +
