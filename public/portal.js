@@ -2629,7 +2629,7 @@ let teacherActionMenuListenersInstalled = false;
   document.querySelectorAll('.nav-item[data-view]').forEach(button => {
     button.addEventListener('click', () => {
       setView(button.dataset.view);
-      if (window.matchMedia('(max-width: 700px)').matches) closeMobileSidebar();
+      if (window.matchMedia('(max-width: 860px)').matches) closeMobileSidebar();
     });
   });
   $('refreshButton').addEventListener('click', refresh);
@@ -2660,7 +2660,7 @@ let teacherActionMenuListenersInstalled = false;
       button.setAttribute('aria-expanded', String(opening));
       if (submenu) submenu.hidden = !opening;
       const layout = document.querySelector('.portal-layout');
-      if (layout.classList.contains('sidebar-collapsed') && !window.matchMedia('(max-width: 700px)').matches) {
+      if (layout.classList.contains('sidebar-collapsed') && !window.matchMedia('(max-width: 860px)').matches) {
         setSidebarCollapsed(false);
       }
     });
@@ -2679,7 +2679,7 @@ let teacherActionMenuListenersInstalled = false;
       control.setAttribute('aria-pressed', String(nextCollapsed));
       control.setAttribute('aria-label', nextCollapsed ? 'Expand sidebar' : 'Collapse sidebar');
       control.title = nextCollapsed ? 'Expand sidebar' : 'Collapse sidebar';
-      const arrow = control.querySelector('[aria-hidden="true"]');
+      const arrow = control.querySelector('.sidebar-toggle-glyph');
       if (arrow) arrow.textContent = nextCollapsed ? '›' : '‹';
       const label = control.querySelector('.collapse-control-label');
       if (label) label.textContent = nextCollapsed ? 'Expand' : 'Collapse';
@@ -2705,7 +2705,9 @@ let teacherActionMenuListenersInstalled = false;
     $('sidebarToggle').textContent = '×';
   }
   try { setSidebarCollapsed(localStorage.getItem('attendance-sidebar-collapsed') === '1'); } catch {}
-  $('sidebarCollapseButton')?.addEventListener('click', event => {
+  document.addEventListener('click', event => {
+    const control = event.target.closest('#sidebarCollapseButton');
+    if (!control) return;
     event.preventDefault();
     const layout = document.querySelector('.portal-layout');
     const currentlyCollapsed = layout?.dataset.sidebarCollapsed === 'true' ||
@@ -2724,7 +2726,7 @@ let teacherActionMenuListenersInstalled = false;
     }
   });
   window.addEventListener('resize', () => {
-    if (!window.matchMedia('(max-width: 700px)').matches) closeMobileSidebar();
+    if (!window.matchMedia('(max-width: 860px)').matches) closeMobileSidebar();
   });
 
   $('accountMenuButton').addEventListener('click', () => {
