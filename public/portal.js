@@ -3219,12 +3219,18 @@ let teacherActionMenuListenersInstalled = false;
       }
     });
 
-    $('teacherRows').addEventListener('click', async event => {
+        $('teacherRows').addEventListener('click', async event => {
       const selectedMenuAction = event.target.closest('.teacher-action-item');
       if (selectedMenuAction) selectedMenuAction.closest('details.teacher-action-menu')?.removeAttribute('open');
       const manageAssignmentsButton = event.target.closest('[data-manage-permanent]');
       const leaveButton = event.target.closest('[data-place-leave]');
       const profileButton = event.target.closest('[data-edit-teacher-profile]');
+      const teacherQrButton = event.target.closest('[data-teacher-qr]');
+      const substituteButton = event.target.closest('[data-assign-substitute]');
+      const cancelSubstitutionButton = event.target.closest('[data-cancel-substitution]');
+      const returnButton = event.target.closest('[data-return-teacher]');
+      const deactivateButton = event.target.closest('[data-deactivate-teacher]');
+
       if (profileButton) {
         const teacher = teachers.find(item => String(item.userId) === String(profileButton.dataset.editTeacherProfile));
         if (!teacher) return;
@@ -3240,23 +3246,18 @@ let teacherActionMenuListenersInstalled = false;
         } catch (error) { showToast(error.message, true); profileButton.disabled = false; }
         return;
       }
-      const teacherQrButton = event.target.closest('[data-teacher-qr]');
+
       if (teacherQrButton) {
         try { await printTeacherGateQr(teacherQrButton.dataset.teacherQr); }
         catch (error) { showToast(error.message, true); }
         return;
       }
-      if (designationButton) {
-        const teacher = teachers.find(item => Strinonst deactivateButton = event.target.closest('[data-deactivate-teacher]');
-      const substituteButton = event.target.closest('[data-assign-substitute]');
-      const cancelSubstitutionButton = event.target.closest('[data-cancel-substitution]');
+
       if (manageAssignmentsButton) {
-        const teacherId = manageAssignmentsButton.dataset.managePermanent;
-        const teacher = teachers.find(item => String(item.userId) === String(teacherId));
+        const teacher = teachers.find(item => String(item.userId) === String(manageAssignmentsButton.dataset.managePermanent));
         if (teacher) openPermanentAssignmentDialog(teacher, manageAssignmentsButton);
       } else if (substituteButton) {
-        const teacherId = substituteButton.dataset.assignSubstitute;
-        const teacher = teachers.find(item => String(item.userId) === String(teacherId));
+        const teacher = teachers.find(item => String(item.userId) === String(substituteButton.dataset.assignSubstitute));
         if (teacher) openSubstituteDialog(teacher, substituteButton);
       } else if (cancelSubstitutionButton) {
         const substitutionId = cancelSubstitutionButton.dataset.cancelSubstitution;
@@ -3288,18 +3289,15 @@ let teacherActionMenuListenersInstalled = false;
         }
       } else if (deactivateButton) {
         const teacherId = deactivateButton.dataset.deactivateTeacher;
-        if (!await AppDialog.confirm('Deactivate this teacher account permanently? Login will be disabled, but historical attendance and schedule assignments will be preserved.', { title: 'Deactivate teacher account', confirmText: 'Deactivate account', variant: 'danger' })) return;
-        const button = deactivateButton;
-        button.disabled = true;
+        if (!await AppDialog.confirm('Deactivate this teacher account? Login will be disabled, but historical attendance and schedule assignments will be preserved.', { title: 'Deactivate teacher account', confirmText: 'Deactivate account', variant: 'danger' })) return;
+        deactivateButton.disabled = true;
         try {
-          await api(`/api/teachers/${encodeURIComponent(teacherId)}`, {
-            method: 'PATCH', body: JSON.stringify({ active: false })
-          });
+          await api(`/api/teachers/${encodeURIComponent(teacherId)}`, { method: 'PATCH', body: JSON.stringify({ active: false }) });
           await loadSchoolData();
           showToast('Teacher account deactivated.');
         } catch (error) {
           showToast(error.message, true);
-          button.disabled = false;
+          deactivateButton.disabled = false;
         }
       }
     });
