@@ -1234,7 +1234,7 @@ function coverageStatusLabel(status) {
           <td>${esc(period.startTime)}–${esc(period.endTime)}</td>
           <td>${esc(period.assignedTeacherName || 'Unassigned')}</td><td>${deleteAction}</td>
         </tr>`;
-      }).join('') : '<tr><td colspan="' + (canBulkAssign ? 9 : 8) + '" class="empty-cell">No class schedules are available yet.</td></tr>';
+      }).join('') : '<tr><td colspan="' + (canBulkAssign ? 10 : 9) + '" class="empty-cell">No class schedules are available yet.</td></tr>';
 
       $('scheduleScopeText').textContent = user.role === 'DEPARTMENT_HEAD'
         ? 'Create class schedules and assign Subject Teachers within your department. View schedules across the school.'
@@ -1247,7 +1247,7 @@ function coverageStatusLabel(status) {
     }));
 
     const departmentHeadCanCreate = user.role === 'DEPARTMENT_HEAD' && Boolean(user.departmentId) && user.departmentCode !== 'UNASSIGNED';
-    $('showScheduleForm').hidden = !(user.role === 'SCHOOL_ADMIN' || departmentHeadCanCreate);
+    $('showScheduleForm').hidden = !departmentHeadCanCreate;
     $('showScheduleForm').textContent = '＋ Create class schedule';
     if (user.role === 'DEPARTMENT_HEAD' && !departmentHeadCanCreate) {
       $('scheduleScopeText').textContent = 'Your account is awaiting department assignment. You can monitor schedules until the School Administrator assigns your department.';
