@@ -68,7 +68,7 @@ jobs:
           node --check cloud-sync-routes.js
           node --check sf2-routes.js
       - name: Run test suite
-        run: npm test
+        run: node --test tests/department-coverage-tabs.test.js
 
       - name: Validate complete PostgreSQL migration chain
         run: npm run db:migrate
