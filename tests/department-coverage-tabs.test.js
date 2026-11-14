@@ -47,7 +47,9 @@ test('Coverage cards show useful class information and preserve grace-period sta
     assert.match(portal, new RegExp(`row\\.${field}`));
   }
   assert.match(portal, /function coverageDisplayLabel\(row\)/);
-  assert.match(portal, /Teacher Present/);
+  for (const label of ['Teacher Present','No Teacher Assigned','Check-in Not Recorded','On Leave','Substitute Assigned','Uncovered Period','Waiting for Class']) {
+    assert.ok(portal.includes(label), `Missing coverage status label: ${label}`);
+  }
   assert.match(portal, /coverageNeedsAction\(row\)/);
   assert.match(routes, /p\.start_time \+ make_interval\(mins => p\.grace_minutes\)/);
 });
