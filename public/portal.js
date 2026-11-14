@@ -2401,7 +2401,9 @@ let teacherActionMenuListenersInstalled = false;
       const days = Array.from({length:7},(_,weekday)=>({weekday,isOperatingDay:Boolean(document.querySelector('#operatingDayChoices input[value="' + weekday + '"]')?.checked)}));
       if (!days.some(day=>day.isOperatingDay)) { feedback.textContent='Select at least one operating day.'; return; }
       feedback.textContent='Saving…';
-      try { await api('/api/scheduling-config/operating-days',{method:'PUT',body:JSON.stringify({days})}); schoolOperatingDays=days; feedback.textContent='Operating days saved.'; }
+      try { await api('/api/scheduling-config/operating-days',{method:'PUT',body:JSON.stringify({days})}); schoolOperatingDays=days;
+        document.querySelectorAll('#scheduleWeekdayChoices input[type="checkbox"]').forEach(input=>{input.checked=days.some(day=>day.isOperatingDay&&Number(day.weekday)===Number(input.value));});
+        feedback.textContent='Operating days saved.'; }
       catch(error){feedback.textContent=error.message;}
     });
     $('timetableTemplateForm')?.addEventListener('submit', async event => {
@@ -3511,6 +3513,10 @@ let teacherActionMenuListenersInstalled = false;
     $('scheduleForm').hidden = !opening;
     if (!opening) return;
     $('scheduleFormFeedback').textContent = '';
+    const defaultDays = schoolOperatingDays.filter(day=>day.isOperatingDay).map(day=>Number(day.weekday));
+    document.querySelectorAll('#scheduleWeekdayChoices input[type="checkbox"]').forEach(input=>{
+      input.checked = defaultDays.length ? defaultDays.includes(Number(input.value)) : Number(input.value)>=1 && Number(input.value)<=5;
+    });
     if (user.role !== 'TEACHER') {
       const eligible = teachers.filter(item => item.active && (item.teacherDesignations || []).includes('SUBJECT_TEACHER') &&
         (user.role !== 'DEPARTMENT_HEAD' || String(item.departmentId) === String(user.departmentId)));
