@@ -31,3 +31,25 @@ test('school scheduling configuration APIs enforce admin writes and school scopi
   assert.match(routes,/days\.length!==7/);
   assert.match(routes,/WEEKEND/);
 });
+
+test('weekly schedule assignments are stored and conflicts are limited to shared weekdays',()=>{
+  const html=read('public/portal.html');
+  const portal=read('public/portal.js');
+  const server=read('server.js');
+  assert.match(html,/id="operatingDaysForm"/);
+  assert.match(html,/id="timetableTemplateForm"/);
+  assert.match(html,/id="calendarExceptionForm"/);
+  assert.match(html,/id="scheduleWeekdayChoices"/);
+  assert.match(portal,/weekdays: selectedScheduleWeekdays\(\)/);
+  assert.match(portal,/scheduleTemplatePeriod/);
+  assert.match(server,/INSERT INTO class_period_days\(school_id,period_id,weekday\)/);
+  assert.match(server,/d\.weekday=ANY\(\$[0-9]+::smallint\[\]\)/);
+  assert.match(server,/array_agg\(d\.weekday ORDER BY d\.weekday\)/);
+});
+
+test('administrator can load the shared timetable while configuration writes remain admin-only',()=>{
+  const server=read('server.js');
+  const routes=read('scheduling-config-routes.js');
+  assert.match(server,/app\.get\('\/api\/periods', authenticateSchoolClient, requireSchoolRoles\('SCHOOL_ADMIN','DEPARTMENT_HEAD','TEACHER'\)/);
+  assert.match(routes,/app\.put\('\/api\/scheduling-config\/operating-days',authenticateSchoolClient,admin/);
+});
