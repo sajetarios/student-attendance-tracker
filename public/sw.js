@@ -1,10 +1,10 @@
-const CACHE = "school-attendance-shell-v30-mobile-roster";
+const CACHE = "school-attendance-shell-v31-department-coverage-tabs";
 
 const SHELL = [
   "/portal-login.html",
-  "/portal.css?v=0.9.15",
+  "/portal.css?v=0.9.21",
   "/portal.css",
-  "/portal.js?v=0.9.18",
+  "/portal.js?v=0.9.27",
   "/academic-admin.css?v=1",
   "/academic-admin.js?v=2",
   "/app-dialog.css?v=1",
