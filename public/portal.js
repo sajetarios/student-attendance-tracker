@@ -3399,10 +3399,10 @@ let teacherActionMenuListenersInstalled = false;
       const currentValues = teacher.teacherDesignations || [];
       const current = currentValues.includes('SUBJECT_TEACHER') && currentValues.includes('CLASS_ADVISER')
         ? 'BOTH' : currentValues[0] || '';
-      const answer = await AppDialog.prompt('Choose the permissions for this teacher account. Existing subject-period and class adviser assignments are preserved. A permission cannot be removed while linked assignments still depend on it.', current, {
-        title: 'Edit teacher permissions',
-        label: 'Teacher permissions',
-        helpText: 'Subject Teacher: manages assigned subject-class attendance. Class Adviser: manages an assigned advisory section and official SF2. Both: enables both responsibilities.',
+      const answer = await AppDialog.prompt('Choose the teaching designation for this teacher. Existing subject schedules and advisory assignments are preserved. A designation cannot be removed while linked assignments still depend on it.', current, {
+        title: 'Edit teacher designation',
+        label: 'Teacher designation',
+        helpText: 'Subject Teacher: handles assigned subject-class attendance. Class Adviser: handles an assigned advisory section and official SF2. Both: enables both responsibilities.',
         placeholder: 'Choose permissions',
         required: true,
         selectOptions: [
@@ -3419,7 +3419,7 @@ let teacherActionMenuListenersInstalled = false;
           method: 'PATCH', body: JSON.stringify({ teacherDesignations: designations })
         });
         await loadSchoolData();
-        showToast('Teacher permissions updated. Existing schedules and advisory assignments were preserved.');
+        showToast('Teacher designation updated. Existing schedules and advisory assignments were preserved.');
       } catch (error) {
         showToast(error.message, true);
         button.disabled = false;
@@ -3431,9 +3431,14 @@ let teacherActionMenuListenersInstalled = false;
       if (editButton) {
         const assignment = adviserAssignments.find(item => String(item.assignmentId) === String(editButton.dataset.editAdviser));
         if (!assignment) return;
-        const activeAdvisers = teachers.filter(item => item.active && Array.isArray(item.teacherDesignations) && item.teacherDesignations.includes('CLASS_ADVISER'));
+        const activeAdvisers = teachers.filter(item =>
+          item.active &&
+          Array.isArray(item.teacherDesignations) &&
+          item.teacherDesignations.includes('CLASS_ADVISER') &&
+          (user.role !== 'DEPARTMENT_HEAD' || String(item.departmentId) === String(user.departmentId))
+        );
         const values = await AppDialog.form(
-          'Update the adviser, grade level, or section. One Class Adviser may be assigned to each grade-and-section combination.',
+          'Update the assigned teacher or class section. The selected Class Adviser must belong to your department.',
           [
             { name: 'adviserUserId', label: 'Class Adviser', required: true, defaultValue: String(assignment.adviserUserId),
               selectOptions: activeAdvisers.map(item => ({ value: String(item.userId), label: item.displayName })) },
@@ -3442,7 +3447,7 @@ let teacherActionMenuListenersInstalled = false;
             { name: 'section', label: 'Section', required: true, defaultValue: assignment.section, maxLength: 100,
               validate: value => String(value).trim().length <= 100 || 'Section must be 100 characters or fewer.' }
           ],
-          { title: 'Edit Class Adviser assignment', confirmText: 'Save changes' }
+          { title: 'Edit advisory section', confirmText: 'Save assignment' }
         );
         if (values === null) return;
         editButton.disabled = true;
