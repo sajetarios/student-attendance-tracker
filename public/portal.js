@@ -3112,7 +3112,7 @@ let teacherActionMenuListenersInstalled = false;
         feedback.textContent = 'Class Adviser assignment saved.';
       } catch (error) { feedback.className = 'inline-feedback error'; feedback.textContent = error.message; }
     });
-    $('teacherPermissionRows')?.addEventListener('click', async event => {
+    document.addEventListener('click', async event => {
       const button = event.target.closest('[data-edit-teacher-permission]');
       if (!button) return;
       const teacher = teachers.find(item => String(item.userId) === String(button.dataset.editTeacherPermission));
