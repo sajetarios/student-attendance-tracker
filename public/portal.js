@@ -2407,7 +2407,7 @@ let teacherActionMenuListenersInstalled = false;
     $('timetableTemplateForm')?.addEventListener('submit', async event => {
       event.preventDefault();
       const feedback=$('templateFeedback');
-      const periods=String($('templateBlocks').value||'').split(/\\r?\\n/).map(line=>line.trim()).filter(Boolean).map((line,index)=>{
+      const periods=String($('templateBlocks').value||'').split(/\r?\n/).map(line=>line.trim()).filter(Boolean).map((line,index)=>{
         const parts=line.split('|').map(value=>value.trim());
         return {order:index+1,label:parts[0],startTime:parts[1],endTime:parts[2],blockType:(parts[3]||'CLASS').toUpperCase()};
       });
