@@ -16,7 +16,7 @@ test('Department Head coverage uses My Department and Other Departments tabs ins
   assert.match(html, /id="coverageOtherDepartmentsTab"[\s\S]*?data-coverage-tab="OTHER_DEPARTMENTS"/);
   const card = html.slice(html.indexOf('id="teacherCoverageCard"'), html.indexOf('id="learnerSummaryCard"'));
   assert.doesNotMatch(card, /<table[\s>]/i);
-  assert.match(card, /id="teacherCoverageRows"[^>]*class="coverage-card-list"/);
+  assert.match(card, /class="coverage-card-list"[^>]*id="teacherCoverageRows"/);
 });
 
 test('Coverage department grouping is derived by the backend from authenticated Department Head identity', () => {
