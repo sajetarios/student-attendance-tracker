@@ -9,7 +9,11 @@ const execute=process.argv.includes('--execute');
 if(!schoolCode || !/^[A-Za-z0-9_-]{2,40}$/.test(schoolCode)) throw Error('Specify --school=EXACT_SCHOOL_CODE');
 if(execute && process.env.CONFIRM_DEMO_RESET!==schoolCode) throw Error('Reset blocked: set CONFIRM_DEMO_RESET to the exact school code.');
 if(!process.env.DATABASE_URL) throw Error('DATABASE_URL is required.');
-const pool=new Pool({connectionString:process.env.DATABASE_URL});
+// Render external PostgreSQL requires TLS. Verify the server certificate; never disable TLS verification.
+const dbUrl=new URL(process.env.DATABASE_URL);
+if(!['postgres:','postgresql:'].includes(dbUrl.protocol)) throw Error('DATABASE_URL must be PostgreSQL.');
+for(const key of ['sslmode','sslcert','sslkey','sslrootcert']) dbUrl.searchParams.delete(key);
+const pool=new Pool({connectionString:dbUrl.toString(),ssl:{rejectUnauthorized:true}});
 const tables=[
  'school_cloud_sync_outbox','sms_outbox','student_sessions','parent_student_links',
  'student_special_programs','student_movements','student_enrollments','student_accounts',
