@@ -109,3 +109,6 @@ jobs:
         run: npm run db:migrate
       - name: Test full one-time reset against PostgreSQL
         run: node tests/recovery-smoke.cjs
+      - name: Test persistent photo approvals and access controls against PostgreSQL
+        run: node tests/photo-smoke.cjs
+
