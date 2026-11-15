@@ -49,7 +49,8 @@ test('schedule creation derives department and rejects overlapping resources wit
   assert.match(route, /teacher_period_substitutions/);
   assert.match(route, /upper\(btrim\(classroom\)\)/);
   assert.match(route, /pg_advisory_xact_lock/);
-  assert.doesNotMatch(route, /duplicateLabel/);\n  assert.match(route, /INSERT INTO teacher_period_assignments/);
+  assert.doesNotMatch(route, /duplicateLabel/);
+  assert.match(route, /INSERT INTO teacher_period_assignments/);
   assert.doesNotMatch(route, /req\.body\?\.departmentId/);
   assert.doesNotMatch(route, /req\.body\?\.subjectName/);
 });
