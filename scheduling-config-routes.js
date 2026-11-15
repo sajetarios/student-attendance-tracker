@@ -43,7 +43,7 @@ function registerSchedulingConfigRoutes(app,pool,auth){
             'blockType',p.block_type) ORDER BY p.period_order) FILTER(WHERE p.template_period_id IS NOT NULL),'[]'::json) AS periods
          FROM timetable_templates t LEFT JOIN timetable_template_periods p
           ON p.school_id=t.school_id AND p.template_id=t.template_id
-         WHERE t.school_id=$1 AND t.active=TRUE GROUP BY t.template_id ORDER BY t.template_name`,
+         WHERE t.school_id=$1 GROUP BY t.template_id ORDER BY t.active DESC,t.template_name`,
         [req.auth.schoolId]);
       res.json({templates:r.rows});
     }catch(e){console.error(e.message);res.status(500).json({error:'Could not load timetable templates.'});}
@@ -82,6 +82,46 @@ function registerSchedulingConfigRoutes(app,pool,auth){
       await c.query('COMMIT');res.status(201).json({template:t.rows[0]});
     }catch(e){await c.query('ROLLBACK').catch(()=>{});console.error(e.message);res.status(e.code==='23505'?409:400).json({error:e.code==='23505'?'Period order is duplicated in this template.':'Could not create timetable template.'});}
     finally{c.release();}
+  });
+  // Existing class schedules store their own times; editing a template never rewrites them.
+  app.put('/api/scheduling-config/templates/:id',authenticateSchoolClient,admin,async(req,res)=>{
+    const {name,shiftCode,periods}=req.body||{};
+    if(!textOk(name,100)||!['REGULAR','MORNING','AFTERNOON','EVENING','WEEKEND','CUSTOM'].includes(shiftCode)||
+      !Array.isArray(periods)||!periods.length||periods.length>100||
+      periods.some(p=>!textOk(p.label,80)||!timeOk(p.startTime)||!timeOk(p.endTime)||p.endTime<=p.startTime||
+      !['CLASS','BREAK','LUNCH','HOMEROOM','ADVISORY','OTHER'].includes(p.blockType)))
+      return res.status(400).json({error:'Invalid template or time blocks.'});
+    const ordered=[...periods].sort((a,b)=>a.startTime.localeCompare(b.startTime));
+    if(ordered.some((p,i)=>i>0&&p.startTime<ordered[i-1].endTime))
+      return res.status(400).json({error:'Template time blocks cannot overlap.'});
+    const c=await pool.connect();
+    try{
+      await c.query('BEGIN');
+      const updated=await c.query('UPDATE timetable_templates SET template_name=$3,shift_code=$4 WHERE school_id=$1 AND template_id=$2 AND active=TRUE RETURNING template_id',[req.auth.schoolId,req.params.id,name.trim(),shiftCode]);
+      if(!updated.rowCount){await c.query('ROLLBACK');return res.status(404).json({error:'Active template not found.'});}
+      await c.query('DELETE FROM timetable_template_periods WHERE school_id=$1 AND template_id=$2',[req.auth.schoolId,req.params.id]);
+      for(let i=0;i<ordered.length;i++){
+        const p=ordered[i];
+        await c.query('INSERT INTO timetable_template_periods(school_id,template_id,period_order,period_label,start_time,end_time,block_type) VALUES($1,$2,$3,$4,$5::time,$6::time,$7)',[req.auth.schoolId,req.params.id,i+1,p.label.trim(),p.startTime,p.endTime,p.blockType]);
+      }
+      await c.query('COMMIT');res.json({success:true});
+    }catch(e){await c.query('ROLLBACK').catch(()=>{});console.error(e);res.status(500).json({error:'Could not update template.'});}finally{c.release();}
+  });
+  app.delete('/api/scheduling-config/templates/:id',authenticateSchoolClient,admin,async(req,res)=>{
+    const c=await pool.connect();
+    try{
+      await c.query('BEGIN');
+      const existing=await c.query('SELECT template_id FROM timetable_templates WHERE school_id=$1 AND template_id=$2 FOR UPDATE',[req.auth.schoolId,req.params.id]);
+      if(!existing.rowCount){await c.query('ROLLBACK');return res.status(404).json({error:'Template not found.'});}
+      const used=await c.query('SELECT 1 FROM class_periods WHERE school_id=$1 AND timetable_template_id=$2 LIMIT 1',[req.auth.schoolId,req.params.id]);
+      if(used.rowCount){
+        await c.query('UPDATE timetable_templates SET active=FALSE WHERE school_id=$1 AND template_id=$2',[req.auth.schoolId,req.params.id]);
+      }else{
+        await c.query('DELETE FROM timetable_template_periods WHERE school_id=$1 AND template_id=$2',[req.auth.schoolId,req.params.id]);
+        await c.query('DELETE FROM timetable_templates WHERE school_id=$1 AND template_id=$2',[req.auth.schoolId,req.params.id]);
+      }
+      await c.query('COMMIT');res.json({success:true,action:used.rowCount?'archived':'deleted'});
+    }catch(e){await c.query('ROLLBACK').catch(()=>{});console.error(e);res.status(500).json({error:'Could not remove template.'});}finally{c.release();}
   });
   app.get('/api/scheduling-config/calendar-exceptions',authenticateSchoolClient,reader,async(req,res)=>{
     const from=req.query.from||new Date().toISOString().slice(0,10),to=req.query.to||from;
