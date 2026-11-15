@@ -81,7 +81,7 @@ function registerStudentManagementRoutes(app,pool,auth){
   Promise.resolve().then(() => pool.query("SELECT school_id FROM schools WHERE school_code='DEMO001' AND active=TRUE LIMIT 1"))
     .then(async found => {
       if(!found.rowCount) return;
-      const csvText = '\uFEFFStudent ID,Full Name,Sex,Grade Level,Section,LRN,Parent Name,Parent Mobile\\r\\n\\r\\n' +
+      const csvText = '\uFEFFStudent ID,Full Name,Sex,Grade Level,Section,LRN,Parent Name,Parent Mobile\\r\\n\r\n' +
         'DEMO-G8-001,"Bautista, Andres",MALE,Grade 8,Rizal - DEMO,,,\r\n';
       const rows = await readRows({csvText});
       const checked = await preview({auth:{schoolId:found.rows[0].school_id,role:'SCHOOL_ADMIN'},body:{}},rows);
