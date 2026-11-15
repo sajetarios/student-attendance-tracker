@@ -204,7 +204,7 @@
    }
  }
  function mountReviews({token,role,designations=[]}){
-   const eligible=role==='SCHOOL_ADMIN'||(role==='TEACHER'&&designations.includes('CLASS_ADVISER'));
+   const eligible=role==='SCHOOL_ADMIN';
    if(!eligible)return;
    const parent=document.querySelector(role==='SCHOOL_ADMIN'?'#accountAccessPanel':'#studentsView');
    if(!parent||parent.querySelector('.photo-review-panel'))return;
