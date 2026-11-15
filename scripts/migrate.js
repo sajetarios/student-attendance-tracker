@@ -33,7 +33,8 @@ const REQUIRED_MIGRATIONS = [
   '025_school_admin_recovery_codes.sql',
   '026_durable_reviewed_profile_photos.sql',
   '027_platform_admin_profile_photos.sql',
-  '028_schedule_qr_attendance.sql'
+  '028_schedule_qr_attendance.sql',
+  '029_guardian_management.sql'
 ];
 
 function checksum(content) {
