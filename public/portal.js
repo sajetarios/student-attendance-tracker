@@ -1028,7 +1028,7 @@ function coverageStatusLabel(status) {
     if (rosterHeader && departmentHead) {
       rosterHeader.innerHTML = '<th>Student ID</th><th>Full name</th><th>Sex</th><th>Grade</th><th>Section</th><th>Status</th>';
     } else if (rosterHeader) {
-      rosterHeader.innerHTML = '<th>Select</th><th>Photo</th><th>Student ID</th><th>Full name</th><th>Sex</th><th>Grade</th><th>Section</th><th>Status</th><th>QR code</th><th>Actions</th><th>Student portal account</th>';
+      rosterHeader.innerHTML = '<th>Select</th><th>Photo</th><th>Student ID</th><th>Full name</th><th>Sex</th><th>Grade</th><th>Section</th><th>Status</th><th>QR code</th><th>Actions</th>' + (admin ? '<th>Student portal account</th>' : '');
     }
     if ($('studentRosterDescription')) {
       $('studentRosterDescription').textContent = departmentHead
@@ -1058,7 +1058,7 @@ function coverageStatusLabel(status) {
         : departmentHead
           ? 'No active learners are registered in this school yet.'
           : 'No students are available for this filter.';
-      host.innerHTML = '<tr><td colspan="' + (departmentHead ? '6' : '11') + '" class="empty-cell">' + esc(emptyMessage) + '</td></tr>';
+      host.innerHTML = '<tr><td colspan="' + (departmentHead ? '6' : admin ? '11' : '10') + '" class="empty-cell">' + esc(emptyMessage) + '</td></tr>';
     } else {
       const rows = await Promise.all(visible.map(async student => {
         const photo = departmentHead ? '' : await photoDataUrl(student.photoUrl);
@@ -1082,12 +1082,12 @@ function coverageStatusLabel(status) {
         const accountExists = Boolean(student.studentAccountUsername);
         const accountCell = admin
           ? `<div class="student-row-actions"><span class="muted-inline">${accountExists ? `Active login · ${esc(student.studentAccountUsername)}` : 'No student login'}</span><button type="button" class="outline-button" data-student-account="${esc(student.studentId)}" data-account-exists="${accountExists ? '1' : '0'}">${accountExists ? 'Reset login' : 'Create login'}</button></div>`
-          : '<span class="muted-inline">School admin only</span>';
+           : '';
         const statusLabel = student.archivedAt ? 'Archived' : student.active === false ? 'Inactive' : 'Active';
         if (departmentHead) {
           return `<tr><td data-label="Student ID">${esc(student.studentId)}</td><td data-label="Full name"><strong>${esc(student.fullName)}</strong></td><td data-label="Sex">${esc(student.sex || 'Not set')}</td><td data-label="Grade">${esc(student.gradeLevel)}</td><td data-label="Section">${esc(student.section)}</td><td data-label="Status">${statusLabel}</td></tr>`;
         }
-        return `<tr><td data-label="Select">${selection}</td><td data-label="Photo">${avatar}</td><td data-label="Student ID">${esc(student.studentId)}</td><td data-label="Full name">${esc(student.fullName)}</td><td data-label="Sex">${esc(student.sex || 'Not set')}</td><td data-label="Grade">${esc(student.gradeLevel)}</td><td data-label="Section">${esc(student.section)}</td><td data-label="Status">${statusLabel}</td><td data-label="QR code">${qrCell}</td><td data-label="Actions">${actions}</td><td data-label="Student account">${accountCell}</td></tr>`;
+        return `<tr><td data-label="Select">${selection}</td><td data-label="Photo">${avatar}</td><td data-label="Student ID">${esc(student.studentId)}</td><td data-label="Full name">${esc(student.fullName)}</td><td data-label="Sex">${esc(student.sex || 'Not set')}</td><td data-label="Grade">${esc(student.gradeLevel)}</td><td data-label="Section">${esc(student.section)}</td><td data-label="Status">${statusLabel}</td><td data-label="QR code">${qrCell}</td><td data-label="Actions">${actions}</td>${admin ? '<td data-label="Student account">' + accountCell + '</td>' : ''}</tr>`;
       }));
       host.innerHTML = rows.join('');
       host.querySelectorAll('input[data-student-photo]').forEach(input => input.addEventListener('change', async () => {
@@ -3552,7 +3552,7 @@ let teacherActionMenuListenersInstalled = false;
   });
 
   $('downloadStudentTemplate')?.addEventListener('click', () => {
-    const template = 'Student ID,Full Name,Sex,Grade Level,Section,LRN,Parent Name,Parent Mobile\\r\\n';
+    const template = 'Student ID,Full Name,Sex,Grade Level,Section,LRN,Parent Name,Parent Mobile\r\n';
     const blob = new Blob([String.fromCharCode(0xfeff), template], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob); const a = document.createElement('a'); a.href = url; a.download = 'student-import-template.csv'; a.click(); URL.revokeObjectURL(url);
   });
@@ -3584,6 +3584,7 @@ let teacherActionMenuListenersInstalled = false;
   function studentImportRequestPayload() {
     const payload = { ...(pendingStudentImport || {}) };
     const select = $('studentImportAdvisoryAssignment');
+    payload.updateExisting = user.role === 'SCHOOL_ADMIN' && Boolean($('studentImportUpdateExisting')?.checked);
     if (user.role === 'TEACHER' && teacherHas('CLASS_ADVISER') && select?.value) {
       payload.advisoryAssignmentId = select.value;
     }
@@ -3593,39 +3594,67 @@ let teacherActionMenuListenersInstalled = false;
   function resetStudentImport() {
     pendingStudentImport = null; pendingStudentImportPreview = null;
     $('studentImportFile').value = ''; $('studentImportSummary').textContent = '';
-    $('studentImportPreviewRows').innerHTML = '<tr><td colspan="7" class="empty-cell">Choose a file to preview.</td></tr>';
+    if ($('studentImportUpdateExisting')) $('studentImportUpdateExisting').checked = false;
+    if ($('studentImportExistingList')) { $('studentImportExistingList').hidden = true; $('studentImportExistingList').replaceChildren(); }
+    $('studentImportPreviewRows').innerHTML = '<tr><td colspan="8" class="empty-cell">Choose a file to preview.</td></tr>';
     $('confirmStudentImport').disabled = true;
   }
 
   async function previewStudentImport() {
     if (!pendingStudentImport) return;
-    $('studentImportSummary').textContent = 'Validating the file and assigned destination…';
+    const summary = $('studentImportSummary');
+    const list = $('studentImportExistingList');
+    summary.textContent = 'Validating file and checking which students already exist…';
     $('confirmStudentImport').disabled = true;
+    if (list) { list.hidden = true; list.replaceChildren(); }
     try {
       const preview = await api('/api/students/import/preview', { method:'POST', body:JSON.stringify(studentImportRequestPayload()) });
       pendingStudentImportPreview = preview;
-      $('studentImportSummary').textContent = preview.total + ' rows · ' + preview.summary.create + ' new · ' + preview.summary.update + ' updates · ' + preview.summary.error + ' errors';
-      $('studentImportPreviewRows').innerHTML = preview.rows.map(r =>
-        '<tr><td>' + r.rowNumber + '</td><td>' + esc(r.studentId) + '</td><td>' + esc(r.fullName) + '</td><td>' +
-        esc(r.gradeLevel) + '</td><td>' + esc(r.section) + '</td><td>' + esc(r.action) + '</td><td>' +
-        esc((r.errors || []).join(' ')) + '</td></tr>'
-      ).join('') || '<tr><td colspan="7" class="empty-cell">No student rows were found.</td></tr>';
-      $('confirmStudentImport').disabled = preview.summary.error > 0 || preview.total === 0;
-    } catch (error) {
+      const counts = preview.summary || { create:0, update:0, skip:0, error:0 };
+      const eligible = Number(counts.create || 0) + Number(counts.update || 0);
+      summary.textContent = preview.total + ' rows · ' + (counts.create || 0) + ' new · ' +
+        (counts.update || 0) + ' updates · ' + (counts.skip || 0) + ' already exist (skip) · ' +
+        (counts.error || 0) + ' errors.' +
+        (!eligible && !counts.error ? ' All students are already registered; nothing will be imported.' : '');
+      const labels = {CREATE:'Add new', UPDATE:'Update existing', SKIP:'Already exists — skip', ERROR:'Needs correction'};
+      $('studentImportPreviewRows').innerHTML = preview.rows.map(item => {
+        const match = item.existingStudent;
+        const description = match ? '<strong>' + esc(match.fullName) + '</strong><small class="table-subtext">' +
+          esc(match.gradeLevel + ' · ' + match.section) + '</small>' : '<span class="muted-inline">Not registered</span>';
+        return '<tr class="student-import-result-' + esc(String(item.action||'').toLowerCase()) + '"><td>' +
+          esc(item.rowNumber) + '</td><td>' + esc(item.studentId) + '</td><td>' + esc(item.fullName) +
+          '</td><td>' + esc(item.gradeLevel) + '</td><td>' + esc(item.section) +
+          '</td><td><span class="student-import-action-tag">' + esc(labels[item.action] || item.action) +
+          '</span></td><td>' + description + '</td><td>' + esc((item.errors||[]).join(' ')) + '</td></tr>';
+      }).join('') || '<tr><td colspan="8" class="empty-cell">No student rows were found.</td></tr>';
+      const existing = preview.rows.filter(item => item.existingStudent);
+      if (existing.length && list) {
+        list.hidden = false;
+        list.innerHTML = '<strong>' + existing.length + ' student' + (existing.length===1?'':'s') +
+          ' already registered</strong><p>These existing students are shown in the preview. They are skipped unless the School Admin selects Update matching students.</p><ul>' +
+          existing.map(item => '<li><b>' + esc(item.studentId) + '</b> · ' + esc(item.existingStudent.fullName) +
+            ' (' + esc(item.existingStudent.gradeLevel) + ' · ' + esc(item.existingStudent.section) + ')</li>').join('') +
+          '</ul>';
+      }
+      $('confirmStudentImport').disabled = Number(counts.error||0)>0 || !eligible;
+      $('confirmStudentImport').textContent = eligible ? 'Import ' + eligible + ' student' + (eligible===1?'':'s') : 'No new students';
+    } catch(error) {
       pendingStudentImportPreview = null;
-      $('studentImportSummary').textContent = error.message;
-      $('studentImportPreviewRows').innerHTML = '<tr><td colspan="7" class="empty-cell">File could not be validated.</td></tr>';
+      summary.textContent = error.message;
+      $('studentImportPreviewRows').innerHTML = '<tr><td colspan="8" class="empty-cell">File could not be validated.</td></tr>';
     }
   }
 
   $('bulkImportStudentsButton')?.addEventListener('click', () => {
     resetStudentImport();
+    if ($('studentImportUpdateExistingWrap')) $('studentImportUpdateExistingWrap').hidden = user.role !== 'SCHOOL_ADMIN';
     prepareStudentImportAdvisoryScope();
     $('studentImportModal').hidden = false;
   });
   $('closeStudentImport')?.addEventListener('click', () => { $('studentImportModal').hidden = true; });
   $('cancelStudentImport')?.addEventListener('click', () => { $('studentImportModal').hidden = true; resetStudentImport(); });
   $('studentImportAdvisoryAssignment')?.addEventListener('change', () => { previewStudentImport().catch(error => showToast(error.message, true)); });
+  $('studentImportUpdateExisting')?.addEventListener('change', () => { previewStudentImport().catch(error => showToast(error.message, true)); });
   $('studentImportFile')?.addEventListener('change', async () => {
     const file = $('studentImportFile').files?.[0]; if (!file) return;
     pendingStudentImport = null; pendingStudentImportPreview = null;
@@ -3647,11 +3676,11 @@ let teacherActionMenuListenersInstalled = false;
   });
   $('confirmStudentImport')?.addEventListener('click', async () => {
     if (!pendingStudentImport || !pendingStudentImportPreview || pendingStudentImportPreview.summary.error) return;
-    if (!await AppDialog.confirm('Import ' + pendingStudentImportPreview.total + ' student records? Existing Student IDs will be updated, not duplicated.', { title: 'Import student records', confirmText: 'Import students' })) return;
+    if (!await AppDialog.confirm('Import ' + (pendingStudentImportPreview.summary.create + pendingStudentImportPreview.summary.update) + ' student records? ' + (pendingStudentImportPreview.summary.skip || 0) + ' existing students will be skipped. Duplicate IDs will not be created.', { title: 'Import student records', confirmText: 'Import students' })) return;
     $('confirmStudentImport').disabled = true; $('studentImportSummary').textContent = 'Saving records…';
     try {
       const result = await api('/api/students/import/commit', { method:'POST', body:JSON.stringify(studentImportRequestPayload()) });
-      const summary = 'Completed: ' + result.created + ' created and ' + result.updated + ' updated.';
+      const summary = 'Completed: ' + result.created + ' created, ' + result.updated + ' updated, ' + (result.skipped || 0) + ' already existing skipped.';
       resetStudentImport(); $('studentImportModal').hidden = true; selectedStudentIds.clear(); await loadSchoolData();
       showToast(summary);
     } catch (error) { $('studentImportSummary').textContent = error.message; $('confirmStudentImport').disabled = false; }
