@@ -19,6 +19,7 @@ test('configurable scheduling migration is registered and additive',()=>{
   assert.match(sql,/CREATE TABLE IF NOT EXISTS class_period_days/);
   assert.match(calendarSql,/ADD COLUMN IF NOT EXISTS dismissal_time TIME/);
   assert.match(calendarSql,/CREATE TABLE IF NOT EXISTS school_calendar_exception_periods/);
+  assert.match(calendarSql,/school_calendar_exceptions_school_exception_uidx/);
   assert.match(sql,/ADD COLUMN IF NOT EXISTS effective_from DATE/);
   assert.doesNotMatch(sql,/DROP TABLE|TRUNCATE|DELETE FROM (students|attendance)/i);
 });
@@ -75,6 +76,9 @@ test('calendar exceptions require selected schedules or an explicit shortened-da
   assert.match(server,/School is marked closed on this date/);
   assert.match(server,/not selected to operate on this special calendar date/);
   assert.match(server,/after the scheduled dismissal time for this shortened day/);
+  assert.match(server,/updated_at AS \"appliedAt\"/);
+  assert.match(server,/new Date\(event\.occurredAt\) >= new Date\(calendarException\.appliedAt\)/);
+  assert.match(server,/p\.effective_from<=\$4::date/);
   assert.match(portal,/calendarExceptionSchedules/);
   assert.match(portal,/renderCalendarExceptions/);
   assert.match(html,/id="calendarExceptionList"/);
