@@ -4342,7 +4342,7 @@ let teacherActionMenuListenersInstalled = false;
       const password = $('demoStudentLoginPassword')?.textContent || '';
       if (!username || !password) return;
       try {
-        await navigator.clipboard.writeText('School: DEMO001\\nStudent username: ' + username + '\\nTemporary password: ' + password);
+        await navigator.clipboard.writeText('School: DEMO001\nStudent username: ' + username + '\nTemporary password: ' + password);
         $('demoStudentLoginFeedback').textContent = 'Credentials copied. Share them only with the intended demo tester.';
       } catch {
         $('demoStudentLoginFeedback').textContent = 'Your browser blocked copying. Select and copy the displayed username and password.';
