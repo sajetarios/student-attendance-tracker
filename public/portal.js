@@ -1464,6 +1464,7 @@ function coverageStatusLabel(status) {
     const cardsForDay = day => filtered.filter(period =>
       Array.isArray(period.weekdays) && period.weekdays.map(Number).includes(day)
     ).sort((a,b) => String(a.startTime || '').localeCompare(String(b.startTime || '')) || String(a.periodName || '').localeCompare(String(b.periodName || '')));
+    host.style.setProperty('--visible-days', String(days.length || 5));
     host.innerHTML = days.length ? days.map(day => {
       const dayPeriods = cardsForDay(day);
       return '<section class="weekly-day-column"><header><strong>' + names[day] + '</strong><span>' + dayPeriods.length + ' schedule' + (dayPeriods.length === 1 ? '' : 's') + '</span></header>' +
@@ -2459,6 +2460,7 @@ let teacherActionMenuListenersInstalled = false;
         : '<p>No templates yet. Create a template to reuse period times.</p>');
     } catch (error) {
       console.warn('Scheduling settings could not be loaded:', error.message);
+      if ($('operatingDaysFeedback')) { $('operatingDaysFeedback').textContent = 'Unable to load settings. Check your connection and refresh before editing. ' + error.message; $('operatingDaysFeedback').classList.add('error'); }
     }
   }
 
@@ -2508,7 +2510,27 @@ let teacherActionMenuListenersInstalled = false;
     $('scheduleFormFeedback').textContent = 'Times filled from ' + template.name + '. You can still adjust them if authorized.';
   }
 
+  function addTemplateBlock() {
+    const host = $('templateBlockRows');
+    if (!host || host.children.length >= 100) return;
+    const previousEnd = host.lastElementChild?.querySelector('[data-block-end]')?.value || '07:30';
+    const row = document.createElement('fieldset');
+    row.className = 'template-block-row';
+    row.innerHTML = '<legend>Time block</legend><label>Label<input data-block-label required maxlength="80" placeholder="e.g. Period 1 or Morning break"></label><label>Type<select data-block-type><option value="CLASS">Class</option><option value="BREAK">Break</option><option value="LUNCH">Lunch</option><option value="HOMEROOM">Homeroom</option><option value="ADVISORY">Advisory</option><option value="OTHER">Other</option></select></label><label>Start<input data-block-start type="time" required step="60"></label><label>End<input data-block-end type="time" required step="60"></label><button type="button" class="outline-button" data-remove-block>Remove block</button>';
+    row.querySelector('[data-block-start]').value = previousEnd;
+    row.querySelector('[data-remove-block]').addEventListener('click', () => {
+      row.remove();
+      if (!host.children.length) addTemplateBlock();
+    });
+    host.append(row);
+  }
+
   function wireSchedulingSettingsForms() {
+    addTemplateBlock();
+    $('addTemplateBlock')?.addEventListener('click', () => {
+      addTemplateBlock();
+      $('templateBlockRows').lastElementChild?.querySelector('input')?.focus();
+    });
     $('operatingDaysForm')?.addEventListener('submit', async event => {
       event.preventDefault();
       const feedback = $('operatingDaysFeedback');
@@ -2523,15 +2545,25 @@ let teacherActionMenuListenersInstalled = false;
     $('timetableTemplateForm')?.addEventListener('submit', async event => {
       event.preventDefault();
       const feedback=$('templateFeedback');
-      const periods=String($('templateBlocks').value||'').split(/\r?\n/).map(line=>line.trim()).filter(Boolean).map((line,index)=>{
-        const parts=line.split('|').map(value=>value.trim());
-        return {order:index+1,label:parts[0],startTime:parts[1],endTime:parts[2],blockType:(parts[3]||'CLASS').toUpperCase()};
-      });
-      if (!periods.length || periods.some(period=>!period.label||!period.startTime||!period.endTime)) {feedback.textContent='Check each line: Label | Start | End | Optional type.';return;}
+      const periods = [...$('templateBlockRows').children].map((row,index) => ({
+        order:index+1, label:row.querySelector('[data-block-label]').value.trim(),
+        startTime:row.querySelector('[data-block-start]').value,
+        endTime:row.querySelector('[data-block-end]').value,
+        blockType:row.querySelector('[data-block-type]').value
+      })).sort((a,b) => a.startTime.localeCompare(b.startTime));
+      for (let i=0;i<periods.length;i++) {
+        const block=periods[i]; block.order=i+1;
+        if (!block.label || !block.startTime || !block.endTime || block.endTime<=block.startTime) {
+          feedback.textContent='Each block needs a label and an end time later than its start.'; return;
+        }
+        if (i && block.startTime<periods[i-1].endTime) {
+          feedback.textContent=block.label+' overlaps '+periods[i-1].label+'. Adjust their times.'; return;
+        }
+      }
       feedback.textContent='Saving template…';
       try {
         await api('/api/scheduling-config/templates',{method:'POST',body:JSON.stringify({name:$('templateName').value.trim(),shiftCode:$('templateShift').value,periods})});
-        $('timetableTemplateForm').reset(); await loadSchedulingSettings(); feedback.textContent='Template saved.';
+        $('timetableTemplateForm').reset(); $('templateBlockRows').replaceChildren(); addTemplateBlock(); await loadSchedulingSettings(); feedback.textContent='Template saved.';
       } catch(error){feedback.textContent=error.message;}
     });
     $('cancelCalendarExceptionEdit')?.addEventListener('click',()=>{
@@ -2796,6 +2828,8 @@ let teacherActionMenuListenersInstalled = false;
     const rgb = color.match(/[0-9a-f]{2}/gi).map(part => parseInt(part, 16));
     const darker = '#' + rgb.map(value => Math.round(value * 0.76).toString(16).padStart(2, '0')).join('');
     document.documentElement.style.setProperty('--brand-strong', darker);
+    document.documentElement.style.setProperty('--sidebar', '#' + rgb.map(value => Math.round(value * 0.32).toString(16).padStart(2, '0')).join(''));
+    document.documentElement.style.setProperty('--nav-active', darker);
     const emblem = $('schoolEmblem');
     const sidebarMark = $('sidebarSchoolMark');
     if (brandingLogoObjectUrl) URL.revokeObjectURL(brandingLogoObjectUrl);

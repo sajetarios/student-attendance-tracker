@@ -136,7 +136,7 @@
 .staff-accounts-card,.adviser-assignments-card{margin-top:18px}
 </style>
 <link rel="stylesheet" href="/responsive.css?v=0.8.3">
-<link rel="stylesheet" href="/comfort-ui.css?v=0.8.7">
+<link rel="stylesheet" href="/comfort-ui.css?v=0.8.8">
   <link rel="stylesheet" href="/app-dialog.css?v=1">
   <link rel="stylesheet" href="/form-system.css?v=1">
 </head>
@@ -631,11 +631,12 @@
                     <button class="primary-button" type="submit">Save operating days</button><span class="inline-feedback" id="operatingDaysFeedback" role="status"></span>
                   </form>
                   <form id="timetableTemplateForm" class="timetable-setting-card">
-                    <strong>Create timetable template</strong><p>Define reusable periods for a shift. Add one time block per line.</p>
+                    <strong>Create timetable template</strong><p>Build your school day with clear start and end times. Add class periods, breaks, and lunch.</p>
                     <label>Template name<input id="templateName" required maxlength="100" placeholder="e.g. Regular morning shift"></label>
                     <label>Shift<select id="templateShift"><option value="REGULAR">Regular</option><option value="MORNING">Morning</option><option value="AFTERNOON">Afternoon</option><option value="EVENING">Evening</option><option value="WEEKEND">Weekend</option><option value="CUSTOM">Custom</option></select></label>
-                    <label>Time blocks<textarea id="templateBlocks" rows="5" required placeholder="Period 1 | 07:30 | 08:30&#10;Break | 08:30 | 08:45 | BREAK&#10;Period 2 | 08:45 | 09:45"></textarea></label>
-                    <small>Format: Label | Start (HH:MM) | End (HH:MM) | Optional type (CLASS, BREAK, LUNCH, HOMEROOM, ADVISORY, OTHER)</small>
+                    <div id="templateBlockRows" aria-label="Time blocks"></div>
+                    <button class="outline-button" id="addTemplateBlock" type="button">＋ Add time block</button>
+                    <small>Use the time pickers. Blocks must end after they start and cannot overlap. Times use the school’s local time.</small>
                     <button class="primary-button" type="submit">Save template</button><span class="inline-feedback" id="templateFeedback" role="status"></span>
                   </form>
                   <form id="calendarExceptionForm" class="timetable-setting-card">
@@ -665,7 +666,7 @@
                     </div>
                   </div>
                 </div>
-                <div id="weeklyTimetableBoard" class="weekly-timetable-board"></div>
+                <p class="field-hint">Filter by grade and section to focus on one class. Swipe or scroll sideways to see the other days.</p><div id="weeklyTimetableBoard" class="weekly-timetable-board"></div>
               </section>
               <div id="periodBulkToolbar" class="student-bulk-actions" hidden><label><input type="checkbox" id="selectAllPeriods"> Select all visible schedules</label><span id="selectedPeriodCount">0 selected</span><label for="bulkScheduleTeacher">Assign to unassigned schedules</label><select id="bulkScheduleTeacher"><option value="">Choose Subject Teacher</option></select><button type="button" class="primary-button" id="applyBulkScheduleAssignment" disabled>Assign selected</button><span id="bulkScheduleFeedback" class="inline-feedback" role="status"></span></div>
               <form id="scheduleForm" class="inline-form schedule-editor-form" hidden>
@@ -894,7 +895,7 @@
   <script src="/sw-refresh.js?v=1" defer></script>
   <script src="/password-visibility.js" defer></script>
   <script src="/vendor/html5-qrcode.min.js" defer></script>
-  <script src="/portal.js?v=0.9.42" defer></script>
+  <script src="/portal.js?v=0.9.43" defer></script>
   <script src="/academic-admin.js?v=2" defer></script>
 </body>
 </html>

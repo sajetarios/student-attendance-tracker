@@ -445,3 +445,22 @@ body.attendance-desk .feedback { background: #eff4fa; color: #53677f !important;
   .student-scan-error-actions { flex-direction: column-reverse; }
   .student-scan-error-actions button { width: 100%; }
 }
+
+/* Guided timetable editor and school identity navigation. */
+.portal-page .nav-item.active { background: var(--nav-active, var(--brand-strong)); border-left-color: var(--brand); }
+.portal-page .timetable-settings-grid { grid-template-columns: minmax(210px,1fr) minmax(320px,1.6fr); align-items:start; }
+.portal-page #calendarExceptionForm { grid-column: 1 / -1; }
+.template-block-row { display:grid; grid-template-columns:1fr 1fr; gap:12px; padding:14px; margin:0 0 14px; border:1px solid var(--line); border-radius:12px; background:var(--bg); min-width:0; }
+.template-block-row legend { font-weight:700; padding:0 5px; color:var(--brand-strong); }
+.template-block-row label { min-width:0; }
+.template-block-row input,.template-block-row select { width:100%; min-height:44px; box-sizing:border-box; }
+.template-block-row label:first-of-type { grid-column:1 / -1; }
+.portal-page .weekly-timetable-board { grid-template-columns:repeat(var(--visible-days,5),minmax(210px,1fr)); overflow-x:auto; scroll-snap-type:x proximity; padding:8px 2px 18px; }
+.portal-page .weekly-day-column { scroll-snap-align:start; background:var(--bg); min-height:200px; }
+.portal-page .weekly-day-column>header { flex-direction:column; align-items:flex-start; gap:4px; padding:10px; border-bottom:3px solid var(--brand); }
+.portal-page .weekly-day-column>header strong { font-size:16px; }
+.portal-page .weekly-day-column>header span { font-size:12px; }
+.portal-page .weekly-schedule-card { padding:14px; margin-bottom:12px; background:#fff; border-left:3px solid var(--brand); }
+.portal-page .weekly-card-time { font-size:14px; font-weight:700; color:var(--brand-strong); }
+.portal-page .weekly-schedule-card.is-unassigned { border-left-color:#b77913; }
+@media(max-width:800px) { .portal-page .timetable-settings-grid { grid-template-columns:1fr; } .portal-page .weekly-timetable-board { grid-template-columns:repeat(var(--visible-days,5),minmax(260px,80vw)); } }

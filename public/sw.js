@@ -1,10 +1,10 @@
-const CACHE = "school-attendance-shell-v46-role-dashboard";
+const CACHE = "school-attendance-shell-v47-guided-timetable";
 
 const SHELL = [
   "/portal-login.html",
   "/portal.css?v=0.9.25",
   "/portal.css",
-  "/portal.js?v=0.9.42",
+  "/portal.js?v=0.9.43",
   "/academic-admin.css?v=1",
   "/academic-admin.js?v=2",
   "/app-dialog.css?v=1",
@@ -16,7 +16,7 @@ const SHELL = [
   "/portal-login.js",
   "/login-routing.js",
   "/responsive.css?v=0.8.3",
-  "/comfort-ui.css?v=0.8.7",
+  "/comfort-ui.css?v=0.8.8",
   "/styles.css",
   "/app.js",
   "/manifest.webmanifest",
