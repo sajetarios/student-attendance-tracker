@@ -1,0 +1,142 @@
+/* Dashboard polish v60. School branding is still owned by School Admin through --brand. */
+:root{--sidebar-sheen:color-mix(in srgb,var(--brand,#7042a3) 35%,transparent)}
+.portal-page .sidebar{
+  background:
+    radial-gradient(ellipse at 0 0,rgba(255,255,255,.13),transparent 57%),
+    radial-gradient(ellipse at 100% 83%,var(--sidebar-sheen),transparent 58%),
+    linear-gradient(158deg,
+      color-mix(in srgb,var(--brand,#7042a3) 46%,#252035),
+      color-mix(in srgb,var(--brand,#7042a3) 29%,#18223a) 48%,#11192a)!important;
+  border-right:1px solid rgba(255,255,255,.12)!important;
+  box-shadow:inset -1px 0 0 rgba(255,255,255,.04),8px 0 26px rgba(6,13,29,.09)
+}
+html[data-ui-theme="dark"] .portal-page .sidebar{
+  background:
+    radial-gradient(ellipse at 0 0,rgba(255,255,255,.09),transparent 58%),
+    radial-gradient(ellipse at 110% 85%,var(--sidebar-sheen),transparent 58%),
+    linear-gradient(161deg,
+      color-mix(in srgb,var(--brand,#7042a3) 35%,#151b2e),
+      color-mix(in srgb,var(--brand,#7042a3) 15%,#10182b) 52%,#0c1423)!important
+}
+.portal-page .sidebar-bottom{background:transparent!important}
+.portal-page .sidebar-status{
+  padding:11px 12px;border-radius:13px;
+  background:rgba(7,14,27,.30)!important;
+  border:1px solid rgba(255,255,255,.13)!important;
+  color:#e6eefc;backdrop-filter:blur(8px)
+}
+.portal-page .sidebar-brand{border-bottom-color:rgba(255,255,255,.17)!important}
+.portal-page .sidebar-section-label{color:#c7d4e7!important;letter-spacing:.12em}
+.portal-page :is(.nav-item,.nav-group-toggle,.nav-subitem){
+  border-radius:12px;transition:background-color .16s,color .16s,box-shadow .16s
+}
+.portal-page :is(.nav-item,.nav-group-toggle,.nav-subitem):hover{
+  background:rgba(255,255,255,.11)!important;color:#fff!important
+}
+.portal-page :is(.nav-item.active,.nav-subitem.active){
+  position:relative;
+  color:#fff!important;
+  background:linear-gradient(105deg,
+    color-mix(in srgb,var(--brand,#7042a3) 48%,rgba(255,255,255,.20)),
+    color-mix(in srgb,var(--brand,#7042a3) 25%,rgba(255,255,255,.07)))!important;
+  box-shadow:inset 0 0 0 1px rgba(255,255,255,.12),0 5px 18px rgba(0,0,0,.14)!important
+}
+.portal-page :is(.nav-item.active,.nav-subitem.active)::before{
+  content:"";position:absolute;left:0;top:10px;bottom:10px;width:3px;
+  border-radius:0 4px 4px 0;background:#c7edff
+}
+.portal-page :is(.nav-item.active,.nav-subitem.active) .nav-icon{color:#fff!important}
+
+/* Refined topbar collapse/expand action with coherent panel glyph. */
+.portal-page #sidebarCollapseButton.desktop-sidebar-toggle{
+  display:inline-flex;gap:10px;align-items:center;justify-content:center;
+  min-height:46px;padding:6px 14px 6px 8px;
+  border-radius:14px;border:1px solid #d6e0eb!important;
+  background:linear-gradient(#fff,#f2f6fb)!important;
+  color:#264260!important;
+  font-size:14px;font-weight:780;
+  box-shadow:0 4px 12px rgba(15,37,60,.08);
+  transition:border-color .16s,box-shadow .16s,transform .16s
+}
+.portal-page #sidebarCollapseButton.desktop-sidebar-toggle:hover{
+  background:linear-gradient(#fff,#eaf0f9)!important;
+  border-color:color-mix(in srgb,var(--brand,#7042a3) 32%,#bfcddd)!important;
+  box-shadow:0 7px 18px rgba(14,34,57,.13);transform:translateY(-1px)
+}
+.portal-page #sidebarCollapseButton .sidebar-toggle-glyph{
+  width:32px;height:32px;display:inline-flex;align-items:center;justify-content:center;
+  border-radius:10px;background:color-mix(in srgb,var(--brand,#7042a3) 10%,#eaf1f9);
+  color:color-mix(in srgb,var(--brand,#7042a3) 55%,#284d70)
+}
+.portal-page #sidebarCollapseButton .sidebar-toggle-glyph .ui-icon{width:19px;height:19px}
+html[data-ui-theme="dark"] .portal-page #sidebarCollapseButton.desktop-sidebar-toggle{
+  background:linear-gradient(#293a53,#1b2a42)!important;
+  border-color:#40516c!important;color:#edf4ff!important;
+  box-shadow:0 4px 15px rgba(0,0,0,.22)
+}
+html[data-ui-theme="dark"] .portal-page #sidebarCollapseButton.desktop-sidebar-toggle:hover{
+  background:linear-gradient(#344663,#24354d)!important;border-color:var(--ui-accent)!important
+}
+html[data-ui-theme="dark"] .portal-page #sidebarCollapseButton .sidebar-toggle-glyph{
+  color:#e4edff;background:color-mix(in srgb,var(--brand,#7042a3) 30%,#34465f)
+}
+.portal-page #sidebarCollapseButton:focus-visible{outline:3px solid var(--ui-accent,#7ac2ed);outline-offset:3px}
+
+/* Larger, legible shortcut labels for School Admin, Department Head and teachers. */
+.portal-page .quick-card .quick-action,.portal-page .admin-dashboard-action{
+  min-height:82px;padding:16px 18px;gap:14px;border-radius:15px
+}
+.portal-page .quick-card .quick-action strong,.portal-page .admin-dashboard-action strong{
+  display:block;font-size:17px!important;line-height:1.35;font-weight:800;letter-spacing:-.01em
+}
+.portal-page .quick-card .quick-action small,.portal-page .admin-dashboard-action small{
+  display:block;font-size:14px!important;line-height:1.55;margin-top:3px
+}
+.portal-page .quick-card .quick-action small,.portal-page .admin-dashboard-action small{color:#66788d}
+html[data-ui-theme="dark"] .portal-page :is(.quick-card .quick-action strong,.admin-dashboard-action strong){color:var(--ui-text)!important}
+html[data-ui-theme="dark"] .portal-page :is(.quick-card .quick-action small,.admin-dashboard-action small,.scope-note p){color:var(--ui-muted)!important}
+.portal-page .quick-card .quick-action-icon{width:44px;height:44px;flex-basis:44px;border-radius:13px}
+.portal-page .quick-card .quick-action-icon .ui-icon,.portal-page .admin-action-icon .ui-icon{width:22px;height:22px}
+.portal-page .quick-card .card-heading p,.portal-page .admin-dashboard-intro p{font-size:15px;line-height:1.6}
+.portal-page .scope-note,.portal-page .scope-note p{font-size:14px;line-height:1.55}
+
+/* Stabilize security table widths. Role and department are separate, with safe ellipsis. */
+.portal-page .security-accounts-table{width:100%;min-width:1080px;table-layout:fixed}
+.portal-page .security-accounts-table :is(th,td){box-sizing:border-box}
+.portal-page .security-accounts-table :is(th,td):nth-child(1){width:17%}
+.portal-page .security-accounts-table :is(th,td):nth-child(2){width:23%}
+.portal-page .security-accounts-table :is(th,td):nth-child(3){width:10%}
+.portal-page .security-accounts-table :is(th,td):nth-child(4){width:16%}
+.portal-page .security-accounts-table :is(th,td):nth-child(5){width:10%;text-align:center}
+.portal-page .security-accounts-table :is(th,td):nth-child(6){width:7%;text-align:center}
+.portal-page .security-accounts-table :is(th,td):nth-child(7){width:17%}
+.portal-page .security-role-cell{display:flex;flex-direction:column;gap:5px;min-width:0}
+.portal-page .security-role-cell .role-line{
+  font-size:13px;font-weight:750;color:#273e55;
+  display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis
+}
+.portal-page .security-role-cell .department-line{
+  font-size:13px;color:#63798f;
+  display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis
+}
+html[data-ui-theme="dark"] .portal-page .security-role-cell .role-line{color:var(--ui-text)}
+html[data-ui-theme="dark"] .portal-page .security-role-cell .department-line{color:var(--ui-muted)}
+.portal-page .security-accounts-table .account-status{
+  display:inline-flex;min-width:0;max-width:100%;align-items:center;justify-content:center;
+  padding:6px 9px;border-radius:999px;font-size:12px;line-height:1.35;
+  white-space:normal;overflow-wrap:break-word;text-align:center
+}
+.portal-page .security-accounts-table td:nth-child(4){font-size:13px;line-height:1.45;white-space:normal}
+.portal-page .security-accounts-table td:nth-child(7) .action-row{display:flex;flex-wrap:wrap;gap:7px}
+.portal-page .security-accounts-table td:nth-child(7) .compact-button{
+  min-height:36px;font-size:12px;padding:6px 10px
+}
+@media(max-width:700px){
+ .portal-page .quick-card .quick-action,.portal-page .admin-dashboard-action{min-height:76px;padding:14px;gap:12px}
+ .portal-page .quick-card .quick-action strong,.portal-page .admin-dashboard-action strong{font-size:16px!important}
+ .portal-page .quick-card .quick-action small,.portal-page .admin-dashboard-action small{font-size:13px!important}
+ .portal-page .quick-card .quick-action-icon{width:42px;height:42px;flex-basis:42px}
+}
+@media(prefers-reduced-motion:reduce){
+ .portal-page #sidebarCollapseButton.desktop-sidebar-toggle{transition:none!important;transform:none!important}
+}
