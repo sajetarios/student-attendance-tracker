@@ -1,6 +1,7 @@
 'use strict';
 
 const { hashPassword } = require('./auth-security');
+const { createIpRateLimiter } = require('./request-limiter');
 
 const validText = (value, max = 160) => typeof value === 'string' && value.trim().length > 0 && value.trim().length <= max;
 const isUuid = value => typeof value === 'string' && /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value);
@@ -9,7 +10,11 @@ function registerParentRoutes(app, pool, auth) {
   const { authenticateSchoolClient, requireSchoolRoles } = auth;
   const requireAdmin = requireSchoolRoles('SCHOOL_ADMIN');
   const requireParent = requireSchoolRoles('PARENT');
-  const registrationAttempts = new Map();
+  const limitParentRegistrations = createIpRateLimiter({
+    windowMs: 60 * 60 * 1000,
+    maxRequests: 5,
+    message: 'Too many registration attempts. Please try again later.'
+  });
 
   async function audit(client, schoolId, actorType, actorUserId, action, entityType, entityId, details = {}) {
     await client.query(
@@ -20,14 +25,7 @@ function registerParentRoutes(app, pool, auth) {
   }
 
   // Public self-registration. New accounts remain inactive until a school administrator approves them.
-  app.post('/api/parents/register', async (req, res) => {
-    const ip = req.ip || req.socket?.remoteAddress || 'unknown';
-    const now = Date.now();
-    const prior = registrationAttempts.get(ip) || { count: 0, resetAt: now + 60 * 60 * 1000 };
-    if (prior.resetAt <= now) { prior.count = 0; prior.resetAt = now + 60 * 60 * 1000; }
-    if (prior.count >= 5) return res.status(429).json({ error: 'Too many registration attempts. Please try again later.' });
-    prior.count += 1; registrationAttempts.set(ip, prior);
-
+  app.post('/api/parents/register', limitParentRegistrations, async (req, res) => {
     const { schoolCode, username, displayName, mobile, password, studentId, relationship } = req.body || {};
     if (![schoolCode, username, displayName, mobile, studentId, relationship].every(v => validText(v, 160)) ||
         typeof password !== 'string' || password.length < 12 || password.length > 256) {
