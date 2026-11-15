@@ -89,6 +89,25 @@ test('weekly schedule assignments are stored and conflicts are limited to shared
   assert.match(server,/array_agg\(d\.weekday ORDER BY d\.weekday\)/);
 });
 
+test('teacher assignment conflict checks keep permanent and substitute SQL aliases separate',()=>{
+  const server=read('server.js');
+  const assignmentQuery=server.match(/const scheduleConflict = await client\.query\(([\s\S]*?)\n\s*\[req\.auth\.schoolId, teacherUserId, req\.params\.periodId\]\n\s*\);/);
+  assert.ok(assignmentQuery,'single schedule assignment conflict query should be present');
+  const assignmentSql=assignmentQuery[1];
+  const permanentBranch=assignmentSql.split('UNION ALL')[0];
+  const substituteBranch=assignmentSql.split('UNION ALL')[1]||'';
+  assert.match(permanentBranch,/FROM teacher_period_assignments existing/);
+  assert.doesNotMatch(permanentBranch,/\bts\./);
+  assert.match(substituteBranch,/FROM teacher_period_substitutions ts/);
+  assert.match(substituteBranch,/ts\.start_date/);
+
+  const bulkQuery=server.match(/const conflict = await client\.query\(([\s\S]*?)\n\s*\[req\.auth\.schoolId, teacherUserId, p\.periodId, p\.startTime, p\.endTime\]\n\s*\);/);
+  assert.ok(bulkQuery,'bulk schedule assignment conflict query should be present');
+  const bulkPermanentBranch=bulkQuery[1].split('UNION ALL')[0];
+  assert.match(bulkPermanentBranch,/FROM teacher_period_assignments a/);
+  assert.doesNotMatch(bulkPermanentBranch,/\bts\./);
+});
+
 test('administrator can load the shared timetable while configuration writes remain admin-only',()=>{
   const server=read('server.js');
   const routes=read('scheduling-config-routes.js');
