@@ -140,3 +140,87 @@ html[data-ui-theme="dark"] .portal-page .security-role-cell .department-line{col
 @media(prefers-reduced-motion:reduce){
  .portal-page #sidebarCollapseButton.desktop-sidebar-toggle{transition:none!important;transform:none!important}
 }
+
+/* Compact, accessible learner cards on phones (light and dark). */
+@media (max-width:700px) {
+ #studentsView #studentRosterTable tbody {gap:14px!important}
+ #studentsView #studentRosterTable tbody tr:not(:has(td.empty-cell)) {
+   grid-template-columns:repeat(2,minmax(0,1fr))!important;
+   gap:0 10px!important;padding:14px!important;border-radius:17px!important;
+   background:var(--ui-panel,#fff)!important;
+   border:1px solid var(--ui-line,#dce5ef)!important;
+   box-shadow:0 5px 18px rgba(16,35,62,.09)!important;
+ }
+ #studentsView #studentRosterTable tbody tr:not(:has(td.empty-cell)) td {
+   background:transparent!important;color:var(--ui-text,#263c55)!important;
+   border:0!important;border-bottom:1px solid var(--ui-line,#e5ebf3)!important;
+   padding:10px 4px!important;min-height:0!important;line-height:1.45!important;
+   font-size:13px!important;overflow-wrap:anywhere;
+ }
+ #studentsView #studentRosterTable tbody td::before {
+   color:var(--ui-muted,#697b90)!important;font-size:10px!important;
+   letter-spacing:.045em!important;
+ }
+ #studentsView #studentRosterTable tbody td[data-label="Full name"] {
+   grid-column:1/-1!important;grid-row:1!important;
+   font-size:17px!important;font-weight:800!important;
+   padding:5px 4px 13px!important;
+ }
+ #studentsView #studentRosterTable tbody td[data-label="Photo"] {
+   grid-column:2!important;grid-row:2 / span 2!important;
+   justify-content:center!important;align-items:center!important;
+ }
+ #studentsView #studentRosterTable .student-photo-thumb,
+ #studentsView #studentRosterTable .student-photo-placeholder {
+   width:64px!important;height:64px!important;object-fit:cover!important;
+   border-radius:50%!important;
+ }
+ #studentsView #studentRosterTable tbody td[data-label="Select"] {
+   grid-column:1!important;grid-row:2!important;
+ }
+ #studentsView #studentRosterTable tbody td[data-label="Student ID"] {
+   grid-column:1!important;grid-row:3!important;
+ }
+ #studentsView #studentRosterTable tbody td[data-label="Sex"],
+ #studentsView #studentRosterTable tbody td[data-label="Grade"],
+ #studentsView #studentRosterTable tbody td[data-label="Section"],
+ #studentsView #studentRosterTable tbody td[data-label="Status"] {
+   grid-column:auto!important;
+ }
+ #studentsView #studentRosterTable tbody td[data-label="QR code"] {
+   grid-column:1!important;align-items:flex-start!important;
+ }
+ #studentsView #studentRosterTable .student-qr-preview img {
+   width:76px!important;height:76px!important;max-width:100%!important;
+ }
+ #studentsView #studentRosterTable tbody td[data-label="Actions"] {
+   grid-column:1/-1!important;align-items:stretch!important;
+ }
+ #studentsView #studentRosterTable tbody td[data-label="Parent / guardian"],
+ #studentsView #studentRosterTable tbody td[data-label="Student account"] {
+   grid-column:1/-1!important;
+ }
+ #studentsView #studentRosterTable .student-row-actions {
+   justify-content:flex-start!important;gap:8px!important;
+ }
+ #studentsView #studentRosterTable .student-row-actions button,
+ #studentsView #studentRosterTable .student-photo-upload {
+   min-height:42px!important;font-size:12px!important;
+ }
+ #studentsView #studentRosterTable tbody td:last-child {border-bottom:0!important}
+ a#classQrTeacherShortcut {
+   right:12px!important;bottom:calc(12px + env(safe-area-inset-bottom,0px))!important;
+   max-width:calc(100vw - 24px)!important;padding:10px 12px!important;
+   font-size:12px!important;border-radius:12px!important;
+ }
+}
+html[data-ui-theme="dark"] #studentsView #studentRosterTable tbody tr:not(:has(td.empty-cell)) {
+ background:#1b2a42!important;border-color:#3b4e69!important;
+}
+html[data-ui-theme="dark"] #studentsView #studentRosterTable tbody tr:not(:has(td.empty-cell)) td {
+ background:transparent!important;color:#edf4ff!important;border-bottom-color:#354761!important;
+}
+html[data-ui-theme="dark"] #studentsView #studentRosterTable tbody td::before {color:#b3c2d8!important}
+html[data-ui-theme="dark"] #studentsView #studentRosterTable tbody td[data-label="Full name"] {color:#f4f8ff!important}
+html[data-ui-theme="dark"] #studentsView #studentRosterTable tbody td .muted-inline,
+html[data-ui-theme="dark"] #studentsView #studentRosterTable tbody td small {color:#c2cde0!important}

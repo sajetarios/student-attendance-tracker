@@ -1,4 +1,4 @@
-const CACHE = "school-attendance-shell-v66-teacher-guardian";
+const CACHE = "school-attendance-shell-v67-mobile-roster";
 
 const SHELL = [
   "/dashboard-icons.js?v=4",
