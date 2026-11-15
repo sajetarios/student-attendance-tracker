@@ -6,6 +6,7 @@
   <meta name="theme-color" content="#1c2d45">
   <title>Dashboard · School Attendance</title>
   <link rel="stylesheet" href="/portal.css?v=0.9.25">
+  <link rel="stylesheet" href="/dashboard-role-ui.css?v=1">
   <link rel="stylesheet" href="/academic-admin.css?v=1">
   <link rel="stylesheet" href="/password-visibility.css">
 
@@ -231,16 +232,18 @@
             </section>
             <section id="adminDashboardCard" class="surface-card section-card admin-dashboard-card" hidden>
               <div class="admin-dashboard-intro">
-                <span class="admin-dashboard-kicker">SCHOOL ADMINISTRATION</span>
-                <h3>Account administration workspace</h3>
-                <p>Manage staff accounts, role-based access, sign-in status, and department records. Teacher designations and class schedules are managed by Department Heads.</p>
+                <span class="admin-dashboard-kicker">SCHOOL OPERATIONS</span>
+                <h3>School administration workspace</h3>
+                <p>Manage school-wide class schedules, staff accounts, role access, departments, and the local-to-cloud sync settings from one place.</p>
               </div>
               <div class="admin-dashboard-actions">
-                <button type="button" class="admin-dashboard-action" data-admin-go="accounts"><span class="admin-action-icon">♙</span><span><strong>User accounts</strong><small>Create or update employee and staff accounts</small></span><b>›</b></button>
-                <button type="button" class="admin-dashboard-action" data-admin-go="permissions"><span class="admin-action-icon">⌑</span><span><strong>Account access</strong><small>Review sign-in access and account security controls</small></span><b>›</b></button>
-                <button type="button" class="admin-dashboard-action" data-admin-go="departments"><span class="admin-action-icon">▤</span><span><strong>Departments</strong><small>Maintain department records used by staff accounts</small></span><b>›</b></button>
+                <button type="button" class="admin-dashboard-action" data-admin-view="schedules"><span class="admin-action-icon">▦</span><span><strong>Class schedules</strong><small>Manage school-wide subject periods and teacher assignments</small></span><b>›</b></button>
+                <button type="button" class="admin-dashboard-action" data-admin-go="accounts"><span class="admin-action-icon">♙</span><span><strong>User accounts</strong><small>Create and update school staff accounts</small></span><b>›</b></button>
+                <button type="button" class="admin-dashboard-action" data-admin-go="permissions"><span class="admin-action-icon">⌑</span><span><strong>Roles & access</strong><small>Review account access and security controls</small></span><b>›</b></button>
+                <button type="button" class="admin-dashboard-action" data-admin-go="departments"><span class="admin-action-icon">▤</span><span><strong>Departments</strong><small>Maintain departments used by staff and schedules</small></span><b>›</b></button>
+                <button type="button" class="admin-dashboard-action" data-admin-view="cloudSync"><span class="admin-action-icon">⇄</span><span><strong>Cloud sync settings</strong><small>Configure the cloud destination for the local system</small></span><b>›</b></button>
               </div>
-              <p class="admin-dashboard-footnote">This role does not handle student attendance operations, Gate Keeper monitoring, teacher gate attendance, teacher designations, or class schedule assignments.</p>
+              <p class="admin-dashboard-footnote">School-wide administration access. Attendance and learner records remain protected by their assigned role permissions.</p>
             </section>
             <div class="stats-grid" id="statsGrid">
               <article class="stat-card"><div class="stat-top"><span>Active students</span><span class="stat-icon blue">♙</span></div><strong id="statStudents">—</strong><small>In your authorized roster</small></article>
