@@ -4,7 +4,7 @@
 const assert=require('node:assert/strict'),crypto=require('node:crypto'),express=require('express'),{Pool}=require('pg');
 const {createOpaqueToken,hashToken}=require('../auth-security');
 const {createAuthMiddleware}=require('../auth-middleware');
-const {registerPhotoRoutes}=require('../profile-photo-routes');
+const {registerPhotoRoutes,registerPlatformPhotoRoutes}=require('../profile-photo-routes');
 async function main(){
  assert.ok((process.env.DATABASE_URL||'').endsWith('/school_attendance_test'),
    'Refusing to run against any database other than the disposable CI test database.');
@@ -34,15 +34,25 @@ async function main(){
      [schoolId,studentId,'Learner Test','Grade 8','Rizal','09000000000']);
    await pool.query(`INSERT INTO parent_student_links(school_id,parent_user_id,student_id,relationship,status)
       VALUES($1,$2,$3,'Parent','APPROVED')`,[schoolId,parent,studentId]);
+   const platformUser=await pool.query(
+     'INSERT INTO platform_users(username,display_name,password_hash) VALUES($1,$2,$3) RETURNING user_id',
+     ['platform-'+random,'Photo Platform Admin','fixture-password-hash']);
+   const platformUserId=platformUser.rows[0].user_id;
    const tokens={};
    for(const [role,id] of [['admin',admin],['teacher',teacher],['parent',parent]]){
     const token=createOpaqueToken();tokens[role]=token;
     await pool.query(`INSERT INTO user_sessions(token_hash,principal_type,school_id,school_user_id,expires_at)
       VALUES($1,'SCHOOL',$2,$3,NOW()+INTERVAL '1 hour')`,[hashToken(token),schoolId,id]);
    }
+   tokens.platform=createOpaqueToken();
+   await pool.query(`INSERT INTO user_sessions(token_hash,principal_type,platform_user_id,expires_at)
+     VALUES($1,'PLATFORM',$2,NOW()+INTERVAL '1 hour')`,
+     [hashToken(tokens.platform),platformUserId]);
    const app=express();
    app.use(express.json({limit:'10mb'}));
-   registerPhotoRoutes(app,pool,{authenticateSchoolClient:createAuthMiddleware(pool).authenticateSchoolClient});
+   const auth=createAuthMiddleware(pool);
+   registerPhotoRoutes(app,pool,{authenticateSchoolClient:auth.authenticateSchoolClient});
+   registerPlatformPhotoRoutes(app,pool,{authenticatePlatform:auth.authenticatePlatform,requirePlatformAdmin:auth.requirePlatformAdmin});
    server=await new Promise((resolve,reject)=>{
     const srv=app.listen(0,'127.0.0.1',()=>resolve(srv));srv.on('error',reject);
    });
@@ -93,7 +103,19 @@ async function main(){
    assert.equal(parentSelf.status,200,JSON.stringify(parentSelf.data));
    assert.equal(parentSelf.data.status,'APPROVED');
    assert.equal((await req('GET','/api/photos/me','parent')).status,200);
-   console.log('PASS: parent request remains pending, School Admin review, durable images, role restrictions, staff self-request, parent personal photo.');
+   const platformDenied=await req('GET','/api/platform/profile-photo','teacher');
+   assert.equal(platformDenied.status,401,'School token must not read Super Admin photo.');
+   const platformSaved=await req('POST','/api/platform/profile-photo','platform',payload);
+   assert.equal(platformSaved.status,200,JSON.stringify(platformSaved.data));
+   assert.equal(platformSaved.data.status,'APPROVED');
+   const platformPhoto=await req('GET','/api/platform/profile-photo','platform');
+   assert.equal(platformPhoto.status,200);
+   const durablePlatform=await pool.query(
+     'SELECT original_data,image_data FROM platform_profile_photos WHERE platform_user_id=$1',[platformUserId]);
+   assert.equal(durablePlatform.rowCount,1);
+   assert.deepEqual(durablePlatform.rows[0].image_data,photo);
+   assert.deepEqual(durablePlatform.rows[0].original_data,original);
+   console.log('PASS: school photo approvals and persistent Super Admin self-upload with isolated access.');
  }finally{if(server)await new Promise(resolve=>server.close(resolve));await pool.end();}
 }
 main().catch(error=>{console.error(error);process.exitCode=1;});
