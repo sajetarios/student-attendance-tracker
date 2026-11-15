@@ -4387,8 +4387,8 @@ let teacherActionMenuListenersInstalled = false;
     for (const student of students) {
       const name = String(student.parentName || '').trim();
       const mobile = String(student.parentMobile || '').trim();
-      if (!name || !mobile || /^0+$/.test(mobile.replace(/\\D/g,''))) continue;
-      const key = mobile.replace(/\\D/g,'');
+      if (!name || !mobile || /^0+$/.test(mobile.replace(/\D/g,''))) continue;
+      const key = mobile.replace(/\D/g,'');
       if (!contacts.has(key)) contacts.set(key, { name, mobile });
     }
     select.replaceChildren(new Option('Enter a new guardian', ''));
