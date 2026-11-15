@@ -33,6 +33,15 @@ async function saveAttendance(pool,s,studentId,method,actor,reason){
 }
 function registerClassQrRoutes(app,pool,{authenticateSchoolClient,requireSchoolRoles}){
  const staff=requireSchoolRoles('SCHOOL_ADMIN','DEPARTMENT_HEAD','TEACHER');
+ const checkinAttempts=new Map();
+ function checkinLimit(req,res,next){
+  const key=String(req.auth?.schoolId||'')+':'+String(req.auth?.studentId||req.ip||'');
+  const now=Date.now(),entry=checkinAttempts.get(key);
+  if(checkinAttempts.size>10000)for(const [k,v] of checkinAttempts)if(v.until<=now)checkinAttempts.delete(k);
+  if(entry&&entry.until>now&&entry.count>=12)return res.status(429).json({error:'Too many check-in attempts. Try again shortly.'});
+  checkinAttempts.set(key,{count:entry&&entry.until>now?entry.count+1:1,until:entry&&entry.until>now?entry.until:now+60000});
+  next();
+ }
  const read=async(schoolId,periodId,date)=>{
   const r=await pool.query(`SELECT p.period_id,p.grade_level,p.section,p.subject_name,p.start_time,p.end_time,
     COALESCE(a.teacher_user_id,cover.substitute_teacher_user_id,regular.teacher_user_id) AS teacher_user_id,
@@ -88,13 +97,15 @@ function registerClassQrRoutes(app,pool,{authenticateSchoolClient,requireSchoolR
    if(s.closed_at||Date.now()<new Date(s.starts_at).getTime()||Date.now()>=new Date(s.closes_at).getTime())return res.status(410).json({error:'QR attendance closed.'});
    const b=bucket();
    const token=sign(s.secret,s.session_id,b);
-   const url=new URL('/class-qr-checkin.html',req.protocol+'://'+req.get('host'));
+   const origin=process.env.PUBLIC_BASE_URL||'https://student-attendance-tracker-jmp4.onrender.com';
+   const url=new URL('/class-qr-checkin.html',origin);
    url.searchParams.set('sessionId',String(s.session_id));url.searchParams.set('token',token);
    const qrImage=await QRCode.toDataURL(url.toString(),{margin:2,width:320});
+   res.set('Cache-Control','no-store, private');
    res.json({sessionId:s.session_id,token,qrImage,validUntil:new Date((b+1)*30000).toISOString(),closesAt:s.closes_at});
   }catch(e){console.error('QR read:',e.message);res.sendStatus(500);}
  });
- app.post('/api/class-qr/check-in',authenticateSchoolClient,async(req,res)=>{
+ app.post('/api/class-qr/check-in',authenticateSchoolClient,checkinLimit,async(req,res)=>{
   if(req.auth?.type!=='STUDENT'||req.auth.mustChangePassword)return res.status(403).json({error:'Student login and password update required.'});
   const {sessionId,token}=req.body||{};
   if(!uuid.test(String(sessionId||''))||!(/^[a-f0-9]{64}$/i).test(String(token||'')))return res.status(400).json({error:'Invalid QR.'});
