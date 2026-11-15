@@ -2,6 +2,7 @@
 const ExcelJS = require('exceljs');
 const MAX_ROWS = 2000, MAX_BYTES = 5 * 1024 * 1024;
 const clean = v => String(v ?? '').replace(/^\uFEFF/, '').trim();
+const validText = (value,max) => typeof value === 'string' && value.trim().length > 0 && value.trim().length <= max;
 const headerMap = {studentid:'studentId',studentno:'studentId',studentnumber:'studentId',fullname:'fullName',studentname:'fullName',name:'fullName',sex:'sex',gender:'sex',grade:'gradeLevel',gradelevel:'gradeLevel',yearlevel:'gradeLevel',section:'section',lrn:'lrn',parentname:'parentName',guardianname:'parentName',parentmobile:'parentMobile',guardianmobile:'parentMobile'};
 function csvRows(text) {
  const rows=[];let row=[],v='',q=false;
@@ -112,7 +113,7 @@ function registerStudentManagementRoutes(app,pool,auth){
   const ids=[...new Set((Array.isArray(req.body?.studentIds)?req.body.studentIds:[]).map(clean).filter(Boolean))],action=clean(req.body?.action).toUpperCase();
   if(!ids.length||ids.length>500||ids.some(x=>x.length>80)||!['ACTIVATE','DEACTIVATE','ARCHIVE','SET_SEX','ASSIGN'].includes(action))return res.status(400).json({error:'Select 1–500 students and a valid action.'});
   if(isTeacher&&(!req.auth.teacherDesignations?.includes('CLASS_ADVISER')||!['SET_SEX','ASSIGN'].includes(action)))return res.status(403).json({error:'Class Advisers may change sex or move learners only within their own advisory sections.'});
-  if(isDepartmentHead&&(!req.auth.departmentId||req.auth.departmentCode==='UNASSIGNED'||!['UPDATE','ASSIGN'].includes(action)))return res.status(403).json({error:'Department Heads may change sex or section only for students in their own department. Account status actions remain School Admin only.'});
+  if(isDepartmentHead&&(!req.auth.departmentId||req.auth.departmentCode==='UNASSIGNED'||!['SET_SEX','ASSIGN'].includes(action)))return res.status(403).json({error:'Department Heads may change sex or section only for students in their own department. Account status actions remain School Admin only.'});
   const b=req.body||{};
   // The same name, LRN or guardian detail must never be copied across many
   // learners. Reject these fields even when an old cached client submits them.
