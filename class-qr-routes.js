@@ -32,7 +32,7 @@ async function saveAttendance(pool,s,studentId,method,actor,reason){
  }catch(e){await client.query('ROLLBACK');throw e;}finally{client.release();}
 }
 function registerClassQrRoutes(app,pool,{authenticateSchoolClient,requireSchoolRoles}){
- const staff=requireSchoolRoles('SCHOOL_ADMIN','DEPARTMENT_HEAD','TEACHER');
+ const staff=requireSchoolRoles('SCHOOL_ADMIN','TEACHER');
  const checkinAttempts=new Map();
  function checkinLimit(req,res,next){
   const key=String(req.auth?.schoolId||'')+':'+String(req.auth?.studentId||req.ip||'');
@@ -131,7 +131,10 @@ function registerClassQrRoutes(app,pool,{authenticateSchoolClient,requireSchoolR
  });
 
  app.get('/api/class-qr/today',authenticateSchoolClient,staff,async(req,res)=>{
-  const date=localDate();
+  const today=localDate();
+  const date=typeof req.query.date==='string'?req.query.date:today;
+  const max=new Date(today+'T00:00:00Z');max.setUTCDate(max.getUTCDate()+7);
+  if(!/^\d{4}-\d{2}-\d{2}$/.test(date)||date<today||date>max.toISOString().slice(0,10))return res.status(400).json({error:'Choose a date within the next seven days.'});
   try{
    const result=await pool.query(`SELECT p.period_id,p.grade_level,p.section,
     COALESCE(sub.subject_name,p.subject_name) AS subject_name,
@@ -155,7 +158,7 @@ function registerClassQrRoutes(app,pool,{authenticateSchoolClient,requireSchoolR
       AND NOT EXISTS(SELECT 1 FROM school_calendar_exceptions ce WHERE ce.school_id=p.school_id AND ce.calendar_date=$2::date AND ce.exception_type='CLOSED')
       AND ($4='SCHOOL_ADMIN' OR COALESCE(a.teacher_user_id,cover.substitute_teacher_user_id,regular.teacher_user_id)=$5)
     ORDER BY start_time`,[req.auth.schoolId,date,dayOfWeek(date),req.auth.role,req.auth.userId]);
-   res.json({date,classes:result.rows.map(p=>({periodId:p.period_id,gradeLevel:p.grade_level,section:p.section,subjectName:p.subject_name,startTime:String(p.start_time).slice(0,5),endTime:String(p.end_time).slice(0,5)}))});
+   res.json({date,today,classes:result.rows.map(p=>({periodId:p.period_id,gradeLevel:p.grade_level,section:p.section,subjectName:p.subject_name,startTime:String(p.start_time).slice(0,5),endTime:String(p.end_time).slice(0,5)}))});
   }catch(e){console.error('QR today:',e.message);res.status(500).json({error:'Could not load classes.'});}
  });
  app.post('/api/class-qr/sessions/:id/manual',authenticateSchoolClient,staff,async(req,res)=>{
