@@ -61,6 +61,11 @@ function registerGuardianRoutes(app,pool,{authenticateSchoolClient,requireSchool
    if(decision==='APPROVED'){
     await client.query('SELECT student_id FROM students WHERE school_id=$1 AND student_id=$2 FOR UPDATE',[req.auth.schoolId,r.student_id]);
     if(r.request_type!=='ADD'){
+     const current=await client.query('SELECT parent_name,parent_mobile FROM students WHERE school_id=$1 AND student_id=$2',[req.auth.schoolId,r.student_id]);
+     if(!current.rowCount || (current.rows[0].parent_name||'') !== (r.previous_name||'') || (current.rows[0].parent_mobile||'') !== (r.previous_mobile||'')){
+      await client.query('ROLLBACK');
+      return res.status(409).json({error:'Guardian contact changed since this request was submitted. Please submit a new request.'});
+     }
      await client.query('UPDATE student_guardians SET is_primary=FALSE,active=CASE WHEN $3 THEN FALSE ELSE active END,updated_at=NOW() WHERE school_id=$1 AND student_id=$2 AND is_primary=TRUE',[req.auth.schoolId,r.student_id,r.request_type==='CHANGE_PRIMARY']);
     }
     await client.query(`INSERT INTO student_guardians(school_id,student_id,full_name,mobile,relationship,is_primary,source_request_id)
