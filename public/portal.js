@@ -2459,7 +2459,7 @@ let teacherActionMenuListenersInstalled = false;
     host.innerHTML='<strong>Saved calendar dates</strong>'+(items.length?'<div class="timetable-template-chips">'+items.map(item=>
       '<span><b>'+esc(item.date)+' · '+esc(item.title)+'</b><small>'+esc(labels[item.type]||item.type)+(item.dismissalTime?' · Dismissal '+esc(item.dismissalTime):'')+
       (item.schedules?.length?' · '+item.schedules.length+' selected schedule(s)':'')+'</small>'+
-      (user.role==='SCHOOL_ADMIN'?'<div class="calendar-exception-actions"><button type="button" class="secondary-button compact-button" data-edit-calendar-exception="'+esc(item.exceptionId)+'">Edit</button><button type="button" class="secondary-button compact-button" data-delete-calendar-exception="'+esc(item.exceptionId)+'">Delete</button></div>':'')+'</span>'
+      (user.role==='SCHOOL_ADMIN'?'<span class="calendar-exception-actions"><button type="button" class="secondary-button compact-button" data-edit-calendar-exception="'+esc(item.exceptionId)+'">Edit</button><button type="button" class="secondary-button compact-button" data-delete-calendar-exception="'+esc(item.exceptionId)+'">Delete</button></div>':'')+'</span>'
     ).join('')+'</div>':'<p>No upcoming calendar exceptions have been saved.</p>');
   }
   async function refreshCalendarExceptions() {
