@@ -24,6 +24,7 @@ const { registerAccountRoutes } = require('./account-routes');
 const { registerSchoolRoutes } = require('./school-routes');
 const { registerPlatformRoutes } = require('./platform-routes');
 const { registerPlatformBootstrapRoutes } = require('./platform-bootstrap-routes');
+const { registerFlexibleScheduleRoutes } = require('./flexible-schedule-routes');
 
 const app = express();
 const pool = new Pool({ connectionString: process.env.DATABASE_URL });
@@ -59,6 +60,7 @@ registerAccountRoutes(app, pool, { authenticateSchoolClient });
 registerSchoolRoutes(app, pool, { authenticateSchoolClient, requireSchoolRoles });
 registerPlatformRoutes(app, pool, { authenticatePlatform, requirePlatformAdmin });
 registerPlatformBootstrapRoutes(app, pool);
+registerFlexibleScheduleRoutes(app, pool, { authenticateSchoolClient, requireSchoolRoles });
 const { registerStudentManagementRoutes } = require('./student-management-routes');
 registerStudentManagementRoutes(app, pool, { authenticateSchoolClient, requireSchoolRoles });
 const registerSf2Routes = require('./sf2-routes');
