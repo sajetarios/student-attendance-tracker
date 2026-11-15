@@ -624,7 +624,7 @@
                     <label id="calendarDismissalWrap" hidden>Dismissal time<input id="calendarDismissalTime" type="time"></label>
                     <label id="calendarSchedulesWrap" hidden>Schedules operating on this date<select id="calendarExceptionSchedules" multiple size="5" aria-describedby="calendarScheduleHelp"></select><small id="calendarScheduleHelp">Select only the classes that will meet on this date. Use Ctrl/Command or tap to select multiple schedules.</small></label>
                     <label>Notes (optional)<input id="calendarExceptionNotes" maxlength="500"></label>
-                    <button class="primary-button" type="submit">Save calendar date</button><span class="inline-feedback" id="calendarExceptionFeedback" role="status"></span>
+                    <div class="form-actions"><button class="primary-button" type="submit">Save calendar date</button><button class="secondary-button" type="button" id="cancelCalendarExceptionEdit" hidden>Cancel edit</button></div><span class="inline-feedback" id="calendarExceptionFeedback" role="status"></span>
                   </form>
                 </div>
                 <div class="timetable-template-list" id="timetableTemplateList"><strong>Saved templates</strong><p>Loading templates…</p></div>
