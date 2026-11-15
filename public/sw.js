@@ -1,4 +1,4 @@
-const CACHE = "school-attendance-shell-v75-attendigo";
+const CACHE = "attendigo-v76-sms-notifications";
 
 const SHELL = [
   "/assets/attendigo-logo.png",

@@ -1,0 +1,35 @@
+name: SMS notification validation
+on:
+  push:
+    branches: [feature/sms-notifications]
+  pull_request:
+    branches: [fix/render-login-landing]
+    paths: ['sms-*.js', 'tests/sms*', 'migrations/030*', 'public/sms*']
+permissions:
+  contents: read
+jobs:
+  sms:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: school_attendance_test
+        ports: ['5432:5432']
+        options: --health-cmd pg_isready --health-interval 10s --health-timeout 5s --health-retries 5
+    env:
+      DATABASE_URL: postgres://postgres:postgres@localhost:5432/school_attendance_test
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: node --check server.js && node --check public/sms.js && node --check sms-service.js
+      - run: node --test tests/sms-notifications.test.js tests/role-permissions.test.js
+      - run: npm run db:migrate
+      - run: node tests/sms-postgres.cjs
