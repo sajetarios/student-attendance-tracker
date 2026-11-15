@@ -1962,3 +1962,27 @@ tbody tr:hover td { background: #f9fbfc; }
   #timetableSettings .timetable-block-toolbar button{width:100%}
   #timetableSettings .timetable-block-toolbar .timetable-sort-button{grid-column:1/-1}
 }
+
+/* Staff account entry and clearly isolated demo student login */
+.staff-accounts-card .section-toolbar{align-items:center;gap:14px;flex-wrap:wrap}
+.staff-accounts-card #addSchoolStaffAccount{min-height:42px;white-space:nowrap}
+.demo-student-login-card{margin-top:18px;padding:18px;border:1px solid #c6dbe6;border-radius:14px;background:#f5fbff;display:grid;gap:10px;align-items:start}
+.demo-student-login-card>div>strong{display:block;color:#254258;font-size:15px}
+.demo-student-login-card>div>p{margin:5px 0 0;color:#546c80;font-size:13px;line-height:1.55}
+.demo-student-login-card>button{justify-self:start;min-height:40px}
+.demo-student-credentials{border:1px solid #c3d6e2;background:#fff;border-radius:11px;padding:14px;display:grid;gap:10px;max-width:660px}
+.demo-student-credentials>p{margin:0;color:#8d4e1f;font-size:13px;font-weight:700}
+.demo-student-credentials>div{display:grid;grid-template-columns:minmax(100px,170px) minmax(0,1fr);gap:10px;align-items:center}
+.demo-student-credentials>div span{color:#5b7283;font-size:12px;font-weight:700}
+.demo-student-credentials code,.demo-student-credentials strong{overflow-wrap:anywhere;user-select:text;font-size:14px}
+.demo-student-credentials>small{color:#556d82;line-height:1.5}
+.demo-student-credentials>button{justify-self:start}
+.sf2-demo-notice{margin:12px 0;padding:13px 15px;border:1px solid #edcd9a;border-left:4px solid #bb7a22;border-radius:9px;background:#fff9ef}
+.sf2-demo-notice strong{font-size:13px;color:#8d5511}
+.sf2-demo-notice p{margin:5px 0 0;font-size:13px;line-height:1.55;color:#6b593d}
+@media(max-width:560px){
+  .staff-accounts-card #addSchoolStaffAccount{width:100%}
+  .demo-student-login-card{padding:14px}
+  .demo-student-credentials>div{grid-template-columns:1fr;gap:4px}
+  .demo-student-login-card>button{width:100%}
+}
