@@ -627,6 +627,20 @@
                 </div>
                 <div class="timetable-template-list" id="timetableTemplateList"><strong>Saved templates</strong><p>Loading templates…</p></div>
               </section>
+              <section id="weeklyTimetableWorkspace" class="weekly-timetable-workspace">
+                <div class="weekly-timetable-toolbar">
+                  <div><strong>Weekly timetable</strong><span id="weeklyTimetableSummary">Loading schedules…</span></div>
+                  <div class="weekly-timetable-controls">
+                    <label>Grade level<select id="weeklyGradeFilter"><option value="">All grade levels</option></select></label>
+                    <label>Section<select id="weeklySectionFilter"><option value="">All sections</option></select></label>
+                    <div class="schedule-display-toggle" role="group" aria-label="Schedule display">
+                      <button type="button" class="outline-button is-active" data-schedule-display="weekly" aria-pressed="true">Weekly view</button>
+                      <button type="button" class="outline-button" data-schedule-display="list" aria-pressed="false">List view</button>
+                    </div>
+                  </div>
+                </div>
+                <div id="weeklyTimetableBoard" class="weekly-timetable-board"></div>
+              </section>
               <div id="periodBulkToolbar" class="student-bulk-actions" hidden><label><input type="checkbox" id="selectAllPeriods"> Select all visible schedules</label><span id="selectedPeriodCount">0 selected</span><label for="bulkScheduleTeacher">Assign to unassigned schedules</label><select id="bulkScheduleTeacher"><option value="">Choose Subject Teacher</option></select><button type="button" class="primary-button" id="applyBulkScheduleAssignment" disabled>Assign selected</button><span id="bulkScheduleFeedback" class="inline-feedback" role="status"></span></div>
               <form id="scheduleForm" class="inline-form schedule-editor-form" hidden>
                 <div class="form-context-banner">Choose the Subject Teacher and subject, then select a timetable block or enter a custom time. Select the weekdays this class meets; the system checks overlapping class, teacher, and room times on shared weekdays.</div>
@@ -835,7 +849,7 @@
   <script src="/sw-refresh.js?v=1" defer></script>
   <script src="/password-visibility.js" defer></script>
   <script src="/vendor/html5-qrcode.min.js" defer></script>
-  <script src="/portal.js?v=0.9.32" defer></script>
+  <script src="/portal.js?v=0.9.33" defer></script>
   <script src="/academic-admin.js?v=2" defer></script>
 </body>
 </html>
