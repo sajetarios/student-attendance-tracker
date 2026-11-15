@@ -53,6 +53,20 @@
 <link rel="stylesheet" href="/responsive.css">
 <link rel="stylesheet" href="/comfort-ui.css?v=0.8.2">
   <link rel="stylesheet" href="/form-system.css?v=1">
+  <style>
+    #loginForm[hidden],#schoolAdminRecoveryForm[hidden],#schoolAdminRecoveryLink[hidden]{display:none!important}
+    .recovery-text-button{border:0;background:transparent;color:#2463a5;cursor:pointer;font:inherit;
+      font-weight:650;text-decoration:underline;text-underline-offset:3px;padding:8px 0}
+    .recovery-text-button:focus-visible{outline:3px solid #7db6eb;outline-offset:3px}
+    .school-admin-recovery-form{margin:18px 0;padding:20px;border:1px solid #cfdae9;
+      border-radius:15px;background:#f8fbff;display:grid;gap:10px}
+    .school-admin-recovery-form h3{margin:0;color:#203a55;font-size:19px}
+    .school-admin-recovery-form .login-subtitle{margin:0 0 8px}
+    .school-admin-recovery-form .field-group{display:grid;gap:5px}
+    .school-admin-recovery-form .field-group input{width:100%;box-sizing:border-box;min-height:44px}
+    .school-admin-recovery-form .form-feedback{overflow-wrap:anywhere}
+    @media(max-width:600px){.school-admin-recovery-form{padding:14px}}
+  </style>
 </head>
 <body class="login-page">
   <main class="login-shell">

@@ -33,7 +33,7 @@
     building:'<rect x="3" y="3" width="18" height="18" rx="2"/><path d="M8 7h2m4 0h2M8 12h2m4 0h2M9 21v-5h6v5"/>'
   };
   function html(name) { return '<svg class="ui-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">'+(paths[name]||paths.calendar)+'</svg>'; }
-  const controls={refreshButton:'refresh',logoutButton:'logout',platformRefreshButton:'refresh',studentRefresh:'refresh',studentLogout:'logout',showScheduleForm:'plus',scheduleAdjustmentShortcut:'swap',scheduleSettingsShortcut:'settings',saveScheduleButton:'check',refreshButton:'refresh',backButton:'swap',studentRefresh:'refresh',studentLogout:'logout',saveScheduleAdjustment:'check'};
+  const controls={refreshButton:'refresh',logoutButton:'logout',platformRefreshButton:'refresh',studentRefresh:'refresh',studentLogout:'logout',showScheduleForm:'plus',scheduleAdjustmentShortcut:'swap',scheduleSettingsShortcut:'settings',saveScheduleButton:'check',backButton:'swap',saveScheduleAdjustment:'check'};
   const nav={dashboardNav:'grid',studentsNav:'book',teachersNav:'users',parentsNav:'users',classAttendanceNav:'check',sf2Nav:'report',schedulesNav:'calendar',academicAdminNav:'book',cloudSyncNav:'swap',schoolBrandingNav:'palette'};
   const views={dashboard:'grid',students:'graduation',teachers:'users',parents:'users',
     classAttendance:'check',sf2:'report',schedules:'calendar',cloudSync:'swap',
