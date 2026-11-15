@@ -2549,6 +2549,7 @@ let teacherActionMenuListenersInstalled = false;
         })});
         $('calendarExceptionForm').reset();
         $('calendarExceptionForm').dataset.editing='false';
+        delete $('calendarExceptionForm').dataset.exceptionId;
         const saveButton=$('calendarExceptionForm').querySelector('button[type="submit"]');
         if(saveButton)saveButton.textContent='Save calendar date';
         $('cancelCalendarExceptionEdit')?.setAttribute('hidden','');
