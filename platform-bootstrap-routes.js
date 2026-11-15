@@ -65,8 +65,9 @@ function registerPlatformBootstrapRoutes(app, pool) {
       return res.status(400).json({error:'Choose a stronger password unrelated to your username.'});
     }
 
-    const client=await pool.connect();
+    let client;
     try {
+      client=await pool.connect();
       await client.query('BEGIN');
       await client.query('SELECT pg_advisory_xact_lock(120261115)');
       const existing=await client.query('SELECT EXISTS (SELECT 1 FROM platform_users) AS "exists"');
@@ -87,10 +88,10 @@ function registerPlatformBootstrapRoutes(app, pool) {
       await client.query('COMMIT');
       return res.status(201).json({created:true,username:name});
     } catch (error) {
-      await client.query('ROLLBACK').catch(()=>{});
+      if (client) await client.query('ROLLBACK').catch(()=>{});
       console.error('First platform owner setup failed:',error.code||error.message);
       return res.status(500).json({error:'Unable to create Super Admin account. No account was created.'});
-    } finally { client.release(); }
+    } finally { if (client) client.release(); }
   });
 }
 
