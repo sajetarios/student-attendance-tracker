@@ -258,6 +258,76 @@ function registerSf2Routes(app, pool, { authenticateSchoolClient, requireSchoolU
     };
   }
 
+  function firstFridayInJune(year) {
+    const juneFirst = new Date(Date.UTC(year, 5, 1));
+    juneFirst.setUTCDate(1 + (5 - juneFirst.getUTCDay() + 7) % 7);
+    return juneFirst.toISOString().slice(0, 10);
+  }
+
+  function fiveConsecutiveAbsences(days) {
+    let sequence = 0;
+    for (const status of days) {
+      sequence = status === 'ABSENT' ? sequence + 1 : 0;
+      if (sequence >= 5) return true;
+    }
+    return false;
+  }
+
+  async function getMonthlySf2Summary(req, month, gradeLevel, section, data) {
+    const [year, monthNumber] = month.split('-').map(Number);
+    const firstDay = month + '-01';
+    const nextMonth = new Date(Date.UTC(year, monthNumber, 1)).toISOString().slice(0, 10);
+    const schoolYear = await pool.query(
+      "SELECT start_date FROM school_years WHERE school_id=$1 AND status='ACTIVE' ORDER BY start_date DESC LIMIT 1",
+      [req.auth.schoolId]
+    );
+    const schoolYearStart = schoolYear.rowCount
+      ? Number(new Date(schoolYear.rows[0].start_date).getUTCFullYear())
+      : (monthNumber < 6 ? year - 1 : year);
+    const cutoff = firstFridayInJune(schoolYearStart);
+    const enrollments = await pool.query(
+      'SELECT s.sex,e.student_id,e.enrollment_date AS "enrollmentDate" ' +
+      'FROM student_enrollments e JOIN school_years sy ON sy.school_id=e.school_id AND sy.school_year_id=e.school_year_id ' +
+      'JOIN students s ON s.school_id=e.school_id AND s.student_id=e.student_id ' +
+      "WHERE e.school_id=$1 AND sy.status='ACTIVE' AND e.grade_level=$2 AND e.section=$3",
+      [req.auth.schoolId, gradeLevel, section]
+    );
+    const movements = await pool.query(
+      'SELECT s.sex,m.movement_type AS type,COUNT(DISTINCT m.student_id)::int AS count ' +
+      'FROM student_movements m JOIN students s ON s.school_id=m.school_id AND s.student_id=m.student_id ' +
+      'WHERE m.school_id=$1 AND m.effective_date >= $2::date AND m.effective_date < $3::date ' +
+      "AND ((m.movement_type IN ('TRANSFER_OUT','DROPOUT') AND m.from_grade_level=$4 AND m.from_section=$5) " +
+      "OR (m.movement_type='TRANSFER_IN' AND m.to_grade_level=$4 AND m.to_section=$5)) " +
+      'GROUP BY s.sex,m.movement_type',
+      [req.auth.schoolId, firstDay, nextMonth, gradeLevel, section]
+    );
+    const bySex = sex => {
+      const learners = data.students.filter(student => String(student.sex || '').toUpperCase() === sex);
+      const early = enrollments.rows.filter(row =>
+        String(row.sex || '').toUpperCase() === sex && new Date(row.enrollmentDate).toISOString().slice(0,10) <= cutoff
+      ).length;
+      const late = enrollments.rows.filter(row => {
+        if (String(row.sex || '').toUpperCase() !== sex) return false;
+        const date = new Date(row.enrollmentDate).toISOString().slice(0,10);
+        return date > cutoff && date >= firstDay && date < nextMonth;
+      }).length;
+      const presentDays = learners.reduce((count, learner) =>
+        count + learner.days.filter(day => day === 'PRESENT').length, 0);
+      const registered = learners.length;
+      const countMoves = type => movements.rows
+        .filter(item => String(item.sex || '').toUpperCase() === sex && item.type === type)
+        .reduce((count, item) => count + Number(item.count || 0), 0);
+      return {
+        early, late, registered, presentDays,
+        consecutive: learners.filter(learner => fiveConsecutiveAbsences(learner.days)).length,
+        dropout: countMoves('DROPOUT'),
+        transferOut: countMoves('TRANSFER_OUT'),
+        transferIn: countMoves('TRANSFER_IN')
+      };
+    };
+    return {male:bySex('MALE'),female:bySex('FEMALE'),days:data.dates.length};
+  }
+
   async function buildOfficialWorkbook(req, month, gradeLevel, section, data) {
     try {
       await fs.access(TEMPLATE);
@@ -390,6 +460,45 @@ function registerSf2Routes(app, pool, { authenticateSchoolClient, requireSchoolU
     data.dates.forEach((date, index) => {
       worksheet.getCell(62, 4 + index).value = maleDaily[index] + femaleDaily[index];
     });
+
+    // The official SF2 template's summary panel occupies columns AH (M),
+    // AI (F), AJ (TOTAL); row headings run from 66 through 83.
+    // Write the numeric merged-cell anchors without altering template styles.
+    const summary = await getMonthlySf2Summary(req, month, gradeLevel, section, data);
+    const m = summary.male, f = summary.female;
+    const total = field => Number(m[field] || 0) + Number(f[field] || 0);
+    const rate = (numerator, denominator) => denominator ? numerator / denominator : null;
+    const average = (presentDays) => summary.days ? presentDays / summary.days : null;
+    const metrics = [
+      [66, m.early, f.early, total('early'), '0'],
+      [68, m.late, f.late, total('late'), '0'],
+      [70, m.registered, f.registered, total('registered'), '0'],
+      [72, rate(m.registered,m.early), rate(f.registered,f.early), rate(total('registered'),total('early')), '0.00%'],
+      [74, average(m.presentDays), average(f.presentDays), average(total('presentDays')), '0.00'],
+      [75, rate(m.presentDays,m.registered * summary.days), rate(f.presentDays,f.registered * summary.days),
+        rate(total('presentDays'), total('registered') * summary.days), '0.00%'],
+      [77, m.consecutive, f.consecutive, total('consecutive'), '0'],
+      [79, m.dropout, f.dropout, total('dropout'), '0'],
+      [81, m.transferOut, f.transferOut, total('transferOut'), '0'],
+      [83, m.transferIn, f.transferIn, total('transferIn'), '0']
+    ];
+    for (const [row, male, female, combined, format] of metrics) {
+      for (const [col, value] of [[34,male],[35,female],[36,combined]]) {
+        const cell = worksheet.getCell(row,col);
+        const target = cell.isMerged ? cell.master : cell;
+        target.value = value;
+        target.numFmt = format;
+        target.alignment = { ...target.alignment, horizontal:'center', vertical:'middle' };
+      }
+    }
+    worksheet.getCell('AB65').value = MONTHS[monthNumber - 1];
+    worksheet.getCell('AE65').value = summary.days;
+    // Learner names are left-aligned for readability. Number and date columns
+    // retain the DepEd template's existing alignment.
+    for (const row of [...Array.from({length:21}, (_,i) => i+14), ...Array.from({length:25}, (_,i) => i+36)]) {
+      const cell = worksheet.getCell(row,2);
+      cell.alignment = { ...cell.alignment, horizontal:'left', vertical:'middle', indent:1 };
+    }
 
     return Buffer.from(await workbook.xlsx.writeBuffer());
   }
