@@ -3344,19 +3344,6 @@ async function start() {
   console.log('Checking database migrations...');
   const migrationResult = await runMigrations(pool);
   console.log(`Database migrations ready: ${migrationResult.applied.length} applied, ${migrationResult.total} total.`);
-  if (process.env.RUN_PLATFORM_BOOTSTRAP_TEST === '1') {
-    const {execFileSync} = require('node:child_process');
-    try {
-      const result=execFileSync(process.execPath,['--test',path.join(__dirname,'tests','platform-first-admin-bootstrap.test.js')],{
-        cwd:__dirname,encoding:'utf8',timeout:30000,maxBuffer:20000,
-        env:{...process.env,PLATFORM_BOOTSTRAP_CODE:'',PLATFORM_BOOTSTRAP_EXPIRES_AT:''}
-      });
-      console.log('PLATFORM_BOOTSTRAP_TEST_PASS',result.slice(-1200));
-    }catch(error){
-      console.error('PLATFORM_BOOTSTRAP_TEST_FAIL',String(error.stdout||error.message).slice(0,2800));
-    }
-  }
-
   await processDueTeacherReturns();
   const teacherReturnTimer = setInterval(processDueTeacherReturns, 60 * 1000);
   teacherReturnTimer.unref();
