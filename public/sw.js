@@ -1,10 +1,10 @@
-const CACHE = "school-attendance-shell-v43-weekly-effective-date";
+const CACHE = "school-attendance-shell-v44-admin-card-fix";
 
 const SHELL = [
   "/portal-login.html",
   "/portal.css?v=0.9.25",
   "/portal.css",
-  "/portal.js?v=0.9.39",
+  "/portal.js?v=0.9.40",
   "/academic-admin.css?v=1",
   "/academic-admin.js?v=2",
   "/app-dialog.css?v=1",
