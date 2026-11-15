@@ -73,7 +73,7 @@ test('department migration backfills existing users and schedules to a safe defa
 
 test('DEMO001 data correction remains pending on fresh databases without the optional demo school', async () => {
   const knownChecksums = new Map();
-  for (const name of REQUIRED_MIGRATIONS.filter(name => !['017_demo001_subject_department_correction.sql','019_demo001_grade8_spj_class_adviser.sql'].includes(name))) {
+  for (const name of REQUIRED_MIGRATIONS.filter(name => !['017_demo001_subject_department_correction.sql','019_demo001_grade8_spj_class_adviser.sql','023_demo001_role_and_sf2_attendance.sql'].includes(name))) {
     const raw = fs.readFileSync(path.join(migrationDir, name), 'utf8');
     knownChecksums.set(name, crypto.createHash('sha256').update(raw, 'utf8').digest('hex'));
   }
