@@ -503,6 +503,28 @@ function registerSf2Routes(app, pool, { authenticateSchoolClient, requireSchoolU
     return Buffer.from(await workbook.xlsx.writeBuffer());
   }
 
+  if (process.env.SF2_TEMPLATE_DIAGNOSTIC === '1') {
+    Promise.resolve(migration).then(() => pool.query(
+      "SELECT school_id FROM schools WHERE school_code='DEMO001' AND active=TRUE LIMIT 1"
+    )).then(async found => {
+      if (!found.rowCount) return;
+      const request = { auth:{ schoolId: found.rows[0].school_id } };
+      const month = '2026-11', grade = 'Grade 8', section = 'Rizal - DEMO';
+      const data = await getReportData(request, month, grade, section, {mode:'OFFICIAL'});
+      const buffer = await buildOfficialWorkbook(request,month,grade,section,data);
+      const result = new ExcelJS.Workbook();
+      await result.xlsx.load(buffer);
+      const sheet = result.worksheets[0];
+      console.log('SF2_EXPORT_SMOKE', JSON.stringify({
+        bytes:buffer.length, learners:data.students.length, summary:data.summary,
+        male:sheet.getCell('AH70').value, female:sheet.getCell('AI70').value, total:sheet.getCell('AJ70').value,
+        dailyAttendance:sheet.getCell('AJ74').value,
+        attendancePercentage:sheet.getCell('AJ75').value,
+        firstLearnerAlignment:sheet.getCell('B14').alignment.horizontal
+      }));
+    }).catch(error => console.error('SF2_EXPORT_SMOKE_ERROR',error.message));
+  }
+
   async function buildPersonalCopyWorkbook(month, gradeLevel, section, data) {
     const workbook = new ExcelJS.Workbook();
     workbook.creator = 'Student Attendance Tracker';
