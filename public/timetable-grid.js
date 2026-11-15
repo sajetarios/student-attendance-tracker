@@ -3,7 +3,7 @@
 (function () {
   const daysOfWeek=['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
   const palettes=['violet','blue','mint','amber','pink','indigo'];
-  let current=null,tooltip=null,pinned=false,hoverTimer=null,closeTimer=null,lastTrigger=null;
+  let current=null,tooltip=null,pinned=false,hoverTimer=null,closeTimer=null,lastTrigger=null,gridController=null;
   function escape(value) {
     return String(value==null?'':value).replace(/[&<>"']/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));
   }
@@ -123,6 +123,8 @@
     const host=config.host;
     if(!host)return;
     close(false);
+    if(gridController)gridController.abort();
+    gridController=new AbortController();
     const entries=config.entries||[],days=config.days||[],weekdayDates=config.weekdayDates||{};
     const keys=[...new Set(entries.map(e=>clock(e.startTime)+'|'+clock(e.endTime)))].sort((a,b)=>{
       const [s1,e1]=a.split('|'),[s2,e2]=b.split('|');
@@ -161,23 +163,23 @@
     host.addEventListener('click',e=>{
       const button=e.target.closest('[data-tt-class]');
       if(button&&host.contains(button))open(button,config,true);
-    },{signal:config.abortSignal});
+    },{signal:gridController.signal});
     host.addEventListener('pointerover',e=>{
       if(!window.matchMedia('(hover:hover) and (pointer:fine)').matches)return;
       const button=e.target.closest('[data-tt-class]');
       if(!button||!host.contains(button)||pinned)return;
       clearTimeout(hoverTimer);clearTimeout(closeTimer);
       hoverTimer=setTimeout(()=>open(button,config,false),320);
-    },{signal:config.abortSignal});
+    },{signal:gridController.signal});
     host.addEventListener('pointerout',e=>{
       if(!e.target.closest('[data-tt-class]')||pinned)return;
       clearTimeout(hoverTimer);
       closeTimer=setTimeout(()=>close(false),220);
-    },{signal:config.abortSignal});
+    },{signal:gridController.signal});
     host.addEventListener('focusin',e=>{
       const button=e.target.closest('[data-tt-class]');
       if(button && !pinned)open(button,config,false);
-    },{signal:config.abortSignal});
+    },{signal:gridController.signal});
   }
   window.TimetableGrid={render,close};
 })();
