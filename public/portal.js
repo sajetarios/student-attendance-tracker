@@ -1527,9 +1527,10 @@ function coverageStatusLabel(status) {
     const asOfFilter = $('weeklyScheduleAsOf');
     if (asOfFilter && !asOfFilter.value) asOfFilter.value = dataSchoolDate();
     const asOfDate = /^\d{4}-\d{2}-\d{2}$/.test(asOfFilter?.value || '') ? asOfFilter.value : dataSchoolDate();
+    const weekDates = scheduleWeekDates(asOfDate);
     const effectivePeriods = periods.filter(period =>
-      (!period.effectiveFrom || String(period.effectiveFrom).slice(0, 10) <= asOfDate) &&
-      (!period.effectiveTo || String(period.effectiveTo).slice(0, 10) >= asOfDate)
+      (!period.effectiveFrom || String(period.effectiveFrom).slice(0, 10) <= weekDates[6]) &&
+      (!period.effectiveTo || String(period.effectiveTo).slice(0, 10) >= weekDates[0])
     );
     const previousGrade = gradeFilter?.value || '';
     const previousSection = sectionFilter?.value || '';
@@ -1559,30 +1560,50 @@ function coverageStatusLabel(status) {
       (user.role !== 'DEPARTMENT_HEAD' || String(teacher.departmentId || '') === String(user.departmentId || ''))
     );
     const canAssign = user.role === 'SCHOOL_ADMIN' || user.role === 'DEPARTMENT_HEAD';
-    const cardsForDay = day => filtered.filter(period =>
-      Array.isArray(period.weekdays) && period.weekdays.map(Number).includes(day)
-    ).sort((a,b) => String(a.startTime || '').localeCompare(String(b.startTime || '')) || String(a.periodName || '').localeCompare(String(b.periodName || '')));
+    const cardsForDay = day => {
+      const date = weekDates.find(value => new Date(value + 'T00:00:00Z').getUTCDay() === day);
+      return filtered.map(period => scheduleOnDay(period, date)).filter(Boolean)
+        .sort((a,b) => String(a.startTime || '').localeCompare(String(b.startTime || '')) ||
+          String(a.periodName || '').localeCompare(String(b.periodName || '')));
+    };
     host.style.setProperty('--visible-days', String(days.length || 5));
     host.innerHTML = days.length ? days.map(day => {
       const dayPeriods = cardsForDay(day);
-      return '<section class="weekly-day-column"><header><strong>' + names[day] + '</strong><span>' + dayPeriods.length + ' schedule' + (dayPeriods.length === 1 ? '' : 's') + '</span></header>' +
+      const dayDate = weekDates.find(value => new Date(value + 'T00:00:00Z').getUTCDay() === day);
+      return '<section class="weekly-day-column"><header><strong>' + names[day] + ' ' + esc(dayDate?.slice(5) || '') + '</strong><span>' + dayPeriods.filter(period => !period.cancelled).length + ' classes</span></header>' +
         (dayPeriods.length ? dayPeriods.map(period => {
           const unassigned = !period.assignedTeacherName;
           const teacherChoices = eligibleFor(period);
-          const assignmentControl = canAssign && unassigned
+          const canEditThisPeriod = canAssign && (user.role === 'SCHOOL_ADMIN' ||
+            String(period.scheduleDepartmentId) === String(user.departmentId));
+          const adjustment = period.adjustment;
+          const dayAdjustmentBadge = adjustment ?
+            '<span class="weekly-adjustment-badge">' + esc(period.cancelled ? 'Cancelled' :
+            adjustment.type === 'SUBSTITUTE' ? 'Teacher cover' :
+            adjustment.type === 'REPLACE' ? 'Subject replacement' : 'Time / room change') + '</span>' +
+            '<span class="weekly-adjustment-detail">' + esc(adjustment.reason?.replaceAll('_',' ') || '') +
+            (adjustment.notes ? ' · ' + adjustment.notes : '') + '</span>' : '';
+          const editAdjustment = canEditThisPeriod && period.dayDate >= dataSchoolDate() ?
+            '<button class="outline-button compact-button weekly-adjustment-edit" type="button" data-open-adjustment="' +
+            esc(period.periodId) + '" data-adjustment-date="' + esc(period.dayDate) + '">' +
+            (adjustment ? 'Update this change' : 'Change this date') + '</button>' : '';
+          const assignmentControl = canAssign && unassigned && !adjustment
             ? '<div class="weekly-assign-controls"><select data-weekly-teacher="' + esc(period.periodId) + '" aria-label="Choose teacher for ' + esc(period.periodName) + '"><option value="">Choose teacher</option>' + teacherChoices.map(teacher => '<option value="' + esc(teacher.userId) + '">' + esc(teacher.displayName) + '</option>').join('') + '</select><button type="button" class="primary-button compact-button" data-weekly-assign="' + esc(period.periodId) + '">Assign</button></div>'
             : '';
-          return '<article class="weekly-schedule-card' + (unassigned ? ' is-unassigned' : '') + '">' +
+          return '<article class="weekly-schedule-card' + (unassigned ? ' is-unassigned' : '') +
+            (adjustment ? ' is-adjusted' : '') + (period.cancelled ? ' is-cancelled' : '') + '">' +
             '<div class="weekly-card-time">' + esc(period.startTime || '—') + '–' + esc(period.endTime || '—') + '</div>' +
             '<strong>' + esc(period.subjectName || period.periodName || 'Class schedule') + '</strong>' +
             '<span class="weekly-card-class">' + esc(period.gradeLevel || '—') + ' · ' + esc(period.section || 'All sections') + '</span>' +
             '<span>' + esc(period.periodName || 'Schedule block') + (period.classroom ? ' · ' + esc(period.classroom) : '') + '</span>' +
-            '<span class="weekly-card-teacher' + (unassigned ? ' is-unassigned' : '') + '">' + (unassigned ? 'Unassigned teacher' : esc(period.assignedTeacherName)) + '</span>' +
-            assignmentControl + '</article>';
+            '<span class="weekly-card-teacher' + (unassigned ? ' is-unassigned' : '') + '">' +
+            (period.cancelled ? 'No class today' : unassigned ? 'Unassigned teacher' : esc(period.assignedTeacherName)) + '</span>' +
+            dayAdjustmentBadge + assignmentControl + editAdjustment + '</article>';
         }).join('') : '<p class="weekly-day-empty">No classes scheduled</p>') + '</section>';
     }).join('') : '<div class="weekly-empty-state"><strong>No schedules match these filters.</strong><span>Try another grade level or section, or create a class schedule.</span></div>';
     const summary = $('weeklyTimetableSummary');
-    if (summary) summary.textContent = filtered.length + ' class schedule' + (filtered.length === 1 ? '' : 's') + ' · effective ' + formatSchoolDate(asOfDate) + ' · ' + days.length + ' operating day' + (days.length === 1 ? '' : 's');
+    if (summary) summary.textContent = filtered.length + ' recurring classes · Week ' +
+      weekDates[0] + ' to ' + weekDates[6] + ' · ' + scheduleAdjustments.length + ' temporary change(s)';
   }
 
   function setScheduleDisplay(mode) {
