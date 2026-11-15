@@ -24,6 +24,7 @@ const { registerAccountRoutes } = require('./account-routes');
 const { registerSchoolRoutes } = require('./school-routes');
 const { registerPlatformRoutes } = require('./platform-routes');
 const { registerPlatformBootstrapRoutes } = require('./platform-bootstrap-routes');
+const { registerSchoolAdminRecoveryRoutes } = require('./school-admin-recovery-routes');
 const { registerFlexibleScheduleRoutes } = require('./flexible-schedule-routes');
 
 const app = express();
@@ -60,6 +61,7 @@ registerAccountRoutes(app, pool, { authenticateSchoolClient });
 registerSchoolRoutes(app, pool, { authenticateSchoolClient, requireSchoolRoles });
 registerPlatformRoutes(app, pool, { authenticatePlatform, requirePlatformAdmin });
 registerPlatformBootstrapRoutes(app, pool);
+registerSchoolAdminRecoveryRoutes(app, pool, { authenticatePlatform, requirePlatformAdmin });
 registerFlexibleScheduleRoutes(app, pool, { authenticateSchoolClient, requireSchoolRoles });
 const { registerStudentManagementRoutes } = require('./student-management-routes');
 registerStudentManagementRoutes(app, pool, { authenticateSchoolClient, requireSchoolRoles });
