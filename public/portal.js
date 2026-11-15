@@ -3483,7 +3483,7 @@ let teacherActionMenuListenersInstalled = false;
       });
       await loadSchoolData();
       setScheduleDisplay('weekly');
-      showToast('Schedule assigned to ' + (result.teacher || 'the selected teacher') + '.');
+      showToast('Schedule assigned to ' + (result.teacher?.displayName || 'the selected teacher') + '.');
     } catch (error) {
       button.disabled = false;
       showToast(error.message, true);
