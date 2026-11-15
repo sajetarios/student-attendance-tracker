@@ -77,6 +77,8 @@ test('calendar exceptions require selected schedules or an explicit shortened-da
   assert.match(server,/School is marked closed on this date/);
   assert.match(server,/not selected to operate on this special calendar date/);
   assert.match(server,/after the scheduled dismissal time for this shortened day/);
+  assert.match(server,/calendarException\.dismissalTime && event\.eventType === 'TIME_IN'/);
+  assert.match(server,/exception\.dismissalTime && eventType === 'TIME_IN'/);
   assert.match(server,/updated_at AS \"appliedAt\"/);
   assert.match(server,/new Date\(event\.occurredAt\) >= new Date\(calendarException\.appliedAt\)/);
   assert.match(server,/p\.effective_from<=\$4::date/);
