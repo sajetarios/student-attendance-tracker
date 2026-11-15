@@ -1,10 +1,10 @@
-const CACHE = "school-attendance-shell-v49-timetable-editor";
+const CACHE = "school-attendance-shell-v50-demo-staff-sf2";
 
 const SHELL = [
   "/portal-login.html",
-  "/portal.css?v=0.9.45",
+  "/portal.css?v=0.9.46",
   "/portal.css",
-  "/portal.js?v=0.9.45",
+  "/portal.js?v=0.9.46",
   "/academic-admin.css?v=1",
   "/academic-admin.js?v=2",
   "/app-dialog.css?v=1",
