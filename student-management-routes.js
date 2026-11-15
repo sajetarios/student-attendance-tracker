@@ -110,18 +110,27 @@ function registerStudentManagementRoutes(app,pool,auth){
  app.post('/api/students/batch',authenticateSchoolClient,requireSchoolRoles('SCHOOL_ADMIN','DEPARTMENT_HEAD','TEACHER'),async(req,res)=>{
   const role=req.auth.role,isTeacher=role==='TEACHER',isDepartmentHead=role==='DEPARTMENT_HEAD';
   const ids=[...new Set((Array.isArray(req.body?.studentIds)?req.body.studentIds:[]).map(clean).filter(Boolean))],action=clean(req.body?.action).toUpperCase();
-  if(!ids.length||ids.length>500||ids.some(x=>x.length>80)||!['ACTIVATE','DEACTIVATE','ARCHIVE','UPDATE','ASSIGN'].includes(action))return res.status(400).json({error:'Select 1–500 students and a valid action.'});
-  if(isTeacher&&(!req.auth.teacherDesignations?.includes('CLASS_ADVISER')||!['UPDATE','ASSIGN'].includes(action)))return res.status(403).json({error:'Class Advisers may batch-edit or assign only students in their assigned sections.'});
-  if(isDepartmentHead&&(!req.auth.departmentId||req.auth.departmentCode==='UNASSIGNED'||!['UPDATE','ASSIGN'].includes(action)))return res.status(403).json({error:'Department Heads may edit or assign only learners in their own department. Activation, deactivation, and archiving remain School Administrator actions.'});
+  if(!ids.length||ids.length>500||ids.some(x=>x.length>80)||!['ACTIVATE','DEACTIVATE','ARCHIVE','SET_SEX','ASSIGN'].includes(action))return res.status(400).json({error:'Select 1–500 students and a valid action.'});
+  if(isTeacher&&(!req.auth.teacherDesignations?.includes('CLASS_ADVISER')||!['SET_SEX','ASSIGN'].includes(action)))return res.status(403).json({error:'Class Advisers may change sex or move learners only within their own advisory sections.'});
+  if(isDepartmentHead&&(!req.auth.departmentId||req.auth.departmentCode==='UNASSIGNED'||!['UPDATE','ASSIGN'].includes(action)))return res.status(403).json({error:'Department Heads may change sex or section only for students in their own department. Account status actions remain School Admin only.'});
   const b=req.body||{};
-  if(action==='ASSIGN'&&(!validText(b.gradeLevel,40)||!validText(b.section,100)))return res.status(400).json({error:'Choose a valid grade and section.'});
-  if(action==='UPDATE'&&b.fullName!=null&&!validText(b.fullName,200))return res.status(400).json({error:'Full name must contain 1–200 characters.'});
-  if(b.sex!=null&&!['MALE','FEMALE'].includes(clean(b.sex).toUpperCase()))return res.status(400).json({error:'Sex must be Male or Female.'});
-  if(b.lrn!=null&&clean(b.lrn).length>30)return res.status(400).json({error:'LRN must be 30 characters or fewer.'});
-  if(b.parentName!=null&&clean(b.parentName).length>160)return res.status(400).json({error:'Parent name must be 160 characters or fewer.'});
-  if(b.parentMobile!=null&&clean(b.parentMobile).length>30)return res.status(400).json({error:'Parent mobile must be 30 characters or fewer.'});
-  if((isTeacher||isDepartmentHead)&&(b.lrn!=null||b.parentName!=null||b.parentMobile!=null))return res.status(403).json({error:'Only School Administrators may update LRN and guardian details.'});
-  if(action==='UPDATE'&&![b.fullName,b.sex,b.lrn,b.parentName,b.parentMobile].some(v=>v!=null&&clean(v)))return res.status(400).json({error:'Provide at least one field to update.'});
+  // The same name, LRN or guardian detail must never be copied across many
+  // learners. Reject these fields even when an old cached client submits them.
+  const individualFields=['fullName','lrn','parentName','parentMobile','studentId'];
+  if(individualFields.some(key=>Object.prototype.hasOwnProperty.call(b,key)))return res.status(400).json({
+   error:'Names, LRNs, student IDs and guardian details cannot be batch-edited. Edit these fields individually for each learner.'
+  });
+  const submittedFields=Object.keys(b).filter(key=>!['action','studentIds'].includes(key));
+  const permissible=action==='SET_SEX'?['sex']:action==='ASSIGN'?['gradeLevel','section']:[];
+  if(submittedFields.some(key=>!permissible.includes(key)))return res.status(400).json({error:'This bulk action includes fields that do not belong to the selected operation.'});
+  if(action==='SET_SEX'&&!['MALE','FEMALE'].includes(clean(b.sex).toUpperCase()))
+   return res.status(400).json({error:'Select Male or Female for this specific group. Use individual Edit for learner-specific changes.'});
+  if(action==='ASSIGN'&&(!validText(b.gradeLevel,40)||!validText(b.section,100)))
+   return res.status(400).json({error:'Select an existing grade and section.'});
+  if(action==='ASSIGN'&&(String(b.gradeLevel)!==clean(b.gradeLevel)||String(b.section)!==clean(b.section)))
+   return res.status(400).json({error:'Choose a grade and section without extra spaces.'});
+  if(action==='ASSIGN'&&isTeacher&&!req.auth.teacherDesignations?.includes('CLASS_ADVISER'))
+   return res.status(403).json({error:'Only assigned Class Advisers may move learners.'});
   const c=await pool.connect();
   try{
    await c.query('BEGIN');
@@ -154,6 +163,16 @@ function registerStudentManagementRoutes(app,pool,auth){
     }else if(isDepartmentHead){
      const dest=await c.query(`SELECT 1 FROM class_periods WHERE school_id=$1 AND department_id=$2 AND active=TRUE AND grade_level=$3 AND section IS NOT NULL AND TRIM(section)=$4 LIMIT 1`,[req.auth.schoolId,req.auth.departmentId,clean(b.gradeLevel),clean(b.section)]);
      if(!dest.rowCount){await c.query('ROLLBACK');return res.status(403).json({error:'You may assign learners only to an active section in your department.'});}
+    }else{
+     const dest=await c.query(`SELECT 1 FROM (
+        SELECT en.grade_level,en.section FROM student_enrollments en
+        JOIN school_years sy ON sy.school_id=en.school_id AND sy.school_year_id=en.school_year_id
+        WHERE en.school_id=$1 AND sy.status='ACTIVE' AND en.enrollment_status='ENROLLED'
+        UNION
+        SELECT p.grade_level,p.section FROM class_periods p WHERE p.school_id=$1 AND p.active=TRUE AND p.section IS NOT NULL
+       ) existing WHERE existing.grade_level=$2 AND existing.section=$3 LIMIT 1`,
+       [req.auth.schoolId,b.gradeLevel,b.section]);
+     if(!dest.rowCount){await c.query('ROLLBACK');return res.status(409).json({error:'Create or enroll the destination section before bulk-assigning learners to it.'});}
     }
    }
    if(['ACTIVATE','DEACTIVATE','ARCHIVE'].includes(action)){
@@ -162,10 +181,9 @@ function registerStudentManagementRoutes(app,pool,auth){
     await c.query('UPDATE student_accounts SET active=$3,updated_at=NOW() WHERE school_id=$1 AND student_id=ANY($2::text[])',[req.auth.schoolId,ids,active]);
     if(!active)await c.query('UPDATE student_sessions SET revoked_at=NOW() WHERE school_id=$1 AND student_account_id IN (SELECT student_account_id FROM student_accounts WHERE school_id=$1 AND student_id=ANY($2::text[])) AND revoked_at IS NULL',[req.auth.schoolId,ids]);
    }else{
-    if(isTeacher||isDepartmentHead){
-     await c.query('UPDATE students SET full_name=COALESCE($3,full_name),sex=COALESCE($4,sex),updated_at=NOW() WHERE school_id=$1 AND student_id=ANY($2::text[])',[req.auth.schoolId,ids,b.fullName??null,b.sex?clean(b.sex).toUpperCase():null]);
-    }else{
-     await c.query('UPDATE students SET full_name=COALESCE($3,full_name),sex=COALESCE($4,sex),lrn=COALESCE($5,lrn),parent_name=COALESCE($6,parent_name),parent_mobile=COALESCE($7,parent_mobile),updated_at=NOW() WHERE school_id=$1 AND student_id=ANY($2::text[])',[req.auth.schoolId,ids,b.fullName??null,b.sex?clean(b.sex).toUpperCase():null,b.lrn??null,b.parentName??null,b.parentMobile??null]);
+    if(action==='SET_SEX'){
+     await c.query('UPDATE students SET sex=$3,updated_at=NOW() WHERE school_id=$1 AND student_id=ANY($2::text[])',
+       [req.auth.schoolId,ids,clean(b.sex).toUpperCase()]);
     }
     if(action==='ASSIGN'){
      const y=await c.query("SELECT school_year_id FROM school_years WHERE school_id=$1 AND status='ACTIVE' FOR SHARE",[req.auth.schoolId]);
@@ -185,7 +203,7 @@ function registerStudentManagementRoutes(app,pool,auth){
    }
    await c.query(`INSERT INTO audit_logs(school_id,actor_type,actor_user_id,action,entity_type,entity_id,details)
      VALUES($1,'SCHOOL',$2,'STUDENT_BULK_'||$3,'student_batch',$4,$5::jsonb)`,
-     [req.auth.schoolId,req.auth.userId,action,require('crypto').randomUUID(),JSON.stringify({studentIds:ids,departmentId:isDepartmentHead?req.auth.departmentId:null})]);
+     [req.auth.schoolId,req.auth.userId,action,require('crypto').randomUUID(),JSON.stringify({studentIds:ids,departmentId:isDepartmentHead?req.auth.departmentId:null,changes:action==='SET_SEX'?{sex:clean(b.sex).toUpperCase()}:action==='ASSIGN'?{gradeLevel:b.gradeLevel,section:b.section}:{status:action}})]);
    await c.query('COMMIT');res.json({ok:true,updated:ids.length,action});
   }catch(e){await c.query('ROLLBACK').catch(()=>{});res.status(e.statusCode||(e.code==='23505'?409:500)).json({error:e.statusCode?e.message:e.code==='23505'?'An LRN is already assigned to another student.':'Could not complete batch action.'});}finally{c.release();}
  });
