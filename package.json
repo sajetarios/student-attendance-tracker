@@ -6,7 +6,7 @@
   "scripts": {
     "start": "node server.js",
     "worker": "node sms-worker.js",
-    "test": "node --test \"tests/*.test.js\"",
+    "test": "node --test tests/*.test.js",
     "db:migrate": "node scripts/db-migrate.js",
     "db:reset:test": "node scripts/reset-database.js",
     "school:create": "node create-school.js",

@@ -1,0 +1,9 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Class QR Check-in</title><link rel="stylesheet" href="/portal.css"><style>main{max-width:460px;margin:8vh auto;padding:24px;background:var(--surface,#fff);border-radius:16px}button{padding:12px 20px}#message{padding:16px;margin-top:16px;border-radius:8px;background:#edf4ff}</style></head><body class="portal-page"><main><h1>Class attendance</h1><p>Sign in to your student account before confirming your class check-in.</p><button id="checkin">Confirm attendance</button><p id="message" role="status">Ready to check in.</p><p><a href="/portal-login.html">Student sign in</a></p></main><script>
+const q=new URLSearchParams(location.search),button=document.getElementById('checkin'),msg=document.getElementById('message');
+const pendingKey='schoolAttendance.pendingClassQr';
+if(q.get('sessionId')&&q.get('token'))sessionStorage.setItem(pendingKey,location.href);
+button.onclick=async()=>{const token=sessionStorage.getItem('schoolAttendance.accessToken');if(!token){msg.textContent='Please sign in as a student, then return to this page or scan the latest QR.';return;}
+button.disabled=true;msg.textContent='Submitting to school server…';
+try{const r=await fetch('/api/class-qr/check-in',{method:'POST',headers:{'Content-Type':'application/json',Authorization:'Bearer '+token},body:JSON.stringify({sessionId:q.get('sessionId'),token:q.get('token')}),cache:'no-store'});const d=await r.json();msg.textContent=r.ok?'Attendance confirmed: '+d.status+'.':(d.error||'Check-in failed. Scan the latest QR and retry.');if(r.ok)sessionStorage.removeItem(pendingKey);}
+catch(e){msg.textContent='Network unavailable. Attendance was NOT recorded. Please retry with a fresh QR.';}finally{button.disabled=false;}};
+</script></body></html>
