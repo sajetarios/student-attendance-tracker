@@ -94,7 +94,7 @@ function registerStudentManagementRoutes(app,pool,auth){
      VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,gen_random_uuid())
      ON CONFLICT(student_id) DO UPDATE SET lrn=COALESCE(EXCLUDED.lrn,students.lrn),full_name=EXCLUDED.full_name,parent_name=COALESCE(NULLIF(EXCLUDED.parent_name,''),students.parent_name),parent_mobile=COALESCE(NULLIF(EXCLUDED.parent_mobile,''),students.parent_mobile),sex=EXCLUDED.sex,qr_token=COALESCE(students.qr_token,EXCLUDED.qr_token),updated_at=NOW()
      WHERE students.school_id=EXCLUDED.school_id AND students.active=TRUE AND students.archived_at IS NULL RETURNING student_id`,
-     [req.auth.schoolId,r.studentId,r.lrn||null,r.fullName,y.rowCount?'Unassigned':r.gradeLevel,y.rowCount?'Unassigned':r.section,r.parentName,r.parentMobile,r.sex]);
+     [req.auth.schoolId,r.studentId,r.lrn||null,r.fullName,y.rowCount?'Unassigned':r.gradeLevel,y.rowCount?'Unassigned':r.section,r.parentName||null,r.parentMobile||'',r.sex]);
     if(!saved.rowCount)throw Object.assign(Error('A record changed during import. Preview again.'),{statusCode:409});
     if(y.rowCount)await c.query(`INSERT INTO student_enrollments(school_id,student_id,school_year_id,grade_level,section,enrollment_date,enrollment_status,created_by_user_id)
      VALUES($1,$2,$3,$4,$5,CURRENT_DATE,'ENROLLED',$6)
