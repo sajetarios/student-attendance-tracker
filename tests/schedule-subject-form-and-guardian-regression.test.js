@@ -93,9 +93,9 @@ test('shared form styles are linked into the main and self-service workspaces', 
 test('the refreshed PWA shell precaches the new schedule form script and shared form CSS', () => {
   const html = read('public/portal.html');
   const serviceWorker = read('public/sw.js');
-  assert.ok(html.includes('/portal.js?v=0.9.32'));
-  assert.ok(serviceWorker.includes('school-attendance-shell-v36-unassigned-schedules'));
-  assert.ok(serviceWorker.includes('/portal.js?v=0.9.32'));
+  assert.ok(html.includes('/portal.js?v=0.9.33'));
+  assert.ok(serviceWorker.includes('school-attendance-shell-v37-weekly-timetable'));
+  assert.ok(serviceWorker.includes('/portal.js?v=0.9.33'));
   assert.ok(serviceWorker.includes('/form-system.css?v=1'));
 });
 
@@ -113,3 +113,18 @@ test('bulk student imports require guardian details and cannot overwrite the mas
   assert.match(portal, /\$\('editParentMobile'\)\.required = !restrictedStudentEditor/);
 });
 
+
+test('manager schedule workspace provides a responsive weekly timetable with filters and direct unassigned teacher assignment', () => {
+  const html = read('public/portal.html');
+  const portal = read('public/portal.js');
+  const css = read('public/portal.css');
+  assert.match(html, /id="weeklyTimetableBoard"/);
+  assert.match(html, /id="weeklyGradeFilter"/);
+  assert.match(html, /id="weeklySectionFilter"/);
+  assert.match(html, /data-schedule-display="weekly"/);
+  assert.match(portal, /schoolOperatingDays\.filter\(day => day\.isOperatingDay\)/);
+  assert.match(portal, /api\('\/api\/periods\/' \+ encodeURIComponent\(periodId\) \+ '\/assignments'/);
+  assert.match(portal, /data-weekly-assign/);
+  assert.match(css, /\.weekly-timetable-board/);
+  assert.match(css, /@media\(max-width:420px\)/);
+});
