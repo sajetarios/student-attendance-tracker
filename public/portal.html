@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="theme-color" content="#1c2d45">
   <title>Dashboard · School Attendance</title>
-  <link rel="stylesheet" href="/portal.css?v=0.9.48">
+  <link rel="stylesheet" href="/portal.css?v=0.9.49">
   <link rel="stylesheet" href="/academic-admin.css?v=1">
   <link rel="stylesheet" href="/password-visibility.css">
 
@@ -709,7 +709,7 @@
                 <div class="weekly-timetable-toolbar">
                   <div><strong>Weekly timetable</strong><span id="weeklyTimetableSummary">Loading schedules…</span></div>
                   <div class="weekly-timetable-controls">
-                    <label>Schedules effective on<input id="weeklyScheduleAsOf" type="date" aria-label="Show schedules effective on this date"></label>
+                    <label>Week containing<input id="weeklyScheduleAsOf" type="date" aria-label="Show schedules for the week containing this date"></label>
                     <label>Grade level<select id="weeklyGradeFilter"><option value="">All grade levels</option></select></label>
                     <label>Section<select id="weeklySectionFilter"><option value="">All sections</option></select></label>
                     <div class="schedule-display-toggle" role="group" aria-label="Schedule display">
@@ -718,7 +718,40 @@
                     </div>
                   </div>
                 </div>
-                <p class="field-hint">Filter by grade and section to focus on one class. Swipe or scroll sideways to see the other days.</p><div id="weeklyTimetableBoard" class="weekly-timetable-board"></div>
+                <p class="field-hint">This board shows the actual week, including temporary changes and cancelled classes. Filter by grade and section, then swipe sideways to see other dates.</p><div id="weeklyTimetableBoard" class="weekly-timetable-board"></div>
+              </section>
+              <section id="datedSchedulePanel" class="dated-schedule-panel" aria-labelledby="datedScheduleTitle">
+                <div class="section-toolbar dated-schedule-heading">
+                  <div><h3 id="datedScheduleTitle">Temporary class adjustments</h3>
+                    <p>Schedule a seminar cover, a different subject, a one-day time change, or a class cancellation. The regular weekly timetable stays unchanged.</p>
+                  </div>
+                  <button id="toggleScheduleAdjustmentForm" type="button" class="outline-button" hidden>＋ New adjustment</button>
+                </div>
+                <form id="scheduleAdjustmentForm" class="dated-schedule-form" hidden>
+                  <div class="form-context-banner">Choose a regularly scheduled class and the exact date or date range. Each day is checked for overlapping classes, teacher assignments and rooms. Dates with recorded attendance cannot be changed.</div>
+                  <div class="dated-schedule-inputs">
+                    <label>Class to adjust *<select id="adjustmentPeriodId" required><option value="">Choose class schedule</option></select></label>
+                    <label>Adjustment type *<select id="adjustmentType" required>
+                      <option value="SUBSTITUTE">Another teacher covers this subject</option>
+                      <option value="REPLACE">Different subject / class teacher</option>
+                      <option value="RESCHEDULE">Change time or room</option>
+                      <option value="CANCEL">Cancel this class on selected dates</option>
+                    </select></label>
+                    <label>First date *<input id="adjustmentStartDate" type="date" required></label>
+                    <label>Last date *<input id="adjustmentEndDate" type="date" required></label>
+                    <label>Reason *<select id="adjustmentReason" required><option value="SEMINAR">Seminar</option><option value="TRAINING">Training</option><option value="EXAMINATION">Examination</option><option value="SPECIAL_ACTIVITY">Special activity</option><option value="LEAVE">Teacher leave</option><option value="OTHER">Other</option></select></label>
+                    <label id="adjustmentTeacherWrap">Covering / replacement teacher *<select id="adjustmentTeacher"><option value="">Choose teacher</option></select></label>
+                    <label id="adjustmentSubjectWrap" hidden>Replacement subject *<select id="adjustmentSubject"><option value="">Choose a subject</option></select></label>
+                    <label id="adjustmentStartWrap" hidden>New start time *<input id="adjustmentStartTime" type="time"></label>
+                    <label id="adjustmentEndWrap" hidden>New end time *<input id="adjustmentEndTime" type="time"></label>
+                    <label id="adjustmentRoomWrap" hidden>Room (optional)<input id="adjustmentRoom" maxlength="100" placeholder="Leave empty to keep original room"></label>
+                    <label class="dated-notes">Notes (optional)<textarea id="adjustmentNotes" rows="2" maxlength="500" placeholder="e.g. English teacher attends regional seminar; replacement teacher covers Period 1"></textarea></label>
+                  </div>
+                  <div id="adjustmentFormDescription" class="dated-schedule-explanation" role="status"></div>
+                  <div class="form-actions"><button id="saveScheduleAdjustment" type="submit" class="primary-button">Save temporary change</button><button id="cancelScheduleAdjustment" type="button" class="outline-button">Cancel</button><span id="scheduleAdjustmentFeedback" class="inline-feedback" role="status"></span></div>
+                </form>
+                <div class="dated-schedule-list-heading"><strong>Changes for the selected week</strong><span>Each change automatically ends after its date. Restoring removes only the change, not the original timetable.</span></div>
+                <div id="datedScheduleList" class="dated-schedule-list" aria-live="polite"><p class="muted-inline">Loading temporary adjustments…</p></div>
               </section>
               <div id="periodBulkToolbar" class="student-bulk-actions" hidden><label><input type="checkbox" id="selectAllPeriods"> Select all visible schedules</label><span id="selectedPeriodCount">0 selected</span><label for="bulkScheduleTeacher">Assign to unassigned schedules</label><select id="bulkScheduleTeacher"><option value="">Choose Subject Teacher</option></select><button type="button" class="primary-button" id="applyBulkScheduleAssignment" disabled>Assign selected</button><span id="bulkScheduleFeedback" class="inline-feedback" role="status"></span></div>
               <form id="scheduleForm" class="inline-form schedule-editor-form" hidden>
@@ -960,7 +993,7 @@
   <script src="/sw-refresh.js?v=1" defer></script>
   <script src="/password-visibility.js" defer></script>
   <script src="/vendor/html5-qrcode.min.js" defer></script>
-  <script src="/portal.js?v=0.9.48" defer></script>
+  <script src="/portal.js?v=0.9.49" defer></script>
   <script src="/academic-admin.js?v=2" defer></script>
 </body>
 </html>
