@@ -1604,6 +1604,33 @@ function coverageStatusLabel(status) {
     const summary = $('weeklyTimetableSummary');
     if (summary) summary.textContent = filtered.length + ' recurring classes · Week ' +
       weekDates[0] + ' to ' + weekDates[6] + ' · ' + scheduleAdjustments.length + ' temporary change(s)';
+    if (window.TimetableGrid) {
+      const weekdayDates=Object.fromEntries(days.map(day=>[
+        day,weekDates.find(date=>new Date(date+'T00:00:00Z').getUTCDay()===day)
+      ]));
+      const entries=days.flatMap(day=>cardsForDay(day).map(period=>({
+        ...period,dayIndex:day,date:weekdayDates[day],
+        canEdit:canAssign && (user.role==='SCHOOL_ADMIN' ||
+          String(period.scheduleDepartmentId)===String(user.departmentId)),
+        eligibleTeachers:canAssign && !period.assignedTeacherName
+          ? teachers.filter(t=>t.active && (t.teacherDesignations||[]).includes('SUBJECT_TEACHER') &&
+              String(t.departmentId||'')===String(period.scheduleDepartmentId||period.departmentId||''))
+          : []
+      })));
+      window.TimetableGrid.render({
+        host,days,weekdayDates,entries,today:dataSchoolDate(),
+        onAdjust:(id,date)=>openScheduleAdjustment(id,date),
+        onAssign:async(periodId,teacherUserId)=>{
+          const result=await api('/api/periods/'+encodeURIComponent(periodId)+'/assignments',{
+            method:'POST',body:JSON.stringify({teacherUserId})
+          });
+          await loadSchoolData();
+          setScheduleDisplay('weekly');
+          showToast('Schedule assigned to '+(result.teacher?.displayName||'the selected teacher')+'.');
+        }
+      });
+    }
+    window.ScheduleWorkspaceUI?.update?.({periods,scheduleAdjustments,role:user?.role});
   }
 
   function setScheduleDisplay(mode) {
