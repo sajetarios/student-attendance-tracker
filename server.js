@@ -2449,7 +2449,7 @@ app.delete('/api/periods/:periodId', authenticateSchoolClient, requireSchoolRole
 app.post('/api/periods', authenticateSchoolClient, requireSchoolRoles('SCHOOL_ADMIN', 'DEPARTMENT_HEAD'), async (req, res) => {
   const isTeacher = req.auth.role === 'TEACHER';
   const isDepartmentHead = req.auth.role === 'DEPARTMENT_HEAD';
-  const teacherUserId = isTeacher ? req.auth.userId : req.body?.teacherUserId;
+  const teacherUserId = isTeacher ? req.auth.userId : (req.body?.teacherUserId || null);
   const classroom = typeof req.body?.classroom === 'string' ? req.body.classroom.trim() : '';
   const { periodName, gradeLevel, section, subjectId, startTime, endTime, graceMinutes = 0 } = req.body || {};
   const timetableTemplateId = req.body?.timetableTemplateId || null;
@@ -2468,8 +2468,8 @@ app.post('/api/periods', authenticateSchoolClient, requireSchoolRoles('SCHOOL_AD
   if (isTeacher && !req.auth.teacherDesignations?.includes('SUBJECT_TEACHER')) {
     return res.status(403).json({ error: 'Only a Subject Teacher may create a personal class schedule.' });
   }
-  if (!isUuid(teacherUserId) || !isUuid(subjectId)) {
-    return res.status(400).json({ error: 'Choose an assigned Subject Teacher and a subject from the department list.' });
+  if ((teacherUserId && !isUuid(teacherUserId)) || !isUuid(subjectId) || (isTeacher && !teacherUserId)) {
+    return res.status(400).json({ error: 'Choose a valid subject and, when assigning now, an active Subject Teacher.' });
   }
   if (![periodName, gradeLevel, section, startTime, endTime].every(validText) ||
       !/^([01]\d|2[0-3]):[0-5]\d$/.test(startTime) ||
@@ -2487,28 +2487,48 @@ app.post('/api/periods', authenticateSchoolClient, requireSchoolRoles('SCHOOL_AD
     // Serialize schedule creation within this school so parallel form submissions cannot create conflicts.
     await client.query('SELECT pg_advisory_xact_lock(hashtext($1::text), 16016)', [req.auth.schoolId]);
 
-    const teacher = await client.query(
-      "SELECT su.user_id AS \"userId\",su.display_name AS \"displayName\",su.department_id AS \"departmentId\",d.department_name AS \"departmentName\",d.department_code AS \"departmentCode\" " +
-      "FROM school_users su JOIN school_departments d ON d.school_id=su.school_id AND d.department_id=su.department_id " +
-      "WHERE su.school_id=$1 AND su.user_id=$2 AND su.role='TEACHER' AND su.active=TRUE " +
-      "AND 'SUBJECT_TEACHER'=ANY(su.teacher_designations) AND d.active=TRUE",
-      [req.auth.schoolId, teacherUserId]
+    let teacher = { rows: [], rowCount: 0 };
+    if (teacherUserId) {
+      teacher = await client.query(
+        "SELECT su.user_id AS \"userId\",su.display_name AS \"displayName\",su.department_id AS \"departmentId\",d.department_name AS \"departmentName\",d.department_code AS \"departmentCode\" " +
+        "FROM school_users su JOIN school_departments d ON d.school_id=su.school_id AND d.department_id=su.department_id " +
+        "WHERE su.school_id=$1 AND su.user_id=$2 AND su.role='TEACHER' AND su.active=TRUE " +
+        "AND 'SUBJECT_TEACHER'=ANY(su.teacher_designations) AND d.active=TRUE",
+        [req.auth.schoolId, teacherUserId]
+      );
+      if (!teacher.rowCount) {
+        await client.query('ROLLBACK');
+        return res.status(404).json({ error: 'The selected account is not an active Subject Teacher with an assigned department.' });
+      }
+      if (isTeacher && String(teacher.rows[0].userId) !== String(req.auth.userId)) {
+        await client.query('ROLLBACK');
+        return res.status(403).json({ error: 'Subject Teachers may create schedules only for their own account.' });
+      }
+    }
+    if (isTeacher && !teacherUserId) {
+      await client.query('ROLLBACK');
+      return res.status(403).json({ error: 'Subject Teachers must create schedules for their own account.' });
+    }
+    const subject = await client.query(
+      "SELECT subject_id AS \"subjectId\",subject_name AS \"subjectName\",department_id AS \"departmentId\" FROM school_subjects " +
+      "WHERE school_id=$1 AND subject_id=$2 AND active=TRUE",
+      [req.auth.schoolId, subjectId]
     );
-    if (!teacher.rowCount) {
+    if (!subject.rowCount) {
       await client.query('ROLLBACK');
-      return res.status(404).json({ error: 'The selected account is not an active Subject Teacher with an assigned department.' });
+      return res.status(400).json({ error: 'Choose an active subject from this school.' });
     }
-    if (isTeacher && String(teacher.rows[0].userId) !== String(req.auth.userId)) {
-      await client.query('ROLLBACK');
-      return res.status(403).json({ error: 'Subject Teachers may create schedules only for their own account.' });
-    }
+    const departmentId = subject.rows[0].departmentId;
     if (isDepartmentHead &&
         (!req.auth.departmentId || req.auth.departmentCode === 'UNASSIGNED' ||
-         String(teacher.rows[0].departmentId) !== String(req.auth.departmentId))) {
+         String(departmentId) !== String(req.auth.departmentId))) {
       await client.query('ROLLBACK');
-      return res.status(403).json({ error: 'You can create schedules only for Subject Teachers in your own department.' });
+      return res.status(403).json({ error: 'You can create schedules only within your own department.' });
     }
-    const departmentId = teacher.rows[0].departmentId;
+    if (teacherUserId && String(teacher.rows[0].departmentId) !== String(departmentId)) {
+      await client.query('ROLLBACK');
+      return res.status(403).json({ error: 'The selected teacher and subject must belong to the same department.' });
+    }
     if (timetableTemplateId) {
       const template = await client.query(
         "SELECT 1 FROM timetable_templates WHERE school_id=$1 AND template_id=$2 AND active=TRUE",
@@ -2519,14 +2539,10 @@ app.post('/api/periods', authenticateSchoolClient, requireSchoolRoles('SCHOOL_AD
         return res.status(400).json({ error: 'The selected timetable template is no longer available. Refresh and choose another.' });
       }
     }
-    const subject = await client.query(
-      "SELECT subject_id AS \"subjectId\",subject_name AS \"subjectName\" FROM school_subjects " +
-      "WHERE school_id=$1 AND department_id=$2 AND subject_id=$3 AND active=TRUE",
-      [req.auth.schoolId, departmentId, subjectId]
-    );
-    if (!subject.rowCount) {
+    // Subject ownership determines the schedule department, including unassigned schedules.
+    if (String(subject.rows[0].departmentId) !== String(departmentId)) {
       await client.query('ROLLBACK');
-      return res.status(400).json({ error: 'That subject is not active in the selected teacher’s department. Refresh the subject list.' });
+      return res.status(400).json({ error: 'Choose a subject belonging to the selected department.' });
     }
 
     // Period labels are descriptive only. Actual time intervals determine schedule conflicts.
@@ -2548,28 +2564,30 @@ app.post('/api/periods', authenticateSchoolClient, requireSchoolRoles('SCHOOL_AD
       });
     }
 
-    const teacherConflict = await client.query(
-      "SELECT p.period_name,p.start_time::text AS start_time,p.end_time::text AS end_time " +
-      "FROM teacher_period_assignments a JOIN class_periods p ON p.school_id=a.school_id AND p.period_id=a.period_id " +
-      "WHERE a.school_id=$1 AND a.teacher_user_id=$2 AND p.active=TRUE " +
-      "AND p.start_time < $4::time AND $3::time < p.end_time " +
-      "AND EXISTS (SELECT 1 FROM class_period_days d WHERE d.school_id=p.school_id AND d.period_id=p.period_id AND d.weekday=ANY($5::smallint[])) " +
-      "UNION ALL " +
-      "SELECT p.period_name,p.start_time::text AS start_time,p.end_time::text AS end_time " +
-      "FROM teacher_period_substitutions ts JOIN class_periods p ON p.school_id=ts.school_id AND p.period_id=ts.period_id " +
-      "WHERE ts.school_id=$1 AND ts.substitute_teacher_user_id=$2 AND ts.status='ACTIVE' AND p.active=TRUE " +
-      "AND (NOW() AT TIME ZONE 'Asia/Manila')::date BETWEEN ts.start_date AND ts.end_date " +
-      "AND p.start_time < $4::time AND $3::time < p.end_time " +
-      "AND EXISTS (SELECT 1 FROM class_period_days d WHERE d.school_id=p.school_id AND d.period_id=p.period_id AND d.weekday=ANY($5::smallint[])) LIMIT 1",
-      [req.auth.schoolId, teacherUserId, startTime, endTime, weekdays]
-    );
-    if (teacherConflict.rowCount) {
-      const conflict = teacherConflict.rows[0];
-      await client.query('ROLLBACK');
-      return res.status(409).json({
-        error: teacher.rows[0].displayName + ' already has ' + conflict.period_name + ' from ' +
-          String(conflict.start_time).slice(0,5) + ' to ' + String(conflict.end_time).slice(0,5) + '.'
-      });
+    if (teacherUserId) {
+      const teacherConflict = await client.query(
+        "SELECT p.period_name,p.start_time::text AS start_time,p.end_time::text AS end_time " +
+        "FROM teacher_period_assignments a JOIN class_periods p ON p.school_id=a.school_id AND p.period_id=a.period_id " +
+        "WHERE a.school_id=$1 AND a.teacher_user_id=$2 AND p.active=TRUE " +
+        "AND p.start_time < $4::time AND $3::time < p.end_time " +
+        "AND EXISTS (SELECT 1 FROM class_period_days d WHERE d.school_id=p.school_id AND d.period_id=p.period_id AND d.weekday=ANY($5::smallint[])) " +
+        "UNION ALL " +
+        "SELECT p.period_name,p.start_time::text AS start_time,p.end_time::text AS end_time " +
+        "FROM teacher_period_substitutions ts JOIN class_periods p ON p.school_id=ts.school_id AND p.period_id=ts.period_id " +
+        "WHERE ts.school_id=$1 AND ts.substitute_teacher_user_id=$2 AND ts.status='ACTIVE' AND p.active=TRUE " +
+        "AND (NOW() AT TIME ZONE 'Asia/Manila')::date BETWEEN ts.start_date AND ts.end_date " +
+        "AND p.start_time < $4::time AND $3::time < p.end_time " +
+        "AND EXISTS (SELECT 1 FROM class_period_days d WHERE d.school_id=p.school_id AND d.period_id=p.period_id AND d.weekday=ANY($5::smallint[])) LIMIT 1",
+        [req.auth.schoolId, teacherUserId, startTime, endTime, weekdays]
+      );
+      if (teacherConflict.rowCount) {
+        const conflict = teacherConflict.rows[0];
+        await client.query('ROLLBACK');
+        return res.status(409).json({
+          error: teacher.rows[0].displayName + ' already has ' + conflict.period_name + ' from ' +
+            String(conflict.start_time).slice(0,5) + ' to ' + String(conflict.end_time).slice(0,5) + '.'
+        });
+      }
     }
 
     if (classroom) {
@@ -2607,11 +2625,13 @@ app.post('/api/periods', authenticateSchoolClient, requireSchoolRoles('SCHOOL_AD
         [req.auth.schoolId, period.periodId, weekday]
       );
     }
-    await client.query(
-      "INSERT INTO teacher_period_assignments(school_id,teacher_user_id,period_id) VALUES($1,$2,$3) " +
-      "ON CONFLICT(school_id,teacher_user_id,period_id) DO NOTHING",
-      [req.auth.schoolId, teacherUserId, period.periodId]
-    );
+    if (teacherUserId) {
+      await client.query(
+        "INSERT INTO teacher_period_assignments(school_id,teacher_user_id,period_id) VALUES($1,$2,$3) " +
+        "ON CONFLICT(school_id,teacher_user_id,period_id) DO NOTHING",
+        [req.auth.schoolId, teacherUserId, period.periodId]
+      );
+    }
     await client.query(
       "INSERT INTO audit_logs(school_id,actor_type,actor_user_id,action,entity_type,entity_id,details) " +
       "VALUES($1,'SCHOOL',$2,$3,'class_period',$4,$5::jsonb)",
@@ -2621,15 +2641,15 @@ app.post('/api/periods', authenticateSchoolClient, requireSchoolRoles('SCHOOL_AD
        JSON.stringify({
          periodName: period.periodName, subjectId, subjectName: period.subjectName,
          gradeLevel: period.gradeLevel, section: period.section, classroom,
-         teacherUserId, teacherName: teacher.rows[0].displayName, departmentId
+         teacherUserId, teacherName: teacher.rows[0]?.displayName || null, departmentId
        })]
     );
     await client.query('COMMIT');
     return res.status(201).json({
-      period: { ...period, assignedTeacherUserId: teacherUserId, assignedTeacherName: teacher.rows[0].displayName,
-        departmentName: teacher.rows[0].departmentName },
-      assignedToCreator: isTeacher, teacher: teacher.rows[0].displayName,
-      departmentName: teacher.rows[0].departmentName
+      period: { ...period, assignedTeacherUserId: teacherUserId, assignedTeacherName: teacher.rows[0]?.displayName || null,
+        departmentName: teacher.rows[0]?.departmentName || null },
+      assignedToCreator: isTeacher, teacher: teacher.rows[0]?.displayName || null,
+      departmentName: teacher.rows[0]?.departmentName || null
     });
   } catch (err) {
     await client.query('ROLLBACK').catch(() => {});
