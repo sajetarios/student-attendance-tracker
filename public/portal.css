@@ -2079,22 +2079,3 @@ tbody tr:hover td { background: #f9fbfc; }
 .dated-schedule-form[hidden],
 .dated-schedule-inputs>label[hidden],
 #toggleScheduleAdjustmentForm[hidden]{display:none!important}
-
-
-/* Guardian management: consistent with student dialogs, light and dark modes. */
-.guardian-dialog{width:min(94vw,680px);max-height:min(88dvh,850px);overflow-y:auto;overscroll-behavior:contain;padding:clamp(18px,3vw,30px);border-radius:22px}
-.guardian-dialog .section-toolbar{display:flex;gap:14px;align-items:flex-start;justify-content:space-between;margin-bottom:20px}
-.guardian-dialog .section-toolbar h3{font-size:clamp(20px,2.4vw,25px);line-height:1.2}
-.guardian-dialog .section-toolbar p{font-size:14px;line-height:1.5}
-.guardian-tabs{display:flex;gap:5px;padding:5px;border-radius:13px;background:var(--surface-muted,#edf2f8);margin:0 0 20px}
-.guardian-tabs button{flex:1;min-width:0;padding:11px 8px;border:0;border-radius:10px;background:transparent;color:var(--text-primary,inherit);font:inherit;font-weight:650;cursor:pointer}
-.guardian-tabs button.active{background:var(--surface-card,#fff);box-shadow:0 2px 8px #00000015;color:var(--primary-color,#20559b)}
-.guardian-item{border:1px solid var(--border-color,#d8e2ef);border-radius:15px;padding:16px;margin:0 0 12px;background:var(--surface-card,transparent);display:grid;gap:8px;overflow-wrap:anywhere}
-.guardian-item strong{font-size:16px}.guardian-item span{font-size:13px;opacity:.78}
-.guardian-item p{font-size:14px;line-height:1.5;margin:0}
-.guardian-item textarea,.guardian-dialog textarea,.guardian-dialog input,.guardian-dialog select{width:100%;min-height:45px;border-radius:11px;font-size:16px}
-.guardian-actions{display:flex;flex-wrap:wrap;gap:10px}
-.guardian-actions button{flex:1;min-width:115px}
-.guardian-notice{padding:13px 15px;border-radius:12px;border:1px solid var(--border-color,#d8e2ef);font-size:14px;line-height:1.5}
-#guardianQueueOpen{margin:12px 0}
-@media(max-width:600px){.guardian-dialog{width:calc(100vw - 22px);max-height:calc(100dvh - 38px);padding:17px}.guardian-dialog .form-grid{display:grid;grid-template-columns:1fr}.guardian-tabs button{font-size:13px}}
