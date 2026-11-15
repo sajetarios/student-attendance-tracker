@@ -77,6 +77,18 @@ function registerStudentManagementRoutes(app,pool,auth){
    return {...r,sex:clean(r.sex).toUpperCase(),action,errors,existingStudent};
   });
  }
+ if (process.env.SF2_TEMPLATE_DIAGNOSTIC === '1') {
+  Promise.resolve().then(() => pool.query("SELECT school_id FROM schools WHERE school_code='DEMO001' AND active=TRUE LIMIT 1"))
+    .then(async found => {
+      if(!found.rowCount) return;
+      const csvText = '\uFEFFStudent ID,Full Name,Sex,Grade Level,Section,LRN,Parent Name,Parent Mobile\\r\\n\\r\\n' +
+        'DEMO-G8-001,"Bautista, Andres",MALE,Grade 8,Rizal - DEMO,,,\r\n';
+      const rows = await readRows({csvText});
+      const checked = await preview({auth:{schoolId:found.rows[0].school_id,role:'SCHOOL_ADMIN'},body:{}},rows);
+      console.log('STUDENT_IMPORT_SMOKE',JSON.stringify({rows:checked.length,action:checked[0]?.action,
+        match:checked[0]?.existingStudent?.fullName,errors:checked[0]?.errors}));
+    }).catch(error => console.error('STUDENT_IMPORT_SMOKE_ERROR',error.message));
+ }
  app.post('/api/students/import/preview',authenticateSchoolClient,manager,async(req,res)=>{
   try{const rows=await readRows(req.body||{}),checked=await preview(req,rows);const summary={create:0,update:0,skip:0,error:0};checked.forEach(r=>summary[r.action.toLowerCase()]++);res.json({rows:checked,summary,total:checked.length});}
   catch(e){res.status(400).json({error:e.message||'Could not read import file.'});}
