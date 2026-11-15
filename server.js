@@ -2462,10 +2462,13 @@ app.get('/api/periods', authenticateSchoolClient, requireSchoolRoles('SCHOOL_ADM
     const params = [req.auth.schoolId];
     let teacherScope = '';
     if (req.auth.role === 'TEACHER') {
-      params.push(req.auth.userId);
+      const weekDate = isValidSchoolDate(req.query.weekDate)
+        ? req.query.weekDate : new Intl.DateTimeFormat('en-CA',{timeZone:'Asia/Manila'}).format(new Date());
+      params.push(req.auth.userId,weekDate);
       teacherScope = " AND (" +
         "EXISTS (SELECT 1 FROM teacher_period_assignments a WHERE a.school_id=p.school_id AND a.period_id=p.period_id AND a.teacher_user_id=$2) " +
         "OR EXISTS (SELECT 1 FROM teacher_period_substitutions ts WHERE ts.school_id=p.school_id AND ts.period_id=p.period_id AND ts.substitute_teacher_user_id=$2 AND ts.status='ACTIVE' AND (NOW() AT TIME ZONE 'Asia/Manila')::date BETWEEN ts.start_date AND ts.end_date) " +
+        "OR EXISTS (SELECT 1 FROM schedule_day_adjustments a WHERE a.school_id=p.school_id AND a.period_id=p.period_id AND a.teacher_user_id=$2 AND a.school_date BETWEEN date_trunc('week',$3::date)::date AND (date_trunc('week',$3::date)::date + 6)) " +
         "OR EXISTS (SELECT 1 FROM class_adviser_assignments ca WHERE ca.school_id=p.school_id AND ca.adviser_user_id=$2 AND ca.grade_level=p.grade_level AND ca.section=p.section))";
     }
     const result = await pool.query(
