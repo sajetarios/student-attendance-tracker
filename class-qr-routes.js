@@ -1,5 +1,6 @@
 'use strict';
 const crypto=require('node:crypto');
+const QRCode=require('qrcode');
 const uuid=/^[0-9a-f]{8}-[0-9a-f-]{27,}$/i;
 const localDate=()=>new Intl.DateTimeFormat('en-CA',{timeZone:'Asia/Manila',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date());
 const dayOfWeek=d=>new Date(d+'T00:00:00Z').getUTCDay();
@@ -58,7 +59,11 @@ function registerClassQrRoutes(app,pool,{authenticateSchoolClient,requireSchoolR
    if(req.auth.role!=='SCHOOL_ADMIN'&&String(s.teacher_user_id)!==String(req.auth.userId))return res.sendStatus(403);
    if(s.closed_at||Date.now()>=new Date(s.closes_at).getTime())return res.status(410).json({error:'QR attendance closed.'});
    const b=bucket();
-   res.json({sessionId:s.session_id,token:sign(s.secret,s.session_id,b),validUntil:new Date((b+1)*30000).toISOString(),closesAt:s.closes_at});
+   const token=sign(s.secret,s.session_id,b);
+   const url=new URL('/class-qr-checkin.html',req.protocol+'://'+req.get('host'));
+   url.searchParams.set('sessionId',String(s.session_id));url.searchParams.set('token',token);
+   const qrImage=await QRCode.toDataURL(url.toString(),{margin:2,width:320});
+   res.json({sessionId:s.session_id,token,qrImage,validUntil:new Date((b+1)*30000).toISOString(),closesAt:s.closes_at});
   }catch(e){console.error('QR read:',e.message);res.sendStatus(500);}
  });
  app.post('/api/class-qr/check-in',authenticateSchoolClient,async(req,res)=>{
