@@ -32,7 +32,9 @@
     bell:'<path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9Zm-8 12h4"/>',
     building:'<rect x="3" y="3" width="18" height="18" rx="2"/><path d="M8 7h2m4 0h2M8 12h2m4 0h2M9 21v-5h6v5"/>',
     arrow:'<path d="M5 12h14m-6-6 6 6-6 6"/>',
-    chevron:'<path d="m9 18 6-6-6-6"/>'
+    chevron:'<path d="m9 18 6-6-6-6"/>',
+    'panel-collapse':'<rect x="3" y="4" width="18" height="16" rx="3"/><path d="M9 4v16m7-11-3 3 3 3"/>',
+    'panel-expand':'<rect x="3" y="4" width="18" height="16" rx="3"/><path d="M9 4v16m4-11 3 3-3 3"/>'
   };
   function html(name) { return '<svg class="ui-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">'+(paths[name]||paths.calendar)+'</svg>'; }
   const controls={refreshButton:'refresh',logoutButton:'logout',platformRefreshButton:'refresh',studentRefresh:'refresh',studentLogout:'logout',showScheduleForm:'plus',scheduleAdjustmentShortcut:'swap',scheduleSettingsShortcut:'settings',saveScheduleButton:'check',backButton:'swap',saveScheduleAdjustment:'check'};
