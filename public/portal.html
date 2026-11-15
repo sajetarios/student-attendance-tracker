@@ -454,7 +454,7 @@
           </section>
           <section id="studentsView" class="view-panel" hidden>
             <div class="surface-card section-card">
-              <div class="section-toolbar" id="studentManagementHeader"><div><h3>Student roster</h3><p id="studentScopeText">Students available to your account.</p></div><div class="toolbar-actions"><button class="outline-button" type="button" id="exportStudentsButton">↓ Export list</button><button class="outline-button" type="button" id="downloadStudentTemplate">↓ Template</button><button class="outline-button" type="button" id="bulkImportStudentsButton">↑ Bulk import</button><a class="outline-button" href="/parent-admin.html" id="manageParentsFromStudents" hidden style="display:none;align-items:center;text-decoration:none">Parent portal accounts</a><button class="primary-button" id="showStudentForm">＋ Add student</button></div></div>
+              <div class="section-toolbar" id="studentManagementHeader"><div><h3>Student roster</h3><p id="studentScopeText">Students available to your account.</p></div><div class="toolbar-actions"><button class="outline-button" type="button" id="exportStudentsButton">↓ Export list</button><button class="outline-button" type="button" id="downloadStudentTemplate">↓ Template</button><button class="outline-button" type="button" id="bulkImportStudentsButton">↑ Bulk import</button><a class="outline-button" href="/parent-admin.html" id="manageParentsFromStudents" hidden style="display:none;align-items:center;text-decoration:none">Parent portal accounts</a><button class="outline-button" type="button" id="showStudentPortalHelp" hidden>Student portal logins</button><button class="primary-button" id="showStudentForm">＋ Add student</button></div></div>
               <form id="studentForm" class="inline-form" hidden>
                 <div class="form-grid">
                   <div class="field-group"><label for="newStudentId">Student ID *</label><input id="newStudentId" required maxlength="80" placeholder="e.g. G8-001"></div>
@@ -463,6 +463,7 @@
                   <div class="field-group"><label for="newSex">Sex *</label><select id="newSex" required><option value="">Select sex</option><option value="MALE">Male</option><option value="FEMALE">Female</option></select></div>
                   <div class="field-group"><label for="newGrade">Grade level *</label><select id="newGrade" required><option>Grade 7</option><option>Grade 8</option><option>Grade 9</option><option>Grade 10</option></select></div>
                   <div class="field-group"><label for="newSection">Section *</label><select id="newSection" required disabled><option value="">Select grade level first</option></select><small id="newSectionHint" class="field-hint">Choose a grade to load its available sections.</small></div>
+                  <div class="field-group span-2"><label for="existingGuardianSelect">Use an existing guardian contact (optional)</label><select id="existingGuardianSelect"><option value="">Enter a new guardian</option></select><small class="field-hint">Reuse contact details already saved for another learner. This does not grant Parent Portal access or link accounts.</small></div>
                   <div class="field-group"><label for="newParentName">Parent / guardian full name *</label><input id="newParentName" required maxlength="160" autocomplete="name" placeholder="Enter the primary guardian's full name"><small class="field-hint">Saved directly on this learner's central student record.</small></div>
                   <div class="field-group"><label for="newParentMobile">Parent / guardian mobile number *</label><input id="newParentMobile" type="tel" inputmode="tel" autocomplete="tel" required maxlength="30" placeholder="09XXXXXXXXX"><small class="field-hint">Use the guardian's current mobile number.</small></div>
                   <div class="field-group span-2"><label for="newStudentPhoto">Student photo (JPG, PNG, WebP · max 5 MB)</label><input id="newStudentPhoto" type="file" accept="image/jpeg,image/png,image/webp"></div>
@@ -1018,7 +1019,7 @@
   <script src="/timetable-grid.js?v=3" defer></script>
   <script src="/schedule-workspace-ui.js?v=3" defer></script>
   <script src="/photo-editor.js?v=3" defer></script>
-  <script src="/portal.js?v=0.9.56" defer></script>
+  <script src="/portal.js?v=0.9.57" defer></script>
   <script src="/academic-admin.js?v=2" defer></script>
 </body>
 </html>
