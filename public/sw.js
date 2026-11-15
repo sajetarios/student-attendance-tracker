@@ -1,8 +1,9 @@
-const CACHE = "school-attendance-shell-v58-recovery-ui";
+const CACHE = "school-attendance-shell-v59-night-contrast";
 
 const SHELL = [
-  "/dashboard-icons.js?v=2",
+  "/dashboard-icons.js?v=3",
   "/dashboard-ui.css?v=4",
+  "/dashboard-night.css?v=1",
   "/dashboard-appearance.js?v=3",
   "/timetable-grid.js?v=3",
   "/schedule-workspace-ui.js?v=3",

@@ -30,7 +30,9 @@
     download:'<path d="M12 3v12m-5-5 5 5 5-5M4 17v4h16v-4"/>',
     search:'<circle cx="11" cy="11" r="7"/><path d="m16 16 5 5"/>',
     bell:'<path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9Zm-8 12h4"/>',
-    building:'<rect x="3" y="3" width="18" height="18" rx="2"/><path d="M8 7h2m4 0h2M8 12h2m4 0h2M9 21v-5h6v5"/>'
+    building:'<rect x="3" y="3" width="18" height="18" rx="2"/><path d="M8 7h2m4 0h2M8 12h2m4 0h2M9 21v-5h6v5"/>',
+    arrow:'<path d="M5 12h14m-6-6 6 6-6 6"/>',
+    chevron:'<path d="m9 18 6-6-6-6"/>'
   };
   function html(name) { return '<svg class="ui-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">'+(paths[name]||paths.calendar)+'</svg>'; }
   const controls={refreshButton:'refresh',logoutButton:'logout',platformRefreshButton:'refresh',studentRefresh:'refresh',studentLogout:'logout',showScheduleForm:'plus',scheduleAdjustmentShortcut:'swap',scheduleSettingsShortcut:'settings',saveScheduleButton:'check',backButton:'swap',saveScheduleAdjustment:'check'};
@@ -39,11 +41,27 @@
     classAttendance:'check',sf2:'report',schedules:'calendar',cloudSync:'swap',
     schoolBranding:'palette',platform:'shield'};
   const groups={people:'users',academics:'book'};
+  const actionIcons={accounts:'users',permissions:'shield',departments:'building'};
+  const shortIcons={students:'graduation',teachers:'users',schedules:'calendar',sf2:'report'};
   function render(){
     document.querySelectorAll('.side-nav .nav-item,.side-nav .nav-group-toggle').forEach(button=>{
       const glyph=button.querySelector('.nav-icon');
-      const symbol=views[button.dataset.view]||groups[button.dataset.navGroup];
+      const symbol=nav[button.id]||views[button.dataset.view]||groups[button.dataset.navGroup];
       if(glyph&&symbol&&!glyph.querySelector('.ui-icon'))glyph.innerHTML=html(symbol);
+    });
+    document.querySelectorAll('.admin-dashboard-action[data-admin-go]').forEach(button=>{
+      const icon=button.querySelector('.admin-action-icon');
+      const name=actionIcons[button.dataset.adminGo];
+      if(icon&&name&&!icon.querySelector('.ui-icon'))icon.innerHTML=html(name);
+      const arrow=button.querySelector(':scope > b');
+      if(arrow&&!arrow.querySelector('.ui-icon'))arrow.innerHTML=html('chevron');
+    });
+    document.querySelectorAll('.quick-action[data-go]').forEach(button=>{
+      const glyph=button.querySelector('.quick-action-icon');
+      const name=shortIcons[button.dataset.go];
+      if(glyph&&name&&!glyph.querySelector('.ui-icon'))glyph.innerHTML=html(name);
+      const arrow=button.querySelector(':scope > b');
+      if(arrow&&!arrow.querySelector('.ui-icon'))arrow.innerHTML=html('chevron');
     });
     for(const [id,name] of Object.entries(nav)){
       const el=document.querySelector('#'+id+' .nav-icon');

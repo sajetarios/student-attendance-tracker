@@ -140,7 +140,8 @@
   <link rel="stylesheet" href="/app-dialog.css?v=1">
   <link rel="stylesheet" href="/form-system.css?v=1">
   <link rel="stylesheet" href="/dashboard-ui.css?v=4">
-  <script src="/dashboard-icons.js?v=2"></script>
+  <link rel="stylesheet" href="/dashboard-night.css?v=1">
+  <script src="/dashboard-icons.js?v=3"></script>
   <script src="/dashboard-appearance.js?v=3"></script>
 </head>
 <body class="portal-page">
@@ -227,9 +228,9 @@
                 <p>Open the QR scanner to identify a student and record attendance.</p>
               </div>
               <div class="dashboard-quick-buttons">
-                <button type="button" id="dashboardAddStudent" class="dashboard-add-student" hidden><span aria-hidden="true">＋</span><span>Add student</span></button>
+                <button type="button" id="dashboardAddStudent" class="dashboard-add-student" hidden><span data-ui-icon="plus"></span><span>Add student</span></button>
                 <button type="button" id="dashboardOpenScanner" class="dashboard-open-scanner">
-                  <span class="dashboard-open-scanner-icon" aria-hidden="true">▦</span><span>OPEN QR SCANNER</span><span class="dashboard-open-scanner-arrow" aria-hidden="true">→</span>
+                  <span class="dashboard-open-scanner-icon" data-ui-icon="scan"></span><span>OPEN QR SCANNER</span><span class="dashboard-open-scanner-arrow" data-ui-icon="arrow"></span>
                 </button>
               </div>
             </section>
@@ -240,17 +241,17 @@
                 <p>Manage staff accounts, role-based access, sign-in status, and department records. Teacher designations and class schedules are managed by Department Heads.</p>
               </div>
               <div class="admin-dashboard-actions">
-                <button type="button" class="admin-dashboard-action" data-admin-go="accounts"><span class="admin-action-icon">♙</span><span><strong>User accounts</strong><small>Create or update employee and staff accounts</small></span><b>›</b></button>
-                <button type="button" class="admin-dashboard-action" data-admin-go="permissions"><span class="admin-action-icon">⌑</span><span><strong>Account access</strong><small>Review sign-in access and account security controls</small></span><b>›</b></button>
-                <button type="button" class="admin-dashboard-action" data-admin-go="departments"><span class="admin-action-icon">▤</span><span><strong>Departments</strong><small>Maintain department records used by staff accounts</small></span><b>›</b></button>
+                <button type="button" class="admin-dashboard-action" data-admin-go="accounts"><span class="admin-action-icon" data-ui-icon="users"></span><span><strong>User accounts</strong><small>Create or update employee and staff accounts</small></span><b>›</b></button>
+                <button type="button" class="admin-dashboard-action" data-admin-go="permissions"><span class="admin-action-icon" data-ui-icon="shield"></span><span><strong>Account access</strong><small>Review sign-in access and account security controls</small></span><b>›</b></button>
+                <button type="button" class="admin-dashboard-action" data-admin-go="departments"><span class="admin-action-icon" data-ui-icon="building"></span><span><strong>Departments</strong><small>Maintain department records used by staff accounts</small></span><b>›</b></button>
               </div>
               <p class="admin-dashboard-footnote">This role does not handle student attendance operations, Gate Keeper monitoring, teacher gate attendance, teacher designations, or class schedule assignments.</p>
             </section>
             <div class="stats-grid" id="statsGrid">
-              <article class="stat-card"><div class="stat-top"><span>Active students</span><span class="stat-icon blue">♙</span></div><strong id="statStudents">—</strong><small>In your authorized roster</small></article>
-              <article class="stat-card"><div class="stat-top"><span>School arrivals</span><span class="stat-icon green">↘</span></div><strong id="statArrivals">—</strong><small>Accepted school time-ins today</small></article>
-              <article class="stat-card"><div class="stat-top"><span>Late arrivals</span><span class="stat-icon amber">◷</span></div><strong id="statLate">—</strong><small>Arrivals after the grace period</small></article>
-              <article class="stat-card"><div class="stat-top"><span>Class check-ins</span><span class="stat-icon violet">▤</span></div><strong id="statClasses">—</strong><small>Accepted subject time-ins today</small></article>
+              <article class="stat-card"><div class="stat-top"><span>Active students</span><span class="stat-icon blue" data-ui-icon="graduation"></span></div><strong id="statStudents">—</strong><small>In your authorized roster</small></article>
+              <article class="stat-card"><div class="stat-top"><span>School arrivals</span><span class="stat-icon green" data-ui-icon="check"></span></div><strong id="statArrivals">—</strong><small>Accepted school time-ins today</small></article>
+              <article class="stat-card"><div class="stat-top"><span>Late arrivals</span><span class="stat-icon amber" data-ui-icon="clock"></span></div><strong id="statLate">—</strong><small>Arrivals after the grace period</small></article>
+              <article class="stat-card"><div class="stat-top"><span>Class check-ins</span><span class="stat-icon violet" data-ui-icon="book"></span></div><strong id="statClasses">—</strong><small>Accepted subject time-ins today</small></article>
             </div>
             <section id="adminGatekeeperMonitoringCard" class="surface-card section-card admin-monitoring-card" hidden>
               <div class="section-toolbar">
@@ -343,10 +344,10 @@
               </section>
               <section class="surface-card quick-card" id="quickActionsCard">
                 <div class="card-heading"><div><h3>Quick actions</h3><p>Common school tasks</p></div></div>
-                <button class="quick-action" data-go="students"><span class="quick-action-icon blue">♙</span><span><strong>Manage student records</strong><small>View students within your authorized scope</small></span><b>›</b></button>
-                <button class="quick-action" data-go="teachers"><span class="quick-action-icon green">♧</span><span><strong>Manage staff and teachers</strong><small>Review staff accounts and assignments</small></span><b>›</b></button>
-                <button class="quick-action" data-go="schedules"><span class="quick-action-icon purple">▤</span><span><strong>Class schedules</strong><small>View assigned or school schedules</small></span><b>›</b></button>
-                <button class="quick-action" data-go="sf2"><span class="quick-action-icon amber">▦</span><span><strong>SF2 reports</strong><small>Generate, preview, or monitor reports according to your role</small></span><b>›</b></button>
+                <button class="quick-action" data-go="students"><span class="quick-action-icon blue" data-ui-icon="graduation"></span><span><strong>Manage student records</strong><small>View students within your authorized scope</small></span><b>›</b></button>
+                <button class="quick-action" data-go="teachers"><span class="quick-action-icon green" data-ui-icon="users"></span><span><strong>Manage staff and teachers</strong><small>Review staff accounts and assignments</small></span><b>›</b></button>
+                <button class="quick-action" data-go="schedules"><span class="quick-action-icon purple" data-ui-icon="calendar"></span><span><strong>Class schedules</strong><small>View assigned or school schedules</small></span><b>›</b></button>
+                <button class="quick-action" data-go="sf2"><span class="quick-action-icon amber" data-ui-icon="report"></span><span><strong>SF2 reports</strong><small>Generate, preview, or monitor reports according to your role</small></span><b>›</b></button>
                 <div class="scope-note"><span>✓</span><p>Your dashboard is filtered to the school and permissions assigned to your account.</p></div>
               </section>
             </div>
