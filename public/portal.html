@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="theme-color" content="#1c2d45">
   <title>Dashboard · School Attendance</title>
-  <link rel="stylesheet" href="/portal.css?v=0.9.45">
+  <link rel="stylesheet" href="/portal.css?v=0.9.46">
   <link rel="stylesheet" href="/academic-admin.css?v=1">
   <link rel="stylesheet" href="/password-visibility.css">
 
@@ -813,8 +813,21 @@
             </div>
             <div class="scope-note teacher-management-note"><span>✓</span><p>Assignments are limited to this school. On Leave temporarily disables login while preserving class assignments and attendance history. Teachers can be returned manually or automatically on the expected return date.</p></div>
             <div class="surface-card section-card staff-accounts-card">
-              <div class="section-toolbar"><div><h3>Other school staff accounts</h3><p>Department Heads and Gate Keepers. Teacher accounts and designations are managed in the Teachers table above.</p></div></div>
+              <div class="section-toolbar"><div><h3>Other school staff accounts</h3><p>Manage Department Heads and Gate Keepers separately from teachers. Assign each Department Head to the correct department.</p></div><button class="primary-button" id="addSchoolStaffAccount" type="button">＋ Add staff account</button></div>
               <div class="table-scroll"><table id="staffAccountsTable"><thead><tr><th>Account</th><th>Role</th><th>Department</th><th>Status</th><th>Account action</th></tr></thead><tbody id="staffUserRows"><tr><td colspan="5" class="empty-cell">Loading accounts…</td></tr></tbody></table></div>
+              <div id="demoStudentLoginCard" class="demo-student-login-card" hidden>
+                <div><strong>Demo student portal access</strong><p>Create a secure login for Beatriz Cruz (Grade 8 · Rizal - DEMO) to test the student attendance-history page. This is test data only.</p></div>
+                <button class="outline-button" type="button" id="createDemoStudentLogin">Create demo student login</button>
+                <div id="demoStudentLoginCredentials" class="demo-student-credentials" hidden>
+                  <p>Copy these credentials now. The temporary password will not be shown again.</p>
+                  <div><span>School code</span><strong>DEMO001</strong></div>
+                  <div><span>Student username</span><strong id="demoStudentLoginUsername"></strong></div>
+                  <div><span>Temporary password</span><code id="demoStudentLoginPassword"></code></div>
+                  <button class="outline-button" type="button" id="copyDemoStudentLogin">Copy credentials</button>
+                  <small>Use Student Login on the main login page. The student changes this password on first sign-in. This login has no staff permissions.</small>
+                </div>
+                <span class="inline-feedback" role="status" id="demoStudentLoginFeedback"></span>
+              </div>
             </div>
             <div class="surface-card section-card department-management-card" id="departmentManagementCard" hidden>
               <div class="section-toolbar"><div><h3>Department management</h3><p>Create the school’s departments before assigning staff and class schedules.</p></div></div>
@@ -920,7 +933,7 @@
   <script src="/sw-refresh.js?v=1" defer></script>
   <script src="/password-visibility.js" defer></script>
   <script src="/vendor/html5-qrcode.min.js" defer></script>
-  <script src="/portal.js?v=0.9.45" defer></script>
+  <script src="/portal.js?v=0.9.46" defer></script>
   <script src="/academic-admin.js?v=2" defer></script>
 </body>
 </html>
