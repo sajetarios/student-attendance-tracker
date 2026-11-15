@@ -1110,12 +1110,8 @@ function coverageStatusLabel(status) {
           : (gateKeeper ? '<span class="muted-inline">Gate scan only</span>' : '<span class="muted-inline">Not available</span>');
         const selection = canSelectLearnerForBatch(student) ? `<input type="checkbox" class="student-select-box" data-select-student="${esc(student.studentId)}" ${selectedStudentIds.has(student.studentId) ? 'checked' : ''} aria-label="Select ${esc(student.fullName)}">` : '';
         const editable = canManage && student.active !== false && !student.archivedAt;
-        const guardianAction = (admin || (teacher && teacherHas('CLASS_ADVISER'))) && student.active !== false && !student.archivedAt
-          ? `<button type="button" class="outline-button" data-guardian-student="${esc(student.studentId)}">Manage guardians</button>` : '';
-        const editAction = editable ? `<button type="button" class="outline-button" data-edit-student="${esc(student.studentId)}">Edit</button>` : '';
-        const photoAction = editable && canUploadPhoto ? `<label class="student-photo-upload">${student.hasPhoto ? 'Replace photo' : 'Upload photo'}<input type="file" accept="image/jpeg,image/png,image/webp" data-student-photo="${esc(student.studentId)}" hidden></label>` : '';
-        const actions = editAction || guardianAction || photoAction
-          ? `<div class="student-row-actions">${editAction}${guardianAction}${photoAction}</div>`
+        const actions = editable
+          ? `<div class="student-row-actions"><button type="button" class="outline-button" data-edit-student="${esc(student.studentId)}">Edit</button>${canUploadPhoto ? `<label class="student-photo-upload">${student.hasPhoto ? 'Replace photo' : 'Upload photo'}<input type="file" accept="image/jpeg,image/png,image/webp" data-student-photo="${esc(student.studentId)}" hidden></label>` : ''}</div>`
           : '<span class="muted-inline">' + (student.archivedAt ? 'Archived' : student.active === false ? 'Inactive' : 'View only') + '</span>';
         const accountExists = Boolean(student.studentAccountUsername);
         const accountCell = admin
@@ -1141,7 +1137,6 @@ function coverageStatusLabel(status) {
         if (box.checked) selectedStudentIds.add(box.dataset.selectStudent); else selectedStudentIds.delete(box.dataset.selectStudent);
         updateStudentSelectionUi();
       }));
-      host.querySelectorAll('[data-guardian-student]').forEach(button => button.addEventListener('click', () => openGuardianManager(button.dataset.guardianStudent)));
       host.querySelectorAll('[data-edit-student]').forEach(button => button.addEventListener('click', () => openStudentEdit(button.dataset.editStudent)));
       host.querySelectorAll('[data-view-qr]').forEach(button => button.addEventListener('click', () => {
         const student = students.find(item => item.studentId === button.dataset.viewQr);
@@ -1253,9 +1248,9 @@ function coverageStatusLabel(status) {
     const adviserCanEditPlacement = isTeacher && teacherHas('CLASS_ADVISER') &&
       adviserAssignments.some(item => String(item.gradeLevel) === String(student.gradeLevel) && String(item.section) === String(student.section));
     const restrictedStudentEditor = isTeacher || isDepartmentHead;
-    ['editLrnGroup','editParentNameGroup','editParentMobileGroup'].forEach(id => { $(id).hidden = restrictedStudentEditor || id !== 'editLrnGroup'; });
-    $('editParentName').required = false;
-    $('editParentMobile').required = false;
+    ['editLrnGroup','editParentNameGroup','editParentMobileGroup'].forEach(id => { $(id).hidden = restrictedStudentEditor; });
+    $('editParentName').required = !restrictedStudentEditor;
+    $('editParentMobile').required = !restrictedStudentEditor;
     $('editSexGroup').hidden = isTeacher && !adviserCanEditPlacement;
     $('editSex').required = !isTeacher || adviserCanEditPlacement || isDepartmentHead;
     $('editGradeGroup').hidden = restrictedStudentEditor;
@@ -4313,64 +4308,6 @@ let teacherActionMenuListenersInstalled = false;
   $('studentScannerStop').addEventListener('click', stopStudentScanner);
   $('studentScanNoticeContinue').addEventListener('click', () => { $('studentScanNotice').hidden = true; $('studentTimeIn')?.focus(); });
   $('studentScanNotice').addEventListener('click', event => { if (event.target === $('studentScanNotice')) $('studentScanNotice').hidden = true; });
-
-  let activeGuardianStudent = null;
-  const guardianTabs = ['contacts','request','history'];
-  function guardianTab(tab) {
-    guardianTabs.forEach(name => {
-      const el = name === 'contacts' ? $('guardianContacts') : name === 'request' ? $('guardianForm') : $('guardianHistory');
-      el.hidden = name !== tab;
-    });
-    document.querySelectorAll('[data-gtab]').forEach(b => b.classList.toggle('active',b.dataset.gtab===tab));
-  }
-  async function openGuardianManager(id) {
-    const student = students.find(s => s.studentId === id);
-    if (!student) return;
-    activeGuardianStudent = id;
-    $('guardianSubtitle').textContent = student.fullName + ' · ' + student.gradeLevel + ' · ' + student.section;
-    $('guardianModal').hidden = false;
-    guardianTab('contacts');
-    $('guardianFeedback').textContent = 'Loading guardian information…';
-    try {
-      const data = await api('/api/guardians/students/'+encodeURIComponent(id));
-      $('guardianContacts').innerHTML = (data.guardians||[]).map(g=>'<div class="guardian-item"><strong>'+esc(g.fullName)+'</strong><span>'+esc(g.relationship)+' · '+(g.isPrimary?'Primary':'Secondary')+(g.active?'':' · Inactive')+'</span></div>').join('') || '<p class="form-context-help">No guardian records yet.</p>';
-      $('guardianHistory').innerHTML = (data.requests||[]).map(r=>'<div class="guardian-item"><strong>'+esc(r.requestType.replaceAll('_',' '))+'</strong><span>'+esc(r.proposedName)+' · '+esc(r.status)+' · '+new Date(r.createdAt).toLocaleDateString()+'</span></div>').join('') || '<p class="form-context-help">No requests recorded.</p>';
-      $('guardianFeedback').textContent = 'Parent Portal access is managed separately.';
-    } catch(error) { $('guardianFeedback').textContent = error.message; }
-  }
-  $('guardianClose')?.addEventListener('click',()=>{$('guardianModal').hidden=true;});
-  $('guardianModal')?.addEventListener('click',e=>{if(e.target===$('guardianModal'))$('guardianModal').hidden=true;});
-  document.querySelectorAll('[data-gtab]').forEach(b=>b.addEventListener('click',()=>guardianTab(b.dataset.gtab)));
-  $('guardianForm')?.addEventListener('submit',async e=>{
-    e.preventDefault();
-    const button=e.currentTarget.querySelector('[type=submit]');button.disabled=true;
-    try {
-      await api('/api/guardians/students/'+encodeURIComponent(activeGuardianStudent)+'/requests',{method:'POST',body:JSON.stringify({requestType:$('guardianType').value,fullName:$('guardianName').value,mobile:$('guardianMobile').value,relationship:$('guardianRelation').value,reason:$('guardianReason').value})});
-      $('guardianForm').reset();await openGuardianManager(activeGuardianStudent);guardianTab('history');showToast('Guardian request submitted for approval.');
-    } catch(error){ $('guardianFeedback').textContent=error.message; }finally{button.disabled=false;}
-  });
-  if($('guardianQueueOpen'))$('guardianQueueOpen').hidden = user.role !== 'SCHOOL_ADMIN';
-  $('guardianQueueOpen')?.addEventListener('click',async()=>{
-    $('guardianQueueModal').hidden=false;await refreshGuardianQueue();
-  });
-  $('guardianQueueClose')?.addEventListener('click',()=>{$('guardianQueueModal').hidden=true;});
-  $('guardianQueueModal')?.addEventListener('click',e=>{if(e.target===$('guardianQueueModal'))$('guardianQueueModal').hidden=true;});
-  async function refreshGuardianQueue(){
-    const host=$('guardianQueueList');host.textContent='Loading requests…';
-    try {
-      const data=await api('/api/guardians/requests');
-      const pending=(data.requests||[]).filter(r=>r.status==='PENDING');
-      host.innerHTML=pending.map(r=>'<div class="guardian-item"><strong>'+esc(r.studentId)+' · '+esc(r.requestType.replaceAll('_',' '))+'</strong><span>'+esc(r.previousName||'No current guardian')+' → '+esc(r.proposedName)+' ('+esc(r.relationship)+')</span><p>'+esc(r.reason)+'</p><label>Review note <textarea data-note="'+esc(r.requestId)+'" rows="2" maxlength="1000"></textarea></label><div class="guardian-actions"><button type="button" class="primary-button" data-guardian-decision="APPROVED" data-id="'+esc(r.requestId)+'">Approve</button><button type="button" class="outline-button" data-guardian-decision="REJECTED" data-id="'+esc(r.requestId)+'">Reject</button></div></div>').join('') || '<p class="form-context-help">No pending guardian requests.</p>';
-      host.querySelectorAll('[data-guardian-decision]').forEach(b=>b.addEventListener('click',async()=>{
-        const note=host.querySelector('[data-note="'+b.dataset.id+'"]')?.value.trim();
-        if(!note){$('guardianQueueFeedback').textContent='Enter a review note first.';return;}
-        b.disabled=true;
-        try{await api('/api/guardians/requests/'+encodeURIComponent(b.dataset.id)+'/review',{method:'POST',body:JSON.stringify({decision:b.dataset.guardianDecision,note})});await refreshGuardianQueue();await loadSchoolData();showToast('Guardian request reviewed. Parent Portal access unchanged.');}
-        catch(error){$('guardianQueueFeedback').textContent=error.message;b.disabled=false;}
-      }));
-    }catch(error){host.textContent=error.message;}
-  }
-
   $('closeStudentEdit').addEventListener('click', () => { $('studentEditOverlay').hidden = true; });
   $('studentEditOverlay').addEventListener('click', event => { if (event.target === $('studentEditOverlay')) $('studentEditOverlay').hidden = true; });
   $('studentEditForm').addEventListener('submit', async event => {
