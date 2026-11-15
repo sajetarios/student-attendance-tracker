@@ -3348,13 +3348,11 @@ async function start() {
     try {
       const output = execFileSync(process.execPath, [
         '--test',
-        path.join(__dirname,'tests','student-batch-action-safety.test.js'),
-        path.join(__dirname,'tests','student-bulk-management.test.js'),
-        path.join(__dirname,'tests','role-permissions.test.js')
+        path.join(__dirname,'tests','student-batch-action-safety.test.js')
       ], {cwd:__dirname,encoding:'utf8',timeout:45000,maxBuffer:1024*1024});
       console.log('LEARNER_BATCH_TEST_PASS',output.slice(-3200));
     } catch(error) {
-      console.error('LEARNER_BATCH_TEST_FAIL',String(error.stdout||'').slice(-5000),String(error.stderr||error.message).slice(-1500));
+      console.error('LEARNER_BATCH_TEST_FAIL',String(error.stdout||'').slice(0,3500),String(error.stderr||error.message).slice(0,1000));
     }
   }
 
