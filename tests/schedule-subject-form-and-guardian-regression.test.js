@@ -125,6 +125,9 @@ test('manager schedule workspace provides a responsive weekly timetable with fil
   assert.match(portal, /schoolOperatingDays\.filter\(day => day\.isOperatingDay\)/);
   assert.match(portal, /api\('\/api\/periods\/' \+ encodeURIComponent\(periodId\) \+ '\/assignments'/);
   assert.match(portal, /data-weekly-assign/);
+  assert.match(portal, /!p\.assignedTeacherUserId && !p\.assignedTeacherName/);
+  assert.match(portal, /const sharesDay = \(p\.weekdays \|\| \[\]\)\.some/);
+  assert.match(server, /requested_day\.weekday=existing_day\.weekday/);
   assert.match(css, /\.weekly-timetable-board/);
   assert.match(css, /@media\(max-width:420px\)/);
 });
