@@ -1986,8 +1986,10 @@ app.post('/api/students', authenticateSchoolClient, requireSchoolAdminOrTeacher,
       const conflictAction = isTeacher
         ? 'ON CONFLICT(student_id) DO NOTHING'
         : `ON CONFLICT(student_id) DO UPDATE SET
-             lrn=EXCLUDED.lrn, full_name=EXCLUDED.full_name, sex=EXCLUDED.sex, parent_name=EXCLUDED.parent_name,
-             parent_mobile=EXCLUDED.parent_mobile, active=TRUE, updated_at=NOW()
+             lrn=EXCLUDED.lrn, full_name=EXCLUDED.full_name, sex=EXCLUDED.sex,
+             -- Guardian contact fields are intentionally not overwritten by a student upsert.
+             -- Changes to an existing guardian require a separate reviewed workflow.
+             active=TRUE, updated_at=NOW()
            WHERE students.school_id=EXCLUDED.school_id`;
       const result = await client.query(
         `INSERT INTO students(school_id, student_id, lrn, full_name, grade_level, section,
