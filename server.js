@@ -1820,7 +1820,7 @@ app.post('/api/gate/teacher-events', authenticateSchoolClient, requireSchoolRole
     const exception = calendar.rows[0];
     const exceptionAppliedBeforeEvent = exception && new Date(occurredAt) >= new Date(exception.appliedAt);
     if (exceptionAppliedBeforeEvent && exception?.type === 'CLOSED') return res.status(409).json({error:'Attendance is disabled because the school is marked closed on this date.'});
-    if (exceptionAppliedBeforeEvent && exception?.type === 'SHORTENED_DAY' && exception.dismissalTime &&
+    if (exceptionAppliedBeforeEvent && exception?.type === 'SHORTENED_DAY' && exception.dismissalTime && eventType === 'TIME_IN' &&
         new Intl.DateTimeFormat('en-GB',{timeZone:'Asia/Manila',hour:'2-digit',minute:'2-digit',hourCycle:'h23'}).format(new Date(occurredAt)) > String(exception.dismissalTime).slice(0,5))
       return res.status(409).json({error:'The recorded time is after the scheduled dismissal time for this shortened day.'});
     const teacher = await pool.query(
@@ -2891,7 +2891,8 @@ app.post('/api/sync/events', authenticateSchoolClient, requireSchoolClient, asyn
         results.push({eventId:event.eventId,status:'REJECTED',reason:'School is marked closed on this date.'});
         continue;
       }
-      if (exceptionAppliedBeforeEvent && calendarException?.type === 'SHORTENED_DAY' && calendarException.dismissalTime) {
+      // Dismissal time limits new check-ins, not time-outs. Learners and staff must still be able to leave after dismissal.
+      if (exceptionAppliedBeforeEvent && calendarException?.type === 'SHORTENED_DAY' && calendarException.dismissalTime && event.eventType === 'TIME_IN') {
         const eventClock = new Intl.DateTimeFormat('en-GB',{timeZone:'Asia/Manila',hour:'2-digit',minute:'2-digit',hourCycle:'h23'}).format(new Date(event.occurredAt));
         if (eventClock > String(calendarException.dismissalTime).slice(0,5)) {
           results.push({eventId:event.eventId,status:'REJECTED',reason:'Attendance time is after the scheduled dismissal time for this shortened day.'});
