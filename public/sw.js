@@ -1,10 +1,10 @@
-const CACHE = "school-attendance-shell-v37-weekly-timetable";
+const CACHE = "school-attendance-shell-v38-shortened-day-timeout";
 
 const SHELL = [
   "/portal-login.html",
   "/portal.css?v=0.9.24",
   "/portal.css",
-  "/portal.js?v=0.9.33",
+  "/portal.js?v=0.9.34",
   "/academic-admin.css?v=1",
   "/academic-admin.js?v=2",
   "/app-dialog.css?v=1",
