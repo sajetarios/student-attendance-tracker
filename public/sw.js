@@ -1,4 +1,4 @@
-const CACHE = "school-attendance-shell-v61-profile-photo-editor";
+const CACHE = "school-attendance-shell-v62-photo-save-approval";
 
 const SHELL = [
   "/dashboard-icons.js?v=4",
@@ -6,7 +6,7 @@ const SHELL = [
   "/dashboard-night.css?v=1",
   "/dashboard-polish.css?v=1",
   "/photo-editor.css?v=1",
-  "/photo-editor.js?v=1",
+  "/photo-editor.js?v=2",
   "/student-portal.js?v=1",
   "/parent-portal.js?v=1",
   "/dashboard-appearance.js?v=3",
