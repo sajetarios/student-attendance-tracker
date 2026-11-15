@@ -6,6 +6,7 @@
   let dashboardData = null;
   let students = [];
   let periods = [];
+  let activeScheduleDisplay = 'weekly';
   let timetableTemplates = [];
   let schoolOperatingDays = [];
   let teachers = [];
@@ -1441,8 +1442,7 @@ function coverageStatusLabel(status) {
     );
     const configuredDays = schoolOperatingDays.filter(day => day.isOperatingDay).map(day => Number(day.weekday)).filter(day => day >= 0 && day <= 6);
     const scheduledDays = [...new Set(filtered.flatMap(period => Array.isArray(period.weekdays) ? period.weekdays.map(Number) : []))].filter(day => day >= 0 && day <= 6);
-    const days = (configuredDays.length ? configuredDays : scheduledDays.length ? scheduledDays : [1,2,3,4,5])
-      .filter(day => !filtered.length || filtered.some(period => Array.isArray(period.weekdays) && period.weekdays.map(Number).includes(day)));
+    const days = configuredDays.length ? configuredDays : scheduledDays.length ? scheduledDays : [1,2,3,4,5];
     const names = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
     const eligibleFor = period => teachers.filter(teacher =>
       teacher.active && (teacher.teacherDesignations || []).includes('SUBJECT_TEACHER') &&
@@ -1476,7 +1476,8 @@ function coverageStatusLabel(status) {
   }
 
   function setScheduleDisplay(mode) {
-    const weekly = mode === 'weekly';
+    activeScheduleDisplay = mode === 'list' ? 'list' : 'weekly';
+    const weekly = activeScheduleDisplay === 'weekly';
     if ($('weeklyTimetableBoard')) $('weeklyTimetableBoard').hidden = !weekly;
     if ($('managerScheduleTableWrap')) $('managerScheduleTableWrap').hidden = weekly;
     document.querySelectorAll('[data-schedule-display]').forEach(button => {
@@ -1511,6 +1512,7 @@ function coverageStatusLabel(status) {
       'The Department Head assigns this class schedule to the selected Subject Teacher.';
     if ($('addScheduleSubject')) $('addScheduleSubject').hidden = !isSchoolManager;
 
+    if ($('weeklyTimetableWorkspace')) $('weeklyTimetableWorkspace').hidden = isTeacher;
     if (isTeacher) {
       if ($('managerScheduleTableWrap')) $('managerScheduleTableWrap').hidden = true;
       if ($('teacherScheduleOverview')) $('teacherScheduleOverview').hidden = false;
@@ -1583,6 +1585,7 @@ function coverageStatusLabel(status) {
       }).join('') : '<tr><td colspan="' + (canBulkAssign ? 10 : 9) + '" class="empty-cell">No class schedules are available yet.</td></tr>';
 
       renderWeeklyTimetable();
+      setScheduleDisplay(activeScheduleDisplay);
 
       $('scheduleScopeText').textContent = user.role === 'DEPARTMENT_HEAD'
         ? 'Create class schedules and assign Subject Teachers within your department. View schedules across the school.'
