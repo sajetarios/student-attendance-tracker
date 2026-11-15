@@ -92,9 +92,14 @@ function registerStudentRoutes(app, pool, auth) {
   // as plaintext. No ordinary student or real-school accounts can use this route.
   app.post('/api/admin/demo-student-login', authenticateSchoolClient, requireSchoolAdmin, async (req, res) => {
     const studentId = 'DEMO-G8-002';
-    const school = await pool.query("SELECT school_id FROM schools WHERE school_id=$1 AND school_code='DEMO001' AND active=TRUE", [req.auth.schoolId])
-      .catch(() => ({ rows: [] }));
-    if (!school.rowCount && !school.rows.length) return res.status(404).json({ error: 'Demo student logins are available only for the DEMO001 test school.' });
+    let school;
+    try {
+      school = await pool.query("SELECT school_id FROM schools WHERE school_id=$1 AND school_code='DEMO001' AND active=TRUE", [req.auth.schoolId]);
+    } catch (error) {
+      console.error('Demo school authorization lookup failed:', error.message);
+      return res.status(500).json({ error: 'Could not verify the demo school.' });
+    }
+    if (!school.rowCount) return res.status(404).json({ error: 'Demo student logins are available only for the DEMO001 test school.' });
     const username = studentId;
     const temporaryPassword = 'Demo-' + crypto.randomBytes(18).toString('base64url') + '-8x';
     let passwordHash;
