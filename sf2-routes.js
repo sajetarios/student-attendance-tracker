@@ -13,7 +13,7 @@ if (process.env.SF2_TEMPLATE_DIAGNOSTIC === '1') {
     sheet?.eachRow({includeEmpty:false}, (row,number) => {
       const entries = [];
       row.eachCell({includeEmpty:false}, cell => {
-        const value = String(cell.text || '').replace(/\\s+/g, ' ').trim();
+        let value = ''; try { value = String(cell.value == null ? '' : cell.text || '').replace(/\\s+/g, ' ').trim(); } catch { return; }
         if (/summary for the month|enrol|average daily|percentage of|consecutive|transferred|drop out|no\\. of days of classes|^month:|^M$|^F$|^TOTAL$/i.test(value)) {
           entries.push({cell:cell.address, text:value.slice(0,85), master:cell.master?.address});
         }
