@@ -93,6 +93,59 @@ function registerClassQrRoutes(app,pool,{authenticateSchoolClient,requireSchoolR
    res.status(201).json({ok:true,status:result.rows[0].attendance_status,checkedInAt:result.rows[0].checked_in_at});
   }catch(e){console.error('QR check-in:',e.message);res.status(500).json({error:'Unable to record attendance. Please retry.'});}
  });
+
+ app.get('/api/class-qr/today',authenticateSchoolClient,staff,async(req,res)=>{
+  const date=localDate();
+  try{
+   const result=await pool.query(`SELECT p.period_id,p.grade_level,p.section,
+    COALESCE(sub.subject_name,p.subject_name) AS subject_name,
+    COALESCE(a.start_time,p.start_time) AS start_time,
+    COALESCE(a.end_time,p.end_time) AS end_time,
+    COALESCE(a.teacher_user_id,cover.substitute_teacher_user_id,regular.teacher_user_id) AS teacher_user_id
+    FROM class_periods p
+    LEFT JOIN LATERAL(SELECT teacher_user_id FROM teacher_period_assignments t
+      WHERE t.school_id=p.school_id AND t.period_id=p.period_id ORDER BY assignment_id LIMIT 1) regular ON TRUE
+    LEFT JOIN LATERAL(SELECT substitute_teacher_user_id FROM teacher_period_substitutions t
+      WHERE t.school_id=p.school_id AND t.period_id=p.period_id AND t.original_teacher_user_id=regular.teacher_user_id
+      AND t.status='ACTIVE' AND $2::date BETWEEN t.start_date AND t.end_date
+      ORDER BY created_at DESC LIMIT 1) cover ON TRUE
+    LEFT JOIN schedule_day_adjustments a ON a.school_id=p.school_id AND a.period_id=p.period_id AND a.school_date=$2::date
+    LEFT JOIN school_subjects sub ON sub.school_id=a.school_id AND sub.subject_id=a.subject_id
+    WHERE p.school_id=$1 AND p.active=TRUE AND COALESCE(a.adjustment_type,'')<>'CANCEL'
+      AND (p.effective_from IS NULL OR p.effective_from<=$2::date)
+      AND (p.effective_to IS NULL OR p.effective_to>=$2::date)
+      AND EXISTS(SELECT 1 FROM class_period_days d WHERE d.school_id=p.school_id
+        AND d.period_id=p.period_id AND d.weekday=$3)
+      AND ($4='SCHOOL_ADMIN' OR COALESCE(a.teacher_user_id,cover.substitute_teacher_user_id,regular.teacher_user_id)=$5)
+    ORDER BY start_time`,[req.auth.schoolId,date,dayOfWeek(date),req.auth.role,req.auth.userId]);
+   res.json({date,classes:result.rows.map(p=>({periodId:p.period_id,gradeLevel:p.grade_level,section:p.section,subjectName:p.subject_name,startTime:String(p.start_time).slice(0,5),endTime:String(p.end_time).slice(0,5)}))});
+  }catch(e){console.error('QR today:',e.message);res.status(500).json({error:'Could not load classes.'});}
+ });
+ app.post('/api/class-qr/sessions/:id/manual',authenticateSchoolClient,staff,async(req,res)=>{
+  const studentId=String(req.body?.studentId||'').trim(),reason=String(req.body?.reason||'').trim();
+  if(!studentId||studentId.length>160||reason.length<8||reason.length>500)
+   return res.status(400).json({error:'Student ID and a reason of 8–500 characters are required.'});
+  try{
+   const s=(await pool.query('SELECT * FROM class_qr_sessions WHERE school_id=$1 AND session_id=$2',[req.auth.schoolId,req.params.id])).rows[0];
+   if(!s)return res.sendStatus(404);
+   if(req.auth.role!=='SCHOOL_ADMIN'&&String(s.teacher_user_id)!==String(req.auth.userId))return res.sendStatus(403);
+   const e=await pool.query(`SELECT 1 FROM students st WHERE st.school_id=$1 AND st.student_id=$2 AND st.active=TRUE
+     AND EXISTS(SELECT 1 FROM student_enrollments en JOIN school_years sy ON sy.school_id=en.school_id
+       AND sy.school_year_id=en.school_year_id WHERE en.school_id=st.school_id AND en.student_id=st.student_id
+       AND en.grade_level=$3 AND lower(en.section)=lower($4)
+       AND en.enrollment_status='ENROLLED' AND sy.status='ACTIVE')`,
+    [req.auth.schoolId,studentId,s.grade_level,s.section]);
+   if(!e.rowCount)return res.status(403).json({error:'Student is not enrolled in this class.'});
+   const status=Date.now()<=new Date(s.starts_at).getTime()+600000?'PRESENT':'LATE';
+   const result=await pool.query(`INSERT INTO class_qr_checkins
+     (session_id,school_id,student_id,attendance_status,method,recorded_by_user_id,reason)
+     VALUES($1,$2,$3,$4,'MANUAL',$5,$6)
+     ON CONFLICT(session_id,student_id) DO NOTHING RETURNING attendance_status`,
+     [s.session_id,req.auth.schoolId,studentId,status,req.auth.userId,reason]);
+   if(!result.rowCount)return res.status(409).json({error:'Attendance already recorded.'});
+   res.status(201).json({ok:true,status:result.rows[0].attendance_status});
+  }catch(e){console.error('Manual QR attendance:',e.message);res.status(500).json({error:'Manual attendance failed.'});}
+ });
  app.post('/api/class-qr/sessions/:id/close',authenticateSchoolClient,staff,async(req,res)=>{
   try{
    const r=await pool.query(`UPDATE class_qr_sessions SET closed_at=NOW()
