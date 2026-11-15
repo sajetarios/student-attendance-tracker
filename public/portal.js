@@ -2446,7 +2446,7 @@ let teacherActionMenuListenersInstalled = false;
       });
       const select = $('scheduleTemplatePeriod');
       if (select) {
-        select.innerHTML = '<option value="">Custom time</option>' + timetableTemplates.flatMap(template =>
+        select.innerHTML = '<option value="">Custom time</option>' + timetableTemplates.filter(template => template.active).flatMap(template =>
           (template.periods || []).filter(period => !['BREAK','LUNCH'].includes(period.blockType)).map(period =>
             '<option value="' + esc(template.templateId + '|' + period.templatePeriodId) + '">' +
             esc(template.name + ' · ' + period.label + ' (' + period.startTime + '–' + period.endTime + ')') + '</option>')
@@ -2455,7 +2455,9 @@ let teacherActionMenuListenersInstalled = false;
       const list = $('timetableTemplateList');
       if (list) list.innerHTML = '<strong>Saved templates</strong>' + (timetableTemplates.length
         ? '<div class="timetable-template-chips">' + timetableTemplates.map(template =>
-          '<span><b>' + esc(template.name) + '</b><small>' + esc(template.shiftCode) + ' · ' + (template.periods || []).length + ' blocks</small></span>'
+          '<div class="timetable-saved-template"><strong>' + esc(template.name) + (template.active ? '' : ' (Archived)') + '</strong><small>' + esc(template.shiftCode) + '</small>' +
+          '<ul>' + (template.periods || []).map(p => '<li>' + esc(p.label) + ' · ' + esc(p.startTime) + '–' + esc(p.endTime) + ' (' + esc(p.blockType) + ')</li>').join('') + '</ul>' +
+          (user.role === 'SCHOOL_ADMIN' && template.active ? '<div class="form-actions"><button type="button" class="outline-button compact-button" data-template-edit="' + esc(template.templateId) + '">Edit</button><button type="button" class="outline-button compact-button" data-template-duplicate="' + esc(template.templateId) + '">Duplicate</button><button type="button" class="outline-button compact-button" data-template-remove="' + esc(template.templateId) + '">Delete / Archive</button></div>' : '') + '</div>'
         ).join('') + '</div>'
         : '<p>No templates yet. Create a template to reuse period times.</p>');
     } catch (error) {
@@ -2531,6 +2533,48 @@ let teacherActionMenuListenersInstalled = false;
       addTemplateBlock();
       $('templateBlockRows').lastElementChild?.querySelector('input')?.focus();
     });
+    $('cancelTemplateEdit')?.addEventListener('click',()=>{
+      delete $('timetableTemplateForm').dataset.editingId;
+      $('timetableTemplateForm').reset();$('templateBlockRows').replaceChildren();addTemplateBlock();
+      $('saveTemplateButton').textContent='Save template';$('cancelTemplateEdit').hidden=true;
+      $('templateFeedback').textContent='Edit cancelled.';
+    });
+    $('timetableTemplateList')?.addEventListener('click',async event=>{
+      const button=event.target.closest('button[data-template-edit],button[data-template-duplicate],button[data-template-remove]');
+      if(!button||user.role!=='SCHOOL_ADMIN')return;
+      const id=button.dataset.templateEdit||button.dataset.templateDuplicate||button.dataset.templateRemove;
+      const template=timetableTemplates.find(t=>String(t.templateId)===String(id));
+      if(!template)return;
+      if(button.dataset.templateRemove){
+        if(!confirm('Delete this template if unused, or archive it if schedules reference it? Existing schedules and attendance will be preserved.'))return;
+        try{const result=await api('/api/scheduling-config/templates/'+encodeURIComponent(id),{method:'DELETE'});
+          await loadSchedulingSettings();showToast('Template '+result.action+'.');
+        }catch(error){showToast(error.message,true);}
+        return;
+      }
+      $('templateName').value=template.name+(button.dataset.templateDuplicate?' (copy)':'');
+      $('templateShift').value=template.shiftCode;
+      $('templateBlockRows').replaceChildren();
+      (template.periods||[]).forEach(p=>{
+        addTemplateBlock();
+        const row=$('templateBlockRows').lastElementChild;
+        row.querySelector('[data-block-label]').value=p.label;
+        row.querySelector('[data-block-type]').value=p.blockType;
+        row.querySelector('[data-block-start]').value=p.startTime;
+        row.querySelector('[data-block-end]').value=p.endTime;
+      });
+      if(button.dataset.templateEdit){
+        $('timetableTemplateForm').dataset.editingId=id;
+        $('saveTemplateButton').textContent='Save changes';
+        $('cancelTemplateEdit').hidden=false;
+      }else{
+        delete $('timetableTemplateForm').dataset.editingId;
+        $('saveTemplateButton').textContent='Save duplicate';
+        $('cancelTemplateEdit').hidden=false;
+      }
+      $('timetableTemplateForm').scrollIntoView({behavior:'smooth',block:'start'});
+      $('templateName').focus({preventScroll:true});
+    });
     $('operatingDaysForm')?.addEventListener('submit', async event => {
       event.preventDefault();
       const feedback = $('operatingDaysFeedback');
@@ -2562,7 +2606,11 @@ let teacherActionMenuListenersInstalled = false;
       }
       feedback.textContent='Saving template…';
       try {
-        await api('/api/scheduling-config/templates',{method:'POST',body:JSON.stringify({name:$('templateName').value.trim(),shiftCode:$('templateShift').value,periods})});
+        const editingId = $('timetableTemplateForm').dataset.editingId;
+        await api('/api/scheduling-config/templates' + (editingId ? '/' + encodeURIComponent(editingId) : ''),{method:editingId?'PUT':'POST',body:JSON.stringify({name:$('templateName').value.trim(),shiftCode:$('templateShift').value,periods})});
+        delete $('timetableTemplateForm').dataset.editingId;
+        $('saveTemplateButton').textContent = 'Save template';
+        $('cancelTemplateEdit').hidden = true;
         $('timetableTemplateForm').reset(); $('templateBlockRows').replaceChildren(); addTemplateBlock(); await loadSchedulingSettings(); feedback.textContent='Template saved.';
       } catch(error){feedback.textContent=error.message;}
     });
