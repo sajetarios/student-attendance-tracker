@@ -483,7 +483,6 @@
     if (teacherCard) teacherCard.hidden = activeTab !== 'accounts';
     if (staffCard) staffCard.hidden = activeTab !== 'accounts';
     if (adviserCard) adviserCard.hidden = true;
-    if (teacherPermissionsCard) teacherPermissionsCard.hidden = true;
     if (accountAccessPanel) accountAccessPanel.hidden = activeTab !== 'permissions';
     if (activeTab === 'permissions') { loadSecurityAudit(); loadSecurityAccounts(); }
     if (departmentCard) departmentCard.hidden = activeTab !== 'departments';
