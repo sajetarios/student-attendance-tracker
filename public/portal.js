@@ -521,14 +521,15 @@
         const status = !account.active ? 'Inactive' : locked ? 'Locked' : account.mustChangePassword ? 'Password change required' : 'Active';
         const statusClass = !account.active || locked ? 'inactive' : 'active';
         const lastLogin = account.lastLoginAt ? new Date(account.lastLoginAt).toLocaleString() : 'Never';
-        const department = [String(account.role || '').replaceAll('_',' '), account.departmentName].filter(Boolean).join(' · ');
+        const roleLabel = String(account.role || '').replaceAll('_', ' ');
+        const departmentLabel = String(account.departmentName || 'Unassigned');
         const actions = [
           '<button type="button" class="outline-button compact-button" data-reset-staff-password="' + esc(account.userId) + '">Reset password</button>',
           '<button type="button" class="outline-button compact-button" data-revoke-staff-sessions="' + esc(account.userId) + '" ' + (Number(account.activeSessions) ? '' : 'disabled') + '>Revoke sessions</button>',
           locked ? '<button type="button" class="outline-button compact-button" data-unlock-staff-account="' + esc(account.userId) + '">Unlock</button>' : ''
         ].join('');
         return '<tr><td data-label="Employee"><strong>' + esc(account.displayName || account.username) + '</strong><small class="table-subtext">' + esc(account.username) + '</small></td>' +
-          '<td data-label="Role / department">' + esc(department) + '</td>' +
+          '<td data-label="Role / department"><div class="security-role-cell"><span class="role-line" title="' + esc(roleLabel) + '">' + esc(roleLabel) + '</span><span class="department-line" title="' + esc(departmentLabel) + '">' + esc(departmentLabel) + '</span></div></td>' +
           '<td data-label="Access status"><span class="account-status ' + statusClass + '">' + esc(status) + '</span></td>' +
           '<td data-label="Last sign-in">' + esc(lastLogin) + '</td>' +
           '<td data-label="Failed attempts">' + Number(account.failedLoginAttempts || 0) + ' / 5</td>' +
@@ -3801,9 +3802,9 @@ let teacherActionMenuListenersInstalled = false;
       control.setAttribute('aria-label', nextCollapsed ? 'Expand sidebar' : 'Collapse sidebar');
       control.title = nextCollapsed ? 'Expand sidebar' : 'Collapse sidebar';
       const arrow = control.querySelector('.sidebar-toggle-glyph');
-      if (arrow) arrow.textContent = nextCollapsed ? '›' : '‹';
+      if (arrow) arrow.innerHTML = window.DashboardIcons?.html(nextCollapsed ? 'panel-expand' : 'panel-collapse') || (nextCollapsed ? '›' : '‹');
       const label = control.querySelector('.collapse-control-label');
-      if (label) label.textContent = nextCollapsed ? 'Expand' : 'Collapse';
+      if (label) label.textContent = nextCollapsed ? 'Expand menu' : 'Collapse menu';
     }
     try { localStorage.setItem('attendance-sidebar-collapsed', nextCollapsed ? '1' : '0'); } catch {}
   }
