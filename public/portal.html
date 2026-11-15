@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="theme-color" content="#1c2d45">
   <title>Dashboard · School Attendance</title>
-  <link rel="stylesheet" href="/portal.css?v=0.9.25">
+  <link rel="stylesheet" href="/portal.css?v=0.9.45">
   <link rel="stylesheet" href="/academic-admin.css?v=1">
   <link rel="stylesheet" href="/password-visibility.css">
 
@@ -623,23 +623,43 @@
               <section id="timetableSettings" class="timetable-settings" hidden>
                 <div class="timetable-settings-heading"><div><h4>School timetable settings</h4><p>Set operating days, reusable shift templates, and special calendar dates.</p></div></div>
                 <div class="timetable-settings-grid">
-                  <form id="operatingDaysForm" class="timetable-setting-card">
+                  <form id="operatingDaysForm" class="timetable-setting-card timetable-operating-card">
                     <strong>Operating days</strong><p>Choose every day the school normally holds classes.</p>
                     <div class="weekday-toggle-grid" id="operatingDayChoices">
                       <label><input type="checkbox" value="0" ><span>Sunday</span></label><label><input type="checkbox" value="1" checked><span>Monday</span></label><label><input type="checkbox" value="2" checked><span>Tuesday</span></label><label><input type="checkbox" value="3" checked><span>Wednesday</span></label><label><input type="checkbox" value="4" checked><span>Thursday</span></label><label><input type="checkbox" value="5" checked><span>Friday</span></label><label><input type="checkbox" value="6" ><span>Saturday</span></label>
                     </div>
                     <button class="primary-button" type="submit">Save operating days</button><span class="inline-feedback" id="operatingDaysFeedback" role="status"></span>
                   </form>
-                  <form id="timetableTemplateForm" class="timetable-setting-card">
-                    <strong>Create timetable template</strong><p>Build your school day with clear start and end times. Add class periods, breaks, and lunch.</p>
-                    <label>Template name<input id="templateName" required maxlength="100" placeholder="e.g. Regular morning shift"></label>
-                    <label>Shift<select id="templateShift"><option value="REGULAR">Regular</option><option value="MORNING">Morning</option><option value="AFTERNOON">Afternoon</option><option value="EVENING">Evening</option><option value="WEEKEND">Weekend</option><option value="CUSTOM">Custom</option></select></label>
-                    <div id="templateBlockRows" aria-label="Time blocks"></div>
-                    <button class="outline-button" id="addTemplateBlock" type="button">＋ Add time block</button>
-                    <small>Use the time pickers. Blocks must end after they start and cannot overlap. Times use the school’s local time.</small>
-                    <button class="primary-button" type="submit" id="saveTemplateButton">Save template</button><button class="outline-button" type="button" id="cancelTemplateEdit" hidden>Cancel edit</button><span class="inline-feedback" id="templateFeedback" role="status"></span>
+                  <form id="timetableTemplateForm" class="timetable-setting-card timetable-editor-card">
+                    <div class="timetable-editor-heading">
+                      <div><strong>Daily timetable template</strong><p>Define reusable time slots for class schedules. Teachers and rooms are assigned separately.</p></div>
+                      <span class="timetable-editor-kicker">School schedule</span>
+                    </div>
+                    <div class="timetable-editor-meta">
+                      <label>Template name<input id="templateName" required maxlength="100" placeholder="e.g. Regular day · Grade 8"></label>
+                      <label>Shift<select id="templateShift"><option value="REGULAR">Regular</option><option value="MORNING">Morning</option><option value="AFTERNOON">Afternoon</option><option value="EVENING">Evening</option><option value="WEEKEND">Weekend</option><option value="CUSTOM">Custom</option></select></label>
+                    </div>
+                    <div class="timetable-block-heading">
+                      <div><strong>Time blocks</strong><small>Enter start and end times for each part of the school day.</small></div>
+                      <span id="templateBlockSummary" role="status" aria-live="polite">1 block</span>
+                    </div>
+                    <div class="timetable-block-editor">
+                      <div class="timetable-block-columns" aria-hidden="true"><span>#</span><span>Period / activity</span><span>Type</span><span>Start</span><span>End</span><span></span></div>
+                      <div id="templateBlockRows" aria-label="Editable school day time blocks"></div>
+                    </div>
+                    <div class="timetable-block-toolbar" aria-label="Add and organize time blocks">
+                      <button class="outline-button timetable-add-primary" id="addTemplateBlock" type="button">＋ Add class period</button>
+                      <button class="outline-button" data-add-template-type="BREAK" type="button">＋ Break</button>
+                      <button class="outline-button" data-add-template-type="LUNCH" type="button">＋ Lunch</button>
+                      <button class="outline-button timetable-sort-button" id="sortTemplateBlocks" type="button">↕ Sort by start time</button>
+                    </div>
+                    <p class="timetable-editor-hint">New blocks start when the previous one ends. You can adjust every time. Overlapping or invalid blocks are highlighted before saving.</p>
+                    <div class="timetable-editor-footer">
+                      <span class="inline-feedback" id="templateFeedback" role="status" aria-live="polite"></span>
+                      <div class="timetable-editor-actions"><button class="outline-button" type="button" id="cancelTemplateEdit" hidden>Cancel edit</button><button class="primary-button" type="submit" id="saveTemplateButton">Save template</button></div>
+                    </div>
                   </form>
-                  <form id="calendarExceptionForm" class="timetable-setting-card">
+                  <form id="calendarExceptionForm" class="timetable-setting-card timetable-calendar-card">
                     <strong>Special calendar date</strong><p>Record holidays, suspensions, special classes, or shortened days.</p>
                     <label>Date<input id="calendarExceptionDate" type="date" required></label>
                     <label>Description<input id="calendarExceptionTitle" maxlength="140" required placeholder="e.g. School foundation day"></label>
@@ -900,7 +920,7 @@
   <script src="/sw-refresh.js?v=1" defer></script>
   <script src="/password-visibility.js" defer></script>
   <script src="/vendor/html5-qrcode.min.js" defer></script>
-  <script src="/portal.js?v=0.9.44" defer></script>
+  <script src="/portal.js?v=0.9.45" defer></script>
   <script src="/academic-admin.js?v=2" defer></script>
 </body>
 </html>
