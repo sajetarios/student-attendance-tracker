@@ -26,6 +26,7 @@ const { registerPlatformRoutes } = require('./platform-routes');
 const { registerPlatformBootstrapRoutes } = require('./platform-bootstrap-routes');
 const { registerSchoolAdminRecoveryRoutes } = require('./school-admin-recovery-routes');
 const { registerFlexibleScheduleRoutes } = require('./flexible-schedule-routes');
+const { registerPhotoRoutes, readOfficialPhoto } = require('./profile-photo-routes');
 
 const app = express();
 const pool = new Pool({ connectionString: process.env.DATABASE_URL });
@@ -63,6 +64,7 @@ registerPlatformRoutes(app, pool, { authenticatePlatform, requirePlatformAdmin }
 registerPlatformBootstrapRoutes(app, pool);
 registerSchoolAdminRecoveryRoutes(app, pool, { authenticatePlatform, requirePlatformAdmin });
 registerFlexibleScheduleRoutes(app, pool, { authenticateSchoolClient, requireSchoolRoles });
+registerPhotoRoutes(app, pool, { authenticateSchoolClient });
 const { registerStudentManagementRoutes } = require('./student-management-routes');
 registerStudentManagementRoutes(app, pool, { authenticateSchoolClient, requireSchoolRoles });
 const registerSf2Routes = require('./sf2-routes');
@@ -1749,11 +1751,12 @@ app.get('/api/gate/photo/:qrToken', authenticateSchoolClient, requireSchoolRoles
   if (!isUuid(qrToken)) return res.status(404).end();
   try {
     const result = await pool.query(
-      `SELECT photo_path FROM students
+      `SELECT student_id,photo_path FROM students
        WHERE school_id=$1 AND qr_token=$2 AND active=TRUE`,
       [req.auth.schoolId, qrToken]
     );
     if (!result.rowCount || !result.rows[0].photo_path) return res.status(404).end();
+    if (await readOfficialPhoto(pool,req.auth.schoolId,'STUDENT',result.rows[0].student_id,res)) return;
     const relative = result.rows[0].photo_path;
     const absolute = path.resolve(STUDENT_PHOTO_ROOT, relative);
     if (!absolute.startsWith(STUDENT_PHOTO_ROOT + path.sep)) return res.status(404).end();
@@ -1803,11 +1806,12 @@ app.get('/api/gate/teacher/photo/:qrToken', authenticateSchoolClient, requireSch
   if (!isUuid(qrToken)) return res.status(404).end();
   try {
     const result = await pool.query(
-      `SELECT teacher_photo_path FROM school_users
+      `SELECT user_id,teacher_photo_path FROM school_users
        WHERE school_id=$1 AND teacher_qr_token=$2 AND role='TEACHER' AND active=TRUE`,
       [req.auth.schoolId, qrToken]
     );
     if (!result.rowCount || !result.rows[0].teacher_photo_path) return res.status(404).end();
+    if (await readOfficialPhoto(pool,req.auth.schoolId,'STAFF',result.rows[0].user_id,res)) return;
     const absolute = path.resolve(TEACHER_PHOTO_ROOT, result.rows[0].teacher_photo_path);
     if (!absolute.startsWith(TEACHER_PHOTO_ROOT + path.sep)) return res.status(404).end();
     await fsp.access(absolute, fs.constants.R_OK);
@@ -2214,6 +2218,7 @@ app.get('/api/students/:studentId/photo', authenticateSchoolClient, requireSchoo
       params
     );
     if (!result.rowCount || !result.rows[0].photo_path) return res.status(404).json({ error: 'Student photo not found.' });
+    if (await readOfficialPhoto(pool,req.auth.schoolId,'STUDENT',req.params.studentId,res)) return;
     const relative = result.rows[0].photo_path;
     const absolute = path.resolve(STUDENT_PHOTO_ROOT, relative);
     if (!absolute.startsWith(STUDENT_PHOTO_ROOT + path.sep)) return res.status(404).json({ error: 'Student photo not found.' });
