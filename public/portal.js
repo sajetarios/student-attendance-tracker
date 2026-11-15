@@ -1425,7 +1425,7 @@ function coverageStatusLabel(status) {
     const sectionFilter = $('weeklySectionFilter');
     const asOfFilter = $('weeklyScheduleAsOf');
     if (asOfFilter && !asOfFilter.value) asOfFilter.value = dataSchoolDate();
-    const asOfDate = /^\\d{4}-\\d{2}-\\d{2}$/.test(asOfFilter?.value || '') ? asOfFilter.value : dataSchoolDate();
+    const asOfDate = /^\d{4}-\d{2}-\d{2}$/.test(asOfFilter?.value || '') ? asOfFilter.value : dataSchoolDate();
     const effectivePeriods = periods.filter(period =>
       (!period.effectiveFrom || String(period.effectiveFrom).slice(0, 10) <= asOfDate) &&
       (!period.effectiveTo || String(period.effectiveTo).slice(0, 10) >= asOfDate)
@@ -3557,7 +3557,8 @@ let teacherActionMenuListenersInstalled = false;
   document.querySelectorAll('[data-schedule-display]').forEach(button => {
     button.addEventListener('click', () => setScheduleDisplay(button.dataset.scheduleDisplay));
   });
-  $('weeklyScheduleAsOf')?.addEventListener('change', renderWeeklyTimetable);\n  $('weeklyGradeFilter')?.addEventListener('change', renderWeeklyTimetable);
+  $('weeklyScheduleAsOf')?.addEventListener('change', renderWeeklyTimetable);
+  $('weeklyGradeFilter')?.addEventListener('change', renderWeeklyTimetable);
   $('weeklySectionFilter')?.addEventListener('change', renderWeeklyTimetable);
   $('weeklyTimetableBoard')?.addEventListener('click', async event => {
     const button = event.target.closest('[data-weekly-assign]');
