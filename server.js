@@ -2466,7 +2466,7 @@ app.get('/api/periods', authenticateSchoolClient, requireSchoolRoles('SCHOOL_ADM
     }
     const result = await pool.query(
       "SELECT p.period_id AS \"periodId\",p.period_name AS \"periodName\",p.grade_level AS \"gradeLevel\",p.section," +
-      "p.subject_id AS \"subjectId\",p.subject_name AS \"subjectName\",p.classroom," +
+      "p.subject_id AS \"subjectId\",p.subject_name AS \"subjectName\",p.classroom,p.department_id AS \"scheduleDepartmentId\"," +
       "COALESCE(assignment.\"assignedDepartmentId\",p.department_id) AS \"departmentId\"," +
       "COALESCE(assigned_department.department_name,d.department_name,'Unassigned') AS \"departmentName\"," +
       "assignment.\"assignedTeacherUserId\",assignment.\"assignedTeacherName\"," +
