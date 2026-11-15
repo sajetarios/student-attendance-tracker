@@ -116,8 +116,8 @@ function registerSchedulingConfigRoutes(app,pool,auth){
     try{
       await c.query('BEGIN');
       if(ids.length){
-        const valid=await c.query('SELECT period_id FROM class_periods WHERE school_id=$1 AND active=TRUE AND period_id=ANY($2::uuid[])',[req.auth.schoolId,ids]);
-        if(valid.rowCount!==ids.length){await c.query('ROLLBACK');return res.status(400).json({error:'One or more selected schedules are inactive or belong to another school.'});}
+        const valid=await c.query('SELECT period_id FROM class_periods WHERE school_id=$1 AND active=TRUE AND period_id=ANY($2::uuid[]) AND (effective_from IS NULL OR effective_from<=$3::date) AND (effective_to IS NULL OR effective_to>=$3::date)',[req.auth.schoolId,ids,date]);
+        if(valid.rowCount!==ids.length){await c.query('ROLLBACK');return res.status(400).json({error:'One or more selected schedules are inactive, outside their effective dates, or belong to another school.'});}
       }
       const saved=exceptionId
         ? await c.query(
