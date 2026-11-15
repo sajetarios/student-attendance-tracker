@@ -1075,13 +1075,19 @@ app.post('/api/teachers/:userId/substitutions', authenticateSchoolClient, requir
       return res.status(400).json({ error: 'The substitute must be an active teacher in this school.' });
     }
     const period = await client.query(
-      `SELECT period_id, period_name, subject_name, grade_level, section, classroom, department_id, start_time, end_time, grace_minutes
+      `SELECT period_id, period_name, subject_name, grade_level, section, classroom, department_id, start_time, end_time, grace_minutes,
+              effective_from AS "effectiveFrom",effective_to AS "effectiveTo"
        FROM class_periods WHERE school_id=$1 AND period_id=$2 AND active=TRUE`,
       [req.auth.schoolId, periodId]
     );
     if (!period.rowCount) {
       await client.query('ROLLBACK');
       return res.status(404).json({ error: 'The selected class schedule is not active.' });
+    }
+    if ((period.rows[0].effectiveFrom && startDate < String(period.rows[0].effectiveFrom).slice(0,10)) ||
+        (period.rows[0].effectiveTo && endDate > String(period.rows[0].effectiveTo).slice(0,10))) {
+      await client.query('ROLLBACK');
+      return res.status(400).json({ error: 'Substitute coverage dates must fall within the class schedule effective dates.' });
     }
     if (String(period.rows[0].department_id) !== String(absent.department_id) ||
         String(substitute.rows[0].department_id) !== String(period.rows[0].department_id)) {
