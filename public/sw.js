@@ -1,4 +1,4 @@
-const CACHE = "school-attendance-shell-v47-guided-timetable";
+const CACHE = "school-attendance-shell-v48-template-management";
 
 const SHELL = [
   "/portal-login.html",
