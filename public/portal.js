@@ -4357,11 +4357,11 @@ let teacherActionMenuListenersInstalled = false;
     }
   }
 
-  function openParentInvite(student) {
+  function openParentInvite(student, guardian = {}) {
     const schoolCode = user.schoolCode || '';
     const registerUrl = `${window.location.origin}/parent-register.html`;
-    const parentName = $('newParentName').value.trim();
-    const mobile = $('newParentMobile').value.trim();
+    const parentName = guardian.parentName || $('newParentName').value.trim();
+    const mobile = guardian.parentMobile || $('newParentMobile').value.trim();
     const message = [
       `Hello${parentName ? ' ' + parentName : ''}!`,
       `Your child ${student.fullName} (${student.studentId}) has been registered in the school attendance system.`,
@@ -4466,7 +4466,7 @@ let teacherActionMenuListenersInstalled = false;
       $('studentForm').hidden = true;
       await loadSchoolData();
       showToast('Student registered successfully.');
-      if (payload.parentName || payload.parentMobile) openParentInvite(inviteStudent);
+      if (payload.parentName || payload.parentMobile) openParentInvite(inviteStudent, payload);
     } catch (error) {
       feedback.className = 'inline-feedback error';
       feedback.textContent = error.message;
