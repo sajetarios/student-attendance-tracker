@@ -106,15 +106,11 @@
     } catch { return ''; }
   }
 
-  async function uploadStudentPhoto(studentId, file) {
-    if (!file) return;
-    const allowed = ['image/jpeg', 'image/png', 'image/webp'];
-    if (!allowed.includes(file.type) || file.size > 5 * 1024 * 1024) throw new Error('Choose a JPG, PNG, or WebP photo up to 5 MB.');
-    const response = await fetch(`/api/students/${encodeURIComponent(studentId)}/photo`, {
-      method: 'PUT', headers: { Authorization: `Bearer ${token}`, 'Content-Type': file.type }, body: file, cache: 'no-store'
-    });
-    const data = await response.json().catch(() => ({}));
-    if (!response.ok) throw new Error(data.error || 'Photo upload failed.');
+  async function uploadStudentPhoto(studentId, file, preparedPhoto = null) {
+    const photo = preparedPhoto || (file && await window.ProfilePhotos.edit(file));
+    if (!photo) return false;
+    await window.ProfilePhotos.post(`/api/photos/official/student/${encodeURIComponent(studentId)}`, token, photo);
+    return true;
   }
 
   function clearSession() {
@@ -1128,8 +1124,11 @@ function coverageStatusLabel(status) {
       host.querySelectorAll('input[data-student-photo]').forEach(input => input.addEventListener('change', async () => {
         const file = input.files?.[0]; if (!file) return;
         input.disabled = true;
-        try { await uploadStudentPhoto(input.dataset.studentPhoto, file); await loadSchoolData(); showToast('Student photo uploaded successfully.'); }
-        catch (error) { showToast(error.message, true); input.disabled = false; }
+        try {
+          const saved = await uploadStudentPhoto(input.dataset.studentPhoto, file);
+          if (saved) { await loadSchoolData(); showToast('Student photo saved without stretching.'); }
+        } catch (error) { showToast(error.message, true); }
+        finally { input.disabled = false; input.value = ''; }
       }));
       host.querySelectorAll('[data-select-student]').forEach(box => box.addEventListener('change', () => {
         if (box.checked) selectedStudentIds.add(box.dataset.selectStudent); else selectedStudentIds.delete(box.dataset.selectStudent);
@@ -1849,13 +1848,10 @@ let teacherActionMenuListenersInstalled = false;
   }
 
   async function uploadTeacherPhoto(userId, file) {
-    const allowed = ['image/jpeg', 'image/png', 'image/webp'];
-    if (!allowed.includes(file.type) || file.size > 5 * 1024 * 1024) throw new Error('Choose a JPG, PNG, or WebP photo up to 5 MB.');
-    const response = await fetch(`/api/teachers/${encodeURIComponent(userId)}/photo`, {
-      method: 'PUT', headers: { Authorization: `Bearer ${token}`, 'Content-Type': file.type }, body: file, cache: 'no-store'
-    });
-    const data = await response.json().catch(() => ({}));
-    if (!response.ok) throw new Error(data.error || 'Teacher photo upload failed.');
+    const photo = await window.ProfilePhotos.edit(file);
+    if (!photo) return false;
+    await window.ProfilePhotos.post(`/api/photos/official/teacher/${encodeURIComponent(userId)}`, token, photo);
+    return true;
   }
 
   async function printTeacherGateQr(userId) {
@@ -1977,8 +1973,11 @@ let teacherActionMenuListenersInstalled = false;
     $('teacherRows').querySelectorAll('input[data-teacher-photo]').forEach(input => input.addEventListener('change', async () => {
       const file = input.files?.[0]; if (!file) return;
       input.disabled = true;
-      try { await uploadTeacherPhoto(input.dataset.teacherPhoto, file); await loadSchoolData(); showToast('Teacher photo uploaded. Teacher gate QR can now be used for identity verification.'); }
-      catch (error) { showToast(error.message, true); input.disabled = false; }
+      try {
+        const saved = await uploadTeacherPhoto(input.dataset.teacherPhoto, file);
+        if (saved) { await loadSchoolData(); showToast('Official teacher photo saved.'); }
+      } catch (error) { showToast(error.message, true); }
+      finally { input.disabled = false; input.value = ''; }
     }));
     $('teacherRows').querySelectorAll('details.teacher-action-menu').forEach(details => {
       details.addEventListener('toggle', () => {
@@ -3552,6 +3551,8 @@ let teacherActionMenuListenersInstalled = false;
     $('accountMenuName').textContent = user.displayName || user.username;
     $('accountMenuRole').textContent = user.role.replaceAll('_', ' ');
     $('userAvatar').textContent = (user.displayName || user.username || 'U').trim().charAt(0).toUpperCase();
+    window.ProfilePhotos?.mountSelf({token,role:user.role,container:'#accountProfileDialog',displayName:user.displayName||user.username});
+    window.ProfilePhotos?.mountReviews({token,role:user.role,designations:user.teacherDesignations||[]});
     $('rolePill').textContent = user.role.replaceAll('_', ' ');
     $('dateLabel').textContent = new Date().toLocaleDateString('en-PH', {
       timeZone: 'Asia/Manila', weekday: 'long', year: 'numeric', month: 'long', day: 'numeric'
@@ -3891,7 +3892,7 @@ let teacherActionMenuListenersInstalled = false;
       user.displayName = data.profile.displayName; user.mobile = data.profile.mobile || '';
       sessionStorage.setItem(userKey, JSON.stringify(user));
       $('userDisplay').textContent = user.displayName; $('accountMenuName').textContent = user.displayName;
-      $('userAvatar').textContent = user.displayName.trim().charAt(0).toUpperCase();
+      if (!$('userAvatar').querySelector('img')) $('userAvatar').textContent = user.displayName.trim().charAt(0).toUpperCase();
       feedback.textContent = 'Profile saved.'; showToast('Profile saved.');
     } catch (error) { feedback.textContent = error.message; feedback.className = 'inline-feedback error'; }
   });
@@ -4420,9 +4421,10 @@ let teacherActionMenuListenersInstalled = false;
       parentMobile: $('newParentMobile').value.trim()
     };
     try {
-      const created = await api('/api/students', { method: 'POST', body: JSON.stringify(payload) });
       const photoFile = $('newStudentPhoto').files?.[0];
-      if (photoFile) await uploadStudentPhoto(created.student.studentId, photoFile);
+      const preparedPhoto = photoFile ? await window.ProfilePhotos.edit(photoFile) : null;
+      const created = await api('/api/students', { method: 'POST', body: JSON.stringify(payload) });
+      if (preparedPhoto) await uploadStudentPhoto(created.student.studentId, photoFile, preparedPhoto);
       const inviteStudent = { fullName: payload.fullName, studentId: created.student.studentId, gradeLevel: payload.gradeLevel, section: payload.section };
       $('studentForm').reset();
       $('newSection').innerHTML = '<option value="">Select grade level first</option>';
