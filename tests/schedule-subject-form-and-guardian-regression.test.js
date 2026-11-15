@@ -128,6 +128,9 @@ test('manager schedule workspace provides a responsive weekly timetable with fil
   assert.match(portal, /!p\.assignedTeacherUserId && !p\.assignedTeacherName/);
   assert.match(server, /const sharesDay = \(p\.weekdays \|\| \[\]\)\.some/);
   assert.match(server, /requested_day\.weekday=existing_day\.weekday/);
+  assert.match(server, /daterange\(COALESCE\(p\.effective_from/);
+  assert.match(server, /const datesOverlap =/);
+  assert.match(server, /class_period_days a[\s\S]*b\.weekday=a\.weekday/);
   assert.match(css, /\.weekly-timetable-board/);
   assert.match(css, /@media\(max-width:420px\)/);
 });
