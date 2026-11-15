@@ -56,6 +56,17 @@ test('school scheduling configuration APIs enforce admin writes and school scopi
   assert.match(routes,/WEEKEND/);
 });
 
+test('editing a calendar exception updates the existing record even when its date changes',()=>{
+  const routes=read('scheduling-config-routes.js');
+  const portal=read('public/portal.js');
+  assert.match(routes,/exceptionId!==null/);
+  assert.match(routes,/UPDATE school_calendar_exceptions SET calendar_date=\$3::date/);
+  assert.match(routes,/Calendar exception not found/);
+  assert.match(routes,/Another calendar exception already exists on that date/);
+  assert.match(portal,/exceptionId:\$\('calendarExceptionForm'\)\.dataset\.exceptionId\|\|null/);
+  assert.match(portal,/dataset\.exceptionId=item\.exceptionId/);
+});
+
 test('weekly schedule assignments are stored and conflicts are limited to shared weekdays',()=>{
   const html=read('public/portal.html');
   const portal=read('public/portal.js');
