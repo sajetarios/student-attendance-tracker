@@ -16,7 +16,7 @@ test('authenticated portal explicitly checks for service-worker updates and relo
   assert.ok(updater.includes('registration.update()'));
   assert.ok(updater.includes("addEventListener('controllerchange'"));
   assert.ok(updater.includes('window.location.reload()'));
-  assert.ok(worker.includes('school-attendance-shell-v52-safe-learner-batch'));
+  assert.ok(worker.includes('school-attendance-shell-v53-platform-first-admin'));
   assert.ok(worker.includes('/portal.js?v=0.9.48'));
   assert.ok(worker.includes('/sw-refresh.js?v=1'));
   assert.ok(worker.includes('/form-system.css?v=1'));
