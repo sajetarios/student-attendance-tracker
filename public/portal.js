@@ -391,6 +391,9 @@
     if ($('showScheduleForm')) $('showScheduleForm').hidden = !(admin || departmentHead);
     if ($('dashboardAddStudent')) $('dashboardAddStudent').hidden = !(admin || (teacher && classAdviser));
     if ($('showTeacherForm')) $('showTeacherForm').hidden = !admin;
+    if ($('addSchoolStaffAccount')) $('addSchoolStaffAccount').hidden = !admin;
+    if ($('demoStudentLoginCard')) $('demoStudentLoginCard').hidden = !(admin && user?.schoolCode === 'DEMO001');
+    if ($('sf2DemoNotice')) $('sf2DemoNotice').hidden = user?.schoolCode !== 'DEMO001';
     if ($('staffUserRows')) $('staffUserRows').closest('.staff-accounts-card').hidden = !admin;
     if ($('adviserAssignmentForm') && !(admin || departmentHead)) $('adviserAssignmentForm').hidden = true;
     if ($('adviserAssignmentForm')) $('adviserAssignmentForm').closest('.adviser-assignments-card').hidden = !(admin || departmentHead);
@@ -4305,6 +4308,45 @@ let teacherActionMenuListenersInstalled = false;
     updateDesignationVisibility();
     $('showTeacherForm').addEventListener('click', () => {
       $('teacherForm').hidden = !$('teacherForm').hidden;
+    });
+    $('addSchoolStaffAccount')?.addEventListener('click', () => {
+      $('teacherForm').hidden = false;
+      $('newAccountRole').value = 'DEPARTMENT_HEAD';
+      $('newAccountRole').dispatchEvent(new Event('change', { bubbles:true }));
+      $('teacherFormFeedback').className = 'inline-feedback';
+      $('teacherFormFeedback').textContent = 'Creating a Department Head account. You can select Gate Keeper in the Account role field instead.';
+      $('teacherForm').scrollIntoView({ behavior:'smooth', block:'center' });
+      $('newTeacherName').focus({ preventScroll:true });
+    });
+    $('createDemoStudentLogin')?.addEventListener('click', async () => {
+      const button = $('createDemoStudentLogin');
+      const feedback = $('demoStudentLoginFeedback');
+      button.disabled = true;
+      feedback.textContent = 'Creating a secure, one-time demo student password…';
+      feedback.className = 'inline-feedback';
+      try {
+        const created = await api('/api/admin/demo-student-login', { method:'POST', body:'{}' });
+        $('demoStudentLoginUsername').textContent = created.username;
+        $('demoStudentLoginPassword').textContent = created.temporaryPassword;
+        $('demoStudentLoginCredentials').hidden = false;
+        button.hidden = true;
+        feedback.textContent = 'Demo student login created. Copy the temporary password before leaving this page.';
+      } catch (error) {
+        feedback.className = 'inline-feedback error';
+        feedback.textContent = error.message;
+        button.disabled = false;
+      }
+    });
+    $('copyDemoStudentLogin')?.addEventListener('click', async () => {
+      const username = $('demoStudentLoginUsername')?.textContent || '';
+      const password = $('demoStudentLoginPassword')?.textContent || '';
+      if (!username || !password) return;
+      try {
+        await navigator.clipboard.writeText('School: DEMO001\\nStudent username: ' + username + '\\nTemporary password: ' + password);
+        $('demoStudentLoginFeedback').textContent = 'Credentials copied. Share them only with the intended demo tester.';
+      } catch {
+        $('demoStudentLoginFeedback').textContent = 'Your browser blocked copying. Select and copy the displayed username and password.';
+      }
     });
     $('cancelTeacherForm').addEventListener('click', () => {
       $('teacherForm').reset();
