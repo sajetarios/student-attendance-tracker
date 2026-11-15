@@ -3067,7 +3067,7 @@ let teacherActionMenuListenersInstalled = false;
     const base = await Promise.all([
       isSchoolAdmin ? Promise.resolve({}) : api('/api/admin/dashboard'),
       isSchoolAdmin ? Promise.resolve({ students: [] }) : api('/api/students'),
-      canViewClassSchedules ? api('/api/periods') : Promise.resolve({ periods: [] }),
+      canViewClassSchedules ? api('/api/periods?weekDate='+encodeURIComponent($('weeklyScheduleAsOf')?.value||dataSchoolDate())) : Promise.resolve({ periods: [] }),
       isSchoolManager ? api('/api/departments') : Promise.resolve({ departments: [] })
     ]);
     dashboardData = base[0];
@@ -3117,6 +3117,8 @@ let teacherActionMenuListenersInstalled = false;
     }
 
     await loadSchedulingSettings();
+    populateAdjustmentPeriodOptions();
+    await loadScheduleAdjustments();
     renderStats(dashboardData);
     renderStudents();
     renderPeriods();
@@ -4366,10 +4368,18 @@ let teacherActionMenuListenersInstalled = false;
   document.querySelectorAll('[data-schedule-display]').forEach(button => {
     button.addEventListener('click', () => setScheduleDisplay(button.dataset.scheduleDisplay));
   });
-  $('weeklyScheduleAsOf')?.addEventListener('change', renderWeeklyTimetable);
+  $('weeklyScheduleAsOf')?.addEventListener('change', async () => {
+    if (user.role === 'TEACHER') await loadSchoolData();
+    else await loadScheduleAdjustments();
+  });
   $('weeklyGradeFilter')?.addEventListener('change', renderWeeklyTimetable);
   $('weeklySectionFilter')?.addEventListener('change', renderWeeklyTimetable);
   $('weeklyTimetableBoard')?.addEventListener('click', async event => {
+    const changeButton = event.target.closest('[data-open-adjustment]');
+    if(changeButton) {
+      openScheduleAdjustment(changeButton.dataset.openAdjustment,changeButton.dataset.adjustmentDate);
+      return;
+    }
     const button = event.target.closest('[data-weekly-assign]');
     if (!button) return;
     const periodId = button.dataset.weeklyAssign;
