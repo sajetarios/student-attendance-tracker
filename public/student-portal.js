@@ -92,6 +92,7 @@
     currentUser = me.user;
     sessionStorage.setItem(userKey, JSON.stringify(currentUser));
     await loadProfile();
+    window.ProfilePhotos?.mountSelf({token,role:'STUDENT',studentId:currentUser.studentId,container:'#studentProfileCard',displayName:currentUser.displayName});
     $('studentAttendanceSummary').hidden = Boolean(currentUser.mustChangePassword);
     $('studentAttendanceCard').hidden = Boolean(currentUser.mustChangePassword);
     $('studentPasswordRequired').hidden = !currentUser.mustChangePassword;
