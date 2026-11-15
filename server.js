@@ -26,7 +26,7 @@ const { registerPlatformRoutes } = require('./platform-routes');
 const { registerPlatformBootstrapRoutes } = require('./platform-bootstrap-routes');
 const { registerSchoolAdminRecoveryRoutes } = require('./school-admin-recovery-routes');
 const { registerFlexibleScheduleRoutes } = require('./flexible-schedule-routes');
-const { registerPhotoRoutes, readOfficialPhoto } = require('./profile-photo-routes');
+const { registerPhotoRoutes, registerPlatformPhotoRoutes, readOfficialPhoto } = require('./profile-photo-routes');
 
 const app = express();
 const pool = new Pool({ connectionString: process.env.DATABASE_URL });
@@ -65,6 +65,7 @@ registerPlatformBootstrapRoutes(app, pool);
 registerSchoolAdminRecoveryRoutes(app, pool, { authenticatePlatform, requirePlatformAdmin });
 registerFlexibleScheduleRoutes(app, pool, { authenticateSchoolClient, requireSchoolRoles });
 registerPhotoRoutes(app, pool, { authenticateSchoolClient });
+registerPlatformPhotoRoutes(app, pool, { authenticatePlatform, requirePlatformAdmin });
 const { registerStudentManagementRoutes } = require('./student-management-routes');
 registerStudentManagementRoutes(app, pool, { authenticateSchoolClient, requireSchoolRoles });
 const registerSf2Routes = require('./sf2-routes');
