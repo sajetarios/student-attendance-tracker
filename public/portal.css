@@ -1841,3 +1841,39 @@ tbody tr:hover td { background: #f9fbfc; }
 #schedulesView .schedule-weekday-options{padding:3px 0}
 @media(max-width:900px){.timetable-settings-grid{grid-template-columns:1fr 1fr}}
 @media(max-width:640px){.timetable-settings{padding:13px}.timetable-settings-grid{grid-template-columns:1fr}.timetable-setting-card{padding:13px}.weekday-toggle-grid label,.schedule-weekday-options label{flex:1 1 calc(50% - 8px);justify-content:flex-start;min-height:40px;box-sizing:border-box}.timetable-template-chips>span{flex:1 1 100%}}
+
+/* Weekly timetable: configurable school days, responsive day cards, and inline teacher assignment */
+.weekly-timetable-workspace{margin:18px 0 14px;padding:18px;border:1px solid #dce6ee;border-radius:16px;background:#f8fafc}
+.weekly-timetable-toolbar{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;flex-wrap:wrap;margin-bottom:16px}
+.weekly-timetable-toolbar>div:first-child{display:grid;gap:4px}
+.weekly-timetable-toolbar>div:first-child strong{font-size:17px;color:#1d3c55}
+.weekly-timetable-toolbar>div:first-child span{font-size:12px;color:#718397}
+.weekly-timetable-controls{display:flex;align-items:flex-end;gap:10px;flex-wrap:wrap}
+.weekly-timetable-controls label{display:grid;gap:5px;min-width:135px;color:#496176;font-size:12px;font-weight:700}
+.weekly-timetable-controls select,.weekly-assign-controls select{min-width:0;min-height:38px;padding:8px 10px;border:1px solid #cedbe5;border-radius:8px;background:#fff;color:#25445b;font:inherit}
+.schedule-display-toggle{display:flex;gap:5px}
+.schedule-display-toggle button{min-height:38px;padding:7px 12px}
+.schedule-display-toggle button.is-active{background:#e8f3fa;border-color:#8ebbd6;color:#145d84;font-weight:750}
+.weekly-timetable-board{display:grid;grid-template-columns:repeat(7,minmax(145px,1fr));gap:10px;align-items:start;overflow-x:auto;padding-bottom:5px}
+.weekly-day-column{min-width:0;min-height:155px;padding:10px;border:1px solid #e1e9ef;border-radius:12px;background:#fff}
+.weekly-day-column>header{display:flex;justify-content:space-between;align-items:center;gap:6px;margin-bottom:10px;padding-bottom:9px;border-bottom:1px solid #edf1f4}
+.weekly-day-column>header strong{color:#25465f;font-size:13px}
+.weekly-day-column>header span{color:#8292a1;font-size:10px;white-space:nowrap}
+.weekly-schedule-card{display:grid;gap:5px;margin:0 0 8px;padding:10px;border:1px solid #dce7ef;border-left:3px solid #5b9fc2;border-radius:9px;background:#f7fbfd;color:#52697c;font-size:11px;line-height:1.4;overflow-wrap:anywhere}
+.weekly-schedule-card:last-child{margin-bottom:0}
+.weekly-schedule-card.is-unassigned{border-left-color:#d59a42;background:#fffaf1}
+.weekly-card-time{color:#245b7b;font-size:11px;font-weight:800;font-variant-numeric:tabular-nums}
+.weekly-schedule-card>strong{color:#203f58;font-size:12px}
+.weekly-card-class{color:#435e73;font-weight:700}
+.weekly-card-teacher{color:#587487}
+.weekly-card-teacher.is-unassigned{color:#98641d;font-weight:800}
+.weekly-assign-controls{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:5px;margin-top:5px}
+.weekly-assign-controls select{width:100%;font-size:11px}
+.weekly-assign-controls button{min-height:36px;padding:6px 9px;font-size:11px}
+.weekly-day-empty{margin:22px 3px;color:#96a3ae;font-size:11px;text-align:center}
+.weekly-empty-state{grid-column:1/-1;display:grid;gap:5px;padding:30px 16px;border:1px dashed #d6e1e9;border-radius:12px;background:#fff;text-align:center}
+.weekly-empty-state strong{color:#38566d;font-size:14px}
+.weekly-empty-state span{color:#7c8d9c;font-size:12px}
+@media(max-width:1100px){.weekly-timetable-board{grid-template-columns:repeat(4,minmax(160px,1fr))}}
+@media(max-width:700px){.weekly-timetable-workspace{padding:13px}.weekly-timetable-toolbar{display:grid}.weekly-timetable-controls{display:grid;grid-template-columns:1fr 1fr;width:100%}.weekly-timetable-controls label{min-width:0}.schedule-display-toggle{grid-column:1/-1}.schedule-display-toggle button{flex:1}.weekly-timetable-board{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}.weekly-day-column{padding:8px}}
+@media(max-width:420px){.weekly-timetable-board{grid-template-columns:minmax(0,1fr)}.weekly-day-column{min-height:0}.weekly-assign-controls{grid-template-columns:minmax(0,1fr) auto}}
