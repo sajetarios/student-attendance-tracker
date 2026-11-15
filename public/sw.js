@@ -1,10 +1,10 @@
-const CACHE = "school-attendance-shell-v41-calendar-exception-edit";
+const CACHE = "school-attendance-shell-v42-calendar-exception-edit";
 
 const SHELL = [
   "/portal-login.html",
   "/portal.css?v=0.9.24",
   "/portal.css",
-  "/portal.js?v=0.9.37",
+  "/portal.js?v=0.9.38",
   "/academic-admin.css?v=1",
   "/academic-admin.js?v=2",
   "/app-dialog.css?v=1",
