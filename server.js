@@ -1814,12 +1814,13 @@ app.post('/api/gate/teacher-events', authenticateSchoolClient, requireSchoolRole
   if (manilaDate !== schoolDate) return res.status(400).json({ error: 'The selected school date does not match the scan time in Asia/Manila.' });
   try {
     const calendar = await pool.query(
-      `SELECT exception_type AS type,dismissal_time AS "dismissalTime"
+      `SELECT exception_type AS type,dismissal_time AS "dismissalTime",created_at AS "createdAt"
        FROM school_calendar_exceptions WHERE school_id=$1 AND calendar_date=$2::date`,
       [req.auth.schoolId,schoolDate]);
     const exception = calendar.rows[0];
-    if (exception?.type === 'CLOSED') return res.status(409).json({error:'Attendance is disabled because the school is marked closed on this date.'});
-    if (exception?.type === 'SHORTENED_DAY' && exception.dismissalTime &&
+    const exceptionAppliedBeforeEvent = exception && new Date(occurredAt) >= new Date(exception.createdAt);
+    if (exceptionAppliedBeforeEvent && exception?.type === 'CLOSED') return res.status(409).json({error:'Attendance is disabled because the school is marked closed on this date.'});
+    if (exceptionAppliedBeforeEvent && exception?.type === 'SHORTENED_DAY' && exception.dismissalTime &&
         new Intl.DateTimeFormat('en-GB',{timeZone:'Asia/Manila',hour:'2-digit',minute:'2-digit',hourCycle:'h23'}).format(new Date(occurredAt)) > String(exception.dismissalTime).slice(0,5))
       return res.status(409).json({error:'The recorded time is after the scheduled dismissal time for this shortened day.'});
     const teacher = await pool.query(
@@ -2880,22 +2881,24 @@ app.post('/api/sync/events', authenticateSchoolClient, requireSchoolClient, asyn
       }
 
       const calendarResult = await client.query(
-        `SELECT exception_id AS "exceptionId",exception_type AS type,dismissal_time AS "dismissalTime"
+        `SELECT exception_id AS "exceptionId",exception_type AS type,dismissal_time AS "dismissalTime",created_at AS "createdAt"
          FROM school_calendar_exceptions WHERE school_id=$1 AND calendar_date=$2::date`,
         [req.auth.schoolId,event.schoolDate]);
       const calendarException = calendarResult.rows[0];
-      if (calendarException?.type === 'CLOSED') {
+      // Preserve scans captured offline before an administrator added or changed this exception.
+      const exceptionAppliedBeforeEvent = calendarException && new Date(event.occurredAt) >= new Date(calendarException.createdAt);
+      if (exceptionAppliedBeforeEvent && calendarException?.type === 'CLOSED') {
         results.push({eventId:event.eventId,status:'REJECTED',reason:'School is marked closed on this date.'});
         continue;
       }
-      if (calendarException?.type === 'SHORTENED_DAY' && calendarException.dismissalTime) {
+      if (exceptionAppliedBeforeEvent && calendarException?.type === 'SHORTENED_DAY' && calendarException.dismissalTime) {
         const eventClock = new Intl.DateTimeFormat('en-GB',{timeZone:'Asia/Manila',hour:'2-digit',minute:'2-digit',hourCycle:'h23'}).format(new Date(event.occurredAt));
         if (eventClock > String(calendarException.dismissalTime).slice(0,5)) {
           results.push({eventId:event.eventId,status:'REJECTED',reason:'Attendance time is after the scheduled dismissal time for this shortened day.'});
           continue;
         }
       }
-      if (calendarException && ['OPEN','SPECIAL_CLASS'].includes(calendarException.type) && event.attendanceScope === 'CLASS') {
+      if (exceptionAppliedBeforeEvent && calendarException && ['OPEN','SPECIAL_CLASS'].includes(calendarException.type) && event.attendanceScope === 'CLASS') {
         const allowedSchedule = await client.query(
           'SELECT 1 FROM school_calendar_exception_periods WHERE school_id=$1 AND exception_id=$2 AND period_id=$3',
           [req.auth.schoolId,calendarException.exceptionId,event.periodId]);
@@ -2937,7 +2940,7 @@ app.post('/api/sync/events', authenticateSchoolClient, requireSchoolClient, asyn
 
       let period = null;
       let late = false;
-      if (calendarException && ['OPEN','SPECIAL_CLASS'].includes(calendarException.type) && event.attendanceScope === 'ADVISORY') {
+      if (exceptionAppliedBeforeEvent && calendarException && ['OPEN','SPECIAL_CLASS'].includes(calendarException.type) && event.attendanceScope === 'ADVISORY') {
         const allowedAdvisory = await client.query(
           `SELECT 1 FROM school_calendar_exception_periods ep
            JOIN class_periods p ON p.school_id=ep.school_id AND p.period_id=ep.period_id
