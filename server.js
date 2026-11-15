@@ -2991,7 +2991,28 @@ app.post('/api/sync/events', authenticateSchoolClient, requireSchoolClient, asyn
           results.push({ eventId: event.eventId, status: 'REJECTED', reason: 'Unknown class period in this school.' });
           continue;
         }
-        period = periodResult.rows[0];
+        period = { ...periodResult.rows[0] };
+        const adjusted = await client.query(
+          'SELECT adjustment_type,subject_id,start_time,end_time,classroom,updated_at ' +
+          'FROM schedule_day_adjustments WHERE school_id=$1 AND period_id=$2 AND school_date=$3::date',
+          [req.auth.schoolId,event.periodId,event.schoolDate]
+        );
+        const dateChange=adjusted.rows[0];
+        if(dateChange && new Date(event.occurredAt)>=new Date(dateChange.updated_at)) {
+          if(dateChange.adjustment_type==='CANCEL') {
+            results.push({eventId:event.eventId,status:'REJECTED',reason:'This class was cancelled for the selected date.'});
+            continue;
+          }
+          if(dateChange.start_time)period.start_time=dateChange.start_time;
+          if(dateChange.end_time)period.end_time=dateChange.end_time;
+          if(dateChange.classroom!==null)period.classroom=dateChange.classroom;
+          if(dateChange.subject_id){
+            const subjectChange=await client.query(
+              'SELECT subject_name FROM school_subjects WHERE school_id=$1 AND subject_id=$2',
+              [req.auth.schoolId,dateChange.subject_id]);
+            if(subjectChange.rowCount)period.subject_name=subjectChange.rows[0].subject_name;
+          }
+        }
         if (period.grade_level !== student.rows[0].grade_level ||
             (period.section && period.section !== student.rows[0].section)) {
           results.push({ eventId: event.eventId, status: 'REJECTED', reason: 'Student is not enrolled in this period section.' });
