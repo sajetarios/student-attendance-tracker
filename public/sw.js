@@ -1,4 +1,4 @@
-const CACHE = "school-attendance-shell-v71-recovery";
+const CACHE = "school-attendance-shell-v72-isolated-guardian";
 
 const SHELL = [
   "/dashboard-icons.js?v=4",
