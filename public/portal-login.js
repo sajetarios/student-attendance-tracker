@@ -18,9 +18,9 @@
     schoolMode.classList.toggle('active', isSchool);
     studentMode?.classList.toggle('active', isStudent);
     platformMode.classList.toggle('active', mode === 'platform');
-    schoolMode.setAttribute('aria-selected', String(isSchool));
-    studentMode?.setAttribute('aria-selected', String(isStudent));
-    platformMode.setAttribute('aria-selected', String(mode === 'platform'));
+    schoolMode.setAttribute('aria-pressed', String(isSchool));
+    studentMode?.setAttribute('aria-pressed', String(isStudent));
+    platformMode.setAttribute('aria-pressed', String(mode === 'platform'));
     schoolCodeGroup.hidden = mode === 'platform';
     schoolCode.required = mode !== 'platform';
     if (usernameLabel) usernameLabel.textContent = isStudent ? 'Student ID / username' : 'Username';

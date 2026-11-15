@@ -1,4 +1,5 @@
 const { hashPassword, verifyPassword, createOpaqueToken, hashToken } = require('./auth-security');
+const { createIpRateLimiter } = require('./request-limiter');
 
 function validString(value, max = 160) {
   return typeof value === 'string' && value.trim().length > 0 && value.trim().length <= max;
@@ -11,6 +12,11 @@ function bearerToken(req) {
 
 function registerAuthRoutes(app, pool) {
   const sessionHours = Math.min(24, Math.max(1, Number(process.env.AUTH_SESSION_HOURS || 12)));
+  const limitLoginAttempts = createIpRateLimiter({
+    windowMs: 15 * 60 * 1000,
+    maxRequests: 60,
+    message: 'Too many sign-in attempts. Please wait a little before trying again.'
+  });
 
   async function issueSession({ principalType, schoolId = null, schoolUserId = null, platformUserId = null }) {
     const token = createOpaqueToken();
@@ -38,7 +44,7 @@ function registerAuthRoutes(app, pool) {
     );
   }
 
-  app.post('/api/auth/school/login', async (req, res) => {
+  app.post('/api/auth/school/login', limitLoginAttempts, async (req, res) => {
     const { schoolCode, username, password } = req.body || {};
     if (![schoolCode, username, password].every(v => validString(v, 256))) {
       return res.status(400).json({ error: 'School code, username, and password are required.' });
@@ -103,7 +109,7 @@ function registerAuthRoutes(app, pool) {
   });
 
   // Student accounts are separate principals and never receive staff or parent permissions.
-  app.post('/api/auth/student/login', async (req, res) => {
+  app.post('/api/auth/student/login', limitLoginAttempts, async (req, res) => {
     const { schoolCode, username, password } = req.body || {};
     if (![schoolCode, username, password].every(v => validString(v, 256))) {
       return res.status(400).json({ error: 'School code, student ID/username, and password are required.' });
@@ -171,7 +177,7 @@ function registerAuthRoutes(app, pool) {
     }
   });
 
-  app.post('/api/auth/platform/login', async (req, res) => {
+  app.post('/api/auth/platform/login', limitLoginAttempts, async (req, res) => {
     const { username, password } = req.body || {};
     if (![username, password].every(v => validString(v, 256))) {
       return res.status(400).json({ error: 'Username and password are required.' });
