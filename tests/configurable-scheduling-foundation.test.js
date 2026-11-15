@@ -87,6 +87,9 @@ test('calendar exceptions require selected schedules or an explicit shortened-da
   assert.match(server,/p\.effective_from<=\$4::date/);
   assert.match(portal,/calendarExceptionSchedules/);
   assert.match(portal,/renderCalendarExceptions/);
+  assert.match(portal,/data-edit-calendar-exception/);
+  assert.match(portal,/cancelCalendarExceptionEdit/);
+  assert.match(html,/id="cancelCalendarExceptionEdit"/);
   assert.match(html,/id="calendarExceptionList"/);
   assert.match(html,/id="calendarDismissalTime"/);
 });
