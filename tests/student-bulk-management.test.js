@@ -28,7 +28,7 @@ test('student batch APIs enforce Administrator, Department Head, and Class Advis
   assert.match(routes,/req\.auth\.role==='TEACHER'/);
   assert.match(routes,/class_adviser_assignments/);
   assert.match(routes,/students\/batch/);
-  assert.match(routes,/\['ACTIVATE','DEACTIVATE','ARCHIVE','UPDATE','ASSIGN'\]/);
+  assert.match(routes,/\['ACTIVATE','DEACTIVATE','ARCHIVE','SET_SEX','ASSIGN'\]/);
 });
 
 test('Department Head student batch actions are scoped to their active department sections',()=>{
@@ -59,7 +59,7 @@ test('student import and batch controls have preview and explicit confirmation U
   assert.match(html,/id="confirmStudentImport"/);
   assert.match(html,/id="studentBatchModal"/);
   assert.match(portal,/AppDialog\.confirm\('Import '/);
-  assert.match(portal,/AppDialog\.confirm\(action/);
+  assert.match(portal,/AppDialog\.confirm\(message/);
 });
 
 test('new archive migration is part of the required migration chain',()=>{
