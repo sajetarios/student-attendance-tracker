@@ -141,7 +141,8 @@
   <link rel="stylesheet" href="/form-system.css?v=1">
   <link rel="stylesheet" href="/dashboard-ui.css?v=4">
   <link rel="stylesheet" href="/dashboard-night.css?v=1">
-  <script src="/dashboard-icons.js?v=3"></script>
+  <link rel="stylesheet" href="/dashboard-polish.css?v=1">
+  <script src="/dashboard-icons.js?v=4"></script>
   <script src="/dashboard-appearance.js?v=3"></script>
 </head>
 <body class="portal-page">
@@ -187,8 +188,8 @@
           aria-label="Open navigation" aria-expanded="false" title="Open navigation"><span data-ui-icon="menu"></span></button>
         <button class="desktop-sidebar-toggle" id="sidebarCollapseButton" type="button"
           aria-label="Collapse sidebar" aria-expanded="true" aria-pressed="false" title="Collapse sidebar">
-          <span class="sidebar-toggle-glyph" aria-hidden="true">‹</span>
-          <span class="collapse-control-label">Collapse</span>
+          <span class="sidebar-toggle-glyph" data-ui-icon="panel-collapse" aria-hidden="true"></span>
+          <span class="collapse-control-label">Collapse menu</span>
         </button>
         <div class="breadcrumbs"><span>Workspace</span><b>/</b><strong id="breadcrumbCurrent">Dashboard</strong></div>
         <div class="topbar-right">
@@ -827,7 +828,7 @@
               </div>
               <div class="security-account-section">
                 <div class="section-toolbar security-audit-toolbar"><div><h4>Employee account security</h4><p>Review last sign-in, failed attempts, lockout state, and active sessions.</p></div><button type="button" class="outline-button" id="refreshSecurityAccounts">↻ Refresh accounts</button></div>
-                <div class="table-scroll"><table class="security-audit-table security-accounts-table"><thead><tr><th>Employee</th><th>Role / department</th><th>Access status</th><th>Last sign-in</th><th>Failed attempts</th><th>Sessions</th><th>Security actions</th></tr></thead><tbody id="securityAccountsRows"><tr><td colspan="7" class="empty-cell">Open Account access to load staff security status.</td></tr></tbody></table></div>
+                <div class="table-scroll"><table class="security-audit-table security-accounts-table"><colgroup><col style="width:17%"><col style="width:23%"><col style="width:10%"><col style="width:16%"><col style="width:10%"><col style="width:7%"><col style="width:17%"></colgroup><thead><tr><th>Employee</th><th>Role / department</th><th>Access status</th><th>Last sign-in</th><th>Failed attempts</th><th>Sessions</th><th>Security actions</th></tr></thead><tbody id="securityAccountsRows"><tr><td colspan="7" class="empty-cell">Open Account access to load staff security status.</td></tr></tbody></table></div>
               </div>
               <div class="section-toolbar security-audit-toolbar"><div><h4>Recent administrative activity</h4><p>Latest 50 recorded changes for this school. This is not a sign-in or failed-login history.</p></div><button type="button" class="outline-button" id="refreshSecurityAudit">↻ Refresh history</button></div>
               <div class="table-scroll"><table class="security-audit-table"><thead><tr><th>Date and time</th><th>Action</th><th>Changed by</th><th>Record</th></tr></thead><tbody id="securityAuditRows"><tr><td colspan="4" class="empty-cell">Open Account access to load recent activity.</td></tr></tbody></table></div>
@@ -1014,7 +1015,7 @@
   <script src="/vendor/html5-qrcode.min.js" defer></script>
   <script src="/timetable-grid.js?v=3" defer></script>
   <script src="/schedule-workspace-ui.js?v=3" defer></script>
-  <script src="/portal.js?v=0.9.51" defer></script>
+  <script src="/portal.js?v=0.9.52" defer></script>
   <script src="/academic-admin.js?v=2" defer></script>
 </body>
 </html>
