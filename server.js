@@ -1609,6 +1609,18 @@ const TEACHER_STUDENT_SCOPE = `
   )`;
 
 async function isTeacherAssigned(client, schoolId, teacherId, periodId, schoolDate, occurredAt) {
+  // Date-specific cover takes priority over permanent assignments only after it
+  // was created. Offline scans captured before the adjustment keep their original owner.
+  const override = await client.query(
+    'SELECT adjustment_type,teacher_user_id,updated_at FROM schedule_day_adjustments ' +
+    'WHERE school_id=$1 AND period_id=$2 AND school_date=$3::date LIMIT 1',
+    [schoolId,periodId,schoolDate]
+  );
+  const adjustment=override.rows[0];
+  if(adjustment && new Date(occurredAt)>=new Date(adjustment.updated_at)) {
+    if(adjustment.adjustment_type==='CANCEL')return false;
+    if(adjustment.teacher_user_id)return String(adjustment.teacher_user_id)===String(teacherId);
+  }
   const result = await client.query(
     `SELECT 1
      WHERE EXISTS (
