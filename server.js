@@ -1465,7 +1465,9 @@ app.post('/api/periods/:periodId/assignments', authenticateSchoolClient, require
        JOIN class_periods p ON p.school_id=ts.school_id AND p.period_id=ts.period_id
        JOIN class_periods requested ON requested.school_id=$1 AND requested.period_id=$3
        WHERE ts.school_id=$1 AND ts.substitute_teacher_user_id=$2 AND ts.status='ACTIVE'
-         AND ts.end_date >= (NOW() AT TIME ZONE 'Asia/Manila')::date AND p.active=TRUE
+         AND ts.end_date >= (NOW() AT TIME ZONE 'Asia/Manila')::date
+         AND ts.start_date <= COALESCE(requested.effective_to,'infinity'::date)
+         AND p.active=TRUE
          AND p.start_time < requested.end_time AND requested.start_time < p.end_time
          AND daterange(COALESCE(p.effective_from,'-infinity'::date),COALESCE(p.effective_to,'infinity'::date),'[]')
              && daterange(COALESCE(requested.effective_from,'-infinity'::date),COALESCE(requested.effective_to,'infinity'::date),'[]')
