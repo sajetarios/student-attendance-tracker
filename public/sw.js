@@ -1,4 +1,4 @@
-const CACHE = "school-attendance-shell-v62-photo-save-approval";
+const CACHE = "school-attendance-shell-v63-qr-role-shortcut";
 
 const SHELL = [
   "/dashboard-icons.js?v=4",
