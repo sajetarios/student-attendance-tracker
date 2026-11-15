@@ -40,27 +40,37 @@
     try{
       const data=await api('/api/guardians/students/'+encodeURIComponent(id));
       if(state.student!==id)return;
-      const list=el('div');
+      const list=el('div',undefined,'guardian-section');
       list.append(el('h4','Guardian contacts'));
       if(!data.guardians?.length)list.append(el('p','No additional approved guardian records yet. Existing primary contact remains in the student roster.'));
       for(const g of data.guardians||[])list.append(el('p',g.fullName+' · '+g.relationship+(g.isPrimary?' · Primary':'')+(g.active?'':' · Inactive')));
-      const history=el('div');history.append(el('h4','Request history'));
+      const history=el('div',undefined,'guardian-section');history.append(el('h4','Request history'));
       if(!data.requests?.length)history.append(el('p','No requests yet.'));
       for(const r of data.requests||[])history.append(el('p',r.requestType.replaceAll('_',' ')+' · '+r.proposedName+' · '+r.status));
-      const form=el('form');form.append(el('h4','Request a guardian change'));
+      const form=el('form',undefined,'guardian-form');form.append(el('h4','Request a guardian change'));
       const typeWrap=el('label','Request type','guardian-field'),type=document.createElement('select');type.name='requestType';
       for(const [value,label] of [['ADD','Add secondary guardian'],['CHANGE_PRIMARY','Change primary guardian'],['CORRECT','Correct primary contact']]){const option=el('option',label);option.value=value;type.append(option);}
       typeWrap.append(type);form.append(typeWrap);
       field(form,'Guardian full name','fullName');field(form,'Mobile number','mobile');
       const rel=field(form,'Relationship','relationship');rel.placeholder='Mother, Father, Legal guardian…';
       field(form,'Reason for change','reason','textarea');
-      const submit=el('button','Submit for admin review','primary-button');submit.type='submit';form.append(submit);
+      const submit=el('button','Submit request','primary-button');submit.type='submit';form.append(submit);
       form.addEventListener('submit',async e=>{
         e.preventDefault();submit.disabled=true;status.textContent='Submitting request…';
-        try{const v=Object.fromEntries(new FormData(form));await api('/api/guardians/students/'+encodeURIComponent(id)+'/requests',{method:'POST',body:JSON.stringify(v)});await openStudent(id);status.textContent='Request submitted. Parent Portal access is unchanged.';}
+        try{const v=Object.fromEntries(new FormData(form));for(const [key,value] of Object.entries(v))v[key]=String(value).trim();if(!v.reason){status.textContent='Please explain why the guardian information needs to change.';return;}await api('/api/guardians/students/'+encodeURIComponent(id)+'/requests',{method:'POST',body:JSON.stringify(v)});await openStudent(id);status.textContent='Request submitted for review. Parent Portal access is unchanged.';}
         catch(err){status.textContent=err.message;}finally{submit.disabled=false;}
       });
-      body.replaceChildren(el('p','Student ID: '+id),list,history,form);
+      const tabs=el('div',undefined,'guardian-tabs');
+      const panes={contacts:list,request:form,history};
+      const tabButtons={};
+      const switchTab=name=>{
+        for(const [key,pane] of Object.entries(panes)){pane.hidden=key!==name;tabButtons[key].classList.toggle('active',key===name);}
+      };
+      for(const [key,label] of [['contacts','Guardians'],['request','Request change'],['history','History']]){
+        tabButtons[key]=btn(label,()=>switchTab(key),'guardian-tab');tabs.append(tabButtons[key]);
+      }
+      body.replaceChildren(el('p','Student ID: '+id,'guardian-student-id'),tabs,list,form,history);
+      switchTab('contacts');
     }catch(err){body.replaceChildren(el('p','Could not load guardian details.'));status.textContent=err.message;}
   }
   async function openQueue(){
@@ -76,7 +86,7 @@
         const note=field(item,'Review note','note','textarea');
         for(const [decision,label] of [['APPROVED','Approve'],['REJECTED','Reject']]){
           const b=btn(label,async()=>{
-            if(!note.value.trim()){status.textContent='A review note is required.';return;}
+            if(!note.value.trim()){status.textContent='A review note is required.';note.focus();return;}
             b.disabled=true;
             try{await api('/api/guardians/requests/'+encodeURIComponent(r.requestId)+'/review',{method:'POST',body:JSON.stringify({decision,note:note.value.trim()})});await openQueue();status.textContent='Request reviewed successfully.';}
             catch(err){status.textContent=err.message;b.disabled=false;}
