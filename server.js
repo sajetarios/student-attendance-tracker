@@ -2900,8 +2900,13 @@ app.post('/api/sync/events', authenticateSchoolClient, requireSchoolClient, asyn
       }
       if (exceptionAppliedBeforeEvent && calendarException && ['OPEN','SPECIAL_CLASS'].includes(calendarException.type) && event.attendanceScope === 'CLASS') {
         const allowedSchedule = await client.query(
-          'SELECT 1 FROM school_calendar_exception_periods WHERE school_id=$1 AND exception_id=$2 AND period_id=$3',
-          [req.auth.schoolId,calendarException.exceptionId,event.periodId]);
+          `SELECT 1 FROM school_calendar_exception_periods ep
+           JOIN class_periods p ON p.school_id=ep.school_id AND p.period_id=ep.period_id
+           WHERE ep.school_id=$1 AND ep.exception_id=$2 AND ep.period_id=$3
+             AND p.active=TRUE
+             AND (p.effective_from IS NULL OR p.effective_from<=$4::date)
+             AND (p.effective_to IS NULL OR p.effective_to>=$4::date)`,
+          [req.auth.schoolId,calendarException.exceptionId,event.periodId,event.schoolDate]);
         if (!allowedSchedule.rowCount) {
           results.push({eventId:event.eventId,status:'REJECTED',reason:'This class schedule was not selected to operate on this special calendar date.'});
           continue;
@@ -2945,8 +2950,10 @@ app.post('/api/sync/events', authenticateSchoolClient, requireSchoolClient, asyn
           `SELECT 1 FROM school_calendar_exception_periods ep
            JOIN class_periods p ON p.school_id=ep.school_id AND p.period_id=ep.period_id
            WHERE ep.school_id=$1 AND ep.exception_id=$2 AND p.grade_level=$3
-             AND (p.section IS NULL OR p.section=$4) LIMIT 1`,
-          [req.auth.schoolId,calendarException.exceptionId,student.rows[0].grade_level,student.rows[0].section]);
+             AND (p.section IS NULL OR p.section=$4) AND p.active=TRUE
+             AND (p.effective_from IS NULL OR p.effective_from<=$5::date)
+             AND (p.effective_to IS NULL OR p.effective_to>=$5::date) LIMIT 1`,
+          [req.auth.schoolId,calendarException.exceptionId,student.rows[0].grade_level,student.rows[0].section,event.schoolDate]);
         if (!allowedAdvisory.rowCount) {
           results.push({eventId:event.eventId,status:'REJECTED',reason:'No selected special-day schedule matches this advisory section.'});
           continue;
