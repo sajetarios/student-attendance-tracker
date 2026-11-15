@@ -7,6 +7,7 @@ on:
       - improve/admin-user-management-edit-forms
   push:
     branches:
+      - fix/render-login-landing
       - feature/admin-department-scheduling-coverage
       - feature/compact-staff-ui
       - fix/teacher-monitor-table-columns
