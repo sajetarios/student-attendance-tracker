@@ -14,7 +14,6 @@ const { registerAuthRoutes } = require('./auth-routes');
 const { hashPassword, verifyPassword } = require('./auth-security');
 const { createAuthMiddleware } = require('./auth-middleware');
 const { registerParentRoutes } = require('./parent-routes');
-const { registerGuardianRoutes } = require('./guardian-routes');
 const { registerStudentRoutes } = require('./student-routes');
 const { registerAcademicRoutes } = require('./academic-routes');
 const { registerDepartmentRoutes } = require('./department-routes');
@@ -55,7 +54,6 @@ const requireSchoolUser = requireSchoolRoles('DEPARTMENT_HEAD', 'TEACHER');
 const requireSchoolAdminOrDepartmentHead = requireSchoolRoles('SCHOOL_ADMIN', 'DEPARTMENT_HEAD');
 const validText = value => typeof value === 'string' && value.trim().length > 0;
 registerParentRoutes(app, pool, { authenticateSchoolClient, requireSchoolRoles });
-registerGuardianRoutes(app, pool, { authenticateSchoolClient, requireSchoolRoles });
 registerStudentRoutes(app, pool, { authenticateSchoolClient, requireSchoolAdmin });
 registerAcademicRoutes(app, pool, { authenticateSchoolClient, requireSchoolRoles });
 registerDepartmentRoutes(app, pool, { authenticateSchoolClient, requireSchoolRoles });
@@ -1988,10 +1986,8 @@ app.post('/api/students', authenticateSchoolClient, requireSchoolAdminOrTeacher,
       const conflictAction = isTeacher
         ? 'ON CONFLICT(student_id) DO NOTHING'
         : `ON CONFLICT(student_id) DO UPDATE SET
-             lrn=EXCLUDED.lrn, full_name=EXCLUDED.full_name, sex=EXCLUDED.sex,
-             -- Guardian contact fields are intentionally not overwritten by a student upsert.
-             -- Changes to an existing guardian require a separate reviewed workflow.
-             active=TRUE, updated_at=NOW()
+             lrn=EXCLUDED.lrn, full_name=EXCLUDED.full_name, sex=EXCLUDED.sex, parent_name=EXCLUDED.parent_name,
+             parent_mobile=EXCLUDED.parent_mobile, active=TRUE, updated_at=NOW()
            WHERE students.school_id=EXCLUDED.school_id`;
       const result = await client.query(
         `INSERT INTO students(school_id, student_id, lrn, full_name, grade_level, section,
@@ -2152,17 +2148,6 @@ app.patch('/api/students/:studentId', authenticateSchoolClient, requireSchoolAdm
       return res.json({ student: { ...updated.rows[0], ...(canChangePlacement ? { gradeLevel: gradeLevel.trim(), section: section.trim() } : {}) }, qrTokenPreserved: true, placementEditable: canChangePlacement });
     }
 
-    // Guardian contact changes must go through the dedicated reviewed request endpoint.
-    const currentGuardian = await client.query(
-      'SELECT parent_name,parent_mobile FROM students WHERE school_id=$1 AND student_id=$2 AND active=TRUE FOR UPDATE',
-      [req.auth.schoolId,req.params.studentId]
-    );
-    if (currentGuardian.rowCount &&
-        ((parentName || '').trim() !== (currentGuardian.rows[0].parent_name || '').trim() ||
-         (parentMobile || '').trim() !== (currentGuardian.rows[0].parent_mobile || '').trim())) {
-      await client.query('ROLLBACK');
-      return res.status(409).json({ error: 'Guardian contact changes require a Manage Guardians approval request.' });
-    }
     const activeYear = await client.query("SELECT school_year_id FROM school_years WHERE school_id=$1 AND status='ACTIVE'", [req.auth.schoolId]);
     const updated = await client.query(
       `UPDATE students
