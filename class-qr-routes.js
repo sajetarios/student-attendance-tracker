@@ -74,7 +74,10 @@ function registerClassQrRoutes(app,pool,{authenticateSchoolClient,requireSchoolR
      ON CONFLICT(school_id,period_id,school_date) DO NOTHING RETURNING session_id`,
      [req.auth.schoolId,periodId,date,p.teacher_user_id,p.grade_level,p.section,p.effective_subject,start,end,close,crypto.randomBytes(32).toString('hex')]);
    const found=r.rows[0]|| (await pool.query('SELECT session_id FROM class_qr_sessions WHERE school_id=$1 AND period_id=$2 AND school_date=$3',[req.auth.schoolId,periodId,date])).rows[0];
-   res.json({sessionId:found.session_id,closesAt:close.toISOString(),onTimeGraceMinutes:10,rotationSeconds:30});
+   const current=await pool.query('SELECT closed_at,closes_at,teacher_user_id FROM class_qr_sessions WHERE session_id=$1 AND school_id=$2',[found.session_id,req.auth.schoolId]);
+   if(current.rows[0]?.closed_at||Date.now()>=new Date(current.rows[0]?.closes_at).getTime())return res.status(410).json({error:'This class QR session was already closed.'});
+   if(req.auth.role!=='SCHOOL_ADMIN'&&String(current.rows[0]?.teacher_user_id)!==String(req.auth.userId))return res.sendStatus(403);
+   res.json({sessionId:found.session_id,closesAt:current.rows[0].closes_at,onTimeGraceMinutes:10,rotationSeconds:30});
   }catch(e){console.error('QR session:',e.message);res.status(500).json({error:'Unable to start QR attendance.'});}
  });
  app.get('/api/class-qr/sessions/:id/qr',authenticateSchoolClient,staff,async(req,res)=>{
@@ -82,7 +85,7 @@ function registerClassQrRoutes(app,pool,{authenticateSchoolClient,requireSchoolR
    const r=await pool.query('SELECT * FROM class_qr_sessions WHERE school_id=$1 AND session_id=$2',[req.auth.schoolId,req.params.id]),s=r.rows[0];
    if(!s)return res.status(404).json({error:'Session not found.'});
    if(req.auth.role!=='SCHOOL_ADMIN'&&String(s.teacher_user_id)!==String(req.auth.userId))return res.sendStatus(403);
-   if(s.closed_at||Date.now()>=new Date(s.closes_at).getTime())return res.status(410).json({error:'QR attendance closed.'});
+   if(s.closed_at||Date.now()<new Date(s.starts_at).getTime()||Date.now()>=new Date(s.closes_at).getTime())return res.status(410).json({error:'QR attendance closed.'});
    const b=bucket();
    const token=sign(s.secret,s.session_id,b);
    const url=new URL('/class-qr-checkin.html',req.protocol+'://'+req.get('host'));
