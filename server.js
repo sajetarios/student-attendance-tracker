@@ -3343,28 +3343,6 @@ async function start() {
   const migrationResult = await runMigrations(pool);
   console.log(`Database migrations ready: ${migrationResult.applied.length} applied, ${migrationResult.total} total.`);
 
-  // Temporary deployment-only maintenance gate. Requires an explicit Render
-  // environment variable; never runs on ordinary starts or public requests.
-  if (process.env.RUN_DEMO_RESET_ON_START === 'DEMO001') {
-    const { execFileSync } = require('node:child_process');
-    console.log('DEMO_RESET_STARTING for DEMO001');
-    try {
-      const output = execFileSync(process.execPath, [
-        path.join(__dirname, 'scripts', 'maintenance-reset-demo.js'),
-        '--school=DEMO001', '--execute'
-      ], {
-        cwd: __dirname, encoding: 'utf8', timeout: 120000,
-        maxBuffer: 1024 * 1024,
-        env: { ...process.env, CONFIRM_DEMO_RESET: 'DEMO001', MAINTENANCE_USE_SERVICE_PG: '1' }
-      });
-      console.log(output.trim());
-      console.log('DEMO_RESET_PROCESS_SUCCEEDED');
-    } catch (error) {
-      console.error('DEMO_RESET_PROCESS_FAILED:', String(error.stderr || error.message).slice(0, 2000));
-      // Transaction rolls back on any error; preserve the existing site on failure.
-    }
-  }
-
   await processDueTeacherReturns();
   const teacherReturnTimer = setInterval(processDueTeacherReturns, 60 * 1000);
   teacherReturnTimer.unref();
