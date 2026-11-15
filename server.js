@@ -1326,6 +1326,9 @@ app.post('/api/periods/bulk-assignments', authenticateSchoolClient, requireSchoo
            AND daterange(COALESCE(p.effective_from,'-infinity'::date),COALESCE(p.effective_to,'infinity'::date),'[]')
                && daterange(COALESCE((SELECT effective_from FROM class_periods WHERE school_id=$1 AND period_id=$3),'-infinity'::date),
                             COALESCE((SELECT effective_to FROM class_periods WHERE school_id=$1 AND period_id=$3),'infinity'::date),'[]')
+           AND daterange(ts.start_date,ts.end_date,'[]')
+               && daterange(COALESCE((SELECT effective_from FROM class_periods WHERE school_id=$1 AND period_id=$3),'-infinity'::date),
+                            COALESCE((SELECT effective_to FROM class_periods WHERE school_id=$1 AND period_id=$3),'infinity'::date),'[]')
            AND EXISTS (SELECT 1 FROM class_period_days existing_day
                        JOIN class_period_days selected_day ON selected_day.school_id=existing_day.school_id
                          AND selected_day.weekday=existing_day.weekday
@@ -1437,6 +1440,8 @@ app.post('/api/periods/:periodId/assignments', authenticateSchoolClient, require
          AND existing.period_id<>$3 AND p.active=TRUE
          AND p.start_time < requested.end_time AND requested.start_time < p.end_time
          AND daterange(COALESCE(p.effective_from,'-infinity'::date),COALESCE(p.effective_to,'infinity'::date),'[]')
+             && daterange(COALESCE(requested.effective_from,'-infinity'::date),COALESCE(requested.effective_to,'infinity'::date),'[]')
+         AND daterange(ts.start_date,ts.end_date,'[]')
              && daterange(COALESCE(requested.effective_from,'-infinity'::date),COALESCE(requested.effective_to,'infinity'::date),'[]')
          AND EXISTS (
            SELECT 1 FROM class_period_days existing_day
