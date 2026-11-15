@@ -2882,6 +2882,165 @@ let teacherActionMenuListenersInstalled = false;
 
   wireSchedulingSettingsForms();
 
+  function availableAdjustmentPeriods() {
+    return periods.filter(p=>user.role==='SCHOOL_ADMIN' ||
+      (user.role==='DEPARTMENT_HEAD'&&String(p.scheduleDepartmentId)===String(user.departmentId)));
+  }
+
+  function populateAdjustmentPeriodOptions() {
+    const select=$('adjustmentPeriodId');
+    if(!select)return;
+    const previous=select.value;
+    const options=availableAdjustmentPeriods();
+    select.innerHTML='<option value="">Choose a class schedule</option>'+
+      options.map(p=>'<option value="'+esc(p.periodId)+'">'+
+        esc(p.gradeLevel+' · '+p.section+' · '+p.subjectName+' · '+p.startTime+'–'+p.endTime)+'</option>').join('');
+    if(options.some(p=>String(p.periodId)===previous))select.value=previous;
+    if($('toggleScheduleAdjustmentForm'))$('toggleScheduleAdjustmentForm').hidden=
+      !['SCHOOL_ADMIN','DEPARTMENT_HEAD'].includes(user.role);
+  }
+
+  function setAdjustmentFields() {
+    const type=$('adjustmentType')?.value;
+    const chosen=periods.find(p=>String(p.periodId)===$('adjustmentPeriodId')?.value);
+    if(!chosen)return;
+    $('adjustmentTeacherWrap').hidden=!['SUBSTITUTE','REPLACE'].includes(type);
+    $('adjustmentSubjectWrap').hidden=type!=='REPLACE';
+    $('adjustmentDepartmentWrap').hidden=type!=='REPLACE'||user.role!=='SCHOOL_ADMIN';
+    $('adjustmentStartWrap').hidden=!['RESCHEDULE','REPLACE'].includes(type);
+    $('adjustmentEndWrap').hidden=!['RESCHEDULE','REPLACE'].includes(type);
+    $('adjustmentRoomWrap').hidden=!['RESCHEDULE','REPLACE'].includes(type);
+    const teacherDept=type==='REPLACE'&&user.role==='SCHOOL_ADMIN'
+      ?$('adjustmentDepartment').value:String(chosen.scheduleDepartmentId||chosen.departmentId||'');
+    const select=$('adjustmentTeacher');
+    const previous=select.value;
+    const eligible=teachers.filter(t=>t.active&&(t.teacherDesignations||[]).includes('SUBJECT_TEACHER')&&
+      String(t.departmentId)===String(teacherDept));
+    select.innerHTML='<option value="">'+(type==='REPLACE'?'Keep existing teacher':'Choose covering teacher')+'</option>'+
+      eligible.map(t=>'<option value="'+esc(t.userId)+'">'+esc(t.displayName)+'</option>').join('');
+    if(eligible.some(t=>t.userId===previous))select.value=previous;
+    if(type==='RESCHEDULE'){
+      if(!$('adjustmentStartTime').value)$('adjustmentStartTime').value=chosen.startTime||'';
+      if(!$('adjustmentEndTime').value)$('adjustmentEndTime').value=chosen.endTime||'';
+    }
+    const descriptions={
+      SUBSTITUTE:'The selected Subject Teacher covers this class on the specified date(s). The permanent teacher returns automatically afterward.',
+      REPLACE:'This class meets as a different subject on the specified date(s). Choose a replacement department, subject and teacher as needed. The original timetable returns afterward.',
+      RESCHEDULE:'Change this class time and/or room for the selected date(s). The normal weekday timetable is untouched.',
+      CANCEL:'This class does not meet on the specified date(s). The following scheduled class days are unaffected.'
+    };
+    $('adjustmentFormDescription').textContent=descriptions[type]||'';
+  }
+
+  async function loadAdjustmentSubjects() {
+    const chosen=periods.find(p=>String(p.periodId)===$('adjustmentPeriodId')?.value);
+    const selector=$('adjustmentDepartment');
+    if(!chosen||!selector)return;
+    const departmentId=user.role==='SCHOOL_ADMIN'
+      ?selector.value:String(chosen.scheduleDepartmentId||chosen.departmentId||'');
+    const subject=$('adjustmentSubject'),previous=subject.value;
+    subject.innerHTML='<option value="">Choose replacement subject</option>';
+    if(!departmentId)return;
+    try{
+      const response=await api('/api/subjects?departmentId='+encodeURIComponent(departmentId));
+      subject.innerHTML='<option value="">Choose replacement subject</option>'+
+        (response.subjects||[]).map(item=>'<option value="'+esc(item.subjectId)+'">'+esc(item.subjectName)+'</option>').join('');
+      if((response.subjects||[]).some(item=>item.subjectId===previous))subject.value=previous;
+    }catch(error){$('scheduleAdjustmentFeedback').textContent=error.message;}
+  }
+
+  function openScheduleAdjustment(periodId,date) {
+    const today=dataSchoolDate(),form=$('scheduleAdjustmentForm');
+    if(!form)return;
+    form.reset();
+    populateAdjustmentPeriodOptions();
+    if(periodId&&[...$('adjustmentPeriodId').options].some(o=>o.value===periodId))
+      $('adjustmentPeriodId').value=periodId;
+    const period=periods.find(p=>String(p.periodId)===$('adjustmentPeriodId').value);
+    const depts=departments.filter(d=>d.active!==false);
+    $('adjustmentDepartment').innerHTML='<option value="">Choose department</option>'+
+      depts.map(d=>'<option value="'+esc(d.departmentId)+'">'+esc(d.name||d.departmentName)+'</option>').join('');
+    if(period)$('adjustmentDepartment').value=period.scheduleDepartmentId||period.departmentId||'';
+    $('adjustmentStartDate').min=today;
+    $('adjustmentEndDate').min=today;
+    $('adjustmentStartDate').value=date&&date>=today?date:today;
+    $('adjustmentEndDate').value=$('adjustmentStartDate').value;
+    $('scheduleAdjustmentFeedback').textContent='';
+    form.hidden=false;
+    setAdjustmentFields();
+    loadAdjustmentSubjects().catch(error=>showToast(error.message,true));
+    form.scrollIntoView({behavior:'smooth',block:'start'});
+  }
+
+  function wireScheduleAdjustments() {
+    $('toggleScheduleAdjustmentForm')?.addEventListener('click',()=>openScheduleAdjustment());
+    $('cancelScheduleAdjustment')?.addEventListener('click',()=>{$('scheduleAdjustmentForm').hidden=true;});
+    $('adjustmentPeriodId')?.addEventListener('change',()=>{
+      const p=periods.find(p=>String(p.periodId)===$('adjustmentPeriodId').value);
+      if(p)$('adjustmentDepartment').value=p.scheduleDepartmentId||p.departmentId||'';
+      $('adjustmentStartTime').value='';$('adjustmentEndTime').value='';
+      setAdjustmentFields();loadAdjustmentSubjects().catch(e=>showToast(e.message,true));
+    });
+    $('adjustmentType')?.addEventListener('change',()=>{setAdjustmentFields();});
+    $('adjustmentDepartment')?.addEventListener('change',()=>{
+      setAdjustmentFields();loadAdjustmentSubjects().catch(e=>showToast(e.message,true));
+    });
+    $('adjustmentStartDate')?.addEventListener('change',()=>{
+      $('adjustmentEndDate').min=$('adjustmentStartDate').value||dataSchoolDate();
+      if($('adjustmentEndDate').value<$('adjustmentStartDate').value)
+        $('adjustmentEndDate').value=$('adjustmentStartDate').value;
+    });
+    $('scheduleAdjustmentForm')?.addEventListener('submit',async e=>{
+      e.preventDefault();
+      const type=$('adjustmentType').value,periodId=$('adjustmentPeriodId').value;
+      const period=periods.find(p=>String(p.periodId)===periodId);
+      const payload={
+        periodId,type,startDate:$('adjustmentStartDate').value,endDate:$('adjustmentEndDate').value,
+        reason:$('adjustmentReason').value,notes:$('adjustmentNotes').value.trim()
+      };
+      if(['SUBSTITUTE','REPLACE'].includes(type))payload.teacherUserId=$('adjustmentTeacher').value||null;
+      if(type==='REPLACE')payload.subjectId=$('adjustmentSubject').value||null;
+      if(['RESCHEDULE','REPLACE'].includes(type)){
+        payload.startTime=$('adjustmentStartTime').value||null;
+        payload.endTime=$('adjustmentEndTime').value||null;
+        payload.classroom=$('adjustmentRoom').value.trim()||null;
+      }
+      if(!period||!payload.startDate||!payload.endDate||payload.startDate>payload.endDate||
+        (type==='SUBSTITUTE'&&!payload.teacherUserId)||(type==='REPLACE'&&!payload.subjectId)||
+        (type==='RESCHEDULE'&&(!payload.startTime||!payload.endTime))){
+        $('scheduleAdjustmentFeedback').textContent='Complete the required class, date, subject, teacher and time details.';
+        return;
+      }
+      const summary=(type==='CANCEL'?'Cancel':type==='SUBSTITUTE'?'Arrange coverage for':
+        type==='REPLACE'?'Replace subject for':'Change time for')+' '+
+        period.subjectName+' · '+period.gradeLevel+' · '+period.section+' from '+
+        payload.startDate+' through '+payload.endDate+'. The recurring schedule will not change.';
+      if(!await AppDialog.confirm(summary,{title:'Confirm temporary timetable change',confirmText:'Save dated change'}))return;
+      const button=$('saveScheduleAdjustment');
+      button.disabled=true;$('scheduleAdjustmentFeedback').textContent='Checking daily conflicts and saving…';
+      try{
+        const result=await api('/api/schedule-adjustments',{method:'POST',body:JSON.stringify(payload)});
+        $('scheduleAdjustmentForm').hidden=true;
+        await loadScheduleAdjustments();
+        showToast(result.updated+' dated class adjustment(s) saved. The regular timetable remains intact.');
+      }catch(error){$('scheduleAdjustmentFeedback').textContent=error.message;showToast(error.message,true);}
+      finally{button.disabled=false;}
+    });
+    $('datedScheduleList')?.addEventListener('click',async e=>{
+      const button=e.target.closest('[data-remove-adjustment]');
+      if(!button)return;
+      if(!await AppDialog.confirm('Restore the regular timetable on this date? Previously recorded attendance will not be deleted.',{
+        title:'Restore regular schedule',confirmText:'Restore schedule'}))return;
+      button.disabled=true;
+      try{
+        await api('/api/schedule-adjustments/'+encodeURIComponent(button.dataset.removeAdjustment),{method:'DELETE'});
+        await loadScheduleAdjustments();showToast('Regular schedule restored for the selected date.');
+      }catch(error){button.disabled=false;showToast(error.message,true);}
+    });
+  }
+  wireScheduleAdjustments();
+
+
   async function loadSchoolData() {
     const role = user.role;
     if (role === 'GATE_KEEPER') {
