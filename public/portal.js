@@ -251,7 +251,7 @@
       titles = {
         dashboard: ['School Administrator Dashboard', 'Manage school attendance operations, users, learner records, devices, schedules, and reporting.'],
         students: ['Student management', 'Register learners, maintain student details and photos, create student portal accounts, and manage QR cards.'],
-        schedules: ['Class schedules', 'Create and manage subject periods and permanent teacher assignments.'],
+        schedules: ['School timetable & class schedules', 'Configure operating days and reusable timetable templates, review the weekly school timetable, create class schedules, and manage teacher assignments.'],
         teachers: ['User management', 'Create and update school accounts, assign role-based access, manage departments, and disable or restore account access.'],
         sf2: ['SF2 Report Generator', 'Generate the monthly TUVERA SF2 and collect official reports submitted by Class Advisers.'],
         cloudSync: ['Cloud Sync', 'Configure the destination for the future secure local-to-cloud attendance synchronization.']
@@ -375,7 +375,7 @@
     if ($('studentRosterPanel')) $('studentRosterPanel').hidden = gateKeeper;
     if ($('studentForm')) $('studentForm').hidden = gateKeeper || departmentHead || $('studentForm').hidden;
     if ($('parentInviteModal')) $('parentInviteModal').hidden = true;
-    if ($('schedulesNav')) $('schedulesNav').hidden = admin || gateKeeper || (teacher && !(subjectTeacher || classAdviser));
+    if ($('schedulesNav')) $('schedulesNav').hidden = gateKeeper || (teacher && !(subjectTeacher || classAdviser));
     if ($('sf2Nav')) $('sf2Nav').hidden = admin || gateKeeper || (!departmentHead && !teacher);
     if ($('teachersNav')) {
       $('teachersNav').hidden = !(admin || departmentHead);
@@ -385,6 +385,11 @@
     if ($('parentsNav')) $('parentsNav').hidden = true;
     if ($('showStudentForm')) $('showStudentForm').hidden = !(admin || (teacher && classAdviser));
     if ($('showScheduleForm')) $('showScheduleForm').hidden = !(admin || departmentHead);
+    if ($('scheduleScopeText')) $('scheduleScopeText').textContent = admin
+      ? 'School Admin manages the shared school timetable and all class schedules. Department Heads retain management access only within their own departments.'
+      : departmentHead
+        ? 'View the shared school timetable and manage class schedules and teacher assignments within your own department.'
+        : 'View only your assigned teaching and advisory schedules.';
     if ($('dashboardAddStudent')) $('dashboardAddStudent').hidden = !(admin || (teacher && classAdviser));
     if ($('showTeacherForm')) $('showTeacherForm').hidden = !admin;
     if ($('staffUserRows')) $('staffUserRows').closest('.staff-accounts-card').hidden = !admin;
@@ -626,8 +631,22 @@
   $('openAccountStatusManager')?.addEventListener('click', () => setAdminManagementTab('accounts'));
   document.querySelectorAll('[data-admin-go]').forEach(button => {
     button.addEventListener('click', () => {
+      const destination = button.dataset.adminGo;
+      if (destination === 'timetable' || destination === 'schedules') {
+        setView('schedules');
+        if (destination === 'timetable') {
+          const settings = $('timetableSettings');
+          if (settings) {
+            settings.hidden = false;
+            settings.scrollIntoView({ behavior: 'smooth', block: 'start' });
+          }
+        } else {
+          $('weeklyTimetableWorkspace')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+        return;
+      }
       setView('teachers');
-      setAdminManagementTab(button.dataset.adminGo);
+      setAdminManagementTab(destination);
     });
   });
 
