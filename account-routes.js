@@ -40,7 +40,7 @@ function registerAccountRoutes(app, pool, { authenticateSchoolClient }) {
       if (!result.rowCount) return res.status(404).json({ error: 'Account not found.' });
       await pool.query(
         `INSERT INTO audit_logs(school_id,actor_type,actor_user_id,action,entity_type,entity_id,details)
-         VALUES($1,'SCHOOL',$2,'ACCOUNT_UPDATE_OWN_PROFILE','school_user',$2::text,$3::jsonb)`,
+         VALUES($1,'SCHOOL',$2,'ACCOUNT_UPDATE_OWN_PROFILE','school_user',$2::uuid::text,$3::jsonb)`,
         [req.auth.schoolId, req.auth.userId, JSON.stringify({ displayName: displayName.trim(), mobileUpdated: Boolean(mobile.trim()) })]
       );
       return res.json({ profile: result.rows[0] });
@@ -82,7 +82,7 @@ function registerAccountRoutes(app, pool, { authenticateSchoolClient }) {
       );
       await client.query(
         `INSERT INTO audit_logs(school_id,actor_type,actor_user_id,action,entity_type,entity_id,details)
-         VALUES($1,'SCHOOL',$2,'ACCOUNT_CHANGE_OWN_PASSWORD','school_user',$2::text,$3::jsonb)`,
+         VALUES($1,'SCHOOL',$2,'ACCOUNT_CHANGE_OWN_PASSWORD','school_user',$2::uuid::text,$3::jsonb)`,
         [req.auth.schoolId, req.auth.userId, JSON.stringify({ revokedOtherSessions: revoked.rowCount })]
       );
       await client.query('COMMIT');

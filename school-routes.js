@@ -49,7 +49,7 @@ function registerSchoolRoutes(app, pool, { authenticateSchoolClient, requireScho
       if (!result.rowCount) return res.status(404).json({ error: 'School not found.' });
       await pool.query(
         `INSERT INTO audit_logs(school_id,actor_type,actor_user_id,action,entity_type,entity_id,details)
-         VALUES($1,'SCHOOL',$2,'SCHOOL_UPDATE_BRANDING','school',$1::text,$3::jsonb)`,
+         VALUES($1,'SCHOOL',$2,'SCHOOL_UPDATE_BRANDING','school',$1::uuid::text,$3::jsonb)`,
         [req.auth.schoolId, req.auth.userId, JSON.stringify({ schoolName: schoolName.trim(), brandColor: brandColor.toLowerCase() })]
       );
       return res.json({ branding: { ...result.rows[0], logoUrl: result.rows[0].hasLogo ? '/api/school/logo' : null } });
@@ -92,7 +92,7 @@ function registerSchoolRoutes(app, pool, { authenticateSchoolClient, requireScho
         if (!previous.rowCount) { await fs.unlink(path.join(LOGO_ROOT, filename)).catch(() => {}); return res.status(404).json({ error: 'School not found.' }); }
         await pool.query(
           `INSERT INTO audit_logs(school_id,actor_type,actor_user_id,action,entity_type,entity_id,details)
-           VALUES($1,'SCHOOL',$2,'SCHOOL_UPDATE_LOGO','school',$1::text,$3::jsonb)`,
+           VALUES($1,'SCHOOL',$2,'SCHOOL_UPDATE_LOGO','school',$1::uuid::text,$3::jsonb)`,
           [req.auth.schoolId, req.auth.userId, JSON.stringify({ mimeType: detected.mime, bytes: buffer.length })]
         );
         return res.json({ ok: true, logoUrl: '/api/school/logo?v=' + Date.now() });

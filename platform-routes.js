@@ -65,7 +65,7 @@ function registerPlatformRoutes(app, pool, { authenticatePlatform, requirePlatfo
       );
       await client.query(
         `INSERT INTO audit_logs(school_id,actor_type,actor_user_id,action,entity_type,entity_id,details)
-         VALUES($1,'PLATFORM',$2,'PLATFORM_CREATE_SCHOOL','school',$1::text,$3::jsonb)`,
+         VALUES($1,'PLATFORM',$2,'PLATFORM_CREATE_SCHOOL','school',$1::uuid::text,$3::jsonb)`,
         [school.rows[0].schoolId, req.auth.userId, JSON.stringify({ schoolCode: schoolCode.trim(), initialAdmin: adminUsername.trim() })]
       );
       await client.query('COMMIT');
@@ -98,7 +98,7 @@ function registerPlatformRoutes(app, pool, { authenticatePlatform, requirePlatfo
       }
       await client.query(
         `INSERT INTO audit_logs(school_id,actor_type,actor_user_id,action,entity_type,entity_id,details)
-         VALUES($1,'PLATFORM',$2,'PLATFORM_UPDATE_SCHOOL_STATUS','school',$1::text,$3::jsonb)`,
+         VALUES($1,'PLATFORM',$2,'PLATFORM_UPDATE_SCHOOL_STATUS','school',$1::uuid::text,$3::jsonb)`,
         [req.params.schoolId,req.auth.userId,JSON.stringify({ active:req.body.active })]
       );
       await client.query('COMMIT');
