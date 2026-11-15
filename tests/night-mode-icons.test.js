@@ -12,7 +12,7 @@ test('night stylesheet is loaded after shared UI for all dashboard roles and cac
    assert.match(markup,/dashboard-icons.js\?v=4/);
  }
  assert.match(source('sw.js'),/dashboard-night.css\?v=1/);
- assert.match(source('sw.js'),/school-attendance-shell-v61-profile-photo-editor/);
+ assert.match(source('sw.js'),/school-attendance-shell-v62-photo-save-approval/);
 });
 test('dark styles cover the previously white School Admin shortcuts and dark text',()=>{
  const css=source('dashboard-night.css');
