@@ -21,12 +21,30 @@
     moon:'<path d="M20 14A8 8 0 0 1 10 4a9 9 0 1 0 10 10Z"/>',
     scan:'<path d="M8 3H3v5m13-5h5v5M3 16v5h5m13-5v5h-5M3 12h18M8 8h2v2H8zm6 6h2v2h-2z"/>',
     menu:'<path d="M4 6h16M4 12h16M4 18h16"/>',
-    close:'<path d="m6 6 12 12M18 6 6 18"/>'
+    close:'<path d="m6 6 12 12M18 6 6 18"/>',
+    shield:'<path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10Z"/><path d="m9 12 2 2 4-4"/>',
+    key:'<circle cx="8" cy="15" r="4"/><path d="m11 12 9-9m-2 2 3 3m-6 0 3 3"/>',
+    school:'<path d="M3 21h18M5 21V8l7-5 7 5v13M9 21v-7h6v7M8 10h.01M16 10h.01"/>',
+    graduation:'<path d="m2 10 10-5 10 5-10 5-10-5ZM6 12v5c4 3 8 3 12 0v-5M22 10v6"/>',
+    filter:'<path d="M4 6h16M7 12h10m-7 6h4"/>',
+    download:'<path d="M12 3v12m-5-5 5 5 5-5M4 17v4h16v-4"/>',
+    search:'<circle cx="11" cy="11" r="7"/><path d="m16 16 5 5"/>',
+    bell:'<path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9Zm-8 12h4"/>',
+    building:'<rect x="3" y="3" width="18" height="18" rx="2"/><path d="M8 7h2m4 0h2M8 12h2m4 0h2M9 21v-5h6v5"/>'
   };
   function html(name) { return '<svg class="ui-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">'+(paths[name]||paths.calendar)+'</svg>'; }
-  const controls={showScheduleForm:'plus',scheduleAdjustmentShortcut:'swap',scheduleSettingsShortcut:'settings',saveScheduleButton:'check',refreshButton:'refresh',backButton:'swap',studentRefresh:'refresh',studentLogout:'logout',saveScheduleAdjustment:'check'};
+  const controls={refreshButton:'refresh',logoutButton:'logout',platformRefreshButton:'refresh',studentRefresh:'refresh',studentLogout:'logout',showScheduleForm:'plus',scheduleAdjustmentShortcut:'swap',scheduleSettingsShortcut:'settings',saveScheduleButton:'check',refreshButton:'refresh',backButton:'swap',studentRefresh:'refresh',studentLogout:'logout',saveScheduleAdjustment:'check'};
   const nav={dashboardNav:'grid',studentsNav:'book',teachersNav:'users',parentsNav:'users',classAttendanceNav:'check',sf2Nav:'report',schedulesNav:'calendar',academicAdminNav:'book',cloudSyncNav:'swap',schoolBrandingNav:'palette'};
+  const views={dashboard:'grid',students:'graduation',teachers:'users',parents:'users',
+    classAttendance:'check',sf2:'report',schedules:'calendar',cloudSync:'swap',
+    schoolBranding:'palette',platform:'shield'};
+  const groups={people:'users',academics:'book'};
   function render(){
+    document.querySelectorAll('.side-nav .nav-item,.side-nav .nav-group-toggle').forEach(button=>{
+      const glyph=button.querySelector('.nav-icon');
+      const symbol=views[button.dataset.view]||groups[button.dataset.navGroup];
+      if(glyph&&symbol&&!glyph.querySelector('.ui-icon'))glyph.innerHTML=html(symbol);
+    });
     for(const [id,name] of Object.entries(nav)){
       const el=document.querySelector('#'+id+' .nav-icon');
       if(el&&!el.querySelector('.ui-icon'))el.innerHTML=html(name);

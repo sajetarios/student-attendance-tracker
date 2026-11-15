@@ -1,15 +1,15 @@
-const CACHE = "school-attendance-shell-v57-all-user-appearance";
+const CACHE = "school-attendance-shell-v58-recovery-ui";
 
 const SHELL = [
-  "/dashboard-icons.js?v=1",
-  "/dashboard-ui.css?v=3",
+  "/dashboard-icons.js?v=2",
+  "/dashboard-ui.css?v=4",
   "/dashboard-appearance.js?v=3",
   "/timetable-grid.js?v=3",
   "/schedule-workspace-ui.js?v=3",
   "/portal-login.html",
   "/portal.css?v=0.9.50",
   "/portal.css",
-  "/portal.js?v=0.9.50",
+  "/portal.js?v=0.9.51",
   "/academic-admin.css?v=1",
   "/academic-admin.js?v=2",
   "/app-dialog.css?v=1",
@@ -18,7 +18,7 @@ const SHELL = [
   "/form-system.css?v=1",
   "/password-visibility.css",
   "/password-visibility.js",
-  "/portal-login.js?v=2",
+  "/portal-login.js?v=3",
   "/login-routing.js",
   "/responsive.css?v=0.8.3",
   "/comfort-ui.css?v=0.8.8",

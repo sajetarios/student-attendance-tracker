@@ -394,3 +394,97 @@ html[data-ui-theme="dark"] .portal-page :is(.scan-setup-field select,.account-pr
 .ui-appearance-panel .ui-theme-control{border:0}
 @media(min-width:900px){#scheduleForm.schedule-side-drawer:not([hidden]),#scheduleAdjustmentForm.schedule-side-drawer:not([hidden]){inset:16px 16px 16px auto!important;width:min(600px,48vw)!important;height:calc(100dvh - 32px)!important;max-height:calc(100dvh - 32px)!important;border-radius:18px!important;border:1px solid var(--ui-line)!important}}
 @media(prefers-reduced-motion:reduce){.portal-page *, .portal-page *::before,.portal-page *::after{scroll-behavior:auto!important;transition:none!important;animation:none!important}}
+
+
+/* Unified dark appearance for all roles; school-owned --brand is unchanged. */
+html[data-ui-theme="dark"]{
+ --bg:#0b1322;--card:#151f32;--ink:#edf3fe;--muted:#adbed3;--line:#324159;
+ --ui-page:#0b1322;--ui-panel:#151f32;--ui-panel-soft:#1d2b42;
+ --ui-panel-raised:#1d2b42;--ui-text:#edf3fe;--ui-muted:#aebed4;
+ --ui-line:#324159;--ui-shadow:0 18px 44px rgba(0,0,0,.26);
+ --ui-hover:color-mix(in srgb,var(--brand,#2463a5) 20%,#17243a);
+}
+html[data-ui-theme="dark"] :is(body,.portal-page,.main-area,.content-wrap,.student-page,.parent-page){
+ background:var(--ui-page);color:var(--ui-text)
+}
+html[data-ui-theme="dark"] .portal-page :is(
+ .surface-card,.section-card,.student-card,.parent-card,.child-card,.student-summary-item,
+ .student-profile-item,.dashboard-metric,.school-stat-card,.summary-card,.account-dropdown,
+ .account-profile-dialog,.student-edit-dialog,.student-qr-preview-dialog,
+ .student-scan-setup-dialog,.student-scan-notice-dialog,.schedule-form-section,
+ .timetable-settings,.schedule-editor-form,.timetable-saved-template,.school-branding-preview,
+ .admin-monitoring-card,.scan-setup-field,.platform-welcome,.platform-create-card,
+ .platform-recovery-card,.student-batch-dialog,.ui-appearance-panel){
+ background:var(--ui-panel)!important;color:var(--ui-text)!important;border-color:var(--ui-line)!important
+}
+html[data-ui-theme="dark"] .portal-page :is(
+ .field-group label,.student-summary-item strong,.student-profile-item strong,
+ .parent-head h1,.student-header h1,.platform-welcome h2,.section-toolbar h3,
+ .card-heading h3,.student-scan-setup-dialog h3,.student-scan-notice-dialog h3,
+ .student-qr-preview-content strong,.dashboard-scan-cta-copy h2){
+ color:var(--ui-text)!important
+}
+html[data-ui-theme="dark"] .portal-page :is(
+ .login-subtitle,.field-hint,.form-help,.parent-note,.student-note,
+ .student-summary-item span,.student-profile-item span,.child-card p,
+ .parent-head p,.student-header p,.student-qr-preview-content span){
+ color:var(--ui-muted)!important
+}
+html[data-ui-theme="dark"] .portal-page :is(
+ input:not([type="checkbox"]):not([type="radio"]):not([type="color"]),
+ select,textarea,.outline-button,.secondary-button,.compact-button,
+ .schedule-display-toggle button,.student-filter-row input){
+ background:var(--ui-panel-raised)!important;color:var(--ui-text)!important;border-color:var(--ui-line)!important
+}
+html[data-ui-theme="dark"] .portal-page :is(.table-scroll,table,.table-scroll td,table td){
+ background:var(--ui-panel);color:var(--ui-text);border-color:var(--ui-line)
+}
+html[data-ui-theme="dark"] .portal-page :is(.table-scroll th,table th){
+ background:var(--ui-panel-soft)!important;color:var(--ui-muted)!important;border-color:var(--ui-line)
+}
+html[data-ui-theme="dark"] .portal-page :is(.table-scroll tbody tr:hover td,.account-menu-item:hover,.quick-action:hover){
+ background:var(--ui-hover)!important
+}
+html[data-ui-theme="dark"] .portal-page :is(
+ .role-pill,.mini-tag,.status-tag,.teacher-scope-item,.parent-note,
+ .student-note,.form-context-banner,.student-batch-chip){
+ background:var(--ui-panel-soft)!important;color:var(--ui-text)!important;border-color:var(--ui-line)!important
+}
+html[data-ui-theme="dark"] .portal-page .dashboard-scan-cta{
+ background:var(--ui-panel)!important;color:var(--ui-text)!important;border-color:var(--ui-line)
+}
+html[data-ui-theme="dark"] .portal-page .sidebar{
+ background:linear-gradient(180deg,#0d1728,color-mix(in srgb,var(--brand,#2463a5) 16%,#0d1728))!important;
+ border-right:1px solid var(--ui-line)
+}
+html[data-ui-theme="dark"] .portal-page :is(dialog,.student-edit-dialog,.student-scan-setup-dialog,.student-scan-notice-dialog){
+ box-shadow:0 28px 70px rgba(0,0,0,.52)
+}
+html[data-ui-theme="dark"] .portal-page :is(input,select,textarea,button):focus-visible{
+ outline:3px solid var(--ui-focus);outline-offset:2px
+}
+html[data-ui-theme="dark"] .portal-page :is(input[type="date"],input[type="time"]){color-scheme:dark}
+.platform-recovery-card h3{display:flex;align-items:center;gap:9px}
+.platform-recovery-card h3 .ui-icon{color:var(--ui-accent)}
+.platform-recovery-card .form-grid{margin-top:14px}
+.recovery-code-result{margin-top:16px;padding:17px;border:1px solid var(--ui-line);border-radius:14px;
+ background:var(--ui-panel-soft);color:var(--ui-text)}
+.recovery-code-result[hidden],.school-admin-recovery-form[hidden],#loginForm[hidden],#schoolAdminRecoveryLink[hidden]{display:none!important}
+.recovery-code-result p,.recovery-code-result small{color:var(--ui-muted)}
+.recovery-code-copy{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin:12px 0}
+.recovery-code-copy code{padding:12px 14px;border-radius:9px;border:1px dashed var(--ui-accent);
+ background:var(--ui-panel);color:var(--ui-text);
+ font:700 clamp(13px,2vw,19px)/1.5 ui-monospace,SFMono-Regular,Consolas,monospace;
+ letter-spacing:.05em;overflow-wrap:anywhere}
+.recovery-text-button{border:0;background:transparent;color:var(--brand,#2463a5);
+ padding:7px 0;cursor:pointer;font:inherit;text-decoration:underline;text-underline-offset:3px}
+.school-admin-recovery-form{margin-top:16px;padding:18px;border-radius:14px;
+ border:1px solid #d8e3ef;background:#f8fbff}
+.school-admin-recovery-form h3{margin:0 0 8px}
+.school-admin-recovery-form .field-group{margin-bottom:11px}
+.school-admin-recovery-form .field-group input{width:100%}
+.portal-page .ui-icon{stroke-width:1.85}
+.portal-page :is(.nav-item,.nav-group-toggle) .nav-icon{display:inline-flex;align-items:center;justify-content:center}
+.portal-page :is(.nav-item,.nav-group-toggle) .ui-icon{width:21px;height:21px}
+.portal-page button .ui-icon{width:18px;height:18px}
+@media(max-width:640px){.platform-recovery-card .form-actions button{width:100%}.recovery-code-copy{align-items:stretch;flex-direction:column}}
