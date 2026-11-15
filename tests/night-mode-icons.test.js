@@ -9,10 +9,10 @@ test('night stylesheet is loaded after shared UI for all dashboard roles and cac
  for(const name of ['portal.html','parent-portal.html','student-portal.html']){
    const markup=source(name);
    assert.ok(markup.indexOf('/dashboard-night.css?v=1') > markup.indexOf('/dashboard-ui.css?v=4'), name);
-   assert.match(markup,/dashboard-icons.js\?v=3/);
+   assert.match(markup,/dashboard-icons.js\?v=4/);
  }
  assert.match(source('sw.js'),/dashboard-night.css\?v=1/);
- assert.match(source('sw.js'),/school-attendance-shell-v59-night-contrast/);
+ assert.match(source('sw.js'),/school-attendance-shell-v60-dashboard-polish/);
 });
 test('dark styles cover the previously white School Admin shortcuts and dark text',()=>{
  const css=source('dashboard-night.css');
