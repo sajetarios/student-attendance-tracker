@@ -2512,30 +2512,112 @@ let teacherActionMenuListenersInstalled = false;
     $('scheduleFormFeedback').textContent = 'Times filled from ' + template.name + '. You can still adjust them if authorized.';
   }
 
-  function addTemplateBlock() {
+  function templateMinutes(value) {
+    if (!/^\\d{2}:\\d{2}$/.test(value || '')) return NaN;
+    const parts = value.split(':').map(Number);
+    if (parts[0] > 23 || parts[1] > 59) return NaN;
+    return parts[0] * 60 + parts[1];
+  }
+
+  function templateClock(minutes) {
+    return String(Math.floor(minutes / 60)).padStart(2, '0') + ':' + String(minutes % 60).padStart(2, '0');
+  }
+
+  function updateTemplateBlockSummary() {
+    const host = $('templateBlockRows');
+    const status = $('templateBlockSummary');
+    if (!host || !status) return;
+    const rows = Array.from(host.children);
+    const blocks = rows.map((row, index) => {
+      const label = row.querySelector('[data-block-label]')?.value.trim() || '';
+      const start = templateMinutes(row.querySelector('[data-block-start]')?.value);
+      const end = templateMinutes(row.querySelector('[data-block-end]')?.value);
+      row.querySelector('[data-block-number]').textContent = String(index + 1).padStart(2, '0');
+      row.querySelector('[data-remove-block]').setAttribute('aria-label', 'Remove block ' + (index + 1) + (label ? ': ' + label : ''));
+      const valid = label && Number.isFinite(start) && Number.isFinite(end) && end > start;
+      row.classList.toggle('is-invalid', !valid);
+      row.querySelector('[data-block-duration]').textContent = valid ? (end - start) + ' min' : 'Check time';
+      return { row, start, end, valid };
+    });
+    const ordered = [...blocks].filter(block => block.valid).sort((a, b) => a.start - b.start);
+    let overlaps = 0;
+    for (let i = 1; i < ordered.length; i++) {
+      if (ordered[i].start < ordered[i - 1].end) {
+        ordered[i].row.classList.add('is-invalid');
+        ordered[i - 1].row.classList.add('is-invalid');
+        overlaps++;
+      }
+    }
+    rows.forEach(row => {
+      row.querySelectorAll('[data-block-start],[data-block-end]').forEach(field => {
+        field.setAttribute('aria-invalid', String(row.classList.contains('is-invalid')));
+      });
+    });
+    const outOfOrder = blocks.some((block, index) => index > 0 && Number.isFinite(block.start) && Number.isFinite(blocks[index - 1].start) && block.start < blocks[index - 1].start);
+    const validTimes = ordered.length;
+    const firstTime = validTimes ? templateClock(ordered[0].start) : '';
+    const lastTime = validTimes ? templateClock(Math.max(...ordered.map(block => block.end))) : '';
+    const invalid = blocks.some(block => !block.valid);
+    status.classList.toggle('has-warning', Boolean(invalid || overlaps || outOfOrder));
+    status.textContent = rows.length + (rows.length === 1 ? ' block' : ' blocks') +
+      (firstTime && lastTime ? ' · ' + firstTime + '–' + lastTime : '') +
+      (overlaps ? ' · Overlapping times' : invalid ? ' · Check highlighted blocks' : outOfOrder ? ' · Sort by time' : '');
+  }
+
+  function addTemplateBlock(type = 'CLASS') {
     const host = $('templateBlockRows');
     if (!host || host.children.length >= 100) return;
     const previousEnd = host.lastElementChild?.querySelector('[data-block-end]')?.value || '07:30';
-    const row = document.createElement('fieldset');
+    const duration = type === 'BREAK' ? 15 : type === 'LUNCH' ? 45 : 60;
+    const startMinutes = templateMinutes(previousEnd);
+    const validStart = Number.isFinite(startMinutes) && startMinutes + duration < 1440 ? startMinutes : 450;
+    const row = document.createElement('div');
     row.className = 'template-block-row';
-    row.innerHTML = '<legend>Time block</legend><label>Label<input data-block-label required maxlength="80" placeholder="e.g. Period 1 or Morning break"></label><label>Type<select data-block-type><option value="CLASS">Class</option><option value="BREAK">Break</option><option value="LUNCH">Lunch</option><option value="HOMEROOM">Homeroom</option><option value="ADVISORY">Advisory</option><option value="OTHER">Other</option></select></label><label>Start<input data-block-start type="time" required step="60"></label><label>End<input data-block-end type="time" required step="60"></label><button type="button" class="outline-button" data-remove-block>Remove block</button>';
-    row.querySelector('[data-block-start]').value = previousEnd;
+    row.setAttribute('role', 'group');
+    row.innerHTML = '<span class="template-row-index" data-block-number></span>' +
+      '<label class="template-block-name"><span class="template-mobile-label">Period / activity</span><input data-block-label required maxlength="80" placeholder="e.g. Period 1"></label>' +
+      '<label class="template-block-kind"><span class="template-mobile-label">Type</span><select data-block-type><option value="CLASS">Class</option><option value="BREAK">Break</option><option value="LUNCH">Lunch</option><option value="HOMEROOM">Homeroom</option><option value="ADVISORY">Advisory</option><option value="OTHER">Other</option></select></label>' +
+      '<label class="template-block-start"><span class="template-mobile-label">Start</span><input data-block-start type="time" required step="60"></label>' +
+      '<label class="template-block-end"><span class="template-mobile-label">End</span><input data-block-end type="time" required step="60"><small class="template-row-duration" data-block-duration></small></label>' +
+      '<button type="button" class="template-remove-button" data-remove-block title="Remove block" aria-label="Remove block">×</button>';
+    row.querySelector('[data-block-type]').value = type;
+    row.querySelector('[data-block-label]').value = type === 'BREAK' ? 'Morning break' : type === 'LUNCH' ? 'Lunch' : 'Period ' + (host.children.length + 1);
+    row.querySelector('[data-block-start]').value = templateClock(validStart);
+    row.querySelector('[data-block-end]').value = templateClock(validStart + duration);
     row.querySelector('[data-remove-block]').addEventListener('click', () => {
       row.remove();
       if (!host.children.length) addTemplateBlock();
+      updateTemplateBlockSummary();
     });
     host.append(row);
+    updateTemplateBlockSummary();
   }
 
   function wireSchedulingSettingsForms() {
     addTemplateBlock();
     $('addTemplateBlock')?.addEventListener('click', () => {
       addTemplateBlock();
-      $('templateBlockRows').lastElementChild?.querySelector('input')?.focus();
+      $('templateBlockRows').lastElementChild?.querySelector('[data-block-label]')?.focus();
     });
+    document.querySelectorAll('#timetableTemplateForm [data-add-template-type]').forEach(button => {
+      button.addEventListener('click', () => {
+        addTemplateBlock(button.dataset.addTemplateType);
+        $('templateBlockRows').lastElementChild?.querySelector('[data-block-label]')?.focus();
+      });
+    });
+    $('sortTemplateBlocks')?.addEventListener('click', () => {
+      const host = $('templateBlockRows');
+      const sorted = [...host.children].sort((left, right) => 
+        (left.querySelector('[data-block-start]').value || '').localeCompare(right.querySelector('[data-block-start]').value || ''));
+      host.append(...sorted);
+      updateTemplateBlockSummary();
+      $('templateFeedback').textContent = 'Blocks sorted by start time.';
+    });
+    $('templateBlockRows')?.addEventListener('input', updateTemplateBlockSummary);
+    $('templateBlockRows')?.addEventListener('change', updateTemplateBlockSummary);
     $('cancelTemplateEdit')?.addEventListener('click',()=>{
       delete $('timetableTemplateForm').dataset.editingId;
-      $('timetableTemplateForm').reset();$('templateBlockRows').replaceChildren();addTemplateBlock();
+      $('timetableTemplateForm').reset();$('templateBlockRows').replaceChildren();addTemplateBlock();updateTemplateBlockSummary();
       $('saveTemplateButton').textContent='Save template';$('cancelTemplateEdit').hidden=true;
       $('templateFeedback').textContent='Edit cancelled.';
     });
@@ -2563,6 +2645,7 @@ let teacherActionMenuListenersInstalled = false;
         row.querySelector('[data-block-start]').value=p.startTime;
         row.querySelector('[data-block-end]').value=p.endTime;
       });
+      updateTemplateBlockSummary();
       if(button.dataset.templateEdit){
         $('timetableTemplateForm').dataset.editingId=id;
         $('saveTemplateButton').textContent='Save changes';
