@@ -160,4 +160,4 @@ function registerClassQrRoutes(app,pool,{authenticateSchoolClient,requireSchoolR
   }catch(e){res.status(500).json({error:'Unable to close session.'});}
  });
 }
-module.exports={registerClassQrRoutes};
+module.exports={registerClassQrRoutes,localDate,dayOfWeek,at,sign};
