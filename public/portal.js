@@ -384,7 +384,7 @@
       else $('teachersNav').querySelector('.nav-label').textContent = 'User management';
     }
     if ($('parentsNav')) $('parentsNav').hidden = !admin;
-    if ($('manageParentsFromStudents')) $('manageParentsFromStudents').hidden = !admin;
+    if ($('manageParentsFromStudents')) { $('manageParentsFromStudents').hidden = !admin; $('manageParentsFromStudents').style.display = admin ? 'inline-flex' : 'none'; }
     if ($('showStudentForm')) $('showStudentForm').hidden = !(admin || (teacher && classAdviser));
     if ($('showScheduleForm')) $('showScheduleForm').hidden = !(admin || departmentHead);
     if ($('dashboardAddStudent')) $('dashboardAddStudent').hidden = !(admin || (teacher && classAdviser));
