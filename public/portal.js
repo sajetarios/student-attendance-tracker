@@ -2954,21 +2954,38 @@ let teacherActionMenuListenersInstalled = false;
     if(!form)return;
     form.reset();
     populateAdjustmentPeriodOptions();
-    if(periodId&&[...$('adjustmentPeriodId').options].some(o=>o.value===periodId))
+    if(periodId&&[...$('adjustmentPeriodId').options].some(option=>option.value===periodId))
       $('adjustmentPeriodId').value=periodId;
     const period=periods.find(p=>String(p.periodId)===$('adjustmentPeriodId').value);
-    const depts=departments.filter(d=>d.active!==false);
+    const departmentsToShow=departments.filter(d=>d.active!==false);
     $('adjustmentDepartment').innerHTML='<option value="">Choose department</option>'+
-      depts.map(d=>'<option value="'+esc(d.departmentId)+'">'+esc(d.name||d.departmentName)+'</option>').join('');
-    if(period)$('adjustmentDepartment').value=period.scheduleDepartmentId||period.departmentId||'';
+      departmentsToShow.map(d=>'<option value="'+esc(d.departmentId)+'">'+esc(d.name||d.departmentName)+'</option>').join('');
+    const existing=periodId&&date?scheduleDateOverride(periodId,date):null;
+    if(period)$('adjustmentDepartment').value=existing?.subjectDepartmentId||
+      period.scheduleDepartmentId||period.departmentId||'';
     $('adjustmentStartDate').min=today;
     $('adjustmentEndDate').min=today;
     $('adjustmentStartDate').value=date&&date>=today?date:today;
     $('adjustmentEndDate').value=$('adjustmentStartDate').value;
-    $('scheduleAdjustmentFeedback').textContent='';
+    if(existing) {
+      $('adjustmentType').value=existing.type;
+      $('adjustmentReason').value=existing.reason;
+      $('adjustmentNotes').value=existing.notes||'';
+      $('adjustmentStartTime').value=existing.startTime||'';
+      $('adjustmentEndTime').value=existing.endTime||'';
+      $('adjustmentRoom').value=existing.classroom||'';
+    }
+    $('scheduleAdjustmentFeedback').textContent=existing
+      ?'Editing the saved change for '+existing.date+'. This will replace only that date’s adjustment.'
+      :'Choose a date when the selected class normally meets. Unscheduled days are skipped automatically.';
     form.hidden=false;
     setAdjustmentFields();
-    loadAdjustmentSubjects().catch(error=>showToast(error.message,true));
+    if(existing?.teacherUserId&&[...$('adjustmentTeacher').options].some(o=>o.value===existing.teacherUserId))
+      $('adjustmentTeacher').value=existing.teacherUserId;
+    loadAdjustmentSubjects().then(()=>{
+      if(existing?.subjectId&&[...$('adjustmentSubject').options].some(o=>o.value===existing.subjectId))
+        $('adjustmentSubject').value=existing.subjectId;
+    }).catch(error=>showToast(error.message,true));
     form.scrollIntoView({behavior:'smooth',block:'start'});
   }
 
@@ -3022,7 +3039,7 @@ let teacherActionMenuListenersInstalled = false;
         const result=await api('/api/schedule-adjustments',{method:'POST',body:JSON.stringify(payload)});
         $('scheduleAdjustmentForm').hidden=true;
         await loadScheduleAdjustments();
-        showToast(result.updated+' dated class adjustment(s) saved. The regular timetable remains intact.');
+        showToast(result.updated+' class date(s) updated'+(result.skipped?' · '+result.skipped+' non-class date(s) skipped':'')+'. The regular timetable remains intact.');
       }catch(error){$('scheduleAdjustmentFeedback').textContent=error.message;showToast(error.message,true);}
       finally{button.disabled=false;}
     });
