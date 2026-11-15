@@ -1,6 +1,6 @@
 'use strict';
 const textOk=(v,n=140)=>typeof v==='string'&&v.trim().length>0&&v.trim().length<=n;
-const dateOk=v=>v==null||(typeof v==='string'&&/^\d{4}-\d{2}-\d{2}$/.test(v));
+const dateOk=v=>v==null||(typeof v==='string'&&/^\\d{4}-\\d{2}-\\d{2}$/.test(v)&&!Number.isNaN(Date.parse(v))&&new Date(v+'T00:00:00Z').toISOString().slice(0,10)===v);
 const timeOk=v=>typeof v==='string'&&/^([01]\d|2[0-3]):[0-5]\d$/.test(v);
 
 function registerSchedulingConfigRoutes(app,pool,auth){
@@ -104,7 +104,7 @@ function registerSchedulingConfigRoutes(app,pool,auth){
   app.post('/api/scheduling-config/calendar-exceptions',authenticateSchoolClient,admin,async(req,res)=>{
     const {date,title,type,notes=null,dismissalTime=null,periodIds=[]}=req.body||{};
     const kind=String(type||'').toUpperCase(),allowed=['CLOSED','OPEN','SPECIAL_CLASS','SHORTENED_DAY'];
-    if(!dateOk(date)||!date||!textOk(title)||!allowed.includes(kind)||!Array.isArray(periodIds)||periodIds.length>200||
+    if(!dateOk(date)||!date||!textOk(title)||!allowed.includes(kind)||!Array.isArray(periodIds)||periodIds.length>200||(notes!=null&&(typeof notes!=='string'||notes.length>500))||
       (kind==='SHORTENED_DAY'?!timeOk(dismissalTime):Boolean(dismissalTime))||
       (['OPEN','SPECIAL_CLASS'].includes(kind)&&!periodIds.length)||
       (!['OPEN','SPECIAL_CLASS'].includes(kind)&&periodIds.length))
