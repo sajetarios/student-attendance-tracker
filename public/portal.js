@@ -305,7 +305,7 @@
     const gateKeeper = role === 'GATE_KEEPER';
     if ($('studentDepartmentScopeNote')) $('studentDepartmentScopeNote').hidden = !departmentHead;
     if ($('printBulkQr')) $('printBulkQr').hidden = departmentHead;
-    if ($('applyStudentBatch')) $('applyStudentBatch').hidden = !(admin || (teacher && teacherHas('CLASS_ADVISER')));
+    if ($('applyStudentBatch')) $('applyStudentBatch').hidden = !(admin || departmentHead || (teacher && teacherHas('CLASS_ADVISER')));
     const subjectTeacher = teacherHas('SUBJECT_TEACHER');
     const classAdviser = teacherHas('CLASS_ADVISER');
     const mayScan = gateKeeper || (teacher && (subjectTeacher || classAdviser));
@@ -1011,6 +1011,39 @@ function coverageStatusLabel(status) {
     URL.revokeObjectURL(url);
   }
 
+  function canSelectLearnerForBatch(student) {
+    if (!student) return false;
+    if (user.role === 'SCHOOL_ADMIN') return true;
+    if (student.active === false || student.archivedAt) return false;
+    if (user.role === 'TEACHER' && teacherHas('CLASS_ADVISER')) {
+      return adviserAssignments.some(a => String(a.gradeLevel) === String(student.gradeLevel) &&
+        String(a.section) === String(student.section));
+    }
+    if (user.role === 'DEPARTMENT_HEAD' && user.departmentId && user.departmentCode !== 'UNASSIGNED') {
+      return periods.some(p => p.active !== false && String(p.departmentId) === String(user.departmentId) &&
+        String(p.gradeLevel) === String(student.gradeLevel) &&
+        String(p.section) === String(student.section));
+    }
+    return false;
+  }
+
+  function visibleBatchLearners() {
+    const grade = $('bulkQrGrade')?.value || 'ALL';
+    const section = $('bulkQrSection')?.value || 'ALL';
+    const search = ($('studentRosterSearch')?.value || '').trim().toLocaleLowerCase();
+    const statusFilter = $('studentStatusFilter')?.value || 'ACTIVE';
+    return students.filter(student =>
+      (grade === 'ALL' || student.gradeLevel === grade) &&
+      (section === 'ALL' || student.section === section) &&
+      (user.role !== 'SCHOOL_ADMIN' || statusFilter === 'ALL' ||
+        (statusFilter === 'ACTIVE' && student.active !== false && !student.archivedAt) ||
+        (statusFilter === 'INACTIVE' && student.active === false && !student.archivedAt) ||
+        (statusFilter === 'ARCHIVED' && Boolean(student.archivedAt))) &&
+      (!search || [student.fullName, student.studentId, student.lrn].some(v =>
+        String(v || '').toLocaleLowerCase().includes(search)))
+    ).filter(canSelectLearnerForBatch);
+  }
+
   async function renderStudents() {
     const host = $('studentRows');
     const grade = $('bulkQrGrade').value;
@@ -1026,13 +1059,13 @@ function coverageStatusLabel(status) {
     // useful for reviewing learner identity and class placement.
     const rosterHeader = $('studentRosterTable')?.querySelector('thead tr');
     if (rosterHeader && departmentHead) {
-      rosterHeader.innerHTML = '<th>Student ID</th><th>Full name</th><th>Sex</th><th>Grade</th><th>Section</th><th>Status</th>';
+      rosterHeader.innerHTML = '<th>Select</th><th>Student ID</th><th>Full name</th><th>Sex</th><th>Grade</th><th>Section</th><th>Status</th>';
     } else if (rosterHeader) {
       rosterHeader.innerHTML = '<th>Select</th><th>Photo</th><th>Student ID</th><th>Full name</th><th>Sex</th><th>Grade</th><th>Section</th><th>Status</th><th>QR code</th><th>Actions</th>' + (admin ? '<th>Student portal account</th>' : '');
     }
     if ($('studentRosterDescription')) {
       $('studentRosterDescription').textContent = departmentHead
-        ? 'Review learner identity, sex, and current grade and section placement.'
+        ? 'School-wide learner roster. Select learners in sections managed by your department to apply authorized batch actions.'
         : 'QR previews remain tied to each student\'s existing private token. Editing details does not replace the QR code.';
     }
     const canManage = admin || (teacher && (designations.includes('CLASS_ADVISER') || designations.includes('SUBJECT_TEACHER')));
@@ -1058,7 +1091,7 @@ function coverageStatusLabel(status) {
         : departmentHead
           ? 'No active learners are registered in this school yet.'
           : 'No students are available for this filter.';
-      host.innerHTML = '<tr><td colspan="' + (departmentHead ? '6' : admin ? '11' : '10') + '" class="empty-cell">' + esc(emptyMessage) + '</td></tr>';
+      host.innerHTML = '<tr><td colspan="' + (departmentHead ? '7' : admin ? '11' : '10') + '" class="empty-cell">' + esc(emptyMessage) + '</td></tr>';
     } else {
       const rows = await Promise.all(visible.map(async student => {
         const photo = departmentHead ? '' : await photoDataUrl(student.photoUrl);
@@ -1074,7 +1107,7 @@ function coverageStatusLabel(status) {
         const qrCell = canViewQr
           ? (qr ? `<button type="button" class="student-qr-preview" data-view-qr="${esc(student.studentId)}" title="View or print QR"><img src="${qr}" alt="QR code for ${esc(student.studentId)}"></button>` : '<span class="qr-unavailable">QR unavailable</span>')
           : (gateKeeper ? '<span class="muted-inline">Gate scan only</span>' : '<span class="muted-inline">Not available</span>');
-        const selection = (admin || (teacher && designations.includes('CLASS_ADVISER'))) ? `<input type="checkbox" class="student-select-box" data-select-student="${esc(student.studentId)}" ${selectedStudentIds.has(student.studentId) ? 'checked' : ''} aria-label="Select ${esc(student.fullName)}">` : '';
+        const selection = canSelectLearnerForBatch(student) ? `<input type="checkbox" class="student-select-box" data-select-student="${esc(student.studentId)}" ${selectedStudentIds.has(student.studentId) ? 'checked' : ''} aria-label="Select ${esc(student.fullName)}">` : '';
         const editable = canManage && student.active !== false && !student.archivedAt;
         const actions = editable
           ? `<div class="student-row-actions"><button type="button" class="outline-button" data-edit-student="${esc(student.studentId)}">Edit</button>${canUploadPhoto ? `<label class="student-photo-upload">${student.hasPhoto ? 'Replace photo' : 'Upload photo'}<input type="file" accept="image/jpeg,image/png,image/webp" data-student-photo="${esc(student.studentId)}" hidden></label>` : ''}</div>`
@@ -1085,7 +1118,7 @@ function coverageStatusLabel(status) {
            : '';
         const statusLabel = student.archivedAt ? 'Archived' : student.active === false ? 'Inactive' : 'Active';
         if (departmentHead) {
-          return `<tr><td data-label="Student ID">${esc(student.studentId)}</td><td data-label="Full name"><strong>${esc(student.fullName)}</strong></td><td data-label="Sex">${esc(student.sex || 'Not set')}</td><td data-label="Grade">${esc(student.gradeLevel)}</td><td data-label="Section">${esc(student.section)}</td><td data-label="Status">${statusLabel}</td></tr>`;
+          return `<tr><td data-label="Select">${selection || '<span class="muted-inline" title="Only your department’s assigned sections can be selected">View only</span>'}</td><td data-label="Student ID">${esc(student.studentId)}</td><td data-label="Full name"><strong>${esc(student.fullName)}</strong></td><td data-label="Sex">${esc(student.sex || 'Not set')}</td><td data-label="Grade">${esc(student.gradeLevel)}</td><td data-label="Section">${esc(student.section)}</td><td data-label="Status">${statusLabel}</td></tr>`;
         }
         return `<tr><td data-label="Select">${selection}</td><td data-label="Photo">${avatar}</td><td data-label="Student ID">${esc(student.studentId)}</td><td data-label="Full name">${esc(student.fullName)}</td><td data-label="Sex">${esc(student.sex || 'Not set')}</td><td data-label="Grade">${esc(student.gradeLevel)}</td><td data-label="Section">${esc(student.section)}</td><td data-label="Status">${statusLabel}</td><td data-label="QR code">${qrCell}</td><td data-label="Actions">${actions}</td>${admin ? '<td data-label="Student account">' + accountCell + '</td>' : ''}</tr>`;
       }));
@@ -1119,7 +1152,8 @@ function coverageStatusLabel(status) {
           : user.role === 'DEPARTMENT_HEAD'
             ? 'Read-only school-wide learner roster. Student record changes and class placement are handled by the School Administrator and authorized Class Advisers.'
             : 'Students registered under this school. Manage student information, photos, and QR cards.';
-    const canBatchManage = admin || (teacher && designations.includes('CLASS_ADVISER'));
+    const canBatchManage = admin || departmentHead || (teacher && designations.includes('CLASS_ADVISER'));
+    if ($('selectAllStudents')) $('selectAllStudents').disabled = !canBatchManage;
     document.querySelectorAll('.student-filter-row label, .student-bulk-actions').forEach(element => {
       if (gateKeeper) element.hidden = element.classList.contains('student-bulk-actions');
       else if (!canBatchManage) element.hidden = element.classList.contains('student-bulk-actions');
@@ -1129,26 +1163,32 @@ function coverageStatusLabel(status) {
   }
 
   function updateStudentSelectionUi() {
-    const search = ($('studentRosterSearch')?.value || '').trim().toLocaleLowerCase();
-    const statusFilter = $('studentStatusFilter')?.value || 'ACTIVE';
-    const visible = students.filter(s =>
-      ($('bulkQrGrade').value === 'ALL' || s.gradeLevel === $('bulkQrGrade').value) &&
-      ($('bulkQrSection').value === 'ALL' || s.section === $('bulkQrSection').value) &&
-      (user.role !== 'SCHOOL_ADMIN' || statusFilter === 'ALL' ||
-        (statusFilter === 'ACTIVE' && s.active !== false && !s.archivedAt) ||
-        (statusFilter === 'INACTIVE' && s.active === false && !s.archivedAt) ||
-        (statusFilter === 'ARCHIVED' && Boolean(s.archivedAt))) &&
-      (!search || [s.fullName, s.studentId, s.lrn].some(value => String(value || '').toLocaleLowerCase().includes(search)))
-    );
-    $('selectedStudentCount').textContent = `${selectedStudentIds.size} selected`;
-    const isAdviser = user.role === 'TEACHER' && teacherHas('CLASS_ADVISER');
-    const isDepartmentHead = user.role === 'DEPARTMENT_HEAD' && Boolean(user.departmentId) && user.departmentCode !== 'UNASSIGNED';
-    if ($('applyStudentBatch')) $('applyStudentBatch').disabled = selectedStudentIds.size === 0 || !(user.role === 'SCHOOL_ADMIN' || isAdviser || isDepartmentHead);
-    if ($('studentBatchAction')) [...$('studentBatchAction').options].forEach(option => {
-      if (option.value) option.hidden = (isAdviser || isDepartmentHead) && !['UPDATE','ASSIGN'].includes(option.value);
-    });
-    $('selectAllStudents').checked = visible.length > 0 && visible.every(s => selectedStudentIds.has(s.studentId));
-    $('selectAllStudents').indeterminate = visible.some(s => selectedStudentIds.has(s.studentId)) && !$('selectAllStudents').checked;
+    const visible = visibleBatchLearners();
+    for (const id of [...selectedStudentIds]) {
+      const student = students.find(item => item.studentId === id);
+      if (!canSelectLearnerForBatch(student)) selectedStudentIds.delete(id);
+    }
+    $('selectedStudentCount').textContent = selectedStudentIds.size + ' selected';
+    const isAdmin = user.role === 'SCHOOL_ADMIN';
+    const mayBatch = isAdmin || user.role === 'DEPARTMENT_HEAD' || (user.role === 'TEACHER' && teacherHas('CLASS_ADVISER'));
+    const actions = $('studentBatchAction');
+    if (actions) {
+      [...actions.options].forEach(option => {
+        if (!option.value) return;
+        const available = isAdmin || ['SET_SEX','ASSIGN'].includes(option.value);
+        option.hidden = !available;
+        option.disabled = !available;
+      });
+      if (actions.selectedOptions[0]?.disabled) actions.value = '';
+    }
+    if ($('applyStudentBatch')) $('applyStudentBatch').disabled =
+      !mayBatch || !selectedStudentIds.size || !actions?.value || selectedStudentIds.size > 500;
+    const all = $('selectAllStudents');
+    if (all) {
+      all.disabled = !mayBatch || !visible.length;
+      all.checked = visible.length > 0 && visible.every(s => selectedStudentIds.has(s.studentId));
+      all.indeterminate = visible.some(s => selectedStudentIds.has(s.studentId)) && !all.checked;
+    }
   }
 
   async function openStudentQrPreview(student) {
@@ -3737,8 +3777,11 @@ let teacherActionMenuListenersInstalled = false;
   $('bulkQrSection').addEventListener('change', () => renderStudents());
   $('bulkQrGrade').addEventListener('change', () => { refreshBulkQrSections(); renderStudents(); });
   $('selectAllStudents').addEventListener('change', () => {
-    const visible = students.filter(s => ($('bulkQrGrade').value === 'ALL' || s.gradeLevel === $('bulkQrGrade').value) && ($('bulkQrSection').value === 'ALL' || s.section === $('bulkQrSection').value) && (user.role !== 'SCHOOL_ADMIN' || $('studentStatusFilter').value === 'ALL' || ($('studentStatusFilter').value === 'ACTIVE' && s.active !== false && !s.archivedAt) || ($('studentStatusFilter').value === 'INACTIVE' && s.active === false && !s.archivedAt) || ($('studentStatusFilter').value === 'ARCHIVED' && Boolean(s.archivedAt))));
-    visible.forEach(s => $('selectAllStudents').checked ? selectedStudentIds.add(s.studentId) : selectedStudentIds.delete(s.studentId));
+    const selected = Boolean($('selectAllStudents').checked);
+    visibleBatchLearners().forEach(student => {
+      if (selected) selectedStudentIds.add(student.studentId);
+      else selectedStudentIds.delete(student.studentId);
+    });
     renderStudents();
   });
   $('studentScannerToggle').addEventListener('click', () => {
