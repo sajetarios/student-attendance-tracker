@@ -3541,7 +3541,7 @@ let teacherActionMenuListenersInstalled = false;
     $('scheduleForm').reset();
     $('scheduleForm').hidden = true;
     $('scheduleFormFeedback').textContent = '';
-    if ($('periodSubject')) { $('periodSubject').innerHTML = '<option value="">Choose teacher first</option>'; $('periodSubject').disabled = true; }
+    if ($('periodSubject')) { $('periodSubject').innerHTML = '<option value="">Choose a teacher or your department</option>'; $('periodSubject').disabled = true; }
     if ($('periodSection')) { $('periodSection').innerHTML = '<option value="">Select grade first</option>'; $('periodSection').disabled = true; }
     $('periodTeacherHint').textContent = 'Department and available subjects are determined automatically from the teacher profile.';
   });
@@ -3573,10 +3573,10 @@ let teacherActionMenuListenersInstalled = false;
       const saved = await api('/api/periods', { method: 'POST', body: JSON.stringify(payload) });
       $('scheduleForm').reset();
       $('scheduleForm').hidden = true;
-      if ($('periodSubject')) { $('periodSubject').innerHTML = '<option value="">Choose teacher first</option>'; $('periodSubject').disabled = true; }
+      if ($('periodSubject')) { $('periodSubject').innerHTML = '<option value="">Choose a teacher or your department</option>'; $('periodSubject').disabled = true; }
       if ($('periodSection')) { $('periodSection').innerHTML = '<option value="">Select grade first</option>'; $('periodSection').disabled = true; }
       await loadSchoolData();
-      showToast('Schedule saved and assigned to ' + (saved.teacher || teacher?.displayName || 'the selected teacher') + '.');
+      showToast(saved.teacher ? 'Schedule saved and assigned to ' + saved.teacher + '.' : 'Class schedule saved. Assign a Subject Teacher when ready.');
     } catch (error) {
       feedback.className = 'inline-feedback error';
       feedback.textContent = error.message;
