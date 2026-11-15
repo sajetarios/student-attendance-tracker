@@ -1,0 +1,25 @@
+{
+  "name": "school-attendance-pwa",
+  "version": "0.8.2",
+  "private": true,
+  "description": "Responsive school attendance PWA with role-specific dashboards and student self-service portal",
+  "scripts": {
+    "start": "node server.js",
+    "worker": "node sms-worker.js",
+    "test": "node --test \"tests/*.test.js\"",
+    "db:migrate": "node scripts/db-migrate.js",
+    "db:reset:test": "node scripts/reset-database.js",
+    "school:create": "node create-school.js",
+    "db:adopt-existing-test": "node scripts/adopt-existing-test-db.js",
+    "cleanup:legacy-tests": "node scripts/archive-legacy-public-tests.js",
+    "account:reset-password": "node scripts/reset-school-user-password.js"
+  },
+  "dependencies": {
+    "dotenv": "^16.4.5",
+    "exceljs": "^4.4.0",
+    "express": "^4.21.2",
+    "html5-qrcode": "^2.3.8",
+    "pg": "^8.13.1",
+    "qrcode": "^1.5.4"
+  }
+}

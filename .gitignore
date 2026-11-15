@@ -1,0 +1,40 @@
+# Environment and secrets
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.p12
+*.pfx
+secrets/
+credentials/
+
+# Dependencies
+node_modules/
+
+# Private storage and student data
+storage/*
+!storage/.gitkeep
+student-photos/
+uploads/
+private/
+
+# Database backups
+*.sql.gz
+*.dump
+*.backup
+*.bak
+database-backups/
+db-backups/
+
+# Logs and temporary files
+*.log
+npm-debug.log*
+.DS_Store
+Thumbs.db
+
+# Temporary development transfer files
+*.zip
+staging-v0.8.2/
+templates/TUVERA SF2 (SY 2026-2027).xlsx templates/TUVERA SF2 (SY 2026-2027).xlsx templates/TUVERA SF2 (SY 2026-2027).xlsx templates/TUVERA SF2 (SY 2026-2027).xlsx
+/templates/TUVERA SF2 (SY 2026-2027).xlsx

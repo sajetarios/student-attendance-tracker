@@ -1,0 +1,9 @@
+{
+  "name": "School Attendance Desk",
+  "short_name": "Attendance",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#f5f7fb",
+  "theme_color": "#1c2d45",
+  "description": "Offline-first student attendance"
+}
