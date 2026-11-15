@@ -1246,7 +1246,10 @@ app.post('/api/periods/bulk-assignments', authenticateSchoolClient, requireSchoo
     await client.query('SELECT pg_advisory_xact_lock(hashtext($1::text), 16016)', [req.auth.schoolId]);
     const selected = await client.query(
       `SELECT period_id AS "periodId",period_name AS "periodName",department_id AS "departmentId",
-              start_time AS "startTime",end_time AS "endTime"
+              start_time AS "startTime",end_time AS "endTime",
+              COALESCE((SELECT array_agg(day.weekday ORDER BY day.weekday)
+                        FROM class_period_days day
+                        WHERE day.school_id=class_periods.school_id AND day.period_id=class_periods.period_id),'{}') AS weekdays
        FROM class_periods WHERE school_id=$1 AND period_id=ANY($2::uuid[]) AND active=TRUE
        ORDER BY start_time FOR UPDATE`,
       [req.auth.schoolId, ids]
@@ -1278,7 +1281,8 @@ app.post('/api/periods/bulk-assignments', authenticateSchoolClient, requireSchoo
       const p = selected.rows[i];
       for (let j = i + 1; j < selected.rows.length; j += 1) {
         const other = selected.rows[j];
-        if (p.startTime < other.endTime && other.startTime < p.endTime) {
+        const sharesDay = (p.weekdays || []).some(day => (other.weekdays || []).map(Number).includes(Number(day)));
+        if (sharesDay && p.startTime < other.endTime && other.startTime < p.endTime) {
           await client.query('ROLLBACK');
           return res.status(409).json({ error: 'The selected schedules overlap each other. A teacher cannot cover overlapping periods.' });
         }
@@ -1298,12 +1302,22 @@ app.post('/api/periods/bulk-assignments', authenticateSchoolClient, requireSchoo
          JOIN class_periods p ON p.school_id=a.school_id AND p.period_id=a.period_id
          WHERE a.school_id=$1 AND a.teacher_user_id=$2 AND a.period_id<>$3 AND p.active=TRUE
            AND p.start_time < $5 AND $4 < p.end_time
+           AND EXISTS (SELECT 1 FROM class_period_days existing_day
+                       JOIN class_period_days selected_day ON selected_day.school_id=existing_day.school_id
+                         AND selected_day.weekday=existing_day.weekday
+                       WHERE existing_day.school_id=p.school_id AND existing_day.period_id=p.period_id
+                         AND selected_day.period_id=$3)
          UNION ALL
          SELECT p.period_name FROM teacher_period_substitutions ts
          JOIN class_periods p ON p.school_id=ts.school_id AND p.period_id=ts.period_id
          WHERE ts.school_id=$1 AND ts.substitute_teacher_user_id=$2 AND ts.status='ACTIVE'
            AND ts.end_date >= (NOW() AT TIME ZONE 'Asia/Manila')::date AND p.active=TRUE
            AND p.start_time < $5 AND $4 < p.end_time
+           AND EXISTS (SELECT 1 FROM class_period_days existing_day
+                       JOIN class_period_days selected_day ON selected_day.school_id=existing_day.school_id
+                         AND selected_day.weekday=existing_day.weekday
+                       WHERE existing_day.school_id=p.school_id AND existing_day.period_id=p.period_id
+                         AND selected_day.period_id=$3)
          LIMIT 1`,
         [req.auth.schoolId, teacherUserId, p.periodId, p.startTime, p.endTime]
       );
@@ -1395,6 +1409,13 @@ app.post('/api/periods/:periodId/assignments', authenticateSchoolClient, require
        WHERE existing.school_id=$1 AND existing.teacher_user_id=$2
          AND existing.period_id<>$3 AND p.active=TRUE
          AND p.start_time < requested.end_time AND requested.start_time < p.end_time
+         AND EXISTS (
+           SELECT 1 FROM class_period_days existing_day
+           JOIN class_period_days requested_day
+             ON requested_day.school_id=existing_day.school_id AND requested_day.weekday=existing_day.weekday
+           WHERE existing_day.school_id=p.school_id AND existing_day.period_id=p.period_id
+             AND requested_day.period_id=requested.period_id
+         )
        UNION ALL
        SELECT p.period_name
        FROM teacher_period_substitutions ts
@@ -1403,6 +1424,13 @@ app.post('/api/periods/:periodId/assignments', authenticateSchoolClient, require
        WHERE ts.school_id=$1 AND ts.substitute_teacher_user_id=$2 AND ts.status='ACTIVE'
          AND ts.end_date >= (NOW() AT TIME ZONE 'Asia/Manila')::date AND p.active=TRUE
          AND p.start_time < requested.end_time AND requested.start_time < p.end_time
+         AND EXISTS (
+           SELECT 1 FROM class_period_days existing_day
+           JOIN class_period_days requested_day
+             ON requested_day.school_id=existing_day.school_id AND requested_day.weekday=existing_day.weekday
+           WHERE existing_day.school_id=p.school_id AND existing_day.period_id=p.period_id
+             AND requested_day.period_id=requested.period_id
+         )
        LIMIT 1`,
       [req.auth.schoolId, teacherUserId, req.params.periodId]
     );
