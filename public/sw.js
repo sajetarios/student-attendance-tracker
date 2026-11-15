@@ -1,17 +1,21 @@
-const CACHE = "school-attendance-shell-v60-dashboard-polish";
+const CACHE = "school-attendance-shell-v61-profile-photo-editor";
 
 const SHELL = [
   "/dashboard-icons.js?v=4",
   "/dashboard-ui.css?v=4",
   "/dashboard-night.css?v=1",
   "/dashboard-polish.css?v=1",
+  "/photo-editor.css?v=1",
+  "/photo-editor.js?v=1",
+  "/student-portal.js?v=1",
+  "/parent-portal.js?v=1",
   "/dashboard-appearance.js?v=3",
   "/timetable-grid.js?v=3",
   "/schedule-workspace-ui.js?v=3",
   "/portal-login.html",
   "/portal.css?v=0.9.50",
   "/portal.css",
-  "/portal.js?v=0.9.52",
+  "/portal.js?v=0.9.53",
   "/academic-admin.css?v=1",
   "/academic-admin.js?v=2",
   "/app-dialog.css?v=1",
