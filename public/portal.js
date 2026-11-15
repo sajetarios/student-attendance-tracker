@@ -2414,12 +2414,16 @@ let teacherActionMenuListenersInstalled = false;
     const canRead = ['SCHOOL_ADMIN','DEPARTMENT_HEAD','TEACHER'].includes(user.role);
     if (!canRead) return;
     try {
-      const [daysResult, templatesResult] = await Promise.all([
+      const [daysResult, templatesResult, exceptionsResult] = await Promise.all([
         api('/api/scheduling-config/operating-days'),
-        api('/api/scheduling-config/templates')
+        api('/api/scheduling-config/templates'),
+        api('/api/scheduling-config/calendar-exceptions?from=' + encodeURIComponent(schoolDateManila()) + '&to=' + encodeURIComponent(new Date(Date.now() + 365 * 86400000).toISOString().slice(0,10)))
       ]);
       schoolOperatingDays = daysResult.days || [];
-      timetableTemplates = templatesResult.templates || [];\n      renderCalendarExceptions(exceptionsResult.exceptions || []);\n      const exceptionScheduleSelect = $('calendarExceptionSchedules');\n      if (exceptionScheduleSelect) exceptionScheduleSelect.innerHTML = periods.map(period => '<option value="' + esc(period.periodId) + '">' + esc(period.gradeLevel + ' · ' + (period.section || 'All sections') + ' · ' + (period.subjectName || period.periodName)) + '</option>').join('');
+      timetableTemplates = templatesResult.templates || [];
+      renderCalendarExceptions(exceptionsResult.exceptions || []);
+      const exceptionScheduleSelect = $('calendarExceptionSchedules');
+      if (exceptionScheduleSelect) exceptionScheduleSelect.innerHTML = periods.map(period => '<option value="' + esc(period.periodId) + '">' + esc(period.gradeLevel + ' · ' + (period.section || 'All sections') + ' · ' + (period.subjectName || period.periodName)) + '</option>').join('');
       const dayMap = new Map(schoolOperatingDays.map(day => [Number(day.weekday), Boolean(day.isOperatingDay)]));
       document.querySelectorAll('#operatingDayChoices input[type="checkbox"]').forEach(input => {
         input.checked = dayMap.has(Number(input.value)) ? dayMap.get(Number(input.value)) : Number(input.value)>=1 && Number(input.value)<=5;
