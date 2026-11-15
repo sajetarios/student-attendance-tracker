@@ -1,6 +1,6 @@
 'use strict';
 const textOk=(v,n=140)=>typeof v==='string'&&v.trim().length>0&&v.trim().length<=n;
-const dateOk=v=>v==null||(typeof v==='string'&&/^\\d{4}-\\d{2}-\\d{2}$/.test(v)&&!Number.isNaN(Date.parse(v))&&new Date(v+'T00:00:00Z').toISOString().slice(0,10)===v);
+const dateOk=v=>v==null||(typeof v==='string'&&/^\d{4}-\d{2}-\d{2}$/.test(v)&&!Number.isNaN(Date.parse(v))&&new Date(v+'T00:00:00Z').toISOString().slice(0,10)===v);
 const timeOk=v=>typeof v==='string'&&/^([01]\d|2[0-3]):[0-5]\d$/.test(v);
 
 function registerSchedulingConfigRoutes(app,pool,auth){
