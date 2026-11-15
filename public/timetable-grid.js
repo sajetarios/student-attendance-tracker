@@ -102,7 +102,8 @@
       ['Schedule block',entry.periodName||'Not specified'],
       ['Date',asLongDate(entry.date)]
     ];
-    const rows=items.map(item=>'<div class="tt-detail-row"><dt>'+escape(item[0])+'</dt><dd>'+escape(item[1])+'</dd></div>').join('');
+    const detailIcons={Teacher:'user',Class:'users',Time:'clock',Room:'pin',Weekdays:'calendar','Schedule block':'book',Date:'calendar'};
+    const rows=items.map(item=>'<div class="tt-detail-row"><dt><span data-ui-icon="'+detailIcons[item[0]]+'"></span>'+escape(item[0])+'</dt><dd>'+escape(item[1])+'</dd></div>').join('');
     const extra=entry.adjustment ? '<div class="tt-detail-change"><strong>'+escape(tag)+'</strong><span>'+
       escape((entry.adjustment.reason||'').replaceAll('_',' '))+
       (entry.adjustment.notes?' · '+escape(entry.adjustment.notes):'')+'</span></div>' : '';
@@ -113,7 +114,7 @@
       entry.eligibleTeachers.map(t=>'<option value="'+escape(t.userId)+'">'+escape(t.displayName)+'</option>').join('')+
       '</select><button type="button" data-tt-assign class="tt-detail-action">Assign</button></div>' : '';
     ensurePanel().querySelector('.tt-detail-inner').innerHTML=
-      '<header class="tt-detail-header"><span class="tt-detail-title-icon">▦</span><div><h3 id="ttDetailTitle">'+escape(label(entry))+
+      '<header class="tt-detail-header"><span class="tt-detail-title-icon" data-ui-icon="book"></span><div><h3 id="ttDetailTitle">'+escape(label(entry))+
       '</h3><span class="tt-detail-kind">'+escape(tag)+'</span></div><button type="button" data-tt-close class="tt-detail-close" aria-label="Close class details">×</button></header>'+
       '<dl class="tt-detail-list">'+rows+'</dl>'+extra+assignChoices+
       '<div class="tt-detail-footer"><span class="tt-detail-tip">Saved timetable details</span>'+management+'</div>'+

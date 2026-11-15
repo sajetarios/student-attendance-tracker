@@ -139,8 +139,9 @@
 <link rel="stylesheet" href="/comfort-ui.css?v=0.8.8">
   <link rel="stylesheet" href="/app-dialog.css?v=1">
   <link rel="stylesheet" href="/form-system.css?v=1">
-  <link rel="stylesheet" href="/dashboard-ui.css?v=2">
-  <script src="/dashboard-appearance.js?v=2"></script>
+  <link rel="stylesheet" href="/dashboard-ui.css?v=3">
+  <script src="/dashboard-icons.js?v=1"></script>
+  <script src="/dashboard-appearance.js?v=3"></script>
 </head>
 <body class="portal-page">
   <div class="portal-layout">
@@ -182,7 +183,7 @@
     <main class="main-area">
       <header class="topbar">
         <button class="mobile-menu-toggle" id="sidebarToggle" type="button"
-          aria-label="Open navigation" aria-expanded="false" title="Open navigation">☰</button>
+          aria-label="Open navigation" aria-expanded="false" title="Open navigation"><span data-ui-icon="menu"></span></button>
         <button class="desktop-sidebar-toggle" id="sidebarCollapseButton" type="button"
           aria-label="Collapse sidebar" aria-expanded="true" aria-pressed="false" title="Collapse sidebar">
           <span class="sidebar-toggle-glyph" aria-hidden="true">‹</span>
@@ -197,9 +198,9 @@
             </button>
             <div class="account-dropdown" id="accountDropdown" hidden>
               <div class="account-summary"><strong id="accountMenuName">User</strong><span id="accountMenuRole">Account</span></div>
-              <button class="account-menu-item" id="profileMenuButton" type="button"><span class="menu-symbol">◉</span>My profile</button>
-              <button class="account-menu-item" id="settingsMenuButton" type="button"><span class="menu-symbol">⚙</span>Change password</button>
-              <button class="account-menu-item signout" id="logoutButton" type="button"><span class="menu-symbol">↪</span>Sign out</button>
+              <button class="account-menu-item" id="profileMenuButton" type="button"><span class="menu-symbol" data-ui-icon="user"></span>My profile</button>
+              <button class="account-menu-item" id="settingsMenuButton" type="button"><span class="menu-symbol" data-ui-icon="settings"></span>Change password</button>
+              <button class="account-menu-item signout" id="logoutButton" type="button"><span class="menu-symbol" data-ui-icon="logout"></span>Sign out</button>
             </div>
           </div>
         </div>
@@ -996,8 +997,8 @@
   <script src="/sw-refresh.js?v=1" defer></script>
   <script src="/password-visibility.js" defer></script>
   <script src="/vendor/html5-qrcode.min.js" defer></script>
-  <script src="/timetable-grid.js?v=2" defer></script>
-  <script src="/schedule-workspace-ui.js?v=2" defer></script>
+  <script src="/timetable-grid.js?v=3" defer></script>
+  <script src="/schedule-workspace-ui.js?v=3" defer></script>
   <script src="/portal.js?v=0.9.50" defer></script>
   <script src="/academic-admin.js?v=2" defer></script>
 </body>

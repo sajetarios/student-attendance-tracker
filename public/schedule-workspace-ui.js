@@ -3,10 +3,10 @@
 (function(){
  const $=id=>document.getElementById(id);
  const choices=[
-  {id:'regular',label:'Regular schedules',icon:'▤'},
-  {id:'changes',label:'Date-specific changes',icon:'⇄'},
-  {id:'weekly',label:'Weekly timetable',icon:'▦'},
-  {id:'settings',label:'Timetable settings',icon:'⚙'}
+  {id:'regular',label:'Regular schedules',icon:'calendar'},
+  {id:'changes',label:'Date-specific changes',icon:'swap'},
+  {id:'weekly',label:'Weekly timetable',icon:'grid'},
+  {id:'settings',label:'Timetable settings',icon:'settings'}
  ];
  let active='regular',role='',initialized=false,focusedBeforeDrawer=null,activeDrawer=null;
  function setTab(tab){
@@ -72,16 +72,16 @@
   const overview=document.createElement('div');
   overview.className='schedule-overview';
   overview.innerHTML=
-   '<div class="schedule-overview-card"><span class="schedule-overview-icon">▦</span><span>Regular schedules</span><strong id="scheduleTotalMetric">—</strong><small id="scheduleMetricScope">Visible class schedules</small></div>'+
-   '<div class="schedule-overview-card"><span class="schedule-overview-icon is-amber">♙</span><span>Unassigned classes</span><strong id="scheduleUnassignedMetric">—</strong><small>Need a Subject Teacher</small></div>'+
-   '<div class="schedule-overview-card"><span class="schedule-overview-icon is-violet">⇄</span><span>Changes this week</span><strong id="scheduleChangesMetric">—</strong><small>Temporary date changes</small></div>';
+   '<div class="schedule-overview-card"><span class="schedule-overview-icon" data-ui-icon="calendar"></span><span>Regular schedules</span><strong id="scheduleTotalMetric">—</strong><small id="scheduleMetricScope">Visible class schedules</small></div>'+
+   '<div class="schedule-overview-card"><span class="schedule-overview-icon is-amber" data-ui-icon="users"></span><span>Unassigned classes</span><strong id="scheduleUnassignedMetric">—</strong><small>Need a Subject Teacher</small></div>'+
+   '<div class="schedule-overview-card"><span class="schedule-overview-icon is-violet" data-ui-icon="swap"></span><span>Changes this week</span><strong id="scheduleChangesMetric">—</strong><small>Temporary date changes</small></div>';
   header.insertAdjacentElement('afterend',overview);
   const tabs=document.createElement('div');tabs.className='schedule-workspace-tabs';tabs.setAttribute('role','tablist');tabs.setAttribute('aria-label','Class scheduling sections');
   choices.forEach(choice=>{
    const button=document.createElement('button');button.type='button';
    button.id=choice.id==='settings'?'scheduleSettingsTab':'scheduleTab'+choice.id;
    button.setAttribute('role','tab');button.dataset.scheduleWorkspaceTab=choice.id;button.setAttribute('aria-selected',String(choice.id==='regular'));
-   button.innerHTML='<span aria-hidden="true">'+choice.icon+'</span>'+choice.label;
+   button.innerHTML='<span data-ui-icon="'+choice.icon+'" aria-hidden="true"></span>'+choice.label;
    button.addEventListener('click',()=>{
     // Close previous drawer before switching task.
     if(!$('scheduleForm')?.hidden)$('cancelScheduleForm')?.click();
@@ -125,7 +125,7 @@
    if(!node)continue;
    node.classList.add('schedule-side-drawer');
    const head=document.createElement('div');head.className='schedule-drawer-heading';
-   head.innerHTML='<div><span>CLASS SCHEDULING</span><h3>'+(node===form?'Create / edit class schedule':'Temporary class adjustment')+'</h3><p>'+(node===form?'Set the teacher, class group, weekdays and time.':'Override a scheduled class only for the chosen dates.')+'</p></div>';
+   head.innerHTML='<div><span>CLASS SCHEDULING</span><h3>'+(node===form?'Class schedule':'Temporary class adjustment')+'</h3><p>'+(node===form?'Set the teacher, class group, weekdays and time.':'Override a scheduled class only for the chosen dates.')+'</p></div>';
    const close=document.createElement('button');close.type='button';close.className='schedule-drawer-close';close.textContent='×';close.setAttribute('aria-label','Close form');
    close.addEventListener('click',()=>$(node===form?'cancelScheduleForm':'cancelScheduleAdjustment')?.click());
    head.append(close);node.prepend(head);

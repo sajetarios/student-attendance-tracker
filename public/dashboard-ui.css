@@ -361,3 +361,36 @@ html[data-ui-theme="dark"] .portal-page .nav-item.active,html[data-ui-theme="dar
 .tt-subject[aria-expanded="true"]{outline:2px solid var(--ui-accent);outline-offset:2px}
 .tt-detail-kind{display:inline-block;background:var(--ui-hover);padding:4px 7px;border-radius:7px}
 @media(max-width:640px){.schedule-side-drawer .form-actions{bottom:-30px}}
+/* School identity owns accent colors; appearance only changes light/dark surfaces. */
+:root{--ui-accent:var(--brand,#7042a3);--ui-hover:color-mix(in srgb,var(--brand,#7042a3) 9%,#fff);--ui-focus:color-mix(in srgb,var(--brand,#7042a3) 35%,transparent)}
+html[data-ui-theme="dark"]{--ui-accent:color-mix(in srgb,var(--brand,#7042a3) 55%,#fff);--ui-hover:color-mix(in srgb,var(--brand,#7042a3) 20%,#151c2d)}
+.ui-icon{display:inline-block;width:20px;height:20px;flex:none;vertical-align:middle;pointer-events:none}
+.portal-page :is(.primary-button,.outline-button,.secondary-button){display:inline-flex;align-items:center;justify-content:center;gap:8px}
+.nav-icon .ui-icon{width:21px;height:21px;fill:none}
+.menu-symbol{display:inline-flex;align-items:center}
+.tt-detail-row dt{display:flex;gap:6px;align-items:center}
+.tt-detail-row dt .ui-icon{width:15px;height:15px}
+.tt-detail-row{grid-template-columns:108px minmax(0,1fr)}
+.tt-subject{font-family:inherit;font-size:12px;font-weight:700;line-height:1.35}
+.schedule-overview-card:first-child{background:linear-gradient(120deg,var(--ui-panel),var(--ui-hover))}
+.schedule-overview-card:nth-child(2){background:linear-gradient(120deg,var(--ui-panel),color-mix(in srgb,#e7a830 7%,var(--ui-panel)))}
+.schedule-overview-card:nth-child(3){background:linear-gradient(120deg,var(--ui-panel),color-mix(in srgb,#579ede 8%,var(--ui-panel)))}
+.schedule-overview-icon.is-violet{color:var(--ui-accent);background:var(--ui-hover)}
+.schedule-side-drawer .schedule-form-section{border:1px solid var(--ui-line);border-radius:13px;padding:14px;margin-bottom:15px}
+.schedule-side-drawer .form-section-heading{border:0;border-radius:9px;background:var(--ui-hover);padding:12px;margin-bottom:14px}
+.schedule-side-drawer .form-section-heading strong{color:var(--ui-accent)}
+.schedule-side-drawer .form-section-heading small{color:var(--ui-muted)}
+.portal-page :is(.student-card,.parent-card,.child-card,.student-profile-item,.dashboard-scan-cta,.dashboard-metric,.summary-card,.school-stat-card){background:var(--ui-panel);color:var(--ui-text);border:1px solid var(--ui-line);border-radius:16px;box-shadow:var(--ui-shadow)}
+.portal-page :is(.student-header h1,.parent-head h1,.student-card h2,.parent-card h2,.child-card h3,.student-profile-item strong,.dashboard-scan-cta-copy h2){color:var(--ui-text)}
+.portal-page :is(.student-header p,.parent-head p,.child-card p,.student-profile-item span,.student-card .muted,.parent-card>p,.dashboard-scan-cta-copy p){color:var(--ui-muted)}
+.portal-page :is(.parent-note,.student-note,.scan-setup-field,.form-context-help){background:var(--ui-panel-soft);color:var(--ui-muted);border-color:var(--ui-line)}
+.portal-page :is(.dashboard-open-scanner,.dashboard-add-student){background:var(--brand,#7042a3);color:#fff;border-color:var(--brand,#7042a3)}
+.portal-page .dashboard-scan-kicker{color:var(--ui-accent)}
+html[data-ui-theme="dark"] .portal-page :is(.scan-setup-description,.scan-setup-field small,.student-scan-setup-dialog h3,.student-scan-notice-dialog h3,.scan-mode-summary){color:var(--ui-text)}
+html[data-ui-theme="dark"] .portal-page :is(.scan-setup-field select,.account-profile-dialog,.password-required){background:var(--ui-panel);color:var(--ui-text);border-color:var(--ui-line)}
+.ui-appearance-menu{position:relative;color:var(--ui-text);font-size:13px}
+.ui-appearance-menu>summary{cursor:pointer;padding:11px 13px;border:1px solid var(--ui-line);border-radius:10px;background:var(--ui-panel)}
+.ui-appearance-panel{position:absolute;top:calc(100% + 8px);right:0;z-index:1000;width:260px;max-width:calc(100vw - 32px);background:var(--ui-panel);border:1px solid var(--ui-line);border-radius:13px;box-shadow:var(--ui-shadow)}
+.ui-appearance-panel .ui-theme-control{border:0}
+@media(min-width:900px){#scheduleForm.schedule-side-drawer:not([hidden]),#scheduleAdjustmentForm.schedule-side-drawer:not([hidden]){inset:16px 16px 16px auto!important;width:min(600px,48vw)!important;height:calc(100dvh - 32px)!important;max-height:calc(100dvh - 32px)!important;border-radius:18px!important;border:1px solid var(--ui-line)!important}}
+@media(prefers-reduced-motion:reduce){.portal-page *, .portal-page *::before,.portal-page *::after{scroll-behavior:auto!important;transition:none!important;animation:none!important}}

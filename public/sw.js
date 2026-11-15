@@ -1,10 +1,11 @@
-const CACHE = "school-attendance-shell-v56-dashboard-workspace";
+const CACHE = "school-attendance-shell-v57-all-user-appearance";
 
 const SHELL = [
-  "/dashboard-ui.css?v=2",
-  "/dashboard-appearance.js?v=2",
-  "/timetable-grid.js?v=2",
-  "/schedule-workspace-ui.js?v=2",
+  "/dashboard-icons.js?v=1",
+  "/dashboard-ui.css?v=3",
+  "/dashboard-appearance.js?v=3",
+  "/timetable-grid.js?v=3",
+  "/schedule-workspace-ui.js?v=3",
   "/portal-login.html",
   "/portal.css?v=0.9.50",
   "/portal.css",

@@ -17,8 +17,9 @@ function detectLogo(buffer) {
 function registerSchoolRoutes(app, pool, { authenticateSchoolClient, requireSchoolRoles }) {
   const staff = requireSchoolRoles('SCHOOL_ADMIN', 'DEPARTMENT_HEAD', 'TEACHER', 'GATE_KEEPER');
   const admin = requireSchoolRoles('SCHOOL_ADMIN');
+  const schoolMember = requireSchoolRoles('SCHOOL_ADMIN', 'DEPARTMENT_HEAD', 'TEACHER', 'GATE_KEEPER', 'STUDENT', 'PARENT');
 
-  app.get('/api/school/branding', authenticateSchoolClient, staff, async (req, res) => {
+  app.get('/api/school/branding', authenticateSchoolClient, schoolMember, async (req, res) => {
     try {
       const result = await pool.query(
         `SELECT school_name AS "schoolName", school_code AS "schoolCode", brand_color AS "brandColor",
