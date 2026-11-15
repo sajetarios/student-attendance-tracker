@@ -102,9 +102,9 @@ function registerSchedulingConfigRoutes(app,pool,auth){
     }catch(e){console.error(e.message);res.status(500).json({error:'Could not load calendar exceptions.'});}
   });
   app.post('/api/scheduling-config/calendar-exceptions',authenticateSchoolClient,admin,async(req,res)=>{
-    const {date,title,type,notes=null,dismissalTime=null,periodIds=[]}=req.body||{};
+    const {date,title,type,notes=null,dismissalTime=null,periodIds=[],exceptionId=null}=req.body||{};
     const kind=String(type||'').toUpperCase(),allowed=['CLOSED','OPEN','SPECIAL_CLASS','SHORTENED_DAY'];
-    if(!dateOk(date)||!date||!textOk(title)||!allowed.includes(kind)||!Array.isArray(periodIds)||periodIds.length>200||(notes!=null&&(typeof notes!=='string'||notes.length>500))||
+    if((exceptionId!==null&&!/^([0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12})$/i.test(exceptionId))||!dateOk(date)||!date||!textOk(title)||!allowed.includes(kind)||!Array.isArray(periodIds)||periodIds.length>200||(notes!=null&&(typeof notes!=='string'||notes.length>500))||
       (kind==='SHORTENED_DAY'?!timeOk(dismissalTime):Boolean(dismissalTime))||
       (['OPEN','SPECIAL_CLASS'].includes(kind)&&!periodIds.length)||
       (!['OPEN','SPECIAL_CLASS'].includes(kind)&&periodIds.length))
@@ -119,18 +119,27 @@ function registerSchedulingConfigRoutes(app,pool,auth){
         const valid=await c.query('SELECT period_id FROM class_periods WHERE school_id=$1 AND active=TRUE AND period_id=ANY($2::uuid[])',[req.auth.schoolId,ids]);
         if(valid.rowCount!==ids.length){await c.query('ROLLBACK');return res.status(400).json({error:'One or more selected schedules are inactive or belong to another school.'});}
       }
-      const saved=await c.query(
-        `INSERT INTO school_calendar_exceptions(school_id,calendar_date,title,exception_type,notes,created_by_user_id,dismissal_time)
-         VALUES($1,$2::date,$3,$4,$5,$6,$7::time)
-         ON CONFLICT(school_id,calendar_date) DO UPDATE SET title=EXCLUDED.title,exception_type=EXCLUDED.exception_type,
-          notes=EXCLUDED.notes,dismissal_time=EXCLUDED.dismissal_time,updated_at=NOW()
-         RETURNING exception_id AS "exceptionId",to_char(calendar_date,'YYYY-MM-DD') AS date,title,
-          exception_type AS type,notes,to_char(dismissal_time,'HH24:MI') AS "dismissalTime"`,
-        [req.auth.schoolId,date,title.trim(),kind,notes,dismissalTime,req.auth.userId]);
+      const saved=exceptionId
+        ? await c.query(
+          `UPDATE school_calendar_exceptions SET calendar_date=$3::date,title=$4,exception_type=$5,notes=$6,
+             dismissal_time=$7::time,updated_at=NOW()
+           WHERE school_id=$1 AND exception_id=$2
+           RETURNING exception_id AS "exceptionId",to_char(calendar_date,'YYYY-MM-DD') AS date,title,
+            exception_type AS type,notes,to_char(dismissal_time,'HH24:MI') AS "dismissalTime"`,
+          [req.auth.schoolId,exceptionId,date,title.trim(),kind,notes,dismissalTime])
+        : await c.query(
+          `INSERT INTO school_calendar_exceptions(school_id,calendar_date,title,exception_type,notes,created_by_user_id,dismissal_time)
+           VALUES($1,$2::date,$3,$4,$5,$6,$7::time)
+           ON CONFLICT(school_id,calendar_date) DO UPDATE SET title=EXCLUDED.title,exception_type=EXCLUDED.exception_type,
+            notes=EXCLUDED.notes,dismissal_time=EXCLUDED.dismissal_time,updated_at=NOW()
+           RETURNING exception_id AS "exceptionId",to_char(calendar_date,'YYYY-MM-DD') AS date,title,
+            exception_type AS type,notes,to_char(dismissal_time,'HH24:MI') AS "dismissalTime"`,
+          [req.auth.schoolId,date,title.trim(),kind,notes,dismissalTime,req.auth.userId]);
+      if(!saved.rowCount){await c.query('ROLLBACK');return res.status(404).json({error:'Calendar exception not found.'});}
       await c.query('DELETE FROM school_calendar_exception_periods WHERE school_id=$1 AND exception_id=$2',[req.auth.schoolId,saved.rows[0].exceptionId]);
       for(const id of ids) await c.query('INSERT INTO school_calendar_exception_periods(school_id,exception_id,period_id) VALUES($1,$2,$3)',[req.auth.schoolId,saved.rows[0].exceptionId,id]);
       await c.query('COMMIT');res.status(201).json({exception:saved.rows[0]});
-    }catch(e){await c.query('ROLLBACK').catch(()=>{});console.error(e.message);res.status(500).json({error:'Could not save calendar exception.'});}
+    }catch(e){await c.query('ROLLBACK').catch(()=>{});console.error(e.message);res.status(e.code==='23505'?409:500).json({error:e.code==='23505'?'Another calendar exception already exists on that date.':'Could not save calendar exception.'});}
     finally{c.release();}
   });
   app.delete('/api/scheduling-config/calendar-exceptions/:exceptionId',authenticateSchoolClient,admin,async(req,res)=>{
