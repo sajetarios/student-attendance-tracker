@@ -11,3 +11,5 @@
 .guardian-field textarea{min-height:74px;resize:vertical}.guardian-form .primary-button{width:100%;min-height:43px;margin-top:8px;font-size:14px}
 .guardian-request{padding:12px 0;border-bottom:1px solid var(--border,#cbd5e1)}.guardian-request button{margin:4px 8px 4px 0}.guardian-status{font-size:13px!important;font-weight:650;position:sticky;bottom:-20px;background:var(--surface,#fff);padding:7px 0}.student-row-actions [data-guardian-open]{white-space:nowrap}
 @media(max-width:600px){.guardian-layer{padding:8px 6px max(8px,env(safe-area-inset-bottom))}.guardian-panel{border-radius:15px;width:100%;max-height:calc(100dvh - 32px);padding:14px}.guardian-head{top:-14px;padding:8px 0}.guardian-panel h3{font-size:18px}.guardian-panel h4{font-size:15px}.guardian-tab{font-size:11px}.guardian-panel p{font-size:13px}}
+
+.guardian-approval-action{margin-left:auto;flex-shrink:0;white-space:normal;text-align:center;min-height:38px;font-size:13px;max-width:230px}#schoolWorkspace .view-heading{display:flex;flex-wrap:wrap;align-items:center;gap:10px}@media(max-width:600px){.guardian-approval-action{width:100%;max-width:none;margin-left:0}}
