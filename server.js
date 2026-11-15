@@ -1127,10 +1127,16 @@ app.post('/api/teachers/:userId/substitutions', authenticateSchoolClient, requir
          ON existing_period.school_id=existing.school_id AND existing_period.period_id=existing.period_id
        WHERE existing.school_id=$1 AND existing.status='ACTIVE'
          AND daterange(existing.start_date, existing.end_date, '[]') && daterange($4::date, $5::date, '[]')
+         AND daterange(COALESCE(existing_period.effective_from,'-infinity'::date),COALESCE(existing_period.effective_to,'infinity'::date),'[]')
+             && daterange($4::date,$5::date,'[]')
          AND (
            (existing.period_id=$3 AND existing.original_teacher_user_id=$2)
            OR (existing.substitute_teacher_user_id=$6
-               AND existing_period.start_time < $8::time AND $7::time < existing_period.end_time)
+               AND existing_period.start_time < $8::time AND $7::time < existing_period.end_time
+               AND EXISTS (SELECT 1 FROM class_period_days a
+                           JOIN class_period_days b ON b.school_id=a.school_id AND b.weekday=a.weekday
+                           WHERE a.school_id=existing_period.school_id AND a.period_id=existing_period.period_id
+                             AND b.period_id=$3))
            OR EXISTS (
              SELECT 1 FROM teacher_period_assignments permanent
              JOIN class_periods permanent_period
@@ -1138,6 +1144,12 @@ app.post('/api/teachers/:userId/substitutions', authenticateSchoolClient, requir
              WHERE permanent.school_id=$1 AND permanent.teacher_user_id=$6
                AND permanent.period_id <> $3 AND permanent_period.active=TRUE
                AND permanent_period.start_time < $8::time AND $7::time < permanent_period.end_time
+               AND daterange(COALESCE(permanent_period.effective_from,'-infinity'::date),COALESCE(permanent_period.effective_to,'infinity'::date),'[]')
+                   && daterange($4::date,$5::date,'[]')
+               AND EXISTS (SELECT 1 FROM class_period_days a
+                           JOIN class_period_days b ON b.school_id=a.school_id AND b.weekday=a.weekday
+                           WHERE a.school_id=permanent_period.school_id AND a.period_id=permanent_period.period_id
+                             AND b.period_id=$3)
            )
          )
        LIMIT 1`,
@@ -1247,6 +1259,7 @@ app.post('/api/periods/bulk-assignments', authenticateSchoolClient, requireSchoo
     const selected = await client.query(
       `SELECT period_id AS "periodId",period_name AS "periodName",department_id AS "departmentId",
               start_time AS "startTime",end_time AS "endTime",
+              effective_from AS "effectiveFrom",effective_to AS "effectiveTo",
               COALESCE((SELECT array_agg(day.weekday ORDER BY day.weekday)
                         FROM class_period_days day
                         WHERE day.school_id=class_periods.school_id AND day.period_id=class_periods.period_id),'{}') AS weekdays
@@ -1282,7 +1295,9 @@ app.post('/api/periods/bulk-assignments', authenticateSchoolClient, requireSchoo
       for (let j = i + 1; j < selected.rows.length; j += 1) {
         const other = selected.rows[j];
         const sharesDay = (p.weekdays || []).some(day => (other.weekdays || []).map(Number).includes(Number(day)));
-        if (sharesDay && p.startTime < other.endTime && other.startTime < p.endTime) {
+        const datesOverlap = (!p.effectiveTo || !other.effectiveFrom || p.effectiveTo >= other.effectiveFrom) &&
+          (!other.effectiveTo || !p.effectiveFrom || other.effectiveTo >= p.effectiveFrom);
+        if (sharesDay && datesOverlap && p.startTime < other.endTime && other.startTime < p.endTime) {
           await client.query('ROLLBACK');
           return res.status(409).json({ error: 'The selected schedules overlap each other. A teacher cannot cover overlapping periods.' });
         }
@@ -1302,6 +1317,9 @@ app.post('/api/periods/bulk-assignments', authenticateSchoolClient, requireSchoo
          JOIN class_periods p ON p.school_id=a.school_id AND p.period_id=a.period_id
          WHERE a.school_id=$1 AND a.teacher_user_id=$2 AND a.period_id<>$3 AND p.active=TRUE
            AND p.start_time < $5 AND $4 < p.end_time
+           AND daterange(COALESCE(p.effective_from,'-infinity'::date),COALESCE(p.effective_to,'infinity'::date),'[]')
+               && daterange(COALESCE((SELECT effective_from FROM class_periods WHERE school_id=$1 AND period_id=$3),'-infinity'::date),
+                            COALESCE((SELECT effective_to FROM class_periods WHERE school_id=$1 AND period_id=$3),'infinity'::date),'[]')
            AND EXISTS (SELECT 1 FROM class_period_days existing_day
                        JOIN class_period_days selected_day ON selected_day.school_id=existing_day.school_id
                          AND selected_day.weekday=existing_day.weekday
@@ -1313,6 +1331,9 @@ app.post('/api/periods/bulk-assignments', authenticateSchoolClient, requireSchoo
          WHERE ts.school_id=$1 AND ts.substitute_teacher_user_id=$2 AND ts.status='ACTIVE'
            AND ts.end_date >= (NOW() AT TIME ZONE 'Asia/Manila')::date AND p.active=TRUE
            AND p.start_time < $5 AND $4 < p.end_time
+           AND daterange(COALESCE(p.effective_from,'-infinity'::date),COALESCE(p.effective_to,'infinity'::date),'[]')
+               && daterange(COALESCE((SELECT effective_from FROM class_periods WHERE school_id=$1 AND period_id=$3),'-infinity'::date),
+                            COALESCE((SELECT effective_to FROM class_periods WHERE school_id=$1 AND period_id=$3),'infinity'::date),'[]')
            AND EXISTS (SELECT 1 FROM class_period_days existing_day
                        JOIN class_period_days selected_day ON selected_day.school_id=existing_day.school_id
                          AND selected_day.weekday=existing_day.weekday
@@ -1409,6 +1430,8 @@ app.post('/api/periods/:periodId/assignments', authenticateSchoolClient, require
        WHERE existing.school_id=$1 AND existing.teacher_user_id=$2
          AND existing.period_id<>$3 AND p.active=TRUE
          AND p.start_time < requested.end_time AND requested.start_time < p.end_time
+         AND daterange(COALESCE(p.effective_from,'-infinity'::date),COALESCE(p.effective_to,'infinity'::date),'[]')
+             && daterange(COALESCE(requested.effective_from,'-infinity'::date),COALESCE(requested.effective_to,'infinity'::date),'[]')
          AND EXISTS (
            SELECT 1 FROM class_period_days existing_day
            JOIN class_period_days requested_day
@@ -1424,6 +1447,8 @@ app.post('/api/periods/:periodId/assignments', authenticateSchoolClient, require
        WHERE ts.school_id=$1 AND ts.substitute_teacher_user_id=$2 AND ts.status='ACTIVE'
          AND ts.end_date >= (NOW() AT TIME ZONE 'Asia/Manila')::date AND p.active=TRUE
          AND p.start_time < requested.end_time AND requested.start_time < p.end_time
+         AND daterange(COALESCE(p.effective_from,'-infinity'::date),COALESCE(p.effective_to,'infinity'::date),'[]')
+             && daterange(COALESCE(requested.effective_from,'-infinity'::date),COALESCE(requested.effective_to,'infinity'::date),'[]')
          AND EXISTS (
            SELECT 1 FROM class_period_days existing_day
            JOIN class_period_days requested_day
