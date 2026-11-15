@@ -131,6 +131,7 @@ test('manager schedule workspace provides a responsive weekly timetable with fil
   assert.match(server, /daterange\(COALESCE\(p\.effective_from/);
   assert.match(server, /const datesOverlap =/);
   assert.match(server, /class_period_days a[\s\S]*b\.weekday=a\.weekday/);
+  assert.match(server, /Substitute coverage dates must fall within the class schedule effective dates/);
   assert.match(css, /\.weekly-timetable-board/);
   assert.match(css, /@media\(max-width:420px\)/);
 });
