@@ -8,6 +8,7 @@
   let periods = [];
   let activeScheduleDisplay = 'weekly';
   let timetableTemplates = [];
+  let calendarExceptionItems = [];
   let schoolOperatingDays = [];
   let teachers = [];
   let schoolUsers = [];
@@ -2452,12 +2453,13 @@ let teacherActionMenuListenersInstalled = false;
   }
 
   function renderCalendarExceptions(items) {
+    calendarExceptionItems = Array.isArray(items) ? items : [];
     const host=$('calendarExceptionList'); if(!host)return;
     const labels={CLOSED:'Closed',OPEN:'Additional operating day',SPECIAL_CLASS:'Special classes',SHORTENED_DAY:'Shortened day'};
     host.innerHTML='<strong>Saved calendar dates</strong>'+(items.length?'<div class="timetable-template-chips">'+items.map(item=>
       '<span><b>'+esc(item.date)+' · '+esc(item.title)+'</b><small>'+esc(labels[item.type]||item.type)+(item.dismissalTime?' · Dismissal '+esc(item.dismissalTime):'')+
       (item.schedules?.length?' · '+item.schedules.length+' selected schedule(s)':'')+'</small>'+
-      (user.role==='SCHOOL_ADMIN'?'<button type="button" class="secondary-button compact-button" data-delete-calendar-exception="'+esc(item.exceptionId)+'">Delete</button>':'')+'</span>'
+      (user.role==='SCHOOL_ADMIN'?'<div class="calendar-exception-actions"><button type="button" class="secondary-button compact-button" data-edit-calendar-exception="'+esc(item.exceptionId)+'">Edit</button><button type="button" class="secondary-button compact-button" data-delete-calendar-exception="'+esc(item.exceptionId)+'">Delete</button></div>':'')+'</span>'
     ).join('')+'</div>':'<p>No upcoming calendar exceptions have been saved.</p>');
   }
   async function refreshCalendarExceptions() {
@@ -2522,6 +2524,15 @@ let teacherActionMenuListenersInstalled = false;
         $('timetableTemplateForm').reset(); await loadSchedulingSettings(); feedback.textContent='Template saved.';
       } catch(error){feedback.textContent=error.message;}
     });
+    $('cancelCalendarExceptionEdit')?.addEventListener('click',()=>{
+      $('calendarExceptionForm').reset();
+      $('calendarExceptionForm').dataset.editing='false';
+      const saveButton=$('calendarExceptionForm').querySelector('button[type="submit"]');
+      if(saveButton)saveButton.textContent='Save calendar date';
+      $('cancelCalendarExceptionEdit').hidden=true;
+      $('calendarExceptionFeedback').textContent='Edit cancelled.';
+      updateCalendarExceptionFields();
+    });
     $('calendarExceptionType')?.addEventListener('change',updateCalendarExceptionFields);
     updateCalendarExceptionFields();
     $('calendarExceptionForm')?.addEventListener('submit',async event=>{
@@ -2534,11 +2545,36 @@ let teacherActionMenuListenersInstalled = false;
           dismissalTime:type==='SHORTENED_DAY'?$('calendarDismissalTime').value:null,
           periodIds,notes:$('calendarExceptionNotes').value.trim()||null
         })});
-        $('calendarExceptionForm').reset();updateCalendarExceptionFields();await refreshCalendarExceptions();
+        $('calendarExceptionForm').reset();
+        $('calendarExceptionForm').dataset.editing='false';
+        const saveButton=$('calendarExceptionForm').querySelector('button[type="submit"]');
+        if(saveButton)saveButton.textContent='Save calendar date';
+        $('cancelCalendarExceptionEdit')?.setAttribute('hidden','');
+        updateCalendarExceptionFields();await refreshCalendarExceptions();
         feedback.textContent='Calendar date saved.';
       }catch(error){feedback.textContent=error.message;}
     });
     $('calendarExceptionList')?.addEventListener('click',async event=>{
+      const editButton=event.target.closest('[data-edit-calendar-exception]');
+      if(editButton){
+        const item=calendarExceptionItems.find(entry=>String(entry.exceptionId)===editButton.dataset.editCalendarException);
+        if(!item)return;
+        $('calendarExceptionDate').value=item.date;
+        $('calendarExceptionTitle').value=item.title||'';
+        $('calendarExceptionType').value=item.type;
+        $('calendarDismissalTime').value=item.dismissalTime||'';
+        $('calendarExceptionNotes').value=item.notes||'';
+        const selected=new Set(item.periodIds||[]);
+        Array.from($('calendarExceptionSchedules')?.options||[]).forEach(option=>{option.selected=selected.has(option.value);});
+        $('calendarExceptionForm').dataset.editing='true';
+        const saveButton=$('calendarExceptionForm').querySelector('button[type="submit"]');
+        if(saveButton)saveButton.textContent='Update calendar date';
+        $('cancelCalendarExceptionEdit')?.removeAttribute('hidden');
+        updateCalendarExceptionFields();
+        $('calendarExceptionFeedback').textContent='Editing saved date. Saving will update this date, not create a duplicate.';
+        $('calendarExceptionForm').scrollIntoView({behavior:'smooth',block:'start'});
+        return;
+      }
       const button=event.target.closest('[data-delete-calendar-exception]');if(!button)return;
       if(!confirm('Delete this calendar exception? This will not delete attendance records.'))return;
       button.disabled=true;
