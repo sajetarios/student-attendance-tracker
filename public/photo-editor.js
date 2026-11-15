@@ -17,7 +17,7 @@
  function canvasBlob(canvas){
   return new Promise((resolve,reject)=>canvas.toBlob(b=>b?resolve(b):reject(new Error('Your browser could not export this photo.')), 'image/webp',.86));
  }
- async function edit(file){
+ async function edit(file,{approvalRequired=false}={}){
   if(!file)return null;
   if(!allowed.includes(file.type)||file.size>MAX||!file.size)throw Error('Use a JPG, PNG or WebP photo up to 5 MB.');
   const url=URL.createObjectURL(file);
@@ -40,6 +40,7 @@
     const canvas=dialog.querySelector('canvas'),ctx=canvas.getContext('2d');
     const slider=dialog.querySelector('input[type=range]'),out=dialog.querySelector('output');
     const message=dialog.querySelector('.photo-editor-message'),save=dialog.querySelector('[data-action=save]');
+    if(approvalRequired)save.textContent='Submit for approval';
     let dx=0,dy=0,rotation=0,full=false,done=false,drag=null;
     function draw(){
       ctx.clearRect(0,0,512,512);
@@ -118,10 +119,17 @@
    },{once:true});input.click();
    window.setTimeout(()=>input.remove(),120000);
  }
- function selectAndUpload(url,token,onFinish){
+ function selectAndUpload(url,token,onFinish,{approvalRequired=false,onProgress,onError,onDone}={}){
    pick(async file=>{
-    const payload=await edit(file);if(!payload)return;
-    const result=await post(url,token,payload);onFinish?.(result);
+    const payload=await edit(file,{approvalRequired});if(!payload)return;
+    onProgress?.();
+    try{
+      const result=await post(url,token,payload);
+      await onFinish?.(result);
+    }catch(error){
+      if(onError)onError(error);
+      else throw error;
+    }finally{onDone?.();}
    });
  }
  async function loadImage(url,token,img){
@@ -138,37 +146,61 @@
  function mountSelf({token,role,studentId,container,displayName}){
    const target=document.querySelector(container);
    if(!target||target.querySelector('.my-photo-widget'))return;
-   const type=role==='STUDENT'?'student':role==='PARENT'?'parent':'staff';
-   const url=type==='student'?'/api/photos/request/student/'+encodeURIComponent(studentId):'/api/photos/self';
+   const isPlatform=role==='SUPER_ADMIN';
+   const isStudent=role==='STUDENT';
+   const isParent=role==='PARENT';
+   const needsApproval=isStudent||(!isPlatform&&!isParent&&role!=='SCHOOL_ADMIN');
+   const readUrl=isPlatform?'/api/platform/profile-photo':'/api/photos/me';
+   const uploadUrl=isPlatform?'/api/platform/profile-photo':
+     isStudent?'/api/photos/request/student/'+encodeURIComponent(studentId):'/api/photos/self';
+   const label=needsApproval?'Request photo approval':'Upload or change photo';
    const wrap=document.createElement('section');
    wrap.className='my-photo-widget';
    wrap.innerHTML=`<div class="my-photo-avatar"><span aria-hidden="true">`+esc(String(displayName||'?').charAt(0).toUpperCase())+`</span><img alt="Your profile photo" hidden></div>
-     <div class="my-photo-copy"><strong>Profile picture</strong><p>Move and zoom your photo before saving. Photos keep a consistent square shape.</p>
-     <button type="button" class="outline-button">`+(type==='student'?'Request photo replacement':'Upload or change photo')+`</button>
+     <div class="my-photo-copy"><strong>Profile picture</strong><p>Move and zoom without stretching. `+
+       (needsApproval?'Your existing photo stays visible until the School Admin approves the replacement.':'Your profile picture updates after upload.')+
+       `</p><button type="button" class="outline-button">`+label+`</button>
      <small role="status" class="my-photo-status"></small></div>`;
    if(target.matches('dialog')&&target.querySelector('.dialog-header'))target.querySelector('.dialog-header').after(wrap);
    else target.prepend(wrap);
-   const img=wrap.querySelector('img'),status=wrap.querySelector('.my-photo-status'),button=wrap.querySelector('button');
-   loadImage('/api/photos/me',token,img).then(ok=>{
-     if(!ok)return;
-     wrap.querySelector('.my-photo-avatar span').hidden=true;
+   const img=wrap.querySelector('img');
+   const initial=wrap.querySelector('.my-photo-avatar span');
+   const status=wrap.querySelector('.my-photo-status');
+   const button=wrap.querySelector('button');
+   async function refreshPhoto(){
+     const loaded=await loadImage(readUrl,token,img);
+     if(!loaded)return false;
+     initial.hidden=true;
      const top=document.getElementById('userAvatar');
      if(top){
        const avatarImg=document.createElement('img');avatarImg.alt='Profile picture';
-       loadImage('/api/photos/me',token,avatarImg).then(loaded=>{if(loaded)top.replaceChildren(avatarImg);});
+       if(await loadImage(readUrl,token,avatarImg))top.replaceChildren(avatarImg);
      }
-   });
-   button.addEventListener('click',()=>selectAndUpload(url,token,result=>{
-    status.textContent=result.status==='PENDING'?'Submitted for School Admin approval. Your existing photo remains visible until approved.':'Photo saved successfully.';
-    if(result.status==='APPROVED'){
-     img.hidden=true;loadImage('/api/photos/me',token,img).then(ok=>{if(ok)wrap.querySelector('.my-photo-avatar span').hidden=true;});
-     const top=document.getElementById('userAvatar');
-     if(top){const thumb=document.createElement('img');thumb.alt='Profile';top.replaceChildren(thumb);loadImage('/api/photos/me',token,thumb);}
-    }
+     return true;
+   }
+   refreshPhoto();
+   button.addEventListener('click',()=>selectAndUpload(uploadUrl,token,async result=>{
+     if(result.status==='PENDING'){
+       status.textContent='Submitted for School Admin approval. Your current profile photo will remain visible until approved.';
+       return;
+     }
+     if(result.status==='APPROVED'){
+       const refreshed=await refreshPhoto();
+       status.textContent=refreshed?'Profile picture saved and updated.':'Photo saved, but the picture could not refresh. Please reload the page.';
+       return;
+     }
+     status.textContent='Upload returned an unexpected status. Please refresh and check your photo.';
+   },{
+     approvalRequired:needsApproval,
+     onProgress:()=>{button.disabled=true;status.textContent=needsApproval?'Submitting your photo for approval…':'Saving your profile photo…';},
+     onError:error=>{status.textContent=error.message||'Photo upload failed. Please try again.';},
+     onDone:()=>{button.disabled=false;}
    }));
-   if(role!=='PARENT'&&role!=='SCHOOL_ADMIN'&&role!=='STUDENT'){
-    fetch('/api/photos/my-status',{headers:{Authorization:'Bearer '+token},cache:'no-store'})
-     .then(r=>r.ok?r.json():null).then(data=>{if(data?.pending)status.textContent='Awaiting School Admin approval.';}).catch(()=>{});
+   if(needsApproval){
+     fetch('/api/photos/my-status',{headers:{Authorization:'Bearer '+token},cache:'no-store'})
+       .then(r=>r.ok?r.json():null)
+       .then(data=>{if(data?.pending&&!status.textContent)status.textContent='A photo replacement is awaiting School Admin approval.';})
+       .catch(()=>{});
    }
  }
  function mountReviews({token,role,designations=[]}){
@@ -230,7 +262,7 @@
     selectAndUpload('/api/photos/request/student/'+encodeURIComponent(id),token,result=>{
       const feedback=document.getElementById('feedback');
       if(feedback)feedback.textContent=result.status==='PENDING'?'Photo submitted for school review. The existing official photo stays in place.':'Photo uploaded.';
-    });
+    },{approvalRequired:true});
   });
  }
  window.ProfilePhotos={edit,post,mountSelf,mountReviews,mountParentStudentRequests,selectAndUpload};
