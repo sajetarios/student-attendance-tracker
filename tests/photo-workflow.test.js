@@ -1,6 +1,6 @@
 'use strict';
 const test=require('node:test'),assert=require('node:assert/strict'),fs=require('node:fs'),path=require('node:path');
-const {parsePhoto,registerPhotoRoutes}=require('../profile-photo-routes');
+const {parsePhoto,registerPhotoRoutes,registerPlatformPhotoRoutes}=require('../profile-photo-routes');
 const load=p=>fs.readFileSync(path.join(__dirname,'..',p),'utf8');
 const webp=Buffer.from('RIFF\x18\x00\x00\x00WEBPVP8 \x0c\x00\x00\x00\x00\x00\x00\x00','latin1').toString('base64');
 const png=Buffer.from([137,80,78,71,13,10,26,10,0,0,0,0]).toString('base64');
@@ -27,6 +27,21 @@ test('official updates, staff upload, student requests and reviews are separate 
  assert.match(source,/isLinkedParent/);
  assert.match(source,/status='PENDING'/);
  assert.match(source,/request\.requested_by_user_id===req\.auth\.userId/);
+});
+test('Super Admin photo APIs use platform-specific authentication and storage',()=>{
+ const endpoints={};
+ const platform=(req,res,next)=>next();
+ const admin=(req,res,next)=>next();
+ const app={get(path,...handlers){endpoints['GET '+path]=handlers;},post(path,...handlers){endpoints['POST '+path]=handlers;}};
+ registerPlatformPhotoRoutes(app,{}, {authenticatePlatform:platform,requirePlatformAdmin:admin});
+ for(const method of ['GET','POST']){
+  const guards=endpoints[method+' /api/platform/profile-photo'];
+  assert.equal(guards[0],platform);
+  assert.equal(guards[1],admin);
+ }
+ assert.match(load('public/photo-editor.js'),/role==='SUPER_ADMIN'/);
+ assert.match(load('public/photo-editor.js'),/Submit for approval/);
+ assert.match(load('scripts/migrate.js'),/027_platform_admin_profile_photos.sql/);
 });
 test('crop UI and approval workflow use locally generated fixed-size images',()=>{
  const s=load('public/photo-editor.js');
