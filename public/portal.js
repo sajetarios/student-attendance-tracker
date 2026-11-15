@@ -2513,7 +2513,7 @@ let teacherActionMenuListenersInstalled = false;
   }
 
   function templateMinutes(value) {
-    if (!/^\\d{2}:\\d{2}$/.test(value || '')) return NaN;
+    if (!/^\d{2}:\d{2}$/.test(value || '')) return NaN;
     const parts = value.split(':').map(Number);
     if (parts[0] > 23 || parts[1] > 59) return NaN;
     return parts[0] * 60 + parts[1];
