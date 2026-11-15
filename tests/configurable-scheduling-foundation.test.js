@@ -46,6 +46,9 @@ test('school scheduling configuration APIs enforce admin writes and school scopi
   assert.match(routes,/app\.post\('\/api\/scheduling-config\/templates',authenticateSchoolClient,admin/);
   assert.match(routes,/app\.post\('\/api\/scheduling-config\/calendar-exceptions',authenticateSchoolClient,admin/);
   assert.match(routes,/school_calendar_exception_periods/);
+  assert.match(routes,/effective_from<=\$3::date/);
+  assert.match(routes,/effective_to>=\$3::date/);
+
   assert.match(routes,/dismissal_time/);
   assert.match(routes,/new Date\(v\+'T00:00:00Z'\)\.toISOString\(\)\.slice\(0,10\)===v/);
   assert.match(routes,/notes\.length>500/);
