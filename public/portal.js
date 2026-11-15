@@ -3417,7 +3417,17 @@ let teacherActionMenuListenersInstalled = false;
         departmentName: user.departmentName || user.departmentCode || 'Department not assigned'
       };
     }
-    return teachers.find(item => String(item.userId) === String($('periodTeacher')?.value)) || null;
+    const selected = teachers.find(item => String(item.userId) === String($('periodTeacher')?.value));
+    if (selected) return selected;
+    if (user.role === 'DEPARTMENT_HEAD' && user.departmentId) {
+      return {
+        userId: null,
+        displayName: null,
+        departmentId: user.departmentId,
+        departmentName: user.departmentName || user.departmentCode || 'Your department'
+      };
+    }
+    return null;
   }
 
   async function loadScheduleSubjects(preferredSubjectId = '') {
@@ -3428,8 +3438,8 @@ let teacherActionMenuListenersInstalled = false;
     select.disabled = true;
     select.innerHTML = '<option value="">Loading department subjects…</option>';
     if (!teacher?.departmentId) {
-      select.innerHTML = '<option value="">Choose an assigned teacher first</option>';
-      if (hint) hint.textContent = 'The selected teacher needs an active department assignment before a subject can be selected.';
+      select.innerHTML = '<option value="">Choose a department or teacher first</option>';
+      if (hint) hint.textContent = 'Choose a Subject Teacher to load their department subjects. Department Heads can create an unassigned schedule within their own department.';
       return;
     }
     try {
