@@ -2527,6 +2527,7 @@ let teacherActionMenuListenersInstalled = false;
     $('cancelCalendarExceptionEdit')?.addEventListener('click',()=>{
       $('calendarExceptionForm').reset();
       $('calendarExceptionForm').dataset.editing='false';
+      delete $('calendarExceptionForm').dataset.exceptionId;
       const saveButton=$('calendarExceptionForm').querySelector('button[type="submit"]');
       if(saveButton)saveButton.textContent='Save calendar date';
       $('cancelCalendarExceptionEdit').hidden=true;
@@ -2542,6 +2543,7 @@ let teacherActionMenuListenersInstalled = false;
         const periodIds=Array.from($('calendarExceptionSchedules')?.selectedOptions||[]).map(option=>option.value);
         await api('/api/scheduling-config/calendar-exceptions',{method:'POST',body:JSON.stringify({
           date:$('calendarExceptionDate').value,title:$('calendarExceptionTitle').value.trim(),type,
+          exceptionId:$('calendarExceptionForm').dataset.exceptionId||null,
           dismissalTime:type==='SHORTENED_DAY'?$('calendarDismissalTime').value:null,
           periodIds,notes:$('calendarExceptionNotes').value.trim()||null
         })});
@@ -2567,6 +2569,7 @@ let teacherActionMenuListenersInstalled = false;
         const selected=new Set(item.periodIds||[]);
         Array.from($('calendarExceptionSchedules')?.options||[]).forEach(option=>{option.selected=selected.has(option.value);});
         $('calendarExceptionForm').dataset.editing='true';
+        $('calendarExceptionForm').dataset.exceptionId=item.exceptionId;
         const saveButton=$('calendarExceptionForm').querySelector('button[type="submit"]');
         if(saveButton)saveButton.textContent='Update calendar date';
         $('cancelCalendarExceptionEdit')?.removeAttribute('hidden');
