@@ -1,4 +1,4 @@
-const CACHE = "school-attendance-shell-v52-safe-learner-batch";
+const CACHE = "school-attendance-shell-v53-platform-first-admin";
 
 const SHELL = [
   "/portal-login.html",
@@ -13,7 +13,7 @@ const SHELL = [
   "/form-system.css?v=1",
   "/password-visibility.css",
   "/password-visibility.js",
-  "/portal-login.js",
+  "/portal-login.js?v=2",
   "/login-routing.js",
   "/responsive.css?v=0.8.3",
   "/comfort-ui.css?v=0.8.8",
