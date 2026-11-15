@@ -35,6 +35,8 @@ test('school scheduling configuration APIs enforce admin writes and school scopi
   assert.match(routes,/app\.post\('\/api\/scheduling-config\/calendar-exceptions',authenticateSchoolClient,admin/);
   assert.match(routes,/school_calendar_exception_periods/);
   assert.match(routes,/dismissal_time/);
+  assert.match(routes,/new Date\(v\+'T00:00:00Z'\)\.toISOString\(\)\.slice\(0,10\)===v/);
+  assert.match(routes,/notes\.length>500/);
   assert.match(routes,/app\.delete\('\/api\/scheduling-config\/calendar-exceptions\/:exceptionId'/);
   assert.match(sql,/school_calendar_exception_periods/);
   assert.match(routes,/WHERE school_id=\$1/);
@@ -79,6 +81,7 @@ test('calendar exceptions require selected schedules or an explicit shortened-da
   assert.match(server,/after the scheduled dismissal time for this shortened day/);
   assert.match(server,/calendarException\.dismissalTime && event\.eventType === 'TIME_IN'/);
   assert.match(server,/exception\.dismissalTime && eventType === 'TIME_IN'/);
+  assert.match(server,/calendarException\.dismissalTime && event\.eventType === 'TIME_IN'/);
   assert.match(server,/updated_at AS \"appliedAt\"/);
   assert.match(server,/new Date\(event\.occurredAt\) >= new Date\(calendarException\.appliedAt\)/);
   assert.match(server,/p\.effective_from<=\$4::date/);
