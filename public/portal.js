@@ -37,6 +37,8 @@
   let coverageMonitorInitialized = false;
   let activeScanScope = 'SCHOOL';
   let activeScanPeriodId = null;
+  let schoolBranding = null;
+  let brandingLogoObjectUrl = null;
 
 
   const $ = id => document.getElementById(id);
@@ -176,7 +178,7 @@
 
   function allowedViewsForUser() {
     const role = user?.role;
-    if (role === 'SCHOOL_ADMIN') return ['dashboard', 'teachers', 'schedules', 'cloudSync'];
+    if (role === 'SCHOOL_ADMIN') return ['dashboard', 'teachers', 'schedules', 'cloudSync', 'schoolBranding'];
     if (role === 'DEPARTMENT_HEAD') return ['dashboard', 'students', 'teachers', 'schedules', 'sf2'];
     if (role === 'TEACHER') {
       const views = ['dashboard'];
@@ -207,7 +209,7 @@
     if (!allowedViews.includes(view)) view = allowedViews.includes('dashboard') ? 'dashboard' : (allowedViews[0] || 'dashboard');
     $('platformWorkspace').hidden = true;
     $('schoolWorkspace').hidden = false;
-    ['dashboard', 'students', 'schedules', 'teachers', 'sf2', 'classAttendance', 'cloudSync'].forEach(name => {
+    ['dashboard', 'students', 'schedules', 'teachers', 'sf2', 'classAttendance', 'cloudSync', 'schoolBranding'].forEach(name => {
       const panel = $(`${name}View`);
       if (panel) panel.hidden = name !== view;
     });
@@ -254,7 +256,8 @@
         schedules: ['Class schedules', 'Create and manage subject periods and permanent teacher assignments.'],
         teachers: ['User management', 'Create and update school accounts, assign role-based access, manage departments, and disable or restore account access.'],
         sf2: ['SF2 Report Generator', 'Generate the monthly TUVERA SF2 and collect official reports submitted by Class Advisers.'],
-        cloudSync: ['Cloud Sync', 'Configure the destination for the future secure local-to-cloud attendance synchronization.']
+        cloudSync: ['Cloud Sync', 'Forward accepted attendance records to your authenticated cloud server.'],
+        schoolBranding: ['School identity', 'Manage the name, logo, and interface accent color for your school workspace.']
       };
     }
     const title = titles[view] || ['Dashboard', 'Attendance overview.'];
@@ -290,6 +293,7 @@
     const admin = role === 'SCHOOL_ADMIN';
     const teacher = role === 'TEACHER';
     if ($('cloudSyncNav')) $('cloudSyncNav').hidden = !admin;
+    if ($('schoolBrandingNav')) $('schoolBrandingNav').hidden = !admin;
     if ($('exportTeachersButton')) $('exportTeachersButton').hidden = !(admin || role === 'DEPARTMENT_HEAD');
     if ($('bulkImportStudentsButton')) $('bulkImportStudentsButton').hidden = !(admin || teacherHas('CLASS_ADVISER'));
     if ($('studentStatusFilterWrap')) $('studentStatusFilterWrap').hidden = !admin;
@@ -436,7 +440,7 @@
       }
     }
     if (peopleGroup) peopleGroup.hidden = Boolean($('studentsNav')?.hidden && $('teachersNav')?.hidden && $('parentsNav')?.hidden);
-    if (academicsGroup) academicsGroup.hidden = Boolean($('sf2Nav')?.hidden && $('schedulesNav')?.hidden);
+    if (academicsGroup) academicsGroup.hidden = Boolean($('sf2Nav')?.hidden && $('schedulesNav')?.hidden && $('cloudSyncNav')?.hidden && $('schoolBrandingNav')?.hidden);
     if (departmentHead) {
       if ($('peopleGroupLabel')) $('peopleGroupLabel').textContent = 'Staff monitoring';
       if ($('academicsGroupLabel')) $('academicsGroupLabel').textContent = 'Reports & schedules';
@@ -2781,6 +2785,97 @@ let teacherActionMenuListenersInstalled = false;
     }
   }
 
+  function applySchoolBranding(data) {
+    schoolBranding = data;
+    const name = data.schoolName || user.schoolName || 'School workspace';
+    $('schoolTitle').textContent = name;
+    $('schoolCodeLabel').textContent = data.schoolCode || user.schoolCode || 'SCHOOL WORKSPACE';
+    $('sidebarSchoolName').textContent = name;
+    const color = /^#[0-9a-f]{6}$/i.test(data.brandColor || '') ? data.brandColor : '#2463a5';
+    document.documentElement.style.setProperty('--brand', color);
+    const rgb = color.match(/[0-9a-f]{2}/gi).map(part => parseInt(part, 16));
+    const darker = '#' + rgb.map(value => Math.round(value * 0.76).toString(16).padStart(2, '0')).join('');
+    document.documentElement.style.setProperty('--brand-strong', darker);
+    const emblem = $('schoolEmblem');
+    const sidebarMark = $('sidebarSchoolMark');
+    if (brandingLogoObjectUrl) URL.revokeObjectURL(brandingLogoObjectUrl);
+    brandingLogoObjectUrl = null;
+    if (data.logoUrl && brandingLogoObjectUrl) {
+      for (const node of [emblem, sidebarMark, $('schoolLogoPreview')]) {
+        if (!node) continue;
+        node.replaceChildren();
+        const image = document.createElement('img'); image.src = brandingLogoObjectUrl; image.alt = `${name} logo`; node.append(image);
+      }
+    } else {
+      if (emblem) emblem.textContent = name.trim().charAt(0).toUpperCase();
+      if (sidebarMark) sidebarMark.textContent = name.trim().charAt(0).toUpperCase();
+    }
+    if ($('schoolBrandingName')) $('schoolBrandingName').value = name;
+    if ($('schoolBrandColor')) $('schoolBrandColor').value = color;
+    const preview = $('schoolLogoPreview');
+    if (preview && !(data.logoUrl && brandingLogoObjectUrl)) {
+      preview.replaceChildren();
+      if (data.logoUrl && brandingLogoObjectUrl) {
+        const image = document.createElement('img'); image.src = brandingLogoObjectUrl; image.alt = `${name} logo`; preview.append(image);
+      } else preview.textContent = name.trim().charAt(0).toUpperCase();
+    }
+  }
+
+  async function loadSchoolBranding() {
+    try {
+      const data = await api('/api/school/branding');
+      applySchoolBranding(data.branding);
+      if (data.branding.logoUrl) {
+        const response = await fetch(data.branding.logoUrl, { headers: { Authorization: `Bearer ${token}` }, cache: 'no-store' });
+        if (response.ok) {
+          const blob = await response.blob();
+          if (brandingLogoObjectUrl) URL.revokeObjectURL(brandingLogoObjectUrl);
+          brandingLogoObjectUrl = URL.createObjectURL(blob);
+          for (const node of [$('schoolEmblem'), $('sidebarSchoolMark'), $('schoolLogoPreview')]) {
+            if (!node) continue;
+            node.replaceChildren();
+            const image = document.createElement('img'); image.src = brandingLogoObjectUrl; image.alt = `${data.branding.schoolName} logo`; node.append(image);
+          }
+        }
+      }
+    } catch (error) {
+      $('schoolBrandingFeedback').textContent = error.message;
+    }
+  }
+
+  $('schoolBrandingForm')?.addEventListener('submit', async event => {
+    event.preventDefault();
+    const feedback = $('schoolBrandingFeedback'); feedback.textContent = 'Saving school identity…'; feedback.className = 'inline-feedback';
+    try {
+      const data = await api('/api/school/branding', { method: 'PUT', body: JSON.stringify({
+        schoolName: $('schoolBrandingName').value.trim(), brandColor: $('schoolBrandColor').value
+      }) });
+      user.schoolName = data.branding.schoolName; sessionStorage.setItem(userKey, JSON.stringify(user));
+      applySchoolBranding({ ...data.branding, logoUrl: schoolBranding?.logoUrl || null });
+      feedback.textContent = 'School identity saved.'; showToast('School identity saved.');
+    } catch (error) { feedback.textContent = error.message; feedback.className = 'inline-feedback error'; }
+  });
+
+  $('uploadSchoolLogo')?.addEventListener('click', async () => {
+    const file = $('schoolLogoFile').files?.[0];
+    if (!file) { $('schoolBrandingFeedback').textContent = 'Choose a logo image first.'; return; }
+    if (file.size > 2 * 1024 * 1024) { $('schoolBrandingFeedback').textContent = 'Logo must be 2 MB or smaller.'; return; }
+    const button = $('uploadSchoolLogo'); button.disabled = true;
+    try {
+      const response = await fetch('/api/school/branding/logo', { method: 'PUT', headers: { Authorization: `Bearer ${token}`, 'Content-Type': file.type }, body: file, cache: 'no-store' });
+      const result = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(result.error || 'Could not upload logo.');
+      $('schoolLogoFile').value = ''; await loadSchoolBranding();
+      $('schoolBrandingFeedback').textContent = 'School logo updated.'; showToast('School logo updated.');
+    } catch (error) { $('schoolBrandingFeedback').textContent = error.message; $('schoolBrandingFeedback').className = 'inline-feedback error'; }
+    finally { button.disabled = false; }
+  });
+
+  $('removeSchoolLogo')?.addEventListener('click', async () => {
+    try { await api('/api/school/branding/logo', { method: 'DELETE' }); await loadSchoolBranding(); $('schoolBrandingFeedback').textContent = 'School logo removed.'; }
+    catch (error) { $('schoolBrandingFeedback').textContent = error.message; $('schoolBrandingFeedback').className = 'inline-feedback error'; }
+  });
+
 
   let sf2PreviewData = null;
   async function loadSf2Preview() {
@@ -2988,6 +3083,8 @@ let teacherActionMenuListenersInstalled = false;
       document.querySelector('.side-nav').innerHTML = '<button class="nav-item active" data-view="platform"><span class="nav-icon">▦</span><span class="nav-label">Platform overview</span></button>';
       $('refreshButton').hidden = true;
       setView('platform');
+      try { await loadPlatformData(); }
+      catch (error) { $('platformSchoolRows').innerHTML = `<tr><td colspan="7" class="empty-cell">${esc(error.message)}</td></tr>`; }
     } else {
       $('schoolTitle').textContent = user.schoolName || 'School workspace';
       $('schoolCodeLabel').textContent = user.schoolCode || 'SCHOOL WORKSPACE';
@@ -3005,6 +3102,7 @@ let teacherActionMenuListenersInstalled = false;
         });
         setView('dashboard');
       }
+      await loadSchoolBranding();
       await loadSchoolData();
       await loadCloudSyncStatus();
       if (user.role === 'SCHOOL_ADMIN') await loadCloudSyncSettings();
@@ -3024,6 +3122,8 @@ let teacherActionMenuListenersInstalled = false;
       label.textContent = connected ? 'Cloud sync connected' :
         data.configured ? 'Cloud destination saved · Not connected' : 'Cloud sync not configured';
       chip.title = data.message || 'Cloud replication status checked.';
+      if ($('cloudSyncPendingCount')) $('cloudSyncPendingCount').textContent = String(data.pendingCount || 0);
+      if ($('cloudSyncLastSuccess')) $('cloudSyncLastSuccess').textContent = data.lastSuccessAt ? new Date(data.lastSuccessAt).toLocaleString('en-PH', { timeZone: 'Asia/Manila' }) : 'Not connected';
     } catch (error) {
       chip.classList.remove('sync-connected');
       chip.classList.add('sync-disconnected');
@@ -3038,8 +3138,9 @@ let teacherActionMenuListenersInstalled = false;
     try {
       const data = await api('/api/cloud-sync/settings');
       input.value = data.cloudBaseUrl || '';
+      $('cloudSyncEnabled').checked = Boolean(data.enabled);
       $('cloudSyncStatus').textContent = data.configured ? 'Saved · Not connected' : 'Not configured';
-      $('cloudSyncFeedback').textContent = data.message || 'Cloud destination settings loaded.';
+      $('cloudSyncFeedback').textContent = data.secretConfigured ? 'Cloud settings loaded.' : 'Set CLOUD_SYNC_SHARED_SECRET on both servers before enabling cloud forwarding.';
     } catch (error) {
       $('cloudSyncFeedback').textContent = error.message;
       $('cloudSyncFeedback').className = 'inline-feedback error';
@@ -3054,18 +3155,69 @@ let teacherActionMenuListenersInstalled = false;
     $('cloudSyncFeedback').textContent = 'Saving destination…';
     try {
       const data = await api('/api/cloud-sync/settings', {
-        method: 'PUT', body: JSON.stringify({ cloudBaseUrl: $('cloudBaseUrl').value.trim() })
+        method: 'PUT', body: JSON.stringify({ cloudBaseUrl: $('cloudBaseUrl').value.trim(), enabled: $('cloudSyncEnabled').checked })
       });
       $('cloudSyncStatus').textContent = data.configured ? 'Saved · Not connected' : 'Not configured';
       $('cloudSyncFeedback').textContent = data.message;
       await loadCloudSyncStatus();
-      showToast('Cloud destination settings saved.');
+      showToast(data.enabled ? 'Cloud forwarding enabled.' : 'Cloud destination saved.');
     } catch (error) {
       $('cloudSyncFeedback').className = 'inline-feedback error';
       $('cloudSyncFeedback').textContent = error.message;
     } finally { button.disabled = false; }
   });
   $('refreshCloudDestination')?.addEventListener('click', loadCloudSyncSettings);
+  $('testCloudDestination')?.addEventListener('click', async () => {
+    const button=$('testCloudDestination');button.disabled=true;$('cloudSyncFeedback').textContent='Testing secure connection…';
+    try { const data=await api('/api/cloud-sync/test',{method:'POST'});$('cloudSyncFeedback').textContent=data.message;await loadCloudSyncStatus(); }
+    catch(error){$('cloudSyncFeedback').textContent=error.message;$('cloudSyncFeedback').className='inline-feedback error';}
+    finally{button.disabled=false;}
+  });
+  $('runCloudSync')?.addEventListener('click', async () => {
+    const button=$('runCloudSync');button.disabled=true;$('cloudSyncFeedback').textContent='Sending pending attendance…';
+    try { const data=await api('/api/cloud-sync/run',{method:'POST'});$('cloudSyncFeedback').textContent=`Sync finished. Sent ${data.sent||0}; failed ${data.failed||0}.`;
+      await loadCloudSyncStatus(); }
+    catch(error){$('cloudSyncFeedback').textContent=error.message;$('cloudSyncFeedback').className='inline-feedback error';}
+    finally{button.disabled=false;}
+  });
+
+  async function loadPlatformData() {
+    const [overview, schools] = await Promise.all([api('/api/platform/overview'),api('/api/platform/schools')]);
+    $('platformSchoolCount').textContent=String(overview.overview.schoolCount||0);
+    $('platformActiveSchools').textContent=String(overview.overview.activeSchoolCount||0);
+    $('platformActiveAccounts').textContent=String(overview.overview.activeAccountCount||0);
+    $('platformQueuedSync').textContent=String(overview.overview.queuedSyncCount||0);
+    const rows=$('platformSchoolRows');
+    rows.innerHTML=schools.schools.length?schools.schools.map(s=>`<tr>
+      <td><strong>${esc(s.schoolName)}</strong></td><td>${esc(s.schoolCode)}</td>
+      <td>${esc(s.activeAccounts)}</td><td>${esc(s.activeLearners)}</td>
+      <td>${s.cloudSyncEnabled?'Enabled':'—'}${s.cloudSyncError?`<small class="table-subtext">${esc(s.cloudSyncError)}</small>`:''}</td>
+      <td><span class="status-tag ${s.active?'':'late'}">${s.active?'Active':'Inactive'}</span></td>
+      <td><button class="outline-button compact-button" type="button" data-platform-school="${esc(s.schoolId)}" data-next-active="${!s.active}">${s.active?'Deactivate':'Activate'}</button></td>
+    </tr>`).join(''):'<tr><td colspan="7" class="empty-cell">No schools registered yet.</td></tr>';
+  }
+
+  $('platformCreateSchoolForm')?.addEventListener('submit', async event => {
+    event.preventDefault(); const button=$('platformCreateSchoolButton');button.disabled=true;
+    const feedback=$('platformFeedback');feedback.textContent='Creating school and first administrator…';feedback.className='inline-feedback';
+    try {
+      await api('/api/platform/schools',{method:'POST',body:JSON.stringify({
+        schoolCode:$('platformSchoolCode').value.trim(),schoolName:$('platformSchoolName').value.trim(),
+        adminUsername:$('platformAdminUsername').value.trim(),adminDisplayName:$('platformAdminName').value.trim(),adminPassword:$('platformAdminPassword').value
+      })});
+      event.currentTarget.reset();feedback.textContent='School and first administrator created.';showToast('School onboarded.');await loadPlatformData();
+    } catch(error){feedback.textContent=error.message;feedback.className='inline-feedback error';}
+    finally{button.disabled=false;}
+  });
+  $('platformSchoolRows')?.addEventListener('click', async event => {
+    const button=event.target.closest('[data-platform-school]');if(!button)return;
+    const active=button.dataset.nextActive==='true';
+    if(active===false&&!await AppDialog.confirm('Deactivate this school? All current school and student sessions will be signed out.',{title:'Deactivate school',confirmText:'Deactivate',variant:'danger'}))return;
+    button.disabled=true;
+    try{await api(`/api/platform/schools/${encodeURIComponent(button.dataset.platformSchool)}/status`,{method:'PATCH',body:JSON.stringify({active})});await loadPlatformData();showToast(active?'School activated.':'School deactivated.');}
+    catch(error){showToast(error.message,true);button.disabled=false;}
+  });
+  $('platformRefreshButton')?.addEventListener('click',()=>loadPlatformData().catch(error=>showToast(error.message,true)));
 
   document.querySelectorAll('.nav-item[data-view]').forEach(button => {
     button.addEventListener('click', () => {
@@ -3182,8 +3334,49 @@ let teacherActionMenuListenersInstalled = false;
       $('accountMenuButton').setAttribute('aria-expanded', 'false');
     }
   });
-  $('profileMenuButton').addEventListener('click', () => showToast('Profile editing will be added in the next account-management update.'));
-  $('settingsMenuButton').addEventListener('click', () => showToast('Account settings will be added in the next account-management update.'));
+  async function openAccountProfile(focusPassword = false) {
+    const dialog = $('accountProfileDialog');
+    try {
+      const data = await api('/api/account/profile');
+      $('accountProfileUsername').value = data.profile.username || '';
+      $('accountProfileDisplayName').value = data.profile.displayName || '';
+      $('accountProfileMobile').value = data.profile.mobile || '';
+      $('accountProfileFeedback').textContent = '';
+      $('accountCurrentPassword').value = '';
+      $('accountNewPassword').value = '';
+      dialog.showModal();
+      (focusPassword ? $('accountCurrentPassword') : $('accountProfileDisplayName')).focus();
+    } catch (error) { showToast(error.message, true); }
+  }
+  $('profileMenuButton').addEventListener('click', () => { $('accountDropdown').hidden = true; openAccountProfile(false); });
+  $('settingsMenuButton').addEventListener('click', () => { $('accountDropdown').hidden = true; openAccountProfile(true); });
+  $('closeAccountProfile')?.addEventListener('click', () => $('accountProfileDialog').close());
+  $('accountProfileDialog')?.addEventListener('click', event => { if (event.target === $('accountProfileDialog')) $('accountProfileDialog').close(); });
+  $('accountProfileForm')?.addEventListener('submit', async event => {
+    event.preventDefault();
+    const feedback = $('accountProfileFeedback'); feedback.textContent = 'Saving profile…'; feedback.className = 'inline-feedback';
+    try {
+      const data = await api('/api/account/profile', { method: 'PATCH', body: JSON.stringify({
+        displayName: $('accountProfileDisplayName').value.trim(), mobile: $('accountProfileMobile').value.trim()
+      }) });
+      user.displayName = data.profile.displayName; user.mobile = data.profile.mobile || '';
+      sessionStorage.setItem(userKey, JSON.stringify(user));
+      $('userDisplay').textContent = user.displayName; $('accountMenuName').textContent = user.displayName;
+      $('userAvatar').textContent = user.displayName.trim().charAt(0).toUpperCase();
+      feedback.textContent = 'Profile saved.'; showToast('Profile saved.');
+    } catch (error) { feedback.textContent = error.message; feedback.className = 'inline-feedback error'; }
+  });
+  $('accountPasswordForm')?.addEventListener('submit', async event => {
+    event.preventDefault();
+    const feedback = $('accountProfileFeedback'); feedback.textContent = 'Updating password…'; feedback.className = 'inline-feedback';
+    try {
+      const data = await api('/api/account/change-password', { method: 'POST', body: JSON.stringify({
+        currentPassword: $('accountCurrentPassword').value, newPassword: $('accountNewPassword').value
+      }) });
+      $('accountCurrentPassword').value = ''; $('accountNewPassword').value = '';
+      feedback.textContent = data.message || 'Password changed.'; showToast('Password changed.');
+    } catch (error) { feedback.textContent = error.message; feedback.className = 'inline-feedback error'; }
+  });
   $('logoutButton').addEventListener('click', async () => {
     try { await api('/api/auth/logout', { method: 'POST' }); } catch { /* clear local session regardless */ }
     clearSession();

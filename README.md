@@ -2,6 +2,10 @@
 
 School attendance, class scheduling, teacher assignment, and SF2 reporting platform.
 
+The current release includes school profile and branding controls, platform
+school onboarding, and signed local-to-cloud attendance forwarding. See
+[`docs/CLOUD-SYNC.md`](docs/CLOUD-SYNC.md) before enabling cloud sync.
+
 ## Department scheduling and teacher coverage
 
 The School Administrator creates the school departments and assigns teachers and Department Head accounts to their departments. Existing accounts and schedules are retained in the **Unassigned** department after migration until the School Administrator classifies them.

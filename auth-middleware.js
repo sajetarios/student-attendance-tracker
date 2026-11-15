@@ -9,6 +9,37 @@ function bearerToken(req) {
 }
 
 function createAuthMiddleware(pool) {
+  async function authenticatePlatform(req, res, next) {
+    const token = bearerToken(req);
+    if (!token) return res.status(401).json({ error: 'Platform authentication required.' });
+    try {
+      const result = await pool.query(
+        `SELECT us.session_id, pu.user_id, pu.username, pu.display_name
+         FROM user_sessions us
+         JOIN platform_users pu ON pu.user_id=us.platform_user_id AND pu.active=TRUE
+         WHERE us.token_hash=$1 AND us.principal_type='PLATFORM'
+           AND us.revoked_at IS NULL AND us.expires_at>NOW()
+         LIMIT 1`, [hashToken(token)]
+      );
+      if (!result.rowCount) return res.status(401).json({ error: 'Platform session is invalid or expired.' });
+      const row = result.rows[0];
+      await pool.query('UPDATE user_sessions SET last_seen_at=NOW() WHERE session_id=$1', [row.session_id]);
+      req.auth = { type: 'PLATFORM_USER', principalType: 'PLATFORM', userId: row.user_id,
+        username: row.username, displayName: row.display_name, role: 'SUPER_ADMIN' };
+      return next();
+    } catch (err) {
+      console.error('Platform authentication failed:', err.message);
+      return res.status(500).json({ error: 'Platform authentication service unavailable.' });
+    }
+  }
+
+  function requirePlatformAdmin(req, res, next) {
+    if (req.auth?.type !== 'PLATFORM_USER' || req.auth.role !== 'SUPER_ADMIN') {
+      return res.status(403).json({ error: 'Platform Administrator access is required.' });
+    }
+    return next();
+  }
+
   async function authenticateSchoolClient(req, res, next) {
     const token = bearerToken(req);
     if (!token) return res.status(401).json({ error: 'Authentication required.' });
@@ -166,7 +197,7 @@ function createAuthMiddleware(pool) {
     return next();
   }
 
-  return { authenticateSchoolClient, requireSchoolRoles, requireSchoolPermission, requireTeacherDesignations, requireSchoolClient };
+  return { authenticateSchoolClient, requireSchoolRoles, requireSchoolPermission, requireTeacherDesignations, requireSchoolClient, authenticatePlatform, requirePlatformAdmin };
 }
 
 module.exports = { createAuthMiddleware, bearerToken };

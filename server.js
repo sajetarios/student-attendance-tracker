@@ -19,6 +19,10 @@ const { registerAcademicRoutes } = require('./academic-routes');
 const { registerDepartmentRoutes } = require('./department-routes');
 const { registerSchedulingConfigRoutes } = require('./scheduling-config-routes');
 const registerCloudSyncRoutes = require('./cloud-sync-routes');
+const processCloudSyncOutbox = registerCloudSyncRoutes.processCloudSyncOutbox;
+const { registerAccountRoutes } = require('./account-routes');
+const { registerSchoolRoutes } = require('./school-routes');
+const { registerPlatformRoutes } = require('./platform-routes');
 
 const app = express();
 const pool = new Pool({ connectionString: process.env.DATABASE_URL });
@@ -32,10 +36,12 @@ app.use((req, res, next) => {
   if (req.path.startsWith('/api/')) res.setHeader('Cache-Control', 'no-store');
   next();
 });
-app.use(express.json({ limit: '10mb' }));
+app.use(express.json({ limit: '10mb', verify(req, _res, buffer) {
+  if (req.path === '/api/cloud-sync/receive') req.rawBody = Buffer.from(buffer);
+} }));
 
 registerAuthRoutes(app, pool);
-const { authenticateSchoolClient, requireSchoolRoles, requireSchoolPermission, requireTeacherDesignations, requireSchoolClient } = createAuthMiddleware(pool);
+const { authenticateSchoolClient, requireSchoolRoles, requireSchoolPermission, requireTeacherDesignations, requireSchoolClient, authenticatePlatform, requirePlatformAdmin } = createAuthMiddleware(pool);
 const requireSchoolAdmin = requireSchoolRoles('SCHOOL_ADMIN');
 const requireSchoolAdminOrTeacher = requireSchoolRoles('SCHOOL_ADMIN', 'TEACHER');
 const requireSchoolAdminOrDepartmentHeadOrTeacher = requireSchoolRoles('DEPARTMENT_HEAD', 'TEACHER');
@@ -48,6 +54,9 @@ registerAcademicRoutes(app, pool, { authenticateSchoolClient, requireSchoolRoles
 registerDepartmentRoutes(app, pool, { authenticateSchoolClient, requireSchoolRoles });
 registerSchedulingConfigRoutes(app, pool, { authenticateSchoolClient, requireSchoolRoles });
 registerCloudSyncRoutes(app, pool, { authenticateSchoolClient, requireSchoolAdmin });
+registerAccountRoutes(app, pool, { authenticateSchoolClient });
+registerSchoolRoutes(app, pool, { authenticateSchoolClient, requireSchoolRoles });
+registerPlatformRoutes(app, pool, { authenticatePlatform, requirePlatformAdmin });
 const { registerStudentManagementRoutes } = require('./student-management-routes');
 registerStudentManagementRoutes(app, pool, { authenticateSchoolClient, requireSchoolRoles });
 const registerSf2Routes = require('./sf2-routes');
@@ -3038,6 +3047,37 @@ app.post('/api/sync/events', authenticateSchoolClient, requireSchoolClient, asyn
          late, safeMetadata, actorUserId]
       );
 
+      const cloudPayload = {
+        eventId: event.eventId,
+        studentId: event.studentId,
+        eventType: event.eventType,
+        attendanceScope: event.attendanceScope,
+        occurredAt: event.occurredAt,
+        schoolDate: event.schoolDate,
+        late,
+        metadata: safeMetadata,
+        student: {
+          studentId: event.studentId,
+          fullName: student.rows[0].full_name,
+          gradeLevel: student.rows[0].grade_level,
+          section: student.rows[0].section
+        },
+        period: period ? {
+          periodName: period.period_name,
+          subjectName: period.subject_name,
+          startTime: String(period.start_time).slice(0, 5),
+          endTime: String(period.end_time).slice(0, 5),
+          graceMinutes: period.grace_minutes
+        } : null
+      };
+      await client.query(
+        `INSERT INTO school_cloud_sync_outbox(school_id,event_id,payload)
+         SELECT $1,$2,$3::jsonb WHERE EXISTS (
+           SELECT 1 FROM school_cloud_sync_settings WHERE school_id=$1 AND enabled=TRUE
+         ) ON CONFLICT(school_id,event_id) DO NOTHING`,
+        [req.auth.schoolId, event.eventId, JSON.stringify(cloudPayload)]
+      );
+
       if (student.rows[0].parent_mobile) {
         const time = new Date(event.occurredAt).toLocaleTimeString('en-PH', {
           timeZone: 'Asia/Manila', hour: 'numeric', minute: '2-digit'
@@ -3312,6 +3352,8 @@ async function start() {
   await fsp.mkdir(STUDENT_PHOTO_ROOT, { recursive: true });
   await pool.query('UPDATE students SET qr_token=gen_random_uuid() WHERE qr_token IS NULL');
   app.listen(port, '0.0.0.0', () => console.log(`Attendance API listening on ${port} (roles-sf2-workflow-responsive-2026-11-11)`));
+  const cloudSyncTimer = setInterval(() => processCloudSyncOutbox(pool).catch(err => console.error('Cloud sync worker failed:', err.message)), 15 * 1000);
+  cloudSyncTimer.unref();
   const certPath = path.join(__dirname, 'localhost+ip.pem');
   const keyPath = path.join(__dirname, 'localhost+ip-key.pem');
   if (fs.existsSync(certPath) && fs.existsSync(keyPath)) {

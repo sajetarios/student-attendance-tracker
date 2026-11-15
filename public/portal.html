@@ -144,8 +144,8 @@
   <div class="portal-layout">
     <aside class="sidebar" id="sidebar">
       <div class="sidebar-brand">
-        <div class="brand-mark" aria-hidden="true">A</div>
-        <div><strong>School Attendance</strong><span>Management Portal</span></div>
+        <div class="brand-mark" id="sidebarSchoolMark" aria-hidden="true">A</div>
+        <div><strong id="sidebarSchoolName">School Attendance</strong><span>Management Portal</span></div>
       </div>
       <div class="sidebar-section-label">WORKSPACE</div>
       <nav class="side-nav" aria-label="Main navigation">
@@ -166,6 +166,7 @@
             <button class="nav-item" id="schedulesNav" data-view="schedules" title="Class schedules"><span class="nav-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="18" height="17" rx="2"/><path d="M16 2v4M8 2v4M3 9h18M7 13h3M7 17h6"/></svg></span><span class="nav-label">Class schedules</span></button>
             <button class="nav-item" id="academicAdminNav" type="button" title="School years and programs"><span class="nav-icon">▤</span><span class="nav-label">School Years & Programs</span></button>
             <button class="nav-item" id="cloudSyncNav" data-view="cloudSync" type="button" title="Cloud Sync" hidden><span class="nav-icon">⇄</span><span class="nav-label">Cloud Sync</span></button>
+            <button class="nav-item" id="schoolBrandingNav" data-view="schoolBranding" type="button" title="School identity" hidden><span class="nav-icon">✦</span><span class="nav-label">School identity</span></button>
           </div>
         </div>
       </nav>
@@ -194,8 +195,8 @@
             </button>
             <div class="account-dropdown" id="accountDropdown" hidden>
               <div class="account-summary"><strong id="accountMenuName">User</strong><span id="accountMenuRole">Account</span></div>
-              <button class="account-menu-item" id="profileMenuButton" type="button"><span class="menu-symbol">◉</span>My profile <small>(coming soon)</small></button>
-              <button class="account-menu-item" id="settingsMenuButton" type="button"><span class="menu-symbol">⚙</span>Account settings <small>(coming soon)</small></button>
+              <button class="account-menu-item" id="profileMenuButton" type="button"><span class="menu-symbol">◉</span>My profile</button>
+              <button class="account-menu-item" id="settingsMenuButton" type="button"><span class="menu-symbol">⚙</span>Change password</button>
               <button class="account-menu-item signout" id="logoutButton" type="button"><span class="menu-symbol">↪</span>Sign out</button>
             </div>
           </div>
@@ -361,13 +362,34 @@
                   <input id="cloudBaseUrl" type="url" inputmode="url" maxlength="500" placeholder="https://your-cloud-server.example" autocomplete="url">
                   <small class="field-hint">Enter the cloud application’s base address. Use HTTPS for remote servers.</small>
                 </div>
+                <div class="field-group cloud-sync-enable-row">
+                  <label class="checkbox-label"><input id="cloudSyncEnabled" type="checkbox"> Enable automatic attendance forwarding</label>
+                  <small class="field-hint">Only newly accepted attendance records are queued. Pending records retry automatically while this setting is enabled.</small>
+                </div>
                 <div class="form-actions">
                   <button class="primary-button" id="saveCloudDestination" type="submit">Save destination</button>
                   <button class="outline-button" id="refreshCloudDestination" type="button">↻ Refresh</button>
+                  <button class="outline-button" id="testCloudDestination" type="button">Test connection</button>
+                  <button class="outline-button" id="runCloudSync" type="button">Sync pending now</button>
                 </div>
               </form>
               <div id="cloudSyncFeedback" class="inline-feedback" role="status" aria-live="polite"></div>
-              <div class="scope-note"><span>i</span><p><strong>Important:</strong> Saving the address only configures the destination. Secure cloud authentication, the server-side pending-event queue, automatic retries, and sync history still need to be implemented before attendance records are forwarded. No attendance records are sent by this setup screen.</p></div>
+              <div class="scope-note"><span>i</span><p><strong>Secure setup:</strong> Configure the same private <code>CLOUD_SYNC_SHARED_SECRET</code> (at least 32 characters) on both servers. The cloud server must already have this school code. School roster details needed by attendance records are sent over signed HTTPS; parent contact details and photos are never sent.</p></div>
+              <div class="cloud-sync-metrics"><article><span>Waiting to sync</span><strong id="cloudSyncPendingCount">0</strong></article><article><span>Last successful connection</span><strong id="cloudSyncLastSuccess">Not connected</strong></article></div>
+            </div>
+          </section>
+
+          <section id="schoolBrandingView" class="view-panel" hidden>
+            <div class="surface-card section-card">
+              <div class="section-toolbar"><div><h3>School identity and interface</h3><p>Set the name, logo, and accent color shown in your school workspace.</p></div></div>
+              <form id="schoolBrandingForm" class="form-grid">
+                <div class="field-group"><label for="schoolBrandingName">School name</label><input id="schoolBrandingName" maxlength="200" required></div>
+                <div class="field-group"><label for="schoolBrandColor">Interface accent color</label><input id="schoolBrandColor" type="color" value="#2463a5"><small class="field-hint">Used for buttons, selected navigation, and highlights.</small></div>
+                <div class="field-group school-logo-field"><label>School logo</label><div class="school-logo-preview" id="schoolLogoPreview">S</div><input id="schoolLogoFile" type="file" accept="image/png,image/jpeg,image/webp"><small class="field-hint">PNG, JPG, or WebP · maximum 2 MB.</small></div>
+                <div class="form-actions"><button class="primary-button" type="submit">Save school identity</button><button class="outline-button" id="uploadSchoolLogo" type="button">Upload logo</button><button class="outline-button" id="removeSchoolLogo" type="button">Remove logo</button></div>
+              </form>
+              <p id="schoolBrandingFeedback" class="inline-feedback" role="status" aria-live="polite"></p>
+              <p class="scope-note">Only School Administrators can change school identity. Logo files are stored outside the public web folder and are available only to signed-in school staff.</p>
             </div>
           </section>
 
@@ -840,15 +862,34 @@
         <section id="platformWorkspace" class="view-panel" hidden>
           <div class="platform-welcome surface-card">
             <div class="platform-icon">⌘</div>
-            <div><div class="eyebrow muted">PLATFORM OWNER</div><h2>Platform authentication verified</h2><p>Your Super Administrator account is signed in. The school onboarding, subscription, and platform-wide management APIs are the next backend milestone; this page does not display invented platform statistics.</p></div>
+            <div><div class="eyebrow muted">PLATFORM OWNER</div><h2>Platform administration</h2><p>Manage school onboarding, account access, and cloud synchronization health.</p></div>
           </div>
-          <div class="platform-next surface-card"><h3>Next platform modules</h3><div class="platform-module-grid"><div><strong>School onboarding</strong><span>Register schools and their first administrator.</span></div><div><strong>Subscription management</strong><span>Configure school licensing and plans.</span></div><div><strong>Platform monitoring</strong><span>Review synchronization health and deployment status.</span></div></div></div>
+          <div class="stats-grid platform-stat-grid"><article class="stat-card"><span class="stat-top">Schools</span><strong id="platformSchoolCount">—</strong></article><article class="stat-card"><span class="stat-top">Active schools</span><strong id="platformActiveSchools">—</strong></article><article class="stat-card"><span class="stat-top">Active accounts</span><strong id="platformActiveAccounts">—</strong></article><article class="stat-card"><span class="stat-top">Cloud sync queue</span><strong id="platformQueuedSync">—</strong></article></div>
+          <section class="surface-card section-card platform-create-card"><div class="section-toolbar"><div><h3>Onboard a school</h3><p>Create the school and its first School Administrator account.</p></div></div>
+            <form id="platformCreateSchoolForm" class="form-grid platform-school-form">
+              <div class="field-group"><label for="platformSchoolCode">School code</label><input id="platformSchoolCode" required maxlength="80" autocomplete="off"></div>
+              <div class="field-group"><label for="platformSchoolName">School name</label><input id="platformSchoolName" required maxlength="200"></div>
+              <div class="field-group"><label for="platformAdminUsername">Administrator username</label><input id="platformAdminUsername" required maxlength="80" autocomplete="off"></div>
+              <div class="field-group"><label for="platformAdminName">Administrator name</label><input id="platformAdminName" required maxlength="160"></div>
+              <div class="field-group"><label for="platformAdminPassword">Initial password</label><input id="platformAdminPassword" type="password" required minlength="12" maxlength="256" autocomplete="new-password"></div>
+              <div class="form-actions"><button class="primary-button" id="platformCreateSchoolButton" type="submit">Create school</button><button class="outline-button" id="platformRefreshButton" type="button">↻ Refresh overview</button></div>
+            </form><p id="platformFeedback" class="inline-feedback" role="status" aria-live="polite"></p>
+          </section>
+          <section class="surface-card section-card"><div class="section-toolbar"><div><h3>Schools</h3><p>Review school records and active users. Deactivating a school signs out its users and devices.</p></div></div>
+            <div class="table-scroll"><table><thead><tr><th>School</th><th>Code</th><th>Users</th><th>Learners</th><th>Cloud sync</th><th>Status</th><th>Action</th></tr></thead><tbody id="platformSchoolRows"><tr><td colspan="7" class="empty-cell">Loading schools…</td></tr></tbody></table></div>
+          </section>
         </section>
         <footer class="content-footer">School Attendance · Hybrid deployment · Asia/Manila</footer>
       </div>
     </main>
   </div>
   <div id="toast" class="toast" role="status" aria-live="polite"></div>
+  <dialog id="accountProfileDialog" class="account-profile-dialog" aria-labelledby="accountProfileTitle">
+    <div class="dialog-header"><div><p class="eyebrow muted">ACCOUNT</p><h2 id="accountProfileTitle">My profile</h2></div><button type="button" class="dialog-close" id="closeAccountProfile" aria-label="Close">×</button></div>
+    <form id="accountProfileForm"><div class="field-group"><label for="accountProfileUsername">Username</label><input id="accountProfileUsername" readonly></div><div class="field-group"><label for="accountProfileDisplayName">Display name</label><input id="accountProfileDisplayName" maxlength="160" required></div><div class="field-group"><label for="accountProfileMobile">Mobile number</label><input id="accountProfileMobile" maxlength="40" autocomplete="tel"></div><div class="form-actions"><button class="primary-button" type="submit">Save profile</button></div></form>
+    <form id="accountPasswordForm" class="account-password-form"><h3>Change password</h3><div class="field-group"><label for="accountCurrentPassword">Current password</label><input id="accountCurrentPassword" type="password" autocomplete="current-password" required></div><div class="field-group"><label for="accountNewPassword">New password</label><input id="accountNewPassword" type="password" minlength="12" maxlength="256" autocomplete="new-password" required><small class="field-hint">Use at least 12 characters. Other active sessions will be signed out.</small></div><div class="form-actions"><button class="outline-button" type="submit">Update password</button></div></form>
+    <p id="accountProfileFeedback" class="inline-feedback" role="status" aria-live="polite"></p>
+  </dialog>
   <script src="/app-dialog.js?v=1" defer></script>
   <script src="/sw-refresh.js?v=1" defer></script>
   <script src="/password-visibility.js" defer></script>
