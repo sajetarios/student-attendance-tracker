@@ -3458,7 +3458,11 @@ let teacherActionMenuListenersInstalled = false;
   });
 
   function updatePeriodBatchUi() {
-    const visibleIds = periods.filter(p => user.role !== 'DEPARTMENT_HEAD' || String(p.departmentId) === String(user.departmentId)).map(p => String(p.periodId));
+    const visibleIds = periods
+      .filter(p => String(p.departmentId) === String(user.departmentId) && !p.assignedTeacherUserId && !p.assignedTeacherName)
+      .map(p => String(p.periodId));
+    const eligibleIds = new Set(visibleIds);
+    [...selectedPeriodIds].forEach(id => { if (!eligibleIds.has(id)) selectedPeriodIds.delete(id); });
     $('selectedPeriodCount').textContent = selectedPeriodIds.size + ' selected';
     $('selectAllPeriods').checked = visibleIds.length > 0 && visibleIds.every(id => selectedPeriodIds.has(id));
     $('selectAllPeriods').indeterminate = visibleIds.some(id => selectedPeriodIds.has(id)) && !$('selectAllPeriods').checked;
@@ -3491,7 +3495,9 @@ let teacherActionMenuListenersInstalled = false;
   });
 
   $('selectAllPeriods')?.addEventListener('change', () => {
-    const visible = periods.filter(p => user.role !== 'DEPARTMENT_HEAD' || String(p.departmentId) === String(user.departmentId));
+    const visible = periods.filter(p =>
+      String(p.departmentId) === String(user.departmentId) && !p.assignedTeacherUserId && !p.assignedTeacherName
+    );
     visible.forEach(p => $('selectAllPeriods').checked ? selectedPeriodIds.add(String(p.periodId)) : selectedPeriodIds.delete(String(p.periodId)));
     renderPeriods(); updatePeriodBatchUi();
   });
