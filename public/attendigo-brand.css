@@ -1,0 +1,8 @@
+/* Platform identity is separate from each school’s customizable branding. */
+.attendigo-brand{display:flex;align-items:center;width:220px;max-width:100%;padding:4px 10px;background:#fff;border-radius:12px;overflow:hidden;flex-shrink:0}
+.attendigo-logo{display:block;width:100%;height:auto;object-fit:contain}
+.sidebar>.attendigo-brand{width:100%;margin:0 0 18px}
+body>.attendigo-brand{margin:20px auto 0}
+.brand-lockup>.attendigo-brand{width:260px}
+@media(min-width:701px){.portal-layout.sidebar-collapsed .sidebar>.attendigo-brand{width:42px;height:42px;padding:0;background:#fff url('/assets/attendigo-icon.png') center/contain no-repeat}.portal-layout.sidebar-collapsed .sidebar>.attendigo-brand img{visibility:hidden}}
+@media(max-width:700px){.brand-lockup>.attendigo-brand{width:220px}body>.attendigo-brand{width:190px;margin-top:14px}}

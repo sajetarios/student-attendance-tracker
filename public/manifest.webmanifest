@@ -1,9 +1,17 @@
 {
-  "name": "School Attendance Desk",
-  "short_name": "Attendance",
+  "name": "Attendigo",
+  "short_name": "Attendigo",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#f5f7fb",
   "theme_color": "#1c2d45",
-  "description": "Offline-first student attendance"
+  "description": "School attendance, schedules, and family connections.",
+  "icons": [
+    {
+      "src": "/assets/attendigo-icon.png",
+      "sizes": "1254x1254",
+      "type": "image/png",
+      "purpose": "any"
+    }
+  ]
 }

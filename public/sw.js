@@ -1,6 +1,9 @@
-const CACHE = "school-attendance-shell-v74-guardian-approvals";
+const CACHE = "school-attendance-shell-v75-attendigo";
 
 const SHELL = [
+  "/assets/attendigo-logo.png",
+  "/assets/attendigo-icon.png",
+  "/attendigo-brand.css?v=1",
   "/dashboard-icons.js?v=4",
   "/dashboard-ui.css?v=4",
   "/dashboard-night.css?v=1",
