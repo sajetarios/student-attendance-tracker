@@ -5,25 +5,6 @@ const path = require('path');
 const fs = require('fs/promises');
 const TEMPLATE = path.join(__dirname, 'templates', 'School Form 2 (SF2) Daily Attendance Report of Learners.xlsx');
 const SF2_STORAGE = path.join(__dirname, 'storage', 'sf2');
-if (process.env.SF2_TEMPLATE_DIAGNOSTIC === '1') {
-  const diagnosticBook = new ExcelJS.Workbook();
-  diagnosticBook.xlsx.readFile(TEMPLATE).then(() => {
-    const sheet = diagnosticBook.worksheets[0];
-    const hits = [];
-    sheet?.eachRow({includeEmpty:false}, (row,number) => {
-      const entries = [];
-      row.eachCell({includeEmpty:false}, cell => {
-        let value = ''; try { value = String(cell.value == null ? '' : cell.text || '').replace(/\\s+/g, ' ').trim(); } catch { return; }
-        if (/summary for the month|enrol|average daily|percentage of|consecutive|transferred|drop out|no\\. of days of classes|^month:|^M$|^F$|^TOTAL$/i.test(value)) {
-          entries.push({cell:cell.address, text:value.slice(0,85), master:cell.master?.address});
-        }
-      });
-      if(entries.length) hits.push({row:number,entries});
-    });
-    console.log('SF2_TEMPLATE_LAYOUT', JSON.stringify(hits.slice(-45)));
-  }).catch(e=>console.error('SF2_TEMPLATE_LAYOUT_ERROR', e.message));
-}
-
 const MONTHS = ['JANUARY','FEBRUARY','MARCH','APRIL','MAY','JUNE','JULY','AUGUST','SEPTEMBER','OCTOBER','NOVEMBER','DECEMBER'];
 const validMonth = value => /^\d{4}-(0[1-9]|1[0-2])$/.test(value || '');
 const safePart = value => String(value || '').replace(/[^a-z0-9_-]/gi, '_').slice(0, 80) || 'section';
@@ -501,28 +482,6 @@ function registerSf2Routes(app, pool, { authenticateSchoolClient, requireSchoolU
     }
 
     return Buffer.from(await workbook.xlsx.writeBuffer());
-  }
-
-  if (process.env.SF2_TEMPLATE_DIAGNOSTIC === '1') {
-    Promise.resolve(migration).then(() => pool.query(
-      "SELECT school_id FROM schools WHERE school_code='DEMO001' AND active=TRUE LIMIT 1"
-    )).then(async found => {
-      if (!found.rowCount) return;
-      const request = { auth:{ schoolId: found.rows[0].school_id } };
-      const month = '2026-11', grade = 'Grade 8', section = 'Rizal - DEMO';
-      const data = await getReportData(request, month, grade, section, {mode:'OFFICIAL'});
-      const buffer = await buildOfficialWorkbook(request,month,grade,section,data);
-      const result = new ExcelJS.Workbook();
-      await result.xlsx.load(buffer);
-      const sheet = result.worksheets[0];
-      console.log('SF2_EXPORT_SMOKE', JSON.stringify({
-        bytes:buffer.length, learners:data.students.length, summary:data.summary,
-        male:sheet.getCell('AH70').value, female:sheet.getCell('AI70').value, total:sheet.getCell('AJ70').value,
-        dailyAttendance:sheet.getCell('AJ74').value,
-        attendancePercentage:sheet.getCell('AJ75').value,
-        firstLearnerAlignment:sheet.getCell('B14').alignment.horizontal
-      }));
-    }).catch(error => console.error('SF2_EXPORT_SMOKE_ERROR',error.message));
   }
 
   async function buildPersonalCopyWorkbook(month, gradeLevel, section, data) {
