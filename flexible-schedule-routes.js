@@ -161,6 +161,7 @@ function registerFlexibleScheduleRoutes(app,pool,auth) {
     }
    }
    const schedulesFor=queryDate(c),savedIds=[];
+   const oldAdjustment=await c.query('SELECT teacher_user_id FROM schedule_day_adjustments WHERE school_id=$1 AND period_id=$2 AND school_date BETWEEN $3::date AND $4::date LIMIT 1', [req.auth.schoolId,b.periodId,dates[0],dates[dates.length-1]]);
    for(const date of dates) {
     if(base.effective_from&&iso(base.effective_from)>date||base.effective_to&&iso(base.effective_to)<date){
      await c.query('ROLLBACK');return res.status(409).json({error:'Class is not effective on '+date+'.'});
@@ -181,7 +182,7 @@ function registerFlexibleScheduleRoutes(app,pool,auth) {
     if(!current){
      await c.query('ROLLBACK');return res.status(409).json({error:'This class does not normally meet on '+date+'. Choose a scheduled weekday.'});
     }
-    const proposed=effective({...base,teacher_user_id:current.teacherUserId},{
+    const proposed=effective({...base,teacher_user_id:oldAdjustment.rows[0]?.teacher_user_id ? base.teacher_user_id : current.teacherUserId},{
      adjustment_type:type,teacher_user_id:teacherId,subject_id:subjectId,
      subject_name:subject?.subject_name||null,start_time:start,end_time:end,classroom:room
     });
