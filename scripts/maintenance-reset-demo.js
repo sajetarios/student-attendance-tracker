@@ -25,6 +25,8 @@ const tables=[
  'class_periods','timetable_template_periods','timetable_templates','school_calendar',
  'school_years','school_subjects','students'
 ];
+// SMS outbox rows are linked by event_id, not school_id.
+const scopedPredicate=t=>t==='sms_outbox' ? 'event_id IN (SELECT event_id FROM attendance_events WHERE school_id=$1)' : 'school_id=$1';
 const names=[
  ['Andres','Bautista','MALE'],['Beatriz','Cruz','FEMALE'],['Carlos','Dela Rosa','MALE'],
  ['Diana','Flores','FEMALE'],['Emilio','Garcia','MALE'],['Fatima','Hernandez','FEMALE'],
@@ -59,13 +61,13 @@ async function main(){
   const usersBefore=await c.query('SELECT user_id,username,role,password_hash FROM school_users WHERE school_id=$1 ORDER BY user_id',[sid]);
   const counts={};
   for(const t of tables) {
-   const r=await c.query('SELECT count(*)::int AS n FROM "'+t+'" WHERE school_id=$1',[sid]);
+   const r=await c.query('SELECT count(*)::int AS n FROM "'+t+'" WHERE '+scopedPredicate(t),[sid]);
    counts[t]=r.rows[0].n;
   }
   console.log(JSON.stringify({mode:execute?'EXECUTE':'DRY_RUN',school:s.school_code,name:s.school_name,preservedLoginAccounts:usersBefore.rowCount,deleteCounts:counts,createStudents:names.length},null,2));
   if(!execute){await c.query('ROLLBACK');return;}
   // Refuse an unexpected schema before touching data; no broad CASCADE or schema DROP.
-  for(const t of tables) await c.query('DELETE FROM "'+t+'" WHERE school_id=$1',[sid]);
+  for(const t of tables) await c.query('DELETE FROM "'+t+'" WHERE '+scopedPredicate(t),[sid]);
   // Preserve every school_users row, username, password hash, role and account status.
   // Clear teacher assignment metadata while satisfying teacher designation constraints.
   await c.query(`UPDATE school_users SET teacher_designations=CASE WHEN role='TEACHER' THEN ARRAY['SUBJECT_TEACHER']::text[] ELSE ARRAY[]::text[] END,
