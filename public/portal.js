@@ -9,6 +9,7 @@
   let activeScheduleDisplay = 'weekly';
   let timetableTemplates = [];
   let calendarExceptionItems = [];
+  let scheduleAdjustments = [];
   let schoolOperatingDays = [];
   let teachers = [];
   let schoolUsers = [];
@@ -1462,6 +1463,60 @@ function coverageStatusLabel(status) {
       $('studentScanFeedback').className = 'scanner-feedback is-error';
       showScanErrorModal(error.message);
     }
+  }
+
+  function scheduleWeekDates(value) {
+    const date=new Date((/^\d{4}-\d{2}-\d{2}$/.test(value||'')?value:dataSchoolDate())+'T00:00:00Z');
+    date.setUTCDate(date.getUTCDate()-(date.getUTCDay()+6)%7);
+    return Array.from({length:7},(_,index)=>{
+      const d=new Date(date);d.setUTCDate(date.getUTCDate()+index);
+      return d.toISOString().slice(0,10);
+    });
+  }
+  function scheduleDateOverride(periodId,date) {
+    return scheduleAdjustments.find(a=>String(a.periodId)===String(periodId)&&a.date===date)||null;
+  }
+  function scheduleOnDay(period,date) {
+    if(period.effectiveFrom&&String(period.effectiveFrom).slice(0,10)>date)return null;
+    if(period.effectiveTo&&String(period.effectiveTo).slice(0,10)<date)return null;
+    if(!Array.isArray(period.weekdays)||!period.weekdays.map(Number).includes(new Date(date+'T00:00:00Z').getUTCDay()))return null;
+    const a=scheduleDateOverride(period.periodId,date);
+    return a?{...period,dayDate:date,adjustment:a,cancelled:a.type==='CANCEL',
+      startTime:a.startTime||period.startTime,endTime:a.endTime||period.endTime,
+      subjectName:a.subjectName||period.subjectName,
+      assignedTeacherName:a.teacherName||period.assignedTeacherName,
+      classroom:a.classroom==null?period.classroom:a.classroom}
+      :{...period,dayDate:date,adjustment:null,cancelled:false};
+  }
+  async function loadScheduleAdjustments() {
+    if(!['SCHOOL_ADMIN','DEPARTMENT_HEAD','TEACHER'].includes(user?.role))return;
+    const week=scheduleWeekDates($('weeklyScheduleAsOf')?.value);
+    try {
+      const result=await api('/api/schedule-adjustments?from='+encodeURIComponent(week[0])+'&to='+encodeURIComponent(week[6]));
+      scheduleAdjustments=result.adjustments||[];
+      renderAdjustmentList();
+    }catch(error){
+      scheduleAdjustments=[];
+      if($('datedScheduleList'))$('datedScheduleList').textContent=error.message;
+    }
+    renderWeeklyTimetable();
+  }
+  function renderAdjustmentList() {
+    const list=$('datedScheduleList');
+    if(!list)return;
+    const manager=['SCHOOL_ADMIN','DEPARTMENT_HEAD'].includes(user.role);
+    const rows=scheduleAdjustments.filter(a=>user.role!=='DEPARTMENT_HEAD'||String(a.departmentId)===String(user.departmentId));
+    const labels={SUBSTITUTE:'Teacher cover',REPLACE:'Subject replacement',RESCHEDULE:'Changed time',CANCEL:'Class cancelled'};
+    list.innerHTML=rows.length?rows.map(a=>{
+      const period=periods.find(p=>String(p.periodId)===String(a.periodId));
+      const desc=[a.subjectName,a.teacherName,a.startTime&&a.endTime?a.startTime+'–'+a.endTime:null,a.reason?.replaceAll('_',' ')].filter(Boolean).join(' · ');
+      return '<article class="dated-adjustment-card"><span class="status-tag neutral">'+esc(labels[a.type]||a.type)+'</span>'+
+        '<div><strong>'+esc(a.date+' · '+(period?.periodName||'Class')+' · '+a.gradeLevel+' · '+a.section)+'</strong>'+
+        '<span>'+esc(desc||'Date-specific timetable change')+'</span>'+
+        (a.notes?'<small>'+esc(a.notes)+'</small>':'')+'</div>'+
+        (manager&&a.date>=dataSchoolDate()?'<button type="button" class="outline-button" data-remove-adjustment="'+esc(a.adjustmentId)+'">Restore regular</button>':'')+
+        '</article>';
+    }).join(''):'<p class="muted-inline">No temporary changes this week. The regular schedule applies.</p>';
   }
 
   function renderWeeklyTimetable() {
