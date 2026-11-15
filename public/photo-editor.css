@@ -1,0 +1,93 @@
+/* Profile-photo editor, approval workflow and dark-roster contrast. */
+.photo-editor-dialog{width:min(570px,calc(100vw - 24px));max-height:min(95dvh,880px);padding:0;
+  border:1px solid #d5e1ec;border-radius:21px;background:#fff;color:#172c42;
+  box-shadow:0 28px 90px rgba(5,17,33,.34);overflow:auto}
+.photo-editor-dialog::backdrop{background:rgba(5,11,22,.72);backdrop-filter:blur(5px)}
+.photo-editor-heading{display:flex;justify-content:space-between;align-items:flex-start;gap:16px;padding:19px 22px 14px}
+.photo-editor-heading h2{font-size:22px;line-height:1.3;margin:2px 0 5px}
+.photo-editor-heading p{font-size:11px;font-weight:800;letter-spacing:.12em;color:#60758a;margin:0}
+.photo-editor-heading span,.photo-editor-note{font-size:14px;line-height:1.45;color:#60758a}
+.photo-editor-close{width:36px;height:36px;border:1px solid #d5e2ed;border-radius:10px;background:transparent;color:inherit;font-size:25px;cursor:pointer}
+.photo-editor-stage{position:relative;width:min(380px,calc(100% - 44px));aspect-ratio:1;margin:0 auto;border-radius:13px;overflow:hidden;background:#e8eef5}
+.photo-editor-stage canvas{width:100%;height:100%;display:block;touch-action:none;cursor:grab;outline-offset:-3px}
+.photo-editor-stage canvas:active{cursor:grabbing}
+.photo-editor-round-guide{position:absolute;inset:0;border:1px dashed rgba(255,255,255,.86);border-radius:50%;pointer-events:none;box-shadow:0 0 0 45px rgba(17,32,55,.09) inset}
+.photo-editor-instruction{position:absolute;bottom:14px;left:50%;transform:translateX(-50%);padding:6px 11px;background:rgba(12,29,48,.73);border-radius:9px;color:#fff;white-space:nowrap;font-size:12px;pointer-events:none}
+.photo-editor-controls{padding:16px 22px 0}
+.photo-editor-controls label{display:grid;grid-template-columns:auto minmax(0,1fr) auto;align-items:center;gap:12px;font-size:14px;font-weight:720}
+.photo-editor-controls input{width:100%;accent-color:var(--brand,#2563a6)}
+.photo-editor-controls output{min-width:45px;text-align:right}
+.photo-editor-tools{display:flex;gap:9px;flex-wrap:wrap;margin-top:15px}
+.photo-editor-tools button,.photo-editor-dialog footer button:not(.primary-button){border:1px solid #d5e2ee;background:#f8fafc;color:#243b53;padding:10px 12px;border-radius:10px;cursor:pointer}
+.photo-editor-tools [aria-pressed=true]{border-color:#6794d2;background:#e7f0ff}
+.photo-editor-note,.photo-editor-message{margin:12px 22px;font-size:13px}
+.photo-editor-message{color:#bf3451;min-height:0}
+.photo-editor-dialog footer{padding:16px 22px 22px;display:flex;justify-content:flex-end;gap:10px}
+.photo-editor-dialog footer button{min-height:43px}
+.my-photo-widget{display:flex;align-items:center;gap:17px;padding:16px;margin:13px 0;border:1px solid #dce5ef;border-radius:15px;background:#f6f9fd;min-width:0}
+.my-photo-avatar{width:84px;height:84px;flex:0 0 84px;display:grid;place-items:center;overflow:hidden;border-radius:50%;background:#d8e7f2;color:#244761;font-size:30px;font-weight:800}
+.my-photo-avatar img,.portal-page .avatar img{width:100%;height:100%;object-fit:cover;aspect-ratio:1;display:block}
+.my-photo-avatar img[hidden]{display:none}
+.my-photo-copy{flex:1;min-width:0}
+.my-photo-copy strong{font-size:16px}
+.my-photo-copy p{font-size:13px;line-height:1.5;margin:3px 0 10px}
+.my-photo-status{display:block;line-height:1.45;color:#627b93;margin-top:6px}
+.photo-review-panel{margin:15px 0}
+.photo-review-list{display:grid;gap:10px;font-size:14px}
+.photo-review-item{display:flex;align-items:center;gap:15px;padding:12px;border:1px solid #dbe5ef;border-radius:13px;background:#f8fbfe}
+.photo-review-preview{height:78px;width:78px;object-fit:cover;aspect-ratio:1;border-radius:12px;background:#dce6ef}
+.photo-review-details{flex:1;min-width:0;display:grid;gap:4px}
+.photo-review-details strong{font-size:15px}
+.photo-review-details small{color:#64748b}
+.photo-review-actions{display:flex;flex-wrap:wrap;gap:8px}
+.photo-review-actions button{min-height:40px;padding:7px 14px}
+.portal-page :is(.student-photo-thumb,.student-qr-preview-photo,.student-scan-verified-photo){aspect-ratio:1;object-fit:cover!important}
+.portal-page .bulk-qr-photo{aspect-ratio:1;object-fit:cover!important}
+.portal-page #userAvatar img{width:100%;height:100%;object-fit:cover;border-radius:50%}
+html[data-ui-theme=dark] .photo-editor-dialog{background:#162238;color:#f1f5ff;border-color:#40516a}
+html[data-ui-theme=dark] .photo-editor-heading p,
+html[data-ui-theme=dark] .photo-editor-heading span,
+html[data-ui-theme=dark] .photo-editor-note{color:#b5c6dc}
+html[data-ui-theme=dark] .photo-editor-close,
+html[data-ui-theme=dark] .photo-editor-tools button,
+html[data-ui-theme=dark] .photo-editor-dialog footer button:not(.primary-button){background:#25344b;color:#edf4ff;border-color:#435570}
+html[data-ui-theme=dark] .my-photo-widget,
+html[data-ui-theme=dark] .photo-review-item{background:#1b2b43;border-color:#3c506e;color:#eaf3ff}
+html[data-ui-theme=dark] .my-photo-copy p,
+html[data-ui-theme=dark] .my-photo-status,
+html[data-ui-theme=dark] .photo-review-details small{color:#b5c6db}
+html[data-ui-theme=dark] .portal-page :is(.student-scanner-card,.student-roster-tools,
+ .student-bulk-actions,#studentRosterPanel,.student-scope-banner,
+ .student-scan-result,.student-scanner-controls,.student-scan-notice-dialog){
+ background:var(--ui-panel-soft,#1a2941)!important;
+ color:var(--ui-text,#ecf4ff)!important;border-color:var(--ui-line,#354964)!important;
+}
+html[data-ui-theme=dark] .portal-page :is(
+ .student-scanner-heading h3,.student-roster-tools h3,.student-scanner-card h3,
+ .student-roster-tools label,.student-filter-row label,.student-bulk-actions label){
+ color:var(--ui-text,#ecf4ff)!important;
+}
+html[data-ui-theme=dark] .portal-page :is(.student-scanner-heading p,.student-roster-tools p,.student-scope-banner p){
+ color:var(--ui-muted,#b7c7db)!important;
+}
+html[data-ui-theme=dark] .portal-page .student-roster-tools .student-bulk-actions{
+ background:#1d2d46!important;border:1px solid #3b506e!important;box-shadow:0 10px 30px rgba(0,0,0,.19)
+}
+html[data-ui-theme=dark] .portal-page :is(#studentRosterSearch,#bulkQrGrade,#bulkQrSection,#studentBatchAction){
+ background:#22324c!important;color:#eff5ff!important;border:1px solid #465c78!important;
+}
+html[data-ui-theme=dark] .portal-page #studentRosterTable :is(th,td){border-color:#314662;color:#edf4ff}
+html[data-ui-theme=dark] .portal-page #studentRosterTable thead th{background:#22324a!important;color:#d8e6fa!important}
+html[data-ui-theme=dark] .portal-page #studentRosterTable tbody td{background:#162238!important;color:#edf4ff!important}
+html[data-ui-theme=dark] .portal-page #studentRosterTable tbody tr:hover td{background:#243753!important}
+html[data-ui-theme=dark] .portal-page #studentsView :is(.outline-button,.compact-button){background:#263752!important;color:#e7f1ff!important;border-color:#435b7c!important}
+html[data-ui-theme=dark] .portal-page #studentsView :is(.outline-button,.compact-button):hover{background:#334865!important}
+html[data-ui-theme=dark] .portal-page #studentsView button:disabled{opacity:.48}
+@media(max-width:580px){
+ .my-photo-widget,.photo-review-item{align-items:flex-start;flex-wrap:wrap}
+ .photo-review-actions{width:100%}
+ .photo-editor-heading{padding:15px 14px}
+ .photo-editor-controls{padding:14px}
+ .photo-editor-note,.photo-editor-message{margin:12px 14px}
+ .photo-editor-dialog footer{padding:12px 14px 18px}
+}
