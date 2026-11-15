@@ -22,6 +22,7 @@
     studentMode?.setAttribute('aria-pressed', String(isStudent));
     platformMode.setAttribute('aria-pressed', String(mode === 'platform'));
     schoolCodeGroup.hidden = mode === 'platform';
+    if (document.getElementById('firstPlatformSetupLink')) document.getElementById('firstPlatformSetupLink').hidden = mode !== 'platform';
     schoolCode.required = mode !== 'platform';
     if (usernameLabel) usernameLabel.textContent = isStudent ? 'Student ID / username' : 'Username';
     if (accountTypeHint) accountTypeHint.textContent = isStudent
@@ -36,6 +37,7 @@
   schoolMode.addEventListener('click', () => setMode('school'));
   studentMode?.addEventListener('click', () => setMode('student'));
   platformMode.addEventListener('click', () => setMode('platform'));
+  if (new URLSearchParams(window.location.search).get('mode') === 'platform') setMode('platform');
 
   form.addEventListener('submit', async event => {
     event.preventDefault();
