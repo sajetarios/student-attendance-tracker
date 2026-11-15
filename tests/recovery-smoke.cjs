@@ -29,9 +29,11 @@ async function main(){
       'INSERT INTO platform_users(username,display_name,password_hash) VALUES($1,$2,$3) RETURNING user_id',
       [platformLogin,'Recovery CI Owner',await hashPassword(platformPassword)]);
     platformId = platform.rows[0].user_id;
+    const dept=await pool.query('INSERT INTO school_departments(school_id,department_code,department_name) VALUES($1,$2,$3) RETURNING department_id',
+      [schoolId,'UNASSIGNED','Unassigned']);
     const user = await pool.query(
-      "INSERT INTO school_users(school_id,username,display_name,password_hash,role) VALUES($1,$2,$3,$4,'SCHOOL_ADMIN') RETURNING user_id",
-      [schoolId,schoolLogin,'Recovery CI Administrator',await hashPassword(oldPassword)]);
+      "INSERT INTO school_users(school_id,department_id,username,display_name,password_hash,role) VALUES($1,$2,$3,$4,$5,'SCHOOL_ADMIN') RETURNING user_id",
+      [schoolId,dept.rows[0].department_id,schoolLogin,'Recovery CI Administrator',await hashPassword(oldPassword)]);
     schoolUserId = user.rows[0].user_id;
 
     const ownerToken = createOpaqueToken();

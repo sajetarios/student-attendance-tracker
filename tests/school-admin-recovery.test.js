@@ -27,6 +27,7 @@ test('platform routes require both authentication and super-admin authorization'
 test('completion audit binds UUID actor separately from text entity identifier',()=>{
   // The same PostgreSQL $2 parameter appears as actor_user_id (UUID) and
   // entity_id (TEXT). Without the cast, PostgreSQL errors and rolls back recovery.
-  assert.match(source, /'SCHOOL_ADMIN_RECOVERY_COMPLETED','school_user',\$2::text,'\{\}'::jsonb/);
+  assert.match(source, /'SCHOOL_ADMIN_RECOVERY_COMPLETED','school_user',\$3,'\{\}'::jsonb/);
   assert.match(source, /WHERE principal_type='SCHOOL' AND school_id=\$1 AND school_user_id=\$2/);
+  assert.match(source, /\[account.school_id,account.user_id,String\(account.user_id\)\]/);
 });
