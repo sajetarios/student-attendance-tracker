@@ -3395,6 +3395,17 @@ async function start() {
         path.join(__dirname,'tests','service-worker-refresh.test.js')
       ],{cwd:__dirname,encoding:'utf8',timeout:60000,maxBuffer:1024*1024});
       console.log('FLEXIBLE_SCHEDULE_TEST_PASS',output.slice(-3500));
+      if(process.env.RUN_FLEXIBLE_DB_SMOKE==='1'){
+        try{
+          const smoke=execFileSync(process.execPath,
+            [path.join(__dirname,'scripts','check-flexible-schedule.js')],
+            {cwd:__dirname,encoding:'utf8',timeout:60000,maxBuffer:10000});
+          console.log(smoke.trim());
+        }catch(error){
+          console.error('FLEXIBLE_DB_ROLLBACK_SMOKE_FAIL',String(error.stdout||'').slice(0,2500),
+            String(error.stderr||error.message).slice(0,2500));
+        }
+      }
     }catch(error) {
       console.error('FLEXIBLE_SCHEDULE_TEST_FAIL',String(error.stdout||'').slice(0,6500),
         String(error.stderr||error.message).slice(0,2000));
