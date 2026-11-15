@@ -1110,8 +1110,12 @@ function coverageStatusLabel(status) {
           : (gateKeeper ? '<span class="muted-inline">Gate scan only</span>' : '<span class="muted-inline">Not available</span>');
         const selection = canSelectLearnerForBatch(student) ? `<input type="checkbox" class="student-select-box" data-select-student="${esc(student.studentId)}" ${selectedStudentIds.has(student.studentId) ? 'checked' : ''} aria-label="Select ${esc(student.fullName)}">` : '';
         const editable = canManage && student.active !== false && !student.archivedAt;
-        const actions = editable
-          ? `<div class="student-row-actions"><button type="button" class="outline-button" data-edit-student="${esc(student.studentId)}">Edit</button>${(admin || (teacher && teacherHas("CLASS_ADVISER"))) ? `<button type="button" class="outline-button" data-guardian-student="${esc(student.studentId)}">Guardians</button>` : ""}${canUploadPhoto ? `<label class="student-photo-upload">${student.hasPhoto ? 'Replace photo' : 'Upload photo'}<input type="file" accept="image/jpeg,image/png,image/webp" data-student-photo="${esc(student.studentId)}" hidden></label>` : ''}</div>`
+        const guardianAction = (admin || (teacher && teacherHas('CLASS_ADVISER'))) && student.active !== false && !student.archivedAt
+          ? `<button type="button" class="outline-button" data-guardian-student="${esc(student.studentId)}">Manage guardians</button>` : '';
+        const editAction = editable ? `<button type="button" class="outline-button" data-edit-student="${esc(student.studentId)}">Edit</button>` : '';
+        const photoAction = editable && canUploadPhoto ? `<label class="student-photo-upload">${student.hasPhoto ? 'Replace photo' : 'Upload photo'}<input type="file" accept="image/jpeg,image/png,image/webp" data-student-photo="${esc(student.studentId)}" hidden></label>` : '';
+        const actions = editAction || guardianAction || photoAction
+          ? `<div class="student-row-actions">${editAction}${guardianAction}${photoAction}</div>`
           : '<span class="muted-inline">' + (student.archivedAt ? 'Archived' : student.active === false ? 'Inactive' : 'View only') + '</span>';
         const accountExists = Boolean(student.studentAccountUsername);
         const accountCell = admin
