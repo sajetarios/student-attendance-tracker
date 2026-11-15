@@ -11,13 +11,13 @@ test('authenticated portal explicitly checks for service-worker updates and relo
   const updater = read('public/sw-refresh.js');
   const worker = read('public/sw.js');
   assert.ok(html.includes('/sw-refresh.js?v=1'));
-  assert.ok(html.includes('/portal.js?v=0.9.47'));
+  assert.ok(html.includes('/portal.js?v=0.9.48'));
   assert.ok(updater.includes("register('/sw.js', { updateViaCache: 'none' })"));
   assert.ok(updater.includes('registration.update()'));
   assert.ok(updater.includes("addEventListener('controllerchange'"));
   assert.ok(updater.includes('window.location.reload()'));
-  assert.ok(worker.includes('school-attendance-shell-v51-sf2-import-roster'));
-  assert.ok(worker.includes('/portal.js?v=0.9.47'));
+  assert.ok(worker.includes('school-attendance-shell-v52-safe-learner-batch'));
+  assert.ok(worker.includes('/portal.js?v=0.9.48'));
   assert.ok(worker.includes('/sw-refresh.js?v=1'));
   assert.ok(worker.includes('/form-system.css?v=1'));
 });
