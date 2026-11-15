@@ -1813,6 +1813,15 @@ app.post('/api/gate/teacher-events', authenticateSchoolClient, requireSchoolRole
   const manilaDate = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Manila' }).format(new Date(occurredAt));
   if (manilaDate !== schoolDate) return res.status(400).json({ error: 'The selected school date does not match the scan time in Asia/Manila.' });
   try {
+    const calendar = await pool.query(
+      `SELECT exception_type AS type,dismissal_time AS "dismissalTime"
+       FROM school_calendar_exceptions WHERE school_id=$1 AND calendar_date=$2::date`,
+      [req.auth.schoolId,schoolDate]);
+    const exception = calendar.rows[0];
+    if (exception?.type === 'CLOSED') return res.status(409).json({error:'Attendance is disabled because the school is marked closed on this date.'});
+    if (exception?.type === 'SHORTENED_DAY' && exception.dismissalTime &&
+        new Intl.DateTimeFormat('en-GB',{timeZone:'Asia/Manila',hour:'2-digit',minute:'2-digit',hourCycle:'h23'}).format(new Date(occurredAt)) > String(exception.dismissalTime).slice(0,5))
+      return res.status(409).json({error:'The recorded time is after the scheduled dismissal time for this shortened day.'});
     const teacher = await pool.query(
       `SELECT display_name FROM school_users
        WHERE school_id=$1 AND user_id=$2 AND role='TEACHER' AND active=TRUE AND teacher_photo_path IS NOT NULL`,
@@ -2870,6 +2879,31 @@ app.post('/api/sync/events', authenticateSchoolClient, requireSchoolClient, asyn
         continue;
       }
 
+      const calendarResult = await client.query(
+        `SELECT exception_id AS "exceptionId",exception_type AS type,dismissal_time AS "dismissalTime"
+         FROM school_calendar_exceptions WHERE school_id=$1 AND calendar_date=$2::date`,
+        [req.auth.schoolId,event.schoolDate]);
+      const calendarException = calendarResult.rows[0];
+      if (calendarException?.type === 'CLOSED') {
+        results.push({eventId:event.eventId,status:'REJECTED',reason:'School is marked closed on this date.'});
+        continue;
+      }
+      if (calendarException?.type === 'SHORTENED_DAY' && calendarException.dismissalTime) {
+        const eventClock = new Intl.DateTimeFormat('en-GB',{timeZone:'Asia/Manila',hour:'2-digit',minute:'2-digit',hourCycle:'h23'}).format(new Date(event.occurredAt));
+        if (eventClock > String(calendarException.dismissalTime).slice(0,5)) {
+          results.push({eventId:event.eventId,status:'REJECTED',reason:'Attendance time is after the scheduled dismissal time for this shortened day.'});
+          continue;
+        }
+      }
+      if (calendarException && ['OPEN','SPECIAL_CLASS'].includes(calendarException.type) && event.attendanceScope === 'CLASS') {
+        const allowedSchedule = await client.query(
+          'SELECT 1 FROM school_calendar_exception_periods WHERE school_id=$1 AND exception_id=$2 AND period_id=$3',
+          [req.auth.schoolId,calendarException.exceptionId,event.periodId]);
+        if (!allowedSchedule.rowCount) {
+          results.push({eventId:event.eventId,status:'REJECTED',reason:'This class schedule was not selected to operate on this special calendar date.'});
+          continue;
+        }
+      }
       // Current enrollment is authoritative for class membership. The legacy
       // students.grade_level/section fields may be stale after a school-year move.
       const student = await client.query(
@@ -2903,6 +2937,18 @@ app.post('/api/sync/events', authenticateSchoolClient, requireSchoolClient, asyn
 
       let period = null;
       let late = false;
+      if (calendarException && ['OPEN','SPECIAL_CLASS'].includes(calendarException.type) && event.attendanceScope === 'ADVISORY') {
+        const allowedAdvisory = await client.query(
+          `SELECT 1 FROM school_calendar_exception_periods ep
+           JOIN class_periods p ON p.school_id=ep.school_id AND p.period_id=ep.period_id
+           WHERE ep.school_id=$1 AND ep.exception_id=$2 AND p.grade_level=$3
+             AND (p.section IS NULL OR p.section=$4) LIMIT 1`,
+          [req.auth.schoolId,calendarException.exceptionId,student.rows[0].grade_level,student.rows[0].section]);
+        if (!allowedAdvisory.rowCount) {
+          results.push({eventId:event.eventId,status:'REJECTED',reason:'No selected special-day schedule matches this advisory section.'});
+          continue;
+        }
+      }
       if (event.attendanceScope === 'CLASS') {
         const periodResult = await client.query(
           `SELECT * FROM class_periods
