@@ -3955,8 +3955,22 @@ let teacherActionMenuListenersInstalled = false;
         eligible.map(item => '<option value="' + esc(item.userId) + '">' + esc(item.displayName) + '</option>').join('');
       $('periodTeacher').value = eligible.length === 1 ? String(eligible[0].userId) : '';
     }
-    await loadScheduleSubjects();
-    await loadScheduleSections($('periodGrade').value);
+    const form = $('scheduleForm');
+    form.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    $('periodTeacher')?.focus({ preventScroll: true });
+    const feedback = $('scheduleFormFeedback');
+    feedback.className = 'inline-feedback';
+    feedback.textContent = 'Loading subjects and sections…';
+    const failures = [];
+    try { await loadScheduleSubjects(); } catch (error) { failures.push('Subjects: ' + error.message); }
+    try { await loadScheduleSections($('periodGrade').value); } catch (error) { failures.push('Sections: ' + error.message); }
+    if (failures.length) {
+      feedback.className = 'inline-feedback error';
+      feedback.textContent = 'Unable to load schedule options. ' + failures.join(' | ') + '. Please retry opening the form.';
+      feedback.setAttribute('role', 'alert');
+    } else {
+      feedback.textContent = 'Choose a subject and section, then save your class schedule.';
+    }
   });
   $('cancelScheduleForm').addEventListener('click', () => {
     $('scheduleForm').reset();
