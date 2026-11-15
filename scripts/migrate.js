@@ -25,7 +25,8 @@ const REQUIRED_MIGRATIONS = [
   '017_demo001_subject_department_correction.sql',
   '018_staff_account_security.sql',
   '019_demo001_grade8_spj_class_adviser.sql',
-  '020_configurable_school_timetable.sql'
+  '020_configurable_school_timetable.sql',
+  '021_calendar_exception_schedule_selection.sql'
 ];
 
 function checksum(content) {
