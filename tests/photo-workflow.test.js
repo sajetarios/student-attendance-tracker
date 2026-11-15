@@ -58,8 +58,8 @@ test('photo editor is available on all relevant dashboard pages, including offli
  for(const page of ['portal','parent-portal','student-portal']){
   const html=load('public/'+page+'.html');
   assert.match(html,/photo-editor\.css\?v=1/);
-  assert.match(html,/photo-editor\.js\?v=1/);
+  assert.match(html,/photo-editor\.js\?v=2/);
  }
- assert.match(sw,/photo-editor\.js\?v=1/);
+ assert.match(sw,/photo-editor\.js\?v=2/);
  assert.match(sw,/photo-editor\.css\?v=1/);
 });
