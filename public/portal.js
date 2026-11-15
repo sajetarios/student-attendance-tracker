@@ -3725,44 +3725,186 @@ let teacherActionMenuListenersInstalled = false;
       showToast(summary);
     } catch (error) { $('studentImportSummary').textContent = error.message; $('confirmStudentImport').disabled = false; }
   });
+  function availableStudentBatchSections() {
+    const role = user.role;
+    let destinations;
+    if (role === 'TEACHER') {
+      destinations = adviserAssignments.map(a => ({ gradeLevel:a.gradeLevel, section:a.section }));
+    } else if (role === 'DEPARTMENT_HEAD') {
+      destinations = periods.filter(p => p.active !== false &&
+        String(p.departmentId) === String(user.departmentId))
+        .map(p => ({ gradeLevel:p.gradeLevel, section:p.section }));
+    } else if (role === 'SCHOOL_ADMIN') {
+      destinations = [
+        ...students.filter(s => s.active !== false && !s.archivedAt)
+          .map(s => ({ gradeLevel:s.gradeLevel, section:s.section })),
+        ...periods.filter(p => p.active !== false)
+          .map(p => ({ gradeLevel:p.gradeLevel, section:p.section }))
+      ];
+    } else {
+      destinations = [];
+    }
+    const unique = new Map();
+    for (const section of destinations) {
+      const grade = String(section.gradeLevel || '').trim();
+      const name = String(section.section || '').trim();
+      if (grade && name) unique.set(grade + '|' + name, {gradeLevel:grade,section:name});
+    }
+    return [...unique.values()].sort((a,b) =>
+      a.gradeLevel.localeCompare(b.gradeLevel,undefined,{numeric:true}) ||
+      a.section.localeCompare(b.section,undefined,{numeric:true}));
+  }
+
+  function refreshStudentBatchDestinations() {
+    const gradeSelect = $('batchGrade');
+    const sectionSelect = $('batchSection');
+    const allowed = availableStudentBatchSections();
+    const previousGrade = gradeSelect.value, previousSection = sectionSelect.value;
+    const grades = [...new Set(allowed.map(s => s.gradeLevel))];
+    gradeSelect.innerHTML = '<option value="">Choose grade</option>' +
+      grades.map(grade => '<option value="' + esc(grade) + '">' + esc(grade) + '</option>').join('');
+    gradeSelect.value = grades.includes(previousGrade) ? previousGrade : '';
+    const sections = allowed.filter(s => s.gradeLevel === gradeSelect.value).map(s => s.section);
+    sectionSelect.innerHTML = '<option value="">Choose existing section</option>' +
+      sections.map(section => '<option value="' + esc(section) + '">' + esc(section) + '</option>').join('');
+    sectionSelect.value = sections.includes(previousSection) ? previousSection : '';
+    sectionSelect.disabled = sections.length === 0;
+    gradeSelect.disabled = grades.length === 0;
+    if ($('batchSectionHint')) $('batchSectionHint').textContent = grades.length
+      ? 'Only registered or scheduled sections in your authorized scope can be selected.'
+      : 'No eligible sections are available. Ask the School Admin to create the section or check your assigned timetable.';
+  }
+
+  function closeStudentBatch() {
+    $('studentBatchModal').hidden = true;
+    $('studentBatchForm').reset();
+    $('studentBatchFeedback').textContent = '';
+  }
+
   function openStudentBatch() {
     const action = $('studentBatchAction').value;
-    if (!action || !selectedStudentIds.size) return;
-    ['batchNameGroup','batchSexGroup','batchLrnGroup','batchParentNameGroup','batchParentMobileGroup'].forEach(id => $(id).hidden = action !== 'UPDATE');
-    $('batchGradeGroup').hidden = action !== 'ASSIGN'; $('batchSectionGroup').hidden = action !== 'ASSIGN';
-    $('batchLrnGroup').hidden = action !== 'UPDATE' || user.role !== 'SCHOOL_ADMIN';
-    $('batchParentNameGroup').hidden = action !== 'UPDATE' || user.role !== 'SCHOOL_ADMIN';
-    $('batchParentMobileGroup').hidden = action !== 'UPDATE' || user.role !== 'SCHOOL_ADMIN';
-    $('studentBatchTitle').textContent = action + ' ' + selectedStudentIds.size + ' students';
-    $('studentBatchDescription').textContent = action === 'ASSIGN' ? 'This changes the active school-year enrollment, not the permanent student identity.' : 'Only the fields you complete will be changed.';
+    const selected = students.filter(s => selectedStudentIds.has(s.studentId) && canSelectLearnerForBatch(s));
+    if (!action || !selected.length) return;
+    if (selected.length !== selectedStudentIds.size || selected.length > 500) {
+      showToast('Some learners are not in your authorized selection. Refresh and select again (maximum 500).',true);
+      return;
+    }
+    if (user.role !== 'SCHOOL_ADMIN' && !['SET_SEX','ASSIGN'].includes(action)) {
+      showToast('Only School Admin may manage student account status.',true);
+      return;
+    }
+    $('studentBatchForm').reset();
+    $('studentBatchFeedback').textContent = '';
+    const labels = {
+      SET_SEX:'Set sex', ASSIGN:'Move grade / section', ACTIVATE:'Activate',
+      DEACTIVATE:'Deactivate', ARCHIVE:'Archive'
+    };
+    const descriptions = {
+      SET_SEX:'Choose one sex for the entire selected group. Do not use this when the learners have different sex classifications.',
+      ASSIGN:'Move selected learners to an existing school-year section. Student identity and past attendance are preserved.',
+      ACTIVATE:'Restore access for selected inactive or archived learners. Their historical attendance is preserved.',
+      DEACTIVATE:'Disable selected learners and their student logins without deleting past attendance.',
+      ARCHIVE:'Archive selected learners and disable their logins. Records and attendance history remain available to authorized staff.'
+    };
+    $('studentBatchTitle').textContent = (labels[action] || action) + ' · ' + selected.length + ' learners';
+    $('studentBatchDescription').textContent = descriptions[action] || '';
+    $('studentBatchSelectedCount').textContent = selected.length + ' selected learner' + (selected.length === 1 ? '' : 's');
+    const preview = selected.slice(0,8);
+    $('studentBatchSelectedPreview').innerHTML = preview.map(learner =>
+      '<span class="student-batch-chip">' + esc(learner.fullName) + ' <small>' +
+      esc(learner.studentId) + '</small></span>').join('') +
+      (selected.length > preview.length ? '<span class="student-batch-chip">+' + (selected.length-preview.length) + ' more</span>' : '');
+    $('batchSexGroup').hidden = action !== 'SET_SEX';
+    $('batchGradeGroup').hidden = action !== 'ASSIGN';
+    $('batchSectionGroup').hidden = action !== 'ASSIGN';
+    if (action === 'ASSIGN') refreshStudentBatchDestinations();
+    const acknowledge = ['SET_SEX','DEACTIVATE','ARCHIVE'].includes(action);
+    $('studentBatchAcknowledgeWrap').hidden = !acknowledge;
+    $('studentBatchAcknowledgeText').textContent = action === 'SET_SEX'
+      ? 'I verified that all selected learners should receive the same sex classification.'
+      : 'I understand this changes the selected student accounts and will preserve their attendance history.';
+    $('studentBatchChangeSummary').textContent = descriptions[action];
+    $('confirmStudentBatch').textContent = action === 'ASSIGN' ? 'Review section transfer'
+      : action === 'SET_SEX' ? 'Review sex update' : 'Review ' + (labels[action] || action).toLowerCase();
     $('studentBatchModal').hidden = false;
   }
-  $('applyStudentBatch')?.addEventListener('click', openStudentBatch);
-  $('studentBatchAction')?.addEventListener('change', () => { $('applyStudentBatch').disabled = !selectedStudentIds.size || !$('studentBatchAction').value; });
-  $('closeStudentBatch')?.addEventListener('click', () => { $('studentBatchModal').hidden = true; });
-  $('studentBatchForm')?.addEventListener('submit', async event => {
-    event.preventDefault(); const action = $('studentBatchAction').value;
-    if (!action || !selectedStudentIds.size) return;
-    if (!await AppDialog.confirm(action + ' ' + selectedStudentIds.size + ' selected student records?', { title: 'Confirm bulk student action', confirmText: 'Apply changes', variant: ['DEACTIVATE', 'ARCHIVE'].includes(action) ? 'danger' : 'primary' })) return;
-    const body = { action, studentIds:[...selectedStudentIds] };
-    if (action === 'UPDATE') {
-      if ($('batchFullName').value.trim()) body.fullName = $('batchFullName').value.trim();
-      if ($('batchSex').value) body.sex = $('batchSex').value;
-      if ($('batchLrn').value.trim()) body.lrn = $('batchLrn').value.trim();
-      if (user.role === 'SCHOOL_ADMIN') {
-        if ($('batchParentName').value.trim()) body.parentName = $('batchParentName').value.trim();
-        if ($('batchParentMobile').value.trim()) body.parentMobile = $('batchParentMobile').value.trim();
-      }
-      if (!body.fullName && !body.sex && !body.lrn && !body.parentName && !body.parentMobile) { $('studentBatchFeedback').textContent = 'Enter at least one field to update.'; return; }
+
+  $('applyStudentBatch')?.addEventListener('click',openStudentBatch);
+  $('studentBatchAction')?.addEventListener('change',updateStudentSelectionUi);
+  $('batchGrade')?.addEventListener('change',refreshStudentBatchDestinations);
+  $('closeStudentBatch')?.addEventListener('click',closeStudentBatch);
+  $('cancelStudentBatch')?.addEventListener('click',closeStudentBatch);
+  $('studentBatchForm')?.addEventListener('submit',async event => {
+    event.preventDefault();
+    const action = $('studentBatchAction').value;
+    const chosen = students.filter(s => selectedStudentIds.has(s.studentId) && canSelectLearnerForBatch(s));
+    const feedback = $('studentBatchFeedback');
+    feedback.className = 'inline-feedback';
+    if (!action || !chosen.length || chosen.length !== selectedStudentIds.size || chosen.length > 500) {
+      feedback.className = 'inline-feedback error';
+      feedback.textContent = 'Please select valid learners and try again.';
+      return;
     }
-    if (action === 'ASSIGN') { body.gradeLevel = $('batchGrade').value; body.section = $('batchSection').value.trim(); if (!body.section) { $('studentBatchFeedback').textContent = 'Enter a section.'; return; } }
-    $('confirmStudentBatch').disabled = true; $('studentBatchFeedback').textContent = 'Applying changes…';
+    if (user.role !== 'SCHOOL_ADMIN' && !['SET_SEX','ASSIGN'].includes(action)) {
+      feedback.className = 'inline-feedback error';
+      feedback.textContent = 'This action requires School Admin permissions.';
+      return;
+    }
+    const body = {action,studentIds:chosen.map(s=>s.studentId)};
+    let changeDescription = '';
+    if (action === 'SET_SEX') {
+      const sex = $('batchSex').value;
+      if (!['MALE','FEMALE'].includes(sex)) {
+        feedback.textContent = 'Choose Male or Female for the selected learners.';
+        feedback.className = 'inline-feedback error';
+        return;
+      }
+      body.sex = sex;
+      changeDescription = 'Set sex to ' + (sex === 'MALE' ? 'Male' : 'Female');
+    } else if (action === 'ASSIGN') {
+      const gradeLevel = $('batchGrade').value, section = $('batchSection').value;
+      if (!availableStudentBatchSections().some(d => d.gradeLevel === gradeLevel && d.section === section)) {
+        feedback.textContent = 'Choose an existing section within your authorized scope.';
+        feedback.className = 'inline-feedback error';
+        return;
+      }
+      body.gradeLevel = gradeLevel; body.section = section;
+      changeDescription = 'Move to ' + gradeLevel + ' · ' + section;
+    } else {
+      changeDescription = action === 'ACTIVATE' ? 'Activate learners' :
+        action === 'DEACTIVATE' ? 'Deactivate learners and revoke their login sessions' :
+        'Archive learners and revoke their login sessions';
+    }
+    if (!$('studentBatchAcknowledgeWrap').hidden && !$('studentBatchAcknowledge').checked) {
+      feedback.textContent = 'Please check the confirmation box after verifying the selected learners.';
+      feedback.className = 'inline-feedback error';
+      return;
+    }
+    const preview = chosen.slice(0,4).map(s=>s.fullName).join(', ');
+    const message = changeDescription + ' for ' + chosen.length + ' selected learners?\n' +
+      preview + (chosen.length > 4 ? ' and ' + (chosen.length-4) + ' others' : '') +
+      '\nThis will not change anyone’s name, Student ID, LRN or guardian information.';
+    if (!await AppDialog.confirm(message, {
+      title: 'Confirm batch ' + action.toLowerCase().replaceAll('_',' '),
+      confirmText: action === 'ARCHIVE' ? 'Archive selected' : 'Apply to ' + chosen.length,
+      variant:['ARCHIVE','DEACTIVATE'].includes(action) ? 'danger' : 'primary'
+    })) return;
+    $('confirmStudentBatch').disabled = true;
+    feedback.textContent = 'Applying ' + changeDescription.toLowerCase() + '…';
     try {
-      const result = await api('/api/students/batch', { method:'POST', body:JSON.stringify(body) });
-      $('studentBatchModal').hidden = true; $('studentBatchFeedback').textContent = '';
-      selectedStudentIds.clear(); $('studentBatchAction').value = ''; await loadSchoolData(); showToast(result.updated + ' student records updated.');
-    } catch (error) { $('studentBatchFeedback').textContent = error.message; }
-    finally { $('confirmStudentBatch').disabled = false; updateStudentSelectionUi(); }
+      const result = await api('/api/students/batch', {method:'POST',body:JSON.stringify(body)});
+      closeStudentBatch();
+      selectedStudentIds.clear();
+      $('studentBatchAction').value = '';
+      await loadSchoolData();
+      showToast(result.updated + ' learners updated: ' + changeDescription + '.');
+    } catch(error) {
+      feedback.textContent = error.message;
+      feedback.className = 'inline-feedback error';
+    } finally {
+      $('confirmStudentBatch').disabled = false;
+      updateStudentSelectionUi();
+    }
   });
 
   $('studentRosterSearch').addEventListener('input', () => { renderStudents(); updateStudentSelectionUi(); });
