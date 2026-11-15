@@ -101,6 +101,9 @@ body.portal-page { color: var(--ink); background: var(--bg); font-size: 15px; li
 .portal-page button:focus-visible, .portal-page a:focus-visible, .portal-page summary:focus-visible { outline: 3px solid rgba(36,99,165,.34); outline-offset: 2px; }
 
 body.login-page { background: #f5f7fb; color: var(--ink); }
+.login-page .login-mode { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 2px; }
+.login-page .mode-tab { min-width: 0; padding-inline: 5px; line-height: 1.25; }
+.login-page .mode-tab:focus-visible { outline: 3px solid rgba(36,99,165,.34); outline-offset: 2px; position: relative; z-index: 1; }
 .login-page .login-panel { background: #f5f7fb; }
 .login-page .login-panel-inner { border-color: #e1e8f0; box-shadow: 0 8px 26px rgba(31,48,72,.06); }
 .login-page .login-art { background: linear-gradient(145deg, #1c2d45 0%, #2f659b 100%); }
@@ -133,6 +136,10 @@ body.attendance-desk .feedback { background: #eff4fa; color: #53677f !important;
   .portal-page .section-toolbar { align-items: flex-start; flex-direction: column; gap: 12px; }
   .portal-page .monitor-date-filter { width: 100%; justify-content: space-between; }
   .portal-page .monitor-date-filter input { flex: 1; min-width: 0; }
+}
+@media (max-width: 420px) {
+  .login-page .login-mode { gap: 1px; padding: 3px; }
+  .login-page .mode-tab { padding: 10px 3px; font-size: 11px; }
 }
 @media (prefers-reduced-motion: reduce) {
   .portal-page .photo-flash { animation: none; }
