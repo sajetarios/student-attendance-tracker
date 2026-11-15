@@ -2074,3 +2074,8 @@ tbody tr:hover td { background: #f9fbfc; }
 .weekly-day-column header>small{font-weight:550;color:#637b8d}
 @media(max-width:950px){.dated-schedule-inputs{grid-template-columns:repeat(2,minmax(0,1fr))}.dated-schedule-inputs .dated-notes{grid-column:span 2}}
 @media(max-width:620px){.dated-schedule-panel{padding:14px}.dated-schedule-inputs{grid-template-columns:1fr}.dated-schedule-inputs .dated-notes{grid-column:auto}.dated-adjustment-card{flex-wrap:wrap}.dated-adjustment-card button{width:100%}.dated-schedule-form{padding:12px}.dated-schedule-heading button{width:100%}}
+
+/* Hidden form controls must not be re-shown by the grid/flex layout rules. */
+.dated-schedule-form[hidden],
+.dated-schedule-inputs>label[hidden],
+#toggleScheduleAdjustmentForm[hidden]{display:none!important}
