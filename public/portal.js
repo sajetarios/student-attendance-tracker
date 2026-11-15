@@ -1416,6 +1416,77 @@ function coverageStatusLabel(status) {
     }
   }
 
+  function renderWeeklyTimetable() {
+    const host = $('weeklyTimetableBoard');
+    if (!host) return;
+    const gradeFilter = $('weeklyGradeFilter');
+    const sectionFilter = $('weeklySectionFilter');
+    const previousGrade = gradeFilter?.value || '';
+    const previousSection = sectionFilter?.value || '';
+    const gradeLevels = [...new Set(periods.map(period => String(period.gradeLevel || '').trim()).filter(Boolean))].sort((a,b) => a.localeCompare(b, undefined, {numeric:true}));
+    if (gradeFilter) {
+      gradeFilter.innerHTML = '<option value="">All grade levels</option>' + gradeLevels.map(grade => '<option value="' + esc(grade) + '">' + esc(grade) + '</option>').join('');
+      if (gradeLevels.includes(previousGrade)) gradeFilter.value = previousGrade;
+    }
+    const selectedGrade = gradeFilter?.value || '';
+    const sectionValues = [...new Set(periods.filter(period => !selectedGrade || String(period.gradeLevel || '') === selectedGrade).map(period => String(period.section || '').trim()).filter(Boolean))].sort((a,b) => a.localeCompare(b, undefined, {numeric:true}));
+    if (sectionFilter) {
+      sectionFilter.innerHTML = '<option value="">All sections</option>' + sectionValues.map(section => '<option value="' + esc(section) + '">' + esc(section) + '</option>').join('');
+      if (sectionValues.includes(previousSection)) sectionFilter.value = previousSection;
+    }
+    const selectedSection = sectionFilter?.value || '';
+    const filtered = periods.filter(period =>
+      (!selectedGrade || String(period.gradeLevel || '') === selectedGrade) &&
+      (!selectedSection || String(period.section || '') === selectedSection)
+    );
+    const configuredDays = schoolOperatingDays.filter(day => day.isOperatingDay).map(day => Number(day.weekday)).filter(day => day >= 0 && day <= 6);
+    const scheduledDays = [...new Set(filtered.flatMap(period => Array.isArray(period.weekdays) ? period.weekdays.map(Number) : []))].filter(day => day >= 0 && day <= 6);
+    const days = (configuredDays.length ? configuredDays : scheduledDays.length ? scheduledDays : [1,2,3,4,5])
+      .filter(day => !filtered.length || filtered.some(period => Array.isArray(period.weekdays) && period.weekdays.map(Number).includes(day)));
+    const names = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+    const eligibleFor = period => teachers.filter(teacher =>
+      teacher.active && (teacher.teacherDesignations || []).includes('SUBJECT_TEACHER') &&
+      String(teacher.departmentId || '') === String(period.departmentId || '') &&
+      (user.role !== 'DEPARTMENT_HEAD' || String(teacher.departmentId || '') === String(user.departmentId || ''))
+    );
+    const canAssign = user.role === 'SCHOOL_ADMIN' || user.role === 'DEPARTMENT_HEAD';
+    const cardsForDay = day => filtered.filter(period =>
+      Array.isArray(period.weekdays) && period.weekdays.map(Number).includes(day)
+    ).sort((a,b) => String(a.startTime || '').localeCompare(String(b.startTime || '')) || String(a.periodName || '').localeCompare(String(b.periodName || '')));
+    host.innerHTML = days.length ? days.map(day => {
+      const dayPeriods = cardsForDay(day);
+      return '<section class="weekly-day-column"><header><strong>' + names[day] + '</strong><span>' + dayPeriods.length + ' schedule' + (dayPeriods.length === 1 ? '' : 's') + '</span></header>' +
+        (dayPeriods.length ? dayPeriods.map(period => {
+          const unassigned = !period.assignedTeacherName;
+          const teacherChoices = eligibleFor(period);
+          const assignmentControl = canAssign && unassigned
+            ? '<div class="weekly-assign-controls"><select data-weekly-teacher="' + esc(period.periodId) + '" aria-label="Choose teacher for ' + esc(period.periodName) + '"><option value="">Choose teacher</option>' + teacherChoices.map(teacher => '<option value="' + esc(teacher.userId) + '">' + esc(teacher.displayName) + '</option>').join('') + '</select><button type="button" class="primary-button compact-button" data-weekly-assign="' + esc(period.periodId) + '">Assign</button></div>'
+            : '';
+          return '<article class="weekly-schedule-card' + (unassigned ? ' is-unassigned' : '') + '">' +
+            '<div class="weekly-card-time">' + esc(period.startTime || '—') + '–' + esc(period.endTime || '—') + '</div>' +
+            '<strong>' + esc(period.subjectName || period.periodName || 'Class schedule') + '</strong>' +
+            '<span class="weekly-card-class">' + esc(period.gradeLevel || '—') + ' · ' + esc(period.section || 'All sections') + '</span>' +
+            '<span>' + esc(period.periodName || 'Schedule block') + (period.classroom ? ' · ' + esc(period.classroom) : '') + '</span>' +
+            '<span class="weekly-card-teacher' + (unassigned ? ' is-unassigned' : '') + '">' + (unassigned ? 'Unassigned teacher' : esc(period.assignedTeacherName)) + '</span>' +
+            assignmentControl + '</article>';
+        }).join('') : '<p class="weekly-day-empty">No classes scheduled</p>') + '</section>';
+    }).join('') : '<div class="weekly-empty-state"><strong>No schedules match these filters.</strong><span>Try another grade level or section, or create a class schedule.</span></div>';
+    const summary = $('weeklyTimetableSummary');
+    if (summary) summary.textContent = filtered.length + ' class schedule' + (filtered.length === 1 ? '' : 's') + ' · ' + days.length + ' operating day' + (days.length === 1 ? '' : 's');
+  }
+
+  function setScheduleDisplay(mode) {
+    const weekly = mode === 'weekly';
+    if ($('weeklyTimetableBoard')) $('weeklyTimetableBoard').hidden = !weekly;
+    if ($('managerScheduleTableWrap')) $('managerScheduleTableWrap').hidden = weekly;
+    document.querySelectorAll('[data-schedule-display]').forEach(button => {
+      const active = button.dataset.scheduleDisplay === mode;
+      button.classList.toggle('is-active', active);
+      button.setAttribute('aria-pressed', String(active));
+    });
+    if (weekly) renderWeeklyTimetable();
+  }
+
   function renderPeriods() {
     const canBulkAssign = user.role === 'DEPARTMENT_HEAD';
     const isTeacher = user.role === 'TEACHER';
@@ -1510,6 +1581,8 @@ function coverageStatusLabel(status) {
           <td data-label="Assigned teacher">${esc(period.assignedTeacherName || 'Unassigned')}</td><td data-label="Actions">${deleteAction}</td>
         </tr>`;
       }).join('') : '<tr><td colspan="' + (canBulkAssign ? 10 : 9) + '" class="empty-cell">No class schedules are available yet.</td></tr>';
+
+      renderWeeklyTimetable();
 
       $('scheduleScopeText').textContent = user.role === 'DEPARTMENT_HEAD'
         ? 'Create class schedules and assign Subject Teachers within your department. View schedules across the school.'
@@ -3388,6 +3461,32 @@ let teacherActionMenuListenersInstalled = false;
     $('selectAllPeriods').indeterminate = visibleIds.some(id => selectedPeriodIds.has(id)) && !$('selectAllPeriods').checked;
     $('applyBulkScheduleAssignment').disabled = !selectedPeriodIds.size || !$('bulkScheduleTeacher').value;
   }
+  document.querySelectorAll('[data-schedule-display]').forEach(button => {
+    button.addEventListener('click', () => setScheduleDisplay(button.dataset.scheduleDisplay));
+  });
+  $('weeklyGradeFilter')?.addEventListener('change', renderWeeklyTimetable);
+  $('weeklySectionFilter')?.addEventListener('change', renderWeeklyTimetable);
+  $('weeklyTimetableBoard')?.addEventListener('click', async event => {
+    const button = event.target.closest('[data-weekly-assign]');
+    if (!button) return;
+    const periodId = button.dataset.weeklyAssign;
+    const select = $('weeklyTimetableBoard').querySelector('[data-weekly-teacher="' + CSS.escape(periodId) + '"]');
+    const teacherUserId = select?.value || '';
+    if (!teacherUserId) { showToast('Choose a Subject Teacher before assigning this schedule.', true); return; }
+    button.disabled = true;
+    try {
+      const result = await api('/api/periods/' + encodeURIComponent(periodId) + '/assignments', {
+        method: 'POST', body: JSON.stringify({ teacherUserId })
+      });
+      await loadSchoolData();
+      setScheduleDisplay('weekly');
+      showToast('Schedule assigned to ' + (result.teacher || 'the selected teacher') + '.');
+    } catch (error) {
+      button.disabled = false;
+      showToast(error.message, true);
+    }
+  });
+
   $('selectAllPeriods')?.addEventListener('change', () => {
     const visible = periods.filter(p => user.role !== 'DEPARTMENT_HEAD' || String(p.departmentId) === String(user.departmentId));
     visible.forEach(p => $('selectAllPeriods').checked ? selectedPeriodIds.add(String(p.periodId)) : selectedPeriodIds.delete(String(p.periodId)));
