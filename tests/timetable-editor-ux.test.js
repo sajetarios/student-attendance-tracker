@@ -29,7 +29,7 @@ test('timetable editor retains all API bindings and checks invalid times', () =>
   assert.match(js, /data-block-end/);
   assert.match(js, /data-remove-block/);
   assert.match(js, /updateTemplateBlockSummary/);
-  assert.match(js, /'Sort by time'/);
+  assert.match(js, /Sort by time/);
   assert.match(js, /overlaps/);
   assert.match(js, /api\('\/api\/scheduling-config\/templates'/);
   assert.match(routes, /Timetable blocks cannot overlap/);
