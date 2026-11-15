@@ -1,4 +1,4 @@
-const CACHE = "school-attendance-shell-v69-guardian-visible";
+const CACHE = "school-attendance-shell-v68-guardian-login";
 
 const SHELL = [
   "/dashboard-icons.js?v=4",
@@ -13,9 +13,9 @@ const SHELL = [
   "/timetable-grid.js?v=3",
   "/schedule-workspace-ui.js?v=3",
   "/portal-login.html",
-  "/portal.css?v=0.9.51",
+  "/portal.css?v=0.9.50",
   "/portal.css",
-  "/portal.js?v=0.9.58",
+  "/portal.js?v=0.9.57",
   "/academic-admin.css?v=1",
   "/academic-admin.js?v=2",
   "/app-dialog.css?v=1",
