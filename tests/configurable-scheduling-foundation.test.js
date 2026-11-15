@@ -11,6 +11,7 @@ test('configurable scheduling migration is registered and additive',()=>{
   const sql=read('migrations/020_configurable_school_timetable.sql');
   const calendarSql=read('migrations/021_calendar_exception_schedule_selection.sql');
   assert.match(runner,/'020_configurable_school_timetable\.sql'/);
+  assert.match(runner,/'021_calendar_exception_schedule_selection\.sql'/);
   assert.match(sql,/CREATE TABLE IF NOT EXISTS school_operating_days/);
   assert.match(sql,/weekday BETWEEN 0 AND 6/);
   assert.match(sql,/CREATE TABLE IF NOT EXISTS timetable_templates/);
