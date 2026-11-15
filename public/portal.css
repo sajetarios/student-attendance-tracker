@@ -2006,3 +2006,36 @@ tbody tr:hover td { background: #f9fbfc; }
 #studentImportModal .table-scroll{max-height:360px;overflow:auto}
 #studentImportModal .table-scroll table{min-width:780px}
 #studentImportModal .table-scroll tbody td{vertical-align:middle}
+
+/* Bulk learner actions — role-aware, action-specific review */
+.student-batch-dialog{max-width:790px;width:min(94vw,790px);max-height:min(88vh,850px);overflow:auto}
+.student-batch-dialog .section-toolbar{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;margin-bottom:14px}
+.student-batch-dialog .section-toolbar h3{font-size:19px;line-height:1.4;margin:0}
+.student-batch-dialog .section-toolbar p{font-size:13px;line-height:1.5;margin:5px 0 0;color:#62778b}
+.student-batch-selected-panel{background:#f4f8fc;border:1px solid #dae6f0;border-radius:12px;padding:14px 16px;display:grid;gap:10px;margin:12px 0 18px}
+.student-batch-selected-panel>strong{font-size:14px;color:#193e58}
+.student-batch-selected-panel>small{font-size:12px;color:#607a8d;line-height:1.55}
+.student-batch-student-chips{display:flex;flex-wrap:wrap;gap:7px}
+.student-batch-chip{display:inline-flex;flex-wrap:wrap;align-items:center;gap:6px;padding:7px 10px;border:1px solid #cbddeb;background:#fff;color:#264e66;border-radius:8px;font-weight:700;font-size:12px}
+.student-batch-chip small{font-weight:450;font-size:11px;color:#697e8c}
+.student-batch-fields{margin:0 0 15px;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.student-batch-fields .field-group[hidden]{display:none!important}
+.student-batch-fields .field-group select{min-height:45px;width:100%;font-size:14px}
+.student-batch-change-summary{padding:13px 15px;background:#fff9ef;border-left:3px solid #c28a3c;border-radius:8px;font-size:13px;color:#6e552f;line-height:1.55}
+.student-batch-acknowledge{display:flex;align-items:flex-start;gap:10px;margin:16px 0 0;line-height:1.5;color:#28445a;font-size:13px;font-weight:650;cursor:pointer}
+.student-batch-acknowledge[hidden]{display:none!important}
+.student-batch-acknowledge input{width:19px;height:19px;min-width:19px;margin:1px 0 0;accent-color:var(--brand,#087fb3)}
+.student-batch-footer{display:flex;flex-wrap:wrap;align-items:center;gap:9px;margin-top:18px}
+.student-batch-footer button{min-height:44px;padding:10px 16px}
+.student-batch-footer .inline-feedback{flex-basis:100%;line-height:1.45}
+#studentRosterTable td[data-label="Select"]{min-width:58px;text-align:center}
+#studentRosterTable td[data-label="Select"] .student-select-box{width:17px;height:17px}
+.student-bulk-actions #studentBatchAction{min-width:220px}
+@media(max-width:600px){
+ .student-batch-dialog{width:97vw;max-height:92vh;padding:16px}
+ .student-batch-fields{grid-template-columns:1fr}
+ .student-batch-dialog .section-toolbar h3{font-size:17px}
+ .student-batch-footer button{flex:1}
+ .student-batch-chip{max-width:100%;overflow-wrap:anywhere}
+ .student-bulk-actions #studentBatchAction{min-width:0;width:100%}
+}
