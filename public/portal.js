@@ -2419,7 +2419,7 @@ let teacherActionMenuListenersInstalled = false;
         api('/api/scheduling-config/templates')
       ]);
       schoolOperatingDays = daysResult.days || [];
-      timetableTemplates = templatesResult.templates || [];
+      timetableTemplates = templatesResult.templates || [];\n      renderCalendarExceptions(exceptionsResult.exceptions || []);\n      const exceptionScheduleSelect = $('calendarExceptionSchedules');\n      if (exceptionScheduleSelect) exceptionScheduleSelect.innerHTML = periods.map(period => '<option value="' + esc(period.periodId) + '">' + esc(period.gradeLevel + ' · ' + (period.section || 'All sections') + ' · ' + (period.subjectName || period.periodName)) + '</option>').join('');
       const dayMap = new Map(schoolOperatingDays.map(day => [Number(day.weekday), Boolean(day.isOperatingDay)]));
       document.querySelectorAll('#operatingDayChoices input[type="checkbox"]').forEach(input => {
         input.checked = dayMap.has(Number(input.value)) ? dayMap.get(Number(input.value)) : Number(input.value)>=1 && Number(input.value)<=5;
@@ -2445,6 +2445,28 @@ let teacherActionMenuListenersInstalled = false;
     } catch (error) {
       console.warn('Scheduling settings could not be loaded:', error.message);
     }
+  }
+
+  function renderCalendarExceptions(items) {
+    const host=$('calendarExceptionList'); if(!host)return;
+    const labels={CLOSED:'Closed',OPEN:'Additional operating day',SPECIAL_CLASS:'Special classes',SHORTENED_DAY:'Shortened day'};
+    host.innerHTML='<strong>Saved calendar dates</strong>'+(items.length?'<div class="timetable-template-chips">'+items.map(item=>
+      '<span><b>'+esc(item.date)+' · '+esc(item.title)+'</b><small>'+esc(labels[item.type]||item.type)+(item.dismissalTime?' · Dismissal '+esc(item.dismissalTime):'')+
+      (item.schedules?.length?' · '+item.schedules.length+' selected schedule(s)':'')+'</small>'+
+      (user.role==='SCHOOL_ADMIN'?'<button type="button" class="secondary-button compact-button" data-delete-calendar-exception="'+esc(item.exceptionId)+'">Delete</button>':'')+'</span>'
+    ).join('')+'</div>':'<p>No upcoming calendar exceptions have been saved.</p>');
+  }
+  async function refreshCalendarExceptions() {
+    const from=schoolDateManila(),to=new Date(Date.now()+365*86400000).toISOString().slice(0,10);
+    const result=await api('/api/scheduling-config/calendar-exceptions?from='+encodeURIComponent(from)+'&to='+encodeURIComponent(to));
+    renderCalendarExceptions(result.exceptions||[]);
+  }
+  function updateCalendarExceptionFields() {
+    const type=$('calendarExceptionType')?.value;
+    if($('calendarDismissalWrap'))$('calendarDismissalWrap').hidden=type!=='SHORTENED_DAY';
+    if($('calendarSchedulesWrap'))$('calendarSchedulesWrap').hidden=!['OPEN','SPECIAL_CLASS'].includes(type);
+    if($('calendarDismissalTime'))$('calendarDismissalTime').required=type==='SHORTENED_DAY';
+    if($('calendarExceptionSchedules'))$('calendarExceptionSchedules').required=['OPEN','SPECIAL_CLASS'].includes(type);
   }
 
   function formatScheduleDays(weekdays) {
@@ -2496,15 +2518,28 @@ let teacherActionMenuListenersInstalled = false;
         $('timetableTemplateForm').reset(); await loadSchedulingSettings(); feedback.textContent='Template saved.';
       } catch(error){feedback.textContent=error.message;}
     });
+    $('calendarExceptionType')?.addEventListener('change',updateCalendarExceptionFields);
+    updateCalendarExceptionFields();
     $('calendarExceptionForm')?.addEventListener('submit',async event=>{
       event.preventDefault();const feedback=$('calendarExceptionFeedback');feedback.textContent='Saving…';
       try{
+        const type=$('calendarExceptionType').value;
+        const periodIds=Array.from($('calendarExceptionSchedules')?.selectedOptions||[]).map(option=>option.value);
         await api('/api/scheduling-config/calendar-exceptions',{method:'POST',body:JSON.stringify({
-          date:$('calendarExceptionDate').value,title:$('calendarExceptionTitle').value.trim(),
-          type:$('calendarExceptionType').value,notes:$('calendarExceptionNotes').value.trim()||null
+          date:$('calendarExceptionDate').value,title:$('calendarExceptionTitle').value.trim(),type,
+          dismissalTime:type==='SHORTENED_DAY'?$('calendarDismissalTime').value:null,
+          periodIds,notes:$('calendarExceptionNotes').value.trim()||null
         })});
-        $('calendarExceptionForm').reset();feedback.textContent='Calendar date saved.';
+        $('calendarExceptionForm').reset();updateCalendarExceptionFields();await refreshCalendarExceptions();
+        feedback.textContent='Calendar date saved.';
       }catch(error){feedback.textContent=error.message;}
+    });
+    $('calendarExceptionList')?.addEventListener('click',async event=>{
+      const button=event.target.closest('[data-delete-calendar-exception]');if(!button)return;
+      if(!confirm('Delete this calendar exception? This will not delete attendance records.'))return;
+      button.disabled=true;
+      try{await api('/api/scheduling-config/calendar-exceptions/'+encodeURIComponent(button.dataset.deleteCalendarException),{method:'DELETE'});await refreshCalendarExceptions();}
+      catch(error){button.disabled=false;showToast(error.message,true);}
     });
     $('scheduleTemplatePeriod')?.addEventListener('change',applyTemplatePeriodSelection);
   }
