@@ -1423,21 +1423,28 @@ function coverageStatusLabel(status) {
     if (!host) return;
     const gradeFilter = $('weeklyGradeFilter');
     const sectionFilter = $('weeklySectionFilter');
+    const asOfFilter = $('weeklyScheduleAsOf');
+    if (asOfFilter && !asOfFilter.value) asOfFilter.value = dataSchoolDate();
+    const asOfDate = /^\\d{4}-\\d{2}-\\d{2}$/.test(asOfFilter?.value || '') ? asOfFilter.value : dataSchoolDate();
+    const effectivePeriods = periods.filter(period =>
+      (!period.effectiveFrom || String(period.effectiveFrom).slice(0, 10) <= asOfDate) &&
+      (!period.effectiveTo || String(period.effectiveTo).slice(0, 10) >= asOfDate)
+    );
     const previousGrade = gradeFilter?.value || '';
     const previousSection = sectionFilter?.value || '';
-    const gradeLevels = [...new Set(periods.map(period => String(period.gradeLevel || '').trim()).filter(Boolean))].sort((a,b) => a.localeCompare(b, undefined, {numeric:true}));
+    const gradeLevels = [...new Set(effectivePeriods.map(period => String(period.gradeLevel || '').trim()).filter(Boolean))].sort((a,b) => a.localeCompare(b, undefined, {numeric:true}));
     if (gradeFilter) {
       gradeFilter.innerHTML = '<option value="">All grade levels</option>' + gradeLevels.map(grade => '<option value="' + esc(grade) + '">' + esc(grade) + '</option>').join('');
       if (gradeLevels.includes(previousGrade)) gradeFilter.value = previousGrade;
     }
     const selectedGrade = gradeFilter?.value || '';
-    const sectionValues = [...new Set(periods.filter(period => !selectedGrade || String(period.gradeLevel || '') === selectedGrade).map(period => String(period.section || '').trim()).filter(Boolean))].sort((a,b) => a.localeCompare(b, undefined, {numeric:true}));
+    const sectionValues = [...new Set(effectivePeriods.filter(period => !selectedGrade || String(period.gradeLevel || '') === selectedGrade).map(period => String(period.section || '').trim()).filter(Boolean))].sort((a,b) => a.localeCompare(b, undefined, {numeric:true}));
     if (sectionFilter) {
       sectionFilter.innerHTML = '<option value="">All sections</option>' + sectionValues.map(section => '<option value="' + esc(section) + '">' + esc(section) + '</option>').join('');
       if (sectionValues.includes(previousSection)) sectionFilter.value = previousSection;
     }
     const selectedSection = sectionFilter?.value || '';
-    const filtered = periods.filter(period =>
+    const filtered = effectivePeriods.filter(period =>
       (!selectedGrade || String(period.gradeLevel || '') === selectedGrade) &&
       (!selectedSection || String(period.section || '') === selectedSection)
     );
@@ -1473,7 +1480,7 @@ function coverageStatusLabel(status) {
         }).join('') : '<p class="weekly-day-empty">No classes scheduled</p>') + '</section>';
     }).join('') : '<div class="weekly-empty-state"><strong>No schedules match these filters.</strong><span>Try another grade level or section, or create a class schedule.</span></div>';
     const summary = $('weeklyTimetableSummary');
-    if (summary) summary.textContent = filtered.length + ' class schedule' + (filtered.length === 1 ? '' : 's') + ' · ' + days.length + ' operating day' + (days.length === 1 ? '' : 's');
+    if (summary) summary.textContent = filtered.length + ' class schedule' + (filtered.length === 1 ? '' : 's') + ' · effective ' + formatSchoolDate(asOfDate) + ' · ' + days.length + ' operating day' + (days.length === 1 ? '' : 's');
   }
 
   function setScheduleDisplay(mode) {
@@ -3550,7 +3557,7 @@ let teacherActionMenuListenersInstalled = false;
   document.querySelectorAll('[data-schedule-display]').forEach(button => {
     button.addEventListener('click', () => setScheduleDisplay(button.dataset.scheduleDisplay));
   });
-  $('weeklyGradeFilter')?.addEventListener('change', renderWeeklyTimetable);
+  $('weeklyScheduleAsOf')?.addEventListener('change', renderWeeklyTimetable);\n  $('weeklyGradeFilter')?.addEventListener('change', renderWeeklyTimetable);
   $('weeklySectionFilter')?.addEventListener('change', renderWeeklyTimetable);
   $('weeklyTimetableBoard')?.addEventListener('click', async event => {
     const button = event.target.closest('[data-weekly-assign]');
