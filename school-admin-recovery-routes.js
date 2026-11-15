@@ -128,7 +128,7 @@ function registerSchoolAdminRecoveryRoutes(app, pool, { authenticatePlatform, re
         [account.school_id,account.user_id]);
       await client.query(`
         INSERT INTO audit_logs(school_id,actor_type,actor_user_id,action,entity_type,entity_id,details)
-        VALUES($1,'SCHOOL',$2,'SCHOOL_ADMIN_RECOVERY_COMPLETED','school_user',$2,'{}'::jsonb)`,
+        VALUES($1,'SCHOOL',$2,'SCHOOL_ADMIN_RECOVERY_COMPLETED','school_user',$2::text,'{}'::jsonb)`,
         [account.school_id,account.user_id]);
       await client.query('COMMIT');
       return res.json({recovered:true,message:'Password updated. Sign in using your new School Admin password.'});
