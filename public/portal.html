@@ -161,7 +161,7 @@
           <div class="nav-submenu" data-submenu="people">
             <button class="nav-item" id="studentsNav" data-view="students" title="Students"><span class="nav-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 8.5 12 4l9 4.5-9 4.5-9-4.5Z"/><path d="M6 10.5V16c3.5 3 8.5 3 12 0v-5.5M21 9v6"/></svg></span><span class="nav-label">Students</span></button>
             <button class="nav-item" data-view="teachers" id="teachersNav" hidden title="User management"><span class="nav-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="9" cy="7" r="4"/><path d="M2 21v-2a7 7 0 0 1 14 0v2M17 4a4 4 0 0 1 0 7.8M19 14a5 5 0 0 1 3 4.5V21"/></svg></span><span class="nav-label">User management</span></button>
-            <button class="nav-item" id="parentsNav" hidden title="Parent management"><span class="nav-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="9" cy="7" r="3.5"/><circle cx="18" cy="9" r="2.5"/><path d="M2 21v-2a7 7 0 0 1 14 0v2M16 16a5 5 0 0 1 6 5"/></svg></span><span class="nav-label">Parents</span></button>
+            <button class="nav-item" id="parentsNav" hidden title="Manage parent accounts and student links"><span class="nav-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="9" cy="7" r="3.5"/><circle cx="18" cy="9" r="2.5"/><path d="M2 21v-2a7 7 0 0 1 14 0v2M16 16a5 5 0 0 1 6 5"/></svg></span><span class="nav-label">Parents</span></button>
           </div>
         </div>
         <div class="nav-group">
@@ -454,7 +454,7 @@
           </section>
           <section id="studentsView" class="view-panel" hidden>
             <div class="surface-card section-card">
-              <div class="section-toolbar" id="studentManagementHeader"><div><h3>Student roster</h3><p id="studentScopeText">Students available to your account.</p></div><div class="toolbar-actions"><button class="outline-button" type="button" id="exportStudentsButton">↓ Export list</button><button class="outline-button" type="button" id="downloadStudentTemplate">↓ Template</button><button class="outline-button" type="button" id="bulkImportStudentsButton">↑ Bulk import</button><button class="primary-button" id="showStudentForm">＋ Add student</button></div></div>
+              <div class="section-toolbar" id="studentManagementHeader"><div><h3>Student roster</h3><p id="studentScopeText">Students available to your account.</p></div><div class="toolbar-actions"><button class="outline-button" type="button" id="exportStudentsButton">↓ Export list</button><button class="outline-button" type="button" id="downloadStudentTemplate">↓ Template</button><button class="outline-button" type="button" id="bulkImportStudentsButton">↑ Bulk import</button><a class="outline-button" href="/parent-admin.html" id="manageParentsFromStudents" style="display:inline-flex;align-items:center;text-decoration:none">Parent portal accounts</a><button class="primary-button" id="showStudentForm">＋ Add student</button></div></div>
               <form id="studentForm" class="inline-form" hidden>
                 <div class="form-grid">
                   <div class="field-group"><label for="newStudentId">Student ID *</label><input id="newStudentId" required maxlength="80" placeholder="e.g. G8-001"></div>
