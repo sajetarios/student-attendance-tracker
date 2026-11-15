@@ -79,10 +79,10 @@
         <h2>Sign in to continue</h2>
         <p class="login-subtitle">Choose your account type and enter your credentials.</p>
 
-        <div class="login-mode" role="tablist" aria-label="Account type">
-          <button type="button" class="mode-tab active" id="schoolMode" role="tab" aria-selected="true">School account</button>
-          <button type="button" class="mode-tab" id="studentMode" role="tab" aria-selected="false">Student account</button>
-          <button type="button" class="mode-tab" id="platformMode" role="tab" aria-selected="false">Platform admin</button>
+        <div class="login-mode" role="group" aria-label="Account type">
+          <button type="button" class="mode-tab active" id="schoolMode" aria-pressed="true">School account</button>
+          <button type="button" class="mode-tab" id="studentMode" aria-pressed="false">Student account</button>
+          <button type="button" class="mode-tab" id="platformMode" aria-pressed="false">Platform admin</button>
         </div>
         <p class="login-subtitle" id="accountTypeHint">School account includes administrators, teachers, Gate Keepers, and approved Parent/Guardian accounts.</p>
 
