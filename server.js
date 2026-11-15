@@ -80,7 +80,7 @@ app.get('/api/teachers', authenticateSchoolClient, requireSchoolAdminOrDepartmen
               su.leave_start_date AS "leaveStartDate",
               su.expected_return_date AS "expectedReturnDate",
               su.leave_auto_reactivate AS "leaveAutoReactivate",
-              su.created_at AS "createdAt", su.last_login_at AS "lastLoginAt",
+              su.updated_at AS "appliedAt", su.last_login_at AS "lastLoginAt",
               COALESCE(
                 json_agg(json_build_object(
                   'periodId', p.period_id,
@@ -165,7 +165,7 @@ app.get('/api/school-users', authenticateSchoolClient, requireSchoolAdmin, async
       `SELECT su.user_id AS "userId", su.username, su.display_name AS "displayName", su.role,
               su.teacher_designations AS "teacherDesignations", su.department_id AS "departmentId",
               COALESCE(d.department_name, 'Unassigned') AS "departmentName", su.active,
-              su.created_at AS "createdAt", su.last_login_at AS "lastLoginAt"
+              su.updated_at AS "appliedAt", su.last_login_at AS "lastLoginAt"
        FROM school_users su
        LEFT JOIN school_departments d ON d.school_id=su.school_id AND d.department_id=su.department_id
        WHERE su.school_id=$1 AND su.role IN ('DEPARTMENT_HEAD', 'GATE_KEEPER')
@@ -224,7 +224,7 @@ app.post('/api/school-users', authenticateSchoolClient, requireSchoolAdmin, asyn
       `INSERT INTO school_users (school_id, username, display_name, password_hash, role, teacher_designations, department_id, teacher_qr_token)
        VALUES ($1,$2,$3,$4,$5,$6,$7, CASE WHEN $5='TEACHER' THEN gen_random_uuid() ELSE NULL END)
        RETURNING user_id AS "userId", username, display_name AS "displayName", role,
-                 teacher_designations AS "teacherDesignations", department_id AS "departmentId", active, created_at AS "createdAt"`,
+                 teacher_designations AS "teacherDesignations", department_id AS "departmentId", active, updated_at AS "appliedAt"`,
       [req.auth.schoolId, username.trim(), displayName.trim(), passwordHash, role, designations, departmentId]
     );
     await pool.query(
@@ -300,7 +300,7 @@ app.get('/api/admin/security/accounts', authenticateSchoolClient, requireSchoolA
   try {
     const result = await pool.query(
       `SELECT su.user_id AS "userId", su.username, su.display_name AS "displayName",
-              su.role, su.active, su.created_at AS "createdAt", su.last_login_at AS "lastLoginAt",
+              su.role, su.active, su.updated_at AS "appliedAt", su.last_login_at AS "lastLoginAt",
               su.failed_login_attempts AS "failedLoginAttempts", su.locked_until AS "lockedUntil",
               su.must_change_password AS "mustChangePassword",
               su.teacher_designations AS "teacherDesignations",
@@ -436,7 +436,7 @@ app.get('/api/admin/security/audit', authenticateSchoolClient, requireSchoolAdmi
   try {
     const result = await pool.query(
       `SELECT a.action, a.entity_type AS "entityType", a.entity_id AS "entityId",
-              a.details, a.created_at AS "createdAt",
+              a.details, a.updated_at AS "appliedAt",
               COALESCE(actor.display_name, actor.username, 'System') AS "actorName"
        FROM audit_logs a
        LEFT JOIN school_users actor
@@ -829,7 +829,7 @@ app.post('/api/teachers', authenticateSchoolClient, requireSchoolAdmin, async (r
     const created = await client.query(
       `INSERT INTO school_users (school_id, username, display_name, password_hash, role, teacher_designations, department_id, teacher_qr_token)
        VALUES ($1,$2,$3,$4,'TEACHER',$5,$6,gen_random_uuid())
-       RETURNING user_id AS "userId", username, display_name AS "displayName", teacher_designations AS "teacherDesignations", department_id AS "departmentId", active, created_at AS "createdAt"`,
+       RETURNING user_id AS "userId", username, display_name AS "displayName", teacher_designations AS "teacherDesignations", department_id AS "departmentId", active, updated_at AS "appliedAt"`,
       [req.auth.schoolId, username.trim(), displayName.trim(), passwordHash, teacherDesignations, assignedDepartmentId]
     );
     const teacher = created.rows[0];
@@ -1814,11 +1814,11 @@ app.post('/api/gate/teacher-events', authenticateSchoolClient, requireSchoolRole
   if (manilaDate !== schoolDate) return res.status(400).json({ error: 'The selected school date does not match the scan time in Asia/Manila.' });
   try {
     const calendar = await pool.query(
-      `SELECT exception_type AS type,dismissal_time AS "dismissalTime",created_at AS "createdAt"
+      `SELECT exception_type AS type,dismissal_time AS "dismissalTime",updated_at AS "appliedAt"
        FROM school_calendar_exceptions WHERE school_id=$1 AND calendar_date=$2::date`,
       [req.auth.schoolId,schoolDate]);
     const exception = calendar.rows[0];
-    const exceptionAppliedBeforeEvent = exception && new Date(occurredAt) >= new Date(exception.createdAt);
+    const exceptionAppliedBeforeEvent = exception && new Date(occurredAt) >= new Date(exception.appliedAt);
     if (exceptionAppliedBeforeEvent && exception?.type === 'CLOSED') return res.status(409).json({error:'Attendance is disabled because the school is marked closed on this date.'});
     if (exceptionAppliedBeforeEvent && exception?.type === 'SHORTENED_DAY' && exception.dismissalTime &&
         new Intl.DateTimeFormat('en-GB',{timeZone:'Asia/Manila',hour:'2-digit',minute:'2-digit',hourCycle:'h23'}).format(new Date(occurredAt)) > String(exception.dismissalTime).slice(0,5))
@@ -2881,12 +2881,12 @@ app.post('/api/sync/events', authenticateSchoolClient, requireSchoolClient, asyn
       }
 
       const calendarResult = await client.query(
-        `SELECT exception_id AS "exceptionId",exception_type AS type,dismissal_time AS "dismissalTime",created_at AS "createdAt"
+        `SELECT exception_id AS "exceptionId",exception_type AS type,dismissal_time AS "dismissalTime",updated_at AS "appliedAt"
          FROM school_calendar_exceptions WHERE school_id=$1 AND calendar_date=$2::date`,
         [req.auth.schoolId,event.schoolDate]);
       const calendarException = calendarResult.rows[0];
       // Preserve scans captured offline before an administrator added or changed this exception.
-      const exceptionAppliedBeforeEvent = calendarException && new Date(event.occurredAt) >= new Date(calendarException.createdAt);
+      const exceptionAppliedBeforeEvent = calendarException && new Date(event.occurredAt) >= new Date(calendarException.appliedAt);
       if (exceptionAppliedBeforeEvent && calendarException?.type === 'CLOSED') {
         results.push({eventId:event.eventId,status:'REJECTED',reason:'School is marked closed on this date.'});
         continue;
