@@ -375,7 +375,7 @@
     if ($('studentRosterPanel')) $('studentRosterPanel').hidden = gateKeeper;
     if ($('studentForm')) $('studentForm').hidden = gateKeeper || departmentHead || $('studentForm').hidden;
     if ($('parentInviteModal')) $('parentInviteModal').hidden = true;
-    if ($('schedulesNav')) $('schedulesNav').hidden = admin || gateKeeper || (teacher && !(subjectTeacher || classAdviser));
+    if ($('schedulesNav')) $('schedulesNav').hidden = gateKeeper || (teacher && !(subjectTeacher || classAdviser));
     if ($('sf2Nav')) $('sf2Nav').hidden = admin || gateKeeper || (!departmentHead && !teacher);
     if ($('teachersNav')) {
       $('teachersNav').hidden = !(admin || departmentHead);
@@ -629,6 +629,9 @@
       setView('teachers');
       setAdminManagementTab(button.dataset.adminGo);
     });
+  });
+  document.querySelectorAll('[data-admin-view]').forEach(button => {
+    button.addEventListener('click', () => setView(button.dataset.adminView));
   });
 
   function renderStats(data) {
