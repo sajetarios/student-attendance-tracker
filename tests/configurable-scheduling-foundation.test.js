@@ -27,7 +27,7 @@ test('configurable scheduling migration is registered and additive',()=>{
 
 test('calendar date validator accepts real ISO dates and rejects impossible dates',()=>{
   const routes=read('scheduling-config-routes.js');
-  const validatorLine=routes.split('\\n').find(line=>line.startsWith('const dateOk='));
+  const validatorLine=routes.split('\n').find(line=>line.startsWith('const dateOk='));
   assert.ok(validatorLine,'date validator should be present');
   const dateOk=new Function(validatorLine+'; return dateOk;')();
   assert.equal(dateOk('2026-11-15'),true);
