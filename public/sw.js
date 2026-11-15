@@ -1,10 +1,10 @@
-const CACHE = "school-attendance-shell-v50-demo-staff-sf2";
+const CACHE = "school-attendance-shell-v51-sf2-import-roster";
 
 const SHELL = [
   "/portal-login.html",
-  "/portal.css?v=0.9.46",
+  "/portal.css?v=0.9.47",
   "/portal.css",
-  "/portal.js?v=0.9.46",
+  "/portal.js?v=0.9.47",
   "/academic-admin.css?v=1",
   "/academic-admin.js?v=2",
   "/app-dialog.css?v=1",
