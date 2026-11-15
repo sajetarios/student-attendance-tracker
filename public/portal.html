@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="theme-color" content="#1c2d45">
   <title>Dashboard · School Attendance</title>
-  <link rel="stylesheet" href="/portal.css?v=0.9.47">
+  <link rel="stylesheet" href="/portal.css?v=0.9.48">
   <link rel="stylesheet" href="/academic-admin.css?v=1">
   <link rel="stylesheet" href="/password-visibility.css">
 
@@ -546,9 +546,9 @@
               <div id="studentRosterPanel">
               <div class="student-roster-tools">
                 <div><h3>Registered students</h3><p id="studentRosterDescription">QR previews remain tied to each student's existing private token. Editing details does not replace the QR code.</p></div>
-                <p id="studentDepartmentScopeNote" class="student-scope-banner" hidden>School-wide read-only view: active learners across all departments are visible here. Student record changes, photos, accounts, and QR management remain restricted to authorized roles.</p>
+                <p id="studentDepartmentScopeNote" class="student-scope-banner" hidden>School-wide learner roster. Department Heads may select and update shared student fields only for sections scheduled in their own department. Individual student identity, photos, and login accounts remain restricted.</p>
                 <div class="student-filter-row"><label class="student-name-filter">Search by name or student ID <input id="studentRosterSearch" type="search" placeholder="Type a student name or ID…"></label><label>Filter by grade <select id="bulkQrGrade"><option value="ALL">All grades</option><option>Grade 7</option><option>Grade 8</option><option>Grade 9</option><option>Grade 10</option></select></label><label>Filter by section <select id="bulkQrSection"><option value="ALL">All sections</option></select></label><label id="studentStatusFilterWrap" hidden>Record status <select id="studentStatusFilter"><option value="ACTIVE">Active</option><option value="INACTIVE">Inactive</option><option value="ARCHIVED">Archived</option><option value="ALL">All records</option></select></label></div>
-                <div class="student-bulk-actions"><label><input type="checkbox" id="selectAllStudents"> Select all visible students</label><span id="selectedStudentCount">0 selected</span><button class="primary-button" type="button" id="printBulkQr">Print selected ID cards</button><span id="bulkQrFeedback" class="inline-feedback" role="status"></span><select id="studentBatchAction" aria-label="Batch action"><option value="">Batch action…</option><option value="UPDATE">Edit selected</option><option value="ASSIGN">Assign grade/section</option><option value="ACTIVATE">Activate</option><option value="DEACTIVATE">Deactivate</option><option value="ARCHIVE">Archive</option></select><button type="button" class="outline-button" id="applyStudentBatch" disabled>Apply</button></div>
+                <div class="student-bulk-actions"><label><input type="checkbox" id="selectAllStudents"> Select all visible students</label><span id="selectedStudentCount">0 selected</span><button class="primary-button" type="button" id="printBulkQr">Print selected ID cards</button><span id="bulkQrFeedback" class="inline-feedback" role="status"></span><select id="studentBatchAction" aria-label="Batch action"><option value="">Choose a batch action…</option><option value="SET_SEX">Set sex (Male/Female)</option><option value="ASSIGN">Move to existing grade/section</option><option value="ACTIVATE">Activate selected</option><option value="DEACTIVATE">Deactivate selected</option><option value="ARCHIVE">Archive selected</option></select><button type="button" class="outline-button" id="applyStudentBatch" disabled>Apply</button></div>
               </div>
               <div class="table-scroll"><table id="studentRosterTable"><thead><tr><th>Select</th><th>Photo</th><th>Student ID</th><th>Full name</th><th>Sex</th><th>Grade</th><th>Section</th><th>Status</th><th>QR code</th><th>Actions</th><th>Student portal account</th></tr></thead><tbody id="studentRows"><tr><td colspan="11" class="empty-cell">Loading students…</td></tr></tbody></table></div>
               </div>
@@ -565,18 +565,42 @@
                 </div>
               </div>
               <div id="studentBatchModal" class="student-edit-overlay" role="dialog" aria-modal="true" aria-labelledby="studentBatchTitle" hidden>
-                <form id="studentBatchForm" class="student-edit-dialog">
-                  <div class="section-toolbar"><div><h3 id="studentBatchTitle">Edit selected students</h3><p id="studentBatchDescription">Only the fields you complete will be changed.</p></div><button type="button" class="outline-button" id="closeStudentBatch">Close</button></div>
-                  <div class="form-grid">
-                    <div class="field-group" id="batchNameGroup"><label for="batchFullName">Full name (optional)</label><input id="batchFullName" maxlength="200"></div>
-                    <div class="field-group" id="batchSexGroup"><label for="batchSex">Sex (optional)</label><select id="batchSex"><option value="">Do not change</option><option value="MALE">Male</option><option value="FEMALE">Female</option></select></div>
-                    <div class="field-group" id="batchLrnGroup"><label for="batchLrn">LRN (optional)</label><input id="batchLrn" maxlength="30"></div>
-                    <div class="field-group" id="batchParentNameGroup"><label for="batchParentName">Parent / guardian (optional)</label><input id="batchParentName" maxlength="160"></div>
-                    <div class="field-group" id="batchParentMobileGroup"><label for="batchParentMobile">Parent mobile (optional)</label><input id="batchParentMobile" maxlength="30"></div>
-                    <div class="field-group" id="batchGradeGroup"><label for="batchGrade">Grade level</label><select id="batchGrade"><option>Grade 7</option><option>Grade 8</option><option>Grade 9</option><option>Grade 10</option></select></div>
-                    <div class="field-group" id="batchSectionGroup"><label for="batchSection">Section</label><input id="batchSection" maxlength="100"></div>
+                <form id="studentBatchForm" class="student-edit-dialog student-batch-dialog">
+                  <div class="section-toolbar">
+                    <div><h3 id="studentBatchTitle">Batch action</h3><p id="studentBatchDescription">Confirm which learners and values will change.</p></div>
+                    <button type="button" class="outline-button" id="closeStudentBatch">Close</button>
                   </div>
-                  <div class="form-actions"><button type="submit" class="primary-button" id="confirmStudentBatch">Confirm batch action</button><span id="studentBatchFeedback" class="inline-feedback" role="status"></span></div>
+                  <div class="student-batch-selected-panel">
+                    <strong id="studentBatchSelectedCount">0 students selected</strong>
+                    <div id="studentBatchSelectedPreview" class="student-batch-student-chips" aria-label="Selected learners"></div>
+                    <small>Each learner keeps their own name, Student ID, LRN and guardian information. To change these, use the student's individual Edit button.</small>
+                  </div>
+                  <div class="form-grid student-batch-fields">
+                    <div class="field-group" id="batchSexGroup" hidden>
+                      <label for="batchSex">Set sex for selected learners *</label>
+                      <select id="batchSex"><option value="">Select Male or Female</option><option value="MALE">Male</option><option value="FEMALE">Female</option></select>
+                      <small class="field-hint">This sets the same sex for every selected learner. Verify your selection first.</small>
+                    </div>
+                    <div class="field-group" id="batchGradeGroup" hidden>
+                      <label for="batchGrade">Destination grade *</label>
+                      <select id="batchGrade"><option value="">Choose grade</option><option>Grade 7</option><option>Grade 8</option><option>Grade 9</option><option>Grade 10</option></select>
+                    </div>
+                    <div class="field-group" id="batchSectionGroup" hidden>
+                      <label for="batchSection">Destination section *</label>
+                      <select id="batchSection"><option value="">Choose a grade first</option></select>
+                      <small class="field-hint" id="batchSectionHint">Only available school sections within your role's scope can be selected.</small>
+                    </div>
+                  </div>
+                  <div id="studentBatchChangeSummary" class="student-batch-change-summary" role="status"></div>
+                  <label id="studentBatchAcknowledgeWrap" class="student-batch-acknowledge" hidden>
+                    <input id="studentBatchAcknowledge" type="checkbox">
+                    <span id="studentBatchAcknowledgeText">I understand this will change the selected students.</span>
+                  </label>
+                  <div class="form-actions student-batch-footer">
+                    <button type="submit" class="primary-button" id="confirmStudentBatch">Review and apply changes</button>
+                    <button type="button" class="outline-button" id="cancelStudentBatch">Cancel</button>
+                    <span id="studentBatchFeedback" class="inline-feedback" role="status"></span>
+                  </div>
                 </form>
               </div>
               <div id="studentAccountModal" class="student-edit-overlay" role="dialog" aria-modal="true" aria-labelledby="studentAccountTitle" hidden>
@@ -936,7 +960,7 @@
   <script src="/sw-refresh.js?v=1" defer></script>
   <script src="/password-visibility.js" defer></script>
   <script src="/vendor/html5-qrcode.min.js" defer></script>
-  <script src="/portal.js?v=0.9.47" defer></script>
+  <script src="/portal.js?v=0.9.48" defer></script>
   <script src="/academic-admin.js?v=2" defer></script>
 </body>
 </html>
