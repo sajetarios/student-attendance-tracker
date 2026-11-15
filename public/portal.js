@@ -233,7 +233,7 @@
     if (departmentHead) {
       titles = {
         dashboard: ['Department Head Dashboard', 'Monitor learner attendance, teacher availability, class coverage, schedules, and section report progress.'],
-        students: ['Student roster · View only', 'View learners across the school. Student master-record changes remain with the School Administrator and authorized Class Advisers.'],
+        students: ['Student roster · Department scope', 'View learners school-wide and manage approved bulk changes only within your own scheduled sections. Individual identity details remain editable by authorized staff.'],
         teachers: ['Teacher monitoring', 'Review teacher designations, assigned grade levels and sections, leave, schedules, and temporary substitute coverage.'],
         schedules: ['Department schedule management', 'View every department’s timetable and create or assign class schedules only within your own department.'],
         sf2: ['SF2 monitoring', 'Preview official section reports. Department Heads cannot edit, submit, or collect SF2 reports.']
@@ -1020,7 +1020,7 @@ function coverageStatusLabel(status) {
         String(a.section) === String(student.section));
     }
     if (user.role === 'DEPARTMENT_HEAD' && user.departmentId && user.departmentCode !== 'UNASSIGNED') {
-      return periods.some(p => p.active !== false && String(p.departmentId) === String(user.departmentId) &&
+      return periods.some(p => p.active !== false && String(p.scheduleDepartmentId) === String(user.departmentId) &&
         String(p.gradeLevel) === String(student.gradeLevel) &&
         String(p.section) === String(student.section));
     }
@@ -3732,7 +3732,7 @@ let teacherActionMenuListenersInstalled = false;
       destinations = adviserAssignments.map(a => ({ gradeLevel:a.gradeLevel, section:a.section }));
     } else if (role === 'DEPARTMENT_HEAD') {
       destinations = periods.filter(p => p.active !== false &&
-        String(p.departmentId) === String(user.departmentId))
+        String(p.scheduleDepartmentId) === String(user.departmentId))
         .map(p => ({ gradeLevel:p.gradeLevel, section:p.section }));
     } else if (role === 'SCHOOL_ADMIN') {
       destinations = [
