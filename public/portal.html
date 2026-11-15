@@ -978,6 +978,20 @@
               <div class="form-actions"><button class="primary-button" id="platformCreateSchoolButton" type="submit">Create school</button><button class="outline-button" id="platformRefreshButton" type="button">↻ Refresh overview</button></div>
             </form><p id="platformFeedback" class="inline-feedback" role="status" aria-live="polite"></p>
           </section>
+          <section class="surface-card section-card platform-recovery-card" aria-labelledby="recoveryCenterTitle">
+            <div class="section-toolbar"><div><p class="eyebrow muted">ACCOUNT SECURITY</p><h3 id="recoveryCenterTitle"><span data-ui-icon="key"></span> School Admin recovery center</h3><p>Issue a single-use recovery code to an active School Administrator. Codes cannot be issued for teachers, parents, students, or other roles.</p></div></div>
+            <form id="platformRecoveryForm" class="form-grid platform-school-form">
+              <div class="field-group"><label for="platformRecoveryAdmin">School Administrator</label><select id="platformRecoveryAdmin" required><option value="">Select an active School Admin</option></select></div>
+              <div class="field-group"><label for="platformRecoveryPassword">Confirm your Super Admin password</label><input id="platformRecoveryPassword" type="password" autocomplete="current-password" required></div>
+              <div class="form-actions"><button class="primary-button" id="platformRecoveryIssueButton" type="submit"><span data-ui-icon="key"></span> Issue recovery code</button></div>
+            </form>
+            <div id="platformRecoveryResult" class="recovery-code-result" hidden role="status" aria-live="polite">
+              <strong>One-time recovery code</strong><p>Give this code privately to the selected School Administrator. It expires in 15 minutes, and is not shown again after refreshing this page.</p>
+              <div class="recovery-code-copy"><code id="platformRecoveryCode"></code><button type="button" id="platformRecoveryCopy" class="outline-button">Copy code</button></div>
+              <small id="platformRecoveryExpiry"></small>
+            </div>
+            <p id="platformRecoveryFeedback" class="inline-feedback" role="status" aria-live="polite"></p>
+          </section>
           <section class="surface-card section-card"><div class="section-toolbar"><div><h3>Schools</h3><p>Review school records and active users. Deactivating a school signs out its users and devices.</p></div></div>
             <div class="table-scroll"><table><thead><tr><th>School</th><th>Code</th><th>Users</th><th>Learners</th><th>Cloud sync</th><th>Status</th><th>Action</th></tr></thead><tbody id="platformSchoolRows"><tr><td colspan="7" class="empty-cell">Loading schools…</td></tr></tbody></table></div>
           </section>

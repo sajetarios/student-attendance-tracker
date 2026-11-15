@@ -3569,7 +3569,7 @@ let teacherActionMenuListenersInstalled = false;
       $('schoolTitle').textContent = 'Platform workspace';
       $('schoolCodeLabel').textContent = 'PLATFORM ADMINISTRATION';
       $('schoolEmblem').textContent = 'P';
-      document.querySelector('.side-nav').innerHTML = '<button class="nav-item active" data-view="platform"><span class="nav-icon">▦</span><span class="nav-label">Platform overview</span></button>';
+      document.querySelector('.side-nav').innerHTML = '<button class="nav-item active" data-view="platform"><span class="nav-icon" data-ui-icon="shield"></span><span class="nav-label">Platform overview</span></button>';
       $('refreshButton').hidden = true;
       setView('platform');
       try { await loadPlatformData(); }
@@ -3671,7 +3671,17 @@ let teacherActionMenuListenersInstalled = false;
   });
 
   async function loadPlatformData() {
-    const [overview, schools] = await Promise.all([api('/api/platform/overview'),api('/api/platform/schools')]);
+    const [overview, schools, recovery] = await Promise.all([api('/api/platform/overview'),api('/api/platform/schools'),api('/api/platform/recovery/school-admins')]);
+    const selection=$('platformRecoveryAdmin');
+    if(selection){
+      const previous=selection.value;
+      selection.replaceChildren(new Option('Select an active School Admin',''));
+      for(const entry of recovery.administrators){
+        const label=entry.schoolName+' · '+entry.displayName+' ('+entry.username+')';
+        selection.add(new Option(label,entry.schoolId+'|'+entry.userId));
+      }
+      if([...selection.options].some(option=>option.value===previous))selection.value=previous;
+    }
     $('platformSchoolCount').textContent=String(overview.overview.schoolCount||0);
     $('platformActiveSchools').textContent=String(overview.overview.activeSchoolCount||0);
     $('platformActiveAccounts').textContent=String(overview.overview.activeAccountCount||0);
@@ -3685,6 +3695,35 @@ let teacherActionMenuListenersInstalled = false;
       <td><button class="outline-button compact-button" type="button" data-platform-school="${esc(s.schoolId)}" data-next-active="${!s.active}">${s.active?'Deactivate':'Activate'}</button></td>
     </tr>`).join(''):'<tr><td colspan="7" class="empty-cell">No schools registered yet.</td></tr>';
   }
+
+  $('platformRecoveryForm')?.addEventListener('submit',async event=>{
+    event.preventDefault();
+    const button=$('platformRecoveryIssueButton'),feedback=$('platformRecoveryFeedback');
+    $('platformRecoveryResult').hidden=true;
+    feedback.className='inline-feedback';
+    const [schoolId,userId]=($('platformRecoveryAdmin').value||'').split('|');
+    if(!schoolId||!userId){feedback.textContent='Select an active School Administrator.';return;}
+    button.disabled=true;feedback.textContent='Verifying Super Admin identity…';
+    try{
+      const result=await api('/api/platform/recovery/issue',{method:'POST',body:JSON.stringify({
+        schoolId,userId,superAdminPassword:$('platformRecoveryPassword').value
+      })});
+      $('platformRecoveryCode').textContent=result.recoveryCode;
+      $('platformRecoveryExpiry').textContent='Expires '+new Date(result.expiresAt).toLocaleString('en-PH',{
+        timeZone:'Asia/Manila',dateStyle:'medium',timeStyle:'short'
+      })+' (Philippine time).';
+      $('platformRecoveryResult').hidden=false;
+      feedback.textContent='Code issued to '+result.displayName+'. Share it privately.';
+      showToast('Recovery code issued successfully.');
+    }catch(error){feedback.textContent=error.message;feedback.className='inline-feedback error';}
+    finally{button.disabled=false;$('platformRecoveryPassword').value='';}
+  });
+  $('platformRecoveryCopy')?.addEventListener('click',async ()=>{
+    const value=$('platformRecoveryCode').textContent;
+    if(!value)return;
+    try{await navigator.clipboard.writeText(value);showToast('Recovery code copied.');}
+    catch{showToast('Clipboard unavailable. Select the code manually to copy it.',true);}
+  });
 
   $('platformCreateSchoolForm')?.addEventListener('submit', async event => {
     event.preventDefault(); const button=$('platformCreateSchoolButton');button.disabled=true;

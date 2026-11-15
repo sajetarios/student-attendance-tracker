@@ -22,6 +22,9 @@
     studentMode?.setAttribute('aria-pressed', String(isStudent));
     platformMode.setAttribute('aria-pressed', String(mode === 'platform'));
     schoolCodeGroup.hidden = mode === 'platform';
+    document.getElementById('schoolAdminRecoveryLink').hidden = mode !== 'school';
+    document.getElementById('schoolAdminRecoveryForm').hidden = true;
+    form.hidden = false;
     if (document.getElementById('firstPlatformSetupLink')) document.getElementById('firstPlatformSetupLink').hidden = mode !== 'platform';
     schoolCode.required = mode !== 'platform';
     if (usernameLabel) usernameLabel.textContent = isStudent ? 'Student ID / username' : 'Username';
@@ -86,6 +89,44 @@
       button.disabled = false;
       button.querySelector('span:first-child').textContent = 'Sign in';
     }
+  });
+
+  const recoveryForm=document.getElementById('schoolAdminRecoveryForm');
+  const recoveryFeedback=document.getElementById('recoveryFeedback');
+  document.getElementById('openSchoolAdminRecovery').addEventListener('click',()=>{
+    if(mode!=='school')return;
+    form.hidden=true;recoveryForm.hidden=false;
+    document.getElementById('recoverSchoolCode').value=schoolCode.value.trim();
+    document.getElementById('recoverUsername').value=document.getElementById('username').value.trim();
+    document.getElementById('recoverCode').focus();
+  });
+  document.getElementById('cancelSchoolAdminRecovery').addEventListener('click',()=>{
+    recoveryForm.hidden=true;form.hidden=false;recoveryForm.reset();
+    recoveryFeedback.textContent='';
+  });
+  recoveryForm.addEventListener('submit',async event=>{
+    event.preventDefault();
+    const submit=document.getElementById('recoverSubmit');
+    const payload={
+      schoolCode:document.getElementById('recoverSchoolCode').value.trim(),
+      username:document.getElementById('recoverUsername').value.trim(),
+      recoveryCode:document.getElementById('recoverCode').value.trim(),
+      newPassword:document.getElementById('recoverNewPassword').value,
+      confirmPassword:document.getElementById('recoverConfirmPassword').value
+    };
+    if(payload.newPassword!==payload.confirmPassword){recoveryFeedback.textContent='New passwords do not match.';return;}
+    submit.disabled=true;recoveryFeedback.textContent='Checking recovery code…';
+    try{
+      const response=await fetch('/api/auth/school/recover-admin',{method:'POST',
+        headers:{'Content-Type':'application/json'},cache:'no-store',body:JSON.stringify(payload)});
+      const data=await response.json().catch(()=>({}));
+      if(!response.ok)throw Error(data.error||'Password recovery failed.');
+      recoveryForm.reset();recoveryForm.hidden=true;form.hidden=false;
+      schoolCode.value=payload.schoolCode;document.getElementById('username').value=payload.username;
+      feedback.className='form-feedback success';
+      feedback.textContent='Password reset successful. Sign in with your new School Admin password.';
+    }catch(error){recoveryFeedback.textContent=error.message;}
+    finally{submit.disabled=false;document.getElementById('recoverNewPassword').value='';document.getElementById('recoverConfirmPassword').value='';}
   });
 
   // Do not auto-redirect merely because a session token exists. A previous
