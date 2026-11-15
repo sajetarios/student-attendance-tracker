@@ -1059,7 +1059,7 @@ function coverageStatusLabel(status) {
     if (rosterHeader && departmentHead) {
       rosterHeader.innerHTML = '<th>Select</th><th>Student ID</th><th>Full name</th><th>Sex</th><th>Grade</th><th>Section</th><th>Status</th>';
     } else if (rosterHeader) {
-      rosterHeader.innerHTML = '<th>Select</th><th>Photo</th><th>Student ID</th><th>Full name</th><th>Sex</th><th>Grade</th><th>Section</th><th>Status</th><th>QR code</th><th>Actions</th>' + (admin ? '<th>Student portal account</th>' : '');
+      rosterHeader.innerHTML = '<th>Select</th><th>Photo</th><th>Student ID</th><th>Full name</th><th>Sex</th><th>Grade</th><th>Section</th><th>Status</th><th>QR code</th><th>Actions</th>' + (admin ? '<th>Parent / guardian</th><th>Student portal account</th>' : '');
     }
     if ($('studentRosterDescription')) {
       $('studentRosterDescription').textContent = departmentHead
@@ -1118,7 +1118,7 @@ function coverageStatusLabel(status) {
         if (departmentHead) {
           return `<tr><td data-label="Select">${selection || '<span class="muted-inline" title="Only your department’s assigned sections can be selected">View only</span>'}</td><td data-label="Student ID">${esc(student.studentId)}</td><td data-label="Full name"><strong>${esc(student.fullName)}</strong></td><td data-label="Sex">${esc(student.sex || 'Not set')}</td><td data-label="Grade">${esc(student.gradeLevel)}</td><td data-label="Section">${esc(student.section)}</td><td data-label="Status">${statusLabel}</td></tr>`;
         }
-        return `<tr><td data-label="Select">${selection}</td><td data-label="Photo">${avatar}</td><td data-label="Student ID">${esc(student.studentId)}</td><td data-label="Full name">${esc(student.fullName)}</td><td data-label="Sex">${esc(student.sex || 'Not set')}</td><td data-label="Grade">${esc(student.gradeLevel)}</td><td data-label="Section">${esc(student.section)}</td><td data-label="Status">${statusLabel}</td><td data-label="QR code">${qrCell}</td><td data-label="Actions">${actions}</td>${admin ? '<td data-label="Student account">' + accountCell + '</td>' : ''}</tr>`;
+        return `<tr><td data-label="Select">${selection}</td><td data-label="Photo">${avatar}</td><td data-label="Student ID">${esc(student.studentId)}</td><td data-label="Full name">${esc(student.fullName)}</td><td data-label="Sex">${esc(student.sex || 'Not set')}</td><td data-label="Grade">${esc(student.gradeLevel)}</td><td data-label="Section">${esc(student.section)}</td><td data-label="Status">${statusLabel}</td><td data-label="QR code">${qrCell}</td><td data-label="Actions">${actions}</td>${admin ? `<td data-label="Parent / guardian"><strong>${esc(student.parentName || "Not provided")}</strong><small class="table-subtext">${esc(student.parentMobile || "No mobile number")}</small></td><td data-label="Student account">${accountCell}</td>` : ''}</tr>`;
       }));
       host.innerHTML = rows.join('');
       host.querySelectorAll('input[data-student-photo]').forEach(input => input.addEventListener('change', async () => {
