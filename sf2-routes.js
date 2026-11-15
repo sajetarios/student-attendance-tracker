@@ -5,6 +5,25 @@ const path = require('path');
 const fs = require('fs/promises');
 const TEMPLATE = path.join(__dirname, 'templates', 'School Form 2 (SF2) Daily Attendance Report of Learners.xlsx');
 const SF2_STORAGE = path.join(__dirname, 'storage', 'sf2');
+if (process.env.SF2_TEMPLATE_DIAGNOSTIC === '1') {
+  const diagnosticBook = new ExcelJS.Workbook();
+  diagnosticBook.xlsx.readFile(TEMPLATE).then(() => {
+    const sheet = diagnosticBook.worksheets[0];
+    const hits = [];
+    sheet?.eachRow({includeEmpty:false}, (row,number) => {
+      const entries = [];
+      row.eachCell({includeEmpty:false}, cell => {
+        const value = String(cell.text || '').replace(/\\s+/g, ' ').trim();
+        if (/summary for the month|enrol|average daily|percentage of|consecutive|transferred|drop out|no\\. of days of classes|^month:|^M$|^F$|^TOTAL$/i.test(value)) {
+          entries.push({cell:cell.address, text:value.slice(0,85), master:cell.master?.address});
+        }
+      });
+      if(entries.length) hits.push({row:number,entries});
+    });
+    console.log('SF2_TEMPLATE_LAYOUT', JSON.stringify(hits.slice(-45)));
+  }).catch(e=>console.error('SF2_TEMPLATE_LAYOUT_ERROR', e.message));
+}
+
 const MONTHS = ['JANUARY','FEBRUARY','MARCH','APRIL','MAY','JUNE','JULY','AUGUST','SEPTEMBER','OCTOBER','NOVEMBER','DECEMBER'];
 const validMonth = value => /^\d{4}-(0[1-9]|1[0-2])$/.test(value || '');
 const safePart = value => String(value || '').replace(/[^a-z0-9_-]/gi, '_').slice(0, 80) || 'section';
