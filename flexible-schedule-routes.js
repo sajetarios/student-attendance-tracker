@@ -75,7 +75,7 @@ function registerFlexibleScheduleRoutes(app,pool,auth) {
    const sql=[
     'SELECT a.adjustment_id AS "adjustmentId",a.period_id AS "periodId",to_char(a.school_date,\'YYYY-MM-DD\') AS date,',
     'a.adjustment_type AS type,a.teacher_user_id AS "teacherUserId",t.display_name AS "teacherName",',
-    'a.subject_id AS "subjectId",sub.subject_name AS "subjectName",',
+    'a.subject_id AS "subjectId",sub.subject_name AS "subjectName",sub.department_id AS "subjectDepartmentId",',
     'to_char(a.start_time,\'HH24:MI\') AS "startTime",to_char(a.end_time,\'HH24:MI\') AS "endTime",',
     'a.classroom,a.reason_type AS reason,a.notes,p.grade_level AS "gradeLevel",p.section,p.department_id AS "departmentId"',
     'FROM schedule_day_adjustments a JOIN class_periods p ON p.school_id=a.school_id AND p.period_id=a.period_id',
