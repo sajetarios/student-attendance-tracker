@@ -27,7 +27,8 @@ const REQUIRED_MIGRATIONS = [
   '019_demo001_grade8_spj_class_adviser.sql',
   '020_configurable_school_timetable.sql',
   '021_calendar_exception_schedule_selection.sql',
-  '022_profiles_branding_and_cloud_sync.sql'
+  '022_profiles_branding_and_cloud_sync.sql',
+  '023_demo001_role_and_sf2_attendance.sql'
 ];
 
 function checksum(content) {
@@ -81,7 +82,7 @@ async function runMigrations(pool, logger = console) {
     // This one-time data correction applies only to the seeded DEMO001 school.
     // Fresh installations and isolated test databases may not contain that demo
     // tenant yet, so leave the migration pending instead of failing startup.
-    if (['017_demo001_subject_department_correction.sql', '019_demo001_grade8_spj_class_adviser.sql'].includes(name)) {
+    if (['017_demo001_subject_department_correction.sql', '019_demo001_grade8_spj_class_adviser.sql', '023_demo001_role_and_sf2_attendance.sql'].includes(name)) {
       const demoSchool = await pool.query(
         "SELECT 1 FROM schools WHERE school_code='DEMO001' AND active=TRUE LIMIT 1"
       );
