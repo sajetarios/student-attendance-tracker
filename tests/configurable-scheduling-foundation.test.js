@@ -25,6 +25,18 @@ test('configurable scheduling migration is registered and additive',()=>{
   assert.doesNotMatch(sql,/DROP TABLE|TRUNCATE|DELETE FROM (students|attendance)/i);
 });
 
+test('calendar date validator accepts real ISO dates and rejects impossible dates',()=>{
+  const routes=read('scheduling-config-routes.js');
+  const validatorLine=routes.split('\\n').find(line=>line.startsWith('const dateOk='));
+  assert.ok(validatorLine,'date validator should be present');
+  const dateOk=new Function(validatorLine+'; return dateOk;')();
+  assert.equal(dateOk('2026-11-15'),true);
+  assert.equal(dateOk('2024-02-29'),true);
+  assert.equal(dateOk('2026-02-29'),false);
+  assert.equal(dateOk('2026-13-01'),false);
+  assert.equal(dateOk('15-11-2026'),false);
+});
+
 test('school scheduling configuration APIs enforce admin writes and school scoping',()=>{
   const routes=read('scheduling-config-routes.js');
   const server=read('server.js');
