@@ -57,3 +57,22 @@ test('administrator can load the shared timetable while configuration writes rem
   assert.match(server,/app\.get\('\/api\/periods', authenticateSchoolClient, requireSchoolRoles\('SCHOOL_ADMIN','DEPARTMENT_HEAD','TEACHER'\)/);
   assert.match(routes,/app\.put\('\/api\/scheduling-config\/operating-days',authenticateSchoolClient,admin/);
 });
+
+
+test('calendar exceptions require selected schedules or an explicit shortened-day dismissal time',()=>{
+  const routes=read('scheduling-config-routes.js');
+  const server=read('server.js');
+  const portal=read('public/portal.js');
+  const html=read('public/portal.html');
+  assert.match(routes,/Additional operating and special-class days require selected schedules/);
+  assert.match(routes,/dismissal_time/);
+  assert.match(routes,/school_calendar_exception_periods/);
+  assert.match(routes,/app\.delete\('\/api\/scheduling-config\/calendar-exceptions\/:exceptionId'/);
+  assert.match(server,/School is marked closed on this date/);
+  assert.match(server,/not selected to operate on this special calendar date/);
+  assert.match(server,/after the scheduled dismissal time for this shortened day/);
+  assert.match(portal,/calendarExceptionSchedules/);
+  assert.match(portal,/renderCalendarExceptions/);
+  assert.match(html,/id="calendarExceptionList"/);
+  assert.match(html,/id="calendarDismissalTime"/);
+});
