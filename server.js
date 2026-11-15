@@ -23,6 +23,7 @@ const processCloudSyncOutbox = registerCloudSyncRoutes.processCloudSyncOutbox;
 const { registerAccountRoutes } = require('./account-routes');
 const { registerSchoolRoutes } = require('./school-routes');
 const { registerPlatformRoutes } = require('./platform-routes');
+const { registerPlatformBootstrapRoutes } = require('./platform-bootstrap-routes');
 
 const app = express();
 const pool = new Pool({ connectionString: process.env.DATABASE_URL });
@@ -57,6 +58,7 @@ registerCloudSyncRoutes(app, pool, { authenticateSchoolClient, requireSchoolAdmi
 registerAccountRoutes(app, pool, { authenticateSchoolClient });
 registerSchoolRoutes(app, pool, { authenticateSchoolClient, requireSchoolRoles });
 registerPlatformRoutes(app, pool, { authenticatePlatform, requirePlatformAdmin });
+registerPlatformBootstrapRoutes(app, pool);
 const { registerStudentManagementRoutes } = require('./student-management-routes');
 registerStudentManagementRoutes(app, pool, { authenticateSchoolClient, requireSchoolRoles });
 const registerSf2Routes = require('./sf2-routes');
