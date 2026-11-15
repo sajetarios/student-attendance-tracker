@@ -8,7 +8,7 @@
    logo.innerHTML='<span class="attendigo-a" aria-hidden="true">✓</span><span class="attendigo-name" aria-hidden="true">Attendigo</span>';
    brand.appendChild(logo);
  }
- const parse=(s)=>{const m=s.match(/rgba?\\(([^)]+)\\)/);if(m)return m[1].split(',').slice(0,3).map(Number);const h=s.trim().replace('#','');if(/^[0-9a-f]{6}$/i.test(h))return [0,2,4].map(i=>parseInt(h.slice(i,i+2),16));return [28,30,58]};
+ const parse=(s)=>{const m=s.match(/rgba?\(([^)]+)\)/);if(m)return m[1].split(',').slice(0,3).map(Number);const h=s.trim().replace('#','');if(/^[0-9a-f]{6}$/i.test(h))return [0,2,4].map(i=>parseInt(h.slice(i,i+2),16));return [28,30,58]};
  const luminance=(a)=>a.map(v=>{v/=255;return v<=.04045?v/12.92:((v+.055)/1.055)**2.4}).reduce((s,v,i)=>s+v*[.2126,.7152,.0722][i],0);
  const contrast=(a,b)=>{const x=luminance(a),y=luminance(b);return(Math.max(x,y)+.05)/(Math.min(x,y)+.05)};
  const mix=(a,b,t)=>a.map((v,i)=>Math.round(v*(1-t)+b[i]*t));
