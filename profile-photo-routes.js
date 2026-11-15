@@ -276,4 +276,53 @@ function registerPhotoRoutes(app,pool,{authenticateSchoolClient}){
   finally{client.release();}
  });
 }
-module.exports={registerPhotoRoutes,readOfficialPhoto,parsePhoto,canManageStudent};
+
+/**
+ * Platform administrators have a separate identity namespace from school
+ * accounts, so their personal photo must use platform authentication/storage.
+ * School photo endpoints must never accept a platform bearer token.
+ */
+function registerPlatformPhotoRoutes(app,pool,{authenticatePlatform,requirePlatformAdmin}){
+ const guard=[authenticatePlatform,requirePlatformAdmin];
+ app.get('/api/platform/profile-photo',...guard,async(req,res)=>{
+  try{
+   const photo=await pool.query('SELECT image_data FROM platform_profile_photos WHERE platform_user_id=$1',[req.auth.userId]);
+   if(!photo.rowCount)return res.status(404).end();
+   return sendBuffer(res,photo.rows[0].image_data);
+  }catch(error){
+   console.error('Platform profile photo read failed:',error.message);
+   return res.status(500).json({error:'Could not load profile photo.'});
+  }
+ });
+ app.post('/api/platform/profile-photo',...guard,async(req,res)=>{
+  let photo;
+  try{photo=parsePhoto(req.body)}catch(error){return res.status(400).json({error:error.message});}
+  const client=await pool.connect();
+  try{
+   await client.query('BEGIN');
+   await client.query(`
+    INSERT INTO platform_profile_photos
+     (platform_user_id,original_data,image_data,thumb_data,original_mime)
+    VALUES ($1,$2,$3,$4,$5)
+    ON CONFLICT (platform_user_id) DO UPDATE SET
+     original_data=EXCLUDED.original_data,
+     image_data=EXCLUDED.image_data,
+     thumb_data=EXCLUDED.thumb_data,
+     original_mime=EXCLUDED.original_mime,
+     modified_at=NOW()`,
+    [req.auth.userId,photo.original,photo.cropped,photo.thumb,photo.originalMime]);
+   await client.query(`
+    INSERT INTO audit_logs (school_id,actor_type,actor_user_id,action,entity_type,entity_id,details)
+    VALUES (NULL,'PLATFORM',$1,'PLATFORM_PROFILE_PHOTO_SAVED','PLATFORM_USER',$2,'{}'::jsonb)`,
+    [req.auth.userId,String(req.auth.userId)]);
+   await client.query('COMMIT');
+   return res.json({ok:true,status:'APPROVED'});
+  }catch(error){
+   await client.query('ROLLBACK').catch(()=>{});
+   console.error('Platform profile photo upload failed:',error.message);
+   return res.status(500).json({error:'Could not save profile photo.'});
+  }finally{client.release();}
+ });
+}
+
+module.exports={registerPhotoRoutes,registerPlatformPhotoRoutes,readOfficialPhoto,parsePhoto,canManageStudent};
