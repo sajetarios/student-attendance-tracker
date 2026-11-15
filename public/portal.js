@@ -385,6 +385,7 @@
     }
     if ($('parentsNav')) $('parentsNav').hidden = !admin;
     if ($('manageParentsFromStudents')) { $('manageParentsFromStudents').hidden = !admin; $('manageParentsFromStudents').style.display = admin ? 'inline-flex' : 'none'; }
+    if ($('showStudentPortalHelp')) $('showStudentPortalHelp').hidden = !admin;
     if ($('showStudentForm')) $('showStudentForm').hidden = !(admin || (teacher && classAdviser));
     if ($('showScheduleForm')) $('showScheduleForm').hidden = !(admin || departmentHead);
     if ($('dashboardAddStudent')) $('dashboardAddStudent').hidden = !(admin || (teacher && classAdviser));
@@ -1044,6 +1045,7 @@ function coverageStatusLabel(status) {
   }
 
   async function renderStudents() {
+    refreshExistingGuardianChoices();
     const host = $('studentRows');
     const grade = $('bulkQrGrade').value;
     const section = $('bulkQrSection').value;
@@ -4355,11 +4357,11 @@ let teacherActionMenuListenersInstalled = false;
     }
   }
 
-  function openParentInvite(student) {
+  function openParentInvite(student, guardian = {}) {
     const schoolCode = user.schoolCode || '';
     const registerUrl = `${window.location.origin}/parent-register.html`;
-    const parentName = $('newParentName').value.trim();
-    const mobile = $('newParentMobile').value.trim();
+    const parentName = guardian.parentName || $('newParentName').value.trim();
+    const mobile = guardian.parentMobile || $('newParentMobile').value.trim();
     const message = [
       `Hello${parentName ? ' ' + parentName : ''}!`,
       `Your child ${student.fullName} (${student.studentId}) has been registered in the school attendance system.`,
@@ -4378,7 +4380,37 @@ let teacherActionMenuListenersInstalled = false;
     $('parentInviteModal').hidden = false;
   }
 
-  $('showStudentForm').addEventListener('click', () => {
+  function refreshExistingGuardianChoices() {
+    const select = $('existingGuardianSelect');
+    if (!select) return;
+    const contacts = new Map();
+    for (const student of students) {
+      const name = String(student.parentName || '').trim();
+      const mobile = String(student.parentMobile || '').trim();
+      if (!name || !mobile || /^0+$/.test(mobile.replace(/\D/g,''))) continue;
+      const key = mobile.replace(/\D/g,'');
+      if (!contacts.has(key)) contacts.set(key, { name, mobile });
+    }
+    select.replaceChildren(new Option('Enter a new guardian', ''));
+    [...contacts.values()].sort((a,b) => a.name.localeCompare(b.name)).forEach(({name,mobile}) => {
+      select.add(new Option(name + ' · ' + mobile, mobile));
+    });
+  }
+  $('existingGuardianSelect')?.addEventListener('change', event => {
+    const mobile = event.target.value;
+    if (!mobile) return;
+    const match = students.find(student => student.parentMobile === mobile && student.parentName);
+    if (match) {
+      $('newParentName').value = match.parentName;
+      $('newParentMobile').value = match.parentMobile;
+    }
+  });
+  $('showStudentPortalHelp')?.addEventListener('click', () => {
+    const search = $('studentRosterSearch');
+    if (search) { search.focus(); search.scrollIntoView({behavior:'smooth',block:'center'}); }
+    showToast('Find the learner below, then select Create login or Reset login in the Student portal account field.');
+  });
+    $('showStudentForm').addEventListener('click', () => {
     $('studentForm').hidden = !$('studentForm').hidden;
     if (!$('studentForm').hidden && $('newGrade').value) loadSectionsForGrade($('newGrade').value);
   });
@@ -4434,7 +4466,7 @@ let teacherActionMenuListenersInstalled = false;
       $('studentForm').hidden = true;
       await loadSchoolData();
       showToast('Student registered successfully.');
-      if (payload.parentName || payload.parentMobile) openParentInvite(inviteStudent);
+      if (payload.parentName || payload.parentMobile) openParentInvite(inviteStudent, payload);
     } catch (error) {
       feedback.className = 'inline-feedback error';
       feedback.textContent = error.message;
