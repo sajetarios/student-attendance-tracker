@@ -3,6 +3,10 @@
 ALTER TABLE school_calendar_exceptions
   ADD COLUMN IF NOT EXISTS dismissal_time TIME;
 
+-- PostgreSQL requires a unique key for the composite school-scoped foreign key.
+CREATE UNIQUE INDEX IF NOT EXISTS school_calendar_exceptions_school_exception_uidx
+  ON school_calendar_exceptions(school_id, exception_id);
+
 CREATE TABLE IF NOT EXISTS school_calendar_exception_periods (
   school_id UUID NOT NULL,
   exception_id UUID NOT NULL,
