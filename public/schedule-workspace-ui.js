@@ -8,7 +8,7 @@
   {id:'weekly',label:'Weekly timetable',icon:'▦'},
   {id:'settings',label:'Timetable settings',icon:'⚙'}
  ];
- let active='regular',role='',initialized=false,focusedBeforeDrawer=null;
+ let active='regular',role='',initialized=false,focusedBeforeDrawer=null,activeDrawer=null;
  function setTab(tab){
   if(!choices.some(c=>c.id===tab)|| (tab==='settings'&&role!=='SCHOOL_ADMIN'))return;
   const view=$('schedulesView');if(!view)return;
@@ -19,6 +19,7 @@
    button.setAttribute('aria-selected',String(selected));
    button.tabIndex=selected?0:-1;
   });
+  if(tab==='regular')document.querySelector('[data-schedule-display="list"]')?.click();
   if(tab==='weekly'){
     document.querySelector('[data-schedule-display="weekly"]')?.click();
   }
@@ -27,6 +28,7 @@
  }
  function update(data){
   if(!initialized)initialize();
+  const roleChanged=Boolean(data.role && data.role!==role);
   role=data.role||role;
   const periods=Array.isArray(data.periods)?data.periods:[];
   const changes=Array.isArray(data.scheduleAdjustments)?data.scheduleAdjustments:[];
@@ -36,14 +38,15 @@
   ['scheduleTotalMetric','scheduleUnassignedMetric','scheduleChangesMetric'].forEach(count);
   if($('scheduleSettingsTab'))$('scheduleSettingsTab').hidden=role!=='SCHOOL_ADMIN';
   if($('scheduleSettingsShortcut'))$('scheduleSettingsShortcut').hidden=role!=='SCHOOL_ADMIN';
+  if($('scheduleMetricScope'))$('scheduleMetricScope').textContent=role==='TEACHER'?'Your assigned classes':role==='DEPARTMENT_HEAD'?'Department timetable':'School-wide timetable';
   const manager=role==='SCHOOL_ADMIN'||role==='DEPARTMENT_HEAD';
   if($('scheduleAdjustmentShortcut'))$('scheduleAdjustmentShortcut').hidden=!manager;
   const intro=$('scheduleScopeText');
-  if(intro && !intro.dataset.newCopy){
+  if(intro){
     intro.dataset.newCopy='1';
-    intro.textContent='Build recurring weekly schedules, assign teachers, and manage one-day changes. Select a tab to focus on a single task.';
+    intro.textContent=role==='TEACHER'?'View your assigned classes and date-specific timetable changes.':role==='DEPARTMENT_HEAD'?'Assign teachers and manage temporary changes for classes in your department.':'Create school-wide schedules, including unassigned classes, and manage timetable settings.';
   }
-  if(!active||active==='settings'&&role!=='SCHOOL_ADMIN')setTab(role==='TEACHER'?'weekly':'regular');
+  if(roleChanged||!active||active==='settings'&&role!=='SCHOOL_ADMIN')setTab(role==='TEACHER'?'weekly':'regular');
   if(!initialized)return;
  }
  function initialize(){
@@ -69,7 +72,7 @@
   const overview=document.createElement('div');
   overview.className='schedule-overview';
   overview.innerHTML=
-   '<div class="schedule-overview-card"><span class="schedule-overview-icon">▦</span><span>Regular schedules</span><strong id="scheduleTotalMetric">—</strong><small>School-wide timetable</small></div>'+
+   '<div class="schedule-overview-card"><span class="schedule-overview-icon">▦</span><span>Regular schedules</span><strong id="scheduleTotalMetric">—</strong><small id="scheduleMetricScope">Visible class schedules</small></div>'+
    '<div class="schedule-overview-card"><span class="schedule-overview-icon is-amber">♙</span><span>Unassigned classes</span><strong id="scheduleUnassignedMetric">—</strong><small>Need a Subject Teacher</small></div>'+
    '<div class="schedule-overview-card"><span class="schedule-overview-icon is-violet">⇄</span><span>Changes this week</span><strong id="scheduleChangesMetric">—</strong><small>Temporary date changes</small></div>';
   header.insertAdjacentElement('afterend',overview);
@@ -109,9 +112,13 @@
     openForm.setAttribute('role','dialog');openForm.setAttribute('aria-modal','true');
     const title=openForm===form?'Create or edit class schedule':'Temporary schedule change';
     openForm.setAttribute('aria-label',title);
+    if(activeDrawer!==openForm){
+      activeDrawer=openForm;
+      openForm.querySelector('button, input, select, textarea')?.focus({preventScroll:true});
+    }
    }else{
     if(focusedBeforeDrawer&&document.contains(focusedBeforeDrawer)){focusedBeforeDrawer.focus({preventScroll:true});}
-    focusedBeforeDrawer=null;
+    focusedBeforeDrawer=null;activeDrawer=null;
    }
   }
   for(const node of [form,adjust]){
@@ -129,7 +136,15 @@
    if(adjust&&!adjust.hidden)$('cancelScheduleAdjustment')?.click();
   });
   document.addEventListener('keydown',event=>{
-   if(event.key!=='Escape'||backdrop.hidden||document.querySelector('.app-dialog-overlay'))return;
+   if(backdrop.hidden||document.querySelector('.app-dialog-overlay'))return;
+   if(event.key==='Tab' && activeDrawer){
+    const controls=[...activeDrawer.querySelectorAll('button, input, select, textarea, a[href], [tabindex]')].filter(el=>!el.disabled&&el.tabIndex>=0&&el.getClientRects().length);
+    const first=controls[0],last=controls[controls.length-1];
+    if(event.shiftKey && (document.activeElement===first || !activeDrawer.contains(document.activeElement))){event.preventDefault();last?.focus();}
+    else if(!event.shiftKey && (document.activeElement===last || !activeDrawer.contains(document.activeElement))){event.preventDefault();first?.focus();}
+    return;
+   }
+   if(event.key!=='Escape')return;
    const node=[form,adjust].find(node=>node&&!node.hidden);
    if(node){event.preventDefault();$(node===form?'cancelScheduleForm':'cancelScheduleAdjustment')?.click();}
   });

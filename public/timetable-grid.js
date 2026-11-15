@@ -68,7 +68,7 @@
     },true);
     document.addEventListener('keydown',e=>{if(e.key==='Escape' && tooltip && !tooltip.hidden){e.preventDefault();close(true);}});
     window.addEventListener('resize',()=>close(false));
-    window.addEventListener('scroll',()=>close(false),true);
+    window.addEventListener('scroll',event=>{if(!tooltip?.contains(event.target))close(false);},true);
     return tooltip;
   }
   function place(anchor) {
@@ -98,13 +98,14 @@
       ['Class',String(entry.gradeLevel||'—')+' · '+String(entry.section||'All sections')],
       ['Time',clock(entry.startTime)+'–'+clock(entry.endTime)],
       ['Room',entry.classroom||'Not set'],
+      ['Weekdays',(entry.weekdays||[]).map(day=>daysOfWeek[Number(day)]?.slice(0,3)).filter(Boolean).join(', ')||daysOfWeek[entry.dayIndex]],
       ['Schedule block',entry.periodName||'Not specified'],
       ['Date',asLongDate(entry.date)]
     ];
     const rows=items.map(item=>'<div class="tt-detail-row"><dt>'+escape(item[0])+'</dt><dd>'+escape(item[1])+'</dd></div>').join('');
     const extra=entry.adjustment ? '<div class="tt-detail-change"><strong>'+escape(tag)+'</strong><span>'+
       escape((entry.adjustment.reason||'').replaceAll('_',' '))+
-      (entry.adjustment.notes?' · '+entry.adjustment.notes:'')+'</span></div>' : '';
+      (entry.adjustment.notes?' · '+escape(entry.adjustment.notes):'')+'</span></div>' : '';
     const management=entry.canEdit && entry.date>=config.today
       ? '<button type="button" class="tt-detail-action" data-tt-adjust>Change this date</button>' : '';
     const assignChoices=!entry.assignedTeacherName && !entry.cancelled && entry.canEdit && entry.eligibleTeachers?.length
@@ -118,6 +119,7 @@
       '<div class="tt-detail-footer"><span class="tt-detail-tip">Saved timetable details</span>'+management+'</div>'+
       '<p data-tt-error class="tt-detail-error" role="status"></p>';
     tooltip.setAttribute('aria-hidden','false');place(button);
+    if(persist)tooltip.querySelector('[data-tt-close]')?.focus({preventScroll:true});
   }
   function render(config) {
     const host=config.host;
