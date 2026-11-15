@@ -146,9 +146,18 @@
      <div class="my-photo-copy"><strong>Profile picture</strong><p>Move and zoom your photo before saving. Photos keep a consistent square shape.</p>
      <button type="button" class="outline-button">`+(type==='student'?'Request photo replacement':'Upload or change photo')+`</button>
      <small role="status" class="my-photo-status"></small></div>`;
-   target.appendChild(wrap);
+   if(target.matches('dialog')&&target.querySelector('.dialog-header'))target.querySelector('.dialog-header').after(wrap);
+   else target.prepend(wrap);
    const img=wrap.querySelector('img'),status=wrap.querySelector('.my-photo-status'),button=wrap.querySelector('button');
-   loadImage('/api/photos/me',token,img).then(ok=>{if(ok)wrap.querySelector('.my-photo-avatar span').hidden=true;});
+   loadImage('/api/photos/me',token,img).then(ok=>{
+     if(!ok)return;
+     wrap.querySelector('.my-photo-avatar span').hidden=true;
+     const top=document.getElementById('userAvatar');
+     if(top){
+       const avatarImg=document.createElement('img');avatarImg.alt='Profile picture';
+       loadImage('/api/photos/me',token,avatarImg).then(loaded=>{if(loaded)top.replaceChildren(avatarImg);});
+     }
+   });
    button.addEventListener('click',()=>selectAndUpload(url,token,result=>{
     status.textContent=result.status==='PENDING'?'Submitted for School Admin approval. Your existing photo remains visible until approved.':'Photo saved successfully.';
     if(result.status==='APPROVED'){
