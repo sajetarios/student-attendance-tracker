@@ -3342,6 +3342,22 @@ async function start() {
   console.log('Checking database migrations...');
   const migrationResult = await runMigrations(pool);
   console.log(`Database migrations ready: ${migrationResult.applied.length} applied, ${migrationResult.total} total.`);
+  // Opt-in ephemeral regression check; remove after validation.
+  if (process.env.RUN_LEARNER_BATCH_TEST_ON_START === '1') {
+    const {execFileSync} = require('node:child_process');
+    try {
+      const output = execFileSync(process.execPath, [
+        '--test',
+        path.join(__dirname,'tests','student-batch-action-safety.test.js'),
+        path.join(__dirname,'tests','student-bulk-management.test.js'),
+        path.join(__dirname,'tests','role-permissions.test.js')
+      ], {cwd:__dirname,encoding:'utf8',timeout:45000,maxBuffer:1024*1024});
+      console.log('LEARNER_BATCH_TEST_PASS',output.slice(-3200));
+    } catch(error) {
+      console.error('LEARNER_BATCH_TEST_FAIL',String(error.stdout||'').slice(-5000),String(error.stderr||error.message).slice(-1500));
+    }
+  }
+
 
   await processDueTeacherReturns();
   const teacherReturnTimer = setInterval(processDueTeacherReturns, 60 * 1000);
