@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="theme-color" content="#1c2d45">
   <title>Dashboard · School Attendance</title>
-  <link rel="stylesheet" href="/portal.css?v=0.9.50">
+  <link rel="stylesheet" href="/portal.css?v=0.9.52">
   <link rel="stylesheet" href="/academic-admin.css?v=1">
   <link rel="stylesheet" href="/password-visibility.css">
 
@@ -550,7 +550,7 @@
                   </div>
                 </div>
               </div>
-              <div id="studentRosterPanel">
+              <div id="studentRosterPanel"><button type="button" class="outline-button" id="guardianQueueOpen" hidden>Guardian approvals</button>
               <div class="student-roster-tools">
                 <div><h3>Registered students</h3><p id="studentRosterDescription">QR previews remain tied to each student's existing private token. Editing details does not replace the QR code.</p></div>
                 <p id="studentDepartmentScopeNote" class="student-scope-banner" hidden>School-wide learner roster. Department Heads may select and update shared student fields only for sections scheduled in their own department. Individual student identity, photos, and login accounts remain restricted.</p>
@@ -630,7 +630,12 @@
                 </div>
               </div>
               <p class="form-help">QR codes contain a random private token, not the student's name, LRN, or phone number. Allow pop-ups for this site to print.</p>
-              <div id="studentEditOverlay" class="student-edit-overlay" hidden>
+              <div id="guardianModal" class="student-edit-overlay" role="dialog" aria-modal="true" aria-labelledby="guardianTitle" hidden><div class="student-edit-dialog guardian-dialog">
+<div class="section-toolbar"><div><h3 id="guardianTitle">Manage guardians</h3><p id="guardianSubtitle">Guardian contacts and parent accounts are separate.</p></div><button type="button" class="outline-button" id="guardianClose">Close</button></div>
+<div class="guardian-tabs"><button type="button" data-gtab="contacts" class="active">Guardians</button><button type="button" data-gtab="request">Request change</button><button type="button" data-gtab="history">History</button></div>
+<div id="guardianContacts"></div><form id="guardianForm" hidden><div class="form-grid"><div class="field-group"><label for="guardianType">Request type</label><select id="guardianType"><option value="ADD">Add secondary guardian</option><option value="CHANGE_PRIMARY">Change primary guardian</option><option value="CORRECT">Correct guardian contact</option></select></div><div class="field-group"><label for="guardianRelation">Relationship</label><select id="guardianRelation"><option>Mother</option><option>Father</option><option>Grandparent</option><option>Legal guardian</option><option>Other</option></select></div><div class="field-group"><label for="guardianName">Full name</label><input id="guardianName" maxlength="160" required></div><div class="field-group"><label for="guardianMobile">Mobile</label><input id="guardianMobile" type="tel" maxlength="30" required></div></div><div class="field-group"><label for="guardianReason">Reason for request</label><textarea id="guardianReason" rows="3" maxlength="1000" required></textarea></div><p class="guardian-notice">Verified Parent Portal access will not change.</p><button class="primary-button" type="submit">Submit for admin review</button></form>
+<div id="guardianHistory" hidden></div><p id="guardianFeedback" class="inline-feedback" role="status"></p></div></div>
+<div id="guardianQueueModal" class="student-edit-overlay" role="dialog" aria-modal="true" aria-labelledby="guardianQueueTitle" hidden><div class="student-edit-dialog guardian-dialog"><div class="section-toolbar"><div><h3 id="guardianQueueTitle">Guardian approval queue</h3><p>Review requests before updating student contacts.</p></div><button type="button" class="outline-button" id="guardianQueueClose">Close</button></div><div id="guardianQueueList"></div><p id="guardianQueueFeedback" role="status"></p></div></div><div id="studentEditOverlay" class="student-edit-overlay" hidden>
                 <form id="studentEditForm" class="student-edit-dialog">
                   <div class="section-toolbar"><div><h3>Edit student information</h3><p>Student ID and private QR token remain unchanged.</p></div><button type="button" class="outline-button" id="closeStudentEdit">Close</button></div>
                   <input type="hidden" id="editStudentId">
@@ -1019,7 +1024,7 @@
   <script src="/timetable-grid.js?v=3" defer></script>
   <script src="/schedule-workspace-ui.js?v=3" defer></script>
   <script src="/photo-editor.js?v=3" defer></script>
-  <script src="/portal.js?v=0.9.57" defer></script>
+  <script src="/portal.js?v=0.9.60" defer></script>
   <script src="/academic-admin.js?v=2" defer></script>
 </body>
 </html>
