@@ -454,7 +454,7 @@
           </section>
           <section id="studentsView" class="view-panel" hidden>
             <div class="surface-card section-card">
-              <div class="section-toolbar" id="studentManagementHeader"><div><h3>Student roster</h3><p id="studentScopeText">Students available to your account.</p></div><div class="toolbar-actions"><button class="outline-button" type="button" id="exportStudentsButton">↓ Export list</button><button class="outline-button" type="button" id="downloadStudentTemplate">↓ Template</button><button class="outline-button" type="button" id="bulkImportStudentsButton">↑ Bulk import</button><a class="outline-button" href="/parent-admin.html" id="manageParentsFromStudents" style="display:inline-flex;align-items:center;text-decoration:none">Parent portal accounts</a><button class="primary-button" id="showStudentForm">＋ Add student</button></div></div>
+              <div class="section-toolbar" id="studentManagementHeader"><div><h3>Student roster</h3><p id="studentScopeText">Students available to your account.</p></div><div class="toolbar-actions"><button class="outline-button" type="button" id="exportStudentsButton">↓ Export list</button><button class="outline-button" type="button" id="downloadStudentTemplate">↓ Template</button><button class="outline-button" type="button" id="bulkImportStudentsButton">↑ Bulk import</button><a class="outline-button" href="/parent-admin.html" id="manageParentsFromStudents" hidden style="display:none;align-items:center;text-decoration:none">Parent portal accounts</a><button class="primary-button" id="showStudentForm">＋ Add student</button></div></div>
               <form id="studentForm" class="inline-form" hidden>
                 <div class="form-grid">
                   <div class="field-group"><label for="newStudentId">Student ID *</label><input id="newStudentId" required maxlength="80" placeholder="e.g. G8-001"></div>
@@ -1018,7 +1018,7 @@
   <script src="/timetable-grid.js?v=3" defer></script>
   <script src="/schedule-workspace-ui.js?v=3" defer></script>
   <script src="/photo-editor.js?v=2" defer></script>
-  <script src="/portal.js?v=0.9.54" defer></script>
+  <script src="/portal.js?v=0.9.55" defer></script>
   <script src="/academic-admin.js?v=2" defer></script>
 </body>
 </html>

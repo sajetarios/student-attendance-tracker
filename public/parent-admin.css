@@ -219,3 +219,16 @@
     overflow-wrap: anywhere;
   }
 }
+
+/* Mobile parent administration: keep appearance controls compact and in flow. */
+.parent-head .ui-appearance-menu { position:relative; min-width:0; }
+.parent-head .ui-appearance-panel { position:static; width:100%; max-width:100%; box-sizing:border-box; }
+.parent-head .ui-theme-control { min-width:0; max-width:100%; }
+.parent-head .ui-theme-options { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:6px; width:100%; }
+.parent-head .ui-theme-options button { min-width:0; width:100%; white-space:normal; overflow-wrap:anywhere; padding:9px 5px; }
+@media(max-width:520px){
+ .parent-head .action-row .ui-appearance-menu { width:100%; }
+ .parent-head .ui-appearance-panel { padding:10px; }
+ .parent-head .ui-theme-control > span { display:block; margin-bottom:8px; }
+ .parent-head .ui-theme-options button { font-size:13px; }
+}
