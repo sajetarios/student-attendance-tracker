@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="theme-color" content="#1c2d45">
   <title>Dashboard · School Attendance</title>
-  <link rel="stylesheet" href="/portal.css?v=0.9.24">
+  <link rel="stylesheet" href="/portal.css?v=0.9.25">
   <link rel="stylesheet" href="/academic-admin.css?v=1">
   <link rel="stylesheet" href="/password-visibility.css">
 
@@ -634,6 +634,7 @@
                 <div class="weekly-timetable-toolbar">
                   <div><strong>Weekly timetable</strong><span id="weeklyTimetableSummary">Loading schedules…</span></div>
                   <div class="weekly-timetable-controls">
+                    <label>Schedules effective on<input id="weeklyScheduleAsOf" type="date" aria-label="Show schedules effective on this date"></label>
                     <label>Grade level<select id="weeklyGradeFilter"><option value="">All grade levels</option></select></label>
                     <label>Section<select id="weeklySectionFilter"><option value="">All sections</option></select></label>
                     <div class="schedule-display-toggle" role="group" aria-label="Schedule display">
@@ -852,7 +853,7 @@
   <script src="/sw-refresh.js?v=1" defer></script>
   <script src="/password-visibility.js" defer></script>
   <script src="/vendor/html5-qrcode.min.js" defer></script>
-  <script src="/portal.js?v=0.9.38" defer></script>
+  <script src="/portal.js?v=0.9.39" defer></script>
   <script src="/academic-admin.js?v=2" defer></script>
 </body>
 </html>
