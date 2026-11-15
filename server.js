@@ -2,6 +2,9 @@
 require('dotenv').config();
 
 const express = require('express');
+const { registerSmsRoutes } = require('./sms-routes');
+const { startSmsWorker } = require('./sms-service');
+let smsWorker;
 const { Pool } = require('pg');
 const { runMigrations } = require('./scripts/migrate');
 const QRCode = require('qrcode');
@@ -54,6 +57,7 @@ const requireSchoolAdminOrDepartmentHeadOrTeacher = requireSchoolRoles('DEPARTME
 const requireSchoolUser = requireSchoolRoles('DEPARTMENT_HEAD', 'TEACHER');
 const requireSchoolAdminOrDepartmentHead = requireSchoolRoles('SCHOOL_ADMIN', 'DEPARTMENT_HEAD');
 const validText = value => typeof value === 'string' && value.trim().length > 0;
+registerSmsRoutes(app, pool, { authenticateSchoolClient, requireSchoolRoles });
 registerParentRoutes(app, pool, { authenticateSchoolClient, requireSchoolRoles });
 registerGuardianRoutes(app, pool, { authenticateSchoolClient, requireSchoolRoles });
 registerStudentRoutes(app, pool, { authenticateSchoolClient, requireSchoolAdmin });
@@ -3134,22 +3138,7 @@ app.post('/api/sync/events', authenticateSchoolClient, requireSchoolClient, asyn
         [req.auth.schoolId, event.eventId, JSON.stringify(cloudPayload)]
       );
 
-      if (student.rows[0].parent_mobile) {
-        const time = new Date(event.occurredAt).toLocaleTimeString('en-PH', {
-          timeZone: 'Asia/Manila', hour: 'numeric', minute: '2-digit'
-        });
-        const action = event.eventType === 'TIME_IN' ? 'checked in' : 'checked out';
-        const context = event.attendanceScope === 'CLASS'
-          ? ` for ${period.period_name}${period.subject_name ? ` (${period.subject_name})` : ''}`
-          : event.attendanceScope === 'ADVISORY' ? ' in the advisory class' : ' at school';
-        const lateText = late ? 'LATE ARRIVAL: ' : '';
-        const message = `${lateText}${student.rows[0].full_name} ${action}${context} at ${time}.`;
-        await client.query(
-          `INSERT INTO sms_outbox(event_id,recipient,message)
-           VALUES($1,$2,$3) ON CONFLICT(event_id) DO NOTHING`,
-          [event.eventId, student.rows[0].parent_mobile, message]
-        );
-      }
+      // SMS is queued transactionally by attendance_sms_enqueue for every attendance entry path.
       results.push({ eventId: event.eventId, status: 'ACCEPTED', late });
     }
     await client.query('COMMIT');
@@ -3407,6 +3396,7 @@ async function start() {
   await fsp.mkdir(STUDENT_PHOTO_ROOT, { recursive: true });
   await pool.query('UPDATE students SET qr_token=gen_random_uuid() WHERE qr_token IS NULL');
   app.listen(port, '0.0.0.0', () => console.log(`Attendance API listening on ${port} (roles-sf2-workflow-responsive-2026-11-11)`));
+  smsWorker = startSmsWorker(pool);
   const cloudSyncTimer = setInterval(() => processCloudSyncOutbox(pool).catch(err => console.error('Cloud sync worker failed:', err.message)), 15 * 1000);
   cloudSyncTimer.unref();
   const certPath = path.join(__dirname, 'localhost+ip.pem');
@@ -3424,6 +3414,6 @@ start().catch(err => {
   process.exit(1);
 });
 
-process.on('SIGINT', async () => { await pool.end(); process.exit(0); });
-process.on('SIGTERM', async () => { await pool.end(); process.exit(0); });
+process.on('SIGINT', async () => { if (smsWorker) await smsWorker.stop(); await pool.end(); process.exit(0); });
+process.on('SIGTERM', async () => { if (smsWorker) await smsWorker.stop(); await pool.end(); process.exit(0); });
 

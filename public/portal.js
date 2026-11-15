@@ -291,6 +291,7 @@
     const teacher = role === 'TEACHER';
     if ($('cloudSyncNav')) $('cloudSyncNav').hidden = !admin;
     if ($('schoolBrandingNav')) $('schoolBrandingNav').hidden = !admin;
+    if ($('smsNav')) $('smsNav').hidden = !admin;
     if ($('exportTeachersButton')) $('exportTeachersButton').hidden = !(admin || role === 'DEPARTMENT_HEAD');
     if ($('bulkImportStudentsButton')) $('bulkImportStudentsButton').hidden = !(admin || teacherHas('CLASS_ADVISER'));
     if ($('studentStatusFilterWrap')) $('studentStatusFilterWrap').hidden = !admin;
