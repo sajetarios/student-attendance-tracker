@@ -7,6 +7,30 @@ const dayOfWeek=d=>new Date(d+'T00:00:00Z').getUTCDay();
 const at=(date,time)=>new Date(date+'T'+String(time).slice(0,5)+':00+08:00');
 const sign=(secret,id,bucket)=>crypto.createHmac('sha256',secret).update(id+':'+bucket).digest('hex');
 const bucket=()=>Math.floor(Date.now()/30000);
+async function saveAttendance(pool,s,studentId,method,actor,reason){
+ const client=await pool.connect();
+ try{
+  await client.query('BEGIN');
+  const status=Date.now()<=new Date(s.starts_at).getTime()+600000?'PRESENT':'LATE';
+  const id=crypto.randomUUID();
+  const inserted=await client.query(`INSERT INTO class_qr_checkins
+   (session_id,school_id,student_id,attendance_status,method,recorded_by_user_id,reason)
+   VALUES($1,$2,$3,$4,$5,$6,$7)
+   ON CONFLICT(session_id,student_id) DO NOTHING RETURNING checkin_id,checked_in_at`,
+   [s.session_id,s.school_id,studentId,status,method,actor||null,reason||null]);
+  if(!inserted.rowCount){await client.query('ROLLBACK');return {duplicate:true};}
+  const event=await client.query(`INSERT INTO attendance_events
+   (event_id,school_id,device_id,student_id,attendance_scope,period_id,event_type,
+    occurred_at_device,school_date,late,sync_status,metadata)
+   VALUES($1,$2,$3,$4,'CLASS',$5,'TIME_IN',$6,$7,$8,'ACCEPTED',$9::jsonb)
+   ON CONFLICT DO NOTHING RETURNING event_id`,
+   [id,s.school_id,'CLASS_QR',studentId,s.period_id,inserted.rows[0].checked_in_at,
+    s.school_date,status==='LATE',JSON.stringify({source:'CLASS_QR',sessionId:s.session_id,method,actor:actor||null})]);
+  if(!event.rowCount){await client.query('ROLLBACK');return {duplicate:true};}
+  await client.query('COMMIT');
+  return {status,checkedInAt:inserted.rows[0].checked_in_at,eventId:id};
+ }catch(e){await client.query('ROLLBACK');throw e;}finally{client.release();}
+}
 function registerClassQrRoutes(app,pool,{authenticateSchoolClient,requireSchoolRoles}){
  const staff=requireSchoolRoles('SCHOOL_ADMIN','DEPARTMENT_HEAD','TEACHER');
  const read=async(schoolId,periodId,date)=>{
@@ -86,12 +110,9 @@ function registerClassQrRoutes(app,pool,{authenticateSchoolClient,requireSchoolR
       AND e.enrollment_status='ENROLLED' AND sy.status='ACTIVE')`,
       [req.auth.schoolId,req.auth.studentId,s.grade_level,s.section]);
    if(!eligible.rowCount)return res.status(403).json({error:'Student is not enrolled in this class.'});
-   const result=await pool.query(`INSERT INTO class_qr_checkins(session_id,school_id,student_id,attendance_status)
-    VALUES($1,$2,$3,CASE WHEN NOW()<=$4::timestamptz+INTERVAL '10 minutes' THEN 'PRESENT' ELSE 'LATE' END)
-    ON CONFLICT(session_id,student_id) DO NOTHING RETURNING attendance_status,checked_in_at`,
-    [sessionId,req.auth.schoolId,req.auth.studentId,s.starts_at]);
-   if(!result.rowCount)return res.status(409).json({error:'Attendance already recorded for this class.'});
-   res.status(201).json({ok:true,status:result.rows[0].attendance_status,checkedInAt:result.rows[0].checked_in_at});
+   const result=await saveAttendance(pool,s,req.auth.studentId,'QR',null,null);
+   if(result.duplicate)return res.status(409).json({error:'Attendance already recorded for this class.'});
+   res.status(201).json({ok:true,status:result.status,checkedInAt:result.checkedInAt});
   }catch(e){console.error('QR check-in:',e.message);res.status(500).json({error:'Unable to record attendance. Please retry.'});}
  });
 
@@ -139,14 +160,9 @@ function registerClassQrRoutes(app,pool,{authenticateSchoolClient,requireSchoolR
        AND en.enrollment_status='ENROLLED' AND sy.status='ACTIVE')`,
     [req.auth.schoolId,studentId,s.grade_level,s.section]);
    if(!e.rowCount)return res.status(403).json({error:'Student is not enrolled in this class.'});
-   const status=Date.now()<=new Date(s.starts_at).getTime()+600000?'PRESENT':'LATE';
-   const result=await pool.query(`INSERT INTO class_qr_checkins
-     (session_id,school_id,student_id,attendance_status,method,recorded_by_user_id,reason)
-     VALUES($1,$2,$3,$4,'MANUAL',$5,$6)
-     ON CONFLICT(session_id,student_id) DO NOTHING RETURNING attendance_status`,
-     [s.session_id,req.auth.schoolId,studentId,status,req.auth.userId,reason]);
-   if(!result.rowCount)return res.status(409).json({error:'Attendance already recorded.'});
-   res.status(201).json({ok:true,status:result.rows[0].attendance_status});
+   const result=await saveAttendance(pool,s,studentId,'MANUAL',req.auth.userId,reason);
+   if(result.duplicate)return res.status(409).json({error:'Attendance already recorded.'});
+   res.status(201).json({ok:true,status:result.status});
   }catch(e){console.error('Manual QR attendance:',e.message);res.status(500).json({error:'Manual attendance failed.'});}
  });
  app.post('/api/class-qr/sessions/:id/close',authenticateSchoolClient,staff,async(req,res)=>{
