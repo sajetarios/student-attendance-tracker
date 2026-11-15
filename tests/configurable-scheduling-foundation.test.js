@@ -108,6 +108,15 @@ test('teacher assignment conflict checks keep permanent and substitute SQL alias
   assert.doesNotMatch(bulkPermanentBranch,/\bts\./);
 });
 
+test('Admin dashboard tab switching does not reference a removed permissions card',()=>{
+  const portal=read('public/portal.js');
+  const html=read('public/portal.html');
+  assert.match(portal,/function setAdminManagementTab\(tabName = 'accounts'\)/);
+  assert.doesNotMatch(portal,/\\bteacherPermissionsCard\\b/);
+  assert.match(portal,/if \(accountAccessPanel\) accountAccessPanel\.hidden = activeTab !== 'permissions'/);
+  assert.match(html,/id="accountAccessPanel"/);
+});
+
 test('administrator can load the shared timetable while configuration writes remain admin-only',()=>{
   const server=read('server.js');
   const routes=read('scheduling-config-routes.js');
