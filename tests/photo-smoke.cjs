@@ -24,8 +24,8 @@ async function main(){
      [schoolId,'UNASSIGNED','Unassigned']);
    const dept=d.rows[0].department_id;
    const insertUser=async(role,username)=>{
-    const u=await pool.query('INSERT INTO school_users(school_id,department_id,username,display_name,password_hash,role) VALUES($1,$2,$3,$4,$5,$6) RETURNING user_id',
-     [schoolId,dept,username,username,'local-fixture-hash',role]);return u.rows[0].user_id;
+    const u=await pool.query('INSERT INTO school_users(school_id,department_id,username,display_name,password_hash,role,teacher_designations) VALUES($1,$2,$3,$4,$5,$6,$7::text[]) RETURNING user_id',
+     [schoolId,dept,username,username,'local-fixture-hash',role,role==='TEACHER'?['SUBJECT_TEACHER']:[]]);return u.rows[0].user_id;
    };
    const admin=await insertUser('SCHOOL_ADMIN','admin-'+random);
    const teacher=await insertUser('TEACHER','teacher-'+random);
