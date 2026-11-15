@@ -1,8 +1,8 @@
 'use strict';
 const crypto=require('node:crypto');
 const QRCode=require('qrcode');
-const uuid=/^[0-9a-f]{8}-[0-9a-f-]{27,}$/i;
-const localDate=()=>new Intl.DateTimeFormat('en-CA',{timeZone:'Asia/Manila',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date());
+const uuid=/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+const localDate=()=>{const p=new Intl.DateTimeFormat('en-US',{timeZone:'Asia/Manila',year:'numeric',month:'2-digit',day:'2-digit'}).formatToParts(new Date());const x=Object.fromEntries(p.map(v=>[v.type,v.value]));return x.year+'-'+x.month+'-'+x.day;};
 const dayOfWeek=d=>new Date(d+'T00:00:00Z').getUTCDay();
 const at=(date,time)=>new Date(date+'T'+String(time).slice(0,5)+':00+08:00');
 const sign=(secret,id,bucket)=>crypto.createHmac('sha256',secret).update(id+':'+bucket).digest('hex');
@@ -29,7 +29,8 @@ function registerClassQrRoutes(app,pool,{authenticateSchoolClient,requireSchoolR
      AND (p.effective_from IS NULL OR p.effective_from<=$3::date)
      AND (p.effective_to IS NULL OR p.effective_to>=$3::date)
      AND EXISTS(SELECT 1 FROM class_period_days d WHERE d.school_id=p.school_id
-       AND d.period_id=p.period_id AND d.weekday=$4)`,[schoolId,periodId,date,dayOfWeek(date)]);
+       AND d.period_id=p.period_id AND d.weekday=$4)
+     AND NOT EXISTS(SELECT 1 FROM school_calendar_exceptions ce WHERE ce.school_id=p.school_id AND ce.calendar_date=$3::date AND ce.exception_type='CLOSED')`,[schoolId,periodId,date,dayOfWeek(date)]);
   return r.rows[0];
  };
  app.post('/api/class-qr/sessions',authenticateSchoolClient,staff,async(req,res)=>{
@@ -37,7 +38,7 @@ function registerClassQrRoutes(app,pool,{authenticateSchoolClient,requireSchoolR
   if(!uuid.test(String(periodId||'')))return res.status(400).json({error:'Valid class period required.'});
   try{
    const p=await read(req.auth.schoolId,periodId,date);
-   if(!p||p.adjustment_type==='CANCEL')return res.status(404).json({error:'No active class on this date.'});
+   if(!p||p.adjustment_type==='CANCEL'||!p.teacher_user_id||!p.section||!p.effective_subject)return res.status(404).json({error:'No active class on this date.'});
    if(req.auth.role!=='SCHOOL_ADMIN'&&String(p.teacher_user_id)!==String(req.auth.userId))
     return res.status(403).json({error:'Only the assigned teacher may start this session.'});
    const start=at(date,p.effective_start),end=at(date,p.effective_end),close=new Date(end.getTime()-300000);
@@ -116,6 +117,7 @@ function registerClassQrRoutes(app,pool,{authenticateSchoolClient,requireSchoolR
       AND (p.effective_to IS NULL OR p.effective_to>=$2::date)
       AND EXISTS(SELECT 1 FROM class_period_days d WHERE d.school_id=p.school_id
         AND d.period_id=p.period_id AND d.weekday=$3)
+      AND NOT EXISTS(SELECT 1 FROM school_calendar_exceptions ce WHERE ce.school_id=p.school_id AND ce.calendar_date=$2::date AND ce.exception_type='CLOSED')
       AND ($4='SCHOOL_ADMIN' OR COALESCE(a.teacher_user_id,cover.substitute_teacher_user_id,regular.teacher_user_id)=$5)
     ORDER BY start_time`,[req.auth.schoolId,date,dayOfWeek(date),req.auth.role,req.auth.userId]);
    res.json({date,classes:result.rows.map(p=>({periodId:p.period_id,gradeLevel:p.grade_level,section:p.section,subjectName:p.subject_name,startTime:String(p.start_time).slice(0,5),endTime:String(p.end_time).slice(0,5)}))});
@@ -128,6 +130,7 @@ function registerClassQrRoutes(app,pool,{authenticateSchoolClient,requireSchoolR
   try{
    const s=(await pool.query('SELECT * FROM class_qr_sessions WHERE school_id=$1 AND session_id=$2',[req.auth.schoolId,req.params.id])).rows[0];
    if(!s)return res.sendStatus(404);
+   if(s.closed_at||Date.now()<new Date(s.starts_at).getTime()||Date.now()>=new Date(s.closes_at).getTime())return res.status(410).json({error:'Class attendance session is closed.'});
    if(req.auth.role!=='SCHOOL_ADMIN'&&String(s.teacher_user_id)!==String(req.auth.userId))return res.sendStatus(403);
    const e=await pool.query(`SELECT 1 FROM students st WHERE st.school_id=$1 AND st.student_id=$2 AND st.active=TRUE
      AND EXISTS(SELECT 1 FROM student_enrollments en JOIN school_years sy ON sy.school_id=en.school_id
