@@ -12,7 +12,7 @@ test('dashboard polish loads after shared theme across role entry points',()=>{
   assert.ok(markup.indexOf('/dashboard-polish.css?v=1')>markup.indexOf('/dashboard-night.css?v=1'),name);
   assert.ok(markup.includes('/dashboard-icons.js?v=4'),name);
  }
- assert.match(read('public/sw.js'),/school-attendance-shell-v60-dashboard-polish/);
+ assert.match(read('public/sw.js'),/school-attendance-shell-v61-profile-photo-editor/);
  assert.match(read('public/sw.js'),/dashboard-polish.css\?v=1/);
 });
 test('sidebar appearance is brand-derived and collapse control is accessible and reversible',()=>{
