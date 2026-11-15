@@ -13,7 +13,9 @@ if(!process.env.DATABASE_URL) throw Error('DATABASE_URL is required.');
 const dbUrl=new URL(process.env.DATABASE_URL);
 if(!['postgres:','postgresql:'].includes(dbUrl.protocol)) throw Error('DATABASE_URL must be PostgreSQL.');
 for(const key of ['sslmode','sslcert','sslkey','sslrootcert']) dbUrl.searchParams.delete(key);
-const pool=new Pool({connectionString:dbUrl.toString(),ssl:{rejectUnauthorized:true}});
+const pool=process.env.MAINTENANCE_USE_SERVICE_PG==='1'
+ ? new Pool({connectionString:process.env.DATABASE_URL}) // Match the already-working Render web service connection.
+ : new Pool({connectionString:dbUrl.toString(),ssl:{rejectUnauthorized:true}});
 const tables=[
  'school_cloud_sync_outbox','sms_outbox','student_sessions','parent_student_links',
  'student_special_programs','student_movements','student_enrollments','student_accounts',
@@ -37,6 +39,21 @@ async function main(){
   const schools=await c.query('SELECT school_id,school_code,school_name FROM schools WHERE school_code=$1 FOR UPDATE',[schoolCode]);
   if(schools.rowCount!==1) throw Error('Exactly one matching school is required.');
   const s=schools.rows[0], sid=s.school_id;
+  // The durable marker is written in the SAME transaction as the reset.
+  // Restarts, redeploys and accidental repeats cannot re-delete the seeded data.
+  await c.query(`CREATE TABLE IF NOT EXISTS demo_reset_maintenance_runs (
+    school_id uuid NOT NULL REFERENCES schools(school_id),
+    operation text NOT NULL,
+    completed_at timestamptz NOT NULL DEFAULT now(),
+    PRIMARY KEY (school_id,operation)
+  )`);
+  const operation='DEMO_GRADE8_RESET_2026_11_15';
+  const previous=await c.query('SELECT completed_at FROM demo_reset_maintenance_runs WHERE school_id=$1 AND operation=$2',[sid,operation]);
+  if(previous.rowCount){
+    console.log('DEMO_RESET_ALREADY_COMPLETED: '+s.school_code);
+    await c.query('ROLLBACK');
+    return;
+  }
   const admin=await c.query("SELECT user_id FROM school_users WHERE school_id=$1 AND role='SCHOOL_ADMIN' AND active=TRUE ORDER BY created_at LIMIT 1",[sid]);
   if(!admin.rowCount) throw Error('An active School Admin account must exist.');
   const usersBefore=await c.query('SELECT user_id,username,role,password_hash FROM school_users WHERE school_id=$1 ORDER BY user_id',[sid]);
@@ -99,6 +116,7 @@ async function main(){
    (SELECT count(*) FROM student_enrollments WHERE school_id=$1) enrollments,
    (SELECT count(*) FROM attendance_events WHERE school_id=$1) attendance_events`,[sid]);
   if(Number(check.rows[0].students)!==12||Number(check.rows[0].enrollments)!==12||Number(check.rows[0].attendance_events)<40) throw Error('Demo validation failed; rolling back.');
+  await c.query('INSERT INTO demo_reset_maintenance_runs(school_id,operation) VALUES($1,$2)',[sid,operation]);
   await c.query('COMMIT');
   console.log('COMMITTED DEMO RESET',JSON.stringify(check.rows[0]));
  }catch(e){await c.query('ROLLBACK').catch(()=>{});throw e;}finally{c.release();}
