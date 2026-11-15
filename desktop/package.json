@@ -1,0 +1,19 @@
+{
+  "name": "student-attendance-desktop",
+  "version": "1.0.0",
+  "description": "Offline teacher attendance companion for Student Attendance Tracker",
+  "author": "Student Attendance Tracker",
+  "private": true,
+  "main": "main.cjs",
+  "scripts": {"start":"electron .","test":"node --test test/*.test.cjs","dist":"electron-builder --publish never"},
+  "devDependencies": {"electron":"45.3.2","electron-builder":"26.18.1"},
+  "build": {
+    "appId":"com.studentattendance.desktop",
+    "productName":"Student Attendance Tracker",
+    "files":["main.cjs","core.cjs","preload.cjs","ui/**/*","package.json"],
+    "artifactName":"Student-Attendance-Tracker-${version}-${os}-${arch}.${ext}",
+    "mac":{"target":[{"target":"dmg","arch":["arm64","x64"]}],"category":"public.app-category.education","identity":null},
+    "win":{"target":[{"target":"nsis","arch":["x64"]}]},
+    "nsis":{"oneClick":false,"perMachine":false,"allowToChangeInstallationDirectory":true,"deleteAppDataOnUninstall":false}
+  }
+}
