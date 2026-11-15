@@ -79,6 +79,10 @@ test('weekly schedule assignments are stored and conflicts are limited to shared
   assert.match(html,/id="calendarExceptionForm"/);
   assert.match(html,/id="scheduleWeekdayChoices"/);
   assert.match(portal,/weekdays: selectedScheduleWeekdays\(\)/);
+  assert.match(portal,/weeklyScheduleAsOf/);
+  assert.match(portal,/period\.effectiveFrom/);
+  assert.match(portal,/period\.effectiveTo/);
+  assert.match(html,/id="weeklyScheduleAsOf"/);
   assert.match(portal,/scheduleTemplatePeriod/);
   assert.match(server,/INSERT INTO class_period_days\(school_id,period_id,weekday\)/);
   assert.match(server,/d\.weekday=ANY\(\$[0-9]+::smallint\[\]\)/);
