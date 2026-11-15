@@ -15,9 +15,9 @@ test('official SF2 has correct summary anchors for male, female, total, and atte
   const summaryRows = [66,68,70,72,74,75,77,79,81,83];
   for(const row of summaryRows) {
     const male = sheet.getCell('AH'+row), female = sheet.getCell('AI'+row), total = sheet.getCell('AJ'+row);
-    assert.equal(male.master.address, male.address);
-    assert.equal(female.master.address, female.address);
-    assert.equal(total.master.address, total.address);
+    assert.equal(male.isMerged ? male.master.address : male.address, male.address);
+    assert.equal(female.isMerged ? female.master.address : female.address, female.address);
+    assert.equal(total.isMerged ? total.master.address : total.address, total.address);
   }
 });
 
