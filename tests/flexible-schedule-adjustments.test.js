@@ -46,18 +46,18 @@ test('conflicts detect section, teacher and room overlap, but allow non-overlapp
 test('APIs require school roles, use date-specific attendance lock, and record audit trail',async()=>{
  const routes={};
  const app={
-  get(name,...handlers){routes[name]={handlers};},
-  post(name,...handlers){routes[name]={handlers};},
-  delete(name,...handlers){routes[name]={handlers};}
+  get(name,...handlers){routes['GET '+name]={handlers};},
+  post(name,...handlers){routes['POST '+name]={handlers};},
+  delete(name,...handlers){routes['DELETE '+name]={handlers};}
  };
  const auth={
   authenticateSchoolClient:()=>{},
   requireSchoolRoles:(...roles)=>{const fn=()=>{};fn.allowedRoles=roles;return fn;}
  };
  registerFlexibleScheduleRoutes(app,{query:async()=>{},connect:async()=>{}},auth);
- const get=routes['/api/schedule-adjustments'];
- const post=routes['/api/schedule-adjustments'];
- const del=routes['/api/schedule-adjustments/:id'];
+ const get=routes['GET /api/schedule-adjustments'];
+ const post=routes['POST /api/schedule-adjustments'];
+ const del=routes['DELETE /api/schedule-adjustments/:id'];
  assert.deepEqual(get.handlers[1].allowedRoles,['SCHOOL_ADMIN','DEPARTMENT_HEAD','TEACHER']);
  assert.deepEqual(post.handlers[1].allowedRoles,['SCHOOL_ADMIN','DEPARTMENT_HEAD']);
  assert.deepEqual(del.handlers[1].allowedRoles,['SCHOOL_ADMIN','DEPARTMENT_HEAD']);
