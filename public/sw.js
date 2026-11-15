@@ -1,10 +1,10 @@
-const CACHE = "school-attendance-shell-v45-profiles-branding";
+const CACHE = "school-attendance-shell-v46-role-dashboard";
 
 const SHELL = [
   "/portal-login.html",
   "/portal.css?v=0.9.25",
   "/portal.css",
-  "/portal.js?v=0.9.41",
+  "/portal.js?v=0.9.42",
   "/academic-admin.css?v=1",
   "/academic-admin.js?v=2",
   "/app-dialog.css?v=1",

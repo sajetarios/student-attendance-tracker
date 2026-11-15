@@ -245,7 +245,7 @@
       titles = {
         dashboard: [dashboardName, classAdviser && subjectTeacher ? 'Your assigned subjects and advisory section at a glance.' : classAdviser ? 'Monitor your assigned section and official SF2 responsibilities.' : 'Monitor your assigned subject classes and record period attendance.'],
         students: [classAdviser && !subjectTeacher ? 'My advisory section' : 'My assigned learners', 'View only the learners in your assigned sections and subject schedules.'],
-        schedules: ['My subject schedules', 'View only your permanent and active substitute class assignments.'],
+        schedules: ['My teaching and advisory schedules', 'View your assigned teaching periods, active substitute assignments, and advisory class timetable.'],
         sf2: [classAdviser && subjectTeacher ? 'My SF2 reports' : classAdviser ? 'Official section SF2' : 'Personal SF2 copy', classAdviser ? 'Generate the official consolidated section SF2 only for sections assigned to you as Class Adviser.' : 'Generate a personal attendance copy from your own subject-period records.'],
         classAttendance: ['Class attendance', classAdviser && subjectTeacher ? 'Review your advisory section and the other sections covered by your assigned subject schedules.' : classAdviser ? 'Review attendance for your assigned advisory section.' : 'Review attendance in the sections covered by your assigned subject schedules.']
       };
@@ -253,7 +253,7 @@
       titles = {
         dashboard: ['School Administrator Dashboard', 'Manage school attendance operations, users, learner records, devices, schedules, and reporting.'],
         students: ['Student management', 'Register learners, maintain student details and photos, create student portal accounts, and manage QR cards.'],
-        schedules: ['Class schedules', 'Create and manage subject periods and permanent teacher assignments.'],
+        schedules: ['School-wide timetable and class schedules', 'Configure school timetable templates, manage class schedules, and assign teachers across departments.'],
         teachers: ['User management', 'Create and update school accounts, assign role-based access, manage departments, and disable or restore account access.'],
         sf2: ['SF2 Report Generator', 'Generate the monthly TUVERA SF2 and collect official reports submitted by Class Advisers.'],
         cloudSync: ['Cloud Sync', 'Forward accepted attendance records to your authenticated cloud server.'],
@@ -379,7 +379,7 @@
     if ($('studentRosterPanel')) $('studentRosterPanel').hidden = gateKeeper;
     if ($('studentForm')) $('studentForm').hidden = gateKeeper || departmentHead || $('studentForm').hidden;
     if ($('parentInviteModal')) $('parentInviteModal').hidden = true;
-    if ($('schedulesNav')) $('schedulesNav').hidden = admin || gateKeeper || (teacher && !(subjectTeacher || classAdviser));
+    if ($('schedulesNav')) $('schedulesNav').hidden = gateKeeper || (teacher && !(subjectTeacher || classAdviser));
     if ($('sf2Nav')) $('sf2Nav').hidden = admin || gateKeeper || (!departmentHead && !teacher);
     if ($('teachersNav')) {
       $('teachersNav').hidden = !(admin || departmentHead);
@@ -398,7 +398,7 @@
     if ($('sardoCard')) $('sardoCard').hidden = admin || !departmentHead;
     if ($('learnerSummaryCard')) $('learnerSummaryCard').hidden = gateKeeper || admin;
     if ($('recentActivityCard')) $('recentActivityCard').hidden = gateKeeper || admin;
-    if ($('quickActionsCard')) $('quickActionsCard').hidden = gateKeeper || admin;
+    if ($('quickActionsCard')) $('quickActionsCard').hidden = gateKeeper;
     document.querySelectorAll('.quick-action[data-go]').forEach(button => {
       const target = button.dataset.go;
       const allowed = allowedViewsForUser();
