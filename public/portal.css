@@ -2039,3 +2039,38 @@ tbody tr:hover td { background: #f9fbfc; }
  .student-batch-chip{max-width:100%;overflow-wrap:anywhere}
  .student-bulk-actions #studentBatchAction{min-width:0;width:100%}
 }
+
+/* Dated adjustments are separate from the permanent recurring weekly timetable. */
+.dated-schedule-panel{margin:16px 0 22px;padding:20px;border:1px solid #d9e5ef;background:#fbfdff;border-radius:14px;display:grid;gap:14px}
+.dated-schedule-heading{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px}
+.dated-schedule-heading h3{font-size:17px;color:#1c4058;margin:0}
+.dated-schedule-heading p{font-size:13px;line-height:1.55;color:#647a8e;max-width:730px;margin:5px 0 0}
+.dated-schedule-heading button{min-height:40px;white-space:normal}
+.dated-schedule-form{background:white;border:1px solid #cddde9;border-radius:12px;padding:17px;display:grid;gap:15px}
+.dated-schedule-inputs{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:13px}
+.dated-schedule-inputs>label{min-width:0;display:flex;flex-direction:column;gap:6px;font-size:12px;color:#536e82;font-weight:750}
+.dated-schedule-inputs select,.dated-schedule-inputs input,.dated-schedule-inputs textarea{width:100%;min-height:44px;background:#fff;border:1px solid #cbd9e7;border-radius:9px;padding:8px 10px;font-size:14px;color:#254157;font-family:inherit}
+.dated-schedule-inputs textarea{min-height:69px;resize:vertical}
+.dated-schedule-inputs .dated-notes{grid-column:span 3}
+.dated-schedule-explanation{background:#f2f7fb;border-left:3px solid #5585a6;padding:12px 14px;font-size:12px;line-height:1.55;color:#466479}
+.dated-schedule-form .form-actions{display:flex;align-items:center;flex-wrap:wrap;gap:9px}
+.dated-schedule-form .form-actions button{min-height:40px}
+.dated-schedule-list-heading{display:flex;justify-content:space-between;align-items:baseline;gap:12px;flex-wrap:wrap}
+.dated-schedule-list-heading strong{font-size:14px;color:#23435b}
+.dated-schedule-list-heading span{font-size:12px;color:#667f91}
+.dated-schedule-list{display:grid;gap:9px}
+.dated-adjustment-card{display:flex;align-items:center;gap:12px;padding:12px 13px;border:1px solid #d6e3ec;border-radius:11px;background:#fff}
+.dated-adjustment-card>div{flex:1;min-width:0;display:grid;gap:3px}
+.dated-adjustment-card strong{font-size:13px;color:#25465c}
+.dated-adjustment-card span,.dated-adjustment-card small{font-size:12px;color:#62788a;line-height:1.4}
+.dated-adjustment-card .status-tag{align-self:start}
+.dated-adjustment-card button{flex-shrink:0;min-height:36px;padding:7px 11px;font-size:12px}
+.weekly-schedule-card.is-adjusted{border-color:#96b9cb;border-left:4px solid #397c9f;background:#f3f9fc}
+.weekly-schedule-card.is-cancelled{opacity:.72;border-left:4px solid #b38255;background:#fff9f0}
+.weekly-schedule-card .weekly-adjustment-badge{display:inline-flex;align-self:flex-start;font-size:10px;font-weight:850;border-radius:6px;background:#dceef7;color:#2d6687;padding:5px 7px}
+.weekly-schedule-card.is-cancelled .weekly-adjustment-badge{background:#fbe7d4;color:#915a2f}
+.weekly-schedule-card .weekly-adjustment-detail{font-size:11px;color:#527286;line-height:1.5}
+.weekly-schedule-card .weekly-adjustment-edit{margin-top:6px;min-height:34px;font-size:12px;padding:7px 10px}
+.weekly-day-column header>small{font-weight:550;color:#637b8d}
+@media(max-width:950px){.dated-schedule-inputs{grid-template-columns:repeat(2,minmax(0,1fr))}.dated-schedule-inputs .dated-notes{grid-column:span 2}}
+@media(max-width:620px){.dated-schedule-panel{padding:14px}.dated-schedule-inputs{grid-template-columns:1fr}.dated-schedule-inputs .dated-notes{grid-column:auto}.dated-adjustment-card{flex-wrap:wrap}.dated-adjustment-card button{width:100%}.dated-schedule-form{padding:12px}.dated-schedule-heading button{width:100%}}
