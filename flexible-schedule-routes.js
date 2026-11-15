@@ -160,16 +160,16 @@ function registerFlexibleScheduleRoutes(app,pool,auth) {
      await c.query('ROLLBACK');return res.status(400).json({error:'Choose a teacher from the replacement subject department.'});
     }
    }
-   const schedulesFor=queryDate(c),savedIds=[];
-   const oldAdjustment=await c.query('SELECT teacher_user_id FROM schedule_day_adjustments WHERE school_id=$1 AND period_id=$2 AND school_date BETWEEN $3::date AND $4::date LIMIT 1', [req.auth.schoolId,b.periodId,dates[0],dates[dates.length-1]]);
+   const schedulesFor=queryDate(c),savedIds=[],applicable=[];
    for(const date of dates) {
     if(base.effective_from&&iso(base.effective_from)>date||base.effective_to&&iso(base.effective_to)<date){
-     await c.query('ROLLBACK');return res.status(409).json({error:'Class is not effective on '+date+'.'});
+     continue; // Days outside the class's effective range are not altered.
     }
     const cal=await c.query('SELECT exception_type FROM school_calendar_exceptions WHERE school_id=$1 AND calendar_date=$2::date',[req.auth.schoolId,date]);
-    if(cal.rows[0]?.exception_type==='CLOSED'&&type!=='CANCEL'){
-     await c.query('ROLLBACK');return res.status(409).json({error:'School is marked closed on '+date+'.'});
-    }
+    if(cal.rows[0]?.exception_type==='CLOSED')continue; // A closure already means no class meets.
+    const schedules=await schedulesFor(req.auth.schoolId,date);
+    const current=schedules.find(x=>String(x.periodId)===String(b.periodId));
+    if(!current)continue; // Skip weekends or weekdays on which this subject does not meet.
     const attendance=await c.query([
      'SELECT 1 FROM attendance_events WHERE school_id=$1 AND period_id=$2 AND school_date=$3::date',
      "AND sync_status='ACCEPTED' LIMIT 1"
@@ -177,12 +177,11 @@ function registerFlexibleScheduleRoutes(app,pool,auth) {
     if(attendance.rowCount){
      await c.query('ROLLBACK');return res.status(409).json({error:'Accepted class attendance exists on '+date+'. That date is locked.'});
     }
-    const schedules=await schedulesFor(req.auth.schoolId,date);
-    const current=schedules.find(x=>String(x.periodId)===String(b.periodId));
-    if(!current){
-     await c.query('ROLLBACK');return res.status(409).json({error:'This class does not normally meet on '+date+'. Choose a scheduled weekday.'});
-    }
-    const proposed=effective({...base,teacher_user_id:oldAdjustment.rows[0]?.teacher_user_id ? base.teacher_user_id : current.teacherUserId},{
+    const previous=await c.query(
+      'SELECT teacher_user_id FROM schedule_day_adjustments WHERE school_id=$1 AND period_id=$2 AND school_date=$3::date',
+      [req.auth.schoolId,b.periodId,date]);
+    const originalCover=previous.rows[0]?.teacher_user_id ? base.teacher_user_id : current.teacherUserId;
+    const proposed=effective({...base,teacher_user_id:originalCover},{
      adjustment_type:type,teacher_user_id:teacherId,subject_id:subjectId,
      subject_name:subject?.subject_name||null,start_time:start,end_time:end,classroom:room
     });
@@ -194,8 +193,13 @@ function registerFlexibleScheduleRoutes(app,pool,auth) {
        ' overlaps '+hit.other.gradeLevel+' · '+hit.other.section+' at '+hit.other.startTime+'–'+hit.other.endTime+'.'});
      }
     }
+    applicable.push(date);
    }
-   for(const date of dates){
+   if(!applicable.length){
+    await c.query('ROLLBACK');
+    return res.status(409).json({error:'No scheduled class days were found in this range. Choose the weekday(s) on which this subject meets.'});
+   }
+   for(const date of applicable){
     const saved=await c.query([
      'INSERT INTO schedule_day_adjustments(school_id,period_id,school_date,adjustment_type,',
      'teacher_user_id,subject_id,start_time,end_time,classroom,reason_type,notes,created_by_user_id)',
@@ -212,7 +216,7 @@ function registerFlexibleScheduleRoutes(app,pool,auth) {
      "VALUES($1,'SCHOOL',$2,'SAVE_DATE_SPECIFIC_SCHEDULE','schedule_day_adjustment',$3,$4::jsonb)"
     ].join(' '),[req.auth.schoolId,req.auth.userId,saved.rows[0].adjustment_id,JSON.stringify({periodId:b.periodId,date,type,reason})]);
    }
-   await c.query('COMMIT');res.status(201).json({ok:true,changedDates:dates,updated:dates.length});
+   await c.query('COMMIT');res.status(201).json({ok:true,changedDates:applicable,updated:applicable.length,skipped:dates.length-applicable.length});
   }catch(err){
    if(c)await c.query('ROLLBACK').catch(()=>{});
    console.error('Schedule adjustment save failed:',err.message);
