@@ -1,6 +1,7 @@
 'use strict';
 
 const { hashPassword, verifyPassword } = require('./auth-security');
+const crypto = require('node:crypto');
 
 const validText = (value, max = 160) => typeof value === 'string' && value.trim().length > 0 && value.trim().length <= max;
 
@@ -84,6 +85,54 @@ function registerStudentRoutes(app, pool, auth) {
       console.error('Student password update failed:', err.message);
       return res.status(500).json({ error: 'Could not update student password.' });
     }
+  });
+
+  // Admin-only demonstration: issue one strong student portal credential for a
+  // synthetic learner. The password is returned ONCE and never logged or stored
+  // as plaintext. No ordinary student or real-school accounts can use this route.
+  app.post('/api/admin/demo-student-login', authenticateSchoolClient, requireSchoolAdmin, async (req, res) => {
+    const studentId = 'DEMO-G8-002';
+    const school = await pool.query("SELECT school_id FROM schools WHERE school_id=$1 AND school_code='DEMO001' AND active=TRUE", [req.auth.schoolId])
+      .catch(() => ({ rows: [] }));
+    if (!school.rowCount && !school.rows.length) return res.status(404).json({ error: 'Demo student logins are available only for the DEMO001 test school.' });
+    const username = studentId;
+    const temporaryPassword = 'Demo-' + crypto.randomBytes(18).toString('base64url') + '-8x';
+    let passwordHash;
+    try { passwordHash = await hashPassword(temporaryPassword); }
+    catch (err) { return res.status(500).json({ error: 'Could not generate a demo login.' }); }
+    const client = await pool.connect();
+    try {
+      await client.query('BEGIN');
+      const student = await client.query(
+        "SELECT student_id FROM students WHERE school_id=$1 AND student_id=$2 AND active=TRUE AND grade_level='Grade 8' AND section='Rizal - DEMO' FOR UPDATE",
+        [req.auth.schoolId, studentId]
+      );
+      if (!student.rowCount) { await client.query('ROLLBACK'); return res.status(404).json({ error: 'The Grade 8 demo student is missing.' }); }
+      const existing = await client.query('SELECT username FROM student_accounts WHERE school_id=$1 AND student_id=$2',[req.auth.schoolId,studentId]);
+      if (existing.rowCount) {
+        await client.query('ROLLBACK');
+        return res.status(409).json({ error: 'This demo learner already has a login. Use Student Management to reset their password if necessary.' });
+      }
+      await client.query(
+        `INSERT INTO student_accounts (school_id,student_id,username,password_hash,must_change_password)
+         VALUES ($1,$2,$3,$4,TRUE)`, [req.auth.schoolId,studentId,username,passwordHash]
+      );
+      await client.query(
+        `INSERT INTO audit_logs(school_id,actor_type,actor_user_id,action,entity_type,entity_id,details)
+         VALUES ($1,'SCHOOL',$2,'SCHOOL_ADMIN_CREATE_DEMO_STUDENT_LOGIN','student_account',$3,$4::jsonb)`,
+        [req.auth.schoolId,req.auth.userId,studentId,JSON.stringify({ demo:true, username })]
+      );
+      await client.query('COMMIT');
+      return res.status(201).json({
+        studentId, username, temporaryPassword, mustChangePassword:true,
+        note:'Copy this temporary password now. It is displayed only once and must be changed at first sign-in.'
+      });
+    } catch (err) {
+      await client.query('ROLLBACK').catch(() => {});
+      if (err.code === '23505') return res.status(409).json({ error:'A student login already exists for this demo learner.' });
+      console.error('Demo student login creation failed:', err.message);
+      return res.status(500).json({ error:'Could not create demo student login.' });
+    } finally { client.release(); }
   });
 
   // School Administrator creates the first student login. Username defaults to Student ID.
