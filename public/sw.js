@@ -1,4 +1,4 @@
-const CACHE = "school-attendance-shell-v65-parent-mobile-roles";
+const CACHE = "school-attendance-shell-v66-teacher-guardian";
 
 const SHELL = [
   "/dashboard-icons.js?v=4",
@@ -15,7 +15,7 @@ const SHELL = [
   "/portal-login.html",
   "/portal.css?v=0.9.50",
   "/portal.css",
-  "/portal.js?v=0.9.55",
+  "/portal.js?v=0.9.56",
   "/academic-admin.css?v=1",
   "/academic-admin.js?v=2",
   "/app-dialog.css?v=1",
