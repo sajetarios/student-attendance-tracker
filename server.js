@@ -26,6 +26,9 @@ app.disable('x-powered-by');
 app.use((req, res, next) => {
   res.setHeader('X-Content-Type-Options', 'nosniff');
   res.setHeader('Referrer-Policy', 'no-referrer');
+  res.setHeader('X-Frame-Options', 'DENY');
+  res.setHeader('Cross-Origin-Resource-Policy', 'same-origin');
+  res.setHeader('Permissions-Policy', 'camera=(self), microphone=(), geolocation=()');
   if (req.path.startsWith('/api/')) res.setHeader('Cache-Control', 'no-store');
   next();
 });
@@ -497,8 +500,7 @@ app.get('/api/admin/teacher-gate-attendance', authenticateSchoolClient, requireS
               tge.occurred_at AS "occurredAt", tge.photo_verified AS "photoVerified",
               gatekeeper.display_name AS "recordedBy"
        FROM teacher_gate_events tge
-       JOIN school_users teacher ON teacher.school_id=tge.school_id AND teacher.user_id=tge.teacher_user_id
-       JOIN school_users gatekeeper ON gatekeeper.school_id=tge.school_id AND gatekeeper.user_id=tge.recorded_by_user_id
+       JOIN school_users teacher ON teacher.school_id=tge.school_id AND teacher.user_id=tge.teacher_user_id       JOIN school_users gatekeeper ON gatekeeper.school_id=tge.school_id AND gatekeeper.user_id=tge.recorded_by_user_id
        WHERE tge.school_id=$1 AND tge.school_date=$2::date
        ORDER BY tge.occurred_at DESC, teacher.display_name`,
       [req.auth.schoolId, schoolDate]
@@ -997,8 +999,7 @@ app.post('/api/teachers/:userId/return', authenticateSchoolClient, requireSchool
       await client.query(
         `INSERT INTO audit_logs(school_id, actor_type, actor_user_id, action, entity_type, entity_id, details)
          VALUES($1,'SCHOOL',$2,'SCHOOL_ADMIN_END_COVER_ON_TEACHER_RETURN','teacher_period_substitution',$3,$4::jsonb)`,
-        [req.auth.schoolId, req.auth.userId, cover.substitution_id,
-         JSON.stringify({ periodId: cover.period_id, substituteTeacherUserId: cover.substitute_teacher_user_id, reason: 'Original teacher returned' })]
+        [req.auth.schoolId, req.auth.userId, cover.substitution_id,         JSON.stringify({ periodId: cover.period_id, substituteTeacherUserId: cover.substitute_teacher_user_id, reason: 'Original teacher returned' })]
       );
     }
     await client.query(
@@ -1497,8 +1498,7 @@ app.post('/api/periods/:periodId/assignments', authenticateSchoolClient, require
     return res.status(500).json({ error: 'Could not assign teacher to schedule.' });
   } finally {
     client.release();
-  }
-});
+  }});
 
 app.delete('/api/periods/:periodId/assignments/:teacherUserId', authenticateSchoolClient, requireSchoolRoles('DEPARTMENT_HEAD'), async (req, res) => {
   if (!isUuid(req.params.periodId) || !isUuid(req.params.teacherUserId)) {
@@ -1997,8 +1997,7 @@ app.post('/api/students', authenticateSchoolClient, requireSchoolAdminOrTeacher,
       client.release();
     }
   } catch (err) {
-    console.error('Student save failed:', err.message);
-    if (err.code === '23505') return res.status(409).json({ error: 'That LRN is already registered.' });
+    console.error('Student save failed:', err.message);    if (err.code === '23505') return res.status(409).json({ error: 'That LRN is already registered.' });
     return res.status(500).json({ error: 'Could not save student.' });
   }
 });
@@ -2497,8 +2496,7 @@ app.get('/api/periods', authenticateSchoolClient, requireSchoolRoles('SCHOOL_ADM
 app.delete('/api/periods/:periodId', authenticateSchoolClient, requireSchoolRoles('SCHOOL_ADMIN', 'DEPARTMENT_HEAD'), async (req, res) => {
   if (!isUuid(req.params.periodId)) return res.status(400).json({ error: 'Invalid schedule ID.' });
   const password = req.body?.password;
-  if (typeof password !== 'string' || !password) return res.status(400).json({ error: 'Confirm your password to delete this schedule.' });
-  const actor = await pool.query('SELECT password_hash FROM school_users WHERE school_id=$1 AND user_id=$2 AND active=TRUE', [req.auth.schoolId, req.auth.userId]);
+  if (typeof password !== 'string' || !password) return res.status(400).json({ error: 'Confirm your password to delete this schedule.' });  const actor = await pool.query('SELECT password_hash FROM school_users WHERE school_id=$1 AND user_id=$2 AND active=TRUE', [req.auth.schoolId, req.auth.userId]);
   if (!actor.rowCount || !await verifyPassword(password, actor.rows[0].password_hash)) return res.status(401).json({ error: 'Password confirmation failed. No changes were made.' });
   const client = await pool.connect();
   try {
@@ -2997,8 +2995,7 @@ app.post('/api/sync/events', authenticateSchoolClient, requireSchoolClient, asyn
           late = isLateForPeriod(event.occurredAt, {
             start_time: setting.rows[0].setting_value.time,
             grace_minutes: setting.rows[0].setting_value.graceMinutes || 0
-          });
-        }
+          });        }
       }
 
       const duplicate = await client.query(
@@ -3332,5 +3329,4 @@ start().catch(err => {
 
 process.on('SIGINT', async () => { await pool.end(); process.exit(0); });
 process.on('SIGTERM', async () => { await pool.end(); process.exit(0); });
-
 
