@@ -95,7 +95,24 @@
         list.append(item);
       }
       body.replaceChildren(list);
+      refreshApprovalCount(true);
     }catch(err){body.replaceChildren(el('p','Could not load approvals.'));status.textContent=err.message;}
+  }
+  let lastCountRefresh=0;
+  async function refreshApprovalCount(force=false){
+    const button=$('guardianApprovalStandalone');
+    if(!button||!admin())return;
+    if(!force && Date.now()-lastCountRefresh<20000)return;
+    lastCountRefresh=Date.now();
+    try{
+      const data=await api('/api/guardians/requests');
+      const count=(data.requests||[]).filter(r=>r.status==='PENDING').length;
+      button.textContent=count?'Guardian approvals ('+count+' pending)':'Guardian approvals';
+      button.title=count?count+' guardian requests awaiting review':'No pending guardian requests';
+    }catch(error){
+      button.textContent='Guardian approvals · check access';
+      button.title=error.message;
+    }
   }
   function enhance(){
     if(!eligible())return;
@@ -114,10 +131,13 @@
       }
     }
     if(admin()){
-      const panel=$('studentRosterPanel');
-      if(panel&&!$('guardianApprovalStandalone')){
-        const b=btn('Guardian approvals',openQueue);b.id='guardianApprovalStandalone';
-        panel.prepend(b);
+      // The School Admin has no Students navigation view; the roster may be hidden.
+      // Put approvals in the always-visible workspace heading instead.
+      const heading=document.querySelector('#schoolWorkspace .view-heading') || $('studentRosterPanel');
+      if(heading&&!$('guardianApprovalStandalone')){
+        const b=btn('Guardian approvals',openQueue,'outline-button guardian-approval-action');
+        b.id='guardianApprovalStandalone';heading.append(b);
+        refreshApprovalCount();
       }
     }
   }
@@ -126,6 +146,8 @@
     const roster=$('studentRows');
     if(roster){new MutationObserver(()=>enhance()).observe(roster,{childList:true});}
     enhance();
+    document.addEventListener('visibilitychange',()=>{if(!document.hidden)refreshApprovalCount(true);});
+    document.addEventListener('click',event=>{if(event.target.closest('[data-view]'))refreshApprovalCount();});
   }
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',start,{once:true});else start();
 })();
