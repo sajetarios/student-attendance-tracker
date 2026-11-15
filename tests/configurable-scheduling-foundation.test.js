@@ -8,14 +8,14 @@ const read=file=>fs.readFileSync(path.join(root,file),'utf8');
 
 test('configurable scheduling migration is registered and additive',()=>{
   const runner=read('scripts/migrate.js');
-  const sql=read('migrations/020_configurable_school_timetable.sql');
+  const sql=read('migrations/020_configurable_school_timetable.sql');\n  const calendarSql=read('migrations/021_calendar_exception_schedule_selection.sql');
   assert.match(runner,/'020_configurable_school_timetable\.sql'/);
   assert.match(sql,/CREATE TABLE IF NOT EXISTS school_operating_days/);
   assert.match(sql,/weekday BETWEEN 0 AND 6/);
   assert.match(sql,/CREATE TABLE IF NOT EXISTS timetable_templates/);
   assert.match(sql,/CREATE TABLE IF NOT EXISTS timetable_template_periods/);
   assert.match(sql,/CREATE TABLE IF NOT EXISTS school_calendar_exceptions/);
-  assert.match(sql,/CREATE TABLE IF NOT EXISTS class_period_days/);
+  assert.match(sql,/CREATE TABLE IF NOT EXISTS class_period_days/);\n  assert.match(calendarSql,/ADD COLUMN IF NOT EXISTS dismissal_time TIME/);\n  assert.match(calendarSql,/CREATE TABLE IF NOT EXISTS school_calendar_exception_periods/);
   assert.match(sql,/ADD COLUMN IF NOT EXISTS effective_from DATE/);
   assert.doesNotMatch(sql,/DROP TABLE|TRUNCATE|DELETE FROM (students|attendance)/i);
 });
@@ -27,6 +27,10 @@ test('school scheduling configuration APIs enforce admin writes and school scopi
   assert.match(routes,/app\.put\('\/api\/scheduling-config\/operating-days',authenticateSchoolClient,admin/);
   assert.match(routes,/app\.post\('\/api\/scheduling-config\/templates',authenticateSchoolClient,admin/);
   assert.match(routes,/app\.post\('\/api\/scheduling-config\/calendar-exceptions',authenticateSchoolClient,admin/);
+  assert.match(routes,/school_calendar_exception_periods/);
+  assert.match(routes,/dismissal_time/);
+  assert.match(routes,/app\.delete\('\/api\/scheduling-config\/calendar-exceptions\/:exceptionId'/);
+  assert.match(sql,/school_calendar_exception_periods/);
   assert.match(routes,/WHERE school_id=\$1/);
   assert.match(routes,/days\.length!==7/);
   assert.match(routes,/WEEKEND/);
