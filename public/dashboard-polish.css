@@ -224,3 +224,32 @@ html[data-ui-theme="dark"] #studentsView #studentRosterTable tbody td::before {c
 html[data-ui-theme="dark"] #studentsView #studentRosterTable tbody td[data-label="Full name"] {color:#f4f8ff!important}
 html[data-ui-theme="dark"] #studentsView #studentRosterTable tbody td .muted-inline,
 html[data-ui-theme="dark"] #studentsView #studentRosterTable tbody td small {color:#c2cde0!important}
+
+/* School-branded floating QR scanner shortcut. */
+.portal-page a#classQrTeacherShortcut,
+a#classQrTeacherShortcut{
+  --qr-button-brand:var(--brand,#075fc4);
+  background:var(--qr-button-brand)!important;
+  color:var(--brand-contrast,#fff)!important;
+  border:1px solid color-mix(in srgb,var(--qr-button-brand) 75%,#111827)!important;
+  border-radius:16px!important;
+  padding:12px 18px!important;
+  min-height:48px!important;
+  display:inline-flex!important;
+  align-items:center!important;
+  justify-content:center!important;
+  gap:9px!important;
+  font-size:14px!important;
+  font-weight:750!important;
+  letter-spacing:.01em;
+  line-height:1.25!important;
+  box-shadow:0 9px 25px rgba(9,22,44,.22),inset 0 1px 0 rgba(255,255,255,.14)!important;
+  text-decoration:none!important;
+  transition:transform .16s ease,filter .16s ease,box-shadow .16s ease!important;
+}
+a#classQrTeacherShortcut:hover{filter:brightness(1.07);transform:translateY(-2px);box-shadow:0 12px 28px rgba(9,22,44,.27)!important}
+a#classQrTeacherShortcut:active{transform:translateY(0);filter:brightness(.96)}
+a#classQrTeacherShortcut:focus-visible{outline:3px solid color-mix(in srgb,var(--qr-button-brand) 45%,white)!important;outline-offset:4px!important}
+a#classQrTeacherShortcut :is(svg,.ui-icon,i){color:inherit!important;stroke:currentColor!important}
+@media(max-width:700px){a#classQrTeacherShortcut{padding:10px 13px!important;min-height:44px!important;font-size:12px!important;right:12px!important;bottom:calc(12px + env(safe-area-inset-bottom,0px))!important;max-width:calc(100vw - 24px)!important}}
+@media(prefers-reduced-motion:reduce){a#classQrTeacherShortcut{transition:none!important}}
