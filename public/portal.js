@@ -3426,6 +3426,9 @@ let teacherActionMenuListenersInstalled = false;
       const metrics = [
         ['Present learner-days', data.summary.present],
         ['Confirmed absent', data.summary.absent],
+        ['Manual presence days', data.summary.manualPresentDays || 0],
+        ['QR presence days', data.summary.qrPresentDays || 0],
+        ['Conflicts to resolve', data.summary.conflicts || 0],
         [data.mode === 'PERSONAL' ? 'No record (this teacher)' : 'Pending review', data.mode === 'PERSONAL' ? data.summary.noRecord : data.summary.pending],
         ['Missing sex', data.summary.missingSex]
       ];
@@ -3444,7 +3447,7 @@ let teacherActionMenuListenersInstalled = false;
         return `<tr><td><strong>${esc(student.name)}</strong><small>${esc(student.gradeLevel)} · ${esc(student.section)}</small></td><td>${sexControl}</td><td>${attendance || 'No weekdays'}</td></tr>`;
       }).join('') || '<tr><td colspan="3" class="empty-cell">No learners are enrolled in this section.</td></tr>';
       const personal = data.mode === 'PERSONAL';
-      const canExport = personal || (data.summary.pending === 0 && data.summary.missingSex === 0);
+      const canExport = personal || (data.summary.pending === 0 && data.summary.conflicts === 0 && data.summary.missingSex === 0);
       const canDownload = !data.readOnly || personal;
       $('sf2ExportButton').hidden = !canDownload;
       $('sf2ExportButton').textContent = personal ? 'Generate personal copy' : 'Generate official SF2 Excel';
