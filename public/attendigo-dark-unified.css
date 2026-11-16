@@ -207,3 +207,15 @@ html[data-ui-theme="dark"] .portal-page :is(
 @media(prefers-reduced-motion:reduce){
  html[data-ui-theme="dark"] .manual-folio :is(.manual-btn,.manual-status){transition:none!important}
 }
+
+/* Dedicated teacher QR page and check-in screen inherit the same accessible palette. */
+html[data-ui-theme="dark"] .portal-page .panel{
+  background:var(--night-panel)!important;color:var(--night-text)!important;
+  border:1px solid var(--night-border)!important;
+}
+html[data-ui-theme="dark"] .portal-page main:has(> #message){
+  background:var(--night-panel)!important;color:var(--night-text)!important;
+}
+html[data-ui-theme="dark"] .portal-page #message{
+  background:var(--night-soft)!important;color:var(--night-text)!important;
+}
