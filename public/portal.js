@@ -382,7 +382,18 @@
     if ($('studentStatusFilterWrap')) $('studentStatusFilterWrap').hidden = !admin;
     if ($('downloadStudentTemplate')) $('downloadStudentTemplate').hidden = !(admin || (teacher && teacherHas('CLASS_ADVISER')));
     if ($('exportStudentsButton')) $('exportStudentsButton').hidden = !['SCHOOL_ADMIN', 'DEPARTMENT_HEAD', 'TEACHER'].includes(role);
-    if ($('academicAdminNav')) $('academicAdminNav').hidden = !admin;
+    if ($('academicAdminNav')) {
+      const enrollmentNav = $('academicAdminNav');
+      // Enrollment belongs beside Students, not buried in the Academics submenu.
+      const peopleSubmenu = document.querySelector('.nav-submenu[data-submenu="people"]');
+      if (peopleSubmenu && enrollmentNav.parentElement !== peopleSubmenu) {
+        const studentsNav = $('studentsNav');
+        if (studentsNav) studentsNav.insertAdjacentElement('afterend', enrollmentNav);
+        else peopleSubmenu.append(enrollmentNav);
+      }
+      enrollmentNav.hidden = !admin;
+      enrollmentNav.setAttribute('aria-label', 'School Years and Enrollment');
+    }
     if ($('staffBulkDepartmentToolbar')) $('staffBulkDepartmentToolbar').hidden = !admin;
     const departmentHead = role === 'DEPARTMENT_HEAD';
     const gateKeeper = role === 'GATE_KEEPER';
