@@ -109,7 +109,7 @@
        const k=localStorage.key(i);
        if(!k||!k.startsWith(prefix))continue;
        const date=k.slice(prefix.length);
-       if(!/^\\d{4}-\\d{2}-\\d{2}$/.test(date))continue;
+       if(!/^\d{4}-\d{2}-\d{2}$/.test(date))continue;
        const doc=JSON.parse(localStorage.getItem(k)||'{}');
        if(typeof doc.notes==='string'&&doc.notes.trim())drafts.push({date,body:doc.notes.trim()});
      }
