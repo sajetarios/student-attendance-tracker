@@ -1,6 +1,6 @@
 'use strict';
 /* Local, dependency-free square photo editor. Source images retain aspect ratio.
-   Each saved image is a normalized 512×512 WebP and 128×128 thumbnail,
+   Each saved image is a normalized 512×512 PNG and 128×128 thumbnail,
    while the original image is sent privately for future re-cropping. */
 (function(){
  const esc=x=>String(x??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -15,7 +15,7 @@
   });
  }
  function canvasBlob(canvas){
-  return new Promise((resolve,reject)=>canvas.toBlob(b=>b?resolve(b):reject(new Error('Your browser could not export this photo.')), 'image/webp',.86));
+  return new Promise((resolve,reject)=>canvas.toBlob(b=>b?resolve(b):reject(new Error('Your browser could not export this photo.')), 'image/png'));
  }
  async function edit(file,{approvalRequired=false,purpose='profile'}={}){
   if(!file)return null;
@@ -46,7 +46,7 @@
     let dx=0,dy=0,rotation=0,full=isLogo,done=false,drag=null;
     function draw(){
       ctx.clearRect(0,0,512,512);
-      ctx.fillStyle='#e7edf4';ctx.fillRect(0,0,512,512);
+      if(!isLogo){ctx.fillStyle='#e7edf4';ctx.fillRect(0,0,512,512);}
       const turned=rotation%180!==0;
       const w=turned?image.naturalHeight:image.naturalWidth;
       const h=turned?image.naturalWidth:image.naturalHeight;
