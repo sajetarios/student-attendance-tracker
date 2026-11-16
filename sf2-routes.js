@@ -415,17 +415,19 @@ function registerSf2Routes(app, pool, { authenticateSchoolClient, requireSchoolU
           const status = student.days[dayIndex];
           if (status === 'ABSENT') {
             cell.value = 'X';
+            cell.alignment = { ...cell.alignment, horizontal: 'center', vertical: 'middle' };
           } else if (status === 'PRESENT') {
             dailyPresent[dayIndex]++;
           }
         }
 
-        worksheet.getCell(row, 29).value = student
-          ? student.days.filter(status => status === 'ABSENT').length
-          : null;
-        worksheet.getCell(row, 30).value = student
-          ? (Number(student.tardyCount) || 0)
-          : null;
+        const absenceCell = worksheet.getCell(row, 29);
+        const tardyCell = worksheet.getCell(row, 30);
+        absenceCell.value = student ? student.days.filter(status => status === 'ABSENT').length : null;
+        tardyCell.value = student ? (Number(student.tardyCount) || 0) : null;
+        for (const cell of [absenceCell, tardyCell]) {
+          cell.alignment = { ...cell.alignment, horizontal: 'center', vertical: 'middle' };
+        }
       }
 
       data.dates.forEach((date, index) => {
@@ -485,43 +487,103 @@ function registerSf2Routes(app, pool, { authenticateSchoolClient, requireSchoolU
   }
 
   async function buildPersonalCopyWorkbook(month, gradeLevel, section, data) {
+    // This is a subject-teacher observation report, not an official daily absence record.
+    // Preserve the SF2-style male/female grouping without declaring no-scans as absences.
     const workbook = new ExcelJS.Workbook();
     workbook.creator = 'Student Attendance Tracker';
-    workbook.subject = 'Subject Teacher personal attendance copy';
-    const worksheet = workbook.addWorksheet('Personal SF2 Copy', { views: [{ state: 'frozen', ySplit: 5, xSplit: 3 }] });
-    const headers = ['No.', 'Learner ID', 'Learner Name', 'Sex', ...data.dates.map(date => Number(date.slice(-2)))];
-    const lastColumn = headers.length;
-    worksheet.mergeCells(1, 1, 1, lastColumn);
-    worksheet.getCell(1, 1).value = 'SUBJECT TEACHER MONTHLY SF2 COPY — NOT OFFICIAL SF2';
-    worksheet.getCell(1, 1).font = { bold: true, size: 15, color: { argb: 'FFFFFFFF' } };
-    worksheet.getCell(1, 1).alignment = { horizontal: 'center' };
-    worksheet.getCell(1, 1).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF1F4E78' } };
+    workbook.subject = 'Unofficial subject-teacher attendance report';
+    const worksheet = workbook.addWorksheet('Subject Attendance Copy', {
+      views: [{ state: 'frozen', ySplit: 6, xSplit: 3 }]
+    });
+    const lastColumn = 3 + data.dates.length + 1;
+    const dayColumn = day => 4 + day;
+    const presentTotalColumn = lastColumn;
+    const dark = 'FF1F4E78';
+    const blue = 'FF4472C4';
+    const white = 'FFFFFFFF';
+    const center = { horizontal: 'center', vertical: 'middle' };
+    const header = (rowNumber, title, color = dark) => {
+      worksheet.mergeCells(rowNumber, 1, rowNumber, lastColumn);
+      const cell = worksheet.getCell(rowNumber, 1);
+      cell.value = title;
+      cell.font = { bold: true, color: { argb: white }, size: rowNumber === 1 ? 14 : 10 };
+      cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: color } };
+      cell.alignment = { ...center, wrapText: true };
+      worksheet.getRow(rowNumber).height = rowNumber === 1 ? 30 : 23;
+    };
+    header(1, 'SUBJECT TEACHER ATTENDANCE COPY — NOT OFFICIAL DEPED SF2');
     worksheet.mergeCells(2, 1, 2, lastColumn);
-    worksheet.getCell(2, 1).value = `Month: ${month}   Grade: ${gradeLevel}   Section: ${section}`;
-    worksheet.getCell(3, 1).value = 'P = at least one accepted subject time-in recorded by this teacher. NR = no record by this teacher; NR does NOT mean Absent.';
+    worksheet.getCell(2, 1).value = `Month: ${month}    Grade: ${gradeLevel}    Section: ${section}`;
     worksheet.mergeCells(3, 1, 3, lastColumn);
-    worksheet.getCell(3, 1).alignment = { wrapText: true };
-    worksheet.getRow(3).height = 30;
-    worksheet.addRow([]);
-    worksheet.addRow(headers);
+    worksheet.getCell(3, 1).value = 'P = accepted subject time-in. NR = no subject time-in recorded by this teacher; NR does not establish absence.';
+    worksheet.getCell(3, 1).alignment = { wrapText: true, vertical: 'middle' };
+    worksheet.getRow(3).height = 28;
+    worksheet.mergeCells(4, 4, 4, 3 + data.dates.length);
+    worksheet.getCell(4, 4).value = 'DAY OF MONTH (SCHEDULED SCHOOL DAYS)';
+    worksheet.getCell(4, 4).alignment = center;
+    worksheet.getCell(4, 4).font = { bold: true };
     const headerRow = worksheet.getRow(5);
-    headerRow.font = { bold: true, color: { argb: 'FFFFFFFF' } };
-    headerRow.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF4472C4' } };
-    headerRow.alignment = { horizontal: 'center', vertical: 'middle', wrapText: true };
-    data.students.forEach((student, index) => {
-      worksheet.addRow([
-        index + 1, student.id, student.name, student.sex || '',
-        ...student.days.map(status => status === 'PRESENT' ? 'P' : 'NR')
-      ]);
+    const headings = ['No.', 'Learner Name', 'Sex', ...data.dates.map(date => Number(date.slice(-2))), 'Total P'];
+    headings.forEach((value, index) => {
+      const cell = headerRow.getCell(index + 1);
+      cell.value = value;
+      cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: blue } };
+      cell.font = { bold: true, color: { argb: white } };
+      cell.alignment = { ...center, wrapText: true };
     });
-    worksheet.columns = [
-      { width: 6 }, { width: 18 }, { width: 32 }, { width: 12 },
-      ...data.dates.map(() => ({ width: 5 }))
+    worksheet.getRow(5).height = 26;
+    const students = [...data.students].sort((a,b) => {
+      const rank = s => String(s.sex || '').toUpperCase() === 'MALE' ? 0 :
+        String(s.sex || '').toUpperCase() === 'FEMALE' ? 1 : 2;
+      return rank(a) - rank(b) || String(a.name).localeCompare(String(b.name));
+    });
+    let line = 6;
+    const groups = [
+      ['MALE LEARNERS', students.filter(s => String(s.sex || '').toUpperCase() === 'MALE')],
+      ['FEMALE LEARNERS', students.filter(s => String(s.sex || '').toUpperCase() === 'FEMALE')],
+      ['SEX NOT RECORDED', students.filter(s => !['MALE','FEMALE'].includes(String(s.sex || '').toUpperCase()))]
     ];
-    worksheet.autoFilter = { from: { row: 5, column: 1 }, to: { row: 5 + data.students.length, column: lastColumn } };
-    worksheet.eachRow((row, rowNumber) => {
-      if (rowNumber >= 6) row.alignment = { vertical: 'middle', horizontal: rowNumber === 5 ? 'center' : 'left' };
+    for (const [label, learners] of groups) {
+      if (!learners.length) continue;
+      header(line++, label, 'FF65758B');
+      learners.forEach((student,index) => {
+        const row = worksheet.getRow(line++);
+        row.getCell(1).value = index + 1;
+        row.getCell(2).value = student.name;
+        row.getCell(3).value = student.sex || '';
+        let total = 0;
+        data.dates.forEach((date, dayIndex) => {
+          const present = student.days[dayIndex] === 'PRESENT';
+          if (present) total++;
+          const cell = row.getCell(dayColumn(dayIndex));
+          cell.value = present ? 'P' : 'NR';
+          cell.alignment = center;
+        });
+        row.getCell(presentTotalColumn).value = total;
+        row.getCell(presentTotalColumn).alignment = center;
+        row.getCell(1).alignment = center;
+        row.getCell(3).alignment = center;
+        row.height = 21;
+      });
+    }
+    header(line++, 'MONTHLY SUBJECT ATTENDANCE COUNTS', dark);
+    const totals = worksheet.getRow(line);
+    totals.getCell(2).value = 'Recorded subject time-ins';
+    data.dates.forEach((date, dayIndex) => {
+      const cell = totals.getCell(dayColumn(dayIndex));
+      cell.value = students.filter(s => s.days[dayIndex] === 'PRESENT').length;
+      cell.alignment = center;
     });
+    totals.getCell(presentTotalColumn).value =
+      students.reduce((sum,s) => sum + s.days.filter(day => day === 'PRESENT').length, 0);
+    totals.getCell(presentTotalColumn).alignment = center;
+    totals.font = { bold: true };
+    worksheet.getColumn(1).width = 7;
+    worksheet.getColumn(2).width = 34;
+    worksheet.getColumn(3).width = 13;
+    data.dates.forEach((date,index) => { worksheet.getColumn(dayColumn(index)).width = 6; });
+    worksheet.getColumn(presentTotalColumn).width = 10;
+    worksheet.pageSetup = { orientation: 'landscape', fitToPage: true, fitToWidth: 1, fitToHeight: 0 };
     return Buffer.from(await workbook.xlsx.writeBuffer());
   }
 
