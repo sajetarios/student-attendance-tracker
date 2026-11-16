@@ -1,4 +1,4 @@
-const CACHE = "attendigo-v96-single-page-folio";
+const CACHE = "attendigo-v97-sf2-matrix";
 
 const SHELL = [
   "/assets/attendigo-sidebar-logo.png",
@@ -24,10 +24,10 @@ const SHELL = [
   "/portal-login.html",
   "/attendigo-login-motion.css?v=2",
   "/attendigo-login-refinement.css?v=2",
-  "/portal.css?v=0.9.54",
+  "/portal.css?v=0.9.67",
   "/student-roster-toolbar.css?v=1",
   "/portal.css",
-  "/portal.js?v=0.9.66",
+  "/portal.js?v=0.9.67",
   "/manual-folio.css?v=4",
   "/manual-folio.js?v=4",
   "/student-portal-accounts.css?v=2",
