@@ -3392,7 +3392,7 @@ let teacherActionMenuListenersInstalled = false;
       if (bytes.length > 2 * 1024 * 1024) throw new Error('Cropped logo exceeds 2 MB. Choose a smaller source image.');
       const response = await fetch('/api/school/branding/logo', {
         method: 'PUT',
-        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'image/webp' },
+        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'image/png' },
         body: bytes, cache: 'no-store'
       });
       const result = await response.json().catch(() => ({}));
