@@ -1,4 +1,4 @@
-const CACHE = "attendigo-v90-manual-attendance-folio";
+const CACHE = "attendigo-v91-manual-folio-layout";
 
 const SHELL = [
   "/assets/attendigo-sidebar-logo.png",
@@ -27,8 +27,8 @@ const SHELL = [
   "/student-roster-toolbar.css?v=1",
   "/portal.css",
   "/portal.js?v=0.9.64",
-  "/manual-folio.css?v=1",
-  "/manual-folio.js?v=1",
+  "/manual-folio.css?v=2",
+  "/manual-folio.js?v=2",
   "/student-portal-accounts.css?v=2",
   "/student-portal-accounts.js?v=3",
   "/admin-request-notifications.js?v=1",
