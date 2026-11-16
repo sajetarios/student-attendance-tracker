@@ -104,10 +104,11 @@
  const sms=field('Monthly SMS limit','platformTemplateSms','number');sms.min='0';sms.step='1';
  const enabled=field('Plan availability','platformTemplateActive','select');
  enabled.append(option('true','Available'),option('false','Unavailable for new assignments'));
- const features=document.createElement('div');features.className='form-grid platform-school-form';
+ const features=document.createElement('div');features.className='platform-feature-list';
+ const featureHeading=document.createElement('h4');featureHeading.textContent='Included features';
  const save=document.createElement('button');save.type='button';save.className='primary-button';save.textContent='Save plan template';
  const feedback=document.createElement('p');feedback.className='inline-feedback';feedback.setAttribute('role','status');
- editor.append(heading,explanation,grid,features,save,feedback);
+ editor.append(heading,explanation,grid,featureHeading,features,save,feedback);
  section.parentElement.append(editor);
  function fillTemplate(){
   const plan=plans.find(p=>p.planId===template.value);
@@ -117,10 +118,11 @@
   enabled.value=String(plan?.active??true);
   features.replaceChildren();
   for(const [key,label] of Object.entries(featureNames)){
-   const wrap=document.createElement('label');wrap.className='field-group';
+   const wrap=document.createElement('label');wrap.className='platform-feature-row';
+   const text=document.createElement('span');text.className='platform-feature-name';text.textContent=label;
    const check=document.createElement('input');check.type='checkbox';check.dataset.planFeature=key;
    check.checked=plan?.features?.[key]??['student_management','manual_attendance','qr_attendance','parent_portal','timetable','planner','offline_sync'].includes(key);
-   wrap.append(check,document.createTextNode(' '+label));features.append(wrap);
+   wrap.append(text,check);features.append(wrap);
   }
  }
  template.addEventListener('change',fillTemplate);
