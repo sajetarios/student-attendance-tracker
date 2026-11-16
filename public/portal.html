@@ -505,6 +505,14 @@
                 <div class="form-actions"><button type="submit" class="primary-button" id="sapRequestSubmit">Send to School Admin</button><span class="inline-feedback" id="sapRequestFeedback" role="status"></span></div>
               </form>
             </div>
+            <div id="sapReviewModal" class="student-edit-overlay" role="dialog" aria-modal="true" aria-labelledby="sapReviewTitle" hidden>
+              <form id="sapReviewForm" class="student-edit-dialog sap-modal">
+                <div class="sap-modal-head"><div><h3 id="sapReviewTitle">Review student portal request</h3><p id="sapReviewDetails">Confirm a decision on this request.</p></div><button type="button" id="sapReviewClose" class="outline-button">Close</button></div>
+                <input type="hidden" id="sapReviewRequestId"><input type="hidden" id="sapReviewDecision">
+                <div class="field-group"><label for="sapReviewNote">Review note (optional)</label><textarea id="sapReviewNote" rows="3" maxlength="500" placeholder="Short explanation for the teacher"></textarea></div>
+                <div class="form-actions"><button type="submit" class="primary-button" id="sapReviewSubmit">Confirm review</button><span id="sapReviewFeedback" class="inline-feedback" role="status"></span></div>
+              </form>
+            </div>
             <div id="sapSecretModal" class="student-edit-overlay" role="dialog" aria-modal="true" aria-labelledby="sapSecretTitle" hidden>
               <div class="student-edit-dialog sap-modal">
                 <div class="sap-modal-head"><div><h3 id="sapSecretTitle">One-time account credentials</h3><p>Copy or download securely now. Passwords will not be displayed again.</p></div><button type="button" class="outline-button" id="sapSecretClose">Close</button></div>
