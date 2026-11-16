@@ -17,9 +17,30 @@
   async function loadPrograms(){const d=await api('/api/special-programs'),host=$('academicProgramList');programCatalog=d.programs;host.replaceChildren();d.programs.forEach(p=>{const row=document.createElement('div');row.className='academic-year-row';const label=document.createElement('strong');label.textContent=p.code+' · '+p.name;row.append(label);host.append(row);});}
   async function loadEnrollments(){const id=$('academicSelectedYear').value,host=$('academicEnrollmentRows');host.replaceChildren();if(!id){host.innerHTML='<tr><td colspan="5" class="empty-cell">Select a school year.</td></tr>';return;}const d=await api('/api/school-years/'+id+'/enrollments');if(!d.enrollments.length){host.innerHTML='<tr><td colspan="5" class="empty-cell">No learners enrolled for this year.</td></tr>';return;}d.enrollments.forEach(e=>{const tr=document.createElement('tr');[e.studentId,e.fullName,e.gradeLevel,e.section,e.status].forEach(v=>{const td=document.createElement('td');td.textContent=v??'';tr.append(td);});const programs=document.createElement('td');programs.textContent=(e.programs||[]).map(p=>(p.primary?'★ ':'')+p.code).join(', ')||'None';tr.append(programs);const action=document.createElement('td');const select=document.createElement('select');select.setAttribute('aria-label','Special program');const empty=document.createElement('option');empty.value='';empty.textContent='Select program';select.append(empty);programCatalog.filter(p=>p.active).forEach(p=>{const o=document.createElement('option');o.value=p.programTypeId;o.textContent=p.code+' · '+p.name;select.append(o);});const btn=document.createElement('button');btn.type='button';btn.className='outline-button';btn.textContent='Set primary';btn.addEventListener('click',async()=>{if(!select.value)return message('academicEnrollmentFeedback','Select a program first.',true);try{await api('/api/enrollments/'+e.enrollmentId+'/programs',{method:'POST',body:JSON.stringify({programTypeId:select.value,startDate:e.enrollmentDate,isPrimary:true})});message('academicEnrollmentFeedback','Primary program assigned.');await loadEnrollments();}catch(err){message('academicEnrollmentFeedback',err.message,true);}});action.append(select,btn);tr.append(action);host.append(tr);});}
   async function loadAll(){try{await loadPrograms();await loadYears();}catch(e){message('academicYearFeedback',e.message,true);}}
-  $('academicYearForm').addEventListener('submit',async e=>{e.preventDefault();const f=new FormData(e.currentTarget);try{await api('/api/school-years',{method:'POST',body:JSON.stringify({label:f.get('label'),startDate:f.get('startDate'),endDate:f.get('endDate')})});e.currentTarget.reset();message('academicYearFeedback','School year created.');await loadYears();}catch(err){message('academicYearFeedback',err.message,true);}});
-  $('academicProgramForm').addEventListener('submit',async e=>{e.preventDefault();const f=new FormData(e.currentTarget);try{await api('/api/special-programs',{method:'POST',body:JSON.stringify({code:f.get('code'),name:f.get('name'),description:f.get('description')})});e.currentTarget.reset();message('academicProgramFeedback','Program added.');await loadPrograms();}catch(err){message('academicProgramFeedback',err.message,true);}});
+  $('academicYearForm').addEventListener('submit',async e=>{e.preventDefault();const form=e.currentTarget;const f=new FormData(form);try{await api('/api/school-years',{method:'POST',body:JSON.stringify({label:f.get('label'),startDate:f.get('startDate'),endDate:f.get('endDate')})});form.reset();message('academicYearFeedback','School year created.');await loadYears();}catch(err){message('academicYearFeedback',err.message,true);}});
+  $('academicProgramForm').addEventListener('submit',async e=>{
+    e.preventDefault();
+    const form=e.currentTarget;
+    const submit=form.querySelector('[type="submit"]');
+    const values=new FormData(form);
+    const code=String(values.get('code')||'').trim().toUpperCase();
+    const name=String(values.get('name')||'').trim();
+    if(submit)submit.disabled=true;
+    try{
+      await api('/api/special-programs',{method:'POST',body:JSON.stringify({code,name,description:values.get('description')})});
+    }catch(err){
+      message('academicProgramFeedback',err.message,true);
+      if(submit)submit.disabled=false;
+      return;
+    }
+    form.reset();
+    message('academicProgramFeedback','');
+    try{await loadPrograms();}
+    catch(err){message('academicProgramFeedback','Program saved, but the list could not refresh: '+err.message,true);}
+    if(submit)submit.disabled=false;
+    if(window.AppDialog?.alert)await window.AppDialog.alert(code+' · '+name+' has been added successfully.',{title:'Program successfully added',eyebrow:'SUCCESS',confirmText:'Done'});
+  });
   $('academicSelectedYear').addEventListener('change',()=>loadEnrollments().catch(e=>message('academicEnrollmentFeedback',e.message,true)));
-  $('academicEnrollmentForm').addEventListener('submit',async e=>{e.preventDefault();const f=new FormData(e.currentTarget),id=$('academicSelectedYear').value;if(!id)return message('academicEnrollmentFeedback','Select a school year first.',true);try{await api('/api/school-years/'+id+'/enrollments',{method:'POST',body:JSON.stringify({studentId:f.get('studentId'),gradeLevel:f.get('gradeLevel'),section:f.get('section'),enrollmentDate:f.get('enrollmentDate')})});e.currentTarget.reset();message('academicEnrollmentFeedback','Learner enrolled.');await loadEnrollments();}catch(err){message('academicEnrollmentFeedback',err.message,true);}});
+  $('academicEnrollmentForm').addEventListener('submit',async e=>{e.preventDefault();const form=e.currentTarget;const f=new FormData(form),id=$('academicSelectedYear').value;if(!id)return message('academicEnrollmentFeedback','Select a school year first.',true);try{await api('/api/school-years/'+id+'/enrollments',{method:'POST',body:JSON.stringify({studentId:f.get('studentId'),gradeLevel:f.get('gradeLevel'),section:f.get('section'),enrollmentDate:f.get('enrollmentDate')})});form.reset();message('academicEnrollmentFeedback','Learner enrolled.');await loadEnrollments();}catch(err){message('academicEnrollmentFeedback',err.message,true);}});
   document.addEventListener('visibilitychange',()=>{if(!document.hidden&&!panel.hidden)loadAll();});
 })();
