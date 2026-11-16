@@ -240,3 +240,7 @@ body.dark-mode .manual-turn-leaf,body[data-theme=dark] .manual-turn-leaf,body.da
 body.dark-mode .manual-history-tabs button,body[data-theme=dark] .manual-history-tabs button{background:#263b59;color:#e7f0ff;border-color:#50678a}
 body.dark-mode .manual-history-tabs button[aria-selected=true],body[data-theme=dark] .manual-history-tabs button[aria-selected=true]{background:#2876d5}
 @media(prefers-reduced-motion:reduce){.manual-turn-leaf.forward,.manual-turn-leaf.backward{animation-duration:.01s!important}}
+
+/* Hidden history tab must never show the old attendance summary. */
+#mfBook[hidden],#mfHistoryPanel[hidden],#mfManualHistoryPanel[hidden],#mfQrHistoryDetails[hidden],#mfConflictPanel[hidden]{display:none!important}
+#mfHistoryPanel .manual-book,#mfHistoryPanel #mfRight{display:none!important}
