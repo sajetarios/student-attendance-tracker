@@ -4,6 +4,7 @@ const { hashPassword } = require('./auth-security');
 
 function registerPlatformRoutes(app, pool, { authenticatePlatform, requirePlatformAdmin }) {
   const guard = [authenticatePlatform, requirePlatformAdmin];
+  require('./platform-school-deletion-routes').registerPlatformSchoolDeletionRoutes(app, pool, { authenticatePlatform, requirePlatformAdmin });
 
   app.get('/api/platform/overview', ...guard, async (_req, res) => {
     try {
