@@ -266,6 +266,7 @@
     $('viewDescription').textContent = title[1];
     $('breadcrumbCurrent').textContent = title[0];
     if (view === 'planner') $('plannerView')?.dispatchEvent(new Event('planner:open'));
+    if (view === 'dashboard' && ['TEACHER','DEPARTMENT_HEAD'].includes(role)) $('plannerView')?.dispatchEvent(new Event('planner:dashboard'));
     if (view === 'classAttendance' && role === 'TEACHER') {
       loadTeacherClassAttendance().catch(error => {
         if ($('teacherAttendanceFeedback')) {
@@ -297,6 +298,7 @@
     if ($('cloudSyncNav')) $('cloudSyncNav').hidden = !admin;
     if ($('schoolBrandingNav')) $('schoolBrandingNav').hidden = !admin;
     if ($('plannerNav')) $('plannerNav').hidden = !['TEACHER', 'DEPARTMENT_HEAD'].includes(role);
+    if ($('plannerDashboardWidget')) $('plannerDashboardWidget').hidden = !['TEACHER', 'DEPARTMENT_HEAD'].includes(role);
     if ($('smsNav')) $('smsNav').hidden = !admin;
     if ($('exportTeachersButton')) $('exportTeachersButton').hidden = !(admin || role === 'DEPARTMENT_HEAD');
     if ($('bulkImportStudentsButton')) $('bulkImportStudentsButton').hidden = !(admin || teacherHas('CLASS_ADVISER'));
