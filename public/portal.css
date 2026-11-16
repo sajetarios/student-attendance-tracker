@@ -2169,3 +2169,30 @@ body.dark-mode .sf2-matrix-wrap tbody tr:nth-child(even),body[data-theme=dark] .
 .staff-nav-child.active{font-weight:750;box-shadow:inset 3px 0 currentColor}
 .staff-nav-child .nav-icon{font-size:17px;flex-shrink:0}
 @media(max-width:768px){.staff-nav-child{min-height:48px}.staff-nav-children{margin-left:12px}}
+
+/* Staff account roster: readable mobile cards rather than compressed table columns */
+@media (max-width: 700px) {
+  #teachersView .staff-accounts-card {min-width:0;padding:16px 14px}
+  #teachersView .staff-accounts-card .section-toolbar{display:grid;grid-template-columns:minmax(0,1fr);gap:14px}
+  #teachersView .staff-accounts-card .section-toolbar > div{min-width:0}
+  #teachersView .staff-accounts-card .section-toolbar h3{overflow-wrap:anywhere}
+  #teachersView .staff-accounts-card #addSchoolStaffAccount{width:100%;min-height:46px}
+  #teachersView .staff-accounts-card .table-scroll{width:100%;max-width:100%;overflow:visible!important;padding:0}
+  #teachersView .staff-accounts-card #staffAccountsTable{display:block!important;width:100%!important;min-width:0!important;table-layout:auto!important;border:0!important}
+  #staffAccountsTable thead{display:none!important}
+  #staffAccountsTable tbody{display:grid!important;grid-template-columns:minmax(0,1fr);gap:12px;width:100%}
+  #staffAccountsTable tbody tr{display:flex!important;flex-direction:column;width:100%;min-width:0!important;padding:14px!important;border:1px solid var(--line,#dbe4ee);border-radius:16px;background:var(--card,#fff);box-shadow:0 3px 12px rgba(20,40,60,.04)}
+  #staffAccountsTable tbody td{display:grid!important;grid-template-columns:minmax(0,1fr)!important;gap:7px!important;width:100%!important;min-width:0!important;max-width:100%!important;padding:12px 2px!important;border:0!important;border-bottom:1px solid var(--line,#e2e8f0)!important;text-align:left!important;align-items:start!important;white-space:normal!important;overflow-wrap:anywhere!important}
+  #staffAccountsTable tbody td:last-child{border-bottom:0!important;padding-bottom:0!important}
+  #staffAccountsTable tbody td::before{content:attr(data-label)!important;display:block!important;position:static!important;width:auto!important;max-width:none!important;transform:none!important;text-align:left!important;color:var(--muted,#64748b)!important;font-size:12px!important;font-weight:700!important;line-height:1.35!important}
+  #staffAccountsTable tbody td:first-child{display:block!important}
+  #staffAccountsTable tbody td:first-child::before{margin-bottom:8px}
+  #staffAccountsTable tbody td:first-child input[type=checkbox]{vertical-align:middle;margin:0 8px 0 0}
+  #staffAccountsTable tbody td:first-child strong{display:inline!important;font-size:16px;line-height:1.45;overflow-wrap:anywhere}
+  #staffAccountsTable tbody td:first-child small{display:block!important;margin:5px 0 0 27px;overflow-wrap:anywhere}
+  #staffAccountsTable .staff-department-select{display:block;width:100%!important;max-width:100%!important;min-width:0!important;min-height:44px;box-sizing:border-box}
+  #staffAccountsTable .account-status{justify-self:start}
+  #staffAccountsTable [data-edit-staff-profile]{min-height:44px;max-width:100%;width:100%}
+  #staffAccountsTable .empty-cell{display:block!important}
+  #staffAccountsTable .empty-cell::before{display:none!important}
+}
