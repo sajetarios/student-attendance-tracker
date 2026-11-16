@@ -258,3 +258,11 @@ html[data-theme="dark"] .parent-note,body.dark .parent-note,body[data-theme="dar
 @media(max-width:600px){html[data-theme="dark"] .parent-records-card tr,html[data-theme="dark"] .parent-pending-card tr,body.dark .parent-records-card tr,body.dark .parent-pending-card tr,body[data-theme="dark"] .parent-records-card tr,body[data-theme="dark"] .parent-pending-card tr{border-color:#344563}}
 
 .parent-records-card tr[hidden],.parent-pending-card tr[hidden]{display:none!important}
+
+/* Lightweight inline SVG family artwork: no external image request or persistent storage needed. */
+.parent-head>div:first-child{position:relative;min-width:0;flex:1 1 420px;padding-right:clamp(0px,15vw,235px);min-height:140px;display:flex;flex-direction:column;justify-content:center}
+.parent-family-art{position:absolute;right:0;top:50%;transform:translateY(-50%);width:clamp(145px,15vw,230px);pointer-events:none}
+.parent-family-art svg{display:block;width:100%;height:auto;max-height:180px;overflow:visible}
+@media(max-width:900px){.parent-head>div:first-child{flex-basis:100%;padding-right:180px}.parent-family-art{width:175px}}
+@media(max-width:520px){.parent-head>div:first-child{min-height:115px;padding-right:126px}.parent-family-art{width:125px;right:-3px}.parent-head .eyebrow{font-size:10px;letter-spacing:.12em}.parent-head h1{font-size:clamp(20px,5.5vw,25px)!important;overflow-wrap:normal}.parent-head p{font-size:12px!important;line-height:1.4;max-width:100%}}
+@media(max-width:360px){.parent-head>div:first-child{padding-right:102px}.parent-family-art{width:103px}}
