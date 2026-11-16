@@ -6,6 +6,7 @@
   <meta name="theme-color" content="#1c2d45">
   <title>Dashboard · Attendigo</title>
   <link rel="stylesheet" href="/portal.css?v=0.9.54">
+  <link rel="stylesheet" href="/student-portal-accounts.css?v=1">
   <link rel="stylesheet" href="/attendigo-sidebar-adaptive.css?v=2">
   <link rel="stylesheet" href="/academic-admin.css?v=1">
   <link rel="stylesheet" href="/password-visibility.css">
@@ -167,6 +168,7 @@
           <button class="nav-group-toggle" type="button" data-nav-group="people" aria-expanded="true"><span class="nav-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M16 20v-1.5a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4V20M9 10a4 4 0 1 0 0-8 4 4 0 0 0 0 8ZM16 4.2a4 4 0 0 1 0 7.6M18 14.5a4 4 0 0 1 4 4V20"/></svg></span><span class="nav-label" id="peopleGroupLabel">People management</span><span class="nav-chevron">⌄</span></button>
           <div class="nav-submenu" data-submenu="people">
             <button class="nav-item" id="studentsNav" data-view="students" title="Students"><span class="nav-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 8.5 12 4l9 4.5-9 4.5-9-4.5Z"/><path d="M6 10.5V16c3.5 3 8.5 3 12 0v-5.5M21 9v6"/></svg></span><span class="nav-label">Students</span></button>
+            <button class="nav-item" id="studentAccountsNav" data-view="studentAccounts" title="Student Portal Accounts" hidden><span class="nav-icon" aria-hidden="true">♧</span><span class="nav-label">Student Portal Accounts</span></button>
             <button class="nav-item" data-view="teachers" id="teachersNav" hidden title="User management"><span class="nav-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="9" cy="7" r="4"/><path d="M2 21v-2a7 7 0 0 1 14 0v2M17 4a4 4 0 0 1 0 7.8M19 14a5 5 0 0 1 3 4.5V21"/></svg></span><span class="nav-label">User management</span></button>
             <button class="nav-item" id="parentsNav" hidden title="Manage parent accounts and student links"><span class="nav-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="9" cy="7" r="3.5"/><circle cx="18" cy="9" r="2.5"/><path d="M2 21v-2a7 7 0 0 1 14 0v2M16 16a5 5 0 0 1 6 5"/></svg></span><span class="nav-label">Parents</span></button>
           </div>
@@ -458,6 +460,59 @@
             <div class="surface-card section-card" id="sf2SubmissionsCard" hidden>
               <div class="section-toolbar"><div><h3>Official SF2 submissions</h3><p>Review monthly reports submitted by Class Advisers.</p></div><button class="outline-button" type="button" id="refreshSf2Submissions">↻ Refresh submissions</button></div>
               <div class="table-scroll"><table><thead><tr><th>Month</th><th>Grade &amp; Section</th><th>Submitted by</th><th>Revision</th><th>Status</th><th>Actions</th></tr></thead><tbody id="sf2SubmissionRows"><tr><td colspan="6" class="empty-cell">No submitted SF2 reports loaded.</td></tr></tbody></table></div>
+            </div>
+          </section>
+
+          <section id="studentAccountsView" class="view-panel" hidden>
+            <div class="sap-workspace">
+              <div class="sap-topbar">
+                <div><h3>Student Portal Accounts</h3><p>Manage secure student sign-ins using existing learner records. No duplicate enrollment is created.</p></div>
+                <button id="sapRefresh" class="outline-button" type="button">↻ Refresh</button>
+              </div>
+              <div class="sap-metrics" aria-label="Student portal account totals">
+                <div class="sap-metric"><span>Active logins</span><strong id="sapActive">—</strong></div>
+                <div class="sap-metric"><span>Not yet created</span><strong id="sapMissing">—</strong></div>
+                <div class="sap-metric"><span>Disabled logins</span><strong id="sapDisabled">—</strong></div>
+                <div class="sap-metric"><span>Pending requests</span><strong id="sapPending">—</strong></div>
+              </div>
+              <section class="surface-card sap-directory-card">
+                <div class="sap-card-head"><div><h3>Student account directory</h3><p id="sapDirectoryHelp">Loading account permissions…</p></div>
+                  <div class="sap-filterbar"><label for="sapSearch" class="sap-sr">Search learners</label>
+                    <input type="search" id="sapSearch" placeholder="Search student name or ID" autocomplete="off">
+                    <label for="sapFilter" class="sap-sr">Account status</label>
+                    <select id="sapFilter"><option value="ALL">All accounts</option><option value="MISSING">Not created</option><option value="ACTIVE">Active</option><option value="DISABLED">Disabled</option></select>
+                  </div>
+                </div>
+                <div id="sapBulkToolbar" class="sap-bulk-toolbar" hidden>
+                  <label><input type="checkbox" id="sapSelectAll"> Select visible unregistered students</label>
+                  <span id="sapSelectedCount">0 selected</span>
+                  <button class="primary-button" type="button" id="sapBulkCreate" disabled>Issue selected logins</button>
+                </div>
+                <div class="sap-table-scroll"><table class="sap-table"><thead><tr><th id="sapSelectHead">Select</th><th>Student</th><th>Class</th><th>Portal status</th><th>Action</th></tr></thead><tbody id="sapRows"><tr><td colspan="5">Loading learners…</td></tr></tbody></table></div>
+                <p class="sap-footnote" id="sapListCount" role="status" aria-live="polite"></p>
+              </section>
+              <section class="surface-card sap-requests-card">
+                <div class="sap-card-head"><div><h3 id="sapRequestsTitle">Account requests</h3><p id="sapRequestsHelp">School Admin reviews teacher requests before credentials are issued.</p></div></div>
+                <div class="sap-request-list" id="sapRequestRows"><p class="sap-empty">Loading requests…</p></div>
+              </section>
+              <p class="sap-privacy-note">Credentials are issued only to School Admin. Temporary passwords are displayed once, and the student must change the password at first sign-in. Do not share them in public class chats.</p>
+            </div>
+            <div id="sapRequestModal" class="student-edit-overlay" role="dialog" aria-modal="true" aria-labelledby="sapRequestTitle" hidden>
+              <form id="sapRequestForm" class="student-edit-dialog sap-modal">
+                <div class="sap-modal-head"><div><h3 id="sapRequestTitle">Request student portal access</h3><p id="sapRequestStudent"></p></div><button type="button" id="sapRequestClose" class="outline-button">Close</button></div>
+                <input type="hidden" id="sapRequestStudentId"><input type="hidden" id="sapRequestType">
+                <div class="field-group"><label for="sapReason">Reason for request</label><textarea id="sapReason" rows="3" minlength="8" maxlength="500" required placeholder="Explain why this learner needs access or password recovery"></textarea></div>
+                <div class="form-actions"><button type="submit" class="primary-button" id="sapRequestSubmit">Send to School Admin</button><span class="inline-feedback" id="sapRequestFeedback" role="status"></span></div>
+              </form>
+            </div>
+            <div id="sapSecretModal" class="student-edit-overlay" role="dialog" aria-modal="true" aria-labelledby="sapSecretTitle" hidden>
+              <div class="student-edit-dialog sap-modal">
+                <div class="sap-modal-head"><div><h3 id="sapSecretTitle">One-time account credentials</h3><p>Copy or download securely now. Passwords will not be displayed again.</p></div><button type="button" class="outline-button" id="sapSecretClose">Close</button></div>
+                <label for="sapSecrets" class="sap-secret-label">Issued credentials</label>
+                <textarea id="sapSecrets" class="sap-secret-text" rows="7" readonly></textarea>
+                <div class="form-actions"><button class="primary-button" id="sapCopySecrets" type="button">Copy credentials</button><button type="button" class="outline-button" id="sapDownloadSecrets">Download CSV</button></div>
+                <p class="sap-privacy-note">Keep the file private and delete local copies after distribution. Existing passwords cannot be retrieved.</p>
+              </div>
             </div>
           </section>
           <section id="studentsView" class="view-panel" hidden>
@@ -1027,7 +1082,8 @@
   <script src="/timetable-grid.js?v=3" defer></script>
   <script src="/schedule-workspace-ui.js?v=3" defer></script>
   <script src="/photo-editor.js?v=3" defer></script>
-  <script src="/portal.js?v=0.9.61" defer></script>
+  <script src="/portal.js?v=0.9.62" defer></script>
+  <script src="/student-portal-accounts.js?v=1" defer></script>
   <script src="/guardian-ui.js?v=3" defer></script>
   <script src="/academic-admin.js?v=2" defer></script>
   <script src="/attendigo-sidebar-adaptive.js?v=2" defer></script>
