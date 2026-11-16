@@ -266,3 +266,37 @@ html[data-theme="dark"] .parent-note,body.dark .parent-note,body[data-theme="dar
 @media(max-width:900px){.parent-head>div:first-child{flex-basis:100%;padding-right:180px}.parent-family-art{width:175px}}
 @media(max-width:520px){.parent-head>div:first-child{min-height:115px;padding-right:126px}.parent-family-art{width:125px;right:-3px}.parent-head .eyebrow{font-size:10px;letter-spacing:.12em}.parent-head h1{font-size:clamp(20px,5.5vw,25px)!important;overflow-wrap:normal}.parent-head p{font-size:12px!important;line-height:1.4;max-width:100%}}
 @media(max-width:360px){.parent-head>div:first-child{padding-right:102px}.parent-family-art{width:103px}}
+
+
+/* Always-discoverable return navigation, without a second floating button. */
+.parent-page{isolation:isolate}
+.parent-return-bar{
+  position:sticky;top:0;z-index:60;
+  display:flex;align-items:center;justify-content:space-between;gap:12px;
+  margin:0 0 18px;padding:9px 12px;
+  background:#fff;border:1px solid #dbe4f0;border-radius:15px;
+  box-shadow:0 4px 18px rgba(28,48,83,.09);
+}
+.parent-return-button{
+  display:inline-flex;align-items:center;justify-content:center;gap:10px;
+  padding:11px 16px;min-height:46px;min-width:0;
+  border-radius:12px;border:1px solid #164e89;background:#185c9f;color:#fff;
+  font:750 14px/1.25 inherit; font-family:inherit;font-size:14px;font-weight:750;
+  cursor:pointer;touch-action:manipulation;
+}
+.parent-return-button svg{width:20px;height:20px;flex:none}
+.parent-return-button:hover{background:#114777}
+.parent-return-button:focus-visible{outline:3px solid #75b3fa;outline-offset:3px}
+.parent-return-context{min-width:0;color:#556a86;font-size:13px;font-weight:700;text-align:right;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+@media(max-width:600px){
+  .parent-return-bar{margin:0 0 15px;padding:8px;top:0;border-radius:13px}
+  .parent-return-button{padding:10px 12px;min-height:44px;font-size:13px}
+  .parent-return-context{font-size:12px}
+}
+html[data-ui-theme="dark"] .parent-return-bar,html[data-theme="dark"] .parent-return-bar,body.dark-mode .parent-return-bar{
+  background:#17253b;border-color:#40536f;box-shadow:0 6px 20px rgba(0,0,0,.2)
+}
+html[data-ui-theme="dark"] .parent-return-button,html[data-theme="dark"] .parent-return-button,body.dark-mode .parent-return-button{
+  background:#234e85;border-color:#6895c7;color:#fff
+}
+html[data-ui-theme="dark"] .parent-return-context,html[data-theme="dark"] .parent-return-context,body.dark-mode .parent-return-context{color:#c2d1e7}
