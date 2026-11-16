@@ -88,7 +88,7 @@
           const b=btn(label,async()=>{
             if(!note.value.trim()){status.textContent='A review note is required.';note.focus();return;}
             b.disabled=true;
-            try{await api('/api/guardians/requests/'+encodeURIComponent(r.requestId)+'/review',{method:'POST',body:JSON.stringify({decision,note:note.value.trim()})});await openQueue();status.textContent='Request reviewed successfully.';}
+            try{await api('/api/guardians/requests/'+encodeURIComponent(r.requestId)+'/review',{method:'POST',body:JSON.stringify({decision,note:note.value.trim()})});await openQueue();document.dispatchEvent(new CustomEvent('attendigo:requests-changed'));status.textContent='Request reviewed successfully.';}
             catch(err){status.textContent=err.message;b.disabled=false;}
           },decision==='APPROVED'?'primary-button':'outline-button');item.append(b);
         }
@@ -100,18 +100,17 @@
   }
   let lastCountRefresh=0;
   async function refreshApprovalCount(force=false){
-    const button=$('guardianApprovalStandalone');
-    if(!button||!admin())return;
-    if(!force && Date.now()-lastCountRefresh<20000)return;
+    const button=$('guardianApprovalsNav'), badge=$('guardianNavBadge');
+    if(!button || !admin()) return;
+    if(!force && Date.now()-lastCountRefresh<20000) return;
     lastCountRefresh=Date.now();
-    try{
+    try {
       const data=await api('/api/guardians/requests');
       const count=(data.requests||[]).filter(r=>r.status==='PENDING').length;
-      button.textContent=count?'Guardian approvals ('+count+' pending)':'Guardian approvals';
-      button.title=count?count+' guardian requests awaiting review':'No pending guardian requests';
+      button.title=count?count+' guardian requests awaiting review':'Review guardian change requests';
+      if(badge){badge.textContent=String(count);badge.hidden=!count;}
     }catch(error){
-      button.textContent='Guardian approvals · check access';
-      button.title=error.message;
+      button.title='Guardian request count unavailable: '+error.message;
     }
   }
   function enhance(){
@@ -131,21 +130,23 @@
       }
     }
     if(admin()){
-      // The School Admin has no Students navigation view; the roster may be hidden.
-      // Put approvals in the always-visible workspace heading instead.
-      const heading=document.querySelector('#schoolWorkspace .view-heading') || $('studentRosterPanel');
-      if(heading&&!$('guardianApprovalStandalone')){
-        const b=btn('Guardian approvals',openQueue,'outline-button guardian-approval-action');
-        b.id='guardianApprovalStandalone';heading.append(b);
-        refreshApprovalCount();
-      }
+      const button=$('guardianApprovalsNav');
+      if(button) button.hidden=false;
+      refreshApprovalCount();
     }
   }
+  // A single entry point shared by the sidebar and approval notification bell.
+  window.AttendigoGuardian=Object.freeze({
+    openApprovals(){ if(admin()) return openQueue(); },
+    refreshApprovals(){ if(admin()) return refreshApprovalCount(true); }
+  });
   function start(){
     // No observer on the dialog: only the student table can trigger enhancements.
     const roster=$('studentRows');
     if(roster){new MutationObserver(()=>enhance()).observe(roster,{childList:true});}
     enhance();
+    $('guardianApprovalsNav')?.addEventListener('click',()=>{if(admin())openQueue();});
+    document.addEventListener('attendigo:requests-changed',()=>refreshApprovalCount(true));
     document.addEventListener('visibilitychange',()=>{if(!document.hidden)refreshApprovalCount(true);});
     document.addEventListener('click',event=>{if(event.target.closest('[data-view]'))refreshApprovalCount();});
   }
