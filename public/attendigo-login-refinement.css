@@ -83,3 +83,8 @@
   .login-page #signInButton .sign-in-arrow svg{transition:none!important}
   .login-page .login-mode .mode-tab{transition:none!important}
 }
+
+/* Explicit hidden-state fix: the generic form layout uses display:flex!important,
+   which previously overrode the HTML hidden attribute for Super Admin login. */
+.login-page .login-panel #loginForm #schoolCodeGroup[hidden]{display:none!important;visibility:hidden!important}
+.login-page .login-panel #loginForm #schoolCodeGroup:not([hidden]){visibility:visible}
