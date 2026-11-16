@@ -339,3 +339,14 @@ html[data-ui-theme=dark] .manual-extra-status[data-status="LATE"][data-active="t
 body.dark-mode .manual-extra-status[data-status="EXCUSED"][data-active="true"],
 body[data-theme=dark] .manual-extra-status[data-status="EXCUSED"][data-active="true"],
 html[data-ui-theme=dark] .manual-extra-status[data-status="EXCUSED"][data-active="true"]{background:#4c3275;color:#f2e6ff;border-color:#9569d3}
+
+/* QR archive: sliding curled paper overlay, matching the teacher register navigation. */
+#mfQrHistoryDetails .manual-qr-pages{position:relative;isolation:isolate;overflow:hidden;border-radius:14px;background:#fff;perspective:1100px}
+#mfQrHistoryDetails .manual-qr-turn-leaf{position:absolute;inset:0;z-index:5;pointer-events:none;background:#fff;transform-origin:left center;overflow:hidden;box-shadow:8px 9px 22px rgba(13,42,91,.2)}
+#mfQrHistoryDetails .manual-qr-turn-leaf table{width:100%;min-width:inherit;background:inherit;pointer-events:none}
+#mfQrHistoryDetails .manual-qr-turn-leaf.forward{animation:mf-qr-curl-forward .44s cubic-bezier(.24,.72,.24,1) both}
+#mfQrHistoryDetails .manual-qr-turn-leaf.backward{transform-origin:right center;animation:mf-qr-curl-backward .44s cubic-bezier(.24,.72,.24,1) both}
+@keyframes mf-qr-curl-forward{0%{transform:translateX(0) rotateY(0deg);opacity:1;filter:brightness(1)}48%{transform:translateX(-20%) rotateY(-16deg);opacity:.94;filter:brightness(.9)}100%{transform:translateX(-105%) rotateY(-4deg);opacity:0;filter:brightness(.96)}}
+@keyframes mf-qr-curl-backward{0%{transform:translateX(0) rotateY(0deg);opacity:1;filter:brightness(1)}48%{transform:translateX(20%) rotateY(16deg);opacity:.94;filter:brightness(.9)}100%{transform:translateX(105%) rotateY(4deg);opacity:0;filter:brightness(.96)}}
+html[data-ui-theme=dark] #mfQrHistoryDetails .manual-qr-pages,html[data-ui-theme=dark] #mfQrHistoryDetails .manual-qr-turn-leaf,body.dark-mode #mfQrHistoryDetails .manual-qr-pages,body.dark-mode #mfQrHistoryDetails .manual-qr-turn-leaf{background:#182843;color:#eef4ff;border-color:#405674}
+@media(prefers-reduced-motion:reduce){#mfQrHistoryDetails .manual-qr-turn-leaf{animation:none!important}}
