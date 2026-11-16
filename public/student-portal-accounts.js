@@ -168,8 +168,8 @@
     try {
       const result=await api('/api/student-portal/accounts/'+encodeURIComponent(studentId)+'/provision',
         {method:'POST',body:JSON.stringify({action})});
-      await refreshAfterMutation();
       openCredentials([result.credentials]);
+      await refreshAfterMutation().catch(error => announce('Credentials issued. Account list refresh failed: ' + error.message, true));
     } catch(error) {announce(error.message,true);}
     finally {busy=false;}
   }
@@ -204,8 +204,8 @@
       const result=await api('/api/student-portal/accounts/bulk-provision',
         {method:'POST',body:JSON.stringify({studentIds:ids})});
       selected.clear();
-      await refreshAfterMutation();
       openCredentials(result.credentials||[]);
+      await refreshAfterMutation().catch(error => announce('Credentials issued. Account list refresh failed: ' + error.message, true));
     }catch(error){announce(error.message,true);}
     finally{busy=false;}
   }
@@ -298,9 +298,9 @@
       const result=await api('/api/student-portal/requests/'+encodeURIComponent($('sapReviewRequestId').value)+'/review',
         {method:'POST',body:JSON.stringify({decision:$('sapReviewDecision').value,note:$('sapReviewNote').value.trim()})});
       closeModal('sapReviewModal');
-      await refreshAfterMutation();
       if(result.credentials)openCredentials([result.credentials]);
       else announce('Request rejected. No student login was changed.');
+      await refreshAfterMutation().catch(error => announce('Decision saved; list refresh failed: ' + error.message, true));
     }catch(error){$('sapReviewFeedback').textContent=error.message;}
     finally{button.disabled=false;}
   });
