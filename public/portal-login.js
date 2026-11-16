@@ -22,6 +22,8 @@
     studentMode?.setAttribute('aria-pressed', String(isStudent));
     platformMode.setAttribute('aria-pressed', String(mode === 'platform'));
     schoolCodeGroup.hidden = mode === 'platform';
+    schoolCode.disabled = mode === 'platform';
+    schoolCode.setAttribute('aria-hidden', String(mode === 'platform'));
     document.getElementById('schoolAdminRecoveryLink').hidden = mode !== 'school';
     document.getElementById('schoolAdminRecoveryForm').hidden = true;
     form.hidden = false;
@@ -31,7 +33,7 @@
     if (accountTypeHint) accountTypeHint.textContent = isStudent
       ? 'Student account uses the school-issued student login. You can view only your own profile and attendance.'
       : mode === 'platform'
-        ? 'Platform Administrator accounts are separate from school accounts.'
+        ? 'Super Admin: enter your platform username and password. School code is not required.'
         : 'School account includes administrators, teachers, Gate Keepers, and approved Parent/Guardian accounts.';
     feedback.textContent = '';
     feedback.className = 'form-feedback';
