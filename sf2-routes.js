@@ -309,7 +309,7 @@ function registerSf2Routes(app, pool, { authenticateSchoolClient, requireSchoolU
     return {male:bySex('MALE'),female:bySex('FEMALE'),days:data.dates.length};
   }
 
-  async function buildOfficialWorkbook(req, month, gradeLevel, section, data) {
+  async function buildOfficialWorkbook(req, month, gradeLevel, section, data, personalCopy = false) {
     try {
       await fs.access(TEMPLATE);
     } catch {
@@ -323,12 +323,12 @@ function registerSf2Routes(app, pool, { authenticateSchoolClient, requireSchoolU
       error.status = 409;
       throw error;
     }
-    if (data.summary.conflicts) {
+    if (!personalCopy && data.summary.conflicts) {
       const error = new Error(`${data.summary.conflicts} learner-day record(s) have conflicting attendance: an accepted check-in and a confirmed absence exist for the same date. A Class Adviser must resolve these conflicts before official SF2 generation.`);
       error.status = 409;
       throw error;
     }
-    if (data.summary.pending) {
+    if (!personalCopy && data.summary.pending) {
       const error = new Error(`${data.summary.pending} learner-day record(s) are unresolved. A Class Adviser must review the full subject attendance before confirming an absence.`);
       error.status = 409;
       throw error;
@@ -375,7 +375,13 @@ function registerSf2Routes(app, pool, { authenticateSchoolClient, requireSchoolU
     worksheet.getCell('C6').value = setting('school_id') || String(req.auth.schoolId);
     worksheet.getCell('K6').value = setting('school_year') || `${year}-${year + 1}`;
     worksheet.getCell('X6').value = MONTHS[monthNumber - 1];
-    worksheet.getCell('C8').value = setting('school_name') || 'SCHOOL NAME';
+    worksheet.getCell('C8').value = personalCopy
+      ? `UNOFFICIAL SUBJECT COPY — ${setting('school_name') || 'SCHOOL NAME'}`
+      : (setting('school_name') || 'SCHOOL NAME');
+    if (personalCopy) {
+      worksheet.getCell('C8').alignment = { ...worksheet.getCell('C8').alignment, shrinkToFit: true, vertical: 'middle' };
+      worksheet.name = 'SF2 Subject Copy';
+    }
     worksheet.getCell('X8').value = gradeLevel;
     worksheet.getCell('AC8').value = section;
 
@@ -418,13 +424,22 @@ function registerSf2Routes(app, pool, { authenticateSchoolClient, requireSchoolU
             cell.alignment = { ...cell.alignment, horizontal: 'center', vertical: 'middle' };
           } else if (status === 'PRESENT') {
             dailyPresent[dayIndex]++;
+            if (personalCopy) {
+              cell.value = 'P';
+              cell.font = { ...cell.font, size: 9 };
+              cell.alignment = { ...cell.alignment, horizontal: 'center', vertical: 'middle' };
+            }
+          } else if (personalCopy && status === 'NO_RECORD') {
+            cell.value = 'NR';
+            cell.font = { ...cell.font, size: 8 };
+            cell.alignment = { ...cell.alignment, horizontal: 'center', vertical: 'middle', shrinkToFit: true };
           }
         }
 
         const absenceCell = worksheet.getCell(row, 29);
         const tardyCell = worksheet.getCell(row, 30);
-        absenceCell.value = student ? student.days.filter(status => status === 'ABSENT').length : null;
-        tardyCell.value = student ? (Number(student.tardyCount) || 0) : null;
+        absenceCell.value = student && !personalCopy ? student.days.filter(status => status === 'ABSENT').length : null;
+        tardyCell.value = student && !personalCopy ? (Number(student.tardyCount) || 0) : null;
         for (const cell of [absenceCell, tardyCell]) {
           cell.alignment = { ...cell.alignment, horizontal: 'center', vertical: 'middle' };
         }
@@ -447,19 +462,19 @@ function registerSf2Routes(app, pool, { authenticateSchoolClient, requireSchoolU
     // The official SF2 template's summary panel occupies columns AH (M),
     // AI (F), AJ (TOTAL); row headings run from 66 through 83.
     // Write the numeric merged-cell anchors without altering template styles.
-    const summary = await getMonthlySf2Summary(req, month, gradeLevel, section, data);
-    const m = summary.male, f = summary.female;
+    const summary = personalCopy ? null : await getMonthlySf2Summary(req, month, gradeLevel, section, data);
+    const m = summary?.male || {}, f = summary?.female || {};
     const total = field => Number(m[field] || 0) + Number(f[field] || 0);
     const rate = (numerator, denominator) => denominator ? numerator / denominator : null;
-    const average = (presentDays) => summary.days ? presentDays / summary.days : null;
+    const average = (presentDays) => summary?.days ? presentDays / summary.days : null;
     const metrics = [
       [66, m.early, f.early, total('early'), '0'],
       [68, m.late, f.late, total('late'), '0'],
       [70, m.registered, f.registered, total('registered'), '0'],
       [72, rate(m.registered,m.early), rate(f.registered,f.early), rate(total('registered'),total('early')), '0.00%'],
       [74, average(m.presentDays), average(f.presentDays), average(total('presentDays')), '0.00'],
-      [75, rate(m.presentDays,m.registered * summary.days), rate(f.presentDays,f.registered * summary.days),
-        rate(total('presentDays'), total('registered') * summary.days), '0.00%'],
+      [75, rate(m.presentDays,m.registered * (summary?.days || 0)), rate(f.presentDays,f.registered * (summary?.days || 0)),
+        rate(total('presentDays'), total('registered') * (summary?.days || 0)), '0.00%'],
       [77, m.consecutive, f.consecutive, total('consecutive'), '0'],
       [79, m.dropout, f.dropout, total('dropout'), '0'],
       [81, m.transferOut, f.transferOut, total('transferOut'), '0'],
@@ -469,13 +484,20 @@ function registerSf2Routes(app, pool, { authenticateSchoolClient, requireSchoolU
       for (const [col, value] of [[34,male],[35,female],[36,combined]]) {
         const cell = worksheet.getCell(row,col);
         const target = cell.isMerged ? cell.master : cell;
-        target.value = value;
-        target.numFmt = format;
-        target.alignment = { ...target.alignment, horizontal:'center', vertical:'middle' };
+        // Never represent subject-specific missing scans as official SF2 monthly attendance.
+        // Text percentages avoid ##### and 1 instead of 100% on narrow merged cells in iPad Excel.
+        target.value = personalCopy ? null :
+          (format === '0.00%' ? (value == null ? 'N/A' : `${(Number(value) * 100).toFixed(1)}%`) : value);
+        target.numFmt = personalCopy ? 'General' : (format === '0.00%' ? '@' : format);
+        target.alignment = { ...target.alignment, horizontal:'center', vertical:'middle', shrinkToFit: true };
+        if (format === '0.00%') target.font = { ...target.font, size: 9 };
       }
     }
     worksheet.getCell('AB65').value = MONTHS[monthNumber - 1];
-    worksheet.getCell('AE65').value = summary.days;
+    worksheet.getCell('AB65').alignment = { ...worksheet.getCell('AB65').alignment, horizontal: 'center', vertical: 'middle', shrinkToFit: true };
+    worksheet.getCell('AB65').font = { ...worksheet.getCell('AB65').font, size: 10 };
+    worksheet.getCell('AE65').value = personalCopy ? data.dates.length : summary.days;
+    worksheet.getCell('AE65').alignment = { ...worksheet.getCell('AE65').alignment, horizontal: 'center', vertical: 'middle' };
     // Learner names are left-aligned for readability. Number and date columns
     // retain the DepEd template's existing alignment.
     for (const row of [...Array.from({length:21}, (_,i) => i+14), ...Array.from({length:25}, (_,i) => i+36)]) {
@@ -483,108 +505,26 @@ function registerSf2Routes(app, pool, { authenticateSchoolClient, requireSchoolU
       cell.alignment = { ...cell.alignment, horizontal:'left', vertical:'middle', indent:1 };
     }
 
+    if (personalCopy) {
+      const notes = workbook.addWorksheet('READ ME - Unofficial');
+      notes.getColumn('A').width = 110;
+      notes.getCell('A1').value = 'UNOFFICIAL SUBJECT TEACHER ATTENDANCE COPY';
+      notes.getCell('A1').font = { bold: true, size: 16 };
+      notes.getCell('A3').value = 'This workbook uses the same DepEd SF2 worksheet template for familiarity but is NOT an official School Form 2.';
+      notes.getCell('A4').value = 'P = at least one accepted subject/class time-in recorded by this teacher for this learner and date.';
+      notes.getCell('A5').value = 'NR = NO RECORD from this teacher; it does NOT mean the learner was absent from school.';
+      notes.getCell('A6').value = 'Absences, tardiness, and official school-wide monthly summary figures are deliberately left blank.';
+      notes.getCell('A7').value = 'Only the designated Class Adviser/School Admin may produce the official SF2 after resolving pending attendance.';
+      notes.getCell('A9').value = `Report: ${month} | Grade: ${gradeLevel} | Section: ${section}`;
+      for (const row of [3,4,5,6,7,9]) notes.getCell('A'+row).alignment = { wrapText: true };
+      notes.getRow(3).height = 30;
+      notes.getRow(6).height = 30;
+    }
     return Buffer.from(await workbook.xlsx.writeBuffer());
   }
 
-  async function buildPersonalCopyWorkbook(month, gradeLevel, section, data) {
-    // This is a subject-teacher observation report, not an official daily absence record.
-    // Preserve the SF2-style male/female grouping without declaring no-scans as absences.
-    const workbook = new ExcelJS.Workbook();
-    workbook.creator = 'Student Attendance Tracker';
-    workbook.subject = 'Unofficial subject-teacher attendance report';
-    const worksheet = workbook.addWorksheet('Subject Attendance Copy', {
-      views: [{ state: 'frozen', ySplit: 6, xSplit: 3 }]
-    });
-    const lastColumn = 3 + data.dates.length + 1;
-    const dayColumn = day => 4 + day;
-    const presentTotalColumn = lastColumn;
-    const dark = 'FF1F4E78';
-    const blue = 'FF4472C4';
-    const white = 'FFFFFFFF';
-    const center = { horizontal: 'center', vertical: 'middle' };
-    const header = (rowNumber, title, color = dark) => {
-      worksheet.mergeCells(rowNumber, 1, rowNumber, lastColumn);
-      const cell = worksheet.getCell(rowNumber, 1);
-      cell.value = title;
-      cell.font = { bold: true, color: { argb: white }, size: rowNumber === 1 ? 14 : 10 };
-      cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: color } };
-      cell.alignment = { ...center, wrapText: true };
-      worksheet.getRow(rowNumber).height = rowNumber === 1 ? 30 : 23;
-    };
-    header(1, 'SUBJECT TEACHER ATTENDANCE COPY — NOT OFFICIAL DEPED SF2');
-    worksheet.mergeCells(2, 1, 2, lastColumn);
-    worksheet.getCell(2, 1).value = `Month: ${month}    Grade: ${gradeLevel}    Section: ${section}`;
-    worksheet.mergeCells(3, 1, 3, lastColumn);
-    worksheet.getCell(3, 1).value = 'P = accepted subject time-in. NR = no subject time-in recorded by this teacher; NR does not establish absence.';
-    worksheet.getCell(3, 1).alignment = { wrapText: true, vertical: 'middle' };
-    worksheet.getRow(3).height = 28;
-    worksheet.mergeCells(4, 4, 4, 3 + data.dates.length);
-    worksheet.getCell(4, 4).value = 'DAY OF MONTH (SCHEDULED SCHOOL DAYS)';
-    worksheet.getCell(4, 4).alignment = center;
-    worksheet.getCell(4, 4).font = { bold: true };
-    const headerRow = worksheet.getRow(5);
-    const headings = ['No.', 'Learner Name', 'Sex', ...data.dates.map(date => Number(date.slice(-2))), 'Total P'];
-    headings.forEach((value, index) => {
-      const cell = headerRow.getCell(index + 1);
-      cell.value = value;
-      cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: blue } };
-      cell.font = { bold: true, color: { argb: white } };
-      cell.alignment = { ...center, wrapText: true };
-    });
-    worksheet.getRow(5).height = 26;
-    const students = [...data.students].sort((a,b) => {
-      const rank = s => String(s.sex || '').toUpperCase() === 'MALE' ? 0 :
-        String(s.sex || '').toUpperCase() === 'FEMALE' ? 1 : 2;
-      return rank(a) - rank(b) || String(a.name).localeCompare(String(b.name));
-    });
-    let line = 6;
-    const groups = [
-      ['MALE LEARNERS', students.filter(s => String(s.sex || '').toUpperCase() === 'MALE')],
-      ['FEMALE LEARNERS', students.filter(s => String(s.sex || '').toUpperCase() === 'FEMALE')],
-      ['SEX NOT RECORDED', students.filter(s => !['MALE','FEMALE'].includes(String(s.sex || '').toUpperCase()))]
-    ];
-    for (const [label, learners] of groups) {
-      if (!learners.length) continue;
-      header(line++, label, 'FF65758B');
-      learners.forEach((student,index) => {
-        const row = worksheet.getRow(line++);
-        row.getCell(1).value = index + 1;
-        row.getCell(2).value = student.name;
-        row.getCell(3).value = student.sex || '';
-        let total = 0;
-        data.dates.forEach((date, dayIndex) => {
-          const present = student.days[dayIndex] === 'PRESENT';
-          if (present) total++;
-          const cell = row.getCell(dayColumn(dayIndex));
-          cell.value = present ? 'P' : 'NR';
-          cell.alignment = center;
-        });
-        row.getCell(presentTotalColumn).value = total;
-        row.getCell(presentTotalColumn).alignment = center;
-        row.getCell(1).alignment = center;
-        row.getCell(3).alignment = center;
-        row.height = 21;
-      });
-    }
-    header(line++, 'MONTHLY SUBJECT ATTENDANCE COUNTS', dark);
-    const totals = worksheet.getRow(line);
-    totals.getCell(2).value = 'Recorded subject time-ins';
-    data.dates.forEach((date, dayIndex) => {
-      const cell = totals.getCell(dayColumn(dayIndex));
-      cell.value = students.filter(s => s.days[dayIndex] === 'PRESENT').length;
-      cell.alignment = center;
-    });
-    totals.getCell(presentTotalColumn).value =
-      students.reduce((sum,s) => sum + s.days.filter(day => day === 'PRESENT').length, 0);
-    totals.getCell(presentTotalColumn).alignment = center;
-    totals.font = { bold: true };
-    worksheet.getColumn(1).width = 7;
-    worksheet.getColumn(2).width = 34;
-    worksheet.getColumn(3).width = 13;
-    data.dates.forEach((date,index) => { worksheet.getColumn(dayColumn(index)).width = 6; });
-    worksheet.getColumn(presentTotalColumn).width = 10;
-    worksheet.pageSetup = { orientation: 'landscape', fitToPage: true, fitToWidth: 1, fitToHeight: 0 };
-    return Buffer.from(await workbook.xlsx.writeBuffer());
+  async function buildPersonalCopyWorkbook(req, month, gradeLevel, section, data) {
+    return buildOfficialWorkbook(req, month, gradeLevel, section, data, true);
   }
 
   async function getAccessAndData(req, month, gradeLevel, section, requestedMode = '') {
@@ -775,7 +715,7 @@ function registerSf2Routes(app, pool, { authenticateSchoolClient, requireSchoolU
       let buffer;
       let filename;
       if (access.mode === 'PERSONAL') {
-        buffer = await buildPersonalCopyWorkbook(month, gradeLevel, section, data);
+        buffer = await buildPersonalCopyWorkbook(req, month, gradeLevel, section, data);
         filename = `SF2-Personal-Copy-${safePart(gradeLevel)}-${safePart(section)}-${month}.xlsx`;
       } else {
         buffer = await buildOfficialWorkbook(req, month, gradeLevel, section, data);
