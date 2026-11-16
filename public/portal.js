@@ -3312,27 +3312,15 @@ let teacherActionMenuListenersInstalled = false;
     document.documentElement.style.setProperty('--nav-active', darker);
     const emblem = $('schoolEmblem');
     const sidebarMark = $('sidebarSchoolMark');
-    if (brandingLogoObjectUrl) URL.revokeObjectURL(brandingLogoObjectUrl);
-    brandingLogoObjectUrl = null;
-    if (data.logoUrl && brandingLogoObjectUrl) {
-      for (const node of [emblem, sidebarMark, $('schoolLogoPreview')]) {
-        if (!node) continue;
-        node.replaceChildren();
-        const image = document.createElement('img'); image.src = brandingLogoObjectUrl; image.alt = `${name} logo`; node.append(image);
-      }
-    } else {
+    // Keep the existing image visible until loadSchoolBranding fetches the new binary.
+    if (!data.logoUrl) {
       if (emblem) emblem.textContent = name.trim().charAt(0).toUpperCase();
       if (sidebarMark) sidebarMark.textContent = name.trim().charAt(0).toUpperCase();
     }
     if ($('schoolBrandingName')) $('schoolBrandingName').value = name;
     if ($('schoolBrandColor')) $('schoolBrandColor').value = color;
     const preview = $('schoolLogoPreview');
-    if (preview && !(data.logoUrl && brandingLogoObjectUrl)) {
-      preview.replaceChildren();
-      if (data.logoUrl && brandingLogoObjectUrl) {
-        const image = document.createElement('img'); image.src = brandingLogoObjectUrl; image.alt = `${name} logo`; preview.append(image);
-      } else preview.textContent = name.trim().charAt(0).toUpperCase();
-    }
+    if (preview && !data.logoUrl) preview.textContent = name.trim().charAt(0).toUpperCase();
   }
 
   async function loadSchoolBranding() {
@@ -3350,6 +3338,8 @@ let teacherActionMenuListenersInstalled = false;
             node.replaceChildren();
             const image = document.createElement('img'); image.src = brandingLogoObjectUrl; image.alt = `${data.branding.schoolName} logo`; node.append(image);
           }
+        } else {
+          $('schoolBrandingFeedback').textContent = 'The previous logo file is unavailable. Please upload it again to store it permanently.';
         }
       }
     } catch (error) {
@@ -3372,16 +3362,32 @@ let teacherActionMenuListenersInstalled = false;
 
   $('uploadSchoolLogo')?.addEventListener('click', async () => {
     const file = $('schoolLogoFile').files?.[0];
-    if (!file) { $('schoolBrandingFeedback').textContent = 'Choose a logo image first.'; return; }
-    if (file.size > 2 * 1024 * 1024) { $('schoolBrandingFeedback').textContent = 'Logo must be 2 MB or smaller.'; return; }
+    const feedback = $('schoolBrandingFeedback');
+    if (!file) { feedback.textContent = 'Choose a logo image first.'; return; }
+    if (!window.ProfilePhotos?.edit) { feedback.textContent = 'Photo editor not available. Refresh the page and try again.'; return; }
     const button = $('uploadSchoolLogo'); button.disabled = true;
     try {
-      const response = await fetch('/api/school/branding/logo', { method: 'PUT', headers: { Authorization: `Bearer ${token}`, 'Content-Type': file.type }, body: file, cache: 'no-store' });
+      // Reuse the same drag, zoom and rotation editor as profile photos.
+      // Its normalized image is saved to durable school-specific database storage.
+      const edited = await window.ProfilePhotos.edit(file);
+      if (!edited) return;
+      const binary = atob(edited.cropped);
+      const bytes = new Uint8Array(binary.length);
+      for (let i=0; i<binary.length; i++) bytes[i] = binary.charCodeAt(i);
+      if (bytes.length > 2 * 1024 * 1024) throw new Error('Cropped logo exceeds 2 MB. Choose a smaller source image.');
+      const response = await fetch('/api/school/branding/logo', {
+        method: 'PUT',
+        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'image/webp' },
+        body: bytes, cache: 'no-store'
+      });
       const result = await response.json().catch(() => ({}));
       if (!response.ok) throw new Error(result.error || 'Could not upload logo.');
-      $('schoolLogoFile').value = ''; await loadSchoolBranding();
-      $('schoolBrandingFeedback').textContent = 'School logo updated.'; showToast('School logo updated.');
-    } catch (error) { $('schoolBrandingFeedback').textContent = error.message; $('schoolBrandingFeedback').className = 'inline-feedback error'; }
+      $('schoolLogoFile').value = '';
+      await loadSchoolBranding();
+      feedback.textContent = 'School logo saved permanently.';
+      feedback.className = 'inline-feedback';
+      showToast('School logo updated.');
+    } catch (error) { feedback.textContent = error.message; feedback.className = 'inline-feedback error'; }
     finally { button.disabled = false; }
   });
 
