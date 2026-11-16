@@ -2101,3 +2101,33 @@ tbody tr:hover td { background: #f9fbfc; }
 #recentActivityCard .table-scroll::-webkit-scrollbar{width:7px;height:7px}
 #recentActivityCard .table-scroll::-webkit-scrollbar-thumb{background:#a8bbd7;border-radius:8px}
 @media(max-width:700px){#recentActivityCard .table-scroll{max-height:350px}}
+
+/* SF2 review matrix: accessible source-aware, navigable daily cells */
+.sf2-review-tools{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;margin:15px 0 10px}
+.sf2-legend,.sf2-navigation{display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-size:12px}
+.sf2-matrix-wrap{max-width:100%;overflow:auto;max-height:65vh;overscroll-behavior:contain;border:1px solid #d5e1f2;border-radius:14px}
+.sf2-matrix-wrap table{border-collapse:separate;border-spacing:0;width:max-content;min-width:100%;table-layout:auto}
+.sf2-matrix-wrap th,.sf2-matrix-wrap td{padding:9px 8px;border-bottom:1px solid #dce5f2;border-right:1px solid #e3eaf5;text-align:center;white-space:nowrap;min-width:65px}
+.sf2-matrix-wrap thead th{position:sticky;top:0;z-index:3;background:#eaf1fc;color:#1d3760}
+.sf2-matrix-wrap thead th:first-child,.sf2-matrix-wrap tbody th:first-child{position:sticky;left:0;min-width:190px;max-width:240px;text-align:left;z-index:2;background:#f7faff;white-space:normal}
+.sf2-matrix-wrap thead th:first-child{z-index:5;background:#eaf1fc}
+.sf2-matrix-wrap tbody th small{display:block;font-weight:400;margin-top:3px;opacity:.7}
+.sf2-matrix-wrap tbody tr:nth-child(even){background:#f6f9fe}
+.sf2-matrix-wrap tbody tr:hover{background:#eaf3ff}
+.sf2-matrix-wrap tbody tr[hidden]{display:none}
+.sf2-mark{display:inline-flex;align-items:center;justify-content:center;min-width:36px;min-height:31px;padding:3px 6px;border-radius:9px;font-weight:800;font-size:11px;border:1px solid transparent;box-sizing:border-box}
+.sf2-mark.qr{background:#d7f7e7;color:#086b3d;border-color:#8adbb3}
+.sf2-mark.manual{background:#dcecff;color:#155bb4;border-color:#9ac5f9}
+.sf2-mark.both{background:#d6f5f2;color:#08776d;border-color:#83d8cd}
+.sf2-mark.late{background:#fff0cb;color:#925600;border-color:#f4ce7b}
+.sf2-mark.absent{background:#ffe0e3;color:#ae2638;border-color:#f3a1ab}
+.sf2-mark.conflict{background:#ffdaae;color:#8d3700;border:2px solid #e47820}
+.sf2-mark.pending{background:#fff1d6;color:#805500;border:1px dashed #d3a13b}
+.sf2-mark.missing{background:#e9edf4;color:#57647a}
+.sf2-mark.present{background:#e3f5e9;color:#237546}
+button.sf2-mark{cursor:pointer}
+button.sf2-mark:focus-visible{outline:3px solid #367fe8;outline-offset:2px}
+body.dark-mode .sf2-matrix-wrap,body[data-theme=dark] .sf2-matrix-wrap{border-color:#435474}
+body.dark-mode .sf2-matrix-wrap thead th,body.dark-mode .sf2-matrix-wrap tbody th:first-child,body[data-theme=dark] .sf2-matrix-wrap thead th,body[data-theme=dark] .sf2-matrix-wrap tbody th:first-child{background:#253650;color:#eef4ff}
+body.dark-mode .sf2-matrix-wrap tbody tr:nth-child(even),body[data-theme=dark] .sf2-matrix-wrap tbody tr:nth-child(even){background:#1c2b44}
+@media(max-width:700px){.sf2-matrix-wrap tbody th:first-child,.sf2-matrix-wrap thead th:first-child{min-width:145px;max-width:175px}.sf2-review-tools{align-items:flex-start}.sf2-navigation{width:100%}}
