@@ -112,5 +112,67 @@ function registerManualAttendanceRoutes(app,pool,{authenticateSchoolClient,requi
    }catch(err){console.error('Manual attendance history failed:',err.message);return res.status(500).json({error:'Unable to load attendance history.'})}
  });
 
+
+ // Authoritative conflict list: only an accepted QR class time-in for the same
+ // learner, date and period contradicting an Absent/Excused manual mark.
+ app.get('/api/manual-attendance/conflicts',...auth,async(req,res)=>{
+   const {periodId}=req.query||{};
+   const page=Math.max(0,Math.min(999,Number.parseInt(String(req.query.page||'0'),10)||0));
+   const date=req.query.date||new Date().toISOString().slice(0,10);
+   if(!/^[0-9a-f-]{36}$/i.test(String(periodId||''))||!validDate(date))return res.status(400).json({error:'Choose an assigned class and valid date.'});
+   try{
+     if(!await authorizedPeriod(pool,req,periodId,date))return res.status(403).json({error:'You cannot review this class.'});
+     const base=`FROM manual_attendance_marks m
+       JOIN students s ON s.school_id=m.school_id AND s.student_id=m.student_id
+       JOIN attendance_events e ON e.school_id=m.school_id
+        AND e.student_id=m.student_id AND e.school_date=m.school_date AND e.period_id=m.period_id
+        AND e.attendance_scope='CLASS' AND e.event_type='TIME_IN'
+        AND e.sync_status='ACCEPTED'
+       WHERE m.school_id=$1 AND m.period_id=$2 AND m.status IN ('ABSENT','EXCUSED')`;
+     const params=[req.auth.schoolId,periodId];
+     const count=await pool.query('SELECT count(DISTINCT (m.student_id,m.school_date))::int AS total '+base,params);
+     const rows=await pool.query(`SELECT DISTINCT ON (m.student_id,m.school_date)
+       m.student_id AS "studentId",s.full_name AS "fullName",
+       m.school_date::text AS date,m.status AS "manualStatus",m.note AS "manualNote",
+       e.event_id AS "qrEventId",e.occurred_at_device AS "qrTime",
+       e.late AS "qrLate",m.updated_at AS "manualUpdatedAt"
+       ${base}
+       ORDER BY m.student_id,m.school_date DESC,e.received_at_server DESC
+       LIMIT 10 OFFSET $3`,[...params,page*10]);
+     return res.json({records:rows.rows,page,total:count.rows[0].total,pageSize:10});
+   }catch(error){console.error('Manual/QR conflicts read failed:',error.message);return res.status(500).json({error:'Could not load verified attendance conflicts.'});}
+ });
+ // Teachers can correct their class's manual mark. QR events remain immutable.
+ app.post('/api/manual-attendance/conflicts/resolve',...auth,async(req,res)=>{
+   const {periodId,studentId,date,status}=req.body||{};
+   if(!/^[0-9a-f-]{36}$/i.test(String(periodId||''))||typeof studentId!=='string'||!studentId||studentId.length>160||!validDate(date)||!['PRESENT','LATE'].includes(status))
+     return res.status(400).json({error:'Select a verified conflict and a valid corrected status.'});
+   const client=await pool.connect();
+   try{
+     await client.query('BEGIN');
+     if(!await authorizedPeriod(client,req,periodId,date)){
+       await client.query('ROLLBACK');return res.status(403).json({error:'This class is not assigned to you.'});
+     }
+     const result=await client.query(`UPDATE manual_attendance_marks m SET
+       status=$5,marked_by=$6,updated_at=NOW()
+       WHERE m.school_id=$1 AND m.period_id=$2 AND m.student_id=$3 AND m.school_date=$4
+         AND m.status IN ('ABSENT','EXCUSED')
+         AND EXISTS(SELECT 1 FROM attendance_events e
+           WHERE e.school_id=m.school_id AND e.period_id=m.period_id
+             AND e.student_id=m.student_id AND e.school_date=m.school_date
+             AND e.attendance_scope='CLASS' AND e.event_type='TIME_IN'
+             AND e.sync_status='ACCEPTED')
+       RETURNING m.student_id AS "studentId",m.status`,
+       [req.auth.schoolId,periodId,studentId,date,status,req.auth.userId]);
+     if(!result.rowCount){
+       await client.query('ROLLBACK');return res.status(409).json({error:'The conflict changed or the QR record is no longer accepted. Refresh the conflict list.'});
+     }
+     await client.query('COMMIT');
+     // The existing manual_attendance_audit trigger records the previous and new status.
+     return res.json({resolved:true,record:result.rows[0]});
+   }catch(error){await client.query('ROLLBACK').catch(()=>{});console.error('Manual/QR conflict correction failed:',error.message);return res.status(500).json({error:'Could not correct the manual attendance mark.'});}
+   finally{client.release();}
+ });
+
 }
 module.exports={registerManualAttendanceRoutes};
