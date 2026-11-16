@@ -1,4 +1,4 @@
-const CACHE = "attendigo-v103-planner-dashboard-share";
+const CACHE = "attendigo-v104-role-navigation-refresh";
 
 const SHELL = [
   "/assets/attendigo-sidebar-logo.png",
