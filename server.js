@@ -63,6 +63,22 @@ const { authenticateSchoolClient, requireSchoolRoles, requireSchoolPermission, r
 const { requireSchoolFeature } = require('./school-feature-guard');
 // Feature checks are additive and preserve access for schools not yet assigned a plan.
 // Only selected feature endpoints are gated; attendance history and essential records remain accessible.
+// School-facing effective entitlements; the Super Admin endpoint is not accessible to school users.
+app.get('/api/school/entitlements', authenticateSchoolClient, async(req,res)=>{
+ try{
+  const result=await pool.query(`SELECT p.code,p.features,p.limits,ss.overrides,ss.status,ss.ends_at
+   FROM school_subscriptions ss JOIN platform_plans p ON p.plan_id=ss.plan_id
+   WHERE ss.school_id=$1`,[req.auth.schoolId]);
+  res.set('Cache-Control','no-store');
+  if(!result.rowCount)return res.json({configured:false,legacyAccess:true,features:{}});
+  const item=result.rows[0],expired=!!(item.ends_at&&new Date(item.ends_at).getTime()<=Date.now());
+  const features={...item.features,...item.overrides};
+  // Essential attendance data must remain available after expiration.
+  if(expired||['EXPIRED','SUSPENDED'].includes(item.status))
+   for(const key of ['planner','advanced_analytics','sms_notifications','custom_branding'])features[key]=false;
+  return res.json({configured:true,plan:item.code,status:item.status,expired,features,limits:item.limits});
+ }catch(error){console.error('School entitlements:',error.message);res.status(503).json({error:'Could not verify school feature access.'});}
+});
 app.use('/api/planner', authenticateSchoolClient, requireSchoolFeature(pool, 'planner'));
 app.use('/api/sms/messages', authenticateSchoolClient, requireSchoolFeature(pool, 'sms_notifications'));
 app.use('/api/class-qr/sessions', authenticateSchoolClient, requireSchoolFeature(pool, 'qr_attendance'));
