@@ -44,6 +44,25 @@ function registerPlatformPlanRoutes(app,pool,{authenticatePlatform,requirePlatfo
   }catch(err){await client.query('ROLLBACK').catch(()=>{});console.error('Subscription update:',err.message);return res.status(err.code==='23503'?404:500).json({error:'Could not save subscription.'});}
   finally{client.release();}
  });
+ app.get('/api/platform/subscriptions/summary',...guard,async(_req,res)=>{
+  try{
+   const [totals,history]=await Promise.all([
+    pool.query(`SELECT COUNT(*)::int AS "assignedSchools",
+      COUNT(*) FILTER(WHERE status='TRIAL')::int AS "trials",
+      COUNT(*) FILTER(WHERE status='ACTIVE')::int AS "activeSubscriptions",
+      COUNT(*) FILTER(WHERE status IN ('EXPIRED','SUSPENDED') OR (ends_at IS NOT NULL AND ends_at<NOW()))::int AS "needsAttention",
+      COUNT(*) FILTER(WHERE ends_at BETWEEN NOW() AND NOW()+INTERVAL '14 days')::int AS "renewingSoon"
+      FROM school_subscriptions`),
+    pool.query(`SELECT a.created_at AS "createdAt",a.action,a.details,
+       s.school_name AS "schoolName",p.display_name AS "actorName"
+       FROM audit_logs a LEFT JOIN schools s ON s.school_id=a.school_id
+       LEFT JOIN platform_users p ON p.user_id=a.actor_user_id
+       WHERE a.actor_type='PLATFORM' AND a.action='PLATFORM_UPDATE_SUBSCRIPTION'
+       ORDER BY a.created_at DESC LIMIT 20`)
+   ]);
+   res.set('Cache-Control','no-store').json({summary:totals.rows[0],history:history.rows});
+  }catch(err){console.error('Subscription summary:',err.message);res.status(500).json({error:'Could not load subscription summary.'});}
+ });
  app.get('/api/platform/schools/:schoolId/entitlements',...guard,async(req,res)=>{
   if(!uuid(req.params.schoolId))return res.status(400).json({error:'Invalid school.'});
   try{const r=await pool.query(`SELECT p.code,p.features,p.limits,ss.overrides,ss.status,ss.ends_at AS "endsAt" FROM school_subscriptions ss JOIN platform_plans p USING(plan_id) WHERE ss.school_id=$1`,[req.params.schoolId]);
