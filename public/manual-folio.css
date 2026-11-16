@@ -192,3 +192,16 @@ body.dark-mode .manual-bottom,body[data-theme=dark] .manual-bottom{background:#2
 body.dark-mode .manual-history-folio,body[data-theme=dark] .manual-history-folio,
 body.dark-mode .manual-notes-item,body[data-theme=dark] .manual-notes-item,
 body.dark-mode .manual-qr-archive,body[data-theme=dark] .manual-qr-archive{background:#182843;color:#eff4ff;border-color:#385277}
+
+/* Notes tab starts at the top instead of floating within an empty full-height book. */
+.manual-book.summary-mode{min-height:0}
+.manual-book.summary-mode #mfRight{align-self:start;margin:0 auto;padding-top:24px;padding-bottom:28px}
+.manual-book.summary-mode #mfTeacherNotesWrap{margin-top:10px!important}
+.manual-book.summary-mode #mfTeacherNotes{min-height:135px}
+.manual-history-pages .manual-status{cursor:default}
+#mfHistoryPanel .manual-qr-archive .manual-history-toolbar{margin-top:12px}
+.manual-book:has(.manual-turn-leaf){overflow:visible}
+.manual-turn-leaf .manual-page{overflow:hidden}
+.manual-book:has(.manual-turn-leaf) #mfRight{overflow:hidden}
+.manual-note-btn{min-width:34px;min-height:34px}
+@media(max-width:700px){.manual-book:has(.manual-turn-leaf){overflow:hidden}}
