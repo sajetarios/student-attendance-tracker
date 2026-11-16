@@ -10,11 +10,13 @@ const {registerStudentPortalAccountRoutes} = require('../student-portal-account-
 function fixture(rows = []) {
   const routes = new Map();
   const calls = [];
+  const query = async (sql, params = []) => {
+    calls.push({sql: String(sql), params});
+    return {rows, rowCount: rows.length};
+  };
   const pool = {
-    async query(sql, params = []) {
-      calls.push({sql: String(sql), params});
-      return {rows, rowCount: rows.length};
-    }
+    query,
+    async connect() { return {query,release() {}}; }
   };
   const app = {};
   for (const verb of ['get','post','patch']) {
@@ -84,8 +86,9 @@ test('Teacher requests cannot reference an unassigned learner',async()=>{
     {studentId:'unknown', requestType:'CREATE',reason:'Learner needs portal login'});
   assert.equal(response.status,403);
   assert.match(response.payload.error,/assigned/);
-  assert.equal(calls.length,1,'No unauthorized request should be inserted');
-  assert.match(calls[0].sql,/s\.school_id=\$1/);
+  assert.equal(calls.filter(call => /INSERT INTO student_account_requests/.test(call.sql)).length,0,
+    'No unauthorized request should be inserted');
+  assert.match(calls.find(call => /FROM students s/.test(call.sql)).sql,/s\.school_id=\$1/);
 });
 
 test('Teacher pending queue is restricted to own request IDs',async()=>{
