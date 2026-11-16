@@ -252,6 +252,18 @@ function registerSf2Routes(app, pool, { authenticateSchoolClient, requireSchoolU
       .map(row => `${row.id}|${String(row.date).slice(0, 10)}`));
     for (const key of manualPresentSet) presentSet.add(key);
     const manualConflictSet = new Set(periodQrConflicts.rows.map(row => `${row.id}|${String(row.date).slice(0, 10)}`));
+    const qrPresentSet = new Set(present.rows.map(row => `${row.id}|${String(row.date).slice(0, 10)}`));
+    const sourceByDay = new Map();
+    for (const row of present.rows) {
+      const key = `${row.id}|${String(row.date).slice(0, 10)}`;
+      if (!sourceByDay.has(key)) sourceByDay.set(key,new Set());
+      sourceByDay.get(key).add('QR');
+    }
+    for (const row of manual.rows) {
+      const key = `${row.id}|${String(row.date).slice(0, 10)}`;
+      if (!sourceByDay.has(key)) sourceByDay.set(key,new Set());
+      sourceByDay.get(key).add('MANUAL_'+row.status);
+    }
     const absentMap = new Map(absent.rows.map(row => [`${row.id}|${String(row.date).slice(0, 10)}`, row.absenceType]));
     const tardyMap = new Map(tardy.rows.map(row => [row.id, Number(row.count) || 0]));
 
@@ -263,6 +275,7 @@ function registerSf2Routes(app, pool, { authenticateSchoolClient, requireSchoolU
     const rows = students.rows.map(student => ({
       ...student,
       tardyCount: tardyMap.get(student.id) || 0,
+      sources: dates.map(date => [...(sourceByDay.get(`${student.id}|${date}`) || [])].sort()),
       days: dates.map(date => {
         const key = `${student.id}|${date}`;
         if (conflictSet.has(key)) return 'CONFLICT';
@@ -277,6 +290,8 @@ function registerSf2Routes(app, pool, { authenticateSchoolClient, requireSchoolU
       dates,
       students: rows,
       summary: {
+        manualPresentDays: new Set([...manualPresentSet]).size,
+        qrPresentDays: new Set([...qrPresentSet]).size,
         present: rows.reduce((count, row) => count + row.days.filter(status => status === 'PRESENT').length, 0),
         absent: rows.reduce((count, row) => count + row.days.filter(status => status === 'ABSENT').length, 0),
         pending: rows.reduce((count, row) => count + row.days.filter(status => status === 'PENDING').length, 0),
