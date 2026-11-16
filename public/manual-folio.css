@@ -139,3 +139,9 @@ body.dark-mode .manual-detail-card,body[data-theme=dark] .manual-detail-card{bac
 body.dark-mode #mfTeacherNotes,body[data-theme=dark] #mfTeacherNotes{background:#20304e;color:#eef4ff;border-color:#4d6287}
 body.dark-mode .manual-toolbar,body[data-theme=dark] .manual-toolbar{background:#233657;color:#e4ecff}
 body.dark-mode .manual-bottom,body[data-theme=dark] .manual-bottom{background:#20304e;border-color:#455b80}
+
+.manual-book.summary-mode{grid-template-columns:minmax(0,1fr)}
+.manual-book.summary-mode::before{display:none}
+.manual-book.summary-mode #mfRight{border-left:0;max-width:850px;width:100%;box-sizing:border-box;margin:auto}
+.manual-book.summary-mode #mfRight .manual-detail-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+@media(max-width:550px){.manual-book.summary-mode #mfRight .manual-detail-grid{grid-template-columns:minmax(0,1fr)}}
