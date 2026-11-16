@@ -1,5 +1,47 @@
-<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Teacher QR Attendance · Attendigo</title><link rel="stylesheet" href="/portal.css"><style>main{max-width:740px;margin:30px auto;padding:24px}.panel{background:#fff;color:#172b44;border-radius:16px;padding:22px;margin:18px 0}select,button,input{padding:12px;margin:6px;max-width:100%;box-sizing:border-box}select{min-width:0;width:100%;margin:8px 0 12px;background:#fff;color:#172b44;border:1px solid #a6b4c8;border-radius:10px}button{border-radius:10px;cursor:pointer}.panel{overflow:hidden}#qr{display:block;max-width:320px;width:100%;margin:auto}#qr[hidden]{display:none}.muted{color:#64748b}#notice{font-weight:600}</style><link rel="icon" type="image/png" href="/assets/attendigo-icon.png">
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Teacher QR Attendance · Attendigo</title><link rel="stylesheet" href="/portal.css"><style>
+:root{--qr-bg:#f1f5fb;--qr-card:#fff;--qr-text:#12233e;--qr-muted:#53647d;--qr-border:#dbe4f1;--qr-primary:#2563eb;--qr-primary-text:#fff;--qr-soft:#eaf1ff;--qr-shadow:0 14px 48px rgba(28,48,90,.08)}
+html[data-ui-theme="dark"]{--qr-bg:#0b1424;--qr-card:#17253b;--qr-text:#f3f7ff;--qr-muted:#bfcee4;--qr-border:#40536f;--qr-primary:#82b5ff;--qr-primary-text:#081629;--qr-soft:#21324c;--qr-shadow:0 18px 45px rgba(0,0,0,.22)}
+body.portal-page{background:var(--qr-bg)!important;color:var(--qr-text)!important;min-height:100vh}
+.qr-shell{width:min(1480px,100%);max-width:none;margin:0 auto;padding:clamp(14px,2.5vw,36px);box-sizing:border-box}
+.qr-header{display:flex;justify-content:space-between;align-items:center;gap:16px;flex-wrap:wrap;margin-bottom:20px}
+.qr-header h1{font-size:clamp(1.55rem,2.4vw,2.3rem);margin:8px 0 6px;color:var(--qr-text)}
+.qr-header p{color:var(--qr-muted);margin:0;max-width:730px;line-height:1.55}
+.qr-back{color:var(--qr-primary);font-weight:700;text-decoration:none}
+.qr-grid{display:grid;grid-template-columns:minmax(265px,340px) minmax(0,1fr);gap:clamp(14px,2vw,24px);align-items:start}
+.panel{background:var(--qr-card)!important;color:var(--qr-text)!important;border:1px solid var(--qr-border);box-shadow:var(--qr-shadow);border-radius:20px;padding:clamp(18px,2vw,28px);margin:0;min-width:0;box-sizing:border-box}
+.panel h2{color:var(--qr-text);margin:0;font-size:1.16rem}
+label{font-weight:750;display:block;margin:0 0 8px}
+select{width:100%;min-width:0;box-sizing:border-box;background:var(--qr-card);color:var(--qr-text);border:1px solid var(--qr-border);border-radius:12px;padding:13px;margin:12px 0}
+button{border:0;border-radius:12px;padding:13px 18px;font-weight:750;cursor:pointer}
+button:focus-visible,select:focus-visible,a:focus-visible{outline:3px solid var(--qr-primary);outline-offset:3px}
+button:disabled{opacity:.48;cursor:not-allowed}
+#start{background:var(--qr-primary);color:var(--qr-primary-text);width:100%}
+#close{background:var(--qr-soft);color:var(--qr-text)}
+#expandQr{background:var(--qr-soft);color:var(--qr-text)}
+.qr-controls{display:flex;gap:10px;flex-wrap:wrap}
+.qr-muted,.muted{color:var(--qr-muted)!important;line-height:1.5}
+#notice{font-weight:650;line-height:1.5;overflow-wrap:anywhere}
+#upcoming{overflow-wrap:anywhere}
+.qr-stage-head{display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;margin-bottom:16px}
+.qr-stage{display:flex;align-items:center;justify-content:center;min-height:min(66vh,650px);background:var(--qr-soft);border:1px dashed var(--qr-border);border-radius:20px;padding:clamp(12px,2vw,24px)}
+.qr-image-wrap{background:#fff;border-radius:18px;padding:clamp(12px,2vw,22px);width:fit-content;max-width:100%;box-sizing:border-box;box-shadow:0 8px 30px #00000016}
+#qr{display:block;width:min(100%,650px,62vh);height:auto;aspect-ratio:1;object-fit:contain;image-rendering:pixelated;margin:auto}
+#qr[hidden],.qr-image-wrap[hidden]{display:none}
+.qr-empty{text-align:center;max-width:320px;color:var(--qr-muted)}
+.qr-empty svg{width:64px;height:64px;opacity:.7;margin:0 auto 14px;display:block}
+.qr-empty strong{display:block;color:var(--qr-text);font-size:1.1rem;margin-bottom:6px}
+#expiry{text-align:center;margin:16px 0;font-weight:650}
+.qr-stage-panel{min-height:75vh}
+.qr-stage-panel.qr-expanded{position:fixed;inset:12px;z-index:99999;overflow:auto;border-radius:20px;display:flex;flex-direction:column}
+.qr-stage-panel.qr-expanded .qr-stage{flex:1;min-height:0}
+.qr-stage-panel.qr-expanded #qr{width:min(78vh,85vw,1000px)}
+.qr-stage-panel.qr-expanded .qr-image-wrap{max-height:none}
+@media(max-width:780px){.qr-grid{grid-template-columns:1fr}.qr-stage-panel{min-height:0}.qr-stage{min-height:clamp(300px,58vh,600px)}#qr{width:min(100%,62vh,620px)}.qr-shell{padding:14px}.qr-header{margin-bottom:16px}}
+@media(max-width:430px){.qr-stage{padding:12px;min-height:330px}.qr-image-wrap{padding:12px}.qr-stage-head{align-items:start}#qr{width:min(100%,80vw)}}
+</style><link rel="icon" type="image/png" href="/assets/attendigo-icon.png">
 <link rel="apple-touch-icon" href="/assets/attendigo-icon.png">
 <link rel="stylesheet" href="/attendigo-brand.css?v=2">
 <link rel="manifest" href="/manifest.webmanifest">
-<link rel="stylesheet" href="/attendigo-dark-unified.css?v=1"><script src="/dashboard-appearance.js?v=3"></script></head><body class="portal-page"><div class="attendigo-brand"><img class="attendigo-logo" src="/assets/attendigo-sidebar-logo.png" alt="Attendigo" width="2172" height="724"></div><main><p><a href="/portal.html">← Dashboard</a></p><h1>Class QR Attendance</h1><p>Generate a rotating code for your assigned class. On-time grace: 10 minutes. QR closes 5 minutes before class ends.</p><section class="panel"><label for="period">Today's class</label><p id="schoolDate" class="muted"></p><select id="period"><option value="">Loading schedules…</option></select><button id="start">Start QR session</button><p id="notice" role="status"></p><div id="upcoming" class="muted" aria-live="polite"></div></section><section class="panel"><h2>Student check-in QR</h2><img id="qr" alt="Rotating class attendance QR code" hidden><p id="expiry" class="muted"></p><button id="close" disabled>Close session early</button></section><section class="panel"><h2>Manual attendance fallback</h2><p>Use only for a student who cannot submit a valid QR check-in. Each manual entry requires a reason.</p><input id="studentId" placeholder="Student ID" aria-label="Student ID"><input id="reason" placeholder="Reason for manual entry" aria-label="Reason"><button id="manual" disabled>Record manually</button><p id="manualNotice" role="status"></p></section></main><script src="/class-qr-teacher.js" defer></script></body></html>
+<link rel="stylesheet" href="/attendigo-dark-unified.css?v=1"><script src="/dashboard-appearance.js?v=3"></script></head><body class="portal-page"><div class="attendigo-brand"><img class="attendigo-logo" src="/assets/attendigo-sidebar-logo.png" alt="Attendigo" width="2172" height="724"></div><main class="qr-shell"><header class="qr-header"><div><a class="qr-back" href="/portal.html">← Dashboard</a><h1>Class QR Attendance</h1><p>Show the rotating QR code for student check-in. The 10-minute on-time grace period and automatic closing 5 minutes before class ends remain in effect.</p></div></header>
+<div class="qr-grid"><section class="panel" aria-label="Class selection"><label for="period">Today's class</label><p id="schoolDate" class="muted"></p><select id="period"><option value="">Loading schedules…</option></select><button id="start">Start QR session</button><p id="notice" role="status" aria-live="polite"></p><div id="upcoming" class="muted" aria-live="polite"></div></section>
+<section class="panel qr-stage-panel" id="qrPanel"><div class="qr-stage-head"><div><h2>Student check-in QR</h2><p class="muted" style="margin:6px 0 0">Display this code for students to scan</p></div><div class="qr-controls"><button id="expandQr" type="button" aria-pressed="false">⛶ Enlarge QR</button><button id="close" disabled>Close session</button></div></div><div class="qr-stage"><div id="qrEmpty" class="qr-empty"><svg viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="8" y="8" width="20" height="20" rx="2"/><rect x="36" y="8" width="20" height="20" rx="2"/><rect x="8" y="36" width="20" height="20" rx="2"/><path d="M14 14h8v8h-8zm28 0h8v8h-8zM14 42h8v8h-8zM36 36h8m-8 8h8m-8 8h8m8-16v8h8m-8 8h8"/></svg><strong>Ready to display</strong><span>Select a scheduled class and start the QR session.</span></div><div class="qr-image-wrap" id="qrWrap" hidden><img id="qr" alt="Rotating class attendance QR code" hidden></div></div><p id="expiry" class="muted" aria-live="polite"></p></section></div></main><script src="/class-qr-teacher.js" defer></script></body></html>
