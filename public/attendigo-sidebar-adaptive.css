@@ -27,3 +27,17 @@
 .sidebar .sidebar-collapse-control,.sidebar .sidebar-status{background:var(--sidebar)!important}
 @media(min-width:861px){.portal-layout.sidebar-collapsed .sidebar>.attendigo-brand{width:48px;height:48px;min-height:48px;padding:4px!important;background:transparent url('/assets/attendigo-icon.png') center/contain no-repeat!important;border-radius:10px}.portal-layout.sidebar-collapsed .sidebar>.attendigo-brand img{display:none!important}}
 @media(max-width:860px){.portal-layout.sidebar-collapsed .sidebar>.attendigo-brand{width:100%;height:auto;min-height:80px;padding:0;background:transparent!important}}
+
+/* Uniform sidebar icon sizes and intuitive independent nested navigation. */
+.sidebar .nav-item .nav-icon,.sidebar .nav-group-toggle .nav-icon{
+  display:inline-flex!important;align-items:center!important;justify-content:center!important;
+  flex:0 0 22px!important;width:22px!important;height:22px!important;
+}
+.sidebar .nav-item .nav-icon svg,.sidebar .nav-group-toggle .nav-icon svg{
+  display:block!important;width:21px!important;height:21px!important;stroke-width:1.9!important;
+}
+.sidebar #staffNavToggle .nav-icon svg,.sidebar .staff-nav-child .nav-icon svg{width:21px!important;height:21px!important}
+.sidebar .nav-chevron{margin-left:auto;flex:0 0 auto}
+.sidebar .staff-nav-children[hidden],.sidebar .nav-submenu[hidden]{display:none!important}
+.sidebar .staff-nav-toggle:focus-visible{outline:2px solid var(--side-ink);outline-offset:2px}
+@media(max-width:860px){.sidebar .nav-item,.sidebar .nav-group-toggle{min-height:46px}}
