@@ -291,6 +291,43 @@
  el('mfSaveNote').addEventListener('click',saveNote);
  el('mfImportNotes').addEventListener('click',importOlderDeviceNotes);
  el('mfShowArchived').addEventListener('change',renderNotes);
+
+ let conflictPage=0,conflictCount=0,conflictRecords=[];
+ async function refreshConflicts(page=0){
+   if(!state.period)return;
+   const periodId=state.period.periodId;
+   el('mfConflictRows').textContent='Checking accepted QR scans against manual marks…';
+   try{
+     const result=await api('/api/manual-attendance/conflicts?'+new URLSearchParams({periodId,date:state.date,page}));
+     if(state.period?.periodId!==periodId)return;
+     conflictPage=result.page;conflictCount=result.total;conflictRecords=result.records||[];
+     const pages=Math.max(1,Math.ceil(conflictCount/10));
+     const nav='<div class="manual-history-toolbar"><strong>'+conflictCount+' verified conflict(s)</strong><div class="manual-page-nav"><button type="button" class="manual-btn" data-conflict-page="-1" '+(!conflictPage?'disabled':'')+'>‹</button><span>Page '+(conflictPage+1)+' of '+pages+'</span><button type="button" class="manual-btn" data-conflict-page="1" '+(conflictPage>=pages-1?'disabled':'')+'>›</button></div></div>';
+     const cards=conflictRecords.map(m=>'<article class="manual-conflict-card"><strong>'+esc(m.fullName)+'</strong><small>'+esc(m.studentId)+' · '+esc(m.date)+'</small><div class="manual-conflict-evidence"><span>Manual: <b>'+esc(m.manualStatus)+'</b></span><span>Accepted QR: <b>'+esc(new Date(m.qrTime).toLocaleString('en-PH',{timeZone:'Asia/Manila',dateStyle:'medium',timeStyle:'short'}))+(m.qrLate?' · Late':'')+'</b></span></div><p class="manual-sync-note">Check the paper register and QR time. If the QR is incorrect, ask the School Admin to review it; QR data cannot be removed from here.</p><div class="manual-quick"><button type="button" class="manual-btn primary" data-conflict-student="'+esc(m.studentId)+'" data-conflict-date="'+esc(m.date)+'" data-conflict-status="PRESENT">Correct to Present</button><button type="button" class="manual-btn" data-conflict-student="'+esc(m.studentId)+'" data-conflict-date="'+esc(m.date)+'" data-conflict-status="LATE">Correct to Late</button></div></article>').join('');
+     el('mfConflictRows').innerHTML=nav+(cards||'<p>No confirmed same-period conflicts for this class.</p>');
+   }catch(error){el('mfConflictRows').textContent='Conflict check failed: '+error.message;notice(error.message,true);}
+ }
+ el('mfConflictRows').addEventListener('click',async event=>{
+   const nav=event.target.closest('[data-conflict-page]');
+   if(nav){refreshConflicts(Math.max(0,conflictPage+Number(nav.dataset.conflictPage)));return;}
+   const button=event.target.closest('[data-conflict-student]');
+   if(!button)return;
+   const {conflictStudent:studentId,conflictDate:date,conflictStatus:status}=button.dataset;
+   const mark=conflictRecords.find(m=>m.studentId===studentId&&m.date===date);
+   if(!mark||!state.period||!confirm('Correct '+mark.fullName+' to '+names[status]+' after verifying the paper register and QR event? This change will be audited.'))return;
+   button.disabled=true;
+   try{
+     await api('/api/manual-attendance/conflicts/resolve',{method:'POST',body:JSON.stringify({periodId:state.period.periodId,studentId,date,status})});
+     // Keep the on-device draft from reverting the server correction.
+     const draftKey=['attendigo.manual.v1',scope,state.period.periodId,date].join(':');
+     try{const draft=JSON.parse(localStorage.getItem(draftKey)||'{}');if(draft.marks?.[studentId]){draft.marks[studentId].status=status;localStorage.setItem(draftKey,JSON.stringify(draft));}}catch{}
+     if(date===state.date){state.marks[studentId]={...state.marks[studentId],status};state.synced[studentId]={...state.synced[studentId],status};draftSave();render();}
+     state.historyLoadedFor=null;
+     await refreshConflicts(conflictPage);
+     notice('Correction saved with audit trail. Refresh SF2 to verify.');
+   }catch(error){notice('Could not correct conflict: '+error.message,true);}
+   finally{button.disabled=false;}
+ });
  let historySource='manual';
  function selectHistorySource(source){
    historySource=source;
@@ -298,12 +335,7 @@
    el('mfManualHistoryPanel').hidden=source!=='manual';
    el('mfQrHistoryDetails').hidden=source!=='qr';
    el('mfConflictPanel').hidden=source!=='conflicts';
-   if(source==='conflicts'){
-     const matches=state.historyRows.filter(mark=>['ABSENT','EXCUSED'].includes(mark.status));
-     el('mfConflictRows').innerHTML='<p class="manual-sync-note">Potential mismatches from the currently loaded manual-history page. Manual marks do not contain a recorded clock time; compare against the timestamped QR records. This list is not an authoritative conflict determination.</p>'+
-       (matches.length?matches.map(mark=>'<div class="manual-history-entry"><div><strong>'+esc(mark.fullName)+'</strong><small>'+esc(mark.date)+' · '+esc(mark.status)+' · Manual source</small></div><span>Check QR records for matching class period and recorded time</span></div>').join(''):'<p>No manual absent/excused entries on this history page. This does not establish that the class has no SF2 conflicts.</p>');
-   }
- }
+   if(source==='conflicts')refreshConflicts(0); }
  document.querySelectorAll('[data-mf-history]').forEach(button=>button.addEventListener('click',()=>selectHistorySource(button.dataset.mfHistory)));
  el('mfHistoryPrev').addEventListener('click',()=>historyFlip(-1));
  el('mfHistoryNext').addEventListener('click',()=>historyFlip(1));
