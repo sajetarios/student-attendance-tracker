@@ -175,6 +175,7 @@
       const result=await api('/api/student-portal/accounts/'+encodeURIComponent(studentId)+'/provision',
         {method:'POST',body:JSON.stringify({action})});
       openCredentials([result.credentials]);
+      document.dispatchEvent(new CustomEvent('attendigo:requests-changed'));
       await refreshAfterMutation().catch(error => announce('Credentials issued. Account list refresh failed: ' + error.message, true));
     } catch(error) {announce(error.message,true);}
     finally {busy=false;}
@@ -189,6 +190,7 @@
         {method:'PATCH',body:JSON.stringify({active:false})});
       announce('Student portal login suspended. Attendance history is unchanged.');
       await refreshAfterMutation();
+      document.dispatchEvent(new CustomEvent('attendigo:requests-changed'));
     } catch(error){announce(error.message,true);}
     finally{busy=false;}
   }
@@ -211,6 +213,7 @@
         {method:'POST',body:JSON.stringify({studentIds:ids})});
       selected.clear();
       openCredentials(result.credentials||[]);
+      document.dispatchEvent(new CustomEvent('attendigo:requests-changed'));
       await refreshAfterMutation().catch(error => announce('Credentials issued. Account list refresh failed: ' + error.message, true));
     }catch(error){announce(error.message,true);}
     finally{busy=false;}
@@ -290,6 +293,7 @@
         reason:$('sapReason').value.trim()
       })});
       closeModal('sapRequestModal');
+      document.dispatchEvent(new CustomEvent('attendigo:requests-changed'));
       await refreshAfterMutation();
       announce('Your request is pending School Admin approval.');
     }catch(error){$('sapRequestFeedback').textContent=error.message;}
@@ -304,6 +308,7 @@
       const result=await api('/api/student-portal/requests/'+encodeURIComponent($('sapReviewRequestId').value)+'/review',
         {method:'POST',body:JSON.stringify({decision:$('sapReviewDecision').value,note:$('sapReviewNote').value.trim()})});
       closeModal('sapReviewModal');
+      document.dispatchEvent(new CustomEvent('attendigo:requests-changed'));
       if(result.credentials)openCredentials([result.credentials]);
       else announce('Request rejected. No student login was changed.');
       await refreshAfterMutation().catch(error => announce('Decision saved; list refresh failed: ' + error.message, true));
@@ -316,6 +321,50 @@
       await navigator.clipboard.writeText($('sapSecrets').value);
       announce('Temporary credentials copied. Share privately and clear your clipboard afterward.');
     }catch(error){$('sapSecrets').focus();$('sapSecrets').select();announce('Copy blocked by the browser. The credentials are selected; copy them manually.',true);}
+  });
+  $('sapPrintSecrets')?.addEventListener('click',()=>{
+    if(!isAdmin() || !credentials.length)return;
+    const existing=document.getElementById('sapPrintSlips');
+    if(existing)existing.remove();
+    const wrapper=document.createElement('section');
+    wrapper.id='sapPrintSlips';
+    wrapper.setAttribute('aria-label','Private student portal login slips');
+    const schoolCode=identity()?.schoolCode || '';
+    const portalUrl=window.location.origin+'/portal-login.html';
+    for (const record of credentials) {
+      const slip=document.createElement('section');
+      slip.className='sap-print-slip';
+      const heading=document.createElement('h2');
+      heading.textContent='Attendigo · Student portal access';
+      slip.append(heading);
+      for(const [label,value] of [
+        ['Learner',record.fullName],['Student ID',record.studentId],
+        ['School code',schoolCode],['Username',record.username],
+        ['Temporary password',record.temporaryPassword],['Login page',portalUrl]
+      ]){
+        const p=document.createElement('p');
+        const strong=document.createElement('strong');
+        strong.textContent=label+': ';
+        const span=document.createElement('span');
+        span.textContent=String(value||'—');
+        p.append(strong,span);
+        slip.append(p);
+      }
+      const note=document.createElement('p');
+      note.className='sap-print-warning';
+      note.textContent='CONFIDENTIAL — Hand directly to the learner or a verified guardian in a sealed slip. Change this temporary password immediately at first sign-in.';
+      slip.append(note);
+      wrapper.append(slip);
+    }
+    document.body.append(wrapper);
+    document.body.classList.add('sap-print-mode');
+    const clean=()=>{
+      document.body.classList.remove('sap-print-mode');
+      wrapper.remove();
+      window.removeEventListener('afterprint',clean);
+    };
+    window.addEventListener('afterprint',clean,{once:true});
+    window.requestAnimationFrame(()=>window.print());
   });
   $('sapDownloadSecrets').addEventListener('click',()=>{
     if(!isAdmin()||!credentials.length)return;
@@ -333,5 +382,7 @@
     else if(view.hidden && !$('sapSecretModal').hidden)closeModal('sapSecretModal');
   });
   observer.observe(view,{attributes:true,attributeFilter:['hidden']});
+  document.addEventListener('visibilitychange',()=>{if(!document.hidden&&!view.hidden)refresh();});
+  window.setInterval(()=>{if(!document.hidden&&!view.hidden)refresh();},45000);
   if(!view.hidden)refresh();
 })();
