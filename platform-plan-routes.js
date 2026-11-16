@@ -44,6 +44,23 @@ function registerPlatformPlanRoutes(app,pool,{authenticatePlatform,requirePlatfo
   }catch(err){await client.query('ROLLBACK').catch(()=>{});console.error('Subscription update:',err.message);return res.status(err.code==='23503'?404:500).json({error:'Could not save subscription.'});}
   finally{client.release();}
  });
+ app.get('/api/platform/schools/health',...guard,async(_req,res)=>{
+  try{
+   const result=await pool.query(`
+    SELECT s.school_id AS "schoolId",s.school_name AS "schoolName",s.school_code AS "schoolCode",
+      s.active,
+      (SELECT COUNT(*)::int FROM students st WHERE st.school_id=s.school_id AND st.active=TRUE) AS "students",
+      (SELECT COUNT(*)::int FROM school_users u WHERE u.school_id=s.school_id AND u.active=TRUE) AS "accounts",
+      (SELECT MAX(a.created_at) FROM audit_logs a WHERE a.school_id=s.school_id) AS "lastAuditAt",
+      ss.status AS "subscriptionStatus",ss.ends_at AS "expiresAt",p.name AS "planName",
+      COALESCE((p.limits->>'students')::int,0) AS "studentLimit"
+    FROM schools s
+    LEFT JOIN school_subscriptions ss ON ss.school_id=s.school_id
+    LEFT JOIN platform_plans p ON p.plan_id=ss.plan_id
+    ORDER BY s.school_name LIMIT 250`);
+   res.set('Cache-Control','no-store').json({schools:result.rows});
+  }catch(err){console.error('School health:',err.message);res.status(500).json({error:'Could not load school health.'});}
+ });
  app.get('/api/platform/subscriptions/summary',...guard,async(_req,res)=>{
   try{
    const [totals,history]=await Promise.all([
