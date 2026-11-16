@@ -3,7 +3,10 @@
   let user={}; try{user=JSON.parse(sessionStorage.getItem('schoolAttendance.user')||'{}');}catch{}
   const nav=document.getElementById('academicAdminNav'), panel=document.getElementById('academicAdminWorkspace');
   if(!nav||!panel)return;
+  // Role visibility is controlled by the main portal after session validation.
+  // Do not permanently disable the module because a cached session object was not yet ready.
   if(user.role!=='SCHOOL_ADMIN'){nav.hidden=true;return;}
+  nav.hidden=false;
   const $=id=>document.getElementById(id), headers={'Authorization':'Bearer '+token,'Content-Type':'application/json'};
   async function api(url,options={}){const r=await fetch(url,{...options,headers:{...headers,...options.headers},cache:'no-store'});const d=await r.json().catch(()=>({}));if(!r.ok)throw Error(d.error||'Request failed');return d;}
   function message(id,text,error=false){const el=$(id);el.textContent=text;el.className='inline-feedback '+(error?'error':'');}
