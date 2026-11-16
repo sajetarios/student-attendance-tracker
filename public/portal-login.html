@@ -140,10 +140,10 @@
           </button>
           <p class="form-feedback" id="loginFeedback" role="status" aria-live="polite"></p>
         </form>
-        <div class="login-note" id="schoolAdminRecoveryLink"><button type="button" class="recovery-text-button" id="openSchoolAdminRecovery">Forgot your School Admin password?</button></div>
+        <div class="login-note" id="schoolAdminRecoveryLink"><button type="button" class="recovery-text-button" id="openSchoolAdminRecovery">School Admin: use recovery code / unlock account</button></div>
         <form id="schoolAdminRecoveryForm" class="school-admin-recovery-form" hidden aria-labelledby="schoolAdminRecoveryTitle">
           <h3 id="schoolAdminRecoveryTitle">School Admin password recovery</h3>
-          <p class="login-subtitle">Request a one-time code from your Super Admin. This is available only to School Administrator accounts.</p>
+          <p class="login-subtitle">Enter a one-time recovery code issued by your Super Admin, then choose a new password. The code is not a login password. A successful reset also removes a temporary account lock. Codes expire after 15 minutes and can be used once.</p>
           <div class="field-group"><label for="recoverSchoolCode">School code</label><input id="recoverSchoolCode" maxlength="80" autocomplete="organization" required></div>
           <div class="field-group"><label for="recoverUsername">School Admin username</label><input id="recoverUsername" maxlength="80" autocomplete="username" required></div>
           <div class="field-group"><label for="recoverCode">Recovery code</label><input id="recoverCode" maxlength="32" autocomplete="one-time-code" placeholder="XXXXXX-XXXXXX-XXXXXX-XXXXXX" required></div>
@@ -161,7 +161,7 @@
     </section>
   </main>
   <script src="/login-routing.js" defer></script>
-  <script src="/portal-login.js?v=6" defer></script>
+  <script src="/portal-login.js?v=2" defer></script>
   <script>
     (() => {
       const passwordInput = document.getElementById('password');
