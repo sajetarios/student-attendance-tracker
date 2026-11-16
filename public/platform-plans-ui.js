@@ -170,5 +170,56 @@
   catch(error){message(error.message,true);}
   finally{button.disabled=false;}
  });
+ // Super Admin-only recovery snapshots. A separate two-stage confirmation
+ // is required before irreversible early erasure.
+ const backupsSection=document.createElement('section');
+ backupsSection.className='surface-card section-card';
+ const backupsHeading=document.createElement('h3');
+ backupsHeading.textContent='Deleted schools · 30-day recovery';
+ const backupsInfo=document.createElement('p');
+ backupsInfo.textContent='Recovery snapshots are automatically erased 30 days after deletion. Erase now is irreversible and also removes the saved student and attendance data.';
+ const backupsRefresh=document.createElement('button');
+ backupsRefresh.type='button';backupsRefresh.className='secondary-button';
+ backupsRefresh.textContent='Refresh deleted schools';
+ const backupsList=document.createElement('div');
+ backupsList.className='table-scroll';
+ backupsSection.append(backupsHeading,backupsInfo,backupsRefresh,backupsList);
+ section.parentElement.append(backupsSection);
+ async function loadDeletedSchoolBackups(){
+  backupsList.textContent='Loading recovery snapshots…';
+  try{
+   const result=await api('/api/platform/deleted-school-backups');
+   if(!result.backups?.length){backupsList.textContent='No recovery snapshots awaiting erasure.';return;}
+   const table=document.createElement('table'),head=document.createElement('thead'),body=document.createElement('tbody');
+   const header=document.createElement('tr');
+   for(const label of ['Deleted school','Deleted on','Automatic erasure','Saved rows','Action']){
+    const th=document.createElement('th');th.textContent=label;header.append(th);
+   }
+   head.append(header);
+   for(const item of result.backups){
+    const tr=document.createElement('tr');
+    const fields=[item.schoolName+' ('+item.schoolCode+')',new Date(item.deletedAt).toLocaleString('en-PH',{timeZone:'Asia/Manila'}),new Date(item.eraseAt).toLocaleString('en-PH',{timeZone:'Asia/Manila'}),String(item.rowCount)];
+    for(const value of fields){const td=document.createElement('td');td.textContent=value;tr.append(td);}
+    const action=document.createElement('td'),button=document.createElement('button');
+    button.type='button';button.className='secondary-button';button.textContent='Erase now';
+    button.addEventListener('click',async()=>{
+     if(!confirm('Permanently erase the recovery snapshot for '+item.schoolName+' ('+item.schoolCode+')? This cannot be undone.'))return;
+     const phrase='ERASE '+item.schoolCode;
+     const typed=prompt('Final confirmation: type '+phrase+' exactly to permanently erase '+item.rowCount+' backed-up rows.');
+     if(typed!==phrase){if(typed!==null)alert('Confirmation phrase did not match. Nothing was erased.');return;}
+     button.disabled=true;
+     try{
+      await api('/api/platform/deleted-school-backups/'+encodeURIComponent(item.backupId),{method:'DELETE',body:JSON.stringify({confirmationPhrase:typed})});
+      message('Recovery snapshot for '+item.schoolCode+' permanently erased.');
+      await loadDeletedSchoolBackups();
+     }catch(error){alert(error.message);button.disabled=false;}
+    });
+    action.append(button);tr.append(action);body.append(tr);
+   }
+   table.append(head,body);backupsList.replaceChildren(table);
+  }catch(error){backupsList.textContent='Could not load recovery snapshots: '+error.message;}
+ }
+ backupsRefresh.addEventListener('click',loadDeletedSchoolBackups);
+ loadDeletedSchoolBackups();
  load();
 })();
