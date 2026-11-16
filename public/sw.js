@@ -1,4 +1,4 @@
-const CACHE = "attendigo-v100-qr-brand-button";
+const CACHE = "attendigo-v98-verified-conflicts";
 
 const SHELL = [
   "/assets/attendigo-sidebar-logo.png",
