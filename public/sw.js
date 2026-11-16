@@ -1,4 +1,4 @@
-const CACHE = "attendigo-v106-attendance-card-flip";
+const CACHE = "attendigo-v107-qr-history-curl";
 
 const SHELL = [
   "/assets/attendigo-sidebar-logo.png",
@@ -29,8 +29,8 @@ const SHELL = [
   "/portal.css?v=0.9.67",
   "/student-roster-toolbar.css?v=1",
   "/portal.css",
-  "/portal.js?v=0.9.70",
-  "/manual-folio.css?v=7",
+  "/portal.js?v=0.9.78",
+  "/manual-folio.css?v=8",
   "/manual-folio.js?v=7",
   "/student-portal-accounts.css?v=2",
   "/student-portal-accounts.js?v=3",
