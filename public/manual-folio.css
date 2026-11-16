@@ -331,3 +331,11 @@ body.dark-mode .manual-flip-card[data-unmarked="true"] .manual-flip-face,body[da
 body.dark-mode .manual-toolbar,body[data-theme=dark] .manual-toolbar,html[data-ui-theme=dark] .manual-toolbar{background:#233652;color:#e7effd}
 body.dark-mode .manual-page-nav,body[data-theme=dark] .manual-page-nav,html[data-ui-theme=dark] .manual-page-nav{background:#263b5d}
 @media(prefers-reduced-motion:reduce){.manual-flip-inner{transition:none!important}.manual-book .manual-turn-leaf.forward,.manual-book .manual-turn-leaf.backward{animation-duration:.01s!important}}
+
+/* Priority: retain marked Late and Excused contrast in dark mode. */
+body.dark-mode .manual-extra-status[data-status="LATE"][data-active="true"],
+body[data-theme=dark] .manual-extra-status[data-status="LATE"][data-active="true"],
+html[data-ui-theme=dark] .manual-extra-status[data-status="LATE"][data-active="true"]{background:#604314;color:#fff0cb;border-color:#bc8b42}
+body.dark-mode .manual-extra-status[data-status="EXCUSED"][data-active="true"],
+body[data-theme=dark] .manual-extra-status[data-status="EXCUSED"][data-active="true"],
+html[data-ui-theme=dark] .manual-extra-status[data-status="EXCUSED"][data-active="true"]{background:#4c3275;color:#f2e6ff;border-color:#9569d3}
