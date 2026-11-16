@@ -47,12 +47,31 @@
   platformMode.addEventListener('click', () => setMode('platform'));
   if (new URLSearchParams(window.location.search).get('mode') === 'platform') setMode('platform');
 
+  function openRecovery(prefillCode = '') {
+    if (mode !== 'school') return;
+    form.hidden = true;
+    recoveryForm.hidden = false;
+    document.getElementById('recoverSchoolCode').value = schoolCode.value.trim();
+    document.getElementById('recoverUsername').value = document.getElementById('username').value.trim();
+    if (prefillCode) document.getElementById('recoverCode').value = prefillCode;
+    recoveryFeedback.textContent = '';
+    document.getElementById(prefillCode ? 'recoverNewPassword' : 'recoverCode').focus();
+  }
+  const looksLikeRecoveryCode = value => /^[A-F0-9]{6}(?:[-\\s]?[A-F0-9]{6}){3}$/i.test(value.trim());
+
   form.addEventListener('submit', async event => {
     event.preventDefault();
     feedback.textContent = '';
     feedback.className = 'form-feedback';
     const username = document.getElementById('username').value.trim();
     const password = document.getElementById('password').value;
+    // A Super Admin recovery code is NOT a sign-in password.
+    // Never submit a recovery-looking code to /login; failed attempts lock the account.
+    if (mode === 'school' && looksLikeRecoveryCode(password)) {
+      openRecovery(password.trim());
+      feedback.textContent = 'This is a recovery code, not a temporary login password. Use it below to set a new password; a valid recovery also clears the temporary lock.';
+      return;
+    }
     const payload = mode !== 'platform'
       ? { schoolCode: schoolCode.value.trim(), username, password }
       : { username, password };
@@ -89,7 +108,10 @@
       }
       window.location.assign(destination);
     } catch (error) {
-      feedback.textContent = error.message || 'Unable to sign in. Check the local server connection.';
+      const locked = mode === 'school' && /temporarily locked/i.test(error.message || '');
+      feedback.textContent = locked
+        ? 'Account temporarily locked after incorrect passwords. School Administrators can use a valid Super Admin recovery code through the recovery option below to reset their password and clear this lock; other users must wait for the lock to expire.'
+        : (error.message || 'Unable to sign in. Check the local server connection.');
     } finally {
       button.disabled = false;
       button.querySelector('span:first-child').textContent = 'Sign in';
@@ -98,13 +120,7 @@
 
   const recoveryForm=document.getElementById('schoolAdminRecoveryForm');
   const recoveryFeedback=document.getElementById('recoveryFeedback');
-  document.getElementById('openSchoolAdminRecovery').addEventListener('click',()=>{
-    if(mode!=='school')return;
-    form.hidden=true;recoveryForm.hidden=false;
-    document.getElementById('recoverSchoolCode').value=schoolCode.value.trim();
-    document.getElementById('recoverUsername').value=document.getElementById('username').value.trim();
-    document.getElementById('recoverCode').focus();
-  });
+  document.getElementById('openSchoolAdminRecovery').addEventListener('click',()=>openRecovery());
   document.getElementById('cancelSchoolAdminRecovery').addEventListener('click',()=>{
     recoveryForm.hidden=true;form.hidden=false;recoveryForm.reset();
     recoveryFeedback.textContent='';
