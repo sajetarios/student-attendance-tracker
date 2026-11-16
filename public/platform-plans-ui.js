@@ -108,7 +108,7 @@
  const save=document.createElement('button');save.type='button';save.className='primary-button';save.textContent='Save plan template';
  const feedback=document.createElement('p');feedback.className='inline-feedback';feedback.setAttribute('role','status');
  editor.append(heading,explanation,grid,features,save,feedback);
- section.after(editor);
+ section.parentElement.append(editor);
  function fillTemplate(){
   const plan=plans.find(p=>p.planId===template.value);
   code.value=plan?.code||'';code.disabled=!!plan;
