@@ -51,3 +51,23 @@
 @media(max-width:390px){.login-mode .mode-tab{font-size:11px;padding:12px 4px}.login-panel{padding-left:16px;padding-right:16px}.login-panel .field-group input{font-size:14px}}
 @media(prefers-color-scheme:dark){.login-page{color:#eaf1ff}.login-panel{background:linear-gradient(150deg,#111d43f5,#172852f5)}.login-panel h2,.login-panel .field-group label{color:#f3f7ff}.login-panel .login-subtitle{color:#c1cce5}.login-mode{background:#1e305f;border-color:#304878}.login-mode .mode-tab{color:#c7d4ee}.login-mode .mode-tab.active{color:white}#accountTypeHint{background:#27396a;border-color:#385183;color:#e2eaff}.login-panel .field-group input{background:#172750;color:#fff;border-color:#47618f}.login-panel .field-group input::placeholder{color:#a8b8d2}.login-note{border-color:#334970;color:#c6d3e9}.login-note a,.recovery-text-button{color:#91bdff}.login-footer{color:#bbcae5}.school-admin-recovery-form{background:#1e315b;border-color:#405886}.school-admin-recovery-form h3{color:#eaf1ff}.password-visibility-toggle{color:#b5c7e1}.password-visibility-toggle:hover{background:#304573;color:#fff}}
 @media(prefers-reduced-motion:reduce){.login-page::before,.login-page::after,.login-art::before,.login-art::after,.login-motion-phone,.login-motion-beam{animation:none!important}.login-panel .full-button,.login-mode .mode-tab{transition:none!important}}
+
+/* Login legibility repair: logo asset uses a white wordmark. */
+.login-page .login-panel{background:linear-gradient(155deg,#fff,#f0f6ff 80%)!important;color:#17233d!important}
+.login-page .login-panel h2{display:block!important;color:#142342!important;opacity:1!important;visibility:visible!important}
+.login-page .login-panel .eyebrow{color:#4b2fe2!important}
+.login-page .login-panel .login-subtitle{color:#52627e!important}
+.login-page .login-panel .field-group label{color:#223252!important}
+.login-page .login-panel .login-mode{background:#eaf0fc!important;border-color:#dce6fb!important}
+.login-page .login-panel .mode-tab:not(.active){color:#394968!important}
+.login-page .login-panel #accountTypeHint{background:#eaf1ff!important;border-color:#dbe5fa!important;color:#344566!important}
+.login-page .login-panel .field-group input{background:#fff!important;color:#17233d!important;border-color:#becfe5!important}
+.login-page .login-panel .field-group input::placeholder{color:#8295b5!important;opacity:1}
+.login-page .login-panel .login-note{color:#52627e!important}
+.login-page .login-panel .login-footer{color:#697b96!important}
+.login-page .mobile-brand .attendigo-brand{background:linear-gradient(125deg,#0b1f54,#173a87)!important;border-radius:17px!important;padding:16px 20px!important;box-shadow:0 12px 25px #102b6536;overflow:visible!important}
+.login-page .mobile-brand .attendigo-logo{display:block!important;filter:none!important;opacity:1!important;visibility:visible!important;width:100%!important;max-width:100%!important;height:auto!important}
+.login-page .login-art .attendigo-brand{background:transparent!important}
+.login-page .school-admin-recovery-form{background:#f4f7ff!important;border-color:#cfdae9!important;color:#223252!important}
+.login-page .school-admin-recovery-form h3{color:#203a55!important}
+@media(max-width:800px){.login-page .mobile-brand{margin-bottom:18px!important}.login-page .mobile-brand .attendigo-brand{width:min(330px,100%)!important}.login-page .login-motion{margin-bottom:15px!important}}
