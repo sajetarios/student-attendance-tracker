@@ -6,7 +6,8 @@
   <meta name="theme-color" content="#1c2d45">
   <title>Dashboard · Attendigo</title>
   <link rel="stylesheet" href="/portal.css?v=0.9.54">
-  <link rel="stylesheet" href="/student-portal-accounts.css?v=1">
+  <link rel="stylesheet" href="/admin-request-notifications.css?v=1">
+  <link rel="stylesheet" href="/student-portal-accounts.css?v=2">
   <link rel="stylesheet" href="/attendigo-sidebar-adaptive.css?v=2">
   <link rel="stylesheet" href="/academic-admin.css?v=1">
   <link rel="stylesheet" href="/password-visibility.css">
@@ -147,7 +148,7 @@
   <link rel="stylesheet" href="/photo-editor.css?v=1">
   <script src="/dashboard-icons.js?v=4"></script>
   <script src="/dashboard-appearance.js?v=3"></script>
-  <link rel="stylesheet" href="/guardian-ui.css?v=3">
+  <link rel="stylesheet" href="/guardian-ui.css?v=4">
 <link rel="icon" type="image/png" href="/assets/attendigo-icon.png">
 <link rel="apple-touch-icon" href="/assets/attendigo-icon.png">
 <link rel="stylesheet" href="/attendigo-brand.css?v=1">
@@ -171,6 +172,7 @@
             <button class="nav-item" id="studentAccountsNav" data-view="studentAccounts" title="Student Portal Accounts" hidden><span class="nav-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="5" width="16" height="14" rx="3"/><circle cx="9" cy="11" r="2"/><path d="M14 10h3M14 14h3M7 16h4"/></svg></span><span class="nav-label">Student Portal Accounts</span></button>
             <button class="nav-item" data-view="teachers" id="teachersNav" hidden title="User management"><span class="nav-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="9" cy="7" r="4"/><path d="M2 21v-2a7 7 0 0 1 14 0v2M17 4a4 4 0 0 1 0 7.8M19 14a5 5 0 0 1 3 4.5V21"/></svg></span><span class="nav-label">User management</span></button>
             <button class="nav-item" id="parentsNav" hidden title="Manage parent accounts and student links"><span class="nav-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="9" cy="7" r="3.5"/><circle cx="18" cy="9" r="2.5"/><path d="M2 21v-2a7 7 0 0 1 14 0v2M16 16a5 5 0 0 1 6 5"/></svg></span><span class="nav-label">Parents</span></button>
+            <button class="nav-item" id="guardianApprovalsNav" type="button" hidden title="Review guardian change requests"><span class="nav-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l8 4v5c0 5-3.5 8-8 9-4.5-1-8-4-8-9V7l8-4Z"/><path d="m9 12 2 2 4-4"/></svg></span><span class="nav-label">Guardian approvals</span><span class="request-side-count" id="guardianNavBadge" hidden>0</span></button>
           </div>
         </div>
         <div class="nav-group">
@@ -205,6 +207,18 @@
         <div class="breadcrumbs"><span>Workspace</span><b>/</b><strong id="breadcrumbCurrent">Dashboard</strong></div>
         <div class="topbar-right">
           <span class="connection-chip local-only" id="connectionStatus" role="status" title="Cloud sync status is being checked."><i></i><span>Checking cloud sync status…</span></span>
+          <div class="admin-notification-wrap" id="adminNotificationWrap" hidden>
+            <button type="button" id="adminNotificationBell" class="admin-notification-bell" aria-label="Pending school requests" title="Pending approval requests" aria-expanded="false" aria-controls="adminNotificationPanel">
+              <svg viewBox="0 0 24 24" width="21" height="21" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9Z"/><path d="M10 21h4"/></svg>
+              <span id="adminNotificationCount" class="admin-notification-count" hidden>0</span>
+            </button>
+            <section class="admin-notification-panel" id="adminNotificationPanel" aria-label="Pending school approvals" hidden>
+              <div class="admin-notification-header"><div><strong>Approval inbox</strong><small>Pending requests across your school</small></div><button class="admin-notification-refresh" id="adminNotificationRefresh" type="button" title="Refresh requests" aria-label="Refresh pending requests">↻</button></div>
+              <button type="button" class="admin-notification-item" id="adminStudentRequestsShortcut"><span class="admin-notification-icon">🎓</span><span><strong>Student portal requests</strong><small>Account creation and password recovery</small></span><span class="admin-notification-number" id="adminStudentRequestCount">0</span></button>
+              <button type="button" class="admin-notification-item" id="adminGuardianRequestsShortcut"><span class="admin-notification-icon">🛡</span><span><strong>Guardian approvals</strong><small>Guardian changes awaiting review</small></span><span class="admin-notification-number" id="adminGuardianRequestCount">0</span></button>
+              <p class="admin-notification-foot" id="adminNotificationFoot" role="status" aria-live="polite">Checking requests…</p>
+            </section>
+          </div>
           <div class="account-menu-wrap">
             <button class="account-trigger" id="accountMenuButton" aria-haspopup="true" aria-expanded="false">
               <span class="avatar" id="userAvatar">U</span><span class="account-name" id="userDisplay">User</span><span class="account-chevron">▾</span>
@@ -518,8 +532,8 @@
                 <div class="sap-modal-head"><div><h3 id="sapSecretTitle">One-time account credentials</h3><p>Copy or download securely now. Passwords will not be displayed again.</p></div><button type="button" class="outline-button" id="sapSecretClose">Close</button></div>
                 <label for="sapSecrets" class="sap-secret-label">Issued credentials</label>
                 <textarea id="sapSecrets" class="sap-secret-text" rows="7" readonly></textarea>
-                <div class="form-actions"><button class="primary-button" id="sapCopySecrets" type="button">Copy credentials</button><button type="button" class="outline-button" id="sapDownloadSecrets">Download CSV</button></div>
-                <p class="sap-privacy-note">Keep the file private and delete local copies after distribution. Existing passwords cannot be retrieved.</p>
+                <div class="form-actions"><button class="primary-button" id="sapCopySecrets" type="button">Copy credentials</button><button type="button" class="outline-button" id="sapDownloadSecrets">Download CSV</button><button type="button" class="outline-button" id="sapPrintSecrets">Print private login slips</button></div>
+                <p class="sap-privacy-note">Print and hand sealed slips directly to students or a verified guardian, or use your school’s approved secure channel. Do not post passwords in class group chats. Existing passwords cannot be retrieved.</p>
               </div>
             </div>
           </section>
@@ -1091,8 +1105,9 @@
   <script src="/schedule-workspace-ui.js?v=3" defer></script>
   <script src="/photo-editor.js?v=3" defer></script>
   <script src="/portal.js?v=0.9.62" defer></script>
-  <script src="/student-portal-accounts.js?v=1" defer></script>
-  <script src="/guardian-ui.js?v=3" defer></script>
+  <script src="/student-portal-accounts.js?v=2" defer></script>
+  <script src="/guardian-ui.js?v=4" defer></script>
+  <script src="/admin-request-notifications.js?v=1" defer></script>
   <script src="/academic-admin.js?v=2" defer></script>
   <script src="/attendigo-sidebar-adaptive.js?v=2" defer></script>
 </body>
