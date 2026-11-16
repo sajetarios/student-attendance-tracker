@@ -173,15 +173,26 @@
      state.historyPage=data.page;state.historyRows=data.records||[];state.historyTotal=data.total||0;renderHistory();
    }catch(error){state.historyLoadedFor=null;notice('History could not load: '+error.message,true)}
  }
- function historyFlip(direction){
+ let historyFlipBusy=false;
+ async function historyFlip(direction){
    const pages=Math.max(1,Math.ceil(state.historyTotal/10));
    const target=state.historyPage+direction;
-   if(target<0||target>=pages)return;
+   if(historyFlipBusy||target<0||target>=pages)return;
    const pane=el('mfManualHistoryRows');
-   pane.classList.remove('turn-next','turn-prev');void pane.offsetWidth;
-   pane.classList.add(direction>0?'turn-next':'turn-prev');
-   setTimeout(()=>loadHistory(target),410);
-   setTimeout(()=>pane.classList.remove('turn-next','turn-prev'),1000);
+   historyFlipBusy=true;
+   const leaf=document.createElement('div');
+   leaf.className='manual-turn-leaf '+(direction>0?'forward':'backward');
+   leaf.setAttribute('aria-hidden','true');
+   leaf.innerHTML=pane.innerHTML;
+   leaf.querySelectorAll('button,input').forEach(node=>{node.disabled=true;node.tabIndex=-1});
+   pane.appendChild(leaf);
+   el('mfHistoryPrev').disabled=true;el('mfHistoryNext').disabled=true;
+   const duration=window.matchMedia('(prefers-reduced-motion: reduce)').matches?10:720;
+   try{
+     await new Promise(resolve=>setTimeout(resolve,Math.round(duration*.52)));
+     await loadHistory(target);
+     await new Promise(resolve=>setTimeout(resolve,Math.round(duration*.48)+30));
+   }finally{leaf.remove();historyFlipBusy=false;renderHistory()}
  }
 
  function renderRecord(){
@@ -220,7 +231,7 @@
    leaf.appendChild(snapshot);book.appendChild(leaf);
    el('mfPrev').disabled=true;el('mfNext').disabled=true;
    // The turning leaf remains visible while the underlying register advances.
-   const duration=window.matchMedia('(prefers-reduced-motion: reduce)').matches?60:1080;
+   const duration=window.matchMedia('(prefers-reduced-motion: reduce)').matches?10:720;
    setTimeout(()=>{state.page=next;renderRows();},Math.round(duration*.52));
    setTimeout(()=>{leaf.remove();flipBusy=false;renderRows();},duration+30);
  }
