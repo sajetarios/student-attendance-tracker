@@ -2157,3 +2157,15 @@ body.dark-mode .sf2-matrix-wrap tbody tr:nth-child(even),body[data-theme=dark] .
 .platform-delete-button{color:#b42318;border-color:rgba(180,35,24,.45)}
 .platform-delete-button:hover,.platform-delete-button:focus-visible{background:rgba(180,35,24,.09);border-color:#b42318}
 [data-theme="dark"] .platform-delete-button,body.dark-mode .platform-delete-button{color:#ffaaa6;border-color:rgba(255,170,166,.55)}
+
+/* Staff & Users nested navigation, desktop and mobile */
+.staff-nav-wrapper[hidden],.staff-nav-children[hidden]{display:none!important}
+.staff-nav-wrapper{min-width:0;width:100%}
+.staff-nav-toggle{width:100%;display:flex;align-items:center;gap:10px}
+.staff-nav-toggle .nav-chevron{margin-left:auto;transition:transform .2s ease}
+.staff-nav-toggle[aria-expanded="true"] .nav-chevron{transform:rotate(180deg)}
+.staff-nav-children{margin:4px 0 8px 17px;padding:4px 0 4px 9px;border-left:2px solid color-mix(in srgb,currentColor 18%,transparent)}
+.staff-nav-child{width:100%;min-height:42px;display:flex;align-items:center;gap:9px;text-align:left;border-radius:10px;font-size:.93em}
+.staff-nav-child.active{font-weight:750;box-shadow:inset 3px 0 currentColor}
+.staff-nav-child .nav-icon{font-size:17px;flex-shrink:0}
+@media(max-width:768px){.staff-nav-child{min-height:48px}.staff-nav-children{margin-left:12px}}
