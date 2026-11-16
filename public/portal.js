@@ -481,6 +481,24 @@
         : ['schedulesNav', 'plannerNav', 'sf2Nav'];
       order.forEach(id => { const node = $(id); if (node && node.parentElement === academicsSubmenu) academicsSubmenu.appendChild(node); });
     }
+    // Move existing navigation links without changing routes or permissions.
+    const relocate = (id, group) => {
+      const item = $(id);
+      const submenu = document.querySelector('[data-submenu="' + group + '"]');
+      if (item && submenu) submenu.appendChild(item);
+    };
+    if (admin) {
+      relocate('cloudSyncNav', 'operations');
+      relocate('smsNav', 'operations');
+      relocate('schoolBrandingNav', 'settings');
+    } else if (teacher || departmentHead) {
+      relocate('sf2Nav', 'reports');
+    }
+    ['operations', 'reports', 'settings'].forEach(group => {
+      const container = document.getElementById(group + 'NavGroup');
+      const submenu = document.querySelector('[data-submenu="' + group + '"]');
+      if (container && submenu) container.hidden = !Array.from(submenu.children).some(item => !item.hidden);
+    });
     if (gateKeeper) {
       if ($('scanSetupScope')) { $('scanSetupScope').value = 'SCHOOL'; $('scanSetupScope').disabled = true; }
       if ($('scanSetupPeriodWrap')) $('scanSetupPeriodWrap').hidden = true;
