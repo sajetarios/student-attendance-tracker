@@ -22,12 +22,14 @@
  function draftLoad(){let raw={};try{raw=JSON.parse(localStorage.getItem(key())||'{}')}catch{}state.marks=raw.marks||{};state.notes=raw.notes||'';}
  const roster=()=>state.students.filter(s=>state.period&&s.active!==false&&s.gradeLevel===state.period.gradeLevel&&s.section===state.period.section).sort((a,b)=>a.fullName.localeCompare(b.fullName));
  const counts=()=>{const out={TOTAL:roster().length,PRESENT:0,LATE:0,ABSENT:0,EXCUSED:0,UNMARKED:0};roster().forEach(s=>{const st=state.marks[s.studentId]?.status;if(out[st]!==undefined)out[st]++;else out.UNMARKED++});return out};
+ // Balance the last folio page rather than leaving two rows above a large blank area.
+ const pageSize=()=>Math.max(1,Math.ceil(roster().length/Math.max(1,Math.ceil(roster().length/10))));
  const selected=(id)=>state.selected.has(id);
  function notice(message,error=false){el('mfFeedback').textContent=message;el('mfFeedback').style.color=error?'#b42335':'#526e96'}
  function renderStats(){const c=counts();el('mfStats').innerHTML=[['TOTAL','👥','Total'],['PRESENT','✓','Present'],['LATE','◷','Late'],['ABSENT','✕','Absent'],['EXCUSED','!','Excused']].map(([k,icon,label])=>`<div class="manual-stat"><strong>${icon} ${c[k]}</strong><span>${label}</span></div>`).join('');}
  function renderRows(){
-   const all=roster();const start=state.page*10;const shown=all.slice(start,start+10);
-   const totalPages=Math.max(1,Math.ceil(all.length/10));if(state.page>=totalPages){state.page=totalPages-1;return renderRows()}
+   const all=roster();const size=pageSize();const start=state.page*size;const shown=all.slice(start,start+size);
+   const totalPages=Math.max(1,Math.ceil(all.length/size));if(state.page>=totalPages){state.page=totalPages-1;return renderRows()}
    el('mfPageNum').textContent='Page '+(state.page+1)+' of '+totalPages;
    el('mfPrev').disabled=state.page===0;el('mfNext').disabled=state.page>=totalPages-1;
    el('mfSelectPage').checked=shown.length>0&&shown.every(s=>selected(s.studentId));
@@ -173,7 +175,7 @@
  function setMark(id,status){const prev=state.marks[id]||{};state.marks[id]=prev.status===status?{...prev,status:null}:{...prev,status};draftSave();render();}
  let flipBusy=false;
  function pageFlip(direction){
-   const pages=Math.max(1,Math.ceil(roster().length/10));
+   const pages=Math.max(1,Math.ceil(roster().length/pageSize()));
    const next=state.page+direction;
    if(flipBusy||next<0||next>=pages)return;
    const book=el('mfBook'),source=el('mfSheet');
@@ -240,7 +242,7 @@
  host.addEventListener('change',event=>{
    if(event.target.id==='mfPeriod')changeClass();
    if(event.target.id==='mfDate'){state.date=event.target.value;changeClass()}
-   if(event.target.id==='mfSelectPage'){roster().slice(state.page*10,state.page*10+10).forEach(s=>event.target.checked?state.selected.add(s.studentId):state.selected.delete(s.studentId));renderRows()}
+   if(event.target.id==='mfSelectPage'){roster().slice(state.page*pageSize(),state.page*pageSize()+pageSize()).forEach(s=>event.target.checked?state.selected.add(s.studentId):state.selected.delete(s.studentId));renderRows()}
    if(event.target.dataset.select){event.target.checked?state.selected.add(event.target.dataset.select):state.selected.delete(event.target.dataset.select);renderRows()}
  });
  el('mfTeacherNotes').addEventListener('input',e=>{state.notes=e.target.value.slice(0,2000);draftSave()});
