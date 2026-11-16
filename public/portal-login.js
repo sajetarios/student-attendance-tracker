@@ -27,7 +27,7 @@
     form.hidden = false;
     if (document.getElementById('firstPlatformSetupLink')) document.getElementById('firstPlatformSetupLink').hidden = mode !== 'platform';
     schoolCode.required = mode !== 'platform';
-    if (usernameLabel) usernameLabel.textContent = isStudent ? 'Student ID / username' : 'Username';
+    if (usernameLabel) { const nameText = usernameLabel.querySelector('span'); if (nameText) nameText.textContent = isStudent ? 'Student ID / username' : 'Username'; else usernameLabel.textContent = isStudent ? 'Student ID / username' : 'Username'; }
     if (accountTypeHint) accountTypeHint.textContent = isStudent
       ? 'Student account uses the school-issued student login. You can view only your own profile and attendance.'
       : mode === 'platform'
