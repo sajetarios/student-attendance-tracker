@@ -30,6 +30,12 @@
     if (!response.ok) throw new Error(json.error || 'Request failed. Please try again.');
     return json;
   }
+  async function confirmAction(message) {
+    if (window.AppDialog && typeof window.AppDialog.confirm === 'function') {
+      return window.AppDialog.confirm(message, {title:'Confirm student account action'});
+    }
+    return window.confirm(message);
+  }
   function announce(message, error = false) {
     const target = $('sapListCount');
     if (!target) return;
@@ -163,7 +169,7 @@
     const student=students.find(s=>s.studentId===studentId);
     if(!student)return;
     const label=action==='CREATE'?'Create a new login':action==='RESET'?'Reset the password': 'Reactivate login with a new temporary password';
-    if (!window.confirm(label+' for '+student.fullName+'? This will change their access.')) return;
+    if (!await confirmAction(label+' for '+student.fullName+'? This will change their access.')) return;
     busy=true;
     try {
       const result=await api('/api/student-portal/accounts/'+encodeURIComponent(studentId)+'/provision',
@@ -176,7 +182,7 @@
   async function suspend(studentId) {
     if (!isAdmin() || busy) return;
     const student=students.find(s=>s.studentId===studentId);
-    if(!student || !window.confirm('Suspend '+student.fullName+'\'s login and revoke current sessions? Attendance records will be preserved.'))return;
+    if(!student || !await confirmAction('Suspend '+student.fullName+'\'s login and revoke current sessions? Attendance records will be preserved.'))return;
     busy=true;
     try {
       await api('/api/student-portal/accounts/'+encodeURIComponent(studentId)+'/status',
@@ -198,7 +204,7 @@
     if (!isAdmin()||busy || selected.size===0)return;
     const ids=[...selected];
     if(ids.length>20){announce('Select at most 20 learners in one batch.',true);return;}
-    if(!window.confirm('Create '+ids.length+' student portal accounts? Passwords will be shown once.'))return;
+    if(!await confirmAction('Create '+ids.length+' student portal accounts? Passwords will be shown once.'))return;
     busy=true;
     try{
       const result=await api('/api/student-portal/accounts/bulk-provision',
