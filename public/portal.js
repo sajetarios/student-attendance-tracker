@@ -222,7 +222,7 @@
       document.querySelector('.sidebar')?.classList.remove('mobile-open');
       return;
     }
-    const allowedViews = allowedViewsForUser().filter(name => name !== 'planner' || schoolEntitlements?.features?.planner !== false);
+    const allowedViews = allowedViewsForUser().filter(name => (name !== 'planner' || schoolEntitlements?.features?.planner !== false) && (name !== 'schoolBranding' || schoolEntitlements?.features?.custom_branding !== false));
     const departmentHead = user?.role === 'DEPARTMENT_HEAD';
     // Department Heads may view the school-wide roster; write access remains restricted.
     if (!allowedViews.includes(view)) view = allowedViews.includes('dashboard') ? 'dashboard' : (allowedViews[0] || 'dashboard');
@@ -318,7 +318,7 @@
     const admin = role === 'SCHOOL_ADMIN';
     const teacher = role === 'TEACHER';
     if ($('cloudSyncNav')) $('cloudSyncNav').hidden = !admin;
-    if ($('schoolBrandingNav')) $('schoolBrandingNav').hidden = !admin;
+    if ($('schoolBrandingNav')) $('schoolBrandingNav').hidden = !admin || schoolEntitlements?.features?.custom_branding === false;
     if ($('plannerNav')) $('plannerNav').hidden = !['TEACHER', 'DEPARTMENT_HEAD'].includes(role) || schoolEntitlements?.features?.planner === false;
     if ($('plannerDashboardWidget')) $('plannerDashboardWidget').hidden = !['TEACHER', 'DEPARTMENT_HEAD'].includes(role) || schoolEntitlements?.features?.planner === false;
     if ($('smsNav')) $('smsNav').hidden = !admin || schoolEntitlements?.features?.sms_notifications === false;
