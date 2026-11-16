@@ -170,7 +170,8 @@
      state.synced=Object.fromEntries((d.marks||[]).map(m=>[m.studentId,m]));
      for(const [id,m] of Object.entries(state.synced)){if(!state.marks[id])state.marks[id]={status:m.status,note:m.note||''}}
      render();notice('Saved records loaded. Local unsynced marks are retained.');
-   }catch(e){notice('Local attendance sheet is available. Server: '+e.message,true)}
+     return true;
+   }catch(e){notice('Local attendance sheet is available. Server: '+e.message,true);return false}
  }
  function setMark(id,status){const prev=state.marks[id]||{};state.marks[id]=prev.status===status?{...prev,status:null}:{...prev,status};draftSave();render();}
  let flipBusy=false;
@@ -204,7 +205,8 @@
    try{
      const result=await api('/api/manual-attendance/sync',{method:'POST',body:JSON.stringify({periodId:state.period.periodId,date:state.date,marks})});
      if(result.saved!==marks.length)throw Error('Server did not confirm the full sheet.');
-     await loadRemote();
+     const readBack=await loadRemote();
+     if(!readBack)throw Error('Server accepted the sheet, but verification could not be completed. Refresh before retrying.');
      const match=marks.every(m=>state.synced[m.studentId]?.status===m.status);
      if(!match)throw Error('Saved records could not be verified. Refresh and check before reattempting.');
      render();notice('Verified '+marks.length+' attendance marks saved in school records.');
