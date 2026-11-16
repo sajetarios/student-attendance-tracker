@@ -60,6 +60,12 @@ app.use(express.json({ limit: '10mb', verify(req, _res, buffer) {
 
 registerAuthRoutes(app, pool);
 const { authenticateSchoolClient, requireSchoolRoles, requireSchoolPermission, requireTeacherDesignations, requireSchoolClient, authenticatePlatform, requirePlatformAdmin } = createAuthMiddleware(pool);
+const { requireSchoolFeature } = require('./school-feature-guard');
+// Feature checks are additive and preserve access for schools not yet assigned a plan.
+// Only selected feature endpoints are gated; attendance history and essential records remain accessible.
+app.use('/api/planner', authenticateSchoolClient, requireSchoolFeature(pool, 'planner'));
+app.use('/api/sms/messages', authenticateSchoolClient, requireSchoolFeature(pool, 'sms_notifications'));
+app.use('/api/class-qr/sessions', authenticateSchoolClient, requireSchoolFeature(pool, 'qr_attendance'));
 const requireSchoolAdmin = requireSchoolRoles('SCHOOL_ADMIN');
 const requireSchoolAdminOrTeacher = requireSchoolRoles('SCHOOL_ADMIN', 'TEACHER');
 const requireSchoolAdminOrDepartmentHeadOrTeacher = requireSchoolRoles('DEPARTMENT_HEAD', 'TEACHER');
