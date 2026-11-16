@@ -1,4 +1,4 @@
-const CACHE = "attendigo-v81-student-portal";
+const CACHE = "attendigo-v82-approval-inbox";
 
 const SHELL = [
   "/assets/attendigo-sidebar-logo.png",
@@ -24,8 +24,12 @@ const SHELL = [
   "/portal.css?v=0.9.54",
   "/portal.css",
   "/portal.js?v=0.9.62",
-  "/student-portal-accounts.css?v=1",
-  "/student-portal-accounts.js?v=1",
+  "/student-portal-accounts.css?v=2",
+  "/student-portal-accounts.js?v=2",
+  "/admin-request-notifications.js?v=1",
+  "/admin-request-notifications.css?v=1",
+  "/guardian-ui.js?v=4",
+  "/guardian-ui.css?v=4",
   "/academic-admin.css?v=1",
   "/academic-admin.js?v=2",
   "/app-dialog.css?v=1",
