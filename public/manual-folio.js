@@ -66,9 +66,9 @@
    el('mfBook').classList.toggle('summary-mode',!isSheet&&!isRecord);
    el('mfHistoryPanel').hidden=!isHistory;
    el('mfSheet').hidden=!isSheet;
-   el('mfRight').hidden=isRecord;
+   el('mfRight').hidden=isRecord||isSheet;
    el('mfRecord').hidden=!isRecord;
-   el('mfTeacherNotesWrap').hidden=!isNotes && !isSheet;
+   el('mfTeacherNotesWrap').hidden=!isNotes;
    el('mfNotesList').hidden=!isNotes;
    el('mfShowArchived').closest('.manual-notes-filter').hidden=!isNotes;
    el('mfDetails').hidden=isNotes;
@@ -187,7 +187,7 @@
    leaf.querySelectorAll('button,input').forEach(node=>{node.disabled=true;node.tabIndex=-1});
    pane.appendChild(leaf);
    el('mfHistoryPrev').disabled=true;el('mfHistoryNext').disabled=true;
-   const duration=window.matchMedia('(prefers-reduced-motion: reduce)').matches?10:720;
+   const duration=window.matchMedia('(prefers-reduced-motion: reduce)').matches?10:260;
    try{
      await new Promise(resolve=>setTimeout(resolve,Math.round(duration*.52)));
      await loadHistory(target);
@@ -231,7 +231,7 @@
    leaf.appendChild(snapshot);book.appendChild(leaf);
    el('mfPrev').disabled=true;el('mfNext').disabled=true;
    // The turning leaf remains visible while the underlying register advances.
-   const duration=window.matchMedia('(prefers-reduced-motion: reduce)').matches?10:720;
+   const duration=window.matchMedia('(prefers-reduced-motion: reduce)').matches?10:260;
    setTimeout(()=>{state.page=next;renderRows();},Math.round(duration*.52));
    setTimeout(()=>{leaf.remove();flipBusy=false;renderRows();},duration+30);
  }
