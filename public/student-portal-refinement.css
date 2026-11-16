@@ -110,3 +110,9 @@ html[data-ui-theme=dark] .student-portal-body .student-site-header{background:li
 html[data-ui-theme=dark] .student-portal-body #studentPasswordRequired{background:var(--ui-panel,#222a43)}
 html[data-ui-theme=dark] .student-portal-body .student-summary-item::before{opacity:.55}
 @media(prefers-reduced-motion:reduce){.student-portal-body .student-actions button{transition:none!important;transform:none!important}}
+
+/* Password-setup gate must remain authoritative despite dashboard display rules. */
+.student-portal-body #studentAttendanceSummary[hidden],
+.student-portal-body #studentAttendanceCard[hidden],
+.student-portal-body #studentPasswordRequired[hidden]{display:none!important}
+.student-portal-body #studentProfileCard .my-photo-status{display:block;max-width:100%;overflow-wrap:anywhere}
