@@ -1,4 +1,4 @@
-const CACHE = "attendigo-v85-student-login-roster-fix";
+const CACHE = "attendigo-v86-roster-independent-fetch";
 
 const SHELL = [
   "/assets/attendigo-sidebar-logo.png",
