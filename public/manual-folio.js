@@ -99,6 +99,35 @@
      renderNotes();
    }catch(error){notice('Notes could not load: '+error.message,true);}
  }
+ async function importOlderDeviceNotes(){
+   if(!state.period)return notice('Select a class before importing notes.',true);
+   if(!navigator.onLine)return notice('Connect to the internet before importing older device notes.',true);
+   const prefix=['attendigo.manual.v1',scope,state.period.periodId].join(':')+':';
+   const drafts=[];
+   try{
+     for(let i=0;i<localStorage.length;i++){
+       const k=localStorage.key(i);
+       if(!k||!k.startsWith(prefix))continue;
+       const date=k.slice(prefix.length);
+       if(!/^\\d{4}-\\d{2}-\\d{2}$/.test(date))continue;
+       const doc=JSON.parse(localStorage.getItem(k)||'{}');
+       if(typeof doc.notes==='string'&&doc.notes.trim())drafts.push({date,body:doc.notes.trim()});
+     }
+   }catch(e){return notice('Could not read previous device notes: '+e.message,true)}
+   const missing=drafts.filter(d=>!state.noteItems.some(n=>n.date===d.date&&n.body===d.body));
+   if(!missing.length)return notice('No unsaved older notes found on this device.');
+   if(!window.confirm('Import '+missing.length+' older device note(s) to school records?'))return;
+   el('mfImportNotes').disabled=true;
+   let saved=0;let failure='';
+   try{
+     for(const d of missing){
+       try{await api('/api/manual-attendance/notes',{method:'POST',body:JSON.stringify({periodId:state.period.periodId,date:d.date,body:d.body})});saved++}
+       catch(e){failure=e.message;break}
+     }
+     await loadNotes();
+     notice('Imported '+saved+' older device note(s).'+(failure?' Remaining notes were not imported: '+failure:''));
+   }finally{el('mfImportNotes').disabled=false}
+ }
  async function saveNote(){
    if(!state.period)return notice('Select a class before saving a note.',true);
    if(!state.notes.trim())return notice('Write a note before saving.',true);
@@ -249,6 +278,7 @@
  });
  el('mfTeacherNotes').addEventListener('input',e=>{state.notes=e.target.value.slice(0,2000);draftSave()});
  el('mfSaveNote').addEventListener('click',saveNote);
+ el('mfImportNotes').addEventListener('click',importOlderDeviceNotes);
  el('mfShowArchived').addEventListener('change',renderNotes);
  el('mfHistoryPrev').addEventListener('click',()=>historyFlip(-1));
  el('mfHistoryNext').addEventListener('click',()=>historyFlip(1));
