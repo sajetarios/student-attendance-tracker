@@ -44,7 +44,8 @@ const REQUIRED_MIGRATIONS = [
   '036_manual_attendance_audit.sql',
   '037_platform_school_deletion_backups.sql',
   '038_planner_items.sql',
-  '039_teacher_position.sql'
+  '039_teacher_position.sql',
+  '040_platform_plans.sql'
 ];
 
 function checksum(content) {
