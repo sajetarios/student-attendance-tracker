@@ -2281,3 +2281,56 @@ body.dark-mode .sf2-matrix-wrap tbody tr:nth-child(even),body[data-theme=dark] .
   .portal-page .topbar .breadcrumbs>b{display:none!important}
   .portal-page .topbar .breadcrumbs{font-size:12px!important}
 }
+
+
+/* iOS/Android: scroll navigation links inside the drawer, not the locked page.
+   The status footer stays below the menu instead of covering lower entries. */
+@media (max-width: 860px) {
+  .portal-page .portal-layout > .sidebar {
+    display:flex!important;
+    flex-direction:column!important;
+    box-sizing:border-box!important;
+    height:100dvh!important;
+    max-height:100dvh!important;
+    min-height:0!important;
+    overflow:hidden!important;
+    padding:calc(12px + env(safe-area-inset-top, 0px)) 14px calc(8px + env(safe-area-inset-bottom, 0px))!important;
+  }
+  .portal-page .sidebar > .attendigo-brand,
+  .portal-page .sidebar > .sidebar-brand,
+  .portal-page .sidebar > .sidebar-section-label,
+  .portal-page .sidebar > .sidebar-collapse-control {
+    flex-shrink:0!important;
+  }
+  .portal-page .sidebar .side-nav {
+    display:flex!important;
+    flex-direction:column!important;
+    flex:1 1 auto!important;
+    min-height:0!important;
+    height:auto!important;
+    max-height:none!important;
+    overflow-y:auto!important;
+    overflow-x:hidden!important;
+    overscroll-behavior-y:contain;
+    -webkit-overflow-scrolling:touch;
+    touch-action:pan-y;
+    padding-bottom:24px!important;
+    scrollbar-width:thin;
+  }
+  .portal-page .sidebar .sidebar-bottom {
+    position:static!important;
+    inset:auto!important;
+    flex:0 0 auto!important;
+    margin:0!important;
+    padding:6px 0 0!important;
+    z-index:1;
+    box-shadow:0 -7px 16px rgba(0,0,0,.1);
+  }
+  .portal-page .sidebar .sidebar-status{
+    margin:0!important;
+    padding:9px 10px!important;
+  }
+  .portal-page .sidebar .nav-group,
+  .portal-page .sidebar .nav-submenu,
+  .portal-page .sidebar .staff-nav-children {flex-shrink:0!important}
+}
