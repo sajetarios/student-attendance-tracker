@@ -1187,11 +1187,14 @@
           <p class="scope-note">These controls are available to School Administrators. Existing attendance records, parent accounts, QR tokens, and student master records are not rewritten by creating school years or enrollments.</p>
         </section>
         <section id="platformWorkspace" class="view-panel" hidden>
+          <div class="platform-tab-panel" data-platform-tab="overview">
           <div class="platform-welcome surface-card">
             <div class="platform-icon">⌘</div>
             <div><div class="eyebrow muted">PLATFORM OWNER</div><h2>Platform administration</h2><p>Manage school onboarding, account access, and cloud synchronization health.</p></div>
           </div>
           <div class="stats-grid platform-stat-grid"><article class="stat-card"><span class="stat-top">Schools</span><strong id="platformSchoolCount">—</strong></article><article class="stat-card"><span class="stat-top">Active schools</span><strong id="platformActiveSchools">—</strong></article><article class="stat-card"><span class="stat-top">Active accounts</span><strong id="platformActiveAccounts">—</strong></article><article class="stat-card"><span class="stat-top">Cloud sync queue</span><strong id="platformQueuedSync">—</strong></article></div>
+          </div>
+          <div class="platform-tab-panel" data-platform-tab="schools" hidden>
           <section class="surface-card section-card platform-create-card"><div class="section-toolbar"><div><h3>Onboard a school</h3><p>Create the school and its first School Administrator account.</p></div></div>
             <form id="platformCreateSchoolForm" class="form-grid platform-school-form">
               <div class="field-group"><label for="platformSchoolCode">School code</label><input id="platformSchoolCode" required maxlength="80" autocomplete="off"></div>
@@ -1202,6 +1205,8 @@
               <div class="form-actions"><button class="primary-button" id="platformCreateSchoolButton" type="submit">Create school</button><button class="outline-button" id="platformRefreshButton" type="button">↻ Refresh overview</button></div>
             </form><p id="platformFeedback" class="inline-feedback" role="status" aria-live="polite"></p>
           </section>
+          </div>
+          <div class="platform-tab-panel" data-platform-tab="plans" hidden>
           <section class="surface-card section-card" id="platformPlansSection" aria-labelledby="platformPlansTitle">
             <div class="section-toolbar"><div><p class="eyebrow muted">PLATFORM SUBSCRIPTIONS</p><h3 id="platformPlansTitle">Plans &amp; Feature Access</h3><p>Configure school plans, feature overrides and renewal dates. Existing schools remain unchanged until assigned a plan.</p></div><button class="outline-button" type="button" id="platformPlansRefresh">Refresh plans</button></div>
             <div class="form-grid platform-school-form">
@@ -1215,6 +1220,8 @@
             <div class="form-actions"><button type="button" class="primary-button" id="platformPlansSave">Save school subscription</button></div>
             <p id="platformPlansFeedback" class="inline-feedback" role="status" aria-live="polite"></p>
           </section>
+          </div>
+          <div class="platform-tab-panel" data-platform-tab="security" hidden>
           <section class="surface-card section-card platform-recovery-card" aria-labelledby="recoveryCenterTitle">
             <div class="section-toolbar"><div><p class="eyebrow muted">ACCOUNT SECURITY</p><h3 id="recoveryCenterTitle"><span data-ui-icon="key"></span> School Admin recovery center</h3><p>Issue a single-use recovery code to an active School Administrator. Codes cannot be issued for teachers, parents, students, or other roles.</p></div></div>
             <form id="platformRecoveryForm" class="form-grid platform-school-form">
@@ -1229,9 +1236,12 @@
             </div>
             <p id="platformRecoveryFeedback" class="inline-feedback" role="status" aria-live="polite"></p>
           </section>
+          </div>
+          <div class="platform-tab-panel" data-platform-tab="schoolDirectory" hidden>
           <section class="surface-card section-card"><div class="section-toolbar"><div><h3>Schools</h3><p>Review school records and active users. Deactivate to preserve records; Delete requires two confirmations and stores a recovery snapshot.</p></div></div>
             <div class="table-scroll"><table><thead><tr><th>School</th><th>Code</th><th>Users</th><th>Learners</th><th>Cloud sync</th><th>Status</th><th>Action</th></tr></thead><tbody id="platformSchoolRows"><tr><td colspan="7" class="empty-cell">Loading schools…</td></tr></tbody></table></div>
           </section>
+          </div>
         </section>
         <footer class="content-footer">Attendigo · Hybrid deployment · Asia/Manila</footer>
       </div>
@@ -1252,7 +1262,7 @@
   <script src="/timetable-grid.js?v=3" defer></script>
   <script src="/schedule-workspace-ui.js?v=3" defer></script>
   <script src="/photo-editor.js?v=6" defer></script>
-  <script src="/portal.js?v=0.9.78" defer></script>
+  <script src="/portal.js?v=0.9.79" defer></script>
   <script src="/platform-plans-ui.js?v=3" defer></script>
   <script src="/planner.js?v=3" defer></script>
   <script src="/manual-folio.js?v=9" defer></script>
