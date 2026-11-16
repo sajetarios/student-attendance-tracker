@@ -28,7 +28,10 @@ function registerSchoolRoutes(app, pool, { authenticateSchoolClient, requireScho
     }
   });
 
-  app.put('/api/school/branding', authenticateSchoolClient, admin, async (req, res) => {
+  const { requireSchoolFeature } = require('./school-feature-guard');
+  const canCustomizeBranding = requireSchoolFeature(pool, 'custom_branding');
+
+  app.put('/api/school/branding', authenticateSchoolClient, admin, canCustomizeBranding, async (req, res) => {
     const { schoolName, brandColor } = req.body || {};
     if (typeof schoolName !== 'string' || schoolName.trim().length < 2 || schoolName.trim().length > 200 ||
         typeof brandColor !== 'string' || !/^#[0-9a-f]{6}$/i.test(brandColor)) {
@@ -73,7 +76,7 @@ function registerSchoolRoutes(app, pool, { authenticateSchoolClient, requireScho
     }
   });
 
-  app.put('/api/school/branding/logo', authenticateSchoolClient, admin,
+  app.put('/api/school/branding/logo', authenticateSchoolClient, admin, canCustomizeBranding,
     require('express').raw({ type: ['image/png', 'image/jpeg', 'image/webp'], limit: '2mb' }), async (req, res) => {
       const buffer = req.body;
       if (!Buffer.isBuffer(buffer) || !buffer.length || buffer.length > 2 * 1024 * 1024)
@@ -98,7 +101,7 @@ function registerSchoolRoutes(app, pool, { authenticateSchoolClient, requireScho
       }
     });
 
-  app.delete('/api/school/branding/logo', authenticateSchoolClient, admin, async (req, res) => {
+  app.delete('/api/school/branding/logo', authenticateSchoolClient, admin, canCustomizeBranding, async (req, res) => {
     try {
       const result = await pool.query(
         'UPDATE schools SET logo_data=NULL,logo_path=NULL,updated_at=NOW() WHERE school_id=$1 AND active=TRUE RETURNING school_id',
