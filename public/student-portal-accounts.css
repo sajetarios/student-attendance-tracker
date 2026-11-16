@@ -77,3 +77,18 @@
 /* Teachers cannot select or bulk issue student credentials. */
 #studentAccountsView.is-teacher .sap-table th:first-child,
 #studentAccountsView.is-teacher .sap-table td:first-child{display:none}
+
+/* Confidential login slip print layout. No credentials are stored in this stylesheet or page until issued. */
+#sapPrintSlips{display:none}
+@media print {
+ @page{size:A4 portrait;margin:18mm}
+ body.sap-print-mode{background:#fff!important;color:#14233a!important}
+ body.sap-print-mode> :not(#sapPrintSlips){display:none!important}
+ body.sap-print-mode #sapPrintSlips{display:block!important;position:static!important;background:#fff!important;color:#14233a!important}
+ body.sap-print-mode #sapPrintSlips .sap-print-slip{display:block;padding:14mm;border:2px solid #203c70;border-radius:10px;min-height:110mm;page-break-after:always;break-after:page;box-sizing:border-box}
+ body.sap-print-mode #sapPrintSlips .sap-print-slip:last-child{page-break-after:auto;break-after:auto}
+ body.sap-print-mode .sap-print-slip h2{margin:0 0 18px;font-size:23px;color:#1b2d56}
+ body.sap-print-mode .sap-print-slip p{font:15px/1.5 system-ui,sans-serif;margin:8px 0;overflow-wrap:anywhere;color:#15263d}
+ body.sap-print-mode .sap-print-slip strong{font-weight:750}
+ body.sap-print-mode .sap-print-slip .sap-print-warning{font-size:12px;font-weight:600;margin-top:22px;padding-top:10px;border-top:1px solid #9bb0cc}
+}
