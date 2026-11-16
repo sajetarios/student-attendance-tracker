@@ -19,7 +19,7 @@
  function renderFeatures(){
   const plan=plans.find(p=>p.planId===$('platformPlansPlan').value);
   const subscription=subscriptions.find(s=>s.schoolId===$('platformPlansSchool').value);
-  const overrides=subscription?.overrides||{};
+  const overrides=subscription?.planId===plan?.planId?subscription.overrides||{}:{};
   const root=$('platformPlansFeatures');root.replaceChildren();
   for(const [key,label] of Object.entries(featureNames)){
    const wrapper=document.createElement('div');wrapper.className='field-group';
@@ -45,7 +45,7 @@
    const schoolSelect=$('platformPlansSchool'),planSelect=$('platformPlansPlan');
    const previous=schoolSelect.value;
    schoolSelect.replaceChildren(...schools.map(s=>option(s.schoolId,s.schoolName+' · '+s.schoolCode)));
-   planSelect.replaceChildren(...plans.filter(p=>p.active).map(p=>option(p.planId,p.name+' · ₱'+p.monthlyPricePhp+'/mo')));
+   planSelect.replaceChildren(...plans.filter(p=>p.active||subscriptions.some(s=>s.planId===p.planId)).map(p=>option(p.planId,p.name+' · ₱'+p.monthlyPricePhp+'/mo (draft pricing)')));
    if(schools.some(s=>s.schoolId===previous))schoolSelect.value=previous;
    selectSchool();message('Subscription settings loaded.');
   }catch(error){message(error.message,true);}
