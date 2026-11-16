@@ -2131,3 +2131,23 @@ body.dark-mode .sf2-matrix-wrap,body[data-theme=dark] .sf2-matrix-wrap{border-co
 body.dark-mode .sf2-matrix-wrap thead th,body.dark-mode .sf2-matrix-wrap tbody th:first-child,body[data-theme=dark] .sf2-matrix-wrap thead th,body[data-theme=dark] .sf2-matrix-wrap tbody th:first-child{background:#253650;color:#eef4ff}
 body.dark-mode .sf2-matrix-wrap tbody tr:nth-child(even),body[data-theme=dark] .sf2-matrix-wrap tbody tr:nth-child(even){background:#1c2b44}
 @media(max-width:700px){.sf2-matrix-wrap tbody th:first-child,.sf2-matrix-wrap thead th:first-child{min-width:145px;max-width:175px}.sf2-review-tools{align-items:flex-start}.sf2-navigation{width:100%}}
+
+
+/* Unified accessible form layout: SF2 and temporary scheduling */
+#sf2View .sf2-filters{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));column-gap:20px;row-gap:17px;margin:20px 0 22px}
+#sf2View .sf2-filters>.field-group{min-width:0;display:flex;flex-direction:column;gap:7px}
+#sf2View .sf2-filters label{font-size:13px;line-height:1.4;font-weight:700}
+#sf2View .sf2-filters input,#sf2View .sf2-filters select{box-sizing:border-box;width:100%;min-width:0;min-height:48px;padding:10px 13px;border-radius:11px}
+#sf2View .form-actions{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-bottom:13px}
+#sf2View .form-actions button{min-height:44px;border-radius:10px}
+.dated-schedule-form{max-width:100%;min-width:0;box-sizing:border-box}
+.dated-schedule-inputs{grid-template-columns:repeat(2,minmax(0,1fr));gap:17px 16px;align-items:start}
+.dated-schedule-inputs>label{font-size:13px;line-height:1.4;gap:7px;overflow-wrap:anywhere}
+.dated-schedule-inputs>label.adjustment-class-field,.dated-schedule-inputs>label.adjustment-type-field{grid-column:span 1}
+.dated-schedule-inputs select,.dated-schedule-inputs input,.dated-schedule-inputs textarea{box-sizing:border-box;min-width:0;width:100%;min-height:48px;padding:10px 12px;font-size:14px;border-radius:10px}
+.dated-schedule-inputs .dated-notes{grid-column:1/-1}
+.dated-schedule-inputs textarea{min-height:90px}
+.dated-schedule-form .form-actions{gap:10px;padding-top:10px;border-top:1px solid #dce5ef}
+.dated-schedule-form .form-actions button{min-height:44px;border-radius:10px}
+.dated-schedule-inputs :is(input,select,textarea):focus-visible,#sf2View .sf2-filters :is(input,select):focus-visible{outline:3px solid #68a3ff;outline-offset:2px}
+@media(max-width:690px){#sf2View .sf2-filters,.dated-schedule-inputs{grid-template-columns:minmax(0,1fr)}.dated-schedule-inputs .dated-notes{grid-column:1/-1}#sf2View .form-actions button{flex:1 1 170px}}
