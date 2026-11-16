@@ -291,6 +291,20 @@
  el('mfSaveNote').addEventListener('click',saveNote);
  el('mfImportNotes').addEventListener('click',importOlderDeviceNotes);
  el('mfShowArchived').addEventListener('change',renderNotes);
+ let historySource='manual';
+ function selectHistorySource(source){
+   historySource=source;
+   host.querySelectorAll('[data-mf-history]').forEach(button=>button.setAttribute('aria-selected',String(button.dataset.mfHistory===source)));
+   el('mfManualHistoryPanel').hidden=source!=='manual';
+   el('mfQrHistoryDetails').hidden=source!=='qr';
+   el('mfConflictPanel').hidden=source!=='conflicts';
+   if(source==='conflicts'){
+     const matches=state.historyRows.filter(mark=>['ABSENT','EXCUSED'].includes(mark.status));
+     el('mfConflictRows').innerHTML='<p class="manual-sync-note">Potential mismatches from the currently loaded manual-history page. Manual marks do not contain a recorded clock time; compare against the timestamped QR records. This list is not an authoritative conflict determination.</p>'+
+       (matches.length?matches.map(mark=>'<div class="manual-history-entry"><div><strong>'+esc(mark.fullName)+'</strong><small>'+esc(mark.date)+' · '+esc(mark.status)+' · Manual source</small></div><span>Check QR records for matching class period and recorded time</span></div>').join(''):'<p>No manual absent/excused entries on this history page. This does not establish that the class has no SF2 conflicts.</p>');
+   }
+ }
+ host.querySelectorAll('[data-mf-history]').forEach(button=>button.addEventListener('click',()=>selectHistorySource(button.dataset.mfHistory)));
  el('mfHistoryPrev').addEventListener('click',()=>historyFlip(-1));
  el('mfHistoryNext').addEventListener('click',()=>historyFlip(1));
  el('mfPrev').addEventListener('click',()=>pageFlip(-1));
