@@ -256,3 +256,5 @@ html[data-theme="dark"] .parent-tabs,body.dark .parent-tabs,body[data-theme="dar
 html[data-theme="dark"] .parent-tab.selected,body.dark .parent-tab.selected,body[data-theme="dark"] .parent-tab.selected{color:#bd9cff}
 html[data-theme="dark"] .parent-note,body.dark .parent-note,body[data-theme="dark"] .parent-note{background:#1c2e4d;color:#c0d0ec}
 @media(max-width:600px){html[data-theme="dark"] .parent-records-card tr,html[data-theme="dark"] .parent-pending-card tr,body.dark .parent-records-card tr,body.dark .parent-pending-card tr,body[data-theme="dark"] .parent-records-card tr,body[data-theme="dark"] .parent-pending-card tr{border-color:#344563}}
+
+.parent-records-card tr[hidden],.parent-pending-card tr[hidden]{display:none!important}
