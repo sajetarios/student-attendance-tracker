@@ -197,7 +197,28 @@
     if (isPlatform) {
       $('platformWorkspace').hidden = false;
       $('schoolWorkspace').hidden = true;
-      $('breadcrumbCurrent').textContent = 'Platform overview';
+      const pages = {
+        platform: ['overview', 'Platform overview', 'Platform administration and performance'],
+        platformSchools: ['schoolDirectory', 'Schools', 'Manage registered schools and their status'],
+        platformOnboard: ['schools', 'Onboard school', 'Create a school and its administrator'],
+        platformPlans: ['plans', 'Plans & feature access', 'Subscription plans, quotas and audit history'],
+        platformSecurity: ['security', 'Account security', 'School Admin recovery center']
+      };
+      if (!pages[view]) view = 'platform';
+      const [panel, heading, description] = pages[view];
+      document.querySelectorAll('#platformWorkspace .platform-tab-panel').forEach(item => {
+        item.hidden = item.dataset.platformTab !== panel;
+      });
+      document.querySelectorAll('.side-nav .nav-item[data-view]').forEach(item => {
+        const active = item.dataset.view === view;
+        item.classList.toggle('active', active);
+        if (active) item.setAttribute('aria-current', 'page');
+        else item.removeAttribute('aria-current');
+      });
+      $('breadcrumbCurrent').textContent = heading;
+      if ($('pageTitle')) $('pageTitle').textContent = heading;
+      if ($('pageSubtitle')) $('pageSubtitle').textContent = description;
+      document.querySelector('.sidebar')?.classList.remove('mobile-open');
       return;
     }
     const allowedViews = allowedViewsForUser();
@@ -3689,7 +3710,31 @@ let teacherActionMenuListenersInstalled = false;
       $('schoolTitle').textContent = 'Platform workspace';
       $('schoolCodeLabel').textContent = 'PLATFORM ADMINISTRATION';
       $('schoolEmblem').textContent = 'P';
-      document.querySelector('.side-nav').innerHTML = '<button class="nav-item active" data-view="platform"><span class="nav-icon" data-ui-icon="shield"></span><span class="nav-label">Platform overview</span></button>';
+      const platformMenu = [
+        ['platform', 'layout-dashboard', 'Platform overview'],
+        ['platformSchools', 'school', 'Schools'],
+        ['platformOnboard', 'school-plus', 'Onboard school'],
+        ['platformPlans', 'credit-card', 'Plans & feature access'],
+        ['platformSecurity', 'shield-check', 'Account security']
+      ];
+      const navigation = document.querySelector('.side-nav');
+      navigation.replaceChildren();
+      for (const [view, icon, label] of platformMenu) {
+        const button = document.createElement('button');
+        button.type = 'button';
+        button.className = 'nav-item';
+        button.dataset.view = view;
+        button.title = label;
+        const symbol = document.createElement('span');
+        symbol.className = 'nav-icon';
+        symbol.dataset.uiIcon = icon;
+        const text = document.createElement('span');
+        text.className = 'nav-label';
+        text.textContent = label;
+        button.append(symbol, text);
+        button.addEventListener('click', () => setView(view));
+        navigation.append(button);
+      }
       $('refreshButton').hidden = true;
       setView('platform');
       try { await loadPlatformData(); }
