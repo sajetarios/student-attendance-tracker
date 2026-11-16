@@ -279,7 +279,18 @@
  }
  host.addEventListener('click',event=>{
    const b=event.target.closest('button');if(!b)return;
-   if(b.dataset.flipId){const id=b.dataset.flipId;const current=state.marks[id]?.status;setMark(id,current==='ABSENT'?'PRESENT':current==='PRESENT'?'ABSENT':'PRESENT');return}
+   if(b.dataset.flipId){
+     const id=b.dataset.flipId,current=state.marks[id]?.status;
+     const next=current==='ABSENT'?'PRESENT':current==='PRESENT'?'ABSENT':'PRESENT';
+     state.marks[id]={...state.marks[id],status:next};draftSave();
+     // Preserve this DOM card so its 300ms CSS rotation can actually finish.
+     b.dataset.face=next;b.dataset.unmarked='false';
+     b.setAttribute('aria-label',names[next]+' for '+(roster().find(s=>s.studentId===id)?.fullName||'learner')+'. Tap to flip between Present and Absent');
+     b.setAttribute('aria-pressed',String(next==='ABSENT'));
+     const row=b.closest('tr');row?.querySelectorAll('.manual-extra-status').forEach(extra=>{extra.dataset.active='false';extra.setAttribute('aria-pressed','false')});
+     row?.querySelector('.manual-other-label')?.remove();
+     renderStats();renderDetails();return;
+   }
    if(b.dataset.id&&b.dataset.status){setMark(b.dataset.id,b.dataset.status);return}
    if(b.dataset.editNote!==undefined)return noteAction(b.dataset.editNote,'edit');
    if(b.dataset.archiveNote!==undefined){const entry=state.noteItems.find(n=>n.noteId===b.dataset.archiveNote);return noteAction(b.dataset.archiveNote,entry?.archivedAt?'restore':'archive')}
