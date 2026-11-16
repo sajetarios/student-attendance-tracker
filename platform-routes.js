@@ -57,11 +57,22 @@ function registerPlatformRoutes(app, pool, { authenticatePlatform, requirePlatfo
          RETURNING school_id AS "schoolId",school_code AS "schoolCode",school_name AS "schoolName",active`,
         [schoolCode.trim(), schoolName.trim()]
       );
+      // Department ownership is mandatory after migration 013.
+      // Provision the school's default department before creating its first admin,
+      // in the SAME transaction so failures never leave an orphan school.
+      const department = await client.query(
+        `INSERT INTO school_departments
+           (school_id,department_code,department_name,description)
+         VALUES($1,'UNASSIGNED','Unassigned',
+           'Default department for initial School Admin and pending staff assignments.')
+         RETURNING department_id AS "departmentId"`,
+        [school.rows[0].schoolId]
+      );
       const admin = await client.query(
-        `INSERT INTO school_users(school_id,username,display_name,password_hash,role)
-         VALUES($1,$2,$3,$4,'SCHOOL_ADMIN')
+        `INSERT INTO school_users(school_id,username,display_name,password_hash,role,department_id)
+         VALUES($1,$2,$3,$4,'SCHOOL_ADMIN',$5)
          RETURNING user_id AS "userId",username,display_name AS "displayName",role`,
-        [school.rows[0].schoolId,adminUsername.trim(),adminDisplayName.trim(),passwordHash]
+        [school.rows[0].schoolId,adminUsername.trim(),adminDisplayName.trim(),passwordHash,department.rows[0].departmentId]
       );
       await client.query(
         `INSERT INTO audit_logs(school_id,actor_type,actor_user_id,action,entity_type,entity_id,details)
@@ -73,6 +84,7 @@ function registerPlatformRoutes(app, pool, { authenticatePlatform, requirePlatfo
     } catch (err) {
       await client.query('ROLLBACK').catch(() => {});
       if (err.code === '23505') return res.status(409).json({ error: 'The school code or administrator username is already in use.' });
+      if (err.code === '23503' || err.code === '23502') return res.status(500).json({ error: 'School setup failed while creating its required department or administrator account. No school was created.' });
       console.error('Platform school creation failed:', err.message);
       return res.status(500).json({ error: 'Could not create school and administrator.' });
     } finally { client.release(); }
