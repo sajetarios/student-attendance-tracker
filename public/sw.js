@@ -1,4 +1,4 @@
-const CACHE = "attendigo-v97-login-username-label";
+const CACHE = "attendigo-v99-history-tab-fix";
 
 const SHELL = [
   "/assets/attendigo-sidebar-logo.png",
@@ -28,8 +28,8 @@ const SHELL = [
   "/student-roster-toolbar.css?v=1",
   "/portal.css",
   "/portal.js?v=0.9.67",
-  "/manual-folio.css?v=5",
-  "/manual-folio.js?v=5",
+  "/manual-folio.css?v=6",
+  "/manual-folio.js?v=6",
   "/student-portal-accounts.css?v=2",
   "/student-portal-accounts.js?v=3",
   "/admin-request-notifications.js?v=1",
