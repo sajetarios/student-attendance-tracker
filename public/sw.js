@@ -1,8 +1,8 @@
-const CACHE = "attendigo-v111-three-line-school-name";
+const CACHE = "attendigo-v112-mobile-logo-restored";
 
 const SHELL = [
   "/assets/attendigo-sidebar-logo.png",
-  "/attendigo-sidebar-adaptive.css?v=7",
+  "/attendigo-sidebar-adaptive.css?v=8",
   "/attendigo-sidebar-adaptive.js?v=3",
   "/assets/attendigo-logo.png",
   "/assets/attendigo-icon.png",
