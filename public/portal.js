@@ -453,12 +453,33 @@
     }
     if (peopleGroup) peopleGroup.hidden = Boolean($('studentsNav')?.hidden && $('teachersNav')?.hidden && $('parentsNav')?.hidden);
     if (academicsGroup) academicsGroup.hidden = Boolean($('sf2Nav')?.hidden && $('schedulesNav')?.hidden && $('cloudSyncNav')?.hidden && $('schoolBrandingNav')?.hidden);
+    // Use role-specific navigation names without changing existing routes or access rules.
+    if ($('peopleGroupLabel')) $('peopleGroupLabel').textContent =
+      departmentHead ? 'My Department' : teacher ? 'My Classes' : 'People & Accounts';
+    if ($('academicsGroupLabel')) $('academicsGroupLabel').textContent =
+      departmentHead ? 'Schedules & Monitoring' : teacher ? 'Attendance & Planning' : 'Academics';
     if (departmentHead) {
-      if ($('peopleGroupLabel')) $('peopleGroupLabel').textContent = 'User Management';
-      if ($('academicsGroupLabel')) $('academicsGroupLabel').textContent = 'Reports & schedules';
-    } else {
-      if ($('peopleGroupLabel')) $('peopleGroupLabel').textContent = 'User Management';
-      if ($('academicsGroupLabel')) $('academicsGroupLabel').textContent = 'Academics';
+      if ($('studentsNav')) $('studentsNav').querySelector('.nav-label').textContent = 'Department Students';
+      if ($('teachersNav')) $('teachersNav').querySelector('.nav-label').textContent = 'Department Teachers';
+      if ($('schedulesNav')) $('schedulesNav').querySelector('.nav-label').textContent = 'Department Schedules';
+      if ($('sf2Nav')) $('sf2Nav').querySelector('.nav-label').textContent = 'SF2 Monitoring';
+    } else if (teacher) {
+      if ($('studentsNav')) $('studentsNav').querySelector('.nav-label').textContent =
+        classAdviser && !subjectTeacher ? 'My Advisory Students' : 'My Students';
+      if ($('schedulesNav')) $('schedulesNav').querySelector('.nav-label').textContent = 'My Timetable';
+      if ($('sf2Nav')) $('sf2Nav').querySelector('.nav-label').textContent = 'SF2 Attendance Report';
+      if ($('classAttendanceNav') && !$('classAttendanceNav').hidden)
+        $('classAttendanceNav').querySelector('.nav-label').textContent = 'Class Attendance';
+    } else if ($('teachersNav')) {
+      $('teachersNav').querySelector('.nav-label').textContent = 'Staff & Users';
+    }
+    // Put the most-used teaching and scheduling actions before reporting.
+    const academicsSubmenu = document.querySelector('[data-submenu="academics"]');
+    if (academicsSubmenu && (teacher || departmentHead)) {
+      const order = teacher
+        ? ['classAttendanceNav', 'schedulesNav', 'plannerNav', 'sf2Nav']
+        : ['schedulesNav', 'plannerNav', 'sf2Nav'];
+      order.forEach(id => { const node = $(id); if (node && node.parentElement === academicsSubmenu) academicsSubmenu.appendChild(node); });
     }
     if (gateKeeper) {
       if ($('scanSetupScope')) { $('scanSetupScope').value = 'SCHOOL'; $('scanSetupScope').disabled = true; }
