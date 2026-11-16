@@ -91,3 +91,6 @@ html[data-ui-theme=dark] .portal-page #studentsView button:disabled{opacity:.48}
  .photo-editor-note,.photo-editor-message{margin:12px 14px}
  .photo-editor-dialog footer{padding:12px 14px 18px}
 }
+
+/* School logos use a square framing guide rather than a circular avatar overlay. */
+.photo-editor-dialog.school-logo-editor .photo-editor-round-guide{display:none}
