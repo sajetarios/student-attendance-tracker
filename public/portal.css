@@ -2151,3 +2151,9 @@ body.dark-mode .sf2-matrix-wrap tbody tr:nth-child(even),body[data-theme=dark] .
 .dated-schedule-form .form-actions button{min-height:44px;border-radius:10px}
 .dated-schedule-inputs :is(input,select,textarea):focus-visible,#sf2View .sf2-filters :is(input,select):focus-visible{outline:3px solid #68a3ff;outline-offset:2px}
 @media(max-width:690px){#sf2View .sf2-filters,.dated-schedule-inputs{grid-template-columns:minmax(0,1fr)}.dated-schedule-inputs .dated-notes{grid-column:1/-1}#sf2View .form-actions button{flex:1 1 170px}}
+
+/* Super Admin school lifecycle controls */
+.platform-school-actions{display:flex;align-items:center;gap:.45rem;flex-wrap:wrap}
+.platform-delete-button{color:#b42318;border-color:rgba(180,35,24,.45)}
+.platform-delete-button:hover,.platform-delete-button:focus-visible{background:rgba(180,35,24,.09);border-color:#b42318}
+[data-theme="dark"] .platform-delete-button,body.dark-mode .platform-delete-button{color:#ffaaa6;border-color:rgba(255,170,166,.55)}
