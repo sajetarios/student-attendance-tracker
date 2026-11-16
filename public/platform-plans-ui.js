@@ -159,7 +159,14 @@
   if(endsAt && Date.parse(endsAt)<=Date.now())return message('Expiration must be in the future.',true);
   if(!confirm('Save this school subscription and feature overrides?'))return;
   const button=$('platformPlansSave');button.disabled=true;
-  try{await api('/api/platform/schools/'+encodeURIComponent(schoolId)+'/subscription',{method:'PUT',body:JSON.stringify({planId,status:$('platformPlansStatus').value,endsAt,overrides})});await load();message('School subscription saved.');}
+  try{
+   await api('/api/platform/schools/'+encodeURIComponent(schoolId)+'/subscription',{method:'PUT',body:JSON.stringify({planId,status:$('platformPlansStatus').value,endsAt,overrides})});
+   const effective=await api('/api/platform/schools/'+encodeURIComponent(schoolId)+'/effective-features');
+   await load();
+   const smsEnabled=effective.features?.sms_notifications===true;
+   const smsSetting=overrides.sms_notifications===true?'Allow':overrides.sms_notifications===false?'Restrict':'Plan default';
+   message('Subscription saved and verified. SMS: '+(smsEnabled?'ENABLED':'DISABLED')+' (selected: '+smsSetting+', status: '+effective.status+(effective.expired?', expired':'')+').'+(smsEnabled?' School Admin can reopen the portal to refresh the menu.':' Check the plan default, subscription status and expiration.'),!smsEnabled&&overrides.sms_notifications===true);
+  }
   catch(error){message(error.message,true);}
   finally{button.disabled=false;}
  });
