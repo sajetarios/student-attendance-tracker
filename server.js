@@ -104,7 +104,7 @@ app.get('/api/teachers', authenticateSchoolClient, requireSchoolAdminOrDepartmen
               su.display_name AS "displayName", su.active,
               su.department_id AS "departmentId",
               COALESCE((SELECT d.department_name FROM school_departments d WHERE d.school_id=su.school_id AND d.department_id=su.department_id), 'Unassigned') AS "departmentName",
-              su.teacher_designations AS "teacherDesignations",
+              su.teacher_designations AS "teacherDesignations", su.teacher_position AS "position",
               (su.teacher_photo_path IS NOT NULL) AS "hasTeacherPhoto",
               COALESCE((SELECT json_agg(json_build_object('gradeLevel', ca.grade_level, 'section', ca.section) ORDER BY ca.grade_level, ca.section)
                         FROM class_adviser_assignments ca
@@ -204,7 +204,7 @@ app.get('/api/school-users', authenticateSchoolClient, requireSchoolAdmin, async
   try {
     const result = await pool.query(
       `SELECT su.user_id AS "userId", su.username, su.display_name AS "displayName", su.role,
-              su.teacher_designations AS "teacherDesignations", su.department_id AS "departmentId",
+              su.teacher_designations AS "teacherDesignations", su.teacher_position AS "position", su.department_id AS "departmentId",
               COALESCE(d.department_name, 'Unassigned') AS "departmentName", su.active,
               su.updated_at AS "appliedAt", su.last_login_at AS "lastLoginAt"
        FROM school_users su
@@ -225,6 +225,10 @@ app.post('/api/school-users', authenticateSchoolClient, requireSchoolAdmin, asyn
   const { username, displayName, password } = req.body || {};
   const role = String(req.body?.role || '').toUpperCase();
   let departmentId = req.body?.departmentId || null;
+  const position = role === 'TEACHER' && typeof req.body?.position === 'string' ? req.body.position.trim() : null;
+  if (role === 'TEACHER' && req.body?.position != null && (typeof req.body.position !== 'string' || position.length > 100)) {
+    return res.status(400).json({ error: 'Teacher position must be text up to 100 characters.' });
+  }
   const allowedRoles = ['TEACHER', 'DEPARTMENT_HEAD', 'GATE_KEEPER'];
   let designations = [];
   if (role === 'TEACHER') {
@@ -262,11 +266,11 @@ app.post('/api/school-users', authenticateSchoolClient, requireSchoolAdmin, asyn
 
   try {
     const created = await pool.query(
-      `INSERT INTO school_users (school_id, username, display_name, password_hash, role, teacher_designations, department_id, teacher_qr_token)
-       VALUES ($1,$2,$3,$4,$5,$6,$7, CASE WHEN $5='TEACHER' THEN gen_random_uuid() ELSE NULL END)
+      `INSERT INTO school_users (school_id, username, display_name, password_hash, role, teacher_designations, department_id, teacher_qr_token, teacher_position)
+       VALUES ($1,$2,$3,$4,$5,$6,$7, CASE WHEN $5='TEACHER' THEN gen_random_uuid() ELSE NULL END, $8)
        RETURNING user_id AS "userId", username, display_name AS "displayName", role,
-                 teacher_designations AS "teacherDesignations", department_id AS "departmentId", active, updated_at AS "appliedAt"`,
-      [req.auth.schoolId, username.trim(), displayName.trim(), passwordHash, role, designations, departmentId]
+                 teacher_designations AS "teacherDesignations", teacher_position AS "position", department_id AS "departmentId", active, updated_at AS "appliedAt"`,
+      [req.auth.schoolId, username.trim(), displayName.trim(), passwordHash, role, designations, departmentId, position || null]
     );
     await pool.query(
       `INSERT INTO audit_logs(school_id, actor_type, actor_user_id, action, entity_type, entity_id, details)
@@ -839,6 +843,10 @@ app.patch('/api/teachers/:userId/designations', authenticateSchoolClient, requir
 app.post('/api/teachers', authenticateSchoolClient, requireSchoolAdmin, async (req, res) => {
   const { username, displayName, password } = req.body || {};
   const departmentId = req.body?.departmentId || null;
+  const position = typeof req.body?.position === 'string' ? req.body.position.trim() : null;
+  if (req.body?.position != null && (typeof req.body.position !== 'string' || position.length > 100)) {
+    return res.status(400).json({ error: 'Teacher position must be text up to 100 characters.' });
+  }
   const teacherDesignations = Array.isArray(req.body?.teacherDesignations) ? [...new Set(req.body.teacherDesignations.map(value => String(value).toUpperCase()))] : ['SUBJECT_TEACHER'];
   if (!teacherDesignations.length || teacherDesignations.some(value => !['CLASS_ADVISER', 'SUBJECT_TEACHER'].includes(value))) {
     return res.status(400).json({ error: 'Select Subject Teacher, Class Adviser, or both.' });
@@ -867,10 +875,10 @@ app.post('/api/teachers', authenticateSchoolClient, requireSchoolAdmin, async (r
   try {
     await client.query('BEGIN');
     const created = await client.query(
-      `INSERT INTO school_users (school_id, username, display_name, password_hash, role, teacher_designations, department_id, teacher_qr_token)
-       VALUES ($1,$2,$3,$4,'TEACHER',$5,$6,gen_random_uuid())
-       RETURNING user_id AS "userId", username, display_name AS "displayName", teacher_designations AS "teacherDesignations", department_id AS "departmentId", active, updated_at AS "appliedAt"`,
-      [req.auth.schoolId, username.trim(), displayName.trim(), passwordHash, teacherDesignations, assignedDepartmentId]
+      `INSERT INTO school_users (school_id, username, display_name, password_hash, role, teacher_designations, department_id, teacher_qr_token, teacher_position)
+       VALUES ($1,$2,$3,$4,'TEACHER',$5,$6,gen_random_uuid(),$7)
+       RETURNING user_id AS "userId", username, display_name AS "displayName", teacher_designations AS "teacherDesignations", teacher_position AS "position", department_id AS "departmentId", active, updated_at AS "appliedAt"`,
+      [req.auth.schoolId, username.trim(), displayName.trim(), passwordHash, teacherDesignations, assignedDepartmentId, position || null]
     );
     const teacher = created.rows[0];
     await client.query(
@@ -893,8 +901,12 @@ app.post('/api/teachers', authenticateSchoolClient, requireSchoolAdmin, async (r
 
 app.patch('/api/teachers/:userId', authenticateSchoolClient, requireSchoolAdmin, async (req, res) => {
   if (!isUuid(req.params.userId)) return res.status(400).json({ error: 'Invalid teacher account ID.' });
-  const { active, displayName } = req.body || {};
-  if (typeof active !== 'boolean' && !(typeof displayName === 'string' && displayName.trim().length > 0 && displayName.trim().length <= 160)) {
+  const { active, displayName, position } = req.body || {};
+  const hasPosition = Object.prototype.hasOwnProperty.call(req.body || {}, 'position');
+  if (hasPosition && (typeof position !== 'string' || position.trim().length > 100)) {
+    return res.status(400).json({ error: 'Teacher position must be text up to 100 characters.' });
+  }
+  if (typeof active !== 'boolean' && !(typeof displayName === 'string' && displayName.trim().length > 0 && displayName.trim().length <= 160) && !hasPosition) {
     return res.status(400).json({ error: 'Provide a valid active value or display name.' });
   }
   const client = await pool.connect();
@@ -913,14 +925,16 @@ app.patch('/api/teachers/:userId', authenticateSchoolClient, requireSchoolAdmin,
            expected_return_date=CASE WHEN $3 IS NOT NULL THEN NULL ELSE expected_return_date END,
            leave_auto_reactivate=CASE WHEN $3 IS NOT NULL THEN TRUE ELSE leave_auto_reactivate END,
            display_name=COALESCE($4,display_name),
+           teacher_position=CASE WHEN $5 THEN NULLIF($6,'') ELSE teacher_position END,
            updated_at=NOW(),
            session_version=CASE WHEN $3 IS FALSE THEN session_version+1 ELSE session_version END
        WHERE school_id=$1 AND user_id=$2 AND role='TEACHER'
        RETURNING user_id AS "userId", username, display_name AS "displayName",
-                 active, teacher_status AS "teacherStatus"`,
+                 active, teacher_status AS "teacherStatus", teacher_position AS "position"`,
       [req.auth.schoolId, req.params.userId,
        typeof active === 'boolean' ? active : null,
-       typeof displayName === 'string' ? displayName.trim() : null]
+       typeof displayName === 'string' ? displayName.trim() : null,
+       hasPosition, hasPosition ? position.trim() : null]
     );
     if (!updated.rowCount) {
       await client.query('ROLLBACK');
@@ -938,7 +952,8 @@ app.patch('/api/teachers/:userId', authenticateSchoolClient, requireSchoolAdmin,
        VALUES($1,'SCHOOL',$2,'SCHOOL_ADMIN_UPDATE_TEACHER','school_user',$3,$4::jsonb)`,
       [req.auth.schoolId, req.auth.userId, req.params.userId,
        JSON.stringify({ active: typeof active === 'boolean' ? active : undefined,
-                        displayName: typeof displayName === 'string' ? displayName.trim() : undefined })]
+                        displayName: typeof displayName === 'string' ? displayName.trim() : undefined,
+                        position: hasPosition ? position.trim() : undefined })]
     );
     await client.query('COMMIT');
     return res.json({ teacher: updated.rows[0] });
