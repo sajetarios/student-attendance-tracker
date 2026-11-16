@@ -219,3 +219,27 @@ html[data-ui-theme="dark"] .portal-page main:has(> #message){
 html[data-ui-theme="dark"] .portal-page #message{
   background:var(--night-soft)!important;color:var(--night-text)!important;
 }
+
+/* Shared dialogs: confirmations, photo cropper, guardian requests. */
+html[data-ui-theme="dark"] .portal-page :is(
+ .app-dialog-card,.photo-editor-dialog,.guardian-panel,
+ .photo-review-panel,.photo-review-item,.my-photo-widget
+){background:var(--night-panel)!important;color:var(--night-text)!important;border-color:var(--night-border)!important}
+html[data-ui-theme="dark"] .portal-page :is(
+ .app-dialog-heading,.photo-editor-heading,.guardian-head h2,
+ .guardian-head h3,.photo-review-details h3,.my-photo-copy strong
+){color:var(--night-text)!important}
+html[data-ui-theme="dark"] .portal-page :is(
+ .app-dialog-message,.app-dialog-help,.photo-editor-note,
+ .photo-editor-instruction,.guardian-student-id,.guardian-field label,
+ .my-photo-copy p,.photo-review-details p
+){color:var(--night-muted)!important}
+html[data-ui-theme="dark"] .portal-page :is(
+ .app-dialog-input,.app-dialog-textarea,.guardian-field input,
+ .guardian-field select,.guardian-field textarea
+){background:var(--night-raised)!important;color:var(--night-text)!important;border-color:var(--night-border)!important}
+html[data-ui-theme="dark"] .portal-page :is(
+ .app-dialog-button-secondary,.photo-editor-close,.guardian-tab:not(.active)
+){background:var(--night-raised)!important;color:var(--night-text)!important;border-color:var(--night-border)!important}
+html[data-ui-theme="dark"] .manual-folio .manual-table td strong{font-size:13px}
+html[data-ui-theme="dark"] .manual-folio .manual-status{font-weight:850}
