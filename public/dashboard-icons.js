@@ -2,6 +2,12 @@
 /* One local stroke-icon vocabulary; no external font or CDN dependency. */
 (function () {
   const paths = {
+    'id-card':'<rect x="3" y="5" width="18" height="14" rx="2"/><circle cx="9" cy="11" r="2"/><path d="M14 10h4m-4 4h4M6 16h6"/>',
+    'user-cog':'<circle cx="10" cy="8" r="3"/><path d="M4 20v-2a6 6 0 0 1 10-4.5M18 15.5l.8 1.1 1.4.3-.5 1.4.5 1.4-1.4.3-.8 1.1-1.2-.9-1.4.2-.2-1.5-1-1 1-1 .2-1.5 1.4.2Z"/>',
+    'book-user':'<path d="M12 6C9 4 6 4 3 5v14c4-1 7 0 9 2 2-2 5-3 9-2V5c-3-1-6-1-9 1Zm0 0v15"/><path d="M7 10h2m-2 4h2m6-4h2m-2 4h2"/>',
+    'clipboard-check':'<rect x="5" y="4" width="14" height="18" rx="2"/><rect x="9" y="2" width="6" height="4" rx="1"/><path d="m9 14 2 2 4-4"/>',
+    'file-chart':'<path d="M6 2h9l4 4v16H6zM15 2v5h4M9 18v-4m3 4v-7m3 7v-3"/>',
+    'mail':'<rect x="2" y="5" width="20" height="14" rx="2"/><path d="m3 7 9 7 9-7"/>',
     calendar:'<rect x="3" y="5" width="18" height="16" rx="3"/><path d="M7 3v4m10-4v4M3 11h18m-14 4h3m4 0h3m-10 3h3"/>',
     grid:'<rect x="3" y="3" width="7" height="7" rx="2"/><rect x="14" y="3" width="7" height="7" rx="2"/><rect x="3" y="14" width="7" height="7" rx="2"/><rect x="14" y="14" width="7" height="7" rx="2"/>',
     book:'<path d="M12 6C9 3 5 3 2 4v15c4-1 7 0 10 2 3-2 6-3 10-2V4c-3-1-7-1-10 2Zm0 0v15"/>',
@@ -38,18 +44,23 @@
   };
   function html(name) { return '<svg class="ui-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">'+(paths[name]||paths.calendar)+'</svg>'; }
   const controls={refreshButton:'refresh',logoutButton:'logout',platformRefreshButton:'refresh',studentRefresh:'refresh',studentLogout:'logout',showScheduleForm:'plus',scheduleAdjustmentShortcut:'swap',scheduleSettingsShortcut:'settings',saveScheduleButton:'check',backButton:'swap',saveScheduleAdjustment:'check'};
-  const nav={dashboardNav:'grid',studentsNav:'book',teachersNav:'users',parentsNav:'users',classAttendanceNav:'check',sf2Nav:'report',schedulesNav:'calendar',academicAdminNav:'book',cloudSyncNav:'swap',schoolBrandingNav:'palette'};
-  const views={dashboard:'grid',students:'graduation',teachers:'users',parents:'users',
-    classAttendance:'check',sf2:'report',schedules:'calendar',cloudSync:'swap',
-    schoolBranding:'palette',platform:'shield'};
-  const groups={people:'users',academics:'book'};
+  const nav={dashboardNav:'grid',studentsNav:'graduation',studentAccountsNav:'id-card',teachersNav:'users',parentsNav:'users',guardianApprovalsNav:'shield',classAttendanceNav:'clipboard-check',sf2Nav:'file-chart',plannerNav:'calendar',schedulesNav:'calendar',academicAdminNav:'book',cloudSyncNav:'swap',smsNav:'mail',schoolBrandingNav:'school'};
+  const views={dashboard:'grid',students:'graduation',studentAccounts:'id-card',teachers:'users',parents:'users',
+    classAttendance:'clipboard-check',sf2:'file-chart',schedules:'calendar',planner:'calendar',cloudSync:'swap',
+    schoolBranding:'school',platform:'shield'};
+  const groups={people:'users',academics:'book',operations:'settings',reports:'file-chart',settings:'settings'};
+  const staff={staffNavToggle:'users',accounts:'id-card',permissions:'shield',departments:'building'};
   const actionIcons={accounts:'users',permissions:'shield',departments:'building'};
   const shortIcons={students:'graduation',teachers:'users',schedules:'calendar',sf2:'report'};
   function render(){
-    document.querySelectorAll('.side-nav .nav-item,.side-nav .nav-group-toggle').forEach(button=>{
+    document.querySelectorAll('.sidebar .nav-item,.sidebar .nav-group-toggle').forEach(button=>{
       const glyph=button.querySelector('.nav-icon');
-      const symbol=nav[button.id]||views[button.dataset.view]||groups[button.dataset.navGroup];
-      if(glyph&&symbol&&!glyph.querySelector('.ui-icon'))glyph.innerHTML=html(symbol);
+      const symbol=staff[button.id]||staff[button.dataset.staffSection]||nav[button.id]||views[button.dataset.view]||groups[button.dataset.navGroup];
+      // Replace inconsistent text glyphs and older line art with a single icon vocabulary.
+      if(glyph&&symbol&&glyph.dataset.iconName!==symbol){
+        glyph.innerHTML=html(symbol);
+        glyph.dataset.iconName=symbol;
+      }
     });
     document.querySelectorAll('.admin-dashboard-action[data-admin-go]').forEach(button=>{
       const icon=button.querySelector('.admin-action-icon');
