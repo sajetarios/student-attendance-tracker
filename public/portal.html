@@ -158,6 +158,13 @@
 <link rel="manifest" href="/manifest.webmanifest">
   <link rel="stylesheet" href="/attendigo-dark-unified.css?v=1">
   <link rel="stylesheet" href="/planner.css?v=2">
+<style id="school-logo-size-fix">
+  #schoolLogoPreview.school-logo-preview { width:112px; height:112px; min-width:112px; min-height:112px; max-width:112px; max-height:112px; box-sizing:border-box; display:grid; place-items:center; overflow:hidden; border-radius:20px; flex:none; }
+  #schoolLogoPreview img { display:block; width:100%; height:100%; object-fit:contain; object-position:center; }
+  #schoolEmblem img, #sidebarSchoolMark img { width:100%; height:100%; max-width:100%; max-height:100%; object-fit:contain; object-position:center; }
+  .school-logo-field input[type="file"] { max-width:100%; }
+  @media(max-width:600px) { #schoolLogoPreview.school-logo-preview { width:96px; height:96px; min-width:96px; min-height:96px; max-width:96px; max-height:96px; } }
+</style>
 </head>
 <body class="portal-page">
   <div class="portal-layout">
@@ -1019,6 +1026,7 @@
                   <div class="field-group" id="newTeacherDepartmentGroup"><label for="newTeacherDepartment">Department *</label><select id="newTeacherDepartment"><option value="">Select department</option></select><small class="field-hint">Assign each teacher and Department Head to one department.</small></div>
                   <div class="field-group"><label for="newTeacherUsername">Username *</label><input id="newTeacherUsername" required maxlength="80" autocomplete="off" placeholder="e.g. teacher.delacruz"></div>
                   <div class="field-group"><label for="newTeacherName">Display name *</label><input id="newTeacherName" required maxlength="160" autocomplete="name" placeholder="Teacher full name"></div>
+                  <div class="field-group" id="newTeacherPositionGroup"><label for="newTeacherPosition">Teacher position / rank</label><input id="newTeacherPosition" list="teacherPositionChoices" maxlength="100" autocomplete="off" placeholder="Teacher I, Master Teacher I, or custom"><datalist id="teacherPositionChoices"><option value="Teacher I"><option value="Teacher II"><option value="Teacher III"><option value="Teacher IV"><option value="Teacher V"><option value="Teacher VI"><option value="Teacher VII"><option value="Master Teacher I"><option value="Master Teacher II"><option value="Master Teacher III"><option value="Master Teacher IV"><option value="Master Teacher V"><option value="Head Teacher I"><option value="Head Teacher II"><option value="Head Teacher III"><option value="Head Teacher IV"><option value="Head Teacher V"><option value="Head Teacher VI"></datalist><small class="field-hint">Personnel position only — does not change system access or subject/adviser designation.</small></div>
                   <div class="field-group"><label for="newTeacherPassword">Initial password *</label><input id="newTeacherPassword" type="password" required minlength="12" maxlength="256" autocomplete="new-password" placeholder="At least 12 characters"></div>
                   <div class="field-group"><label for="confirmTeacherPassword">Confirm password *</label><input id="confirmTeacherPassword" type="password" required minlength="12" maxlength="256" autocomplete="new-password" placeholder="Repeat initial password"></div>
                 </div>
@@ -1033,7 +1041,7 @@
               </form>
               <div class="table-scroll teacher-monitor-scroll">
                 <table class="teacher-monitor-table" id="teacherMonitorTable">
-                  <thead><tr><th>Teacher / designation</th><th>Department</th><th>Status</th><th>Assigned classes</th><th>Assigned schedules</th><th id="teacherActionHeader">Manage</th></tr></thead>
+                  <thead><tr><th>Teacher / position</th><th>Department</th><th>Status</th><th>Assigned classes</th><th>Assigned schedules</th><th id="teacherActionHeader">Manage</th></tr></thead>
                   <tbody id="teacherRows"><tr><td colspan="6" class="empty-cell">Loading teachers…</td></tr></tbody>
                 </table>
               </div>
@@ -1178,7 +1186,7 @@
   <script src="/timetable-grid.js?v=3" defer></script>
   <script src="/schedule-workspace-ui.js?v=3" defer></script>
   <script src="/photo-editor.js?v=4" defer></script>
-  <script src="/portal.js?v=0.9.70" defer></script>
+  <script src="/portal.js?v=0.9.71" defer></script>
   <script src="/planner.js?v=3" defer></script>
   <script src="/manual-folio.js?v=6" defer></script>
   <script src="/student-portal-accounts.js?v=3" defer></script>
