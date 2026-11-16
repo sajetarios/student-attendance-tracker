@@ -3,6 +3,21 @@
   'use strict';
   const bar=document.querySelector('.portal-page .topbar');
   if(!bar)return;
+  // Independent close control remains reachable even when the drawer's top bar is obscured.
+  const drawer=document.getElementById('sidebar');
+  const toggle=document.getElementById('sidebarToggle');
+  if(drawer&&toggle&&!document.getElementById('mobileDrawerClose')){
+    const close=document.createElement('button');
+    close.id='mobileDrawerClose';
+    close.className='mobile-drawer-close';
+    close.type='button';
+    close.textContent='×';
+    close.setAttribute('aria-label','Close navigation menu');
+    close.addEventListener('click',()=>{
+      if(drawer.classList.contains('open'))toggle.click();
+    });
+    drawer.insertBefore(close,drawer.firstChild);
+  }
   const mq=window.matchMedia('(max-width: 860px)');
   let previous=window.scrollY||document.documentElement.scrollTop||0;
   let compact=false,frame=0,holdUntil=0;
