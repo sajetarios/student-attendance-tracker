@@ -80,6 +80,20 @@ function registerPlatformPlanRoutes(app,pool,{authenticatePlatform,requirePlatfo
    res.set('Cache-Control','no-store').json({summary:totals.rows[0],history:history.rows});
   }catch(err){console.error('Subscription summary:',err.message);res.status(500).json({error:'Could not load subscription summary.'});}
  });
+ // This read-back is calculated from persisted records, not from the submitted form.
+ app.get('/api/platform/schools/:schoolId/effective-features',...guard,async(req,res)=>{
+  if(!uuid(req.params.schoolId))return res.status(400).json({error:'Invalid school.'});
+  try{
+   const result=await pool.query(`SELECT p.features,ss.overrides,ss.status,ss.ends_at
+    FROM school_subscriptions ss JOIN platform_plans p ON p.plan_id=ss.plan_id WHERE ss.school_id=$1`,[req.params.schoolId]);
+   if(!result.rowCount)return res.json({configured:false,features:{}});
+   const item=result.rows[0],expired=!!(item.ends_at&&new Date(item.ends_at).getTime()<=Date.now());
+   const features={...item.features,...item.overrides};
+   if(expired||['EXPIRED','SUSPENDED'].includes(item.status))
+    for(const key of ['planner','advanced_analytics','sms_notifications','custom_branding'])features[key]=false;
+   return res.set('Cache-Control','no-store').json({configured:true,status:item.status,expired,features});
+  }catch(error){console.error('Effective features:',error.message);return res.status(503).json({error:'Could not verify saved permissions.'});}
+ });
  app.get('/api/platform/schools/:schoolId/entitlements',...guard,async(req,res)=>{
   if(!uuid(req.params.schoolId))return res.status(400).json({error:'Invalid school.'});
   try{const r=await pool.query(`SELECT p.code,p.features,p.limits,ss.overrides,ss.status,ss.ends_at AS "endsAt" FROM school_subscriptions ss JOIN platform_plans p USING(plan_id) WHERE ss.school_id=$1`,[req.params.schoolId]);
