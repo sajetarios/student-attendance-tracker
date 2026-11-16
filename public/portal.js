@@ -3214,11 +3214,20 @@ let teacherActionMenuListenersInstalled = false;
     }
   }
 
-  function renderTeacherClassAttendance(records) {
+  let teacherHistoryData = [];
+  let teacherHistoryPage = 0;
+  function renderTeacherClassAttendance(records, requestedPage = 0) {
+    teacherHistoryData = records;
+    const pages = Math.max(1, Math.ceil(records.length / 10));
+    teacherHistoryPage = Math.max(0, Math.min(pages - 1, requestedPage));
+    const visibleRecords = records.slice(teacherHistoryPage * 10, teacherHistoryPage * 10 + 10);
+    if ($('mfQrPageNum')) $('mfQrPageNum').textContent = 'Page ' + (teacherHistoryPage + 1) + ' of ' + pages;
+    if ($('mfQrPrev')) $('mfQrPrev').disabled = teacherHistoryPage === 0;
+    if ($('mfQrNext')) $('mfQrNext').disabled = teacherHistoryPage >= pages - 1;
     const host = $('teacherAttendanceRows');
     if (!host) return;
     $('teacherAttendanceCount').textContent = String(records.length);
-    host.innerHTML = records.length ? records.map(item => {
+    host.innerHTML = visibleRecords.length ? visibleRecords.map(item => {
       const time = item.occurredAt
         ? new Date(item.occurredAt).toLocaleTimeString('en-PH', { timeZone: 'Asia/Manila', hour: 'numeric', minute: '2-digit' })
         : '—';
@@ -4296,6 +4305,8 @@ let teacherActionMenuListenersInstalled = false;
     $('scanSetupPeriodWrap').hidden = $('scanSetupScope').value !== 'CLASS';
     $('scanSetupPeriod').value = '';
   });
+  $('mfQrPrev')?.addEventListener('click', () => renderTeacherClassAttendance(teacherHistoryData, teacherHistoryPage - 1));
+  $('mfQrNext')?.addEventListener('click', () => renderTeacherClassAttendance(teacherHistoryData, teacherHistoryPage + 1));
   $('teacherAttendanceApply')?.addEventListener('click', loadTeacherClassAttendance);
   $('teacherAttendanceRefresh')?.addEventListener('click', loadTeacherClassAttendance);
   $('teacherAttendanceViewSelect')?.addEventListener('change', loadTeacherClassAttendance);
