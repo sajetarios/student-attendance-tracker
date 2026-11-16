@@ -105,7 +105,6 @@
     .table-scroll table { min-width:760px; }
   }
 </style>
-\n
 <style id="dashboard-quick-scanner-styles">
   .dashboard-scan-cta {
     display:flex; align-items:center; justify-content:space-between; gap:24px;
@@ -159,40 +158,52 @@
   <link rel="stylesheet" href="/attendigo-dark-unified.css?v=1">
   <link rel="stylesheet" href="/planner.css?v=2">
 <style id="school-logo-size-fix">
-  /* Explicit square frames: the school emblem in the dashboard is larger than the sidebar badge. */
+  /* Transparent school branding: a larger hero logo, compact sidebar logo, no stretching. */
   .school-heading #schoolEmblem.school-emblem {
-    width:76px !important; height:76px !important; min-width:76px !important;
-    min-height:76px !important; max-width:76px !important; max-height:76px !important;
-    flex:0 0 76px !important; aspect-ratio:1 / 1; padding:7px !important;
+    width:108px !important; height:108px !important; min-width:108px !important;
+    min-height:108px !important; max-width:108px !important; max-height:108px !important;
+    flex:0 0 108px !important; aspect-ratio:1 / 1; padding:2px !important;
     box-sizing:border-box !important; display:grid !important; place-items:center !important;
-    overflow:hidden !important; border-radius:18px !important;
+    background:transparent !important; border:0 !important; box-shadow:none !important;
+    overflow:visible !important; border-radius:0 !important;
   }
   .sidebar #sidebarSchoolMark.brand-mark {
-    width:40px !important; height:40px !important; min-width:40px !important;
-    min-height:40px !important; max-width:40px !important; max-height:40px !important;
-    flex:0 0 40px !important; aspect-ratio:1 / 1; padding:4px !important;
+    width:48px !important; height:48px !important; min-width:48px !important;
+    min-height:48px !important; max-width:48px !important; max-height:48px !important;
+    flex:0 0 48px !important; aspect-ratio:1 / 1; padding:2px !important;
     box-sizing:border-box !important; display:grid !important; place-items:center !important;
-    overflow:hidden !important; border-radius:10px !important;
+    background:transparent !important; border:0 !important; box-shadow:none !important;
+    overflow:visible !important; border-radius:0 !important;
   }
   #schoolLogoPreview.school-logo-preview {
-    width:128px !important; height:128px !important; min-width:128px !important;
-    min-height:128px !important; max-width:128px !important; max-height:128px !important;
-    aspect-ratio:1 / 1; padding:8px !important; box-sizing:border-box !important;
-    display:grid !important; place-items:center !important; overflow:hidden !important;
-    border-radius:20px !important; flex:0 0 128px !important;
+    width:148px !important; height:148px !important; min-width:148px !important;
+    min-height:148px !important; max-width:148px !important; max-height:148px !important;
+    aspect-ratio:1 / 1; padding:4px !important; box-sizing:border-box !important;
+    display:grid !important; place-items:center !important; overflow:visible !important;
+    background:transparent !important; border:0 !important; box-shadow:none !important;
+    border-radius:0 !important; flex:0 0 148px !important;
   }
   #schoolEmblem img, #sidebarSchoolMark img, #schoolLogoPreview img {
     display:block !important; width:100% !important; height:100% !important;
     min-width:0 !important; min-height:0 !important; max-width:100% !important;
     max-height:100% !important; object-fit:contain !important;
-    object-position:center !important; aspect-ratio:1 / 1;
+    object-position:center !important; aspect-ratio:auto !important;
+    background:transparent !important; border:0 !important; box-shadow:none !important;
     border-radius:0 !important; transform:none !important;
   }
-  .school-heading .school-title-block { min-width:0; }
+  .school-heading .school-title-block { min-width:0; flex:1 1 200px; }
   .school-logo-field input[type="file"] { max-width:100%; }
   @media(max-width:600px) {
-    .school-heading #schoolEmblem.school-emblem { width:64px !important; height:64px !important; min-width:64px !important; min-height:64px !important; max-width:64px !important; max-height:64px !important; flex-basis:64px !important; }
-    #schoolLogoPreview.school-logo-preview { width:112px !important; height:112px !important; min-width:112px !important; min-height:112px !important; max-width:112px !important; max-height:112px !important; flex-basis:112px !important; }
+    .school-heading #schoolEmblem.school-emblem {
+      width:90px !important; height:90px !important; min-width:90px !important;
+      min-height:90px !important; max-width:90px !important; max-height:90px !important;
+      flex:0 0 90px !important;
+    }
+    #schoolLogoPreview.school-logo-preview {
+      width:128px !important; height:128px !important; min-width:128px !important;
+      min-height:128px !important; max-width:128px !important; max-height:128px !important;
+      flex:0 0 128px !important;
+    }
   }
 </style>
 </head>
