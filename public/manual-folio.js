@@ -56,12 +56,18 @@
  }
  function renderTab(){
    document.querySelectorAll('[data-mf-tab]').forEach(b=>b.setAttribute('aria-selected',String(b.dataset.mfTab===state.tab)));
-   el('mfSheet').hidden=state.tab!=='sheet';
-   el('mfRight').hidden=state.tab==='record';
-   el('mfRecord').hidden=state.tab!=='record';
-   el('mfTeacherNotesWrap').hidden=state.tab!=='notes'&&state.tab!=='sheet';
-   el('mfDetails').hidden=state.tab==='notes';
-   if(state.tab==='record')renderRecord();
+   const isHistory=state.tab==='history';
+   const isRecord=state.tab==='record';
+   const isNotes=state.tab==='notes';
+   const isSheet=state.tab==='sheet';
+   el('mfBook').hidden=isHistory;
+   el('mfHistoryPanel').hidden=!isHistory;
+   el('mfSheet').hidden=!isSheet;
+   el('mfRight').hidden=isRecord;
+   el('mfRecord').hidden=!isRecord;
+   el('mfTeacherNotesWrap').hidden=!isNotes && !isSheet;
+   el('mfDetails').hidden=isNotes;
+   if(isRecord)renderRecord();
  }
  function renderRecord(){
    const out=Object.entries(state.synced);
@@ -81,9 +87,19 @@
    }catch(e){notice('Local attendance sheet is available. Server: '+e.message,true)}
  }
  function setMark(id,status){const prev=state.marks[id]||{};state.marks[id]=prev.status===status?{...prev,status:null}:{...prev,status};draftSave();render();}
+ let flipBusy=false;
  function pageFlip(direction){
-   const book=el('mfBook');book.classList.remove('turn-next','turn-prev');void book.offsetWidth;book.classList.add(direction>0?'turn-next':'turn-prev');
-   state.page+=direction;render();setTimeout(()=>book.classList.remove('turn-next','turn-prev'),550);
+   const pages=Math.max(1,Math.ceil(roster().length/10));
+   if(flipBusy || state.page+direction<0 || state.page+direction>=pages)return;
+   const book=el('mfBook');
+   flipBusy=true;
+   book.classList.remove('turn-next','turn-prev');
+   void book.offsetWidth;
+   book.classList.add(direction>0?'turn-next':'turn-prev');
+   el('mfPrev').disabled=true;el('mfNext').disabled=true;
+   // Change the sheet at the midpoint of the turn, not before the animation begins.
+   setTimeout(()=>{state.page+=direction;render();},260);
+   setTimeout(()=>{book.classList.remove('turn-next','turn-prev');flipBusy=false;renderRows();},570);
  }
  async function sync(){
    if(!state.period)return notice('Choose a class first.',true);
