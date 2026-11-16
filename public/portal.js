@@ -4410,14 +4410,40 @@ let teacherActionMenuListenersInstalled = false;
   let qrHistoryFlipping = false;
   function flipQrHistory(direction) {
     const pages = Math.max(1, Math.ceil(teacherHistoryData.length / 10));
-    if (qrHistoryFlipping || teacherHistoryPage + direction < 0 || teacherHistoryPage + direction >= pages) return;
-    const page = document.querySelector('.manual-qr-pages');
+    const next = teacherHistoryPage + direction;
+    if (qrHistoryFlipping || next < 0 || next >= pages) return;
+    const page = document.querySelector('#mfQrHistoryDetails .manual-qr-pages');
+    if (!page) { renderTeacherClassAttendance(teacherHistoryData, next); return; }
     qrHistoryFlipping = true;
-    page?.classList.remove('turn-next', 'turn-prev');
-    void page?.offsetWidth;
-    page?.classList.add(direction > 0 ? 'turn-next' : 'turn-prev');
-    setTimeout(() => renderTeacherClassAttendance(teacherHistoryData, teacherHistoryPage + direction), 470);
-    setTimeout(() => { page?.classList.remove('turn-next', 'turn-prev'); qrHistoryFlipping = false; }, 1050);
+    const prev = $('mfQrPrev'), forward = $('mfQrNext');
+    if (prev) prev.disabled = true;
+    if (forward) forward.disabled = true;
+    const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    if (reduceMotion) {
+      renderTeacherClassAttendance(teacherHistoryData, next);
+      qrHistoryFlipping = false;
+      return;
+    }
+    // A frozen page is animated above the next page; never rotate the live table.
+    const leaf = document.createElement('div');
+    leaf.className = 'manual-qr-turn-leaf ' + (direction > 0 ? 'forward' : 'backward');
+    leaf.setAttribute('aria-hidden', 'true');
+    const snapshot = page.querySelector('table')?.cloneNode(true);
+    if (snapshot) {
+      snapshot.querySelectorAll('[id]').forEach(node => node.removeAttribute('id'));
+      leaf.appendChild(snapshot);
+    }
+    page.appendChild(leaf);
+    page.classList.add('manual-qr-is-turning');
+    const duration = 440;
+    setTimeout(() => renderTeacherClassAttendance(teacherHistoryData, next), Math.round(duration * .46));
+    setTimeout(() => {
+      leaf.remove();
+      page.classList.remove('manual-qr-is-turning');
+      qrHistoryFlipping = false;
+      if (prev) prev.disabled = next === 0;
+      if (forward) forward.disabled = next >= pages - 1;
+    }, duration + 40);
   }
   $('mfQrPrev')?.addEventListener('click', () => flipQrHistory(-1));
   $('mfQrNext')?.addEventListener('click', () => flipQrHistory(1));
