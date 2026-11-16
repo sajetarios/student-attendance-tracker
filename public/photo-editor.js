@@ -19,6 +19,7 @@
  }
  async function edit(file,{approvalRequired=false,purpose='profile'}={}){
   if(!file)return null;
+  const isLogo = purpose === 'school-logo';
   if(!allowed.includes(file.type)||file.size>MAX||!file.size)throw Error('Use a JPG, PNG or WebP photo up to 5 MB.');
   const url=URL.createObjectURL(file);
   const image=new Image();
@@ -32,8 +33,8 @@
     dialog.innerHTML=`<header class="photo-editor-heading"><div><p>${isLogo ? 'SCHOOL IDENTITY' : 'PROFILE PHOTO'}</p><h2 id="photoEditorTitle">${isLogo ? 'Adjust your school logo' : 'Adjust your photo'}</h2><span>Drag to reposition. Zoom without stretching the image.</span></div><button type="button" class="photo-editor-close" aria-label="Cancel photo upload">×</button></header>
      <div class="photo-editor-stage"><canvas width="512" height="512" tabindex="0" aria-label="Photo preview. Drag or use arrow keys to reposition."></canvas><div class="photo-editor-round-guide" aria-hidden="true"></div><span class="photo-editor-instruction">Drag to reposition</span></div>
      <div class="photo-editor-controls"><label>Zoom <input type="range" min="1" max="3" step="0.01" value="1" aria-label="Zoom photo"><output>100%</output></label>
-     <div class="photo-editor-tools"><button type="button" data-action="rotate">↻ Rotate</button><button type="button" data-action="reset">Reset</button><button type="button" data-action="contain">Skip cropping · show full photo</button></div></div>
-     <p class="photo-editor-note">Photos are saved in a standard square frame (512 × 512 pixels). Full-photo mode adds margins if necessary.</p>
+     <div class="photo-editor-tools"><button type="button" data-action="rotate">↻ Rotate</button><button type="button" data-action="reset">Reset</button><button type="button" data-action="contain">${isLogo ? 'Crop to fill square' : 'Skip cropping · show full photo'}</button></div></div>
+     <p class="photo-editor-note">${isLogo ? 'Your school logo stays proportional in a 512 × 512 square. Zoom or reposition it without stretching.' : 'Photos are saved in a standard square frame (512 × 512 pixels). Full-photo mode adds margins if necessary.'}</p>
      <p class="photo-editor-message" role="status"></p>
      <footer><button type="button" data-action="cancel">Cancel</button><button type="button" data-action="save" class="primary-button">Save photo</button></footer>`;
     document.body.appendChild(dialog);
@@ -42,7 +43,7 @@
     const message=dialog.querySelector('.photo-editor-message'),save=dialog.querySelector('[data-action=save]');
     if(approvalRequired)save.textContent='Submit for approval';
      else if(isLogo)save.textContent='Use cropped logo';
-    let dx=0,dy=0,rotation=0,full=false,done=false,drag=null;
+    let dx=0,dy=0,rotation=0,full=isLogo,done=false,drag=null;
     function draw(){
       ctx.clearRect(0,0,512,512);
       ctx.fillStyle='#e7edf4';ctx.fillRect(0,0,512,512);
@@ -57,7 +58,7 @@
       out.textContent=Math.round(Number(slider.value)*100)+'%';
       const toggle=dialog.querySelector('[data-action=contain]');
       toggle.setAttribute('aria-pressed',String(full));
-      toggle.textContent=full?'Use square crop':'Skip cropping · show full photo';
+      toggle.textContent=full?'Crop to fill square':(isLogo?'Show entire logo':'Skip cropping · show full photo');
     }
     function end(value){
       if(done)return;done=true;
@@ -86,7 +87,7 @@
       e.preventDefault();draw();
     });
     dialog.querySelector('[data-action=rotate]').addEventListener('click',()=>{rotation=(rotation+90)%360;dx=dy=0;draw()});
-    dialog.querySelector('[data-action=reset]').addEventListener('click',()=>{rotation=0;dx=dy=0;full=false;slider.value='1';draw()});
+    dialog.querySelector('[data-action=reset]').addEventListener('click',()=>{rotation=0;dx=dy=0;full=isLogo;slider.value='1';draw()});
     dialog.querySelector('[data-action=contain]').addEventListener('click',()=>{full=!full;dx=dy=0;slider.value='1';draw()});
     save.addEventListener('click',async()=>{
       save.disabled=true;message.textContent='Preparing photo…';
