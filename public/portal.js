@@ -384,12 +384,11 @@
     if ($('exportStudentsButton')) $('exportStudentsButton').hidden = !['SCHOOL_ADMIN', 'DEPARTMENT_HEAD', 'TEACHER'].includes(role);
     if ($('academicAdminNav')) {
       const enrollmentNav = $('academicAdminNav');
-      // Enrollment belongs beside Students, not buried in the Academics submenu.
-      const peopleSubmenu = document.querySelector('.nav-submenu[data-submenu="people"]');
-      if (peopleSubmenu && enrollmentNav.parentElement !== peopleSubmenu) {
-        const studentsNav = $('studentsNav');
-        if (studentsNav) studentsNav.insertAdjacentElement('afterend', enrollmentNav);
-        else peopleSubmenu.append(enrollmentNav);
+      // School-year setup is an academic workflow, not a people/account action.
+      // Reuse the existing module and its access checks; only change navigation placement.
+      const academicsSubmenu = document.querySelector('.nav-submenu[data-submenu="academics"]');
+      if (admin && academicsSubmenu && enrollmentNav.parentElement !== academicsSubmenu) {
+        academicsSubmenu.prepend(enrollmentNav);
       }
       enrollmentNav.hidden = !admin;
       enrollmentNav.setAttribute('aria-label', 'School Years and Enrollment');
@@ -577,6 +576,9 @@
       if (item && submenu) submenu.appendChild(item);
     };
     if (admin) {
+      // Keep enrollment first, followed by existing class scheduling.
+      const academicMenu = document.querySelector('.nav-submenu[data-submenu="academics"]');
+      if (academicMenu && $('academicAdminNav')) academicMenu.prepend($('academicAdminNav'));
       relocate('cloudSyncNav', 'operations');
       relocate('smsNav', 'operations');
       relocate('schoolBrandingNav', 'settings');
