@@ -1202,6 +1202,19 @@
               <div class="form-actions"><button class="primary-button" id="platformCreateSchoolButton" type="submit">Create school</button><button class="outline-button" id="platformRefreshButton" type="button">↻ Refresh overview</button></div>
             </form><p id="platformFeedback" class="inline-feedback" role="status" aria-live="polite"></p>
           </section>
+          <section class="surface-card section-card" id="platformPlansSection" aria-labelledby="platformPlansTitle">
+            <div class="section-toolbar"><div><p class="eyebrow muted">PLATFORM SUBSCRIPTIONS</p><h3 id="platformPlansTitle">Plans &amp; Feature Access</h3><p>Configure school plans, feature overrides and renewal dates. Existing schools remain unchanged until assigned a plan.</p></div><button class="outline-button" type="button" id="platformPlansRefresh">Refresh plans</button></div>
+            <div class="form-grid platform-school-form">
+              <div class="field-group"><label for="platformPlansSchool">School</label><select id="platformPlansSchool"></select></div>
+              <div class="field-group"><label for="platformPlansPlan">Plan</label><select id="platformPlansPlan"></select></div>
+              <div class="field-group"><label for="platformPlansStatus">Status</label><select id="platformPlansStatus"><option value="TRIAL">Trial</option><option value="ACTIVE">Active</option><option value="GRACE">Grace period</option><option value="EXPIRED">Expired</option><option value="SUSPENDED">Suspended</option></select></div>
+              <div class="field-group"><label for="platformPlansEnd">Expires on (optional)</label><input id="platformPlansEnd" type="date"></div>
+            </div>
+            <h4>School-specific feature overrides</h4><p class="scope-note">Leave as plan default, explicitly allow, or explicitly restrict. Overrides do not change role permissions.</p>
+            <div id="platformPlansFeatures" class="form-grid platform-school-form"></div>
+            <div class="form-actions"><button type="button" class="primary-button" id="platformPlansSave">Save school subscription</button></div>
+            <p id="platformPlansFeedback" class="inline-feedback" role="status" aria-live="polite"></p>
+          </section>
           <section class="surface-card section-card platform-recovery-card" aria-labelledby="recoveryCenterTitle">
             <div class="section-toolbar"><div><p class="eyebrow muted">ACCOUNT SECURITY</p><h3 id="recoveryCenterTitle"><span data-ui-icon="key"></span> School Admin recovery center</h3><p>Issue a single-use recovery code to an active School Administrator. Codes cannot be issued for teachers, parents, students, or other roles.</p></div></div>
             <form id="platformRecoveryForm" class="form-grid platform-school-form">
@@ -1240,6 +1253,7 @@
   <script src="/schedule-workspace-ui.js?v=3" defer></script>
   <script src="/photo-editor.js?v=6" defer></script>
   <script src="/portal.js?v=0.9.77" defer></script>
+  <script src="/platform-plans-ui.js?v=1" defer></script>
   <script src="/planner.js?v=3" defer></script>
   <script src="/manual-folio.js?v=6" defer></script>
   <script src="/student-portal-accounts.js?v=3" defer></script>
