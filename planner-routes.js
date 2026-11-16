@@ -6,8 +6,11 @@ const STATUSES=new Set(['PLANNED','DONE','CANCELLED']);
 function registerPlannerRoutes(app,pool,{authenticateSchoolClient,requireSchoolRoles}) {
  const auth=[authenticateSchoolClient,requireSchoolRoles('TEACHER','DEPARTMENT_HEAD')];
  async function actor(req){
-   const a=await pool.query(`SELECT user_id AS "userId",department_id AS "departmentId",role
-       FROM school_users WHERE school_id=$1 AND user_id=$2 AND active=TRUE AND role IN ('TEACHER','DEPARTMENT_HEAD')`,
+   const a=await pool.query(`SELECT su.user_id AS "userId",su.department_id AS "departmentId",su.role,
+       d.department_name AS "departmentName",
+       (d.active=TRUE AND d.department_code<>'UNASSIGNED') AS "canShare"
+       FROM school_users su LEFT JOIN school_departments d ON d.school_id=su.school_id AND d.department_id=su.department_id
+       WHERE su.school_id=$1 AND su.user_id=$2 AND su.active=TRUE AND su.role IN ('TEACHER','DEPARTMENT_HEAD')`,
        [req.auth.schoolId,req.auth.userId]);
    return a.rows[0]||null;
  }
@@ -23,8 +26,8 @@ function registerPlannerRoutes(app,pool,{authenticateSchoolClient,requireSchoolR
       ||!Number.isFinite(start.getTime())||!Number.isFinite(end.getTime())||end<=start
       ||end-start>14*86400000||!['PERSONAL','DEPARTMENT'].includes(visibility))
        return {error:'Check title, event type, priority, and start/end dates (maximum 14 days).'};
-   if(visibility==='DEPARTMENT'&&(a.role!=='DEPARTMENT_HEAD'||!a.departmentId))
-       return {error:'Only Department Heads with an assigned department can share planner items.'};
+   if(visibility==='DEPARTMENT'&&!a.canShare)
+       return {error:'To share planner items, ask your School Admin to assign you to an active department.'};
    return {title,details,startAt:start.toISOString(),endAt:end.toISOString(),
       visibility,itemType:type,priority,status,allDay:data.allDay===true,
       departmentId:visibility==='DEPARTMENT'?a.departmentId:null};
@@ -46,7 +49,7 @@ function registerPlannerRoutes(app,pool,{authenticateSchoolClient,requireSchoolR
         AND p.start_at<$5 AND p.end_at>$4
         ORDER BY p.start_at,p.item_id LIMIT 1000`,
        [req.auth.schoolId,req.auth.userId,a.departmentId,from.toISOString(),to.toISOString()]);
-     return res.json({items:result.rows});
+     return res.json({items:result.rows,canShare:Boolean(a.canShare),departmentName:a.departmentName||null});
    }catch(error){console.error('Planner load failed:',error.message);return res.status(500).json({error:'Could not load Planner.'})}
  });
  app.post('/api/planner/items',...auth,async(req,res)=>{
