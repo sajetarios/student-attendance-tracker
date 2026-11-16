@@ -342,6 +342,12 @@
       $('smsNav').hidden = !enabled;
       $('smsNav').setAttribute('aria-hidden', String(!enabled));
     }
+    // A group hidden while SMS was restricted must become visible again when re-enabled.
+    for (const group of ['operations', 'settings']) {
+      const container = $(group + 'NavGroup');
+      const submenu = document.querySelector('[data-submenu="' + group + '"]');
+      if (container && submenu) container.hidden = !Array.from(submenu.children).some(item => !item.hidden);
+    }
     if ($('exportTeachersButton')) $('exportTeachersButton').hidden = !(admin || role === 'DEPARTMENT_HEAD');
     if ($('bulkImportStudentsButton')) $('bulkImportStudentsButton').hidden = !(admin || teacherHas('CLASS_ADVISER'));
     if ($('studentStatusFilterWrap')) $('studentStatusFilterWrap').hidden = !admin;
