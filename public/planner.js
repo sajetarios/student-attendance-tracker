@@ -78,6 +78,15 @@
    try{
      const result=await api('/api/planner/items?'+new URLSearchParams({from,to}));
      state.items=result.items||[];state.loaded=true;
+     const shareOption=$('plannerVisibility').querySelector('option[value="DEPARTMENT"]');
+     if(shareOption){
+       shareOption.disabled=!result.canShare;
+       shareOption.textContent=result.canShare?'My department'+(result.departmentName?' ('+result.departmentName+')':''):'My department (assignment required)';
+       if(!result.canShare&&$('plannerVisibility').value==='DEPARTMENT')$('plannerVisibility').value='PERSONAL';
+     }
+     $('plannerShareHint').textContent=result.canShare
+       ?'Your department colleagues can view shared items. Your personal items stay private.'
+       :'Sharing is unavailable until your School Admin assigns an active department.';
      render();msg('Your planner is up to date.');
    }catch(e){render();msg('Unable to load Planner: '+e.message,true)}
  }
@@ -117,7 +126,7 @@
    if(!del)return;
    if(!confirm('Delete this planner item? This does not alter the official timetable.'))return;
    del.disabled=true;
-   try{await api('/api/planner/items/'+encodeURIComponent(del.dataset.plannerDelete),{method:'DELETE'});await load();msg('Planner item deleted.')}
+   try{await api('/api/planner/items/'+encodeURIComponent(del.dataset.plannerDelete),{method:'DELETE'});await load();updateDashboardWidget();msg('Planner item deleted.')}
    catch(error){msg(error.message,true);del.disabled=false}
  });
  $('plannerForm').addEventListener('submit',async e=>{
@@ -125,11 +134,42 @@
    try{
      const data=formData(),editing=state.editing;
      await api('/api/planner/items'+(editing?'/'+encodeURIComponent(editing):''),{method:editing?'PATCH':'POST',body:JSON.stringify(data)});
-     $('plannerForm').hidden=true;state.editing=null;await load();msg('Planner item saved.');
+     $('plannerForm').hidden=true;state.editing=null;await load();updateDashboardWidget();msg('Planner item saved.');
    }catch(error){msg(error.message,true)}
    finally{button.disabled=false}
  });
- if(user.role!=='DEPARTMENT_HEAD'){$('plannerVisibility').querySelector('option[value=DEPARTMENT]').remove();}
- if(user.role==='DEPARTMENT_HEAD'){$('plannerShareHint').textContent='Department-shared events are visible to teachers in your department.'}
+ // Sharing capabilities are supplied by the server for both roles.
+ // Never remove the Department option solely because the user is a Teacher.
+
+ let summaryBusy=false;
+ async function updateDashboardWidget(){
+   const card=$('plannerDashboardWidget');
+   if(!card||card.hidden||summaryBusy)return;
+   summaryBusy=true;
+   const todayDate=today();
+   const start=new Date(todayDate+'T00:00:00+08:00');
+   const end=new Date(start.getTime()+8*86400000);
+   try{
+     const response=await api('/api/planner/items?'+new URLSearchParams({from:start.toISOString(),to:end.toISOString()}));
+     const items=response.items||[];
+     const active=items.filter(x=>x.status==='PLANNED');
+     const dayItems=active.filter(x=>phDate(x.startAt)===todayDate);
+     $('plannerDashboardToday').textContent=String(dayItems.length);
+     $('plannerDashboardUpcoming').textContent=String(active.length);
+     $('plannerDashboardShared').textContent=String(active.filter(x=>x.visibility==='DEPARTMENT').length);
+     const next=active.slice().sort((a,b)=>a.startAt.localeCompare(b.startAt)).slice(0,3);
+     $('plannerDashboardPreview').innerHTML=next.length
+       ?next.map(x=>'<span class="planner-dashboard-event"><b>'+escape(x.title)+'</b><small>'+escape(phDate(x.startAt))+(x.visibility==='DEPARTMENT'?' · Shared':'')+'</small></span>').join('')
+       :'<span class="planner-dashboard-empty">No upcoming activities. Add a task, meeting or lesson preparation.</span>';
+   }catch(error){
+     $('plannerDashboardPreview').textContent='Planner summary unavailable. Open Planner to try again.';
+   }finally{summaryBusy=false}
+ }
+ $('plannerDashboardOpen')?.addEventListener('click',()=>$('plannerNav')?.click());
+ $('plannerDashboardNew')?.addEventListener('click',()=>{
+   $('plannerNav')?.click();
+   openForm();
+ });
+ root.addEventListener('planner:dashboard',updateDashboardWidget);
  root.addEventListener('planner:open',()=>{if(!state.loaded)load()});
 })();
