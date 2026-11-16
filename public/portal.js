@@ -3435,17 +3435,46 @@ let teacherActionMenuListenersInstalled = false;
       $('sf2Summary').innerHTML = metrics.map(([label, value]) => `<article class="learner-metric"><span>${esc(label)}</span><strong>${esc(value)}</strong></article>`).join('');
       $('sf2ModeNote').hidden = false;
       $('sf2ModeNote').textContent = `${data.note} ${data.calendarNote || ''}`;
+      const sf2Head = $('sf2Rows').closest('table').querySelector('thead');
+      sf2Head.innerHTML = '<tr><th scope="col">Learner</th><th scope="col">Sex</th>'+data.dates.map(date=>'<th scope="col" title="'+esc(date)+'">'+esc(new Date(date+'T12:00:00').toLocaleDateString('en-PH',{day:'numeric',month:'short'}))+'</th>').join('')+'</tr>';
+      $('sf2TableWrap').classList.add('sf2-matrix-wrap');
+      const sourceLabel = (status,sources) => {
+        if(status==='CONFLICT')return ['conflict','!','Conflict'];
+        if(status==='ABSENT')return ['absent','X','Confirmed absent'];
+        if(status==='PENDING')return ['pending','?','Needs review'];
+        if(status==='NO_RECORD')return ['missing','—','No record'];
+        if(sources.includes('QR') && sources.some(v=>v.startsWith('MANUAL_')))return ['both','Q+M','QR and manual presence'];
+        if(sources.includes('QR'))return ['qr','QR','QR check-in'];
+        if(sources.includes('MANUAL_LATE'))return ['late','L','Manual late'];
+        if(sources.includes('MANUAL_PRESENT'))return ['manual','M','Manual present'];
+        return ['present','P','Present'];
+      };
       $('sf2Rows').innerHTML = data.students.map(student => {
-        const sexControl = esc(student.sex || 'Not set');
-        const attendance = student.days.map((status, index) => {
-          const date = data.dates[index];
-          if (status === 'PENDING' && data.canConfirmAbsence) return `<button type="button" class="secondary-button" data-sf2-absent="${esc(student.id)}" data-date="${date}">Review ${date}</button>`;
-          if (status === 'ABSENT' && data.canConfirmAbsence) return `<button type="button" class="status-tag late" data-sf2-remove-absent="${esc(student.id)}" data-date="${date}">${date} · X</button>`;
-          const label = status === 'PRESENT' ? 'P' : status === 'NO_RECORD' ? 'NR' : status;
-          return `<span class="status-tag ${status === 'ABSENT' ? 'late' : status === 'PENDING' ? 'neutral' : ''}">${date} · ${label}</span>`;
-        }).join(' ');
-        return `<tr><td><strong>${esc(student.name)}</strong><small>${esc(student.gradeLevel)} · ${esc(student.section)}</small></td><td>${sexControl}</td><td>${attendance || 'No weekdays'}</td></tr>`;
-      }).join('') || '<tr><td colspan="3" class="empty-cell">No learners are enrolled in this section.</td></tr>';
+        const cells = student.days.map((status,index) => {
+          const date=data.dates[index], sources=student.sources?.[index]||[];
+          const [tone,label,meaning]=sourceLabel(status,sources);
+          const title=esc(date+' · '+meaning+' · '+(sources.join(', ')||'No evidence source'));
+          if(status==='PENDING'&&data.canConfirmAbsence)return '<td class="sf2-cell"><button type="button" class="sf2-mark pending" data-sf2-absent="'+esc(student.id)+'" data-date="'+esc(date)+'" title="'+title+'" aria-label="Review '+esc(student.name)+' on '+esc(date)+'">Review</button></td>';
+          if(status==='ABSENT'&&data.canConfirmAbsence)return '<td class="sf2-cell"><button type="button" class="sf2-mark absent" data-sf2-remove-absent="'+esc(student.id)+'" data-date="'+esc(date)+'" title="'+title+'" aria-label="Remove confirmed absence for '+esc(student.name)+' on '+esc(date)+'">X</button></td>';
+          return '<td class="sf2-cell"><span class="sf2-mark '+tone+'" title="'+title+'" aria-label="'+title+'">'+label+'</span></td>';
+        }).join('');
+        return '<tr data-sf2-row><th scope="row"><strong>'+esc(student.name)+'</strong><small>'+esc(student.gradeLevel)+' · '+esc(student.section)+'</small></th><td>'+esc(student.sex||'—')+'</td>'+cells+'</tr>';
+      }).join('') || '<tr><td colspan="'+(data.dates.length+2)+'" class="empty-cell">No learners are enrolled in this section.</td></tr>';
+      const wrap=$('sf2TableWrap');
+      let tools=wrap.previousElementSibling;
+      if(!tools||!tools.classList.contains('sf2-review-tools')){
+        tools=document.createElement('div');tools.className='sf2-review-tools';wrap.before(tools);
+        tools.innerHTML='<div class="sf2-legend"><span class="sf2-mark qr">QR</span> QR present <span class="sf2-mark manual">M</span> Manual present <span class="sf2-mark both">Q+M</span> Both <span class="sf2-mark late">L</span> Late <span class="sf2-mark absent">X</span> Absent <span class="sf2-mark conflict">!</span> Conflict <span class="sf2-mark pending">?</span> Review</div><div class="sf2-navigation"><button type="button" class="outline-button compact-button" data-sf2-scroll="-1">← Earlier</button><button type="button" class="outline-button compact-button" data-sf2-scroll="1">Later →</button><button type="button" class="outline-button compact-button" data-sf2-conflicts>Show conflicts only</button></div>';
+        tools.addEventListener('click',event=>{
+          const scroll=event.target.closest('[data-sf2-scroll]');
+          if(scroll)wrap.scrollBy({left:Number(scroll.dataset.sf2Scroll)*Math.max(320,wrap.clientWidth*.7),behavior:'smooth'});
+          const conflicts=event.target.closest('[data-sf2-conflicts]');
+          if(conflicts){const active=conflicts.dataset.active!=='true';conflicts.dataset.active=String(active);conflicts.textContent=active?'Show all learners':'Show conflicts only';wrap.querySelectorAll('[data-sf2-row]').forEach(row=>{row.hidden=active&&!row.querySelector('.sf2-mark.conflict')});}
+        });
+      } else {
+        const button=tools.querySelector('[data-sf2-conflicts]');
+        if(button){button.dataset.active='false';button.textContent='Show conflicts only';}
+      }
       const personal = data.mode === 'PERSONAL';
       const canExport = personal || (data.summary.pending === 0 && data.summary.conflicts === 0 && data.summary.missingSex === 0);
       const canDownload = !data.readOnly || personal;
