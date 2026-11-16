@@ -23,7 +23,7 @@
  const roster=()=>state.students.filter(s=>state.period&&s.active!==false&&s.gradeLevel===state.period.gradeLevel&&s.section===state.period.section).sort((a,b)=>a.fullName.localeCompare(b.fullName));
  const counts=()=>{const out={TOTAL:roster().length,PRESENT:0,LATE:0,ABSENT:0,EXCUSED:0,UNMARKED:0};roster().forEach(s=>{const st=state.marks[s.studentId]?.status;if(out[st]!==undefined)out[st]++;else out.UNMARKED++});return out};
  // Balance the last folio page rather than leaving two rows above a large blank area.
- const pageSize=()=>Math.max(1,Math.ceil(roster().length/Math.max(1,Math.ceil(roster().length/10))));
+ const pageSize=()=>20;
  const selected=(id)=>state.selected.has(id);
  function notice(message,error=false){el('mfFeedback').textContent=message;el('mfFeedback').style.color=error?'#b42335':'#526e96'}
  function renderStats(){const c=counts();el('mfStats').innerHTML=[['TOTAL','👥','Total'],['PRESENT','✓','Present'],['LATE','◷','Late'],['ABSENT','✕','Absent'],['EXCUSED','!','Excused']].map(([k,icon,label])=>`<div class="manual-stat"><strong>${icon} ${c[k]}</strong><span>${label}</span></div>`).join('');}
@@ -31,13 +31,19 @@
    const all=roster();const size=pageSize();const start=state.page*size;const shown=all.slice(start,start+size);
    const totalPages=Math.max(1,Math.ceil(all.length/size));if(state.page>=totalPages){state.page=totalPages-1;return renderRows()}
    el('mfPageNum').textContent='Page '+(state.page+1)+' of '+totalPages;
+   el('mfPageNum').setAttribute('aria-live','polite');
    el('mfPrev').disabled=state.page===0;el('mfNext').disabled=state.page>=totalPages-1;
    el('mfSelectPage').checked=shown.length>0&&shown.every(s=>selected(s.studentId));
-   el('mfRows').innerHTML=shown.length?shown.map((s,i)=>{const mark=state.marks[s.studentId]||{};return `<tr>
+   el('mfRows').innerHTML=shown.length?shown.map((s,i)=>{const mark=state.marks[s.studentId]||{};
+     const status=mark.status||'';const cardStatus=status==='ABSENT'?'ABSENT':'PRESENT';
+     const extras=status==='LATE'||status==='EXCUSED';
+     return `<tr class="manual-attendance-row">
      <td><input type="checkbox" data-select="${esc(s.studentId)}" ${selected(s.studentId)?'checked':''} aria-label="Select ${esc(s.fullName)}"></td>
-     <td><strong>${start+i+1}. ${esc(s.fullName)}</strong><small>${esc(s.studentId)}</small></td>
-     ${statuses.map(st=>`<td><button type="button" class="manual-status" data-id="${esc(s.studentId)}" data-status="${st}" data-active="${mark.status===st}" aria-label="${names[st]} for ${esc(s.fullName)}" aria-pressed="${mark.status===st}">${symbols[st]}</button></td>`).join('')}
-     <td><button class="manual-note-btn" type="button" data-note="${esc(s.studentId)}" data-has-note="${Boolean(mark.note)}" aria-label="Note for ${esc(s.fullName)}">✎</button></td></tr>`}).join(''):'<tr><td colspan="7" class="manual-empty">No students in this selected class.</td></tr>';
+     <td class="manual-learner"><strong>${start+i+1}. ${esc(s.fullName)}</strong><small>${esc(s.studentId)}</small></td>
+     <td class="manual-flip-cell"><button type="button" class="manual-flip-card" data-flip-id="${esc(s.studentId)}" data-face="${cardStatus}" data-unmarked="${!status}" aria-label="${status?names[status]:'Unmarked'} for ${esc(s.fullName)}. Tap to flip between Present and Absent" aria-pressed="${status==='ABSENT'}"><span class="manual-flip-inner"><span class="manual-flip-face manual-flip-present"><b>P</b><small>Present</small></span><span class="manual-flip-face manual-flip-absent"><b>A</b><small>Absent</small></span></span></button></td>
+     <td class="manual-other-status"><button type="button" class="manual-extra-status" data-id="${esc(s.studentId)}" data-status="LATE" data-active="${status==='LATE'}" aria-pressed="${status==='LATE'}" aria-label="Late for ${esc(s.fullName)}">L</button><button type="button" class="manual-extra-status" data-id="${esc(s.studentId)}" data-status="EXCUSED" data-active="${status==='EXCUSED'}" aria-pressed="${status==='EXCUSED'}" aria-label="Excused for ${esc(s.fullName)}">E</button>${extras?'<small class="manual-other-label">'+esc(names[status])+'</small>':''}</td>
+     <td><button class="manual-note-btn" type="button" data-note="${esc(s.studentId)}" data-has-note="${Boolean(mark.note)}" aria-label="Note for ${esc(s.fullName)}">✎</button></td></tr>`}).join(''):'<tr><td colspan="5" class="manual-empty">No students in this selected class.</td></tr>';
+
  }
  function renderDetails(){
    const c=counts(),marked=c.TOTAL-c.UNMARKED;
@@ -231,9 +237,9 @@
    leaf.appendChild(snapshot);book.appendChild(leaf);
    el('mfPrev').disabled=true;el('mfNext').disabled=true;
    // The turning leaf remains visible while the underlying register advances.
-   const duration=window.matchMedia('(prefers-reduced-motion: reduce)').matches?10:260;
-   setTimeout(()=>{state.page=next;renderRows();},Math.round(duration*.52));
-   setTimeout(()=>{leaf.remove();flipBusy=false;renderRows();},duration+30);
+   const duration=window.matchMedia('(prefers-reduced-motion: reduce)').matches?10:330;
+   setTimeout(()=>{state.page=next;renderRows();},Math.round(duration*.50));
+   setTimeout(()=>{leaf.remove();flipBusy=false;renderRows();},duration+35);
  }
  async function sync(){
    if(!state.period)return notice('Choose a class first.',true);
@@ -273,6 +279,7 @@
  }
  host.addEventListener('click',event=>{
    const b=event.target.closest('button');if(!b)return;
+   if(b.dataset.flipId){const id=b.dataset.flipId;const current=state.marks[id]?.status;setMark(id,current==='ABSENT'?'PRESENT':current==='PRESENT'?'ABSENT':'PRESENT');return}
    if(b.dataset.id&&b.dataset.status){setMark(b.dataset.id,b.dataset.status);return}
    if(b.dataset.editNote!==undefined)return noteAction(b.dataset.editNote,'edit');
    if(b.dataset.archiveNote!==undefined){const entry=state.noteItems.find(n=>n.noteId===b.dataset.archiveNote);return noteAction(b.dataset.archiveNote,entry?.archivedAt?'restore':'archive')}
