@@ -73,6 +73,7 @@
 <link rel="manifest" href="/manifest.webmanifest">
 <link rel="stylesheet" href="/attendigo-login-motion.css?v=2">
 <link rel="stylesheet" href="/attendigo-login-refinement.css?v=1">
+<style id="superAdminLoginFix">#schoolCodeGroup[hidden],#schoolAdminRecoveryLink[hidden],#schoolAdminRecoveryForm[hidden]{display:none!important}.login-mode .mode-tab[aria-pressed="true"]{font-weight:800}</style>
 </head>
 <body class="login-page">
   <main class="login-shell">
@@ -101,7 +102,7 @@
         <div class="login-mode" role="group" aria-label="Account type">
           <button type="button" class="mode-tab active" id="schoolMode" aria-pressed="true"><svg class="login-ui-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m3 10 9-7 9 7"/><path d="M5 9v12h14V9M9 21v-7h6v7M9 10h.01M15 10h.01"/></svg><span>School account</span></button>
           <button type="button" class="mode-tab" id="studentMode" aria-pressed="false"><svg class="login-ui-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m2 9 10-5 10 5-10 5-10-5Z"/><path d="M6 11.5V17c3.6 2.9 8.4 2.9 12 0v-5.5M22 9v7"/></svg><span>Student account</span></button>
-          <button type="button" class="mode-tab" id="platformMode" aria-pressed="false"><svg class="login-ui-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="14" rx="2"/><path d="M8 22h8M12 18v4"/></svg><span>Platform admin</span></button>
+          <button type="button" class="mode-tab" id="platformMode" aria-pressed="false"><svg class="login-ui-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="14" rx="2"/><path d="M8 22h8M12 18v4"/></svg><span>Super Admin</span></button>
         </div>
         <p class="login-subtitle" id="accountTypeHint">School account includes administrators, teachers, Gate Keepers, and approved Parent/Guardian accounts.</p>
 
@@ -160,7 +161,7 @@
     </section>
   </main>
   <script src="/login-routing.js" defer></script>
-  <script src="/portal-login.js?v=4" defer></script>
+  <script src="/portal-login.js?v=5" defer></script>
   <script>
     (() => {
       const passwordInput = document.getElementById('password');
