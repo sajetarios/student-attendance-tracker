@@ -244,6 +244,10 @@
       if (submenu) submenu.hidden = false;
     }
 
+    if (user?.role === 'SCHOOL_ADMIN' && view !== 'teachers') {
+      $('staffNavToggle')?.classList.remove('active');
+      $('staffNavChildren')?.querySelectorAll('[data-staff-section]').forEach(button => { button.classList.remove('active'); button.removeAttribute('aria-current'); });
+    }
     const role = user?.role;
     const gateKeeper = role === 'GATE_KEEPER';
     const subjectTeacher = teacherHas('SUBJECT_TEACHER');
@@ -462,7 +466,8 @@
     if ($('schedulesNav')) $('schedulesNav').hidden = gateKeeper || (teacher && !(subjectTeacher || classAdviser));
     if ($('sf2Nav')) $('sf2Nav').hidden = admin || gateKeeper || (!departmentHead && !teacher);
     if ($('teachersNav')) {
-      $('teachersNav').hidden = !(admin || departmentHead);
+      if ($('staffNavWrapper')) $('staffNavWrapper').hidden = !admin;
+      $('teachersNav').hidden = !departmentHead;
       if (departmentHead) $('teachersNav').querySelector('.nav-label').textContent = 'Teachers & Staff';
       else $('teachersNav').querySelector('.nav-label').textContent = 'User Management';
     }
@@ -587,6 +592,39 @@
     setAdminManagementTab(currentAdminTab);
   }
 
+  function syncStaffNavigation(section = 'accounts') {
+    if (user?.role !== 'SCHOOL_ADMIN') return;
+    const wrapper = $('staffNavWrapper'), toggle = $('staffNavToggle'), children = $('staffNavChildren');
+    if (!wrapper || !toggle || !children) return;
+    const isOpen = !$('teachersView')?.hidden;
+    if (isOpen) {
+      children.hidden = false;
+      toggle.setAttribute('aria-expanded', 'true');
+    }
+    toggle.classList.toggle('active', isOpen);
+    children.querySelectorAll('[data-staff-section]').forEach(button => {
+      const active = isOpen && button.dataset.staffSection === section;
+      button.classList.toggle('active', active);
+      if (active) button.setAttribute('aria-current','page');
+      else button.removeAttribute('aria-current');
+    });
+  }
+  $('staffNavToggle')?.addEventListener('click', () => {
+    if (user?.role !== 'SCHOOL_ADMIN') return;
+    const children = $('staffNavChildren');
+    const opening = children.hidden;
+    children.hidden = !opening;
+    $('staffNavToggle').setAttribute('aria-expanded', String(opening));
+    if (opening) { setView('teachers'); setAdminManagementTab('accounts'); }
+  });
+  $('staffNavChildren')?.addEventListener('click', event => {
+    const button = event.target.closest('[data-staff-section]');
+    if (!button || user?.role !== 'SCHOOL_ADMIN') return;
+    setView('teachers');
+    setAdminManagementTab(button.dataset.staffSection);
+    document.querySelector('.sidebar')?.classList.remove('mobile-open');
+  });
+
   function setAdminManagementTab(tabName = 'accounts') {
     const isAdmin = user?.role === 'SCHOOL_ADMIN';
     const tabs = $('adminManagementTabs');
@@ -615,6 +653,7 @@
     if (activeTab === 'permissions') { loadSecurityAudit(); loadSecurityAccounts(); }
     if (departmentCard) departmentCard.hidden = activeTab !== 'departments';
     if (note) note.hidden = activeTab !== 'accounts';
+    syncStaffNavigation(activeTab);
     tabs?.querySelectorAll('[data-admin-management-tab]').forEach(button => {
       const selected = button.dataset.adminManagementTab === activeTab;
       button.classList.toggle('is-active', selected);
