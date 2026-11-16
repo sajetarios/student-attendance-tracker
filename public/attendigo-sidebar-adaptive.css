@@ -164,3 +164,28 @@
     line-clamp:unset!important;
   }
 }
+
+/* Restore the original prominent Attendigo wordmark on mobile.
+   School-name wrapping must not shrink the product branding. */
+@media(max-width:860px){
+  .portal-page #sidebar.sidebar>.attendigo-brand{
+    width:calc(100% - 48px)!important;
+    max-width:260px!important;
+    min-height:82px!important;
+    max-height:none!important;
+    height:auto!important;
+    margin:0 auto 12px 0!important;
+    padding:0!important;
+    justify-content:flex-start!important;
+    align-self:flex-start!important;
+  }
+  .portal-page #sidebar.sidebar>.attendigo-brand .attendigo-logo{
+    display:block!important;
+    width:100%!important;
+    max-width:260px!important;
+    height:auto!important;
+    max-height:88px!important;
+    object-fit:contain!important;
+    object-position:left center!important;
+  }
+}
