@@ -175,12 +175,12 @@
 
   function allowedViewsForUser() {
     const role = user?.role;
-    if (role === 'SCHOOL_ADMIN') return ['dashboard', 'teachers', 'schedules', 'cloudSync', 'schoolBranding'];
+    if (role === 'SCHOOL_ADMIN') return ['dashboard', 'students', 'studentAccounts', 'teachers', 'schedules', 'cloudSync', 'schoolBranding'];
     if (role === 'DEPARTMENT_HEAD') return ['dashboard', 'students', 'teachers', 'schedules', 'sf2'];
     if (role === 'TEACHER') {
       const views = ['dashboard'];
       if (teacherHas('SUBJECT_TEACHER') || teacherHas('CLASS_ADVISER')) {
-        views.push('students', 'classAttendance');
+        views.push('students', 'studentAccounts', 'classAttendance');
       }
       if (teacherHas('SUBJECT_TEACHER') || teacherHas('CLASS_ADVISER')) views.push('schedules');
       if (teacherHas('SUBJECT_TEACHER') || teacherHas('CLASS_ADVISER')) views.push('sf2');
@@ -206,7 +206,7 @@
     if (!allowedViews.includes(view)) view = allowedViews.includes('dashboard') ? 'dashboard' : (allowedViews[0] || 'dashboard');
     $('platformWorkspace').hidden = true;
     $('schoolWorkspace').hidden = false;
-    ['dashboard', 'students', 'schedules', 'teachers', 'sf2', 'classAttendance', 'cloudSync', 'schoolBranding'].forEach(name => {
+    ['dashboard', 'students', 'studentAccounts', 'schedules', 'teachers', 'sf2', 'classAttendance', 'cloudSync', 'schoolBranding'].forEach(name => {
       const panel = $(`${name}View`);
       if (panel) panel.hidden = name !== view;
     });
@@ -242,6 +242,7 @@
       titles = {
         dashboard: [dashboardName, classAdviser && subjectTeacher ? 'Your assigned subjects and advisory section at a glance.' : classAdviser ? 'Monitor your assigned section and official SF2 responsibilities.' : 'Monitor your assigned subject classes and record period attendance.'],
         students: [classAdviser && !subjectTeacher ? 'My advisory section' : 'My assigned learners', 'View only the learners in your assigned sections and subject schedules.'],
+        studentAccounts: ['Student portal account requests', 'Request logins and password recovery for your authorized learners. School Admin approval is required.'],
         schedules: ['My teaching and advisory schedules', 'View your assigned teaching periods, active substitute assignments, and advisory class timetable.'],
         sf2: [classAdviser && subjectTeacher ? 'My SF2 reports' : classAdviser ? 'Official section SF2' : 'Personal SF2 copy', classAdviser ? 'Generate the official consolidated section SF2 only for sections assigned to you as Class Adviser.' : 'Generate a personal attendance copy from your own subject-period records.'],
         classAttendance: ['Class attendance', classAdviser && subjectTeacher ? 'Review your advisory section and the other sections covered by your assigned subject schedules.' : classAdviser ? 'Review attendance for your assigned advisory section.' : 'Review attendance in the sections covered by your assigned subject schedules.']
@@ -250,6 +251,7 @@
       titles = {
         dashboard: ['School Administrator Dashboard', 'Manage school attendance operations, users, learner records, devices, schedules, and reporting.'],
         students: ['Student management', 'Register learners, maintain student details and photos, create student portal accounts, and manage QR cards.'],
+        studentAccounts: ['Student Portal Accounts', 'Issue secure learner logins, review teacher requests, and manage portal access.'],
         schedules: ['School-wide timetable and class schedules', 'Configure school timetable templates, manage class schedules, and assign teachers across departments.'],
         teachers: ['User management', 'Create and update school accounts, assign role-based access, manage departments, and disable or restore account access.'],
         sf2: ['SF2 Report Generator', 'Generate the monthly TUVERA SF2 and collect official reports submitted by Class Advisers.'],
@@ -366,8 +368,9 @@
     }
 
     if ($('dashboardNav')) $('dashboardNav').hidden = gateKeeper;
+    if ($('studentAccountsNav')) $('studentAccountsNav').hidden = !(admin || (teacher && (subjectTeacher || classAdviser)));
     if ($('studentsNav')) {
-      $('studentsNav').hidden = admin || (!departmentHead && !teacher && !gateKeeper);
+      $('studentsNav').hidden = !(admin || departmentHead || teacher || gateKeeper);
       if ($('showStudentForm')) $('showStudentForm').hidden = departmentHead || gateKeeper;
       $('studentsNav').querySelector('.nav-label').textContent = gateKeeper ? 'Gate scanner' : teacher ? (classAdviser && !subjectTeacher ? 'My advisory section' : 'My learners') : 'Students';
       $('studentsNav').title = gateKeeper ? 'Gate scanner' : 'Students';
