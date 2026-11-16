@@ -1,6 +1,9 @@
-const CACHE = "attendigo-v76-sms-notifications";
+const CACHE = "attendigo-v77-adaptive-logo";
 
 const SHELL = [
+  "/assets/attendigo-sidebar-logo.png",
+  "/attendigo-sidebar-adaptive.css?v=2",
+  "/attendigo-sidebar-adaptive.js?v=2",
   "/assets/attendigo-logo.png",
   "/assets/attendigo-icon.png",
   "/attendigo-brand.css?v=1",
