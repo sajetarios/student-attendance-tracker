@@ -1,11 +1,5 @@
 'use strict';
 
-const crypto = require('node:crypto');
-const path = require('node:path');
-const fs = require('node:fs/promises');
-
-const LOGO_ROOT = path.join(__dirname, 'storage', 'school-logos');
-
 function detectLogo(buffer) {
   if (!Buffer.isBuffer(buffer)) return null;
   if (buffer.length >= 8 && buffer.subarray(0, 8).equals(Buffer.from([137,80,78,71,13,10,26,10]))) return { mime: 'image/png', ext: '.png' };
@@ -23,7 +17,7 @@ function registerSchoolRoutes(app, pool, { authenticateSchoolClient, requireScho
     try {
       const result = await pool.query(
         `SELECT school_name AS "schoolName", school_code AS "schoolCode", brand_color AS "brandColor",
-                (logo_path IS NOT NULL) AS "hasLogo"
+                (logo_data IS NOT NULL) AS "hasLogo"
          FROM schools WHERE school_id=$1 AND active=TRUE`, [req.auth.schoolId]
       );
       if (!result.rowCount) return res.status(404).json({ error: 'School not found.' });
@@ -44,7 +38,7 @@ function registerSchoolRoutes(app, pool, { authenticateSchoolClient, requireScho
       const result = await pool.query(
         `UPDATE schools SET school_name=$2, brand_color=$3, updated_at=NOW()
          WHERE school_id=$1 AND active=TRUE
-         RETURNING school_name AS "schoolName",school_code AS "schoolCode",brand_color AS "brandColor",(logo_path IS NOT NULL) AS "hasLogo"`,
+         RETURNING school_name AS "schoolName",school_code AS "schoolCode",brand_color AS "brandColor",(logo_data IS NOT NULL) AS "hasLogo"`,
         [req.auth.schoolId, schoolName.trim(), brandColor.toLowerCase()]
       );
       if (!result.rowCount) return res.status(404).json({ error: 'School not found.' });
@@ -60,13 +54,13 @@ function registerSchoolRoutes(app, pool, { authenticateSchoolClient, requireScho
     }
   });
 
-  app.get('/api/school/logo', authenticateSchoolClient, staff, async (req, res) => {
+  // School logos live in PostgreSQL, not Render's ephemeral local filesystem.
+  app.get('/api/school/logo', authenticateSchoolClient, schoolMember, async (req, res) => {
     try {
-      const result = await pool.query('SELECT logo_path FROM schools WHERE school_id=$1 AND active=TRUE', [req.auth.schoolId]);
-      const filename = result.rows[0]?.logo_path;
-      if (!filename) return res.status(404).end();
-      const safeName = path.basename(filename);
-      const buffer = await fs.readFile(path.join(LOGO_ROOT, safeName));
+      const result = await pool.query(
+        'SELECT logo_data FROM schools WHERE school_id=$1 AND active=TRUE', [req.auth.schoolId]
+      );
+      const buffer = result.rows[0]?.logo_data;
       const type = detectLogo(buffer);
       if (!type) return res.status(404).end();
       res.setHeader('Content-Type', type.mime);
@@ -74,23 +68,24 @@ function registerSchoolRoutes(app, pool, { authenticateSchoolClient, requireScho
       res.setHeader('X-Content-Type-Options', 'nosniff');
       return res.send(buffer);
     } catch (err) {
-      if (err.code !== 'ENOENT') console.error('School logo retrieval failed:', err.message);
-      return res.status(404).end();
+      console.error('School logo retrieval failed:', err.message);
+      return res.status(500).json({ error: 'Could not load school logo.' });
     }
   });
 
   app.put('/api/school/branding/logo', authenticateSchoolClient, admin,
     require('express').raw({ type: ['image/png', 'image/jpeg', 'image/webp'], limit: '2mb' }), async (req, res) => {
       const buffer = req.body;
-      if (!Buffer.isBuffer(buffer) || !buffer.length) return res.status(400).json({ error: 'Choose a PNG, JPG, or WebP logo (maximum 2 MB).' });
+      if (!Buffer.isBuffer(buffer) || !buffer.length || buffer.length > 2 * 1024 * 1024)
+        return res.status(400).json({ error: 'Choose a PNG, JPG, or WebP logo (maximum 2 MB).' });
       const detected = detectLogo(buffer);
       if (!detected) return res.status(400).json({ error: 'The uploaded file is not a valid supported image.' });
-      const filename = `${req.auth.schoolId}-${crypto.randomUUID()}${detected.ext}`;
       try {
-        await fs.mkdir(LOGO_ROOT, { recursive: true });
-        await fs.writeFile(path.join(LOGO_ROOT, filename), buffer, { flag: 'wx', mode: 0o600 });
-        const previous = await pool.query('UPDATE schools SET logo_path=$2,updated_at=NOW() WHERE school_id=$1 RETURNING logo_path', [req.auth.schoolId, filename]);
-        if (!previous.rowCount) { await fs.unlink(path.join(LOGO_ROOT, filename)).catch(() => {}); return res.status(404).json({ error: 'School not found.' }); }
+        const updated = await pool.query(
+          'UPDATE schools SET logo_data=$2,logo_path=NULL,updated_at=NOW() WHERE school_id=$1 AND active=TRUE RETURNING school_id',
+          [req.auth.schoolId, buffer]
+        );
+        if (!updated.rowCount) return res.status(404).json({ error: 'School not found.' });
         await pool.query(
           `INSERT INTO audit_logs(school_id,actor_type,actor_user_id,action,entity_type,entity_id,details)
            VALUES($1,'SCHOOL',$2,'SCHOOL_UPDATE_LOGO','school',$1::uuid::text,$3::jsonb)`,
@@ -105,16 +100,18 @@ function registerSchoolRoutes(app, pool, { authenticateSchoolClient, requireScho
 
   app.delete('/api/school/branding/logo', authenticateSchoolClient, admin, async (req, res) => {
     try {
-      const before = await pool.query('SELECT logo_path FROM schools WHERE school_id=$1', [req.auth.schoolId]);
-      if (!before.rowCount) return res.status(404).json({ error: 'School not found.' });
-      await pool.query('UPDATE schools SET logo_path=NULL,updated_at=NOW() WHERE school_id=$1', [req.auth.schoolId]);
-      if (before.rows[0].logo_path) await fs.unlink(path.join(LOGO_ROOT,path.basename(before.rows[0].logo_path))).catch(() => {});
+      const result = await pool.query(
+        'UPDATE schools SET logo_data=NULL,logo_path=NULL,updated_at=NOW() WHERE school_id=$1 AND active=TRUE RETURNING school_id',
+        [req.auth.schoolId]
+      );
+      if (!result.rowCount) return res.status(404).json({ error: 'School not found.' });
       return res.json({ ok: true });
     } catch (err) {
       console.error('School logo removal failed:', err.message);
       return res.status(500).json({ error: 'Could not remove school logo.' });
     }
   });
+
 }
 
 module.exports = { registerSchoolRoutes };
