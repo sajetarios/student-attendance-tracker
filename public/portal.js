@@ -313,6 +313,22 @@
     $('sidebar').classList.remove('open');
   }
 
+  // Re-read effective permissions when returning to the portal after a Super Admin plan change.
+  async function refreshSchoolEntitlements() {
+    if (!token || !user || user.role === 'SUPER_ADMIN') return;
+    try {
+      const latest = await api('/api/school/entitlements');
+      schoolEntitlements = latest;
+      applyRoleNavigation();
+    } catch (error) {
+      console.warn('Unable to refresh school feature access:', error.message);
+    }
+  }
+  window.addEventListener('pageshow', () => { if (user && user.role !== 'SUPER_ADMIN') refreshSchoolEntitlements(); });
+  document.addEventListener('visibilitychange', () => {
+    if (!document.hidden && user && user.role !== 'SUPER_ADMIN') refreshSchoolEntitlements();
+  });
+
   function applyRoleNavigation() {
     const role = user?.role;
     const admin = role === 'SCHOOL_ADMIN';
@@ -321,7 +337,11 @@
     if ($('schoolBrandingNav')) $('schoolBrandingNav').hidden = !admin || schoolEntitlements?.features?.custom_branding === false;
     if ($('plannerNav')) $('plannerNav').hidden = !['TEACHER', 'DEPARTMENT_HEAD'].includes(role) || schoolEntitlements?.features?.planner === false;
     if ($('plannerDashboardWidget')) $('plannerDashboardWidget').hidden = !['TEACHER', 'DEPARTMENT_HEAD'].includes(role) || schoolEntitlements?.features?.planner === false;
-    if ($('smsNav')) $('smsNav').hidden = !admin || schoolEntitlements?.features?.sms_notifications === false;
+    if ($('smsNav')) {
+      const enabled = admin && schoolEntitlements?.features?.sms_notifications !== false;
+      $('smsNav').hidden = !enabled;
+      $('smsNav').setAttribute('aria-hidden', String(!enabled));
+    }
     if ($('exportTeachersButton')) $('exportTeachersButton').hidden = !(admin || role === 'DEPARTMENT_HEAD');
     if ($('bulkImportStudentsButton')) $('bulkImportStudentsButton').hidden = !(admin || teacherHas('CLASS_ADVISER'));
     if ($('studentStatusFilterWrap')) $('studentStatusFilterWrap').hidden = !admin;
