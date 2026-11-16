@@ -3113,18 +3113,36 @@ let teacherActionMenuListenersInstalled = false;
     $('teacherCoverageCard').hidden = !isDepartmentHead;
     if ($('departmentHeadOverview')) $('departmentHeadOverview').hidden = !isDepartmentHead;
 
-    // School Admin needs the school-scoped student roster to manage learner records
-    // and student portal accounts, but still skips restricted attendance-dashboard APIs.
-    const base = await Promise.all([
+    // Student records are independent of timetable, department, and dashboard APIs.
+    // A failure in any secondary API must not prevent the roster from rendering.
+    let rosterError = null;
+    try {
+      const roster = await api('/api/students');
+      if (!Array.isArray(roster?.students)) throw new Error('The student service returned an invalid roster.');
+      students = roster.students;
+      // Show real student records immediately, before the slower secondary panels load.
+      renderStudents().catch(error => showToast('Could not render students: ' + error.message, true));
+    } catch (error) {
+      rosterError = error;
+      students = [];
+      const table = $('studentRows');
+      if (table) table.innerHTML = '<tr><td colspan="12" class="empty-cell">Student records could not be loaded: ' +
+        esc(error.message) + '. Use Refresh to retry. No records have been deleted.</td></tr>';
+      showToast('Student roster unavailable: ' + error.message, true);
+    }
+    const secondary = await Promise.allSettled([
       isSchoolAdmin ? Promise.resolve({}) : api('/api/admin/dashboard'),
-      api('/api/students'),
       canViewClassSchedules ? api('/api/periods?weekDate='+encodeURIComponent($('weeklyScheduleAsOf')?.value||dataSchoolDate())) : Promise.resolve({ periods: [] }),
       isSchoolManager ? api('/api/departments') : Promise.resolve({ departments: [] })
     ]);
-    dashboardData = base[0];
-    students = base[1].students || [];
-    periods = base[2].periods || [];
-    departments = base[3].departments || [];
+    const valueOr = (item, fallback, name) => {
+      if (item.status === 'fulfilled') return item.value;
+      console.warn('Attendigo ' + name + ' could not load:', item.reason);
+      return fallback;
+    };
+    dashboardData = valueOr(secondary[0], {}, 'dashboard');
+    periods = valueOr(secondary[1], { periods: [] }, 'timetable').periods || [];
+    departments = valueOr(secondary[2], { departments: [] }, 'departments').departments || [];
     renderDepartments();
     const scopeSelect = $('scanSetupScope');
     const hasSubjectRole = role === 'TEACHER' && teacherHas('SUBJECT_TEACHER');
@@ -3171,7 +3189,7 @@ let teacherActionMenuListenersInstalled = false;
     populateAdjustmentPeriodOptions();
     await loadScheduleAdjustments();
     renderStats(dashboardData);
-    renderStudents();
+    if (!rosterError) await renderStudents();
     renderPeriods();
     if (isSchoolManager) renderTeachers();
     if (isDepartmentHead) renderDepartmentHeadOverview();
