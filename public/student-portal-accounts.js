@@ -69,6 +69,14 @@
     const label = action === 'CREATE' ? 'Request login' : action === 'RESET' ? 'Request reset' : 'Request activation';
     return '<button type="button" class="sap-action primary" data-sap-action="' + action + '" data-student-id="' + esc(s.studentId) + '">' + label + '</button>';
   }
+  function batchEligible(student) {
+    const action = $('sapBatchAction')?.value || 'CREATE';
+    if (action === 'CREATE') return !student.hasAccount;
+    if (action === 'RESET') return student.hasAccount && student.accountActive;
+    if (action === 'SUSPEND') return student.hasAccount && student.accountActive;
+    if (action === 'ACTIVATE') return student.hasAccount && !student.accountActive;
+    return false;
+  }
   function renderDirectory() {
     const admin = isAdmin();
     view.classList.toggle('is-teacher', !admin);
@@ -83,7 +91,7 @@
     $('sapPending').textContent = String(requests.filter(r=>r.status==='PENDING').length);
     const rows = filtered();
     $('sapRows').innerHTML = rows.length ? rows.map(s => {
-      const checkbox = admin && !s.hasAccount
+      const checkbox = admin
         ? '<input type="checkbox" aria-label="Select ' + esc(s.fullName) + '" data-sap-select="' + esc(s.studentId) + '" ' + (selected.has(s.studentId) ? 'checked' : '') + '>'
         : '';
       return '<tr><td>' + checkbox + '</td><td><span class="sap-student-name">' + esc(s.fullName) +
@@ -91,13 +99,14 @@
        esc(s.gradeLevel || '—') + '<span class="sap-student-id">' + esc(s.section || '—') +
        '</span></td><td>' + statusMarkup(s) + '</td><td><div class="sap-cell-actions">' + actionMarkup(s) + '</div></td></tr>';
     }).join('') : '<tr><td colspan="5" class="sap-empty">No learners match this search or filter.</td></tr>';
-    const missing = new Set(students.filter(s=>!s.hasAccount).map(s=>s.studentId));
-    [...selected].filter(id=>!missing.has(id)).forEach(id=>selected.delete(id));
-    const eligible = rows.filter(s=>!s.hasAccount);
+    const known = new Set(students.map(s=>s.studentId));
+    [...selected].filter(id=>!known.has(id)).forEach(id=>selected.delete(id));
+    const eligible = rows.filter(batchEligible);
     $('sapSelectAll').checked = Boolean(eligible.length) && eligible.every(s=>selected.has(s.studentId));
     $('sapSelectAll').indeterminate = eligible.some(s=>selected.has(s.studentId)) && !eligible.every(s=>selected.has(s.studentId));
-    $('sapSelectedCount').textContent = selected.size + ' selected · maximum 20 per batch';
-    $('sapBulkCreate').disabled = !admin || selected.size===0 || selected.size>20 || busy;
+    const actionable = students.filter(s=>selected.has(s.studentId) && batchEligible(s));
+    $('sapSelectedCount').textContent = selected.size + ' selected · ' + actionable.length + ' eligible · maximum 20 per batch';
+    $('sapBulkCreate').disabled = !admin || !actionable.length || actionable.length > 20 || busy;
     $('sapListCount').textContent = rows.length + ' of ' + total + ' authorized learners displayed.';
   }
   const dateLabel = value => {
@@ -203,20 +212,43 @@
     renderDirectory();renderRequests();
   }
   async function bulkCreate() {
-    if (!isAdmin()||busy || selected.size===0)return;
-    const ids=[...selected];
-    if(ids.length>20){announce('Select at most 20 learners in one batch.',true);return;}
-    if(!await confirmAction('Create '+ids.length+' student portal accounts? Passwords will be shown once.'))return;
-    busy=true;
-    try{
-      const result=await api('/api/student-portal/accounts/bulk-provision',
-        {method:'POST',body:JSON.stringify({studentIds:ids})});
-      selected.clear();
-      openCredentials(result.credentials||[]);
+    if (!isAdmin() || busy) return;
+    const action = $('sapBatchAction')?.value || 'CREATE';
+    const targets = students.filter(s=>selected.has(s.studentId) && batchEligible(s));
+    if (!targets.length) { announce('No selected learners are eligible for this action.', true); return; }
+    if (targets.length > 20) { announce('Select at most 20 eligible learners per batch.', true); return; }
+    const label = {CREATE:'issue logins for',RESET:'reset passwords for',SUSPEND:'suspend logins for',ACTIVATE:'reactivate logins for'}[action];
+    if (!await confirmAction('Confirm: '+label+' '+targets.length+' students? '+(action==='SUSPEND'?'Their sessions will be revoked.':'Temporary passwords will be shown once where applicable.'))) return;
+    busy = true;
+    try {
+      const issued = [], errors = [];
+      if (action === 'CREATE') {
+        const result = await api('/api/student-portal/accounts/bulk-provision',
+          {method:'POST',body:JSON.stringify({studentIds:targets.map(s=>s.studentId)})});
+        issued.push(...(result.credentials||[]));
+      } else {
+        // Use each existing authorized endpoint; do not alter its permissions or bypass auditing.
+        for (const student of targets) {
+          try {
+            if (action === 'SUSPEND') {
+              await api('/api/student-portal/accounts/'+encodeURIComponent(student.studentId)+'/status',
+                {method:'PATCH',body:JSON.stringify({active:false})});
+            } else {
+              const result = await api('/api/student-portal/accounts/'+encodeURIComponent(student.studentId)+'/provision',
+                {method:'POST',body:JSON.stringify({action})});
+              if (result.credentials) issued.push(result.credentials);
+            }
+          } catch (error) { errors.push(student.fullName+': '+error.message); }
+        }
+      }
+      targets.filter(s=>!errors.some(e=>e.startsWith(s.fullName+':'))).forEach(s=>selected.delete(s.studentId));
+      if (issued.length) openCredentials(issued);
       document.dispatchEvent(new CustomEvent('attendigo:requests-changed'));
-      await refreshAfterMutation().catch(error => announce('Credentials issued. Account list refresh failed: ' + error.message, true));
-    }catch(error){announce(error.message,true);}
-    finally{busy=false;}
+      await refreshAfterMutation();
+      if (errors.length) announce('Completed '+(targets.length-errors.length)+' of '+targets.length+'. Failed: '+errors.join('; '),true);
+      else announce('Batch action completed for '+targets.length+' students.');
+    } catch(error) { announce(error.message,true); }
+    finally { busy=false; renderDirectory(); }
   }
   function showTeacherRequest(studentId,action) {
     if(!isTeacher())return;
@@ -266,9 +298,10 @@
   $('sapSearch').addEventListener('input',renderDirectory);
   $('sapFilter').addEventListener('change',renderDirectory);
   $('sapSelectAll').addEventListener('change',event=>{
-    filtered().filter(s=>!s.hasAccount).forEach(s=>event.target.checked?selected.add(s.studentId):selected.delete(s.studentId));
+    filtered().filter(batchEligible).forEach(s=>event.target.checked?selected.add(s.studentId):selected.delete(s.studentId));
     renderDirectory();
   });
+  $('sapBatchAction')?.addEventListener('change',renderDirectory);
   $('sapBulkCreate').addEventListener('click',bulkCreate);
   $('sapRequestClose').addEventListener('click',()=>closeModal('sapRequestModal'));
   $('sapReviewClose').addEventListener('click',()=>closeModal('sapReviewModal'));
