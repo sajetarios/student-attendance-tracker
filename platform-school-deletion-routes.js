@@ -25,8 +25,63 @@ async function schoolImpact(client, schoolId) {
   return { ...school.rows[0], impact: result.rows[0] };
 }
 
+
+// Retain recovery snapshots for 30 days. A PostgreSQL transaction makes snapshot
+// and row removal atomic; ON DELETE CASCADE removes the snapshot's child rows.
+const BACKUP_RETENTION_DAYS = 30;
+async function purgeExpiredSchoolDeletionBackups(pool) {
+  const result = await pool.query(
+    "DELETE FROM platform_school_deletion_backups WHERE created_at <= NOW() - INTERVAL '30 days' RETURNING backup_id,school_code,row_count"
+  );
+  if (result.rowCount) console.info('Expired school recovery snapshots permanently erased:', result.rows.map(row => ({schoolCode:row.school_code,rows:row.row_count})));
+  return result.rowCount;
+}
+
 function registerPlatformSchoolDeletionRoutes(app, pool, { authenticatePlatform, requirePlatformAdmin }) {
   const guard = [authenticatePlatform, requirePlatformAdmin];
+
+  app.get('/api/platform/deleted-school-backups', ...guard, async (_req, res) => {
+    try {
+      const result = await pool.query(`SELECT backup_id AS "backupId",school_code AS "schoolCode",
+        school_name AS "schoolName",row_count AS "rowCount",created_at AS "deletedAt",
+        created_at + INTERVAL '30 days' AS "eraseAt"
+        FROM platform_school_deletion_backups ORDER BY created_at DESC LIMIT 100`);
+      res.set('Cache-Control','no-store').json({retentionDays:BACKUP_RETENTION_DAYS,backups:result.rows});
+    } catch (error) {
+      console.error('School backup list:',error.message);
+      res.status(500).json({error:'Could not load deleted school backups.'});
+    }
+  });
+
+  app.delete('/api/platform/deleted-school-backups/:backupId', ...guard, async (req,res) => {
+    if (!SCHOOL_ID.test(req.params.backupId)) return res.status(400).json({error:'Invalid backup ID.'});
+    const {confirmationPhrase} = req.body || {};
+    const client = await pool.connect();
+    try {
+      await client.query('BEGIN');
+      const result = await client.query(
+        'SELECT backup_id,school_code,school_name,row_count FROM platform_school_deletion_backups WHERE backup_id=$1 FOR UPDATE',
+        [req.params.backupId]
+      );
+      if (!result.rowCount) { await client.query('ROLLBACK'); return res.status(404).json({error:'Recovery backup not found.'}); }
+      const backup = result.rows[0];
+      if (confirmationPhrase !== 'ERASE ' + backup.school_code) {
+        await client.query('ROLLBACK');
+        return res.status(400).json({error:'Type the exact confirmation phrase to permanently erase the backup.'});
+      }
+      await client.query('DELETE FROM platform_school_deletion_backups WHERE backup_id=$1',[backup.backup_id]);
+      await client.query(`INSERT INTO audit_logs(school_id,actor_type,actor_user_id,action,entity_type,entity_id,details)
+        VALUES(NULL,'PLATFORM',$1,'PLATFORM_ERASE_SCHOOL_BACKUP','school_backup',$2,$3::jsonb)`,
+        [req.auth.userId,String(backup.backup_id),JSON.stringify({schoolCode:backup.school_code,rowsErased:backup.row_count})]
+      );
+      await client.query('COMMIT');
+      return res.json({erased:true,rowsErased:backup.row_count});
+    } catch (error) {
+      await client.query('ROLLBACK').catch(()=>{});
+      console.error('School backup erasure:',error.message);
+      return res.status(500).json({error:'Could not permanently erase the recovery backup.'});
+    } finally { client.release(); }
+  });
 
   app.get('/api/platform/schools/:schoolId/deletion-preview', ...guard, async (req, res) => {
     if (!SCHOOL_ID.test(req.params.schoolId)) return res.status(400).json({ error: 'Invalid school ID.' });
@@ -186,4 +241,4 @@ function registerPlatformSchoolDeletionRoutes(app, pool, { authenticatePlatform,
   });
 }
 
-module.exports = { registerPlatformSchoolDeletionRoutes };
+module.exports = { registerPlatformSchoolDeletionRoutes, purgeExpiredSchoolDeletionBackups };
