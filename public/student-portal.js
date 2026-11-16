@@ -34,16 +34,36 @@
     const date = new Date(value);
     return Number.isNaN(date.getTime()) ? '—' : date.toLocaleTimeString('en-PH', {timeZone:'Asia/Manila',hour:'numeric',minute:'2-digit'});
   }
-  async function loadAttendance() {
-    const result = await api('/api/student/attendance');
-    const records = result.attendance || [];
-    $('studentRecordCount').textContent = String(records.length);
-    $('studentSubjectCount').textContent = String(records.filter(record => record.scope === 'CLASS').length);
-    $('studentGateCount').textContent = String(records.filter(record => record.scope === 'SCHOOL').length);
+  let attendanceRecords = [];
+  function renderAttendance() {
+    const search = String($('studentAttendanceSearch')?.value || '').trim().toLocaleLowerCase();
+    const scope = $('studentAttendanceScopeFilter')?.value || 'ALL';
+    const records = attendanceRecords.filter(record => {
+      if (scope !== 'ALL' && record.scope !== scope) return false;
+      if (!search) return true;
+      const terms = [
+        record.schoolDate,formatDate(record.schoolDate),formatTime(record.occurredAt),
+        record.scope === 'SCHOOL' ? 'school gate' : 'subject class',
+        record.subjectName,record.periodName,record.eventType
+      ].join(' ').toLocaleLowerCase();
+      return terms.includes(search);
+    });
     $('studentAttendanceRows').innerHTML = records.length ? records.map(record => {
       const gate = record.scope === 'SCHOOL';
       return `<tr><td>${esc(formatDate(record.schoolDate))}</td><td>${gate ? 'School gate' : 'Subject class'}</td><td>${esc(record.periodName || record.subjectName || (gate ? 'Gate entrance' : 'Class period'))}</td><td>${esc(String(record.eventType || '').replaceAll('_',' '))}</td><td>${esc(formatTime(record.occurredAt))}</td><td>${record.late ? '<span class="status-tag late">LATE</span>' : `<span class="status-tag">${esc(record.syncStatus || 'ACCEPTED')}</span>`}</td></tr>`;
-    }).join('') : '<tr><td colspan="6" class="empty-cell">No accepted attendance records have been recorded yet.</td></tr>';
+    }).join('') : '<tr><td colspan="6" class="empty-cell">' + (attendanceRecords.length ? 'No attendance records match your search or filter.' : 'No accepted attendance records have been recorded yet.') + '</td></tr>';
+    const count = $('studentAttendanceVisibleCount');
+    if (count) count.textContent = attendanceRecords.length
+      ? 'Showing ' + records.length + ' of ' + attendanceRecords.length + ' accepted attendance records'
+      : 'No accepted attendance records yet';
+  }
+  async function loadAttendance() {
+    const result = await api('/api/student/attendance');
+    attendanceRecords = Array.isArray(result.attendance) ? result.attendance : [];
+    $('studentRecordCount').textContent = String(attendanceRecords.length);
+    $('studentSubjectCount').textContent = String(attendanceRecords.filter(record => record.scope === 'CLASS').length);
+    $('studentGateCount').textContent = String(attendanceRecords.filter(record => record.scope === 'SCHOOL').length);
+    renderAttendance();
   }
   async function loadProfile() {
     const data = await api('/api/student/profile');
@@ -81,6 +101,8 @@
     } catch (error) { feedback.textContent = error.message; }
     finally { $('studentSavePassword').disabled = false; }
   });
+  $('studentAttendanceSearch')?.addEventListener('input', renderAttendance);
+  $('studentAttendanceScopeFilter')?.addEventListener('change', renderAttendance);
   $('studentRefresh').addEventListener('click', refresh);
   $('studentLogout').addEventListener('click', async () => {
     try { await api('/api/auth/logout', {method:'POST'}); } catch {}
