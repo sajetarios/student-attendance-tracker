@@ -1,4 +1,4 @@
-const CACHE = "attendigo-v98-verified-conflicts";
+const CACHE = "attendigo-v99-school-delete-guard";
 
 const SHELL = [
   "/assets/attendigo-sidebar-logo.png",
@@ -27,7 +27,7 @@ const SHELL = [
   "/portal.css?v=0.9.67",
   "/student-roster-toolbar.css?v=1",
   "/portal.css",
-  "/portal.js?v=0.9.67",
+  "/portal.js?v=0.9.68",
   "/manual-folio.css?v=6",
   "/manual-folio.js?v=6",
   "/student-portal-accounts.css?v=2",
