@@ -223,3 +223,20 @@ body.dark-mode .manual-qr-archive,body[data-theme=dark] .manual-qr-archive{backg
 .manual-history-pages.turn-next,.manual-history-pages.turn-prev{animation:none!important}
 body.dark-mode .manual-turn-leaf,body[data-theme=dark] .manual-turn-leaf,body.dark-mode .manual-turn-leaf .manual-page,body[data-theme=dark] .manual-turn-leaf .manual-page{background:#182642;color:#eff4ff}
 @media(prefers-reduced-motion:reduce){.manual-turn-leaf.forward,.manual-turn-leaf.backward{animation-duration:.01s!important}}
+
+/* Focused register, independent daily details and simple page change. */
+.manual-book .manual-page[hidden],.manual-book #mfRight[hidden],.manual-history-folio[hidden],.manual-qr-archive[hidden],#mfConflictPanel[hidden]{display:none!important}
+.manual-book:has(#mfSheet:not([hidden])) #mfRight{display:none!important}
+.manual-book .manual-turn-leaf.forward,.manual-book .manual-turn-leaf.backward{animation:mf-simple-flip .26s ease-in-out both!important}
+.manual-book .manual-turn-leaf.backward{animation-name:mf-simple-flip-back!important}
+.manual-history-pages .manual-turn-leaf.forward,.manual-history-pages .manual-turn-leaf.backward{animation:mf-simple-flip .26s ease-in-out both!important}
+.manual-history-pages .manual-turn-leaf.backward{animation-name:mf-simple-flip-back!important}
+@keyframes mf-simple-flip{0%{transform:rotateY(0);opacity:1}50%{transform:rotateY(-13deg);opacity:.78}100%{transform:rotateY(0);opacity:0}}
+@keyframes mf-simple-flip-back{0%{transform:rotateY(0);opacity:1}50%{transform:rotateY(13deg);opacity:.78}100%{transform:rotateY(0);opacity:0}}
+.manual-history-tabs{display:flex;flex-wrap:wrap;gap:8px;margin:0 0 15px}
+.manual-history-tabs button{border:1px solid #cbdcf3;border-radius:11px;padding:10px 15px;background:#edf4ff;color:#194379;font-weight:700;cursor:pointer}
+.manual-history-tabs button[aria-selected=true]{background:#075bcc;color:#fff;border-color:#075bcc}
+.manual-qr-archive{margin-top:0}
+body.dark-mode .manual-history-tabs button,body[data-theme=dark] .manual-history-tabs button{background:#263b59;color:#e7f0ff;border-color:#50678a}
+body.dark-mode .manual-history-tabs button[aria-selected=true],body[data-theme=dark] .manual-history-tabs button[aria-selected=true]{background:#2876d5}
+@media(prefers-reduced-motion:reduce){.manual-turn-leaf.forward,.manual-turn-leaf.backward{animation-duration:.01s!important}}
