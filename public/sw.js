@@ -1,4 +1,4 @@
-const CACHE = "attendigo-v88-single-sidebar-logo";
+const CACHE = "attendigo-v89-durable-logos-bulk-accounts";
 
 const SHELL = [
   "/assets/attendigo-sidebar-logo.png",
@@ -11,8 +11,8 @@ const SHELL = [
   "/dashboard-ui.css?v=4",
   "/dashboard-night.css?v=1",
   "/dashboard-polish.css?v=1",
-  "/photo-editor.css?v=1",
-  "/photo-editor.js?v=2",
+  "/photo-editor.css?v=2",
+  "/photo-editor.js?v=4",
   "/student-portal.html",
   "/student-portal-refinement.css?v=1",
   "/student-portal.js?v=2",
@@ -26,9 +26,9 @@ const SHELL = [
   "/portal.css?v=0.9.54",
   "/student-roster-toolbar.css?v=1",
   "/portal.css",
-  "/portal.js?v=0.9.63",
+  "/portal.js?v=0.9.64",
   "/student-portal-accounts.css?v=2",
-  "/student-portal-accounts.js?v=2",
+  "/student-portal-accounts.js?v=3",
   "/admin-request-notifications.js?v=1",
   "/admin-request-notifications.css?v=1",
   "/guardian-ui.js?v=4",
