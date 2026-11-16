@@ -73,3 +73,7 @@
  body.dark-mode #studentAccountsView .sap-bulk-toolbar,body[data-theme=dark] #studentAccountsView .sap-bulk-toolbar{background:#263a5c;color:#e3efff;border-color:#526c8c}
  body.dark-mode #studentAccountsView .sap-action,body[data-theme=dark] #studentAccountsView .sap-action{background:#30486b;color:#eaf4ff;border-color:#58749e}
 }
+
+/* Teachers cannot select or bulk issue student credentials. */
+#studentAccountsView.is-teacher .sap-table th:first-child,
+#studentAccountsView.is-teacher .sap-table td:first-child{display:none}
