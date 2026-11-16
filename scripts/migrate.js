@@ -36,7 +36,8 @@ const REQUIRED_MIGRATIONS = [
   '028_schedule_qr_attendance.sql',
   '029_guardian_management.sql',
   '030_sms_notifications.sql',
-  '031_student_portal_account_requests.sql'
+  '031_student_portal_account_requests.sql',
+  '032_reconcile_student_account_requests.sql'
 ];
 
 function checksum(content) {
