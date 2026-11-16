@@ -1855,7 +1855,7 @@ let teacherActionMenuListenersInstalled = false;
   }
 
   async function uploadTeacherPhoto(userId, file) {
-    const photo = await window.ProfilePhotos.edit(file);
+    const photo = await window.ProfilePhotos.edit(file, { purpose: 'logo' });
     if (!photo) return false;
     await window.ProfilePhotos.post(`/api/photos/official/teacher/${encodeURIComponent(userId)}`, token, photo);
     return true;
