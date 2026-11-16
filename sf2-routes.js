@@ -686,7 +686,7 @@ function registerSf2Routes(app, pool, { authenticateSchoolClient, requireSchoolU
         canSubmit: Boolean(access.canSubmit),
         note: access.mode === 'PERSONAL'
           ? 'Personal subject-teacher copy: NR means this teacher has no accepted subject time-in record for that learner/date. NR is not an absence.'
-          : 'Official daily SF2 view: a learner is Present if at least one accepted class, subject, or advisory time-in exists. A missing record stays Pending until the assigned Class Adviser reviews attendance and confirms the absence.',
+          : 'Official daily SF2 view: accepted QR time-ins and teacher-confirmed manual Present/Late marks count as presence. Manual Absent/Excused marks do not independently establish whole-day absence. Conflicts require adviser review.',
         calendarNote: 'The current report includes weekdays only. School holidays, suspensions, and special non-class days are not yet connected to a school calendar.'
       });
     } catch (err) {
@@ -714,11 +714,15 @@ function registerSf2Routes(app, pool, { authenticateSchoolClient, requireSchoolU
       if (!access.allowed || !access.canConfirmAbsence) return res.status(403).json({ error: 'Only the School Administrator or assigned Class Adviser may confirm a daily SF2 absence.' });
       const hasPresent = await pool.query(
         `SELECT 1 FROM attendance_events WHERE school_id=$1 AND student_id=$2 AND school_date=$3
-           AND attendance_scope='CLASS' AND event_type='TIME_IN'
-           AND COALESCE(sync_status,'ACCEPTED')='ACCEPTED' LIMIT 1`,
+           AND attendance_scope IN ('CLASS','ADVISORY') AND event_type='TIME_IN'
+           AND COALESCE(sync_status,'ACCEPTED')='ACCEPTED'
+         UNION ALL
+         SELECT 1 FROM manual_attendance_marks WHERE school_id=$1 AND student_id=$2 AND school_date=$3
+           AND status IN ('PRESENT','LATE')
+         LIMIT 1`,
         [req.auth.schoolId, studentId, date]
       );
-      if (hasPresent.rowCount) return res.status(409).json({ error: 'This learner has a confirmed subject check-in on this date and must be Present in SF2.' });
+      if (hasPresent.rowCount) return res.status(409).json({ error: 'A verified QR or manual presence record exists on this date. Review the evidence before confirming a whole-day absence.' });
       const savedNote = String(note || 'Class Adviser/Admin confirmed that all scheduled subject attendance was reviewed.').slice(0, 500);
       await pool.query(
         `INSERT INTO sf2_daily_overrides(school_id,student_id,school_date,status,absence_type,note,recorded_by_user_id)
