@@ -2196,3 +2196,25 @@ body.dark-mode .sf2-matrix-wrap tbody tr:nth-child(even),body[data-theme=dark] .
   #staffAccountsTable .empty-cell{display:block!important}
   #staffAccountsTable .empty-cell::before{display:none!important}
 }
+
+/* Staff account card correction: one readable column on phones. */
+#staffAccountsTable .staff-account-identity{display:flex;align-items:flex-start;gap:12px;min-width:0}
+#staffAccountsTable .staff-account-check{display:flex;flex:0 0 auto;align-items:center;min-height:26px}
+#staffAccountsTable .staff-account-name{display:block;min-width:0;flex:1}
+#staffAccountsTable .staff-account-name strong{display:block;overflow-wrap:anywhere;word-break:normal}
+#staffAccountsTable .staff-account-name small{display:block;margin:4px 0 0!important;overflow-wrap:anywhere}
+@media(max-width:700px){
+ #teachersView .staff-accounts-card{min-width:0!important;overflow:hidden}
+ #teachersView .staff-accounts-card .table-scroll{min-width:0!important;overflow:visible!important}
+ #teachersView #staffAccountsTable{width:100%!important;min-width:0!important;max-width:100%!important}
+ #teachersView #staffAccountsTable tbody{display:grid!important;grid-template-columns:minmax(0,1fr)!important;gap:12px}
+ #teachersView #staffAccountsTable tbody tr{display:block!important;width:100%!important;min-width:0!important;box-sizing:border-box!important;padding:14px 16px!important}
+ #teachersView #staffAccountsTable tbody td{display:block!important;position:relative!important;box-sizing:border-box!important;width:100%!important;max-width:100%!important;min-width:0!important;padding:12px 0!important;line-height:1.5!important;white-space:normal!important;overflow-wrap:anywhere!important}
+ #teachersView #staffAccountsTable tbody td::before{display:block!important;content:attr(data-label)!important;position:static!important;float:none!important;width:auto!important;margin:0 0 7px!important;font-size:12px!important;font-weight:700!important;line-height:1.35!important}
+ #teachersView #staffAccountsTable tbody td:first-child .staff-account-identity{display:flex!important;gap:12px!important;align-items:flex-start!important}
+ #teachersView #staffAccountsTable tbody td:first-child .staff-account-name strong{display:block!important;font-size:16px!important;line-height:1.4!important}
+ #teachersView #staffAccountsTable tbody td:first-child .staff-account-name small{display:block!important;margin:4px 0 0!important}
+ #teachersView #staffAccountsTable tbody td:nth-child(2){text-transform:capitalize}
+ #teachersView #staffAccountsTable .staff-department-select{width:100%!important;max-width:100%!important}
+ #teachersView #staffAccountsTable [data-edit-staff-profile]{width:100%!important;min-height:44px}
+}
