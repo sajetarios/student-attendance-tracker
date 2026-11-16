@@ -1,4 +1,4 @@
-const CACHE = "attendigo-v108-compact-mobile-sidebar";
+const CACHE = "attendigo-v109-admin-academics-enrollment";
 
 const SHELL = [
   "/assets/attendigo-sidebar-logo.png",
@@ -29,7 +29,7 @@ const SHELL = [
   "/portal.css?v=0.9.67",
   "/student-roster-toolbar.css?v=1",
   "/portal.css",
-  "/portal.js?v=0.9.78",
+  "/portal.js?v=0.9.88",
   "/manual-folio.css?v=8",
   "/manual-folio.js?v=7",
   "/student-portal-accounts.css?v=2",
