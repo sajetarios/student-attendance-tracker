@@ -1,4 +1,4 @@
-const CACHE = "attendigo-v82-approval-inbox";
+const CACHE = "attendigo-v83-roster-toolbar";
 
 const SHELL = [
   "/assets/attendigo-sidebar-logo.png",
@@ -22,6 +22,7 @@ const SHELL = [
   "/attendigo-login-motion.css?v=2",
   "/attendigo-login-refinement.css?v=1",
   "/portal.css?v=0.9.54",
+  "/student-roster-toolbar.css?v=1",
   "/portal.css",
   "/portal.js?v=0.9.62",
   "/student-portal-accounts.css?v=2",
