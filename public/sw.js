@@ -1,4 +1,4 @@
-const CACHE = "attendigo-v78-login-motion";
+const CACHE = "attendigo-v79-login-logo-contrast";
 
 const SHELL = [
   "/assets/attendigo-sidebar-logo.png",
@@ -19,7 +19,7 @@ const SHELL = [
   "/timetable-grid.js?v=3",
   "/schedule-workspace-ui.js?v=3",
   "/portal-login.html",
-  "/attendigo-login-motion.css?v=1",
+  "/attendigo-login-motion.css?v=2",
   "/portal.css?v=0.9.53",
   "/portal.css",
   "/portal.js?v=0.9.61",
