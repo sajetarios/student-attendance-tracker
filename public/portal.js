@@ -4305,8 +4305,20 @@ let teacherActionMenuListenersInstalled = false;
     $('scanSetupPeriodWrap').hidden = $('scanSetupScope').value !== 'CLASS';
     $('scanSetupPeriod').value = '';
   });
-  $('mfQrPrev')?.addEventListener('click', () => renderTeacherClassAttendance(teacherHistoryData, teacherHistoryPage - 1));
-  $('mfQrNext')?.addEventListener('click', () => renderTeacherClassAttendance(teacherHistoryData, teacherHistoryPage + 1));
+  let qrHistoryFlipping = false;
+  function flipQrHistory(direction) {
+    const pages = Math.max(1, Math.ceil(teacherHistoryData.length / 10));
+    if (qrHistoryFlipping || teacherHistoryPage + direction < 0 || teacherHistoryPage + direction >= pages) return;
+    const page = document.querySelector('.manual-qr-pages');
+    qrHistoryFlipping = true;
+    page?.classList.remove('turn-next', 'turn-prev');
+    void page?.offsetWidth;
+    page?.classList.add(direction > 0 ? 'turn-next' : 'turn-prev');
+    setTimeout(() => renderTeacherClassAttendance(teacherHistoryData, teacherHistoryPage + direction), 470);
+    setTimeout(() => { page?.classList.remove('turn-next', 'turn-prev'); qrHistoryFlipping = false; }, 1050);
+  }
+  $('mfQrPrev')?.addEventListener('click', () => flipQrHistory(-1));
+  $('mfQrNext')?.addEventListener('click', () => flipQrHistory(1));
   $('teacherAttendanceApply')?.addEventListener('click', loadTeacherClassAttendance);
   $('teacherAttendanceRefresh')?.addEventListener('click', loadTeacherClassAttendance);
   $('teacherAttendanceViewSelect')?.addEventListener('change', loadTeacherClassAttendance);
