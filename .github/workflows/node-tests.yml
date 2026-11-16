@@ -116,6 +116,11 @@ jobs:
           node --check public/guardian-ui.js
           node --check public/student-portal-accounts.js
           node --test tests/student-portal-accounts.test.js tests/approval-inbox-regression.test.js
+      - name: Verify student login and roster restoration
+        run: |
+          node --check auth-routes.js
+          node --check public/portal.js
+          node --test tests/student-portal-login-roster-fix.test.js
       - name: Create fresh PostgreSQL schema
         run: npm run db:migrate
       - name: Test full one-time reset against PostgreSQL
