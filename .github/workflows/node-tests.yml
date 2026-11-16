@@ -60,6 +60,8 @@ jobs:
         run: |
           node --check server.js
           node --check student-management-routes.js
+          node --check student-portal-account-routes.js
+          node --check public/student-portal-accounts.js
           node --check public/portal.js
           node --check public/academic-admin.js
           node --check public/parent-admin.js
