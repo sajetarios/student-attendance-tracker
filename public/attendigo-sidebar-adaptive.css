@@ -107,3 +107,8 @@
   }
   .portal-page #sidebar .nav-item.active{box-shadow:inset 3px 0 var(--side-selected-ink)!important}
 }
+
+@media(max-width:860px){
+  .portal-page #sidebar [hidden]{display:none!important}
+  .portal-page #sidebar .nav-item[hidden],.portal-page #sidebar .nav-group[hidden],.portal-page #sidebar .staff-nav-wrapper[hidden]{display:none!important}
+}
