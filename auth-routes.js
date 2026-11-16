@@ -32,6 +32,16 @@ function registerAuthRoutes(app, pool) {
   }
 
   async function recordFailedLogin(table, userId) {
+    // Student accounts use student_account_id, unlike staff/platform user_id.
+    // Selecting the primary key explicitly prevents a missing-column error
+    // from turning invalid student credentials into an HTTP 500 response.
+    const primaryKeys = Object.freeze({
+      school_users: 'user_id',
+      platform_users: 'user_id',
+      student_accounts: 'student_account_id'
+    });
+    const primaryKey = primaryKeys[table];
+    if (!primaryKey) throw new Error('Unsupported login principal.');
     await pool.query(
       `UPDATE ${table}
        SET failed_login_attempts = LEAST(failed_login_attempts + 1, 5),
@@ -39,7 +49,7 @@ function registerAuthRoutes(app, pool) {
              WHEN failed_login_attempts + 1 >= 5 THEN NOW() + INTERVAL '15 minutes'
              ELSE locked_until
            END
-       WHERE user_id = $1`,
+       WHERE ${primaryKey} = $1`,
       [userId]
     );
   }
