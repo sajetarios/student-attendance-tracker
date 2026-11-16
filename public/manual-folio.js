@@ -9,7 +9,7 @@
  const el=id=>document.getElementById(id);
  const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
  const dateToday=()=>new Intl.DateTimeFormat('en-CA',{timeZone:'Asia/Manila',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date());
- const state={periods:[],students:[],period:null,date:dateToday(),marks:{},synced:{},notes:'',page:0,tab:'sheet',selected:new Set(),busy:false};
+ const state={periods:[],students:[],period:null,date:dateToday(),marks:{},synced:{},notes:'',page:0,tab:'sheet',selected:new Set(),busy:false,noteItems:[],editingNoteId:null,historyPage:0,historyTotal:0,historyRows:[],notesLoadedFor:null};
  const statuses=['PRESENT','LATE','ABSENT','EXCUSED'],symbols={PRESENT:'✓',LATE:'◷',ABSENT:'✕',EXCUSED:'!'},names={PRESENT:'Present',LATE:'Late',ABSENT:'Absent',EXCUSED:'Excused'};
  async function api(path,options={}) {
    const r=await fetch(path,{...options,headers:{Authorization:'Bearer '+token,...(options.body?{'Content-Type':'application/json'}:{})},cache:'no-store'});
@@ -52,7 +52,7 @@
    <div class="manual-detail-card"><h4>Class details</h4><p>${esc(state.period?.gradeLevel||'—')} · ${esc(state.period?.section||'—')}</p><p>${esc(state.period?.subjectName||'Class attendance')}</p><p>${esc(state.period?.startTime||'')}–${esc(state.period?.endTime||'')}</p></div>
    <div class="manual-detail-card"><h4>Legend</h4><p>✓ Present — attended on time</p><p>◷ Late — arrived after start</p><p>✕ Absent — did not attend</p><p>! Excused — officially excused</p></div>
    </div>`;
-   el('mfTeacherNotes').value=state.notes;
+   if(document.activeElement!==el('mfTeacherNotes'))el('mfTeacherNotes').value=state.notes;
  }
  function renderTab(){
    document.querySelectorAll('[data-mf-tab]').forEach(b=>b.setAttribute('aria-selected',String(b.dataset.mfTab===state.tab)));
@@ -69,15 +69,96 @@
    el('mfTeacherNotesWrap').hidden=!isNotes && !isSheet;
    el('mfDetails').hidden=isNotes;
    if(isRecord)renderRecord();
+   if(isNotes)renderNotes();
+   if(isHistory&&state.period&&state.historyLoadedFor!==state.period.periodId)loadHistory(0);
  }
+
+ function renderNotes(){
+   const showArchived=el('mfShowArchived').checked;
+   const list=state.noteItems.filter(n=>showArchived||!n.archivedAt);
+   el('mfSaveNote').textContent=state.editingNoteId?'Update note':'Save dated note';
+   el('mfNotesList').innerHTML=list.length?list.map(n=>`<article class="manual-notes-item ${n.archivedAt?'is-archived':''}">
+     <div class="manual-notes-meta"><strong>${esc(n.date)}</strong><span>${n.archivedAt?'Archived':'Saved'} · updated ${esc(new Date(n.updatedAt).toLocaleDateString('en-PH'))}</span></div>
+     <p>${esc(n.body)}</p><div class="manual-quick">
+     <button type="button" class="manual-btn" data-edit-note="${esc(n.noteId)}">Edit</button>
+     <button type="button" class="manual-btn" data-archive-note="${esc(n.noteId)}">${n.archivedAt?'Restore':'Archive'}</button>
+     <button type="button" class="manual-btn" data-delete-note="${esc(n.noteId)}">Delete</button>
+     </div></article>`).join(''):'<p class="manual-empty">No saved notes yet. Save a dated note to retain it across visits.</p>';
+ }
+ async function loadNotes(){
+   if(!state.period||!navigator.onLine)return;
+   const periodId=state.period.periodId,date=state.date;
+   try{
+     const data=await api('/api/manual-attendance/notes?'+new URLSearchParams({periodId,date}));
+     if(state.period?.periodId!==periodId)return;
+     state.noteItems=data.notes||[];
+     renderNotes();
+   }catch(error){notice('Notes could not load: '+error.message,true);}
+ }
+ async function saveNote(){
+   if(!state.period)return notice('Select a class before saving a note.',true);
+   if(!state.notes.trim())return notice('Write a note before saving.',true);
+   if(!navigator.onLine){draftSave();return notice('Offline note stored locally; save it to the server when connected.',true)}
+   const editing=state.editingNoteId,oldText=state.notes,oldDate=state.date;
+   el('mfSaveNote').disabled=true;
+   try{
+     if(editing)await api('/api/manual-attendance/notes/'+encodeURIComponent(editing),{method:'PATCH',body:JSON.stringify({action:'edit',body:oldText})});
+     else await api('/api/manual-attendance/notes',{method:'POST',body:JSON.stringify({periodId:state.period.periodId,date:state.date,body:oldText})});
+     state.editingNoteId=null;state.notes='';draftSave();el('mfTeacherNotes').value='';
+     await loadNotes();notice('Dated note saved to school records.');
+   }catch(error){notice('Note was not saved: '+error.message,true)}
+   finally{el('mfSaveNote').disabled=false}
+ }
+ async function noteAction(id,action){
+   const entry=state.noteItems.find(n=>n.noteId===id);
+   if(!entry)return;
+   if(action==='edit'){state.editingNoteId=id;state.notes=entry.body;el('mfTeacherNotes').value=entry.body;el('mfTeacherNotes').focus();renderNotes();notice('Editing note from '+entry.date+'. Select Update note to save changes.');return}
+   if(action==='delete'&&!window.confirm('Permanently delete the note dated '+entry.date+'? This cannot be undone.'))return;
+   try{
+     await api('/api/manual-attendance/notes/'+encodeURIComponent(id),{method:'PATCH',body:JSON.stringify({action})});
+     await loadNotes();notice('Note '+(action==='delete'?'deleted':action==='archive'?'archived':'restored')+'.');
+   }catch(error){notice('Could not update note: '+error.message,true)}
+ }
+ function renderHistory(){
+   const totalPages=Math.max(1,Math.ceil(state.historyTotal/10));
+   el('mfHistoryPages').textContent='Page '+(state.historyPage+1)+' of '+totalPages;
+   el('mfHistoryPrev').disabled=state.historyPage<=0;
+   el('mfHistoryNext').disabled=state.historyPage>=totalPages-1;
+   el('mfManualHistoryRows').innerHTML=state.historyRows.length?state.historyRows.map((m,i)=>`<article class="manual-history-entry">
+     <div><strong>${esc(m.fullName)}</strong><small>${esc(m.studentId)} · ${esc(m.date)}</small></div>
+     <span class="manual-status" data-active="true" data-status="${esc(m.status)}" aria-label="${esc(names[m.status]||m.status)}">${esc(names[m.status]||m.status)}</span>
+     ${m.note?'<p>'+esc(m.note)+'</p>':''}
+   </article>`).join(''):'<p class="manual-empty">No synced manual attendance history for this class yet.</p>';
+ }
+ async function loadHistory(page){
+   if(!state.period||!navigator.onLine)return;
+   const pid=state.period.periodId,day=state.date;
+   state.historyLoadedFor=pid;
+   try{
+     const data=await api('/api/manual-attendance/history?'+new URLSearchParams({periodId:pid,date:day,page}));
+     if(state.period?.periodId!==pid)return;
+     state.historyPage=data.page;state.historyRows=data.records||[];state.historyTotal=data.total||0;renderHistory();
+   }catch(error){state.historyLoadedFor=null;notice('History could not load: '+error.message,true)}
+ }
+ function historyFlip(direction){
+   const pages=Math.max(1,Math.ceil(state.historyTotal/10));
+   const target=state.historyPage+direction;
+   if(target<0||target>=pages)return;
+   const pane=el('mfManualHistoryRows');
+   pane.classList.remove('turn-next','turn-prev');void pane.offsetWidth;
+   pane.classList.add(direction>0?'turn-next':'turn-prev');
+   setTimeout(()=>loadHistory(target),410);
+   setTimeout(()=>pane.classList.remove('turn-next','turn-prev'),1000);
+ }
+
  function renderRecord(){
    const out=Object.entries(state.synced);
    el('mfRecord').innerHTML='<h3>Saved class record</h3><p>Server-confirmed manual entries for the selected date.</p>'+(out.length?'<div class="manual-detail-card">'+out.map(([id,m])=>{const s=state.students.find(v=>v.studentId===id);return '<p>'+esc(s?.fullName||id)+' — '+esc(names[m.status]||m.status)+'</p>'}).join('')+'</div>':'<p class="manual-empty">No server-confirmed entries for this date. Mark your sheet and choose Sync to records.</p>');
  }
  function render(){renderStats();renderRows();renderDetails();renderTab()}
  function changeClass(){
-   state.period=state.periods.find(p=>p.periodId===el('mfPeriod').value)||null;state.page=0;state.selected.clear();draftLoad();state.synced={};render();
-   if(state.period)loadRemote();
+   state.period=state.periods.find(p=>p.periodId===el('mfPeriod').value)||null;state.page=0;state.selected.clear();state.editingNoteId=null;draftLoad();state.synced={};state.noteItems=[];state.historyPage=0;state.historyLoadedFor=null;render();
+   if(state.period){loadRemote();loadNotes();}
  }
  async function loadRemote(){
    try{
@@ -110,9 +191,13 @@
    if(!marks.length)return notice('Mark at least one learner before syncing.',true);
    el('mfSync').disabled=true;
    try{
-     await api('/api/manual-attendance/sync',{method:'POST',body:JSON.stringify({periodId:state.period.periodId,date:state.date,marks})});
-     state.synced=Object.fromEntries(marks.map(m=>[m.studentId,m]));
-     render();notice('Synced '+marks.length+' manual attendance marks to class records.');
+     const result=await api('/api/manual-attendance/sync',{method:'POST',body:JSON.stringify({periodId:state.period.periodId,date:state.date,marks})});
+     if(result.saved!==marks.length)throw Error('Server did not confirm the full sheet.');
+     await loadRemote();
+     const match=marks.every(m=>state.synced[m.studentId]?.status===m.status);
+     if(!match)throw Error('Saved records could not be verified. Refresh and check before reattempting.');
+     render();notice('Verified '+marks.length+' attendance marks saved in school records.');
+     state.historyLoadedFor=null;
    }catch(e){notice('Sync failed; your offline draft is still saved. '+e.message,true)}
    finally{el('mfSync').disabled=false}
  }
@@ -131,11 +216,14 @@
    }
    el('mfPeriod').innerHTML=state.periods.length?state.periods.map(p=>`<option value="${esc(p.periodId)}">${esc(p.gradeLevel)} – ${esc(p.section)} · ${esc(p.subjectName||p.periodName||'Advisory')}</option>`).join(''):'<option value="">No assigned classes available</option>';
    state.period=state.periods[0]||null;
-   draftLoad();render();if(state.period&&navigator.onLine)loadRemote();
+   draftLoad();render();if(state.period&&navigator.onLine){loadRemote();loadNotes();}
  }
  host.addEventListener('click',event=>{
    const b=event.target.closest('button');if(!b)return;
    if(b.dataset.id&&b.dataset.status){setMark(b.dataset.id,b.dataset.status);return}
+   if(b.dataset.editNote!==undefined)return noteAction(b.dataset.editNote,'edit');
+   if(b.dataset.archiveNote!==undefined){const entry=state.noteItems.find(n=>n.noteId===b.dataset.archiveNote);return noteAction(b.dataset.archiveNote,entry?.archivedAt?'restore':'archive')}
+   if(b.dataset.deleteNote!==undefined)return noteAction(b.dataset.deleteNote,'delete');
    if(b.dataset.note){const id=b.dataset.note;const current=state.marks[id]||{};const text=prompt('Learner attendance note (max 500 characters)',current.note||'');if(text!==null){state.marks[id]={...current,note:text.slice(0,500)};draftSave();render()}return}
    if(b.dataset.mfTab){state.tab=b.dataset.mfTab;renderTab();return}
    if(b.dataset.batch){const ids=state.selected.size?[...state.selected]:roster().map(s=>s.studentId);ids.forEach(id=>state.marks[id]={...state.marks[id],status:b.dataset.batch});draftSave();render();return}
@@ -146,7 +234,11 @@
    if(event.target.id==='mfSelectPage'){roster().slice(state.page*10,state.page*10+10).forEach(s=>event.target.checked?state.selected.add(s.studentId):state.selected.delete(s.studentId));renderRows()}
    if(event.target.dataset.select){event.target.checked?state.selected.add(event.target.dataset.select):state.selected.delete(event.target.dataset.select);renderRows()}
  });
- el('mfTeacherNotes').addEventListener('input',e=>{state.notes=e.target.value.slice(0,500);draftSave()});
+ el('mfTeacherNotes').addEventListener('input',e=>{state.notes=e.target.value.slice(0,2000);draftSave()});
+ el('mfSaveNote').addEventListener('click',saveNote);
+ el('mfShowArchived').addEventListener('change',renderNotes);
+ el('mfHistoryPrev').addEventListener('click',()=>historyFlip(-1));
+ el('mfHistoryNext').addEventListener('click',()=>historyFlip(1));
  el('mfPrev').addEventListener('click',()=>pageFlip(-1));
  el('mfNext').addEventListener('click',()=>pageFlip(1));
  el('mfSave').addEventListener('click',()=>{draftSave();notice('Saved on this device. Use Sync to records when connected.')});
