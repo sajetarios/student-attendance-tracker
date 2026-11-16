@@ -1,4 +1,4 @@
-const CACHE = "attendigo-v83-roster-toolbar";
+const CACHE = "attendigo-v84-student-portal-refresh";
 
 const SHELL = [
   "/assets/attendigo-sidebar-logo.png",
@@ -13,7 +13,9 @@ const SHELL = [
   "/dashboard-polish.css?v=1",
   "/photo-editor.css?v=1",
   "/photo-editor.js?v=2",
-  "/student-portal.js?v=1",
+  "/student-portal.html",
+  "/student-portal-refinement.css?v=1",
+  "/student-portal.js?v=2",
   "/parent-portal.js?v=1",
   "/dashboard-appearance.js?v=3",
   "/timetable-grid.js?v=3",
