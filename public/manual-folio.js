@@ -61,6 +61,7 @@
    const isNotes=state.tab==='notes';
    const isSheet=state.tab==='sheet';
    el('mfBook').hidden=isHistory;
+   el('mfBook').classList.toggle('summary-mode',!isSheet&&!isRecord);
    el('mfHistoryPanel').hidden=!isHistory;
    el('mfSheet').hidden=!isSheet;
    el('mfRight').hidden=isRecord;
