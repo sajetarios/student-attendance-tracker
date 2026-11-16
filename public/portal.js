@@ -3766,7 +3766,7 @@ let teacherActionMenuListenersInstalled = false;
       <td>${esc(s.activeAccounts)}</td><td>${esc(s.activeLearners)}</td>
       <td>${s.cloudSyncEnabled?'Enabled':'—'}${s.cloudSyncError?`<small class="table-subtext">${esc(s.cloudSyncError)}</small>`:''}</td>
       <td><span class="status-tag ${s.active?'':'late'}">${s.active?'Active':'Inactive'}</span></td>
-      <td><button class="outline-button compact-button" type="button" data-platform-school="${esc(s.schoolId)}" data-next-active="${!s.active}">${s.active?'Deactivate':'Activate'}</button></td>
+      <td><div class="platform-school-actions"><button class="outline-button compact-button" type="button" data-platform-school="${esc(s.schoolId)}" data-next-active="${!s.active}">${s.active?'Deactivate':'Activate'}</button><button class="outline-button compact-button platform-delete-button" type="button" data-platform-school-delete="${esc(s.schoolId)}" aria-label="Delete ${esc(s.schoolName)}">Delete</button></div></td>
     </tr>`).join(''):'<tr><td colspan="7" class="empty-cell">No schools registered yet.</td></tr>';
   }
 
@@ -3812,6 +3812,30 @@ let teacherActionMenuListenersInstalled = false;
     finally{button.disabled=false;}
   });
   $('platformSchoolRows')?.addEventListener('click', async event => {
+    const deleteButton=event.target.closest('[data-platform-school-delete]');
+    if(deleteButton){
+      deleteButton.disabled=true;
+      try {
+        const schoolId=deleteButton.dataset.platformSchoolDelete;
+        const review=await api('/api/platform/schools/'+encodeURIComponent(schoolId)+'/deletion-preview');
+        const school=review.school, counts=school.impact;
+        const warning='Delete '+school.schoolName+' ('+school.schoolCode+')?\n\nThis will remove '+counts.students+' student records, '+counts.accounts+' school accounts, '+counts.attendanceEvents+' attendance events, '+counts.sf2Submissions+' SF2 submissions, '+counts.manualMarks+' manual marks, and '+counts.manualNotes+' notes.\n\n'+(counts.pendingSync?'WARNING: '+counts.pendingSync+' cloud sync items are still pending.\n\n':'')+'All associated school data and logins will be removed. A recovery snapshot must be saved and verified in the database before deletion can finish. This is not an off-site backup.';
+        if(!await AppDialog.confirm(warning,{title:'First confirmation · Delete school',confirmText:'Continue to final confirmation',variant:'danger'}))return;
+        const expected='DELETE '+school.schoolCode;
+        const typed=await AppDialog.prompt('Final confirmation for '+school.schoolName+'. Type the exact phrase below to permanently remove the school from the active system:\n\n'+expected,'',{
+          title:'Final confirmation · Irreversible action',label:'Confirmation phrase',required:true,variant:'danger',confirmText:'Delete school',
+          validate:value=>value===expected?true:'Type exactly: '+expected
+        });
+        if(typed!==expected)return;
+        await api('/api/platform/schools/'+encodeURIComponent(schoolId),{
+          method:'DELETE',body:JSON.stringify({previewToken:review.previewToken,confirmationPhrase:typed})
+        });
+        await loadPlatformData();
+        showToast('School deleted. A database recovery snapshot and audit record were saved.');
+      }catch(error){showToast(error.message,true);}
+      finally{deleteButton.disabled=false;}
+      return;
+    }
     const button=event.target.closest('[data-platform-school]');if(!button)return;
     const active=button.dataset.nextActive==='true';
     if(active===false&&!await AppDialog.confirm('Deactivate this school? All current school and student sessions will be signed out.',{title:'Deactivate school',confirmText:'Deactivate',variant:'danger'}))return;
