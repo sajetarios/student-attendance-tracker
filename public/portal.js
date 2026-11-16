@@ -3113,11 +3113,11 @@ let teacherActionMenuListenersInstalled = false;
     $('teacherCoverageCard').hidden = !isDepartmentHead;
     if ($('departmentHeadOverview')) $('departmentHeadOverview').hidden = !isDepartmentHead;
 
-    // School Administrators manage staff accounts and departments, not attendance
-    // operations. Do not request APIs whose access is limited to teachers/Department Heads.
+    // School Admin needs the school-scoped student roster to manage learner records
+    // and student portal accounts, but still skips restricted attendance-dashboard APIs.
     const base = await Promise.all([
       isSchoolAdmin ? Promise.resolve({}) : api('/api/admin/dashboard'),
-      isSchoolAdmin ? Promise.resolve({ students: [] }) : api('/api/students'),
+      api('/api/students'),
       canViewClassSchedules ? api('/api/periods?weekDate='+encodeURIComponent($('weeklyScheduleAsOf')?.value||dataSchoolDate())) : Promise.resolve({ periods: [] }),
       isSchoolManager ? api('/api/departments') : Promise.resolve({ departments: [] })
     ]);
@@ -4410,9 +4410,11 @@ let teacherActionMenuListenersInstalled = false;
     }
   });
   $('showStudentPortalHelp')?.addEventListener('click', () => {
-    const search = $('studentRosterSearch');
-    if (search) { search.focus(); search.scrollIntoView({behavior:'smooth',block:'center'}); }
-    showToast('Find the learner below, then select Create login or Reset login in the Student portal account field.');
+    // Navigate to the dedicated, role-scoped Student Portal Accounts workspace.
+    // The old action only scrolled to the roster and appeared to do nothing when
+    // a School Admin had an empty list.
+    setView('studentAccounts');
+    $('sapSearch')?.focus({preventScroll:true});
   });
     $('showStudentForm').addEventListener('click', () => {
     $('studentForm').hidden = !$('studentForm').hidden;
