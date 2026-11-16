@@ -1,4 +1,4 @@
-const CACHE = "attendigo-v86-roster-independent-fetch";
+const CACHE = "attendigo-v87-unified-logo";
 
 const SHELL = [
   "/assets/attendigo-sidebar-logo.png",
@@ -6,7 +6,7 @@ const SHELL = [
   "/attendigo-sidebar-adaptive.js?v=2",
   "/assets/attendigo-logo.png",
   "/assets/attendigo-icon.png",
-  "/attendigo-brand.css?v=1",
+  "/attendigo-brand.css?v=2",
   "/dashboard-icons.js?v=4",
   "/dashboard-ui.css?v=4",
   "/dashboard-night.css?v=1",
