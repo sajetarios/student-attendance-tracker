@@ -1,4 +1,4 @@
-const CACHE = "attendigo-v101-planner-mvp";
+const CACHE = "attendigo-v102-session-guard";
 
 const SHELL = [
   "/assets/attendigo-sidebar-logo.png",
@@ -16,7 +16,7 @@ const SHELL = [
   "/dashboard-polish.css?v=2",
   "/photo-editor.css?v=2",
   "/photo-editor.js?v=4",
-  "/student-portal.html",
+  "/session-guard.js?v=1",
   "/student-portal-refinement.css?v=1",
   "/student-portal.js?v=2",
   "/parent-portal.js?v=1",
@@ -86,6 +86,13 @@ self.addEventListener("fetch", event => {
     url.pathname.startsWith("/api/") ||
     request.headers.has("Authorization")
   ) {
+    return;
+  }
+
+  // Authenticated dashboards are never served from the offline shell cache.
+  if (["/portal.html", "/student-portal.html", "/parent-portal.html",
+       "/force-password-change.html"].includes(url.pathname)) {
+    event.respondWith(fetch(request, { cache: "no-store" }));
     return;
   }
 
