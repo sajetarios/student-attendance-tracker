@@ -15,6 +15,36 @@
   if(!response.ok)throw Error(result.error||'Request failed');
   return result;
  }
+ const overview=document.createElement('section');overview.className='surface-card section-card';
+ const title=document.createElement('h3');title.textContent='Subscription health & change history';
+ const counters=document.createElement('div');counters.className='stats-grid platform-stat-grid';
+ const historyTitle=document.createElement('h4');historyTitle.textContent='Recent subscription changes';
+ const history=document.createElement('div');history.className='table-scroll';
+ overview.append(title,counters,historyTitle,history);section.before(overview);
+ async function loadSummary(){
+  try{
+   const data=await api('/api/platform/subscriptions/summary');
+   counters.replaceChildren();
+   for(const [key,label] of [['assignedSchools','Assigned schools'],['trials','Trials'],['activeSubscriptions','Active'],['renewingSoon','Expiring in 14 days'],['needsAttention','Needs attention']]){
+    const card=document.createElement('article');card.className='stat-card';
+    const caption=document.createElement('span');caption.className='stat-top';caption.textContent=label;
+    const count=document.createElement('strong');count.textContent=String(data.summary?.[key]??0);
+    card.append(caption,count);counters.append(card);
+   }
+   const table=document.createElement('table'),head=document.createElement('thead'),body=document.createElement('tbody');
+   const hr=document.createElement('tr');
+   for(const label of ['Date','School','Changed by','Plan / status']){const th=document.createElement('th');th.textContent=label;hr.append(th);}
+   head.append(hr);
+   for(const entry of data.history||[]){
+    const tr=document.createElement('tr');
+    const values=[new Date(entry.createdAt).toLocaleString('en-PH'),entry.schoolName||'Deleted school',entry.actorName||'Super Admin',String(entry.details?.status||'Updated')];
+    for(const value of values){const td=document.createElement('td');td.textContent=value;tr.append(td);}
+    body.append(tr);
+   }
+   if(!body.children.length){const tr=document.createElement('tr'),td=document.createElement('td');td.colSpan=4;td.textContent='No subscription changes yet.';tr.append(td);body.append(tr);}
+   table.append(head,body);history.replaceChildren(table);
+  }catch(error){history.textContent='Unable to load subscription history: '+error.message;}
+ }
  const option=(value,label)=>new Option(label,value);
  function renderFeatures(){
   const plan=plans.find(p=>p.planId===$('platformPlansPlan').value);
@@ -51,7 +81,7 @@
    const previousTemplate=template.value;
    template.replaceChildren(option('','Create a new plan'),...plans.map(p=>option(p.planId,p.name)));
    if(plans.some(p=>p.planId===previousTemplate))template.value=previousTemplate;
-   fillTemplate();message('Subscription settings loaded.');
+   fillTemplate();await loadSummary();message('Subscription settings loaded.');
   }catch(error){message(error.message,true);}
  }
  // Plan editor: configurable pricing, feature defaults, and quotas.
