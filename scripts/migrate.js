@@ -39,7 +39,8 @@ const REQUIRED_MIGRATIONS = [
   '031_student_portal_account_requests.sql',
   '032_reconcile_student_account_requests.sql',
   '033_durable_school_logos.sql',
-  '034_manual_attendance_marks.sql'
+  '034_manual_attendance_marks.sql',
+  '035_manual_attendance_notes.sql'
 ];
 
 function checksum(content) {
