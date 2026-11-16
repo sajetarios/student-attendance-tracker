@@ -108,6 +108,22 @@ async function provision(db, auth, studentId, action) {
  await logAudit(db,auth,'SCHOOL_ADMIN_' + action + '_STUDENT_PORTAL_LOGIN','student_account',student_account_id,{studentId,username});
  return {studentId,fullName:student.rows[0].full_name,username,temporaryPassword:password,mustChangePassword:true};
 }
+// When School Admin issues credentials directly, fulfill any equivalent pending
+// teacher request in the SAME transaction so teacher and admin views agree.
+async function settleMatchingRequests(db, auth, studentId, action) {
+ const matched = await db.query(
+  `UPDATE student_account_requests
+     SET status='APPROVED', reviewed_by_user_id=$3, reviewed_at=NOW(),
+         review_note='Completed directly by School Admin; credentials were issued privately.'
+     WHERE school_id=$1 AND student_id=$2 AND status='PENDING' AND request_type=$4
+     RETURNING request_id`,
+  [auth.schoolId,studentId,auth.userId,action]
+ );
+ for (const row of matched.rows) {
+  await logAudit(db,auth,'SCHOOL_ADMIN_FULFILLED_STUDENT_PORTAL_REQUEST','student_account_request',row.request_id,{studentId,action});
+ }
+ return matched.rowCount;
+}
 function handleError(res,err,description) {
  if (err.status) return res.status(err.status).json({error:err.message});
  if (err.code==='23505') return res.status(409).json({error:'An account, username, or pending request already exists.'});
@@ -212,7 +228,7 @@ function registerStudentPortalAccountRoutes(app,pool,{authenticateSchoolClient,r
   if(!studentId||studentId.length>80||!['CREATE','RESET','ACTIVATE'].includes(action))
    return res.status(400).json({error:'Choose an existing learner and valid account action.'});
   try{
-   const credentials=await transaction(pool,db=>provision(db,req.auth,studentId,action));
+   const credentials=await transaction(pool,async db=>{ const issued=await provision(db,req.auth,studentId,action); await settleMatchingRequests(db,req.auth,studentId,action); return issued; });
    return res.status(action==='CREATE'?201:200).json({credentials});
   }catch(err){return handleError(res,err,'Student portal provisioning failed:');}
  });
@@ -224,7 +240,7 @@ function registerStudentPortalAccountRoutes(app,pool,{authenticateSchoolClient,r
   try{
    const credentials=await transaction(pool,async db=>{
     const output=[];
-    for(const id of ids)output.push(await provision(db,req.auth,id,'CREATE'));
+    for(const id of ids){ output.push(await provision(db,req.auth,id,'CREATE')); await settleMatchingRequests(db,req.auth,id,'CREATE'); }
     return output;
    });
    return res.status(201).json({credentials});
@@ -236,7 +252,7 @@ function registerStudentPortalAccountRoutes(app,pool,{authenticateSchoolClient,r
   if(!studentId||studentId.length>80||typeof req.body?.active!=='boolean')
    return res.status(400).json({error:'Choose a learner and active status.'});
   if(req.body.active){
-   try{const credentials=await transaction(pool,db=>provision(db,req.auth,studentId,'ACTIVATE'));return res.json({active:true,credentials});}
+   try{const credentials=await transaction(pool,async db=>{const issued=await provision(db,req.auth,studentId,'ACTIVATE');await settleMatchingRequests(db,req.auth,studentId,'ACTIVATE');return issued;});return res.json({active:true,credentials});}
    catch(err){return handleError(res,err,'Student portal activation failed:');}
   }
   try{
