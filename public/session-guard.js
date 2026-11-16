@@ -5,7 +5,12 @@
   const initialToken = sessionStorage.getItem(tokenKey);
   let checkSequence = 0;
   const hide = () => { document.documentElement.style.visibility = 'hidden'; };
-  const show = () => { document.documentElement.style.visibility = ''; };
+  const show = () => {
+    const error = document.getElementById('sessionGuardError');
+    if (error) error.remove();
+    for (const child of document.body.children) child.style.visibility = '';
+    document.documentElement.style.visibility = '';
+  };
   const redirect = () => { hide(); window.location.replace(login); };
   hide();
   if (!initialToken) { redirect(); return; }
