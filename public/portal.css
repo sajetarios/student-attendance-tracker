@@ -2334,3 +2334,43 @@ body.dark-mode .sf2-matrix-wrap tbody tr:nth-child(even),body[data-theme=dark] .
   .portal-page .sidebar .nav-submenu,
   .portal-page .sidebar .staff-nav-children {flex-shrink:0!important}
 }
+
+
+/* Mobile smart header: 60px at the top, 50px on downward scroll.
+   No additional floating menu: teacher QR shortcut remains the only floating action. */
+@media(max-width:860px){
+  .portal-page .topbar{
+    transition:height .18s ease,min-height .18s ease,box-shadow .18s ease!important;
+  }
+  .portal-page.smart-header-compact .topbar{
+    height:50px!important;min-height:50px!important;
+    padding:0 10px!important;border-radius:13px!important;
+    box-shadow:0 5px 18px rgba(15,30,55,.12)!important;
+  }
+  .portal-page.smart-header-compact .topbar .mobile-menu-toggle{
+    width:42px!important;height:42px!important;flex-basis:42px!important;
+  }
+  .portal-page.smart-header-compact .topbar .breadcrumbs{
+    flex:1 1 0!important;min-width:0!important;
+  }
+  .portal-page.smart-header-compact .topbar .breadcrumbs>span,
+  .portal-page.smart-header-compact .topbar .breadcrumbs>b{
+    display:none!important;
+  }
+  .portal-page.smart-header-compact .topbar .topbar-right{
+    flex:0 0 auto!important;gap:5px!important;
+  }
+  .portal-page.smart-header-compact .topbar .ui-theme-toggle,
+  .portal-page.smart-header-compact .topbar .account-menu-wrap{
+    display:none!important;
+  }
+  .portal-page.smart-header-compact .topbar .admin-notification-bell{
+    min-width:42px!important;min-height:42px!important;
+  }
+  .portal-page .main-area{
+    padding-top:calc(76px + env(safe-area-inset-top, 0px))!important;
+  }
+}
+@media(prefers-reduced-motion:reduce){
+  .portal-page .topbar{transition:none!important}
+}
