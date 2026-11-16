@@ -1,9 +1,9 @@
-const CACHE = "attendigo-v87-unified-logo";
+const CACHE = "attendigo-v88-single-sidebar-logo";
 
 const SHELL = [
   "/assets/attendigo-sidebar-logo.png",
-  "/attendigo-sidebar-adaptive.css?v=2",
-  "/attendigo-sidebar-adaptive.js?v=2",
+  "/attendigo-sidebar-adaptive.css?v=3",
+  "/attendigo-sidebar-adaptive.js?v=3",
   "/assets/attendigo-logo.png",
   "/assets/attendigo-icon.png",
   "/attendigo-brand.css?v=2",
