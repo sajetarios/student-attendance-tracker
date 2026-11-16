@@ -1969,7 +1969,7 @@ let teacherActionMenuListenersInstalled = false;
           </select>`
         : esc(teacher.departmentName || 'Unassigned');
       return `<tr>
-        <td data-label="Teacher"><div class="teacher-cell-value teacher-identity">${user.role === 'SCHOOL_ADMIN' ? '<input type="checkbox" data-select-staff="' + esc(teacher.userId) + '" ' + (selectedStaffIds.has(String(teacher.userId)) ? 'checked' : '') + ' aria-label="Select ' + esc(teacher.displayName) + '">' : ''}<strong>${esc(teacher.displayName)}</strong><small class="table-subtext">${esc(teacher.username)}</small><small class="table-subtext">${esc(designationLabels)}</small></div></td>
+        <td data-label="Teacher"><div class="teacher-cell-value teacher-identity">${user.role === 'SCHOOL_ADMIN' ? '<input type="checkbox" data-select-staff="' + esc(teacher.userId) + '" ' + (selectedStaffIds.has(String(teacher.userId)) ? 'checked' : '') + ' aria-label="Select ' + esc(teacher.displayName) + '">' : ''}<strong>${esc(teacher.displayName)}</strong><small class="table-subtext">${esc(teacher.username)}</small><small class="table-subtext">${esc(teacher.position || 'Position not set')} · ${esc(designationLabels)}</small></div></td>
         <td data-label="Department"><div class="teacher-cell-value">${departmentCell}</div></td>
         <td data-label="Status"><div class="teacher-cell-value"><span class="account-status ${statusClass}">${statusLabel}</span>${leaveDetails}</div></td>
         <td data-label="Assigned classes"><div class="teacher-cell-value">${classScopesHtml}</div></td>
@@ -4989,6 +4989,7 @@ let teacherActionMenuListenersInstalled = false;
       const needsDepartment = ['TEACHER', 'DEPARTMENT_HEAD'].includes(selectedRole);
       $('teacherDesignationFields').hidden = !isTeacherAccount || user?.role === 'SCHOOL_ADMIN';
       $('newTeacherDepartmentGroup').hidden = !needsDepartment;
+      $('newTeacherPositionGroup').hidden = !isTeacherAccount;
       $('newTeacherDepartment').required = needsDepartment;
       if (!isTeacherAccount) {
         $('designationSubjectTeacher').checked = false;
@@ -5054,6 +5055,7 @@ let teacherActionMenuListenersInstalled = false;
       feedback.className = 'inline-feedback';
       const username = $('newTeacherUsername').value.trim();
       const displayName = $('newTeacherName').value.trim();
+      const position = $('newAccountRole').value === 'TEACHER' ? $('newTeacherPosition').value.trim() : null;
       const password = $('newTeacherPassword').value;
       const confirm = $('confirmTeacherPassword').value;
       if (password !== confirm) {
@@ -5083,7 +5085,7 @@ let teacherActionMenuListenersInstalled = false;
         if (['TEACHER', 'DEPARTMENT_HEAD'].includes(role) && !departmentId) throw new Error('Select a department for this account.');
         await api('/api/school-users', {
           method: 'POST',
-          body: JSON.stringify({ username, displayName, password, role, teacherDesignations, departmentId })
+          body: JSON.stringify({ username, displayName, password, role, teacherDesignations, departmentId, position })
         });
         $('teacherForm').reset();
         updateDesignationVisibility();
@@ -5113,13 +5115,16 @@ let teacherActionMenuListenersInstalled = false;
       if (profileButton) {
         const teacher = teachers.find(item => String(item.userId) === String(profileButton.dataset.editTeacherProfile));
         if (!teacher) return;
-        const values = await AppDialog.form('Update the teacher display name. Department and teacher permissions can be managed separately without replacing the account or QR identity.',
-          [{ name: 'displayName', label: 'Display name', defaultValue: teacher.displayName || '', required: true, maxLength: 160 }],
+        const values = await AppDialog.form('Update the teacher name and personnel position. Access permissions, QR identity and assigned schedules are preserved.',
+          [
+            { name: 'displayName', label: 'Display name', defaultValue: teacher.displayName || '', required: true, maxLength: 160 },
+            { name: 'position', label: 'Position / rank (e.g., Teacher I, Master Teacher II)', defaultValue: teacher.position || '', maxLength: 100 }
+          ],
           { title: 'Edit teacher account', confirmText: 'Save account' });
         if (values === null) return;
         profileButton.disabled = true;
         try {
-          await api('/api/teachers/' + encodeURIComponent(teacher.userId), { method: 'PATCH', body: JSON.stringify({ displayName: values.displayName.trim() }) });
+          await api('/api/teachers/' + encodeURIComponent(teacher.userId), { method: 'PATCH', body: JSON.stringify({ displayName: values.displayName.trim(), position: (values.position || '').trim() }) });
           await loadSchoolData();
           showToast('Teacher account updated. Existing teacher QR identity and schedules were preserved.');
         } catch (error) { showToast(error.message, true); profileButton.disabled = false; }
