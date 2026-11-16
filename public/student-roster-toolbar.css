@@ -1,0 +1,94 @@
+/* Attendigo · Student Roster action toolbar
+   Keep explanatory text readable and put actions in a deliberate, responsive row.
+   Presentation only: existing button IDs, handlers, permissions and hidden states remain intact. */
+#studentsView #studentManagementHeader{
+  display:grid;
+  grid-template-columns:minmax(0,1fr);
+  align-items:start;
+  gap:16px;
+  margin-bottom:20px;
+}
+#studentsView #studentManagementHeader > div:first-child{
+  min-width:0;
+}
+#studentsView #studentManagementHeader h3{
+  margin:0 0 7px;
+}
+#studentsView #studentManagementHeader p{
+  max-width:820px;
+  margin:0;
+  line-height:1.55;
+}
+#studentsView #studentManagementHeader .toolbar-actions{
+  box-sizing:border-box;
+  display:flex;
+  flex-flow:row wrap;
+  align-items:center;
+  justify-content:flex-start;
+  align-content:start;
+  gap:10px;
+  width:100%;
+  min-width:0;
+}
+#studentsView #studentManagementHeader .toolbar-actions > :is(button,a){
+  box-sizing:border-box;
+  flex:0 0 auto;
+  align-items:center;
+  justify-content:center;
+  min-height:44px;
+  min-width:0;
+  margin:0;
+  padding:10px 15px;
+  border-radius:11px;
+  line-height:1.25;
+  font-size:13px;
+  font-weight:700;
+  white-space:nowrap;
+  text-align:center;
+  text-decoration:none;
+  vertical-align:middle;
+}
+#studentsView #studentManagementHeader .toolbar-actions > [hidden]{
+  display:none!important;
+}
+#studentsView #studentManagementHeader #showStudentForm{
+  margin-left:auto;
+}
+@media(max-width:1280px){
+  #studentsView #studentManagementHeader .toolbar-actions{
+    display:grid;
+    grid-template-columns:repeat(3,minmax(0,1fr));
+    gap:10px;
+  }
+  #studentsView #studentManagementHeader .toolbar-actions > :is(button,a){
+    width:100%;
+    min-width:0;
+    min-height:46px;
+    white-space:normal;
+    overflow-wrap:normal;
+    font-size:12px;
+  }
+  #studentsView #studentManagementHeader #showStudentForm{
+    margin-left:0;
+  }
+}
+@media(max-width:720px){
+  #studentsView #studentManagementHeader{
+    gap:13px;
+  }
+  #studentsView #studentManagementHeader .toolbar-actions{
+    grid-template-columns:repeat(2,minmax(0,1fr));
+    gap:9px;
+  }
+  #studentsView #studentManagementHeader .toolbar-actions > :is(button,a){
+    min-height:46px;
+    padding:10px 8px;
+    font-size:12px;
+  }
+}
+@media(max-width:380px){
+  #studentsView #studentManagementHeader .toolbar-actions{
+    grid-template-columns:minmax(0,1fr);
+  }
+}
+/* Dark mode inherits the shared button components; this stylesheet never hardcodes button colors. */
