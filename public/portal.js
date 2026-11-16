@@ -329,6 +329,30 @@
     if (!document.hidden && user && user.role !== 'SUPER_ADMIN') refreshSchoolEntitlements();
   });
 
+  function updateSmsAccessNotice() {
+    if (user?.role !== 'SCHOOL_ADMIN') return;
+    let notice = $('schoolSmsAccessNotice');
+    if (!notice) {
+      notice = document.createElement('div');
+      notice.id = 'schoolSmsAccessNotice';
+      notice.setAttribute('role', 'status');
+      notice.style.cssText = 'margin:10px 12px;padding:10px 12px;border:1px solid var(--border-color,#94a3b8);border-radius:10px;font-size:12px;line-height:1.5;';
+      const nav = $('smsNav');
+      if (nav?.parentElement) nav.parentElement.insertBefore(notice, nav);
+    }
+    const allowed = schoolEntitlements?.features?.sms_notifications === true || schoolEntitlements?.configured === false;
+    const denied = schoolEntitlements?.features?.sms_notifications === false;
+    if (!allowed && !denied) {
+      notice.textContent = 'SMS access could not be verified. Reopen the dashboard or contact Super Admin.';
+      notice.hidden = false;
+    } else if (denied) {
+      notice.textContent = 'SMS restricted by the school subscription' + (schoolEntitlements?.expired ? ' (expired)' : '') + '.';
+      notice.hidden = false;
+    } else {
+      notice.hidden = true;
+    }
+  }
+
   function applyRoleNavigation() {
     const role = user?.role;
     const admin = role === 'SCHOOL_ADMIN';
@@ -338,10 +362,11 @@
     if ($('plannerNav')) $('plannerNav').hidden = !['TEACHER', 'DEPARTMENT_HEAD'].includes(role) || schoolEntitlements?.features?.planner === false;
     if ($('plannerDashboardWidget')) $('plannerDashboardWidget').hidden = !['TEACHER', 'DEPARTMENT_HEAD'].includes(role) || schoolEntitlements?.features?.planner === false;
     if ($('smsNav')) {
-      const enabled = admin && schoolEntitlements?.features?.sms_notifications !== false;
+      const enabled = admin && (schoolEntitlements?.features?.sms_notifications === true || schoolEntitlements?.configured === false);
       $('smsNav').hidden = !enabled;
       $('smsNav').setAttribute('aria-hidden', String(!enabled));
     }
+    if (admin) updateSmsAccessNotice();
     // A group hidden while SMS was restricted must become visible again when re-enabled.
     for (const group of ['operations', 'settings']) {
       const container = $(group + 'NavGroup');
