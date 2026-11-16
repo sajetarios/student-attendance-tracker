@@ -294,7 +294,7 @@
  let historySource='manual';
  function selectHistorySource(source){
    historySource=source;
-   host.querySelectorAll('[data-mf-history]').forEach(button=>button.setAttribute('aria-selected',String(button.dataset.mfHistory===source)));
+   document.querySelectorAll('[data-mf-history]').forEach(button=>button.setAttribute('aria-selected',String(button.dataset.mfHistory===source)));
    el('mfManualHistoryPanel').hidden=source!=='manual';
    el('mfQrHistoryDetails').hidden=source!=='qr';
    el('mfConflictPanel').hidden=source!=='conflicts';
@@ -304,7 +304,7 @@
        (matches.length?matches.map(mark=>'<div class="manual-history-entry"><div><strong>'+esc(mark.fullName)+'</strong><small>'+esc(mark.date)+' · '+esc(mark.status)+' · Manual source</small></div><span>Check QR records for matching class period and recorded time</span></div>').join(''):'<p>No manual absent/excused entries on this history page. This does not establish that the class has no SF2 conflicts.</p>');
    }
  }
- host.querySelectorAll('[data-mf-history]').forEach(button=>button.addEventListener('click',()=>selectHistorySource(button.dataset.mfHistory)));
+ document.querySelectorAll('[data-mf-history]').forEach(button=>button.addEventListener('click',()=>selectHistorySource(button.dataset.mfHistory)));
  el('mfHistoryPrev').addEventListener('click',()=>historyFlip(-1));
  el('mfHistoryNext').addEventListener('click',()=>historyFlip(1));
  el('mfPrev').addEventListener('click',()=>pageFlip(-1));
