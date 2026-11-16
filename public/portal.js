@@ -382,7 +382,7 @@
     if ($('studentStatusFilterWrap')) $('studentStatusFilterWrap').hidden = !admin;
     if ($('downloadStudentTemplate')) $('downloadStudentTemplate').hidden = !(admin || (teacher && teacherHas('CLASS_ADVISER')));
     if ($('exportStudentsButton')) $('exportStudentsButton').hidden = !['SCHOOL_ADMIN', 'DEPARTMENT_HEAD', 'TEACHER'].includes(role);
-    if ($('academicAdminNav')) $('academicAdminNav').hidden = true;
+    if ($('academicAdminNav')) $('academicAdminNav').hidden = !admin;
     if ($('staffBulkDepartmentToolbar')) $('staffBulkDepartmentToolbar').hidden = !admin;
     const departmentHead = role === 'DEPARTMENT_HEAD';
     const gateKeeper = role === 'GATE_KEEPER';
