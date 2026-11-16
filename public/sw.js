@@ -1,4 +1,4 @@
-const CACHE = "attendigo-v94-unified-night-theme";
+const CACHE = "attendigo-v95-super-admin-login";
 
 const SHELL = [
   "/assets/attendigo-sidebar-logo.png",
@@ -23,7 +23,7 @@ const SHELL = [
   "/schedule-workspace-ui.js?v=3",
   "/portal-login.html",
   "/attendigo-login-motion.css?v=2",
-  "/attendigo-login-refinement.css?v=1",
+  "/attendigo-login-refinement.css?v=2",
   "/portal.css?v=0.9.54",
   "/student-roster-toolbar.css?v=1",
   "/portal.css",
