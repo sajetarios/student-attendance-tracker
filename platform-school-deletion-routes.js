@@ -125,9 +125,48 @@ function registerPlatformSchoolDeletionRoutes(app, pool, { authenticatePlatform,
       await client.query(
         'UPDATE platform_school_deletion_backups SET row_count=$2 WHERE backup_id=$1', [backupId, backedUpRows]
       );
-      // These two history tables have non-cascading foreign keys to schools.
-      await client.query('DELETE FROM audit_logs WHERE school_id=$1', [schoolId]);
-      await client.query('DELETE FROM demo_reset_maintenance_runs WHERE school_id=$1', [schoolId]);
+      // Delete child rows before their parents; PostgreSQL has RESTRICT/NO ACTION
+      // relationships between departments, periods, learners and audit history.
+      // Every deletion is scoped to the selected school in the same transaction.
+      await client.query(
+        'DELETE FROM sms_outbox WHERE event_id IN (SELECT event_id FROM attendance_events WHERE school_id=$1)',
+        [schoolId]
+      );
+      const foreignKeys = await client.query(
+        "SELECT child.relname AS child,parent.relname AS parent FROM pg_constraint c " +
+        "JOIN pg_class child ON child.oid=c.conrelid " +
+        "JOIN pg_class parent ON parent.oid=c.confrelid " +
+        "JOIN pg_namespace child_ns ON child_ns.oid=child.relnamespace " +
+        "JOIN pg_namespace parent_ns ON parent_ns.oid=parent.relnamespace " +
+        "WHERE c.contype='f' AND child_ns.nspname='public' AND parent_ns.nspname='public'"
+      );
+      const scopedTables = new Set(tables.rows.map(row => row.table_name).filter(name => name !== 'schools'));
+      const waitingOnChildren = new Map([...scopedTables].map(name => [name, 0]));
+      const parentsForChild = new Map([...scopedTables].map(name => [name, new Set()]));
+      for (const { child, parent } of foreignKeys.rows) {
+        if (!scopedTables.has(child) || !scopedTables.has(parent) || child === parent) continue;
+        if (parentsForChild.get(child).has(parent)) continue;
+        parentsForChild.get(child).add(parent);
+        waitingOnChildren.set(parent, waitingOnChildren.get(parent) + 1);
+      }
+      const ready = [...scopedTables].filter(name => waitingOnChildren.get(name) === 0).sort();
+      const deletionOrder = [];
+      while (ready.length) {
+        const name = ready.shift();
+        deletionOrder.push(name);
+        for (const parent of parentsForChild.get(name)) {
+          const remaining = waitingOnChildren.get(parent) - 1;
+          waitingOnChildren.set(parent, remaining);
+          if (remaining === 0) ready.push(parent);
+        }
+      }
+      if (deletionOrder.length !== scopedTables.size) {
+        throw new Error('School data has circular foreign key dependencies; deletion was cancelled.');
+      }
+      for (const name of deletionOrder) {
+        const identifier = '"' + name.replace(/"/g, '""') + '"';
+        await client.query('DELETE FROM public.' + identifier + ' WHERE school_id=$1', [schoolId]);
+      }
       const deleted = await client.query('DELETE FROM schools WHERE school_id=$1', [schoolId]);
       if (deleted.rowCount !== 1) throw new Error('School deletion was not completed.');
       await client.query(
