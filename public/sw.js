@@ -1,4 +1,4 @@
-const CACHE = "attendigo-v102-session-guard";
+const CACHE = "attendigo-v103-planner-dashboard-share";
 
 const SHELL = [
   "/assets/attendigo-sidebar-logo.png",
@@ -10,8 +10,8 @@ const SHELL = [
   "/dashboard-icons.js?v=4",
   "/dashboard-ui.css?v=4",
   "/dashboard-night.css?v=1",
-  "/planner.css?v=1",
-  "/planner.js?v=2",
+  "/planner.css?v=2",
+  "/planner.js?v=3",
   "/attendigo-dark-unified.css?v=1",
   "/dashboard-polish.css?v=2",
   "/photo-editor.css?v=2",
@@ -29,7 +29,7 @@ const SHELL = [
   "/portal.css?v=0.9.67",
   "/student-roster-toolbar.css?v=1",
   "/portal.css",
-  "/portal.js?v=0.9.69",
+  "/portal.js?v=0.9.70",
   "/manual-folio.css?v=6",
   "/manual-folio.js?v=6",
   "/student-portal-accounts.css?v=2",
