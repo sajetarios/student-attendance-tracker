@@ -1,4 +1,4 @@
-const CACHE = "attendigo-v80-refined-login";
+const CACHE = "attendigo-v81-student-portal";
 
 const SHELL = [
   "/assets/attendigo-sidebar-logo.png",
@@ -21,9 +21,11 @@ const SHELL = [
   "/portal-login.html",
   "/attendigo-login-motion.css?v=2",
   "/attendigo-login-refinement.css?v=1",
-  "/portal.css?v=0.9.53",
+  "/portal.css?v=0.9.54",
   "/portal.css",
-  "/portal.js?v=0.9.61",
+  "/portal.js?v=0.9.62",
+  "/student-portal-accounts.css?v=1",
+  "/student-portal-accounts.js?v=1",
   "/academic-admin.css?v=1",
   "/academic-admin.js?v=2",
   "/app-dialog.css?v=1",
