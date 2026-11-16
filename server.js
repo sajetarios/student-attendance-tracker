@@ -3436,6 +3436,14 @@ async function start() {
   console.log('Checking database migrations...');
   const migrationResult = await runMigrations(pool);
   console.log(`Database migrations ready: ${migrationResult.applied.length} applied, ${migrationResult.total} total.`);
+  // Remove recovery snapshots 30 days after school deletion, including their
+  // child rows via ON DELETE CASCADE. Run at startup and hourly thereafter.
+  const { purgeExpiredSchoolDeletionBackups } = require('./platform-school-deletion-routes');
+  const purgeSchoolBackups = () => purgeExpiredSchoolDeletionBackups(pool)
+    .catch(error => console.error('School backup retention worker failed:',error.message));
+  await purgeSchoolBackups();
+  const backupRetentionTimer = setInterval(purgeSchoolBackups, 60 * 60 * 1000);
+  backupRetentionTimer.unref();
   await processDueTeacherReturns();
   const teacherReturnTimer = setInterval(processDueTeacherReturns, 60 * 1000);
   teacherReturnTimer.unref();
