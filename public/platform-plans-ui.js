@@ -47,9 +47,73 @@
    schoolSelect.replaceChildren(...schools.map(s=>option(s.schoolId,s.schoolName+' · '+s.schoolCode)));
    planSelect.replaceChildren(...plans.filter(p=>p.active||subscriptions.some(s=>s.planId===p.planId)).map(p=>option(p.planId,p.name+' · ₱'+p.monthlyPricePhp+'/mo (draft pricing)')));
    if(schools.some(s=>s.schoolId===previous))schoolSelect.value=previous;
-   selectSchool();message('Subscription settings loaded.');
+   selectSchool();
+   const previousTemplate=template.value;
+   template.replaceChildren(option('','Create a new plan'),...plans.map(p=>option(p.planId,p.name)));
+   if(plans.some(p=>p.planId===previousTemplate))template.value=previousTemplate;
+   fillTemplate();message('Subscription settings loaded.');
   }catch(error){message(error.message,true);}
  }
+ // Plan editor: configurable pricing, feature defaults, and quotas.
+ const editor=document.createElement('section');editor.className='surface-card section-card';
+ const heading=document.createElement('h3');heading.textContent='Manage plan templates';
+ const explanation=document.createElement('p');explanation.textContent='Create or edit templates. Prices are editable draft settings, not automatic billing. A plan change affects schools using its defaults.';
+ const grid=document.createElement('div');grid.className='form-grid platform-school-form';
+ function field(label,id,type='text'){
+  const group=document.createElement('div');group.className='field-group';
+  const title=document.createElement('label');title.htmlFor=id;title.textContent=label;
+  const input=document.createElement(type==='select'?'select':'input');input.id=id;
+  if(type!=='select')input.type=type;
+  group.append(title,input);grid.append(group);return input;
+ }
+ const template=field('Edit existing plan or create new','platformTemplateSelect','select');
+ const code=field('Plan code (new plans only)','platformTemplateCode');
+ const name=field('Plan name','platformTemplateName');
+ const price=field('Draft monthly price (PHP)','platformTemplatePrice','number');price.min='0';price.step='0.01';
+ const students=field('Maximum students (0 = no new enrollment)','platformTemplateStudents','number');students.min='0';students.step='1';
+ const sms=field('Monthly SMS limit','platformTemplateSms','number');sms.min='0';sms.step='1';
+ const enabled=field('Plan availability','platformTemplateActive','select');
+ enabled.append(option('true','Available'),option('false','Unavailable for new assignments'));
+ const features=document.createElement('div');features.className='form-grid platform-school-form';
+ const save=document.createElement('button');save.type='button';save.className='primary-button';save.textContent='Save plan template';
+ const feedback=document.createElement('p');feedback.className='inline-feedback';feedback.setAttribute('role','status');
+ editor.append(heading,explanation,grid,features,save,feedback);
+ section.after(editor);
+ function fillTemplate(){
+  const plan=plans.find(p=>p.planId===template.value);
+  code.value=plan?.code||'';code.disabled=!!plan;
+  name.value=plan?.name||'';price.value=plan?.monthlyPricePhp??0;
+  students.value=plan?.limits?.students??2000;sms.value=plan?.limits?.sms_monthly??0;
+  enabled.value=String(plan?.active??true);
+  features.replaceChildren();
+  for(const [key,label] of Object.entries(featureNames)){
+   const wrap=document.createElement('label');wrap.className='field-group';
+   const check=document.createElement('input');check.type='checkbox';check.dataset.planFeature=key;
+   check.checked=plan?.features?.[key]??['student_management','manual_attendance','qr_attendance','parent_portal','timetable','planner','offline_sync'].includes(key);
+   wrap.append(check,document.createTextNode(' '+label));features.append(wrap);
+  }
+ }
+ template.addEventListener('change',fillTemplate);
+ save.addEventListener('click',async()=>{
+  const data={code:code.value.trim(),name:name.value.trim(),monthlyPricePhp:Number(price.value),
+   limits:{students:Number(students.value),sms_monthly:Number(sms.value)},
+   features:Object.fromEntries([...features.querySelectorAll('input[data-plan-feature]')].map(el=>[el.dataset.planFeature,el.checked])),
+   active:enabled.value==='true'};
+  if(!data.name||!Number.isFinite(data.monthlyPricePhp)||data.monthlyPricePhp<0||
+    !Number.isSafeInteger(data.limits.students)||data.limits.students<0||
+    !Number.isSafeInteger(data.limits.sms_monthly)||data.limits.sms_monthly<0){
+   feedback.textContent='Check the name, price and quota values.';return;
+  }
+  if(!confirm('Save plan defaults? Schools assigned to this plan may be affected.'))return;
+  save.disabled=true;
+  try{
+   const existing=!!template.value;
+   await api(existing?'/api/platform/plans/'+template.value:'/api/platform/plans',
+     {method:existing?'PATCH':'POST',body:JSON.stringify(data)});
+   await load();feedback.textContent='Plan template saved.';
+  }catch(error){feedback.textContent=error.message;}
+  finally{save.disabled=false;}
+ });
  $('platformPlansSchool').addEventListener('change',selectSchool);
  $('platformPlansPlan').addEventListener('change',renderFeatures);
  $('platformPlansRefresh').addEventListener('click',load);
