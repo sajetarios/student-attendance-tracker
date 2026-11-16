@@ -231,7 +231,7 @@
       titles = {
         dashboard: ['Department Head Dashboard', 'Monitor learner attendance, teacher availability, class coverage, schedules, and section report progress.'],
         students: ['Student roster · Department scope', 'View learners school-wide and manage approved bulk changes only within your own scheduled sections. Individual identity details remain editable by authorized staff.'],
-        teachers: ['Teacher monitoring', 'Review teacher designations, assigned grade levels and sections, leave, schedules, and temporary substitute coverage.'],
+        teachers: ['Teachers & Staff', 'Review department teachers and staff, their designations, assigned sections, leave, schedules, and temporary coverage.'],
         schedules: ['Department schedule management', 'View every department’s timetable and create or assign class schedules only within your own department.'],
         sf2: ['SF2 monitoring', 'Preview official section reports. Department Heads cannot edit, submit, or collect SF2 reports.']
       };
@@ -271,9 +271,9 @@
         }
       });
     }
-    if ($('teacherMonitorTitle')) $('teacherMonitorTitle').textContent = departmentHead ? 'Teachers in your department' : 'Teacher accounts';
+    if ($('teacherMonitorTitle')) $('teacherMonitorTitle').textContent = departmentHead ? 'Teachers & Staff in Your Department' : 'Teacher accounts';
     if ($('teacherMonitorDescription')) $('teacherMonitorDescription').textContent = departmentHead
-      ? 'Review each teacher’s designation, assigned sections, teaching schedules, and availability. Use Manage for actions on teachers in your department.'
+      ? 'Review staff designations, teacher assignments, schedules, and availability. Available actions depend on your department permissions.'
       : 'Manage teacher account profiles and access. Academic assignments are managed in the Department Head workspace.';
     if ($('teacherActionHeader')) $('teacherActionHeader').textContent = departmentHead ? 'Manage' : 'Account action';
     if ($('sf2ViewTitle')) $('sf2ViewTitle').textContent = departmentHead ? 'SF2 Monitoring' : 'SF2 Report Generator';
@@ -384,8 +384,8 @@
     if ($('sf2Nav')) $('sf2Nav').hidden = admin || gateKeeper || (!departmentHead && !teacher);
     if ($('teachersNav')) {
       $('teachersNav').hidden = !(admin || departmentHead);
-      if (departmentHead) $('teachersNav').querySelector('.nav-label').textContent = 'Teacher monitoring';
-      else $('teachersNav').querySelector('.nav-label').textContent = 'User management';
+      if (departmentHead) $('teachersNav').querySelector('.nav-label').textContent = 'Teachers & Staff';
+      else $('teachersNav').querySelector('.nav-label').textContent = 'User Management';
     }
     if ($('parentsNav')) $('parentsNav').hidden = !admin;
     if ($('manageParentsFromStudents')) { $('manageParentsFromStudents').hidden = !admin; $('manageParentsFromStudents').style.display = admin ? 'inline-flex' : 'none'; }
@@ -396,7 +396,7 @@
     if ($('showTeacherForm')) $('showTeacherForm').hidden = !admin;
     if ($('addSchoolStaffAccount')) $('addSchoolStaffAccount').hidden = !admin;
     if ($('demoStudentLoginCard')) $('demoStudentLoginCard').hidden = !(admin && user?.schoolCode === 'DEMO001');
-    if ($('sf2DemoNotice')) $('sf2DemoNotice').hidden = user?.schoolCode !== 'DEMO001';
+    
     if ($('staffUserRows')) $('staffUserRows').closest('.staff-accounts-card').hidden = !admin;
     if ($('adviserAssignmentForm') && !(admin || departmentHead)) $('adviserAssignmentForm').hidden = true;
     if ($('adviserAssignmentForm')) $('adviserAssignmentForm').closest('.adviser-assignments-card').hidden = !(admin || departmentHead);
@@ -416,7 +416,7 @@
         else if (admin) { label.textContent = 'Manage student records'; if (detail) detail.textContent = 'Register learners, update records, and manage student logins'; }
       }
       if (target === 'teachers' && label) {
-        if (departmentHead) { label.textContent = 'Manage department teachers'; if (detail) detail.textContent = 'Set teacher designations, advisory sections, and class schedules'; }
+        if (departmentHead) { label.textContent = 'Teachers & Staff'; if (detail) detail.textContent = 'Set teacher designations, advisory sections, and class schedules'; }
         else if (admin) { label.textContent = 'Manage staff accounts'; if (detail) detail.textContent = 'Create staff accounts and assign teacher designations'; }
       }
       if (target === 'schedules' && label) {
@@ -448,10 +448,10 @@
     if (peopleGroup) peopleGroup.hidden = Boolean($('studentsNav')?.hidden && $('teachersNav')?.hidden && $('parentsNav')?.hidden);
     if (academicsGroup) academicsGroup.hidden = Boolean($('sf2Nav')?.hidden && $('schedulesNav')?.hidden && $('cloudSyncNav')?.hidden && $('schoolBrandingNav')?.hidden);
     if (departmentHead) {
-      if ($('peopleGroupLabel')) $('peopleGroupLabel').textContent = 'Staff monitoring';
+      if ($('peopleGroupLabel')) $('peopleGroupLabel').textContent = 'User Management';
       if ($('academicsGroupLabel')) $('academicsGroupLabel').textContent = 'Reports & schedules';
     } else {
-      if ($('peopleGroupLabel')) $('peopleGroupLabel').textContent = 'People management';
+      if ($('peopleGroupLabel')) $('peopleGroupLabel').textContent = 'User Management';
       if ($('academicsGroupLabel')) $('academicsGroupLabel').textContent = 'Academics';
     }
     if (gateKeeper) {
