@@ -67,6 +67,8 @@
    el('mfRight').hidden=isRecord;
    el('mfRecord').hidden=!isRecord;
    el('mfTeacherNotesWrap').hidden=!isNotes && !isSheet;
+   el('mfNotesList').hidden=!isNotes;
+   el('mfShowArchived').closest('.manual-notes-filter').hidden=!isNotes;
    el('mfDetails').hidden=isNotes;
    if(isRecord)renderRecord();
    if(isNotes)renderNotes();
@@ -172,16 +174,23 @@
  let flipBusy=false;
  function pageFlip(direction){
    const pages=Math.max(1,Math.ceil(roster().length/10));
-   if(flipBusy || state.page+direction<0 || state.page+direction>=pages)return;
-   const book=el('mfBook');
+   const next=state.page+direction;
+   if(flipBusy||next<0||next>=pages)return;
+   const book=el('mfBook'),source=el('mfSheet');
    flipBusy=true;
-   book.classList.remove('turn-next','turn-prev');
-   void book.offsetWidth;
-   book.classList.add(direction>0?'turn-next':'turn-prev');
+   const leaf=document.createElement('div');
+   leaf.className='manual-turn-leaf '+(direction>0?'forward':'backward');
+   leaf.setAttribute('aria-hidden','true');
+   const snapshot=source.cloneNode(true);
+   snapshot.removeAttribute('id');
+   snapshot.querySelectorAll('[id]').forEach(node=>node.removeAttribute('id'));
+   snapshot.querySelectorAll('button,input').forEach(node=>{node.disabled=true;node.tabIndex=-1});
+   leaf.appendChild(snapshot);book.appendChild(leaf);
    el('mfPrev').disabled=true;el('mfNext').disabled=true;
-   // Change the sheet at the midpoint of the turn, not before the animation begins.
-   setTimeout(()=>{state.page+=direction;render();},260);
-   setTimeout(()=>{book.classList.remove('turn-next','turn-prev');flipBusy=false;renderRows();},570);
+   // The turning leaf remains visible while the underlying register advances.
+   const duration=window.matchMedia('(prefers-reduced-motion: reduce)').matches?60:1080;
+   setTimeout(()=>{state.page=next;renderRows();},Math.round(duration*.52));
+   setTimeout(()=>{leaf.remove();flipBusy=false;renderRows();},duration+30);
  }
  async function sync(){
    if(!state.period)return notice('Choose a class first.',true);
