@@ -3,6 +3,7 @@
   const userKey = 'schoolAttendance.user';
   const token = sessionStorage.getItem(tokenKey);
   let user = null;
+  let schoolEntitlements = null;
   let dashboardData = null;
   let students = [];
   let periods = [];
@@ -221,7 +222,7 @@
       document.querySelector('.sidebar')?.classList.remove('mobile-open');
       return;
     }
-    const allowedViews = allowedViewsForUser();
+    const allowedViews = allowedViewsForUser().filter(name => name !== 'planner' || schoolEntitlements?.features?.planner !== false);
     const departmentHead = user?.role === 'DEPARTMENT_HEAD';
     // Department Heads may view the school-wide roster; write access remains restricted.
     if (!allowedViews.includes(view)) view = allowedViews.includes('dashboard') ? 'dashboard' : (allowedViews[0] || 'dashboard');
@@ -318,9 +319,9 @@
     const teacher = role === 'TEACHER';
     if ($('cloudSyncNav')) $('cloudSyncNav').hidden = !admin;
     if ($('schoolBrandingNav')) $('schoolBrandingNav').hidden = !admin;
-    if ($('plannerNav')) $('plannerNav').hidden = !['TEACHER', 'DEPARTMENT_HEAD'].includes(role);
-    if ($('plannerDashboardWidget')) $('plannerDashboardWidget').hidden = !['TEACHER', 'DEPARTMENT_HEAD'].includes(role);
-    if ($('smsNav')) $('smsNav').hidden = !admin;
+    if ($('plannerNav')) $('plannerNav').hidden = !['TEACHER', 'DEPARTMENT_HEAD'].includes(role) || schoolEntitlements?.features?.planner === false;
+    if ($('plannerDashboardWidget')) $('plannerDashboardWidget').hidden = !['TEACHER', 'DEPARTMENT_HEAD'].includes(role) || schoolEntitlements?.features?.planner === false;
+    if ($('smsNav')) $('smsNav').hidden = !admin || schoolEntitlements?.features?.sms_notifications === false;
     if ($('exportTeachersButton')) $('exportTeachersButton').hidden = !(admin || role === 'DEPARTMENT_HEAD');
     if ($('bulkImportStudentsButton')) $('bulkImportStudentsButton').hidden = !(admin || teacherHas('CLASS_ADVISER'));
     if ($('studentStatusFilterWrap')) $('studentStatusFilterWrap').hidden = !admin;
@@ -3743,6 +3744,13 @@ let teacherActionMenuListenersInstalled = false;
       $('schoolTitle').textContent = user.schoolName || 'School workspace';
       $('schoolCodeLabel').textContent = user.schoolCode || 'SCHOOL WORKSPACE';
       $('schoolEmblem').textContent = (user.schoolName || 'S').trim().charAt(0).toUpperCase();
+      try {
+        schoolEntitlements = await api('/api/school/entitlements');
+      } catch (error) {
+        // Fail closed for optional modules when entitlement verification is unavailable.
+        schoolEntitlements = {features:{planner:false,sms_notifications:false,advanced_analytics:false,custom_branding:false}};
+        showToast('School feature access could not be verified. Optional modules are temporarily unavailable.',true);
+      }
       applyRoleNavigation();
       const gateKeeper = user.role === 'GATE_KEEPER';
       if (gateKeeper) {
