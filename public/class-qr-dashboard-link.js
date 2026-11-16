@@ -21,8 +21,8 @@
     const a = document.createElement('a');
     a.id = linkId;
     a.href = '/class-qr-teacher.html';
-    a.textContent = '▦ Class QR Attendance';
+    a.innerHTML = '<span aria-hidden="true">▦</span><span class="class-qr-link-label">Class QR Attendance</span>'; a.setAttribute('aria-label','Class QR Attendance');
     a.style.cssText = 'position:fixed;right:18px;bottom:18px;z-index:1000;padding:13px 17px;border-radius:13px;background:#1767a5;color:white;text-decoration:none;font-weight:700;box-shadow:0 5px 22px #0003';
-    document.body.append(a);
+    const style=document.createElement('style');style.textContent='@media(max-width:650px){#classQrTeacherShortcut{right:12px!important;bottom:calc(12px + env(safe-area-inset-bottom))!important;width:52px!important;height:52px!important;box-sizing:border-box!important;padding:0!important;display:flex!important;align-items:center!important;justify-content:center!important;border-radius:50%!important;font-size:25px!important}#classQrTeacherShortcut .class-qr-link-label{display:none!important}#classAttendanceView{padding-bottom:72px!important}}';document.head.append(style);document.body.append(a);
   }).catch(() => remove());
 })();
