@@ -1,0 +1,209 @@
+/* Attendigo unified dark surfaces v1
+   View preference, independent of administrator-controlled school brand colors.
+   The data-ui-theme attribute is owned by dashboard-appearance.js. */
+html[data-ui-theme="dark"] {
+  --night-bg:#0b1424;
+  --night-panel:#17253b;
+  --night-raised:#21324c;
+  --night-soft:#1d2c44;
+  --night-border:#40536f;
+  --night-text:#f3f7ff;
+  --night-muted:#bfcee4;
+  --night-focus:#93c9ff;
+  --night-accent:#a6ceff;
+  color-scheme:dark;
+}
+html[data-ui-theme="dark"] body.portal-page {
+  background:var(--night-bg)!important;color:var(--night-text)!important;
+}
+html[data-ui-theme="dark"] .portal-page :is(
+  .surface-card,.section-card,.student-card,.student-summary-item,.student-profile-item,
+  .parent-card,.child-card,.parent-note,.class-attendance-summary,
+  .security-feature-grid article,.account-access-grid article,
+  .dashboard-card,.student-roster-toolbar
+) {
+  background:var(--night-panel)!important;color:var(--night-text)!important;
+  border-color:var(--night-border)!important;
+}
+html[data-ui-theme="dark"] .portal-page :is(
+  .student-header h1,.parent-head h1,.parent-card h2,.child-card h3,
+  .section-toolbar h3,.student-card h2,.student-card h3,
+  .student-summary-item strong,.student-profile-item strong,
+  .metric-value,.stat-value
+){color:var(--night-text)!important}
+html[data-ui-theme="dark"] .portal-page :is(
+  .student-header p,.parent-head p,.child-card p,.parent-card p,
+  .student-summary-item span,.student-profile-item span,
+  .field-hint,.scope-note,.empty-cell,.student-feedback,.parent-note,
+  .attendance-summary-note,.table-subtext,.muted
+){color:var(--night-muted)!important}
+html[data-ui-theme="dark"] .portal-page :is(
+  input:not([type=checkbox]):not([type=radio]):not([type=color]),
+  select,textarea
+){
+  background:var(--night-raised)!important;
+  color:var(--night-text)!important;
+  border:1px solid var(--night-border)!important;
+  color-scheme:dark;
+}
+html[data-ui-theme="dark"] .portal-page :is(input,textarea)::placeholder{color:#b1c1d9!important;opacity:1}
+html[data-ui-theme="dark"] .portal-page :is(input,select,textarea,button,a,summary):focus-visible {
+  outline:3px solid var(--night-focus)!important;outline-offset:2px;
+}
+html[data-ui-theme="dark"] .portal-page :is(
+  .outline-button,.secondary-button,.filter-button,.ui-appearance-menu summary
+){
+  background:var(--night-raised)!important;
+  border-color:var(--night-border)!important;color:var(--night-text)!important;
+}
+html[data-ui-theme="dark"] .portal-page :is(.outline-button,.secondary-button):hover{
+  background:#2b4364!important;border-color:#7da8e2!important;
+}
+html[data-ui-theme="dark"] .portal-page :is(
+  .table-scroll,.table-scroll table,.student-table,.teacher-attendance-table
+){background:var(--night-panel)!important;color:var(--night-text)!important}
+html[data-ui-theme="dark"] .portal-page :is(
+  .table-scroll thead,.table-scroll th,.student-table th,.teacher-attendance-table th
+){background:#243650!important;color:#dceaff!important;border-color:var(--night-border)!important}
+html[data-ui-theme="dark"] .portal-page :is(
+  .table-scroll td,.student-table td,.teacher-attendance-table td
+){background:var(--night-panel)!important;color:var(--night-text)!important;border-color:#354863!important}
+html[data-ui-theme="dark"] .portal-page .table-scroll tbody tr:hover td{background:#29405d!important}
+html[data-ui-theme="dark"] .portal-page :is(
+  .app-modal,.modal-content,.dialog-content,.modal-panel,
+  .account-profile-dialog,.student-scan-setup-dialog,.student-scan-notice-dialog,
+  .guardian-dialog,.app-dialog,.ui-appearance-panel,
+  dialog[open]
+){background:var(--night-panel)!important;color:var(--night-text)!important;border-color:var(--night-border)!important}
+html[data-ui-theme="dark"] .portal-page :is(
+  .app-modal,.modal-content,.dialog-content,.modal-panel,
+  .account-profile-dialog,.student-scan-setup-dialog,.student-scan-notice-dialog,
+  .guardian-dialog,.app-dialog,dialog[open]
+) :is(h2,h3,h4,label,p){color:inherit}
+html[data-ui-theme="dark"] .portal-page :is(
+  .form-grid,.filter-bar,.filter-card,.field-group,.student-attendance-footer
+){border-color:var(--night-border)}
+html[data-ui-theme="dark"] .portal-page :is(
+  .checkbox-row,input[type=checkbox],input[type=radio]
+){accent-color:#80b6ff}
+html[data-ui-theme="dark"] .portal-page input[type=checkbox],
+html[data-ui-theme="dark"] .portal-page input[type=radio]{
+  appearance:auto!important;-webkit-appearance:auto!important;
+  color-scheme:dark;width:17px;height:17px;opacity:1!important;visibility:visible!important;
+}
+
+/* Manual folio - white/black clashes and vanishing labels in screenshot. */
+html[data-ui-theme="dark"] .manual-folio{
+  --ink:var(--night-text);--paper:var(--night-panel);
+  color:var(--night-text)!important;
+}
+html[data-ui-theme="dark"] .manual-folio :is(
+  .manual-head h2,.manual-page-header h3,.manual-history-toolbar h3,
+  .manual-notes-heading,#mfRight .manual-detail-card h4
+){color:var(--night-text)!important}
+html[data-ui-theme="dark"] .manual-folio :is(
+  .manual-head p,.manual-page-header p,.manual-page-header span,
+  .manual-toolbar>span,.manual-sync-note,.manual-detail-card p,
+  .manual-stat span,.manual-page-nav,.manual-history-toolbar p,
+  .manual-notes-meta span
+){color:var(--night-muted)!important}
+html[data-ui-theme="dark"] .manual-folio :is(
+  .manual-stat,.manual-book,.manual-page,.manual-detail-card,
+  .manual-history-folio,.manual-notes-item,.manual-qr-archive,
+  .manual-history-entry,.manual-turn-leaf
+){
+  background:var(--night-panel)!important;color:var(--night-text)!important;
+  border-color:var(--night-border)!important;
+}
+html[data-ui-theme="dark"] .manual-folio :is(
+  .manual-stat,.manual-detail-card,.manual-notes-item
+){box-shadow:none!important}
+html[data-ui-theme="dark"] .manual-folio .manual-book::before{
+  background:linear-gradient(90deg,#263c57,#506079,#263c57)!important;
+}
+html[data-ui-theme="dark"] .manual-folio :is(
+  .manual-toolbar,.manual-bottom,.manual-page-nav
+){
+  background:var(--night-soft)!important;color:var(--night-text)!important;
+  border-color:var(--night-border)!important;
+}
+html[data-ui-theme="dark"] .manual-folio .manual-tabs button:not([aria-selected=true]){
+  background:var(--night-raised)!important;color:var(--night-text)!important;
+  border-color:var(--night-border)!important;
+}
+html[data-ui-theme="dark"] .manual-folio .manual-tabs button[aria-selected=true]{
+  background:#1756a7!important;color:#fff!important;border-color:#78b4ff!important;
+}
+html[data-ui-theme="dark"] .manual-folio .manual-table{
+  background:var(--night-panel)!important;color:var(--night-text)!important;
+}
+html[data-ui-theme="dark"] .manual-folio .manual-table th{
+  background:#293f5f!important;color:#e7f0ff!important;border-color:var(--night-border)!important;
+}
+html[data-ui-theme="dark"] .manual-folio .manual-table tr{
+  background:var(--night-panel)!important;
+}
+html[data-ui-theme="dark"] .manual-folio .manual-table td{
+  background:var(--night-panel)!important;color:var(--night-text)!important;
+  border-color:#374b67!important;
+}
+html[data-ui-theme="dark"] .manual-folio .manual-table td strong,
+html[data-ui-theme="dark"] .manual-folio .manual-history-entry strong{
+  color:var(--night-text)!important;
+}
+html[data-ui-theme="dark"] .manual-folio :is(
+  .manual-table td small,.manual-history-entry small,
+  .manual-history-entry p,.manual-notes-item p
+){color:var(--night-muted)!important}
+html[data-ui-theme="dark"] .manual-folio .manual-btn:not(.primary){
+  background:#273c59!important;color:#f0f5ff!important;border-color:#526b8c!important;
+}
+html[data-ui-theme="dark"] .manual-folio .manual-btn:not(.primary):hover{
+  background:#345172!important;border-color:#a2c8fa!important;
+}
+html[data-ui-theme="dark"] .manual-folio .manual-status[data-active=false]{
+  background:#263852!important;color:#d2dff1!important;border-color:#52677f!important;
+}
+html[data-ui-theme="dark"] .manual-folio .manual-status[data-active=true][data-status=PRESENT]{
+  background:#144b3b!important;color:#a9f7d2!important;border-color:#39876b!important;
+}
+html[data-ui-theme="dark"] .manual-folio .manual-status[data-active=true][data-status=LATE]{
+  background:#563a1d!important;color:#ffdc9a!important;border-color:#98703a!important;
+}
+html[data-ui-theme="dark"] .manual-folio .manual-status[data-active=true][data-status=ABSENT]{
+  background:#582a36!important;color:#ffc0ce!important;border-color:#ac596f!important;
+}
+html[data-ui-theme="dark"] .manual-folio .manual-status[data-active=true][data-status=EXCUSED]{
+  background:#3b315e!important;color:#dfceff!important;border-color:#7a62b6!important;
+}
+html[data-ui-theme="dark"] .manual-folio .manual-note-btn{
+  background:#2a4365!important;color:#c8dfff!important;
+}
+html[data-ui-theme="dark"] .manual-folio .manual-note-btn[data-has-note=true]{
+  background:#46386f!important;color:#e3d4ff!important;
+}
+html[data-ui-theme="dark"] .manual-folio #mfTeacherNotes,
+html[data-ui-theme="dark"] .manual-folio .manual-controls :is(input,select){
+  background:var(--night-raised)!important;color:var(--night-text)!important;
+  border-color:#5a7396!important;
+}
+html[data-ui-theme="dark"] .manual-folio #mfRight .manual-detail-card:nth-child(2){
+  background:#243650!important;
+}
+html[data-ui-theme="dark"] .manual-folio .manual-bar{background:#364966!important}
+html[data-ui-theme="dark"] .manual-folio .manual-turn-leaf .manual-page{
+  background:linear-gradient(100deg,#1b2b43 80%,#3a4a63)!important;
+}
+html[data-ui-theme="dark"] .manual-folio :is(
+ .manual-notes-item.is-archived,.manual-qr-pages,.manual-qr-contents
+){background:var(--night-soft)!important}
+html[data-ui-theme="dark"] .manual-folio #mfFeedback{color:#d1e3fd!important}
+html[data-ui-theme="dark"] .portal-page #mfHistoryPanel{
+  background:var(--night-panel)!important;border-color:var(--night-border)!important;
+}
+html[data-ui-theme="dark"] .portal-page :is(
+  .class-attendance-summary,.attendance-summary-note,.parent-note
+){background:var(--night-soft)!important;color:var(--night-muted)!important}
+@media(prefers-reduced-motion:reduce){
+ html[data-ui-theme="dark"] .manual-folio :is(.manual-btn,.manual-status){transition:none!important}
+}
