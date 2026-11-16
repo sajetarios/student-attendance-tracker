@@ -3382,17 +3382,40 @@ let teacherActionMenuListenersInstalled = false;
     if (!window.ProfilePhotos?.edit) { feedback.textContent = 'Photo editor not available. Refresh the page and try again.'; return; }
     const button = $('uploadSchoolLogo'); button.disabled = true;
     try {
-      // Reuse the same drag, zoom and rotation editor as profile photos.
-      // Its normalized image is saved to durable school-specific database storage.
-      const edited = await window.ProfilePhotos.edit(file, { purpose: 'school-logo' });
-      if (!edited) return;
-      const binary = atob(edited.cropped);
-      const bytes = new Uint8Array(binary.length);
-      for (let i=0; i<binary.length; i++) bytes[i] = binary.charCodeAt(i);
-      if (bytes.length > 2 * 1024 * 1024) throw new Error('Cropped logo exceeds 2 MB. Choose a smaller source image.');
+      // A transparent PNG is the finished school emblem: upload its original bytes.
+      // Avoid a square crop canvas that could flatten transparency or add margins.
+      let bytes;
+      let mime;
+      if (file.type === 'image/png') {
+        const source = new Uint8Array(await file.arrayBuffer());
+        const png = await createImageBitmap(file);
+        const probe = document.createElement('canvas');
+        probe.width = png.width; probe.height = png.height;
+        const context = probe.getContext('2d', { willReadFrequently: true });
+        context.drawImage(png, 0, 0);
+        const rgba = context.getImageData(0, 0, probe.width, probe.height).data;
+        let transparent = false;
+        for (let i = 3; i < rgba.length; i += 4) {
+          if (rgba[i] < 250) { transparent = true; break; }
+        }
+        png.close?.();
+        if (transparent) {
+          bytes = source;
+          mime = 'image/png';
+        }
+      }
+      if (!bytes) {
+        const edited = await window.ProfilePhotos.edit(file, { purpose: 'school-logo' });
+        if (!edited) return;
+        const binary = atob(edited.cropped);
+        bytes = new Uint8Array(binary.length);
+        for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+        mime = 'image/png';
+      }
+      if (bytes.length > 2 * 1024 * 1024) throw new Error('Logo exceeds 2 MB. Choose a smaller image.');
       const response = await fetch('/api/school/branding/logo', {
         method: 'PUT',
-        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'image/png' },
+        headers: { Authorization: `Bearer ${token}`, 'Content-Type': mime },
         body: bytes, cache: 'no-store'
       });
       const result = await response.json().catch(() => ({}));
