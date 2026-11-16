@@ -1,8 +1,46 @@
-/* Platform identity is separate from each school’s customizable branding. */
-.attendigo-brand{display:flex;align-items:center;width:220px;max-width:100%;padding:4px 10px;background:#fff;border-radius:12px;overflow:hidden;flex-shrink:0}
-.attendigo-logo{display:block;width:100%;height:auto;object-fit:contain}
-.sidebar>.attendigo-brand{width:100%;margin:0 0 18px}
-body>.attendigo-brand{margin:20px auto 0}
-.brand-lockup>.attendigo-brand{width:260px}
-@media(min-width:701px){.portal-layout.sidebar-collapsed .sidebar>.attendigo-brand{width:42px;height:42px;padding:0;background:#fff url('/assets/attendigo-icon.png') center/contain no-repeat}.portal-layout.sidebar-collapsed .sidebar>.attendigo-brand img{visibility:hidden}}
-@media(max-width:700px){.brand-lockup>.attendigo-brand{width:220px}body>.attendigo-brand{width:190px;margin-top:14px}}
+/* Single Attendigo brand lockup shared by login and every portal. */
+.attendigo-brand {
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  width:220px;
+  max-width:100%;
+  min-height:62px;
+  box-sizing:border-box;
+  padding:10px 14px;
+  background:#111b3f;
+  border:1px solid rgba(255,255,255,.12);
+  border-radius:14px;
+  overflow:hidden;
+  flex-shrink:0;
+}
+.attendigo-logo {
+  display:block;
+  width:100%;
+  max-height:76px;
+  height:auto;
+  object-fit:contain;
+  object-position:center;
+}
+.sidebar>.attendigo-brand {
+  width:100%;
+  margin:0 0 18px;
+  /* Sidebar color is administered by the school; adaptive brand styles handle contrast. */
+  background:transparent;
+  border:0;
+}
+body>.attendigo-brand { margin:20px auto 0; }
+.brand-lockup>.attendigo-brand { width:260px; }
+.student-brand>.attendigo-brand { width:220px; }
+@media(min-width:701px) {
+  .portal-layout.sidebar-collapsed .sidebar>.attendigo-brand {
+    width:48px;
+    min-height:48px;
+    height:48px;
+    padding:0;
+  }
+}
+@media(max-width:700px) {
+  .brand-lockup>.attendigo-brand { width:220px; }
+  body>.attendigo-brand { width:190px; margin-top:14px; }
+}
