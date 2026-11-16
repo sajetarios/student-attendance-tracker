@@ -2540,7 +2540,7 @@ let teacherActionMenuListenersInstalled = false;
           </select>`
         : '<span class="muted-inline">—</span>';
       return `<tr>
-        <td data-label="Account">${staffSelection} <strong>${esc(account.displayName || account.username)}</strong><small class="table-subtext">${esc(account.username)}</small></td>
+        <td data-label="Account"><div class="staff-account-identity"><span class="staff-account-check">${staffSelection}</span><span class="staff-account-name"><strong>${esc(account.displayName || account.username)}</strong><small class="table-subtext">${esc(account.username)}</small></span></div></td>
         <td data-label="Role">${esc(String(account.role || '').replaceAll('_', ' '))}</td>
         <td data-label="Department">${departmentCell}</td>
         <td data-label="Status"><span class="account-status ${account.active ? 'active' : 'inactive'}">${account.active ? 'Active' : 'Inactive'}</span></td>
