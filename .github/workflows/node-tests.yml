@@ -62,6 +62,8 @@ jobs:
           node --check student-management-routes.js
           node --check student-portal-account-routes.js
           node --check public/student-portal-accounts.js
+          node --check public/admin-request-notifications.js
+          node --check public/guardian-ui.js
           node --check public/portal.js
           node --check public/academic-admin.js
           node --check public/parent-admin.js
@@ -107,6 +109,13 @@ jobs:
         run: |
           node --check school-admin-recovery-routes.js
           node --test tests/school-admin-recovery.test.js
+      - name: Verify student account approvals and notification UI
+        run: |
+          node --check student-portal-account-routes.js
+          node --check public/admin-request-notifications.js
+          node --check public/guardian-ui.js
+          node --check public/student-portal-accounts.js
+          node --test tests/student-portal-accounts.test.js tests/approval-inbox-regression.test.js
       - name: Create fresh PostgreSQL schema
         run: npm run db:migrate
       - name: Test full one-time reset against PostgreSQL
