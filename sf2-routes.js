@@ -172,6 +172,49 @@ function registerSf2Routes(app, pool, { authenticateSchoolClient, requireSchoolU
       );
     }
 
+
+    // Teacher-confirmed manual marks are a second evidence source, not QR events.
+    // Only positive marks establish daily presence. Negative period marks remain
+    // evidence for adviser review and never independently mark a whole-day absence.
+    const manual = await pool.query(
+      `SELECT m.student_id AS id, m.school_date::text AS date, m.status,
+              m.period_id AS "periodId", m.marked_by AS "markedBy"
+       FROM manual_attendance_marks m
+       JOIN students s ON s.school_id=m.school_id AND s.student_id=m.student_id
+       LEFT JOIN LATERAL (
+         SELECT en.grade_level,en.section FROM student_enrollments en
+         JOIN school_years sy ON sy.school_id=en.school_id AND sy.school_year_id=en.school_year_id
+         WHERE en.school_id=s.school_id AND en.student_id=s.student_id
+           AND sy.status='ACTIVE' AND en.enrollment_status='ENROLLED'
+         ORDER BY en.created_at DESC LIMIT 1
+       ) active_enrollment ON TRUE
+       WHERE m.school_id=$1
+         AND COALESCE(active_enrollment.grade_level,s.grade_level)=$2
+         AND COALESCE(active_enrollment.section,s.section)=$3
+         AND m.school_date >= $4::date AND m.school_date < ($4::date + INTERVAL '1 month')
+         AND (
+           $5::boolean=FALSE
+           OR m.marked_by=$6
+         )`,
+      [req.auth.schoolId,gradeLevel,section,dateFrom,access.mode==='PERSONAL',req.auth.userId]
+    );
+    // Detect QR Present vs Manual Absent for the SAME class period only.
+    // A learner absent in one subject but present in another is not a contradiction.
+    const periodQrConflicts = await pool.query(
+      `SELECT DISTINCT m.student_id AS id, m.school_date::text AS date
+       FROM manual_attendance_marks m
+       JOIN class_periods p ON p.school_id=m.school_id AND p.period_id=m.period_id
+       JOIN attendance_events e ON e.school_id=m.school_id
+         AND e.student_id=m.student_id AND e.school_date=m.school_date AND e.period_id=m.period_id
+       WHERE m.school_id=$1 AND p.grade_level=$2 AND p.section=$3
+         AND m.school_date >= $4::date AND m.school_date < ($4::date + INTERVAL '1 month')
+         AND m.status IN ('ABSENT','EXCUSED')
+         AND e.attendance_scope='CLASS' AND e.event_type='TIME_IN'
+         AND COALESCE(e.sync_status,'ACCEPTED')='ACCEPTED'
+         AND ($5::boolean=FALSE OR m.marked_by=$6)`,
+      [req.auth.schoolId,gradeLevel,section,dateFrom,access.mode==='PERSONAL',req.auth.userId]
+    );
+
     let absent = { rows: [] };
     let tardy = { rows: [] };
 
@@ -205,12 +248,17 @@ function registerSf2Routes(app, pool, { authenticateSchoolClient, requireSchoolU
 
     const dates = datesFor(month);
     const presentSet = new Set(present.rows.map(row => `${row.id}|${String(row.date).slice(0, 10)}`));
+    const manualPresentSet = new Set(manual.rows.filter(row => ['PRESENT','LATE'].includes(row.status))
+      .map(row => `${row.id}|${String(row.date).slice(0, 10)}`));
+    for (const key of manualPresentSet) presentSet.add(key);
+    const manualConflictSet = new Set(periodQrConflicts.rows.map(row => `${row.id}|${String(row.date).slice(0, 10)}`));
     const absentMap = new Map(absent.rows.map(row => [`${row.id}|${String(row.date).slice(0, 10)}`, row.absenceType]));
     const tardyMap = new Map(tardy.rows.map(row => [row.id, Number(row.count) || 0]));
 
-    const conflictSet = new Set(
-      [...presentSet].filter(key => absentMap.has(key))
-    );
+    const conflictSet = new Set([
+      ...[...presentSet].filter(key => absentMap.has(key)),
+      ...manualConflictSet
+    ]);
 
     const rows = students.rows.map(student => ({
       ...student,
