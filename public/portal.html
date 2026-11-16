@@ -416,7 +416,7 @@
               <form id="schoolBrandingForm" class="form-grid">
                 <div class="field-group"><label for="schoolBrandingName">School name</label><input id="schoolBrandingName" maxlength="200" required></div>
                 <div class="field-group"><label for="schoolBrandColor">Interface accent color</label><input id="schoolBrandColor" type="color" value="#2463a5"><small class="field-hint">Used for buttons, selected navigation, and highlights.</small></div>
-                <div class="field-group school-logo-field"><label>School logo</label><div class="school-logo-preview" id="schoolLogoPreview">S</div><input id="schoolLogoFile" type="file" accept="image/png,image/jpeg,image/webp"><small class="field-hint">PNG, JPG, or WebP · maximum 2 MB.</small></div>
+                <div class="field-group school-logo-field"><label>School logo</label><div class="school-logo-preview" id="schoolLogoPreview">S</div><input id="schoolLogoFile" type="file" accept="image/png,image/jpeg,image/webp"><small class="field-hint">PNG, JPG, or WebP · crop and zoom before saving. Uploaded logos remain after redeployment.</small></div>
                 <div class="form-actions"><button class="primary-button" type="submit">Save school identity</button><button class="outline-button" id="uploadSchoolLogo" type="button">Upload logo</button><button class="outline-button" id="removeSchoolLogo" type="button">Remove logo</button></div>
               </form>
               <p id="schoolBrandingFeedback" class="inline-feedback" role="status" aria-live="polite"></p>
@@ -499,9 +499,9 @@
                   </div>
                 </div>
                 <div id="sapBulkToolbar" class="sap-bulk-toolbar" hidden>
-                  <label><input type="checkbox" id="sapSelectAll"> Select visible unregistered students</label>
+                  <label><input type="checkbox" id="sapSelectAll"> Select visible students</label>
                   <span id="sapSelectedCount">0 selected</span>
-                  <button class="primary-button" type="button" id="sapBulkCreate" disabled>Issue selected logins</button>
+                  <select id="sapBatchAction" aria-label="Student account batch action"><option value="CREATE">Issue new logins</option><option value="RESET">Reset existing passwords</option><option value="SUSPEND">Suspend existing logins</option><option value="ACTIVATE">Reactivate disabled logins</option></select><button class="primary-button" type="button" id="sapBulkCreate" disabled>Apply to selected</button>
                 </div>
                 <div class="sap-table-scroll"><table class="sap-table"><thead><tr><th id="sapSelectHead">Select</th><th>Student</th><th>Class</th><th>Portal status</th><th>Action</th></tr></thead><tbody id="sapRows"><tr><td colspan="5">Loading learners…</td></tr></tbody></table></div>
                 <p class="sap-footnote" id="sapListCount" role="status" aria-live="polite"></p>
