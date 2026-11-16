@@ -1,4 +1,4 @@
-const CACHE = "attendigo-v100-planner-module";
+const CACHE = "attendigo-v101-planner-mvp";
 
 const SHELL = [
   "/assets/attendigo-sidebar-logo.png",
@@ -11,7 +11,7 @@ const SHELL = [
   "/dashboard-ui.css?v=4",
   "/dashboard-night.css?v=1",
   "/planner.css?v=1",
-  "/planner.js?v=1",
+  "/planner.js?v=2",
   "/attendigo-dark-unified.css?v=1",
   "/dashboard-polish.css?v=2",
   "/photo-editor.css?v=2",
