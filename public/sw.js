@@ -1,4 +1,4 @@
-const CACHE = "attendigo-v79-login-logo-contrast";
+const CACHE = "attendigo-v80-refined-login";
 
 const SHELL = [
   "/assets/attendigo-sidebar-logo.png",
@@ -20,6 +20,7 @@ const SHELL = [
   "/schedule-workspace-ui.js?v=3",
   "/portal-login.html",
   "/attendigo-login-motion.css?v=2",
+  "/attendigo-login-refinement.css?v=1",
   "/portal.css?v=0.9.53",
   "/portal.css",
   "/portal.js?v=0.9.61",
@@ -31,7 +32,7 @@ const SHELL = [
   "/form-system.css?v=1",
   "/password-visibility.css",
   "/password-visibility.js",
-  "/portal-login.js?v=3",
+  "/portal-login.js?v=4",
   "/login-routing.js",
   "/responsive.css?v=0.8.3",
   "/comfort-ui.css?v=0.8.8",
