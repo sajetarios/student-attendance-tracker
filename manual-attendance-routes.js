@@ -10,6 +10,7 @@ function registerManualAttendanceRoutes(app,pool,{authenticateSchoolClient,requi
           EXISTS(SELECT 1 FROM teacher_period_assignments a WHERE a.school_id=p.school_id AND a.period_id=p.period_id AND a.teacher_user_id=$3)
           OR EXISTS(SELECT 1 FROM teacher_period_substitutions ts WHERE ts.school_id=p.school_id AND ts.period_id=p.period_id AND ts.substitute_teacher_user_id=$3 AND ts.status='ACTIVE' AND $4::date BETWEEN ts.start_date AND ts.end_date)
           OR EXISTS(SELECT 1 FROM schedule_day_adjustments da WHERE da.school_id=p.school_id AND da.period_id=p.period_id AND da.teacher_user_id=$3 AND da.school_date=$4::date)
+          OR EXISTS(SELECT 1 FROM class_adviser_assignments ca WHERE ca.school_id=p.school_id AND ca.adviser_user_id=$3 AND ca.grade_level=p.grade_level AND ca.section=p.section)
         )`,[req.auth.schoolId,periodId,req.auth.userId,date]);
    return q.rows[0]||null;
  }
@@ -42,7 +43,7 @@ function registerManualAttendanceRoutes(app,pool,{authenticateSchoolClient,requi
          LEFT JOIN LATERAL (SELECT en.grade_level,en.section FROM student_enrollments en JOIN school_years sy ON sy.school_id=en.school_id AND sy.school_year_id=en.school_year_id WHERE en.school_id=s.school_id AND en.student_id=s.student_id AND sy.status='ACTIVE' AND en.enrollment_status='ENROLLED' ORDER BY en.created_at DESC LIMIT 1) active_enrollment ON TRUE
          WHERE s.school_id=$1 AND s.student_id=$2 AND s.active=TRUE
            AND COALESCE(active_enrollment.grade_level,s.grade_level)=$3 AND COALESCE(active_enrollment.section,s.section)=$4`,[req.auth.schoolId,m.studentId,period.grade_level,period.section]);
-       if(!r.rowCount){await client.query('ROLLBACK');return res.status(400).json({error:'An attendance mark is outside this class roster.'});}
+       if(!r.rowCount){await client.query('ROLLBACK');return res.status(400).json({error:'Learner '+m.studentId+' is not active in this class roster. Refresh the roster or select the correct class before syncing.'});}
        await client.query(`INSERT INTO manual_attendance_marks(school_id,period_id,student_id,school_date,status,note,marked_by)
          VALUES($1,$2,$3,$4,$5,$6,$7)
          ON CONFLICT(school_id,period_id,student_id,school_date)
@@ -53,5 +54,63 @@ function registerManualAttendanceRoutes(app,pool,{authenticateSchoolClient,requi
    }catch(err){await client.query('ROLLBACK').catch(()=>{});console.error('Manual attendance sync:',err.message);return res.status(500).json({error:'Unable to sync manual attendance.'});}
    finally{client.release();}
  });
+ // Notes remain attached to the original date and class, and stay visible on later visits.
+ app.get('/api/manual-attendance/notes',...auth,async(req,res)=>{
+   const {periodId,date}=req.query;
+   if(!/^[0-9a-f-]{36}$/i.test(String(periodId||''))||!validDate(date))return res.status(400).json({error:'Select a class and date.'});
+   try{
+     const period=await authorizedPeriod(pool,req,periodId,date);
+     if(!period)return res.status(403).json({error:'Class access denied.'});
+     const items=await pool.query(`SELECT n.note_id AS "noteId",n.school_date::text AS date,n.body,
+       n.created_at AS "createdAt",n.updated_at AS "updatedAt",n.archived_at AS "archivedAt"
+       FROM manual_attendance_notes n WHERE n.school_id=$1 AND n.period_id=$2 AND n.author_id=$3
+       ORDER BY n.school_date DESC,n.created_at DESC LIMIT 300`,[req.auth.schoolId,periodId,req.auth.userId]);
+     return res.json({notes:items.rows});
+   }catch(err){console.error('Teacher notes read failed:',err.message);return res.status(500).json({error:'Unable to load teacher notes.'})}
+ });
+ app.post('/api/manual-attendance/notes',...auth,async(req,res)=>{
+   const {periodId,date,body}=req.body||{};
+   if(!/^[0-9a-f-]{36}$/i.test(String(periodId||''))||!validDate(date)||typeof body!=='string'||!body.trim()||body.trim().length>2000)return res.status(400).json({error:'A dated note is required (1–2000 characters).'});
+   try{
+     if(!await authorizedPeriod(pool,req,periodId,date))return res.status(403).json({error:'Class access denied.'});
+     const result=await pool.query(`INSERT INTO manual_attendance_notes(school_id,period_id,school_date,author_id,body)
+       VALUES($1,$2,$3,$4,$5) RETURNING note_id AS "noteId"`,[req.auth.schoolId,periodId,date,req.auth.userId,body.trim()]);
+     return res.status(201).json(result.rows[0]);
+   }catch(err){console.error('Teacher note save failed:',err.message);return res.status(500).json({error:'Unable to save teacher note.'})}
+ });
+ app.patch('/api/manual-attendance/notes/:noteId',...auth,async(req,res)=>{
+   const noteId=String(req.params.noteId||'');
+   if(!/^[0-9a-f-]{36}$/i.test(noteId))return res.status(400).json({error:'Invalid note ID.'});
+   const {action,body}=req.body||{};
+   if(!['edit','archive','restore','delete'].includes(action))return res.status(400).json({error:'Invalid note action.'});
+   if(action==='edit'&&(typeof body!=='string'||!body.trim()||body.trim().length>2000))return res.status(400).json({error:'Note text is required.'});
+   try{
+     const q=await pool.query(`SELECT period_id AS "periodId", school_date::text AS date FROM manual_attendance_notes
+       WHERE school_id=$1 AND author_id=$2 AND note_id=$3`,[req.auth.schoolId,req.auth.userId,noteId]);
+     if(!q.rowCount)return res.status(404).json({error:'Note not found.'});
+     if(!await authorizedPeriod(pool,req,q.rows[0].periodId,q.rows[0].date))return res.status(403).json({error:'Class access denied.'});
+     if(action==='delete')await pool.query('DELETE FROM manual_attendance_notes WHERE school_id=$1 AND author_id=$2 AND note_id=$3',[req.auth.schoolId,req.auth.userId,noteId]);
+     else if(action==='edit')await pool.query('UPDATE manual_attendance_notes SET body=$4, updated_at=NOW() WHERE school_id=$1 AND author_id=$2 AND note_id=$3',[req.auth.schoolId,req.auth.userId,noteId,body.trim()]);
+     else await pool.query('UPDATE manual_attendance_notes SET archived_at='+ (action==='archive'?'NOW()':'NULL')+', updated_at=NOW() WHERE school_id=$1 AND author_id=$2 AND note_id=$3',[req.auth.schoolId,req.auth.userId,noteId]);
+     return res.json({ok:true,action});
+   }catch(err){console.error('Teacher note update failed:',err.message);return res.status(500).json({error:'Unable to update teacher note.'})}
+ });
+ app.get('/api/manual-attendance/history',...auth,async(req,res)=>{
+   const {periodId,date}=req.query;
+   const page=Math.max(0,Math.min(999,Number.parseInt(String(req.query.page||'0'),10)||0));
+   if(!/^[0-9a-f-]{36}$/i.test(String(periodId||''))||!validDate(date))return res.status(400).json({error:'Select a class and date.'});
+   try{
+     if(!await authorizedPeriod(pool,req,periodId,date))return res.status(403).json({error:'Class access denied.'});
+     const params=[req.auth.schoolId,periodId];
+     const total=await pool.query('SELECT count(*)::int AS total FROM manual_attendance_marks WHERE school_id=$1 AND period_id=$2',params);
+     const rows=await pool.query(`SELECT m.student_id AS "studentId",s.full_name AS "fullName",
+       m.school_date::text AS date,m.status,m.note,m.updated_at AS "updatedAt"
+       FROM manual_attendance_marks m JOIN students s ON s.school_id=m.school_id AND s.student_id=m.student_id
+       WHERE m.school_id=$1 AND m.period_id=$2 ORDER BY m.school_date DESC,s.full_name ASC
+       LIMIT 10 OFFSET $3`,[...params,page*10]);
+     return res.json({records:rows.rows,page,total:total.rows[0].total,pageSize:10});
+   }catch(err){console.error('Manual attendance history failed:',err.message);return res.status(500).json({error:'Unable to load attendance history.'})}
+ });
+
 }
 module.exports={registerManualAttendanceRoutes};
