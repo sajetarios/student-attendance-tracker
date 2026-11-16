@@ -1,4 +1,4 @@
-const CACHE = "attendigo-v107-qr-history-curl";
+const CACHE = "attendigo-v108-compact-mobile-sidebar";
 
 const SHELL = [
   "/assets/attendigo-sidebar-logo.png",
