@@ -436,11 +436,20 @@
  <div class="manual-toolbar"><label><input id="mfSelectPage" type="checkbox"> Select page</label><span>Select learners for a batch action; if none are selected, the action applies to the entire class.</span></div>
  <div class="manual-table-wrap"><table class="manual-table"><thead><tr><th></th><th>Student Name</th><th>✓ Present</th><th>◷ Late</th><th>✕ Absent</th><th>! Excused</th><th>Notes</th></tr></thead><tbody id="mfRows"></tbody></table></div>
  <div class="manual-quick" aria-label="Batch attendance"><button type="button" class="manual-btn" data-batch="PRESENT">✓ All Present</button><button type="button" class="manual-btn" data-batch="LATE">◷ All Late</button><button type="button" class="manual-btn" data-batch="ABSENT">✕ All Absent</button><button type="button" class="manual-btn" data-batch="EXCUSED">! All Excused</button></div></section>
- <section class="manual-page" id="mfRight"><div class="manual-page-header"><h3>Attendance Details</h3><span class="manual-sync-note">Daily summary</span></div><div id="mfDetails"></div><div id="mfTeacherNotesWrap"><label for="mfTeacherNotes"><strong>Teacher Notes</strong></label><textarea id="mfTeacherNotes" maxlength="500" placeholder="Today's announcements, reasons for absence, classroom observations…"></textarea></div></section>
+ <section class="manual-page" id="mfRight"><div class="manual-page-header"><h3>Attendance Details</h3><span class="manual-sync-note">Daily summary</span></div><div id="mfDetails"></div><div id="mfTeacherNotesWrap"><label for="mfTeacherNotes"><strong>Dated teacher notes</strong></label>
+<textarea id="mfTeacherNotes" maxlength="2000" placeholder="Teacher observations, reasons for absence, delegated collection details…"></textarea>
+<div class="manual-notes-actions"><button type="button" class="manual-btn primary" id="mfSaveNote">Save dated note</button><span class="manual-sync-note">Notes are linked to this class and date. Older notes remain below.</span></div>
+<h4 class="manual-notes-heading">Notes from all dates</h4><div class="manual-notes-filter"><label><input type="checkbox" id="mfShowArchived"> Show archived notes</label></div>
+<div id="mfNotesList" class="manual-notes-list" aria-live="polite"></div></div></section>
  <section class="manual-page" id="mfRecord" hidden></section>
  </div><div class="manual-bottom"><span id="mfFeedback" class="manual-sync-note" role="status" aria-live="polite">Offline-ready attendance. Unsynced marks stay on this device.</span><div class="manual-controls"><button type="button" class="manual-btn" id="mfSave">▣ Save sheet</button><button type="button" class="manual-btn primary" id="mfSync">⟳ Sync to records</button></div></div>
  </div>
             <div id="mfHistoryPanel" class="surface-card section-card" hidden>
+<div class="manual-history-folio">
+<div class="manual-history-toolbar"><div><h3>Manual Attendance History</h3><p>Dated, teacher-confirmed manual marks. Flip through 10 entries at a time.</p></div>
+<div class="manual-page-nav"><button type="button" class="manual-btn" id="mfHistoryPrev" aria-label="Previous attendance history page">‹</button><span id="mfHistoryPages">Page 1</span><button type="button" class="manual-btn" id="mfHistoryNext" aria-label="Next attendance history page">›</button></div></div>
+<div id="mfManualHistoryRows" class="manual-history-pages" aria-live="polite"><p>Open this tab to load dated records.</p></div>
+</div><details id="mfQrHistoryDetails" class="manual-qr-archive"><summary>QR / scanned attendance history (separate from manual marks)</summary><div class="manual-qr-contents">
               <div class="section-toolbar">
                 <div><h3>Class attendance records</h3><p id="teacherAttendanceDescription">Review the attendance records for your advisory section and assigned subject classes.</p></div>
                 <button class="outline-button" type="button" id="teacherAttendanceRefresh">↻ Refresh records</button>
@@ -467,8 +476,8 @@
                 </table>
               </div>
               <p class="attendance-summary-note">Only accepted subject-class and assigned advisory records are shown. School-gate time-in/time-out records are excluded.</p>
-            </div>
-          </section>
+            </div></details></div>
+</section>
 
           <section id="sf2View" class="view-panel" hidden>
             <div class="surface-card section-card">
