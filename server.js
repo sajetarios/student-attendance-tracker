@@ -45,7 +45,13 @@ app.use((req, res, next) => {
   res.setHeader('X-Frame-Options', 'DENY');
   res.setHeader('Cross-Origin-Resource-Policy', 'same-origin');
   res.setHeader('Permissions-Policy', 'camera=(self), microphone=(), geolocation=()');
-  if (req.path.startsWith('/api/')) res.setHeader('Cache-Control', 'no-store');
+  if (req.path.startsWith('/api/') ||
+      ['/portal.html', '/student-portal.html', '/parent-portal.html',
+       '/force-password-change.html', '/session-guard.js'].includes(req.path)) {
+    res.setHeader('Cache-Control', 'no-store, private');
+    res.setHeader('Pragma', 'no-cache');
+    res.setHeader('Expires', '0');
+  }
   next();
 });
 app.use(express.json({ limit: '10mb', verify(req, _res, buffer) {
