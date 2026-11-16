@@ -1,4 +1,4 @@
-const CACHE = "attendigo-v93-unified-sf2";
+const CACHE = "attendigo-v94-unified-night-theme";
 
 const SHELL = [
   "/assets/attendigo-sidebar-logo.png",
@@ -10,6 +10,7 @@ const SHELL = [
   "/dashboard-icons.js?v=4",
   "/dashboard-ui.css?v=4",
   "/dashboard-night.css?v=1",
+  "/attendigo-dark-unified.css?v=1",
   "/dashboard-polish.css?v=1",
   "/photo-editor.css?v=2",
   "/photo-editor.js?v=4",
