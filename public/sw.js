@@ -1,4 +1,4 @@
-const CACHE = "attendigo-v91-manual-folio-layout";
+const CACHE = "attendigo-v92-notes-history-sync-fix";
 
 const SHELL = [
   "/assets/attendigo-sidebar-logo.png",
@@ -26,9 +26,9 @@ const SHELL = [
   "/portal.css?v=0.9.54",
   "/student-roster-toolbar.css?v=1",
   "/portal.css",
-  "/portal.js?v=0.9.64",
-  "/manual-folio.css?v=2",
-  "/manual-folio.js?v=2",
+  "/portal.js?v=0.9.65",
+  "/manual-folio.css?v=3",
+  "/manual-folio.js?v=3",
   "/student-portal-accounts.css?v=2",
   "/student-portal-accounts.js?v=3",
   "/admin-request-notifications.js?v=1",
