@@ -206,6 +206,14 @@
     }
   }
 </style>
+<style id="platform-plan-mobile-style">
+#platformWorkspace .platform-feature-list{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,270px),1fr));gap:8px;margin:12px 0 20px}
+#platformWorkspace .platform-feature-row{display:flex;flex-direction:row;align-items:center;justify-content:space-between;gap:14px;min-height:52px;padding:11px 14px;border:1px solid var(--border-color,rgba(128,145,160,.24));border-radius:12px;background:var(--surface-color,rgba(128,145,160,.045));cursor:pointer;font-weight:500;line-height:1.35}
+#platformWorkspace .platform-feature-name{flex:1;min-width:0}
+#platformWorkspace .platform-feature-row input[type="checkbox"]{appearance:auto;-webkit-appearance:checkbox;flex:0 0 auto;width:20px;height:20px;margin:0;accent-color:var(--primary-color,#1684dc);cursor:pointer}
+#platformWorkspace .platform-feature-row:focus-within{outline:2px solid var(--primary-color,#1684dc);outline-offset:2px}
+@media(max-width:640px){#platformWorkspace .platform-feature-list{grid-template-columns:minmax(0,1fr)}#platformWorkspace .platform-feature-row{min-height:48px}}
+</style>
 </head>
 <body class="portal-page">
   <div class="portal-layout">
@@ -1263,7 +1271,7 @@
   <script src="/schedule-workspace-ui.js?v=3" defer></script>
   <script src="/photo-editor.js?v=6" defer></script>
   <script src="/portal.js?v=0.9.79" defer></script>
-  <script src="/platform-plans-ui.js?v=4" defer></script>
+  <script src="/platform-plans-ui.js?v=5" defer></script>
   <script src="/platform-school-health.js?v=1" defer></script>
   <script src="/planner.js?v=3" defer></script>
   <script src="/manual-folio.js?v=9" defer></script>
