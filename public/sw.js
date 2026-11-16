@@ -2,7 +2,7 @@ const CACHE = "attendigo-v108-compact-mobile-sidebar";
 
 const SHELL = [
   "/assets/attendigo-sidebar-logo.png",
-  "/attendigo-sidebar-adaptive.css?v=3",
+  "/attendigo-sidebar-adaptive.css?v=5",
   "/attendigo-sidebar-adaptive.js?v=3",
   "/assets/attendigo-logo.png",
   "/assets/attendigo-icon.png",
