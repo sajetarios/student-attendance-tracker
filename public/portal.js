@@ -3384,7 +3384,7 @@ let teacherActionMenuListenersInstalled = false;
     try {
       // Reuse the same drag, zoom and rotation editor as profile photos.
       // Its normalized image is saved to durable school-specific database storage.
-      const edited = await window.ProfilePhotos.edit(file);
+      const edited = await window.ProfilePhotos.edit(file, { purpose: 'school-logo' });
       if (!edited) return;
       const binary = atob(edited.cropped);
       const bytes = new Uint8Array(binary.length);
