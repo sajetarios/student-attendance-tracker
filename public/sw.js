@@ -1,8 +1,8 @@
-const CACHE = "attendigo-v109-admin-academics-enrollment";
+const CACHE = "attendigo-v110-mobile-school-name";
 
 const SHELL = [
   "/assets/attendigo-sidebar-logo.png",
-  "/attendigo-sidebar-adaptive.css?v=5",
+  "/attendigo-sidebar-adaptive.css?v=6",
   "/attendigo-sidebar-adaptive.js?v=3",
   "/assets/attendigo-logo.png",
   "/assets/attendigo-icon.png",
