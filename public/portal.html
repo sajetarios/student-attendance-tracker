@@ -6,6 +6,7 @@
   <meta name="theme-color" content="#1c2d45">
   <title>Dashboard · Attendigo</title>
   <link rel="stylesheet" href="/portal.css?v=0.9.54">
+  <link rel="stylesheet" href="/manual-folio.css?v=1">
   <link rel="stylesheet" href="/admin-request-notifications.css?v=1">
   <link rel="stylesheet" href="/student-portal-accounts.css?v=2">
   <link rel="stylesheet" href="/attendigo-sidebar-adaptive.css?v=3">
@@ -425,6 +426,20 @@
           </section>
 
           <section id="classAttendanceView" class="view-panel" hidden>
+            <div id="manualFolio" class="manual-folio" hidden>
+ <header class="manual-head"><div><h2>📖 Interactive Attendance Sheet</h2><p>Manual attendance fallback · mark offline and sync to class records when connected.</p></div>
+ <div class="manual-controls"><label>Class / Subject<select id="mfPeriod" aria-label="Choose assigned class"></select></label><label>Attendance date<input id="mfDate" type="date" aria-label="Attendance date"></label></div></header>
+ <div id="mfStats" class="manual-stats" aria-live="polite"></div>
+ <nav class="manual-tabs" aria-label="Attendance sections"><button type="button" data-mf-tab="sheet" aria-selected="true">Attendance Sheet</button><button type="button" data-mf-tab="daily" aria-selected="false">Daily View</button><button type="button" data-mf-tab="record" aria-selected="false">Class Record</button><button type="button" data-mf-tab="notes" aria-selected="false">Notes</button></nav>
+ <div class="manual-book" id="mfBook">
+ <section class="manual-page" id="mfSheet"><div class="manual-page-header"><div><h3>Class attendance register</h3><p>Choose one status per learner. Entries are saved automatically on this device.</p></div><div class="manual-page-nav"><button class="manual-btn" id="mfPrev" type="button" aria-label="Previous page">‹</button><span id="mfPageNum">Page 1 of 1</span><button class="manual-btn" id="mfNext" type="button" aria-label="Next page">›</button></div></div>
+ <div class="manual-toolbar"><label><input id="mfSelectPage" type="checkbox"> Select page</label><span>Quick fill is applied to selected learners, or the whole class when none are selected.</span></div>
+ <div class="manual-table-wrap"><table class="manual-table"><thead><tr><th></th><th>Student Name</th><th>✓ Present</th><th>◷ Late</th><th>✕ Absent</th><th>! Excused</th><th>Notes</th></tr></thead><tbody id="mfRows"></tbody></table></div>
+ <div class="manual-quick" aria-label="Batch attendance"><button type="button" class="manual-btn" data-batch="PRESENT">✓ All Present</button><button type="button" class="manual-btn" data-batch="LATE">◷ All Late</button><button type="button" class="manual-btn" data-batch="ABSENT">✕ All Absent</button><button type="button" class="manual-btn" data-batch="EXCUSED">! All Excused</button></div></section>
+ <section class="manual-page" id="mfRight"><div class="manual-page-header"><h3>Attendance Details</h3><span class="manual-sync-note">Daily summary</span></div><div id="mfDetails"></div><div id="mfTeacherNotesWrap" style="margin-top:14px"><label for="mfTeacherNotes"><strong>Teacher Notes</strong></label><textarea id="mfTeacherNotes" maxlength="500" placeholder="Today's announcements, reasons for absence, classroom observations…"></textarea></div></section>
+ <section class="manual-page" id="mfRecord" hidden></section>
+ </div><div class="manual-bottom"><span id="mfFeedback" class="manual-sync-note" role="status" aria-live="polite">Offline-ready attendance. Unsynced marks stay on this device.</span><div class="manual-controls"><button type="button" class="manual-btn" id="mfSave">▣ Save sheet</button><button type="button" class="manual-btn primary" id="mfSync">⟳ Sync to records</button></div></div>
+ </div>
             <div class="surface-card section-card">
               <div class="section-toolbar">
                 <div><h3>Class attendance records</h3><p id="teacherAttendanceDescription">Review the attendance records for your advisory section and assigned subject classes.</p></div>
@@ -1106,6 +1121,7 @@
   <script src="/schedule-workspace-ui.js?v=3" defer></script>
   <script src="/photo-editor.js?v=4" defer></script>
   <script src="/portal.js?v=0.9.64" defer></script>
+  <script src="/manual-folio.js?v=1" defer></script>
   <script src="/student-portal-accounts.js?v=3" defer></script>
   <script src="/guardian-ui.js?v=4" defer></script>
   <script src="/admin-request-notifications.js?v=1" defer></script>
