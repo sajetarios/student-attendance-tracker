@@ -2,7 +2,7 @@
 <link rel="apple-touch-icon" href="/assets/attendigo-icon.png">
 <link rel="stylesheet" href="/attendigo-brand.css?v=2">
 <link rel="manifest" href="/manifest.webmanifest">
-</head><body class="portal-page"><div class="attendigo-brand"><img class="attendigo-logo" src="/assets/attendigo-sidebar-logo.png" alt="Attendigo" width="2172" height="724"></div><main><h1>Class attendance</h1><p>Sign in to your student account before confirming your class check-in.</p><button id="checkin">Confirm attendance</button><p id="message" role="status">Ready to check in.</p><p><a href="/portal-login.html">Student sign in</a></p></main><script>
+<link rel="stylesheet" href="/attendigo-dark-unified.css?v=1"><script src="/dashboard-appearance.js?v=3"></script></head><body class="portal-page"><div class="attendigo-brand"><img class="attendigo-logo" src="/assets/attendigo-sidebar-logo.png" alt="Attendigo" width="2172" height="724"></div><main><h1>Class attendance</h1><p>Sign in to your student account before confirming your class check-in.</p><button id="checkin">Confirm attendance</button><p id="message" role="status">Ready to check in.</p><p><a href="/portal-login.html">Student sign in</a></p></main><script>
 const q=new URLSearchParams(location.search),button=document.getElementById('checkin'),msg=document.getElementById('message');
 const pendingKey='schoolAttendance.pendingClassQr';
 if(q.get('sessionId')&&q.get('token'))sessionStorage.setItem(pendingKey,location.href);
