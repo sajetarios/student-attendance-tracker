@@ -176,9 +176,9 @@
   function allowedViewsForUser() {
     const role = user?.role;
     if (role === 'SCHOOL_ADMIN') return ['dashboard', 'students', 'studentAccounts', 'teachers', 'schedules', 'cloudSync', 'schoolBranding'];
-    if (role === 'DEPARTMENT_HEAD') return ['dashboard', 'students', 'teachers', 'schedules', 'sf2'];
+    if (role === 'DEPARTMENT_HEAD') return ['dashboard', 'planner', 'students', 'teachers', 'schedules', 'sf2'];
     if (role === 'TEACHER') {
-      const views = ['dashboard'];
+      const views = ['dashboard', 'planner'];
       if (teacherHas('SUBJECT_TEACHER') || teacherHas('CLASS_ADVISER')) {
         views.push('students', 'studentAccounts', 'classAttendance');
       }
@@ -206,7 +206,7 @@
     if (!allowedViews.includes(view)) view = allowedViews.includes('dashboard') ? 'dashboard' : (allowedViews[0] || 'dashboard');
     $('platformWorkspace').hidden = true;
     $('schoolWorkspace').hidden = false;
-    ['dashboard', 'students', 'studentAccounts', 'schedules', 'teachers', 'sf2', 'classAttendance', 'cloudSync', 'schoolBranding'].forEach(name => {
+    ['dashboard', 'students', 'studentAccounts', 'schedules', 'teachers', 'sf2', 'classAttendance', 'cloudSync', 'schoolBranding', 'planner'].forEach(name => {
       const panel = $(`${name}View`);
       if (panel) panel.hidden = name !== view;
     });
@@ -232,6 +232,7 @@
         dashboard: ['Department Head Dashboard', 'Monitor learner attendance, teacher availability, class coverage, schedules, and section report progress.'],
         students: ['Student roster · Department scope', 'View learners school-wide and manage approved bulk changes only within your own scheduled sections. Individual identity details remain editable by authorized staff.'],
         teachers: ['Teachers & Staff', 'Review department teachers and staff, their designations, assigned sections, leave, schedules, and temporary coverage.'],
+        planner: ['Planner', 'Organize departmental meetings, shared deadlines, and your own tasks without changing the official timetable.'],
         schedules: ['Department schedule management', 'View every department’s timetable and create or assign class schedules only within your own department.'],
         sf2: ['SF2 monitoring', 'Preview official section reports. Department Heads cannot edit, submit, or collect SF2 reports.']
       };
@@ -243,6 +244,7 @@
         dashboard: [dashboardName, classAdviser && subjectTeacher ? 'Your assigned subjects and advisory section at a glance.' : classAdviser ? 'Monitor your assigned section and official SF2 responsibilities.' : 'Monitor your assigned subject classes and record period attendance.'],
         students: [classAdviser && !subjectTeacher ? 'My advisory section' : 'My assigned learners', 'View only the learners in your assigned sections and subject schedules.'],
         studentAccounts: ['Student portal account requests', 'Request logins and password recovery for your authorized learners. School Admin approval is required.'],
+        planner: ['My Planner', 'Plan lessons, tasks, personal meetings and reminders around assigned class schedules.'],
         schedules: ['My teaching and advisory schedules', 'View your assigned teaching periods, active substitute assignments, and advisory class timetable.'],
         sf2: [classAdviser && subjectTeacher ? 'My SF2 reports' : classAdviser ? 'Official section SF2' : 'Personal SF2 copy', classAdviser ? 'Generate the official consolidated section SF2 only for sections assigned to you as Class Adviser.' : 'Generate a personal attendance copy from your own subject-period records.'],
         classAttendance: ['Class attendance', classAdviser && subjectTeacher ? 'Review your advisory section and the other sections covered by your assigned subject schedules.' : classAdviser ? 'Review attendance for your assigned advisory section.' : 'Review attendance in the sections covered by your assigned subject schedules.']
@@ -263,6 +265,7 @@
     $('viewTitle').textContent = title[0];
     $('viewDescription').textContent = title[1];
     $('breadcrumbCurrent').textContent = title[0];
+    if (view === 'planner') $('plannerView')?.dispatchEvent(new Event('planner:open'));
     if (view === 'classAttendance' && role === 'TEACHER') {
       loadTeacherClassAttendance().catch(error => {
         if ($('teacherAttendanceFeedback')) {
@@ -293,6 +296,7 @@
     const teacher = role === 'TEACHER';
     if ($('cloudSyncNav')) $('cloudSyncNav').hidden = !admin;
     if ($('schoolBrandingNav')) $('schoolBrandingNav').hidden = !admin;
+    if ($('plannerNav')) $('plannerNav').hidden = !['TEACHER', 'DEPARTMENT_HEAD'].includes(role);
     if ($('smsNav')) $('smsNav').hidden = !admin;
     if ($('exportTeachersButton')) $('exportTeachersButton').hidden = !(admin || role === 'DEPARTMENT_HEAD');
     if ($('bulkImportStudentsButton')) $('bulkImportStudentsButton').hidden = !(admin || teacherHas('CLASS_ADVISER'));
