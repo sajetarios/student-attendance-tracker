@@ -244,3 +244,16 @@ body.dark-mode .manual-history-tabs button[aria-selected=true],body[data-theme=d
 /* Hidden history tab must never show the old attendance summary. */
 #mfBook[hidden],#mfHistoryPanel[hidden],#mfManualHistoryPanel[hidden],#mfQrHistoryDetails[hidden],#mfConflictPanel[hidden]{display:none!important}
 #mfHistoryPanel .manual-book,#mfHistoryPanel #mfRight{display:none!important}
+
+/* Verified class-period QR vs manual conflict resolution */
+.manual-conflict-card{display:grid;gap:10px;padding:16px 12px;border-bottom:1px solid #d7e5f6;background:transparent}
+.manual-conflict-card>strong{font-size:15px;color:var(--ink,#15356e)}
+.manual-conflict-card>small{font-size:12px;color:#657b9a}
+.manual-conflict-evidence{display:flex;flex-wrap:wrap;gap:10px}
+.manual-conflict-evidence span{padding:10px 14px;border:1px solid #d3e1f3;border-radius:10px;background:#f1f6ff;font-size:13px;color:#1c3e73}
+.manual-conflict-card .manual-sync-note{line-height:1.6;margin:0}
+.manual-conflict-card .manual-quick{margin:0}
+html[data-ui-theme=dark] .manual-conflict-card{border-color:#40536f}
+html[data-ui-theme=dark] .manual-conflict-card>strong{color:#f1f6ff}
+html[data-ui-theme=dark] .manual-conflict-card>small{color:#bfcee4}
+html[data-ui-theme=dark] .manual-conflict-evidence span{background:#263b57;color:#e8f1ff;border-color:#526985}
