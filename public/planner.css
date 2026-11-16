@@ -46,3 +46,30 @@ html[data-ui-theme=dark] .planner-event-dot.shared{background:#473a6d}
 html[data-ui-theme=dark] .planner-chip{background:#304966;color:#e3efff}
 html[data-ui-theme=dark] .planner-chip.high{background:#592c38;color:#ffd7de}
 html[data-ui-theme=dark] .planner-chip.shared{background:#483a70;color:#e7d7ff}
+
+/* Dashboard Planner shortcut – visible only for permitted roles */
+.planner-dashboard-widget{padding:18px 20px;margin:16px 0;border-radius:18px;display:grid;gap:13px}
+.planner-dashboard-widget[hidden]{display:none!important}
+.planner-dashboard-intro{display:flex;gap:13px;align-items:center;flex-wrap:wrap}
+.planner-dashboard-icon{width:48px;height:48px;display:grid;place-items:center;border-radius:14px;background:linear-gradient(140deg,#168bdf,#4b38c3);color:#fff;font-size:25px}
+.planner-dashboard-intro>div:nth-child(2){flex:1;min-width:190px}
+.planner-dashboard-kicker{display:block;color:#637b9f;font-size:10px;font-weight:800;letter-spacing:.12em}
+.planner-dashboard-intro h3{font-size:19px;margin:3px 0 4px;color:#15366e}
+.planner-dashboard-intro p{font-size:12px;line-height:1.5;margin:0;color:#627999}
+.planner-dashboard-buttons{display:flex;gap:8px;flex-wrap:wrap}
+.planner-dashboard-metrics{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+.planner-dashboard-metrics>div{border:1px solid #dce7f5;background:#f6f9ff;border-radius:12px;padding:11px 14px}
+.planner-dashboard-metrics strong{display:block;color:#1b4a9a;font-size:21px}
+.planner-dashboard-metrics span{font-size:11px;color:#617898;font-weight:700}
+.planner-dashboard-preview{display:flex;gap:9px;flex-wrap:wrap}
+.planner-dashboard-event{display:flex;flex-direction:column;gap:4px;border:1px solid #d9e5f5;border-radius:11px;padding:10px 12px;background:#f9fbff;min-width:155px;flex:1}
+.planner-dashboard-event b{font-size:12px;color:#1e3e75}
+.planner-dashboard-event small,.planner-dashboard-empty{font-size:11px;color:#657b99}
+html[data-ui-theme=dark] .planner-dashboard-widget{background:#17263e!important;border-color:#425878!important}
+html[data-ui-theme=dark] .planner-dashboard-intro h3{color:#f1f6ff!important}
+html[data-ui-theme=dark] .planner-dashboard-intro p,html[data-ui-theme=dark] .planner-dashboard-kicker,
+html[data-ui-theme=dark] .planner-dashboard-event small,html[data-ui-theme=dark] .planner-dashboard-empty{color:#c3d0e4!important}
+html[data-ui-theme=dark] .planner-dashboard-metrics>div,html[data-ui-theme=dark] .planner-dashboard-event{background:#253851;border-color:#485f7e}
+html[data-ui-theme=dark] .planner-dashboard-metrics strong,html[data-ui-theme=dark] .planner-dashboard-event b{color:#e5f1ff}
+html[data-ui-theme=dark] .planner-dashboard-metrics span{color:#c0d3e9}
+@media(max-width:600px){.planner-dashboard-widget{padding:13px}.planner-dashboard-metrics>div{padding:10px}.planner-dashboard-buttons{width:100%}.planner-dashboard-buttons button{flex:1}}
