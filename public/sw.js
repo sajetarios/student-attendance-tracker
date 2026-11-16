@@ -1,4 +1,4 @@
-const CACHE = "attendigo-v92-notes-history-sync-fix";
+const CACHE = "attendigo-v93-unified-sf2";
 
 const SHELL = [
   "/assets/attendigo-sidebar-logo.png",
@@ -26,7 +26,7 @@ const SHELL = [
   "/portal.css?v=0.9.54",
   "/student-roster-toolbar.css?v=1",
   "/portal.css",
-  "/portal.js?v=0.9.65",
+  "/portal.js?v=0.9.66",
   "/manual-folio.css?v=3",
   "/manual-folio.js?v=3",
   "/student-portal-accounts.css?v=2",
@@ -43,7 +43,7 @@ const SHELL = [
   "/form-system.css?v=1",
   "/password-visibility.css",
   "/password-visibility.js",
-  "/portal-login.js?v=4",
+  "/portal-login.js?v=5",
   "/login-routing.js",
   "/responsive.css?v=0.8.3",
   "/comfort-ui.css?v=0.8.8",
