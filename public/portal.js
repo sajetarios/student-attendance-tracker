@@ -615,7 +615,7 @@
     const opening = children.hidden;
     children.hidden = !opening;
     $('staffNavToggle').setAttribute('aria-expanded', String(opening));
-    if (opening) { setView('teachers'); setAdminManagementTab('accounts'); }
+    // Expanding a nested menu never navigates, opens other menus, or changes sidebar width.
   });
   $('staffNavChildren')?.addEventListener('click', event => {
     const button = event.target.closest('[data-staff-section]');
