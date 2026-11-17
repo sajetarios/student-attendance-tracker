@@ -22,7 +22,10 @@ test('cloud status distinguishes local server availability from cloud replicatio
   assert.ok(html.includes('aria-controls="attendanceSyncDialog"'));
   assert.ok(html.includes('id="syncHeaderLabel"'));
   assert.ok(js.includes("api('/api/cloud-sync/status')"));
-  assert.ok(js.includes('Cloud sync not configured'));
+  const center = fs.readFileSync(path.join(root, 'public', 'attendance-sync-center.js'),'utf8');
+  assert.ok(js.includes('AttendigoSyncCenter.setCloudStatus'));
+  assert.ok(center.includes("'Cloud sync not configured'"), 'Admin cloud details remain available inside Sync Center');
+  assert.ok(!js.includes("label.textContent = 'Cloud sync not configured'"), 'Cloud status must not replace header title');
   assert.ok(css.includes('.connection-chip.local-only'));
 });
 
