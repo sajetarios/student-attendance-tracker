@@ -13,7 +13,7 @@
   <link rel="stylesheet" href="/manual-folio.css?v=11">
   <link rel="stylesheet" href="/attendance-sync-center.css?v=2">
   <link rel="stylesheet" href="/admin-request-notifications.css?v=2">
-  <link rel="stylesheet" href="/student-portal-accounts.css?v=3">
+  <link rel="stylesheet" href="/student-portal-accounts.css?v=4">
   <link rel="stylesheet" href="/attendigo-sidebar-adaptive.css?v=8">
   <link rel="stylesheet" href="/academic-admin.css?v=1">
   <link rel="stylesheet" href="/password-visibility.css">
@@ -889,9 +889,15 @@ body.dark-mode .content-wrap > .school-heading.is-compact,body[data-theme="dark"
             </div>
             <div id="sapRequestModal" class="student-edit-overlay" role="dialog" aria-modal="true" aria-labelledby="sapRequestTitle" hidden>
               <form id="sapRequestForm" class="student-edit-dialog sap-modal">
-                <div class="sap-modal-head"><div><h3 id="sapRequestTitle">Request student portal access</h3><p id="sapRequestStudent"></p></div><button type="button" id="sapRequestClose" class="outline-button">Close</button></div>
+                <div class="sap-modal-head"><div><h3 id="sapRequestTitle">Request student portal access</h3><p id="sapRequestStudent"></p></div><button type="button" id="sapRequestClose" class="outline-button" aria-label="Close request dialog">Close</button></div>
                 <input type="hidden" id="sapRequestStudentId"><input type="hidden" id="sapRequestType">
-                <div class="field-group"><label for="sapReason">Reason for request</label><textarea id="sapReason" rows="3" minlength="8" maxlength="500" required placeholder="Explain why this learner needs access or password recovery"></textarea></div>
+                <div class="sap-request-summary" aria-label="Request summary">
+                  <div><span>Students</span><strong id="sapRequestCount">1</strong></div>
+                  <div><span>Request type</span><strong id="sapRequestActionName">New student login</strong></div>
+                  <div><span>Approval</span><strong>School Admin</strong></div>
+                </div>
+                <p class="sap-request-privacy">Existing logins are not duplicated. School Admin must approve each request; teachers will not receive temporary passwords.</p>
+                <div class="field-group" id="sapReasonGroup" hidden><label id="sapReasonLabel" for="sapReason">Reason for request</label><textarea id="sapReason" rows="3" maxlength="500" placeholder="Optional context for the School Admin"></textarea><small id="sapReasonHelp">Only provide additional context if needed.</small></div>
                 <div class="form-actions"><button type="submit" class="primary-button" id="sapRequestSubmit">Send to School Admin</button><span class="inline-feedback" id="sapRequestFeedback" role="status"></span></div>
               </form>
             </div>
@@ -1543,7 +1549,7 @@ body.dark-mode .content-wrap > .school-heading.is-compact,body[data-theme="dark"
   <script src="/platform-school-health.js?v=1" defer></script>
   <script src="/planner.js?v=4" defer></script>
   <script src="/manual-folio.js?v=14" defer></script>
-  <script src="/student-portal-accounts.js?v=6" defer></script>
+  <script src="/student-portal-accounts.js?v=7" defer></script>
   <script src="/guardian-ui.js?v=4" defer></script>
   <script src="/admin-request-notifications.js?v=2" defer></script>
   <script src="/academic-admin.js?v=5" defer></script>
