@@ -98,7 +98,7 @@ test('single unified Sync Center is triggered from the existing responsive heade
   assert.match(portalJs, /AttendigoSyncCenter\.setCloudStatus/);
   assert.match(ui, /if \(!isAdmin\(\)\) return/);
   assert.match(ui, /Cloud sync not configured/);
-  assert.match(ui, /Cloud forwarding off/);
+  assert.match(ui, /Cloud forwarding disabled/);
   assert.match(ui, /needsReview/);
   assert.match(ui, /trigger\.setAttribute\('aria-label', 'Open Attendance Sync Center/);
   assert.match(css, /#connectionStatus\.asc-header-trigger/);
