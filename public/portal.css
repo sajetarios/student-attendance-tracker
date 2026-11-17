@@ -2806,3 +2806,31 @@ html[data-ui-theme="dark"] .dh-command-metric>span:not(.dh-metric-icon),html[dat
 html[data-ui-theme="dark"] .dh-attention-row,html[data-ui-theme="dark"] .dh-command-shortcuts button{background:#243952;border-color:#405c79;color:#edf5ff}
 html[data-ui-theme="dark"] .dh-command-shortcuts button:hover{background:#2d4969}
 html[data-ui-theme="dark"] .dh-metric-icon,html[data-ui-theme="dark"] .dh-attention-icon{background:#304d70;color:#d0e7ff}
+
+/* Compact department quick-access: balanced cards, no stretched blank panel. */
+#departmentHeadOverview .dh-command-columns{align-items:start}
+#departmentHeadOverview .dh-command-panel{align-self:start}
+#departmentHeadOverview .dh-command-panel:has(.dh-command-shortcuts){padding:18px}
+#departmentHeadOverview .dh-command-shortcuts{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+#departmentHeadOverview .dh-command-shortcuts .dh-shortcut{display:flex;align-items:center;gap:10px;min-height:78px;padding:12px;border:1px solid #dce7f5;border-radius:13px;background:#f8fbff;color:#203f64;box-shadow:0 2px 5px #1a4c7a08;transition:background .15s,border-color .15s,transform .15s,box-shadow .15s}
+#departmentHeadOverview .dh-shortcut .dh-shortcut-icon{display:grid;place-items:center;flex:0 0 39px;width:39px;height:39px;padding:9px;border-radius:11px;background:#e6f0ff;color:#2363ad;font-size:20px}
+#departmentHeadOverview .dh-shortcut-teachers .dh-shortcut-icon{background:#e6f6ef;color:#16815d}
+#departmentHeadOverview .dh-shortcut-sf2 .dh-shortcut-icon{background:#fff2e4;color:#b9712e}
+#departmentHeadOverview .dh-shortcut-planner .dh-shortcut-icon{background:#f1eafd;color:#7955ba}
+#departmentHeadOverview .dh-shortcut .dh-shortcut-copy{display:flex;flex-direction:column;flex:1;gap:4px;min-width:0}
+#departmentHeadOverview .dh-shortcut .dh-shortcut-copy strong{font-size:12px;font-weight:800;line-height:1.3;text-align:left}
+#departmentHeadOverview .dh-shortcut .dh-shortcut-copy small{font-size:10px;line-height:1.35;color:#687e97;text-align:left;font-weight:500}
+#departmentHeadOverview .dh-shortcut .dh-shortcut-arrow{font-size:23px;color:#7594b7;line-height:1;flex:0 0 auto}
+#departmentHeadOverview .dh-command-shortcuts .dh-shortcut:hover{transform:translateY(-2px);background:#eff6ff;border-color:#91b8e8;box-shadow:0 6px 14px #1a4c7a12}
+#departmentHeadOverview .dh-command-shortcuts .dh-shortcut:active{transform:translateY(0)}
+@media(max-width:650px){#departmentHeadOverview .dh-command-panel:has(.dh-command-shortcuts){padding:14px}#departmentHeadOverview .dh-command-shortcuts{gap:8px}#departmentHeadOverview .dh-command-shortcuts .dh-shortcut{padding:10px;min-height:75px;gap:8px}#departmentHeadOverview .dh-shortcut .dh-shortcut-icon{flex-basis:32px;width:32px;height:32px;padding:7px}#departmentHeadOverview .dh-shortcut .dh-shortcut-arrow{display:none}}
+@media(max-width:390px){#departmentHeadOverview .dh-command-shortcuts{grid-template-columns:1fr}}
+html[data-ui-theme="dark"] #departmentHeadOverview .dh-command-shortcuts .dh-shortcut{background:#253a53;border-color:#3b5572;color:#f0f6ff}
+html[data-ui-theme="dark"] #departmentHeadOverview .dh-shortcut .dh-shortcut-copy small{color:#b6c9de}
+html[data-ui-theme="dark"] #departmentHeadOverview .dh-shortcut .dh-shortcut-arrow{color:#a3c2e6}
+html[data-ui-theme="dark"] #departmentHeadOverview .dh-command-shortcuts .dh-shortcut:hover{background:#304b6c;border-color:#6e9cd1}
+html[data-ui-theme="dark"] #departmentHeadOverview .dh-shortcut .dh-shortcut-icon{background:#304d73;color:#bddbff}
+html[data-ui-theme="dark"] #departmentHeadOverview .dh-shortcut-teachers .dh-shortcut-icon{background:#235244;color:#a1ead0}
+html[data-ui-theme="dark"] #departmentHeadOverview .dh-shortcut-sf2 .dh-shortcut-icon{background:#57412e;color:#f9d09d}
+html[data-ui-theme="dark"] #departmentHeadOverview .dh-shortcut-planner .dh-shortcut-icon{background:#483961;color:#dcc6ff}
+@media(prefers-reduced-motion:reduce){#departmentHeadOverview .dh-command-shortcuts .dh-shortcut{transition:none}#departmentHeadOverview .dh-command-shortcuts .dh-shortcut:hover{transform:none}}
