@@ -33,6 +33,7 @@ const { registerSchoolAdminRecoveryRoutes } = require('./school-admin-recovery-r
 const { registerFlexibleScheduleRoutes } = require('./flexible-schedule-routes');
 const { registerClassQrRoutes } = require('./class-qr-routes');
 const { registerManualAttendanceRoutes } = require('./manual-attendance-routes');
+const { registerClassFinalizationRoutes } = require('./class-finalization-routes');
 const { registerSardoRoutes } = require('./sardo-routes');
 const { registerPlannerRoutes } = require('./planner-routes');
 const { registerPhotoRoutes, registerPlatformPhotoRoutes, readOfficialPhoto } = require('./profile-photo-routes');
@@ -107,6 +108,7 @@ registerSchoolAdminRecoveryRoutes(app, pool, { authenticatePlatform, requirePlat
 registerFlexibleScheduleRoutes(app, pool, { authenticateSchoolClient, requireSchoolRoles });
 registerClassQrRoutes(app, pool, { authenticateSchoolClient, requireSchoolRoles });
 registerManualAttendanceRoutes(app, pool, { authenticateSchoolClient, requireSchoolRoles });
+registerClassFinalizationRoutes(app, pool, { authenticateSchoolClient, requireSchoolRoles });
 registerSardoRoutes(app, pool, { authenticateSchoolClient, requireSchoolRoles });
 registerPhotoRoutes(app, pool, { authenticateSchoolClient });
 registerPlatformPhotoRoutes(app, pool, { authenticatePlatform, requirePlatformAdmin });
