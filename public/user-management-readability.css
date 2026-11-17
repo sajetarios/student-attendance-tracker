@@ -45,3 +45,17 @@ html[data-ui-theme="dark"] #teachersView .teacher-monitor-table td:first-child :
  html[data-ui-theme="dark"] #teachersView .teacher-monitor-table td:not(:first-child)::before{color:#c6d9f2!important}
  html[data-ui-theme="dark"] #teachersView .teacher-monitor-table td:first-child :is(strong,b){font-size:1.15rem!important;line-height:1.4!important}
 }
+
+/* Status pills have pale backgrounds: never inherit the table's white text. */
+#teachersView .teacher-monitor-table td:nth-child(3) :is(.status-pill,.status-badge,.badge,.teacher-status,.status-chip),
+html[data-ui-theme="dark"] #teachersView .teacher-monitor-table td:nth-child(3) :is(.status-pill,.status-badge,.badge,.teacher-status,.status-chip),
+html[data-ui-theme="dark"] #teachersView .teacher-monitor-table td:nth-child(3) :is(.status-pill,.status-badge,.badge,.teacher-status,.status-chip) *{
+ color:#08613e!important;
+ -webkit-text-fill-color:#08613e!important;
+ font-weight:800!important;
+ text-shadow:none!important;
+}
+html[data-ui-theme="dark"] #teachersView .teacher-monitor-table td:nth-child(3) :is(.status-pill,.status-badge,.badge,.teacher-status,.status-chip)[class*="inactive"],
+html[data-ui-theme="dark"] #teachersView .teacher-monitor-table td:nth-child(3) :is(.status-pill,.status-badge,.badge,.teacher-status,.status-chip)[class*="leave"]{
+ color:#713c10!important;-webkit-text-fill-color:#713c10!important;
+}
