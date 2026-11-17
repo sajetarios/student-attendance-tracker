@@ -1933,7 +1933,7 @@ function coverageStatusLabel(status) {
   }
 
   function renderPeriods() {
-    const canBulkAssign = user.role === 'DEPARTMENT_HEAD';
+    const canBulkAssign = user.role === 'DEPARTMENT_HEAD' && user.departmentCode !== 'UNASSIGNED';
     const isTeacher = user.role === 'TEACHER';
     const isSchoolManager = user.role === 'SCHOOL_ADMIN' || user.role === 'DEPARTMENT_HEAD';
     if ($('periodBulkToolbar')) $('periodBulkToolbar').hidden = !canBulkAssign;
@@ -2008,12 +2008,15 @@ function coverageStatusLabel(status) {
       if ($('managerScheduleTableWrap')) $('managerScheduleTableWrap').hidden = false;
       if ($('teacherScheduleOverview')) $('teacherScheduleOverview').hidden = true;
       $('scheduleRows').innerHTML = periods.length ? periods.map(period => {
-        const canSelectPeriod = (user.role === 'SCHOOL_ADMIN' || String(period.departmentId) === String(user.departmentId)) && !period.assignedTeacherName;
+        const canSelectPeriod = isPeriodEligibleForBatchAssignment(period);
+        const selectionReason = period.assignedTeacherUserId || period.assignedTeacherName
+          ? 'Already assigned'
+          : 'Outside your department';
         const selection = canBulkAssign
           ? '<td data-label="Select">' + (canSelectPeriod
             ? '<input type="checkbox" data-select-period="' + esc(period.periodId) + '" ' +
               (selectedPeriodIds.has(String(period.periodId)) ? 'checked' : '') + ' aria-label="Select ' + esc(period.periodName) + '">'
-            : '—') + '</td>'
+            : '<label><input type="checkbox" disabled> ' + selectionReason + '</label>') + '</td>'
           : '';
         const canEditPeriod = user.role==='SCHOOL_ADMIN' || (user.role==='DEPARTMENT_HEAD'&&user.departmentCode!=='UNASSIGNED'&&String(period.scheduleDepartmentId)===String(user.departmentId));
         const deleteAction = canEditPeriod ? `<div class="schedule-row-actions"><button type="button" class="outline-button compact-button" data-edit-period="${esc(period.periodId)}">Edit</button>${user.role==='SCHOOL_ADMIN'?'<button type="button" class="outline-button compact-button danger-button" data-delete-period="'+esc(period.periodId)+'">Delete</button>':''}</div>` : '—';
@@ -2027,7 +2030,7 @@ function coverageStatusLabel(status) {
           <td data-label="Days">${esc(formatScheduleDays(period.weekdays))}</td><td data-label="Time">${esc(period.startTime)}–${esc(period.endTime)}</td>
           <td data-label="Assigned teacher">${esc(period.assignedTeacherName || 'Unassigned')}</td><td data-label="Actions">${deleteAction}</td>
         </tr>`;
-      }).join('') : '<tr><td colspan="' + (canBulkAssign ? 10 : 9) + '" class="empty-cell">No class schedules are available yet.</td></tr>';
+      }).join('') : '<tr><td colspan="' + (canBulkAssign ? 11 : 10) + '" class="empty-cell">No class schedules are available yet.</td></tr>';
 
       renderWeeklyTimetable();
       setScheduleDisplay(activeScheduleDisplay);
@@ -5177,13 +5180,20 @@ let teacherActionMenuListenersInstalled = false;
     }
   });
 
+  function isPeriodEligibleForBatchAssignment(period) {
+    return user.role === 'DEPARTMENT_HEAD' && user.departmentCode !== 'UNASSIGNED' &&
+      Boolean(user.departmentId) && String(period.scheduleDepartmentId) === String(user.departmentId) &&
+      !period.assignedTeacherUserId && !period.assignedTeacherName;
+  }
+
   function updatePeriodBatchUi() {
     const visibleIds = periods
-      .filter(p => String(p.departmentId) === String(user.departmentId) && !p.assignedTeacherUserId && !p.assignedTeacherName)
+      .filter(isPeriodEligibleForBatchAssignment)
       .map(p => String(p.periodId));
     const eligibleIds = new Set(visibleIds);
     [...selectedPeriodIds].forEach(id => { if (!eligibleIds.has(id)) selectedPeriodIds.delete(id); });
     $('selectedPeriodCount').textContent = selectedPeriodIds.size + ' selected';
+    $('selectAllPeriods').disabled = visibleIds.length === 0;
     $('selectAllPeriods').checked = visibleIds.length > 0 && visibleIds.every(id => selectedPeriodIds.has(id));
     $('selectAllPeriods').indeterminate = visibleIds.some(id => selectedPeriodIds.has(id)) && !$('selectAllPeriods').checked;
     $('applyBulkScheduleAssignment').disabled = !selectedPeriodIds.size || !$('bulkScheduleTeacher').value;
@@ -5224,9 +5234,7 @@ let teacherActionMenuListenersInstalled = false;
   });
 
   $('selectAllPeriods')?.addEventListener('change', () => {
-    const visible = periods.filter(p =>
-      String(p.departmentId) === String(user.departmentId) && !p.assignedTeacherUserId && !p.assignedTeacherName
-    );
+    const visible = periods.filter(isPeriodEligibleForBatchAssignment);
     visible.forEach(p => $('selectAllPeriods').checked ? selectedPeriodIds.add(String(p.periodId)) : selectedPeriodIds.delete(String(p.periodId)));
     renderPeriods(); updatePeriodBatchUi();
   });
