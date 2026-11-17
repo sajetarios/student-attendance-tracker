@@ -77,7 +77,7 @@ test('original approved Attendigo artwork is used in both transparent light/dark
 test('sidebar is card-free, compact, and keeps other portals branded with their existing surfaces',()=>{
  assert.match(html,/id="sidebarSchoolMark"/);
  assert.match(html,/id="sidebarSchoolName"/);
- assert.match(html,/attendigo-symbol-transparent\.svg\?v=1/);
+ assert.match(html,/attendigo-symbol-transparent\.svg\?v=2/);
  assert.match(css,/attendigo-brand \{/);
  assert.match(css,/background:transparent!important/);
  assert.match(css,/side-primary-height:44px/);
@@ -98,9 +98,9 @@ test('sidebar sync shortcut is removed, while topbar Sync Center and offline syn
  assert.ok(!html.includes('Connected to local server'));
 });
 test('the service worker caches the deployed variants and correct versioned sidebar assets',()=>{
- const assets=['/attendigo-sidebar-adaptive.css?v=14','/attendigo-sidebar-adaptive.js?v=8',
+ const assets=['/attendigo-sidebar-adaptive.css?v=24','/attendigo-sidebar-adaptive.js?v=8',
  '/attendigo-brand-refresh.css?v=3','/assets/attendigo-wordmark-on-light.svg?v=2',
- '/assets/attendigo-wordmark-on-dark.svg?v=1','/assets/attendigo-symbol-transparent.svg?v=2'];
+ '/assets/attendigo-wordmark-on-dark.svg?v=2','/assets/attendigo-symbol-transparent.svg?v=2'];
  for(const asset of assets)assert.ok(worker.includes(JSON.stringify(asset)),asset);
  for(const asset of [assets[0],assets[1],assets[2],assets[5]])assert.ok(html.includes(asset),asset);
  assert.ok(Number(worker.match(/const CACHE = "attendigo-v(\d+)-/)[1]) >= 167, 'PWA cache version must include removal of sidebar sync shortcut');

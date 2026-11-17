@@ -49,7 +49,7 @@ test('no square is painted behind the Attendigo product mark', () => {
   assert.doesNotMatch(symbol, /id="key-white"/);
   for (const svg of [dark, light]) {
     assert.match(svg, /id="transparent-black"/);
-    assert.match(svg, /clip-path="url\\(#symbol\\)" filter="url\\(#transparent-black\\)"/);
+    assert.ok(svg.includes('clip-path="url(#symbol)" filter="url(#transparent-black)"'));
   }
   assert.ok(sw.includes('\"/assets/attendigo-symbol-transparent.svg?v=2\"'));
 });
