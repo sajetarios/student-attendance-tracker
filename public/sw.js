@@ -1,4 +1,4 @@
-const CACHE = "attendigo-v143-student-account-requests";
+const CACHE = "attendigo-v144-teacher-assignment-modal";
 
 const SHELL = [
   "/assets/attendigo-sidebar-logo.png",
@@ -24,14 +24,15 @@ const SHELL = [
   "/parent-portal.js?v=1",
   "/dashboard-appearance.js?v=3",
   "/timetable-grid.js?v=4",
-  "/schedule-workspace-ui.js?v=5",
+  "/schedule-workspace-ui.js?v=6",
+  "/teacher-assignment-modal.css?v=1",
   "/portal-login.html",
   "/attendigo-login-motion.css?v=2",
   "/attendigo-login-refinement.css?v=2",
   "/portal.css?v=0.9.113",
   "/student-roster-toolbar.css?v=1",
   "/portal.css",
-  "/portal.js?v=0.9.128",
+  "/portal.js?v=0.9.129",
   "/sardo-monitor.js?v=1",
   "/sardo-monitor.css?v=1",
   "/schedule-form-layout.css?v=12",
@@ -110,7 +111,7 @@ self.addEventListener("fetch", event => {
 
   // Keep scheduling UI fresh without breaking offline school operation.
   // Unlike cache-first general assets, these role-critical resources prefer the deployed version.
-  if (['/portal.js','/schedule-form-layout.css','/schedule-workspace-ui.js'].includes(url.pathname)) {
+  if (['/portal.js','/schedule-form-layout.css','/schedule-workspace-ui.js','/teacher-assignment-modal.css'].includes(url.pathname)) {
     event.respondWith((async () => {
       try {
         const fresh = await fetch(request, { cache: 'no-store' });
