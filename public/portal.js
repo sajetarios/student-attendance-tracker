@@ -1328,6 +1328,7 @@ function coverageStatusLabel(status) {
     return students.filter(student =>
       (grade === 'ALL' || student.gradeLevel === grade) &&
       (section === 'ALL' || student.section === section) &&
+      (program === 'ALL' || (program === 'NONE' ? !student.specialProgramCode : student.specialProgramCode === program)) &&
       (user.role !== 'SCHOOL_ADMIN' || statusFilter === 'ALL' ||
         (statusFilter === 'ACTIVE' && student.active !== false && !student.archivedAt) ||
         (statusFilter === 'INACTIVE' && student.active === false && !student.archivedAt) ||
@@ -1343,6 +1344,15 @@ function coverageStatusLabel(status) {
     const grade = $('bulkQrGrade').value;
     const section = $('bulkQrSection').value;
     const search = ($('studentRosterSearch')?.value || '').trim().toLocaleLowerCase();
+    const programFilter = $('studentSpecialProgramFilter');
+    if (programFilter) {
+      const previous = programFilter.value;
+      const codes = [...new Set(students.map(item => item.specialProgramCode).filter(Boolean))].sort();
+      programFilter.innerHTML = '<option value="ALL">All programs</option><option value="NONE">Not assigned</option>' +
+        codes.map(code => '<option value="'+esc(code)+'">'+esc(code)+'</option>').join('');
+      programFilter.value = ['ALL','NONE',...codes].includes(previous) ? previous : 'ALL';
+    }
+    const program = programFilter?.value || 'ALL';
     const admin = user.role === 'SCHOOL_ADMIN';
     const departmentHead = user.role === 'DEPARTMENT_HEAD';
     const teacher = user.role === 'TEACHER';
@@ -1374,8 +1384,8 @@ function coverageStatusLabel(status) {
     if (rosterHeader) {
       const selectHeader = showSelectionColumn ? '<th>Select</th>' : '';
       rosterHeader.innerHTML = departmentHead
-        ? selectHeader + '<th>Student ID</th><th>Full name</th><th>Sex</th><th>Grade</th><th>Section</th><th>Status</th>'
-        : selectHeader + '<th>Photo</th><th>Student ID</th><th>Full name</th><th>Sex</th><th>Grade</th><th>Section</th><th>Status</th><th>QR code</th><th>Actions</th>' + ((admin || teacher) ? '<th>Parent / guardian</th>' : '') + (admin ? '<th>Student portal account</th>' : '');
+        ? selectHeader + '<th>Student ID</th><th>Full name</th><th>Sex</th><th>Grade</th><th>Section</th><th>Special program</th><th>Status</th>'
+        : selectHeader + '<th>Photo</th><th>Student ID</th><th>Full name</th><th>Sex</th><th>Grade</th><th>Section</th><th>Special program</th><th>Status</th><th>QR code</th><th>Actions</th>' + ((admin || teacher) ? '<th>Parent / guardian</th>' : '') + (admin ? '<th>Student portal account</th>' : '');
     }
     if ($('studentRosterDescription')) {
       $('studentRosterDescription').textContent = departmentHead
@@ -1385,8 +1395,8 @@ function coverageStatusLabel(status) {
         : 'QR previews remain tied to each student\'s existing private token. Editing details does not replace the QR code.';
     }
     const rosterColumns = departmentHead
-      ? (showSelectionColumn ? 7 : 6)
-      : (9 + Number(showSelectionColumn) + Number(admin || teacher) + Number(admin));
+      ? (showSelectionColumn ? 8 : 7)
+      : (10 + Number(showSelectionColumn) + Number(admin || teacher) + Number(admin));
     for (const id of [...selectedStudentIds]) if (!visible.some(student => student.studentId === id)) selectedStudentIds.delete(id);
     if (!visible.length) {
       const emptyMessage = teacher
@@ -1420,10 +1430,13 @@ function coverageStatusLabel(status) {
           ? `<div class="student-row-actions"><span class="muted-inline">${accountExists ? `Active login · ${esc(student.studentAccountUsername)}` : 'No student login'}</span><button type="button" class="outline-button" data-student-account="${esc(student.studentId)}" data-account-exists="${accountExists ? '1' : '0'}">${accountExists ? 'Reset login' : 'Create login'}</button></div>`
            : '';
         const statusLabel = student.archivedAt ? 'Archived' : student.active === false ? 'Inactive' : 'Active';
+        const programCell = student.specialProgramCode
+          ? `<span class="special-program-chip" title="${esc(student.specialProgramName || student.specialProgramCode)}">${esc(student.specialProgramCode)}</span>`
+          : '<span class="muted-inline">Not assigned</span>';
         if (departmentHead) {
-          return `<tr>${showSelectionColumn ? `<td data-label="Select">${selection}</td>` : ''}<td data-label="Student ID">${esc(student.studentId)}</td><td data-label="Full name"><strong>${esc(student.fullName)}</strong></td><td data-label="Sex">${esc(student.sex || 'Not set')}</td><td data-label="Grade">${esc(student.gradeLevel)}</td><td data-label="Section">${esc(student.section)}</td><td data-label="Status">${statusLabel}</td></tr>`;
+          return `<tr data-student-enrollment="${esc(student.enrollmentId || '')}" data-student-name="${esc(student.fullName)}">${showSelectionColumn ? `<td data-label="Select">${selection}</td>` : ''}<td data-label="Student ID">${esc(student.studentId)}</td><td data-label="Full name"><strong>${esc(student.fullName)}</strong></td><td data-label="Sex">${esc(student.sex || 'Not set')}</td><td data-label="Grade">${esc(student.gradeLevel)}</td><td data-label="Section">${esc(student.section)}</td><td data-label="Special program">${programCell}</td><td data-label="Status">${statusLabel}</td></tr>`;
         }
-        return `<tr>${showSelectionColumn ? `<td data-label="Select">${selection}</td>` : ''}<td data-label="Photo">${avatar}</td><td data-label="Student ID">${esc(student.studentId)}</td><td data-label="Full name">${esc(student.fullName)}</td><td data-label="Sex">${esc(student.sex || 'Not set')}</td><td data-label="Grade">${esc(student.gradeLevel)}</td><td data-label="Section">${esc(student.section)}</td><td data-label="Status">${statusLabel}</td><td data-label="QR code">${qrCell}</td><td data-label="Actions">${actions}</td>${(admin || teacher) ? `<td data-label="Parent / guardian"><strong>${esc(student.parentName || "Not provided")}</strong><small class="table-subtext">${esc(student.parentMobile || "No mobile number")}</small></td>` : ''}${admin ? `<td data-label="Student account">${accountCell}</td>` : ''}</tr>`;
+        return `<tr data-student-enrollment="${esc(student.enrollmentId || '')}" data-student-name="${esc(student.fullName)}">${showSelectionColumn ? `<td data-label="Select">${selection}</td>` : ''}<td data-label="Photo">${avatar}</td><td data-label="Student ID">${esc(student.studentId)}</td><td data-label="Full name">${esc(student.fullName)}</td><td data-label="Sex">${esc(student.sex || 'Not set')}</td><td data-label="Grade">${esc(student.gradeLevel)}</td><td data-label="Section">${esc(student.section)}</td><td data-label="Special program">${programCell}</td><td data-label="Status">${statusLabel}</td><td data-label="QR code">${qrCell}</td><td data-label="Actions">${actions}</td>${(admin || teacher) ? `<td data-label="Parent / guardian"><strong>${esc(student.parentName || "Not provided")}</strong><small class="table-subtext">${esc(student.parentMobile || "No mobile number")}</small></td>` : ''}${admin ? `<td data-label="Student account">${accountCell}</td>` : ''}</tr>`;
       }));
       host.innerHTML = rows.join('');
       host.querySelectorAll('input[data-student-photo]').forEach(input => input.addEventListener('change', async () => {
@@ -5016,6 +5029,7 @@ let teacherActionMenuListenersInstalled = false;
   });
 
   $('studentRosterSearch').addEventListener('input', () => { renderStudents(); updateStudentSelectionUi(); });
+  $('studentSpecialProgramFilter')?.addEventListener('change', renderStudents);
   $('studentStatusFilter')?.addEventListener('change', () => { selectedStudentIds.clear(); renderStudents(); updateStudentSelectionUi(); });
   $('closeStudentQrPreview').addEventListener('click', () => { $('studentQrPreviewModal').hidden = true; });
   $('closeStudentQrPreviewBottom').addEventListener('click', () => { $('studentQrPreviewModal').hidden = true; });
