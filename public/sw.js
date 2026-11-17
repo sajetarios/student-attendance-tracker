@@ -1,4 +1,4 @@
-const CACHE = "attendigo-v113-admin-all-request-bell";
+const CACHE = "attendigo-v114-photo-webp-fix";
 
 const SHELL = [
   "/assets/attendigo-sidebar-logo.png",
@@ -15,7 +15,7 @@ const SHELL = [
   "/attendigo-dark-unified.css?v=1",
   "/dashboard-polish.css?v=2",
   "/photo-editor.css?v=2",
-  "/photo-editor.js?v=4",
+  "/photo-editor.js?v=7",
   "/session-guard.js?v=1",
   "/student-portal-refinement.css?v=1",
   "/student-portal.js?v=2",
