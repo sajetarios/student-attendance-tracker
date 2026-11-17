@@ -24,14 +24,22 @@
  }
  const key=()=>['attendigo.manual.v1',scope,state.period?.periodId||'none',state.date].join(':');
  const rosterKey=()=>['attendigo.manual.roster.v1',scope].join(':');
- function draftSave(){if(!state.period)return;try{localStorage.setItem(key(),JSON.stringify({marks:state.marks,notes:state.notes,updatedAt:new Date().toISOString()}));}catch{}}
+ function draftSave(){if(!state.period)return;try{localStorage.setItem(key(),JSON.stringify({marks:state.marks,notes:state.notes,updatedAt:new Date().toISOString()}));setSyncPill('local','Saved on device','A local draft exists. Press Sync to records for school-server confirmation.');}catch{setSyncPill('review','Save unavailable','This browser could not retain the attendance draft. Check device storage.');}}
  function draftLoad(){let raw={};try{raw=JSON.parse(localStorage.getItem(key())||'{}')}catch{}state.marks=raw.marks||{};state.notes=raw.notes||'';}
  const roster=()=>state.students.filter(s=>state.period&&s.active!==false&&s.gradeLevel===state.period.gradeLevel&&s.section===state.period.section).sort((a,b)=>a.fullName.localeCompare(b.fullName));
  const counts=()=>{const out={TOTAL:roster().length,PRESENT:0,LATE:0,ABSENT:0,EXCUSED:0,UNMARKED:0};roster().forEach(s=>{const st=state.marks[s.studentId]?.status;if(out[st]!==undefined)out[st]++;else out.UNMARKED++});return out};
  // Balance the last folio page rather than leaving two rows above a large blank area.
  const pageSize=()=>20;
  const selected=(id)=>state.selected.has(id);
- function notice(message,error=false){el('mfFeedback').textContent=message;el('mfFeedback').style.color=error?'#b42335':'#526e96'}
+ function notice(message,error=false){
+   el('mfFeedback').textContent=message;
+   el('mfFeedback').dataset.error=String(error);
+ }
+ function setSyncPill(tone,label,description){
+   const pill=el('mfSyncPill'),detail=el('mfSyncExplanation');
+   if(pill){pill.dataset.state=tone;pill.textContent=label;}
+   if(detail)detail.textContent=description;
+ }
  function renderStats(){const c=counts();el('mfStats').innerHTML=[['TOTAL','👥','Total'],['PRESENT','✓','Present'],['LATE','◷','Late'],['ABSENT','✕','Absent'],['EXCUSED','!','Excused']].map(([k,icon,label])=>`<div class="manual-stat"><strong>${icon} ${c[k]}</strong><span>${label}</span></div>`).join('');}
  function renderRows(){
    const all=roster();const size=pageSize();const start=state.page*size;const shown=all.slice(start,start+size);
@@ -214,12 +222,13 @@
  function render(){
  renderStats();renderRows();renderDetails();renderTab();
  host.classList.toggle('is-finalized',Boolean(state.finalized));
- if(el('mfFinalize')){el('mfFinalize').disabled=!state.period||!navigator.onLine;el('mfFinalize').textContent=state.finalized?'↺ Reopen register':'✓ Finalize date';}
+ if(el('mfFinalize')){el('mfFinalize').disabled=!state.period;el('mfFinalize').textContent=state.finalized?'↺ Reopen register':'✓ Finalize date';}
  if(el('mfFinalizationState'))el('mfFinalizationState').textContent=state.finalized?'Finalized · editing locked':'Not finalized';
  if(el('mfSync'))el('mfSync').disabled=Boolean(state.finalized);
 }
  function changeClass(){
    state.period=state.periods.find(p=>p.periodId===el('mfPeriod').value)||null;state.page=0;state.selected.clear();state.editingNoteId=null;draftLoad();state.synced={};state.finalized=false;state.noteItems=[];state.historyPage=0;state.historyLoadedFor=null;render();
+   setSyncPill('local','Saved on device','Check this class draft against the school server before finalizing.');
    if(state.period){loadRemote();loadNotes();}
  }
  async function loadRemote(){
@@ -229,6 +238,15 @@
       state.finalized=Boolean(d.finalization?.finalized);
      for(const [id,m] of Object.entries(state.synced)){if(!state.marks[id])state.marks[id]={status:m.status,note:m.note||''}}
      render();notice('Saved records loaded. Local unsynced marks are retained.');
+     const draftMatchesServer=Object.entries(state.marks).every(([id,mark])=>{
+       if(!statuses.includes(mark.status))return true;
+       const remote=state.synced[id];
+       return remote&&remote.status===mark.status&&(remote.note||'')===(mark.note||'');
+     });
+     setSyncPill(draftMatchesServer?'synced':'local',
+       draftMatchesServer?'Verified in school records':'Saved on device',
+       draftMatchesServer?'Current marked entries match school records. Cloud delivery is separate.'
+         :'This device has entries that may not match school records. Open Sync Center to review.');
      return true;
    }catch(e){notice('Local attendance sheet is available. Server: '+e.message,true);return false}
  }
@@ -270,6 +288,7 @@
      const queued=await window.AttendigoOffline.enqueueOperation({
        type:'MANUAL_MARKS',operationId,payload:{periodId:state.period.periodId,date:state.date,marks}
      });
+     setSyncPill('waiting','Waiting to sync','Marks queued securely; the school server has not yet confirmed them.');
      await window.AttendigoOffline.sync();
      const remaining=(await window.AttendigoOffline.pending()).find(item=>item.id===queued.operationId);
      if(remaining?.status==='REVIEW')throw Error(remaining.reason||'Attendance requires conflict review.');
@@ -280,9 +299,10 @@
        throw Error('Server verification differs from your device; review before retrying.');
      }
      state.historyLoadedFor=null;
-     render();notice('Verified '+marks.length+' attendance marks in school records.');
+     render();setSyncPill('synced','Verified in school records','The school server accepted '+marks.length+' marks. Cloud delivery is separate.');
+     notice('Verified '+marks.length+' attendance marks in school records.');
      return true;
-   }catch(e){notice('Attendance remains on this device. '+e.message,true);return false}
+   }catch(e){setSyncPill('review','Needs review','The device retains your marks. Open Sync Center before retrying.');notice('Attendance remains on this device. '+e.message,true);return false}
    finally{el('mfSync').disabled=Boolean(state.finalized)}
  }
  async function initialize(){
@@ -411,14 +431,21 @@
        type:'REGISTER_SIGNOFF',operationId:opId,
        payload:{periodId:state.period.periodId,date:state.date,action}
      });
+     setSyncPill('waiting','Sign-off queued','Finalization/reopening is pending server acceptance. Do not treat it as finalized yet.');
      await window.AttendigoOffline.sync();
      const queued=(await window.AttendigoOffline.pending()).find(r=>r.id===opId);
      if(queued?.status==='REVIEW')throw Error(queued.reason||'Register needs review.');
      if(queued){notice('Sign-off saved on this device, pending server acceptance. The register is not finalized yet.');return;}
      await loadRemote();
+     setSyncPill('synced','Sign-off confirmed','The school server accepted this register action; cloud delivery is separate.');
      notice(action==='FINALIZE'?'Attendance finalized and audited. Editing is locked.':'Attendance reopened. You can correct and re-sync marks.');
-   }catch(error){notice('Sign-off retained for review if queued. '+error.message,true);}
+   }catch(error){setSyncPill('review','Needs review','The server has not confirmed this sign-off. Open Sync Center.');notice('Sign-off retained for review if queued. '+error.message,true);}
    finally{render();}
+ });
+ window.addEventListener('attendigo-offline-status',event=>{
+   const summary=event.detail||{};
+   if(summary.needsReview>0&&el('mfSyncPill')?.dataset.state==='waiting')
+     setSyncPill('review','Needs review','At least one queued device operation requires review in Sync Center.');
  });
  window.addEventListener('online',()=>notice('Connection restored. Sync your saved attendance when ready.'));
  initialize();
