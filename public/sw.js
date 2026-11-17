@@ -1,4 +1,4 @@
-const CACHE = "attendigo-v130-align-role-photo-assets";
+const CACHE = "attendigo-v131-scheduling-dialogs";
 
 const SHELL = [
   "/assets/attendigo-sidebar-logo.png",
@@ -31,7 +31,7 @@ const SHELL = [
   "/portal.css?v=0.9.113",
   "/student-roster-toolbar.css?v=1",
   "/portal.css",
-  "/portal.js?v=0.9.121",
+  "/portal.js?v=0.9.122",
   "/sardo-monitor.js?v=1",
   "/sardo-monitor.css?v=1",
   "/schedule-form-layout.css?v=11",

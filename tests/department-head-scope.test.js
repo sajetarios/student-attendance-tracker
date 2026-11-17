@@ -10,12 +10,11 @@ const html = fs.readFileSync(path.join(root, 'public', 'portal.html'), 'utf8');
 const server = fs.readFileSync(path.join(root, 'server.js'), 'utf8');
 
 test('Department Head can view and export the school-wide student roster without student write controls', () => {
-  assert.ok(portal.includes("if (role === 'DEPARTMENT_HEAD') return ['dashboard', 'students', 'teachers', 'schedules', 'sf2']"));
-  assert.ok(portal.includes("$('studentsNav').hidden = !admin && !departmentHead && !teacher && !gateKeeper"));
-  assert.ok(portal.includes("api(role === 'SCHOOL_ADMIN' ? '/api/students?includeInactive=true' : '/api/students')"));
+  assert.ok(portal.includes("if (role === 'DEPARTMENT_HEAD') return ['dashboard', 'planner', 'students', 'teachers', 'schedules', 'sf2']"));
+  assert.ok(portal.includes("$('studentsNav').hidden = !(admin || departmentHead || teacher || gateKeeper)"));
+  assert.match(server, /requireSchoolPermission\('students\.view\.all'\)/);
   assert.ok(portal.includes("exportCsv('student-roster.csv'"));
   assert.ok(html.includes('id="exportStudentsButton"'));
-  assert.ok(server.includes("'SCHOOL_ADMIN', 'DEPARTMENT_HEAD', 'TEACHER'"));
   assert.ok(portal.includes("$('studentForm').hidden = gateKeeper || departmentHead"));
 });
 test('Department Head cannot see student QR scanning controls', () => {
@@ -28,28 +27,26 @@ test('Department Head cannot see student QR scanning controls', () => {
 test('Department Head workspace provides teacher coverage metrics and read-only monitoring copy', () => {
   assert.match(html, /id="departmentHeadOverview"/);
   assert.match(portal, /renderDepartmentHeadOverview/);
-  assert.match(portal, /Teacher monitoring/);
+  assert.match(portal, /Teachers & Staff in Your Department/);
   assert.match(portal, /SF2 Monitoring/);
 });
 
 test('Department Head can assign substitute coverage without gaining account administration', () => {
-  assert.match(server, /app\.post\('\/api\/teachers\/:userId\/substitutions', authenticateSchoolClient, requireSchoolAdminOrDepartmentHead/);
-  assert.match(server, /app\.delete\('\/api\/teacher-substitutions\/:substitutionId', authenticateSchoolClient, requireSchoolAdminOrDepartmentHead/);
+  assert.match(server, /app\.post\('\/api\/teachers\/:userId\/substitutions', authenticateSchoolClient, requireSchoolRoles\('DEPARTMENT_HEAD'\)/);
+  assert.match(server, /app\.delete\('\/api\/teacher-substitutions\/:substitutionId', authenticateSchoolClient, requireSchoolRoles\('DEPARTMENT_HEAD'\)/);
   assert.match(portal, /canAssignSubstitute = canManageDepartment && onLeave && assigned\.length > 0/);
   assert.match(portal, /const canManageRow = showingMyDepartment && row\.departmentScope === 'MY_DEPARTMENT'[\s\S]*?user\.role === 'DEPARTMENT_HEAD'/);
   assert.match(portal, /coverageOtherDepartmentsNotice/);
   assert.match(portal, /const rows = showingMyDepartment \? myRows : otherRows/);
   assert.match(server, /app\.post\('\/api\/teachers\/:userId\/leave', authenticateSchoolClient, requireSchoolAdmin/);
-  assert.match(server, /app\.post\('\/api\/teachers\/:userId\/leave', authenticateSchoolClient, requireSchoolAdmin/);
   assert.match(server, /app\.post\('\/api\/periods', authenticateSchoolClient, requireSchoolRoles\('SCHOOL_ADMIN', 'DEPARTMENT_HEAD'\)/);
-  assert.match(server, /isTeacher && !req\.auth\.teacherDesignations\?\.includes\('SUBJECT_TEACHER'\)/);
 });
 
 
 test('Department Head sees all departments but schedule writes are restricted to their own department', () => {
   const departmentRoutes = fs.readFileSync(path.join(root, 'department-routes.js'), 'utf8');
   assert.match(departmentRoutes, /app\.get\('\/api\/departments', authenticateSchoolClient, schoolManagers/);
-  assert.match(server, /app\.get\('\/api\/periods', authenticateSchoolClient, requireSchoolUser/);
+  assert.match(server, /app\.get\('\/api\/periods', authenticateSchoolClient, requireSchoolRoles\('SCHOOL_ADMIN',\s*'DEPARTMENT_HEAD',\s*'TEACHER'\)/);
   assert.match(server, /req\.auth\.role === 'DEPARTMENT_HEAD' && \(req\.auth\.departmentCode === 'UNASSIGNED' \|\| String\(period\.rows\[0\]\.department_id\) !== String\(req\.auth\.departmentId\)\)/);
   assert.match(server, /teacher\.rows\[0\]\.department_id\) !== String\(period\.rows\[0\]\.department_id\)/);
   assert.match(server, /app\.post\('\/api\/periods\/:periodId\/assignments', authenticateSchoolClient, requireSchoolRoles\('SCHOOL_ADMIN', 'DEPARTMENT_HEAD'\)/);

@@ -22,12 +22,12 @@ test('Class Adviser-only accounts can open My Schedule and see the advisory time
   const portal = read('public/portal.js');
   assert.match(portal, /teacher && !\(subjectTeacher \|\| classAdviser\)/);
   assert.match(portal, /if \(teacherHas\('SUBJECT_TEACHER'\) \|\| teacherHas\('CLASS_ADVISER'\)\) views\.push\('schedules'\)/);
-  assert.match(portal, /hasAdviserRole \? 'View every subject schedule assigned to your advisory section/);
+  assert.match(portal, /hasAdviserRole\s*\? 'View every subject schedule assigned to your advisory section/);
 });
 
 test('only School Administrators and Department Heads can create or assign class schedules', () => {
   const portal = read('public/portal.js');
   const server = read('server.js');
-  assert.match(portal, /\$\('showScheduleForm'\)\.hidden = !\(user\.role === 'SCHOOL_ADMIN' \|\| departmentHeadCanCreate\)/);
+  assert.match(portal, /\$\('showScheduleForm'\)\.hidden = !canCreate/);
   assert.match(server, /app\.post\('\/api\/periods', authenticateSchoolClient, requireSchoolRoles\('SCHOOL_ADMIN', 'DEPARTMENT_HEAD'\)/);
 });

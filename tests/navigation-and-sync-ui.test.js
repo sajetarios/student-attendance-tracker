@@ -12,8 +12,8 @@ test('sidebar groups expand and collapse using accessible expanded state', () =>
   assert.ok(html.includes('data-nav-group="people"'));
   assert.ok(html.includes('data-submenu="people"'));
   assert.ok(js.includes("querySelectorAll('.nav-group-toggle[data-nav-group]')"));
-  assert.ok(js.includes("toggle.setAttribute('aria-expanded', String(!expanded))"));
-  assert.ok(js.includes("if (submenu) submenu.hidden = expanded"));
+  assert.ok(js.includes("button.setAttribute('aria-expanded', String(opening))"));
+  assert.ok(js.includes("if (submenu) submenu.hidden = !opening"));
 });
 
 test('cloud status distinguishes local server availability from cloud replication', () => {
@@ -63,6 +63,6 @@ test('all browser-native confirmation and prompt dialogs use the shared in-app d
   assert.ok(portalHtml.includes('/app-dialog.js?v=1'));
   assert.ok(parentHtml.includes('/app-dialog.css?v=1'));
   assert.ok(parentHtml.includes('/app-dialog.js?v=1'));
-  assert.ok(serviceWorker.includes('school-attendance-shell-v30-mobile-roster'));
+  assert.ok(serviceWorker.includes('/app-dialog.css?v=1'));
   assert.ok(serviceWorker.includes('/app-dialog.js?v=1'));
 });
