@@ -1,4 +1,4 @@
-const CACHE = "attendigo-v114-encrypted-offline-sheet";
+const CACHE = "attendigo-v113-admin-all-request-bell";
 
 const SHELL = [
   "/assets/attendigo-sidebar-logo.png",
@@ -37,8 +37,8 @@ const SHELL = [
   "/manual-folio.js?v=10",
   "/student-portal-accounts.css?v=2",
   "/student-portal-accounts.js?v=3",
-  "/admin-request-notifications.js?v=1",
-  "/admin-request-notifications.css?v=1",
+  "/admin-request-notifications.js?v=2",
+  "/admin-request-notifications.css?v=2",
   "/guardian-ui.js?v=4",
   "/guardian-ui.css?v=4",
   "/academic-admin.css?v=1",
