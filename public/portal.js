@@ -2835,11 +2835,13 @@ let teacherActionMenuListenersInstalled = false;
     const selector = $('scheduleTemplate');
     if (!selector) return;
     const previous = selector.value;
+    const wasCustom = !previous;
     selector.innerHTML = '<option value="">Custom time</option>' +
       timetableTemplates.filter(item => item.active).map(item =>
         '<option value="' + esc(item.templateId) + '">' + esc(item.name + ' (' + item.shiftCode + ')') + '</option>'
       ).join('');
     selector.value = Array.from(selector.options).some(option => option.value === previous) ? previous : '';
+    if (wasCustom && !selector.value) selector.dataset.lastTemplate = '';
     populateSavedTemplateBlocks();
   }
 
