@@ -33,6 +33,7 @@ const { registerSchoolAdminRecoveryRoutes } = require('./school-admin-recovery-r
 const { registerFlexibleScheduleRoutes } = require('./flexible-schedule-routes');
 const { registerClassQrRoutes } = require('./class-qr-routes');
 const { registerManualAttendanceRoutes } = require('./manual-attendance-routes');
+const { registerSardoRoutes } = require('./sardo-routes');
 const { registerPlannerRoutes } = require('./planner-routes');
 const { registerPhotoRoutes, registerPlatformPhotoRoutes, readOfficialPhoto } = require('./profile-photo-routes');
 
@@ -106,6 +107,7 @@ registerSchoolAdminRecoveryRoutes(app, pool, { authenticatePlatform, requirePlat
 registerFlexibleScheduleRoutes(app, pool, { authenticateSchoolClient, requireSchoolRoles });
 registerClassQrRoutes(app, pool, { authenticateSchoolClient, requireSchoolRoles });
 registerManualAttendanceRoutes(app, pool, { authenticateSchoolClient, requireSchoolRoles });
+registerSardoRoutes(app, pool, { authenticateSchoolClient, requireSchoolRoles });
 registerPhotoRoutes(app, pool, { authenticateSchoolClient });
 registerPlatformPhotoRoutes(app, pool, { authenticatePlatform, requirePlatformAdmin });
 const { registerStudentManagementRoutes } = require('./student-management-routes');
@@ -3456,11 +3458,6 @@ app.get('/api/admin/dashboard', authenticateSchoolClient, requireSchoolUser, asy
         confirmedLearnerDaysMonth: Number(learner.confirmed_learner_days_month || 0),
         subjectCheckinsToday: Number(learner.subject_checkins_today || 0),
         absenceFinalizationAvailable: false
-      },
-      sardo: {
-        alerts: null,
-        monitoringEnabled: false,
-        message: 'SARDO alerts will activate after teachers can finalize subject attendance and advisers can classify absences as excused or unexcused.'
       },
       sms: Object.fromEntries(sms.rows.map(row => [row.status, row.count])),
       devices: devices.rows[0],
