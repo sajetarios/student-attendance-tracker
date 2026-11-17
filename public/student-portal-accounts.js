@@ -18,6 +18,7 @@
   let pendingReview = null;
   let credentials = [];
   const selected = new Set();
+  const SERVER_BATCH_LIMIT = 20;
 
   async function api(url, options = {}) {
     const token = sessionStorage.getItem('schoolAttendance.accessToken');
@@ -105,8 +106,11 @@
     $('sapSelectAll').checked = Boolean(eligible.length) && eligible.every(s=>selected.has(s.studentId));
     $('sapSelectAll').indeterminate = eligible.some(s=>selected.has(s.studentId)) && !eligible.every(s=>selected.has(s.studentId));
     const actionable = students.filter(s=>selected.has(s.studentId) && batchEligible(s));
-    $('sapSelectedCount').textContent = selected.size + ' selected · ' + actionable.length + ' eligible · maximum 20 per batch';
-    $('sapBulkCreate').disabled = !admin || !actionable.length || actionable.length > 20 || busy;
+    const batches = Math.ceil(actionable.length / SERVER_BATCH_LIMIT);
+    $('sapSelectedCount').textContent = selected.size + ' selected · ' + actionable.length + ' eligible' +
+      (batches > 1 ? ' · will run in ' + batches + ' batches of up to 20' : ' · up to 20 per server request');
+    $('sapBulkCreate').disabled = !admin || !actionable.length || busy;
+    $('sapBulkCreate').textContent = actionable.length ? 'Apply to ' + actionable.length + ' selected' : 'Apply to selected';
     $('sapListCount').textContent = rows.length + ' of ' + total + ' authorized learners displayed.';
   }
   const dateLabel = value => {
@@ -216,19 +220,48 @@
     const action = $('sapBatchAction')?.value || 'CREATE';
     const targets = students.filter(s=>selected.has(s.studentId) && batchEligible(s));
     if (!targets.length) { announce('No selected learners are eligible for this action.', true); return; }
-    if (targets.length > 20) { announce('Select at most 20 eligible learners per batch.', true); return; }
     const label = {CREATE:'issue logins for',RESET:'reset passwords for',SUSPEND:'suspend logins for',ACTIVATE:'reactivate logins for'}[action];
-    if (!await confirmAction('Confirm: '+label+' '+targets.length+' students? '+(action==='SUSPEND'?'Their sessions will be revoked.':'Temporary passwords will be shown once where applicable.'))) return;
+    const batches = Math.ceil(targets.length / SERVER_BATCH_LIMIT);
+    const batchNote = action==='CREATE' && batches>1
+      ? ' Attendigo will safely process them in '+batches+' requests of up to '+SERVER_BATCH_LIMIT+' each.'
+      : '';
+    if (!await confirmAction('Confirm: '+label+' '+targets.length+' students?'+batchNote+' '+
+      (action==='SUSPEND'?'Their sessions will be revoked.':'Temporary passwords will be shown once where applicable.'))) return;
     busy = true;
+    renderDirectory();
+    const issued = [], succeeded = new Set(), failures = [];
+    let summary = '';
+    let hasError = false;
     try {
-      const issued = [], errors = [];
       if (action === 'CREATE') {
-        const result = await api('/api/student-portal/accounts/bulk-provision',
-          {method:'POST',body:JSON.stringify({studentIds:targets.map(s=>s.studentId)})});
-        issued.push(...(result.credentials||[]));
+        // The server intentionally permits only 20 per transaction. Chunk in the UI, not by
+        // raising that safety limit; a failed request cannot discard earlier credentials.
+        for (let offset=0; offset<targets.length; offset+=SERVER_BATCH_LIMIT) {
+          const batch = targets.slice(offset,offset+SERVER_BATCH_LIMIT);
+          const batchNumber = Math.floor(offset/SERVER_BATCH_LIMIT)+1;
+          announce('Creating student logins: batch '+batchNumber+' of '+batches+'…');
+          try {
+            const result = await api('/api/student-portal/accounts/bulk-provision',
+              {method:'POST',body:JSON.stringify({studentIds:batch.map(s=>s.studentId)})});
+            const returned = Array.isArray(result.credentials) ? result.credentials : [];
+            const expected = new Set(batch.map(s=>s.studentId));
+            for (const item of returned) {
+              if (!item || !expected.has(item.studentId) || succeeded.has(item.studentId) || !item.temporaryPassword) continue;
+              succeeded.add(item.studentId);
+              issued.push(item);
+            }
+            if (batch.some(s=>!succeeded.has(s.studentId))) {
+              failures.push('Batch '+batchNumber+': some credentials were missing. Check account status before trying again.');
+            }
+          } catch (error) {
+            failures.push('Batch '+batchNumber+' ('+batch.length+' students): '+error.message);
+          }
+        }
       } else {
-        // Use each existing authorized endpoint; do not alter its permissions or bypass auditing.
-        for (const student of targets) {
+        // Preserve existing per-student authorization, audit logs, and session revocation.
+        for (let i=0; i<targets.length; i++) {
+          const student=targets[i];
+          announce('Applying account action: '+(i+1)+' of '+targets.length+'…');
           try {
             if (action === 'SUSPEND') {
               await api('/api/student-portal/accounts/'+encodeURIComponent(student.studentId)+'/status',
@@ -236,19 +269,38 @@
             } else {
               const result = await api('/api/student-portal/accounts/'+encodeURIComponent(student.studentId)+'/provision',
                 {method:'POST',body:JSON.stringify({action})});
-              if (result.credentials) issued.push(result.credentials);
+              if (!result.credentials?.temporaryPassword) {
+                failures.push(student.fullName+': password was not returned. Verify the account before retrying.');
+                continue;
+              }
+              issued.push(result.credentials);
             }
-          } catch (error) { errors.push(student.fullName+': '+error.message); }
+            succeeded.add(student.studentId);
+          } catch (error) { failures.push(student.fullName+': '+error.message); }
         }
       }
-      targets.filter(s=>!errors.some(e=>e.startsWith(s.fullName+':'))).forEach(s=>selected.delete(s.studentId));
+      succeeded.forEach(studentId=>selected.delete(studentId));
+      // The credentials modal remains open even if the next request or list refresh fails.
       if (issued.length) openCredentials(issued);
-      document.dispatchEvent(new CustomEvent('attendigo:requests-changed'));
-      await refreshAfterMutation();
-      if (errors.length) announce('Completed '+(targets.length-errors.length)+' of '+targets.length+'. Failed: '+errors.join('; '),true);
-      else announce('Batch action completed for '+targets.length+' students.');
-    } catch(error) { announce(error.message,true); }
-    finally { busy=false; renderDirectory(); }
+      if (succeeded.size) document.dispatchEvent(new CustomEvent('attendigo:requests-changed'));
+      try { await refreshAfterMutation(); }
+      catch (error) { failures.push('Account list could not refresh: '+error.message); }
+      const verb = {CREATE:'Created logins for',RESET:'Reset passwords for',SUSPEND:'Suspended logins for',ACTIVATE:'Reactivated logins for'}[action];
+      summary = verb+' '+succeeded.size+' of '+targets.length+' students.';
+      hasError = failures.length>0;
+      if (hasError) summary += ' '+failures.join(' ')+' Check remaining selected learners before retrying.';
+      else if (issued.length) summary += ' Save or print their one-time credentials securely.';
+    } catch (error) {
+      hasError = true;
+      summary = 'Completed '+succeeded.size+' of '+targets.length+' students. '+error.message+
+        ' Check remaining selected learners before retrying.';
+      succeeded.forEach(studentId=>selected.delete(studentId));
+      if (issued.length) openCredentials(issued);
+    } finally {
+      busy = false;
+      renderDirectory();
+      announce(summary,hasError);
+    }
   }
   function showTeacherRequest(studentId,action) {
     if(!isTeacher())return;

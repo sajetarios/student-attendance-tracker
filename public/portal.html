@@ -9,7 +9,7 @@
   <title>Dashboard · Attendigo</title>
   <link rel="stylesheet" href="/portal.css?v=0.9.113"><link rel="stylesheet" href="/parent-admin.css?v=7">
   <link rel="stylesheet" href="/schedule-mobile-layout.css?v=1">
-  <link rel="stylesheet" href="/schedule-form-layout.css?v=11">
+  <link rel="stylesheet" href="/schedule-form-layout.css?v=12">
   <link rel="stylesheet" href="/manual-folio.css?v=11">
   <link rel="stylesheet" href="/admin-request-notifications.css?v=2">
   <link rel="stylesheet" href="/student-portal-accounts.css?v=2">
@@ -864,7 +864,7 @@ body.dark-mode .content-wrap > .school-heading.is-compact,body[data-theme="dark"
                 </div>
                 <div id="sapBulkToolbar" class="sap-bulk-toolbar" hidden>
                   <label><input type="checkbox" id="sapSelectAll"> Select visible students</label>
-                  <span id="sapSelectedCount">0 selected</span>
+                  <span id="sapSelectedCount" role="status" aria-live="polite">0 selected</span>
                   <select id="sapBatchAction" aria-label="Student account batch action"><option value="CREATE">Issue new logins</option><option value="RESET">Reset existing passwords</option><option value="SUSPEND">Suspend existing logins</option><option value="ACTIVATE">Reactivate disabled logins</option></select><button class="primary-button" type="button" id="sapBulkCreate" disabled>Apply to selected</button>
                 </div>
                 <div class="sap-table-scroll"><table class="sap-table"><thead><tr><th id="sapSelectHead">Select</th><th>Student</th><th>Class</th><th>Portal status</th><th>Action</th></tr></thead><tbody id="sapRows"><tr><td colspan="5">Loading learners…</td></tr></tbody></table></div>
@@ -1521,17 +1521,17 @@ body.dark-mode .content-wrap > .school-heading.is-compact,body[data-theme="dark"
   <script src="/sw-refresh.js?v=3" defer></script>
   <script src="/password-visibility.js" defer></script>
   <script src="/vendor/html5-qrcode.min.js" defer></script>
-  <script src="/timetable-grid.js?v=3" defer></script>
+  <script src="/timetable-grid.js?v=4" defer></script>
   <script src="/schedule-workspace-ui.js?v=5" defer></script>
   <script src="/photo-editor.js?v=9" defer></script>
   <script src="/offline-attendance.js?v=2" defer></script>
-  <script src="/portal.js?v=0.9.125" defer></script>
+  <script src="/portal.js?v=0.9.127" defer></script>
   <script src="/sardo-monitor.js?v=1" defer></script><script src="/parent-dashboard.js?v=2" defer></script>
   <script src="/platform-plans-ui.js?v=7" defer></script>
   <script src="/platform-school-health.js?v=1" defer></script>
   <script src="/planner.js?v=4" defer></script>
   <script src="/manual-folio.js?v=11" defer></script>
-  <script src="/student-portal-accounts.js?v=3" defer></script>
+  <script src="/student-portal-accounts.js?v=4" defer></script>
   <script src="/guardian-ui.js?v=4" defer></script>
   <script src="/admin-request-notifications.js?v=2" defer></script>
   <script src="/academic-admin.js?v=5" defer></script>

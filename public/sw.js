@@ -1,4 +1,4 @@
-const CACHE = "attendigo-v134-integrate-adviser-sections";
+const CACHE = "attendigo-v135-integrated-production";
 
 const SHELL = [
   "/assets/attendigo-sidebar-logo.png",
@@ -23,7 +23,7 @@ const SHELL = [
   "/student-portal.js?v=2",
   "/parent-portal.js?v=1",
   "/dashboard-appearance.js?v=3",
-  "/timetable-grid.js?v=3",
+  "/timetable-grid.js?v=4",
   "/schedule-workspace-ui.js?v=5",
   "/portal-login.html",
   "/attendigo-login-motion.css?v=2",
@@ -31,10 +31,10 @@ const SHELL = [
   "/portal.css?v=0.9.113",
   "/student-roster-toolbar.css?v=1",
   "/portal.css",
-  "/portal.js?v=0.9.125",
+  "/portal.js?v=0.9.127",
   "/sardo-monitor.js?v=1",
   "/sardo-monitor.css?v=1",
-  "/schedule-form-layout.css?v=11",
+  "/schedule-form-layout.css?v=12",
   "/parent-dashboard.js?v=2",
   "/offline-attendance.js?v=2",
   "/offline-sheet.html",
@@ -42,7 +42,7 @@ const SHELL = [
   "/manual-folio.css?v=11",
   "/manual-folio.js?v=11",
   "/student-portal-accounts.css?v=2",
-  "/student-portal-accounts.js?v=3",
+  "/student-portal-accounts.js?v=4",
   "/admin-request-notifications.js?v=2",
   "/admin-request-notifications.css?v=2",
   "/guardian-ui.js?v=4",

@@ -308,7 +308,7 @@
     }
     if ($('teacherMonitorTitle')) $('teacherMonitorTitle').textContent = departmentHead ? 'Teachers & Staff in Your Department' : 'Teacher accounts';
     if ($('teacherMonitorDescription')) $('teacherMonitorDescription').textContent = departmentHead
-      ? 'Review staff designations, teacher assignments, schedules, and availability. Available actions depend on your department permissions.'
+      ? 'Add Subject Teachers to your department, assign their classes, and review staff coverage and availability.'
       : 'Manage teacher account profiles and access. Academic assignments are managed in the Department Head workspace.';
     if ($('teacherActionHeader')) $('teacherActionHeader').textContent = departmentHead ? 'Manage' : 'Account action';
     if ($('sf2ViewTitle')) $('sf2ViewTitle').textContent = departmentHead ? 'SF2 Monitoring' : 'SF2 Report Generator';
@@ -509,7 +509,11 @@
     if ($('showStudentForm')) $('showStudentForm').hidden = !(admin || (teacher && classAdviser));
     if ($('showScheduleForm')) $('showScheduleForm').hidden = !(admin || (departmentHead&&user.departmentId&&user.departmentCode!=='UNASSIGNED'));
     if ($('dashboardAddStudent')) $('dashboardAddStudent').hidden = !(admin || (teacher && classAdviser));
-    if ($('showTeacherForm')) $('showTeacherForm').hidden = !admin;
+    if ($('showTeacherForm')) {
+      const canCreateTeacher = admin || (departmentHead && user.departmentId && user.departmentCode !== 'UNASSIGNED');
+      $('showTeacherForm').hidden = !canCreateTeacher;
+      $('showTeacherForm').textContent = departmentHead ? '＋ Add teacher' : '＋ Create account';
+    }
     if ($('addSchoolStaffAccount')) $('addSchoolStaffAccount').hidden = !admin;
     if ($('demoStudentLoginCard')) $('demoStudentLoginCard').hidden = !(admin && user?.schoolCode === 'DEMO001');
     
@@ -984,8 +988,10 @@
     if (accountSelect) {
       const previous = accountSelect.value;
       accountSelect.innerHTML = options;
-      accountSelect.value = usableDepartments.some(item => String(item.departmentId) === String(previous))
-        ? previous : '';
+      accountSelect.value = user.role === 'DEPARTMENT_HEAD'
+        ? (usableDepartments.some(item => String(item.departmentId) === String(user.departmentId)) ? user.departmentId : '')
+        : (usableDepartments.some(item => String(item.departmentId) === String(previous)) ? previous : '');
+      accountSelect.disabled = user.role === 'DEPARTMENT_HEAD';
     }
     const bulkDepartmentSelect = $('bulkStaffDepartment');
     if (bulkDepartmentSelect) {
@@ -1007,7 +1013,7 @@
         </tr>`).join('')
       : '<tr><td colspan="5" class="empty-cell">No departments created yet.</td></tr>';
     if ($('departmentManagementCard')) $('departmentManagementCard').hidden = user.role !== 'SCHOOL_ADMIN';
-    if ($('newTeacherDepartmentGroup')) $('newTeacherDepartmentGroup').hidden = user.role !== 'SCHOOL_ADMIN';
+    if ($('newTeacherDepartmentGroup')) $('newTeacherDepartmentGroup').hidden = !(user.role === 'SCHOOL_ADMIN' || user.role === 'DEPARTMENT_HEAD');
   }
 
 function coverageStatusLabel(status) {
@@ -1842,7 +1848,7 @@ function coverageStatusLabel(status) {
     const names = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
     const eligibleFor = period => teachers.filter(teacher =>
       teacher.active && (teacher.teacherDesignations || []).includes('SUBJECT_TEACHER') &&
-      String(teacher.departmentId || '') === String(period.departmentId || '') &&
+      String(teacher.departmentId || '') === String(period.scheduleDepartmentId || period.departmentId || '') &&
       (user.role !== 'DEPARTMENT_HEAD' || String(teacher.departmentId || '') === String(user.departmentId || ''))
     );
     const canAssign = user.role === 'SCHOOL_ADMIN' || user.role === 'DEPARTMENT_HEAD';
@@ -1906,6 +1912,7 @@ function coverageStatusLabel(status) {
       window.TimetableGrid.render({
         host,days,weekdayDates,entries,today:dataSchoolDate(),
         onAdjust:(id,date)=>openScheduleAdjustment(id,date),
+        onAddTeacher:()=>openTeacherCreation(),
         onAssign:async(periodId,teacherUserId)=>{
           const result=await api('/api/periods/'+encodeURIComponent(periodId)+'/assignments',{
             method:'POST',body:JSON.stringify({teacherUserId})
@@ -1930,6 +1937,23 @@ function coverageStatusLabel(status) {
       button.setAttribute('aria-pressed', String(active));
     });
     if (weekly) renderWeeklyTimetable();
+  }
+
+  function openTeacherCreation() {
+    if (user.role !== 'SCHOOL_ADMIN' && !(user.role === 'DEPARTMENT_HEAD' && user.departmentId && user.departmentCode !== 'UNASSIGNED')) {
+      showToast('Ask the School Administrator to assign your department before adding teachers.', true);
+      return;
+    }
+    setView('teachers');
+    $('teacherForm').hidden = false;
+    if (user.role === 'DEPARTMENT_HEAD') {
+      $('newAccountRole').value = 'TEACHER';
+      $('newTeacherDepartment').value = user.departmentId;
+    }
+    $('newAccountRole').dispatchEvent(new Event('change'));
+    $('teacherFormFeedback').textContent = '';
+    $('teacherForm').scrollIntoView({ behavior: 'smooth', block: 'center' });
+    $('newTeacherName').focus({ preventScroll: true });
   }
 
   function renderPeriods() {
@@ -2016,7 +2040,12 @@ function coverageStatusLabel(status) {
             : '—') + '</td>'
           : '';
         const canEditPeriod = user.role==='SCHOOL_ADMIN' || (user.role==='DEPARTMENT_HEAD'&&user.departmentCode!=='UNASSIGNED'&&String(period.scheduleDepartmentId)===String(user.departmentId));
-        const deleteAction = canEditPeriod ? `<div class="schedule-row-actions"><button type="button" class="outline-button compact-button" data-edit-period="${esc(period.periodId)}">Edit</button>${user.role==='SCHOOL_ADMIN'?'<button type="button" class="outline-button compact-button danger-button" data-delete-period="'+esc(period.periodId)+'">Delete</button>':''}</div>` : '—';
+        const canAssignPeriod = canEditPeriod && !period.assignedTeacherUserId && !period.assignedTeacherName;
+        const matchingTeachers = eligibleTeachers.filter(teacher => String(teacher.departmentId) === String(period.scheduleDepartmentId || period.departmentId));
+        const inlineAssign = !canAssignPeriod ? '' : matchingTeachers.length
+          ? `<div class="schedule-quick-assign"><select data-list-teacher="${esc(period.periodId)}" aria-label="Subject Teacher for ${esc(period.periodName)}"><option value="">Choose teacher</option>${matchingTeachers.map(teacher => '<option value="' + esc(teacher.userId) + '">' + esc(teacher.displayName) + '</option>').join('')}</select><button type="button" class="primary-button compact-button" data-list-assign="${esc(period.periodId)}">Assign</button></div>`
+          : '<button type="button" class="outline-button compact-button" data-go-add-teacher>＋ Add Subject Teacher</button>';
+        const deleteAction = canEditPeriod ? `<div class="schedule-row-actions">${inlineAssign}<button type="button" class="outline-button compact-button" data-edit-period="${esc(period.periodId)}">Edit</button>${user.role==='SCHOOL_ADMIN'?'<button type="button" class="outline-button compact-button danger-button" data-delete-period="'+esc(period.periodId)+'">Delete</button>':''}</div>` : '—';
         return `<tr>
           ${selection}<td data-label="Schedule"><strong>${esc(period.periodName)}</strong>${period.scheduleType === 'ADVISORY' ? '<small class="schedule-activity-label">Advisory / Homeroom</small>' : period.scheduleType === 'OTHER' ? '<small class="schedule-activity-label">Special class</small>' : ''}</td>
           <td data-label="Subject">${esc(period.subjectName || '—')}</td>
@@ -2153,7 +2182,10 @@ let teacherActionMenuListenersInstalled = false;
 
   function renderTeachers() {
     ensureTeacherActionMenuStyles();
-    const rows = teachers.length ? teachers.map(teacher => {
+    const visibleTeachers = user.role === 'DEPARTMENT_HEAD'
+      ? teachers.filter(teacher => String(teacher.departmentId) === String(user.departmentId))
+      : teachers;
+    const rows = visibleTeachers.length ? visibleTeachers.map(teacher => {
       const assigned = Array.isArray(teacher.assignedPeriods) ? teacher.assignedPeriods : [];
       const rawStatus = teacher.teacherStatus ?? teacher.teacher_status ?? '';
       const normalizedStatus = String(rawStatus).trim().toUpperCase();
@@ -2250,7 +2282,10 @@ let teacherActionMenuListenersInstalled = false;
         <td data-label="Assigned schedules"><div class="teacher-cell-value">${assignmentsHtml}</div></td>
         <td data-label="Account action"><div class="teacher-cell-value"><div class="action-row">${actionMenu}</div></div></td>
       </tr>`;
-    }).join('') : '<tr><td colspan="6" class="empty-cell">No teacher accounts have been created for this school yet.</td></tr>';
+    }).join('') : '<tr><td colspan="6" class="empty-cell">' +
+      (user.role === 'DEPARTMENT_HEAD'
+        ? 'No teachers are assigned to this department yet. Use Add teacher to create a Subject Teacher.'
+        : 'No teacher accounts have been created for this school yet.') + '</td></tr>';
 
     $('teacherRows').innerHTML = rows;
     $('teacherRows').querySelectorAll('[data-select-staff]').forEach(box => box.addEventListener('change', () => {
@@ -5197,6 +5232,39 @@ let teacherActionMenuListenersInstalled = false;
   });
   $('weeklyGradeFilter')?.addEventListener('change', renderWeeklyTimetable);
   $('weeklySectionFilter')?.addEventListener('change', renderWeeklyTimetable);
+  $('scheduleRows')?.addEventListener('click', async event => {
+    if (event.target.closest('[data-go-add-teacher]')) {
+      openTeacherCreation();
+      return;
+    }
+    const button = event.target.closest('[data-list-assign]');
+    if (!button) return;
+    const periodId = button.dataset.listAssign;
+    const period = periods.find(item => String(item.periodId) === String(periodId));
+    if (!period || !(user.role === 'SCHOOL_ADMIN' || (user.role === 'DEPARTMENT_HEAD' &&
+        String(period.scheduleDepartmentId) === String(user.departmentId)))) {
+      showToast('You can assign teachers only to schedules in your department.', true);
+      return;
+    }
+    const select = [...$('scheduleRows').querySelectorAll('[data-list-teacher]')]
+      .find(item => item.dataset.listTeacher === periodId);
+    if (!select?.value) {
+      showToast('Choose a Subject Teacher from your department first.', true);
+      select?.focus();
+      return;
+    }
+    button.disabled = true;
+    try {
+      const result = await api('/api/periods/' + encodeURIComponent(periodId) + '/assignments', {
+        method: 'POST', body: JSON.stringify({ teacherUserId: select.value })
+      });
+      await loadSchoolData();
+      showToast('Schedule assigned to ' + (result.teacher?.displayName || 'the selected teacher') + '.');
+    } catch (error) {
+      button.disabled = false;
+      showToast(error.message, true);
+    }
+  });
   $('weeklyTimetableBoard')?.addEventListener('click', async event => {
     const changeButton = event.target.closest('[data-open-adjustment]');
     if(changeButton) {
@@ -5922,13 +5990,23 @@ let teacherActionMenuListenersInstalled = false;
 
   if ($('showTeacherForm')) {
     const updateDesignationVisibility = () => {
+      if (user?.role === 'DEPARTMENT_HEAD') {
+        $('newAccountRole').value = 'TEACHER';
+        $('newAccountRole').disabled = true;
+        $('newAccountRole').closest('.field-group').hidden = true;
+        $('newTeacherDepartment').value = user.departmentId || '';
+      } else {
+        $('newAccountRole').disabled = false;
+        $('newAccountRole').closest('.field-group').hidden = false;
+      }
       const selectedRole = $('newAccountRole')?.value || '';
       const isTeacherAccount = selectedRole === 'TEACHER';
       const needsDepartment = ['TEACHER', 'DEPARTMENT_HEAD'].includes(selectedRole);
       $('teacherDesignationFields').hidden = !isTeacherAccount || user?.role === 'SCHOOL_ADMIN';
       $('newTeacherDepartmentGroup').hidden = !needsDepartment;
       $('newTeacherPositionGroup').hidden = !isTeacherAccount;
-      $('newTeacherDepartment').required = needsDepartment;
+      $('newTeacherDepartment').disabled = user?.role === 'DEPARTMENT_HEAD';
+      $('newTeacherDepartment').required = needsDepartment && user?.role !== 'DEPARTMENT_HEAD';
       if (!isTeacherAccount) {
         $('designationSubjectTeacher').checked = false;
         $('designationClassAdviser').checked = false;
@@ -5939,7 +6017,8 @@ let teacherActionMenuListenersInstalled = false;
     $('newAccountRole').addEventListener('change', updateDesignationVisibility);
     updateDesignationVisibility();
     $('showTeacherForm').addEventListener('click', () => {
-      $('teacherForm').hidden = !$('teacherForm').hidden;
+      if ($('teacherForm').hidden) openTeacherCreation();
+      else $('teacherForm').hidden = true;
     });
     $('addSchoolStaffAccount')?.addEventListener('click', () => {
       $('teacherForm').hidden = false;
