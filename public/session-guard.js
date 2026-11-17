@@ -16,7 +16,8 @@
   if (!initialToken) { redirect(); return; }
   async function verify() {
     const sequence = ++checkSequence;
-    hide();
+    // Keep an already validated page visible during foreground revalidation.
+    // Hiding the document on every visibilitychange caused a full-page flash.
     const token = sessionStorage.getItem(tokenKey);
     if (!token || token !== initialToken) { redirect(); return; }
     try {
