@@ -15,7 +15,7 @@ const lum=c=>c.map(v=>v/255).map(v=>v<=.04045?v/12.92:((v+.055)/1.055)**2.4).red
 const ratio=(a,b)=>(Math.max(lum(a),lum(b))+.05)/(Math.min(lum(a),lum(b))+.05);
 const rgb=s=>s.match(/\d+/g).map(Number);
 function harness(){
-  const logo={src:'/assets/attendigo-wordmark-on-dark.svg?v=1',getAttribute(name){return name==='src'?this.src:null}};
+  const logo={src:'/assets/attendigo-wordmark-on-dark.svg?v=2',getAttribute(name){return name==='src'?this.src:null}};
   const extraLogo={remove(){this.removed=true}};
   const brand={querySelector:()=>logo,querySelectorAll:()=>[logo,extraLogo]};
   const props={},sidebar={querySelector:()=>brand,dataset:{},style:{setProperty:(k,v)=>{props[k]=v}}};
@@ -45,7 +45,7 @@ test('school-selected sidebar colors preserve accessible navigation and the orig
     assert.ok(ratio(bg,rgb(vars['--side-muted']))>=4.5-.04);
     assert.ok(ratio(bg,rgb(vars['--side-border']))>=3-.03);
     for(const state of ['selected','hover'])assert.ok(ratio(rgb(vars['--side-'+state]),rgb(vars['--side-'+state+'-ink']))>=4.5-1e-3);
-    const expected='/assets/attendigo-symbol-transparent.svg?v=1';
+    const expected='/assets/attendigo-symbol-transparent.svg?v=2';
     assert.equal(h.logo.src,expected);
   }
  }
@@ -66,7 +66,7 @@ test('original approved Attendigo artwork is used in both transparent light/dark
   assert.match(asset,/<svg/);
   assert.match(asset,/data:image\/png;base64,/);
   assert.match(asset,/feColorMatrix/);
-  assert.match(asset,/transparent|key-white/);
+  assert.match(asset,/transparent|transparency|key-white|key-black/);
  }
  const embedded=asset=>asset.match(/data:image\/png;base64,([A-Za-z0-9+/=]+)/)[1];
  assert.equal(embedded(light),embedded(dark));
@@ -98,9 +98,9 @@ test('sidebar sync shortcut is removed, while topbar Sync Center and offline syn
  assert.ok(!html.includes('Connected to local server'));
 });
 test('the service worker caches the deployed variants and correct versioned sidebar assets',()=>{
- const assets=['/attendigo-sidebar-adaptive.css?v=13','/attendigo-sidebar-adaptive.js?v=7',
- '/attendigo-brand-refresh.css?v=2','/assets/attendigo-wordmark-on-light.svg?v=1',
- '/assets/attendigo-wordmark-on-dark.svg?v=1','/assets/attendigo-symbol-transparent.svg?v=1'];
+ const assets=['/attendigo-sidebar-adaptive.css?v=14','/attendigo-sidebar-adaptive.js?v=8',
+ '/attendigo-brand-refresh.css?v=3','/assets/attendigo-wordmark-on-light.svg?v=2',
+ '/assets/attendigo-wordmark-on-dark.svg?v=1','/assets/attendigo-symbol-transparent.svg?v=2'];
  for(const asset of assets)assert.ok(worker.includes(JSON.stringify(asset)),asset);
  for(const asset of [assets[0],assets[1],assets[2],assets[5]])assert.ok(html.includes(asset),asset);
  assert.ok(Number(worker.match(/const CACHE = "attendigo-v(\d+)-/)[1]) >= 167, 'PWA cache version must include removal of sidebar sync shortcut');
