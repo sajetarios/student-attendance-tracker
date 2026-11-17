@@ -15,6 +15,7 @@ const isImage=(buffer,mime)=>{
  if(mime==='image/webp')return buffer.length>=12&&buffer.toString('ascii',0,4)==='RIFF'&&buffer.toString('ascii',8,12)==='WEBP';
  return false;
 };
+const normalizedMime=buffer=>isImage(buffer,'image/webp')?'image/webp':isImage(buffer,'image/png')?'image/png':null;
 function parsePhoto(body){
  if(!body||typeof body!=='object'||!['image/jpeg','image/png','image/webp'].includes(body.originalMime))
    throw new Error('Choose a JPG, PNG or WebP photo.');
@@ -25,13 +26,20 @@ function parsePhoto(body){
    if(buffer.length>limit||!isImage(buffer,mime))throw Error('Photo data is not a supported image.');
    return buffer;
  }
+ function readNormalized(value,limit){
+   if(typeof value!=='string'||!value.length||value.length>Math.ceil(limit*4/3)+16||
+      !/^[a-zA-Z0-9+/]+={0,2}$/.test(value))throw Error('Photo data is missing or too large.');
+   const buffer=Buffer.from(value,'base64');
+   if(buffer.length>limit||!normalizedMime(buffer))throw Error('Photo data is not a supported image.');
+   return buffer;
+ }
  return {original:read(body.original,FILE_LIMIT,body.originalMime),
-   cropped:read(body.cropped,1024*1024,'image/webp'),
-   thumb:read(body.thumb,256*1024,'image/webp'),
+   cropped:readNormalized(body.cropped,1024*1024),
+   thumb:readNormalized(body.thumb,256*1024),
    originalMime:body.originalMime};
 }
-function sendBuffer(res,data,mime='image/webp'){
- res.setHeader('Content-Type',mime);
+function sendBuffer(res,data,mime){
+ res.setHeader('Content-Type',normalizedMime(data)||mime||'application/octet-stream');
  res.setHeader('Content-Length',String(data.length));
  res.setHeader('Cache-Control','private, no-store');
  res.setHeader('Content-Disposition','inline');
@@ -80,12 +88,12 @@ async function storeOfficial(client,schoolId,kind,id,payload,actorId){
  await client.query(`
  INSERT INTO official_profile_photos
   (school_id,subject_kind,subject_id,original_data,image_data,thumb_data,original_mime,image_mime,modified_by_user_id)
- VALUES($1,$2,$3,$4,$5,$6,$7,'image/webp',$8)
+ VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9)
  ON CONFLICT (school_id,subject_kind,subject_id)
  DO UPDATE SET original_data=excluded.original_data,image_data=excluded.image_data,
    thumb_data=excluded.thumb_data,original_mime=excluded.original_mime,
    image_mime=excluded.image_mime,modified_by_user_id=excluded.modified_by_user_id,modified_at=NOW()`,
-  [schoolId,kind,String(id),payload.original,payload.cropped,payload.thumb,payload.originalMime,actorId||null]);
+  [schoolId,kind,String(id),payload.original,payload.cropped,payload.thumb,payload.originalMime,normalizedMime(payload.cropped),actorId||null]);
  if(kind==='STUDENT')await client.query(`
    UPDATE students SET photo_path='db:official',updated_at=NOW()
    WHERE school_id=$1 AND student_id=$2`,[schoolId,String(id)]);
