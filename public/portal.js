@@ -869,6 +869,23 @@
     });
   });
 
+  // Mirror the already-authorized approval badge, without extra API calls.
+  const adminRequestBadge = $('adminNotificationCount');
+  const adminRequestTotal = $('adminOverviewRequests');
+  if (adminRequestBadge && adminRequestTotal) {
+    const syncAdminRequestTotal = () => {
+      if (user?.role !== 'SCHOOL_ADMIN') return;
+      const foot = $('adminNotificationFoot')?.textContent || '';
+      if (/checking requests/i.test(foot) && adminRequestBadge.hidden) return;
+      const value = Number.parseInt(adminRequestBadge.textContent || '0', 10);
+      adminRequestTotal.textContent = String(Number.isFinite(value) ? value : 0);
+    };
+    new MutationObserver(syncAdminRequestTotal).observe(adminRequestBadge,{childList:true,characterData:true,subtree:true,attributes:true,attributeFilter:['hidden']});
+    const foot = $('adminNotificationFoot');
+    if (foot) new MutationObserver(syncAdminRequestTotal).observe(foot,{childList:true,characterData:true,subtree:true});
+    syncAdminRequestTotal();
+  }
+
   function renderStats(data) {
     const role = user?.role;
     const isTeacher = role === 'TEACHER';
