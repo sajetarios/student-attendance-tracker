@@ -1,0 +1,84 @@
+/* Teacher-only learner directory refinement. Does not alter School Admin or Department Head tables. */
+#studentsView .student-roster-tools{border-radius:16px;padding:16px 18px;background:var(--card,#fff);border:1px solid var(--line,#d9e3ef)}
+#studentsView .student-roster-tools h3{font-size:18px;line-height:1.3;color:var(--ink,#1d344f)}
+#studentsView .student-roster-tools p{font-size:12px;line-height:1.6;max-width:850px}
+#studentsView .student-filter-row{gap:10px}
+#studentsView .student-filter-row label{font-size:12px;line-height:1.4}
+#studentsView .student-filter-row :is(select,input){min-height:42px;border-radius:10px;font-size:13px}
+#studentsView .student-roster-viewbar{background:var(--card,#f6f9fe);border-color:var(--line,#d9e5f3)}
+#studentsView #studentRosterSexCounts{font-size:12px;color:var(--ink,#24476e)}
+#studentsView #studentRosterTable.teacher-roster-compact{width:100%;min-width:940px;table-layout:auto;border-collapse:separate;border-spacing:0;font-size:12px}
+#studentsView #studentRosterTable.teacher-roster-compact thead th{padding:14px 11px;font-size:12px;white-space:nowrap;background:#f3f7fd;color:#4a6584;vertical-align:middle;border-bottom:1px solid #dce6f1;text-transform:none;letter-spacing:0}
+#studentsView #studentRosterTable.teacher-roster-compact tbody tr.teacher-roster-student td{padding:11px;vertical-align:middle;border-bottom:1px solid var(--line,#e2eaf3);font-size:12px;line-height:1.4;white-space:normal}
+#studentsView #studentRosterTable.teacher-roster-compact tbody tr.teacher-roster-student:hover td{background:#f8fbff}
+#studentsView #studentRosterTable.teacher-roster-compact td[data-label="Select"]{width:46px;min-width:46px;text-align:center}
+#studentsView #studentRosterTable.teacher-roster-compact .student-select-box{width:20px;height:20px;cursor:pointer;accent-color:var(--brand,#2469b1)}
+#studentsView #studentRosterTable.teacher-roster-compact td[data-label="Full name"]{min-width:240px;max-width:375px}
+#studentsView #studentRosterTable.teacher-roster-compact td[data-label="Class"]{min-width:102px}
+#studentsView #studentRosterTable.teacher-roster-compact td[data-label="Special program"]{min-width:116px}
+#studentsView #studentRosterTable.teacher-roster-compact td[data-label="Parent / guardian"]{min-width:125px;max-width:200px}
+#studentsView .teacher-roster-identity{display:flex;align-items:center;gap:11px;min-width:0}
+#studentsView .teacher-roster-identity-copy{min-width:0;display:flex;flex-direction:column;gap:4px}
+#studentsView .teacher-roster-identity-copy strong{font-size:13px;line-height:1.35;color:var(--ink,#1d3553);font-weight:750;overflow-wrap:anywhere}
+#studentsView .teacher-roster-identity-copy small{font-size:11px;letter-spacing:.015em;color:var(--muted,#687e96);font-weight:650}
+#studentsView .teacher-roster-identity :is(.student-photo-thumb,.student-photo-placeholder){width:40px;height:40px;min-width:40px;flex-shrink:0;border-radius:12px;font-size:10px;text-align:center;line-height:1.2;border:1px solid #d6e2f2}
+#studentsView #studentRosterTable.teacher-roster-compact td[data-label="Class"] strong{display:block;font-size:12px;font-weight:750;color:var(--ink,#25425f)}
+#studentsView #studentRosterTable.teacher-roster-compact td[data-label="Class"] small{display:block;font-size:11px;line-height:1.5;color:var(--muted,#607a91);margin-top:3px}
+#studentsView #studentRosterTable.teacher-roster-compact .special-program-chip{font-size:11px;padding:4px 9px}
+#studentsView #studentRosterTable.teacher-roster-compact .special-program-request-link{margin-top:6px;font-size:11px;font-weight:700;line-height:1.4;white-space:nowrap}
+#studentsView .teacher-roster-status{display:inline-flex;align-items:center;gap:6px;padding:5px 8px;border-radius:999px;font-size:11px;font-weight:750;border:1px solid transparent;white-space:nowrap}
+#studentsView .teacher-roster-status::before{content:"";width:6px;height:6px;border-radius:50%;background:currentColor}
+#studentsView .teacher-roster-status.active{background:#e8f7ee;color:#1d754b;border-color:#bfe8d0}
+#studentsView .teacher-roster-status.inactive{background:#fff3dd;color:#925b13;border-color:#f1dcae}
+#studentsView .teacher-roster-status.archived{background:#edf0f5;color:#5c6878;border-color:#d6dbe4}
+#studentsView #studentRosterTable.teacher-roster-compact .teacher-roster-qr{display:inline-flex;align-items:center;gap:6px;min-height:42px;padding:4px 8px;border:1px solid #cad9ec;border-radius:10px;background:#f7fbff;color:#205992;font-size:11px;font-weight:750;white-space:nowrap;cursor:pointer}
+#studentsView #studentRosterTable.teacher-roster-compact .teacher-roster-qr img{width:29px;height:29px;object-fit:contain;background:#fff;border-radius:3px}
+#studentsView #studentRosterTable.teacher-roster-compact .student-actions-dropdown{min-width:0}
+#studentsView #studentRosterTable.teacher-roster-compact .student-actions-dropdown>summary{min-height:40px;padding:7px 10px;border-radius:10px;font-size:12px}
+#studentsView #studentRosterTable.teacher-roster-compact .student-actions-dropdown .student-row-actions{min-width:150px;flex-wrap:wrap}
+#studentsView .teacher-roster-guardian strong{display:block;color:var(--ink,#294461);font-size:11px;font-weight:700;overflow-wrap:anywhere}
+#studentsView .teacher-roster-guardian small{display:block;color:var(--muted,#697b92);font-size:11px;margin-top:4px;overflow-wrap:anywhere}
+#studentsView #studentRosterTable.teacher-roster-compact .student-sex-group>th{font-size:12px;padding:11px 14px!important}
+#studentsView #studentRosterTable.teacher-roster-compact :is(button,summary,input):focus-visible,
+#classQrTeacherShortcut:focus-visible{outline:3px solid #6caaf8;outline-offset:2px}
+#classQrTeacherShortcut{position:fixed;right:18px;bottom:18px;z-index:1000;display:inline-flex;align-items:center;justify-content:center;gap:9px;padding:12px 16px;min-height:44px;border-radius:13px;background:#1767a5;color:white;text-decoration:none;font-size:13px;font-weight:750;box-shadow:0 5px 22px #0003}
+#classQrTeacherShortcut.is-roster-inline{position:static;right:auto;bottom:auto;margin-left:auto;flex:0 0 auto;box-shadow:none;border-radius:11px;padding:10px 13px}
+#classQrTeacherShortcut:hover{background:#14568d;color:#fff}
+html[data-ui-theme="dark"] #studentsView .student-roster-tools,
+html[data-ui-theme="dark"] #studentsView .student-roster-viewbar{background:#1d3049;color:#eef4ff;border-color:#435b79}
+html[data-ui-theme="dark"] #studentsView .student-roster-tools h3,
+html[data-ui-theme="dark"] #studentsView .teacher-roster-identity-copy strong,
+html[data-ui-theme="dark"] #studentsView .teacher-roster-guardian strong,
+html[data-ui-theme="dark"] #studentsView #studentRosterTable.teacher-roster-compact td[data-label="Class"] strong{color:#f0f6ff}
+html[data-ui-theme="dark"] #studentsView .teacher-roster-identity-copy small,
+html[data-ui-theme="dark"] #studentsView .teacher-roster-guardian small,
+html[data-ui-theme="dark"] #studentsView #studentRosterTable.teacher-roster-compact td[data-label="Class"] small{color:#c1d0e5}
+html[data-ui-theme="dark"] #studentsView #studentRosterTable.teacher-roster-compact thead th{background:#223954;color:#d5e4f7;border-color:#435b79}
+html[data-ui-theme="dark"] #studentsView #studentRosterTable.teacher-roster-compact tbody tr.teacher-roster-student:hover td{background:#233b56}
+html[data-ui-theme="dark"] #studentsView .teacher-roster-status.active{background:#164c3b;color:#bff5d4;border-color:#317c5b}
+html[data-ui-theme="dark"] #studentsView .teacher-roster-status.inactive{background:#594522;color:#ffe6aa;border-color:#8a6a31}
+html[data-ui-theme="dark"] #studentsView .teacher-roster-status.archived{background:#354254;color:#e3e9f5;border-color:#566a80}
+html[data-ui-theme="dark"] #studentsView #studentRosterTable.teacher-roster-compact .teacher-roster-qr{background:#1d3b5b;color:#d9eaff;border-color:#51749b}
+@media(max-width:1050px) and (min-width:701px){
+  #studentsView #studentRosterTable.teacher-roster-compact{min-width:940px}
+  #studentsView .table-scroll{overflow-x:auto}
+}
+@media(max-width:700px){
+  #studentsView #studentRosterTable.teacher-roster-compact{min-width:0!important;width:100%!important;display:block}
+  #studentsView #studentRosterTable.teacher-roster-compact tbody{display:grid;gap:12px}
+  #studentsView #studentRosterTable.teacher-roster-compact tbody tr.teacher-roster-student{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:0 12px;padding:12px 14px}
+  #studentsView #studentRosterTable.teacher-roster-compact tbody tr.teacher-roster-student td{display:flex;flex-direction:column;align-items:flex-start;justify-content:center;min-width:0!important;width:auto!important;padding:9px 0;font-size:12px;border-bottom:1px solid #e7edf5}
+  #studentsView #studentRosterTable.teacher-roster-compact tbody td[data-label="Full name"]{grid-column:1/-1;max-width:none;min-width:0}
+  #studentsView #studentRosterTable.teacher-roster-compact tbody td[data-label="Full name"]::before{content:none}
+  #studentsView #studentRosterTable.teacher-roster-compact .teacher-roster-identity-copy strong{font-size:14px}
+  #studentsView #studentRosterTable.teacher-roster-compact tbody td[data-label="Select"]{grid-column:1/-1;min-width:0!important;width:auto;text-align:left}
+  #studentsView #studentRosterTable.teacher-roster-compact tbody td[data-label="QR code"]{grid-column:1/2}
+  #studentsView #studentRosterTable.teacher-roster-compact tbody td[data-label="Actions"]{grid-column:2/3}
+  #studentsView #studentRosterTable.teacher-roster-compact tbody td[data-label="Parent / guardian"]{grid-column:1/-1;max-width:none}
+  #studentsView #studentRosterTable.teacher-roster-compact tbody tr.student-sex-group{display:block!important;padding:0!important;border:0!important;box-shadow:none!important;background:transparent!important}
+  #studentsView #studentRosterTable.teacher-roster-compact tbody tr.student-sex-group th{display:block;width:100%;box-sizing:border-box;border-radius:10px;padding:11px 12px!important}
+  #classQrTeacherShortcut:not(.is-roster-inline){right:12px;bottom:calc(12px + env(safe-area-inset-bottom));width:52px;height:52px;padding:0;border-radius:50%;font-size:22px}
+  #classQrTeacherShortcut:not(.is-roster-inline) .class-qr-link-label{display:none}
+  #classQrTeacherShortcut.is-roster-inline{width:100%;justify-content:center;margin:0}
+  #studentsView .student-roster-viewbar{align-items:stretch}
+}
