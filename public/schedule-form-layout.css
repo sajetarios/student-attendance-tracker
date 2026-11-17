@@ -110,3 +110,75 @@ html[data-ui-theme="dark"] #scheduleForm .schedule-time-preview small {color:#b4
 html[data-ui-theme="dark"] #scheduleForm .schedule-review-summary {background:#1b3046;color:#e3f1ff}
 @media(min-width:901px){body #scheduleForm.schedule-side-drawer .schedule-time-inputs,body #scheduleForm.schedule-side-drawer .schedule-location-fields{grid-template-columns:repeat(2,minmax(0,1fr))!important}}
 @media(max-width:620px){#scheduleForm .schedule-time-preview{gap:10px 12px;padding:12px}#scheduleForm .schedule-time-preview strong{font-size:15px}#scheduleForm .schedule-preview-duration{margin-left:0}}
+
+
+/* Department Head role-scoped schedule controls and accessible compact weekdays. */
+#scheduleForm #scheduleWeekdayChoices {
+  display:flex!important;flex-wrap:wrap!important;align-items:center!important;
+  gap:7px!important;padding:6px 0 3px!important;
+}
+#scheduleForm #scheduleWeekdayChoices > label {
+  position:relative!important;display:inline-flex!important;align-items:center!important;
+  flex:0 0 auto!important;min-width:0!important;min-height:0!important;
+  padding:0!important;margin:0!important;border:0!important;
+  border-radius:9px!important;background:transparent!important;cursor:pointer;
+  box-shadow:none!important;
+}
+#scheduleForm #scheduleWeekdayChoices > label input[type="checkbox"] {
+  position:absolute!important;
+  width:1px!important;height:1px!important;min-width:1px!important;min-height:1px!important;
+  max-width:1px!important;max-height:1px!important;
+  padding:0!important;margin:0!important;opacity:0!important;
+  overflow:hidden!important;pointer-events:none!important;
+}
+#scheduleForm #scheduleWeekdayChoices > label span {
+  display:inline-flex!important;align-items:center!important;justify-content:center!important;
+  min-width:52px!important;min-height:38px!important;padding:7px 12px!important;
+  box-sizing:border-box!important;border:1px solid #ccdae8!important;
+  border-radius:9px!important;background:#f6f9fc!important;color:#30475e!important;
+  font-size:13px!important;font-weight:700!important;line-height:1.3!important;
+  transition:background-color .15s ease,border-color .15s ease,color .15s ease;
+}
+#scheduleForm #scheduleWeekdayChoices > label input[type="checkbox"]:checked + span {
+  border-color:#1176ad!important;background:#0a7cad!important;color:#fff!important;
+}
+#scheduleForm #scheduleWeekdayChoices > label input[type="checkbox"]:focus-visible + span {
+  outline:3px solid #f2ab32!important;outline-offset:3px!important;
+}
+#scheduleForm #scheduleWeekdayChoices > label input[type="checkbox"]:disabled + span {
+  opacity:.5!important;cursor:not-allowed!important;
+}
+#scheduleForm #scheduleGraceGroup[hidden],#scheduleForm #departmentScheduleScopeNote[hidden] {
+  display:none!important;
+}
+#scheduleForm .department-schedule-scope-note {
+  padding:11px 14px;margin:0 0 12px;
+  background:#edf6fd;border-left:3px solid #2784bb;border-radius:8px;
+  color:#315675;font-size:13px;line-height:1.5;
+}
+#scheduleForm[data-schedule-role="DEPARTMENT_HEAD"] .schedule-review-section {
+  border:0!important;background:transparent!important;
+  margin:4px 0 0!important;padding:0!important;
+}
+#scheduleForm[data-schedule-role="DEPARTMENT_HEAD"] .schedule-review-section .form-section-heading {
+  display:none!important;
+}
+#scheduleForm[data-schedule-role="DEPARTMENT_HEAD"] #scheduleReviewSummary {
+  margin-bottom:4px!important;padding:10px 12px!important;
+  font-size:13px!important;line-height:1.5!important;
+}
+html[data-ui-theme="dark"] #scheduleForm #scheduleWeekdayChoices > label span {
+  background:#1f3149!important;color:#d5e4f4!important;border-color:#445c76!important;
+}
+html[data-ui-theme="dark"] #scheduleForm #scheduleWeekdayChoices > label input[type="checkbox"]:checked + span {
+  background:#167ba9!important;color:#fff!important;border-color:#62c5f0!important;
+}
+html[data-ui-theme="dark"] #scheduleForm .department-schedule-scope-note {
+  background:#1a354f;border-left-color:#50a9dd;color:#d5ecff;
+}
+@media(max-width:600px) {
+  #scheduleForm #scheduleWeekdayChoices > label span {
+    min-width:49px!important;min-height:39px!important;padding:7px 10px!important;
+  }
+  #scheduleForm .department-schedule-scope-note {padding:10px 12px}
+}
