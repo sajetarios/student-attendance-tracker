@@ -1,4 +1,4 @@
-const CACHE = "attendigo-v154-universal-notifications";
+const CACHE = "attendigo-v155-special-program-reviewed-history";
 
 const SHELL = [
   "/assets/attendigo-sidebar-logo.png",
@@ -58,9 +58,9 @@ const SHELL = [
   "/guardian-ui.css?v=4",
   "/academic-admin.css?v=1",
   "/academic-admin.js?v=6",
-  "/special-program-ui.js?v=3",
+  "/special-program-ui.js?v=4",
   "/special-program-batch-ui.js?v=2",
-  "/special-program-ui.css?v=3",
+  "/special-program-ui.css?v=4",
   "/app-dialog.css?v=1",
   "/app-dialog.js?v=1",
   "/sw-refresh.js?v=3",
