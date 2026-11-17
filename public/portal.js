@@ -2781,6 +2781,9 @@ let teacherActionMenuListenersInstalled = false;
         input.checked = configuredDays.length ? configuredDays.includes(Number(input.value)) : Number(input.value)>=1 && Number(input.value)<=5;
       });
       populateSavedTimetableChoices();
+      if ($('scheduleForm') && !$('scheduleForm').hidden) {
+        $('scheduleFormFeedback').textContent = 'Timetable options refreshed from the saved school settings.';
+      }
       const list = $('timetableTemplateList');
       if (list) list.innerHTML = '<strong>Saved templates</strong>' + (timetableTemplates.length
         ? '<div class="timetable-template-chips">' + timetableTemplates.map(template =>
