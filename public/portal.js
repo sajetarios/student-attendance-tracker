@@ -1921,7 +1921,7 @@ function coverageStatusLabel(status) {
           : '';
         const deleteAction = (user.role === 'SCHOOL_ADMIN' || (user.role === 'DEPARTMENT_HEAD' && String(period.departmentId) === String(user.departmentId))) ? `<button type="button" class="outline-button compact-button danger-button" data-delete-period="${esc(period.periodId)}">Delete</button>` : '—';
         return `<tr>
-          ${selection}<td data-label="Schedule"><strong>${esc(period.periodName)}</strong></td>
+          ${selection}<td data-label="Schedule"><strong>${esc(period.periodName)}</strong>${period.scheduleType === 'ADVISORY' ? '<small class="schedule-activity-label">Advisory / Homeroom</small>' : period.scheduleType === 'OTHER' ? '<small class="schedule-activity-label">Special class</small>' : ''}</td>
           <td data-label="Subject">${esc(period.subjectName || '—')}</td>
           <td data-label="Department">${esc(period.departmentName || 'Unassigned')}</td>
           <td data-label="Grade">${esc(period.gradeLevel)}</td>
