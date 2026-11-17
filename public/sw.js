@@ -1,4 +1,4 @@
-const CACHE = "attendigo-v154-universal-notifications";
+const CACHE = "attendigo-v155-teacher-roster";
 
 const SHELL = [
   "/assets/attendigo-sidebar-logo.png",
@@ -33,9 +33,10 @@ const SHELL = [
   "/portal.css?v=0.9.113",
   "/student-roster-toolbar.css?v=2",
   "/learner-roster-view.css?v=1",
+  "/teacher-learner-roster.css?v=1",
   "/learner-roster-view.js?v=1",
   "/portal.css",
-  "/portal.js?v=0.9.136",
+  "/portal.js?v=0.9.137",
   "/sardo-monitor.js?v=1",
   "/sardo-monitor.css?v=1",
   "/schedule-form-layout.css?v=12",
