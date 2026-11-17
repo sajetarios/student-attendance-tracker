@@ -504,7 +504,7 @@
     if ($('manageParentsFromStudents')) { $('manageParentsFromStudents').hidden = !admin; $('manageParentsFromStudents').style.display = admin ? 'inline-flex' : 'none'; }
     if ($('showStudentPortalHelp')) $('showStudentPortalHelp').hidden = !admin;
     if ($('showStudentForm')) $('showStudentForm').hidden = !(admin || (teacher && classAdviser));
-    if ($('showScheduleForm')) $('showScheduleForm').hidden = !admin;
+    if ($('showScheduleForm')) $('showScheduleForm').hidden = !(admin || (departmentHead&&user.departmentId&&user.departmentCode!=='UNASSIGNED'));
     if ($('dashboardAddStudent')) $('dashboardAddStudent').hidden = !(admin || (teacher && classAdviser));
     if ($('showTeacherForm')) $('showTeacherForm').hidden = !admin;
     if ($('addSchoolStaffAccount')) $('addSchoolStaffAccount').hidden = !admin;
@@ -2012,7 +2012,8 @@ function coverageStatusLabel(status) {
               (selectedPeriodIds.has(String(period.periodId)) ? 'checked' : '') + ' aria-label="Select ' + esc(period.periodName) + '">'
             : '—') + '</td>'
           : '';
-        const deleteAction = user.role === 'SCHOOL_ADMIN' ? `<div class="schedule-row-actions"><button type="button" class="outline-button compact-button" data-edit-period="${esc(period.periodId)}">Edit</button><button type="button" class="outline-button compact-button danger-button" data-delete-period="${esc(period.periodId)}">Delete</button></div>` : '—';
+        const canEditPeriod = user.role==='SCHOOL_ADMIN' || (user.role==='DEPARTMENT_HEAD'&&user.departmentCode!=='UNASSIGNED'&&String(period.scheduleDepartmentId)===String(user.departmentId));
+        const deleteAction = canEditPeriod ? `<div class="schedule-row-actions"><button type="button" class="outline-button compact-button" data-edit-period="${esc(period.periodId)}">Edit</button>${user.role==='SCHOOL_ADMIN'?'<button type="button" class="outline-button compact-button danger-button" data-delete-period="'+esc(period.periodId)+'">Delete</button>':''}</div>` : '—';
         return `<tr>
           ${selection}<td data-label="Schedule"><strong>${esc(period.periodName)}</strong>${period.scheduleType === 'ADVISORY' ? '<small class="schedule-activity-label">Advisory / Homeroom</small>' : period.scheduleType === 'OTHER' ? '<small class="schedule-activity-label">Special class</small>' : ''}</td>
           <td data-label="Subject">${esc(period.subjectName || '—')}</td>
@@ -2029,7 +2030,7 @@ function coverageStatusLabel(status) {
       setScheduleDisplay(activeScheduleDisplay);
 
       $('scheduleScopeText').textContent = user.role === 'DEPARTMENT_HEAD'
-        ? 'Assign your department teachers to existing schedules and manage temporary changes. School Admin owns official schedule settings.'
+        ? 'Create and edit classes in your department, assign Subject Teachers, and use school-approved timetable blocks.'
         : 'Create class schedules and assign Subject Teachers. Department and subject options follow the selected teacher profile.';
     }
 
@@ -2038,9 +2039,9 @@ function coverageStatusLabel(status) {
       updatePeriodBatchUi();
     }));
 
-    const schoolAdminCanCreate = user.role === 'SCHOOL_ADMIN';
-    $('showScheduleForm').hidden = !schoolAdminCanCreate;
-    $('showScheduleForm').textContent = '＋ Create class schedule';
+    const canCreate = user.role==='SCHOOL_ADMIN' || (user.role==='DEPARTMENT_HEAD'&&user.departmentId&&user.departmentCode!=='UNASSIGNED');
+    $('showScheduleForm').hidden = !canCreate;
+    $('showScheduleForm').textContent = user.role==='DEPARTMENT_HEAD'?'＋ New department class':'＋ Create class schedule';
     if (user.role === 'DEPARTMENT_HEAD' && (!user.departmentId || user.departmentCode === 'UNASSIGNED')) {
       $('scheduleScopeText').textContent = 'Your account is awaiting department assignment. You can monitor schedules until the School Administrator assigns your department.';
     }
@@ -2947,11 +2948,12 @@ let teacherActionMenuListenersInstalled = false;
     if (!selector) return;
     const previous = selector.value;
     const wasCustom = !previous;
-    selector.innerHTML = '<option value="">Custom time</option>' +
+    selector.innerHTML = (user.role==='DEPARTMENT_HEAD'?'<option value="">Select school timetable</option>':'<option value="">Custom time</option>') +
       timetableTemplates.filter(item => item.active).map(item =>
         '<option value="' + esc(item.templateId) + '">' + esc(item.name + ' (' + item.shiftCode + ')') + '</option>'
       ).join('');
     selector.value = Array.from(selector.options).some(option => option.value === previous) ? previous : '';
+    if(user.role==='DEPARTMENT_HEAD'&&!selector.value)selector.value=String(timetableTemplates.find(t=>t.active)?.templateId||'');
     if (wasCustom && !selector.value) selector.dataset.lastTemplate = '';
     populateSavedTemplateBlocks();
   }
@@ -2974,13 +2976,52 @@ let teacherActionMenuListenersInstalled = false;
     const duration=templateMinutes(end)-templateMinutes(start);
     if($('schedulePreviewDuration'))$('schedulePreviewDuration').textContent=Number.isFinite(duration)&&duration>0?duration+' min':'—';
     const review=$('scheduleReviewSummary');if(!review)return;
-    review.textContent=[
-      $('periodName')?.value?.trim()||'Choose schedule label',
-      ($('periodGrade')?.value||'Grade')+' · '+($('periodSection')?.value||'Choose section'),
-      $('periodSubject')?.value?$('periodSubject').selectedOptions[0]?.textContent:'Choose subject',
-      start&&end?scheduleClockLabel(start)+' – '+scheduleClockLabel(end):'Choose time block',
-      formatScheduleDays(selectedScheduleWeekdays())
-    ].join(' • ');
+    const days=selectedScheduleWeekdays();
+    const dept=user?.role==='DEPARTMENT_HEAD';
+    if($('scheduleDaysCount'))$('scheduleDaysCount').textContent=days.length+' '+(days.length===1?'day':'days')+' selected';
+    const grade=$('periodGrade')?.value||'',section=$('periodSection')?.value||'';
+    const subject=$('periodSubject')?.value||'',label=$('periodName')?.value?.trim()||'';
+    const subjectName=subject?$('periodSubject')?.selectedOptions[0]?.textContent?.trim()||'Subject':'Select subject';
+    const teacherId=$('periodTeacher')?.value||'';
+    const teacherName=teacherId?$('periodTeacher')?.selectedOptions[0]?.textContent?.trim()||'Teacher':'Teacher unassigned';
+    const room=$('periodClassroom')?.value?.trim()||'No room assigned';
+    const approved=Boolean($('scheduleTemplate')?.value&&$('scheduleTemplatePeriod')?.value&&
+      Number.isFinite(duration)&&duration>0);
+    if(dept){
+      const steps=[
+        {ready:Boolean(grade&&section),name:'a section'},
+        {ready:Boolean(subject),name:'a subject'},
+        {ready:approved,name:'an approved timetable period'},
+        {ready:Boolean(label),name:'a schedule label'},
+        {ready:days.length>0,name:'meeting days'}
+      ];
+      const complete=steps.filter(step=>step.ready).length;
+      if($('scheduleReadinessCount'))$('scheduleReadinessCount').textContent=complete+' of 5 ready';
+      if($('scheduleReadinessText'))$('scheduleReadinessText').textContent=complete===5?'Ready to save':'Complete your department class';
+      if($('scheduleReadinessBar'))$('scheduleReadinessBar').setAttribute('aria-valuenow',String(complete));
+      if($('scheduleReadinessFill'))$('scheduleReadinessFill').style.width=(complete*20)+'%';
+      if($('scheduleReadinessHint'))$('scheduleReadinessHint').textContent=complete===5
+        ? 'All required details are present. Conflicts are checked when saving.'
+        : 'Next: choose '+steps.find(step=>!step.ready)?.name+'.';
+      review.textContent=[
+        grade&&section?grade+' · '+section:'Choose grade and section',
+        subjectName,
+        label||'Schedule label missing',
+        approved?scheduleClockLabel(start)+' – '+scheduleClockLabel(end):'Select approved period',
+        days.length?formatScheduleDays(days):'Select meeting days',
+        room,
+        'Subject Teacher: '+teacherName,
+        'Class Adviser: '+($('scheduleClassAdviserName')?.dataset.adviserName||'Not assigned / not loaded')
+      ].join('  •  ');
+    } else {
+      review.textContent=[
+        label||'Choose schedule label',
+        (grade||'Grade')+' · '+(section||'Choose section'),
+        subjectName,
+        start&&end?scheduleClockLabel(start)+' – '+scheduleClockLabel(end):'Choose time block',
+        formatScheduleDays(days)
+      ].join(' • ');
+    }
   }
   function populateSavedTemplateBlocks() {
     const selector=$('scheduleTemplate'),select=$('scheduleTemplatePeriod');
@@ -2996,12 +3037,13 @@ let teacherActionMenuListenersInstalled = false;
     if(previous&&Array.from(select.options).some(option=>option.value===previous))select.value=previous;
     selector.dataset.lastTemplate=selector.value;
     $('periodName').readOnly=false;
-    $('startTime').readOnly=Boolean(template);$('endTime').readOnly=Boolean(template);
+    $('startTime').readOnly=Boolean(template)||user.role==='DEPARTMENT_HEAD';
+    $('endTime').readOnly=Boolean(template)||user.role==='DEPARTMENT_HEAD';
     if(!template){
       suggestScheduleLabel('');
-      $('startTime').value=$('startTime').value||'07:30';
-      $('endTime').value=$('endTime').value||'08:30';
-      $('scheduleFormFeedback').textContent='Custom time: enter your own label and start/end times.';
+      $('startTime').value=user.role==='DEPARTMENT_HEAD'?'':($('startTime').value||'07:30');
+      $('endTime').value=user.role==='DEPARTMENT_HEAD'?'':($('endTime').value||'08:30');
+      $('scheduleFormFeedback').textContent=user.role==='DEPARTMENT_HEAD'?'Ask School Admin to publish an active school timetable.':'Custom time: enter your own label and start/end times.';
     }else if(select.value){applyTemplatePeriodSelection();return;}
     else{
       suggestScheduleLabel('');$('startTime').value='';$('endTime').value='';
@@ -3031,7 +3073,8 @@ let teacherActionMenuListenersInstalled = false;
     if($('periodName')){$('periodName').value='';$('periodName').dataset.suggestedLabel='';}
     if($('startTime'))$('startTime').value='07:30';
     if($('endTime'))$('endTime').value='08:30';
-    populateSavedTemplateBlocks();
+    if(user.role==='DEPARTMENT_HEAD')populateSavedTimetableChoices();
+    else populateSavedTemplateBlocks();
   }
 
   function templateMinutes(value) {
@@ -3293,6 +3336,14 @@ let teacherActionMenuListenersInstalled = false;
     });
     $('scheduleTemplate')?.addEventListener('change',populateSavedTemplateBlocks);
     $('scheduleTemplatePeriod')?.addEventListener('change',applyTemplatePeriodSelection);
+    $('scheduleApplySchoolDays')?.addEventListener('click',()=>{
+      if(user?.role!=='DEPARTMENT_HEAD')return;
+      const allowed=new Set(schoolOperatingDays.filter(day=>day.isOperatingDay).map(day=>Number(day.weekday)));
+      document.querySelectorAll('#scheduleWeekdayChoices input[type="checkbox"]').forEach(input=>{
+        input.checked=allowed.has(Number(input.value))&&!input.disabled;
+      });
+      updateScheduleReview();
+    });
     $('scheduleForm')?.addEventListener('input',updateScheduleReview);
     $('scheduleForm')?.addEventListener('change',updateScheduleReview);
   }
@@ -5207,12 +5258,48 @@ let teacherActionMenuListenersInstalled = false;
     }
   }
 
+  let sectionAdviserLookupRequest=0;
+  async function refreshScheduleSectionAdviser(){
+    const el=$('scheduleClassAdviserName'),hint=$('scheduleClassAdviserHint');
+    if(!el)return;
+    const token=++sectionAdviserLookupRequest;
+    const grade=$('periodGrade')?.value?.trim()||'',section=$('periodSection')?.value?.trim()||'';
+    el.dataset.adviserName='';
+    if(user?.role!=='DEPARTMENT_HEAD')return;
+    if(!grade||!section){
+      el.textContent='Choose grade and section';
+      if(hint)hint.textContent='Official adviser comes from the section assignment, not the Subject Teacher dropdown.';
+      updateScheduleReview();return;
+    }
+    el.textContent='Checking assigned Class Adviser…';
+    if(hint)hint.textContent='Reading the official school section assignment.';
+    updateScheduleReview();
+    try{
+      const res=await api('/api/scheduling/section-adviser?gradeLevel='+encodeURIComponent(grade)+'&section='+encodeURIComponent(section));
+      if(token!==sectionAdviserLookupRequest||$('scheduleForm')?.hidden||
+         $('periodGrade')?.value?.trim()!==grade||$('periodSection')?.value?.trim()!==section)return;
+      const assignment=res.assignment;
+      el.textContent=assignment?.adviserName||'No Class Adviser assigned';
+      el.dataset.adviserName=assignment?.adviserName||'';
+      if(hint)hint.textContent=assignment
+        ? 'Official adviser for '+grade+' · '+section+'. Saving this schedule will not alter the assignment.'+
+          (assignment.adviserActive===false?' Adviser account inactive.':'')
+        : 'This section has no adviser assignment. Manage it separately in Class Adviser assignments.';
+    }catch(error){
+      if(token!==sectionAdviserLookupRequest||$('scheduleForm')?.hidden)return;
+      el.textContent='Class Adviser unavailable';
+      if(hint)hint.textContent='Could not load the official section adviser: '+error.message;
+    }
+    updateScheduleReview();
+  }
+
   async function loadScheduleSections(gradeLevel, preferredSection = '') {
     const select = $('periodSection');
     const hint = $('periodSectionHint');
     if (!select) return;
     select.disabled = true;
     select.innerHTML = '<option value="">Loading sections…</option>';
+    void refreshScheduleSectionAdviser();
     try {
       const result = await api('/api/sections?gradeLevel=' + encodeURIComponent(gradeLevel));
       const sections = result.sections || [];
@@ -5223,11 +5310,13 @@ let teacherActionMenuListenersInstalled = false;
       if (hint) hint.textContent = sections.length
         ? sections.length + ' existing section' + (sections.length === 1 ? '' : 's') + ' found for ' + gradeLevel + '.'
         : 'No sections found for this grade. Add or enroll learners, or create an approved section first.';
+      void refreshScheduleSectionAdviser();
     } catch (error) {
       select.innerHTML = '<option value="">Could not load sections</option>';
       select.disabled = true;
       if (hint) hint.textContent = error.message;
       updateSectionManagementActions();
+      void refreshScheduleSectionAdviser();
     }
   }
 
@@ -5261,7 +5350,10 @@ let teacherActionMenuListenersInstalled = false;
     controls.hidden = user?.role !== 'SCHOOL_ADMIN' || !$('periodSection')?.value;
     controls.style.display = controls.hidden ? 'none' : 'flex';
   }
-  $('periodSection')?.addEventListener('change', updateSectionManagementActions);
+  $('periodSection')?.addEventListener('change',()=>{
+    updateSectionManagementActions();
+    void refreshScheduleSectionAdviser();
+  });
   $('renameScheduleSection')?.addEventListener('click', async () => {
     const gradeLevel = $('periodGrade')?.value;
     const section = $('periodSection')?.value;
@@ -5310,11 +5402,47 @@ let teacherActionMenuListenersInstalled = false;
     }
   });
 
+  // Department Head-specific field order; all existing inputs remain the same DOM nodes,
+  // so event handlers and timetable / attendance validation continue to work.
+  function arrangeDepartmentClassForm() {
+    if(user?.role!=='DEPARTMENT_HEAD')return;
+    const details=$('scheduleForm')?.querySelector('.schedule-details-section');
+    if(!details||details.dataset.departmentLayout==='v2')return;
+    const department=$('scheduleDepartmentGroup');
+    const grade=$('periodGrade')?.closest('.field-group');
+    const section=$('periodSection')?.closest('.field-group');
+    const teacher=$('periodTeacherGroup');
+    const adviser=$('scheduleSectionAdviserGroup');
+    const subject=$('periodSubject')?.closest('.field-group');
+    const type=$('scheduleActivityTypeGroup');
+    const room=$('periodClassroom')?.closest('.field-group');
+    const selfTeacher=$('periodTeacherSelfGroup');
+    if([department,grade,section,teacher,adviser,subject,type,room].some(element=>!element))return;
+    const original=Array.from(details.children).filter(node=>node.classList.contains('form-grid'));
+    const layout=document.createElement('div');
+    layout.className='department-class-layout';
+    layout.setAttribute('aria-label','Department class details and teaching assignment');
+    const band=(className,elements)=>{
+      const row=document.createElement('div');row.className='department-class-band '+className;
+      elements.forEach(element=>{if(element)row.appendChild(element);});
+      layout.appendChild(row);
+    };
+    band('department-class-identity',[department]);
+    band('department-class-section',[grade,section]);
+    band('department-class-roles',[teacher,adviser,selfTeacher]);
+    band('department-class-curriculum',[subject,type]);
+    band('department-class-room',[room]);
+    original.forEach(node=>node.remove());
+    details.appendChild(layout);
+    details.dataset.departmentLayout='v2';
+  }
+
   function updateSchedulingFormRole() {
     const form = $('scheduleForm');
     if (!form) return;
     const departmentHead = user?.role === 'DEPARTMENT_HEAD';
     form.dataset.scheduleRole = departmentHead ? 'DEPARTMENT_HEAD' : 'SCHOOL_ADMIN';
+    if(departmentHead)arrangeDepartmentClassForm();
     const intro = $('scheduleFormRoleIntro');
     if (intro) {
       intro.hidden = departmentHead;
@@ -5333,6 +5461,35 @@ let teacherActionMenuListenersInstalled = false;
         : 'Set the teacher, class group, weekdays and time.';
     }
     if ($('departmentScheduleScopeNote')) $('departmentScheduleScopeNote').hidden = !departmentHead;
+    const roleHeadings = [
+      ['.schedule-details-section .form-section-heading strong', departmentHead ? '1. Class & teacher' : '2. Class details'],
+      ['.schedule-setup-section .form-section-heading strong', departmentHead ? '2. Approved timetable period' : '1. Schedule setup'],
+      ['.schedule-location-section .form-section-heading strong', departmentHead ? '3. Meeting days' : '3. Meeting days & attendance'],
+      ['.schedule-review-section .form-section-heading strong', departmentHead ? '4. Confirm class schedule' : '4. Review & save']
+    ];
+    roleHeadings.forEach(([selector,heading])=>{const el=form.querySelector(selector);if(el)el.textContent=heading;});
+    const setupHelp=form.querySelector('.schedule-setup-section .form-section-heading small');
+    if(setupHelp)setupHelp.textContent=departmentHead
+      ? 'Use school-approved periods. Start and end times cannot be changed here.'
+      : 'Select a saved timetable block or use custom times.';
+    const classHelp=form.querySelector('.schedule-details-section .form-section-heading small');
+    if(classHelp)classHelp.textContent=departmentHead
+      ? 'Choose subject, teacher, schedule type and classroom; the Class Adviser is loaded from the official section record.'
+      : 'Choose the subject teacher, subject, grade, section and classroom.';
+    const dayHelp=$('scheduleWeekdayHint');
+    if(dayHelp)dayHelp.textContent=departmentHead
+      ? 'Only school-approved operating days are available. Tap the days this class meets.'
+      : 'Choose the actual days this class meets.';
+    if($('scheduleActivityTypeGroup'))$('scheduleActivityTypeGroup').hidden=false;
+    if($('scheduleSectionAdviserGroup'))$('scheduleSectionAdviserGroup').hidden=!departmentHead;
+    if(departmentHead && $('scheduleActivityType'))$('scheduleActivityType').value='CLASS';
+    if($('scheduleDaysTools'))$('scheduleDaysTools').hidden=!departmentHead;
+    if($('scheduleReadiness'))$('scheduleReadiness').hidden=!departmentHead;
+    if($('scheduleOperatingDaysWarning'))$('scheduleOperatingDaysWarning').hidden=true;
+    if($('addScheduleSubject'))$('addScheduleSubject').hidden=!['SCHOOL_ADMIN','DEPARTMENT_HEAD'].includes(user.role);
+    if ($('scheduleDepartmentGroup')) $('scheduleDepartmentGroup').hidden = !departmentHead;
+    if ($('scheduleDepartmentName')) $('scheduleDepartmentName').textContent=user.departmentName||user.departmentCode||'Department not assigned';
+    if(departmentHead)void refreshScheduleSectionAdviser();
     if ($('scheduleGraceGroup')) $('scheduleGraceGroup').hidden = departmentHead;
     if ($('graceMinutes')) {
       $('graceMinutes').disabled = departmentHead;
@@ -5343,10 +5500,9 @@ let teacherActionMenuListenersInstalled = false;
   }
 
   $('showScheduleForm').addEventListener('click', async () => {
-    if (user?.role !== 'SCHOOL_ADMIN') {
-      $('scheduleForm').hidden = true;
-      showToast('Only School Admin can create official class schedules. Assign teachers to existing classes instead.', true);
-      return;
+    if (!['SCHOOL_ADMIN','DEPARTMENT_HEAD'].includes(user?.role) ||
+      (user.role==='DEPARTMENT_HEAD'&&(!user.departmentId||user.departmentCode==='UNASSIGNED'))) {
+      $('scheduleForm').hidden=true;showToast('An assigned School Admin or Department Head is required.',true);return;
     }
     const opening = $('scheduleForm').hidden;
     $('scheduleForm').hidden = !opening;
@@ -5356,8 +5512,16 @@ let teacherActionMenuListenersInstalled = false;
     $('scheduleFormFeedback').textContent = '';
     const defaultDays = schoolOperatingDays.filter(day=>day.isOperatingDay).map(day=>Number(day.weekday));
     document.querySelectorAll('#scheduleWeekdayChoices input[type="checkbox"]').forEach(input=>{
-      input.checked = defaultDays.length ? defaultDays.includes(Number(input.value)) : Number(input.value)>=1 && Number(input.value)<=5;
+      const isOperatingDay=defaultDays.includes(Number(input.value));
+      input.disabled=user.role==='DEPARTMENT_HEAD'&&!isOperatingDay;
+      // Never hide all seven day choices when school-wide operating days are missing.
+      input.parentElement.hidden=user.role==='DEPARTMENT_HEAD'&&defaultDays.length>0&&!isOperatingDay;
+      input.checked=defaultDays.length?isOperatingDay:(user.role==='SCHOOL_ADMIN'&&Number(input.value)>=1&&Number(input.value)<=5);
     });
+    if($('scheduleOperatingDaysWarning'))$('scheduleOperatingDaysWarning').hidden=
+      !(user.role==='DEPARTMENT_HEAD'&&!defaultDays.length);
+    if(user.role==='DEPARTMENT_HEAD'&&!defaultDays.length&&$('scheduleWeekdayHint'))
+      $('scheduleWeekdayHint').textContent='No approved operating days are currently available. School Admin must configure them before a class can be scheduled.';
     if (user.role !== 'TEACHER') {
       const eligible = teachers.filter(item => item.active && (item.teacherDesignations || []).includes('SUBJECT_TEACHER') &&
         (user.role !== 'DEPARTMENT_HEAD' || String(item.departmentId) === String(user.departmentId)));
@@ -5379,10 +5543,14 @@ let teacherActionMenuListenersInstalled = false;
       feedback.textContent = 'Unable to load schedule options. ' + failures.join(' | ') + '. Please retry opening the form.';
       feedback.setAttribute('role', 'alert');
     } else {
-      feedback.textContent = 'Choose a subject and section, then save your class schedule.';
+      feedback.textContent = user.role==='DEPARTMENT_HEAD'
+        ? 'Select a subject, section and school-approved time block to complete this department class.'
+        : 'Choose a subject and section, then save your class schedule.';
     }
+    updateScheduleReview();
   });
   $('cancelScheduleForm').addEventListener('click', () => {
+    ++sectionAdviserLookupRequest;
     $('scheduleForm').reset();
     resetScheduleTimeSelection();
     $('scheduleForm').hidden = true;
@@ -5394,10 +5562,8 @@ let teacherActionMenuListenersInstalled = false;
   $('scheduleForm').addEventListener('submit', async event => {
     event.preventDefault();
     const feedback = $('scheduleFormFeedback');
-    if (user?.role !== 'SCHOOL_ADMIN') {
-      feedback.className = 'inline-feedback error';
-      feedback.textContent = 'Only School Admin can save official class schedules.';
-      return;
+    if (!['SCHOOL_ADMIN','DEPARTMENT_HEAD'].includes(user?.role)) {
+      feedback.className='inline-feedback error';feedback.textContent='Not authorized to create class schedules.';return;
     }
     feedback.className = 'inline-feedback';
     feedback.textContent = 'Checking the class, teacher, and room timetable…';
@@ -5450,6 +5616,9 @@ let teacherActionMenuListenersInstalled = false;
         feedback.textContent = 'Could not verify the latest timetable blocks. ' + error.message;
         return;
       }
+    }
+    if (user.role==='DEPARTMENT_HEAD'&&!payload.timetableTemplateId) {
+      feedback.className='inline-feedback error';feedback.textContent='Choose a published timetable and time block; custom times require School Admin.';return;
     }
     if (!payload.weekdays.length) {
       feedback.className = 'inline-feedback error';
@@ -5505,7 +5674,8 @@ let teacherActionMenuListenersInstalled = false;
       const editScheduleButton = event.target.closest('[data-edit-period]');
       if (editScheduleButton) {
         const period = periods.find(item => String(item.periodId) === String(editScheduleButton.dataset.editPeriod));
-        if (!period) return;
+        if (!period || !(user.role==='SCHOOL_ADMIN' ||
+          (user.role==='DEPARTMENT_HEAD'&&user.departmentCode!=='UNASSIGNED'&&String(period.scheduleDepartmentId)===String(user.departmentId)))) return;
         const previous = document.getElementById('editScheduleDialog');
         if (previous) previous.remove();
         const dialog = document.createElement('dialog');
@@ -5514,18 +5684,53 @@ let teacherActionMenuListenersInstalled = false;
         const days = [['Sun',0],['Mon',1],['Tue',2],['Wed',3],['Thu',4],['Fri',5],['Sat',6]];
         const selectedDays = (Array.isArray(period.weekdays) ? period.weekdays : []).map(Number);
         const normalizedTime = value => String(value || '').slice(0,5);
+        const departmentEdit=user.role==='DEPARTMENT_HEAD';
+        const activeTemplates=timetableTemplates.filter(t=>t.active);
+        const savedTemplate=activeTemplates.find(t=>String(t.templateId)===String(period.timetableTemplateId)&&
+          t.periods?.some(p=>!['BREAK','LUNCH'].includes(p.blockType)&&p.startTime===normalizedTime(period.startTime)&&p.endTime===normalizedTime(period.endTime)));
+        const approvedControls=departmentEdit ? `<div class="schedule-edit-approved">
+          <label>School timetable<select id="editApprovedTemplate"><option value="">Keep existing times</option>${activeTemplates.map(t=>'<option value="'+esc(t.templateId)+'" '+(savedTemplate&&String(savedTemplate.templateId)===String(t.templateId)?'selected':'')+'>'+esc(t.name)+'</option>').join('')}</select></label>
+          <label>Approved time block<select id="editApprovedBlock" disabled><option value="">Choose a timetable</option></select></label>
+        </div>` : '';
         dialog.innerHTML = `<form method="dialog" id="editScheduleForm" class="schedule-edit-inner">
           <div class="schedule-edit-heading"><div><small>CLASS SCHEDULE</small><h2>Edit schedule</h2><p>${esc(period.gradeLevel)} · ${esc(period.section)} · ${esc(period.subjectName || '')}</p></div><button type="button" class="outline-button" id="closeEditSchedule" aria-label="Close edit dialog">✕</button></div>
+          <div class="schedule-edit-class"><strong>${esc(period.departmentName||'Department')} · ${esc(period.gradeLevel)} · ${esc(period.section)}</strong><small>${esc(period.subjectName||'Subject')} · ${esc(period.assignedTeacherName||'Teacher unassigned')}</small></div>
           <label>Schedule label<input name="periodName" maxlength="120" required value="${esc(period.periodName)}"></label>
-          <div class="schedule-edit-times"><label>Start time<input name="startTime" type="time" required value="${esc(normalizedTime(period.startTime))}"></label><label>End time<input name="endTime" type="time" required value="${esc(normalizedTime(period.endTime))}"></label></div>
+          ${approvedControls}
+          <div class="schedule-edit-times"><label>Start time<input name="startTime" type="time" required ${departmentEdit?'readonly':''} value="${esc(normalizedTime(period.startTime))}"></label><label>End time<input name="endTime" type="time" required ${departmentEdit?'readonly':''} value="${esc(normalizedTime(period.endTime))}"></label></div>
           <label>Classroom / room<input name="classroom" maxlength="100" value="${esc(period.classroom || '')}" placeholder="Optional"></label>
-          <fieldset><legend>Scheduled weekdays</legend><div class="schedule-edit-days">${days.map(([label,day])=>`<label><input type="checkbox" name="weekdays" value="${day}" ${selectedDays.includes(day)?'checked':''}>${label}</label>`).join('')}</div></fieldset>
-          <p class="schedule-edit-note">Changes are checked against other class, teacher, and room schedules. Existing attendance records are preserved. Editing times switches this schedule to custom time.</p>
+          <fieldset><legend>Scheduled weekdays</legend><div class="schedule-edit-days">${days.map(([label,day])=>`<label><input type="checkbox" name="weekdays" value="${day}" ${selectedDays.includes(day)?'checked':''} ${departmentEdit&&!schoolOperatingDays.some(x=>x.isOperatingDay&&Number(x.weekday)===day)?'disabled':''}>${label}</label>`).join('')}</div></fieldset>
+          <p class="schedule-edit-note">${departmentEdit?'Change times through published school blocks; teacher assignments are managed separately. Attendance records are preserved.':'Conflicts are checked against the existing timetable. Attendance records are preserved.'}</p>
           <div id="editScheduleError" role="alert" class="inline-feedback"></div>
           <div class="schedule-edit-actions"><button type="button" class="outline-button" id="cancelEditSchedule">Cancel</button><button type="submit" class="primary-button" id="submitEditSchedule">Save changes</button></div>
         </form>`;
         document.body.appendChild(dialog);
         const close = () => {dialog.close();dialog.remove();};
+        if (departmentEdit) {
+          const templateSelect=dialog.querySelector('#editApprovedTemplate');
+          const blockSelect=dialog.querySelector('#editApprovedBlock');
+          const originalStart=normalizedTime(period.startTime),originalEnd=normalizedTime(period.endTime);
+          const setTimes=(start,end)=>{
+            dialog.querySelector('[name="startTime"]').value=start;
+            dialog.querySelector('[name="endTime"]').value=end;
+          };
+          const loadBlocks=(initial=false)=>{
+            const template=activeTemplates.find(t=>String(t.templateId)===templateSelect.value);
+            const matching=template?.periods?.find(p=>!['BREAK','LUNCH'].includes(p.blockType)&&p.startTime===originalStart&&p.endTime===originalEnd);
+            blockSelect.innerHTML='<option value="">'+(template?'Select approved block':'Keep current time')+'</option>'+
+              (template?.periods||[]).filter(p=>!['BREAK','LUNCH'].includes(p.blockType)).map(p=>
+                '<option value="'+esc(p.templatePeriodId)+'">'+esc(p.label+' · '+p.startTime+'–'+p.endTime)+'</option>').join('');
+            blockSelect.disabled=!template;
+            blockSelect.value=initial&&matching?String(matching.templatePeriodId):'';
+            setTimes(originalStart,originalEnd);
+          };
+          templateSelect.addEventListener('change',()=>loadBlocks(false));
+          blockSelect.addEventListener('change',()=>{
+            const p=activeTemplates.find(t=>String(t.templateId)===templateSelect.value)?.periods?.find(p=>String(p.templatePeriodId)===blockSelect.value);
+            setTimes(p?.startTime||originalStart,p?.endTime||originalEnd);
+          });
+          loadBlocks(true);
+        }
         dialog.querySelector('#closeEditSchedule').addEventListener('click',close);
         dialog.querySelector('#cancelEditSchedule').addEventListener('click',close);
         dialog.addEventListener('cancel', e => {e.preventDefault();close();});
@@ -5540,6 +5745,13 @@ let teacherActionMenuListenersInstalled = false;
             weekdays:[...form.querySelectorAll('input[name="weekdays"]:checked')].map(input=>Number(input.value))
           };
           const error = dialog.querySelector('#editScheduleError');
+          if (departmentEdit) {
+            const template=dialog.querySelector('#editApprovedTemplate'),block=dialog.querySelector('#editApprovedBlock');
+            if (template.value&&!block.value) {error.textContent='Choose an approved time block or Keep existing times.';return;}
+            if (template.value) {payload.timetableTemplateId=template.value;payload.timetableTemplatePeriodId=block.value;}
+            const allowed=new Set(schoolOperatingDays.filter(d=>d.isOperatingDay).map(d=>Number(d.weekday)));
+            if (payload.weekdays.some(d=>!allowed.has(d))) {error.textContent='Only School Admin operating days are allowed.';return;}
+          }
           if (!payload.weekdays.length) {error.textContent='Choose at least one weekday.';return;}
           const submit = dialog.querySelector('#submitEditSchedule');
           submit.disabled=true;error.textContent='';

@@ -1,4 +1,4 @@
-const CACHE = "attendigo-v125-align-offline-assets";
+const CACHE = "attendigo-v129-align-offline-assets";
 
 const SHELL = [
   "/assets/attendigo-sidebar-logo.png",
@@ -7,10 +7,10 @@ const SHELL = [
   "/assets/attendigo-logo.png",
   "/assets/attendigo-icon.png",
   "/attendigo-brand.css?v=2",
-  "/dashboard-icons.js?v=4",
+  "/dashboard-icons.js?v=5",
   "/dashboard-ui.css?v=wide5",
   "/dashboard-night.css?v=1",
-  "/planner.css?v=2",
+  "/planner.css?v=3",
   "/planner.js?v=4",
   "/attendigo-dark-unified.css?v=1",
   "/dashboard-polish.css?v=2",
@@ -31,10 +31,10 @@ const SHELL = [
   "/portal.css?v=0.9.113",
   "/student-roster-toolbar.css?v=1",
   "/portal.css",
-  "/portal.js?v=0.9.118",
+  "/portal.js?v=0.9.121",
   "/sardo-monitor.js?v=1",
   "/sardo-monitor.css?v=1",
-  "/schedule-form-layout.css?v=7",
+  "/schedule-form-layout.css?v=11",
   "/parent-dashboard.js?v=2",
   "/offline-attendance.js?v=2",
   "/offline-sheet.html",
@@ -48,7 +48,7 @@ const SHELL = [
   "/guardian-ui.js?v=4",
   "/guardian-ui.css?v=4",
   "/academic-admin.css?v=1",
-  "/academic-admin.js?v=2",
+  "/academic-admin.js?v=5",
   "/app-dialog.css?v=1",
   "/app-dialog.js?v=1",
   "/sw-refresh.js?v=3",
@@ -103,6 +103,23 @@ self.addEventListener("fetch", event => {
   if (["/portal.html", "/student-portal.html", "/parent-portal.html",
        "/force-password-change.html"].includes(url.pathname)) {
     event.respondWith(fetch(request, { cache: "no-store" }));
+    return;
+  }
+
+  // Keep scheduling UI fresh without breaking offline school operation.
+  // Unlike cache-first general assets, these role-critical resources prefer the deployed version.
+  if (['/portal.js','/schedule-form-layout.css','/schedule-workspace-ui.js'].includes(url.pathname)) {
+    event.respondWith((async () => {
+      try {
+        const fresh = await fetch(request, { cache: 'no-store' });
+        if (!fresh.ok) throw Error('Scheduling asset could not be refreshed');
+        const cache = await caches.open(CACHE);
+        cache.put(request, fresh.clone()).catch(() => {});
+        return fresh;
+      } catch {
+        return (await caches.match(request)) || Response.error();
+      }
+    })());
     return;
   }
 

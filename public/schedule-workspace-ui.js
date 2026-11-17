@@ -42,12 +42,11 @@
   const manager=role==='SCHOOL_ADMIN'||role==='DEPARTMENT_HEAD';
   if($('scheduleAdjustmentShortcut'))$('scheduleAdjustmentShortcut').hidden=!manager;
   if($('scheduleAssignmentShortcut'))$('scheduleAssignmentShortcut').hidden=role!=='DEPARTMENT_HEAD';
-  if($('showScheduleForm'))$('showScheduleForm').hidden=role!=='SCHOOL_ADMIN';
-  if(role==='DEPARTMENT_HEAD' && $('scheduleForm') && !$('scheduleForm').hidden) $('cancelScheduleForm')?.click();
+  if($('showScheduleForm'))$('showScheduleForm').hidden=role!=='SCHOOL_ADMIN'&&role!=='DEPARTMENT_HEAD';
   const intro=$('scheduleScopeText');
   if(intro){
     intro.dataset.newCopy='1';
-    intro.textContent=role==='TEACHER'?'View your assigned classes and date-specific timetable changes.':role==='DEPARTMENT_HEAD'?'Assign teachers and manage temporary changes for classes in your department.':'Create school-wide schedules, including unassigned classes, and manage timetable settings.';
+    intro.textContent=role==='TEACHER'?'View your assigned classes and date-specific timetable changes.':role==='DEPARTMENT_HEAD'?'Create, edit and assign department classes within published school timetable rules.':'Create school-wide schedules, including unassigned classes, and manage timetable settings.';
   }
   if(roleChanged||!active||active==='settings'&&role!=='SCHOOL_ADMIN')setTab(role==='TEACHER'?'weekly':'regular');
   if(!initialized)return;
