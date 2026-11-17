@@ -2020,7 +2020,7 @@ function coverageStatusLabel(status) {
 
     const departmentHeadCanCreate = user.role === 'SCHOOL_ADMIN' || (user.role === 'DEPARTMENT_HEAD' && Boolean(user.departmentId) && user.departmentCode !== 'UNASSIGNED');
     $('showScheduleForm').hidden = !departmentHeadCanCreate;
-    $('showScheduleForm').textContent = '＋ Create class schedule';
+    $('showScheduleForm').textContent = user.role === 'DEPARTMENT_HEAD' ? '＋ Create department schedule' : '＋ Create class schedule';
     if (user.role === 'DEPARTMENT_HEAD' && !departmentHeadCanCreate) {
       $('scheduleScopeText').textContent = 'Your account is awaiting department assignment. You can monitor schedules until the School Administrator assigns your department.';
     }
@@ -5290,10 +5290,30 @@ let teacherActionMenuListenersInstalled = false;
     }
   });
 
+  function updateSchedulingFormRole() {
+    const form = $('scheduleForm');
+    if (!form) return;
+    const departmentHead = user?.role === 'DEPARTMENT_HEAD';
+    form.dataset.scheduleRole = departmentHead ? 'DEPARTMENT_HEAD' : 'SCHOOL_ADMIN';
+    const intro = $('scheduleFormRoleIntro');
+    if (intro) intro.textContent = departmentHead
+      ? 'Department schedule · Choose a school time block or custom class time, then assign a teacher and section within your own department.'
+      : 'School-wide scheduling · Choose a time block or custom time, assign a teacher, and set the meeting days, room and attendance grace period.';
+    if ($('departmentScheduleScopeNote')) $('departmentScheduleScopeNote').hidden = !departmentHead;
+    if ($('scheduleGraceGroup')) $('scheduleGraceGroup').hidden = departmentHead;
+    if ($('graceMinutes')) {
+      $('graceMinutes').disabled = departmentHead;
+      if (departmentHead) $('graceMinutes').value = '5';
+    }
+    if ($('saveScheduleButton')) $('saveScheduleButton').textContent =
+      departmentHead ? 'Save department schedule' : 'Save class schedule';
+  }
+
   $('showScheduleForm').addEventListener('click', async () => {
     const opening = $('scheduleForm').hidden;
     $('scheduleForm').hidden = !opening;
     if (!opening) return;
+    updateSchedulingFormRole();
     resetScheduleTimeSelection();
     $('scheduleFormFeedback').textContent = '';
     const defaultDays = schoolOperatingDays.filter(day=>day.isOperatingDay).map(day=>Number(day.weekday));
@@ -5349,7 +5369,7 @@ let teacherActionMenuListenersInstalled = false;
       classroom: $('periodClassroom').value.trim() || null,
       startTime: $('startTime').value,
       endTime: $('endTime').value,
-      graceMinutes: Number($('graceMinutes').value || 0),
+      ...(user.role === 'SCHOOL_ADMIN' ? { graceMinutes: Number($('graceMinutes').value || 0) } : {}),
       weekdays: selectedScheduleWeekdays(),
       timetableTemplateId: $('scheduleTemplate').value || null,
       timetableTemplatePeriodId: $('scheduleTemplatePeriod').value.split('|')[1] || null
