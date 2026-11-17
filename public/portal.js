@@ -1623,7 +1623,18 @@ function coverageStatusLabel(status) {
     }
     const event = { eventId: crypto.randomUUID(), studentId: scannedStudent.studentId, eventType, occurredAt: new Date().toISOString(), schoolDate: schoolDateManila(), attendanceScope: scope, periodId, deviceId: `PORTAL-${user.userId || user.username || 'USER'}`, metadata: { source: 'management-portal-student-scanner', ...(user.role === 'GATE_KEEPER' ? { photoVerified: true } : {}) } };
     try {
-      const result = await api('/api/sync/events', { method: 'POST', body: JSON.stringify({ events: [event] }) });
+      const submission = window.AttendigoOffline
+        ? await window.AttendigoOffline.record(event, api)
+        : { status: 'SYNCED', result: await api('/api/sync/events', { method: 'POST', body: JSON.stringify({ events: [event] }) }) };
+      if (submission.status === 'PENDING') {
+        $('studentScanFeedback').textContent = scannedStudent.fullName + ': saved on this device only. Will sync when connected.';
+        $('studentScanFeedback').className = 'scanner-feedback';
+        showToast('OFFLINE — Attendance queued on this device. Not yet on the server.');
+        scannedStudent = null; scannedTeacher = null;
+        $('studentScanNotice').hidden = true; $('studentScanResult').hidden = true;
+        return;
+      }
+      const result = submission.result;
       const status = result.results?.[0]?.status;
       if (status !== 'ACCEPTED' && status !== 'ALREADY_SYNCED') throw new Error(result.results?.[0]?.reason || `Attendance was not accepted (${status || 'unknown'}).`);
       const savedName = scannedStudent.fullName;
