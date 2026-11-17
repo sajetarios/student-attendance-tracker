@@ -25,7 +25,13 @@ test('student create and edit forms require Male/Female and persist sex on the m
 
 test('student roster exposes sex and cloud status never claims replication is active', () => {
   assert.ok(server.includes('s.sex'));
-  assert.ok(html.includes('Checking cloud sync status…'));
+  assert.ok(html.includes('Checking synchronization…'));
+  assert.ok(html.includes('id="connectionStatus" aria-label="Open Attendance Sync Center"'));
+  assert.ok(portal.includes("api('/api/cloud-sync/status')"));
+  const syncCenter=fs.readFileSync(path.join(root, 'public', 'attendance-sync-center.js'), 'utf8');
+  assert.ok(syncCenter.includes("label = 'Cloud sync not configured'"));
+  assert.ok(syncCenter.includes("label = 'Cloud forwarding off'"));
+  assert.ok(syncCenter.includes('if (!isAdmin()) return;'));
   assert.ok(sf2.includes('COALESCE(en.grade_level,s.grade_level)'));
   assert.ok(sf2.includes('COALESCE(en.section,s.section)'));
   assert.ok(sf2.includes('s.sex'));
