@@ -1,12 +1,17 @@
-const CACHE = "attendigo-v160-compact-teacher-directory";
+const CACHE = "attendigo-v161-consistent-brand";
 
 const SHELL = [
-  "/assets/attendigo-sidebar-logo.png",
-  "/attendigo-sidebar-adaptive.css?v=8",
+  "/attendigo-brand-refresh.css?v=1",
+  "/assets/attendigo-favicon.png?v=2",
+  "/assets/attendigo-apple-touch-icon.png?v=2",
+  "/assets/attendigo-icon-192.png?v=2",
+  "/assets/attendigo-icon-512.png?v=2",
+  "/assets/attendigo-sidebar-logo.png?v=2",
+  "/attendigo-sidebar-adaptive.css?v=9",
   "/user-nav-reorg.css?v=1",
-  "/attendigo-sidebar-adaptive.js?v=3",
-  "/assets/attendigo-logo.png",
-  "/assets/attendigo-icon.png",
+  "/attendigo-sidebar-adaptive.js?v=4",
+  "/assets/attendigo-logo.png?v=2",
+  "/assets/attendigo-icon.png?v=2",
   "/attendigo-brand.css?v=2",
   "/dashboard-icons.js?v=6",
   "/dashboard-ui.css?v=wide5",

@@ -8,7 +8,7 @@
    const logos=brand.querySelectorAll('img');
    logos.forEach((node,index)=>{if(index>0)node.remove();});
    const logo=brand.querySelector('img');
-   if(logo){logo.className='attendigo-logo';logo.src='/assets/attendigo-sidebar-logo.png';logo.alt='Attendigo';}
+   if(logo){logo.className='attendigo-logo';logo.src='/assets/attendigo-sidebar-logo.png?v=2';logo.alt='Attendigo';}
  }
  const parse=(s)=>{const m=s.match(/rgba?\(([^)]+)\)/);if(m)return m[1].split(',').slice(0,3).map(Number);const h=s.trim().replace('#','');if(/^[0-9a-f]{6}$/i.test(h))return [0,2,4].map(i=>parseInt(h.slice(i,i+2),16));return [28,30,58]};
  const luminance=(a)=>a.map(v=>{v/=255;return v<=.04045?v/12.92:((v+.055)/1.055)**2.4}).reduce((s,v,i)=>s+v*[.2126,.7152,.0722][i],0);

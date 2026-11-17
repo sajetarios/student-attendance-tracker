@@ -15,7 +15,7 @@ test('custom sidebar colors retain accessible text, selected, hover and boundary
   assert.ok(ratio(color,rgb(props['--side-border']))>=3);
   for(const state of ['selected','hover'])assert.ok(ratio(rgb(props[`--side-${state}`]),rgb(props[`--side-${state}-ink`]))>=4.5);
  }
- assert.equal(logo.src,'/assets/attendigo-sidebar-logo.png');
+ assert.equal(logo.src,'/assets/attendigo-sidebar-logo.png?v=2');
  assert.equal(logo.alt,'Attendigo');
  assert.equal(extraLogo.removed,true);
 });

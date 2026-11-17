@@ -25,7 +25,7 @@
 .sidebar .nav-icon,.sidebar .nav-label,.sidebar .nav-chevron{color:inherit!important;opacity:1}
 .sidebar .nav-item:focus-visible,.sidebar .nav-group-toggle:focus-visible,.sidebar .sidebar-collapse-control:focus-visible{outline:2px solid var(--side-ink);outline-offset:2px}
 .sidebar .sidebar-collapse-control,.sidebar .sidebar-status{background:var(--sidebar)!important}
-@media(min-width:861px){.portal-layout.sidebar-collapsed .sidebar>.attendigo-brand{width:48px;height:48px;min-height:48px;padding:4px!important;background:transparent url('/assets/attendigo-icon.png') center/contain no-repeat!important;border-radius:10px}.portal-layout.sidebar-collapsed .sidebar>.attendigo-brand img{display:none!important}}
+@media(min-width:861px){.portal-layout.sidebar-collapsed .sidebar>.attendigo-brand{width:48px;height:48px;min-height:48px;padding:4px!important;background:transparent url('/assets/attendigo-icon.png?v=2') center/contain no-repeat!important;border-radius:10px}.portal-layout.sidebar-collapsed .sidebar>.attendigo-brand img{display:none!important}}
 @media(max-width:860px){.portal-layout.sidebar-collapsed .sidebar>.attendigo-brand{width:100%;height:auto;min-height:80px;padding:0;background:transparent!important}}
 
 /* Uniform sidebar icon sizes and intuitive independent nested navigation. */
