@@ -74,7 +74,7 @@ test('Department Head class form is visibly arranged class-first, including advi
 });
 test('Critical scheduling assets refresh over network and keep offline fallback',()=>{
  const sw=read('public/sw.js'),server=read('server.js');
- const networkFirstAssets=(sw.match(/if \\(\\[[^\\]]+\\]\\.includes\\(url\\.pathname\\)\\)/g) || []).find(rule => rule.includes("'/portal.js'")) || '';
+ const networkFirstAssets=sw.split('\n').find(rule => rule.includes("'/portal.js'") && rule.includes('includes(url.pathname)')) || '';
  assert.ok(networkFirstAssets, 'Service worker must have a network-first asset list');
  for(const asset of ['/portal.js','/schedule-form-layout.css','/schedule-workspace-ui.js','/teacher-assignment-modal.css'])
    assert.ok(networkFirstAssets.includes("'"+asset+"'"), asset+' must refresh from network before offline fallback');
