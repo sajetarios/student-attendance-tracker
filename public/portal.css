@@ -2570,3 +2570,69 @@ body.dark-mode #timetableSettings .template-row-duration,
 body[data-theme="dark"] #timetableSettings .template-row-duration{color:#b7d5ec}
 body.dark-mode #timetableSettings .timetable-editor-hint,
 body[data-theme="dark"] #timetableSettings .timetable-editor-hint{color:#c1d1e5}
+
+
+/* Stable school header: avoid repaint/overflow flashes when school branding refreshes.
+   Keep the name within its own flex track on narrow desktop and mobile screens. */
+.portal-page .school-heading {
+  position:relative;
+  isolation:isolate;
+  min-width:0;
+  max-width:100%;
+  overflow:hidden;
+  align-items:center;
+  flex-wrap:nowrap;
+  contain:layout;
+  animation:none!important;
+  transition:none!important;
+}
+.portal-page .school-heading .school-emblem {
+  flex:0 0 56px;
+  width:56px;
+  height:56px;
+  min-width:56px;
+  min-height:56px;
+  overflow:hidden;
+  transform:none!important;
+  animation:none!important;
+  transition:none!important;
+}
+.portal-page .school-heading .school-emblem img {
+  display:block;
+  width:100%;
+  height:100%;
+  object-fit:contain;
+  object-position:center;
+}
+.portal-page .school-heading .school-title-block {
+  flex:1 1 0;
+  width:0;
+  min-width:0;
+  max-width:100%;
+  overflow:hidden;
+  background:transparent;
+}
+.portal-page .school-heading .school-title-block h1 {
+  display:block;
+  width:100%;
+  max-width:100%;
+  margin:3px 0 4px;
+  white-space:normal;
+  overflow-wrap:break-word;
+  word-break:normal;
+  line-height:1.25;
+  text-wrap:pretty;
+  transform:none!important;
+  animation:none!important;
+  transition:none!important;
+}
+.portal-page .school-heading .heading-actions {
+  flex:0 0 auto;
+  min-width:0;
+}
+@media(max-width:700px) {
+  .portal-page .school-heading {gap:10px;align-items:flex-start;flex-wrap:wrap}
+  .portal-page .school-heading .school-emblem {flex-basis:48px;width:48px;height:48px;min-width:48px;min-height:48px}
+  .portal-page .school-heading .school-title-block {flex:1 1 calc(100% - 60px);width:auto}
+  .portal-page .school-heading .heading-actions {margin-left:58px;max-width:calc(100% - 58px)}
+}
