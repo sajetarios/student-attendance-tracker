@@ -67,16 +67,24 @@ function harness(userRole) {
   return {window,document,navigator,trigger,label,badge,listeners,triggerEvents,dialog,children};
 }
 
-test('School Admin sees existing cloud-not-configured status and opens one header dialog', async()=>{
+test('School Admin header stays Attendance sync after cloud configuration loads and opens one dialog', async()=>{
   const h=harness('SCHOOL_ADMIN');
   assert.ok(h.triggerEvents.click,'existing header button must open Sync Center');
   assert.equal(h.children.length,1,'only Sync Center dialog, not a duplicate floating button');
   h.window.AttendigoSyncCenter.setCloudStatus({
     configured:false,enabled:false,connectionStatus:'NOT_CONFIGURED',needsReviewCount:0
   });
-  assert.equal(h.label.textContent,'Cloud sync not configured');
-  assert.equal(h.trigger.dataset.state,'warning');
+  assert.equal(h.label.textContent,'Attendance sync');
+  assert.equal(h.trigger.dataset.state,'idle');
   assert.equal(h.badge.hidden,true);
+  h.window.AttendigoSyncCenter.setCloudStatus({
+    configured:true,enabled:false,connectionStatus:'NOT_CONNECTED',needsReviewCount:0
+  });
+  assert.equal(h.label.textContent,'Attendance sync','Disabled cloud forwarding must not rename device Sync Center');
+  assert.equal(h.trigger.dataset.state,'idle');
+  h.window.AttendigoSyncCenter.setCloudStatus(null,'Cloud status request failed');
+  assert.equal(h.label.textContent,'Attendance sync','A cloud status error must be visible in the dialog, not replace the header');
+  assert.equal(h.trigger.dataset.state,'idle');
   h.window.AttendigoSyncCenter.setCloudStatus({
     configured:true,enabled:true,connectionStatus:'CONNECTED',needsReviewCount:2
   });
