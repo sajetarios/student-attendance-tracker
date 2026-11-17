@@ -54,12 +54,12 @@
     const req = store.get(id);
     req.onsuccess = () => done(req.result?.key || null);
   });
-  let keyCreation = null;
+  const keyCreations = new Map();
   async function deviceKey(id) {
     const saved = await getStoredKey(id);
     if (saved) return saved;
     // Concurrency across tabs is resolved by add()'s unique key constraint.
-    if (!keyCreation) keyCreation = (async () => {
+    if (!keyCreations.has(id)) keyCreations.set(id, (async () => {
       const candidate = await crypto.subtle.generateKey({ name: 'AES-GCM', length: 256 }, false, ['encrypt','decrypt']);
       try { await transaction(KEYS, 'readwrite', store => store.add({ id, key: candidate })); return candidate; }
       catch (error) {
@@ -67,8 +67,8 @@
         if (winner) return winner;
         throw error;
       }
-    })().finally(() => { keyCreation = null; });
-    return keyCreation;
+    })().finally(() => { keyCreations.delete(id); }));
+    return keyCreations.get(id);
   }
   async function encrypt(id, payload) {
     const iv = crypto.getRandomValues(new Uint8Array(12));
@@ -110,7 +110,8 @@
     if (!TYPES.has(type) || typeof operationId !== 'string' || !operationId || !payload || typeof payload !== 'object') {
       throw Error('Invalid attendance synchronization operation.');
     }
-    const found = (await rows()).find(row => row.id === operationId);
+    const current = await rows();
+    const found = current.find(row => row.id === operationId);
     if (found) {
       const existing = await decrypt(found);
       if ((found.type || 'QR_SCAN') !== type || JSON.stringify(existing) !== JSON.stringify(payload)) {
@@ -118,9 +119,21 @@
       }
       return { operationId, status: found.status };
     }
+    // Avoid duplicate sign-off or manual batch operations when the user taps
+    // Sync repeatedly during a connection outage. A changed payload gets a
+    // new UUID and is never substituted into an already-sent request.
+    for (const queued of current) {
+      if (queued.type !== type || queued.status !== 'PENDING') continue;
+      try {
+        if (JSON.stringify(await decrypt(queued)) === JSON.stringify(payload)) {
+          return { operationId: queued.id, status: queued.status };
+        }
+      } catch {} // Unreadable records remain on device for review.
+    }
     const encrypted = await encrypt(id, payload);
+    const createdAt = Math.max(Date.now(), ...current.map(r => Number(r.createdAt) || 0), 0) + 1;
     await put({ id: operationId, owner: id, type, encrypted, status: 'PENDING',
-      attempts: 0, createdAt: Date.now() });
+      attempts: 0, createdAt });
     await emit();
     return { operationId, status: 'PENDING' };
   }
@@ -131,9 +144,13 @@
     if (syncing || !navigator.onLine || !id || !token) return { confirmations };
     syncing = true;
     try {
-      const records = (await rows()).filter(r => r.status === 'PENDING')
-        .sort((a, b) => a.createdAt - b.createdAt).slice(0, 50);
+      const records = (await rows())
+        .sort((a, b) => (a.createdAt || 0) - (b.createdAt || 0)).slice(0, 50);
       for (const record of records) {
+        // A conflict is a barrier: never sign off while an earlier correction
+        // or QR scan remains unresolved on this device.
+        if (record.status === 'REVIEW') break;
+        if (record.status !== 'PENDING') continue;
         if (record.owner !== owner() || token !== sessionStorage.getItem(tokenKey)) break;
         let payload;
         try { payload = await decrypt(record); }
@@ -209,13 +226,54 @@
   }
   async function showQueue() {
     await sync();
-    const list = await rows();
-    const messages = list.slice(0, 12).map(r => describe(r) +
-      (r.reason ? ' — ' + r.reason : ''));
-    const text = messages.length ? messages.join('\n') :
-      'All queued attendance from this account is synchronized.';
-    if (window.AppDialog?.alert) await window.AppDialog.alert(text, {title:'Device attendance queue'});
-    else window.alert(text);
+    const list = (await rows()).sort((a,b) => (a.createdAt||0)-(b.createdAt||0));
+    if (!list.length) {
+      if (window.AppDialog?.alert) await window.AppDialog.alert('All queued attendance is synchronized.', {title:'Device attendance queue'});
+      else window.alert('All queued attendance is synchronized.');
+      return;
+    }
+    const dialog = document.createElement('dialog');
+    dialog.setAttribute('aria-label', 'Attendance synchronization queue');
+    dialog.style.cssText = 'border:1px solid #8193aa;border-radius:16px;padding:22px;max-width:min(94vw,520px);max-height:85vh;overflow:auto;background:Canvas;color:CanvasText;box-shadow:0 12px 40px #0005';
+    const title = document.createElement('h2');
+    title.textContent = 'Device attendance queue'; title.style.margin = '0 0 6px';
+    const hint = document.createElement('p');
+    hint.textContent = 'Records stay on this device until the school server confirms them. Resolve earlier conflicts before sending later records.';
+    const entries = document.createElement('div');
+    for (const record of list.slice(0, 30)) {
+      const line = document.createElement('section');
+      line.style.cssText = 'padding:12px 0;border-bottom:1px solid #8193aa55';
+      const label = document.createElement('strong');
+      label.textContent = describe(record);
+      const reason = document.createElement('p');
+      reason.textContent = record.reason || 'Stored securely on this device.';
+      reason.style.margin = '6px 0'; line.append(label, reason);
+      if (record.status === 'REVIEW') {
+        const retry = document.createElement('button');
+        retry.type = 'button'; retry.textContent = 'Retry after review';
+        retry.style.cssText = 'border:1px solid currentColor;border-radius:9px;padding:9px 12px;background:Canvas;color:CanvasText;cursor:pointer';
+        retry.addEventListener('click', async () => {
+          const msg = 'Only retry after reviewing the original record and resolving any finalized-register or attendance conflicts. Keep the device record if unsure.';
+          const accept = window.AppDialog?.confirm
+            ? await window.AppDialog.confirm(msg, {title:'Retry attendance sync',confirmText:'Retry'})
+            : window.confirm(msg);
+          if (!accept) return;
+          retry.disabled = true;
+          await put({ ...record, status:'PENDING', reason:null });
+          dialog.close(); dialog.remove(); await emit(); await sync(); await showQueue();
+        });
+        line.append(retry);
+      }
+      entries.append(line);
+    }
+    const close = document.createElement('button');
+    close.type='button'; close.textContent='Close';
+    close.style.cssText='margin-top:16px;border:1px solid currentColor;border-radius:9px;padding:9px 16px;background:Canvas;color:CanvasText;cursor:pointer';
+    close.addEventListener('click', () => dialog.close());
+    dialog.append(title, hint, entries, close);
+    dialog.addEventListener('close', () => dialog.remove(), {once:true});
+    document.body.append(dialog);
+    if (dialog.showModal) dialog.showModal(); else dialog.setAttribute('open','');
   }
   function init() {
     if (!document.body || document.getElementById('attendigoOfflineStatus')) return;
