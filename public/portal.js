@@ -514,7 +514,7 @@
     if ($('adviserAssignmentForm') && !(admin || departmentHead)) $('adviserAssignmentForm').hidden = true;
     if ($('adviserAssignmentForm')) $('adviserAssignmentForm').closest('.adviser-assignments-card').hidden = !(admin || departmentHead);
     if ($('sf2SubmissionsCard')) $('sf2SubmissionsCard').hidden = admin || !departmentHead;
-    if ($('sardoCard')) $('sardoCard').hidden = admin || !departmentHead;
+    if ($('sardoCard')) $('sardoCard').hidden = !(admin || departmentHead);
     if ($('learnerSummaryCard')) $('learnerSummaryCard').hidden = gateKeeper || admin || departmentHead;
     if ($('recentActivityCard')) $('recentActivityCard').hidden = gateKeeper || admin || departmentHead;
     if ($('quickActionsCard')) $('quickActionsCard').hidden = gateKeeper || departmentHead;
@@ -922,8 +922,7 @@
         ? 'Daily attendance is based on finalized subject records.'
         : 'Pending confirmation is not an absence count. A learner is counted Present after at least one accepted subject check-in; unconfirmed learners are not marked Absent.';
     }
-    if ($('sardoStatus')) $('sardoStatus').textContent = data.sardo?.monitoringEnabled ? 'Monitoring active' : 'Setup required';
-    if ($('sardoMessage')) $('sardoMessage').textContent = data.sardo?.message || 'SARDO monitoring is awaiting finalized attendance and excused/unexcused absence classification.';
+    if ((role === 'SCHOOL_ADMIN' || role === 'DEPARTMENT_HEAD') && !document.getElementById('sardoCard')?.hidden) window.AttendigoSardo?.refresh();
     const rows = data.recent || [];
     $('recentRows').innerHTML = rows.length ? rows.map(row => {
       const date = new Date(row.occurredAt);
