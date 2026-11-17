@@ -1,4 +1,5 @@
 'use strict';
+const {queueCloudOperation} = require('./cloud-mixed-operations');
 
 // Teacher sign-off is per subject period, not an automatic full-day absence.
 const { manilaToday } = require('./sardo-routes');
@@ -57,6 +58,11 @@ function registerClassFinalizationRoutes(app,pool,{authenticateSchoolClient,requ
           (school_id,period_id,school_date,action,actor_user_id,roster_count,event_id)
           VALUES($1,$2,$3,'REOPEN',$4,$5,COALESCE($6::uuid,gen_random_uuid()))`,
           [req.auth.schoolId,periodId,date,req.auth.userId,signed.rows[0].roster_count,operationId||null]);
+        await queueCloudOperation(client,{
+          schoolId:req.auth.schoolId,actorUserId:req.auth.userId,periodId,date,
+          operationId:operationId||null,type:'REGISTER_SIGNOFF',action:'REOPEN',
+          rosterCount:signed.rows[0].roster_count
+        });
         await client.query('COMMIT');return res.json({finalized:false});
       }
       if(signed.rows[0]?.finalized){await client.query('ROLLBACK');return res.status(409).json({error:'This register is already finalized.'});}
@@ -110,6 +116,10 @@ function registerClassFinalizationRoutes(app,pool,{authenticateSchoolClient,requ
           (school_id,period_id,school_date,action,actor_user_id,roster_count,event_id)
           VALUES($1,$2,$3,'FINALIZE',$4,$5,COALESCE($6::uuid,gen_random_uuid()))`,
         [req.auth.schoolId,periodId,date,req.auth.userId,total,operationId||null]);
+      await queueCloudOperation(client,{
+        schoolId:req.auth.schoolId,actorUserId:req.auth.userId,periodId,date,
+        operationId:operationId||null,type:'REGISTER_SIGNOFF',action:'FINALIZE',rosterCount:total
+      });
       await client.query('COMMIT');return res.json({finalized:true,rosterCount:total});
     }catch(error){
       await client.query('ROLLBACK').catch(()=>{});
