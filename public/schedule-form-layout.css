@@ -1,0 +1,24 @@
+/* Class scheduling dialog: readable responsive form and usable scroll area. */
+#scheduleForm, #scheduleForm * {box-sizing:border-box}
+#scheduleForm {min-width:0;max-width:100%;width:100%;overflow-x:hidden}
+#scheduleForm .form-grid,#scheduleForm .schedule-form-section,#scheduleForm .field-group,#scheduleForm .schedule-subject-control {min-width:0;max-width:100%}
+#scheduleForm .form-grid {display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}
+#scheduleForm .field-group input,#scheduleForm .field-group select {max-width:100%;min-width:0}
+#scheduleForm .schedule-subject-control {display:flex;flex-wrap:wrap;gap:8px;align-items:stretch}
+#scheduleForm .schedule-subject-control select {flex:1 1 180px;width:auto;min-width:0}
+#scheduleForm .schedule-subject-control button {flex:0 1 auto;min-height:44px;white-space:normal}
+#scheduleForm .form-actions {position:relative;z-index:1;background:inherit;display:flex;flex-wrap:wrap;gap:10px}
+@media(max-width:900px){
+ #scheduleForm .form-grid {grid-template-columns:1fr!important;gap:16px!important}
+ #scheduleForm .schedule-form-section {padding:14px 0!important}
+ #scheduleForm .form-section-heading {padding:12px!important;border-radius:12px}
+ #scheduleForm .schedule-subject-control {display:grid;grid-template-columns:minmax(0,1fr);gap:8px}
+ #scheduleForm .schedule-subject-control select,#scheduleForm .schedule-subject-control button {width:100%!important}
+ #scheduleForm .form-actions {display:grid;grid-template-columns:1fr 1fr;align-items:stretch}
+ #scheduleForm .form-actions button {min-width:0;min-height:46px}
+ #scheduleForm .form-actions .inline-feedback {grid-column:1/-1}
+}
+@media(max-width:520px){
+ #scheduleForm .form-actions {grid-template-columns:1fr}
+ #scheduleForm .form-actions .inline-feedback {grid-column:1}
+}
