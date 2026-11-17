@@ -2636,6 +2636,60 @@ app.get('/api/periods', authenticateSchoolClient, requireSchoolRoles('SCHOOL_ADM
 
 // School Administrators, Department Heads, and Subject Teachers may create schedules within their permitted scope.
 // A schedule is created together with its teacher assignment. Department comes from the teacher account.
+
+app.patch('/api/periods/:periodId', authenticateSchoolClient, requireSchoolRoles('SCHOOL_ADMIN', 'DEPARTMENT_HEAD'), async (req,res) => {
+  if (!isUuid(req.params.periodId)) return res.status(400).json({error:'Invalid schedule ID.'});
+  const {periodName,startTime,endTime} = req.body || {};
+  const classroom = typeof req.body?.classroom === 'string' ? req.body.classroom.trim() : '';
+  const weekdays = Array.isArray(req.body?.weekdays) ? [...new Set(req.body.weekdays.map(Number))] : [];
+  if (!validText(periodName) || periodName.trim().length>120 || classroom.length>100 ||
+      !/^([01]\d|2[0-3]):[0-5]\d$/.test(startTime||'') ||
+      !/^([01]\d|2[0-3]):[0-5]\d$/.test(endTime||'') || startTime>=endTime ||
+      !weekdays.length || weekdays.some(d=>!Number.isInteger(d)||d<0||d>6)) {
+    return res.status(400).json({error:'Enter a valid schedule label, start/end times, room and weekdays.'});
+  }
+  const client=await pool.connect();
+  try {
+    await client.query('BEGIN');
+    await client.query('SELECT pg_advisory_xact_lock(hashtext($1::text),16016)',[req.auth.schoolId]);
+    const result=await client.query(
+      'SELECT period_id,department_id,grade_level,section FROM class_periods WHERE school_id=$1 AND period_id=$2 AND active=TRUE FOR UPDATE',
+      [req.auth.schoolId,req.params.periodId]);
+    if(!result.rowCount){await client.query('ROLLBACK');return res.status(404).json({error:'Schedule not found.'});}
+    const p=result.rows[0];
+    if(req.auth.role==='DEPARTMENT_HEAD' && (!req.auth.departmentId || req.auth.departmentCode==='UNASSIGNED' || String(p.department_id)!==String(req.auth.departmentId))){
+      await client.query('ROLLBACK');return res.status(403).json({error:'You may edit only schedules in your department.'});
+    }
+    const conflict=await client.query(
+      `SELECT p.period_name,
+        CASE WHEN lower(btrim(p.grade_level))=lower(btrim($3)) AND upper(btrim(p.section))=upper(btrim($4)) THEN 'section'
+             WHEN $5<>'' AND upper(btrim(COALESCE(p.classroom,'')))=upper(btrim($5)) THEN 'classroom'
+             ELSE 'teacher' END AS kind
+       FROM class_periods p
+       WHERE p.school_id=$1 AND p.period_id<>$2 AND p.active=TRUE
+         AND p.start_time<$7::time AND $6::time<p.end_time
+         AND EXISTS(SELECT 1 FROM class_period_days d WHERE d.school_id=p.school_id AND d.period_id=p.period_id AND d.weekday=ANY($8::smallint[]))
+         AND ((lower(btrim(p.grade_level))=lower(btrim($3)) AND upper(btrim(p.section))=upper(btrim($4)))
+           OR ($5<>'' AND upper(btrim(COALESCE(p.classroom,'')))=upper(btrim($5)))
+           OR EXISTS(SELECT 1 FROM teacher_period_assignments a JOIN teacher_period_assignments b
+                ON a.school_id=b.school_id AND a.teacher_user_id=b.teacher_user_id
+                WHERE a.school_id=$1 AND a.period_id=$2 AND b.period_id=p.period_id))
+       LIMIT 1`,
+      [req.auth.schoolId,req.params.periodId,p.grade_level,p.section,classroom,startTime,endTime,weekdays]);
+    if(conflict.rowCount){await client.query('ROLLBACK');return res.status(409).json({error:'Schedule conflicts with '+conflict.rows[0].period_name+' ('+conflict.rows[0].kind+').'});}
+    await client.query(
+      'UPDATE class_periods SET period_name=$3,start_time=$4::time,end_time=$5::time,classroom=$6,timetable_template_id=NULL WHERE school_id=$1 AND period_id=$2',
+      [req.auth.schoolId,req.params.periodId,periodName.trim(),startTime,endTime,classroom||null]);
+    await client.query('DELETE FROM class_period_days WHERE school_id=$1 AND period_id=$2',[req.auth.schoolId,req.params.periodId]);
+    for(const day of weekdays) await client.query('INSERT INTO class_period_days(school_id,period_id,weekday) VALUES($1,$2,$3)',[req.auth.schoolId,req.params.periodId,day]);
+    await client.query("INSERT INTO audit_logs(school_id,actor_type,actor_user_id,action,entity_type,entity_id,details) VALUES($1,'SCHOOL',$2,'UPDATE_CLASS_SCHEDULE','class_period',$3,$4::jsonb)",
+      [req.auth.schoolId,req.auth.userId,req.params.periodId,JSON.stringify({periodName:periodName.trim(),startTime,endTime,classroom,weekdays})]);
+    await client.query('COMMIT');
+    return res.json({ok:true,message:'Schedule updated. Attendance history preserved.'});
+  } catch(err){await client.query('ROLLBACK').catch(()=>{});console.error('Schedule edit failed:',err.message);return res.status(500).json({error:'Unable to update schedule.'});}
+  finally{client.release();}
+});
+
 app.delete('/api/periods/:periodId', authenticateSchoolClient, requireSchoolRoles('SCHOOL_ADMIN', 'DEPARTMENT_HEAD'), async (req, res) => {
   if (!isUuid(req.params.periodId)) return res.status(400).json({ error: 'Invalid schedule ID.' });
   const password = req.body?.password;
