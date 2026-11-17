@@ -4,10 +4,14 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#2463a5">
+  <meta name="referrer" content="no-referrer">
   <meta http-equiv="refresh" content="0; url=/portal-login.html">
   <title>Redirecting to sign in · Attendigo</title>
   <script>
-    window.location.replace('/portal-login.html' + window.location.search + window.location.hash);
+    // Never forward credentials from a legacy query string to another URL.
+    const params = new URLSearchParams(window.location.search);
+    const mode = params.get('mode') === 'platform' ? '?mode=platform' : '';
+    window.location.replace('/portal-login.html' + mode);
   </script>
 <link rel="icon" type="image/png" href="/assets/attendigo-favicon.png?v=2">
 <link rel="apple-touch-icon" href="/assets/attendigo-apple-touch-icon.png?v=2">

@@ -87,3 +87,11 @@ test('server and service worker remove sensitive URL queries and prevent credent
   assert.match(worker,/Response\.redirect\(new URL\('\/portal-login\.html', url\.origin\)\.href, 303\)/);
   assert.match(worker,/response\.ok && !url\.search/);
 });
+
+test('legacy index redirect never forwards incoming credentials', () => {
+  const index = read('public/index.html');
+  assert.doesNotMatch(index,/location\.replace\([^\n]*location\.search/);
+  assert.match(index,/params\.get\('mode'\) === 'platform'/);
+  assert.match(index,/window\.location\.replace\('\/portal-login\.html' \+ mode\)/);
+  assert.match(index,/name="referrer" content="no-referrer"/);
+});
