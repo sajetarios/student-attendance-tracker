@@ -338,3 +338,111 @@ html[data-ui-theme="dark"] .attendigo-schedule-edit-dialog .schedule-edit-class{
 html[data-ui-theme="dark"] .attendigo-schedule-edit-dialog .schedule-edit-class small{color:#a9c6e0}
 html[data-ui-theme="dark"] #scheduleForm[data-schedule-role="DEPARTMENT_HEAD"] #scheduleDepartmentName{color:#dcebfc}
 @media(max-width:620px){.attendigo-schedule-edit-dialog .schedule-edit-approved{grid-template-columns:1fr}}
+
+
+/* Department Head task-focused class schedule form — all hidden controls retain their saved values. */
+#scheduleForm[data-schedule-role="DEPARTMENT_HEAD"] .schedule-setup-section .schedule-time-inputs,
+#scheduleForm[data-schedule-role="DEPARTMENT_HEAD"] .schedule-location-section #scheduleGraceGroup,
+#scheduleForm[data-schedule-role="DEPARTMENT_HEAD"] .schedule-details-section #scheduleActivityTypeGroup[hidden],
+#scheduleForm[data-schedule-role="DEPARTMENT_HEAD"] #scheduleMoreOptionsWrap[hidden],
+#scheduleForm[data-schedule-role="DEPARTMENT_HEAD"] #scheduleDaysTools[hidden],
+#scheduleForm[data-schedule-role="DEPARTMENT_HEAD"] #scheduleReadiness[hidden],
+#scheduleForm[data-schedule-role="DEPARTMENT_HEAD"] #scheduleWeekdayChoices > label[hidden] {display:none!important}
+#scheduleForm[data-schedule-role="DEPARTMENT_HEAD"] .schedule-setup-section .schedule-time-preview {
+ margin-top:12px!important; padding:14px 16px!important; border-radius:13px!important;
+ background:#edf7ff!important; border:1px solid #c6e1f5!important
+}
+#scheduleForm[data-schedule-role="DEPARTMENT_HEAD"] .schedule-setup-section .schedule-time-preview strong {
+ font-size:18px!important;letter-spacing:-.02em
+}
+#scheduleForm[data-schedule-role="DEPARTMENT_HEAD"] .schedule-details-section #scheduleDepartmentGroup {
+ grid-column:1/-1;margin:0 0 1px
+}
+#scheduleForm[data-schedule-role="DEPARTMENT_HEAD"] .schedule-details-section #scheduleDepartmentGroup .field-hint {
+ margin-top:3px
+}
+#scheduleForm[data-schedule-role="DEPARTMENT_HEAD"] .schedule-details-section #scheduleDepartmentName {
+ display:inline-flex;align-items:center;min-height:35px;
+ background:#edf6fc;border:1px solid #cfe4f3;border-radius:999px;
+ padding:6px 14px;font-size:13px;font-weight:750;
+}
+#scheduleForm[data-schedule-role="DEPARTMENT_HEAD"] .department-form-options-toggle {
+ display:flex;align-items:center;gap:10px;flex-wrap:wrap;
+ padding:4px 0 8px
+}
+#scheduleForm[data-schedule-role="DEPARTMENT_HEAD"] .department-form-options-toggle button {
+ font-size:12px!important;min-height:34px!important
+}
+#scheduleForm[data-schedule-role="DEPARTMENT_HEAD"] .department-form-options-toggle small {
+ color:#617b91;font-size:12px
+}
+#scheduleForm[data-schedule-role="DEPARTMENT_HEAD"] #scheduleActivityTypeGroup:not([hidden]){
+ border:1px solid #d6e6f1;border-radius:10px;padding:10px;background:#f6fafd
+}
+#scheduleForm[data-schedule-role="DEPARTMENT_HEAD"] .schedule-days-tools {
+ display:flex;align-items:center;justify-content:space-between;gap:10px;
+ flex-wrap:wrap;margin-top:9px
+}
+#scheduleForm[data-schedule-role="DEPARTMENT_HEAD"] #scheduleDaysCount {
+ color:#395e79;font-size:12px;font-weight:700
+}
+#scheduleForm[data-schedule-role="DEPARTMENT_HEAD"] .schedule-days-tools button {
+ min-height:33px!important;font-size:12px!important
+}
+#scheduleForm[data-schedule-role="DEPARTMENT_HEAD"] #scheduleWeekdayChoices > label span {
+ transition:background-color .15s ease,border-color .15s ease,transform .15s ease;
+}
+#scheduleForm[data-schedule-role="DEPARTMENT_HEAD"] #scheduleWeekdayChoices > label:active span {
+ transform:scale(.96)
+}
+#scheduleForm[data-schedule-role="DEPARTMENT_HEAD"] .schedule-form-readiness {
+ padding:13px 15px;margin:0 0 12px;border:1px solid #d6e7f3;
+ border-radius:12px;background:#f5fafe
+}
+#scheduleForm[data-schedule-role="DEPARTMENT_HEAD"] .schedule-readiness-top {
+ display:flex;align-items:center;justify-content:space-between;
+ gap:9px;flex-wrap:wrap;color:#254763;font-size:13px
+}
+#scheduleForm[data-schedule-role="DEPARTMENT_HEAD"] .schedule-readiness-top span {
+ font-size:12px;font-weight:700;color:#52718a
+}
+#scheduleForm[data-schedule-role="DEPARTMENT_HEAD"] .schedule-readiness-bar {
+ height:7px;border-radius:99px;background:#dbeaf4;margin:9px 0;overflow:hidden
+}
+#scheduleForm[data-schedule-role="DEPARTMENT_HEAD"] .schedule-readiness-bar>span {
+ display:block;width:0;height:100%;border-radius:99px;
+ background:#1389bb;transition:width .2s ease
+}
+#scheduleForm[data-schedule-role="DEPARTMENT_HEAD"] #scheduleReadinessHint {
+ color:#48677e;font-size:12px
+}
+#scheduleForm[data-schedule-role="DEPARTMENT_HEAD"] #scheduleReviewSummary {
+ font-size:12px!important;line-height:1.6!important;padding:12px 13px!important
+}
+html[data-ui-theme="dark"] #scheduleForm[data-schedule-role="DEPARTMENT_HEAD"] .schedule-setup-section .schedule-time-preview {
+ background:#1c3b53!important;border-color:#406c86!important;color:#e9f6ff!important
+}
+html[data-ui-theme="dark"] #scheduleForm[data-schedule-role="DEPARTMENT_HEAD"] .schedule-details-section #scheduleDepartmentName {
+ color:#e3f4ff!important;background:#244358!important;border-color:#416984!important
+}
+html[data-ui-theme="dark"] #scheduleForm[data-schedule-role="DEPARTMENT_HEAD"] .schedule-form-readiness,
+html[data-ui-theme="dark"] #scheduleForm[data-schedule-role="DEPARTMENT_HEAD"] #scheduleActivityTypeGroup:not([hidden]) {
+ color:#e4f3ff;background:#20384e;border-color:#3e5970
+}
+html[data-ui-theme="dark"] #scheduleForm[data-schedule-role="DEPARTMENT_HEAD"] .schedule-readiness-top,
+html[data-ui-theme="dark"] #scheduleForm[data-schedule-role="DEPARTMENT_HEAD"] .schedule-readiness-top span,
+html[data-ui-theme="dark"] #scheduleForm[data-schedule-role="DEPARTMENT_HEAD"] #scheduleReadinessHint,
+html[data-ui-theme="dark"] #scheduleForm[data-schedule-role="DEPARTMENT_HEAD"] #scheduleDaysCount {
+ color:#c1d8ea
+}
+html[data-ui-theme="dark"] #scheduleForm[data-schedule-role="DEPARTMENT_HEAD"] .schedule-readiness-bar {
+ background:#3c5368
+}
+@media(max-width:600px) {
+ #scheduleForm[data-schedule-role="DEPARTMENT_HEAD"] .schedule-days-tools {
+   align-items:stretch
+ }
+ #scheduleForm[data-schedule-role="DEPARTMENT_HEAD"] #scheduleReviewSummary {
+   word-break:normal!important;overflow-wrap:anywhere
+ }
+}
