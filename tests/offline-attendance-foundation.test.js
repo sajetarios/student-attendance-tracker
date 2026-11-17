@@ -78,5 +78,5 @@ test('standalone offline sheet encrypts student data and checks account before u
   assert.match(sw, /offline-sheet\.html/);
   const script = read('public/offline-sheet.html').match(/src="(\/offline-sheet\.js\?v=[^"]+)"/)?.[1];
   assert.ok(script && sw.includes(JSON.stringify(script)));
-  assert.match(read('public/offline-sheet.html'), /offline-attendance\\.js\\?v=/);
+  assert.ok(read('public/offline-sheet.html').includes('/offline-attendance.js?v='));
 });
