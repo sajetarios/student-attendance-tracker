@@ -639,6 +639,42 @@ app.get('/api/scheduling/section-adviser', authenticateSchoolClient,
     }
   });
 
+// School-scoped grade/section choices for adviser assignments.
+// This is independent of the dashboard learner roster, which may be unavailable to a Department Head.
+// Eligibility matches the existing Class Adviser assignment check: active learners in the school,
+// using current active-year enrollment when available and retained student records otherwise.
+app.get('/api/class-adviser-eligible-sections', authenticateSchoolClient,
+  requireSchoolRoles('DEPARTMENT_HEAD'), async (req,res) => {
+    try{
+      const result=await pool.query(
+        "SELECT eligible.grade_level AS \"gradeLevel\", eligible.section, " +
+        "COUNT(*)::int AS \"learnerCount\", " +
+        "COUNT(*) FILTER (WHERE eligible.enrolled_in_active_year)::int AS \"enrolledCount\" " +
+        "FROM (" +
+        "SELECT s.student_id, " +
+        "COALESCE(NULLIF(BTRIM(en.grade_level),''),NULLIF(BTRIM(s.grade_level),'')) AS grade_level, " +
+        "COALESCE(NULLIF(BTRIM(en.section),''),NULLIF(BTRIM(s.section),'')) AS section, " +
+        "(en.grade_level IS NOT NULL) AS enrolled_in_active_year " +
+        "FROM students s LEFT JOIN LATERAL (" +
+        "SELECT e.grade_level,e.section FROM student_enrollments e " +
+        "JOIN school_years sy ON sy.school_id=e.school_id AND sy.school_year_id=e.school_year_id " +
+        "WHERE e.school_id=s.school_id AND e.student_id=s.student_id " +
+        "AND sy.status='ACTIVE' AND e.enrollment_status='ENROLLED' " +
+        "ORDER BY e.created_at DESC LIMIT 1" +
+        ") en ON TRUE " +
+        "WHERE s.school_id=$1 AND s.active=TRUE AND s.archived_at IS NULL" +
+        ") eligible WHERE eligible.grade_level IS NOT NULL AND eligible.section IS NOT NULL " +
+        "GROUP BY eligible.grade_level,eligible.section " +
+        "ORDER BY eligible.grade_level,eligible.section",
+        [req.auth.schoolId]
+      );
+      return res.json({sections:result.rows});
+    }catch(error){
+      console.error('Adviser eligible sections lookup failed:',error.message);
+      return res.status(500).json({error:'Could not load eligible grade and section choices.'});
+    }
+  });
+
 app.post('/api/class-adviser-assignments', authenticateSchoolClient, requireSchoolRoles('DEPARTMENT_HEAD'), async (req, res) => {
   const { adviserUserId, gradeLevel, section } = req.body || {};
   if (!isUuid(adviserUserId) || !validText(gradeLevel) || gradeLevel.trim().length > 40 ||

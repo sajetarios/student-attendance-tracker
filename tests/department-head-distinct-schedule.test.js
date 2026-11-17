@@ -79,3 +79,34 @@ test('Critical scheduling assets refresh over network and keep offline fallback'
  assert.match(sw,/caches\.match\(request\)/);
  assert.match(server,/'\/schedule-form-layout\.css', '\/schedule-workspace-ui\.js'/);
 });
+
+test('Class Adviser grade choices come from an independent authorized school-wide endpoint',()=>{
+ const server=read('server.js'),portal=read('public/portal.js'),html=read('public/portal.html');
+ const a=server.indexOf("app.get('/api/class-adviser-eligible-sections'");
+ const b=server.indexOf("app.post('/api/class-adviser-assignments'",a);
+ assert.ok(a>0&&b>a);
+ const route=server.slice(a,b);
+ assert.match(route,/requireSchoolRoles\('DEPARTMENT_HEAD'\)/);
+ assert.match(route,/s\.school_id=\$1/);
+ assert.match(route,/s\.active=TRUE AND s\.archived_at IS NULL/);
+ assert.match(route,/student_enrollments e/);
+ assert.doesNotMatch(route,/req\.auth\.departmentId/);
+ assert.doesNotMatch(route,/INSERT INTO|UPDATE students|DELETE FROM/);
+ assert.match(portal,/function loadAdviserEligibleSections\(\)/);
+ assert.match(portal,/api\('\/api\/class-adviser-eligible-sections'\)/);
+ assert.match(portal,/renderAdviserGradeChoices\(\)/);
+ assert.match(html,/id="adviserGradeHint"/);
+ assert.match(html,/id="retryAdviserSections"/);
+});
+test('Adviser choices and grades do not depend on student roster loading',()=>{
+ const js=read('public/portal.js');
+ const start=js.indexOf('function updateAdviserSections()');
+ const end=js.indexOf('function renderAdviserAssignments()',start);
+ assert.ok(start>0&&end>start);
+ const selection=js.slice(start,end);
+ assert.match(selection,/adviserEligibleSections\.filter/);
+ assert.doesNotMatch(selection,/students\.filter/);
+ assert.match(js,/await loadAdviserEligibleSections\(\);/);
+ assert.match(js,/Grade and section lookup failed/);
+ assert.match(js,/No active learner sections found/);
+});

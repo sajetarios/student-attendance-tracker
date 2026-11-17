@@ -15,6 +15,9 @@
   let teachers = [];
   let schoolUsers = [];
   let adviserAssignments = [];
+  let adviserEligibleSections = [];
+  let adviserEligibilityLoaded = false;
+  let adviserEligibilityError = '';
   let studentAccountMode = 'CREATE';
   let sf2Options = [];
   let sf2Submissions = [];
@@ -2673,25 +2676,69 @@ let teacherActionMenuListenersInstalled = false;
     }));
   }
 
+  // Adviser grade choices must never depend on the Department Head roster / student API.
+  async function loadAdviserEligibleSections() {
+    adviserEligibilityLoaded=false;
+    adviserEligibilityError='';
+    const hint=$('adviserGradeHint'),grade=$('adviserGradeInput');
+    if(hint)hint.textContent='Checking active learner sections across the school…';
+    if(grade){grade.disabled=true;grade.innerHTML='<option value="">Loading available grades…</option>';}
+    try{
+      const result=await api('/api/class-adviser-eligible-sections');
+      if(!Array.isArray(result.sections))throw Error('Section service returned invalid data.');
+      adviserEligibleSections=result.sections.filter(item=>String(item.gradeLevel||'').trim()&&String(item.section||'').trim());
+      adviserEligibilityLoaded=true;
+    }catch(error){
+      adviserEligibleSections=[];
+      adviserEligibilityError=error.message||'Unable to retrieve eligible sections.';
+    }
+    renderAdviserGradeChoices();
+  }
+
+  function renderAdviserGradeChoices() {
+    const grade=$('adviserGradeInput'),hint=$('adviserGradeHint'),retry=$('retryAdviserSections');
+    if(!grade)return;
+    const previous=grade.value;
+    const grades=[...new Set(adviserEligibleSections.map(item=>String(item.gradeLevel).trim()))]
+      .sort((a,b)=>a.localeCompare(b,undefined,{numeric:true}));
+    grade.innerHTML='<option value="">'+(adviserEligibilityError?'Unable to load grades':grades.length?'Choose grade level':'No eligible grades found')+'</option>'+
+      grades.map(value=>'<option value="'+esc(value)+'">'+esc(value)+'</option>').join('');
+    grade.disabled=Boolean(adviserEligibilityError)||!grades.length;
+    if(grades.includes(previous))grade.value=previous;
+    if(hint)hint.textContent=adviserEligibilityError
+      ? 'Grade and section lookup failed: '+adviserEligibilityError+'. Use Retry loading grades.'
+      : !adviserEligibilityLoaded ? 'Loading eligible sections…'
+      : !grades.length
+        ? 'No active learner sections found. Ask School Admin to verify Student Management and School Year Enrollment.'
+        : grades.length+' grade level'+(grades.length===1?'':'s')+' available from active learner records.';
+    if(retry)retry.hidden=!adviserEligibilityError;
+    if(!grade.dataset.sectionPickerBound){
+      grade.addEventListener('change',updateAdviserSections);
+      grade.dataset.sectionPickerBound='1';
+    }
+    updateAdviserSections();
+  }
+
   function updateAdviserSections() {
-    const gradeSelect = $('adviserGradeInput');
-    const sectionSelect = $('adviserSectionInput');
-    const hint = $('adviserSectionHint');
-    if (!gradeSelect || !sectionSelect) return;
-    const grade = gradeSelect.value;
-    const previousSection = sectionSelect.value;
-    const availableSections = [...new Set(students
-      .filter(student => student.active !== false && !student.archivedAt && String(student.gradeLevel || '') === grade)
-      .map(student => String(student.section || '').trim())
-      .filter(Boolean))]
-      .sort((a, b) => a.localeCompare(b, undefined, { numeric: true }));
-    sectionSelect.innerHTML = '<option value="">Choose enrolled section</option>' +
-      availableSections.map(section => `<option value="${esc(section)}">${esc(section)}</option>`).join('');
-    sectionSelect.disabled = availableSections.length === 0;
-    if (availableSections.includes(previousSection)) sectionSelect.value = previousSection;
-    if (hint) hint.textContent = availableSections.length
-      ? availableSections.length + ' enrolled section' + (availableSections.length === 1 ? '' : 's') + ' available for ' + grade + '. Special-program sections such as SPJ are included.'
-      : (grade ? 'No active enrolled sections were found for this grade.' : 'Choose a grade to see its enrolled sections.');
+    const grade=$('adviserGradeInput'),select=$('adviserSectionInput'),hint=$('adviserSectionHint');
+    if(!grade||!select)return;
+    const selected=grade.value,previous=select.value;
+    const sections=adviserEligibleSections.filter(item=>String(item.gradeLevel).trim()===selected);
+    select.innerHTML='<option value="">'+(selected?'Choose class section':'Choose grade level first')+'</option>'+
+      sections.map(item=>{
+        const total=Number(item.learnerCount)||0,enrolled=Number(item.enrolledCount)||0;
+        const suffix=enrolled>0
+          ? ' · '+enrolled+' enrolled learner'+(enrolled===1?'':'s')
+          : ' · '+total+' active learner record'+(total===1?'':'s')+' (check enrollment)';
+        return '<option value="'+esc(item.section)+'">'+esc(item.section)+esc(suffix)+'</option>';
+      }).join('');
+    select.disabled=!selected||!sections.length;
+    if(sections.some(item=>String(item.section)===previous))select.value=previous;
+    if(hint)hint.textContent=!selected
+      ? 'Choose a grade to see its available sections.'
+      : sections.length
+        ? sections.length+' section'+(sections.length===1?'':'s')+' with active learners. SPJ and other special-program sections are included. Check enrollment if a section has roster-only records.'
+        : 'No eligible sections found in this grade. Verify its learner records and active school-year enrollment.';
   }
 
   function renderAdviserAssignments() {
@@ -2708,25 +2755,15 @@ let teacherActionMenuListenersInstalled = false;
       if (advisers.some(item => String(item.userId) === previous)) teacherSelect.value = previous;
     }
 
-    const gradeSelect = $('adviserGradeInput');
-    if (gradeSelect) {
-      const previousGrade = gradeSelect.value;
-      const availableGrades = [...new Set(students
-        .filter(student => student.active !== false && !student.archivedAt && String(student.gradeLevel || '').trim())
-        .map(student => String(student.gradeLevel).trim()))]
-        .sort((a, b) => a.localeCompare(b, undefined, { numeric: true }));
-      gradeSelect.innerHTML = '<option value="">Choose grade level</option>' +
-        availableGrades.map(grade => `<option value="${esc(grade)}">${esc(grade)}</option>`).join('');
-      if (availableGrades.includes(previousGrade)) gradeSelect.value = previousGrade;
-      if (!gradeSelect.dataset.sectionPickerBound) {
-        gradeSelect.addEventListener('change', updateAdviserSections);
-        gradeSelect.dataset.sectionPickerBound = '1';
-      }
-      updateAdviserSections();
-    }
+    renderAdviserGradeChoices();
 
     const addButton = $('addAdviserAssignmentButton');
     const form = $('adviserAssignmentForm');
+    const retry = $('retryAdviserSections');
+    if(retry&&!retry.dataset.loadBound){
+      retry.addEventListener('click',()=>{void loadAdviserEligibleSections();});
+      retry.dataset.loadBound='1';
+    }
     if (addButton && !addButton.dataset.formToggleBound) {
       addButton.addEventListener('click', () => {
         form.hidden = false;
@@ -3613,6 +3650,9 @@ let teacherActionMenuListenersInstalled = false;
     if (role === 'DEPARTMENT_HEAD') {
       const adviserData = await api('/api/class-adviser-assignments');
       adviserAssignments = adviserData.assignments || [];
+      // An independent, school-scoped lookup keeps grade options available even if
+      // the students roster API is empty, restricted, or temporarily unavailable.
+      await loadAdviserEligibleSections();
       renderAdviserAssignments();
     } else if (role === 'TEACHER' && (user.teacherDesignations || []).includes('CLASS_ADVISER')) {
       const adviserData = await api('/api/class-adviser-assignments');
@@ -5660,6 +5700,12 @@ let teacherActionMenuListenersInstalled = false;
       feedback.className = 'inline-feedback';
       feedback.textContent = 'Saving assignment…';
       const payload = { adviserUserId: $('adviserTeacherSelect').value, gradeLevel: $('adviserGradeInput').value, section: $('adviserSectionInput').value.trim() };
+      if(!adviserEligibilityLoaded || !adviserEligibleSections.some(item=>
+        String(item.gradeLevel)===payload.gradeLevel&&String(item.section)===payload.section)){
+        feedback.className='inline-feedback error';
+        feedback.textContent='Choose an eligible grade and section. Reload the list if it is empty.';
+        return;
+      }
       try {
         await api('/api/class-adviser-assignments', { method: 'POST', body: JSON.stringify(payload) });
         $('adviserAssignmentForm').reset();
