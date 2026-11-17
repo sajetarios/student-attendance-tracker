@@ -238,8 +238,8 @@
       state.finalized=Boolean(d.finalization?.finalized);
      for(const [id,m] of Object.entries(state.synced)){if(!state.marks[id])state.marks[id]={status:m.status,note:m.note||''}}
      render();notice('Saved records loaded. Local unsynced marks are retained.');
-     const draftMatchesServer=Object.entries(state.marks).every(([id,mark])=>{
-       if(!statuses.includes(mark.status))return true;
+     const draftedMarks=Object.entries(state.marks).filter(([,mark])=>statuses.includes(mark.status));
+     const draftMatchesServer=draftedMarks.length>0&&draftedMarks.every(([id,mark])=>{
        const remote=state.synced[id];
        return remote&&remote.status===mark.status&&(remote.note||'')===(mark.note||'');
      });
@@ -436,7 +436,11 @@
      const queued=(await window.AttendigoOffline.pending()).find(r=>r.id===opId);
      if(queued?.status==='REVIEW')throw Error(queued.reason||'Register needs review.');
      if(queued){notice('Sign-off saved on this device, pending server acceptance. The register is not finalized yet.');return;}
-     await loadRemote();
+     if(!await loadRemote()){
+       setSyncPill('waiting','Server readback unavailable','The sign-off request was accepted, but the register status could not be reloaded. Check the Sync Center and refresh this class.');
+       notice('School accepted this sign-off, but the register could not be reloaded. Refresh to verify.',true);
+       return;
+     }
      setSyncPill('synced','Sign-off confirmed','The school server accepted this register action; cloud delivery is separate.');
      notice(action==='FINALIZE'?'Attendance finalized and audited. Editing is locked.':'Attendance reopened. You can correct and re-sync marks.');
    }catch(error){setSyncPill('review','Needs review','The server has not confirmed this sign-off. Open Sync Center.');notice('Sign-off retained for review if queued. '+error.message,true);}
