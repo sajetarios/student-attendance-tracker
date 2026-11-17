@@ -186,6 +186,10 @@ test('queue is scoped by current user and retains legacy scanner records during 
   await h.queue.enqueueOperation({type:'QR_SCAN',operationId:'scan-A',payload:scan('scan-A')});
   h.session.set('schoolAttendance.user',JSON.stringify({schoolId:'school-B',userId:'teacher-2'}));
   assert.equal((await h.queue.pending()).length,0);
+  await assert.rejects(
+    h.queue.enqueueOperation({type:'QR_SCAN',operationId:'scan-A',payload:scan('scan-A')}),
+    /another account/
+  );
   await h.queue.enqueueOperation({type:'QR_SCAN',operationId:'scan-B',payload:scan('scan-B')});
   assert.equal((await h.queue.pending()).length,1);
   h.session.set('schoolAttendance.user',JSON.stringify({schoolId:'school-A',userId:'teacher-1'}));
