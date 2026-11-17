@@ -12,7 +12,7 @@
  const phDate=d=>{const parts=new Intl.DateTimeFormat('en-GB',{timeZone:'Asia/Manila',year:'numeric',month:'2-digit',day:'2-digit'}).formatToParts(new Date(d));const v=Object.fromEntries(parts.map(p=>[p.type,p.value]));return v.year+'-'+v.month+'-'+v.day;};
  const today=()=>phDate(new Date());
  const dateParts=s=>s.split('-').map(Number);
- const state={month:today().slice(0,7),date:today(),items:[],editing:null,scope:'ALL',loaded:false};
+ const state={month:today().slice(0,7),date:today(),items:[],editing:null,scope:'ALL',view:'MONTH',loaded:false};
  async function api(path,options={}) {
    const r=await fetch(path,{...options,headers:{Authorization:'Bearer '+token,...(options.body?{'Content-Type':'application/json'}:{})},cache:'no-store'});
    const data=await r.json().catch(()=>({}));
@@ -32,10 +32,10 @@
  function monthItems(){return state.items.filter(matchScope)}
  function renderStats(){
    const items=monthItems();
-   $('plannerStats').innerHTML=[['Scheduled',items.filter(x=>x.status==='PLANNED').length],
+   $('plannerStats').innerHTML=[['Upcoming',items.filter(x=>x.status==='PLANNED').length],
    ['Completed',items.filter(x=>x.status==='DONE').length],
    ['High priority',items.filter(x=>x.priority==='HIGH'&&x.status==='PLANNED').length]]
-     .map(([name,value])=>'<div><strong>'+value+'</strong><span>'+name+'</span></div>').join('');
+     .map(([name,value],i)=>'<div class="planner-stat planner-stat-'+i+'"><span class="planner-stat-icon" aria-hidden="true">'+['◷','✓','!'][i]+'</span><strong>'+value+'</strong><span>'+name+'</span></div>').join('');
  }
  function renderCalendar(){
    const [year,month]=dateParts(state.month);
@@ -44,30 +44,43 @@
    const days=new Date(Date.UTC(year,month,0)).getUTCDate();
    const cells=Math.ceil((first+days)/7)*7;
    $('plannerMonthTitle').textContent=start.toLocaleDateString('en-PH',{month:'long',year:'numeric',timeZone:'UTC'});
-   let html='';
    const filtered=monthItems();
-   for(let i=0;i<cells;i++){
-     const d=new Date(Date.UTC(year,month-1,i-first+1));
+   const weekStart=(()=>{const d=new Date(state.date+'T00:00:00Z');d.setUTCDate(d.getUTCDate()-(d.getUTCDay()+6)%7);return d;})();
+   let html='';
+   const total=state.view==='WEEK'?7:cells;
+   for(let i=0;i<total;i++){
+     const d=state.view==='WEEK'?new Date(weekStart.getTime()+i*86400000):new Date(Date.UTC(year,month-1,i-first+1));
      const key=d.toISOString().slice(0,10),outside=d.getUTCMonth()!==month-1;
      const events=filtered.filter(x=>phDate(x.startAt)===key);
      html+='<button type="button" class="planner-day'+(outside?' outside':'')+(key===today()?' today':'')+(key===state.date?' chosen':'')+'" data-planner-day="'+key+'" aria-label="'+key+', '+events.length+' events"><span class="planner-date">'+d.getUTCDate()+'</span>'+
-       events.slice(0,2).map(x=>'<span class="planner-event-dot '+(x.visibility==='DEPARTMENT'?'shared':'')+'">'+escape(x.title)+'</span>').join('')+
-       (events.length>2?'<span class="planner-more">+'+(events.length-2)+' more</span>':'')+'</button>';
+       events.slice(0,state.view==='WEEK'?5:3).map(x=>'<span class="planner-event-dot planner-type-'+escape(x.itemType.toLowerCase())+(x.visibility==='DEPARTMENT'?' shared':'')+'">'+escape(x.title)+'</span>').join('')+
+       (events.length>(state.view==='WEEK'?5:3)?'<span class="planner-more">+'+(events.length-(state.view==='WEEK'?5:3))+' more</span>':'')+'</button>';
    }
    $('plannerDays').innerHTML=html;
+   const calendar=root.querySelector('.planner-calendar');
+   calendar.hidden=state.view==='AGENDA';
+   calendar.classList.toggle('planner-week-mode',state.view==='WEEK');
+   root.classList.toggle('planner-agenda-mode',state.view==='AGENDA');
+   root.classList.toggle('planner-week-mode',state.view==='WEEK');
+   root.querySelectorAll('[data-planner-view]').forEach(button=>{
+     const active=button.dataset.plannerView===state.view;
+     button.classList.toggle('is-active',active);
+     button.setAttribute('aria-pressed',String(active));
+   });
  }
  function renderList(){
    $('plannerDateHeading').textContent=new Date(state.date+'T00:00:00+08:00').toLocaleDateString('en-PH',{timeZone:'Asia/Manila',weekday:'long',month:'long',day:'numeric',year:'numeric'});
-   const events=monthItems().filter(x=>phDate(x.startAt)===state.date).sort((a,b)=>a.startAt.localeCompare(b.startAt));
+   const events=monthItems().filter(x=>state.view==='AGENDA'?true:phDate(x.startAt)===state.date).sort((a,b)=>a.startAt.localeCompare(b.startAt));
+   if(state.view==='AGENDA')$('plannerDateHeading').textContent='Upcoming activities · '+$('plannerMonthTitle').textContent;
    $('plannerItems').innerHTML=events.length?events.map(x=>{
      const own=x.ownerUserId===user.userId,cls=x.status==='DONE'?' done':'';
      const date=new Date(x.startAt);
      const time=x.allDay?'All day':new Intl.DateTimeFormat('en-PH',{timeZone:'Asia/Manila',hour:'numeric',minute:'2-digit'}).format(date);
-     return '<article class="planner-item'+cls+'"><div class="planner-item-main"><strong>'+escape(x.title)+'</strong><p>'+escape(time)+' · '+escape(x.itemType.toLowerCase())+(x.visibility==='DEPARTMENT'?' · Shared by '+escape(x.ownerName):'')+'</p>'+
+     return '<article class="planner-item planner-type-'+escape(x.itemType.toLowerCase())+cls+'"><div class="planner-item-main"><strong>'+escape(x.title)+'</strong><p>'+(state.view==='AGENDA'?escape(phDate(x.startAt))+' · ':'')+escape(time)+' · '+escape(x.itemType.toLowerCase())+(x.visibility==='DEPARTMENT'?' · Shared by '+escape(x.ownerName):'')+'</p>'+
      (x.details?'<p>'+escape(x.details)+'</p>':'')+
      '<div class="planner-item-badges"><span class="planner-chip '+(x.priority==='HIGH'?'high':'')+'">'+escape(x.priority)+'</span><span class="planner-chip '+(x.visibility==='DEPARTMENT'?'shared':'')+'">'+escape(x.visibility)+'</span><span class="planner-chip">'+escape(x.status)+'</span></div></div>'+
      (own?'<div class="planner-actions"><button class="planner-btn" type="button" data-planner-edit="'+escape(x.itemId)+'">Edit</button><button class="planner-btn" type="button" data-planner-delete="'+escape(x.itemId)+'">Delete</button></div>':'')+'</article>';
-   }).join(''):'<div class="planner-empty">No scheduled items for this date. Add a lesson plan, reminder, meeting, or deadline.</div>';
+   }).join(''):'<div class="planner-empty"><span class="planner-empty-icon" aria-hidden="true">✧</span><strong>A little breathing room</strong><p>No activities '+(state.view==='AGENDA'?'this month':'for this date')+'. Create a task, meeting or lesson preparation when you are ready.</p><button type="button" class="planner-btn" data-planner-empty-new>＋ Add an item</button></div>';
  }
  function render(){renderStats();renderCalendar();renderList()}
  async function load(){
@@ -115,6 +128,12 @@
  $('plannerNew').addEventListener('click',()=>openForm());
  $('plannerCancel').addEventListener('click',()=>{$('plannerForm').hidden=true;state.editing=null});
  $('plannerScope').addEventListener('change',e=>{state.scope=e.target.value;render()});
+ root.querySelectorAll('[data-planner-view]').forEach(button=>button.addEventListener('click',()=>{
+   state.view=button.dataset.plannerView;
+   render();
+ }));
+ $('plannerItems').addEventListener('click',e=>{if(e.target.closest('[data-planner-empty-new]'))openForm()});
+
  $('plannerDays').addEventListener('click',e=>{
    const button=e.target.closest('[data-planner-day]');if(!button)return;
    state.date=button.dataset.plannerDay;
