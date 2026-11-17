@@ -1,4 +1,4 @@
-const CACHE = "attendigo-v145-user-navigation";
+const CACHE = "attendigo-v146-account-directory";
 
 const SHELL = [
   "/assets/attendigo-sidebar-logo.png",
@@ -47,6 +47,7 @@ const SHELL = [
   "/manual-folio.js?v=14",
   "/student-portal-accounts.css?v=4",
   "/student-portal-accounts.js?v=7",
+  "/account-directory.js?v=1",
   "/admin-request-notifications.js?v=3",
   "/admin-request-notifications.css?v=2",
   "/guardian-ui.js?v=5",
