@@ -3912,7 +3912,7 @@ let teacherActionMenuListenersInstalled = false;
         document.querySelectorAll('.quick-action[data-go]').forEach(button => {
           button.addEventListener('click', () => setView(button.dataset.go));
         });
-        setView('dashboard');
+        setView(user.role === 'SCHOOL_ADMIN' && new URLSearchParams(location.search).get('view') === 'parents' ? 'parents' : 'dashboard');
       }
       await loadSchoolBranding();
       await loadSchoolData();
