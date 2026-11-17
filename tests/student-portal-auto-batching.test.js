@@ -14,7 +14,7 @@ function browserFixture({failBatch = 0, role = 'SCHOOL_ADMIN', failRequestAt = 0
   const element = id => {
     if (!elements.has(id)) {
       elements.set(id, {
-        value: '', hidden: false, checked: false, disabled: false,
+        value: '', hidden: ['sapRequestModal','sapReviewModal','sapSecretModal'].includes(id), checked: false, disabled: false,
         textContent: '', innerHTML: '', style: {}, listeners: new Map(),
         classList: {toggle(){}, add(){}, remove(){}},
         addEventListener(name, fn) { this.listeners.set(name, fn); },
