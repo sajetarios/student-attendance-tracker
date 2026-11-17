@@ -170,22 +170,11 @@
     } else if (!connected()) {
       label = 'Offline · attendance saved';
       state = 'warning';
-    } else if (isAdmin() && cloudError) {
-      label = 'Cloud sync status unavailable';
-      state = 'warning';
-    } else if (isAdmin() && lastCloud) {
-      if (!lastCloud.configured) {
-        label = 'Cloud sync not configured';
-        state = 'warning';
-      } else if (!lastCloud.enabled) {
-        label = 'Cloud forwarding off';
-        state = 'warning';
-      } else if (lastCloud.connectionStatus === 'CONNECTED') {
-        label = 'Cloud sync last connected';
-      } else {
-        label = 'Cloud not connected';
-        state = 'warning';
-      }
+    } else if (isAdmin() && (cloudError || (lastCloud && !lastCloud.enabled))) {
+      // Optional school-to-cloud forwarding is NOT the device attendance
+      // status. Keep the header label consistent across school roles.
+      // The School Admin sees the accurate cloud state inside the dialog.
+      state = 'idle';
     }
     trigger.dataset.state = state;
     const text = trigger.querySelector('.asc-header-label');
@@ -294,9 +283,9 @@
       lastCloud = await api('/api/cloud-sync/status');
       cloudError = null;
       updateHeader();
-      state.textContent = lastCloud.enabled
-        ? (lastCloud.connectionStatus === 'CONNECTED' ? 'Configured · last contact available' : 'Configured · not verified')
-        : 'Forwarding disabled';
+      state.textContent = !lastCloud.configured ? 'Cloud sync not configured' :
+        !lastCloud.enabled ? 'Cloud forwarding disabled' :
+        lastCloud.connectionStatus === 'CONNECTED' ? 'Last contact confirmed' : 'Connection not verified';
       state.dataset.state = lastCloud.enabled ? 'enabled' : 'disabled';
       for (const [label, value] of [
         ['Waiting for cloud', lastCloud.pendingCount || 0],
@@ -308,7 +297,9 @@
         metrics.append(stat);
       }
       if (!lastCloud.enabled) {
-        review.append(element('p', 'asc-empty', 'Cloud forwarding is disabled. Configure the separate school server and credentials before enabling it.'));
+        review.append(element('p', 'asc-empty', !lastCloud.configured
+          ? 'Cloud sync is not configured for this school. Device-to-school attendance synchronization remains available; school-to-cloud forwarding is off.'
+          : 'Cloud forwarding is disabled. Device attendance can still synchronize with the school server.'));
         return;
       }
       const data = await api('/api/cloud-sync/review');
