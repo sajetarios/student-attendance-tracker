@@ -428,3 +428,4 @@ function registerCloudSyncRoutes(app, pool, { authenticateSchoolClient, requireS
 
 module.exports = registerCloudSyncRoutes;
 module.exports.processCloudSyncOutbox = processCloudSyncOutbox;
+module.exports.verifySchoolCloudSignature = verifySchoolCloudSignature;
