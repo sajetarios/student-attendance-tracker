@@ -1735,6 +1735,41 @@ app.post('/api/sections', authenticateSchoolClient, requireSchoolRoles('SCHOOL_A
  } catch(err) { console.error('Create section failed:',err.message);return res.status(500).json({error:'Could not create section.'}); }
 });
 
+// Section edits are limited to unused registry entries; never rewrite learner or attendance history.
+async function sectionIsReferenced(schoolId, gradeLevel, section) {
+ const checks = await pool.query(`
+ SELECT
+ EXISTS(SELECT 1 FROM class_periods WHERE school_id=$1 AND grade_level=$2 AND section=$3) AS schedules,
+ EXISTS(SELECT 1 FROM class_adviser_assignments WHERE school_id=$1 AND grade_level=$2 AND section=$3) AS advisers,
+ EXISTS(SELECT 1 FROM students WHERE school_id=$1 AND grade_level=$2 AND section=$3) AS students,
+ EXISTS(SELECT 1 FROM student_enrollments WHERE school_id=$1 AND grade_level=$2 AND section=$3) AS enrollments
+ `,[schoolId,gradeLevel,section]);
+ return Object.values(checks.rows[0]).some(Boolean);
+}
+app.patch('/api/sections', authenticateSchoolClient, requireSchoolRoles('SCHOOL_ADMIN'), async(req,res)=>{
+ const gradeLevel=String(req.body?.gradeLevel||'').trim();
+ const oldName=String(req.body?.section||'').trim();
+ const newName=String(req.body?.newName||'').trim();
+ if(!/^Grade (?:[1-9]|1[0-2])$/.test(gradeLevel)|| !oldName || !/^[a-zA-Z0-9][a-zA-Z0-9 ._-]{0,99}$/.test(newName)) return res.status(400).json({error:'Invalid section name or grade.'});
+ try {
+  if(await sectionIsReferenced(req.auth.schoolId,gradeLevel,oldName)) return res.status(409).json({error:'This section is already used by learners or schedules. Rename requires a reviewed transfer to preserve existing records.'});
+  const updated=await pool.query('UPDATE school_sections SET section_name=$4 WHERE school_id=$1 AND grade_level=$2 AND section_name=$3 AND active=TRUE RETURNING section_name',[req.auth.schoolId,gradeLevel,oldName,newName]);
+  if(!updated.rowCount) return res.status(404).json({error:'Section not found in the official registry.'});
+  return res.json({section:updated.rows[0].section_name});
+ }catch(err){if(err.code==='23505')return res.status(409).json({error:'A section with this name already exists.'});console.error('Rename section:',err.message);return res.status(500).json({error:'Could not rename section.'});}
+});
+app.delete('/api/sections', authenticateSchoolClient, requireSchoolRoles('SCHOOL_ADMIN'), async(req,res)=>{
+ const gradeLevel=String(req.body?.gradeLevel||'').trim();
+ const section=String(req.body?.section||'').trim();
+ if(!gradeLevel||!section)return res.status(400).json({error:'Choose a grade and section.'});
+ try{
+  if(await sectionIsReferenced(req.auth.schoolId,gradeLevel,section))return res.status(409).json({error:'This section has linked learners or schedules and cannot be removed. Its historical records are protected.'});
+  const updated=await pool.query('UPDATE school_sections SET active=FALSE WHERE school_id=$1 AND grade_level=$2 AND section_name=$3 AND active=TRUE RETURNING section_name',[req.auth.schoolId,gradeLevel,section]);
+  if(!updated.rowCount)return res.status(404).json({error:'Section not found in the official registry.'});
+  return res.json({archived:true,section});
+ }catch(err){console.error('Archive section:',err.message);return res.status(500).json({error:'Could not remove section.'});}
+});
+
 app.get('/api/sections', authenticateSchoolClient, requireSchoolUser, async (req, res) => {
   const gradeLevel = typeof req.query.gradeLevel === 'string' ? req.query.gradeLevel.trim() : '';
   if (!gradeLevel || gradeLevel.length > 40) return res.status(400).json({ error: 'Select a valid grade level.' });
