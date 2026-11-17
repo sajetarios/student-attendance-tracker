@@ -1,10 +1,13 @@
-/* Attendigo offline event outbox: only student scanner events, never credentials. */
+/* Attendigo typed device outbox: QR scans, manual corrections, and register sign-offs.
+ * Legacy scanner records are retained. New payloads are AES-GCM encrypted at rest
+ * with a per-account, non-extractable device key. Do not store bearer tokens here. */
 (() => {
   'use strict';
   const DB = 'attendigo-device-attendance-v1';
-  const STORE = 'events';
-  const userKey = 'schoolAttendance.user';
-  const tokenKey = 'schoolAttendance.accessToken';
+  const STORE = 'events', KEYS = 'keys';
+  const userKey = 'schoolAttendance.user', tokenKey = 'schoolAttendance.accessToken';
+  const TYPES = new Set(['QR_SCAN', 'MANUAL_MARKS', 'REGISTER_SIGNOFF']);
+  const encoder = new TextEncoder(), decoder = new TextDecoder();
   const owner = () => {
     try {
       const u = JSON.parse(sessionStorage.getItem(userKey) || '{}');
@@ -12,113 +15,215 @@
     } catch { return null; }
   };
   const open = () => new Promise((resolve, reject) => {
-    const req = indexedDB.open(DB, 1);
+    const req = indexedDB.open(DB, 2);
     req.onupgradeneeded = () => {
-      const store = req.result.createObjectStore(STORE, { keyPath: 'id' });
-      store.createIndex('owner', 'owner', { unique: false });
+      const db = req.result;
+      const store = db.objectStoreNames.contains(STORE) ? req.transaction.objectStore(STORE)
+        : db.createObjectStore(STORE, { keyPath: 'id' });
+      if (!store.indexNames.contains('owner')) store.createIndex('owner', 'owner', { unique: false });
+      if (!db.objectStoreNames.contains(KEYS)) db.createObjectStore(KEYS, { keyPath: 'id' });
     };
     req.onsuccess = () => resolve(req.result);
     req.onerror = () => reject(req.error);
   });
-  async function transaction(mode, callback) {
+  async function transaction(storeName, mode, action) {
     const db = await open();
     try {
       return await new Promise((resolve, reject) => {
-        const tx = db.transaction(STORE, mode);
-        const store = tx.objectStore(STORE);
-        let result;
-        tx.oncomplete = () => resolve(result);
+        const tx = db.transaction(storeName, mode), store = tx.objectStore(storeName);
+        let value;
+        tx.oncomplete = () => resolve(value);
         tx.onerror = () => reject(tx.error);
         tx.onabort = () => reject(tx.error || Error('Offline storage aborted'));
-        try { result = callback(store); } catch (e) { tx.abort(); reject(e); }
+        try { action(store, result => { value = result; }); }
+        catch (e) { tx.abort(); reject(e); }
       });
     } finally { db.close(); }
   }
+  const put = record => transaction(STORE, 'readwrite', store => store.put(record));
+  const remove = id => transaction(STORE, 'readwrite', store => store.delete(id));
   async function rows() {
     const id = owner();
     if (!id) return [];
-    const db = await open();
-    try {
-      return await new Promise((resolve, reject) => {
-        const req = db.transaction(STORE, 'readonly').objectStore(STORE).index('owner').getAll(id);
-        req.onsuccess = () => resolve(req.result || []);
-        req.onerror = () => reject(req.error);
-      });
-    } finally { db.close(); }
+    return transaction(STORE, 'readonly', (store, done) => {
+      const req = store.index('owner').getAll(id);
+      req.onsuccess = () => done(req.result || []);
+    });
   }
-  async function put(record) { await transaction('readwrite', store => { store.put(record); }); }
-  async function remove(id) { await transaction('readwrite', store => { store.delete(id); }); }
-  let syncing = false;
-  const emit = async () => {
+  const getStoredKey = id => transaction(KEYS, 'readonly', (store, done) => {
+    const req = store.get(id);
+    req.onsuccess = () => done(req.result?.key || null);
+  });
+  let keyCreation = null;
+  async function deviceKey(id) {
+    const saved = await getStoredKey(id);
+    if (saved) return saved;
+    // Concurrency across tabs is resolved by add()'s unique key constraint.
+    if (!keyCreation) keyCreation = (async () => {
+      const candidate = await crypto.subtle.generateKey({ name: 'AES-GCM', length: 256 }, false, ['encrypt','decrypt']);
+      try { await transaction(KEYS, 'readwrite', store => store.add({ id, key: candidate })); return candidate; }
+      catch (error) {
+        const winner = await getStoredKey(id);
+        if (winner) return winner;
+        throw error;
+      }
+    })().finally(() => { keyCreation = null; });
+    return keyCreation;
+  }
+  async function encrypt(id, payload) {
+    const iv = crypto.getRandomValues(new Uint8Array(12));
+    const ciphertext = await crypto.subtle.encrypt({
+      name: 'AES-GCM', iv, additionalData: encoder.encode(id)
+    }, await deviceKey(id), encoder.encode(JSON.stringify(payload)));
+    return { iv: Array.from(iv), ciphertext: Array.from(new Uint8Array(ciphertext)) };
+  }
+  async function decrypt(record) {
+    if (record.event && !record.encrypted) return record.event; // Existing scanner queue.
+    if (!record.encrypted) throw Error('Missing encrypted attendance payload.');
+    const id = record.owner, key = await getStoredKey(id);
+    if (!key) throw Error('Device encryption key is unavailable; preserve this record for recovery.');
+    const plaintext = await crypto.subtle.decrypt({
+      name: 'AES-GCM', iv: new Uint8Array(record.encrypted.iv), additionalData: encoder.encode(id)
+    }, key, new Uint8Array(record.encrypted.ciphertext));
+    return JSON.parse(decoder.decode(plaintext));
+  }
+  async function emit() {
     const pending = await rows().catch(() => []);
+    const review = pending.filter(record => record.status === 'REVIEW').length;
     const el = document.getElementById('attendigoOfflineStatus');
     if (el) {
-      const needsReview = pending.filter(x => x.status === 'REVIEW').length;
-      // Keep the offline sync engine running, but never overlay dashboards when clear.
       el.hidden = pending.length === 0;
       el.style.display = pending.length ? '' : 'none';
-      el.textContent = pending.length ? pending.length + ' on device' + (needsReview ? ' · ' + needsReview + ' need review' : ' · awaiting sync') : 'Device queue clear';
-      el.title = pending.length ? 'Stored on this device, not yet accepted by the server. Keep this device until synchronized.' : 'No unsynchronized scanner records for this account.';
+      el.textContent = pending.length
+        ? pending.length + ' on device' + (review ? ' · ' + review + ' need review' : ' · waiting to sync')
+        : 'Device queue clear';
+      el.title = pending.length ? 'Device attendance is not fully synchronized. Open to review details.'
+        : 'No pending device attendance for this signed-in account.';
     }
-    window.dispatchEvent(new CustomEvent('attendigo-offline-status', { detail: { pending: pending.length } }));
-  };
-  function networkFailure(error) {
-    return error instanceof TypeError || (typeof navigator.onLine === 'boolean' && !navigator.onLine);
+    window.dispatchEvent(new CustomEvent('attendigo-offline-status', {
+      detail: { pending: pending.length, needsReview: review }
+    }));
   }
-  async function record(event, api) {
-    if (!owner()) throw Error('Sign in online before recording offline attendance.');
-    if (!event || !event.eventId) throw Error('Invalid attendance event.');
-    try {
-      const result = await api('/api/sync/events', { method: 'POST', body: JSON.stringify({ events: [event] }) });
-      const item = result.results?.[0];
-      if (!['ACCEPTED', 'ALREADY_SYNCED'].includes(item?.status)) throw Error(item?.reason || 'Attendance rejected by server.');
-      return { status: 'SYNCED', result };
-    } catch (error) {
-      if (!networkFailure(error)) throw error;
-      await put({ id: event.eventId, owner: owner(), event, status: 'PENDING', createdAt: Date.now() });
-      await emit();
-      return { status: 'PENDING' };
+  async function enqueueOperation({ type, operationId, payload }) {
+    const id = owner();
+    if (!id) throw Error('Sign in as the correct school user before queuing attendance.');
+    if (!TYPES.has(type) || typeof operationId !== 'string' || !operationId || !payload || typeof payload !== 'object') {
+      throw Error('Invalid attendance synchronization operation.');
     }
+    const found = (await rows()).find(row => row.id === operationId);
+    if (found) {
+      const existing = await decrypt(found);
+      if ((found.type || 'QR_SCAN') !== type || JSON.stringify(existing) !== JSON.stringify(payload)) {
+        throw Error('Operation ID was reused for different attendance data.');
+      }
+      return { operationId, status: found.status };
+    }
+    const encrypted = await encrypt(id, payload);
+    await put({ id: operationId, owner: id, type, encrypted, status: 'PENDING',
+      attempts: 0, createdAt: Date.now() });
+    await emit();
+    return { operationId, status: 'PENDING' };
   }
+  let syncing = false;
   async function sync() {
-    if (syncing || !navigator.onLine || !owner()) return;
-    const token = sessionStorage.getItem(tokenKey);
-    if (!token) return;
+    const id = owner(), token = sessionStorage.getItem(tokenKey);
+    const confirmations = {};
+    if (syncing || !navigator.onLine || !id || !token) return { confirmations };
     syncing = true;
     try {
-      for (const record of (await rows()).filter(x => x.status === 'PENDING').slice(0, 50)) {
+      const records = (await rows()).filter(r => r.status === 'PENDING')
+        .sort((a, b) => a.createdAt - b.createdAt).slice(0, 50);
+      for (const record of records) {
         if (record.owner !== owner() || token !== sessionStorage.getItem(tokenKey)) break;
+        let payload;
+        try { payload = await decrypt(record); }
+        catch (error) {
+          await put({ ...record, status: 'REVIEW', reason: String(error.message).slice(0, 250) });
+          continue;
+        }
+        const type = record.type || 'QR_SCAN';
+        const endpoint = type === 'QR_SCAN' ? '/api/sync/events'
+          : type === 'MANUAL_MARKS' ? '/api/manual-attendance/sync'
+          : '/api/manual-attendance/finalization';
+        const body = type === 'QR_SCAN' ? { events: [payload] }
+          : type === 'REGISTER_SIGNOFF' ? { ...payload, operationId: record.id } : payload;
         try {
-          const response = await fetch('/api/sync/events', {
+          const response = await fetch(endpoint, {
             method: 'POST', cache: 'no-store',
             headers: { Authorization: 'Bearer ' + token, 'Content-Type': 'application/json' },
-            body: JSON.stringify({ events: [record.event] })
+            body: JSON.stringify(body)
           });
           if (response.status === 401 || response.status === 403) break;
           const data = await response.json().catch(() => ({}));
-          const status = data.results?.[0]?.status;
-          if (response.ok && ['ACCEPTED', 'ALREADY_SYNCED'].includes(status)) {
+          const item = type === 'QR_SCAN' ? data.results?.[0] : null;
+          let acknowledged = response.ok && (
+            type === 'QR_SCAN' ? ['ACCEPTED', 'ALREADY_SYNCED', 'DUPLICATE'].includes(item?.status) :
+            type === 'MANUAL_MARKS' ? data.saved === payload.marks?.length :
+            data.finalized === (payload.action === 'FINALIZE')
+          );
+          if (acknowledged && type === 'MANUAL_MARKS') {
+            // Ack only when the authoritative register confirms all statuses AND notes.
+            const query = new URLSearchParams({periodId: payload.periodId, date: payload.date});
+            const verified = await fetch('/api/manual-attendance?' + query, {
+              cache: 'no-store', headers: { Authorization: 'Bearer ' + token }
+            });
+            if (verified.status === 401 || verified.status === 403) break;
+            if (!verified.ok) break;
+            const remote = await verified.json();
+            const marks = new Map((remote.marks || []).map(m => [m.studentId, m]));
+            acknowledged = payload.marks.every(m => marks.get(m.studentId)?.status === m.status &&
+              (marks.get(m.studentId)?.note || '') === (m.note || ''));
+          }
+          if (acknowledged) {
             await remove(record.id);
-          } else if (response.ok && status === 'REJECTED') {
-            await put({ ...record, status: 'REVIEW', reason: String(data.results[0]?.reason || 'Server rejected attendance').slice(0, 250) });
-          } else if (!response.ok && response.status >= 400 && response.status < 500) {
-            await put({ ...record, status: 'REVIEW', reason: String(data.error || 'Server rejected attendance').slice(0, 250) });
-          } else break;
-        } catch { break; }
+            confirmations[record.id] = { status: type === 'QR_SCAN' ? item.status : 'ACCEPTED',
+              result: type === 'QR_SCAN' ? data : data };
+          } else if (response.ok && type === 'QR_SCAN' && item?.status === 'REJECTED') {
+            await put({ ...record, status: 'REVIEW', reason: String(item.reason || 'Scan rejected by server').slice(0, 250) });
+          } else if (response.status === 409 || (response.status >= 400 && response.status < 500)) {
+            await put({ ...record, status: 'REVIEW', reason: String(data.error || item?.reason || 'Server requires review').slice(0, 250) });
+          } else if (!response.ok) {
+            break; // Keep queued for retry after temporary server failure.
+          } else {
+            break; // Incomplete or unverifiable acknowledgment: never discard.
+          }
+        } catch { break; } // Network failure: preserve the queued payload.
       }
     } finally { syncing = false; await emit(); }
+    return { confirmations };
+  }
+  async function record(event, _api) {
+    if (!event || !event.eventId) throw Error('Invalid attendance event.');
+    await enqueueOperation({type: 'QR_SCAN', operationId: event.eventId, payload: event});
+    const result = await sync();
+    const confirmation = result.confirmations[event.eventId];
+    if (confirmation) return {status:'SYNCED',result:confirmation.result};
+    const record = (await rows()).find(r => r.id === event.eventId);
+    if (record?.status === 'REVIEW') throw Error(record.reason || 'Attendance needs review; record retained on device.');
+    return {status:'PENDING'};
+  }
+  function describe(record) {
+    const type = record.type || 'QR_SCAN';
+    return (type === 'QR_SCAN' ? 'QR scan' : type === 'MANUAL_MARKS' ? 'Manual attendance' : 'Register sign-off') +
+      ': ' + (record.status === 'REVIEW' ? 'Needs review' : 'Waiting to sync');
+  }
+  async function showQueue() {
+    await sync();
+    const list = await rows();
+    const messages = list.slice(0, 12).map(r => describe(r) +
+      (r.reason ? ' — ' + r.reason : ''));
+    const text = messages.length ? messages.join('\n') :
+      'All queued attendance from this account is synchronized.';
+    if (window.AppDialog?.alert) await window.AppDialog.alert(text, {title:'Device attendance queue'});
+    else window.alert(text);
   }
   function init() {
+    if (!document.body || document.getElementById('attendigoOfflineStatus')) return;
     const status = document.createElement('button');
     status.id = 'attendigoOfflineStatus';
     status.type = 'button';
     status.style.cssText = 'position:fixed;bottom:12px;right:12px;z-index:9000;border:1px solid currentColor;border-radius:18px;padding:8px 12px;background:Canvas;color:CanvasText;font:600 12px system-ui;box-shadow:0 3px 14px #0002;max-width:70vw';
-    status.addEventListener('click', async () => {
-      await sync();
-      const list = await rows();
-      const review = list.filter(x => x.status === 'REVIEW');
-      alert(review.length ? review.length + ' record(s) need review. ' + review.map(x => x.reason).slice(0, 3).join('; ') : list.length ? list.length + ' attendance record(s) still stored on this device. Reconnect and tap again to synchronize.' : 'No pending device attendance records.');
-    });
+    status.addEventListener('click', showQueue);
     document.body.append(status);
     emit();
     window.addEventListener('online', sync);
@@ -126,7 +231,7 @@
     setInterval(sync, 30000);
     sync();
   }
-  window.AttendigoOffline = { record, sync, pending: rows };
+  window.AttendigoOffline = { record, enqueueOperation, sync, pending: rows };
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);
   else init();
 })();
