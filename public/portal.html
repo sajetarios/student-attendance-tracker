@@ -160,6 +160,7 @@
 <link rel="apple-touch-icon" href="/assets/attendigo-icon.png">
 <link rel="stylesheet" href="/attendigo-brand.css?v=2">
 <link rel="stylesheet" href="/student-roster-toolbar.css?v=2">
+<link rel="stylesheet" href="/learner-roster-view.css?v=1">
 <link rel="manifest" href="/manifest.webmanifest">
   <link rel="stylesheet" href="/attendigo-dark-unified.css?v=1">
   <link rel="stylesheet" href="/planner.css?v=3">
@@ -787,12 +788,13 @@ body.dark-mode .content-wrap > .school-heading.is-compact,body[data-theme="dark"
    <button type="button" id="mfOpenSyncCenter" class="asc-secondary">Open Sync Center</button>
  </div>
  <div id="mfStats" class="manual-stats" aria-live="polite"></div>
+ <div class="manual-roster-options"><label for="mfRosterView">Register view <select id="mfRosterView" aria-label="Attendance learner ordering"><option value="grouped">Grouped by sex</option><option value="alphabetical">Alphabetical list</option></select></label><span id="mfSexSummary" aria-live="polite">Learner counts loading…</span></div>
  <nav class="manual-tabs" aria-label="Attendance sections"><button type="button" data-mf-tab="sheet" aria-selected="true">Attendance Sheet</button><button type="button" data-mf-tab="daily" aria-selected="false">Daily View</button><button type="button" data-mf-tab="record" aria-selected="false">Class Record</button><button type="button" data-mf-tab="history" aria-selected="false">Attendance History</button><button type="button" data-mf-tab="notes" aria-selected="false">Notes</button></nav>
  <div class="manual-book" id="mfBook">
  <section class="manual-page" id="mfSheet"><div class="manual-page-header"><div><h3>Interactive attendance sheet</h3><p>Choose one status per learner. Entries are saved automatically on this device.</p></div><div class="manual-page-nav"><button class="manual-btn" id="mfPrev" type="button" aria-label="Previous page">‹</button><span id="mfPageNum">Page 1 of 1</span><button class="manual-btn" id="mfNext" type="button" aria-label="Next page">›</button></div></div>
- <div class="manual-toolbar"><label><input id="mfSelectPage" type="checkbox"> Select page</label><span>Select learners for a batch action; if none are selected, the action applies to the entire class.</span></div>
+ <div class="manual-toolbar"><label><input id="mfSelectPage" type="checkbox"> Select page</label><strong id="mfSelectedCount" aria-live="polite">0 selected</strong><span>Select learners before applying a batch mark. Your selection is preserved across pages.</span></div>
  <div class="manual-table-wrap"><table class="manual-table"><thead><tr><th></th><th>Student Name</th><th>Attendance</th><th>Late / Excused</th><th>Notes</th></tr></thead><tbody id="mfRows"></tbody></table></div>
- <div class="manual-quick" aria-label="Batch attendance"><button type="button" class="manual-btn" data-batch="PRESENT">✓ All Present</button><button type="button" class="manual-btn" data-batch="LATE">◷ All Late</button><button type="button" class="manual-btn" data-batch="ABSENT">✕ All Absent</button><button type="button" class="manual-btn" data-batch="EXCUSED">! All Excused</button></div></section>
+ <div class="manual-quick" aria-label="Batch attendance"><button type="button" class="manual-btn" data-batch="PRESENT">✓ Selected Present</button><button type="button" class="manual-btn" data-batch="LATE">◷ Selected Late</button><button type="button" class="manual-btn" data-batch="ABSENT">✕ Selected Absent</button><button type="button" class="manual-btn" data-batch="EXCUSED">! Selected Excused</button></div></section>
  <section class="manual-page" id="mfRight"><div class="manual-page-header"><h3>Attendance Details</h3><span class="manual-sync-note">Daily summary</span></div><div id="mfDetails"></div><div id="mfTeacherNotesWrap"><label for="mfTeacherNotes"><strong>Dated teacher notes</strong></label>
 <textarea id="mfTeacherNotes" maxlength="2000" placeholder="Teacher observations, reasons for absence, paper-sheet remarks…"></textarea>
 <div class="manual-notes-actions"><button type="button" class="manual-btn primary" id="mfSaveNote">Save dated note</button><button type="button" class="manual-btn" id="mfImportNotes">Import older device notes</button><span class="manual-sync-note">Notes are linked to this class and date. Older notes remain below.</span></div>
@@ -1031,6 +1033,7 @@ body.dark-mode .content-wrap > .school-heading.is-compact,body[data-theme="dark"
                 <div><h3>Registered students</h3><p id="studentRosterDescription">Search and filter existing learner records by name, student ID, grade, section, or status. Opening a learner does not create another enrollment or attendance record. QR previews remain tied to each student's existing private token; editing details does not replace the QR code.</p></div>
                 <p id="studentDepartmentScopeNote" class="student-scope-banner" hidden>School-wide learner roster. Department Heads may select and update shared student fields only for sections scheduled in their own department. Individual student identity, photos, and login accounts remain restricted.</p>
                 <div class="student-filter-row"><label class="student-name-filter">Search by name or student ID <input id="studentRosterSearch" type="search" placeholder="Type a student name or ID…" aria-describedby="studentRosterDescription"></label><label>Filter by grade <select id="bulkQrGrade"><option value="ALL">All grades</option><option>Grade 7</option><option>Grade 8</option><option>Grade 9</option><option>Grade 10</option></select></label><label>Filter by section <select id="bulkQrSection"><option value="ALL">All sections</option></select></label><label>Special program <select id="studentSpecialProgramFilter" aria-label="Filter learners by special program"><option value="ALL">All programs</option><option value="NONE">Not assigned</option></select></label><label id="studentStatusFilterWrap" hidden>Record status <select id="studentStatusFilter"><option value="ACTIVE">Active</option><option value="INACTIVE">Inactive</option><option value="ARCHIVED">Archived</option><option value="ALL">All records</option></select></label></div>
+                <div class="student-roster-viewbar"><label for="studentRosterView">List view <select id="studentRosterView" aria-label="Learner list arrangement"><option value="all">All learners</option><option value="grouped">Grouped by sex</option></select></label><strong id="studentRosterSexCounts" aria-live="polite">Learner counts loading…</strong></div>
                 <div class="student-bulk-actions"><label><input type="checkbox" id="selectAllStudents"> Select all visible students</label><span id="selectedStudentCount">0 selected</span><button class="primary-button" type="button" id="printBulkQr">Print selected ID cards</button><span id="bulkQrFeedback" class="inline-feedback" role="status"></span><select id="studentBatchAction" aria-label="Batch action"><option value="">Choose a batch action…</option><option value="SET_SEX">Set sex (Male/Female)</option><option value="ASSIGN">Move to existing grade/section</option><option value="REQUEST_PROGRAM">Request special-program change (approval)</option><option value="ACTIVATE">Activate selected</option><option value="DEACTIVATE">Deactivate selected</option><option value="ARCHIVE">Archive selected</option></select><button type="button" class="outline-button" id="applyStudentBatch" disabled>Apply</button></div>
               </div>
               <div class="table-scroll"><table id="studentRosterTable"><thead><tr><th>Select</th><th>Photo</th><th>Student ID</th><th>Full name</th><th>Sex</th><th>Grade</th><th>Section</th><th>Special program</th><th>Status</th><th>QR code</th><th>Actions</th><th>Parent / guardian</th><th>Student portal account</th></tr></thead><tbody id="studentRows"><tr><td colspan="13" class="empty-cell">Loading students…</td></tr></tbody></table></div>
@@ -1634,12 +1637,13 @@ body.dark-mode .content-wrap > .school-heading.is-compact,body[data-theme="dark"
   <script src="/photo-editor.js?v=9" defer></script>
   <script src="/offline-attendance.js?v=5" defer></script>
   <script src="/attendance-sync-center.js?v=3" defer></script>
-  <script src="/portal.js?v=0.9.135" defer></script>
+  <script src="/learner-roster-view.js?v=1" defer></script>
+  <script src="/portal.js?v=0.9.136" defer></script>
   <script src="/sardo-monitor.js?v=1" defer></script><script src="/parent-dashboard.js?v=2" defer></script>
   <script src="/platform-plans-ui.js?v=7" defer></script>
   <script src="/platform-school-health.js?v=1" defer></script>
   <script src="/planner.js?v=4" defer></script>
-  <script src="/manual-folio.js?v=14" defer></script>
+  <script src="/manual-folio.js?v=15" defer></script>
   <script src="/student-portal-accounts.js?v=7" defer></script>
   <script src="/account-directory.js?v=1" defer></script>
   <script src="/guardian-ui.js?v=5" defer></script>
