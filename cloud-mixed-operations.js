@@ -33,7 +33,8 @@ function validateOperation(op) {
       if(!m || typeof m.studentId!=='string' || !m.studentId || m.studentId.length>160 ||
          !STATUS.has(m.status) || typeof m.note!=='string' || m.note.length>500 ||
          !Number.isSafeInteger(m.expectedRevision) || m.expectedRevision<0 ||
-         !Number.isSafeInteger(m.revision) || m.revision<1 || seen.has(m.studentId))
+         !Number.isSafeInteger(m.revision) || m.revision!==m.expectedRevision+1 ||
+         seen.has(m.studentId))
         review('INVALID_MARKS','Invalid learner mark, revision, or duplicate ID.');
       seen.add(m.studentId);
     }
@@ -181,6 +182,8 @@ async function applySignoff(client,schoolId,ctx,op) {
   if(op.action==='REOPEN') {
     if(!record.rows[0]?.finalized)
       review('REGISTER_STATE','Cloud register was already open or never finalized; review this sign-off.');
+    if(Number(record.rows[0].roster_count)!==op.rosterCount)
+      review('ROSTER_MISMATCH','Cloud register count differs from the local reopen request.');
     await client.query(`UPDATE class_attendance_finalizations SET finalized=FALSE,
       reopened_by_user_id=$4,reopened_at=NOW()
       WHERE school_id=$1 AND period_id=$2 AND school_date=$3`,
@@ -233,8 +236,17 @@ async function receiveCloudOperation(client,schoolId,op) {
   const ctx=await resolveContext(client,schoolId,op);
   await client.query('SELECT pg_advisory_xact_lock(hashtext($1::text),hashtext($2::text))',
     [schoolId,String(ctx.periodId)+'|'+op.date]);
-  // The school/period/day lock protects QR checks, manual edits, and sign-offs.
-  // A receipt UNIQUE key protects against simultaneous delivery after a timeout.
+  // Recheck after acquiring the class/day lock: a concurrent request may
+  // have applied this exact operation while this request was waiting.
+  const afterLock=await client.query(`SELECT school_id,operation_type,payload_hash
+    FROM cloud_sync_operation_receipts WHERE operation_id=$1`,[op.operationId]);
+  if(afterLock.rowCount){
+    const applied=afterLock.rows[0];
+    if(String(applied.school_id)!==String(schoolId)||
+       applied.operation_type!==op.type||applied.payload_hash!==payloadHash)
+      review('OPERATION_ID_CONFLICT','Operation ID belongs to a different school or payload.');
+    return {operationId:op.operationId,status:'ALREADY_SYNCED'};
+  }
   if(op.type==='MANUAL_MARKS') await applyMarks(client,schoolId,ctx,op);
   else await applySignoff(client,schoolId,ctx,op);
   await client.query(`INSERT INTO cloud_sync_operation_receipts
