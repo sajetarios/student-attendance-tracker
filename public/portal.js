@@ -1325,6 +1325,7 @@ function coverageStatusLabel(status) {
     const section = $('bulkQrSection')?.value || 'ALL';
     const search = ($('studentRosterSearch')?.value || '').trim().toLocaleLowerCase();
     const statusFilter = $('studentStatusFilter')?.value || 'ACTIVE';
+    const program = $('studentSpecialProgramFilter')?.value || 'ALL';
     return students.filter(student =>
       (grade === 'ALL' || student.gradeLevel === grade) &&
       (section === 'ALL' || student.section === section) &&
@@ -1369,6 +1370,7 @@ function coverageStatusLabel(status) {
     const visible = students.filter(student =>
       (grade === 'ALL' || student.gradeLevel === grade) &&
       (section === 'ALL' || student.section === section) &&
+      (program === 'ALL' || (program === 'NONE' ? !student.specialProgramCode : student.specialProgramCode === program)) &&
       (user.role !== 'SCHOOL_ADMIN' || statusFilter === 'ALL' ||
         (statusFilter === 'ACTIVE' && student.active !== false && !student.archivedAt) ||
         (statusFilter === 'INACTIVE' && student.active === false && !student.archivedAt) ||
