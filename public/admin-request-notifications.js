@@ -14,14 +14,15 @@
    if(!response.ok)throw Error(data.error||'Unable to load school requests.');
    return data;
  };
- let fetching=false,studentPending=0,guardianPending=0;
+ let fetching=false,studentPending=0,guardianPending=0,photoPending=0,photoRequests=[];
  function render(){
-   const total=studentPending+guardianPending;
+   const total=studentPending+guardianPending+photoPending;
    const badge=$('adminNotificationCount');
    badge.hidden=total===0;
    badge.textContent=String(total>99?'99+':total);
    $('adminStudentRequestCount').textContent=String(studentPending);
    $('adminGuardianRequestCount').textContent=String(guardianPending);
+   $('adminPhotoRequestCount').textContent=String(photoPending);
    bell.setAttribute('aria-label',total?total+' pending school approval requests':'No pending school approval requests');
    bell.title=total?total+' requests awaiting your review':'School approval inbox';
    $('adminNotificationFoot').textContent=total
@@ -34,8 +35,8 @@
    const trigger=$('adminNotificationRefresh');
    if(trigger)trigger.disabled=true;
    try{
-     const [studentResult,guardianResult]=await Promise.allSettled([
-       api('/api/student-portal/requests'),api('/api/guardians/requests')
+     const [studentResult,guardianResult,photoResult]=await Promise.allSettled([
+       api('/api/student-portal/requests'),api('/api/guardians/requests'),api('/api/photos/requests')
      ]);
      let errors=[];
      if(studentResult.status==='fulfilled'){
@@ -44,6 +45,10 @@
      if(guardianResult.status==='fulfilled'){
        guardianPending=(guardianResult.value.requests||[]).filter(r=>r.status==='PENDING').length;
      }else errors.push('Guardian requests unavailable');
+     if(photoResult.status==='fulfilled'){
+       photoRequests=(photoResult.value.requests||[]);
+       photoPending=photoRequests.length;
+     }else errors.push('Photo requests unavailable');
      render();
      if(errors.length)$('adminNotificationFoot').textContent=errors.join(' · ')+'. Tap ↻ to retry.';
    }finally{fetching=false;if(trigger)trigger.disabled=false;}
@@ -60,6 +65,60 @@
    close();
    const nav=$('studentAccountsNav');
    if(nav&&!nav.hidden)nav.click();
+ });
+ const reviewPanel=$('adminPhotoReview'),reviewList=$('adminPhotoReviewList');
+ const escapeText=value=>String(value??'').replace(/[&<>"']/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));
+ const photoApi=async(path,options={})=>{
+   const token=sessionStorage.getItem('schoolAttendance.accessToken');
+   if(!token)throw Error('Your school session has expired.');
+   const response=await fetch(path,{...options,headers:{Authorization:'Bearer '+token,...(options.headers||{})},cache:'no-store'});
+   const result=await response.json().catch(()=>({}));
+   if(!response.ok)throw Error(result.error||'Unable to review photo.');
+   return result;
+ };
+ let previewUrl=null;
+ const clearPreview=()=>{if(previewUrl){URL.revokeObjectURL(previewUrl);previewUrl=null;}};
+ const showPhotoList=()=>{
+   clearPreview();
+   reviewPanel.hidden=false;
+   reviewList.innerHTML=photoRequests.length?photoRequests.map(request=>
+     '<article class="admin-photo-request-row"><div><strong>'+escapeText(request.subjectName||request.subjectId)+'</strong><small>'+escapeText(request.subjectKind==='STAFF'?'Staff photo':'Student photo')+'</small></div>'+
+     '<div class="admin-photo-actions"><button type="button" data-photo-preview="'+escapeText(request.requestId)+'">Preview</button><button type="button" data-photo-decision="APPROVED" data-photo-id="'+escapeText(request.requestId)+'">Approve</button><button type="button" data-photo-decision="REJECTED" data-photo-id="'+escapeText(request.requestId)+'">Reject</button></div></article>'
+   ).join(''):'<p class="admin-notification-foot">No pending photo requests.</p>';
+ };
+ $('adminPhotoRequestsShortcut')?.addEventListener('click',async()=>{
+   if(!isAdmin())return;
+   try{await refresh();showPhotoList();}catch(e){reviewList.textContent=e.message;reviewPanel.hidden=false;}
+ });
+ $('adminPhotoReviewClose')?.addEventListener('click',()=>{reviewPanel.hidden=true;clearPreview();});
+ reviewList?.addEventListener('click',async event=>{
+   const button=event.target.closest('button');if(!button||button.disabled)return;
+   const id=button.dataset.photoPreview||button.dataset.photoId;
+   if(!id||!photoRequests.some(r=>r.requestId===id))return;
+   if(button.dataset.photoPreview){
+     button.disabled=true;
+     try{
+       const token=sessionStorage.getItem('schoolAttendance.accessToken');
+       const response=await fetch('/api/photos/requests/'+encodeURIComponent(id)+'/preview',{headers:{Authorization:'Bearer '+token},cache:'no-store'});
+       if(!response.ok)throw Error('Photo preview unavailable.');
+       clearPreview();previewUrl=URL.createObjectURL(await response.blob());
+       let img=reviewList.querySelector('.admin-photo-preview');
+       if(!img){img=document.createElement('img');img.className='admin-photo-preview';img.alt='Submitted profile photo for review';button.closest('article').append(img);}
+       img.src=previewUrl;
+     }catch(e){alert(e.message);}finally{button.disabled=false;}
+     return;
+   }
+   const decision=button.dataset.photoDecision;
+   if(!['APPROVED','REJECTED'].includes(decision))return;
+   if(!window.confirm((decision==='APPROVED'?'Approve':'Reject')+' this profile photo request?'))return;
+   const actions=button.closest('article').querySelectorAll('button');actions.forEach(b=>b.disabled=true);
+   try{
+     await photoApi('/api/photos/requests/'+encodeURIComponent(id)+'/review',{
+       method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({decision})
+     });
+     photoRequests=photoRequests.filter(r=>r.requestId!==id);photoPending=photoRequests.length;
+     render();showPhotoList();document.dispatchEvent(new CustomEvent('attendigo:requests-changed'));
+   }catch(e){alert(e.message);actions.forEach(b=>b.disabled=false);}
  });
  $('adminGuardianRequestsShortcut')?.addEventListener('click',()=>{
    close();
