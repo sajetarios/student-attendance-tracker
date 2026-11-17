@@ -35,7 +35,7 @@ test('collapsed and mobile navigation keep brand compact and do not show oversiz
 });
 test('service worker uses fresh version and precaches matching CSS', () => {
   assert.match(html, /attendigo-sidebar-adaptive\.css\?v=12/);
-  assert.match(sw, /attendigo-v165-sidebar-brand-refinement/);
+  assert.ok(Number(sw.match(/const CACHE = "attendigo-v(\d+)-/)[1]) >= 166, 'PWA cache version must include the latest teacher roster CSS');
   assert.match(sw, /"\/attendigo-sidebar-adaptive\.css\?v=12"/);
   assert.match(html, /\/typography\.css\?v=1/);
 });
