@@ -1,7 +1,7 @@
-/* Keep teacher learner actions outside row layout while preserving original edit, photo and guardian handlers. */
+/* Keep teacher and department-head learner actions outside the scrollable table while preserving original handlers. */
 (() => {
   'use strict';
-  const selector = '#studentRosterTable.teacher-roster-compact details.student-actions-dropdown';
+  const selector = '#studentRosterTable details.student-actions-dropdown';
   const activeMenus = () => document.querySelectorAll(selector + '[open]');
   function closeMenus(except = null) {
     for (const details of activeMenus()) {
@@ -35,7 +35,7 @@
       closeMenus();
       return;
     }
-    if (event.target.closest('button[data-edit-student],button[data-guardian-open],.student-photo-upload')) {
+    if (event.target.closest('button[data-edit-student],button[data-guardian-open],button[data-request-special],.student-photo-upload')) {
       // Close after the original action receives its click.
       queueMicrotask(() => { if (inside.isConnected) inside.open = false; });
     }
