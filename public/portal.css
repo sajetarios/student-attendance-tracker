@@ -2487,3 +2487,86 @@ body[data-theme="dark"] #staffBulkDepartmentToolbar .staff-bulk-selection:has(#s
   #staffBulkDepartmentToolbar .staff-bulk-selected-count{font-size:12px;padding:6px 9px}
   #staffBulkDepartmentToolbar .staff-bulk-select-copy{font-size:15px}
 }
+
+
+/* Attendigo timetable editor: responsive, accessible period cards (Nov 2026). */
+#timetableSettings .template-block-row{overflow:visible}
+#timetableSettings .template-block-row input,
+#timetableSettings .template-block-row select{box-sizing:border-box;max-width:100%;min-width:0}
+#timetableSettings .template-block-row input[type="time"]{font-size:16px;line-height:1.35;font-variant-numeric:tabular-nums}
+#timetableSettings .template-block-row:focus-within{box-shadow:0 0 0 3px rgba(27,112,189,.12)}
+#timetableSettings .timetable-block-toolbar button{min-height:44px;font-size:13px;font-weight:700}
+#timetableSettings .timetable-editor-actions .primary-button{font-weight:800}
+@media(max-width:760px){
+  #timetableSettings .timetable-editor-card{min-width:0;padding:clamp(12px,3.5vw,18px)}
+  #timetableSettings .timetable-block-editor,#timetableSettings #templateBlockRows{min-width:0;width:100%}
+  #timetableSettings .template-block-row{
+    box-sizing:border-box;
+    width:100%;
+    min-width:0;
+    grid-template-columns:minmax(0,1fr) minmax(0,1fr);
+    grid-template-areas:"num remove" "name name" "kind kind" "start end";
+    column-gap:12px;row-gap:13px;padding:16px;
+    border-radius:16px;border-color:#c6d8ea;
+    background:linear-gradient(180deg,#f3f9ff 0%,#ffffff 90%);
+  }
+  #timetableSettings .template-row-index{
+    justify-self:start;align-self:center;
+    padding:7px 12px;border-radius:10px;
+    background:#126db4;color:#fff;font-size:15px;font-weight:850;
+  }
+  #timetableSettings .template-remove-button{
+    justify-self:end;align-self:center;width:44px;height:44px;min-height:44px;
+    border:1px solid #cadbec;background:#fff;color:#405a70;border-radius:12px;
+  }
+  #timetableSettings .template-mobile-label{display:block;font-size:13px;font-weight:750;color:#46617a;margin-bottom:7px}
+  #timetableSettings .template-block-row label{min-width:0;width:100%;max-width:100%}
+  #timetableSettings .template-block-row input,
+  #timetableSettings .template-block-row select{
+    display:block;width:100%;max-width:100%;min-width:0;
+    height:52px;min-height:52px;border-radius:12px;padding:10px 12px;font-size:16px;
+  }
+  #timetableSettings .template-block-row input[type="time"]{
+    display:block;min-width:0;max-width:100%;padding:8px 5px;
+    font-size:clamp(13px,3.7vw,16px);text-align:center;
+  }
+  #timetableSettings .template-block-start,
+  #timetableSettings .template-block-end{min-width:0;overflow:visible}
+  #timetableSettings .template-row-duration{height:auto;min-height:19px;margin-top:6px;font-size:12px;line-height:1.5;font-weight:750}
+  #timetableSettings .timetable-block-toolbar{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px;margin-top:16px}
+  #timetableSettings .timetable-block-toolbar button{box-sizing:border-box;width:100%;min-width:0;min-height:48px;padding:10px 8px;border-radius:12px;line-height:1.25}
+  #timetableSettings .timetable-block-toolbar .timetable-sort-button{grid-column:1/-1;margin-left:0}
+  #timetableSettings .timetable-editor-hint{font-size:13px;line-height:1.55}
+  #timetableSettings .timetable-editor-footer{padding-top:14px;margin-top:16px}
+  #timetableSettings .timetable-editor-actions button{min-height:50px;border-radius:12px}
+}
+@media(max-width:390px){
+  #timetableSettings .template-block-row{padding:12px;column-gap:9px}
+  #timetableSettings .template-block-row input[type="time"]{font-size:13px;padding-inline:2px}
+}
+@media(max-width:340px){
+  #timetableSettings .template-block-row{
+    grid-template-columns:minmax(0,1fr);
+    grid-template-areas:"num" "remove" "name" "kind" "start" "end";
+  }
+  #timetableSettings .template-remove-button{justify-self:end;margin-top:-46px}
+}
+body.dark-mode #timetableSettings .template-block-row,
+body[data-theme="dark"] #timetableSettings .template-block-row{
+  background:linear-gradient(180deg,#21374f,#192a3c);
+  border-color:#4b6580;color:#eaf3ff;
+}
+body.dark-mode #timetableSettings .template-mobile-label,
+body[data-theme="dark"] #timetableSettings .template-mobile-label{color:#c1d4e9}
+body.dark-mode #timetableSettings .template-block-row input,
+body.dark-mode #timetableSettings .template-block-row select,
+body[data-theme="dark"] #timetableSettings .template-block-row input,
+body[data-theme="dark"] #timetableSettings .template-block-row select{
+  background:#14263b;color:#f0f7ff;border-color:#526c86;color-scheme:dark;
+}
+body.dark-mode #timetableSettings .template-remove-button,
+body[data-theme="dark"] #timetableSettings .template-remove-button{background:#243951;border-color:#526c86;color:#eaf4ff}
+body.dark-mode #timetableSettings .template-row-duration,
+body[data-theme="dark"] #timetableSettings .template-row-duration{color:#b7d5ec}
+body.dark-mode #timetableSettings .timetable-editor-hint,
+body[data-theme="dark"] #timetableSettings .timetable-editor-hint{color:#c1d1e5}
