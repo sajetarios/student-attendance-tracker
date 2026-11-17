@@ -2421,3 +2421,69 @@ body.dark-mode .sf2-matrix-wrap tbody tr:nth-child(even),body[data-theme=dark] .
 @media(min-width:861px) {
   .portal-page #sidebar .mobile-drawer-close {display:none!important}
 }
+
+/* User Management: prominent, accessible bulk-selection control */
+#staffBulkDepartmentToolbar .staff-bulk-selection {
+  display:flex;align-items:center;justify-content:space-between;gap:12px;
+  width:100%;box-sizing:border-box;padding:10px 12px;border:1px solid #d5e3f5;
+  border-radius:14px;background:#f1f6fd;color:#142b4c;
+}
+#staffBulkDepartmentToolbar .staff-bulk-select-label {
+  display:flex;align-items:center;gap:12px;flex:1 1 auto;min-width:0;
+  min-height:48px;margin:0;cursor:pointer;font-weight:750;line-height:1.3;
+}
+#staffBulkDepartmentToolbar #selectAllStaff {
+  -webkit-appearance:none;appearance:none;position:relative;display:block;
+  flex:0 0 28px;width:28px;height:28px;margin:0;border:2px solid #36669b;
+  border-radius:8px;background:#fff;cursor:pointer;transition:background .15s,border-color .15s;
+}
+#staffBulkDepartmentToolbar #selectAllStaff:checked,
+#staffBulkDepartmentToolbar #selectAllStaff:indeterminate {
+  border-color:#2166ad;background:#2166ad;
+}
+#staffBulkDepartmentToolbar #selectAllStaff:checked::after {
+  content:"";position:absolute;left:8px;top:3px;width:7px;height:13px;
+  border:solid #fff;border-width:0 3px 3px 0;transform:rotate(45deg);
+}
+#staffBulkDepartmentToolbar #selectAllStaff:indeterminate::after {
+  content:"";position:absolute;left:5px;right:5px;top:11px;height:3px;
+  border-radius:2px;background:#fff;
+}
+#staffBulkDepartmentToolbar #selectAllStaff:focus-visible {
+  outline:3px solid #75b3ff;outline-offset:4px;
+}
+#staffBulkDepartmentToolbar .staff-bulk-select-copy{display:block;min-width:0;font-size:16px}
+#staffBulkDepartmentToolbar .staff-bulk-select-copy small {
+  display:block;margin-top:3px;font-size:12px;font-weight:550;color:#5c7191;
+}
+#staffBulkDepartmentToolbar .staff-bulk-selected-count {
+  flex:0 0 auto;display:inline-flex;align-items:center;justify-content:center;
+  padding:7px 12px;border-radius:999px;background:#e0ecfa;color:#153b6c;
+  font-size:13px;font-weight:750;white-space:nowrap;
+}
+#staffBulkDepartmentToolbar .staff-bulk-selection:has(#selectAllStaff:checked),
+#staffBulkDepartmentToolbar .staff-bulk-selection:has(#selectAllStaff:indeterminate){
+  border-color:#88b8ed;background:#e5f1ff;
+}
+body.dark-mode #staffBulkDepartmentToolbar .staff-bulk-selection,
+body[data-theme="dark"] #staffBulkDepartmentToolbar .staff-bulk-selection {
+  border-color:#465c7b;background:#253752;color:#f0f5ff;
+}
+body.dark-mode #staffBulkDepartmentToolbar .staff-bulk-select-copy small,
+body[data-theme="dark"] #staffBulkDepartmentToolbar .staff-bulk-select-copy small{color:#bacce4}
+body.dark-mode #staffBulkDepartmentToolbar .staff-bulk-selected-count,
+body[data-theme="dark"] #staffBulkDepartmentToolbar .staff-bulk-selected-count{
+  background:#35547a;color:#f0f7ff;
+}
+body.dark-mode #staffBulkDepartmentToolbar .staff-bulk-selection:has(#selectAllStaff:checked),
+body.dark-mode #staffBulkDepartmentToolbar .staff-bulk-selection:has(#selectAllStaff:indeterminate),
+body[data-theme="dark"] #staffBulkDepartmentToolbar .staff-bulk-selection:has(#selectAllStaff:checked),
+body[data-theme="dark"] #staffBulkDepartmentToolbar .staff-bulk-selection:has(#selectAllStaff:indeterminate){
+  border-color:#609ad7;background:#284970;
+}
+@media(max-width:540px){
+  #staffBulkDepartmentToolbar .staff-bulk-selection{gap:8px;padding:10px}
+  #staffBulkDepartmentToolbar .staff-bulk-select-label{gap:9px}
+  #staffBulkDepartmentToolbar .staff-bulk-selected-count{font-size:12px;padding:6px 9px}
+  #staffBulkDepartmentToolbar .staff-bulk-select-copy{font-size:15px}
+}
