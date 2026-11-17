@@ -358,6 +358,34 @@
 }
 @media(prefers-reduced-motion:reduce){.content-wrap > .school-heading{transition:none!important}}
 body.dark-mode .content-wrap > .school-heading.is-compact,body[data-theme="dark"] .content-wrap > .school-heading.is-compact{box-shadow:0 8px 24px rgba(0,0,0,.32)}
+</style><style id="compact-timetable-period-rows">
+/* Compact timetable template rows: avoid tall cards and wasted horizontal space. */
+@media(min-width:701px){
+ #timetableSettings #templateBlockRows{gap:7px!important}
+ #timetableSettings #templateBlockRows>.template-block-row{
+  display:grid!important;grid-template-columns:34px minmax(145px,2fr) minmax(105px,1fr) minmax(130px,1.2fr) minmax(130px,1.2fr) 40px!important;
+  grid-template-areas:"num name kind start end remove"!important;
+  align-items:center!important;gap:9px!important;padding:8px 12px!important;min-height:0!important;
+  border-radius:11px!important;
+ }
+ #timetableSettings #templateBlockRows .template-row-index{grid-area:num!important;justify-self:center}
+ #timetableSettings #templateBlockRows .template-block-name{grid-area:name!important}
+ #timetableSettings #templateBlockRows .template-block-kind{grid-area:kind!important}
+ #timetableSettings #templateBlockRows .template-block-start{grid-area:start!important}
+ #timetableSettings #templateBlockRows .template-block-end{grid-area:end!important}
+ #timetableSettings #templateBlockRows .template-remove-button{grid-area:remove!important;justify-self:center!important;align-self:center!important;margin:0!important}
+ #timetableSettings #templateBlockRows .template-mobile-label{display:none!important}
+ #timetableSettings #templateBlockRows input,#timetableSettings #templateBlockRows select{height:40px!important;min-height:40px!important;padding:6px 9px!important;font-size:14px!important}
+ #timetableSettings #templateBlockRows input[type=time]{padding:5px 4px!important;font-size:13px!important}
+ #timetableSettings #templateBlockRows .template-row-duration{margin:2px 0 -5px!important;height:12px!important;line-height:12px!important;font-size:10px!important}
+}
+@media(min-width:701px) and (max-width:1000px){
+ #timetableSettings #templateBlockRows>.template-block-row{grid-template-columns:28px minmax(110px,1.6fr) minmax(85px,.8fr) minmax(110px,1fr) minmax(110px,1fr) 34px!important;gap:6px!important;padding:7px!important}
+}
+@media(max-width:700px){
+ #timetableSettings #templateBlockRows>.template-block-row{padding:12px!important;row-gap:9px!important}
+ #timetableSettings #templateBlockRows input,#timetableSettings #templateBlockRows select{min-height:46px!important;height:46px!important}
+}
 </style></head>
 <body class="portal-page">
   <div class="portal-layout">
