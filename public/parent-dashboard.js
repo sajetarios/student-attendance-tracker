@@ -3,7 +3,7 @@
   const root = document.getElementById('parentsView'); if (!root) return; const $ = id => root.querySelector('#' + id); const esc = v => String(v ?? '').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
   if (!token) { location.replace('/portal-login.html'); return; }
   async function api(url, options={}) { const headers = new Headers(options.headers||{}); headers.set('Authorization',`Bearer ${token}`); if(options.body) headers.set('Content-Type','application/json'); const r=await fetch(url,{...options,headers,cache:'no-store'}); const d=await r.json().catch(()=>({})); if(!r.ok) throw new Error(d.error||`Request failed (${r.status})`); return d; }
-  async function init(){ const me=await api('/api/auth/me'); if(me.user.role!=='SCHOOL_ADMIN'){ location.replace('/portal.html'); return; } await load(); }
+  async function init(){ const me=await api('/api/auth/me'); if(me.user.role!=='SCHOOL_ADMIN') return; // Parent Management is admin-only; never redirect another staff role to this same portal. await load(); }
   let currentTab='all', lastParents=[], lastRegistrations=[];
   const count = n => Number(n||0).toLocaleString('en-PH');
   function decorate(){
