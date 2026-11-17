@@ -28,7 +28,7 @@ test('Only approved operating days appear in Department Head form, with quick re
  const html=read('public/portal.html'),js=read('public/portal.js');
  assert.match(html,/id="scheduleDaysTools"/);
  assert.match(html,/id="scheduleApplySchoolDays"/);
- assert.match(js,/input\.parentElement\.hidden=user\.role==='DEPARTMENT_HEAD'&&!isOperatingDay/);
+ assert.match(js,/input\.parentElement\.hidden=user\.role==='DEPARTMENT_HEAD'&&defaultDays\.length>0&&!isOperatingDay/);
  assert.match(js,/scheduleApplySchoolDays'\)\?\.addEventListener\('click'/);
 });
 test('Schedule Type is always visible and live review still works',()=>{
