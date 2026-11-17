@@ -1,4 +1,4 @@
-const CACHE = "attendigo-v152-learner-roster-register";
+const CACHE = "attendigo-v153-program-approvals";
 
 const SHELL = [
   "/assets/attendigo-sidebar-logo.png",
@@ -55,10 +55,10 @@ const SHELL = [
   "/guardian-ui.js?v=5",
   "/guardian-ui.css?v=4",
   "/academic-admin.css?v=1",
-  "/academic-admin.js?v=5",
-  "/special-program-ui.js?v=2",
-  "/special-program-batch-ui.js?v=1",
-  "/special-program-ui.css?v=2",
+  "/academic-admin.js?v=6",
+  "/special-program-ui.js?v=3",
+  "/special-program-batch-ui.js?v=2",
+  "/special-program-ui.css?v=3",
   "/app-dialog.css?v=1",
   "/app-dialog.js?v=1",
   "/sw-refresh.js?v=3",
