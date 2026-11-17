@@ -1923,7 +1923,17 @@ function coverageStatusLabel(status) {
         }
       });
     }
-    window.ScheduleWorkspaceUI?.update?.({periods,scheduleAdjustments,role:user?.role});
+    window.ScheduleWorkspaceUI?.update?.({
+      periods,scheduleAdjustments,role:user?.role,teachers,departmentId:user?.departmentId,
+      onAssign:async({periodIds,teacherUserId})=>{
+        const result=await api('/api/periods/bulk-assignments',{
+          method:'POST',body:JSON.stringify({periodIds,teacherUserId})
+        });
+        await loadSchoolData();
+        showToast(result.assigned+' class schedule'+(result.assigned===1?'':'s')+' assigned to '+result.teacher+'.');
+        return result;
+      }
+    });
   }
 
   function setScheduleDisplay(mode) {
