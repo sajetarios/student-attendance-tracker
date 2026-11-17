@@ -226,7 +226,7 @@ body.schedule-drawer-open{overflow:hidden!important}
 #scheduleForm.schedule-side-drawer:not([hidden]),
 #scheduleAdjustmentForm.schedule-side-drawer:not([hidden]){
  display:block!important;position:fixed!important;z-index:30020!important;inset:0 0 0 auto!important;
- width:min(710px,100vw)!important;max-width:100vw!important;height:100dvh!important;
+ width:min(1160px,calc(100vw - 64px))!important;max-width:calc(100vw - 64px)!important;height:100dvh!important;
  max-height:100dvh!important;overflow-y:auto!important;overscroll-behavior:contain!important;
  background:var(--ui-panel)!important;color:var(--ui-text)!important;border:0!important;
  border-radius:18px 0 0 18px!important;box-shadow:-18px 0 70px rgba(0,0,0,.2)!important;
@@ -488,3 +488,19 @@ html[data-ui-theme="dark"] .portal-page :is(input[type="date"],input[type="time"
 .portal-page :is(.nav-item,.nav-group-toggle) .ui-icon{width:21px;height:21px}
 .portal-page button .ui-icon{width:18px;height:18px}
 @media(max-width:640px){.platform-recovery-card .form-actions button{width:100%}.recovery-code-copy{align-items:stretch;flex-direction:column}}
+
+/* Override original narrow drawer rule with the same ID specificity. */
+@media(min-width:1100px){
+ #scheduleForm.schedule-side-drawer:not([hidden]){width:min(1220px,calc(100vw - 64px))!important;max-width:calc(100vw - 64px)!important;padding:20px 28px 28px!important}
+ #scheduleForm.schedule-side-drawer .form-grid{grid-template-columns:repeat(3,minmax(0,1fr))!important;gap:12px 18px!important}
+ #scheduleForm.schedule-side-drawer .schedule-time-selector{grid-template-columns:repeat(2,minmax(0,1fr))!important}
+ #scheduleForm.schedule-side-drawer .schedule-form-section{padding:10px 0 4px!important}
+ #scheduleForm.schedule-side-drawer .form-section-heading{margin-bottom:8px!important}
+ #scheduleForm.schedule-side-drawer .form-actions{position:sticky!important;bottom:-28px!important;z-index:3!important;background:var(--ui-panel)!important;padding:12px 0!important}
+}
+@media(min-width:700px) and (max-width:1099px){
+ #scheduleForm.schedule-side-drawer:not([hidden]){width:min(850px,calc(100vw - 24px))!important;max-width:calc(100vw - 24px)!important}
+}
+@media(max-width:699px){
+ #scheduleForm.schedule-side-drawer:not([hidden]),#scheduleAdjustmentForm.schedule-side-drawer:not([hidden]){width:100vw!important;max-width:100vw!important;padding:16px!important;border-radius:0!important}
+}
