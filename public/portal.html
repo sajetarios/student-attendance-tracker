@@ -537,18 +537,47 @@ body.dark-mode .content-wrap > .school-heading.is-compact,body[data-theme="dark"
               </div>
               <div id="plannerDashboardPreview" class="planner-dashboard-preview" aria-live="polite">Open Planner to see your upcoming schedule.</div>
             </section>
-            <section id="adminDashboardCard" class="surface-card section-card admin-dashboard-card" hidden>
-              <div class="admin-dashboard-intro">
-                <span class="admin-dashboard-kicker">SCHOOL ADMINISTRATION</span>
-                <h3>Account administration workspace</h3>
-                <p>Manage staff accounts, role-based access, sign-in status, and department records. Teacher designations and class schedules are managed by Department Heads.</p>
+            <section id="adminDashboardCard" class="surface-card section-card admin-dashboard-card admin-command-center" hidden>
+              <div class="admin-command-hero">
+                <div><span class="admin-dashboard-kicker">SCHOOL OPERATIONS · ADMIN WORKSPACE</span>
+                  <h3>School administration</h3>
+                  <p>Manage school enrollment, staff accounts, academic setup and approvals from one organized workspace.</p>
+                </div>
+                <button type="button" class="primary-button admin-command-primary" data-admin-view="academicAdmin">School year &amp; enrollment <span aria-hidden="true">↗</span></button>
               </div>
-              <div class="admin-dashboard-actions">
-                <button type="button" class="admin-dashboard-action" data-admin-go="accounts"><span class="admin-action-icon" data-ui-icon="users"></span><span><strong>User accounts</strong><small>Create or update employee and staff accounts</small></span><b>›</b></button>
-                <button type="button" class="admin-dashboard-action" data-admin-go="permissions"><span class="admin-action-icon" data-ui-icon="shield"></span><span><strong>Account access</strong><small>Review sign-in access and account security controls</small></span><b>›</b></button>
-                <button type="button" class="admin-dashboard-action" data-admin-go="departments"><span class="admin-action-icon" data-ui-icon="building"></span><span><strong>Departments</strong><small>Maintain department records used by staff accounts</small></span><b>›</b></button>
+              <div class="admin-command-metrics" aria-label="School overview">
+                <div class="admin-command-metric"><span class="admin-metric-icon" aria-hidden="true">🎓</span><span>Active student records</span><strong id="adminOverviewStudents">—</strong><small>Current authorized school roster</small></div>
+                <div class="admin-command-metric"><span class="admin-metric-icon" aria-hidden="true">📋</span><span>Pending school requests</span><strong id="adminOverviewRequests">—</strong><small>Open approval inbox</small></div>
+                <div class="admin-command-metric"><span class="admin-metric-icon" aria-hidden="true">🏫</span><span>School configuration</span><strong>Manage</strong><small>Identity, timetable and settings</small></div>
               </div>
-              <p class="admin-dashboard-footnote">This role does not handle student attendance operations, Gate Keeper monitoring, teacher gate attendance, teacher designations, or class schedule assignments.</p>
+              <div class="admin-command-columns">
+                <section class="admin-command-panel" aria-label="Priority actions">
+                  <div class="admin-command-section-heading"><div><span class="admin-dashboard-kicker">PRIORITY INBOX</span><h4>Requires your attention</h4><p>Review requests before updating official records.</p></div></div>
+                  <div class="admin-command-action-list">
+                    <button type="button" class="admin-command-row" data-admin-inbox="student"><span class="admin-command-icon">🎓</span><span><strong>Student account requests</strong><small>Creation and recovery approvals</small></span><b aria-hidden="true">›</b></button>
+                    <button type="button" class="admin-command-row" data-admin-inbox="guardian"><span class="admin-command-icon">🛡</span><span><strong>Guardian changes</strong><small>Verify requested relationship changes</small></span><b aria-hidden="true">›</b></button>
+                    <button type="button" class="admin-command-row" data-admin-inbox="photo"><span class="admin-command-icon">📷</span><span><strong>Photo approvals</strong><small>Review profile photo submissions</small></span><b aria-hidden="true">›</b></button>
+                  </div>
+                </section>
+                <section class="admin-command-panel" aria-label="Quick management">
+                  <div class="admin-command-section-heading"><div><span class="admin-dashboard-kicker">SHORTCUTS</span><h4>Quick management</h4><p>Jump directly to frequently used modules.</p></div></div>
+                  <div class="admin-command-shortcuts">
+                    <button type="button" data-admin-view="academicAdmin"><span aria-hidden="true">▤</span><strong>Enrollment</strong></button>
+                    <button type="button" data-admin-view="students"><span aria-hidden="true">🎓</span><strong>Students</strong></button>
+                    <button type="button" data-admin-view="schedules"><span aria-hidden="true">▦</span><strong>Class schedules</strong></button>
+                    <button type="button" data-admin-go="accounts"><span aria-hidden="true">♙</span><strong>Staff &amp; users</strong></button>
+                    <button type="button" data-admin-view="parents"><span aria-hidden="true">♧</span><strong>Parents</strong></button>
+                    <button type="button" data-admin-view="sf2"><span aria-hidden="true">▤</span><strong>SF2 reports</strong></button>
+                  </div>
+                </section>
+              </div>
+              <details class="admin-command-more"><summary>Additional administration tools <span aria-hidden="true">⌄</span></summary>
+                <div class="admin-dashboard-actions">
+                  <button type="button" class="admin-dashboard-action" data-admin-go="permissions"><span class="admin-action-icon" data-ui-icon="shield"></span><span><strong>Account access</strong><small>Manage account access and security controls</small></span><b>›</b></button>
+                  <button type="button" class="admin-dashboard-action" data-admin-go="departments"><span class="admin-action-icon" data-ui-icon="building"></span><span><strong>Departments</strong><small>Maintain staff department records</small></span><b>›</b></button>
+                  <button type="button" class="admin-dashboard-action" data-admin-view="schoolBranding"><span class="admin-action-icon">✦</span><span><strong>School identity</strong><small>School branding and logo settings</small></span><b>›</b></button>
+                </div>
+              </details>
             </section>
             <div class="stats-grid" id="statsGrid">
               <article class="stat-card"><div class="stat-top"><span>Active students</span><span class="stat-icon blue" data-ui-icon="graduation"></span></div><strong id="statStudents">—</strong><small>In your authorized roster</small></article>
