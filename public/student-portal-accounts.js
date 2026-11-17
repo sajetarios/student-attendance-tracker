@@ -426,6 +426,7 @@
     }
     const targets=bulkTargets.length ? [...bulkTargets] : [{studentId:activeStudent.studentId,fullName:activeStudent.fullName}];
     const successes=new Set(), failures=[];
+    let summaryMessage='', summaryError=false;
     button.disabled=true;
     busy=true;
     renderDirectory();
@@ -452,12 +453,16 @@
         activeStudent=null;
         $('sapRequestSubmit').textContent='Retry '+bulkTargets.length+' remaining';
         $('sapRequestFeedback').textContent=summary;
-        announce(summary,true);
+        summaryMessage=summary;
+        summaryError=true;
       }else{
         closeModal('sapRequestModal');
-        announce(summary);
+        summaryMessage=summary;
       }
-    }finally{busy=false;button.disabled=false;renderDirectory();}
+    }finally{
+      busy=false;button.disabled=false;renderDirectory();
+      if(summaryMessage)announce(summaryMessage,summaryError);
+    }
   });
   $('sapReviewForm').addEventListener('submit',async event=>{
     event.preventDefault();
