@@ -42,6 +42,7 @@ body.dark-mode,body[data-theme="dark"],html[data-theme="dark"]{
   font:750 12px/1.25 system-ui,sans-serif;cursor:pointer;
   white-space:nowrap;box-shadow:none;transition:background .18s,border-color .18s;
 }
+#connectionStatus.asc-header-trigger[hidden],#ascHeaderTrigger.asc-header-trigger[hidden]{display:none!important}
 #connectionStatus.asc-header-trigger:hover,#ascHeaderTrigger.asc-header-trigger:hover{
   background:var(--asc-surface);border-color:var(--asc-accent);
 }
