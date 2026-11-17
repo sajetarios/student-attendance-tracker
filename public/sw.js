@@ -1,4 +1,4 @@
-const CACHE = "attendigo-v138-manual-revision-guard";
+const CACHE = "attendigo-v139-unified-attendance-queue";
 
 const SHELL = [
   "/assets/attendigo-sidebar-logo.png",
@@ -36,11 +36,11 @@ const SHELL = [
   "/sardo-monitor.css?v=1",
   "/schedule-form-layout.css?v=12",
   "/parent-dashboard.js?v=2",
-  "/offline-attendance.js?v=2",
+  "/offline-attendance.js?v=4",
   "/offline-sheet.html",
-  "/offline-sheet.js?v=3",
+  "/offline-sheet.js?v=4",
   "/manual-folio.css?v=11",
-  "/manual-folio.js?v=12",
+  "/manual-folio.js?v=13",
   "/student-portal-accounts.css?v=3",
   "/student-portal-accounts.js?v=6",
   "/admin-request-notifications.js?v=2",
