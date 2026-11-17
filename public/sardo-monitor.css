@@ -1,34 +1,34 @@
 /* SARDO: compact actionable attendance risk monitoring with accessible dark mode. */
-.sardo-card{min-width:0
-.sardo-card .card-heading{align-items:flex-start;gap:12px;flex-wrap:wrap
-.sardo-toolbar{display:flex;gap:10px;align-items:center;flex-wrap:wrap
-.sardo-toolbar .outline-button{min-height:34px;padding:7px 12px;font-size:var(--type-table)
-.sardo-status{font-size:var(--type-secondary)!important;padding:7px 12px!important
-.sardo-status[data-state="ok"]{background:#dff8e9;color:#136b43
-.sardo-status[data-state="alert"]{background:#fff0d7;color:#945500
-.sardo-status[data-state="error"]{background:#fce6e7;color:#a6263b
-.sardo-metrics{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin:15px 0
-.sardo-metrics>div{border:1px solid var(--border-color,#e1e8f0);border-radius:13px;background:var(--card-bg,#f8fafc);padding:14px 16px;min-width:0
-.sardo-metrics strong{font-size:26px;display:block;line-height:1.2;color:var(--text-primary,#173657)
-.sardo-metrics span{display:block;color:var(--text-secondary,#66758b);font-size:var(--type-secondary);margin-top:5px
-.sardo-controls{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:12px
-.sardo-controls input[type="search"]{flex:1;min-width:175px;max-width:400px;border:1px solid var(--border-color,#cbd5e1);border-radius:10px;background:var(--card-bg,#fff);color:var(--text-primary,inherit);padding:10px 12px;font-size:var(--type-table)
-.sardo-controls label{display:flex;align-items:center;gap:8px;font-size:var(--type-table);color:var(--text-secondary,#66758b)
-.sardo-card .sardo-empty{border-style:solid;border-color:var(--border-color,#e1e8f0);background:var(--card-bg,#f8fafc);color:var(--text-secondary,#66758b);font-size:var(--type-secondary)
-.sardo-list{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,330px),1fr));gap:12px;margin:12px 0
-.sardo-learner{border:1px solid var(--border-color,#e2e8f0);background:var(--card-bg,#fff);border-radius:14px;padding:16px;min-width:0
-.sardo-learner-top{display:flex;align-items:flex-start;justify-content:space-between;gap:10px
-.sardo-learner-top strong{font-size:14px;color:var(--text-primary,#26374d);display:block;overflow-wrap:anywhere
-.sardo-learner-top span:not(.sardo-case-state){font-size:var(--type-secondary);color:var(--text-secondary,#66758b);display:block;margin-top:4px
-.sardo-case-state{display:inline-flex;border-radius:99px;padding:5px 9px;font-size:var(--type-secondary);font-weight:750;background:#fff0d7;color:#935800;white-space:nowrap
-.sardo-case-state[data-state="RESOLVED"]{background:#dff8e9;color:#146e43
-.sardo-case-state[data-state="CONTACTED"],.sardo-case-state[data-state="MONITORING"]{background:#e0efff;color:#225d95
-.sardo-learner-meta{display:flex;gap:7px;justify-content:space-between;flex-wrap:wrap;font-size:var(--type-secondary);color:var(--text-secondary,#66758b);margin:12px 0
-.sardo-learner-meta b{color:var(--text-primary,#2b4963)
-.sardo-case-note{font-size:var(--type-secondary);line-height:1.5;color:var(--text-secondary,#66758b);background:var(--card-muted,#f3f6fa);padding:10px;border-radius:9px;margin:0 0 12px;overflow-wrap:anywhere
-.sardo-learner-actions{display:flex;gap:7px;flex-wrap:wrap
-.sardo-learner-actions button{font-size:var(--type-table);padding:7px 10px;min-height:34px
-.sardo-blank{grid-column:1/-1;padding:22px;text-align:center;background:var(--card-muted,#f8fafc);border-radius:12px;color:var(--text-secondary,#64748b);font-size:13px
-.sardo-footnote{color:var(--text-secondary,#64748b);font-size:var(--type-secondary);line-height:1.6;margin-top:12px
-html[data-theme="dark"] .sardo-card,body.dark-mode .sardo-card,[data-theme="dark"] .sardo-card{--card-bg:#1a293c;--card-muted:#223348;--border-color:#394b62;--text-primary:#f3f7ff;--text-secondary:#b4c6dc
-@media(max-width:600px){.sardo-metrics{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px.sardo-metrics>div{padding:12px.sardo-metrics strong{font-size:22px.sardo-toolbar{width:100%;justify-content:space-between.sardo-learner-actions button{flex:1}
+.sardo-card{min-width:0}
+.sardo-card .card-heading{align-items:flex-start;gap:12px;flex-wrap:wrap}
+.sardo-toolbar{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.sardo-toolbar .outline-button{min-height:34px;padding:7px 12px;font-size:var(--type-table)}
+.sardo-status{font-size:var(--type-secondary)!important;padding:7px 12px!important}
+.sardo-status[data-state="ok"]{background:#dff8e9;color:#136b43}
+.sardo-status[data-state="alert"]{background:#fff0d7;color:#945500}
+.sardo-status[data-state="error"]{background:#fce6e7;color:#a6263b}
+.sardo-metrics{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin:15px 0}
+.sardo-metrics>div{border:1px solid var(--border-color,#e1e8f0);border-radius:13px;background:var(--card-bg,#f8fafc);padding:14px 16px;min-width:0}
+.sardo-metrics strong{font-size:26px;display:block;line-height:1.2;color:var(--text-primary,#173657)}
+.sardo-metrics span{display:block;color:var(--text-secondary,#66758b);font-size:var(--type-secondary);margin-top:5px}
+.sardo-controls{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:12px}
+.sardo-controls input[type="search"]{flex:1;min-width:175px;max-width:400px;border:1px solid var(--border-color,#cbd5e1);border-radius:10px;background:var(--card-bg,#fff);color:var(--text-primary,inherit);padding:10px 12px;font-size:var(--type-table)}
+.sardo-controls label{display:flex;align-items:center;gap:8px;font-size:var(--type-table);color:var(--text-secondary,#66758b)}
+.sardo-card .sardo-empty{border-style:solid;border-color:var(--border-color,#e1e8f0);background:var(--card-bg,#f8fafc);color:var(--text-secondary,#66758b);font-size:var(--type-secondary)}
+.sardo-list{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,330px),1fr));gap:12px;margin:12px 0}
+.sardo-learner{border:1px solid var(--border-color,#e2e8f0);background:var(--card-bg,#fff);border-radius:14px;padding:16px;min-width:0}
+.sardo-learner-top{display:flex;align-items:flex-start;justify-content:space-between;gap:10px}
+.sardo-learner-top strong{font-size:14px;color:var(--text-primary,#26374d);display:block;overflow-wrap:anywhere}
+.sardo-learner-top span:not(.sardo-case-state){font-size:var(--type-secondary);color:var(--text-secondary,#66758b);display:block;margin-top:4px}
+.sardo-case-state{display:inline-flex;border-radius:99px;padding:5px 9px;font-size:var(--type-secondary);font-weight:750;background:#fff0d7;color:#935800;white-space:nowrap}
+.sardo-case-state[data-state="RESOLVED"]{background:#dff8e9;color:#146e43}
+.sardo-case-state[data-state="CONTACTED"],.sardo-case-state[data-state="MONITORING"]{background:#e0efff;color:#225d95}
+.sardo-learner-meta{display:flex;gap:7px;justify-content:space-between;flex-wrap:wrap;font-size:var(--type-secondary);color:var(--text-secondary,#66758b);margin:12px 0}
+.sardo-learner-meta b{color:var(--text-primary,#2b4963)}
+.sardo-case-note{font-size:var(--type-secondary);line-height:1.5;color:var(--text-secondary,#66758b);background:var(--card-muted,#f3f6fa);padding:10px;border-radius:9px;margin:0 0 12px;overflow-wrap:anywhere}
+.sardo-learner-actions{display:flex;gap:7px;flex-wrap:wrap}
+.sardo-learner-actions button{font-size:var(--type-table);padding:7px 10px;min-height:34px}
+.sardo-blank{grid-column:1/-1;padding:22px;text-align:center;background:var(--card-muted,#f8fafc);border-radius:12px;color:var(--text-secondary,#64748b);font-size:13px}
+.sardo-footnote{color:var(--text-secondary,#64748b);font-size:var(--type-secondary);line-height:1.6;margin-top:12px}
+html[data-theme="dark"] .sardo-card,body.dark-mode .sardo-card,[data-theme="dark"] .sardo-card{--card-bg:#1a293c;--card-muted:#223348;--border-color:#394b62;--text-primary:#f3f7ff;--text-secondary:#b4c6dc}
+@media(max-width:600px){.sardo-metrics{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}.sardo-metrics>div{padding:12px}.sardo-metrics strong{font-size:22px}.sardo-toolbar{width:100%;justify-content:space-between}.sardo-learner-actions button{flex:1}}

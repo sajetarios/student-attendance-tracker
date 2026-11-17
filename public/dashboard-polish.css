@@ -1,5 +1,5 @@
 /* Dashboard polish v60. School branding is still owned by School Admin through --brand. */
-:root{--sidebar-sheen:color-mix(in srgb,var(--brand,#7042a3) 35%,transparent)
+:root{--sidebar-sheen:color-mix(in srgb,var(--brand,#7042a3) 35%,transparent)}
 .portal-page .sidebar{
   background:
     radial-gradient(ellipse at 0 0,rgba(255,255,255,.13),transparent 57%),
@@ -9,7 +9,7 @@
       color-mix(in srgb,var(--brand,#7042a3) 29%,#18223a) 48%,#11192a)!important;
   border-right:1px solid rgba(255,255,255,.12)!important;
   box-shadow:inset -1px 0 0 rgba(255,255,255,.04),8px 0 26px rgba(6,13,29,.09)
-
+}
 html[data-ui-theme="dark"] .portal-page .sidebar{
   background:
     radial-gradient(ellipse at 0 0,rgba(255,255,255,.09),transparent 58%),
@@ -17,22 +17,22 @@ html[data-ui-theme="dark"] .portal-page .sidebar{
     linear-gradient(161deg,
       color-mix(in srgb,var(--brand,#7042a3) 35%,#151b2e),
       color-mix(in srgb,var(--brand,#7042a3) 15%,#10182b) 52%,#0c1423)!important
-
-.portal-page .sidebar-bottom{background:transparent!important
+}
+.portal-page .sidebar-bottom{background:transparent!important}
 .portal-page .sidebar-status{
   padding:11px 12px;border-radius:13px;
   background:rgba(7,14,27,.30)!important;
   border:1px solid rgba(255,255,255,.13)!important;
   color:#e6eefc;backdrop-filter:blur(8px)
-
-.portal-page .sidebar-brand{border-bottom-color:rgba(255,255,255,.17)!important
-.portal-page .sidebar-section-label{color:#c7d4e7!important;letter-spacing:.12em
+}
+.portal-page .sidebar-brand{border-bottom-color:rgba(255,255,255,.17)!important}
+.portal-page .sidebar-section-label{color:#c7d4e7!important;letter-spacing:.12em}
 .portal-page :is(.nav-item,.nav-group-toggle,.nav-subitem){
   border-radius:12px;transition:background-color .16s,color .16s,box-shadow .16s
-
+}
 .portal-page :is(.nav-item,.nav-group-toggle,.nav-subitem):hover{
   background:rgba(255,255,255,.11)!important;color:#fff!important
-
+}
 .portal-page :is(.nav-item.active,.nav-subitem.active){
   position:relative;
   color:#fff!important;
@@ -40,12 +40,12 @@ html[data-ui-theme="dark"] .portal-page .sidebar{
     color-mix(in srgb,var(--brand,#7042a3) 48%,rgba(255,255,255,.20)),
     color-mix(in srgb,var(--brand,#7042a3) 25%,rgba(255,255,255,.07)))!important;
   box-shadow:inset 0 0 0 1px rgba(255,255,255,.12),0 5px 18px rgba(0,0,0,.14)!important
-
+}
 .portal-page :is(.nav-item.active,.nav-subitem.active)::before{
   content:"";position:absolute;left:0;top:10px;bottom:10px;width:3px;
   border-radius:0 4px 4px 0;background:#c7edff
-
-.portal-page :is(.nav-item.active,.nav-subitem.active) .nav-icon{color:#fff!important
+}
+.portal-page :is(.nav-item.active,.nav-subitem.active) .nav-icon{color:#fff!important}
 
 /* Refined topbar collapse/expand action with coherent panel glyph. */
 .portal-page #sidebarCollapseButton.desktop-sidebar-toggle{
@@ -57,173 +57,173 @@ html[data-ui-theme="dark"] .portal-page .sidebar{
   font-size:14px;font-weight:780;
   box-shadow:0 4px 12px rgba(15,37,60,.08);
   transition:border-color .16s,box-shadow .16s,transform .16s
-
+}
 .portal-page #sidebarCollapseButton.desktop-sidebar-toggle:hover{
   background:linear-gradient(#fff,#eaf0f9)!important;
   border-color:color-mix(in srgb,var(--brand,#7042a3) 32%,#bfcddd)!important;
   box-shadow:0 7px 18px rgba(14,34,57,.13);transform:translateY(-1px)
-
+}
 .portal-page #sidebarCollapseButton .sidebar-toggle-glyph{
   width:32px;height:32px;display:inline-flex;align-items:center;justify-content:center;
   border-radius:10px;background:color-mix(in srgb,var(--brand,#7042a3) 10%,#eaf1f9);
   color:color-mix(in srgb,var(--brand,#7042a3) 55%,#284d70)
-
-.portal-page #sidebarCollapseButton .sidebar-toggle-glyph .ui-icon{width:19px;height:19px
+}
+.portal-page #sidebarCollapseButton .sidebar-toggle-glyph .ui-icon{width:19px;height:19px}
 html[data-ui-theme="dark"] .portal-page #sidebarCollapseButton.desktop-sidebar-toggle{
   background:linear-gradient(#293a53,#1b2a42)!important;
   border-color:#40516c!important;color:#edf4ff!important;
   box-shadow:0 4px 15px rgba(0,0,0,.22)
-
+}
 html[data-ui-theme="dark"] .portal-page #sidebarCollapseButton.desktop-sidebar-toggle:hover{
   background:linear-gradient(#344663,#24354d)!important;border-color:var(--ui-accent)!important
-
+}
 html[data-ui-theme="dark"] .portal-page #sidebarCollapseButton .sidebar-toggle-glyph{
   color:#e4edff;background:color-mix(in srgb,var(--brand,#7042a3) 30%,#34465f)
-
-.portal-page #sidebarCollapseButton:focus-visible{outline:3px solid var(--ui-accent,#7ac2ed);outline-offset:3px
+}
+.portal-page #sidebarCollapseButton:focus-visible{outline:3px solid var(--ui-accent,#7ac2ed);outline-offset:3px}
 
 /* Larger, legible shortcut labels for School Admin, Department Head and teachers. */
 .portal-page .quick-card .quick-action,.portal-page .admin-dashboard-action{
   min-height:82px;padding:16px 18px;gap:14px;border-radius:15px
-
+}
 .portal-page .quick-card .quick-action strong,.portal-page .admin-dashboard-action strong{
   display:block;font-size:17px!important;line-height:1.35;font-weight:800;letter-spacing:-.01em
-
+}
 .portal-page .quick-card .quick-action small,.portal-page .admin-dashboard-action small{
   display:block;font-size:14px!important;line-height:1.55;margin-top:3px
-
-.portal-page .quick-card .quick-action small,.portal-page .admin-dashboard-action small{color:#66788d
-html[data-ui-theme="dark"] .portal-page :is(.quick-card .quick-action strong,.admin-dashboard-action strong){color:var(--ui-text)!important
-html[data-ui-theme="dark"] .portal-page :is(.quick-card .quick-action small,.admin-dashboard-action small,.scope-note p){color:var(--ui-muted)!important
-.portal-page .quick-card .quick-action-icon{width:44px;height:44px;flex-basis:44px;border-radius:13px
-.portal-page .quick-card .quick-action-icon .ui-icon,.portal-page .admin-action-icon .ui-icon{width:22px;height:22px
-.portal-page .quick-card .card-heading p,.portal-page .admin-dashboard-intro p{font-size:15px;line-height:1.6
-.portal-page .scope-note,.portal-page .scope-note p{font-size:14px;line-height:1.55
+}
+.portal-page .quick-card .quick-action small,.portal-page .admin-dashboard-action small{color:#66788d}
+html[data-ui-theme="dark"] .portal-page :is(.quick-card .quick-action strong,.admin-dashboard-action strong){color:var(--ui-text)!important}
+html[data-ui-theme="dark"] .portal-page :is(.quick-card .quick-action small,.admin-dashboard-action small,.scope-note p){color:var(--ui-muted)!important}
+.portal-page .quick-card .quick-action-icon{width:44px;height:44px;flex-basis:44px;border-radius:13px}
+.portal-page .quick-card .quick-action-icon .ui-icon,.portal-page .admin-action-icon .ui-icon{width:22px;height:22px}
+.portal-page .quick-card .card-heading p,.portal-page .admin-dashboard-intro p{font-size:15px;line-height:1.6}
+.portal-page .scope-note,.portal-page .scope-note p{font-size:14px;line-height:1.55}
 
 /* Stabilize security table widths. Role and department are separate, with safe ellipsis. */
-.portal-page .security-accounts-table{width:100%;min-width:1080px;table-layout:fixed
-.portal-page .security-accounts-table :is(th,td){box-sizing:border-box
-.portal-page .security-accounts-table :is(th,td):nth-child(1){width:17%
-.portal-page .security-accounts-table :is(th,td):nth-child(2){width:23%
-.portal-page .security-accounts-table :is(th,td):nth-child(3){width:10%
-.portal-page .security-accounts-table :is(th,td):nth-child(4){width:16%
-.portal-page .security-accounts-table :is(th,td):nth-child(5){width:10%;text-align:center
-.portal-page .security-accounts-table :is(th,td):nth-child(6){width:7%;text-align:center
-.portal-page .security-accounts-table :is(th,td):nth-child(7){width:17%
-.portal-page .security-role-cell{display:flex;flex-direction:column;gap:5px;min-width:0
+.portal-page .security-accounts-table{width:100%;min-width:1080px;table-layout:fixed}
+.portal-page .security-accounts-table :is(th,td){box-sizing:border-box}
+.portal-page .security-accounts-table :is(th,td):nth-child(1){width:17%}
+.portal-page .security-accounts-table :is(th,td):nth-child(2){width:23%}
+.portal-page .security-accounts-table :is(th,td):nth-child(3){width:10%}
+.portal-page .security-accounts-table :is(th,td):nth-child(4){width:16%}
+.portal-page .security-accounts-table :is(th,td):nth-child(5){width:10%;text-align:center}
+.portal-page .security-accounts-table :is(th,td):nth-child(6){width:7%;text-align:center}
+.portal-page .security-accounts-table :is(th,td):nth-child(7){width:17%}
+.portal-page .security-role-cell{display:flex;flex-direction:column;gap:5px;min-width:0}
 .portal-page .security-role-cell .role-line{
   font-size:13px;font-weight:750;color:#273e55;
   display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis
-
+}
 .portal-page .security-role-cell .department-line{
   font-size:13px;color:#63798f;
   display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis
-
-html[data-ui-theme="dark"] .portal-page .security-role-cell .role-line{color:var(--ui-text)
-html[data-ui-theme="dark"] .portal-page .security-role-cell .department-line{color:var(--ui-muted)
+}
+html[data-ui-theme="dark"] .portal-page .security-role-cell .role-line{color:var(--ui-text)}
+html[data-ui-theme="dark"] .portal-page .security-role-cell .department-line{color:var(--ui-muted)}
 .portal-page .security-accounts-table .account-status{
   display:inline-flex;min-width:0;max-width:100%;align-items:center;justify-content:center;
   padding:6px 9px;border-radius:999px;font-size:var(--type-table);line-height:1.35;
   white-space:normal;overflow-wrap:break-word;text-align:center
-
-.portal-page .security-accounts-table td:nth-child(4){font-size:var(--type-table);line-height:1.45;white-space:normal
-.portal-page .security-accounts-table td:nth-child(7) .action-row{display:flex;flex-wrap:wrap;gap:7px
+}
+.portal-page .security-accounts-table td:nth-child(4){font-size:var(--type-table);line-height:1.45;white-space:normal}
+.portal-page .security-accounts-table td:nth-child(7) .action-row{display:flex;flex-wrap:wrap;gap:7px}
 .portal-page .security-accounts-table td:nth-child(7) .compact-button{
   min-height:36px;font-size:var(--type-table);padding:6px 10px
-
+}
 @media(max-width:700px){
- .portal-page .quick-card .quick-action,.portal-page .admin-dashboard-action{min-height:76px;padding:14px;gap:12px
- .portal-page .quick-card .quick-action strong,.portal-page .admin-dashboard-action strong{font-size:16px!important
- .portal-page .quick-card .quick-action small,.portal-page .admin-dashboard-action small{font-size:var(--type-table)!important
- .portal-page .quick-card .quick-action-icon{width:42px;height:42px;flex-basis:42px
+ .portal-page .quick-card .quick-action,.portal-page .admin-dashboard-action{min-height:76px;padding:14px;gap:12px}
+ .portal-page .quick-card .quick-action strong,.portal-page .admin-dashboard-action strong{font-size:16px!important}
+ .portal-page .quick-card .quick-action small,.portal-page .admin-dashboard-action small{font-size:var(--type-table)!important}
+ .portal-page .quick-card .quick-action-icon{width:42px;height:42px;flex-basis:42px}
 }
 @media(prefers-reduced-motion:reduce){
- .portal-page #sidebarCollapseButton.desktop-sidebar-toggle{transition:none!important;transform:none!important
+ .portal-page #sidebarCollapseButton.desktop-sidebar-toggle{transition:none!important;transform:none!important}
 }
 
 /* Compact, accessible learner cards on phones (light and dark). */
 @media (max-width:700px) {
- #studentsView #studentRosterTable tbody {gap:14px!important
+ #studentsView #studentRosterTable tbody {gap:14px!important}
  #studentsView #studentRosterTable tbody tr:not(:has(td.empty-cell)) {
    grid-template-columns:repeat(2,minmax(0,1fr))!important;
    gap:0 10px!important;padding:14px!important;border-radius:17px!important;
    background:var(--ui-panel,#fff)!important;
    border:1px solid var(--ui-line,#dce5ef)!important;
    box-shadow:0 5px 18px rgba(16,35,62,.09)!important;
- 
+ }
  #studentsView #studentRosterTable tbody tr:not(:has(td.empty-cell)) td {
    background:transparent!important;color:var(--ui-text,#263c55)!important;
    border:0!important;border-bottom:1px solid var(--ui-line,#e5ebf3)!important;
    padding:10px 4px!important;min-height:0!important;line-height:1.45!important;
    font-size:var(--type-table)!important;overflow-wrap:anywhere;
- 
+ }
  #studentsView #studentRosterTable tbody td::before {
    color:var(--ui-muted,#697b90)!important;font-size:var(--type-table)!important;
    letter-spacing:.045em!important;
- 
+ }
  #studentsView #studentRosterTable tbody td[data-label="Full name"] {
    grid-column:1/-1!important;grid-row:1!important;
    font-size:17px!important;font-weight:800!important;
    padding:5px 4px 13px!important;
- 
+ }
  #studentsView #studentRosterTable tbody td[data-label="Photo"] {
    grid-column:2!important;grid-row:2 / span 2!important;
    justify-content:center!important;align-items:center!important;
- 
+ }
  #studentsView #studentRosterTable .student-photo-thumb,
  #studentsView #studentRosterTable .student-photo-placeholder {
    width:64px!important;height:64px!important;object-fit:cover!important;
    border-radius:50%!important;
- 
+ }
  #studentsView #studentRosterTable tbody td[data-label="Select"] {
    grid-column:1!important;grid-row:2!important;
- 
+ }
  #studentsView #studentRosterTable tbody td[data-label="Student ID"] {
    grid-column:1!important;grid-row:3!important;
- 
+ }
  #studentsView #studentRosterTable tbody td[data-label="Sex"],
  #studentsView #studentRosterTable tbody td[data-label="Grade"],
  #studentsView #studentRosterTable tbody td[data-label="Section"],
  #studentsView #studentRosterTable tbody td[data-label="Status"] {
    grid-column:auto!important;
- 
+ }
  #studentsView #studentRosterTable tbody td[data-label="QR code"] {
    grid-column:1!important;align-items:flex-start!important;
- 
+ }
  #studentsView #studentRosterTable .student-qr-preview img {
    width:76px!important;height:76px!important;max-width:100%!important;
- 
+ }
  #studentsView #studentRosterTable tbody td[data-label="Actions"] {
    grid-column:1/-1!important;align-items:stretch!important;
- 
+ }
  #studentsView #studentRosterTable tbody td[data-label="Parent / guardian"],
  #studentsView #studentRosterTable tbody td[data-label="Student account"] {
    grid-column:1/-1!important;
- 
+ }
  #studentsView #studentRosterTable .student-row-actions {
    justify-content:flex-start!important;gap:8px!important;
- 
+ }
  #studentsView #studentRosterTable .student-row-actions button,
  #studentsView #studentRosterTable .student-photo-upload {
    min-height:42px!important;font-size:var(--type-table)!important;
- 
- #studentsView #studentRosterTable tbody td:last-child {border-bottom:0!important
+ }
+ #studentsView #studentRosterTable tbody td:last-child {border-bottom:0!important}
  a#classQrTeacherShortcut {
    right:12px!important;bottom:calc(12px + env(safe-area-inset-bottom,0px))!important;
    max-width:calc(100vw - 24px)!important;padding:10px 12px!important;
    font-size:var(--type-secondary)!important;border-radius:12px!important;
- 
+ }
 }
 html[data-ui-theme="dark"] #studentsView #studentRosterTable tbody tr:not(:has(td.empty-cell)) {
  background:#1b2a42!important;border-color:#3b4e69!important;
-
+}
 html[data-ui-theme="dark"] #studentsView #studentRosterTable tbody tr:not(:has(td.empty-cell)) td {
  background:transparent!important;color:#edf4ff!important;border-bottom-color:#354761!important;
-
-html[data-ui-theme="dark"] #studentsView #studentRosterTable tbody td::before {color:#b3c2d8!important
-html[data-ui-theme="dark"] #studentsView #studentRosterTable tbody td[data-label="Full name"] {color:#f4f8ff!important
+}
+html[data-ui-theme="dark"] #studentsView #studentRosterTable tbody td::before {color:#b3c2d8!important}
+html[data-ui-theme="dark"] #studentsView #studentRosterTable tbody td[data-label="Full name"] {color:#f4f8ff!important}
 html[data-ui-theme="dark"] #studentsView #studentRosterTable tbody td .muted-inline,
-html[data-ui-theme="dark"] #studentsView #studentRosterTable tbody td small {color:#c2cde0!important
+html[data-ui-theme="dark"] #studentsView #studentRosterTable tbody td small {color:#c2cde0!important}
 
 /* School-branded floating QR scanner shortcut. */
 .portal-page a#classQrTeacherShortcut,
@@ -246,10 +246,10 @@ a#classQrTeacherShortcut{
   box-shadow:0 9px 25px rgba(9,22,44,.22),inset 0 1px 0 rgba(255,255,255,.14)!important;
   text-decoration:none!important;
   transition:transform .16s ease,filter .16s ease,box-shadow .16s ease!important;
-
-a#classQrTeacherShortcut:hover{filter:brightness(1.07);transform:translateY(-2px);box-shadow:0 12px 28px rgba(9,22,44,.27)!important
-a#classQrTeacherShortcut:active{transform:translateY(0);filter:brightness(.96)
-a#classQrTeacherShortcut:focus-visible{outline:3px solid color-mix(in srgb,var(--qr-button-brand) 45%,white)!important;outline-offset:4px!important
-a#classQrTeacherShortcut :is(svg,.ui-icon,i){color:inherit!important;stroke:currentColor!important
-@media(max-width:700px){a#classQrTeacherShortcut{padding:10px 13px!important;min-height:44px!important;font-size:var(--type-secondary)!important;right:12px!important;bottom:calc(12px + env(safe-area-inset-bottom,0px))!important;max-width:calc(100vw - 24px)!important}
-@media(prefers-reduced-motion:reduce){a#classQrTeacherShortcut{transition:none!important}
+}
+a#classQrTeacherShortcut:hover{filter:brightness(1.07);transform:translateY(-2px);box-shadow:0 12px 28px rgba(9,22,44,.27)!important}
+a#classQrTeacherShortcut:active{transform:translateY(0);filter:brightness(.96)}
+a#classQrTeacherShortcut:focus-visible{outline:3px solid color-mix(in srgb,var(--qr-button-brand) 45%,white)!important;outline-offset:4px!important}
+a#classQrTeacherShortcut :is(svg,.ui-icon,i){color:inherit!important;stroke:currentColor!important}
+@media(max-width:700px){a#classQrTeacherShortcut{padding:10px 13px!important;min-height:44px!important;font-size:var(--type-secondary)!important;right:12px!important;bottom:calc(12px + env(safe-area-inset-bottom,0px))!important;max-width:calc(100vw - 24px)!important}}
+@media(prefers-reduced-motion:reduce){a#classQrTeacherShortcut{transition:none!important}}

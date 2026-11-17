@@ -1,107 +1,107 @@
 /* Special-program membership and approval experience, responsive in light/dark mode. */
-.special-program-chip{display:inline-flex;padding:5px 10px;border-radius:999px;background:#e9f2ff;border:1px solid #bad6ff;color:#174b92;font-size:var(--type-secondary);font-weight:800;letter-spacing:.03em;white-space:nowrap
-.special-program-request-link{display:block;margin-top:6px;padding:3px 0;border:0;background:transparent;color:var(--brand,#176ab1);font:inherit;font-size:var(--type-secondary);font-weight:750;text-decoration:underline;text-underline-offset:3px;cursor:pointer
-.special-program-request-link:hover{filter:brightness(.9)
-.special-request-dialog{max-width:560px
-.special-program-bulk-controls{display:flex;gap:10px;align-items:end;flex-wrap:wrap;margin-top:12px
-.special-program-bulk-controls label{display:flex;flex-direction:column;gap:6px;min-width:min(260px,100%);font-size:var(--type-table);font-weight:700
-.special-program-bulk-controls select{min-height:42px;padding:9px 10px;border:1px solid #cbd5e1;background:#fff;color:#172d48;border-radius:9px;width:100%
-.special-program-admin-tools{padding:16px;margin:16px 0;border:1px solid #d3dfed;border-radius:14px;background:#f7faff
-.special-program-admin-tools h4{margin:0 0 7px;font-size:15px.special-program-admin-tools p{font-size:var(--type-secondary);line-height:1.5
-.special-program-review-row{display:flex;align-items:center;gap:12px;border:1px solid #d8e3ef;border-radius:12px;padding:14px;margin:9px 0;background:#fff;min-width:0
-.special-program-review-row>div:first-child{flex:1;min-width:0
-.special-program-review-row strong,.special-program-review-row small{display:block;overflow-wrap:anywhere
-.special-program-review-row strong{font-size:13px;color:#1d3250
-.special-program-review-row small{font-size:var(--type-secondary);color:#657a92;margin-top:5px
-.special-program-review-row p{font-size:var(--type-secondary);line-height:1.5;white-space:pre-wrap;margin:8px 0 0
-.special-program-status{display:inline-flex;align-items:center;padding:5px 9px;border-radius:999px;text-transform:capitalize;font-size:var(--type-secondary);font-weight:750;background:#eaf0f8;color:#45617c
-.special-program-status.pending{background:#fff3d6;color:#8b5612
-.special-program-status.approved{background:#e1f8e8;color:#14613d
-.special-program-status.rejected{background:#ffe5e8;color:#992c43
-.special-program-review-actions{display:flex;gap:8px;flex-wrap:wrap
-.special-program-empty-state{padding:14px 16px;border:1px dashed var(--line,#d8e3ef);border-radius:12px;background:var(--card,#fff);color:var(--muted,#657a92);font-size:13px;line-height:1.5
-.special-program-request-history{margin-top:18px;padding-top:12px;border-top:1px solid var(--line,#d8e3ef)
-.special-program-request-history>summary{cursor:pointer;padding:10px 2px;color:var(--ink,#1d3250);font-size:13px;font-weight:750
-.special-program-request-history>summary:focus-visible{outline:2px solid var(--brand,#176ab1);outline-offset:4px;border-radius:4px
-.special-program-request-history[open]>summary{margin-bottom:8px
-html[data-ui-theme="dark"] .special-program-empty-state{background:#1b2b44;color:#b9cbe4;border-color:#465e7e
-html[data-ui-theme="dark"] .special-program-request-history{border-color:#465e7e
-html[data-ui-theme="dark"] .special-program-request-history>summary{color:#f3f7ff
-#academicEnrollmentRows input[data-special-enroll]{width:18px;height:18px;accent-color:var(--brand,#176ab1);cursor:pointer
-html[data-ui-theme="dark"] .special-program-chip{background:#1a3556;color:#bce1ff;border-color:#436f9d
-html[data-ui-theme="dark"] .special-program-request-link{color:#9fcaff
-html[data-ui-theme="dark"] .special-program-admin-tools{background:#192941;color:#ebf2ff;border-color:#435b7c
-html[data-ui-theme="dark"] .special-program-bulk-controls select{background:#21344e;color:#fff;border-color:#4c6183
-html[data-ui-theme="dark"] .special-program-review-row{background:#1b2b44;color:#edf5ff;border-color:#465e7e
-html[data-ui-theme="dark"] .special-program-review-row strong{color:#f3f7ff
-html[data-ui-theme="dark"] .special-program-review-row small{color:#b9cbe4
-html[data-ui-theme="dark"] .special-program-status.pending{background:#684a20;color:#ffe4b2
-html[data-ui-theme="dark"] .special-program-status.approved{background:#164b3c;color:#c2ffe2
-html[data-ui-theme="dark"] .special-program-status.rejected{background:#632e3c;color:#ffc4cf
-@media(max-width:800px){.special-program-review-row{align-items:flex-start;flex-wrap:wrap.special-program-review-row>div:first-child{flex-basis:100%.special-program-bulk-controls>*{flex:1;min-width:min(100%,220px)}
-@media(max-width:540px){.special-program-review-actions{width:100%.special-program-review-actions button{flex:1.special-program-bulk-controls{display:grid;grid-template-columns:1fr.special-program-bulk-controls>*{width:100%}
+.special-program-chip{display:inline-flex;padding:5px 10px;border-radius:999px;background:#e9f2ff;border:1px solid #bad6ff;color:#174b92;font-size:var(--type-secondary);font-weight:800;letter-spacing:.03em;white-space:nowrap}
+.special-program-request-link{display:block;margin-top:6px;padding:3px 0;border:0;background:transparent;color:var(--brand,#176ab1);font:inherit;font-size:var(--type-secondary);font-weight:750;text-decoration:underline;text-underline-offset:3px;cursor:pointer}
+.special-program-request-link:hover{filter:brightness(.9)}
+.special-request-dialog{max-width:560px}
+.special-program-bulk-controls{display:flex;gap:10px;align-items:end;flex-wrap:wrap;margin-top:12px}
+.special-program-bulk-controls label{display:flex;flex-direction:column;gap:6px;min-width:min(260px,100%);font-size:var(--type-table);font-weight:700}
+.special-program-bulk-controls select{min-height:42px;padding:9px 10px;border:1px solid #cbd5e1;background:#fff;color:#172d48;border-radius:9px;width:100%}
+.special-program-admin-tools{padding:16px;margin:16px 0;border:1px solid #d3dfed;border-radius:14px;background:#f7faff}
+.special-program-admin-tools h4{margin:0 0 7px;font-size:15px}.special-program-admin-tools p{font-size:var(--type-secondary);line-height:1.5}
+.special-program-review-row{display:flex;align-items:center;gap:12px;border:1px solid #d8e3ef;border-radius:12px;padding:14px;margin:9px 0;background:#fff;min-width:0}
+.special-program-review-row>div:first-child{flex:1;min-width:0}
+.special-program-review-row strong,.special-program-review-row small{display:block;overflow-wrap:anywhere}
+.special-program-review-row strong{font-size:13px;color:#1d3250}
+.special-program-review-row small{font-size:var(--type-secondary);color:#657a92;margin-top:5px}
+.special-program-review-row p{font-size:var(--type-secondary);line-height:1.5;white-space:pre-wrap;margin:8px 0 0}
+.special-program-status{display:inline-flex;align-items:center;padding:5px 9px;border-radius:999px;text-transform:capitalize;font-size:var(--type-secondary);font-weight:750;background:#eaf0f8;color:#45617c}
+.special-program-status.pending{background:#fff3d6;color:#8b5612}
+.special-program-status.approved{background:#e1f8e8;color:#14613d}
+.special-program-status.rejected{background:#ffe5e8;color:#992c43}
+.special-program-review-actions{display:flex;gap:8px;flex-wrap:wrap}
+.special-program-empty-state{padding:14px 16px;border:1px dashed var(--line,#d8e3ef);border-radius:12px;background:var(--card,#fff);color:var(--muted,#657a92);font-size:13px;line-height:1.5}
+.special-program-request-history{margin-top:18px;padding-top:12px;border-top:1px solid var(--line,#d8e3ef)}
+.special-program-request-history>summary{cursor:pointer;padding:10px 2px;color:var(--ink,#1d3250);font-size:13px;font-weight:750}
+.special-program-request-history>summary:focus-visible{outline:2px solid var(--brand,#176ab1);outline-offset:4px;border-radius:4px}
+.special-program-request-history[open]>summary{margin-bottom:8px}
+html[data-ui-theme="dark"] .special-program-empty-state{background:#1b2b44;color:#b9cbe4;border-color:#465e7e}
+html[data-ui-theme="dark"] .special-program-request-history{border-color:#465e7e}
+html[data-ui-theme="dark"] .special-program-request-history>summary{color:#f3f7ff}
+#academicEnrollmentRows input[data-special-enroll]{width:18px;height:18px;accent-color:var(--brand,#176ab1);cursor:pointer}
+html[data-ui-theme="dark"] .special-program-chip{background:#1a3556;color:#bce1ff;border-color:#436f9d}
+html[data-ui-theme="dark"] .special-program-request-link{color:#9fcaff}
+html[data-ui-theme="dark"] .special-program-admin-tools{background:#192941;color:#ebf2ff;border-color:#435b7c}
+html[data-ui-theme="dark"] .special-program-bulk-controls select{background:#21344e;color:#fff;border-color:#4c6183}
+html[data-ui-theme="dark"] .special-program-review-row{background:#1b2b44;color:#edf5ff;border-color:#465e7e}
+html[data-ui-theme="dark"] .special-program-review-row strong{color:#f3f7ff}
+html[data-ui-theme="dark"] .special-program-review-row small{color:#b9cbe4}
+html[data-ui-theme="dark"] .special-program-status.pending{background:#684a20;color:#ffe4b2}
+html[data-ui-theme="dark"] .special-program-status.approved{background:#164b3c;color:#c2ffe2}
+html[data-ui-theme="dark"] .special-program-status.rejected{background:#632e3c;color:#ffc4cf}
+@media(max-width:800px){.special-program-review-row{align-items:flex-start;flex-wrap:wrap}.special-program-review-row>div:first-child{flex-basis:100%}.special-program-bulk-controls>*{flex:1;min-width:min(100%,220px)}}
+@media(max-width:540px){.special-program-review-actions{width:100%}.special-program-review-actions button{flex:1}.special-program-bulk-controls{display:grid;grid-template-columns:1fr}.special-program-bulk-controls>*{width:100%}}
 
 /* Bulk-change preview and grouped School Admin review; touch-friendly without overflowing mobile. */
-.special-program-batch-dialog{width:min(94vw,790px);max-width:790px;max-height:90vh;overflow-y:auto
-.special-program-preview-summary{font-size:13px;font-weight:750;color:var(--ink,#234463);margin:8px 0
-.special-program-preview-rows{max-height:310px;overflow-y:auto;border:1px solid var(--line,#d8e3ee);border-radius:13px;background:var(--card,#fff);margin:10px 0
-.special-batch-preview-row{display:grid;grid-template-columns:22px minmax(130px,1.2fr) auto minmax(160px,1fr);align-items:center;gap:12px;padding:12px 13px;border-bottom:1px solid var(--line,#d8e3ee);cursor:pointer
-.special-batch-preview-row:last-child{border-bottom:0
-.special-batch-preview-row.ineligible{opacity:.76;cursor:default
-.special-batch-preview-identity{min-width:0;overflow-wrap:anywhere
-.special-batch-preview-identity strong,.special-batch-preview-identity small{display:block
-.special-batch-preview-identity strong{font-size:13px
-.special-batch-preview-identity small,.special-batch-preview-reason{font-size:var(--type-secondary);line-height:1.45;color:var(--muted,#66788c)
-.special-batch-eligibility{padding:4px 8px;border-radius:12px;font-size:var(--type-secondary);font-weight:800
-.special-batch-eligibility.ok{background:#dbf6e7;color:#166144
-.special-batch-eligibility.skip{background:#fff0db;color:#844f12
-.special-program-review-heading{font-size:14px;margin:20px 0 9px
-.special-batch-admin-group{background:var(--card,#fff);border:1px solid var(--line,#d8e3ee);border-radius:14px;padding:15px;margin:12px 0
-.special-batch-admin-head{display:flex;align-items:center;gap:12px;justify-content:space-between
-.special-batch-admin-head strong,.special-batch-admin-head small{display:block
-.special-batch-admin-head strong{font-size:14px
-.special-batch-admin-head small,.special-batch-admin-reason{font-size:var(--type-secondary);color:var(--muted,#65758d);margin-top:5px
-.special-batch-select-all{display:flex;gap:9px;align-items:center;font-size:var(--type-table);font-weight:700;margin:14px 0 6px
-.special-batch-admin-learners{max-height:360px;overflow:auto;border:1px solid var(--line,#d8e3ee);border-radius:10px;margin-bottom:12px
-.special-batch-admin-student{display:flex;align-items:center;gap:11px;padding:10px 12px;border-bottom:1px solid var(--line,#d8e3ee)
-.special-batch-admin-student:last-child{border-bottom:0
-.special-batch-admin-student>span:nth-child(2){flex:1;min-width:0
-.special-batch-admin-student strong,.special-batch-admin-student small{display:block;font-size:var(--type-secondary);overflow-wrap:anywhere
-.special-batch-admin-student small{color:var(--muted,#66788c);font-size:var(--type-secondary)
-.special-batch-review-note{display:flex;flex-direction:column;gap:6px;font-weight:700;font-size:var(--type-secondary);margin:8px 0
-.special-batch-review-note textarea{width:100%;border-radius:9px;border:1px solid var(--line,#cbd5e1);padding:10px;background:var(--card,#fff);color:var(--ink,#162b46)
-.special-program-batch-dialog input[type=checkbox],.special-batch-admin-group input[type=checkbox]{width:18px;height:18px;flex-shrink:0;accent-color:#2164af
+.special-program-batch-dialog{width:min(94vw,790px);max-width:790px;max-height:90vh;overflow-y:auto}
+.special-program-preview-summary{font-size:13px;font-weight:750;color:var(--ink,#234463);margin:8px 0}
+.special-program-preview-rows{max-height:310px;overflow-y:auto;border:1px solid var(--line,#d8e3ee);border-radius:13px;background:var(--card,#fff);margin:10px 0}
+.special-batch-preview-row{display:grid;grid-template-columns:22px minmax(130px,1.2fr) auto minmax(160px,1fr);align-items:center;gap:12px;padding:12px 13px;border-bottom:1px solid var(--line,#d8e3ee);cursor:pointer}
+.special-batch-preview-row:last-child{border-bottom:0}
+.special-batch-preview-row.ineligible{opacity:.76;cursor:default}
+.special-batch-preview-identity{min-width:0;overflow-wrap:anywhere}
+.special-batch-preview-identity strong,.special-batch-preview-identity small{display:block}
+.special-batch-preview-identity strong{font-size:13px}
+.special-batch-preview-identity small,.special-batch-preview-reason{font-size:var(--type-secondary);line-height:1.45;color:var(--muted,#66788c)}
+.special-batch-eligibility{padding:4px 8px;border-radius:12px;font-size:var(--type-secondary);font-weight:800}
+.special-batch-eligibility.ok{background:#dbf6e7;color:#166144}
+.special-batch-eligibility.skip{background:#fff0db;color:#844f12}
+.special-program-review-heading{font-size:14px;margin:20px 0 9px}
+.special-batch-admin-group{background:var(--card,#fff);border:1px solid var(--line,#d8e3ee);border-radius:14px;padding:15px;margin:12px 0}
+.special-batch-admin-head{display:flex;align-items:center;gap:12px;justify-content:space-between}
+.special-batch-admin-head strong,.special-batch-admin-head small{display:block}
+.special-batch-admin-head strong{font-size:14px}
+.special-batch-admin-head small,.special-batch-admin-reason{font-size:var(--type-secondary);color:var(--muted,#65758d);margin-top:5px}
+.special-batch-select-all{display:flex;gap:9px;align-items:center;font-size:var(--type-table);font-weight:700;margin:14px 0 6px}
+.special-batch-admin-learners{max-height:360px;overflow:auto;border:1px solid var(--line,#d8e3ee);border-radius:10px;margin-bottom:12px}
+.special-batch-admin-student{display:flex;align-items:center;gap:11px;padding:10px 12px;border-bottom:1px solid var(--line,#d8e3ee)}
+.special-batch-admin-student:last-child{border-bottom:0}
+.special-batch-admin-student>span:nth-child(2){flex:1;min-width:0}
+.special-batch-admin-student strong,.special-batch-admin-student small{display:block;font-size:var(--type-secondary);overflow-wrap:anywhere}
+.special-batch-admin-student small{color:var(--muted,#66788c);font-size:var(--type-secondary)}
+.special-batch-review-note{display:flex;flex-direction:column;gap:6px;font-weight:700;font-size:var(--type-secondary);margin:8px 0}
+.special-batch-review-note textarea{width:100%;border-radius:9px;border:1px solid var(--line,#cbd5e1);padding:10px;background:var(--card,#fff);color:var(--ink,#162b46)}
+.special-program-batch-dialog input[type=checkbox],.special-batch-admin-group input[type=checkbox]{width:18px;height:18px;flex-shrink:0;accent-color:#2164af}
 html[data-ui-theme="dark"] .special-program-preview-rows,
 html[data-ui-theme="dark"] .special-batch-admin-group,
-html[data-ui-theme="dark"] .special-batch-admin-learners{background:var(--night-raised,#172842);border-color:var(--night-border,#4a607c);color:var(--night-text,#ecf3ff)
+html[data-ui-theme="dark"] .special-batch-admin-learners{background:var(--night-raised,#172842);border-color:var(--night-border,#4a607c);color:var(--night-text,#ecf3ff)}
 html[data-ui-theme="dark"] .special-batch-preview-row,
-html[data-ui-theme="dark"] .special-batch-admin-student{border-color:var(--night-border,#4a607c)
+html[data-ui-theme="dark"] .special-batch-admin-student{border-color:var(--night-border,#4a607c)}
 html[data-ui-theme="dark"] .special-batch-preview-identity small,
 html[data-ui-theme="dark"] .special-batch-preview-reason,
 html[data-ui-theme="dark"] .special-batch-admin-head small,
 html[data-ui-theme="dark"] .special-batch-admin-reason,
-html[data-ui-theme="dark"] .special-batch-admin-student small{color:var(--night-muted,#b8cbdf)
-html[data-ui-theme="dark"] .special-program-preview-summary{color:var(--night-text,#ecf3ff)
-html[data-ui-theme="dark"] .special-batch-review-note textarea{background:#20344f;border-color:#4a607c;color:#f0f6ff
-html[data-ui-theme="dark"] .special-batch-eligibility.ok{background:#144c3c;color:#b9f5d5
-html[data-ui-theme="dark"] .special-batch-eligibility.skip{background:#63431d;color:#ffe1a9
-@media(max-width:650px){.special-batch-preview-row{grid-template-columns:22px 1fr auto;gap:8px.special-batch-preview-reason{grid-column:2 / -1.special-batch-admin-head{align-items:flex-start;flex-wrap:wrap.special-batch-admin-group{padding:11px.special-program-batch-dialog{width:95vw}
+html[data-ui-theme="dark"] .special-batch-admin-student small{color:var(--night-muted,#b8cbdf)}
+html[data-ui-theme="dark"] .special-program-preview-summary{color:var(--night-text,#ecf3ff)}
+html[data-ui-theme="dark"] .special-batch-review-note textarea{background:#20344f;border-color:#4a607c;color:#f0f6ff}
+html[data-ui-theme="dark"] .special-batch-eligibility.ok{background:#144c3c;color:#b9f5d5}
+html[data-ui-theme="dark"] .special-batch-eligibility.skip{background:#63431d;color:#ffe1a9}
+@media(max-width:650px){.special-batch-preview-row{grid-template-columns:22px 1fr auto;gap:8px}.special-batch-preview-reason{grid-column:2 / -1}.special-batch-admin-head{align-items:flex-start;flex-wrap:wrap}.special-batch-admin-group{padding:11px}.special-program-batch-dialog{width:95vw}}
 
 /* Review-first school-admin workflow and compact direct batch controls. */
-#specialProgramReviewPanel{scroll-margin-top:112px;border-color:var(--line,#cbd9ed)
-.special-program-workflow-hint{margin:12px 0 18px;padding:12px 16px;border-left:3px solid var(--brand,#2164af);background:var(--card,#f5f9ff);color:var(--ink,#26405f);border-radius:6px;font-size:13px;line-height:1.55
-.special-program-reviewed-history{margin-top:16px;border-top:1px solid var(--line,#dae3ee);padding-top:12px
-.special-program-reviewed-history>summary{cursor:pointer;font-size:13px;font-weight:750;padding:9px 0;color:var(--ink,#26405f)
-.special-batch-admin-student{flex-wrap:wrap;gap:8px 11px
-.special-program-status.satisfied{background:#e3efff;color:#20518c;border:1px solid #b6d4f3
-#academicEnrollmentRows td:last-child select{width:min(100%,190px);max-width:190px;min-height:40px
-#academicEnrollmentRows td:last-child button{margin:4px 0 4px 8px;white-space:nowrap
-#academicEnrollmentRows input[data-special-enroll]{width:20px;height:20px
-html[data-ui-theme="dark"] .special-program-workflow-hint{background:#1b304c;color:#ebf2ff;border-left-color:#9fcaff
-html[data-ui-theme="dark"] .special-program-reviewed-history{border-color:var(--night-border,#4a607c)
-html[data-ui-theme="dark"] .special-program-reviewed-history>summary{color:#edf5ff
-html[data-ui-theme="dark"] .special-program-status.satisfied{background:#1c416b;color:#cfe6ff;border-color:#4277a8
-@media(max-width:650px){.special-program-workflow-hint{padding:10px 12px.special-program-bulk-controls label{min-width:0#academicEnrollmentRows td:last-child button{margin-left:0}
+#specialProgramReviewPanel{scroll-margin-top:112px;border-color:var(--line,#cbd9ed)}
+.special-program-workflow-hint{margin:12px 0 18px;padding:12px 16px;border-left:3px solid var(--brand,#2164af);background:var(--card,#f5f9ff);color:var(--ink,#26405f);border-radius:6px;font-size:13px;line-height:1.55}
+.special-program-reviewed-history{margin-top:16px;border-top:1px solid var(--line,#dae3ee);padding-top:12px}
+.special-program-reviewed-history>summary{cursor:pointer;font-size:13px;font-weight:750;padding:9px 0;color:var(--ink,#26405f)}
+.special-batch-admin-student{flex-wrap:wrap;gap:8px 11px}
+.special-program-status.satisfied{background:#e3efff;color:#20518c;border:1px solid #b6d4f3}
+#academicEnrollmentRows td:last-child select{width:min(100%,190px);max-width:190px;min-height:40px}
+#academicEnrollmentRows td:last-child button{margin:4px 0 4px 8px;white-space:nowrap}
+#academicEnrollmentRows input[data-special-enroll]{width:20px;height:20px}
+html[data-ui-theme="dark"] .special-program-workflow-hint{background:#1b304c;color:#ebf2ff;border-left-color:#9fcaff}
+html[data-ui-theme="dark"] .special-program-reviewed-history{border-color:var(--night-border,#4a607c)}
+html[data-ui-theme="dark"] .special-program-reviewed-history>summary{color:#edf5ff}
+html[data-ui-theme="dark"] .special-program-status.satisfied{background:#1c416b;color:#cfe6ff;border-color:#4277a8}
+@media(max-width:650px){.special-program-workflow-hint{padding:10px 12px}.special-program-bulk-controls label{min-width:0}#academicEnrollmentRows td:last-child button{margin-left:0}}
 
 
 /* Learner roster: only the program badge is shown in the membership column.
@@ -110,65 +110,65 @@ html[data-ui-theme="dark"] .special-program-status.satisfied{background:#1c416b;
   display:inline-flex;align-items:center;margin:6px 0 0;padding:3px 8px;
   border-radius:999px;border:1px solid #e4c57d;background:#fff5da;
   color:#80520b;font-size:var(--type-table);font-weight:750;line-height:1.45;white-space:nowrap
-
-#studentsView #studentRosterTable td[data-label="Special program"] .special-program-chip{vertical-align:middle
-#studentsView .student-program-action{font:inherit;font-size:var(--type-table);cursor:pointer
+}
+#studentsView #studentRosterTable td[data-label="Special program"] .special-program-chip{vertical-align:middle}
+#studentsView .student-program-action{font:inherit;font-size:var(--type-table);cursor:pointer}
 #studentsView #studentRosterTable .student-program-action-menu>summary{
   list-style:none;display:inline-flex;align-items:center;justify-content:center;gap:7px;
   min-height:40px;min-width:96px;padding:8px 12px;border:1px solid #bbd0e8;
   border-radius:10px;background:#f7fbff;color:#1f4e83;cursor:pointer;font-size:var(--type-table);font-weight:750
-
-#studentsView #studentRosterTable .student-program-action-menu>summary::-webkit-details-marker{display:none
-#studentsView #studentRosterTable .student-program-action-menu>summary::after{content:"⌄";font-size:15px;line-height:1
+}
+#studentsView #studentRosterTable .student-program-action-menu>summary::-webkit-details-marker{display:none}
+#studentsView #studentRosterTable .student-program-action-menu>summary::after{content:"⌄";font-size:15px;line-height:1}
 #studentsView #studentRosterTable .student-program-action-menu[open]>.student-row-actions{
   position:fixed!important;top:0;left:0;z-index:19000;display:flex;flex-direction:column;
   align-items:stretch;gap:3px;box-sizing:border-box;width:238px;max-width:calc(100vw - 20px);
   max-height:70dvh;overflow-y:auto;margin:0;padding:8px;
   border:1px solid #c5d6e8;border-radius:13px;background:#fff;
   box-shadow:0 18px 42px rgba(13,34,58,.22)
-
+}
 #studentsView #studentRosterTable .student-program-action-menu .student-program-action{
   display:block;box-sizing:border-box;width:100%;min-height:40px;padding:9px 11px;text-align:left;
   border:0;border-radius:8px;background:transparent;color:#173d67;font-weight:750
-
-#studentsView #studentRosterTable .student-program-action-menu .student-program-action:hover{background:#e8f2ff
+}
+#studentsView #studentRosterTable .student-program-action-menu .student-program-action:hover{background:#e8f2ff}
 #studentsView #studentRosterTable :is(.student-program-action,.student-program-action-menu>summary):focus-visible{
   outline:3px solid #63a7ff;outline-offset:2px
-
+}
 #specialProgramRequestModal .special-program-current{
   display:flex;align-items:center;gap:7px;flex-wrap:wrap;padding:11px 13px;
   border:1px solid #d4e3f3;border-radius:11px;background:#f1f6fc;
   color:#50627a;font-size:var(--type-secondary)
-
-#specialProgramRequestModal .special-program-current strong{color:#1f4f87;font-size:13px
+}
+#specialProgramRequestModal .special-program-current strong{color:#1f4f87;font-size:13px}
 html[data-ui-theme="dark"] #studentsView #studentRosterTable .special-program-row-pending{
   background:#53411d;color:#ffdc9d;border-color:#9c7730
-
+}
 html[data-ui-theme="dark"] #studentsView #studentRosterTable .student-program-action-menu>summary{
   background:#233c59!important;border-color:#6b89aa!important;color:#f1f7ff!important
-
+}
 html[data-ui-theme="dark"] #studentsView #studentRosterTable .student-program-action-menu[open]>.student-row-actions{
   background:#1c314c!important;color:#f0f6ff!important;border-color:#6280a4!important;
   box-shadow:0 18px 38px rgba(0,0,0,.48)
-
+}
 html[data-ui-theme="dark"] #studentsView #studentRosterTable .student-program-action-menu .student-program-action{
   background:transparent!important;color:#f1f7ff!important
-
+}
 html[data-ui-theme="dark"] #studentsView #studentRosterTable .student-program-action-menu .student-program-action:hover{
   background:#355476!important
-
+}
 html[data-ui-theme="dark"] #specialProgramRequestModal .special-program-current{
   background:#213752;color:#c2d4ea;border-color:#527094
-
-html[data-ui-theme="dark"] #specialProgramRequestModal .special-program-current strong{color:#eaf3ff
+}
+html[data-ui-theme="dark"] #specialProgramRequestModal .special-program-current strong{color:#eaf3ff}
 html[data-ui-theme="dark"] #specialProgramRequestModal .student-edit-dialog{
   background:#172841!important;color:#f2f7ff!important;border:1px solid #516987!important
-
-html[data-ui-theme="dark"] #specialProgramRequestModal :is(h3,label,.field-hint){color:#e9f3ff!important
+}
+html[data-ui-theme="dark"] #specialProgramRequestModal :is(h3,label,.field-hint){color:#e9f3ff!important}
 html[data-ui-theme="dark"] #specialProgramRequestModal :is(select,textarea){
   background:#213854!important;border-color:#6481a1!important;color:#f3f7ff!important
-
+}
 @media(max-width:700px){
-  #studentsView #studentRosterTable .student-program-action-menu>summary{width:100%;max-width:180px
-  #specialProgramRequestModal .special-program-current{align-items:flex-start
+  #studentsView #studentRosterTable .student-program-action-menu>summary{width:100%;max-width:180px}
+  #specialProgramRequestModal .special-program-current{align-items:flex-start}
 }

@@ -50,6 +50,6 @@ test('shortcut typography is legible for desktop and mobile in both themes',()=>
  assert.match(css,/font-size:17px!important/);
  assert.match(css,/font-size:14px!important/);
  assert.match(css,/font-size:16px!important/);
- assert.match(css,/font-size:13px!important/);
+ assert.match(css,/font-size:var\(--type-table\)!important/);
  assert.match(css,/data-ui-theme="dark"/);
 });

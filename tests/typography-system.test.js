@@ -67,7 +67,17 @@ test('high-density interface styles use shared readable tokens', () => {
 
 test('static interface typography assets have balanced CSS rule blocks', () => {
   for (const file of ['typography.css', 'teacher-learner-roster.css', 'manual-folio.css',
-    'planner.css', 'portal.css', 'comfort-ui.css']) {
+    'planner.css', 'portal.css', 'comfort-ui.css', 'dashboard-ui.css',
+    'dashboard-polish.css', 'dashboard-night.css', 'student-roster-toolbar.css',
+    'student-portal-accounts.css', 'student-portal-refinement.css',
+    'attendance-sync-center.css', 'schedule-form-layout.css',
+    'admin-request-notifications.css', 'universal-notifications.css',
+    'attendigo-login-refinement.css', 'attendigo-login-motion.css',
+    'parent-admin.css', 'guardian-ui.css', 'sms.css', 'app-dialog.css',
+    'attendigo-sidebar-adaptive.css', 'styles.css', 'form-system.css',
+    'platform-setup.css', 'teacher-assignment-modal.css',
+    'user-nav-reorg.css', 'photo-editor.css', 'special-program-ui.css',
+    'sardo-monitor.css', 'responsive.css']) {
     const css = read('public/' + file).replace(/\/\*[\s\S]*?\*\//g, '');
     const opens = (css.match(/\{/g) || []).length;
     const closes = (css.match(/\}/g) || []).length;

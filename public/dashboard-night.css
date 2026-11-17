@@ -17,67 +17,67 @@ html[data-ui-theme="dark"] {
   --muted:var(--ui-muted);
   --line:var(--ui-line);
   color-scheme:dark;
-
+}
 html[data-ui-theme="dark"] .portal-page .topbar {
   background:#101a2c!important;
   border-bottom:1px solid var(--ui-line)!important;
-
+}
 html[data-ui-theme="dark"] .portal-page :is(.breadcrumbs,.breadcrumbs span,.breadcrumbs b,
- .account-menu-wrap,.account-trigger,.account-chevron,.connection-chip) {color:var(--ui-muted)
-html[data-ui-theme="dark"] .portal-page .breadcrumbs strong {color:var(--ui-text)
-html[data-ui-theme="dark"] .portal-page :is(.sidebar,.sidebar-status,.sidebar-brand) {border-color:var(--ui-line)
-html[data-ui-theme="dark"] .portal-page .sidebar-section-label {color:#a4b4cc
+ .account-menu-wrap,.account-trigger,.account-chevron,.connection-chip) {color:var(--ui-muted)}
+html[data-ui-theme="dark"] .portal-page .breadcrumbs strong {color:var(--ui-text)}
+html[data-ui-theme="dark"] .portal-page :is(.sidebar,.sidebar-status,.sidebar-brand) {border-color:var(--ui-line)}
+html[data-ui-theme="dark"] .portal-page .sidebar-section-label {color:#a4b4cc}
 html[data-ui-theme="dark"] .portal-page .nav-item:not(.active):hover,
-html[data-ui-theme="dark"] .portal-page .nav-group-toggle:hover {background:rgba(215,230,255,.085);color:#fff
+html[data-ui-theme="dark"] .portal-page .nav-group-toggle:hover {background:rgba(215,230,255,.085);color:#fff}
 html[data-ui-theme="dark"] .portal-page .nav-item.active {
   background:color-mix(in srgb,var(--brand,#2463a5) 49%,#222b42)!important;
   color:#fff!important;
   box-shadow:inset 3px 0 0 color-mix(in srgb,var(--brand,#2463a5) 60%,white);
-
+}
 
 /* Main School Admin landing card. Every foreground is tied to its surface. */
 html[data-ui-theme="dark"] .portal-page #adminDashboardCard {
  background:var(--ui-panel)!important; border:1px solid var(--ui-line)!important;
  box-shadow:var(--ui-shadow);color:var(--ui-text)!important;
-
+}
 html[data-ui-theme="dark"] .portal-page .admin-dashboard-kicker {
  color:var(--ui-accent)!important;font-size:var(--type-secondary);letter-spacing:.1em;
-
+}
 html[data-ui-theme="dark"] .portal-page .admin-dashboard-intro h3 {
  color:var(--ui-text)!important;font-size:clamp(22px,2vw,28px);
-
+}
 html[data-ui-theme="dark"] .portal-page .admin-dashboard-intro p {
  color:var(--ui-muted)!important;font-size:14px;line-height:1.65;
-
+}
 html[data-ui-theme="dark"] .portal-page .admin-dashboard-action {
  background:var(--ui-panel-raised)!important;
  color:var(--ui-text)!important;
  border:1px solid var(--ui-line)!important;
  box-shadow:none!important;
-
+}
 html[data-ui-theme="dark"] .portal-page .admin-dashboard-action:hover {
  background:var(--ui-hover)!important;
  border-color:var(--ui-accent)!important;
  transform:translateY(-1px);
-
+}
 html[data-ui-theme="dark"] .portal-page .admin-dashboard-action:focus-visible,
 html[data-ui-theme="dark"] .portal-page .quick-card .quick-action:focus-visible {
  outline:3px solid var(--ui-accent);outline-offset:3px;
-
+}
 html[data-ui-theme="dark"] .portal-page .admin-dashboard-action strong {
  color:var(--ui-text)!important;font-size:14px;font-weight:760;
-
+}
 html[data-ui-theme="dark"] .portal-page .admin-dashboard-action small {
  color:var(--ui-muted)!important;font-size:var(--type-table);line-height:1.5;
-
-html[data-ui-theme="dark"] .portal-page .admin-dashboard-action > b {color:var(--ui-muted)
+}
+html[data-ui-theme="dark"] .portal-page .admin-dashboard-action > b {color:var(--ui-muted)}
 html[data-ui-theme="dark"] .portal-page .admin-dashboard-footnote,
 html[data-ui-theme="dark"] .portal-page .scope-note {
  background:var(--ui-panel-soft)!important;
  border:1px solid var(--ui-line)!important;
  color:var(--ui-muted)!important;
  font-size:13px;line-height:1.55;
-
+}
 
 /* Shortcut cards for School Admin, Department Head, teacher and student roles. */
 html[data-ui-theme="dark"] .portal-page .dashboard-columns > .surface-card,
@@ -85,115 +85,115 @@ html[data-ui-theme="dark"] .portal-page .quick-card {
  background:var(--ui-panel)!important;
  color:var(--ui-text)!important;
  border:1px solid var(--ui-line)!important;
-
+}
 html[data-ui-theme="dark"] .portal-page .quick-card .quick-action {
  background:var(--ui-panel-raised)!important;
  border:1px solid var(--ui-line)!important;
  color:var(--ui-text)!important;
-
+}
 html[data-ui-theme="dark"] .portal-page .quick-card .quick-action:hover {
  background:var(--ui-hover)!important;border-color:var(--ui-accent)!important;
-
+}
 html[data-ui-theme="dark"] .portal-page .quick-action strong {
  color:var(--ui-text)!important;font-size:14px;font-weight:720;
-
+}
 html[data-ui-theme="dark"] .portal-page .quick-action small {
  color:var(--ui-muted)!important;font-size:var(--type-table);
-
+}
 html[data-ui-theme="dark"] .portal-page .quick-action>b,
-html[data-ui-theme="dark"] .portal-page .quick-action .action-chevron {color:var(--ui-muted)
+html[data-ui-theme="dark"] .portal-page .quick-action .action-chevron {color:var(--ui-muted)}
 html[data-ui-theme="dark"] .portal-page .card-heading h3,
 html[data-ui-theme="dark"] .portal-page .section-toolbar h3,
 html[data-ui-theme="dark"] .portal-page .section-toolbar h4,
 html[data-ui-theme="dark"] .portal-page .view-heading h2 {
  color:var(--ui-text)!important;
-
+}
 html[data-ui-theme="dark"] .portal-page .card-heading p,
 html[data-ui-theme="dark"] .portal-page .section-toolbar p,
 html[data-ui-theme="dark"] .portal-page .view-heading p {
  color:var(--ui-muted)!important;
-
+}
 html[data-ui-theme="dark"] .portal-page :is(.admin-management-tab,.account-access-grid article,
  .security-feature-grid article,.teacher-coverage-card,.department-head-overview) {
  background:var(--ui-panel-soft)!important;color:var(--ui-text)!important;border-color:var(--ui-line)!important;
-
-html[data-ui-theme="dark"] .portal-page :is(.account-access-grid h4,.security-feature-heading strong) {color:var(--ui-text)!important
-html[data-ui-theme="dark"] .portal-page :is(.account-access-grid p,.security-feature-grid p) {color:var(--ui-muted)!important
+}
+html[data-ui-theme="dark"] .portal-page :is(.account-access-grid h4,.security-feature-heading strong) {color:var(--ui-text)!important}
+html[data-ui-theme="dark"] .portal-page :is(.account-access-grid p,.security-feature-grid p) {color:var(--ui-muted)!important}
 html[data-ui-theme="dark"] .portal-page .admin-management-tab.is-active {
  background:var(--ui-hover)!important;color:var(--ui-text)!important;border-color:var(--ui-accent)!important;
-
+}
 html[data-ui-theme="dark"] .portal-page .stat-top,
-html[data-ui-theme="dark"] .portal-page .stat-top span {color:var(--ui-muted)!important
+html[data-ui-theme="dark"] .portal-page .stat-top span {color:var(--ui-muted)!important}
 
 /* Icon badges remain colored but never force dark ink onto a dark surface. */
 .portal-page :is(.admin-action-icon,.quick-action-icon,.stat-icon) {
  display:inline-flex;align-items:center;justify-content:center;
  flex-shrink:0;
-
-.portal-page .admin-action-icon {width:46px;height:46px;flex-basis:46px;border-radius:13px
-.portal-page :is(.admin-action-icon,.quick-action-icon,.stat-icon) .ui-icon {width:22px;height:22px;stroke-width:1.9
+}
+.portal-page .admin-action-icon {width:46px;height:46px;flex-basis:46px;border-radius:13px}
+.portal-page :is(.admin-action-icon,.quick-action-icon,.stat-icon) .ui-icon {width:22px;height:22px;stroke-width:1.9}
 .portal-page .quick-action .action-chevron,
-.portal-page .admin-dashboard-action > b {display:inline-flex;align-items:center;justify-content:center
+.portal-page .admin-dashboard-action > b {display:inline-flex;align-items:center;justify-content:center}
 .portal-page .quick-action .action-chevron .ui-icon,
-.portal-page .admin-dashboard-action > b .ui-icon {width:17px;height:17px
+.portal-page .admin-dashboard-action > b .ui-icon {width:17px;height:17px}
 html[data-ui-theme="dark"] .portal-page :is(.admin-action-icon,.quick-action-icon,.stat-icon) {
  background:color-mix(in srgb,var(--brand,#2463a5) 16%,#2b3b55)!important;
  color:var(--ui-accent)!important;
  border:1px solid color-mix(in srgb,var(--brand,#2463a5) 25%,#3a4a62);
-
+}
 html[data-ui-theme="dark"] .portal-page .quick-action-icon.green,
-html[data-ui-theme="dark"] .portal-page .stat-icon.green {background:#153e37!important;color:#85e7c1!important;border-color:#285c50
+html[data-ui-theme="dark"] .portal-page .stat-icon.green {background:#153e37!important;color:#85e7c1!important;border-color:#285c50}
 html[data-ui-theme="dark"] .portal-page .quick-action-icon.purple,
-html[data-ui-theme="dark"] .portal-page .stat-icon.violet {background:#352c56!important;color:#cbb8ff!important;border-color:#534479
+html[data-ui-theme="dark"] .portal-page .stat-icon.violet {background:#352c56!important;color:#cbb8ff!important;border-color:#534479}
 html[data-ui-theme="dark"] .portal-page .quick-action-icon.amber,
-html[data-ui-theme="dark"] .portal-page .stat-icon.amber {background:#44351f!important;color:#ffda91!important;border-color:#66502c
+html[data-ui-theme="dark"] .portal-page .stat-icon.amber {background:#44351f!important;color:#ffda91!important;border-color:#66502c}
 html[data-ui-theme="dark"] .portal-page :is(.student-summary-item,.parent-card,.child-card,.student-card) {
  background:var(--ui-panel)!important;color:var(--ui-text)!important;border-color:var(--ui-line)!important;
-
+}
 html[data-ui-theme="dark"] .portal-page :is(.parent-note,.student-profile-item,.student-summary-item) {
  background:var(--ui-panel-soft)!important;color:var(--ui-text)!important;border-color:var(--ui-line)!important;
-
+}
 html[data-ui-theme="dark"] .portal-page :is(.parent-head p,.student-header p,.child-card p,
- .student-summary-item span,.student-profile-item span) {color:var(--ui-muted)!important
+ .student-summary-item span,.student-profile-item span) {color:var(--ui-muted)!important}
 
 /* Higher contrast for form labels, tables and dashboard notices throughout the app. */
 html[data-ui-theme="dark"] .portal-page :is(label,.field-group label,.scope-note p,.inline-feedback,
- .form-help,.field-hint,.table-subtext,.empty-cell) {color:var(--ui-muted)
+ .form-help,.field-hint,.table-subtext,.empty-cell) {color:var(--ui-muted)}
 html[data-ui-theme="dark"] .portal-page :is(input,select,textarea):not([type="checkbox"]):not([type="radio"]):not([type="color"]) {
  background:var(--ui-panel-raised)!important;color:var(--ui-text)!important;
  border-color:var(--ui-line)!important; color-scheme:dark;
-
-html[data-ui-theme="dark"] .portal-page :is(input,textarea)::placeholder {color:#a0b1c8
+}
+html[data-ui-theme="dark"] .portal-page :is(input,textarea)::placeholder {color:#a0b1c8}
 html[data-ui-theme="dark"] .portal-page :is(.table-scroll thead,.table-scroll th) {
  background:var(--ui-panel-soft)!important;color:var(--ui-muted)!important;
-
+}
 html[data-ui-theme="dark"] .portal-page :is(.table-scroll tbody td,.table-scroll table) {
  background:var(--ui-panel)!important;color:var(--ui-text)!important;
-
-html[data-ui-theme="dark"] .portal-page .table-scroll tbody tr:hover td {background:var(--ui-hover)!important
+}
+html[data-ui-theme="dark"] .portal-page .table-scroll tbody tr:hover td {background:var(--ui-hover)!important}
 html[data-ui-theme="dark"] .portal-page .account-dropdown {
  background:var(--ui-panel)!important;border-color:var(--ui-line)!important;color:var(--ui-text)!important;
-
-html[data-ui-theme="dark"] .portal-page .account-menu-item {background:transparent;color:var(--ui-text)
-html[data-ui-theme="dark"] .portal-page .account-menu-item:hover {background:var(--ui-hover)
-html[data-ui-theme="dark"] .portal-page .account-menu-item.signout {color:#ffc1c9
+}
+html[data-ui-theme="dark"] .portal-page .account-menu-item {background:transparent;color:var(--ui-text)}
+html[data-ui-theme="dark"] .portal-page .account-menu-item:hover {background:var(--ui-hover)}
+html[data-ui-theme="dark"] .portal-page .account-menu-item.signout {color:#ffc1c9}
 html[data-ui-theme="dark"] .portal-page .connection-chip.local-only {
  background:#34291d;color:#ffd08a;border:1px solid #635033;
-
+}
 /* Consistent spacing and large hit targets in both appearances. */
 .portal-page .admin-dashboard-action,
-.portal-page .quick-card .quick-action {cursor:pointer;transition:background-color .18s,border-color .18s,transform .18s
+.portal-page .quick-card .quick-action {cursor:pointer;transition:background-color .18s,border-color .18s,transform .18s}
 .portal-page .admin-dashboard-action:focus-visible,
-.portal-page .quick-card .quick-action:focus-visible {outline:3px solid var(--ui-focus);outline-offset:2px
+.portal-page .quick-card .quick-action:focus-visible {outline:3px solid var(--ui-focus);outline-offset:2px}
 .portal-page .admin-dashboard-action > span:nth-child(2),
-.portal-page .quick-card .quick-action > span:nth-child(2){gap:5px;min-width:0
+.portal-page .quick-card .quick-action > span:nth-child(2){gap:5px;min-width:0}
 .portal-page .admin-dashboard-action small,
-.portal-page .quick-card .quick-action small{line-height:1.45
+.portal-page .quick-card .quick-action small{line-height:1.45}
 @media(max-width:700px) {
- .portal-page .admin-dashboard-actions {grid-template-columns:1fr
- .portal-page .admin-dashboard-action{min-height:76px
- .portal-page .dashboard-columns{grid-template-columns:1fr
+ .portal-page .admin-dashboard-actions {grid-template-columns:1fr}
+ .portal-page .admin-dashboard-action{min-height:76px}
+ .portal-page .dashboard-columns{grid-template-columns:1fr}
 }
 @media(prefers-reduced-motion:reduce){
- .portal-page .admin-dashboard-action,.portal-page .quick-card .quick-action{transition:none;transform:none!important
+ .portal-page .admin-dashboard-action,.portal-page .quick-card .quick-action{transition:none;transform:none!important}
 }

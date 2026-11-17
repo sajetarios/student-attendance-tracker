@@ -1,118 +1,118 @@
 /* Attendigo Student Portal — responsive learner workspace, Nov 2026 */
-.student-portal-body{--student-navy:#0e2053;--student-purple:#5b33dc;--student-aqua:#01d7d0;background:var(--ui-bg,var(--bg,#f3f6fb))!important;color:var(--ui-text,#182947);min-height:100svh
-.student-site-header{position:relative;overflow:hidden;background:linear-gradient(112deg,#0c1b4e,#1b3674 68%,#173d78);border-bottom:1px solid #274979;isolation:isolate
-.student-site-header::after{content:"";pointer-events:none;position:absolute;right:-5%;top:-130%;height:320%;width:48%;border-radius:50%;border:1px solid #4be9e935;transform:rotate(-25deg)
-.student-site-inner{width:min(1480px,100%);box-sizing:border-box;margin:auto;padding:12px clamp(20px,3.5vw,48px);min-height:80px;display:flex;align-items:center;justify-content:space-between;gap:20px
-.student-brand{display:flex;align-items:center;gap:18px;min-width:0
-.student-site-header .attendigo-brand{margin:0!important;padding:4px 0!important;width:235px;min-width:0;max-width:100%;border-radius:0!important;background:transparent!important;overflow:visible
-.student-site-header .attendigo-logo{display:block;object-fit:contain;width:100%;max-height:73px;height:auto;filter:none!important
-.student-brand-divider{display:block;width:1px;height:34px;background:#9dc1ff48
-.student-brand-name{display:grid;gap:2px;white-space:nowrap
-.student-brand-name strong{color:#fff;font-size:16px;font-weight:760;line-height:1.15
-.student-brand-name span{color:#b9c9ec;font-size:var(--type-secondary)
-.student-security-note{display:flex;align-items:center;gap:9px;color:#d4e4fa;font-size:var(--type-secondary);font-weight:650;white-space:nowrap
-.student-security-note::before{content:"";width:8px;height:8px;border-radius:50%;background:#1ce5c6;box-shadow:0 0 0 4px #1ce5c62b
-.student-portal-body .student-page{box-sizing:border-box;width:min(1480px,100%);max-width:none;margin:0 auto;padding:clamp(24px,3.5vw,46px) clamp(20px,3.5vw,48px) 55px
-.student-portal-body .student-header{display:flex;align-items:center;justify-content:space-between;gap:18px;margin:0 0 24px
-.student-portal-body .student-welcome-block{min-width:0
-.student-portal-body #studentSchoolLabel{display:block;color:var(--ui-accent,#4f38c6);font-size:var(--type-table);letter-spacing:.12em;line-height:1.4;font-weight:800;text-transform:uppercase;overflow-wrap:anywhere
-.student-portal-body #studentWelcome{font-size:clamp(29px,3.6vw,43px);letter-spacing:-.04em;line-height:1.14;margin:8px 0 9px;font-weight:800;color:var(--ui-text,#132b4d)
-.student-portal-body .student-welcome-block>p{font-size:15px;line-height:1.5;color:var(--ui-muted,#60738c)
-.student-portal-body .student-actions{display:flex;flex-wrap:wrap;align-items:center;justify-content:flex-end;gap:9px
-.student-portal-body .student-actions>button{display:inline-flex;align-items:center;justify-content:center;gap:9px;font-size:var(--type-table);font-weight:750;min-height:44px;border-radius:11px;padding:9px 16px;white-space:nowrap
-.student-portal-body .student-actions svg{width:17px;height:17px;flex:0 0 auto
-.student-portal-body .student-summary-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:15px;margin-bottom:20px
-.student-portal-body .student-summary-item{position:relative;overflow:hidden;background:var(--ui-panel,#fff);color:var(--ui-text,#172a49);border:1px solid var(--ui-line,#e0e7f3);border-radius:17px;box-shadow:0 8px 24px #12345b08;padding:21px 22px;min-height:113px;display:flex;flex-direction:column;justify-content:space-between;gap:10px
-.student-portal-body .student-summary-item::before{content:"";position:absolute;right:16px;top:16px;width:42px;height:42px;border-radius:13px;background:#633ce80c
-.student-portal-body .student-summary-item:nth-child(2)::before{background:#06b2c314
-.student-portal-body .student-summary-item:nth-child(3)::before{background:#2981d012
-.student-portal-body .student-summary-item span{color:var(--ui-muted,#667891);font-size:13px;font-weight:650;line-height:1.4;margin:0;padding-right:50px
-.student-portal-body .student-summary-item strong{color:var(--ui-text,#172a49);font-size:clamp(28px,3vw,38px);line-height:1;letter-spacing:-.045em
-.student-portal-body .student-summary-icon{position:absolute;right:25px;top:24px;color:#633ce8;display:grid;place-items:center
-.student-portal-body .student-summary-item:nth-child(2) .student-summary-icon{color:#00a8b4
-.student-portal-body .student-summary-item:nth-child(3) .student-summary-icon{color:#287fd5
-.student-portal-body .student-summary-icon svg{width:22px;height:22px
-.student-portal-body .student-main-grid{display:grid;grid-template-columns:minmax(300px,.72fr) minmax(0,1.28fr);gap:20px;align-items:start
-.student-portal-body .student-card{min-width:0;background:var(--ui-panel,#fff);border:1px solid var(--ui-line,#e0e7f0);border-radius:18px;box-shadow:0 8px 24px #12345b09;padding:22px;margin:0;overflow:hidden
-.student-portal-body .student-card h2{font-size:21px;color:var(--ui-text,#213552);font-weight:800;letter-spacing:-.025em;margin:0 0 5px;line-height:1.25
-.student-portal-body .student-card p{line-height:1.55
-.student-portal-body .student-card .muted{color:var(--ui-muted,#677c95);font-size:13px;margin:0
-.student-portal-body #studentProfileCard{display:flex;flex-direction:column
-.student-portal-body #studentProfileCard .my-photo-widget{order:2;display:flex;align-items:center;gap:14px;border:1px solid var(--ui-line,#e3eaf4);border-radius:14px;background:var(--ui-panel-soft,#f3f7fd);padding:15px;margin:19px 0 0;min-width:0
-.student-portal-body #studentProfileCard .my-photo-widget .my-photo-avatar{width:76px;height:76px;flex:0 0 76px
-.student-portal-body #studentProfileCard .my-photo-widget .my-photo-copy{flex:1;min-width:0
-.student-portal-body #studentProfileCard .my-photo-widget .my-photo-copy strong{color:var(--ui-text,#1a2d4c);font-size:14px
-.student-portal-body #studentProfileCard .my-photo-widget .my-photo-copy p{color:var(--ui-muted,#65748c);font-size:var(--type-secondary);line-height:1.45;margin:5px 0 9px
-.student-portal-body #studentProfileCard .my-photo-widget button{font-size:var(--type-table);min-height:34px;padding:7px 10px
-.student-portal-body .student-profile-grid{display:grid;grid-template-columns:1fr;gap:10px;margin-top:20px;order:1
-.student-portal-body .student-profile-item{display:grid;gap:4px;min-width:0;padding:12px 15px;border-radius:11px;border:1px solid var(--ui-line,#e2eaf3);background:var(--ui-panel-soft,#f6f9fd)
-.student-portal-body .student-profile-item span{font-size:var(--type-secondary);color:var(--ui-muted,#677b94);font-weight:600;margin:0
-.student-portal-body .student-profile-item strong{color:var(--ui-text,#203551);font-size:16px;font-weight:750;overflow-wrap:anywhere
-.student-portal-body #studentAttendanceCard{min-width:0
-.student-portal-body .student-attendance-head{display:flex;justify-content:space-between;align-items:flex-start;gap:15px;flex-wrap:wrap;margin-bottom:15px
-.student-portal-body .student-attendance-controls{display:flex;align-items:center;gap:9px;flex-wrap:wrap;width:100%;margin-bottom:13px
-.student-portal-body .student-attendance-controls label{display:flex;align-items:center;gap:7px;min-width:0;flex:1
-.student-portal-body .student-attendance-controls label span{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap
-.student-portal-body .student-attendance-controls input,.student-portal-body .student-attendance-controls select{min-height:43px;box-sizing:border-box;background:var(--ui-panel,#fff);color:var(--ui-text,#182d47);border:1px solid var(--ui-line,#cad7e9);font-size:var(--type-table);border-radius:10px;padding:9px 12px
-.student-portal-body .student-attendance-controls input{width:100%;flex:1
-.student-portal-body .student-attendance-controls select{min-width:175px
-.student-portal-body #studentAttendanceCard .table-scroll{display:block;width:100%;max-width:100%;max-height:490px;overflow:auto;border:1px solid var(--ui-line,#e0e7f0);border-radius:12px;overscroll-behavior:contain;scrollbar-width:thin;scrollbar-color:#9caec6 transparent;-webkit-overflow-scrolling:touch
-.student-portal-body #studentAttendanceCard .student-table{min-width:670px;width:100%;border-collapse:separate;border-spacing:0;white-space:normal
-.student-portal-body #studentAttendanceCard .student-table th{position:sticky;top:0;z-index:2;background:var(--ui-panel-soft,#edf3fb);color:var(--ui-muted,#536c8c);padding:13px 12px;font-size:var(--type-table);text-transform:uppercase;letter-spacing:.04em;line-height:1.4;font-weight:800;border-bottom:1px solid var(--ui-line,#dbe4ef)
-.student-portal-body #studentAttendanceCard .student-table td{padding:13px 12px;font-size:var(--type-table);line-height:1.5;color:var(--ui-text,#344760);border-bottom:1px solid var(--ui-line,#e8eef5);vertical-align:middle
-.student-portal-body #studentAttendanceCard .student-table tbody tr:last-child td{border-bottom:0
-.student-portal-body #studentAttendanceCard .student-table tbody tr:hover{background:var(--ui-panel-soft,#f7faff)
-.student-portal-body .student-attendance-footer{font-size:var(--type-secondary);color:var(--ui-muted,#667b92);margin:11px 0 0
-.student-portal-body .student-feedback{font-size:13px;margin:15px 0;color:var(--ui-muted,#536987)
-.student-portal-body #studentPasswordRequired{margin:0 0 20px;padding:21px;border-color:#e1b96c;background:var(--ui-panel,#fffaec)
-.student-portal-body #studentPasswordRequired[hidden]{display:none!important
-.student-portal-body button:focus-visible,.student-portal-body input:focus-visible,.student-portal-body select:focus-visible{outline:3px solid #07bdc4!important;outline-offset:2px
-.student-portal-body .student-actions button:hover:not(:disabled){transform:translateY(-1px)
+.student-portal-body{--student-navy:#0e2053;--student-purple:#5b33dc;--student-aqua:#01d7d0;background:var(--ui-bg,var(--bg,#f3f6fb))!important;color:var(--ui-text,#182947);min-height:100svh}
+.student-site-header{position:relative;overflow:hidden;background:linear-gradient(112deg,#0c1b4e,#1b3674 68%,#173d78);border-bottom:1px solid #274979;isolation:isolate}
+.student-site-header::after{content:"";pointer-events:none;position:absolute;right:-5%;top:-130%;height:320%;width:48%;border-radius:50%;border:1px solid #4be9e935;transform:rotate(-25deg)}
+.student-site-inner{width:min(1480px,100%);box-sizing:border-box;margin:auto;padding:12px clamp(20px,3.5vw,48px);min-height:80px;display:flex;align-items:center;justify-content:space-between;gap:20px}
+.student-brand{display:flex;align-items:center;gap:18px;min-width:0}
+.student-site-header .attendigo-brand{margin:0!important;padding:4px 0!important;width:235px;min-width:0;max-width:100%;border-radius:0!important;background:transparent!important;overflow:visible}
+.student-site-header .attendigo-logo{display:block;object-fit:contain;width:100%;max-height:73px;height:auto;filter:none!important}
+.student-brand-divider{display:block;width:1px;height:34px;background:#9dc1ff48}
+.student-brand-name{display:grid;gap:2px;white-space:nowrap}
+.student-brand-name strong{color:#fff;font-size:16px;font-weight:760;line-height:1.15}
+.student-brand-name span{color:#b9c9ec;font-size:var(--type-secondary)}
+.student-security-note{display:flex;align-items:center;gap:9px;color:#d4e4fa;font-size:var(--type-secondary);font-weight:650;white-space:nowrap}
+.student-security-note::before{content:"";width:8px;height:8px;border-radius:50%;background:#1ce5c6;box-shadow:0 0 0 4px #1ce5c62b}
+.student-portal-body .student-page{box-sizing:border-box;width:min(1480px,100%);max-width:none;margin:0 auto;padding:clamp(24px,3.5vw,46px) clamp(20px,3.5vw,48px) 55px}
+.student-portal-body .student-header{display:flex;align-items:center;justify-content:space-between;gap:18px;margin:0 0 24px}
+.student-portal-body .student-welcome-block{min-width:0}
+.student-portal-body #studentSchoolLabel{display:block;color:var(--ui-accent,#4f38c6);font-size:var(--type-table);letter-spacing:.12em;line-height:1.4;font-weight:800;text-transform:uppercase;overflow-wrap:anywhere}
+.student-portal-body #studentWelcome{font-size:clamp(29px,3.6vw,43px);letter-spacing:-.04em;line-height:1.14;margin:8px 0 9px;font-weight:800;color:var(--ui-text,#132b4d)}
+.student-portal-body .student-welcome-block>p{font-size:15px;line-height:1.5;color:var(--ui-muted,#60738c)}
+.student-portal-body .student-actions{display:flex;flex-wrap:wrap;align-items:center;justify-content:flex-end;gap:9px}
+.student-portal-body .student-actions>button{display:inline-flex;align-items:center;justify-content:center;gap:9px;font-size:var(--type-table);font-weight:750;min-height:44px;border-radius:11px;padding:9px 16px;white-space:nowrap}
+.student-portal-body .student-actions svg{width:17px;height:17px;flex:0 0 auto}
+.student-portal-body .student-summary-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:15px;margin-bottom:20px}
+.student-portal-body .student-summary-item{position:relative;overflow:hidden;background:var(--ui-panel,#fff);color:var(--ui-text,#172a49);border:1px solid var(--ui-line,#e0e7f3);border-radius:17px;box-shadow:0 8px 24px #12345b08;padding:21px 22px;min-height:113px;display:flex;flex-direction:column;justify-content:space-between;gap:10px}
+.student-portal-body .student-summary-item::before{content:"";position:absolute;right:16px;top:16px;width:42px;height:42px;border-radius:13px;background:#633ce80c}
+.student-portal-body .student-summary-item:nth-child(2)::before{background:#06b2c314}
+.student-portal-body .student-summary-item:nth-child(3)::before{background:#2981d012}
+.student-portal-body .student-summary-item span{color:var(--ui-muted,#667891);font-size:13px;font-weight:650;line-height:1.4;margin:0;padding-right:50px}
+.student-portal-body .student-summary-item strong{color:var(--ui-text,#172a49);font-size:clamp(28px,3vw,38px);line-height:1;letter-spacing:-.045em}
+.student-portal-body .student-summary-icon{position:absolute;right:25px;top:24px;color:#633ce8;display:grid;place-items:center}
+.student-portal-body .student-summary-item:nth-child(2) .student-summary-icon{color:#00a8b4}
+.student-portal-body .student-summary-item:nth-child(3) .student-summary-icon{color:#287fd5}
+.student-portal-body .student-summary-icon svg{width:22px;height:22px}
+.student-portal-body .student-main-grid{display:grid;grid-template-columns:minmax(300px,.72fr) minmax(0,1.28fr);gap:20px;align-items:start}
+.student-portal-body .student-card{min-width:0;background:var(--ui-panel,#fff);border:1px solid var(--ui-line,#e0e7f0);border-radius:18px;box-shadow:0 8px 24px #12345b09;padding:22px;margin:0;overflow:hidden}
+.student-portal-body .student-card h2{font-size:21px;color:var(--ui-text,#213552);font-weight:800;letter-spacing:-.025em;margin:0 0 5px;line-height:1.25}
+.student-portal-body .student-card p{line-height:1.55}
+.student-portal-body .student-card .muted{color:var(--ui-muted,#677c95);font-size:13px;margin:0}
+.student-portal-body #studentProfileCard{display:flex;flex-direction:column}
+.student-portal-body #studentProfileCard .my-photo-widget{order:2;display:flex;align-items:center;gap:14px;border:1px solid var(--ui-line,#e3eaf4);border-radius:14px;background:var(--ui-panel-soft,#f3f7fd);padding:15px;margin:19px 0 0;min-width:0}
+.student-portal-body #studentProfileCard .my-photo-widget .my-photo-avatar{width:76px;height:76px;flex:0 0 76px}
+.student-portal-body #studentProfileCard .my-photo-widget .my-photo-copy{flex:1;min-width:0}
+.student-portal-body #studentProfileCard .my-photo-widget .my-photo-copy strong{color:var(--ui-text,#1a2d4c);font-size:14px}
+.student-portal-body #studentProfileCard .my-photo-widget .my-photo-copy p{color:var(--ui-muted,#65748c);font-size:var(--type-secondary);line-height:1.45;margin:5px 0 9px}
+.student-portal-body #studentProfileCard .my-photo-widget button{font-size:var(--type-table);min-height:34px;padding:7px 10px}
+.student-portal-body .student-profile-grid{display:grid;grid-template-columns:1fr;gap:10px;margin-top:20px;order:1}
+.student-portal-body .student-profile-item{display:grid;gap:4px;min-width:0;padding:12px 15px;border-radius:11px;border:1px solid var(--ui-line,#e2eaf3);background:var(--ui-panel-soft,#f6f9fd)}
+.student-portal-body .student-profile-item span{font-size:var(--type-secondary);color:var(--ui-muted,#677b94);font-weight:600;margin:0}
+.student-portal-body .student-profile-item strong{color:var(--ui-text,#203551);font-size:16px;font-weight:750;overflow-wrap:anywhere}
+.student-portal-body #studentAttendanceCard{min-width:0}
+.student-portal-body .student-attendance-head{display:flex;justify-content:space-between;align-items:flex-start;gap:15px;flex-wrap:wrap;margin-bottom:15px}
+.student-portal-body .student-attendance-controls{display:flex;align-items:center;gap:9px;flex-wrap:wrap;width:100%;margin-bottom:13px}
+.student-portal-body .student-attendance-controls label{display:flex;align-items:center;gap:7px;min-width:0;flex:1}
+.student-portal-body .student-attendance-controls label span{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap}
+.student-portal-body .student-attendance-controls input,.student-portal-body .student-attendance-controls select{min-height:43px;box-sizing:border-box;background:var(--ui-panel,#fff);color:var(--ui-text,#182d47);border:1px solid var(--ui-line,#cad7e9);font-size:var(--type-table);border-radius:10px;padding:9px 12px}
+.student-portal-body .student-attendance-controls input{width:100%;flex:1}
+.student-portal-body .student-attendance-controls select{min-width:175px}
+.student-portal-body #studentAttendanceCard .table-scroll{display:block;width:100%;max-width:100%;max-height:490px;overflow:auto;border:1px solid var(--ui-line,#e0e7f0);border-radius:12px;overscroll-behavior:contain;scrollbar-width:thin;scrollbar-color:#9caec6 transparent;-webkit-overflow-scrolling:touch}
+.student-portal-body #studentAttendanceCard .student-table{min-width:670px;width:100%;border-collapse:separate;border-spacing:0;white-space:normal}
+.student-portal-body #studentAttendanceCard .student-table th{position:sticky;top:0;z-index:2;background:var(--ui-panel-soft,#edf3fb);color:var(--ui-muted,#536c8c);padding:13px 12px;font-size:var(--type-table);text-transform:uppercase;letter-spacing:.04em;line-height:1.4;font-weight:800;border-bottom:1px solid var(--ui-line,#dbe4ef)}
+.student-portal-body #studentAttendanceCard .student-table td{padding:13px 12px;font-size:var(--type-table);line-height:1.5;color:var(--ui-text,#344760);border-bottom:1px solid var(--ui-line,#e8eef5);vertical-align:middle}
+.student-portal-body #studentAttendanceCard .student-table tbody tr:last-child td{border-bottom:0}
+.student-portal-body #studentAttendanceCard .student-table tbody tr:hover{background:var(--ui-panel-soft,#f7faff)}
+.student-portal-body .student-attendance-footer{font-size:var(--type-secondary);color:var(--ui-muted,#667b92);margin:11px 0 0}
+.student-portal-body .student-feedback{font-size:13px;margin:15px 0;color:var(--ui-muted,#536987)}
+.student-portal-body #studentPasswordRequired{margin:0 0 20px;padding:21px;border-color:#e1b96c;background:var(--ui-panel,#fffaec)}
+.student-portal-body #studentPasswordRequired[hidden]{display:none!important}
+.student-portal-body button:focus-visible,.student-portal-body input:focus-visible,.student-portal-body select:focus-visible{outline:3px solid #07bdc4!important;outline-offset:2px}
+.student-portal-body .student-actions button:hover:not(:disabled){transform:translateY(-1px)}
 @media(min-width:1101px){
- .student-portal-body #studentProfileCard{position:sticky;top:20px
+ .student-portal-body #studentProfileCard{position:sticky;top:20px}
 }
 @media(max-width:1100px){
- .student-portal-body .student-main-grid{grid-template-columns:1fr
- .student-portal-body .student-profile-grid{grid-template-columns:repeat(3,minmax(0,1fr))
- .student-portal-body #studentProfileCard .my-photo-widget{max-width:720px
+ .student-portal-body .student-main-grid{grid-template-columns:1fr}
+ .student-portal-body .student-profile-grid{grid-template-columns:repeat(3,minmax(0,1fr))}
+ .student-portal-body #studentProfileCard .my-photo-widget{max-width:720px}
 }
 @media(max-width:760px){
- .student-site-inner{padding:12px 18px;min-height:68px
- .student-site-header .attendigo-brand{width:190px
- .student-brand{gap:12px
- .student-brand-name{display:none
- .student-brand-divider{display:none
- .student-security-note{font-size:var(--type-secondary)
- .student-portal-body .student-page{padding:24px 15px 40px
- .student-portal-body .student-header{align-items:flex-start;flex-direction:column;margin-bottom:18px
- .student-portal-body .student-actions{width:100%;justify-content:flex-start
- .student-portal-body .student-summary-grid{gap:9px
- .student-portal-body .student-summary-item{padding:16px 12px;min-height:98px
- .student-portal-body .student-summary-item span{font-size:var(--type-secondary);padding-right:0
- .student-portal-body .student-summary-item strong{font-size:29px
- .student-portal-body .student-summary-icon{display:none
- .student-portal-body .student-card{padding:16px
- .student-portal-body .student-profile-grid{grid-template-columns:1fr
- .student-portal-body .student-attendance-controls label{flex-basis:100%
- .student-portal-body .student-attendance-controls select{flex:1
- .student-portal-body #studentAttendanceCard .table-scroll{max-height:460px
+ .student-site-inner{padding:12px 18px;min-height:68px}
+ .student-site-header .attendigo-brand{width:190px}
+ .student-brand{gap:12px}
+ .student-brand-name{display:none}
+ .student-brand-divider{display:none}
+ .student-security-note{font-size:var(--type-secondary)}
+ .student-portal-body .student-page{padding:24px 15px 40px}
+ .student-portal-body .student-header{align-items:flex-start;flex-direction:column;margin-bottom:18px}
+ .student-portal-body .student-actions{width:100%;justify-content:flex-start}
+ .student-portal-body .student-summary-grid{gap:9px}
+ .student-portal-body .student-summary-item{padding:16px 12px;min-height:98px}
+ .student-portal-body .student-summary-item span{font-size:var(--type-secondary);padding-right:0}
+ .student-portal-body .student-summary-item strong{font-size:29px}
+ .student-portal-body .student-summary-icon{display:none}
+ .student-portal-body .student-card{padding:16px}
+ .student-portal-body .student-profile-grid{grid-template-columns:1fr}
+ .student-portal-body .student-attendance-controls label{flex-basis:100%}
+ .student-portal-body .student-attendance-controls select{flex:1}
+ .student-portal-body #studentAttendanceCard .table-scroll{max-height:460px}
 }
 @media(max-width:420px){
- .student-security-note{display:none
- .student-portal-body #studentWelcome{font-size:29px
- .student-portal-body .student-summary-grid{grid-template-columns:repeat(3,minmax(0,1fr))
- .student-portal-body .student-summary-item{padding:13px 9px
- .student-portal-body .student-summary-item span{font-size:var(--type-secondary)
- .student-portal-body .student-summary-item strong{font-size:26px
- .student-portal-body #studentProfileCard .my-photo-widget{align-items:flex-start;flex-direction:column
+ .student-security-note{display:none}
+ .student-portal-body #studentWelcome{font-size:29px}
+ .student-portal-body .student-summary-grid{grid-template-columns:repeat(3,minmax(0,1fr))}
+ .student-portal-body .student-summary-item{padding:13px 9px}
+ .student-portal-body .student-summary-item span{font-size:var(--type-secondary)}
+ .student-portal-body .student-summary-item strong{font-size:26px}
+ .student-portal-body #studentProfileCard .my-photo-widget{align-items:flex-start;flex-direction:column}
 }
-html[data-ui-theme=dark] .student-portal-body .student-site-header{background:linear-gradient(108deg,#09132d,#192953 75%,#132d51)
-html[data-ui-theme=dark] .student-portal-body #studentPasswordRequired{background:var(--ui-panel,#222a43)
-html[data-ui-theme=dark] .student-portal-body .student-summary-item::before{opacity:.55
-@media(prefers-reduced-motion:reduce){.student-portal-body .student-actions button{transition:none!important;transform:none!important}
+html[data-ui-theme=dark] .student-portal-body .student-site-header{background:linear-gradient(108deg,#09132d,#192953 75%,#132d51)}
+html[data-ui-theme=dark] .student-portal-body #studentPasswordRequired{background:var(--ui-panel,#222a43)}
+html[data-ui-theme=dark] .student-portal-body .student-summary-item::before{opacity:.55}
+@media(prefers-reduced-motion:reduce){.student-portal-body .student-actions button{transition:none!important;transform:none!important}}
 
 /* Password-setup gate must remain authoritative despite dashboard display rules. */
 .student-portal-body #studentAttendanceSummary[hidden],
 .student-portal-body #studentAttendanceCard[hidden],
-.student-portal-body #studentPasswordRequired[hidden]{display:none!important
-.student-portal-body #studentProfileCard .my-photo-status{display:block;max-width:100%;overflow-wrap:anywhere
+.student-portal-body #studentPasswordRequired[hidden]{display:none!important}
+.student-portal-body #studentProfileCard .my-photo-status{display:block;max-width:100%;overflow-wrap:anywhere}

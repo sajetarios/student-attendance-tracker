@@ -1,73 +1,73 @@
 /* Attendigo animated sign-in experience - isolated from portal authentication. */
-.login-page{--login-purple:#4c28df;--login-teal:#00d8cc;position:relative;isolation:isolate;display:block;min-height:100svh;overflow-x:hidden;padding:clamp(16px,3.5vw,48px);background:#07153a!important;color:#14233d
-.login-page::before{content:"";position:fixed;inset:-35%;z-index:-2;background:radial-gradient(ellipse at 18% 18%,#0055ba82,transparent 37%),radial-gradient(ellipse at 85% 78%,#692eea9c,transparent 39%),radial-gradient(ellipse at 60% 3%,#00d7d852,transparent 24%);animation:attendigo-sky 24s ease-in-out infinite alternate;pointer-events:none
-.login-page::after{content:"";position:fixed;inset:0;z-index:-1;background:repeating-radial-gradient(ellipse at 72% 90%,transparent 0 64px,#5de9ee20 65px 66px,transparent 67px 120px);opacity:.65;animation:attendigo-waves 30s linear infinite;pointer-events:none
-.login-shell{width:min(1080px,100%);min-height:unset;margin:0 auto;display:grid;grid-template-columns:.83fr 1.17fr;overflow:hidden;border:1px solid #ffffff66;border-radius:30px;background:#f8fbffed;box-shadow:0 28px 90px #050d35a3;backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px)
-.login-art{position:relative;overflow:hidden;min-height:650px;padding:35px;color:white;background:radial-gradient(circle at 32% 25%,#653dfa 0,transparent 42%),linear-gradient(148deg,#071947 10%,#193ca3 58%,#081a55 100%)
-.login-art::before,.login-art::after{content:"";position:absolute;pointer-events:none;border:2px solid #0df4f87d;border-radius:50%;width:125%;height:40%;left:-30%;bottom:12%;transform:rotate(-23deg);animation:attendigo-orbit 11s ease-in-out infinite alternate
-.login-art::after{width:90%;height:32%;left:35%;bottom:26%;border-color:#bc84ff99;animation-delay:-5s;animation-duration:14s
-.login-art .brand-lockup,.login-art .art-copy,.login-art .art-foot{position:relative;z-index:1
-.login-art .attendigo-brand{background:transparent;max-width:100%;width:min(310px,100%);padding:0
-.login-art .attendigo-logo{filter:none;object-fit:contain
-.login-art .art-copy h1{font-size:clamp(33px,4vw,51px)
-.login-art .art-copy p{color:#e1e8ff
-.login-art .art-foot{color:#c7fffb
-.login-panel{position:relative;padding:clamp(26px,4vw,54px) clamp(22px,5vw,64px) 22px;background:linear-gradient(155deg,#ffffffed,#f2f6ffed 75%,#e6f7ffed)
-.login-panel::before{content:"";position:absolute;right:-60px;top:-100px;width:240px;height:240px;border-radius:50%;background:radial-gradient(circle,#2fd5f62e,transparent 70%);pointer-events:none
-.login-panel-inner{max-width:490px;width:100%;margin:auto
-.login-panel h2{font-size:clamp(29px,3.5vw,39px);color:#101a39;letter-spacing:-.045em
-.login-panel .eyebrow{color:#4b2fe2;font-size:var(--type-secondary);letter-spacing:.2em
-.login-panel .login-subtitle{font-size:14px;color:#52627e;line-height:1.55;margin-bottom:21px
-.login-mode{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:4px;padding:5px;margin:12px 0 17px;background:#eaf0fc;border:1px solid #dce6fb;border-radius:14px
-.login-mode .mode-tab{min-width:0;font-size:var(--type-table);line-height:1.25;padding:13px 6px;transition:background .2s,transform .2s,box-shadow .2s,color .2s
-.login-mode .mode-tab.active{color:#fff;background:linear-gradient(120deg,#4029c4,#632fea);box-shadow:0 5px 13px #4830ce44
-.login-mode .mode-tab:focus-visible{outline:3px solid #08bace;outline-offset:2px
-#accountTypeHint{border:1px solid #dbe5fa;border-radius:12px;background:#eaf1ff96;padding:12px 14px;margin:0 0 20px;font-size:13px
-.login-panel .field-group{margin-bottom:16px;gap:8px
-.login-panel .field-group label{font-size:14px;color:#223252;font-weight:750
-.login-panel .field-group input{height:51px;min-height:51px;font-size:15px;border:1px solid #becfe5;border-radius:12px;background:#ffffffec;padding:0 16px;color:#142441;box-shadow:0 2px 7px #10225a08
-.login-panel .field-group input:focus{border-color:#5543e7;box-shadow:0 0 0 4px #5846e51c
-.login-panel .password-input-wrap input{padding-right:3.5rem
-.login-panel .full-button{height:53px;min-height:53px;border-radius:13px;background:linear-gradient(110deg,#3626b8,#5e2eea 57%,#207acf);font-size:16px;box-shadow:0 9px 20px #4033c64d;transition:transform .2s,filter .2s,box-shadow .2s
-.login-panel .full-button:hover{filter:brightness(1.08);box-shadow:0 12px 24px #4033c65d
-.login-panel .full-button:focus-visible{outline:3px solid #00a9be;outline-offset:3px
-.login-note{margin-top:16px;padding-top:13px;font-size:var(--type-secondary);color:#596b85;flex-wrap:wrap
-.login-note a,.recovery-text-button{color:#3c38b9
-.login-footer{font-size:var(--type-secondary)
-.mobile-brand{display:none
-.login-motion{position:relative;height:180px;display:grid;place-items:center;margin:24px 0 0;perspective:800px;pointer-events:none
-.login-motion-phone{position:relative;width:92px;height:150px;border:6px solid #7758f9;border-radius:21px;transform:rotate(10deg);background:linear-gradient(145deg,#72dcff,#2638bf);box-shadow:0 0 28px #00e7e990,12px 14px 24px #070a426e;animation:attendigo-float 5s ease-in-out infinite
-.login-motion-phone::before{content:"";position:absolute;left:23px;right:23px;top:5px;height:5px;background:#182e89;border-radius:10px
-.login-motion-qr{position:absolute;inset:32px 12px 22px;border-radius:6px;background:repeating-linear-gradient(0deg,#26318d 0 6px,transparent 6px 12px),repeating-linear-gradient(90deg,#10298a 0 6px,#fff 6px 12px);background-blend-mode:multiply;border:5px solid white;opacity:.95
-.login-motion-beam{position:absolute;left:-8px;right:-8px;height:3px;top:36px;background:#42fff2;box-shadow:0 0 12px 4px #2effeb;animation:attendigo-scan 2.8s ease-in-out infinite alternate
-.login-motion-badge{position:absolute;right:calc(50% - 105px);bottom:21px;border-radius:50%;background:#00d6c0;color:#05284b;display:grid;place-items:center;width:42px;height:42px;font-size:25px;font-weight:800;box-shadow:0 0 22px #00f8db
-@keyframes attendigo-sky{from{transform:translate3d(-3%,1%,0) rotate(0deg)to{transform:translate3d(5%,-4%,0) rotate(10deg)}
-@keyframes attendigo-waves{to{transform:translateX(38px)}
-@keyframes attendigo-orbit{to{transform:rotate(-10deg) translateY(-23px)}
-@keyframes attendigo-float{50%{transform:translateY(-12px) rotate(6deg)}
-@keyframes attendigo-scan{to{top:112px}
-@media(max-width:800px){.login-page{padding:clamp(12px,3vw,24px).login-shell{display:block;max-width:610px;border-radius:24px.login-art{display:none.login-panel{min-height:unset;padding:28px clamp(18px,5vw,38px) 20px.mobile-brand{display:flex;justify-content:center;margin:0 0 25px.mobile-brand .attendigo-brand{width:min(300px,90%);max-width:100%;padding:0;background:transparent;border-radius:0.mobile-brand .attendigo-logo{width:100%;max-width:100%;height:auto.login-panel h2{font-size:clamp(28px,6vw,36px).login-panel .login-panel-inner{margin:0 auto.login-motion{height:95px;margin:0 0 8px.login-motion-phone{transform:scale(.58) rotate(10deg);animation:attendigo-float-mobile 5s ease-in-out infinite.login-motion-badge{right:calc(50% - 83px);bottom:7px;transform:scale(.75)}
-@keyframes attendigo-float-mobile{50%{transform:translateY(-7px) scale(.58) rotate(6deg)}
-@media(max-width:390px){.login-mode .mode-tab{font-size:var(--type-table);padding:12px 4px.login-panel{padding-left:16px;padding-right:16px.login-panel .field-group input{font-size:14px}
-@media(prefers-color-scheme:dark){.login-page{color:#eaf1ff.login-panel{background:linear-gradient(150deg,#111d43f5,#172852f5).login-panel h2,.login-panel .field-group label{color:#f3f7ff.login-panel .login-subtitle{color:#c1cce5.login-mode{background:#1e305f;border-color:#304878.login-mode .mode-tab{color:#c7d4ee.login-mode .mode-tab.active{color:white#accountTypeHint{background:#27396a;border-color:#385183;color:#e2eaff.login-panel .field-group input{background:#172750;color:#fff;border-color:#47618f.login-panel .field-group input::placeholder{color:#a8b8d2.login-note{border-color:#334970;color:#c6d3e9.login-note a,.recovery-text-button{color:#91bdff.login-footer{color:#bbcae5.school-admin-recovery-form{background:#1e315b;border-color:#405886.school-admin-recovery-form h3{color:#eaf1ff.password-visibility-toggle{color:#b5c7e1.password-visibility-toggle:hover{background:#304573;color:#fff}
-@media(prefers-reduced-motion:reduce){.login-page::before,.login-page::after,.login-art::before,.login-art::after,.login-motion-phone,.login-motion-beam{animation:none!important.login-panel .full-button,.login-mode .mode-tab{transition:none!important}
+.login-page{--login-purple:#4c28df;--login-teal:#00d8cc;position:relative;isolation:isolate;display:block;min-height:100svh;overflow-x:hidden;padding:clamp(16px,3.5vw,48px);background:#07153a!important;color:#14233d}
+.login-page::before{content:"";position:fixed;inset:-35%;z-index:-2;background:radial-gradient(ellipse at 18% 18%,#0055ba82,transparent 37%),radial-gradient(ellipse at 85% 78%,#692eea9c,transparent 39%),radial-gradient(ellipse at 60% 3%,#00d7d852,transparent 24%);animation:attendigo-sky 24s ease-in-out infinite alternate;pointer-events:none}
+.login-page::after{content:"";position:fixed;inset:0;z-index:-1;background:repeating-radial-gradient(ellipse at 72% 90%,transparent 0 64px,#5de9ee20 65px 66px,transparent 67px 120px);opacity:.65;animation:attendigo-waves 30s linear infinite;pointer-events:none}
+.login-shell{width:min(1080px,100%);min-height:unset;margin:0 auto;display:grid;grid-template-columns:.83fr 1.17fr;overflow:hidden;border:1px solid #ffffff66;border-radius:30px;background:#f8fbffed;box-shadow:0 28px 90px #050d35a3;backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px)}
+.login-art{position:relative;overflow:hidden;min-height:650px;padding:35px;color:white;background:radial-gradient(circle at 32% 25%,#653dfa 0,transparent 42%),linear-gradient(148deg,#071947 10%,#193ca3 58%,#081a55 100%)}
+.login-art::before,.login-art::after{content:"";position:absolute;pointer-events:none;border:2px solid #0df4f87d;border-radius:50%;width:125%;height:40%;left:-30%;bottom:12%;transform:rotate(-23deg);animation:attendigo-orbit 11s ease-in-out infinite alternate}
+.login-art::after{width:90%;height:32%;left:35%;bottom:26%;border-color:#bc84ff99;animation-delay:-5s;animation-duration:14s}
+.login-art .brand-lockup,.login-art .art-copy,.login-art .art-foot{position:relative;z-index:1}
+.login-art .attendigo-brand{background:transparent;max-width:100%;width:min(310px,100%);padding:0}
+.login-art .attendigo-logo{filter:none;object-fit:contain}
+.login-art .art-copy h1{font-size:clamp(33px,4vw,51px)}
+.login-art .art-copy p{color:#e1e8ff}
+.login-art .art-foot{color:#c7fffb}
+.login-panel{position:relative;padding:clamp(26px,4vw,54px) clamp(22px,5vw,64px) 22px;background:linear-gradient(155deg,#ffffffed,#f2f6ffed 75%,#e6f7ffed)}
+.login-panel::before{content:"";position:absolute;right:-60px;top:-100px;width:240px;height:240px;border-radius:50%;background:radial-gradient(circle,#2fd5f62e,transparent 70%);pointer-events:none}
+.login-panel-inner{max-width:490px;width:100%;margin:auto}
+.login-panel h2{font-size:clamp(29px,3.5vw,39px);color:#101a39;letter-spacing:-.045em}
+.login-panel .eyebrow{color:#4b2fe2;font-size:var(--type-secondary);letter-spacing:.2em}
+.login-panel .login-subtitle{font-size:14px;color:#52627e;line-height:1.55;margin-bottom:21px}
+.login-mode{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:4px;padding:5px;margin:12px 0 17px;background:#eaf0fc;border:1px solid #dce6fb;border-radius:14px}
+.login-mode .mode-tab{min-width:0;font-size:var(--type-table);line-height:1.25;padding:13px 6px;transition:background .2s,transform .2s,box-shadow .2s,color .2s}
+.login-mode .mode-tab.active{color:#fff;background:linear-gradient(120deg,#4029c4,#632fea);box-shadow:0 5px 13px #4830ce44}
+.login-mode .mode-tab:focus-visible{outline:3px solid #08bace;outline-offset:2px}
+#accountTypeHint{border:1px solid #dbe5fa;border-radius:12px;background:#eaf1ff96;padding:12px 14px;margin:0 0 20px;font-size:13px}
+.login-panel .field-group{margin-bottom:16px;gap:8px}
+.login-panel .field-group label{font-size:14px;color:#223252;font-weight:750}
+.login-panel .field-group input{height:51px;min-height:51px;font-size:15px;border:1px solid #becfe5;border-radius:12px;background:#ffffffec;padding:0 16px;color:#142441;box-shadow:0 2px 7px #10225a08}
+.login-panel .field-group input:focus{border-color:#5543e7;box-shadow:0 0 0 4px #5846e51c}
+.login-panel .password-input-wrap input{padding-right:3.5rem}
+.login-panel .full-button{height:53px;min-height:53px;border-radius:13px;background:linear-gradient(110deg,#3626b8,#5e2eea 57%,#207acf);font-size:16px;box-shadow:0 9px 20px #4033c64d;transition:transform .2s,filter .2s,box-shadow .2s}
+.login-panel .full-button:hover{filter:brightness(1.08);box-shadow:0 12px 24px #4033c65d}
+.login-panel .full-button:focus-visible{outline:3px solid #00a9be;outline-offset:3px}
+.login-note{margin-top:16px;padding-top:13px;font-size:var(--type-secondary);color:#596b85;flex-wrap:wrap}
+.login-note a,.recovery-text-button{color:#3c38b9}
+.login-footer{font-size:var(--type-secondary)}
+.mobile-brand{display:none}
+.login-motion{position:relative;height:180px;display:grid;place-items:center;margin:24px 0 0;perspective:800px;pointer-events:none}
+.login-motion-phone{position:relative;width:92px;height:150px;border:6px solid #7758f9;border-radius:21px;transform:rotate(10deg);background:linear-gradient(145deg,#72dcff,#2638bf);box-shadow:0 0 28px #00e7e990,12px 14px 24px #070a426e;animation:attendigo-float 5s ease-in-out infinite}
+.login-motion-phone::before{content:"";position:absolute;left:23px;right:23px;top:5px;height:5px;background:#182e89;border-radius:10px}
+.login-motion-qr{position:absolute;inset:32px 12px 22px;border-radius:6px;background:repeating-linear-gradient(0deg,#26318d 0 6px,transparent 6px 12px),repeating-linear-gradient(90deg,#10298a 0 6px,#fff 6px 12px);background-blend-mode:multiply;border:5px solid white;opacity:.95}
+.login-motion-beam{position:absolute;left:-8px;right:-8px;height:3px;top:36px;background:#42fff2;box-shadow:0 0 12px 4px #2effeb;animation:attendigo-scan 2.8s ease-in-out infinite alternate}
+.login-motion-badge{position:absolute;right:calc(50% - 105px);bottom:21px;border-radius:50%;background:#00d6c0;color:#05284b;display:grid;place-items:center;width:42px;height:42px;font-size:25px;font-weight:800;box-shadow:0 0 22px #00f8db}
+@keyframes attendigo-sky{from{transform:translate3d(-3%,1%,0) rotate(0deg)}to{transform:translate3d(5%,-4%,0) rotate(10deg)}}
+@keyframes attendigo-waves{to{transform:translateX(38px)}}
+@keyframes attendigo-orbit{to{transform:rotate(-10deg) translateY(-23px)}}
+@keyframes attendigo-float{50%{transform:translateY(-12px) rotate(6deg)}}
+@keyframes attendigo-scan{to{top:112px}}
+@media(max-width:800px){.login-page{padding:clamp(12px,3vw,24px)}.login-shell{display:block;max-width:610px;border-radius:24px}.login-art{display:none}.login-panel{min-height:unset;padding:28px clamp(18px,5vw,38px) 20px}.mobile-brand{display:flex;justify-content:center;margin:0 0 25px}.mobile-brand .attendigo-brand{width:min(300px,90%);max-width:100%;padding:0;background:transparent;border-radius:0}.mobile-brand .attendigo-logo{width:100%;max-width:100%;height:auto}.login-panel h2{font-size:clamp(28px,6vw,36px)}.login-panel .login-panel-inner{margin:0 auto}.login-motion{height:95px;margin:0 0 8px}.login-motion-phone{transform:scale(.58) rotate(10deg);animation:attendigo-float-mobile 5s ease-in-out infinite}.login-motion-badge{right:calc(50% - 83px);bottom:7px;transform:scale(.75)}}
+@keyframes attendigo-float-mobile{50%{transform:translateY(-7px) scale(.58) rotate(6deg)}}
+@media(max-width:390px){.login-mode .mode-tab{font-size:var(--type-table);padding:12px 4px}.login-panel{padding-left:16px;padding-right:16px}.login-panel .field-group input{font-size:14px}}
+@media(prefers-color-scheme:dark){.login-page{color:#eaf1ff}.login-panel{background:linear-gradient(150deg,#111d43f5,#172852f5)}.login-panel h2,.login-panel .field-group label{color:#f3f7ff}.login-panel .login-subtitle{color:#c1cce5}.login-mode{background:#1e305f;border-color:#304878}.login-mode .mode-tab{color:#c7d4ee}.login-mode .mode-tab.active{color:white}#accountTypeHint{background:#27396a;border-color:#385183;color:#e2eaff}.login-panel .field-group input{background:#172750;color:#fff;border-color:#47618f}.login-panel .field-group input::placeholder{color:#a8b8d2}.login-note{border-color:#334970;color:#c6d3e9}.login-note a,.recovery-text-button{color:#91bdff}.login-footer{color:#bbcae5}.school-admin-recovery-form{background:#1e315b;border-color:#405886}.school-admin-recovery-form h3{color:#eaf1ff}.password-visibility-toggle{color:#b5c7e1}.password-visibility-toggle:hover{background:#304573;color:#fff}}
+@media(prefers-reduced-motion:reduce){.login-page::before,.login-page::after,.login-art::before,.login-art::after,.login-motion-phone,.login-motion-beam{animation:none!important}.login-panel .full-button,.login-mode .mode-tab{transition:none!important}}
 
 /* Login legibility repair: logo asset uses a white wordmark. */
-.login-page .login-panel{background:linear-gradient(155deg,#fff,#f0f6ff 80%)!important;color:#17233d!important
-.login-page .login-panel h2{display:block!important;color:#142342!important;opacity:1!important;visibility:visible!important
-.login-page .login-panel .eyebrow{color:#4b2fe2!important
-.login-page .login-panel .login-subtitle{color:#52627e!important
-.login-page .login-panel .field-group label{color:#223252!important
-.login-page .login-panel .login-mode{background:#eaf0fc!important;border-color:#dce6fb!important
-.login-page .login-panel .mode-tab:not(.active){color:#394968!important
-.login-page .login-panel #accountTypeHint{background:#eaf1ff!important;border-color:#dbe5fa!important;color:#344566!important
-.login-page .login-panel .field-group input{background:#fff!important;color:#17233d!important;border-color:#becfe5!important
-.login-page .login-panel .field-group input::placeholder{color:#8295b5!important;opacity:1
-.login-page .login-panel .login-note{color:#52627e!important
-.login-page .login-panel .login-footer{color:#697b96!important
-.login-page .mobile-brand .attendigo-brand{background:linear-gradient(125deg,#0b1f54,#173a87)!important;border-radius:17px!important;padding:16px 20px!important;box-shadow:0 12px 25px #102b6536;overflow:visible!important
-.login-page .mobile-brand .attendigo-logo{display:block!important;filter:none!important;opacity:1!important;visibility:visible!important;width:100%!important;max-width:100%!important;height:auto!important
-.login-page .login-art .attendigo-brand{background:transparent!important
-.login-page .school-admin-recovery-form{background:#f4f7ff!important;border-color:#cfdae9!important;color:#223252!important
-.login-page .school-admin-recovery-form h3{color:#203a55!important
-@media(max-width:800px){.login-page .mobile-brand{margin-bottom:18px!important.login-page .mobile-brand .attendigo-brand{width:min(330px,100%)!important.login-page .login-motion{margin-bottom:15px!important}
+.login-page .login-panel{background:linear-gradient(155deg,#fff,#f0f6ff 80%)!important;color:#17233d!important}
+.login-page .login-panel h2{display:block!important;color:#142342!important;opacity:1!important;visibility:visible!important}
+.login-page .login-panel .eyebrow{color:#4b2fe2!important}
+.login-page .login-panel .login-subtitle{color:#52627e!important}
+.login-page .login-panel .field-group label{color:#223252!important}
+.login-page .login-panel .login-mode{background:#eaf0fc!important;border-color:#dce6fb!important}
+.login-page .login-panel .mode-tab:not(.active){color:#394968!important}
+.login-page .login-panel #accountTypeHint{background:#eaf1ff!important;border-color:#dbe5fa!important;color:#344566!important}
+.login-page .login-panel .field-group input{background:#fff!important;color:#17233d!important;border-color:#becfe5!important}
+.login-page .login-panel .field-group input::placeholder{color:#8295b5!important;opacity:1}
+.login-page .login-panel .login-note{color:#52627e!important}
+.login-page .login-panel .login-footer{color:#697b96!important}
+.login-page .mobile-brand .attendigo-brand{background:linear-gradient(125deg,#0b1f54,#173a87)!important;border-radius:17px!important;padding:16px 20px!important;box-shadow:0 12px 25px #102b6536;overflow:visible!important}
+.login-page .mobile-brand .attendigo-logo{display:block!important;filter:none!important;opacity:1!important;visibility:visible!important;width:100%!important;max-width:100%!important;height:auto!important}
+.login-page .login-art .attendigo-brand{background:transparent!important}
+.login-page .school-admin-recovery-form{background:#f4f7ff!important;border-color:#cfdae9!important;color:#223252!important}
+.login-page .school-admin-recovery-form h3{color:#203a55!important}
+@media(max-width:800px){.login-page .mobile-brand{margin-bottom:18px!important}.login-page .mobile-brand .attendigo-brand{width:min(330px,100%)!important}.login-page .login-motion{margin-bottom:15px!important}}
