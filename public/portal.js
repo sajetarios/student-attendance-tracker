@@ -4323,6 +4323,9 @@ let teacherActionMenuListenersInstalled = false;
   }
 
   async function loadCloudSyncStatus() {
+    // Per-account device sync is handled by Attendance Sync Center itself.
+    // Only School Admins may query school-wide cloud outbox diagnostics.
+    if (user.role !== 'SCHOOL_ADMIN') return;
     const chip = $('connectionStatus');
     if (!chip) return;
     const label = chip.querySelector('.asc-header-label');
