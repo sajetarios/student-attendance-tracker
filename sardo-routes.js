@@ -126,6 +126,7 @@ function registerSardoRoutes(app, pool, { authenticateSchoolClient, requireSchoo
                    ) en ON TRUE
                    WHERE o.school_id=$1 AND o.status='ABSENT' AND s.active=TRUE
                      AND o.school_date >= $2::date AND o.school_date < $3::date
+                     AND COALESCE(o.note, '') NOT ILIKE 'SYNTHETIC DEMO%'
                    ORDER BY o.student_id,o.school_date`, [schoolId, from, today])
     ]);
     const dates = schoolDays(today, operating.rows, exceptions.rows);
