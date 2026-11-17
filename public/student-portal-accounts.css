@@ -94,3 +94,35 @@
  body.sap-print-mode .sap-print-slip strong{font-weight:750}
  body.sap-print-mode .sap-print-slip .sap-print-warning{font-size:12px;font-weight:600;margin-top:22px;padding-top:10px;border-top:1px solid #9bb0cc}
 }
+
+/* Compact teacher request summary; consistent on mobile and dark-mode portals. */
+#studentAccountsView .sap-modal-head>div{flex:1 1 auto;min-width:0;overflow-wrap:anywhere}
+#studentAccountsView .sap-modal-head #sapRequestClose,
+#studentAccountsView .sap-modal-head #sapReviewClose,
+#studentAccountsView .sap-modal-head #sapSecretClose{
+  flex:0 0 auto!important;width:max-content!important;min-width:78px!important;max-width:none!important;
+  white-space:nowrap!important;word-break:normal!important;overflow-wrap:normal!important;
+  writing-mode:horizontal-tb!important;padding:9px 14px!important;line-height:1.25!important
+}
+#studentAccountsView .sap-request-summary{
+  display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin:8px 0 12px;
+  padding:14px;border:1px solid var(--line,#dce6f1);border-radius:12px;
+  background:var(--card,#f5f8fc)
+}
+#studentAccountsView .sap-request-summary>div{display:flex;flex-direction:column;gap:6px;min-width:0}
+#studentAccountsView .sap-request-summary span{font-size:11px;color:var(--muted,#61738a)}
+#studentAccountsView .sap-request-summary strong{font-size:13px;color:var(--ink,#20354f);overflow-wrap:anywhere}
+#studentAccountsView .sap-request-privacy{font-size:12px;color:var(--muted,#61738a);margin:0 0 14px}
+#studentAccountsView #sapReasonGroup[hidden]{display:none!important}
+#studentAccountsView #sapReasonGroup small{display:block;margin-top:6px;color:var(--muted,#61738a)}
+body.dark-mode #studentAccountsView .sap-request-summary,
+body[data-theme=dark] #studentAccountsView .sap-request-summary{background:#243952;border-color:#52667f}
+body.dark-mode #studentAccountsView .sap-request-summary strong,
+body[data-theme=dark] #studentAccountsView .sap-request-summary strong{color:#ecf5ff}
+body.dark-mode #studentAccountsView .sap-modal textarea,
+body[data-theme=dark] #studentAccountsView .sap-modal textarea{background:#192b44;color:#ecf5ff;border-color:#58708d}
+@media(max-width:540px){
+ #studentAccountsView .sap-modal-head{gap:10px}
+ #studentAccountsView .sap-request-summary{grid-template-columns:repeat(2,minmax(0,1fr))}
+ #studentAccountsView .sap-modal-head h3{font-size:17px}
+}
