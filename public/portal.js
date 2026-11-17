@@ -5228,6 +5228,25 @@ let teacherActionMenuListenersInstalled = false;
         return;
       }
     }
+    // Recheck the chosen block against the server-owned timetable before saving.
+    if (payload.timetableTemplateId) {
+      try {
+        const refreshed = await api('/api/scheduling-config/templates');
+        const activeTemplate = (refreshed.templates || []).find(item => item.active && String(item.templateId) === String(payload.timetableTemplateId));
+        const blockId = ($('scheduleTemplatePeriod')?.value || '').split('|')[1];
+        const block = activeTemplate?.periods?.find(item => String(item.templatePeriodId) === String(blockId));
+        if (!block || ['BREAK','LUNCH'].includes(block.blockType) ||
+            block.label !== payload.periodName || block.startTime !== payload.startTime || block.endTime !== payload.endTime) {
+          feedback.className = 'inline-feedback error';
+          feedback.textContent = 'The saved timetable block was modified or is unavailable. Refresh the timetable selection and try again.';
+          return;
+        }
+      } catch (error) {
+        feedback.className = 'inline-feedback error';
+        feedback.textContent = 'Could not verify the latest timetable blocks. ' + error.message;
+        return;
+      }
+    }
     if (!payload.weekdays.length) {
       feedback.className = 'inline-feedback error';
       feedback.textContent = 'Select at least one class day.';
