@@ -1,4 +1,4 @@
-const CACHE = "attendigo-v166-teacher-roster-type";
+const CACHE = "attendigo-v167-remove-sidebar-sync-shortcut";
 
 const SHELL = [
   "/typography.css?v=1",
@@ -13,9 +13,9 @@ const SHELL = [
   "/assets/attendigo-wordmark-on-dark.svg?v=1",
   "/assets/attendigo-wordmark-on-light.svg?v=1",
   "/assets/attendigo-symbol-transparent.svg?v=1",
-  "/attendigo-sidebar-adaptive.css?v=12",
+  "/attendigo-sidebar-adaptive.css?v=13",
   "/user-nav-reorg.css?v=1",
-  "/attendigo-sidebar-adaptive.js?v=6",
+  "/attendigo-sidebar-adaptive.js?v=7",
   "/assets/attendigo-logo.png?v=2",
   "/assets/attendigo-icon.png?v=2",
   "/attendigo-brand.css?v=2",

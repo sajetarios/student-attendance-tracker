@@ -88,18 +88,20 @@ test('sidebar is card-free, compact, and keeps other portals branded with their 
  assert.match(html,/id="peopleNavChildren"/);
  assert.match(html,/aria-controls="academicNavChildren"/);
 });
-test('connection footer opens the existing Attendance Sync Center and never claims cloud sync success',()=>{
- const h=harness();h.syncClick();assert.equal(h.sync.clicked,true);
- assert.match(html,/id="sidebarSyncStatus"/);
- assert.match(html,/aria-controls="attendanceSyncDialog"/);
+test('sidebar sync shortcut is removed, while topbar Sync Center and offline sync remain',()=>{
+ assert.doesNotMatch(html,/id="sidebarSyncStatus"|Attendance sync status/);
+ assert.doesNotMatch(source,/sidebarSyncStatus/);
+ assert.match(html,/id="connectionStatus"[^>]*aria-controls="attendanceSyncDialog"/);
+ assert.match(html,/src="\/attendance-sync-center\.js\?v=3"/);
+ assert.match(html,/src="\/offline-attendance\.js\?v=5"/);
+ assert.doesNotMatch(css,/#sidebar\.sidebar \.sidebar-status/);
  assert.ok(!html.includes('Connected to local server'));
- assert.match(source,/getElementById\('connectionStatus'\)\?\.click\(\)/);
 });
 test('the service worker caches the deployed variants and correct versioned sidebar assets',()=>{
- const assets=['/attendigo-sidebar-adaptive.css?v=12','/attendigo-sidebar-adaptive.js?v=6',
+ const assets=['/attendigo-sidebar-adaptive.css?v=13','/attendigo-sidebar-adaptive.js?v=7',
  '/attendigo-brand-refresh.css?v=2','/assets/attendigo-wordmark-on-light.svg?v=1',
  '/assets/attendigo-wordmark-on-dark.svg?v=1','/assets/attendigo-symbol-transparent.svg?v=1'];
  for(const asset of assets)assert.ok(worker.includes(JSON.stringify(asset)),asset);
  for(const asset of [assets[0],assets[1],assets[2],assets[5]])assert.ok(html.includes(asset),asset);
- assert.ok(Number(worker.match(/const CACHE = "attendigo-v(\d+)-/)[1]) >= 166, 'PWA cache version must include the latest teacher roster CSS');
+ assert.ok(Number(worker.match(/const CACHE = "attendigo-v(\d+)-/)[1]) >= 167, 'PWA cache version must include removal of sidebar sync shortcut');
 });

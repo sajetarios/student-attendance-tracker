@@ -121,11 +121,6 @@
     q.addEventListener?.('change',apply);
   }
   document.addEventListener('dashboard-theme-change',()=>requestAnimationFrame(apply));
-  // The footer is a shortcut to the existing Sync Center; it must not claim
-  // cloud replication is complete merely because the device is online.
-  document.getElementById('sidebarSyncStatus')?.addEventListener('click',()=>{
-    document.getElementById('connectionStatus')?.click();
-  });
   apply();
   window.addEventListener('pageshow',apply);
 })();
