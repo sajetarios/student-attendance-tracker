@@ -84,7 +84,7 @@
 <link rel="stylesheet" href="/attendigo-brand.css?v=2">
 <link rel="manifest" href="/manifest.webmanifest">
 <link rel="stylesheet" href="/attendigo-login-motion.css?v=2">
-<link rel="stylesheet" href="/attendigo-login-refinement.css?v=2">
+<link rel="stylesheet" href="/attendigo-login-refinement.css?v=3">
 <style id="superAdminLoginFix">#schoolCodeGroup[hidden],#schoolAdminRecoveryLink[hidden],#schoolAdminRecoveryForm[hidden]{display:none!important}.login-mode .mode-tab[aria-pressed="true"]{font-weight:800}</style>
 <link rel="stylesheet" href="/attendigo-brand-refresh.css?v=1">
   <link rel="preload" href="/fonts/InterVariable.woff2" as="font" type="font/woff2" crossorigin>
@@ -124,7 +124,8 @@
         <form id="loginForm" method="post" action="/api/auth/school/login" novalidate>
           <div class="field-group" id="schoolCodeGroup">
             <label for="schoolCode"><svg class="login-ui-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><path d="M14 14h3v3h-3zM21 14v3M17 21h4M14 21v-2"/></svg><span>School code</span></label>
-            <input id="schoolCode" name="schoolCode" autocomplete="organization" placeholder="e.g. YOUR-SCHOOL-CODE" required>
+            <input id="schoolCode" name="schoolCode" autocomplete="organization" placeholder="e.g. YOUR-SCHOOL-CODE" aria-describedby="schoolCodeHint" required>
+            <small id="schoolCodeHint" class="school-code-hint">Your school code is required, even with a saved username and password.</small>
           </div>
           <div class="field-group">
             <label for="username" id="usernameLabel"><svg class="login-ui-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 21v-2a8 8 0 0 1 16 0v2"/></svg><span>Username</span></label>
@@ -177,7 +178,7 @@
     </section>
   </main>
   <script src="/login-routing.js" defer></script>
-  <script src="/portal-login.js?v=8" defer></script>
+  <script src="/portal-login.js?v=9" defer></script>
   <script>
     (() => {
       const passwordInput = document.getElementById('password');

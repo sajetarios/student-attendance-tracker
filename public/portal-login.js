@@ -6,6 +6,16 @@
   const usernameLabel = document.getElementById('usernameLabel');
   const schoolCodeGroup = document.getElementById('schoolCodeGroup');
   const schoolCode = document.getElementById('schoolCode');
+  const schoolCodeHint = document.getElementById('schoolCodeHint');
+  const schoolCodeHelp = 'Your school code is required, even with a saved username and password.';
+  function clearSchoolCodeError() {
+    schoolCode.removeAttribute('aria-invalid');
+    schoolCodeHint.textContent = schoolCodeHelp;
+    schoolCodeHint.classList.remove('error');
+  }
+  schoolCode.addEventListener('input', () => {
+    if (schoolCode.value.trim()) clearSchoolCodeError();
+  });
   const accountTypeHint = document.getElementById('accountTypeHint');
   const feedback = document.getElementById('loginFeedback');
   const button = document.getElementById('signInButton');
@@ -29,6 +39,7 @@
     form.hidden = false;
     if (document.getElementById('firstPlatformSetupLink')) document.getElementById('firstPlatformSetupLink').hidden = mode !== 'platform';
     schoolCode.required = mode !== 'platform';
+    clearSchoolCodeError();
     const usernameInput = document.getElementById('username');
     usernameInput.placeholder = isStudent ? 'Enter your Student ID or username' : 'Enter your username';
     usernameInput.setAttribute('aria-label', isStudent ? 'Student ID or username' : 'Username');
@@ -75,8 +86,20 @@
     const payload = mode !== 'platform'
       ? { schoolCode: schoolCode.value.trim(), username, password }
       : { username, password };
-    if (!username || !password || (mode !== 'platform' && !payload.schoolCode)) {
-      feedback.textContent = 'Complete all required fields.';
+    if (mode !== 'platform' && !payload.schoolCode) {
+      // Password managers often restore username/password but not the tenant code.
+      schoolCode.setAttribute('aria-invalid', 'true');
+      schoolCodeHint.textContent = 'Enter your school code to sign in.';
+      schoolCodeHint.classList.add('error');
+      feedback.textContent = 'School code is required for this account type.';
+      feedback.className = 'form-feedback error';
+      schoolCode.focus();
+      return;
+    }
+    if (!username || !password) {
+      feedback.textContent = 'Enter your username and password.';
+      feedback.className = 'form-feedback error';
+      document.getElementById(!username ? 'username' : 'password').focus();
       return;
     }
 

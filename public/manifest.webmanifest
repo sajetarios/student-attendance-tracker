@@ -1,7 +1,7 @@
 {
   "name": "Attendigo",
   "short_name": "Attendigo",
-  "start_url": "/",
+  "start_url": "/portal-login.html",
   "display": "standalone",
   "background_color": "#f5f7fb",
   "theme_color": "#1c2d45",

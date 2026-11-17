@@ -32,9 +32,26 @@ test('login page and offline cache agree on fresh login assets', () => {
   const fs = require('node:fs');
   const html = fs.readFileSync('public/portal-login.html', 'utf8');
   const sw = fs.readFileSync('public/sw.js', 'utf8');
-  assert.ok(html.includes('src="/portal-login.js?v=8"'));
-  assert.ok(sw.includes('"/portal-login.js?v=8"'));
-  assert.ok(sw.includes('attendigo-v170-login-credential-url-guard'));
+  assert.ok(html.includes('src="/portal-login.js?v=9"'));
+  assert.ok(sw.includes('"/portal-login.js?v=9"'));
+  assert.ok(sw.includes('attendigo-v171-canonical-login-school-code'));
   assert.ok(sw.includes("if (['/portal-login.js', '/login-routing.js'].includes(url.pathname))"));
   assert.ok(sw.includes("fetch(request, { cache: 'no-store' })"));
+});
+
+test('one canonical login route and explicit school code validation for all devices', () => {
+  const fs = require('node:fs');
+  const html = fs.readFileSync('public/portal-login.html', 'utf8');
+  const client = fs.readFileSync('public/portal-login.js', 'utf8');
+  const styles = fs.readFileSync('public/attendigo-login-refinement.css', 'utf8');
+  const server = fs.readFileSync('server.js', 'utf8');
+  const manifest = JSON.parse(fs.readFileSync('public/manifest.webmanifest', 'utf8'));
+  assert.equal(manifest.start_url, '/portal-login.html');
+  assert.ok(server.includes("function canonicalLoginUrl(req)"));
+  assert.ok(server.includes("app.get('/', (req, res) => {"));
+  assert.ok(server.includes("res.redirect(302, canonicalLoginUrl(req));"));
+  assert.match(html, /id="schoolCodeHint"/);
+  assert.match(client, /schoolCode\.setAttribute\('aria-invalid', 'true'\)/);
+  assert.match(client, /schoolCode\.focus\(\)/);
+  assert.match(styles, /#schoolCodeHint\.error/);
 });

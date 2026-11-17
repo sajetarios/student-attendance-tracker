@@ -1,4 +1,4 @@
-const CACHE = "attendigo-v170-login-credential-url-guard";
+const CACHE = "attendigo-v171-canonical-login-school-code";
 
 const SHELL = [
   "/typography.css?v=1",
@@ -40,7 +40,7 @@ const SHELL = [
   "/teacher-assignment-modal.css?v=1",
   "/portal-login.html",
   "/attendigo-login-motion.css?v=2",
-  "/attendigo-login-refinement.css?v=2",
+  "/attendigo-login-refinement.css?v=3",
   "/portal.css?v=0.9.113",
   "/student-roster-toolbar.css?v=2",
   "/learner-roster-view.css?v=1",
@@ -82,7 +82,7 @@ const SHELL = [
   "/form-system.css?v=1",
   "/password-visibility.css",
   "/password-visibility.js",
-  "/portal-login.js?v=8",
+  "/portal-login.js?v=9",
   "/login-routing.js",
   "/responsive.css?v=0.8.3",
   "/comfort-ui.css?v=0.8.8",

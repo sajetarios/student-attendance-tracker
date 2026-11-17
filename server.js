@@ -3659,14 +3659,18 @@ app.get('/vendor/html5-qrcode.min.js', (_req, res) =>
 // Basic liveness endpoint for deployment and diagnostics. No school data is exposed.
 app.get('/api/health', (_req, res) => res.json({ ok: true, service: 'school-attendance' }));
 
-// Main application login page
-app.get('/', (_req, res) => {
-  res.sendFile(path.join(__dirname, 'public', 'portal-login.html'));
+// Serve one canonical login URL for desktop, mobile browsers, and installed PWAs.
+// Preserve only the supported account-mode option; never copy credentials from a URL.
+function canonicalLoginUrl(req) {
+  return '/portal-login.html' + (req.query.mode === 'platform' ? '?mode=platform' : '');
+}
+app.get('/', (req, res) => {
+  res.redirect(302, canonicalLoginUrl(req));
 });
 
 // Retire the legacy Attendance Desk landing page
-app.get('/index.html', (_req, res) => {
-  res.redirect('/');
+app.get('/index.html', (req, res) => {
+  res.redirect(302, canonicalLoginUrl(req));
 });
 
 app.use(express.static(path.join(__dirname, 'public')));

@@ -88,3 +88,8 @@
    which previously overrode the HTML hidden attribute for Super Admin login. */
 .login-page .login-panel #loginForm #schoolCodeGroup[hidden]{display:none!important;visibility:hidden!important}
 .login-page .login-panel #loginForm #schoolCodeGroup:not([hidden]){visibility:visible}
+
+/* Same school code guidance and validation on desktop and mobile. */
+.login-page #schoolCodeHint {display:block!important;margin:-3px 2px 0!important;color:#536586!important;font-size:12px!important;line-height:1.35!important;}
+.login-page #schoolCodeHint.error {color:#b42318!important;font-weight:650!important;}
+.login-page #schoolCode[aria-invalid="true"] {border-color:#c63d32!important;box-shadow:0 0 0 2px #c63d3222!important;}
