@@ -1,4 +1,4 @@
-const CACHE = "attendigo-v130-adviser-school-section-choices";
+const CACHE = "attendigo-v131-department-teacher-assignments";
 
 const SHELL = [
   "/assets/attendigo-sidebar-logo.png",
@@ -23,7 +23,7 @@ const SHELL = [
   "/student-portal.js?v=2",
   "/parent-portal.js?v=1",
   "/dashboard-appearance.js?v=3",
-  "/timetable-grid.js?v=3",
+  "/timetable-grid.js?v=4",
   "/schedule-workspace-ui.js?v=5",
   "/portal-login.html",
   "/attendigo-login-motion.css?v=2",
@@ -31,7 +31,7 @@ const SHELL = [
   "/portal.css?v=0.9.108",
   "/student-roster-toolbar.css?v=1",
   "/portal.css",
-  "/portal.js?v=0.9.123",
+  "/portal.js?v=0.9.124",
   "/sardo-monitor.js?v=1",
   "/sardo-monitor.css?v=1",
   "/schedule-form-layout.css?v=11",
