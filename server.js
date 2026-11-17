@@ -2,6 +2,7 @@
 require('dotenv').config();
 
 const express = require('express');
+const { redirectLeakedCredentials } = require('./credential-url-guard');
 const { registerSmsRoutes } = require('./sms-routes');
 const { startSmsWorker } = require('./sms-service');
 let smsWorker;
@@ -50,7 +51,8 @@ app.use((req, res, next) => {
   res.setHeader('Cross-Origin-Resource-Policy', 'same-origin');
   res.setHeader('Permissions-Policy', 'camera=(self), microphone=(), geolocation=()');
   if (req.path.startsWith('/api/') ||
-      ['/portal.html', '/student-portal.html', '/parent-portal.html',
+      ['/', '/index.html', '/portal-login.html', '/parent-register.html', '/platform-setup.html',
+       '/portal.html', '/student-portal.html', '/parent-portal.html',
        '/force-password-change.html', '/session-guard.js',
        '/portal.js', '/schedule-form-layout.css', '/schedule-workspace-ui.js'].includes(req.path)) {
     res.setHeader('Cache-Control', 'no-store, private');
@@ -59,6 +61,7 @@ app.use((req, res, next) => {
   }
   next();
 });
+app.use(redirectLeakedCredentials);
 app.use(express.json({ limit: '10mb', verify(req, _res, buffer) {
   if (['/api/cloud-sync/receive','/api/cloud-sync/receive-operations',
        '/api/cloud-sync/health-school'].includes(req.path)) req.rawBody = Buffer.from(buffer);

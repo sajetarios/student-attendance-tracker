@@ -161,4 +161,10 @@
       .then(registration => registration.update())
       .catch(error => console.warn('Service worker update check failed:', error));
   }
+
+  // Fail closed: only enable the submit button after the POST-based JavaScript
+  // handler and recovery listeners are registered. If JavaScript fails or is
+  // blocked, a native GET login is never possible.
+  button.disabled = false;
+  if (feedback.textContent === 'Preparing secure sign-in…') feedback.textContent = '';
 })();

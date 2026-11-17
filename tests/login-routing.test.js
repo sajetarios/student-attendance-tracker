@@ -32,9 +32,9 @@ test('login page and offline cache agree on fresh login assets', () => {
   const fs = require('node:fs');
   const html = fs.readFileSync('public/portal-login.html', 'utf8');
   const sw = fs.readFileSync('public/sw.js', 'utf8');
-  assert.ok(html.includes('src="/portal-login.js?v=7"'));
-  assert.ok(sw.includes('"/portal-login.js?v=7"'));
-  assert.ok(sw.includes('attendigo-v169-login-asset-consistency'));
+  assert.ok(html.includes('src="/portal-login.js?v=8"'));
+  assert.ok(sw.includes('"/portal-login.js?v=8"'));
+  assert.ok(sw.includes('attendigo-v170-login-credential-url-guard'));
   assert.ok(sw.includes("if (['/portal-login.js', '/login-routing.js'].includes(url.pathname))"));
   assert.ok(sw.includes("fetch(request, { cache: 'no-store' })"));
 });

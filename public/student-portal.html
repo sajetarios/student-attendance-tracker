@@ -76,7 +76,7 @@
     <section class="student-card password-required" id="studentPasswordRequired" hidden>
       <h2>Change your initial password</h2>
       <p>Your school issued an initial password. Set a private password before viewing your attendance.</p>
-      <form id="studentPasswordForm" class="form-grid">
+      <form method="post" id="studentPasswordForm" class="form-grid">
         <div class="field-group"><label for="studentCurrentPassword">Initial password</label><input id="studentCurrentPassword" type="password" required autocomplete="current-password"></div>
         <div class="field-group"><label for="studentNewPassword">New password (at least 12 characters)</label><input id="studentNewPassword" type="password" minlength="12" maxlength="256" required autocomplete="new-password"></div>
         <div class="field-group"><label for="studentConfirmPassword">Confirm new password</label><input id="studentConfirmPassword" type="password" minlength="12" maxlength="256" required autocomplete="new-password"></div>

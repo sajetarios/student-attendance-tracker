@@ -1,4 +1,4 @@
-const CACHE = "attendigo-v169-login-asset-consistency";
+const CACHE = "attendigo-v170-login-credential-url-guard";
 
 const SHELL = [
   "/typography.css?v=1",
@@ -82,7 +82,7 @@ const SHELL = [
   "/form-system.css?v=1",
   "/password-visibility.css",
   "/password-visibility.js",
-  "/portal-login.js?v=7",
+  "/portal-login.js?v=8",
   "/login-routing.js",
   "/responsive.css?v=0.8.3",
   "/comfort-ui.css?v=0.8.8",
@@ -122,6 +122,18 @@ self.addEventListener("fetch", event => {
     url.pathname.startsWith("/api/") ||
     request.headers.has("Authorization")
   ) {
+    return;
+  }
+
+  // Never send, cache, or serve a document request with credentials in its URL.
+  // This also protects people who still have a legacy cached login form.
+  const isAccountPage = ['/', '/index.html', '/portal-login.html',
+    '/parent-register.html', '/platform-setup.html',
+    '/force-password-change.html', '/portal.html',
+    '/student-portal.html', '/parent-portal.html'].includes(url.pathname);
+  const credentialKey = /^(?:password|passwd|pwd|pass|currentpassword|newpassword|confirmpassword|recoverycode|setupcode|accesstoken)$/i;
+  if (isAccountPage && [...url.searchParams.keys()].some(key => credentialKey.test(key))) {
+    event.respondWith(Response.redirect(new URL('/portal-login.html', url.origin).href, 303));
     return;
   }
 
@@ -185,7 +197,7 @@ self.addEventListener("fetch", event => {
     event.respondWith((async () => {
       try {
         const response = await fetch(request);
-        if (response.ok) {
+        if (response.ok && !url.search) {
           const cache = await caches.open(CACHE);
           await cache.put(request, response.clone()).catch(() => {});
         }
