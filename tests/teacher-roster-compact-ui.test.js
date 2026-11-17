@@ -13,8 +13,8 @@ const programs = read('public/special-program-ui.js');
 
 test('teacher roster compresses identity, class, QR and guardian without changing admin/dept layouts', () => {
   assert.match(main, /rosterTable\?\.classList\.toggle\('teacher-roster-compact', teacher\)/);
-  assert.match(main, /teacher\s*\? selectHeader \+ '<th>Learner<\/th><th>Class<\/th>/);
-  assert.match(main, /teacher \? \(5 \+ Number\(showSelectionColumn\)\)/);
+  assert.match(main, /teacher\s*\? selectHeader \+ '<th>Learner<\/th><th>Class \/ Program<\/th>/);
+  assert.match(main, /teacher \? \(4 \+ Number\(showSelectionColumn\)\)/);
   for (const name of ['teacher-roster-identity', 'teacher-roster-guardian','teacher-roster-status','teacher-roster-qr'])
     assert.ok(main.includes(name), name);
   assert.match(main, /data-student-enrollment/);
@@ -42,7 +42,7 @@ test('responsive teacher roster keeps grouped sex counts, readable cards and dar
   assert.match(style, /:focus-visible/);
 });
 test('PWA asset versions match the new styling and scripts', () => {
-  for (const asset of ['/teacher-learner-roster.css?v=2','/portal.js?v=0.9.139','/class-qr-dashboard-link.js?v=6','/teacher-roster-popover.js?v=2']) {
+  for (const asset of ['/teacher-learner-roster.css?v=3','/portal.js?v=0.9.140','/class-qr-dashboard-link.js?v=6','/teacher-roster-popover.js?v=2']) {
     assert.ok(page.includes(asset), asset+' included in portal');
     assert.ok(worker.includes(JSON.stringify(asset)), asset+' cached');
   }
@@ -51,11 +51,16 @@ test('PWA asset versions match the new styling and scripts', () => {
   assert.match(worker, /const CACHE = "attendigo-v\d+[^"]*"/);
 });
 
-test('five-column teacher table keeps guardian contact inside Actions, not the wide roster', () => {
+test('four-column teacher table keeps guardian contact inside Actions, not the wide roster', () => {
   assert.match(main, /<th>Quick actions<\/th>/);
-  assert.match(main, /teacher \? \(5 \+ Number\(showSelectionColumn\)\)/);
+  assert.match(main, /<th>Class \/ Program<\/th>/);
+  assert.match(main, /teacher \? \(4 \+ Number\(showSelectionColumn\)\)/);
   assert.match(main, /const teacherGuardian = teacher/);
   assert.match(main, /teacher-roster-menu-label/);
+  assert.match(main, /teacherRosterInitials\(fullName\)/);
+  assert.match(main, /teacher-roster-initials/);
+  assert.match(main, /classInfo =/);
+  assert.match(main, /teacher-directory-mode/);
   assert.match(main, /<div class="teacher-roster-quick-actions">/);
   assert.match(main, /data-label="Actions"/);
   assert.match(main, /if \(canViewQr && !teacher\)/);
@@ -80,4 +85,27 @@ test('teacher dropdown supports keyboard dismissal and does not increase row hei
   assert.match(style, /\.student-actions-dropdown\[open\]>\.student-row-actions/);
   assert.match(popover, /data-guardian-open/);
   assert.match(popover, /data-edit-student/);
+});
+
+test('program request permissions and approval badges survive merged Class/Program cell', () => {
+  assert.match(main, /rowgroup/);
+  assert.match(main, /studentRosterSexCounts/);
+  assert.match(main, /canSelectLearnerForBatch/);
+  assert.match(main, /data-select-student/);
+  assert.match(programs, /querySelector\('\[data-label="Special program"\]'\)/);
+  assert.match(programs, /querySelector\('\[data-label="Actions"\]'\)/);
+  assert.match(programs, /button.textContent='Request Program Change'/);
+  assert.match(programs, /pendingInScope/);
+  assert.match(main, /async function openStudentQrPreview\(student\)/);
+});
+test('compact CSS uses initials, dense rows, mobile cards, and theme contrast', () => {
+  assert.match(style, /teacher-roster-initials/);
+  assert.match(style, /border-radius:50%/);
+  assert.match(style, /height:53px/);
+  assert.match(style, /\.teacher-roster-class/);
+  assert.match(style, /max-width:1180px/);
+  assert.match(style, /@media\(max-width:700px\)/);
+  assert.match(style, /@media\(max-width:390px\)/);
+  assert.match(style, /html\[data-ui-theme="dark"\]/);
+  assert.match(page, /id="studentRosterHeading"/);
 });
