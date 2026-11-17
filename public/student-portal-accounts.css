@@ -140,3 +140,92 @@ html[data-ui-theme="dark"] #studentAccountsView .sap-request-history{border-colo
 body.dark-mode #studentAccountsView .sap-request-history>summary,
 body[data-theme="dark"] #studentAccountsView .sap-request-history>summary,
 html[data-ui-theme="dark"] #studentAccountsView .sap-request-history>summary{color:#ecf5ff}
+
+
+/* Explicit Attendigo appearance control: dark mode does not depend on OS theme. */
+html[data-ui-theme="dark"] #studentAccountsView{
+  --sap-night-panel:#182b45;--sap-night-raised:#233b58;
+  --sap-night-border:#4c6787;--sap-night-text:#edf5ff;--sap-night-muted:#c0d0e7
+}
+html[data-ui-theme="dark"] #studentAccountsView :is(.sap-metric,.sap-directory-card,.sap-requests-card){
+  background:var(--sap-night-panel)!important;color:var(--sap-night-text)!important;
+  border-color:var(--sap-night-border)!important
+}
+html[data-ui-theme="dark"] #studentAccountsView :is(h3,.sap-metric strong,.sap-student-name,.sap-request-info strong){
+  color:var(--sap-night-text)!important
+}
+html[data-ui-theme="dark"] #studentAccountsView :is(.sap-metric span,.sap-card-head p,.sap-topbar p,.sap-footnote,.sap-privacy-note,.sap-student-id,.sap-request-info p,.sap-request-note){
+  color:var(--sap-night-muted)!important
+}
+html[data-ui-theme="dark"] #studentAccountsView .sap-table-scroll{
+  background:var(--sap-night-panel)!important;border-color:var(--sap-night-border)!important
+}
+html[data-ui-theme="dark"] #studentAccountsView .sap-table th{
+  background:#29425f!important;color:#e3efff!important;border-bottom-color:#536c89!important
+}
+html[data-ui-theme="dark"] #studentAccountsView .sap-table td{
+  background:#1b304c!important;color:#eaf3ff!important;border-bottom-color:#3e5877!important
+}
+html[data-ui-theme="dark"] #studentAccountsView .sap-table tbody tr:hover td{
+  background:#2a4465!important
+}
+html[data-ui-theme="dark"] #studentAccountsView .sap-bulk-toolbar{
+  background:#243b59!important;color:#eaf2ff!important;border-color:#557595!important
+}
+html[data-ui-theme="dark"] #studentAccountsView :is(.sap-filterbar input,.sap-filterbar select,.sap-bulk-toolbar select,.sap-modal textarea){
+  background:#213753!important;color:#f0f6ff!important;border-color:#6884a4!important;
+  color-scheme:dark
+}
+html[data-ui-theme="dark"] #studentAccountsView :is(.sap-filterbar input,.sap-modal textarea)::placeholder{
+  color:#b6cbe6!important;opacity:1
+}
+html[data-ui-theme="dark"] #studentAccountsView .sap-request-row{
+  background:#213751!important;color:#f0f6ff!important;border-color:#54708f!important
+}
+html[data-ui-theme="dark"] #studentAccountsView .sap-request-summary{
+  background:#243d59!important;color:#f2f7ff!important;border-color:#5e7b9d!important
+}
+html[data-ui-theme="dark"] #studentAccountsView .sap-request-summary strong{color:#edf5ff!important}
+html[data-ui-theme="dark"] #studentAccountsView .sap-request-history>summary{
+  color:#eef6ff!important
+}
+html[data-ui-theme="dark"] #studentAccountsView .sap-action:not(.primary){
+  background:#2c4767!important;color:#edf5ff!important;border-color:#6d8dad!important
+}
+html[data-ui-theme="dark"] #studentAccountsView .sap-action.primary{
+  background:#2868b8!important;color:#fff!important;border-color:#5d98df!important
+}
+html[data-ui-theme="dark"] #studentAccountsView .sap-action:hover:not(:disabled){
+  filter:brightness(1.14)
+}
+html[data-ui-theme="dark"] #studentAccountsView .sap-chip.active{
+  background:#124e3d!important;color:#bdf8de!important;border:1px solid #368563
+}
+html[data-ui-theme="dark"] #studentAccountsView .sap-chip.pending{
+  background:#5f431d!important;color:#ffe3ae!important;border:1px solid #97723e
+}
+html[data-ui-theme="dark"] #studentAccountsView .sap-chip.disabled{
+  background:#5b2f3c!important;color:#ffcbd5!important;border:1px solid #92596b
+}
+html[data-ui-theme="dark"] #studentAccountsView .sap-chip:not(.active):not(.pending):not(.disabled){
+  background:#29435f!important;color:#e6f0ff!important
+}
+html[data-ui-theme="dark"] #studentAccountsView .sap-modal{
+  background:#172942!important;color:#eef6ff!important;border:1px solid #546e8d!important
+}
+html[data-ui-theme="dark"] #studentAccountsView .sap-modal :is(h3,label,.sap-secret-label){
+  color:#edf5ff!important
+}
+html[data-ui-theme="dark"] #studentAccountsView .sap-action:focus-visible,
+html[data-ui-theme="dark"] #studentAccountsView :is(input,select,textarea,summary):focus-visible{
+  outline:3px solid #95c9ff!important;outline-offset:2px
+}
+#studentAccountsView .sap-table input[type="checkbox"],#studentAccountsView #sapSelectAll{
+  width:20px;height:20px;cursor:pointer;accent-color:#246dba
+}
+@media(max-width:600px){
+  #studentAccountsView .sap-table{min-width:580px}
+  #studentAccountsView .sap-bulk-toolbar{gap:10px}
+  #studentAccountsView .sap-request-row{align-items:flex-start}
+  #studentAccountsView .sap-request-info{min-width:0}
+}

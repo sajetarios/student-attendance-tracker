@@ -14,7 +14,7 @@ test('Department Heads keep a useful roster without a useless Select column', ()
   assert.match(portal, /const selectHeader = showSelectionColumn \? '<th>Select<\/th>' : ''/);
   assert.match(portal, /rosterHeader\.innerHTML = departmentHead/);
   assert.match(portal, /const rosterColumns = departmentHead/);
-  assert.match(portal, /showSelectionColumn \? 8 : 7/);
+  assert.match(portal, /showSelectionColumn \? 9 : 8/);
   assert.match(portal, /departmentHead \? '' : await photoDataUrl\(student\.photoUrl\)/);
   assert.doesNotMatch(portal, /Only your department’s assigned sections can be selected/);
   assert.match(html, /id="studentRosterDescription"/);

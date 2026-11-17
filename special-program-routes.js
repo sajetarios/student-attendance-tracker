@@ -65,14 +65,14 @@ function registerSpecialProgramRoutes(app,pool,auth){
  });
  app.get('/api/special-programs/requestable',authenticateSchoolClient,staff,async(req,res)=>{
   if(!mayRequest(req.auth))return res.status(403).json({error:'This role cannot request program changes.'});
-  if(req.auth.role==='DEPARTMENT_HEAD'&&(!validId(req.auth.departmentId)||req.auth.departmentCode==='UNASSIGNED'))return res.json({enrollmentIds:[]});
+  if(req.auth.role==='DEPARTMENT_HEAD'&&(!validId(req.auth.departmentId)||req.auth.departmentCode==='UNASSIGNED'))return res.json({enrollmentIds:[],pendingEnrollmentIds:[]});
   try{
    const params=req.auth.role==='DEPARTMENT_HEAD'?[req.auth.schoolId,req.auth.departmentId]:[req.auth.schoolId,req.auth.userId];
    const scope=req.auth.role==='DEPARTMENT_HEAD'
      ?"EXISTS(SELECT 1 FROM class_periods p WHERE p.school_id=e.school_id AND p.department_id=$2 AND p.active=TRUE AND p.grade_level=e.grade_level AND p.section=e.section) OR EXISTS(SELECT 1 FROM class_adviser_assignments ca JOIN school_users adviser ON adviser.school_id=ca.school_id AND adviser.user_id=ca.adviser_user_id AND adviser.department_id=$2 AND adviser.active=TRUE AND adviser.role='TEACHER' WHERE ca.school_id=e.school_id AND ca.grade_level=e.grade_level AND ca.section=e.section)"
      :"EXISTS(SELECT 1 FROM class_adviser_assignments ca WHERE ca.school_id=e.school_id AND ca.adviser_user_id=$2 AND ca.grade_level=e.grade_level AND ca.section=e.section)";
-   const sql="SELECT e.enrollment_id AS \"enrollmentId\" FROM student_enrollments e JOIN school_years y ON y.school_id=e.school_id AND y.school_year_id=e.school_year_id AND y.status='ACTIVE' WHERE e.school_id=$1 AND e.enrollment_status='ENROLLED' AND ("+scope+")";
-   const result=await pool.query(sql,params);res.json({enrollmentIds:result.rows.map(r=>r.enrollmentId)});
+   const sql="SELECT e.enrollment_id AS \"enrollmentId\", EXISTS(SELECT 1 FROM special_program_change_requests r WHERE r.school_id=e.school_id AND r.enrollment_id=e.enrollment_id AND r.status='PENDING') AS \"hasPendingRequest\" FROM student_enrollments e JOIN school_years y ON y.school_id=e.school_id AND y.school_year_id=e.school_year_id AND y.status='ACTIVE' WHERE e.school_id=$1 AND e.enrollment_status='ENROLLED' AND ("+scope+")";
+   const result=await pool.query(sql,params);res.json({enrollmentIds:result.rows.map(r=>r.enrollmentId),pendingEnrollmentIds:result.rows.filter(r=>r.hasPendingRequest).map(r=>r.enrollmentId)});
   }catch(e){res.status(500).json({error:'Unable to load authorized sections.'});}
  });
  app.post('/api/special-programs/requests',authenticateSchoolClient,staff,async(req,res)=>{

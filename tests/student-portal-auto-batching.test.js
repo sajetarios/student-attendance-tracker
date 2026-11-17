@@ -227,14 +227,15 @@ test('teacher account requests keep only pending items active and retain complet
   assert.match(app.element('sapRequestHistoryRows').innerHTML,/Pending Learner/);
 });
 
-test('School Admin account approval list remains unchanged and history drawer stays hidden', async () => {
+test('School Admin account approval list shows pending work and reviewed decisions in history', async () => {
   const app = browserFixture({role:'SCHOOL_ADMIN'});
   await app.ready();
   app.pending.push({requestId:'P1',studentId:'S-001',fullName:'Pending Learner',status:'PENDING',requestType:'CREATE'});
   app.pending.push({requestId:'A1',studentId:'S-002',fullName:'Approved Learner',status:'APPROVED',requestType:'CREATE'});
   await app.refresh();
   assert.match(app.element('sapRequestRows').innerHTML,/Pending Learner/);
-  assert.match(app.element('sapRequestRows').innerHTML,/Approved Learner/);
+  assert.doesNotMatch(app.element('sapRequestRows').innerHTML,/Approved Learner/);
+  assert.match(app.element('sapRequestHistoryRows').innerHTML,/Approved Learner/);
   assert.match(app.element('sapRequestRows').innerHTML,/data-sap-review="APPROVE"/);
-  assert.equal(app.element('sapRequestHistory').hidden,true);
+  assert.equal(app.element('sapRequestHistory').hidden,false);
 });

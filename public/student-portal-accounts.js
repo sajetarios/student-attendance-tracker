@@ -70,7 +70,7 @@
     }
     const action = !s.hasAccount ? 'CREATE' : s.accountActive ? 'RESET' : 'ACTIVATE';
     if (pendingFor(s.studentId)) return '<span class="sap-chip pending">Request pending</span>';
-    const label = action === 'CREATE' ? 'Request login' : action === 'RESET' ? 'Request reset' : 'Request activation';
+    const label = action === 'CREATE' ? 'Request login' : action === 'RESET' ? 'Request Password Reset' : 'Request activation';
     return '<button type="button" class="sap-action primary" data-sap-action="' + action + '" data-student-id="' + esc(s.studentId) + '">' + label + '</button>';
   }
   function batchEligible(student) {
@@ -146,23 +146,23 @@
   }
   function renderRequests() {
     const admin = isAdmin();
-    $('sapRequestsTitle').textContent = admin ? 'Teacher account requests' : 'My account requests';
+    $('sapRequestsTitle').textContent = admin ? 'Account & Access Requests' : 'My account requests';
     $('sapRequestsHelp').textContent = admin
-      ? 'Review requests from teachers and approve or reject them.'
+      ? 'Review pending student login and password-reset requests. Reviewed decisions remain in history.'
       : 'Pending requests appear here. Approved and rejected requests are kept in history.';
-    // Keep the School Admin approval inbox unchanged. Only the teacher's
-    // active list excludes completed requests; no database rows are removed.
+    // All portals show pending work first; reviewed requests remain in a collapsed
+    // history drawer without changing or deleting the database audit records.
     const pending = requests.filter(r=>r.status==='PENDING');
     const reviewed = requests.filter(r=>r.status!=='PENDING');
-    const active = admin ? requests : pending;
+    const active = pending;
     $('sapRequestRows').innerHTML = active.length
       ? active.map(renderRequestRow).join('')
-      : '<p class="sap-empty">'+(admin?'No student account requests yet.':'No pending account requests.')+'</p>';
+      : '<p class="sap-empty">'+'No pending account requests.'+'</p>';
     const history = $('sapRequestHistory');
     if (history) {
-      history.hidden = admin || !reviewed.length;
+      history.hidden = !reviewed.length;
       $('sapRequestHistoryLabel').textContent = 'Request history ('+reviewed.length+')';
-      $('sapRequestHistoryRows').innerHTML = admin ? '' : reviewed.map(renderRequestRow).join('');
+      $('sapRequestHistoryRows').innerHTML = reviewed.map(renderRequestRow).join('');
     }
   }
   async function refresh() {
