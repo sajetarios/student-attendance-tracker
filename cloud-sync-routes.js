@@ -54,59 +54,104 @@ function verifySchoolCloudSignature(req,res,next) {
   return next();
 }
 
+let processingCloudOutbox = false;
 async function processCloudSyncOutbox(pool) {
-  if (!secretReady()) return { sent: 0, failed: 0, skipped: true };
-  await pool.query(`UPDATE school_cloud_sync_outbox SET status='RETRY',next_attempt_at=NOW(),updated_at=NOW()
-                    WHERE status='PROCESSING' AND updated_at<NOW()-INTERVAL '15 minutes'`);
-  const selected = await pool.query(
-    `SELECT o.outbox_id AS "outboxId",o.school_id AS "schoolId",s.school_code AS "schoolCode",
-            c.cloud_base_url AS "cloudBaseUrl",o.payload,o.attempts
-     FROM school_cloud_sync_outbox o
-     JOIN school_cloud_sync_settings c ON c.school_id=o.school_id AND c.enabled=TRUE
-     JOIN schools s ON s.school_id=o.school_id AND s.active=TRUE
-     WHERE o.status IN ('PENDING','RETRY') AND o.next_attempt_at<=NOW()
-     ORDER BY o.created_at LIMIT 30`
-  );
-  let sent = 0, failed = 0;
-  for (const row of selected.rows) {
-    const claimed = await pool.query(
-      `UPDATE school_cloud_sync_outbox SET status='PROCESSING',attempts=attempts+1,updated_at=NOW()
-       WHERE outbox_id=$1 AND status IN ('PENDING','RETRY') RETURNING attempts`, [row.outboxId]
-    );
-    if (!claimed.rowCount) continue;
-    try {
-      const body = JSON.stringify({ schoolCode: row.schoolCode, events: [row.payload] });
-      const response = await fetch(`${row.cloudBaseUrl.replace(/\/+$/, '')}/api/cloud-sync/receive`, {
-        method: 'POST', headers: { 'Content-Type': 'application/json', ...signedHeaders(body) },
-        body, signal: AbortSignal.timeout(15000)
-      });
-      const data = await response.json().catch(() => ({}));
-      if (!response.ok || !Array.isArray(data.results) || !['ACCEPTED','ALREADY_SYNCED','DUPLICATE'].includes(data.results[0]?.status)) {
-        throw new Error(data.error || data.results?.[0]?.reason || `Cloud server returned ${response.status}.`);
-      }
-      await pool.query(
-        `UPDATE school_cloud_sync_outbox SET status='SENT',last_error=NULL,sent_at=NOW(),updated_at=NOW()
-         WHERE outbox_id=$1`, [row.outboxId]
-      );
-      await pool.query(
-        `UPDATE school_cloud_sync_settings SET last_success_at=NOW(),last_error=NULL,updated_at=NOW()
-         WHERE school_id=$1`, [row.schoolId]
-      );
-      sent += 1;
-    } catch (err) {
-      const attempts = claimed.rows[0].attempts;
-      const delaySeconds = Math.min(3600, 15 * (2 ** Math.min(attempts - 1, 8)));
-      const errorText = String(err.message || 'Cloud forwarding failed.').slice(0, 500);
-      await pool.query(
-        `UPDATE school_cloud_sync_outbox SET status='RETRY',last_error=$2,updated_at=NOW(),
-           next_attempt_at=NOW()+($3::text || ' seconds')::interval
-         WHERE outbox_id=$1`, [row.outboxId, errorText, delaySeconds]
-      );
-      await pool.query('UPDATE school_cloud_sync_settings SET last_error=$2 WHERE school_id=$1', [row.schoolId, errorText]);
-      failed += 1;
+  if(!secretReady())return {sent:0,failed:0,review:0,skipped:true};
+  if(processingCloudOutbox)return {sent:0,failed:0,review:0,skipped:true};
+  processingCloudOutbox=true;
+  try {
+    // Recovery after a server restart never discards an unacknowledged operation.
+    for(const table of ['school_cloud_sync_outbox','school_cloud_sync_operations']){
+      await pool.query(`UPDATE ${table} SET status='RETRY',next_attempt_at=NOW(),updated_at=NOW()
+        WHERE status='PROCESSING' AND updated_at<NOW()-INTERVAL '15 minutes'`);
     }
-  }
-  return { sent, failed, skipped: false };
+    const selected=await pool.query(`
+      SELECT q.kind,q."rowId",q."operationId",q."schoolId",
+        s.school_code AS "schoolCode",c.cloud_base_url AS "cloudBaseUrl",
+        q.payload,q.status,q."nextAttemptAt",q."createdAt"
+      FROM (
+        SELECT 'QR_SCAN'::text AS kind,outbox_id::text AS "rowId",
+          event_id AS "operationId",school_id AS "schoolId",payload,
+          status,next_attempt_at AS "nextAttemptAt",created_at AS "createdAt"
+        FROM school_cloud_sync_outbox WHERE status IN ('PENDING','RETRY','PROCESSING','REVIEW')
+        UNION ALL
+        SELECT operation_type AS kind,operation_id::text AS "rowId",
+          operation_id AS "operationId",school_id AS "schoolId",payload,
+          status,next_attempt_at AS "nextAttemptAt",created_at AS "createdAt"
+        FROM school_cloud_sync_operations WHERE status IN ('PENDING','RETRY','PROCESSING','REVIEW')
+      ) q
+      JOIN school_cloud_sync_settings c ON c.school_id=q."schoolId"
+        AND c.enabled=TRUE AND c.cloud_base_url IS NOT NULL
+      JOIN schools s ON s.school_id=q."schoolId" AND s.active=TRUE
+      ORDER BY q."createdAt" ASC,q.kind ASC,q."rowId" ASC LIMIT 100`);
+    let sent=0,failed=0,review=0;
+    const blockedSchools=new Set();
+    for(const row of selected.rows){
+      if(blockedSchools.has(String(row.schoolId)))continue;
+      const due=new Date(row.nextAttemptAt).getTime()<=Date.now();
+      if(row.status==='REVIEW' || row.status==='PROCESSING' || !due){
+        blockedSchools.add(String(row.schoolId));
+        continue;
+      }
+      const legacy=row.kind==='QR_SCAN';
+      const table=legacy?'school_cloud_sync_outbox':'school_cloud_sync_operations';
+      const column=legacy?'outbox_id':'operation_id';
+      const claimed=await pool.query(`
+        UPDATE ${table} SET status='PROCESSING',attempts=attempts+1,updated_at=NOW()
+        WHERE ${column}=$1 AND status IN ('PENDING','RETRY') RETURNING attempts`,
+        [row.rowId]);
+      if(!claimed.rowCount){blockedSchools.add(String(row.schoolId));continue;}
+      try {
+        const body=JSON.stringify(legacy
+          ? {schoolCode:row.schoolCode,events:[row.payload]}
+          : {schoolCode:row.schoolCode,operation:row.payload});
+        const endpoint=legacy?'/api/cloud-sync/receive':'/api/cloud-sync/receive-operations';
+        const response=await fetch(row.cloudBaseUrl.replace(/\/+$/,'')+endpoint,{
+          method:'POST',headers:{'Content-Type':'application/json',...signedHeaders(body)},
+          body,signal:AbortSignal.timeout(15000)
+        });
+        const data=await response.json().catch(()=>({}));
+        const item=data.results?.[0]||{};
+        const echoed=legacy?item.eventId:item.operationId;
+        if(!response.ok)throw new Error(data.error||'Cloud returned HTTP '+response.status);
+        if(String(echoed)!==String(row.operationId))
+          throw new Error('Cloud response did not acknowledge the expected operation ID.');
+        const accepted=legacy?['ACCEPTED','ALREADY_SYNCED','DUPLICATE'] : ['ACCEPTED','ALREADY_SYNCED'];
+        if(accepted.includes(item.status)){
+          await pool.query(`UPDATE ${table} SET status='SENT',last_error=NULL,
+            sent_at=NOW(),updated_at=NOW() WHERE ${column}=$1`,[row.rowId]);
+          await pool.query(`UPDATE school_cloud_sync_settings
+            SET last_success_at=NOW(),last_error=NULL,updated_at=NOW() WHERE school_id=$1`,
+            [row.schoolId]);
+          sent++;
+          continue;
+        }
+        if(['REJECTED','NEEDS_REVIEW'].includes(item.status)){
+          const reason=String(item.reason||item.code||'Cloud rejected this record for review.').slice(0,500);
+          await pool.query(`UPDATE ${table} SET status='REVIEW',
+            last_error=$2,updated_at=NOW() WHERE ${column}=$1`,[row.rowId,reason]);
+          await pool.query('UPDATE school_cloud_sync_settings SET last_error=$2 WHERE school_id=$1',
+            [row.schoolId,reason]);
+          review++;
+          blockedSchools.add(String(row.schoolId));
+          continue;
+        }
+        throw new Error('Cloud returned an unexpected synchronization result.');
+      }catch(error){
+        const attempts=claimed.rows[0].attempts;
+        const delaySeconds=Math.min(3600,15*(2**Math.min(attempts-1,8)));
+        const reason=String(error.message||'Cloud forwarding failed.').slice(0,500);
+        await pool.query(`UPDATE ${table} SET status='RETRY',last_error=$2,updated_at=NOW(),
+          next_attempt_at=NOW()+($3::text || ' seconds')::interval WHERE ${column}=$1`,
+          [row.rowId,reason,delaySeconds]);
+        await pool.query('UPDATE school_cloud_sync_settings SET last_error=$2 WHERE school_id=$1',
+          [row.schoolId,reason]);
+        failed++;
+        blockedSchools.add(String(row.schoolId));
+      }
+    }
+    return {sent,failed,review,skipped:false};
+  }finally{processingCloudOutbox=false;}
 }
 
 function registerCloudSyncRoutes(app, pool, { authenticateSchoolClient, requireSchoolAdmin }) {
