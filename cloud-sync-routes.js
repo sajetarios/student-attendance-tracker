@@ -124,13 +124,20 @@ function registerCloudSyncRoutes(app, pool, { authenticateSchoolClient, requireS
           results.push({ eventId: event?.eventId || null, status: 'REJECTED', reason: 'Invalid event or learner details.' });
           continue;
         }
+        // A delayed attendance event is historical evidence, not a master-record
+        // update. Never roll a learner's name, grade, or section back to an
+        // earlier snapshot just because an offline queue arrived late.
         const student = await client.query(
-          `INSERT INTO students(school_id,student_id,full_name,grade_level,section,parent_mobile,sex)
-           VALUES($1,$2,$3,$4,$5,'',NULL)
-           ON CONFLICT(student_id) DO UPDATE SET full_name=EXCLUDED.full_name,grade_level=EXCLUDED.grade_level,
-             section=EXCLUDED.section,updated_at=NOW()
-           WHERE students.school_id=EXCLUDED.school_id
-           RETURNING student_id`,
+          `WITH inserted AS (
+             INSERT INTO students(school_id,student_id,full_name,grade_level,section,parent_mobile,sex)
+             VALUES($1,$2,$3,$4,$5,'',NULL)
+             ON CONFLICT(student_id) DO NOTHING
+             RETURNING student_id
+           )
+           SELECT student_id FROM inserted
+           UNION ALL
+           SELECT student_id FROM students WHERE school_id=$1 AND student_id=$2
+           LIMIT 1`,
           [schoolId,event.student.studentId.trim(),event.student.fullName.trim().slice(0,200),event.student.gradeLevel.trim().slice(0,40),event.student.section.trim().slice(0,100)]
         );
         if (!student.rowCount) { results.push({ eventId:event.eventId,status:'REJECTED',reason:'Student ID belongs to a different school.' }); continue; }
