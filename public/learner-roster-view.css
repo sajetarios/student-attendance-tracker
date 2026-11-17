@@ -1,0 +1,95 @@
+/* Attendigo learner roster / interactive register grouping, responsive and dark-mode safe. */
+#studentsView .student-roster-viewbar,
+.manual-folio .manual-roster-options {
+  display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;
+  gap:12px;padding:12px 14px;margin:10px 0;border:1px solid #d8e4f5;
+  border-radius:13px;background:#f4f8ff;color:#183d6a;
+}
+#studentsView .student-roster-viewbar label,
+.manual-folio .manual-roster-options label {
+  display:flex;align-items:center;gap:9px;font-size:13px;font-weight:700;
+}
+#studentRosterView,#mfRosterView {
+  box-sizing:border-box;min-height:44px;max-width:100%;
+  padding:8px 34px 8px 11px;border:1px solid #b9cce6;border-radius:10px;
+  background:#fff;color:#163a67;font:inherit;
+}
+#studentRosterSexCounts,#mfSexSummary {font-size:13px;font-weight:700;line-height:1.5;}
+#studentsView .student-sex-group > th,
+.manual-folio .manual-table .manual-sex-group > th {
+  padding:12px 14px!important;text-align:left!important;font-weight:800!important;
+  background:#e3ecfc!important;color:#153d75!important;border-bottom:1px solid #c9d9f1;
+}
+.student-roster-number {font-weight:700;color:#416391;margin-right:4px;}
+.student-actions-dropdown {position:relative;display:inline-block;min-width:105px;}
+.student-actions-dropdown > summary {
+  cursor:pointer;display:flex;align-items:center;justify-content:center;min-height:42px;
+  padding:7px 13px;border:1px solid #c9d7eb;border-radius:10px;background:#f5f9ff;
+  color:#173d6e;font-weight:700;list-style:none;
+}
+.student-actions-dropdown > summary::-webkit-details-marker{display:none}
+.student-actions-dropdown > summary::after{content:'⌄';margin-left:9px;font-size:16px}
+.student-actions-dropdown[open] > summary{background:#e3efff;border-color:#8bacdb}
+.student-actions-dropdown .student-row-actions {
+  display:flex;flex-wrap:wrap;align-items:center;gap:7px;
+  padding:9px;margin-top:6px;border:1px solid #d2dff0;border-radius:10px;
+  background:#fff;box-shadow:0 8px 22px #152f5630;
+}
+.student-actions-dropdown .student-row-actions > * {min-height:38px;}
+.manual-folio .manual-stats{grid-template-columns:repeat(6,minmax(0,1fr));}
+.manual-folio .manual-toolbar input[type=checkbox] {width:19px;height:19px;accent-color:#075bcc}
+#mfSelectedCount {font-size:13px;color:#164c8b}
+#studentRosterView:focus-visible,#mfRosterView:focus-visible,
+.student-actions-dropdown > summary:focus-visible {
+  outline:3px solid #58a6ff;outline-offset:2px;
+}
+@media(max-width:1050px) {
+  .manual-folio .manual-stats{grid-template-columns:repeat(3,minmax(0,1fr));}
+}
+@media(max-width:700px) {
+  #studentsView .student-roster-viewbar,.manual-folio .manual-roster-options{
+    flex-direction:column;align-items:stretch;padding:10px;
+  }
+  #studentsView .student-roster-viewbar label,.manual-folio .manual-roster-options label {
+    justify-content:space-between;flex-wrap:wrap;
+  }
+  #studentRosterView,#mfRosterView{flex:1;min-width:160px;}
+  .manual-folio .manual-stats{grid-template-columns:repeat(2,minmax(0,1fr));}
+  .manual-folio .manual-stat{padding:10px}
+  .manual-folio .manual-stat strong{font-size:20px}
+  #mfSelectedCount{width:100%}
+  .student-actions-dropdown .student-row-actions{max-width:min(88vw,260px)}
+}
+body.dark-mode #studentsView .student-roster-viewbar,
+body[data-theme=dark] #studentsView .student-roster-viewbar,
+html[data-ui-theme=dark] #studentsView .student-roster-viewbar,
+body.dark-mode .manual-folio .manual-roster-options,
+body[data-theme=dark] .manual-folio .manual-roster-options,
+html[data-ui-theme=dark] .manual-folio .manual-roster-options {
+  background:#233653;color:#e8f2ff;border-color:#496484;
+}
+body.dark-mode #studentRosterView,body[data-theme=dark] #studentRosterView,
+html[data-ui-theme=dark] #studentRosterView,
+body.dark-mode #mfRosterView,body[data-theme=dark] #mfRosterView,
+html[data-ui-theme=dark] #mfRosterView {
+  background:#1c2c45;color:#eef5ff;border-color:#5c7395;
+}
+body.dark-mode .student-sex-group > th,body[data-theme=dark] .student-sex-group > th,
+html[data-ui-theme=dark] .student-sex-group > th,
+body.dark-mode .manual-folio .manual-table .manual-sex-group > th,
+body[data-theme=dark] .manual-folio .manual-table .manual-sex-group > th,
+html[data-ui-theme=dark] .manual-folio .manual-table .manual-sex-group > th {
+  background:#284569!important;color:#eef5ff!important;border-color:#5c779e;
+}
+body.dark-mode .student-roster-number,body[data-theme=dark] .student-roster-number,
+html[data-ui-theme=dark] .student-roster-number{color:#bcd4fa}
+body.dark-mode .student-actions-dropdown > summary,
+body[data-theme=dark] .student-actions-dropdown > summary,
+html[data-ui-theme=dark] .student-actions-dropdown > summary,
+body.dark-mode .student-actions-dropdown .student-row-actions,
+body[data-theme=dark] .student-actions-dropdown .student-row-actions,
+html[data-ui-theme=dark] .student-actions-dropdown .student-row-actions{
+  background:#263b58;color:#edf4ff;border-color:#526d91;
+}
+body.dark-mode #mfSelectedCount,body[data-theme=dark] #mfSelectedCount,
+html[data-ui-theme=dark] #mfSelectedCount{color:#d2e4ff}

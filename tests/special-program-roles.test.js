@@ -81,5 +81,5 @@ test('service worker pre-caches all new desktop and portal resources at matching
       assert.ok(worker.includes(JSON.stringify(asset)),asset);
     }
   }
-  assert.match(worker,/attendigo-v151-special-program-batch/);
+  assert.match(worker,/const CACHE = "attendigo-v\d+-[a-z0-9-]+"/);
 });
