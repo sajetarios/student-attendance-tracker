@@ -5211,6 +5211,7 @@ let teacherActionMenuListenersInstalled = false;
       teacherUserId: teacher?.userId || '',
       subjectId: $('periodSubject').value,
       periodName: $('periodName').value.trim(),
+      scheduleType: $('scheduleActivityType').value,
       gradeLevel: $('periodGrade').value,
       section: $('periodSection').value.trim(),
       classroom: $('periodClassroom').value.trim() || null,
@@ -5218,7 +5219,8 @@ let teacherActionMenuListenersInstalled = false;
       endTime: $('endTime').value,
       graceMinutes: Number($('graceMinutes').value || 0),
       weekdays: selectedScheduleWeekdays(),
-      timetableTemplateId: $('scheduleTemplate').value || null
+      timetableTemplateId: $('scheduleTemplate').value || null,
+      timetableTemplatePeriodId: $('scheduleTemplatePeriod').value.split('|')[1] || null
     };
     if (payload.timetableTemplateId) {
       const chosenBlock = $('scheduleTemplatePeriod')?.value || '';
