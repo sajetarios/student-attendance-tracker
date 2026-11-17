@@ -76,6 +76,7 @@ function browserFixture({failBatch = 0} = {}) {
       checkbox.checked = true;
       checkbox.listeners.get('change')({target:checkbox});
     },
+    async refresh() { await element('sapRefresh').listeners.get('click')(); },
     async apply() { await element('sapBulkCreate').listeners.get('click')(); }
   };
 }
@@ -86,6 +87,8 @@ test('all 28 selected student accounts are actionable and provision in server-sa
   app.selectAll();
   assert.equal(app.element('sapBulkCreate').disabled, false);
   assert.match(app.element('sapSelectedCount').textContent,/28 selected.*28 eligible.*2 batches/);
+  await app.refresh();
+  assert.equal(app.element('sapBulkCreate').disabled, false);
   await app.apply();
   assert.deepEqual(app.posts.map(batch=>batch.length),[20,8]);
   assert.equal(new Set(app.posts.flat()).size,28);
@@ -114,6 +117,6 @@ test('server retains the 20-account transaction limit, and asset versions match'
   assert.doesNotMatch(source,/actionable\.length\s*>\s*20/);
   const html = fs.readFileSync(path.join(root,'public/portal.html'),'utf8');
   const sw = fs.readFileSync(path.join(root,'public/sw.js'),'utf8');
-  assert.match(html,/student-portal-accounts\.js\?v=4/);
-  assert.match(sw,/student-portal-accounts\.js\?v=4/);
+  const url = html.match(/src="(\/student-portal-accounts\.js\?v=[^"]+)"/)?.[1];
+  assert.ok(url && sw.includes(JSON.stringify(url)));
 });

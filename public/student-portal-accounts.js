@@ -137,6 +137,7 @@
   async function refresh() {
     if (busy || (!isAdmin() && !isTeacher())) return;
     busy = true;
+    let loaded = false;
     const button = $('sapRefresh');
     if(button) button.disabled = true;
     try {
@@ -145,12 +146,16 @@
       ]);
       students = directory.students || [];
       requests = requestData.requests || [];
-      renderDirectory();
+      loaded = true;
       renderRequests();
     } catch (error) {
       $('sapRows').innerHTML = '<tr><td colspan="5" class="sap-empty">Unable to load student accounts.</td></tr>';
       announce(error.message,true);
-    } finally { busy = false; if(button) button.disabled = false; }
+    } finally {
+      busy = false;
+      if (button) button.disabled = false;
+      if (loaded) renderDirectory();
+    }
   }
   function closeModal(id) {
     $(id).hidden=true;

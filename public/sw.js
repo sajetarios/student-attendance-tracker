@@ -1,4 +1,4 @@
-const CACHE = "attendigo-v135-integrated-production";
+const CACHE = "attendigo-v136-student-batch-refresh";
 
 const SHELL = [
   "/assets/attendigo-sidebar-logo.png",
@@ -42,7 +42,7 @@ const SHELL = [
   "/manual-folio.css?v=11",
   "/manual-folio.js?v=11",
   "/student-portal-accounts.css?v=2",
-  "/student-portal-accounts.js?v=4",
+  "/student-portal-accounts.js?v=5",
   "/admin-request-notifications.js?v=2",
   "/admin-request-notifications.css?v=2",
   "/guardian-ui.js?v=4",
