@@ -15,7 +15,13 @@
   });
  }
  function canvasBlob(canvas){
-  return new Promise((resolve,reject)=>canvas.toBlob(b=>b?resolve(b):reject(new Error('Your browser could not export this photo.')), 'image/png'));
+  // The API stores normalized cropped images as WebP. Safari may silently
+  // fall back to PNG, so verify the resulting blob before uploading.
+  return new Promise((resolve,reject)=>canvas.toBlob(b=>{
+   if(!b)return reject(new Error('Your browser could not export this photo.'));
+   if(b.type!=='image/webp')return reject(new Error('This browser could not export the cropped photo as WebP. Please update your browser and try again.'));
+   resolve(b);
+  },'image/webp',0.9));
  }
  async function edit(file,{approvalRequired=false,purpose='profile'}={}){
   if(!file)return null;
