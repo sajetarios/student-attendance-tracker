@@ -93,7 +93,8 @@
     if(action==='ASSIGN'&&!programTypeId)return message('specialProgramBulkFeedback','Choose the special program first.',true);
     const program=catalog.find(p=>p.programTypeId===programTypeId);
     const title=action==='ASSIGN'?'Set primary program in bulk':'Remove primary program in bulk';
-    const same=ids.filter(id=>{const current=(enrollments.get(id)?.programs||[]).find(p=>p.primary)?.programTypeId||null;return action==='ASSIGN'?String(current||'')===String(programTypeId):!current;}).length;
+    const byEnrollment=new Map([...enrollments.values()].map(e=>[e.enrollmentId,e]));
+    const same=ids.filter(id=>{const current=(byEnrollment.get(id)?.programs||[]).find(p=>p.primary)?.programTypeId||null;return action==='ASSIGN'?String(current||'')===String(programTypeId):!current;}).length;
     const toChange=ids.length-same;
     const summary=ids.length+' selected · '+toChange+' to update · '+same+' already '+(action==='ASSIGN'?'assigned':'without a primary program')+'.';
     if(!await confirmAction(summary+'\n'+(action==='ASSIGN'?'Set '+(program?.code||'the selected program')+' as primary?':'Remove current primary programs?')+' Unchanged learners will be skipped. Existing approvals will remain available in the review panel.',title))return;
