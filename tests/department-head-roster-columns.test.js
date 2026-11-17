@@ -14,7 +14,7 @@ test('Department Heads keep a useful roster without a useless Select column', ()
   assert.match(portal, /const selectHeader = showSelectionColumn \? '<th>Select<\/th>' : ''/);
   assert.match(portal, /rosterHeader\.innerHTML = departmentHead/);
   assert.match(portal, /const rosterColumns = departmentHead/);
-  assert.match(portal, /showSelectionColumn \? 7 : 6/);
+  assert.match(portal, /showSelectionColumn \? 8 : 7/);
   assert.match(portal, /departmentHead \? '' : await photoDataUrl\(student\.photoUrl\)/);
   assert.doesNotMatch(portal, /Only your department’s assigned sections can be selected/);
   assert.match(html, /id="studentRosterDescription"/);
@@ -36,8 +36,9 @@ test('School Admin retains full roster, action controls and selected ID cards', 
 });
 
 test('Versioned roster resources match service worker shell', () => {
-  for (const asset of ['/portal.js?v=0.9.133', '/student-roster-toolbar.css?v=2']) {
-    assert.ok(html.includes(asset));
-    assert.ok(worker.includes(JSON.stringify(asset)));
+  for (const name of ['portal.js','student-roster-toolbar.css']) {
+    const source = html.match(new RegExp('(?:src|href)="(\\/' + name.replaceAll('.', '\\.') + '\\?v=[^"]+)"'))?.[1];
+    assert.ok(source, 'Missing '+name+' version');
+    assert.ok(worker.includes(JSON.stringify(source)), 'Service worker must match '+name);
   }
 });
