@@ -1,4 +1,4 @@
-const CACHE = "attendigo-v119-idempotent-role-dashboard";
+const CACHE = "attendigo-v120-role-safe-parent-controller";
 
 const SHELL = [
   "/assets/attendigo-sidebar-logo.png",
@@ -32,6 +32,7 @@ const SHELL = [
   "/student-roster-toolbar.css?v=1",
   "/portal.css",
   "/portal.js?v=0.9.106",
+  "/parent-dashboard.js?v=2",
   "/offline-attendance.js?v=1",
   "/offline-sheet.html",
   "/offline-sheet.js?v=2",
