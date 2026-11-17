@@ -45,7 +45,7 @@ test('QR/manual presence makes the adviser absence a conflict, not confirmed une
 
 test('streaks remain separated by each school and learner data supplied to calculation', () => {
   const dates=['2026-11-09','2026-11-10','2026-11-11','2026-11-12','2026-11-13'];
-  const one=dates.map(learner);
+  const one=dates.map(date=>learner(date));
   const two=dates.map(d=>({...learner(d),studentId:'L-2',fullName:'Second Learner'}));
   assert.equal(computeAlerts(dates,[...one,...two]).alerts.length,2);
 });
