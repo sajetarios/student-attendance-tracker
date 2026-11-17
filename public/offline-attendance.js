@@ -42,6 +42,10 @@
   }
   const put = record => transaction(STORE, 'readwrite', store => store.put(record));
   const remove = id => transaction(STORE, 'readwrite', store => store.delete(id));
+  const byId = id => transaction(STORE, 'readonly', (store, done) => {
+    const req = store.get(id);
+    req.onsuccess = () => done(req.result || null);
+  });
   async function rows() {
     const id = owner();
     if (!id) return [];
@@ -111,6 +115,10 @@
       throw Error('Invalid attendance synchronization operation.');
     }
     const current = await rows();
+    // UUIDs are globally keyed in the legacy database. Never allow an event
+    // from another logged-in school/account to be overwritten by a collision.
+    const stored = await byId(operationId);
+    if (stored && stored.owner !== id) throw Error('Operation ID belongs to another account.');
     const found = current.find(row => row.id === operationId);
     if (found) {
       const existing = await decrypt(found);
