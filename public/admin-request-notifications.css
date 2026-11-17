@@ -25,3 +25,18 @@
  body.dark-mode .admin-notification-number, body[data-theme=dark] .admin-notification-number{background:#284065;color:#f5f8ff}
  body.dark-mode .admin-notification-icon,body[data-theme=dark] .admin-notification-icon{background:#29406b;color:#e7f0ff}
 }
+
+.admin-photo-review[hidden]{display:none!important}
+.admin-photo-review{max-height:50vh;overflow:auto;padding:10px 4px;border-top:1px solid var(--line,#dce4ef);border-bottom:1px solid var(--line,#dce4ef)}
+.admin-photo-review-head{display:flex;align-items:center;justify-content:space-between;padding:6px}
+.admin-photo-review-head button,.admin-photo-actions button{background:var(--surface-muted,#edf3fb);color:var(--ink,#21334c);border:1px solid var(--line,#dce4ef);border-radius:8px;min-height:32px;padding:5px 9px;cursor:pointer}
+.admin-photo-request-row{padding:10px 6px;border-top:1px solid var(--line,#dce4ef)}
+.admin-photo-request-row strong,.admin-photo-request-row small{display:block;overflow-wrap:anywhere}
+.admin-photo-request-row small{color:var(--muted,#74849c);margin-top:3px}
+.admin-photo-actions{display:flex;flex-wrap:wrap;gap:6px;margin-top:9px}
+.admin-photo-actions button[data-photo-decision=APPROVED]{background:#d9f8e8;color:#08653a;border-color:#7ad3a4}
+.admin-photo-actions button[data-photo-decision=REJECTED]{background:#ffe7e9;color:#8c2334;border-color:#efb0b8}
+.admin-photo-actions button:disabled{opacity:.55;cursor:wait}
+.admin-photo-preview{display:block;width:90px;height:90px;object-fit:cover;border-radius:10px;margin-top:9px}
+body.dark-mode .admin-photo-actions button[data-photo-decision=APPROVED],body[data-theme=dark] .admin-photo-actions button[data-photo-decision=APPROVED]{background:#184d39;color:#d8ffeb}
+body.dark-mode .admin-photo-actions button[data-photo-decision=REJECTED],body[data-theme=dark] .admin-photo-actions button[data-photo-decision=REJECTED]{background:#582c3a;color:#ffe4e8}
