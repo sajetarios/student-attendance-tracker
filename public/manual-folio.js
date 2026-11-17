@@ -15,7 +15,8 @@
  const el=id=>document.getElementById(id);
  const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
  const dateToday=()=>new Intl.DateTimeFormat('en-CA',{timeZone:'Asia/Manila',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date());
- const state={periods:[],students:[],period:null,date:dateToday(),marks:{},synced:{},notes:'',page:0,tab:'sheet',selected:new Set(),busy:false,finalized:false,noteItems:[],editingNoteId:null,historyPage:0,historyTotal:0,historyRows:[],notesLoadedFor:null};
+ const state={periods:[],students:[],period:null,date:dateToday(),marks:{},synced:{},notes:'',page:0,tab:'sheet',rosterView:'grouped',selected:new Set(),busy:false,finalized:false,noteItems:[],editingNoteId:null,historyPage:0,historyTotal:0,historyRows:[],notesLoadedFor:null};
+ try { if(localStorage.getItem('attendigo.attendance.roster.view')==='alphabetical')state.rosterView='alphabetical'; } catch {}
  const statuses=['PRESENT','LATE','ABSENT','EXCUSED'],symbols={PRESENT:'✓',LATE:'◷',ABSENT:'✕',EXCUSED:'!'},names={PRESENT:'Present',LATE:'Late',ABSENT:'Absent',EXCUSED:'Excused'};
  async function api(path,options={}) {
    const r=await fetch(path,{...options,headers:{Authorization:'Bearer '+token,...(options.body?{'Content-Type':'application/json'}:{})},cache:'no-store'});
@@ -26,7 +27,9 @@
  const rosterKey=()=>['attendigo.manual.roster.v1',scope].join(':');
  function draftSave(){if(!state.period)return;try{localStorage.setItem(key(),JSON.stringify({marks:state.marks,notes:state.notes,updatedAt:new Date().toISOString()}));setSyncPill('local','Saved on device','A local draft exists. Press Sync to records for school-server confirmation.');}catch{setSyncPill('review','Save unavailable','This browser could not retain the attendance draft. Check device storage.');}}
  function draftLoad(){let raw={};try{raw=JSON.parse(localStorage.getItem(key())||'{}')}catch{}state.marks=raw.marks||{};state.notes=raw.notes||'';}
- const roster=()=>state.students.filter(s=>state.period&&s.active!==false&&s.gradeLevel===state.period.gradeLevel&&s.section===state.period.section).sort((a,b)=>a.fullName.localeCompare(b.fullName));
+ const roster=()=>window.AttendigoRoster.sortLearners(
+   state.students.filter(s=>state.period&&s.active!==false&&s.gradeLevel===state.period.gradeLevel&&s.section===state.period.section),
+   state.rosterView==='grouped');
  const counts=()=>{const out={TOTAL:roster().length,PRESENT:0,LATE:0,ABSENT:0,EXCUSED:0,UNMARKED:0};roster().forEach(s=>{const st=state.marks[s.studentId]?.status;if(out[st]!==undefined)out[st]++;else out.UNMARKED++});return out};
  // Balance the last folio page rather than leaving two rows above a large blank area.
  const pageSize=()=>20;
@@ -40,20 +43,36 @@
    if(pill){pill.dataset.state=tone;pill.textContent=label;}
    if(detail)detail.textContent=description;
  }
- function renderStats(){const c=counts();el('mfStats').innerHTML=[['TOTAL','👥','Total'],['PRESENT','✓','Present'],['LATE','◷','Late'],['ABSENT','✕','Absent'],['EXCUSED','!','Excused']].map(([k,icon,label])=>`<div class="manual-stat"><strong>${icon} ${c[k]}</strong><span>${label}</span></div>`).join('');}
+ function renderStats(){
+   const c=counts();
+   el('mfStats').innerHTML=[['TOTAL','👥','Total'],['PRESENT','✓','Present'],['LATE','◷','Late'],['ABSENT','✕','Absent'],['EXCUSED','!','Excused'],['UNMARKED','○','Unmarked']].map(([k,icon,label])=>`<div class="manual-stat"><strong>${icon} ${c[k]}</strong><span>${label}</span></div>`).join('');
+   const sex=window.AttendigoRoster.counts(roster());
+   if(el('mfSexSummary'))el('mfSexSummary').textContent='Male '+sex.MALE+' · Female '+sex.FEMALE+(sex.UNSPECIFIED?' · Not set '+sex.UNSPECIFIED:'')+' · Total '+sex.TOTAL;
+ }
  function renderRows(){
-   const all=roster();const size=pageSize();const start=state.page*size;const shown=all.slice(start,start+size);
+   const all=roster();const size=pageSize();const start=state.page*size;
+   const shown=window.AttendigoRoster.numberLearners(all,state.rosterView==='grouped').slice(start,start+size);
    const totalPages=Math.max(1,Math.ceil(all.length/size));if(state.page>=totalPages){state.page=totalPages-1;return renderRows()}
    el('mfPageNum').textContent='Page '+(state.page+1)+' of '+totalPages;
    el('mfPageNum').setAttribute('aria-live','polite');
    el('mfPrev').disabled=state.page===0;el('mfNext').disabled=state.page>=totalPages-1;
-   el('mfSelectPage').checked=shown.length>0&&shown.every(s=>selected(s.studentId));
-   el('mfRows').innerHTML=shown.length?shown.map((s,i)=>{const mark=state.marks[s.studentId]||{};
+   el('mfSelectPage').checked=shown.length>0&&shown.every(({learner})=>selected(learner.studentId));
+   el('mfSelectPage').indeterminate=shown.some(({learner})=>selected(learner.studentId))&&!el('mfSelectPage').checked;
+   if(el('mfSelectedCount'))el('mfSelectedCount').textContent=state.selected.size+' selected in this class';
+   let previousSex=null;
+   el('mfRows').innerHTML=shown.length?shown.map((entry,i)=>{
+     const s=entry.learner;
+     const mark=state.marks[s.studentId]||{};
+     const group=entry.sex;
+     const heading=state.rosterView==='grouped'&&group!==previousSex
+       ? '<tr class="manual-sex-group"><th colspan="5" scope="rowgroup">'+esc(window.AttendigoRoster.sexLabels[group])+
+         (start>0&&i===0?' · continued':'')+'</th></tr>' : '';
+     previousSex=group;
      const status=mark.status||'';const cardStatus=status==='ABSENT'?'ABSENT':'PRESENT';
      const extras=status==='LATE'||status==='EXCUSED';
-     return `<tr class="manual-attendance-row">
+     return heading+`<tr class="manual-attendance-row">
      <td><input type="checkbox" data-select="${esc(s.studentId)}" ${selected(s.studentId)?'checked':''} aria-label="Select ${esc(s.fullName)}"></td>
-     <td class="manual-learner"><strong>${start+i+1}. ${esc(s.fullName)}</strong><small>${esc(s.studentId)}</small></td>
+     <td class="manual-learner"><strong>${entry.number}. ${esc(s.fullName)}</strong><small>${esc(s.studentId)}</small></td>
      <td class="manual-flip-cell"><button type="button" class="manual-flip-card" data-flip-id="${esc(s.studentId)}" data-face="${cardStatus}" data-unmarked="${!status}" aria-label="${status?names[status]:'Unmarked'} for ${esc(s.fullName)}. Tap to flip between Present and Absent" aria-pressed="${status==='ABSENT'}"><span class="manual-flip-inner"><span class="manual-flip-face manual-flip-present"><b>P</b><small>Present</small></span><span class="manual-flip-face manual-flip-absent"><b>A</b><small>Absent</small></span></span></button></td>
      <td class="manual-other-status"><button type="button" class="manual-extra-status" data-id="${esc(s.studentId)}" data-status="LATE" data-active="${status==='LATE'}" aria-pressed="${status==='LATE'}" aria-label="Late for ${esc(s.fullName)}">L</button><button type="button" class="manual-extra-status" data-id="${esc(s.studentId)}" data-status="EXCUSED" data-active="${status==='EXCUSED'}" aria-pressed="${status==='EXCUSED'}" aria-label="Excused for ${esc(s.fullName)}">E</button>${extras?'<small class="manual-other-label">'+esc(names[status])+'</small>':''}</td>
      <td><button class="manual-note-btn" type="button" data-note="${esc(s.studentId)}" data-has-note="${Boolean(mark.note)}" aria-label="Note for ${esc(s.fullName)}" title="Student note"><svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L9 17l-4 1 1-4Z"/></svg></button></td></tr>`}).join(''):'<tr><td colspan="5" class="manual-empty">No students in this selected class.</td></tr>';
@@ -221,6 +240,7 @@
  }
  function render(){
  renderStats();renderRows();renderDetails();renderTab();
+  if(el('mfRosterView'))el('mfRosterView').value=state.rosterView;
  host.classList.toggle('is-finalized',Boolean(state.finalized));
  if(el('mfFinalize')){el('mfFinalize').disabled=!state.period;el('mfFinalize').textContent=state.finalized?'↺ Reopen register':'✓ Finalize date';}
  if(el('mfFinalizationState'))el('mfFinalizationState').textContent=state.finalized?'Finalized · editing locked':'Not finalized';
@@ -233,7 +253,10 @@
  }
  async function loadRemote(){
    try{
-     const d=await api('/api/manual-attendance?'+new URLSearchParams({periodId:state.period.periodId,date:state.date}));
+     if(!state.period)return false;
+     const requestPeriod=state.period.periodId,requestDate=state.date;
+     const d=await api('/api/manual-attendance?'+new URLSearchParams({periodId:requestPeriod,date:requestDate}));
+     if(state.period?.periodId!==requestPeriod||state.date!==requestDate)return false;
      state.synced=Object.fromEntries((d.marks||[]).map(m=>[m.studentId,m]));
       state.finalized=Boolean(d.finalization?.finalized);
      for(const [id,m] of Object.entries(state.synced)){if(!state.marks[id])state.marks[id]={status:m.status,note:m.note||''}}
@@ -345,12 +368,33 @@
    if(b.dataset.deleteNote!==undefined)return noteAction(b.dataset.deleteNote,'delete');
    if(b.dataset.note){const id=b.dataset.note;const current=state.marks[id]||{};const text=prompt('Learner attendance note (max 500 characters)',current.note||'');if(text!==null){state.marks[id]={...current,note:text.slice(0,500)};draftSave();render()}return}
    if(b.dataset.mfTab){state.tab=b.dataset.mfTab;renderTab();return}
-   if(b.dataset.batch){const ids=state.selected.size?[...state.selected]:roster().map(s=>s.studentId);ids.forEach(id=>state.marks[id]={...state.marks[id],status:b.dataset.batch});draftSave();render();return}
+   if(b.dataset.batch){
+     const allowed=new Set(roster().map(s=>s.studentId));
+     const ids=[...state.selected].filter(id=>allowed.has(id));
+     if(!ids.length){notice('Select learners first. No class-wide batch marking occurs without selection.',true);return;}
+     const status=b.dataset.batch,periodId=state.period?.periodId,date=state.date;
+     const apply=()=>{
+       if(state.finalized||state.period?.periodId!==periodId||state.date!==date)
+         return notice('The class or date changed. Select the learners again.',true);
+       ids.forEach(id=>state.marks[id]={...state.marks[id],status});
+       draftSave();render();notice('Marked '+ids.length+' selected learners '+names[status]+'. Saved on this device.');
+     };
+     const message='Mark '+ids.length+' selected learners '+names[status]+' for '+date+'?';
+     if(window.AppDialog?.confirm)window.AppDialog.confirm(message,{title:'Confirm batch attendance',confirmText:'Mark selected'}).then(ok=>{if(ok)apply()}).catch(error=>notice(error.message,true));
+     else if(window.confirm(message))apply();
+     return;
+   }
  });
  host.addEventListener('change',event=>{
    if(event.target.id==='mfPeriod')changeClass();
    if(event.target.id==='mfDate'){state.date=event.target.value;changeClass()}
    if(event.target.id==='mfSelectPage'){roster().slice(state.page*pageSize(),state.page*pageSize()+pageSize()).forEach(s=>event.target.checked?state.selected.add(s.studentId):state.selected.delete(s.studentId));renderRows()}
+   if(event.target.id==='mfRosterView'){
+     if(flipBusy){event.target.value=state.rosterView;return;}
+     state.rosterView=event.target.value==='alphabetical'?'alphabetical':'grouped';
+     try{localStorage.setItem('attendigo.attendance.roster.view',state.rosterView)}catch{}
+     state.page=0;renderRows();notice('Roster view changed. Existing attendance marks are preserved.');
+   }
    if(event.target.dataset.select){event.target.checked?state.selected.add(event.target.dataset.select):state.selected.delete(event.target.dataset.select);renderRows()}
  });
  el('mfTeacherNotes').addEventListener('input',e=>{state.notes=e.target.value.slice(0,2000);draftSave()});
