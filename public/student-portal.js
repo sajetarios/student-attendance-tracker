@@ -73,6 +73,10 @@
     $('studentIdValue').textContent = profile.studentId || '—';
     $('studentGradeValue').textContent = profile.gradeLevel || '—';
     $('studentSectionValue').textContent = profile.section || '—';
+    const membership = await api('/api/special-programs/mine');
+    const current = (membership.students || []).find(item => item.studentId === profile.studentId);
+    $('studentSpecialProgramValue').textContent = current?.programCode
+      ? current.programCode + ' — ' + current.programName : 'Not assigned for the active school year';
   }
   async function refresh() {
     $('studentRefresh').disabled = true;
