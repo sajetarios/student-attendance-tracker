@@ -2811,7 +2811,7 @@ app.post('/api/periods', authenticateSchoolClient, requireSchoolRoles('SCHOOL_AD
         return res.status(400).json({ error: 'The saved timetable block is no longer available. Refresh your timetable selection.' });
       }
       const savedBlock = template.rows[0];
-      if (String(savedBlock.label) !== String(periodName).trim() || savedBlock.start_time !== startTime || savedBlock.end_time !== endTime) {
+      if (savedBlock.start_time !== startTime || savedBlock.end_time !== endTime) {
         await client.query('ROLLBACK');
         return res.status(409).json({ error: 'The selected timetable block has changed. Refresh and select the current school timetable time.' });
       }

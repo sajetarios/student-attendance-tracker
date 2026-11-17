@@ -1,4 +1,4 @@
-const CACHE = "attendigo-v120-role-safe-parent-controller";
+const CACHE = "attendigo-v121-schedule-label-independence";
 
 const SHELL = [
   "/assets/attendigo-sidebar-logo.png",
@@ -31,7 +31,8 @@ const SHELL = [
   "/portal.css?v=0.9.104",
   "/student-roster-toolbar.css?v=1",
   "/portal.css",
-  "/portal.js?v=0.9.106",
+  "/portal.js?v=0.9.108",
+  "/schedule-form-layout.css?v=5",
   "/parent-dashboard.js?v=2",
   "/offline-attendance.js?v=1",
   "/offline-sheet.html",

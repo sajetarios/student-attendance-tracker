@@ -2884,76 +2884,81 @@ let teacherActionMenuListenersInstalled = false;
     populateSavedTemplateBlocks();
   }
 
+
+  function suggestScheduleLabel(suggestion) {
+    const input=$('periodName');if(!input)return;
+    const previous=input.dataset.suggestedLabel||'';
+    if(!input.value.trim()||(previous&&input.value.trim()===previous))input.value=suggestion;
+    input.dataset.suggestedLabel=suggestion;
+  }
+  function scheduleClockLabel(v) {
+    const match=/^([01]\d|2[0-3]):([0-5]\d)/.exec(v||'');if(!match)return '—';
+    const hour=Number(match[1]);return (hour%12||12)+':'+match[2]+(hour>=12?' PM':' AM');
+  }
+  function updateScheduleReview() {
+    const start=$('startTime')?.value||'',end=$('endTime')?.value||'';
+    if($('schedulePreviewStart'))$('schedulePreviewStart').textContent=scheduleClockLabel(start);
+    if($('schedulePreviewEnd'))$('schedulePreviewEnd').textContent=scheduleClockLabel(end);
+    const duration=templateMinutes(end)-templateMinutes(start);
+    if($('schedulePreviewDuration'))$('schedulePreviewDuration').textContent=Number.isFinite(duration)&&duration>0?duration+' min':'—';
+    const review=$('scheduleReviewSummary');if(!review)return;
+    review.textContent=[
+      $('periodName')?.value?.trim()||'Choose schedule label',
+      ($('periodGrade')?.value||'Grade')+' · '+($('periodSection')?.value||'Choose section'),
+      $('periodSubject')?.value?$('periodSubject').selectedOptions[0]?.textContent:'Choose subject',
+      start&&end?scheduleClockLabel(start)+' – '+scheduleClockLabel(end):'Choose time block',
+      formatScheduleDays(selectedScheduleWeekdays())
+    ].join(' • ');
+  }
   function populateSavedTemplateBlocks() {
-    const selector = $('scheduleTemplate');
-    const blockSelect = $('scheduleTemplatePeriod');
-    if (!selector || !blockSelect) return;
-    const template = timetableTemplates.find(item => item.active && String(item.templateId) === selector.value);
-    const prior = blockSelect.value;
-    const blocks = (template?.periods || []).filter(period => !['BREAK','LUNCH'].includes(period.blockType));
-    blockSelect.innerHTML = template
-      ? '<option value="">Choose a time block</option>' + blocks.map(period =>
-          '<option value="' + esc(template.templateId + '|' + period.templatePeriodId) + '">' +
-          esc(period.label + ' · ' + period.startTime + '–' + period.endTime) + '</option>').join('')
-      : '<option value="">Custom start and end times</option>';
-    blockSelect.disabled = !template || !blocks.length;
-    if (template && !changedTemplate && Array.from(blockSelect.options).some(option => option.value === prior)) blockSelect.value = prior;
-    const custom = !template;
-    const previousLocked = $('periodName').readOnly;
-    const changedTemplate = (selector.dataset.lastTemplate || '') !== selector.value;
-    selector.dataset.lastTemplate = selector.value;
-    $('periodName').readOnly = !custom;
-    $('periodName').placeholder = custom ? 'e.g. Morning activity or custom period' : 'Select a saved time block';
-    $('startTime').readOnly = !custom;
-    $('endTime').readOnly = !custom;
-    if (custom) {
-      if (previousLocked) {
-        $('periodName').value = '';
-        $('startTime').value = '07:30';
-        $('endTime').value = '08:30';
-      }
-      $('scheduleFormFeedback').textContent = 'Custom time: enter a schedule label and its actual start and end times.';
-    } else {
-      if (blockSelect.value) {
-        applyTemplatePeriodSelection();
-        return;
-      }
-      $('periodName').value = '';
-      $('startTime').value = '';
-      $('endTime').value = '';
-      $('scheduleFormFeedback').textContent = blocks.length ? 'Choose a saved time block to fill the period label and times.' : 'This template has no instructional blocks. Choose another template or custom time.';
+    const selector=$('scheduleTemplate'),select=$('scheduleTemplatePeriod');
+    if(!selector||!select)return;
+    const template=timetableTemplates.find(t=>t.active&&String(t.templateId)===selector.value);
+    const templateChanged=(selector.dataset.lastTemplate||'')!==selector.value;
+    const previous=templateChanged?'':select.value;
+    const blocks=(template?.periods||[]).filter(p=>!['BREAK','LUNCH'].includes(p.blockType));
+    select.innerHTML=template?'<option value="">Choose a time block</option>'+blocks.map(p=>
+      '<option value="'+esc(template.templateId+'|'+p.templatePeriodId)+'">'+esc(p.label+' · '+p.startTime+'–'+p.endTime)+'</option>').join('')
+      :'<option value="">Custom start and end times</option>';
+    select.disabled=!template||!blocks.length;
+    if(previous&&Array.from(select.options).some(option=>option.value===previous))select.value=previous;
+    selector.dataset.lastTemplate=selector.value;
+    $('periodName').readOnly=false;
+    $('startTime').readOnly=Boolean(template);$('endTime').readOnly=Boolean(template);
+    if(!template){
+      suggestScheduleLabel('');
+      $('startTime').value=$('startTime').value||'07:30';
+      $('endTime').value=$('endTime').value||'08:30';
+      $('scheduleFormFeedback').textContent='Custom time: enter your own label and start/end times.';
+    }else if(select.value){applyTemplatePeriodSelection();return;}
+    else{
+      suggestScheduleLabel('');$('startTime').value='';$('endTime').value='';
+      $('scheduleFormFeedback').textContent=blocks.length?'Choose a saved time block to fill the times.':'This template has no instructional blocks.';
     }
+    updateScheduleReview();
   }
-
   function applyTemplatePeriodSelection() {
-    const raw = $('scheduleTemplatePeriod')?.value || '';
-    if (!raw) {
-      if ($('scheduleTemplate')?.value) {
-        $('periodName').value = '';
-        $('startTime').value = '';
-        $('endTime').value = '';
-      }
-      return;
+    const raw=$('scheduleTemplatePeriod')?.value||'';
+    if(!raw){
+      if($('scheduleTemplate')?.value){suggestScheduleLabel('');$('startTime').value='';$('endTime').value='';}
+      updateScheduleReview();return;
     }
-    const [templateId, periodId] = raw.split('|');
-    const template = timetableTemplates.find(item => String(item.templateId) === templateId && item.active);
-    const period = template?.periods?.find(item => String(item.templatePeriodId) === periodId &&
-      !['BREAK','LUNCH'].includes(item.blockType));
-    if (!period) return;
-    $('periodName').value = period.label;
-    $('startTime').value = period.startTime;
-    $('endTime').value = period.endTime;
-    const type = $('scheduleActivityType');
-    if (type && ['ADVISORY','HOMEROOM'].includes(period.blockType) && type.value === 'CLASS') {
-      type.value = 'ADVISORY';
-    }
-    $('scheduleFormFeedback').textContent = 'Using ' + template.name + ' · ' + period.label +
-      ' (' + period.startTime + '–' + period.endTime + ').';
+    const [templateId,periodId]=raw.split('|');
+    const template=timetableTemplates.find(t=>String(t.templateId)===templateId&&t.active);
+    const period=template?.periods?.find(p=>String(p.templatePeriodId)===periodId&&!['BREAK','LUNCH'].includes(p.blockType));
+    if(!period)return;
+    suggestScheduleLabel(period.label);
+    $('startTime').value=period.startTime;$('endTime').value=period.endTime;
+    const type=$('scheduleActivityType');
+    if(type&&['ADVISORY','HOMEROOM'].includes(period.blockType)&&type.value==='CLASS')type.value='ADVISORY';
+    $('scheduleFormFeedback').textContent='Using '+template.name+' · '+period.label+'. Your custom label will be preserved.';
+    updateScheduleReview();
   }
-
   function resetScheduleTimeSelection() {
-    if ($('scheduleTemplate')) $('scheduleTemplate').value = '';
-    if ($('scheduleTemplate')) $('scheduleTemplate').dataset.lastTemplate = '';
+    if($('scheduleTemplate')){$('scheduleTemplate').value='';$('scheduleTemplate').dataset.lastTemplate='';}
+    if($('periodName')){$('periodName').value='';$('periodName').dataset.suggestedLabel='';}
+    if($('startTime'))$('startTime').value='07:30';
+    if($('endTime'))$('endTime').value='08:30';
     populateSavedTemplateBlocks();
   }
 
@@ -3216,6 +3221,8 @@ let teacherActionMenuListenersInstalled = false;
     });
     $('scheduleTemplate')?.addEventListener('change',populateSavedTemplateBlocks);
     $('scheduleTemplatePeriod')?.addEventListener('change',applyTemplatePeriodSelection);
+    $('scheduleForm')?.addEventListener('input',updateScheduleReview);
+    $('scheduleForm')?.addEventListener('change',updateScheduleReview);
   }
 
   wireSchedulingSettingsForms();
@@ -5304,8 +5311,7 @@ let teacherActionMenuListenersInstalled = false;
       }
       const template = timetableTemplates.find(t => String(t.templateId) === payload.timetableTemplateId);
       const period = template?.periods?.find(p => String(p.templatePeriodId) === chosenBlock.split('|')[1]);
-      if (!period || payload.periodName !== period.label ||
-          payload.startTime !== period.startTime || payload.endTime !== period.endTime) {
+      if (!period || payload.startTime !== period.startTime || payload.endTime !== period.endTime) {
         feedback.className = 'inline-feedback error';
         feedback.textContent = 'The selected time block has changed. Choose it again to use the saved timetable times.';
         return;
@@ -5319,7 +5325,7 @@ let teacherActionMenuListenersInstalled = false;
         const blockId = ($('scheduleTemplatePeriod')?.value || '').split('|')[1];
         const block = activeTemplate?.periods?.find(item => String(item.templatePeriodId) === String(blockId));
         if (!block || ['BREAK','LUNCH'].includes(block.blockType) ||
-            block.label !== payload.periodName || block.startTime !== payload.startTime || block.endTime !== payload.endTime) {
+            block.startTime !== payload.startTime || block.endTime !== payload.endTime) {
           feedback.className = 'inline-feedback error';
           feedback.textContent = 'The saved timetable block was modified or is unavailable. Refresh the timetable selection and try again.';
           return;

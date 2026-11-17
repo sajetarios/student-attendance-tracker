@@ -93,3 +93,20 @@ html[data-ui-theme="dark"] #schedulesView .schedule-activity-label {color:#b0d6f
 html[data-ui-theme="dark"] .timetable-archive-section{background:#1a293c;border-color:#3d536d}
 html[data-ui-theme="dark"] .timetable-archive-status{color:#f3ce85}
 html[data-ui-theme="dark"] .timetable-delete-action{border-color:#a75b66!important;color:#ffb8c2!important}
+
+/* Unified class schedule editor: prevent distant controls and duplicate scrolling. */
+#scheduleForm .schedule-setup-section .schedule-time-selector {margin-bottom:12px}
+#scheduleForm .schedule-label-field {margin-bottom:12px}
+#scheduleForm .schedule-time-inputs {margin-bottom:12px}
+#scheduleForm .schedule-time-preview {display:flex;gap:12px 20px;flex-wrap:wrap;align-items:center;padding:14px 18px;margin:0 0 8px;border:1px solid #d0e2f0;border-radius:12px;background:#f0f7fc;color:#23435e}
+#scheduleForm .schedule-time-preview>div {display:grid;gap:3px;min-width:92px}
+#scheduleForm .schedule-time-preview small {font-size:10px;letter-spacing:.07em;font-weight:750;color:#536d83}
+#scheduleForm .schedule-time-preview strong {font-size:17px}
+#scheduleForm .schedule-preview-duration {margin-left:auto}
+#scheduleForm .schedule-review-section {margin-bottom:0}
+#scheduleForm .schedule-review-summary {margin:0 0 12px;padding:12px 14px;border-radius:10px;background:#f1f7fb;color:#2e526c;line-height:1.6;overflow-wrap:anywhere}
+html[data-ui-theme="dark"] #scheduleForm .schedule-time-preview {background:#1b3046;border-color:#3b5979;color:#e3f1ff}
+html[data-ui-theme="dark"] #scheduleForm .schedule-time-preview small {color:#b4c9dd}
+html[data-ui-theme="dark"] #scheduleForm .schedule-review-summary {background:#1b3046;color:#e3f1ff}
+@media(min-width:901px){body #scheduleForm.schedule-side-drawer .schedule-time-inputs,body #scheduleForm.schedule-side-drawer .schedule-location-fields{grid-template-columns:repeat(2,minmax(0,1fr))!important}}
+@media(max-width:620px){#scheduleForm .schedule-time-preview{gap:10px 12px;padding:12px}#scheduleForm .schedule-time-preview strong{font-size:15px}#scheduleForm .schedule-preview-duration{margin-left:0}}
