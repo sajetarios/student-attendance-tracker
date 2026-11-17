@@ -64,8 +64,8 @@ test('special-program reads only use current-year enrollment and approved parent
 
 test('all dashboards have usable role-appropriate program controls',()=>{
   for(const id of ['studentSpecialProgramFilter','specialProgramAdminTools','specialProgramReviewPanel','specialProgramRequestForm','mySpecialProgramRequests','adminProgramRequestsShortcut'])assert.ok(portal.includes('id="'+id+'"'),id);
-  assert.ok(portal.includes('/special-program-ui.js?v=1'));
-  assert.ok(portal.includes('/special-program-ui.css?v=1'));
+  assert.ok(portal.includes('/special-program-ui.js?v=2'));
+  assert.ok(portal.includes('/special-program-ui.css?v=2'));
   assert.ok(studentPage.includes('studentSpecialProgramValue'));
   assert.ok(parentPage.includes('/parent-portal.js?v=2'));
   assert.ok(js.includes('student.specialProgramCode'));
@@ -81,5 +81,5 @@ test('service worker pre-caches all new desktop and portal resources at matching
       assert.ok(worker.includes(JSON.stringify(asset)),asset);
     }
   }
-  assert.match(worker,/attendigo-v150-special-program-roles/);
+  assert.match(worker,/attendigo-v151-special-program-batch/);
 });
