@@ -9,8 +9,11 @@ const receive = source.split("app.post('/api/cloud-sync/receive'")[1]?.split("ap
 
 test('delayed cloud attendance never overwrites learner identity or current placement', () => {
   assert.ok(receive, 'Cloud receive route is registered');
-  assert.match(receive, /ON CONFLICT\(student_id\) DO NOTHING/);
-  assert.match(receive, /SELECT student_id FROM students WHERE school_id=\$1 AND student_id=\$2/);
+  assert.match(receive, /FROM students s/);
+  assert.match(receive, /s\.active=TRUE AND s\.archived_at IS NULL/);
+  assert.match(receive, /student_enrollments e/);
+  assert.match(receive, /sy\.status='ACTIVE' AND e\.enrollment_status='ENROLLED'/);
+  assert.doesNotMatch(receive, /INSERT INTO students\(/, 'Historic QR events must not provision school master data');
   assert.doesNotMatch(receive, /ON CONFLICT\(student_id\) DO UPDATE/);
   assert.doesNotMatch(receive, /SET full_name=EXCLUDED\.full_name/);
   assert.doesNotMatch(receive, /SET grade_level=EXCLUDED\.grade_level/);
@@ -20,7 +23,8 @@ test('delayed cloud attendance never overwrites learner identity or current plac
 
 test('cross-school student IDs remain rejected rather than reassigned', () => {
   assert.match(receive, /if \(!student\.rowCount\)/);
-  assert.match(receive, /Student ID belongs to a different school/);
+  assert.match(receive, /Learner is missing, archived, inactive, or belongs to another school/);
+  assert.match(receive, /Cloud learner enrollment differs from this scan/);
   assert.match(receive, /results\.push\(\{ eventId:event\.eventId,status:'REJECTED'/);
 });
 
