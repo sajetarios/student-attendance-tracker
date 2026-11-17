@@ -47,6 +47,13 @@
         const entry=current.entry, callback=current.config.onAdjust;
         close(false); callback(entry.periodId,entry.date);
       }
+      const addTeacher=event.target.closest('[data-tt-add-teacher]');
+      if(addTeacher && current && current.config.onAddTeacher){
+        const callback=current.config.onAddTeacher;
+        close(false);
+        callback();
+        return;
+      }
       const assign=event.target.closest('[data-tt-assign]');
       if(assign && current && current.config.onAssign){
         const teacher=tooltip.querySelector('[data-tt-teacher]')?.value;
@@ -109,10 +116,14 @@
       (entry.adjustment.notes?' · '+escape(entry.adjustment.notes):'')+'</span></div>' : '';
     const management=entry.canEdit && entry.date>=config.today
       ? '<button type="button" class="tt-detail-action" data-tt-adjust>Change this date</button>' : '';
-    const assignChoices=!entry.assignedTeacherName && !entry.cancelled && entry.canEdit && entry.eligibleTeachers?.length
-      ? '<div class="tt-quick-assign"><label for="ttQuickTeacher">Assign teacher</label><select id="ttQuickTeacher" data-tt-teacher><option value="">Choose Subject Teacher</option>'+
-      entry.eligibleTeachers.map(t=>'<option value="'+escape(t.userId)+'">'+escape(t.displayName)+'</option>').join('')+
-      '</select><button type="button" data-tt-assign class="tt-detail-action">Assign</button></div>' : '';
+    const assignChoices=!entry.assignedTeacherName && !entry.cancelled && entry.canEdit
+      ? (entry.eligibleTeachers?.length
+        ? '<div class="tt-quick-assign"><label for="ttQuickTeacher">Assign teacher</label><select id="ttQuickTeacher" data-tt-teacher><option value="">Choose Subject Teacher</option>'+
+          entry.eligibleTeachers.map(t=>'<option value="'+escape(t.userId)+'">'+escape(t.displayName)+'</option>').join('')+
+          '</select><button type="button" data-tt-assign class="tt-detail-action">Assign</button></div>'
+        : '<div class="tt-quick-assign"><p>No active Subject Teachers are available in this department.</p>'+
+          (config.onAddTeacher?'<button type="button" data-tt-add-teacher class="tt-detail-action">＋ Add Subject Teacher</button>':'')+'</div>')
+      : '';
     ensurePanel().querySelector('.tt-detail-inner').innerHTML=
       '<header class="tt-detail-header"><span class="tt-detail-title-icon" data-ui-icon="book"></span><div><h3 id="ttDetailTitle">'+escape(label(entry))+
       '</h3><span class="tt-detail-kind">'+escape(tag)+'</span></div><button type="button" data-tt-close class="tt-detail-close" aria-label="Close class details">×</button></header>'+
