@@ -176,7 +176,7 @@
 
   function allowedViewsForUser() {
     const role = user?.role;
-    if (role === 'SCHOOL_ADMIN') return ['dashboard', 'students', 'studentAccounts', 'teachers', 'schedules', 'cloudSync', 'schoolBranding'];
+    if (role === 'SCHOOL_ADMIN') return ['dashboard', 'students', 'studentAccounts', 'parents', 'teachers', 'schedules', 'cloudSync', 'schoolBranding'];
     if (role === 'DEPARTMENT_HEAD') return ['dashboard', 'planner', 'students', 'teachers', 'schedules', 'sf2'];
     if (role === 'TEACHER') {
       const views = ['dashboard', 'planner'];
@@ -228,7 +228,7 @@
     if (!allowedViews.includes(view)) view = allowedViews.includes('dashboard') ? 'dashboard' : (allowedViews[0] || 'dashboard');
     $('platformWorkspace').hidden = true;
     $('schoolWorkspace').hidden = false;
-    ['dashboard', 'students', 'studentAccounts', 'schedules', 'teachers', 'sf2', 'classAttendance', 'cloudSync', 'schoolBranding', 'planner'].forEach(name => {
+    ['dashboard', 'students', 'studentAccounts', 'parents', 'schedules', 'teachers', 'sf2', 'classAttendance', 'cloudSync', 'schoolBranding', 'planner'].forEach(name => {
       const panel = $(`${name}View`);
       if (panel) panel.hidden = name !== view;
     });
@@ -280,6 +280,7 @@
         dashboard: ['School Administrator Dashboard', 'Manage school attendance operations, users, learner records, devices, schedules, and reporting.'],
         students: ['Student management', 'Register learners, maintain student details and photos, create student portal accounts, and manage QR cards.'],
         studentAccounts: ['Student Portal Accounts', 'Issue secure learner logins, review teacher requests, and manage portal access.'],
+        parents: ['Parent Management', 'Manage parent accounts, registrations, and verified student relationships.'],
         schedules: ['School-wide timetable and class schedules', 'Configure school timetable templates, manage class schedules, and assign teachers across departments.'],
         teachers: ['User management', 'Create and update school accounts, assign role-based access, manage departments, and disable or restore account access.'],
         sf2: ['SF2 Report Generator', 'Generate the monthly TUVERA SF2 and collect official reports submitted by Class Advisers.'],
@@ -291,6 +292,7 @@
     $('viewTitle').textContent = title[0];
     $('viewDescription').textContent = title[1];
     $('breadcrumbCurrent').textContent = title[0];
+    if (view === 'parents') { const frame = $('parentsFrame'); if (frame && !frame.getAttribute('src')) frame.src = '/parent-admin.html?embedded=1'; }
     if (view === 'planner') $('plannerView')?.dispatchEvent(new Event('planner:open'));
     if (view === 'dashboard' && ['TEACHER','DEPARTMENT_HEAD'].includes(role)) $('plannerView')?.dispatchEvent(new Event('planner:dashboard'));
     if (view === 'classAttendance' && role === 'TEACHER') {
@@ -4117,7 +4119,8 @@ let teacherActionMenuListenersInstalled = false;
     $('newStudentId').focus({ preventScroll: true });
   });
 
-  if ($('parentsNav')) $('parentsNav').addEventListener('click', () => window.location.assign('/parent-admin.html'));
+  if ($('parentsNav')) $('parentsNav').addEventListener('click', () => setView('parents'));
+  window.addEventListener('message', (event) => { if (event.origin !== window.location.origin || event.source !== $('parentsFrame')?.contentWindow || event.data?.type !== 'attendigo:parent-height') return; const h = Number(event.data.height); if (Number.isFinite(h) && h >= 300 && h <= 12000) $('parentsFrame').style.height = Math.ceil(h + 12) + 'px'; });
   document.querySelectorAll('.nav-group-toggle[data-nav-group]').forEach(button => {
     button.addEventListener('click', () => {
       const key = button.dataset.navGroup;
