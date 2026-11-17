@@ -794,7 +794,8 @@ body.dark-mode .content-wrap > .school-heading.is-compact,body[data-theme="dark"
               <div class="class-attendance-filters">
                 <div class="field-group">
                   <label for="teacherAttendanceViewSelect">Attendance group</label>
-                  <select id="teacherAttendanceViewSelect">
+                  <small class="field-hint" id="teacherAttendanceGroupHint">Choose advisory attendance for your assigned advisory section, or subject attendance for other sections you teach. These views use existing class assignments and do not create duplicate learner records.</small>
+                  <select id="teacherAttendanceViewSelect" aria-describedby="teacherAttendanceGroupHint">
                     <option value="ALL">All my handled classes</option>
                     <option value="ADVISORY">My advisory attendance</option>
                     <option value="SUBJECT">Attendance of other sections I handle</option>
