@@ -156,7 +156,7 @@
         try { payload = await decrypt(record); }
         catch (error) {
           await put({ ...record, status: 'REVIEW', reason: String(error.message).slice(0, 250) });
-          continue;
+          break; // A damaged earlier event blocks later sign-offs until reviewed.
         }
         const type = record.type || 'QR_SCAN';
         const endpoint = type === 'QR_SCAN' ? '/api/sync/events'
@@ -197,8 +197,10 @@
               result: type === 'QR_SCAN' ? data : data };
           } else if (response.ok && type === 'QR_SCAN' && item?.status === 'REJECTED') {
             await put({ ...record, status: 'REVIEW', reason: String(item.reason || 'Scan rejected by server').slice(0, 250) });
+            break;
           } else if (response.status === 409 || (response.status >= 400 && response.status < 500)) {
             await put({ ...record, status: 'REVIEW', reason: String(data.error || item?.reason || 'Server requires review').slice(0, 250) });
+            break;
           } else if (!response.ok) {
             break; // Keep queued for retry after temporary server failure.
           } else {
