@@ -75,7 +75,7 @@ test('Department Head/Class Adviser roster selection opens a preview instead of 
 });
 test('service worker uses same versions for portal and batch assets',()=>{
  for(const name of ['portal.js','special-program-ui.js','special-program-ui.css','special-program-batch-ui.js']){
-   const p=portal.match(new RegExp('(?:src|href)="(\\\\/'+name.replaceAll('.','\\\\.')+'\\\\?v=[^"]+)"'))?.[1];
+   const p=[...portal.matchAll(/(?:src|href)="([^"]+)"/g)].map(m=>m[1]).find(value=>value.startsWith('/'+name+'?v='));
    assert.ok(p,name+' must be referenced by portal');
    assert.ok(worker.includes(JSON.stringify(p)),p+' must match worker');
  }
