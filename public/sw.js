@@ -1,4 +1,4 @@
-const CACHE = "attendigo-v129-adviser-eligible-sections";
+const CACHE = "attendigo-v130-adviser-school-section-choices";
 
 const SHELL = [
   "/assets/attendigo-sidebar-logo.png",
@@ -31,7 +31,7 @@ const SHELL = [
   "/portal.css?v=0.9.108",
   "/student-roster-toolbar.css?v=1",
   "/portal.css",
-  "/portal.js?v=0.9.122",
+  "/portal.js?v=0.9.123",
   "/sardo-monitor.js?v=1",
   "/sardo-monitor.css?v=1",
   "/schedule-form-layout.css?v=11",

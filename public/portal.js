@@ -2701,7 +2701,7 @@ let teacherActionMenuListenersInstalled = false;
     const previous=grade.value;
     const grades=[...new Set(adviserEligibleSections.map(item=>String(item.gradeLevel).trim()))]
       .sort((a,b)=>a.localeCompare(b,undefined,{numeric:true}));
-    grade.innerHTML='<option value="">'+(adviserEligibilityError?'Unable to load grades':grades.length?'Choose grade level':'No eligible grades found')+'</option>'+
+    grade.innerHTML='<option value="">'+(adviserEligibilityError?'Unable to load grades':grades.length?'Choose grade level':'No available sections found')+'</option>'+
       grades.map(value=>'<option value="'+esc(value)+'">'+esc(value)+'</option>').join('');
     grade.disabled=Boolean(adviserEligibilityError)||!grades.length;
     if(grades.includes(previous))grade.value=previous;
@@ -2709,8 +2709,8 @@ let teacherActionMenuListenersInstalled = false;
       ? 'Grade and section lookup failed: '+adviserEligibilityError+'. Use Retry loading grades.'
       : !adviserEligibilityLoaded ? 'Loading eligible sections…'
       : !grades.length
-        ? 'No active learner sections found. Ask School Admin to verify Student Management and School Year Enrollment.'
-        : grades.length+' grade level'+(grades.length===1?'':'s')+' available from active learner records.';
+        ? 'No registered sections or active learner sections found. Ask School Admin to create school sections or verify learner records.'
+        : grades.length+' grade level'+(grades.length===1?'':'s')+' available from registered school sections and active learner records.';
     if(retry)retry.hidden=!adviserEligibilityError;
     if(!grade.dataset.sectionPickerBound){
       grade.addEventListener('change',updateAdviserSections);
@@ -2729,7 +2729,11 @@ let teacherActionMenuListenersInstalled = false;
         const total=Number(item.learnerCount)||0,enrolled=Number(item.enrolledCount)||0;
         const suffix=enrolled>0
           ? ' · '+enrolled+' enrolled learner'+(enrolled===1?'':'s')
-          : ' · '+total+' active learner record'+(total===1?'':'s')+' (check enrollment)';
+          : total>0
+            ? ' · '+total+' active learner record'+(total===1?'':'s')+' (check enrollment)'
+            : item.registered
+              ? ' · registered section (no enrolled learners yet)'
+              : ' · eligible section';
         return '<option value="'+esc(item.section)+'">'+esc(item.section)+esc(suffix)+'</option>';
       }).join('');
     select.disabled=!selected||!sections.length;
@@ -2737,8 +2741,8 @@ let teacherActionMenuListenersInstalled = false;
     if(hint)hint.textContent=!selected
       ? 'Choose a grade to see its available sections.'
       : sections.length
-        ? sections.length+' section'+(sections.length===1?'':'s')+' with active learners. SPJ and other special-program sections are included. Check enrollment if a section has roster-only records.'
-        : 'No eligible sections found in this grade. Verify its learner records and active school-year enrollment.';
+        ? sections.length+' school section'+(sections.length===1?'':'s')+' available. Registered sections can receive an adviser before learners enroll; SPJ is supported.'
+        : 'No registered or active learner sections in this grade. Ask School Admin to create a school section.';
   }
 
   function renderAdviserAssignments() {
