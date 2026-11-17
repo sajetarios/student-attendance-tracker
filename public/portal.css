@@ -2709,3 +2709,49 @@ body.dark-mode .schedule-edit-heading p,body.dark-mode .schedule-edit-note,body[
   .portal-page.school-header-condensed .school-heading .school-title-block h1{font-size:16px!important}
   .portal-page.school-header-condensed .school-heading .heading-actions{margin-left:0;max-width:100%}
 }
+
+/* School Admin command center — role-specific, compact, responsive. */
+.portal-page .admin-command-center{padding:clamp(16px,2.2vw,28px);border-radius:20px;display:grid;gap:18px}
+.portal-page .admin-command-center[hidden]{display:none!important}
+.admin-command-hero{display:flex;align-items:center;justify-content:space-between;gap:20px;padding:20px 22px;border-radius:17px;background:linear-gradient(115deg,#e9f3ff,#f7fbff);border:1px solid #d5e6f8}
+.admin-command-hero h3{margin:4px 0 8px;font-size:clamp(22px,2.1vw,30px);line-height:1.18;letter-spacing:-.035em;color:#193858}
+.admin-command-hero p{margin:0;max-width:610px;font-size:14px;line-height:1.55;color:#536c87}
+.admin-command-primary{flex:0 0 auto;min-height:45px;white-space:normal;text-align:center}
+.admin-command-metrics{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
+.admin-command-metric{position:relative;display:flex;flex-direction:column;gap:4px;padding:16px 18px;min-width:0;border:1px solid #dae5f2;border-radius:15px;background:#fff}
+.admin-command-metric>span:not(.admin-metric-icon){font-size:12px;font-weight:750;color:#5c7189}
+.admin-command-metric strong{font-size:clamp(23px,2.2vw,31px);color:#17385d;letter-spacing:-.03em;line-height:1.2}
+.admin-command-metric small{font-size:11px;color:#718299}
+.admin-metric-icon{position:absolute;right:14px;top:14px;display:grid;place-items:center;width:34px;height:34px;border-radius:11px;background:#edf5ff;font-size:18px}
+.admin-command-columns{display:grid;grid-template-columns:1.12fr 1fr;gap:16px;align-items:start}
+.admin-command-panel{min-width:0;border:1px solid #dbe6f3;border-radius:17px;padding:18px;background:#fff}
+.admin-command-section-heading{margin-bottom:14px}
+.admin-command-section-heading h4{font-size:18px;letter-spacing:-.025em;margin:3px 0 5px;color:#193858}
+.admin-command-section-heading p{margin:0;font-size:12px;color:#718299}
+.admin-command-action-list{display:grid;gap:8px}
+.admin-command-row{width:100%;display:flex;align-items:center;gap:12px;text-align:left;border:1px solid #e0e9f3;border-radius:12px;background:#f9fbfe;padding:11px;cursor:pointer;color:#173858}
+.admin-command-row>span:nth-child(2){flex:1;min-width:0;display:grid;gap:3px}
+.admin-command-row strong{font-size:13px}
+.admin-command-row small{font-size:11px;color:#647c96;line-height:1.4}
+.admin-command-row b{font-size:21px;color:#6886a8}
+.admin-command-icon{display:grid;place-items:center;width:38px;height:38px;flex:0 0 38px;border-radius:11px;background:#eaf3ff}
+.admin-command-shortcuts{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:9px}
+.admin-command-shortcuts button{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:9px;min-width:0;min-height:100px;padding:12px 6px;border:1px solid #dce7f4;border-radius:12px;background:#f8fbff;color:#1c436d;cursor:pointer}
+.admin-command-shortcuts button span{font-size:23px}
+.admin-command-shortcuts button strong{font-size:12px;text-align:center;line-height:1.35}
+.admin-command-row:hover,.admin-command-shortcuts button:hover{border-color:#8bb7e7;background:#eff6ff}
+.admin-command-center button:focus-visible{outline:3px solid #2d7ce0;outline-offset:2px}
+.admin-command-more{border:1px solid #dce6f1;border-radius:14px;padding:12px 16px}
+.admin-command-more summary{cursor:pointer;font-size:13px;font-weight:750;color:#355d85}
+.admin-command-more .admin-dashboard-actions{margin-top:13px}
+@media(max-width:1100px){.admin-command-columns{grid-template-columns:1fr}.admin-command-shortcuts{grid-template-columns:repeat(3,minmax(0,1fr))}}
+@media(max-width:700px){.admin-command-hero{padding:16px;flex-direction:column;align-items:stretch}.admin-command-primary{width:100%}.admin-command-metrics{grid-template-columns:repeat(2,minmax(0,1fr))}.admin-command-metric:last-child{grid-column:1/-1}.admin-command-panel{padding:14px}.admin-command-shortcuts button{min-height:86px}.portal-page .admin-command-center{gap:13px}}
+@media(max-width:380px){.admin-command-shortcuts{grid-template-columns:repeat(2,minmax(0,1fr))}}
+html[data-ui-theme="dark"] .admin-command-hero{background:linear-gradient(115deg,#203954,#182b43);border-color:#3b5572}
+html[data-ui-theme="dark"] .admin-command-hero h3,html[data-ui-theme="dark"] .admin-command-metric strong,html[data-ui-theme="dark"] .admin-command-section-heading h4{color:#f1f6ff}
+html[data-ui-theme="dark"] .admin-command-hero p,html[data-ui-theme="dark"] .admin-command-section-heading p,html[data-ui-theme="dark"] .admin-command-row small,html[data-ui-theme="dark"] .admin-command-metric small{color:#adc0d8}
+html[data-ui-theme="dark"] .admin-command-metric,html[data-ui-theme="dark"] .admin-command-panel,html[data-ui-theme="dark"] .admin-command-more{background:#1b2b40;border-color:#38506a}
+html[data-ui-theme="dark"] .admin-command-row,html[data-ui-theme="dark"] .admin-command-shortcuts button{background:#233650;border-color:#3a526f;color:#e7f1ff}
+html[data-ui-theme="dark"] .admin-command-row:hover,html[data-ui-theme="dark"] .admin-command-shortcuts button:hover{background:#2d4667;border-color:#729bd0}
+html[data-ui-theme="dark"] .admin-metric-icon,html[data-ui-theme="dark"] .admin-command-icon{background:#304a69}
+html[data-ui-theme="dark"] .admin-command-metric>span:not(.admin-metric-icon),html[data-ui-theme="dark"] .admin-command-more summary{color:#c5d9f2}
