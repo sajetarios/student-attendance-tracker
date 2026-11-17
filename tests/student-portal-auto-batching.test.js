@@ -204,3 +204,37 @@ test('server retains the 20-account transaction limit, and asset versions match'
   const url = html.match(/src="(\/student-portal-accounts\.js\?v=[^"]+)"/)?.[1];
   assert.ok(url && sw.includes(JSON.stringify(url)));
 });
+
+test('teacher account requests keep only pending items active and retain completed history', async () => {
+  const app = browserFixture({role:'TEACHER'});
+  await app.ready();
+  app.pending.push({requestId:'P1',studentId:'S-001',fullName:'Pending Learner',status:'PENDING',requestType:'CREATE',requestedBy:'Teacher'});
+  app.pending.push({requestId:'A1',studentId:'S-002',fullName:'Approved Learner',status:'APPROVED',requestType:'CREATE',reviewNote:'Credentials issued privately.'});
+  app.pending.push({requestId:'R1',studentId:'S-003',fullName:'Rejected Learner',status:'REJECTED',requestType:'RESET',reviewNote:'Please verify identity.'});
+  await app.refresh();
+  assert.match(app.element('sapRequestRows').innerHTML,/Pending Learner/);
+  assert.doesNotMatch(app.element('sapRequestRows').innerHTML,/Approved Learner|Rejected Learner/);
+  assert.equal(app.element('sapRequestHistory').hidden,false);
+  assert.equal(app.element('sapRequestHistoryLabel').textContent,'Request history (2)');
+  assert.match(app.element('sapRequestHistoryRows').innerHTML,/Approved Learner/);
+  assert.match(app.element('sapRequestHistoryRows').innerHTML,/Rejected Learner/);
+  assert.match(app.element('sapRequestHistoryRows').innerHTML,/Credentials issued privately/);
+  assert.equal(app.pending.length,3,'reviewed rows must not be deleted or modified');
+  app.pending[0].status='APPROVED';
+  await app.refresh();
+  assert.match(app.element('sapRequestRows').innerHTML,/No pending account requests/);
+  assert.equal(app.element('sapRequestHistoryLabel').textContent,'Request history (3)');
+  assert.match(app.element('sapRequestHistoryRows').innerHTML,/Pending Learner/);
+});
+
+test('School Admin account approval list remains unchanged and history drawer stays hidden', async () => {
+  const app = browserFixture({role:'SCHOOL_ADMIN'});
+  await app.ready();
+  app.pending.push({requestId:'P1',studentId:'S-001',fullName:'Pending Learner',status:'PENDING',requestType:'CREATE'});
+  app.pending.push({requestId:'A1',studentId:'S-002',fullName:'Approved Learner',status:'APPROVED',requestType:'CREATE'});
+  await app.refresh();
+  assert.match(app.element('sapRequestRows').innerHTML,/Pending Learner/);
+  assert.match(app.element('sapRequestRows').innerHTML,/Approved Learner/);
+  assert.match(app.element('sapRequestRows').innerHTML,/data-sap-review="APPROVE"/);
+  assert.equal(app.element('sapRequestHistory').hidden,true);
+});

@@ -133,21 +133,37 @@
     const d = new Date(value);
     return Number.isNaN(d.getTime()) ? '' : d.toLocaleString('en-PH', {timeZone:'Asia/Manila',year:'numeric',month:'short',day:'numeric',hour:'numeric',minute:'2-digit'});
   };
+  function renderRequestRow(r) {
+    const chip = r.status==='APPROVED' ? 'active' : r.status==='PENDING' ? 'pending' : 'disabled';
+    const name = r.requestType==='CREATE' ? 'Create login' : r.requestType==='RESET' ? 'Password reset' : 'Reactivate login';
+    const buttons = isAdmin() && r.status==='PENDING'
+      ? '<div class="sap-request-buttons"><button class="sap-action primary" type="button" data-sap-review="APPROVE" data-request-id="'+esc(r.requestId)+'">Approve</button><button class="sap-action" type="button" data-sap-review="REJECT" data-request-id="'+esc(r.requestId)+'">Reject</button></div>'
+      : '';
+    return '<div class="sap-request-row"><div class="sap-request-info"><strong>'+esc(r.fullName)+'</strong><p>'+
+      esc(r.studentId)+' · '+esc(name)+' · '+esc(r.requestedBy || 'Teacher')+' · '+esc(dateLabel(r.createdAt))+
+      '</p>'+(r.reason?'<p>'+esc(r.reason)+'</p>':'')+(r.reviewNote?'<p>Review note: '+esc(r.reviewNote)+'</p>':'')+
+      '</div><span class="sap-chip '+chip+'">'+esc(r.status)+'</span>'+buttons+'</div>';
+  }
   function renderRequests() {
-    $('sapRequestsTitle').textContent = isAdmin() ? 'Teacher account requests' : 'My account requests';
-    $('sapRequestsHelp').textContent = isAdmin() ? 'Review requests from teachers and approve or reject them.' : 'Track the approval status of your submitted requests.';
-    const host = $('sapRequestRows');
-    host.innerHTML = requests.length ? requests.map(r=>{
-      const chip = r.status==='APPROVED' ? 'active' : r.status==='PENDING' ? 'pending' : 'disabled';
-      const name = r.requestType==='CREATE' ? 'Create login' : r.requestType==='RESET' ? 'Password reset' : 'Reactivate login';
-      const buttons = isAdmin() && r.status==='PENDING'
-        ? '<div class="sap-request-buttons"><button class="sap-action primary" type="button" data-sap-review="APPROVE" data-request-id="'+esc(r.requestId)+'">Approve</button><button class="sap-action" type="button" data-sap-review="REJECT" data-request-id="'+esc(r.requestId)+'">Reject</button></div>'
-        : '';
-      return '<div class="sap-request-row"><div class="sap-request-info"><strong>'+esc(r.fullName)+'</strong><p>'+
-        esc(r.studentId)+' · '+esc(name)+' · '+esc(r.requestedBy || 'Teacher')+' · '+esc(dateLabel(r.createdAt))+
-        '</p>'+(r.reason?'<p>'+esc(r.reason)+'</p>':'')+(r.reviewNote?'<p>Review note: '+esc(r.reviewNote)+'</p>':'')+
-        '</div><span class="sap-chip '+chip+'">'+esc(r.status)+'</span>'+buttons+'</div>';
-    }).join('') : '<p class="sap-empty">No student account requests yet.</p>';
+    const admin = isAdmin();
+    $('sapRequestsTitle').textContent = admin ? 'Teacher account requests' : 'My account requests';
+    $('sapRequestsHelp').textContent = admin
+      ? 'Review requests from teachers and approve or reject them.'
+      : 'Pending requests appear here. Approved and rejected requests are kept in history.';
+    // Keep the School Admin approval inbox unchanged. Only the teacher's
+    // active list excludes completed requests; no database rows are removed.
+    const pending = requests.filter(r=>r.status==='PENDING');
+    const reviewed = requests.filter(r=>r.status!=='PENDING');
+    const active = admin ? requests : pending;
+    $('sapRequestRows').innerHTML = active.length
+      ? active.map(renderRequestRow).join('')
+      : '<p class="sap-empty">'+(admin?'No student account requests yet.':'No pending account requests.')+'</p>';
+    const history = $('sapRequestHistory');
+    if (history) {
+      history.hidden = admin || !reviewed.length;
+      $('sapRequestHistoryLabel').textContent = 'Request history ('+reviewed.length+')';
+      $('sapRequestHistoryRows').innerHTML = admin ? '' : reviewed.map(renderRequestRow).join('');
+    }
   }
   async function refresh() {
     if (busy || (!isAdmin() && !isTeacher())) return;
