@@ -124,7 +124,10 @@
     }
     const folioButton = $('mfOpenSyncCenter');
     if (folioButton) folioButton.addEventListener('click', open);
-    window.addEventListener('attendigo-offline-status', event => updateSummary(event.detail));
+    window.addEventListener('attendigo-offline-status', event => {
+      updateSummary(event.detail);
+      if (dialog?.open && !refreshing) void refresh(false);
+    });
     window.addEventListener('online', refreshIfOpen);
     window.addEventListener('offline', refreshIfOpen);
     document.addEventListener('visibilitychange', () => { if (!document.hidden) refreshIfOpen(); });
@@ -150,7 +153,8 @@
       (review ? review + ' records need review · ' : '') +
       (waiting ? waiting + ' waiting to sync' : 'No operations waiting on this device') +
       (isAdmin() ? ' · School cloud status available' : '');
-    if (dialog && dialog.open) void renderSummary(summary);
+    // Rendering an open panel is serialized through refresh() to avoid racing
+    // a device queue event with an administrator cloud-status fetch.
   }
 
   async function renderSummary(summary) {
