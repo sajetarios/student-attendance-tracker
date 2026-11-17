@@ -4285,10 +4285,17 @@ let teacherActionMenuListenersInstalled = false;
       const connected = data.connectionStatus === 'CONNECTED' && data.enabled;
       chip.classList.toggle('sync-connected', connected);
       chip.classList.toggle('sync-disconnected', !connected);
-      label.textContent = connected ? 'Cloud sync connected' :
+      const needsReview=Number(data.needsReviewCount||0);
+      label.textContent = needsReview ? 'Cloud sync · '+needsReview+' needs review' :
+        connected ? 'Cloud sync connected' :
         data.configured ? 'Cloud destination saved · Not connected' : 'Cloud sync not configured';
       chip.title = data.message || 'Cloud replication status checked.';
       if ($('cloudSyncPendingCount')) $('cloudSyncPendingCount').textContent = String(data.pendingCount || 0);
+      if ($('cloudSyncReviewCount')) $('cloudSyncReviewCount').textContent = String(needsReview);
+      if(user.role==='SCHOOL_ADMIN' && $('cloudSyncReviewPanel')){
+        $('cloudSyncReviewPanel').hidden=!needsReview;
+        if(needsReview)await loadCloudSyncReviews();
+      }
       if ($('cloudSyncLastSuccess')) $('cloudSyncLastSuccess').textContent = data.lastSuccessAt ? new Date(data.lastSuccessAt).toLocaleString('en-PH', { timeZone: 'Asia/Manila' }) : 'Not connected';
     } catch (error) {
       chip.classList.remove('sync-connected');
@@ -4298,6 +4305,50 @@ let teacherActionMenuListenersInstalled = false;
     }
   }
 
+  async function loadCloudSyncReviews() {
+    const target=$('cloudSyncReviewList');
+    if(!target || user.role!=='SCHOOL_ADMIN')return;
+    try {
+      const data=await api('/api/cloud-sync/review');
+      target.innerHTML=(data.records||[]).length ? data.records.map(item=>{
+        const type=item.type==='QR_SCAN'?'QR scan':item.type==='MANUAL_MARKS'?'Manual correction':'Register sign-off';
+        const when=new Date(item.createdAt).toLocaleString('en-PH',{timeZone:'Asia/Manila'});
+        return `<article class="cloud-review-item" style="padding:12px 0;border-bottom:1px solid var(--line,#a0aaba)">
+          <strong>${esc(type)}</strong> <small>${esc(when)}</small>
+          <p style="margin:7px 0">${esc(item.reason||'Server requested review.')}</p>
+          <button class="outline-button compact-button" type="button"
+            data-cloud-retry-type="${esc(item.type)}"
+            data-cloud-retry-id="${esc(item.operationId)}">Retry after resolving</button>
+        </article>`;
+      }).join(''):'<p class="inline-feedback">No cloud synchronization records currently need review.</p>';
+    }catch(error){
+      $('cloudSyncReviewFeedback').textContent=error.message;
+      $('cloudSyncReviewFeedback').className='inline-feedback error';
+    }
+  }
+
+  $('refreshCloudReviews')?.addEventListener('click',loadCloudSyncReviews);
+  $('cloudSyncReviewList')?.addEventListener('click',async event=>{
+    const button=event.target.closest('button[data-cloud-retry-id]');
+    if(!button || user.role!=='SCHOOL_ADMIN')return;
+    const confirmed=await window.AppDialog.confirm(
+      'Retry this cloud record only after you have fixed the learner, teacher, schedule, or attendance conflict. The original local record will not be discarded.',
+      {title:'Retry reviewed attendance',confirmText:'Retry synchronization'});
+    if(!confirmed)return;
+    button.disabled=true;
+    const feedback=$('cloudSyncReviewFeedback');
+    feedback.className='inline-feedback';
+    feedback.textContent='Requeuing reviewed operation…';
+    try{
+      await api('/api/cloud-sync/retry',{method:'POST',body:JSON.stringify({
+        type:button.dataset.cloudRetryType,operationId:button.dataset.cloudRetryId
+      })});
+      feedback.textContent='Operation requeued. It will be sent in attendance order.';
+      await loadCloudSyncStatus();
+    }catch(error){feedback.textContent=error.message;feedback.className='inline-feedback error';}
+    finally{button.disabled=false;}
+  });
+
   async function loadCloudSyncSettings() {
     const input = $('cloudBaseUrl');
     if (!input) return;
@@ -4306,7 +4357,7 @@ let teacherActionMenuListenersInstalled = false;
       input.value = data.cloudBaseUrl || '';
       $('cloudSyncEnabled').checked = Boolean(data.enabled);
       $('cloudSyncStatus').textContent = data.configured ? 'Saved · Not connected' : 'Not configured';
-      $('cloudSyncFeedback').textContent = data.secretConfigured ? 'Cloud settings loaded.' : 'Set CLOUD_SYNC_SHARED_SECRET on both servers before enabling cloud forwarding.';
+      $('cloudSyncFeedback').textContent = data.secretConfigured ? 'Cloud settings loaded. Confirm the matching school code and per-school secret on the cloud.' : 'Set CLOUD_SYNC_SHARED_SECRET on the local school server before enabling forwarding.';
     } catch (error) {
       $('cloudSyncFeedback').textContent = error.message;
       $('cloudSyncFeedback').className = 'inline-feedback error';
@@ -4341,7 +4392,7 @@ let teacherActionMenuListenersInstalled = false;
   });
   $('runCloudSync')?.addEventListener('click', async () => {
     const button=$('runCloudSync');button.disabled=true;$('cloudSyncFeedback').textContent='Sending pending attendance…';
-    try { const data=await api('/api/cloud-sync/run',{method:'POST'});$('cloudSyncFeedback').textContent=`Sync finished. Sent ${data.sent||0}; failed ${data.failed||0}.`;
+    try { const data=await api('/api/cloud-sync/run',{method:'POST'});$('cloudSyncFeedback').textContent=`Sync checked. Sent ${data.sent||0}; retrying ${data.failed||0}; needs review ${data.review||0}.`;
       await loadCloudSyncStatus(); }
     catch(error){$('cloudSyncFeedback').textContent=error.message;$('cloudSyncFeedback').className='inline-feedback error';}
     finally{button.disabled=false;}

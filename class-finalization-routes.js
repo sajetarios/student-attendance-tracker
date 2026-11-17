@@ -1,4 +1,5 @@
 'use strict';
+const {queueCloudOperation} = require('./cloud-mixed-operations');
 
 // Teacher sign-off is per subject period, not an automatic full-day absence.
 const { manilaToday } = require('./sardo-routes');
@@ -8,9 +9,11 @@ const validDate = date => typeof date === 'string' && /^\d{4}-\d{2}-\d{2}$/.test
 
 function registerClassFinalizationRoutes(app,pool,{authenticateSchoolClient,requireSchoolRoles}) {
   app.post('/api/manual-attendance/finalization',authenticateSchoolClient,requireSchoolRoles('TEACHER'),async(req,res)=>{
-    const {periodId,date,action}=req.body||{};
+    const {periodId,date,action,operationId}=req.body||{};
     if(!/^[0-9a-f-]{36}$/i.test(String(periodId||''))||!validDate(date)||!['FINALIZE','REOPEN'].includes(action))
       return res.status(400).json({error:'Select a valid class, date and finalization action.'});
+    if(operationId!==undefined&&!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(String(operationId)))
+      return res.status(400).json({error:'Invalid synchronization operation ID.'});
     const now=manilaToday();
     if(date>now)return res.status(400).json({error:'Future attendance cannot be finalized.'});
     const client=await pool.connect();
@@ -18,6 +21,24 @@ function registerClassFinalizationRoutes(app,pool,{authenticateSchoolClient,requ
       await client.query('BEGIN');
       await client.query('SELECT pg_advisory_xact_lock(hashtext($1::text),hashtext($2::text))',
         [req.auth.schoolId,periodId+'|'+date]);
+      // The event ID doubles as a durable idempotency receipt for offline retries.
+      // A repeated operation may acknowledge its original result, never toggle
+      // the finalized state again. It must match school, actor and exact intent.
+      if(operationId){
+        const previous=await client.query(`SELECT school_id,period_id,school_date::text AS school_date,
+          action,actor_user_id,roster_count FROM class_attendance_finalization_events WHERE event_id=$1`,
+          [operationId]);
+        if(previous.rowCount){
+          const prior=previous.rows[0];
+          if(String(prior.school_id)!==String(req.auth.schoolId)||String(prior.actor_user_id)!==String(req.auth.userId)||
+             String(prior.period_id)!==String(periodId)||prior.school_date!==date||prior.action!==action){
+            await client.query('ROLLBACK');
+            return res.status(409).json({error:'Operation ID belongs to another request. Keep the local item for review.',code:'OPERATION_ID_CONFLICT'});
+          }
+          await client.query('COMMIT');
+          return res.json({finalized:action==='FINALIZE',rosterCount:prior.roster_count,alreadySynced:true});
+        }
+      }
       const assigned=await client.query(`
         SELECT p.grade_level,p.section FROM class_periods p
         WHERE p.school_id=$1 AND p.period_id=$2 AND p.active=TRUE AND (
@@ -34,9 +55,14 @@ function registerClassFinalizationRoutes(app,pool,{authenticateSchoolClient,requ
         await client.query('UPDATE class_attendance_finalizations SET finalized=FALSE,reopened_by_user_id=$4,reopened_at=NOW() WHERE school_id=$1 AND period_id=$2 AND school_date=$3',
           [req.auth.schoolId,periodId,date,req.auth.userId]);
         await client.query(`INSERT INTO class_attendance_finalization_events
-          (school_id,period_id,school_date,action,actor_user_id,roster_count)
-          VALUES($1,$2,$3,'REOPEN',$4,$5)`,
-          [req.auth.schoolId,periodId,date,req.auth.userId,signed.rows[0].roster_count]);
+          (school_id,period_id,school_date,action,actor_user_id,roster_count,event_id)
+          VALUES($1,$2,$3,'REOPEN',$4,$5,COALESCE($6::uuid,gen_random_uuid()))`,
+          [req.auth.schoolId,periodId,date,req.auth.userId,signed.rows[0].roster_count,operationId||null]);
+        await queueCloudOperation(client,{
+          schoolId:req.auth.schoolId,actorUserId:req.auth.userId,periodId,date,
+          operationId:operationId||null,type:'REGISTER_SIGNOFF',action:'REOPEN',
+          rosterCount:signed.rows[0].roster_count
+        });
         await client.query('COMMIT');return res.json({finalized:false});
       }
       if(signed.rows[0]?.finalized){await client.query('ROLLBACK');return res.status(409).json({error:'This register is already finalized.'});}
@@ -87,9 +113,13 @@ function registerClassFinalizationRoutes(app,pool,{authenticateSchoolClient,requ
           finalized_at=NOW(),reopened_by_user_id=NULL,reopened_at=NULL`,
         [req.auth.schoolId,periodId,date,total,req.auth.userId]);
       await client.query(`INSERT INTO class_attendance_finalization_events
-          (school_id,period_id,school_date,action,actor_user_id,roster_count)
-          VALUES($1,$2,$3,'FINALIZE',$4,$5)`,
-        [req.auth.schoolId,periodId,date,req.auth.userId,total]);
+          (school_id,period_id,school_date,action,actor_user_id,roster_count,event_id)
+          VALUES($1,$2,$3,'FINALIZE',$4,$5,COALESCE($6::uuid,gen_random_uuid()))`,
+        [req.auth.schoolId,periodId,date,req.auth.userId,total,operationId||null]);
+      await queueCloudOperation(client,{
+        schoolId:req.auth.schoolId,actorUserId:req.auth.userId,periodId,date,
+        operationId:operationId||null,type:'REGISTER_SIGNOFF',action:'FINALIZE',rosterCount:total
+      });
       await client.query('COMMIT');return res.json({finalized:true,rosterCount:total});
     }catch(error){
       await client.query('ROLLBACK').catch(()=>{});

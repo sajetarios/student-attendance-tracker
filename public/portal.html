@@ -743,8 +743,13 @@ body.dark-mode .content-wrap > .school-heading.is-compact,body[data-theme="dark"
                 </div>
               </form>
               <div id="cloudSyncFeedback" class="inline-feedback" role="status" aria-live="polite"></div>
-              <div class="scope-note"><span>i</span><p><strong>Secure setup:</strong> Configure the same private <code>CLOUD_SYNC_SHARED_SECRET</code> (at least 32 characters) on both servers. The cloud server must already have this school code. School roster details needed by attendance records are sent over signed HTTPS; parent contact details and photos are never sent.</p></div>
-              <div class="cloud-sync-metrics"><article><span>Waiting to sync</span><strong id="cloudSyncPendingCount">0</strong></article><article><span>Last successful connection</span><strong id="cloudSyncLastSuccess">Not connected</strong></article></div>
+              <div class="scope-note"><span>i</span><p><strong>Secure setup:</strong> Set <code>CLOUD_SYNC_SHARED_SECRET</code> on the local school server. On the cloud, configure <code>CLOUD_SYNC_SCHOOL_SECRETS_JSON</code> with the matching secret keyed by school code. Cloud schools must have matching active teachers and class schedules. Parent phone numbers, photos, and credentials are not included in the relay.</p></div>
+              <div class="cloud-sync-metrics"><article><span>Waiting to sync</span><strong id="cloudSyncPendingCount">0</strong></article><article><span>Needs review</span><strong id="cloudSyncReviewCount">0</strong></article><article><span>Last successful connection</span><strong id="cloudSyncLastSuccess">Not connected</strong></article></div>
+              <div id="cloudSyncReviewPanel" class="surface-card section-card" hidden>
+                <div class="section-toolbar"><div><h3>Cloud synchronization review</h3><p>Rejected records remain on the local server until an authorized administrator resolves their cause and retries.</p></div><button class="outline-button" id="refreshCloudReviews" type="button">Refresh review list</button></div>
+                <div id="cloudSyncReviewList" role="region" aria-label="Cloud synchronization records needing review"></div>
+                <p id="cloudSyncReviewFeedback" class="inline-feedback" role="status" aria-live="polite"></p>
+              </div>
             </div>
           </section>
 
@@ -1524,13 +1529,13 @@ body.dark-mode .content-wrap > .school-heading.is-compact,body[data-theme="dark"
   <script src="/timetable-grid.js?v=4" defer></script>
   <script src="/schedule-workspace-ui.js?v=5" defer></script>
   <script src="/photo-editor.js?v=9" defer></script>
-  <script src="/offline-attendance.js?v=2" defer></script>
-  <script src="/portal.js?v=0.9.127" defer></script>
+  <script src="/offline-attendance.js?v=4" defer></script>
+  <script src="/portal.js?v=0.9.128" defer></script>
   <script src="/sardo-monitor.js?v=1" defer></script><script src="/parent-dashboard.js?v=2" defer></script>
   <script src="/platform-plans-ui.js?v=7" defer></script>
   <script src="/platform-school-health.js?v=1" defer></script>
   <script src="/planner.js?v=4" defer></script>
-  <script src="/manual-folio.js?v=11" defer></script>
+  <script src="/manual-folio.js?v=13" defer></script>
   <script src="/student-portal-accounts.js?v=6" defer></script>
   <script src="/guardian-ui.js?v=4" defer></script>
   <script src="/admin-request-notifications.js?v=2" defer></script>

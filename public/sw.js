@@ -1,4 +1,4 @@
-const CACHE = "attendigo-v137-teacher-batch-account-requests";
+const CACHE = "attendigo-v140-cloud-mixed-attendance";
 
 const SHELL = [
   "/assets/attendigo-sidebar-logo.png",
@@ -31,16 +31,16 @@ const SHELL = [
   "/portal.css?v=0.9.113",
   "/student-roster-toolbar.css?v=1",
   "/portal.css",
-  "/portal.js?v=0.9.127",
+  "/portal.js?v=0.9.128",
   "/sardo-monitor.js?v=1",
   "/sardo-monitor.css?v=1",
   "/schedule-form-layout.css?v=12",
   "/parent-dashboard.js?v=2",
-  "/offline-attendance.js?v=2",
+  "/offline-attendance.js?v=4",
   "/offline-sheet.html",
-  "/offline-sheet.js?v=2",
+  "/offline-sheet.js?v=4",
   "/manual-folio.css?v=11",
-  "/manual-folio.js?v=11",
+  "/manual-folio.js?v=13",
   "/student-portal-accounts.css?v=3",
   "/student-portal-accounts.js?v=6",
   "/admin-request-notifications.js?v=2",

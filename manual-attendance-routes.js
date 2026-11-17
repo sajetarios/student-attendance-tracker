@@ -1,4 +1,5 @@
 'use strict';
+const {queueCloudOperation} = require('./cloud-mixed-operations');
 const validDate = value => typeof value === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(value) && !Number.isNaN(Date.parse(value+'T00:00:00Z'));
 function registerManualAttendanceRoutes(app,pool,{authenticateSchoolClient,requireSchoolRoles}) {
  const auth=[authenticateSchoolClient,requireSchoolRoles('TEACHER')];
@@ -20,7 +21,7 @@ function registerManualAttendanceRoutes(app,pool,{authenticateSchoolClient,requi
    try {
      const period=await authorizedPeriod(pool,req,periodId,date);
      if(!period)return res.status(403).json({error:'This class is not assigned to you.'});
-     const rows=await pool.query(`SELECT student_id AS "studentId",status,note,updated_at AS "updatedAt" FROM manual_attendance_marks WHERE school_id=$1 AND period_id=$2 AND school_date=$3`,[req.auth.schoolId,periodId,date]);
+     const rows=await pool.query(`SELECT student_id AS "studentId",status,note,revision::text AS "revision",updated_at AS "updatedAt" FROM manual_attendance_marks WHERE school_id=$1 AND period_id=$2 AND school_date=$3`,[req.auth.schoolId,periodId,date]);
      const finalization=await pool.query(`SELECT finalized,roster_count AS "rosterCount",finalized_at AS "finalizedAt"
          FROM class_attendance_finalizations WHERE school_id=$1 AND period_id=$2 AND school_date=$3`,
          [req.auth.schoolId,periodId,date]);
@@ -32,7 +33,7 @@ function registerManualAttendanceRoutes(app,pool,{authenticateSchoolClient,requi
    if(!/^[0-9a-f-]{36}$/i.test(String(periodId||''))||!validDate(date)||!Array.isArray(marks)||marks.length>2000)return res.status(400).json({error:'Invalid attendance sheet.'});
    const seen=new Set();
    for(const m of marks){
-     if(!m||typeof m.studentId!=='string'||m.studentId.length>160||!['PRESENT','LATE','ABSENT','EXCUSED'].includes(m.status)||typeof(m.note||'')!=='string'||(m.note||'').length>500||seen.has(m.studentId))return res.status(400).json({error:'Invalid or duplicate learner mark.'});
+     if(!m||typeof m.studentId!=='string'||m.studentId.length>160||!['PRESENT','LATE','ABSENT','EXCUSED'].includes(m.status)||typeof(m.note||'')!=='string'||(m.note||'').length>500||(m.expectedRevision!==undefined&&(!Number.isSafeInteger(m.expectedRevision)||m.expectedRevision<0))||seen.has(m.studentId))return res.status(400).json({error:'Invalid or duplicate learner mark.'});
      seen.add(m.studentId);
    }
    const client=await pool.connect();
@@ -45,17 +46,51 @@ function registerManualAttendanceRoutes(app,pool,{authenticateSchoolClient,requi
      const signed=await client.query('SELECT 1 FROM class_attendance_finalizations WHERE school_id=$1 AND period_id=$2 AND school_date=$3 AND finalized=TRUE',[req.auth.schoolId,periodId,date]);
        if(signed.rowCount){await client.query('ROLLBACK');return res.status(409).json({error:'This register is finalized. Reopen it before editing marks.'});}
        // Scope is checked in the database, including the active school-year enrollment.
+     const changed=[];
      for(const m of marks){
        const r=await client.query(`SELECT 1 FROM students s
          LEFT JOIN LATERAL (SELECT en.grade_level,en.section FROM student_enrollments en JOIN school_years sy ON sy.school_id=en.school_id AND sy.school_year_id=en.school_year_id WHERE en.school_id=s.school_id AND en.student_id=s.student_id AND sy.status='ACTIVE' AND en.enrollment_status='ENROLLED' ORDER BY en.created_at DESC LIMIT 1) active_enrollment ON TRUE
          WHERE s.school_id=$1 AND s.student_id=$2 AND s.active=TRUE
            AND COALESCE(active_enrollment.grade_level,s.grade_level)=$3 AND COALESCE(active_enrollment.section,s.section)=$4`,[req.auth.schoolId,m.studentId,period.grade_level,period.section]);
        if(!r.rowCount){await client.query('ROLLBACK');return res.status(400).json({error:'Learner '+m.studentId+' is not active in this class roster. Refresh the roster or select the correct class before syncing.'});}
-       await client.query(`INSERT INTO manual_attendance_marks(school_id,period_id,student_id,school_date,status,note,marked_by)
-         VALUES($1,$2,$3,$4,$5,$6,$7)
-         ON CONFLICT(school_id,period_id,student_id,school_date)
-         DO UPDATE SET status=EXCLUDED.status,note=EXCLUDED.note,marked_by=EXCLUDED.marked_by,updated_at=NOW()`,[req.auth.schoolId,periodId,m.studentId,date,m.status,(m.note||'').trim(),req.auth.userId]);
+       // The class/date advisory lock serializes sheet edits and sign-offs. Compare
+       // a per-learner revision as well, so another correction cannot be erased.
+       const current=await client.query(`SELECT status,note,revision FROM manual_attendance_marks
+         WHERE school_id=$1 AND period_id=$2 AND student_id=$3 AND school_date=$4 FOR UPDATE`,
+         [req.auth.schoolId,periodId,m.studentId,date]);
+       const prior=current.rows[0],note=(m.note||'').trim();
+       if(prior&&prior.status===m.status&&prior.note===note)continue; // Safe retry.
+       if(prior&&(!Number.isSafeInteger(m.expectedRevision) || String(m.expectedRevision)!==String(prior.revision))){
+         await client.query('ROLLBACK');
+         return res.status(409).json({error:'Attendance changed on the server for learner '+m.studentId+'. Reload the register and review your unsynced draft; no marks were overwritten.',studentId:m.studentId,code:'STALE_MANUAL_MARK'});
+       }
+       if(!prior&&m.expectedRevision!==undefined&&m.expectedRevision!==0){
+         await client.query('ROLLBACK');
+         return res.status(409).json({error:'Attendance was updated since your draft for learner '+m.studentId+'. Reload before retrying.',studentId:m.studentId,code:'STALE_MANUAL_MARK'});
+       }
+       const params=[req.auth.schoolId,periodId,m.studentId,date,m.status,note,req.auth.userId];
+       const saved=prior
+         ? await client.query(`UPDATE manual_attendance_marks SET status=$5,note=$6,marked_by=$7,
+             updated_at=NOW(),revision=revision+1
+             WHERE school_id=$1 AND period_id=$2 AND student_id=$3 AND school_date=$4
+               AND revision=$8 RETURNING revision`,[...params,m.expectedRevision])
+         : await client.query(`INSERT INTO manual_attendance_marks
+             (school_id,period_id,student_id,school_date,status,note,marked_by,revision)
+             VALUES($1,$2,$3,$4,$5,$6,$7,1)
+             ON CONFLICT DO NOTHING RETURNING revision`,params);
+       if(!saved.rowCount){
+         await client.query('ROLLBACK');
+         return res.status(409).json({error:'Another change was saved while this sheet was syncing. Refresh and review it before retrying.',studentId:m.studentId,code:'STALE_MANUAL_MARK'});
+       }
+       changed.push({studentId:m.studentId,status:m.status,note,
+         expectedRevision:prior?Number(prior.revision):0,revision:Number(saved.rows[0].revision)});
      }
+     // Enqueue the exact accepted local correction snapshot in this transaction.
+     // If the cloud is unavailable, the queue persists without altering attendance.
+     if(changed.length)await queueCloudOperation(client,{
+       schoolId:req.auth.schoolId,actorUserId:req.auth.userId,periodId,date,
+       type:'MANUAL_MARKS',marks:changed
+     });
      await client.query('COMMIT');
      return res.json({saved:marks.length,date,periodId});
    }catch(err){await client.query('ROLLBACK').catch(()=>{});console.error('Manual attendance sync:',err.message);return res.status(500).json({error:'Unable to sync manual attendance.'});}
@@ -157,13 +192,15 @@ function registerManualAttendanceRoutes(app,pool,{authenticateSchoolClient,requi
    const client=await pool.connect();
    try{
      await client.query('BEGIN');
+     await client.query('SELECT pg_advisory_xact_lock(hashtext($1::text),hashtext($2::text))',
+       [req.auth.schoolId,periodId+'|'+date]);
      if(!await authorizedPeriod(client,req,periodId,date)){
        await client.query('ROLLBACK');return res.status(403).json({error:'This class is not assigned to you.'});
      }
      const signed=await client.query('SELECT 1 FROM class_attendance_finalizations WHERE school_id=$1 AND period_id=$2 AND school_date=$3 AND finalized=TRUE',[req.auth.schoolId,periodId,date]);
        if(signed.rowCount){await client.query('ROLLBACK');return res.status(409).json({error:'Reopen the finalized register before resolving attendance conflicts.'});}
        const result=await client.query(`UPDATE manual_attendance_marks m SET
-       status=$5,marked_by=$6,updated_at=NOW()
+       status=$5,marked_by=$6,updated_at=NOW(),revision=m.revision+1
        WHERE m.school_id=$1 AND m.period_id=$2 AND m.student_id=$3 AND m.school_date=$4
          AND m.status IN ('ABSENT','EXCUSED')
          AND EXISTS(SELECT 1 FROM attendance_events e

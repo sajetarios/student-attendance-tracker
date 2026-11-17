@@ -9,9 +9,14 @@ const read = p => fs.readFileSync(path.join(__dirname, '..', p), 'utf8');
 test('device offline queue isolates by school and user and keeps event UUID', () => {
   const js = read('public/offline-attendance.js');
   assert.match(js, /String\(u\.schoolId\) \+ ':' \+ String\(u\.userId\)/);
-  assert.match(js, /id: event\.eventId/);
+  assert.match(js, /operationId: event\.eventId/);
   assert.match(js, /status: 'PENDING'/);
   assert.match(js, /status: 'REVIEW'/);
+  assert.match(js, /AES-GCM/);
+  assert.match(js, /REGISTER_SIGNOFF/);
+  assert.match(js, /MANUAL_MARKS/);
+  assert.match(js, /QR_SCAN/);
+  assert.match(js, /record\.event && !record\.encrypted/);
   assert.match(js, /response\.status === 401 \|\| response\.status === 403/);
   assert.doesNotMatch(js, /localStorage\.setItem\([^\n]*accessToken/);
 });
@@ -67,10 +72,11 @@ test('standalone offline sheet encrypts student data and checks account before u
   assert.match(js, /PBKDF2/);
   assert.match(js, /AES-GCM/);
   assert.match(js, /u\.schoolId!==data\.schoolId\|\|u\.userId!==data\.userId/);
-  assert.match(js, /\/api\/manual-attendance\/sync/);
+  assert.match(js, /type:'MANUAL_MARKS'/);
   assert.match(js, /Server verification failed/);
   const sw = read('public/sw.js');
   assert.match(sw, /offline-sheet\.html/);
   const script = read('public/offline-sheet.html').match(/src="(\/offline-sheet\.js\?v=[^"]+)"/)?.[1];
   assert.ok(script && sw.includes(JSON.stringify(script)));
+  assert.ok(read('public/offline-sheet.html').includes('/offline-attendance.js?v='));
 });
