@@ -21,7 +21,10 @@ function registerManualAttendanceRoutes(app,pool,{authenticateSchoolClient,requi
      const period=await authorizedPeriod(pool,req,periodId,date);
      if(!period)return res.status(403).json({error:'This class is not assigned to you.'});
      const rows=await pool.query(`SELECT student_id AS "studentId",status,note,updated_at AS "updatedAt" FROM manual_attendance_marks WHERE school_id=$1 AND period_id=$2 AND school_date=$3`,[req.auth.schoolId,periodId,date]);
-     return res.json({period,marks:rows.rows});
+     const finalization=await pool.query(`SELECT finalized,roster_count AS "rosterCount",finalized_at AS "finalizedAt"
+         FROM class_attendance_finalizations WHERE school_id=$1 AND period_id=$2 AND school_date=$3`,
+         [req.auth.schoolId,periodId,date]);
+       return res.json({period,marks:rows.rows,finalization:finalization.rows[0]||{finalized:false}});
    }catch(err){console.error('Manual attendance read:',err.message);return res.status(500).json({error:'Unable to load manual attendance.'});}
  });
  app.post('/api/manual-attendance/sync',...auth,async(req,res)=>{
@@ -35,9 +38,13 @@ function registerManualAttendanceRoutes(app,pool,{authenticateSchoolClient,requi
    const client=await pool.connect();
    try {
      await client.query('BEGIN');
+       await client.query('SELECT pg_advisory_xact_lock(hashtext($1::text),hashtext($2::text))',
+         [req.auth.schoolId,periodId+'|'+date]);
      const period=await authorizedPeriod(client,req,periodId,date);
      if(!period){await client.query('ROLLBACK');return res.status(403).json({error:'This class is not assigned to you.'});}
-     // Scope is checked in the database, including the active school-year enrollment.
+     const signed=await client.query('SELECT 1 FROM class_attendance_finalizations WHERE school_id=$1 AND period_id=$2 AND school_date=$3 AND finalized=TRUE',[req.auth.schoolId,periodId,date]);
+       if(signed.rowCount){await client.query('ROLLBACK');return res.status(409).json({error:'This register is finalized. Reopen it before editing marks.'});}
+       // Scope is checked in the database, including the active school-year enrollment.
      for(const m of marks){
        const r=await client.query(`SELECT 1 FROM students s
          LEFT JOIN LATERAL (SELECT en.grade_level,en.section FROM student_enrollments en JOIN school_years sy ON sy.school_id=en.school_id AND sy.school_year_id=en.school_year_id WHERE en.school_id=s.school_id AND en.student_id=s.student_id AND sy.status='ACTIVE' AND en.enrollment_status='ENROLLED' ORDER BY en.created_at DESC LIMIT 1) active_enrollment ON TRUE
@@ -153,7 +160,9 @@ function registerManualAttendanceRoutes(app,pool,{authenticateSchoolClient,requi
      if(!await authorizedPeriod(client,req,periodId,date)){
        await client.query('ROLLBACK');return res.status(403).json({error:'This class is not assigned to you.'});
      }
-     const result=await client.query(`UPDATE manual_attendance_marks m SET
+     const signed=await client.query('SELECT 1 FROM class_attendance_finalizations WHERE school_id=$1 AND period_id=$2 AND school_date=$3 AND finalized=TRUE',[req.auth.schoolId,periodId,date]);
+       if(signed.rowCount){await client.query('ROLLBACK');return res.status(409).json({error:'Reopen the finalized register before resolving attendance conflicts.'});}
+       const result=await client.query(`UPDATE manual_attendance_marks m SET
        status=$5,marked_by=$6,updated_at=NOW()
        WHERE m.school_id=$1 AND m.period_id=$2 AND m.student_id=$3 AND m.school_date=$4
          AND m.status IN ('ABSENT','EXCUSED')
