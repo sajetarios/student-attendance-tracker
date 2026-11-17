@@ -41,7 +41,7 @@ test('Department Head can assign substitute coverage without gaining account adm
   assert.match(portal, /const rows = showingMyDepartment \? myRows : otherRows/);
   assert.match(server, /app\.post\('\/api\/teachers\/:userId\/leave', authenticateSchoolClient, requireSchoolAdmin/);
   assert.match(server, /app\.post\('\/api\/teachers\/:userId\/leave', authenticateSchoolClient, requireSchoolAdmin/);
-  assert.match(server, /app\.post\('\/api\/periods', authenticateSchoolClient, requireSchoolAdminOrDepartmentHeadOrTeacher/);
+  assert.match(server, /app\.post\('\/api\/periods', authenticateSchoolClient, requireSchoolRoles\('SCHOOL_ADMIN'\)/);
   assert.match(server, /isTeacher && !req\.auth\.teacherDesignations\?\.includes\('SUBJECT_TEACHER'\)/);
 });
 
@@ -52,7 +52,7 @@ test('Department Head sees all departments but schedule writes are restricted to
   assert.match(server, /app\.get\('\/api\/periods', authenticateSchoolClient, requireSchoolUser/);
   assert.match(server, /req\.auth\.role === 'DEPARTMENT_HEAD' && \(req\.auth\.departmentCode === 'UNASSIGNED' \|\| String\(period\.rows\[0\]\.department_id\) !== String\(req\.auth\.departmentId\)\)/);
   assert.match(server, /teacher\.rows\[0\]\.department_id\) !== String\(period\.rows\[0\]\.department_id\)/);
-  assert.match(server, /DEPARTMENT_HEAD_CREATE_DEPARTMENT_PERIOD/);
+  assert.match(server, /app\.post\('\/api\/periods\/:periodId\/assignments', authenticateSchoolClient, requireSchoolRoles\('SCHOOL_ADMIN', 'DEPARTMENT_HEAD'\)/);
 });
 
 test('Class coverage monitor distinguishes unassigned classes, leave, and missing teacher time-in', () => {

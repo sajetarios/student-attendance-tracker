@@ -5,21 +5,12 @@ const fs = require('node:fs');
 const path = require('node:path');
 const read = file => fs.readFileSync(path.join(__dirname, '..', file), 'utf8');
 
-test('department schedule has a role-specific scope message and admin-only grace control', () => {
-  const html = read('public/portal.html');
-  const js = read('public/portal.js');
-  const form = html.split('<form id="scheduleForm"')[1].split('</form>')[0];
-  for (const id of ['scheduleFormRoleIntro','departmentScheduleScopeNote','scheduleGraceGroup',
-    'graceMinutes','scheduleWeekdayChoices','periodClassroom','scheduleReviewSummary']) {
-    assert.equal((form.match(new RegExp('id="' + id + '"', 'g')) || []).length, 1, id);
-  }
-  assert.match(js, /function updateSchedulingFormRole\(\)/);
-  assert.match(js, /form\.dataset\.scheduleRole = departmentHead \? 'DEPARTMENT_HEAD' : 'SCHOOL_ADMIN'/);
-  assert.match(js, /scheduleGraceGroup'\)\.hidden = departmentHead/);
-  assert.match(js, /updateSchedulingFormRole\(\);\s*resetScheduleTimeSelection\(\);/);
-  assert.match(js, /user\.role === 'SCHOOL_ADMIN' \? \{ graceMinutes:/);
+test('Department Heads manage assignments without editing official schedules',()=>{
+ const p=read('public/portal.js'),u=read('public/schedule-workspace-ui.js');
+ assert.match(p,/showScheduleForm'\)\.hidden = !schoolAdminCanCreate/);
+ assert.match(u,/scheduleAssignmentShortcut/);
+ assert.match(u,/showScheduleForm'\)\.hidden=role!=='SCHOOL_ADMIN'/);
 });
-
 test('weekday selection remains native, accessible, and compact instead of stretched checkboxes', () => {
   const html = read('public/portal.html');
   const css = read('public/schedule-form-layout.css');
@@ -32,10 +23,11 @@ test('weekday selection remains native, accessible, and compact instead of stret
   assert.match(css, /#scheduleForm\[data-schedule-role="DEPARTMENT_HEAD"\] \.schedule-review-section/);
 });
 
-test('Department Heads are server-restricted to their department and cannot set grace via API', () => {
-  const server = read('server.js');
-  assert.match(server, /app\.post\('\/api\/periods', authenticateSchoolClient, requireSchoolRoles\('SCHOOL_ADMIN', 'DEPARTMENT_HEAD'\)/);
-  assert.match(server, /const graceMinutes = isDepartmentHead \? 5 : \(req\.body\?\.graceMinutes \?\? 0\);/);
-  assert.match(server, /isDepartmentHead &&[\s\S]*?String\(departmentId\) !== String\(req\.auth\.departmentId\)/);
-  assert.match(server, /String\(teacher\.rows\[0\]\.departmentId\) !== String\(departmentId\)/);
+test('Only the School Admin can create edit or delete permanent schedules',()=>{
+ const server=read('server.js');
+ for(const m of ['post','patch','delete']){
+  const uri=m==='post'?'/api/periods':'/api/periods/:periodId';
+  assert.ok(server.includes("app."+m+"('"+uri+"', authenticateSchoolClient, requireSchoolRoles('SCHOOL_ADMIN')"));
+ }
+ assert.match(server,/app\.post\('\/api\/periods\/:periodId\/assignments', authenticateSchoolClient, requireSchoolRoles\('SCHOOL_ADMIN', 'DEPARTMENT_HEAD'\)/);
 });

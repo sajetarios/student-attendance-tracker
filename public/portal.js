@@ -504,7 +504,7 @@
     if ($('manageParentsFromStudents')) { $('manageParentsFromStudents').hidden = !admin; $('manageParentsFromStudents').style.display = admin ? 'inline-flex' : 'none'; }
     if ($('showStudentPortalHelp')) $('showStudentPortalHelp').hidden = !admin;
     if ($('showStudentForm')) $('showStudentForm').hidden = !(admin || (teacher && classAdviser));
-    if ($('showScheduleForm')) $('showScheduleForm').hidden = !(admin || departmentHead);
+    if ($('showScheduleForm')) $('showScheduleForm').hidden = !admin;
     if ($('dashboardAddStudent')) $('dashboardAddStudent').hidden = !(admin || (teacher && classAdviser));
     if ($('showTeacherForm')) $('showTeacherForm').hidden = !admin;
     if ($('addSchoolStaffAccount')) $('addSchoolStaffAccount').hidden = !admin;
@@ -2012,7 +2012,7 @@ function coverageStatusLabel(status) {
               (selectedPeriodIds.has(String(period.periodId)) ? 'checked' : '') + ' aria-label="Select ' + esc(period.periodName) + '">'
             : '—') + '</td>'
           : '';
-        const deleteAction = (user.role === 'SCHOOL_ADMIN' || (user.role === 'DEPARTMENT_HEAD' && String(period.departmentId) === String(user.departmentId))) ? `<div class="schedule-row-actions"><button type="button" class="outline-button compact-button" data-edit-period="${esc(period.periodId)}">Edit</button><button type="button" class="outline-button compact-button danger-button" data-delete-period="${esc(period.periodId)}">Delete</button></div>` : '—';
+        const deleteAction = user.role === 'SCHOOL_ADMIN' ? `<div class="schedule-row-actions"><button type="button" class="outline-button compact-button" data-edit-period="${esc(period.periodId)}">Edit</button><button type="button" class="outline-button compact-button danger-button" data-delete-period="${esc(period.periodId)}">Delete</button></div>` : '—';
         return `<tr>
           ${selection}<td data-label="Schedule"><strong>${esc(period.periodName)}</strong>${period.scheduleType === 'ADVISORY' ? '<small class="schedule-activity-label">Advisory / Homeroom</small>' : period.scheduleType === 'OTHER' ? '<small class="schedule-activity-label">Special class</small>' : ''}</td>
           <td data-label="Subject">${esc(period.subjectName || '—')}</td>
@@ -2029,7 +2029,7 @@ function coverageStatusLabel(status) {
       setScheduleDisplay(activeScheduleDisplay);
 
       $('scheduleScopeText').textContent = user.role === 'DEPARTMENT_HEAD'
-        ? 'Create class schedules and assign Subject Teachers within your department. View schedules across the school.'
+        ? 'Assign your department teachers to existing schedules and manage temporary changes. School Admin owns official schedule settings.'
         : 'Create class schedules and assign Subject Teachers. Department and subject options follow the selected teacher profile.';
     }
 
@@ -2038,10 +2038,10 @@ function coverageStatusLabel(status) {
       updatePeriodBatchUi();
     }));
 
-    const departmentHeadCanCreate = user.role === 'SCHOOL_ADMIN' || (user.role === 'DEPARTMENT_HEAD' && Boolean(user.departmentId) && user.departmentCode !== 'UNASSIGNED');
-    $('showScheduleForm').hidden = !departmentHeadCanCreate;
-    $('showScheduleForm').textContent = user.role === 'DEPARTMENT_HEAD' ? '＋ Create department schedule' : '＋ Create class schedule';
-    if (user.role === 'DEPARTMENT_HEAD' && !departmentHeadCanCreate) {
+    const schoolAdminCanCreate = user.role === 'SCHOOL_ADMIN';
+    $('showScheduleForm').hidden = !schoolAdminCanCreate;
+    $('showScheduleForm').textContent = '＋ Create class schedule';
+    if (user.role === 'DEPARTMENT_HEAD' && (!user.departmentId || user.departmentCode === 'UNASSIGNED')) {
       $('scheduleScopeText').textContent = 'Your account is awaiting department assignment. You can monitor schedules until the School Administrator assigns your department.';
     }
   }
@@ -5343,6 +5343,11 @@ let teacherActionMenuListenersInstalled = false;
   }
 
   $('showScheduleForm').addEventListener('click', async () => {
+    if (user?.role !== 'SCHOOL_ADMIN') {
+      $('scheduleForm').hidden = true;
+      showToast('Only School Admin can create official class schedules. Assign teachers to existing classes instead.', true);
+      return;
+    }
     const opening = $('scheduleForm').hidden;
     $('scheduleForm').hidden = !opening;
     if (!opening) return;
@@ -5389,6 +5394,11 @@ let teacherActionMenuListenersInstalled = false;
   $('scheduleForm').addEventListener('submit', async event => {
     event.preventDefault();
     const feedback = $('scheduleFormFeedback');
+    if (user?.role !== 'SCHOOL_ADMIN') {
+      feedback.className = 'inline-feedback error';
+      feedback.textContent = 'Only School Admin can save official class schedules.';
+      return;
+    }
     feedback.className = 'inline-feedback';
     feedback.textContent = 'Checking the class, teacher, and room timetable…';
     const teacher = selectedScheduleTeacher();

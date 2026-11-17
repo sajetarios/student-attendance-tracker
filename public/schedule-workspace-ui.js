@@ -41,6 +41,9 @@
   if($('scheduleMetricScope'))$('scheduleMetricScope').textContent=role==='TEACHER'?'Your assigned classes':role==='DEPARTMENT_HEAD'?'Department timetable':'School-wide timetable';
   const manager=role==='SCHOOL_ADMIN'||role==='DEPARTMENT_HEAD';
   if($('scheduleAdjustmentShortcut'))$('scheduleAdjustmentShortcut').hidden=!manager;
+  if($('scheduleAssignmentShortcut'))$('scheduleAssignmentShortcut').hidden=role!=='DEPARTMENT_HEAD';
+  if($('showScheduleForm'))$('showScheduleForm').hidden=role!=='SCHOOL_ADMIN';
+  if(role==='DEPARTMENT_HEAD' && $('scheduleForm') && !$('scheduleForm').hidden) $('cancelScheduleForm')?.click();
   const intro=$('scheduleScopeText');
   if(intro){
     intro.dataset.newCopy='1';
@@ -60,6 +63,15 @@
     const actionRow=document.createElement('div');actionRow.className='schedule-primary-actions';
     create.parentElement.insertBefore(actionRow,create);actionRow.appendChild(create);
     create.textContent='＋ New class schedule';
+    const assignment=document.createElement('button');
+    assignment.type='button';assignment.id='scheduleAssignmentShortcut';
+    assignment.className='primary-button';assignment.textContent='Assign teachers';assignment.hidden=true;
+    actionRow.append(assignment);
+    assignment.addEventListener('click',()=>{
+      setTab('regular');
+      document.querySelector('[data-schedule-display="list"]')?.click();
+      $('periodBulkToolbar')?.scrollIntoView({block:'nearest',behavior:'smooth'});
+    });
     const change=document.createElement('button');change.type='button';change.id='scheduleAdjustmentShortcut';change.className='outline-button';change.textContent='⇄ Temporary adjustment';
     change.addEventListener('click',()=>{
       setTab('changes');
@@ -110,7 +122,7 @@
    if(openForm){
     if(!focusedBeforeDrawer)focusedBeforeDrawer=document.activeElement;
     openForm.setAttribute('role','dialog');openForm.setAttribute('aria-modal','true');
-    const title=openForm===form?'Create or edit class schedule':'Temporary schedule change';
+    const title=openForm===form?'School Admin class schedule':'Temporary schedule change';
     openForm.setAttribute('aria-label',title);
     if(activeDrawer!==openForm){
       activeDrawer=openForm;

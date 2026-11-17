@@ -1,4 +1,4 @@
-const CACHE = "attendigo-v124-sardo-live-monitor";
+const CACHE = "attendigo-v124-school-admin-schedule-ownership";
 
 const SHELL = [
   "/assets/attendigo-sidebar-logo.png",
@@ -24,14 +24,14 @@ const SHELL = [
   "/parent-portal.js?v=1",
   "/dashboard-appearance.js?v=3",
   "/timetable-grid.js?v=3",
-  "/schedule-workspace-ui.js?v=3",
+  "/schedule-workspace-ui.js?v=4",
   "/portal-login.html",
   "/attendigo-login-motion.css?v=2",
   "/attendigo-login-refinement.css?v=2",
   "/portal.css?v=0.9.108",
   "/student-roster-toolbar.css?v=1",
   "/portal.css",
-  "/portal.js?v=0.9.116",
+  "/portal.js?v=0.9.117",
   "/sardo-monitor.js?v=1",
   "/sardo-monitor.css?v=1",
   "/schedule-form-layout.css?v=7",
