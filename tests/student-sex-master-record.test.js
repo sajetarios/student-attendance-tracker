@@ -31,7 +31,7 @@ test('student roster exposes sex and cloud status never claims replication is ac
   const syncCenter=fs.readFileSync(path.join(root, 'public', 'attendance-sync-center.js'), 'utf8');
   assert.ok(syncCenter.includes("'Cloud sync not configured'"), 'Cloud settings are shown only in administrator details');
   assert.ok(!syncCenter.includes("label = 'Cloud sync not configured'"), 'Administrator header must stay a device sync control');
-  assert.ok(syncCenter.includes("label = 'Cloud forwarding off'"));
+  assert.ok(syncCenter.includes("'Cloud forwarding disabled'"), 'Disabled cloud forwarding remains visible in administrator details');
   assert.ok(syncCenter.includes('if (!isAdmin()) return;'));
   assert.ok(sf2.includes('COALESCE(en.grade_level,s.grade_level)'));
   assert.ok(sf2.includes('COALESCE(en.section,s.section)'));
