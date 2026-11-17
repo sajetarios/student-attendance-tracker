@@ -1494,14 +1494,17 @@ function coverageStatusLabel(status) {
     if (actions) {
       [...actions.options].forEach(option => {
         if (!option.value) return;
-        const available = isAdmin || ['SET_SEX','ASSIGN'].includes(option.value);
+        const available = option.value === 'REQUEST_PROGRAM'
+          ? !isAdmin && (user.role === 'DEPARTMENT_HEAD' || (user.role === 'TEACHER' && teacherHas('CLASS_ADVISER')))
+          : isAdmin || ['SET_SEX','ASSIGN'].includes(option.value);
         option.hidden = !available;
         option.disabled = !available;
       });
       if (actions.selectedOptions[0]?.disabled) actions.value = '';
     }
     if ($('applyStudentBatch')) $('applyStudentBatch').disabled =
-      !mayBatch || !selectedStudentIds.size || !actions?.value || selectedStudentIds.size > 500;
+      !mayBatch || !selectedStudentIds.size || !actions?.value ||
+      selectedStudentIds.size > (actions?.value === 'REQUEST_PROGRAM' ? 200 : 500);
     const all = $('selectAllStudents');
     if (all) {
       all.disabled = !mayBatch || !visible.length;
@@ -4913,6 +4916,22 @@ let teacherActionMenuListenersInstalled = false;
     if (!action || !selected.length) return;
     if (selected.length !== selectedStudentIds.size || selected.length > 500) {
       showToast('Some learners are not in your authorized selection. Refresh and select again (maximum 500).',true);
+      return;
+    }
+    if (action === 'REQUEST_PROGRAM') {
+      const allowed = user.role === 'DEPARTMENT_HEAD' ||
+        (user.role === 'TEACHER' && teacherHas('CLASS_ADVISER'));
+      if (!allowed || selected.length > 200) {
+        showToast('Only Department Heads and Class Advisers can request program changes for up to 200 learners.',true);
+        return;
+      }
+      document.dispatchEvent(new CustomEvent('attendigo:program-batch-open', {
+        detail: { students: selected.map(s => ({
+          studentId: s.studentId, enrollmentId: s.enrollmentId,
+          fullName: s.fullName, gradeLevel: s.gradeLevel,
+          section: s.section, specialProgramCode: s.specialProgramCode
+        })) }
+      }));
       return;
     }
     if (user.role !== 'SCHOOL_ADMIN' && !['SET_SEX','ASSIGN'].includes(action)) {
