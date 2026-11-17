@@ -659,7 +659,7 @@
     if (!button || user?.role !== 'SCHOOL_ADMIN') return;
     setView('teachers');
     setAdminManagementTab(button.dataset.staffSection);
-    document.querySelector('.sidebar')?.classList.remove('mobile-open');
+    if (window.matchMedia('(max-width: 860px)').matches) closeMobileSidebar();
   });
 
   function setAdminManagementTab(tabName = 'accounts') {
@@ -717,8 +717,8 @@
   });
   $('requestsApprovalsNav')?.addEventListener('click', () => {
     if (user?.role !== 'SCHOOL_ADMIN') return;
+    if (window.matchMedia('(max-width: 860px)').matches) closeMobileSidebar();
     $('adminNotificationBell')?.click();
-    document.querySelector('.sidebar')?.classList.remove('mobile-open');
   });
   $('adminManagementTabs')?.addEventListener('click', event => {
     const button = event.target.closest('[data-admin-management-tab]');
