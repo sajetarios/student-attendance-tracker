@@ -1404,6 +1404,7 @@ function coverageStatusLabel(status) {
       ((departmentHead || (teacher && designations.includes('CLASS_ADVISER'))) && hasSelectableLearners);
     const rosterTable = $('studentRosterTable');
     rosterTable?.classList.toggle('teacher-roster-compact', teacher);
+    $('studentsView')?.classList.toggle('teacher-directory-mode', teacher);
     const rosterHeading = $('studentRosterHeading');
     if (rosterHeading) rosterHeading.textContent = teacher ? 'My assigned learners' : (departmentHead ? 'Learner directory' : 'Registered students');
     const rosterHeader = rosterTable?.querySelector('thead tr');
