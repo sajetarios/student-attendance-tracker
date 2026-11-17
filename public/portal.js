@@ -3935,6 +3935,7 @@ let teacherActionMenuListenersInstalled = false;
     signIn.style.cssText = 'background:#e8eef6;color:#193451;border:0;border-radius:10px;padding:12px 18px;font-weight:700';
     signIn.onclick = () => { clearSession(); window.location.replace('/portal-login.html'); };
     actions.append(retry,signIn);card.append(heading,details,actions);overlay.append(card);document.body.append(overlay);
+    document.dispatchEvent(new Event('attendigo:portal-ready'));
   }
 
   async function init() {
@@ -4006,6 +4007,7 @@ let teacherActionMenuListenersInstalled = false;
       }
       $('refreshButton').hidden = true;
       setView('platform');
+      document.dispatchEvent(new Event('attendigo:portal-ready'));
       try { await loadPlatformData(); }
       catch (error) { $('platformSchoolRows').innerHTML = `<tr><td colspan="7" class="empty-cell">${esc(error.message)}</td></tr>`; }
     } else {
@@ -4032,6 +4034,8 @@ let teacherActionMenuListenersInstalled = false;
         });
         setView(user.role === 'SCHOOL_ADMIN' && new URLSearchParams(location.search).get('view') === 'parents' ? 'parents' : 'dashboard');
       }
+      // Show the correct role layout before optional, slower dashboard requests finish.
+      document.dispatchEvent(new Event('attendigo:portal-ready'));
       await loadSchoolBranding();
       await loadSchoolData();
       await loadCloudSyncStatus();

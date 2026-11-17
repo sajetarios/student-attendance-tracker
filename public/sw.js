@@ -1,4 +1,4 @@
-const CACHE = "attendigo-v116-photo-editor-network-first";
+const CACHE = "attendigo-v117-role-login-stability";
 
 const SHELL = [
   "/assets/attendigo-sidebar-logo.png",
@@ -16,7 +16,8 @@ const SHELL = [
   "/dashboard-polish.css?v=2",
   "/photo-editor.css?v=2",
   "/photo-editor.js?v=9",
-  "/session-guard.js?v=1",
+  "/session-guard.js?v=2",
+  "/school-header-responsive.js?v=2",
   "/student-portal-refinement.css?v=1",
   "/student-portal.js?v=2",
   "/parent-portal.js?v=1",
@@ -29,7 +30,7 @@ const SHELL = [
   "/portal.css?v=0.9.92",
   "/student-roster-toolbar.css?v=1",
   "/portal.css",
-  "/portal.js?v=0.9.93",
+  "/portal.js?v=0.9.105",
   "/offline-attendance.js?v=1",
   "/offline-sheet.html",
   "/offline-sheet.js?v=2",
@@ -45,7 +46,7 @@ const SHELL = [
   "/academic-admin.js?v=2",
   "/app-dialog.css?v=1",
   "/app-dialog.js?v=1",
-  "/sw-refresh.js?v=1",
+  "/sw-refresh.js?v=2",
   "/form-system.css?v=1",
   "/password-visibility.css",
   "/password-visibility.js",
