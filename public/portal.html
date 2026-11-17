@@ -7,7 +7,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="theme-color" content="#1c2d45">
   <title>Dashboard · Attendigo</title>
-  <link rel="stylesheet" href="/portal.css?v=0.9.112"><link rel="stylesheet" href="/parent-admin.css?v=7">
+  <link rel="stylesheet" href="/portal.css?v=0.9.113"><link rel="stylesheet" href="/parent-admin.css?v=7">
   <link rel="stylesheet" href="/schedule-mobile-layout.css?v=1">
   <link rel="stylesheet" href="/schedule-form-layout.css?v=6">
   <link rel="stylesheet" href="/manual-folio.css?v=11">
@@ -621,10 +621,10 @@ body.dark-mode .content-wrap > .school-heading.is-compact,body[data-theme="dark"
                 <section class="dh-command-panel">
                   <div class="dh-panel-heading"><span class="dh-eyebrow">QUICK ACCESS</span><h4>Department actions</h4><p>Common tasks, without unnecessary dashboard scrolling.</p></div>
                   <div class="dh-command-shortcuts">
-                    <button type="button" data-dh-go="schedules"><span aria-hidden="true">▦</span><strong>Schedules</strong></button>
-                    <button type="button" data-dh-go="teachers"><span aria-hidden="true">♙</span><strong>Teachers</strong></button>
-                    <button type="button" data-dh-go="sf2"><span aria-hidden="true">▤</span><strong>SF2 monitoring</strong></button>
-                    <button type="button" data-dh-go="planner"><span aria-hidden="true">◷</span><strong>Planner</strong></button>
+                    <button type="button" class="dh-shortcut dh-shortcut-schedules" data-dh-go="schedules"><span class="dh-shortcut-icon" data-ui-icon="calendar" aria-hidden="true"></span><span class="dh-shortcut-copy"><strong>Class schedules</strong><small>Timetables &amp; assignments</small></span><span class="dh-shortcut-arrow" aria-hidden="true">›</span></button>
+                    <button type="button" class="dh-shortcut dh-shortcut-teachers" data-dh-go="teachers"><span class="dh-shortcut-icon" data-ui-icon="users" aria-hidden="true"></span><span class="dh-shortcut-copy"><strong>Teachers &amp; staff</strong><small>Department team</small></span><span class="dh-shortcut-arrow" aria-hidden="true">›</span></button>
+                    <button type="button" class="dh-shortcut dh-shortcut-sf2" data-dh-go="sf2"><span class="dh-shortcut-icon" data-ui-icon="report" aria-hidden="true"></span><span class="dh-shortcut-copy"><strong>SF2 monitoring</strong><small>Attendance reports</small></span><span class="dh-shortcut-arrow" aria-hidden="true">›</span></button>
+                    <button type="button" class="dh-shortcut dh-shortcut-planner" data-dh-go="planner"><span class="dh-shortcut-icon" data-ui-icon="clock" aria-hidden="true"></span><span class="dh-shortcut-copy"><strong>My planner</strong><small>Tasks &amp; activities</small></span><span class="dh-shortcut-arrow" aria-hidden="true">›</span></button>
                   </div>
                 </section>
               </div>
