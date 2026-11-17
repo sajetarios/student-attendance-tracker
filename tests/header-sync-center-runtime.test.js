@@ -21,20 +21,30 @@ function harness(userRole) {
       return null;
     }
   };
+  const element = () => ({
+    textContent:'', hidden:false, disabled:false, dataset:{},children:[],
+    setAttribute(){},addEventListener(){},
+    replaceChildren(...items){this.children=items;},
+    append(...items){this.children.push(...items);}
+  });
   const dialog={
-    open:false,
-    setAttribute(){}, addEventListener(){},
-    querySelector(){return {addEventListener(){}};},
+    ...element(),open:false,
+    querySelector(){return element();},
     showModal(){this.open=true;},
     close(){this.open=false;}
   };
+  const ids=Object.fromEntries([
+    'ascNetwork','ascMetrics','ascQueueCount','ascLastConfirmed','ascSyncNow',
+    'ascFeedback','ascQueueList','ascCloudSection','ascCloudMetrics',
+    'ascCloudReview','ascCloudState'
+  ].map(id=>[id,element()]));
   const children=[];
   const document={
     readyState:'complete', body:{append(node){children.push(node);}},
     documentElement:{dataset:{}},
-    getElementById(id){return id==='connectionStatus'?trigger:null;},
+    getElementById(id){return id==='connectionStatus'?trigger:(ids[id]||null);},
     querySelector(){return null;},
-    createElement(tag){if(tag==='dialog')return dialog;throw Error('Unexpected injected control: '+tag);},
+    createElement(tag){return tag==='dialog'?dialog:element();},
     addEventListener(){}
   };
   const session=new Map([
@@ -52,7 +62,7 @@ function harness(userRole) {
   vm.runInNewContext(code,{
     window, document, navigator, sessionStorage:{getItem:key=>session.get(key)||null},
     URLSearchParams, Intl, Date, Promise, JSON, String, Number, Set, Map, Error,
-    fetch:async()=>{throw Error('External fetch must not happen while Sync Center is closed');}
+    fetch:async()=>({ok:true,json:async()=>({enabled:false,configured:false,pendingCount:0,needsReviewCount:0})})
   });
   return {window,document,navigator,trigger,label,badge,listeners,triggerEvents,dialog,children};
 }
@@ -74,7 +84,7 @@ test('School Admin sees existing cloud-not-configured status and opens one heade
   assert.equal(h.badge.textContent,'2');
   assert.equal(h.trigger.dataset.state,'review');
   assert.equal(h.badge.hidden,false);
-  h.triggerEvents.click();
+  await h.triggerEvents.click();
   assert.equal(h.dialog.open,true,'header opens the shared Sync Center');
 });
 
