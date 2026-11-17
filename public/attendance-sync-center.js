@@ -139,6 +139,7 @@
     window.addEventListener('online', refreshIfOpen);
     window.addEventListener('offline', refreshIfOpen);
     document.addEventListener('visibilitychange', () => { if (!document.hidden) refreshIfOpen(); });
+    updateHeader(); // Show the correct role-scoped label immediately, before the queue read completes.
     refresh(false);
   }
 
