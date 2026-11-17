@@ -32,7 +32,7 @@ const SHELL = [
   "/portal.js?v=0.9.93",
   "/offline-attendance.js?v=1",
   "/offline-sheet.html",
-  "/offline-sheet.js?v=1",
+  "/offline-sheet.js?v=2",
   "/manual-folio.css?v=8",
   "/manual-folio.js?v=10",
   "/student-portal-accounts.css?v=2",
