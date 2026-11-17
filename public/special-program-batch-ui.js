@@ -213,10 +213,10 @@
        method:'POST',body:JSON.stringify({decision,requestIds:ids,reviewNote:note})
      });
      const summary=result.reviewed+' requests '+result.status.toLowerCase()+'.'+(result.alreadySatisfied?' '+result.alreadySatisfied+' already correct (no duplicate assignment).':'');
-     await loadGroups();
+     await loadGroups().catch(error=>feedback('specialProgramReviewFeedback','Review saved, but the list could not refresh: '+error.message,true));
      document.dispatchEvent(new Event('attendigo:requests-changed'));
      feedback('specialProgramReviewFeedback',summary);
-     if(window.AppDialog?.alert)await window.AppDialog.alert(summary,{title:'Batch review completed',eyebrow:'SUCCESS',confirmText:'Done'});
+     if(window.AppDialog?.alert)await window.AppDialog.alert(summary,{title:'Batch review completed',eyebrow:'SUCCESS',confirmText:'Done'}).catch(()=>{});
    }catch(error){
      feedbackEl.textContent=error.message+' No decisions were applied to this selected group.';
      for(const control of group.querySelectorAll('[data-admin-batch-decision]'))control.disabled=false;
