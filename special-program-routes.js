@@ -1,4 +1,5 @@
 'use strict';
+const {registerSpecialProgramBatchRoutes}=require('./special-program-batch-routes');
 const UUID=/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const validId=id=>typeof id==='string'&&UUID.test(id);
 const clean=v=>typeof v==='string'?v.trim():'';
@@ -36,6 +37,7 @@ function registerSpecialProgramRoutes(app,pool,auth){
   if(action==='ASSIGN')await c.query("INSERT INTO student_special_programs(school_id,student_id,school_year_id,enrollment_id,program_type_id,is_primary,start_date,assigned_by_user_id) VALUES($1,$2,$3,$4,$5,TRUE,GREATEST($6::date,LEAST((NOW() AT TIME ZONE 'Asia/Manila')::date,$7::date)),$8)",[u.schoolId,e.student_id,e.school_year_id,e.enrollment_id,programTypeId,e.enrollment_date,e.end_date,u.userId]);
   await c.query("INSERT INTO audit_logs(school_id,actor_type,actor_user_id,action,entity_type,entity_id,details) VALUES($1,'SCHOOL',$2,$3,'student',$4,$5::jsonb)",[u.schoolId,u.userId,'SPECIAL_PROGRAM_'+action,e.student_id,JSON.stringify({enrollmentId:e.enrollment_id,programTypeId:action==='ASSIGN'?programTypeId:null,previous:previous.rows.map(p=>p.program_type_id)})]);
  }
+ registerSpecialProgramBatchRoutes(app,pool,auth,{getEnrollment,permitted,change,validId,clean,invalid,errorReply});
  app.get('/api/special-programs/catalog-access',authenticateSchoolClient,staff,async(req,res)=>{
   try{const r=await pool.query('SELECT program_type_id AS "programTypeId",program_code AS code,program_name AS name,description,active FROM special_program_types WHERE school_id=$1 ORDER BY program_code',[req.auth.schoolId]);res.json({programs:r.rows});}
   catch(e){res.status(500).json({error:'Could not load program catalog.'});}
@@ -56,7 +58,7 @@ function registerSpecialProgramRoutes(app,pool,auth){
  app.get('/api/special-programs/requests',authenticateSchoolClient,staff,async(req,res)=>{
   if(req.auth.role!=='SCHOOL_ADMIN'&&!mayRequest(req.auth))return res.status(403).json({error:'Only Class Advisers and Department Heads may request changes.'});
   try{const own=req.auth.role==='SCHOOL_ADMIN'?'':' AND r.requested_by_user_id=$2';const params=own?[req.auth.schoolId,req.auth.userId]:[req.auth.schoolId];
-   const sql="SELECT r.request_id AS \"requestId\",r.enrollment_id AS \"enrollmentId\",r.student_id AS \"studentId\",s.full_name AS \"studentName\",e.grade_level AS \"gradeLevel\",e.section,sy.school_year_label AS \"schoolYear\",r.action,r.reason,r.status,r.requested_program_type_id AS \"programTypeId\",p.program_code AS \"programCode\",p.program_name AS \"programName\",sender.display_name AS \"requestedBy\",r.created_at AS \"createdAt\",r.review_note AS \"reviewNote\",r.reviewed_at AS \"reviewedAt\" FROM special_program_change_requests r JOIN students s ON s.school_id=r.school_id AND s.student_id=r.student_id JOIN student_enrollments e ON e.school_id=r.school_id AND e.enrollment_id=r.enrollment_id JOIN school_years sy ON sy.school_id=r.school_id AND sy.school_year_id=r.school_year_id JOIN school_users sender ON sender.school_id=r.school_id AND sender.user_id=r.requested_by_user_id LEFT JOIN special_program_types p ON p.school_id=r.school_id AND p.program_type_id=r.requested_program_type_id WHERE r.school_id=$1"+own+" ORDER BY (r.status='PENDING') DESC,r.created_at DESC LIMIT 300";
+   const sql="SELECT r.request_id AS \"requestId\",r.enrollment_id AS \"enrollmentId\",r.student_id AS \"studentId\",s.full_name AS \"studentName\",e.grade_level AS \"gradeLevel\",e.section,sy.school_year_label AS \"schoolYear\",r.action,r.reason,r.status,r.batch_id AS \"batchId\",r.requested_program_type_id AS \"programTypeId\",p.program_code AS \"programCode\",p.program_name AS \"programName\",sender.display_name AS \"requestedBy\",r.created_at AS \"createdAt\",r.review_note AS \"reviewNote\",r.reviewed_at AS \"reviewedAt\" FROM special_program_change_requests r JOIN students s ON s.school_id=r.school_id AND s.student_id=r.student_id JOIN student_enrollments e ON e.school_id=r.school_id AND e.enrollment_id=r.enrollment_id JOIN school_years sy ON sy.school_id=r.school_id AND sy.school_year_id=r.school_year_id JOIN school_users sender ON sender.school_id=r.school_id AND sender.user_id=r.requested_by_user_id LEFT JOIN special_program_types p ON p.school_id=r.school_id AND p.program_type_id=r.requested_program_type_id WHERE r.school_id=$1"+own+" ORDER BY (r.status='PENDING') DESC,r.created_at DESC LIMIT 300";
    const r=await pool.query(sql,params);res.json({requests:r.rows});
   }catch(e){res.status(500).json({error:'Could not load special-program requests.'});}
  });
