@@ -173,8 +173,8 @@ function registerStudentPortalAccountRoutes(app,pool,{authenticateSchoolClient,r
   const studentId=String(req.body?.studentId||'').trim();
   const reason=String(req.body?.reason||'').trim();
   const requestType=String(req.body?.requestType||'CREATE').toUpperCase();
-  if(!studentId || studentId.length>80 || !['CREATE','RESET','ACTIVATE'].includes(requestType) || reason.length<8 || reason.length>500)
-   return res.status(400).json({error:'Choose a learner, request type, and a reason of 8 to 500 characters.'});
+  if(!studentId || studentId.length>80 || !['CREATE','RESET','ACTIVATE'].includes(requestType) || reason.length>500 || (requestType==='ACTIVATE' && reason.length<8))
+   return res.status(400).json({error:'Choose an eligible learner and request type. A reason (8–500 characters) is required only for reactivation.'});
   try{
    const result=await transaction(pool,async db=>{
     const students=await findStudents(db,req.auth,studentId);
