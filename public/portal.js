@@ -4726,6 +4726,7 @@ let teacherActionMenuListenersInstalled = false;
         sections.map(section => `<option value="${esc(section)}">${esc(section)}</option>`).join('');
       if (preferredSection && sections.includes(preferredSection)) select.value = preferredSection;
       select.disabled = sections.length === 0;
+      updateSectionManagementActions();
       hint.textContent = sections.length
         ? `${sections.length} available section${sections.length === 1 ? '' : 's'} for ${gradeLevel}.`
         : `No active sections found for ${gradeLevel}. Ask the school administrator to configure a class schedule for this grade.`;
@@ -5001,6 +5002,7 @@ let teacherActionMenuListenersInstalled = false;
       select.innerHTML = '<option value="">Could not load sections</option>';
       select.disabled = true;
       if (hint) hint.textContent = error.message;
+      updateSectionManagementActions();
     }
   }
 
@@ -5027,6 +5029,37 @@ let teacherActionMenuListenersInstalled = false;
       finally { addSectionButton.disabled = false; }
     });
   }
+
+  function updateSectionManagementActions() {
+    const controls = $('manageScheduleSectionActions');
+    if (!controls) return;
+    controls.hidden = user?.role !== 'SCHOOL_ADMIN' || !$('periodSection')?.value;
+    controls.style.display = controls.hidden ? 'none' : 'flex';
+  }
+  $('periodSection')?.addEventListener('change', updateSectionManagementActions);
+  $('renameScheduleSection')?.addEventListener('click', async () => {
+    const gradeLevel = $('periodGrade')?.value;
+    const section = $('periodSection')?.value;
+    if (!gradeLevel || !section) return;
+    const newName = await AppDialog.prompt('Rename ' + gradeLevel + ' – ' + section + '. Sections with linked students or schedules cannot be renamed here.', section, {title:'Rename section',label:'New section name',confirmText:'Rename'});
+    if (newName === null || newName === undefined || !newName.trim() || newName.trim() === section) return;
+    try {
+      await api('/api/sections',{method:'PATCH',body:JSON.stringify({gradeLevel,section,newName:newName.trim()})});
+      await loadScheduleSections(gradeLevel,newName.trim());
+      showToast('Section renamed successfully.');
+    } catch(error) { showToast(error.message,true); }
+  });
+  $('archiveScheduleSection')?.addEventListener('click', async () => {
+    const gradeLevel = $('periodGrade')?.value;
+    const section = $('periodSection')?.value;
+    if (!gradeLevel || !section) return;
+    if (!await AppDialog.confirm('Remove ' + gradeLevel + ' – ' + section + ' from available sections? This is only allowed when no learners or schedules are linked. Historical records will not be deleted.',{title:'Remove section',confirmText:'Remove section',variant:'danger'})) return;
+    try {
+      await api('/api/sections',{method:'DELETE',body:JSON.stringify({gradeLevel,section})});
+      await loadScheduleSections(gradeLevel);
+      showToast('Section removed from active choices.');
+    } catch(error) { showToast(error.message,true); }
+  });
 
   $('addScheduleSubject')?.addEventListener('click', async () => {
     const teacher = selectedScheduleTeacher();
