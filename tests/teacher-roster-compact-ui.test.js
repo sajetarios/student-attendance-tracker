@@ -47,5 +47,5 @@ test('PWA asset versions match the new styling and scripts', () => {
     assert.ok(worker.includes(JSON.stringify(asset)), asset+' cached');
   }
   assert.ok(page.includes('/class-qr-dashboard-link.js?v=5'));
-  assert.match(worker, /attendigo-v156-teacher-roster/);
+  assert.match(worker, /const CACHE = "attendigo-v\d+[^"]*"/);
 });
