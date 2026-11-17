@@ -1,4 +1,4 @@
-const CACHE = "attendigo-v141-attendance-sync-center";
+const CACHE = "attendigo-v142-sync-action-clearance";
 
 const SHELL = [
   "/assets/attendigo-sidebar-logo.png",
@@ -40,7 +40,7 @@ const SHELL = [
   "/offline-sheet.html",
   "/offline-sheet.js?v=4",
   "/manual-folio.css?v=11",
-  "/attendance-sync-center.css?v=1",
+  "/attendance-sync-center.css?v=2",
   "/attendance-sync-center.js?v=1",
   "/manual-folio.js?v=14",
   "/student-portal-accounts.css?v=3",
