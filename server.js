@@ -699,7 +699,7 @@ app.post('/api/class-adviser-assignments', authenticateSchoolClient, requireScho
       if (String(adviser.rows[0].department_id) !== String(req.auth.departmentId)) return res.status(403).json({ error: 'You can assign only teachers in your own department.' });
       // Advisory sections need not have a regular subject-period schedule.
       // Permit a section when it has active students in the current school-year enrollment.
-      const section = await pool.query(
+      const eligibleSectionResult = await pool.query(
         `SELECT 1
          FROM students s
          LEFT JOIN LATERAL (
@@ -721,17 +721,34 @@ app.post('/api/class-adviser-assignments', authenticateSchoolClient, requireScho
          LIMIT 1`,
         [req.auth.schoolId, gradeLevel.trim(), section.trim()]
       );
-      if (!section.rowCount) return res.status(403).json({ error: 'Choose a registered school section or a section with active learner records. Ask School Admin to register a missing section.' });
+      if (!eligibleSectionResult.rowCount) return res.status(403).json({ error: 'Choose a registered school section or a section with active learner records. Ask School Admin to register a missing section.' });
+    }
+    const existingAdviser = await pool.query(
+      'SELECT ca.assignment_id AS "assignmentId",ca.adviser_user_id AS "adviserUserId",su.display_name AS "adviserName" '+
+      'FROM class_adviser_assignments ca JOIN school_users su ON su.school_id=ca.school_id AND su.user_id=ca.adviser_user_id '+
+      'WHERE ca.school_id=$1 AND LOWER(BTRIM(ca.grade_level))=LOWER(BTRIM($2)) '+
+      'AND UPPER(BTRIM(ca.section))=UPPER(BTRIM($3)) LIMIT 1',
+      [req.auth.schoolId,gradeLevel.trim(),section.trim()]
+    );
+    if (existingAdviser.rowCount) {
+      const current=existingAdviser.rows[0];
+      return res.status(409).json({
+        error: String(current.adviserUserId)===String(adviserUserId)
+          ? 'This section is already assigned to the selected Class Adviser.'
+          : 'This section already has a Class Adviser. Review the existing assignment before making any changes.'
+      });
     }
     const result = await pool.query(
       `INSERT INTO class_adviser_assignments(school_id, adviser_user_id, grade_level, section, assigned_by)
        VALUES($1,$2,$3,$4,$5)
-       ON CONFLICT(school_id,grade_level,section) DO UPDATE
-       SET adviser_user_id=EXCLUDED.adviser_user_id, assigned_by=EXCLUDED.assigned_by, assigned_at=NOW()
+       ON CONFLICT(school_id,grade_level,section) DO NOTHING
        RETURNING assignment_id AS "assignmentId", adviser_user_id AS "adviserUserId",
                  grade_level AS "gradeLevel", section`,
       [req.auth.schoolId, adviserUserId, gradeLevel.trim(), section.trim(), req.auth.userId]
     );
+    if (!result.rowCount) {
+      return res.status(409).json({ error: 'This section was assigned a Class Adviser by another action. Reload the assignments before saving.' });
+    }
     await pool.query(
       `INSERT INTO audit_logs(school_id, actor_type, actor_user_id, action, entity_type, entity_id, details)
        VALUES($1,'SCHOOL',$2,'SCHOOL_ADMIN_ASSIGN_CLASS_ADVISER','class_adviser_assignment',$3,$4::jsonb)`,
@@ -740,9 +757,10 @@ app.post('/api/class-adviser-assignments', authenticateSchoolClient, requireScho
     );
     return res.status(201).json({ assignment: result.rows[0] });
   } catch (err) {
+    if (err.code === '23505') return res.status(409).json({ error: 'This section already has a Class Adviser assignment. Reload and review it before saving.' });
     if (err.code === '23514') return res.status(400).json({ error: err.message });
     console.error('Class adviser assignment failed:', err.message);
-    return res.status(500).json({ error: 'Could not assign the Class Adviser.' });
+    return res.status(500).json({ error: 'Could not assign the Class Adviser. Please try again or contact the School Admin.' });
   }
 });
 
