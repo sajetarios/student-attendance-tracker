@@ -1313,6 +1313,15 @@ body.dark-mode .content-wrap > .school-heading.is-compact,body[data-theme="dark"
           <section id="teachersView" class="view-panel" hidden>
             <section id="accountDirectoryHub" class="surface-card section-card user-directory-hub" aria-label="All user accounts" hidden>
               <div class="section-toolbar"><div><h3>All User Accounts</h3><p>Choose an account type to find, manage, or review login access without mixing student and staff records.</p></div></div>
+              <div class="user-directory-search" role="search" aria-label="Find school user accounts">
+                <label for="allAccountsSearch">Search by name, username or student ID<input id="allAccountsSearch" type="search" autocomplete="off" placeholder="Search school accounts"></label>
+                <label for="allAccountsType">Account type<select id="allAccountsType"><option value="all">All types</option><option value="staff">Teachers &amp; Staff</option><option value="student">Students</option><option value="parent">Parents &amp; Guardians</option></select></label>
+                <label for="allAccountsStatus">Login status<select id="allAccountsStatus"><option value="all">All statuses</option><option value="active">Active</option><option value="inactive">Inactive</option><option value="missing">Not issued</option></select></label>
+                <button type="button" id="allAccountsRefresh" class="outline-button">Refresh directory</button>
+              </div>
+              <p id="allAccountsStatusText" class="field-hint" role="status" aria-live="polite">Open this page to load authorized school user accounts.</p>
+              <div id="allAccountsResults" class="user-directory-results" aria-live="polite"></div>
+              <h4>Manage an account category</h4>
               <div class="user-directory-options">
                 <button type="button" data-directory-target="accounts"><strong>Teachers &amp; Staff</strong><span>Find school employees and manage their accounts.</span></button>
                 <button type="button" data-directory-target="studentAccounts"><strong>Student Accounts</strong><span>Manage learner portal logins and recovery requests.</span></button>
@@ -1566,6 +1575,7 @@ body.dark-mode .content-wrap > .school-heading.is-compact,body[data-theme="dark"
   <script src="/planner.js?v=4" defer></script>
   <script src="/manual-folio.js?v=14" defer></script>
   <script src="/student-portal-accounts.js?v=7" defer></script>
+  <script src="/account-directory.js?v=1" defer></script>
   <script src="/guardian-ui.js?v=5" defer></script>
   <script src="/admin-request-notifications.js?v=3" defer></script>
   <script src="/academic-admin.js?v=5" defer></script>
