@@ -3,6 +3,7 @@ const test = require('node:test');
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const path = require('node:path');
+const vm = require('node:vm');
 const read = p => fs.readFileSync(path.join(__dirname, '..', p), 'utf8');
 
 test('device offline queue isolates by school and user and keeps event UUID', () => {
@@ -22,12 +23,43 @@ test('manual folio stores drafts by school, teacher, class and date', () => {
 });
 
 test('service worker caches offline attendance assets but not private API/dashboard pages', () => {
-  const js = read('public/sw.js');
-  assert.match(js, /offline-attendance\.js\?v=1/);
-  assert.match(js, /manual-folio\.js\?v=9/);
-  assert.match(js, /url\.pathname\.startsWith\("\/api\/"\)/);
-  assert.match(js, /"\/portal\.html"/);
-  assert.match(js, /fetch\(request, \{ cache: "no-store" \}\)/);
+  let handleFetch;
+  const fetched = [];
+  const origin = 'https://school.example';
+  const worker = read('public/sw.js');
+  vm.runInNewContext(worker, {
+    URL,
+    self: {
+      location: { origin },
+      addEventListener(type, listener) {
+        if (type === 'fetch') handleFetch = listener;
+      },
+    },
+    fetch(request, options) {
+      fetched.push([request.url, options.cache]);
+      return Promise.resolve();
+    },
+  });
+
+  function request(path, authorized = false) {
+    let handled = false;
+    handleFetch({
+      request: { method: 'GET', url: origin + path, headers: { has: () => authorized } },
+      respondWith() { handled = true; },
+    });
+    return handled;
+  }
+
+  assert.equal(request('/api/students'), false);
+  assert.equal(request('/private', true), false);
+  assert.equal(request('/portal.html'), true);
+  assert.deepEqual(fetched, [[origin + '/portal.html', 'no-store']]);
+  const shell = worker.split('const SHELL = [')[1]?.split('];')[0] || '';
+  assert.doesNotMatch(shell, /"\/portal\.html"/);
+  for (const asset of ['offline-attendance.js', 'manual-folio.js']) {
+    const url = read('public/portal.html').split('"').find(value => value.startsWith(`/${asset}?v=`));
+    assert.ok(url && shell.includes(JSON.stringify(url)), `Missing cached dashboard asset ${asset}`);
+  }
 });
 
 test('standalone offline sheet encrypts student data and checks account before upload', () => {
@@ -39,5 +71,6 @@ test('standalone offline sheet encrypts student data and checks account before u
   assert.match(js, /Server verification failed/);
   const sw = read('public/sw.js');
   assert.match(sw, /offline-sheet\.html/);
-  assert.match(sw, /offline-sheet\.js\?v=1/);
+  const script = read('public/offline-sheet.html').match(/src="(\/offline-sheet\.js\?v=[^"]+)"/)?.[1];
+  assert.ok(script && sw.includes(JSON.stringify(script)));
 });
