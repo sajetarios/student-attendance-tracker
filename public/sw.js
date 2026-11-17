@@ -1,4 +1,4 @@
-const CACHE = "attendigo-v164-sidebar-header-legibility";
+const CACHE = "attendigo-v165-teacher-roster-type";
 
 const SHELL = [
   "/typography.css?v=1",
@@ -44,7 +44,7 @@ const SHELL = [
   "/portal.css?v=0.9.113",
   "/student-roster-toolbar.css?v=2",
   "/learner-roster-view.css?v=1",
-  "/teacher-learner-roster.css?v=3",
+  "/teacher-learner-roster.css?v=4",
   "/learner-roster-view.js?v=1",
   "/class-qr-dashboard-link.js?v=6",
   "/teacher-roster-popover.js?v=2",
