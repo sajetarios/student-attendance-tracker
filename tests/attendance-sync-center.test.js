@@ -109,9 +109,9 @@ test('single unified Sync Center is triggered from the existing responsive heade
   assert.doesNotMatch(ui, /id = 'ascDashboardCard'/);
   assert.match(qr, /const linkId = 'classQrTeacherShortcut'/);
   assert.match(qr, /position:fixed;right:18px;bottom:18px/);
-  assert.match(offlineSheet, /attendance-sync-center\.css\?v=3/);
-  assert.match(offlineSheet, /attendance-sync-center\.js\?v=2/);
+  assert.match(offlineSheet, /attendance-sync-center\.css\?v=4/);
+  assert.match(offlineSheet, /attendance-sync-center\.js\?v=3/);
   assert.match(sw, /attendigo-v148-admin-sync-header/);
-  assert.match(sw, /"\/attendance-sync-center\.css\?v=3"/);
-  assert.match(sw, /"\/attendance-sync-center\.js\?v=2"/);
+  assert.match(sw, /"\/attendance-sync-center\.css\?v=4"/);
+  assert.match(sw, /"\/attendance-sync-center\.js\?v=3"/);
 });
