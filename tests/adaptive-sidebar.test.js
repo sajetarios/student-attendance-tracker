@@ -34,7 +34,7 @@ function harness(){
     syncClick(){syncAction?.()}
   };
 }
-test('school-selected sidebar colors provide accessible navigation and appropriate transparent wordmarks',()=>{
+test('school-selected sidebar colors preserve accessible navigation and the original transparent symbol',()=>{
  const h=harness();
  for(const mode of ['light','dark']){
   h.setTheme(mode);
@@ -45,9 +45,7 @@ test('school-selected sidebar colors provide accessible navigation and appropria
     assert.ok(ratio(bg,rgb(vars['--side-muted']))>=4.5-.04);
     assert.ok(ratio(bg,rgb(vars['--side-border']))>=3-.03);
     for(const state of ['selected','hover'])assert.ok(ratio(rgb(vars['--side-'+state]),rgb(vars['--side-'+state+'-ink']))>=4.5-1e-3);
-    const expected=lum(rgb(vars['--side-ink']))>.5
-      ?'/assets/attendigo-wordmark-on-dark.svg?v=1'
-      :'/assets/attendigo-wordmark-on-light.svg?v=1';
+    const expected='/assets/attendigo-symbol-transparent.svg?v=1';
     assert.equal(h.logo.src,expected);
   }
  }
@@ -79,7 +77,7 @@ test('original approved Attendigo artwork is used in both transparent light/dark
 test('sidebar is card-free, compact, and keeps other portals branded with their existing surfaces',()=>{
  assert.match(html,/id="sidebarSchoolMark"/);
  assert.match(html,/id="sidebarSchoolName"/);
- assert.match(html,/attendigo-wordmark-on-dark\.svg\?v=1/);
+ assert.match(html,/attendigo-symbol-transparent\.svg\?v=1/);
  assert.match(css,/attendigo-brand \{/);
  assert.match(css,/background:transparent!important/);
  assert.match(css,/side-primary-height:44px/);
@@ -98,10 +96,10 @@ test('connection footer opens the existing Attendance Sync Center and never clai
  assert.match(source,/getElementById\('connectionStatus'\)\?\.click\(\)/);
 });
 test('the service worker caches the deployed variants and correct versioned sidebar assets',()=>{
- const assets=['/attendigo-sidebar-adaptive.css?v=11','/attendigo-sidebar-adaptive.js?v=5',
+ const assets=['/attendigo-sidebar-adaptive.css?v=12','/attendigo-sidebar-adaptive.js?v=6',
  '/attendigo-brand-refresh.css?v=2','/assets/attendigo-wordmark-on-light.svg?v=1',
  '/assets/attendigo-wordmark-on-dark.svg?v=1','/assets/attendigo-symbol-transparent.svg?v=1'];
  for(const asset of assets)assert.ok(worker.includes(JSON.stringify(asset)),asset);
- for(const asset of [assets[0],assets[1],assets[2],assets[4]])assert.ok(html.includes(asset),asset);
- assert.match(worker,/attendigo-v164-sidebar-header-legibility/);
+ for(const asset of [assets[0],assets[1],assets[2],assets[5]])assert.ok(html.includes(asset),asset);
+ assert.match(worker,/attendigo-v165-sidebar-brand-refinement/);
 });

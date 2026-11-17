@@ -6,10 +6,11 @@ const read = p => fs.readFileSync(p, 'utf8');
 const html = read('public/portal.html');
 const css = read('public/attendigo-sidebar-adaptive.css');
 const sw = read('public/sw.js');
-test('product logo crops opaque image canvas and preserves readable Inter brand text', () => {
+test('product logo uses its original transparent multicolor symbol and legible Inter text', () => {
   assert.match(html, /class="sidebar-product-wordmark" aria-hidden="true">Attendigo<\/span>/);
-  assert.match(css, /img\.attendigo-logo\s*\{[^}]*width:48px!important;[^}]*height:42px!important;[^}]*object-fit:cover!important;[^}]*object-position:left center!important/s);
-  assert.match(css, /\.sidebar-product-wordmark\s*\{[^}]*font-family:var\(--font-ui,Inter,system-ui,sans-serif\)!important;[^}]*font-weight:650!important/s);
+  assert.match(css, /img\.attendigo-logo\s*\{[^}]*width:46px!important;[^}]*height:46px!important;[^}]*object-fit:contain!important;[^}]*object-position:center!important/s);
+  assert.match(html, /src="\/assets\/attendigo-symbol-transparent\.svg\?v=1"/);
+  assert.match(css, /\.sidebar-product-wordmark\s*\{[^}]*font-family:var\(--font-ui,Inter,system-ui,sans-serif\)!important;[^}]*font-weight:620!important/s);
   assert.match(css, /#sidebar\.sidebar\[data-logo-backed="true"\]/);
 });
 test('school identity cannot be compressed into workspace label, including long 3-line names', () => {
@@ -30,11 +31,11 @@ test('labels remain readable with restrained hierarchy, while keyboard focus sta
 test('collapsed and mobile navigation keep brand compact and do not show oversized image', () => {
   assert.match(css, /sidebar-collapsed #sidebar\.sidebar > \.attendigo-brand \.sidebar-product-wordmark/);
   assert.match(css, /max-width:215px!important/);
-  assert.match(css, /width:43px!important;[^}]*height:38px!important/s);
+  assert.match(css, /width:42px!important;[^}]*height:42px!important/s);
 });
 test('service worker uses fresh version and precaches matching CSS', () => {
-  assert.match(html, /attendigo-sidebar-adaptive\.css\?v=11/);
-  assert.match(sw, /attendigo-v164-sidebar-header-legibility/);
-  assert.match(sw, /"\/attendigo-sidebar-adaptive\.css\?v=11"/);
+  assert.match(html, /attendigo-sidebar-adaptive\.css\?v=12/);
+  assert.match(sw, /attendigo-v165-sidebar-brand-refinement/);
+  assert.match(sw, /"\/attendigo-sidebar-adaptive\.css\?v=12"/);
   assert.match(html, /\/typography\.css\?v=1/);
 });

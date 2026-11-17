@@ -7,8 +7,8 @@
   if (!sidebar) return;
   const root = document.documentElement;
   const brand = sidebar.querySelector('.attendigo-brand');
-  const darkAsset = '/assets/attendigo-wordmark-on-dark.svg?v=1';
-  const lightAsset = '/assets/attendigo-wordmark-on-light.svg?v=1';
+  // Preserve the original multicolor approved mark on any school sidebar color.
+  const symbolAsset = '/assets/attendigo-symbol-transparent.svg?v=1';
   const logo = brand?.querySelector('img.attendigo-logo') || brand?.querySelector('img');
   if (brand) {
     // Prevent duplicate product logos from legacy overlays; never query school emblem.
@@ -19,8 +19,8 @@
   if (logo) {
     logo.className = 'attendigo-logo';
     logo.alt = 'Attendigo — Every learner counts.';
-    logo.width = 1800;
-    logo.height = 430;
+    logo.width = 48;
+    logo.height = 48;
   }
   const clamp = n => Math.min(255, Math.max(0, Math.round(Number(n) || 0)));
   const color = input => {
@@ -110,7 +110,7 @@
     })) sidebar.style.setProperty(name,value);
     sidebar.dataset.logoContrast=useWhite?'light':'dark';
     sidebar.dataset.logoBacked=backed?'true':'false';
-    const asset=useWhite?darkAsset:lightAsset;
+    const asset=symbolAsset;
     if(logo && logo.getAttribute?.('src')!==asset && logo.src!==asset)logo.src=asset;
   }
   const observer=new MutationObserver(()=>requestAnimationFrame(apply));

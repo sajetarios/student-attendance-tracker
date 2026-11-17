@@ -1,4 +1,4 @@
-const CACHE = "attendigo-v164-sidebar-header-legibility";
+const CACHE = "attendigo-v165-sidebar-brand-refinement";
 
 const SHELL = [
   "/typography.css?v=1",
@@ -13,9 +13,9 @@ const SHELL = [
   "/assets/attendigo-wordmark-on-dark.svg?v=1",
   "/assets/attendigo-wordmark-on-light.svg?v=1",
   "/assets/attendigo-symbol-transparent.svg?v=1",
-  "/attendigo-sidebar-adaptive.css?v=11",
+  "/attendigo-sidebar-adaptive.css?v=12",
   "/user-nav-reorg.css?v=1",
-  "/attendigo-sidebar-adaptive.js?v=5",
+  "/attendigo-sidebar-adaptive.js?v=6",
   "/assets/attendigo-logo.png?v=2",
   "/assets/attendigo-icon.png?v=2",
   "/attendigo-brand.css?v=2",
