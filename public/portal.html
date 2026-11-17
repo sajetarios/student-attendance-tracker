@@ -327,7 +327,38 @@
 }
 </style>
 <style id="parent-dashboard-integration">#parentsView{min-width:0}#parentsView .parent-embedded-shell{width:100%;min-width:0;overflow:hidden;border-radius:18px;border:1px solid #dce7f3;background:#f5f8fe}#parentsFrame{display:block;width:100%;height:850px;min-height:550px;border:0;background:transparent}body.dark-mode #parentsView .parent-embedded-shell,body[data-theme="dark"] #parentsView .parent-embedded-shell{background:#18263b;border-color:#425675}@media(max-width:650px){#parentsView .parent-embedded-shell{border:0;border-radius:0}#parentsFrame{min-height:650px}}</style>
-<style>#parentsView .parent-native{width:100%;max-width:100%;padding:clamp(10px,2vw,24px);box-sizing:border-box}#parentsView .parent-native .parent-head{min-width:0}#parentsView .parent-native .parent-family-art{pointer-events:none}@media(max-width:650px){#parentsView .parent-native{padding:10px 0}}</style></head>
+<style>#parentsView .parent-native{width:100%;max-width:100%;padding:clamp(10px,2vw,24px);box-sizing:border-box}#parentsView .parent-native .parent-head{min-width:0}#parentsView .parent-native .parent-family-art{pointer-events:none}@media(max-width:650px){#parentsView .parent-native{padding:10px 0}}</style><style id="attendigo-responsive-school-heading-v2">
+/* Responsive school identity: one page scrollbar, no nested scrolling. */
+.content-wrap > .school-heading{box-sizing:border-box;min-width:0;max-width:100%;display:grid!important;grid-template-columns:auto minmax(0,1fr) auto;align-items:center;column-gap:clamp(12px,2vw,24px);row-gap:12px;overflow:visible;position:sticky;top:66px;z-index:9;transition:padding .2s ease,box-shadow .2s ease}
+.content-wrap > .school-heading .school-title-block{min-width:0;max-width:100%}
+.content-wrap > .school-heading #schoolTitle{overflow-wrap:break-word;word-break:normal;hyphens:auto;max-width:100%;line-height:1.2}
+.content-wrap > .school-heading .heading-actions{display:flex!important;align-items:center;justify-content:flex-end;flex-wrap:wrap;gap:10px;min-width:0;margin-left:0}
+.content-wrap > .school-heading .heading-actions button{min-height:42px}
+.content-wrap > .school-heading.is-compact{padding:10px 18px!important;box-shadow:0 8px 24px rgba(18,44,76,.12)}
+.content-wrap > .school-heading.is-compact #schoolEmblem.school-emblem{width:54px!important;height:54px!important;min-width:54px!important;min-height:54px!important;max-width:54px!important;max-height:54px!important;flex:0 0 54px!important}
+.content-wrap > .school-heading.is-compact #schoolTitle{font-size:clamp(16px,1.6vw,21px)!important;line-height:1.18!important}
+.content-wrap > .school-heading.is-compact #dateLabel{display:none}
+.content-wrap > .school-heading.is-compact #schoolCodeLabel{font-size:10px}
+@media(max-width:1050px){
+ .content-wrap > .school-heading{grid-template-columns:auto minmax(0,1fr);padding:16px!important}
+ .content-wrap > .school-heading .heading-actions{grid-column:2;justify-content:flex-start}
+ .content-wrap > .school-heading #schoolTitle{font-size:clamp(18px,2.7vw,26px)!important}
+}
+@media(max-width:600px){
+ .content-wrap > .school-heading{top:60px;grid-template-columns:64px minmax(0,1fr);column-gap:12px!important;padding:12px!important;row-gap:8px!important}
+ .content-wrap > .school-heading #schoolEmblem.school-emblem{width:64px!important;height:64px!important;min-width:64px!important;min-height:64px!important;max-width:64px!important;max-height:64px!important}
+ .content-wrap > .school-heading #schoolTitle{font-size:clamp(16px,4.4vw,21px)!important;line-height:1.2!important}
+ .content-wrap > .school-heading .heading-actions{grid-column:1/-1;justify-content:space-between;width:100%;gap:8px}
+ .content-wrap > .school-heading .heading-actions button{min-height:40px}
+ .content-wrap > .school-heading.is-compact{grid-template-columns:42px minmax(0,1fr);padding:8px 10px!important}
+ .content-wrap > .school-heading.is-compact #schoolEmblem.school-emblem{width:42px!important;height:42px!important;min-width:42px!important;min-height:42px!important;max-width:42px!important;max-height:42px!important}
+ .content-wrap > .school-heading.is-compact #schoolTitle{font-size:15px!important;line-height:1.15!important}
+ .content-wrap > .school-heading.is-compact .heading-actions{display:none!important}
+ .content-wrap > .school-heading.is-compact #schoolCodeLabel{display:none}
+}
+@media(prefers-reduced-motion:reduce){.content-wrap > .school-heading{transition:none!important}}
+body.dark-mode .content-wrap > .school-heading.is-compact,body[data-theme="dark"] .content-wrap > .school-heading.is-compact{box-shadow:0 8px 24px rgba(0,0,0,.32)}
+</style></head>
 <body class="portal-page">
   <div class="portal-layout">
     <aside class="sidebar" id="sidebar">
@@ -1409,5 +1440,6 @@
   <script src="/academic-admin.js?v=5" defer></script>
   <script src="/smart-mobile-header.js?v=2" defer></script>
 <script src="/attendigo-sidebar-adaptive.js?v=3" defer></script>
+<script defer src="/school-header-responsive.js?v=1"></script>
 </body>
 </html>
