@@ -6,7 +6,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="theme-color" content="#1c2d45">
   <title>Dashboard · Attendigo</title>
-  <link rel="stylesheet" href="/portal.css?v=0.9.91">
+  <link rel="stylesheet" href="/portal.css?v=0.9.92">
   <link rel="stylesheet" href="/manual-folio.css?v=11">
   <link rel="stylesheet" href="/admin-request-notifications.css?v=1">
   <link rel="stylesheet" href="/student-portal-accounts.css?v=2">
@@ -1198,7 +1198,7 @@
                 <div><h3 id="teacherMonitorTitle">Teacher accounts</h3><p id="teacherMonitorDescription">Manage teachers and assign them to this school's class schedules.</p></div>
                 <div class="toolbar-actions"><button class="outline-button" type="button" id="exportTeachersButton">↓ Export teachers</button><button class="primary-button" id="showTeacherForm">＋ Create account</button></div>
               </div>
-              <div id="staffBulkDepartmentToolbar" class="student-bulk-actions" hidden><label><input type="checkbox" id="selectAllStaff"> Select all teachers and Department Heads</label><span id="selectedStaffCount">0 selected</span><label for="bulkStaffDepartment">Assign department</label><select id="bulkStaffDepartment"><option value="">Choose department</option></select><button type="button" class="primary-button" id="applyBulkStaffDepartment" disabled>Assign selected staff</button><span id="staffBulkDepartmentFeedback" class="inline-feedback" role="status"></span></div>
+              <div id="staffBulkDepartmentToolbar" class="student-bulk-actions" hidden><div class="staff-bulk-selection"><label class="staff-bulk-select-label" for="selectAllStaff"><input type="checkbox" id="selectAllStaff"><span class="staff-bulk-select-copy">Select all staff<small>Teachers and Department Heads</small></span></label><span id="selectedStaffCount" class="staff-bulk-selected-count" role="status" aria-live="polite">0 selected</span></div><label for="bulkStaffDepartment">Assign department</label><select id="bulkStaffDepartment"><option value="">Choose department</option></select><button type="button" class="primary-button" id="applyBulkStaffDepartment" disabled>Assign selected staff</button><span id="staffBulkDepartmentFeedback" class="inline-feedback" role="status"></span></div>
               <form id="teacherForm" class="inline-form" hidden>
                 <div class="form-grid">
                   <div class="field-group"><label for="newAccountRole">Account role *</label><select id="newAccountRole" required><option value="TEACHER">Teacher</option><option value="DEPARTMENT_HEAD">Department Head</option><option value="GATE_KEEPER">Gate Keeper</option></select></div>
