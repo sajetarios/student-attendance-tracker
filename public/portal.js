@@ -2859,7 +2859,7 @@ let teacherActionMenuListenersInstalled = false;
     if (template && !changedTemplate && Array.from(blockSelect.options).some(option => option.value === prior)) blockSelect.value = prior;
     const custom = !template;
     const previousLocked = $('periodName').readOnly;
-    const changedTemplate = Boolean(selector.dataset.lastTemplate || '') !== Boolean(selector.value) || selector.dataset.lastTemplate !== selector.value;
+    const changedTemplate = (selector.dataset.lastTemplate || '') !== selector.value;
     selector.dataset.lastTemplate = selector.value;
     $('periodName').readOnly = !custom;
     $('periodName').placeholder = custom ? 'e.g. Morning activity or custom period' : 'Select a saved time block';
