@@ -183,6 +183,21 @@ function registerCloudSyncRoutes(app, pool, { authenticateSchoolClient, requireS
     }finally {client.release();}
   });
 
+  app.post('/api/cloud-sync/health-school',verifySchoolCloudSignature,async(req,res)=>{
+    try{
+      await pool.query("DELETE FROM cloud_sync_nonces WHERE received_at<NOW()-INTERVAL '1 day'");
+      await pool.query('INSERT INTO cloud_sync_nonces(nonce) VALUES($1)',[req.cloudSyncNonce]);
+      const school=await pool.query(
+        'SELECT 1 FROM schools WHERE lower(school_code)=lower($1) AND active=TRUE',
+        [req.body.schoolCode]);
+      if(!school.rowCount)return res.status(404).json({error:'Cloud school is not registered.'});
+      return res.json({ok:true,service:'attendigo-school-cloud-sync',timestamp:new Date().toISOString()});
+    }catch(error){
+      return res.status(error.code==='23505'?409:500).json({
+        error:error.code==='23505'?'Cloud request nonce was already used.':'Cloud school health check failed.'});
+    }
+  });
+
   app.get('/api/cloud-sync/health', verifyCloudSignature, async (req, res) => {
     try {
       await pool.query('DELETE FROM cloud_sync_nonces WHERE received_at<NOW()-INTERVAL \'1 day\'');
@@ -193,7 +208,7 @@ function registerCloudSyncRoutes(app, pool, { authenticateSchoolClient, requireS
     }
   });
 
-  app.post('/api/cloud-sync/receive', verifyCloudSignature, async (req, res) => {
+  app.post('/api/cloud-sync/receive', verifySchoolCloudSignature, async (req, res) => {
     const schoolCode = typeof req.body?.schoolCode === 'string' ? req.body.schoolCode.trim() : '';
     const events = req.body?.events;
     if (!schoolCode || !Array.isArray(events) || events.length < 1 || events.length > 100) {
@@ -298,20 +313,62 @@ function registerCloudSyncRoutes(app, pool, { authenticateSchoolClient, requireS
     try {
       const result = await pool.query(
         `SELECT c.cloud_base_url AS "cloudBaseUrl",c.enabled,c.last_success_at AS "lastSuccessAt",c.last_error AS "lastError",
-           (SELECT COUNT(*)::int FROM school_cloud_sync_outbox o WHERE o.school_id=c.school_id AND o.status IN ('PENDING','RETRY','PROCESSING')) AS "pendingCount"
+           ((SELECT COUNT(*)::int FROM school_cloud_sync_outbox o WHERE o.school_id=c.school_id AND o.status IN ('PENDING','RETRY','PROCESSING'))
+            + (SELECT COUNT(*)::int FROM school_cloud_sync_operations o WHERE o.school_id=c.school_id AND o.status IN ('PENDING','RETRY','PROCESSING'))) AS "pendingCount",
+           ((SELECT COUNT(*)::int FROM school_cloud_sync_outbox o WHERE o.school_id=c.school_id AND o.status='REVIEW')
+            + (SELECT COUNT(*)::int FROM school_cloud_sync_operations o WHERE o.school_id=c.school_id AND o.status='REVIEW')) AS "needsReviewCount"
          FROM school_cloud_sync_settings c WHERE c.school_id=$1`, [req.auth.schoolId]
       );
       const row = result.rows[0] || {};
       const configured = Boolean(row.cloudBaseUrl) && secretReady();
       const recent = row.lastSuccessAt && Date.now() - new Date(row.lastSuccessAt).getTime() < 5 * 60 * 1000;
       return res.json({ configured, enabled:Boolean(row.enabled), connectionStatus:recent?'CONNECTED':row.enabled?'WAITING':'NOT_CONNECTED',
-        pendingCount:row.pendingCount||0,lastSuccessAt:row.lastSuccessAt||null,lastError:row.lastError||null,
+        pendingCount:row.pendingCount||0,needsReviewCount:row.needsReviewCount||0,
+        lastSuccessAt:row.lastSuccessAt||null,lastError:row.lastError||null,
         message:!secretReady()?'Set CLOUD_SYNC_SHARED_SECRET on both servers (at least 32 characters) to enable secure forwarding.':
           !row.cloudBaseUrl?'Cloud destination is not configured.':row.enabled?'Attendance sync is enabled; pending records retry automatically.':'Cloud destination is saved. Enable forwarding to start automatic sync.' });
     } catch (err) {
       console.error('Cloud sync status failed:', err.message);
       return res.status(500).json({ error: 'Could not check cloud sync status.' });
     }
+  });
+
+  app.get('/api/cloud-sync/review',authenticateSchoolClient,requireSchoolAdmin,async(req,res)=>{
+    try{
+      const result=await pool.query(`
+        SELECT 'QR_SCAN' AS type,event_id::text AS "operationId",created_at AS "createdAt",
+          last_error AS reason FROM school_cloud_sync_outbox
+          WHERE school_id=$1 AND status='REVIEW'
+        UNION ALL
+        SELECT operation_type AS type,operation_id::text AS "operationId",
+          created_at AS "createdAt",last_error AS reason FROM school_cloud_sync_operations
+          WHERE school_id=$1 AND status='REVIEW'
+        ORDER BY "createdAt" ASC LIMIT 100`,[req.auth.schoolId]);
+      return res.json({records:result.rows});
+    }catch(error){console.error('Cloud review list:',error.message);
+      return res.status(500).json({error:'Cannot load cloud synchronization review records.'});}
+  });
+  app.post('/api/cloud-sync/retry',authenticateSchoolClient,requireSchoolAdmin,async(req,res)=>{
+    const {type,operationId}=req.body||{};
+    if(!['QR_SCAN','MANUAL_MARKS','REGISTER_SIGNOFF'].includes(type)||
+       !/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(String(operationId||'')))
+      return res.status(400).json({error:'Choose a valid cloud review record.'});
+    const table=type==='QR_SCAN'?'school_cloud_sync_outbox':'school_cloud_sync_operations';
+    const id=type==='QR_SCAN'?'event_id':'operation_id';
+    try{
+      const changed=await pool.query(`UPDATE ${table} SET status='PENDING',
+        next_attempt_at=NOW(),updated_at=NOW(),last_error=NULL
+        WHERE school_id=$1 AND ${id}=$2 AND status='REVIEW'
+        ${type==='QR_SCAN'?'':"AND operation_type=$3"} RETURNING 1`,
+        type==='QR_SCAN'?[req.auth.schoolId,operationId]:[req.auth.schoolId,operationId,type]);
+      if(!changed.rowCount)return res.status(404).json({error:'Review record not found or already retried.'});
+      await pool.query(`INSERT INTO audit_logs(school_id,actor_type,actor_user_id,action,
+        entity_type,entity_id,details) VALUES($1,'SCHOOL',$2,'RETRY_CLOUD_SYNC_OPERATION',
+          'cloud_sync_operation',$3,$4::jsonb)`,
+        [req.auth.schoolId,req.auth.userId,operationId,JSON.stringify({type})]);
+      return res.json({queued:true,operationId});
+    }catch(error){console.error('Cloud retry failed:',error.message);
+      return res.status(500).json({error:'Cannot requeue the reviewed cloud attendance operation.'});}
   });
 
   app.get('/api/cloud-sync/settings', authenticateSchoolClient, requireSchoolAdmin, async (req, res) => {
@@ -348,10 +405,18 @@ function registerCloudSyncRoutes(app, pool, { authenticateSchoolClient, requireS
   app.post('/api/cloud-sync/test', authenticateSchoolClient, requireSchoolAdmin, async (req,res)=>{
     const config=await pool.query('SELECT cloud_base_url AS url FROM school_cloud_sync_settings WHERE school_id=$1 AND enabled=TRUE',[req.auth.schoolId]);
     if(!config.rowCount||!secretReady())return res.status(400).json({error:'Configure a destination, shared secret, and enable cloud forwarding first.'});
-    try{const response=await fetch(`${config.rows[0].url.replace(/\/+$/,'')}/api/cloud-sync/health`,{headers:signedHeaders(''),signal:AbortSignal.timeout(10000)});
-      const body=await response.json().catch(()=>({}));if(!response.ok||!body.ok)return res.status(502).json({error:body.error||`Cloud server returned ${response.status}.`});
+    try{
+      const code=await pool.query('SELECT school_code FROM schools WHERE school_id=$1',[req.auth.schoolId]);
+      if(!code.rowCount)return res.status(404).json({error:'School is unavailable.'});
+      const payload=JSON.stringify({schoolCode:code.rows[0].school_code});
+      const response=await fetch(`${config.rows[0].url.replace(/\/+$/,'')}/api/cloud-sync/health-school`,{
+        method:'POST',headers:{'Content-Type':'application/json',...signedHeaders(payload)},
+        body:payload,signal:AbortSignal.timeout(10000)
+      });
+      const body=await response.json().catch(()=>({}));
+      if(!response.ok||!body.ok)return res.status(502).json({error:body.error||`Cloud server returned ${response.status}.`});
       await pool.query('UPDATE school_cloud_sync_settings SET last_success_at=NOW(),last_error=NULL WHERE school_id=$1',[req.auth.schoolId]);
-      return res.json({ok:true,message:'Cloud server authenticated and reachable.'});
+      return res.json({ok:true,message:'School-scoped cloud signature verified and destination reachable.'});
     }catch(err){return res.status(502).json({error:err.message||'Could not reach the cloud server.'});}
   });
 
