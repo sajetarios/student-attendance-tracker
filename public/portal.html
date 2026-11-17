@@ -1549,6 +1549,9 @@ body.dark-mode .content-wrap > .school-heading.is-compact,body[data-theme="dark"
           <article class="surface-card academic-admin-card" id="specialProgramReviewPanel">
             <div class="section-toolbar"><div><h3>Special-program requests &amp; approvals</h3><p>Review Department Head and Class Adviser requests before changing official enrollment records.</p></div><button type="button" id="specialProgramReviewRefresh" class="outline-button">Refresh requests</button></div>
             <p id="specialProgramReviewFeedback" role="status" class="inline-feedback"></p>
+            <h4 class="special-program-review-heading">Grouped batch requests</h4>
+            <div id="specialProgramBatchReviewList" aria-live="polite"><p class="field-hint">Open this page to review grouped requests.</p></div>
+            <h4 class="special-program-review-heading">Individual requests</h4>
             <div id="specialProgramReviewList" aria-live="polite"></div>
           </article>
           <p class="scope-note">These controls are available to School Administrators. Existing attendance records, parent accounts, QR tokens, and student master records are not rewritten by creating school years or enrollments.</p>
@@ -1643,6 +1646,7 @@ body.dark-mode .content-wrap > .school-heading.is-compact,body[data-theme="dark"
   <script src="/admin-request-notifications.js?v=4" defer></script>
   <script src="/academic-admin.js?v=5" defer></script>
   <script src="/special-program-ui.js?v=2" defer></script>
+  <script src="/special-program-batch-ui.js?v=1" defer></script>
   <script src="/smart-mobile-header.js?v=3" defer></script>
 <script src="/attendigo-sidebar-adaptive.js?v=3" defer></script>
 <script defer src="/school-header-responsive.js?v=2"></script>
