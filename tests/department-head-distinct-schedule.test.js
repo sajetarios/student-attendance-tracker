@@ -74,9 +74,10 @@ test('Department Head class form is visibly arranged class-first, including advi
 });
 test('Critical scheduling assets refresh over network and keep offline fallback',()=>{
  const sw=read('public/sw.js'),server=read('server.js');
- const list = sw.match(/if \(\[([^\]]+)\]\.includes\(url\.pathname\)\)/)?.[1] || '';
- for (const path of ['/portal.js','/schedule-form-layout.css','/schedule-workspace-ui.js'])
-   assert.ok(list.includes("'" + path + "'"), 'network-first offline fallback includes ' + path);
+ const networkFirstAssets=sw.match(/if \(\[([^\]]+)\]\.includes\(url\.pathname\)\)/)?.[1];
+ assert.ok(networkFirstAssets, 'Service worker must have a network-first asset list');
+ for(const asset of ['/portal.js','/schedule-form-layout.css','/schedule-workspace-ui.js','/teacher-assignment-modal.css'])
+   assert.ok(networkFirstAssets.includes("'"+asset+"'"), asset+' must refresh from network before offline fallback');
  assert.match(sw,/fetch\(request, \{ cache: 'no-store' \}\)/);
  assert.match(sw,/caches\.match\(request\)/);
  assert.match(server,/'\/schedule-form-layout\.css', '\/schedule-workspace-ui\.js'/);

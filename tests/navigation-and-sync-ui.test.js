@@ -18,7 +18,9 @@ test('sidebar groups expand and collapse using accessible expanded state', () =>
 
 test('cloud status distinguishes local server availability from cloud replication', () => {
   assert.ok(html.includes('id="connectionStatus"'));
-  assert.ok(html.includes('Checking cloud sync status…'));
+  assert.ok(html.includes('Checking synchronization…'));
+  assert.ok(html.includes('aria-controls="attendanceSyncDialog"'));
+  assert.ok(html.includes('id="syncHeaderLabel"'));
   assert.ok(js.includes("api('/api/cloud-sync/status')"));
   assert.ok(js.includes('Cloud sync not configured'));
   assert.ok(css.includes('.connection-chip.local-only'));

@@ -9,12 +9,12 @@ test('Sync Center is loaded for staff dashboard and prepared offline attendance'
   const html = read('public/portal.html');
   const offline = read('public/offline-sheet.html');
   const sw = read('public/sw.js');
-  for (const file of ['attendance-sync-center.css?v=2','attendance-sync-center.js?v=1']) {
+  for (const file of ['attendance-sync-center.css?v=3','attendance-sync-center.js?v=2']) {
     assert.ok(html.includes('/' + file), 'Staff portal must load ' + file);
     assert.ok(sw.includes('"/' + file + '"'), 'Offline shell must cache ' + file);
   }
-  assert.ok(offline.includes('/attendance-sync-center.css?v=2'));
-  assert.ok(offline.includes('/attendance-sync-center.js?v=1'));
+  assert.ok(offline.includes('/attendance-sync-center.css?v=3'));
+  assert.ok(offline.includes('/attendance-sync-center.js?v=2'));
   assert.ok(offline.includes('data-offline-sheet="true"'));
 });
 
@@ -78,26 +78,40 @@ test('account-scoped encrypted queue has inspect and authorized retry, not overw
   assert.match(queue, /'attendigo-offline-status'/);
 });
 
-test('floating Sync Center does not cover the dynamically injected Class QR shortcut', () => {
+test('single unified Sync Center is triggered from the existing responsive header', () => {
   const css = read('public/attendance-sync-center.css');
-  const qr = read('public/class-qr-dashboard-link.js');
+  const ui = read('public/attendance-sync-center.js');
   const portal = read('public/portal.html');
+  const portalJs = read('public/portal.js');
   const offlineSheet = read('public/offline-sheet.html');
   const sw = read('public/sw.js');
-  // The existing QR teacher shortcut is positioned at the bottom right.
+  const qr = read('public/class-qr-dashboard-link.js');
+  assert.match(portal, /<button[^>]*class="connection-chip local-only asc-header-trigger" id="connectionStatus"/);
+  assert.match(portal, /aria-controls="attendanceSyncDialog"/);
+  assert.match(portal, /id="syncHeaderLabel"/);
+  assert.match(portal, /class="asc-header-badge" hidden/);
+  assert.match(ui, /let trigger = \$\('connectionStatus'\)/);
+  assert.match(ui, /trigger\.addEventListener\('click', open\)/);
+  assert.match(ui, /document\.documentElement\.dataset\.offlineSheet === 'true'/);
+  assert.match(ui, /if \(role\(\)\.role === 'SUPER_ADMIN'\)/);
+  assert.match(ui, /function setCloudStatus\(status, error = ''\)/);
+  assert.match(portalJs, /AttendigoSyncCenter\.setCloudStatus/);
+  assert.match(ui, /if \(!isAdmin\(\)\) return/);
+  assert.match(ui, /Cloud sync not configured/);
+  assert.match(ui, /Cloud forwarding off/);
+  assert.match(ui, /needsReview/);
+  assert.match(ui, /trigger\.setAttribute\('aria-label', 'Open Attendance Sync Center/);
+  assert.match(css, /#connectionStatus\.asc-header-trigger/);
+  assert.match(css, /@media\(max-width:920px\)/);
+  assert.match(css, /#connectionStatus\.asc-header-trigger\[hidden\]/);
+  assert.doesNotMatch(ui, /id = 'ascDock'|className\s*=\s*'asc-dock'/);
+  assert.doesNotMatch(css, /#ascDock|body:has\(#classQrTeacherShortcut\)/);
+  assert.doesNotMatch(ui, /id = 'ascDashboardCard'/);
   assert.match(qr, /const linkId = 'classQrTeacherShortcut'/);
   assert.match(qr, /position:fixed;right:18px;bottom:18px/);
-  assert.match(qr, /bottom:calc\(12px \+ env\(safe-area-inset-bottom\)\)/);
-  // :has() also matches the shortcut after asynchronous /api/auth/me injection.
-  assert.match(css, /body:has\(#classQrTeacherShortcut\) #ascDock\.asc-dock\s*\{/);
-  assert.match(css, /bottom:\s*calc\(82px \+ env\(safe-area-inset-bottom, 0px\)\)/);
-  assert.match(css, /@media\s*\(max-width:\s*650px\)/);
-  assert.match(css, /bottom:\s*calc\(80px \+ env\(safe-area-inset-bottom, 0px\)\)/);
-  assert.match(css, /body:has\(#classQrTeacherShortcut\) \.content-wrap/);
-  assert.match(css, /padding-bottom:\s*calc\(155px \+ env\(safe-area-inset-bottom, 0px\)\)/);
-  assert.match(portal, /attendance-sync-center\.css\?v=2/);
-  assert.match(offlineSheet, /attendance-sync-center\.css\?v=2/);
-  const cacheVersion = sw.match(/const CACHE = "attendigo-v(\d+)-[^"]+";/);
-  assert.ok(cacheVersion && Number(cacheVersion[1]) >= 142, 'Cache must invalidate the previous Sync Center shell');
-  assert.match(sw, /"\/attendance-sync-center\.css\?v=2"/);
+  assert.match(offlineSheet, /attendance-sync-center\.css\?v=3/);
+  assert.match(offlineSheet, /attendance-sync-center\.js\?v=2/);
+  assert.match(sw, /attendigo-v147-header-sync-center/);
+  assert.match(sw, /"\/attendance-sync-center\.css\?v=3"/);
+  assert.match(sw, /"\/attendance-sync-center\.js\?v=2"/);
 });
