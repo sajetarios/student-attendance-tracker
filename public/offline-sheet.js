@@ -29,6 +29,37 @@ async function sync(){if(!unlocked||!data)throw Error('Unlock a class first.');c
 function handle(id,fn){$(id).addEventListener('click',()=>{ $(id).disabled=true;Promise.resolve().then(fn).catch(e=>message(e.name==='OperationError'?'Incorrect passphrase or damaged offline data.':e.message,true)).finally(()=>{$(id).disabled=false;});});}
 handle('prepare',prepare);handle('open',unlock);handle('save',save);handle('sync',sync);handle('lock',()=>{unlocked=null;data=null;passphrase='';$('sheet').hidden=true;message('Offline sheet locked.');});
 $('date').addEventListener('change',()=>{if(unlocked)render();});
-(async()=>{await refresh();if(navigator.onLine&&token()&&user().role==='TEACHER'){try{const [p,s]=await Promise.all([api('/api/periods'),api('/api/students')]);available=(p.periods||[]).filter(x=>x.periodId&&x.assignedTeacherUserId===user().userId);window.__offlineRoster=s.students||[];for(const period of available){const option=document.createElement('option');option.value=period.periodId;option.textContent=[period.gradeLevel,period.section,period.subjectName||period.periodName].join(' · ');$('prepareClass').append(option);}if(!available.length)$('setup').hidden=true;}catch(e){$('setup').hidden=true;message('Preparation requires an online session: '+e.message,true);}}else $('setup').hidden=true;})().catch(e=>message(e.message,true));
+(async()=>{
+  await refresh();
+  const u=user();
+  if (!navigator.onLine) {
+    $('prepare').disabled=true;
+    message('You are offline. Unlock a previously prepared class below. To prepare a new class, reconnect and sign in as a teacher.',true);
+    return;
+  }
+  if (!token() || u.role!=='TEACHER') {
+    $('prepare').disabled=true;
+    message('No active teacher session in this browser tab. Open Attendigo teacher dashboard, sign in, then use Manual Attendance → Prepare / open offline attendance. Previously prepared classes can still be unlocked below.',true);
+    return;
+  }
+  try {
+    const [p,studentsResponse]=await Promise.all([api('/api/periods'),api('/api/students')]);
+    available=(p.periods||[]).filter(x=>x.periodId&&String(x.assignedTeacherUserId)===String(u.userId));
+    window.__offlineRoster=studentsResponse.students||[];
+    for (const period of available) {
+      const option=document.createElement('option');
+      option.value=period.periodId;
+      option.textContent=[period.gradeLevel,period.section,period.subjectName||period.periodName].join(' · ');
+      $('prepareClass').append(option);
+    }
+    if (!available.length) {
+      $('prepare').disabled=true;
+      message('No assigned classes found. Ask your school administrator to assign a class schedule to this teacher account.',true);
+    } else message('Ready: select an assigned class and set a device passphrase to prepare offline attendance.');
+  } catch(e) {
+    $('prepare').disabled=true;
+    message('Could not load teacher classes: '+e.message+'. Check your connection and sign-in, then reload.',true);
+  }
+})().catch(e=>message('Offline storage unavailable: '+e.message,true));
 window.addEventListener('pagehide',()=>{data=null;passphrase='';unlocked=null;});
 })();
