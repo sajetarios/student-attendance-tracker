@@ -1,4 +1,4 @@
-const CACHE = "attendigo-v133-department-teacher-assignment-fix";
+const CACHE = "attendigo-v134-student-account-auto-batching";
 
 const SHELL = [
   "/assets/attendigo-sidebar-logo.png",
@@ -42,7 +42,7 @@ const SHELL = [
   "/manual-folio.css?v=11",
   "/manual-folio.js?v=11",
   "/student-portal-accounts.css?v=2",
-  "/student-portal-accounts.js?v=3",
+  "/student-portal-accounts.js?v=4",
   "/admin-request-notifications.js?v=2",
   "/admin-request-notifications.css?v=2",
   "/guardian-ui.js?v=4",
