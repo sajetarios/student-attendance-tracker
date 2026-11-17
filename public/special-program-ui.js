@@ -102,8 +102,9 @@
     finally{for(const id of ['specialProgramAssignSelected','specialProgramRemoveSelected'])$(id).disabled=false;}
   }
   function reviewsTable(items,adminView){
-    if(!items.length)return '<p class="field-hint">No special-program requests found.</p>';
-    return items.map(item=>{
+    const individual = adminView ? items.filter(item=>!item.batchId) : items;
+    if(!individual.length)return '<p class="field-hint">No individual special-program requests found.</p>';
+    return individual.map(item=>{
       const title=item.action==='REMOVE'?'Remove primary program':'Assign '+(item.programCode||item.programName||'program');
       const actions=adminView&&item.status==='PENDING'
        ?'<div class="special-program-review-actions"><button type="button" class="primary-button" data-program-review="APPROVE" data-request-id="'+esc(item.requestId)+'">Approve</button><button type="button" class="outline-button" data-program-review="REJECT" data-request-id="'+esc(item.requestId)+'">Reject</button></div>':'';
