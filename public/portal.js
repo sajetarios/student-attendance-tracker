@@ -292,7 +292,7 @@
     $('viewTitle').textContent = title[0];
     $('viewDescription').textContent = title[1];
     $('breadcrumbCurrent').textContent = title[0];
-    if (view === 'parents') { const frame = $('parentsFrame'); if (frame && !frame.getAttribute('src')) frame.src = '/parent-admin.html?embedded=1'; }
+    if (view === 'parents') $('parentsView')?.dispatchEvent(new Event('parent:open'));
     if (view === 'planner') $('plannerView')?.dispatchEvent(new Event('planner:open'));
     if (view === 'dashboard' && ['TEACHER','DEPARTMENT_HEAD'].includes(role)) $('plannerView')?.dispatchEvent(new Event('planner:dashboard'));
     if (view === 'classAttendance' && role === 'TEACHER') {
@@ -4120,7 +4120,6 @@ let teacherActionMenuListenersInstalled = false;
   });
 
   if ($('parentsNav')) $('parentsNav').addEventListener('click', () => setView('parents'));
-  window.addEventListener('message', (event) => { if (event.origin !== window.location.origin || event.source !== $('parentsFrame')?.contentWindow || event.data?.type !== 'attendigo:parent-height') return; const h = Number(event.data.height); if (Number.isFinite(h) && h >= 300 && h <= 12000) $('parentsFrame').style.height = Math.ceil(h + 12) + 'px'; });
   document.querySelectorAll('.nav-group-toggle[data-nav-group]').forEach(button => {
     button.addEventListener('click', () => {
       const key = button.dataset.navGroup;
