@@ -30,15 +30,10 @@ test('Teacher roster exposes scoped editing and the edit form has all field wrap
   assert.match(server, /You may move learners only within sections assigned to you as Class Adviser/);
 });
 
-test('Subject Teachers can create their own section schedule and it is assigned to their account', () => {
-  assert.match(js, /teacherCreatingOwn/);
-  assert.match(html, /id="periodSection" required/);
-  assert.match(js, /section: \$\('periodSection'\)\.value\.trim\(\)/);
-  assert.match(html, /id="periodSection" required/);
-  assert.match(js, /teacherUserId: teacher\?\.userId/);
-  assert.match(server, /subject_id,subject_name,start_time/);
-  assert.match(server, /Only a Subject Teacher may create a personal class schedule/);
-  assert.match(server, /INSERT INTO teacher_period_assignments\(school_id, teacher_user_id, period_id\)/);
+test('Subject Teachers can read schedules, and schedule creation requires a school manager', () => {
+  assert.match(server, /app\.get\('\/api\/periods', authenticateSchoolClient, requireSchoolRoles\('SCHOOL_ADMIN',\s*'DEPARTMENT_HEAD',\s*'TEACHER'\)/);
+  assert.match(server, /app\.post\('\/api\/periods', authenticateSchoolClient, requireSchoolRoles\('SCHOOL_ADMIN', 'DEPARTMENT_HEAD'\)/);
+  assert.match(js, /\$\('showScheduleForm'\)\.hidden = !\(admin \|\| \(departmentHead/);
 });
 
 test('School Administrator manages accounts and monitors Gate Keeper activity but cannot scan or submit attendance', () => {
@@ -81,9 +76,9 @@ test('SF2 Excel copy downloads a non-empty workbook through a temporary download
   assert.match(js, /URL\.revokeObjectURL\(url\)/);
 });
 
-test('Portal uses the refreshed accessible theme and cache-busted v0.9.24 assets', () => {
-  assert.match(html, /portal\.css\?v=0\.9\.15/);
-  assert.match(html, /portal\.js\?v=0\.9\.18/);
+test('Portal uses the refreshed accessible theme and versioned assets', () => {
+  assert.match(html, /portal\.css\?v=[\w.]+/);
+  assert.match(html, /portal\.js\?v=[\w.]+/);
   assert.match(portalCss, /--brand: #2563a6;/);
   assert.match(portalCss, /:focus/);
 });

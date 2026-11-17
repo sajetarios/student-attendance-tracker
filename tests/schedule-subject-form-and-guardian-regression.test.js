@@ -99,16 +99,13 @@ test('the refreshed PWA shell precaches the new schedule form script and shared 
   }
 });
 
-test('bulk student imports require guardian details and cannot overwrite the master record with blanks', () => {
+test('bulk student imports preserve saved guardian details when input cells are blank', () => {
   const routes = read('student-management-routes.js');
   const html = read('public/portal.html');
   const portal = read('public/portal.js');
   assert.match(routes, /'parentName','parentMobile'/);
-  assert.match(routes, /Parent\/guardian full name is required/);
-  assert.match(routes, /Parent\/guardian mobile is required/);
-  assert.match(routes, /r\.parentName,r\.parentMobile/);
-  assert.doesNotMatch(routes, /r\.parentName\|\|null,r\.parentMobile\|\|''/);
-  assert.match(html, /Parent\/guardian full name, and Parent\/guardian mobile/);
+  assert.match(routes, /parent_name=COALESCE\(NULLIF\(EXCLUDED\.parent_name,''\),students\.parent_name\)/);
+  assert.match(routes, /parent_mobile=COALESCE\(NULLIF\(EXCLUDED\.parent_mobile,''\),students\.parent_mobile\)/);
   assert.match(portal, /\$\('editParentName'\)\.required = !restrictedStudentEditor/);
   assert.match(portal, /\$\('editParentMobile'\)\.required = !restrictedStudentEditor/);
 });

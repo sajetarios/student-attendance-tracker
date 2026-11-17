@@ -3552,7 +3552,7 @@ let teacherActionMenuListenersInstalled = false;
     // A failure in any secondary API must not prevent the roster from rendering.
     let rosterError = null;
     try {
-      const roster = await api('/api/students');
+      const roster = await api(isSchoolAdmin ? '/api/students?includeInactive=true' : '/api/students');
       if (!Array.isArray(roster?.students)) throw new Error('The student service returned an invalid roster.');
       students = roster.students;
       // Show real student records immediately, before the slower secondary panels load.

@@ -34,8 +34,8 @@ test('student batch APIs enforce Administrator, Department Head, and Class Advis
 test('Department Head student batch actions are scoped to their active department sections',()=>{
   assert.match(routes,/req\.auth\.departmentId/);
   assert.match(routes,/p\.department_id=\$3 AND p\.active=TRUE/);
-  assert.match(server,/p\.department_id=\$2 AND p\.active=TRUE/);
-  assert.match(portal,/Department-scoped learner management/);
+  assert.match(routes,/FROM class_periods WHERE school_id=\$1 AND department_id=\$2 AND active=TRUE/);
+  assert.match(html,/only for sections scheduled in their own department/);
   assert.match(html,/id="studentDepartmentScopeNote"/);
 });
 

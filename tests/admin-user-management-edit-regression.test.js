@@ -59,11 +59,11 @@ test('School Administrator user management separates accounts, permissions, and 
   assert.match(html, /data-admin-management-tab="accounts"/);
   assert.match(html, /data-admin-management-tab="permissions"/);
   assert.match(html, /data-admin-management-tab="departments"/);
-  assert.match(html, /id="teacherPermissionsCard"/);
+  assert.match(html, /id="securityAccountsRows"/);
   assert.match(html, /id="staffAccountsTable"[\s\S]*<th>Account action<\/th>/);
   assert.match(portal, /function setAdminManagementTab/);
   assert.match(portal, /const isAdmin = user\?\.role === 'SCHOOL_ADMIN'/);
-  assert.match(portal, /function renderTeacherPermissions/);
+  assert.match(portal, /function loadSecurityAccounts/);
   assert.match(portal, /data-edit-teacher-permission/);
   assert.match(portal, /data-edit-staff-profile/);
   assert.match(portal, /data-edit-teacher-profile/);

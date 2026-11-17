@@ -19,13 +19,13 @@ test('School Administrator dashboard includes learner, staff, schedule, and SF2 
   for (const view of ['students', 'teachers', 'schedules', 'sf2']) {
     assert.match(portalHtml, new RegExp(`data-go="${view}"`));
   }
-  assert.match(portalJs, /if \(role === 'SCHOOL_ADMIN'\) return \['dashboard', 'students', 'teachers', 'schedules', 'sf2', 'cloudSync'\]/);
+  assert.match(portalJs, /if \(role === 'SCHOOL_ADMIN'\) return \['dashboard', 'students', 'studentAccounts', 'parents', 'teachers', 'schedules', 'cloudSync', 'schoolBranding'\]/);
   assert.match(server, /app\.post\('\/api\/school-users', authenticateSchoolClient, requireSchoolAdmin/);
 });
 
 test('Department Head dashboard has school monitoring pages and read-only SF2 submission monitoring', () => {
-  assert.match(portalJs, /if \(role === 'DEPARTMENT_HEAD'\) return \['dashboard', 'students', 'teachers', 'schedules', 'sf2'\]/);
-  assert.match(portalJs, /sf2SubmissionsCard'\)\) \$\('sf2SubmissionsCard'\)\.hidden = !\(admin \|\| departmentHead\)/);
+  assert.match(portalJs, /if \(role === 'DEPARTMENT_HEAD'\) return \['dashboard', 'planner', 'students', 'teachers', 'schedules', 'sf2'\]/);
+  assert.match(portalJs, /sf2SubmissionsCard'\)\) \$\('sf2SubmissionsCard'\)\.hidden = admin \|\| !departmentHead/);
   assert.match(portalJs, /item\.status === 'SUBMITTED' && user\?\.role === 'SCHOOL_ADMIN'/);
   assert.match(sf2Routes, /app\.get\('\/api\/sf2\/submissions', authenticateSchoolClient, requireSchoolAdminOrDepartmentHead/);
   assert.match(sf2Routes, /app\.patch\('\/api\/sf2\/submissions\/:submissionId\/collect', authenticateSchoolClient, requireSchoolAdmin/);
@@ -34,7 +34,7 @@ test('Department Head dashboard has school monitoring pages and read-only SF2 su
 
 test('Teacher dashboard scope is derived from Subject Teacher and Class Adviser designations', () => {
   assert.match(portalJs, /if \(teacherHas\('SUBJECT_TEACHER'\) \|\| teacherHas\('CLASS_ADVISER'\)\) \{/);
-  assert.match(portalJs, /views\.push\('students', 'classAttendance'\)/);
+  assert.match(portalJs, /views\.push\('students', 'studentAccounts', 'classAttendance'\)/);
   assert.match(portalJs, /if \(teacherHas\('SUBJECT_TEACHER'\) \|\| teacherHas\('CLASS_ADVISER'\)\) views\.push\('schedules'\)/);
   assert.match(portalJs, /if \(teacherHas\('SUBJECT_TEACHER'\) \|\| teacherHas\('CLASS_ADVISER'\)\) views\.push\('sf2'\)/);
   assert.match(portalJs, /Not an absence count|not an absence count/i);
@@ -71,8 +71,9 @@ test('Staff creation distinguishes Department Head and Gate Keeper from teacher 
 });
 
 test('Platform Administrator workspace does not invent platform metrics', () => {
-  assert.match(portalHtml, /Platform authentication verified/);
-  assert.match(portalHtml, /does not display invented platform statistics/);
+  assert.match(portalHtml, /id="platformSchoolCount">—/);
+  assert.match(portalJs, /api\('\/api\/platform\/overview'\)/);
+  assert.match(portalJs, /overview\.overview\.schoolCount/);
 });
 
 test('Department Head may view and download submitted SF2 reports but cannot collect them', () => {
@@ -86,7 +87,7 @@ test('Login screen clearly explains the School/Parent, Student, and Platform acc
   const loginHtml = read('public/portal-login.html');
   const loginJs = read('public/portal-login.js');
   assert.match(loginHtml, /Student account/);
-  assert.match(loginHtml, /Platform admin/);
+  assert.match(loginHtml, /Super Admin/);
   assert.match(loginJs, /approved Parent\/Guardian accounts/);
   assert.match(loginJs, /Student account uses the school-issued student login/);
 });
