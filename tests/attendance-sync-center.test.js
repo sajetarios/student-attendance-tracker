@@ -9,11 +9,11 @@ test('Sync Center is loaded for staff dashboard and prepared offline attendance'
   const html = read('public/portal.html');
   const offline = read('public/offline-sheet.html');
   const sw = read('public/sw.js');
-  for (const file of ['attendance-sync-center.css?v=1','attendance-sync-center.js?v=1']) {
+  for (const file of ['attendance-sync-center.css?v=2','attendance-sync-center.js?v=1']) {
     assert.ok(html.includes('/' + file), 'Staff portal must load ' + file);
     assert.ok(sw.includes('"/' + file + '"'), 'Offline shell must cache ' + file);
   }
-  assert.ok(offline.includes('/attendance-sync-center.css?v=1'));
+  assert.ok(offline.includes('/attendance-sync-center.css?v=2'));
   assert.ok(offline.includes('/attendance-sync-center.js?v=1'));
   assert.ok(offline.includes('data-offline-sheet="true"'));
 });
@@ -85,7 +85,7 @@ test('floating Sync Center does not cover the dynamically injected Class QR shor
   const offlineSheet = read('public/offline-sheet.html');
   const sw = read('public/sw.js');
   // The existing QR teacher shortcut is positioned at the bottom right.
-  assert.match(qr, /id = 'classQrTeacherShortcut'/);
+  assert.match(qr, /const linkId = 'classQrTeacherShortcut'/);
   assert.match(qr, /position:fixed;right:18px;bottom:18px/);
   assert.match(qr, /bottom:calc\(12px \+ env\(safe-area-inset-bottom\)\)/);
   // :has() also matches the shortcut after asynchronous /api/auth/me injection.
