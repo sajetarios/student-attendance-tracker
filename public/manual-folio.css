@@ -438,3 +438,10 @@ body[data-theme="dark"] .manual-folio .manual-note-btn[data-has-note="true"]{
   html[data-ui-theme="dark"] #classAttendanceView .manual-qr-pages tbody td::before,
   body.dark-mode #classAttendanceView .manual-qr-pages tbody td::before{color:#b9cae2}
 }
+
+/* Finalized class registers remain readable but cannot be edited until reopened. */
+.manual-folio.is-finalized .manual-flip-card,.manual-folio.is-finalized .manual-extra-status,
+.manual-folio.is-finalized [data-batch],.manual-folio.is-finalized .manual-note-btn{opacity:.58;cursor:not-allowed}
+#mfFinalizationState{font-weight:750;white-space:nowrap}
+.manual-folio.is-finalized #mfFinalizationState{color:#14805d}
+@media(max-width:650px){.manual-folio .manual-bottom .manual-controls{flex-wrap:wrap}#mfFinalize{flex:1}}
