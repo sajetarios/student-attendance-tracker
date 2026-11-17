@@ -84,8 +84,8 @@ app.use('/api/sms/messages', authenticateSchoolClient, requireSchoolFeature(pool
 app.use('/api/class-qr/sessions', authenticateSchoolClient, requireSchoolFeature(pool, 'qr_attendance'));
 const requireSchoolAdmin = requireSchoolRoles('SCHOOL_ADMIN');
 const requireSchoolAdminOrTeacher = requireSchoolRoles('SCHOOL_ADMIN', 'TEACHER');
-const requireSchoolAdminOrDepartmentHeadOrTeacher = requireSchoolRoles('DEPARTMENT_HEAD', 'TEACHER');
-const requireSchoolUser = requireSchoolRoles('DEPARTMENT_HEAD', 'TEACHER');
+const requireSchoolAdminOrDepartmentHeadOrTeacher = requireSchoolRoles('SCHOOL_ADMIN', 'DEPARTMENT_HEAD', 'TEACHER');
+const requireSchoolUser = requireSchoolRoles('SCHOOL_ADMIN', 'DEPARTMENT_HEAD', 'TEACHER');
 const requireSchoolAdminOrDepartmentHead = requireSchoolRoles('SCHOOL_ADMIN', 'DEPARTMENT_HEAD');
 const validText = value => typeof value === 'string' && value.trim().length > 0;
 registerSmsRoutes(app, pool, { authenticateSchoolClient, requireSchoolRoles });
