@@ -6,6 +6,12 @@
  const user=JSON.parse(sessionStorage.getItem('schoolAttendance.user')||'{}');
  if(!token||user.role!=='TEACHER')return;
  const scope=[user.schoolId||'school',user.userId||user.id||'teacher'].join(':');
+ // Offline preparation is a separate encrypted workflow; never bypass the dashboard session guard.
+ const offlineLink=document.createElement('a');
+ offlineLink.href='/offline-sheet.html';
+ offlineLink.textContent='Prepare / open offline attendance';
+ offlineLink.style.cssText='display:inline-flex;align-items:center;min-height:44px;padding:9px 14px;margin:10px 0;border-radius:12px;background:#164c81;color:white;font-weight:700;text-decoration:none';
+ host.prepend(offlineLink);
  const el=id=>document.getElementById(id);
  const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
  const dateToday=()=>new Intl.DateTimeFormat('en-CA',{timeZone:'Asia/Manila',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date());
