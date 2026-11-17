@@ -16,7 +16,7 @@ const worker=read('public/sw.js');
 
 test('teacher and department head request program changes through Actions, not program badges',()=>{
   assert.doesNotMatch(programs,/button\.textContent='Request change'/);
-  assert.match(programs,/actionCell\.querySelector\('\[data-label="Actions"\]'\)/);
+  assert.match(programs,/const actionCell=row\.querySelector\('\[data-label="Actions"\]'\)/);
   assert.match(programs,/menu\.append\(button\)/);
   assert.match(programs,/button\.textContent='Request Program Change'/);
   assert.match(roster,/<th>Status<\/th><th>Actions<\/th>/);
