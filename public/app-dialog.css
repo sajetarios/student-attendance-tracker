@@ -1,5 +1,5 @@
 /* Consistent, accessible application dialogs replacing browser-native prompt/confirm boxes. */
-body.app-dialog-open { overflow: hidden; }
+body.app-dialog-open { overflow: hidden; 
 
 .app-dialog-overlay {
   position: fixed;
@@ -12,7 +12,7 @@ body.app-dialog-open { overflow: hidden; }
   -webkit-backdrop-filter: blur(5px);
   backdrop-filter: blur(5px);
   animation: app-dialog-fade-in .16s ease-out;
-}
+
 
 .app-dialog-card {
   width: min(100%, 490px);
@@ -26,7 +26,7 @@ body.app-dialog-open { overflow: hidden; }
   box-shadow: 0 26px 80px rgba(15, 23, 42, .28), 0 3px 12px rgba(15, 23, 42, .08);
   animation: app-dialog-rise-in .2s cubic-bezier(.2, .8, .2, 1);
   outline: none;
-}
+
 
 .app-dialog-header {
   display: flex;
@@ -35,7 +35,7 @@ body.app-dialog-open { overflow: hidden; }
   min-width: 0;
   padding-right: 34px;
   position: relative;
-}
+
 
 .app-dialog-icon {
   width: 44px;
@@ -48,20 +48,20 @@ body.app-dialog-open { overflow: hidden; }
   color: #12618b;
   font-size: 21px;
   font-weight: 800;
-}
 
-.app-dialog-icon.is-danger { background: #fff0ef; color: #bd3b35; }
-.app-dialog-heading { min-width: 0; }
+
+.app-dialog-icon.is-danger { background: #fff0ef; color: #bd3b35; 
+.app-dialog-heading { min-width: 0; 
 
 .app-dialog-eyebrow {
   display: block;
   margin: 0 0 4px;
   color: #718096;
-  font-size: 10px;
+  font-size:var(--type-secondary);
   line-height: 1.2;
   font-weight: 800;
   letter-spacing: .12em;
-}
+
 
 .app-dialog-heading h2 {
   margin: 0;
@@ -70,7 +70,7 @@ body.app-dialog-open { overflow: hidden; }
   line-height: 1.3;
   font-weight: 750;
   letter-spacing: -.02em;
-}
+
 
 .app-dialog-close {
   position: absolute;
@@ -89,9 +89,9 @@ body.app-dialog-open { overflow: hidden; }
   font-size: 25px;
   line-height: 1;
   cursor: pointer;
-}
 
-.app-dialog-close:hover { background: #f1f5f9; color: #172033; }
+
+.app-dialog-close:hover { background: #f1f5f9; color: #172033; 
 
 .app-dialog-message {
   margin: 19px 0 0;
@@ -100,18 +100,18 @@ body.app-dialog-open { overflow: hidden; }
   line-height: 1.65;
   white-space: pre-wrap;
   overflow-wrap: anywhere;
-}
 
-.app-dialog-form { margin: 0; }
-.app-dialog-fields { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0 16px; max-height: min(52dvh, 520px); overflow-y: auto; padding: 1px 4px 2px 1px; }
-.app-dialog-fields .app-dialog-field { min-width: 0; }
-.app-dialog-field { display: grid; gap: 8px; margin-top: 19px; }
+
+.app-dialog-form { margin: 0; 
+.app-dialog-fields { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0 16px; max-height: min(52dvh, 520px); overflow-y: auto; padding: 1px 4px 2px 1px; 
+.app-dialog-fields .app-dialog-field { min-width: 0; 
+.app-dialog-field { display: grid; gap: 8px; margin-top: 19px; 
 
 .app-dialog-label {
   color: #344256;
-  font-size: 12px;
+  font-size:var(--type-table);
   font-weight: 750;
-}
+
 
 .app-dialog-input {
   width: 100%;
@@ -126,15 +126,15 @@ body.app-dialog-open { overflow: hidden; }
   line-height: 1.4;
   outline: none;
   transition: border-color .15s ease, box-shadow .15s ease;
-}
 
-.app-dialog-input::placeholder { color: #9aa6b5; }
-.app-dialog-input:focus { border-color: #1684b5; box-shadow: 0 0 0 4px rgba(22, 132, 181, .13); }
-.app-dialog-input[aria-invalid="true"] { border-color: #d64545; }
-.app-dialog-textarea { min-height: 94px; resize: vertical; }
-.app-dialog-help { color: #718096; font-size: 12px; line-height: 1.45; }
-.app-dialog-error { min-height: 0; color: #bd3434; font-size: 12px; line-height: 1.4; }
-.app-dialog-error:empty { display: none; }
+
+.app-dialog-input::placeholder { color: #9aa6b5; 
+.app-dialog-input:focus { border-color: #1684b5; box-shadow: 0 0 0 4px rgba(22, 132, 181, .13); 
+.app-dialog-input[aria-invalid="true"] { border-color: #d64545; 
+.app-dialog-textarea { min-height: 94px; resize: vertical; 
+.app-dialog-help { color: #718096; font-size:var(--type-secondary); line-height: 1.45; 
+.app-dialog-error { min-height: 0; color: #bd3434; font-size:var(--type-secondary); line-height: 1.4; 
+.app-dialog-error:empty { display: none; 
 
 .app-dialog-actions {
   display: flex;
@@ -144,7 +144,7 @@ body.app-dialog-open { overflow: hidden; }
   margin-top: 24px;
   padding-top: 17px;
   border-top: 1px solid #edf1f5;
-}
+
 
 .app-dialog-button {
   min-width: 94px;
@@ -153,44 +153,44 @@ body.app-dialog-open { overflow: hidden; }
   border: 1px solid transparent;
   border-radius: 11px;
   font: inherit;
-  font-size: 13px;
+  font-size:var(--type-table);
   font-weight: 750;
   cursor: pointer;
   transition: background .15s ease, border-color .15s ease, transform .15s ease, box-shadow .15s ease;
-}
 
-.app-dialog-button:active { transform: translateY(1px); }
+
+.app-dialog-button:active { transform: translateY(1px); 
 .app-dialog-button:focus-visible,
-.app-dialog-close:focus-visible { outline: 3px solid rgba(22, 132, 181, .25); outline-offset: 2px; }
+.app-dialog-close:focus-visible { outline: 3px solid rgba(22, 132, 181, .25); outline-offset: 2px; 
 
-.app-dialog-button-secondary { border-color: #d8e0e9; background: #fff; color: #344256; }
-.app-dialog-button-secondary:hover { background: #f5f7fa; border-color: #b8c5d3; }
+.app-dialog-button-secondary { border-color: #d8e0e9; background: #fff; color: #344256; 
+.app-dialog-button-secondary:hover { background: #f5f7fa; border-color: #b8c5d3; 
 
 .app-dialog-button-primary {
   background: #087eae;
   color: #fff;
   box-shadow: 0 3px 8px rgba(8, 126, 174, .18);
-}
-.app-dialog-button-primary:hover { background: #066b96; }
-.app-dialog-button-primary.is-danger { background: #c63e3e; box-shadow: 0 3px 8px rgba(198, 62, 62, .16); }
-.app-dialog-button-primary.is-danger:hover { background: #a92f2f; }
 
-@keyframes app-dialog-fade-in { from { opacity: 0; } to { opacity: 1; } }
-@keyframes app-dialog-rise-in { from { opacity: 0; transform: translateY(8px) scale(.985); } to { opacity: 1; transform: translateY(0) scale(1); } }
+.app-dialog-button-primary:hover { background: #066b96; 
+.app-dialog-button-primary.is-danger { background: #c63e3e; box-shadow: 0 3px 8px rgba(198, 62, 62, .16); 
+.app-dialog-button-primary.is-danger:hover { background: #a92f2f; 
+
+@keyframes app-dialog-fade-in { from { opacity: 0;  to { opacity: 1;  }
+@keyframes app-dialog-rise-in { from { opacity: 0; transform: translateY(8px) scale(.985);  to { opacity: 1; transform: translateY(0) scale(1);  }
 
 @media (max-width: 560px) {
-  .app-dialog-fields { grid-template-columns: 1fr; max-height: min(48dvh, 420px); }
-  .app-dialog-overlay { align-items: end; padding: 12px; }
-  .app-dialog-card { width: 100%; max-height: min(85dvh, 700px); padding: 21px 18px 18px; border-radius: 18px; }
-  .app-dialog-heading h2 { font-size: 18px; }
-  .app-dialog-message { margin-top: 15px; font-size: 13px; }
-  .app-dialog-actions { margin-top: 20px; padding-top: 14px; }
-  .app-dialog-button { min-height: 45px; flex: 1 1 0; }
+  .app-dialog-fields { grid-template-columns: 1fr; max-height: min(48dvh, 420px); 
+  .app-dialog-overlay { align-items: end; padding: 12px; 
+  .app-dialog-card { width: 100%; max-height: min(85dvh, 700px); padding: 21px 18px 18px; border-radius: 18px; 
+  .app-dialog-heading h2 { font-size: 18px; 
+  .app-dialog-message { margin-top: 15px; font-size: 13px; 
+  .app-dialog-actions { margin-top: 20px; padding-top: 14px; 
+  .app-dialog-button { min-height: 45px; flex: 1 1 0; 
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .app-dialog-overlay, .app-dialog-card { animation: none; }
-  .app-dialog-input, .app-dialog-button { transition: none; }
+  .app-dialog-overlay, .app-dialog-card { animation: none; 
+  .app-dialog-input, .app-dialog-button { transition: none; 
 }
 
 /* Respect the existing portal-wide control sizing while keeping dialog controls intentional. */
@@ -198,15 +198,15 @@ body.app-dialog-open { overflow: hidden; }
   min-height: 43px;
   border-radius: 11px;
   padding: 10px 17px;
-  font-size: 13px;
-}
+  font-size:var(--type-table);
+
 .portal-page .app-dialog-close {
   min-height: 34px;
   width: 34px;
   padding: 0;
   border-radius: 10px;
   font-size: 25px;
-}
+
 .portal-page .app-dialog-card input.app-dialog-input:not([type="checkbox"]):not([type="radio"]),
 .portal-page .app-dialog-card select.app-dialog-input,
 .portal-page .app-dialog-card textarea.app-dialog-input {
@@ -214,4 +214,4 @@ body.app-dialog-open { overflow: hidden; }
   padding: 11px 13px;
   border-radius: 11px;
   font-size: 14px;
-}
+

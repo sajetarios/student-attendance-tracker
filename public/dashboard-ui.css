@@ -3,7 +3,7 @@
  --ui-page:#f4f6fc;--ui-panel:#fff;--ui-panel-soft:#f8faff;--ui-panel-raised:#fff;
  --ui-text:#182641;--ui-muted:#63748d;--ui-line:#dee5f1;--ui-accent:color-mix(in srgb,var(--brand,#7042a3) 65%,#8050de);
  --ui-hover:#f0edfa;--ui-shadow:0 12px 34px rgba(25,32,78,.065);--ui-focus:rgba(127,77,205,.25);
-}
+
 html[data-ui-theme="dark"]{
  color-scheme:dark;
  --bg:#0b1222;--card:#131d30;--ink:#ecf1ff;--muted:#a0b2cf;--line:#293650;--sidebar:#0d1528;
@@ -11,100 +11,100 @@ html[data-ui-theme="dark"]{
  --ui-text:#edf2ff;--ui-muted:#a6b5cd;--ui-line:#293650;
  --ui-accent:color-mix(in srgb,var(--brand,#8552df) 55%,#a277fd);--ui-hover:#232344;
  --ui-shadow:0 14px 37px rgba(0,0,0,.18);--ui-focus:rgba(153,114,250,.38);
-}
-.portal-page{background:var(--ui-page);color:var(--ui-text)}
-.portal-page .content-wrap,.portal-page .main-area{background:var(--ui-page)}
+
+.portal-page{background:var(--ui-page);color:var(--ui-text)
+.portal-page .content-wrap,.portal-page .main-area{background:var(--ui-page)
 .portal-page .surface-card,.portal-page .section-card,
 .portal-page .academic-admin-card,.portal-page .admin-monitoring-card,
 .portal-page .learner-summary-card,.portal-page .sardo-card,
 .portal-page .staff-accounts-card,.portal-page .adviser-assignments-card{
  border:1px solid var(--ui-line);border-radius:17px;background:var(--ui-panel);
  box-shadow:var(--ui-shadow);color:var(--ui-text);
-}
+
 .portal-page .section-toolbar h3,.portal-page .view-heading h2,
 .portal-page .school-title-block h1,.portal-page .card-heading strong,
-.portal-page .stat-card strong{color:var(--ui-text)}
+.portal-page .stat-card strong{color:var(--ui-text)
 .portal-page .section-toolbar p,.portal-page .view-heading p,
-.portal-page .field-hint,.portal-page .table-subtext{color:var(--ui-muted)}
+.portal-page .field-hint,.portal-page .table-subtext{color:var(--ui-muted)
 .portal-page .primary-button{
  border-radius:11px;background:var(--ui-accent);border-color:transparent;
  color:#fff;box-shadow:0 5px 14px rgba(83,43,145,.15);
  font-weight:720;min-height:43px;
-}
-.portal-page .primary-button:hover:not(:disabled){filter:brightness(1.09);transform:translateY(-1px)}
+
+.portal-page .primary-button:hover:not(:disabled){filter:brightness(1.09);transform:translateY(-1px)
 .portal-page .outline-button,.portal-page .secondary-button,
 .portal-page .schedule-display-toggle button{border-radius:10px;background:var(--ui-panel);
- color:var(--ui-text);border:1px solid var(--ui-line);min-height:41px}
+ color:var(--ui-text);border:1px solid var(--ui-line);min-height:41px
 .portal-page .outline-button:hover:not(:disabled),
 .portal-page .schedule-display-toggle button.is-active{
- color:var(--ui-accent);background:var(--ui-hover);border-color:var(--ui-accent)}
+ color:var(--ui-accent);background:var(--ui-hover);border-color:var(--ui-accent)
 .portal-page input:not([type="checkbox"]):not([type="radio"]):not([type="color"]),
 .portal-page select,.portal-page textarea{
  background:var(--ui-panel-raised);border-color:var(--ui-line);
  color:var(--ui-text);border-radius:10px;
-}
-.portal-page input::placeholder,.portal-page textarea::placeholder{color:var(--ui-muted)}
+
+.portal-page input::placeholder,.portal-page textarea::placeholder{color:var(--ui-muted)
 .portal-page :is(input,select,textarea,button,a):focus-visible{
  outline:3px solid var(--ui-focus);outline-offset:2px;
-}
-.portal-page .table-scroll{border-color:var(--ui-line);border-radius:13px}
-.portal-page .table-scroll table{background:var(--ui-panel)}
-.portal-page .table-scroll table th,.portal-page .table-scroll thead{background:var(--ui-panel-soft);color:var(--ui-muted);border-color:var(--ui-line)}
-.portal-page .table-scroll table td{background:var(--ui-panel);border-color:var(--ui-line);color:var(--ui-text)}
-.portal-page .table-scroll table tbody tr:hover td{background:var(--ui-hover)}
+
+.portal-page .table-scroll{border-color:var(--ui-line);border-radius:13px
+.portal-page .table-scroll table{background:var(--ui-panel)
+.portal-page .table-scroll table th,.portal-page .table-scroll thead{background:var(--ui-panel-soft);color:var(--ui-muted);border-color:var(--ui-line)
+.portal-page .table-scroll table td{background:var(--ui-panel);border-color:var(--ui-line);color:var(--ui-text)
+.portal-page .table-scroll table tbody tr:hover td{background:var(--ui-hover)
 .portal-page .stat-card,.portal-page .learner-metric{
  background:var(--ui-panel);color:var(--ui-text);border:1px solid var(--ui-line);border-radius:15px;
  box-shadow:var(--ui-shadow);
-}
-.portal-page .stat-card small,.portal-page .learner-metric span{color:var(--ui-muted)}
-.portal-page .stat-card>strong,.portal-page .learner-metric strong{color:var(--ui-text)}
-.portal-page .account-trigger{border-radius:12px}
-.portal-page .account-dropdown{background:var(--ui-panel);border:1px solid var(--ui-line);box-shadow:var(--ui-shadow);color:var(--ui-text)}
-.portal-page .account-menu-item{color:var(--ui-text);border-radius:8px}
-.portal-page .account-menu-item:hover{background:var(--ui-hover)}
-.portal-page .account-summary{border-bottom:1px solid var(--ui-line)}
-.portal-page .topbar{background:var(--ui-panel);border-bottom:1px solid var(--ui-line)}
-.portal-page .breadcrumbs,.portal-page .breadcrumbs strong{color:var(--ui-muted)}
-.portal-page .breadcrumbs strong{color:var(--ui-accent)}
+
+.portal-page .stat-card small,.portal-page .learner-metric span{color:var(--ui-muted)
+.portal-page .stat-card>strong,.portal-page .learner-metric strong{color:var(--ui-text)
+.portal-page .account-trigger{border-radius:12px
+.portal-page .account-dropdown{background:var(--ui-panel);border:1px solid var(--ui-line);box-shadow:var(--ui-shadow);color:var(--ui-text)
+.portal-page .account-menu-item{color:var(--ui-text);border-radius:8px
+.portal-page .account-menu-item:hover{background:var(--ui-hover)
+.portal-page .account-summary{border-bottom:1px solid var(--ui-line)
+.portal-page .topbar{background:var(--ui-panel);border-bottom:1px solid var(--ui-line)
+.portal-page .breadcrumbs,.portal-page .breadcrumbs strong{color:var(--ui-muted)
+.portal-page .breadcrumbs strong{color:var(--ui-accent)
 /* Appearance setting is common to every school role and the platform owner. */
 .ui-theme-toggle{display:inline-flex;align-items:center;justify-content:center;gap:7px;height:38px;
  width:auto;min-width:38px;padding:0 10px;border:1px solid var(--ui-line);
- border-radius:11px;background:var(--ui-panel);color:var(--ui-text);cursor:pointer}
-.ui-theme-toggle:hover{background:var(--ui-hover);color:var(--ui-accent)}
-.ui-theme-toggle .theme-icon{font-size:18px;line-height:1}
-.ui-theme-control{padding:12px 11px;border-top:1px solid var(--ui-line)}
-.ui-theme-control>span{display:block;font-size:12px;font-weight:750;margin:0 0 8px;color:var(--ui-muted)}
-.ui-theme-options{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:5px}
+ border-radius:11px;background:var(--ui-panel);color:var(--ui-text);cursor:pointer
+.ui-theme-toggle:hover{background:var(--ui-hover);color:var(--ui-accent)
+.ui-theme-toggle .theme-icon{font-size:18px;line-height:1
+.ui-theme-control{padding:12px 11px;border-top:1px solid var(--ui-line)
+.ui-theme-control>span{display:block;font-size:var(--type-table);font-weight:750;margin:0 0 8px;color:var(--ui-muted)
+.ui-theme-options{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:5px
 .ui-theme-options button{min-height:34px;padding:7px 4px;border:1px solid var(--ui-line);
- border-radius:8px;background:var(--ui-panel-soft);color:var(--ui-text);font-size:12px;cursor:pointer}
-.ui-theme-options button[aria-pressed="true"]{border-color:var(--ui-accent);color:var(--ui-accent);background:var(--ui-hover);font-weight:800}
+ border-radius:8px;background:var(--ui-panel-soft);color:var(--ui-text);font-size:var(--type-table);cursor:pointer
+.ui-theme-options button[aria-pressed="true"]{border-color:var(--ui-accent);color:var(--ui-accent);background:var(--ui-hover);font-weight:800
 /* Scheduling page: contextual navigation instead of one endless stack of forms. */
-.modern-schedule-workspace>.surface-card>.section-toolbar{align-items:center;flex-wrap:wrap;gap:16px}
-.modern-schedule-workspace .schedule-primary-actions{display:flex;gap:9px;align-items:center;flex-wrap:wrap}
-.modern-schedule-workspace .schedule-primary-actions button{min-height:43px}
-.schedule-overview{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px;margin:20px 0 16px}
+.modern-schedule-workspace>.surface-card>.section-toolbar{align-items:center;flex-wrap:wrap;gap:16px
+.modern-schedule-workspace .schedule-primary-actions{display:flex;gap:9px;align-items:center;flex-wrap:wrap
+.modern-schedule-workspace .schedule-primary-actions button{min-height:43px
+.schedule-overview{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px;margin:20px 0 16px
 .schedule-overview-card{position:relative;min-width:0;padding:19px;display:grid;gap:4px;
  border:1px solid var(--ui-line);border-radius:16px;background:var(--ui-panel);
- box-shadow:var(--ui-shadow);overflow:hidden}
+ box-shadow:var(--ui-shadow);overflow:hidden
 .schedule-overview-card:after{content:"";position:absolute;right:-22px;bottom:-47px;width:125px;height:95px;
- border-radius:50%;background:color-mix(in srgb,var(--ui-accent) 10%,transparent);pointer-events:none}
-.schedule-overview-card>span:not(.schedule-overview-icon){font-size:12px;font-weight:750;color:var(--ui-muted)}
-.schedule-overview-card strong{font-size:29px;font-weight:800;line-height:1.2;color:var(--ui-text);font-variant-numeric:tabular-nums}
-.schedule-overview-card small{font-size:11px;color:var(--ui-muted)}
+ border-radius:50%;background:color-mix(in srgb,var(--ui-accent) 10%,transparent);pointer-events:none
+.schedule-overview-card>span:not(.schedule-overview-icon){font-size:12px;font-weight:750;color:var(--ui-muted)
+.schedule-overview-card strong{font-size:29px;font-weight:800;line-height:1.2;color:var(--ui-text);font-variant-numeric:tabular-nums
+.schedule-overview-card small{font-size:var(--type-secondary);color:var(--ui-muted)
 .schedule-overview-icon{position:absolute;right:16px;top:15px;width:36px;height:36px;border-radius:10px;
- display:grid;place-items:center;background:var(--ui-hover);color:var(--ui-accent);font-size:22px}
-.schedule-overview-icon.is-amber{background:rgba(246,174,35,.13);color:#d8941f}
-.schedule-overview-icon.is-violet{background:rgba(144,100,232,.13);color:#9672ed}
+ display:grid;place-items:center;background:var(--ui-hover);color:var(--ui-accent);font-size:22px
+.schedule-overview-icon.is-amber{background:rgba(246,174,35,.13);color:#d8941f
+.schedule-overview-icon.is-violet{background:rgba(144,100,232,.13);color:#9672ed
 .schedule-workspace-tabs{display:flex;gap:7px;flex-wrap:wrap;align-items:center;border-bottom:1px solid var(--ui-line);
- margin:19px 0;padding:0 3px 8px}
+ margin:19px 0;padding:0 3px 8px
 .schedule-workspace-tabs button{display:inline-flex;gap:8px;align-items:center;justify-content:center;
  border:0;border-bottom:3px solid transparent;border-radius:10px 10px 2px 2px;
- background:transparent;color:var(--ui-muted);font-size:13px;font-weight:740;
- min-height:44px;padding:10px 14px;cursor:pointer}
-.schedule-workspace-tabs button span{font-size:17px}
-.schedule-workspace-tabs button:hover{background:var(--ui-hover);color:var(--ui-accent)}
+ background:transparent;color:var(--ui-muted);font-size:var(--type-table);font-weight:740;
+ min-height:44px;padding:10px 14px;cursor:pointer
+.schedule-workspace-tabs button span{font-size:17px
+.schedule-workspace-tabs button:hover{background:var(--ui-hover);color:var(--ui-accent)
 .schedule-workspace-tabs button.is-active{color:var(--ui-accent);border-bottom-color:var(--ui-accent);
- background:var(--ui-hover)}
+ background:var(--ui-hover)
 #schedulesView[data-schedule-tab="regular"] #weeklyTimetableWorkspace,
 #schedulesView[data-schedule-tab="regular"] #datedSchedulePanel,
 #schedulesView[data-schedule-tab="changes"] #weeklyTimetableWorkspace,
@@ -122,107 +122,107 @@ html[data-ui-theme="dark"]{
 #schedulesView[data-schedule-tab="settings"] #periodBulkToolbar,
 #schedulesView[data-schedule-tab="settings"] .schedule-list-intro,
 #schedulesView[data-schedule-tab="settings"] #managerScheduleTableWrap{
- display:none!important}
-#schedulesView[data-schedule-tab="regular"] #timetableSettings{display:none!important}
-#schedulesView[data-schedule-tab="regular"] #managerScheduleTableWrap{display:block}
-.modern-schedule-workspace .schedule-workflow-guide{display:none!important}
+ display:none!important
+#schedulesView[data-schedule-tab="regular"] #timetableSettings{display:none!important
+#schedulesView[data-schedule-tab="regular"] #managerScheduleTableWrap{display:block
+.modern-schedule-workspace .schedule-workflow-guide{display:none!important
 .modern-schedule-workspace #periodBulkToolbar{border:1px solid var(--ui-line);border-radius:12px;
- background:var(--ui-panel-soft);padding:12px;gap:10px}
+ background:var(--ui-panel-soft);padding:12px;gap:10px
 .modern-schedule-workspace #periodBulkToolbar:not(:has(input:checked)){
  opacity:.87;
-}
+
 .modern-schedule-workspace .weekly-timetable-workspace,
 .modern-schedule-workspace .dated-schedule-panel{
  background:var(--ui-panel);border:1px solid var(--ui-line);box-shadow:none;
- border-radius:15px;padding:19px}
+ border-radius:15px;padding:19px
 .modern-schedule-workspace .weekly-timetable-toolbar>div:first-child strong,
-.modern-schedule-workspace .dated-schedule-heading h3{font-size:19px;color:var(--ui-text)}
+.modern-schedule-workspace .dated-schedule-heading h3{font-size:19px;color:var(--ui-text)
 .modern-schedule-workspace .weekly-timetable-toolbar>div:first-child span,
-.modern-schedule-workspace .dated-schedule-heading p{color:var(--ui-muted)}
-.modern-schedule-workspace .weekly-timetable-controls label{font-size:12px;color:var(--ui-muted)}
-.modern-schedule-workspace .dated-adjustment-card{background:var(--ui-panel-soft);border-color:var(--ui-line)}
-.modern-schedule-workspace .dated-adjustment-card strong{color:var(--ui-text)}
+.modern-schedule-workspace .dated-schedule-heading p{color:var(--ui-muted)
+.modern-schedule-workspace .weekly-timetable-controls label{font-size:var(--type-table);color:var(--ui-muted)
+.modern-schedule-workspace .dated-adjustment-card{background:var(--ui-panel-soft);border-color:var(--ui-line)
+.modern-schedule-workspace .dated-adjustment-card strong{color:var(--ui-text)
 /* Weekly timetable grid, with subject chips and an anchored quick-view popup. */
-.tt-grid-host{display:block!important;overflow:visible!important;padding:0!important;max-width:100%;background:transparent}
+.tt-grid-host{display:block!important;overflow:visible!important;padding:0!important;max-width:100%;background:transparent
 .tt-grid-scroll{width:100%;overflow-x:auto;overflow-y:visible;border:1px solid var(--ui-line);border-radius:13px;
- background:var(--ui-panel);overscroll-behavior-inline:contain}
-.tt-grid{width:100%;min-width:660px;border-collapse:separate;border-spacing:0;table-layout:fixed;text-align:center}
+ background:var(--ui-panel);overscroll-behavior-inline:contain
+.tt-grid{width:100%;min-width:660px;border-collapse:separate;border-spacing:0;table-layout:fixed;text-align:center
 .tt-grid th,.tt-grid td{padding:9px 7px;border-right:1px solid var(--ui-line);border-bottom:1px solid var(--ui-line);
- vertical-align:middle;color:var(--ui-text)}
-.tt-grid tr:last-child th,.tt-grid tr:last-child td{border-bottom:0}
-.tt-grid tr> :last-child{border-right:0}
-.tt-grid thead th{background:var(--ui-panel-soft);font-size:12px;font-weight:850}
-.tt-grid thead th span,.tt-grid thead th small{display:block}
-.tt-grid thead th small{margin-top:3px;font-size:11px;font-weight:500;color:var(--ui-muted)}
-.tt-grid .tt-time-heading{min-width:105px;width:112px}
-.tt-grid .tt-time{background:var(--ui-panel-soft);font-size:12px;font-weight:650;white-space:nowrap}
-.tt-grid .tt-time strong,.tt-grid .tt-time span{display:block}
-.tt-grid .tt-time span{color:var(--ui-muted);font-weight:500}
-.tt-grid .tt-class-cell{height:57px;min-width:94px}
+ vertical-align:middle;color:var(--ui-text)
+.tt-grid tr:last-child th,.tt-grid tr:last-child td{border-bottom:0
+.tt-grid tr> :last-child{border-right:0
+.tt-grid thead th{background:var(--ui-panel-soft);font-size:var(--type-table);font-weight:850
+.tt-grid thead th span,.tt-grid thead th small{display:block
+.tt-grid thead th small{margin-top:3px;font-size:var(--type-table);font-weight:500;color:var(--ui-muted)
+.tt-grid .tt-time-heading{min-width:105px;width:112px
+.tt-grid .tt-time{background:var(--ui-panel-soft);font-size:var(--type-secondary);font-weight:650;white-space:nowrap
+.tt-grid .tt-time strong,.tt-grid .tt-time span{display:block
+.tt-grid .tt-time span{color:var(--ui-muted);font-weight:500
+.tt-grid .tt-class-cell{height:57px;min-width:94px
 .tt-subject{display:flex;justify-content:center;align-items:center;gap:2px;width:100%;
  padding:9px 6px;margin:0 0 5px;border:1px solid transparent;border-radius:8px;
  font:750 12px/1.3 inherit;color:var(--ui-text);cursor:pointer;
- transition:transform .16s,border-color .16s,box-shadow .16s;overflow-wrap:anywhere}
-.tt-subject:last-child{margin-bottom:0}
+ transition:transform .16s,border-color .16s,box-shadow .16s;overflow-wrap:anywhere
+.tt-subject:last-child{margin-bottom:0
 .tt-subject:hover,.tt-subject[aria-expanded="true"]{transform:translateY(-1px);border-color:var(--ui-accent);
- box-shadow:0 0 0 2px var(--ui-focus);outline:0}
-.tt-tone-violet{background:#f0e6ff;color:#653d9b}.tt-tone-indigo{background:#e9e8ff;color:#464caa}
-.tt-tone-blue{background:#e3efff;color:#225da4}.tt-tone-mint{background:#e3f8ee;color:#1a7550}
-.tt-tone-amber{background:#fff1d7;color:#915817}.tt-tone-pink{background:#ffe7f2;color:#924b78}
-.tt-tone-adjusted{background:#fff0d3;color:#835100;border-color:#edc47b}
-.tt-tone-cancelled{background:#fae5e8;color:#a04454;text-decoration:line-through}
-.tt-change-dot{font-size:17px;line-height:10px}
-.tt-no-class{color:var(--ui-muted);opacity:.65;font-size:15px}
-.tt-grid-legend{display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin:13px 1px 0}
-.tt-grid-legend span{display:inline-flex;align-items:center;gap:6px;font-size:11px;color:var(--ui-muted)}
-.tt-grid-legend i{width:9px;height:9px;border-radius:50%;background:#8757c9}
-.tt-grid-legend i.tt-legend-adjusted{background:#ebae49}
-.tt-grid-legend i.tt-legend-cancelled{background:#cf6276}
-.tt-grid-legend .tt-grid-hint{margin-left:auto;font-weight:650}
-.tt-empty{display:grid;gap:8px;padding:25px;text-align:center;border:1px dashed var(--ui-line);border-radius:12px}
-.tt-empty span{color:var(--ui-muted)}
+ box-shadow:0 0 0 2px var(--ui-focus);outline:0
+.tt-tone-violet{background:#f0e6ff;color:#653d9b.tt-tone-indigo{background:#e9e8ff;color:#464caa
+.tt-tone-blue{background:#e3efff;color:#225da4.tt-tone-mint{background:#e3f8ee;color:#1a7550
+.tt-tone-amber{background:#fff1d7;color:#915817.tt-tone-pink{background:#ffe7f2;color:#924b78
+.tt-tone-adjusted{background:#fff0d3;color:#835100;border-color:#edc47b
+.tt-tone-cancelled{background:#fae5e8;color:#a04454;text-decoration:line-through
+.tt-change-dot{font-size:17px;line-height:10px
+.tt-no-class{color:var(--ui-muted);opacity:.65;font-size:15px
+.tt-grid-legend{display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin:13px 1px 0
+.tt-grid-legend span{display:inline-flex;align-items:center;gap:6px;font-size:var(--type-secondary);color:var(--ui-muted)
+.tt-grid-legend i{width:9px;height:9px;border-radius:50%;background:#8757c9
+.tt-grid-legend i.tt-legend-adjusted{background:#ebae49
+.tt-grid-legend i.tt-legend-cancelled{background:#cf6276
+.tt-grid-legend .tt-grid-hint{margin-left:auto;font-weight:650
+.tt-empty{display:grid;gap:8px;padding:25px;text-align:center;border:1px dashed var(--ui-line);border-radius:12px
+.tt-empty span{color:var(--ui-muted)
 .tt-detail-popover{position:fixed;z-index:32000;max-width:calc(100vw - 22px);max-height:calc(100dvh - 22px);
  overflow:auto;border:1px solid var(--ui-line);border-radius:17px;background:var(--ui-panel-raised);
  color:var(--ui-text);box-shadow:0 22px 60px rgba(16,22,55,.24),0 5px 15px rgba(0,0,0,.08);
- animation:tt-appear .15s ease-out}
-.tt-detail-popover[hidden]{display:none!important}
-@keyframes tt-appear{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
-.tt-detail-inner{padding:17px}
-.tt-detail-header{display:flex;gap:9px;align-items:center;padding-bottom:14px;border-bottom:1px solid var(--ui-line)}
+ animation:tt-appear .15s ease-out
+.tt-detail-popover[hidden]{display:none!important
+@keyframes tt-appear{from{opacity:0;transform:translateY(6px)to{opacity:1;transform:none}
+.tt-detail-inner{padding:17px
+.tt-detail-header{display:flex;gap:9px;align-items:center;padding-bottom:14px;border-bottom:1px solid var(--ui-line)
 .tt-detail-title-icon{display:grid;place-items:center;flex:none;width:34px;height:34px;border-radius:10px;
- background:var(--ui-hover);color:var(--ui-accent);font-size:22px}
-.tt-detail-header>div{flex:1;min-width:0}
-.tt-detail-header h3{font-size:16px;line-height:1.3;margin:0 0 4px;color:var(--ui-text)}
-.tt-detail-kind{font-size:11px;font-weight:800;color:var(--ui-accent)}
+ background:var(--ui-hover);color:var(--ui-accent);font-size:22px
+.tt-detail-header>div{flex:1;min-width:0
+.tt-detail-header h3{font-size:16px;line-height:1.3;margin:0 0 4px;color:var(--ui-text)
+.tt-detail-kind{font-size:var(--type-secondary);font-weight:800;color:var(--ui-accent)
 .tt-detail-close{display:grid;place-items:center;height:31px;width:31px;border:1px solid var(--ui-line);background:var(--ui-panel-soft);
- color:var(--ui-muted);border-radius:9px;cursor:pointer;font-size:20px}
-.tt-detail-list{margin:11px 0;display:grid;gap:10px}
-.tt-detail-row{display:grid;grid-template-columns:90px minmax(0,1fr);gap:8px;align-items:baseline}
-.tt-detail-row dt{font-size:11px;color:var(--ui-muted);font-weight:750}
-.tt-detail-row dd{font-size:12px;color:var(--ui-text);font-weight:600;margin:0;overflow-wrap:anywhere}
+ color:var(--ui-muted);border-radius:9px;cursor:pointer;font-size:20px
+.tt-detail-list{margin:11px 0;display:grid;gap:10px
+.tt-detail-row{display:grid;grid-template-columns:90px minmax(0,1fr);gap:8px;align-items:baseline
+.tt-detail-row dt{font-size:var(--type-secondary);color:var(--ui-muted);font-weight:750
+.tt-detail-row dd{font-size:var(--type-secondary);color:var(--ui-text);font-weight:600;margin:0;overflow-wrap:anywhere
 .tt-detail-change{display:grid;gap:3px;margin-top:8px;padding:10px 12px;border-radius:9px;background:var(--ui-hover);
- border-left:3px solid #c69a37;font-size:11px;color:var(--ui-muted)}
-.tt-detail-change strong{font-size:12px;color:var(--ui-text)}
+ border-left:3px solid #c69a37;font-size:var(--type-secondary);color:var(--ui-muted)
+.tt-detail-change strong{font-size:var(--type-secondary);color:var(--ui-text)
 .tt-detail-footer{display:flex;align-items:center;justify-content:space-between;gap:9px;border-top:1px solid var(--ui-line);
- margin-top:13px;padding-top:12px}
-.tt-detail-tip{font-size:11px;color:var(--ui-muted)}
+ margin-top:13px;padding-top:12px
+.tt-detail-tip{font-size:var(--type-secondary);color:var(--ui-muted)
 .tt-detail-action{background:var(--ui-accent);border:0;color:white;border-radius:8px;padding:9px 11px;
- font-size:12px;font-weight:750;cursor:pointer}
-.tt-quick-assign{display:grid;gap:7px;padding-top:13px;border-top:1px solid var(--ui-line);margin-top:10px}
-.tt-quick-assign label{font-size:12px;font-weight:740;color:var(--ui-text)}
-.tt-quick-assign select{background:var(--ui-panel);color:var(--ui-text);min-height:38px;padding:6px;border:1px solid var(--ui-line);border-radius:8px}
-.tt-detail-error{margin:6px 0 0;font-size:11px;color:#d65364}
-html[data-ui-theme="dark"] .tt-tone-violet{background:#3a2859;color:#ebdafa}
-html[data-ui-theme="dark"] .tt-tone-indigo{background:#2a2c60;color:#d9dcff}
-html[data-ui-theme="dark"] .tt-tone-blue{background:#16385a;color:#b3d7ff}
-html[data-ui-theme="dark"] .tt-tone-mint{background:#173e37;color:#b3ecd6}
-html[data-ui-theme="dark"] .tt-tone-amber,html[data-ui-theme="dark"] .tt-tone-adjusted{background:#46371b;color:#ffdd96}
-html[data-ui-theme="dark"] .tt-tone-pink{background:#492d47;color:#ffd1ee}
-html[data-ui-theme="dark"] .tt-tone-cancelled{background:#4c2735;color:#ffa6b4}
+ font-size:var(--type-table);font-weight:750;cursor:pointer
+.tt-quick-assign{display:grid;gap:7px;padding-top:13px;border-top:1px solid var(--ui-line);margin-top:10px
+.tt-quick-assign label{font-size:var(--type-table);font-weight:740;color:var(--ui-text)
+.tt-quick-assign select{background:var(--ui-panel);color:var(--ui-text);min-height:38px;padding:6px;border:1px solid var(--ui-line);border-radius:8px
+.tt-detail-error{margin:6px 0 0;font-size:var(--type-secondary);color:#d65364
+html[data-ui-theme="dark"] .tt-tone-violet{background:#3a2859;color:#ebdafa
+html[data-ui-theme="dark"] .tt-tone-indigo{background:#2a2c60;color:#d9dcff
+html[data-ui-theme="dark"] .tt-tone-blue{background:#16385a;color:#b3d7ff
+html[data-ui-theme="dark"] .tt-tone-mint{background:#173e37;color:#b3ecd6
+html[data-ui-theme="dark"] .tt-tone-amber,html[data-ui-theme="dark"] .tt-tone-adjusted{background:#46371b;color:#ffdd96
+html[data-ui-theme="dark"] .tt-tone-pink{background:#492d47;color:#ffd1ee
+html[data-ui-theme="dark"] .tt-tone-cancelled{background:#4c2735;color:#ffa6b4
 /* Step-based schedule form is now a scrollable drawer; existing field logic is untouched. */
-body.schedule-drawer-open{overflow:hidden!important}
-.schedule-drawer-backdrop{position:fixed;inset:0;z-index:30000;background:rgba(9,14,31,.58);backdrop-filter:blur(4px)}
-.schedule-drawer-backdrop[hidden]{display:none!important}
+body.schedule-drawer-open{overflow:hidden!important
+.schedule-drawer-backdrop{position:fixed;inset:0;z-index:30000;background:rgba(9,14,31,.58);backdrop-filter:blur(4px)
+.schedule-drawer-backdrop[hidden]{display:none!important
 #scheduleForm.schedule-side-drawer:not([hidden]),
 #scheduleAdjustmentForm.schedule-side-drawer:not([hidden]){
  display:block!important;position:fixed!important;z-index:30020!important;inset:0 0 0 auto!important;
@@ -231,35 +231,35 @@ body.schedule-drawer-open{overflow:hidden!important}
  background:var(--ui-panel)!important;color:var(--ui-text)!important;border:0!important;
  border-radius:18px 0 0 18px!important;box-shadow:-18px 0 70px rgba(0,0,0,.2)!important;
  padding:23px 24px 35px!important;
-}
-.schedule-side-drawer[hidden]{display:none!important}
+
+.schedule-side-drawer[hidden]{display:none!important
 .schedule-drawer-heading{display:flex;align-items:flex-start;justify-content:space-between;gap:10px;
- padding-bottom:16px;margin-bottom:16px;border-bottom:1px solid var(--ui-line)}
-.schedule-drawer-heading span{font-size:11px;font-weight:850;letter-spacing:.08em;color:var(--ui-accent)}
-.schedule-drawer-heading h3{font-size:22px;color:var(--ui-text);margin:4px 0}
-.schedule-drawer-heading p{font-size:13px;color:var(--ui-muted);line-height:1.5;margin:4px 0 0}
+ padding-bottom:16px;margin-bottom:16px;border-bottom:1px solid var(--ui-line)
+.schedule-drawer-heading span{font-size:var(--type-secondary);font-weight:850;letter-spacing:.08em;color:var(--ui-accent)
+.schedule-drawer-heading h3{font-size:22px;color:var(--ui-text);margin:4px 0
+.schedule-drawer-heading p{font-size:13px;color:var(--ui-muted);line-height:1.5;margin:4px 0 0
 .schedule-drawer-close{flex:none;width:40px;height:40px;background:var(--ui-panel-soft);
- border:1px solid var(--ui-line);color:var(--ui-text);border-radius:10px;cursor:pointer;font-size:24px}
-.schedule-side-drawer .form-context-banner{background:var(--ui-panel-soft);color:var(--ui-muted);border-radius:9px}
+ border:1px solid var(--ui-line);color:var(--ui-text);border-radius:10px;cursor:pointer;font-size:24px
+.schedule-side-drawer .form-context-banner{background:var(--ui-panel-soft);color:var(--ui-muted);border-radius:9px
 .schedule-side-drawer .schedule-form-section,.schedule-side-drawer .form-section-heading,
-.schedule-side-drawer .dated-schedule-inputs{color:var(--ui-text);border-color:var(--ui-line)}
-.schedule-side-drawer .form-section-heading{background:var(--ui-panel-soft)}
-.schedule-side-drawer .schedule-form-section{background:var(--ui-panel)}
+.schedule-side-drawer .dated-schedule-inputs{color:var(--ui-text);border-color:var(--ui-line)
+.schedule-side-drawer .form-section-heading{background:var(--ui-panel-soft)
+.schedule-side-drawer .schedule-form-section{background:var(--ui-panel)
 .schedule-side-drawer .form-actions{display:flex;flex-wrap:wrap;gap:9px;
- align-items:center;padding-top:19px;margin-top:18px;border-top:1px solid var(--ui-line)}
-.schedule-side-drawer .form-actions button{min-height:44px}
-.app-dialog-overlay{z-index:45000!important}
+ align-items:center;padding-top:19px;margin-top:18px;border-top:1px solid var(--ui-line)
+.schedule-side-drawer .form-actions button{min-height:44px
+.app-dialog-overlay{z-index:45000!important
 .app-dialog-card{background:var(--ui-panel)!important;border-color:var(--ui-line)!important;
- color:var(--ui-text)!important;border-radius:19px!important}
-.app-dialog-heading h2{color:var(--ui-text)!important}
-.app-dialog-message,.app-dialog-help,.app-dialog-eyebrow{color:var(--ui-muted)!important}
-.app-dialog-field label,.app-dialog-label{color:var(--ui-text)!important}
-.app-dialog-input{background:var(--ui-panel-raised)!important;color:var(--ui-text)!important;border-color:var(--ui-line)!important}
-.app-dialog-actions{border-color:var(--ui-line)}
-.app-dialog-button-secondary{color:var(--ui-text);background:var(--ui-panel);border-color:var(--ui-line)}
-.app-dialog-button-primary{background:var(--ui-accent)}
-.app-dialog-icon{color:var(--ui-accent);background:var(--ui-hover)}
-.app-dialog-close{color:var(--ui-muted)}
+ color:var(--ui-text)!important;border-radius:19px!important
+.app-dialog-heading h2{color:var(--ui-text)!important
+.app-dialog-message,.app-dialog-help,.app-dialog-eyebrow{color:var(--ui-muted)!important
+.app-dialog-field label,.app-dialog-label{color:var(--ui-text)!important
+.app-dialog-input{background:var(--ui-panel-raised)!important;color:var(--ui-text)!important;border-color:var(--ui-line)!important
+.app-dialog-actions{border-color:var(--ui-line)
+.app-dialog-button-secondary{color:var(--ui-text);background:var(--ui-panel);border-color:var(--ui-line)
+.app-dialog-button-primary{background:var(--ui-accent)
+.app-dialog-icon{color:var(--ui-accent);background:var(--ui-hover)
+.app-dialog-close{color:var(--ui-muted)
 /* All shared modal and form surfaces obey the active appearance. */
 .portal-page .student-edit-dialog,.portal-page .student-qr-preview-dialog,
 .portal-page .student-scan-setup-dialog,.portal-page .student-scan-notice-dialog,
@@ -269,33 +269,33 @@ body.schedule-drawer-open{overflow:hidden!important}
 .portal-page .dated-schedule-form{
  background:var(--ui-panel);color:var(--ui-text);border-color:var(--ui-line);
  border-radius:16px;
-}
+
 .portal-page .student-edit-dialog h2,.portal-page .student-edit-dialog h3,
 .portal-page .student-batch-dialog h3,.portal-page dialog h2,.portal-page dialog h3,
-.portal-page .dated-schedule-form h3{color:var(--ui-text)}
+.portal-page .dated-schedule-form h3{color:var(--ui-text)
 .portal-page .field-group label,.portal-page .dated-schedule-inputs label,
-.portal-page .timetable-setting-card label{color:var(--ui-text)}
+.portal-page .timetable-setting-card label{color:var(--ui-text)
 .portal-page .student-batch-selected-panel,.portal-page .student-batch-chip,
 .portal-page .student-batch-change-summary,.portal-page .form-context-banner,
-.portal-page .dated-schedule-explanation{background:var(--ui-panel-soft);color:var(--ui-muted);border-color:var(--ui-line)}
-.portal-page .student-edit-overlay,.portal-page .student-qr-preview-overlay{backdrop-filter:blur(5px)}
+.portal-page .dated-schedule-explanation{background:var(--ui-panel-soft);color:var(--ui-muted);border-color:var(--ui-line)
+.portal-page .student-edit-overlay,.portal-page .student-qr-preview-overlay{backdrop-filter:blur(5px)
 /* Dark mode overrides for hard-coded legacy surfaces. */
-html[data-ui-theme="dark"] .portal-page .sidebar{background:#0e1427!important;border-right:1px solid #253048}
+html[data-ui-theme="dark"] .portal-page .sidebar{background:#0e1427!important;border-right:1px solid #253048
 html[data-ui-theme="dark"] .portal-page .sidebar-brand,
-html[data-ui-theme="dark"] .portal-page .sidebar-status{border-color:#2a3550}
+html[data-ui-theme="dark"] .portal-page .sidebar-status{border-color:#2a3550
 html[data-ui-theme="dark"] .portal-page .nav-item,
 html[data-ui-theme="dark"] .portal-page .nav-group-toggle,
-html[data-ui-theme="dark"] .portal-page .nav-subitem{color:#aebbd2}
+html[data-ui-theme="dark"] .portal-page .nav-subitem{color:#aebbd2
 html[data-ui-theme="dark"] .portal-page .nav-item.active,
-html[data-ui-theme="dark"] .portal-page .nav-subitem.active{background:#33255b;color:#ecdfff}
-html[data-ui-theme="dark"] .portal-page .nav-item:hover{background:#1d2941;color:#fff}
-html[data-ui-theme="dark"] .portal-page .sidebar-brand strong{color:white}
+html[data-ui-theme="dark"] .portal-page .nav-subitem.active{background:#33255b;color:#ecdfff
+html[data-ui-theme="dark"] .portal-page .nav-item:hover{background:#1d2941;color:#fff
+html[data-ui-theme="dark"] .portal-page .sidebar-brand strong{color:white
 html[data-ui-theme="dark"] .portal-page .topbar,
 html[data-ui-theme="dark"] .portal-page .school-heading,
 html[data-ui-theme="dark"] .portal-page .school-title-block,
-html[data-ui-theme="dark"] .portal-page .view-heading{background:var(--ui-page);color:var(--ui-text)}
-html[data-ui-theme="dark"] .portal-page .account-trigger{color:#f4f6ff;background:#141e33;border-color:#293650}
-html[data-ui-theme="dark"] .portal-page .account-summary strong{color:var(--ui-text)}
+html[data-ui-theme="dark"] .portal-page .view-heading{background:var(--ui-page);color:var(--ui-text)
+html[data-ui-theme="dark"] .portal-page .account-trigger{color:#f4f6ff;background:#141e33;border-color:#293650
+html[data-ui-theme="dark"] .portal-page .account-summary strong{color:var(--ui-text)
 html[data-ui-theme="dark"] .portal-page .schedule-form-section,
 html[data-ui-theme="dark"] .portal-page .schedule-editor-form,
 html[data-ui-theme="dark"] .portal-page .timetable-settings,
@@ -306,94 +306,94 @@ html[data-ui-theme="dark"] .portal-page .stat-card,
 html[data-ui-theme="dark"] .portal-page .learner-metric,
 html[data-ui-theme="dark"] .portal-page .admin-management-tabs,
 html[data-ui-theme="dark"] .portal-page .admin-management-tab,
-html[data-ui-theme="dark"] .portal-page .section-toolbar{color:var(--ui-text);border-color:var(--ui-line)}
-html[data-ui-theme="dark"] .portal-page .section-card a:not(.primary-button){color:#bca4ff}
+html[data-ui-theme="dark"] .portal-page .section-toolbar{color:var(--ui-text);border-color:var(--ui-line)
+html[data-ui-theme="dark"] .portal-page .section-card a:not(.primary-button){color:#bca4ff
 html[data-ui-theme="dark"] .portal-page .weekly-day-column,
 html[data-ui-theme="dark"] .portal-page .weekly-schedule-card,
 html[data-ui-theme="dark"] .portal-page .dated-adjustment-card,
 html[data-ui-theme="dark"] .portal-page .timetable-saved-template,
-html[data-ui-theme="dark"] .portal-page .template-block-row{background:var(--ui-panel-soft);color:var(--ui-text);border-color:var(--ui-line)}
+html[data-ui-theme="dark"] .portal-page .template-block-row{background:var(--ui-panel-soft);color:var(--ui-text);border-color:var(--ui-line)
 html[data-ui-theme="dark"] .portal-page .weekly-day-column strong,
-html[data-ui-theme="dark"] .portal-page .dated-adjustment-card strong{color:var(--ui-text)}
+html[data-ui-theme="dark"] .portal-page .dated-adjustment-card strong{color:var(--ui-text)
 html[data-ui-theme="dark"] .portal-page .quick-action,
 html[data-ui-theme="dark"] .portal-page .dashboard-metric,
 html[data-ui-theme="dark"] .portal-page .summary-card,
-html[data-ui-theme="dark"] .portal-page .school-stat-card{background:var(--ui-panel-soft);color:var(--ui-text);border-color:var(--ui-line)}
+html[data-ui-theme="dark"] .portal-page .school-stat-card{background:var(--ui-panel-soft);color:var(--ui-text);border-color:var(--ui-line)
 html[data-ui-theme="dark"] .portal-page .inline-feedback,
-html[data-ui-theme="dark"] .portal-page .muted-inline{color:var(--ui-muted)}
-html[data-ui-theme="dark"] .portal-page .connection-chip{background:#1f2b3e;color:#eab96e;border-color:#4f422b}
-html[data-ui-theme="dark"] .portal-page .form-context-help{background:var(--ui-panel-soft);border-color:var(--ui-line);color:var(--ui-muted)}
-@media(max-width:980px){.schedule-overview{gap:9px}.schedule-overview-card{padding:15px}.schedule-workspace-tabs{gap:3px}
- .schedule-workspace-tabs button{padding:10px 9px;font-size:12px}}
+html[data-ui-theme="dark"] .portal-page .muted-inline{color:var(--ui-muted)
+html[data-ui-theme="dark"] .portal-page .connection-chip{background:#1f2b3e;color:#eab96e;border-color:#4f422b
+html[data-ui-theme="dark"] .portal-page .form-context-help{background:var(--ui-panel-soft);border-color:var(--ui-line);color:var(--ui-muted)
+@media(max-width:980px){.schedule-overview{gap:9px.schedule-overview-card{padding:15px.schedule-workspace-tabs{gap:3px
+ .schedule-workspace-tabs button{padding:10px 9px;font-size:var(--type-table)}
 @media(max-width:640px){
- .schedule-overview{grid-template-columns:repeat(3,minmax(0,1fr));gap:7px}
- .schedule-overview-card{padding:12px 9px;border-radius:12px}
- .schedule-overview-card>span:not(.schedule-overview-icon){font-size:10px}
- .schedule-overview-card strong{font-size:23px}
- .schedule-overview-card small{font-size:9px}
- .schedule-overview-icon{display:none}
- .schedule-workspace-tabs{display:flex;flex-wrap:nowrap;overflow-x:auto;scrollbar-width:thin}
- .schedule-workspace-tabs button{white-space:nowrap;min-width:max-content}
- .modern-schedule-workspace .schedule-primary-actions{width:100%}
- .modern-schedule-workspace .schedule-primary-actions button{flex:1 1 auto}
- .tt-grid .tt-time-heading{width:100px}
+ .schedule-overview{grid-template-columns:repeat(3,minmax(0,1fr));gap:7px
+ .schedule-overview-card{padding:12px 9px;border-radius:12px
+ .schedule-overview-card>span:not(.schedule-overview-icon){font-size:10px
+ .schedule-overview-card strong{font-size:23px
+ .schedule-overview-card small{font-size:var(--type-secondary)
+ .schedule-overview-icon{display:none
+ .schedule-workspace-tabs{display:flex;flex-wrap:nowrap;overflow-x:auto;scrollbar-width:thin
+ .schedule-workspace-tabs button{white-space:nowrap;min-width:max-content
+ .modern-schedule-workspace .schedule-primary-actions{width:100%
+ .modern-schedule-workspace .schedule-primary-actions button{flex:1 1 auto
+ .tt-grid .tt-time-heading{width:100px
  .tt-detail-popover{inset:auto 8px 8px 8px!important;width:auto!important;
-  max-height:min(80dvh,550px);overflow:auto;border-radius:17px}
+  max-height:min(80dvh,550px);overflow:auto;border-radius:17px
  #scheduleForm.schedule-side-drawer:not([hidden]),
  #scheduleAdjustmentForm.schedule-side-drawer:not([hidden]){
   width:100vw!important;border-radius:14px 14px 0 0!important;
   top:6vh!important;height:94dvh!important;max-height:94dvh!important;
-  padding:18px 14px 30px!important}
- .schedule-drawer-heading h3{font-size:19px}
- .ui-theme-toggle{min-width:38px;padding:0 8px}
+  padding:18px 14px 30px!important
+ .schedule-drawer-heading h3{font-size:19px
+ .ui-theme-toggle{min-width:38px;padding:0 8px
 }
-@media(prefers-reduced-motion:reduce){.tt-detail-popover{animation:none!important}.tt-subject{transition:none!important}}
+@media(prefers-reduced-motion:reduce){.tt-detail-popover{animation:none!important.tt-subject{transition:none!important}
 /* Shared reference finish: brand-aware navigation and readable modal surfaces. */
-.portal-page .sidebar{background:linear-gradient(165deg,color-mix(in srgb,var(--brand,#7042a3) 45%,#20132f),color-mix(in srgb,var(--brand,#7042a3) 65%,#271837));color:#fff}
-.portal-page .nav-item.active,.portal-page .nav-subitem.active{background:color-mix(in srgb,var(--brand,#7042a3) 75%,#a17ad1);color:#fff;border-radius:10px}
-html[data-ui-theme="dark"] .portal-page .sidebar{background:linear-gradient(180deg,#101322,color-mix(in srgb,var(--brand,#7042a3) 15%,#101322))!important}
-html[data-ui-theme="dark"] .portal-page .nav-item.active,html[data-ui-theme="dark"] .portal-page .nav-subitem.active{background:color-mix(in srgb,var(--brand,#7042a3) 50%,#222039);color:#fff}
-.portal-page :is(dialog,.modal-content,.student-edit-dialog,.leave-dialog){max-height:90dvh;overflow-y:auto;overscroll-behavior:contain}
-.portal-page dialog::backdrop{background:rgba(9,14,31,.58);backdrop-filter:blur(4px)}
-.portal-page :is(.dialog-header,.form-section-heading){border-color:var(--ui-line);color:var(--ui-text)}
-.portal-page :is(.dialog-close,.student-edit-close){background:var(--ui-panel-soft);color:var(--ui-text);border-color:var(--ui-line)}
-.schedule-side-drawer .form-actions{position:sticky;bottom:-35px;background:var(--ui-panel);padding-bottom:16px;z-index:2}
-.tt-subject[aria-expanded="true"]{outline:2px solid var(--ui-accent);outline-offset:2px}
-.tt-detail-kind{display:inline-block;background:var(--ui-hover);padding:4px 7px;border-radius:7px}
-@media(max-width:640px){.schedule-side-drawer .form-actions{bottom:-30px}}
+.portal-page .sidebar{background:linear-gradient(165deg,color-mix(in srgb,var(--brand,#7042a3) 45%,#20132f),color-mix(in srgb,var(--brand,#7042a3) 65%,#271837));color:#fff
+.portal-page .nav-item.active,.portal-page .nav-subitem.active{background:color-mix(in srgb,var(--brand,#7042a3) 75%,#a17ad1);color:#fff;border-radius:10px
+html[data-ui-theme="dark"] .portal-page .sidebar{background:linear-gradient(180deg,#101322,color-mix(in srgb,var(--brand,#7042a3) 15%,#101322))!important
+html[data-ui-theme="dark"] .portal-page .nav-item.active,html[data-ui-theme="dark"] .portal-page .nav-subitem.active{background:color-mix(in srgb,var(--brand,#7042a3) 50%,#222039);color:#fff
+.portal-page :is(dialog,.modal-content,.student-edit-dialog,.leave-dialog){max-height:90dvh;overflow-y:auto;overscroll-behavior:contain
+.portal-page dialog::backdrop{background:rgba(9,14,31,.58);backdrop-filter:blur(4px)
+.portal-page :is(.dialog-header,.form-section-heading){border-color:var(--ui-line);color:var(--ui-text)
+.portal-page :is(.dialog-close,.student-edit-close){background:var(--ui-panel-soft);color:var(--ui-text);border-color:var(--ui-line)
+.schedule-side-drawer .form-actions{position:sticky;bottom:-35px;background:var(--ui-panel);padding-bottom:16px;z-index:2
+.tt-subject[aria-expanded="true"]{outline:2px solid var(--ui-accent);outline-offset:2px
+.tt-detail-kind{display:inline-block;background:var(--ui-hover);padding:4px 7px;border-radius:7px
+@media(max-width:640px){.schedule-side-drawer .form-actions{bottom:-30px}
 /* School identity owns accent colors; appearance only changes light/dark surfaces. */
-:root{--ui-accent:var(--brand,#7042a3);--ui-hover:color-mix(in srgb,var(--brand,#7042a3) 9%,#fff);--ui-focus:color-mix(in srgb,var(--brand,#7042a3) 35%,transparent)}
-html[data-ui-theme="dark"]{--ui-accent:color-mix(in srgb,var(--brand,#7042a3) 55%,#fff);--ui-hover:color-mix(in srgb,var(--brand,#7042a3) 20%,#151c2d)}
-.ui-icon{display:inline-block;width:20px;height:20px;flex:none;vertical-align:middle;pointer-events:none}
-.portal-page :is(.primary-button,.outline-button,.secondary-button){display:inline-flex;align-items:center;justify-content:center;gap:8px}
-.nav-icon .ui-icon{width:21px;height:21px;fill:none}
-.menu-symbol{display:inline-flex;align-items:center}
-.tt-detail-row dt{display:flex;gap:6px;align-items:center}
-.tt-detail-row dt .ui-icon{width:15px;height:15px}
-.tt-detail-row{grid-template-columns:108px minmax(0,1fr)}
-.tt-subject{font-family:inherit;font-size:12px;font-weight:700;line-height:1.35}
-.schedule-overview-card:first-child{background:linear-gradient(120deg,var(--ui-panel),var(--ui-hover))}
-.schedule-overview-card:nth-child(2){background:linear-gradient(120deg,var(--ui-panel),color-mix(in srgb,#e7a830 7%,var(--ui-panel)))}
-.schedule-overview-card:nth-child(3){background:linear-gradient(120deg,var(--ui-panel),color-mix(in srgb,#579ede 8%,var(--ui-panel)))}
-.schedule-overview-icon.is-violet{color:var(--ui-accent);background:var(--ui-hover)}
-.schedule-side-drawer .schedule-form-section{border:1px solid var(--ui-line);border-radius:13px;padding:14px;margin-bottom:15px}
-.schedule-side-drawer .form-section-heading{border:0;border-radius:9px;background:var(--ui-hover);padding:12px;margin-bottom:14px}
-.schedule-side-drawer .form-section-heading strong{color:var(--ui-accent)}
-.schedule-side-drawer .form-section-heading small{color:var(--ui-muted)}
-.portal-page :is(.student-card,.parent-card,.child-card,.student-profile-item,.dashboard-scan-cta,.dashboard-metric,.summary-card,.school-stat-card){background:var(--ui-panel);color:var(--ui-text);border:1px solid var(--ui-line);border-radius:16px;box-shadow:var(--ui-shadow)}
-.portal-page :is(.student-header h1,.parent-head h1,.student-card h2,.parent-card h2,.child-card h3,.student-profile-item strong,.dashboard-scan-cta-copy h2){color:var(--ui-text)}
-.portal-page :is(.student-header p,.parent-head p,.child-card p,.student-profile-item span,.student-card .muted,.parent-card>p,.dashboard-scan-cta-copy p){color:var(--ui-muted)}
-.portal-page :is(.parent-note,.student-note,.scan-setup-field,.form-context-help){background:var(--ui-panel-soft);color:var(--ui-muted);border-color:var(--ui-line)}
-.portal-page :is(.dashboard-open-scanner,.dashboard-add-student){background:var(--brand,#7042a3);color:#fff;border-color:var(--brand,#7042a3)}
-.portal-page .dashboard-scan-kicker{color:var(--ui-accent)}
-html[data-ui-theme="dark"] .portal-page :is(.scan-setup-description,.scan-setup-field small,.student-scan-setup-dialog h3,.student-scan-notice-dialog h3,.scan-mode-summary){color:var(--ui-text)}
-html[data-ui-theme="dark"] .portal-page :is(.scan-setup-field select,.account-profile-dialog,.password-required){background:var(--ui-panel);color:var(--ui-text);border-color:var(--ui-line)}
-.ui-appearance-menu{position:relative;color:var(--ui-text);font-size:13px}
-.ui-appearance-menu>summary{cursor:pointer;padding:11px 13px;border:1px solid var(--ui-line);border-radius:10px;background:var(--ui-panel)}
-.ui-appearance-panel{position:absolute;top:calc(100% + 8px);right:0;z-index:1000;width:260px;max-width:calc(100vw - 32px);background:var(--ui-panel);border:1px solid var(--ui-line);border-radius:13px;box-shadow:var(--ui-shadow)}
-.ui-appearance-panel .ui-theme-control{border:0}
-@media(min-width:900px){#scheduleForm.schedule-side-drawer:not([hidden]),#scheduleAdjustmentForm.schedule-side-drawer:not([hidden]){inset:16px 16px 16px auto!important;width:min(600px,48vw)!important;height:calc(100dvh - 32px)!important;max-height:calc(100dvh - 32px)!important;border-radius:18px!important;border:1px solid var(--ui-line)!important}}
-@media(prefers-reduced-motion:reduce){.portal-page *, .portal-page *::before,.portal-page *::after{scroll-behavior:auto!important;transition:none!important;animation:none!important}}
+:root{--ui-accent:var(--brand,#7042a3);--ui-hover:color-mix(in srgb,var(--brand,#7042a3) 9%,#fff);--ui-focus:color-mix(in srgb,var(--brand,#7042a3) 35%,transparent)
+html[data-ui-theme="dark"]{--ui-accent:color-mix(in srgb,var(--brand,#7042a3) 55%,#fff);--ui-hover:color-mix(in srgb,var(--brand,#7042a3) 20%,#151c2d)
+.ui-icon{display:inline-block;width:20px;height:20px;flex:none;vertical-align:middle;pointer-events:none
+.portal-page :is(.primary-button,.outline-button,.secondary-button){display:inline-flex;align-items:center;justify-content:center;gap:8px
+.nav-icon .ui-icon{width:21px;height:21px;fill:none
+.menu-symbol{display:inline-flex;align-items:center
+.tt-detail-row dt{display:flex;gap:6px;align-items:center
+.tt-detail-row dt .ui-icon{width:15px;height:15px
+.tt-detail-row{grid-template-columns:108px minmax(0,1fr)
+.tt-subject{font-family:inherit;font-size:var(--type-secondary);font-weight:700;line-height:1.35
+.schedule-overview-card:first-child{background:linear-gradient(120deg,var(--ui-panel),var(--ui-hover))
+.schedule-overview-card:nth-child(2){background:linear-gradient(120deg,var(--ui-panel),color-mix(in srgb,#e7a830 7%,var(--ui-panel)))
+.schedule-overview-card:nth-child(3){background:linear-gradient(120deg,var(--ui-panel),color-mix(in srgb,#579ede 8%,var(--ui-panel)))
+.schedule-overview-icon.is-violet{color:var(--ui-accent);background:var(--ui-hover)
+.schedule-side-drawer .schedule-form-section{border:1px solid var(--ui-line);border-radius:13px;padding:14px;margin-bottom:15px
+.schedule-side-drawer .form-section-heading{border:0;border-radius:9px;background:var(--ui-hover);padding:12px;margin-bottom:14px
+.schedule-side-drawer .form-section-heading strong{color:var(--ui-accent)
+.schedule-side-drawer .form-section-heading small{color:var(--ui-muted)
+.portal-page :is(.student-card,.parent-card,.child-card,.student-profile-item,.dashboard-scan-cta,.dashboard-metric,.summary-card,.school-stat-card){background:var(--ui-panel);color:var(--ui-text);border:1px solid var(--ui-line);border-radius:16px;box-shadow:var(--ui-shadow)
+.portal-page :is(.student-header h1,.parent-head h1,.student-card h2,.parent-card h2,.child-card h3,.student-profile-item strong,.dashboard-scan-cta-copy h2){color:var(--ui-text)
+.portal-page :is(.student-header p,.parent-head p,.child-card p,.student-profile-item span,.student-card .muted,.parent-card>p,.dashboard-scan-cta-copy p){color:var(--ui-muted)
+.portal-page :is(.parent-note,.student-note,.scan-setup-field,.form-context-help){background:var(--ui-panel-soft);color:var(--ui-muted);border-color:var(--ui-line)
+.portal-page :is(.dashboard-open-scanner,.dashboard-add-student){background:var(--brand,#7042a3);color:#fff;border-color:var(--brand,#7042a3)
+.portal-page .dashboard-scan-kicker{color:var(--ui-accent)
+html[data-ui-theme="dark"] .portal-page :is(.scan-setup-description,.scan-setup-field small,.student-scan-setup-dialog h3,.student-scan-notice-dialog h3,.scan-mode-summary){color:var(--ui-text)
+html[data-ui-theme="dark"] .portal-page :is(.scan-setup-field select,.account-profile-dialog,.password-required){background:var(--ui-panel);color:var(--ui-text);border-color:var(--ui-line)
+.ui-appearance-menu{position:relative;color:var(--ui-text);font-size:var(--type-table)
+.ui-appearance-menu>summary{cursor:pointer;padding:11px 13px;border:1px solid var(--ui-line);border-radius:10px;background:var(--ui-panel)
+.ui-appearance-panel{position:absolute;top:calc(100% + 8px);right:0;z-index:1000;width:260px;max-width:calc(100vw - 32px);background:var(--ui-panel);border:1px solid var(--ui-line);border-radius:13px;box-shadow:var(--ui-shadow)
+.ui-appearance-panel .ui-theme-control{border:0
+@media(min-width:900px){#scheduleForm.schedule-side-drawer:not([hidden]),#scheduleAdjustmentForm.schedule-side-drawer:not([hidden]){inset:16px 16px 16px auto!important;width:min(600px,48vw)!important;height:calc(100dvh - 32px)!important;max-height:calc(100dvh - 32px)!important;border-radius:18px!important;border:1px solid var(--ui-line)!important}
+@media(prefers-reduced-motion:reduce){.portal-page *, .portal-page *::before,.portal-page *::after{scroll-behavior:auto!important;transition:none!important;animation:none!important}
 
 
 /* Unified dark appearance for all roles; school-owned --brand is unchanged. */
@@ -403,10 +403,10 @@ html[data-ui-theme="dark"]{
  --ui-panel-raised:#1d2b42;--ui-text:#edf3fe;--ui-muted:#aebed4;
  --ui-line:#324159;--ui-shadow:0 18px 44px rgba(0,0,0,.26);
  --ui-hover:color-mix(in srgb,var(--brand,#2463a5) 20%,#17243a);
-}
+
 html[data-ui-theme="dark"] :is(body,.portal-page,.main-area,.content-wrap,.student-page,.parent-page){
  background:var(--ui-page);color:var(--ui-text)
-}
+
 html[data-ui-theme="dark"] .portal-page :is(
  .surface-card,.section-card,.student-card,.parent-card,.child-card,.student-summary-item,
  .student-profile-item,.dashboard-metric,.school-stat-card,.summary-card,.account-dropdown,
@@ -416,91 +416,91 @@ html[data-ui-theme="dark"] .portal-page :is(
  .admin-monitoring-card,.scan-setup-field,.platform-welcome,.platform-create-card,
  .platform-recovery-card,.student-batch-dialog,.ui-appearance-panel){
  background:var(--ui-panel)!important;color:var(--ui-text)!important;border-color:var(--ui-line)!important
-}
+
 html[data-ui-theme="dark"] .portal-page :is(
  .field-group label,.student-summary-item strong,.student-profile-item strong,
  .parent-head h1,.student-header h1,.platform-welcome h2,.section-toolbar h3,
  .card-heading h3,.student-scan-setup-dialog h3,.student-scan-notice-dialog h3,
  .student-qr-preview-content strong,.dashboard-scan-cta-copy h2){
  color:var(--ui-text)!important
-}
+
 html[data-ui-theme="dark"] .portal-page :is(
  .login-subtitle,.field-hint,.form-help,.parent-note,.student-note,
  .student-summary-item span,.student-profile-item span,.child-card p,
  .parent-head p,.student-header p,.student-qr-preview-content span){
  color:var(--ui-muted)!important
-}
+
 html[data-ui-theme="dark"] .portal-page :is(
  input:not([type="checkbox"]):not([type="radio"]):not([type="color"]),
  select,textarea,.outline-button,.secondary-button,.compact-button,
  .schedule-display-toggle button,.student-filter-row input){
  background:var(--ui-panel-raised)!important;color:var(--ui-text)!important;border-color:var(--ui-line)!important
-}
+
 html[data-ui-theme="dark"] .portal-page :is(.table-scroll,table,.table-scroll td,table td){
  background:var(--ui-panel);color:var(--ui-text);border-color:var(--ui-line)
-}
+
 html[data-ui-theme="dark"] .portal-page :is(.table-scroll th,table th){
  background:var(--ui-panel-soft)!important;color:var(--ui-muted)!important;border-color:var(--ui-line)
-}
+
 html[data-ui-theme="dark"] .portal-page :is(.table-scroll tbody tr:hover td,.account-menu-item:hover,.quick-action:hover){
  background:var(--ui-hover)!important
-}
+
 html[data-ui-theme="dark"] .portal-page :is(
  .role-pill,.mini-tag,.status-tag,.teacher-scope-item,.parent-note,
  .student-note,.form-context-banner,.student-batch-chip){
  background:var(--ui-panel-soft)!important;color:var(--ui-text)!important;border-color:var(--ui-line)!important
-}
+
 html[data-ui-theme="dark"] .portal-page .dashboard-scan-cta{
  background:var(--ui-panel)!important;color:var(--ui-text)!important;border-color:var(--ui-line)
-}
+
 html[data-ui-theme="dark"] .portal-page .sidebar{
  background:linear-gradient(180deg,#0d1728,color-mix(in srgb,var(--brand,#2463a5) 16%,#0d1728))!important;
  border-right:1px solid var(--ui-line)
-}
+
 html[data-ui-theme="dark"] .portal-page :is(dialog,.student-edit-dialog,.student-scan-setup-dialog,.student-scan-notice-dialog){
  box-shadow:0 28px 70px rgba(0,0,0,.52)
-}
+
 html[data-ui-theme="dark"] .portal-page :is(input,select,textarea,button):focus-visible{
  outline:3px solid var(--ui-focus);outline-offset:2px
-}
-html[data-ui-theme="dark"] .portal-page :is(input[type="date"],input[type="time"]){color-scheme:dark}
-.platform-recovery-card h3{display:flex;align-items:center;gap:9px}
-.platform-recovery-card h3 .ui-icon{color:var(--ui-accent)}
-.platform-recovery-card .form-grid{margin-top:14px}
+
+html[data-ui-theme="dark"] .portal-page :is(input[type="date"],input[type="time"]){color-scheme:dark
+.platform-recovery-card h3{display:flex;align-items:center;gap:9px
+.platform-recovery-card h3 .ui-icon{color:var(--ui-accent)
+.platform-recovery-card .form-grid{margin-top:14px
 .recovery-code-result{margin-top:16px;padding:17px;border:1px solid var(--ui-line);border-radius:14px;
- background:var(--ui-panel-soft);color:var(--ui-text)}
-.recovery-code-result[hidden],.school-admin-recovery-form[hidden],#loginForm[hidden],#schoolAdminRecoveryLink[hidden]{display:none!important}
-.recovery-code-result p,.recovery-code-result small{color:var(--ui-muted)}
-.recovery-code-copy{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin:12px 0}
+ background:var(--ui-panel-soft);color:var(--ui-text)
+.recovery-code-result[hidden],.school-admin-recovery-form[hidden],#loginForm[hidden],#schoolAdminRecoveryLink[hidden]{display:none!important
+.recovery-code-result p,.recovery-code-result small{color:var(--ui-muted)
+.recovery-code-copy{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin:12px 0
 .recovery-code-copy code{padding:12px 14px;border-radius:9px;border:1px dashed var(--ui-accent);
  background:var(--ui-panel);color:var(--ui-text);
  font:700 clamp(13px,2vw,19px)/1.5 ui-monospace,SFMono-Regular,Consolas,monospace;
- letter-spacing:.05em;overflow-wrap:anywhere}
+ letter-spacing:.05em;overflow-wrap:anywhere
 .recovery-text-button{border:0;background:transparent;color:var(--brand,#2463a5);
- padding:7px 0;cursor:pointer;font:inherit;text-decoration:underline;text-underline-offset:3px}
+ padding:7px 0;cursor:pointer;font:inherit;text-decoration:underline;text-underline-offset:3px
 .school-admin-recovery-form{margin-top:16px;padding:18px;border-radius:14px;
- border:1px solid #d8e3ef;background:#f8fbff}
-.school-admin-recovery-form h3{margin:0 0 8px}
-.school-admin-recovery-form .field-group{margin-bottom:11px}
-.school-admin-recovery-form .field-group input{width:100%}
-.portal-page .ui-icon{stroke-width:1.85}
-.portal-page :is(.nav-item,.nav-group-toggle) .nav-icon{display:inline-flex;align-items:center;justify-content:center}
-.portal-page :is(.nav-item,.nav-group-toggle) .ui-icon{width:21px;height:21px}
-.portal-page button .ui-icon{width:18px;height:18px}
-@media(max-width:640px){.platform-recovery-card .form-actions button{width:100%}.recovery-code-copy{align-items:stretch;flex-direction:column}}
+ border:1px solid #d8e3ef;background:#f8fbff
+.school-admin-recovery-form h3{margin:0 0 8px
+.school-admin-recovery-form .field-group{margin-bottom:11px
+.school-admin-recovery-form .field-group input{width:100%
+.portal-page .ui-icon{stroke-width:1.85
+.portal-page :is(.nav-item,.nav-group-toggle) .nav-icon{display:inline-flex;align-items:center;justify-content:center
+.portal-page :is(.nav-item,.nav-group-toggle) .ui-icon{width:21px;height:21px
+.portal-page button .ui-icon{width:18px;height:18px
+@media(max-width:640px){.platform-recovery-card .form-actions button{width:100%.recovery-code-copy{align-items:stretch;flex-direction:column}
 
 /* Override original narrow drawer rule with the same ID specificity. */
 @media(min-width:1100px){
- #scheduleForm.schedule-side-drawer:not([hidden]){width:min(1220px,calc(100vw - 64px))!important;max-width:calc(100vw - 64px)!important;padding:20px 28px 28px!important}
- #scheduleForm.schedule-side-drawer .form-grid{grid-template-columns:repeat(3,minmax(0,1fr))!important;gap:12px 18px!important}
- #scheduleForm.schedule-side-drawer .schedule-time-selector{grid-template-columns:repeat(2,minmax(0,1fr))!important}
- #scheduleForm.schedule-side-drawer .schedule-form-section{padding:10px 0 4px!important}
- #scheduleForm.schedule-side-drawer .form-section-heading{margin-bottom:8px!important}
- #scheduleForm.schedule-side-drawer .form-actions{position:sticky!important;bottom:-28px!important;z-index:3!important;background:var(--ui-panel)!important;padding:12px 0!important}
+ #scheduleForm.schedule-side-drawer:not([hidden]){width:min(1220px,calc(100vw - 64px))!important;max-width:calc(100vw - 64px)!important;padding:20px 28px 28px!important
+ #scheduleForm.schedule-side-drawer .form-grid{grid-template-columns:repeat(3,minmax(0,1fr))!important;gap:12px 18px!important
+ #scheduleForm.schedule-side-drawer .schedule-time-selector{grid-template-columns:repeat(2,minmax(0,1fr))!important
+ #scheduleForm.schedule-side-drawer .schedule-form-section{padding:10px 0 4px!important
+ #scheduleForm.schedule-side-drawer .form-section-heading{margin-bottom:8px!important
+ #scheduleForm.schedule-side-drawer .form-actions{position:sticky!important;bottom:-28px!important;z-index:3!important;background:var(--ui-panel)!important;padding:12px 0!important
 }
 @media(min-width:700px) and (max-width:1099px){
- #scheduleForm.schedule-side-drawer:not([hidden]){width:min(850px,calc(100vw - 24px))!important;max-width:calc(100vw - 24px)!important}
+ #scheduleForm.schedule-side-drawer:not([hidden]){width:min(850px,calc(100vw - 24px))!important;max-width:calc(100vw - 24px)!important
 }
 @media(max-width:699px){
- #scheduleForm.schedule-side-drawer:not([hidden]),#scheduleAdjustmentForm.schedule-side-drawer:not([hidden]){width:100vw!important;max-width:100vw!important;padding:16px!important;border-radius:0!important}
+ #scheduleForm.schedule-side-drawer:not([hidden]),#scheduleAdjustmentForm.schedule-side-drawer:not([hidden]){width:100vw!important;max-width:100vw!important;padding:16px!important;border-radius:0!important
 }

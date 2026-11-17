@@ -1,40 +1,40 @@
 /* Class scheduling dialog: readable responsive form and usable scroll area. */
-#scheduleForm, #scheduleForm * {box-sizing:border-box}
-#scheduleForm {min-width:0;max-width:100%;width:100%;overflow-x:hidden}
-#scheduleForm .form-grid,#scheduleForm .schedule-form-section,#scheduleForm .field-group,#scheduleForm .schedule-subject-control {min-width:0;max-width:100%}
-#scheduleForm .form-grid {display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}
-#scheduleForm .field-group input,#scheduleForm .field-group select {max-width:100%;min-width:0}
-#scheduleForm .schedule-subject-control {display:flex;flex-wrap:wrap;gap:8px;align-items:stretch}
-#scheduleForm .schedule-subject-control select {flex:1 1 180px;width:auto;min-width:0}
-#scheduleForm .schedule-subject-control button {flex:0 1 auto;min-height:44px;white-space:normal}
-#scheduleForm .form-actions {position:relative;z-index:1;background:inherit;display:flex;flex-wrap:wrap;gap:10px}
+#scheduleForm, #scheduleForm * {box-sizing:border-box
+#scheduleForm {min-width:0;max-width:100%;width:100%;overflow-x:hidden
+#scheduleForm .form-grid,#scheduleForm .schedule-form-section,#scheduleForm .field-group,#scheduleForm .schedule-subject-control {min-width:0;max-width:100%
+#scheduleForm .form-grid {display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px
+#scheduleForm .field-group input,#scheduleForm .field-group select {max-width:100%;min-width:0
+#scheduleForm .schedule-subject-control {display:flex;flex-wrap:wrap;gap:8px;align-items:stretch
+#scheduleForm .schedule-subject-control select {flex:1 1 180px;width:auto;min-width:0
+#scheduleForm .schedule-subject-control button {flex:0 1 auto;min-height:44px;white-space:normal
+#scheduleForm .form-actions {position:relative;z-index:1;background:inherit;display:flex;flex-wrap:wrap;gap:10px
 @media(max-width:900px){
- #scheduleForm .form-grid {grid-template-columns:1fr!important;gap:16px!important}
- #scheduleForm .schedule-form-section {padding:14px 0!important}
- #scheduleForm .form-section-heading {padding:12px!important;border-radius:12px}
- #scheduleForm .schedule-subject-control {display:grid;grid-template-columns:minmax(0,1fr);gap:8px}
- #scheduleForm .schedule-subject-control select,#scheduleForm .schedule-subject-control button {width:100%!important}
- #scheduleForm .form-actions {display:grid;grid-template-columns:1fr 1fr;align-items:stretch}
- #scheduleForm .form-actions button {min-width:0;min-height:46px}
- #scheduleForm .form-actions .inline-feedback {grid-column:1/-1}
+ #scheduleForm .form-grid {grid-template-columns:1fr!important;gap:16px!important
+ #scheduleForm .schedule-form-section {padding:14px 0!important
+ #scheduleForm .form-section-heading {padding:12px!important;border-radius:12px
+ #scheduleForm .schedule-subject-control {display:grid;grid-template-columns:minmax(0,1fr);gap:8px
+ #scheduleForm .schedule-subject-control select,#scheduleForm .schedule-subject-control button {width:100%!important
+ #scheduleForm .form-actions {display:grid;grid-template-columns:1fr 1fr;align-items:stretch
+ #scheduleForm .form-actions button {min-width:0;min-height:46px
+ #scheduleForm .form-actions .inline-feedback {grid-column:1/-1
 }
 @media(max-width:520px){
- #scheduleForm .form-actions {grid-template-columns:1fr}
- #scheduleForm .form-actions .inline-feedback {grid-column:1}
+ #scheduleForm .form-actions {grid-template-columns:1fr
+ #scheduleForm .form-actions .inline-feedback {grid-column:1
 }
 
 /* The school timetable is the source of truth for linked class schedule times. */
-#scheduleForm .schedule-time-selector {margin-bottom:14px}
-#scheduleForm .schedule-block-label {display:block;margin-top:12px}
-#scheduleForm input[readonly] {background:#f0f5fa!important;color:#244463!important;cursor:default}
-#scheduleForm #scheduleTemplatePeriod:disabled {opacity:.82}
-html[data-ui-theme="dark"] #scheduleForm input[readonly] {background:#233954!important;color:#e1edfc!important;border-color:#526a87!important}
+#scheduleForm .schedule-time-selector {margin-bottom:14px
+#scheduleForm .schedule-block-label {display:block;margin-top:12px
+#scheduleForm input[readonly] {background:#f0f5fa!important;color:#244463!important;cursor:default
+#scheduleForm #scheduleTemplatePeriod:disabled {opacity:.82
+html[data-ui-theme="dark"] #scheduleForm input[readonly] {background:#233954!important;color:#e1edfc!important;border-color:#526a87!important
 @media(max-width:900px){
- #scheduleForm .schedule-time-selector {grid-template-columns:minmax(0,1fr)!important}
+ #scheduleForm .schedule-time-selector {grid-template-columns:minmax(0,1fr)!important
 }
 
-#schedulesView .schedule-activity-label {display:block;margin-top:4px;color:#315d90;font-size:12px;font-weight:750;line-height:1.4}
-html[data-ui-theme="dark"] #schedulesView .schedule-activity-label {color:#b0d6ff}
+#schedulesView .schedule-activity-label {display:block;margin-top:4px;color:#315d90;font-size:var(--type-table);font-weight:750;line-height:1.4
+html[data-ui-theme="dark"] #schedulesView .schedule-activity-label {color:#b0d6ff
 
 /* Wide schedule workspace: reduce excessive vertical scrolling on desktops. */
 @media(min-width:1100px){
@@ -46,147 +46,147 @@ html[data-ui-theme="dark"] #schedulesView .schedule-activity-label {color:#b0d6f
    height:100dvh!important;max-height:100dvh!important;
    overflow-y:auto!important;overflow-x:hidden!important;
    padding:24px 32px!important;
- }
+ 
  body #scheduleForm.schedule-side-drawer .form-grid{
    grid-template-columns:repeat(3,minmax(0,1fr))!important;
    gap:12px 20px!important;
- }
+ 
  body #scheduleForm.schedule-side-drawer .schedule-time-selector{
    grid-template-columns:repeat(2,minmax(0,1fr))!important;
- }
- body #scheduleForm.schedule-side-drawer .schedule-form-section{padding:10px 0 4px!important}
- body #scheduleForm.schedule-side-drawer .form-section-heading{margin-bottom:9px!important}
- body #scheduleForm.schedule-side-drawer .field-group{gap:5px}
- body #scheduleForm.schedule-side-drawer .schedule-weekday-options{display:flex!important;flex-wrap:wrap!important;gap:8px!important}
- body #scheduleForm.schedule-side-drawer .schedule-weekday-options label{min-width:90px}
- body #scheduleForm.schedule-side-drawer .form-context-banner{padding:9px 12px!important}
+ 
+ body #scheduleForm.schedule-side-drawer .schedule-form-section{padding:10px 0 4px!important
+ body #scheduleForm.schedule-side-drawer .form-section-heading{margin-bottom:9px!important
+ body #scheduleForm.schedule-side-drawer .field-group{gap:5px
+ body #scheduleForm.schedule-side-drawer .schedule-weekday-options{display:flex!important;flex-wrap:wrap!important;gap:8px!important
+ body #scheduleForm.schedule-side-drawer .schedule-weekday-options label{min-width:90px
+ body #scheduleForm.schedule-side-drawer .form-context-banner{padding:9px 12px!important
  body #scheduleForm.schedule-side-drawer .form-actions{
    position:sticky!important;bottom:-24px!important;z-index:3!important;
    background:var(--card-bg,var(--surface,#fff))!important;
    padding:14px 0!important;border-top:1px solid var(--border-color,#d9e3ef);
- }
+ 
 }
 @media(min-width:1500px){
- body .schedule-side-drawer:not([hidden]){width:min(1250px,calc(100vw - 120px))!important;max-width:min(1250px,calc(100vw - 120px))!important}
+ body .schedule-side-drawer:not([hidden]){width:min(1250px,calc(100vw - 120px))!important;max-width:min(1250px,calc(100vw - 120px))!important
 }
 @media(min-width:700px) and (max-width:1099px){
- body .schedule-side-drawer:not([hidden]){width:min(850px,calc(100vw - 24px))!important;max-width:min(850px,calc(100vw - 24px))!important}
+ body .schedule-side-drawer:not([hidden]){width:min(850px,calc(100vw - 24px))!important;max-width:min(850px,calc(100vw - 24px))!important
 }
 @media(max-width:699px){
- body .schedule-side-drawer:not([hidden]){width:100vw!important;max-width:100vw!important}
+ body .schedule-side-drawer:not([hidden]){width:100vw!important;max-width:100vw!important
 }
 
 /* Reusable timetable archive: separate from active schedule configuration. */
-#timetableTemplateList,#timetableArchiveList{min-width:0}
-.timetable-list-heading{display:flex;flex-direction:column;gap:4px;margin-bottom:12px}
-.timetable-list-heading strong{font-size:16px;color:var(--ink,#18314b)}
-.timetable-list-heading small{font-size:13px;color:var(--muted,#64748b);line-height:1.4}
-.timetable-archive-section{margin-top:18px;padding:14px;border:1px solid #cbdbe8;border-radius:15px;background:#f6f9fd}
-.timetable-archive-section>summary{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:6px 14px;cursor:pointer;font-size:15px;font-weight:750;color:var(--ink,#18314b);list-style:revert}
-.timetable-archive-summary-note{font-size:12px;font-weight:500;color:var(--muted,#64748b)}
-.timetable-archive-section[open]>summary{padding-bottom:14px}
-.timetable-archive-section .timetable-template-list{margin-top:0}
-.timetable-archive-status{display:block;margin:6px 0;color:#876019;font-size:12px;font-weight:700}
-.timetable-template-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
-.timetable-template-actions .compact-button{min-height:36px;padding:8px 12px}
-.timetable-delete-action{border-color:#dbabb0!important;color:#a32335!important}
-html[data-ui-theme="dark"] .timetable-archive-section{background:#1a293c;border-color:#3d536d}
-html[data-ui-theme="dark"] .timetable-archive-status{color:#f3ce85}
-html[data-ui-theme="dark"] .timetable-delete-action{border-color:#a75b66!important;color:#ffb8c2!important}
+#timetableTemplateList,#timetableArchiveList{min-width:0
+.timetable-list-heading{display:flex;flex-direction:column;gap:4px;margin-bottom:12px
+.timetable-list-heading strong{font-size:16px;color:var(--ink,#18314b)
+.timetable-list-heading small{font-size:var(--type-table);color:var(--muted,#64748b);line-height:1.4
+.timetable-archive-section{margin-top:18px;padding:14px;border:1px solid #cbdbe8;border-radius:15px;background:#f6f9fd
+.timetable-archive-section>summary{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:6px 14px;cursor:pointer;font-size:15px;font-weight:750;color:var(--ink,#18314b);list-style:revert
+.timetable-archive-summary-note{font-size:var(--type-table);font-weight:500;color:var(--muted,#64748b)
+.timetable-archive-section[open]>summary{padding-bottom:14px
+.timetable-archive-section .timetable-template-list{margin-top:0
+.timetable-archive-status{display:block;margin:6px 0;color:#876019;font-size:var(--type-table);font-weight:700
+.timetable-template-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px
+.timetable-template-actions .compact-button{min-height:36px;padding:8px 12px
+.timetable-delete-action{border-color:#dbabb0!important;color:#a32335!important
+html[data-ui-theme="dark"] .timetable-archive-section{background:#1a293c;border-color:#3d536d
+html[data-ui-theme="dark"] .timetable-archive-status{color:#f3ce85
+html[data-ui-theme="dark"] .timetable-delete-action{border-color:#a75b66!important;color:#ffb8c2!important
 
 /* Unified class schedule editor: prevent distant controls and duplicate scrolling. */
-#scheduleForm .schedule-setup-section .schedule-time-selector {margin-bottom:12px}
-#scheduleForm .schedule-label-field {margin-bottom:12px}
-#scheduleForm .schedule-time-inputs {margin-bottom:12px}
-#scheduleForm .schedule-time-preview {display:flex;gap:12px 20px;flex-wrap:wrap;align-items:center;padding:14px 18px;margin:0 0 8px;border:1px solid #d0e2f0;border-radius:12px;background:#f0f7fc;color:#23435e}
-#scheduleForm .schedule-time-preview>div {display:grid;gap:3px;min-width:92px}
-#scheduleForm .schedule-time-preview small {font-size:10px;letter-spacing:.07em;font-weight:750;color:#536d83}
-#scheduleForm .schedule-time-preview strong {font-size:17px}
-#scheduleForm .schedule-preview-duration {margin-left:auto}
-#scheduleForm .schedule-review-section {margin-bottom:0}
-#scheduleForm .schedule-review-summary {margin:0 0 12px;padding:12px 14px;border-radius:10px;background:#f1f7fb;color:#2e526c;line-height:1.6;overflow-wrap:anywhere}
-html[data-ui-theme="dark"] #scheduleForm .schedule-time-preview {background:#1b3046;border-color:#3b5979;color:#e3f1ff}
-html[data-ui-theme="dark"] #scheduleForm .schedule-time-preview small {color:#b4c9dd}
-html[data-ui-theme="dark"] #scheduleForm .schedule-review-summary {background:#1b3046;color:#e3f1ff}
-@media(min-width:901px){body #scheduleForm.schedule-side-drawer .schedule-time-inputs,body #scheduleForm.schedule-side-drawer .schedule-location-fields{grid-template-columns:repeat(2,minmax(0,1fr))!important}}
-@media(max-width:620px){#scheduleForm .schedule-time-preview{gap:10px 12px;padding:12px}#scheduleForm .schedule-time-preview strong{font-size:15px}#scheduleForm .schedule-preview-duration{margin-left:0}}
+#scheduleForm .schedule-setup-section .schedule-time-selector {margin-bottom:12px
+#scheduleForm .schedule-label-field {margin-bottom:12px
+#scheduleForm .schedule-time-inputs {margin-bottom:12px
+#scheduleForm .schedule-time-preview {display:flex;gap:12px 20px;flex-wrap:wrap;align-items:center;padding:14px 18px;margin:0 0 8px;border:1px solid #d0e2f0;border-radius:12px;background:#f0f7fc;color:#23435e
+#scheduleForm .schedule-time-preview>div {display:grid;gap:3px;min-width:92px
+#scheduleForm .schedule-time-preview small {font-size:var(--type-secondary);letter-spacing:.07em;font-weight:750;color:#536d83
+#scheduleForm .schedule-time-preview strong {font-size:17px
+#scheduleForm .schedule-preview-duration {margin-left:auto
+#scheduleForm .schedule-review-section {margin-bottom:0
+#scheduleForm .schedule-review-summary {margin:0 0 12px;padding:12px 14px;border-radius:10px;background:#f1f7fb;color:#2e526c;line-height:1.6;overflow-wrap:anywhere
+html[data-ui-theme="dark"] #scheduleForm .schedule-time-preview {background:#1b3046;border-color:#3b5979;color:#e3f1ff
+html[data-ui-theme="dark"] #scheduleForm .schedule-time-preview small {color:#b4c9dd
+html[data-ui-theme="dark"] #scheduleForm .schedule-review-summary {background:#1b3046;color:#e3f1ff
+@media(min-width:901px){body #scheduleForm.schedule-side-drawer .schedule-time-inputs,body #scheduleForm.schedule-side-drawer .schedule-location-fields{grid-template-columns:repeat(2,minmax(0,1fr))!important}
+@media(max-width:620px){#scheduleForm .schedule-time-preview{gap:10px 12px;padding:12px#scheduleForm .schedule-time-preview strong{font-size:15px#scheduleForm .schedule-preview-duration{margin-left:0}
 
 
 /* Department Head role-scoped schedule controls and accessible compact weekdays. */
 #scheduleForm #scheduleWeekdayChoices {
   display:flex!important;flex-wrap:wrap!important;align-items:center!important;
   gap:7px!important;padding:6px 0 3px!important;
-}
+
 #scheduleForm #scheduleWeekdayChoices > label {
   position:relative!important;display:inline-flex!important;align-items:center!important;
   flex:0 0 auto!important;min-width:0!important;min-height:0!important;
   padding:0!important;margin:0!important;border:0!important;
   border-radius:9px!important;background:transparent!important;cursor:pointer;
   box-shadow:none!important;
-}
+
 #scheduleForm #scheduleWeekdayChoices > label input[type="checkbox"] {
   position:absolute!important;
   width:1px!important;height:1px!important;min-width:1px!important;min-height:1px!important;
   max-width:1px!important;max-height:1px!important;
   padding:0!important;margin:0!important;opacity:0!important;
   overflow:hidden!important;pointer-events:none!important;
-}
+
 #scheduleForm #scheduleWeekdayChoices > label span {
   display:inline-flex!important;align-items:center!important;justify-content:center!important;
   min-width:52px!important;min-height:38px!important;padding:7px 12px!important;
   box-sizing:border-box!important;border:1px solid #ccdae8!important;
   border-radius:9px!important;background:#f6f9fc!important;color:#30475e!important;
-  font-size:13px!important;font-weight:700!important;line-height:1.3!important;
+  font-size:var(--type-table)!important;font-weight:700!important;line-height:1.3!important;
   transition:background-color .15s ease,border-color .15s ease,color .15s ease;
-}
+
 #scheduleForm #scheduleWeekdayChoices > label input[type="checkbox"]:checked + span {
   border-color:#1176ad!important;background:#0a7cad!important;color:#fff!important;
-}
+
 #scheduleForm #scheduleWeekdayChoices > label input[type="checkbox"]:focus-visible + span {
   outline:3px solid #f2ab32!important;outline-offset:3px!important;
-}
+
 #scheduleForm #scheduleWeekdayChoices > label input[type="checkbox"]:disabled + span {
   opacity:.5!important;cursor:not-allowed!important;
-}
+
 #scheduleForm #scheduleGraceGroup[hidden],#scheduleForm #departmentScheduleScopeNote[hidden] {
   display:none!important;
-}
+
 #scheduleForm .department-schedule-scope-note {
   padding:11px 14px;margin:0 0 12px;
   background:#edf6fd;border-left:3px solid #2784bb;border-radius:8px;
   color:#315675;font-size:13px;line-height:1.5;
-}
+
 #scheduleForm[data-schedule-role="DEPARTMENT_HEAD"] .schedule-review-section {
   border:0!important;background:transparent!important;
   margin:4px 0 0!important;padding:0!important;
-}
+
 #scheduleForm[data-schedule-role="DEPARTMENT_HEAD"] .schedule-review-section .form-section-heading {
   display:none!important;
-}
+
 #scheduleForm[data-schedule-role="DEPARTMENT_HEAD"] #scheduleReviewSummary {
   margin-bottom:4px!important;padding:10px 12px!important;
   font-size:13px!important;line-height:1.5!important;
-}
+
 html[data-ui-theme="dark"] #scheduleForm #scheduleWeekdayChoices > label span {
   background:#1f3149!important;color:#d5e4f4!important;border-color:#445c76!important;
-}
+
 html[data-ui-theme="dark"] #scheduleForm #scheduleWeekdayChoices > label input[type="checkbox"]:checked + span {
   background:#167ba9!important;color:#fff!important;border-color:#62c5f0!important;
-}
+
 html[data-ui-theme="dark"] #scheduleForm .department-schedule-scope-note {
   background:#1a354f;border-left-color:#50a9dd;color:#d5ecff;
-}
+
 @media(max-width:600px) {
   #scheduleForm #scheduleWeekdayChoices > label span {
     min-width:49px!important;min-height:39px!important;padding:7px 10px!important;
-  }
-  #scheduleForm .department-schedule-scope-note {padding:10px 12px}
+  
+  #scheduleForm .department-schedule-scope-note {padding:10px 12px
 }
 
 
 /* Department Head uses a genuinely distinct, compact two-column assignment editor.
    The School Admin's full scheduling form is intentionally unchanged. */
-#scheduleForm[hidden], #scheduleForm #scheduleFormRoleIntro[hidden] {display:none!important}
+#scheduleForm[hidden], #scheduleForm #scheduleFormRoleIntro[hidden] {display:none!important
 body #scheduleForm.schedule-side-drawer[data-schedule-role="DEPARTMENT_HEAD"]:not([hidden]) {
   display:grid!important;
   grid-template-columns:minmax(0,1fr) minmax(0,1fr)!important;
@@ -194,11 +194,11 @@ body #scheduleForm.schedule-side-drawer[data-schedule-role="DEPARTMENT_HEAD"]:no
   align-items:start!important;
   gap:12px 16px!important;
   padding-bottom:26px!important;
-}
+
 #scheduleForm[data-schedule-role="DEPARTMENT_HEAD"] > .schedule-drawer-heading {
   order:0;grid-column:1/-1;
   margin-bottom:0!important;
-}
+
 #scheduleForm[data-schedule-role="DEPARTMENT_HEAD"] > #departmentScheduleScopeNote {
   order:1;grid-column:1/-1;
   margin:0!important;
@@ -207,7 +207,7 @@ body #scheduleForm.schedule-side-drawer[data-schedule-role="DEPARTMENT_HEAD"]:no
   background:#eaf5fc!important;
   border:1px solid #c7e0f3!important;
   color:#285371!important;
-}
+
 #scheduleForm[data-schedule-role="DEPARTMENT_HEAD"] > .schedule-form-section {
   margin:0!important;
   padding:14px 16px 12px!important;
@@ -215,21 +215,21 @@ body #scheduleForm.schedule-side-drawer[data-schedule-role="DEPARTMENT_HEAD"]:no
   border-radius:16px!important;
   background:#fff!important;
   min-width:0!important;
-}
+
 #scheduleForm[data-schedule-role="DEPARTMENT_HEAD"] > .schedule-details-section {
   order:2;grid-column:1;
-}
+
 #scheduleForm[data-schedule-role="DEPARTMENT_HEAD"] > .schedule-setup-section {
   order:3;grid-column:2;
-}
+
 #scheduleForm[data-schedule-role="DEPARTMENT_HEAD"] > .schedule-location-section {
   order:4;grid-column:1/-1;
-}
+
 #scheduleForm[data-schedule-role="DEPARTMENT_HEAD"] > .schedule-review-section {
   order:5;grid-column:1/-1;
   border:0!important;background:transparent!important;
   padding:0!important;
-}
+
 #scheduleForm[data-schedule-role="DEPARTMENT_HEAD"] > .form-actions {
   order:6;grid-column:1/-1;
   position:sticky!important;
@@ -241,103 +241,103 @@ body #scheduleForm.schedule-side-drawer[data-schedule-role="DEPARTMENT_HEAD"]:no
   border-radius:12px!important;
   background:#fff!important;
   box-shadow:0 -5px 20px rgba(20,50,76,.06);
-}
+
 #scheduleForm[data-schedule-role="DEPARTMENT_HEAD"] > .form-actions button {
   min-height:42px!important;
-}
+
 #scheduleForm[data-schedule-role="DEPARTMENT_HEAD"] > .schedule-form-section > .form-section-heading {
   padding:0 0 10px!important;
   margin:0 0 12px!important;
   background:transparent!important;
   border-bottom:1px solid #e5edf4!important;
-}
+
 #scheduleForm[data-schedule-role="DEPARTMENT_HEAD"] > .schedule-form-section > .form-section-heading strong {
   font-size:15px!important;
   color:#193e5e!important;
-}
+
 #scheduleForm[data-schedule-role="DEPARTMENT_HEAD"] .schedule-details-section .form-grid {
   margin:0 0 10px!important;
-}
+
 body #scheduleForm.schedule-side-drawer[data-schedule-role="DEPARTMENT_HEAD"] .schedule-details-section .form-grid,
 body #scheduleForm.schedule-side-drawer[data-schedule-role="DEPARTMENT_HEAD"] .schedule-setup-section .form-grid {
   grid-template-columns:repeat(2,minmax(0,1fr))!important;
   gap:10px 12px!important;
-}
+
 #scheduleForm[data-schedule-role="DEPARTMENT_HEAD"] .schedule-setup-section .schedule-label-field {
   margin:0 0 10px!important;
-}
+
 #scheduleForm[data-schedule-role="DEPARTMENT_HEAD"] .schedule-setup-section .schedule-time-preview {
   padding:10px 12px!important;
   gap:8px 12px!important;
-}
+
 #scheduleForm[data-schedule-role="DEPARTMENT_HEAD"] .schedule-setup-section .schedule-time-preview strong {
   font-size:15px!important;
-}
+
 body #scheduleForm.schedule-side-drawer[data-schedule-role="DEPARTMENT_HEAD"] .schedule-location-fields {
   grid-template-columns:minmax(0,1fr)!important;
   max-width:520px!important;
   margin-top:10px!important;
-}
+
 #scheduleForm[data-schedule-role="DEPARTMENT_HEAD"] #scheduleWeekdayChoices > label span {
   min-height:34px!important;
   padding:6px 11px!important;
-  font-size:12px!important;
-}
+  font-size:var(--type-table)!important;
+
 #scheduleForm[data-schedule-role="DEPARTMENT_HEAD"] #scheduleReviewSummary {
   margin:0!important;
   font-size:13px!important;
   line-height:1.45!important;
-}
+
 html[data-ui-theme="dark"] #scheduleForm[data-schedule-role="DEPARTMENT_HEAD"] > .schedule-form-section {
   background:#1c2c42!important;
   border-color:#38506b!important;
-}
+
 html[data-ui-theme="dark"] #scheduleForm[data-schedule-role="DEPARTMENT_HEAD"] > .schedule-form-section > .form-section-heading strong {
   color:#e5f1ff!important;
-}
+
 html[data-ui-theme="dark"] #scheduleForm[data-schedule-role="DEPARTMENT_HEAD"] > #departmentScheduleScopeNote {
   background:#203c56!important;color:#d4e8fa!important;border-color:#416582!important;
-}
+
 html[data-ui-theme="dark"] #scheduleForm[data-schedule-role="DEPARTMENT_HEAD"] > .form-actions {
   background:#192a40!important;border-color:#3a516b!important;box-shadow:none!important;
-}
+
 @media(max-width:1050px) {
   body #scheduleForm.schedule-side-drawer[data-schedule-role="DEPARTMENT_HEAD"]:not([hidden]) {
     grid-template-columns:minmax(0,1fr)!important;
-  }
+  
   #scheduleForm[data-schedule-role="DEPARTMENT_HEAD"] > .schedule-details-section,
   #scheduleForm[data-schedule-role="DEPARTMENT_HEAD"] > .schedule-setup-section {
     grid-column:1/-1!important;
-  }
+  
 }
 @media(max-width:600px) {
   body #scheduleForm.schedule-side-drawer[data-schedule-role="DEPARTMENT_HEAD"] .schedule-details-section .form-grid,
   body #scheduleForm.schedule-side-drawer[data-schedule-role="DEPARTMENT_HEAD"] .schedule-setup-section .form-grid {
     grid-template-columns:minmax(0,1fr)!important;
-  }
+  
   #scheduleForm[data-schedule-role="DEPARTMENT_HEAD"] > .schedule-form-section {
     padding:12px 11px!important;
-  }
+  
   #scheduleForm[data-schedule-role="DEPARTMENT_HEAD"] > .form-actions {
     display:grid!important;grid-template-columns:minmax(0,1fr)!important;
     position:sticky!important;bottom:0!important;
-  }
+  
 }
 
 
 /* Department schedule: owned department shown in form, approved periods used in edit. */
-#scheduleForm .schedule-details-section #scheduleDepartmentGroup[hidden]{display:none!important}
-#scheduleForm[data-schedule-role="DEPARTMENT_HEAD"] #scheduleDepartmentName{font-weight:750;color:#234b68}
-#scheduleForm #scheduleWeekdayChoices input:disabled+span{opacity:.45!important;cursor:not-allowed!important}
-.attendigo-schedule-edit-dialog .schedule-edit-class{display:grid;gap:3px;padding:10px 12px;border:1px solid #d8e6ef;border-radius:10px;background:#f0f7fd;color:#244561}
-.attendigo-schedule-edit-dialog .schedule-edit-class small{color:#607b91}
-.attendigo-schedule-edit-dialog .schedule-edit-approved{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin:12px 0}
-.attendigo-schedule-edit-dialog .schedule-edit-approved select{width:100%;min-width:0}
-.attendigo-schedule-edit-dialog .schedule-edit-times input[readonly]{background:#f1f6fa;color:#254861}
-html[data-ui-theme="dark"] .attendigo-schedule-edit-dialog .schedule-edit-class{background:#1d344d;border-color:#3d5872;color:#dcebfc}
-html[data-ui-theme="dark"] .attendigo-schedule-edit-dialog .schedule-edit-class small{color:#a9c6e0}
-html[data-ui-theme="dark"] #scheduleForm[data-schedule-role="DEPARTMENT_HEAD"] #scheduleDepartmentName{color:#dcebfc}
-@media(max-width:620px){.attendigo-schedule-edit-dialog .schedule-edit-approved{grid-template-columns:1fr}}
+#scheduleForm .schedule-details-section #scheduleDepartmentGroup[hidden]{display:none!important
+#scheduleForm[data-schedule-role="DEPARTMENT_HEAD"] #scheduleDepartmentName{font-weight:750;color:#234b68
+#scheduleForm #scheduleWeekdayChoices input:disabled+span{opacity:.45!important;cursor:not-allowed!important
+.attendigo-schedule-edit-dialog .schedule-edit-class{display:grid;gap:3px;padding:10px 12px;border:1px solid #d8e6ef;border-radius:10px;background:#f0f7fd;color:#244561
+.attendigo-schedule-edit-dialog .schedule-edit-class small{color:#607b91
+.attendigo-schedule-edit-dialog .schedule-edit-approved{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin:12px 0
+.attendigo-schedule-edit-dialog .schedule-edit-approved select{width:100%;min-width:0
+.attendigo-schedule-edit-dialog .schedule-edit-times input[readonly]{background:#f1f6fa;color:#254861
+html[data-ui-theme="dark"] .attendigo-schedule-edit-dialog .schedule-edit-class{background:#1d344d;border-color:#3d5872;color:#dcebfc
+html[data-ui-theme="dark"] .attendigo-schedule-edit-dialog .schedule-edit-class small{color:#a9c6e0
+html[data-ui-theme="dark"] #scheduleForm[data-schedule-role="DEPARTMENT_HEAD"] #scheduleDepartmentName{color:#dcebfc
+@media(max-width:620px){.attendigo-schedule-edit-dialog .schedule-edit-approved{grid-template-columns:1fr}
 
 
 /* Department Head task-focused class schedule form — all hidden controls retain their saved values. */
@@ -347,123 +347,123 @@ html[data-ui-theme="dark"] #scheduleForm[data-schedule-role="DEPARTMENT_HEAD"] #
 #scheduleForm[data-schedule-role="DEPARTMENT_HEAD"] #scheduleMoreOptionsWrap[hidden],
 #scheduleForm[data-schedule-role="DEPARTMENT_HEAD"] #scheduleDaysTools[hidden],
 #scheduleForm[data-schedule-role="DEPARTMENT_HEAD"] #scheduleReadiness[hidden],
-#scheduleForm[data-schedule-role="DEPARTMENT_HEAD"] #scheduleWeekdayChoices > label[hidden] {display:none!important}
+#scheduleForm[data-schedule-role="DEPARTMENT_HEAD"] #scheduleWeekdayChoices > label[hidden] {display:none!important
 #scheduleForm[data-schedule-role="DEPARTMENT_HEAD"] .schedule-setup-section .schedule-time-preview {
  margin-top:12px!important; padding:14px 16px!important; border-radius:13px!important;
  background:#edf7ff!important; border:1px solid #c6e1f5!important
-}
+
 #scheduleForm[data-schedule-role="DEPARTMENT_HEAD"] .schedule-setup-section .schedule-time-preview strong {
  font-size:18px!important;letter-spacing:-.02em
-}
+
 #scheduleForm[data-schedule-role="DEPARTMENT_HEAD"] .schedule-details-section #scheduleDepartmentGroup {
  grid-column:1/-1;margin:0 0 1px
-}
+
 #scheduleForm[data-schedule-role="DEPARTMENT_HEAD"] .schedule-details-section #scheduleDepartmentGroup .field-hint {
  margin-top:3px
-}
+
 #scheduleForm[data-schedule-role="DEPARTMENT_HEAD"] .schedule-details-section #scheduleDepartmentName {
  display:inline-flex;align-items:center;min-height:35px;
  background:#edf6fc;border:1px solid #cfe4f3;border-radius:999px;
  padding:6px 14px;font-size:13px;font-weight:750;
-}
+
 #scheduleForm[data-schedule-role="DEPARTMENT_HEAD"] .department-form-options-toggle {
  display:flex;align-items:center;gap:10px;flex-wrap:wrap;
  padding:4px 0 8px
-}
+
 #scheduleForm[data-schedule-role="DEPARTMENT_HEAD"] .department-form-options-toggle button {
- font-size:12px!important;min-height:34px!important
-}
+ font-size:var(--type-table)!important;min-height:34px!important
+
 #scheduleForm[data-schedule-role="DEPARTMENT_HEAD"] .department-form-options-toggle small {
- color:#617b91;font-size:12px
-}
+ color:#617b91;font-size:var(--type-secondary)
+
 #scheduleForm[data-schedule-role="DEPARTMENT_HEAD"] #scheduleActivityTypeGroup:not([hidden]){
  border:1px solid #d6e6f1;border-radius:10px;padding:10px;background:#f6fafd
-}
+
 #scheduleForm[data-schedule-role="DEPARTMENT_HEAD"] .schedule-days-tools {
  display:flex;align-items:center;justify-content:space-between;gap:10px;
  flex-wrap:wrap;margin-top:9px
-}
+
 #scheduleForm[data-schedule-role="DEPARTMENT_HEAD"] #scheduleDaysCount {
- color:#395e79;font-size:12px;font-weight:700
-}
+ color:#395e79;font-size:var(--type-secondary);font-weight:700
+
 #scheduleForm[data-schedule-role="DEPARTMENT_HEAD"] .schedule-days-tools button {
- min-height:33px!important;font-size:12px!important
-}
+ min-height:33px!important;font-size:var(--type-table)!important
+
 #scheduleForm[data-schedule-role="DEPARTMENT_HEAD"] #scheduleWeekdayChoices > label span {
  transition:background-color .15s ease,border-color .15s ease,transform .15s ease;
-}
+
 #scheduleForm[data-schedule-role="DEPARTMENT_HEAD"] #scheduleWeekdayChoices > label:active span {
  transform:scale(.96)
-}
+
 #scheduleForm[data-schedule-role="DEPARTMENT_HEAD"] .schedule-form-readiness {
  padding:13px 15px;margin:0 0 12px;border:1px solid #d6e7f3;
  border-radius:12px;background:#f5fafe
-}
+
 #scheduleForm[data-schedule-role="DEPARTMENT_HEAD"] .schedule-readiness-top {
  display:flex;align-items:center;justify-content:space-between;
  gap:9px;flex-wrap:wrap;color:#254763;font-size:13px
-}
+
 #scheduleForm[data-schedule-role="DEPARTMENT_HEAD"] .schedule-readiness-top span {
- font-size:12px;font-weight:700;color:#52718a
-}
+ font-size:var(--type-secondary);font-weight:700;color:#52718a
+
 #scheduleForm[data-schedule-role="DEPARTMENT_HEAD"] .schedule-readiness-bar {
  height:7px;border-radius:99px;background:#dbeaf4;margin:9px 0;overflow:hidden
-}
+
 #scheduleForm[data-schedule-role="DEPARTMENT_HEAD"] .schedule-readiness-bar>span {
  display:block;width:0;height:100%;border-radius:99px;
  background:#1389bb;transition:width .2s ease
-}
+
 #scheduleForm[data-schedule-role="DEPARTMENT_HEAD"] #scheduleReadinessHint {
- color:#48677e;font-size:12px
-}
+ color:#48677e;font-size:var(--type-secondary)
+
 #scheduleForm[data-schedule-role="DEPARTMENT_HEAD"] #scheduleReviewSummary {
- font-size:12px!important;line-height:1.6!important;padding:12px 13px!important
-}
+ font-size:var(--type-secondary)!important;line-height:1.6!important;padding:12px 13px!important
+
 html[data-ui-theme="dark"] #scheduleForm[data-schedule-role="DEPARTMENT_HEAD"] .schedule-setup-section .schedule-time-preview {
  background:#1c3b53!important;border-color:#406c86!important;color:#e9f6ff!important
-}
+
 html[data-ui-theme="dark"] #scheduleForm[data-schedule-role="DEPARTMENT_HEAD"] .schedule-details-section #scheduleDepartmentName {
  color:#e3f4ff!important;background:#244358!important;border-color:#416984!important
-}
+
 html[data-ui-theme="dark"] #scheduleForm[data-schedule-role="DEPARTMENT_HEAD"] .schedule-form-readiness,
 html[data-ui-theme="dark"] #scheduleForm[data-schedule-role="DEPARTMENT_HEAD"] #scheduleActivityTypeGroup:not([hidden]) {
  color:#e4f3ff;background:#20384e;border-color:#3e5970
-}
+
 html[data-ui-theme="dark"] #scheduleForm[data-schedule-role="DEPARTMENT_HEAD"] .schedule-readiness-top,
 html[data-ui-theme="dark"] #scheduleForm[data-schedule-role="DEPARTMENT_HEAD"] .schedule-readiness-top span,
 html[data-ui-theme="dark"] #scheduleForm[data-schedule-role="DEPARTMENT_HEAD"] #scheduleReadinessHint,
 html[data-ui-theme="dark"] #scheduleForm[data-schedule-role="DEPARTMENT_HEAD"] #scheduleDaysCount {
  color:#c1d8ea
-}
+
 html[data-ui-theme="dark"] #scheduleForm[data-schedule-role="DEPARTMENT_HEAD"] .schedule-readiness-bar {
  background:#3c5368
-}
+
 @media(max-width:600px) {
  #scheduleForm[data-schedule-role="DEPARTMENT_HEAD"] .schedule-days-tools {
    align-items:stretch
- }
+ 
  #scheduleForm[data-schedule-role="DEPARTMENT_HEAD"] #scheduleReviewSummary {
    word-break:normal!important;overflow-wrap:anywhere
- }
+ 
 }
 
 
 /* Classroom within class details; official Class Adviser displayed as a locked section lookup. */
-#scheduleForm .schedule-classroom-adviser-row{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin-top:10px}
-#scheduleForm .schedule-classroom-adviser-row>.field-group{min-width:0}
-#scheduleForm #scheduleSectionAdviserGroup[hidden]{display:none!important}
+#scheduleForm .schedule-classroom-adviser-row{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin-top:10px
+#scheduleForm .schedule-classroom-adviser-row>.field-group{min-width:0
+#scheduleForm #scheduleSectionAdviserGroup[hidden]{display:none!important
 #scheduleForm .schedule-adviser-reference .schedule-derived-field{
  display:flex;align-items:center;min-height:44px;padding:10px 12px;
  border-radius:10px;border:1px solid #cfe4f3;background:#edf7ff;
  color:#234e72;font-weight:750;overflow-wrap:anywhere
-}
-#scheduleForm[data-schedule-role="DEPARTMENT_HEAD"] #scheduleActivityTypeGroup{display:block!important}
-#scheduleForm[data-schedule-role="DEPARTMENT_HEAD"] .schedule-classroom-adviser-row>.field-group{grid-column:1/-1}
-#scheduleForm[data-schedule-role="DEPARTMENT_HEAD"] .schedule-location-fields{display:none!important}
+
+#scheduleForm[data-schedule-role="DEPARTMENT_HEAD"] #scheduleActivityTypeGroup{display:block!important
+#scheduleForm[data-schedule-role="DEPARTMENT_HEAD"] .schedule-classroom-adviser-row>.field-group{grid-column:1/-1
+#scheduleForm[data-schedule-role="DEPARTMENT_HEAD"] .schedule-location-fields{display:none!important
 html[data-ui-theme="dark"] #scheduleForm .schedule-adviser-reference .schedule-derived-field{
  background:#213d54;border-color:#416984;color:#e3f3ff
-}
-@media(max-width:620px){#scheduleForm .schedule-classroom-adviser-row{grid-template-columns:minmax(0,1fr)}}
+
+@media(max-width:620px){#scheduleForm .schedule-classroom-adviser-row{grid-template-columns:minmax(0,1fr)}
 
 
 /* Department Head scheduling v2: actual class-first layout instead of the reused admin grid. */
@@ -473,84 +473,84 @@ html[data-ui-theme="dark"] #scheduleForm .schedule-adviser-reference .schedule-d
  background:#eaf7ff!important;border:1px solid #a6d8f5!important;
  border-left:4px solid #0e81b5!important;border-radius:12px!important;
  color:#235272!important;margin:0!important;
-}
+
 #scheduleForm[data-schedule-role="DEPARTMENT_HEAD"] > #departmentScheduleScopeNote strong {
  font-size:14px!important;letter-spacing:.01em;color:#16476a!important
-}
+
 #scheduleForm[data-schedule-role="DEPARTMENT_HEAD"] > #departmentScheduleScopeNote span {
- font-size:12px;line-height:1.55;
-}
+ font-size:var(--type-secondary);line-height:1.55;
+
 #scheduleForm[data-schedule-role="DEPARTMENT_HEAD"] .department-class-layout {
  display:grid;grid-template-columns:minmax(0,1fr);gap:12px;
-}
+
 #scheduleForm[data-schedule-role="DEPARTMENT_HEAD"] .department-class-band {
  display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;
  padding:0;margin:0;min-width:0;
-}
+
 #scheduleForm[data-schedule-role="DEPARTMENT_HEAD"] .department-class-band>.field-group {
  min-width:0;width:100%;max-width:none!important;margin:0!important;
-}
+
 #scheduleForm[data-schedule-role="DEPARTMENT_HEAD"] .department-class-identity,
 #scheduleForm[data-schedule-role="DEPARTMENT_HEAD"] .department-class-room {
  grid-template-columns:minmax(0,1fr);
-}
+
 #scheduleForm[data-schedule-role="DEPARTMENT_HEAD"] .department-class-roles {
  padding:12px!important;border:1px solid #d8e9f4;
  border-radius:12px;background:#f4fafe;
-}
+
 #scheduleForm[data-schedule-role="DEPARTMENT_HEAD"] .department-class-roles #periodTeacherGroup label,
 #scheduleForm[data-schedule-role="DEPARTMENT_HEAD"] .department-class-roles #scheduleSectionAdviserGroup label {
  font-weight:800!important;color:#16496c!important;
-}
+
 #scheduleForm[data-schedule-role="DEPARTMENT_HEAD"] .department-class-roles #scheduleSectionAdviserGroup {
  grid-column:auto!important;display:grid!important;align-content:start;
-}
+
 #scheduleForm[data-schedule-role="DEPARTMENT_HEAD"] .department-class-roles #scheduleSectionAdviserGroup[hidden] {
  display:none!important;
-}
+
 #scheduleForm[data-schedule-role="DEPARTMENT_HEAD"] .department-class-roles #scheduleClassAdviserName {
  min-height:54px;border:1px dashed #8dbbd8;background:#fff;
-}
+
 #scheduleForm[data-schedule-role="DEPARTMENT_HEAD"] .department-class-curriculum #scheduleActivityTypeGroup {
  display:grid!important;align-content:start;
-}
+
 #scheduleForm[data-schedule-role="DEPARTMENT_HEAD"] .department-class-room .schedule-classroom-field {
  max-width:100%!important;
-}
+
 #scheduleForm[data-schedule-role="DEPARTMENT_HEAD"] .schedule-days-warning:not([hidden]) {
  display:block;padding:10px 13px;margin:8px 0;border-radius:9px;
  background:#fff7e6;border:1px solid #e9c67e;color:#7c501d;
  font-size:13px;line-height:1.5;
-}
+
 #scheduleForm[data-schedule-role="DEPARTMENT_HEAD"] #scheduleWeekdayChoices label[hidden] {
  display:none!important;
-}
+
 #scheduleForm[data-schedule-role="DEPARTMENT_HEAD"] #scheduleWeekdayChoices label:has(input:disabled) span {
  opacity:.45!important;cursor:not-allowed!important;
-}
+
 html[data-ui-theme="dark"] #scheduleForm[data-schedule-role="DEPARTMENT_HEAD"] > #departmentScheduleScopeNote {
  background:#183e56!important;color:#d3eaff!important;
  border-color:#41748f!important;border-left-color:#4db8eb!important;
-}
+
 html[data-ui-theme="dark"] #scheduleForm[data-schedule-role="DEPARTMENT_HEAD"] > #departmentScheduleScopeNote strong,
 html[data-ui-theme="dark"] #scheduleForm[data-schedule-role="DEPARTMENT_HEAD"] .department-class-roles #periodTeacherGroup label,
 html[data-ui-theme="dark"] #scheduleForm[data-schedule-role="DEPARTMENT_HEAD"] .department-class-roles #scheduleSectionAdviserGroup label {
  color:#e5f5ff!important;
-}
+
 html[data-ui-theme="dark"] #scheduleForm[data-schedule-role="DEPARTMENT_HEAD"] .department-class-roles {
  background:#1a3449;border-color:#42667f;
-}
+
 html[data-ui-theme="dark"] #scheduleForm[data-schedule-role="DEPARTMENT_HEAD"] .department-class-roles #scheduleClassAdviserName {
  background:#1b4056;border-color:#5d829d;
-}
+
 html[data-ui-theme="dark"] #scheduleForm[data-schedule-role="DEPARTMENT_HEAD"] .schedule-days-warning:not([hidden]) {
  background:#4b371f;color:#f2d39f;border-color:#926b38;
-}
+
 @media(max-width:710px) {
  #scheduleForm[data-schedule-role="DEPARTMENT_HEAD"] .department-class-band,
  #scheduleForm[data-schedule-role="DEPARTMENT_HEAD"] .department-class-roles {
   grid-template-columns:minmax(0,1fr)!important;gap:10px!important;
- }
+ 
 }
 
 
@@ -561,7 +561,7 @@ html[data-ui-theme="dark"] #scheduleForm[data-schedule-role="DEPARTMENT_HEAD"] .
   flex-wrap: wrap;
   gap: 8px;
   margin-right: 5px;
-}
+
 #schedulesView .schedule-quick-assign select {
   width: min(220px, 100%);
   min-width: 145px;
@@ -572,17 +572,17 @@ html[data-ui-theme="dark"] #scheduleForm[data-schedule-role="DEPARTMENT_HEAD"] .
   background: #fff;
   color: #163650;
   font: inherit;
-}
+
 #schedulesView .schedule-quick-assign select:focus-visible {
   outline: 2px solid #2a8dda;
   outline-offset: 2px;
-}
+
 html[data-ui-theme="dark"] #schedulesView .schedule-quick-assign select {
   border-color: #617c98;
   background: #1a3046;
   color: #ecf6ff;
-}
+
 @media (max-width: 710px) {
-  #schedulesView .schedule-quick-assign { width: 100%; }
-  #schedulesView .schedule-quick-assign select { flex: 1 1 160px; }
+  #schedulesView .schedule-quick-assign { width: 100%; 
+  #schedulesView .schedule-quick-assign select { flex: 1 1 160px; 
 }

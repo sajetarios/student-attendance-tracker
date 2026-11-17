@@ -1,6 +1,9 @@
-const CACHE = "attendigo-v161-consistent-brand";
+const CACHE = "attendigo-v162-inter-typography";
 
 const SHELL = [
+  "/typography.css?v=1",
+  "/fonts/InterVariable.woff2",
+  "/fonts/InterVariable-Italic.woff2",
   "/attendigo-brand-refresh.css?v=1",
   "/assets/attendigo-favicon.png?v=2",
   "/assets/attendigo-apple-touch-icon.png?v=2",
