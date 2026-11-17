@@ -22,7 +22,7 @@ test('teacher roster compresses identity, class, QR and guardian without changin
   assert.match(main, /data-view-qr/);
   assert.match(main, /data-select-student/);
   assert.match(main, /data-student-photo/);
-  assert.match(programs, /data-label=\\"Special program\\"/);
+  assert.ok(programs.includes('[data-label="Special program"]'));
 });
 test('the QR attendance shortcut moves into the roster toolbar only after role verification', () => {
   assert.match(shortcut, /fetch\('\/api\/auth\/me'/);
