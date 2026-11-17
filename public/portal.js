@@ -3830,6 +3830,8 @@ let teacherActionMenuListenersInstalled = false;
       return;
     }
     user = me.user;
+    // Reveal section creation as soon as the authenticated role is known; do not wait for dashboard API loading.
+    if ($('createScheduleSection')) $('createScheduleSection').hidden = user.role !== 'SCHOOL_ADMIN';
     if (user.mustChangePassword) { window.location.replace('/force-password-change.html'); return; }
     sessionStorage.setItem(userKey, JSON.stringify(user));
     $('userDisplay').textContent = user.displayName || user.username;
@@ -5009,7 +5011,7 @@ let teacherActionMenuListenersInstalled = false;
   $('periodGrade')?.addEventListener('change', () => loadScheduleSections($('periodGrade').value));
   const addSectionButton = $('createScheduleSection');
   if (addSectionButton) {
-    addSectionButton.hidden = true; // User is populated asynchronously during init().
+    addSectionButton.hidden = true; // Revealed by init() after /api/auth/me succeeds.
     addSectionButton.addEventListener('click', async () => {
       const gradeLevel = $('periodGrade')?.value;
       if (!gradeLevel) { showToast('Choose a grade first.', true); return; }
@@ -5673,7 +5675,6 @@ $('teacherCoverageCard')?.addEventListener('click', event => {
   });
 
   init().then(() => {
-    if ($('createScheduleSection')) $('createScheduleSection').hidden = user?.role !== 'SCHOOL_ADMIN';
     if ($('studentForm') && !$('studentForm').hidden) loadSectionsForGrade($('newGrade').value);
     if (user?.role === 'DEPARTMENT_HEAD') {
       window.setInterval(() => {
