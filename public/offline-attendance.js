@@ -54,6 +54,9 @@
     const el = document.getElementById('attendigoOfflineStatus');
     if (el) {
       const needsReview = pending.filter(x => x.status === 'REVIEW').length;
+      // Keep the offline sync engine running, but never overlay dashboards when clear.
+      el.hidden = pending.length === 0;
+      el.style.display = pending.length ? '' : 'none';
       el.textContent = pending.length ? pending.length + ' on device' + (needsReview ? ' · ' + needsReview + ' need review' : ' · awaiting sync') : 'Device queue clear';
       el.title = pending.length ? 'Stored on this device, not yet accepted by the server. Keep this device until synchronized.' : 'No unsynchronized scanner records for this account.';
     }
