@@ -1,4 +1,4 @@
-const CACHE = "attendigo-v137-teacher-batch-account-requests";
+const CACHE = "attendigo-v138-manual-revision-guard";
 
 const SHELL = [
   "/assets/attendigo-sidebar-logo.png",
@@ -38,9 +38,9 @@ const SHELL = [
   "/parent-dashboard.js?v=2",
   "/offline-attendance.js?v=2",
   "/offline-sheet.html",
-  "/offline-sheet.js?v=2",
+  "/offline-sheet.js?v=3",
   "/manual-folio.css?v=11",
-  "/manual-folio.js?v=11",
+  "/manual-folio.js?v=12",
   "/student-portal-accounts.css?v=3",
   "/student-portal-accounts.js?v=6",
   "/admin-request-notifications.js?v=2",
