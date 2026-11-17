@@ -341,7 +341,7 @@ textarea {
   .stat-top {
     align-items: flex-start;
     gap: 6px;
-    font-size: 10px;
+    font-size:var(--type-secondary);
   }
 
   .stat-icon {
@@ -455,7 +455,7 @@ textarea {
 
 /* Gate verification photo shown after a QR match. */
 .student-scan-verified-photo { display:block; width:clamp(104px, 22vw, 156px); height:clamp(122px, 27vw, 184px); object-fit:cover; border-radius:12px; border:1px solid #d9e3ec; margin:10px auto; background:#f1f5f9; }
-.student-scan-no-photo { display:grid; place-items:center; color:#64748b; font-size:12px; font-weight:600; }
+.student-scan-no-photo { display:grid; place-items:center; color:#64748b; font-size:var(--type-secondary); font-weight:600; }
 
 
 /* Gate Keeper identity verification controls */

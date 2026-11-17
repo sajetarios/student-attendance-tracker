@@ -33,7 +33,7 @@ html[data-ui-theme="dark"] #scheduleForm input[readonly] {background:#233954!imp
  #scheduleForm .schedule-time-selector {grid-template-columns:minmax(0,1fr)!important}
 }
 
-#schedulesView .schedule-activity-label {display:block;margin-top:4px;color:#315d90;font-size:12px;font-weight:750;line-height:1.4}
+#schedulesView .schedule-activity-label {display:block;margin-top:4px;color:#315d90;font-size:var(--type-table);font-weight:750;line-height:1.4}
 html[data-ui-theme="dark"] #schedulesView .schedule-activity-label {color:#b0d6ff}
 
 /* Wide schedule workspace: reduce excessive vertical scrolling on desktops. */
@@ -80,13 +80,13 @@ html[data-ui-theme="dark"] #schedulesView .schedule-activity-label {color:#b0d6f
 #timetableTemplateList,#timetableArchiveList{min-width:0}
 .timetable-list-heading{display:flex;flex-direction:column;gap:4px;margin-bottom:12px}
 .timetable-list-heading strong{font-size:16px;color:var(--ink,#18314b)}
-.timetable-list-heading small{font-size:13px;color:var(--muted,#64748b);line-height:1.4}
+.timetable-list-heading small{font-size:var(--type-table);color:var(--muted,#64748b);line-height:1.4}
 .timetable-archive-section{margin-top:18px;padding:14px;border:1px solid #cbdbe8;border-radius:15px;background:#f6f9fd}
 .timetable-archive-section>summary{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:6px 14px;cursor:pointer;font-size:15px;font-weight:750;color:var(--ink,#18314b);list-style:revert}
-.timetable-archive-summary-note{font-size:12px;font-weight:500;color:var(--muted,#64748b)}
+.timetable-archive-summary-note{font-size:var(--type-table);font-weight:500;color:var(--muted,#64748b)}
 .timetable-archive-section[open]>summary{padding-bottom:14px}
 .timetable-archive-section .timetable-template-list{margin-top:0}
-.timetable-archive-status{display:block;margin:6px 0;color:#876019;font-size:12px;font-weight:700}
+.timetable-archive-status{display:block;margin:6px 0;color:#876019;font-size:var(--type-table);font-weight:700}
 .timetable-template-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
 .timetable-template-actions .compact-button{min-height:36px;padding:8px 12px}
 .timetable-delete-action{border-color:#dbabb0!important;color:#a32335!important}
@@ -100,7 +100,7 @@ html[data-ui-theme="dark"] .timetable-delete-action{border-color:#a75b66!importa
 #scheduleForm .schedule-time-inputs {margin-bottom:12px}
 #scheduleForm .schedule-time-preview {display:flex;gap:12px 20px;flex-wrap:wrap;align-items:center;padding:14px 18px;margin:0 0 8px;border:1px solid #d0e2f0;border-radius:12px;background:#f0f7fc;color:#23435e}
 #scheduleForm .schedule-time-preview>div {display:grid;gap:3px;min-width:92px}
-#scheduleForm .schedule-time-preview small {font-size:10px;letter-spacing:.07em;font-weight:750;color:#536d83}
+#scheduleForm .schedule-time-preview small {font-size:var(--type-secondary);letter-spacing:.07em;font-weight:750;color:#536d83}
 #scheduleForm .schedule-time-preview strong {font-size:17px}
 #scheduleForm .schedule-preview-duration {margin-left:auto}
 #scheduleForm .schedule-review-section {margin-bottom:0}
@@ -136,7 +136,7 @@ html[data-ui-theme="dark"] #scheduleForm .schedule-review-summary {background:#1
   min-width:52px!important;min-height:38px!important;padding:7px 12px!important;
   box-sizing:border-box!important;border:1px solid #ccdae8!important;
   border-radius:9px!important;background:#f6f9fc!important;color:#30475e!important;
-  font-size:13px!important;font-weight:700!important;line-height:1.3!important;
+  font-size:var(--type-table)!important;font-weight:700!important;line-height:1.3!important;
   transition:background-color .15s ease,border-color .15s ease,color .15s ease;
 }
 #scheduleForm #scheduleWeekdayChoices > label input[type="checkbox"]:checked + span {
@@ -281,7 +281,7 @@ body #scheduleForm.schedule-side-drawer[data-schedule-role="DEPARTMENT_HEAD"] .s
 #scheduleForm[data-schedule-role="DEPARTMENT_HEAD"] #scheduleWeekdayChoices > label span {
   min-height:34px!important;
   padding:6px 11px!important;
-  font-size:12px!important;
+  font-size:var(--type-table)!important;
 }
 #scheduleForm[data-schedule-role="DEPARTMENT_HEAD"] #scheduleReviewSummary {
   margin:0!important;
@@ -371,10 +371,10 @@ html[data-ui-theme="dark"] #scheduleForm[data-schedule-role="DEPARTMENT_HEAD"] #
  padding:4px 0 8px
 }
 #scheduleForm[data-schedule-role="DEPARTMENT_HEAD"] .department-form-options-toggle button {
- font-size:12px!important;min-height:34px!important
+ font-size:var(--type-table)!important;min-height:34px!important
 }
 #scheduleForm[data-schedule-role="DEPARTMENT_HEAD"] .department-form-options-toggle small {
- color:#617b91;font-size:12px
+ color:#617b91;font-size:var(--type-secondary)
 }
 #scheduleForm[data-schedule-role="DEPARTMENT_HEAD"] #scheduleActivityTypeGroup:not([hidden]){
  border:1px solid #d6e6f1;border-radius:10px;padding:10px;background:#f6fafd
@@ -384,10 +384,10 @@ html[data-ui-theme="dark"] #scheduleForm[data-schedule-role="DEPARTMENT_HEAD"] #
  flex-wrap:wrap;margin-top:9px
 }
 #scheduleForm[data-schedule-role="DEPARTMENT_HEAD"] #scheduleDaysCount {
- color:#395e79;font-size:12px;font-weight:700
+ color:#395e79;font-size:var(--type-secondary);font-weight:700
 }
 #scheduleForm[data-schedule-role="DEPARTMENT_HEAD"] .schedule-days-tools button {
- min-height:33px!important;font-size:12px!important
+ min-height:33px!important;font-size:var(--type-table)!important
 }
 #scheduleForm[data-schedule-role="DEPARTMENT_HEAD"] #scheduleWeekdayChoices > label span {
  transition:background-color .15s ease,border-color .15s ease,transform .15s ease;
@@ -404,7 +404,7 @@ html[data-ui-theme="dark"] #scheduleForm[data-schedule-role="DEPARTMENT_HEAD"] #
  gap:9px;flex-wrap:wrap;color:#254763;font-size:13px
 }
 #scheduleForm[data-schedule-role="DEPARTMENT_HEAD"] .schedule-readiness-top span {
- font-size:12px;font-weight:700;color:#52718a
+ font-size:var(--type-secondary);font-weight:700;color:#52718a
 }
 #scheduleForm[data-schedule-role="DEPARTMENT_HEAD"] .schedule-readiness-bar {
  height:7px;border-radius:99px;background:#dbeaf4;margin:9px 0;overflow:hidden
@@ -414,10 +414,10 @@ html[data-ui-theme="dark"] #scheduleForm[data-schedule-role="DEPARTMENT_HEAD"] #
  background:#1389bb;transition:width .2s ease
 }
 #scheduleForm[data-schedule-role="DEPARTMENT_HEAD"] #scheduleReadinessHint {
- color:#48677e;font-size:12px
+ color:#48677e;font-size:var(--type-secondary)
 }
 #scheduleForm[data-schedule-role="DEPARTMENT_HEAD"] #scheduleReviewSummary {
- font-size:12px!important;line-height:1.6!important;padding:12px 13px!important
+ font-size:var(--type-secondary)!important;line-height:1.6!important;padding:12px 13px!important
 }
 html[data-ui-theme="dark"] #scheduleForm[data-schedule-role="DEPARTMENT_HEAD"] .schedule-setup-section .schedule-time-preview {
  background:#1c3b53!important;border-color:#406c86!important;color:#e9f6ff!important
@@ -478,7 +478,7 @@ html[data-ui-theme="dark"] #scheduleForm .schedule-adviser-reference .schedule-d
  font-size:14px!important;letter-spacing:.01em;color:#16476a!important
 }
 #scheduleForm[data-schedule-role="DEPARTMENT_HEAD"] > #departmentScheduleScopeNote span {
- font-size:12px;line-height:1.55;
+ font-size:var(--type-secondary);line-height:1.55;
 }
 #scheduleForm[data-schedule-role="DEPARTMENT_HEAD"] .department-class-layout {
  display:grid;grid-template-columns:minmax(0,1fr);gap:12px;

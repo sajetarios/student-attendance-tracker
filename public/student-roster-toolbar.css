@@ -41,7 +41,7 @@
   padding:10px 15px;
   border-radius:11px;
   line-height:1.25;
-  font-size:13px;
+  font-size:var(--type-table);
   font-weight:700;
   white-space:nowrap;
   text-align:center;
@@ -66,7 +66,7 @@
     min-height:46px;
     white-space:normal;
     overflow-wrap:normal;
-    font-size:12px;
+    font-size:var(--type-table);
   }
   #studentsView #studentManagementHeader #showStudentForm{
     margin-left:0;
@@ -83,7 +83,7 @@
   #studentsView #studentManagementHeader .toolbar-actions > :is(button,a){
     min-height:46px;
     padding:10px 8px;
-    font-size:12px;
+    font-size:var(--type-table);
   }
 }
 @media(max-width:380px){

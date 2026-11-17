@@ -12,7 +12,7 @@
  const phDate=d=>{const parts=new Intl.DateTimeFormat('en-GB',{timeZone:'Asia/Manila',year:'numeric',month:'2-digit',day:'2-digit'}).formatToParts(new Date(d));const v=Object.fromEntries(parts.map(p=>[p.type,p.value]));return v.year+'-'+v.month+'-'+v.day;};
  const today=()=>phDate(new Date());
  const dateParts=s=>s.split('-').map(Number);
- const state={month:today().slice(0,7),date:today(),items:[],editing:null,scope:'ALL',view:'MONTH',loaded:false};
+ const state={month:today().slice(0,7),date:today(),items:[],editing:null,scope:'ALL',view:(typeof window.matchMedia==='function' && window.matchMedia('(max-width:650px)').matches ? 'AGENDA' : 'MONTH'),loaded:false};
  async function api(path,options={}) {
    const r=await fetch(path,{...options,headers:{Authorization:'Bearer '+token,...(options.body?{'Content-Type':'application/json'}:{})},cache:'no-store'});
    const data=await r.json().catch(()=>({}));

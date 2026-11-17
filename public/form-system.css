@@ -13,7 +13,7 @@
   display: block;
   margin: 0;
   color: var(--form-ink);
-  font-size: 13px;
+  font-size:var(--type-table);
   line-height: 1.35;
   font-weight: 750;
 }
@@ -75,7 +75,7 @@
   display: block;
   margin: 0;
   color: var(--form-muted);
-  font-size: 12px;
+  font-size:var(--type-table);
   line-height: 1.5;
 }
 .field-group [aria-invalid="true"] {
@@ -91,7 +91,7 @@
   border-bottom: 1px solid #e8eef4;
 }
 .form-section-heading strong { color: #25384c; font-size: 14px; }
-.form-section-heading small { color: var(--form-muted); font-size: 12px; line-height: 1.45; }
+.form-section-heading small { color: var(--form-muted); font-size:var(--type-table); line-height: 1.45; }
 .form-context-banner {
   margin: 0 0 16px;
   padding: 11px 13px;
@@ -99,7 +99,7 @@
   border-radius: 10px;
   background: #f3f9fd;
   color: #496a82;
-  font-size: 12px;
+  font-size:var(--type-table);
   line-height: 1.55;
 }
 .form-actions {
@@ -167,7 +167,7 @@ fieldset.teacher-designation-fields legend {
   display: inline-block;
   margin-left: 5px;
   color: #8594a4;
-  font-size: 10px;
+  font-size:var(--type-table);
   font-weight: 600;
 }
 .schedule-editor-form .form-context-banner { margin-bottom: 17px; }

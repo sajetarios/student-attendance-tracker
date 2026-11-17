@@ -148,7 +148,7 @@ html body #sidebar.sidebar #sidebarSchoolName {
   overflow-wrap:break-word!important;
   word-break:normal!important;
   color:var(--side-ink)!important;
-  font-size:12px!important;
+  font-size:var(--type-table)!important;
   font-weight:800!important;
   line-height:1.27!important;
   letter-spacing:.015em!important;
@@ -158,7 +158,7 @@ html body #sidebar.sidebar #sidebarSchoolName {
   max-width:100%!important;
   margin-top:4px!important;
   color:var(--side-muted)!important;
-  font-size:9px!important;
+  font-size:var(--type-table)!important;
   font-weight:600!important;
   letter-spacing:.075em!important;
   line-height:1.35!important;
@@ -166,7 +166,7 @@ html body #sidebar.sidebar #sidebarSchoolName {
 #sidebar.sidebar .sidebar-section-label {
   padding:10px 9px 7px!important;
   color:var(--side-muted)!important;
-  font-size:10px!important;
+  font-size:var(--type-table)!important;
   font-weight:800!important;
   letter-spacing:.10em!important;
   opacity:1!important;
@@ -204,7 +204,7 @@ html body #sidebar.sidebar #sidebarSchoolName {
   box-shadow:none!important;
   color:var(--side-ink)!important;
   text-align:left!important;
-  font-size:13px!important;
+  font-size:var(--type-table)!important;
   line-height:1.3!important;
   font-weight:680!important;
   letter-spacing:0!important;
@@ -270,7 +270,7 @@ html body #sidebar.sidebar #sidebarSchoolName {
 #sidebar.sidebar .user-management-children .nav-item {
   min-height:var(--side-child-height)!important;
   padding:7px 9px!important;
-  font-size:12px!important;
+  font-size:var(--type-table)!important;
   font-weight:620!important;
   border-radius:8px!important;
 }
@@ -328,7 +328,7 @@ html body #sidebar.sidebar #sidebarSchoolName {
   border-radius:10px!important;
   background:var(--side-hover)!important;
   color:var(--side-ink)!important;
-  font-size:11px!important;
+  font-size:var(--type-table)!important;
   line-height:1.35!important;
   font-weight:650!important;
   text-align:left!important;
@@ -419,7 +419,7 @@ html body #sidebar.sidebar #sidebarSchoolName {
   }
   html body #sidebar.sidebar #sidebarSchoolName {
     width:auto!important;max-width:100%!important;
-    font-size:12px!important;
+    font-size:var(--type-table)!important;
     overflow:hidden!important;
     display:-webkit-box!important;
     -webkit-box-orient:vertical!important;
@@ -432,7 +432,7 @@ html body #sidebar.sidebar #sidebarSchoolName {
   #sidebar.sidebar .staff-nav-child {
     min-height:44px!important;
     padding:9px 10px!important;
-    font-size:13px!important;
+    font-size:var(--type-table)!important;
   }
   #sidebar.sidebar .nav-submenu,
   #sidebar.sidebar .staff-nav-children,

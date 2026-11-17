@@ -3,7 +3,7 @@
 .login-page .login-shell{position:relative;overflow:hidden}
 .login-page .login-panel{isolation:isolate;min-width:0;padding:clamp(30px,4vw,48px) clamp(25px,4.5vw,56px) 22px!important;background:linear-gradient(155deg,#fff,#f2f6ff 83%)!important;color:#17233d!important}
 .login-page .login-panel-inner{width:100%;max-width:480px;margin:auto!important}
-.login-page .login-panel .eyebrow{display:block!important;margin:0 0 8px!important;color:#4c2ed6!important;font-size:11px!important;letter-spacing:.2em!important}
+.login-page .login-panel .eyebrow{display:block!important;margin:0 0 8px!important;color:#4c2ed6!important;font-size:var(--type-secondary)!important;letter-spacing:.2em!important}
 .login-page .login-panel h2{display:block!important;visibility:visible!important;opacity:1!important;min-height:0!important;margin:0 0 8px!important;font-size:clamp(27px,3.2vw,38px)!important;line-height:1.14!important;letter-spacing:-.04em!important;color:#11213c!important}
 .login-page .login-panel .login-subtitle{color:#52617e!important;font-size:14px!important;line-height:1.5!important;margin:0 0 17px!important}
 .login-page .login-art .login-motion{height:165px;margin:8px 0 0}
@@ -12,17 +12,17 @@
 .login-page .login-art .art-copy h1{font-size:clamp(32px,3.8vw,48px);line-height:1.1}
 .login-page .login-art .art-copy p{font-size:14px;line-height:1.5}
 .login-page .login-mode{display:grid!important;grid-template-columns:repeat(3,minmax(0,1fr))!important;gap:5px!important;margin:16px 0 13px!important;padding:5px!important;border:1px solid #e0e7fb!important;border-radius:15px!important;background:#eaf0ff!important}
-.login-page .login-mode .mode-tab{display:flex!important;align-items:center!important;justify-content:center!important;gap:7px!important;min-width:0!important;min-height:58px!important;padding:9px 6px!important;border:0!important;border-radius:11px!important;background:transparent!important;color:#344766!important;font-size:12px!important;font-weight:750!important;line-height:1.25!important;white-space:normal!important;transition:background-color .22s ease,transform .22s ease,box-shadow .22s ease,color .22s ease!important}
+.login-page .login-mode .mode-tab{display:flex!important;align-items:center!important;justify-content:center!important;gap:7px!important;min-width:0!important;min-height:58px!important;padding:9px 6px!important;border:0!important;border-radius:11px!important;background:transparent!important;color:#344766!important;font-size:var(--type-table)!important;font-weight:750!important;line-height:1.25!important;white-space:normal!important;transition:background-color .22s ease,transform .22s ease,box-shadow .22s ease,color .22s ease!important}
 .login-page .login-mode .mode-tab svg{flex:0 0 19px;width:19px;height:19px}
 .login-page .login-mode .mode-tab span{text-wrap:balance;overflow-wrap:normal}
 .login-page .login-mode .mode-tab.active{background:linear-gradient(110deg,#4127c7,#6231e6)!important;color:#fff!important;box-shadow:0 5px 14px #4630b34b!important}
 .login-page .login-mode .mode-tab:hover:not(.active){background:#fff!important;transform:translateY(-1px)}
 .login-page .login-mode .mode-tab:focus-visible,.login-page #signInButton:focus-visible{outline:3px solid #12c7d4!important;outline-offset:3px!important}
-.login-page #accountTypeHint{display:block!important;margin:0 0 19px!important;padding:11px 14px!important;border:1px solid #d9e4fa!important;border-radius:12px!important;background:#eff4ff!important;color:#344765!important;font-size:12px!important;line-height:1.45!important}
+.login-page #accountTypeHint{display:block!important;margin:0 0 19px!important;padding:11px 14px!important;border:1px solid #d9e4fa!important;border-radius:12px!important;background:#eff4ff!important;color:#344765!important;font-size:var(--type-secondary)!important;line-height:1.45!important}
 .login-page .login-panel #loginForm{width:100%!important}
 .login-page .login-panel #loginForm .field-group{display:flex!important;flex-direction:column!important;gap:7px!important;margin:0 0 14px!important}
 .login-page .login-panel #loginForm .field-group label,
-.login-page .login-panel #loginForm .field-label-row label{display:inline-flex!important;align-items:center!important;gap:8px!important;width:fit-content!important;margin:0!important;opacity:1!important;visibility:visible!important;color:#22314d!important;font-size:13px!important;font-weight:750!important;line-height:1.35!important}
+.login-page .login-panel #loginForm .field-label-row label{display:inline-flex!important;align-items:center!important;gap:8px!important;width:fit-content!important;margin:0!important;opacity:1!important;visibility:visible!important;color:#22314d!important;font-size:var(--type-table)!important;font-weight:750!important;line-height:1.35!important}
 .login-page .login-ui-icon{display:inline-block;width:18px;height:18px;flex:0 0 18px;vertical-align:middle;pointer-events:none}
 .login-page .login-panel #loginForm .field-group label .login-ui-icon{color:#4338ca}
 .login-page .login-panel .field-group input{height:49px!important;min-height:49px!important;padding:0 14px!important;border:1px solid #cbd8ed!important;border-radius:12px!important;background:#fff!important;color:#182941!important;font-size:15px!important;box-shadow:0 2px 6px #243c6410!important}
@@ -41,9 +41,9 @@
 .login-page #signInButton:hover .sign-in-arrow svg{transform:translateX(3px)}
 .login-page #loginFeedback{min-height:0!important;margin:8px 0 0!important;font-size:13px!important}
 .login-page #loginFeedback:empty{display:none!important}
-.login-page .login-note{border-top:1px solid #dfe7f2!important;gap:7px!important;margin-top:14px!important;padding-top:11px!important;font-size:12px!important;color:#52627e!important}
+.login-page .login-note{border-top:1px solid #dfe7f2!important;gap:7px!important;margin-top:14px!important;padding-top:11px!important;font-size:var(--type-secondary)!important;color:#52627e!important}
 .login-page .login-note a,.login-page .recovery-text-button{color:#3639a8!important;font-weight:650!important}
-.login-page .login-footer{margin-top:10px!important;padding-top:6px!important;color:#667897!important;font-size:11px!important}
+.login-page .login-footer{margin-top:10px!important;padding-top:6px!important;color:#667897!important;font-size:var(--type-secondary)!important}
 .login-page .mobile-brand{display:none!important}
 .login-page .school-admin-recovery-form{background:#f4f7ff!important}
 .login-page .school-admin-recovery-form .field-group label{color:#21334f!important;opacity:1!important}
@@ -66,7 +66,7 @@
   .login-page .login-panel h2{font-size:clamp(27px,6vw,34px)!important}
   .login-page .login-panel .login-subtitle{margin-bottom:12px!important}
   .login-page .login-mode{margin:12px 0!important}
-  .login-page .login-mode .mode-tab{flex-direction:column!important;gap:4px!important;min-height:60px!important;font-size:11px!important;padding:8px 3px!important}
+  .login-page .login-mode .mode-tab{flex-direction:column!important;gap:4px!important;min-height:60px!important;font-size:var(--type-table)!important;padding:8px 3px!important}
   .login-page .login-mode .mode-tab svg{width:19px;height:19px}
   .login-page #accountTypeHint{margin-bottom:14px!important;padding:10px 12px!important}
   .login-page .login-panel #loginForm .field-group{margin-bottom:12px!important}
@@ -76,7 +76,7 @@
 @media (max-width:390px){
   .login-page{padding:8px!important}
   .login-page .login-panel{padding-left:15px!important;padding-right:15px!important}
-  .login-page .login-mode .mode-tab{font-size:10px!important}
+  .login-page .login-mode .mode-tab{font-size:var(--type-table)!important}
 }
 @media(prefers-reduced-motion:reduce){
   .login-page #signInButton::before{animation:none!important}

@@ -103,5 +103,5 @@ test('the service worker caches the deployed variants and correct versioned side
  '/assets/attendigo-wordmark-on-dark.svg?v=1','/assets/attendigo-symbol-transparent.svg?v=1'];
  for(const asset of assets)assert.ok(worker.includes(JSON.stringify(asset)),asset);
  for(const asset of [assets[0],assets[1],assets[2],assets[4]])assert.ok(html.includes(asset),asset);
- assert.match(worker,/attendigo-v162-adaptive-school-sidebar/);
+ assert.match(worker,/attendigo-v163-adaptive-inter-typography/);
 });

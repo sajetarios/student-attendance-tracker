@@ -1,6 +1,9 @@
-const CACHE = "attendigo-v162-adaptive-school-sidebar";
+const CACHE = "attendigo-v163-adaptive-inter-typography";
 
 const SHELL = [
+  "/typography.css?v=1",
+  "/fonts/InterVariable.woff2",
+  "/fonts/InterVariable-Italic.woff2",
   "/attendigo-brand-refresh.css?v=2",
   "/assets/attendigo-favicon.png?v=2",
   "/assets/attendigo-apple-touch-icon.png?v=2",

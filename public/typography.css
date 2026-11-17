@@ -1,0 +1,66 @@
+/* Attendigo typography foundation: screen UI only, official print/SF2 remains independent. */
+@font-face {
+  font-family: "Inter";
+  src: url("/fonts/InterVariable.woff2") format("woff2");
+  font-style: normal;
+  font-weight: 100 900;
+  font-display: swap;
+}
+@font-face {
+  font-family: "Inter";
+  src: url("/fonts/InterVariable-Italic.woff2") format("woff2");
+  font-style: italic;
+  font-weight: 100 900;
+  font-display: swap;
+}
+:root {
+  --font-ui: "Inter", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Arial, sans-serif;
+  --type-title: 1.625rem;          /* 26px desktop */
+  --type-section: 1.1875rem;      /* 19px */
+  --type-body: .9375rem;          /* 15px */
+  --type-name: .9375rem;          /* 15px */
+  --type-table: .875rem;          /* 14px */
+  --type-control: .875rem;        /* 14px */
+  --type-secondary: .8125rem;    /* 13px */
+  --type-count: .75rem;          /* 12px, counts only */
+  --type-line: 1.5;
+}
+@media screen {
+  html { font-family: var(--font-ui); -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
+  body, body.portal-page { font-family: var(--font-ui); font-size: var(--type-body); line-height: var(--type-line); }
+  body :is(button, input, select, textarea, optgroup, option, dialog, [role="button"], [contenteditable="true"]) { font-family: var(--font-ui); }
+  :is(button, input, select, textarea) { line-height: 1.4; }
+  :is(.portal-page, .parent-page, .student-site, .login-page) :is(.page-title, .view-title) {
+    font-size: var(--type-title);
+    line-height: 1.25;
+    font-weight: 650;
+  }
+  :is(.portal-page, .parent-page, .student-site) :is(.section-title, .section-heading) {
+    font-size: var(--type-section);
+    line-height: 1.35;
+    font-weight: 650;
+  }
+  :is(.school-name, .learner-name, .student-name, .teacher-name, .guardian-name, .teacher-roster-identity-copy) {
+    overflow-wrap: anywhere;
+    min-width: 0;
+  }
+  :is(.manual-stat, .manual-table, .attendance-summary, .attendance-sync-center, .dashboard-stat, .stat-value,
+      .metric-value, .planner-date, .planner-summary, .sap-metric, time, [datetime], [data-stat],
+      .universal-notice-content time) {
+    font-variant-numeric: tabular-nums;
+  }
+  :where(.table-scroll, .table-wrap, .manual-table-wrap, .sap-table-wrap) {
+    max-width: 100%;
+    overflow-x: auto;
+  }
+  :where(input, select, textarea, button, [role="button"]):focus-visible {
+    outline-offset: 2px;
+  }
+  @media (max-width: 767px) {
+    /* Prevent iOS focus zoom and preserve readable form fields at small viewports. */
+    body :is(input:not([type="checkbox"]):not([type="radio"]), select, textarea) {
+      font-size: max(1rem, 1em) !important;
+    }
+    :is(.page-title, .view-title) { overflow-wrap: anywhere; }
+  }
+}

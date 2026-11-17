@@ -6,7 +6,7 @@ body.teacher-assignment-open{overflow:hidden}
 .teacher-assignment-header{display:flex;justify-content:space-between;align-items:flex-start;gap:15px;padding:24px 26px 17px;border-bottom:1px solid var(--ui-line,#dce4f0)}
 .teacher-assignment-header h2{font-size:23px;line-height:1.25;margin:3px 0 6px;color:inherit}
 .teacher-assignment-header p{margin:0;font-size:14px;line-height:1.5;color:var(--ui-muted,#617089)}
-.teacher-assignment-kicker{font-size:11px;font-weight:800;letter-spacing:.11em;color:var(--ui-accent,#225da1)}
+.teacher-assignment-kicker{font-size:var(--type-secondary);font-weight:800;letter-spacing:.11em;color:var(--ui-accent,#225da1)}
 .teacher-assignment-close{flex:none;width:38px;height:38px;border-radius:10px;border:1px solid var(--ui-line,#dce4f0);background:var(--ui-panel-soft,#f7f9ff);color:inherit;font-size:26px;cursor:pointer}
 .teacher-assignment-body{overflow-y:auto;overscroll-behavior:contain;flex:1;min-height:0;padding:22px 26px}
 .teacher-assignment-label{display:block;font-size:14px;font-weight:750;margin:0 0 8px}
@@ -21,9 +21,9 @@ body.teacher-assignment-open{overflow:hidden}
 .teacher-assignment-class:hover{background:var(--ui-panel-soft,#f7f9ff)}
 .teacher-assignment-class-details{display:flex;min-width:0;flex-direction:column;gap:4px}
 .teacher-assignment-class-details strong{font-size:14px;line-height:1.4;color:inherit}
-.teacher-assignment-class-details small{font-size:12px;color:var(--ui-muted,#617089);line-height:1.4}
+.teacher-assignment-class-details small{font-size:var(--type-secondary);color:var(--ui-muted,#617089);line-height:1.4}
 .teacher-assignment-empty{padding:20px 14px;margin:0;color:var(--ui-muted,#617089);font-size:14px}
-.teacher-assignment-hint{font-size:12px;line-height:1.5;color:var(--ui-muted,#617089);margin:11px 0}
+.teacher-assignment-hint{font-size:var(--type-secondary);line-height:1.5;color:var(--ui-muted,#617089);margin:11px 0}
 .teacher-assignment-feedback{min-height:18px;margin:12px 0 0;font-size:13px;color:var(--ui-text,#182641)}
 .teacher-assignment-feedback.is-error{color:#c32948;font-weight:650}
 .teacher-assignment-actions{display:flex;gap:12px;justify-content:flex-end;padding:16px 26px 22px;border-top:1px solid var(--ui-line,#dce4f0);background:var(--ui-panel,#fff)}

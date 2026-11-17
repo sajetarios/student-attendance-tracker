@@ -123,18 +123,18 @@ html[data-ui-theme="dark"] .portal-page .security-role-cell .role-line{color:var
 html[data-ui-theme="dark"] .portal-page .security-role-cell .department-line{color:var(--ui-muted)}
 .portal-page .security-accounts-table .account-status{
   display:inline-flex;min-width:0;max-width:100%;align-items:center;justify-content:center;
-  padding:6px 9px;border-radius:999px;font-size:12px;line-height:1.35;
+  padding:6px 9px;border-radius:999px;font-size:var(--type-table);line-height:1.35;
   white-space:normal;overflow-wrap:break-word;text-align:center
 }
-.portal-page .security-accounts-table td:nth-child(4){font-size:13px;line-height:1.45;white-space:normal}
+.portal-page .security-accounts-table td:nth-child(4){font-size:var(--type-table);line-height:1.45;white-space:normal}
 .portal-page .security-accounts-table td:nth-child(7) .action-row{display:flex;flex-wrap:wrap;gap:7px}
 .portal-page .security-accounts-table td:nth-child(7) .compact-button{
-  min-height:36px;font-size:12px;padding:6px 10px
+  min-height:36px;font-size:var(--type-table);padding:6px 10px
 }
 @media(max-width:700px){
  .portal-page .quick-card .quick-action,.portal-page .admin-dashboard-action{min-height:76px;padding:14px;gap:12px}
  .portal-page .quick-card .quick-action strong,.portal-page .admin-dashboard-action strong{font-size:16px!important}
- .portal-page .quick-card .quick-action small,.portal-page .admin-dashboard-action small{font-size:13px!important}
+ .portal-page .quick-card .quick-action small,.portal-page .admin-dashboard-action small{font-size:var(--type-table)!important}
  .portal-page .quick-card .quick-action-icon{width:42px;height:42px;flex-basis:42px}
 }
 @media(prefers-reduced-motion:reduce){
@@ -155,10 +155,10 @@ html[data-ui-theme="dark"] .portal-page .security-role-cell .department-line{col
    background:transparent!important;color:var(--ui-text,#263c55)!important;
    border:0!important;border-bottom:1px solid var(--ui-line,#e5ebf3)!important;
    padding:10px 4px!important;min-height:0!important;line-height:1.45!important;
-   font-size:13px!important;overflow-wrap:anywhere;
+   font-size:var(--type-table)!important;overflow-wrap:anywhere;
  }
  #studentsView #studentRosterTable tbody td::before {
-   color:var(--ui-muted,#697b90)!important;font-size:10px!important;
+   color:var(--ui-muted,#697b90)!important;font-size:var(--type-table)!important;
    letter-spacing:.045em!important;
  }
  #studentsView #studentRosterTable tbody td[data-label="Full name"] {
@@ -205,13 +205,13 @@ html[data-ui-theme="dark"] .portal-page .security-role-cell .department-line{col
  }
  #studentsView #studentRosterTable .student-row-actions button,
  #studentsView #studentRosterTable .student-photo-upload {
-   min-height:42px!important;font-size:12px!important;
+   min-height:42px!important;font-size:var(--type-table)!important;
  }
  #studentsView #studentRosterTable tbody td:last-child {border-bottom:0!important}
  a#classQrTeacherShortcut {
    right:12px!important;bottom:calc(12px + env(safe-area-inset-bottom,0px))!important;
    max-width:calc(100vw - 24px)!important;padding:10px 12px!important;
-   font-size:12px!important;border-radius:12px!important;
+   font-size:var(--type-secondary)!important;border-radius:12px!important;
  }
 }
 html[data-ui-theme="dark"] #studentsView #studentRosterTable tbody tr:not(:has(td.empty-cell)) {
@@ -251,5 +251,5 @@ a#classQrTeacherShortcut:hover{filter:brightness(1.07);transform:translateY(-2px
 a#classQrTeacherShortcut:active{transform:translateY(0);filter:brightness(.96)}
 a#classQrTeacherShortcut:focus-visible{outline:3px solid color-mix(in srgb,var(--qr-button-brand) 45%,white)!important;outline-offset:4px!important}
 a#classQrTeacherShortcut :is(svg,.ui-icon,i){color:inherit!important;stroke:currentColor!important}
-@media(max-width:700px){a#classQrTeacherShortcut{padding:10px 13px!important;min-height:44px!important;font-size:12px!important;right:12px!important;bottom:calc(12px + env(safe-area-inset-bottom,0px))!important;max-width:calc(100vw - 24px)!important}}
+@media(max-width:700px){a#classQrTeacherShortcut{padding:10px 13px!important;min-height:44px!important;font-size:var(--type-secondary)!important;right:12px!important;bottom:calc(12px + env(safe-area-inset-bottom,0px))!important;max-width:calc(100vw - 24px)!important}}
 @media(prefers-reduced-motion:reduce){a#classQrTeacherShortcut{transition:none!important}}

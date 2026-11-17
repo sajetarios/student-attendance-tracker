@@ -5,14 +5,14 @@
 .photo-editor-dialog::backdrop{background:rgba(5,11,22,.72);backdrop-filter:blur(5px)}
 .photo-editor-heading{display:flex;justify-content:space-between;align-items:flex-start;gap:16px;padding:19px 22px 14px}
 .photo-editor-heading h2{font-size:22px;line-height:1.3;margin:2px 0 5px}
-.photo-editor-heading p{font-size:11px;font-weight:800;letter-spacing:.12em;color:#60758a;margin:0}
+.photo-editor-heading p{font-size:var(--type-secondary);font-weight:800;letter-spacing:.12em;color:#60758a;margin:0}
 .photo-editor-heading span,.photo-editor-note{font-size:14px;line-height:1.45;color:#60758a}
 .photo-editor-close{width:36px;height:36px;border:1px solid #d5e2ed;border-radius:10px;background:transparent;color:inherit;font-size:25px;cursor:pointer}
 .photo-editor-stage{position:relative;width:min(380px,calc(100% - 44px));aspect-ratio:1;margin:0 auto;border-radius:13px;overflow:hidden;background:#e8eef5}
 .photo-editor-stage canvas{width:100%;height:100%;display:block;touch-action:none;cursor:grab;outline-offset:-3px}
 .photo-editor-stage canvas:active{cursor:grabbing}
 .photo-editor-round-guide{position:absolute;inset:0;border:1px dashed rgba(255,255,255,.86);border-radius:50%;pointer-events:none;box-shadow:0 0 0 45px rgba(17,32,55,.09) inset}
-.photo-editor-instruction{position:absolute;bottom:14px;left:50%;transform:translateX(-50%);padding:6px 11px;background:rgba(12,29,48,.73);border-radius:9px;color:#fff;white-space:nowrap;font-size:12px;pointer-events:none}
+.photo-editor-instruction{position:absolute;bottom:14px;left:50%;transform:translateX(-50%);padding:6px 11px;background:rgba(12,29,48,.73);border-radius:9px;color:#fff;white-space:nowrap;font-size:var(--type-secondary);pointer-events:none}
 .photo-editor-controls{padding:16px 22px 0}
 .photo-editor-controls label{display:grid;grid-template-columns:auto minmax(0,1fr) auto;align-items:center;gap:12px;font-size:14px;font-weight:720}
 .photo-editor-controls input{width:100%;accent-color:var(--brand,#2563a6)}

@@ -4,21 +4,21 @@
 .admin-notification-bell{border:1px solid var(--line,#d9e2ef);background:var(--card,#fff);color:var(--ink,#29415e);border-radius:12px;min-width:43px;height:43px;display:grid;place-items:center;position:relative;cursor:pointer;transition:background .2s,box-shadow .2s}
 .admin-notification-bell:hover,.admin-notification-bell[aria-expanded=true]{background:var(--surface-muted,#f1f5fb);box-shadow:0 2px 12px #12325a13}
 .admin-notification-bell:focus-visible,.admin-notification-panel button:focus-visible,#guardianApprovalsNav:focus-visible{outline:3px solid #19bbd0;outline-offset:3px}
-.admin-notification-count{position:absolute;top:-6px;right:-7px;display:grid;place-items:center;min-width:19px;height:19px;padding:0 4px;border-radius:99px;background:#c93e45;color:white;font-size:10px;font-weight:800;border:2px solid var(--card,#fff)}
+.admin-notification-count{position:absolute;top:-6px;right:-7px;display:grid;place-items:center;min-width:19px;height:19px;padding:0 4px;border-radius:99px;background:#c93e45;color:white;font-size:var(--type-secondary);font-weight:800;border:2px solid var(--card,#fff)}
 .admin-notification-panel{box-sizing:border-box;position:absolute;top:calc(100% + 12px);right:-40px;width:min(365px,calc(100vw - 26px));padding:12px;background:var(--card,#fff);color:var(--ink,#21334c);border-radius:16px;box-shadow:0 18px 52px #0b264642;border:1px solid var(--line,#dce4ef);z-index:900}
 .admin-notification-header{display:flex;align-items:center;justify-content:space-between;padding:5px 6px 13px;border-bottom:1px solid var(--line,#e2e8f0);margin-bottom:6px;gap:14px}
 .admin-notification-header strong{display:block;font-size:15px;color:inherit}
-.admin-notification-header small{display:block;color:var(--muted,#677b93);font-size:11px;margin-top:4px}
+.admin-notification-header small{display:block;color:var(--muted,#677b93);font-size:var(--type-secondary);margin-top:4px}
 .admin-notification-refresh{width:34px;height:34px;flex-shrink:0;border-radius:9px;background:var(--surface-muted,#f0f5fb);border:1px solid var(--line,#dae3ee);color:inherit;font-size:20px;cursor:pointer}
 .admin-notification-item{width:100%;display:flex;align-items:center;gap:12px;text-align:left;background:transparent;color:inherit;border:0;border-radius:11px;padding:13px 10px;cursor:pointer}
 .admin-notification-item:hover{background:var(--surface-muted,#f1f6fb)}
 .admin-notification-item>span:nth-child(2){flex:1;min-width:0}
-.admin-notification-item strong{font-size:12px;display:block}
-.admin-notification-item small{color:var(--muted,#74849c);font-size:11px;line-height:1.35;display:block;margin-top:4px}
+.admin-notification-item strong{font-size:var(--type-secondary);display:block}
+.admin-notification-item small{color:var(--muted,#74849c);font-size:var(--type-secondary);line-height:1.35;display:block;margin-top:4px}
 .admin-notification-icon{width:36px;height:36px;background:#eaf1fd;color:#36578d;border-radius:11px;flex-shrink:0;display:grid;place-items:center;font-size:16px}
-.admin-notification-number{min-width:25px;text-align:center;background:#edf3fb;border-radius:99px;color:#315075;font-size:12px;font-weight:800;padding:5px 8px}
-.admin-notification-foot{color:var(--muted,#657991);font-size:11px;padding:10px 7px 3px;border-top:1px solid var(--line,#e2e9f2);margin:7px 0 0;line-height:1.5}
-.request-side-count{margin-left:auto;border-radius:99px;background:#e4545f;color:#fff;font-size:10px;font-weight:800;min-width:19px;height:19px;display:grid;place-items:center;padding:0 5px}
+.admin-notification-number{min-width:25px;text-align:center;background:#edf3fb;border-radius:99px;color:#315075;font-size:var(--type-secondary);font-weight:800;padding:5px 8px}
+.admin-notification-foot{color:var(--muted,#657991);font-size:var(--type-secondary);padding:10px 7px 3px;border-top:1px solid var(--line,#e2e9f2);margin:7px 0 0;line-height:1.5}
+.request-side-count{margin-left:auto;border-radius:99px;background:#e4545f;color:#fff;font-size:var(--type-table);font-weight:800;min-width:19px;height:19px;display:grid;place-items:center;padding:0 5px}
 @media(max-width:820px){.admin-notification-panel{right:-75px}.admin-notification-bell{min-width:40px;height:40px}.topbar .topbar-right{gap:10px}}
 @media(max-width:450px){.admin-notification-panel{position:fixed;top:calc(65px + env(safe-area-inset-top,0px));left:12px;right:12px;width:auto;max-width:none}.admin-notification-bell{min-width:38px;height:38px}}
 @media(prefers-color-scheme:dark){

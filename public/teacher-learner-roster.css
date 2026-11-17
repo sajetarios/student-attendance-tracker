@@ -19,7 +19,7 @@
   color:var(--tr-ink);font-weight:800;
 }
 #studentsView.teacher-directory-mode .student-roster-tools p{
-  margin:0;color:var(--tr-sub);font-size:12px!important;line-height:1.45;
+  margin:0;color:var(--tr-sub);font-size:var(--type-table)!important;line-height:1.45;
 }
 #studentsView.teacher-directory-mode .student-filter-row{
   display:grid;grid-template-columns:minmax(230px,2.2fr) repeat(3,minmax(125px,1fr));
@@ -27,11 +27,11 @@
 }
 #studentsView.teacher-directory-mode .student-filter-row label{
   display:flex;flex-direction:column;gap:5px;min-width:0;margin:0;
-  color:var(--tr-sub);font-size:11px!important;font-weight:700;line-height:1.25;
+  color:var(--tr-sub);font-size:var(--type-table)!important;font-weight:700;line-height:1.25;
 }
 #studentsView.teacher-directory-mode .student-filter-row :is(input,select){
   box-sizing:border-box;display:block;width:100%;height:38px;min-height:38px;
-  min-width:0;margin:0;padding:7px 10px;font-size:13px;border-radius:9px;
+  min-width:0;margin:0;padding:7px 10px;font-size:var(--type-table);border-radius:9px;
   color:var(--tr-ink);background:var(--tr-bg);border:1px solid #d3dfeb;
 }
 #studentsView.teacher-directory-mode .student-roster-viewbar{
@@ -41,15 +41,15 @@
 }
 #studentsView.teacher-directory-mode .student-roster-viewbar label{
   display:inline-flex;align-items:center;gap:8px;flex-shrink:0;
-  font-size:12px!important;color:var(--tr-ink);font-weight:700;
+  font-size:var(--type-table)!important;color:var(--tr-ink);font-weight:700;
 }
 #studentsView.teacher-directory-mode #studentRosterView{
   box-sizing:border-box;min-width:125px;min-height:35px;height:35px;
   padding:5px 26px 5px 10px;border-radius:8px;background:var(--tr-bg);
-  border:1px solid #cedaeb;color:var(--tr-ink);font-size:12px;
+  border:1px solid #cedaeb;color:var(--tr-ink);font-size:var(--type-table);
 }
 #studentsView.teacher-directory-mode #studentRosterSexCounts{
-  color:var(--tr-sub);font-size:12px;font-weight:750;line-height:1.5;
+  color:var(--tr-sub);font-size:var(--type-table);font-weight:750;line-height:1.5;
   font-variant-numeric:tabular-nums;
 }
 #studentsView.teacher-directory-mode .student-bulk-actions:not([hidden]){
@@ -58,11 +58,11 @@
   border-radius:10px;box-shadow:none;background:var(--tr-soft);
 }
 #studentsView.teacher-directory-mode .student-bulk-actions label{
-  gap:7px;margin:0;color:var(--tr-ink);font-size:12px!important;
+  gap:7px;margin:0;color:var(--tr-ink);font-size:var(--type-table)!important;
 }
-#studentsView.teacher-directory-mode #selectedStudentCount{font-size:12px;font-weight:750;color:var(--tr-blue)}
+#studentsView.teacher-directory-mode #selectedStudentCount{font-size:var(--type-table);font-weight:750;color:var(--tr-blue)}
 #studentsView.teacher-directory-mode .student-bulk-actions :is(button,select){
-  min-height:36px;padding:7px 11px;border-radius:8px;font-size:12px;
+  min-height:36px;padding:7px 11px;border-radius:8px;font-size:var(--type-table);
 }
 #studentsView.teacher-directory-mode .student-bulk-actions #studentBatchAction{
   min-width:185px;max-width:245px;
@@ -73,12 +73,12 @@
   box-shadow:0 5px 18px rgba(23,40,70,.035);
 }
 #studentsView #studentRosterTable.teacher-roster-compact{
-  border-collapse:separate;border-spacing:0;width:100%;min-width:680px;
-  table-layout:auto;font-size:12px;color:var(--tr-ink);
+  border-collapse:separate;border-spacing:0;width:100%;min-width:760px;
+  table-layout:auto;font-size:var(--type-table);color:var(--tr-ink);
 }
 #studentsView #studentRosterTable.teacher-roster-compact thead th{
   padding:10px 14px;vertical-align:middle;white-space:nowrap;text-align:left;
-  background:var(--tr-head);color:var(--tr-sub);font-size:10.5px;
+  background:var(--tr-head);color:var(--tr-sub);font-size:var(--type-table);
   font-weight:800;letter-spacing:.055em;text-transform:uppercase;
   border-bottom:1px solid var(--tr-line);
 }
@@ -91,7 +91,7 @@
 #studentsView #studentRosterTable.teacher-roster-compact tbody tr.teacher-roster-student td{
   height:53px;box-sizing:border-box;padding:7px 14px;
   vertical-align:middle;border-bottom:1px solid var(--tr-line);
-  line-height:1.3;white-space:normal;font-size:12px;
+  line-height:1.45;white-space:normal;font-size:var(--type-table);
   color:var(--tr-ink);background:transparent;
 }
 #studentsView #studentRosterTable.teacher-roster-compact tbody tr.teacher-roster-student:last-child td{
@@ -123,43 +123,43 @@
   box-sizing:border-box;width:35px;height:35px;min-width:35px;flex:0 0 35px;
   display:grid;place-items:center;border-radius:50%;object-fit:cover;
   background:var(--tr-avatar);color:#355e93;border:1px solid #d5e3f5;
-  font-weight:800;font-size:11px;letter-spacing:.025em;
+  font-weight:800;font-size:var(--type-table);letter-spacing:.025em;
 }
 #studentsView #studentRosterTable.teacher-roster-compact .teacher-roster-identity-copy{
   display:flex;flex-direction:column;gap:3px;min-width:0;
 }
 #studentsView #studentRosterTable.teacher-roster-compact .teacher-roster-identity-copy strong{
-  color:var(--tr-ink);font-size:12.5px;line-height:1.3;font-weight:800;
+  color:var(--tr-ink);font-size:var(--type-name);line-height:1.3;font-weight:800;
   letter-spacing:-.01em;overflow-wrap:anywhere;
 }
 #studentsView #studentRosterTable.teacher-roster-compact .teacher-roster-identity-copy small{
-  color:var(--tr-sub);font-size:11px;font-weight:550;line-height:1.2;letter-spacing:0;
+  color:var(--tr-sub);font-size:var(--type-table);font-weight:550;line-height:1.2;letter-spacing:0;
 }
 #studentsView #studentRosterTable.teacher-roster-compact .student-roster-number{
-  margin-right:5px;color:var(--tr-sub);font-size:11px;font-weight:700;
+  margin-right:5px;color:var(--tr-sub);font-size:var(--type-table);font-weight:700;
 }
 #studentsView .teacher-roster-class{
   display:flex;align-items:center;gap:6px 10px;flex-wrap:wrap;
 }
 #studentsView #studentRosterTable.teacher-roster-compact td[data-label="Class"] .teacher-roster-class>strong{
-  color:var(--tr-ink);font-size:12px;font-weight:700;line-height:1.35;
+  color:var(--tr-ink);font-size:var(--type-table);font-weight:700;line-height:1.35;
 }
 #studentsView .teacher-roster-program{
   display:inline-flex;align-items:center;gap:5px;flex-wrap:wrap;min-width:0;
 }
 #studentsView #studentRosterTable.teacher-roster-compact .special-program-chip{
   display:inline-flex;padding:3px 7px;border-radius:7px;
-  font-size:10px;line-height:1.2;min-height:0;font-weight:750;
+  font-size:var(--type-table);line-height:1.2;min-height:0;font-weight:750;
 }
 #studentsView .teacher-roster-program .muted-inline{
-  font-size:10.5px;color:var(--tr-sub);
+  font-size:var(--type-table);color:var(--tr-sub);
 }
 #studentsView .teacher-roster-program .special-program-row-pending{
-  font-size:10px;padding:2px 6px;line-height:1.25;border-radius:7px;
+  font-size:var(--type-table);padding:2px 6px;line-height:1.25;border-radius:7px;
   white-space:normal;
 }
 #studentsView #studentRosterTable.teacher-roster-compact .teacher-roster-status{
-  display:inline-flex;align-items:center;gap:6px;font-size:11px;
+  display:inline-flex;align-items:center;gap:6px;font-size:var(--type-table);
   font-weight:750;padding:4px 8px;line-height:1.2;border-radius:999px;
   white-space:nowrap;
 }
@@ -183,7 +183,7 @@
   box-sizing:border-box;display:inline-flex;gap:5px;align-items:center;justify-content:center;
   min-height:33px;height:33px;min-width:51px;padding:5px 9px;
   border:1px solid #d4dfec;border-radius:8px;background:var(--tr-bg);
-  color:var(--tr-blue);font-size:11px;font-weight:750;cursor:pointer;
+  color:var(--tr-blue);font-size:var(--type-table);font-weight:750;cursor:pointer;
 }
 #studentsView .teacher-roster-qr-glyph{font-size:15px;line-height:1}
 #studentsView #studentRosterTable.teacher-roster-compact .student-actions-dropdown{
@@ -193,10 +193,10 @@
   box-sizing:border-box;display:inline-flex;justify-content:center;align-items:center;
   min-width:77px;height:33px;min-height:33px;padding:5px 9px;border-radius:8px;
   border:1px solid #d4dfec;background:var(--tr-bg);color:var(--tr-ink);
-  font-size:11px;font-weight:750;cursor:pointer;list-style:none;
+  font-size:var(--type-table);font-weight:750;cursor:pointer;list-style:none;
 }
 #studentsView #studentRosterTable.teacher-roster-compact .student-actions-dropdown>summary::after{
-  margin-left:6px;font-size:12px;content:"⌄";
+  margin-left:6px;font-size:var(--type-table);content:"⌄";
 }
 #studentsView #studentRosterTable.teacher-roster-compact .student-actions-dropdown[open]>summary{
   border-color:#7ca7db;background:#eaf3ff;color:#1b528f;
@@ -223,7 +223,7 @@
   display:flex;align-items:center;min-height:36px;padding:8px 10px;
   border:0;border-radius:7px;box-shadow:none;
   color:var(--tr-ink);background:transparent;cursor:pointer;
-  font-size:12px;font-weight:700;line-height:1.4;
+  font-size:var(--type-table);font-weight:700;line-height:1.4;
 }
 #studentsView #studentRosterTable.teacher-roster-compact .student-actions-dropdown .student-row-actions>button:hover,
 #studentsView #studentRosterTable.teacher-roster-compact .student-actions-dropdown .student-row-actions>.student-photo-upload:hover{
@@ -234,18 +234,18 @@
   border-top:1px solid var(--tr-line);margin-top:4px;
   color:var(--tr-ink);background:transparent;line-height:1.45;
 }
-#studentsView .teacher-roster-guardian :is(strong,small){display:block;font-size:11px}
+#studentsView .teacher-roster-guardian :is(strong,small){display:block;font-size:var(--type-table)}
 #studentsView .teacher-roster-guardian strong{color:var(--tr-ink)}
 #studentsView .teacher-roster-guardian small{margin-top:3px;color:var(--tr-sub)}
 #studentsView .teacher-roster-menu-label{
-  display:block;margin-bottom:5px;font-size:10px;font-weight:800;
+  display:block;margin-bottom:5px;font-size:var(--type-table);font-weight:800;
   letter-spacing:.05em;text-transform:uppercase;color:var(--tr-sub);
 }
 #studentsView #studentRosterTable.teacher-roster-compact .student-sex-group>th{
   padding:8px 14px!important;height:31px!important;text-align:left;
   background:#f0f5fb!important;color:#365a81!important;
   border-bottom:1px solid var(--tr-line);font-weight:800!important;
-  font-size:11px!important;letter-spacing:.015em;
+  font-size:var(--type-table)!important;letter-spacing:.015em;
 }
 #studentsView #studentRosterTable.teacher-roster-compact .student-actions-dropdown:focus-within{z-index:100}
 #studentsView.teacher-directory-mode :is(button,summary,a,input,select):focus-visible{
@@ -255,7 +255,7 @@
 #classQrTeacherShortcut{position:fixed;right:18px;bottom:18px;z-index:1000;
   display:inline-flex;align-items:center;justify-content:center;gap:8px;
   min-height:42px;padding:10px 14px;border-radius:11px;
-  color:#fff;background:#1767a5;text-decoration:none;font-size:12px;font-weight:750;
+  color:#fff;background:#1767a5;text-decoration:none;font-size:var(--type-table);font-weight:750;
   box-shadow:0 5px 22px #0003}
 #classQrTeacherShortcut.is-roster-inline{
   position:static!important;inset:auto!important;top:auto!important;right:auto!important;
@@ -312,10 +312,10 @@ html[data-ui-theme="dark"] #studentsView .teacher-roster-initials{color:#d1e8ff;
   #studentsView.teacher-directory-mode .student-filter-row :is(input,select){
     width:100%;min-width:0;min-height:42px;height:42px;font-size:16px;
   }
-  #studentsView.teacher-directory-mode .student-filter-row label{font-size:11px!important}
+  #studentsView.teacher-directory-mode .student-filter-row label{font-size:var(--type-table)!important}
   #studentsView.teacher-directory-mode .student-roster-viewbar{flex-wrap:wrap;align-items:center;padding:8px;gap:8px}
-  #studentsView.teacher-directory-mode #studentRosterSexCounts{order:2;width:100%;font-size:11px}
-  #classQrTeacherShortcut.is-roster-inline{order:1;margin-left:auto;min-height:36px;font-size:11px}
+  #studentsView.teacher-directory-mode #studentRosterSexCounts{order:2;width:100%;font-size:var(--type-table)}
+  #classQrTeacherShortcut.is-roster-inline{order:1;margin-left:auto;min-height:36px;font-size:var(--type-table)}
   #classQrTeacherShortcut:not(.is-roster-inline){right:12px!important;bottom:calc(12px + env(safe-area-inset-bottom))!important}
   #studentsView.teacher-directory-mode .student-bulk-actions:not([hidden]){display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:7px}
   #studentsView.teacher-directory-mode .student-bulk-actions :is(label,#selectedStudentCount,#bulkQrFeedback){grid-column:1/-1}
@@ -340,10 +340,10 @@ html[data-ui-theme="dark"] #studentsView .teacher-roster-initials{color:#d1e8ff;
     box-sizing:border-box;display:flex;align-items:flex-start;justify-content:center;
     flex-direction:column;gap:4px;width:auto!important;height:auto!important;
     min-height:0;min-width:0!important;padding:6px 0;
-    border:0!important;background:transparent;text-align:left;font-size:12px;
+    border:0!important;background:transparent;text-align:left;font-size:var(--type-table);
   }
   #studentsView #studentRosterTable.teacher-roster-compact tbody td::before{
-    content:attr(data-label);display:block;font-size:9px;font-weight:800;
+    content:attr(data-label);display:block;font-size:var(--type-table);font-weight:800;
     color:var(--tr-sub);letter-spacing:.06em;text-transform:uppercase;
   }
   #studentsView #studentRosterTable.teacher-roster-compact tbody td[data-label="Full name"]{
@@ -361,7 +361,7 @@ html[data-ui-theme="dark"] #studentsView .teacher-roster-initials{color:#d1e8ff;
     position:absolute;top:12px;right:12px;z-index:1;width:20px!important;
     padding:0!important;min-width:0!important;border:0!important;
   }
-  #studentsView #studentRosterTable.teacher-roster-compact .teacher-roster-identity-copy strong{font-size:12.5px}
+  #studentsView #studentRosterTable.teacher-roster-compact .teacher-roster-identity-copy strong{font-size:var(--type-name)}
   #studentsView #studentRosterTable.teacher-roster-compact .teacher-roster-class{align-items:flex-start;flex-direction:column;gap:4px}
   #studentsView #studentRosterTable.teacher-roster-compact .teacher-roster-quick-actions{width:100%;justify-content:flex-end}
   #studentsView #studentRosterTable.teacher-roster-compact .student-actions-dropdown[open]>.student-row-actions{

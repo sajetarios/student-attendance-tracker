@@ -41,7 +41,7 @@ html[data-ui-theme="dark"] .portal-page #adminDashboardCard {
  box-shadow:var(--ui-shadow);color:var(--ui-text)!important;
 }
 html[data-ui-theme="dark"] .portal-page .admin-dashboard-kicker {
- color:var(--ui-accent)!important;font-size:12px;letter-spacing:.1em;
+ color:var(--ui-accent)!important;font-size:var(--type-secondary);letter-spacing:.1em;
 }
 html[data-ui-theme="dark"] .portal-page .admin-dashboard-intro h3 {
  color:var(--ui-text)!important;font-size:clamp(22px,2vw,28px);
@@ -68,7 +68,7 @@ html[data-ui-theme="dark"] .portal-page .admin-dashboard-action strong {
  color:var(--ui-text)!important;font-size:14px;font-weight:760;
 }
 html[data-ui-theme="dark"] .portal-page .admin-dashboard-action small {
- color:var(--ui-muted)!important;font-size:12px;line-height:1.5;
+ color:var(--ui-muted)!important;font-size:var(--type-table);line-height:1.5;
 }
 html[data-ui-theme="dark"] .portal-page .admin-dashboard-action > b {color:var(--ui-muted)}
 html[data-ui-theme="dark"] .portal-page .admin-dashboard-footnote,
@@ -98,7 +98,7 @@ html[data-ui-theme="dark"] .portal-page .quick-action strong {
  color:var(--ui-text)!important;font-size:14px;font-weight:720;
 }
 html[data-ui-theme="dark"] .portal-page .quick-action small {
- color:var(--ui-muted)!important;font-size:12px;
+ color:var(--ui-muted)!important;font-size:var(--type-table);
 }
 html[data-ui-theme="dark"] .portal-page .quick-action>b,
 html[data-ui-theme="dark"] .portal-page .quick-action .action-chevron {color:var(--ui-muted)}

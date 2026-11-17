@@ -4,57 +4,57 @@
 #studentAccountsView .sap-topbar{display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap}
 #studentAccountsView h3{font-size:17px;letter-spacing:-.02em;margin:0;color:var(--ink,#20354f)}
 #studentAccountsView p{line-height:1.5}
-#studentAccountsView .sap-topbar p,#studentAccountsView .sap-card-head p{font-size:12px;color:var(--muted,#687d90);margin:5px 0 0}
+#studentAccountsView .sap-topbar p,#studentAccountsView .sap-card-head p{font-size:var(--type-secondary);color:var(--muted,#687d90);margin:5px 0 0}
 #studentAccountsView .sap-metrics{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}
 #studentAccountsView .sap-metric{padding:18px;background:var(--card,#fff);border:1px solid var(--line,#e1e8f1);border-radius:14px;box-shadow:0 4px 17px #10284d08;display:grid;gap:10px}
-#studentAccountsView .sap-metric span{font-size:12px;color:var(--muted,#61738a)}
+#studentAccountsView .sap-metric span{font-size:var(--type-secondary);color:var(--muted,#61738a)}
 #studentAccountsView .sap-metric strong{font-size:29px;line-height:1;letter-spacing:-.035em;color:var(--ink,#1f3655)}
 #studentAccountsView .sap-directory-card,#studentAccountsView .sap-requests-card{padding:20px;border-radius:17px;min-width:0}
 #studentAccountsView .sap-card-head{display:flex;align-items:flex-start;justify-content:space-between;gap:14px;flex-wrap:wrap;margin-bottom:16px}
 #studentAccountsView .sap-filterbar{display:flex;gap:8px;flex-wrap:wrap;flex:1;justify-content:flex-end}
-#studentAccountsView .sap-filterbar input,#studentAccountsView .sap-filterbar select{min-height:39px;padding:9px 12px;font-size:13px;border-radius:10px;border:1px solid #cddbec;background:var(--card,#fff);color:var(--ink,#1f3655)}
+#studentAccountsView .sap-filterbar input,#studentAccountsView .sap-filterbar select{min-height:39px;padding:9px 12px;font-size:var(--type-table);border-radius:10px;border:1px solid #cddbec;background:var(--card,#fff);color:var(--ink,#1f3655)}
 #studentAccountsView .sap-filterbar input{width:min(280px,100%)}
 #studentAccountsView .sap-sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap}
-#studentAccountsView .sap-bulk-toolbar{display:flex;gap:14px;flex-wrap:wrap;align-items:center;border:1px solid #d6e5fc;background:#edf4ff;padding:11px 14px;border-radius:12px;margin:0 0 13px;color:#28456f;font-size:12px}
+#studentAccountsView .sap-bulk-toolbar{display:flex;gap:14px;flex-wrap:wrap;align-items:center;border:1px solid #d6e5fc;background:#edf4ff;padding:11px 14px;border-radius:12px;margin:0 0 13px;color:#28456f;font-size:var(--type-table)}
 #studentAccountsView .sap-bulk-toolbar[hidden]{display:none!important}
 #studentAccountsView .sap-bulk-toolbar label{display:flex;align-items:center;gap:6px}
 #studentAccountsView .sap-bulk-toolbar input{width:16px;height:16px}
 #studentAccountsView .sap-bulk-toolbar button{margin-left:auto}
 #studentAccountsView .sap-table-scroll{width:100%;max-height:540px;overflow:auto;scrollbar-width:thin;overscroll-behavior:contain;border:1px solid #e3eaf4;border-radius:12px}
 #studentAccountsView .sap-table{width:100%;border-collapse:separate;border-spacing:0;min-width:610px;white-space:normal}
-#studentAccountsView .sap-table th{position:sticky;top:0;z-index:1;background:#f0f5fc;color:#546881;font-size:11px;text-transform:uppercase;letter-spacing:.04em;font-weight:750;padding:13px 12px;border-bottom:1px solid #dfe7f1}
-#studentAccountsView .sap-table td{padding:13px 12px;vertical-align:middle;border-bottom:1px solid #ecf0f5;font-size:13px;color:var(--ink,#20354f)}
+#studentAccountsView .sap-table th{position:sticky;top:0;z-index:1;background:#f0f5fc;color:#546881;font-size:var(--type-table);text-transform:uppercase;letter-spacing:.04em;font-weight:750;padding:13px 12px;border-bottom:1px solid #dfe7f1}
+#studentAccountsView .sap-table td{padding:13px 12px;vertical-align:middle;border-bottom:1px solid #ecf0f5;font-size:var(--type-table);color:var(--ink,#20354f)}
 #studentAccountsView .sap-table tr:last-child td{border-bottom:0}
 #studentAccountsView .sap-table tbody tr:hover{background:#f7fbff}
-#studentAccountsView .sap-student-id{color:#75879f;font-size:11px;display:block;margin-top:4px}
+#studentAccountsView .sap-student-id{color:#75879f;font-size:var(--type-secondary);display:block;margin-top:4px}
 #studentAccountsView .sap-student-name{font-weight:700}
-#studentAccountsView .sap-chip{display:inline-block;font-size:11px;font-weight:750;border-radius:99px;padding:5px 9px;white-space:nowrap;background:#f0f2f6;color:#56667d}
+#studentAccountsView .sap-chip{display:inline-block;font-size:var(--type-secondary);font-weight:750;border-radius:99px;padding:5px 9px;white-space:nowrap;background:#f0f2f6;color:#56667d}
 #studentAccountsView .sap-chip.active{background:#e1f7ed;color:#07834b}
 #studentAccountsView .sap-chip.pending{background:#fff4df;color:#99620b}
 #studentAccountsView .sap-chip.disabled{background:#feeae8;color:#a43b3b}
 #studentAccountsView .sap-cell-actions{display:flex;align-items:center;gap:7px;flex-wrap:wrap}
-#studentAccountsView .sap-action{border-radius:9px;border:1px solid #d0dff2;background:#fff;color:#2b5da0;padding:7px 11px;font-weight:700;font-size:12px;white-space:nowrap;cursor:pointer}
+#studentAccountsView .sap-action{border-radius:9px;border:1px solid #d0dff2;background:#fff;color:#2b5da0;padding:7px 11px;font-weight:700;font-size:var(--type-table);white-space:nowrap;cursor:pointer}
 #studentAccountsView .sap-action.primary{border-color:#225bb1;background:#225bb1;color:#fff}
 #studentAccountsView .sap-action.warn{border-color:#e7c5c4;color:#af4242}
 #studentAccountsView .sap-action:disabled{opacity:.48;cursor:not-allowed}
 #studentAccountsView .sap-action:focus-visible,#studentAccountsView input:focus-visible,#studentAccountsView select:focus-visible,#studentAccountsView textarea:focus-visible{outline:3px solid #28b8cc;outline-offset:2px}
-#studentAccountsView .sap-footnote{margin:11px 2px 0;font-size:12px;color:var(--muted,#667d93)}
+#studentAccountsView .sap-footnote{margin:11px 2px 0;font-size:var(--type-secondary);color:var(--muted,#667d93)}
 #studentAccountsView .sap-request-list{max-height:440px;overflow:auto;display:grid;gap:9px;overscroll-behavior:contain}
 #studentAccountsView .sap-request-row{display:flex;align-items:center;gap:12px;flex-wrap:wrap;border:1px solid #e0e8f2;background:var(--card,#fff);border-radius:12px;padding:12px 14px}
 #studentAccountsView .sap-request-info{min-width:160px;flex:1}
 #studentAccountsView .sap-request-info strong{font-size:13px}
-#studentAccountsView .sap-request-info p{font-size:11px;color:#73849b;margin:4px 0 0}
-#studentAccountsView .sap-request-note{font-size:12px;color:var(--ink,#31465f);min-width:100px}
+#studentAccountsView .sap-request-info p{font-size:var(--type-secondary);color:#73849b;margin:4px 0 0}
+#studentAccountsView .sap-request-note{font-size:var(--type-secondary);color:var(--ink,#31465f);min-width:100px}
 #studentAccountsView .sap-request-buttons{display:flex;gap:7px;flex-wrap:wrap}
-#studentAccountsView .sap-privacy-note{margin:0;font-size:12px;color:var(--muted,#657b94)}
+#studentAccountsView .sap-privacy-note{margin:0;font-size:var(--type-secondary);color:var(--muted,#657b94)}
 #studentAccountsView .sap-empty{padding:24px;text-align:center;color:var(--muted,#73849b);font-size:13px}
 #studentAccountsView .sap-modal{width:min(600px,calc(100% - 24px));max-height:min(90vh,820px);overflow:auto}
 #studentAccountsView .sap-modal-head{display:flex;justify-content:space-between;align-items:flex-start;gap:14px;margin-bottom:16px}
 #studentAccountsView .sap-modal-head h3{font-size:19px}
-#studentAccountsView .sap-modal-head p{color:var(--muted,#677f96);font-size:12px;margin:5px 0 0}
+#studentAccountsView .sap-modal-head p{color:var(--muted,#677f96);font-size:var(--type-secondary);margin:5px 0 0}
 #studentAccountsView .sap-modal textarea{display:block;box-sizing:border-box;width:100%;padding:12px;font:inherit;border:1px solid #ccdaeb;border-radius:10px;background:#fff;color:#21344e}
-#studentAccountsView .sap-secret-text{font-family:ui-monospace,SFMono-Regular,Consolas,monospace;font-size:12px;line-height:1.7;white-space:pre;overflow:auto}
-#studentAccountsView .sap-secret-label{font-size:12px;font-weight:750;display:block;margin-bottom:8px}
+#studentAccountsView .sap-secret-text{font-family:ui-monospace,SFMono-Regular,Consolas,monospace;font-size:var(--type-secondary);line-height:1.7;white-space:pre;overflow:auto}
+#studentAccountsView .sap-secret-label{font-size:var(--type-table);font-weight:750;display:block;margin-bottom:8px}
 @media(max-width:900px){#studentAccountsView .sap-metrics{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(max-width:600px){
  #studentAccountsView .sap-workspace{gap:12px}

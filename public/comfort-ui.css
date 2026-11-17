@@ -25,7 +25,7 @@ body.portal-page { color: var(--ink); background: var(--bg); font-size: 15px; li
 .portal-page .nav-group-toggle { color: #e4ebf5; font-size: 14px; }
 .portal-page .topbar { background: rgba(255,255,255,.97); border-bottom-color: var(--line); }
 .portal-page .breadcrumbs strong { color: var(--brand); }
-.portal-page .connection-chip { font-size: 12px; color: var(--muted); }
+.portal-page .connection-chip { font-size:var(--type-secondary); color: var(--muted); }
 .portal-page .content-wrap { padding-top: 28px; background: var(--bg); }
 .portal-page .school-title-block h1 { color: var(--ink); font-size: clamp(22px, 2vw, 27px); letter-spacing: -.02em; }
 .portal-page .school-title-block p, .portal-page .view-heading p { color: var(--muted); font-size: 14px; }
@@ -33,11 +33,11 @@ body.portal-page { color: var(--ink); background: var(--bg); font-size: 15px; li
 .portal-page .surface-card, .portal-page .stat-card { background: var(--card); border-color: var(--line); box-shadow: var(--shadow); }
 .portal-page .section-card { border-radius: 14px; }
 .portal-page .card-heading h3, .portal-page .section-toolbar h3, .portal-page .platform-next h3 { font-size: 16px; color: #2b3b52; }
-.portal-page .card-heading p, .portal-page .section-toolbar p { font-size: 13px; color: var(--muted); line-height: 1.55; }
+.portal-page .card-heading p, .portal-page .section-toolbar p { font-size:var(--type-table); color: var(--muted); line-height: 1.55; }
 .portal-page .stat-card { border-radius: 13px; padding: 19px; }
 .portal-page .stat-top { color: #65778e; font-size: 13px; }
 .portal-page .stat-card>strong { color: var(--ink); }
-.portal-page .stat-card small { color: var(--muted); font-size: 12px; }
+.portal-page .stat-card small { color: var(--muted); font-size:var(--type-secondary); }
 .portal-page .primary-button { background: var(--brand); border-color: var(--brand); box-shadow: 0 3px 9px rgba(36,99,165,.13); border-radius: 9px; font-size: 14px; min-height: 40px; color: #fff; }
 .portal-page .primary-button:hover { background: var(--brand-strong); border-color: var(--brand-strong); filter: none; }
 .portal-page .outline-button { color: #40536b; border-color: #d6e0eb; border-radius: 9px; font-size: 14px; min-height: 40px; background: #fff; }
@@ -45,16 +45,16 @@ body.portal-page { color: var(--ink); background: var(--bg); font-size: 15px; li
 .portal-page input, .portal-page select, .portal-page textarea { color: #2b3b50; border-color: #d5dfeb; border-radius: 9px; background: #fff; }
 .portal-page input:focus, .portal-page select:focus, .portal-page textarea:focus { border-color: #6d9dcc; box-shadow: 0 0 0 3px rgba(48,111,174,.13); outline: none; }
 .portal-page .field-group label, .portal-page .student-filter-row label { color: #4d6078; font-size: 14px; }
-.portal-page .field-hint, .portal-page .form-help { color: var(--muted); font-size: 12px; line-height: 1.5; }
+.portal-page .field-hint, .portal-page .form-help { color: var(--muted); font-size:var(--type-secondary); line-height: 1.5; }
 .portal-page .role-pill, .portal-page .mini-tag { color: #265d91; background: #eaf2fb; }
 .portal-page table { white-space: nowrap; }
-.portal-page th { color: #5d6f85; font-size: 12px; letter-spacing: .02em; background: #f6f8fc; }
-.portal-page td { color: #40536a; font-size: 13px; }
+.portal-page th { color: #5d6f85; font-size:var(--type-table); letter-spacing: .02em; background: #f6f8fc; }
+.portal-page td { color: #40536a; font-size:var(--type-table); }
 .portal-page td, .portal-page th { padding: 12px 11px; border-bottom-color: #e7edf4; }
 .portal-page .empty-cell { color: #74849a; font-size: 13px; }
-.portal-page .status-tag { font-size: 12px; }
-.portal-page .account-status { font-size: 12px; }
-.portal-page .scope-note, .portal-page .attendance-summary-note { color: #53677f; background: #f0f5fb; border-color: #e0e8f2; font-size: 12px; }
+.portal-page .status-tag { font-size:var(--type-secondary); }
+.portal-page .account-status { font-size:var(--type-secondary); }
+.portal-page .scope-note, .portal-page .attendance-summary-note { color: #53677f; background: #f0f5fb; border-color: #e0e8f2; font-size:var(--type-secondary); }
 .portal-page .dashboard-scan-cta { border-color: #d9e5f2; background: linear-gradient(110deg,#edf4fb 0%,#f8fafd 72%,#eef4fa 100%); box-shadow: 0 5px 18px rgba(34,69,108,.05); }
 .portal-page .dashboard-scan-kicker { color: var(--brand); }
 .portal-page .dashboard-scan-cta-copy h2 { color: #28415f; }
@@ -65,14 +65,14 @@ body.portal-page { color: var(--ink); background: var(--bg); font-size: 15px; li
 .portal-page .dashboard-add-student:hover { background: #f4f8fd; border-color: #8eafd0; }
 .portal-page .dashboard-quick-buttons { display: flex; align-items: center; justify-content: flex-end; gap: 12px; flex-wrap: wrap; }
 .portal-page .admin-monitoring-card { margin: 18px 0; padding: 18px; }
-.portal-page .monitor-date-filter { display: flex; align-items: center; gap: 9px; color: #60738a; font-size: 13px; font-weight: 650; }
+.portal-page .monitor-date-filter { display: flex; align-items: center; gap: 9px; color: #60738a; font-size:var(--type-table); font-weight: 650; }
 .portal-page .monitor-date-filter input { min-height: 40px; padding: 7px 10px; }
 .portal-page .monitoring-table { min-width: 680px; }
-.portal-page .table-subtext { display: block; color: #75859a; font-size: 11px; margin-top: 3px; }
+.portal-page .table-subtext { display: block; color: #75859a; font-size:var(--type-table); margin-top: 3px; }
 .portal-page .gate-scan-help { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 10px; margin: 14px 0; padding: 14px; border: 1px solid #dce6f0; border-radius: 12px; background: #f7f9fc; }
 .portal-page .gate-scan-help-item { display: grid; gap: 4px; padding: 12px; border-radius: 9px; background: #fff; border: 1px solid #e4eaf2; }
 .portal-page .gate-scan-help-item strong { color: #354f6d; font-size: 14px; }
-.portal-page .gate-scan-help-item span, .portal-page .gate-scan-help p { color: #687b91; font-size: 12px; line-height: 1.5; }
+.portal-page .gate-scan-help-item span, .portal-page .gate-scan-help p { color: #687b91; font-size:var(--type-secondary); line-height: 1.5; }
 .portal-page .gate-scan-help p { grid-column: 1 / -1; margin: 2px 2px 0; }
 .portal-page .student-photo-thumb { width: 52px; height: 52px; object-fit: cover; border-radius: 50%; border: 1px solid #d9e2ed; background: #f0f4f9; display: block; }
 .portal-page .student-photo-placeholder { width: 52px; height: 52px; border-radius: 50%; display: grid; place-items: center; background: #edf2f8; color: #8092a8; }
@@ -139,7 +139,7 @@ body.attendance-desk .feedback { background: #eff4fa; color: #53677f !important;
 }
 @media (max-width: 420px) {
   .login-page .login-mode { gap: 1px; padding: 3px; }
-  .login-page .mode-tab { padding: 10px 3px; font-size: 11px; }
+  .login-page .mode-tab { padding: 10px 3px; font-size:var(--type-table); }
 }
 @media (prefers-reduced-motion: reduce) {
   .portal-page .photo-flash { animation: none; }
@@ -157,7 +157,7 @@ body.attendance-desk .feedback { background: #eff4fa; color: #53677f !important;
   border-radius: 10px;
   color: #667b94;
   background: #f2f5f9;
-  font-size: 10px;
+  font-size:var(--type-table);
   font-weight: 700;
   line-height: 1.25;
   text-align: center;
@@ -174,7 +174,7 @@ body.attendance-desk .feedback { background: #eff4fa; color: #53677f !important;
 .portal-page .checkbox-label input { width:18px; height:18px; }
 .portal-page .cloud-sync-metrics { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:12px; margin-top:16px; }
 .portal-page .cloud-sync-metrics article { display:grid; gap:5px; padding:14px; border:1px solid var(--line); border-radius:10px; background:#fff; }
-.portal-page .cloud-sync-metrics span { color:var(--muted); font-size:12px; }
+.portal-page .cloud-sync-metrics span { color:var(--muted); font-size:var(--type-secondary); }
 .portal-page .cloud-sync-metrics strong { color:var(--ink); font-size:15px; }
 .account-profile-dialog { width:min(540px,calc(100vw - 28px)); max-height:min(90dvh,860px); overflow:auto; border:1px solid var(--line); border-radius:18px; padding:24px; color:var(--ink); box-shadow:0 24px 70px rgba(0,0,0,.24); }
 .account-profile-dialog::backdrop { background:rgba(12,25,40,.62); }
@@ -194,7 +194,7 @@ body.attendance-desk .feedback { background: #eff4fa; color: #53677f !important;
  #studentRosterTable tr{display:block;width:100%;margin:0 0 12px;padding:8px;border:1px solid #e2e8f0;border-radius:12px;background:#fff;box-shadow:0 2px 8px rgba(15,23,42,.04)}
  #studentRosterTable td{display:flex;align-items:center;justify-content:space-between;gap:10px;width:100%;padding:8px 6px;border:0;border-bottom:1px solid #f1f5f9;text-align:right;white-space:normal}
  #studentRosterTable td:last-child{border-bottom:0}
- #studentRosterTable td::before{content:attr(data-label);flex:0 0 34%;color:#64748b;font-size:11px;font-weight:700;text-align:left}
+ #studentRosterTable td::before{content:attr(data-label);flex:0 0 34%;color:#64748b;font-size:var(--type-table);font-weight:700;text-align:left}
  #studentRosterTable td.empty-cell{display:block;text-align:center}
  #studentRosterTable td.empty-cell::before{content:none}
  #studentRosterTable .student-row-actions{justify-content:flex-end;flex-wrap:wrap}
@@ -214,13 +214,13 @@ body.attendance-desk .feedback { background: #eff4fa; color: #53677f !important;
 .nav-group{min-width:0}.nav-group-toggle{min-height:44px}.nav-submenu .nav-item{min-height:44px;padding-left:17px}
 .nav-item:focus-visible,.nav-group-toggle:focus-visible{outline:3px solid #7dd3fc;outline-offset:2px}
 .sidebar-bottom{position:sticky;bottom:0;background:var(--sidebar);padding-top:8px}
-.connection-chip.local-only{padding:7px 10px;border:1px solid #f3d7a4;border-radius:999px;background:#fff8e8;color:#80540a;font-size:11px;font-weight:700;gap:8px;white-space:nowrap}
+.connection-chip.local-only{padding:7px 10px;border:1px solid #f3d7a4;border-radius:999px;background:#fff8e8;color:#80540a;font-size:var(--type-secondary);font-weight:700;gap:8px;white-space:nowrap}
 .connection-chip.local-only i{background:#d97706;box-shadow:0 0 0 3px rgba(217,119,6,.12)}
 .student-roster-tools .student-bulk-actions{position:sticky;bottom:8px;z-index:5;padding:12px;border:1px solid #d8e5ef;border-radius:12px;background:rgba(255,255,255,.96);box-shadow:0 8px 24px rgba(15,23,42,.09)}
 @media(max-width:700px){
  .sidebar{position:fixed;z-index:100;left:0;top:0;width:min(300px,86vw);height:100dvh;transform:translateX(-105%);transition:transform .2s ease}
  .sidebar.open{transform:translateX(0)}.topbar{padding:0 14px}.content-wrap{padding:18px 14px}
- .connection-chip.local-only{font-size:0;padding:9px}.connection-chip.local-only span{font-size:11px}
+ .connection-chip.local-only{font-size:0;padding:9px}.connection-chip.local-only span{font-size:var(--type-secondary)}
 }
 
 .connection-chip.sync-connected{border-color:#b7e4c7;background:#ecfdf3;color:#176b3a}
@@ -235,12 +235,12 @@ body.attendance-desk .feedback { background: #eff4fa; color: #53677f !important;
 /* Shared, readable dashboard and modal language across every school role. */
 .portal-page .stat-top{font-size:13px;line-height:1.4}
 .portal-page .stat-card>strong{font-size:32px}
-.portal-page .stat-card small{font-size:12px}
+.portal-page .stat-card small{font-size:var(--type-secondary)}
 .portal-page .card-heading h3,.portal-page .section-toolbar h3{font-size:15px;line-height:1.35}
-.portal-page .card-heading p,.portal-page .section-toolbar p{font-size:12px;line-height:1.5;color:#718096}
-.portal-page th{font-size:11px;letter-spacing:.02em}
-.portal-page td{font-size:12px;line-height:1.45}
-.portal-page .nav-label{font-size:13px}
+.portal-page .card-heading p,.portal-page .section-toolbar p{font-size:var(--type-table);line-height:1.5;color:#718096}
+.portal-page th{font-size:var(--type-table);letter-spacing:.02em}
+.portal-page td{font-size:var(--type-table);line-height:1.45}
+.portal-page .nav-label{font-size:var(--type-table)}
 .portal-page .page-heading h2{font-size:24px;line-height:1.2}
 .portal-page .page-heading p{font-size:13px;line-height:1.5;color:#718096}
 .student-scan-setup-overlay,.student-scan-notice-overlay,.student-qr-preview-overlay{
@@ -254,15 +254,15 @@ body.attendance-desk .feedback { background: #eff4fa; color: #53677f !important;
 .student-edit-overlay{background:rgba(15,23,42,.52);backdrop-filter:blur(3px);padding:18px}
 .student-edit-dialog{border:1px solid #e5ebf1;border-radius:16px;box-shadow:0 24px 70px rgba(15,23,42,.22)}
 .portal-page input:not([type=checkbox]):not([type=radio]),.portal-page select,.portal-page textarea{
- min-height:42px;border-radius:9px;font-size:13px
+ min-height:42px;border-radius:9px;font-size:var(--type-table)
 }
-.portal-page button{min-height:40px;border-radius:9px;font-size:12px;font-weight:650}
+.portal-page button{min-height:40px;border-radius:9px;font-size:var(--type-table);font-weight:650}
 .portal-page .empty-cell{font-size:13px;padding:28px 12px}
 @media(max-width:700px){
  .portal-page .page-heading h2{font-size:21px}
  .portal-page .stat-card{min-height:112px;padding:14px}
  .portal-page .stat-card>strong{font-size:27px}
- .portal-page .stat-top{font-size:12px}
+ .portal-page .stat-top{font-size:var(--type-secondary)}
  .student-scan-setup-dialog,.student-scan-notice-dialog,.student-qr-preview-dialog{width:100%;max-height:94dvh;padding:16px;border-radius:14px}
 }
 
@@ -273,7 +273,7 @@ body.attendance-desk .feedback { background: #eff4fa; color: #53677f !important;
  #teacherMonitorTable tbody,#staffAccountsTable tbody{display:block;width:100%}
  #teacherMonitorTable tr,#staffAccountsTable tr{display:block;width:100%;margin:0 0 12px;padding:8px;border:1px solid #e2e8f0;border-radius:12px;background:#fff}
  #teacherMonitorTable td,#staffAccountsTable td{display:flex;align-items:center;justify-content:space-between;gap:10px;width:100%;padding:8px 6px;border:0;border-bottom:1px solid #f1f5f9;text-align:right;white-space:normal}
- #teacherMonitorTable td::before,#staffAccountsTable td::before{content:attr(data-label);flex:0 0 34%;color:#64748b;font-size:11px;font-weight:700;text-align:left}
+ #teacherMonitorTable td::before,#staffAccountsTable td::before{content:attr(data-label);flex:0 0 34%;color:#64748b;font-size:var(--type-table);font-weight:700;text-align:left}
  #teacherMonitorTable td.empty-cell::before,#staffAccountsTable td.empty-cell::before{content:none}
  #teacherMonitorTable .teacher-scope-list{justify-content:flex-end}
 }
@@ -326,7 +326,7 @@ body.attendance-desk .feedback { background: #eff4fa; color: #53677f !important;
     flex: 0 0 38%;
     max-width: 38%;
     color: #64748b;
-    font-size: 12px;
+    font-size:var(--type-table);
     font-weight: 700;
     line-height: 1.4;
     text-align: left;
@@ -357,7 +357,7 @@ body.attendance-desk .feedback { background: #eff4fa; color: #53677f !important;
     max-width: 100%;
     margin: 0;
     color: #718296;
-    font-size: 12px;
+    font-size:var(--type-table);
     line-height: 1.35;
     overflow-wrap: break-word;
     word-break: normal;
@@ -416,7 +416,7 @@ body.attendance-desk .feedback { background: #eff4fa; color: #53677f !important;
 .student-scan-error-kicker {
   margin: 0 0 6px;
   color: #b42336;
-  font-size: 11px;
+  font-size:var(--type-secondary);
   font-weight: 800;
   letter-spacing: .12em;
 }
@@ -459,7 +459,7 @@ body.attendance-desk .feedback { background: #eff4fa; color: #53677f !important;
 .portal-page .weekly-day-column { scroll-snap-align:start; background:var(--bg); min-height:200px; }
 .portal-page .weekly-day-column>header { flex-direction:column; align-items:flex-start; gap:4px; padding:10px; border-bottom:3px solid var(--brand); }
 .portal-page .weekly-day-column>header strong { font-size:16px; }
-.portal-page .weekly-day-column>header span { font-size:12px; }
+.portal-page .weekly-day-column>header span { font-size:var(--type-secondary); }
 .portal-page .weekly-schedule-card { padding:14px; margin-bottom:12px; background:#fff; border-left:3px solid var(--brand); }
 .portal-page .weekly-card-time { font-size:14px; font-weight:700; color:var(--brand-strong); }
 .portal-page .weekly-schedule-card.is-unassigned { border-left-color:#b77913; }
