@@ -108,7 +108,9 @@ test('single unified Sync Center is triggered from the existing responsive heade
   assert.doesNotMatch(css, /#ascDock|body:has\(#classQrTeacherShortcut\)/);
   assert.doesNotMatch(ui, /id = 'ascDashboardCard'/);
   assert.match(qr, /const linkId = 'classQrTeacherShortcut'/);
-  assert.match(qr, /position:fixed;right:18px;bottom:18px/);
+  const rosterCss = read('public/teacher-learner-roster.css');
+  assert.match(rosterCss, /#classQrTeacherShortcut\\{position:fixed;right:18px;bottom:18px/);
+  assert.match(qr, /is-roster-inline/);
   assert.match(offlineSheet, /attendance-sync-center\.css\?v=4/);
   assert.match(offlineSheet, /attendance-sync-center\.js\?v=3/);
   assert.match(sw, /const CACHE = "attendigo-v\d+-/);
