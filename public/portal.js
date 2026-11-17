@@ -562,9 +562,9 @@
     if (academicsGroup) academicsGroup.hidden = Boolean($('sf2Nav')?.hidden && $('schedulesNav')?.hidden && $('cloudSyncNav')?.hidden && $('schoolBrandingNav')?.hidden);
     // Use role-specific navigation names without changing existing routes or access rules.
     if ($('peopleGroupLabel')) $('peopleGroupLabel').textContent =
-      departmentHead ? 'My Department' : teacher ? 'My Classes' : 'People & Accounts';
+      departmentHead ? 'My Department' : teacher ? 'My Classes' : 'People Management';
     if ($('academicsGroupLabel')) $('academicsGroupLabel').textContent =
-      departmentHead ? 'Schedules & Monitoring' : teacher ? 'Attendance & Planning' : 'Academics';
+      departmentHead ? 'Schedules & Monitoring' : teacher ? 'Attendance & Planning' : 'Academic Management';
     if (departmentHead) {
       if ($('studentsNav')) $('studentsNav').querySelector('.nav-label').textContent = 'Department Students';
       if ($('teachersNav')) $('teachersNav').querySelector('.nav-label').textContent = 'Department Teachers';
