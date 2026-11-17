@@ -4975,6 +4975,25 @@ let teacherActionMenuListenersInstalled = false;
     loadScheduleSubjects();
   });
   $('periodGrade')?.addEventListener('change', () => loadScheduleSections($('periodGrade').value));
+  const addSectionButton = $('createScheduleSection');
+  if (addSectionButton) {
+    addSectionButton.hidden = user.role !== 'SCHOOL_ADMIN';
+    addSectionButton.addEventListener('click', async () => {
+      const gradeLevel = $('periodGrade')?.value;
+      if (!gradeLevel) { showToast('Choose a grade first.', true); return; }
+      const section = await AppDialog.prompt('Enter the official section name for ' + gradeLevel + '.', '', { title: 'Add school section', confirmText: 'Create section' });
+      if (section === null || section === undefined) return;
+      if (!section.trim()) { showToast('Enter a section name.', true); return; }
+      addSectionButton.disabled = true;
+      try {
+        await api('/api/sections', {method:'POST',body:JSON.stringify({gradeLevel,section:section.trim()})});
+        await loadScheduleSections(gradeLevel,section.trim());
+        showToast('Section created successfully.');
+      } catch(error) { showToast(error.message || 'Could not create section.', true); }
+      finally { addSectionButton.disabled = false; }
+    });
+  }
+
   $('addScheduleSubject')?.addEventListener('click', async () => {
     const teacher = selectedScheduleTeacher();
     if (!teacher?.departmentId) { showToast('Choose an assigned Subject Teacher first.', true); return; }
