@@ -2780,14 +2780,7 @@ let teacherActionMenuListenersInstalled = false;
       document.querySelectorAll('#scheduleWeekdayChoices input[type="checkbox"]').forEach(input => {
         input.checked = configuredDays.length ? configuredDays.includes(Number(input.value)) : Number(input.value)>=1 && Number(input.value)<=5;
       });
-      const select = $('scheduleTemplatePeriod');
-      if (select) {
-        select.innerHTML = '<option value="">Custom time</option>' + timetableTemplates.filter(template => template.active).flatMap(template =>
-          (template.periods || []).filter(period => !['BREAK','LUNCH'].includes(period.blockType)).map(period =>
-            '<option value="' + esc(template.templateId + '|' + period.templatePeriodId) + '">' +
-            esc(template.name + ' · ' + period.label + ' (' + period.startTime + '–' + period.endTime + ')') + '</option>')
-        ).join('');
-      }
+      populateSavedTimetableChoices();
       const list = $('timetableTemplateList');
       if (list) list.innerHTML = '<strong>Saved templates</strong>' + (timetableTemplates.length
         ? '<div class="timetable-template-chips">' + timetableTemplates.map(template =>
@@ -2835,17 +2828,76 @@ let teacherActionMenuListenersInstalled = false;
       .map(input => Number(input.value)).filter(day => Number.isInteger(day) && day>=0 && day<=6);
   }
 
+  function populateSavedTimetableChoices() {
+    const selector = $('scheduleTemplate');
+    if (!selector) return;
+    const previous = selector.value;
+    selector.innerHTML = '<option value="">Custom time</option>' +
+      timetableTemplates.filter(item => item.active).map(item =>
+        '<option value="' + esc(item.templateId) + '">' + esc(item.name + ' (' + item.shiftCode + ')') + '</option>'
+      ).join('');
+    selector.value = Array.from(selector.options).some(option => option.value === previous) ? previous : '';
+    populateSavedTemplateBlocks();
+  }
+
+  function populateSavedTemplateBlocks() {
+    const selector = $('scheduleTemplate');
+    const blockSelect = $('scheduleTemplatePeriod');
+    if (!selector || !blockSelect) return;
+    const template = timetableTemplates.find(item => item.active && String(item.templateId) === selector.value);
+    const prior = blockSelect.value;
+    const blocks = (template?.periods || []).filter(period => !['BREAK','LUNCH'].includes(period.blockType));
+    blockSelect.innerHTML = template
+      ? '<option value="">Choose a time block</option>' + blocks.map(period =>
+          '<option value="' + esc(template.templateId + '|' + period.templatePeriodId) + '">' +
+          esc(period.label + ' · ' + period.startTime + '–' + period.endTime) + '</option>').join('')
+      : '<option value="">Custom start and end times</option>';
+    blockSelect.disabled = !template || !blocks.length;
+    if (template && Array.from(blockSelect.options).some(option => option.value === prior)) blockSelect.value = prior;
+    const custom = !template;
+    $('periodName').readOnly = !custom;
+    $('periodName').placeholder = custom ? 'e.g. Morning activity or custom period' : 'Select a saved time block';
+    $('startTime').readOnly = !custom;
+    $('endTime').readOnly = !custom;
+    if (custom) {
+      $('scheduleFormFeedback').textContent = 'Custom time: enter a schedule label and its actual start and end times.';
+    } else {
+      $('periodName').value = '';
+      $('startTime').value = '';
+      $('endTime').value = '';
+      $('scheduleFormFeedback').textContent = blocks.length ? 'Choose a saved time block to fill the period label and times.' : 'This template has no instructional blocks. Choose another template or custom time.';
+    }
+  }
+
   function applyTemplatePeriodSelection() {
     const raw = $('scheduleTemplatePeriod')?.value || '';
-    if (!raw) return;
+    if (!raw) {
+      if ($('scheduleTemplate')?.value) {
+        $('periodName').value = '';
+        $('startTime').value = '';
+        $('endTime').value = '';
+      }
+      return;
+    }
     const [templateId, periodId] = raw.split('|');
-    const template = timetableTemplates.find(item => String(item.templateId) === templateId);
-    const period = template?.periods?.find(item => String(item.templatePeriodId) === periodId);
+    const template = timetableTemplates.find(item => String(item.templateId) === templateId && item.active);
+    const period = template?.periods?.find(item => String(item.templatePeriodId) === periodId &&
+      !['BREAK','LUNCH'].includes(item.blockType));
     if (!period) return;
     $('periodName').value = period.label;
     $('startTime').value = period.startTime;
     $('endTime').value = period.endTime;
-    $('scheduleFormFeedback').textContent = 'Times filled from ' + template.name + '. You can still adjust them if authorized.';
+    const type = $('scheduleActivityType');
+    if (type && ['ADVISORY','HOMEROOM'].includes(period.blockType) && type.value === 'CLASS') {
+      type.value = 'ADVISORY';
+    }
+    $('scheduleFormFeedback').textContent = 'Using ' + template.name + ' · ' + period.label +
+      ' (' + period.startTime + '–' + period.endTime + ').';
+  }
+
+  function resetScheduleTimeSelection() {
+    if ($('scheduleTemplate')) $('scheduleTemplate').value = '';
+    populateSavedTemplateBlocks();
   }
 
   function templateMinutes(value) {
@@ -3094,6 +3146,7 @@ let teacherActionMenuListenersInstalled = false;
       try{await api('/api/scheduling-config/calendar-exceptions/'+encodeURIComponent(button.dataset.deleteCalendarException),{method:'DELETE'});await refreshCalendarExceptions();}
       catch(error){button.disabled=false;showToast(error.message,true);}
     });
+    $('scheduleTemplate')?.addEventListener('change',populateSavedTemplateBlocks);
     $('scheduleTemplatePeriod')?.addEventListener('change',applyTemplatePeriodSelection);
   }
 
@@ -5091,6 +5144,7 @@ let teacherActionMenuListenersInstalled = false;
     const opening = $('scheduleForm').hidden;
     $('scheduleForm').hidden = !opening;
     if (!opening) return;
+    resetScheduleTimeSelection();
     $('scheduleFormFeedback').textContent = '';
     const defaultDays = schoolOperatingDays.filter(day=>day.isOperatingDay).map(day=>Number(day.weekday));
     document.querySelectorAll('#scheduleWeekdayChoices input[type="checkbox"]').forEach(input=>{
@@ -5122,6 +5176,7 @@ let teacherActionMenuListenersInstalled = false;
   });
   $('cancelScheduleForm').addEventListener('click', () => {
     $('scheduleForm').reset();
+    resetScheduleTimeSelection();
     $('scheduleForm').hidden = true;
     $('scheduleFormFeedback').textContent = '';
     if ($('periodSubject')) { $('periodSubject').innerHTML = '<option value="">Choose a teacher or your department</option>'; $('periodSubject').disabled = true; }
@@ -5145,8 +5200,24 @@ let teacherActionMenuListenersInstalled = false;
       endTime: $('endTime').value,
       graceMinutes: Number($('graceMinutes').value || 0),
       weekdays: selectedScheduleWeekdays(),
-      timetableTemplateId: ($('scheduleTemplatePeriod').value || '').split('|')[0] || null
+      timetableTemplateId: $('scheduleTemplate').value || null
     };
+    if (payload.timetableTemplateId) {
+      const chosenBlock = $('scheduleTemplatePeriod')?.value || '';
+      if (!chosenBlock) {
+        feedback.className = 'inline-feedback error';
+        feedback.textContent = 'Choose a time block from the selected timetable template.';
+        return;
+      }
+      const template = timetableTemplates.find(t => String(t.templateId) === payload.timetableTemplateId);
+      const period = template?.periods?.find(p => String(p.templatePeriodId) === chosenBlock.split('|')[1]);
+      if (!period || payload.periodName !== period.label ||
+          payload.startTime !== period.startTime || payload.endTime !== period.endTime) {
+        feedback.className = 'inline-feedback error';
+        feedback.textContent = 'The selected time block has changed. Choose it again to use the saved timetable times.';
+        return;
+      }
+    }
     if (!payload.weekdays.length) {
       feedback.className = 'inline-feedback error';
       feedback.textContent = 'Select at least one class day.';
