@@ -1,6 +1,7 @@
 'use strict';
 
 const crypto = require('node:crypto');
+const {receiveCloudOperation,NeedsReview} = require('./cloud-mixed-operations');
 
 const SECRET = () => process.env.CLOUD_SYNC_SHARED_SECRET || '';
 const secretReady = () => SECRET().length >= 32;
@@ -29,6 +30,27 @@ function verifyCloudSignature(req, res, next) {
     return res.status(401).json({ error: 'Cloud sync request signature is invalid or expired.' });
   }
   req.cloudSyncNonce = nonce;
+  return next();
+}
+
+// New mixed-type relay requires one separate HMAC secret per school. A global
+// cloud secret must not let one local school impersonate another tenant.
+function verifySchoolCloudSignature(req,res,next) {
+  const code=typeof req.body?.schoolCode==='string'?req.body.schoolCode.trim():'';
+  let map={};
+  try { map=JSON.parse(process.env.CLOUD_SYNC_SCHOOL_SECRETS_JSON||'{}'); }
+  catch { return res.status(503).json({error:'Cloud school secrets are misconfigured.'}); }
+  const secret=Object.entries(map).find(([key])=>key.toLowerCase()===code.toLowerCase())?.[1];
+  if(!code || typeof secret!=='string' || secret.length<32)
+    return res.status(503).json({error:'Per-school cloud synchronization credentials are not configured.'});
+  const timestamp=req.get('X-Cloud-Timestamp')||'';
+  const nonce=req.get('X-Cloud-Nonce')||'';
+  const supplied=req.get('X-Cloud-Signature')||'';
+  const body=Buffer.isBuffer(req.rawBody)?req.rawBody:Buffer.alloc(0);
+  if(!/^\d{13}$/.test(timestamp)||Math.abs(Date.now()-Number(timestamp))>5*60*1000||
+     !/^[0-9a-f-]{36}$/i.test(nonce)||!safeEqualHex(sign(secret,timestamp,nonce,body),supplied))
+    return res.status(401).json({error:'School cloud request signature is invalid or expired.'});
+  req.cloudSyncNonce=nonce;
   return next();
 }
 
@@ -88,6 +110,34 @@ async function processCloudSyncOutbox(pool) {
 }
 
 function registerCloudSyncRoutes(app, pool, { authenticateSchoolClient, requireSchoolAdmin }) {
+  app.post('/api/cloud-sync/receive-operations',verifySchoolCloudSignature,async(req,res)=>{
+    const schoolCode=typeof req.body?.schoolCode==='string'?req.body.schoolCode.trim():'';
+    const operation=req.body?.operation;
+    if(!schoolCode || !operation || typeof operation!=='object'||Array.isArray(operation))
+      return res.status(400).json({error:'Provide an authorized school code and one typed operation.'});
+    const client=await pool.connect();
+    try {
+      await client.query('BEGIN');
+      await client.query("DELETE FROM cloud_sync_nonces WHERE received_at<NOW()-INTERVAL '1 day'");
+      await client.query('INSERT INTO cloud_sync_nonces(nonce) VALUES($1)',[req.cloudSyncNonce]);
+      const school=await client.query(
+        'SELECT school_id FROM schools WHERE lower(school_code)=lower($1) AND active=TRUE',[schoolCode]);
+      if(!school.rowCount){await client.query('ROLLBACK');return res.status(404).json({error:'Cloud school is not registered or active.'});}
+      const result=await receiveCloudOperation(client,school.rows[0].school_id,operation);
+      await client.query('COMMIT');
+      return res.json({results:[result],serverTime:new Date().toISOString()});
+    }catch(error) {
+      await client.query('ROLLBACK').catch(()=>{});
+      if(error instanceof NeedsReview)
+        return res.json({results:[{operationId:operation?.operationId||null,
+          status:'NEEDS_REVIEW',code:error.code,reason:error.message}]});
+      if(error.code==='23505')
+        return res.status(409).json({error:'Duplicate request nonce or concurrent operation. Retry with a fresh signed request.'});
+      console.error('Cloud typed attendance synchronization failed:',error.message);
+      return res.status(500).json({error:'Unable to apply cloud attendance operation.'});
+    }finally {client.release();}
+  });
+
   app.get('/api/cloud-sync/health', verifyCloudSignature, async (req, res) => {
     try {
       await pool.query('DELETE FROM cloud_sync_nonces WHERE received_at<NOW()-INTERVAL \'1 day\'');
