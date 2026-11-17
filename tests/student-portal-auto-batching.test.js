@@ -164,6 +164,37 @@ test('teacher partial batch failure preserves only failed learner for a safe ret
   assert.equal(app.posts.length,0);
 });
 
+test('new account creation needs no written explanation for a full class', async () => {
+  const app=browserFixture({role:'TEACHER'});
+  await app.ready();
+  app.selectAll();
+  await app.apply();
+  assert.equal(app.element('sapReasonGroup').hidden,true);
+  await app.submitRequest('');
+  assert.equal(app.requestPosts.length,28);
+  assert.equal(app.requestPosts.every(r=>r.reason===''),true);
+  assert.equal(app.element('sapRequestModal').hidden,true);
+});
+
+test('disabled-account reactivation still requires a reason', async () => {
+  const app=browserFixture({role:'TEACHER'});
+  await app.ready();
+  app.learners[0].hasAccount=true;
+  app.learners[0].accountActive=false;
+  await app.refresh();
+  app.element('sapBatchAction').value='ACTIVATE';
+  app.selectAll();
+  await app.apply();
+  assert.equal(app.element('sapReasonGroup').hidden,false);
+  assert.equal(app.element('sapReason').required,true);
+  await app.submitRequest('');
+  assert.equal(app.requestPosts.length,0);
+  assert.match(app.element('sapRequestFeedback').textContent,/reactivation reason/);
+  await app.submitRequest('Reactivation authorized by the school.');
+  assert.equal(app.requestPosts.length,1);
+  assert.equal(app.requestPosts[0].requestType,'ACTIVATE');
+});
+
 test('server retains the 20-account transaction limit, and asset versions match', () => {
   assert.match(routes,/ids\.length>20/);
   assert.match(source,/offset\+=SERVER_BATCH_LIMIT/);
