@@ -200,3 +200,29 @@ test('queue is scoped by current user and retains legacy scanner records during 
   const legacy=(await h.queue.pending()).find(r=>r.id==='old-scan');
   assert.ok(legacy && legacy.event.eventId==='old-scan');
 });
+
+
+test('Sync Center may inspect only its own encrypted payload, without exposing another account',async()=>{
+  const h=harness();
+  await h.queue.enqueueOperation({type:'MANUAL_MARKS',operationId:'mark-owned',payload:manual()});
+  const inspect=await h.queue.inspect('mark-owned');
+  assert.equal(inspect.type,'MANUAL_MARKS');
+  assert.equal(inspect.payload.marks[0].studentId,'learner-1');
+  assert.equal((await h.queue.snapshot()).waiting,1);
+  h.session.set('schoolAttendance.user',JSON.stringify({schoolId:'school-B',userId:'teacher-2'}));
+  await assert.rejects(h.queue.inspect('mark-owned'),/not available to your signed-in account/);
+  await assert.rejects(h.queue.retryReviewed('mark-owned'),/Only a reviewed record belonging to your account/);
+});
+
+test('Sync Center retry keeps server checks and never blindly deletes a reviewed record',async()=>{
+  const h=harness();
+  await h.queue.enqueueOperation({type:'MANUAL_MARKS',operationId:'mark-review',payload:manual()});
+  await assert.rejects(h.queue.retryReviewed('mark-review'),/Only a reviewed record/);
+  h.navigator.onLine=true;
+  h.respond(async()=>response(409,{error:'Register has a newer revision.'}));
+  await h.queue.sync();
+  assert.equal((await h.queue.inspect('mark-review')).status,'REVIEW');
+  await h.queue.retryReviewed('mark-review');
+  assert.equal((await h.queue.inspect('mark-review')).status,'REVIEW');
+  assert.equal(h.requests.length,2,'Every retry remains subject to server validation');
+});
