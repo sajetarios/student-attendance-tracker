@@ -17,8 +17,11 @@
   let activeStudent = null;
   let pendingReview = null;
   let credentials = [];
+  let bulkTargets = [];
+  let renderedBatchMode = '';
   const selected = new Set();
   const SERVER_BATCH_LIMIT = 20;
+  const MAX_TEACHER_REQUESTS = 100;
 
   async function api(url, options = {}) {
     const token = sessionStorage.getItem('schoolAttendance.accessToken');
@@ -72,16 +75,26 @@
   }
   function batchEligible(student) {
     const action = $('sapBatchAction')?.value || 'CREATE';
+    if (!isAdmin() && pendingFor(student.studentId)) return false;
     if (action === 'CREATE') return !student.hasAccount;
     if (action === 'RESET') return student.hasAccount && student.accountActive;
-    if (action === 'SUSPEND') return student.hasAccount && student.accountActive;
+    if (action === 'SUSPEND') return isAdmin() && student.hasAccount && student.accountActive;
     if (action === 'ACTIVATE') return student.hasAccount && !student.accountActive;
     return false;
   }
   function renderDirectory() {
     const admin = isAdmin();
     view.classList.toggle('is-teacher', !admin);
-    $('sapBulkToolbar').hidden = !admin;
+    $('sapBulkToolbar').hidden = !(admin || isTeacher());
+    const mode = admin ? 'admin' : 'teacher';
+    if (renderedBatchMode !== mode) {
+      $('sapBatchAction').innerHTML = admin
+        ? '<option value="CREATE">Create logins for students without accounts</option><option value="RESET">Reset existing passwords</option><option value="SUSPEND">Suspend existing logins</option><option value="ACTIVATE">Reactivate disabled logins</option>'
+        : '<option value="CREATE">Request new student logins</option><option value="RESET">Request password resets</option><option value="ACTIVATE">Request login reactivations</option>';
+      $('sapBatchAction').value = 'CREATE';
+      selected.clear();
+      renderedBatchMode = mode;
+    }
     $('sapDirectoryHelp').textContent = admin
       ? 'Create, reset or disable student logins. Temporary passwords are available once.'
       : 'Only your assigned learners are shown. Account changes require School Admin approval.';
@@ -92,7 +105,7 @@
     $('sapPending').textContent = String(requests.filter(r=>r.status==='PENDING').length);
     const rows = filtered();
     $('sapRows').innerHTML = rows.length ? rows.map(s => {
-      const checkbox = admin
+      const checkbox = (admin || isTeacher())
         ? '<input type="checkbox" aria-label="Select ' + esc(s.fullName) + '" data-sap-select="' + esc(s.studentId) + '" ' + (selected.has(s.studentId) ? 'checked' : '') + '>'
         : '';
       return '<tr><td>' + checkbox + '</td><td><span class="sap-student-name">' + esc(s.fullName) +
@@ -109,8 +122,10 @@
     const batches = Math.ceil(actionable.length / SERVER_BATCH_LIMIT);
     $('sapSelectedCount').textContent = selected.size + ' selected · ' + actionable.length + ' eligible' +
       (batches > 1 ? ' · will run in ' + batches + ' batches of up to 20' : ' · up to 20 per server request');
-    $('sapBulkCreate').disabled = !admin || !actionable.length || busy;
-    $('sapBulkCreate').textContent = actionable.length ? 'Apply to ' + actionable.length + ' selected' : 'Apply to selected';
+    $('sapBulkCreate').disabled = !actionable.length || busy;
+    $('sapBulkCreate').textContent = admin
+      ? (actionable.length ? 'Apply to ' + actionable.length + ' selected' : 'Apply to selected')
+      : (actionable.length ? 'Request for ' + actionable.length + ' students' : 'Request for selected');
     $('sapListCount').textContent = rows.length + ' of ' + total + ' authorized learners displayed.';
   }
   const dateLabel = value => {
@@ -164,6 +179,7 @@
       $('sapSecrets').value='';
     }
     if(id==='sapRequestModal') {
+      bulkTargets=[];
       activeStudent=null;
       $('sapRequestForm').reset();
       $('sapRequestFeedback').textContent='';
@@ -221,6 +237,7 @@
     renderDirectory();renderRequests();
   }
   async function bulkCreate() {
+    if (isTeacher()) { showTeacherBulkRequest(); return; }
     if (!isAdmin() || busy) return;
     const action = $('sapBatchAction')?.value || 'CREATE';
     const targets = students.filter(s=>selected.has(s.studentId) && batchEligible(s));
@@ -312,9 +329,35 @@
     const student=students.find(s=>s.studentId===studentId);
     if(!student || pendingFor(studentId))return;
     activeStudent=student;
+    bulkTargets=[];
+    $('sapRequestTitle').textContent='Request student portal access';
+    $('sapRequestSubmit').textContent='Send to School Admin';
     $('sapRequestStudentId').value=studentId;
     $('sapRequestType').value=action;
     $('sapRequestStudent').textContent=student.fullName+' · '+studentId+' · '+(action==='CREATE'?'Create portal login':action==='RESET'?'Reset password':'Reactivate portal login');
+    $('sapRequestFeedback').textContent='';
+    $('sapRequestModal').hidden=false;
+    $('sapReason').focus();
+  }
+  function showTeacherBulkRequest() {
+    if (!isTeacher() || busy) return;
+    const action = $('sapBatchAction')?.value || 'CREATE';
+    const targets = students.filter(s => selected.has(s.studentId) && batchEligible(s));
+    if (!targets.length) { announce('Select eligible learners without pending requests first.', true); return; }
+    if (targets.length > MAX_TEACHER_REQUESTS) {
+      announce('Request up to '+MAX_TEACHER_REQUESTS+' learners at a time. Narrow your selection and try again.', true);
+      return;
+    }
+    bulkTargets=targets.map(s=>({studentId:s.studentId,fullName:s.fullName}));
+    activeStudent=null;
+    $('sapRequestTitle').textContent='Request access for '+targets.length+' students';
+    $('sapRequestSubmit').textContent='Submit '+targets.length+' requests';
+    $('sapRequestStudentId').value='';
+    $('sapRequestType').value=action;
+    $('sapRequestStudent').textContent=targets.length+' selected learners · '+
+      ({CREATE:'Create new logins',RESET:'Reset active passwords',ACTIVATE:'Reactivate disabled logins'}[action]||action)+
+      ' · '+targets.slice(0,3).map(s=>s.fullName).join(', ')+(targets.length>3?' and '+(targets.length-3)+' more':'')+
+      '. Each request requires School Admin approval; no passwords will be issued to teachers.';
     $('sapRequestFeedback').textContent='';
     $('sapRequestModal').hidden=false;
     $('sapReason').focus();
@@ -374,20 +417,47 @@
   });
   $('sapRequestForm').addEventListener('submit',async event=>{
     event.preventDefault();
-    if(!isTeacher()||busy||!activeStudent)return;
+    if(!isTeacher()||busy||(!activeStudent && !bulkTargets.length))return;
     const button=$('sapRequestSubmit');
+    const action=$('sapRequestType').value;
+    const reason=$('sapReason').value.trim();
+    if(reason.length<8 || reason.length>500) {
+      $('sapRequestFeedback').textContent='Enter a reason of 8 to 500 characters.';return;
+    }
+    const targets=bulkTargets.length ? [...bulkTargets] : [{studentId:activeStudent.studentId,fullName:activeStudent.fullName}];
+    const successes=new Set(), failures=[];
     button.disabled=true;
+    busy=true;
+    renderDirectory();
     try{
-      await api('/api/student-portal/requests',{method:'POST',body:JSON.stringify({
-        studentId:$('sapRequestStudentId').value,requestType:$('sapRequestType').value,
-        reason:$('sapReason').value.trim()
-      })});
-      closeModal('sapRequestModal');
-      document.dispatchEvent(new CustomEvent('attendigo:requests-changed'));
-      await refreshAfterMutation();
-      announce('Your request is pending School Admin approval.');
-    }catch(error){$('sapRequestFeedback').textContent=error.message;}
-    finally{button.disabled=false;}
+      for(let i=0;i<targets.length;i++){
+        const student=targets[i];
+        $('sapRequestFeedback').textContent='Submitting request '+(i+1)+' of '+targets.length+'…';
+        try{
+          await api('/api/student-portal/requests',{method:'POST',body:JSON.stringify({
+            studentId:student.studentId,requestType:action,reason
+          })});
+          successes.add(student.studentId);
+        }catch(error){failures.push(student.fullName+': '+error.message);}
+      }
+      successes.forEach(id=>selected.delete(id));
+      if(successes.size) document.dispatchEvent(new CustomEvent('attendigo:requests-changed'));
+      try{await refreshAfterMutation();}
+      catch(error){failures.push('Directory refresh: '+error.message);}
+      const summary='Sent '+successes.size+' of '+targets.length+' account requests to School Admin.'+
+        (failures.length?' '+failures.length+' issue(s): '+failures.slice(0,3).join('; ')+
+          (failures.length>3?' and '+(failures.length-3)+' more.':''):' Pending approval; no login credentials were created.');
+      if(failures.length){
+        bulkTargets=targets.filter(s=>!successes.has(s.studentId));
+        activeStudent=null;
+        $('sapRequestSubmit').textContent='Retry '+bulkTargets.length+' remaining';
+        $('sapRequestFeedback').textContent=summary;
+        announce(summary,true);
+      }else{
+        closeModal('sapRequestModal');
+        announce(summary);
+      }
+    }finally{busy=false;button.disabled=false;renderDirectory();}
   });
   $('sapReviewForm').addEventListener('submit',async event=>{
     event.preventDefault();
