@@ -10,7 +10,7 @@ async function main(){
   if(!process.env.DATABASE_URL)throw Error('DATABASE_URL is required for the isolated cloud integration smoke test.');
   const pool=new Pool({connectionString:process.env.DATABASE_URL});
   const client=await pool.connect();
-  const school=crypto.randomUUID(),teacher=crypto.randomUUID(),period=crypto.randomUUID();
+  const school=crypto.randomUUID(),teacher=crypto.randomUUID(),period=crypto.randomUUID(),department=crypto.randomUUID();
   const student='SYNC-TEST-'+crypto.randomUUID();
   const op=()=>({
     operationId:crypto.randomUUID(),type:'MANUAL_MARKS',date:'2026-11-16',
@@ -23,12 +23,17 @@ async function main(){
     await client.query('BEGIN');
     await client.query('INSERT INTO schools(school_id,school_code,school_name) VALUES($1,$2,$3)',
       [school,'TEST-'+crypto.randomUUID().slice(0,8),'Synthetic Cloud Sync Test School']);
-    await client.query(`INSERT INTO school_users(user_id,school_id,username,display_name,password_hash,role,teacher_designations)
-      VALUES($1,$2,'cloud-test-teacher','Synthetic Teacher','no-login-test-hash','TEACHER',
-      ARRAY['SUBJECT_TEACHER']::TEXT[])`,[teacher,school]);
-    await client.query(`INSERT INTO class_periods(period_id,school_id,period_name,grade_level,section,
-      subject_name,start_time,end_time) VALUES($1,$2,'Period 1','Grade 8','Rizal','English','08:00','09:00')`,
-      [period,school]);
+    await client.query(`INSERT INTO school_departments
+      (department_id,school_id,department_code,department_name)
+      VALUES($1,$2,'TEST','Synthetic Test Department')`,[department,school]);
+    await client.query(`INSERT INTO school_users(user_id,school_id,department_id,
+      username,display_name,password_hash,role,teacher_designations)
+      VALUES($1,$2,$3,'cloud-test-teacher','Synthetic Teacher','no-login-test-hash','TEACHER',
+      ARRAY['SUBJECT_TEACHER']::TEXT[])`,[teacher,school,department]);
+    await client.query(`INSERT INTO class_periods(period_id,school_id,department_id,
+      period_name,grade_level,section,subject_name,start_time,end_time)
+      VALUES($1,$2,$3,'Period 1','Grade 8','Rizal','English','08:00','09:00')`,
+      [period,school,department]);
     await client.query(`INSERT INTO teacher_period_assignments(school_id,teacher_user_id,period_id)
       VALUES($1,$2,$3)`,[school,teacher,period]);
     await client.query(`INSERT INTO students(school_id,student_id,full_name,grade_level,section,parent_mobile)
