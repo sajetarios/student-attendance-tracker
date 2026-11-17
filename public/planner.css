@@ -73,3 +73,102 @@ html[data-ui-theme=dark] .planner-dashboard-metrics>div,html[data-ui-theme=dark]
 html[data-ui-theme=dark] .planner-dashboard-metrics strong,html[data-ui-theme=dark] .planner-dashboard-event b{color:#e5f1ff}
 html[data-ui-theme=dark] .planner-dashboard-metrics span{color:#c0d3e9}
 @media(max-width:600px){.planner-dashboard-widget{padding:13px}.planner-dashboard-metrics>div{padding:10px}.planner-dashboard-buttons{width:100%}.planner-dashboard-buttons button{flex:1}}
+
+
+/* Planner 2026: calm, purposeful scheduling workspace */
+.planner-workspace{--pl-primary:#2563cf;--pl-soft:#eef5ff;gap:20px;min-width:0}
+.planner-overview{padding:clamp(20px,3vw,32px);border:1px solid #cfe0f5;border-radius:22px;background:linear-gradient(115deg,#eaf4ff 0%,#f8fbff 63%,#e7f2ff 100%);align-items:center;position:relative;overflow:hidden}
+.planner-overview::after{content:"";position:absolute;right:16%;top:-70px;width:230px;height:230px;border-radius:50%;border:32px solid rgba(63,136,231,.055);pointer-events:none}
+.planner-eyebrow{display:block;font-size:10px;letter-spacing:.13em;font-weight:850;color:#3264a6;margin-bottom:9px}
+.planner-overview h3{font-size:clamp(26px,2.6vw,38px);letter-spacing:-.045em;line-height:1.1;color:#142e56;margin-bottom:10px}
+.planner-overview h3 span{color:#2e82db;font-size:.7em}
+.planner-overview p{max-width:550px;font-size:14px}
+.planner-overview .planner-actions{position:relative;z-index:1}
+.planner-overview .planner-btn{box-shadow:0 5px 14px #2454a014}
+.planner-btn{transition:background-color .15s,border-color .15s,box-shadow .15s}
+.planner-btn:hover:not(:disabled){border-color:#72a3df;box-shadow:0 3px 12px #1d57991c}
+.planner-btn:focus-visible,.planner-view-btn:focus-visible,.planner-day:focus-visible{outline:3px solid #4d9bf0;outline-offset:2px}
+.planner-summary{gap:14px}
+.planner-summary>div{position:relative;min-height:100px;padding:18px 20px;display:flex;flex-direction:column;justify-content:center;overflow:hidden}
+.planner-summary strong{font-size:32px;line-height:1.15;letter-spacing:-.04em}
+.planner-summary span:not(.planner-stat-icon){font-size:12px;font-weight:700;margin-top:4px}
+.planner-stat-icon{position:absolute;right:17px;top:17px;display:grid;place-items:center;width:33px;height:33px;border-radius:10px;background:#eaf3ff;color:#2662ba;font-size:20px;font-weight:800}
+.planner-stat-1 .planner-stat-icon{background:#e8f7f0;color:#14845d}
+.planner-stat-2 .planner-stat-icon{background:#fff0e7;color:#c46c25}
+.planner-filters{padding:13px 16px;border:1px solid var(--pl-border);border-radius:17px;background:var(--pl-card);align-items:center;justify-content:space-between;gap:12px}
+.planner-filters .planner-actions{gap:6px}
+.planner-filters label{margin-left:auto;min-width:155px}
+.planner-view-switch{display:flex;gap:3px;background:#eef4fc;border-radius:11px;padding:4px}
+.planner-view-btn{border:0;background:transparent;color:#587294;padding:9px 13px;border-radius:8px;font-weight:750;font-size:12px;cursor:pointer;min-height:37px}
+.planner-view-btn.is-active{background:#fff;color:#1656ad;box-shadow:0 1px 6px #143a651e}
+.planner-content-layout{display:grid;gap:18px;min-width:0}
+.planner-calendar{border-radius:19px;box-shadow:0 5px 24px #193d7410}
+.planner-calendar-head{background:#eaf2ff}
+.planner-calendar-head span{font-size:12px;padding:14px 2px}
+.planner-day{min-height:100px;padding:10px;gap:6px;transition:background-color .12s}
+.planner-day:hover{background:#f2f7ff}
+.planner-day.chosen:hover{background:#eaf3ff}
+.planner-date{font-size:13px;width:29px;height:29px}
+.planner-event-dot{font-size:11px;font-weight:700;padding:5px 7px;border-radius:6px}
+.planner-event-dot.planner-type-meeting{background:#eee9ff;border-left-color:#8061ce}
+.planner-event-dot.planner-type-deadline{background:#fff0e7;border-left-color:#d67a35}
+.planner-event-dot.planner-type-lesson{background:#e4f6ee;border-left-color:#2c9b72}
+.planner-event-dot.planner-type-reminder{background:#fff5d9;border-left-color:#cba22e}
+.planner-event-dot.planner-type-activity{background:#e6f5fb;border-left-color:#268bb3}
+.planner-list{background:var(--pl-card);border:1px solid var(--pl-border);border-radius:18px;padding:18px;align-content:start}
+.planner-list-heading{padding-bottom:8px;border-bottom:1px solid var(--pl-border)}
+.planner-list h4{font-size:19px;margin:0 0 7px;letter-spacing:-.02em}
+.planner-item{border-left:4px solid #4c8fd9;box-shadow:0 2px 9px #193d7408}
+.planner-item.planner-type-meeting{border-left-color:#8061ce}
+.planner-item.planner-type-deadline{border-left-color:#d67a35}
+.planner-item.planner-type-lesson{border-left-color:#2c9b72}
+.planner-item.planner-type-reminder{border-left-color:#cba22e}
+.planner-empty{display:grid;justify-items:center;gap:9px;padding:30px 16px;border:1px dashed var(--pl-border);border-radius:13px}
+.planner-empty-icon{font-size:35px;color:#5294d7}
+.planner-empty strong{font-size:16px;color:var(--pl-text)}
+.planner-empty p{margin:0;max-width:320px;font-size:12px;line-height:1.6}
+.planner-empty .planner-btn{margin-top:5px}
+.planner-week-mode .planner-day{min-height:185px}
+.planner-agenda-mode .planner-content-layout{display:block}
+.planner-agenda-mode .planner-list{min-height:260px}
+.planner-form{box-shadow:0 12px 35px #183c6910}
+@media(max-width:850px){
+ .planner-filters{align-items:stretch}
+ .planner-filters label{margin-left:0}
+ .planner-view-switch{margin-left:auto}
+}
+@media(max-width:650px){
+ .planner-overview{padding:18px}
+ .planner-overview .planner-actions{width:100%}
+ .planner-overview .planner-actions .planner-btn{flex:1}
+ .planner-summary{gap:7px}
+ .planner-summary>div{min-height:85px;padding:12px 10px}
+ .planner-summary strong{font-size:25px}
+ .planner-stat-icon{right:7px;top:7px;width:23px;height:23px;font-size:14px}
+ .planner-filters{padding:10px;gap:10px}
+ .planner-filters .planner-actions{width:100%}
+ .planner-filters label{flex:1;min-width:0}
+ .planner-view-switch{width:100%}
+ .planner-view-btn{flex:1}
+ .planner-calendar-head span{padding:10px 1px}
+ .planner-day{min-height:70px;padding:5px;gap:3px}
+ .planner-date{width:25px;height:25px;font-size:11px}
+ .planner-event-dot{font-size:9px;padding:3px 4px;max-width:100%}
+ .planner-week-mode .planner-day{min-height:110px}
+ .planner-list{padding:12px}
+}
+html[data-ui-theme=dark] .planner-overview{background:linear-gradient(115deg,#213a59,#17283e);border-color:#415a78}
+html[data-ui-theme=dark] .planner-overview h3{color:#f2f7ff}
+html[data-ui-theme=dark] .planner-eyebrow{color:#91c5ff}
+html[data-ui-theme=dark] .planner-stat-icon{background:#2b496c;color:#d5eaff}
+html[data-ui-theme=dark] .planner-view-switch{background:#243650}
+html[data-ui-theme=dark] .planner-view-btn{color:#c0d2e9}
+html[data-ui-theme=dark] .planner-view-btn.is-active{background:#385477;color:#fff}
+html[data-ui-theme=dark] .planner-calendar-head{background:#263d5a}
+html[data-ui-theme=dark] .planner-day:hover{background:#233a56}
+html[data-ui-theme=dark] .planner-event-dot.planner-type-meeting{background:#47385e}
+html[data-ui-theme=dark] .planner-event-dot.planner-type-deadline{background:#533b32}
+html[data-ui-theme=dark] .planner-event-dot.planner-type-lesson{background:#244b42}
+html[data-ui-theme=dark] .planner-event-dot.planner-type-reminder{background:#4b4730}
+html[data-ui-theme=dark] .planner-event-dot.planner-type-activity{background:#244659}
+html[data-ui-theme=dark] .planner-empty strong{color:#f1f7ff}
