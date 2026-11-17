@@ -326,6 +326,7 @@
   }
 }
 </style>
+<style id="parent-dashboard-integration">#parentsView{min-width:0}#parentsView .parent-embedded-shell{width:100%;min-width:0;overflow:hidden;border-radius:18px;border:1px solid #dce7f3;background:#f5f8fe}#parentsFrame{display:block;width:100%;height:850px;min-height:550px;border:0;background:transparent}body.dark-mode #parentsView .parent-embedded-shell,body[data-theme="dark"] #parentsView .parent-embedded-shell{background:#18263b;border-color:#425675}@media(max-width:650px){#parentsView .parent-embedded-shell{border:0;border-radius:0}#parentsFrame{min-height:650px}}</style>
 </head>
 <body class="portal-page">
   <div class="portal-layout">
@@ -352,7 +353,7 @@
               </div>
             </div>
             <button class="nav-item" data-view="teachers" id="teachersNav" hidden title="Staff & Users"><span class="nav-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="9" cy="7" r="4"/><path d="M2 21v-2a7 7 0 0 1 14 0v2M17 4a4 4 0 0 1 0 7.8M19 14a5 5 0 0 1 3 4.5V21"/></svg></span><span class="nav-label">Staff & Users</span></button>
-            <button class="nav-item" id="parentsNav" hidden title="Manage parent accounts and student links"><span class="nav-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="9" cy="7" r="3.5"/><circle cx="18" cy="9" r="2.5"/><path d="M2 21v-2a7 7 0 0 1 14 0v2M16 16a5 5 0 0 1 6 5"/></svg></span><span class="nav-label">Parents & Guardians</span></button>
+            <button class="nav-item" id="parentsNav" data-view="parents" hidden title="Manage parent accounts and student links"><span class="nav-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="9" cy="7" r="3.5"/><circle cx="18" cy="9" r="2.5"/><path d="M2 21v-2a7 7 0 0 1 14 0v2M16 16a5 5 0 0 1 6 5"/></svg></span><span class="nav-label">Parents & Guardians</span></button>
             <button class="nav-item" id="guardianApprovalsNav" type="button" hidden title="Review guardian change requests"><span class="nav-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l8 4v5c0 5-3.5 8-8 9-4.5-1-8-4-8-9V7l8-4Z"/><path d="m9 12 2 2 4-4"/></svg></span><span class="nav-label">Guardian Approvals</span><span class="request-side-count" id="guardianNavBadge" hidden>0</span></button>
           </div>
         </div>
@@ -446,7 +447,7 @@
 
         <section id="schoolWorkspace">
           <div class="view-heading"><div><h2 id="viewTitle">Dashboard</h2><p id="viewDescription">Today's attendance at a glance.</p></div></div>
-          <div id="dashboardView" class="view-panel">
+          <section id="parentsView" class="view-panel" hidden><div class="parent-embedded-shell"><iframe id="parentsFrame" title="Parent Management" loading="lazy" referrerpolicy="same-origin"></iframe></div></section><div id="dashboardView" class="view-panel">
             <section id="dashboardScanCta" class="dashboard-scan-cta" aria-label="Quick access to student QR scanner">
               <div class="dashboard-scan-cta-copy">
                 <span class="dashboard-scan-kicker">QUICK ATTENDANCE</span>
