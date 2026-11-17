@@ -17,7 +17,8 @@ function setup({ prior, expectedRevision, status = 'PRESENT' }) {
     post(route, ...middleware) {
       if (route === '/api/manual-attendance/sync') handler = middleware.at(-1);
     },
-    get() {}
+    get() {},
+    patch() {}
   };
   const client = {
     async query(sql, params) {
