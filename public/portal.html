@@ -165,7 +165,7 @@
   <link rel="stylesheet" href="/planner.css?v=3">
   <link rel="stylesheet" href="/user-management-readability.css?v=2">
 <link rel="stylesheet" href="/user-nav-reorg.css?v=1">
-<link rel="stylesheet" href="/special-program-ui.css?v=1">
+<link rel="stylesheet" href="/special-program-ui.css?v=2">
 <style id="school-logo-size-fix">
   /* Transparent school branding: a larger hero logo, compact sidebar logo, no stretching. */
   .school-heading #schoolEmblem.school-emblem {
@@ -1031,9 +1031,37 @@ body.dark-mode .content-wrap > .school-heading.is-compact,body[data-theme="dark"
                 <div><h3>Registered students</h3><p id="studentRosterDescription">Search and filter existing learner records by name, student ID, grade, section, or status. Opening a learner does not create another enrollment or attendance record. QR previews remain tied to each student's existing private token; editing details does not replace the QR code.</p></div>
                 <p id="studentDepartmentScopeNote" class="student-scope-banner" hidden>School-wide learner roster. Department Heads may select and update shared student fields only for sections scheduled in their own department. Individual student identity, photos, and login accounts remain restricted.</p>
                 <div class="student-filter-row"><label class="student-name-filter">Search by name or student ID <input id="studentRosterSearch" type="search" placeholder="Type a student name or ID…" aria-describedby="studentRosterDescription"></label><label>Filter by grade <select id="bulkQrGrade"><option value="ALL">All grades</option><option>Grade 7</option><option>Grade 8</option><option>Grade 9</option><option>Grade 10</option></select></label><label>Filter by section <select id="bulkQrSection"><option value="ALL">All sections</option></select></label><label>Special program <select id="studentSpecialProgramFilter" aria-label="Filter learners by special program"><option value="ALL">All programs</option><option value="NONE">Not assigned</option></select></label><label id="studentStatusFilterWrap" hidden>Record status <select id="studentStatusFilter"><option value="ACTIVE">Active</option><option value="INACTIVE">Inactive</option><option value="ARCHIVED">Archived</option><option value="ALL">All records</option></select></label></div>
-                <div class="student-bulk-actions"><label><input type="checkbox" id="selectAllStudents"> Select all visible students</label><span id="selectedStudentCount">0 selected</span><button class="primary-button" type="button" id="printBulkQr">Print selected ID cards</button><span id="bulkQrFeedback" class="inline-feedback" role="status"></span><select id="studentBatchAction" aria-label="Batch action"><option value="">Choose a batch action…</option><option value="SET_SEX">Set sex (Male/Female)</option><option value="ASSIGN">Move to existing grade/section</option><option value="ACTIVATE">Activate selected</option><option value="DEACTIVATE">Deactivate selected</option><option value="ARCHIVE">Archive selected</option></select><button type="button" class="outline-button" id="applyStudentBatch" disabled>Apply</button></div>
+                <div class="student-bulk-actions"><label><input type="checkbox" id="selectAllStudents"> Select all visible students</label><span id="selectedStudentCount">0 selected</span><button class="primary-button" type="button" id="printBulkQr">Print selected ID cards</button><span id="bulkQrFeedback" class="inline-feedback" role="status"></span><select id="studentBatchAction" aria-label="Batch action"><option value="">Choose a batch action…</option><option value="SET_SEX">Set sex (Male/Female)</option><option value="ASSIGN">Move to existing grade/section</option><option value="REQUEST_PROGRAM">Request special-program change (approval)</option><option value="ACTIVATE">Activate selected</option><option value="DEACTIVATE">Deactivate selected</option><option value="ARCHIVE">Archive selected</option></select><button type="button" class="outline-button" id="applyStudentBatch" disabled>Apply</button></div>
               </div>
               <div class="table-scroll"><table id="studentRosterTable"><thead><tr><th>Select</th><th>Photo</th><th>Student ID</th><th>Full name</th><th>Sex</th><th>Grade</th><th>Section</th><th>Special program</th><th>Status</th><th>QR code</th><th>Actions</th><th>Parent / guardian</th><th>Student portal account</th></tr></thead><tbody id="studentRows"><tr><td colspan="13" class="empty-cell">Loading students…</td></tr></tbody></table></div>
+              </div>
+              <div id="specialProgramBatchModal" class="student-edit-overlay" role="dialog" aria-modal="true" aria-labelledby="specialProgramBatchTitle" hidden>
+                <form id="specialProgramBatchForm" class="student-edit-dialog special-program-batch-dialog">
+                  <div class="section-toolbar">
+                    <div><h3 id="specialProgramBatchTitle">Batch special-program request</h3><p>Department Heads and Class Advisers may request changes only for learners in their authorized sections.</p></div>
+                    <button type="button" class="outline-button" id="specialProgramBatchClose">Close</button>
+                  </div>
+                  <div class="form-grid">
+                    <div class="field-group"><label for="specialProgramBatchAction">Request type</label>
+                      <select id="specialProgramBatchAction"><option value="ASSIGN">Assign or change primary program</option><option value="REMOVE">Remove primary program</option></select>
+                    </div>
+                    <div class="field-group" id="specialProgramBatchProgramWrap"><label for="specialProgramBatchProgram">Requested program</label>
+                      <select id="specialProgramBatchProgram" required><option value="">Select an active program</option></select>
+                    </div>
+                  </div>
+                  <div class="field-group"><label for="specialProgramBatchReason">Reason for request</label>
+                    <textarea id="specialProgramBatchReason" rows="2" maxlength="1000" minlength="3" required placeholder="Explain why this group should be assigned or changed"></textarea>
+                  </div>
+                  <button type="button" class="outline-button" id="specialProgramBatchPreview">Review selected learners</button>
+                  <p id="specialProgramBatchFeedback" class="inline-feedback" role="status" aria-live="polite">Select a program, then review each learner's eligibility.</p>
+                  <div class="special-program-preview-summary" id="specialProgramBatchSummary" aria-live="polite"></div>
+                  <div id="specialProgramBatchPreviewRows" class="special-program-preview-rows" role="group" aria-label="Per-student eligibility preview"></div>
+                  <p class="field-hint">Skipped or unauthorized learners will not be submitted. Every accepted request still requires School Admin approval; student enrollment is not changed here.</p>
+                  <div class="form-actions">
+                    <button type="submit" class="primary-button" id="specialProgramBatchSubmit" disabled>Submit eligible requests</button>
+                    <button type="button" class="outline-button" id="specialProgramBatchCancel">Cancel</button>
+                  </div>
+                </form>
               </div>
               <div id="specialProgramRequestModal" class="student-edit-overlay" role="dialog" aria-modal="true" aria-labelledby="specialProgramRequestTitle" hidden>
                 <form id="specialProgramRequestForm" class="student-edit-dialog special-request-dialog">
@@ -1603,7 +1631,7 @@ body.dark-mode .content-wrap > .school-heading.is-compact,body[data-theme="dark"
   <script src="/photo-editor.js?v=9" defer></script>
   <script src="/offline-attendance.js?v=5" defer></script>
   <script src="/attendance-sync-center.js?v=3" defer></script>
-  <script src="/portal.js?v=0.9.134" defer></script>
+  <script src="/portal.js?v=0.9.135" defer></script>
   <script src="/sardo-monitor.js?v=1" defer></script><script src="/parent-dashboard.js?v=2" defer></script>
   <script src="/platform-plans-ui.js?v=7" defer></script>
   <script src="/platform-school-health.js?v=1" defer></script>
@@ -1614,7 +1642,7 @@ body.dark-mode .content-wrap > .school-heading.is-compact,body[data-theme="dark"
   <script src="/guardian-ui.js?v=5" defer></script>
   <script src="/admin-request-notifications.js?v=4" defer></script>
   <script src="/academic-admin.js?v=5" defer></script>
-  <script src="/special-program-ui.js?v=1" defer></script>
+  <script src="/special-program-ui.js?v=2" defer></script>
   <script src="/smart-mobile-header.js?v=3" defer></script>
 <script src="/attendigo-sidebar-adaptive.js?v=3" defer></script>
 <script defer src="/school-header-responsive.js?v=2"></script>
