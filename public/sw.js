@@ -1,4 +1,4 @@
-const CACHE = "attendigo-v121-schedule-label-independence";
+const CACHE = "attendigo-v122-department-schedule-controls";
 
 const SHELL = [
   "/assets/attendigo-sidebar-logo.png",
@@ -28,11 +28,11 @@ const SHELL = [
   "/portal-login.html",
   "/attendigo-login-motion.css?v=2",
   "/attendigo-login-refinement.css?v=2",
-  "/portal.css?v=0.9.104",
+  "/portal.css?v=0.9.108",
   "/student-roster-toolbar.css?v=1",
   "/portal.css",
-  "/portal.js?v=0.9.108",
-  "/schedule-form-layout.css?v=5",
+  "/portal.js?v=0.9.111",
+  "/schedule-form-layout.css?v=6",
   "/parent-dashboard.js?v=2",
   "/offline-attendance.js?v=1",
   "/offline-sheet.html",
