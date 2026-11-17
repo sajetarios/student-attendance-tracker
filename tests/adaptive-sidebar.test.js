@@ -101,5 +101,5 @@ test('the service worker caches the deployed variants and correct versioned side
  '/assets/attendigo-wordmark-on-dark.svg?v=1','/assets/attendigo-symbol-transparent.svg?v=1'];
  for(const asset of assets)assert.ok(worker.includes(JSON.stringify(asset)),asset);
  for(const asset of [assets[0],assets[1],assets[2],assets[5]])assert.ok(html.includes(asset),asset);
- assert.match(worker,/attendigo-v165-sidebar-brand-refinement/);
+ assert.ok(Number(worker.match(/const CACHE = "attendigo-v(\d+)-/)[1]) >= 166, 'PWA cache version must include the latest teacher roster CSS');
 });
