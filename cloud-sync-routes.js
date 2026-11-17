@@ -168,14 +168,24 @@ function registerCloudSyncRoutes(app, pool, { authenticateSchoolClient, requireS
       const school=await client.query(
         'SELECT school_id FROM schools WHERE lower(school_code)=lower($1) AND active=TRUE',[schoolCode]);
       if(!school.rowCount){await client.query('ROLLBACK');return res.status(404).json({error:'Cloud school is not registered or active.'});}
-      const result=await receiveCloudOperation(client,school.rows[0].school_id,operation);
+      // Keep a successfully authenticated request nonce, even when a mark or
+      // register conflicts. Rolling back the entire transaction on a logical
+      // conflict would make the same signed nonce reusable for five minutes.
+      await client.query('SAVEPOINT cloud_apply');
+      let result;
+      try {
+        result=await receiveCloudOperation(client,school.rows[0].school_id,operation);
+      } catch (error) {
+        if(!(error instanceof NeedsReview))throw error;
+        await client.query('ROLLBACK TO SAVEPOINT cloud_apply');
+        await client.query('COMMIT'); // nonce persists, rejected data does not
+        return res.json({results:[{operationId:operation?.operationId||null,
+          status:'NEEDS_REVIEW',code:error.code,reason:error.message}]});
+      }
       await client.query('COMMIT');
       return res.json({results:[result],serverTime:new Date().toISOString()});
     }catch(error) {
       await client.query('ROLLBACK').catch(()=>{});
-      if(error instanceof NeedsReview)
-        return res.json({results:[{operationId:operation?.operationId||null,
-          status:'NEEDS_REVIEW',code:error.code,reason:error.message}]});
       if(error.code==='23505')
         return res.status(409).json({error:'Duplicate request nonce or concurrent operation. Retry with a fresh signed request.'});
       console.error('Cloud typed attendance synchronization failed:',error.message);
@@ -234,8 +244,10 @@ function registerCloudSyncRoutes(app, pool, { authenticateSchoolClient, requireS
           results.push({ eventId: event?.eventId || null, status: 'REJECTED', reason: 'Invalid event or learner details.' });
           continue;
         }
-        // Historic offline QR snapshots must never roll back the current
-        // student's name, grade or section when they arrive late.
+        // A signed QR record is proof of an observed scan, NOT authorization to
+        // create/reassign a learner. Master records and school-year enrollment
+        // must be independently provisioned on the receiving cloud school.
+        // The latest active-year enrollment wins over old QR snapshot fields.
         const priorEvent = await client.query(
           'SELECT school_id FROM attendance_events WHERE event_id=$1',[event.eventId]);
         if(priorEvent.rowCount) {
@@ -245,29 +257,47 @@ function registerCloudSyncRoutes(app, pool, { authenticateSchoolClient, requireS
           continue;
         }
         const student = await client.query(
-          `WITH inserted AS (
-             INSERT INTO students(school_id,student_id,full_name,grade_level,section,parent_mobile,sex)
-             VALUES($1,$2,$3,$4,$5,'',NULL)
-             ON CONFLICT(student_id) DO NOTHING RETURNING student_id
-           )
-           SELECT student_id FROM inserted
-           UNION ALL
-           SELECT student_id FROM students WHERE school_id=$1 AND student_id=$2
-           LIMIT 1`,
-          [schoolId,event.student.studentId.trim(),event.student.fullName.trim().slice(0,200),event.student.gradeLevel.trim().slice(0,40),event.student.section.trim().slice(0,100)]
+          `SELECT s.student_id,COALESCE(en.grade_level,s.grade_level) AS grade_level,
+             COALESCE(en.section,s.section) AS section,
+             (en.student_id IS NOT NULL) AS current_enrollment
+           FROM students s
+           LEFT JOIN LATERAL (
+             SELECT e.student_id,e.grade_level,e.section
+             FROM student_enrollments e
+             JOIN school_years sy ON sy.school_id=e.school_id
+               AND sy.school_year_id=e.school_year_id
+             WHERE e.school_id=s.school_id AND e.student_id=s.student_id
+               AND sy.status='ACTIVE' AND e.enrollment_status='ENROLLED'
+             ORDER BY e.created_at DESC LIMIT 1
+           ) en ON TRUE
+           WHERE s.school_id=$1 AND s.student_id=$2
+             AND s.active=TRUE AND s.archived_at IS NULL`,
+          [schoolId,event.student.studentId.trim()]
         );
-        if (!student.rowCount) { results.push({ eventId:event.eventId,status:'REJECTED',reason:'Student ID belongs to a different school.' }); continue; }
+        if (!student.rowCount) {
+          results.push({eventId:event.eventId,status:'REJECTED',
+            reason:'Learner is missing, archived, inactive, or belongs to another school. Provision the cloud learner before retrying.'});
+          continue;
+        }
         let periodId = null;
         if (event.attendanceScope === 'CLASS') {
           const periodName=String(event.period.periodName).slice(0,100);
           const subjectName=String(event.period.subjectName||'').slice(0,120);
-          let period=await client.query(`SELECT period_id FROM class_periods WHERE school_id=$1 AND period_name=$2
-            AND grade_level=$3 AND section=$4 AND COALESCE(subject_name,'')=$5 AND active=TRUE
-            AND start_time=$6::time AND end_time=$7::time LIMIT 1`,
-            [schoolId,periodName,event.student.gradeLevel.slice(0,40),event.student.section.slice(0,100),subjectName,event.period.startTime,event.period.endTime]);
-          if(!period.rowCount){
+          const enrolled=student.rows[0];
+          if(!enrolled.current_enrollment ||
+             enrolled.grade_level!==event.student.gradeLevel.trim() ||
+             enrolled.section!==event.student.section.trim()){
             results.push({eventId:event.eventId,status:'REJECTED',
-              reason:'Cloud class period is not provisioned or the schedule changed; map the class before retrying.'});
+              reason:'Cloud learner enrollment differs from this scan. Verify the current school-year section before retrying.'});
+            continue;
+          }
+          const period=await client.query(`SELECT period_id FROM class_periods WHERE school_id=$1 AND period_name=$2
+            AND grade_level=$3 AND section=$4 AND COALESCE(subject_name,'')=$5 AND active=TRUE
+            AND start_time=$6::time AND end_time=$7::time LIMIT 2`,
+            [schoolId,periodName,enrolled.grade_level,enrolled.section,subjectName,event.period.startTime,event.period.endTime]);
+          if(period.rowCount!==1){
+            results.push({eventId:event.eventId,status:'REJECTED',
+              reason:'Cloud class period is missing or ambiguous. Map one exact class schedule before retrying.'});
             continue;
           }
           periodId = period.rows[0].period_id;
@@ -308,8 +338,9 @@ function registerCloudSyncRoutes(app, pool, { authenticateSchoolClient, requireS
     } finally { client.release(); }
   });
 
-  app.get('/api/cloud-sync/status', authenticateSchoolClient, async (req, res) => {
-    if (req.auth?.type !== 'SCHOOL_USER' || !['SCHOOL_ADMIN','DEPARTMENT_HEAD','TEACHER','GATE_KEEPER'].includes(req.auth.role)) return res.status(403).json({ error: 'School staff access is required.' });
+  // School-wide cloud destination, last-error and queue counts are
+  // administration diagnostics, not individual teacher/device sync status.
+  app.get('/api/cloud-sync/status', authenticateSchoolClient, requireSchoolAdmin, async (req, res) => {
     try {
       const result = await pool.query(
         `SELECT c.cloud_base_url AS "cloudBaseUrl",c.enabled,c.last_success_at AS "lastSuccessAt",c.last_error AS "lastError",
