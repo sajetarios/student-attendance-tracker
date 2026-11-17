@@ -2715,7 +2715,10 @@ app.post('/api/periods', authenticateSchoolClient, requireSchoolRoles('SCHOOL_AD
   const isDepartmentHead = req.auth.role === 'DEPARTMENT_HEAD';
   const teacherUserId = isTeacher ? req.auth.userId : (req.body?.teacherUserId || null);
   const classroom = typeof req.body?.classroom === 'string' ? req.body.classroom.trim() : '';
-  const { periodName, gradeLevel, section, subjectId, startTime, endTime, graceMinutes = 0 } = req.body || {};
+  const { periodName, gradeLevel, section, subjectId, startTime, endTime } = req.body || {};
+  // Department Heads may create schedules but cannot set attendance grace policy.
+  // Use the existing five-minute creation default irrespective of a forged client value.
+  const graceMinutes = isDepartmentHead ? 5 : (req.body?.graceMinutes ?? 0);
   const timetableTemplateId = req.body?.timetableTemplateId || null;
   const timetableTemplatePeriodId = req.body?.timetableTemplatePeriodId || null;
   const scheduleType = String(req.body?.scheduleType || 'CLASS').toUpperCase();
