@@ -448,9 +448,9 @@
     if ($('adminGatekeeperMonitoringCard')) $('adminGatekeeperMonitoringCard').hidden = true;
     if ($('teacherGateAttendanceCard')) $('teacherGateAttendanceCard').hidden = true;
     if ($('adminDashboardCard')) $('adminDashboardCard').hidden = !admin;
-    if ($('statsGrid')) $('statsGrid').hidden = admin;
+    if ($('statsGrid')) $('statsGrid').hidden = admin || departmentHead;
     if ($('dashboardScanCta')) $('dashboardScanCta').hidden = admin;
-    if ($('statsGrid')) $('statsGrid').hidden = admin;
+    if ($('statsGrid')) $('statsGrid').hidden = admin || departmentHead;
     if ($('gateScanHelp')) $('gateScanHelp').hidden = !gateKeeper;
     if ($('gateScanTypeWrap')) $('gateScanTypeWrap').hidden = !gateKeeper;
     if (gateKeeper) {
@@ -515,9 +515,9 @@
     if ($('adviserAssignmentForm')) $('adviserAssignmentForm').closest('.adviser-assignments-card').hidden = !(admin || departmentHead);
     if ($('sf2SubmissionsCard')) $('sf2SubmissionsCard').hidden = admin || !departmentHead;
     if ($('sardoCard')) $('sardoCard').hidden = admin || !departmentHead;
-    if ($('learnerSummaryCard')) $('learnerSummaryCard').hidden = gateKeeper || admin;
-    if ($('recentActivityCard')) $('recentActivityCard').hidden = gateKeeper || admin;
-    if ($('quickActionsCard')) $('quickActionsCard').hidden = gateKeeper;
+    if ($('learnerSummaryCard')) $('learnerSummaryCard').hidden = gateKeeper || admin || departmentHead;
+    if ($('recentActivityCard')) $('recentActivityCard').hidden = gateKeeper || admin || departmentHead;
+    if ($('quickActionsCard')) $('quickActionsCard').hidden = gateKeeper || departmentHead;
     document.querySelectorAll('.quick-action[data-go]').forEach(button => {
       const target = button.dataset.go;
       const allowed = allowedViewsForUser();
@@ -934,6 +934,27 @@
       return `<tr><td>${esc(row.fullName || row.studentId)}</td><td>${esc(label)}</td><td>${esc(time)}</td><td><span class="${statusClass}">${esc(row.late ? 'LATE' : status)}</span></td></tr>`;
     }).join('') : '<tr><td colspan="4" class="empty-cell">No attendance activity is available for this account yet.</td></tr>';
   }
+
+  // Department-specific shortcuts use existing, role-authorized navigation.
+  document.querySelectorAll('#departmentHeadOverview [data-dh-go]').forEach(button => {
+    button.addEventListener('click', () => {
+      if (user?.role !== 'DEPARTMENT_HEAD') return;
+      const target = button.dataset.dhGo;
+      if (!allowedViewsForUser().includes(target)) return;
+      const nav = document.querySelector('.nav-item[data-view="' + target + '"]');
+      if (nav && !nav.hidden) nav.click();
+    });
+  });
+  $('departmentHeadOverview')?.querySelector('[data-dh-coverage]')?.addEventListener('click', () => {
+    if (user?.role !== 'DEPARTMENT_HEAD') return;
+    const card = $('teacherCoverageCard');
+    if (!card) return;
+    card.classList.toggle('dh-coverage-expanded');
+    const expanded = card.classList.contains('dh-coverage-expanded');
+    $('departmentHeadOverview').querySelector('[data-dh-coverage]').textContent =
+      expanded ? 'Hide teacher coverage monitor ↑' : 'Open teacher coverage monitor ›';
+    if (expanded) card.scrollIntoView({behavior:'smooth',block:'start'});
+  });
 
   function renderDepartmentHeadOverview() {
     if (user?.role !== 'DEPARTMENT_HEAD' || !$('departmentHeadOverview')) return;
