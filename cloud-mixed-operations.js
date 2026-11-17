@@ -154,7 +154,11 @@ async function applyMarks(client,schoolId,ctx,op) {
        WHERE school_id=$1 AND period_id=$2 AND student_id=$3 AND school_date=$4 FOR UPDATE`,
       [schoolId,ctx.periodId,m.studentId,op.date]);
     const current=prior.rows[0];
-    if(current && current.status===m.status && current.note===m.note) continue;
+    // A matching value is not sufficient evidence of a synchronized revision.
+    // Only the exact next revision may be acknowledged without mutation;
+    // any older/missing revision must be held for manual conflict review.
+    if(current && current.status===m.status && current.note===m.note &&
+       Number(current.revision)===m.revision) continue;
     if(current && String(current.revision)!==String(m.expectedRevision))
       review('STALE_CLOUD_MARK','Cloud attendance changed for learner '+m.studentId+'; no marks were overwritten.');
     if(!current && m.expectedRevision!==0)
