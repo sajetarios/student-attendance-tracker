@@ -160,15 +160,15 @@
     if (review) {
       label = review + (review === 1 ? ' record needs review' : ' records need review');
       state = 'review';
+    } else if (cloudReview) {
+      label = cloudReview + (cloudReview === 1 ? ' cloud conflict' : ' cloud conflicts');
+      state = 'review';
     } else if (waiting) {
-      label = waiting + (waiting === 1 ? ' waiting to sync' : ' waiting to sync');
+      label = waiting + ' waiting to sync';
       state = 'waiting';
     } else if (!connected()) {
       label = 'Offline · attendance saved';
       state = 'warning';
-    } else if (cloudReview) {
-      label = cloudReview + (cloudReview === 1 ? ' cloud conflict' : ' cloud conflicts');
-      state = 'review';
     } else if (isAdmin() && cloudError) {
       label = 'Cloud sync status unavailable';
       state = 'warning';
