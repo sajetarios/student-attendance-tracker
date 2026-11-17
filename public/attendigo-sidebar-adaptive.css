@@ -79,12 +79,7 @@ html body #sidebar.sidebar > .attendigo-brand img.attendigo-logo {
   line-height:1.2!important;
   letter-spacing:-.025em!important;
 }
-html body #sidebar.sidebar[data-logo-backed="true"] > .attendigo-brand {
-  padding:7px 8px!important;
-  border-radius:10px!important;
-  background:var(--side-logo-back)!important;
-  max-width:260px!important;
-}
+/* Product mark stays transparent even when school sidebar colors vary. */
 #sidebar.sidebar .attendigo-logo-color {display:none!important}
 /* Preserve the uploaded original school emblem, without CSS recoloring. The
    optional WHITE *container* protects official artwork on custom dark colors. */
@@ -350,7 +345,7 @@ html body #sidebar.sidebar #sidebarSchoolName {
     max-height:48px!important;
     margin:0 auto 12px!important;
     padding:0!important;
-    background:transparent url('/assets/attendigo-symbol-transparent.svg?v=1') center/contain no-repeat!important;
+    background:transparent url('/assets/attendigo-symbol-transparent.svg?v=2') center/contain no-repeat!important;
     border:0!important;
     border-radius:0!important;
   }

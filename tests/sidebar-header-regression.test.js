@@ -6,12 +6,15 @@ const read = p => fs.readFileSync(p, 'utf8');
 const html = read('public/portal.html');
 const css = read('public/attendigo-sidebar-adaptive.css');
 const sw = read('public/sw.js');
+const symbol = read('public/assets/attendigo-symbol-transparent.svg');
+const dark = read('public/assets/attendigo-wordmark-on-dark.svg');
+const light = read('public/assets/attendigo-wordmark-on-light.svg');
 test('product logo uses its original transparent multicolor symbol and legible Inter text', () => {
   assert.match(html, /class="sidebar-product-wordmark" aria-hidden="true">Attendigo<\/span>/);
   assert.match(css, /img\.attendigo-logo\s*\{[^}]*width:46px!important;[^}]*height:46px!important;[^}]*object-fit:contain!important;[^}]*object-position:center!important/s);
-  assert.match(html, /src="\/assets\/attendigo-symbol-transparent\.svg\?v=1"/);
+  assert.match(html, /src="\/assets\/attendigo-symbol-transparent\.svg\?v=2"/);
   assert.match(css, /\.sidebar-product-wordmark\s*\{[^}]*font-family:var\(--font-ui,Inter,system-ui,sans-serif\)!important;[^}]*font-weight:620!important/s);
-  assert.match(css, /#sidebar\.sidebar\[data-logo-backed="true"\]/);
+  assert.doesNotMatch(css, /background:var\(--side-logo-back\)!important/);
 });
 test('school identity cannot be compressed into workspace label, including long 3-line names', () => {
   const rule = css.match(/html body #sidebar\.sidebar \.sidebar-brand\s*\{([^}]*)\}/)?.[1] || '';
@@ -34,8 +37,19 @@ test('collapsed and mobile navigation keep brand compact and do not show oversiz
   assert.match(css, /width:42px!important;[^}]*height:42px!important/s);
 });
 test('service worker uses fresh version and precaches matching CSS', () => {
-  assert.match(html, /attendigo-sidebar-adaptive\.css\?v=13/);
-  assert.ok(Number(sw.match(/const CACHE = "attendigo-v(\d+)-/)[1]) >= 167, 'PWA cache version must include removal of sidebar sync shortcut');
-  assert.match(sw, /"\/attendigo-sidebar-adaptive\.css\?v=13"/);
+  assert.match(html, /attendigo-sidebar-adaptive\.css\?v=14/);
+  assert.ok(Number(sw.match(/const CACHE = "attendigo-v(\d+)-/)[1]) >= 168, 'PWA cache version must include removal of sidebar sync shortcut');
+  assert.match(sw, /"\/attendigo-sidebar-adaptive\.css\?v=14"/);
   assert.match(html, /\/typography\.css\?v=1/);
+});
+
+test('no square is painted behind the Attendigo product mark', () => {
+  assert.match(symbol, /id="key-black"/);
+  assert.match(symbol, /3 3 3 0 0/);
+  assert.doesNotMatch(symbol, /id="key-white"/);
+  for (const svg of [dark, light]) {
+    assert.match(svg, /id="transparent-black"/);
+    assert.match(svg, /clip-path="url\\(#symbol\\)" filter="url\\(#transparent-black\\)"/);
+  }
+  assert.match(sw, /attendigo-symbol-transparent\\.svg\\?v=2/);
 });

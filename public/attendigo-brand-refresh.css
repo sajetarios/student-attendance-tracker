@@ -32,7 +32,7 @@ html body > header > .attendigo-brand { width:220px;max-width:100%;flex-shrink:1
   html body .portal-layout.sidebar-collapsed #sidebar.sidebar > .attendigo-brand {
     width:48px!important;height:48px!important;min-height:48px!important;
     padding:0!important;
-    background:transparent url('/assets/attendigo-symbol-transparent.svg?v=1') center/contain no-repeat!important;
+    background:transparent url('/assets/attendigo-symbol-transparent.svg?v=2') center/contain no-repeat!important;
   }
   html body .portal-layout.sidebar-collapsed #sidebar.sidebar > .attendigo-brand .attendigo-logo { display:none!important; }
 }

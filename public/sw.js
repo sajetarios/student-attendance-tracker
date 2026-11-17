@@ -1,21 +1,21 @@
-const CACHE = "attendigo-v167-remove-sidebar-sync-shortcut";
+const CACHE = "attendigo-v168-transparent-logo";
 
 const SHELL = [
   "/typography.css?v=1",
   "/fonts/InterVariable.woff2",
   "/fonts/InterVariable-Italic.woff2",
-  "/attendigo-brand-refresh.css?v=2",
+  "/attendigo-brand-refresh.css?v=3",
   "/assets/attendigo-favicon.png?v=2",
   "/assets/attendigo-apple-touch-icon.png?v=2",
   "/assets/attendigo-icon-192.png?v=2",
   "/assets/attendigo-icon-512.png?v=2",
   "/assets/attendigo-sidebar-logo.png?v=2",
-  "/assets/attendigo-wordmark-on-dark.svg?v=1",
-  "/assets/attendigo-wordmark-on-light.svg?v=1",
-  "/assets/attendigo-symbol-transparent.svg?v=1",
-  "/attendigo-sidebar-adaptive.css?v=13",
+  "/assets/attendigo-wordmark-on-dark.svg?v=2",
+  "/assets/attendigo-wordmark-on-light.svg?v=2",
+  "/assets/attendigo-symbol-transparent.svg?v=2",
+  "/attendigo-sidebar-adaptive.css?v=14",
   "/user-nav-reorg.css?v=1",
-  "/attendigo-sidebar-adaptive.js?v=7",
+  "/attendigo-sidebar-adaptive.js?v=8",
   "/assets/attendigo-logo.png?v=2",
   "/assets/attendigo-icon.png?v=2",
   "/attendigo-brand.css?v=2",

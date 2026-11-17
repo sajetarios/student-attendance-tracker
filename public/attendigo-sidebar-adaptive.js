@@ -8,7 +8,7 @@
   const root = document.documentElement;
   const brand = sidebar.querySelector('.attendigo-brand');
   // Preserve the original multicolor approved mark on any school sidebar color.
-  const symbolAsset = '/assets/attendigo-symbol-transparent.svg?v=1';
+  const symbolAsset = '/assets/attendigo-symbol-transparent.svg?v=2';
   const logo = brand?.querySelector('img.attendigo-logo') || brand?.querySelector('img');
   if (brand) {
     // Prevent duplicate product logos from legacy overlays; never query school emblem.
