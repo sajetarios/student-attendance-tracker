@@ -2755,3 +2755,54 @@ html[data-ui-theme="dark"] .admin-command-row,html[data-ui-theme="dark"] .admin-
 html[data-ui-theme="dark"] .admin-command-row:hover,html[data-ui-theme="dark"] .admin-command-shortcuts button:hover{background:#2d4667;border-color:#729bd0}
 html[data-ui-theme="dark"] .admin-metric-icon,html[data-ui-theme="dark"] .admin-command-icon{background:#304a69}
 html[data-ui-theme="dark"] .admin-command-metric>span:not(.admin-metric-icon),html[data-ui-theme="dark"] .admin-command-more summary{color:#c5d9f2}
+
+/* Department Head operations workspace — replace redundant attendance tiles. */
+#dashboardView:has(#departmentHeadOverview:not([hidden])) #teacherCoverageCard:not(.dh-coverage-expanded){display:none!important}
+#dashboardView:has(#departmentHeadOverview:not([hidden])) #statsGrid,
+#dashboardView:has(#departmentHeadOverview:not([hidden])) #learnerSummaryCard,
+#dashboardView:has(#departmentHeadOverview:not([hidden])) #recentActivityCard,
+#dashboardView:has(#departmentHeadOverview:not([hidden])) #quickActionsCard{display:none!important}
+#departmentHeadOverview.dh-command-center{display:grid;gap:18px;padding:clamp(16px,2.1vw,28px);border-radius:21px}
+#departmentHeadOverview.dh-command-center[hidden]{display:none!important}
+.dh-command-intro{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:20px 22px;border:1px solid #d7e5f8;border-radius:17px;background:linear-gradient(110deg,#eaf4ff,#f8fbff)}
+.dh-eyebrow{font-size:10px;letter-spacing:.12em;font-weight:850;color:#3870ae}
+.dh-command-intro h3{font-size:clamp(22px,2.2vw,30px);letter-spacing:-.035em;color:#183958;margin:5px 0 7px}
+.dh-command-intro p{font-size:13px;line-height:1.5;color:#607891;margin:0}
+.dh-command-intro button{flex:0 0 auto}
+.dh-command-metrics{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:11px}
+.dh-command-metric{display:flex;flex-direction:column;position:relative;gap:6px;padding:16px;min-width:0;border:1px solid #dce6f3;border-radius:15px;background:#fff}
+.dh-command-metric>span:not(.dh-metric-icon){font-size:12px;font-weight:700;color:#5d7691;padding-right:30px}
+.dh-command-metric strong{font-size:clamp(25px,2.5vw,34px);color:#18395f;line-height:1.15}
+.dh-command-metric small{font-size:11px;color:#75869c}
+.dh-metric-icon{position:absolute;top:12px;right:12px;display:grid;place-items:center;width:32px;height:32px;border-radius:10px;background:#eaf3ff;color:#326aaf;font-size:18px}
+.dh-metric-attention .dh-metric-icon{background:#fff2e7;color:#bd712d}
+.dh-command-columns{display:grid;grid-template-columns:1.08fr 1fr;gap:14px}
+.dh-command-panel{border:1px solid #dce6f3;border-radius:17px;background:#fff;padding:18px;min-width:0}
+.dh-panel-heading{margin-bottom:14px}
+.dh-panel-heading h4{font-size:18px;color:#18395f;margin:5px 0}
+.dh-panel-heading p{font-size:12px;color:#6a8098;margin:0}
+.dh-attention-row{display:flex;align-items:center;gap:11px;padding:11px;border:1px solid #e0e9f4;border-radius:12px;background:#f9fbfe;margin-bottom:9px}
+.dh-attention-icon{display:grid;place-items:center;flex:0 0 36px;width:36px;height:36px;background:#eaf3ff;border-radius:10px;color:#3572b9;font-size:18px}
+.dh-attention-row>span:nth-child(2){flex:1;min-width:0;display:grid;gap:3px}
+.dh-attention-row>span:nth-child(2) strong{font-size:12px;color:#203f64}
+.dh-attention-row small{font-size:11px;color:#68829d}
+.dh-attention-row>strong{font-size:22px;color:#234d7b}
+.dh-panel-action{width:100%;margin-top:7px;min-height:42px}
+.dh-command-shortcuts{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.dh-command-shortcuts button{display:flex;align-items:center;gap:12px;min-height:70px;padding:13px;border:1px solid #dbe7f4;border-radius:12px;background:#f7faff;color:#23456b;text-align:left;cursor:pointer}
+.dh-command-shortcuts button span{font-size:23px}
+.dh-command-shortcuts button strong{font-size:12px}
+.dh-command-shortcuts button:hover{background:#ebf5ff;border-color:#83b1e7}
+.dh-command-center button:focus-visible{outline:3px solid #3a88de;outline-offset:2px}
+.dh-scope-note{margin:0;font-size:11px;line-height:1.55;color:#667f9a}
+@media(max-width:1100px){.dh-command-metrics{grid-template-columns:repeat(2,minmax(0,1fr))}.dh-command-columns{grid-template-columns:1fr}}
+@media(max-width:640px){.dh-command-intro{flex-direction:column;align-items:stretch;padding:16px}.dh-command-intro button{width:100%}.dh-command-metrics{gap:8px}.dh-command-metric{padding:12px}.dh-command-panel{padding:14px}.dh-command-shortcuts button{min-height:65px}}
+html[data-ui-theme="dark"] .dh-command-intro{background:linear-gradient(110deg,#203955,#1a2d45);border-color:#395470}
+html[data-ui-theme="dark"] .dh-command-intro h3,html[data-ui-theme="dark"] .dh-command-metric strong,html[data-ui-theme="dark"] .dh-panel-heading h4{color:#f1f6ff}
+html[data-ui-theme="dark"] .dh-eyebrow{color:#91c7ff}
+html[data-ui-theme="dark"] .dh-command-intro p,html[data-ui-theme="dark"] .dh-panel-heading p,html[data-ui-theme="dark"] .dh-command-metric small,html[data-ui-theme="dark"] .dh-attention-row small{color:#b2c7df}
+html[data-ui-theme="dark"] .dh-command-metric,html[data-ui-theme="dark"] .dh-command-panel{background:#1b2d43;border-color:#3c5672}
+html[data-ui-theme="dark"] .dh-command-metric>span:not(.dh-metric-icon),html[data-ui-theme="dark"] .dh-attention-row>span:nth-child(2) strong,html[data-ui-theme="dark"] .dh-attention-row>strong{color:#e4efff}
+html[data-ui-theme="dark"] .dh-attention-row,html[data-ui-theme="dark"] .dh-command-shortcuts button{background:#243952;border-color:#405c79;color:#edf5ff}
+html[data-ui-theme="dark"] .dh-command-shortcuts button:hover{background:#2d4969}
+html[data-ui-theme="dark"] .dh-metric-icon,html[data-ui-theme="dark"] .dh-attention-icon{background:#304d70;color:#d0e7ff}
