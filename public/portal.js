@@ -5942,6 +5942,34 @@ $('teacherCoverageCard')?.addEventListener('click', event => {
     }
   });
 
+  // Collapse the school identity card only after meaningful page scrolling.
+  // Use two thresholds to avoid repeated resize/repaint near the boundary.
+  function installAdaptiveSchoolHeader() {
+    const page = document.querySelector('.portal-page');
+    const header = document.querySelector('.school-heading');
+    if (!page || !header) return;
+    let compact = false;
+    let pending = false;
+    const update = () => {
+      pending = false;
+      const top = Math.max(window.scrollY || 0, document.scrollingElement?.scrollTop || 0);
+      const next = compact ? top > 75 : top > 150;
+      if (next !== compact) {
+        compact = next;
+        page.classList.toggle('school-header-condensed', compact);
+      }
+    };
+    const schedule = () => {
+      if (pending) return;
+      pending = true;
+      requestAnimationFrame(update);
+    };
+    window.addEventListener('scroll', schedule, { passive:true });
+    window.addEventListener('resize', schedule, { passive:true });
+    schedule();
+  }
+  installAdaptiveSchoolHeader();
+
   init().then(() => {
     if ($('studentForm') && !$('studentForm').hidden) loadSectionsForGrade($('newGrade').value);
     if (user?.role === 'DEPARTMENT_HEAD') {
