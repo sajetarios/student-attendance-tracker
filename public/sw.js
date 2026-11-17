@@ -1,4 +1,4 @@
-const CACHE = "attendigo-v112-mobile-logo-restored";
+const CACHE = "attendigo-v113-offline-queue-shell";
 
 const SHELL = [
   "/assets/attendigo-sidebar-logo.png",
@@ -26,12 +26,13 @@ const SHELL = [
   "/portal-login.html",
   "/attendigo-login-motion.css?v=2",
   "/attendigo-login-refinement.css?v=2",
-  "/portal.css?v=0.9.67",
+  "/portal.css?v=0.9.92",
   "/student-roster-toolbar.css?v=1",
   "/portal.css",
-  "/portal.js?v=0.9.88",
+  "/portal.js?v=0.9.93",
+  "/offline-attendance.js?v=1",
   "/manual-folio.css?v=8",
-  "/manual-folio.js?v=7",
+  "/manual-folio.js?v=9",
   "/student-portal-accounts.css?v=2",
   "/student-portal-accounts.js?v=3",
   "/admin-request-notifications.js?v=1",
