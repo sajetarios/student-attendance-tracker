@@ -238,7 +238,7 @@
     document.querySelectorAll('.nav-item').forEach(button => {
       button.classList.toggle('active', button.dataset.view === view);
     });
-    const activeNav = document.querySelector('.nav-item[data-view="' + view + '"]');
+    const activeNav = [...document.querySelectorAll('.nav-item[data-view="' + view + '"]')].find(item => !item.hidden);
     const activeGroup = activeNav?.closest('.nav-group');
     if (activeGroup) {
       const groupToggle = activeGroup.querySelector('.nav-group-toggle[data-nav-group]');
@@ -483,7 +483,9 @@
     }
 
     if ($('dashboardNav')) $('dashboardNav').hidden = gateKeeper;
-    if ($('studentAccountsNav')) $('studentAccountsNav').hidden = !(admin || (teacher && (subjectTeacher || classAdviser)));
+    if ($('studentAccountsNav')) $('studentAccountsNav').hidden = !(teacher && (subjectTeacher || classAdviser));
+    if ($('adminStudentAccountsNav')) $('adminStudentAccountsNav').hidden = !admin;
+    if ($('requestsApprovalsNav')) $('requestsApprovalsNav').hidden = !admin;
     if ($('studentsNav')) {
       $('studentsNav').hidden = !(admin || departmentHead || teacher || gateKeeper);
       if ($('showStudentForm')) $('showStudentForm').hidden = departmentHead || gateKeeper;
@@ -565,11 +567,11 @@
         else { heading.textContent = 'School administration shortcuts'; copy.textContent = 'Open common attendance and staff administration tasks.'; }
       }
     }
-    if (peopleGroup) peopleGroup.hidden = Boolean($('studentsNav')?.hidden && $('teachersNav')?.hidden && $('parentsNav')?.hidden);
+    if (peopleGroup) peopleGroup.hidden = Boolean($('studentsNav')?.hidden && $('teachersNav')?.hidden && $('studentAccountsNav')?.hidden);
     if (academicsGroup) academicsGroup.hidden = Boolean($('sf2Nav')?.hidden && $('schedulesNav')?.hidden && $('cloudSyncNav')?.hidden && $('schoolBrandingNav')?.hidden);
     // Use role-specific navigation names without changing existing routes or access rules.
     if ($('peopleGroupLabel')) $('peopleGroupLabel').textContent =
-      departmentHead ? 'My Department' : teacher ? 'My Classes' : 'People Management';
+      departmentHead ? 'My Department' : teacher ? 'My Classes' : 'Student Records';
     if ($('academicsGroupLabel')) $('academicsGroupLabel').textContent =
       departmentHead ? 'Schedules & Monitoring' : teacher ? 'Attendance & Planning' : 'Academic Management';
     if (departmentHead) {
@@ -652,14 +654,6 @@
       else button.removeAttribute('aria-current');
     });
   }
-  $('staffNavToggle')?.addEventListener('click', () => {
-    if (user?.role !== 'SCHOOL_ADMIN') return;
-    const children = $('staffNavChildren');
-    const opening = children.hidden;
-    children.hidden = !opening;
-    $('staffNavToggle').setAttribute('aria-expanded', String(opening));
-    // Expanding a nested menu never navigates, opens other menus, or changes sidebar width.
-  });
   $('staffNavChildren')?.addEventListener('click', event => {
     const button = event.target.closest('[data-staff-section]');
     if (!button || user?.role !== 'SCHOOL_ADMIN') return;
@@ -688,7 +682,8 @@
       return;
     }
     if (!isAdmin) return;
-    const activeTab = ['accounts','permissions','departments'].includes(tabName) ? tabName : 'accounts';
+    const activeTab = ['directory','accounts','permissions','departments'].includes(tabName) ? tabName : 'accounts';
+    if ($('accountDirectoryHub')) $('accountDirectoryHub').hidden = activeTab !== 'directory';
     if (teacherCard) teacherCard.hidden = activeTab !== 'accounts';
     if (staffCard) staffCard.hidden = activeTab !== 'accounts';
     if (adviserCard) adviserCard.hidden = true;
@@ -697,6 +692,11 @@
     if (departmentCard) departmentCard.hidden = activeTab !== 'departments';
     if (note) note.hidden = activeTab !== 'accounts';
     syncStaffNavigation(activeTab);
+    if (!$('teachersView')?.hidden) {
+      const titles = {directory:'All User Accounts',accounts:'Teachers & Staff',permissions:'Account Access',departments:'Departments'};
+      if ($('pageTitle')) $('pageTitle').textContent = titles[activeTab];
+      if ($('breadcrumbCurrent')) $('breadcrumbCurrent').textContent = titles[activeTab];
+    }
     tabs?.querySelectorAll('[data-admin-management-tab]').forEach(button => {
       const selected = button.dataset.adminManagementTab === activeTab;
       button.classList.toggle('is-active', selected);
@@ -705,6 +705,20 @@
     });
   }
 
+  $('accountDirectoryHub')?.addEventListener('click', event => {
+    const action = event.target.closest('[data-directory-target]');
+    if (!action || user?.role !== 'SCHOOL_ADMIN') return;
+    const target = action.dataset.directoryTarget;
+    if (['accounts','permissions','departments'].includes(target)) setAdminManagementTab(target);
+    else if (target === 'studentAccounts') $('adminStudentAccountsNav')?.click();
+    else if (target === 'parents') $('parentsNav')?.click();
+    else if (target === 'requests') $('requestsApprovalsNav')?.click();
+  });
+  $('requestsApprovalsNav')?.addEventListener('click', () => {
+    if (user?.role !== 'SCHOOL_ADMIN') return;
+    $('adminNotificationBell')?.click();
+    document.querySelector('.sidebar')?.classList.remove('mobile-open');
+  });
   $('adminManagementTabs')?.addEventListener('click', event => {
     const button = event.target.closest('[data-admin-management-tab]');
     if (button) setAdminManagementTab(button.dataset.adminManagementTab);
