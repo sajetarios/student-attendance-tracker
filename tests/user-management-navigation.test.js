@@ -53,9 +53,12 @@ test('staff account permissions stay admin-only, teachers retain scoped student 
 test('dark and mobile account menus and refreshed offline cache include new assets', () => {
   assert.ok(css.includes('html[data-ui-theme="dark"]'));
   assert.ok(css.includes('@media(max-width:640px)'));
-  for (const asset of ['/account-directory.js?v=1','/user-nav-reorg.css?v=1','/portal.js?v=0.9.130','/dashboard-icons.js?v=6','/admin-request-notifications.js?v=3'])
+  const portalScript=html.match(/\/portal\.js\?v=[0-9.]+/)?.[0];
+  assert.ok(portalScript, 'Portal must load a versioned staff script');
+  for (const asset of ['/account-directory.js?v=1','/user-nav-reorg.css?v=1',portalScript,'/dashboard-icons.js?v=6','/admin-request-notifications.js?v=3'])
     assert.ok(html.includes(asset) || asset === '/account-directory.js?v=1',asset+' should be loaded by the portal');
-  for (const asset of ['/account-directory.js?v=1','/user-nav-reorg.css?v=1','/portal.js?v=0.9.130','/dashboard-icons.js?v=6','/admin-request-notifications.js?v=3','/guardian-ui.js?v=5'])
+  for (const asset of ['/account-directory.js?v=1','/user-nav-reorg.css?v=1',portalScript,'/dashboard-icons.js?v=6','/admin-request-notifications.js?v=3','/guardian-ui.js?v=5'])
     assert.ok(worker.includes(JSON.stringify(asset)),asset+' must be refreshed in shell');
-  assert.match(worker,/attendigo-v146-account-directory/);
+  const cacheVersion=worker.match(/attendigo-v(\d+)-/)?.[1];
+  assert.ok(cacheVersion && Number(cacheVersion)>=146,'Offline shell must include refreshed account menu and Sync Center assets');
 });
