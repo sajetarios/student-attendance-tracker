@@ -32,20 +32,72 @@ body.dark-mode,body[data-theme="dark"],html[data-theme="dark"]{
   --asc-danger-bg:#512839;
   --asc-shadow:0 24px 88px rgba(0,0,0,.65);
 }
-#ascDock.asc-dock{
-  position:fixed;right:max(16px,env(safe-area-inset-right));bottom:max(20px,env(safe-area-inset-bottom));
-  z-index:9400;display:inline-flex;align-items:center;gap:10px;
-  min-height:46px;max-width:min(340px,calc(100vw - 32px));padding:10px 17px;
-  border:1px solid var(--asc-line);border-radius:999px;background:var(--asc-surface);
-  color:var(--asc-ink);font:750 13px/1.35 system-ui,sans-serif;
-  box-shadow:0 8px 28px rgba(22,47,76,.24);cursor:pointer;text-align:left;
-  transition:transform .18s ease,box-shadow .18s ease;
+/* One header control replaces the old cloud-status pill and floating Sync dock. */
+#connectionStatus.asc-header-trigger,#ascHeaderTrigger.asc-header-trigger{
+  position:relative;display:inline-flex!important;align-items:center;justify-content:center;
+  flex:0 0 auto;gap:8px;min-height:42px;min-width:44px;
+  max-width:min(300px,calc(100vw - 24px));padding:8px 13px;
+  border:1px solid var(--asc-line);border-radius:999px;
+  background:var(--asc-elevated);color:var(--asc-ink);
+  font:750 12px/1.25 system-ui,sans-serif;cursor:pointer;
+  white-space:nowrap;box-shadow:none;transition:background .18s,border-color .18s;
 }
-#ascDock.asc-dock:hover{transform:translateY(-2px);box-shadow:0 12px 30px rgba(17,45,80,.27)}
-#ascDock .asc-dock-dot{width:10px;height:10px;flex:none;border-radius:50%;background:var(--asc-success);box-shadow:0 0 0 4px var(--asc-success-bg)}
-#ascDock[data-state="waiting"] .asc-dock-dot,#ascDock[data-state="offline"] .asc-dock-dot{background:var(--asc-warn);box-shadow:0 0 0 4px var(--asc-warn-bg)}
-#ascDock[data-state="review"]{border-color:var(--asc-danger);background:var(--asc-danger-bg)}
-#ascDock[data-state="review"] .asc-dock-dot{background:var(--asc-danger);box-shadow:0 0 0 4px var(--asc-danger-bg)}
+#connectionStatus.asc-header-trigger:hover,#ascHeaderTrigger.asc-header-trigger:hover{
+  background:var(--asc-surface);border-color:var(--asc-accent);
+}
+#connectionStatus.asc-header-trigger i{
+  display:block;flex:0 0 8px;width:8px;height:8px;border-radius:50%;
+  background:var(--asc-success);box-shadow:0 0 0 3px var(--asc-success-bg);
+}
+.asc-header-trigger .asc-header-cloud{display:inline-flex;align-items:center;font-size:17px;line-height:1}
+.asc-header-trigger .asc-header-label{font-size:12px;min-width:0;overflow:hidden;text-overflow:ellipsis}
+.asc-header-trigger .asc-header-badge{
+  padding:2px 5px;min-width:19px;min-height:19px;display:inline-grid;place-items:center;
+  color:var(--asc-accent-ink);background:var(--asc-accent);
+  border-radius:999px;font-size:10px;line-height:1;font-weight:850;
+}
+.asc-header-trigger .asc-header-badge[hidden]{display:none!important}
+#connectionStatus.asc-header-trigger[data-state="warning"],
+#connectionStatus.asc-header-trigger[data-state="waiting"],
+#ascHeaderTrigger.asc-header-trigger[data-state="warning"],
+#ascHeaderTrigger.asc-header-trigger[data-state="waiting"]{
+  color:var(--asc-warn);background:var(--asc-warn-bg);border-color:var(--asc-warn);
+}
+#connectionStatus.asc-header-trigger[data-state="warning"] i,
+#connectionStatus.asc-header-trigger[data-state="waiting"] i{background:var(--asc-warn);box-shadow:0 0 0 3px var(--asc-warn-bg)}
+#connectionStatus.asc-header-trigger[data-state="review"],
+#ascHeaderTrigger.asc-header-trigger[data-state="review"]{
+  color:var(--asc-danger);background:var(--asc-danger-bg);border-color:var(--asc-danger);
+}
+#connectionStatus.asc-header-trigger[data-state="review"] i{background:var(--asc-danger);box-shadow:0 0 0 3px var(--asc-danger-bg)}
+#connectionStatus.asc-header-trigger[data-state="review"] .asc-header-badge,
+#ascHeaderTrigger.asc-header-trigger[data-state="review"] .asc-header-badge{
+  color:var(--asc-surface);background:var(--asc-danger);
+}
+/* Offline sheet has its own header and retains one in-header sync trigger. */
+html[data-offline-sheet="true"] body > header{
+  display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:5px 12px;
+}
+html[data-offline-sheet="true"] body > header h1{grid-column:1;min-width:0}
+html[data-offline-sheet="true"] body > header small{grid-column:1}
+html[data-offline-sheet="true"] #ascHeaderTrigger{grid-column:2;grid-row:1 / span 2}
+@media(max-width:920px){
+  #connectionStatus.asc-header-trigger{
+    padding:8px 10px;min-width:44px;max-width:72px;gap:5px;
+  }
+  #connectionStatus.asc-header-trigger .asc-header-label{display:none}
+  #connectionStatus.asc-header-trigger .asc-header-cloud{font-size:19px}
+  #connectionStatus.asc-header-trigger .asc-header-badge{
+    position:absolute;right:-6px;top:-6px;border:2px solid var(--asc-surface)
+  }
+}
+@media(max-width:520px){
+  #connectionStatus.asc-header-trigger{height:42px;width:44px;padding:6px 8px}
+  #connectionStatus.asc-header-trigger i{width:6px;flex-basis:6px;height:6px}
+  #ascHeaderTrigger.asc-header-trigger{width:46px;min-height:44px;padding:7px}
+  #ascHeaderTrigger.asc-header-trigger .asc-header-label{display:none}
+  #ascHeaderTrigger.asc-header-trigger .asc-header-badge{position:absolute;right:-6px;top:-6px}
+}
 .asc-dialog,.asc-detail-dialog{
   color:var(--asc-ink);background:var(--asc-surface);border:1px solid var(--asc-line);
   border-radius:22px;padding:0;box-shadow:var(--asc-shadow);width:min(850px,calc(100vw - 28px));
@@ -141,7 +193,7 @@ body.dark-mode,body[data-theme="dark"],html[data-theme="dark"]{
 .manual-sync-strip .manual-sync-description{font-size:12px;color:var(--asc-subtle);line-height:1.35}
 .manual-sync-strip #mfOpenSyncCenter{min-height:40px}
 body.dark-mode .manual-sync-strip,body[data-theme="dark"] .manual-sync-strip{color:var(--asc-ink)}
-#ascDock:focus-visible,.asc-dialog button:focus-visible,.asc-detail-dialog button:focus-visible,
+#connectionStatus.asc-header-trigger:focus-visible,#ascHeaderTrigger.asc-header-trigger:focus-visible,.asc-dialog button:focus-visible,.asc-detail-dialog button:focus-visible,
 .asc-dashboard-open:focus-visible,#mfOpenSyncCenter:focus-visible{
   outline:3px solid var(--asc-accent);outline-offset:3px
 }
@@ -154,7 +206,6 @@ body.dark-mode .manual-sync-strip,body[data-theme="dark"] .manual-sync-strip{col
   .manual-folio .manual-sync-strip{flex-wrap:wrap}
 }
 @media(max-width:520px){
-  #ascDock.asc-dock{right:max(12px,env(safe-area-inset-right));bottom:max(12px,env(safe-area-inset-bottom));font-size:12px;min-height:48px}
   .asc-dialog{width:100vw;height:min(90dvh,950px);max-height:90dvh;border-radius:22px 22px 0 0;margin:auto 0 0 0}
   .asc-dialog .asc-shell{padding:20px 16px max(24px,env(safe-area-inset-bottom))}
   .asc-header h2{font-size:23px}
@@ -172,7 +223,7 @@ body.dark-mode .manual-sync-strip,body[data-theme="dark"] .manual-sync-strip{col
   .asc-compare-row>div{padding:9px}
 }
 @media(prefers-reduced-motion:reduce){
-  #ascDock.asc-dock,.asc-primary,.asc-secondary{transition:none!important;transform:none!important}
+.asc-header-trigger,.asc-primary,.asc-secondary{transition:none!important;transform:none!important}
 }
 
 /* The standalone prepared offline sheet follows OS dark preference, while
@@ -198,26 +249,3 @@ body.dark-mode .manual-sync-strip,body[data-theme="dark"] .manual-sync-strip{col
 .manual-folio #mfFeedback{color:var(--asc-subtle)}
 .manual-folio #mfFeedback[data-error="true"]{color:var(--asc-danger);font-weight:760}
 
-/*
- * Floating action collision fix:
- * Teachers and School Admins may also have the Class QR Attendance shortcut
- * fixed at the bottom-right. Keep both actions independently accessible
- * instead of letting the Sync Center obscure the QR link.
- * :has() immediately reacts when the authorized QR shortcut is injected
- * asynchronously after /api/auth/me completes.
- */
-body:has(#classQrTeacherShortcut) #ascDock.asc-dock {
-  bottom: calc(82px + env(safe-area-inset-bottom, 0px));
-}
-body:has(#classQrTeacherShortcut) .content-wrap {
-  padding-bottom: max(108px, env(safe-area-inset-bottom, 0px));
-}
-@media (max-width: 650px) {
-  body:has(#classQrTeacherShortcut) #ascDock.asc-dock {
-    right: max(12px, env(safe-area-inset-right, 0px));
-    bottom: calc(80px + env(safe-area-inset-bottom, 0px));
-  }
-  body:has(#classQrTeacherShortcut) .content-wrap {
-    padding-bottom: calc(155px + env(safe-area-inset-bottom, 0px));
-  }
-}
