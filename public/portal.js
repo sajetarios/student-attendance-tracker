@@ -1919,7 +1919,7 @@ function coverageStatusLabel(status) {
               (selectedPeriodIds.has(String(period.periodId)) ? 'checked' : '') + ' aria-label="Select ' + esc(period.periodName) + '">'
             : '—') + '</td>'
           : '';
-        const deleteAction = (user.role === 'SCHOOL_ADMIN' || (user.role === 'DEPARTMENT_HEAD' && String(period.departmentId) === String(user.departmentId))) ? `<button type="button" class="outline-button compact-button danger-button" data-delete-period="${esc(period.periodId)}">Delete</button>` : '—';
+        const deleteAction = (user.role === 'SCHOOL_ADMIN' || (user.role === 'DEPARTMENT_HEAD' && String(period.departmentId) === String(user.departmentId))) ? `<div class="schedule-row-actions"><button type="button" class="outline-button compact-button" data-edit-period="${esc(period.periodId)}">Edit</button><button type="button" class="outline-button compact-button danger-button" data-delete-period="${esc(period.periodId)}">Delete</button></div>` : '—';
         return `<tr>
           ${selection}<td data-label="Schedule"><strong>${esc(period.periodName)}</strong>${period.scheduleType === 'ADVISORY' ? '<small class="schedule-activity-label">Advisory / Homeroom</small>' : period.scheduleType === 'OTHER' ? '<small class="schedule-activity-label">Special class</small>' : ''}</td>
           <td data-label="Subject">${esc(period.subjectName || '—')}</td>
@@ -5325,6 +5325,56 @@ let teacherActionMenuListenersInstalled = false;
       } catch (error) { feedback.className = 'inline-feedback error'; feedback.textContent = error.message; }
     });
     document.addEventListener('click', async event => {
+
+      const editScheduleButton = event.target.closest('[data-edit-period]');
+      if (editScheduleButton) {
+        const period = periods.find(item => String(item.periodId) === String(editScheduleButton.dataset.editPeriod));
+        if (!period) return;
+        const previous = document.getElementById('editScheduleDialog');
+        if (previous) previous.remove();
+        const dialog = document.createElement('dialog');
+        dialog.id = 'editScheduleDialog';
+        dialog.className = 'attendigo-schedule-edit-dialog';
+        const days = [['Sun',0],['Mon',1],['Tue',2],['Wed',3],['Thu',4],['Fri',5],['Sat',6]];
+        const selectedDays = (Array.isArray(period.weekdays) ? period.weekdays : []).map(Number);
+        const normalizedTime = value => String(value || '').slice(0,5);
+        dialog.innerHTML = `<form method="dialog" id="editScheduleForm" class="schedule-edit-inner">
+          <div class="schedule-edit-heading"><div><small>CLASS SCHEDULE</small><h2>Edit schedule</h2><p>${esc(period.gradeLevel)} · ${esc(period.section)} · ${esc(period.subjectName || '')}</p></div><button type="button" class="outline-button" id="closeEditSchedule" aria-label="Close edit dialog">✕</button></div>
+          <label>Schedule label<input name="periodName" maxlength="120" required value="${esc(period.periodName)}"></label>
+          <div class="schedule-edit-times"><label>Start time<input name="startTime" type="time" required value="${esc(normalizedTime(period.startTime))}"></label><label>End time<input name="endTime" type="time" required value="${esc(normalizedTime(period.endTime))}"></label></div>
+          <label>Classroom / room<input name="classroom" maxlength="100" value="${esc(period.classroom || '')}" placeholder="Optional"></label>
+          <fieldset><legend>Scheduled weekdays</legend><div class="schedule-edit-days">${days.map(([label,day])=>`<label><input type="checkbox" name="weekdays" value="${day}" ${selectedDays.includes(day)?'checked':''}>${label}</label>`).join('')}</div></fieldset>
+          <p class="schedule-edit-note">Changes are checked against other class, teacher, and room schedules. Existing attendance records are preserved. Editing times switches this schedule to custom time.</p>
+          <div id="editScheduleError" role="alert" class="inline-feedback"></div>
+          <div class="schedule-edit-actions"><button type="button" class="outline-button" id="cancelEditSchedule">Cancel</button><button type="submit" class="primary-button" id="submitEditSchedule">Save changes</button></div>
+        </form>`;
+        document.body.appendChild(dialog);
+        const close = () => {dialog.close();dialog.remove();};
+        dialog.querySelector('#closeEditSchedule').addEventListener('click',close);
+        dialog.querySelector('#cancelEditSchedule').addEventListener('click',close);
+        dialog.addEventListener('cancel', e => {e.preventDefault();close();});
+        dialog.querySelector('form').addEventListener('submit', async e => {
+          e.preventDefault();
+          const form = e.currentTarget;
+          const payload = {
+            periodName:form.elements.periodName.value.trim(),
+            startTime:form.elements.startTime.value,
+            endTime:form.elements.endTime.value,
+            classroom:form.elements.classroom.value.trim(),
+            weekdays:[...form.querySelectorAll('input[name="weekdays"]:checked')].map(input=>Number(input.value))
+          };
+          const error = dialog.querySelector('#editScheduleError');
+          if (!payload.weekdays.length) {error.textContent='Choose at least one weekday.';return;}
+          const submit = dialog.querySelector('#submitEditSchedule');
+          submit.disabled=true;error.textContent='';
+          try {
+            await api('/api/periods/'+encodeURIComponent(period.periodId),{method:'PATCH',body:JSON.stringify(payload)});
+            close();await loadSchoolData();showToast('Class schedule updated. Attendance history preserved.');
+          } catch(err) {error.textContent=err.message;submit.disabled=false;}
+        });
+        dialog.showModal();
+        return;
+      }
       const deleteScheduleButton = event.target.closest('[data-delete-period]');
       if (deleteScheduleButton) {
         const period = periods.find(item => String(item.periodId) === String(deleteScheduleButton.dataset.deletePeriod));
