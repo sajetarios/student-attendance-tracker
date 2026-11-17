@@ -1,4 +1,4 @@
-const CACHE = "attendigo-v127-official-section-adviser";
+const CACHE = "attendigo-v128-dept-schedule-roles-visible";
 
 const SHELL = [
   "/assets/attendigo-sidebar-logo.png",
@@ -31,10 +31,10 @@ const SHELL = [
   "/portal.css?v=0.9.108",
   "/student-roster-toolbar.css?v=1",
   "/portal.css",
-  "/portal.js?v=0.9.120",
+  "/portal.js?v=0.9.121",
   "/sardo-monitor.js?v=1",
   "/sardo-monitor.css?v=1",
-  "/schedule-form-layout.css?v=10",
+  "/schedule-form-layout.css?v=11",
   "/parent-dashboard.js?v=2",
   "/offline-attendance.js?v=1",
   "/offline-sheet.html",
@@ -103,6 +103,23 @@ self.addEventListener("fetch", event => {
   if (["/portal.html", "/student-portal.html", "/parent-portal.html",
        "/force-password-change.html"].includes(url.pathname)) {
     event.respondWith(fetch(request, { cache: "no-store" }));
+    return;
+  }
+
+  // Keep scheduling UI fresh without breaking offline school operation.
+  // Unlike cache-first general assets, these role-critical resources prefer the deployed version.
+  if (['/portal.js','/schedule-form-layout.css','/schedule-workspace-ui.js'].includes(url.pathname)) {
+    event.respondWith((async () => {
+      try {
+        const fresh = await fetch(request, { cache: 'no-store' });
+        if (!fresh.ok) throw Error('Scheduling asset could not be refreshed');
+        const cache = await caches.open(CACHE);
+        cache.put(request, fresh.clone()).catch(() => {});
+        return fresh;
+      } catch {
+        return (await caches.match(request)) || Response.error();
+      }
+    })());
     return;
   }
 

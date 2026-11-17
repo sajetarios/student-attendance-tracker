@@ -5316,6 +5316,7 @@ let teacherActionMenuListenersInstalled = false;
       select.disabled = true;
       if (hint) hint.textContent = error.message;
       updateSectionManagementActions();
+      void refreshScheduleSectionAdviser();
     }
   }
 
@@ -5401,11 +5402,47 @@ let teacherActionMenuListenersInstalled = false;
     }
   });
 
+  // Department Head-specific field order; all existing inputs remain the same DOM nodes,
+  // so event handlers and timetable / attendance validation continue to work.
+  function arrangeDepartmentClassForm() {
+    if(user?.role!=='DEPARTMENT_HEAD')return;
+    const details=$('scheduleForm')?.querySelector('.schedule-details-section');
+    if(!details||details.dataset.departmentLayout==='v2')return;
+    const department=$('scheduleDepartmentGroup');
+    const grade=$('periodGrade')?.closest('.field-group');
+    const section=$('periodSection')?.closest('.field-group');
+    const teacher=$('periodTeacherGroup');
+    const adviser=$('scheduleSectionAdviserGroup');
+    const subject=$('periodSubject')?.closest('.field-group');
+    const type=$('scheduleActivityTypeGroup');
+    const room=$('periodClassroom')?.closest('.field-group');
+    const selfTeacher=$('periodTeacherSelfGroup');
+    if([department,grade,section,teacher,adviser,subject,type,room].some(element=>!element))return;
+    const original=Array.from(details.children).filter(node=>node.classList.contains('form-grid'));
+    const layout=document.createElement('div');
+    layout.className='department-class-layout';
+    layout.setAttribute('aria-label','Department class details and teaching assignment');
+    const band=(className,elements)=>{
+      const row=document.createElement('div');row.className='department-class-band '+className;
+      elements.forEach(element=>{if(element)row.appendChild(element);});
+      layout.appendChild(row);
+    };
+    band('department-class-identity',[department]);
+    band('department-class-section',[grade,section]);
+    band('department-class-roles',[teacher,adviser,selfTeacher]);
+    band('department-class-curriculum',[subject,type]);
+    band('department-class-room',[room]);
+    original.forEach(node=>node.remove());
+    details.appendChild(layout);
+    details.dataset.departmentLayout='v2';
+  }
+
   function updateSchedulingFormRole() {
     const form = $('scheduleForm');
     if (!form) return;
     const departmentHead = user?.role === 'DEPARTMENT_HEAD';
     form.dataset.scheduleRole = departmentHead ? 'DEPARTMENT_HEAD' : 'SCHOOL_ADMIN';
+    if(departmentHead)arrangeDepartmentClassForm();
     const intro = $('scheduleFormRoleIntro');
     if (intro) {
       intro.hidden = departmentHead;
@@ -5448,6 +5485,7 @@ let teacherActionMenuListenersInstalled = false;
     if(departmentHead && $('scheduleActivityType'))$('scheduleActivityType').value='CLASS';
     if($('scheduleDaysTools'))$('scheduleDaysTools').hidden=!departmentHead;
     if($('scheduleReadiness'))$('scheduleReadiness').hidden=!departmentHead;
+    if($('scheduleOperatingDaysWarning'))$('scheduleOperatingDaysWarning').hidden=true;
     if($('addScheduleSubject'))$('addScheduleSubject').hidden=!['SCHOOL_ADMIN','DEPARTMENT_HEAD'].includes(user.role);
     if ($('scheduleDepartmentGroup')) $('scheduleDepartmentGroup').hidden = !departmentHead;
     if ($('scheduleDepartmentName')) $('scheduleDepartmentName').textContent=user.departmentName||user.departmentCode||'Department not assigned';
@@ -5476,9 +5514,14 @@ let teacherActionMenuListenersInstalled = false;
     document.querySelectorAll('#scheduleWeekdayChoices input[type="checkbox"]').forEach(input=>{
       const isOperatingDay=defaultDays.includes(Number(input.value));
       input.disabled=user.role==='DEPARTMENT_HEAD'&&!isOperatingDay;
-      input.parentElement.hidden=user.role==='DEPARTMENT_HEAD'&&!isOperatingDay;
+      // Never hide all seven day choices when school-wide operating days are missing.
+      input.parentElement.hidden=user.role==='DEPARTMENT_HEAD'&&defaultDays.length>0&&!isOperatingDay;
       input.checked=defaultDays.length?isOperatingDay:(user.role==='SCHOOL_ADMIN'&&Number(input.value)>=1&&Number(input.value)<=5);
     });
+    if($('scheduleOperatingDaysWarning'))$('scheduleOperatingDaysWarning').hidden=
+      !(user.role==='DEPARTMENT_HEAD'&&!defaultDays.length);
+    if(user.role==='DEPARTMENT_HEAD'&&!defaultDays.length&&$('scheduleWeekdayHint'))
+      $('scheduleWeekdayHint').textContent='No approved operating days are currently available. School Admin must configure them before a class can be scheduled.';
     if (user.role !== 'TEACHER') {
       const eligible = teachers.filter(item => item.active && (item.teacherDesignations || []).includes('SUBJECT_TEACHER') &&
         (user.role !== 'DEPARTMENT_HEAD' || String(item.departmentId) === String(user.departmentId)));

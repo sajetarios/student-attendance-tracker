@@ -49,7 +49,8 @@ app.use((req, res, next) => {
   res.setHeader('Permissions-Policy', 'camera=(self), microphone=(), geolocation=()');
   if (req.path.startsWith('/api/') ||
       ['/portal.html', '/student-portal.html', '/parent-portal.html',
-       '/force-password-change.html', '/session-guard.js'].includes(req.path)) {
+       '/force-password-change.html', '/session-guard.js',
+       '/portal.js', '/schedule-form-layout.css', '/schedule-workspace-ui.js'].includes(req.path)) {
     res.setHeader('Cache-Control', 'no-store, private');
     res.setHeader('Pragma', 'no-cache');
     res.setHeader('Expires', '0');

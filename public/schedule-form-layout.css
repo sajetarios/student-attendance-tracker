@@ -464,3 +464,91 @@ html[data-ui-theme="dark"] #scheduleForm .schedule-adviser-reference .schedule-d
  background:#213d54;border-color:#416984;color:#e3f3ff
 }
 @media(max-width:620px){#scheduleForm .schedule-classroom-adviser-row{grid-template-columns:minmax(0,1fr)}}
+
+
+/* Department Head scheduling v2: actual class-first layout instead of the reused admin grid. */
+#scheduleForm[data-schedule-role="DEPARTMENT_HEAD"] > #departmentScheduleScopeNote {
+ display:grid!important;grid-template-columns:minmax(0,1fr)!important;gap:5px!important;
+ padding:12px 15px!important;
+ background:#eaf7ff!important;border:1px solid #a6d8f5!important;
+ border-left:4px solid #0e81b5!important;border-radius:12px!important;
+ color:#235272!important;margin:0!important;
+}
+#scheduleForm[data-schedule-role="DEPARTMENT_HEAD"] > #departmentScheduleScopeNote strong {
+ font-size:14px!important;letter-spacing:.01em;color:#16476a!important
+}
+#scheduleForm[data-schedule-role="DEPARTMENT_HEAD"] > #departmentScheduleScopeNote span {
+ font-size:12px;line-height:1.55;
+}
+#scheduleForm[data-schedule-role="DEPARTMENT_HEAD"] .department-class-layout {
+ display:grid;grid-template-columns:minmax(0,1fr);gap:12px;
+}
+#scheduleForm[data-schedule-role="DEPARTMENT_HEAD"] .department-class-band {
+ display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;
+ padding:0;margin:0;min-width:0;
+}
+#scheduleForm[data-schedule-role="DEPARTMENT_HEAD"] .department-class-band>.field-group {
+ min-width:0;width:100%;max-width:none!important;margin:0!important;
+}
+#scheduleForm[data-schedule-role="DEPARTMENT_HEAD"] .department-class-identity,
+#scheduleForm[data-schedule-role="DEPARTMENT_HEAD"] .department-class-room {
+ grid-template-columns:minmax(0,1fr);
+}
+#scheduleForm[data-schedule-role="DEPARTMENT_HEAD"] .department-class-roles {
+ padding:12px!important;border:1px solid #d8e9f4;
+ border-radius:12px;background:#f4fafe;
+}
+#scheduleForm[data-schedule-role="DEPARTMENT_HEAD"] .department-class-roles #periodTeacherGroup label,
+#scheduleForm[data-schedule-role="DEPARTMENT_HEAD"] .department-class-roles #scheduleSectionAdviserGroup label {
+ font-weight:800!important;color:#16496c!important;
+}
+#scheduleForm[data-schedule-role="DEPARTMENT_HEAD"] .department-class-roles #scheduleSectionAdviserGroup {
+ grid-column:auto!important;display:grid!important;align-content:start;
+}
+#scheduleForm[data-schedule-role="DEPARTMENT_HEAD"] .department-class-roles #scheduleSectionAdviserGroup[hidden] {
+ display:none!important;
+}
+#scheduleForm[data-schedule-role="DEPARTMENT_HEAD"] .department-class-roles #scheduleClassAdviserName {
+ min-height:54px;border:1px dashed #8dbbd8;background:#fff;
+}
+#scheduleForm[data-schedule-role="DEPARTMENT_HEAD"] .department-class-curriculum #scheduleActivityTypeGroup {
+ display:grid!important;align-content:start;
+}
+#scheduleForm[data-schedule-role="DEPARTMENT_HEAD"] .department-class-room .schedule-classroom-field {
+ max-width:100%!important;
+}
+#scheduleForm[data-schedule-role="DEPARTMENT_HEAD"] .schedule-days-warning:not([hidden]) {
+ display:block;padding:10px 13px;margin:8px 0;border-radius:9px;
+ background:#fff7e6;border:1px solid #e9c67e;color:#7c501d;
+ font-size:13px;line-height:1.5;
+}
+#scheduleForm[data-schedule-role="DEPARTMENT_HEAD"] #scheduleWeekdayChoices label[hidden] {
+ display:none!important;
+}
+#scheduleForm[data-schedule-role="DEPARTMENT_HEAD"] #scheduleWeekdayChoices label:has(input:disabled) span {
+ opacity:.45!important;cursor:not-allowed!important;
+}
+html[data-ui-theme="dark"] #scheduleForm[data-schedule-role="DEPARTMENT_HEAD"] > #departmentScheduleScopeNote {
+ background:#183e56!important;color:#d3eaff!important;
+ border-color:#41748f!important;border-left-color:#4db8eb!important;
+}
+html[data-ui-theme="dark"] #scheduleForm[data-schedule-role="DEPARTMENT_HEAD"] > #departmentScheduleScopeNote strong,
+html[data-ui-theme="dark"] #scheduleForm[data-schedule-role="DEPARTMENT_HEAD"] .department-class-roles #periodTeacherGroup label,
+html[data-ui-theme="dark"] #scheduleForm[data-schedule-role="DEPARTMENT_HEAD"] .department-class-roles #scheduleSectionAdviserGroup label {
+ color:#e5f5ff!important;
+}
+html[data-ui-theme="dark"] #scheduleForm[data-schedule-role="DEPARTMENT_HEAD"] .department-class-roles {
+ background:#1a3449;border-color:#42667f;
+}
+html[data-ui-theme="dark"] #scheduleForm[data-schedule-role="DEPARTMENT_HEAD"] .department-class-roles #scheduleClassAdviserName {
+ background:#1b4056;border-color:#5d829d;
+}
+html[data-ui-theme="dark"] #scheduleForm[data-schedule-role="DEPARTMENT_HEAD"] .schedule-days-warning:not([hidden]) {
+ background:#4b371f;color:#f2d39f;border-color:#926b38;
+}
+@media(max-width:710px) {
+ #scheduleForm[data-schedule-role="DEPARTMENT_HEAD"] .department-class-band,
+ #scheduleForm[data-schedule-role="DEPARTMENT_HEAD"] .department-class-roles {
+  grid-template-columns:minmax(0,1fr)!important;gap:10px!important;
+ }
+}

@@ -61,3 +61,21 @@ test('Classroom is in Class Details and saving subject schedule does not change 
  const a=server.indexOf("app.post('/api/periods'"),b=server.indexOf('// Teacher attendance history',a);
  assert.doesNotMatch(server.slice(a,b),/INSERT INTO class_adviser_assignments/);
 });
+
+test('Department Head class form is visibly arranged class-first, including adviser beside subject teacher',()=>{
+ const js=read('public/portal.js'),css=read('public/schedule-form-layout.css'),html=read('public/portal.html');
+ assert.match(js,/function arrangeDepartmentClassForm\(\)/);
+ assert.match(js,/band\('department-class-roles',\[teacher,adviser,selfTeacher\]\)/);
+ assert.match(js,/band\('department-class-room',\[room\]\)/);
+ assert.match(js,/details\.dataset\.departmentLayout='v2'/);
+ assert.match(html,/Updated Layout/);
+ assert.match(css,/\.department-class-roles/);
+ assert.match(html,/id="scheduleOperatingDaysWarning"/);
+});
+test('Critical scheduling assets refresh over network and keep offline fallback',()=>{
+ const sw=read('public/sw.js'),server=read('server.js');
+ assert.match(sw,/if \(\['\/portal\.js','\/schedule-form-layout\.css','\/schedule-workspace-ui\.js'\]\.includes\(url\.pathname\)\)/);
+ assert.match(sw,/fetch\(request, \{ cache: 'no-store' \}\)/);
+ assert.match(sw,/caches\.match\(request\)/);
+ assert.match(server,/'\/schedule-form-layout\.css', '\/schedule-workspace-ui\.js'/);
+});
