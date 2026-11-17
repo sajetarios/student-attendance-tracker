@@ -9,11 +9,11 @@ test('Sync Center is loaded for staff dashboard and prepared offline attendance'
   const html = read('public/portal.html');
   const offline = read('public/offline-sheet.html');
   const sw = read('public/sw.js');
-  for (const file of ['attendance-sync-center.css?v=1','attendance-sync-center.js?v=1']) {
+  for (const file of ['attendance-sync-center.css?v=2','attendance-sync-center.js?v=1']) {
     assert.ok(html.includes('/' + file), 'Staff portal must load ' + file);
     assert.ok(sw.includes('"/' + file + '"'), 'Offline shell must cache ' + file);
   }
-  assert.ok(offline.includes('/attendance-sync-center.css?v=1'));
+  assert.ok(offline.includes('/attendance-sync-center.css?v=2'));
   assert.ok(offline.includes('/attendance-sync-center.js?v=1'));
   assert.ok(offline.includes('data-offline-sheet="true"'));
 });
@@ -76,4 +76,27 @@ test('account-scoped encrypted queue has inspect and authorized retry, not overw
   assert.match(queue, /return sync\(\); \/\/ Server still checks revisions/);
   assert.match(queue, /lastConfirmedAt = new Date\(\)\.toISOString\(\)/);
   assert.match(queue, /'attendigo-offline-status'/);
+});
+
+test('floating Sync Center does not cover the dynamically injected Class QR shortcut', () => {
+  const css = read('public/attendance-sync-center.css');
+  const qr = read('public/class-qr-dashboard-link.js');
+  const portal = read('public/portal.html');
+  const offlineSheet = read('public/offline-sheet.html');
+  const sw = read('public/sw.js');
+  // The existing QR teacher shortcut is positioned at the bottom right.
+  assert.match(qr, /const linkId = 'classQrTeacherShortcut'/);
+  assert.match(qr, /position:fixed;right:18px;bottom:18px/);
+  assert.match(qr, /bottom:calc\(12px \+ env\(safe-area-inset-bottom\)\)/);
+  // :has() also matches the shortcut after asynchronous /api/auth/me injection.
+  assert.match(css, /body:has\(#classQrTeacherShortcut\) #ascDock\.asc-dock\s*\{/);
+  assert.match(css, /bottom:\s*calc\(82px \+ env\(safe-area-inset-bottom, 0px\)\)/);
+  assert.match(css, /@media\s*\(max-width:\s*650px\)/);
+  assert.match(css, /bottom:\s*calc\(80px \+ env\(safe-area-inset-bottom, 0px\)\)/);
+  assert.match(css, /body:has\(#classQrTeacherShortcut\) \.content-wrap/);
+  assert.match(css, /padding-bottom:\s*calc\(155px \+ env\(safe-area-inset-bottom, 0px\)\)/);
+  assert.match(portal, /attendance-sync-center\.css\?v=2/);
+  assert.match(offlineSheet, /attendance-sync-center\.css\?v=2/);
+  assert.match(sw, /attendigo-v142-sync-action-clearance/);
+  assert.match(sw, /"\/attendance-sync-center\.css\?v=2"/);
 });

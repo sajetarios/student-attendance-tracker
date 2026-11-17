@@ -197,3 +197,27 @@ body.dark-mode .manual-sync-strip,body[data-theme="dark"] .manual-sync-strip{col
 /* Existing folio feedback uses theme tokens rather than hard-coded pale text. */
 .manual-folio #mfFeedback{color:var(--asc-subtle)}
 .manual-folio #mfFeedback[data-error="true"]{color:var(--asc-danger);font-weight:760}
+
+/*
+ * Floating action collision fix:
+ * Teachers and School Admins may also have the Class QR Attendance shortcut
+ * fixed at the bottom-right. Keep both actions independently accessible
+ * instead of letting the Sync Center obscure the QR link.
+ * :has() immediately reacts when the authorized QR shortcut is injected
+ * asynchronously after /api/auth/me completes.
+ */
+body:has(#classQrTeacherShortcut) #ascDock.asc-dock {
+  bottom: calc(82px + env(safe-area-inset-bottom, 0px));
+}
+body:has(#classQrTeacherShortcut) .content-wrap {
+  padding-bottom: max(108px, env(safe-area-inset-bottom, 0px));
+}
+@media (max-width: 650px) {
+  body:has(#classQrTeacherShortcut) #ascDock.asc-dock {
+    right: max(12px, env(safe-area-inset-right, 0px));
+    bottom: calc(80px + env(safe-area-inset-bottom, 0px));
+  }
+  body:has(#classQrTeacherShortcut) .content-wrap {
+    padding-bottom: calc(155px + env(safe-area-inset-bottom, 0px));
+  }
+}
