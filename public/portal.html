@@ -1401,11 +1401,11 @@ body.dark-mode .content-wrap > .school-heading.is-compact,body[data-theme="dark"
                 <div class="table-scroll"><table class="adviser-assignments-table"><thead><tr><th>Grade</th><th>Section</th><th>Assigned Class Adviser</th><th>Actions</th></tr></thead><tbody id="adviserAssignmentRows"><tr><td colspan="4" class="empty-cell">Loading adviser assignments…</td></tr></tbody></table></div>
               </div>
               <form id="adviserAssignmentForm" class="inline-form adviser-assignment-form" hidden>
-                <div class="adviser-form-heading"><div><span class="eyebrow muted">NEW ASSIGNMENT</span><h4>Assign a Class Adviser</h4><p>Select an active teacher with the Class Adviser designation, then choose a class section with enrolled learners.</p></div><button type="button" class="outline-button" id="cancelAdviserAssignment">Cancel</button></div>
+                <div class="adviser-form-heading"><div><span class="eyebrow muted">NEW ASSIGNMENT</span><h4>Assign a Class Adviser</h4><p>Select an eligible Class Adviser and an existing school section. Registered sections can be assigned before learners enroll.</p></div><button type="button" class="outline-button" id="cancelAdviserAssignment">Cancel</button></div>
                 <div class="form-grid adviser-assignment-fields">
-                  <div class="field-group"><label for="adviserTeacherSelect">Class Adviser *</label><select id="adviserTeacherSelect" required><option value="">Choose an eligible teacher</option></select><small class="field-hint">Teachers in your department appear here if they are active and have the Class Adviser designation. They can also be Subject Teachers.</small></div>
-                  <div class="field-group"><label for="adviserGradeInput">Grade level *</label><select id="adviserGradeInput" required><option value="">Choose grade level</option></select><small class="field-hint">Grades are based on current active enrollment.</small></div>
-                  <div class="field-group"><label for="adviserSectionInput">Class section *</label><select id="adviserSectionInput" required disabled><option value="">Choose grade level first</option></select><small class="field-hint" id="adviserSectionHint">Available sections will appear after you choose a grade.</small></div>
+                  <div class="field-group"><label for="adviserTeacherSelect">Class Adviser *</label><select id="adviserTeacherSelect" required><option value="">Choose an eligible teacher</option></select><small class="field-hint">Active teachers in your department with the Class Adviser designation are eligible, including those who also teach subjects.</small></div>
+                  <div class="field-group"><label for="adviserGradeInput">Grade level *</label><select id="adviserGradeInput" required disabled><option value="">Loading available grades…</option></select><small class="field-hint" id="adviserGradeHint" role="status" aria-live="polite">Checking registered school sections and active learner sections.</small><button type="button" id="retryAdviserSections" class="outline-button compact-button" hidden>Retry loading grades</button></div>
+                  <div class="field-group"><label for="adviserSectionInput">Class section *</label><select id="adviserSectionInput" required disabled><option value="">Choose grade level first</option></select><small class="field-hint" id="adviserSectionHint" role="status" aria-live="polite">Available sections will appear after you choose a grade.</small></div>
                 </div>
                 <div class="form-actions"><button class="primary-button" type="submit" id="saveAdviserAssignment">Save assignment</button><span id="adviserAssignmentFeedback" class="inline-feedback" role="status"></span></div>
               </form>
@@ -1525,7 +1525,7 @@ body.dark-mode .content-wrap > .school-heading.is-compact,body[data-theme="dark"
   <script src="/schedule-workspace-ui.js?v=5" defer></script>
   <script src="/photo-editor.js?v=9" defer></script>
   <script src="/offline-attendance.js?v=2" defer></script>
-  <script src="/portal.js?v=0.9.124" defer></script>
+  <script src="/portal.js?v=0.9.125" defer></script>
   <script src="/sardo-monitor.js?v=1" defer></script><script src="/parent-dashboard.js?v=2" defer></script>
   <script src="/platform-plans-ui.js?v=7" defer></script>
   <script src="/platform-school-health.js?v=1" defer></script>

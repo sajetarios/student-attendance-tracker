@@ -22,15 +22,15 @@ test('Department Head manages teacher designations from the teacher overview wit
   assert.match(portal, /item\.gradeLevel\)\} · \$\{esc\(item\.section/);
 });
 
-test('Class Adviser assignment is list-first and guides users through enrolled sections', () => {
+test('Class Adviser assignment is list-first and guides users through eligible school sections', () => {
   const html = read('public/portal.html');
   const portal = read('public/portal.js');
   assert.match(html, /id="addAdviserAssignmentButton"/);
   assert.match(html, /id="adviserAssignmentForm" class="inline-form adviser-assignment-form" hidden/);
   assert.match(html, /<select id="adviserSectionInput" required/);
   assert.match(portal, /function updateAdviserSections\(\)/);
-  assert.match(portal, /Choose enrolled section/);
-  assert.match(portal, /Special-program sections such as SPJ are included/);
+  assert.match(portal, /Choose class section/);
+  assert.match(portal, /Registered sections can receive an adviser before learners enroll; SPJ is supported/);
   assert.match(html, /id="cancelAdviserAssignment"/);
   assert.match(portal, /item\.teacherDesignations\.includes\('CLASS_ADVISER'\) && item\.active/);
   assert.match(portal, /No eligible Class Advisers found/);
