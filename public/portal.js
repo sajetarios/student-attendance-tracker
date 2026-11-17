@@ -4278,30 +4278,40 @@ let teacherActionMenuListenersInstalled = false;
   async function loadCloudSyncStatus() {
     const chip = $('connectionStatus');
     if (!chip) return;
-    const label = chip.querySelector('span');
-    chip.title = 'Checking the cloud replication configuration.';
+    const label = chip.querySelector('.asc-header-label');
     try {
       const data = await api('/api/cloud-sync/status');
       const connected = data.connectionStatus === 'CONNECTED' && data.enabled;
       chip.classList.toggle('sync-connected', connected);
       chip.classList.toggle('sync-disconnected', !connected);
-      const needsReview=Number(data.needsReviewCount||0);
-      label.textContent = needsReview ? 'Cloud sync · '+needsReview+' needs review' :
-        connected ? 'Cloud sync connected' :
-        data.configured ? 'Cloud destination saved · Not connected' : 'Cloud sync not configured';
-      chip.title = data.message || 'Cloud replication status checked.';
+      const needsReview = Number(data.needsReviewCount || 0);
+      // The unified component owns the visible header label and combines
+      // this cloud signal with the current user's encrypted device queue.
+      // School-wide cloud configuration must not appear to teachers.
+      if (window.AttendigoSyncCenter?.setCloudStatus) {
+        window.AttendigoSyncCenter.setCloudStatus(user.role === 'SCHOOL_ADMIN' ? data : null);
+      } else if (label) {
+        label.textContent = user.role !== 'SCHOOL_ADMIN' ? 'Attendance sync' :
+          needsReview ? 'Cloud sync · ' + needsReview + ' needs review' :
+          connected ? 'Cloud sync connected' :
+          data.configured ? 'Cloud destination saved · Not connected' : 'Cloud sync not configured';
+      }
       if ($('cloudSyncPendingCount')) $('cloudSyncPendingCount').textContent = String(data.pendingCount || 0);
       if ($('cloudSyncReviewCount')) $('cloudSyncReviewCount').textContent = String(needsReview);
-      if(user.role==='SCHOOL_ADMIN' && $('cloudSyncReviewPanel')){
-        $('cloudSyncReviewPanel').hidden=!needsReview;
-        if(needsReview)await loadCloudSyncReviews();
+      if (user.role === 'SCHOOL_ADMIN' && $('cloudSyncReviewPanel')) {
+        $('cloudSyncReviewPanel').hidden = !needsReview;
+        if (needsReview) await loadCloudSyncReviews();
       }
-      if ($('cloudSyncLastSuccess')) $('cloudSyncLastSuccess').textContent = data.lastSuccessAt ? new Date(data.lastSuccessAt).toLocaleString('en-PH', { timeZone: 'Asia/Manila' }) : 'Not connected';
+      if ($('cloudSyncLastSuccess')) $('cloudSyncLastSuccess').textContent =
+        data.lastSuccessAt ? new Date(data.lastSuccessAt).toLocaleString('en-PH', { timeZone: 'Asia/Manila' }) : 'Not connected';
     } catch (error) {
       chip.classList.remove('sync-connected');
       chip.classList.add('sync-disconnected');
-      label.textContent = 'Cloud sync status unavailable';
-      chip.title = error.message || 'Could not verify cloud replication status.';
+      if (window.AttendigoSyncCenter?.setCloudStatus) {
+        window.AttendigoSyncCenter.setCloudStatus(null, error.message);
+      } else if (label) {
+        label.textContent = user.role === 'SCHOOL_ADMIN' ? 'Cloud sync status unavailable' : 'Attendance sync';
+      }
     }
   }
 
