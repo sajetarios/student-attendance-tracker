@@ -128,3 +128,20 @@ test('typed operations reject invalid dates and duplicate learners before any da
   assert.throws(()=>validateOperation({...base(),date:'2026-02-30'}),NeedsReview);
   assert.throws(()=>validateOperation({...base(),marks:[base().marks[0],base().marks[0]]}),NeedsReview);
 });
+
+test('matching cloud mark values do not hide a stale revision mismatch',async()=>{
+  const {client,state}=fakeCloud({existingMark:{status:'PRESENT',note:'',revision:4}});
+  const operation=base();
+  await assert.rejects(receiveCloudOperation(client,school,operation),
+    error=>error instanceof NeedsReview && error.code==='STALE_CLOUD_MARK');
+  assert.equal(state.markChanges,0);
+  assert.equal(state.receipt,null);
+});
+
+test('cloud may acknowledge already-applied matching values only at the exact revision',async()=>{
+  const {client,state}=fakeCloud({existingMark:{status:'PRESENT',note:'',revision:1}});
+  const operation=base();
+  assert.equal((await receiveCloudOperation(client,school,operation)).status,'ACCEPTED');
+  assert.equal(state.markChanges,0);
+  assert.ok(state.receipt);
+});
