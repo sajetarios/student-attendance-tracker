@@ -255,24 +255,35 @@
    setTimeout(()=>{leaf.remove();flipBusy=false;renderRows();},duration+35);
  }
  async function sync(){
-   if(state.finalized)return notice('Reopen this finalized register before changing marks.',true);
-   if(!state.period)return notice('Choose a class first.',true);
-   if(!navigator.onLine)return notice('Offline: your attendance remains saved on this device until you sync.',true);
+   if(state.finalized){notice('Reopen this finalized register before changing marks.',true);return false;}
+   if(!state.period){notice('Choose a class first.',true);return false;}
    const allowed=new Set(roster().map(s=>s.studentId));
-   const marks=Object.entries(state.marks).filter(([id,m])=>allowed.has(id)&&statuses.includes(m.status)).map(([studentId,m])=>({studentId,status:m.status,note:m.note||'',expectedRevision:Number(state.synced[studentId]?.revision||0)}));
-   if(!marks.length)return notice('Mark at least one learner before syncing.',true);
+   const marks=Object.entries(state.marks).filter(([id,m])=>allowed.has(id)&&statuses.includes(m.status))
+     .map(([studentId,m])=>({studentId,status:m.status,note:m.note||'',expectedRevision:Number(state.synced[studentId]?.revision||0)}));
+   if(!marks.length){notice('No manually marked learners to synchronize.');return true;}
+   if(!window.AttendigoOffline?.enqueueOperation) {
+     notice('Device synchronization is unavailable; reload Attendigo without clearing device storage.',true);return false;
+   }
    el('mfSync').disabled=true;
    try{
-     const result=await api('/api/manual-attendance/sync',{method:'POST',body:JSON.stringify({periodId:state.period.periodId,date:state.date,marks})});
-     if(result.saved!==marks.length)throw Error('Server did not confirm the full sheet.');
-     const readBack=await loadRemote();
-     if(!readBack)throw Error('Server accepted the sheet, but verification could not be completed. Refresh before retrying.');
-     const match=marks.every(m=>state.synced[m.studentId]?.status===m.status&&(state.synced[m.studentId]?.note||'')===m.note);
-     if(!match)throw Error('Saved records could not be verified. Refresh and check before reattempting.');
-     render();notice('Verified '+marks.length+' attendance marks saved in school records.');
+     const operationId=crypto.randomUUID();
+     const queued=await window.AttendigoOffline.enqueueOperation({
+       type:'MANUAL_MARKS',operationId,payload:{periodId:state.period.periodId,date:state.date,marks}
+     });
+     await window.AttendigoOffline.sync();
+     const remaining=(await window.AttendigoOffline.pending()).find(item=>item.id===queued.operationId);
+     if(remaining?.status==='REVIEW')throw Error(remaining.reason||'Attendance requires conflict review.');
+     if(remaining){notice('Saved encrypted attendance on this device. Waiting to sync; do not clear site data.');return false;}
+     if(!await loadRemote())throw Error('Server accepted the sheet, but the readback failed. Check the device queue before retrying.');
+     if(!marks.every(m=>state.synced[m.studentId]?.status===m.status &&
+        (state.synced[m.studentId]?.note||'')===(m.note||''))){
+       throw Error('Server verification differs from your device; review before retrying.');
+     }
      state.historyLoadedFor=null;
-   }catch(e){notice('Sync failed; your offline draft is still saved. '+e.message,true)}
-   finally{el('mfSync').disabled=false}
+     render();notice('Verified '+marks.length+' attendance marks in school records.');
+     return true;
+   }catch(e){notice('Attendance remains on this device. '+e.message,true);return false}
+   finally{el('mfSync').disabled=Boolean(state.finalized)}
  }
  async function initialize(){
    host.hidden=false;
@@ -379,7 +390,8 @@
  el('mfSave').addEventListener('click',()=>{draftSave();notice('Saved on this device. Use Sync to records when connected.')});
  el('mfSync').addEventListener('click',sync);
  el('mfFinalize')?.addEventListener('click',async()=>{
-   if(!state.period||!navigator.onLine)return notice('Connect to school records before finalizing attendance.',true);
+   if(!state.period)return notice('Select a class first.',true);
+   if(!window.AttendigoOffline?.enqueueOperation)return notice('Device queue is not ready. Reload before signing off.',true);
    const action=state.finalized?'REOPEN':'FINALIZE';
    const prompt=action==='FINALIZE'
      ? 'Finalize the class register for '+state.date+'? All learners must have a synced manual mark or verified class QR check-in. You may reopen for corrections.'
@@ -388,10 +400,24 @@
    if(!accepted)return;
    el('mfFinalize').disabled=true;
    try{
-     await api('/api/manual-attendance/finalization',{method:'POST',body:JSON.stringify({periodId:state.period.periodId,date:state.date,action})});
+     if(action==='FINALIZE' && Object.values(state.marks).some(m=>statuses.includes(m.status))){
+       await sync(); // Enqueue unsent marks before the sign-off in device order.
+       const unsent=(await window.AttendigoOffline.pending()).filter(r=>
+         r.type==='MANUAL_MARKS' && r.status==='REVIEW');
+       if(unsent.length)throw Error('Resolve manual mark conflicts before finalizing attendance.');
+     }
+     const opId=crypto.randomUUID();
+     await window.AttendigoOffline.enqueueOperation({
+       type:'REGISTER_SIGNOFF',operationId:opId,
+       payload:{periodId:state.period.periodId,date:state.date,action}
+     });
+     await window.AttendigoOffline.sync();
+     const queued=(await window.AttendigoOffline.pending()).find(r=>r.id===opId);
+     if(queued?.status==='REVIEW')throw Error(queued.reason||'Register needs review.');
+     if(queued){notice('Sign-off saved on this device, pending server acceptance. The register is not finalized yet.');return;}
      await loadRemote();
      notice(action==='FINALIZE'?'Attendance finalized and audited. Editing is locked.':'Attendance reopened. You can correct and re-sync marks.');
-   }catch(error){notice(error.message,true);}
+   }catch(error){notice('Sign-off retained for review if queued. '+error.message,true);}
    finally{render();}
  });
  window.addEventListener('online',()=>notice('Connection restored. Sync your saved attendance when ready.'));
