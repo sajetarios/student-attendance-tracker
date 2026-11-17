@@ -1,4 +1,4 @@
-const CACHE = "attendigo-v124-school-admin-schedule-ownership";
+const CACHE = "attendigo-v125-align-offline-assets";
 
 const SHELL = [
   "/assets/attendigo-sidebar-logo.png",
@@ -11,7 +11,7 @@ const SHELL = [
   "/dashboard-ui.css?v=wide5",
   "/dashboard-night.css?v=1",
   "/planner.css?v=2",
-  "/planner.js?v=3",
+  "/planner.js?v=4",
   "/attendigo-dark-unified.css?v=1",
   "/dashboard-polish.css?v=2",
   "/photo-editor.css?v=2",
@@ -24,19 +24,19 @@ const SHELL = [
   "/parent-portal.js?v=1",
   "/dashboard-appearance.js?v=3",
   "/timetable-grid.js?v=3",
-  "/schedule-workspace-ui.js?v=4",
+  "/schedule-workspace-ui.js?v=5",
   "/portal-login.html",
   "/attendigo-login-motion.css?v=2",
   "/attendigo-login-refinement.css?v=2",
-  "/portal.css?v=0.9.108",
+  "/portal.css?v=0.9.113",
   "/student-roster-toolbar.css?v=1",
   "/portal.css",
-  "/portal.js?v=0.9.117",
+  "/portal.js?v=0.9.118",
   "/sardo-monitor.js?v=1",
   "/sardo-monitor.css?v=1",
   "/schedule-form-layout.css?v=7",
   "/parent-dashboard.js?v=2",
-  "/offline-attendance.js?v=1",
+  "/offline-attendance.js?v=2",
   "/offline-sheet.html",
   "/offline-sheet.js?v=2",
   "/manual-folio.css?v=11",
