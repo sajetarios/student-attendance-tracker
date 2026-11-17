@@ -122,7 +122,7 @@ registerSf2Routes(app, pool, { authenticateSchoolClient, requireSchoolUser, requ
 const isUuid = value => typeof value === 'string' &&
   /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value);
 
-// Teacher management is available only to the authenticated School Administrator.
+// Account administration remains School Admin-only; Department Heads may create TEACHER accounts only in their own department.
 // All reads/writes are scoped to req.auth.schoolId; callers cannot submit a school_id.
 app.get('/api/teachers', authenticateSchoolClient, requireSchoolAdminOrDepartmentHead, async (req, res) => {
   try {
@@ -248,10 +248,23 @@ app.get('/api/school-users', authenticateSchoolClient, requireSchoolAdmin, async
   }
 });
 
-app.post('/api/school-users', authenticateSchoolClient, requireSchoolAdmin, async (req, res) => {
+app.post('/api/school-users', authenticateSchoolClient, requireSchoolAdminOrDepartmentHead, async (req, res) => {
   const { username, displayName, password } = req.body || {};
   const role = String(req.body?.role || '').toUpperCase();
+  const isDepartmentHead = req.auth.role === 'DEPARTMENT_HEAD';
   let departmentId = req.body?.departmentId || null;
+  // Department Heads can onboard Subject Teachers for their assigned department.
+  // They cannot create privileged roles or place accounts in other departments.
+  if (isDepartmentHead) {
+    if (role !== 'TEACHER') return res.status(403).json({ error: 'Department Heads can create teacher accounts only.' });
+    if (!isUuid(req.auth.departmentId) || req.auth.departmentCode === 'UNASSIGNED') {
+      return res.status(403).json({ error: 'Ask the School Administrator to assign your department before adding teachers.' });
+    }
+    if (departmentId && String(departmentId) !== String(req.auth.departmentId)) {
+      return res.status(403).json({ error: 'You can create teachers only in your assigned department.' });
+    }
+    departmentId = req.auth.departmentId;
+  }
   const position = role === 'TEACHER' && typeof req.body?.position === 'string' ? req.body.position.trim() : null;
   if (role === 'TEACHER' && req.body?.position != null && (typeof req.body.position !== 'string' || position.length > 100)) {
     return res.status(400).json({ error: 'Teacher position must be text up to 100 characters.' });
@@ -301,9 +314,10 @@ app.post('/api/school-users', authenticateSchoolClient, requireSchoolAdmin, asyn
     );
     await pool.query(
       `INSERT INTO audit_logs(school_id, actor_type, actor_user_id, action, entity_type, entity_id, details)
-       VALUES($1,'SCHOOL',$2,'SCHOOL_ADMIN_CREATE_ACCOUNT','school_user',$3,$4::jsonb)`,
+       VALUES($1,'SCHOOL',$2,$5,'school_user',$3,$4::jsonb)`,
       [req.auth.schoolId, req.auth.userId, created.rows[0].userId,
-       JSON.stringify({ username: username.trim(), role, teacherDesignations: designations, departmentId })]
+       JSON.stringify({ username: username.trim(), role, teacherDesignations: designations, departmentId }),
+       isDepartmentHead ? 'DEPARTMENT_HEAD_CREATE_TEACHER' : 'SCHOOL_ADMIN_CREATE_ACCOUNT']
     );
     return res.status(201).json({ user: created.rows[0] });
   } catch (err) {
