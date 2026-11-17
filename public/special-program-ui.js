@@ -124,10 +124,25 @@
     catch(e){message('specialProgramReviewFeedback',e.message,true);}
     finally{adminLoading=false;}
   }
+  function renderMyRequests(items){
+    // Only pending requests belong in the active queue. Keep approved and rejected
+    // decisions visible in collapsed history, without deleting server audit records.
+    const pending=items.filter(item=>item.status==='PENDING');
+    const reviewed=items.filter(item=>item.status!=='PENDING');
+    $('mySpecialProgramRequestsList').innerHTML=pending.length
+      ?reviewsTable(pending,false)
+      :'<p class="special-program-empty-state" role="status">No pending special-program requests. Approved and rejected requests are available in history.</p>';
+    const history=$('mySpecialProgramRequestsHistory');
+    if(history){
+      history.hidden=!reviewed.length;
+      $('mySpecialProgramRequestsHistoryLabel').textContent='Request history ('+reviewed.length+')';
+      $('mySpecialProgramRequestsHistoryList').innerHTML=reviewed.length?reviewsTable(reviewed,false):'';
+    }
+  }
   async function loadMyRequests(){
     if(!canRequest||requestLoading)return;
     requestLoading=true;
-    try{const d=await api('/api/special-programs/requests');$('mySpecialProgramRequestsList').innerHTML=reviewsTable(d.requests||[],false);}
+    try{const d=await api('/api/special-programs/requests');renderMyRequests(d.requests||[]);}
     catch(e){$('mySpecialProgramRequestsList').textContent=e.message;}
     finally{requestLoading=false;}
   }
