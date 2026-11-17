@@ -7,7 +7,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="theme-color" content="#1c2d45">
   <title>Dashboard · Attendigo</title>
-  <link rel="stylesheet" href="/portal.css?v=0.9.108"><link rel="stylesheet" href="/parent-admin.css?v=7">
+  <link rel="stylesheet" href="/portal.css?v=0.9.112"><link rel="stylesheet" href="/parent-admin.css?v=7">
   <link rel="stylesheet" href="/schedule-mobile-layout.css?v=1">
   <link rel="stylesheet" href="/schedule-form-layout.css?v=6">
   <link rel="stylesheet" href="/manual-folio.css?v=11">
@@ -600,17 +600,35 @@ body.dark-mode .content-wrap > .school-heading.is-compact,body[data-theme="dark"
               <div class="table-scroll"><table class="monitoring-table"><thead><tr><th>Teacher</th><th>Event</th><th>Recorded time</th><th>Gate Keeper</th><th>Identity check</th></tr></thead><tbody id="teacherGateAttendanceRows"><tr><td colspan="5" class="empty-cell">Loading teacher gate attendance…</td></tr></tbody></table></div>
               <p class="attendance-summary-note">These are gate time records. They are not yet a complete teacher DTR or class-period punctuality report.</p>
             </section>
-            <section id="departmentHeadOverview" class="surface-card section-card department-head-overview" hidden>
-              <div class="card-heading"><div><h3>Teacher coverage overview</h3><p>Staff availability and temporary class coverage</p></div><span class="mini-tag">Monitoring</span></div>
-              <div class="learner-summary-grid">
-                <article class="learner-metric"><span>Teacher accounts</span><strong id="dhTeacherTotal">—</strong></article>
-                <article class="learner-metric metric-present"><span>Active teachers</span><strong id="dhTeacherActive">—</strong></article>
-                <article class="learner-metric metric-pending"><span>Teachers on leave</span><strong id="dhTeacherLeave">—</strong></article>
-                <article class="learner-metric"><span>Temporary covers</span><strong id="dhTeacherCovers">—</strong></article>
-                <article class="learner-metric metric-pending"><span>Classes needing a teacher</span><strong id="dhUncoveredClasses">—</strong></article>
-                <article class="learner-metric"><span>Missing time-in alerts</span><strong id="dhCoverageAlerts">—</strong></article>
+            <section id="departmentHeadOverview" class="surface-card section-card department-head-overview dh-command-center" hidden>
+              <div class="dh-command-intro">
+                <div><span class="dh-eyebrow">DEPARTMENT WORKSPACE</span><h3>Department overview</h3><p>Monitor your teachers, class coverage, and daily priorities in one place.</p></div>
+                <button type="button" class="primary-button" data-dh-go="schedules">Manage schedules <span aria-hidden="true">↗</span></button>
               </div>
-              <p class="attendance-summary-note">Gate time-in events are used to flag a missing check-in after each class period’s grace window; the monitor does not label a teacher absent without a recorded leave or follow-up.</p>
+              <div class="dh-command-metrics" aria-label="Department teacher coverage">
+                <article class="dh-command-metric"><span class="dh-metric-icon" aria-hidden="true">♙</span><span>Teacher accounts</span><strong id="dhTeacherTotal">—</strong><small>Department staff records</small></article>
+                <article class="dh-command-metric"><span class="dh-metric-icon" aria-hidden="true">✓</span><span>Active teachers</span><strong id="dhTeacherActive">—</strong><small>Available teacher accounts</small></article>
+                <article class="dh-command-metric"><span class="dh-metric-icon" aria-hidden="true">▦</span><span>Temporary covers</span><strong id="dhTeacherCovers">—</strong><small>Recorded substitute assignments</small></article>
+                <article class="dh-command-metric dh-metric-attention"><span class="dh-metric-icon" aria-hidden="true">!</span><span>Classes needing coverage</span><strong id="dhUncoveredClasses">—</strong><small>Follow-up required</small></article>
+              </div>
+              <div class="dh-command-columns">
+                <section class="dh-command-panel">
+                  <div class="dh-panel-heading"><span class="dh-eyebrow">DAILY PRIORITIES</span><h4>Needs attention</h4><p>Coverage indicators are for follow-up, not automatic absence decisions.</p></div>
+                  <div class="dh-attention-row"><span class="dh-attention-icon" aria-hidden="true">◷</span><span><strong>Missing teacher check-ins</strong><small>Review records after the scheduled grace period</small></span><strong id="dhCoverageAlerts">—</strong></div>
+                  <div class="dh-attention-row"><span class="dh-attention-icon" aria-hidden="true">▣</span><span><strong>Teachers on leave</strong><small>Coordinate available teaching coverage</small></span><strong id="dhTeacherLeave">—</strong></div>
+                  <button type="button" class="outline-button dh-panel-action" data-dh-coverage>Open teacher coverage monitor <span aria-hidden="true">›</span></button>
+                </section>
+                <section class="dh-command-panel">
+                  <div class="dh-panel-heading"><span class="dh-eyebrow">QUICK ACCESS</span><h4>Department actions</h4><p>Common tasks, without unnecessary dashboard scrolling.</p></div>
+                  <div class="dh-command-shortcuts">
+                    <button type="button" data-dh-go="schedules"><span aria-hidden="true">▦</span><strong>Schedules</strong></button>
+                    <button type="button" data-dh-go="teachers"><span aria-hidden="true">♙</span><strong>Teachers</strong></button>
+                    <button type="button" data-dh-go="sf2"><span aria-hidden="true">▤</span><strong>SF2 monitoring</strong></button>
+                    <button type="button" data-dh-go="planner"><span aria-hidden="true">◷</span><strong>Planner</strong></button>
+                  </div>
+                </section>
+              </div>
+              <p class="dh-scope-note">Department records and actions follow your existing account permissions. Teacher check-in alerts do not automatically mark anyone absent.</p>
             </section>
             <section id="teacherCoverageCard" class="surface-card section-card teacher-coverage-card" hidden>
               <div class="section-toolbar coverage-toolbar">
@@ -1480,7 +1498,7 @@ body.dark-mode .content-wrap > .school-heading.is-compact,body[data-theme="dark"
   <script src="/schedule-workspace-ui.js?v=3" defer></script>
   <script src="/photo-editor.js?v=9" defer></script>
   <script src="/offline-attendance.js?v=2" defer></script>
-  <script src="/portal.js?v=0.9.111" defer></script><script src="/parent-dashboard.js?v=2" defer></script>
+  <script src="/portal.js?v=0.9.114" defer></script><script src="/parent-dashboard.js?v=2" defer></script>
   <script src="/platform-plans-ui.js?v=7" defer></script>
   <script src="/platform-school-health.js?v=1" defer></script>
   <script src="/planner.js?v=4" defer></script>
