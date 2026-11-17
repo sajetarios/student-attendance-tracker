@@ -2789,7 +2789,8 @@ let teacherActionMenuListenersInstalled = false;
     const teacherSelect = $('adviserTeacherSelect');
     if (teacherSelect) {
       const previous = teacherSelect.value;
-      teacherSelect.innerHTML = '<option value="">Choose an eligible teacher</option>' +
+      const placeholder = advisers.length ? 'Choose an eligible teacher' : 'No eligible Class Advisers found';
+      teacherSelect.innerHTML = `<option value="">${placeholder}</option>` +
         advisers.map(item => `<option value="${esc(item.userId)}">${esc(item.displayName)}</option>`).join('');
       if (advisers.some(item => String(item.userId) === previous)) teacherSelect.value = previous;
     }
@@ -3270,10 +3271,10 @@ let teacherActionMenuListenersInstalled = false;
       if(!template)return;
       if(button.dataset.templateArchive || button.dataset.templateRestore || button.dataset.templateDelete) {
         const action = button.dataset.templateArchive ? 'archive' : button.dataset.templateRestore ? 'restore' : 'delete';
-        if(action === 'archive' && !confirm('Archive "' + template.name + '"? It will be hidden from new schedules but kept for future restoration and historical records.')) return;
+        if(action === 'archive' && !await AppDialog.confirm('Archive "' + template.name + '"? It will be hidden from new schedules but kept for future restoration and historical records.', { title: 'Archive timetable template', confirmText: 'Archive' })) return;
         if(action === 'delete') {
-          if(!confirm('Permanently delete "' + template.name + '"? This cannot be undone. Templates referenced by class schedules cannot be deleted.')) return;
-          if(prompt('Type DELETE to permanently remove this unused timetable template:') !== 'DELETE') return;
+          if(!await AppDialog.confirm('Permanently delete "' + template.name + '"? This cannot be undone. Templates referenced by class schedules cannot be deleted.', { title: 'Delete timetable template', confirmText: 'Continue', variant: 'danger' })) return;
+          if(await AppDialog.prompt('Type DELETE to permanently remove this unused timetable template.', '', { title: 'Confirm template deletion', confirmText: 'Delete template', variant: 'danger' }) !== 'DELETE') return;
         }
         button.disabled=true;
         try {
@@ -3405,7 +3406,7 @@ let teacherActionMenuListenersInstalled = false;
         return;
       }
       const button=event.target.closest('[data-delete-calendar-exception]');if(!button)return;
-      if(!confirm('Delete this calendar exception? This will not delete attendance records.'))return;
+      if(!await AppDialog.confirm('Delete this calendar exception? Attendance records will be preserved.', { title: 'Delete calendar exception', confirmText: 'Delete exception', variant: 'danger' }))return;
       button.disabled=true;
       try{await api('/api/scheduling-config/calendar-exceptions/'+encodeURIComponent(button.dataset.deleteCalendarException),{method:'DELETE'});await refreshCalendarExceptions();}
       catch(error){button.disabled=false;showToast(error.message,true);}
@@ -3627,7 +3628,7 @@ let teacherActionMenuListenersInstalled = false;
     // A failure in any secondary API must not prevent the roster from rendering.
     let rosterError = null;
     try {
-      const roster = await api('/api/students');
+      const roster = await api(isSchoolAdmin ? '/api/students?includeInactive=true' : '/api/students');
       if (!Array.isArray(roster?.students)) throw new Error('The student service returned an invalid roster.');
       students = roster.students;
       // Show real student records immediately, before the slower secondary panels load.
@@ -5886,7 +5887,7 @@ let teacherActionMenuListenersInstalled = false;
         const period = periods.find(item => String(item.periodId) === String(deleteScheduleButton.dataset.deletePeriod));
         if (!period) return;
         if (!await AppDialog.confirm('Deactivate ' + period.periodName + ' for ' + period.gradeLevel + ' · ' + period.section + '? Attendance history will be preserved.', { title: 'Delete class schedule', confirmText: 'Continue to verification', variant: 'danger' })) return;
-        const password = window.prompt('Second authentication required. Enter your account password:');
+        const password = await AppDialog.prompt('Enter your account password to deactivate this schedule.', '', { title: 'Verify schedule deactivation', label: 'Account password', inputType: 'password', required: true, confirmText: 'Verify and deactivate' });
         if (password === null || !password) return;
         deleteScheduleButton.disabled = true;
         try {
@@ -5973,7 +5974,7 @@ let teacherActionMenuListenersInstalled = false;
       if (!await AppDialog.confirm('Remove this Class Adviser assignment? The teacher account and attendance history will remain unchanged.', {
         title: 'Remove Class Adviser assignment', confirmText: 'Remove assignment', variant: 'danger'
       })) return;
-      const password = window.prompt('Second authentication required. Enter your account password to remove this Class Adviser assignment:');
+      const password = await AppDialog.prompt('Enter your account password to remove this Class Adviser assignment.', '', { title: 'Verify adviser removal', label: 'Account password', inputType: 'password', required: true, confirmText: 'Verify and remove' });
       if (password === null || !password) return;
       button.disabled = true;
       try {

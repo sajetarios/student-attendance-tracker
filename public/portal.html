@@ -794,7 +794,8 @@ body.dark-mode .content-wrap > .school-heading.is-compact,body[data-theme="dark"
               <div class="class-attendance-filters">
                 <div class="field-group">
                   <label for="teacherAttendanceViewSelect">Attendance group</label>
-                  <select id="teacherAttendanceViewSelect">
+                  <small class="field-hint" id="teacherAttendanceGroupHint">Choose advisory attendance for your assigned advisory section, or subject attendance for other sections you teach. These views use existing class assignments and do not create duplicate learner records.</small>
+                  <select id="teacherAttendanceViewSelect" aria-describedby="teacherAttendanceGroupHint">
                     <option value="ALL">All my handled classes</option>
                     <option value="ADVISORY">My advisory attendance</option>
                     <option value="SUBJECT">Attendance of other sections I handle</option>
@@ -1001,9 +1002,9 @@ body.dark-mode .content-wrap > .school-heading.is-compact,body[data-theme="dark"
               </div>
               <div id="studentRosterPanel">
               <div class="student-roster-tools">
-                <div><h3>Registered students</h3><p id="studentRosterDescription">QR previews remain tied to each student's existing private token. Editing details does not replace the QR code.</p></div>
+                <div><h3>Registered students</h3><p id="studentRosterDescription">Search and filter existing learner records by name, student ID, grade, section, or status. Opening a learner does not create another enrollment or attendance record. QR previews remain tied to each student's existing private token; editing details does not replace the QR code.</p></div>
                 <p id="studentDepartmentScopeNote" class="student-scope-banner" hidden>School-wide learner roster. Department Heads may select and update shared student fields only for sections scheduled in their own department. Individual student identity, photos, and login accounts remain restricted.</p>
-                <div class="student-filter-row"><label class="student-name-filter">Search by name or student ID <input id="studentRosterSearch" type="search" placeholder="Type a student name or ID…"></label><label>Filter by grade <select id="bulkQrGrade"><option value="ALL">All grades</option><option>Grade 7</option><option>Grade 8</option><option>Grade 9</option><option>Grade 10</option></select></label><label>Filter by section <select id="bulkQrSection"><option value="ALL">All sections</option></select></label><label id="studentStatusFilterWrap" hidden>Record status <select id="studentStatusFilter"><option value="ACTIVE">Active</option><option value="INACTIVE">Inactive</option><option value="ARCHIVED">Archived</option><option value="ALL">All records</option></select></label></div>
+                <div class="student-filter-row"><label class="student-name-filter">Search by name or student ID <input id="studentRosterSearch" type="search" placeholder="Type a student name or ID…" aria-describedby="studentRosterDescription"></label><label>Filter by grade <select id="bulkQrGrade"><option value="ALL">All grades</option><option>Grade 7</option><option>Grade 8</option><option>Grade 9</option><option>Grade 10</option></select></label><label>Filter by section <select id="bulkQrSection"><option value="ALL">All sections</option></select></label><label id="studentStatusFilterWrap" hidden>Record status <select id="studentStatusFilter"><option value="ACTIVE">Active</option><option value="INACTIVE">Inactive</option><option value="ARCHIVED">Archived</option><option value="ALL">All records</option></select></label></div>
                 <div class="student-bulk-actions"><label><input type="checkbox" id="selectAllStudents"> Select all visible students</label><span id="selectedStudentCount">0 selected</span><button class="primary-button" type="button" id="printBulkQr">Print selected ID cards</button><span id="bulkQrFeedback" class="inline-feedback" role="status"></span><select id="studentBatchAction" aria-label="Batch action"><option value="">Choose a batch action…</option><option value="SET_SEX">Set sex (Male/Female)</option><option value="ASSIGN">Move to existing grade/section</option><option value="ACTIVATE">Activate selected</option><option value="DEACTIVATE">Deactivate selected</option><option value="ARCHIVE">Archive selected</option></select><button type="button" class="outline-button" id="applyStudentBatch" disabled>Apply</button></div>
               </div>
               <div class="table-scroll"><table id="studentRosterTable"><thead><tr><th>Select</th><th>Photo</th><th>Student ID</th><th>Full name</th><th>Sex</th><th>Grade</th><th>Section</th><th>Status</th><th>QR code</th><th>Actions</th><th>Parent / guardian</th><th>Student portal account</th></tr></thead><tbody id="studentRows"><tr><td colspan="12" class="empty-cell">Loading students…</td></tr></tbody></table></div>
@@ -1402,7 +1403,7 @@ body.dark-mode .content-wrap > .school-heading.is-compact,body[data-theme="dark"
               <form id="adviserAssignmentForm" class="inline-form adviser-assignment-form" hidden>
                 <div class="adviser-form-heading"><div><span class="eyebrow muted">NEW ASSIGNMENT</span><h4>Assign a Class Adviser</h4><p>Select an eligible Class Adviser and an existing school section. Registered sections can be assigned before learners enroll.</p></div><button type="button" class="outline-button" id="cancelAdviserAssignment">Cancel</button></div>
                 <div class="form-grid adviser-assignment-fields">
-                  <div class="field-group"><label for="adviserTeacherSelect">Class Adviser *</label><select id="adviserTeacherSelect" required><option value="">Choose an eligible teacher</option></select><small class="field-hint">Only active Class Advisers in your department are listed.</small></div>
+                  <div class="field-group"><label for="adviserTeacherSelect">Class Adviser *</label><select id="adviserTeacherSelect" required><option value="">Choose an eligible teacher</option></select><small class="field-hint">Active teachers in your department with the Class Adviser designation are eligible, including those who also teach subjects.</small></div>
                   <div class="field-group"><label for="adviserGradeInput">Grade level *</label><select id="adviserGradeInput" required disabled><option value="">Loading available grades…</option></select><small class="field-hint" id="adviserGradeHint" role="status" aria-live="polite">Checking registered school sections and active learner sections.</small><button type="button" id="retryAdviserSections" class="outline-button compact-button" hidden>Retry loading grades</button></div>
                   <div class="field-group"><label for="adviserSectionInput">Class section *</label><select id="adviserSectionInput" required disabled><option value="">Choose grade level first</option></select><small class="field-hint" id="adviserSectionHint" role="status" aria-live="polite">Available sections will appear after you choose a grade.</small></div>
                 </div>
@@ -1524,7 +1525,7 @@ body.dark-mode .content-wrap > .school-heading.is-compact,body[data-theme="dark"
   <script src="/schedule-workspace-ui.js?v=5" defer></script>
   <script src="/photo-editor.js?v=9" defer></script>
   <script src="/offline-attendance.js?v=2" defer></script>
-  <script src="/portal.js?v=0.9.126" defer></script>
+  <script src="/portal.js?v=0.9.127" defer></script>
   <script src="/sardo-monitor.js?v=1" defer></script><script src="/parent-dashboard.js?v=2" defer></script>
   <script src="/platform-plans-ui.js?v=7" defer></script>
   <script src="/platform-school-health.js?v=1" defer></script>

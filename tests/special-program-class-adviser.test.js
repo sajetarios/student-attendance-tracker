@@ -73,8 +73,8 @@ test('Teacher roster scope includes the exact assigned advisory grade and sectio
 });
 
 test('Department Head interface explains that SPJ does not need a subject-period schedule', () => {
-  assert.match(html, /Special-program sections such as SPJ do not need a regular subject-period schedule/);
-  assert.match(portal, /Special-program sections such as SPJ are supported even when they have no regular subject-period schedule/);
+  assert.match(html, /Special-program sections such as SPJ are included, even without subject schedules/);
+  assert.match(portal, /Registered sections can receive an adviser before learners enroll; SPJ is supported/);
 });
 
 

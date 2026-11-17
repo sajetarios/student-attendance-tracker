@@ -35,7 +35,7 @@ test('SF2 personal copies are exportable while Department Head remains read-only
   const routes = read('sf2-routes.js');
   const client = read('public/portal.js');
   assert.match(routes, /req\.auth\.role === 'DEPARTMENT_HEAD' \|\| \(access\.readOnly && access\.mode !== 'PERSONAL'\)/);
-  assert.match(routes, /buildPersonalCopyWorkbook\(month, gradeLevel, section, data\)/);
+  assert.match(routes, /buildPersonalCopyWorkbook\(req, month, gradeLevel, section, data\)/);
   assert.match(routes, /Content-Length/);
   assert.match(client, /Preparing Excel/);
   assert.match(client, /spreadsheetml\.sheet/);
@@ -55,13 +55,19 @@ test('current portal assets are pre-cached under a new service-worker cache', ()
   assert.match(theme, /--sidebar:#20232d/);
   assert.match(theme, /:focus/);
   const portalHtml = read('public/portal.html');
-  assert.match(portalHtml, /portal\.css\?v=0\.9\.21/);
-  assert.match(portalHtml, /portal\.js\?v=0\.9\.27/);
-  assert.match(portalHtml, /academic-admin\.css\?v=1/);
   const serviceWorker = read('public/sw.js');
-  assert.match(serviceWorker, /school-attendance-shell-v35-weekday-timetable/);
-  assert.match(serviceWorker, /portal\.js\?v=0\.9\.27/);
-  assert.match(serviceWorker, /academic-admin\.js\?v=2/);
+  const shell = serviceWorker.split('const SHELL = [')[1]?.split('];')[0] || '';
+  for (const asset of [
+    'portal.css', 'portal.js', 'planner.css', 'planner.js', 'dashboard-icons.js', 'schedule-workspace-ui.js',
+    'schedule-form-layout.css', 'offline-attendance.js', 'academic-admin.css',
+    'academic-admin.js',
+  ]) {
+    const url = [...portalHtml.matchAll(/(?:src|href)="([^"]+)"/g)]
+      .map(match => match[1])
+      .find(url => url.startsWith(`/${asset}?v=`));
+    assert.ok(url, `Expected a versioned dashboard URL for ${asset}`);
+    assert.ok(shell.includes(JSON.stringify(url)), `Expected ${url} in the offline shell`);
+  }
 });
 
 
@@ -77,7 +83,6 @@ test('root URL and legacy index open the login page without serving a stale cach
   assert.ok(server.includes("res.redirect('/');"));
   assert.ok(index.includes('/portal-login.html'));
   assert.ok(serviceWorker.includes('if (request.mode === "navigate")'));
-  assert.ok(serviceWorker.includes('school-attendance-shell-v35-weekday-timetable'));
   assert.equal(shell.includes('"/"'), false);
   assert.equal(shell.includes('"/index.html"'), false);
   assert.ok(loginScript.includes("navigator.serviceWorker.register('/sw.js', { updateViaCache: 'none' })"));

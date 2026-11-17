@@ -40,7 +40,7 @@ test('admin-only demo student credentials are shown once through a dedicated act
   assert.match(api, /school_code='DEMO001'/);
   assert.match(html, /id="addSchoolStaffAccount"/);
   assert.match(html, /id="createDemoStudentLogin"/);
-  assert.match(html, /id="sf2DemoNotice"/);
+  assert.match(portal, /demoStudentLoginCard[\s\S]*?admin && user\?\.schoolCode/);
   assert.match(portal, /createDemoStudentLogin/);
   assert.match(portal, /newAccountRole'\)\.value = 'DEPARTMENT_HEAD'/);
   assert.match(portal, /user\?\.schoolCode === 'DEMO001'/);

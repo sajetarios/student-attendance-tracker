@@ -6,18 +6,25 @@ const path = require('node:path');
 const root = path.join(__dirname, '..');
 const read = file => fs.readFileSync(path.join(root, file), 'utf8');
 
-test('authenticated portal explicitly checks for service-worker updates and reloads after takeover', () => {
+test('authenticated portal checks for service-worker updates without interrupting the dashboard', async () => {
   const html = read('public/portal.html');
-  const updater = read('public/sw-refresh.js');
   const worker = read('public/sw.js');
-  assert.ok(html.includes('/sw-refresh.js?v=1'));
-  assert.ok(html.includes('/portal.js?v=0.9.53'));
-  assert.ok(updater.includes("register('/sw.js', { updateViaCache: 'none' })"));
-  assert.ok(updater.includes('registration.update()'));
-  assert.ok(updater.includes("addEventListener('controllerchange'"));
-  assert.ok(updater.includes('window.location.reload()'));
-  assert.ok(worker.includes('school-attendance-shell-v62-photo-save-approval'));
-  assert.ok(worker.includes('/portal.js?v=0.9.53'));
-  assert.ok(worker.includes('/sw-refresh.js?v=1'));
-  assert.ok(worker.includes('/form-system.css?v=1'));
+  const updater = read('public/sw-refresh.js');
+  const script = html.match(/src="(\/sw-refresh\.js\?v=[^"]+)"/)?.[1];
+  assert.ok(script && worker.includes(JSON.stringify(script)));
+
+  const calls = [];
+  const vm = require('node:vm');
+  await vm.runInNewContext(updater, {
+    navigator: {
+      serviceWorker: {
+        register(url, options) {
+          calls.push([url, options.updateViaCache]);
+          return Promise.resolve({ update: async () => { calls.push('update'); } });
+        },
+      },
+    },
+    window: { location: { reload() { calls.push('reload'); } } },
+  });
+  assert.deepEqual(calls, [['/sw.js', 'none'], 'update']);
 });

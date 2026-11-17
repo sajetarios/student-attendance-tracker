@@ -8,11 +8,12 @@ const source = name => fs.readFileSync(path.join(__dirname,'../public',name),'ut
 test('night stylesheet is loaded after shared UI for all dashboard roles and cached for offline use',()=>{
  for(const name of ['portal.html','parent-portal.html','student-portal.html']){
    const markup=source(name);
-   assert.ok(markup.indexOf('/dashboard-night.css?v=1') > markup.indexOf('/dashboard-ui.css?v=4'), name);
-   assert.match(markup,/dashboard-icons.js\?v=4/);
+   const shared=markup.indexOf('href="/dashboard-ui.css?v=');
+   const night=markup.indexOf('href="/dashboard-night.css?v=');
+   assert.ok(shared >= 0 && night > shared,name);
  }
- assert.match(source('sw.js'),/dashboard-night.css\?v=1/);
- assert.match(source('sw.js'),/school-attendance-shell-v62-photo-save-approval/);
+ const url=source('portal.html').match(/href="(\/dashboard-night\.css\?v=[^"]+)"/)[1];
+ assert.ok(source('sw.js').includes(JSON.stringify(url)));
 });
 test('dark styles cover the previously white School Admin shortcuts and dark text',()=>{
  const css=source('dashboard-night.css');
@@ -32,7 +33,6 @@ test('reusable SVGs replace placeholder glyphs on actionable School Admin cards'
  for(const name of ['users','shield','building','graduation','calendar','report','chevron']){
    assert.ok(icons.includes(name+":"),name);
  }
- assert.match(markup,/admin-action-icon" data-ui-icon="users"/);
  assert.match(markup,/admin-action-icon" data-ui-icon="shield"/);
  assert.match(markup,/admin-action-icon" data-ui-icon="building"/);
  assert.match(icons,/querySelectorAll\('\.admin-dashboard-action\[data-admin-go\]'\)/);

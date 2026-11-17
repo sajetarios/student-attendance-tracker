@@ -83,7 +83,7 @@ test('valid student password issues a student-only session', async()=>{
 test('School Admin dashboard must fetch the real school roster, not an empty placeholder',()=>{
   const source=fs.readFileSync(path.join(root,'public','portal.js'),'utf8');
   assert.doesNotMatch(source,/isSchoolAdmin\s*\?\s*Promise\.resolve\(\{ students: \[\] \}\)/);
-  assert.match(source,/isSchoolAdmin \? Promise\.resolve\(\{\}\) : api\('\/api\/admin\/dashboard'\),\s*api\('\/api\/students'\)/);
+  assert.match(source,/const roster = await api\(isSchoolAdmin \? '\/api\/students\?includeInactive=true' : '\/api\/students'\)/);
   assert.match(source,/\$\('showStudentPortalHelp'\)\?\.addEventListener\('click', \(\) => \{[\s\S]*?setView\('studentAccounts'\)/);
   assert.match(source,/SCHOOL_ADMIN'\) return \['dashboard', 'students', 'studentAccounts'/);
 });
