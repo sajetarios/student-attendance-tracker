@@ -58,7 +58,7 @@ test('official SF2 route uses the official template and protects attendance conf
   assert.match(routes, /School Form 2 \(SF2\) Daily Attendance Report of Learners\.xlsx/);
   assert.match(routes, /const conflictSet = new Set/);
   assert.match(routes, /if \(conflictSet\.has\(key\)\) return 'CONFLICT'/);
-  assert.match(routes, /if \(data\.summary\.conflicts\)/);
+  assert.match(routes, /if \(!personalCopy && data\.summary\.conflicts\)/);
   assert.match(routes, /buildOfficialWorkbook\(req, month, gradeLevel, section, data\)/);
 });
 

@@ -6,7 +6,7 @@ const path = require('node:path');
 const root = path.join(__dirname, '..');
 const read = file => fs.readFileSync(path.join(root, file), 'utf8');
 
-test('class schedule form derives department from teacher and uses a canonical subject dropdown', () => {
+test('class schedule form shows the Department Head scope and uses a canonical subject dropdown', () => {
   const html = read('public/portal.html');
   const portal = read('public/portal.js');
   const server = read('server.js');
@@ -17,7 +17,7 @@ test('class schedule form derives department from teacher and uses a canonical s
   assert.ok(formStart >= 0 && formEnd > formStart);
   assert.match(scheduleForm, /id="periodTeacher"/);
   assert.doesNotMatch(scheduleForm, /Department \(automatic\)|periodDepartmentDisplay/);
-  assert.match(scheduleForm, /department and subject catalogue are loaded automatically from the staff profile/);
+  assert.match(scheduleForm, /Fixed to your Department Head account/);
   assert.match(scheduleForm, /id="periodSubject"/);
   assert.match(scheduleForm, /id="periodSection"/);
   assert.doesNotMatch(scheduleForm, /<select[^>]+id="periodDepartment"/);
@@ -93,10 +93,10 @@ test('shared form styles are linked into the main and self-service workspaces', 
 test('the refreshed PWA shell precaches the new schedule form script and shared form CSS', () => {
   const html = read('public/portal.html');
   const serviceWorker = read('public/sw.js');
-  assert.ok(html.includes('/portal.js?v=0.9.33'));
-  assert.ok(serviceWorker.includes('school-attendance-shell-v37-weekly-timetable'));
-  assert.ok(serviceWorker.includes('/portal.js?v=0.9.33'));
-  assert.ok(serviceWorker.includes('/form-system.css?v=1'));
+  for (const asset of ['schedule-workspace-ui.js', 'form-system.css']) {
+    const url = html.split('"').find(value => value.startsWith(`/${asset}?v=`));
+    assert.ok(url && serviceWorker.includes(JSON.stringify(url)), `Missing cached ${asset}`);
+  }
 });
 
 test('bulk student imports require guardian details and cannot overwrite the master record with blanks', () => {
@@ -126,6 +126,7 @@ test('manager schedule workspace provides a responsive weekly timetable with fil
   assert.match(portal, /api\('\/api\/periods\/' \+ encodeURIComponent\(periodId\) \+ '\/assignments'/);
   assert.match(portal, /data-weekly-assign/);
   assert.match(portal, /!p\.assignedTeacherUserId && !p\.assignedTeacherName/);
+  const server = read('server.js');
   assert.match(server, /const sharesDay = \(p\.weekdays \|\| \[\]\)\.some/);
   assert.match(server, /requested_day\.weekday=existing_day\.weekday/);
   assert.match(server, /daterange\(COALESCE\(p\.effective_from/);

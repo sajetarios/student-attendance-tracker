@@ -35,7 +35,7 @@ test('SF2 personal copies are exportable while Department Head remains read-only
   const routes = read('sf2-routes.js');
   const client = read('public/portal.js');
   assert.match(routes, /req\.auth\.role === 'DEPARTMENT_HEAD' \|\| \(access\.readOnly && access\.mode !== 'PERSONAL'\)/);
-  assert.match(routes, /buildPersonalCopyWorkbook\(month, gradeLevel, section, data\)/);
+  assert.match(routes, /buildPersonalCopyWorkbook\(req, month, gradeLevel, section, data\)/);
   assert.match(routes, /Content-Length/);
   assert.match(client, /Preparing Excel/);
   assert.match(client, /spreadsheetml\.sheet/);
