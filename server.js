@@ -2600,7 +2600,7 @@ app.get('/api/periods', authenticateSchoolClient, requireSchoolRoles('SCHOOL_ADM
     }
     const result = await pool.query(
       "SELECT p.period_id AS \"periodId\",p.period_name AS \"periodName\",p.grade_level AS \"gradeLevel\",p.section," +
-      "p.subject_id AS \"subjectId\",p.subject_name AS \"subjectName\",p.classroom,p.department_id AS \"scheduleDepartmentId\"," +
+      "p.subject_id AS \"subjectId\",p.subject_name AS \"subjectName\",p.schedule_type AS \"scheduleType\",p.classroom,p.department_id AS \"scheduleDepartmentId\"," +
       "COALESCE(assignment.\"assignedDepartmentId\",p.department_id) AS \"departmentId\"," +
       "COALESCE(assigned_department.department_name,d.department_name,'Unassigned') AS \"departmentName\"," +
       "assignment.\"assignedTeacherUserId\",assignment.\"assignedTeacherName\"," +
@@ -2663,6 +2663,11 @@ app.post('/api/periods', authenticateSchoolClient, requireSchoolRoles('SCHOOL_AD
   const classroom = typeof req.body?.classroom === 'string' ? req.body.classroom.trim() : '';
   const { periodName, gradeLevel, section, subjectId, startTime, endTime, graceMinutes = 0 } = req.body || {};
   const timetableTemplateId = req.body?.timetableTemplateId || null;
+  const timetableTemplatePeriodId = req.body?.timetableTemplatePeriodId || null;
+  const scheduleType = String(req.body?.scheduleType || 'CLASS').toUpperCase();
+  if (!['CLASS','ADVISORY','OTHER'].includes(scheduleType)) return res.status(400).json({ error: 'Choose a valid schedule type.' });
+  if (timetableTemplatePeriodId && !isUuid(timetableTemplatePeriodId)) return res.status(400).json({ error: 'Choose a valid time block.' });
+  if (Boolean(timetableTemplateId) !== Boolean(timetableTemplatePeriodId)) return res.status(400).json({ error: 'Choose a saved timetable block, or use custom time.' });
   if (timetableTemplateId && !isUuid(timetableTemplateId)) return res.status(400).json({ error: 'Choose a valid timetable template.' });
   let weekdays = Array.isArray(req.body?.weekdays) ? [...new Set(req.body.weekdays.map(Number))] : [];
   if (!weekdays.length) {
@@ -2741,12 +2746,20 @@ app.post('/api/periods', authenticateSchoolClient, requireSchoolRoles('SCHOOL_AD
     }
     if (timetableTemplateId) {
       const template = await client.query(
-        "SELECT 1 FROM timetable_templates WHERE school_id=$1 AND template_id=$2 AND active=TRUE",
-        [req.auth.schoolId, timetableTemplateId]
+        "SELECT p.period_label AS label,to_char(p.start_time,'HH24:MI') AS start_time," +
+        "to_char(p.end_time,'HH24:MI') AS end_time,p.block_type AS block_type " +
+        "FROM timetable_templates t JOIN timetable_template_periods p ON p.school_id=t.school_id AND p.template_id=t.template_id " +
+        "WHERE t.school_id=$1 AND t.template_id=$2 AND p.template_period_id=$3 AND t.active=TRUE",
+        [req.auth.schoolId, timetableTemplateId, timetableTemplatePeriodId]
       );
-      if (!template.rowCount) {
+      if (!template.rowCount || ['BREAK','LUNCH'].includes(template.rows[0].block_type)) {
         await client.query('ROLLBACK');
-        return res.status(400).json({ error: 'The selected timetable template is no longer available. Refresh and choose another.' });
+        return res.status(400).json({ error: 'The saved timetable block is no longer available. Refresh your timetable selection.' });
+      }
+      const savedBlock = template.rows[0];
+      if (String(savedBlock.label) !== String(periodName).trim() || savedBlock.start_time !== startTime || savedBlock.end_time !== endTime) {
+        await client.query('ROLLBACK');
+        return res.status(409).json({ error: 'The selected timetable block has changed. Refresh and select the current school timetable time.' });
       }
     }
     // Subject ownership determines the schedule department, including unassigned schedules.
@@ -2820,13 +2833,13 @@ app.post('/api/periods', authenticateSchoolClient, requireSchoolRoles('SCHOOL_AD
     }
 
     const result = await client.query(
-      "INSERT INTO class_periods(school_id,period_name,grade_level,section,subject_id,subject_name,start_time,end_time,grace_minutes,department_id,classroom,timetable_template_id) " +
-      "VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12) " +
+      "INSERT INTO class_periods(school_id,period_name,grade_level,section,subject_id,subject_name,start_time,end_time,grace_minutes,department_id,classroom,timetable_template_id,schedule_type) " +
+      "VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13) " +
       "RETURNING period_id AS \"periodId\",period_name AS \"periodName\",grade_level AS \"gradeLevel\",section," +
       "subject_id AS \"subjectId\",subject_name AS \"subjectName\",department_id AS \"departmentId\",classroom," +
-      "to_char(start_time,'HH24:MI') AS \"startTime\",to_char(end_time,'HH24:MI') AS \"endTime\"",
+      "to_char(start_time,'HH24:MI') AS \"startTime\",to_char(end_time,'HH24:MI') AS \"endTime\",schedule_type AS \"scheduleType\"",
       [req.auth.schoolId, periodName.trim(), gradeLevel.trim(), section.trim(), subjectId,
-       subject.rows[0].subjectName, startTime, endTime, Number(graceMinutes), departmentId, classroom || null, timetableTemplateId]
+       subject.rows[0].subjectName, startTime, endTime, Number(graceMinutes), departmentId, classroom || null, timetableTemplateId, scheduleType]
     );
     const period = result.rows[0];
     for (const weekday of weekdays) {
