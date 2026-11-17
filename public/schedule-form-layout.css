@@ -552,3 +552,37 @@ html[data-ui-theme="dark"] #scheduleForm[data-schedule-role="DEPARTMENT_HEAD"] .
   grid-template-columns:minmax(0,1fr)!important;gap:10px!important;
  }
 }
+
+
+/* Compact teacher assignment controls in the department schedule list. */
+#schedulesView .schedule-quick-assign {
+  display: inline-flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-right: 5px;
+}
+#schedulesView .schedule-quick-assign select {
+  width: min(220px, 100%);
+  min-width: 145px;
+  min-height: 38px;
+  padding: 7px 10px;
+  border: 1px solid #b8cadd;
+  border-radius: 9px;
+  background: #fff;
+  color: #163650;
+  font: inherit;
+}
+#schedulesView .schedule-quick-assign select:focus-visible {
+  outline: 2px solid #2a8dda;
+  outline-offset: 2px;
+}
+html[data-ui-theme="dark"] #schedulesView .schedule-quick-assign select {
+  border-color: #617c98;
+  background: #1a3046;
+  color: #ecf6ff;
+}
+@media (max-width: 710px) {
+  #schedulesView .schedule-quick-assign { width: 100%; }
+  #schedulesView .schedule-quick-assign select { flex: 1 1 160px; }
+}
