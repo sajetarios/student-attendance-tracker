@@ -25,7 +25,7 @@ test('cross-school student IDs remain rejected rather than reassigned', () => {
   assert.match(receive, /if \(!student\.rowCount\)/);
   assert.match(receive, /Learner is missing, archived, inactive, or belongs to another school/);
   assert.match(receive, /Cloud learner enrollment differs from this scan/);
-  assert.match(receive, /results\.push\(\{ eventId:event\.eventId,status:'REJECTED'/);
+  assert.match(receive, /results\.push\(\{\s*eventId:event\.eventId,status:'REJECTED'/);
 });
 
 test('attendance event identities remain replay-safe', () => {
