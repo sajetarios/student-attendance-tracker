@@ -1,4 +1,4 @@
-const CACHE = "attendigo-v118-stable-dashboard-header";
+const CACHE = "attendigo-v119-idempotent-role-dashboard";
 
 const SHELL = [
   "/assets/attendigo-sidebar-logo.png",
@@ -8,7 +8,7 @@ const SHELL = [
   "/assets/attendigo-icon.png",
   "/attendigo-brand.css?v=2",
   "/dashboard-icons.js?v=4",
-  "/dashboard-ui.css?v=4",
+  "/dashboard-ui.css?v=wide5",
   "/dashboard-night.css?v=1",
   "/planner.css?v=2",
   "/planner.js?v=3",
@@ -17,6 +17,7 @@ const SHELL = [
   "/photo-editor.css?v=2",
   "/photo-editor.js?v=9",
   "/session-guard.js?v=2",
+  "/flicker-diagnostics.js?v=1",
   "/school-header-responsive.js?v=2",
   "/student-portal-refinement.css?v=1",
   "/student-portal.js?v=2",
@@ -27,10 +28,10 @@ const SHELL = [
   "/portal-login.html",
   "/attendigo-login-motion.css?v=2",
   "/attendigo-login-refinement.css?v=2",
-  "/portal.css?v=0.9.92",
+  "/portal.css?v=0.9.104",
   "/student-roster-toolbar.css?v=1",
   "/portal.css",
-  "/portal.js?v=0.9.105",
+  "/portal.js?v=0.9.106",
   "/offline-attendance.js?v=1",
   "/offline-sheet.html",
   "/offline-sheet.js?v=2",
