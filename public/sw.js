@@ -1,4 +1,4 @@
-const CACHE = "attendigo-v117-role-login-stability";
+const CACHE = "attendigo-v118-stable-dashboard-header";
 
 const SHELL = [
   "/assets/attendigo-sidebar-logo.png",
@@ -46,7 +46,8 @@ const SHELL = [
   "/academic-admin.js?v=2",
   "/app-dialog.css?v=1",
   "/app-dialog.js?v=1",
-  "/sw-refresh.js?v=2",
+  "/sw-refresh.js?v=3",
+  "/smart-mobile-header.js?v=3",
   "/form-system.css?v=1",
   "/password-visibility.css",
   "/password-visibility.js",
