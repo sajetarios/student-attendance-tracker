@@ -43,11 +43,11 @@ test('Class Adviser lookup is read-only across the school, including other depar
  const server=read('server.js'),js=read('public/portal.js'),html=read('public/portal.html');
  const a=server.indexOf("app.get('/api/scheduling/section-adviser'"),b=server.indexOf("app.post('/api/class-adviser-assignments'",a);
  assert.ok(a>0&&b>a);
- const read=server.slice(a,b);
- assert.match(read,/FROM class_adviser_assignments ca/);
- assert.match(read,/ca\.school_id=\$1/);
- assert.doesNotMatch(read,/req\.auth\.departmentId/);
- assert.doesNotMatch(read,/INSERT INTO|UPDATE class_adviser_assignments|DELETE FROM/);
+ const lookupRoute=server.slice(a,b);
+ assert.match(lookupRoute,/FROM class_adviser_assignments ca/);
+ assert.match(lookupRoute,/ca\.school_id=\$1/);
+ assert.doesNotMatch(lookupRoute,/req\.auth\.departmentId/);
+ assert.doesNotMatch(lookupRoute,/INSERT INTO|UPDATE class_adviser_assignments|DELETE FROM/);
  assert.match(js,/function refreshScheduleSectionAdviser\(\)/);
  assert.match(html,/id="scheduleClassAdviserName"/);
 });
