@@ -9,12 +9,12 @@ test('Sync Center is loaded for staff dashboard and prepared offline attendance'
   const html = read('public/portal.html');
   const offline = read('public/offline-sheet.html');
   const sw = read('public/sw.js');
-  for (const file of ['attendance-sync-center.css?v=3','attendance-sync-center.js?v=2']) {
+  for (const file of ['attendance-sync-center.css?v=4','attendance-sync-center.js?v=3']) {
     assert.ok(html.includes('/' + file), 'Staff portal must load ' + file);
     assert.ok(sw.includes('"/' + file + '"'), 'Offline shell must cache ' + file);
   }
-  assert.ok(offline.includes('/attendance-sync-center.css?v=3'));
-  assert.ok(offline.includes('/attendance-sync-center.js?v=2'));
+  assert.ok(offline.includes('/attendance-sync-center.css?v=4'));
+  assert.ok(offline.includes('/attendance-sync-center.js?v=3'));
   assert.ok(offline.includes('data-offline-sheet="true"'));
 });
 
@@ -111,7 +111,7 @@ test('single unified Sync Center is triggered from the existing responsive heade
   assert.match(qr, /position:fixed;right:18px;bottom:18px/);
   assert.match(offlineSheet, /attendance-sync-center\.css\?v=3/);
   assert.match(offlineSheet, /attendance-sync-center\.js\?v=2/);
-  assert.match(sw, /attendigo-v147-header-sync-center/);
+  assert.match(sw, /attendigo-v148-admin-sync-header/);
   assert.match(sw, /"\/attendance-sync-center\.css\?v=3"/);
   assert.match(sw, /"\/attendance-sync-center\.js\?v=2"/);
 });
