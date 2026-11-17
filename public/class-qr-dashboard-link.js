@@ -4,7 +4,7 @@
   const remove = () => {
     document.querySelectorAll('a[href*="class-qr-teacher.html"]').forEach(link => link.remove());
   };
-  // Verify the signed-in role with the server; never rely on the stale cached session role.
+  // A shortcut is authorized by the current server session, never cached role data.
   remove();
   const token = sessionStorage.getItem('schoolAttendance.accessToken');
   if (!token) return;
@@ -24,15 +24,36 @@
     link.setAttribute('aria-label', 'Class QR Attendance');
     const panel = document.getElementById('studentsView');
     const positionShortcut = () => {
-      const inlineHost = panel && !panel.hidden ? panel.querySelector('.student-roster-viewbar') : null;
+      const rosterVisible = Boolean(panel && !panel.hidden && !panel.closest('[hidden]') && panel.getClientRects().length);
+      const inlineHost = rosterVisible ? panel.querySelector('#studentRosterPanel .student-roster-viewbar') : null;
       const host = inlineHost || document.body;
       link.classList.toggle('is-roster-inline', Boolean(inlineHost));
+      link.hidden = rosterVisible && !inlineHost;
+      // Explicitly reset fixed offsets: a stale fixed position must never cover account controls.
+      link.style.setProperty('position', inlineHost ? 'static' : 'fixed', 'important');
+      for (const edge of ['top', 'left']) link.style.setProperty(edge, 'auto', 'important');
+      link.style.setProperty('right', inlineHost ? 'auto' : '18px', 'important');
+      link.style.setProperty('bottom', inlineHost ? 'auto' : '18px', 'important');
+      link.style.setProperty('transform', 'none', 'important');
       if (link.parentElement !== host) host.append(link);
     };
     positionShortcut();
-    if (panel) new MutationObserver(positionShortcut).observe(panel, {
-      attributes: true,
-      attributeFilter: ['hidden', 'style', 'class']
+    const observer = new MutationObserver(positionShortcut);
+    if (panel) observer.observe(panel, {
+      attributes: true, attributeFilter: ['hidden', 'style', 'class']
     });
+    for (const id of ['schoolWorkspace', 'platformWorkspace']) {
+      const section = document.getElementById(id);
+      if (section) observer.observe(section, {
+        attributes: true, attributeFilter: ['hidden', 'style', 'class']
+      });
+    }
+    // Navigation handlers may update view visibility after the originating click.
+    document.addEventListener('click', event => {
+      if (event.target.closest?.('.nav-item[data-view], [data-view], #studentsNav')) {
+        requestAnimationFrame(positionShortcut);
+      }
+    });
+    window.addEventListener('pageshow', positionShortcut);
   }).catch(() => remove());
 })();

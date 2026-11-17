@@ -1401,7 +1401,7 @@ function coverageStatusLabel(status) {
       rosterHeader.innerHTML = departmentHead
         ? selectHeader + '<th>Student ID</th><th>Full name</th><th>Sex</th><th>Grade</th><th>Section</th><th>Special program</th><th>Status</th>'
         : teacher
-          ? selectHeader + '<th>Learner</th><th>Class</th><th>Special program</th><th>Status</th><th>QR</th><th>Manage</th><th>Parent / guardian</th>'
+          ? selectHeader + '<th>Learner</th><th>Class</th><th>Special program</th><th>Status</th><th>Quick actions</th>'
           : selectHeader + '<th>Photo</th><th>Student ID</th><th>Full name</th><th>Sex</th><th>Grade</th><th>Section</th><th>Special program</th><th>Status</th><th>QR code</th><th>Actions</th>' + (admin ? '<th>Parent / guardian</th><th>Student portal account</th>' : '');
     }
     if ($('studentRosterDescription')) {
@@ -1413,7 +1413,7 @@ function coverageStatusLabel(status) {
     }
     const rosterColumns = departmentHead
       ? (showSelectionColumn ? 8 : 7)
-      : teacher ? (7 + Number(showSelectionColumn))
+      : teacher ? (5 + Number(showSelectionColumn))
         : (10 + Number(showSelectionColumn) + Number(admin || teacher) + Number(admin));
     for (const id of [...selectedStudentIds]) if (!visible.some(student => student.studentId === id)) selectedStudentIds.delete(id);
     if (!visible.length) {
@@ -1428,7 +1428,7 @@ function coverageStatusLabel(status) {
         const photo = departmentHead ? '' : await photoDataUrl(student.photoUrl);
         const avatar = photo ? `<img class="student-photo-thumb" src="${photo}" alt="Student photo for ${esc(student.fullName)}" loading="lazy">` : `<span class="student-photo-placeholder no-photo" aria-label="${student.hasPhoto ? 'Photo file missing' : 'No photo uploaded'}" title="${student.hasPhoto ? 'The database has a photo path but the file is missing from storage. Restore the storage/student-photos folder or upload the photo again.' : 'No photo has been uploaded yet. An administrator or Class Adviser can upload the photo.'}">${student.hasPhoto ? 'Missing' : 'No photo'}</span>`;
         let qr = '';
-        if (canViewQr) {
+        if (canViewQr && !teacher) {
           qr = studentQrCache.get(student.studentId) || '';
           if (!qr) {
             try { qr = await getStudentQr(student.studentId); studentQrCache.set(student.studentId, qr); }
@@ -1441,9 +1441,13 @@ function coverageStatusLabel(status) {
         const selection = canSelectLearnerForBatch(student) ? `<input type="checkbox" class="student-select-box" data-select-student="${esc(student.studentId)}" ${selectedStudentIds.has(student.studentId) ? 'checked' : ''} aria-label="Select ${esc(student.fullName)}">` : '';
         const ordinal = groupedRoster ? '<span class="student-roster-number">' + numberedRoster[index].number + '. </span>' : '';
         const editable = canManage && student.active !== false && !student.archivedAt;
+        const teacherGuardian = teacher
+          ? `<div class="teacher-roster-guardian" aria-label="Parent or guardian contact"><span class="teacher-roster-menu-label">Parent / guardian</span><strong>${esc(student.parentName || 'Not provided')}</strong><small>${esc(student.parentMobile || 'No mobile number')}</small></div>`
+          : '';
         const actions = editable
-          ? `<details class="student-actions-dropdown"><summary>Actions</summary><div class="student-row-actions"><button type="button" class="outline-button" data-edit-student="${esc(student.studentId)}">Edit</button>${canUploadPhoto ? `<label class="student-photo-upload">${student.hasPhoto ? 'Replace photo' : 'Upload photo'}<input type="file" accept="image/jpeg,image/png,image/webp" data-student-photo="${esc(student.studentId)}" hidden></label>` : ''}</div></details>`
-          : '<span class="muted-inline">' + (student.archivedAt ? 'Archived' : student.active === false ? 'Inactive' : 'View only') + '</span>';
+          ? `<details class="student-actions-dropdown"><summary aria-label="Actions for ${esc(student.fullName)}">Actions</summary><div class="student-row-actions"><button type="button" class="outline-button" data-edit-student="${esc(student.studentId)}">Edit</button>${canUploadPhoto ? `<label class="student-photo-upload">${student.hasPhoto ? 'Replace photo' : 'Upload photo'}<input type="file" accept="image/jpeg,image/png,image/webp" data-student-photo="${esc(student.studentId)}" hidden></label>` : ''}${teacherGuardian}</div></details>`
+          : teacher ? `<details class="student-actions-dropdown"><summary aria-label="View contact for ${esc(student.fullName)}">Details</summary><div class="student-row-actions">${teacherGuardian}</div></details>`
+            : '<span class="muted-inline">' + (student.archivedAt ? 'Archived' : student.active === false ? 'Inactive' : 'View only') + '</span>';
         const accountExists = Boolean(student.studentAccountUsername);
         const accountCell = admin
           ? `<div class="student-row-actions"><span class="muted-inline">${accountExists ? `Active login · ${esc(student.studentAccountUsername)}` : 'No student login'}</span><button type="button" class="outline-button" data-student-account="${esc(student.studentId)}" data-account-exists="${accountExists ? '1' : '0'}">${accountExists ? 'Reset login' : 'Create login'}</button></div>`
@@ -1454,12 +1458,11 @@ function coverageStatusLabel(status) {
           : '<span class="muted-inline">Not assigned</span>';
         if (teacher) {
           const identity = `<div class="teacher-roster-identity">${avatar}<span class="teacher-roster-identity-copy"><strong>${ordinal}${esc(student.fullName)}</strong><small>${esc(student.studentId)}</small></span></div>`;
-          const qrPreview = canViewQr && qr
-            ? `<button type="button" class="student-qr-preview teacher-roster-qr" data-view-qr="${esc(student.studentId)}" aria-label="View QR code for ${esc(student.fullName)}"><img src="${qr}" alt="" loading="lazy"><span>View QR</span></button>`
-            : qrCell;
+          const qrAction = canViewQr
+            ? `<button type="button" class="student-qr-preview teacher-roster-qr" data-view-qr="${esc(student.studentId)}" aria-label="View QR code for ${esc(student.fullName)}" title="View or print learner QR"><span class="teacher-roster-qr-glyph" aria-hidden="true">▦</span><span>QR</span></button>`
+            : '';
           const statusClass = statusLabel === 'Active' ? 'active' : statusLabel === 'Archived' ? 'archived' : 'inactive';
-          const guardian = `<div class="teacher-roster-guardian"><strong>${esc(student.parentName || 'Not provided')}</strong><small>${esc(student.parentMobile || 'No mobile number')}</small></div>`;
-          return `<tr class="teacher-roster-student" data-student-enrollment="${esc(student.enrollmentId || '')}" data-student-name="${esc(student.fullName)}">${showSelectionColumn ? `<td data-label="Select">${selection}</td>` : ''}<td data-label="Full name">${identity}</td><td data-label="Class"><strong>${esc(student.gradeLevel)}</strong><small>${esc(student.section)}</small></td><td data-label="Special program">${programCell}</td><td data-label="Status"><span class="teacher-roster-status ${statusClass}">${statusLabel}</span></td><td data-label="QR code">${qrPreview}</td><td data-label="Actions">${actions}</td><td data-label="Parent / guardian">${guardian}</td></tr>`;
+          return `<tr class="teacher-roster-student" data-student-enrollment="${esc(student.enrollmentId || '')}" data-student-name="${esc(student.fullName)}">${showSelectionColumn ? `<td data-label="Select">${selection}</td>` : ''}<td data-label="Full name">${identity}</td><td data-label="Class"><strong>${esc(student.gradeLevel)}</strong><small>${esc(student.section)}</small></td><td data-label="Special program">${programCell}</td><td data-label="Status"><span class="teacher-roster-status ${statusClass}">${statusLabel}</span></td><td data-label="Actions"><div class="teacher-roster-quick-actions">${qrAction}${actions}</div></td></tr>`;
         }
         if (departmentHead) {
           return `<tr data-student-enrollment="${esc(student.enrollmentId || '')}" data-student-name="${esc(student.fullName)}">${showSelectionColumn ? `<td data-label="Select">${selection}</td>` : ''}<td data-label="Student ID">${esc(student.studentId)}</td><td data-label="Full name">${ordinal}<strong>${esc(student.fullName)}</strong></td><td data-label="Sex">${esc(student.sex || 'Not set')}</td><td data-label="Grade">${esc(student.gradeLevel)}</td><td data-label="Section">${esc(student.section)}</td><td data-label="Special program">${programCell}</td><td data-label="Status">${statusLabel}</td></tr>`;
