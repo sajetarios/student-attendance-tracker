@@ -43,6 +43,11 @@ body.dark-mode,body[data-theme="dark"],html[data-theme="dark"]{
   white-space:nowrap;box-shadow:none;transition:background .18s,border-color .18s;
 }
 #connectionStatus.asc-header-trigger[hidden],#ascHeaderTrigger.asc-header-trigger[hidden]{display:none!important}
+/* Cloud replication may be optional or unconfigured; a neutral header dot
+   avoids falsely implying that either cloud forwarding succeeded or failed. */
+#connectionStatus.asc-header-trigger[data-state="idle"] i{
+  background:var(--asc-subtle);box-shadow:0 0 0 3px var(--asc-elevated);
+}
 #connectionStatus.asc-header-trigger:hover,#ascHeaderTrigger.asc-header-trigger:hover{
   background:var(--asc-surface);border-color:var(--asc-accent);
 }
