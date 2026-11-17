@@ -78,3 +78,19 @@ html[data-ui-theme="dark"] .special-batch-review-note textarea{background:#20344
 html[data-ui-theme="dark"] .special-batch-eligibility.ok{background:#144c3c;color:#b9f5d5}
 html[data-ui-theme="dark"] .special-batch-eligibility.skip{background:#63431d;color:#ffe1a9}
 @media(max-width:650px){.special-batch-preview-row{grid-template-columns:22px 1fr auto;gap:8px}.special-batch-preview-reason{grid-column:2 / -1}.special-batch-admin-head{align-items:flex-start;flex-wrap:wrap}.special-batch-admin-group{padding:11px}.special-program-batch-dialog{width:95vw}}
+
+/* Review-first school-admin workflow and compact direct batch controls. */
+#specialProgramReviewPanel{scroll-margin-top:112px;border-color:var(--line,#cbd9ed)}
+.special-program-workflow-hint{margin:12px 0 18px;padding:12px 16px;border-left:3px solid var(--brand,#2164af);background:var(--card,#f5f9ff);color:var(--ink,#26405f);border-radius:6px;font-size:13px;line-height:1.55}
+.special-program-reviewed-history{margin-top:16px;border-top:1px solid var(--line,#dae3ee);padding-top:12px}
+.special-program-reviewed-history>summary{cursor:pointer;font-size:13px;font-weight:750;padding:9px 0;color:var(--ink,#26405f)}
+.special-batch-admin-student{flex-wrap:wrap;gap:8px 11px}
+.special-program-status.satisfied{background:#e3efff;color:#20518c;border:1px solid #b6d4f3}
+#academicEnrollmentRows td:last-child select{width:min(100%,190px);max-width:190px;min-height:40px}
+#academicEnrollmentRows td:last-child button{margin:4px 0 4px 8px;white-space:nowrap}
+#academicEnrollmentRows input[data-special-enroll]{width:20px;height:20px}
+html[data-ui-theme="dark"] .special-program-workflow-hint{background:#1b304c;color:#ebf2ff;border-left-color:#9fcaff}
+html[data-ui-theme="dark"] .special-program-reviewed-history{border-color:var(--night-border,#4a607c)}
+html[data-ui-theme="dark"] .special-program-reviewed-history>summary{color:#edf5ff}
+html[data-ui-theme="dark"] .special-program-status.satisfied{background:#1c416b;color:#cfe6ff;border-color:#4277a8}
+@media(max-width:650px){.special-program-workflow-hint{padding:10px 12px}.special-program-bulk-controls label{min-width:0}#academicEnrollmentRows td:last-child button{margin-left:0}}
