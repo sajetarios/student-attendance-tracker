@@ -20,7 +20,7 @@
     if(window.AppDialog?.confirm)return window.AppDialog.confirm(text,{title,confirmText:'Confirm',variant:'primary'});
     return false; // never bypass the shared confirmation UI
   };
-  let catalog=[],requestable=new Set(),enrollments=new Map(),selected=new Set(),activeEnrollment=null;
+  let catalog=[],requestable=new Set(),pendingInScope=new Set(),pendingMine=new Set(),enrollments=new Map(),selected=new Set(),activeEnrollment=null;
   let adminLoading=false,requestLoading=false,enrollmentLoading=false;
   const programOptions=()=>{
     const active=catalog.filter(p=>p.active);
@@ -129,6 +129,8 @@
     // decisions visible in collapsed history, without deleting server audit records.
     const pending=items.filter(item=>item.status==='PENDING');
     const reviewed=items.filter(item=>item.status!=='PENDING');
+    pendingMine=new Set(pending.map(item=>String(item.enrollmentId)));
+    decorateTeacherRows();
     $('mySpecialProgramRequestsList').innerHTML=pending.length
       ?reviewsTable(pending,false)
       :'<p class="special-program-empty-state" role="status">No pending special-program requests. Approved and rejected requests are available in history.</p>';
@@ -150,29 +152,78 @@
     if(!canRequest)return;
     try{
       const [r]=await Promise.all([api('/api/special-programs/requestable'),loadCatalog()]);
-      requestable=new Set(r.enrollmentIds||[]);decorateTeacherRows();
+      requestable=new Set((r.enrollmentIds||[]).map(String));
+      pendingInScope=new Set((r.pendingEnrollmentIds||[]).map(String));
+      decorateTeacherRows();
       $('mySpecialProgramRequests').hidden=false;
       await loadMyRequests();
     }catch(e){$('mySpecialProgramRequestsList').textContent=e.message;}
   }
+  const isPendingProgram=id=>pendingInScope.has(String(id))||pendingMine.has(String(id));
+  // Program membership is read-only in the table; actions belong in the row menu.
   function decorateTeacherRows(){
-    if(!canRequest||!requestable.size)return;
+    if(!canRequest)return;
     const host=$('studentRows');
     for(const row of host.querySelectorAll('tr[data-student-enrollment]')){
-      const id=row.dataset.studentEnrollment;
-      if(!requestable.has(id)||row.querySelector('[data-request-special]'))continue;
-      const cell=row.querySelector('[data-label="Special program"]');if(!cell)continue;
+      const id=String(row.dataset.studentEnrollment||'');
+      const cell=row.querySelector('[data-label="Special program"]');
+      const actionCell=row.querySelector('[data-label="Actions"]');
+      if(!id||!cell||!actionCell)continue;
+      // Remove stale inline links from an already rendered roster.
+      cell.querySelectorAll('.special-program-request-link').forEach(node=>node.remove());
+      const pending=isPendingProgram(id);
+      let status=cell.querySelector('.special-program-row-pending');
+      if(pending&&!status){
+        status=document.createElement('span');
+        status.className='special-program-row-pending';
+        status.textContent='Pending approval';
+        status.title='A special-program change request is awaiting School Admin review';
+        cell.append(status);
+      }else if(!pending&&status)status.remove();
+      const oldButton=actionCell.querySelector('[data-request-special]');
+      if((pending||!requestable.has(id))&&oldButton)oldButton.remove();
+      if(pending||!requestable.has(id)){
+        if(actionCell.dataset.programOnly==='1'){
+          actionCell.textContent=pending?'Pending approval':'View only';
+          delete actionCell.dataset.programOnly;
+        }
+        continue;
+      }
+      let menu=actionCell.querySelector('.student-row-actions');
+      if(!menu){
+        // Department Heads have a read-only roster except for authorized changes.
+        actionCell.replaceChildren();
+        actionCell.dataset.programOnly='1';
+        const details=document.createElement('details');
+        details.className='student-actions-dropdown student-program-action-menu';
+        const summary=document.createElement('summary');
+        summary.textContent='Actions';
+        menu=document.createElement('div');
+        menu.className='student-row-actions';
+        details.append(summary,menu);
+        actionCell.append(details);
+      }
+      if(menu.querySelector('[data-request-special]'))continue;
       const button=document.createElement('button');
-      button.type='button';button.className='special-program-request-link';
-      button.textContent='Request change';button.dataset.requestSpecial=id;
-      button.addEventListener('click',()=>openRequest(id,row.dataset.studentName));
-      cell.append(button);
+      button.type='button';
+      button.className='student-program-action';
+      button.dataset.requestSpecial=id;
+      button.textContent='Request Program Change';
+      button.addEventListener('click',()=>{
+        actionCell.querySelector('details.student-actions-dropdown')?.removeAttribute('open');
+        openRequest(id,row.dataset.studentName);
+      });
+      menu.append(button);
     }
   }
   function closeRequest(){$('specialProgramRequestModal').hidden=true;activeEnrollment=null;$('specialProgramRequestForm').reset();message('specialProgramRequestFeedback','');}
   async function openRequest(id,name){
-    if(!canRequest||!requestable.has(id))return;
+    if(!canRequest||!requestable.has(String(id)))return;
+    if(isPendingProgram(id)){message('specialProgramRequestFeedback','This learner already has a pending program-change request.',true);return;}
     activeEnrollment=id;
+    const row=[...$('studentRows').querySelectorAll('tr[data-student-enrollment]')].find(item=>item.dataset.studentEnrollment===String(id));
+    const current=row?.querySelector('.special-program-chip')?.textContent?.trim();
+    if($('specialProgramRequestCurrent'))$('specialProgramRequestCurrent').textContent=current||'No primary special program (Regular)';
     $('specialProgramRequestStudent').textContent=name||'Selected learner';
     if(!catalog.length){try{await loadCatalog();}catch(e){return message('specialProgramRequestFeedback',e.message,true);}}
     $('specialProgramRequestAction').value='ASSIGN';toggleRequestProgram();
@@ -195,8 +246,9 @@
     $('specialProgramRequestSubmit').disabled=true;
     try{
       await api('/api/special-programs/requests',{method:'POST',body:JSON.stringify({enrollmentId:activeEnrollment,action,programTypeId:action==='ASSIGN'?programTypeId:null,reason})});
-      closeRequest();await loadMyRequests();
+      closeRequest();await loadRequestable();
       document.dispatchEvent(new Event('attendigo:requests-changed'));
+      window.AppDialog?.alert?.('Your program-change request has been sent to School Admin for approval.',{title:'Request submitted'})?.catch(()=>{});
     }catch(error){message('specialProgramRequestFeedback',error.message,true);}
     finally{$('specialProgramRequestSubmit').disabled=false;}
   }
@@ -255,9 +307,9 @@
       await loadRequestable();
       // An administrator may review requests in another session; reconcile the
       // requester's queue when the tab returns and while the view stays open.
-      document.addEventListener('visibilitychange',()=>{if(!document.hidden)loadMyRequests();});
-      window.addEventListener('focus',()=>{if(!document.hidden)loadMyRequests();});
-      setInterval(()=>{if(!document.hidden&&!$('mySpecialProgramRequests')?.hidden)loadMyRequests();},60000);
+      document.addEventListener('visibilitychange',()=>{if(!document.hidden)loadRequestable();});
+      window.addEventListener('focus',()=>{if(!document.hidden)loadRequestable();});
+      setInterval(()=>{if(!document.hidden&&!$('mySpecialProgramRequests')?.hidden)loadRequestable();},60000);
     }
     document.addEventListener('attendigo:requests-changed',()=>{if(admin)loadAdminRequests();else if(canRequest)loadMyRequests();});
   };
