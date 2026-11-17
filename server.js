@@ -3238,6 +3238,22 @@ app.post('/api/sync/events', authenticateSchoolClient, requireSchoolClient, asyn
         continue;
       }
 
+      // A finalized class is immutable until the teacher explicitly reopens it.
+      // Share the transaction advisory lock with manual edits and sign-offs to
+      // prevent a delayed QR event racing a finalization into the register.
+      if (event.attendanceScope === 'CLASS') {
+        await client.query('SELECT pg_advisory_xact_lock(hashtext($1::text),hashtext($2::text))',
+          [req.auth.schoolId, event.periodId + '|' + event.schoolDate]);
+        const finalized = await client.query(
+          'SELECT 1 FROM class_attendance_finalizations WHERE school_id=$1 AND period_id=$2 AND school_date=$3 AND finalized=TRUE',
+          [req.auth.schoolId, event.periodId, event.schoolDate]
+        );
+        if (finalized.rowCount) {
+          results.push({ eventId:event.eventId, status:'REJECTED', code:'FINALIZED_REGISTER',
+            reason:'Class register is finalized. Preserve the scan for teacher review before reopening.' });
+          continue;
+        }
+      }
       const calendarResult = await client.query(
         `SELECT exception_id AS "exceptionId",exception_type AS type,dismissal_time AS "dismissalTime",updated_at AS "appliedAt"
          FROM school_calendar_exceptions WHERE school_id=$1 AND calendar_date=$2::date`,
