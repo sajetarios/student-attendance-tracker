@@ -59,3 +59,18 @@ html[data-ui-theme="dark"] #teachersView .teacher-monitor-table td:nth-child(3) 
 html[data-ui-theme="dark"] #teachersView .teacher-monitor-table td:nth-child(3) :is(.status-pill,.status-badge,.badge,.teacher-status,.status-chip)[class*="leave"]{
  color:#713c10!important;-webkit-text-fill-color:#713c10!important;
 }
+
+/* Exact teacher status component (portal.js uses .account-status). */
+html[data-ui-theme="dark"] #teachersView .teacher-monitor-table td:nth-child(3) .account-status,
+html[data-ui-theme="dark"] #teachersView .teacher-monitor-table td:nth-child(3) .account-status *{
+ color:#075d3c!important;-webkit-text-fill-color:#075d3c!important;
+ font-weight:850!important;text-shadow:none!important;
+}
+html[data-ui-theme="dark"] #teachersView .teacher-monitor-table td:nth-child(3) .account-status{
+ background:#dcfce7!important;border:1px solid #89d9a8!important;
+ padding:7px 13px!important;border-radius:999px!important;
+}
+html[data-ui-theme="dark"] #teachersView .teacher-monitor-table td:nth-child(3) .account-status:not(.active):not(.is-active){
+ color:#6b370c!important;-webkit-text-fill-color:#6b370c!important;
+ background:#fff1d6!important;border-color:#f0c784!important;
+}
