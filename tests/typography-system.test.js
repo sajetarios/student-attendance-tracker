@@ -47,7 +47,7 @@ test('Inter font faces and reusable readable typography tokens are defined', () 
 
 test('the offline shell precaches typography and font assets with a fresh version', () => {
   const sw = read('public/sw.js');
-  assert.match(sw, /attendigo-v164-sidebar-header-legibility/);
+  assert.ok(Number(sw.match(/const CACHE = "attendigo-v(\d+)-/)[1]) >= 166, 'PWA cache version must include the latest teacher roster CSS');
   for (const asset of ['/typography.css?v=1', '/fonts/InterVariable.woff2',
     '/fonts/InterVariable-Italic.woff2']) {
     assert.ok(sw.includes('"' + asset + '"'), asset);
