@@ -111,7 +111,7 @@ test('single unified Sync Center is triggered from the existing responsive heade
   assert.match(qr, /position:fixed;right:18px;bottom:18px/);
   assert.match(offlineSheet, /attendance-sync-center\.css\?v=4/);
   assert.match(offlineSheet, /attendance-sync-center\.js\?v=3/);
-  assert.match(sw, /attendigo-v148-admin-sync-header/);
+  assert.match(sw, /const CACHE = "attendigo-v\d+-/);
   assert.match(sw, /"\/attendance-sync-center\.css\?v=4"/);
   assert.match(sw, /"\/attendance-sync-center\.js\?v=3"/);
 });
