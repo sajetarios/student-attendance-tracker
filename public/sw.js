@@ -1,13 +1,14 @@
-const CACHE = "attendigo-v144-teacher-assignment-modal";
+const CACHE = "attendigo-v145-user-navigation";
 
 const SHELL = [
   "/assets/attendigo-sidebar-logo.png",
   "/attendigo-sidebar-adaptive.css?v=8",
+  "/user-nav-reorg.css?v=1",
   "/attendigo-sidebar-adaptive.js?v=3",
   "/assets/attendigo-logo.png",
   "/assets/attendigo-icon.png",
   "/attendigo-brand.css?v=2",
-  "/dashboard-icons.js?v=5",
+  "/dashboard-icons.js?v=6",
   "/dashboard-ui.css?v=wide5",
   "/dashboard-night.css?v=1",
   "/planner.css?v=3",
@@ -32,7 +33,7 @@ const SHELL = [
   "/portal.css?v=0.9.113",
   "/student-roster-toolbar.css?v=1",
   "/portal.css",
-  "/portal.js?v=0.9.129",
+  "/portal.js?v=0.9.130",
   "/sardo-monitor.js?v=1",
   "/sardo-monitor.css?v=1",
   "/schedule-form-layout.css?v=12",
@@ -46,9 +47,9 @@ const SHELL = [
   "/manual-folio.js?v=14",
   "/student-portal-accounts.css?v=4",
   "/student-portal-accounts.js?v=7",
-  "/admin-request-notifications.js?v=2",
+  "/admin-request-notifications.js?v=3",
   "/admin-request-notifications.css?v=2",
-  "/guardian-ui.js?v=4",
+  "/guardian-ui.js?v=5",
   "/guardian-ui.css?v=4",
   "/academic-admin.css?v=1",
   "/academic-admin.js?v=5",
