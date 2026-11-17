@@ -19,6 +19,14 @@
 .special-program-status.approved{background:#e1f8e8;color:#14613d}
 .special-program-status.rejected{background:#ffe5e8;color:#992c43}
 .special-program-review-actions{display:flex;gap:8px;flex-wrap:wrap}
+.special-program-empty-state{padding:14px 16px;border:1px dashed var(--line,#d8e3ef);border-radius:12px;background:var(--card,#fff);color:var(--muted,#657a92);font-size:13px;line-height:1.5}
+.special-program-request-history{margin-top:18px;padding-top:12px;border-top:1px solid var(--line,#d8e3ef)}
+.special-program-request-history>summary{cursor:pointer;padding:10px 2px;color:var(--ink,#1d3250);font-size:13px;font-weight:750}
+.special-program-request-history>summary:focus-visible{outline:2px solid var(--brand,#176ab1);outline-offset:4px;border-radius:4px}
+.special-program-request-history[open]>summary{margin-bottom:8px}
+html[data-ui-theme="dark"] .special-program-empty-state{background:#1b2b44;color:#b9cbe4;border-color:#465e7e}
+html[data-ui-theme="dark"] .special-program-request-history{border-color:#465e7e}
+html[data-ui-theme="dark"] .special-program-request-history>summary{color:#f3f7ff}
 #academicEnrollmentRows input[data-special-enroll]{width:18px;height:18px;accent-color:var(--brand,#176ab1);cursor:pointer}
 html[data-ui-theme="dark"] .special-program-chip{background:#1a3556;color:#bce1ff;border-color:#436f9d}
 html[data-ui-theme="dark"] .special-program-request-link{color:#9fcaff}
