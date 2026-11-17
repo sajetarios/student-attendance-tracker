@@ -384,9 +384,7 @@
    const prompt=action==='FINALIZE'
      ? 'Finalize the class register for '+state.date+'? All learners must have a synced manual mark or verified class QR check-in. You may reopen for corrections.'
      : 'Reopen the finalized class register for '+state.date+'? The action will be audited.';
-   const accepted=window.AppDialog?.confirm
-     ? await window.AppDialog.confirm(prompt,{title:action==='FINALIZE'?'Finalize class attendance':'Reopen class attendance',confirmText:action==='FINALIZE'?'Finalize':'Reopen'})
-     : window.confirm(prompt);
+   const accepted=await window.AppDialog.confirm(prompt,{title:action==='FINALIZE'?'Finalize class attendance':'Reopen class attendance',confirmText:action==='FINALIZE'?'Finalize':'Reopen'});
    if(!accepted)return;
    el('mfFinalize').disabled=true;
    try{
