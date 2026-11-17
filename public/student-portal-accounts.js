@@ -145,7 +145,7 @@
         : '';
       return '<div class="sap-request-row"><div class="sap-request-info"><strong>'+esc(r.fullName)+'</strong><p>'+
         esc(r.studentId)+' · '+esc(name)+' · '+esc(r.requestedBy || 'Teacher')+' · '+esc(dateLabel(r.createdAt))+
-        '</p><p>'+esc(r.reason)+'</p>'+(r.reviewNote?'<p>Review note: '+esc(r.reviewNote)+'</p>':'')+
+        '</p>'+(r.reason?'<p>'+esc(r.reason)+'</p>':'')+(r.reviewNote?'<p>Review note: '+esc(r.reviewNote)+'</p>':'')+
         '</div><span class="sap-chip '+chip+'">'+esc(r.status)+'</span>'+buttons+'</div>';
     }).join('') : '<p class="sap-empty">No student account requests yet.</p>';
   }
@@ -324,20 +324,38 @@
       announce(summary,hasError);
     }
   }
+  function configureRequestReason(action) {
+    const group=$('sapReasonGroup');
+    const field=$('sapReason');
+    const required=action==='ACTIVATE';
+    group.hidden=action==='CREATE';
+    field.required=required;
+    field.minLength=required?8:0;
+    field.maxLength=500;
+    $('sapReasonLabel').textContent=required?'Reason for reactivation (required)':'Additional context (optional)';
+    $('sapReasonHelp').textContent=required
+      ? 'Please briefly explain why this disabled account should be reactivated (8–500 characters).'
+      : 'You can leave this blank for routine password resets.';
+    field.placeholder=required?'Explain why reactivation is needed':'Optional details for School Admin';
+    if(action==='CREATE')field.value='';
+  }
   function showTeacherRequest(studentId,action) {
     if(!isTeacher())return;
     const student=students.find(s=>s.studentId===studentId);
     if(!student || pendingFor(studentId))return;
     activeStudent=student;
     bulkTargets=[];
-    $('sapRequestTitle').textContent='Request student portal access';
-    $('sapRequestSubmit').textContent='Send to School Admin';
+    $('sapRequestTitle').textContent=action==='CREATE'?'Create Student Account':action==='RESET'?'Request Password Reset':'Request Account Reactivation';
+    $('sapRequestSubmit').textContent=action==='CREATE'?'Request account':'Send to School Admin';
+    $('sapRequestCount').textContent='1';
+    $('sapRequestActionName').textContent=({CREATE:'New student login',RESET:'Password reset',ACTIVATE:'Account reactivation'}[action]||action);
     $('sapRequestStudentId').value=studentId;
     $('sapRequestType').value=action;
     $('sapRequestStudent').textContent=student.fullName+' · '+studentId+' · '+(action==='CREATE'?'Create portal login':action==='RESET'?'Reset password':'Reactivate portal login');
     $('sapRequestFeedback').textContent='';
+    configureRequestReason(action);
     $('sapRequestModal').hidden=false;
-    $('sapReason').focus();
+    (action==='ACTIVATE' ? $('sapReason') : $('sapRequestSubmit')).focus();
   }
   function showTeacherBulkRequest() {
     if (!isTeacher() || busy) return;
@@ -350,8 +368,10 @@
     }
     bulkTargets=targets.map(s=>({studentId:s.studentId,fullName:s.fullName}));
     activeStudent=null;
-    $('sapRequestTitle').textContent='Request access for '+targets.length+' students';
-    $('sapRequestSubmit').textContent='Submit '+targets.length+' requests';
+    $('sapRequestTitle').textContent=action==='CREATE'?'Create Student Accounts':'Request access for '+targets.length+' students';
+    $('sapRequestSubmit').textContent=action==='CREATE'?'Request '+targets.length+' accounts':'Submit '+targets.length+' requests';
+    $('sapRequestCount').textContent=String(targets.length);
+    $('sapRequestActionName').textContent=({CREATE:'New student logins',RESET:'Password resets',ACTIVATE:'Account reactivations'}[action]||action);
     $('sapRequestStudentId').value='';
     $('sapRequestType').value=action;
     $('sapRequestStudent').textContent=targets.length+' selected learners · '+
@@ -359,8 +379,9 @@
       ' · '+targets.slice(0,3).map(s=>s.fullName).join(', ')+(targets.length>3?' and '+(targets.length-3)+' more':'')+
       '. Each request requires School Admin approval; no passwords will be issued to teachers.';
     $('sapRequestFeedback').textContent='';
+    configureRequestReason(action);
     $('sapRequestModal').hidden=false;
-    $('sapReason').focus();
+    (action==='ACTIVATE' ? $('sapReason') : $('sapRequestSubmit')).focus();
   }
   function showReview(requestId,decision){
     if(!isAdmin())return;
@@ -421,8 +442,11 @@
     const button=$('sapRequestSubmit');
     const action=$('sapRequestType').value;
     const reason=$('sapReason').value.trim();
-    if(reason.length<8 || reason.length>500) {
-      $('sapRequestFeedback').textContent='Enter a reason of 8 to 500 characters.';return;
+    if(reason.length>500 || (action==='ACTIVATE' && reason.length<8)) {
+      $('sapRequestFeedback').textContent=action==='ACTIVATE'
+        ? 'Enter a reactivation reason of 8 to 500 characters.'
+        : 'Additional context must be no longer than 500 characters.';
+      return;
     }
     const targets=bulkTargets.length ? [...bulkTargets] : [{studentId:activeStudent.studentId,fullName:activeStudent.fullName}];
     const successes=new Set(), failures=[];
@@ -458,6 +482,12 @@
       }else{
         closeModal('sapRequestModal');
         summaryMessage=summary;
+        if(successes.size && window.AppDialog?.alert) {
+          window.AppDialog.alert(
+            successes.size+' student account '+(successes.size===1?'request has':'requests have')+' been submitted successfully. Awaiting School Admin approval.',
+            {title:'Requests submitted'}
+          ).catch(()=>{});
+        }
       }
     }finally{
       busy=false;button.disabled=false;renderDirectory();
