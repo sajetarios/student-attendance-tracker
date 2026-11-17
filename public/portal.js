@@ -2703,7 +2703,8 @@ let teacherActionMenuListenersInstalled = false;
     const teacherSelect = $('adviserTeacherSelect');
     if (teacherSelect) {
       const previous = teacherSelect.value;
-      teacherSelect.innerHTML = '<option value="">Choose an eligible teacher</option>' +
+      const placeholder = advisers.length ? 'Choose an eligible teacher' : 'No eligible Class Advisers found';
+      teacherSelect.innerHTML = `<option value="">${placeholder}</option>` +
         advisers.map(item => `<option value="${esc(item.userId)}">${esc(item.displayName)}</option>`).join('');
       if (advisers.some(item => String(item.userId) === previous)) teacherSelect.value = previous;
     }

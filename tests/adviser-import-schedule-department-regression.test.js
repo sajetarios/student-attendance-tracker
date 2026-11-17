@@ -31,7 +31,9 @@ test('Class Adviser assignment is list-first and guides users through enrolled s
   assert.match(portal, /function updateAdviserSections\(\)/);
   assert.match(portal, /Choose enrolled section/);
   assert.match(portal, /Special-program sections such as SPJ are included/);
-  assert.match(portal, /id="cancelAdviserAssignment"/);
+  assert.match(html, /id="cancelAdviserAssignment"/);
+  assert.match(portal, /item\.teacherDesignations\.includes\('CLASS_ADVISER'\) && item\.active/);
+  assert.match(portal, /No eligible Class Advisers found/);
 });
 test('School Administrator has a department management table with edit actions', () => {
   const html = read('public/portal.html');
@@ -46,7 +48,7 @@ test('School Administrator has a department management table with edit actions',
 
 test('SF2 sex is read-only and uses the saved student master-record value', () => {
   const portal = read('public/portal.js');
-  assert.match(portal, /const sexControl = esc\(student\.sex \|\| 'Not set'\)/);
+  assert.match(portal, /esc\(student\.sex\|\|'—'\)/);
   assert.doesNotMatch(portal, /data-sf2-sex/);
   assert.doesNotMatch(portal, /sf2Rows'\)\.addEventListener\('change'/);
   assert.doesNotMatch(portal, /\/api\/sf2\/students\//);
@@ -58,7 +60,7 @@ test('SF2 sex is read-only and uses the saved student master-record value', () =
 test('Class Advisers load the schedules assigned to their advisory section', () => {
   const portal = read('public/portal.js');
   const server = read('server.js');
-  assert.match(portal, /role === 'TEACHER' && !\(teacherHas\('SUBJECT_TEACHER'\) \|\| teacherHas\('CLASS_ADVISER'\)\)/);
+  assert.match(portal, /\$\('schedulesNav'\)\.hidden = gateKeeper \|\| \(teacher && !\(subjectTeacher \|\| classAdviser\)\)/);
   assert.match(portal, /View every subject schedule assigned to your advisory section/);
   assert.match(portal, /teacherHas\('SUBJECT_TEACHER'\) \|\| teacherHas\('CLASS_ADVISER'\)\) views\.push\('schedules'\)/);
   const start = server.indexOf("app.get('/api/periods'");
