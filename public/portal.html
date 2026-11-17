@@ -148,7 +148,7 @@
   <link rel="stylesheet" href="/form-system.css?v=1">
   <link rel="stylesheet" href="/dashboard-ui.css?v=wide5">
   <link rel="stylesheet" href="/dashboard-night.css?v=1">
-  <link rel="stylesheet" href="/dashboard-polish.css?v=2">
+  <link rel="stylesheet" href="/dashboard-polish.css?v=2">\n  <link rel="stylesheet" href="/sardo-monitor.css?v=1">
   <link rel="stylesheet" href="/photo-editor.css?v=2">
   <script src="/dashboard-icons.js?v=5"></script>
   <script src="/dashboard-appearance.js?v=3"></script>
@@ -682,10 +682,24 @@ body.dark-mode .content-wrap > .school-heading.is-compact,body[data-theme="dark"
             </section>
             <section class="surface-card sardo-card" id="sardoCard">
               <div class="card-heading">
-                <div><h3>SARDO Monitoring</h3><p>Five consecutive school days of confirmed unexcused absences</p></div>
-                <span class="sardo-status" id="sardoStatus">Setup required</span>
+                <div><h3>SARDO Monitoring</h3><p>Five consecutive instructional days of adviser-confirmed unexcused absences</p></div>
+                <div class="sardo-toolbar">
+                  <span class="sardo-status" id="sardoStatus" role="status">Loading</span>
+                  <button type="button" class="outline-button" id="sardoRefresh">↻ Refresh</button>
+                </div>
               </div>
-              <div class="sardo-empty" id="sardoMessage">Loading SARDO monitoring status…</div>
+              <div class="sardo-metrics" aria-label="SARDO case summary">
+                <div><strong id="sardoOpenCount">—</strong><span>Cases needing follow-up</span></div>
+                <div><strong id="sardoResolvedCount">—</strong><span>Resolved cases</span></div>
+                <div><strong id="sardoConflictCount">—</strong><span>Conflicting learner-days</span></div>
+              </div>
+              <div class="sardo-controls">
+                <input type="search" id="sardoSearch" placeholder="Search learner, ID, grade or section" aria-label="Search SARDO cases">
+                <label><input type="checkbox" id="sardoShowResolved"> Show resolved</label>
+              </div>
+              <p class="sardo-empty" id="sardoMessage" role="status" aria-live="polite">Loading confirmed SARDO monitoring data…</p>
+              <div class="sardo-list" id="sardoRows" aria-live="polite"></div>
+              <p class="sardo-footnote">Only adviser-confirmed full-day absences qualify. School closures are excluded; pending records are not counted as absences. Follow-ups are logged separately from official attendance and SF2 corrections.</p>
             </section>
             <div class="dashboard-columns">
               <section class="surface-card recent-card" id="recentActivityCard">
@@ -1498,7 +1512,7 @@ body.dark-mode .content-wrap > .school-heading.is-compact,body[data-theme="dark"
   <script src="/schedule-workspace-ui.js?v=3" defer></script>
   <script src="/photo-editor.js?v=9" defer></script>
   <script src="/offline-attendance.js?v=2" defer></script>
-  <script src="/portal.js?v=0.9.115" defer></script><script src="/parent-dashboard.js?v=2" defer></script>
+  <script src="/portal.js?v=0.9.116" defer></script>\n  <script src="/sardo-monitor.js?v=1" defer></script><script src="/parent-dashboard.js?v=2" defer></script>
   <script src="/platform-plans-ui.js?v=7" defer></script>
   <script src="/platform-school-health.js?v=1" defer></script>
   <script src="/planner.js?v=4" defer></script>
