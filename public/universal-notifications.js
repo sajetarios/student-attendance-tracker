@@ -90,6 +90,8 @@
     button.append(text('span', 'universal-notice-icon', glyph));
     const content = text('span', 'universal-notice-content', '');
     content.append(text('strong', null, item.title), text('small', null, item.body));
+    if (item.requestId) content.append(text('small', 'universal-request-reference', 'Request ' + item.requestId));
+    if (item.status) content.append(text('small', 'universal-request-status', item.status.replace(/_/g, ' ')));
     content.append(text('time', null, fmt(item.updatedAt || item.createdAt)));
     button.append(content);
     button.addEventListener('click', () => openItem(item));
