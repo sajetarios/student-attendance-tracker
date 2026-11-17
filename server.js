@@ -58,7 +58,8 @@ app.use((req, res, next) => {
   next();
 });
 app.use(express.json({ limit: '10mb', verify(req, _res, buffer) {
-  if (req.path === '/api/cloud-sync/receive') req.rawBody = Buffer.from(buffer);
+  if (['/api/cloud-sync/receive','/api/cloud-sync/receive-operations',
+       '/api/cloud-sync/health-school'].includes(req.path)) req.rawBody = Buffer.from(buffer);
 } }));
 
 registerAuthRoutes(app, pool);
