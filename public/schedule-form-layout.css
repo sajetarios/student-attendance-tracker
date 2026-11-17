@@ -32,3 +32,6 @@ html[data-ui-theme="dark"] #scheduleForm input[readonly] {background:#233954!imp
 @media(max-width:900px){
  #scheduleForm .schedule-time-selector {grid-template-columns:minmax(0,1fr)!important}
 }
+
+#schedulesView .schedule-activity-label {display:block;margin-top:4px;color:#315d90;font-size:12px;font-weight:750;line-height:1.4}
+html[data-ui-theme="dark"] #schedulesView .schedule-activity-label {color:#b0d6ff}
