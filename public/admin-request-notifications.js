@@ -14,9 +14,9 @@
    if(!response.ok)throw Error(data.error||'Unable to load school requests.');
    return data;
  };
- let fetching=false,studentPending=0,guardianPending=0,photoPending=0,photoRequests=[];
+ let fetching=false,studentPending=0,guardianPending=0,photoPending=0,programPending=0,photoRequests=[];
  function render(){
-   const total=studentPending+guardianPending+photoPending;
+   const total=studentPending+guardianPending+photoPending+programPending;
    const badge=$('adminNotificationCount');
    badge.hidden=total===0;
    badge.textContent=String(total>99?'99+':total);
@@ -25,6 +25,7 @@
    $('adminStudentRequestCount').textContent=String(studentPending);
    $('adminGuardianRequestCount').textContent=String(guardianPending);
    $('adminPhotoRequestCount').textContent=String(photoPending);
+   if($('adminProgramRequestCount'))$('adminProgramRequestCount').textContent=String(programPending);
    bell.setAttribute('aria-label',total?total+' pending school approval requests':'No pending school approval requests');
    bell.title=total?total+' requests awaiting your review':'School approval inbox';
    $('adminNotificationFoot').textContent=total
@@ -37,8 +38,8 @@
    const trigger=$('adminNotificationRefresh');
    if(trigger)trigger.disabled=true;
    try{
-     const [studentResult,guardianResult,photoResult]=await Promise.allSettled([
-       api('/api/student-portal/requests'),api('/api/guardians/requests'),api('/api/photos/requests')
+     const [studentResult,guardianResult,photoResult,programResult]=await Promise.allSettled([
+       api('/api/student-portal/requests'),api('/api/guardians/requests'),api('/api/photos/requests'),api('/api/special-programs/requests')
      ]);
      let errors=[];
      if(studentResult.status==='fulfilled'){
@@ -51,6 +52,8 @@
        photoRequests=(photoResult.value.requests||[]);
        photoPending=photoRequests.length;
      }else errors.push('Photo requests unavailable');
+     if(programResult.status==='fulfilled')programPending=(programResult.value.requests||[]).filter(r=>r.status==='PENDING').length;
+     else errors.push('Program requests unavailable');
      render();
      if(errors.length)$('adminNotificationFoot').textContent=errors.join(' · ')+'. Tap ↻ to retry.';
    }finally{fetching=false;if(trigger)trigger.disabled=false;}
