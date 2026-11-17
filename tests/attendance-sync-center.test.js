@@ -97,6 +97,7 @@ test('floating Sync Center does not cover the dynamically injected Class QR shor
   assert.match(css, /padding-bottom:\s*calc\(155px \+ env\(safe-area-inset-bottom, 0px\)\)/);
   assert.match(portal, /attendance-sync-center\.css\?v=2/);
   assert.match(offlineSheet, /attendance-sync-center\.css\?v=2/);
-  assert.match(sw, /attendigo-v142-sync-action-clearance/);
+  const cacheVersion = sw.match(/const CACHE = "attendigo-v(\\d+)-[^"]+";/);
+  assert.ok(cacheVersion && Number(cacheVersion[1]) >= 142, 'Cache must invalidate the previous Sync Center shell');
   assert.match(sw, /"\/attendance-sync-center\.css\?v=2"/);
 });
