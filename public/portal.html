@@ -162,7 +162,7 @@
 <link rel="stylesheet" href="/attendigo-brand.css?v=2">
 <link rel="stylesheet" href="/student-roster-toolbar.css?v=2">
 <link rel="stylesheet" href="/learner-roster-view.css?v=1">
-<link rel="stylesheet" href="/teacher-learner-roster.css?v=2">
+<link rel="stylesheet" href="/teacher-learner-roster.css?v=3">
 <link rel="manifest" href="/manifest.webmanifest">
   <link rel="stylesheet" href="/attendigo-dark-unified.css?v=1">
   <link rel="stylesheet" href="/planner.css?v=3">
@@ -1036,7 +1036,7 @@ body.dark-mode .content-wrap > .school-heading.is-compact,body[data-theme="dark"
               </div>
               <div id="studentRosterPanel">
               <div class="student-roster-tools">
-                <div><h3>Registered students</h3><p id="studentRosterDescription">Search and filter existing learner records by name, student ID, grade, section, or status. Opening a learner does not create another enrollment or attendance record. QR previews remain tied to each student's existing private token; editing details does not replace the QR code.</p></div>
+                <div><h3 id="studentRosterHeading">Registered students</h3><p id="studentRosterDescription">Search and filter existing learner records by name, student ID, grade, section, or status. Opening a learner does not create another enrollment or attendance record. QR previews remain tied to each student's existing private token; editing details does not replace the QR code.</p></div>
                 <p id="studentDepartmentScopeNote" class="student-scope-banner" hidden>School-wide learner roster. Department Heads may select and update shared student fields only for sections scheduled in their own department. Individual student identity, photos, and login accounts remain restricted.</p>
                 <div class="student-filter-row"><label class="student-name-filter">Search by name or student ID <input id="studentRosterSearch" type="search" placeholder="Type a student name or ID…" aria-describedby="studentRosterDescription"></label><label>Filter by grade <select id="bulkQrGrade"><option value="ALL">All grades</option><option>Grade 7</option><option>Grade 8</option><option>Grade 9</option><option>Grade 10</option></select></label><label>Filter by section <select id="bulkQrSection"><option value="ALL">All sections</option></select></label><label>Special program <select id="studentSpecialProgramFilter" aria-label="Filter learners by special program"><option value="ALL">All programs</option><option value="NONE">Not assigned</option></select></label><label id="studentStatusFilterWrap" hidden>Record status <select id="studentStatusFilter"><option value="ACTIVE">Active</option><option value="INACTIVE">Inactive</option><option value="ARCHIVED">Archived</option><option value="ALL">All records</option></select></label></div>
                 <div class="student-roster-viewbar"><label for="studentRosterView">List view <select id="studentRosterView" aria-label="Learner list arrangement"><option value="all">All learners</option><option value="grouped">Grouped by sex</option></select></label><strong id="studentRosterSexCounts" aria-live="polite">Learner counts loading…</strong></div>
@@ -1650,7 +1650,7 @@ body.dark-mode .content-wrap > .school-heading.is-compact,body[data-theme="dark"
   <script src="/offline-attendance.js?v=5" defer></script>
   <script src="/attendance-sync-center.js?v=3" defer></script>
   <script src="/learner-roster-view.js?v=1" defer></script>
-  <script src="/portal.js?v=0.9.139" defer></script>
+  <script src="/portal.js?v=0.9.140" defer></script>
   <script src="/teacher-roster-popover.js?v=2" defer></script>
   <script src="/sardo-monitor.js?v=1" defer></script><script src="/parent-dashboard.js?v=2" defer></script>
   <script src="/platform-plans-ui.js?v=7" defer></script>
