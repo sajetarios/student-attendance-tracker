@@ -22,3 +22,13 @@
  #scheduleForm .form-actions {grid-template-columns:1fr}
  #scheduleForm .form-actions .inline-feedback {grid-column:1}
 }
+
+/* The school timetable is the source of truth for linked class schedule times. */
+#scheduleForm .schedule-time-selector {margin-bottom:14px}
+#scheduleForm .schedule-block-label {display:block;margin-top:12px}
+#scheduleForm input[readonly] {background:#f0f5fa!important;color:#244463!important;cursor:default}
+#scheduleForm #scheduleTemplatePeriod:disabled {opacity:.82}
+html[data-ui-theme="dark"] #scheduleForm input[readonly] {background:#233954!important;color:#e1edfc!important;border-color:#526a87!important}
+@media(max-width:900px){
+ #scheduleForm .schedule-time-selector {grid-template-columns:minmax(0,1fr)!important}
+}
