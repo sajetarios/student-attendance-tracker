@@ -1,6 +1,6 @@
 'use strict';
 /* Local, dependency-free square photo editor. Source images retain aspect ratio.
-   Each saved image is a normalized 512×512 PNG and 128×128 thumbnail,
+   Each saved image is a normalized 512×512 WebP or PNG and 128×128 thumbnail,
    while the original image is sent privately for future re-cropping. */
 (function(){
  const esc=x=>String(x??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -19,7 +19,9 @@
   // fall back to PNG, so verify the resulting blob before uploading.
   return new Promise((resolve,reject)=>canvas.toBlob(b=>{
    if(!b)return reject(new Error('Your browser could not export this photo.'));
-   if(b.type!=='image/webp')return reject(new Error('This browser could not export the cropped photo as WebP. Please update your browser and try again.'));
+   // iOS Safari can fall back to PNG for WebP canvas export; the API
+   // validates both formats by their actual image signatures.
+   if(b.type!=='image/webp'&&b.type!=='image/png')return reject(new Error('The cropped image format is not supported.'));
    resolve(b);
   },'image/webp',0.9));
  }
