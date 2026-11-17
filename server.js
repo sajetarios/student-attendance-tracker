@@ -1724,6 +1724,17 @@ function isValidSchoolDate(value) {
 app.get('/health', (_req, res) => res.json({ ok: true, service: 'school-attendance-api', build: 'roles-sf2-workflow-responsive-2026-11-11', security: 'session-and-school-device-auth' }));
 
 // Grade-to-section options for student registration. Sections are derived from active class schedules.
+app.post('/api/sections', authenticateSchoolClient, requireSchoolRoles('SCHOOL_ADMIN'), async (req,res) => {
+ const gradeLevel=String(req.body?.gradeLevel||'').trim();
+ const section=String(req.body?.section||'').trim();
+ if (!/^Grade (?:[1-9]|1[0-2])$/.test(gradeLevel) || !/^[a-zA-Z0-9][a-zA-Z0-9 ._-]{0,99}$/.test(section))
+   return res.status(400).json({error:'Enter a valid grade and section name (up to 100 characters).'});
+ try {
+   const result=await pool.query('INSERT INTO school_sections(school_id,grade_level,section_name) VALUES($1,$2,$3) ON CONFLICT (school_id,grade_level,section_name) DO UPDATE SET active=TRUE RETURNING grade_level AS "gradeLevel",section_name AS section',[req.auth.schoolId,gradeLevel,section]);
+   return res.status(201).json({section:result.rows[0]});
+ } catch(err) { console.error('Create section failed:',err.message);return res.status(500).json({error:'Could not create section.'}); }
+});
+
 app.get('/api/sections', authenticateSchoolClient, requireSchoolUser, async (req, res) => {
   const gradeLevel = typeof req.query.gradeLevel === 'string' ? req.query.gradeLevel.trim() : '';
   if (!gradeLevel || gradeLevel.length > 40) return res.status(400).json({ error: 'Select a valid grade level.' });
@@ -1765,7 +1776,7 @@ app.get('/api/sections', authenticateSchoolClient, requireSchoolUser, async (req
         "AND COALESCE(en.grade_level,s.grade_level)=$2";
     }
     const result = await pool.query(
-      "SELECT DISTINCT section FROM (" + sectionSql + ") available_sections WHERE section IS NOT NULL AND TRIM(section)<>'' ORDER BY section",
+      "SELECT DISTINCT section FROM (" + sectionSql + " UNION SELECT section_name AS section FROM school_sections WHERE school_id=$1 AND grade_level=$2 AND active=TRUE) available_sections WHERE section IS NOT NULL AND TRIM(section)<>'' ORDER BY section",
       params
     );
     return res.json({ sections: result.rows.map(row => row.section) });
