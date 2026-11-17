@@ -4977,7 +4977,7 @@ let teacherActionMenuListenersInstalled = false;
   $('periodGrade')?.addEventListener('change', () => loadScheduleSections($('periodGrade').value));
   const addSectionButton = $('createScheduleSection');
   if (addSectionButton) {
-    addSectionButton.hidden = user.role !== 'SCHOOL_ADMIN';
+    addSectionButton.hidden = true; // User is populated asynchronously during init().
     addSectionButton.addEventListener('click', async () => {
       const gradeLevel = $('periodGrade')?.value;
       if (!gradeLevel) { showToast('Choose a grade first.', true); return; }
@@ -5641,6 +5641,7 @@ $('teacherCoverageCard')?.addEventListener('click', event => {
   });
 
   init().then(() => {
+    if ($('createScheduleSection')) $('createScheduleSection').hidden = user?.role !== 'SCHOOL_ADMIN';
     if ($('studentForm') && !$('studentForm').hidden) loadSectionsForGrade($('newGrade').value);
     if (user?.role === 'DEPARTMENT_HEAD') {
       window.setInterval(() => {
