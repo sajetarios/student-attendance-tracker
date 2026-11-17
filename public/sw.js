@@ -1,4 +1,4 @@
-const CACHE = "attendigo-v150-special-program-roles";
+const CACHE = "attendigo-v151-special-program-batch";
 
 const SHELL = [
   "/assets/attendigo-sidebar-logo.png",
@@ -33,7 +33,7 @@ const SHELL = [
   "/portal.css?v=0.9.113",
   "/student-roster-toolbar.css?v=2",
   "/portal.css",
-  "/portal.js?v=0.9.134",
+  "/portal.js?v=0.9.135",
   "/sardo-monitor.js?v=1",
   "/sardo-monitor.css?v=1",
   "/schedule-form-layout.css?v=12",
@@ -54,8 +54,9 @@ const SHELL = [
   "/guardian-ui.css?v=4",
   "/academic-admin.css?v=1",
   "/academic-admin.js?v=5",
-  "/special-program-ui.js?v=1",
-  "/special-program-ui.css?v=1",
+  "/special-program-ui.js?v=2",
+  "/special-program-batch-ui.js?v=1",
+  "/special-program-ui.css?v=2",
   "/app-dialog.css?v=1",
   "/app-dialog.js?v=1",
   "/sw-refresh.js?v=3",
