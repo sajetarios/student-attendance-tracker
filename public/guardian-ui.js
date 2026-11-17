@@ -131,7 +131,8 @@
     }
     if(admin()){
       const button=$('guardianApprovalsNav');
-      if(button) button.hidden=false;
+      // The unified approval inbox is the only visible School Admin requests entry.
+      // Keep the legacy guardian trigger hidden for internal compatibility.
       refreshApprovalCount();
     }
   }
