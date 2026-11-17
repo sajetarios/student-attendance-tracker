@@ -32,3 +32,49 @@ html[data-ui-theme="dark"] .special-program-status.approved{background:#164b3c;c
 html[data-ui-theme="dark"] .special-program-status.rejected{background:#632e3c;color:#ffc4cf}
 @media(max-width:800px){.special-program-review-row{align-items:flex-start;flex-wrap:wrap}.special-program-review-row>div:first-child{flex-basis:100%}.special-program-bulk-controls>*{flex:1;min-width:min(100%,220px)}}
 @media(max-width:540px){.special-program-review-actions{width:100%}.special-program-review-actions button{flex:1}.special-program-bulk-controls{display:grid;grid-template-columns:1fr}.special-program-bulk-controls>*{width:100%}}
+
+/* Bulk-change preview and grouped School Admin review; touch-friendly without overflowing mobile. */
+.special-program-batch-dialog{width:min(94vw,790px);max-width:790px;max-height:90vh;overflow-y:auto}
+.special-program-preview-summary{font-size:13px;font-weight:750;color:var(--ink,#234463);margin:8px 0}
+.special-program-preview-rows{max-height:310px;overflow-y:auto;border:1px solid var(--line,#d8e3ee);border-radius:13px;background:var(--card,#fff);margin:10px 0}
+.special-batch-preview-row{display:grid;grid-template-columns:22px minmax(130px,1.2fr) auto minmax(160px,1fr);align-items:center;gap:12px;padding:12px 13px;border-bottom:1px solid var(--line,#d8e3ee);cursor:pointer}
+.special-batch-preview-row:last-child{border-bottom:0}
+.special-batch-preview-row.ineligible{opacity:.76;cursor:default}
+.special-batch-preview-identity{min-width:0;overflow-wrap:anywhere}
+.special-batch-preview-identity strong,.special-batch-preview-identity small{display:block}
+.special-batch-preview-identity strong{font-size:13px}
+.special-batch-preview-identity small,.special-batch-preview-reason{font-size:11px;line-height:1.45;color:var(--muted,#66788c)}
+.special-batch-eligibility{padding:4px 8px;border-radius:12px;font-size:11px;font-weight:800}
+.special-batch-eligibility.ok{background:#dbf6e7;color:#166144}
+.special-batch-eligibility.skip{background:#fff0db;color:#844f12}
+.special-program-review-heading{font-size:14px;margin:20px 0 9px}
+.special-batch-admin-group{background:var(--card,#fff);border:1px solid var(--line,#d8e3ee);border-radius:14px;padding:15px;margin:12px 0}
+.special-batch-admin-head{display:flex;align-items:center;gap:12px;justify-content:space-between}
+.special-batch-admin-head strong,.special-batch-admin-head small{display:block}
+.special-batch-admin-head strong{font-size:14px}
+.special-batch-admin-head small,.special-batch-admin-reason{font-size:12px;color:var(--muted,#65758d);margin-top:5px}
+.special-batch-select-all{display:flex;gap:9px;align-items:center;font-size:13px;font-weight:700;margin:14px 0 6px}
+.special-batch-admin-learners{max-height:360px;overflow:auto;border:1px solid var(--line,#d8e3ee);border-radius:10px;margin-bottom:12px}
+.special-batch-admin-student{display:flex;align-items:center;gap:11px;padding:10px 12px;border-bottom:1px solid var(--line,#d8e3ee)}
+.special-batch-admin-student:last-child{border-bottom:0}
+.special-batch-admin-student>span:nth-child(2){flex:1;min-width:0}
+.special-batch-admin-student strong,.special-batch-admin-student small{display:block;font-size:12px;overflow-wrap:anywhere}
+.special-batch-admin-student small{color:var(--muted,#66788c);font-size:11px}
+.special-batch-review-note{display:flex;flex-direction:column;gap:6px;font-weight:700;font-size:12px;margin:8px 0}
+.special-batch-review-note textarea{width:100%;border-radius:9px;border:1px solid var(--line,#cbd5e1);padding:10px;background:var(--card,#fff);color:var(--ink,#162b46)}
+.special-program-batch-dialog input[type=checkbox],.special-batch-admin-group input[type=checkbox]{width:18px;height:18px;flex-shrink:0;accent-color:#2164af}
+html[data-ui-theme="dark"] .special-program-preview-rows,
+html[data-ui-theme="dark"] .special-batch-admin-group,
+html[data-ui-theme="dark"] .special-batch-admin-learners{background:var(--night-raised,#172842);border-color:var(--night-border,#4a607c);color:var(--night-text,#ecf3ff)}
+html[data-ui-theme="dark"] .special-batch-preview-row,
+html[data-ui-theme="dark"] .special-batch-admin-student{border-color:var(--night-border,#4a607c)}
+html[data-ui-theme="dark"] .special-batch-preview-identity small,
+html[data-ui-theme="dark"] .special-batch-preview-reason,
+html[data-ui-theme="dark"] .special-batch-admin-head small,
+html[data-ui-theme="dark"] .special-batch-admin-reason,
+html[data-ui-theme="dark"] .special-batch-admin-student small{color:var(--night-muted,#b8cbdf)}
+html[data-ui-theme="dark"] .special-program-preview-summary{color:var(--night-text,#ecf3ff)}
+html[data-ui-theme="dark"] .special-batch-review-note textarea{background:#20344f;border-color:#4a607c;color:#f0f6ff}
+html[data-ui-theme="dark"] .special-batch-eligibility.ok{background:#144c3c;color:#b9f5d5}
+html[data-ui-theme="dark"] .special-batch-eligibility.skip{background:#63431d;color:#ffe1a9}
+@media(max-width:650px){.special-batch-preview-row{grid-template-columns:22px 1fr auto;gap:8px}.special-batch-preview-reason{grid-column:2 / -1}.special-batch-admin-head{align-items:flex-start;flex-wrap:wrap}.special-batch-admin-group{padding:11px}.special-program-batch-dialog{width:95vw}}
