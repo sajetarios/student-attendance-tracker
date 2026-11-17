@@ -58,6 +58,8 @@ test('requester queue auto-clears reviewed special-program requests without dele
   assert.match(ui,/const reviewed=items\.filter\(item=>item\.status!=='PENDING'\)/);
   assert.match(ui,/renderMyRequests\(d\.requests\|\|\[\]\)/);
   assert.match(ui,/history\.hidden=!reviewed\.length/);
+  assert.match(ui,/setInterval\(\(\)=>\{if\(!document\.hidden/);
+  assert.match(ui,/addEventListener\('visibilitychange'/);
   assert.match(ui,/reviewed\.length\?reviewsTable\(reviewed,false\)/);
   assert.match(portal,/id="mySpecialProgramRequestsHistory"[^>]+hidden/);
   assert.match(portal,/id="mySpecialProgramRequestsHistoryList"/);
