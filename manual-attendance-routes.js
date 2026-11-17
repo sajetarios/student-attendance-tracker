@@ -1,4 +1,5 @@
 'use strict';
+const {queueCloudOperation} = require('./cloud-mixed-operations');
 const validDate = value => typeof value === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(value) && !Number.isNaN(Date.parse(value+'T00:00:00Z'));
 function registerManualAttendanceRoutes(app,pool,{authenticateSchoolClient,requireSchoolRoles}) {
  const auth=[authenticateSchoolClient,requireSchoolRoles('TEACHER')];
@@ -45,6 +46,7 @@ function registerManualAttendanceRoutes(app,pool,{authenticateSchoolClient,requi
      const signed=await client.query('SELECT 1 FROM class_attendance_finalizations WHERE school_id=$1 AND period_id=$2 AND school_date=$3 AND finalized=TRUE',[req.auth.schoolId,periodId,date]);
        if(signed.rowCount){await client.query('ROLLBACK');return res.status(409).json({error:'This register is finalized. Reopen it before editing marks.'});}
        // Scope is checked in the database, including the active school-year enrollment.
+     const changed=[];
      for(const m of marks){
        const r=await client.query(`SELECT 1 FROM students s
          LEFT JOIN LATERAL (SELECT en.grade_level,en.section FROM student_enrollments en JOIN school_years sy ON sy.school_id=en.school_id AND sy.school_year_id=en.school_year_id WHERE en.school_id=s.school_id AND en.student_id=s.student_id AND sy.status='ACTIVE' AND en.enrollment_status='ENROLLED' ORDER BY en.created_at DESC LIMIT 1) active_enrollment ON TRUE
@@ -80,7 +82,15 @@ function registerManualAttendanceRoutes(app,pool,{authenticateSchoolClient,requi
          await client.query('ROLLBACK');
          return res.status(409).json({error:'Another change was saved while this sheet was syncing. Refresh and review it before retrying.',studentId:m.studentId,code:'STALE_MANUAL_MARK'});
        }
+       changed.push({studentId:m.studentId,status:m.status,note,
+         expectedRevision:prior?Number(prior.revision):0,revision:Number(saved.rows[0].revision)});
      }
+     // Enqueue the exact accepted local correction snapshot in this transaction.
+     // If the cloud is unavailable, the queue persists without altering attendance.
+     if(changed.length)await queueCloudOperation(client,{
+       schoolId:req.auth.schoolId,actorUserId:req.auth.userId,periodId,date,
+       type:'MANUAL_MARKS',marks:changed
+     });
      await client.query('COMMIT');
      return res.json({saved:marks.length,date,periodId});
    }catch(err){await client.query('ROLLBACK').catch(()=>{});console.error('Manual attendance sync:',err.message);return res.status(500).json({error:'Unable to sync manual attendance.'});}
