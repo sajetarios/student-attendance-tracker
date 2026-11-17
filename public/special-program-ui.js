@@ -75,7 +75,9 @@
     updateSelectedCount();
   }
   function updateSelectedCount(){
-    message('specialProgramBulkFeedback',selected.size+' learner'+(selected.size===1?'':'s')+' selected. Maximum 200 per batch.');
+    message('specialProgramBulkFeedback',selected.size+' learner'+(selected.size===1?'':'s')+' selected for direct assignment. Maximum 200 per batch.');
+    $('specialProgramAssignSelected').disabled=!selected.size||!$('specialProgramBulkType').value;
+    $('specialProgramRemoveSelected').disabled=!selected.size;
   }
   const refreshAcademic=async()=>{
     const picker=$('academicSelectedYear');
@@ -90,12 +92,15 @@
     if(ids.length>200)return message('specialProgramBulkFeedback','Select no more than 200 learners per batch.',true);
     if(action==='ASSIGN'&&!programTypeId)return message('specialProgramBulkFeedback','Choose the special program first.',true);
     const program=catalog.find(p=>p.programTypeId===programTypeId);
-    const title=action==='ASSIGN'?'Assign primary program':'Remove primary program';
-    if(!await confirmAction((action==='ASSIGN'?'Assign '+(program?.code||'the selected program')+' to ':'Remove the active primary program from ')+ids.length+' selected learners? This preserves previous program history.',title))return;
+    const title=action==='ASSIGN'?'Set primary program in bulk':'Remove primary program in bulk';
+    const same=ids.filter(id=>{const current=(enrollments.get(id)?.programs||[]).find(p=>p.primary)?.programTypeId||null;return action==='ASSIGN'?String(current||'')===String(programTypeId):!current;}).length;
+    const toChange=ids.length-same;
+    const summary=ids.length+' selected · '+toChange+' to update · '+same+' already '+(action==='ASSIGN'?'assigned':'without a primary program')+'.';
+    if(!await confirmAction(summary+'\n'+(action==='ASSIGN'?'Set '+(program?.code||'the selected program')+' as primary?':'Remove current primary programs?')+' Unchanged learners will be skipped. Existing approvals will remain available in the review panel.',title))return;
     for(const id of ['specialProgramAssignSelected','specialProgramRemoveSelected'])$(id).disabled=true;
     try{
       const r=await api('/api/special-programs/assignments/bulk',{method:'POST',body:JSON.stringify({action,enrollmentIds:ids,programTypeId:action==='ASSIGN'?programTypeId:null})});
-      selected.clear();message('specialProgramBulkFeedback',r.count+' learner program assignments updated.');
+      selected.clear();message('specialProgramBulkFeedback',r.count+' updated · '+(r.unchangedCount||0)+' already correct. Review any outstanding change requests in the approval panel above.');
       await refreshAcademic();
       document.dispatchEvent(new Event('attendigo:requests-changed'));
     }catch(e){message('specialProgramBulkFeedback',e.message,true);}
@@ -189,6 +194,7 @@
       }).observe(academicRows,{childList:true});
       $('academicSelectedYear')?.addEventListener('change',()=>loadEnrollmentMap().catch(e=>message('specialProgramBulkFeedback',e.message,true)));
       $('academicAdminNav')?.addEventListener('click',()=>{loadCatalog().catch(e=>message('specialProgramBulkFeedback',e.message,true));loadEnrollmentMap().catch(e=>message('specialProgramBulkFeedback',e.message,true));loadAdminRequests();});
+      $('specialProgramBulkType')?.addEventListener('change',updateSelectedCount);
       $('specialProgramSelectVisible')?.addEventListener('click',()=>{
         const eligible=[...enrollments.values()].filter(e=>e.status==='ENROLLED');
         const ids=eligible.map(e=>e.enrollmentId).slice(0,200);
@@ -206,8 +212,9 @@
         if(!await confirmAction((decision==='APPROVE'?'Approve':'Reject')+' this requested program change?',decision==='APPROVE'?'Approve enrollment change':'Reject program request'))return;
         button.disabled=true;
         try{
-          await api('/api/special-programs/requests/'+encodeURIComponent(id)+'/review',{method:'POST',body:JSON.stringify({decision})});
-          await loadAdminRequests();await refreshAcademic();
+          const outcome=await api('/api/special-programs/requests/'+encodeURIComponent(id)+'/review',{method:'POST',body:JSON.stringify({decision})});
+          await loadAdminRequests();
+          if(outcome.alreadySatisfied)message('specialProgramReviewFeedback','Approved and reconciled: this learner already had the requested program. No duplicate assignment was created.');await refreshAcademic();
           document.dispatchEvent(new Event('attendigo:requests-changed'));
         }catch(error){message('specialProgramReviewFeedback',error.message,true);}
         finally{button.disabled=false;}
