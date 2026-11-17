@@ -50,7 +50,8 @@ const REQUIRED_MIGRATIONS = [
   '042_schedule_activity_type.sql',
   '043_sardo_monitoring_followups.sql',
   '044_class_attendance_finalizations.sql',
-  '045_manual_attendance_optimistic_lock.sql'
+  '045_manual_attendance_optimistic_lock.sql',
+  '046_cloud_mixed_attendance_operations.sql'
 ];
 
 function checksum(content) {
