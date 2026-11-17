@@ -13,7 +13,7 @@ const programs = read('public/special-program-ui.js');
 
 test('teacher roster compresses identity, class, QR and guardian without changing admin/dept layouts', () => {
   assert.match(main, /rosterTable\?\.classList\.toggle\('teacher-roster-compact', teacher\)/);
-  assert.match(main, /teacher\s*\? selectHeader \+ '<th>Learner<\/th><th>Class<\/th>/);
+  assert.match(main, /teacher\s*\? selectHeader \+ '<th>Learner<\/th><th>Class \/ Program<\/th>/);
   assert.match(main, /teacher \? \(4 \+ Number\(showSelectionColumn\)\)/);
   for (const name of ['teacher-roster-identity', 'teacher-roster-guardian','teacher-roster-status','teacher-roster-qr'])
     assert.ok(main.includes(name), name);
