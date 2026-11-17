@@ -319,15 +319,32 @@
     $('sidebar').classList.remove('open');
   }
 
-  // Re-read effective permissions when returning to the portal after a Super Admin plan change.
+  // Re-read permissions when returning from a Super Admin plan change, but do
+  // not rebuild unchanged navigation whenever the tab regains visibility.
+  let appliedNavigationFingerprint = null;
+  let entitlementRefreshInFlight = false;
+  const navigationFingerprint = data => JSON.stringify({
+    planner: data?.features?.planner,
+    sms: data?.features?.sms_notifications,
+    branding: data?.features?.custom_branding,
+    configured: data?.configured,
+    expired: data?.expired
+  });
   async function refreshSchoolEntitlements() {
-    if (!token || !user || user.role === 'SUPER_ADMIN') return;
+    if (!token || !user || user.role === 'SUPER_ADMIN' || entitlementRefreshInFlight) return;
+    entitlementRefreshInFlight = true;
     try {
       const latest = await api('/api/school/entitlements');
       schoolEntitlements = latest;
-      applyRoleNavigation();
+      const next = navigationFingerprint(latest);
+      if (next !== appliedNavigationFingerprint) {
+        appliedNavigationFingerprint = next;
+        applyRoleNavigation();
+      }
     } catch (error) {
       console.warn('Unable to refresh school feature access:', error.message);
+    } finally {
+      entitlementRefreshInFlight = false;
     }
   }
   window.addEventListener('pageshow', () => { if (user && user.role !== 'SUPER_ADMIN') refreshSchoolEntitlements(); });
@@ -569,18 +586,22 @@
       const order = teacher
         ? ['classAttendanceNav', 'schedulesNav', 'plannerNav', 'sf2Nav']
         : ['schedulesNav', 'plannerNav', 'sf2Nav'];
-      order.forEach(id => { const node = $(id); if (node && node.parentElement === academicsSubmenu) academicsSubmenu.appendChild(node); });
+      const orderedNodes = order.map(id => $(id)).filter(node => node && node.parentElement === academicsSubmenu);
+      const currentNodes = Array.from(academicsSubmenu.children).filter(node => orderedNodes.includes(node));
+      if (orderedNodes.some((node, index) => node !== currentNodes[index])) {
+        orderedNodes.forEach(node => academicsSubmenu.appendChild(node));
+      }
     }
     // Move existing navigation links without changing routes or permissions.
     const relocate = (id, group) => {
       const item = $(id);
       const submenu = document.querySelector('[data-submenu="' + group + '"]');
-      if (item && submenu) submenu.appendChild(item);
+      if (item && submenu && item.parentElement !== submenu) submenu.appendChild(item);
     };
     if (admin) {
       // Keep enrollment first, followed by existing class scheduling.
       const academicMenu = document.querySelector('.nav-submenu[data-submenu="academics"]');
-      if (academicMenu && $('academicAdminNav')) academicMenu.prepend($('academicAdminNav'));
+      if (academicMenu && $('academicAdminNav') && academicMenu.firstElementChild !== $('academicAdminNav')) academicMenu.prepend($('academicAdminNav'));
       relocate('cloudSyncNav', 'operations');
       relocate('smsNav', 'operations');
       relocate('schoolBrandingNav', 'settings');
@@ -4022,6 +4043,7 @@ let teacherActionMenuListenersInstalled = false;
         showToast('School feature access could not be verified. Optional modules are temporarily unavailable.',true);
       }
       applyRoleNavigation();
+      appliedNavigationFingerprint = navigationFingerprint(schoolEntitlements);
       const gateKeeper = user.role === 'GATE_KEEPER';
       if (gateKeeper) {
         if ($('studentsNav')) $('studentsNav').hidden = false;
