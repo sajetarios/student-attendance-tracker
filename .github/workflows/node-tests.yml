@@ -77,6 +77,8 @@ jobs:
 
       - name: Validate complete PostgreSQL migration chain
         run: npm run db:migrate
+      - name: Verify mixed attendance cloud relay against isolated PostgreSQL
+        run: node tests/cloud-mixed-postgres.cjs
 
   recovery_validation:
     name: Recovery flow / PostgreSQL validation
