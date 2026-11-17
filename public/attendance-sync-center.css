@@ -174,3 +174,26 @@ body.dark-mode .manual-sync-strip,body[data-theme="dark"] .manual-sync-strip{col
 @media(prefers-reduced-motion:reduce){
   #ascDock.asc-dock,.asc-primary,.asc-secondary{transition:none!important;transform:none!important}
 }
+
+/* The standalone prepared offline sheet follows OS dark preference, while
+   the authenticated portal follows its explicit theme setting instead. */
+@media(prefers-color-scheme:dark){
+  html[data-offline-sheet="true"]{
+    --asc-surface:#17243a;
+    --asc-elevated:#1f304b;
+    --asc-ink:#f0f6ff;
+    --asc-subtle:#c1d0e5;
+    --asc-line:#3d526f;
+    --asc-accent:#72b5fb;
+    --asc-accent-ink:#092341;
+    --asc-success:#94e4ba;
+    --asc-success-bg:#173c35;
+    --asc-warn:#ffce87;
+    --asc-warn-bg:#4a3820;
+    --asc-danger:#ffafc0;
+    --asc-danger-bg:#512839;
+  }
+}
+/* Existing folio feedback uses theme tokens rather than hard-coded pale text. */
+.manual-folio #mfFeedback{color:var(--asc-subtle)}
+.manual-folio #mfFeedback[data-error="true"]{color:var(--asc-danger);font-weight:760}
