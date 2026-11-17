@@ -29,3 +29,15 @@ test('service worker caches offline attendance assets but not private API/dashbo
   assert.match(js, /"\/portal\.html"/);
   assert.match(js, /fetch\(request, \{ cache: "no-store" \}\)/);
 });
+
+test('standalone offline sheet encrypts student data and checks account before upload', () => {
+  const js = read('public/offline-sheet.js');
+  assert.match(js, /PBKDF2/);
+  assert.match(js, /AES-GCM/);
+  assert.match(js, /u\.schoolId!==data\.schoolId\|\|u\.userId!==data\.userId/);
+  assert.match(js, /\/api\/manual-attendance\/sync/);
+  assert.match(js, /Server verification failed/);
+  const sw = read('public/sw.js');
+  assert.match(sw, /offline-sheet\.html/);
+  assert.match(sw, /offline-sheet\.js\?v=1/);
+});
