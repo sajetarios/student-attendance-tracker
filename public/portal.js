@@ -308,7 +308,7 @@
     }
     if ($('teacherMonitorTitle')) $('teacherMonitorTitle').textContent = departmentHead ? 'Teachers & Staff in Your Department' : 'Teacher accounts';
     if ($('teacherMonitorDescription')) $('teacherMonitorDescription').textContent = departmentHead
-      ? 'Review staff designations, teacher assignments, schedules, and availability. Available actions depend on your department permissions.'
+      ? 'Add Subject Teachers to your department, assign their classes, and review staff coverage and availability.'
       : 'Manage teacher account profiles and access. Academic assignments are managed in the Department Head workspace.';
     if ($('teacherActionHeader')) $('teacherActionHeader').textContent = departmentHead ? 'Manage' : 'Account action';
     if ($('sf2ViewTitle')) $('sf2ViewTitle').textContent = departmentHead ? 'SF2 Monitoring' : 'SF2 Report Generator';
@@ -2282,7 +2282,7 @@ let teacherActionMenuListenersInstalled = false;
         <td data-label="Assigned schedules"><div class="teacher-cell-value">${assignmentsHtml}</div></td>
         <td data-label="Account action"><div class="teacher-cell-value"><div class="action-row">${actionMenu}</div></div></td>
       </tr>`;
-    }).join('') : '<tr><td colspan="6" class="empty-cell">No teachers are assigned to this department yet. Use Add teacher to create a Subject Teacher.</td></tr>';
+    }).join('') : '<tr><td colspan="6" class="empty-cell">${user.role === 'DEPARTMENT_HEAD' ? 'No teachers are assigned to this department yet. Use Add teacher to create a Subject Teacher.' : 'No teacher accounts have been created for this school yet.'}</td></tr>';
 
     $('teacherRows').innerHTML = rows;
     $('teacherRows').querySelectorAll('[data-select-staff]').forEach(box => box.addEventListener('change', () => {
