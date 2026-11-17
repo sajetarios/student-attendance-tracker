@@ -1,4 +1,4 @@
-const CACHE = "attendigo-v123-distinct-department-schedule";
+const CACHE = "attendigo-v124-sardo-live-monitor";
 
 const SHELL = [
   "/assets/attendigo-sidebar-logo.png",
@@ -31,7 +31,7 @@ const SHELL = [
   "/portal.css?v=0.9.108",
   "/student-roster-toolbar.css?v=1",
   "/portal.css",
-  "/portal.js?v=0.9.115",
+  "/portal.js?v=0.9.116",\n  "/sardo-monitor.js?v=1",\n  "/sardo-monitor.css?v=1",
   "/schedule-form-layout.css?v=7",
   "/parent-dashboard.js?v=2",
   "/offline-attendance.js?v=1",
