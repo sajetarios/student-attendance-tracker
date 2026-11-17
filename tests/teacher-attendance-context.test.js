@@ -13,3 +13,9 @@ test('teacher attendance group explains advisory and subject scope without intro
     assert.match(html, new RegExp('<option value="' + value + '"'));
   }
 });
+
+test('student roster search explains filters and preserves existing record context', () => {
+  assert.match(html, /id="studentRosterSearch"[^>]*aria-describedby="studentRosterDescription"/);
+  assert.match(html, /Opening a learner does not create another enrollment or attendance record/);
+  assert.match(html, /editing details does not replace the QR code/);
+});
