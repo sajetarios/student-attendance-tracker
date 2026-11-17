@@ -259,7 +259,7 @@
    if(!state.period)return notice('Choose a class first.',true);
    if(!navigator.onLine)return notice('Offline: your attendance remains saved on this device until you sync.',true);
    const allowed=new Set(roster().map(s=>s.studentId));
-   const marks=Object.entries(state.marks).filter(([id,m])=>allowed.has(id)&&statuses.includes(m.status)).map(([studentId,m])=>({studentId,status:m.status,note:m.note||''}));
+   const marks=Object.entries(state.marks).filter(([id,m])=>allowed.has(id)&&statuses.includes(m.status)).map(([studentId,m])=>({studentId,status:m.status,note:m.note||'',expectedRevision:Number(state.synced[studentId]?.revision||0)}));
    if(!marks.length)return notice('Mark at least one learner before syncing.',true);
    el('mfSync').disabled=true;
    try{
@@ -267,7 +267,7 @@
      if(result.saved!==marks.length)throw Error('Server did not confirm the full sheet.');
      const readBack=await loadRemote();
      if(!readBack)throw Error('Server accepted the sheet, but verification could not be completed. Refresh before retrying.');
-     const match=marks.every(m=>state.synced[m.studentId]?.status===m.status);
+     const match=marks.every(m=>state.synced[m.studentId]?.status===m.status&&(state.synced[m.studentId]?.note||'')===m.note);
      if(!match)throw Error('Saved records could not be verified. Refresh and check before reattempting.');
      render();notice('Verified '+marks.length+' attendance marks saved in school records.');
      state.historyLoadedFor=null;
