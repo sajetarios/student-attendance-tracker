@@ -75,3 +75,21 @@ html[data-ui-theme="dark"] #schedulesView .schedule-activity-label {color:#b0d6f
 @media(max-width:699px){
  body .schedule-side-drawer:not([hidden]){width:100vw!important;max-width:100vw!important}
 }
+
+/* Reusable timetable archive: separate from active schedule configuration. */
+#timetableTemplateList,#timetableArchiveList{min-width:0}
+.timetable-list-heading{display:flex;flex-direction:column;gap:4px;margin-bottom:12px}
+.timetable-list-heading strong{font-size:16px;color:var(--ink,#18314b)}
+.timetable-list-heading small{font-size:13px;color:var(--muted,#64748b);line-height:1.4}
+.timetable-archive-section{margin-top:18px;padding:14px;border:1px solid #cbdbe8;border-radius:15px;background:#f6f9fd}
+.timetable-archive-section>summary{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:6px 14px;cursor:pointer;font-size:15px;font-weight:750;color:var(--ink,#18314b);list-style:revert}
+.timetable-archive-summary-note{font-size:12px;font-weight:500;color:var(--muted,#64748b)}
+.timetable-archive-section[open]>summary{padding-bottom:14px}
+.timetable-archive-section .timetable-template-list{margin-top:0}
+.timetable-archive-status{display:block;margin:6px 0;color:#876019;font-size:12px;font-weight:700}
+.timetable-template-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
+.timetable-template-actions .compact-button{min-height:36px;padding:8px 12px}
+.timetable-delete-action{border-color:#dbabb0!important;color:#a32335!important}
+html[data-ui-theme="dark"] .timetable-archive-section{background:#1a293c;border-color:#3d536d}
+html[data-ui-theme="dark"] .timetable-archive-status{color:#f3ce85}
+html[data-ui-theme="dark"] .timetable-delete-action{border-color:#a75b66!important;color:#ffb8c2!important}
