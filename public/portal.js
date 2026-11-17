@@ -684,6 +684,7 @@
     if (!isAdmin) return;
     const activeTab = ['directory','accounts','permissions','departments'].includes(tabName) ? tabName : 'accounts';
     if ($('accountDirectoryHub')) $('accountDirectoryHub').hidden = activeTab !== 'directory';
+    if (activeTab === 'directory') document.dispatchEvent(new Event('attendigo:user-directory-open'));
     if (teacherCard) teacherCard.hidden = activeTab !== 'accounts';
     if (staffCard) staffCard.hidden = activeTab !== 'accounts';
     if (adviserCard) adviserCard.hidden = true;
