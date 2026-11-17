@@ -20,6 +20,8 @@
    const badge=$('adminNotificationCount');
    badge.hidden=total===0;
    badge.textContent=String(total>99?'99+':total);
+   const menuBadge=$('adminRequestsNavBadge');
+   if(menuBadge){menuBadge.hidden=total===0;menuBadge.textContent=String(total>99?'99+':total);}
    $('adminStudentRequestCount').textContent=String(studentPending);
    $('adminGuardianRequestCount').textContent=String(guardianPending);
    $('adminPhotoRequestCount').textContent=String(photoPending);
@@ -63,7 +65,7 @@
  $('adminNotificationRefresh')?.addEventListener('click',refresh);
  $('adminStudentRequestsShortcut')?.addEventListener('click',()=>{
    close();
-   const nav=$('studentAccountsNav');
+   const nav=$('adminStudentAccountsNav')||$('studentAccountsNav');
    if(nav&&!nav.hidden)nav.click();
  });
  const reviewPanel=$('adminPhotoReview'),reviewList=$('adminPhotoReviewList');
