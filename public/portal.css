@@ -2661,3 +2661,51 @@ body.dark-mode .attendigo-schedule-edit-dialog,body[data-theme="dark"] .attendig
 body.dark-mode .schedule-edit-inner input,body[data-theme="dark"] .schedule-edit-inner input{background:#142337;color:#f3f7ff;border-color:#4d637d;color-scheme:dark}
 body.dark-mode .schedule-edit-heading p,body.dark-mode .schedule-edit-note,body[data-theme="dark"] .schedule-edit-heading p,body[data-theme="dark"] .schedule-edit-note{color:#b6c8df}
 @media(max-width:450px){.schedule-edit-times{grid-template-columns:1fr}.schedule-row-actions{flex-direction:column;align-items:stretch}}
+
+/* Adaptive school identity header: compact after scrolling, without flashing or
+   re-creating branding DOM nodes. Hysteresis in JS avoids scroll-boundary jitter. */
+.portal-page .school-heading {
+  min-height:0!important;
+  padding:clamp(12px,1.3vw,18px) clamp(14px,2vw,24px)!important;
+  gap:clamp(10px,1.5vw,18px);
+}
+.portal-page .school-heading .school-emblem {
+  flex:0 0 clamp(60px,7vw,112px);
+  width:clamp(60px,7vw,112px);
+  height:clamp(60px,7vw,112px);
+  min-width:0;
+  min-height:0;
+}
+.portal-page .school-heading .school-title-block h1 {
+  font-size:clamp(20px,2.25vw,36px)!important;
+}
+.portal-page.school-header-condensed .school-heading {
+  padding:9px 16px!important;
+  gap:12px;
+  min-height:0!important;
+}
+.portal-page.school-header-condensed .school-heading .school-emblem {
+  flex-basis:50px;
+  width:50px;
+  height:50px;
+}
+.portal-page.school-header-condensed .school-heading .school-title-block h1 {
+  font-size:clamp(16px,1.4vw,22px)!important;
+  line-height:1.2;
+}
+.portal-page.school-header-condensed .school-heading .school-title-block p {
+  font-size:12px!important;
+  margin:0;
+}
+.portal-page.school-header-condensed .school-heading .heading-actions .role-pill {
+  font-size:11px;
+}
+@media(max-width:700px){
+  .portal-page .school-heading{padding:12px!important}
+  .portal-page .school-heading .school-emblem{flex:0 0 54px;width:54px;height:54px}
+  .portal-page .school-heading .school-title-block h1{font-size:clamp(16px,4.6vw,23px)!important}
+  .portal-page.school-header-condensed .school-heading{padding:9px 11px!important;gap:9px}
+  .portal-page.school-header-condensed .school-heading .school-emblem{flex:0 0 42px;width:42px;height:42px}
+  .portal-page.school-header-condensed .school-heading .school-title-block h1{font-size:16px!important}
+  .portal-page.school-header-condensed .school-heading .heading-actions{margin-left:0;max-width:100%}
+}
