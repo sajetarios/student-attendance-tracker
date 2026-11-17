@@ -71,6 +71,7 @@
     return '<button type="button" class="sap-action primary" data-sap-action="' + action + '" data-student-id="' + esc(s.studentId) + '">' + label + '</button>';
   }
   function batchEligible(student) {
+    if (isTeacher()) return !student.hasAccount && !pendingFor(student.studentId);
     const action = $('sapBatchAction')?.value || 'CREATE';
     if (action === 'CREATE') return !student.hasAccount;
     if (action === 'RESET') return student.hasAccount && student.accountActive;
@@ -80,8 +81,9 @@
   }
   function renderDirectory() {
     const admin = isAdmin();
-    view.classList.toggle('is-teacher', !admin);
-    $('sapBulkToolbar').hidden = !admin;
+    const teacher = isTeacher();
+    $('sapBulkToolbar').hidden = !admin && !teacher;
+    $('sapBatchAction').hidden = !admin;
     $('sapDirectoryHelp').textContent = admin
       ? 'Create, reset or disable student logins. Temporary passwords are available once.'
       : 'Only your assigned learners are shown. Account changes require School Admin approval.';
@@ -92,7 +94,7 @@
     $('sapPending').textContent = String(requests.filter(r=>r.status==='PENDING').length);
     const rows = filtered();
     $('sapRows').innerHTML = rows.length ? rows.map(s => {
-      const checkbox = admin
+      const checkbox = admin || (teacher && batchEligible(s))
         ? '<input type="checkbox" aria-label="Select ' + esc(s.fullName) + '" data-sap-select="' + esc(s.studentId) + '" ' + (selected.has(s.studentId) ? 'checked' : '') + '>'
         : '';
       return '<tr><td>' + checkbox + '</td><td><span class="sap-student-name">' + esc(s.fullName) +
@@ -108,9 +110,11 @@
     const actionable = students.filter(s=>selected.has(s.studentId) && batchEligible(s));
     const batches = Math.ceil(actionable.length / SERVER_BATCH_LIMIT);
     $('sapSelectedCount').textContent = selected.size + ' selected · ' + actionable.length + ' eligible' +
-      (batches > 1 ? ' · will run in ' + batches + ' batches of up to 20' : ' · up to 20 per server request');
-    $('sapBulkCreate').disabled = !admin || !actionable.length || busy;
-    $('sapBulkCreate').textContent = actionable.length ? 'Apply to ' + actionable.length + ' selected' : 'Apply to selected';
+      (admin && batches > 1 ? ' · will run in ' + batches + ' batches of up to 20' : '');
+    $('sapBulkCreate').disabled = (!admin && !teacher) || !actionable.length || busy;
+    $('sapBulkCreate').textContent = teacher
+      ? (actionable.length ? 'Request logins for ' + actionable.length + ' selected' : 'Request logins for selected')
+      : (actionable.length ? 'Apply to ' + actionable.length + ' selected' : 'Apply to selected');
     $('sapListCount').textContent = rows.length + ' of ' + total + ' authorized learners displayed.';
   }
   const dateLabel = value => {
@@ -220,7 +224,53 @@
     requests=requestData.requests||[];
     renderDirectory();renderRequests();
   }
+  async function requestSelectedLogins() {
+    const targets = students.filter(s => selected.has(s.studentId) && batchEligible(s));
+    if (busy || !targets.length) return;
+
+    busy = true;
+    renderDirectory();
+    let submitted = 0;
+    const failures = [];
+    let refreshFailed = false;
+    try {
+      const reason = await window.AppDialog.prompt(
+        'Request logins for ' + targets.length + ' learners. The School Admin will review each learner.',
+        '', {
+          title: 'Request student logins',
+          label: 'Reason for requesting logins',
+          confirmText: 'Submit requests',
+          required: true,
+          maxLength: 500,
+          validate: value => value.trim().length >= 8 || 'Enter a reason of at least 8 characters.'
+        }
+      );
+      if (reason === null || !isTeacher()) return;
+      for (const student of targets) {
+        try {
+          await api('/api/student-portal/requests', {
+            method: 'POST',
+            body: JSON.stringify({studentId: student.studentId, requestType: 'CREATE', reason: reason.trim()})
+          });
+          selected.delete(student.studentId);
+          submitted++;
+        } catch (error) {
+          failures.push(student.fullName + ': ' + error.message);
+        }
+      }
+      if (submitted) document.dispatchEvent(new CustomEvent('attendigo:requests-changed'));
+      try { await refreshAfterMutation(); }
+      catch { refreshFailed = true; }
+    } finally {
+      busy = false;
+      renderDirectory();
+    }
+    const summary = 'Submitted ' + submitted + ' of ' + targets.length + ' login requests for School Admin approval.';
+    announce([summary, ...failures, refreshFailed ? 'Refresh to see updated request statuses.' : ''].filter(Boolean).join(' '),
+      failures.length > 0 || refreshFailed);
+  }
   async function bulkCreate() {
+    if (isTeacher()) return requestSelectedLogins();
     if (!isAdmin() || busy) return;
     const action = $('sapBatchAction')?.value || 'CREATE';
     const targets = students.filter(s=>selected.has(s.studentId) && batchEligible(s));

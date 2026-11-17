@@ -9,7 +9,7 @@ const root = path.resolve(__dirname, '..');
 const source = fs.readFileSync(path.join(root, 'public/student-portal-accounts.js'), 'utf8');
 const routes = fs.readFileSync(path.join(root, 'student-portal-account-routes.js'), 'utf8');
 
-function browserFixture({failBatch = 0} = {}) {
+function browserFixture({failBatch = 0, role = 'SCHOOL_ADMIN'} = {}) {
   const elements = new Map();
   const element = id => {
     if (!elements.has(id)) {
@@ -29,12 +29,23 @@ function browserFixture({failBatch = 0} = {}) {
     gradeLevel: 'Grade 8', section: 'SPJ', hasAccount: false, accountActive: false
   }));
   const posts = [];
+  const requests = [];
+  if (role === 'TEACHER') {
+    learners[0].hasAccount = true;
+    requests.push({studentId: learners[1].studentId, status: 'PENDING'});
+  }
   const ok = body => ({ok: true, json: async () => body});
   const fetch = async (url, options = {}) => {
     if (url === '/api/student-portal/accounts' && !options.method) {
       return ok({students: learners.map(s => ({...s}))});
     }
-    if (url === '/api/student-portal/requests' && !options.method) return ok({requests: []});
+    if (url === '/api/student-portal/requests' && !options.method) return ok({requests});
+    if (url === '/api/student-portal/requests' && options.method === 'POST') {
+      const request = JSON.parse(options.body);
+      posts.push(request);
+      requests.push({...request, status: 'PENDING'});
+      return ok({status: 'PENDING'});
+    }
     if (url === '/api/student-portal/accounts/bulk-provision' && options.method === 'POST') {
       const ids = JSON.parse(options.body).studentIds;
       posts.push(ids);
@@ -56,12 +67,12 @@ function browserFixture({failBatch = 0} = {}) {
     addEventListener(){}, dispatchEvent(){}
   };
   const window = {
-    AppDialog: {confirm: async () => true},
+    AppDialog: {confirm: async () => true, prompt: async () => 'Class portal onboarding'},
     setInterval(){}, confirm: () => true,
     location: {origin:'https://example.test'}
   };
   const sessionStorage = {getItem(key) {
-    return key === 'schoolAttendance.user' ? '{"role":"SCHOOL_ADMIN","schoolCode":"TEST"}' : 'test-token';
+    return key === 'schoolAttendance.user' ? JSON.stringify({role,schoolCode:'TEST'}) : 'test-token';
   }};
   vm.runInNewContext(source, {
     document, window, sessionStorage, fetch, Headers, URL, Blob,
@@ -119,4 +130,17 @@ test('server retains the 20-account transaction limit, and asset versions match'
   const sw = fs.readFileSync(path.join(root,'public/sw.js'),'utf8');
   const url = html.match(/src="(\/student-portal-accounts\.js\?v=[^"]+)"/)?.[1];
   assert.ok(url && sw.includes(JSON.stringify(url)));
+});
+
+test('teachers request logins only for selected learners without accounts or pending requests', async () => {
+  const app = browserFixture({role: 'TEACHER'});
+  await app.ready();
+  app.selectAll();
+  assert.match(app.element('sapBulkCreate').textContent, /Request logins for 26 selected/);
+  await app.apply();
+  assert.equal(app.posts.length, 26);
+  assert.equal(app.posts[0].studentId, 'S-003');
+  assert.ok(app.posts.every(request => request.requestType === 'CREATE' && request.reason === 'Class portal onboarding'));
+  assert.equal(app.element('sapBulkCreate').disabled, true);
+  assert.match(app.element('sapListCount').textContent, /Submitted 26 of 26/);
 });
