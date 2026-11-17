@@ -1,4 +1,4 @@
-const CACHE = "attendigo-v140-cloud-mixed-attendance";
+const CACHE = "attendigo-v141-attendance-sync-center";
 
 const SHELL = [
   "/assets/attendigo-sidebar-logo.png",
@@ -36,11 +36,13 @@ const SHELL = [
   "/sardo-monitor.css?v=1",
   "/schedule-form-layout.css?v=12",
   "/parent-dashboard.js?v=2",
-  "/offline-attendance.js?v=4",
+  "/offline-attendance.js?v=5",
   "/offline-sheet.html",
   "/offline-sheet.js?v=4",
   "/manual-folio.css?v=11",
-  "/manual-folio.js?v=13",
+  "/attendance-sync-center.css?v=1",
+  "/attendance-sync-center.js?v=1",
+  "/manual-folio.js?v=14",
   "/student-portal-accounts.css?v=3",
   "/student-portal-accounts.js?v=6",
   "/admin-request-notifications.js?v=2",
