@@ -323,3 +323,18 @@ html[data-ui-theme="dark"] #scheduleForm[data-schedule-role="DEPARTMENT_HEAD"] >
     position:sticky!important;bottom:0!important;
   }
 }
+
+
+/* Department schedule: owned department shown in form, approved periods used in edit. */
+#scheduleForm .schedule-details-section #scheduleDepartmentGroup[hidden]{display:none!important}
+#scheduleForm[data-schedule-role="DEPARTMENT_HEAD"] #scheduleDepartmentName{font-weight:750;color:#234b68}
+#scheduleForm #scheduleWeekdayChoices input:disabled+span{opacity:.45!important;cursor:not-allowed!important}
+.attendigo-schedule-edit-dialog .schedule-edit-class{display:grid;gap:3px;padding:10px 12px;border:1px solid #d8e6ef;border-radius:10px;background:#f0f7fd;color:#244561}
+.attendigo-schedule-edit-dialog .schedule-edit-class small{color:#607b91}
+.attendigo-schedule-edit-dialog .schedule-edit-approved{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin:12px 0}
+.attendigo-schedule-edit-dialog .schedule-edit-approved select{width:100%;min-width:0}
+.attendigo-schedule-edit-dialog .schedule-edit-times input[readonly]{background:#f1f6fa;color:#254861}
+html[data-ui-theme="dark"] .attendigo-schedule-edit-dialog .schedule-edit-class{background:#1d344d;border-color:#3d5872;color:#dcebfc}
+html[data-ui-theme="dark"] .attendigo-schedule-edit-dialog .schedule-edit-class small{color:#a9c6e0}
+html[data-ui-theme="dark"] #scheduleForm[data-schedule-role="DEPARTMENT_HEAD"] #scheduleDepartmentName{color:#dcebfc}
+@media(max-width:620px){.attendigo-schedule-edit-dialog .schedule-edit-approved{grid-template-columns:1fr}}

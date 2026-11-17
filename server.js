@@ -2604,7 +2604,7 @@ app.get('/api/periods', authenticateSchoolClient, requireSchoolRoles('SCHOOL_ADM
     }
     const result = await pool.query(
       "SELECT p.period_id AS \"periodId\",p.period_name AS \"periodName\",p.grade_level AS \"gradeLevel\",p.section," +
-      "p.subject_id AS \"subjectId\",p.subject_name AS \"subjectName\",p.schedule_type AS \"scheduleType\",p.classroom,p.department_id AS \"scheduleDepartmentId\"," +
+      "p.subject_id AS \"subjectId\",p.subject_name AS \"subjectName\",p.schedule_type AS \"scheduleType\",p.classroom,p.department_id AS \"scheduleDepartmentId\",p.timetable_template_id AS \"timetableTemplateId\"," +
       "COALESCE(assignment.\"assignedDepartmentId\",p.department_id) AS \"departmentId\"," +
       "COALESCE(assigned_department.department_name,d.department_name,'Unassigned') AS \"departmentName\"," +
       "assignment.\"assignedTeacherUserId\",assignment.\"assignedTeacherName\"," +
@@ -2640,11 +2640,14 @@ app.get('/api/periods', authenticateSchoolClient, requireSchoolRoles('SCHOOL_ADM
 
 // School Administrators own official class schedules; Department Heads assign teachers and manage temporary changes.
 
-app.patch('/api/periods/:periodId', authenticateSchoolClient, requireSchoolRoles('SCHOOL_ADMIN'), async (req,res) => {
+app.patch('/api/periods/:periodId', authenticateSchoolClient, requireSchoolRoles('SCHOOL_ADMIN', 'DEPARTMENT_HEAD'), async (req,res) => {
   if (!isUuid(req.params.periodId)) return res.status(400).json({error:'Invalid schedule ID.'});
   const {periodName,startTime,endTime} = req.body || {};
   const classroom = typeof req.body?.classroom === 'string' ? req.body.classroom.trim() : '';
   const weekdays = Array.isArray(req.body?.weekdays) ? [...new Set(req.body.weekdays.map(Number))] : [];
+  const templateId=req.body?.timetableTemplateId||null,blockId=req.body?.timetableTemplatePeriodId||null;
+  if (Boolean(templateId)!==Boolean(blockId) || (templateId&&(!isUuid(templateId)||!isUuid(blockId))))
+    return res.status(400).json({error:'Choose both a valid school timetable and time block.'});
   if (!validText(periodName) || periodName.trim().length>120 || classroom.length>100 ||
       !/^([01]\d|2[0-3]):[0-5]\d$/.test(startTime||'') ||
       !/^([01]\d|2[0-3]):[0-5]\d$/.test(endTime||'') || startTime>=endTime ||
@@ -2656,12 +2659,39 @@ app.patch('/api/periods/:periodId', authenticateSchoolClient, requireSchoolRoles
     await client.query('BEGIN');
     await client.query('SELECT pg_advisory_xact_lock(hashtext($1::text),16016)',[req.auth.schoolId]);
     const result=await client.query(
-      'SELECT period_id,department_id,grade_level,section FROM class_periods WHERE school_id=$1 AND period_id=$2 AND active=TRUE FOR UPDATE',
+      "SELECT period_id,department_id,grade_level,section,timetable_template_id," +
+      "to_char(start_time,'HH24:MI') AS original_start,to_char(end_time,'HH24:MI') AS original_end " +
+      "FROM class_periods WHERE school_id=$1 AND period_id=$2 AND active=TRUE FOR UPDATE",
       [req.auth.schoolId,req.params.periodId]);
     if(!result.rowCount){await client.query('ROLLBACK');return res.status(404).json({error:'Schedule not found.'});}
     const p=result.rows[0];
     if(req.auth.role==='DEPARTMENT_HEAD' && (!req.auth.departmentId || req.auth.departmentCode==='UNASSIGNED' || String(p.department_id)!==String(req.auth.departmentId))){
       await client.query('ROLLBACK');return res.status(403).json({error:'You may edit only schedules in your department.'});
+    }
+    let nextTemplateId=p.timetable_template_id;
+    if(templateId){
+      const approved=await client.query(
+        "SELECT to_char(b.start_time,'HH24:MI') AS start_time,to_char(b.end_time,'HH24:MI') AS end_time,b.block_type " +
+        "FROM timetable_templates t JOIN timetable_template_periods b ON b.school_id=t.school_id AND b.template_id=t.template_id " +
+        "WHERE t.school_id=$1 AND t.template_id=$2 AND b.template_period_id=$3 AND t.active=TRUE",
+        [req.auth.schoolId,templateId,blockId]);
+      if(!approved.rowCount||['BREAK','LUNCH'].includes(approved.rows[0].block_type)||
+        approved.rows[0].start_time!==startTime||approved.rows[0].end_time!==endTime){
+        await client.query('ROLLBACK');return res.status(409).json({error:'The approved timetable block is missing or its times changed.'});
+      }
+      nextTemplateId=templateId;
+    } else if(startTime!==p.original_start||endTime!==p.original_end) {
+      if(req.auth.role==='DEPARTMENT_HEAD'){
+        await client.query('ROLLBACK');return res.status(403).json({error:'Department Heads can change time only by selecting an approved block.'});
+      }
+      nextTemplateId=null;
+    }
+    if(req.auth.role==='DEPARTMENT_HEAD'){
+      const allowedRows=await client.query('SELECT weekday FROM school_operating_days WHERE school_id=$1 AND is_operating_day=TRUE',[req.auth.schoolId]);
+      const allowed=new Set(allowedRows.rows.map(row=>Number(row.weekday)));
+      if(weekdays.some(day=>!allowed.has(day))){
+        await client.query('ROLLBACK');return res.status(403).json({error:'Class days must be within school operating days.'});
+      }
     }
     const conflict=await client.query(
       `SELECT p.period_name,
@@ -2681,8 +2711,8 @@ app.patch('/api/periods/:periodId', authenticateSchoolClient, requireSchoolRoles
       [req.auth.schoolId,req.params.periodId,p.grade_level,p.section,classroom,startTime,endTime,weekdays]);
     if(conflict.rowCount){await client.query('ROLLBACK');return res.status(409).json({error:'Schedule conflicts with '+conflict.rows[0].period_name+' ('+conflict.rows[0].kind+').'});}
     await client.query(
-      'UPDATE class_periods SET period_name=$3,start_time=$4::time,end_time=$5::time,classroom=$6,timetable_template_id=NULL WHERE school_id=$1 AND period_id=$2',
-      [req.auth.schoolId,req.params.periodId,periodName.trim(),startTime,endTime,classroom||null]);
+      'UPDATE class_periods SET period_name=$3,start_time=$4::time,end_time=$5::time,classroom=$6,timetable_template_id=$7 WHERE school_id=$1 AND period_id=$2',
+      [req.auth.schoolId,req.params.periodId,periodName.trim(),startTime,endTime,classroom||null,nextTemplateId]);
     await client.query('DELETE FROM class_period_days WHERE school_id=$1 AND period_id=$2',[req.auth.schoolId,req.params.periodId]);
     for(const day of weekdays) await client.query('INSERT INTO class_period_days(school_id,period_id,weekday) VALUES($1,$2,$3)',[req.auth.schoolId,req.params.periodId,day]);
     await client.query("INSERT INTO audit_logs(school_id,actor_type,actor_user_id,action,entity_type,entity_id,details) VALUES($1,'SCHOOL',$2,'UPDATE_CLASS_SCHEDULE','class_period',$3,$4::jsonb)",
@@ -2713,7 +2743,7 @@ app.delete('/api/periods/:periodId', authenticateSchoolClient, requireSchoolRole
   finally { client.release(); }
 });
 
-app.post('/api/periods', authenticateSchoolClient, requireSchoolRoles('SCHOOL_ADMIN'), async (req, res) => {
+app.post('/api/periods', authenticateSchoolClient, requireSchoolRoles('SCHOOL_ADMIN', 'DEPARTMENT_HEAD'), async (req, res) => {
   const isTeacher = req.auth.role === 'TEACHER';
   const isDepartmentHead = req.auth.role === 'DEPARTMENT_HEAD';
   const teacherUserId = isTeacher ? req.auth.userId : (req.body?.teacherUserId || null);
@@ -2729,6 +2759,9 @@ app.post('/api/periods', authenticateSchoolClient, requireSchoolRoles('SCHOOL_AD
   if (timetableTemplatePeriodId && !isUuid(timetableTemplatePeriodId)) return res.status(400).json({ error: 'Choose a valid time block.' });
   if (Boolean(timetableTemplateId) !== Boolean(timetableTemplatePeriodId)) return res.status(400).json({ error: 'Choose a saved timetable block, or use custom time.' });
   if (timetableTemplateId && !isUuid(timetableTemplateId)) return res.status(400).json({ error: 'Choose a valid timetable template.' });
+  if (isDepartmentHead && !timetableTemplateId) return res.status(403).json({
+    error:'Department Heads must select a School Admin-approved timetable block.'
+  });
   let weekdays = Array.isArray(req.body?.weekdays) ? [...new Set(req.body.weekdays.map(Number))] : [];
   if (!weekdays.length) {
     const operating = await pool.query('SELECT weekday FROM school_operating_days WHERE school_id=$1 AND is_operating_day=TRUE ORDER BY weekday',[req.auth.schoolId]);
@@ -2738,6 +2771,13 @@ app.post('/api/periods', authenticateSchoolClient, requireSchoolRoles('SCHOOL_AD
 
   if (weekdays.some(day => !Number.isInteger(day) || day < 0 || day > 6)) {
     return res.status(400).json({ error: 'Choose valid class weekdays.' });
+  }
+  if (isDepartmentHead) {
+    const allowedRows=await pool.query('SELECT weekday FROM school_operating_days WHERE school_id=$1 AND is_operating_day=TRUE',[req.auth.schoolId]);
+    const allowed=new Set(allowedRows.rows.map(row=>Number(row.weekday)));
+    if (weekdays.some(day=>!allowed.has(day))) return res.status(403).json({
+      error:'Select class days from the School Admin-approved operating days.'
+    });
   }
 
   if (isTeacher && !req.auth.teacherDesignations?.includes('SUBJECT_TEACHER')) {

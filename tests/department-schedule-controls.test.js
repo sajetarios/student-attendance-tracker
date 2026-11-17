@@ -5,11 +5,11 @@ const fs = require('node:fs');
 const path = require('node:path');
 const read = file => fs.readFileSync(path.join(__dirname, '..', file), 'utf8');
 
-test('Department Heads manage assignments without editing official schedules',()=>{
- const p=read('public/portal.js'),u=read('public/schedule-workspace-ui.js');
- assert.match(p,/showScheduleForm'\)\.hidden = !schoolAdminCanCreate/);
- assert.match(u,/scheduleAssignmentShortcut/);
- assert.match(u,/showScheduleForm'\)\.hidden=role!=='SCHOOL_ADMIN'/);
+test('Department Head form has actual departmental create and edit controls',()=>{
+ const js=read('public/portal.js'),html=read('public/portal.html');
+ assert.match(js,/canCreate = user\.role==='SCHOOL_ADMIN'/);
+ assert.match(js,/editApprovedTemplate/);
+ assert.match(html,/id="scheduleDepartmentGroup"/);
 });
 test('weekday selection remains native, accessible, and compact instead of stretched checkboxes', () => {
   const html = read('public/portal.html');
@@ -23,11 +23,9 @@ test('weekday selection remains native, accessible, and compact instead of stret
   assert.match(css, /#scheduleForm\[data-schedule-role="DEPARTMENT_HEAD"\] \.schedule-review-section/);
 });
 
-test('Only the School Admin can create edit or delete permanent schedules',()=>{
- const server=read('server.js');
- for(const m of ['post','patch','delete']){
-  const uri=m==='post'?'/api/periods':'/api/periods/:periodId';
-  assert.ok(server.includes("app."+m+"('"+uri+"', authenticateSchoolClient, requireSchoolRoles('SCHOOL_ADMIN')"));
- }
- assert.match(server,/app\.post\('\/api\/periods\/:periodId\/assignments', authenticateSchoolClient, requireSchoolRoles\('SCHOOL_ADMIN', 'DEPARTMENT_HEAD'\)/);
+test('Department Heads may create/edit but School Admin retains delete permissions',()=>{
+ const s=read('server.js');
+ assert.match(s,/app\.post\('\/api\/periods', authenticateSchoolClient, requireSchoolRoles\('SCHOOL_ADMIN', 'DEPARTMENT_HEAD'\)/);
+ assert.match(s,/app\.patch\('\/api\/periods\/:periodId', authenticateSchoolClient, requireSchoolRoles\('SCHOOL_ADMIN', 'DEPARTMENT_HEAD'\)/);
+ assert.match(s,/app\.delete\('\/api\/periods\/:periodId', authenticateSchoolClient, requireSchoolRoles\('SCHOOL_ADMIN'\)/);
 });
