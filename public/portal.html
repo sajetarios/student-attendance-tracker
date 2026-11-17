@@ -12,7 +12,7 @@
   <link rel="stylesheet" href="/schedule-form-layout.css?v=12">
   <link rel="stylesheet" href="/teacher-assignment-modal.css?v=1">
   <link rel="stylesheet" href="/manual-folio.css?v=11">
-  <link rel="stylesheet" href="/attendance-sync-center.css?v=2">
+  <link rel="stylesheet" href="/attendance-sync-center.css?v=3">
   <link rel="stylesheet" href="/admin-request-notifications.css?v=2">
   <link rel="stylesheet" href="/student-portal-accounts.css?v=4">
   <link rel="stylesheet" href="/attendigo-sidebar-adaptive.css?v=8">
@@ -465,7 +465,9 @@ body.dark-mode .content-wrap > .school-heading.is-compact,body[data-theme="dark"
         </button>
         <div class="breadcrumbs"><span>Workspace</span><b>/</b><strong id="breadcrumbCurrent">Dashboard</strong></div>
         <div class="topbar-right">
-          <span class="connection-chip local-only" id="connectionStatus" role="status" title="Cloud sync status is being checked."><i></i><span>Checking cloud sync status…</span></span>
+          <button type="button" class="connection-chip local-only asc-header-trigger" id="connectionStatus" aria-label="Open Attendance Sync Center" aria-haspopup="dialog" aria-controls="attendanceSyncDialog" title="Open Attendance Sync Center">
+            <i aria-hidden="true"></i><span class="asc-header-cloud" aria-hidden="true">☁</span><span class="asc-header-label" id="syncHeaderLabel" aria-live="polite">Checking synchronization…</span><span class="asc-header-badge" hidden></span>
+          </button>
           <div class="admin-notification-wrap" id="adminNotificationWrap" hidden>
             <button type="button" id="adminNotificationBell" class="admin-notification-bell" aria-label="Pending school requests" title="Pending approval requests" aria-expanded="false" aria-controls="adminNotificationPanel">
               <svg viewBox="0 0 24 24" width="21" height="21" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9Z"/><path d="M10 21h4"/></svg>
@@ -1543,8 +1545,8 @@ body.dark-mode .content-wrap > .school-heading.is-compact,body[data-theme="dark"
   <script src="/schedule-workspace-ui.js?v=6" defer></script>
   <script src="/photo-editor.js?v=9" defer></script>
   <script src="/offline-attendance.js?v=5" defer></script>
-  <script src="/attendance-sync-center.js?v=1" defer></script>
-  <script src="/portal.js?v=0.9.129" defer></script>
+  <script src="/attendance-sync-center.js?v=2" defer></script>
+  <script src="/portal.js?v=0.9.130" defer></script>
   <script src="/sardo-monitor.js?v=1" defer></script><script src="/parent-dashboard.js?v=2" defer></script>
   <script src="/platform-plans-ui.js?v=7" defer></script>
   <script src="/platform-school-health.js?v=1" defer></script>
