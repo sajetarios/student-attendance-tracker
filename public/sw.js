@@ -1,4 +1,4 @@
-const CACHE = "attendigo-v156-teacher-roster";
+const CACHE = "attendigo-v157-account-request-history";
 
 const SHELL = [
   "/assets/attendigo-sidebar-logo.png",
@@ -48,8 +48,8 @@ const SHELL = [
   "/attendance-sync-center.css?v=4",
   "/attendance-sync-center.js?v=3",
   "/manual-folio.js?v=15",
-  "/student-portal-accounts.css?v=4",
-  "/student-portal-accounts.js?v=7",
+  "/student-portal-accounts.css?v=5",
+  "/student-portal-accounts.js?v=8",
   "/account-directory.js?v=1",
   "/admin-request-notifications.js?v=4",
   "/admin-request-notifications.css?v=2",

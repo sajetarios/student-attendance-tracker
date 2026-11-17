@@ -126,3 +126,17 @@ body[data-theme=dark] #studentAccountsView .sap-modal textarea{background:#192b4
  #studentAccountsView .sap-request-summary{grid-template-columns:repeat(2,minmax(0,1fr))}
  #studentAccountsView .sap-modal-head h3{font-size:17px}
 }
+
+/* Reviewed teacher account requests are accessible in a collapsed history drawer. */
+#studentAccountsView .sap-request-history{margin-top:16px;border-top:1px solid var(--line,#d8e3ef);padding-top:10px;min-width:0}
+#studentAccountsView .sap-request-history[hidden]{display:none!important}
+#studentAccountsView .sap-request-history>summary{cursor:pointer;list-style:revert;padding:10px 4px;font-size:13px;font-weight:750;color:var(--ink,#20354f);border-radius:8px}
+#studentAccountsView .sap-request-history>summary:focus-visible{outline:2px solid var(--brand,#176ab1);outline-offset:3px}
+#studentAccountsView .sap-request-history[open]>summary{margin-bottom:8px}
+#studentAccountsView .sap-request-history .sap-request-list{max-height:320px}
+body.dark-mode #studentAccountsView .sap-request-history,
+body[data-theme="dark"] #studentAccountsView .sap-request-history,
+html[data-ui-theme="dark"] #studentAccountsView .sap-request-history{border-color:#4b617e}
+body.dark-mode #studentAccountsView .sap-request-history>summary,
+body[data-theme="dark"] #studentAccountsView .sap-request-history>summary,
+html[data-ui-theme="dark"] #studentAccountsView .sap-request-history>summary{color:#ecf5ff}
