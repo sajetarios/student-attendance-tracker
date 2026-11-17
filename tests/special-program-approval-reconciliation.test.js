@@ -53,3 +53,14 @@ test('updated School Admin program assets match service-worker cache references'
     assert.ok(worker.includes(JSON.stringify(asset)),name+' cache version matches portal');
   }
 });
+test('requester queue auto-clears reviewed special-program requests without deleting history',()=>{
+  assert.match(ui,/const pending=items\.filter\(item=>item\.status==='PENDING'\)/);
+  assert.match(ui,/const reviewed=items\.filter\(item=>item\.status!=='PENDING'\)/);
+  assert.match(ui,/renderMyRequests\(d\.requests\|\|\[\]\)/);
+  assert.match(ui,/history\.hidden=!reviewed\.length/);
+  assert.match(ui,/reviewed\.length\?reviewsTable\(reviewed,false\)/);
+  assert.match(portal,/id="mySpecialProgramRequestsHistory"[^>]+hidden/);
+  assert.match(portal,/id="mySpecialProgramRequestsHistoryList"/);
+  assert.match(routes,/WHERE r\.school_id=\$1/);
+  assert.match(routes,/ORDER BY \(r\.status='PENDING'\)/);
+});
