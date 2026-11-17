@@ -174,13 +174,26 @@ function registerCloudSyncRoutes(app, pool, { authenticateSchoolClient, requireS
           results.push({ eventId: event?.eventId || null, status: 'REJECTED', reason: 'Invalid event or learner details.' });
           continue;
         }
+        // Historic offline QR snapshots must never roll back the current
+        // student's name, grade or section when they arrive late.
+        const priorEvent = await client.query(
+          'SELECT school_id FROM attendance_events WHERE event_id=$1',[event.eventId]);
+        if(priorEvent.rowCount) {
+          results.push({eventId:event.eventId,
+            status:String(priorEvent.rows[0].school_id)===String(schoolId)?'ALREADY_SYNCED':'REJECTED',
+            ...(String(priorEvent.rows[0].school_id)!==String(schoolId)?{reason:'Event ID belongs to another school.'}:{})});
+          continue;
+        }
         const student = await client.query(
-          `INSERT INTO students(school_id,student_id,full_name,grade_level,section,parent_mobile,sex)
-           VALUES($1,$2,$3,$4,$5,'',NULL)
-           ON CONFLICT(student_id) DO UPDATE SET full_name=EXCLUDED.full_name,grade_level=EXCLUDED.grade_level,
-             section=EXCLUDED.section,updated_at=NOW()
-           WHERE students.school_id=EXCLUDED.school_id
-           RETURNING student_id`,
+          `WITH inserted AS (
+             INSERT INTO students(school_id,student_id,full_name,grade_level,section,parent_mobile,sex)
+             VALUES($1,$2,$3,$4,$5,'',NULL)
+             ON CONFLICT(student_id) DO NOTHING RETURNING student_id
+           )
+           SELECT student_id FROM inserted
+           UNION ALL
+           SELECT student_id FROM students WHERE school_id=$1 AND student_id=$2
+           LIMIT 1`,
           [schoolId,event.student.studentId.trim(),event.student.fullName.trim().slice(0,200),event.student.gradeLevel.trim().slice(0,40),event.student.section.trim().slice(0,100)]
         );
         if (!student.rowCount) { results.push({ eventId:event.eventId,status:'REJECTED',reason:'Student ID belongs to a different school.' }); continue; }
@@ -192,16 +205,29 @@ function registerCloudSyncRoutes(app, pool, { authenticateSchoolClient, requireS
             AND grade_level=$3 AND section=$4 AND COALESCE(subject_name,'')=$5 AND active=TRUE
             AND start_time=$6::time AND end_time=$7::time LIMIT 1`,
             [schoolId,periodName,event.student.gradeLevel.slice(0,40),event.student.section.slice(0,100),subjectName,event.period.startTime,event.period.endTime]);
-          if(!period.rowCount) period=await client.query(
-            `INSERT INTO class_periods(school_id,period_name,grade_level,section,subject_name,start_time,end_time,grace_minutes,active)
-             VALUES($1,$2,$3,$4,$5,$6::time,$7::time,$8,TRUE) RETURNING period_id`,
-            [schoolId,periodName,event.student.gradeLevel.slice(0,40),event.student.section.slice(0,100),subjectName,
-              event.period.startTime,event.period.endTime,Math.max(0,Number(event.period.graceMinutes)||0)]
-          );
+          if(!period.rowCount){
+            results.push({eventId:event.eventId,status:'REJECTED',
+              reason:'Cloud class period is not provisioned or the schedule changed; map the class before retrying.'});
+            continue;
+          }
           periodId = period.rows[0].period_id;
+          await client.query('SELECT pg_advisory_xact_lock(hashtext($1::text),hashtext($2::text))',
+            [schoolId,String(periodId)+'|'+event.schoolDate]);
+          const locked=await client.query(
+            'SELECT 1 FROM class_attendance_finalizations WHERE school_id=$1 AND period_id=$2 AND school_date=$3 AND finalized=TRUE',
+            [schoolId,periodId,event.schoolDate]);
+          if(locked.rowCount){
+            results.push({eventId:event.eventId,status:'REJECTED',
+              reason:'Cloud class register is finalized; late QR scan needs review.'});
+            continue;
+          }
         }
-        const existing = await client.query('SELECT 1 FROM attendance_events WHERE event_id=$1', [event.eventId]);
-        if (existing.rowCount) { results.push({ eventId:event.eventId,status:'ALREADY_SYNCED' }); continue; }
+        const existing = await client.query('SELECT school_id FROM attendance_events WHERE event_id=$1', [event.eventId]);
+        if (existing.rowCount) {
+          results.push({eventId:event.eventId,status:String(existing.rows[0].school_id)===String(schoolId)?'ALREADY_SYNCED':'REJECTED',
+            ...(String(existing.rows[0].school_id)!==String(schoolId)?{reason:'Event ID belongs to another school.'}:{})});
+          continue;
+        }
         const deviceId = `CLOUD-${schoolCode.slice(0,70)}`;
         const inserted = await client.query(
           `INSERT INTO attendance_events(event_id,school_id,device_id,student_id,attendance_scope,period_id,event_type,
