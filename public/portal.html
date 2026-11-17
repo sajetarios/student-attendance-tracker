@@ -166,7 +166,7 @@
   <link rel="stylesheet" href="/planner.css?v=3">
   <link rel="stylesheet" href="/user-management-readability.css?v=2">
 <link rel="stylesheet" href="/user-nav-reorg.css?v=1">
-<link rel="stylesheet" href="/special-program-ui.css?v=2">
+<link rel="stylesheet" href="/special-program-ui.css?v=3">
 <style id="school-logo-size-fix">
   /* Transparent school branding: a larger hero logo, compact sidebar logo, no stretching. */
   .school-heading #schoolEmblem.school-emblem {
@@ -1507,6 +1507,15 @@ body.dark-mode .content-wrap > .school-heading.is-compact,body[data-theme="dark"
 
         <section id="academicAdminWorkspace" class="view-panel" hidden>
           <div class="page-heading"><div><span class="eyebrow muted">ACADEMIC ADMINISTRATION</span><h2>School Years & Special Programs</h2><p>Manage school-year setup, learner enrollment, and primary special-program assignments.</p></div></div>
+          <article class="surface-card academic-admin-card" id="specialProgramReviewPanel">
+            <div class="section-toolbar"><div><h3>1 · Pending special-program approvals</h3><p>Review requests from Department Heads and Class Advisers first. If an assignment was already made directly, approving its matching request closes it without writing a duplicate.</p></div><button type="button" id="specialProgramReviewRefresh" class="outline-button">Refresh requests</button></div>
+            <p id="specialProgramReviewFeedback" role="status" class="inline-feedback"></p>
+            <h4 class="special-program-review-heading">Batch requests awaiting decision</h4>
+            <div id="specialProgramBatchReviewList" aria-live="polite"><p class="field-hint">Open this page to review grouped requests.</p></div>
+            <h4 class="special-program-review-heading">Individual requests</h4>
+            <div id="specialProgramReviewList" aria-live="polite"></div>
+          </article>
+          <p class="special-program-workflow-hint">2 · Manage direct enrollment and special-program assignments below. School Admin changes apply immediately; only staff-submitted requests require approval.</p>
           <div class="academic-admin-grid">
             <article class="surface-card academic-admin-card">
               <h3>Create school year</h3><form id="academicYearForm" class="academic-admin-form">
@@ -1537,25 +1546,17 @@ body.dark-mode .content-wrap > .school-heading.is-compact,body[data-theme="dark"
               <button class="primary-button" type="submit">Enroll learner</button>
             </form><p id="academicEnrollmentFeedback" class="inline-feedback" role="status"></p>
             <section id="specialProgramAdminTools" class="special-program-admin-tools" aria-label="Bulk special-program assignment">
-              <h4>Assign special programs in bulk</h4>
-              <p>Select enrolled learners in the table below. Assign or remove their primary program after reviewing the selection. Previous assignments remain in history.</p>
+              <h4>Set primary programs for multiple learners</h4>
+              <p>Select checkboxes in the enrollment table, choose a program, then set it as primary for all selected learners. No separate approval is needed for School Admin direct changes. Already-correct learners are skipped; assignment history is preserved.</p>
               <div class="special-program-bulk-controls">
                 <label>Program<select id="specialProgramBulkType"><option value="">Choose an active special program</option></select></label>
-                <button type="button" id="specialProgramSelectVisible" class="outline-button">Select all enrolled learners</button>
-                <button type="button" id="specialProgramAssignSelected" class="primary-button">Assign selected</button>
-                <button type="button" id="specialProgramRemoveSelected" class="outline-button">Remove primary program</button>
+                <button type="button" id="specialProgramSelectVisible" class="outline-button">Select enrolled (up to 200)</button>
+                <button type="button" id="specialProgramAssignSelected" class="primary-button" disabled>Set primary for selected</button>
+                <button type="button" id="specialProgramRemoveSelected" class="outline-button" disabled>Remove for selected</button>
               </div>
               <p id="specialProgramBulkFeedback" class="inline-feedback" role="status" aria-live="polite">No learners selected.</p>
             </section>
-            <div class="table-scroll"><table><thead><tr><th>Select</th><th>Student ID</th><th>Learner</th><th>Grade</th><th>Section</th><th>Status</th><th>Special program</th><th>Assign</th></tr></thead><tbody id="academicEnrollmentRows"><tr><td colspan="8" class="empty-cell">Select a school year.</td></tr></tbody></table></div>
-          </article>
-          <article class="surface-card academic-admin-card" id="specialProgramReviewPanel">
-            <div class="section-toolbar"><div><h3>Special-program requests &amp; approvals</h3><p>Review Department Head and Class Adviser requests before changing official enrollment records.</p></div><button type="button" id="specialProgramReviewRefresh" class="outline-button">Refresh requests</button></div>
-            <p id="specialProgramReviewFeedback" role="status" class="inline-feedback"></p>
-            <h4 class="special-program-review-heading">Grouped batch requests</h4>
-            <div id="specialProgramBatchReviewList" aria-live="polite"><p class="field-hint">Open this page to review grouped requests.</p></div>
-            <h4 class="special-program-review-heading">Individual requests</h4>
-            <div id="specialProgramReviewList" aria-live="polite"></div>
+            <div class="table-scroll"><table><thead><tr><th>Select</th><th>Student ID</th><th>Learner</th><th>Grade</th><th>Section</th><th>Status</th><th>Special program</th><th>Individual action</th></tr></thead><tbody id="academicEnrollmentRows"><tr><td colspan="8" class="empty-cell">Select a school year.</td></tr></tbody></table></div>
           </article>
           <p class="scope-note">These controls are available to School Administrators. Existing attendance records, parent accounts, QR tokens, and student master records are not rewritten by creating school years or enrollments.</p>
         </section>
@@ -1648,9 +1649,9 @@ body.dark-mode .content-wrap > .school-heading.is-compact,body[data-theme="dark"
   <script src="/account-directory.js?v=1" defer></script>
   <script src="/guardian-ui.js?v=5" defer></script>
   <script src="/admin-request-notifications.js?v=4" defer></script>
-  <script src="/academic-admin.js?v=5" defer></script>
-  <script src="/special-program-ui.js?v=2" defer></script>
-  <script src="/special-program-batch-ui.js?v=1" defer></script>
+  <script src="/academic-admin.js?v=6" defer></script>
+  <script src="/special-program-ui.js?v=3" defer></script>
+  <script src="/special-program-batch-ui.js?v=2" defer></script>
   <script src="/smart-mobile-header.js?v=3" defer></script>
 <script src="/attendigo-sidebar-adaptive.js?v=3" defer></script>
 <script defer src="/school-header-responsive.js?v=2"></script>

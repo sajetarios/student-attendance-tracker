@@ -24,18 +24,19 @@ function registerSpecialProgramRoutes(app,pool,auth){
   return false;
  }
  function invalid(message,code){return Object.assign(new Error(message),{code});}
- async function change(c,u,e,action,programTypeId){
+ async function change(c,u,e,action,programTypeId,{allowAlreadySatisfied=false}={}){
   if(e.year_status!=='ACTIVE'||e.enrollment_status!=='ENROLLED')throw invalid('Enrollment and school year must be active.','INVALID_YEAR');
   if(action==='ASSIGN'){
    const result=await c.query('SELECT 1 FROM special_program_types WHERE school_id=$1 AND program_type_id=$2 AND active=TRUE',[u.schoolId,programTypeId]);
    if(!result.rowCount)throw invalid('Program not found in your school.','INVALID_PROGRAM');
   }
   const previous=await c.query("SELECT student_program_id,program_type_id FROM student_special_programs WHERE school_id=$1 AND enrollment_id=$2 AND status='ACTIVE' AND is_primary=TRUE FOR UPDATE",[u.schoolId,e.enrollment_id]);
-  if(action==='REMOVE'&&!previous.rowCount)throw invalid('No active primary program to remove.','UNCHANGED');
-  if(action==='ASSIGN'&&previous.rows.some(r=>String(r.program_type_id)===String(programTypeId)))throw invalid('Student already belongs to that program.','UNCHANGED');
+  if(action==='REMOVE'&&!previous.rowCount){if(allowAlreadySatisfied)return {applied:false};throw invalid('No active primary program to remove.','UNCHANGED');}
+  if(action==='ASSIGN'&&previous.rows.some(r=>String(r.program_type_id)===String(programTypeId))){if(allowAlreadySatisfied)return {applied:false};throw invalid('Student already belongs to that program.','UNCHANGED');}
   await c.query("UPDATE student_special_programs SET status='COMPLETED',is_primary=FALSE,updated_at=NOW() WHERE school_id=$1 AND student_id=$2 AND school_year_id=$3 AND is_primary=TRUE AND status='ACTIVE'",[u.schoolId,e.student_id,e.school_year_id]);
   if(action==='ASSIGN')await c.query("INSERT INTO student_special_programs(school_id,student_id,school_year_id,enrollment_id,program_type_id,is_primary,start_date,assigned_by_user_id) VALUES($1,$2,$3,$4,$5,TRUE,GREATEST($6::date,LEAST((NOW() AT TIME ZONE 'Asia/Manila')::date,$7::date)),$8)",[u.schoolId,e.student_id,e.school_year_id,e.enrollment_id,programTypeId,e.enrollment_date,e.end_date,u.userId]);
   await c.query("INSERT INTO audit_logs(school_id,actor_type,actor_user_id,action,entity_type,entity_id,details) VALUES($1,'SCHOOL',$2,$3,'student',$4,$5::jsonb)",[u.schoolId,u.userId,'SPECIAL_PROGRAM_'+action,e.student_id,JSON.stringify({enrollmentId:e.enrollment_id,programTypeId:action==='ASSIGN'?programTypeId:null,previous:previous.rows.map(p=>p.program_type_id)})]);
+  return {applied:true};
  }
  registerSpecialProgramBatchRoutes(app,pool,auth,{getEnrollment,permitted,change,validId,clean,invalid,errorReply});
  app.get('/api/special-programs/catalog-access',authenticateSchoolClient,staff,async(req,res)=>{
@@ -52,13 +53,13 @@ function registerSpecialProgramRoutes(app,pool,auth){
   const {enrollmentIds,action,programTypeId}=req.body||{},kind=String(action||'').toUpperCase();
   if(!Array.isArray(enrollmentIds)||enrollmentIds.length<1||enrollmentIds.length>200||enrollmentIds.some(id=>!validId(id))||new Set(enrollmentIds).size!==enrollmentIds.length||!['ASSIGN','REMOVE'].includes(kind)||(kind==='ASSIGN'&&!validId(programTypeId)))return res.status(400).json({error:'Choose 1–200 unique enrolled learners and a valid program action.'});
   const c=await pool.connect();
-  try{await c.query('BEGIN');const changed=[];for(const id of [...enrollmentIds].sort()){const e=await getEnrollment(c,req.auth.schoolId,id);if(!e)throw invalid('Enrollment not found in your school.','INVALID_YEAR');await change(c,req.auth,e,kind,programTypeId);changed.push({enrollmentId:id,studentId:e.student_id});}await c.query('COMMIT');res.json({changed,count:changed.length});}
+  try{await c.query('BEGIN');const changed=[],unchanged=[];for(const id of [...enrollmentIds].sort()){const e=await getEnrollment(c,req.auth.schoolId,id);if(!e)throw invalid('Enrollment not found in your school.','INVALID_YEAR');const outcome=await change(c,req.auth,e,kind,programTypeId,{allowAlreadySatisfied:true});(outcome.applied?changed:unchanged).push({enrollmentId:id,studentId:e.student_id});}await c.query('COMMIT');res.json({changed,count:changed.length,unchanged,unchangedCount:unchanged.length});}
   catch(e){await c.query('ROLLBACK');errorReply(res,e);}finally{c.release();}
  });
  app.get('/api/special-programs/requests',authenticateSchoolClient,staff,async(req,res)=>{
   if(req.auth.role!=='SCHOOL_ADMIN'&&!mayRequest(req.auth))return res.status(403).json({error:'Only Class Advisers and Department Heads may request changes.'});
   try{const own=req.auth.role==='SCHOOL_ADMIN'?'':' AND r.requested_by_user_id=$2';const params=own?[req.auth.schoolId,req.auth.userId]:[req.auth.schoolId];
-   const sql="SELECT r.request_id AS \"requestId\",r.enrollment_id AS \"enrollmentId\",r.student_id AS \"studentId\",s.full_name AS \"studentName\",e.grade_level AS \"gradeLevel\",e.section,sy.school_year_label AS \"schoolYear\",r.action,r.reason,r.status,r.batch_id AS \"batchId\",r.requested_program_type_id AS \"programTypeId\",p.program_code AS \"programCode\",p.program_name AS \"programName\",sender.display_name AS \"requestedBy\",r.created_at AS \"createdAt\",r.review_note AS \"reviewNote\",r.reviewed_at AS \"reviewedAt\" FROM special_program_change_requests r JOIN students s ON s.school_id=r.school_id AND s.student_id=r.student_id JOIN student_enrollments e ON e.school_id=r.school_id AND e.enrollment_id=r.enrollment_id JOIN school_years sy ON sy.school_id=r.school_id AND sy.school_year_id=r.school_year_id JOIN school_users sender ON sender.school_id=r.school_id AND sender.user_id=r.requested_by_user_id LEFT JOIN special_program_types p ON p.school_id=r.school_id AND p.program_type_id=r.requested_program_type_id WHERE r.school_id=$1"+own+" ORDER BY (r.status='PENDING') DESC,r.created_at DESC LIMIT 300";
+   const sql="SELECT r.request_id AS \"requestId\",r.enrollment_id AS \"enrollmentId\",r.student_id AS \"studentId\",s.full_name AS \"studentName\",e.grade_level AS \"gradeLevel\",e.section,sy.school_year_label AS \"schoolYear\",r.action,r.reason,r.status,r.batch_id AS \"batchId\",r.requested_program_type_id AS \"programTypeId\",p.program_code AS \"programCode\",p.program_name AS \"programName\",sender.display_name AS \"requestedBy\",r.created_at AS \"createdAt\",r.review_note AS \"reviewNote\",r.reviewed_at AS \"reviewedAt\",(SELECT curr.program_type_id FROM student_special_programs curr WHERE curr.school_id=r.school_id AND curr.enrollment_id=r.enrollment_id AND curr.is_primary=TRUE AND curr.status='ACTIVE' LIMIT 1) AS \"currentProgramTypeId\" FROM special_program_change_requests r JOIN students s ON s.school_id=r.school_id AND s.student_id=r.student_id JOIN student_enrollments e ON e.school_id=r.school_id AND e.enrollment_id=r.enrollment_id JOIN school_years sy ON sy.school_id=r.school_id AND sy.school_year_id=r.school_year_id JOIN school_users sender ON sender.school_id=r.school_id AND sender.user_id=r.requested_by_user_id LEFT JOIN special_program_types p ON p.school_id=r.school_id AND p.program_type_id=r.requested_program_type_id WHERE r.school_id=$1"+own+" ORDER BY (r.status='PENDING') DESC,r.created_at DESC LIMIT 300";
    const r=await pool.query(sql,params);res.json({requests:r.rows});
   }catch(e){res.status(500).json({error:'Could not load special-program requests.'});}
  });
@@ -91,11 +92,12 @@ function registerSpecialProgramRoutes(app,pool,auth){
   const c=await pool.connect();
   try{await c.query('BEGIN');const r=await c.query('SELECT * FROM special_program_change_requests WHERE school_id=$1 AND request_id=$2 FOR UPDATE',[req.auth.schoolId,req.params.id]);const item=r.rows[0];
    if(!item||item.status!=='PENDING'){await c.query('ROLLBACK');return res.status(409).json({error:'Request no longer pending.'});}
-   if(decision==='APPROVE'){const e=await getEnrollment(c,req.auth.schoolId,item.enrollment_id);if(!e)throw invalid('Enrollment no longer exists.','INVALID_YEAR');await change(c,req.auth,e,item.action,item.requested_program_type_id);}
+   let alreadySatisfied=false;
+   if(decision==='APPROVE'){const e=await getEnrollment(c,req.auth.schoolId,item.enrollment_id);if(!e)throw invalid('Enrollment no longer exists.','INVALID_YEAR');const outcome=await change(c,req.auth,e,item.action,item.requested_program_type_id,{allowAlreadySatisfied:true});alreadySatisfied=!outcome.applied;}
    const status=decision==='APPROVE'?'APPROVED':'REJECTED';
    await c.query('UPDATE special_program_change_requests SET status=$3,reviewed_by_user_id=$4,reviewed_at=NOW(),review_note=$5 WHERE school_id=$1 AND request_id=$2',[req.auth.schoolId,req.params.id,status,req.auth.userId,reviewNote||null]);
-   await c.query("INSERT INTO audit_logs(school_id,actor_type,actor_user_id,action,entity_type,entity_id,details) VALUES($1,'SCHOOL',$2,$3,'special_program_change_request',$4,$5::jsonb)",[req.auth.schoolId,req.auth.userId,'SPECIAL_PROGRAM_REQUEST_'+status,req.params.id,JSON.stringify({studentId:item.student_id,action:item.action})]);
-   await c.query('COMMIT');res.json({status});
+   await c.query("INSERT INTO audit_logs(school_id,actor_type,actor_user_id,action,entity_type,entity_id,details) VALUES($1,'SCHOOL',$2,$3,'special_program_change_request',$4,$5::jsonb)",[req.auth.schoolId,req.auth.userId,'SPECIAL_PROGRAM_REQUEST_'+status,req.params.id,JSON.stringify({studentId:item.student_id,action:item.action,alreadySatisfied})]);
+   await c.query('COMMIT');res.json({status,alreadySatisfied});
   }catch(e){await c.query('ROLLBACK');errorReply(res,e);}finally{c.release();}
  });
  app.get('/api/special-programs/mine',authenticateSchoolClient,async(req,res)=>{

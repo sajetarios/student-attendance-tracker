@@ -51,7 +51,7 @@ test('admin bulk review verifies matching pending IDs and commits an all-or-noth
  assert.match(routes,/SELECT \* FROM special_program_change_requests WHERE school_id=\$1 AND batch_id=\$2 AND request_id=ANY\(\$3::uuid\[\]\) AND status='PENDING' ORDER BY request_id FOR UPDATE/);
  assert.match(routes,/result\.rowCount!==ordered\.length/);
  assert.match(routes,/for\(const item of result\.rows\)/);
- assert.match(routes,/await change\(db,req\.auth,e,item\.action,item\.requested_program_type_id\)/);
+ assert.match(routes,/await change\(db,req\.auth,e,item\.action,item\.requested_program_type_id,\{allowAlreadySatisfied:true\}\)/);
  assert.match(routes,/SPECIAL_PROGRAM_BATCH_/);
  assert.match(routes,/SPECIAL_PROGRAM_REQUEST_/);
  assert.match(routes,/await db\.query\('COMMIT'\)/);
