@@ -253,6 +253,11 @@
       $('studentsNav')?.addEventListener('click',()=>loadRequestable());
       new MutationObserver(decorateTeacherRows).observe($('studentRows'),{childList:true});
       await loadRequestable();
+      // An administrator may review requests in another session; reconcile the
+      // requester's queue when the tab returns and while the view stays open.
+      document.addEventListener('visibilitychange',()=>{if(!document.hidden)loadMyRequests();});
+      window.addEventListener('focus',()=>{if(!document.hidden)loadMyRequests();});
+      setInterval(()=>{if(!document.hidden&&!$('mySpecialProgramRequests')?.hidden)loadMyRequests();},60000);
     }
     document.addEventListener('attendigo:requests-changed',()=>{if(admin)loadAdminRequests();else if(canRequest)loadMyRequests();});
   };
