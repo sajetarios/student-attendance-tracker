@@ -5,12 +5,17 @@
 <link rel="stylesheet" href="/attendigo-dark-unified.css?v=1"><script src="/dashboard-appearance.js?v=3"></script><link rel="stylesheet" href="/attendigo-brand-refresh.css?v=1">
   <link rel="preload" href="/fonts/InterVariable.woff2" as="font" type="font/woff2" crossorigin>
   <link rel="stylesheet" href="/typography.css?v=1">
-</head><body class="portal-page"><div class="attendigo-brand"><img class="attendigo-logo" src="/assets/attendigo-sidebar-logo.png?v=2" alt="Attendigo" width="1800" height="430"></div><main><h1>Class attendance</h1><p>Sign in to your student account before confirming your class check-in.</p><button id="checkin">Confirm attendance</button><p id="message" role="status">Ready to check in.</p><p><a href="/portal-login.html">Student sign in</a></p></main><script>
+</head><body class="portal-page"><div class="attendigo-brand"><img class="attendigo-logo" src="/assets/attendigo-sidebar-logo.png?v=2" alt="Attendigo" width="1800" height="430"></div><main><h1>Class attendance</h1><p>Sign in to your student account before confirming your class check-in.</p><button id="checkin">Confirm attendance</button><p id="message" role="status">Ready to check in.</p><p><a id="studentSignIn" href="/portal-login.html?mode=student">Student sign in</a></p></main><script>
 const q=new URLSearchParams(location.search),button=document.getElementById('checkin'),msg=document.getElementById('message');
 const pendingKey='schoolAttendance.pendingClassQr';
-if(q.get('sessionId')&&q.get('token'))sessionStorage.setItem(pendingKey,location.href);
+if(q.get('sessionId')&&q.get('token'))sessionStorage.setItem(pendingKey,location.pathname+location.search);
+document.getElementById('studentSignIn').href='/portal-login.html?mode=student&returnTo='+encodeURIComponent(location.pathname+location.search);
+const existingToken=sessionStorage.getItem('schoolAttendance.accessToken');
+const user=(()=>{try{return JSON.parse(sessionStorage.getItem('schoolAttendance.user')||'null');}catch{return null;}})();
+if(!existingToken||user?.role!=='STUDENT'){button.disabled=true;msg.textContent='Student sign-in required. Sign in, then scan the latest QR if this code expires.';}
+else{msg.textContent='Signed in. Confirm promptly while the QR code is valid.';}
 button.onclick=async()=>{const token=sessionStorage.getItem('schoolAttendance.accessToken');if(!token){msg.textContent='Please sign in as a student, then return to this page or scan the latest QR.';return;}
 button.disabled=true;msg.textContent='Submitting to school server…';
-try{const r=await fetch('/api/class-qr/check-in',{method:'POST',headers:{'Content-Type':'application/json',Authorization:'Bearer '+token},body:JSON.stringify({sessionId:q.get('sessionId'),token:q.get('token')}),cache:'no-store'});const d=await r.json();msg.textContent=r.ok?'Attendance confirmed: '+d.status+'.':(d.error||'Check-in failed. Scan the latest QR and retry.');if(r.ok)sessionStorage.removeItem(pendingKey);}
-catch(e){msg.textContent='Network unavailable. Attendance was NOT recorded. Please retry with a fresh QR.';}finally{button.disabled=false;}};
+try{const r=await fetch('/api/class-qr/check-in',{method:'POST',headers:{'Content-Type':'application/json',Authorization:'Bearer '+token},body:JSON.stringify({sessionId:q.get('sessionId'),token:q.get('token')}),cache:'no-store'});const d=await r.json();msg.textContent=r.ok?'Attendance confirmed: '+d.status+'.':(d.error||'Check-in failed. Scan the latest QR and retry.');if(r.ok){sessionStorage.removeItem(pendingKey);button.disabled=true;}else if(r.status===410){button.disabled=true;msg.textContent='QR code expired or session closed. Scan the latest QR code to continue.';}}
+catch(e){msg.textContent='Network unavailable. Attendance was NOT recorded. Please retry with a fresh QR.';}finally{if(!msg.textContent.startsWith('Attendance confirmed')&&!msg.textContent.startsWith('QR code expired'))button.disabled=false;}};
 </script></body></html>
