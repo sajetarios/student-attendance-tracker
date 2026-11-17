@@ -32,7 +32,7 @@ test('only School Admin can alter assignments and review changes; delegated role
   assert.ok(route.includes("app.post('/api/special-programs/requests/:id/review',authenticateSchoolClient,admin"));
   assert.ok(route.includes("u.role==='DEPARTMENT_HEAD'||(u.role==='TEACHER'&&u.teacherDesignations?.includes('CLASS_ADVISER'))"));
   assert.ok(route.includes("req.auth.departmentCode==='UNASSIGNED'"));
-  assert.ok(route.includes("ca.adviser_user_id=$2 AND ca.grade_level=$3 AND ca.section=$4"));
+  assert.ok(route.includes("adviser_user_id=$2 AND grade_level=$3 AND section=$4"));
   assert.ok(route.includes("AND p.department_id=$2"));
   assert.ok(route.includes('await permitted(c,req.auth,e)'));
 });
