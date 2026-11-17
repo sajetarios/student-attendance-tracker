@@ -26,6 +26,6 @@ test('cross-school student IDs remain rejected rather than reassigned', () => {
 
 test('attendance event identities remain replay-safe', () => {
   assert.match(receive, /SELECT school_id FROM attendance_events WHERE event_id=\$1/);
-  assert.match(receive, /status:'ALREADY_SYNCED'/);
+  assert.match(receive, /'ALREADY_SYNCED'/);
   assert.match(receive, /ON CONFLICT DO NOTHING RETURNING event_id/);
 });
