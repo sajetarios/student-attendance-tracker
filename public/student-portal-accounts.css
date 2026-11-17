@@ -74,9 +74,11 @@
  body.dark-mode #studentAccountsView .sap-action,body[data-theme=dark] #studentAccountsView .sap-action{background:#30486b;color:#eaf4ff;border-color:#58749e}
 }
 
-/* Teachers cannot select or bulk issue student credentials. */
-#studentAccountsView.is-teacher .sap-table th:first-child,
-#studentAccountsView.is-teacher .sap-table td:first-child{display:none}
+/* Teachers can select learners to request access; only admins can issue credentials. */
+#studentAccountsView .sap-table input[data-sap-select],#studentAccountsView #sapSelectAll{width:19px;height:19px;accent-color:#1766c3;cursor:pointer}
+#studentAccountsView .sap-bulk-toolbar select{max-width:100%;min-height:40px;background:var(--card,#fff);color:var(--ink,#20354f);border:1px solid #cddbec;border-radius:10px;padding:7px 12px}
+#studentAccountsView .sap-bulk-toolbar button{min-height:40px}
+#studentAccountsView .sap-table td:first-child,#studentAccountsView .sap-table th:first-child{width:64px;text-align:center}
 
 /* Confidential login slip print layout. No credentials are stored in this stylesheet or page until issued. */
 #sapPrintSlips{display:none}
