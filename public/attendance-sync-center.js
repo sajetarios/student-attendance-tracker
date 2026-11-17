@@ -44,7 +44,7 @@
     return node;
   };
 
-  let dialog, lastCloud = null, lastSummary = null, refreshing = false;
+  let dialog, lastCloud = null, lastSummary = null, cloudError = null, refreshing = false;
   let statusMessage = '';
   const getQueue = () => window.AttendigoOffline;
   const connected = () => Boolean(navigator.onLine);
@@ -52,14 +52,32 @@
 
   function setup() {
     if (dialog || !document.body || !getQueue()) return;
-    const trigger = button('☁  Attendance sync', 'asc-dock', open);
-    trigger.id = 'ascDock';
+    // Reuse the existing cloud indicator in the staff portal header.
+    // On the standalone prepared offline sheet there is no portal topbar, so
+    // put a single equivalent control in its own header (never float it).
+    let trigger = $('connectionStatus');
+    if (!trigger && document.documentElement.dataset.offlineSheet === 'true') {
+      const sheetHeader = document.querySelector('body > header');
+      if (sheetHeader) {
+        trigger = button('Attendance sync', 'asc-header-trigger');
+        trigger.id = 'ascHeaderTrigger';
+        trigger.innerHTML = '<span class="asc-header-cloud" aria-hidden="true">☁</span>' +
+          '<span class="asc-header-label">Attendance sync</span>' +
+          '<span class="asc-header-badge" hidden></span>';
+        sheetHeader.append(trigger);
+      }
+    }
+    if (!trigger) return;
+    // Super Admin has no school-scoped queue or cloud destination to manage.
+    if (role().role === 'SUPER_ADMIN') {
+      trigger.hidden = true;
+      return;
+    }
+    trigger.classList.add('asc-header-trigger');
     trigger.setAttribute('aria-haspopup', 'dialog');
     trigger.setAttribute('aria-controls', 'attendanceSyncDialog');
-    const dot = element('span', 'asc-dock-dot');
-    dot.setAttribute('aria-hidden', 'true');
-    trigger.prepend(dot);
-    document.body.append(trigger);
+    trigger.setAttribute('aria-label', 'Open Attendance Sync Center');
+    trigger.addEventListener('click', open);
 
     dialog = document.createElement('dialog');
     dialog.id = 'attendanceSyncDialog';
@@ -112,16 +130,6 @@
     dialog.querySelector('#ascRefresh').addEventListener('click', () => refresh(true));
     document.body.append(dialog);
 
-    const dashboard = $('dashboardView');
-    if (dashboard && !dashboard.querySelector('#ascDashboardCard')) {
-      const card = element('section', 'asc-dashboard-card');
-      card.id = 'ascDashboardCard';
-      card.innerHTML = '<div class="asc-dashboard-orb" aria-hidden="true">☁</div>' +
-        '<div class="asc-dashboard-copy"><strong>Attendance Sync Center</strong>' +
-        '<p id="ascDashboardDescription">Checking this device…</p></div>';
-      card.append(button('View sync status', 'asc-dashboard-open', open));
-      dashboard.prepend(card);
-    }
     const folioButton = $('mfOpenSyncCenter');
     if (folioButton) folioButton.addEventListener('click', open);
     window.addEventListener('attendigo-offline-status', event => {
@@ -131,28 +139,70 @@
     window.addEventListener('online', refreshIfOpen);
     window.addEventListener('offline', refreshIfOpen);
     document.addEventListener('visibilitychange', () => { if (!document.hidden) refreshIfOpen(); });
+    updateHeader(); // Show the correct role-scoped label immediately, before the queue read completes.
     refresh(false);
   }
 
-  const pendingLabel = summary => summary.pending ? summary.pending + ' on device' : 'No queued operations';
-  function updateSummary(summary) {
-    lastSummary = summary;
-    const trigger = $('ascDock');
-    if (!trigger) return;
+  function setCloudStatus(status, error = '') {
+    // A teacher's device queue must not reveal school-wide cloud configuration.
+    if (!isAdmin()) return;
+    lastCloud = status || null;
+    cloudError = error ? String(error) : null;
+    updateHeader();
+  }
+  function updateHeader() {
+    const trigger = $('connectionStatus') || $('ascHeaderTrigger');
+    if (!trigger || trigger.hidden) return;
+    const summary = lastSummary || { pending: 0, waiting: 0, needsReview: 0 };
     const review = Number(summary.needsReview || 0);
     const waiting = Number(summary.waiting || 0);
-    trigger.dataset.state = review ? 'review' : waiting ? 'waiting' : connected() ? 'ready' : 'offline';
-    trigger.textContent = '☁  ' + (review ? review + ' need review' :
-      waiting ? waiting + ' waiting to sync' : connected() ? 'Attendance sync' : 'Offline · Sync Center');
-    const dot = element('span', 'asc-dock-dot');
-    dot.setAttribute('aria-hidden', 'true');
-    trigger.prepend(dot);
-    trigger.title = 'Open Attendance Sync Center. ' + (review ? 'Resolve device conflicts.' : pendingLabel(summary));
-    const dashboardDescription = $('ascDashboardDescription');
-    if (dashboardDescription) dashboardDescription.textContent =
-      (review ? review + ' records need review · ' : '') +
-      (waiting ? waiting + ' waiting to sync' : 'No operations waiting on this device') +
-      (isAdmin() ? ' · School cloud status available' : '');
+    const cloudReview = isAdmin() ? Number(lastCloud?.needsReviewCount || 0) : 0;
+    let label = 'Attendance sync', state = 'ready';
+    if (review) {
+      label = review + (review === 1 ? ' record needs review' : ' records need review');
+      state = 'review';
+    } else if (cloudReview) {
+      label = cloudReview + (cloudReview === 1 ? ' cloud conflict' : ' cloud conflicts');
+      state = 'review';
+    } else if (waiting) {
+      label = waiting + ' waiting to sync';
+      state = 'waiting';
+    } else if (!connected()) {
+      label = 'Offline · attendance saved';
+      state = 'warning';
+    } else if (isAdmin() && cloudError) {
+      label = 'Cloud sync status unavailable';
+      state = 'warning';
+    } else if (isAdmin() && lastCloud) {
+      if (!lastCloud.configured) {
+        label = 'Cloud sync not configured';
+        state = 'warning';
+      } else if (!lastCloud.enabled) {
+        label = 'Cloud forwarding off';
+        state = 'warning';
+      } else if (lastCloud.connectionStatus === 'CONNECTED') {
+        label = 'Cloud sync last connected';
+      } else {
+        label = 'Cloud not connected';
+        state = 'warning';
+      }
+    }
+    trigger.dataset.state = state;
+    const text = trigger.querySelector('.asc-header-label');
+    if (text) text.textContent = label;
+    const badge = trigger.querySelector('.asc-header-badge');
+    const count = review + waiting + cloudReview;
+    if (badge) {
+      badge.hidden = !count;
+      badge.textContent = count > 99 ? '99+' : String(count);
+    }
+    trigger.setAttribute('aria-label', 'Open Attendance Sync Center. ' + label);
+    trigger.title = 'Open Attendance Sync Center · ' + label +
+      (count ? ' · ' + count + ' pending or reviewed operation(s)' : '');
+  }
+  function updateSummary(summary) {
+    lastSummary = summary;
+    updateHeader();
     // Rendering an open panel is serialized through refresh() to avoid racing
     // a device queue event with an administrator cloud-status fetch.
   }
@@ -242,6 +292,8 @@
     metrics.replaceChildren(); review.replaceChildren();
     try {
       lastCloud = await api('/api/cloud-sync/status');
+      cloudError = null;
+      updateHeader();
       state.textContent = lastCloud.enabled
         ? (lastCloud.connectionStatus === 'CONNECTED' ? 'Configured · last contact available' : 'Configured · not verified')
         : 'Forwarding disabled';
@@ -275,6 +327,8 @@
         review.append(item);
       }
     } catch (error) {
+      cloudError = error.message;
+      updateHeader();
       state.textContent = 'Unable to verify';
       review.append(element('p', 'asc-empty', 'Cloud status could not be confirmed: ' + error.message));
     }
@@ -408,7 +462,7 @@
     await refresh(true);
   }
 
-  window.AttendigoSyncCenter = { open, refresh };
+  window.AttendigoSyncCenter = { open, refresh, setCloudStatus };
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', setup);
   else setup();
   document.addEventListener('attendigo:portal-ready', setup);

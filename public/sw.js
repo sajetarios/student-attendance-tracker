@@ -1,4 +1,4 @@
-const CACHE = "attendigo-v144-teacher-assignment-modal";
+const CACHE = "attendigo-v145-header-sync-center";
 
 const SHELL = [
   "/assets/attendigo-sidebar-logo.png",
@@ -32,7 +32,7 @@ const SHELL = [
   "/portal.css?v=0.9.113",
   "/student-roster-toolbar.css?v=1",
   "/portal.css",
-  "/portal.js?v=0.9.129",
+  "/portal.js?v=0.9.130",
   "/sardo-monitor.js?v=1",
   "/sardo-monitor.css?v=1",
   "/schedule-form-layout.css?v=12",
@@ -41,8 +41,8 @@ const SHELL = [
   "/offline-sheet.html",
   "/offline-sheet.js?v=4",
   "/manual-folio.css?v=11",
-  "/attendance-sync-center.css?v=2",
-  "/attendance-sync-center.js?v=1",
+  "/attendance-sync-center.css?v=3",
+  "/attendance-sync-center.js?v=2",
   "/manual-folio.js?v=14",
   "/student-portal-accounts.css?v=4",
   "/student-portal-accounts.js?v=7",
