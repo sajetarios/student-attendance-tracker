@@ -1377,6 +1377,17 @@ function coverageStatusLabel(status) {
         (statusFilter === 'ARCHIVED' && Boolean(student.archivedAt))) &&
       (!search || [student.fullName, student.studentId, student.lrn].some(value => String(value || '').toLocaleLowerCase().includes(search)))
     );
+    // Sex grouping changes display order only; every learner retains the same record and QR.
+    const groupedRoster = $('studentRosterView')?.value === 'grouped';
+    const sortedRoster = window.AttendigoRoster?.sortLearners(visible, groupedRoster) || visible;
+    const numberedRoster = window.AttendigoRoster?.numberLearners(sortedRoster, groupedRoster) || [];
+    const sexTotals = window.AttendigoRoster?.counts(visible);
+    if ($('studentRosterSexCounts') && sexTotals) {
+      $('studentRosterSexCounts').textContent = 'Male ' + sexTotals.MALE +
+        ' · Female ' + sexTotals.FEMALE +
+        (sexTotals.UNSPECIFIED ? ' · Not set ' + sexTotals.UNSPECIFIED : '') +
+        ' · Total ' + sexTotals.TOTAL;
+    }
     // Read-only rosters should not display an unusable select column.
     // Keep authorized batch tools available whenever eligible learners are shown.
     const hasSelectableLearners = visible.some(canSelectLearnerForBatch);
@@ -1408,7 +1419,7 @@ function coverageStatusLabel(status) {
           : 'No students are available for this filter.';
       host.innerHTML = '<tr><td colspan="' + rosterColumns + '" class="empty-cell">' + esc(emptyMessage) + '</td></tr>';
     } else {
-      const rows = await Promise.all(visible.map(async student => {
+      const rows = await Promise.all(sortedRoster.map(async (student, index) => {
         const photo = departmentHead ? '' : await photoDataUrl(student.photoUrl);
         const avatar = photo ? `<img class="student-photo-thumb" src="${photo}" alt="Student photo for ${esc(student.fullName)}" loading="lazy">` : `<span class="student-photo-placeholder no-photo" aria-label="${student.hasPhoto ? 'Photo file missing' : 'No photo uploaded'}" title="${student.hasPhoto ? 'The database has a photo path but the file is missing from storage. Restore the storage/student-photos folder or upload the photo again.' : 'No photo has been uploaded yet. An administrator or Class Adviser can upload the photo.'}">${student.hasPhoto ? 'Missing' : 'No photo'}</span>`;
         let qr = '';
@@ -1423,9 +1434,10 @@ function coverageStatusLabel(status) {
           ? (qr ? `<button type="button" class="student-qr-preview" data-view-qr="${esc(student.studentId)}" title="View or print QR"><img src="${qr}" alt="QR code for ${esc(student.studentId)}"></button>` : '<span class="qr-unavailable">QR unavailable</span>')
           : (gateKeeper ? '<span class="muted-inline">Gate scan only</span>' : '<span class="muted-inline">Not available</span>');
         const selection = canSelectLearnerForBatch(student) ? `<input type="checkbox" class="student-select-box" data-select-student="${esc(student.studentId)}" ${selectedStudentIds.has(student.studentId) ? 'checked' : ''} aria-label="Select ${esc(student.fullName)}">` : '';
+        const ordinal = groupedRoster ? '<span class="student-roster-number">' + numberedRoster[index].number + '. </span>' : '';
         const editable = canManage && student.active !== false && !student.archivedAt;
         const actions = editable
-          ? `<div class="student-row-actions"><button type="button" class="outline-button" data-edit-student="${esc(student.studentId)}">Edit</button>${canUploadPhoto ? `<label class="student-photo-upload">${student.hasPhoto ? 'Replace photo' : 'Upload photo'}<input type="file" accept="image/jpeg,image/png,image/webp" data-student-photo="${esc(student.studentId)}" hidden></label>` : ''}</div>`
+          ? `<details class="student-actions-dropdown"><summary>Actions</summary><div class="student-row-actions"><button type="button" class="outline-button" data-edit-student="${esc(student.studentId)}">Edit</button>${canUploadPhoto ? `<label class="student-photo-upload">${student.hasPhoto ? 'Replace photo' : 'Upload photo'}<input type="file" accept="image/jpeg,image/png,image/webp" data-student-photo="${esc(student.studentId)}" hidden></label>` : ''}</div></details>`
           : '<span class="muted-inline">' + (student.archivedAt ? 'Archived' : student.active === false ? 'Inactive' : 'View only') + '</span>';
         const accountExists = Boolean(student.studentAccountUsername);
         const accountCell = admin
@@ -1436,11 +1448,20 @@ function coverageStatusLabel(status) {
           ? `<span class="special-program-chip" title="${esc(student.specialProgramName || student.specialProgramCode)}">${esc(student.specialProgramCode)}</span>`
           : '<span class="muted-inline">Not assigned</span>';
         if (departmentHead) {
-          return `<tr data-student-enrollment="${esc(student.enrollmentId || '')}" data-student-name="${esc(student.fullName)}">${showSelectionColumn ? `<td data-label="Select">${selection}</td>` : ''}<td data-label="Student ID">${esc(student.studentId)}</td><td data-label="Full name"><strong>${esc(student.fullName)}</strong></td><td data-label="Sex">${esc(student.sex || 'Not set')}</td><td data-label="Grade">${esc(student.gradeLevel)}</td><td data-label="Section">${esc(student.section)}</td><td data-label="Special program">${programCell}</td><td data-label="Status">${statusLabel}</td></tr>`;
+          return `<tr data-student-enrollment="${esc(student.enrollmentId || '')}" data-student-name="${esc(student.fullName)}">${showSelectionColumn ? `<td data-label="Select">${selection}</td>` : ''}<td data-label="Student ID">${esc(student.studentId)}</td><td data-label="Full name">${ordinal}<strong>${esc(student.fullName)}</strong></td><td data-label="Sex">${esc(student.sex || 'Not set')}</td><td data-label="Grade">${esc(student.gradeLevel)}</td><td data-label="Section">${esc(student.section)}</td><td data-label="Special program">${programCell}</td><td data-label="Status">${statusLabel}</td></tr>`;
         }
-        return `<tr data-student-enrollment="${esc(student.enrollmentId || '')}" data-student-name="${esc(student.fullName)}">${showSelectionColumn ? `<td data-label="Select">${selection}</td>` : ''}<td data-label="Photo">${avatar}</td><td data-label="Student ID">${esc(student.studentId)}</td><td data-label="Full name">${esc(student.fullName)}</td><td data-label="Sex">${esc(student.sex || 'Not set')}</td><td data-label="Grade">${esc(student.gradeLevel)}</td><td data-label="Section">${esc(student.section)}</td><td data-label="Special program">${programCell}</td><td data-label="Status">${statusLabel}</td><td data-label="QR code">${qrCell}</td><td data-label="Actions">${actions}</td>${(admin || teacher) ? `<td data-label="Parent / guardian"><strong>${esc(student.parentName || "Not provided")}</strong><small class="table-subtext">${esc(student.parentMobile || "No mobile number")}</small></td>` : ''}${admin ? `<td data-label="Student account">${accountCell}</td>` : ''}</tr>`;
+        return `<tr data-student-enrollment="${esc(student.enrollmentId || '')}" data-student-name="${esc(student.fullName)}">${showSelectionColumn ? `<td data-label="Select">${selection}</td>` : ''}<td data-label="Photo">${avatar}</td><td data-label="Student ID">${esc(student.studentId)}</td><td data-label="Full name">${ordinal}${esc(student.fullName)}</td><td data-label="Sex">${esc(student.sex || 'Not set')}</td><td data-label="Grade">${esc(student.gradeLevel)}</td><td data-label="Section">${esc(student.section)}</td><td data-label="Special program">${programCell}</td><td data-label="Status">${statusLabel}</td><td data-label="QR code">${qrCell}</td><td data-label="Actions">${actions}</td>${(admin || teacher) ? `<td data-label="Parent / guardian"><strong>${esc(student.parentName || "Not provided")}</strong><small class="table-subtext">${esc(student.parentMobile || "No mobile number")}</small></td>` : ''}${admin ? `<td data-label="Student account">${accountCell}</td>` : ''}</tr>`;
       }));
-      host.innerHTML = rows.join('');
+      let previousSex = null;
+      host.innerHTML = rows.map((row, index) => {
+        if (!groupedRoster) return row;
+        const sex = numberedRoster[index].sex;
+        const header = sex !== previousSex
+          ? '<tr class="student-sex-group"><th scope="rowgroup" colspan="' + rosterColumns + '">' +
+            esc(window.AttendigoRoster.sexLabels[sex]) + ' · ' + sexTotals[sex] + '</th></tr>' : '';
+        previousSex = sex;
+        return header + row;
+      }).join('');
       host.querySelectorAll('input[data-student-photo]').forEach(input => input.addEventListener('change', async () => {
         const file = input.files?.[0]; if (!file) return;
         input.disabled = true;
@@ -5053,6 +5074,13 @@ let teacherActionMenuListenersInstalled = false;
   });
 
   $('studentRosterSearch').addEventListener('input', () => { renderStudents(); updateStudentSelectionUi(); });
+  if ($('studentRosterView')) {
+    try { if (localStorage.getItem('attendigo.roster.view') === 'grouped') $('studentRosterView').value = 'grouped'; } catch {}
+    $('studentRosterView').addEventListener('change', event => {
+      try { localStorage.setItem('attendigo.roster.view', event.target.value); } catch {}
+      renderStudents();
+    });
+  }
   $('studentSpecialProgramFilter')?.addEventListener('change', renderStudents);
   $('studentStatusFilter')?.addEventListener('change', () => { selectedStudentIds.clear(); renderStudents(); updateStudentSelectionUi(); });
   $('closeStudentQrPreview').addEventListener('click', () => { $('studentQrPreviewModal').hidden = true; });
