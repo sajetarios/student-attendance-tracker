@@ -2785,13 +2785,31 @@ let teacherActionMenuListenersInstalled = false;
         $('scheduleFormFeedback').textContent = 'Timetable options refreshed from the saved school settings.';
       }
       const list = $('timetableTemplateList');
-      if (list) list.innerHTML = '<strong>Saved templates</strong>' + (timetableTemplates.length
-        ? '<div class="timetable-template-chips">' + timetableTemplates.map(template =>
-          '<div class="timetable-saved-template"><strong>' + esc(template.name) + (template.active ? '' : ' (Archived)') + '</strong><small>' + esc(template.shiftCode) + '</small>' +
-          '<ul>' + (template.periods || []).map(p => '<li>' + esc(p.label) + ' · ' + esc(p.startTime) + '–' + esc(p.endTime) + ' (' + esc(p.blockType) + ')</li>').join('') + '</ul>' +
-          (user.role === 'SCHOOL_ADMIN' && template.active ? '<div class="form-actions"><button type="button" class="outline-button compact-button" data-template-edit="' + esc(template.templateId) + '">Edit</button><button type="button" class="outline-button compact-button" data-template-duplicate="' + esc(template.templateId) + '">Duplicate</button><button type="button" class="outline-button compact-button" data-template-remove="' + esc(template.templateId) + '">Delete / Archive</button></div>' : '') + '</div>'
-        ).join('') + '</div>'
-        : '<p>No templates yet. Create a template to reuse period times.</p>');
+      const archiveList = $('timetableArchiveList');
+      const renderTemplate = (template, archived = false) =>
+        '<div class="timetable-saved-template"><strong>' + esc(template.name) + '</strong>' +
+        (archived ? '<span class="timetable-archive-status">Archived · can be restored</span>' : '') +
+        '<small>' + esc(template.shiftCode) + '</small>' +
+        '<ul>' + (template.periods || []).map(p => '<li>' + esc(p.label) + ' · ' + esc(p.startTime) + '–' + esc(p.endTime) + ' (' + esc(p.blockType) + ')</li>').join('') + '</ul>' +
+        (user.role === 'SCHOOL_ADMIN'
+          ? '<div class="form-actions timetable-template-actions">' +
+            (archived
+              ? '<button type="button" class="primary-button compact-button" data-template-restore="' + esc(template.templateId) + '">Restore</button>'
+              : '<button type="button" class="outline-button compact-button" data-template-edit="' + esc(template.templateId) + '">Edit</button>' +
+                '<button type="button" class="outline-button compact-button" data-template-duplicate="' + esc(template.templateId) + '">Duplicate</button>' +
+                '<button type="button" class="outline-button compact-button" data-template-archive="' + esc(template.templateId) + '">Archive</button>') +
+            '<button type="button" class="outline-button compact-button timetable-delete-action" data-template-delete="' + esc(template.templateId) + '">Delete permanently</button></div>'
+          : '') + '</div>';
+      const activeTemplates = timetableTemplates.filter(t => t.active);
+      const archivedTemplates = timetableTemplates.filter(t => !t.active);
+      if (list) list.innerHTML = '<div class="timetable-list-heading"><strong>Active timetable templates</strong><small>Available when creating new class schedules</small></div>' +
+        (activeTemplates.length
+          ? '<div class="timetable-template-chips">' + activeTemplates.map(t => renderTemplate(t)).join('') + '</div>'
+          : '<p>No active templates. Create one or restore a template from the archive.</p>');
+      if (archiveList) archiveList.innerHTML = '<div class="timetable-list-heading"><strong>Archived timetable templates</strong><small>Stored for future reuse. Archived templates are not offered for new schedules.</small></div>' +
+        (archivedTemplates.length
+          ? '<div class="timetable-template-chips">' + archivedTemplates.map(t => renderTemplate(t, true)).join('') + '</div>'
+          : '<p>No archived timetable templates.</p>');
     } catch (error) {
       console.warn('Scheduling settings could not be loaded:', error.message);
       if ($('operatingDaysFeedback')) { $('operatingDaysFeedback').textContent = 'Unable to load settings. Check your connection and refresh before editing. ' + error.message; $('operatingDaysFeedback').classList.add('error'); }
@@ -3027,17 +3045,26 @@ let teacherActionMenuListenersInstalled = false;
       $('saveTemplateButton').textContent='Save template';$('cancelTemplateEdit').hidden=true;
       $('templateFeedback').textContent='Edit cancelled.';
     });
-    $('timetableTemplateList')?.addEventListener('click',async event=>{
-      const button=event.target.closest('button[data-template-edit],button[data-template-duplicate],button[data-template-remove]');
+    const handleTemplateAction = async event => {
+      const button=event.target.closest('button[data-template-edit],button[data-template-duplicate],button[data-template-archive],button[data-template-restore],button[data-template-delete]');
       if(!button||user.role!=='SCHOOL_ADMIN')return;
-      const id=button.dataset.templateEdit||button.dataset.templateDuplicate||button.dataset.templateRemove;
+      const id=button.dataset.templateEdit||button.dataset.templateDuplicate||button.dataset.templateArchive||button.dataset.templateRestore||button.dataset.templateDelete;
       const template=timetableTemplates.find(t=>String(t.templateId)===String(id));
       if(!template)return;
-      if(button.dataset.templateRemove){
-        if(!confirm('Delete this template if unused, or archive it if schedules reference it? Existing schedules and attendance will be preserved.'))return;
-        try{const result=await api('/api/scheduling-config/templates/'+encodeURIComponent(id),{method:'DELETE'});
-          await loadSchedulingSettings();showToast('Template '+result.action+'.');
-        }catch(error){showToast(error.message,true);}
+      if(button.dataset.templateArchive || button.dataset.templateRestore || button.dataset.templateDelete) {
+        const action = button.dataset.templateArchive ? 'archive' : button.dataset.templateRestore ? 'restore' : 'delete';
+        if(action === 'archive' && !confirm('Archive "' + template.name + '"? It will be hidden from new schedules but kept for future restoration and historical records.')) return;
+        if(action === 'delete') {
+          if(!confirm('Permanently delete "' + template.name + '"? This cannot be undone. Templates referenced by class schedules cannot be deleted.')) return;
+          if(prompt('Type DELETE to permanently remove this unused timetable template:') !== 'DELETE') return;
+        }
+        button.disabled=true;
+        try {
+          const endpoint='/api/scheduling-config/templates/'+encodeURIComponent(id);
+          const result=await api(endpoint+(action === 'delete' ? '' : '/'+action),{method:action === 'delete' ? 'DELETE' : 'PATCH'});
+          await loadSchedulingSettings();
+          showToast('Template '+result.action+'.');
+        }catch(error){button.disabled=false;showToast(error.message,true);}
         return;
       }
       $('templateName').value=template.name+(button.dataset.templateDuplicate?' (copy)':'');
@@ -3063,7 +3090,9 @@ let teacherActionMenuListenersInstalled = false;
       }
       $('timetableTemplateForm').scrollIntoView({behavior:'smooth',block:'start'});
       $('templateName').focus({preventScroll:true});
-    });
+    };
+    $('timetableTemplateList')?.addEventListener('click',handleTemplateAction);
+    $('timetableArchiveList')?.addEventListener('click',handleTemplateAction);
     $('operatingDaysForm')?.addEventListener('submit', async event => {
       event.preventDefault();
       const feedback = $('operatingDaysFeedback');
