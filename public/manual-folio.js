@@ -15,7 +15,7 @@
  const el=id=>document.getElementById(id);
  const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
  const dateToday=()=>new Intl.DateTimeFormat('en-CA',{timeZone:'Asia/Manila',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date());
- const state={periods:[],students:[],period:null,date:dateToday(),marks:{},synced:{},notes:'',page:0,tab:'sheet',selected:new Set(),busy:false,noteItems:[],editingNoteId:null,historyPage:0,historyTotal:0,historyRows:[],notesLoadedFor:null};
+ const state={periods:[],students:[],period:null,date:dateToday(),marks:{},synced:{},notes:'',page:0,tab:'sheet',selected:new Set(),busy:false,finalized:false,noteItems:[],editingNoteId:null,historyPage:0,historyTotal:0,historyRows:[],notesLoadedFor:null};
  const statuses=['PRESENT','LATE','ABSENT','EXCUSED'],symbols={PRESENT:'✓',LATE:'◷',ABSENT:'✕',EXCUSED:'!'},names={PRESENT:'Present',LATE:'Late',ABSENT:'Absent',EXCUSED:'Excused'};
  async function api(path,options={}) {
    const r=await fetch(path,{...options,headers:{Authorization:'Bearer '+token,...(options.body?{'Content-Type':'application/json'}:{})},cache:'no-store'});
@@ -211,21 +211,28 @@
    const out=Object.entries(state.synced);
    el('mfRecord').innerHTML='<h3>Saved class record</h3><p>Server-confirmed manual entries for the selected date.</p>'+(out.length?'<div class="manual-detail-card">'+out.map(([id,m])=>{const s=state.students.find(v=>v.studentId===id);return '<p>'+esc(s?.fullName||id)+' — '+esc(names[m.status]||m.status)+'</p>'}).join('')+'</div>':'<p class="manual-empty">No server-confirmed entries for this date. Mark your sheet and choose Sync to records.</p>');
  }
- function render(){renderStats();renderRows();renderDetails();renderTab()}
+ function render(){
+ renderStats();renderRows();renderDetails();renderTab();
+ host.classList.toggle('is-finalized',Boolean(state.finalized));
+ if(el('mfFinalize')){el('mfFinalize').disabled=!state.period||!navigator.onLine;el('mfFinalize').textContent=state.finalized?'↺ Reopen register':'✓ Finalize date';}
+ if(el('mfFinalizationState'))el('mfFinalizationState').textContent=state.finalized?'Finalized · editing locked':'Not finalized';
+ if(el('mfSync'))el('mfSync').disabled=Boolean(state.finalized);
+}
  function changeClass(){
-   state.period=state.periods.find(p=>p.periodId===el('mfPeriod').value)||null;state.page=0;state.selected.clear();state.editingNoteId=null;draftLoad();state.synced={};state.noteItems=[];state.historyPage=0;state.historyLoadedFor=null;render();
+   state.period=state.periods.find(p=>p.periodId===el('mfPeriod').value)||null;state.page=0;state.selected.clear();state.editingNoteId=null;draftLoad();state.synced={};state.finalized=false;state.noteItems=[];state.historyPage=0;state.historyLoadedFor=null;render();
    if(state.period){loadRemote();loadNotes();}
  }
  async function loadRemote(){
    try{
      const d=await api('/api/manual-attendance?'+new URLSearchParams({periodId:state.period.periodId,date:state.date}));
      state.synced=Object.fromEntries((d.marks||[]).map(m=>[m.studentId,m]));
+      state.finalized=Boolean(d.finalization?.finalized);
      for(const [id,m] of Object.entries(state.synced)){if(!state.marks[id])state.marks[id]={status:m.status,note:m.note||''}}
      render();notice('Saved records loaded. Local unsynced marks are retained.');
      return true;
    }catch(e){notice('Local attendance sheet is available. Server: '+e.message,true);return false}
  }
- function setMark(id,status){const prev=state.marks[id]||{};state.marks[id]=prev.status===status?{...prev,status:null}:{...prev,status};draftSave();render();}
+ function setMark(id,status){if(state.finalized)return notice('Reopen the finalized register to edit marks.',true);const prev=state.marks[id]||{};state.marks[id]=prev.status===status?{...prev,status:null}:{...prev,status};draftSave();render();}
  let flipBusy=false;
  function pageFlip(direction){
    const pages=Math.max(1,Math.ceil(roster().length/pageSize()));
@@ -248,6 +255,7 @@
    setTimeout(()=>{leaf.remove();flipBusy=false;renderRows();},duration+35);
  }
  async function sync(){
+   if(state.finalized)return notice('Reopen this finalized register before changing marks.',true);
    if(!state.period)return notice('Choose a class first.',true);
    if(!navigator.onLine)return notice('Offline: your attendance remains saved on this device until you sync.',true);
    const allowed=new Set(roster().map(s=>s.studentId));
@@ -285,6 +293,9 @@
  }
  host.addEventListener('click',event=>{
    const b=event.target.closest('button');if(!b)return;
+   if(state.finalized&&(b.dataset.flipId||b.dataset.batch||b.dataset.note||b.dataset.status)){
+    notice('This register is finalized. Reopen it before editing.',true);return;
+   }
    if(b.dataset.flipId){
      const id=b.dataset.flipId,current=state.marks[id]?.status;
      const next=current==='ABSENT'?'PRESENT':current==='PRESENT'?'ABSENT':'PRESENT';
@@ -367,6 +378,24 @@
  el('mfNext').addEventListener('click',()=>pageFlip(1));
  el('mfSave').addEventListener('click',()=>{draftSave();notice('Saved on this device. Use Sync to records when connected.')});
  el('mfSync').addEventListener('click',sync);
+ el('mfFinalize')?.addEventListener('click',async()=>{
+   if(!state.period||!navigator.onLine)return notice('Connect to school records before finalizing attendance.',true);
+   const action=state.finalized?'REOPEN':'FINALIZE';
+   const prompt=action==='FINALIZE'
+     ? 'Finalize the class register for '+state.date+'? All learners must have a synced manual mark or verified class QR check-in. You may reopen for corrections.'
+     : 'Reopen the finalized class register for '+state.date+'? The action will be audited.';
+   const accepted=window.AppDialog?.confirm
+     ? await window.AppDialog.confirm(prompt,{title:action==='FINALIZE'?'Finalize class attendance':'Reopen class attendance',confirmText:action==='FINALIZE'?'Finalize':'Reopen'})
+     : window.confirm(prompt);
+   if(!accepted)return;
+   el('mfFinalize').disabled=true;
+   try{
+     await api('/api/manual-attendance/finalization',{method:'POST',body:JSON.stringify({periodId:state.period.periodId,date:state.date,action})});
+     await loadRemote();
+     notice(action==='FINALIZE'?'Attendance finalized and audited. Editing is locked.':'Attendance reopened. You can correct and re-sync marks.');
+   }catch(error){notice(error.message,true);}
+   finally{render();}
+ });
  window.addEventListener('online',()=>notice('Connection restored. Sync your saved attendance when ready.'));
  initialize();
 })();
