@@ -98,10 +98,10 @@ test('connection footer opens the existing Attendance Sync Center and never clai
  assert.match(source,/getElementById\('connectionStatus'\)\?\.click\(\)/);
 });
 test('the service worker caches the deployed variants and correct versioned sidebar assets',()=>{
- const assets=['/attendigo-sidebar-adaptive.css?v=10','/attendigo-sidebar-adaptive.js?v=5',
+ const assets=['/attendigo-sidebar-adaptive.css?v=11','/attendigo-sidebar-adaptive.js?v=5',
  '/attendigo-brand-refresh.css?v=2','/assets/attendigo-wordmark-on-light.svg?v=1',
  '/assets/attendigo-wordmark-on-dark.svg?v=1','/assets/attendigo-symbol-transparent.svg?v=1'];
  for(const asset of assets)assert.ok(worker.includes(JSON.stringify(asset)),asset);
  for(const asset of [assets[0],assets[1],assets[2],assets[4]])assert.ok(html.includes(asset),asset);
- assert.match(worker,/attendigo-v163-adaptive-inter-typography/);
+ assert.match(worker,/attendigo-v164-sidebar-header-legibility/);
 });

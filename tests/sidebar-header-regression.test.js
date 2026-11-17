@@ -1,0 +1,40 @@
+'use strict';
+const test = require('node:test');
+const assert = require('node:assert/strict');
+const fs = require('node:fs');
+const read = p => fs.readFileSync(p, 'utf8');
+const html = read('public/portal.html');
+const css = read('public/attendigo-sidebar-adaptive.css');
+const sw = read('public/sw.js');
+test('product logo crops opaque image canvas and preserves readable Inter brand text', () => {
+  assert.match(html, /class="sidebar-product-wordmark" aria-hidden="true">Attendigo<\/span>/);
+  assert.match(css, /img\.attendigo-logo\s*\{[^}]*width:48px!important;[^}]*height:42px!important;[^}]*object-fit:cover!important;[^}]*object-position:left center!important/s);
+  assert.match(css, /\.sidebar-product-wordmark\s*\{[^}]*font-family:var\(--font-ui,Inter,system-ui,sans-serif\)!important;[^}]*font-weight:650!important/s);
+  assert.match(css, /#sidebar\.sidebar\[data-logo-backed="true"\]/);
+});
+test('school identity cannot be compressed into workspace label, including long 3-line names', () => {
+  const rule = css.match(/html body #sidebar\.sidebar \.sidebar-brand\s*\{([^}]*)\}/)?.[1] || '';
+  assert.match(rule, /flex:0 0 auto!important/);
+  assert.match(rule, /height:auto!important/);
+  assert.match(rule, /min-height:76px!important/);
+  assert.match(css, /#sidebarSchoolName\s*\{[^}]*-webkit-line-clamp:3!important/s);
+  assert.match(css, /\.sidebar-section-label\s*\{[^}]*flex:0 0 auto!important/s);
+  assert.match(html, /id="sidebarSchoolMark"/);
+});
+test('labels remain readable with restrained hierarchy, while keyboard focus stays visible', () => {
+  assert.match(css, /\.nav-item,\s*#sidebar\.sidebar \.nav-group-toggle\s*\{[^}]*font-size:var\(--type-table\)!important;[^}]*font-weight:550!important/s);
+  assert.match(css, /\.nav-group-toggle \{font-weight:600!important\}/);
+  assert.match(css, /\.nav-item\.active,\s*#sidebar\.sidebar \.nav-submenu \.nav-item\.active\s*\{[^}]*font-weight:650!important/s);
+  assert.match(css, /:focus-visible\s*\{\s*outline:3px solid var\(--side-focus\)!important/s);
+});
+test('collapsed and mobile navigation keep brand compact and do not show oversized image', () => {
+  assert.match(css, /sidebar-collapsed #sidebar\.sidebar > \.attendigo-brand \.sidebar-product-wordmark/);
+  assert.match(css, /max-width:215px!important/);
+  assert.match(css, /width:43px!important;[^}]*height:38px!important/s);
+});
+test('service worker uses fresh version and precaches matching CSS', () => {
+  assert.match(html, /attendigo-sidebar-adaptive\.css\?v=11/);
+  assert.match(sw, /attendigo-v164-sidebar-header-legibility/);
+  assert.match(sw, /"\/attendigo-sidebar-adaptive\.css\?v=11"/);
+  assert.match(html, /\/typography\.css\?v=1/);
+});

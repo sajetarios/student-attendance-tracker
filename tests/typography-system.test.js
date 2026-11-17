@@ -47,7 +47,7 @@ test('Inter font faces and reusable readable typography tokens are defined', () 
 
 test('the offline shell precaches typography and font assets with a fresh version', () => {
   const sw = read('public/sw.js');
-  assert.match(sw, /attendigo-v163-adaptive-inter-typography/);
+  assert.match(sw, /attendigo-v164-sidebar-header-legibility/);
   for (const asset of ['/typography.css?v=1', '/fonts/InterVariable.woff2',
     '/fonts/InterVariable-Italic.woff2']) {
     assert.ok(sw.includes('"' + asset + '"'), asset);
