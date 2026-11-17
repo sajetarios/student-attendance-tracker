@@ -2914,6 +2914,7 @@ let teacherActionMenuListenersInstalled = false;
 
   function resetScheduleTimeSelection() {
     if ($('scheduleTemplate')) $('scheduleTemplate').value = '';
+    if ($('scheduleTemplate')) $('scheduleTemplate').dataset.lastTemplate = '';
     populateSavedTemplateBlocks();
   }
 
