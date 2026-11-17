@@ -38,6 +38,7 @@ const { registerClassFinalizationRoutes } = require('./class-finalization-routes
 const { registerSardoRoutes } = require('./sardo-routes');
 const { registerPlannerRoutes } = require('./planner-routes');
 const { registerPhotoRoutes, registerPlatformPhotoRoutes, readOfficialPhoto } = require('./profile-photo-routes');
+const { registerNotificationRoutes } = require('./notification-routes');
 
 const app = express();
 const pool = new Pool({ connectionString: process.env.DATABASE_URL });
@@ -116,6 +117,7 @@ registerClassFinalizationRoutes(app, pool, { authenticateSchoolClient, requireSc
 registerSardoRoutes(app, pool, { authenticateSchoolClient, requireSchoolRoles });
 registerPhotoRoutes(app, pool, { authenticateSchoolClient });
 registerPlatformPhotoRoutes(app, pool, { authenticatePlatform, requirePlatformAdmin });
+registerNotificationRoutes(app, pool, { authenticateSchoolClient, authenticatePlatform });
 const { registerStudentManagementRoutes } = require('./student-management-routes');
 registerStudentManagementRoutes(app, pool, { authenticateSchoolClient, requireSchoolRoles });
 const registerSf2Routes = require('./sf2-routes');

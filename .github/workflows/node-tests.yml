@@ -59,6 +59,8 @@ jobs:
       - name: Check JavaScript syntax
         run: |
           node --check server.js
+          node --check notification-routes.js
+          node --check public/universal-notifications.js
           node --check student-management-routes.js
           node --check student-portal-account-routes.js
           node --check public/student-portal-accounts.js
@@ -77,6 +79,8 @@ jobs:
 
       - name: Validate complete PostgreSQL migration chain
         run: npm run db:migrate
+      - name: Verify notification event creation and idempotence against PostgreSQL
+        run: node tests/universal-notifications-postgres.cjs
       - name: Verify mixed attendance cloud relay against isolated PostgreSQL
         run: node tests/cloud-mixed-postgres.cjs
 
