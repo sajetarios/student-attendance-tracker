@@ -1,4 +1,4 @@
-const CACHE = "attendigo-v153-program-approvals";
+const CACHE = "attendigo-v154-universal-notifications";
 
 const SHELL = [
   "/assets/attendigo-sidebar-logo.png",
@@ -52,6 +52,8 @@ const SHELL = [
   "/account-directory.js?v=1",
   "/admin-request-notifications.js?v=4",
   "/admin-request-notifications.css?v=2",
+  "/universal-notifications.js?v=1",
+  "/universal-notifications.css?v=1",
   "/guardian-ui.js?v=5",
   "/guardian-ui.css?v=4",
   "/academic-admin.css?v=1",

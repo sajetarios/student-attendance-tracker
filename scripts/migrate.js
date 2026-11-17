@@ -53,7 +53,8 @@ const REQUIRED_MIGRATIONS = [
   '045_manual_attendance_optimistic_lock.sql',
   '046_cloud_mixed_attendance_operations.sql',
   '047_special_program_approvals.sql',
-  '048_special_program_request_batches.sql'
+  '048_special_program_request_batches.sql',
+  '049_universal_request_notifications.sql'
 ];
 
 function checksum(content) {
