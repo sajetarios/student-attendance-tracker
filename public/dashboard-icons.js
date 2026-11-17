@@ -44,12 +44,12 @@
   };
   function html(name) { return '<svg class="ui-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">'+(paths[name]||paths.calendar)+'</svg>'; }
   const controls={refreshButton:'refresh',logoutButton:'logout',platformRefreshButton:'refresh',studentRefresh:'refresh',studentLogout:'logout',showScheduleForm:'plus',scheduleAdjustmentShortcut:'swap',scheduleSettingsShortcut:'settings',saveScheduleButton:'check',backButton:'swap',saveScheduleAdjustment:'check'};
-  const nav={dashboardNav:'grid',studentsNav:'graduation',studentAccountsNav:'id-card',teachersNav:'users',parentsNav:'users',guardianApprovalsNav:'shield',classAttendanceNav:'clipboard-check',sf2Nav:'file-chart',plannerNav:'calendar',schedulesNav:'calendar',academicAdminNav:'book',cloudSyncNav:'swap',smsNav:'mail',schoolBrandingNav:'school'};
+  const nav={dashboardNav:'grid',studentsNav:'graduation',studentAccountsNav:'id-card',adminStudentAccountsNav:'id-card',teachersNav:'users',parentsNav:'users',requestsApprovalsNav:'clipboard-check',guardianApprovalsNav:'shield',classAttendanceNav:'clipboard-check',sf2Nav:'file-chart',plannerNav:'calendar',schedulesNav:'calendar',academicAdminNav:'book',cloudSyncNav:'swap',smsNav:'mail',schoolBrandingNav:'school'};
   const views={dashboard:'grid',students:'graduation',studentAccounts:'id-card',teachers:'users',parents:'users',
     classAttendance:'clipboard-check',sf2:'file-chart',schedules:'calendar',planner:'calendar',cloudSync:'swap',
     schoolBranding:'school',platform:'shield'};
-  const groups={people:'users',academics:'book',operations:'settings',reports:'file-chart',settings:'settings'};
-  const staff={staffNavToggle:'users',accounts:'id-card',permissions:'shield',departments:'building'};
+  const groups={users:'users',people:'graduation',academics:'book',operations:'settings',reports:'file-chart',settings:'settings'};
+  const staff={staffNavToggle:'users',directory:'id-card',accounts:'users',permissions:'shield',departments:'building'};
   const actionIcons={accounts:'users',permissions:'shield',departments:'building'};
   const shortIcons={students:'graduation',teachers:'users',schedules:'calendar',sf2:'report'};
   function render(){
