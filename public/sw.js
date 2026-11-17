@@ -1,4 +1,4 @@
-const CACHE = "attendigo-v148-admin-sync-header";
+const CACHE = "attendigo-v149-roster-readonly-cleanup";
 
 const SHELL = [
   "/assets/attendigo-sidebar-logo.png",
@@ -31,9 +31,9 @@ const SHELL = [
   "/attendigo-login-motion.css?v=2",
   "/attendigo-login-refinement.css?v=2",
   "/portal.css?v=0.9.113",
-  "/student-roster-toolbar.css?v=1",
+  "/student-roster-toolbar.css?v=2",
   "/portal.css",
-  "/portal.js?v=0.9.132",
+  "/portal.js?v=0.9.133",
   "/sardo-monitor.js?v=1",
   "/sardo-monitor.css?v=1",
   "/schedule-form-layout.css?v=12",

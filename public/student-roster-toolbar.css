@@ -92,3 +92,6 @@
   }
 }
 /* Dark mode inherits the shared button components; this stylesheet never hardcodes button colors. */
+
+/* Read-only rosters never display disabled batch controls, including on mobile. */
+#studentsView .student-roster-tools > .student-bulk-actions[hidden]{display:none!important;}

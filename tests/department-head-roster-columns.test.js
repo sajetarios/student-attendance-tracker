@@ -1,26 +1,43 @@
 'use strict';
-
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const path = require('node:path');
-
 const root = path.join(__dirname, '..');
 const portal = fs.readFileSync(path.join(root, 'public', 'portal.js'), 'utf8');
 const html = fs.readFileSync(path.join(root, 'public', 'portal.html'), 'utf8');
+const worker = fs.readFileSync(path.join(root, 'public', 'sw.js'), 'utf8');
+const css = fs.readFileSync(path.join(root, 'public', 'student-roster-toolbar.css'), 'utf8');
 
-test('Department Head roster shows learner identity and scoped batch selection', () => {
-  assert.match(portal, /rosterHeader\.innerHTML = '<th>Select<\/th><th>Student ID<\/th><th>Full name<\/th><th>Sex<\/th><th>Grade<\/th><th>Section<\/th><th>Status<\/th>'/);
-  assert.match(portal, /if \(departmentHead\) \{\s*return `<tr><td data-label="Select"/);
-  assert.match(portal, /colspan="' \+ \(departmentHead \? '7' : admin \? '11' : '10'\)/);
+test('Department Heads keep a useful roster without a useless Select column', () => {
+  assert.match(portal, /const hasSelectableLearners = visible\.some\(canSelectLearnerForBatch\)/);
+  assert.match(portal, /const selectHeader = showSelectionColumn \? '<th>Select<\/th>' : ''/);
+  assert.match(portal, /rosterHeader\.innerHTML = departmentHead/);
+  assert.match(portal, /const rosterColumns = departmentHead/);
+  assert.match(portal, /showSelectionColumn \? 7 : 6/);
   assert.match(portal, /departmentHead \? '' : await photoDataUrl\(student\.photoUrl\)/);
-  assert.match(portal, /Only your department’s assigned sections can be selected/);
+  assert.doesNotMatch(portal, /Only your department’s assigned sections can be selected/);
   assert.match(html, /id="studentRosterDescription"/);
 });
 
-test('School Administrator keeps the full student management columns', () => {
-  assert.match(portal, /else if \(rosterHeader\) \{\s*rosterHeader\.innerHTML = '<th>Select<\/th><th>Photo<\/th>/);
+test('Batch tools are hidden for roles and filters without selectable learners', () => {
+  assert.ok(portal.includes('bulkActions.hidden = !canBatchManage || (!admin && !hasSelectableLearners)'));
+  assert.ok(portal.includes('hasSelectableLearners = visible.some(canSelectLearnerForBatch)'));
+  assert.ok(portal.includes("p.scheduleDepartmentId"));
+  assert.match(css, /\.student-bulk-actions\[hidden\]\{display:none!important;\}/);
+});
+
+test('School Admin retains full roster, action controls and selected ID cards', () => {
+  assert.match(portal, /selectHeader \+ '<th>Photo<\/th><th>Student ID<\/th>/);
   assert.match(portal, /data-label="QR code"/);
   assert.match(portal, /data-label="Actions"/);
   assert.match(portal, /data-label="Student account"/);
+  assert.match(portal, /data-select-student/);
+});
+
+test('Versioned roster resources match service worker shell', () => {
+  for (const asset of ['/portal.js?v=0.9.133', '/student-roster-toolbar.css?v=2']) {
+    assert.ok(html.includes(asset));
+    assert.ok(worker.includes(JSON.stringify(asset)));
+  }
 });
