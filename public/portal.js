@@ -3789,12 +3789,44 @@ let teacherActionMenuListenersInstalled = false;
     });
   }
 
+  function showPortalStartupFailure(message, error) {
+    console.error('Attendigo portal initialization failed:', error || message);
+    const existing = document.getElementById('portalStartupFailure');
+    if (existing) existing.remove();
+    const overlay = document.createElement('div');
+    overlay.id = 'portalStartupFailure';
+    overlay.setAttribute('role', 'alert');
+    overlay.style.cssText = 'position:fixed;inset:0;z-index:99999;background:#101e35e8;display:flex;align-items:center;justify-content:center;padding:20px';
+    const card = document.createElement('section');
+    card.style.cssText = 'width:min(100%,430px);background:#fff;color:#1a304d;border-radius:20px;padding:26px;box-shadow:0 20px 70px #0005;font:16px/1.5 system-ui,sans-serif';
+    const heading = document.createElement('h2');
+    heading.textContent = 'Unable to load your account';
+    heading.style.cssText = 'font-size:23px;margin:0 0 12px';
+    const details = document.createElement('p');
+    details.textContent = message;
+    const actions = document.createElement('div');
+    actions.style.cssText = 'display:flex;gap:10px;flex-wrap:wrap;margin-top:20px';
+    const retry = document.createElement('button');
+    retry.type = 'button'; retry.textContent = 'Retry';
+    retry.style.cssText = 'background:#2466ac;color:#fff;border:0;border-radius:10px;padding:12px 18px;font-weight:700';
+    retry.onclick = () => window.location.reload();
+    const signIn = document.createElement('button');
+    signIn.type = 'button'; signIn.textContent = 'Sign in again';
+    signIn.style.cssText = 'background:#e8eef6;color:#193451;border:0;border-radius:10px;padding:12px 18px;font-weight:700';
+    signIn.onclick = () => { clearSession(); window.location.replace('/portal-login.html'); };
+    actions.append(retry,signIn);card.append(heading,details,actions);overlay.append(card);document.body.append(overlay);
+  }
+
   async function init() {
     let me;
     try {
       me = await api('/api/auth/me');
     } catch (error) {
-      showToast(error.message, true);
+      showPortalStartupFailure('Your account could not be verified. Please sign in again or retry.', error);
+      return;
+    }
+    if (!me?.user || !['SCHOOL_ADMIN','DEPARTMENT_HEAD','TEACHER','GATE_KEEPER','SUPER_ADMIN','PARENT','STUDENT'].includes(me.user.role)) {
+      showPortalStartupFailure('Your account role could not be verified. Please sign in again.');
       return;
     }
     user = me.user;
@@ -5649,5 +5681,5 @@ $('teacherCoverageCard')?.addEventListener('click', event => {
         loadTeacherCoverage(true).catch(error => console.warn('Teacher coverage refresh failed:', error.message));
       }, 60000);
     }
-  }).catch(error => showToast(error.message || 'Portal initialization failed.', true));
+  }).catch(error => showPortalStartupFailure('The dashboard could not finish loading. Retry, or sign in again.', error));
 })();
