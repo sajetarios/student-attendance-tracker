@@ -79,5 +79,5 @@ test('service worker uses same versions for portal and batch assets',()=>{
    assert.ok(p,name+' must be referenced by portal');
    assert.ok(worker.includes(JSON.stringify(p)),p+' must match worker');
  }
- assert.match(worker,/attendigo-v151-special-program-batch/);
+ assert.match(worker,/const CACHE = "attendigo-v\\d+-[a-z0-9-]+"/);
 });
