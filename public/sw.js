@@ -1,4 +1,4 @@
-const CACHE = "attendigo-v113-offline-queue-shell";
+const CACHE = "attendigo-v114-encrypted-offline-sheet";
 
 const SHELL = [
   "/assets/attendigo-sidebar-logo.png",
@@ -31,8 +31,10 @@ const SHELL = [
   "/portal.css",
   "/portal.js?v=0.9.93",
   "/offline-attendance.js?v=1",
+  "/offline-sheet.html",
+  "/offline-sheet.js?v=1",
   "/manual-folio.css?v=8",
-  "/manual-folio.js?v=9",
+  "/manual-folio.js?v=10",
   "/student-portal-accounts.css?v=2",
   "/student-portal-accounts.js?v=3",
   "/admin-request-notifications.js?v=1",
