@@ -446,3 +446,21 @@ html[data-ui-theme="dark"] #scheduleForm[data-schedule-role="DEPARTMENT_HEAD"] .
    word-break:normal!important;overflow-wrap:anywhere
  }
 }
+
+
+/* Classroom within class details; official Class Adviser displayed as a locked section lookup. */
+#scheduleForm .schedule-classroom-adviser-row{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin-top:10px}
+#scheduleForm .schedule-classroom-adviser-row>.field-group{min-width:0}
+#scheduleForm #scheduleSectionAdviserGroup[hidden]{display:none!important}
+#scheduleForm .schedule-adviser-reference .schedule-derived-field{
+ display:flex;align-items:center;min-height:44px;padding:10px 12px;
+ border-radius:10px;border:1px solid #cfe4f3;background:#edf7ff;
+ color:#234e72;font-weight:750;overflow-wrap:anywhere
+}
+#scheduleForm[data-schedule-role="DEPARTMENT_HEAD"] #scheduleActivityTypeGroup{display:block!important}
+#scheduleForm[data-schedule-role="DEPARTMENT_HEAD"] .schedule-classroom-adviser-row>.field-group{grid-column:1/-1}
+#scheduleForm[data-schedule-role="DEPARTMENT_HEAD"] .schedule-location-fields{display:none!important}
+html[data-ui-theme="dark"] #scheduleForm .schedule-adviser-reference .schedule-derived-field{
+ background:#213d54;border-color:#416984;color:#e3f3ff
+}
+@media(max-width:620px){#scheduleForm .schedule-classroom-adviser-row{grid-template-columns:minmax(0,1fr)}}

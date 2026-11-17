@@ -31,13 +31,33 @@ test('Only approved operating days appear in Department Head form, with quick re
  assert.match(js,/input\.parentElement\.hidden=user\.role==='DEPARTMENT_HEAD'&&!isOperatingDay/);
  assert.match(js,/scheduleApplySchoolDays'\)\?\.addEventListener\('click'/);
 });
-test('Department Head has progressive disclosure and five-step interactive review',()=>{
+test('Schedule Type is always visible and live review still works',()=>{
  const html=read('public/portal.html'),js=read('public/portal.js');
- assert.match(html,/id="scheduleMoreOptionsToggle" aria-expanded="false"/);
+ assert.doesNotMatch(html,/id="scheduleMoreOptionsToggle"/);
  assert.match(html,/id="scheduleActivityTypeGroup"/);
- assert.match(html,/id="scheduleReadinessBar"/);
- assert.match(js,/scheduleMoreOptionsToggle'\)\?\.addEventListener\('click'/);
+ assert.match(js,/scheduleActivityTypeGroup'\)\)\$\('scheduleActivityTypeGroup'\)\.hidden=false/);
  assert.match(js,/scheduleReadinessFill'\)\.style\.width=/);
- assert.match(js,/complete===5\?'Ready to save'/);
- assert.match(js,/departmentHead \? '1\. Class & teacher'/);
+ assert.match(html,/id="scheduleReadinessBar"/);
+});
+test('Class Adviser lookup is read-only across the school, including other departments',()=>{
+ const server=read('server.js'),js=read('public/portal.js'),html=read('public/portal.html');
+ const a=server.indexOf("app.get('/api/scheduling/section-adviser'"),b=server.indexOf("app.post('/api/class-adviser-assignments'",a);
+ assert.ok(a>0&&b>a);
+ const read=server.slice(a,b);
+ assert.match(read,/FROM class_adviser_assignments ca/);
+ assert.match(read,/ca\.school_id=\$1/);
+ assert.doesNotMatch(read,/req\.auth\.departmentId/);
+ assert.doesNotMatch(read,/INSERT INTO|UPDATE class_adviser_assignments|DELETE FROM/);
+ assert.match(js,/function refreshScheduleSectionAdviser\(\)/);
+ assert.match(html,/id="scheduleClassAdviserName"/);
+});
+test('Classroom is in Class Details and saving subject schedule does not change adviser assignments',()=>{
+ const server=read('server.js'),html=read('public/portal.html'),js=read('public/portal.js');
+ const form=html.split('<form id="scheduleForm"')[1].split('</form>')[0];
+ assert.equal((form.match(/id="periodClassroom"/g)||[]).length,1);
+ assert.ok(form.indexOf('id="periodClassroom"')<form.indexOf('schedule-location-section'));
+ assert.match(html,/Advisory \/ Homeroom is a schedule type/);
+ assert.match(js,/Class Adviser: '\+\(\$\('scheduleClassAdviserName'\)/);
+ const a=server.indexOf("app.post('/api/periods'"),b=server.indexOf('// Teacher attendance history',a);
+ assert.doesNotMatch(server.slice(a,b),/INSERT INTO class_adviser_assignments/);
 });

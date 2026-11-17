@@ -1,4 +1,4 @@
-const CACHE = "attendigo-v126-department-schedule-focused-form";
+const CACHE = "attendigo-v127-official-section-adviser";
 
 const SHELL = [
   "/assets/attendigo-sidebar-logo.png",
@@ -31,10 +31,10 @@ const SHELL = [
   "/portal.css?v=0.9.108",
   "/student-roster-toolbar.css?v=1",
   "/portal.css",
-  "/portal.js?v=0.9.119",
+  "/portal.js?v=0.9.120",
   "/sardo-monitor.js?v=1",
   "/sardo-monitor.css?v=1",
-  "/schedule-form-layout.css?v=9",
+  "/schedule-form-layout.css?v=10",
   "/parent-dashboard.js?v=2",
   "/offline-attendance.js?v=1",
   "/offline-sheet.html",

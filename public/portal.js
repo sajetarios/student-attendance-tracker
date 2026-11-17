@@ -1951,7 +1951,7 @@ function coverageStatusLabel(status) {
     if ($('periodTeacherSelfGroup')) $('periodTeacherSelfGroup').hidden = true;
     if ($('periodTeacherHint')) $('periodTeacherHint').textContent =
       'The Department Head assigns this class schedule to the selected Subject Teacher.';
-    if ($('addScheduleSubject')) $('addScheduleSubject').hidden = !isSchoolManager || user.role === 'DEPARTMENT_HEAD';
+    if ($('addScheduleSubject')) $('addScheduleSubject').hidden = !isSchoolManager;
 
     if ($('weeklyTimetableWorkspace')) $('weeklyTimetableWorkspace').hidden = isTeacher;
     if (isTeacher) {
@@ -3010,7 +3010,8 @@ let teacherActionMenuListenersInstalled = false;
         approved?scheduleClockLabel(start)+' – '+scheduleClockLabel(end):'Select approved period',
         days.length?formatScheduleDays(days):'Select meeting days',
         room,
-        teacherName
+        'Subject Teacher: '+teacherName,
+        'Class Adviser: '+($('scheduleClassAdviserName')?.dataset.adviserName||'Not assigned / not loaded')
       ].join('  •  ');
     } else {
       review.textContent=[
@@ -3335,14 +3336,6 @@ let teacherActionMenuListenersInstalled = false;
     });
     $('scheduleTemplate')?.addEventListener('change',populateSavedTemplateBlocks);
     $('scheduleTemplatePeriod')?.addEventListener('change',applyTemplatePeriodSelection);
-    $('scheduleMoreOptionsToggle')?.addEventListener('click',()=>{
-      if(user?.role!=='DEPARTMENT_HEAD')return;
-      const group=$('scheduleActivityTypeGroup'),button=$('scheduleMoreOptionsToggle');
-      const open=Boolean(group?.hidden);
-      if(group)group.hidden=!open;
-      if(button){button.setAttribute('aria-expanded',String(open));button.textContent=open?'− Hide class options':'＋ More class options';}
-      if($('addScheduleSubject'))$('addScheduleSubject').hidden=!open;
-    });
     $('scheduleApplySchoolDays')?.addEventListener('click',()=>{
       if(user?.role!=='DEPARTMENT_HEAD')return;
       const allowed=new Set(schoolOperatingDays.filter(day=>day.isOperatingDay).map(day=>Number(day.weekday)));
@@ -5265,12 +5258,48 @@ let teacherActionMenuListenersInstalled = false;
     }
   }
 
+  let sectionAdviserLookupRequest=0;
+  async function refreshScheduleSectionAdviser(){
+    const el=$('scheduleClassAdviserName'),hint=$('scheduleClassAdviserHint');
+    if(!el)return;
+    const token=++sectionAdviserLookupRequest;
+    const grade=$('periodGrade')?.value?.trim()||'',section=$('periodSection')?.value?.trim()||'';
+    el.dataset.adviserName='';
+    if(user?.role!=='DEPARTMENT_HEAD')return;
+    if(!grade||!section){
+      el.textContent='Choose grade and section';
+      if(hint)hint.textContent='Official adviser comes from the section assignment, not the Subject Teacher dropdown.';
+      updateScheduleReview();return;
+    }
+    el.textContent='Checking assigned Class Adviser…';
+    if(hint)hint.textContent='Reading the official school section assignment.';
+    updateScheduleReview();
+    try{
+      const res=await api('/api/scheduling/section-adviser?gradeLevel='+encodeURIComponent(grade)+'&section='+encodeURIComponent(section));
+      if(token!==sectionAdviserLookupRequest||$('scheduleForm')?.hidden||
+         $('periodGrade')?.value?.trim()!==grade||$('periodSection')?.value?.trim()!==section)return;
+      const assignment=res.assignment;
+      el.textContent=assignment?.adviserName||'No Class Adviser assigned';
+      el.dataset.adviserName=assignment?.adviserName||'';
+      if(hint)hint.textContent=assignment
+        ? 'Official adviser for '+grade+' · '+section+'. Saving this schedule will not alter the assignment.'+
+          (assignment.adviserActive===false?' Adviser account inactive.':'')
+        : 'This section has no adviser assignment. Manage it separately in Class Adviser assignments.';
+    }catch(error){
+      if(token!==sectionAdviserLookupRequest||$('scheduleForm')?.hidden)return;
+      el.textContent='Class Adviser unavailable';
+      if(hint)hint.textContent='Could not load the official section adviser: '+error.message;
+    }
+    updateScheduleReview();
+  }
+
   async function loadScheduleSections(gradeLevel, preferredSection = '') {
     const select = $('periodSection');
     const hint = $('periodSectionHint');
     if (!select) return;
     select.disabled = true;
     select.innerHTML = '<option value="">Loading sections…</option>';
+    void refreshScheduleSectionAdviser();
     try {
       const result = await api('/api/sections?gradeLevel=' + encodeURIComponent(gradeLevel));
       const sections = result.sections || [];
@@ -5281,6 +5310,7 @@ let teacherActionMenuListenersInstalled = false;
       if (hint) hint.textContent = sections.length
         ? sections.length + ' existing section' + (sections.length === 1 ? '' : 's') + ' found for ' + gradeLevel + '.'
         : 'No sections found for this grade. Add or enroll learners, or create an approved section first.';
+      void refreshScheduleSectionAdviser();
     } catch (error) {
       select.innerHTML = '<option value="">Could not load sections</option>';
       select.disabled = true;
@@ -5319,7 +5349,10 @@ let teacherActionMenuListenersInstalled = false;
     controls.hidden = user?.role !== 'SCHOOL_ADMIN' || !$('periodSection')?.value;
     controls.style.display = controls.hidden ? 'none' : 'flex';
   }
-  $('periodSection')?.addEventListener('change', updateSectionManagementActions);
+  $('periodSection')?.addEventListener('change',()=>{
+    updateSectionManagementActions();
+    void refreshScheduleSectionAdviser();
+  });
   $('renameScheduleSection')?.addEventListener('click', async () => {
     const gradeLevel = $('periodGrade')?.value;
     const section = $('periodSection')?.value;
@@ -5394,7 +5427,7 @@ let teacherActionMenuListenersInstalled = false;
     const roleHeadings = [
       ['.schedule-details-section .form-section-heading strong', departmentHead ? '1. Class & teacher' : '2. Class details'],
       ['.schedule-setup-section .form-section-heading strong', departmentHead ? '2. Approved timetable period' : '1. Schedule setup'],
-      ['.schedule-location-section .form-section-heading strong', departmentHead ? '3. Meeting days & room' : '3. Days & location'],
+      ['.schedule-location-section .form-section-heading strong', departmentHead ? '3. Meeting days' : '3. Meeting days & attendance'],
       ['.schedule-review-section .form-section-heading strong', departmentHead ? '4. Confirm class schedule' : '4. Review & save']
     ];
     roleHeadings.forEach(([selector,heading])=>{const el=form.querySelector(selector);if(el)el.textContent=heading;});
@@ -5404,24 +5437,21 @@ let teacherActionMenuListenersInstalled = false;
       : 'Select a saved timetable block or use custom times.';
     const classHelp=form.querySelector('.schedule-details-section .form-section-heading small');
     if(classHelp)classHelp.textContent=departmentHead
-      ? 'Choose the class and optionally assign a teacher from your department.'
-      : 'Choose the subject teacher, subject, grade, and section.';
+      ? 'Choose subject, teacher, schedule type and classroom; the Class Adviser is loaded from the official section record.'
+      : 'Choose the subject teacher, subject, grade, section and classroom.';
     const dayHelp=$('scheduleWeekdayHint');
     if(dayHelp)dayHelp.textContent=departmentHead
       ? 'Only school-approved operating days are available. Tap the days this class meets.'
       : 'Choose the actual days this class meets.';
-    if($('scheduleMoreOptionsWrap'))$('scheduleMoreOptionsWrap').hidden=!departmentHead;
-    if($('scheduleActivityTypeGroup'))$('scheduleActivityTypeGroup').hidden=departmentHead;
-    if($('scheduleMoreOptionsToggle')){
-      $('scheduleMoreOptionsToggle').setAttribute('aria-expanded','false');
-      $('scheduleMoreOptionsToggle').textContent='＋ More class options';
-    }
+    if($('scheduleActivityTypeGroup'))$('scheduleActivityTypeGroup').hidden=false;
+    if($('scheduleSectionAdviserGroup'))$('scheduleSectionAdviserGroup').hidden=!departmentHead;
     if(departmentHead && $('scheduleActivityType'))$('scheduleActivityType').value='CLASS';
     if($('scheduleDaysTools'))$('scheduleDaysTools').hidden=!departmentHead;
     if($('scheduleReadiness'))$('scheduleReadiness').hidden=!departmentHead;
-    if($('addScheduleSubject'))$('addScheduleSubject').hidden=departmentHead;
+    if($('addScheduleSubject'))$('addScheduleSubject').hidden=!['SCHOOL_ADMIN','DEPARTMENT_HEAD'].includes(user.role);
     if ($('scheduleDepartmentGroup')) $('scheduleDepartmentGroup').hidden = !departmentHead;
     if ($('scheduleDepartmentName')) $('scheduleDepartmentName').textContent=user.departmentName||user.departmentCode||'Department not assigned';
+    if(departmentHead)void refreshScheduleSectionAdviser();
     if ($('scheduleGraceGroup')) $('scheduleGraceGroup').hidden = departmentHead;
     if ($('graceMinutes')) {
       $('graceMinutes').disabled = departmentHead;
@@ -5477,6 +5507,7 @@ let teacherActionMenuListenersInstalled = false;
     updateScheduleReview();
   });
   $('cancelScheduleForm').addEventListener('click', () => {
+    ++sectionAdviserLookupRequest;
     $('scheduleForm').reset();
     resetScheduleTimeSelection();
     $('scheduleForm').hidden = true;

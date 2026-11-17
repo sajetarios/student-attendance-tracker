@@ -616,6 +616,28 @@ app.get('/api/class-adviser-assignments', authenticateSchoolClient,
     }
   });
 
+// Official Class Adviser for a school section. This read-only lookup is not limited to the caller's department.
+app.get('/api/scheduling/section-adviser', authenticateSchoolClient,
+  requireSchoolRoles('SCHOOL_ADMIN', 'DEPARTMENT_HEAD'), async (req,res) => {
+    const grade=String(req.query.gradeLevel||'').trim(),section=String(req.query.section||'').trim();
+    if(!grade||!section||grade.length>40||section.length>100)
+      return res.status(400).json({error:'Select a valid grade and section.'});
+    try{
+      const result=await pool.query(
+        'SELECT ca.assignment_id AS "assignmentId",ca.adviser_user_id AS "adviserUserId",' +
+        ' su.display_name AS "adviserName",su.active AS "adviserActive" ' +
+        'FROM class_adviser_assignments ca JOIN school_users su ' +
+        'ON su.school_id=ca.school_id AND su.user_id=ca.adviser_user_id ' +
+        'WHERE ca.school_id=$1 AND LOWER(BTRIM(ca.grade_level))=LOWER(BTRIM($2)) ' +
+        'AND UPPER(BTRIM(ca.section))=UPPER(BTRIM($3)) LIMIT 1',
+        [req.auth.schoolId,grade,section]);
+      return res.json({assignment:result.rows[0]||null});
+    }catch(error){
+      console.error('Section adviser lookup failed:',error.message);
+      return res.status(500).json({error:'Could not retrieve the official Class Adviser.'});
+    }
+  });
+
 app.post('/api/class-adviser-assignments', authenticateSchoolClient, requireSchoolRoles('DEPARTMENT_HEAD'), async (req, res) => {
   const { adviserUserId, gradeLevel, section } = req.body || {};
   if (!isUuid(adviserUserId) || !validText(gradeLevel) || gradeLevel.trim().length > 40 ||
