@@ -2855,13 +2855,23 @@ let teacherActionMenuListenersInstalled = false;
     blockSelect.disabled = !template || !blocks.length;
     if (template && Array.from(blockSelect.options).some(option => option.value === prior)) blockSelect.value = prior;
     const custom = !template;
+    const previousLocked = $('periodName').readOnly;
     $('periodName').readOnly = !custom;
     $('periodName').placeholder = custom ? 'e.g. Morning activity or custom period' : 'Select a saved time block';
     $('startTime').readOnly = !custom;
     $('endTime').readOnly = !custom;
     if (custom) {
+      if (previousLocked) {
+        $('periodName').value = '';
+        $('startTime').value = '07:30';
+        $('endTime').value = '08:30';
+      }
       $('scheduleFormFeedback').textContent = 'Custom time: enter a schedule label and its actual start and end times.';
     } else {
+      if (blockSelect.value) {
+        applyTemplatePeriodSelection();
+        return;
+      }
       $('periodName').value = '';
       $('startTime').value = '';
       $('endTime').value = '';
