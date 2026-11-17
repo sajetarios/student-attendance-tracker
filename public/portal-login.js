@@ -56,7 +56,9 @@
   schoolMode.addEventListener('click', () => setMode('school'));
   studentMode?.addEventListener('click', () => setMode('student'));
   platformMode.addEventListener('click', () => setMode('platform'));
-  if (new URLSearchParams(window.location.search).get('mode') === 'platform') setMode('platform');
+  const loginParams=new URLSearchParams(window.location.search);
+  if(loginParams.get('mode')==='platform')setMode('platform');
+  if(loginParams.get('mode')==='student')setMode('student');
 
   function openRecovery(prefillCode = '') {
     if (mode !== 'school') return;
@@ -128,6 +130,16 @@
       if (mode === 'school' && data.user.mustChangePassword) {
         window.location.assign('/force-password-change.html');
         return;
+      }
+      const returnTo=loginParams.get('returnTo');
+      if(mode==='student'&&data.user.role==='STUDENT'&&returnTo){
+        try{
+          const target=new URL(returnTo,window.location.origin);
+          if(target.origin===window.location.origin&&target.pathname==='/class-qr-checkin.html'){
+            window.location.assign(target.pathname+target.search);
+            return;
+          }
+        }catch{}
       }
       window.location.assign(destination);
     } catch (error) {
