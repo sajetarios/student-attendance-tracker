@@ -835,6 +835,40 @@
     });
   });
 
+  // Admin dashboard shortcuts reuse existing navigation and approval handlers.
+  // No new permissions or duplicate data sources are introduced.
+  document.querySelectorAll('#adminDashboardCard [data-admin-view]').forEach(button => {
+    button.addEventListener('click', () => {
+      if (user?.role !== 'SCHOOL_ADMIN') return;
+      const view = button.dataset.adminView;
+      if (view === 'academicAdmin') {
+        $('academicAdminNav')?.click();
+      } else if (view === 'schoolBranding') {
+        $('schoolBrandingNav')?.click();
+      } else {
+        const nav = document.querySelector('.nav-item[data-view="' + view + '"]');
+        if (nav && !nav.hidden) nav.click();
+      }
+    });
+  });
+  document.querySelectorAll('#adminDashboardCard [data-admin-inbox]').forEach(button => {
+    button.addEventListener('click', () => {
+      if (user?.role !== 'SCHOOL_ADMIN') return;
+      const shortcutId = {
+        student:'adminStudentRequestsShortcut',
+        guardian:'adminGuardianRequestsShortcut',
+        photo:'adminPhotoRequestsShortcut'
+      }[button.dataset.adminInbox];
+      const shortcut = shortcutId ? $(shortcutId) : null;
+      if (shortcut && !shortcut.hidden) {
+        shortcut.click();
+      } else {
+        const bell = $('adminNotificationBell');
+        if (bell && !bell.hidden) bell.click();
+      }
+    });
+  });
+
   function renderStats(data) {
     const role = user?.role;
     const isTeacher = role === 'TEACHER';
@@ -843,6 +877,7 @@
     const statNotes = [...document.querySelectorAll('.stat-card small')];
 
     $('statStudents').textContent = data.students?.active ?? 0;
+    if ($('adminOverviewStudents') && user?.role === 'SCHOOL_ADMIN') $('adminOverviewStudents').textContent = data.students?.active ?? '—';
     $('statClasses').textContent = data.today?.class_checkins ?? 0;
     if (isTeacher) {
       $('statArrivals').textContent = learner.confirmedPresentToday ?? 0;
