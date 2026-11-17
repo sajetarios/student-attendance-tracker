@@ -3563,9 +3563,11 @@ let teacherActionMenuListenersInstalled = false;
   function applySchoolBranding(data) {
     schoolBranding = data;
     const name = data.schoolName || user.schoolName || 'School workspace';
-    $('schoolTitle').textContent = name;
-    $('schoolCodeLabel').textContent = data.schoolCode || user.schoolCode || 'SCHOOL WORKSPACE';
-    $('sidebarSchoolName').textContent = name;
+    // Avoid unnecessary text-node updates: a repeated refresh must not repaint the header.
+    if ($('schoolTitle').textContent !== name) $('schoolTitle').textContent = name;
+    const schoolCode = data.schoolCode || user.schoolCode || 'SCHOOL WORKSPACE';
+    if ($('schoolCodeLabel').textContent !== schoolCode) $('schoolCodeLabel').textContent = schoolCode;
+    if ($('sidebarSchoolName').textContent !== name) $('sidebarSchoolName').textContent = name;
     const color = /^#[0-9a-f]{6}$/i.test(data.brandColor || '') ? data.brandColor : '#2463a5';
     document.documentElement.style.setProperty('--brand', color);
     const rgb = color.match(/[0-9a-f]{2}/gi).map(part => parseInt(part, 16));
@@ -3594,12 +3596,28 @@ let teacherActionMenuListenersInstalled = false;
         const response = await fetch(data.branding.logoUrl, { headers: { Authorization: `Bearer ${token}` }, cache: 'no-store' });
         if (response.ok) {
           const blob = await response.blob();
-          if (brandingLogoObjectUrl) URL.revokeObjectURL(brandingLogoObjectUrl);
-          brandingLogoObjectUrl = URL.createObjectURL(blob);
-          for (const node of [$('schoolEmblem'), $('sidebarSchoolMark'), $('schoolLogoPreview')]) {
-            if (!node) continue;
-            node.replaceChildren();
-            const image = document.createElement('img'); image.src = brandingLogoObjectUrl; image.alt = `${data.branding.schoolName} logo`; node.append(image);
+          const nextLogoUrl = URL.createObjectURL(blob);
+          // Decode before replacing the current logo to prevent a blank-frame flash.
+          const preparedImage = new Image();
+          preparedImage.src = nextLogoUrl;
+          try {
+            if (typeof preparedImage.decode === 'function') await preparedImage.decode();
+            else if (!preparedImage.complete) await new Promise((resolve, reject) => {
+              preparedImage.onload = resolve;
+              preparedImage.onerror = reject;
+            });
+            const previousLogoUrl = brandingLogoObjectUrl;
+            brandingLogoObjectUrl = nextLogoUrl;
+            for (const node of [$('schoolEmblem'), $('sidebarSchoolMark'), $('schoolLogoPreview')]) {
+              if (!node) continue;
+              const image = preparedImage.cloneNode();
+              image.alt = `${data.branding.schoolName} logo`;
+              node.replaceChildren(image);
+            }
+            if (previousLogoUrl) URL.revokeObjectURL(previousLogoUrl);
+          } catch (error) {
+            URL.revokeObjectURL(nextLogoUrl);
+            console.warn('School logo could not be decoded:', error.message);
           }
         } else {
           $('schoolBrandingFeedback').textContent = 'The previous logo file is unavailable. Please upload it again to store it permanently.';
