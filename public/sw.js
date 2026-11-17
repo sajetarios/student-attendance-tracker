@@ -1,4 +1,4 @@
-const CACHE = "attendigo-v168-transparent-logo";
+const CACHE = "attendigo-v169-login-asset-consistency";
 
 const SHELL = [
   "/typography.css?v=1",
@@ -82,7 +82,7 @@ const SHELL = [
   "/form-system.css?v=1",
   "/password-visibility.css",
   "/password-visibility.js",
-  "/portal-login.js?v=6",
+  "/portal-login.js?v=7",
   "/login-routing.js",
   "/responsive.css?v=0.8.3",
   "/comfort-ui.css?v=0.8.8",
@@ -129,6 +129,23 @@ self.addEventListener("fetch", event => {
   if (["/portal.html", "/student-portal.html", "/parent-portal.html",
        "/force-password-change.html"].includes(url.pathname)) {
     event.respondWith(fetch(request, { cache: "no-store" }));
+    return;
+  }
+
+  // Authentication scripts must never remain stale across releases or domain changes.
+  // They need the deployed code online, with cached copies available only offline.
+  if (['/portal-login.js', '/login-routing.js'].includes(url.pathname)) {
+    event.respondWith((async () => {
+      try {
+        const fresh = await fetch(request, { cache: 'no-store' });
+        if (!fresh.ok) throw Error('Login asset could not be refreshed');
+        const cache = await caches.open(CACHE);
+        cache.put(request, fresh.clone()).catch(() => {});
+        return fresh;
+      } catch {
+        return (await caches.match(request)) || Response.error();
+      }
+    })());
     return;
   }
 
