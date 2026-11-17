@@ -1,191 +1,455 @@
-/* Attendigo adaptive sidebar — respects school-selected brand colors. */
-.sidebar{--side-ink:#fff;--side-muted:#d6deed;--side-border:rgba(255,255,255,.24);--side-selected:#3449a8;--side-selected-ink:#fff;--side-hover:rgba(255,255,255,.10);color:var(--side-ink)!important;background:var(--sidebar)!important}
-.sidebar .attendigo-brand{position:relative;display:flex;align-items:center;justify-content:center;align-self:center;width:100%;max-width:270px;margin:0 auto 18px;padding:0;min-height:80px;background:transparent!important;border-radius:0;overflow:hidden}
-.sidebar .attendigo-logo{display:block!important;position:static;width:100%;max-width:100%;height:auto;max-height:80px;object-fit:contain;visibility:visible!important;clip-path:none!important;filter:none!important}
-.sidebar .attendigo-logo-color{display:none!important}
-.sidebar[data-logo-contrast="dark"] .attendigo-brand{background:#101b3c!important;border-radius:12px;padding:7px 10px}
-.sidebar[data-logo-contrast="light"] .attendigo-brand{background:transparent!important}
-.sidebar[data-logo-contrast="dark"] .attendigo-logo,.sidebar[data-logo-contrast="light"] .attendigo-logo{filter:none!important}
-.sidebar .sidebar-brand{border-bottom:1px solid var(--side-border)!important;padding:12px 8px 19px!important;gap:10px}
-.sidebar .sidebar-brand strong{color:var(--side-ink)!important;font-size:13px;line-height:1.35}
-.sidebar .sidebar-brand span,.sidebar .sidebar-section-label{color:var(--side-muted)!important}
-.sidebar .sidebar-section-label{font-size:10px;letter-spacing:.16em}
-.sidebar .nav-item,.sidebar .nav-group-toggle,.sidebar .logout-item{color:var(--side-ink)!important;border-radius:11px}
-.sidebar .nav-item:hover,.sidebar .nav-group-toggle:hover{background:var(--side-hover)!important;color:var(--side-hover-ink)!important}
-.sidebar .nav-item.active,.sidebar .nav-submenu .nav-item.active{background:var(--side-selected)!important;color:var(--side-selected-ink)!important;box-shadow:inset 3px 0 var(--side-selected-ink),0 3px 12px #00000013!important}
-.sidebar .nav-item.active .nav-icon,.sidebar .nav-item.active .nav-label{color:var(--side-selected-ink)!important}
-.sidebar .nav-submenu{border-color:var(--side-border)!important}
-.sidebar .sidebar-bottom{background:var(--sidebar)!important}
-.sidebar .sidebar-status{border:1px solid var(--side-border)!important;border-radius:13px;color:var(--side-ink)!important;padding:11px;margin:12px 2px}
-.sidebar .sidebar-collapse-control{color:var(--side-ink)!important;border-color:var(--side-border)!important}
-.portal-layout.sidebar-collapsed .attendigo-name{display:none}
-.portal-layout.sidebar-collapsed .attendigo-brand{padding-left:0;padding-right:0}
-@media(max-width:860px){.sidebar{width:min(300px,86vw)!important;max-width:86vw}.sidebar .attendigo-adaptive-logo .attendigo-name{font-size:23px}}
-
-.sidebar .nav-icon,.sidebar .nav-label,.sidebar .nav-chevron{color:inherit!important;opacity:1}
-.sidebar .nav-item:focus-visible,.sidebar .nav-group-toggle:focus-visible,.sidebar .sidebar-collapse-control:focus-visible{outline:2px solid var(--side-ink);outline-offset:2px}
-.sidebar .sidebar-collapse-control,.sidebar .sidebar-status{background:var(--sidebar)!important}
-@media(min-width:861px){.portal-layout.sidebar-collapsed .sidebar>.attendigo-brand{width:48px;height:48px;min-height:48px;padding:4px!important;background:transparent url('/assets/attendigo-icon.png?v=2') center/contain no-repeat!important;border-radius:10px}.portal-layout.sidebar-collapsed .sidebar>.attendigo-brand img{display:none!important}}
-@media(max-width:860px){.portal-layout.sidebar-collapsed .sidebar>.attendigo-brand{width:100%;height:auto;min-height:80px;padding:0;background:transparent!important}}
-
-/* Uniform sidebar icon sizes and intuitive independent nested navigation. */
-.sidebar .nav-item .nav-icon,.sidebar .nav-group-toggle .nav-icon{
-  display:inline-flex!important;align-items:center!important;justify-content:center!important;
-  flex:0 0 22px!important;width:22px!important;height:22px!important;
+/* Attendigo · premium adaptive school sidebar
+   The school owns --sidebar and official emblem pixels. This stylesheet adjusts only
+   navigation contrast, geometry and Attendigo's independent product lockup. */
+#sidebar.sidebar {
+  --side-ink:#fff;
+  --side-muted:#dce6f7;
+  --side-border:rgba(255,255,255,.23);
+  --side-selected:rgba(255,255,255,.15);
+  --side-selected-ink:#fff;
+  --side-hover:rgba(255,255,255,.10);
+  --side-hover-ink:#fff;
+  --side-focus:#fff;
+  --side-logo-back:rgba(10,24,43,.92);
+  --side-primary-height:44px;
+  --side-child-height:40px;
+  box-sizing:border-box;
+  display:flex;
+  flex-direction:column;
+  gap:0;
+  padding:15px 14px calc(13px + env(safe-area-inset-bottom,0px));
+  background:var(--sidebar)!important;
+  color:var(--side-ink)!important;
+  overflow-x:hidden;
+  overflow-y:auto;
+  scrollbar-width:thin;
+  scrollbar-color:var(--side-border) transparent;
 }
-.sidebar .nav-item .nav-icon svg,.sidebar .nav-group-toggle .nav-icon svg{
-  display:block!important;width:21px!important;height:21px!important;stroke-width:1.9!important;
+/* This is intentionally transparent. The old brand-refresh card is scoped to
+   non-sidebar surfaces instead, so both rulesets cannot fight. */
+html body #sidebar.sidebar > .attendigo-brand {
+  display:flex!important;
+  align-items:center!important;
+  justify-content:flex-start!important;
+  align-self:stretch!important;
+  flex:0 0 auto!important;
+  box-sizing:border-box!important;
+  width:100%!important;
+  max-width:260px!important;
+  min-height:45px!important;
+  height:auto!important;
+  max-height:72px!important;
+  margin:0 0 10px!important;
+  padding:0!important;
+  background:transparent!important;
+  border:0!important;
+  border-radius:0!important;
+  box-shadow:none!important;
+  overflow:visible!important;
 }
-.sidebar #staffNavToggle .nav-icon svg,.sidebar .staff-nav-child .nav-icon svg{width:21px!important;height:21px!important}
-.sidebar .nav-chevron{margin-left:auto;flex:0 0 auto}
-.sidebar .staff-nav-children[hidden],.sidebar .nav-submenu[hidden]{display:none!important}
-.sidebar .staff-nav-toggle:focus-visible{outline:2px solid var(--side-ink);outline-offset:2px}
-@media(max-width:860px){.sidebar .nav-item,.sidebar .nav-group-toggle{min-height:46px}}
-
-/* Mobile navigation refinement: compact, legible, scrollable drawer.
-   Keep school brand colors and contrast variables managed by the admin. */
-@media(max-width:860px){
-  .portal-page #sidebar.sidebar{
+html body #sidebar.sidebar > .attendigo-brand img.attendigo-logo {
+  display:block!important;
+  width:100%!important;
+  max-width:240px!important;
+  height:auto!important;
+  max-height:66px!important;
+  aspect-ratio:1800 / 430;
+  object-fit:contain!important;
+  object-position:left center!important;
+  border:0!important;
+  background:none!important;
+  clip-path:none!important;
+  filter:none!important;
+  visibility:visible!important;
+}
+html body #sidebar.sidebar[data-logo-backed="true"] > .attendigo-brand {
+  padding:7px 8px!important;
+  border-radius:10px!important;
+  background:var(--side-logo-back)!important;
+  max-width:260px!important;
+}
+#sidebar.sidebar .attendigo-logo-color {display:none!important}
+/* Preserve the uploaded original school emblem, without CSS recoloring. The
+   optional WHITE *container* protects official artwork on custom dark colors. */
+html body #sidebar.sidebar .sidebar-brand {
+  box-sizing:border-box!important;
+  display:grid!important;
+  grid-template-columns:48px minmax(0,1fr)!important;
+  align-items:center!important;
+  gap:10px!important;
+  padding:7px 2px 13px!important;
+  margin:0 0 6px!important;
+  min-height:0!important;
+  border:0!important;
+  border-bottom:1px solid var(--side-border)!important;
+  width:100%!important;
+  overflow:visible!important;
+}
+html body #sidebar.sidebar #sidebarSchoolMark.brand-mark {
+  box-sizing:border-box!important;
+  width:48px!important;
+  height:48px!important;
+  min-width:48px!important;
+  min-height:48px!important;
+  max-width:48px!important;
+  max-height:48px!important;
+  padding:3px!important;
+  margin:0!important;
+  display:grid!important;
+  place-items:center!important;
+  background:#fff!important;
+  color:#1d3855!important;
+  border-radius:50%!important;
+  border:1px solid rgba(0,0,0,.06)!important;
+  box-shadow:none!important;
+  overflow:hidden!important;
+  transform:none!important;
+}
+html body #sidebar.sidebar #sidebarSchoolMark img {
+  display:block!important;
+  width:100%!important;
+  height:100%!important;
+  max-width:100%!important;
+  max-height:100%!important;
+  min-width:0!important;
+  min-height:0!important;
+  padding:0!important;
+  object-fit:contain!important;
+  object-position:center!important;
+  aspect-ratio:auto!important;
+  background:transparent!important;
+  border:0!important;
+  border-radius:0!important;
+  filter:none!important;
+  mix-blend-mode:normal!important;
+  opacity:1!important;
+  transform:none!important;
+  clip-path:none!important;
+}
+#sidebar.sidebar .sidebar-brand>div:last-child {
+  display:flex!important;
+  flex-direction:column!important;
+  min-width:0!important;
+  max-width:100%!important;
+  overflow:hidden!important;
+}
+html body #sidebar.sidebar #sidebarSchoolName {
+  display:-webkit-box!important;
+  -webkit-box-orient:vertical!important;
+  -webkit-line-clamp:3!important;
+  line-clamp:3!important;
+  max-width:100%!important;
+  min-width:0!important;
+  width:auto!important;
+  margin:0!important;
+  overflow:hidden!important;
+  text-overflow:ellipsis!important;
+  white-space:normal!important;
+  overflow-wrap:break-word!important;
+  word-break:normal!important;
+  color:var(--side-ink)!important;
+  font-size:12px!important;
+  font-weight:800!important;
+  line-height:1.27!important;
+  letter-spacing:.015em!important;
+}
+#sidebar.sidebar .sidebar-brand span {
+  display:block!important;
+  max-width:100%!important;
+  margin-top:4px!important;
+  color:var(--side-muted)!important;
+  font-size:9px!important;
+  font-weight:600!important;
+  letter-spacing:.075em!important;
+  line-height:1.35!important;
+}
+#sidebar.sidebar .sidebar-section-label {
+  padding:10px 9px 7px!important;
+  color:var(--side-muted)!important;
+  font-size:10px!important;
+  font-weight:800!important;
+  letter-spacing:.10em!important;
+  opacity:1!important;
+}
+#sidebar.sidebar .side-nav {
+  display:flex!important;
+  flex:0 0 auto!important;
+  flex-direction:column!important;
+  gap:2px!important;
+  padding:0 0 9px!important;
+  min-width:0!important;
+}
+#sidebar.sidebar .nav-group {
+  display:flex!important;
+  flex-direction:column!important;
+  gap:2px!important;
+  min-width:0!important;
+  padding:0!important;
+  margin:0!important;
+}
+#sidebar.sidebar .nav-item,
+#sidebar.sidebar .nav-group-toggle {
+  box-sizing:border-box!important;
+  display:flex!important;
+  align-items:center!important;
+  gap:10px!important;
+  min-height:var(--side-primary-height)!important;
+  height:auto!important;
+  width:100%!important;
+  margin:0!important;
+  padding:8px 10px!important;
+  border:0!important;
+  border-radius:10px!important;
+  background:transparent!important;
+  box-shadow:none!important;
+  color:var(--side-ink)!important;
+  text-align:left!important;
+  font-size:13px!important;
+  line-height:1.3!important;
+  font-weight:680!important;
+  letter-spacing:0!important;
+  text-decoration:none!important;
+  cursor:pointer;
+  transition:background-color .15s ease,color .15s ease!important;
+}
+#sidebar.sidebar .nav-group-toggle {font-weight:780!important}
+#sidebar.sidebar .nav-item .nav-label,
+#sidebar.sidebar .nav-group-toggle .nav-label {
+  flex:1 1 auto!important;
+  min-width:0!important;
+  font:inherit!important;
+  color:inherit!important;
+  opacity:1!important;
+  overflow-wrap:break-word!important;
+  white-space:normal!important;
+}
+#sidebar.sidebar .nav-icon {
+  display:inline-flex!important;
+  align-items:center!important;
+  justify-content:center!important;
+  width:20px!important;
+  height:20px!important;
+  flex:0 0 20px!important;
+  color:inherit!important;
+  opacity:1!important;
+  font-size:19px!important;
+  line-height:1!important;
+}
+#sidebar.sidebar .nav-icon svg {
+  box-sizing:border-box!important;
+  display:block!important;
+  width:20px!important;
+  height:20px!important;
+  stroke-width:1.9!important;
+}
+#sidebar.sidebar .nav-chevron {
+  flex:0 0 auto!important;
+  margin-left:auto!important;
+  color:inherit!important;
+  opacity:.85!important;
+  transition:transform .15s ease;
+}
+#sidebar.sidebar .nav-submenu,
+#sidebar.sidebar .staff-nav-children,
+#sidebar.sidebar .user-management-children {
+  box-sizing:border-box!important;
+  display:flex!important;
+  flex-direction:column!important;
+  gap:2px!important;
+  width:calc(100% - 17px)!important;
+  margin:1px 0 4px 17px!important;
+  padding:1px 0 2px 9px!important;
+  background:transparent!important;
+  border:0!important;
+  border-left:1px solid var(--side-border)!important;
+  border-radius:0!important;
+  box-shadow:none!important;
+}
+#sidebar.sidebar .nav-submenu .nav-item,
+#sidebar.sidebar .staff-nav-child,
+#sidebar.sidebar .user-management-children .nav-item {
+  min-height:var(--side-child-height)!important;
+  padding:7px 9px!important;
+  font-size:12px!important;
+  font-weight:620!important;
+  border-radius:8px!important;
+}
+#sidebar.sidebar .nav-submenu .nav-item:before,
+#sidebar.sidebar .nav-submenu .nav-item:after,
+#sidebar.sidebar .staff-nav-child:before,
+#sidebar.sidebar .staff-nav-child:after {
+  border:0!important;
+  border-radius:0!important;
+  box-shadow:none!important;
+}
+#sidebar.sidebar .nav-item:hover,
+#sidebar.sidebar .nav-group-toggle:hover,
+#sidebar.sidebar .logout-item:hover {
+  background:var(--side-hover)!important;
+  color:var(--side-hover-ink)!important;
+}
+#sidebar.sidebar .nav-item.active,
+#sidebar.sidebar .nav-submenu .nav-item.active {
+  background:var(--side-selected)!important;
+  color:var(--side-selected-ink)!important;
+  box-shadow:inset 3px 0 0 var(--side-selected-ink)!important;
+  font-weight:800!important;
+}
+#sidebar.sidebar .nav-item.active :is(.nav-icon,.nav-label){
+  color:var(--side-selected-ink)!important;
+}
+#sidebar.sidebar .nav-group:has(.nav-item.active)>.nav-group-toggle {
+  color:var(--side-ink)!important;
+  font-weight:800!important;
+}
+#sidebar.sidebar :is(.nav-item,.nav-group-toggle,.sidebar-collapse-control,.sidebar-status,.mobile-drawer-close):focus-visible {
+  outline:3px solid var(--side-focus)!important;
+  outline-offset:2px!important;
+}
+#sidebar.sidebar [hidden] {display:none!important}
+#sidebar.sidebar .sidebar-bottom {
+  box-sizing:border-box!important;
+  position:static!important;
+  flex:0 0 auto!important;
+  margin-top:auto!important;
+  padding:10px 0 0!important;
+  background:transparent!important;
+}
+#sidebar.sidebar .sidebar-status {
+  box-sizing:border-box!important;
+  display:flex!important;
+  align-items:center!important;
+  gap:8px!important;
+  min-height:40px!important;
+  width:100%!important;
+  margin:0!important;
+  padding:9px 10px!important;
+  border:1px solid var(--side-border)!important;
+  border-radius:10px!important;
+  background:var(--side-hover)!important;
+  color:var(--side-ink)!important;
+  font-size:11px!important;
+  line-height:1.35!important;
+  font-weight:650!important;
+  text-align:left!important;
+  box-shadow:none!important;
+  cursor:pointer;
+}
+#sidebar.sidebar .sidebar-status .status-pulse {
+  flex:0 0 7px!important;
+  width:7px!important;
+  height:7px!important;
+  border-radius:50%!important;
+  background:var(--side-muted)!important;
+  opacity:.8!important;
+}
+#sidebar.sidebar .sidebar-collapse-control,
+#sidebar.sidebar .mobile-drawer-close {
+  color:var(--side-ink)!important;
+  border-color:var(--side-border)!important;
+}
+@media(min-width:861px){
+  #sidebar.sidebar {height:100vh!important;max-height:100vh!important}
+  html body .portal-layout.sidebar-collapsed #sidebar.sidebar > .attendigo-brand {
     box-sizing:border-box!important;
-    width:min(340px,90vw)!important;max-width:90vw!important;
-    height:100dvh!important;max-height:100dvh!important;
-    display:flex!important;flex-direction:column!important;
-    overflow-y:auto!important;overflow-x:hidden!important;
-    -webkit-overflow-scrolling:touch!important;
-    overscroll-behavior-y:contain!important;
-    padding:12px 12px calc(18px + env(safe-area-inset-bottom))!important;
-    gap:0!important;
-  }
-  .portal-page #sidebar .mobile-drawer-close{
-    position:sticky!important;top:0!important;right:auto!important;
-    align-self:flex-end!important;z-index:15!important;
-    flex:0 0 40px!important;width:40px!important;height:40px!important;
-    margin:0 0 -40px!important;border-radius:12px!important;
-    background:var(--sidebar)!important;border:1px solid var(--side-border)!important;
-    font-size:23px!important;line-height:1!important;
-  }
-  .portal-page #sidebar .attendigo-brand{min-height:56px!important;max-height:62px!important;max-width:175px!important;margin:0 auto 8px 0!important;padding-right:3px!important}
-  .portal-page #sidebar .attendigo-logo{max-height:58px!important}
-  .portal-page #sidebar .sidebar-brand{padding:10px 4px 13px!important;margin-bottom:4px!important;min-height:58px!important}
-  .portal-page #sidebar .sidebar-section-label{padding:13px 9px 5px!important;font-size:10px!important}
-  .portal-page #sidebar .side-nav{display:flex!important;flex-direction:column!important;gap:3px!important;flex:0 0 auto!important;min-height:0!important}
-  .portal-page #sidebar .nav-group{margin:0!important;padding:0!important;flex:0 0 auto!important}
-  .portal-page #sidebar .nav-item,.portal-page #sidebar .nav-group-toggle{
-    box-sizing:border-box!important;width:100%!important;
-    display:flex!important;align-items:center!important;gap:11px!important;
-    min-height:44px!important;height:auto!important;
-    margin:2px 0!important;padding:9px 11px!important;
-    border-radius:11px!important;
-    font-size:14px!important;line-height:1.3!important;
-    font-weight:650!important;letter-spacing:0!important;
-    text-align:left!important;
-    box-shadow:none!important;
-  }
-  .portal-page #sidebar .nav-group-toggle{font-weight:760!important;margin-top:7px!important}
-  .portal-page #sidebar .nav-label{flex:1 1 auto!important;min-width:0!important;font-size:14px!important;line-height:1.3!important;white-space:normal!important;overflow-wrap:break-word!important}
-  .portal-page #sidebar .nav-icon{flex:0 0 20px!important;width:20px!important;height:20px!important;font-size:18px!important}
-  .portal-page #sidebar .nav-icon svg{width:19px!important;height:19px!important}
-  .portal-page #sidebar .nav-chevron{font-size:15px!important;flex:0 0 16px!important;text-align:center!important}
-  .portal-page #sidebar .nav-submenu{
-    margin:1px 0 5px 12px!important;padding:2px 0 2px 10px!important;
-    border-left:1px solid var(--side-border)!important;
-    width:calc(100% - 12px)!important;box-sizing:border-box!important;
-    background:transparent!important;
-  }
-  .portal-page #sidebar .nav-submenu .nav-item{min-height:42px!important;padding:8px 10px!important}
-  .portal-page #sidebar .staff-nav-wrapper{width:100%!important}
-  .portal-page #sidebar .staff-nav-children{
-    margin:1px 0 5px 12px!important;padding:1px 0 1px 9px!important;
-    border-left:1px solid var(--side-border)!important;
-    background:transparent!important;width:calc(100% - 12px)!important;
-  }
-  .portal-page #sidebar .staff-nav-child{font-size:13px!important;min-height:40px!important;padding:7px 9px!important}
-  .portal-page #sidebar .staff-nav-child .nav-label{font-size:13px!important}
-  .portal-page #sidebar .sidebar-bottom{
-    flex:0 0 auto!important;position:static!important;margin-top:14px!important;
-    padding-top:9px!important;
-  }
-  .portal-page #sidebar .nav-item.active{box-shadow:inset 3px 0 var(--side-selected-ink)!important}
-}
-
-@media(max-width:860px){
-  .portal-page #sidebar [hidden]{display:none!important}
-  .portal-page #sidebar .nav-item[hidden],.portal-page #sidebar .nav-group[hidden],.portal-page #sidebar .staff-nav-wrapper[hidden]{display:none!important}
-}
-
-/* School identity: allow three tidy lines without widening the mobile drawer. */
-@media(max-width:860px){
-  .portal-page #sidebar .sidebar-brand{
-    display:grid!important;
-    grid-template-columns:46px minmax(0,1fr)!important;
-    align-items:center!important;column-gap:10px!important;
-    width:100%!important;min-width:0!important;box-sizing:border-box!important;
-  }
-  .portal-page #sidebar #sidebarSchoolMark{
-    width:44px!important;height:44px!important;min-width:44px!important;
-    max-width:44px!important;flex-shrink:0!important;
-  }
-  .portal-page #sidebar .sidebar-brand>div:last-child{
-    min-width:0!important;max-width:100%!important;width:100%!important;
-    overflow:hidden!important;
-  }
-  .portal-page #sidebar #sidebarSchoolName{
-    display:-webkit-box!important;-webkit-box-orient:vertical!important;
-    -webkit-line-clamp:3!important;line-clamp:3!important;
-    overflow:hidden!important;text-overflow:ellipsis!important;
-    max-width:100%!important;min-width:0!important;
-    font-size:12px!important;font-weight:750!important;
-    line-height:1.32!important;letter-spacing:.015em!important;
-    white-space:normal!important;overflow-wrap:break-word!important;
-    word-break:normal!important;
-  }
-  .portal-page #sidebar .sidebar-brand span{
-    display:block!important;max-width:100%!important;
-    margin-top:4px!important;font-size:9px!important;
-    line-height:1.3!important;letter-spacing:.08em!important;
-    white-space:normal!important;
-  }
-}
-
-/* Three-line school identity: constrain the actual text column, not only its line clamp.
-   A line clamp is a maximum; a narrower measure produces the requested three rows. */
-@media(max-width:860px){
-  .portal-page #sidebar .sidebar-brand>div:last-child{justify-self:start!important}
-  .portal-page #sidebar #sidebarSchoolName{
-    width:152px!important;max-width:min(152px,100%)!important;
-    font-size:14px!important;line-height:1.25!important;
-    letter-spacing:0!important;
-    display:block!important;
-    white-space:normal!important;
-    overflow-wrap:normal!important;
-    word-break:normal!important;
-    overflow:visible!important;
-    -webkit-line-clamp:unset!important;
-    line-clamp:unset!important;
-  }
-}
-
-/* Restore the original prominent Attendigo wordmark on mobile.
-   School-name wrapping must not shrink the product branding. */
-@media(max-width:860px){
-  .portal-page #sidebar.sidebar>.attendigo-brand{
-    width:calc(100% - 48px)!important;
-    max-width:260px!important;
-    min-height:82px!important;
-    max-height:none!important;
-    height:auto!important;
-    margin:0 auto 12px 0!important;
+    align-self:center!important;
+    width:48px!important;
+    height:48px!important;
+    min-height:48px!important;
+    max-height:48px!important;
+    margin:0 auto 12px!important;
     padding:0!important;
-    justify-content:flex-start!important;
-    align-self:flex-start!important;
+    background:transparent url('/assets/attendigo-symbol-transparent.svg?v=1') center/contain no-repeat!important;
+    border:0!important;
+    border-radius:0!important;
   }
-  .portal-page #sidebar.sidebar>.attendigo-brand .attendigo-logo{
-    display:block!important;
-    width:100%!important;
-    max-width:260px!important;
-    height:auto!important;
-    max-height:88px!important;
-    object-fit:contain!important;
-    object-position:left center!important;
+  html body .portal-layout.sidebar-collapsed #sidebar.sidebar > .attendigo-brand img {
+    display:none!important;
   }
+  .portal-layout.sidebar-collapsed #sidebar.sidebar .sidebar-brand {
+    display:flex!important;
+    justify-content:center!important;
+    padding:6px 0 12px!important;
+  }
+  .portal-layout.sidebar-collapsed #sidebar.sidebar .sidebar-brand>div:last-child {display:none!important}
+  .portal-layout.sidebar-collapsed #sidebar.sidebar .nav-item,
+  .portal-layout.sidebar-collapsed #sidebar.sidebar .nav-group-toggle {
+    justify-content:center!important;
+    padding:9px 7px!important;
+  }
+  .portal-layout.sidebar-collapsed #sidebar.sidebar .nav-label,
+  .portal-layout.sidebar-collapsed #sidebar.sidebar .nav-chevron,
+  .portal-layout.sidebar-collapsed #sidebar.sidebar .sidebar-section-label {
+    display:none!important;
+  }
+}
+@media(max-width:860px){
+  html body #sidebar.sidebar {
+    box-sizing:border-box!important;
+    display:flex!important;
+    flex-direction:column!important;
+    gap:0!important;
+    position:fixed;
+    width:min(320px,90vw)!important;
+    max-width:90vw!important;
+    height:100dvh!important;
+    max-height:100dvh!important;
+    padding:12px 12px calc(16px + env(safe-area-inset-bottom,0px))!important;
+    overflow-y:auto!important;
+    overflow-x:hidden!important;
+    -webkit-overflow-scrolling:touch;
+    overscroll-behavior-y:contain;
+  }
+  html body #sidebar.sidebar > .attendigo-brand {
+    max-width:215px!important;
+    min-height:46px!important;
+    max-height:60px!important;
+    margin:0 0 8px!important;
+  }
+  html body #sidebar.sidebar > .attendigo-brand img.attendigo-logo {max-height:56px!important}
+  html body #sidebar.sidebar .sidebar-brand {
+    grid-template-columns:44px minmax(0,1fr)!important;
+    gap:9px!important;
+    margin-bottom:3px!important;
+    padding:5px 2px 11px!important;
+  }
+  html body #sidebar.sidebar #sidebarSchoolMark.brand-mark {
+    width:44px!important;height:44px!important;min-width:44px!important;
+    min-height:44px!important;max-width:44px!important;max-height:44px!important;
+  }
+  html body #sidebar.sidebar #sidebarSchoolName {
+    width:auto!important;max-width:100%!important;
+    font-size:12px!important;
+    overflow:hidden!important;
+    display:-webkit-box!important;
+    -webkit-box-orient:vertical!important;
+    -webkit-line-clamp:3!important;
+  }
+  #sidebar.sidebar .sidebar-section-label {padding:8px 8px 6px!important}
+  #sidebar.sidebar .nav-item,
+  #sidebar.sidebar .nav-group-toggle,
+  #sidebar.sidebar .nav-submenu .nav-item,
+  #sidebar.sidebar .staff-nav-child {
+    min-height:44px!important;
+    padding:9px 10px!important;
+    font-size:13px!important;
+  }
+  #sidebar.sidebar .nav-submenu,
+  #sidebar.sidebar .staff-nav-children,
+  #sidebar.sidebar .user-management-children {
+    margin-left:12px!important;
+    width:calc(100% - 12px)!important;
+  }
+  #sidebar.sidebar .side-nav {gap:2px!important}
+  #sidebar.sidebar .sidebar-bottom {margin-top:12px!important}
+  #sidebar.sidebar .mobile-drawer-close {
+    position:sticky!important;top:0!important;align-self:flex-end!important;
+    z-index:15!important;width:40px!important;height:40px!important;
+    min-height:40px!important;margin:0 0 -40px!important;
+    border-radius:10px!important;
+    background:var(--sidebar)!important;
+  }
+}
+@media(prefers-reduced-motion:reduce){
+  #sidebar.sidebar :is(.nav-item,.nav-group-toggle,.nav-chevron){transition:none!important}
 }

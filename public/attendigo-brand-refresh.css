@@ -1,7 +1,7 @@
-/* Product identity only. School identity, colors and uploaded logos are independent.
-   A neutral surface preserves the approved navy lettering in every theme. */
-html body .attendigo-brand,
-html body #sidebar.sidebar > .attendigo-brand,
+/* Product identity only. School identity and uploaded emblems are independent.
+   Neutral white cards remain for login, parent and student surfaces; school-custom
+   sidebars use the separate transparent contrast-aware lockup. */
+html body .attendigo-brand:not(#sidebar > .attendigo-brand),
 html body.login-page .mobile-brand .attendigo-brand,
 html body.login-page .login-art .attendigo-brand,
 html body .student-site-header .attendigo-brand {
@@ -16,8 +16,7 @@ html body .student-site-header .attendigo-brand {
   overflow:hidden!important;
   box-sizing:border-box!important;
 }
-html body .attendigo-brand .attendigo-logo,
-html body #sidebar.sidebar > .attendigo-brand .attendigo-logo {
+html body .attendigo-brand:not(#sidebar > .attendigo-brand) .attendigo-logo {
   display:block!important;
   width:100%!important;
   height:auto!important;
@@ -33,7 +32,7 @@ html body > header > .attendigo-brand { width:220px;max-width:100%;flex-shrink:1
   html body .portal-layout.sidebar-collapsed #sidebar.sidebar > .attendigo-brand {
     width:48px!important;height:48px!important;min-height:48px!important;
     padding:0!important;
-    background:#fff url('/assets/attendigo-icon.png?v=2') center/contain no-repeat!important;
+    background:transparent url('/assets/attendigo-symbol-transparent.svg?v=1') center/contain no-repeat!important;
   }
   html body .portal-layout.sidebar-collapsed #sidebar.sidebar > .attendigo-brand .attendigo-logo { display:none!important; }
 }
