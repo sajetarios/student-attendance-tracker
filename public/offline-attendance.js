@@ -91,6 +91,24 @@
     }, key, new Uint8Array(record.encrypted.ciphertext));
     return JSON.parse(decoder.decode(plaintext));
   }
+  let lastConfirmedAt = null;
+  async function snapshot() {
+    const pending = await rows();
+    const counts = { QR_SCAN: 0, MANUAL_MARKS: 0, REGISTER_SIGNOFF: 0 };
+    for (const row of pending) {
+      const type = row.type || 'QR_SCAN';
+      if (Object.hasOwn(counts, type)) counts[type] += 1;
+    }
+    return {
+      pending: pending.length,
+      needsReview: pending.filter(row => row.status === 'REVIEW').length,
+      waiting: pending.filter(row => row.status === 'PENDING').length,
+      byType: counts,
+      lastConfirmedAt,
+      syncing,
+      online: navigator.onLine
+    };
+  }
   async function emit() {
     const pending = await rows().catch(() => []);
     const review = pending.filter(record => record.status === 'REVIEW').length;
@@ -105,7 +123,16 @@
         : 'No pending device attendance for this signed-in account.';
     }
     window.dispatchEvent(new CustomEvent('attendigo-offline-status', {
-      detail: { pending: pending.length, needsReview: review }
+      detail: {
+        pending: pending.length, needsReview: review,
+        waiting: pending.filter(row => row.status === 'PENDING').length,
+        byType: {
+          QR_SCAN: pending.filter(row => !row.type || row.type === 'QR_SCAN').length,
+          MANUAL_MARKS: pending.filter(row => row.type === 'MANUAL_MARKS').length,
+          REGISTER_SIGNOFF: pending.filter(row => row.type === 'REGISTER_SIGNOFF').length
+        },
+        lastConfirmedAt, syncing, online: navigator.onLine
+      }
     }));
   }
   async function enqueueOperation({ type, operationId, payload }) {
@@ -151,6 +178,7 @@
     const confirmations = {};
     if (syncing || !navigator.onLine || !id || !token) return { confirmations };
     syncing = true;
+    await emit();
     try {
       const records = (await rows())
         .sort((a, b) => (a.createdAt || 0) - (b.createdAt || 0)).slice(0, 50);
@@ -201,6 +229,7 @@
           }
           if (acknowledged) {
             await remove(record.id);
+            lastConfirmedAt = new Date().toISOString();
             confirmations[record.id] = { status: type === 'QR_SCAN' ? item.status : 'ACCEPTED',
               result: type === 'QR_SCAN' ? data : data };
           } else if (response.ok && type === 'QR_SCAN' && item?.status === 'REJECTED') {
@@ -228,6 +257,29 @@
     const record = (await rows()).find(r => r.id === event.eventId);
     if (record?.status === 'REVIEW') throw Error(record.reason || 'Attendance needs review; record retained on device.');
     return {status:'PENDING'};
+  }
+  // Inspect only the currently authenticated account's encrypted device record.
+  // The Sync Center never writes learner data or forces a conflicting revision.
+  async function inspect(operationId) {
+    const currentOwner = owner();
+    if (!currentOwner) throw Error('Sign in to the correct school account to review this record.');
+    const record = await byId(operationId);
+    if (!record || record.owner !== currentOwner) throw Error('This record is not available to your signed-in account.');
+    return {
+      id: record.id, type: record.type || 'QR_SCAN',
+      status: record.status, reason: record.reason || '',
+      createdAt: record.createdAt, payload: await decrypt(record)
+    };
+  }
+  async function retryReviewed(operationId) {
+    const currentOwner = owner();
+    if (!currentOwner) throw Error('Sign in to the correct school account.');
+    const record = await byId(operationId);
+    if (!record || record.owner !== currentOwner || record.status !== 'REVIEW')
+      throw Error('Only a reviewed record belonging to your account can be retried.');
+    await put({ ...record, status: 'PENDING', reason: null });
+    await emit();
+    return sync(); // Server still checks revisions, enrollment, and finalized registers.
   }
   function describe(record) {
     const type = record.type || 'QR_SCAN';
@@ -286,20 +338,25 @@
     if (dialog.showModal) dialog.showModal(); else dialog.setAttribute('open','');
   }
   function init() {
-    if (!document.body || document.getElementById('attendigoOfflineStatus')) return;
-    const status = document.createElement('button');
-    status.id = 'attendigoOfflineStatus';
-    status.type = 'button';
-    status.style.cssText = 'position:fixed;bottom:12px;right:12px;z-index:9000;border:1px solid currentColor;border-radius:18px;padding:8px 12px;background:Canvas;color:CanvasText;font:600 12px system-ui;box-shadow:0 3px 14px #0002;max-width:70vw';
-    status.addEventListener('click', showQueue);
-    document.body.append(status);
+    if (!document.body) return;
+    // Keep the legacy queue button only on pages that do not load the new
+    // accessible, responsive Attendance Sync Center.
+    if (!document.querySelector('script[src*="attendance-sync-center.js"]') &&
+        !document.getElementById('attendigoOfflineStatus')) {
+      const status = document.createElement('button');
+      status.id = 'attendigoOfflineStatus';
+      status.type = 'button';
+      status.style.cssText = 'position:fixed;bottom:12px;right:12px;z-index:9000;border:1px solid currentColor;border-radius:18px;padding:8px 12px;background:Canvas;color:CanvasText;font:600 12px system-ui;box-shadow:0 3px 14px #0002;max-width:70vw';
+      status.addEventListener('click', showQueue);
+      document.body.append(status);
+    }
     emit();
     window.addEventListener('online', sync);
     document.addEventListener('visibilitychange', () => { if (!document.hidden) sync(); });
     setInterval(sync, 30000);
     sync();
   }
-  window.AttendigoOffline = { record, enqueueOperation, sync, pending: rows };
+  window.AttendigoOffline = { record, enqueueOperation, sync, pending: rows, snapshot, inspect, retryReviewed, showQueue };
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);
   else init();
 })();
