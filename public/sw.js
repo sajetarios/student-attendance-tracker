@@ -1,4 +1,4 @@
-const CACHE = "attendigo-v149-roster-readonly-cleanup";
+const CACHE = "attendigo-v150-special-program-roles";
 
 const SHELL = [
   "/assets/attendigo-sidebar-logo.png",
@@ -21,8 +21,8 @@ const SHELL = [
   "/flicker-diagnostics.js?v=1",
   "/school-header-responsive.js?v=2",
   "/student-portal-refinement.css?v=1",
-  "/student-portal.js?v=2",
-  "/parent-portal.js?v=1",
+  "/student-portal.js?v=3",
+  "/parent-portal.js?v=2",
   "/dashboard-appearance.js?v=3",
   "/timetable-grid.js?v=4",
   "/schedule-workspace-ui.js?v=6",
@@ -33,7 +33,7 @@ const SHELL = [
   "/portal.css?v=0.9.113",
   "/student-roster-toolbar.css?v=2",
   "/portal.css",
-  "/portal.js?v=0.9.133",
+  "/portal.js?v=0.9.134",
   "/sardo-monitor.js?v=1",
   "/sardo-monitor.css?v=1",
   "/schedule-form-layout.css?v=12",
@@ -48,12 +48,14 @@ const SHELL = [
   "/student-portal-accounts.css?v=4",
   "/student-portal-accounts.js?v=7",
   "/account-directory.js?v=1",
-  "/admin-request-notifications.js?v=3",
+  "/admin-request-notifications.js?v=4",
   "/admin-request-notifications.css?v=2",
   "/guardian-ui.js?v=5",
   "/guardian-ui.css?v=4",
   "/academic-admin.css?v=1",
   "/academic-admin.js?v=5",
+  "/special-program-ui.js?v=1",
+  "/special-program-ui.css?v=1",
   "/app-dialog.css?v=1",
   "/app-dialog.js?v=1",
   "/sw-refresh.js?v=3",
