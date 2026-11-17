@@ -35,3 +35,43 @@ html[data-ui-theme="dark"] #scheduleForm input[readonly] {background:#233954!imp
 
 #schedulesView .schedule-activity-label {display:block;margin-top:4px;color:#315d90;font-size:12px;font-weight:750;line-height:1.4}
 html[data-ui-theme="dark"] #schedulesView .schedule-activity-label {color:#b0d6ff}
+
+/* Wide schedule workspace: reduce excessive vertical scrolling on desktops. */
+@media(min-width:1100px){
+ body .schedule-side-drawer:not([hidden]){
+   width:min(1120px,calc(100vw - 80px))!important;
+   max-width:min(1120px,calc(100vw - 80px))!important;
+   left:auto!important;right:0!important;
+   top:0!important;bottom:0!important;
+   height:100dvh!important;max-height:100dvh!important;
+   overflow-y:auto!important;overflow-x:hidden!important;
+   padding:24px 32px!important;
+ }
+ body #scheduleForm.schedule-side-drawer .form-grid{
+   grid-template-columns:repeat(3,minmax(0,1fr))!important;
+   gap:12px 20px!important;
+ }
+ body #scheduleForm.schedule-side-drawer .schedule-time-selector{
+   grid-template-columns:repeat(2,minmax(0,1fr))!important;
+ }
+ body #scheduleForm.schedule-side-drawer .schedule-form-section{padding:10px 0 4px!important}
+ body #scheduleForm.schedule-side-drawer .form-section-heading{margin-bottom:9px!important}
+ body #scheduleForm.schedule-side-drawer .field-group{gap:5px}
+ body #scheduleForm.schedule-side-drawer .schedule-weekday-options{display:flex!important;flex-wrap:wrap!important;gap:8px!important}
+ body #scheduleForm.schedule-side-drawer .schedule-weekday-options label{min-width:90px}
+ body #scheduleForm.schedule-side-drawer .form-context-banner{padding:9px 12px!important}
+ body #scheduleForm.schedule-side-drawer .form-actions{
+   position:sticky!important;bottom:-24px!important;z-index:3!important;
+   background:var(--card-bg,var(--surface,#fff))!important;
+   padding:14px 0!important;border-top:1px solid var(--border-color,#d9e3ef);
+ }
+}
+@media(min-width:1500px){
+ body .schedule-side-drawer:not([hidden]){width:min(1250px,calc(100vw - 120px))!important;max-width:min(1250px,calc(100vw - 120px))!important}
+}
+@media(min-width:700px) and (max-width:1099px){
+ body .schedule-side-drawer:not([hidden]){width:min(850px,calc(100vw - 24px))!important;max-width:min(850px,calc(100vw - 24px))!important}
+}
+@media(max-width:699px){
+ body .schedule-side-drawer:not([hidden]){width:100vw!important;max-width:100vw!important}
+}
