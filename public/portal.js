@@ -5317,9 +5317,22 @@ let teacherActionMenuListenersInstalled = false;
     const departmentHead = user?.role === 'DEPARTMENT_HEAD';
     form.dataset.scheduleRole = departmentHead ? 'DEPARTMENT_HEAD' : 'SCHOOL_ADMIN';
     const intro = $('scheduleFormRoleIntro');
-    if (intro) intro.textContent = departmentHead
-      ? 'Department schedule · Choose a school time block or custom class time, then assign a teacher and section within your own department.'
-      : 'School-wide scheduling · Choose a time block or custom time, assign a teacher, and set the meeting days, room and attendance grace period.';
+    if (intro) {
+      intro.hidden = departmentHead;
+      intro.textContent = 'School-wide scheduling · Choose a time block or custom time, assign a teacher, and set the meeting days, room and attendance grace period.';
+    }
+    // The shared schedule fields get a separate departmental presentation.
+    const header = form.querySelector('.schedule-drawer-heading');
+    if (header) {
+      const kicker = header.querySelector('span');
+      const heading = header.querySelector('h3');
+      const subtitle = header.querySelector('p');
+      if (kicker) kicker.textContent = departmentHead ? 'DEPARTMENT SCHEDULING' : 'CLASS SCHEDULING';
+      if (heading) heading.textContent = departmentHead ? 'Create department schedule' : 'Class schedule';
+      if (subtitle) subtitle.textContent = departmentHead
+        ? 'Assign a teacher and class, select meeting times, then confirm the days.'
+        : 'Set the teacher, class group, weekdays and time.';
+    }
     if ($('departmentScheduleScopeNote')) $('departmentScheduleScopeNote').hidden = !departmentHead;
     if ($('scheduleGraceGroup')) $('scheduleGraceGroup').hidden = departmentHead;
     if ($('graceMinutes')) {

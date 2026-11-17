@@ -182,3 +182,144 @@ html[data-ui-theme="dark"] #scheduleForm .department-schedule-scope-note {
   }
   #scheduleForm .department-schedule-scope-note {padding:10px 12px}
 }
+
+
+/* Department Head uses a genuinely distinct, compact two-column assignment editor.
+   The School Admin's full scheduling form is intentionally unchanged. */
+#scheduleForm[hidden], #scheduleForm #scheduleFormRoleIntro[hidden] {display:none!important}
+body #scheduleForm.schedule-side-drawer[data-schedule-role="DEPARTMENT_HEAD"]:not([hidden]) {
+  display:grid!important;
+  grid-template-columns:minmax(0,1fr) minmax(0,1fr)!important;
+  align-content:start!important;
+  align-items:start!important;
+  gap:12px 16px!important;
+  padding-bottom:26px!important;
+}
+#scheduleForm[data-schedule-role="DEPARTMENT_HEAD"] > .schedule-drawer-heading {
+  order:0;grid-column:1/-1;
+  margin-bottom:0!important;
+}
+#scheduleForm[data-schedule-role="DEPARTMENT_HEAD"] > #departmentScheduleScopeNote {
+  order:1;grid-column:1/-1;
+  margin:0!important;
+  padding:10px 14px!important;
+  border-radius:12px!important;
+  background:#eaf5fc!important;
+  border:1px solid #c7e0f3!important;
+  color:#285371!important;
+}
+#scheduleForm[data-schedule-role="DEPARTMENT_HEAD"] > .schedule-form-section {
+  margin:0!important;
+  padding:14px 16px 12px!important;
+  border:1px solid #dce7f0!important;
+  border-radius:16px!important;
+  background:#fff!important;
+  min-width:0!important;
+}
+#scheduleForm[data-schedule-role="DEPARTMENT_HEAD"] > .schedule-details-section {
+  order:2;grid-column:1;
+}
+#scheduleForm[data-schedule-role="DEPARTMENT_HEAD"] > .schedule-setup-section {
+  order:3;grid-column:2;
+}
+#scheduleForm[data-schedule-role="DEPARTMENT_HEAD"] > .schedule-location-section {
+  order:4;grid-column:1/-1;
+}
+#scheduleForm[data-schedule-role="DEPARTMENT_HEAD"] > .schedule-review-section {
+  order:5;grid-column:1/-1;
+  border:0!important;background:transparent!important;
+  padding:0!important;
+}
+#scheduleForm[data-schedule-role="DEPARTMENT_HEAD"] > .form-actions {
+  order:6;grid-column:1/-1;
+  position:sticky!important;
+  z-index:4!important;
+  bottom:0!important;
+  margin:0!important;
+  padding:12px 14px!important;
+  border:1px solid #dbe6f0!important;
+  border-radius:12px!important;
+  background:#fff!important;
+  box-shadow:0 -5px 20px rgba(20,50,76,.06);
+}
+#scheduleForm[data-schedule-role="DEPARTMENT_HEAD"] > .form-actions button {
+  min-height:42px!important;
+}
+#scheduleForm[data-schedule-role="DEPARTMENT_HEAD"] > .schedule-form-section > .form-section-heading {
+  padding:0 0 10px!important;
+  margin:0 0 12px!important;
+  background:transparent!important;
+  border-bottom:1px solid #e5edf4!important;
+}
+#scheduleForm[data-schedule-role="DEPARTMENT_HEAD"] > .schedule-form-section > .form-section-heading strong {
+  font-size:15px!important;
+  color:#193e5e!important;
+}
+#scheduleForm[data-schedule-role="DEPARTMENT_HEAD"] .schedule-details-section .form-grid {
+  margin:0 0 10px!important;
+}
+body #scheduleForm.schedule-side-drawer[data-schedule-role="DEPARTMENT_HEAD"] .schedule-details-section .form-grid,
+body #scheduleForm.schedule-side-drawer[data-schedule-role="DEPARTMENT_HEAD"] .schedule-setup-section .form-grid {
+  grid-template-columns:repeat(2,minmax(0,1fr))!important;
+  gap:10px 12px!important;
+}
+#scheduleForm[data-schedule-role="DEPARTMENT_HEAD"] .schedule-setup-section .schedule-label-field {
+  margin:0 0 10px!important;
+}
+#scheduleForm[data-schedule-role="DEPARTMENT_HEAD"] .schedule-setup-section .schedule-time-preview {
+  padding:10px 12px!important;
+  gap:8px 12px!important;
+}
+#scheduleForm[data-schedule-role="DEPARTMENT_HEAD"] .schedule-setup-section .schedule-time-preview strong {
+  font-size:15px!important;
+}
+body #scheduleForm.schedule-side-drawer[data-schedule-role="DEPARTMENT_HEAD"] .schedule-location-fields {
+  grid-template-columns:minmax(0,1fr)!important;
+  max-width:520px!important;
+  margin-top:10px!important;
+}
+#scheduleForm[data-schedule-role="DEPARTMENT_HEAD"] #scheduleWeekdayChoices > label span {
+  min-height:34px!important;
+  padding:6px 11px!important;
+  font-size:12px!important;
+}
+#scheduleForm[data-schedule-role="DEPARTMENT_HEAD"] #scheduleReviewSummary {
+  margin:0!important;
+  font-size:13px!important;
+  line-height:1.45!important;
+}
+html[data-ui-theme="dark"] #scheduleForm[data-schedule-role="DEPARTMENT_HEAD"] > .schedule-form-section {
+  background:#1c2c42!important;
+  border-color:#38506b!important;
+}
+html[data-ui-theme="dark"] #scheduleForm[data-schedule-role="DEPARTMENT_HEAD"] > .schedule-form-section > .form-section-heading strong {
+  color:#e5f1ff!important;
+}
+html[data-ui-theme="dark"] #scheduleForm[data-schedule-role="DEPARTMENT_HEAD"] > #departmentScheduleScopeNote {
+  background:#203c56!important;color:#d4e8fa!important;border-color:#416582!important;
+}
+html[data-ui-theme="dark"] #scheduleForm[data-schedule-role="DEPARTMENT_HEAD"] > .form-actions {
+  background:#192a40!important;border-color:#3a516b!important;box-shadow:none!important;
+}
+@media(max-width:1050px) {
+  body #scheduleForm.schedule-side-drawer[data-schedule-role="DEPARTMENT_HEAD"]:not([hidden]) {
+    grid-template-columns:minmax(0,1fr)!important;
+  }
+  #scheduleForm[data-schedule-role="DEPARTMENT_HEAD"] > .schedule-details-section,
+  #scheduleForm[data-schedule-role="DEPARTMENT_HEAD"] > .schedule-setup-section {
+    grid-column:1/-1!important;
+  }
+}
+@media(max-width:600px) {
+  body #scheduleForm.schedule-side-drawer[data-schedule-role="DEPARTMENT_HEAD"] .schedule-details-section .form-grid,
+  body #scheduleForm.schedule-side-drawer[data-schedule-role="DEPARTMENT_HEAD"] .schedule-setup-section .form-grid {
+    grid-template-columns:minmax(0,1fr)!important;
+  }
+  #scheduleForm[data-schedule-role="DEPARTMENT_HEAD"] > .schedule-form-section {
+    padding:12px 11px!important;
+  }
+  #scheduleForm[data-schedule-role="DEPARTMENT_HEAD"] > .form-actions {
+    display:grid!important;grid-template-columns:minmax(0,1fr)!important;
+    position:sticky!important;bottom:0!important;
+  }
+}
