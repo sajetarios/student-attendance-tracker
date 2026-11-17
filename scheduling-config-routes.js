@@ -107,6 +107,29 @@ function registerSchedulingConfigRoutes(app,pool,auth){
       await c.query('COMMIT');res.json({success:true});
     }catch(e){await c.query('ROLLBACK').catch(()=>{});console.error(e);res.status(500).json({error:'Could not update template.'});}finally{c.release();}
   });
+  // Archiving is reversible and never deletes timetable blocks or existing schedules.
+  app.patch('/api/scheduling-config/templates/:id/archive',authenticateSchoolClient,admin,async(req,res)=>{
+    try{
+      const result=await pool.query(
+        'UPDATE timetable_templates SET active=FALSE WHERE school_id=$1 AND template_id=$2 AND active=TRUE RETURNING template_id',
+        [req.auth.schoolId,req.params.id]);
+      if(!result.rowCount) return res.status(404).json({error:'Active template not found.'});
+      res.json({success:true,action:'archived'});
+    }catch(e){console.error(e);res.status(500).json({error:'Could not archive timetable template.'});}
+  });
+
+  app.patch('/api/scheduling-config/templates/:id/restore',authenticateSchoolClient,admin,async(req,res)=>{
+    try{
+      const result=await pool.query(
+        'UPDATE timetable_templates SET active=TRUE WHERE school_id=$1 AND template_id=$2 AND active=FALSE RETURNING template_id',
+        [req.auth.schoolId,req.params.id]);
+      if(!result.rowCount) return res.status(404).json({error:'Archived template not found.'});
+      res.json({success:true,action:'restored'});
+    }catch(e){console.error(e);res.status(500).json({error:'Could not restore timetable template.'});}
+  });
+
+  // Delete is permanent and allowed only for unused templates. Referenced templates
+  // must be archived instead so class schedules retain their historical references.
   app.delete('/api/scheduling-config/templates/:id',authenticateSchoolClient,admin,async(req,res)=>{
     const c=await pool.connect();
     try{
@@ -115,13 +138,13 @@ function registerSchedulingConfigRoutes(app,pool,auth){
       if(!existing.rowCount){await c.query('ROLLBACK');return res.status(404).json({error:'Template not found.'});}
       const used=await c.query('SELECT 1 FROM class_periods WHERE school_id=$1 AND timetable_template_id=$2 LIMIT 1',[req.auth.schoolId,req.params.id]);
       if(used.rowCount){
-        await c.query('UPDATE timetable_templates SET active=FALSE WHERE school_id=$1 AND template_id=$2',[req.auth.schoolId,req.params.id]);
-      }else{
-        await c.query('DELETE FROM timetable_template_periods WHERE school_id=$1 AND template_id=$2',[req.auth.schoolId,req.params.id]);
-        await c.query('DELETE FROM timetable_templates WHERE school_id=$1 AND template_id=$2',[req.auth.schoolId,req.params.id]);
+        await c.query('ROLLBACK');
+        return res.status(409).json({error:'This template is used by class schedules and cannot be permanently deleted. Archive it instead; archived templates can be restored.'});
       }
-      await c.query('COMMIT');res.json({success:true,action:used.rowCount?'archived':'deleted'});
-    }catch(e){await c.query('ROLLBACK').catch(()=>{});console.error(e);res.status(500).json({error:'Could not remove template.'});}finally{c.release();}
+      await c.query('DELETE FROM timetable_template_periods WHERE school_id=$1 AND template_id=$2',[req.auth.schoolId,req.params.id]);
+      await c.query('DELETE FROM timetable_templates WHERE school_id=$1 AND template_id=$2',[req.auth.schoolId,req.params.id]);
+      await c.query('COMMIT');res.json({success:true,action:'deleted'});
+    }catch(e){await c.query('ROLLBACK').catch(()=>{});console.error(e);res.status(500).json({error:'Could not delete template.'});}finally{c.release();}
   });
   app.get('/api/scheduling-config/calendar-exceptions',authenticateSchoolClient,reader,async(req,res)=>{
     const from=req.query.from||new Date().toISOString().slice(0,10),to=req.query.to||from;
