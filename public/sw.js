@@ -1,4 +1,4 @@
-const CACHE = "attendigo-v132-department-teacher-assignment-layout";
+const CACHE = "attendigo-v133-department-teacher-assignment-fix";
 
 const SHELL = [
   "/assets/attendigo-sidebar-logo.png",
@@ -31,7 +31,7 @@ const SHELL = [
   "/portal.css?v=0.9.108",
   "/student-roster-toolbar.css?v=1",
   "/portal.css",
-  "/portal.js?v=0.9.125",
+  "/portal.js?v=0.9.126",
   "/sardo-monitor.js?v=1",
   "/sardo-monitor.css?v=1",
   "/schedule-form-layout.css?v=12",
