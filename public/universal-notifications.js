@@ -55,31 +55,64 @@
     const date = new Date(iso);
     return Number.isFinite(date.getTime()) ? date.toLocaleString(undefined, {dateStyle: 'medium', timeStyle: 'short'}) : '';
   };
-  async function openItem(item) {
-    if (!item.readAt) {
-      try { await api('/' + encodeURIComponent(item.notificationId) + '/read', {method: 'PATCH'}); }
-      catch { /* Keep the notification in the inbox when offline. */ }
-    }
-    closePanel();
-    if (modal) modal.hidden = true;
-    await refresh(false).catch(() => {});
+  function navigate(item) {
     const link = String(item.actionUrl || '');
-    // Only server-maintained same-site routes; no user-supplied external URLs.
     if (!/^\/(?:portal|student-portal|parent-portal)\.html(?:#[A-Za-z0-9_-]+)?$/.test(link)) return;
     const target = new URL(link, location.origin);
     if (target.pathname === location.pathname) {
-      const view = decodeURIComponent(target.hash.slice(1));
+      const view = target.hash.slice(1);
       const nav = view && (document.querySelector('[data-view="' + view + '"]') ||
-        ({
-          guardians: document.getElementById('guardianApprovalsNav'),
-          specialPrograms: document.getElementById('academicAdminNav'),
-          platformSchools: document.querySelector('[data-view="platformSchools"]')
-        })[view]);
+        ({guardians:document.getElementById('guardianApprovalsNav'),
+          specialPrograms:document.getElementById('academicAdminNav'),
+          platformSchools:document.querySelector('[data-view="platformSchools"]')})[view]);
       if (nav && !nav.hidden) nav.click();
       else if (view === 'guardians') window.AttendigoGuardian?.openApprovals?.();
-      return;
+    } else location.assign(link);
+  }
+  let detail = null;
+  function showDetails(item) {
+    if (!detail) {
+      detail = document.createElement('div');
+      detail.className = 'universal-detail';
+      detail.setAttribute('role', 'dialog');
+      detail.setAttribute('aria-modal', 'true');
+      detail.setAttribute('aria-label', 'Notification details');
+      document.body.append(detail);
+      detail.addEventListener('click', e => { if (e.target === detail) detail.hidden = true; });
     }
-    location.assign(link);
+    const card = text('section', 'universal-detail-card', '');
+    const heading = text('h2', null, item.title);
+    const message = text('p', null, item.body);
+    const when = text('small', null, fmt(item.updatedAt || item.createdAt));
+    card.append(heading, message);
+    if (item.status) card.append(text('p', 'universal-detail-status', 'Status: ' + item.status.replace(/_/g, ' ')));
+    if (item.requestId) card.append(text('p', 'universal-detail-ref', 'Request reference: ' + item.requestId));
+    card.append(when);
+    const actions = text('div', 'universal-detail-actions', '');
+    const closeButton = text('button', null, 'Close');
+    closeButton.type = 'button';
+    closeButton.addEventListener('click', () => { detail.hidden = true; bell.focus(); });
+    actions.append(closeButton);
+    if (item.actionUrl && /^\/(?:portal|student-portal|parent-portal)\.html(?:#[A-Za-z0-9_-]+)?$/.test(item.actionUrl)) {
+      const goto = text('button', 'primary', 'Open related module');
+      goto.type = 'button';
+      goto.addEventListener('click', () => { detail.hidden = true; navigate(item); });
+      actions.append(goto);
+    }
+    card.append(actions);
+    detail.replaceChildren(card);
+    detail.hidden = false;
+    closeButton.focus();
+  }
+  async function openItem(item) {
+    if (!item.readAt) {
+      try { await api('/' + encodeURIComponent(item.notificationId) + '/read', {method: 'PATCH'}); }
+      catch { /* Preserve notification content during a temporary outage. */ }
+    }
+    closePanel();
+    if (modal) modal.hidden = true;
+    showDetails(item);
+    await refresh(false).catch(() => {});
   }
   function makeItem(item) {
     const button = document.createElement('button');
@@ -196,7 +229,7 @@
     if (!shell.contains(e.target) && !panel.hidden) closePanel();
   });
   document.addEventListener('keydown', e => {
-    if (e.key === 'Escape') { if (modal && !modal.hidden) closeCenter(); else closePanel(); }
+    if (e.key === 'Escape') { if (detail && !detail.hidden) { detail.hidden = true; bell.focus(); } else if (modal && !modal.hidden) closeCenter(); else closePanel(); }
   });
   document.addEventListener('attendigo:requests-changed', () => refresh(false));
   document.addEventListener('visibilitychange', () => { if (!document.hidden) refresh(false); });
