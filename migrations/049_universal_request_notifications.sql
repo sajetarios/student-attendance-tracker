@@ -47,7 +47,7 @@ RETURNS TRIGGER LANGUAGE plpgsql AS $$
 DECLARE
  v_type TEXT; v_url TEXT; v_requester UUID; v_student UUID;
  v_admin RECORD; v_key TEXT; v_title TEXT; v_body TEXT; v_batch UUID;
- v_approved INT; v_rejected INT; v_pending INT; v_status TEXT; v_ref UUID;
+ v_approved INT; v_rejected INT; v_pending INT; v_status TEXT; v_ref UUID; v_note TEXT;
 BEGIN
  IF TG_TABLE_NAME='guardian_change_requests' THEN
    v_type:='Guardian change'; v_url:='/portal.html#guardians';
@@ -98,6 +98,11 @@ BEGIN
    v_status:=NEW.status;
    v_title:=v_type||' request '||lower(v_status);
    v_body:='Your request status changed to '||lower(v_status)||'.';
+   IF TG_TABLE_NAME IN ('guardian_change_requests','student_account_requests',
+                      'special_program_change_requests') THEN
+     v_note:=NULLIF(btrim(NEW.review_note),'');
+     IF v_note IS NOT NULL THEN v_body:=v_body||' Review note: '||left(v_note,300); END IF;
+   END IF;
    IF v_batch IS NOT NULL THEN
      SELECT COUNT(*) FILTER(WHERE status='APPROVED'),
             COUNT(*) FILTER(WHERE status='REJECTED'),
