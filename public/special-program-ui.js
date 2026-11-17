@@ -21,7 +21,7 @@
     return false; // never bypass the shared confirmation UI
   };
   let catalog=[],requestable=new Set(),enrollments=new Map(),selected=new Set(),activeEnrollment=null;
-  let adminLoading=false,requestLoading=false;
+  let adminLoading=false,requestLoading=false,enrollmentLoading=false;
   const programOptions=()=>{
     const active=catalog.filter(p=>p.active);
     for(const select of [$('specialProgramBulkType'),$('specialProgramRequestProgram')]){
@@ -42,11 +42,15 @@
   const year=()=>$('academicSelectedYear')?.value||'';
   async function loadEnrollmentMap(){
     if(!admin||!year()){enrollments.clear();selected.clear();return;}
+    if(enrollmentLoading)return;
+    enrollmentLoading=true;
     const wanted=year();
-    const data=await api('/api/school-years/'+encodeURIComponent(wanted)+'/enrollments');
-    if(year()!==wanted)return;
-    enrollments=new Map((data.enrollments||[]).map(e=>[String(e.studentId),e]));
-    selected.clear();decorateEnrollments();
+    try{
+      const data=await api('/api/school-years/'+encodeURIComponent(wanted)+'/enrollments');
+      if(year()!==wanted)return;
+      enrollments=new Map((data.enrollments||[]).map(e=>[String(e.studentId),e]));
+      selected.clear();decorateEnrollments();
+    }finally{enrollmentLoading=false;}
   }
   function decorateEnrollments(){
     if(!admin)return;
@@ -177,14 +181,20 @@
   const init=async()=>{
     if(admin){
       const academicRows=$('academicEnrollmentRows');
-      new MutationObserver(decorateEnrollments).observe(academicRows,{childList:true});
+      new MutationObserver(()=>{
+        if(!enrollments.size && year() && !enrollmentLoading)
+          loadEnrollmentMap().catch(e=>message('specialProgramBulkFeedback',e.message,true));
+        else decorateEnrollments();
+      }).observe(academicRows,{childList:true});
       $('academicSelectedYear')?.addEventListener('change',()=>loadEnrollmentMap().catch(e=>message('specialProgramBulkFeedback',e.message,true)));
       $('academicAdminNav')?.addEventListener('click',()=>{loadCatalog().catch(e=>message('specialProgramBulkFeedback',e.message,true));loadEnrollmentMap().catch(e=>message('specialProgramBulkFeedback',e.message,true));loadAdminRequests();});
       $('specialProgramSelectVisible')?.addEventListener('click',()=>{
-        const ids=[...enrollments.values()].filter(e=>e.status==='ENROLLED').map(e=>e.enrollmentId).slice(0,200);
+        const eligible=[...enrollments.values()].filter(e=>e.status==='ENROLLED');
+        const ids=eligible.map(e=>e.enrollmentId).slice(0,200);
         selected=new Set(ids);
         for(const checkbox of academicRows.querySelectorAll('[data-special-enroll]'))checkbox.checked=selected.has(checkbox.dataset.specialEnroll);
         updateSelectedCount();
+        if(eligible.length>200)message('specialProgramBulkFeedback','First 200 enrolled learners selected. Use smaller batches to assign all learners.');
       });
       $('specialProgramAssignSelected')?.addEventListener('click',()=>runBulk('ASSIGN'));
       $('specialProgramRemoveSelected')?.addEventListener('click',()=>runBulk('REMOVE'));
