@@ -158,7 +158,10 @@
      batches.get(row.batchId).push(row);
    }
    if(!batches.size){groupHost.innerHTML='<p class="field-hint">No grouped special-program requests yet.</p>';return;}
-   groupHost.innerHTML=[...batches.entries()].map(([id,items])=>{
+   const groups=[...batches.entries()].sort((a,b)=>Number(b[1].some(x=>x.status==='PENDING'))-Number(a[1].some(x=>x.status==='PENDING')));
+   const pendingGroups=groups.filter(([,items])=>items.some(x=>x.status==='PENDING'));
+   const reviewedGroups=groups.filter(([,items])=>items.every(x=>x.status!=='PENDING'));
+   const renderList=entries=>entries.map(([id,items])=>{
      const pending=items.filter(x=>x.status==='PENDING'),first=items[0],code=first.programCode||first.programName||'primary program';
      const title=first.action==='REMOVE'?'Remove special-program assignment':'Assign '+code;
      const history=items.filter(x=>x.status!=='PENDING').length;
@@ -167,15 +170,17 @@
        '<span class="special-program-status '+(pending.length?'pending':'approved')+'">'+(pending.length?'Awaiting review':'Reviewed')+'</span></div>'+
        '<p class="special-batch-admin-reason">'+esc(first.reason||'')+'</p>'+
        (pending.length?'<label class="special-batch-select-all"><input type="checkbox" data-admin-select-all checked> Select all pending learners in this batch</label>':'')+
-       '<div class="special-batch-admin-learners">'+items.map(item=>
-         '<label class="special-batch-admin-student"><input type="checkbox" data-admin-pick="'+esc(item.requestId)+'" '+(item.status==='PENDING'?'checked':'disabled')+'>'+
+       '<div class="special-batch-admin-learners">'+items.map(item=>{
+         const alreadySet=item.status==='PENDING'&&((item.action==='ASSIGN'&&item.currentProgramTypeId===item.programTypeId)||(item.action==='REMOVE'&&!item.currentProgramTypeId));
+         return '<label class="special-batch-admin-student"><input type="checkbox" data-admin-pick="'+esc(item.requestId)+'" '+(item.status==='PENDING'?'checked':'disabled')+'>'+
          '<span><strong>'+esc(item.studentName||item.studentId)+'</strong><small>'+esc(item.gradeLevel||'')+' · '+esc(item.section||'')+'</small></span>'+
-         '<span class="special-program-status '+esc(item.status.toLowerCase())+'">'+esc(item.status)+'</span></label>').join('')+'</div>'+
+         '<span class="special-program-status '+esc(item.status.toLowerCase())+'">'+esc(item.status)+'</span>'+(alreadySet?'<span class="special-program-status satisfied" title="Requested assignment already exists. Approval will close the request without reassigning.">Already set</span>':'')+'</label>';}).join('')+'</div>'+
        (pending.length?'<label class="special-batch-review-note">Optional review note<textarea data-admin-review-note maxlength="1000" rows="2" placeholder="Reason or decision notes"></textarea></label>'+
          '<div class="special-program-review-actions"><button type="button" class="primary-button" data-admin-batch-decision="APPROVE" data-admin-batch-id="'+esc(id)+'">Approve selected</button>'+
          '<button type="button" class="outline-button" data-admin-batch-decision="REJECT" data-admin-batch-id="'+esc(id)+'">Reject selected</button></div>':'')+
        '<p class="inline-feedback" data-admin-batch-feedback role="status"></p></section>';
    }).join('');
+   groupHost.innerHTML=(pendingGroups.length?renderList(pendingGroups):'<p class="field-hint">No pending grouped requests.</p>')+(reviewedGroups.length?'<details class="special-program-reviewed-history"><summary>Reviewed batches ('+reviewedGroups.length+')</summary>'+renderList(reviewedGroups)+'</details>':'');
  }
  async function loadGroups(){
    if(!admin||!groupHost||loadingGroups)return;
@@ -207,9 +212,11 @@
      const result=await api('/api/special-programs/batches/'+encodeURIComponent(id)+'/review',{
        method:'POST',body:JSON.stringify({decision,requestIds:ids,reviewNote:note})
      });
-     feedbackEl.textContent=result.reviewed+' requests '+result.status.toLowerCase()+'.';
+     const summary=result.reviewed+' requests '+result.status.toLowerCase()+'.'+(result.alreadySatisfied?' '+result.alreadySatisfied+' already correct (no duplicate assignment).':'');
      await loadGroups();
      document.dispatchEvent(new Event('attendigo:requests-changed'));
+     feedback('specialProgramReviewFeedback',summary);
+     if(window.AppDialog?.alert)await window.AppDialog.alert(summary,{title:'Batch review completed',eyebrow:'SUCCESS',confirmText:'Done'});
    }catch(error){
      feedbackEl.textContent=error.message+' No decisions were applied to this selected group.';
      for(const control of group.querySelectorAll('[data-admin-batch-decision]'))control.disabled=false;
@@ -233,6 +240,14 @@
      $('specialProgramReviewRefresh')?.addEventListener('click',loadGroups);
      document.addEventListener('attendigo:requests-changed',loadGroups);
      groupHost.addEventListener('click',adminClick);
+     groupHost.addEventListener('change',event=>{
+       if(!event.target.matches('[data-admin-pick]'))return;
+       const group=event.target.closest('[data-admin-batch]'),all=group?.querySelector('[data-admin-select-all]');
+       if(!all)return;
+       const picks=[...group.querySelectorAll('[data-admin-pick]:not(:disabled)')];
+       all.checked=picks.every(p=>p.checked);
+       all.indeterminate=picks.some(p=>p.checked)&&!all.checked;
+     });
      loadGroups();
    }
  }
