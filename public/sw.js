@@ -1,4 +1,4 @@
-const CACHE = "attendigo-v115-safari-png-fallback";
+const CACHE = "attendigo-v116-photo-editor-network-first";
 
 const SHELL = [
   "/assets/attendigo-sidebar-logo.png",
@@ -15,7 +15,7 @@ const SHELL = [
   "/attendigo-dark-unified.css?v=1",
   "/dashboard-polish.css?v=2",
   "/photo-editor.css?v=2",
-  "/photo-editor.js?v=8",
+  "/photo-editor.js?v=9",
   "/session-guard.js?v=1",
   "/student-portal-refinement.css?v=1",
   "/student-portal.js?v=2",
@@ -96,6 +96,21 @@ self.addEventListener("fetch", event => {
   if (["/portal.html", "/student-portal.html", "/parent-portal.html",
        "/force-password-change.html"].includes(url.pathname)) {
     event.respondWith(fetch(request, { cache: "no-store" }));
+    return;
+  }
+
+  // Never keep a stale profile-photo editor after a hotfix. The editor
+  // changes upload formats and validation, so cached code can block uploads.
+  if (url.pathname === "/photo-editor.js") {
+    event.respondWith((async () => {
+      try {
+        const fresh = await fetch(request, { cache: "no-store" });
+        if (fresh.ok) return fresh;
+        throw Error("Photo editor fetch failed");
+      } catch {
+        return (await caches.match(request)) || Response.error();
+      }
+    })());
     return;
   }
 
