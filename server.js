@@ -21,6 +21,7 @@ const { registerGuardianRoutes } = require('./guardian-routes');
 const { registerStudentRoutes } = require('./student-routes');
 const { registerStudentPortalAccountRoutes } = require('./student-portal-account-routes');
 const { registerAcademicRoutes } = require('./academic-routes');
+const { registerSpecialProgramRoutes } = require('./special-program-routes');
 const { registerDepartmentRoutes } = require('./department-routes');
 const { registerSchedulingConfigRoutes } = require('./scheduling-config-routes');
 const registerCloudSyncRoutes = require('./cloud-sync-routes');
@@ -98,6 +99,7 @@ registerGuardianRoutes(app, pool, { authenticateSchoolClient, requireSchoolRoles
 registerStudentRoutes(app, pool, { authenticateSchoolClient, requireSchoolAdmin });
 registerStudentPortalAccountRoutes(app, pool, { authenticateSchoolClient, requireSchoolRoles });
 registerAcademicRoutes(app, pool, { authenticateSchoolClient, requireSchoolRoles });
+registerSpecialProgramRoutes(app, pool, { authenticateSchoolClient, requireSchoolRoles });
 registerDepartmentRoutes(app, pool, { authenticateSchoolClient, requireSchoolRoles });
 registerSchedulingConfigRoutes(app, pool, { authenticateSchoolClient, requireSchoolRoles });
 registerPlannerRoutes(app, pool, { authenticateSchoolClient, requireSchoolRoles });
@@ -2133,9 +2135,17 @@ app.get('/api/students', authenticateSchoolClient, requireSchoolClient, requireS
       `SELECT s.student_id AS "studentId", s.full_name AS "fullName",
               COALESCE(active_enrollment.grade_level,s.grade_level) AS "gradeLevel", COALESCE(active_enrollment.section,s.section) AS section,
               s.sex, s.active, s.archived_at AS "archivedAt"${qrField},
+              program.program_code AS "specialProgramCode", program.program_name AS "specialProgramName",
+              active_enrollment.enrollment_id AS "enrollmentId",
                (s.photo_path IS NOT NULL) AS "hasPhoto", s.updated_at AS "updatedAt"${parentFields}
        FROM students s
-       LEFT JOIN LATERAL (SELECT en.grade_level,en.section FROM student_enrollments en JOIN school_years sy ON sy.school_id=en.school_id AND sy.school_year_id=en.school_year_id WHERE en.school_id=s.school_id AND en.student_id=s.student_id AND sy.status='ACTIVE' AND en.enrollment_status='ENROLLED' ORDER BY en.created_at DESC LIMIT 1) active_enrollment ON TRUE
+       LEFT JOIN LATERAL (SELECT en.enrollment_id,en.grade_level,en.section FROM student_enrollments en JOIN school_years sy ON sy.school_id=en.school_id AND sy.school_year_id=en.school_year_id WHERE en.school_id=s.school_id AND en.student_id=s.student_id AND sy.status='ACTIVE' AND en.enrollment_status='ENROLLED' ORDER BY en.created_at DESC LIMIT 1) active_enrollment ON TRUE
+       LEFT JOIN LATERAL (SELECT p.program_code,p.program_name
+          FROM student_special_programs sp
+          JOIN special_program_types p ON p.school_id=sp.school_id AND p.program_type_id=sp.program_type_id
+          WHERE sp.school_id=s.school_id AND sp.enrollment_id=active_enrollment.enrollment_id
+            AND sp.is_primary=TRUE AND sp.status='ACTIVE'
+          LIMIT 1) program ON TRUE
        ${includeParentFields ? 'LEFT JOIN student_accounts sa ON sa.school_id=s.school_id AND sa.student_id=s.student_id' : ''}
        WHERE s.school_id=$1 AND (s.active=TRUE OR ${includeInactive ? 'TRUE' : 'FALSE'})${scope}
        ORDER BY s.full_name`,
