@@ -98,7 +98,7 @@ test('sidebar sync shortcut is removed, while topbar Sync Center and offline syn
  assert.ok(!html.includes('Connected to local server'));
 });
 test('the service worker caches the deployed variants and correct versioned sidebar assets',()=>{
- const assets=['/attendigo-sidebar-adaptive.css?v=24','/attendigo-sidebar-adaptive.js?v=8',
+ const assets=['/attendigo-sidebar-adaptive.css?v=14','/attendigo-sidebar-adaptive.js?v=8',
  '/attendigo-brand-refresh.css?v=3','/assets/attendigo-wordmark-on-light.svg?v=2',
  '/assets/attendigo-wordmark-on-dark.svg?v=2','/assets/attendigo-symbol-transparent.svg?v=2'];
  for(const asset of assets)assert.ok(worker.includes(JSON.stringify(asset)),asset);
