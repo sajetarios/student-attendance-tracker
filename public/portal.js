@@ -1393,12 +1393,16 @@ function coverageStatusLabel(status) {
     const hasSelectableLearners = visible.some(canSelectLearnerForBatch);
     const showSelectionColumn = admin ||
       ((departmentHead || (teacher && designations.includes('CLASS_ADVISER'))) && hasSelectableLearners);
-    const rosterHeader = $('studentRosterTable')?.querySelector('thead tr');
+    const rosterTable = $('studentRosterTable');
+    rosterTable?.classList.toggle('teacher-roster-compact', teacher);
+    const rosterHeader = rosterTable?.querySelector('thead tr');
     if (rosterHeader) {
       const selectHeader = showSelectionColumn ? '<th>Select</th>' : '';
       rosterHeader.innerHTML = departmentHead
         ? selectHeader + '<th>Student ID</th><th>Full name</th><th>Sex</th><th>Grade</th><th>Section</th><th>Special program</th><th>Status</th>'
-        : selectHeader + '<th>Photo</th><th>Student ID</th><th>Full name</th><th>Sex</th><th>Grade</th><th>Section</th><th>Special program</th><th>Status</th><th>QR code</th><th>Actions</th>' + ((admin || teacher) ? '<th>Parent / guardian</th>' : '') + (admin ? '<th>Student portal account</th>' : '');
+        : teacher
+          ? selectHeader + '<th>Learner</th><th>Class</th><th>Special program</th><th>Status</th><th>QR</th><th>Manage</th><th>Parent / guardian</th>'
+          : selectHeader + '<th>Photo</th><th>Student ID</th><th>Full name</th><th>Sex</th><th>Grade</th><th>Section</th><th>Special program</th><th>Status</th><th>QR code</th><th>Actions</th>' + (admin ? '<th>Parent / guardian</th><th>Student portal account</th>' : '');
     }
     if ($('studentRosterDescription')) {
       $('studentRosterDescription').textContent = departmentHead
@@ -1409,7 +1413,8 @@ function coverageStatusLabel(status) {
     }
     const rosterColumns = departmentHead
       ? (showSelectionColumn ? 8 : 7)
-      : (10 + Number(showSelectionColumn) + Number(admin || teacher) + Number(admin));
+      : teacher ? (7 + Number(showSelectionColumn))
+        : (10 + Number(showSelectionColumn) + Number(admin || teacher) + Number(admin));
     for (const id of [...selectedStudentIds]) if (!visible.some(student => student.studentId === id)) selectedStudentIds.delete(id);
     if (!visible.length) {
       const emptyMessage = teacher
@@ -1447,6 +1452,15 @@ function coverageStatusLabel(status) {
         const programCell = student.specialProgramCode
           ? `<span class="special-program-chip" title="${esc(student.specialProgramName || student.specialProgramCode)}">${esc(student.specialProgramCode)}</span>`
           : '<span class="muted-inline">Not assigned</span>';
+        if (teacher) {
+          const identity = `<div class="teacher-roster-identity">${avatar}<span class="teacher-roster-identity-copy"><strong>${ordinal}${esc(student.fullName)}</strong><small>${esc(student.studentId)}</small></span></div>`;
+          const qrPreview = canViewQr && qr
+            ? `<button type="button" class="student-qr-preview teacher-roster-qr" data-view-qr="${esc(student.studentId)}" aria-label="View QR code for ${esc(student.fullName)}"><img src="${qr}" alt="" loading="lazy"><span>View QR</span></button>`
+            : qrCell;
+          const statusClass = statusLabel === 'Active' ? 'active' : statusLabel === 'Archived' ? 'archived' : 'inactive';
+          const guardian = `<div class="teacher-roster-guardian"><strong>${esc(student.parentName || 'Not provided')}</strong><small>${esc(student.parentMobile || 'No mobile number')}</small></div>`;
+          return `<tr class="teacher-roster-student" data-student-enrollment="${esc(student.enrollmentId || '')}" data-student-name="${esc(student.fullName)}">${showSelectionColumn ? `<td data-label="Select">${selection}</td>` : ''}<td data-label="Full name">${identity}</td><td data-label="Class"><strong>${esc(student.gradeLevel)}</strong><small>${esc(student.section)}</small></td><td data-label="Special program">${programCell}</td><td data-label="Status"><span class="teacher-roster-status ${statusClass}">${statusLabel}</span></td><td data-label="QR code">${qrPreview}</td><td data-label="Actions">${actions}</td><td data-label="Parent / guardian">${guardian}</td></tr>`;
+        }
         if (departmentHead) {
           return `<tr data-student-enrollment="${esc(student.enrollmentId || '')}" data-student-name="${esc(student.fullName)}">${showSelectionColumn ? `<td data-label="Select">${selection}</td>` : ''}<td data-label="Student ID">${esc(student.studentId)}</td><td data-label="Full name">${ordinal}<strong>${esc(student.fullName)}</strong></td><td data-label="Sex">${esc(student.sex || 'Not set')}</td><td data-label="Grade">${esc(student.gradeLevel)}</td><td data-label="Section">${esc(student.section)}</td><td data-label="Special program">${programCell}</td><td data-label="Status">${statusLabel}</td></tr>`;
         }
