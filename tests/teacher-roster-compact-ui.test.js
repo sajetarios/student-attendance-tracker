@@ -42,7 +42,7 @@ test('responsive teacher roster keeps grouped sex counts, readable cards and dar
   assert.match(style, /:focus-visible/);
 });
 test('PWA asset versions match the new styling and scripts', () => {
-  for (const asset of ['/teacher-learner-roster.css?v=3','/portal.js?v=0.9.140','/class-qr-dashboard-link.js?v=6','/teacher-roster-popover.js?v=2']) {
+  for (const asset of ['/teacher-learner-roster.css?v=4','/portal.js?v=0.9.140','/class-qr-dashboard-link.js?v=6','/teacher-roster-popover.js?v=2']) {
     assert.ok(page.includes(asset), asset+' included in portal');
     assert.ok(worker.includes(JSON.stringify(asset)), asset+' cached');
   }
@@ -108,4 +108,24 @@ test('compact CSS uses initials, dense rows, mobile cards, and theme contrast', 
   assert.match(style, /@media\(max-width:390px\)/);
   assert.match(style, /html\[data-ui-theme="dark"\]/);
   assert.match(page, /id="studentRosterHeading"/);
+});
+
+test('teacher learner text hierarchy is calm, readable and confined to teacher roster', () => {
+  const block = selector => {
+    const start = style.indexOf(selector + '{');
+    assert.ok(start >= 0, 'Missing CSS selector: ' + selector);
+    const end = style.indexOf('}', start);
+    return style.slice(start, end + 1);
+  };
+  const base = '#studentsView #studentRosterTable.teacher-roster-compact';
+  assert.match(block(base + ' .teacher-roster-identity-copy strong'), /font-weight:600/);
+  assert.match(block(base + ' .teacher-roster-identity-copy small'), /font-weight:400/);
+  assert.match(block(base + ' td[data-label="Class"] .teacher-roster-class>strong'), /font-weight:500/);
+  assert.match(block(base + ' .special-program-chip'), /font-weight:600/);
+  assert.match(block(base + ' .teacher-roster-status'), /font-weight:500/);
+  assert.match(block(base + ' .teacher-roster-qr'), /font-weight:500/);
+  assert.match(block(base + ' .student-actions-dropdown>summary'), /font-weight:500/);
+  assert.match(block(base + ' thead th'), /font-weight:600/);
+  assert.match(block(base + ' tbody tr.teacher-roster-student td'), /height:53px/);
+  assert.ok(!style.includes('.school-heading .school-title-block'), 'School heading styles must not be modified here');
 });
