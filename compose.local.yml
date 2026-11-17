@@ -1,0 +1,40 @@
+# Local school instance. Use a separate Postgres database from the Render/Supabase cloud.
+# Bound to localhost intentionally: never expose student records over unauthenticated LAN HTTP.
+services:
+  database:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: attendigo_local
+      POSTGRES_USER: attendigo
+      POSTGRES_PASSWORD: ${LOCAL_POSTGRES_PASSWORD:?Set LOCAL_POSTGRES_PASSWORD in .env.local}
+    volumes:
+      - attendigo_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U attendigo -d attendigo_local"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    networks: [attendigo_internal]
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile.local
+    restart: unless-stopped
+    depends_on:
+      database:
+        condition: service_healthy
+    environment:
+      NODE_ENV: production
+      PORT: 3000
+      DATABASE_URL: postgres://attendigo:${LOCAL_POSTGRES_PASSWORD:?Set LOCAL_POSTGRES_PASSWORD in .env.local}@database:5432/attendigo_local
+      CLOUD_SYNC_SHARED_SECRET: ${CLOUD_SYNC_SHARED_SECRET:?Set CLOUD_SYNC_SHARED_SECRET in .env.local}
+      SMS_DELIVERY_ENABLED: "false"
+    ports:
+      - "127.0.0.1:3000:3000"
+    networks: [attendigo_internal]
+volumes:
+  attendigo_pgdata:
+networks:
+  attendigo_internal:
+    internal: false
