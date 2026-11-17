@@ -100,23 +100,25 @@ function registerSpecialProgramBatchRoutes(app,pool,auth,h){
         [req.auth.schoolId,batchId,ordered]);
       if(result.rowCount!==ordered.length){await db.query('ROLLBACK');return res.status(409).json({error:'Some selected requests were already reviewed or belong to another batch. Refresh.'});}
       const status=decision==='APPROVE'?'APPROVED':'REJECTED';
+      const alreadySatisfiedIds=[];
       for(const item of result.rows){
         if(decision==='APPROVE'){
           const e=await getEnrollment(db,req.auth.schoolId,item.enrollment_id);
           if(!e)throw invalid('Enrollment no longer exists. Reject this request instead.','INVALID_YEAR');
-          await change(db,req.auth,e,item.action,item.requested_program_type_id);
+          const outcome=await change(db,req.auth,e,item.action,item.requested_program_type_id,{allowAlreadySatisfied:true});
+          if(!outcome.applied)alreadySatisfiedIds.push(item.request_id);
         }
         const updated=await db.query("UPDATE special_program_change_requests SET status=$3,reviewed_by_user_id=$4,reviewed_at=NOW(),review_note=$5 WHERE school_id=$1 AND request_id=$2 AND status='PENDING' RETURNING request_id",
           [req.auth.schoolId,item.request_id,status,req.auth.userId,note||null]);
         if(!updated.rowCount)throw invalid('The request changed during review. Refresh.','UNCHANGED');
         await db.query("INSERT INTO audit_logs(school_id,actor_type,actor_user_id,action,entity_type,entity_id,details) VALUES($1,'SCHOOL',$2,$3,'special_program_change_request',$4,$5::jsonb)",
           [req.auth.schoolId,req.auth.userId,'SPECIAL_PROGRAM_REQUEST_'+status,item.request_id,
-            JSON.stringify({batchId,studentId:item.student_id,action:item.action})]);
+            JSON.stringify({batchId,studentId:item.student_id,action:item.action,alreadySatisfied:alreadySatisfiedIds.includes(item.request_id)})]);
       }
       await db.query("INSERT INTO audit_logs(school_id,actor_type,actor_user_id,action,entity_type,entity_id,details) VALUES($1,'SCHOOL',$2,$3,'special_program_request_batch',$4,$5::jsonb)",
-        [req.auth.schoolId,req.auth.userId,'SPECIAL_PROGRAM_BATCH_'+status,batchId,JSON.stringify({requestIds:ordered,reviewed:ordered.length,reviewNote:note})]);
+        [req.auth.schoolId,req.auth.userId,'SPECIAL_PROGRAM_BATCH_'+status,batchId,JSON.stringify({requestIds:ordered,reviewed:ordered.length,reviewNote:note,alreadySatisfiedIds})]);
       await db.query('COMMIT');
-      return res.json({batchId,status,reviewed:ordered.length,requestIds:ordered});
+      return res.json({batchId,status,reviewed:ordered.length,requestIds:ordered,alreadySatisfied:alreadySatisfiedIds.length,applied:decision==='APPROVE'?ordered.length-alreadySatisfiedIds.length:0});
     }catch(e){await db.query('ROLLBACK');console.error('Special-program batch review:',e.message);return errorReply(res,e);}
     finally{db.release();}
   });
