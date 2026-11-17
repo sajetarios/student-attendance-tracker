@@ -1,0 +1,47 @@
+/* Attendigo user-management readability refinement — mobile and desktop. */
+#teachersView .teacher-monitor-scroll{border-radius:18px;overflow-x:auto}
+#teachersView .teacher-monitor-table td,#teachersView .teacher-monitor-table th{vertical-align:middle}
+#teachersView .teacher-monitor-table td:first-child{font-weight:650;line-height:1.5}
+#teachersView .teacher-monitor-table td:first-child strong,
+#teachersView .teacher-monitor-table td:first-child b{font-size:1.08rem;font-weight:800;letter-spacing:.005em}
+#teachersView .teacher-monitor-table td:first-child small{font-size:.88rem;line-height:1.5}
+#teachersView .teacher-monitor-table :is(input[type="checkbox"]){width:22px;min-width:22px;height:22px;accent-color:#2388ff;cursor:pointer}
+#teachersView .teacher-monitor-table :is(button,select){min-height:42px}
+#teachersView .teacher-management-note{line-height:1.55}
+html[data-ui-theme="dark"] #teachersView .teacher-monitor-table td,
+html[data-ui-theme="dark"] #teachersView .teacher-monitor-table td *,
+html[data-ui-theme="dark"] #teachersView .teacher-monitor-table th{color:#edf5ff}
+html[data-ui-theme="dark"] #teachersView .teacher-monitor-table td:first-child,
+html[data-ui-theme="dark"] #teachersView .teacher-monitor-table td:first-child :is(strong,b,a){color:#fff!important;text-shadow:none!important}
+html[data-ui-theme="dark"] #teachersView .teacher-monitor-table td:first-child :is(small,span,p){color:#d0e1f7!important}
+html[data-ui-theme="dark"] #teachersView .teacher-monitor-table td:first-child :is(strong,b){color:#fff!important}
+html[data-ui-theme="dark"] #teachersView .teacher-monitor-table td{background:#1b304c!important;border-color:#38516f!important}
+html[data-ui-theme="dark"] #teachersView .teacher-monitor-table tr:nth-child(even) td{background:#203853!important}
+html[data-ui-theme="dark"] #teachersView .teacher-monitor-table td select{background:#152840!important;color:#f4f8ff!important;border:1px solid #7796bb!important}
+html[data-ui-theme="dark"] #teachersView .teacher-monitor-table td button{color:#f4f8ff!important}
+html[data-ui-theme="dark"] #teachersView .teacher-monitor-table input[type="checkbox"]{appearance:auto!important;accent-color:#2b91ff!important;filter:none!important}
+html[data-ui-theme="dark"] #teachersView .teacher-monitor-table td:first-child :is(.badge,.status-badge){color:inherit}
+@media(max-width:700px){
+ #teachersView .teacher-monitor-scroll{overflow:visible!important;background:transparent!important;border:0!important;padding:0!important}
+ #teachersView table.teacher-monitor-table{min-width:0!important;width:100%!important;display:block!important;background:transparent!important}
+ #teachersView .teacher-monitor-table thead{display:none!important}
+ #teachersView .teacher-monitor-table tbody{display:grid!important;gap:14px;width:100%}
+ #teachersView .teacher-monitor-table tr{display:block!important;min-width:0!important;padding:14px!important;border:1px solid #b9cce4!important;border-radius:18px!important;background:#f6f9ff!important;box-shadow:0 4px 16px #0a254014}
+ #teachersView .teacher-monitor-table td{box-sizing:border-box!important;display:flex!important;justify-content:space-between;align-items:center;gap:12px;width:100%!important;min-width:0!important;min-height:52px;padding:12px 4px!important;border:0!important;border-bottom:1px solid #dce5f0!important;text-align:right!important;white-space:normal!important;overflow-wrap:anywhere}
+ #teachersView .teacher-monitor-table td:last-child{border-bottom:0!important}
+ #teachersView .teacher-monitor-table td:first-child{display:block!important;position:relative;text-align:left!important;padding:10px 40px 18px 4px!important;min-height:90px}
+ #teachersView .teacher-monitor-table td:first-child input[type="checkbox"]{position:absolute;top:10px;right:4px}
+ #teachersView .teacher-monitor-table td:not(:first-child)::before{flex:0 0 38%;text-align:left;font-size:.86rem;font-weight:750;color:#48617f}
+ #teachersView .teacher-monitor-table td:nth-child(2)::before{content:"Department"}
+ #teachersView .teacher-monitor-table td:nth-child(3)::before{content:"Status"}
+ #teachersView .teacher-monitor-table td:nth-child(4)::before{content:"Assigned classes"}
+ #teachersView .teacher-monitor-table td:nth-child(5)::before{content:"Assigned schedules"}
+ #teachersView .teacher-monitor-table td:nth-child(6)::before{content:"Account action"}
+ #teachersView .teacher-monitor-table td select{max-width:100%;min-width:0}
+ html[data-ui-theme="dark"] #teachersView .teacher-monitor-table tr{background:#142a46!important;border:1px solid #456c9b!important;box-shadow:0 5px 20px #0003}
+ html[data-ui-theme="dark"] #teachersView .teacher-monitor-table td,
+ html[data-ui-theme="dark"] #teachersView .teacher-monitor-table tr:nth-child(even) td{background:transparent!important;border-bottom:1px solid #35516f!important}
+ html[data-ui-theme="dark"] #teachersView .teacher-monitor-table td:last-child{border-bottom:0!important}
+ html[data-ui-theme="dark"] #teachersView .teacher-monitor-table td:not(:first-child)::before{color:#c6d9f2!important}
+ html[data-ui-theme="dark"] #teachersView .teacher-monitor-table td:first-child :is(strong,b){font-size:1.15rem!important;line-height:1.4!important}
+}
