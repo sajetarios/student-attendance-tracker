@@ -1,4 +1,4 @@
-const CACHE = "attendigo-v139-unified-attendance-queue";
+const CACHE = "attendigo-v140-cloud-mixed-attendance";
 
 const SHELL = [
   "/assets/attendigo-sidebar-logo.png",
@@ -31,7 +31,7 @@ const SHELL = [
   "/portal.css?v=0.9.113",
   "/student-roster-toolbar.css?v=1",
   "/portal.css",
-  "/portal.js?v=0.9.127",
+  "/portal.js?v=0.9.128",
   "/sardo-monitor.js?v=1",
   "/sardo-monitor.css?v=1",
   "/schedule-form-layout.css?v=12",
