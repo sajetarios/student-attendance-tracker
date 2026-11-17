@@ -29,7 +29,8 @@ test('student roster exposes sex and cloud status never claims replication is ac
   assert.ok(html.includes('id="connectionStatus" aria-label="Open Attendance Sync Center"'));
   assert.ok(portal.includes("api('/api/cloud-sync/status')"));
   const syncCenter=fs.readFileSync(path.join(root, 'public', 'attendance-sync-center.js'), 'utf8');
-  assert.ok(syncCenter.includes("label = 'Cloud sync not configured'"));
+  assert.ok(syncCenter.includes("'Cloud sync not configured'"), 'Cloud settings are shown only in administrator details');
+  assert.ok(!syncCenter.includes("label = 'Cloud sync not configured'"), 'Administrator header must stay a device sync control');
   assert.ok(syncCenter.includes("label = 'Cloud forwarding off'"));
   assert.ok(syncCenter.includes('if (!isAdmin()) return;'));
   assert.ok(sf2.includes('COALESCE(en.grade_level,s.grade_level)'));
