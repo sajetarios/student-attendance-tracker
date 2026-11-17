@@ -8,12 +8,14 @@ const read=p=>fs.readFileSync(path.join(__dirname,'..',p),'utf8');
 test('dashboard polish loads after shared theme across role entry points',()=>{
  for(const name of ['portal','student-portal','parent-portal']){
   const markup=read('public/'+name+'.html');
-  assert.ok(markup.includes('/dashboard-polish.css?v=1'),name);
-  assert.ok(markup.indexOf('/dashboard-polish.css?v=1')>markup.indexOf('/dashboard-night.css?v=1'),name);
-  assert.ok(markup.includes('/dashboard-icons.js?v=4'),name);
+  const night=markup.indexOf('href="/dashboard-night.css?v=');
+  const polish=markup.indexOf('href="/dashboard-polish.css?v=');
+  assert.ok(night >= 0 && polish > night,name);
+  assert.match(markup,/src="\/dashboard-icons\.js\?v=[^"]+"/,name);
  }
- assert.match(read('public/sw.js'),/school-attendance-shell-v62-photo-save-approval/);
- assert.match(read('public/sw.js'),/dashboard-polish.css\?v=1/);
+ const worker=read('public/sw.js');
+ const url=read('public/portal.html').match(/href="(\/dashboard-polish\.css\?v=[^"]+)"/)[1];
+ assert.ok(worker.includes(JSON.stringify(url)));
 });
 test('sidebar appearance is brand-derived and collapse control is accessible and reversible',()=>{
  const css=read('public/dashboard-polish.css');

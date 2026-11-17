@@ -1,4 +1,4 @@
-const CACHE = "attendigo-v129-align-offline-assets";
+const CACHE = "attendigo-v130-align-role-photo-assets";
 
 const SHELL = [
   "/assets/attendigo-sidebar-logo.png",

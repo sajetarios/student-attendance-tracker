@@ -81,5 +81,17 @@ test('school header is not resized by a scroll listener', () => {
 });
 
 test('newly signed-in dashboard is not forcibly reloaded by worker takeover', () => {
-  assert.match(workerSource, /performance\.now\(\) - loadedAt < 20000/);
+  const listeners = new Map();
+  const reloads = [];
+  vm.runInNewContext(workerSource, {
+    navigator: {
+      serviceWorker: {
+        register: async () => ({ update: async () => {} }),
+        addEventListener: (type, listener) => listeners.set(type, listener),
+      },
+    },
+    window: { location: { reload: () => reloads.push(true) } },
+  });
+  listeners.get('controllerchange')?.();
+  assert.deepEqual(reloads, []);
 });

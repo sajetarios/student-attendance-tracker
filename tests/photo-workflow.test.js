@@ -57,9 +57,9 @@ test('photo editor is available on all relevant dashboard pages, including offli
  const sw=load('public/sw.js');
  for(const page of ['portal','parent-portal','student-portal']){
   const html=load('public/'+page+'.html');
-  assert.match(html,/photo-editor\.css\?v=1/);
-  assert.match(html,/photo-editor\.js\?v=2/);
+  for (const extension of ['css', 'js']) {
+   const url=html.split('"').find(value=>value.startsWith(`/photo-editor.${extension}?v=`));
+   assert.ok(url && sw.includes(JSON.stringify(url)), `Missing cached photo editor ${extension} for ${page}`);
+  }
  }
- assert.match(sw,/photo-editor\.js\?v=2/);
- assert.match(sw,/photo-editor\.css\?v=1/);
 });
