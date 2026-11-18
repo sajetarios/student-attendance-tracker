@@ -5154,7 +5154,7 @@ let teacherActionMenuListenersInstalled = false;
     setView('students');
     $('studentForm').hidden = false;
     $('studentForm').scrollIntoView({ behavior: 'smooth', block: 'start' });
-    $('newStudentId').focus({ preventScroll: true });
+    $('newFullName').focus({ preventScroll: true });
   });
 
   document.querySelectorAll('.nav-group-toggle[data-nav-group]').forEach(button => {
@@ -5919,7 +5919,7 @@ let teacherActionMenuListenersInstalled = false;
       $('newSectionHint').textContent = 'Choose a grade to load its available sections.';
       $('studentForm').hidden = true;
       await loadSchoolData();
-      showToast('Student registered successfully.');
+      showToast('Student ' + created.student.studentId + ' registered successfully.');
       if (payload.parentName || payload.parentMobile) openParentInvite(inviteStudent, payload);
     } catch (error) {
       feedback.className = 'inline-feedback error';
@@ -6961,11 +6961,11 @@ let teacherActionMenuListenersInstalled = false;
       description: $('departmentDescription').value.trim() || null
     };
     try {
-      await api('/api/departments', { method: 'POST', body: JSON.stringify(payload) });
+      const created = await api('/api/departments', { method: 'POST', body: JSON.stringify(payload) });
       $('departmentForm').reset();
       await loadSchoolData();
-      feedback.textContent = 'Department created. You can now assign teachers and schedules.';
-      showToast('Department added.');
+      feedback.textContent = 'Department ' + created.department.code + ' created. You can now assign teachers and schedules.';
+      showToast('Department ' + created.department.code + ' added.');
     } catch (error) {
       feedback.className = 'inline-feedback error';
       feedback.textContent = error.message;
