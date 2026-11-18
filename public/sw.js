@@ -1,4 +1,4 @@
-const CACHE = "attendigo-v200-department-multi-presenters";
+const CACHE = "attendigo-v201-self-teacher-gate-badge";
 
 const SHELL = [
   "/typography.css?v=1",
@@ -50,7 +50,7 @@ const SHELL = [
   "/class-qr-dashboard-link.js?v=7",
   "/teacher-roster-popover.js?v=2",
   "/portal.css",
-  "/portal.js?v=188",
+  "/portal.js?v=189",
   "/staff-lunch-ui.js?v=3",
   "/staff-lunch.css?v=3",
   "/staff-lunch-checkin.js?v=3",
