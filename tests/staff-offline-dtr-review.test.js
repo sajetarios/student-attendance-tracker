@@ -60,3 +60,15 @@ test('school scoped review queue never exposes other schools',async()=>{
  assert.ok(f.queries.some(q=>q.sql.includes('e.school_id=$1')));
  assert.equal((await fixture('TEACHER').call('GET','/api/staff-attendance/offline-review')).code,403);
 });
+
+test('offline staff capture UI is included and cached for offline access',()=>{
+ const html=fs.readFileSync('public/portal.html','utf8');
+ const sw=fs.readFileSync('public/sw.js','utf8');
+ const ui=fs.readFileSync('public/staff-offline-dtr-ui.js','utf8');
+ assert.match(html,/staff-offline-dtr-ui.js\\?v=1/);
+ assert.match(sw,/staff-offline-dtr-ui.js\\?v=1/);
+ assert.match(ui,/PENDING|pending/);
+ assert.match(ui,/clientEventKey:crypto.randomUUID\(\)/);
+ assert.match(ui,/offline-review/);
+ assert.match(ui,/window.addEventListener\('online',sync\)/);
+});
