@@ -2212,6 +2212,8 @@ app.post('/api/gate/teacher-auto-event', authenticateSchoolClient, requireSchool
     recordingTarget:PHYSICAL_GATE,clientEventType:req.body?.eventType
   });
   if(!allowed.allowed)return res.status(400).json({error:'Gate photo verification or recording request invalid.',reason:allowed.reason});
+  const clientEventKey=String(req.body?.clientEventKey||'').trim();
+  if(!isUuid(clientEventKey))return res.status(400).json({error:'An idempotent gate scan key is required.'});
   const qrToken=String(req.body?.teacherQrToken||'').trim();
   if(!isUuid(qrToken))return res.status(400).json({error:'A valid staff QR badge is required.'});
   const client=await pool.connect();
@@ -2228,6 +2230,22 @@ app.post('/api/gate/teacher-auto-event', authenticateSchoolClient, requireSchool
     // Serialize gate scans per person and school; never trust browser history.
     await client.query('SELECT pg_advisory_xact_lock(hashtext($1),hashtext($2))',
       [String(req.auth.schoolId),String(teacherId)]);
+    const recorded=await client.query(`SELECT event_id AS "eventId",staff_user_id AS "staffUserId",
+      gate_direction AS "gateDirection",occurred_at AS "occurredAt"
+      FROM staff_attendance_events WHERE school_id=$1 AND client_event_key=$2
+        AND event_kind='GATE_MOVEMENT' AND verification_status='VERIFIED'`,
+      [req.auth.schoolId,clientEventKey]);
+    if(recorded.rowCount){
+      if(String(recorded.rows[0].staffUserId)!==String(teacherId)){
+        await client.query('ROLLBACK');
+        return res.status(409).json({error:'Gate scan key is already in use.'});
+      }
+      await client.query('COMMIT');
+      const prior=recorded.rows[0];
+      return res.status(200).json({event:{eventId:prior.eventId,
+        eventType:prior.gateDirection==='IN'?'TIME_IN':'TIME_OUT',occurredAt:prior.occurredAt},
+        teacherName:teacher.rows[0].display_name,recordingTarget:'PHYSICAL_GATE',alreadyRecorded:true});
+    }
     const clock=await client.query(`SELECT clock_timestamp() AS occurred_at,
       to_char(clock_timestamp() AT TIME ZONE 'Asia/Manila','YYYY-MM-DD') AS school_date`);
     const occurredAt=clock.rows[0].occurred_at,schoolDate=clock.rows[0].school_date;
@@ -2271,7 +2289,7 @@ app.post('/api/gate/teacher-auto-event', authenticateSchoolClient, requireSchool
         'GATEKEEPER','VERIFIED','GUARD_PHOTO',$7,$8)
       RETURNING event_id AS "eventId",gate_direction AS "gateDirection",occurred_at AS "occurredAt"`,
       [eventId,req.auth.schoolId,teacherId,decision.eventType==='TIME_IN'?'IN':'OUT',
-       schoolDate,occurredAt,req.auth.userId,require('node:crypto').randomUUID()]);
+       schoolDate,occurredAt,req.auth.userId,clientEventKey]);
     const savedEvent={eventId:saved.rows[0].eventId,eventType:decision.eventType,
       occurredAt:saved.rows[0].occurredAt};
     await client.query(`INSERT INTO audit_logs(school_id,actor_type,actor_user_id,action,entity_type,entity_id,details)
