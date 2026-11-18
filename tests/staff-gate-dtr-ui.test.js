@@ -43,8 +43,8 @@ test('one personal attendance table aligns official DTR with gate evidence witho
  assert.match(portal,/DTR unavailable/);
  assert.match(portal,/No gate scan/);
  assert.match(html,/Form 48 uses only verified DTR punches/);
- assert.match(worker,/"\/portal\.js\?v=194"/);
- assert.match(html,/src="\/portal\.js\?v=194"/);
+ assert.match(worker,/"\/portal\.js\?v=197"/);
+ assert.match(html,/src="\/portal\.js\?v=197"/);
  assert.match(worker,/"\/portal\.css\?v=0\.9\.118"/);
 });
 test('personal DTR history rejects non-self queries and returns only verified four-slot events',()=>{
@@ -52,7 +52,7 @@ test('personal DTR history rejects non-self queries and returns only verified fo
  const end=route.indexOf('// School Admin only:',start);
  assert.ok(start>0&&end>start,'History endpoint registered before admin routes');
  const block=route.slice(start,end);
- assert.match(block,/requireSchoolRoles\('TEACHER','SCHOOL_ADMIN'\)/);
+ assert.match(block,/requireSchoolRoles\('TEACHER','DEPARTMENT_HEAD','SCHOOL_ADMIN'\)/);
  assert.match(block,/school_id=\$1 AND staff_user_id=\$2/);
  assert.match(block,/req\.auth\.schoolId,req\.auth\.userId,from,to/);
  assert.match(block,/verification_status='VERIFIED'/);
