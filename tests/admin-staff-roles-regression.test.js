@@ -40,8 +40,8 @@ test('admin badge is self-only and never creates attendance on login', () => {
   const end = server.indexOf("// Read-only teacher gate attendance history", start);
   assert.ok(start > 0 && end > start);
   const route = server.slice(start, end);
-  assert.match(route, /requireSchoolAdmin/);
-  assert.match(route, /role='SCHOOL_ADMIN' AND active=TRUE/);
+  assert.match(route, /requireSchoolRoles\('TEACHER','SCHOOL_ADMIN'\)/);
+  assert.match(route, /role IN \('TEACHER','SCHOOL_ADMIN'\) AND active=TRUE/);
   assert.match(route, /\[req\.auth\.schoolId, req\.auth\.userId\]/);
   assert.match(route, /official_profile_photos/);
   assert.match(route, /QRCode\.toDataURL/);
