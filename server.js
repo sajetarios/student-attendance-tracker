@@ -3705,6 +3705,14 @@ app.get('/index.html', (req, res) => {
   res.redirect(302, canonicalLoginUrl(req));
 });
 
+// Sensitive lunch scan documents must always be fetched fresh. The bearer token
+// is in a URL fragment and removed immediately by the page's first script.
+app.get('/staff-lunch-checkin.html',(_req,res)=>{
+  res.set('Cache-Control','no-store, private');
+  res.set('Referrer-Policy','no-referrer');
+  res.set('X-Content-Type-Options','nosniff');
+  return res.sendFile(path.join(__dirname,'public','staff-lunch-checkin.html'));
+});
 app.use(express.static(path.join(__dirname, 'public')));
 app.use('/api', (_req, res) => res.status(404).json({ error: 'API endpoint not found.' }));
 
