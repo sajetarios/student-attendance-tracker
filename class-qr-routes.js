@@ -42,6 +42,36 @@ function registerClassQrRoutes(app,pool,{authenticateSchoolClient,requireSchoolR
   checkinAttempts.set(key,{count:entry&&entry.until>now?entry.count+1:1,until:entry&&entry.until>now?entry.until:now+60000});
   next();
  }
+ // Enrollment is authenticated; it does not activate passwordless check-in.
+ app.post('/api/class-qr/attendance-pin',authenticateSchoolClient,async(req,res)=>{
+  if(req.auth?.type!=='STUDENT'||req.auth.mustChangePassword)return res.status(403).json({error:'An active student account with an updated password is required.'});
+  const {validAttendancePin,hashAttendancePin,verifyAttendancePin}=require('./attendance-pin-security');
+  const pin=req.body?.pin,previousPin=req.body?.previousPin;
+  if(!validAttendancePin(pin))return res.status(400).json({error:'Attendance PIN must contain six digits.'});
+  const client=await pool.connect();
+  try{
+   await client.query('BEGIN');
+   const current=await client.query('SELECT pin_hash,failed_attempts,locked_until FROM student_attendance_pins WHERE school_id=$1 AND student_id=$2 FOR UPDATE',[req.auth.schoolId,req.auth.studentId]);
+   if(current.rowCount){
+    const row=current.rows[0];
+    if(row.locked_until&&new Date(row.locked_until).getTime()>Date.now()){
+     await client.query('ROLLBACK');return res.status(429).json({error:'Attendance PIN temporarily locked. Try again later.'});
+    }
+    if(!await verifyAttendancePin(previousPin,row.pin_hash)){
+     await client.query(`UPDATE student_attendance_pins SET failed_attempts=LEAST(failed_attempts+1,5),locked_until=CASE WHEN failed_attempts+1>=5 THEN NOW()+INTERVAL '15 minutes' ELSE locked_until END WHERE school_id=$1 AND student_id=$2`,[req.auth.schoolId,req.auth.studentId]);
+     await client.query('COMMIT');return res.status(403).json({error:'Unable to change attendance PIN.'});
+    }
+   }
+   const hash=await hashAttendancePin(pin);
+   await client.query(`INSERT INTO student_attendance_pins(school_id,student_id,pin_hash) VALUES($1,$2,$3)
+    ON CONFLICT(school_id,student_id) DO UPDATE SET pin_hash=EXCLUDED.pin_hash,failed_attempts=0,locked_until=NULL,updated_at=NOW()`,[req.auth.schoolId,req.auth.studentId,hash]);
+   await client.query(`INSERT INTO audit_logs(school_id,actor_type,actor_user_id,action,entity_type,entity_id,details)
+    VALUES($1,'STUDENT',NULL,$2,'student_attendance_pin',$3,'{}'::jsonb)`,[req.auth.schoolId,current.rowCount?'STUDENT_ATTENDANCE_PIN_CHANGED':'STUDENT_ATTENDANCE_PIN_ENROLLED',req.auth.studentId]);
+   await client.query('COMMIT');
+   res.set('Cache-Control','no-store');res.status(204).end();
+  }catch(e){await client.query('ROLLBACK').catch(()=>{});console.error('Attendance PIN enrollment:',e.message);res.status(500).json({error:'Unable to update attendance PIN.'});}
+  finally{client.release();}
+ });
  const read=async(schoolId,periodId,date)=>{
   const r=await pool.query(`SELECT p.period_id,p.grade_level,p.section,p.subject_name,p.start_time,p.end_time,
     COALESCE(a.teacher_user_id,cover.substitute_teacher_user_id,regular.teacher_user_id) AS teacher_user_id,
