@@ -2,7 +2,8 @@
 (() => {
   const tokenKey = 'schoolAttendance.accessToken';
   const login = '/portal-login.html';
-  const initialToken = sessionStorage.getItem(tokenKey);
+  const studentPage = document.documentElement.dataset.protectedRole === 'STUDENT';
+  const initialToken = studentPage ? null : sessionStorage.getItem(tokenKey);
   let checkSequence = 0;
   let checkInFlight = false;
   let validated = false;
@@ -18,20 +19,21 @@
   };
   const redirect = () => { hide(); window.location.replace(login); };
   hide();
-  if (!initialToken) { redirect(); return; }
+  if (!studentPage && !initialToken) { redirect(); return; }
 
   async function verify({ block = false } = {}) {
     // Block a first visit or browser-history restoration, not every tab-focus check.
     if (block || !validated) hide();
     const token = sessionStorage.getItem(tokenKey);
-    if (!token || token !== initialToken) { redirect(); return; }
+    if (!studentPage && (!token || token !== initialToken)) { redirect(); return; }
     if (checkInFlight) return;
     const sequence = ++checkSequence;
     checkInFlight = true;
     try {
       const response = await fetch('/api/auth/me', {
         cache: 'no-store',
-        headers: { Authorization: 'Bearer ' + token }
+        credentials: 'same-origin',
+        headers: studentPage ? {} : { Authorization: 'Bearer ' + token }
       });
       if (sequence !== checkSequence) return;
       if (response.status === 401) {
@@ -55,7 +57,7 @@
           role === 'PARENT' ? '/parent-portal.html' : '/portal.html');
         return;
       }
-      if (sessionStorage.getItem(tokenKey) !== initialToken) { redirect(); return; }
+      if (!studentPage && sessionStorage.getItem(tokenKey) !== initialToken) { redirect(); return; }
       validated = true;
       show();
     } catch (error) {
