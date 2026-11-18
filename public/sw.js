@@ -1,4 +1,4 @@
-const CACHE = "attendigo-v206-students-staff-history";
+const CACHE = "attendigo-v207-form48-monthly-review";
 
 const SHELL = [
   "/typography.css?v=1",
@@ -51,6 +51,8 @@ const SHELL = [
   "/teacher-roster-popover.js?v=2",
   "/portal.css",
   "/portal.js?v=192",
+  "/form48-report.js?v=2",
+  "/form48-report.css?v=3",
   "/staff-lunch-ui.js?v=3",
   "/staff-ob-ui.js?v=4",
   "/staff-ob.css?v=1",
