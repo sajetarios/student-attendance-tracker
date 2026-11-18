@@ -39,6 +39,12 @@ DECLARE
   v_archived bigint;
   v_reason constant text := 'MNCHS pilot attendance-only reset 2026-11-19';
 BEGIN
+  -- Guard against reapplying this operational cleanup to a future Supabase
+  -- database, a test database, or a cloned instance with the same school UUID.
+  IF current_database() <> 'student_tracker_bpv7' THEN
+    RAISE NOTICE 'MNCHS attendance reset skipped outside authorized Render production database.';
+    RETURN;
+  END IF;
   SELECT school_id, school_name
     INTO v_school_id, v_school_name
     FROM schools
