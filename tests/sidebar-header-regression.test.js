@@ -37,9 +37,9 @@ test('collapsed and mobile navigation keep brand compact and do not show oversiz
   assert.match(css, /width:42px!important;[^}]*height:42px!important/s);
 });
 test('service worker uses fresh version and precaches matching CSS', () => {
-  assert.match(html, /attendigo-sidebar-adaptive\.css\?v=16/);
+  assert.match(html, /attendigo-sidebar-adaptive\.css\?v=17/);
   assert.ok(Number(sw.match(/const CACHE = "attendigo-v(\d+)-/)[1]) >= 168, 'PWA cache version must include removal of sidebar sync shortcut');
-  assert.match(sw, /"\/attendigo-sidebar-adaptive\.css\?v=16"/);
+  assert.match(sw, /"\/attendigo-sidebar-adaptive\.css\?v=17"/);
   assert.match(html, /\/typography\.css\?v=1/);
 });
 
