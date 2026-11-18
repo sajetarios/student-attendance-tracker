@@ -12,6 +12,7 @@ const monitor=read('public/class-qr-monitor.js');
 
 test('School Admin quick-management card routes to school-wide class attendance monitoring, not SF2',()=>{
   const card = html.match(/<section class="admin-command-panel" aria-label="Quick management">([\s\S]*?)<\/section>/)?.[1] || '';
+  assert.equal((card.match(/<button /g) || []).length, 6, 'The six compact admin shortcuts remain intact');
   assert.ok(card.includes('data-admin-view="classQrMonitor"'), 'Admin monitoring tile exists');
   assert.ok(card.includes('<strong>Class Attendance Monitoring</strong>'), 'Tile has the correct label');
   assert.ok(!card.includes('data-admin-view="sf2"'), 'Old inaccessible SF2 tile removed');
