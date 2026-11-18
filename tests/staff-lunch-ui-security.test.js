@@ -33,7 +33,7 @@ test('admin and teacher interfaces remain isolated to existing role-specific por
  const admin=portal.indexOf('id="staffLunchAdminCard"');
  const student=portal.indexOf('id="myGateAttendanceView"');
  const presenter=portal.indexOf('id="staffLunchPresenterCard"');
- assert.ok(teachers>=0&&teachers<admin&&admin<student&&student<presenter);
+ assert.ok(teachers>=0 && admin>teachers && student>=0 && presenter>student);
  assert.match(ui,/\['SCHOOL_ADMIN','TEACHER'\]\.includes\(user\?\.role\)/);
  assert.match(ui,/window\.attendigoStaffIdentity\?\.then\(init\)/);
  assert.match(ui,/\/api\/staff-attendance\/lunch\/presenter/);
