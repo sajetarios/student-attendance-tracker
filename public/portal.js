@@ -1877,10 +1877,13 @@ function coverageStatusLabel(status) {
     }
     const button = $('studentTimeIn');
     if (button) button.disabled = true;
+    const scan=scannedTeacher;
+    scan.autoEventId=scan.autoEventId||crypto.randomUUID();
     try {
       const result = await api('/api/gate/teacher-auto-event', {
         method: 'POST',
-        body: JSON.stringify({ teacherQrToken: scannedTeacher.qrToken, photoVerified: true })
+        body: JSON.stringify({ teacherQrToken: scan.qrToken, photoVerified: true,
+          clientEventKey:scan.autoEventId })
       });
       const name = scannedTeacher.fullName;
       const label = result.event?.eventType === 'TIME_IN' ? 'time-in' : 'time-out';
@@ -1976,14 +1979,15 @@ function coverageStatusLabel(status) {
     const button=$('studentTimeIn');
     if(button)button.disabled=true;
     try{
-      const event={eventId:crypto.randomUUID(),studentId:student.studentId,eventType:'AUTO',
+      student.autoEventId=student.autoEventId||crypto.randomUUID();
+      const event={eventId:student.autoEventId,studentId:student.studentId,eventType:'AUTO',
         occurredAt:new Date().toISOString(),schoolDate:schoolDateManila(),
         attendanceScope:'SCHOOL',periodId:null,
         deviceId:`PORTAL-${user.userId||user.username||'GATE_KEEPER'}`,
         metadata:{source:'gatekeeper-auto-verified',photoVerified:true}};
       const result=await api('/api/sync/events',{method:'POST',body:JSON.stringify({events:[event]})});
       const status=result.results?.[0];
-      if(status?.status!=='ACCEPTED')throw new Error(status?.reason||'Gate event was not recorded.');
+      if(!['ACCEPTED','ALREADY_SYNCED'].includes(status?.status))throw new Error(status?.reason||'Gate event was not recorded.');
       const direction=status.eventType==='TIME_IN'?'arrival':'departure';
       const message=student.fullName+': verified gate '+direction+' recorded.';
       $('studentScanFeedback').textContent=message;
