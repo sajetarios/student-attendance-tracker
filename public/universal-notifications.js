@@ -54,6 +54,12 @@
     badge.hidden = unread === 0;
     badge.textContent = unread > 99 ? '99+' : String(unread);
     bell.setAttribute('aria-label', unread ? unread + ' unread notifications' : 'Notifications');
+    // The app icon badge is advisory; the server inbox remains authoritative.
+    // Never persist unread counts or user notification details in the service worker.
+    if (navigator.setAppBadge && navigator.clearAppBadge) {
+      const badgeOperation = unread ? navigator.setAppBadge(Math.min(unread, 99)) : navigator.clearAppBadge();
+      Promise.resolve(badgeOperation).catch(() => { /* Browser/OS may disallow badges. */ });
+    }
   }
   async function api(path = '', options = {}) {
     const headers = new Headers(options.headers || {});
