@@ -1815,14 +1815,14 @@ function coverageStatusLabel(status) {
       : '';
     const initiallyDisabled = user.role === 'GATE_KEEPER' ? 'disabled' : '';
     const dtrMarkup = isTeacherPerson && user.role === 'GATE_KEEPER'
-      ? `<div class="student-scan-buttons" role="group" aria-label="Form 48 teacher DTR">
+      ? `<details class="gate-dtr-fallback"><summary>Manual DTR fallback (authorized use)</summary><div class="student-scan-buttons" role="group" aria-label="Form 48 teacher DTR">
           <label for="teacherDtrSlot">Daily time record</label>
           <select id="teacherDtrSlot" aria-label="Choose teacher DTR slot">
             <option value="AM_IN">AM In</option><option value="AM_OUT">AM Out</option>
             <option value="PM_IN">PM In</option><option value="PM_OUT">PM Out</option>
           </select>
           <button type="button" class="primary-button" id="teacherDtrRecord" disabled>Record verified DTR</button>
-        </div><p class="attendance-summary-note">Form 48 DTR is separate from physical gate time-in/time-out.</p>`
+        </div><p class="attendance-summary-note">Form 48 DTR is separate from physical gate movements. Use this fallback only for an authorized DTR entry.</p></details>`
       : '';
     $('studentScanResult').hidden = false;
     const subjectLabel = isTeacherPerson ? 'teacher' : 'learner';
@@ -1845,10 +1845,11 @@ function coverageStatusLabel(status) {
     }
     $('studentScanNotice').hidden = false;
     showToast(user.role === 'GATE_KEEPER' ? `Verify photo: ${fullName}` : `QR scanned: ${fullName}`);
-    if (isTeacherPerson && user.role === 'GATE_KEEPER') {
-      $('studentTimeIn').textContent = 'Verify & Record Gate Event';
+    if (user.role === 'GATE_KEEPER') {
+      $('studentTimeIn').textContent = 'Verify & Record';
       $('studentTimeOut').hidden = true;
-      $('studentTimeIn').addEventListener('click', recordTeacherAutomaticGatePunch);
+      $('studentTimeIn').addEventListener('click',
+        isTeacherPerson ? recordTeacherAutomaticGatePunch : recordStudentAutomaticGatePunch);
     } else {
       $('studentTimeIn').addEventListener('click', () => isTeacherPerson ? recordTeacherGatePunch('TIME_IN') : recordStudentPunch('TIME_IN'));
       $('studentTimeOut').addEventListener('click', () => isTeacherPerson ? recordTeacherGatePunch('TIME_OUT') : recordStudentPunch('TIME_OUT'));
@@ -1957,6 +1958,45 @@ function coverageStatusLabel(status) {
 
   function schoolDateManila(date = new Date()) {
     return new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Manila', year: 'numeric', month: '2-digit', day: '2-digit' }).format(date);
+  }
+
+  async function recordStudentAutomaticGatePunch() {
+    if(user?.role!=='GATE_KEEPER'||!scannedStudent)return;
+    if(!$('studentPhotoVerified')?.checked){
+      showToast('Confirm the displayed student photo before recording.',true);
+      return;
+    }
+    // Automatic verification cannot be safely finalized offline because
+    // another Gatekeeper may already have recorded a gate event.
+    if(typeof navigator!=='undefined'&&navigator.onLine===false){
+      showToast('Offline: automatic gate direction cannot be verified. Do not mark attendance as recorded.',true);
+      return;
+    }
+    const student=scannedStudent;
+    const button=$('studentTimeIn');
+    if(button)button.disabled=true;
+    try{
+      const event={eventId:crypto.randomUUID(),studentId:student.studentId,eventType:'AUTO',
+        occurredAt:new Date().toISOString(),schoolDate:schoolDateManila(),
+        attendanceScope:'SCHOOL',periodId:null,
+        deviceId:`PORTAL-${user.userId||user.username||'GATE_KEEPER'}`,
+        metadata:{source:'gatekeeper-auto-verified',photoVerified:true}};
+      const result=await api('/api/sync/events',{method:'POST',body:JSON.stringify({events:[event]})});
+      const status=result.results?.[0];
+      if(status?.status!=='ACCEPTED')throw new Error(status?.reason||'Gate event was not recorded.');
+      const direction=status.eventType==='TIME_IN'?'arrival':'departure';
+      const message=student.fullName+': verified gate '+direction+' recorded.';
+      $('studentScanFeedback').textContent=message;
+      $('studentScanFeedback').className='scanner-feedback is-success';
+      showToast('ATTENDANCE SAVED — '+message);
+      scannedStudent=null;scannedTeacher=null;
+      $('studentScanNotice').hidden=true;$('studentScanResult').hidden=true;
+    }catch(error){
+      $('studentScanFeedback').textContent=error.message;
+      $('studentScanFeedback').className='scanner-feedback is-error';
+      showToast(error.message,true);
+      if(button)button.disabled=false;
+    }
   }
 
   async function recordStudentPunch(eventType) {
