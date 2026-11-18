@@ -78,23 +78,23 @@ test('server and service worker remove sensitive URL queries and prevent credent
   const server = read('server.js');
   const worker = read('public/sw.js');
   const html = read('public/portal-login.html');
-  assert.match(server,/app\\.use\\(redirectLeakedCredentials\\)/);
-  assert.match(server, /'\\/portal-login.html'/);
-  assert.match(worker,/const CACHE = "attendigo-v[0-9]+[^"]*"/);
-  const version = html.match(/src="(\\/portal-login\\.js\\?v=[0-9]+)"/);
+  assert.ok(server.includes('app.use(redirectLeakedCredentials)'));
+  assert.ok(server.includes("'/portal-login.html'"));
+  assert.ok(worker.includes('const CACHE = "attendigo-v'));
+  const version = html.match(new RegExp('src="(/portal-login[.]js[?]v=[0-9]+)"'));
   assert.ok(version, 'Login script must be versioned');
-  assert.ok(worker.includes(JSON.stringify(version[1])), 'Offline cache must match the current login script');
-  assert.match(worker,/credentialKey\\.test\\(key\\)/);
-  assert.match(worker,/Response\\.redirect\\(new URL\\('\\/portal-login\\.html', url\\.origin\\)\\.href, 303\\)/);
-  assert.match(worker,/response\\.ok && !url\\.search/);
+  assert.ok(worker.includes(JSON.stringify(version[1])), 'Offline cache must match current login script');
+  assert.ok(worker.includes('credentialKey.test(key)'));
+  assert.ok(worker.includes("Response.redirect(new URL('/portal-login.html', url.origin).href, 303)"));
+  assert.ok(worker.includes('response.ok && !url.search'));
 });
 
 test('legacy index redirect never forwards incoming credentials', () => {
   const index = read('public/index.html');
-  assert.doesNotMatch(index,/location\\.replace\\([^\\n]*location\\.search/);
-  assert.match(index,/const requestedMode = params\\.get\\('mode'\\)/);
-  assert.match(index,/requestedMode === 'platform' \\? '\\?mode=platform'/);
-  assert.match(index,/go\\(loginUrl\\)/);
-  assert.doesNotMatch(index,/loginUrl\\s*=.*location\\.search/);
-  assert.match(index,/name="referrer" content="no-referrer"/);
+  assert.ok(!index.includes('location.replace(location.search)'));
+  assert.ok(index.includes("const requestedMode = params.get('mode')"));
+  assert.ok(index.includes("requestedMode === 'platform' ? '?mode=platform'"));
+  assert.ok(index.includes('go(loginUrl)'));
+  assert.ok(!index.includes('loginUrl = location.search'));
+  assert.ok(index.includes('name="referrer" content="no-referrer"'));
 });
