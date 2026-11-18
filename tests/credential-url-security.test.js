@@ -80,7 +80,7 @@ test('server and service worker remove sensitive URL queries and prevent credent
   const html = read('public/portal-login.html');
   assert.match(server,/app\.use\(redirectLeakedCredentials\)/);
   assert.match(server, /'\/portal-login.html'/);
-  assert.match(worker,/const CACHE = "attendigo-v\\d+-[a-z0-9-]+"/);
+  assert.match(worker,/const CACHE = "attendigo-v\d+-[a-z0-9-]+"/);
   const loginJs=html.match(/src="(\/portal-login\.js\?v=\d+)"/)?.[1];
   assert.ok(loginJs,'Login page must use a versioned login script');
   assert.ok(worker.includes(JSON.stringify(loginJs)), 'Worker must cache the matching login script');
