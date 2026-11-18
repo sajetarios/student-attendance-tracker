@@ -53,6 +53,78 @@ function registerStaffObRoutes(app,pool,{authenticateSchoolClient,requireSchoolR
    return res.json({coverage:result.rows});
   }catch(e){return respondError(res,e);}
  });
+ app.post('/api/staff-attendance/official-business/:id/coverage/:coverageId/substitute',
+  authenticateSchoolClient,requireSchoolRoles('DEPARTMENT_HEAD'),async(req,res)=>{
+   res.set('Cache-Control','no-store, private');
+   const substituteId=String(req.body?.substituteUserId||'');
+   if(!uuid.test(req.params.id)||!uuid.test(req.params.coverageId)||!uuid.test(substituteId)||
+      !req.auth.departmentId)return res.status(400).json({error:'Valid OB, coverage, substitute and department required.'});
+   const client=await pool.connect();
+   try{
+    await client.query('BEGIN');
+    // School-wide transaction lock serializes simultaneous substitute allocations.
+    await client.query('SELECT pg_advisory_xact_lock(hashtext($1))',[String(req.auth.schoolId)+':OB_COVERAGE']);
+    const coverage=await client.query(`
+      SELECT c.coverage_id,c.period_id,c.class_date,p.start_time,p.end_time,
+       o.staff_user_id,o.department_id
+      FROM staff_ob_class_coverage c
+      JOIN staff_official_business_requests o ON o.school_id=c.school_id AND o.request_id=c.request_id
+      JOIN class_periods p ON p.school_id=c.school_id AND p.period_id=c.period_id
+      WHERE c.school_id=$1 AND c.request_id=$2 AND c.coverage_id=$3
+       AND o.department_id=$4 AND o.status='APPROVED' AND c.status='NEEDS_COVERAGE'
+      FOR UPDATE OF c`,[req.auth.schoolId,req.params.id,req.params.coverageId,req.auth.departmentId]);
+    if(!coverage.rowCount){await client.query('ROLLBACK');return res.status(409).json({error:'Approved, uncovered class in your department required.'});}
+    const target=coverage.rows[0];
+    if(substituteId===target.staff_user_id||substituteId===req.auth.userId){
+     await client.query('ROLLBACK');return res.status(409).json({error:'Choose another eligible teacher, not yourself or the absent teacher.'});
+    }
+    const eligible=await client.query(`SELECT user_id FROM school_users
+      WHERE school_id=$1 AND user_id=$2 AND department_id=$3
+       AND role='TEACHER' AND active=TRUE`,
+      [req.auth.schoolId,substituteId,req.auth.departmentId]);
+    if(!eligible.rowCount){await client.query('ROLLBACK');return res.status(403).json({error:'Substitute must be an active teacher in your department.'});}
+    // Reject overlapping recurring teaching assignments, current substitutions,
+    // date-specific teacher changes, and already allocated OB coverage.
+    const conflict=await client.query(`
+      SELECT 1 FROM class_periods p
+      WHERE p.school_id=$1 AND p.period_id<>$4 AND p.active=TRUE
+       AND (p.effective_from IS NULL OR p.effective_from<=$3::date)
+       AND (p.effective_to IS NULL OR p.effective_to>=$3::date)
+       AND p.start_time<$6::time AND p.end_time>$5::time
+       AND EXISTS(SELECT 1 FROM class_period_days w WHERE w.school_id=p.school_id
+        AND w.period_id=p.period_id AND w.weekday=EXTRACT(DOW FROM $3::date)::int)
+       AND (
+        EXISTS(SELECT 1 FROM teacher_period_assignments ta WHERE ta.school_id=p.school_id
+          AND ta.period_id=p.period_id AND ta.teacher_user_id=$2)
+        OR EXISTS(SELECT 1 FROM teacher_period_substitutions ts WHERE ts.school_id=p.school_id
+          AND ts.period_id=p.period_id AND ts.substitute_teacher_user_id=$2
+          AND ts.status='ACTIVE' AND $3::date BETWEEN ts.start_date AND ts.end_date)
+        OR EXISTS(SELECT 1 FROM schedule_day_adjustments a WHERE a.school_id=p.school_id
+          AND a.period_id=p.period_id AND a.school_date=$3::date
+          AND a.teacher_user_id=$2 AND a.adjustment_type<>'CANCEL')
+       )
+      UNION ALL
+      SELECT 1 FROM staff_ob_class_coverage c
+      WHERE c.school_id=$1 AND c.class_date=$3::date AND c.period_id<>$4
+       AND c.status='SUBSTITUTE_ASSIGNED' AND c.substitute_user_id=$2
+       AND EXISTS(SELECT 1 FROM class_periods p WHERE p.school_id=c.school_id
+        AND p.period_id=c.period_id AND p.start_time<$6::time AND p.end_time>$5::time)
+      LIMIT 1`,
+      [req.auth.schoolId,substituteId,target.class_date,target.period_id,
+       target.start_time,target.end_time]);
+    if(conflict.rowCount){await client.query('ROLLBACK');return res.status(409).json({error:'Substitute has a conflicting class or coverage assignment at this time.'});}
+    await client.query(`UPDATE staff_ob_class_coverage
+       SET status='SUBSTITUTE_ASSIGNED',substitute_user_id=$4,
+        assigned_by_user_id=$5,assigned_at=NOW()
+       WHERE school_id=$1 AND request_id=$2 AND coverage_id=$3`,
+      [req.auth.schoolId,req.params.id,req.params.coverageId,substituteId,req.auth.userId]);
+    await audit(client,req,'STAFF_OB_SUBSTITUTE_ASSIGNED',req.params.id,
+      {coverageId:req.params.coverageId,substituteUserId:substituteId});
+    await client.query('COMMIT');
+    return res.json({coverageId:req.params.coverageId,status:'SUBSTITUTE_ASSIGNED'});
+   }catch(e){await client.query('ROLLBACK').catch(()=>{});return respondError(res,e);}
+   finally{client.release();}
+  });
  app.post('/api/staff-attendance/official-business',...auth,async(req,res)=>{
   res.set('Cache-Control','no-store, private');
   const purpose=String(req.body?.purpose||'').trim(),destination=String(req.body?.destination||'').trim();
