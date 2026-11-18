@@ -57,7 +57,8 @@ const REQUIRED_MIGRATIONS = [
   '049_universal_request_notifications.sql',
   '050_student_attendance_pins.sql',
   '051_staff_smart_attendance_foundation.sql',
-  '052_staff_lunch_presenter_assignments.sql'
+  '052_staff_lunch_presenter_assignments.sql',
+  '053_multi_department_lunch_presenters.sql'
 ];
 
 function checksum(content) {
