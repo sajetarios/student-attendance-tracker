@@ -3657,6 +3657,17 @@ app.get('/vendor/html5-qrcode.min.js', (_req, res) =>
   res.sendFile(path.join(__dirname, 'node_modules', 'html5-qrcode', 'html5-qrcode.min.js'))
 );
 // Basic liveness endpoint for deployment and diagnostics. No school data is exposed.
+// Public, read-only readiness signal for the separately hosted welcome page.
+// Strictly allow only the controlled static preview; never allow credentials.
+app.get('/api/startup-readiness', (_req, res) => {
+  const allowedOrigin = 'https://attendigo-welcome-preview.onrender.com';
+  if (_req.get('Origin') === allowedOrigin) {
+    res.setHeader('Access-Control-Allow-Origin', allowedOrigin);
+    res.setHeader('Vary', 'Origin');
+  }
+  res.setHeader('Cache-Control', 'no-store');
+  res.json({ ready: true, service: 'attendigo' });
+});
 app.get('/api/health', (_req, res) => res.json({ ok: true, service: 'school-attendance' }));
 
 // Serve one canonical login URL for desktop, mobile browsers, and installed PWAs.
