@@ -598,13 +598,23 @@ app.get('/api/teacher/my-gate-attendance', authenticateSchoolClient, requireScho
   }
   try {
     const result = await pool.query(
-      `SELECT tge.event_id AS "eventId", tge.event_type AS "eventType",
-              to_char(tge.school_date, 'YYYY-MM-DD') AS "schoolDate",
-              tge.occurred_at AS "occurredAt", tge.photo_verified AS "photoVerified"
-       FROM teacher_gate_events tge
-       WHERE tge.school_id=$1 AND tge.teacher_user_id=$2
-         AND tge.school_date BETWEEN $3::date AND $4::date
-       ORDER BY tge.school_date DESC, tge.occurred_at ASC`,
+      `SELECT "eventId","eventType","schoolDate","occurredAt","photoVerified" FROM (
+        SELECT event_id AS "eventId",
+          CASE WHEN gate_direction='IN' THEN 'TIME_IN' ELSE 'TIME_OUT' END AS "eventType",
+          to_char(school_date,'YYYY-MM-DD') AS "schoolDate",occurred_at AS "occurredAt",
+          TRUE AS "photoVerified"
+        FROM staff_attendance_events
+        WHERE school_id=$1 AND staff_user_id=$2
+          AND event_kind='GATE_MOVEMENT' AND verification_status='VERIFIED'
+          AND school_date BETWEEN $3::date AND $4::date
+        UNION ALL
+        SELECT event_id AS "eventId",event_type AS "eventType",
+          to_char(school_date,'YYYY-MM-DD') AS "schoolDate",occurred_at AS "occurredAt",
+          photo_verified AS "photoVerified"
+        FROM teacher_gate_events
+        WHERE school_id=$1 AND teacher_user_id=$2
+          AND school_date BETWEEN $3::date AND $4::date
+       ) gate_history ORDER BY "schoolDate" DESC,"occurredAt" ASC`,
       [req.auth.schoolId, req.auth.userId, from, to]
     );
     return res.json({ events: result.rows, from, to });
@@ -645,16 +655,28 @@ app.get('/api/admin/teacher-gate-attendance', authenticateSchoolClient, requireS
   if (!isValidSchoolDate(schoolDate)) return res.status(400).json({ error: 'Provide a valid school date (YYYY-MM-DD).' });
   try {
     const result = await pool.query(
-      `SELECT tge.event_id AS "eventId", tge.teacher_user_id AS "teacherUserId",
-              teacher.display_name AS "teacherName", teacher.username,
-              tge.event_type AS "eventType", tge.school_date AS "schoolDate",
-              tge.occurred_at AS "occurredAt", tge.photo_verified AS "photoVerified",
-              gatekeeper.display_name AS "recordedBy"
-       FROM teacher_gate_events tge
-       JOIN school_users teacher ON teacher.school_id=tge.school_id AND teacher.user_id=tge.teacher_user_id       JOIN school_users gatekeeper ON gatekeeper.school_id=tge.school_id AND gatekeeper.user_id=tge.recorded_by_user_id
-       WHERE tge.school_id=$1 AND tge.school_date=$2::date
-       ORDER BY tge.occurred_at DESC, teacher.display_name`,
-      [req.auth.schoolId, schoolDate]
+      `SELECT g."eventId",g."teacherUserId",teacher.display_name AS "teacherName",teacher.username,
+        g."eventType",g."schoolDate",g."occurredAt",g."photoVerified",
+        gatekeeper.display_name AS "recordedBy"
+       FROM (
+        SELECT event_id AS "eventId",staff_user_id AS "teacherUserId",
+          CASE WHEN gate_direction='IN' THEN 'TIME_IN' ELSE 'TIME_OUT' END AS "eventType",
+          school_date AS "schoolDate",occurred_at AS "occurredAt",TRUE AS "photoVerified",
+          actor_user_id AS "recordedById"
+        FROM staff_attendance_events WHERE school_id=$1 AND school_date=$2::date
+          AND event_kind='GATE_MOVEMENT' AND verification_status='VERIFIED'
+        UNION ALL
+        SELECT event_id AS "eventId",teacher_user_id AS "teacherUserId",
+          event_type AS "eventType",school_date AS "schoolDate",
+          occurred_at AS "occurredAt",photo_verified AS "photoVerified",
+          recorded_by_user_id AS "recordedById"
+        FROM teacher_gate_events WHERE school_id=$1 AND school_date=$2::date
+       ) g
+       JOIN school_users teacher ON teacher.school_id=$1 AND teacher.user_id=g."teacherUserId"
+       JOIN school_users gatekeeper ON gatekeeper.school_id=$1 AND gatekeeper.user_id=g."recordedById"
+       WHERE ($3::text='SCHOOL_ADMIN' OR teacher.department_id=$4::uuid)
+       ORDER BY g."occurredAt" DESC,teacher.display_name`,
+      [req.auth.schoolId, schoolDate, req.auth.role, req.auth.departmentId || null]
     );
     return res.json({ events: result.rows, schoolDate });
   } catch (err) {
