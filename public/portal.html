@@ -517,6 +517,39 @@ body.dark-mode .content-wrap > .school-heading.is-compact,body[data-theme="dark"
 }
 </style>
   <link rel="stylesheet" href="/attendigo-workspace-density-theme.css?v=1">
+  <style id="teacher-dashboard-navigation-layout">
+/* Layout-only overrides. Server entitlements and navigation permissions stay authoritative. */
+.portal-layout[data-attendigo-role="TEACHER"] #dashboardScanCta{
+  min-height:0!important; padding:16px 20px!important; gap:14px!important;
+  margin-bottom:14px!important; align-items:center!important;
+}
+.portal-layout[data-attendigo-role="TEACHER"] #dashboardScanCta .dashboard-scan-cta-copy{max-width:none;min-width:230px;flex:1 1 310px}
+.portal-layout[data-attendigo-role="TEACHER"] #dashboardScanCta h2{font-size:clamp(18px,1.6vw,24px)!important;margin:5px 0!important;line-height:1.25!important}
+.portal-layout[data-attendigo-role="TEACHER"] #dashboardScanCta p{font-size:var(--type-table,14px)!important;line-height:1.4!important}
+.portal-layout[data-attendigo-role="TEACHER"] #dashboardScanCta .dashboard-quick-buttons{flex:0 1 auto;justify-content:flex-end;gap:8px!important}
+.portal-layout[data-attendigo-role="TEACHER"] #dashboardOpenScanner,
+.portal-layout[data-attendigo-role="TEACHER"] #dashboardAddStudent{min-height:43px!important;min-width:0!important;padding:9px 13px!important;font-size:var(--type-table,14px)!important}
+.portal-layout[data-attendigo-role="TEACHER"] #dashboardAddStudent{
+  background:transparent!important;color:var(--ui-text,var(--ink,#24314a))!important;
+  border:1px solid var(--ui-line,#d8e2ee)!important;box-shadow:none!important
+}
+.portal-layout[data-attendigo-role="TEACHER"] #classQrTeacherShortcut.is-dashboard-inline{
+  position:static!important;min-height:43px!important;padding:9px 13px!important;
+  border-radius:10px!important;font-size:var(--type-table,14px)!important;
+  box-shadow:none!important;max-width:100%!important;white-space:normal!important
+}
+#classQrTeacherShortcut[hidden]{display:none!important}
+.portal-layout[data-attendigo-role="TEACHER"] #plannerDashboardWidget{margin-bottom:14px!important}
+@media(max-width:1050px){
+  .portal-layout[data-attendigo-role="TEACHER"] #dashboardScanCta{flex-direction:column!important;align-items:stretch!important}
+  .portal-layout[data-attendigo-role="TEACHER"] #dashboardScanCta .dashboard-scan-cta-copy{min-width:0;flex:none}
+  .portal-layout[data-attendigo-role="TEACHER"] #dashboardScanCta .dashboard-quick-buttons{justify-content:flex-start;flex:1 1 auto}
+}
+@media(max-width:600px){
+  .portal-layout[data-attendigo-role="TEACHER"] #dashboardScanCta{padding:14px!important}
+  .portal-layout[data-attendigo-role="TEACHER"] #dashboardScanCta .dashboard-quick-buttons>*{flex:1 1 100%!important;justify-content:center!important}
+}
+  </style>
 </head>
 <body class="portal-page">
   <div class="portal-layout">
@@ -552,6 +585,10 @@ body.dark-mode .content-wrap > .school-heading.is-compact,body[data-theme="dark"
         </div>
 <button class="nav-item" id="guardianApprovalsNav" type="button" hidden title="Review guardian change requests"><span class="nav-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l8 4v5c0 5-3.5 8-8 9-4.5-1-8-4-8-9V7l8-4Z"/><path d="m9 12 2 2 4-4"/></svg></span><span class="nav-label">Guardian Approvals</span><span class="request-side-count" id="guardianNavBadge" hidden>0</span></button>
         <a class="nav-item" id="academicAdminNav" hidden title="Manage school years and SF2 enrollment" href="/portal.html?view=academic"><span class="nav-icon">▤</span><span class="nav-label">School Years & Enrollment</span></a>
+        <div class="nav-group" id="personalAttendanceNavGroup" hidden>
+          <button class="nav-group-toggle" type="button" data-nav-group="personalAttendance" aria-expanded="true" aria-controls="personalAttendanceNavChildren" title="Expand or collapse personal attendance navigation"><span class="nav-icon" aria-hidden="true">◷</span><span class="nav-label">My Attendance</span><span class="nav-chevron" aria-hidden="true">⌄</span></button>
+          <div class="nav-submenu" id="personalAttendanceNavChildren" data-submenu="personalAttendance"></div>
+        </div>
         <div class="nav-group">
           <button class="nav-group-toggle" type="button" data-nav-group="academics" aria-expanded="true" aria-controls="academicNavChildren" title="Expand or collapse academic navigation"><span class="nav-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 3h16v18H4zM8 7h8M8 11h8M8 15h5"/></svg></span><span class="nav-label" id="academicsGroupLabel">Academics</span><span class="nav-chevron">⌄</span></button>
           <div class="nav-submenu" id="academicNavChildren" data-submenu="academics">
@@ -559,7 +596,7 @@ body.dark-mode .content-wrap > .school-heading.is-compact,body[data-theme="dark"
             <a class="nav-item" id="lunchQrAdminNav" data-view="lunchQrAdmin" title="Lunch QR management" hidden href="/portal.html?view=lunchQrAdmin"><span class="nav-icon">▦</span><span class="nav-label">Lunch QR management</span></a>
             <a class="nav-item" id="form48ReportsNav" data-view="form48Reports" title="Form 48 DTR reports" hidden href="/portal.html?view=form48Reports"><span class="nav-icon">▤</span><span class="nav-label">Form 48 DTR reports</span></a>
             <a class="nav-item" id="teacherLunchQrNav" data-view="teacherLunchQr" title="My lunch QR" hidden href="/portal.html?view=teacherLunchQr"><span class="nav-icon">▣</span><span class="nav-label">My lunch QR</span></a>
-            <a class="nav-item" id="myGateAttendanceNav" data-view="myGateAttendance" title="My Staff Attendance" hidden href="/portal.html?view=myGateAttendance"><span class="nav-icon">◷</span><span class="nav-label">My Staff Attendance</span></a>
+            <a class="nav-item" id="myGateAttendanceNav" data-view="myGateAttendance" title="Gate Attendance & DTR" hidden href="/portal.html?view=myGateAttendance"><span class="nav-icon">◷</span><span class="nav-label">Gate Attendance &amp; DTR</span></a>
             <a class="nav-item" id="officialBusinessNav" data-view="officialBusiness" title="Official Business requests" hidden href="/portal.html?view=officialBusiness"><span class="nav-icon">▣</span><span class="nav-label">Official Business</span></a>
             <a class="nav-item" id="sf2Nav" data-view="sf2" title="SF2 Report Generator" href="/portal.html?view=sf2"><span class="nav-icon">▦</span><span class="nav-label">SF2 Report Generator</span></a>
             <a class="nav-item" id="plannerNav" data-view="planner" title="Planner" hidden href="/portal.html?view=planner"><span class="nav-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M7 2v6M17 2v6M3 10h18M8 15h3m4 0h2m-9 3h3"/></svg></span><span class="nav-label">Planner</span></a>
@@ -934,7 +971,7 @@ body.dark-mode .content-wrap > .school-heading.is-compact,body[data-theme="dark"
               </div>
               <div class="surface-card section-card my-gate-attendance">
               <div class="section-toolbar">
-                <div><h2 id="myGateHeading">My Staff Attendance</h2><p id="myGateIntro">Review your official Form 48 punches alongside your verified physical gate scans.</p></div>
+                <div><h2 id="myGateHeading">Daily DTR &amp; Gate Records</h2><p id="myGateIntro">Review your official Form 48 punches alongside your verified physical gate scans.</p></div>
                 <button type="button" class="outline-button" id="myGateRefresh">↻ Refresh</button>
               </div>
               <div class="my-gate-history-heading">
@@ -1951,7 +1988,7 @@ body.dark-mode .content-wrap > .school-heading.is-compact,body[data-theme="dark"
     <p id="accountProfileFeedback" class="inline-feedback" role="status" aria-live="polite"></p>
   </dialog>
   <script src="/app-dialog.js?v=1" defer></script>
-<script src="/class-qr-dashboard-link.js?v=7" defer></script>
+<script src="/class-qr-dashboard-link.js?v=8" defer></script>
   <script src="/sw-refresh.js?v=3" defer></script>
   <script src="/password-visibility.js" defer></script>
   <script src="/vendor/html5-qrcode.min.js" defer></script>
@@ -1961,7 +1998,7 @@ body.dark-mode .content-wrap > .school-heading.is-compact,body[data-theme="dark"
   <script src="/offline-attendance.js?v=5" defer></script>
   <script src="/attendance-sync-center.js?v=3" defer></script>
   <script src="/learner-roster-view.js?v=1" defer></script>
-  <script src="/portal.js?v=192" defer></script>
+  <script src="/portal.js?v=193" defer></script>
   <script src="/staff-lunch-ui.js?v=3" defer></script>
   <script src="/staff-ob-ui.js?v=4" defer></script>
   <script src="/form48-report.js?v=4" defer></script>

@@ -1,4 +1,4 @@
-const CACHE = "attendigo-v212-form48-leave-corrections";
+const CACHE = "attendigo-v213-teacher-nav-form48-leave";
 
 const SHELL = [
   "/typography.css?v=1",
@@ -48,10 +48,10 @@ const SHELL = [
   "/learner-roster-view.css?v=1",
   "/teacher-learner-roster.css?v=4",
   "/learner-roster-view.js?v=1",
-  "/class-qr-dashboard-link.js?v=7",
+  "/class-qr-dashboard-link.js?v=8",
   "/teacher-roster-popover.js?v=2",
   "/portal.css",
-  "/portal.js?v=192",
+  "/portal.js?v=193",
   "/form48-report.js?v=4",
   "/form48-bulk-ui.js?v=2",
   "/form48-report.css?v=5",
