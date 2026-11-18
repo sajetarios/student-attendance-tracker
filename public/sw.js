@@ -1,4 +1,4 @@
-const CACHE = "attendigo-v211-form48-bulk-leave-defaults";
+const CACHE = "attendigo-v212-form48-leave-corrections";
 
 const SHELL = [
   "/typography.css?v=1",
@@ -53,7 +53,7 @@ const SHELL = [
   "/portal.css",
   "/portal.js?v=192",
   "/form48-report.js?v=4",
-  "/form48-bulk-ui.js?v=1",
+  "/form48-bulk-ui.js?v=2",
   "/form48-report.css?v=5",
   "/staff-lunch-ui.js?v=3",
   "/staff-ob-ui.js?v=4",
