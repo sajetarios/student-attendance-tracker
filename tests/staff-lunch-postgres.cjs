@@ -58,6 +58,51 @@ async function main(){
     headers:{'Content-Type':'application/json',Authorization:'Bearer '+token},body:JSON.stringify(body)});
    return {status:r.status,body:await r.json()};
   }
+  const teacher2=await makeUser(a,'TEACHER','lunch-backup-');
+  const teacherDenied=await post('/api/staff-attendance/lunch/challenges',{slot:'PM_IN'},teacher.token);
+  assert.equal(teacherDenied.status,403,'Teacher cannot present lunch QR without school assignment');
+  const assignPath='/api/staff-attendance/lunch/presenter';
+  const assignment={slot:'PM_IN',presenterUserId:teacher.id};
+  const teacherAssign=await fetch(base+assignPath,{method:'PUT',
+   headers:{'Content-Type':'application/json',Authorization:'Bearer '+teacher.token},
+   body:JSON.stringify(assignment)});
+  assert.equal(teacherAssign.status,403,'Teachers cannot assign themselves');
+  const crossAssign=await fetch(base+assignPath,{method:'PUT',
+   headers:{'Content-Type':'application/json',Authorization:'Bearer '+admin.token},
+   body:JSON.stringify({...assignment,presenterUserId:other.id})});
+  assert.equal(crossAssign.status,404,'Admin cannot assign teacher from another school');
+  async function presenterChange(method,body,token=admin.token){
+   const response=await fetch(base+assignPath,{method,
+    headers:{'Content-Type':'application/json',Authorization:'Bearer '+token},
+    body:JSON.stringify(body)});
+   return {status:response.status,body:await response.json()};
+  }
+  const assigned=await presenterChange('PUT',assignment);
+  assert.equal(assigned.status,201,'School Admin can assign active teacher');
+  const permitted=await post('/api/staff-attendance/lunch/challenges',{slot:'PM_IN'},teacher.token);
+  assert.equal(permitted.status,201,'Assigned teacher may issue lunch QR');
+  const replaced=await presenterChange('PUT',{slot:'PM_IN',presenterUserId:teacher2.id});
+  assert.equal(replaced.status,201,'School Admin may replace unavailable presenter');
+  const revokedChallenge=await post('/api/staff-attendance/lunch/redeem',
+   {challengeId:permitted.body.challengeId,token:permitted.body.token},teacher.token);
+  assert.equal(revokedChallenge.status,410,'Replacing presenter invalidates old live QR');
+  const former=await post('/api/staff-attendance/lunch/challenges',{slot:'PM_IN'},teacher.token);
+  assert.equal(former.status,403,'Replaced teacher cannot issue more QR challenges');
+  const newPresenter=await post('/api/staff-attendance/lunch/challenges',{slot:'PM_IN'},teacher2.token);
+  assert.equal(newPresenter.status,201,'Replacement teacher can issue lunch QR');
+  const removed=await presenterChange('DELETE',{slot:'PM_IN'});
+  assert.equal(removed.status,200);
+  assert.equal(removed.body.revoked,true);
+  assert.equal((await post('/api/staff-attendance/lunch/redeem',
+   {challengeId:newPresenter.body.challengeId,token:newPresenter.body.token},teacher.token)).status,410,
+   'Revoking presenter invalidates active QR');
+  assert.equal((await post('/api/staff-attendance/lunch/challenges',{slot:'PM_IN'},teacher2.token)).status,403,
+   'Revoked presenter cannot issue challenges');
+  const auditPresenter=await pool.query(`SELECT action FROM staff_attendance_audit
+    WHERE school_id=$1 AND action IN ('LUNCH_PRESENTER_ASSIGNED','LUNCH_PRESENTER_REVOKED')`,
+    [a.school]);
+  assert.equal(auditPresenter.rowCount,3,'Assignment, replacement and revocation are audited');
+
   const issued=await post('/api/staff-attendance/lunch/challenges',{slot:'AM_OUT'},admin.token);
   assert.equal(issued.status,201,'School admin can issue a time-limited lunch QR: '+JSON.stringify(issued.body));
   const qr={challengeId:issued.body.challengeId,token:issued.body.token};
