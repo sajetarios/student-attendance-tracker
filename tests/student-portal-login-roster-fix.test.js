@@ -34,7 +34,7 @@ function fixture(passwordHash) {
   };
   registerAuthRoutes(app,pool);
   async function signIn(password) {
-    const req = {ip:'192.0.2.1', body:{schoolCode:'DEMO001',username:'TEST-01',password}};
+    const req = {ip:'192.0.2.1', headers:{cookie:''}, body:{schoolCode:'DEMO001',username:'TEST-01',password}};
     let status=200,payload;
     const res = {
       status(code) {status=code;return this;},
