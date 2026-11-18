@@ -133,6 +133,9 @@ function registerStaffLunchRoutes(app,pool,{authenticateSchoolClient,requireScho
   const client=await pool.connect();
   try {
    await client.query('BEGIN');
+   // Serialize challenge issuance with presenter replacement/revocation.
+   await client.query('SELECT pg_advisory_xact_lock(hashtext($1),hashtext($2))',
+    [String(req.auth.schoolId),manilaDate()+':'+slot]);
    // The presenting teacher must be explicitly assigned by the school. This
    // endpoint intentionally fails closed until a separate authorization
    // workflow for rotating presenters is available.
