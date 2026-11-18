@@ -28,7 +28,8 @@
       '<h3>DAILY TIME RECORD</h3>'+
       '<div class="form48-employee">'+escapeHtml(data.displayName)+'</div>'+
       '<div class="form48-month">For the month of <strong>'+escapeHtml(month)+'</strong></div>'+
-      '<div class="form48-official-hours">Official hours for arrival and departure: <span class="form48-line"></span></div>'+
+      '<div class="form48-official-hours">Official hours for arrival and departure</div>'+ 
+      '<div class="form48-hours-grid"><span>Regular days: ________</span><span>Saturdays: ________</span></div>'+
       '<table class="form48-sheet"><thead>'+
        '<tr><th rowspan="2">Day</th><th colspan="2">A M</th><th colspan="2">P M</th><th colspan="2">UNDERTIME</th></tr>'+
        '<tr><th>Arrival</th><th>Departure</th><th>Arrival</th><th>Departure</th><th>Hours</th><th>Minutes</th></tr>'+
