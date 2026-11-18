@@ -181,7 +181,7 @@ window.attendigoStaffIdentity = new Promise(resolve => { resolveStaffIdentity = 
     if (role === 'SCHOOL_ADMIN') return ['dashboard', 'students', 'studentAccounts', 'parents', 'teachers', 'schedules', 'myGateAttendance', 'lunchQrAdmin', 'form48Reports', 'cloudSync', 'schoolBranding'];
     if (role === 'DEPARTMENT_HEAD') return ['dashboard', 'planner', 'students', 'teachers', 'schedules', 'sf2'];
     if (role === 'TEACHER') {
-      const views = ['dashboard', 'planner', 'myGateAttendance'];
+      const views = ['dashboard', 'planner', 'myGateAttendance', 'teacherLunchQr'];
       if (teacherHas('SUBJECT_TEACHER') || teacherHas('CLASS_ADVISER')) {
         views.push('students', 'studentAccounts', 'classAttendance');
       }
@@ -305,6 +305,7 @@ window.attendigoStaffIdentity = new Promise(resolve => { resolveStaffIdentity = 
         planner: ['My Planner', 'Plan lessons, tasks, personal meetings and reminders around assigned class schedules.'],
         schedules: ['My teaching and advisory schedules', 'View your assigned teaching periods, active substitute assignments, and advisory class timetable.'],
         sf2: [classAdviser && subjectTeacher ? 'My SF2 reports' : classAdviser ? 'Official section SF2' : 'Personal SF2 copy', classAdviser ? 'Generate the official consolidated section SF2 only for sections assigned to you as Class Adviser.' : 'Generate a personal attendance copy from your own subject-period records.'],
+        teacherLunchQr: ['My lunch QR', 'Generate your assigned rotating lunch QR; staff attendance is recorded only after individual confirmation.'],
         myGateAttendance: ['My Gate Attendance', 'View your own badge scans recorded by authorized gatekeepers.'],
         classAttendance: ['Class attendance', classAdviser && subjectTeacher ? 'Review your advisory section and the other sections covered by your assigned subject schedules.' : classAdviser ? 'Review attendance for your assigned advisory section.' : 'Review attendance in the sections covered by your assigned subject schedules.']
       };
@@ -466,6 +467,7 @@ window.attendigoStaffIdentity = new Promise(resolve => { resolveStaffIdentity = 
     }
     if ($('lunchQrAdminNav')) $('lunchQrAdminNav').hidden = !admin;
     if ($('form48ReportsNav')) $('form48ReportsNav').hidden = !admin;
+    if ($('teacherLunchQrNav')) $('teacherLunchQrNav').hidden = !teacher;
     if ($('myGateAttendanceNav')) {
       $('myGateAttendanceNav').hidden = !(teacher || admin);
       $('myGateAttendanceNav').querySelector('.nav-label').textContent = admin ? 'My Staff Attendance' : 'My Gate Attendance';
