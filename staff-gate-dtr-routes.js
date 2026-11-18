@@ -13,7 +13,7 @@ function registerStaffGateDtrRoutes(app,pool,{authenticateSchoolClient,requireSc
   const qrToken=String(req.body?.teacherQrToken||'').trim();
   const slot=String(req.body?.slot||'');
   if(!UUID.test(qrToken)||!DTR_SLOTS.includes(slot)||req.body?.photoVerified!==true)
-   return res.status(400).json({error:'A valid teacher badge, DTR slot, and confirmed photo match are required.'});
+   return res.status(400).json({error:'A valid staff badge, DTR slot, and confirmed photo match are required.'});
   if(req.auth?.type!=='SCHOOL_USER'||req.auth.role!=='GATE_KEEPER')
    return res.status(403).json({error:'Gatekeeper authentication required.'});
   const schoolId=req.auth.schoolId,keeperId=req.auth.userId,schoolDate=manilaDate();
@@ -28,12 +28,14 @@ function registerStaffGateDtrRoutes(app,pool,{authenticateSchoolClient,requireSc
    const teacher=await client.query(
     `SELECT user_id,display_name
      FROM school_users
-     WHERE school_id=$1 AND teacher_qr_token=$2 AND role='TEACHER'
-       AND active=TRUE AND teacher_photo_path IS NOT NULL
+     WHERE school_id=$1 AND teacher_qr_token=$2 AND role IN ('TEACHER','SCHOOL_ADMIN')
+       AND active=TRUE AND (teacher_photo_path IS NOT NULL OR EXISTS (
+         SELECT 1 FROM official_profile_photos p WHERE p.school_id=school_users.school_id
+           AND p.subject_kind='STAFF' AND p.subject_id=school_users.user_id::text))
      FOR SHARE`,[schoolId,qrToken]);
    if(!teacher.rowCount){
     await client.query('ROLLBACK');
-    return res.status(404).json({error:'An active teacher and registered photo are required.'});
+    return res.status(404).json({error:'An active school staff member and registered photo are required.'});
    }
    const teacherId=teacher.rows[0].user_id,eventId=randomUUID();
    const recorded=await client.query(
@@ -45,7 +47,7 @@ function registerStaffGateDtrRoutes(app,pool,{authenticateSchoolClient,requireSc
     [eventId,schoolId,teacherId,slot,schoolDate,keeperId,randomUUID()]);
    if(!recorded.rowCount){
     await client.query('ROLLBACK');
-    return res.status(409).json({error:'This teacher already has a verified DTR entry for that slot.',alreadyRecorded:true});
+    return res.status(409).json({error:'This staff member already has a verified DTR entry for that slot.',alreadyRecorded:true});
    }
    await client.query(
     `INSERT INTO staff_attendance_audit
