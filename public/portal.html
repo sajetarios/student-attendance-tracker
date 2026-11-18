@@ -7,7 +7,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="theme-color" content="#1c2d45">
   <title>Dashboard · Attendigo</title>
-  <link rel="stylesheet" href="/portal.css?v=0.9.114"><link rel="stylesheet" href="/parent-admin.css?v=7">
+  <link rel="stylesheet" href="/portal.css?v=0.9.115"><link rel="stylesheet" href="/parent-admin.css?v=7">
   <link rel="stylesheet" href="/schedule-mobile-layout.css?v=1">
   <link rel="stylesheet" href="/schedule-form-layout.css?v=12">
   <link rel="stylesheet" href="/teacher-assignment-modal.css?v=1">
@@ -857,7 +857,7 @@ body.dark-mode .content-wrap > .school-heading.is-compact,body[data-theme="dark"
               
               <p id="sf2ModeNote" class="attendance-summary-note" hidden></p>
               <div id="sf2Summary" class="learner-summary-grid" hidden></div>
-              <div class="table-scroll" id="sf2TableWrap" hidden><table><thead><tr><th>Learner</th><th>Sex</th><th>Attendance review</th></tr></thead><tbody id="sf2Rows"></tbody></table></div>
+              <p class="attendance-summary-note" id="sf2ScrollHelp">Scroll inside the attendance table to view every learner and date. Learner names and date headings stay visible.</p><div class="table-scroll" id="sf2TableWrap" role="region" aria-label="SF2 learner attendance table, scroll horizontally and vertically" tabindex="0" hidden><table><thead><tr><th>Learner</th><th>Sex</th><th>Attendance review</th></tr></thead><tbody id="sf2Rows"></tbody></table></div>
               <p class="attendance-summary-note">Official SF2: Present is left blank and confirmed Absent is marked X. Unresolved learner-days block submission. A Subject Teacher’s personal copy uses P and NR; NR is not an absence. Weekends are excluded, but school holidays and suspensions are not yet connected to a calendar.</p>
             </div>
             <div class="surface-card section-card" id="sf2SubmissionsCard" hidden>
