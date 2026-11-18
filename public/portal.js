@@ -494,10 +494,10 @@ window.attendigoStaffIdentity = new Promise(resolve => { resolveStaffIdentity = 
     if ($('teacherLunchQrNav')) $('teacherLunchQrNav').hidden = !teacher;
     if ($('myGateAttendanceNav')) {
       $('myGateAttendanceNav').hidden = !(teacher || admin);
-      $('myGateAttendanceNav').querySelector('.nav-label').textContent = 'My Attendance';
+      $('myGateAttendanceNav').querySelector('.nav-label').textContent = 'Gate Attendance & DTR';
     }
     if ($('adminStaffBadgeCard')) $('adminStaffBadgeCard').hidden = !(admin || teacher);
-    if ($('myGateHeading')) $('myGateHeading').textContent = 'My Attendance';
+    if ($('myGateHeading')) $('myGateHeading').textContent = 'Daily DTR & Gate Records';
     if ($('myGateIntro')) $('myGateIntro').textContent = admin
       ? 'Your personal, verified staff attendance. Sign-in to this portal does not mark you present.'
       : 'Review your official Form 48 punches alongside your verified physical gate scans.';
