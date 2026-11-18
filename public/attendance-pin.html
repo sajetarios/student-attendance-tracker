@@ -20,7 +20,7 @@
 <main><h1>Private Attendance PIN</h1>
 <p>Set or reset the six-digit PIN used when scanning your teacher's classroom QR. This PIN is separate from your student portal password.</p>
 <p><strong>Important:</strong> Never share your PIN. Your teacher will not ask to see it. Do not use your birthday or the last six digits of your student ID.</p>
-<form id="pinSetup">
+<form id="pinSetup" method="post" action="/api/class-qr/attendance-pin">
 <div class="field"><label for="currentPassword">Confirm your student portal password</label>
 <input id="currentPassword" type="password" autocomplete="current-password" minlength="12" maxlength="256" required></div>
 <div class="field"><label for="pin">New six-digit Attendance PIN</label>
