@@ -18,6 +18,7 @@ SELECT split_part(student_id, '-', 1)::int AS registration_year,
   FROM students
  WHERE student_id ~ '^[0-9]{4}-G(1[0-2]|[1-9])-[0-9]{3}$'
    AND split_part(student_id, '-', 1)::int BETWEEN 2000 AND 9999
+   AND split_part(student_id, '-', 3)::int BETWEEN 1 AND 999
  GROUP BY 1, 2
 ON CONFLICT(registration_year, registration_grade)
 DO UPDATE SET last_number = GREATEST(
