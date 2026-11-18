@@ -185,6 +185,22 @@
     finally{submit.disabled=false;document.getElementById('recoverNewPassword').value='';document.getElementById('recoverConfirmPassword').value='';}
   });
 
+  // Only auto-restore an existing student session when student mode was requested.
+  if(loginParams.get('mode')==='student'){
+    fetch('/api/auth/me',{credentials:'same-origin',cache:'no-store'}).then(async response=>{
+      if(!response.ok)return;
+      const data=await response.json();
+      if(data.user?.role!=='STUDENT'||data.user.mustChangePassword)return;
+      const returnTo=loginParams.get('returnTo');
+      if(returnTo){
+        const target=new URL(returnTo,location.origin);
+        if(target.origin===location.origin&&target.pathname==='/class-qr-checkin.html'){
+          location.replace(target.pathname+target.search);return;
+        }
+      }
+      location.replace('/student-portal.html');
+    }).catch(()=>{});
+  }
   // Do not auto-redirect merely because a session token exists. A previous
   // Parent session must not prevent a teacher or administrator from signing in.
 
