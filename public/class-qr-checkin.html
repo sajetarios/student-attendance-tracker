@@ -5,11 +5,12 @@
 <link rel="stylesheet" href="/attendigo-dark-unified.css?v=1"><script src="/dashboard-appearance.js?v=3"></script><link rel="stylesheet" href="/attendigo-brand-refresh.css?v=1">
   <link rel="preload" href="/fonts/InterVariable.woff2" as="font" type="font/woff2" crossorigin>
   <link rel="stylesheet" href="/typography.css?v=1">
-</head><body class="portal-page"><div class="attendigo-brand"><img class="attendigo-logo" src="/assets/attendigo-sidebar-logo.png?v=2" alt="Attendigo" width="1800" height="430"></div><main><h1>Class attendance</h1><p>Sign in to your student account before confirming your class check-in.</p><button id="checkin">Confirm attendance</button><p id="message" role="status">Ready to check in.</p><p><a id="studentSignIn" href="/portal-login.html?mode=student">Student sign in</a></p></main><script>
+</head><body class="portal-page"><div class="attendigo-brand"><img class="attendigo-logo" src="/assets/attendigo-sidebar-logo.png?v=2" alt="Attendigo" width="1800" height="430"></div><main><h1>Class attendance</h1><p>Sign in to your student account before confirming your class check-in.</p><button id="checkin">Confirm attendance</button><p id="message" role="status">Ready to check in.</p><p><a id="studentSignIn" href="/portal-login.html?mode=student">Sign in to confirm attendance</a></p><p><a id="leaveCheckin" href="/student-portal.html">Back to Student Dashboard</a></p></main><script>
 const q=new URLSearchParams(location.search),button=document.getElementById('checkin'),msg=document.getElementById('message');
 const pendingKey='schoolAttendance.pendingClassQr';
 if(q.get('sessionId')&&q.get('token'))sessionStorage.setItem(pendingKey,location.pathname+location.search);
 document.getElementById('studentSignIn').href='/portal-login.html?mode=student&returnTo='+encodeURIComponent(location.pathname+location.search);
+document.getElementById('leaveCheckin').addEventListener('click',()=>{sessionStorage.removeItem(pendingKey);});
 button.disabled=true;
 fetch('/api/auth/me',{cache:'no-store',credentials:'same-origin'}).then(async r=>{
   if(!r.ok)throw Error('Sign-in required');
