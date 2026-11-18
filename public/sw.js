@@ -1,7 +1,8 @@
-const CACHE = "attendigo-v208-form48-signatory-positions";
+const CACHE = "attendigo-v210-form48-signatory-density";
 
 const SHELL = [
   "/typography.css?v=1",
+  "/attendigo-workspace-density-theme.css?v=1",
   "/fonts/InterVariable.woff2",
   "/fonts/InterVariable-Italic.woff2",
   "/attendigo-brand-refresh.css?v=3",
