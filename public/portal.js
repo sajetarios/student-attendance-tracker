@@ -640,7 +640,7 @@ window.attendigoStaffIdentity = new Promise(resolve => { resolveStaffIdentity = 
     const academicsSubmenu = document.querySelector('[data-submenu="academics"]');
     if (academicsSubmenu && (teacher || departmentHead)) {
       const order = teacher
-        ? ['classAttendanceNav', 'myGateAttendanceNav', 'schedulesNav', 'plannerNav', 'sf2Nav']
+        ? ['classAttendanceNav', 'myGateAttendanceNav', 'teacherLunchQrNav', 'schedulesNav', 'plannerNav', 'sf2Nav']
         : ['schedulesNav', 'plannerNav', 'sf2Nav'];
       const orderedNodes = order.map(id => $(id)).filter(node => node && node.parentElement === academicsSubmenu);
       const currentNodes = Array.from(academicsSubmenu.children).filter(node => orderedNodes.includes(node));
@@ -659,6 +659,8 @@ window.attendigoStaffIdentity = new Promise(resolve => { resolveStaffIdentity = 
       const academicMenu = document.querySelector('.nav-submenu[data-submenu="academics"]');
       if (academicMenu && $('academicAdminNav') && academicMenu.firstElementChild !== $('academicAdminNav')) academicMenu.prepend($('academicAdminNav'));
       relocate('myGateAttendanceNav', 'operations');
+      relocate('lunchQrAdminNav', 'operations');
+      relocate('form48ReportsNav', 'reports');
       relocate('cloudSyncNav', 'operations');
       relocate('smsNav', 'operations');
       relocate('schoolBrandingNav', 'settings');
