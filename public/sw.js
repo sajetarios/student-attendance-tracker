@@ -53,6 +53,7 @@ const SHELL = [
   "/portal.js?v=192",
   "/staff-lunch-ui.js?v=3",
   "/staff-ob-ui.js?v=3",
+  "/staff-ob.css?v=1",
   "/staff-lunch.css?v=3",
   "/staff-lunch-checkin.js?v=3",
   "/sardo-monitor.js?v=2",
