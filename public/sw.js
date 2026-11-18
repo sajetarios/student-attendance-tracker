@@ -1,7 +1,8 @@
-const CACHE = "attendigo-v207-form48-monthly-review";
+const CACHE = "attendigo-v209-unified-density-dark";
 
 const SHELL = [
   "/typography.css?v=1",
+  "/attendigo-workspace-density-theme.css?v=1",
   "/fonts/InterVariable.woff2",
   "/fonts/InterVariable-Italic.woff2",
   "/attendigo-brand-refresh.css?v=3",
