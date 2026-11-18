@@ -2443,7 +2443,7 @@ app.post('/api/students', authenticateSchoolClient, requireSchoolAdminOrTeacher,
            WHERE students.school_id=EXCLUDED.school_id`;
       let result = { rowCount: 0 };
       for (let attempt = 0; attempt < (requestedStudentId ? 1 : 20); attempt++) {
-        if (!requestedStudentId) cleanStudentId = await nextStudentId(client, { year: registrationYear, gradeLevel: cleanGrade });
+        if (!requestedStudentId) cleanStudentId = await nextStudentId(client, { year: registrationYear });
         result = await client.query(
           `INSERT INTO students(school_id, student_id, lrn, full_name, grade_level, section,
                                parent_name, parent_mobile, sex, qr_token)

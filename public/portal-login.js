@@ -60,7 +60,7 @@
     schoolCode.required = mode !== 'platform';
     clearSchoolCodeError();
     const usernameInput = document.getElementById('username');
-    usernameInput.placeholder = isStudent ? 'Enter your Student ID or username' : 'Enter your username';
+    usernameInput.placeholder = isStudent ? 'Student ID (e.g. 26-00089 or 2600089)' : 'Enter your username';
     usernameInput.setAttribute('aria-label', isStudent ? 'Student ID or username' : 'Username');
     if (usernameLabel) { const nameText = usernameLabel.querySelector('span'); if (nameText) nameText.textContent = isStudent ? 'Student ID / username' : 'Username'; else usernameLabel.textContent = isStudent ? 'Student ID / username' : 'Username'; }
     if (accountTypeHint) accountTypeHint.textContent = isStudent
