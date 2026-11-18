@@ -1,0 +1,263 @@
+/* Attendigo shared desktop density + dark appearance, 2026-11-19.
+   Shared by staff, platform, learner and guardian dashboards.
+   Keep Inter type sizes, school-owned --brand/--sidebar, and official artwork intact.
+   Do not style printed DepEd reports or scanner/attendance business logic. */
+@media screen {
+  body.portal-page {
+    min-width:0;
+    overflow-x:clip;
+  }
+  body.portal-page :is(.main-area,.content-wrap,.student-page,.parent-page,.view-panel,.section-card,.surface-card) {
+    min-width:0;
+  }
+  body.portal-page :is(.table-scroll,.table-wrap,.manual-table-wrap,.sap-table-wrap) {
+    max-width:100%;
+    overflow-x:auto;
+    overscroll-behavior-x:contain;
+  }
+  body.portal-page :is(.section-toolbar,.card-heading,.view-heading) {
+    row-gap:8px;
+  }
+  body.portal-page :is(.field-group,.student-filter-row label) {
+    min-width:0;
+  }
+  body.portal-page :is(input:not([type="checkbox"]):not([type="radio"]),select,textarea) {
+    max-width:100%;
+  }
+}
+@media screen and (min-width:861px) {
+  /* Preserve the expanded-by-default sidebar and all role-based nav visibility. */
+  html body.portal-page .portal-layout:not(.sidebar-collapsed) {
+    grid-template-columns:236px minmax(0,1fr)!important;
+  }
+  html body.portal-page .portal-layout:not(.sidebar-collapsed) > #sidebar.sidebar {
+    width:236px!important;
+    min-width:236px!important;
+    padding:12px 10px 14px!important;
+  }
+  html body.portal-page .portal-layout:not(.sidebar-collapsed) #sidebar.sidebar :is(.nav-item,.nav-group-toggle) {
+    min-height:39px!important;
+    padding:8px 9px!important;
+    gap:9px!important;
+  }
+  html body.portal-page .portal-layout:not(.sidebar-collapsed) #sidebar.sidebar .nav-submenu .nav-item {
+    min-height:36px!important;
+  }
+  body.portal-page .topbar {
+    height:auto;
+    min-height:62px;
+    margin:12px 18px 0;
+    padding:8px 16px;
+    gap:12px;
+    border-radius:14px;
+  }
+  body.portal-page .topbar-right {gap:8px}
+  body.portal-page .content-wrap {
+    padding:16px 20px 26px;
+    max-width:1680px;
+  }
+  body.portal-page .content-wrap > .school-heading:not(.is-compact) {
+    padding:10px 16px!important;
+    gap:8px 14px!important;
+    margin-bottom:14px;
+    border-radius:14px;
+  }
+  body.portal-page .view-heading {margin-bottom:12px}
+  body.portal-page .view-heading :is(h2,p) {margin-top:0}
+  body.portal-page .section-card {padding:16px}
+  body.portal-page .stats-grid {gap:11px;margin-bottom:14px}
+  body.portal-page .stat-card {
+    min-height:116px;
+    padding:14px 16px;
+  }
+  body.portal-page .stat-card>strong {margin:8px 0 2px}
+  body.portal-page .learner-summary-card,
+  body.portal-page .sardo-card {padding:16px;margin-bottom:13px}
+  body.portal-page .dashboard-columns {gap:12px}
+  body.portal-page .dashboard-columns > .surface-card {padding:16px}
+  body.portal-page .dashboard-scan-cta {
+    min-height:108px;
+    padding:16px 20px;
+    gap:16px;
+    margin-bottom:14px;
+  }
+  body.portal-page .quick-card .quick-action {min-height:54px;padding:9px 11px}
+  body.portal-page .section-toolbar {gap:10px}
+  body.portal-page .section-toolbar p,
+  body.portal-page .card-heading p {margin-top:3px}
+  body.portal-page .form-grid {column-gap:12px;row-gap:12px}
+  body.portal-page .field-group {gap:5px}
+  body.portal-page .field-group :is(input,select) {
+    min-height:40px;
+  }
+  body.portal-page :is(.table-scroll,.parent-page,.student-page) :is(td,th) {
+    padding:10px 11px;
+  }
+  body.portal-page .parent-page {max-width:1320px;padding:20px 22px 30px}
+  body.portal-page .parent-card {padding:16px;margin-bottom:12px}
+  body.portal-page .child-card {padding:14px}
+  body.portal-page .student-page {max-width:1320px;padding:20px 22px 32px}
+  body.portal-page .student-card {padding:16px}
+}
+@media screen and (min-width:701px) and (max-width:860px) {
+  body.portal-page .topbar {min-height:60px;padding:7px 12px;margin:10px 12px 0;gap:8px}
+  body.portal-page .content-wrap {padding:14px 15px 22px}
+  body.portal-page .section-card {padding:14px}
+  body.portal-page .stats-grid {gap:10px}
+  body.portal-page .parent-page,
+  body.portal-page .student-page {padding:18px 16px 28px}
+}
+@media screen and (max-width:700px) {
+  /* Mobile remains readable: no browser zoom tricks or reduced text sizes. */
+  body.portal-page .content-wrap {padding:12px 12px 24px}
+  body.portal-page .section-card {padding:14px}
+  body.portal-page .stats-grid {gap:9px}
+  body.portal-page .parent-page,
+  body.portal-page .student-page {padding:16px 12px 28px}
+  body.portal-page .parent-card,
+  body.portal-page .student-card {padding:14px}
+}
+
+/* Dark mode: centralized, neutral surfaces; no mutation of school emblems or
+   status meaning. Theme applies only when the user's dashboard preference is dark. */
+@media screen {
+  html[data-ui-theme="dark"] {
+    --bg:#0b1220;
+    --card:#162337;
+    --ink:#eef4ff;
+    --muted:#b6c7dd;
+    --line:#38506b;
+    --ui-page:#0b1220;
+    --ui-panel:#162337;
+    --ui-panel-soft:#21334b;
+    --ui-panel-raised:#233750;
+    --ui-text:#eef4ff;
+    --ui-muted:#bfd0e5;
+    --ui-line:#38506b;
+    --ui-hover:#29415e;
+    --ui-shadow:0 12px 35px rgba(0,0,0,.23);
+    --night-bg:#0b1220;
+    --night-panel:#162337;
+    --night-raised:#233750;
+    --night-soft:#21334b;
+    --night-border:#38506b;
+    --night-text:#eef4ff;
+    --night-muted:#bfd0e5;
+    --night-focus:#a6d3ff;
+    --night-accent:#b4d8ff;
+    color-scheme:dark;
+  }
+  html[data-ui-theme="dark"] body.portal-page,
+  html[data-ui-theme="dark"] body.portal-page :is(.main-area,.content-wrap,.student-page,.parent-page) {
+    background:var(--ui-page)!important;
+    color:var(--ui-text);
+  }
+  html[data-ui-theme="dark"] body.portal-page :is(.topbar,.school-heading,.student-site-header) {
+    background:var(--ui-panel)!important;
+    border-color:var(--ui-line)!important;
+    color:var(--ui-text)!important;
+  }
+  /* The school-controlled sidebar and official emblem keep their original colors. */
+  html[data-ui-theme="dark"] body.portal-page :is(.content-wrap,.student-page,.parent-page) :is(
+    .surface-card,.section-card,.stat-card,.student-card,.parent-card,.child-card,
+    .student-summary-item,.student-profile-item,.parent-stat,.learner-summary-card,
+    .sardo-card,.learner-metric,.school-stat-card,.dashboard-card,.staff-accounts-card,
+    .adviser-assignments-card,.admin-monitoring-card,.dashboard-columns>.surface-card,
+    .platform-welcome,.timetable-setting-card,.timetable-editor-card,
+    .weekly-day-column,.schedule-form-section,.student-roster-toolbar,
+    .admin-management-tabs,.parent-grid>.parent-card,.planner-dashboard-widget
+  ) {
+    background:var(--ui-panel)!important;
+    border-color:var(--ui-line)!important;
+    color:var(--ui-text)!important;
+  }
+  html[data-ui-theme="dark"] body.portal-page :is(.content-wrap,.student-page,.parent-page) :is(
+    h1,h2,h3,h4,legend,.school-title-block,.card-heading strong,
+    .student-summary-item strong,.student-profile-item strong,.field-group label,
+    .section-toolbar h3,.view-heading h2,.account-summary strong
+  ) {color:var(--ui-text)!important}
+  html[data-ui-theme="dark"] body.portal-page :is(.content-wrap,.student-page,.parent-page) :is(
+    .eyebrow,.muted,.field-hint,.form-help,.table-subtext,.empty-cell,
+    .section-toolbar p,.card-heading p,.view-heading p,.parent-note,
+    .student-note,.student-profile-item span,.student-summary-item span
+  ) {color:var(--ui-muted)!important}
+  html[data-ui-theme="dark"] body.portal-page :is(
+    .filter-bar,.table-scroll,.table-wrap,.student-table,.teacher-attendance-table,
+    .parent-toolbar,.parent-search-label,.account-dropdown,.ui-appearance-panel,
+    .notification-dropdown,.universal-notice-popover,.planner-popover,
+    .modal-content,.dialog-content,.dialog-panel,.schedule-side-drawer,
+    .account-profile-dialog,.student-edit-dialog,.attendigo-schedule-edit-dialog,
+    .app-dialog-card,.guardian-panel,.photo-editor-dialog
+  ) {
+    background:var(--ui-panel)!important;
+    border-color:var(--ui-line)!important;
+    color:var(--ui-text)!important;
+  }
+  html[data-ui-theme="dark"] body.portal-page :is(
+    input:not([type="checkbox"]):not([type="radio"]):not([type="color"]):not([type="file"]),
+    select,textarea
+  ) {
+    background:var(--ui-panel-raised)!important;
+    border-color:var(--ui-line)!important;
+    color:var(--ui-text)!important;
+    color-scheme:dark;
+  }
+  html[data-ui-theme="dark"] body.portal-page :is(input,textarea)::placeholder {
+    color:#b6c8df!important;
+    opacity:1;
+  }
+  html[data-ui-theme="dark"] body.portal-page select option {
+    background:#1b2b42;color:#eef4ff;
+  }
+  html[data-ui-theme="dark"] body.portal-page :is(
+    .outline-button,.secondary-button,.filter-button,.compact-button,
+    .ui-theme-toggle,.ui-appearance-menu summary,.account-trigger,
+    .schedule-display-toggle button
+  ) {
+    background:var(--ui-panel-raised)!important;
+    border-color:var(--ui-line)!important;
+    color:var(--ui-text)!important;
+  }
+  html[data-ui-theme="dark"] body.portal-page :is(
+    .table-scroll,.table-wrap,.student-table,.teacher-attendance-table
+  ) :is(table,tbody,tr,td) {
+    border-color:var(--ui-line)!important;
+    color:var(--ui-text)!important;
+  }
+  html[data-ui-theme="dark"] body.portal-page :is(.table-scroll,.table-wrap,.student-table,.teacher-attendance-table) :is(th,thead) {
+    background:var(--ui-panel-soft)!important;
+    border-color:var(--ui-line)!important;
+    color:#d7e5f6!important;
+  }
+  html[data-ui-theme="dark"] body.portal-page :is(.table-scroll,.table-wrap) tbody tr:not(.active):hover td {
+    background:var(--ui-hover)!important;
+  }
+  html[data-ui-theme="dark"] body.portal-page :is(
+    .role-pill,.mini-tag,.parent-note,.student-note,.form-context-banner,
+    .scope-note,.attendance-summary-note,.account-menu-item:hover
+  ) {
+    background:var(--ui-panel-soft)!important;
+    border-color:var(--ui-line)!important;
+    color:var(--ui-text)!important;
+  }
+  html[data-ui-theme="dark"] body.portal-page .dashboard-scan-cta {
+    background:linear-gradient(120deg,#192a42,#213751)!important;
+    border-color:var(--ui-line)!important;
+  }
+  html[data-ui-theme="dark"] body.portal-page :is(.content-wrap,.student-page,.parent-page) a:not(.nav-item):not(.primary-button) {
+    color:#a8d0ff;
+  }
+  html[data-ui-theme="dark"] body.portal-page :is(button,input,select,textarea,a,summary):focus-visible {
+    outline:3px solid var(--night-focus)!important;
+    outline-offset:2px;
+  }
+  html[data-ui-theme="dark"] body.portal-page :is(.ui-theme-toggle,[data-dashboard-theme][aria-pressed="true"]) {
+    border-color:#789fc9!important;
+  }
+  html[data-ui-theme="dark"] body.portal-page :is(input[type="checkbox"],input[type="radio"]) {
+    accent-color:#8dc1ff;
+  }
+  html[data-ui-theme="dark"] body.portal-page :is(.account-dropdown,.ui-appearance-panel,dialog[open]) {
+    box-shadow:0 20px 48px rgba(0,0,0,.45);
+  }
+}
