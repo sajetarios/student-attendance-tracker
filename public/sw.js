@@ -1,4 +1,4 @@
-const CACHE = "attendigo-v195-lunch-presenter-and-sidebar";
+const CACHE = "attendigo-v197-staff-ob-dashboard";
 
 const SHELL = [
   "/typography.css?v=1",
@@ -52,6 +52,7 @@ const SHELL = [
   "/portal.css",
   "/portal.js?v=187",
   "/staff-lunch-ui.js?v=1",
+  "/staff-ob-ui.js?v=1",
   "/staff-lunch.css?v=1",
   "/staff-lunch-checkin.js?v=1",
   "/sardo-monitor.js?v=2",
