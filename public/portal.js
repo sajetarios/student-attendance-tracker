@@ -4982,12 +4982,23 @@ let teacherActionMenuListenersInstalled = false;
     try {
       const response = await api('/api/platform/storage');
       const data = response.storage;
+      const provider = ['Render','Supabase'].includes(data.provider) ? data.provider : 'Unverified PostgreSQL';
+      $('platformStorageProvider').textContent = 'Live database: ' + provider;
+      $('platformStorageMigration').textContent = provider === 'Render'
+        ? 'Supabase migration pending; the values below are from Render only.'
+        : provider === 'Supabase'
+        ? 'Live storage measurement from Supabase PostgreSQL.'
+        : 'Verify the database provider before interpreting these figures.';
+      $('platformStorageUsedExact').textContent = Number.isSafeInteger(data.usedBytes)
+        ? data.usedBytes.toLocaleString('en-PH') : '—';
       $('platformStorageUsed').textContent = formatStorageBytes(data.usedBytes);
       $('platformStorageLimit').textContent = data.limitBytes === null ? 'Not configured' : formatStorageBytes(data.limitBytes);
       $('platformStorageRemaining').textContent = data.remainingBytes === null ? 'Unknown' : formatStorageBytes(data.remainingBytes);
       $('platformStoragePercent').textContent = data.percentUsed === null ? '—' : data.percentUsed.toFixed(1) + '%';
       const ring = $('platformStorageRing');
-      ring.style.setProperty('--storage-pct', Math.min(100,Math.max(0,data.percentUsed || 0)) + '%');
+      const progress = Math.min(100,Math.max(0,data.percentUsed || 0));
+      ring.style.setProperty('--storage-pct', progress + '%');
+      $('platformStorageProgress').style.width = progress + '%';
       ring.style.setProperty('--storage-color', data.percentUsed >= 90 ? '#dc5260' : data.percentUsed >= 75 ? '#e4a23b' : '#2687c9');
       ring.setAttribute('aria-label',data.percentUsed === null ? 'Database used: ' + formatStorageBytes(data.usedBytes) + '; capacity not configured' : data.percentUsed + '% of configured database capacity used');
       note.textContent = data.limitBytes === null
@@ -4995,8 +5006,11 @@ let teacherActionMenuListenersInstalled = false;
         : data.percentUsed >= 90 ? 'Critical: database is approaching its configured capacity.'
         : data.percentUsed >= 75 ? 'Warning: database usage is above 75% of configured capacity.'
         : 'Database usage is within the configured capacity.';
+      if (data.limitBytes !== null) note.textContent += ' Remaining space is calculated against the configured threshold, not a provider-verified plan quota.';
       $('platformStorageUpdated').textContent = 'Updated ' + new Date(data.measuredAt).toLocaleString();
     } catch (error) {
+      $('platformStorageProvider').textContent = 'Live database: unavailable';
+      $('platformStorageMigration').textContent = 'No current measurement; previously shown values may be stale.';
       note.textContent = 'Unable to refresh database storage: ' + error.message;
     }
   }
