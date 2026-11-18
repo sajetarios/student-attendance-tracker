@@ -31,5 +31,5 @@ test('storage widget is within platform overview only', () => {
 test('new portal bundle matches offline shell', () => {
   assert.match(portal,/\/portal\.js\?v=199/);
   assert.match(worker,/"\/portal\.js\?v=199"/);
-  assert.match(worker,/attendigo-v225-platform-storage-analytics/);
+  assert.match(worker,/attendigo-v230-memorable-student-ids/);
 });
