@@ -31,7 +31,7 @@
     '<svg viewBox="0 0 24 24" width="21" height="21" fill="none" stroke="currentColor" stroke-width="1.9" aria-hidden="true"><path stroke-linejoin="round" stroke-linecap="round" d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9ZM10 21h4"/></svg>' +
     '<span class="universal-bell-count" hidden></span></button>' +
     '<section id="universalNotificationPanel" class="universal-panel" aria-label="Notifications" hidden>' +
-    '<div class="universal-panel-head"><div><strong>Notifications</strong><small>Requests, decisions and system updates</small></div>' +
+    '<div class="universal-panel-head"><div><strong>Notifications</strong><small>Requests, decisions and updates</small></div>' +
     '<button type="button" class="universal-refresh" aria-label="Refresh notifications" title="Refresh">↻</button></div>' +
     '<div class="universal-preview" role="status" aria-live="polite">Loading notifications…</div>' +
     '<p class="universal-feedback" role="status" aria-live="polite"></p>' +
@@ -76,6 +76,13 @@
     if (!iso) return '';
     const date = new Date(iso);
     return Number.isFinite(date.getTime()) ? date.toLocaleString(undefined, {dateStyle: 'medium', timeStyle: 'short'}) : '';
+  };
+  // Compact list timestamps; full date and year remain available in details and the title tooltip.
+  const fmtShort = iso => {
+    if (!iso) return '';
+    const date = new Date(iso);
+    return Number.isFinite(date.getTime())
+      ? date.toLocaleString(undefined, {month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit'}) : '';
   };
   function navigate(item) {
     const link = String(item.actionUrl || '');
@@ -186,11 +193,22 @@
       item.category === 'SYSTEM' ? '⚙' : item.category === 'APPROVAL' ? '⌛' : '●';
     button.append(text('span', 'universal-notice-icon', glyph));
     const content = text('span', 'universal-notice-content', '');
-    content.append(text('strong', null, item.title), text('small', null, item.body));
-    if (item.requestId) content.append(text('small', 'universal-request-reference', 'Request ' + item.requestId));
-    if (item.status) content.append(text('small', 'universal-request-status', item.status.replace(/_/g, ' ')));
-    content.append(text('time', null, fmt(item.updatedAt || item.createdAt)));
+    content.append(
+      text('strong', 'universal-notice-title', item.title),
+      text('small', 'universal-notice-excerpt', item.body)
+    );
+    const meta = text('span', 'universal-notice-meta', '');
+    // System events already state their action in the title; avoid repeating CREATED, etc.
+    if (item.status && item.category !== 'SYSTEM')
+      meta.append(text('span', 'universal-notice-tag', item.status.replace(/_/g, ' ')));
+    const stamp = text('time', 'universal-notice-time', fmtShort(item.updatedAt || item.createdAt));
+    stamp.dateTime = item.updatedAt || item.createdAt || '';
+    stamp.title = fmt(item.updatedAt || item.createdAt);
+    meta.append(stamp);
+    content.append(meta);
     button.append(content);
+    button.setAttribute('aria-label', 'View notification: ' + item.title);
+    button.title = 'Open full notification';
     button.addEventListener('click', () => openItem(item));
     const removeButton = text('button', 'universal-delete', '✕');
     removeButton.type = 'button';
@@ -215,7 +233,7 @@
       data = result.notifications || [];
       updateCount(result.unreadCount);
       nextOffset = result.nextOffset;
-      fillList(preview, data.slice(0, 5), 'You are all caught up.');
+      fillList(preview, data.slice(0, 6), 'You are all caught up.');
       if (modal && !modal.hidden) {
         fillList(modalList, data, 'No notifications match this filter.');
         modal.querySelector('.universal-load-more').hidden = nextOffset == null;

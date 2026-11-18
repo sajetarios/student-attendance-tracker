@@ -29,11 +29,11 @@ test('Notification delete actions appear in all three portals and retain approva
  const css=read('public/universal-notifications.css');
  const routes=read('notification-routes.js');
  for(const portal of ['public/portal.html','public/student-portal.html','public/parent-portal.html']) {
-  assert.match(read(portal),/\/universal-notifications\.js\?v=3/);
-  assert.match(read(portal),/\/universal-notifications\.css\?v=2/);
+  assert.match(read(portal),/\/universal-notifications\.js\?v=4/);
+  assert.match(read(portal),/\/universal-notifications\.css\?v=3/);
  }
- assert.match(read('public/sw.js'),/\/universal-notifications\.js\?v=3/);
- assert.match(read('public/sw.js'),/\/universal-notifications\.css\?v=2/);
+ assert.match(read('public/sw.js'),/\/universal-notifications\.js\?v=4/);
+ assert.match(read('public/sw.js'),/\/universal-notifications\.css\?v=3/);
  assert.match(js,/universal-delete-read/);
  assert.match(js,/universal-delete-read-center/);
  assert.match(js,/aria-label', 'Delete notification: '/);

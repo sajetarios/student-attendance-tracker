@@ -1,4 +1,4 @@
-const CACHE = "attendigo-v231-notification-delete";
+const CACHE = "attendigo-v232-compact-notification-center";
 
 const SHELL = [
   "/typography.css?v=1",
@@ -80,8 +80,8 @@ const SHELL = [
   "/account-directory.js?v=2",
   "/admin-request-notifications.js?v=5",
   "/admin-request-notifications.css?v=2",
-  "/universal-notifications.js?v=3",
-  "/universal-notifications.css?v=2",
+  "/universal-notifications.js?v=4",
+  "/universal-notifications.css?v=3",
   "/guardian-ui.js?v=6",
   "/guardian-ui.css?v=4",
   "/academic-admin.css?v=1",
