@@ -1,5 +1,6 @@
 const { hashPassword, verifyPassword, createOpaqueToken, hashToken } = require('./auth-security');
 const { createIpRateLimiter } = require('./request-limiter');
+const { canonicalStudentLoginUsername } = require('./generated-record-ids');
 
 function validString(value, max = 160) {
   return typeof value === 'string' && value.trim().length > 0 && value.trim().length <= max;
@@ -193,9 +194,11 @@ function registerAuthRoutes(app, pool) {
                 s.full_name, s.grade_level, s.section
          FROM student_accounts sa
          JOIN students s ON s.school_id=sa.school_id AND s.student_id=sa.student_id AND s.active=TRUE
-         WHERE sa.school_id=$1 AND lower(sa.username)=lower($2)
+         WHERE sa.school_id=$1
+           AND (lower(sa.username)=lower($2) OR lower(sa.username)=lower($3))
+         ORDER BY CASE WHEN lower(sa.username)=lower($2) THEN 0 ELSE 1 END
          LIMIT 1`,
-        [school.school_id, username.trim()]
+        [school.school_id, username.trim(), canonicalStudentLoginUsername(username)]
       );
       if (!accountResult.rowCount) return res.status(401).json({ error: 'Invalid login credentials.' });
       const account = accountResult.rows[0];
