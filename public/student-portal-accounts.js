@@ -24,10 +24,9 @@
   const MAX_TEACHER_REQUESTS = 100;
 
   async function api(url, options = {}) {
-    const token = sessionStorage.getItem('schoolAttendance.accessToken');
-    if (!token) throw new Error('Your school session has expired. Sign in again.');
+
     const headers = new Headers(options.headers || {});
-    headers.set('Authorization', 'Bearer ' + token);
+
     if (options.body && !headers.has('Content-Type')) headers.set('Content-Type', 'application/json');
     const response = await fetch(url, {...options, headers, cache: 'no-store'});
     const json = await response.json().catch(() => ({}));

@@ -6,10 +6,8 @@
   };
   // A shortcut is authorized by the current server session, never cached role data.
   remove();
-  const token = sessionStorage.getItem('schoolAttendance.accessToken');
-  if (!token) return;
+
   fetch('/api/auth/me', {
-    headers: { Authorization: 'Bearer ' + token },
     cache: 'no-store'
   }).then(async response => {
     if (!response.ok) return null;

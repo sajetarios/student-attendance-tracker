@@ -1,8 +1,8 @@
 (() => {
-  const token = sessionStorage.getItem('schoolAttendance.accessToken');
+
   const $ = id => document.getElementById(id); const esc = v => String(v ?? '').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-  if (!token) { location.replace('/portal-login.html'); return; }
-  async function api(url, options={}) { const headers = new Headers(options.headers||{}); headers.set('Authorization',`Bearer ${token}`); if(options.body) headers.set('Content-Type','application/json'); const r=await fetch(url,{...options,headers,cache:'no-store'}); const d=await r.json().catch(()=>({})); if(!r.ok) throw new Error(d.error||`Request failed (${r.status})`); return d; }
+
+  async function api(url, options={}) { const headers = new Headers(options.headers||{});  if(options.body) headers.set('Content-Type','application/json'); const r=await fetch(url,{...options,headers,cache:'no-store'}); const d=await r.json().catch(()=>({})); if(r.status===401){location.replace('/portal-login.html');throw Error('Session expired.');}if(!r.ok) throw new Error(d.error||`Request failed (${r.status})`); return d; }
   async function init(){ const me=await api('/api/auth/me'); if(me.user.role!=='SCHOOL_ADMIN'){ location.replace('/portal.html'); return; } await load(); }
   let currentTab='all', lastParents=[], lastRegistrations=[];
   const count = n => Number(n||0).toLocaleString('en-PH');

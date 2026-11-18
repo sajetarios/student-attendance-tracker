@@ -1,19 +1,18 @@
 /* Batch special-program requests and grouped approvals; all eligibility decisions are server enforced. */
-(() => {
+window.attendigoStaffIdentity.then(user => {
  'use strict';
  const $=id=>document.getElementById(id);
  const modal=$('specialProgramBatchModal'),groupHost=$('specialProgramBatchReviewList');
  if(!modal&&!groupHost)return;
- const user=(()=>{try{return JSON.parse(sessionStorage.getItem('schoolAttendance.user')||'null');}catch{return null;}})();
+
  const admin=user?.role==='SCHOOL_ADMIN';
  const canRequest=user?.role==='DEPARTMENT_HEAD'||(user?.role==='TEACHER'&&user.teacherDesignations?.includes('CLASS_ADVISER'));
  const esc=value=>String(value??'').replace(/[&<>"']/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));
  const validId=id=>/^[a-f0-9]{8}-[a-f0-9]{4}-[1-8][a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$/i.test(String(id||''));
  const api=async(path,options={})=>{
-   const token=sessionStorage.getItem('schoolAttendance.accessToken');
-   if(!token)throw Error('Your school session expired. Sign in again.');
+
    const response=await fetch(path,{...options,cache:'no-store',headers:{
-     Authorization:'Bearer '+token,...(options.body?{'Content-Type':'application/json'}:{}),...(options.headers||{})}});
+     ...(options.body?{'Content-Type':'application/json'}:{}),...(options.headers||{})}});
    const data=await response.json().catch(()=>({}));
    if(!response.ok)throw Error(data.error||'Unable to complete request.');
    return data;
@@ -253,4 +252,4 @@
  }
  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',start,{once:true});
  else start();
-})();
+});

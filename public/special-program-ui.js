@@ -1,16 +1,15 @@
 /* Attendigo special-program workflow — respects server-scoped roles and enrollment IDs. */
-(() => {
+window.attendigoStaffIdentity.then(user => {
   'use strict';
   const $=id=>document.getElementById(id);
   if(!$('studentRows')||!$('academicEnrollmentRows'))return;
-  const user=(()=>{try{return JSON.parse(sessionStorage.getItem('schoolAttendance.user')||'null');}catch{return null;}})();
+
   const role=user?.role,admin=role==='SCHOOL_ADMIN';
   const canRequest=role==='DEPARTMENT_HEAD'||(role==='TEACHER'&&user?.teacherDesignations?.includes('CLASS_ADVISER'));
   const esc=value=>String(value??'').replace(/[&<>"']/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));
   const api=async(path,options={})=>{
-    const token=sessionStorage.getItem('schoolAttendance.accessToken');
-    if(!token)throw Error('Sign in again to manage special programs.');
-    const r=await fetch(path,{...options,cache:'no-store',headers:{Authorization:'Bearer '+token,...(options.body?{'Content-Type':'application/json'}:{}),...(options.headers||{})}});
+
+    const r=await fetch(path,{...options,cache:'no-store',headers:{...(options.body?{'Content-Type':'application/json'}:{}),...(options.headers||{})}});
     const j=await r.json().catch(()=>({}));
     if(!r.ok)throw Error(j.error||'Request failed.');
     return j;
@@ -315,4 +314,4 @@
   };
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',()=>init().catch(console.error),{once:true});
   else init().catch(console.error);
-})();
+});

@@ -1,10 +1,10 @@
-(() => {
+window.attendigoStaffIdentity.then(user => {
   'use strict';
   const card = document.getElementById('sardoCard');
   if (!card) return;
-  const user = JSON.parse(sessionStorage.getItem('schoolAttendance.user') || '{}');
+
   if (!['SCHOOL_ADMIN', 'DEPARTMENT_HEAD'].includes(user.role)) return;
-  const token = sessionStorage.getItem('schoolAttendance.accessToken');
+
   const el = id => document.getElementById(id);
   const escape = value => String(value ?? '').replace(/[&<>"']/g, c =>
     ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -12,7 +12,7 @@
   const statusLabel = { OPEN: 'Needs action', CONTACTED: 'Contacted', MONITORING: 'Monitoring', RESOLVED: 'Resolved' };
   async function api(path, options = {}) {
     const response = await fetch(path, { ...options, cache: 'no-store',
-      headers: { Authorization: 'Bearer ' + token,
+      headers: {
         ...(options.body ? { 'Content-Type': 'application/json' } : {}) } });
     const data = await response.json().catch(() => ({}));
     if (!response.ok) throw new Error(data.error || 'Could not load SARDO records.');
@@ -50,7 +50,7 @@
       ? 'No matching cases in this filter.' : 'No confirmed SARDO cases in the monitoring window.'}</div>`;
   }
   async function refresh() {
-    if (loading || !token || card.hidden) return;
+    if (loading || card.hidden) return;
     loading = true;
     const refreshButton = el('sardoRefresh');
     if (refreshButton) refreshButton.disabled = true;
@@ -127,4 +127,4 @@
   el('sardoSearch')?.addEventListener('input', renderList);
   el('sardoShowResolved')?.addEventListener('change', renderList);
   window.AttendigoSardo = { refresh };
-})();
+});

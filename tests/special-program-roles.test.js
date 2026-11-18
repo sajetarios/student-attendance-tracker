@@ -67,7 +67,7 @@ test('all dashboards have usable role-appropriate program controls',()=>{
   assert.match(portal,/\/special-program-ui\.js\?v=\d+/);
   assert.match(portal,/\/special-program-ui\.css\?v=\d+/);
   assert.ok(studentPage.includes('studentSpecialProgramValue'));
-  assert.ok(parentPage.includes('/parent-portal.js?v=2'));
+  assert.match(parentPage,/\/parent-portal\.js\?v=\d+/);
   assert.ok(js.includes('student.specialProgramCode'));
   assert.ok(js.includes('special-program-chip'));
   assert.ok(ui.includes("api('/api/special-programs/requestable')"));
