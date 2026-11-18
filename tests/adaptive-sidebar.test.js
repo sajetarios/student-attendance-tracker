@@ -98,7 +98,7 @@ test('sidebar sync shortcut is removed, while topbar Sync Center and offline syn
  assert.ok(!html.includes('Connected to local server'));
 });
 test('the service worker caches the deployed variants and correct versioned sidebar assets',()=>{
- const assets=['/attendigo-sidebar-adaptive.css?v=15','/attendigo-sidebar-adaptive.js?v=9',
+ const assets=['/attendigo-sidebar-adaptive.css?v=16','/attendigo-sidebar-adaptive.js?v=9',
  '/attendigo-brand-refresh.css?v=3','/assets/attendigo-wordmark-on-light.svg?v=2',
  '/assets/attendigo-wordmark-on-dark.svg?v=2','/assets/attendigo-symbol-transparent.svg?v=2'];
  for(const asset of assets)assert.ok(worker.includes(JSON.stringify(asset)),asset);
@@ -111,6 +111,12 @@ test('collapsed desktop sidebar hides nested icons and expands when a group is s
  assert.match(css,/display:none!important/);
  assert.match(source,/sidebar\.addEventListener\?\.\('click'/);
  assert.match(source,/classList\.remove\('sidebar-collapsed'\)/);
- assert.match(html,/attendigo-sidebar-adaptive\.css\?v=15/);
+ assert.match(html,/attendigo-sidebar-adaptive\.css\?v=16/);
  assert.match(worker,/attendigo-sidebar-adaptive\.js\?v=9/);
+});
+
+test('desktop sidebar migration keeps a labeled default with compact uniform icons',()=>{
+ assert.match(css,/side-primary-height:44px/);
+ assert.match(html,/attendigo-sidebar-adaptive\\.css\\?v=16/);
+ assert.match(worker,/attendigo-sidebar-adaptive\\.css\\?v=16/);
 });
