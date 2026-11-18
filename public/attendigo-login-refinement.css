@@ -93,3 +93,23 @@
 .login-page #schoolCodeHint {display:block!important;margin:-3px 2px 0!important;color:#536586!important;font-size:12px!important;line-height:1.35!important;}
 .login-page #schoolCodeHint.error {color:#b42318!important;font-weight:650!important;}
 .login-page #schoolCode[aria-invalid="true"] {border-color:#c63d32!important;box-shadow:0 0 0 2px #c63d3222!important;}
+
+/* Compact account assistance: one subtle divider, two clear actions, and real security icon. */
+.login-page .login-assistance{width:100%;margin:17px 0 0;padding:15px 0 0;border-top:1px solid #dde5f2}
+.login-page .login-assistance-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));column-gap:20px;row-gap:12px}
+.login-page .login-assistance-item{min-width:0;display:flex;flex-direction:column;align-items:flex-start;gap:3px}
+.login-page .login-assistance-item[hidden]{display:none!important}
+.login-page .login-assistance-label{color:#5e6f8b;font-size:12px;font-weight:600;line-height:1.4}
+.login-page .login-assistance-action{display:inline-flex;align-items:center;gap:3px;min-height:27px;padding:2px 0;border:0;background:transparent;color:#3639a8!important;text-align:left;text-decoration:none!important;font-family:inherit;font-size:13px;font-weight:700!important;line-height:1.45;cursor:pointer}
+.login-page .login-assistance-action svg{width:15px;height:15px;flex:0 0 15px}
+.login-page .login-assistance-action:hover{text-decoration:underline!important;text-underline-offset:3px}
+.login-page .login-assistance-action:focus-visible{outline:3px solid #7db6eb;outline-offset:3px;border-radius:3px}
+.login-page .login-security-note{display:flex;align-items:flex-start;gap:8px;margin:14px 0 0!important;padding:11px 0 0;border-top:1px solid #e7edf6;color:#63738c;font-size:12px;line-height:1.5}
+.login-page .login-security-note svg{width:16px;height:16px;flex:0 0 16px;margin-top:1px;color:#6476a0}
+.login-page .login-assistance .school-admin-recovery-form{margin:16px 0 0}
+@media(max-width:480px){
+  .login-page .login-assistance{margin-top:14px;padding-top:13px}
+  .login-page .login-assistance-grid{grid-template-columns:minmax(0,1fr);row-gap:9px}
+  .login-page .login-assistance-item{gap:0}
+  .login-page .login-security-note{margin-top:12px!important}
+}

@@ -1,4 +1,4 @@
-const CACHE = "attendigo-v215-dtr-schedule-persistence";
+const CACHE = "attendigo-v216-login-assistance";
 
 const SHELL = [
   "/typography.css?v=1",
@@ -42,7 +42,7 @@ const SHELL = [
   "/teacher-assignment-modal.css?v=1",
   "/portal-login.html",
   "/attendigo-login-motion.css?v=2",
-  "/attendigo-login-refinement.css?v=3",
+  "/attendigo-login-refinement.css?v=4",
   "/portal.css?v=0.9.118",
   "/student-roster-toolbar.css?v=2",
   "/learner-roster-view.css?v=1",

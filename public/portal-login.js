@@ -53,6 +53,7 @@
     schoolCode.disabled = mode === 'platform';
     schoolCode.setAttribute('aria-hidden', String(mode === 'platform'));
     document.getElementById('schoolAdminRecoveryLink').hidden = mode !== 'school';
+    document.getElementById('parentRegistrationLink').hidden = !isSchool;
     document.getElementById('schoolAdminRecoveryForm').hidden = true;
     form.hidden = false;
     if (document.getElementById('firstPlatformSetupLink')) document.getElementById('firstPlatformSetupLink').hidden = mode !== 'platform';

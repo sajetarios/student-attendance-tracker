@@ -84,7 +84,7 @@
 <link rel="stylesheet" href="/attendigo-brand.css?v=2">
 <link rel="manifest" href="/manifest.webmanifest">
 <link rel="stylesheet" href="/attendigo-login-motion.css?v=2">
-<link rel="stylesheet" href="/attendigo-login-refinement.css?v=3">
+<link rel="stylesheet" href="/attendigo-login-refinement.css?v=4">
 <style id="superAdminLoginFix">#schoolCodeGroup[hidden],#schoolAdminRecoveryLink[hidden],#schoolAdminRecoveryForm[hidden]{display:none!important}.login-mode .mode-tab[aria-pressed="true"]{font-weight:800}</style>
 <link rel="stylesheet" href="/attendigo-brand-refresh.css?v=1">
   <link rel="preload" href="/fonts/InterVariable.woff2" as="font" type="font/woff2" crossorigin>
@@ -157,7 +157,21 @@
           <p class="form-feedback" id="loginFeedback" role="status" aria-live="polite">Preparing secure sign-in…</p>
           <noscript><p class="form-feedback error" role="alert">JavaScript is required for secure sign-in. Enable JavaScript and reload the page.</p></noscript>
         </form>
-        <div class="login-note" id="schoolAdminRecoveryLink"><button type="button" class="recovery-text-button" id="openSchoolAdminRecovery">School Admin: use recovery code / unlock account</button></div>
+        <div class="login-assistance" role="group" aria-label="Account assistance">
+          <div class="login-assistance-grid">
+            <div class="login-assistance-item" id="schoolAdminRecoveryLink">
+              <span class="login-assistance-label">School admin?</span>
+              <button type="button" class="recovery-text-button login-assistance-action" id="openSchoolAdminRecovery">Recover or unlock access <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9 18 6-6-6-6"/></svg></button>
+            </div>
+            <div class="login-assistance-item" id="parentRegistrationLink">
+              <span class="login-assistance-label">New parent or guardian?</span>
+              <a class="login-assistance-action" href="/parent-register.html">Create parent account <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9 18 6-6-6-6"/></svg></a>
+            </div>
+            <div class="login-assistance-item" id="firstPlatformSetupLink" hidden>
+              <span class="login-assistance-label">First time here?</span>
+              <a class="login-assistance-action" href="/platform-setup.html">Create Super Admin account <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9 18 6-6-6-6"/></svg></a>
+            </div>
+          </div>
         <form id="schoolAdminRecoveryForm" method="post" action="/api/auth/school/recover-admin" class="school-admin-recovery-form" hidden aria-labelledby="schoolAdminRecoveryTitle">
           <h3 id="schoolAdminRecoveryTitle">School Admin password recovery</h3>
           <p class="login-subtitle">Enter a one-time recovery code issued by your Super Admin, then choose a new password. The code is not a login password. A successful reset also removes a temporary account lock. Codes expire after 15 minutes and can be used once.</p>
@@ -170,9 +184,11 @@
           <button class="recovery-text-button" type="button" id="cancelSchoolAdminRecovery">Back to sign in</button>
           <p class="form-feedback" id="recoveryFeedback" role="status" aria-live="polite"></p>
         </form>
-        <p class="login-note"><a href="/parent-register.html">New parent? Register your account here.</a></p>
-        <p class="login-note" id="firstPlatformSetupLink" hidden><a href="/platform-setup.html">First time? Create your Super Admin account</a></p>
-        <div class="login-note"><span class="lock-icon">▣</span> Your account is protected by school-specific access controls.</div>
+          <p class="login-security-note">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="5" y="10" width="14" height="11" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg>
+            <span>Protected by school-specific access controls.</span>
+          </p>
+        </div>
       </div>
       <footer class="login-footer">Attendigo · Every learner counts.</footer>
     </section>
