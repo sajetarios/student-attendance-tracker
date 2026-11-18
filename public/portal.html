@@ -9,7 +9,7 @@
   <title>Dashboard · Attendigo</title>
   <link rel="stylesheet" href="/staff-lunch.css?v=3">
   <link rel="stylesheet" href="/staff-ob.css?v=1">
-  <link rel="stylesheet" href="/form48-report.css?v=4">
+  <link rel="stylesheet" href="/form48-report.css?v=5">
   <link rel="stylesheet" href="/portal.css?v=0.9.118"><link rel="stylesheet" href="/attendigo-brand-polish.css?v=2"><link rel="stylesheet" href="/parent-admin.css?v=7">
   <link rel="stylesheet" href="/schedule-mobile-layout.css?v=1">
   <link rel="stylesheet" href="/schedule-form-layout.css?v=12">
@@ -1618,6 +1618,43 @@ body.dark-mode .content-wrap > .school-heading.is-compact,body[data-theme="dark"
                 <button type="submit" class="primary-button">Generate preview</button>
                 <button type="button" id="form48Print" class="outline-button" disabled>Print / Save PDF</button>
               </form>
+              <div class="form48-tools">
+                <label for="form48EmployeeSearch">Find employee
+                  <input id="form48EmployeeSearch" type="search" autocomplete="off" placeholder="Search staff by name or role">
+                </label>
+                <button id="form48BatchToggle" type="button" class="outline-button" aria-expanded="false" aria-controls="form48BatchPanel">Bulk actions &amp; reports</button>
+                <button id="form48SaveSchoolDefaults" type="button" class="outline-button" disabled>Save signatories &amp; schedule as school defaults</button>
+              </div>
+              <section id="form48BatchPanel" class="form48-batch-panel" hidden aria-label="Batch staff attendance actions">
+                <div class="form48-batch-heading"><h4>Bulk actions</h4><p>Select employees once. Approved leave is recorded by date range, not day by day.</p></div>
+                <div class="form48-batch-chooser">
+                  <label for="form48BatchSearch">Search selected group<input id="form48BatchSearch" type="search" autocomplete="off" placeholder="Filter staff names"></label>
+                  <div class="form48-batch-pick">
+                    <button type="button" id="form48BatchSelectVisible" class="outline-button">Select visible</button>
+                    <button type="button" id="form48BatchClear" class="outline-button">Clear selection</button>
+                    <span id="form48BatchCount">0 selected</span>
+                  </div>
+                  <div id="form48BatchStaff" class="form48-batch-staff" role="group" aria-label="Choose employees for batch processing"></div>
+                </div>
+                <div class="form48-batch-fields">
+                  <label>Approved leave type
+                    <select id="form48LeaveType"><option value="MATERNITY">Maternity</option><option value="PATERNITY">Paternity</option><option value="SICK">Sick</option><option value="VACATION">Vacation</option><option value="OTHER">Other authorized leave</option></select>
+                  </label>
+                  <label>Leave starts<input id="form48LeaveStart" type="date"></label>
+                  <label>Leave ends<input id="form48LeaveEnd" type="date"></label>
+                  <label>Approval / Form 6 reference<input id="form48LeaveReference" type="text" maxlength="120" placeholder="Authorized document number"></label>
+                </div>
+                <label class="form48-batch-attest"><input type="checkbox" id="form48LeaveCertified"> I confirm these leave dates are already approved and documented; this action does not approve a leave application.</label>
+                <div class="form48-batch-actions">
+                  <button type="button" class="primary-button" id="form48BatchRecordLeave">Record approved leave for selected staff</button>
+                  <button type="button" class="outline-button" id="form48BatchPrint">Generate selected DTR previews</button>
+                </div>
+                <p class="field-hint" id="form48BatchStatus" role="status" aria-live="polite">Select employees to begin. Reports never invent missing punches or signatures.</p>
+                <div class="form48-leave-records">
+                  <div class="form48-batch-pick"><strong>Previously recorded approved leave</strong><button type="button" class="outline-button" id="form48RefreshLeaves">Refresh list</button></div>
+                  <div id="form48LeaveRecords" class="form48-leave-record-list" aria-live="polite">Choose a month to view current records.</div>
+                </div>
+              </section>
               <div id="form48ReportSettings" class="form48-settings-panel" hidden>
                 <div class="form48-signatory-heading">
                   <h4>Report certification</h4>
@@ -1964,7 +2001,8 @@ body.dark-mode .content-wrap > .school-heading.is-compact,body[data-theme="dark"
   <script src="/portal.js?v=193" defer></script>
   <script src="/staff-lunch-ui.js?v=3" defer></script>
   <script src="/staff-ob-ui.js?v=4" defer></script>
-  <script src="/form48-report.js?v=3" defer></script>
+  <script src="/form48-report.js?v=4" defer></script>
+  <script src="/form48-bulk-ui.js?v=2" defer></script>
   <script src="/teacher-roster-popover.js?v=2" defer></script>
   <script src="/sardo-monitor.js?v=2" defer></script><script src="/parent-dashboard.js?v=3" defer></script>
   <script src="/platform-plans-ui.js?v=8" defer></script>

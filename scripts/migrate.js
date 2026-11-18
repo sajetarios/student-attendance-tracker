@@ -61,7 +61,8 @@ const REQUIRED_MIGRATIONS = [
   '053_multi_department_lunch_presenters.sql',
   '054_ob_notification_lifecycle.sql',
   '055_staff_form48_monthly_reviews.sql',
-  '056_form48_signatory_positions.sql'
+  '056_form48_signatory_positions.sql',
+  '057_staff_form48_school_defaults_and_leaves.sql'
 ];
 
 function checksum(content) {
