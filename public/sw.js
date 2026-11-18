@@ -1,4 +1,4 @@
-const CACHE = "attendigo-v185-sf2-freeze-scroll";
+const CACHE = "attendigo-v186-shared-default-avatar";
 
 const SHELL = [
   "/typography.css?v=1",
@@ -27,7 +27,7 @@ const SHELL = [
   "/attendigo-dark-unified.css?v=1",
   "/dashboard-polish.css?v=2",
   "/photo-editor.css?v=2",
-  "/photo-editor.js?v=9",
+  "/photo-editor.js?v=10",
   "/session-guard.js?v=4",
   "/flicker-diagnostics.js?v=1",
   "/school-header-responsive.js?v=2",
@@ -49,7 +49,7 @@ const SHELL = [
   "/class-qr-dashboard-link.js?v=7",
   "/teacher-roster-popover.js?v=2",
   "/portal.css",
-  "/portal.js?v=182",
+  "/portal.js?v=183",
   "/sardo-monitor.js?v=2",
   "/sardo-monitor.css?v=1",
   "/schedule-form-layout.css?v=12",
