@@ -19,12 +19,12 @@ test('School Administrator dashboard includes learner, staff, schedule, and SF2 
   for (const view of ['students', 'teachers', 'schedules', 'sf2']) {
     assert.match(portalHtml, new RegExp(`data-go="${view}"`));
   }
-  assert.match(portalJs, /if \(role === 'SCHOOL_ADMIN'\) return \['dashboard', 'students', 'studentAccounts', 'parents', 'teachers', 'schedules', 'myGateAttendance', 'lunchQrAdmin', 'form48Reports', 'cloudSync', 'schoolBranding'\]/);
+  assert.match(portalJs, /if \(role === 'SCHOOL_ADMIN'\) return \['dashboard', 'students', 'studentAccounts', 'parents', 'teachers', 'schedules', 'myGateAttendance', 'lunchQrAdmin', 'form48Reports', 'officialBusiness', 'cloudSync', 'schoolBranding'\]/);
   assert.match(server, /app\.post\('\/api\/school-users', authenticateSchoolClient, requireSchoolAdmin/);
 });
 
 test('Department Head dashboard has school monitoring pages and read-only SF2 submission monitoring', () => {
-  assert.match(portalJs, /if \(role === 'DEPARTMENT_HEAD'\) return \['dashboard', 'planner', 'students', 'teachers', 'schedules', 'sf2'\]/);
+  assert.match(portalJs, /if \(role === 'DEPARTMENT_HEAD'\) return \['dashboard', 'planner', 'students', 'teachers', 'schedules', 'sf2', 'officialBusiness'\]/);
   assert.match(portalJs, /sf2SubmissionsCard'\)\) \$\('sf2SubmissionsCard'\)\.hidden = admin \|\| !departmentHead/);
   assert.match(portalJs, /item\.status === 'SUBMITTED' && user\?\.role === 'SCHOOL_ADMIN'/);
   assert.match(sf2Routes, /app\.get\('\/api\/sf2\/submissions', authenticateSchoolClient, requireSchoolAdminOrDepartmentHead/);
