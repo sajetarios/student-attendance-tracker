@@ -142,12 +142,18 @@
   const renderReviews=analysis=>{
    const list=(analysis.assessments||[]).filter(a=>
     a.status==='MISSING_REVIEW'||a.status==='CONFIRMED_ABSENT'||a.status==='EXCUSED'||
-    a.status==='APPROVED_OB_REVIEW'||a.status==='LEAVE_REVIEW');
+    a.status==='APPROVED_OB_REVIEW'||a.status==='LEAVE_REVIEW'||
+    a.status==='INCOMPLETE_DTR'||a.status==='TIME_SLOT_REVIEW'||a.status==='LEAVE_PUNCH_CONFLICT');
    reviewHost.hidden=!list.length;
    reviewHost.innerHTML=list.length?'<h4>Review missing workdays</h4>'+
     '<p>Absence is counted only after School Admin confirmation. For leave or approved OB, choose Excused.</p>'+
     '<div class="form48-review-list">'+list.map(item=>{
      const selected=state.review?.dayReviews?.[item.date]||'PENDING';
+     const recordReview=['INCOMPLETE_DTR','TIME_SLOT_REVIEW','LEAVE_PUNCH_CONFLICT'].includes(item.status);
+     if(recordReview)return '<label>'+esc(item.date)+' · '+
+      (item.status==='TIME_SLOT_REVIEW'?'Recorded scan outside prescribed time slot':
+       item.status==='LEAVE_PUNCH_CONFLICT'?'Approved leave overlaps verified punches':'Incomplete verified DTR punches')+
+      '<span class="form48-record-review">Requires evidence review. Punches remain unchanged.</span></label>';
      return '<label>'+esc(item.date)+
       (item.approvedOB?' · Approved OB':item.leaveDay?' · Recorded leave':' · No verified DTR punches')+
       '<select data-form48-review="'+esc(item.date)+'">'+
@@ -182,9 +188,10 @@
     output.hidden=false;button.disabled=false;
     renderReviews(analysis);
     const sum=analysis.summary;
-    status('Draft: '+sum.daysPresent+' present, '+sum.daysAbsent+' confirmed absent, '+
+    status('Draft: '+sum.daysPresent+' days with verified punches ('+sum.partialRecordDays+' incomplete), '+sum.daysAbsent+' confirmed absent, '+
       sum.pendingAbsentDays+' missing day(s) for review; tardy '+duration(sum.tardyMinutes)+
-      ', undertime '+duration(sum.undertimeMinutes)+'.');
+      ', undertime '+duration(sum.undertimeMinutes)+
+      (sum.timeAnomalyDays?', '+sum.timeAnomalyDays+' unexpected time slot(s) need review':'')+'.');
    }catch(e){status(e.message,true);}
    finally{state.loading=false;submit.disabled=false;}
   }
