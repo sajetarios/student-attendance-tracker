@@ -36,7 +36,10 @@ function registerAuthRoutes(app, pool) {
   function setStaffCookie(res,token){
     const previous=res.getHeader('Set-Cookie');
     const cookies=Array.isArray(previous)?previous:previous?[previous]:[];
-    res.setHeader('Set-Cookie',[...cookies.filter(x=>!String(x).startsWith(staffCookie+'=')),staffCookie+'='+token+'; Path=/; HttpOnly; Secure; SameSite=Lax']);
+    // A persistent HttpOnly cookie survives a browser restart, but never outlives
+    // the server-side session. Logout and revocation still invalidate the token.
+    const maxAgeSeconds = Math.floor(sessionHours * 60 * 60);
+    res.setHeader('Set-Cookie',[...cookies.filter(x=>!String(x).startsWith(staffCookie+'=')),staffCookie+'='+token+'; Path=/; HttpOnly; Secure; SameSite=Lax; Max-Age='+maxAgeSeconds]);
   }
   
   const cookieOptions='Path=/; HttpOnly; Secure; SameSite=Lax';
