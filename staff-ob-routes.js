@@ -53,6 +53,27 @@ function registerStaffObRoutes(app,pool,{authenticateSchoolClient,requireSchoolR
    return res.json({coverage:result.rows});
   }catch(e){return respondError(res,e);}
  });
+ app.get('/api/staff-attendance/official-business/:id/coverage/:coverageId/substitutes',
+  authenticateSchoolClient,requireSchoolRoles('DEPARTMENT_HEAD'),async(req,res)=>{
+   res.set('Cache-Control','no-store, private');
+   if(!uuid.test(req.params.id)||!uuid.test(req.params.coverageId)||!req.auth.departmentId)
+    return res.status(400).json({error:'Valid OB request, coverage, and department required.'});
+   try{
+    const result=await pool.query(`
+      SELECT u.user_id AS "userId",u.display_name AS "displayName"
+      FROM staff_ob_class_coverage c
+      JOIN staff_official_business_requests o ON o.school_id=c.school_id
+       AND o.request_id=c.request_id
+      JOIN school_users u ON u.school_id=c.school_id AND u.department_id=o.department_id
+      WHERE c.school_id=$1 AND c.request_id=$2 AND c.coverage_id=$3
+       AND o.department_id=$4 AND o.status='APPROVED' AND c.status='NEEDS_COVERAGE'
+       AND u.role='TEACHER' AND u.active=TRUE
+       AND u.user_id<>o.staff_user_id AND u.user_id<>$5
+      ORDER BY u.display_name,u.user_id LIMIT 150`,
+      [req.auth.schoolId,req.params.id,req.params.coverageId,req.auth.departmentId,req.auth.userId]);
+    return res.json({substitutes:result.rows});
+   }catch(e){return respondError(res,e);}
+  });
  app.post('/api/staff-attendance/official-business/:id/coverage/:coverageId/substitute',
   authenticateSchoolClient,requireSchoolRoles('DEPARTMENT_HEAD'),async(req,res)=>{
    res.set('Cache-Control','no-store, private');

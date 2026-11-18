@@ -94,13 +94,32 @@
           const button=document.createElement('button');button.type='button';button.className='outline-button';
           button.textContent='Assign substitute';
           button.addEventListener('click',async()=>{
-           const substituteUserId=window.prompt('Enter the active teacher user ID from your department:');
-           if(!substituteUserId)return;
+           const basePath=api+'/'+encodeURIComponent(ob.requestId)+'/coverage/'+encodeURIComponent(coverage.coverageId);
            button.disabled=true;
            try{
-            await call(api+'/'+encodeURIComponent(ob.requestId)+'/coverage/'+
-             encodeURIComponent(coverage.coverageId)+'/substitute','POST',{substituteUserId:substituteUserId.trim()});
-            say('Substitute assigned and audited.');target.hidden=true;item.querySelector('.staff-ob-coverage').replaceChildren();
+            const data=await call(basePath+'/substitutes');
+            const candidates=Array.isArray(data.substitutes)?data.substitutes:[];
+            if(!candidates.length){say('No active department teachers available for selection.',true);return;}
+            line.querySelector('.staff-ob-picker')?.remove();
+            const picker=document.createElement('div');picker.className='staff-ob-picker';
+            const select=document.createElement('select');select.setAttribute('aria-label','Select substitute teacher');
+            const placeholder=document.createElement('option');placeholder.value='';placeholder.textContent='Select a department teacher';select.append(placeholder);
+            candidates.forEach(person=>{
+             const option=document.createElement('option');option.value=person.userId;option.textContent=person.displayName||'Teacher';
+             select.append(option);
+            });
+            const confirm=document.createElement('button');confirm.type='button';confirm.className='primary-button';
+            confirm.textContent='Confirm substitute';confirm.disabled=true;
+            select.addEventListener('change',()=>{confirm.disabled=!select.value;});
+            confirm.addEventListener('click',async()=>{
+             if(!select.value)return;
+             confirm.disabled=true;select.disabled=true;
+             try{
+              await call(basePath+'/substitute','POST',{substituteUserId:select.value});
+              say('Substitute assigned and audited.');target.hidden=true;target.replaceChildren();
+             }catch(e){say(e.message,true);confirm.disabled=false;select.disabled=false;}
+            });
+            picker.append(select,confirm);line.append(picker);
            }catch(e){say(e.message,true);}finally{button.disabled=false;}
           });
           line.append(button);
@@ -120,7 +139,7 @@
    const form=event.currentTarget;
    if(!form.reportValidity())return;
    const values=new FormData(form);
-   const toManilaIso=s=>new Date(s+':00+08:00').toISOString();
+   const toManilaIso=s=>{const value=new Date(s+':00+08:00');if(!Number.isFinite(value.getTime()))throw Error('Invalid date');return value.toISOString();};
    let body;
    try{body={purpose:String(values.get('purpose')).trim(),destination:String(values.get('destination')).trim(),
     startsAt:toManilaIso(String(values.get('startsAt'))),endsAt:toManilaIso(String(values.get('endsAt')))};}

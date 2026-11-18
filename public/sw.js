@@ -1,4 +1,4 @@
-const CACHE = "attendigo-v197-staff-ob-dashboard";
+const CACHE = "attendigo-v198-ob-integration";
 
 const SHELL = [
   "/typography.css?v=1",
@@ -13,7 +13,7 @@ const SHELL = [
   "/assets/attendigo-wordmark-on-dark.svg?v=2",
   "/assets/attendigo-wordmark-on-light.svg?v=2",
   "/assets/attendigo-symbol-transparent.svg?v=2",
-  "/attendigo-sidebar-adaptive.css?v=17",
+  "/attendigo-sidebar-adaptive.css?v=18",
   "/user-nav-reorg.css?v=1",
   "/attendigo-sidebar-adaptive.js?v=9",
   "/assets/attendigo-logo.png?v=2",
@@ -50,9 +50,9 @@ const SHELL = [
   "/class-qr-dashboard-link.js?v=7",
   "/teacher-roster-popover.js?v=2",
   "/portal.css",
-  "/portal.js?v=187",
+  "/portal.js?v=188",
   "/staff-lunch-ui.js?v=1",
-  "/staff-ob-ui.js?v=1",
+  "/staff-ob-ui.js?v=2",
   "/staff-lunch.css?v=1",
   "/staff-lunch-checkin.js?v=1",
   "/sardo-monitor.js?v=2",

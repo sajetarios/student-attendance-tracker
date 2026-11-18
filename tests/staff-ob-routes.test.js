@@ -140,3 +140,18 @@ test('schema enforces immutable audit, department FKs, status transitions and ap
  assert.match(code,/COMMIT/);
  assert.match(code,/staff_user_id<>\$3/);
 });
+
+test('substitute choices are restricted to approved uncovered classes and active departmental teachers',async()=>{
+ const f=fixture('DEPARTMENT_HEAD','dept1');
+ const id='a6831ee2-24db-42b2-9d27-39d130eb11f1';
+ const coverageId='b6831ee2-24db-42b2-9d27-39d130eb11f1';
+ const url='/api/staff-attendance/official-business/:id/coverage/:coverageId/substitutes';
+ assert.equal((await f.call('GET',url,{}, {id,coverageId})).code,200);
+ const sql=f.queries[0];
+ assert.match(sql.sql,/o.department_id=\\$4/);
+ assert.match(sql.sql,/u.role='TEACHER' AND u.active=TRUE/);
+ assert.match(sql.sql,/c.status='NEEDS_COVERAGE'/);
+ assert.match(sql.sql,/o.status='APPROVED'/);
+ assert.deepEqual(sql.params,['s1',id,coverageId,'dept1','u1']);
+ assert.equal((await fixture('TEACHER').call('GET',url,{}, {id,coverageId})).code,403);
+});

@@ -15,6 +15,12 @@ test('staff OB dashboard initializes only for authorized roles and uses same-ori
  assert.match(portal,/staff-ob-ui\.js\?v=1/);
  assert.match(sw,/staff-ob-ui\.js\?v=1/);
 });
+test('substitute picker uses department-filtered names instead of manual user IDs',()=>{
+ assert.match(ui,/basePath\+'\\/substitutes'/);
+ assert.match(ui,/Select a department teacher/);
+ assert.match(ui,/Confirm substitute/);
+ assert.doesNotMatch(ui,/Enter the active teacher user ID/);
+});
 test('OB UI escapes API-provided fields and does not store private data in browser storage',()=>{
  assert.match(ui,/const esc=s=>/);
  assert.match(ui,/esc\(ob\.purpose\)/);
