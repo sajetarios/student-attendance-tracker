@@ -1,4 +1,4 @@
-const CACHE = "attendigo-v227-automatic-record-ids";
+const CACHE = "attendigo-v228-year-grade-student-ids";
 
 const SHELL = [
   "/typography.css?v=1",
@@ -52,7 +52,7 @@ const SHELL = [
   "/class-qr-dashboard-link.js?v=9",
   "/teacher-roster-popover.js?v=2",
   "/portal.css",
-  "/portal.js?v=197",
+  "/portal.js?v=198",
   "/department-workspace.css?v=1",
   "/department-workspace.js?v=1",
   "/form48-report.js?v=7",
