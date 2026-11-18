@@ -178,7 +178,7 @@ window.attendigoStaffIdentity = new Promise(resolve => { resolveStaffIdentity = 
 
   function allowedViewsForUser() {
     const role = user?.role;
-    if (role === 'SCHOOL_ADMIN') return ['dashboard', 'students', 'studentAccounts', 'parents', 'teachers', 'schedules', 'cloudSync', 'schoolBranding'];
+    if (role === 'SCHOOL_ADMIN') return ['dashboard', 'students', 'studentAccounts', 'parents', 'teachers', 'schedules', 'myGateAttendance', 'cloudSync', 'schoolBranding'];
     if (role === 'DEPARTMENT_HEAD') return ['dashboard', 'planner', 'students', 'teachers', 'schedules', 'sf2'];
     if (role === 'TEACHER') {
       const views = ['dashboard', 'planner', 'myGateAttendance'];
@@ -318,7 +318,8 @@ window.attendigoStaffIdentity = new Promise(resolve => { resolveStaffIdentity = 
         teachers: ['User management', 'Create and update school accounts, assign role-based access, manage departments, and disable or restore account access.'],
         sf2: ['SF2 Report Generator', 'Generate the monthly TUVERA SF2 and collect official reports submitted by Class Advisers.'],
         cloudSync: ['Cloud Sync', 'Forward accepted attendance records to your authenticated cloud server.'],
-        schoolBranding: ['School identity', 'Manage the name, logo, and interface accent color for your school workspace.']
+        schoolBranding: ['School identity', 'Manage the name, logo, and interface accent color for your school workspace.'],
+        myGateAttendance: ['My Staff Attendance', 'View your own Gatekeeper-verified physical movements and four-slot Form 48 DTR. Administrative login does not record attendance.']
       };
     }
     const title = titles[view] || ['Dashboard', 'Attendance overview.'];
@@ -328,7 +329,7 @@ window.attendigoStaffIdentity = new Promise(resolve => { resolveStaffIdentity = 
     if (view === 'parents') $('parentsView')?.dispatchEvent(new Event('parent:open'));
     if (view === 'planner') $('plannerView')?.dispatchEvent(new Event('planner:open'));
     if (view === 'dashboard' && ['TEACHER','DEPARTMENT_HEAD'].includes(role)) $('plannerView')?.dispatchEvent(new Event('planner:dashboard'));
-    if (view === 'myGateAttendance' && role === 'TEACHER') loadMyGateAttendance();
+    if (view === 'myGateAttendance' && ['TEACHER', 'SCHOOL_ADMIN'].includes(role)) loadMyGateAttendance();
     if (view === 'classAttendance' && role === 'TEACHER') {
       loadTeacherClassAttendance().catch(error => {
         if ($('teacherAttendanceFeedback')) {
@@ -461,7 +462,15 @@ window.attendigoStaffIdentity = new Promise(resolve => { resolveStaffIdentity = 
       $('classAttendanceNav').querySelector('.nav-label').textContent =
         classAdviser && subjectTeacher ? 'Class attendance' : classAdviser ? 'My advisory attendance' : 'My class attendance';
     }
-    if ($('myGateAttendanceNav')) $('myGateAttendanceNav').hidden = !teacher;
+    if ($('myGateAttendanceNav')) {
+      $('myGateAttendanceNav').hidden = !(teacher || admin);
+      $('myGateAttendanceNav').querySelector('.nav-label').textContent = admin ? 'My Staff Attendance' : 'My Gate Attendance';
+    }
+    if ($('adminStaffBadgeCard')) $('adminStaffBadgeCard').hidden = !admin;
+    if ($('myGateHeading')) $('myGateHeading').textContent = admin ? 'My Staff Attendance' : 'My Gate Attendance';
+    if ($('myGateIntro')) $('myGateIntro').textContent = admin
+      ? 'Your personal, verified staff attendance. Sign-in to this portal does not mark you present.'
+      : 'Your own time-in and time-out recorded by the authorized Gate Keeper. This is not the student class register.';
     const attendanceViewSelect = $('teacherAttendanceViewSelect');
     if (attendanceViewSelect) {
       const allOption = attendanceViewSelect.querySelector('option[value="ALL"]');
@@ -643,6 +652,7 @@ window.attendigoStaffIdentity = new Promise(resolve => { resolveStaffIdentity = 
       // Keep enrollment first, followed by existing class scheduling.
       const academicMenu = document.querySelector('.nav-submenu[data-submenu="academics"]');
       if (academicMenu && $('academicAdminNav') && academicMenu.firstElementChild !== $('academicAdminNav')) academicMenu.prepend($('academicAdminNav'));
+      relocate('myGateAttendanceNav', 'operations');
       relocate('cloudSyncNav', 'operations');
       relocate('smsNav', 'operations');
       relocate('schoolBrandingNav', 'settings');
@@ -3911,7 +3921,7 @@ let teacherActionMenuListenersInstalled = false;
     ? new Date(timestamp).toLocaleTimeString('en-PH', { timeZone: 'Asia/Manila', hour: 'numeric', minute: '2-digit' })
     : '—';
   async function loadMyGateAttendance() {
-    if (user?.role !== 'TEACHER') return;
+    if (!['TEACHER', 'SCHOOL_ADMIN'].includes(user?.role)) return;
     const fromField = $('myGateFrom'), toField = $('myGateTo');
     if (!fromField || !toField) return;
     const today = schoolDateManila();
@@ -4813,6 +4823,22 @@ let teacherActionMenuListenersInstalled = false;
     if(window.matchMedia('(max-width: 860px)').matches)closeMobileSidebar();
   });
   // Sidebar navigation uses delegated native links; do not bind legacy button handlers.
+  $('adminStaffBadgeShow')?.addEventListener('click', async () => {
+    if (user?.role !== 'SCHOOL_ADMIN') return;
+    const button = $('adminStaffBadgeShow'), status = $('adminStaffBadgeStatus'), img = $('adminStaffBadgeImage');
+    button.disabled = true;
+    status.textContent = 'Preparing your own staff QR badge…';
+    try {
+      const data = await api('/api/staff-attendance/my/badge', { method: 'POST' });
+      img.src = data.qrCode;
+      img.hidden = false;
+      status.textContent = 'Present this badge to the Gatekeeper for photo-confirmed attendance. Keep it private.';
+    } catch (error) {
+      img.hidden = true;
+      img.removeAttribute('src');
+      status.textContent = error.message;
+    } finally { button.disabled = false; }
+  });
   $('myGateApply')?.addEventListener('click', loadMyGateAttendance);
   $('myGateRefresh')?.addEventListener('click', loadMyGateAttendance);
   $('refreshButton').addEventListener('click', refresh);
