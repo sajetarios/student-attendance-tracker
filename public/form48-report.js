@@ -20,7 +20,7 @@
   ?formatTime(hours.AM_IN)+'–'+formatTime(hours.AM_OUT)+' / '+formatTime(hours.PM_IN)+'–'+formatTime(hours.PM_OUT)
   :'Not configured';
  const slots=['AM_IN','AM_OUT','PM_IN','PM_OUT'];
- const state={review:null,loading:false,key:'',data:null,analysis:null};
+ const state={review:null,employeeSchedule:null,scheduleDirty:false,scheduleSaving:false,loading:false,key:'',data:null,analysis:null};
  const copy=(data,analysis,kind)=>{
   const month=new Date(data.month+'-01T12:00:00Z').toLocaleDateString('en-US',{timeZone:'UTC',month:'long',year:'numeric'});
   const assess=new Map((analysis.assessments||[]).map(item=>[item.date,item]));
@@ -86,6 +86,7 @@
   const form=$('form48FilterForm'),month=$('form48Month'),person=$('form48Employee');
   const button=$('form48Print'),output=$('form48PrintArea'),feedback=$('form48Feedback');
   const settings=$('form48ReportSettings'),reviewHost=$('form48ReviewDays');
+  const saveSchedule=$('form48SaveSchedule'),scheduleStatus=$('form48ScheduleSaveStatus');
   if(!form||!month||!person||!button||!output||!feedback||!settings||!reviewHost)return;
   const format=new Intl.DateTimeFormat('en-US',{year:'numeric',month:'2-digit',timeZone:'Asia/Manila'}).formatToParts(new Date());
   const part=type=>format.find(p=>p.type===type)?.value||'';
@@ -95,19 +96,33 @@
   const invalidate=()=>{button.disabled=true;output.hidden=true;output.replaceChildren();state.data=null;state.analysis=null;reviewHost.hidden=true;};
   const listDays=()=>[...settings.querySelectorAll('[data-form48-day]')];
   const hoursFor=group=>Object.fromEntries([...settings.querySelectorAll('[data-form48-hour="'+group+'"]')].map(x=>[x.dataset.slot,x.value]));
+  const clock=v=>/^([01]\d|2[0-3]):[0-5]\d$/.test(v||'')?Number(v.slice(0,2))*60+Number(v.slice(3)):null;
+  const validScheduleHours=hours=>{
+   const arr=['AM_IN','AM_OUT','PM_IN','PM_OUT'].map(k=>clock(hours[k]));
+   return arr.every(Number.isInteger)&&arr[0]<arr[1]&&arr[1]<=arr[2]&&arr[2]<arr[3];
+  };
+  const scheduleReady=()=>{
+   const days=listDays().filter(x=>x.checked).map(x=>Number(x.value));
+   return days.length>0&&(!days.some(d=>d!==6)||validScheduleHours(hoursFor('regular')))&&
+    (!days.includes(6)||validScheduleHours(hoursFor('saturday')));
+  };
+  const scheduleMessage=(text,error=false)=>{
+   if(scheduleStatus){scheduleStatus.textContent=text;scheduleStatus.classList.toggle('is-error',error);}
+  };
   const updateScheduleSummary=()=>{
    const days=listDays().filter(x=>x.checked).map(x=>Number(x.value));
    const names=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
    const label=days.length===5&&[1,2,3,4,5].every(d=>days.includes(d))
     ?'Mon–Fri':days.length?days.map(d=>names[d]).join(', '):'No workdays chosen';
    const regular=hoursFor('regular');
-   const hasRegular=['AM_IN','AM_OUT','PM_IN','PM_OUT'].every(k=>Boolean(regular[k]));
+   const hasRegular=validScheduleHours(regular);
    const saturday=hoursFor('saturday');
-   const hasSaturday=['AM_IN','AM_OUT','PM_IN','PM_OUT'].every(k=>Boolean(saturday[k]));
-   const needsSaturday=days.includes(6);
+   const hasSaturday=validScheduleHours(saturday);
+   const needsSaturday=days.includes(6),needsRegular=days.some(d=>d!==6);
    const badge=$('form48ScheduleSummary');
-   if(badge)badge.textContent=label+' · '+(hasRegular&&(!needsSaturday||hasSaturday)
-    ?'Office hours entered':'Office hours need setup');
+   if(badge)badge.textContent=label+' · '+((!needsRegular||hasRegular)&&(!needsSaturday||hasSaturday)
+    ?(state.scheduleDirty?'Unsaved work hours':'Office hours configured'):'Office hours need setup');
+   if(saveSchedule)saveSchedule.disabled=!person.value||!state.review||state.scheduleSaving||!scheduleReady();
    const saturdayPanel=$('form48SaturdayHours');
    if(saturdayPanel)saturdayPanel.hidden=!needsSaturday;
   };
@@ -135,18 +150,29 @@
    $('form48ApprovedBy').value=r.approvedBy||'';
    $('form48VerifiedPosition').value=r.verifiedPosition||'';
    $('form48ApprovedPosition').value=r.approvedPosition||'';
+   state.scheduleDirty=false;
    updateScheduleSummary();
+   scheduleMessage(state.employeeSchedule?.revision>0?'Employee schedule saved (applies across months).':
+    'Complete the prescribed hours, then save once for this employee.');
   };
   const fetchConfig=async()=>{
    const key=reportKey();
-   invalidate();state.key=key;state.review=null;
+   invalidate();state.key=key;state.review=null;state.employeeSchedule=null;
+   if(saveSchedule)saveSchedule.disabled=true;
+   scheduleMessage('Loading employee schedule…');
    settings.hidden=!person.value||!month.value;
    if(settings.hidden)return;
    status('Loading report work hours and signatory draft…');
    try{
-    const result=await api('/api/staff-attendance/admin/form48/config?'+new URLSearchParams({staffUserId:person.value,month:month.value}));
+    const query=new URLSearchParams({staffUserId:person.value,month:month.value});
+    const [result,schedule]=await Promise.all([
+     api('/api/staff-attendance/admin/form48/config?'+query),
+     api('/api/staff-attendance/admin/form48/schedule?'+new URLSearchParams({staffUserId:person.value}))
+    ]);
     if(key!==reportKey())return;
-    populate(result);status('Configure prescribed hours and signatories, then generate the preview.');
+    state.employeeSchedule=schedule.schedule||{revision:0};
+    populate(result);
+    status('Work hours save separately. Generate preview when ready to review the DTR.');
    }catch(e){if(key===reportKey())status(e.message,true);}
   };
   const renderReviews=analysis=>{
@@ -205,6 +231,33 @@
    }catch(e){status(e.message,true);}
    finally{state.loading=false;submit.disabled=false;}
   }
+  if(saveSchedule){
+   saveSchedule.addEventListener('click',async()=>{
+    if(state.scheduleSaving||!state.review||!person.value||!month.value)return;
+    if(!scheduleReady()){scheduleMessage('Enter all four chronological prescribed hours for each selected day type.',true);return;}
+    const key=reportKey(),current=snapshot();
+    const payload={staffUserId:current.staffUserId,month:current.month,
+     monthlyRevision:state.review.revision??0,revision:state.employeeSchedule?.revision??0,
+     workdays:current.workdays,regularHours:current.regularHours,saturdayHours:current.saturdayHours};
+    state.scheduleSaving=true;saveSchedule.disabled=true;
+    scheduleMessage('Saving prescribed hours…');
+    try{
+     const result=await api('/api/staff-attendance/admin/form48/schedule',{
+      method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)
+     });
+     if(key!==reportKey())return;
+     state.employeeSchedule={...payload,revision:result.revision};
+     state.review={...state.review,workdays:payload.workdays,
+      regularHours:payload.regularHours,saturdayHours:payload.saturdayHours,
+      configured:true,revision:result.monthlyRevision||state.review.revision||0};
+     state.scheduleDirty=false;
+     invalidate();
+     scheduleMessage('Saved for this employee across report months. The selected month is updated; earlier monthly reviews remain unchanged.');
+     status('Employee prescribed hours saved. Generate a fresh preview to calculate tardiness and undertime.');
+    }catch(err){if(key===reportKey())scheduleMessage(err.message,true);}
+    finally{state.scheduleSaving=false;updateScheduleSummary();}
+   });
+  }
   api('/api/staff-attendance/admin/form48/employees').then(data=>{
    person.replaceChildren(new Option('Select a staff member',''));
    (data.staff||[]).forEach(s=>person.add(new Option(s.displayName+' · '+s.role.replaceAll('_',' '),s.userId)));
@@ -223,8 +276,16 @@
    state.review.dayReviews=reviews;
    generate();
   });
-  settings.addEventListener('input',()=>{button.disabled=true;updateScheduleSummary();});
-  settings.addEventListener('change',()=>{button.disabled=true;updateScheduleSummary();});
+  const onSettingsChange=event=>{
+   button.disabled=true;
+   if(event.target.matches('[data-form48-day],[data-form48-hour]')){
+    state.scheduleDirty=true;
+    scheduleMessage('Unsaved work hours. Select Save employee work schedule.');
+   }
+   updateScheduleSummary();
+  };
+  settings.addEventListener('input',onSettingsChange);
+  settings.addEventListener('change',onSettingsChange);
   button.addEventListener('click',()=>{if(!button.disabled&&!output.hidden)window.print();});
  }
  window.attendigoStaffIdentity?.then(init).catch(()=>{});
