@@ -1,4 +1,4 @@
-const CACHE = "attendigo-v178-browser-staff-lock";
+const CACHE = "attendigo-v179-native-module-links";
 
 const SHELL = [
   "/typography.css?v=1",
