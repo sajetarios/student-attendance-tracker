@@ -1,4 +1,4 @@
-const CACHE = "attendigo-v202-gate-badge-history";
+const CACHE = "attendigo-v203-official-business";
 
 const SHELL = [
   "/typography.css?v=1",
@@ -50,8 +50,9 @@ const SHELL = [
   "/class-qr-dashboard-link.js?v=7",
   "/teacher-roster-popover.js?v=2",
   "/portal.css",
-  "/portal.js?v=190",
+  "/portal.js?v=191",
   "/staff-lunch-ui.js?v=3",
+  "/staff-ob-ui.js?v=3",
   "/staff-lunch.css?v=3",
   "/staff-lunch-checkin.js?v=3",
   "/sardo-monitor.js?v=2",
