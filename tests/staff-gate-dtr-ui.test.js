@@ -43,8 +43,8 @@ test('one personal attendance table aligns official DTR with gate evidence witho
  assert.match(portal,/DTR unavailable/);
  assert.match(portal,/No gate scan/);
  assert.match(html,/Form 48 uses only verified DTR punches/);
- assert.match(worker,/"\/portal\.js\?v=192"/);
- assert.match(html,/src="\/portal\.js\?v=192"/);
+ assert.match(worker,/"\/portal\.js\?v=193"/);
+ assert.match(html,/src="\/portal\.js\?v=193"/);
  assert.match(worker,/"\/portal\.css\?v=0\.9\.118"/);
 });
 test('personal DTR history rejects non-self queries and returns only verified four-slot events',()=>{

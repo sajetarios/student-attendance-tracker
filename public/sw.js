@@ -1,4 +1,4 @@
-const CACHE = "attendigo-v212-form48-leave-corrections";
+const CACHE = "attendigo-v213-gatekeeper-ob-safe";
 
 const SHELL = [
   "/typography.css?v=1",
@@ -51,8 +51,8 @@ const SHELL = [
   "/class-qr-dashboard-link.js?v=7",
   "/teacher-roster-popover.js?v=2",
   "/portal.css",
-  "/portal.js?v=192",
-  "/form48-report.js?v=4",
+  "/portal.js?v=193",
+  "/form48-report.js?v=5",
   "/form48-bulk-ui.js?v=2",
   "/form48-report.css?v=5",
   "/staff-lunch-ui.js?v=3",
