@@ -11,12 +11,12 @@ test('staff OB dashboard initializes only for authorized roles and uses same-ori
  assert.match(ui,/window\.prompt/);
  assert.match(ui,/staff-ob-coverage/);
  assert.match(ui,/form\.reportValidity\(\)/);
- assert.match(ui,/new Date\(s\+':00\+08:00'\)/);
- assert.match(portal,/staff-ob-ui\.js\?v=1/);
- assert.match(sw,/staff-ob-ui\.js\?v=1/);
+ assert.match(ui,/const toManilaIso=s=>/);
+ assert.match(portal,/staff-ob-ui\.js\?v=2/);
+ assert.match(sw,/staff-ob-ui\.js\?v=2/);
 });
 test('substitute picker uses department-filtered names instead of manual user IDs',()=>{
- assert.match(ui,/basePath\+'\\/substitutes'/);
+ assert.ok(ui.includes("basePath+'/substitutes'"));
  assert.match(ui,/Select a department teacher/);
  assert.match(ui,/Confirm substitute/);
  assert.doesNotMatch(ui,/Enter the active teacher user ID/);
