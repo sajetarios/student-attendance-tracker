@@ -81,10 +81,16 @@ async function main(){
   assert.equal(assigned.status,201,'School Admin can assign active teacher');
   const permitted=await post('/api/staff-attendance/lunch/challenges',{slot:'PM_IN'},teacher.token);
   assert.equal(permitted.status,201,'Assigned teacher may issue lunch QR');
+  assert.match(permitted.body.qrImage,/^data:image\/png;base64,/,'Presenter receives real scannable PNG');
+  const rotatedQr=await post('/api/staff-attendance/lunch/challenges',{slot:'PM_IN'},teacher.token);
+  assert.equal(rotatedQr.status,201,'Presenter can rotate a fresh one-minute QR');
+  const outdated=await post('/api/staff-attendance/lunch/redeem',
+   {challengeId:permitted.body.challengeId,token:permitted.body.token},teacher.token);
+  assert.equal(outdated.status,410,'Previous QR is revoked immediately on rotation');
   const replaced=await presenterChange('PUT',{slot:'PM_IN',presenterUserId:teacher2.id});
   assert.equal(replaced.status,201,'School Admin may replace unavailable presenter');
   const revokedChallenge=await post('/api/staff-attendance/lunch/redeem',
-   {challengeId:permitted.body.challengeId,token:permitted.body.token},teacher.token);
+   {challengeId:rotatedQr.body.challengeId,token:rotatedQr.body.token},teacher.token);
   assert.equal(revokedChallenge.status,410,'Replacing presenter invalidates old live QR');
   const former=await post('/api/staff-attendance/lunch/challenges',{slot:'PM_IN'},teacher.token);
   assert.equal(former.status,403,'Replaced teacher cannot issue more QR challenges');
