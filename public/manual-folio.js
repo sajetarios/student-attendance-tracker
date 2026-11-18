@@ -345,7 +345,7 @@ window.attendigoStaffIdentity.then(user => {
    }
    // Default to the currently running period, while keeping every class today selectable.
    const weekday=new Date(state.date+'T12:00:00+08:00').getUTCDay();
-   const minutes=t=>{const m=/^(\\d{1,2}):(\\d{2})/.exec(String(t||''));return m?Number(m[1])*60+Number(m[2]):null;};
+   const minutes=t=>{const m=/^(\d{1,2}):(\d{2})/.exec(String(t||''));return m?Number(m[1])*60+Number(m[2]):null;};
    const today=state.date===dateToday();
    const now=minutes(new Intl.DateTimeFormat('en-GB',{timeZone:'Asia/Manila',hour:'2-digit',minute:'2-digit',hourCycle:'h23'}).format(new Date()));
    const daily=state.periods.filter(p=>(!Array.isArray(p.weekdays)||!p.weekdays.length||p.weekdays.map(Number).includes(weekday))&&(!p.effectiveFrom||state.date>=p.effectiveFrom)&&(!p.effectiveTo||state.date<=p.effectiveTo))
