@@ -137,5 +137,5 @@ test('expanded staff navigation is default, with accessible labeled desktop menu
  assert.match(css,/grid-template-columns:64px minmax\(0,1fr\)!important/);
  assert.match(css,/sidebar\.sidebar \.nav-item\.active/);
  assert.ok(worker.includes('/attendigo-sidebar-adaptive.css?v=19'));
- assert.ok(html.includes('/portal.js?v=194'));
+ assert.ok(html.includes('/portal.js?v=196'));
 });

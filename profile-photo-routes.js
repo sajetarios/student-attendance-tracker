@@ -99,7 +99,7 @@ async function storeOfficial(client,schoolId,kind,id,payload,actorId){
    WHERE school_id=$1 AND student_id=$2`,[schoolId,String(id)]);
  if(kind==='STAFF')await client.query(`
    UPDATE school_users SET teacher_photo_path='db:official',updated_at=NOW()
-   WHERE school_id=$1 AND user_id=$2 AND role IN ('TEACHER','SCHOOL_ADMIN')`,[schoolId,String(id)]);
+   WHERE school_id=$1 AND user_id=$2 AND role IN ('TEACHER','DEPARTMENT_HEAD','SCHOOL_ADMIN')`,[schoolId,String(id)]);
 }
 async function audit(client,schoolId,userId,action,kind,id){
  await client.query(`INSERT INTO audit_logs(school_id,actor_type,actor_user_id,action,entity_type,entity_id,details)

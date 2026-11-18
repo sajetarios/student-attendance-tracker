@@ -10,7 +10,7 @@ const html = fs.readFileSync(path.join(root, 'public', 'portal.html'), 'utf8');
 const server = fs.readFileSync(path.join(root, 'server.js'), 'utf8');
 
 test('Department Head can view and export the school-wide student roster without student write controls', () => {
-  assert.ok(portal.includes("if (role === 'DEPARTMENT_HEAD') return ['dashboard', 'planner', 'students', 'teachers', 'schedules', 'sf2', 'officialBusiness']"));
+  assert.ok(portal.includes("if (role === 'DEPARTMENT_HEAD') return ['dashboard', 'planner', 'students', 'teachers', 'schedules', 'sf2', 'officialBusiness', 'myGateAttendance']"));
   assert.ok(portal.includes("$('studentsNav').hidden = !(admin || departmentHead || teacher || gateKeeper)"));
   assert.match(server, /requireSchoolPermission\('students\.view\.all'\)/);
   assert.ok(portal.includes("exportCsv('student-roster.csv'"));
