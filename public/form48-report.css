@@ -13,7 +13,8 @@
 .form48-copy h3{text-align:center;margin:5px 0 2px;font-size:14px;color:#111}
 .form48-employee{text-transform:uppercase;text-align:center;font-weight:700;border-bottom:1px solid #111;padding:3px 0 4px;font-size:11px}
 .form48-month{margin:10px 0;font-size:10px}
-.form48-official-hours{margin:4px 0 9px}
+.form48-official-hours{margin:4px 0 3px}
+.form48-hours-grid{display:flex;justify-content:space-between;gap:8px;margin:2px 0 9px;font-size:9px}
 .form48-line{display:block;border-bottom:1px solid #222;height:14px}
 .form48-sheet{width:100%;border-collapse:collapse;table-layout:fixed;font-size:8.5px;color:#111}
 .form48-sheet th,.form48-sheet td{border:1px solid #222;text-align:center;padding:2px 1px;height:15px;font:inherit;background:#fff;color:#111;overflow:hidden}
