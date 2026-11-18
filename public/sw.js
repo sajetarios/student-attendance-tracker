@@ -1,4 +1,4 @@
-const CACHE = "attendigo-v184-current-period-parser";
+const CACHE = "attendigo-v185-sf2-freeze-scroll";
 
 const SHELL = [
   "/typography.css?v=1",
@@ -41,7 +41,7 @@ const SHELL = [
   "/portal-login.html",
   "/attendigo-login-motion.css?v=2",
   "/attendigo-login-refinement.css?v=3",
-  "/portal.css?v=0.9.113",
+  "/portal.css?v=0.9.115",
   "/student-roster-toolbar.css?v=2",
   "/learner-roster-view.css?v=1",
   "/teacher-learner-roster.css?v=4",
