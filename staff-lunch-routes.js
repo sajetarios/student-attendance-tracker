@@ -89,12 +89,18 @@ function registerStaffLunchRoutes(app,pool,{authenticateSchoolClient,requireScho
     `INSERT INTO staff_attendance_events
       (event_id,school_id,staff_user_id,event_kind,dtr_slot,school_date,
        occurred_at,source,verification_status,verification_method,actor_user_id,client_event_key)
-     VALUES($1,$2,$3,'DTR_SLOT',$4,$5,NOW(),'SELF_SERVICE','VERIFIED','ROTATING_QR',$3,$6)
+     SELECT $1,$2,$3,'DTR_SLOT',$4,$5,NOW(),'SELF_SERVICE','VERIFIED','ROTATING_QR',$3,$6
+     WHERE EXISTS (
+       SELECT 1 FROM staff_attendance_challenges
+       WHERE school_id=$2 AND challenge_id=$7
+         AND school_date=$5::date AND dtr_slot=$4
+         AND revoked_at IS NULL AND issued_at<=NOW() AND expires_at>NOW()
+     )
      ON CONFLICT DO NOTHING RETURNING event_id,occurred_at`,
-    [eventId,req.auth.schoolId,req.auth.userId,row.dtr_slot,today,clientKey]);
+    [eventId,req.auth.schoolId,req.auth.userId,row.dtr_slot,today,clientKey,challengeId]);
    if(!event.rowCount){
     await client.query('ROLLBACK');
-    return res.status(409).json({error:'This DTR slot is already verified for today.',alreadyRecorded:true});
+    return res.status(409).json({error:'QR expired or this DTR slot was already verified.',alreadyRecorded:false});
    }
    await client.query(
     `INSERT INTO staff_attendance_challenge_redemptions
