@@ -1,4 +1,4 @@
-const CACHE = "attendigo-v176-student-cookie-guard";
+const CACHE = "attendigo-v177-root-session-routing";
 
 const SHELL = [
   "/typography.css?v=1",
