@@ -446,3 +446,56 @@ html body #sidebar.sidebar #sidebarSchoolName {
 @media(prefers-reduced-motion:reduce){
   #sidebar.sidebar :is(.nav-item,.nav-group-toggle,.nav-chevron){transition:none!important}
 }
+
+/* Collapsed desktop navigation: keep one readable icon per top-level destination.
+   Child links return when a group is opened, rather than stacking as orphan icons. */
+@media (min-width:861px) {
+  html body .portal-layout.sidebar-collapsed #sidebar.sidebar {
+    padding-left:9px!important;
+    padding-right:9px!important;
+    overflow-x:hidden!important;
+  }
+  html body .portal-layout.sidebar-collapsed #sidebar.sidebar .side-nav {
+    gap:5px!important;
+    padding-bottom:12px!important;
+  }
+  html body .portal-layout.sidebar-collapsed #sidebar.sidebar .nav-submenu,
+  html body .portal-layout.sidebar-collapsed #sidebar.sidebar .staff-nav-children,
+  html body .portal-layout.sidebar-collapsed #sidebar.sidebar .user-management-children {
+    display:none!important;
+  }
+  html body .portal-layout.sidebar-collapsed #sidebar.sidebar .nav-item,
+  html body .portal-layout.sidebar-collapsed #sidebar.sidebar .nav-group-toggle {
+    width:100%!important;
+    min-height:46px!important;
+    height:46px!important;
+    padding:0!important;
+    margin:0!important;
+    border:0!important;
+    border-radius:12px!important;
+    box-shadow:none!important;
+    justify-content:center!important;
+    align-items:center!important;
+    overflow:hidden!important;
+  }
+  html body .portal-layout.sidebar-collapsed #sidebar.sidebar .nav-item.active {
+    background:var(--side-selected)!important;
+    box-shadow:inset 3px 0 0 var(--side-selected-ink)!important;
+  }
+  html body .portal-layout.sidebar-collapsed #sidebar.sidebar .nav-icon {
+    margin:0!important;
+    flex:0 0 22px!important;
+    width:22px!important;
+    height:22px!important;
+  }
+  html body .portal-layout.sidebar-collapsed #sidebar.sidebar .sidebar-brand {
+    min-height:66px!important;
+    margin-bottom:7px!important;
+  }
+  html body .portal-layout.sidebar-collapsed #sidebar.sidebar #sidebarSchoolMark.brand-mark {
+    width:48px!important;
+    height:48px!important;
+    min-width:48px!important;
+    min-height:48px!important;
+  }
+}
