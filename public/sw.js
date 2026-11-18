@@ -1,4 +1,4 @@
-const CACHE = "attendigo-v174-student-switch-recovery";
+const CACHE = "attendigo-v175-role-session-isolation";
 
 const SHELL = [
   "/typography.css?v=1",
