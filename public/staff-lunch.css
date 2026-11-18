@@ -13,3 +13,17 @@
 .staff-lunch-qr[hidden],.staff-lunch-panel[hidden] {display:none!important}
 .staff-lunch-expires {text-align:center;font-size:.8rem}
 @media(max-width:600px){.staff-lunch-panel{padding:.85rem}.staff-lunch-controls{align-items:stretch}.staff-lunch-controls label{flex:1 1 100%}.staff-lunch-controls button{flex:1 1 100%}}
+
+/* Department-based QR presenter administration. */
+#staffLunchAdminCard .staff-lunch-controls select[multiple]{
+ min-width:min(340px,100%);height:142px;padding:5px;
+ border:1px solid var(--border-color,#d2dbe6);border-radius:10px;
+ color:inherit;background:var(--input-bg,var(--surface-color,#fff));
+}
+#staffLunchAdminCard .staff-lunch-controls label small{font-size:.72rem;font-weight:400;color:var(--text-muted,#66788e)}
+.staff-lunch-assigned-list{display:grid;gap:7px;margin-top:12px;max-height:260px;overflow:auto;overscroll-behavior:contain}
+.staff-lunch-presenter-row{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:8px 11px;border:1px solid var(--border-color,#e0e7ef);border-radius:10px}
+.staff-lunch-presenter-row span{display:grid;gap:2px;min-width:0}
+.staff-lunch-presenter-row strong{font-size:.85rem}
+.staff-lunch-presenter-row small{font-size:.72rem;color:var(--text-muted,#627389)}
+.staff-lunch-presenter-row button{flex:none;min-height:34px}
