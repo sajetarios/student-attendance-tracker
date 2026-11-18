@@ -2986,3 +2986,17 @@ body[data-theme=dark] #sf2TableWrap.sf2-matrix-wrap tbody tr:nth-child(even) > :
  .my-gate-filters button{grid-column:1/-1;width:100%}
  .manual-table-wrap{max-height:60vh}
 }
+
+/* Neutral initials for learners without profile photos. Presentation only: no stored image. */
+#studentsView .student-initials-avatar{
+  width:32px;height:32px;min-width:32px;
+  display:inline-flex;align-items:center;justify-content:center;
+  flex:none;box-sizing:border-box;border-radius:50%;
+  background:#e9edf6;border:1px solid #d7e0ee;
+  color:#536785;font:600 11px/1 Inter,system-ui,sans-serif;
+  letter-spacing:.025em;user-select:none;
+}
+body.dark-mode #studentsView .student-initials-avatar,
+body[data-theme="dark"] #studentsView .student-initials-avatar{
+  background:#293750;border-color:#435470;color:#d7e2f6;
+}
