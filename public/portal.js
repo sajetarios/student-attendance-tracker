@@ -93,7 +93,7 @@ window.attendigoStaffIdentity = new Promise(resolve => { resolveStaffIdentity = 
   }
 
   // Shared static fallback, never persisted as a per-person database photo.
-  const defaultPhoto = '/assets/attendigo-sidebar-logo.png?v=2';
+  const defaultPhoto = '/assets/attendigo-symbol-transparent.svg?v=2';
   async function photoDataUrl(photoUrl) {
     if (!photoUrl) return '';
     try {
