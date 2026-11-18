@@ -26,15 +26,17 @@ function readBody(req){
  const regularHours=cleanHours(data.regularHours),saturdayHours=cleanHours(data.saturdayHours);
  if(regularHours===null||saturdayHours===null)return null;
  const verifiedBy=String(data.verifiedBy||'').trim(),approvedBy=String(data.approvedBy||'').trim();
- if(verifiedBy.length>120||approvedBy.length>120)return null;
+ const verifiedPosition=String(data.verifiedPosition||'').trim(),approvedPosition=String(data.approvedPosition||'').trim();
+ if([verifiedBy,approvedBy,verifiedPosition,approvedPosition].some(text=>text.length>120))return null;
  if(!Number.isInteger(data.revision)||data.revision<0)return null;
  return {month,staffUserId,workdays,regularHours,saturdayHours,
-  dayReviews,verifiedBy,approvedBy,revision:data.revision};
+  dayReviews,verifiedBy,approvedBy,verifiedPosition,approvedPosition,revision:data.revision};
 }
 function registeredReview(row){
  return row?{configured:true,workdays:row.workdays,regularHours:row.regularHours,
   saturdayHours:row.saturdayHours,dayReviews:row.dayReviews,
-  verifiedBy:row.verifiedBy,approvedBy:row.approvedBy,revision:row.revision,
+  verifiedBy:row.verifiedBy,approvedBy:row.approvedBy,
+  verifiedPosition:row.verifiedPosition,approvedPosition:row.approvedPosition,revision:row.revision,
   updatedAt:row.updatedAt}:null;
 }
 function registerForm48ReviewRoutes(app,pool,{authenticateSchoolClient,requireSchoolRoles}){
@@ -51,6 +53,7 @@ function registerForm48ReviewRoutes(app,pool,{authenticateSchoolClient,requireSc
   const found=await client.query(
    'SELECT workdays,regular_hours AS "regularHours",saturday_hours AS "saturdayHours",'+
    ' day_reviews AS "dayReviews",verified_by_name AS "verifiedBy",approved_by_name AS "approvedBy",'+
+   ' verified_by_position AS "verifiedPosition",approved_by_position AS "approvedPosition",'+
    ' revision,updated_at AS "updatedAt" FROM staff_form48_monthly_reviews'+
    ' WHERE school_id=$1 AND staff_user_id=$2 AND report_month=$3::date',
    [schoolId,staffUserId,month+'-01']);
@@ -77,7 +80,7 @@ function registerForm48ReviewRoutes(app,pool,{authenticateSchoolClient,requireSc
    const defaults=days.rows.map(x=>Number(x.weekday));
    return res.json({staffUserId:params.staffUserId,month:params.month,
     review:saved||{configured:false,workdays:defaults,regularHours:{},saturdayHours:{},
-     dayReviews:{},verifiedBy:'',approvedBy:'',revision:0}});
+     dayReviews:{},verifiedBy:'',approvedBy:'',verifiedPosition:'',approvedPosition:'',revision:0}});
   }catch(err){console.error('Form48 review read:',err.message);return res.status(503).json({error:'Report settings unavailable.'});}
  });
  app.put('/api/staff-attendance/admin/form48/config',...admin,async(req,res)=>{
@@ -95,20 +98,21 @@ function registerForm48ReviewRoutes(app,pool,{authenticateSchoolClient,requireSc
    const saved=await client.query(
     'INSERT INTO staff_form48_monthly_reviews'+
     ' (school_id,staff_user_id,report_month,workdays,regular_hours,saturday_hours,day_reviews,'+
-    ' verified_by_name,approved_by_name,updated_by_user_id)'+
-    ' VALUES($1,$2,$3::date,$4::smallint[],$5::jsonb,$6::jsonb,$7::jsonb,$8,$9,$10)'+
+    ' verified_by_name,approved_by_name,verified_by_position,approved_by_position,updated_by_user_id)'+
+    ' VALUES($1,$2,$3::date,$4::smallint[],$5::jsonb,$6::jsonb,$7::jsonb,$8,$9,$10,$11,$12)'+
     ' ON CONFLICT (school_id,staff_user_id,report_month) DO UPDATE SET'+
     ' workdays=EXCLUDED.workdays,regular_hours=EXCLUDED.regular_hours,'+
     ' saturday_hours=EXCLUDED.saturday_hours,day_reviews=EXCLUDED.day_reviews,'+
     ' verified_by_name=EXCLUDED.verified_by_name,approved_by_name=EXCLUDED.approved_by_name,'+
+    ' verified_by_position=EXCLUDED.verified_by_position,approved_by_position=EXCLUDED.approved_by_position,'+
     ' updated_by_user_id=EXCLUDED.updated_by_user_id,updated_at=NOW(),'+
     ' revision=staff_form48_monthly_reviews.revision+1'+
-    ' WHERE staff_form48_monthly_reviews.revision=$11'+
+    ' WHERE staff_form48_monthly_reviews.revision=$13'+
     ' RETURNING revision',
     [req.auth.schoolId,input.staffUserId,input.month+'-01',input.workdays,
      JSON.stringify(input.regularHours),JSON.stringify(input.saturdayHours),
      JSON.stringify(input.dayReviews),input.verifiedBy,input.approvedBy,
-     req.auth.userId,input.revision]);
+     input.verifiedPosition,input.approvedPosition,req.auth.userId,input.revision]);
    if(!saved.rowCount){await client.query('ROLLBACK');return res.status(409).json({error:'Report settings changed in another session. Reload before saving.'});}
    await client.query(
     "INSERT INTO staff_attendance_audit(school_id,actor_user_id,action,target_type,target_id,details)"+
@@ -117,7 +121,8 @@ function registerForm48ReviewRoutes(app,pool,{authenticateSchoolClient,requireSc
      JSON.stringify({month:input.month,revision:saved.rows[0].revision,
       confirmedAbsences:Object.entries(input.dayReviews).filter(([,v])=>v==='ABSENT').map(([d])=>d),
       excusedDays:Object.entries(input.dayReviews).filter(([,v])=>v==='EXCUSED').map(([d])=>d),
-      signatoryNamesEntered:Boolean(input.verifiedBy||input.approvedBy)})]);
+      signatoryNamesEntered:Boolean(input.verifiedBy||input.approvedBy),
+      signatoryPositionsEntered:Boolean(input.verifiedPosition||input.approvedPosition)})]);
    await client.query('COMMIT');
    return res.json({saved:true,revision:saved.rows[0].revision,
     notice:'Draft names do not constitute actual verification or approval.'});
@@ -170,7 +175,8 @@ function registerForm48ReviewRoutes(app,pool,{authenticateSchoolClient,requireSc
     calendar:calendar.rows,officialBusiness:ob.rows,leave:approvedLeave
    });
    return res.json({...analysis,reportMonth:params.month,staffUserId:params.staffUserId,
-    signatories:{verifiedBy:settings?.verifiedBy||'',approvedBy:settings?.approvedBy||''},
+    signatories:{verifiedBy:settings?.verifiedBy||'',approvedBy:settings?.approvedBy||'',
+     verifiedPosition:settings?.verifiedPosition||'',approvedPosition:settings?.approvedPosition||''},
     regularHours:settings?.regularHours||{},saturdayHours:settings?.saturdayHours||{},
     notice:'Only verified punches count. Missing days need an administrator to confirm absences or excusals. Printed names are not electronic signatures.'});
   }catch(err){console.error('Form48 analysis:',err.message);return res.status(503).json({error:'Report calculations unavailable.'});}
