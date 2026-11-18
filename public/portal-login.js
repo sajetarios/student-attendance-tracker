@@ -20,6 +20,24 @@
   const feedback = document.getElementById('loginFeedback');
   const button = document.getElementById('signInButton');
   let mode = 'school';
+  const switchButton=document.createElement('button');
+  switchButton.type='button';
+  switchButton.textContent='Sign out current student and switch account';
+  switchButton.style.cssText='display:none;margin:12px auto;padding:10px 16px;border-radius:10px;cursor:pointer;';
+  feedback.insertAdjacentElement('afterend',switchButton);
+  switchButton.addEventListener('click',async()=>{
+    switchButton.disabled=true;
+    try{
+      const response=await fetch('/api/auth/logout',{method:'POST',credentials:'same-origin',cache:'no-store'});
+      if(!response.ok)throw Error('Could not sign out the previous account.');
+      sessionStorage.removeItem('schoolAttendance.accessToken');
+      sessionStorage.removeItem('schoolAttendance.user');
+      sessionStorage.removeItem('schoolAttendance.expiresAt');
+      feedback.textContent='Previous student signed out. Enter the new student credentials and sign in.';
+      switchButton.style.display='none';
+    }catch(error){feedback.textContent=error.message;}
+    finally{switchButton.disabled=false;}
+  });
 
   const setMode = next => {
     mode = next;
@@ -51,6 +69,7 @@
         : 'School account includes administrators, teachers, Gate Keepers, and approved Parent/Guardian accounts.';
     feedback.textContent = '';
     feedback.className = 'form-feedback';
+    switchButton.style.display='none';
   };
 
   schoolMode.addEventListener('click', () => setMode('school'));
@@ -76,6 +95,7 @@
     event.preventDefault();
     feedback.textContent = '';
     feedback.className = 'form-feedback';
+    switchButton.style.display='none';
     const username = document.getElementById('username').value.trim();
     const password = document.getElementById('password').value;
     // A Super Admin recovery code is NOT a sign-in password.
@@ -116,7 +136,10 @@
         body: JSON.stringify(payload)
       });
       const data = await response.json().catch(() => ({}));
-      if (!response.ok) throw new Error(data.error || `Sign-in failed (${response.status}).`);
+      if (!response.ok){
+        if(response.status===409 && data.accountSwitchRequired) switchButton.style.display='block';
+        throw new Error(data.error || `Sign-in failed (${response.status}).`);
+      }
       if (!data.accessToken || !data.user) throw new Error('The server returned an incomplete sign-in response.');
 
       // Keep bearer tokens in tab-scoped session storage, not localStorage.
