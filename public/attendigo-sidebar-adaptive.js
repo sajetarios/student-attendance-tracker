@@ -6,6 +6,14 @@
   const sidebar = document.getElementById('sidebar');
   if (!sidebar) return;
   const root = document.documentElement;
+  // A collapsed group must expose its child links on the first activation.
+  // The existing group handler continues to own expanded/collapsed state.
+  sidebar.addEventListener('click', event => {
+    if (window.matchMedia && !window.matchMedia('(min-width:861px)').matches) return;
+    if (!sidebar.closest('.portal-layout.sidebar-collapsed')) return;
+    if (!event.target.closest('.nav-group-toggle')) return;
+    sidebar.closest('.portal-layout')?.classList.remove('sidebar-collapsed');
+  }, true);
   const brand = sidebar.querySelector('.attendigo-brand');
   // Preserve the original multicolor approved mark on any school sidebar color.
   const symbolAsset = '/assets/attendigo-symbol-transparent.svg?v=2';
