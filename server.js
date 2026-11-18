@@ -3448,10 +3448,12 @@ app.post('/api/sync/events', authenticateSchoolClient, requireSchoolClient, asyn
       }
 
       const already = await client.query(
-        'SELECT school_id,event_type,occurred_at_device FROM attendance_events WHERE event_id=$1', [event.eventId]
+        'SELECT school_id,student_id,attendance_scope,event_type,occurred_at_device FROM attendance_events WHERE event_id=$1', [event.eventId]
       );
       if (already.rowCount) {
-        if (already.rows[0].school_id === req.auth.schoolId) {
+        if (String(already.rows[0].school_id) === String(req.auth.schoolId) &&
+            String(already.rows[0].student_id) === String(event.studentId) &&
+            already.rows[0].attendance_scope === event.attendanceScope) {
           results.push({ eventId: event.eventId, status: 'ALREADY_SYNCED',
             ...(automaticGate?{eventType:already.rows[0].event_type,
               occurredAt:already.rows[0].occurred_at_device}: {}) });
