@@ -55,10 +55,11 @@
    '<div class="form48-signature"><strong>'+esc(verifiedName)+'</strong>'+
    '<span class="form48-signer-position">'+esc(verifiedPosition)+'</span>'+
    '<span>Verified as to prescribed office hours — In Charge</span></div>'+
-   '<div class="form48-remarks">REMARKS: <div class="form48-line"></div><div class="form48-line"></div></div>'+
+   '<div class="form48-remarks">REMARKS: '+esc(s.approvedLeaveDays?String(s.approvedLeaveDays)+' day(s) of documented approved leave (see supporting documents).':'')+'<div class="form48-line"></div><div class="form48-line"></div></div>'+ 
    '<div class="form48-summary">'+
    '<span>Days present (verified evidence): '+esc(s.daysPresent)+'</span>'+
-   '<span>Days absent (confirmed): '+esc(s.daysAbsent)+esc(gapText)+'</span>'+
+   '<span>Days absent (confirmed): '+esc(s.daysAbsent)+esc(gapText)+'</span>'+ 
+   '<span>Approved leave days: '+esc(s.approvedLeaveDays||0)+'</span>'+ 
    '<span>Tardy: '+esc(duration(s.tardyMinutes))+'</span>'+
    '<span>Undertime: '+esc(duration(s.undertimeMinutes))+'</span>'+
    '</div>'+
@@ -68,6 +69,8 @@
    '<div class="form48-draft-mark">'+esc(reviewNote)+'</div>'+
    '</article>';
  };
+ // Shared renderer is read-only; batch reports reuse the exact official copy formatter.
+ window.attendigoForm48RenderCopy=copy;
  function init(user){
   if(user?.role!=='SCHOOL_ADMIN')return;
   const form=$('form48FilterForm'),month=$('form48Month'),person=$('form48Employee');
@@ -139,12 +142,18 @@
   const renderReviews=analysis=>{
    const list=(analysis.assessments||[]).filter(a=>
     a.status==='MISSING_REVIEW'||a.status==='CONFIRMED_ABSENT'||a.status==='EXCUSED'||
-    a.status==='APPROVED_OB_REVIEW'||a.status==='LEAVE_REVIEW');
+    a.status==='APPROVED_OB_REVIEW'||a.status==='LEAVE_REVIEW'||
+    a.status==='INCOMPLETE_DTR'||a.status==='TIME_SLOT_REVIEW'||a.status==='LEAVE_PUNCH_CONFLICT');
    reviewHost.hidden=!list.length;
    reviewHost.innerHTML=list.length?'<h4>Review missing workdays</h4>'+
     '<p>Absence is counted only after School Admin confirmation. For leave or approved OB, choose Excused.</p>'+
     '<div class="form48-review-list">'+list.map(item=>{
      const selected=state.review?.dayReviews?.[item.date]||'PENDING';
+     const recordReview=['INCOMPLETE_DTR','TIME_SLOT_REVIEW','LEAVE_PUNCH_CONFLICT'].includes(item.status);
+     if(recordReview)return '<label>'+esc(item.date)+' · '+
+      (item.status==='TIME_SLOT_REVIEW'?'Recorded scan outside prescribed time slot':
+       item.status==='LEAVE_PUNCH_CONFLICT'?'Approved leave overlaps verified punches':'Incomplete verified DTR punches')+
+      '<span class="form48-record-review">Requires evidence review. Punches remain unchanged.</span></label>';
      return '<label>'+esc(item.date)+
       (item.approvedOB?' · Approved OB':item.leaveDay?' · Recorded leave':' · No verified DTR punches')+
       '<select data-form48-review="'+esc(item.date)+'">'+
@@ -179,15 +188,18 @@
     output.hidden=false;button.disabled=false;
     renderReviews(analysis);
     const sum=analysis.summary;
-    status('Draft: '+sum.daysPresent+' present, '+sum.daysAbsent+' confirmed absent, '+
+    status('Draft: '+sum.daysPresent+' days with verified punches ('+sum.partialRecordDays+' incomplete), '+sum.daysAbsent+' confirmed absent, '+
       sum.pendingAbsentDays+' missing day(s) for review; tardy '+duration(sum.tardyMinutes)+
-      ', undertime '+duration(sum.undertimeMinutes)+'.');
+      ', undertime '+duration(sum.undertimeMinutes)+
+      (sum.timeAnomalyDays?', '+sum.timeAnomalyDays+' unexpected time slot(s) need review':'')+'.');
    }catch(e){status(e.message,true);}
    finally{state.loading=false;submit.disabled=false;}
   }
   api('/api/staff-attendance/admin/form48/employees').then(data=>{
    person.replaceChildren(new Option('Select a staff member',''));
    (data.staff||[]).forEach(s=>person.add(new Option(s.displayName+' · '+s.role.replaceAll('_',' '),s.userId)));
+   window.attendigoForm48Staff=data.staff||[];
+   document.dispatchEvent(new CustomEvent('attendigo:form48-staff-loaded',{detail:{staff:data.staff||[]}}));
   }).catch(e=>status(e.message,true));
   month.addEventListener('change',fetchConfig);
   person.addEventListener('change',fetchConfig);
