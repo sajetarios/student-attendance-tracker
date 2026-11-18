@@ -46,13 +46,13 @@ test('both create APIs support blank IDs while keeping manual IDs and tenant bou
   const department = file('department-routes.js');
   const portal = file('public/portal.js');
   const html = file('public/portal.html');
-  assert.match(student, /nextStudentId\(client, \{ year: registrationYear, gradeLevel: cleanGrade \}\)/);
+  assert.match(student, /nextStudentId\(client, \{ year: registrationYear \}\)/);
   assert.match(student, /ON CONFLICT\(student_id\) DO NOTHING/);
   assert.match(student, /req\.auth\.schoolId, cleanStudentId/);
   assert.match(department, /nextDepartmentCode\(client, req\.auth\.schoolId\)/);
   assert.match(department, /schoolAdmin/);
   assert.match(portal, /studentId: \$\('newStudentId'\)\.value\.trim\(\)/);
-  assert.match(html, /id="newStudentId"[^>]*placeholder="e.g. 2026-G10-089/);
+  assert.match(html, /id="newStudentId"[^>]*placeholder="Auto-generated \(e.g. 26-00089\)/);
   assert.match(html, /id="departmentCode"[^>]*placeholder="Auto-generated/);
 });
 
@@ -76,16 +76,8 @@ test('2026 Grade 10 registration IDs have three digits, preserve historical pref
   assert.throws(() => ids.formatYearGradeStudentId(2026, 10, 1000), /exhausted/);
 });
 
-test('counter allocation uses an atomic PostgreSQL upsert, no school-specific collisions', async () => {
-  const calls = [];
-  const fakeClient = { query: async (sql, params) => {
-    calls.push({ sql, params });
-    return { rowCount: 1, rows: [{last_number: 89}] };
-  } };
-  assert.equal(await ids.nextStudentId(fakeClient, {year: 2026, gradeLevel: 'Grade 10'}), '2026-G10-089');
-  assert.deepEqual(calls[0].params, [2026, 10]);
-  assert.match(calls[0].sql, /ON CONFLICT\(registration_year, registration_grade\) DO UPDATE/);
-  assert.match(calls[0].sql, /last_number < 999/);
+test('legacy year-grade format remains readable for historical student records', () => {
+  assert.equal(ids.formatYearGradeStudentId(2026, 10, 89), '2026-G10-089');
 });
 
 test('exhausted year/grade sequence fails clearly without reissuing an ID', async () => {
@@ -105,4 +97,60 @@ test('new counter migration seeds manually supplied codes and never edits studen
   assert.doesNotMatch(sql, /DELETE\s+FROM\s+students\b/i);
   assert.match(file('scripts/migrate.js'), /060_year_grade_student_ids\.sql/);
   assert.match(file('server.js'), /EXTRACT\(YEAR FROM start_date\)::int AS registration_year/);
+});
+
+test('short Student IDs are stable, grade-independent, and easy to remember', () => {
+  assert.equal(ids.formatShortStudentId(2026, 89), '26-00089');
+  assert.equal(ids.formatShortStudentId(2026, 1), '26-00001');
+  assert.equal(ids.formatShortStudentId(2026, 99999), '26-99999');
+  assert.equal(ids.formatShortStudentId(2031, 1234), '31-01234');
+  assert.throws(() => ids.formatShortStudentId(2026, 100000), /exhausted/);
+  assert.throws(() => ids.formatShortStudentId(2100, 1), /invalid/);
+  assert.throws(() => ids.formatShortStudentId(2026, 0));
+  assert.equal(ids.canonicalStudentLoginUsername('2600089'), '26-00089');
+  assert.equal(ids.canonicalStudentLoginUsername(' 2600089 '), '26-00089');
+  assert.equal(ids.canonicalStudentLoginUsername('26-00089'), '26-00089');
+  assert.equal(ids.canonicalStudentLoginUsername('2026-G10-089'), '2026-G10-089');
+  assert.equal(ids.canonicalStudentLoginUsername('customUser'), 'customUser');
+  assert.equal(ids.canonicalStudentLoginUsername('12345678'), '12345678');
+});
+
+test('year-only ID allocation uses atomic PostgreSQL upsert with a 99,999 cap', async () => {
+  const calls = [];
+  const db = { query: async (sql, params) => {
+    calls.push({sql,params});
+    return { rowCount:1, rows:[{ last_number: '89' }] };
+  } };
+  assert.equal(await ids.nextStudentId(db, {year:2026,gradeLevel:'Grade 10'}), '26-00089');
+  assert.deepEqual(calls[0].params,[2026]);
+  assert.match(calls[0].sql,/INSERT INTO attendigo_student_short_id_counters/);
+  assert.match(calls[0].sql,/ON CONFLICT\(registration_year\) DO UPDATE/);
+  assert.match(calls[0].sql,/last_number < 99999/);
+});
+
+test('five-digit ID exhaustion does not reissue existing IDs', async () => {
+  const db = { query: async () => ({rowCount:0,rows:[]}) };
+  await assert.rejects(ids.nextStudentId(db,{year:2026}), err =>
+    err.code === 'STUDENT_ID_SERIES_EXHAUSTED' && /99,999/.test(err.message));
+});
+
+test('short ID migration seeds all issued manual codes without rewriting existing records', () => {
+  const sql = file('migrations/061_memorable_student_ids.sql');
+  assert.match(sql,/CREATE TABLE IF NOT EXISTS attendigo_student_short_id_counters/);
+  assert.match(sql,/last_number INTEGER NOT NULL CHECK \(last_number BETWEEN 1 AND 99999\)/);
+  assert.match(sql,/FROM students/);
+  assert.match(sql,/GREATEST\(/);
+  assert.doesNotMatch(sql,/UPDATE\s+students\b/i);
+  assert.doesNotMatch(sql,/DELETE\s+FROM\s+students\b/i);
+  assert.match(file('scripts/migrate.js'),/061_memorable_student_ids\.sql/);
+});
+
+test('short ID login alias is limited to the Student portal and preserves exact username precedence', () => {
+  const auth = file('auth-routes.js');
+  const login = auth.slice(auth.indexOf("app.post('/api/auth/student/login'"));
+  assert.match(login,/canonicalStudentLoginUsername\(username\)/);
+  assert.match(login,/lower\(sa.username\)=lower\(\$3\)/);
+  assert.match(login,/ORDER BY CASE WHEN lower\(sa.username\)=lower\(\$2\) THEN 0 ELSE 1 END/);
+  assert.match(file('public/portal-login.js'),/26-00089 or 2600089/);
+  assert.match(file('public/portal-login.html'),/portal-login\.js\?v=14/);
 });
