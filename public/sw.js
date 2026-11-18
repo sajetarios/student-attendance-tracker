@@ -1,4 +1,4 @@
-const CACHE = "attendigo-v218-account-security-layout";
+const CACHE = "attendigo-v219-class-qr-admin-scope";
 
 const SHELL = [
   "/typography.css?v=1",
@@ -49,7 +49,7 @@ const SHELL = [
   "/learner-roster-view.css?v=1",
   "/teacher-learner-roster.css?v=4",
   "/learner-roster-view.js?v=1",
-  "/class-qr-dashboard-link.js?v=8",
+  "/class-qr-dashboard-link.js?v=9",
   "/teacher-roster-popover.js?v=2",
   "/portal.css",
   "/portal.js?v=194",

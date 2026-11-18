@@ -33,6 +33,8 @@ async function saveAttendance(pool,s,studentId,method,actor,reason,verificationM
 }
 function registerClassQrRoutes(app,pool,{authenticateSchoolClient,requireSchoolRoles}){
  const staff=requireSchoolRoles('SCHOOL_ADMIN','TEACHER');
+ const teacher=requireSchoolRoles('TEACHER');
+ const admin=requireSchoolRoles('SCHOOL_ADMIN');
  const checkinAttempts=new Map();
  function checkinLimit(req,res,next){
   const key=String(req.auth?.schoolId||'')+':'+String(req.auth?.studentId||req.ip||'');
@@ -117,13 +119,13 @@ function registerClassQrRoutes(app,pool,{authenticateSchoolClient,requireSchoolR
      AND NOT EXISTS(SELECT 1 FROM school_calendar_exceptions ce WHERE ce.school_id=p.school_id AND ce.calendar_date=$3::date AND ce.exception_type='CLOSED')`,[schoolId,periodId,date,dayOfWeek(date)]);
   return r.rows[0];
  };
- app.post('/api/class-qr/sessions',authenticateSchoolClient,staff,async(req,res)=>{
+ app.post('/api/class-qr/sessions',authenticateSchoolClient,teacher,async(req,res)=>{
   const {periodId}=req.body||{},date=localDate();
   if(!uuid.test(String(periodId||'')))return res.status(400).json({error:'Valid class period required.'});
   try{
    const p=await read(req.auth.schoolId,periodId,date);
    if(!p||p.adjustment_type==='CANCEL'||!p.teacher_user_id||!p.section||!p.effective_subject)return res.status(404).json({error:'No active class on this date.'});
-   if(req.auth.role!=='SCHOOL_ADMIN'&&String(p.teacher_user_id)!==String(req.auth.userId))
+   if(String(p.teacher_user_id)!==String(req.auth.userId))
     return res.status(403).json({error:'Only the assigned teacher may start this session.'});
    const start=at(date,p.effective_start),end=at(date,p.effective_end),close=new Date(end.getTime()-300000);
    if(!(end>start)||close<=start||Date.now()<start.getTime()||Date.now()>=close.getTime())
@@ -135,7 +137,7 @@ function registerClassQrRoutes(app,pool,{authenticateSchoolClient,requireSchoolR
      [req.auth.schoolId,periodId,date,p.teacher_user_id,p.grade_level,p.section,p.effective_subject,start,end,close,crypto.randomBytes(32).toString('hex')]);
    const found=r.rows[0]|| (await pool.query('SELECT session_id FROM class_qr_sessions WHERE school_id=$1 AND period_id=$2 AND school_date=$3',[req.auth.schoolId,periodId,date])).rows[0];
    const current=await pool.query('SELECT closed_at,closes_at,teacher_user_id FROM class_qr_sessions WHERE session_id=$1 AND school_id=$2',[found.session_id,req.auth.schoolId]);
-   if(req.auth.role!=='SCHOOL_ADMIN'&&String(current.rows[0]?.teacher_user_id)!==String(req.auth.userId))return res.sendStatus(403);
+   if(String(current.rows[0]?.teacher_user_id)!==String(req.auth.userId))return res.sendStatus(403);
    if(Date.now()>=new Date(current.rows[0]?.closes_at).getTime())return res.status(410).json({error:'The scheduled QR attendance window has ended.'});
    if(current.rows[0]?.closed_at){
     if(req.body?.reopen!==true)return res.status(410).json({error:'This class QR session was already closed.',canReopen:true});
@@ -153,11 +155,11 @@ function registerClassQrRoutes(app,pool,{authenticateSchoolClient,requireSchoolR
    res.json({sessionId:found.session_id,closesAt:current.rows[0].closes_at,onTimeGraceMinutes:10,rotationSeconds:30});
   }catch(e){console.error('QR session:',e.message);res.status(500).json({error:'Unable to start QR attendance.'});}
  });
- app.get('/api/class-qr/sessions/:id/qr',authenticateSchoolClient,staff,async(req,res)=>{
+ app.get('/api/class-qr/sessions/:id/qr',authenticateSchoolClient,teacher,async(req,res)=>{
   try{
    const r=await pool.query('SELECT * FROM class_qr_sessions WHERE school_id=$1 AND session_id=$2',[req.auth.schoolId,req.params.id]),s=r.rows[0];
    if(!s)return res.status(404).json({error:'Session not found.'});
-   if(req.auth.role!=='SCHOOL_ADMIN'&&String(s.teacher_user_id)!==String(req.auth.userId))return res.sendStatus(403);
+   if(String(s.teacher_user_id)!==String(req.auth.userId))return res.sendStatus(403);
    if(s.closed_at||Date.now()<new Date(s.starts_at).getTime()||Date.now()>=new Date(s.closes_at).getTime())return res.status(410).json({error:'QR attendance closed.'});
    const b=bucket();
    const token=sign(s.secret,s.session_id,b);
@@ -242,7 +244,66 @@ function registerClassQrRoutes(app,pool,{authenticateSchoolClient,requireSchoolR
    res.json({date,today,classes:result.rows.map(p=>({periodId:p.period_id,gradeLevel:p.grade_level,section:p.section,subjectName:p.subject_name,startTime:String(p.start_time).slice(0,5),endTime:String(p.end_time).slice(0,5)}))});
   }catch(e){console.error('QR today:',e.message);res.status(500).json({error:'Could not load classes.'});}
  });
- app.post('/api/class-qr/sessions/:id/manual',authenticateSchoolClient,staff,async(req,res)=>{
+
+ // School-wide oversight is read-only; this endpoint never exposes QR tokens or secrets.
+ app.get('/api/class-qr/monitor',authenticateSchoolClient,admin,async(req,res)=>{
+  try{
+   const date=localDate();
+   const result=await pool.query(`SELECT s.session_id,s.period_id,s.grade_level,s.section,
+     s.subject_name,s.starts_at,s.closes_at,s.closed_at,
+     COUNT(c.checkin_id)::int AS checked_in_count,
+     COUNT(c.checkin_id) FILTER (WHERE c.attendance_status='PRESENT')::int AS present_count,
+     COUNT(c.checkin_id) FILTER (WHERE c.attendance_status='LATE')::int AS late_count
+    FROM class_qr_sessions s
+    LEFT JOIN class_qr_checkins c ON c.school_id=s.school_id AND c.session_id=s.session_id
+    WHERE s.school_id=$1 AND s.school_date=$2::date
+    GROUP BY s.session_id
+    ORDER BY s.starts_at,s.section`,[req.auth.schoolId,date]);
+   res.set('Cache-Control','no-store, private');
+   res.json({date,sessions:result.rows.map(s=>({
+    sessionId:s.session_id,periodId:s.period_id,gradeLevel:s.grade_level,
+    section:s.section,subjectName:s.subject_name,startsAt:s.starts_at,
+    closesAt:s.closes_at,closedAt:s.closed_at,
+    checkedIn:Number(s.checked_in_count)||0,present:Number(s.present_count)||0,
+    late:Number(s.late_count)||0
+   }))});
+  }catch(e){console.error('Class QR monitoring:',e.message);res.status(500).json({error:'Unable to load class QR monitoring.'});}
+ });
+
+ // A separately authorized, reason-required administrator emergency action.
+ // This does not issue QR codes, create sessions, or modify checked-in students.
+ app.post('/api/class-qr/admin-override/sessions/:id/close',authenticateSchoolClient,admin,async(req,res)=>{
+  const sessionId=String(req.params.id||'');
+  const reason=typeof req.body?.reason==='string'?req.body.reason.trim():'';
+  if(!uuid.test(sessionId))return res.status(400).json({error:'Valid session required.'});
+  if(reason.length<12||reason.length>500)return res.status(400).json({error:'Provide an emergency reason of 12–500 characters.'});
+  const client=await pool.connect();
+  try{
+   await client.query('BEGIN');
+   const found=await client.query(`SELECT session_id,period_id,teacher_user_id,school_date,closed_at
+     FROM class_qr_sessions WHERE school_id=$1 AND session_id=$2 FOR UPDATE`,[req.auth.schoolId,sessionId]);
+   if(!found.rowCount){await client.query('ROLLBACK');return res.status(404).json({error:'Session not found.'});}
+   const record=found.rows[0];
+   if(record.closed_at){await client.query('ROLLBACK');return res.status(409).json({error:'Session already closed.'});}
+   await client.query(`UPDATE class_qr_sessions SET closed_at=NOW()
+     WHERE school_id=$1 AND session_id=$2`,[req.auth.schoolId,sessionId]);
+   await client.query(`INSERT INTO audit_logs(school_id,actor_type,actor_user_id,action,entity_type,entity_id,details)
+     VALUES($1,'SCHOOL',$2,'CLASS_QR_ADMIN_EMERGENCY_CLOSE','class_qr_session',$3,$4::jsonb)`,
+     [req.auth.schoolId,req.auth.userId,sessionId,JSON.stringify({
+      reason,periodId:record.period_id,teacherUserId:record.teacher_user_id,
+      schoolDate:record.school_date
+     })]);
+   await client.query('COMMIT');
+   res.set('Cache-Control','no-store');
+   res.json({ok:true});
+  }catch(e){
+   await client.query('ROLLBACK').catch(()=>{});
+   console.error('Class QR emergency override:',e.message);
+   res.status(500).json({error:'Could not close session. No change was saved.'});
+  }finally{client.release();}
+ });
+
+ app.post('/api/class-qr/sessions/:id/manual',authenticateSchoolClient,teacher,async(req,res)=>{
   const studentId=String(req.body?.studentId||'').trim(),reason=String(req.body?.reason||'').trim();
   if(!studentId||studentId.length>160||reason.length<8||reason.length>500)
    return res.status(400).json({error:'Student ID and a reason of 8–500 characters are required.'});
@@ -263,12 +324,12 @@ function registerClassQrRoutes(app,pool,{authenticateSchoolClient,requireSchoolR
    res.status(201).json({ok:true,status:result.status});
   }catch(e){console.error('Manual QR attendance:',e.message);res.status(500).json({error:'Manual attendance failed.'});}
  });
- app.post('/api/class-qr/sessions/:id/close',authenticateSchoolClient,staff,async(req,res)=>{
+ app.post('/api/class-qr/sessions/:id/close',authenticateSchoolClient,teacher,async(req,res)=>{
   try{
    const r=await pool.query(`UPDATE class_qr_sessions SET closed_at=NOW()
     WHERE school_id=$1 AND session_id=$2 AND closed_at IS NULL
-    AND ($3='SCHOOL_ADMIN' OR teacher_user_id=$4) RETURNING session_id`,
-    [req.auth.schoolId,req.params.id,req.auth.role,req.auth.userId]);
+    AND teacher_user_id=$3 RETURNING session_id`,
+    [req.auth.schoolId,req.params.id,req.auth.userId]);
    if(!r.rowCount)return res.status(404).json({error:'Session unavailable or already closed.'});
    res.json({ok:true});
   }catch(e){res.status(500).json({error:'Unable to close session.'});}
