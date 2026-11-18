@@ -1,0 +1,18 @@
+/* Official Business: compact, responsive and accessible review workspace. */
+.staff-ob-panel{margin:0 0 18px}
+.staff-ob-panel details{border:1px solid var(--border-color,#dbe3ed);border-radius:10px;padding:11px 13px;margin:10px 0}
+.staff-ob-panel details summary{cursor:pointer;font-weight:650;color:inherit}
+.staff-ob-form{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin-top:14px}
+.staff-ob-form label{display:grid;gap:5px;font-weight:600;font-size:.85rem;min-width:0}
+.staff-ob-form label:first-child{grid-column:1/-1}
+.staff-ob-form input,.staff-ob-form textarea{width:100%;min-height:38px;box-sizing:border-box;padding:9px 10px;border:1px solid var(--border-color,#d8e2ee);border-radius:8px;color:inherit;background:var(--input-bg,var(--surface-color,#fff));font:inherit}
+.staff-ob-form button{justify-self:start;grid-column:1/-1}
+.staff-ob-list{display:grid;gap:10px}
+.staff-ob-item{padding:13px 15px;border:1px solid var(--border-color,#dce5ef);border-radius:11px;background:var(--surface-color,#fff)}
+.staff-ob-item p{margin:5px 0 0;color:var(--text-muted,#61738c);overflow-wrap:anywhere}
+.staff-ob-item strong{font-size:.93rem}
+.staff-ob-coverage{margin-top:12px;padding-top:10px;border-top:1px solid var(--border-color,#e2e8f0)}
+.staff-ob-coverage-row{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:9px;padding:8px 0;border-bottom:1px solid var(--border-color,#e5eaf1);font-size:.84rem}
+.staff-ob-picker{display:flex;flex-wrap:wrap;gap:8px}
+.staff-ob-picker select{min-height:36px;max-width:100%;color:inherit;background:var(--input-bg,var(--surface-color,#fff))}
+@media(max-width:650px){.staff-ob-form{grid-template-columns:1fr}.staff-ob-item{padding:11px}.staff-ob-panel .section-toolbar{align-items:flex-start}}

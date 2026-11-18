@@ -65,7 +65,7 @@
       busy=true;say('Saving decision…');
       try{
        await call(api+'/'+encodeURIComponent(ob.requestId)+'/'+kind,'POST',{decision,note});
-       say('Decision recorded.');busy=false;await refresh();
+       say('Decision recorded.');document.dispatchEvent(new Event('attendigo:requests-changed'));busy=false;await refresh();
       }catch(e){busy=false;say(e.message,true);}
      }
      if(user.role==='DEPARTMENT_HEAD'&&ob.status==='PENDING_HEAD'&&ob.staffUserId!==user.userId){
@@ -116,7 +116,7 @@
              confirm.disabled=true;select.disabled=true;
              try{
               await call(basePath+'/substitute','POST',{substituteUserId:select.value});
-              say('Substitute assigned and audited.');target.hidden=true;target.replaceChildren();
+              say('Substitute assigned and audited.');document.dispatchEvent(new Event('attendigo:requests-changed'));target.hidden=true;target.replaceChildren();
              }catch(e){say(e.message,true);confirm.disabled=false;select.disabled=false;}
             });
             picker.append(select,confirm);line.append(picker);
@@ -147,7 +147,7 @@
     startsAt:toManilaIso(String(values.get('startsAt'))),endsAt:toManilaIso(String(values.get('endsAt')))};}
    catch{say('Enter valid Philippine dates and times.',true);return;}
    busy=true;say('Submitting OB request…');
-   try{await call(api,'POST',body);form.reset();$('obNew').open=false;busy=false;await refresh();}
+   try{await call(api,'POST',body);document.dispatchEvent(new Event('attendigo:requests-changed'));form.reset();$('obNew').open=false;busy=false;await refresh();}
    catch(e){busy=false;say(e.message,true);}
   });
   await refresh();

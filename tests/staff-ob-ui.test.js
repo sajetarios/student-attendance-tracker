@@ -4,16 +4,19 @@ const ui=fs.readFileSync('public/staff-ob-ui.js','utf8');
 const portal=fs.readFileSync('public/portal.html','utf8');
 const sw=fs.readFileSync('public/sw.js','utf8');
 const routes=fs.readFileSync('staff-ob-routes.js','utf8');
-test('staff OB dashboard initializes only for authorized roles and uses same-origin credentials',()=>{
+test('staff OB portal view initializes only for authorized roles and uses same-origin credentials',()=>{
  assert.match(ui,/\['TEACHER','DEPARTMENT_HEAD','SCHOOL_ADMIN'\]\.includes\(user\?\.role\)/);
  assert.match(ui,/window\.attendigoStaffIdentity\?\.then\(init\)/);
+ assert.match(ui,/officialBusinessView/);
+ assert.match(portal,/id="officialBusinessView"/);
+ assert.match(portal,/id="officialBusinessNav"/);
  assert.match(ui,/credentials:'same-origin',cache:'no-store'/);
  assert.match(ui,/window\.prompt/);
  assert.match(ui,/staff-ob-coverage/);
  assert.match(ui,/form\.reportValidity\(\)/);
  assert.match(ui,/const toManilaIso=s=>/);
- assert.match(portal,/staff-ob-ui\.js\?v=2/);
- assert.match(sw,/staff-ob-ui\.js\?v=2/);
+ assert.match(portal,/staff-ob-ui\.js\?v=3/);
+ assert.match(sw,/staff-ob-ui\.js\?v=3/);
 });
 test('substitute picker uses department-filtered names instead of manual user IDs',()=>{
  assert.ok(ui.includes("basePath+'/substitutes'"));
