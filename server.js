@@ -3391,13 +3391,13 @@ app.post('/api/sync/events', authenticateSchoolClient, requireSchoolClient, asyn
       const automaticGate = event?.eventType === 'AUTO' &&
         req.auth.type === 'SCHOOL_USER' && req.auth.role === 'GATE_KEEPER' &&
         event.attendanceScope === 'SCHOOL' && event.metadata?.photoVerified === true;
-      if (!event || !event.eventId || !event.studentId || !event.eventType || !event.occurredAt ||
-          !isValidSchoolDate(event.schoolDate) || !event.attendanceScope ||
+      if (!event || !event.eventId || !event.studentId || !event.eventType ||
+          (!automaticGate && (!event.occurredAt || !isValidSchoolDate(event.schoolDate) ||
+            !Number.isFinite(Date.parse(event.occurredAt)))) || !event.attendanceScope ||
           (!['TIME_IN', 'TIME_OUT'].includes(event.eventType) && !automaticGate) ||
           !['SCHOOL', 'CLASS', 'ADVISORY'].includes(event.attendanceScope) ||
           (event.attendanceScope === 'CLASS' && !event.periodId) ||
-          (['SCHOOL', 'ADVISORY'].includes(event.attendanceScope) && event.periodId) ||
-          !Number.isFinite(Date.parse(event.occurredAt))) {
+          (['SCHOOL', 'ADVISORY'].includes(event.attendanceScope) && event.periodId)) {
         results.push({ eventId: event?.eventId || null, status: 'REJECTED', reason: 'Invalid or missing event fields.' });
         continue;
       }
