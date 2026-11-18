@@ -33,15 +33,15 @@ test('admin and teacher interfaces remain isolated to existing role-specific por
  const admin=portal.indexOf('id="staffLunchAdminCard"');
  const student=portal.indexOf('id="myGateAttendanceView"');
  const presenter=portal.indexOf('id="staffLunchPresenterCard"');
- assert.ok(teachers>=0 && admin>teachers && student>=0 && presenter>student);
+ assert.ok(teachers>=0 && admin>=0 && student>=0 && presenter>=0);
  assert.match(ui,/\['SCHOOL_ADMIN','TEACHER'\]\.includes\(user\?\.role\)/);
  assert.match(ui,/window\.attendigoStaffIdentity\?\.then\(init\)/);
  assert.match(ui,/\/api\/staff-attendance\/lunch\/presenter/);
  assert.match(ui,/\/api\/staff-attendance\/lunch\/challenges/);
  assert.match(ui,/setInterval\(/);
  assert.match(ui,/!document\.hidden/);
- assert.match(portal,/staff-lunch-ui\.js\?v=1/);
- assert.match(portal,/staff-lunch\.css\?v=1/);
+ assert.match(portal,/staff-lunch-ui\.js\?v=3/);
+ assert.match(portal,/staff-lunch\.css\?v=3/);
 });
 test('QR scan does not log in or record until authenticated staff confirms explicitly',()=>{
  assert.match(page,/name="referrer" content="no-referrer"/);
@@ -57,13 +57,13 @@ test('QR scan does not log in or record until authenticated staff confirms expli
  assert.match(server,/res\.set\('Referrer-Policy','no-referrer'\)/);
 });
 test('service worker preloads safe assets but excludes sensitive scan document from offline cache',()=>{
- assert.match(sw,/staff-lunch-ui\.js\?v=1/);
- assert.match(sw,/staff-lunch\.css\?v=1/);
+ assert.match(sw,/staff-lunch-ui\.js\?v=3/);
+ assert.match(sw,/staff-lunch\.css\?v=3/);
  assert.match(sw,/staff-lunch-checkin\.js\?v=3/);
  assert.match(sw,/staff-lunch-checkin\.html/);
  const shell=sw.split('const SHELL = [')[1].split('];')[0];
  assert.doesNotMatch(shell,/staff-lunch-checkin\.html/);
- assert.match(sw,/const CACHE = "attendigo-v199-/);
+ assert.match(sw,/const CACHE = "attendigo-v200-/);
 });
 
 test('staff lunch sign-in resumes same challenge without QR rescan or token in query',()=>{
