@@ -178,10 +178,10 @@ window.attendigoStaffIdentity = new Promise(resolve => { resolveStaffIdentity = 
 
   function allowedViewsForUser() {
     const role = user?.role;
-    if (role === 'SCHOOL_ADMIN') return ['dashboard', 'students', 'studentAccounts', 'parents', 'teachers', 'schedules', 'myGateAttendance', 'lunchQrAdmin', 'form48Reports', 'cloudSync', 'schoolBranding'];
-    if (role === 'DEPARTMENT_HEAD') return ['dashboard', 'planner', 'students', 'teachers', 'schedules', 'sf2'];
+    if (role === 'SCHOOL_ADMIN') return ['dashboard', 'students', 'studentAccounts', 'parents', 'teachers', 'schedules', 'myGateAttendance', 'lunchQrAdmin', 'form48Reports', 'officialBusiness', 'cloudSync', 'schoolBranding'];
+    if (role === 'DEPARTMENT_HEAD') return ['dashboard', 'planner', 'students', 'teachers', 'schedules', 'sf2', 'officialBusiness'];
     if (role === 'TEACHER') {
-      const views = ['dashboard', 'planner', 'myGateAttendance', 'teacherLunchQr'];
+      const views = ['dashboard', 'planner', 'myGateAttendance', 'teacherLunchQr', 'officialBusiness'];
       if (teacherHas('SUBJECT_TEACHER') || teacherHas('CLASS_ADVISER')) {
         views.push('students', 'studentAccounts', 'classAttendance');
       }
@@ -260,7 +260,7 @@ window.attendigoStaffIdentity = new Promise(resolve => { resolveStaffIdentity = 
     if (!allowedViews.includes(view)) view = allowedViews.includes('dashboard') ? 'dashboard' : (allowedViews[0] || 'dashboard');
     $('platformWorkspace').hidden = true;
     $('schoolWorkspace').hidden = false;
-    ['dashboard', 'students', 'studentAccounts', 'parents', 'schedules', 'teachers', 'sf2', 'classAttendance', 'myGateAttendance', 'lunchQrAdmin', 'form48Reports', 'cloudSync', 'schoolBranding', 'planner'].forEach(name => {
+    ['dashboard', 'students', 'studentAccounts', 'parents', 'schedules', 'teachers', 'sf2', 'classAttendance', 'myGateAttendance', 'lunchQrAdmin', 'form48Reports', 'officialBusiness', 'cloudSync', 'schoolBranding', 'planner'].forEach(name => {
       const panel = $(`${name}View`);
       if (panel) panel.hidden = name !== view;
     });
@@ -292,7 +292,8 @@ window.attendigoStaffIdentity = new Promise(resolve => { resolveStaffIdentity = 
         teachers: ['Teachers & Staff', 'Review department teachers and staff, their designations, assigned sections, leave, schedules, and temporary coverage.'],
         planner: ['Planner', 'Organize departmental meetings, shared deadlines, and your own tasks without changing the official timetable.'],
         schedules: ['Department schedule management', 'View every department’s timetable and create or assign class schedules only within your own department.'],
-        sf2: ['SF2 monitoring', 'Preview official section reports. Department Heads cannot edit, submit, or collect SF2 reports.']
+        sf2: ['SF2 monitoring', 'Preview official section reports. Department Heads cannot edit, submit, or collect SF2 reports.'],
+        officialBusiness: ['Official Business', 'Review departmental OB requests and coordinate approved class substitute coverage.']
       };
     } else if (gateKeeper) {
       titles = { students: ['Learner and teacher gate attendance', 'Scan a learner QR card or teacher badge, verify the registered photograph, then record school-gate time-in or time-out.'] };
@@ -307,6 +308,7 @@ window.attendigoStaffIdentity = new Promise(resolve => { resolveStaffIdentity = 
         sf2: [classAdviser && subjectTeacher ? 'My SF2 reports' : classAdviser ? 'Official section SF2' : 'Personal SF2 copy', classAdviser ? 'Generate the official consolidated section SF2 only for sections assigned to you as Class Adviser.' : 'Generate a personal attendance copy from your own subject-period records.'],
         teacherLunchQr: ['My lunch QR', 'Generate your assigned rotating lunch QR; staff attendance is recorded only after individual confirmation.'],
         myGateAttendance: ['My Staff Attendance', 'Review verified Form 48 punches and photo-verified gate scans together.'],
+        officialBusiness: ['Official Business', 'Submit an OB request and follow Department Head recommendation and School Admin approval.'],
         classAttendance: ['Class attendance', classAdviser && subjectTeacher ? 'Review your advisory section and the other sections covered by your assigned subject schedules.' : classAdviser ? 'Review attendance for your assigned advisory section.' : 'Review attendance in the sections covered by your assigned subject schedules.']
       };
     } else {
@@ -322,6 +324,7 @@ window.attendigoStaffIdentity = new Promise(resolve => { resolveStaffIdentity = 
         schoolBranding: ['School identity', 'Manage the name, logo, and interface accent color for your school workspace.'],
         lunchQrAdmin: ['Lunch QR management', 'Assign authorized lunch QR presenters without changing teacher account access.'],
         form48Reports: ['Form 48 DTR reports', 'Preview and print the verified monthly Daily Time Record for a selected staff member.'],
+        officialBusiness: ['Official Business', 'Review final OB approvals and monitor requests across the school.'],
         myGateAttendance: ['My Staff Attendance', 'View your own Gatekeeper-verified physical movements and four-slot Form 48 DTR. Administrative login does not record attendance.']
       };
     }
@@ -331,6 +334,7 @@ window.attendigoStaffIdentity = new Promise(resolve => { resolveStaffIdentity = 
     $('breadcrumbCurrent').textContent = title[0];
     if (view === 'parents') $('parentsView')?.dispatchEvent(new Event('parent:open'));
     if (view === 'planner') $('plannerView')?.dispatchEvent(new Event('planner:open'));
+    if (view === 'officialBusiness') $('officialBusinessView')?.dispatchEvent(new Event('official-business:open'));
     if (view === 'dashboard' && ['TEACHER','DEPARTMENT_HEAD'].includes(role)) $('plannerView')?.dispatchEvent(new Event('planner:dashboard'));
     if (view === 'myGateAttendance' && ['TEACHER', 'SCHOOL_ADMIN'].includes(role)) loadMyGateAttendance();
     if (view === 'classAttendance' && role === 'TEACHER') {
@@ -468,6 +472,7 @@ window.attendigoStaffIdentity = new Promise(resolve => { resolveStaffIdentity = 
     if ($('lunchQrAdminNav')) $('lunchQrAdminNav').hidden = !admin;
     if ($('form48ReportsNav')) $('form48ReportsNav').hidden = !admin;
     if ($('teacherLunchQrNav')) $('teacherLunchQrNav').hidden = !teacher;
+    if ($('officialBusinessNav')) $('officialBusinessNav').hidden = !(teacher || admin || departmentHead);
     if ($('myGateAttendanceNav')) {
       $('myGateAttendanceNav').hidden = !(teacher || admin);
       $('myGateAttendanceNav').querySelector('.nav-label').textContent = 'My Staff Attendance';
@@ -640,8 +645,8 @@ window.attendigoStaffIdentity = new Promise(resolve => { resolveStaffIdentity = 
     const academicsSubmenu = document.querySelector('[data-submenu="academics"]');
     if (academicsSubmenu && (teacher || departmentHead)) {
       const order = teacher
-        ? ['classAttendanceNav', 'myGateAttendanceNav', 'teacherLunchQrNav', 'schedulesNav', 'plannerNav', 'sf2Nav']
-        : ['schedulesNav', 'plannerNav', 'sf2Nav'];
+        ? ['classAttendanceNav', 'myGateAttendanceNav', 'officialBusinessNav', 'teacherLunchQrNav', 'schedulesNav', 'plannerNav', 'sf2Nav']
+        : ['officialBusinessNav', 'schedulesNav', 'plannerNav', 'sf2Nav'];
       const orderedNodes = order.map(id => $(id)).filter(node => node && node.parentElement === academicsSubmenu);
       const currentNodes = Array.from(academicsSubmenu.children).filter(node => orderedNodes.includes(node));
       if (orderedNodes.some((node, index) => node !== currentNodes[index])) {
@@ -659,6 +664,7 @@ window.attendigoStaffIdentity = new Promise(resolve => { resolveStaffIdentity = 
       const academicMenu = document.querySelector('.nav-submenu[data-submenu="academics"]');
       if (academicMenu && $('academicAdminNav') && academicMenu.firstElementChild !== $('academicAdminNav')) academicMenu.prepend($('academicAdminNav'));
       relocate('myGateAttendanceNav', 'operations');
+      relocate('officialBusinessNav', 'operations');
       relocate('lunchQrAdminNav', 'operations');
       relocate('form48ReportsNav', 'reports');
       relocate('cloudSyncNav', 'operations');
