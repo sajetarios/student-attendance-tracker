@@ -3441,11 +3441,13 @@ app.post('/api/sync/events', authenticateSchoolClient, requireSchoolClient, asyn
       }
 
       const already = await client.query(
-        'SELECT school_id FROM attendance_events WHERE event_id=$1', [event.eventId]
+        'SELECT school_id,event_type,occurred_at_device FROM attendance_events WHERE event_id=$1', [event.eventId]
       );
       if (already.rowCount) {
         if (already.rows[0].school_id === req.auth.schoolId) {
-          results.push({ eventId: event.eventId, status: 'ALREADY_SYNCED' });
+          results.push({ eventId: event.eventId, status: 'ALREADY_SYNCED',
+            ...(automaticGate?{eventType:already.rows[0].event_type,
+              occurredAt:already.rows[0].occurred_at_device}: {}) });
         } else {
           results.push({ eventId: event.eventId, status: 'REJECTED', reason: 'Event ID belongs to a different school.' });
         }
