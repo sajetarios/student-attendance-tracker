@@ -181,7 +181,7 @@ window.attendigoStaffIdentity = new Promise(resolve => { resolveStaffIdentity = 
     if (role === 'SCHOOL_ADMIN') return ['dashboard', 'students', 'studentAccounts', 'parents', 'teachers', 'schedules', 'cloudSync', 'schoolBranding'];
     if (role === 'DEPARTMENT_HEAD') return ['dashboard', 'planner', 'students', 'teachers', 'schedules', 'sf2'];
     if (role === 'TEACHER') {
-      const views = ['dashboard', 'planner'];
+      const views = ['dashboard', 'planner', 'myGateAttendance'];
       if (teacherHas('SUBJECT_TEACHER') || teacherHas('CLASS_ADVISER')) {
         views.push('students', 'studentAccounts', 'classAttendance');
       }
@@ -260,7 +260,7 @@ window.attendigoStaffIdentity = new Promise(resolve => { resolveStaffIdentity = 
     if (!allowedViews.includes(view)) view = allowedViews.includes('dashboard') ? 'dashboard' : (allowedViews[0] || 'dashboard');
     $('platformWorkspace').hidden = true;
     $('schoolWorkspace').hidden = false;
-    ['dashboard', 'students', 'studentAccounts', 'parents', 'schedules', 'teachers', 'sf2', 'classAttendance', 'cloudSync', 'schoolBranding', 'planner'].forEach(name => {
+    ['dashboard', 'students', 'studentAccounts', 'parents', 'schedules', 'teachers', 'sf2', 'classAttendance', 'myGateAttendance', 'cloudSync', 'schoolBranding', 'planner'].forEach(name => {
       const panel = $(`${name}View`);
       if (panel) panel.hidden = name !== view;
     });
@@ -305,6 +305,7 @@ window.attendigoStaffIdentity = new Promise(resolve => { resolveStaffIdentity = 
         planner: ['My Planner', 'Plan lessons, tasks, personal meetings and reminders around assigned class schedules.'],
         schedules: ['My teaching and advisory schedules', 'View your assigned teaching periods, active substitute assignments, and advisory class timetable.'],
         sf2: [classAdviser && subjectTeacher ? 'My SF2 reports' : classAdviser ? 'Official section SF2' : 'Personal SF2 copy', classAdviser ? 'Generate the official consolidated section SF2 only for sections assigned to you as Class Adviser.' : 'Generate a personal attendance copy from your own subject-period records.'],
+        myGateAttendance: ['My Gate Attendance', 'View your own badge scans recorded by authorized gatekeepers.'],
         classAttendance: ['Class attendance', classAdviser && subjectTeacher ? 'Review your advisory section and the other sections covered by your assigned subject schedules.' : classAdviser ? 'Review attendance for your assigned advisory section.' : 'Review attendance in the sections covered by your assigned subject schedules.']
       };
     } else {
@@ -327,6 +328,7 @@ window.attendigoStaffIdentity = new Promise(resolve => { resolveStaffIdentity = 
     if (view === 'parents') $('parentsView')?.dispatchEvent(new Event('parent:open'));
     if (view === 'planner') $('plannerView')?.dispatchEvent(new Event('planner:open'));
     if (view === 'dashboard' && ['TEACHER','DEPARTMENT_HEAD'].includes(role)) $('plannerView')?.dispatchEvent(new Event('planner:dashboard'));
+    if (view === 'myGateAttendance' && role === 'TEACHER') loadMyGateAttendance();
     if (view === 'classAttendance' && role === 'TEACHER') {
       loadTeacherClassAttendance().catch(error => {
         if ($('teacherAttendanceFeedback')) {
@@ -459,6 +461,7 @@ window.attendigoStaffIdentity = new Promise(resolve => { resolveStaffIdentity = 
       $('classAttendanceNav').querySelector('.nav-label').textContent =
         classAdviser && subjectTeacher ? 'Class attendance' : classAdviser ? 'My advisory attendance' : 'My class attendance';
     }
+    if ($('myGateAttendanceNav')) $('myGateAttendanceNav').hidden = !teacher;
     const attendanceViewSelect = $('teacherAttendanceViewSelect');
     if (attendanceViewSelect) {
       const allOption = attendanceViewSelect.querySelector('option[value="ALL"]');
@@ -622,7 +625,7 @@ window.attendigoStaffIdentity = new Promise(resolve => { resolveStaffIdentity = 
     const academicsSubmenu = document.querySelector('[data-submenu="academics"]');
     if (academicsSubmenu && (teacher || departmentHead)) {
       const order = teacher
-        ? ['classAttendanceNav', 'schedulesNav', 'plannerNav', 'sf2Nav']
+        ? ['classAttendanceNav', 'myGateAttendanceNav', 'schedulesNav', 'plannerNav', 'sf2Nav']
         : ['schedulesNav', 'plannerNav', 'sf2Nav'];
       const orderedNodes = order.map(id => $(id)).filter(node => node && node.parentElement === academicsSubmenu);
       const currentNodes = Array.from(academicsSubmenu.children).filter(node => orderedNodes.includes(node));
@@ -3860,6 +3863,65 @@ let teacherActionMenuListenersInstalled = false;
     }
   }
 
+  // This page never exposes the gatekeeper scanner or a teacher-identity selector.
+  const myGateTime = timestamp => timestamp
+    ? new Date(timestamp).toLocaleTimeString('en-PH', { timeZone: 'Asia/Manila', hour: 'numeric', minute: '2-digit' })
+    : '—';
+  async function loadMyGateAttendance() {
+    if (user?.role !== 'TEACHER') return;
+    const fromField = $('myGateFrom'), toField = $('myGateTo');
+    if (!fromField || !toField) return;
+    const today = schoolDateManila();
+    if (!toField.value) toField.value = today;
+    if (!fromField.value) {
+      const start = new Date(today + 'T00:00:00+08:00');
+      start.setDate(start.getDate() - 6);
+      fromField.value = schoolDateManila(start);
+    }
+    const from = fromField.value, to = toField.value;
+    const feedback = $('myGateFeedback');
+    if (!from || !to || from > to || Date.parse(to + 'T00:00:00Z') - Date.parse(from + 'T00:00:00Z') > 31 * 86400000) {
+      feedback.textContent = 'Choose a valid date range of up to 31 days.';
+      feedback.className = 'inline-feedback error';
+      return;
+    }
+    feedback.textContent = 'Loading your verified badge scans…';
+    feedback.className = 'inline-feedback';
+    for (const id of ['myGateApply', 'myGateRefresh']) $(id).disabled = true;
+    try {
+      const records = (await api('/api/teacher/my-gate-attendance?' + new URLSearchParams({from,to}))).events || [];
+      const daily = new Map();
+      records.forEach(item => {
+        const entry = daily.get(item.schoolDate) || { date: item.schoolDate, in: null, out: null, verified: true };
+        if (item.eventType === 'TIME_IN') entry.in = item.occurredAt;
+        if (item.eventType === 'TIME_OUT') entry.out = item.occurredAt;
+        entry.verified = entry.verified && item.photoVerified === true;
+        daily.set(item.schoolDate, entry);
+      });
+      const todayRecord = daily.get(today);
+      $('myGateTimeIn').textContent = myGateTime(todayRecord?.in);
+      $('myGateTimeOut').textContent = myGateTime(todayRecord?.out);
+      const rows = [...daily.values()].sort((a,b) => b.date.localeCompare(a.date));
+      $('myGateRows').innerHTML = rows.length ? rows.map(entry => `<tr>
+        <td>${esc(formatSchoolDate(entry.date))}</td>
+        <td>${esc(myGateTime(entry.in))}</td>
+        <td>${esc(myGateTime(entry.out))}</td>
+        <td><span class="status-tag ${entry.verified ? '' : 'neutral'}">${entry.verified ? 'Photo verified' : 'Check record'}</span></td>
+      </tr>`).join('') : '<tr><td colspan="4" class="empty-cell">No gatekeeper-recorded attendance for these dates.</td></tr>';
+      feedback.textContent = rows.length
+        ? `Showing ${rows.length} day(s) of your personal gate attendance.`
+        : 'No verified gate scans found for the selected period.';
+    } catch (error) {
+      $('myGateRows').innerHTML = '<tr><td colspan="4" class="empty-cell">Unable to load personal gate attendance.</td></tr>';
+      $('myGateTimeIn').textContent = '—';
+      $('myGateTimeOut').textContent = '—';
+      feedback.textContent = error.message;
+      feedback.className = 'inline-feedback error';
+    } finally {
+      for (const id of ['myGateApply', 'myGateRefresh']) $(id).disabled = false;
+    }
+  }
+
   let teacherHistoryData = [];
   let teacherHistoryPage = 0;
   function renderTeacherClassAttendance(records, requestedPage = 0) {
@@ -4691,6 +4753,8 @@ let teacherActionMenuListenersInstalled = false;
     if(window.matchMedia('(max-width: 860px)').matches)closeMobileSidebar();
   });
   // Sidebar navigation uses delegated native links; do not bind legacy button handlers.
+  $('myGateApply')?.addEventListener('click', loadMyGateAttendance);
+  $('myGateRefresh')?.addEventListener('click', loadMyGateAttendance);
   $('refreshButton').addEventListener('click', refresh);
   $('refreshGateMonitoring')?.addEventListener('click', async () => {
     const button = $('refreshGateMonitoring');
