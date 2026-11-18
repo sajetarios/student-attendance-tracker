@@ -87,27 +87,34 @@ async function main(){
   const outdated=await post('/api/staff-attendance/lunch/redeem',
    {challengeId:permitted.body.challengeId,token:permitted.body.token},teacher.token);
   assert.equal(outdated.status,410,'Previous QR is revoked immediately on rotation');
-  const replaced=await presenterChange('PUT',{slot:'PM_IN',presenterUserId:teacher2.id});
-  assert.equal(replaced.status,201,'School Admin may replace unavailable presenter');
-  const revokedChallenge=await post('/api/staff-attendance/lunch/redeem',
-   {challengeId:rotatedQr.body.challengeId,token:rotatedQr.body.token},teacher.token);
-  assert.equal(revokedChallenge.status,410,'Replacing presenter invalidates old live QR');
-  const former=await post('/api/staff-attendance/lunch/challenges',{slot:'PM_IN'},teacher.token);
-  assert.equal(former.status,403,'Replaced teacher cannot issue more QR challenges');
+  const additional=await presenterChange('PUT',{slot:'PM_IN',presenterUserId:teacher2.id});
+  assert.equal(additional.status,201,'School Admin may authorize another presenter for the same slot');
+  const originalQr=await pool.query('SELECT revoked_at FROM staff_attendance_challenges WHERE challenge_id=$1',
+   [rotatedQr.body.challengeId]);
+  assert.equal(originalQr.rowCount,1);
+  assert.equal(originalQr.rows[0].revoked_at,null,"Adding a second presenter preserves the first presenter's QR");
+  const firstPresenterAgain=await post('/api/staff-attendance/lunch/challenges',{slot:'PM_IN'},teacher.token);
+  assert.equal(firstPresenterAgain.status,201,'First teacher remains authorized as a presenter');
   const newPresenter=await post('/api/staff-attendance/lunch/challenges',{slot:'PM_IN'},teacher2.token);
-  assert.equal(newPresenter.status,201,'Replacement teacher can issue lunch QR');
-  const removed=await presenterChange('DELETE',{slot:'PM_IN'});
+  assert.equal(newPresenter.status,201,'Second teacher can issue an independent lunch QR');
+  const firstStillLive=await pool.query('SELECT revoked_at FROM staff_attendance_challenges WHERE challenge_id=$1',
+   [firstPresenterAgain.body.challengeId]);
+  assert.equal(firstStillLive.rows[0].revoked_at,null,"Second presenter's QR does not rotate the first");
+  const removed=await presenterChange('DELETE',{slot:'PM_IN',presenterUserId:teacher2.id});
   assert.equal(removed.status,200);
   assert.equal(removed.body.revoked,true);
   assert.equal((await post('/api/staff-attendance/lunch/redeem',
    {challengeId:newPresenter.body.challengeId,token:newPresenter.body.token},teacher.token)).status,410,
-   'Revoking presenter invalidates active QR');
+   'Revoking the second presenter invalidates only their active QR');
   assert.equal((await post('/api/staff-attendance/lunch/challenges',{slot:'PM_IN'},teacher2.token)).status,403,
    'Revoked presenter cannot issue challenges');
+  const independentQr=await pool.query('SELECT revoked_at FROM staff_attendance_challenges WHERE challenge_id=$1',
+   [firstPresenterAgain.body.challengeId]);
+  assert.equal(independentQr.rows[0].revoked_at,null,"Revoking another presenter preserves the first presenter's QR");
   const auditPresenter=await pool.query(`SELECT action FROM staff_attendance_audit
     WHERE school_id=$1 AND action IN ('LUNCH_PRESENTER_ASSIGNED','LUNCH_PRESENTER_REVOKED')`,
     [a.school]);
-  assert.equal(auditPresenter.rowCount,3,'Assignment, replacement and revocation are audited');
+  assert.equal(auditPresenter.rowCount,3,'Two independent grants and one targeted revocation are audited');
 
   const issued=await post('/api/staff-attendance/lunch/challenges',{slot:'AM_OUT'},admin.token);
   assert.equal(issued.status,201,'School admin can issue a time-limited lunch QR: '+JSON.stringify(issued.body));

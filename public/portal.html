@@ -9,7 +9,7 @@
   <title>Dashboard · Attendigo</title>
   <link rel="stylesheet" href="/staff-lunch.css?v=3">
   <link rel="stylesheet" href="/form48-report.css?v=1">
-  <link rel="stylesheet" href="/portal.css?v=0.9.116"><link rel="stylesheet" href="/attendigo-brand-polish.css?v=2"><link rel="stylesheet" href="/parent-admin.css?v=7">
+  <link rel="stylesheet" href="/portal.css?v=0.9.117"><link rel="stylesheet" href="/attendigo-brand-polish.css?v=2"><link rel="stylesheet" href="/parent-admin.css?v=7">
   <link rel="stylesheet" href="/schedule-mobile-layout.css?v=1">
   <link rel="stylesheet" href="/schedule-form-layout.css?v=12">
   <link rel="stylesheet" href="/teacher-assignment-modal.css?v=1">
@@ -928,21 +928,10 @@ body.dark-mode .content-wrap > .school-heading.is-compact,body[data-theme="dark"
               </div>
               <div class="surface-card section-card my-gate-attendance">
               <div class="section-toolbar">
-                <div><h2 id="myGateHeading">My Gate Attendance</h2><p id="myGateIntro">Your own time-in and time-out recorded by the authorized Gate Keeper. This is not the student class register.</p></div>
+                <div><h2 id="myGateHeading">My Gate Attendance</h2><p id="myGateIntro">Your photo-verified entry and exit history. Official Form 48 DTR entries are tracked separately.</p></div>
                 <button type="button" class="outline-button" id="myGateRefresh">↻ Refresh</button>
               </div>
-              <div class="my-gate-today" aria-label="Today's gate attendance">
-                <div class="my-gate-time"><span>Today's time in</span><strong id="myGateTimeIn">—</strong></div>
-                <div class="my-gate-time"><span>Today's time out</span><strong id="myGateTimeOut">—</strong></div>
-              </div>
-              <h3>Today's Form 48 DTR</h3>
-              <div class="my-gate-today" id="myGateDtrSlots" aria-label="Today's four-slot daily time record">
-                <div class="my-gate-time"><span>AM In</span><strong id="myGateDtrAmIn">—</strong></div>
-                <div class="my-gate-time"><span>AM Out</span><strong id="myGateDtrAmOut">—</strong></div>
-                <div class="my-gate-time"><span>PM In</span><strong id="myGateDtrPmIn">—</strong></div>
-                <div class="my-gate-time"><span>PM Out</span><strong id="myGateDtrPmOut">—</strong></div>
-              </div>
-              <p class="attendance-summary-note">Only verified DTR entries appear above. Gate entry and exit records remain separate, below.</p>
+              <div class="my-gate-history-heading"><h3>Gate scan history</h3></div>
               <div class="my-gate-filters">
                 <label>From date<input type="date" id="myGateFrom"></label>
                 <label>To date<input type="date" id="myGateTo"></label>
@@ -953,7 +942,22 @@ body.dark-mode .content-wrap > .school-heading.is-compact,body[data-theme="dark"
                 <thead><tr><th>Date</th><th>Time in</th><th>Time out</th><th>Verification</th></tr></thead>
                 <tbody id="myGateRows"><tr><td colspan="4" class="empty-cell">No records loaded.</td></tr></tbody>
               </table></div>
-              <p class="attendance-summary-note">Only Gate Keeper-verified badge scans appear here. Missing or incorrect entries should be reported for correction. Staff cannot edit Gatekeeper timestamps.</p>
+              <p class="my-gate-help">Physical gate scans are recorded by authorized Gate Keepers. Report any missing or incorrect record to the School Admin; staff cannot edit gate timestamps.</p>
+              <details class="my-gate-dtr-details" id="myGateDtrDetails">
+                <summary>
+                  <span class="my-gate-dtr-title">Official Form 48 DTR <span class="my-gate-dtr-date">Today</span></span>
+                  <span id="myGateDtrSummary" class="my-gate-dtr-count" role="status" aria-live="polite">Checking DTR…</span>
+                </summary>
+                <div class="my-gate-dtr-content">
+                  <p class="my-gate-help">These are verified DTR punches, separate from the physical gate scans above.</p>
+                  <div class="my-gate-dtr-grid" id="myGateDtrSlots" aria-label="Today's four-slot daily time record">
+                    <div class="my-gate-dtr-slot"><span>AM In</span><strong id="myGateDtrAmIn">Not recorded</strong></div>
+                    <div class="my-gate-dtr-slot"><span>AM Out</span><strong id="myGateDtrAmOut">Not recorded</strong></div>
+                    <div class="my-gate-dtr-slot"><span>PM In</span><strong id="myGateDtrPmIn">Not recorded</strong></div>
+                    <div class="my-gate-dtr-slot"><span>PM Out</span><strong id="myGateDtrPmOut">Not recorded</strong></div>
+                  </div>
+                </div>
+              </details>
             </div>
           </section>
 
@@ -1569,7 +1573,7 @@ body.dark-mode .content-wrap > .school-heading.is-compact,body[data-theme="dark"
           <section id="form48ReportsView" class="view-panel" hidden>
             <div class="surface-card section-card" id="form48ReportCard">
               <div class="section-toolbar"><div><h3>CS Form No. 48 — Daily Time Record</h3><p>Generate an official-style monthly report from verified staff DTR entries. Missing entries remain blank and signatures are never generated.</p></div></div>
-              <form id="form48FilterForm" class="form48-filter">
+              <form id="form48FilterForm" class="form48-filter" method="post">
                 <label>Employee<select id="form48Employee" required><option value="">Select a staff member</option></select></label>
                 <label>Month<input id="form48Month" type="month" required></label>
                 <button type="submit" class="primary-button">Generate preview</button>
@@ -1861,7 +1865,7 @@ body.dark-mode .content-wrap > .school-heading.is-compact,body[data-theme="dark"
   <script src="/offline-attendance.js?v=5" defer></script>
   <script src="/attendance-sync-center.js?v=3" defer></script>
   <script src="/learner-roster-view.js?v=1" defer></script>
-  <script src="/portal.js?v=189" defer></script>
+  <script src="/portal.js?v=190" defer></script>
   <script src="/staff-lunch-ui.js?v=3" defer></script>
   <script src="/form48-report.js?v=1" defer></script>
   <script src="/teacher-roster-popover.js?v=2" defer></script>

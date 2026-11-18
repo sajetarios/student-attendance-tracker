@@ -476,7 +476,7 @@ window.attendigoStaffIdentity = new Promise(resolve => { resolveStaffIdentity = 
     if ($('myGateHeading')) $('myGateHeading').textContent = admin ? 'My Staff Attendance' : 'My Gate Attendance';
     if ($('myGateIntro')) $('myGateIntro').textContent = admin
       ? 'Your personal, verified staff attendance. Sign-in to this portal does not mark you present.'
-      : 'Your own time-in and time-out recorded by the authorized Gate Keeper. This is not the student class register.';
+      : 'Your photo-verified entry and exit history. Official Form 48 DTR entries are tracked separately.';
     const attendanceViewSelect = $('teacherAttendanceViewSelect');
     if (attendanceViewSelect) {
       const allOption = attendanceViewSelect.querySelector('option[value="ALL"]');
@@ -3957,14 +3957,18 @@ let teacherActionMenuListenersInstalled = false;
             AM_IN: 'myGateDtrAmIn', AM_OUT: 'myGateDtrAmOut',
             PM_IN: 'myGateDtrPmIn', PM_OUT: 'myGateDtrPmOut'
           };
+          let verifiedCount = 0;
           for (const [slot, id] of Object.entries(targetIds)) {
             const entry = dtr.slots?.find(item => item.slot === slot && item.status === 'VERIFIED');
-            $(id).textContent = myGateTime(entry?.occurredAt);
+            if (entry) verifiedCount++;
+            $(id).textContent = entry ? myGateTime(entry.occurredAt) : 'Not recorded';
           }
+          $('myGateDtrSummary').textContent = verifiedCount + ' of 4 verified';
         } catch (dtrError) {
           for (const id of ['myGateDtrAmIn', 'myGateDtrAmOut', 'myGateDtrPmIn', 'myGateDtrPmOut']) {
             $(id).textContent = 'Unavailable';
           }
+          $('myGateDtrSummary').textContent = 'DTR unavailable';
         }
       }
       const records = (await api('/api/teacher/my-gate-attendance?' + new URLSearchParams({from,to}))).events || [];
@@ -3976,9 +3980,6 @@ let teacherActionMenuListenersInstalled = false;
         entry.verified = entry.verified && item.photoVerified === true;
         daily.set(item.schoolDate, entry);
       });
-      const todayRecord = daily.get(today);
-      $('myGateTimeIn').textContent = myGateTime(todayRecord?.in);
-      $('myGateTimeOut').textContent = myGateTime(todayRecord?.out);
       const rows = [...daily.values()].sort((a,b) => b.date.localeCompare(a.date));
       $('myGateRows').innerHTML = rows.length ? rows.map(entry => `<tr>
         <td>${esc(formatSchoolDate(entry.date))}</td>
@@ -3991,8 +3992,6 @@ let teacherActionMenuListenersInstalled = false;
         : 'No verified gate scans found for the selected period.';
     } catch (error) {
       $('myGateRows').innerHTML = '<tr><td colspan="4" class="empty-cell">Unable to load personal gate attendance.</td></tr>';
-      $('myGateTimeIn').textContent = '—';
-      $('myGateTimeOut').textContent = '—';
       feedback.textContent = error.message;
       feedback.className = 'inline-feedback error';
     } finally {
