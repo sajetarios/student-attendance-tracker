@@ -27,6 +27,32 @@ function registerStaffObRoutes(app,pool,{authenticateSchoolClient,requireSchoolR
    return res.json({requests:result.rows});
   }catch(e){return respondError(res,e);}
  });
+ app.get('/api/staff-attendance/official-business/:id/coverage',...auth,async(req,res)=>{
+  res.set('Cache-Control','no-store, private');
+  if(!uuid.test(req.params.id))return res.status(400).json({error:'Valid OB request required.'});
+  if(req.auth.role==='DEPARTMENT_HEAD'&&!req.auth.departmentId)
+   return res.status(403).json({error:'Department assignment required.'});
+  try{
+   const result=await pool.query(`
+    SELECT c.coverage_id AS "coverageId",c.class_date AS "classDate",
+     c.period_id AS "periodId",p.period_name AS "periodName",
+     p.grade_level AS "gradeLevel",p.section,
+     p.start_time AS "startTime",p.end_time AS "endTime",
+     c.status,c.substitute_user_id AS "substituteUserId",
+     su.display_name AS "substituteName"
+    FROM staff_ob_class_coverage c
+    JOIN staff_official_business_requests o ON o.school_id=c.school_id
+     AND o.request_id=c.request_id
+    JOIN class_periods p ON p.school_id=c.school_id AND p.period_id=c.period_id
+    LEFT JOIN school_users su ON su.school_id=c.school_id AND su.user_id=c.substitute_user_id
+    WHERE c.school_id=$1 AND c.request_id=$2
+      AND ($3='SCHOOL_ADMIN' OR ($3='DEPARTMENT_HEAD' AND o.department_id=$4)
+        OR ($3='TEACHER' AND o.staff_user_id=$5))
+    ORDER BY c.class_date,p.start_time LIMIT 300`,
+    [req.auth.schoolId,req.params.id,req.auth.role,req.auth.departmentId||null,req.auth.userId]);
+   return res.json({coverage:result.rows});
+  }catch(e){return respondError(res,e);}
+ });
  app.post('/api/staff-attendance/official-business',...auth,async(req,res)=>{
   res.set('Cache-Control','no-store, private');
   const purpose=String(req.body?.purpose||'').trim(),destination=String(req.body?.destination||'').trim();
