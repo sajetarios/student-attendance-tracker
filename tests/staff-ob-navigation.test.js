@@ -23,8 +23,8 @@ test('all three staff roles have Official Business access',()=>{
 });
 test('OB endpoints registered and cached without changing student access',()=>{
  assert.match(server,/registerStaffObRoutes\(app, pool, \{ authenticateSchoolClient, requireSchoolRoles \}\)/);
- assert.match(portal,/staff-ob-ui\.js\?v=4/);
- assert.match(sw,/staff-ob-ui\.js\?v=4/);
+ assert.match(portal,/staff-ob-ui\.js\?v=5/);
+ assert.match(sw,/staff-ob-ui\.js\?v=5/);
  assert.match(portal,/staff-ob\.css\?v=1/);
  assert.match(sw,/staff-ob\.css\?v=1/);
  assert.match(js,/if \(role === 'GATE_KEEPER'\) return \['students'\]/);
