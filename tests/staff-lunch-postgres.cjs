@@ -92,14 +92,14 @@ async function main(){
   const originalQr=await pool.query('SELECT revoked_at FROM staff_attendance_challenges WHERE challenge_id=$1',
    [rotatedQr.body.challengeId]);
   assert.equal(originalQr.rowCount,1);
-  assert.equal(originalQr.rows[0].revoked_at,null,'Adding a second presenter preserves the first presenter's QR');
+  assert.equal(originalQr.rows[0].revoked_at,null,"Adding a second presenter preserves the first presenter's QR");
   const firstPresenterAgain=await post('/api/staff-attendance/lunch/challenges',{slot:'PM_IN'},teacher.token);
   assert.equal(firstPresenterAgain.status,201,'First teacher remains authorized as a presenter');
   const newPresenter=await post('/api/staff-attendance/lunch/challenges',{slot:'PM_IN'},teacher2.token);
   assert.equal(newPresenter.status,201,'Second teacher can issue an independent lunch QR');
   const firstStillLive=await pool.query('SELECT revoked_at FROM staff_attendance_challenges WHERE challenge_id=$1',
    [firstPresenterAgain.body.challengeId]);
-  assert.equal(firstStillLive.rows[0].revoked_at,null,'Second presenter's QR does not rotate the first');
+  assert.equal(firstStillLive.rows[0].revoked_at,null,"Second presenter's QR does not rotate the first");
   const removed=await presenterChange('DELETE',{slot:'PM_IN',presenterUserId:teacher2.id});
   assert.equal(removed.status,200);
   assert.equal(removed.body.revoked,true);
@@ -110,7 +110,7 @@ async function main(){
    'Revoked presenter cannot issue challenges');
   const independentQr=await pool.query('SELECT revoked_at FROM staff_attendance_challenges WHERE challenge_id=$1',
    [firstPresenterAgain.body.challengeId]);
-  assert.equal(independentQr.rows[0].revoked_at,null,'Revoking another presenter preserves the first presenter's QR');
+  assert.equal(independentQr.rows[0].revoked_at,null,"Revoking another presenter preserves the first presenter's QR");
   const auditPresenter=await pool.query(`SELECT action FROM staff_attendance_audit
     WHERE school_id=$1 AND action IN ('LUNCH_PRESENTER_ASSIGNED','LUNCH_PRESENTER_REVOKED')`,
     [a.school]);
