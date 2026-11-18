@@ -8,7 +8,7 @@
   const root = document.documentElement;
   // A collapsed group must expose its child links on the first activation.
   // The existing group handler continues to own expanded/collapsed state.
-  sidebar.addEventListener('click', event => {
+  sidebar.addEventListener?.('click', event => {
     if (window.matchMedia && !window.matchMedia('(min-width:861px)').matches) return;
     if (!sidebar.closest('.portal-layout.sidebar-collapsed')) return;
     if (!event.target.closest('.nav-group-toggle')) return;
