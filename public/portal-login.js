@@ -76,6 +76,19 @@
   studentMode?.addEventListener('click', () => setMode('student'));
   platformMode.addEventListener('click', () => setMode('platform'));
   const loginParams=new URLSearchParams(window.location.search);
+  // Lunch QR sign-in continuation stays in the fragment (never in query
+  // parameters, cookie, localStorage, or analytics). Erase it immediately.
+  const lunchContinuation=(()=>{
+    const fragment=new URLSearchParams(window.location.hash.slice(1));
+    window.history.replaceState(null,'',window.location.pathname+window.location.search);
+    const id=String(fragment.get('lunchId')||'');
+    const token=String(fragment.get('lunchToken')||'');
+    if(!/^[0-9a-f]{8}(-[0-9a-f]{4}){3}-[0-9a-f]{12}$/i.test(id) ||
+       !/^[a-zA-Z0-9_-]{43}$/.test(token))return null;
+    return '/staff-lunch-checkin.html#'+new URLSearchParams({id,token}).toString();
+  })();
+  const isLunchStaff=role=>['TEACHER','DEPARTMENT_HEAD','SCHOOL_ADMIN'].includes(role);
+
   if(loginParams.get('mode')==='platform')setMode('platform');
   if(loginParams.get('mode')==='student')setMode('student');
 
@@ -165,6 +178,10 @@
           }
         }catch{}
       }
+      if(lunchContinuation && isLunchStaff(data.user.role)) {
+        window.location.replace(lunchContinuation);
+        return;
+      }
       window.location.assign(destination);
     } catch (error) {
       const locked = mode === 'school' && /temporarily locked/i.test(error.message || '');
@@ -228,7 +245,7 @@
   // A normal visit to the sign-in URL from a new tab should restore the
   // server-verified browser session. Explicit mode/switch links must continue
   // to show the login form so account switching remains intentional.
-  if (!loginParams.has('mode') && !loginParams.has('switch') && !loginParams.has('returnTo')) {
+  if ((!loginParams.has('mode') && !loginParams.has('switch') && !loginParams.has('returnTo')) || lunchContinuation) {
     fetch('/api/auth/me', { credentials: 'same-origin', cache: 'no-store' })
       .then(async response => {
         if (!response.ok) return;
@@ -238,6 +255,11 @@
           return;
         }
         const destination = window.AttendanceLoginRouting?.destinationForRole(data.user.role);
+        if(lunchContinuation && isLunchStaff(data.user.role)) {
+          location.replace(lunchContinuation);
+          return;
+        }
+        if(lunchContinuation)return; // Never auto-open a staff QR as another account role.
         if (destination) location.replace(destination);
       })
       .catch(() => { /* Keep the sign-in form accessible when verification fails. */ });
