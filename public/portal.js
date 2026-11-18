@@ -1470,7 +1470,7 @@ function coverageStatusLabel(status) {
     } else {
       const rows = await Promise.all(sortedRoster.map(async (student, index) => {
         const photo = departmentHead ? '' : await photoDataUrl(student.photoUrl);
-        const avatar = photo ? `<img class="student-photo-thumb" src="${photo}" alt="Student photo for ${esc(student.fullName)}" loading="lazy">` : `<img class="student-photo-thumb attendigo-default-photo" src="${defaultPhoto}" alt="Attendigo default profile logo" title="No student photo available" loading="lazy">`;
+        const avatar = photo ? `<img class="student-photo-thumb" src="${photo}" alt="Student photo for ${esc(student.fullName)}" loading="lazy">` : `<span class="student-initials-avatar" role="img" aria-label="No photo uploaded for ${esc(student.fullName)}" title="No photo uploaded">${esc(teacherRosterInitials(student.fullName))}</span>`;
         let qr = '';
         if (canViewQr && !teacher) {
           qr = studentQrCache.get(student.studentId) || '';
@@ -1503,7 +1503,7 @@ function coverageStatusLabel(status) {
         if (teacher) {
           const teacherAvatar = photo
             ? `<img class="student-photo-thumb" src="${photo}" alt="Student photo for ${esc(student.fullName)}" loading="lazy">`
-            : `<img class="student-photo-thumb attendigo-default-photo" src="${defaultPhoto}" alt="Attendigo default profile logo" title="No student photo available" loading="lazy">`;
+            : `<span class="student-initials-avatar" role="img" aria-label="No photo uploaded for ${esc(student.fullName)}" title="No photo uploaded">${esc(teacherRosterInitials(student.fullName))}</span>`;
           const identity = `<div class="teacher-roster-identity">${teacherAvatar}<span class="teacher-roster-identity-copy"><strong>${ordinal}${esc(student.fullName)}</strong><small>${esc(student.studentId)}</small></span></div>`;
           const qrAction = canViewQr
             ? `<button type="button" class="student-qr-preview teacher-roster-qr" data-view-qr="${esc(student.studentId)}" aria-label="View QR code for ${esc(student.fullName)}" title="View or print learner QR"><span class="teacher-roster-qr-glyph" aria-hidden="true">▦</span><span>QR</span></button>`
