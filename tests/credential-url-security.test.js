@@ -80,7 +80,7 @@ test('server and service worker remove sensitive URL queries and prevent credent
   const html = read('public/portal-login.html');
   assert.match(server,/app\.use\(redirectLeakedCredentials\)/);
   assert.match(server, /'\/portal-login.html'/);
-  assert.match(worker,/attendigo-v170-login-credential-url-guard/);
+  assert.match(worker,/const CACHE = "attendigo-v\\d+[^"\\n]*"/);
   assert.match(html,/src="\/portal-login\.js\?v=8"/);
   assert.match(worker,/"\/portal-login\.js\?v=8"/);
   assert.match(worker,/credentialKey\.test\(key\)/);
