@@ -1,4 +1,4 @@
-const CACHE = "attendigo-v196-expanded-sidebar-default";
+const CACHE = "attendigo-v197-lunch-qr-login-continuation";
 
 const SHELL = [
   "/typography.css?v=1",
@@ -53,7 +53,7 @@ const SHELL = [
   "/portal.js?v=188",
   "/staff-lunch-ui.js?v=1",
   "/staff-lunch.css?v=1",
-  "/staff-lunch-checkin.js?v=1",
+  "/staff-lunch-checkin.js?v=2",
   "/sardo-monitor.js?v=2",
   "/sardo-monitor.css?v=1",
   "/schedule-form-layout.css?v=12",
@@ -86,7 +86,7 @@ const SHELL = [
   "/form-system.css?v=1",
   "/password-visibility.css",
   "/password-visibility.js",
-  "/portal-login.js?v=12",
+  "/portal-login.js?v=13",
   "/login-routing.js",
   "/responsive.css?v=0.8.3",
   "/comfort-ui.css?v=0.8.8",
