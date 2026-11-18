@@ -17,17 +17,33 @@
     message('No valid lunch QR found. Scan the current QR from the authorized presenter.','error');
     return;
   }
+  // Transfer the short-lived challenge only through a URL fragment on the
+  // same origin. It is never added to the login query or sent to server logs.
+  const loginFragment=new URLSearchParams({lunchId:challengeId,lunchToken:token}).toString();
+  $('lunchLogin').href='/portal-login.html#'+loginFragment;
   let me;
   try{
     const response=await fetch('/api/auth/me',{credentials:'same-origin',cache:'no-store'});
-    if(!response.ok)throw Error('unauthenticated');
+    if(response.status===401){const err=Error('unauthenticated');err.code=401;throw err;}
+    if(!response.ok){const err=Error('verification unavailable');err.code=response.status;throw err;}
     const body=await response.json();
     me=body.user;
-    if(!me||!['TEACHER','DEPARTMENT_HEAD','SCHOOL_ADMIN'].includes(me.role))
-      throw Error('not-staff');
-  }catch {
-    message('A valid school staff sign-in is required. Sign in, then rescan this QR.','error');
-    $('lunchLogin').hidden=false;
+    if(!me||!['TEACHER','DEPARTMENT_HEAD','SCHOOL_ADMIN'].includes(me.role)){
+      const err=Error('not-staff');err.code=403;throw err;
+    }
+  }catch(error) {
+    if(error.code===401) {
+      message('Your session is not active in this browser. Sign in to continue this scan; no second scan is needed if the QR is still valid.','error');
+      $('lunchLogin').hidden=false;
+    } else if(error.code===403) {
+      message('This account cannot confirm staff lunch attendance. Switch to an authorized staff account.','error');
+      $('lunchLogin').hidden=false;
+    } else {
+      message('Unable to verify your session right now. Check your connection and try again; no new scan is required.','error');
+      const retry=$('lunchRetry');
+      retry.hidden=false;
+      retry.addEventListener('click',()=>location.replace('/staff-lunch-checkin.html#'+new URLSearchParams({id:challengeId,token}).toString()),{once:true});
+    }
     return;
   }
   $('lunchName').textContent='Signed in: '+(me.displayName||me.username||'School staff');
