@@ -9,9 +9,12 @@ function bearerToken(req) {
 }
 
 function createAuthMiddleware(pool) {
+  const staffBrowserToken=req=>{const item=String(req.headers.cookie||'').split(';').map(x=>x.trim()).find(x=>x.startsWith('__Host-attendigo-staff='));return item?item.slice('__Host-attendigo-staff='.length):'';};
+  const staffBrowserMismatch=(req,token)=>staffBrowserToken(req)&&staffBrowserToken(req)!==token;
+
   async function authenticatePlatform(req, res, next) {
     const token = bearerToken(req);
-    if (!token) return res.status(401).json({ error: 'Platform authentication required.' });
+    if (!token || staffBrowserMismatch(req,token)) return res.status(401).json({ error: 'Platform authentication required.' });
     try {
       const result = await pool.query(
         `SELECT us.session_id, pu.user_id, pu.username, pu.display_name
@@ -67,6 +70,7 @@ function createAuthMiddleware(pool) {
         [tokenHash]
       );
       if (session.rowCount) {
+        if(staffBrowserMismatch(req,token))return res.status(401).json({error:'Another account is active in this browser. Sign in again.'});
         const row = session.rows[0];
         await pool.query('UPDATE user_sessions SET last_seen_at=NOW() WHERE session_id=$1', [row.session_id]);
         req.auth = {
