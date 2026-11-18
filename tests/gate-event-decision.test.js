@@ -17,3 +17,17 @@ test('out-of-order or duplicate histories require review', () => {
     assert.equal(decideNextGateEvent(events).status, 'REVIEW');
   }
 });
+
+test('accepts authoritative database event objects', () => {
+  assert.deepEqual(decideNextGateEvent([{ eventType: 'TIME_IN' }]), { status: 'READY', eventType: 'TIME_OUT' });
+});
+test('rejects missing, null and malformed event objects', () => {
+  for (const events of [[{}],[null],[{eventType: null}],[{eventType: 'DTR_SLOT'}],[42]]) {
+    assert.deepEqual(decideNextGateEvent(events), { status: 'REVIEW', reason: 'INVALID_HISTORY' });
+  }
+});
+test('does not mutate supplied gate history', () => {
+  const events = Object.freeze([Object.freeze({ eventType: 'TIME_IN' })]);
+  decideNextGateEvent(events);
+  assert.equal(events[0].eventType, 'TIME_IN');
+});
