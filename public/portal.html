@@ -1162,7 +1162,7 @@ body.dark-mode .content-wrap > .school-heading.is-compact,body[data-theme="dark"
               <div class="section-toolbar" id="studentManagementHeader"><div><h3>Student roster</h3><p id="studentScopeText">Students available to your account.</p></div><div class="toolbar-actions"><button class="outline-button" type="button" id="exportStudentsButton">↓ Export list</button><button class="outline-button" type="button" id="downloadStudentTemplate">↓ Template</button><button class="outline-button" type="button" id="bulkImportStudentsButton">↑ Bulk import</button><a class="outline-button" href="/parent-admin.html" id="manageParentsFromStudents" hidden style="display:none;align-items:center;text-decoration:none">Parent portal accounts</a><button class="outline-button" type="button" id="showStudentPortalHelp" hidden>Manage student logins</button><button class="primary-button" id="showStudentForm">＋ Add student</button></div></div>
               <form id="studentForm" class="inline-form" hidden method="post">
                 <div class="form-grid">
-                  <div class="field-group"><label for="newStudentId">Student ID <span class="optional-label">Auto-generated</span></label><input id="newStudentId" maxlength="80" placeholder="e.g. 2026-G10-089 (auto-generated)"><small class="field-hint">Leave blank for a unique Year–Grade–Number ID. Its year and grade stay fixed after promotion. The official LRN is separate.</small></div>
+                  <div class="field-group"><label for="newStudentId">Student ID <span class="optional-label">Auto-generated</span></label><input id="newStudentId" maxlength="80" placeholder="Auto-generated (e.g. 26-00089)"><small class="field-hint">Leave blank for a short Year–Number ID. It stays fixed through grade promotions. The official DepEd LRN is separate.</small></div>
                   <div class="field-group"><label for="newLrn">Learner Reference Number (LRN) <span class="optional-label">Optional</span></label><input id="newLrn" maxlength="30" inputmode="numeric" placeholder="Enter the learner's LRN"><small class="field-hint">Leave blank if the learner has no LRN yet.</small></div>
                   <div class="field-group span-2"><label for="newFullName">Learner's full name *</label><input id="newFullName" required maxlength="200" autocomplete="name" placeholder="Last name, First name, Middle name"></div>
                   <div class="field-group"><label for="newSex">Sex *</label><select id="newSex" required><option value="">Select sex</option><option value="MALE">Male</option><option value="FEMALE">Female</option></select></div>
@@ -2026,7 +2026,7 @@ body.dark-mode .content-wrap > .school-heading.is-compact,body[data-theme="dark"
   <script src="/offline-attendance.js?v=5" defer></script>
   <script src="/attendance-sync-center.js?v=3" defer></script>
   <script src="/learner-roster-view.js?v=1" defer></script>
-  <script src="/portal.js?v=198" defer></script>
+  <script src="/portal.js?v=199" defer></script>
   <script src="/staff-lunch-ui.js?v=3" defer></script>
   <script src="/staff-ob-ui.js?v=5" defer></script>
   <script src="/department-workspace.js?v=1" defer></script>
