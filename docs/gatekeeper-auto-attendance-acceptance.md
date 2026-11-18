@@ -23,3 +23,12 @@ Status: implementation pending; do not deploy until all criteria pass.
 - Teacher/staff first scan, valid departure, duplicate, race, no photo, wrong school, closed day, DTR separation.
 - Repeated clicks and scanner decoding during pending verification must not double-submit.
 - Verify accessibility, mobile layout, and no regressions to teacher class attendance.
+
+## Official Business (OB) and Form 48 DTR isolation
+- An OB request, even when School Admin approved, authorizes a defined interval; it does not prove physical arrival/departure and must not generate gate TIME_IN/TIME_OUT.
+- Gatekeeper physical gate records must never auto-create Form 48 AM_IN/AM_OUT/PM_IN/PM_OUT slots merely because an OB request exists.
+- Keep existing Department Head recommendation, School Admin final approval, substitute coverage and immutable audit history intact.
+- If an approved OB interval overlaps a DTR slot, display the verified OB authorization as separate context for authorized DTR review. Never fill the slot with an invented clock time.
+- Pending, rejected, canceled or expired OB must not be treated as approved attendance.
+- Where the school's official DTR accounting rules for OB are not configured, flag the period for authorized review instead of guessing or marking absence/presence.
+- Add regression tests for OB pending/approved/rejected states, overlap, gate time-in/out during OB, duplicate scans, and no phantom DTR slot.
