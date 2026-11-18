@@ -9,7 +9,7 @@
   <title>Dashboard · Attendigo</title>
   <link rel="stylesheet" href="/staff-lunch.css?v=3">
   <link rel="stylesheet" href="/form48-report.css?v=2">
-  <link rel="stylesheet" href="/portal.css?v=0.9.117"><link rel="stylesheet" href="/attendigo-brand-polish.css?v=2"><link rel="stylesheet" href="/parent-admin.css?v=7">
+  <link rel="stylesheet" href="/portal.css?v=0.9.118"><link rel="stylesheet" href="/attendigo-brand-polish.css?v=2"><link rel="stylesheet" href="/parent-admin.css?v=7">
   <link rel="stylesheet" href="/schedule-mobile-layout.css?v=1">
   <link rel="stylesheet" href="/schedule-form-layout.css?v=12">
   <link rel="stylesheet" href="/teacher-assignment-modal.css?v=1">
@@ -930,36 +930,28 @@ body.dark-mode .content-wrap > .school-heading.is-compact,body[data-theme="dark"
               </div>
               <div class="surface-card section-card my-gate-attendance">
               <div class="section-toolbar">
-                <div><h2 id="myGateHeading">My Gate Attendance</h2><p id="myGateIntro">Your photo-verified entry and exit history. Official Form 48 DTR entries are tracked separately.</p></div>
+                <div><h2 id="myGateHeading">My Gate Attendance</h2><p id="myGateIntro">Review your official Form 48 punches alongside your verified physical gate scans.</p></div>
                 <button type="button" class="outline-button" id="myGateRefresh">↻ Refresh</button>
               </div>
-              <div class="my-gate-history-heading"><h3>Gate scan history</h3></div>
+              <div class="my-gate-history-heading">
+                <h3>Daily attendance</h3>
+                <p>Official DTR punches and physical gate scans, together for each day.</p>
+              </div>
               <div class="my-gate-filters">
                 <label>From date<input type="date" id="myGateFrom"></label>
                 <label>To date<input type="date" id="myGateTo"></label>
                 <button type="button" class="primary-button" id="myGateApply">View attendance</button>
               </div>
-              <p id="myGateFeedback" class="inline-feedback" role="status" aria-live="polite">Loading your gate attendance…</p>
-              <div class="table-scroll"><table class="monitoring-table my-gate-table">
-                <thead><tr><th>Date</th><th>Time in</th><th>Time out</th><th>Verification</th></tr></thead>
-                <tbody id="myGateRows"><tr><td colspan="4" class="empty-cell">No records loaded.</td></tr></tbody>
+              <p id="myGateFeedback" class="inline-feedback" role="status" aria-live="polite">Loading your attendance…</p>
+              <div class="table-scroll my-gate-table-wrap"><table class="monitoring-table my-gate-table">
+                <thead><tr>
+                  <th scope="col">Date</th>
+                  <th scope="col">Official Form 48 DTR <small>Verified AM / PM punches</small></th>
+                  <th scope="col">Physical gate scans <small>Gate Keeper-verified movements</small></th>
+                </tr></thead>
+                <tbody id="myGateRows"><tr><td colspan="3" class="empty-cell">No records loaded.</td></tr></tbody>
               </table></div>
-              <p class="my-gate-help">Physical gate scans are recorded by authorized Gate Keepers. Report any missing or incorrect record to the School Admin; staff cannot edit gate timestamps.</p>
-              <details class="my-gate-dtr-details" id="myGateDtrDetails">
-                <summary>
-                  <span class="my-gate-dtr-title">Official Form 48 DTR <span class="my-gate-dtr-date">Today</span></span>
-                  <span id="myGateDtrSummary" class="my-gate-dtr-count" role="status" aria-live="polite">Checking DTR…</span>
-                </summary>
-                <div class="my-gate-dtr-content">
-                  <p class="my-gate-help">These are verified DTR punches, separate from the physical gate scans above.</p>
-                  <div class="my-gate-dtr-grid" id="myGateDtrSlots" aria-label="Today's four-slot daily time record">
-                    <div class="my-gate-dtr-slot"><span>AM In</span><strong id="myGateDtrAmIn">Not recorded</strong></div>
-                    <div class="my-gate-dtr-slot"><span>AM Out</span><strong id="myGateDtrAmOut">Not recorded</strong></div>
-                    <div class="my-gate-dtr-slot"><span>PM In</span><strong id="myGateDtrPmIn">Not recorded</strong></div>
-                    <div class="my-gate-dtr-slot"><span>PM Out</span><strong id="myGateDtrPmOut">Not recorded</strong></div>
-                  </div>
-                </div>
-              </details>
+              <p class="my-gate-help">Form 48 uses only verified DTR punches. Gate scans are supporting evidence, not automatic DTR entries. Report missing or incorrect records to the School Admin; staff cannot edit recorded timestamps.</p>
             </div>
           </section>
 
@@ -1867,7 +1859,7 @@ body.dark-mode .content-wrap > .school-heading.is-compact,body[data-theme="dark"
   <script src="/offline-attendance.js?v=5" defer></script>
   <script src="/attendance-sync-center.js?v=3" defer></script>
   <script src="/learner-roster-view.js?v=1" defer></script>
-  <script src="/portal.js?v=190" defer></script>
+  <script src="/portal.js?v=191" defer></script>
   <script src="/staff-lunch-ui.js?v=3" defer></script>
   <script src="/staff-ob-ui.js?v=3" defer></script>
   <script src="/form48-report.js?v=1" defer></script>
