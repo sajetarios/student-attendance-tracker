@@ -3,6 +3,7 @@ on:
   push:
     branches:
       - feature/department-head-workspace-20261119
+      - fix/department-head-regression-alignment-20261119
   pull_request:
     types: [opened, synchronize, reopened, ready_for_review]
     branches:
