@@ -499,3 +499,51 @@ html body #sidebar.sidebar #sidebarSchoolName {
     min-height:48px!important;
   }
 }
+
+/* Sidebar V2: true 76px icon rail, without oversized dashboard frames.
+   Expanded mode remains the preferred, fully labeled desktop navigation. */
+@media(min-width:861px){
+  html body .portal-layout.sidebar-collapsed > #sidebar.sidebar {
+    width:76px!important;
+    padding-inline:10px!important;
+  }
+  html body .portal-layout.sidebar-collapsed #sidebar.sidebar > .side-nav {
+    align-items:center!important;
+    width:100%!important;
+  }
+  html body .portal-layout.sidebar-collapsed #sidebar.sidebar .side-nav > .nav-item,
+  html body .portal-layout.sidebar-collapsed #sidebar.sidebar .side-nav > .nav-group,
+  html body .portal-layout.sidebar-collapsed #sidebar.sidebar .side-nav > .nav-group > .nav-group-toggle {
+    flex:0 0 auto!important;
+    width:48px!important;
+    max-width:48px!important;
+  }
+  html body .portal-layout.sidebar-collapsed #sidebar.sidebar .side-nav > .nav-item,
+  html body .portal-layout.sidebar-collapsed #sidebar.sidebar .side-nav > .nav-group > .nav-group-toggle {
+    height:46px!important;
+    min-height:46px!important;
+    border:0!important;
+    outline:0!important;
+    border-radius:11px!important;
+    padding:0!important;
+    margin:0 auto!important;
+    box-shadow:none!important;
+  }
+  html body .portal-layout.sidebar-collapsed #sidebar.sidebar .side-nav > .nav-item.active {
+    background:var(--side-selected)!important;
+    box-shadow:inset 3px 0 0 var(--side-selected-ink)!important;
+  }
+  html body .portal-layout.sidebar-collapsed #sidebar.sidebar .side-nav > :is(.nav-item,.nav-group) :is(.nav-label,.nav-chevron) {
+    display:none!important;
+  }
+  html body .portal-layout.sidebar-collapsed #sidebar.sidebar .side-nav > :is(.nav-item,.nav-group) :is(a,button):focus-visible {
+    outline:2px solid var(--side-focus)!important;
+    outline-offset:2px!important;
+  }
+  html body .portal-layout.sidebar-collapsed #sidebar.sidebar .sidebar-brand {
+    width:100%!important;
+    padding-inline:0!important;
+    margin-inline:0!important;
+    justify-content:center!important;
+  }
+}
