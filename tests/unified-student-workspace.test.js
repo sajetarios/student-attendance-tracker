@@ -29,7 +29,7 @@ test('Students and Portal Accounts are a single reachable workspace with preserv
   assert.match(ui, /if \(tab && allowedViewsForUser\(\).includes\(tab.dataset.studentTab\)\)/);
   assert.match(ui, /SCHOOL_ADMIN'\) return \['dashboard', 'students', 'studentAccounts'/);
   assert.match(ui, /views.push\('students', 'studentAccounts', 'classAttendance'\)/);
-  assert.match(ui, /DEPARTMENT_HEAD'\) return \['dashboard', 'planner', 'students', 'teachers', 'schedules', 'sf2', 'officialBusiness'\]/);
+  assert.match(ui, /DEPARTMENT_HEAD'\) return \['dashboard', 'planner', 'students', 'teachers', 'schedules', 'sf2', 'officialBusiness', 'myGateAttendance'\]/);
 });
 
 test('One Students sidebar destination, with role-specific labels and no admin account shortcut', () => {
