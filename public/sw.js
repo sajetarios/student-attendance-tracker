@@ -1,4 +1,4 @@
-const CACHE = "attendigo-v188-learner-initials";
+const CACHE = "attendigo-v189-class-qr-pin";
 
 const SHELL = [
   "/typography.css?v=1",
@@ -129,7 +129,7 @@ self.addEventListener("fetch", event => {
   // This also protects people who still have a legacy cached login form.
   const isAccountPage = ['/', '/index.html', '/portal-login.html',
     '/parent-register.html', '/platform-setup.html',
-    '/force-password-change.html', '/class-qr-checkin.html', '/portal.html',
+    '/force-password-change.html', '/class-qr-checkin.html', '/attendance-pin.html', '/portal.html',
     '/student-portal.html', '/parent-portal.html'].includes(url.pathname);
   const credentialKey = /^(?:password|passwd|pwd|pass|currentpassword|newpassword|confirmpassword|recoverycode|setupcode|accesstoken)$/i;
   if (isAccountPage && [...url.searchParams.keys()].some(key => credentialKey.test(key))) {
@@ -139,7 +139,7 @@ self.addEventListener("fetch", event => {
 
   // Authenticated dashboards are never served from the offline shell cache.
   if (["/portal.html", "/student-portal.html", "/parent-portal.html",
-       "/force-password-change.html"].includes(url.pathname)) {
+       "/force-password-change.html", "/attendance-pin.html", "/class-qr-checkin.html"].includes(url.pathname)) {
     event.respondWith(fetch(request, { cache: "no-store" }));
     return;
   }
