@@ -17,9 +17,11 @@
 .form48-hours-grid{display:flex;justify-content:space-between;gap:8px;margin:2px 0 9px;font-size:9px}
 .form48-line{display:block;border-bottom:1px solid #222;height:14px}
 .form48-sheet{width:100%;border-collapse:collapse;table-layout:fixed;font-size:8.5px;color:#111}
-.form48-sheet th,.form48-sheet td{border:1px solid #222;text-align:center;padding:2px 1px;height:15px;font:inherit;background:#fff;color:#111;overflow:hidden}
-.form48-sheet th:first-child,.form48-sheet td:first-child{width:23px}
-.form48-sheet th{font-weight:700}
+/* Scope table cells above the dashboard's more-specific .surface-card table rules. */
+#form48PrintArea .form48-sheet th,#form48PrintArea .form48-sheet td{border:1px solid #222;text-align:center;padding:2px 1px;height:15px;font:inherit;background:#fff;color:#111;overflow:hidden}
+/* The row-spanned Day header needs enough room; do not size the Arrival header. */
+#form48PrintArea .form48-sheet thead tr:first-child th:first-child,#form48PrintArea .form48-sheet tbody td:first-child{width:42px;min-width:42px;white-space:nowrap}
+#form48PrintArea .form48-sheet th{font-weight:700}
 .form48-certify{margin:10px 4px 3px;line-height:1.35;text-align:center}
 .form48-signature{border-top:1px solid #111;text-align:center;margin:28px 15px 0;padding-top:3px;font-size:9px}
 .form48-remarks{margin:15px 5px 4px;font-weight:600}
@@ -34,7 +36,7 @@
  #form48PrintArea{position:absolute;inset:0;overflow:visible!important;max-width:none!important;margin:0;padding:0!important}
  .form48-sheets{min-width:0!important;gap:8mm!important}
  .form48-copy{border:0;padding:0 1mm;font-size:8px}
- .form48-sheet th,.form48-sheet td{height:4.8mm;padding:1px 0;font-size:7.5px}
+ #form48PrintArea .form48-sheet th,#form48PrintArea .form48-sheet td{height:4.8mm;padding:1px 0;font-size:7.5px}
  .form48-preview-note{display:none}
  .form48-sheets{break-inside:avoid;page-break-inside:avoid}
 }
