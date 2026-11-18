@@ -77,6 +77,39 @@ test('department head recommendation and school admin final approval are distinc
  assert.ok(admin.queries.some(x=>x.params?.includes('STAFF_OB_APPROVED')));
  assert.equal((await head.call('POST',final,{decision:'APPROVE'},{id:'a6831ee2-24db-42b2-9d27-39d130eb11f1'})).code,403);
 });
+test('approval flags only active weekday classes whose actual class times overlap OB',async()=>{
+ const admin=fixture('SCHOOL_ADMIN');
+ const id='a6831ee2-24db-42b2-9d27-39d130eb11f1';
+ assert.equal((await admin.call('POST','/api/staff-attendance/official-business/:id/decide',
+  {decision:'APPROVE'},{id})).code,200);
+ const query=admin.queries.find(x=>x.sql.includes('INSERT INTO staff_ob_class_coverage'));
+ assert.ok(query,'approval writes affected-class coverage in same transaction');
+ assert.match(query.sql,/teacher_period_assignments ta/);
+ assert.match(query.sql,/ta.teacher_user_id=ob.staff_user_id/);
+ assert.match(query.sql,/class_period_days w/);
+ assert.match(query.sql,/EXTRACT\(DOW FROM days.class_date\)/);
+ assert.match(query.sql,/AT TIME ZONE 'Asia\/Manila'/);
+ assert.match(query.sql,/p.active=TRUE/);
+ assert.match(query.sql,/ON CONFLICT\(school_id,request_id,period_id,class_date\) DO NOTHING/);
+ assert.deepEqual(query.params,['s1',id]);
+ assert.ok(admin.queries.some(x=>x.params?.includes('STAFF_OB_AFFECTED_CLASSES_FLAGGED')));
+ const rejected=fixture('SCHOOL_ADMIN');
+ await rejected.call('POST','/api/staff-attendance/official-business/:id/decide',
+  {decision:'REJECT'},{id});
+ assert.ok(!rejected.queries.some(x=>x.sql.includes('INSERT INTO staff_ob_class_coverage')),
+  'rejected OB never flags classes');
+});
+test('coverage list restricts records to school, requesting staff and department',async()=>{
+ const id='a6831ee2-24db-42b2-9d27-39d130eb11f1';
+ const teacher=fixture('TEACHER');
+ assert.equal((await teacher.call('GET','/api/staff-attendance/official-business/:id/coverage',{}, {id})).code,200);
+ const query=teacher.queries[0];
+ assert.match(query.sql,/c.school_id=\$1 AND c.request_id=\$2/);
+ assert.match(query.sql,/o.department_id=\$4/);
+ assert.match(query.sql,/o.staff_user_id=\$5/);
+ assert.deepEqual(query.params,['s1',id,'TEACHER','d1','u1']);
+ assert.equal((await fixture('STUDENT').call('GET','/api/staff-attendance/official-business/:id/coverage',{}, {id})).code,403);
+});
 test('schema enforces immutable audit, department FKs, status transitions and approval identity',()=>{
  for(const token of ['PENDING_HEAD','PENDING_ADMIN','APPROVED','REJECTED','CANCELLED',
   'staff_attendance_audit_immutable','staff_ob_class_coverage','staff_official_business_requests',
