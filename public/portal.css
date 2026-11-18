@@ -2834,3 +2834,37 @@ html[data-ui-theme="dark"] #departmentHeadOverview .dh-shortcut-teachers .dh-sho
 html[data-ui-theme="dark"] #departmentHeadOverview .dh-shortcut-sf2 .dh-shortcut-icon{background:#57412e;color:#f9d09d}
 html[data-ui-theme="dark"] #departmentHeadOverview .dh-shortcut-planner .dh-shortcut-icon{background:#483961;color:#dcc6ff}
 @media(prefers-reduced-motion:reduce){#departmentHeadOverview .dh-command-shortcuts .dh-shortcut{transition:none}#departmentHeadOverview .dh-command-shortcuts .dh-shortcut:hover{transform:none}}
+
+
+/* Mobile sidebar branding: reserve a dedicated close control and prevent logo overlap. */
+.sidebar-mobile-close{display:none}
+@media(max-width:860px){
+  .portal-page .sidebar{position:fixed!important;isolation:isolate}
+  .portal-page .sidebar>.attendigo-brand{
+    display:flex!important;align-items:center!important;gap:10px!important;
+    min-height:64px!important;padding:6px 54px 12px 8px!important;
+    margin:0!important;min-width:0!important;flex-shrink:0!important;
+  }
+  .portal-page .sidebar>.attendigo-brand .attendigo-logo{
+    display:block!important;flex:0 0 42px!important;width:42px!important;height:42px!important;
+    max-width:42px!important;object-fit:contain!important;
+  }
+  .portal-page .sidebar>.attendigo-brand .sidebar-product-wordmark{
+    display:block!important;min-width:0!important;overflow-wrap:anywhere!important;
+  }
+  .portal-page .sidebar>.sidebar-mobile-close{
+    display:grid!important;place-items:center!important;position:absolute!important;
+    top:calc(18px + env(safe-area-inset-top,0px))!important;right:14px!important;
+    width:44px!important;height:44px!important;min-width:44px!important;
+    border:1px solid rgba(255,255,255,.22)!important;border-radius:12px!important;
+    padding:0!important;background:rgba(255,255,255,.08)!important;
+    color:#fff!important;font-size:28px!important;font-weight:400!important;
+    line-height:1!important;z-index:3!important;cursor:pointer!important;
+  }
+  .portal-page .sidebar>.sidebar-mobile-close:focus-visible{outline:3px solid #7dd3fc;outline-offset:2px}
+  .portal-page.sidebar-drawer-open .topbar .mobile-menu-toggle,
+  body.sidebar-drawer-open .topbar .mobile-menu-toggle{visibility:hidden!important;pointer-events:none!important}
+  .portal-page .sidebar>.sidebar-brand{min-width:0!important}
+  .portal-page .sidebar>.sidebar-brand #sidebarSchoolName{overflow-wrap:anywhere}
+}
+@media(min-width:861px){.portal-page .sidebar>.sidebar-mobile-close{display:none!important}}
