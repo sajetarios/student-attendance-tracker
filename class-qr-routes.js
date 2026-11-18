@@ -66,7 +66,7 @@ function registerClassQrRoutes(app,pool,{authenticateSchoolClient,requireSchoolR
    await client.query(`INSERT INTO student_attendance_pins(school_id,student_id,pin_hash) VALUES($1,$2,$3)
     ON CONFLICT(school_id,student_id) DO UPDATE SET pin_hash=EXCLUDED.pin_hash,failed_attempts=0,locked_until=NULL,updated_at=NOW()`,[req.auth.schoolId,req.auth.studentId,hash]);
    await client.query(`INSERT INTO audit_logs(school_id,actor_type,actor_user_id,action,entity_type,entity_id,details)
-    VALUES($1,'STUDENT',NULL,$2,'student_attendance_pin',$3,'{}'::jsonb)`,[req.auth.schoolId,current.rowCount?'STUDENT_ATTENDANCE_PIN_CHANGED':'STUDENT_ATTENDANCE_PIN_ENROLLED',req.auth.studentId]);
+    VALUES($1,'SYSTEM',NULL,$2,'student_attendance_pin',$3,'{}'::jsonb)`,[req.auth.schoolId,current.rowCount?'STUDENT_ATTENDANCE_PIN_CHANGED':'STUDENT_ATTENDANCE_PIN_ENROLLED',req.auth.studentId]);
    await client.query('COMMIT');
    res.set('Cache-Control','no-store');res.status(204).end();
   }catch(e){await client.query('ROLLBACK').catch(()=>{});console.error('Attendance PIN enrollment:',e.message);res.status(500).json({error:'Unable to update attendance PIN.'});}
