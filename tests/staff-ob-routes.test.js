@@ -53,7 +53,7 @@ test('submission requires valid dates, purpose, destination and a department',as
  assert.equal((await f.call('POST','/api/staff-attendance/official-business',{
   purpose:'Official seminar',destination:'District Office',startsAt:'2026-12-02T08:00:00+08:00',
   endsAt:'2026-12-02T17:00:00+08:00'})).code,201);
- assert.ok(f.queries.some(x=>x.sql.includes('STAFF_OB_SUBMITTED')));
+ assert.ok(f.queries.some(x=>x.params?.includes('STAFF_OB_SUBMITTED')));
  assert.ok(f.queries.some(x=>x.sql.includes('COMMIT')));
  const noDep=fixture('TEACHER',null);
  assert.equal((await noDep.call('POST','/api/staff-attendance/official-business',{
@@ -68,13 +68,13 @@ test('department head recommendation and school admin final approval are distinc
  assert.match(sql.sql,/o.department_id=\$3/);
  assert.match(sql.sql,/o.staff_user_id<>\$4/);
  assert.match(sql.sql,/o.status='PENDING_HEAD'/);
- assert.ok(head.queries.some(x=>x.sql.includes('STAFF_OB_RECOMMENDED')));
+ assert.ok(head.queries.some(x=>x.params?.includes('STAFF_OB_RECOMMENDED')));
  assert.equal((await fixture('TEACHER').call('POST',path,{decision:'RECOMMEND'},{id:'a6831ee2-24db-42b2-9d27-39d130eb11f1'})).code,403);
  const admin=fixture('SCHOOL_ADMIN');
  const final='/api/staff-attendance/official-business/:id/decide';
  assert.equal((await admin.call('POST',final,{decision:'APPROVE'},{id:'a6831ee2-24db-42b2-9d27-39d130eb11f1'})).code,200);
  assert.match(admin.queries.find(x=>x.sql.includes('UPDATE staff_official_business_requests')).sql,/status='PENDING_ADMIN'/);
- assert.ok(admin.queries.some(x=>x.sql.includes('STAFF_OB_APPROVED')));
+ assert.ok(admin.queries.some(x=>x.params?.includes('STAFF_OB_APPROVED')));
  assert.equal((await head.call('POST',final,{decision:'APPROVE'},{id:'a6831ee2-24db-42b2-9d27-39d130eb11f1'})).code,403);
 });
 test('schema enforces immutable audit, department FKs, status transitions and approval identity',()=>{
