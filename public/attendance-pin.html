@@ -1,0 +1,59 @@
+<!doctype html><html lang="en" data-protected-role="STUDENT"><head>
+<script src="/session-guard.js?v=2"></script>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="referrer" content="no-referrer">
+<title>Attendance PIN · Attendigo</title>
+<link rel="stylesheet" href="/portal.css"><link rel="stylesheet" href="/attendigo-brand.css?v=2">
+<link rel="stylesheet" href="/attendigo-dark-unified.css?v=1"><link rel="stylesheet" href="/typography.css?v=1">
+<link rel="icon" type="image/png" href="/assets/attendigo-favicon.png?v=2">
+<style>
+ main{max-width:490px;margin:5vh auto;padding:clamp(18px,4vw,30px);border:1px solid var(--border,#dce5ef);border-radius:16px;background:var(--surface,#fff)}
+ h1{font-size:1.6rem}p{line-height:1.55}
+ .field{display:grid;gap:7px;margin:14px 0}.field input{box-sizing:border-box;width:100%;padding:12px 14px;border-radius:8px;border:1px solid #8398ad;background:var(--surface,#fff);color:var(--text-primary,inherit);font:inherit}
+ .field label{font-weight:600}button{min-height:44px;border:0;border-radius:9px;background:#164d96;color:#fff;padding:12px 18px;font:inherit;font-weight:600;cursor:pointer;width:100%}button:disabled{opacity:.65}
+ #feedback{min-height:1.5rem;margin-top:16px}a{display:inline-block;margin-top:12px}
+ @media(max-width:540px){main{margin:12px}}
+</style></head><body class="portal-page">
+<div class="attendigo-brand"><img class="attendigo-logo" src="/assets/attendigo-sidebar-logo.png?v=2" alt="Attendigo" width="1800" height="430"></div>
+<main><h1>Private Attendance PIN</h1>
+<p>Set or reset the six-digit PIN used when scanning your teacher's classroom QR. This PIN is separate from your student portal password.</p>
+<p><strong>Important:</strong> Never share your PIN. Your teacher will not ask to see it. Do not use your birthday or the last six digits of your student ID.</p>
+<form id="pinSetup">
+<div class="field"><label for="currentPassword">Confirm your student portal password</label>
+<input id="currentPassword" type="password" autocomplete="current-password" minlength="12" maxlength="256" required></div>
+<div class="field"><label for="pin">New six-digit Attendance PIN</label>
+<input id="pin" type="password" inputmode="numeric" pattern="[0-9]{6}" minlength="6" maxlength="6" autocomplete="new-password" required></div>
+<div class="field"><label for="confirmPin">Confirm six-digit PIN</label>
+<input id="confirmPin" type="password" inputmode="numeric" pattern="[0-9]{6}" minlength="6" maxlength="6" autocomplete="off" required></div>
+<button id="savePin" type="submit">Save Attendance PIN</button>
+</form>
+<p role="status" aria-live="polite" id="feedback"></p>
+<a href="/student-portal.html">Back to Student Dashboard</a>
+</main>
+<script>
+(()=>{
+'use strict';
+const form=document.getElementById('pinSetup'),feedback=document.getElementById('feedback'),button=document.getElementById('savePin');
+fetch('/api/auth/me',{credentials:'same-origin',cache:'no-store'}).then(async r=>{
+ if(!r.ok)throw Error('Sign in to your student portal first.');
+ const d=await r.json();
+ if(d.user?.role!=='STUDENT')throw Error('Only students can set attendance PINs.');
+ if(d.user.mustChangePassword)throw Error('Change your student portal password before setting an attendance PIN.');
+}).catch(e=>{feedback.textContent=e.message;form.hidden=true;});
+form.addEventListener('submit',async event=>{
+ event.preventDefault();
+ const pin=document.getElementById('pin').value,confirm=document.getElementById('confirmPin').value;
+ if(!/^[0-9]{6}$/.test(pin)||pin!==confirm){feedback.textContent='PINs must match and contain exactly six digits.';return;}
+ button.disabled=true;feedback.textContent='Securely saving PIN…';
+ const password=document.getElementById('currentPassword').value;
+ try{
+  const r=await fetch('/api/class-qr/attendance-pin',{method:'POST',credentials:'same-origin',cache:'no-store',headers:{'Content-Type':'application/json'},body:JSON.stringify({pin,currentPassword:password})});
+  const d=r.status===204?{}:await r.json().catch(()=>({}));
+  form.reset();
+  feedback.textContent=r.ok?'Attendance PIN saved. You can now use it with your teacher\'s QR when enabled.':(d.error||'Unable to save PIN. Please retry.');
+ }catch{feedback.textContent='Network unavailable. The Attendance PIN was not saved.';}
+ finally{button.disabled=false;}
+});
+})();
+</script>
+</body></html>
