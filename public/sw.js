@@ -1,4 +1,4 @@
-const CACHE = "attendigo-v193-collapsed-sidebar-nav";
+const CACHE = "attendigo-v194-sidebar-preference-and-rail";
 
 const SHELL = [
   "/typography.css?v=1",
@@ -13,7 +13,7 @@ const SHELL = [
   "/assets/attendigo-wordmark-on-dark.svg?v=2",
   "/assets/attendigo-wordmark-on-light.svg?v=2",
   "/assets/attendigo-symbol-transparent.svg?v=2",
-  "/attendigo-sidebar-adaptive.css?v=15",
+  "/attendigo-sidebar-adaptive.css?v=16",
   "/user-nav-reorg.css?v=1",
   "/attendigo-sidebar-adaptive.js?v=9",
   "/assets/attendigo-logo.png?v=2",
@@ -50,7 +50,7 @@ const SHELL = [
   "/class-qr-dashboard-link.js?v=7",
   "/teacher-roster-popover.js?v=2",
   "/portal.css",
-  "/portal.js?v=186",
+  "/portal.js?v=187",
   "/sardo-monitor.js?v=2",
   "/sardo-monitor.css?v=1",
   "/schedule-form-layout.css?v=12",
