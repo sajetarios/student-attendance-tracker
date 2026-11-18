@@ -1,4 +1,4 @@
-const CACHE = "attendigo-v199-lunch-back-session";
+const CACHE = "attendigo-v200-department-multi-presenters";
 
 const SHELL = [
   "/typography.css?v=1",
@@ -51,8 +51,8 @@ const SHELL = [
   "/teacher-roster-popover.js?v=2",
   "/portal.css",
   "/portal.js?v=188",
-  "/staff-lunch-ui.js?v=1",
-  "/staff-lunch.css?v=1",
+  "/staff-lunch-ui.js?v=3",
+  "/staff-lunch.css?v=3",
   "/staff-lunch-checkin.js?v=3",
   "/sardo-monitor.js?v=2",
   "/sardo-monitor.css?v=1",
