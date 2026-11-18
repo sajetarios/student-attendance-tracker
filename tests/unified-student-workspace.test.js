@@ -29,7 +29,7 @@ test('Students and Portal Accounts are a single reachable workspace with preserv
   assert.match(ui, /if \(tab && allowedViewsForUser\(\).includes\(tab.dataset.studentTab\)\)/);
   assert.match(ui, /SCHOOL_ADMIN'\) return \['dashboard', 'students', 'studentAccounts'/);
   assert.match(ui, /views.push\('students', 'studentAccounts', 'classAttendance'\)/);
-  assert.match(ui, /DEPARTMENT_HEAD'\) return \['dashboard', 'planner', 'students', 'teachers', 'schedules', 'sf2', 'officialBusiness'\]/);
+  assert.match(ui, /DEPARTMENT_HEAD'\) return \['dashboard', 'planner', 'students', 'teachers', 'schedules', 'sf2', 'officialBusiness', 'myGateAttendance'\]/);
 });
 
 test('One Students sidebar destination, with role-specific labels and no admin account shortcut', () => {
@@ -87,7 +87,7 @@ test('Tabs are responsive, theme-aware, keyboard-readable and precached at match
   assert.match(css, /data-ui-theme="dark"/);
   assert.ok(html.includes('/student-workspace-tabs.css?v=1'));
   assert.ok(sw.includes('"/student-workspace-tabs.css?v=1"'));
-  for (const uri of ['/portal.js?v=194', '/student-portal-accounts.js?v=11']) {
+  for (const uri of ['/portal.js?v=196', '/student-portal-accounts.js?v=11']) {
     assert.ok(html.includes(uri), 'HTML must load ' + uri);
     assert.ok(sw.includes(JSON.stringify(uri)), 'Service worker must cache ' + uri);
   }

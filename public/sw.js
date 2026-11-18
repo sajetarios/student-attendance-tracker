@@ -1,4 +1,4 @@
-const CACHE = "attendigo-v223-login-assistance-alignment";
+const CACHE = "attendigo-v224-login-assistance-alignment";
 
 const SHELL = [
   "/typography.css?v=1",
@@ -53,11 +53,13 @@ const SHELL = [
   "/teacher-roster-popover.js?v=2",
   "/portal.css",
   "/portal.js?v=196",
+  "/department-workspace.css?v=1",
+  "/department-workspace.js?v=1",
   "/form48-report.js?v=7",
   "/form48-bulk-ui.js?v=2",
   "/form48-report.css?v=7",
   "/staff-lunch-ui.js?v=3",
-  "/staff-ob-ui.js?v=4",
+  "/staff-ob-ui.js?v=5",
   "/staff-ob.css?v=1",
   "/staff-lunch.css?v=3",
   "/staff-lunch-checkin.js?v=3",
@@ -78,7 +80,7 @@ const SHELL = [
   "/account-directory.js?v=2",
   "/admin-request-notifications.js?v=5",
   "/admin-request-notifications.css?v=2",
-  "/universal-notifications.js?v=1",
+  "/universal-notifications.js?v=2",
   "/universal-notifications.css?v=1",
   "/guardian-ui.js?v=6",
   "/guardian-ui.css?v=4",
