@@ -87,7 +87,7 @@ test('Tabs are responsive, theme-aware, keyboard-readable and precached at match
   assert.match(css, /data-ui-theme="dark"/);
   assert.ok(html.includes('/student-workspace-tabs.css?v=1'));
   assert.ok(sw.includes('"/student-workspace-tabs.css?v=1"'));
-  for (const uri of ['/portal.js?v=198', '/student-portal-accounts.js?v=11']) {
+  for (const uri of ['/portal.js?v=199', '/student-portal-accounts.js?v=11']) {
     assert.ok(html.includes(uri), 'HTML must load ' + uri);
     assert.ok(sw.includes(JSON.stringify(uri)), 'Service worker must cache ' + uri);
   }
