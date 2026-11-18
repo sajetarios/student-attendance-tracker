@@ -1,5 +1,7 @@
 'use strict';
 
+const { nextDepartmentCode, followingDepartmentCode } = require('./generated-record-ids');
+
 const isSchoolDate = value => typeof value === 'string' &&
   /^\d{4}-\d{2}-\d{2}$/.test(value) &&
   Number.isFinite(Date.parse(`${value}T00:00:00Z`)) &&
@@ -29,23 +31,50 @@ function registerDepartmentRoutes(app, pool, auth) {
 
   app.post('/api/departments', authenticateSchoolClient, schoolAdmin, async (req, res) => {
     const { code, name, description } = req.body || {};
-    if (typeof code !== 'string' || !/^[A-Za-z0-9_-]{2,20}$/.test(code.trim()) ||
+    // A supplied code remains supported for legacy imports and administrative workflows.
+    // Leaving it empty creates the next school-scoped code automatically.
+    const requestedCode = typeof code === 'string' ? code.trim().toUpperCase() : '';
+    if ((code != null && typeof code !== 'string') ||
+        (requestedCode && !/^[A-Z0-9_-]{2,20}$/.test(requestedCode)) ||
         typeof name !== 'string' || !name.trim() || name.trim().length > 100 ||
         (description != null && (typeof description !== 'string' || description.length > 500))) {
-      return res.status(400).json({ error: 'Enter a department code (2–20 characters) and a name (up to 100 characters).' });
+      return res.status(400).json({ error: 'Provide a department name (up to 100 characters). A manually entered code must have 2–20 letters, numbers, underscores or hyphens.' });
     }
+    let client;
     try {
-      const result = await pool.query(
-        `INSERT INTO school_departments(school_id, department_code, department_name, description)
-         VALUES($1,$2,$3,$4)
-         RETURNING department_id AS "departmentId", department_code AS code, department_name AS name, description, active`,
-        [req.auth.schoolId, code.trim().toUpperCase(), name.trim(), description?.trim() || null]
-      );
-      return res.status(201).json({ department: result.rows[0] });
+      client = await pool.connect();
+      await client.query('BEGIN');
+      let departmentCode = requestedCode || await nextDepartmentCode(client, req.auth.schoolId);
+      let created;
+      // The database uniqueness constraint and transaction lock prevent two
+      // automated creations from ever assigning the same school department code.
+      for (let attempt = 0; attempt < (requestedCode ? 1 : 10); attempt++) {
+        const result = await client.query(
+          `INSERT INTO school_departments(school_id, department_code, department_name, description)
+           VALUES($1,$2,$3,$4) ON CONFLICT DO NOTHING
+           RETURNING department_id AS "departmentId", department_code AS code, department_name AS name, description, active`,
+          [req.auth.schoolId, departmentCode, name.trim(), description?.trim() || null]
+        );
+        if (result.rowCount) {
+          created = result.rows[0];
+          break;
+        }
+        if (!requestedCode) departmentCode = followingDepartmentCode(departmentCode);
+      }
+      if (!created) {
+        await client.query('ROLLBACK');
+        return res.status(409).json({ error: requestedCode
+          ? 'A department with that code already exists.'
+          : 'Could not allocate a unique department code. Please retry.' });
+      }
+      await client.query('COMMIT');
+      return res.status(201).json({ department: created });
     } catch (err) {
-      if (err.code === '23505') return res.status(409).json({ error: 'A department with that code already exists.' });
+      if (client) await client.query('ROLLBACK').catch(() => {});
       console.error('Department creation failed:', err.message);
       return res.status(500).json({ error: 'Could not create department.' });
+    } finally {
+      client?.release();
     }
   });
 
