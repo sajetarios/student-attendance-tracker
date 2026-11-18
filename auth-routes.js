@@ -13,9 +13,14 @@ function bearerToken(req) {
 function registerAuthRoutes(app, pool) {
   const sessionHours = Math.min(24, Math.max(1, Number(process.env.AUTH_SESSION_HOURS || 12)));
   const studentSessionDays = Math.min(30,Math.max(1,Number(process.env.STUDENT_SESSION_DAYS||7)));
+  const studentCookie='__Host-attendigo-student';
   const staffCookie='__Host-attendigo-staff';
   const staffCookieToken=req=>{const item=String(req.headers.cookie||'').split(';').map(x=>x.trim()).find(x=>x.startsWith(staffCookie+'='));return item?item.slice(staffCookie.length+1):'';};
-  const clearStaffCookie=res=>res.setHeader('Set-Cookie',[staffCookie+'=; Path=/; HttpOnly; Secure; SameSite=Lax; Max-Age=0',...(res.getHeader('Set-Cookie')||[]).filter?.(x=>!String(x).startsWith(staffCookie+'='))||[]]);
+  const clearStaffCookie=res=>{
+    const previous=res.getHeader('Set-Cookie');
+    const cookies=Array.isArray(previous)?previous:previous?[previous]:[];
+    res.setHeader('Set-Cookie',[...cookies.filter(x=>!String(x).startsWith(staffCookie+'=')),staffCookie+'=; Path=/; HttpOnly; Secure; SameSite=Lax; Max-Age=0']);
+  };
   async function checkStaffBrowserAccount(req,principalType,userId){
     const existing=staffCookieToken(req);
     if(!existing)return true;
@@ -36,7 +41,11 @@ function registerAuthRoutes(app, pool) {
   
   const cookieOptions='Path=/; HttpOnly; Secure; SameSite=Lax';
   const cookieToken=req=>{const raw=String(req.headers.cookie||'').split(';').map(x=>x.trim()).find(x=>x.startsWith(studentCookie+'='));return raw?raw.slice(studentCookie.length+1):'';};
-  function clearStudentCookie(res){res.setHeader('Set-Cookie',studentCookie+'=; '+cookieOptions+'; Max-Age=0');}
+  function clearStudentCookie(res){
+    const previous=res.getHeader('Set-Cookie');
+    const cookies=Array.isArray(previous)?previous:previous?[previous]:[];
+    res.setHeader('Set-Cookie',[...cookies.filter(x=>!String(x).startsWith(studentCookie+'=')),studentCookie+'=; '+cookieOptions+'; Max-Age=0']);
+  }
   async function endStudentBrowserSession(req,res){
     const token=cookieToken(req);
     if(token)await pool.query('UPDATE student_sessions SET revoked_at=NOW() WHERE token_hash=$1 AND revoked_at IS NULL',[hashToken(token)]);
