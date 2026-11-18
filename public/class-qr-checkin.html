@@ -10,18 +10,24 @@ const q=new URLSearchParams(location.search),button=document.getElementById('che
 const pendingKey='schoolAttendance.pendingClassQr';
 if(q.get('sessionId')&&q.get('token'))sessionStorage.setItem(pendingKey,location.pathname+location.search);
 document.getElementById('studentSignIn').href='/portal-login.html?mode=student&returnTo='+encodeURIComponent(location.pathname+location.search);
-const existingToken=sessionStorage.getItem('schoolAttendance.accessToken');
-const user=(()=>{try{return JSON.parse(sessionStorage.getItem('schoolAttendance.user')||'null');}catch{return null;}})();
 button.disabled=true;
 fetch('/api/auth/me',{cache:'no-store',credentials:'same-origin'}).then(async r=>{
   if(!r.ok)throw Error('Sign-in required');
   const d=await r.json();
   if(d.user?.role!=='STUDENT'||d.user.mustChangePassword)throw Error('Student sign-in or password update required');
+  const statusResponse=await fetch('/api/class-qr/check-in/status?sessionId='+encodeURIComponent(q.get('sessionId')||''),{cache:'no-store'});
+  if(!statusResponse.ok)throw Error('Could not verify existing attendance');
+  const status=await statusResponse.json();
+  if(status.recorded){
+    button.disabled=true;button.textContent='Already checked in';
+    msg.textContent='Attendance already recorded ('+status.status+'). No further action is required.';
+    sessionStorage.removeItem(pendingKey);return;
+  }
   button.disabled=false;
   msg.textContent='Signed in as '+d.user.displayName+'. Confirm attendance before the QR expires.';
-}).catch(()=>{msg.textContent='Student sign-in required. Use Safari for a login that remains available after closing the browser.';});
+}).catch(e=>{button.disabled=true;msg.textContent=e.message==='Sign-in required'?'Student sign-in required. Open in Safari to keep your session.':'Unable to verify attendance status. Refresh this page before confirming.';});
 button.onclick=async()=>{const token=sessionStorage.getItem('schoolAttendance.accessToken');
 button.disabled=true;msg.textContent='Submitting to school server…';
-try{const r=await fetch('/api/class-qr/check-in',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({sessionId:q.get('sessionId'),token:q.get('token')}),cache:'no-store'});const d=await r.json();msg.textContent=r.ok?'Attendance confirmed: '+d.status+'.':(d.error||'Check-in failed. Scan the latest QR and retry.');if(r.ok){sessionStorage.removeItem(pendingKey);button.disabled=true;}else if(r.status===410){button.disabled=true;msg.textContent='QR code expired or session closed. Scan the latest QR code to continue.';}}
-catch(e){msg.textContent='Network unavailable. Attendance was NOT recorded. Please retry with a fresh QR.';}finally{if(!msg.textContent.startsWith('Attendance confirmed')&&!msg.textContent.startsWith('QR code expired'))button.disabled=false;}};
+try{const r=await fetch('/api/class-qr/check-in',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({sessionId:q.get('sessionId'),token:q.get('token')}),cache:'no-store'});const d=await r.json();msg.textContent=r.ok?'Attendance confirmed: '+d.status+'.':(d.error||'Check-in failed. Scan the latest QR and retry.');if(r.ok||d.alreadyRecorded){sessionStorage.removeItem(pendingKey);button.disabled=true;button.textContent='Already checked in';msg.textContent=d.alreadyRecorded?'Attendance already recorded for this class. No further action is required.':'Attendance confirmed: '+d.status+'. No further action is required.';}else if(r.status===410){button.disabled=true;msg.textContent='QR code expired or session closed. Scan the latest QR code to continue.';}}
+catch(e){msg.textContent='Network unavailable. Attendance was NOT recorded. Please retry with a fresh QR.';}finally{if(!button.textContent.includes('Already checked in')&&!msg.textContent.startsWith('QR code expired'))button.disabled=false;}};
 </script></body></html>
