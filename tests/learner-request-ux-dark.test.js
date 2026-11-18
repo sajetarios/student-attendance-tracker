@@ -60,9 +60,9 @@ test('dark-mode improvements cover learner menu, pending state, account table an
 
 test('cache versions match the live learner and account scripts and styles',()=>{
   for(const asset of [
-    '/portal.js?v=0.9.140',
-    '/student-portal-accounts.css?v=6','/student-portal-accounts.js?v=9',
-    '/special-program-ui.css?v=5','/special-program-ui.js?v=5',
+    '/portal.js?v=185',
+    '/student-portal-accounts.css?v=6','/student-portal-accounts.js?v=10',
+    '/special-program-ui.css?v=5','/special-program-ui.js?v=6',
     '/teacher-roster-popover.js?v=2'
   ]) {
     assert.ok(html.includes(asset),'HTML missing '+asset);

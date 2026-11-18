@@ -1,4 +1,4 @@
-const CACHE = "attendigo-v188-learner-initials";
+const CACHE = "attendigo-v189-class-qr-pin";
 
 const SHELL = [
   "/typography.css?v=1",
@@ -28,11 +28,12 @@ const SHELL = [
   "/dashboard-polish.css?v=2",
   "/photo-editor.css?v=2",
   "/photo-editor.js?v=11",
+  "/photo-editor.js?v=9",
   "/session-guard.js?v=4",
   "/flicker-diagnostics.js?v=1",
   "/school-header-responsive.js?v=2",
   "/student-portal-refinement.css?v=1",
-  "/student-portal.js?v=3",
+  "/student-portal.js?v=20",
   "/parent-portal.js?v=3",
   "/dashboard-appearance.js?v=3",
   "/timetable-grid.js?v=4",
@@ -82,7 +83,7 @@ const SHELL = [
   "/form-system.css?v=1",
   "/password-visibility.css",
   "/password-visibility.js",
-  "/portal-login.js?v=9",
+  "/portal-login.js?v=12",
   "/login-routing.js",
   "/responsive.css?v=0.8.3",
   "/comfort-ui.css?v=0.8.8",
@@ -129,7 +130,7 @@ self.addEventListener("fetch", event => {
   // This also protects people who still have a legacy cached login form.
   const isAccountPage = ['/', '/index.html', '/portal-login.html',
     '/parent-register.html', '/platform-setup.html',
-    '/force-password-change.html', '/class-qr-checkin.html', '/portal.html',
+    '/force-password-change.html', '/class-qr-checkin.html', '/attendance-pin.html', '/portal.html',
     '/student-portal.html', '/parent-portal.html'].includes(url.pathname);
   const credentialKey = /^(?:password|passwd|pwd|pass|currentpassword|newpassword|confirmpassword|recoverycode|setupcode|accesstoken)$/i;
   if (isAccountPage && [...url.searchParams.keys()].some(key => credentialKey.test(key))) {
@@ -139,7 +140,7 @@ self.addEventListener("fetch", event => {
 
   // Authenticated dashboards are never served from the offline shell cache.
   if (["/portal.html", "/student-portal.html", "/parent-portal.html",
-       "/force-password-change.html"].includes(url.pathname)) {
+       "/force-password-change.html", "/attendance-pin.html", "/class-qr-checkin.html"].includes(url.pathname)) {
     event.respondWith(fetch(request, { cache: "no-store" }));
     return;
   }

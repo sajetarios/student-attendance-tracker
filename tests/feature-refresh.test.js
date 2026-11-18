@@ -96,8 +96,8 @@ test('self-service and parent workspaces share the calm theme and Gate Keeper ha
     assert.match(source, /comfort-ui\.css\?v=0\.8\.2/);
   }
   const index = read('public/index.html');
-  assert.match(index, /window\.location\.replace\('\/portal-login\.html'/);
-  assert.match(index, /url=\/portal-login\.html/);
+  assert.match(index, /const loginUrl = '\/portal-login\.html'/);
+  assert.match(index, /go\(loginUrl\)/);
   assert.match(css, /body\.login-page/);
   assert.match(css, /body\.attendance-desk/);
   assert.match(html, /id=\"gateScanType\"/);

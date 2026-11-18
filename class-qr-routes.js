@@ -7,7 +7,7 @@ const dayOfWeek=d=>new Date(d+'T00:00:00Z').getUTCDay();
 const at=(date,time)=>new Date(date+'T'+String(time).slice(0,5)+':00+08:00');
 const sign=(secret,id,bucket)=>crypto.createHmac('sha256',secret).update(id+':'+bucket).digest('hex');
 const bucket=()=>Math.floor(Date.now()/30000);
-async function saveAttendance(pool,s,studentId,method,actor,reason){
+async function saveAttendance(pool,s,studentId,method,actor,reason,verificationMethod=null){
  const client=await pool.connect();
  try{
   await client.query('BEGIN');
@@ -25,7 +25,7 @@ async function saveAttendance(pool,s,studentId,method,actor,reason){
    VALUES($1,$2,$3,$4,'CLASS',$5,'TIME_IN',$6,$7,$8,'ACCEPTED',$9::jsonb)
    ON CONFLICT DO NOTHING RETURNING event_id`,
    [id,s.school_id,'CLASS_QR',studentId,s.period_id,inserted.rows[0].checked_in_at,
-    s.school_date,status==='LATE',JSON.stringify({source:'CLASS_QR',sessionId:s.session_id,method,actor:actor||null})]);
+    s.school_date,status==='LATE',JSON.stringify({source:'CLASS_QR',sessionId:s.session_id,method,actor:actor||null,verificationMethod:verificationMethod||null})]);
   if(!event.rowCount){await client.query('ROLLBACK');return {duplicate:true};}
   await client.query('COMMIT');
   return {status,checkedInAt:inserted.rows[0].checked_in_at,eventId:id};
@@ -42,6 +42,57 @@ function registerClassQrRoutes(app,pool,{authenticateSchoolClient,requireSchoolR
   checkinAttempts.set(key,{count:entry&&entry.until>now?entry.count+1:1,until:entry&&entry.until>now?entry.until:now+60000});
   next();
  }
+ // Keep student portal and passwordless QR identity separate.
+ // A live student session AND their existing portal password are required to
+ // establish/reset a QR PIN. Student passwords are never used at QR check-in.
+ app.post('/api/class-qr/attendance-pin',authenticateSchoolClient,async(req,res)=>{
+  if(req.auth?.type!=='STUDENT'||req.auth.mustChangePassword)
+   return res.status(403).json({error:'Complete student account setup before creating an attendance PIN.'});
+  const {validAttendancePin,hashAttendancePin}=require('./attendance-pin-security');
+  const {verifyPassword}=require('./auth-security');
+  const pin=req.body?.pin,password=req.body?.currentPassword;
+  if(!validAttendancePin(pin))return res.status(400).json({error:'Attendance PIN must contain exactly six digits.'});
+  if(typeof password!=='string'||password.length<12||password.length>256)
+   return res.status(400).json({error:'Current account password is required.'});
+  const client=await pool.connect();
+  try{
+   await client.query('BEGIN');
+   const account=await client.query(`SELECT password_hash,failed_login_attempts,locked_until
+    FROM student_accounts WHERE school_id=$1 AND student_id=$2 AND active=TRUE
+    FOR UPDATE`,[req.auth.schoolId,req.auth.studentId]);
+   if(!account.rowCount){await client.query('ROLLBACK');return res.sendStatus(403);}
+   const row=account.rows[0];
+   if(row.locked_until&&new Date(row.locked_until).getTime()>Date.now()){
+    await client.query('ROLLBACK');return res.status(429).json({error:'Account temporarily locked. Try again later.'});
+   }
+   if(!await verifyPassword(password,row.password_hash)){
+    await client.query(`UPDATE student_accounts SET failed_login_attempts=LEAST(
+      CASE WHEN locked_until IS NOT NULL AND locked_until<=NOW() THEN 0 ELSE failed_login_attempts END+1,5),
+      locked_until=CASE WHEN (CASE WHEN locked_until IS NOT NULL AND locked_until<=NOW() THEN 0 ELSE failed_login_attempts END)+1>=5
+      THEN NOW()+INTERVAL '15 minutes' ELSE NULL END WHERE school_id=$1 AND student_id=$2`,[req.auth.schoolId,req.auth.studentId]);
+    await client.query('COMMIT');
+    return res.status(403).json({error:'Unable to verify student account password.'});
+   }
+   const old=await client.query('SELECT 1 FROM student_attendance_pins WHERE school_id=$1 AND student_id=$2',[req.auth.schoolId,req.auth.studentId]);
+   const hash=await hashAttendancePin(pin);
+   await client.query(`INSERT INTO student_attendance_pins(school_id,student_id,pin_hash) VALUES($1,$2,$3)
+    ON CONFLICT(school_id,student_id) DO UPDATE SET pin_hash=EXCLUDED.pin_hash,
+      failed_attempts=0,locked_until=NULL,updated_at=NOW()`,[req.auth.schoolId,req.auth.studentId,hash]);
+   await client.query('UPDATE student_accounts SET failed_login_attempts=0,locked_until=NULL WHERE school_id=$1 AND student_id=$2',[req.auth.schoolId,req.auth.studentId]);
+   await client.query(`INSERT INTO audit_logs(school_id,actor_type,actor_user_id,action,entity_type,entity_id,details)
+    VALUES($1,'SYSTEM',NULL,$2,'student_attendance_pin',$3,$4::jsonb)`,
+    [req.auth.schoolId,old.rowCount?'STUDENT_ATTENDANCE_PIN_RESET':'STUDENT_ATTENDANCE_PIN_ENROLLED',
+     req.auth.studentId,JSON.stringify({studentId:req.auth.studentId,verification:'STUDENT_PORTAL_PASSWORD'})]);
+   await client.query('COMMIT');
+   res.set('Cache-Control','no-store');return res.status(204).end();
+  }catch(e){
+   await client.query('ROLLBACK').catch(()=>{});
+   console.error('Attendance PIN enrollment:',e.message);
+   return res.status(500).json({error:'Unable to save attendance PIN.'});
+  }finally{client.release();}
+ });
+ const {registerQrPinCheckin}=require('./class-qr-pin-checkin');
+ registerQrPinCheckin(app,pool,{saveAttendance});
  const read=async(schoolId,periodId,date)=>{
   const r=await pool.query(`SELECT p.period_id,p.grade_level,p.section,p.subject_name,p.start_time,p.end_time,
     COALESCE(a.teacher_user_id,cover.substitute_teacher_user_id,regular.teacher_user_id) AS teacher_user_id,
