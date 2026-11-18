@@ -1613,6 +1613,10 @@ body.dark-mode .content-wrap > .school-heading.is-compact,body[data-theme="dark"
                   <button type="button" class="outline-button" id="form48BatchPrint">Generate selected DTR previews</button>
                 </div>
                 <p class="field-hint" id="form48BatchStatus" role="status" aria-live="polite">Select employees to begin. Reports never invent missing punches or signatures.</p>
+                <div class="form48-leave-records">
+                  <div class="form48-batch-pick"><strong>Previously recorded approved leave</strong><button type="button" class="outline-button" id="form48RefreshLeaves">Refresh list</button></div>
+                  <div id="form48LeaveRecords" class="form48-leave-record-list" aria-live="polite">Choose a month to view current records.</div>
+                </div>
               </section>
               <div id="form48ReportSettings" class="form48-settings-panel" hidden>
                 <div class="form48-signatory-heading">
@@ -1961,7 +1965,7 @@ body.dark-mode .content-wrap > .school-heading.is-compact,body[data-theme="dark"
   <script src="/staff-lunch-ui.js?v=3" defer></script>
   <script src="/staff-ob-ui.js?v=4" defer></script>
   <script src="/form48-report.js?v=4" defer></script>
-  <script src="/form48-bulk-ui.js?v=1" defer></script>
+  <script src="/form48-bulk-ui.js?v=2" defer></script>
   <script src="/teacher-roster-popover.js?v=2" defer></script>
   <script src="/sardo-monitor.js?v=2" defer></script><script src="/parent-dashboard.js?v=3" defer></script>
   <script src="/platform-plans-ui.js?v=8" defer></script>
