@@ -1,4 +1,4 @@
-const CACHE = "attendigo-v188-learner-initials";
+const CACHE = "attendigo-v189-login-cache-parity";
 
 const SHELL = [
   "/typography.css?v=1",
@@ -82,7 +82,7 @@ const SHELL = [
   "/form-system.css?v=1",
   "/password-visibility.css",
   "/password-visibility.js",
-  "/portal-login.js?v=9",
+  "/portal-login.js?v=12",
   "/login-routing.js",
   "/responsive.css?v=0.8.3",
   "/comfort-ui.css?v=0.8.8",
