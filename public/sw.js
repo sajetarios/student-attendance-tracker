@@ -1,4 +1,4 @@
-const CACHE = "attendigo-v207-form48-monthly-review";
+const CACHE = "attendigo-v208-gatekeeper-auto-ob-dtr";
 
 const SHELL = [
   "/typography.css?v=1",
@@ -50,8 +50,8 @@ const SHELL = [
   "/class-qr-dashboard-link.js?v=7",
   "/teacher-roster-popover.js?v=2",
   "/portal.css",
-  "/portal.js?v=192",
-  "/form48-report.js?v=2",
+  "/portal.js?v=193",
+  "/form48-report.js?v=3",
   "/form48-report.css?v=3",
   "/staff-lunch-ui.js?v=3",
   "/staff-ob-ui.js?v=4",
