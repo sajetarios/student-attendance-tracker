@@ -78,7 +78,9 @@ function registerStaffGateDtrRoutes(app,pool,{authenticateSchoolClient,requireSc
       timestamp.getTime()>Date.now()+300000||
       timestamp.getTime()<Date.now()-7*86400000)
     return res.status(400).json({error:'Valid offline event key, DTR slot and capture time within the last seven days required.'});
-   const schoolDate=new Intl.DateTimeFormat('en-CA',{timeZone:'Asia/Manila',year:'numeric',month:'2-digit',day:'2-digit'}).format(timestamp);
+   const parts=new Intl.DateTimeFormat('en-US',{timeZone:'Asia/Manila',year:'numeric',month:'2-digit',day:'2-digit'}).formatToParts(timestamp);
+   const field=type=>parts.find(part=>part.type===type)?.value;
+   const schoolDate=`${field('year')}-${field('month')}-${field('day')}`;
    const client=await pool.connect();
    try{
     await client.query('BEGIN');
