@@ -59,7 +59,7 @@ test('QR scan does not log in or record until authenticated staff confirms expli
 test('service worker preloads safe assets but excludes sensitive scan document from offline cache',()=>{
  assert.match(sw,/staff-lunch-ui\.js\?v=1/);
  assert.match(sw,/staff-lunch\.css\?v=1/);
- assert.match(sw,/staff-lunch-checkin\.js\?v=1/);
+ assert.match(sw,/staff-lunch-checkin\.js\?v=2/);
  assert.match(sw,/staff-lunch-checkin\.html/);
  const shell=sw.split('const SHELL = [')[1].split('];')[0];
  assert.doesNotMatch(shell,/staff-lunch-checkin\.html/);
