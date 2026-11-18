@@ -97,7 +97,10 @@ function registerClassQrRoutes(app,pool,{authenticateSchoolClient,requireSchoolR
    if(s.closed_at||Date.now()<new Date(s.starts_at).getTime()||Date.now()>=new Date(s.closes_at).getTime())return res.status(410).json({error:'QR attendance closed.'});
    const b=bucket();
    const token=sign(s.secret,s.session_id,b);
-   const origin=process.env.PUBLIC_BASE_URL||'https://student-attendance-tracker-jmp4.onrender.com';
+   // QR links must share the canonical student-login origin for persistent cookies.
+   const configured=process.env.PUBLIC_BASE_URL||'';
+   const origin=(process.env.NODE_ENV==='production' && (!configured || /student-attendance-tracker-jmp4\\.onrender\\.com/.test(configured)))
+     ? 'https://attendigo.tech' : (configured || 'http://localhost:3000');
    const url=new URL('/class-qr-checkin.html',origin);
    url.searchParams.set('sessionId',String(s.session_id));url.searchParams.set('token',token);
    const qrImage=await QRCode.toDataURL(url.toString(),{margin:2,width:320});
