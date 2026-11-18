@@ -1,4 +1,4 @@
-const CACHE = "attendigo-v226-compact-staff-security";
+const CACHE = "attendigo-v224-pwa-icon-badges";
 
 const SHELL = [
   "/typography.css?v=1",
@@ -80,7 +80,7 @@ const SHELL = [
   "/account-directory.js?v=2",
   "/admin-request-notifications.js?v=5",
   "/admin-request-notifications.css?v=2",
-  "/universal-notifications.js?v=2",
+  "/universal-notifications.js?v=3",
   "/universal-notifications.css?v=1",
   "/guardian-ui.js?v=6",
   "/guardian-ui.css?v=4",
