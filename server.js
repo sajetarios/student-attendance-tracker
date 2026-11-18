@@ -565,14 +565,21 @@ app.get('/api/admin/gatekeeper-monitoring', authenticateSchoolClient, requireSch
                         WHERE e.school_id=su.school_id AND e.recorded_by_user_id=su.user_id
                           AND e.attendance_scope='SCHOOL' AND e.sync_status='ACCEPTED'
                           AND e.school_date=(NOW() AT TIME ZONE 'Asia/Manila')::date),0) AS "studentScansToday",
-              COALESCE((SELECT COUNT(*)::int FROM teacher_gate_events tge
+              (COALESCE((SELECT COUNT(*)::int FROM teacher_gate_events tge
                         WHERE tge.school_id=su.school_id AND tge.recorded_by_user_id=su.user_id
-                          AND tge.school_date=(NOW() AT TIME ZONE 'Asia/Manila')::date),0) AS "teacherPunchesToday",
+                          AND tge.school_date=(NOW() AT TIME ZONE 'Asia/Manila')::date),0)
+                + COALESCE((SELECT COUNT(*)::int FROM staff_attendance_events sae
+                        WHERE sae.school_id=su.school_id AND sae.actor_user_id=su.user_id
+                          AND sae.event_kind='GATE_MOVEMENT' AND sae.verification_status='VERIFIED'
+                          AND sae.school_date=(NOW() AT TIME ZONE 'Asia/Manila')::date),0)) AS "teacherPunchesToday",
               GREATEST(
                 (SELECT MAX(e.received_at_server) FROM attendance_events e
                  WHERE e.school_id=su.school_id AND e.recorded_by_user_id=su.user_id AND e.attendance_scope='SCHOOL'),
                 (SELECT MAX(tge.created_at) FROM teacher_gate_events tge
-                 WHERE tge.school_id=su.school_id AND tge.recorded_by_user_id=su.user_id)
+                 WHERE tge.school_id=su.school_id AND tge.recorded_by_user_id=su.user_id),
+                (SELECT MAX(sae.created_at) FROM staff_attendance_events sae
+                 WHERE sae.school_id=su.school_id AND sae.actor_user_id=su.user_id
+                   AND sae.event_kind='GATE_MOVEMENT' AND sae.verification_status='VERIFIED')
               ) AS "lastActivityAt"
        FROM school_users su
        WHERE su.school_id=$1 AND su.role='GATE_KEEPER'
@@ -598,13 +605,23 @@ app.get('/api/teacher/my-gate-attendance', authenticateSchoolClient, requireScho
   }
   try {
     const result = await pool.query(
-      `SELECT tge.event_id AS "eventId", tge.event_type AS "eventType",
-              to_char(tge.school_date, 'YYYY-MM-DD') AS "schoolDate",
-              tge.occurred_at AS "occurredAt", tge.photo_verified AS "photoVerified"
-       FROM teacher_gate_events tge
-       WHERE tge.school_id=$1 AND tge.teacher_user_id=$2
-         AND tge.school_date BETWEEN $3::date AND $4::date
-       ORDER BY tge.school_date DESC, tge.occurred_at ASC`,
+      `SELECT "eventId","eventType","schoolDate","occurredAt","photoVerified" FROM (
+        SELECT event_id AS "eventId",
+          CASE WHEN gate_direction='IN' THEN 'TIME_IN' ELSE 'TIME_OUT' END AS "eventType",
+          to_char(school_date,'YYYY-MM-DD') AS "schoolDate",occurred_at AS "occurredAt",
+          TRUE AS "photoVerified"
+        FROM staff_attendance_events
+        WHERE school_id=$1 AND staff_user_id=$2
+          AND event_kind='GATE_MOVEMENT' AND verification_status='VERIFIED'
+          AND school_date BETWEEN $3::date AND $4::date
+        UNION ALL
+        SELECT event_id AS "eventId",event_type AS "eventType",
+          to_char(school_date,'YYYY-MM-DD') AS "schoolDate",occurred_at AS "occurredAt",
+          photo_verified AS "photoVerified"
+        FROM teacher_gate_events
+        WHERE school_id=$1 AND teacher_user_id=$2
+          AND school_date BETWEEN $3::date AND $4::date
+       ) gate_history ORDER BY "schoolDate" DESC,"occurredAt" ASC`,
       [req.auth.schoolId, req.auth.userId, from, to]
     );
     return res.json({ events: result.rows, from, to });
@@ -645,16 +662,28 @@ app.get('/api/admin/teacher-gate-attendance', authenticateSchoolClient, requireS
   if (!isValidSchoolDate(schoolDate)) return res.status(400).json({ error: 'Provide a valid school date (YYYY-MM-DD).' });
   try {
     const result = await pool.query(
-      `SELECT tge.event_id AS "eventId", tge.teacher_user_id AS "teacherUserId",
-              teacher.display_name AS "teacherName", teacher.username,
-              tge.event_type AS "eventType", tge.school_date AS "schoolDate",
-              tge.occurred_at AS "occurredAt", tge.photo_verified AS "photoVerified",
-              gatekeeper.display_name AS "recordedBy"
-       FROM teacher_gate_events tge
-       JOIN school_users teacher ON teacher.school_id=tge.school_id AND teacher.user_id=tge.teacher_user_id       JOIN school_users gatekeeper ON gatekeeper.school_id=tge.school_id AND gatekeeper.user_id=tge.recorded_by_user_id
-       WHERE tge.school_id=$1 AND tge.school_date=$2::date
-       ORDER BY tge.occurred_at DESC, teacher.display_name`,
-      [req.auth.schoolId, schoolDate]
+      `SELECT g."eventId",g."teacherUserId",teacher.display_name AS "teacherName",teacher.username,
+        g."eventType",g."schoolDate",g."occurredAt",g."photoVerified",
+        gatekeeper.display_name AS "recordedBy"
+       FROM (
+        SELECT event_id AS "eventId",staff_user_id AS "teacherUserId",
+          CASE WHEN gate_direction='IN' THEN 'TIME_IN' ELSE 'TIME_OUT' END AS "eventType",
+          school_date AS "schoolDate",occurred_at AS "occurredAt",TRUE AS "photoVerified",
+          actor_user_id AS "recordedById"
+        FROM staff_attendance_events WHERE school_id=$1 AND school_date=$2::date
+          AND event_kind='GATE_MOVEMENT' AND verification_status='VERIFIED'
+        UNION ALL
+        SELECT event_id AS "eventId",teacher_user_id AS "teacherUserId",
+          event_type AS "eventType",school_date AS "schoolDate",
+          occurred_at AS "occurredAt",photo_verified AS "photoVerified",
+          recorded_by_user_id AS "recordedById"
+        FROM teacher_gate_events WHERE school_id=$1 AND school_date=$2::date
+       ) g
+       JOIN school_users teacher ON teacher.school_id=$1 AND teacher.user_id=g."teacherUserId"
+       JOIN school_users gatekeeper ON gatekeeper.school_id=$1 AND gatekeeper.user_id=g."recordedById"
+       WHERE ($3::text='SCHOOL_ADMIN' OR teacher.department_id=$4::uuid)
+       ORDER BY g."occurredAt" DESC,teacher.display_name`,
+      [req.auth.schoolId, schoolDate, req.auth.role, req.auth.departmentId || null]
     );
     return res.json({ events: result.rows, schoolDate });
   } catch (err) {
@@ -2180,6 +2209,110 @@ app.post('/api/gate/teacher-events', authenticateSchoolClient, requireSchoolRole
   }
 });
 
+// Automatic staff gate punch: strictly physical gate history, never OB or Form 48 DTR.
+app.post('/api/gate/teacher-auto-event', authenticateSchoolClient, requireSchoolRoles('GATE_KEEPER'), async (req,res) => {
+  res.set('Cache-Control','no-store, private');
+  const { validateAutomaticGateRecording, PHYSICAL_GATE } = require('./gate-attendance-boundary');
+  const { decideNextGateEvent } = require('./gate-event-decision');
+  const allowed=validateAutomaticGateRecording({
+    actorRole:req.auth.role,photoVerified:req.body?.photoVerified,
+    recordingTarget:PHYSICAL_GATE,clientEventType:req.body?.eventType
+  });
+  if(!allowed.allowed)return res.status(400).json({error:'Gate photo verification or recording request invalid.',reason:allowed.reason});
+  const clientEventKey=String(req.body?.clientEventKey||'').trim();
+  if(!isUuid(clientEventKey))return res.status(400).json({error:'An idempotent gate scan key is required.'});
+  const qrToken=String(req.body?.teacherQrToken||'').trim();
+  if(!isUuid(qrToken))return res.status(400).json({error:'A valid staff QR badge is required.'});
+  const client=await pool.connect();
+  try {
+    await client.query('BEGIN');
+    const teacher=await client.query(`SELECT user_id,display_name FROM school_users
+      WHERE school_id=$1 AND teacher_qr_token=$2 AND role IN ('TEACHER','SCHOOL_ADMIN')
+      AND active=TRUE AND (teacher_photo_path IS NOT NULL OR EXISTS (
+       SELECT 1 FROM official_profile_photos p WHERE p.school_id=school_users.school_id
+       AND p.subject_kind='STAFF' AND p.subject_id=school_users.user_id::text))
+      FOR SHARE`,[req.auth.schoolId,qrToken]);
+    if(!teacher.rowCount){await client.query('ROLLBACK');return res.status(404).json({error:'Active staff badge and registered photo required.'});}
+    const teacherId=teacher.rows[0].user_id;
+    // Serialize gate scans per person and school; never trust browser history.
+    await client.query('SELECT pg_advisory_xact_lock(hashtext($1),hashtext($2))',
+      [String(req.auth.schoolId),String(teacherId)]);
+    const recorded=await client.query(`SELECT event_id AS "eventId",staff_user_id AS "staffUserId",
+      gate_direction AS "gateDirection",occurred_at AS "occurredAt"
+      FROM staff_attendance_events WHERE school_id=$1 AND client_event_key=$2
+        AND event_kind='GATE_MOVEMENT' AND verification_status='VERIFIED'`,
+      [req.auth.schoolId,clientEventKey]);
+    if(recorded.rowCount){
+      if(String(recorded.rows[0].staffUserId)!==String(teacherId)){
+        await client.query('ROLLBACK');
+        return res.status(409).json({error:'Gate scan key is already in use.'});
+      }
+      await client.query('COMMIT');
+      const prior=recorded.rows[0];
+      return res.status(200).json({event:{eventId:prior.eventId,
+        eventType:prior.gateDirection==='IN'?'TIME_IN':'TIME_OUT',occurredAt:prior.occurredAt},
+        teacherName:teacher.rows[0].display_name,recordingTarget:'PHYSICAL_GATE',alreadyRecorded:true});
+    }
+    const clock=await client.query(`SELECT clock_timestamp() AS occurred_at,
+      to_char(clock_timestamp() AT TIME ZONE 'Asia/Manila','YYYY-MM-DD') AS school_date`);
+    const occurredAt=clock.rows[0].occurred_at,schoolDate=clock.rows[0].school_date;
+    const calendar=await client.query(`SELECT exception_type,dismissal_time FROM school_calendar_exceptions
+      WHERE school_id=$1 AND calendar_date=$2::date`,[req.auth.schoolId,schoolDate]);
+    if(calendar.rows.some(x=>x.exception_type==='CLOSED')){
+      await client.query('ROLLBACK');return res.status(409).json({error:'Gate attendance disabled for closed school date.'});
+    }
+    // Current authoritative physical movements plus pre-upgrade legacy records.
+    // The legacy unique-per-type table is never written by this multi-entry path.
+    const history=await client.query(`SELECT "eventType","occurredAt" FROM (
+        SELECT CASE WHEN gate_direction='IN' THEN 'TIME_IN' ELSE 'TIME_OUT' END AS "eventType",
+          occurred_at AS "occurredAt", event_id
+          FROM staff_attendance_events WHERE school_id=$1 AND staff_user_id=$2
+          AND event_kind='GATE_MOVEMENT' AND verification_status='VERIFIED'
+          AND school_date=$3::date
+        UNION ALL
+        SELECT event_type AS "eventType",occurred_at AS "occurredAt",event_id
+          FROM teacher_gate_events WHERE school_id=$1 AND teacher_user_id=$2
+          AND school_date=$3::date
+      ) gate_history ORDER BY "occurredAt" ASC,event_id ASC`,
+      [req.auth.schoolId,teacherId,schoolDate]);
+    const decision=decideNextGateEvent(history.rows);
+    if(decision.status!=='READY'){
+      await client.query('ROLLBACK');
+      return res.status(409).json({error:'Existing gate history needs authorized review.',status:decision.status});
+    }
+    // A double scan must never be mistaken for an actual return or departure.
+    // Deliberate movements within this conservative interval require review.
+    const last=history.rows[history.rows.length-1];
+    if(last && Date.parse(occurredAt)-Date.parse(last.occurredAt)<90*1000){
+      await client.query('ROLLBACK');
+      return res.status(409).json({error:'Recent gate scan detected. Please wait before another scan or request authorized review.',status:'RECENT_SCAN'});
+    }
+    // Physical arrival must still be accepted after shortened dismissal or OB end.
+    const eventId=require('node:crypto').randomUUID();
+    const saved=await client.query(`INSERT INTO staff_attendance_events
+      (event_id,school_id,staff_user_id,event_kind,gate_direction,school_date,
+       occurred_at,source,verification_status,verification_method,actor_user_id,client_event_key)
+      VALUES($1,$2,$3,'GATE_MOVEMENT',$4,$5::date,$6,
+        'GATEKEEPER','VERIFIED','GUARD_PHOTO',$7,$8)
+      RETURNING event_id AS "eventId",gate_direction AS "gateDirection",occurred_at AS "occurredAt"`,
+      [eventId,req.auth.schoolId,teacherId,decision.eventType==='TIME_IN'?'IN':'OUT',
+       schoolDate,occurredAt,req.auth.userId,clientEventKey]);
+    const savedEvent={eventId:saved.rows[0].eventId,eventType:decision.eventType,
+      occurredAt:saved.rows[0].occurredAt};
+    await client.query(`INSERT INTO audit_logs(school_id,actor_type,actor_user_id,action,entity_type,entity_id,details)
+      VALUES($1,'SCHOOL',$2,'GATE_KEEPER_RECORD_TEACHER_ATTENDANCE','staff_attendance_event',$3,$4::jsonb)`,
+      [req.auth.schoolId,req.auth.userId,eventId,
+       JSON.stringify({teacherUserId:teacherId,eventType:decision.eventType,schoolDate,
+         automatic:true,photoVerified:true,physicalGateOnly:true})]);
+    await client.query('COMMIT');
+    return res.status(201).json({event:savedEvent,teacherName:teacher.rows[0].display_name,schoolDate,recordingTarget:'PHYSICAL_GATE'});
+  }catch(err){
+    await client.query('ROLLBACK').catch(()=>{});
+    console.error('Automatic staff gate event:',err.message);
+    return res.status(503).json({error:'Unable to record verified gate attendance.'});
+  }finally{client.release();}
+});
+
 // Roster: school-scoped for all principals; teacher results are limited to their assigned grade/sections.
 // Device clients receive only the fields needed for offline QR matching (no parent contact data).
 app.get('/api/students', authenticateSchoolClient, requireSchoolClient, requireSchoolPermission('students.view.all'), async (req, res) => {
@@ -3280,13 +3413,16 @@ app.post('/api/sync/events', authenticateSchoolClient, requireSchoolClient, asyn
   try {
     await client.query('BEGIN');
     for (const event of events) {
-      if (!event || !event.eventId || !event.studentId || !event.eventType || !event.occurredAt ||
-          !isValidSchoolDate(event.schoolDate) || !event.attendanceScope ||
-          !['TIME_IN', 'TIME_OUT'].includes(event.eventType) ||
+      const automaticGate = event?.eventType === 'AUTO' &&
+        req.auth.type === 'SCHOOL_USER' && req.auth.role === 'GATE_KEEPER' &&
+        event.attendanceScope === 'SCHOOL' && event.metadata?.photoVerified === true;
+      if (!event || !event.eventId || !event.studentId || !event.eventType ||
+          (!automaticGate && (!event.occurredAt || !isValidSchoolDate(event.schoolDate) ||
+            !Number.isFinite(Date.parse(event.occurredAt)))) || !event.attendanceScope ||
+          (!['TIME_IN', 'TIME_OUT'].includes(event.eventType) && !automaticGate) ||
           !['SCHOOL', 'CLASS', 'ADVISORY'].includes(event.attendanceScope) ||
           (event.attendanceScope === 'CLASS' && !event.periodId) ||
-          (['SCHOOL', 'ADVISORY'].includes(event.attendanceScope) && event.periodId) ||
-          !Number.isFinite(Date.parse(event.occurredAt))) {
+          (['SCHOOL', 'ADVISORY'].includes(event.attendanceScope) && event.periodId)) {
         results.push({ eventId: event?.eventId || null, status: 'REJECTED', reason: 'Invalid or missing event fields.' });
         continue;
       }
@@ -3312,15 +3448,52 @@ app.post('/api/sync/events', authenticateSchoolClient, requireSchoolClient, asyn
       }
 
       const already = await client.query(
-        'SELECT school_id FROM attendance_events WHERE event_id=$1', [event.eventId]
+        'SELECT school_id,event_type,occurred_at_device FROM attendance_events WHERE event_id=$1', [event.eventId]
       );
       if (already.rowCount) {
         if (already.rows[0].school_id === req.auth.schoolId) {
-          results.push({ eventId: event.eventId, status: 'ALREADY_SYNCED' });
+          results.push({ eventId: event.eventId, status: 'ALREADY_SYNCED',
+            ...(automaticGate?{eventType:already.rows[0].event_type,
+              occurredAt:already.rows[0].occurred_at_device}: {}) });
         } else {
           results.push({ eventId: event.eventId, status: 'REJECTED', reason: 'Event ID belongs to a different school.' });
         }
         continue;
+      }
+
+      if (automaticGate) {
+        // The Gatekeeper confirms identity; only the server selects the gate
+        // direction and occurrence time. Never derive from browser state.
+        await client.query('SELECT pg_advisory_xact_lock(hashtext($1),hashtext($2))',
+          [String(req.auth.schoolId),'STUDENT_GATE:'+String(event.studentId)]);
+        const clock=await client.query(`SELECT clock_timestamp() AS occurred_at,
+          to_char(clock_timestamp() AT TIME ZONE 'Asia/Manila','YYYY-MM-DD') AS school_date`);
+        event.occurredAt=clock.rows[0].occurred_at.toISOString();
+        event.schoolDate=clock.rows[0].school_date;
+        const prior=await client.query(`SELECT event_type AS "eventType",
+            occurred_at_device AS "occurredAt"
+          FROM attendance_events WHERE school_id=$1 AND student_id=$2
+            AND school_date=$3::date AND attendance_scope='SCHOOL'
+            AND sync_status='ACCEPTED'
+          ORDER BY occurred_at_device ASC,event_id ASC`,
+          [req.auth.schoolId,event.studentId,event.schoolDate]);
+        const {decideNextGateEvent}=require('./gate-event-decision');
+        // Student SCHOOL attendance currently has one verified arrival and
+        // departure per day. Never create a third event without a policy review.
+        const valid=prior.rows.length<=2?decideNextGateEvent(prior.rows):
+          {status:'REVIEW'};
+        if(valid.status!=='READY'||prior.rows.length>=2){
+          results.push({eventId:event.eventId,status:'REJECTED',
+            reason:'School gate attendance is already complete or requires authorized review.'});
+          continue;
+        }
+        const previous=prior.rows[prior.rows.length-1];
+        if(previous&&Date.parse(event.occurredAt)-Date.parse(previous.occurredAt)<90*1000){
+          results.push({eventId:event.eventId,status:'REJECTED',
+            reason:'Recent gate scan detected. Please wait or request authorized review.'});
+          continue;
+        }
+        event.eventType=valid.eventType;
       }
 
       // A finalized class is immutable until the teacher explicitly reopens it.
@@ -3557,7 +3730,7 @@ app.post('/api/sync/events', authenticateSchoolClient, requireSchoolClient, asyn
       );
 
       // SMS is queued transactionally by attendance_sms_enqueue for every attendance entry path.
-      results.push({ eventId: event.eventId, status: 'ACCEPTED', late });
+      results.push({ eventId: event.eventId, status: 'ACCEPTED', late, ...(automaticGate?{eventType:event.eventType,occurredAt:event.occurredAt}: {}) });
     }
     await client.query('COMMIT');
     return res.json({ results, serverTime: new Date().toISOString() });
