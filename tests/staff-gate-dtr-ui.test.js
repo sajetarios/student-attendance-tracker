@@ -33,6 +33,15 @@ test('Teacher personal page distinguishes verified DTR from physical gate histor
  assert.match(html,/id="myGateDtrPmOut"/);
  assert.match(portal,/api\/staff-attendance\/my\/dtr/);
  assert.match(portal,/api\/teacher\/my-gate-attendance/);
- assert.match(worker,/"\/portal\.js\?v=188"/);
- assert.match(html,/src="\/portal\.js\?v=188"/);
+ assert.match(html,/class="my-gate-history-heading"/);
+ assert.match(html,/<details class="my-gate-dtr-details"/);
+ assert.match(html,/id="myGateDtrSummary"/);
+ assert.doesNotMatch(html,/id="myGateTimeIn"/);
+ assert.doesNotMatch(html,/id="myGateTimeOut"/);
+ assert.match(portal,/verifiedCount \+ ' of 4 verified'/);
+ assert.match(portal,/DTR unavailable/);
+ assert.doesNotMatch(portal,/\$\('myGateTimeIn'\)/);
+ assert.doesNotMatch(portal,/\$\('myGateTimeOut'\)/);
+ assert.match(worker,/"\/portal\.js\?v=189"/);
+ assert.match(html,/src="\/portal\.js\?v=189"/);
 });
