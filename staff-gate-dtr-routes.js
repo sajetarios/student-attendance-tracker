@@ -64,6 +64,136 @@ function registerStaffGateDtrRoutes(app,pool,{authenticateSchoolClient,requireSc
    return res.status(503).json({error:'Unable to record the gatekeeper-verified DTR.'});
   }finally{client.release();}
  });
+ // Offline captures are evidence awaiting review, never verified attendance.
+ app.post('/api/staff-attendance/my/dtr/offline-sync',authenticateSchoolClient,
+  requireSchoolRoles('TEACHER','DEPARTMENT_HEAD','SCHOOL_ADMIN'),async(req,res)=>{
+   res.set('Cache-Control','no-store, private');
+   const key=String(req.body?.clientEventKey||'');
+   const slot=String(req.body?.slot||'');
+   const captured=String(req.body?.capturedAt||'');
+   const timestamp=new Date(captured);
+   const validDate=Number.isFinite(timestamp.getTime()) &&
+    /^\d{4}-\d{2}-\d{2}T/.test(captured) && /(?:Z|[+-]\d{2}:\d{2})$/.test(captured);
+   if(!UUID.test(key)||!DTR_SLOTS.includes(slot)||!validDate||
+      timestamp.getTime()>Date.now()+300000||
+      timestamp.getTime()<Date.now()-7*86400000)
+    return res.status(400).json({error:'Valid offline event key, DTR slot and capture time within the last seven days required.'});
+   const parts=new Intl.DateTimeFormat('en-US',{timeZone:'Asia/Manila',year:'numeric',month:'2-digit',day:'2-digit'}).formatToParts(timestamp);
+   const field=type=>parts.find(part=>part.type===type)?.value;
+   const schoolDate=`${field('year')}-${field('month')}-${field('day')}`;
+   const client=await pool.connect();
+   try{
+    await client.query('BEGIN');
+    const existing=await client.query(
+     `SELECT event_id,staff_user_id,dtr_slot,device_capture_at,verification_status
+      FROM staff_attendance_events WHERE school_id=$1 AND client_event_key=$2 FOR UPDATE`,
+     [req.auth.schoolId,key]);
+    if(existing.rowCount){
+     const row=existing.rows[0];
+     if(row.staff_user_id!==req.auth.userId||row.dtr_slot!==slot||
+       new Date(row.device_capture_at).getTime()!==timestamp.getTime()){
+      await client.query('ROLLBACK');
+      return res.status(409).json({error:'Offline event key already belongs to another capture.'});
+     }
+     await client.query('COMMIT');
+     return res.json({eventId:row.event_id,status:row.verification_status,duplicate:true});
+    }
+    const id=randomUUID();
+    await client.query(
+     `INSERT INTO staff_attendance_events
+      (event_id,school_id,staff_user_id,event_kind,dtr_slot,school_date,
+       occurred_at,source,verification_status,actor_user_id,client_event_key,device_capture_at)
+      VALUES($1,$2,$3,'DTR_SLOT',$4,$5,$6,'OFFLINE_SYNC','PENDING_VERIFICATION',$3,$7,$6)`,
+     [id,req.auth.schoolId,req.auth.userId,slot,schoolDate,timestamp,key]);
+    await client.query(
+     `INSERT INTO staff_attendance_audit
+       (school_id,actor_user_id,action,target_type,target_id,details)
+       VALUES($1,$2,'STAFF_OFFLINE_DTR_PENDING','STAFF_ATTENDANCE_EVENT',$3,$4::jsonb)`,
+     [req.auth.schoolId,req.auth.userId,id,JSON.stringify({slot,schoolDate,clientEventKey:key})]);
+    await client.query('COMMIT');
+    return res.status(202).json({eventId:id,schoolDate,slot,status:'PENDING_VERIFICATION'});
+   }catch(err){
+    await client.query('ROLLBACK').catch(()=>{});
+    if(err.code==='23505')return res.status(409).json({error:'Duplicate offline capture. Retry with the same event key.'});
+    console.error('Offline staff DTR sync:',err.message);
+    return res.status(503).json({error:'Offline staff capture could not be queued.'});
+   }finally{client.release();}
+  });
+ app.get('/api/staff-attendance/my/dtr/pending',authenticateSchoolClient,
+  requireSchoolRoles('TEACHER','DEPARTMENT_HEAD','SCHOOL_ADMIN'),async(req,res)=>{
+   res.set('Cache-Control','no-store, private');
+   try{
+    const result=await pool.query(
+     `SELECT event_id AS "eventId",dtr_slot AS "slot",school_date AS "schoolDate",
+       device_capture_at AS "capturedAt",verification_status AS "status"
+       FROM staff_attendance_events
+       WHERE school_id=$1 AND staff_user_id=$2 AND source='OFFLINE_SYNC'
+       AND verification_status='PENDING_VERIFICATION'
+       ORDER BY device_capture_at DESC LIMIT 100`,
+     [req.auth.schoolId,req.auth.userId]);
+    return res.json({pending:result.rows});
+   }catch(err){console.error('Offline staff pending read:',err.message);
+    return res.status(503).json({error:'Pending staff captures unavailable.'});}
+  });
+ // School Admin manually reviews unverified offline evidence; no automatic promotion.
+ app.get('/api/staff-attendance/offline-review',authenticateSchoolClient,
+  requireSchoolRoles('SCHOOL_ADMIN'),async(req,res)=>{
+   res.set('Cache-Control','no-store, private');
+   try{
+    const result=await pool.query(
+     `SELECT e.event_id AS "eventId",e.staff_user_id AS "staffUserId",
+       u.display_name AS "staffName",e.dtr_slot AS "slot",
+       e.school_date AS "schoolDate",e.device_capture_at AS "capturedAt"
+       FROM staff_attendance_events e
+       JOIN school_users u ON u.school_id=e.school_id AND u.user_id=e.staff_user_id
+       WHERE e.school_id=$1 AND e.event_kind='DTR_SLOT'
+       AND e.source='OFFLINE_SYNC' AND e.verification_status='PENDING_VERIFICATION'
+       ORDER BY e.received_at ASC LIMIT 100`,[req.auth.schoolId]);
+    return res.json({pending:result.rows});
+   }catch(err){console.error('Offline DTR review list:',err.message);
+    return res.status(503).json({error:'Offline review queue unavailable.'});}
+  });
+ app.post('/api/staff-attendance/offline-review/:eventId',authenticateSchoolClient,
+  requireSchoolRoles('SCHOOL_ADMIN'),async(req,res)=>{
+   res.set('Cache-Control','no-store, private');
+   const id=String(req.params.eventId||'');
+   const decision=String(req.body?.decision||'').toUpperCase();
+   const note=String(req.body?.note||'').trim();
+   if(!UUID.test(id)||!['VERIFY','REJECT'].includes(decision)||note.length<3||note.length>1000)
+    return res.status(400).json({error:'Valid event, decision and review note (3–1000 characters) required.'});
+   const client=await pool.connect();
+   try{
+    await client.query('BEGIN');
+    const row=await client.query(
+     `SELECT event_id,staff_user_id,dtr_slot,school_date FROM staff_attendance_events
+       WHERE school_id=$1 AND event_id=$2 AND event_kind='DTR_SLOT'
+       AND source='OFFLINE_SYNC' AND verification_status='PENDING_VERIFICATION'
+       FOR UPDATE`,[req.auth.schoolId,id]);
+    if(!row.rowCount){await client.query('ROLLBACK');
+     return res.status(409).json({error:'Capture not pending review in this school.'});}
+    if(row.rows[0].staff_user_id===req.auth.userId){await client.query('ROLLBACK');
+     return res.status(403).json({error:'You cannot review your own attendance.'});}
+    const status=decision==='VERIFY'?'VERIFIED':'REJECTED';
+    await client.query(
+     `UPDATE staff_attendance_events SET verification_status=$3,
+       verification_method=CASE WHEN $3='VERIFIED' THEN 'MANUAL_REVIEW' ELSE NULL END,
+       notes=$4 WHERE school_id=$1 AND event_id=$2`,
+     [req.auth.schoolId,id,status,note]);
+    await client.query(
+     `INSERT INTO staff_attendance_audit
+       (school_id,actor_user_id,action,target_type,target_id,details)
+       VALUES($1,$2,$3,'STAFF_ATTENDANCE_EVENT',$4,$5::jsonb)`,
+     [req.auth.schoolId,req.auth.userId,
+      status==='VERIFIED'?'STAFF_OFFLINE_DTR_VERIFIED':'STAFF_OFFLINE_DTR_REJECTED',
+      id,JSON.stringify({note,slot:row.rows[0].dtr_slot,schoolDate:row.rows[0].school_date})]);
+    await client.query('COMMIT');
+    return res.json({eventId:id,status});
+   }catch(err){await client.query('ROLLBACK').catch(()=>{});
+    if(err.code==='23505')return res.status(409).json({error:'A verified DTR already exists for this slot.'});
+    console.error('Offline staff DTR review:',err.message);
+    return res.status(503).json({error:'Unable to complete offline review.'});
+   }finally{client.release();}
+  });
  app.get('/api/staff-attendance/my/dtr',authenticateSchoolClient,
   requireSchoolRoles('SCHOOL_ADMIN','DEPARTMENT_HEAD','TEACHER'),async(req,res)=>{
   res.set('Cache-Control','no-store, private');
