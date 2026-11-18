@@ -25,7 +25,14 @@ function registerManualAttendanceRoutes(app,pool,{authenticateSchoolClient,requi
      const finalization=await pool.query(`SELECT finalized,roster_count AS "rosterCount",finalized_at AS "finalizedAt"
          FROM class_attendance_finalizations WHERE school_id=$1 AND period_id=$2 AND school_date=$3`,
          [req.auth.schoolId,periodId,date]);
-       return res.json({period,marks:rows.rows,finalization:finalization.rows[0]||{finalized:false}});
+       const qr=await pool.query(`SELECT DISTINCT ON (e.student_id)
+       e.student_id AS "studentId",CASE WHEN e.late THEN 'LATE' ELSE 'PRESENT' END AS status
+       FROM attendance_events e
+       WHERE e.school_id=$1 AND e.period_id=$2 AND e.school_date=$3
+         AND e.attendance_scope='CLASS' AND e.event_type='TIME_IN' AND e.sync_status='ACCEPTED'
+       ORDER BY e.student_id,e.occurred_at_device ASC,e.event_id ASC`,
+       [req.auth.schoolId,periodId,date]);
+       return res.json({period,marks:rows.rows,qrMarks:qr.rows,finalization:finalization.rows[0]||{finalized:false}});
    }catch(err){console.error('Manual attendance read:',err.message);return res.status(500).json({error:'Unable to load manual attendance.'});}
  });
  app.post('/api/manual-attendance/sync',...auth,async(req,res)=>{
