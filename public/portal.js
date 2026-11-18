@@ -1836,14 +1836,14 @@ function coverageStatusLabel(status) {
       : '';
     const initiallyDisabled = user.role === 'GATE_KEEPER' ? 'disabled' : '';
     const dtrMarkup = isTeacherPerson && user.role === 'GATE_KEEPER'
-      ? `<div class="student-scan-buttons" role="group" aria-label="Form 48 teacher DTR">
+      ? `<details class="gate-dtr-fallback"><summary>Manual DTR fallback (authorized use)</summary><div class="student-scan-buttons" role="group" aria-label="Form 48 teacher DTR">
           <label for="teacherDtrSlot">Daily time record</label>
           <select id="teacherDtrSlot" aria-label="Choose teacher DTR slot">
             <option value="AM_IN">AM In</option><option value="AM_OUT">AM Out</option>
             <option value="PM_IN">PM In</option><option value="PM_OUT">PM Out</option>
           </select>
           <button type="button" class="primary-button" id="teacherDtrRecord" disabled>Record verified DTR</button>
-        </div><p class="attendance-summary-note">Form 48 DTR is separate from physical gate time-in/time-out.</p>`
+        </div><p class="attendance-summary-note">Form 48 DTR is separate from physical gate movements. Use this fallback only for an authorized DTR entry.</p></details>`
       : '';
     $('studentScanResult').hidden = false;
     const subjectLabel = isTeacherPerson ? 'teacher' : 'learner';
@@ -1866,8 +1866,15 @@ function coverageStatusLabel(status) {
     }
     $('studentScanNotice').hidden = false;
     showToast(user.role === 'GATE_KEEPER' ? `Verify photo: ${fullName}` : `QR scanned: ${fullName}`);
-    $('studentTimeIn').addEventListener('click', () => isTeacherPerson ? recordTeacherGatePunch('TIME_IN') : recordStudentPunch('TIME_IN'));
-    $('studentTimeOut').addEventListener('click', () => isTeacherPerson ? recordTeacherGatePunch('TIME_OUT') : recordStudentPunch('TIME_OUT'));
+    if (user.role === 'GATE_KEEPER') {
+      $('studentTimeIn').textContent = 'Verify & Record';
+      $('studentTimeOut').hidden = true;
+      $('studentTimeIn').addEventListener('click',
+        isTeacherPerson ? recordTeacherAutomaticGatePunch : recordStudentAutomaticGatePunch);
+    } else {
+      $('studentTimeIn').addEventListener('click', () => isTeacherPerson ? recordTeacherGatePunch('TIME_IN') : recordStudentPunch('TIME_IN'));
+      $('studentTimeOut').addEventListener('click', () => isTeacherPerson ? recordTeacherGatePunch('TIME_OUT') : recordStudentPunch('TIME_OUT'));
+    }
     $('teacherDtrRecord')?.addEventListener('click', recordTeacherDtrSlot);
     $('studentPhotoVerified')?.addEventListener('change', event => {
       const verified = Boolean(event.target.checked);
@@ -1881,6 +1888,38 @@ function coverageStatusLabel(status) {
       $('studentScanFeedback').className = 'scanner-feedback'; $('studentScanFeedback').textContent = 'Ready for the next QR code.';
     });
     if (isTeacherPerson) scannedTeacher = person;
+  }
+
+  async function recordTeacherAutomaticGatePunch() {
+    if (user.role !== 'GATE_KEEPER' || !scannedTeacher?.qrToken) return;
+    if (!$('studentPhotoVerified')?.checked) {
+      showToast('Confirm that the displayed registered photo matches the staff member.', true);
+      return;
+    }
+    const button = $('studentTimeIn');
+    if (button) button.disabled = true;
+    const scan=scannedTeacher;
+    scan.autoEventId=scan.autoEventId||crypto.randomUUID();
+    try {
+      const result = await api('/api/gate/teacher-auto-event', {
+        method: 'POST',
+        body: JSON.stringify({ teacherQrToken: scan.qrToken, photoVerified: true,
+          clientEventKey:scan.autoEventId })
+      });
+      const name = scannedTeacher.fullName;
+      const label = result.event?.eventType === 'TIME_IN' ? 'time-in' : 'time-out';
+      $('studentScanFeedback').textContent = name + ': physical gate ' + label + ' recorded. Official DTR and OB remain separate.';
+      $('studentScanFeedback').className = 'scanner-feedback is-success';
+      showToast('GATE ATTENDANCE SAVED — ' + name + ' ' + label);
+      scannedTeacher = null;
+      $('studentScanNotice').hidden = true;
+      $('studentScanResult').hidden = true;
+    } catch (error) {
+      $('studentScanFeedback').textContent = error.message;
+      $('studentScanFeedback').className = 'scanner-feedback is-error';
+      showScanErrorModal(error.message, 'Gate attendance not recorded');
+      if (button) button.disabled = false;
+    }
   }
 
   async function recordTeacherGatePunch(eventType) {
@@ -1943,6 +1982,46 @@ function coverageStatusLabel(status) {
 
   function schoolDateManila(date = new Date()) {
     return new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Manila', year: 'numeric', month: '2-digit', day: '2-digit' }).format(date);
+  }
+
+  async function recordStudentAutomaticGatePunch() {
+    if(user?.role!=='GATE_KEEPER'||!scannedStudent)return;
+    if(!$('studentPhotoVerified')?.checked){
+      showToast('Confirm the displayed student photo before recording.',true);
+      return;
+    }
+    // Automatic verification cannot be safely finalized offline because
+    // another Gatekeeper may already have recorded a gate event.
+    if(typeof navigator!=='undefined'&&navigator.onLine===false){
+      showToast('Offline: automatic gate direction cannot be verified. Do not mark attendance as recorded.',true);
+      return;
+    }
+    const student=scannedStudent;
+    const button=$('studentTimeIn');
+    if(button)button.disabled=true;
+    try{
+      student.autoEventId=student.autoEventId||crypto.randomUUID();
+      const event={eventId:student.autoEventId,studentId:student.studentId,eventType:'AUTO',
+        occurredAt:new Date().toISOString(),schoolDate:schoolDateManila(),
+        attendanceScope:'SCHOOL',periodId:null,
+        deviceId:`PORTAL-${user.userId||user.username||'GATE_KEEPER'}`,
+        metadata:{source:'gatekeeper-auto-verified',photoVerified:true}};
+      const result=await api('/api/sync/events',{method:'POST',body:JSON.stringify({events:[event]})});
+      const status=result.results?.[0];
+      if(!['ACCEPTED','ALREADY_SYNCED'].includes(status?.status))throw new Error(status?.reason||'Gate event was not recorded.');
+      const direction=status.eventType==='TIME_IN'?'arrival':'departure';
+      const message=student.fullName+': verified gate '+direction+' recorded.';
+      $('studentScanFeedback').textContent=message;
+      $('studentScanFeedback').className='scanner-feedback is-success';
+      showToast('ATTENDANCE SAVED — '+message);
+      scannedStudent=null;scannedTeacher=null;
+      $('studentScanNotice').hidden=true;$('studentScanResult').hidden=true;
+    }catch(error){
+      $('studentScanFeedback').textContent=error.message;
+      $('studentScanFeedback').className='scanner-feedback is-error';
+      showToast(error.message,true);
+      if(button)button.disabled=false;
+    }
   }
 
   async function recordStudentPunch(eventType) {
@@ -4009,21 +4088,25 @@ let teacherActionMenuListenersInstalled = false;
       const gateAvailable=gateResult.status==='fulfilled',dtrAvailable=dtrResult.status==='fulfilled';
       const daily=new Map(),dayFor=date=>{
         if(!daily.has(date))daily.set(date,{
-          date,gateIn:null,gateOut:null,gateCount:0,gateVerified:true,dtr:new Map()
+          date,gateIn:null,gateOut:null,gateCount:0,gateVerified:true,gateEvents:[],obRemarks:[],dtr:new Map()
         });
         return daily.get(date);
       };
       if(gateAvailable)(gateResult.value.events||[]).forEach(item=>{
         const day=dayFor(item.schoolDate);
-        if(item.eventType==='TIME_IN')day.gateIn=item.occurredAt;
+        if(item.eventType==='TIME_IN'&&!day.gateIn)day.gateIn=item.occurredAt;
         if(item.eventType==='TIME_OUT')day.gateOut=item.occurredAt;
         day.gateCount++;
+        day.gateEvents.push(item);
         day.gateVerified=day.gateVerified&&item.photoVerified===true;
       });
       if(dtrAvailable)(dtrResult.value.events||[]).forEach(item=>{
         if(!myStaffDtrSlots.some(([slot])=>slot===item.slot))return;
         const day=dayFor(item.schoolDate);
         if(!day.dtr.has(item.slot))day.dtr.set(item.slot,item.occurredAt);
+      });
+      if(dtrAvailable)(dtrResult.value.obRemarks||[]).forEach(item=>{
+        dayFor(item.date).obRemarks.push(...(item.remarks||[]));
       });
       if(from<=today&&to>=today)dayFor(today);
       const rows=[...daily.values()].sort((a,b)=>b.date.localeCompare(a.date));
@@ -4035,16 +4118,26 @@ let teacherActionMenuListenersInstalled = false;
         const dtrGrid=dtrAvailable?`<div class="my-gate-dtr-grid">${myStaffDtrSlots.map(([slot,label])=>
           `<div class="my-gate-dtr-slot"><span>${label}</span><strong>${esc(day.dtr.has(slot)?myGateTime(day.dtr.get(slot)):'Not recorded')}</strong></div>`
         ).join('')}</div>`:'<p class="my-gate-empty">Verified DTR entries could not be loaded.</p>';
+        const gateTimeline=day.gateEvents.length
+          ?'<div class="my-gate-timeline" aria-label="All verified gate movements">'+
+            [...day.gateEvents].sort((a,b)=>new Date(a.occurredAt)-new Date(b.occurredAt)).map(item=>
+             '<span class="my-gate-movement">'+esc(item.eventType==='TIME_IN'?'Entry':'Exit')+
+             ' '+esc(myGateTime(item.occurredAt))+'</span>').join(' · ')+'</div>'
+          :'';
         const gateGrid=gateAvailable?`<div class="my-gate-gate-grid">
-          <div><span>In</span><strong>${esc(myGateTime(day.gateIn))}</strong></div>
-          <div><span>Out</span><strong>${esc(myGateTime(day.gateOut))}</strong></div>
-        </div>`:'<p class="my-gate-empty">Gate records unavailable.</p>';
+          <div><span>First entry</span><strong>${esc(myGateTime(day.gateIn))}</strong></div>
+          <div><span>Latest exit</span><strong>${esc(myGateTime(day.gateOut))}</strong></div>
+        </div>`+gateTimeline:'<p class="my-gate-empty">Gate records unavailable.</p>';
+        const obSummary=day.obRemarks.length?'<div class="my-gate-ob-remarks">'+day.obRemarks.map(ob=>
+          '<p><strong>OB:</strong> '+esc(ob.remark)+
+          (ob.exception?'<span class="status-tag neutral">Review needed</span> '+esc(ob.exceptionRemark||''):'')+
+          '</p>').join('')+'</div>':'';
         const gateStatus=gateAvailable?(day.gateCount
           ?`<span class="status-tag ${day.gateVerified?'':'neutral'}">${day.gateVerified?'Photo verified':'Check record'}</span>`
           :'<span class="my-gate-empty">No gate scan</span>'):'';
         return `<tr class="my-gate-day-row">
           <td data-label="Date"><strong class="my-gate-day">${esc(formatSchoolDate(day.date))}</strong></td>
-          <td data-label="Official Form 48 DTR"><div class="my-gate-dtr-summary">${dtrSummary}</div>${dtrGrid}</td>
+          <td data-label="Official Form 48 DTR"><div class="my-gate-dtr-summary">${dtrSummary}</div>${dtrGrid}${obSummary}</td>
           <td data-label="Physical gate scans">${gateGrid}<div class="my-gate-gate-status">${gateStatus}</div></td>
         </tr>`;
       }).join(''):'<tr><td colspan="3" class="empty-cell">No attendance entries for the selected dates.</td></tr>';
