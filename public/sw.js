@@ -1,4 +1,4 @@
-const CACHE = "attendigo-v192-staff-form48-and-student-pin";
+const CACHE = "attendigo-v193-collapsed-sidebar-nav";
 
 const SHELL = [
   "/typography.css?v=1",
@@ -13,9 +13,9 @@ const SHELL = [
   "/assets/attendigo-wordmark-on-dark.svg?v=2",
   "/assets/attendigo-wordmark-on-light.svg?v=2",
   "/assets/attendigo-symbol-transparent.svg?v=2",
-  "/attendigo-sidebar-adaptive.css?v=14",
+  "/attendigo-sidebar-adaptive.css?v=15",
   "/user-nav-reorg.css?v=1",
-  "/attendigo-sidebar-adaptive.js?v=8",
+  "/attendigo-sidebar-adaptive.js?v=9",
   "/assets/attendigo-logo.png?v=2",
   "/assets/attendigo-icon.png?v=2",
   "/attendigo-brand.css?v=2",
