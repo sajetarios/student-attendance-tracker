@@ -3932,6 +3932,23 @@ let teacherActionMenuListenersInstalled = false;
     feedback.className = 'inline-feedback';
     for (const id of ['myGateApply', 'myGateRefresh']) $(id).disabled = true;
     try {
+      if ($('myGateDtrSlots')) {
+        try {
+          const dtr = await api('/api/staff-attendance/my/dtr?' + new URLSearchParams({date: today}));
+          const targetIds = {
+            AM_IN: 'myGateDtrAmIn', AM_OUT: 'myGateDtrAmOut',
+            PM_IN: 'myGateDtrPmIn', PM_OUT: 'myGateDtrPmOut'
+          };
+          for (const [slot, id] of Object.entries(targetIds)) {
+            const entry = dtr.slots?.find(item => item.slot === slot && item.status === 'VERIFIED');
+            $(id).textContent = myGateTime(entry?.occurredAt);
+          }
+        } catch (dtrError) {
+          for (const id of ['myGateDtrAmIn', 'myGateDtrAmOut', 'myGateDtrPmIn', 'myGateDtrPmOut']) {
+            $(id).textContent = 'Unavailable';
+          }
+        }
+      }
       const records = (await api('/api/teacher/my-gate-attendance?' + new URLSearchParams({from,to}))).events || [];
       const daily = new Map();
       records.forEach(item => {
