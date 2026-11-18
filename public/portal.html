@@ -398,6 +398,119 @@ body.dark-mode .content-wrap > .school-heading.is-compact,body[data-theme="dark"
 <link rel="stylesheet" href="/attendigo-sidebar-adaptive.css?v=15">
   <link rel="preload" href="/fonts/InterVariable.woff2" as="font" type="font/woff2" crossorigin>
   <link rel="stylesheet" href="/typography.css?v=1">
+<style id="attendigo-compact-school-identity-v3">
+/* Shared, accessible school identity header across all staff roles.
+   Preserve official seal colors and aspect ratio; do not modify the uploaded asset. */
+.portal-page .content-wrap > .school-heading:not(.is-compact) {
+  grid-template-columns: 62px minmax(0,1fr) auto !important;
+  grid-template-areas: "emblem identity actions" !important;
+  gap: 12px 18px !important;
+  padding: 14px 20px !important;
+  min-height: 0 !important;
+}
+.portal-page .content-wrap > .school-heading:not(.is-compact) #schoolEmblem.school-emblem {
+  grid-area: emblem;
+  width: 62px !important;
+  height: 62px !important;
+  min-width: 62px !important;
+  min-height: 62px !important;
+  max-width: 62px !important;
+  max-height: 62px !important;
+  flex: 0 0 62px !important;
+  padding: 2px !important;
+  aspect-ratio: 1 / 1;
+  background: transparent !important;
+  border: 0 !important;
+  box-shadow: none !important;
+}
+.portal-page .content-wrap > .school-heading #schoolEmblem img {
+  width: 100% !important;
+  height: 100% !important;
+  object-fit: contain !important;
+  object-position: center !important;
+}
+.portal-page .content-wrap > .school-heading .school-title-block {
+  grid-area: identity;
+  min-width: 0 !important;
+}
+.portal-page .content-wrap > .school-heading #schoolTitle {
+  font-size: clamp(18px, 1.55vw, 24px) !important;
+  font-weight: 650 !important;
+  line-height: 1.2 !important;
+  letter-spacing: -.02em;
+  margin: 2px 0 4px !important;
+  white-space: normal !important;
+  overflow-wrap: break-word;
+}
+.portal-page .content-wrap > .school-heading #schoolCodeLabel {
+  font-size: 11px !important;
+  letter-spacing: .09em !important;
+}
+.portal-page .content-wrap > .school-heading #dateLabel {
+  font-size: 13px !important;
+  margin: 0 !important;
+  line-height: 1.35 !important;
+}
+.portal-page .content-wrap > .school-heading .heading-actions {
+  grid-area: actions;
+  gap: 8px !important;
+}
+.portal-page .content-wrap > .school-heading .heading-actions .role-pill {
+  font-size: 12px !important;
+  white-space: nowrap;
+}
+.portal-page .content-wrap > .school-heading #refreshButton {
+  min-height: 38px !important;
+  padding: 7px 12px !important;
+  font-size: 13px !important;
+}
+@media (max-width: 1100px) {
+  .portal-page .content-wrap > .school-heading:not(.is-compact) {
+    grid-template-columns: 54px minmax(0,1fr) !important;
+    grid-template-areas: "emblem identity" "actions actions" !important;
+    gap: 8px 12px !important;
+    padding: 12px 16px !important;
+  }
+  .portal-page .content-wrap > .school-heading:not(.is-compact) #schoolEmblem.school-emblem {
+    width: 54px !important; height: 54px !important;
+    min-width: 54px !important; min-height: 54px !important;
+    max-width: 54px !important; max-height: 54px !important;
+    flex-basis: 54px !important;
+  }
+  .portal-page .content-wrap > .school-heading:not(.is-compact) .heading-actions {
+    grid-column: 1 / -1 !important;
+    justify-self: start !important;
+    width: auto !important;
+  }
+}
+@media (max-width: 600px) {
+  .portal-page .content-wrap > .school-heading:not(.is-compact) {
+    grid-template-columns: 46px minmax(0,1fr) !important;
+    padding: 10px 12px !important;
+    gap: 7px 10px !important;
+  }
+  .portal-page .content-wrap > .school-heading:not(.is-compact) #schoolEmblem.school-emblem {
+    width: 46px !important; height: 46px !important;
+    min-width: 46px !important; min-height: 46px !important;
+    max-width: 46px !important; max-height: 46px !important;
+    flex-basis: 46px !important;
+  }
+  .portal-page .content-wrap > .school-heading:not(.is-compact) #schoolTitle {
+    font-size: clamp(15px, 4vw, 18px) !important;
+    line-height: 1.2 !important;
+  }
+  .portal-page .content-wrap > .school-heading #schoolCodeLabel {
+    font-size: 10px !important;
+  }
+  .portal-page .content-wrap > .school-heading #dateLabel {
+    font-size: 12px !important;
+  }
+  .portal-page .content-wrap > .school-heading:not(.is-compact) .heading-actions {
+    width: 100% !important;
+    justify-content: space-between !important;
+  }
+}
+</style>
 </head>
 <body class="portal-page">
   <div class="portal-layout">
