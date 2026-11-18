@@ -29,7 +29,7 @@ test('Students and Portal Accounts are a single reachable workspace with preserv
   assert.match(ui, /if \(tab && allowedViewsForUser\(\).includes\(tab.dataset.studentTab\)\)/);
   assert.match(ui, /SCHOOL_ADMIN'\) return \['dashboard', 'students', 'studentAccounts'/);
   assert.match(ui, /views.push\('students', 'studentAccounts', 'classAttendance'\)/);
-  assert.match(ui, /DEPARTMENT_HEAD'\) return \['dashboard', 'planner', 'students', 'teachers', 'schedules', 'sf2'\]/);
+  assert.match(ui, /DEPARTMENT_HEAD'\) return \['dashboard', 'planner', 'students', 'teachers', 'schedules', 'sf2', 'officialBusiness'\]/);
 });
 
 test('One Students sidebar destination, with role-specific labels and no admin account shortcut', () => {
@@ -61,7 +61,7 @@ test('School Admin keeps server-only credential provisioning and approval', () =
   assert.match(routes, /const permitted = \[authenticateSchoolClient,requireSchoolRoles\('SCHOOL_ADMIN','TEACHER'\)\]/);
   for (const endpoint of ['accounts/:studentId/provision', 'accounts/bulk-provision',
     'requests/:requestId/review', 'accounts/:studentId/status']) assert.ok(routes.includes(endpoint), endpoint);
-  assert.match(routes, /await logAudit\(db,auth,'SCHOOL_ADMIN_SUSPEND_STUDENT_PORTAL_LOGIN'/);
+  assert.match(routes, /await logAudit\(db,req\.auth,'SCHOOL_ADMIN_SUSPEND_STUDENT_PORTAL_LOGIN'/);
   assert.match(routes, /UPDATE student_sessions SET revoked_at=NOW/);
   assert.match(accounts, /if \(!isAdmin\(\) \|\| busy\) return/);
 });
@@ -72,7 +72,7 @@ test('Teacher requests, Department Head batch changes and school scoping are not
   assert.match(routes, /teacher_period_assignments/);
   assert.match(routes, /class_adviser_assignments/);
   assert.match(routes, /teacher_period_substitutions/);
-  assert.match(routes, /if \(!students.length\) throw problem\(403/);
+  assert.match(routes, /if\s*\(!students.length\) throw problem\(403/);
   assert.match(routes, /r.requested_by_user_id=\$2/);
   assert.match(management, /isDepartmentHead&&\(!req.auth.departmentId/);
   assert.match(management, /p.department_id=\$3 AND p.active=TRUE/);
