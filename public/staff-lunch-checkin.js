@@ -9,12 +9,20 @@
   const valid=/^[0-9a-f]{8}(-[0-9a-f]{4}){3}-[0-9a-f]{12}$/i.test(challengeId) &&
               /^[a-zA-Z0-9_-]{43}$/.test(token);
   const status=$('lunchStatus'),confirm=$('lunchConfirm');
+  // iOS Code Scanner and other in-app browsers may restore this document from
+  // back-forward cache after staff login. Recheck the server session using the
+  // original in-memory challenge; never persist the QR bearer token.
+  let completed=false;
+  window.addEventListener('pageshow',event=>{
+    if(!event.persisted || !valid || completed)return;
+    location.replace('/staff-lunch-checkin.html#'+new URLSearchParams({id:challengeId,token}).toString());
+  });
   function message(text,kind){
     status.textContent=text;
     status.dataset.kind=kind||'info';
   }
   if(!valid) {
-    message('No valid lunch QR found. Scan the current QR from the authorized presenter.','error');
+    message('This lunch QR link no longer contains an active scan. Open a fresh QR from the authorized presenter. Your staff login may still be active.','error');
     return;
   }
   // Transfer the short-lived challenge only through a URL fragment on the
@@ -64,6 +72,7 @@
       if(!response.ok)throw Error(body.error||('Verification failed ('+response.status+').'));
       message((body.slot==='AM_OUT'?'AM Out':'PM In')+
         ' successfully verified. Your official DTR was recorded.','success');
+      completed=true;
       confirm.hidden=true;
     }catch(error){
       message(error.message+' Request a fresh QR from the presenter or use the Gatekeeper fallback.','error');
