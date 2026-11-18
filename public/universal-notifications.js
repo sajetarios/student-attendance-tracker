@@ -81,8 +81,10 @@
   const fmtShort = iso => {
     if (!iso) return '';
     const date = new Date(iso);
-    return Number.isFinite(date.getTime())
-      ? date.toLocaleString(undefined, {month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit'}) : '';
+    if (!Number.isFinite(date.getTime())) return '';
+    const day = date.toLocaleDateString(undefined, {month: 'short', day: 'numeric'});
+    const time = date.toLocaleTimeString(undefined, {hour: 'numeric', minute: '2-digit'});
+    return day + ' · ' + time;
   };
   function navigate(item) {
     const link = String(item.actionUrl || '');
@@ -112,9 +114,12 @@
     const card = text('section', 'universal-detail-card', '');
     const heading = text('h2', null, item.title);
     const message = text('p', null, item.body);
-    const when = text('small', null, fmt(item.updatedAt || item.createdAt));
+    const when = text('small', 'universal-detail-when', fmt(item.updatedAt || item.createdAt));
     card.append(heading, message);
-    if (item.status) card.append(text('p', 'universal-detail-status', 'Status: ' + item.status.replace(/_/g, ' ')));
+    if (item.status) {
+      const status = String(item.status).replace(/_/g, ' ').toLowerCase();
+      card.append(text('p', 'universal-detail-status', 'Status: ' + status.charAt(0).toUpperCase() + status.slice(1)));
+    }
     if (item.requestId) card.append(text('p', 'universal-detail-ref', 'Request reference: ' + item.requestId));
     card.append(when);
     const actions = text('div', 'universal-detail-actions', '');
@@ -199,7 +204,7 @@
     );
     const meta = text('span', 'universal-notice-meta', '');
     // System events already state their action in the title; avoid repeating CREATED, etc.
-    if (item.status && item.category !== 'SYSTEM')
+    if (item.status && String(item.category || '').toUpperCase() !== 'SYSTEM')
       meta.append(text('span', 'universal-notice-tag', item.status.replace(/_/g, ' ')));
     const stamp = text('time', 'universal-notice-time', fmtShort(item.updatedAt || item.createdAt));
     stamp.dateTime = item.updatedAt || item.createdAt || '';
