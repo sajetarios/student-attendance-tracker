@@ -1,4 +1,4 @@
-const CACHE = "attendigo-v233-provider-aware-storage";
+const CACHE = "attendigo-v234-notification-compact-text-refresh";
 
 const SHELL = [
   "/typography.css?v=1",
@@ -80,8 +80,8 @@ const SHELL = [
   "/account-directory.js?v=2",
   "/admin-request-notifications.js?v=5",
   "/admin-request-notifications.css?v=2",
-  "/universal-notifications.js?v=4",
-  "/universal-notifications.css?v=3",
+  "/universal-notifications.js?v=5",
+  "/universal-notifications.css?v=4",
   "/guardian-ui.js?v=6",
   "/guardian-ui.css?v=4",
   "/academic-admin.css?v=1",
@@ -175,9 +175,10 @@ self.addEventListener("fetch", event => {
     return;
   }
 
-  // Keep scheduling UI fresh without breaking offline school operation.
+  // Keep scheduling and shared notification UI fresh without breaking offline operation.
+  // Notifications change often; always prefer online JS/CSS to avoid old large-text layouts.
   // Unlike cache-first general assets, these role-critical resources prefer the deployed version.
-  if (['/portal.js','/learner-roster-view.js','/learner-roster-view.css','/manual-folio.js','/manual-folio.css','/schedule-form-layout.css','/schedule-workspace-ui.js','/teacher-assignment-modal.css'].includes(url.pathname)) {
+  if (['/universal-notifications.js','/universal-notifications.css','/portal.js','/learner-roster-view.js','/learner-roster-view.css','/manual-folio.js','/manual-folio.css','/schedule-form-layout.css','/schedule-workspace-ui.js','/teacher-assignment-modal.css'].includes(url.pathname)) {
     event.respondWith((async () => {
       try {
         const fresh = await fetch(request, { cache: 'no-store' });

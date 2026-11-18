@@ -9,8 +9,8 @@ test('All dashboard roles use the new notification bell without replacing the ap
   const portals = ['public/portal.html', 'public/parent-portal.html', 'public/student-portal.html'];
   for (const file of portals) {
     const html = load(file);
-    assert.match(html, /universal-notifications\.js\?v=4/);
-    assert.match(html, /universal-notifications\.css\?v=3/);
+    assert.match(html, /universal-notifications\.js\?v=5/);
+    assert.match(html, /universal-notifications\.css\?v=4/);
   }
   assert.match(load('public/portal.html'), /id="adminNotificationBell"/);
   assert.match(load('public/universal-notifications.js'), /SUPER_ADMIN/);

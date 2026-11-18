@@ -10,11 +10,11 @@ test('All roles use the compact shared notification layout with versioned PWA as
  const css = read('public/universal-notifications.css');
  const sw = read('public/sw.js');
  for (const html of ['public/portal.html', 'public/student-portal.html', 'public/parent-portal.html']) {
-   assert.ok(read(html).includes('/universal-notifications.js?v=4'), html + ': compact JS');
-   assert.ok(read(html).includes('/universal-notifications.css?v=3'), html + ': compact CSS');
+   assert.ok(read(html).includes('/universal-notifications.js?v=5'), html + ': compact JS');
+   assert.ok(read(html).includes('/universal-notifications.css?v=4'), html + ': compact CSS');
  }
- assert.ok(sw.includes('"/universal-notifications.js?v=4"'));
- assert.ok(sw.includes('"/universal-notifications.css?v=3"'));
+ assert.ok(sw.includes('"/universal-notifications.js?v=5"'));
+ assert.ok(sw.includes('"/universal-notifications.css?v=4"'));
  assert.match(script, /role === 'SUPER_ADMIN' \? '\/api\/platform\/notifications' : '\/api\/notifications'/);
  assert.match(css, /\.universal-panel\{display:flex;flex-direction:column;overflow:hidden/);
  assert.match(css, /\.universal-preview\{[^}]*overflow-y:auto/);
@@ -30,7 +30,7 @@ test('List shows concise two-line previews with full message retained in detail 
  assert.match(script, /text\('strong', 'universal-notice-title', item\.title\)/);
  assert.match(script, /const fmtShort = iso =>/);
  assert.match(script, /meta\.append\(stamp\)/);
- assert.match(script, /item\.category !== 'SYSTEM'/);
+ assert.match(script, /String\(item\.category \|\| ''\)\.toUpperCase\(\) !== 'SYSTEM'/);
  assert.match(script, /button\.setAttribute\('aria-label', 'View notification: ' \+ item\.title\)/);
  assert.match(script, /const message = text\('p', null, item\.body\)/);
  assert.match(script, /'Request reference: ' \+ item\.requestId/);
@@ -51,6 +51,6 @@ test('Read, delete, and full-detail navigation remain available, accessible and 
  assert.match(script, /closeButton\.focus\(\)/);
  assert.match(script, /document\.addEventListener\('keydown'/);
  assert.match(css, /\.universal-notice-row \.universal-delete\{[^}]*min-height:40px/);
- assert.match(css, /\.universal-panel-actions button\{[^}]*min-height:36px/);
+ assert.match(css, /\.universal-panel-actions button\{min-height:34px/);
  assert.ok(!script.includes('localStorage.setItem('), 'No notification content written to persistent browser storage');
 });
