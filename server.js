@@ -39,6 +39,7 @@ const { registerStaffObRoutes } = require('./staff-ob-routes');
 const { registerDepartmentWorkspaceRoutes } = require('./department-workspace-routes');
 const { registerStaffGateDtrRoutes } = require('./staff-gate-dtr-routes');
 const { registerForm48ReviewRoutes } = require('./form48-review-routes');
+const { registerEmployeeSecurityDirectoryRoutes } = require('./employee-security-directory-routes');
 const { registerManualAttendanceRoutes } = require('./manual-attendance-routes');
 const { registerClassFinalizationRoutes } = require('./class-finalization-routes');
 const { registerSardoRoutes } = require('./sardo-routes');
@@ -404,6 +405,8 @@ app.patch('/api/school-users/:userId/profile', authenticateSchoolClient, require
 });
 
 
+
+registerEmployeeSecurityDirectoryRoutes(app, pool, { authenticateSchoolClient, requireSchoolAdmin });
 
 app.get('/api/admin/security/accounts', authenticateSchoolClient, requireSchoolAdmin, async (req, res) => {
   try {

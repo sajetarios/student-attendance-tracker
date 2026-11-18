@@ -33,6 +33,6 @@ test('audit record IDs stay complete in expandable details; existing audit and r
 test('updated styles are versioned and cached for offline navigation', () => {
   const html = read('public/portal.html');
   const sw = read('public/sw.js');
-  assert.match(html, /user-management-readability\.css\?v=5/);
-  assert.match(sw, /"\/user-management-readability\.css\?v=5"/);
+  assert.match(html, /user-management-readability\.css\?v=6/);
+  assert.match(sw, /"\/user-management-readability\.css\?v=6"/);
 });
