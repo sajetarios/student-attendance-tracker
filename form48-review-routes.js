@@ -80,9 +80,9 @@ function registerForm48ReviewRoutes(app,pool,{authenticateSchoolClient,requireSc
     pool.query('SELECT weekday FROM school_operating_days WHERE school_id=$1 AND is_operating_day=TRUE ORDER BY weekday',[req.auth.schoolId]),
     getSchoolForm48Defaults(pool,req.auth.schoolId)
    ]);
-   const defaults=days.rows.map(x=>Number(x.weekday));
+   const defaultWorkdays=days.rows.map(x=>Number(x.weekday));
    return res.json({staffUserId:params.staffUserId,month:params.month,
-    review:mergeSchoolForm48Defaults(saved||{configured:false,workdays:defaults,regularHours:{},saturdayHours:{},
+    review:mergeSchoolForm48Defaults(saved||{configured:false,workdays:defaultWorkdays,regularHours:{},saturdayHours:{},
      dayReviews:{},verifiedBy:'',approvedBy:'',verifiedPosition:'',approvedPosition:'',revision:0},defaults)});
   }catch(err){console.error('Form48 review read:',err.message);return res.status(503).json({error:'Report settings unavailable.'});}
  });
