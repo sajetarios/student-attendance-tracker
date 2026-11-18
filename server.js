@@ -2180,6 +2180,77 @@ app.post('/api/gate/teacher-events', authenticateSchoolClient, requireSchoolRole
   }
 });
 
+// Automatic staff gate punch: strictly physical gate history, never OB or Form 48 DTR.
+app.post('/api/gate/teacher-auto-event', authenticateSchoolClient, requireSchoolRoles('GATE_KEEPER'), async (req,res) => {
+  res.set('Cache-Control','no-store, private');
+  const { validateAutomaticGateRecording, PHYSICAL_GATE } = require('./gate-attendance-boundary');
+  const { decideNextGateEvent } = require('./gate-event-decision');
+  const allowed=validateAutomaticGateRecording({
+    actorRole:req.auth.role,photoVerified:req.body?.photoVerified,
+    recordingTarget:PHYSICAL_GATE,clientEventType:req.body?.eventType
+  });
+  if(!allowed.allowed)return res.status(400).json({error:'Gate photo verification or recording request invalid.',reason:allowed.reason});
+  const qrToken=String(req.body?.teacherQrToken||'').trim();
+  if(!isUuid(qrToken))return res.status(400).json({error:'A valid staff QR badge is required.'});
+  const client=await pool.connect();
+  try {
+    await client.query('BEGIN');
+    const teacher=await client.query(`SELECT user_id,display_name FROM school_users
+      WHERE school_id=$1 AND teacher_qr_token=$2 AND role IN ('TEACHER','SCHOOL_ADMIN')
+      AND active=TRUE AND (teacher_photo_path IS NOT NULL OR EXISTS (
+       SELECT 1 FROM official_profile_photos p WHERE p.school_id=school_users.school_id
+       AND p.subject_kind='STAFF' AND p.subject_id=school_users.user_id::text))
+      FOR SHARE`,[req.auth.schoolId,qrToken]);
+    if(!teacher.rowCount){await client.query('ROLLBACK');return res.status(404).json({error:'Active staff badge and registered photo required.'});}
+    const teacherId=teacher.rows[0].user_id;
+    // Serialize gate scans per person and school; never trust browser history.
+    await client.query('SELECT pg_advisory_xact_lock(hashtext($1),hashtext($2))',
+      [String(req.auth.schoolId),String(teacherId)]);
+    const clock=await client.query(`SELECT NOW() AS occurred_at,
+      to_char(NOW() AT TIME ZONE 'Asia/Manila','YYYY-MM-DD') AS school_date`);
+    const occurredAt=clock.rows[0].occurred_at,schoolDate=clock.rows[0].school_date;
+    const calendar=await client.query(`SELECT exception_type,dismissal_time FROM school_calendar_exceptions
+      WHERE school_id=$1 AND calendar_date=$2::date`,[req.auth.schoolId,schoolDate]);
+    if(calendar.rows.some(x=>x.exception_type==='CLOSED')){
+      await client.query('ROLLBACK');return res.status(409).json({error:'Gate attendance disabled for closed school date.'});
+    }
+    const history=await client.query(`SELECT event_type AS "eventType",occurred_at AS "occurredAt"
+      FROM teacher_gate_events WHERE school_id=$1 AND teacher_user_id=$2 AND school_date=$3::date
+      ORDER BY occurred_at ASC,event_id ASC`,[req.auth.schoolId,teacherId,schoolDate]);
+    const decision=decideNextGateEvent(history.rows);
+    if(decision.status!=='READY'){
+      await client.query('ROLLBACK');return res.status(409).json({error:decision.status==='COMPLETE'?'Gate attendance already complete for today.':'Gate history requires authorized review.',status:decision.status});
+    }
+    // Prevent accidental immediate second scan from being interpreted as a departure.
+    if(decision.eventType==='TIME_OUT' && Date.parse(occurredAt)-Date.parse(history.rows[0].occurredAt)<15*60*1000){
+      await client.query('ROLLBACK');return res.status(409).json({error:'Recent time-in detected. Automatic time-out requires a 15-minute interval; ask authorized staff to review if needed.',status:'RECENT_SCAN'});
+    }
+    const exception=calendar.rows.find(x=>x.exception_type==='SHORTENED_DAY');
+    if(decision.eventType==='TIME_IN' && exception?.dismissal_time){
+      const localTime=await client.query(`SELECT to_char($1::timestamptz AT TIME ZONE 'Asia/Manila','HH24:MI') AS time`,[occurredAt]);
+      if(localTime.rows[0].time>String(exception.dismissal_time).slice(0,5)){
+        await client.query('ROLLBACK');return res.status(409).json({error:'Time-in is after shortened-day dismissal.'});
+      }
+    }
+    const saved=await client.query(`INSERT INTO teacher_gate_events
+      (school_id,teacher_user_id,event_type,occurred_at,school_date,recorded_by_user_id,photo_verified)
+      VALUES($1,$2,$3,$4,$5::date,$6,TRUE)
+      ON CONFLICT (school_id,teacher_user_id,school_date,event_type) DO NOTHING
+      RETURNING event_id AS "eventId",event_type AS "eventType",occurred_at AS "occurredAt"`,
+      [req.auth.schoolId,teacherId,decision.eventType,occurredAt,schoolDate,req.auth.userId]);
+    if(!saved.rowCount){await client.query('ROLLBACK');return res.status(409).json({error:'Gate event already recorded.'});}
+    await client.query(`INSERT INTO audit_logs(school_id,actor_type,actor_user_id,action,entity_type,entity_id,details)
+      VALUES($1,'SCHOOL',$2,'GATE_KEEPER_RECORD_TEACHER_ATTENDANCE','teacher_gate_event',$3,$4::jsonb)`,
+      [req.auth.schoolId,req.auth.userId,saved.rows[0].eventId,JSON.stringify({teacherUserId:teacherId,eventType:decision.eventType,schoolDate,automatic:true,physicalGateOnly:true})]);
+    await client.query('COMMIT');
+    return res.status(201).json({event:saved.rows[0],teacherName:teacher.rows[0].display_name,schoolDate,recordingTarget:'PHYSICAL_GATE'});
+  }catch(err){
+    await client.query('ROLLBACK').catch(()=>{});
+    console.error('Automatic staff gate event:',err.message);
+    return res.status(503).json({error:'Unable to record verified gate attendance.'});
+  }finally{client.release();}
+});
+
 // Roster: school-scoped for all principals; teacher results are limited to their assigned grade/sections.
 // Device clients receive only the fields needed for offline QR matching (no parent contact data).
 app.get('/api/students', authenticateSchoolClient, requireSchoolClient, requireSchoolPermission('students.view.all'), async (req, res) => {
