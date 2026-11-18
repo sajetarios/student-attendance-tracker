@@ -2948,3 +2948,11 @@ body[data-theme=dark] #sf2TableWrap.sf2-matrix-wrap tbody tr:nth-child(even) > :
  #sf2TableWrap.sf2-matrix-wrap tbody td:nth-child(2){left:175px}
 }
 @media(prefers-reduced-motion:reduce){#sf2TableWrap.sf2-matrix-wrap{scroll-behavior:auto}}
+
+/* Fixed widths make the second frozen column align exactly with the first. */
+#sf2TableWrap.sf2-matrix-wrap thead th:first-child,
+#sf2TableWrap.sf2-matrix-wrap tbody th:first-child{width:240px;min-width:240px;max-width:240px;box-sizing:border-box}
+@media(max-width:700px){
+ #sf2TableWrap.sf2-matrix-wrap thead th:first-child,
+ #sf2TableWrap.sf2-matrix-wrap tbody th:first-child{width:175px;min-width:175px;max-width:175px}
+}
