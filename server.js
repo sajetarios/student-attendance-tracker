@@ -610,25 +610,26 @@ app.get('/api/teacher/my-gate-attendance', authenticateSchoolClient, requireScho
   }
 });
 
-// School Admin staff QR badge: self-only, no attendance is written by issuing it.
-app.post('/api/staff-attendance/my/badge', authenticateSchoolClient, requireSchoolAdmin, async (req, res) => {
+// Own staff QR badge: authenticated teacher or School Admin, never records attendance.
+app.post('/api/staff-attendance/my/badge', authenticateSchoolClient, requireSchoolRoles('TEACHER','SCHOOL_ADMIN'), async (req, res) => {
   res.set('Cache-Control', 'no-store, private');
   try {
     const result = await pool.query(
       `UPDATE school_users SET teacher_qr_token=COALESCE(teacher_qr_token,gen_random_uuid())
-       WHERE school_id=$1 AND user_id=$2 AND role='SCHOOL_ADMIN' AND active=TRUE
-         AND EXISTS (SELECT 1 FROM official_profile_photos p
+       WHERE school_id=$1 AND user_id=$2 AND role IN ('TEACHER','SCHOOL_ADMIN') AND active=TRUE
+         AND (EXISTS (SELECT 1 FROM official_profile_photos p
            WHERE p.school_id=school_users.school_id AND p.subject_kind='STAFF'
              AND p.subject_id=school_users.user_id::text)
+           OR (role='TEACHER' AND teacher_photo_path IS NOT NULL))
        RETURNING display_name AS "displayName", teacher_qr_token AS "qrToken"`,
       [req.auth.schoolId, req.auth.userId]);
-    if (!result.rowCount) return res.status(409).json({error:'Upload your official staff profile photo before showing your gate badge.'});
+    if (!result.rowCount) return res.status(409).json({error:'An approved or registered staff photo is required before showing your gate badge.'});
     const owner = result.rows[0];
     const qrCode = await QRCode.toDataURL('TCH:' + owner.qrToken,
       {width:360,margin:2,errorCorrectionLevel:'H'});
     return res.json({displayName:owner.displayName,qrCode});
   } catch (error) {
-    console.error('School Admin own gate badge:', error.message);
+    console.error('Staff own gate badge:', error.message);
     return res.status(503).json({error:'Could not prepare your staff QR badge.'});
   }
 });
