@@ -125,3 +125,14 @@ CREATE INDEX staff_attendance_audit_target_idx ON staff_attendance_audit(school_
 COMMENT ON TABLE staff_attendance_events IS 'Append-only source ledger; DTR slot projections must use verified entries only. Physical movements are distinct.';
 COMMENT ON TABLE staff_attendance_challenges IS 'Store only challenge hashes; presenters must be authorized by API. Never expose plaintext tokens in database.';
 COMMENT ON TABLE staff_attendance_audit IS 'Application must append audit rows transactionally for every state transition; no silent updates.';
+
+-- Enforce append-only audit at database level, including privileged application bugs.
+CREATE OR REPLACE FUNCTION staff_attendance_reject_audit_mutation()
+RETURNS TRIGGER LANGUAGE plpgsql AS $$
+BEGIN
+ RAISE EXCEPTION 'Staff attendance audit history is append-only';
+END;
+$$;
+CREATE TRIGGER staff_attendance_audit_immutable
+ BEFORE UPDATE OR DELETE ON staff_attendance_audit
+ FOR EACH ROW EXECUTE FUNCTION staff_attendance_reject_audit_mutation();
