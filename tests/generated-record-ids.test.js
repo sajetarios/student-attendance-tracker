@@ -46,13 +46,13 @@ test('both create APIs support blank IDs while keeping manual IDs and tenant bou
   const department = file('department-routes.js');
   const portal = file('public/portal.js');
   const html = file('public/portal.html');
-  assert.match(student, /nextStudentId\(client\)/);
+  assert.match(student, /nextStudentId\(client, \{ year: registrationYear, gradeLevel: cleanGrade \}\)/);
   assert.match(student, /ON CONFLICT\(student_id\) DO NOTHING/);
   assert.match(student, /req\.auth\.schoolId, cleanStudentId/);
   assert.match(department, /nextDepartmentCode\(client, req\.auth\.schoolId\)/);
   assert.match(department, /schoolAdmin/);
   assert.match(portal, /studentId: \$\('newStudentId'\)\.value\.trim\(\)/);
-  assert.match(html, /id="newStudentId"[^>]*placeholder="Auto-generated/);
+  assert.match(html, /id="newStudentId"[^>]*placeholder="e.g. 2026-G10-089/);
   assert.match(html, /id="departmentCode"[^>]*placeholder="Auto-generated/);
 });
 
@@ -64,4 +64,45 @@ test('migration only adds a sequence and preserves existing student and departme
   assert.doesNotMatch(sql, /UPDATE\s+(students|school_departments)\b/i);
   assert.doesNotMatch(sql, /DELETE\s+FROM\s+(students|school_departments)\b/i);
   assert.match(file('scripts/migrate.js'), /059_automatic_record_identifiers\.sql/);
+});
+
+test('2026 Grade 10 registration IDs have three digits, preserve historical prefixes, and have a hard limit', () => {
+  assert.equal(ids.parseGradeNumber('Grade 10'), 10);
+  assert.equal(ids.parseGradeNumber('G7'), 7);
+  assert.equal(ids.parseGradeNumber('Kinder'), null);
+  assert.equal(ids.formatYearGradeStudentId(2026, 10, 89), '2026-G10-089');
+  assert.equal(ids.formatYearGradeStudentId(2026, 10, 1), '2026-G10-001');
+  assert.equal(ids.formatYearGradeStudentId(2027, 11, 999), '2027-G11-999');
+  assert.throws(() => ids.formatYearGradeStudentId(2026, 10, 1000), /exhausted/);
+});
+
+test('counter allocation uses an atomic PostgreSQL upsert, no school-specific collisions', async () => {
+  const calls = [];
+  const fakeClient = { query: async (sql, params) => {
+    calls.push({ sql, params });
+    return { rowCount: 1, rows: [{last_number: 89}] };
+  } };
+  assert.equal(await ids.nextStudentId(fakeClient, {year: 2026, gradeLevel: 'Grade 10'}), '2026-G10-089');
+  assert.deepEqual(calls[0].params, [2026, 10]);
+  assert.match(calls[0].sql, /ON CONFLICT\(registration_year, registration_grade\) DO UPDATE/);
+  assert.match(calls[0].sql, /last_number < 999/);
+});
+
+test('exhausted year/grade sequence fails clearly without reissuing an ID', async () => {
+  const fakeClient = { query: async () => ({ rowCount: 0, rows: [] }) };
+  await assert.rejects(
+    ids.nextStudentId(fakeClient, {year: 2026, gradeLevel: 'G10'}),
+    error => error.code === 'STUDENT_ID_SERIES_EXHAUSTED'
+  );
+});
+
+test('new counter migration seeds manually supplied codes and never edits student identities', () => {
+  const sql = file('migrations/060_year_grade_student_ids.sql');
+  assert.match(sql, /CREATE TABLE IF NOT EXISTS attendigo_student_id_counters/);
+  assert.match(sql, /last_number INTEGER NOT NULL CHECK \(last_number BETWEEN 1 AND 999\)/);
+  assert.match(sql, /FROM students/);
+  assert.doesNotMatch(sql, /UPDATE\s+students\b/i);
+  assert.doesNotMatch(sql, /DELETE\s+FROM\s+students\b/i);
+  assert.match(file('scripts/migrate.js'), /060_year_grade_student_ids\.sql/);
+  assert.match(file('server.js'), /EXTRACT\(YEAR FROM start_date\)::int AS registration_year/);
 });
