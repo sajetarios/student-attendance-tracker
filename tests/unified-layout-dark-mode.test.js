@@ -44,5 +44,5 @@ test('dark mode covers every core surface and keeps school custom colors intact'
 test('service worker precaches the shared stylesheet for offline portal consistency', () => {
   const sw = read('sw.js');
   assert.ok(sw.includes('/' + themeName));
-  assert.match(sw, /attendigo-v214-gatekeeper-ob-verified/);
+  assert.match(sw, /attendigo-v215-dtr-schedule-persistence/);
 });
