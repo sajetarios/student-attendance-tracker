@@ -117,10 +117,9 @@
     currentUser = me.user;
     sessionStorage.setItem(userKey, JSON.stringify(currentUser));
     await loadProfile();
-    const pendingQr=sessionStorage.getItem('schoolAttendance.pendingClassQr');
-    if(pendingQr&&!currentUser.mustChangePassword){
-      try{const next=new URL(pendingQr,location.origin);if(next.origin===location.origin&&next.pathname==='/class-qr-checkin.html'){location.replace(next.href);return;}}catch{}
-    }
+    // The student dashboard is an explicit exit from QR check-in. Only the
+    // sign-in flow's validated returnTo parameter may resume a QR session.
+    sessionStorage.removeItem('schoolAttendance.pendingClassQr');
     window.ProfilePhotos?.mountSelf({token,role:'STUDENT',studentId:currentUser.studentId,container:'#studentProfileCard',displayName:currentUser.displayName});
     $('studentAttendanceSummary').hidden = Boolean(currentUser.mustChangePassword);
     $('studentAttendanceCard').hidden = Boolean(currentUser.mustChangePassword);
