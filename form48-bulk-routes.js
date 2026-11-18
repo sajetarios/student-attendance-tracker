@@ -47,17 +47,26 @@ async function getSchoolForm48Defaults(pool,schoolId){
   ' revision FROM staff_form48_school_defaults WHERE school_id=$1',[schoolId]);
  return response.rows[0]||null;
 }
-function mergeSchoolForm48Defaults(saved,defaults){
- if(!defaults)return saved;
- const effective=saved||{configured:validHours(defaults.regularHours),revision:0,dayReviews:{}};
+function mergeSchoolForm48Defaults(saved,defaults,employeeSchedule=null){
+ // A reviewed month's complete schedule takes precedence over durable employee
+ // hours; employee hours take precedence over school-wide defaults.
+ if(!saved&&!defaults&&!employeeSchedule)return null;
+ const inherited=employeeSchedule||defaults;
+ const scheduled=value=>Boolean(value&&Array.isArray(value.workdays)&&value.workdays.length&&
+  (!value.workdays.some(day=>day!==6)||validHours(value.regularHours))&&
+  (!value.workdays.includes(6)||validHours(value.saturdayHours)));
+ const monthComplete=Boolean(saved?.configured&&scheduled(saved));
+ const chosen=monthComplete?saved:inherited;
+ const effective=saved||{revision:0,dayReviews:{}};
  return {...effective,
-  workdays:saved?.configured?saved.workdays:defaults.workdays,
-  regularHours:validHours(effective.regularHours)?effective.regularHours:defaults.regularHours,
-  saturdayHours:validHours(effective.saturdayHours)?effective.saturdayHours:defaults.saturdayHours,
-  verifiedBy:effective.verifiedBy||defaults.verifiedBy,
-  verifiedPosition:effective.verifiedPosition||defaults.verifiedPosition,
-  approvedBy:effective.approvedBy||defaults.approvedBy,
-  approvedPosition:effective.approvedPosition||defaults.approvedPosition};
+  configured:Boolean(monthComplete||scheduled(inherited)),
+  workdays:chosen?.workdays||effective.workdays||[],
+  regularHours:chosen?.regularHours||effective.regularHours||{},
+  saturdayHours:chosen?.saturdayHours||effective.saturdayHours||{},
+  verifiedBy:effective.verifiedBy||defaults?.verifiedBy||'',
+  verifiedPosition:effective.verifiedPosition||defaults?.verifiedPosition||'',
+  approvedBy:effective.approvedBy||defaults?.approvedBy||'',
+  approvedPosition:effective.approvedPosition||defaults?.approvedPosition||''};
 }
 function monthBounds(month){
  const [year,mm]=month.split('-').map(Number);
