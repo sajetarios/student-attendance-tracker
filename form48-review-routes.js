@@ -1,6 +1,7 @@
 'use strict';
 const {manilaDate}=require('./staff-lunch-routes');
 const {validHours,summarizeForm48}=require('./form48-calculations');
+const {registerForm48BulkRoutes,getSchoolForm48Defaults,mergeSchoolForm48Defaults}=require('./form48-bulk-routes');
 const UUID=/^[0-9a-f]{8}(-[0-9a-f]{4}){3}-[0-9a-f]{12}$/i;
 const MONTH=/^\d{4}-(0[1-9]|1[0-2])$/;
 const ALLOWED_ROLES=['SCHOOL_ADMIN','DEPARTMENT_HEAD','TEACHER','GATE_KEEPER'];
@@ -41,6 +42,7 @@ function registeredReview(row){
 }
 function registerForm48ReviewRoutes(app,pool,{authenticateSchoolClient,requireSchoolRoles}){
  const admin=[authenticateSchoolClient,requireSchoolRoles('SCHOOL_ADMIN')];
+ registerForm48BulkRoutes(app,pool,{authenticateSchoolClient,requireSchoolRoles});
  const validQuery=req=>{
   const month=String(req.query?.month||''),staffUserId=String(req.query?.staffUserId||'');
   return MONTH.test(month)&&Number(month.slice(0,4))>=2000&&Number(month.slice(0,4))<=2100&&UUID.test(staffUserId)?{month,staffUserId}:null;
@@ -73,14 +75,15 @@ function registerForm48ReviewRoutes(app,pool,{authenticateSchoolClient,requireSc
   try{
    if(!await activeEmployee(req.auth.schoolId,params.staffUserId))
     return res.status(404).json({error:'Employee not found in this school.'});
-   const [saved,days]=await Promise.all([
+   const [saved,days,defaults]=await Promise.all([
     lookup(pool,req.auth.schoolId,params.staffUserId,params.month),
-    pool.query('SELECT weekday FROM school_operating_days WHERE school_id=$1 AND is_operating_day=TRUE ORDER BY weekday',[req.auth.schoolId])
+    pool.query('SELECT weekday FROM school_operating_days WHERE school_id=$1 AND is_operating_day=TRUE ORDER BY weekday',[req.auth.schoolId]),
+    getSchoolForm48Defaults(pool,req.auth.schoolId)
    ]);
    const defaults=days.rows.map(x=>Number(x.weekday));
    return res.json({staffUserId:params.staffUserId,month:params.month,
-    review:saved||{configured:false,workdays:defaults,regularHours:{},saturdayHours:{},
-     dayReviews:{},verifiedBy:'',approvedBy:'',verifiedPosition:'',approvedPosition:'',revision:0}});
+    review:mergeSchoolForm48Defaults(saved||{configured:false,workdays:defaults,regularHours:{},saturdayHours:{},
+     dayReviews:{},verifiedBy:'',approvedBy:'',verifiedPosition:'',approvedPosition:'',revision:0},defaults)});
   }catch(err){console.error('Form48 review read:',err.message);return res.status(503).json({error:'Report settings unavailable.'});}
  });
  app.put('/api/staff-attendance/admin/form48/config',...admin,async(req,res)=>{
@@ -140,7 +143,7 @@ function registerForm48ReviewRoutes(app,pool,{authenticateSchoolClient,requireSc
    if(!await activeEmployee(req.auth.schoolId,params.staffUserId))
     return res.status(404).json({error:'Employee not found in this school.'});
    const {from,to}=monthBounds(params.month);
-   const [settings,events,calendar,ob,leave]=await Promise.all([
+   const [rawSettings,events,calendar,ob,leave,defaults,approvedLeaves]=await Promise.all([
     lookup(pool,req.auth.schoolId,params.staffUserId,params.month),
     pool.query("SELECT to_char(school_date,'YYYY-MM-DD') AS date,dtr_slot AS slot,"+
      " to_char(occurred_at AT TIME ZONE 'Asia/Manila','HH24:MI') AS time"+
@@ -160,8 +163,15 @@ function registerForm48ReviewRoutes(app,pool,{authenticateSchoolClient,requireSc
      [req.auth.schoolId,params.staffUserId,from,to]),
     pool.query("SELECT teacher_status, to_char(leave_start_date,'YYYY-MM-DD') AS leave_start_date,"+
      " to_char(expected_return_date,'YYYY-MM-DD') AS expected_return_date FROM school_users"+
-     ' WHERE school_id=$1 AND user_id=$2',[req.auth.schoolId,params.staffUserId])
+     ' WHERE school_id=$1 AND user_id=$2',[req.auth.schoolId,params.staffUserId]),
+    getSchoolForm48Defaults(pool,req.auth.schoolId),
+    pool.query("SELECT to_char(start_date,'YYYY-MM-DD') AS \"from\","+
+     " to_char(end_date,'YYYY-MM-DD') AS \"to\" FROM staff_form48_approved_leaves"+
+     " WHERE school_id=$1 AND staff_user_id=$2 AND revoked_at IS NULL"+
+     " AND start_date<$4::date AND end_date>=$3::date",
+     [req.auth.schoolId,params.staffUserId,from,to])
    ]);
+   const settings=mergeSchoolForm48Defaults(rawSettings,defaults);
    const byDate=new Map();
    for(const item of events.rows){
     if(!byDate.has(item.date))byDate.set(item.date,{date:item.date,slots:{}});
@@ -172,7 +182,7 @@ function registerForm48ReviewRoutes(app,pool,{authenticateSchoolClient,requireSc
     ?{from:teacher.leave_start_date,to:teacher.expected_return_date}:null;
    const analysis=summarizeForm48({
     records:[...byDate.values()],month:params.month,today:manilaDate(),settings,
-    calendar:calendar.rows,officialBusiness:ob.rows,leave:approvedLeave
+    calendar:calendar.rows,officialBusiness:ob.rows,leave:approvedLeave,approvedLeaves:approvedLeaves.rows
    });
    return res.json({...analysis,reportMonth:params.month,staffUserId:params.staffUserId,
     signatories:{verifiedBy:settings?.verifiedBy||'',approvedBy:settings?.approvedBy||'',
