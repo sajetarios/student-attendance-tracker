@@ -74,3 +74,69 @@ html[data-ui-theme="dark"] #teachersView .teacher-monitor-table td:nth-child(3) 
  color:#6b370c!important;-webkit-text-fill-color:#6b370c!important;
  background:#fff1d6!important;border-color:#f0c784!important;
 }
+
+/* Teachers & Staff — six-column monitor and adaptive account cards (2026-11-18).
+   Intentionally scoped to this view so enrollment and attendance tables are unchanged. */
+#teachersView, #teachersView .surface-card, #teachersView .table-scroll {min-width:0}
+#teachersView .teacher-monitor-scroll{max-width:100%;overflow-x:auto;overscroll-behavior-x:contain}
+#teachersView table.teacher-monitor-table{table-layout:fixed!important;min-width:1050px!important;width:100%!important}
+#teachersView table.teacher-monitor-table :is(th,td){box-sizing:border-box!important;min-width:0!important;overflow-wrap:anywhere;vertical-align:middle}
+#teachersView table.teacher-monitor-table :is(th,td):nth-child(1){width:23%!important}
+#teachersView table.teacher-monitor-table :is(th,td):nth-child(2){width:17%!important}
+#teachersView table.teacher-monitor-table :is(th,td):nth-child(3){width:11%!important}
+#teachersView table.teacher-monitor-table :is(th,td):nth-child(4){width:20%!important}
+#teachersView table.teacher-monitor-table :is(th,td):nth-child(5){width:18%!important}
+#teachersView table.teacher-monitor-table :is(th,td):nth-child(6){width:11%!important}
+#teachersView .teacher-monitor-table .teacher-cell-value{min-width:0;max-width:100%}
+#teachersView .teacher-monitor-table .teacher-scope-list,
+#teachersView .teacher-monitor-table .teacher-assignment-summary{min-width:0;max-width:100%;gap:6px}
+#teachersView .teacher-monitor-table .teacher-scope-item,
+#teachersView .teacher-monitor-table .teacher-assignment-count{max-width:100%;white-space:normal;overflow-wrap:anywhere}
+#teachersView .teacher-monitor-table td:first-child strong{font-weight:750;line-height:1.4}
+#teachersView .teacher-monitor-table td:first-child .table-subtext{overflow-wrap:anywhere}
+#teachersView .teacher-actions-trigger{min-width:0!important;max-width:100%;white-space:nowrap}
+#teachersView .staff-accounts-card{min-width:0}
+#teachersView .staff-accounts-card .section-toolbar{display:flex;flex-wrap:wrap;align-items:flex-start;gap:12px}
+#teachersView .staff-accounts-card .section-toolbar>div{min-width:0;flex:1 1 320px}
+#teachersView .staff-accounts-card .table-scroll{max-width:100%;overflow-x:auto}
+#teachersView #staffAccountsTable{width:100%;min-width:760px;table-layout:fixed}
+#teachersView #staffAccountsTable :is(th,td){box-sizing:border-box;min-width:0;overflow-wrap:anywhere;vertical-align:middle}
+#teachersView #staffAccountsTable :is(th,td):nth-child(1){width:25%}
+#teachersView #staffAccountsTable :is(th,td):nth-child(2){width:20%}
+#teachersView #staffAccountsTable :is(th,td):nth-child(3){width:25%}
+#teachersView #staffAccountsTable :is(th,td):nth-child(4){width:12%}
+#teachersView #staffAccountsTable :is(th,td):nth-child(5){width:18%}
+#teachersView #staffAccountsTable :is(button,select){max-width:100%;min-width:0}
+
+/* Between phone and desktop widths, use readable cards instead of clipped tables. */
+@media (min-width:701px) and (max-width:1250px){
+ #teachersView .teacher-monitor-scroll{overflow:visible!important;border:0!important;background:transparent!important}
+ #teachersView table.teacher-monitor-table{display:block!important;min-width:0!important;width:100%!important;background:transparent!important}
+ #teachersView .teacher-monitor-table thead{display:none!important}
+ #teachersView .teacher-monitor-table tbody{display:grid!important;gap:12px;width:100%}
+ #teachersView .teacher-monitor-table tr{display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr));gap:0 18px;padding:12px 16px!important;border:1px solid #d9e4f1;border-radius:16px;background:#fff;box-shadow:0 3px 12px #152b4610}
+ #teachersView table.teacher-monitor-table td{width:auto!important;display:flex!important;align-items:center;justify-content:space-between;gap:12px;padding:11px 2px!important;border:0!important;border-bottom:1px solid #e7edf5!important;min-width:0!important;white-space:normal!important}
+ #teachersView table.teacher-monitor-table td:first-child{grid-column:1 / -1;display:block!important;position:relative;padding:9px 48px 14px 2px!important}
+ #teachersView .teacher-monitor-table td:first-child input[type="checkbox"]{position:absolute;right:4px;top:12px}
+ #teachersView .teacher-monitor-table td:not(:first-child)::before{content:attr(data-label);flex:0 0 40%;max-width:40%;font-size:.82rem;font-weight:700;text-align:left;color:#667b92}
+ #teachersView .teacher-monitor-table td:nth-child(6){border-bottom:0!important}
+ #teachersView .teacher-monitor-table td .teacher-cell-value{flex:1 1 auto;text-align:right}
+ #teachersView .teacher-monitor-table .teacher-scope-list,
+ #teachersView .teacher-monitor-table .teacher-assignment-summary{justify-content:flex-end}
+ #teachersView .teacher-monitor-table .action-row{justify-content:flex-end}
+ #teachersView .teacher-monitor-table td[colspan]{grid-column:1 / -1}
+ html[data-ui-theme="dark"] #teachersView .teacher-monitor-table tr{background:#142a46!important;border-color:#3d5877!important}
+ html[data-ui-theme="dark"] #teachersView table.teacher-monitor-table td{background:transparent!important;border-bottom-color:#35516f!important}
+ html[data-ui-theme="dark"] #teachersView .teacher-monitor-table td:not(:first-child)::before{color:#c6d9f2}
+}
+@media (min-width:701px) and (max-width:900px){
+ #teachersView .staff-accounts-card .section-toolbar{align-items:stretch}
+ #teachersView .staff-accounts-card .section-toolbar>button{width:fit-content}
+}
+@media (max-width:700px){
+ #teachersView table.teacher-monitor-table :is(th,td){width:100%!important}
+ #teachersView .teacher-monitor-table td:not(:first-child)::before{content:attr(data-label)!important}
+ #teachersView .teacher-monitor-table td .teacher-cell-value{min-width:0;flex:1 1 auto}
+ #teachersView .teacher-monitor-table td:first-child{min-height:88px}
+ #teachersView .staff-accounts-card .section-toolbar>button{width:100%}
+}
