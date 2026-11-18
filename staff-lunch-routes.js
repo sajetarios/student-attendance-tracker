@@ -10,8 +10,8 @@ function manilaDate(now = new Date()) {
 function registerStaffLunchRoutes(app,pool,{authenticateSchoolClient,requireSchoolRoles}) {
  const presenter=requireSchoolRoles('SCHOOL_ADMIN','DEPARTMENT_HEAD','TEACHER');
 
- // School Admin manages the rotating QR presenter. One active presenter per
- // school/date/slot; changes revoke any unexpired challenges from the old holder.
+ // School Admin may authorize multiple teachers from every department.
+ // Each presenter's challenges rotate independently and grants are audited.
  app.get('/api/staff-attendance/lunch/presenter',authenticateSchoolClient,
   requireSchoolRoles('SCHOOL_ADMIN','DEPARTMENT_HEAD','TEACHER'),async(req,res)=>{
   res.set('Cache-Control','no-store, private');
@@ -20,19 +20,20 @@ function registerStaffLunchRoutes(app,pool,{authenticateSchoolClient,requireScho
   try{
    const found=await pool.query(
     `SELECT a.presenter_user_id AS "presenterUserId",u.display_name AS "presenterName",
-      a.assigned_at AS "assignedAt"
+      a.assigned_at AS "assignedAt",u.department_id AS "departmentId",d.department_name AS "departmentName"
      FROM staff_lunch_presenter_assignments a
      JOIN school_users u ON u.school_id=a.school_id AND u.user_id=a.presenter_user_id
+     LEFT JOIN school_departments d ON d.school_id=u.school_id AND d.department_id=u.department_id
      WHERE a.school_id=$1 AND a.school_date=$2::date AND a.dtr_slot=$3
-       AND a.revoked_at IS NULL AND u.active=TRUE LIMIT 1`,
+       AND a.revoked_at IS NULL AND u.active=TRUE ORDER BY d.department_name NULLS LAST,u.display_name`,
     [req.auth.schoolId,date,slot]);
-   const row=found.rows[0]||null;
-   return res.json({schoolDate:date,slot,assigned:!!row,
+   const presenters=found.rows||[],row=presenters[0]||null;
+   return res.json({schoolDate:date,slot,assigned:presenters.length>0,
     presenterName:row?.presenterName||null,
     // Other teachers need to know whether they are the assigned presenter,
     // not the assigned teacher's stable internal ID.
-    isCurrentPresenter:!!row&&row.presenterUserId===req.auth.userId,
-    ...(req.auth.role==='SCHOOL_ADMIN'?{presenterUserId:row?.presenterUserId||null}:{}),
+    isCurrentPresenter:presenters.some(p=>p.presenterUserId===req.auth.userId),
+    ...(req.auth.role==='SCHOOL_ADMIN'?{presenterUserId:row?.presenterUserId||null,presenters}:{}),
     assignedAt:row?.assignedAt||null});
   }catch(error){console.error('Lunch presenter read failed:',error.message);return res.status(503).json({error:'Presenter unavailable.'});}
  });
@@ -51,26 +52,18 @@ function registerStaffLunchRoutes(app,pool,{authenticateSchoolClient,requireScho
    await client.query('SELECT pg_advisory_xact_lock(hashtext($1),hashtext($2))',
     [String(req.auth.schoolId),date+':'+slot]);
    const teacher=await client.query(
-    `SELECT user_id,display_name FROM school_users
+    `SELECT user_id,display_name,department_id FROM school_users
      WHERE school_id=$1 AND user_id=$2 AND role='TEACHER' AND active=TRUE`,
     [req.auth.schoolId,presenterId]);
    if(!teacher.rowCount){await client.query('ROLLBACK');return res.status(404).json({error:'Active teacher not found in this school.'});}
    const current=await client.query(
     `SELECT assignment_id,presenter_user_id FROM staff_lunch_presenter_assignments
-     WHERE school_id=$1 AND school_date=$2::date AND dtr_slot=$3 AND revoked_at IS NULL FOR UPDATE`,
-    [req.auth.schoolId,date,slot]);
+     WHERE school_id=$1 AND school_date=$2::date AND dtr_slot=$3 AND presenter_user_id=$4 AND revoked_at IS NULL FOR UPDATE`,
+    [req.auth.schoolId,date,slot,presenterId]);
    if(current.rows[0]?.presenter_user_id===presenterId){
     await client.query('COMMIT');
     return res.json({schoolDate:date,slot,presenterUserId:presenterId,
      presenterName:teacher.rows[0].display_name,unchanged:true});
-   }
-   if(current.rowCount){
-    await client.query(`UPDATE staff_lunch_presenter_assignments SET revoked_at=NOW()
-      WHERE assignment_id=$1`,[current.rows[0].assignment_id]);
-    await client.query(`UPDATE staff_attendance_challenges SET revoked_at=NOW()
-      WHERE school_id=$1 AND school_date=$2::date AND dtr_slot=$3
-       AND presenter_user_id=$4 AND revoked_at IS NULL`,
-      [req.auth.schoolId,date,slot,current.rows[0].presenter_user_id]);
    }
    const inserted=await client.query(
     `INSERT INTO staff_lunch_presenter_assignments
@@ -82,7 +75,7 @@ function registerStaffLunchRoutes(app,pool,{authenticateSchoolClient,requireScho
     VALUES($1,$2,'LUNCH_PRESENTER_ASSIGNED','LUNCH_PRESENTER_ASSIGNMENT',$3,$4::jsonb)`,
     [req.auth.schoolId,req.auth.userId,inserted.rows[0].assignment_id,
      JSON.stringify({schoolDate:date,slot,presenterUserId:presenterId,
-      previousPresenterUserId:current.rows[0]?.presenter_user_id||null})]);
+      departmentId:teacher.rows[0].department_id||null})]);
    await client.query('COMMIT');
    return res.status(201).json({schoolDate:date,slot,presenterUserId:presenterId,
     presenterName:teacher.rows[0].display_name});
@@ -95,16 +88,17 @@ function registerStaffLunchRoutes(app,pool,{authenticateSchoolClient,requireScho
  app.delete('/api/staff-attendance/lunch/presenter',authenticateSchoolClient,
   requireSchoolRoles('SCHOOL_ADMIN'),async(req,res)=>{
   res.set('Cache-Control','no-store, private');
-  const slot=String(req.body?.slot||''),date=manilaDate();
-  if(!['AM_OUT','PM_IN'].includes(slot))return res.status(400).json({error:'Invalid lunch slot.'});
+  const slot=String(req.body?.slot||''),date=manilaDate(),presenterId=String(req.body?.presenterUserId||'');
+  if(!['AM_OUT','PM_IN'].includes(slot)||!/^[0-9a-f]{8}(-[0-9a-f]{4}){3}-[0-9a-f]{12}$/i.test(presenterId))
+   return res.status(400).json({error:'Select a presenter and valid lunch slot.'});
   const client=await pool.connect();
   try{
    await client.query('BEGIN');
    await client.query('SELECT pg_advisory_xact_lock(hashtext($1),hashtext($2))',
     [String(req.auth.schoolId),date+':'+slot]);
    const old=await client.query(`UPDATE staff_lunch_presenter_assignments SET revoked_at=NOW()
-    WHERE school_id=$1 AND school_date=$2::date AND dtr_slot=$3 AND revoked_at IS NULL
-    RETURNING assignment_id,presenter_user_id`,[req.auth.schoolId,date,slot]);
+    WHERE school_id=$1 AND school_date=$2::date AND dtr_slot=$3 AND presenter_user_id=$4 AND revoked_at IS NULL
+    RETURNING assignment_id,presenter_user_id`,[req.auth.schoolId,date,slot,presenterId]);
    if(old.rowCount){
     await client.query(`UPDATE staff_attendance_challenges SET revoked_at=NOW()
      WHERE school_id=$1 AND school_date=$2::date AND dtr_slot=$3
@@ -140,7 +134,7 @@ function registerStaffLunchRoutes(app,pool,{authenticateSchoolClient,requireScho
    // The presenting teacher must be explicitly assigned by the school. This
    // endpoint intentionally fails closed until a separate authorization
    // workflow for rotating presenters is available.
-   if(req.auth.role==='TEACHER') {
+   if(req.auth.role!=='SCHOOL_ADMIN') {
     const permission=await client.query(
      `SELECT 1 FROM staff_lunch_presenter_assignments
        WHERE school_id=$1 AND presenter_user_id=$2 AND school_date=$3::date
@@ -162,7 +156,7 @@ function registerStaffLunchRoutes(app,pool,{authenticateSchoolClient,requireScho
    // The advisory lock above serializes this with reassignments and revocations.
    await client.query(`UPDATE staff_attendance_challenges SET revoked_at=NOW()
       WHERE school_id=$1 AND school_date=$2::date AND dtr_slot=$3
-        AND revoked_at IS NULL`,[req.auth.schoolId,date,slot]);
+        AND presenter_user_id=$4 AND revoked_at IS NULL`,[req.auth.schoolId,date,slot,req.auth.userId]);
    await client.query(
     `INSERT INTO staff_attendance_challenges
      (challenge_id,school_id,presenter_user_id,dtr_slot,school_date,challenge_hash,issued_at,expires_at)
