@@ -111,8 +111,8 @@ function registerStaffObRoutes(app,pool,{authenticateSchoolClient,requireSchoolR
         AND w.period_id=p.period_id
         AND w.weekday=EXTRACT(DOW FROM days.class_date)::int
        WHERE ob.school_id=$1 AND ob.request_id=$2
-        AND (days.class_date+p.start_time) AT TIME ZONE 'Asia/Manila'<ob.ends_at
-        AND (days.class_date+p.end_time) AT TIME ZONE 'Asia/Manila'>ob.starts_at
+        AND (days.class_date::date+p.start_time) AT TIME ZONE 'Asia/Manila'<ob.ends_at
+        AND (days.class_date::date+p.end_time) AT TIME ZONE 'Asia/Manila'>ob.starts_at
        ON CONFLICT(school_id,request_id,period_id,class_date) DO NOTHING
        RETURNING coverage_id`,[req.auth.schoolId,req.params.id]);
       await audit(client,req,'STAFF_OB_AFFECTED_CLASSES_FLAGGED',req.params.id,
