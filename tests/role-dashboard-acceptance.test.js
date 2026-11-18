@@ -19,7 +19,7 @@ test('School Administrator dashboard includes learner, staff, schedule, and SF2 
   for (const view of ['students', 'teachers', 'schedules', 'sf2']) {
     assert.match(portalHtml, new RegExp(`data-go="${view}"`));
   }
-  assert.match(portalJs, /if \(role === 'SCHOOL_ADMIN'\) return \['dashboard', 'students', 'studentAccounts', 'parents', 'teachers', 'schedules', 'cloudSync', 'schoolBranding'\]/);
+  assert.match(portalJs, /if \(role === 'SCHOOL_ADMIN'\) return \['dashboard', 'students', 'studentAccounts', 'parents', 'teachers', 'schedules', 'myGateAttendance', 'cloudSync', 'schoolBranding'\]/);
   assert.match(server, /app\.post\('\/api\/school-users', authenticateSchoolClient, requireSchoolAdmin/);
 });
 
