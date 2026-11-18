@@ -512,3 +512,74 @@ html[data-ui-theme="dark"] #teachersView .teacher-monitor-table td:nth-child(3) 
 #teachersView #securityAuditScroll .security-audit-record-details summary {
   color:#a5ceff;
 }
+
+/* Large-roster employee security: compact summary, explicit reveal, accessible filters. */
+#teachersView .security-directory-filters{
+ display:grid;grid-template-columns:minmax(220px,2fr) repeat(3,minmax(135px,1fr));
+ align-items:end;gap:10px;margin:12px 0;
+}
+#teachersView .security-directory-filters label{
+ display:grid;gap:6px;min-width:0;font-size:12px;font-weight:650;
+}
+#teachersView .security-directory-filters :is(input,select){
+ box-sizing:border-box;min-height:42px;width:100%;min-width:0;padding:8px 10px;
+ border:1px solid var(--border-color,#c7d6e6);border-radius:9px;
+ background:var(--surface,#fff);color:inherit;font:inherit;
+}
+#teachersView .security-directory-meta,#teachersView .security-directory-pagination{
+ display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;
+ margin:10px 0;color:var(--text-muted,#60758e);font-size:13px;
+}
+#teachersView .security-directory-meta label{display:flex;align-items:center;gap:8px}
+#teachersView .security-directory-meta select{
+ min-height:36px;padding:5px 8px;border:1px solid var(--border-color,#c7d6e6);
+ border-radius:8px;background:var(--surface,#fff);color:inherit;
+}
+#teachersView .security-directory-pagination{justify-content:center;margin:14px 0 5px}
+#teachersView .security-directory-pagination button{min-height:36px;min-width:90px}
+#teachersView .security-card-toggle,#teachersView .security-card-preview{display:none}
+#teachersView .security-card-heading{min-width:0}
+#teachersView .security-card-identity{min-width:0}
+@container (max-width:1450px){
+ #teachersView .security-card-heading{
+  display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;
+ }
+ #teachersView .security-card-identity{flex:1 1 180px}
+ #teachersView .security-card-toggle{
+  display:inline-flex;justify-content:center;align-items:center;
+  flex:0 0 auto;min-width:114px;min-height:38px;white-space:nowrap;
+ }
+ #teachersView .security-account-collapsed .security-card-preview{
+  display:flex;align-items:center;flex-wrap:wrap;gap:8px;margin-top:8px;
+ }
+ #teachersView .security-card-preview-role{
+  font-size:12px;color:var(--text-muted,#60758e);overflow-wrap:anywhere;
+ }
+ #teachersView .security-accounts-table tbody tr.security-account-collapsed{
+  padding:12px 14px;gap:0;
+ }
+ #teachersView .security-accounts-table tbody tr.security-account-collapsed td:not(:first-child){
+  display:none!important;
+ }
+ #teachersView .security-accounts-table tbody tr.security-account-collapsed td:first-child{
+  padding:0!important;border:0!important;
+ }
+}
+@container (max-width:920px){
+ #teachersView .security-directory-filters{grid-template-columns:repeat(2,minmax(0,1fr))}
+ #teachersView .security-directory-search{grid-column:1 / -1}
+}
+@container (max-width:440px){
+ #teachersView .security-directory-filters{grid-template-columns:minmax(0,1fr)}
+ #teachersView .security-directory-search{grid-column:auto}
+ #teachersView .security-card-heading{align-items:stretch}
+ #teachersView .security-card-toggle{width:100%}
+}
+:is(html[data-ui-theme="dark"],body.dark-mode,body[data-theme="dark"])
+#teachersView .security-directory-filters :is(input,select),
+:is(html[data-ui-theme="dark"],body.dark-mode,body[data-theme="dark"])
+#teachersView .security-directory-meta select{
+ background:#1b304c;color:#f1f5f9;border-color:#496581;
+}
+:is(html[data-ui-theme="dark"],body.dark-mode,body[data-theme="dark"])
+#teachersView .security-card-preview-role{color:#c4d2e5}
