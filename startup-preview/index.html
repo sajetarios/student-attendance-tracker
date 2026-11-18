@@ -30,8 +30,42 @@ a:focus-visible{outline:3px solid #1e82e6;outline-offset:3px}.note{font-size:12p
 <p class="note">Your school records and existing sessions remain unchanged.</p>
 </main>
 <script>
-// Best-effort wake-up request; intentionally does not process authentication,
-// inspect session data, or auto-redirect across origins.
-fetch('https://student-attendance-tracker-jmp4.onrender.com/api/health',{mode:'no-cors',cache:'no-store'}).catch(()=>{});
+// A response is considered ready only when its status and JSON body are verified.
+// CORS must be explicitly enabled on the backend before automatic continuation works.
+// Until then, the manual Continue link remains available and untouched.
+const backend = 'https://student-attendance-tracker-jmp4.onrender.com';
+const statusText = document.querySelector('.status');
+const hintText = document.querySelector('.hint');
+let attempts = 0;
+async function checkReadiness() {
+  attempts++;
+  try {
+    const abort = new AbortController();
+    const timeout = setTimeout(() => abort.abort(), 12000);
+    let response;
+    try {
+      response = await fetch(backend + '/api/startup-readiness', {
+        method: 'GET', mode: 'cors', credentials: 'omit',
+        cache: 'no-store', signal: abort.signal
+      });
+    } finally { clearTimeout(timeout); }
+    if (response.ok) {
+      const data = await response.json();
+      if (data && data.ready === true && data.service === 'attendigo') {
+        statusText.textContent = 'Your school workspace is ready';
+        hintText.textContent = 'Opening Attendigo…';
+        window.location.replace(backend + '/portal-login.html');
+        return;
+      }
+    }
+  } catch (_) { /* Cold start, offline, or unsupported CORS; never assume readiness. */ }
+  if (attempts >= 3) {
+    statusText.textContent = 'Attendigo is connecting';
+    hintText.textContent = 'If it takes longer, use Continue to Attendigo below.';
+  }
+  if (attempts < 24) setTimeout(checkReadiness, 5000);
+  else hintText.textContent = 'Automatic connection is unavailable. Please use Continue to Attendigo.';
+}
+checkReadiness();
 </script>
 </body></html>
