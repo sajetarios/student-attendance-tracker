@@ -69,6 +69,6 @@ test('schedule settings have separate Save control and are not dependent on prev
  assert.match(review,/getEmployeeForm48Schedule/);
  assert.match(review,/mergeSchoolForm48Defaults\(rawSettings,defaults,employeeSchedule\)/);
  assert.match(migration,/FOREIGN KEY \(school_id,staff_user_id\)/);
- assert.match(sw,/form48-report\.js\?v=6/);
- assert.match(sw,/form48-report\.css\?v=6/);
+ assert.match(sw,/form48-report\.js\?v=7/);
+ assert.match(sw,/form48-report\.css\?v=7/);
 });

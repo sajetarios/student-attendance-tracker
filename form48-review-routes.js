@@ -3,6 +3,7 @@ const {manilaDate}=require('./staff-lunch-routes');
 const {validHours,summarizeForm48}=require('./form48-calculations');
 const {registerForm48BulkRoutes,getSchoolForm48Defaults,mergeSchoolForm48Defaults}=require('./form48-bulk-routes');
 const {registerForm48EmployeeScheduleRoutes,getEmployeeForm48Schedule}=require('./form48-employee-schedules');
+const {buildForm48LeaveRemarks}=require('./form48-leave-remarks');
 const UUID=/^[0-9a-f]{8}(-[0-9a-f]{4}){3}-[0-9a-f]{12}$/i;
 const MONTH=/^\d{4}-(0[1-9]|1[0-2])$/;
 const ALLOWED_ROLES=['SCHOOL_ADMIN','DEPARTMENT_HEAD','TEACHER','GATE_KEEPER'];
@@ -169,7 +170,7 @@ function registerForm48ReviewRoutes(app,pool,{authenticateSchoolClient,requireSc
      ' WHERE school_id=$1 AND user_id=$2',[req.auth.schoolId,params.staffUserId]),
     getSchoolForm48Defaults(pool,req.auth.schoolId),
     pool.query("SELECT to_char(start_date,'YYYY-MM-DD') AS \"from\","+
-     " to_char(end_date,'YYYY-MM-DD') AS \"to\" FROM staff_form48_approved_leaves"+
+     " to_char(end_date,'YYYY-MM-DD') AS \"to\", leave_type AS \"leaveType\", approval_reference AS \"approvalReference\" FROM staff_form48_approved_leaves"+
      " WHERE school_id=$1 AND staff_user_id=$2 AND revoked_at IS NULL"+
      " AND start_date<$4::date AND end_date>=$3::date",
      [req.auth.schoolId,params.staffUserId,from,to]),
@@ -188,7 +189,8 @@ function registerForm48ReviewRoutes(app,pool,{authenticateSchoolClient,requireSc
     records:[...byDate.values()],month:params.month,today:manilaDate(),settings,
     calendar:calendar.rows,officialBusiness:ob.rows,leave:approvedLeave,approvedLeaves:approvedLeaves.rows
    });
-   return res.json({...analysis,reportMonth:params.month,staffUserId:params.staffUserId,
+   const approvedLeaveRemarks=buildForm48LeaveRemarks(params.month,approvedLeaves.rows,analysis.assessments);
+   return res.json({...analysis,approvedLeaveRemarks,asOfDate:manilaDate(),reportMonth:params.month,staffUserId:params.staffUserId,
     signatories:{verifiedBy:settings?.verifiedBy||'',approvedBy:settings?.approvedBy||'',
      verifiedPosition:settings?.verifiedPosition||'',approvedPosition:settings?.approvedPosition||''},
     regularHours:settings?.regularHours||{},saturdayHours:settings?.saturdayHours||{},
