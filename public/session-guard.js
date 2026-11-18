@@ -32,7 +32,7 @@
       const response = await fetch('/api/auth/me', {
         cache: 'no-store',
         credentials: 'same-origin',
-        headers: studentPage || !token ? {} : { Authorization: 'Bearer ' + token }
+        headers: {}
       });
       if (sequence !== checkSequence) return;
       if (response.status === 401) {
