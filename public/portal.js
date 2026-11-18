@@ -75,14 +75,9 @@
     return new Date(Date.UTC(year, month - 1, day - 1)).toISOString().slice(0, 10);
   }
 
-  if (!token) {
-    window.location.replace('/portal-login.html');
-    return;
-  }
-
   async function api(url, options = {}) {
     const headers = new Headers(options.headers || {});
-    headers.set('Authorization', `Bearer ${token}`);
+    if (token) headers.set('Authorization', `Bearer ${token}`);
     if (options.body && !headers.has('Content-Type')) headers.set('Content-Type', 'application/json');
     const response = await fetch(url, { ...options, headers, cache: 'no-store' });
     if (response.status === 401) {
@@ -98,7 +93,7 @@
   async function photoDataUrl(photoUrl) {
     if (!photoUrl) return '';
     try {
-      const response = await fetch(photoUrl, { headers: { Authorization: `Bearer ${token}` }, cache: 'no-store' });
+      const response = await fetch(photoUrl, { headers: token ? { Authorization: `Bearer ${token}` } : {}, cache: 'no-store' });
       if (!response.ok) return '';
       const blob = await response.blob();
       return await new Promise(resolve => {
@@ -195,6 +190,14 @@
   }
 
   function setView(view) {
+    // Each staff module has a real, reloadable URL without exposing another role's data.
+    if (user && location.pathname === '/portal.html') {
+      const current = new URL(location.href);
+      if (current.searchParams.get('view') !== view) {
+        current.searchParams.set('view',view);
+        history.pushState({view},'',current.pathname+current.search+current.hash);
+      }
+    }
     const academicPanel = $('academicAdminWorkspace');
     if (academicPanel) academicPanel.hidden = true;
     const isPlatform = user?.role === 'SUPER_ADMIN';
@@ -4342,7 +4345,7 @@ let teacherActionMenuListenersInstalled = false;
         navigation.append(button);
       }
       $('refreshButton').hidden = true;
-      setView('platform');
+      setView(new URLSearchParams(location.search).get('view') || 'platform');
       document.dispatchEvent(new Event('attendigo:portal-ready'));
       try { await loadPlatformData(); }
       catch (error) { $('platformSchoolRows').innerHTML = `<tr><td colspan="7" class="empty-cell">${esc(error.message)}</td></tr>`; }
@@ -4369,7 +4372,7 @@ let teacherActionMenuListenersInstalled = false;
         document.querySelectorAll('.quick-action[data-go]').forEach(button => {
           button.addEventListener('click', () => setView(button.dataset.go));
         });
-        setView(user.role === 'SCHOOL_ADMIN' && new URLSearchParams(location.search).get('view') === 'parents' ? 'parents' : 'dashboard');
+        setView(new URLSearchParams(location.search).get('view') || 'dashboard');
       }
       // Show the correct role layout before optional, slower dashboard requests finish.
       document.dispatchEvent(new Event('attendigo:portal-ready'));
@@ -4611,6 +4614,30 @@ let teacherActionMenuListenersInstalled = false;
   });
   $('platformRefreshButton')?.addEventListener('click',()=>loadPlatformData().catch(error=>showToast(error.message,true)));
 
+  // Turn navigation buttons into native links for open-in-new-tab and keyboard support.
+  function linkifyStaffNavigation() {
+    document.querySelectorAll('.side-nav .nav-item[data-view]').forEach(button => {
+      if (button.tagName === 'A') return;
+      const anchor = document.createElement('a');
+      anchor.className = button.className;
+      anchor.id = button.id;
+      anchor.dataset.view = button.dataset.view;
+      anchor.title = button.title;
+      anchor.href = '/portal.html?view=' + encodeURIComponent(button.dataset.view);
+      anchor.hidden = button.hidden;
+      anchor.innerHTML = button.innerHTML;
+      button.replaceWith(anchor);
+    });
+  }
+  document.addEventListener('attendigo:portal-ready',linkifyStaffNavigation);
+  window.addEventListener('popstate',() => { if(user)setView(new URLSearchParams(location.search).get('view') || (user.role==='SUPER_ADMIN'?'platform':'dashboard')); });
+  document.addEventListener('click',event=>{
+    const link=event.target.closest?.('.side-nav a.nav-item[data-view]');
+    if(!link || event.defaultPrevented || event.button!==0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey)return;
+    event.preventDefault();
+    setView(link.dataset.view);
+    if(window.matchMedia('(max-width: 860px)').matches)closeMobileSidebar();
+  });
   document.querySelectorAll('.nav-item[data-view]').forEach(button => {
     button.addEventListener('click', () => {
       setView(button.dataset.view);
