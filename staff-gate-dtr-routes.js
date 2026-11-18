@@ -108,7 +108,7 @@ function registerStaffGateDtrRoutes(app,pool,{authenticateSchoolClient,requireSc
    if(req.auth?.type!=='SCHOOL_USER'||req.auth.role!=='SCHOOL_ADMIN')return res.status(403).json({error:'School Administrator required.'});
    const staffUserId=String(req.query?.staffUserId||'');
    const month=String(req.query?.month||'');
-   if(!UUID.test(staffUserId)||!/^\\d{4}-(0[1-9]|1[0-2])$/.test(month))
+   if(!UUID.test(staffUserId)||!/^\d{4}-(0[1-9]|1[0-2])$/.test(month))
     return res.status(400).json({error:'Valid staff member and month required.'});
    const [yearPart,monthPart]=month.split('-').map(Number);
    if(yearPart<2000||yearPart>2100)return res.status(400).json({error:'Invalid reporting year.'});
