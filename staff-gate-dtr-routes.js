@@ -95,7 +95,7 @@ function registerStaffGateDtrRoutes(app,pool,{authenticateSchoolClient,requireSc
   res.set('Cache-Control','no-store, private');
   const from=String(req.query?.from||manilaDate()),to=String(req.query?.to||manilaDate());
   const validDate=value=>{
-   if(!/^\\d{4}-\\d{2}-\\d{2}$/.test(value))return false;
+   if(!/^\d{4}-\d{2}-\d{2}$/.test(value))return false;
    const parsed=new Date(value+'T00:00:00Z');
    return !Number.isNaN(parsed.getTime())&&parsed.toISOString().slice(0,10)===value;
   };
