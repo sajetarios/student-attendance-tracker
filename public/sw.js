@@ -1,4 +1,4 @@
-const CACHE = "attendigo-v179-native-module-links";
+const CACHE = "attendigo-v180-staff-tab-cookie";
 
 const SHELL = [
   "/typography.css?v=1",
