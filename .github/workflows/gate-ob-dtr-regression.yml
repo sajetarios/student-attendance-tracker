@@ -1,0 +1,28 @@
+name: Attendigo gate, OB and DTR regression
+on:
+  push:
+    branches:
+      - fix/render-login-landing
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  gate-ob-dtr:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci
+      - name: Gate, OB and DTR regression tests
+        run: node --test tests/gate-event-decision.test.js tests/gate-attendance-boundary.test.js tests/ob-dtr-remarks.test.js tests/gatekeeper-auto-integration.test.js
+      - name: Validate server and UI JavaScript syntax
+        run: |
+          node --check server.js
+          node --check staff-gate-dtr-routes.js
+          node --check ob-dtr-remarks.js
+          node --check public/portal.js
+          node --check public/form48-report.js
