@@ -964,8 +964,14 @@ window.attendigoStaffIdentity = new Promise(resolve => { resolveStaffIdentity = 
       host.innerHTML = events.length ? events.map(item => {
         const when = item.createdAt ? new Date(item.createdAt).toLocaleString() : '—';
         const action = String(item.action || 'Administrative change').replaceAll('_',' ').toLowerCase().replace(/\b\w/g, c => c.toUpperCase());
-        const record = [item.entityType, item.entityId].filter(Boolean).join(' · ') || '—';
-        return '<tr><td data-label="Date and time">' + esc(when) + '</td><td data-label="Action">' + esc(action) + '</td><td data-label="Changed by">' + esc(item.actorName || 'System') + '</td><td data-label="Record">' + esc(record) + '</td></tr>';
+        // Keep long identifiers available without making every row three lines high.
+        const recordType = String(item.entityType || '').replaceAll('_', ' ').trim();
+        const recordId = String(item.entityId || '').trim();
+        const shortId = recordId.length > 18 ? recordId.slice(0, 8) + '…' + recordId.slice(-4) : recordId;
+        const record = '<span class="security-audit-record-type">' + esc(recordType || (recordId ? 'Record' : '—')) + '</span>' +
+          (recordId ? '<details class="security-audit-record-details"><summary title="Show complete record ID">' +
+            esc(shortId) + '</summary><code>' + esc(recordId) + '</code></details>' : '');
+        return '<tr><td data-label="Date and time">' + esc(when) + '</td><td data-label="Action">' + esc(action) + '</td><td data-label="Changed by">' + esc(item.actorName || 'System') + '</td><td data-label="Record"><div class="security-audit-record">' + record + '</div></td></tr>';
       }).join('') : '<tr><td colspan="4" class="empty-cell">No administrative activity has been recorded yet.</td></tr>';
       securityAuditLoaded = true;
     } catch (error) {
