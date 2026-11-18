@@ -1,0 +1,99 @@
+'use strict';
+const {randomUUID}=require('node:crypto');
+const uuid=/^[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}$/i;
+const roles=['TEACHER','DEPARTMENT_HEAD','SCHOOL_ADMIN'];
+function registerStaffObRoutes(app,pool,{authenticateSchoolClient,requireSchoolRoles}){
+ const auth=[authenticateSchoolClient,requireSchoolRoles(...roles)];
+ const respondError=(res,e)=>{console.error('Staff OB request error:',e.message);return res.status(503).json({error:'Official Business service unavailable.'});};
+ const audit=(client,req,action,id,details)=>client.query(
+  `INSERT INTO staff_attendance_audit(school_id,actor_user_id,action,target_type,target_id,details)
+   VALUES($1,$2,$3,'STAFF_OFFICIAL_BUSINESS',$4,$5::jsonb)`,
+  [req.auth.schoolId,req.auth.userId,action,id,JSON.stringify(details)]);
+ const scoped=(req)=>req.auth.role==='SCHOOL_ADMIN'?'':req.auth.role==='DEPARTMENT_HEAD'?' AND o.department_id=$2':' AND o.staff_user_id=$2';
+ const params=(req)=>req.auth.role==='SCHOOL_ADMIN'?[req.auth.schoolId]:[req.auth.schoolId,req.auth.role==='DEPARTMENT_HEAD'?req.auth.departmentId:req.auth.userId];
+ app.get('/api/staff-attendance/official-business',...auth,async(req,res)=>{
+  res.set('Cache-Control','no-store, private');
+  if(req.auth.role==='DEPARTMENT_HEAD'&&!req.auth.departmentId)return res.status(403).json({error:'Department assignment required.'});
+  try{
+   const result=await pool.query(`SELECT o.request_id AS "requestId",o.staff_user_id AS "staffUserId",
+    u.display_name AS "staffName",o.department_id AS "departmentId",
+    o.purpose,o.destination,o.starts_at AS "startsAt",o.ends_at AS "endsAt",
+    o.status,o.submitted_at AS "submittedAt",o.decision_note AS "decisionNote",
+    o.head_decided_at AS "headDecidedAt",o.admin_decided_at AS "adminDecidedAt"
+    FROM staff_official_business_requests o
+    JOIN school_users u ON u.school_id=o.school_id AND u.user_id=o.staff_user_id
+    WHERE o.school_id=$1${scoped(req)}
+    ORDER BY o.submitted_at DESC LIMIT 100`,params(req));
+   return res.json({requests:result.rows});
+  }catch(e){return respondError(res,e);}
+ });
+ app.post('/api/staff-attendance/official-business',...auth,async(req,res)=>{
+  res.set('Cache-Control','no-store, private');
+  const purpose=String(req.body?.purpose||'').trim(),destination=String(req.body?.destination||'').trim();
+  const start=new Date(req.body?.startsAt),end=new Date(req.body?.endsAt);
+  if(purpose.length<3||purpose.length>1000||destination.length<2||destination.length>300||
+    !Number.isFinite(start.getTime())||!Number.isFinite(end.getTime())||end<=start||
+    end.getTime()-start.getTime()>14*86400000||start.getTime()<Date.now()-86400000)
+   return res.status(400).json({error:'Valid purpose, destination and OB start/end (up to 14 days) required.'});
+  if(!req.auth.departmentId)return res.status(403).json({error:'A school department must be assigned before requesting OB.'});
+  const id=randomUUID(),client=await pool.connect();
+  try{
+   await client.query('BEGIN');
+   await client.query(`INSERT INTO staff_official_business_requests
+    (request_id,school_id,staff_user_id,department_id,purpose,destination,starts_at,ends_at)
+    VALUES($1,$2,$3,$4,$5,$6,$7,$8)`,
+    [id,req.auth.schoolId,req.auth.userId,req.auth.departmentId,purpose,destination,start,end]);
+   await audit(client,req,'STAFF_OB_SUBMITTED',id,{departmentId:req.auth.departmentId,startsAt:start.toISOString(),endsAt:end.toISOString()});
+   await client.query('COMMIT');
+   return res.status(201).json({requestId:id,status:'PENDING_HEAD'});
+  }catch(e){await client.query('ROLLBACK').catch(()=>{});return respondError(res,e);}
+  finally{client.release();}
+ });
+ app.post('/api/staff-attendance/official-business/:id/recommend',authenticateSchoolClient,
+  requireSchoolRoles('DEPARTMENT_HEAD'),async(req,res)=>{
+   res.set('Cache-Control','no-store, private');
+   if(!uuid.test(req.params.id)||!req.auth.departmentId)return res.status(400).json({error:'Valid request and department required.'});
+   const recommendation=String(req.body?.decision||'').toUpperCase(),note=String(req.body?.note||'').trim();
+   if(!['RECOMMEND','REJECT'].includes(recommendation)||note.length>1000)
+    return res.status(400).json({error:'Choose RECOMMEND or REJECT with a note up to 1000 characters.'});
+   const client=await pool.connect();
+   try{
+    await client.query('BEGIN');
+    const result=await client.query(`UPDATE staff_official_business_requests o
+      SET status=$5,head_user_id=$4,head_decided_at=NOW(),decision_note=$6
+      WHERE o.school_id=$1 AND o.request_id=$2 AND o.department_id=$3
+       AND o.status='PENDING_HEAD' AND o.staff_user_id<>$4
+      RETURNING request_id,status`,
+      [req.auth.schoolId,req.params.id,req.auth.departmentId,req.auth.userId,
+       recommendation==='RECOMMEND'?'PENDING_ADMIN':'REJECTED',note||null]);
+    if(!result.rowCount){await client.query('ROLLBACK');return res.status(409).json({error:'Request unavailable, already reviewed, outside your department, or self-review prohibited.'});}
+    await audit(client,req,recommendation==='RECOMMEND'?'STAFF_OB_RECOMMENDED':'STAFF_OB_HEAD_REJECTED',req.params.id,{note});
+    await client.query('COMMIT');
+    return res.json({requestId:req.params.id,status:result.rows[0].status});
+   }catch(e){await client.query('ROLLBACK').catch(()=>{});return respondError(res,e);}
+   finally{client.release();}
+  });
+ app.post('/api/staff-attendance/official-business/:id/decide',authenticateSchoolClient,
+  requireSchoolRoles('SCHOOL_ADMIN'),async(req,res)=>{
+   res.set('Cache-Control','no-store, private');
+   const decision=String(req.body?.decision||'').toUpperCase(),note=String(req.body?.note||'').trim();
+   if(!uuid.test(req.params.id)||!['APPROVE','REJECT'].includes(decision)||note.length>1000)
+    return res.status(400).json({error:'Valid request, APPROVE/REJECT decision and note required.'});
+   const client=await pool.connect();
+   try{
+    await client.query('BEGIN');
+    const result=await client.query(`UPDATE staff_official_business_requests
+      SET status=$4,admin_user_id=$3,admin_decided_at=NOW(),decision_note=$5
+      WHERE school_id=$1 AND request_id=$2 AND status='PENDING_ADMIN'
+       AND staff_user_id<>$3 RETURNING request_id,status`,
+      [req.auth.schoolId,req.params.id,req.auth.userId,
+       decision==='APPROVE'?'APPROVED':'REJECTED',note||null]);
+    if(!result.rowCount){await client.query('ROLLBACK');return res.status(409).json({error:'Request not awaiting School Admin decision or self-approval prohibited.'});}
+    await audit(client,req,decision==='APPROVE'?'STAFF_OB_APPROVED':'STAFF_OB_ADMIN_REJECTED',req.params.id,{note});
+    await client.query('COMMIT');
+    return res.json({requestId:req.params.id,status:result.rows[0].status});
+   }catch(e){await client.query('ROLLBACK').catch(()=>{});return respondError(res,e);}
+   finally{client.release();}
+  });
+}
+module.exports={registerStaffObRoutes};
