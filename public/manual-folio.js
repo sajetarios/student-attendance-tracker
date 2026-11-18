@@ -14,7 +14,7 @@ window.attendigoStaffIdentity.then(user => {
  const el=id=>document.getElementById(id);
  const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
  const dateToday=()=>new Intl.DateTimeFormat('en-CA',{timeZone:'Asia/Manila',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date());
- const state={periods:[],students:[],period:null,date:dateToday(),marks:{},synced:{},notes:'',page:0,tab:'sheet',rosterView:'grouped',selected:new Set(),busy:false,finalized:false,noteItems:[],editingNoteId:null,historyPage:0,historyTotal:0,historyRows:[],notesLoadedFor:null};
+ const state={periods:[],students:[],period:null,date:dateToday(),marks:{},synced:{},notes:'',page:0,tab:'sheet',rosterView:'grouped',selected:new Set(),busy:false,finalized:false,noteItems:[],editingNoteId:null,historyPage:0,historyTotal:0,historyRows:[],notesLoadedFor:null,qrMarks:{}};
  try { if(localStorage.getItem('attendigo.attendance.roster.view')==='alphabetical')state.rosterView='alphabetical'; } catch {}
  const statuses=['PRESENT','LATE','ABSENT','EXCUSED'],symbols={PRESENT:'✓',LATE:'◷',ABSENT:'✕',EXCUSED:'!'},names={PRESENT:'Present',LATE:'Late',ABSENT:'Absent',EXCUSED:'Excused'};
  async function api(path,options={}) {
@@ -29,7 +29,9 @@ window.attendigoStaffIdentity.then(user => {
  const roster=()=>window.AttendigoRoster.sortLearners(
    state.students.filter(s=>state.period&&s.active!==false&&s.gradeLevel===state.period.gradeLevel&&s.section===state.period.section),
    state.rosterView==='grouped');
- const counts=()=>{const out={TOTAL:roster().length,PRESENT:0,LATE:0,ABSENT:0,EXCUSED:0,UNMARKED:0};roster().forEach(s=>{const st=state.marks[s.studentId]?.status;if(out[st]!==undefined)out[st]++;else out.UNMARKED++});return out};
+ // Accepted QR presence fills unmarked cells only, preserving manual corrections.
+ const effectiveMark=id=>state.marks[id]?.status||state.qrMarks[id]?.status||null;
+ const counts=()=>{const out={TOTAL:roster().length,PRESENT:0,LATE:0,ABSENT:0,EXCUSED:0,UNMARKED:0};roster().forEach(s=>{const st=effectiveMark(s.studentId);if(out[st]!==undefined)out[st]++;else out.UNMARKED++});return out};
  // Balance the last folio page rather than leaving two rows above a large blank area.
  const pageSize=()=>20;
  const selected=(id)=>state.selected.has(id);
@@ -67,7 +69,7 @@ window.attendigoStaffIdentity.then(user => {
        ? '<tr class="manual-sex-group"><th colspan="5" scope="rowgroup">'+esc(window.AttendigoRoster.sexLabels[group])+
          (start>0&&i===0?' · continued':'')+'</th></tr>' : '';
      previousSex=group;
-     const status=mark.status||'';const cardStatus=status==='ABSENT'?'ABSENT':'PRESENT';
+     const status=effectiveMark(s.studentId)||'';const cardStatus=status==='ABSENT'?'ABSENT':'PRESENT';
      const extras=status==='LATE'||status==='EXCUSED';
      return heading+`<tr class="manual-attendance-row">
      <td><input type="checkbox" data-select="${esc(s.studentId)}" ${selected(s.studentId)?'checked':''} aria-label="Select ${esc(s.fullName)}"></td>
@@ -88,7 +90,7 @@ window.attendigoStaffIdentity.then(user => {
    <span style="width:${c.ABSENT/Math.max(1,c.TOTAL)*100}%;background:#f34c5e"></span>
    <span style="width:${c.EXCUSED/Math.max(1,c.TOTAL)*100}%;background:#8557e9"></span></div>
    <p>✓ Present: ${c.PRESENT} · ◷ Late: ${c.LATE}</p><p>✕ Absent: ${c.ABSENT} · ! Excused: ${c.EXCUSED}</p><p>Unmarked: ${c.UNMARKED}</p></div>
-   <div class="manual-detail-card"><h4>Attendance totals</h4><p><strong>${c.PRESENT+c.LATE}</strong> present / on time or late</p><p><strong>${c.TOTAL?Math.round((c.PRESENT+c.LATE)/c.TOTAL*100):0}%</strong> participation</p><p>Manual entries are stored separately from QR time-in data.</p></div>
+   <div class="manual-detail-card"><h4>Attendance totals</h4><p><strong>${c.PRESENT+c.LATE}</strong> present / on time or late</p><p><strong>${c.TOTAL?Math.round((c.PRESENT+c.LATE)/c.TOTAL*100):0}%</strong> participation</p><p>Accepted QR time-ins fill unmarked learners; manual corrections remain separate.</p></div>
    <div class="manual-detail-card"><h4>Class details</h4><p>${esc(state.period?.gradeLevel||'—')} · ${esc(state.period?.section||'—')}</p><p>${esc(state.period?.subjectName||'Class attendance')}</p><p>${esc(state.period?.startTime||'')}–${esc(state.period?.endTime||'')}</p></div>
    <div class="manual-detail-card"><h4>Legend</h4><p>✓ Present — attended on time</p><p>◷ Late — arrived after start</p><p>✕ Absent — did not attend</p><p>! Excused — officially excused</p></div>
    </div>`;
@@ -246,7 +248,7 @@ window.attendigoStaffIdentity.then(user => {
  if(el('mfSync'))el('mfSync').disabled=Boolean(state.finalized);
 }
  function changeClass(){
-   state.period=state.periods.find(p=>p.periodId===el('mfPeriod').value)||null;state.page=0;state.selected.clear();state.editingNoteId=null;draftLoad();state.synced={};state.finalized=false;state.noteItems=[];state.historyPage=0;state.historyLoadedFor=null;render();
+   state.period=state.periods.find(p=>p.periodId===el('mfPeriod').value)||null;state.page=0;state.selected.clear();state.editingNoteId=null;draftLoad();state.synced={};state.qrMarks={};state.finalized=false;state.noteItems=[];state.historyPage=0;state.historyLoadedFor=null;render();
    setSyncPill('local','Saved on device','Check this class draft against the school server before finalizing.');
    if(state.period){loadRemote();loadNotes();}
  }
@@ -257,6 +259,7 @@ window.attendigoStaffIdentity.then(user => {
      const d=await api('/api/manual-attendance?'+new URLSearchParams({periodId:requestPeriod,date:requestDate}));
      if(state.period?.periodId!==requestPeriod||state.date!==requestDate)return false;
      state.synced=Object.fromEntries((d.marks||[]).map(m=>[m.studentId,m]));
+      state.qrMarks=Object.fromEntries((d.qrMarks||[]).map(m=>[m.studentId,m]));
       state.finalized=Boolean(d.finalization?.finalized);
      for(const [id,m] of Object.entries(state.synced)){if(!state.marks[id])state.marks[id]={status:m.status,note:m.note||''}}
      render();notice('Saved records loaded. Local unsynced marks are retained.');
@@ -340,8 +343,19 @@ window.attendigoStaffIdentity.then(user => {
      try{const cached=JSON.parse(localStorage.getItem(rosterKey())||'{}');state.periods=cached.periods||[];state.students=cached.students||[];notice('Offline roster: local-only until connected. '+e.message,true)}
      catch{notice('Could not load classes: '+e.message,true)}
    }
-   el('mfPeriod').innerHTML=state.periods.length?state.periods.map(p=>`<option value="${esc(p.periodId)}">${esc(p.gradeLevel)} – ${esc(p.section)} · ${esc(p.subjectName||p.periodName||'Advisory')}</option>`).join(''):'<option value="">No assigned classes available</option>';
-   state.period=state.periods[0]||null;
+   // Default to the currently running period, while keeping every class today selectable.
+   const weekday=new Date(state.date+'T12:00:00+08:00').getUTCDay();
+   const minutes=t=>{const m=/^(\\d{1,2}):(\\d{2})/.exec(String(t||''));return m?Number(m[1])*60+Number(m[2]):null;};
+   const today=state.date===dateToday();
+   const now=minutes(new Intl.DateTimeFormat('en-GB',{timeZone:'Asia/Manila',hour:'2-digit',minute:'2-digit',hourCycle:'h23'}).format(new Date()));
+   const daily=state.periods.filter(p=>(!Array.isArray(p.weekdays)||!p.weekdays.length||p.weekdays.map(Number).includes(weekday))&&(!p.effectiveFrom||state.date>=p.effectiveFrom)&&(!p.effectiveTo||state.date<=p.effectiveTo))
+     .sort((a,b)=>(minutes(a.startTime)??1440)-(minutes(b.startTime)??1440));
+   const visible=daily.length?daily:state.periods;
+   const current=today?daily.find(p=>minutes(p.startTime)!==null&&minutes(p.endTime)!==null&&minutes(p.startTime)<=now&&now<minutes(p.endTime)):null;
+   const upcoming=today?daily.find(p=>minutes(p.startTime)>now):null;
+   state.period=current||upcoming||visible[0]||null;
+   el('mfPeriod').innerHTML=visible.length?visible.map(p=>`<option value="${esc(p.periodId)}">${esc(p.startTime||'')} · ${esc(p.gradeLevel)} – ${esc(p.section)} · ${esc(p.subjectName||p.periodName||'Advisory')}${current?.periodId===p.periodId?' (Current)':''}</option>`).join(''):'<option value="">No assigned classes available</option>';
+   if(state.period)el('mfPeriod').value=state.period.periodId;
    draftLoad();render();if(state.period&&navigator.onLine){loadRemote();loadNotes();}
  }
  host.addEventListener('click',event=>{
@@ -386,7 +400,7 @@ window.attendigoStaffIdentity.then(user => {
  });
  host.addEventListener('change',event=>{
    if(event.target.id==='mfPeriod')changeClass();
-   if(event.target.id==='mfDate'){state.date=event.target.value;changeClass()}
+   if(event.target.id==='mfDate'){state.date=event.target.value;initialize()}
    if(event.target.id==='mfSelectPage'){roster().slice(state.page*pageSize(),state.page*pageSize()+pageSize()).forEach(s=>event.target.checked?state.selected.add(s.studentId):state.selected.delete(s.studentId));renderRows()}
    if(event.target.id==='mfRosterView'){
      if(flipBusy){event.target.value=state.rosterView;return;}
