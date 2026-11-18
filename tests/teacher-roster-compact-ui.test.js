@@ -42,7 +42,7 @@ test('responsive teacher roster keeps grouped sex counts, readable cards and dar
   assert.match(style, /:focus-visible/);
 });
 test('PWA asset versions match the new styling and scripts', () => {
-  for (const asset of ['/teacher-learner-roster.css?v=4','/portal.js?v=190','/class-qr-dashboard-link.js?v=7','/teacher-roster-popover.js?v=2']) {
+  for (const asset of ['/teacher-learner-roster.css?v=4','/portal.js?v=191','/class-qr-dashboard-link.js?v=7','/teacher-roster-popover.js?v=2']) {
     assert.ok(page.includes(asset), asset+' included in portal');
     assert.ok(worker.includes(JSON.stringify(asset)), asset+' cached');
   }
@@ -63,7 +63,8 @@ test('four-column teacher table keeps guardian contact inside Actions, not the w
   assert.match(main, /teacher-directory-mode/);
   assert.match(main, /<div class="teacher-roster-quick-actions">/);
   assert.match(main, /data-label="Actions"/);
-  assert.match(main, /if \(canViewQr && !teacher\)/);
+  assert.match(main, /const adminQrAction = admin && canViewQr/);
+  assert.match(main, /QR images are loaded on demand from Actions/);
   assert.match(main, /async function openStudentQrPreview\(student\)/);
   assert.ok(!main.includes('<th>Manage</th><th>Parent / guardian</th>'));
   assert.match(style, /width:238px/);
