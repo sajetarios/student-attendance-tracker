@@ -22,7 +22,7 @@ document.addEventListener('keydown',e=>{if(e.key==='Escape'&&panel.classList.con
   }
   // Select the active scheduled class by default, while leaving the dropdown editable.
   const now=new Intl.DateTimeFormat('en-GB',{timeZone:'Asia/Manila',hour:'2-digit',minute:'2-digit',hourCycle:'h23'}).format(new Date());
-  const minutes=t=>{const m=/^(\\d{1,2}):(\\d{2})/.exec(String(t||''));return m?Number(m[1])*60+Number(m[2]):null;};
+  const minutes=t=>{const m=/^(\d{1,2}):(\d{2})/.exec(String(t||''));return m?Number(m[1])*60+Number(m[2]):null;};
   const minuteNow=minutes(now);
   const sorted=[...r.classes].sort((a,b)=>(minutes(a.startTime)??1440)-(minutes(b.startTime)??1440));
   const active=sorted.find(p=>minutes(p.startTime)!==null&&minutes(p.endTime)!==null&&minutes(p.startTime)<=minuteNow&&minuteNow<minutes(p.endTime));
