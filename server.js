@@ -34,6 +34,8 @@ const { registerPlatformBootstrapRoutes } = require('./platform-bootstrap-routes
 const { registerSchoolAdminRecoveryRoutes } = require('./school-admin-recovery-routes');
 const { registerFlexibleScheduleRoutes } = require('./flexible-schedule-routes');
 const { registerClassQrRoutes } = require('./class-qr-routes');
+const { registerStaffLunchRoutes } = require('./staff-lunch-routes');
+const { registerStaffGateDtrRoutes } = require('./staff-gate-dtr-routes');
 const { registerManualAttendanceRoutes } = require('./manual-attendance-routes');
 const { registerClassFinalizationRoutes } = require('./class-finalization-routes');
 const { registerSardoRoutes } = require('./sardo-routes');
@@ -115,6 +117,8 @@ registerPlatformBootstrapRoutes(app, pool);
 registerSchoolAdminRecoveryRoutes(app, pool, { authenticatePlatform, requirePlatformAdmin });
 registerFlexibleScheduleRoutes(app, pool, { authenticateSchoolClient, requireSchoolRoles });
 registerClassQrRoutes(app, pool, { authenticateSchoolClient, requireSchoolRoles });
+registerStaffLunchRoutes(app, pool, { authenticateSchoolClient, requireSchoolRoles });
+registerStaffGateDtrRoutes(app, pool, { authenticateSchoolClient, requireSchoolRoles });
 registerManualAttendanceRoutes(app, pool, { authenticateSchoolClient, requireSchoolRoles });
 registerClassFinalizationRoutes(app, pool, { authenticateSchoolClient, requireSchoolRoles });
 registerSardoRoutes(app, pool, { authenticateSchoolClient, requireSchoolRoles });

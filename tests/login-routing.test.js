@@ -32,10 +32,11 @@ test('login page and offline cache agree on fresh login assets', () => {
   const fs = require('node:fs');
   const html = fs.readFileSync('public/portal-login.html', 'utf8');
   const sw = fs.readFileSync('public/sw.js', 'utf8');
-  assert.ok(html.includes('src="/portal-login.js?v=9"'));
-  assert.ok(sw.includes('"/portal-login.js?v=9"'));
-  assert.ok(sw.includes('attendigo-v171-canonical-login-school-code'));
-  assert.ok(sw.includes("if (['/portal-login.js', '/login-routing.js'].includes(url.pathname))"));
+  const asset = html.match(new RegExp('src="(/portal-login[.]js[?]v=[0-9]+)"'));
+  assert.ok(asset, 'Login script must be versioned');
+  assert.ok(sw.includes(JSON.stringify(asset[1])), 'Cache must include live login script');
+  assert.ok(sw.includes('const CACHE = "attendigo-v'));
+  assert.ok(sw.includes("'/portal-login.js', '/login-routing.js'"));
   assert.ok(sw.includes("fetch(request, { cache: 'no-store' })"));
 });
 
