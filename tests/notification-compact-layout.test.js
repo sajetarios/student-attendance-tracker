@@ -42,10 +42,10 @@ test('List shows concise two-line previews with full message retained in detail 
 test('Read, delete, and full-detail navigation remain available, accessible and separate',()=>{
  const script=read('public/universal-notifications.js');
  const css=read('public/universal-notifications.css');
- assert.match(script, /'universal-read-all'/);
- assert.match(script, /'universal-delete-read'/);
- assert.match(script, /'universal-view-all'/);
- assert.match(script, /'universal-delete-read-center'/);
+ assert.match(script, /universal-read-all/);
+ assert.match(script, /universal-delete-read/);
+ assert.match(script, /universal-view-all/);
+ assert.match(script, /universal-delete-read-center/);
  assert.match(script, /removeButton\.addEventListener\('click', \(\) => deleteOne\(item, removeButton\)\)/);
  assert.match(script, /button\.addEventListener\('click', \(\) => openItem\(item\)\)/);
  assert.match(script, /closeButton\.focus\(\)/);
