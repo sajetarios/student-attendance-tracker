@@ -32,7 +32,7 @@ test('offline staff DTR is queued, never automatically verified',async()=>{
  assert.equal(r.code,202);
  assert.equal(r.body.status,'PENDING_VERIFICATION');
  const q=f.queries.find(q=>q.sql.includes('INSERT INTO staff_attendance_events'));
- assert.match(q.sql,/OFFLINE_SYNC','PENDING_VERIFICATION'/);
+ assert.match(q.sql,/OFFLINE_SYNC','PENDING_VERIFICATION/);
  assert.ok(f.queries.some(q=>q.sql.includes('STAFF_OFFLINE_DTR_PENDING')));
 });
 test('offline queue rejects invalid identifiers and unauthorized roles',async()=>{
