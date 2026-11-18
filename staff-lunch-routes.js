@@ -1,6 +1,7 @@
 'use strict';
 const { createLunchChallenge, validateLunchSlot, hashLunchChallenge, isLunchChallengeRedeemable } = require('./staff-lunch-challenge');
 const { randomUUID, timingSafeEqual } = require('node:crypto');
+const QRCode=require('qrcode');
 function manilaDate(now = new Date()) {
  const parts = new Intl.DateTimeFormat('en-CA', { timeZone:'Asia/Manila', year:'numeric',month:'2-digit',day:'2-digit' }).formatToParts(now);
  const p = Object.fromEntries(parts.map(x=>[x.type,x.value]));
@@ -150,6 +151,18 @@ function registerStaffLunchRoutes(app,pool,{authenticateSchoolClient,requireScho
    }
    const challenge=createLunchChallenge({slot});
    const id=randomUUID(),date=manilaDate();
+   // The bearer QR token lives solely in the QR image and presenter response.
+   // A fragment prevents it being sent in HTTP URLs, proxies and referrers.
+   const scanUrl='https://attendigo.tech/staff-lunch-checkin.html#'+
+     new URLSearchParams({id,token:challenge.token}).toString();
+   const qrImage=await QRCode.toDataURL(scanUrl,{
+     width:360,margin:2,errorCorrectionLevel:'M'
+   });
+   // Only the newest QR for a school, presenter, day and slot stays valid.
+   // The advisory lock above serializes this with reassignments and revocations.
+   await client.query(`UPDATE staff_attendance_challenges SET revoked_at=NOW()
+      WHERE school_id=$1 AND school_date=$2::date AND dtr_slot=$3
+        AND revoked_at IS NULL`,[req.auth.schoolId,date,slot]);
    await client.query(
     `INSERT INTO staff_attendance_challenges
      (challenge_id,school_id,presenter_user_id,dtr_slot,school_date,challenge_hash,issued_at,expires_at)
@@ -162,7 +175,7 @@ function registerStaffLunchRoutes(app,pool,{authenticateSchoolClient,requireScho
     [req.auth.schoolId,req.auth.userId,id,JSON.stringify({slot,date})]
    );
    await client.query('COMMIT');
-   return res.status(201).json({challengeId:id,token:challenge.token,slot,schoolDate:date,expiresAt:challenge.expiresAt});
+   return res.status(201).json({challengeId:id,token:challenge.token,qrImage,slot,schoolDate:date,expiresAt:challenge.expiresAt});
   } catch(error) {
    await client.query('ROLLBACK').catch(()=>{});
    console.error('Staff lunch challenge issue failed:',error.message);
