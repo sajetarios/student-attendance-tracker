@@ -13,7 +13,7 @@ function createAuthMiddleware(pool) {
   const staffBrowserMismatch=(req,token)=>staffBrowserToken(req)&&staffBrowserToken(req)!==token;
 
   async function authenticatePlatform(req, res, next) {
-    const token = bearerToken(req) || staffBrowserToken(req);
+    const token = staffBrowserToken(req) || bearerToken(req);
     if (!token || staffBrowserMismatch(req,token)) return res.status(401).json({ error: 'Platform authentication required.' });
     try {
       const result = await pool.query(
@@ -45,7 +45,7 @@ function createAuthMiddleware(pool) {
 
   async function authenticateSchoolClient(req, res, next) {
     const cookie=String(req.headers.cookie||'').split(';').map(x=>x.trim()).find(x=>x.startsWith('__Host-attendigo-student='));
-    const token = bearerToken(req) || staffBrowserToken(req) || (cookie ? cookie.slice('__Host-attendigo-student='.length) : '');
+    const token = staffBrowserToken(req) || (cookie ? cookie.slice('__Host-attendigo-student='.length) : '') || bearerToken(req);
     if (!token) return res.status(401).json({ error: 'Authentication required.' });
     const tokenHash = hashToken(token);
     try {
