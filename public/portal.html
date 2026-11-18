@@ -169,7 +169,7 @@
 <link rel="manifest" href="/manifest.webmanifest">
   <link rel="stylesheet" href="/attendigo-dark-unified.css?v=1">
   <link rel="stylesheet" href="/planner.css?v=3">
-  <link rel="stylesheet" href="/user-management-readability.css?v=4">
+  <link rel="stylesheet" href="/user-management-readability.css?v=5">
 <link rel="stylesheet" href="/user-nav-reorg.css?v=1">
 <link rel="stylesheet" href="/special-program-ui.css?v=5">
 <style id="school-logo-size-fix">
@@ -1769,7 +1769,7 @@ body.dark-mode .content-wrap > .school-heading.is-compact,body[data-theme="dark"
                 <div class="table-scroll"><table class="security-audit-table security-accounts-table"><colgroup><col style="width:17%"><col style="width:23%"><col style="width:10%"><col style="width:16%"><col style="width:10%"><col style="width:7%"><col style="width:17%"></colgroup><thead><tr><th>Employee</th><th>Role / department</th><th>Access status</th><th>Last sign-in</th><th>Failed attempts</th><th>Sessions</th><th>Security actions</th></tr></thead><tbody id="securityAccountsRows"><tr><td colspan="7" class="empty-cell">Open Account access to load staff security status.</td></tr></tbody></table></div>
               </div>
               <div class="section-toolbar security-audit-toolbar"><div><h4>Recent administrative activity</h4><p>Latest 50 recorded changes for this school. This is not a sign-in or failed-login history.</p></div><button type="button" class="outline-button" id="refreshSecurityAudit">↻ Refresh history</button></div>
-              <div class="table-scroll"><table class="security-audit-table"><thead><tr><th>Date and time</th><th>Action</th><th>Changed by</th><th>Record</th></tr></thead><tbody id="securityAuditRows"><tr><td colspan="4" class="empty-cell">Open Account access to load recent activity.</td></tr></tbody></table></div>
+              <div class="table-scroll security-audit-scroll" id="securityAuditScroll" role="region" aria-label="Recent administrative activity history, scroll to see more entries" tabindex="0"><table class="security-audit-table security-history-table"><thead><tr><th scope="col">Date and time</th><th scope="col">Action</th><th scope="col">Changed by</th><th scope="col">Record</th></tr></thead><tbody id="securityAuditRows"><tr><td colspan="4" class="empty-cell">Open Account access to load recent activity.</td></tr></tbody></table></div>
               <div class="form-actions"><button type="button" class="primary-button" id="openAccountStatusManager">Open user accounts</button></div>
             </section>
             <div class="temporary-password-overlay" id="temporaryPasswordModal" hidden>
