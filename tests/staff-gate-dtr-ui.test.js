@@ -52,7 +52,7 @@ test('personal DTR history rejects non-self queries and returns only verified fo
  const end=route.indexOf('// School Admin only:',start);
  assert.ok(start>0&&end>start,'History endpoint registered before admin routes');
  const block=route.slice(start,end);
- assert.match(block,/requireSchoolRoles\('TEACHER','SCHOOL_ADMIN'\)/);
+ assert.match(block,/requireSchoolRoles\('TEACHER','DEPARTMENT_HEAD','SCHOOL_ADMIN'\)/);
  assert.match(block,/school_id=\$1 AND staff_user_id=\$2/);
  assert.match(block,/req\.auth\.schoolId,req\.auth\.userId,from,to/);
  assert.match(block,/verification_status='VERIFIED'/);
