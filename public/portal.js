@@ -1845,8 +1845,14 @@ function coverageStatusLabel(status) {
     }
     $('studentScanNotice').hidden = false;
     showToast(user.role === 'GATE_KEEPER' ? `Verify photo: ${fullName}` : `QR scanned: ${fullName}`);
-    $('studentTimeIn').addEventListener('click', () => isTeacherPerson ? recordTeacherGatePunch('TIME_IN') : recordStudentPunch('TIME_IN'));
-    $('studentTimeOut').addEventListener('click', () => isTeacherPerson ? recordTeacherGatePunch('TIME_OUT') : recordStudentPunch('TIME_OUT'));
+    if (isTeacherPerson && user.role === 'GATE_KEEPER') {
+      $('studentTimeIn').textContent = 'Verify & Record Gate Event';
+      $('studentTimeOut').hidden = true;
+      $('studentTimeIn').addEventListener('click', recordTeacherAutomaticGatePunch);
+    } else {
+      $('studentTimeIn').addEventListener('click', () => isTeacherPerson ? recordTeacherGatePunch('TIME_IN') : recordStudentPunch('TIME_IN'));
+      $('studentTimeOut').addEventListener('click', () => isTeacherPerson ? recordTeacherGatePunch('TIME_OUT') : recordStudentPunch('TIME_OUT'));
+    }
     $('teacherDtrRecord')?.addEventListener('click', recordTeacherDtrSlot);
     $('studentPhotoVerified')?.addEventListener('change', event => {
       const verified = Boolean(event.target.checked);
@@ -1860,6 +1866,35 @@ function coverageStatusLabel(status) {
       $('studentScanFeedback').className = 'scanner-feedback'; $('studentScanFeedback').textContent = 'Ready for the next QR code.';
     });
     if (isTeacherPerson) scannedTeacher = person;
+  }
+
+  async function recordTeacherAutomaticGatePunch() {
+    if (user.role !== 'GATE_KEEPER' || !scannedTeacher?.qrToken) return;
+    if (!$('studentPhotoVerified')?.checked) {
+      showToast('Confirm that the displayed registered photo matches the staff member.', true);
+      return;
+    }
+    const button = $('studentTimeIn');
+    if (button) button.disabled = true;
+    try {
+      const result = await api('/api/gate/teacher-auto-event', {
+        method: 'POST',
+        body: JSON.stringify({ teacherQrToken: scannedTeacher.qrToken, photoVerified: true })
+      });
+      const name = scannedTeacher.fullName;
+      const label = result.event?.eventType === 'TIME_IN' ? 'time-in' : 'time-out';
+      $('studentScanFeedback').textContent = name + ': physical gate ' + label + ' recorded. Official DTR and OB remain separate.';
+      $('studentScanFeedback').className = 'scanner-feedback is-success';
+      showToast('GATE ATTENDANCE SAVED — ' + name + ' ' + label);
+      scannedTeacher = null;
+      $('studentScanNotice').hidden = true;
+      $('studentScanResult').hidden = true;
+    } catch (error) {
+      $('studentScanFeedback').textContent = error.message;
+      $('studentScanFeedback').className = 'scanner-feedback is-error';
+      showScanErrorModal(error.message, 'Gate attendance not recorded');
+      if (button) button.disabled = false;
+    }
   }
 
   async function recordTeacherGatePunch(eventType) {
