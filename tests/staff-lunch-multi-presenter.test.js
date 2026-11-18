@@ -17,7 +17,7 @@ test('School Admin can enumerate presenters but teachers receive only their own 
  assert.match(routes,/isCurrentPresenter:presenters\.some/);
  assert.match(routes,/req\.auth\.role==='SCHOOL_ADMIN'\?\{presenterUserId:.*?,presenters\}/);
 });
-test('presenter grants do not revoke other presenter's authorization',()=>{
+test("presenter grants do not revoke other presenters' authorization",()=>{
  assert.match(routes,/presenter_user_id=\$4 AND revoked_at IS NULL FOR UPDATE/);
  const grant=routes.slice(routes.indexOf("app.put('/api/staff-attendance/lunch/presenter'"),routes.indexOf("app.delete('/api/staff-attendance/lunch/presenter'"));
  assert.doesNotMatch(grant,/UPDATE staff_lunch_presenter_assignments SET revoked_at/);
