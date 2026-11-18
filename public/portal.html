@@ -437,6 +437,7 @@ body.dark-mode .content-wrap > .school-heading.is-compact,body[data-theme="dark"
           <button class="nav-group-toggle" type="button" data-nav-group="academics" aria-expanded="true" aria-controls="academicNavChildren" title="Expand or collapse academic navigation"><span class="nav-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 3h16v18H4zM8 7h8M8 11h8M8 15h5"/></svg></span><span class="nav-label" id="academicsGroupLabel">Academics</span><span class="nav-chevron">⌄</span></button>
           <div class="nav-submenu" id="academicNavChildren" data-submenu="academics">
             <a class="nav-item" id="classAttendanceNav" data-view="classAttendance" title="Class attendance" hidden href="/portal.html?view=classAttendance"><span class="nav-icon">▤</span><span class="nav-label">Class attendance</span></a>
+            <a class="nav-item" id="myGateAttendanceNav" data-view="myGateAttendance" title="My Gate Attendance" hidden href="/portal.html?view=myGateAttendance"><span class="nav-icon">◷</span><span class="nav-label">My Gate Attendance</span></a>
             <a class="nav-item" id="sf2Nav" data-view="sf2" title="SF2 Report Generator" href="/portal.html?view=sf2"><span class="nav-icon">▦</span><span class="nav-label">SF2 Report Generator</span></a>
             <a class="nav-item" id="plannerNav" data-view="planner" title="Planner" hidden href="/portal.html?view=planner"><span class="nav-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M7 2v6M17 2v6M3 10h18M8 15h3m4 0h2m-9 3h3"/></svg></span><span class="nav-label">Planner</span></a>
             <a class="nav-item" id="schedulesNav" data-view="schedules" title="Class schedules" href="/portal.html?view=schedules"><span class="nav-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="18" height="17" rx="2"/><path d="M16 2v4M8 2v4M3 9h18M7 13h3M7 17h6"/></svg></span><span class="nav-label">Class Schedules</span></a>
@@ -780,6 +781,30 @@ body.dark-mode .content-wrap > .school-heading.is-compact,body[data-theme="dark"
             </div>
           </section>
 
+          <section id="myGateAttendanceView" class="view-panel" hidden>
+            <div class="surface-card section-card my-gate-attendance">
+              <div class="section-toolbar">
+                <div><h2>My Gate Attendance</h2><p>Your own time-in and time-out recorded by the authorized Gate Keeper. This is not the student class register.</p></div>
+                <button type="button" class="outline-button" id="myGateRefresh">↻ Refresh</button>
+              </div>
+              <div class="my-gate-today" aria-label="Today's gate attendance">
+                <div class="my-gate-time"><span>Today's time in</span><strong id="myGateTimeIn">—</strong></div>
+                <div class="my-gate-time"><span>Today's time out</span><strong id="myGateTimeOut">—</strong></div>
+              </div>
+              <div class="my-gate-filters">
+                <label>From date<input type="date" id="myGateFrom"></label>
+                <label>To date<input type="date" id="myGateTo"></label>
+                <button type="button" class="primary-button" id="myGateApply">View attendance</button>
+              </div>
+              <p id="myGateFeedback" class="inline-feedback" role="status" aria-live="polite">Loading your gate attendance…</p>
+              <div class="table-scroll"><table class="monitoring-table my-gate-table">
+                <thead><tr><th>Date</th><th>Time in</th><th>Time out</th><th>Verification</th></tr></thead>
+                <tbody id="myGateRows"><tr><td colspan="4" class="empty-cell">No records loaded.</td></tr></tbody>
+              </table></div>
+              <p class="attendance-summary-note">Only Gate Keeper-verified badge scans appear here. Missing or incorrect entries should be reported to your School Administrator. Teachers cannot edit gate timestamps.</p>
+            </div>
+          </section>
+
           <section id="classAttendanceView" class="view-panel" hidden>
             <div id="manualFolio" class="manual-folio" hidden>
  <header class="manual-head"><div><h2>Class Attendance</h2><p>Interactive class register · flip a card to record attendance. Your entries save on this device and sync to school records when connected.</p></div>
@@ -795,7 +820,7 @@ body.dark-mode .content-wrap > .school-heading.is-compact,body[data-theme="dark"
  <div class="manual-book" id="mfBook">
  <section class="manual-page" id="mfSheet"><div class="manual-page-header"><div><h3>Interactive attendance sheet</h3><p>Choose one status per learner. Entries are saved automatically on this device.</p></div><div class="manual-page-nav"><button class="manual-btn" id="mfPrev" type="button" aria-label="Previous page">‹</button><span id="mfPageNum">Page 1 of 1</span><button class="manual-btn" id="mfNext" type="button" aria-label="Next page">›</button></div></div>
  <div class="manual-toolbar"><label><input id="mfSelectPage" type="checkbox"> Select page</label><strong id="mfSelectedCount" aria-live="polite">0 selected</strong><span>Select learners before applying a batch mark. Your selection is preserved across pages.</span></div>
- <div class="manual-table-wrap"><table class="manual-table"><thead><tr><th></th><th>Student Name</th><th>Attendance</th><th>Late / Excused</th><th>Notes</th></tr></thead><tbody id="mfRows"></tbody></table></div>
+ <div class="manual-table-wrap" role="region" aria-label="Scrollable learner attendance register" tabindex="0"><table class="manual-table"><thead><tr><th></th><th>Student Name</th><th>Attendance</th><th>Late / Excused</th><th>Notes</th></tr></thead><tbody id="mfRows"></tbody></table></div>
  <div class="manual-quick" aria-label="Batch attendance"><button type="button" class="manual-btn" data-batch="PRESENT">✓ Selected Present</button><button type="button" class="manual-btn" data-batch="LATE">◷ Selected Late</button><button type="button" class="manual-btn" data-batch="ABSENT">✕ Selected Absent</button><button type="button" class="manual-btn" data-batch="EXCUSED">! Selected Excused</button></div></section>
  <section class="manual-page" id="mfRight"><div class="manual-page-header"><h3>Attendance Details</h3><span class="manual-sync-note">Daily summary</span></div><div id="mfDetails"></div><div id="mfTeacherNotesWrap"><label for="mfTeacherNotes"><strong>Dated teacher notes</strong></label>
 <textarea id="mfTeacherNotes" maxlength="2000" placeholder="Teacher observations, reasons for absence, paper-sheet remarks…"></textarea>
