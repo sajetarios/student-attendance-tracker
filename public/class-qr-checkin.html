@@ -35,7 +35,7 @@
 <main>
 <h1>Class attendance</h1>
 <p id="intro">Checking your teacher's attendance method…</p>
-<form id="pinForm" hidden>
+<form id="pinForm" method="post" action="/api/class-qr/check-in/pin" hidden>
   <div class="qr-field"><label for="studentId">Student ID</label>
     <input id="studentId" name="studentId" required maxlength="160" autocomplete="username" placeholder="Enter your registered Student ID"></div>
   <div class="qr-field"><label for="attendancePin">Private six-digit Attendance PIN</label>
