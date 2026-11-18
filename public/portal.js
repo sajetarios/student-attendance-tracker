@@ -92,6 +92,8 @@ window.attendigoStaffIdentity = new Promise(resolve => { resolveStaffIdentity = 
     return data;
   }
 
+  // Shared static fallback, never persisted as a per-person database photo.
+  const defaultPhoto = '/assets/attendigo-sidebar-logo.png?v=2';
   async function photoDataUrl(photoUrl) {
     if (!photoUrl) return '';
     try {
@@ -1260,7 +1262,7 @@ function coverageStatusLabel(status) {
   }
 
   function makeQrCard(student, qrDataUrl, photoDataUrl) {
-    return `<article class="bulk-qr-card"><header>STUDENT IDENTIFICATION<br><small>SCHOOL ATTENDANCE</small></header><div class="bulk-qr-body">${photoDataUrl ? `<img class="bulk-qr-photo" src="${photoDataUrl}" alt="Student photo">` : '<div class="bulk-qr-photo bulk-qr-no-photo">PHOTO</div>'}<div class="bulk-qr-details"><strong>${esc(student.fullName || '')}</strong><span>Student ID: ${esc(student.studentId)}</span><span>${esc(student.gradeLevel)} · ${esc(student.section)}</span></div><img class="bulk-qr-code" src="${qrDataUrl}" alt="Student QR code"></div><footer>Present this QR code at the attendance station.</footer></article>`;
+    return `<article class="bulk-qr-card"><header>STUDENT IDENTIFICATION<br><small>SCHOOL ATTENDANCE</small></header><div class="bulk-qr-body">${photoDataUrl ? `<img class="bulk-qr-photo" src="${photoDataUrl}" alt="Student photo">` : `<img class="bulk-qr-photo" src="${defaultPhoto}" alt="Attendigo default logo — no student photo">`}<div class="bulk-qr-details"><strong>${esc(student.fullName || '')}</strong><span>Student ID: ${esc(student.studentId)}</span><span>${esc(student.gradeLevel)} · ${esc(student.section)}</span></div><img class="bulk-qr-code" src="${qrDataUrl}" alt="Student QR code"></div><footer>Present this QR code at the attendance station.</footer></article>`;
   }
 
   async function generateBulkQrCards() {
@@ -1453,7 +1455,7 @@ function coverageStatusLabel(status) {
     } else {
       const rows = await Promise.all(sortedRoster.map(async (student, index) => {
         const photo = departmentHead ? '' : await photoDataUrl(student.photoUrl);
-        const avatar = photo ? `<img class="student-photo-thumb" src="${photo}" alt="Student photo for ${esc(student.fullName)}" loading="lazy">` : `<span class="student-photo-placeholder no-photo" aria-label="${student.hasPhoto ? 'Photo file missing' : 'No photo uploaded'}" title="${student.hasPhoto ? 'The database has a photo path but the file is missing from storage. Restore the storage/student-photos folder or upload the photo again.' : 'No photo has been uploaded yet. An administrator or Class Adviser can upload the photo.'}">${student.hasPhoto ? 'Missing' : 'No photo'}</span>`;
+        const avatar = photo ? `<img class="student-photo-thumb" src="${photo}" alt="Student photo for ${esc(student.fullName)}" loading="lazy">` : `<img class="student-photo-thumb attendigo-default-photo" src="${defaultPhoto}" alt="Attendigo default profile logo" title="No student photo available" loading="lazy">`;
         let qr = '';
         if (canViewQr && !teacher) {
           qr = studentQrCache.get(student.studentId) || '';
@@ -1486,7 +1488,7 @@ function coverageStatusLabel(status) {
         if (teacher) {
           const teacherAvatar = photo
             ? `<img class="student-photo-thumb" src="${photo}" alt="Student photo for ${esc(student.fullName)}" loading="lazy">`
-            : `<span class="teacher-roster-initials" title="${student.hasPhoto ? 'Photo unavailable' : 'No learner photo uploaded'}" aria-label="${student.hasPhoto ? 'Photo unavailable' : 'No photo uploaded'}">${esc(teacherRosterInitials(student.fullName))}</span>`;
+            : `<img class="student-photo-thumb attendigo-default-photo" src="${defaultPhoto}" alt="Attendigo default profile logo" title="No student photo available" loading="lazy">`;
           const identity = `<div class="teacher-roster-identity">${teacherAvatar}<span class="teacher-roster-identity-copy"><strong>${ordinal}${esc(student.fullName)}</strong><small>${esc(student.studentId)}</small></span></div>`;
           const qrAction = canViewQr
             ? `<button type="button" class="student-qr-preview teacher-roster-qr" data-view-qr="${esc(student.studentId)}" aria-label="View QR code for ${esc(student.fullName)}" title="View or print learner QR"><span class="teacher-roster-qr-glyph" aria-hidden="true">▦</span><span>QR</span></button>`
@@ -1590,8 +1592,9 @@ function coverageStatusLabel(status) {
       $('studentQrPreviewName').textContent = student.fullName || '';
       $('studentQrPreviewMeta').textContent = `${student.studentId} · ${student.gradeLevel} · ${student.section}`;
       $('studentQrPreviewImage').src = qr;
-      $('studentQrPreviewPhoto').src = photo || '';
-      $('studentQrPreviewPhoto').hidden = !photo;
+      $('studentQrPreviewPhoto').src = photo || defaultPhoto;
+      $('studentQrPreviewPhoto').alt = photo ? 'Student photo' : 'Attendigo logo — student photo not uploaded';
+      $('studentQrPreviewPhoto').hidden = false;
       $('studentQrPreviewModal').hidden = false;
       $('studentQrPreviewPrint').onclick = () => printOneStudentCard(student);
     } catch (error) { showToast(error.message, true); }
@@ -1611,7 +1614,7 @@ function coverageStatusLabel(status) {
   }
 
   function makeStudentCardMarkup(student, qr, photo) {
-    return `<article class="bulk-qr-card"><header>STUDENT IDENTIFICATION<br><small>SCHOOL ATTENDANCE</small></header><div class="bulk-qr-body">${photo ? `<img class="bulk-qr-photo" src="${photo}" alt="Student photo">` : '<div class="bulk-qr-photo bulk-qr-no-photo">PHOTO</div>'}<div class="bulk-qr-details"><strong>${esc(student.fullName || '')}</strong><span>Student ID: ${esc(student.studentId)}</span><span>${esc(student.gradeLevel)} · ${esc(student.section)}</span></div><img class="bulk-qr-code" src="${qr}" alt="Student QR code"></div><footer>Present this QR code at the attendance station.</footer></article>`;
+    return `<article class="bulk-qr-card"><header>STUDENT IDENTIFICATION<br><small>SCHOOL ATTENDANCE</small></header><div class="bulk-qr-body">${photo ? `<img class="bulk-qr-photo" src="${photo}" alt="Student photo">` : `<img class="bulk-qr-photo" src="${defaultPhoto}" alt="Attendigo default logo — no student photo">`}<div class="bulk-qr-details"><strong>${esc(student.fullName || '')}</strong><span>Student ID: ${esc(student.studentId)}</span><span>${esc(student.gradeLevel)} · ${esc(student.section)}</span></div><img class="bulk-qr-code" src="${qr}" alt="Student QR code"></div><footer>Present this QR code at the attendance station.</footer></article>`;
   }
 
   function studentCardPrintCss() {
@@ -4309,7 +4312,7 @@ let teacherActionMenuListenersInstalled = false;
     if ($('userRole')) $('userRole').textContent = user.role.replaceAll('_', ' ');
     $('accountMenuName').textContent = user.displayName || user.username;
     $('accountMenuRole').textContent = user.role.replaceAll('_', ' ');
-    $('userAvatar').textContent = (user.displayName || user.username || 'U').trim().charAt(0).toUpperCase();
+    $('userAvatar').replaceChildren(Object.assign(document.createElement('img'), { src: defaultPhoto, alt: 'Attendigo default profile logo' }));
     window.ProfilePhotos?.mountSelf({token,role:user.role,container:'#accountProfileDialog',displayName:user.displayName||user.username});
     window.ProfilePhotos?.mountReviews({token,role:user.role,designations:user.teacherDesignations||[]});
     $('rolePill').textContent = user.role.replaceAll('_', ' ');
