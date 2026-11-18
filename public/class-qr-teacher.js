@@ -20,6 +20,15 @@ document.addEventListener('keydown',e=>{if(e.key==='Escape'&&panel.classList.con
    o.textContent=(p.subjectName||'Class')+' — '+p.gradeLevel+' '+p.section+' ('+p.startTime+'–'+p.endTime+')';
    $('period').append(o);
   }
+  // Select the active scheduled class by default, while leaving the dropdown editable.
+  const now=new Intl.DateTimeFormat('en-GB',{timeZone:'Asia/Manila',hour:'2-digit',minute:'2-digit',hourCycle:'h23'}).format(new Date());
+  const minutes=t=>{const m=/^(\\d{1,2}):(\\d{2})/.exec(String(t||''));return m?Number(m[1])*60+Number(m[2]):null;};
+  const minuteNow=minutes(now);
+  const sorted=[...r.classes].sort((a,b)=>(minutes(a.startTime)??1440)-(minutes(b.startTime)??1440));
+  const active=sorted.find(p=>minutes(p.startTime)!==null&&minutes(p.endTime)!==null&&minutes(p.startTime)<=minuteNow&&minuteNow<minutes(p.endTime));
+  const upcoming=sorted.find(p=>minutes(p.startTime)>minuteNow);
+  const defaultClass=active||upcoming||sorted[0];
+  if(defaultClass)$('period').value=defaultClass.periodId;
   if(!r.classes.length){
    $('start').disabled=true;
    $('notice').textContent='No class is assigned to you for today. Classes scheduled for other weekdays do not appear here.';
@@ -31,7 +40,7 @@ document.addEventListener('keydown',e=>{if(e.key==='Escape'&&panel.classList.con
     const when=new Date(next.date+'T12:00:00+08:00').toLocaleDateString('en-PH',{timeZone:'Asia/Manila',weekday:'long',month:'short',day:'numeric'});
     $('upcoming').textContent='Next assigned class: '+when+' — '+next.classes.map(p=>(p.subjectName||'Class')+' ('+p.startTime+'–'+p.endTime+')').join('; ')+'. QR sessions can only start during class hours.';
    }else $('upcoming').textContent='No assigned classes found in the next seven days. Ask the School Admin to check the teacher assignment, operating weekdays, and class schedule.';
-  }else $('notice').textContent='Choose your class. QR attendance can start only during its scheduled time.';
+  }else $('notice').textContent=active?'Current scheduled class selected. You may choose another assigned class from the dropdown.':'Choose an assigned class. QR attendance can start only during its scheduled time.';
  }catch(e){$('notice').textContent=e.message;}
 })();
 })();
