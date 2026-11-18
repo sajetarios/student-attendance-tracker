@@ -29,9 +29,10 @@ test('Batch tools are hidden for roles and filters without selectable learners',
 
 test('School Admin retains full roster, action controls and selected ID cards', () => {
   assert.match(portal, /selectHeader \+ '<th>Photo<\/th><th>Student ID<\/th>/);
-  assert.match(portal, /data-label="QR code"/);
+  assert.match(portal, /const adminQrAction = admin && canViewQr/);
   assert.match(portal, /data-label="Actions"/);
-  assert.match(portal, /data-label="Student account"/);
+  assert.doesNotMatch(portal, /data-label="Student account"/);
+  assert.doesNotMatch(portal, /data-label="QR code"/);
   assert.match(portal, /data-select-student/);
 });
 
