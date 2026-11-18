@@ -63,7 +63,7 @@ test('service worker preloads safe assets but excludes sensitive scan document f
  assert.match(sw,/staff-lunch-checkin\.html/);
  const shell=sw.split('const SHELL = [')[1].split('];')[0];
  assert.doesNotMatch(shell,/staff-lunch-checkin\.html/);
- assert.match(sw,/const CACHE = "attendigo-v200-/);
+ assert.match(sw,/const CACHE = "attendigo-v\d+-/);
 });
 
 test('staff lunch sign-in resumes same challenge without QR rescan or token in query',()=>{
