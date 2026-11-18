@@ -72,7 +72,7 @@ function redemptionFixture({role='TEACHER',school='school-a',tokenValid=true,dup
  const queries=[],routes=new Map();
  const pool={async connect(){return {async query(sql,params){
   queries.push({sql,params});
-  if(sql.includes('FROM staff_attendance_challenges'))return {rowCount:expired?0:1,rows:expired?[]:[{
+  if(sql.trimStart().startsWith('SELECT challenge_id,dtr_slot,school_date::text AS school_date,challenge_hash'))return {rowCount:expired?0:1,rows:expired?[]:[{
    challenge_id:challengeId,dtr_slot:'AM_OUT',school_date:manilaDate(),challenge_hash:challenge.challengeHash,
    issued_at:challenge.issuedAt,expires_at:challenge.expiresAt,revoked_at:null
   }]};
