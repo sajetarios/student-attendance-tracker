@@ -167,7 +167,9 @@ function registerAuthRoutes(app, pool) {
       const existingCookie=cookieToken(req);
       if(existingCookie){
         const active=await pool.query(`SELECT ss.student_account_id FROM student_sessions ss WHERE ss.token_hash=$1 AND ss.revoked_at IS NULL AND ss.expires_at>NOW() LIMIT 1`,[hashToken(existingCookie)]);
-        if(active.rowCount)return res.status(409).json({error:'A student is already signed in on this browser. Please sign out before switching accounts.',accountSwitchRequired:true});
+        if(active.rowCount && String(active.rows[0].student_account_id)!==String(account.student_account_id))
+          return res.status(409).json({error:'Another student is signed in on this browser. Sign out of that account to continue.',accountSwitchRequired:true});
+        if(active.rowCount)await pool.query('UPDATE student_sessions SET revoked_at=NOW() WHERE token_hash=$1 AND revoked_at IS NULL',[hashToken(existingCookie)]);
       }
       const token = createOpaqueToken();
       const expiresAt = new Date(Date.now() + studentSessionDays * 86400000);
