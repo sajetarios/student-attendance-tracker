@@ -85,10 +85,39 @@ function registerStaffObRoutes(app,pool,{authenticateSchoolClient,requireSchoolR
     const result=await client.query(`UPDATE staff_official_business_requests
       SET status=$4,admin_user_id=$3,admin_decided_at=NOW(),decision_note=$5
       WHERE school_id=$1 AND request_id=$2 AND status='PENDING_ADMIN'
-       AND staff_user_id<>$3 RETURNING request_id,status`,
+       AND staff_user_id<>$3 RETURNING request_id,status,staff_user_id,starts_at,ends_at`,
       [req.auth.schoolId,req.params.id,req.auth.userId,
        decision==='APPROVE'?'APPROVED':'REJECTED',note||null]);
     if(!result.rowCount){await client.query('ROLLBACK');return res.status(409).json({error:'Request not awaiting School Admin decision or self-approval prohibited.'});}
+    // Flag each affected class date without modifying the recurring timetable.
+    // Only the assigned regular teacher's active, weekday-matching periods are
+    // included; actual lesson-time overlap is checked in Asia/Manila.
+    if(decision==='APPROVE'){
+      const affected=await client.query(`
+       INSERT INTO staff_ob_class_coverage
+        (school_id,request_id,period_id,class_date,status)
+       SELECT $1,$2,p.period_id,days.class_date,'NEEDS_COVERAGE'
+       FROM staff_official_business_requests ob
+       JOIN LATERAL generate_series(
+        (ob.starts_at AT TIME ZONE 'Asia/Manila')::date,
+        (ob.ends_at AT TIME ZONE 'Asia/Manila')::date,
+        interval '1 day') AS days(class_date) ON TRUE
+       JOIN class_periods p ON p.school_id=ob.school_id AND p.active=TRUE
+        AND (p.effective_from IS NULL OR p.effective_from<=days.class_date)
+        AND (p.effective_to IS NULL OR p.effective_to>=days.class_date)
+       JOIN teacher_period_assignments ta ON ta.school_id=p.school_id
+        AND ta.period_id=p.period_id AND ta.teacher_user_id=ob.staff_user_id
+       JOIN class_period_days w ON w.school_id=p.school_id
+        AND w.period_id=p.period_id
+        AND w.weekday=EXTRACT(DOW FROM days.class_date)::int
+       WHERE ob.school_id=$1 AND ob.request_id=$2
+        AND (days.class_date+p.start_time) AT TIME ZONE 'Asia/Manila'<ob.ends_at
+        AND (days.class_date+p.end_time) AT TIME ZONE 'Asia/Manila'>ob.starts_at
+       ON CONFLICT(school_id,request_id,period_id,class_date) DO NOTHING
+       RETURNING coverage_id`,[req.auth.schoolId,req.params.id]);
+      await audit(client,req,'STAFF_OB_AFFECTED_CLASSES_FLAGGED',req.params.id,
+        {affectedClasses:affected.rowCount});
+    }
     await audit(client,req,decision==='APPROVE'?'STAFF_OB_APPROVED':'STAFF_OB_ADMIN_REJECTED',req.params.id,{note});
     await client.query('COMMIT');
     return res.json({requestId:req.params.id,status:result.rows[0].status});
