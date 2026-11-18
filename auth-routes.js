@@ -17,6 +17,11 @@ function registerAuthRoutes(app, pool) {
   const cookieOptions='Path=/; HttpOnly; Secure; SameSite=Lax';
   const cookieToken=req=>{const raw=String(req.headers.cookie||'').split(';').map(x=>x.trim()).find(x=>x.startsWith(studentCookie+'='));return raw?raw.slice(studentCookie.length+1):'';};
   function clearStudentCookie(res){res.setHeader('Set-Cookie',studentCookie+'=; '+cookieOptions+'; Max-Age=0');}
+  async function endStudentBrowserSession(req,res){
+    const token=cookieToken(req);
+    if(token)await pool.query('UPDATE student_sessions SET revoked_at=NOW() WHERE token_hash=$1 AND revoked_at IS NULL',[hashToken(token)]);
+    clearStudentCookie(res);
+  }
   const limitLoginAttempts = createIpRateLimiter({
     windowMs: 15 * 60 * 1000,
     maxRequests: 60,
@@ -98,6 +103,7 @@ function registerAuthRoutes(app, pool) {
          WHERE user_id=$1`,
         [user.user_id]
       );
+      await endStudentBrowserSession(req,res);
       const session = await issueSession({
         principalType: 'SCHOOL', schoolId: school.school_id, schoolUserId: user.user_id
       });
@@ -228,6 +234,7 @@ function registerAuthRoutes(app, pool) {
          WHERE user_id=$1`,
         [user.user_id]
       );
+      await endStudentBrowserSession(req,res);
       const session = await issueSession({ principalType: 'PLATFORM', platformUserId: user.user_id });
       return res.json({
         ...session,
@@ -326,7 +333,7 @@ function registerAuthRoutes(app, pool) {
   });
 
   app.get('/api/auth/me', async (req, res) => {
-    const token = cookieToken(req) || bearerToken(req);
+    const token = bearerToken(req) || cookieToken(req);
     if (!token) return res.status(401).json({ error: 'Authentication required.' });
     try {
       const tokenHash = hashToken(token);
