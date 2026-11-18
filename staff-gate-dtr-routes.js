@@ -87,6 +87,39 @@ function registerStaffGateDtrRoutes(app,pool,{authenticateSchoolClient,requireSc
   }catch(err){console.error('Staff DTR personal read:',err.message);return res.status(503).json({error:'DTR records unavailable.'});}
  });
 
+
+ // Read-only, self-scoped range of verified Form 48 entries for one attendance timeline.
+ // Gate scans remain independent and are never copied into DTR entries.
+ app.get('/api/staff-attendance/my/dtr-history',authenticateSchoolClient,
+  requireSchoolRoles('TEACHER','SCHOOL_ADMIN'),async(req,res)=>{
+  res.set('Cache-Control','no-store, private');
+  const from=String(req.query?.from||manilaDate()),to=String(req.query?.to||manilaDate());
+  const validDate=value=>{
+   if(!/^\\d{4}-\\d{2}-\\d{2}$/.test(value))return false;
+   const parsed=new Date(value+'T00:00:00Z');
+   return !Number.isNaN(parsed.getTime())&&parsed.toISOString().slice(0,10)===value;
+  };
+  if(!validDate(from)||!validDate(to)||from>to||
+      Date.parse(to+'T00:00:00Z')-Date.parse(from+'T00:00:00Z')>31*86400000)
+   return res.status(400).json({error:'Choose a valid date range of up to 31 days.'});
+  try{
+   const result=await pool.query(
+    `SELECT to_char(school_date,'YYYY-MM-DD') AS "schoolDate",
+       dtr_slot AS "slot",occurred_at AS "occurredAt",
+       source,verification_method AS "verificationMethod"
+     FROM staff_attendance_events
+     WHERE school_id=$1 AND staff_user_id=$2
+       AND school_date BETWEEN $3::date AND $4::date
+       AND event_kind='DTR_SLOT' AND verification_status='VERIFIED'
+     ORDER BY school_date DESC,occurred_at ASC`,
+    [req.auth.schoolId,req.auth.userId,from,to]);
+   return res.json({from,to,events:result.rows});
+  }catch(err){
+   console.error('Personal DTR history:',err.message);
+   return res.status(503).json({error:'Verified DTR history unavailable.'});
+  }
+ });
+
  // School Admin only: staff roster and verified monthly Form 48 reporting.
  // Never infer or backfill missing punches from gate movements or sign-in events.
  app.get('/api/staff-attendance/admin/form48/employees',authenticateSchoolClient,
