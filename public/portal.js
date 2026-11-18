@@ -275,7 +275,7 @@ window.attendigoStaffIdentity = new Promise(resolve => { resolveStaffIdentity = 
         tab.tabIndex = active ? 0 : -1;
       });
     }
-    ['dashboard', 'students', 'studentAccounts', 'parents', 'schedules', 'teachers', 'sf2', 'classAttendance', 'myGateAttendance', 'lunchQrAdmin', 'form48Reports', 'officialBusiness', 'cloudSync', 'schoolBranding', 'planner'].forEach(name => {
+    ['dashboard', 'students', 'studentAccounts', 'parents', 'schedules', 'teachers', 'sf2', 'classAttendance', 'myGateAttendance', 'lunchQrAdmin', 'teacherLunchQr', 'form48Reports', 'officialBusiness', 'cloudSync', 'schoolBranding', 'planner'].forEach(name => {
       const panel = $(`${name}View`);
       if (panel) panel.hidden = name !== view;
     });

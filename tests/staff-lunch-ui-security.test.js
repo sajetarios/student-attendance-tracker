@@ -45,6 +45,11 @@ test('admin and teacher interfaces remain isolated to existing role-specific por
  assert.match(portal,/staff-lunch-ui\.js\?v=3/);
  assert.match(portal,/staff-lunch\.css\?v=3/);
 });
+test('My lunch QR is unhidden by the role-aware portal view switch',()=>{
+ const portalJs=read('public/portal.js');
+ assert.match(portalJs,/['\"]lunchQrAdmin['\"], ['\"]teacherLunchQr['\"], ['\"]form48Reports['\"]/);
+ assert.match(portal,/<section id="teacherLunchQrView" class="view-panel" hidden>/);
+});
 test('QR scan does not log in or record until authenticated staff confirms explicitly',()=>{
  assert.match(page,/name="referrer" content="no-referrer"/);
  assert.match(page,/name="robots" content="noindex,nofollow,noarchive"/);
