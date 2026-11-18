@@ -148,7 +148,7 @@ test('substitute choices are restricted to approved uncovered classes and active
  const url='/api/staff-attendance/official-business/:id/coverage/:coverageId/substitutes';
  assert.equal((await f.call('GET',url,{}, {id,coverageId})).code,200);
  const sql=f.queries[0];
- assert.match(sql.sql,/o.department_id=\\$4/);
+ assert.ok(sql.sql.includes('o.department_id=$4'));
  assert.match(sql.sql,/u.role='TEACHER' AND u.active=TRUE/);
  assert.match(sql.sql,/c.status='NEEDS_COVERAGE'/);
  assert.match(sql.sql,/o.status='APPROVED'/);
