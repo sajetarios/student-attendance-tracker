@@ -111,7 +111,7 @@ test('collapsed desktop sidebar hides nested icons and expands when a group is s
  assert.match(css,/display:none!important/);
  assert.match(source,/sidebar\.addEventListener\?\.\('click'/);
  assert.match(source,/classList\.remove\('sidebar-collapsed'\)/);
- assert.match(html,/attendigo-sidebar-adaptive\.css\?v=18/);
+ assert.match(html,/attendigo-sidebar-adaptive\.css\?v=19/);
  assert.match(worker,/attendigo-sidebar-adaptive\.js\?v=9/);
 });
 
@@ -125,8 +125,8 @@ test('tablet drawer never inherits collapsed rail labels or centered item alignm
  assert.match(css, /@media\(max-width:860px\)[\s\S]*?sidebar-collapsed #sidebar\.sidebar :is\(\.nav-label,\.nav-chevron\)/);
  assert.match(css, /justify-content:flex-start!important/);
  assert.match(css, /nav-submenu:not\(\[hidden\]\)/);
- assert.ok(html.includes('attendigo-sidebar-adaptive.css?v=18'));
- assert.ok(worker.includes('attendigo-sidebar-adaptive.css?v=18'));
+ assert.ok(html.includes('attendigo-sidebar-adaptive.css?v=19'));
+ assert.ok(worker.includes('attendigo-sidebar-adaptive.css?v=19'));
 });
 
 test('expanded staff navigation is default, with accessible labeled desktop menus',()=>{
@@ -137,5 +137,5 @@ test('expanded staff navigation is default, with accessible labeled desktop menu
  assert.match(css,/grid-template-columns:64px minmax\(0,1fr\)!important/);
  assert.match(css,/sidebar\.sidebar \.nav-item\.active/);
  assert.ok(worker.includes('/attendigo-sidebar-adaptive.css?v=19'));
- assert.ok(html.includes('/portal.js?v=188'));
+ assert.ok(html.includes('/portal.js?v=198'));
 });
