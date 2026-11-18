@@ -324,7 +324,7 @@ window.attendigoStaffIdentity = new Promise(resolve => { resolveStaffIdentity = 
         schedules: ['My teaching and advisory schedules', 'View your assigned teaching periods, active substitute assignments, and advisory class timetable.'],
         sf2: [classAdviser && subjectTeacher ? 'My SF2 reports' : classAdviser ? 'Official section SF2' : 'Personal SF2 copy', classAdviser ? 'Generate the official consolidated section SF2 only for sections assigned to you as Class Adviser.' : 'Generate a personal attendance copy from your own subject-period records.'],
         teacherLunchQr: ['My lunch QR', 'Generate your assigned rotating lunch QR; staff attendance is recorded only after individual confirmation.'],
-        myGateAttendance: ['My Staff Attendance', 'Review verified Form 48 punches and photo-verified gate scans together.'],
+        myGateAttendance: ['My Attendance', 'Review verified Form 48 punches and photo-verified gate scans together.'],
         officialBusiness: ['Official Business', 'Submit an OB request and follow Department Head recommendation and School Admin approval.'],
         classAttendance: ['Class attendance', classAdviser && subjectTeacher ? 'Review your advisory section and the other sections covered by your assigned subject schedules.' : classAdviser ? 'Review attendance for your assigned advisory section.' : 'Review attendance in the sections covered by your assigned subject schedules.']
       };
@@ -342,7 +342,7 @@ window.attendigoStaffIdentity = new Promise(resolve => { resolveStaffIdentity = 
         lunchQrAdmin: ['Lunch QR management', 'Assign authorized lunch QR presenters without changing teacher account access.'],
         form48Reports: ['Form 48 DTR reports', 'Preview and print the verified monthly Daily Time Record for a selected staff member.'],
         officialBusiness: ['Official Business', 'Review final OB approvals and monitor requests across the school.'],
-        myGateAttendance: ['My Staff Attendance', 'View your own Gatekeeper-verified physical movements and four-slot Form 48 DTR. Administrative login does not record attendance.']
+        myGateAttendance: ['My Attendance', 'View your own Gatekeeper-verified physical movements and four-slot Form 48 DTR. Administrative login does not record attendance.']
       };
     }
     const title = titles[view] || ['Dashboard', 'Attendance overview.'];
@@ -437,6 +437,8 @@ window.attendigoStaffIdentity = new Promise(resolve => { resolveStaffIdentity = 
 
   function applyRoleNavigation() {
     const role = user?.role;
+    // Presentation state only; never used to grant permissions.
+    document.querySelector('.portal-layout')?.setAttribute('data-attendigo-role', role || '');
     const admin = role === 'SCHOOL_ADMIN';
     const teacher = role === 'TEACHER';
     if ($('cloudSyncNav')) $('cloudSyncNav').hidden = !admin;
@@ -492,10 +494,10 @@ window.attendigoStaffIdentity = new Promise(resolve => { resolveStaffIdentity = 
     if ($('teacherLunchQrNav')) $('teacherLunchQrNav').hidden = !teacher;
     if ($('myGateAttendanceNav')) {
       $('myGateAttendanceNav').hidden = !(teacher || admin);
-      $('myGateAttendanceNav').querySelector('.nav-label').textContent = 'My Staff Attendance';
+      $('myGateAttendanceNav').querySelector('.nav-label').textContent = 'My Attendance';
     }
     if ($('adminStaffBadgeCard')) $('adminStaffBadgeCard').hidden = !(admin || teacher);
-    if ($('myGateHeading')) $('myGateHeading').textContent = 'My Staff Attendance';
+    if ($('myGateHeading')) $('myGateHeading').textContent = 'My Attendance';
     if ($('myGateIntro')) $('myGateIntro').textContent = admin
       ? 'Your personal, verified staff attendance. Sign-in to this portal does not mark you present.'
       : 'Review your official Form 48 punches alongside your verified physical gate scans.';
@@ -640,9 +642,9 @@ window.attendigoStaffIdentity = new Promise(resolve => { resolveStaffIdentity = 
     if (academicsGroup) academicsGroup.hidden = Boolean($('sf2Nav')?.hidden && $('schedulesNav')?.hidden && $('cloudSyncNav')?.hidden && $('schoolBrandingNav')?.hidden);
     // Use role-specific navigation names without changing existing routes or access rules.
     if ($('peopleGroupLabel')) $('peopleGroupLabel').textContent =
-      departmentHead ? 'My Department' : teacher ? 'My Classes' : 'Student Records';
+      departmentHead ? 'My Department' : teacher ? 'Teaching & Classes' : 'Student Records';
     if ($('academicsGroupLabel')) $('academicsGroupLabel').textContent =
-      departmentHead ? 'Schedules & Monitoring' : teacher ? 'Attendance & Planning' : 'Academic Management';
+      departmentHead ? 'Schedules & Monitoring' : teacher ? 'Planning' : 'Academic Management';
     if (departmentHead) {
       if ($('studentsNav')) $('studentsNav').querySelector('.nav-label').textContent = 'Department Students';
       if ($('teachersNav')) $('teachersNav').querySelector('.nav-label').textContent = 'Department Teachers';
@@ -687,8 +689,27 @@ window.attendigoStaffIdentity = new Promise(resolve => { resolveStaffIdentity = 
       relocate('cloudSyncNav', 'operations');
       relocate('smsNav', 'operations');
       relocate('schoolBrandingNav', 'settings');
-    } else if (teacher || departmentHead) {
+    } else if (teacher) {
+      // Move the existing authorized links, preserving hrefs, element IDs,
+      // event handlers and server-side role/assignment checks.
+      relocate('classAttendanceNav', 'people');
+      relocate('schedulesNav', 'people');
+      relocate('myGateAttendanceNav', 'personalAttendance');
+      relocate('officialBusinessNav', 'personalAttendance');
+      relocate('teacherLunchQrNav', 'personalAttendance');
       relocate('sf2Nav', 'reports');
+    } else if (departmentHead) {
+      relocate('sf2Nav', 'reports');
+    }
+    // Visibility is recalculated AFTER relocation, including planner-only teachers.
+    for (const group of ['people','academics','personalAttendance','operations','reports','settings']) {
+      const toggle = document.querySelector('[data-nav-group="' + group + '"]');
+      const submenu = document.querySelector('[data-submenu="' + group + '"]');
+      const wrapper = toggle?.closest('.nav-group');
+      if (wrapper && submenu && group !== 'operations' && group !== 'reports' && group !== 'settings') {
+        wrapper.hidden = group === 'personalAttendance' && !teacher ||
+          !Array.from(submenu.children).some(item => !item.hidden);
+      }
     }
     ['operations', 'reports', 'settings'].forEach(group => {
       const container = document.getElementById(group + 'NavGroup');
