@@ -98,7 +98,7 @@ test('sidebar sync shortcut is removed, while topbar Sync Center and offline syn
  assert.ok(!html.includes('Connected to local server'));
 });
 test('the service worker caches the deployed variants and correct versioned sidebar assets',()=>{
- const assets=['/attendigo-sidebar-adaptive.css?v=17','/attendigo-sidebar-adaptive.js?v=9',
+ const assets=['/attendigo-sidebar-adaptive.css?v=18','/attendigo-sidebar-adaptive.js?v=9',
  '/attendigo-brand-refresh.css?v=3','/assets/attendigo-wordmark-on-light.svg?v=2',
  '/assets/attendigo-wordmark-on-dark.svg?v=2','/assets/attendigo-symbol-transparent.svg?v=2'];
  for(const asset of assets)assert.ok(worker.includes(JSON.stringify(asset)),asset);
@@ -117,14 +117,25 @@ test('collapsed desktop sidebar hides nested icons and expands when a group is s
 
 test('desktop sidebar migration keeps a labeled default with compact uniform icons',()=>{
  assert.match(css,/side-primary-height:44px/);
- assert.ok(html.includes('/attendigo-sidebar-adaptive.css?v=17'));
- assert.ok(worker.includes('/attendigo-sidebar-adaptive.css?v=17'));
+ assert.ok(html.includes('/attendigo-sidebar-adaptive.css?v=18'));
+ assert.ok(worker.includes('/attendigo-sidebar-adaptive.css?v=18'));
 });
 
 test('tablet drawer never inherits collapsed rail labels or centered item alignment',()=>{
  assert.match(css, /@media\(max-width:860px\)[\s\S]*?sidebar-collapsed #sidebar\.sidebar :is\(\.nav-label,\.nav-chevron\)/);
  assert.match(css, /justify-content:flex-start!important/);
  assert.match(css, /nav-submenu:not\(\[hidden\]\)/);
- assert.ok(html.includes('attendigo-sidebar-adaptive.css?v=17'));
- assert.ok(worker.includes('attendigo-sidebar-adaptive.css?v=17'));
+ assert.ok(html.includes('attendigo-sidebar-adaptive.css?v=18'));
+ assert.ok(worker.includes('attendigo-sidebar-adaptive.css?v=18'));
+});
+
+test('expanded staff navigation is default, with accessible labeled desktop menus',()=>{
+ const portal=fs.readFileSync('public/portal.js','utf8');
+ assert.match(portal,/setSidebarCollapsed\(false\);/);
+ assert.doesNotMatch(portal,/localStorage\.getItem\('attendance-sidebar-collapsed-v2'\)/);
+ assert.match(css,/grid-template-columns:244px minmax\(0,1fr\)!important/);
+ assert.match(css,/grid-template-columns:64px minmax\(0,1fr\)!important/);
+ assert.match(css,/sidebar\.sidebar \.nav-item\.active/);
+ assert.ok(worker.includes('/attendigo-sidebar-adaptive.css?v=18'));
+ assert.ok(html.includes('/portal.js?v=188'));
 });
