@@ -1836,14 +1836,14 @@ function coverageStatusLabel(status) {
       : '';
     const initiallyDisabled = user.role === 'GATE_KEEPER' ? 'disabled' : '';
     const dtrMarkup = isTeacherPerson && user.role === 'GATE_KEEPER'
-      ? `<div class="student-scan-buttons" role="group" aria-label="Form 48 teacher DTR">
+      ? `<details class="gate-dtr-fallback"><summary>Manual DTR fallback (authorized use)</summary><div class="student-scan-buttons" role="group" aria-label="Form 48 teacher DTR">
           <label for="teacherDtrSlot">Daily time record</label>
           <select id="teacherDtrSlot" aria-label="Choose teacher DTR slot">
             <option value="AM_IN">AM In</option><option value="AM_OUT">AM Out</option>
             <option value="PM_IN">PM In</option><option value="PM_OUT">PM Out</option>
           </select>
           <button type="button" class="primary-button" id="teacherDtrRecord" disabled>Record verified DTR</button>
-        </div><p class="attendance-summary-note">Form 48 DTR is separate from physical gate time-in/time-out.</p>`
+        </div><p class="attendance-summary-note">Form 48 DTR is separate from physical gate movements. Use this fallback only for an authorized DTR entry.</p></details>`
       : '';
     $('studentScanResult').hidden = false;
     const subjectLabel = isTeacherPerson ? 'teacher' : 'learner';
@@ -1866,8 +1866,15 @@ function coverageStatusLabel(status) {
     }
     $('studentScanNotice').hidden = false;
     showToast(user.role === 'GATE_KEEPER' ? `Verify photo: ${fullName}` : `QR scanned: ${fullName}`);
-    $('studentTimeIn').addEventListener('click', () => isTeacherPerson ? recordTeacherGatePunch('TIME_IN') : recordStudentPunch('TIME_IN'));
-    $('studentTimeOut').addEventListener('click', () => isTeacherPerson ? recordTeacherGatePunch('TIME_OUT') : recordStudentPunch('TIME_OUT'));
+    if (user.role === 'GATE_KEEPER') {
+      $('studentTimeIn').textContent = 'Verify & Record';
+      $('studentTimeOut').hidden = true;
+      $('studentTimeIn').addEventListener('click',
+        isTeacherPerson ? recordTeacherAutomaticGatePunch : recordStudentAutomaticGatePunch);
+    } else {
+      $('studentTimeIn').addEventListener('click', () => isTeacherPerson ? recordTeacherGatePunch('TIME_IN') : recordStudentPunch('TIME_IN'));
+      $('studentTimeOut').addEventListener('click', () => isTeacherPerson ? recordTeacherGatePunch('TIME_OUT') : recordStudentPunch('TIME_OUT'));
+    }
     $('teacherDtrRecord')?.addEventListener('click', recordTeacherDtrSlot);
     $('studentPhotoVerified')?.addEventListener('change', event => {
       const verified = Boolean(event.target.checked);
@@ -1881,6 +1888,38 @@ function coverageStatusLabel(status) {
       $('studentScanFeedback').className = 'scanner-feedback'; $('studentScanFeedback').textContent = 'Ready for the next QR code.';
     });
     if (isTeacherPerson) scannedTeacher = person;
+  }
+
+  async function recordTeacherAutomaticGatePunch() {
+    if (user.role !== 'GATE_KEEPER' || !scannedTeacher?.qrToken) return;
+    if (!$('studentPhotoVerified')?.checked) {
+      showToast('Confirm that the displayed registered photo matches the staff member.', true);
+      return;
+    }
+    const button = $('studentTimeIn');
+    if (button) button.disabled = true;
+    const scan=scannedTeacher;
+    scan.autoEventId=scan.autoEventId||crypto.randomUUID();
+    try {
+      const result = await api('/api/gate/teacher-auto-event', {
+        method: 'POST',
+        body: JSON.stringify({ teacherQrToken: scan.qrToken, photoVerified: true,
+          clientEventKey:scan.autoEventId })
+      });
+      const name = scannedTeacher.fullName;
+      const label = result.event?.eventType === 'TIME_IN' ? 'time-in' : 'time-out';
+      $('studentScanFeedback').textContent = name + ': physical gate ' + label + ' recorded. Official DTR and OB remain separate.';
+      $('studentScanFeedback').className = 'scanner-feedback is-success';
+      showToast('GATE ATTENDANCE SAVED — ' + name + ' ' + label);
+      scannedTeacher = null;
+      $('studentScanNotice').hidden = true;
+      $('studentScanResult').hidden = true;
+    } catch (error) {
+      $('studentScanFeedback').textContent = error.message;
+      $('studentScanFeedback').className = 'scanner-feedback is-error';
+      showScanErrorModal(error.message, 'Gate attendance not recorded');
+      if (button) button.disabled = false;
+    }
   }
 
   async function recordTeacherGatePunch(eventType) {
@@ -1943,6 +1982,5036 @@ function coverageStatusLabel(status) {
 
   function schoolDateManila(date = new Date()) {
     return new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Manila', year: 'numeric', month: '2-digit', day: '2-digit' }).format(date);
+  }
+
+  async function recordStudentPunch(eventType) {
+    if (!scannedStudent) return;
+    if (user.role === 'GATE_KEEPER' && !$('studentPhotoVerified')?.checked) {
+      showToast('Confirm that the registered photo matches the learner before recording attendance.', true);
+      return;
+    }
+    if (!['TEACHER', 'GATE_KEEPER'].includes(user.role)) {
+      showToast('Only a Gate Keeper or a designated teacher may record attendance from this scanner.', true);
+      return;
+    }
+    const scope = user.role === 'TEACHER' ? activeScanScope : 'SCHOOL';
+    const periodId = scope === 'CLASS' ? activeScanPeriodId : null;
+    if (scope === 'CLASS' && !periodId) {
+      showToast('Select the assigned class or subject before scanning.', true);
+      $('studentScanSetupModal').hidden = false;
+      return;
+    }
+    const event = { eventId: crypto.randomUUID(), studentId: scannedStudent.studentId, eventType, occurredAt: new Date().toISOString(), schoolDate: schoolDateManila(), attendanceScope: scope, periodId, deviceId: `PORTAL-${user.userId || user.username || 'USER'}`, metadata: { source: 'management-portal-student-scanner', ...(user.role === 'GATE_KEEPER' ? { photoVerified: true } : {}) } };
+    try {
+      const submission = window.AttendigoOffline
+        ? await window.AttendigoOffline.record(event, api)
+        : { status: 'SYNCED', result: await api('/api/sync/events', { method: 'POST', body: JSON.stringify({ events: [event] }) }) };
+      if (submission.status === 'PENDING') {
+        $('studentScanFeedback').textContent = scannedStudent.fullName + ': saved on this device only. Will sync when connected.';
+        $('studentScanFeedback').className = 'scanner-feedback';
+        showToast('OFFLINE — Attendance queued on this device. Not yet on the server.');
+        scannedStudent = null; scannedTeacher = null;
+        $('studentScanNotice').hidden = true; $('studentScanResult').hidden = true;
+        return;
+      }
+      const result = submission.result;
+      const status = result.results?.[0]?.status;
+      if (status !== 'ACCEPTED' && status !== 'ALREADY_SYNCED') throw new Error(result.results?.[0]?.reason || `Attendance was not accepted (${status || 'unknown'}).`);
+      const savedName = scannedStudent.fullName;
+      const savedMessage = `${savedName}: ${eventType.replace('_', ' ')} recorded${result.results[0].late ? ' (LATE)' : ''}.`;
+      $('studentScanFeedback').textContent = savedMessage;
+      $('studentScanFeedback').className = 'scanner-feedback is-success';
+      showToast(`ATTENDANCE SAVED — ${savedMessage}`);
+      scannedStudent = null; scannedTeacher = null;
+      $('studentScanNotice').hidden = true;
+      $('studentScanResult').hidden = true;
+    } catch (error) {
+      showToast(error.message, true);
+      $('studentScanFeedback').textContent = error.message;
+      $('studentScanFeedback').className = 'scanner-feedback is-error';
+      showScanErrorModal(error.message);
+    }
+  }
+
+  function scheduleWeekDates(value) {
+    const date=new Date((/^\d{4}-\d{2}-\d{2}$/.test(value||'')?value:dataSchoolDate())+'T00:00:00Z');
+    date.setUTCDate(date.getUTCDate()-(date.getUTCDay()+6)%7);
+    return Array.from({length:7},(_,index)=>{
+      const d=new Date(date);d.setUTCDate(date.getUTCDate()+index);
+      return d.toISOString().slice(0,10);
+    });
+  }
+  function scheduleDateOverride(periodId,date) {
+    return scheduleAdjustments.find(a=>String(a.periodId)===String(periodId)&&a.date===date)||null;
+  }
+  function scheduleOnDay(period,date) {
+    if(period.effectiveFrom&&String(period.effectiveFrom).slice(0,10)>date)return null;
+    if(period.effectiveTo&&String(period.effectiveTo).slice(0,10)<date)return null;
+    if(!Array.isArray(period.weekdays)||!period.weekdays.map(Number).includes(new Date(date+'T00:00:00Z').getUTCDay()))return null;
+    const a=scheduleDateOverride(period.periodId,date);
+    return a?{...period,dayDate:date,adjustment:a,cancelled:a.type==='CANCEL',
+      startTime:a.startTime||period.startTime,endTime:a.endTime||period.endTime,
+      subjectName:a.subjectName||period.subjectName,
+      assignedTeacherName:a.teacherName||period.assignedTeacherName,
+      classroom:a.classroom==null?period.classroom:a.classroom}
+      :{...period,dayDate:date,adjustment:null,cancelled:false};
+  }
+  async function loadScheduleAdjustments() {
+    if(!['SCHOOL_ADMIN','DEPARTMENT_HEAD','TEACHER'].includes(user?.role))return;
+    const week=scheduleWeekDates($('weeklyScheduleAsOf')?.value);
+    try {
+      const result=await api('/api/schedule-adjustments?from='+encodeURIComponent(week[0])+'&to='+encodeURIComponent(week[6]));
+      scheduleAdjustments=result.adjustments||[];
+      renderAdjustmentList();
+    }catch(error){
+      scheduleAdjustments=[];
+      if($('datedScheduleList'))$('datedScheduleList').textContent=error.message;
+    }
+    renderWeeklyTimetable();
+  }
+  function renderAdjustmentList() {
+    const list=$('datedScheduleList');
+    if(!list)return;
+    const manager=['SCHOOL_ADMIN','DEPARTMENT_HEAD'].includes(user.role);
+    const rows=scheduleAdjustments.filter(a=>user.role!=='DEPARTMENT_HEAD'||String(a.departmentId)===String(user.departmentId));
+    const labels={SUBSTITUTE:'Teacher cover',REPLACE:'Subject replacement',RESCHEDULE:'Changed time',CANCEL:'Class cancelled'};
+    list.innerHTML=rows.length?rows.map(a=>{
+      const period=periods.find(p=>String(p.periodId)===String(a.periodId));
+      const desc=[a.subjectName,a.teacherName,a.startTime&&a.endTime?a.startTime+'–'+a.endTime:null,a.reason?.replaceAll('_',' ')].filter(Boolean).join(' · ');
+      return '<article class="dated-adjustment-card"><span class="status-tag neutral">'+esc(labels[a.type]||a.type)+'</span>'+
+        '<div><strong>'+esc(a.date+' · '+(period?.periodName||'Class')+' · '+a.gradeLevel+' · '+a.section)+'</strong>'+
+        '<span>'+esc(desc||'Date-specific timetable change')+'</span>'+
+        (a.notes?'<small>'+esc(a.notes)+'</small>':'')+'</div>'+
+        (manager&&a.date>=dataSchoolDate()?'<button type="button" class="outline-button" data-remove-adjustment="'+esc(a.adjustmentId)+'">Restore regular</button>':'')+
+        '</article>';
+    }).join(''):'<p class="muted-inline">No temporary changes this week. The regular schedule applies.</p>';
+  }
+
+  function renderWeeklyTimetable() {
+    const host = $('weeklyTimetableBoard');
+    if (!host) return;
+    const gradeFilter = $('weeklyGradeFilter');
+    const sectionFilter = $('weeklySectionFilter');
+    const asOfFilter = $('weeklyScheduleAsOf');
+    if (asOfFilter && !asOfFilter.value) asOfFilter.value = dataSchoolDate();
+    const asOfDate = /^\d{4}-\d{2}-\d{2}$/.test(asOfFilter?.value || '') ? asOfFilter.value : dataSchoolDate();
+    const weekDates = scheduleWeekDates(asOfDate);
+    const effectivePeriods = periods.filter(period =>
+      (!period.effectiveFrom || String(period.effectiveFrom).slice(0, 10) <= weekDates[6]) &&
+      (!period.effectiveTo || String(period.effectiveTo).slice(0, 10) >= weekDates[0])
+    );
+    const previousGrade = gradeFilter?.value || '';
+    const previousSection = sectionFilter?.value || '';
+    const gradeLevels = [...new Set(effectivePeriods.map(period => String(period.gradeLevel || '').trim()).filter(Boolean))].sort((a,b) => a.localeCompare(b, undefined, {numeric:true}));
+    if (gradeFilter) {
+      gradeFilter.innerHTML = '<option value="">All grade levels</option>' + gradeLevels.map(grade => '<option value="' + esc(grade) + '">' + esc(grade) + '</option>').join('');
+      if (gradeLevels.includes(previousGrade)) gradeFilter.value = previousGrade;
+    }
+    const selectedGrade = gradeFilter?.value || '';
+    const sectionValues = [...new Set(effectivePeriods.filter(period => !selectedGrade || String(period.gradeLevel || '') === selectedGrade).map(period => String(period.section || '').trim()).filter(Boolean))].sort((a,b) => a.localeCompare(b, undefined, {numeric:true}));
+    if (sectionFilter) {
+      sectionFilter.innerHTML = '<option value="">All sections</option>' + sectionValues.map(section => '<option value="' + esc(section) + '">' + esc(section) + '</option>').join('');
+      if (sectionValues.includes(previousSection)) sectionFilter.value = previousSection;
+    }
+    const selectedSection = sectionFilter?.value || '';
+    const filtered = effectivePeriods.filter(period =>
+      (!selectedGrade || String(period.gradeLevel || '') === selectedGrade) &&
+      (!selectedSection || String(period.section || '') === selectedSection)
+    );
+    const configuredDays = schoolOperatingDays.filter(day => day.isOperatingDay).map(day => Number(day.weekday)).filter(day => day >= 0 && day <= 6);
+    const scheduledDays = [...new Set(filtered.flatMap(period => Array.isArray(period.weekdays) ? period.weekdays.map(Number) : []))].filter(day => day >= 0 && day <= 6);
+    const days = configuredDays.length ? configuredDays : scheduledDays.length ? scheduledDays : [1,2,3,4,5];
+    const names = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+    const eligibleFor = period => teachers.filter(teacher =>
+      teacher.active && (teacher.teacherDesignations || []).includes('SUBJECT_TEACHER') &&
+      String(teacher.departmentId || '') === String(period.scheduleDepartmentId || period.departmentId || '') &&
+      (user.role !== 'DEPARTMENT_HEAD' || String(teacher.departmentId || '') === String(user.departmentId || ''))
+    );
+    const canAssign = user.role === 'SCHOOL_ADMIN' || user.role === 'DEPARTMENT_HEAD';
+    const cardsForDay = day => {
+      const date = weekDates.find(value => new Date(value + 'T00:00:00Z').getUTCDay() === day);
+      return filtered.map(period => scheduleOnDay(period, date)).filter(Boolean)
+        .sort((a,b) => String(a.startTime || '').localeCompare(String(b.startTime || '')) ||
+          String(a.periodName || '').localeCompare(String(b.periodName || '')));
+    };
+    host.style.setProperty('--visible-days', String(days.length || 5));
+    host.innerHTML = days.length ? days.map(day => {
+      const dayPeriods = cardsForDay(day);
+      const dayDate = weekDates.find(value => new Date(value + 'T00:00:00Z').getUTCDay() === day);
+      return '<section class="weekly-day-column"><header><strong>' + names[day] + ' ' + esc(dayDate?.slice(5) || '') + '</strong><span>' + dayPeriods.filter(period => !period.cancelled).length + ' classes</span></header>' +
+        (dayPeriods.length ? dayPeriods.map(period => {
+          const unassigned = !period.assignedTeacherName;
+          const teacherChoices = eligibleFor(period);
+          const canEditThisPeriod = canAssign && (user.role === 'SCHOOL_ADMIN' ||
+            String(period.scheduleDepartmentId) === String(user.departmentId));
+          const adjustment = period.adjustment;
+          const dayAdjustmentBadge = adjustment ?
+            '<span class="weekly-adjustment-badge">' + esc(period.cancelled ? 'Cancelled' :
+            adjustment.type === 'SUBSTITUTE' ? 'Teacher cover' :
+            adjustment.type === 'REPLACE' ? 'Subject replacement' : 'Time / room change') + '</span>' +
+            '<span class="weekly-adjustment-detail">' + esc(adjustment.reason?.replaceAll('_',' ') || '') +
+            (adjustment.notes ? ' · ' + adjustment.notes : '') + '</span>' : '';
+          const editAdjustment = canEditThisPeriod && period.dayDate >= dataSchoolDate() ?
+            '<button class="outline-button compact-button weekly-adjustment-edit" type="button" data-open-adjustment="' +
+            esc(period.periodId) + '" data-adjustment-date="' + esc(period.dayDate) + '">' +
+            (adjustment ? 'Update this change' : 'Change this date') + '</button>' : '';
+          const assignmentControl = canAssign && unassigned && !adjustment
+            ? '<div class="weekly-assign-controls"><select data-weekly-teacher="' + esc(period.periodId) + '" aria-label="Choose teacher for ' + esc(period.periodName) + '"><option value="">Choose teacher</option>' + teacherChoices.map(teacher => '<option value="' + esc(teacher.userId) + '">' + esc(teacher.displayName) + '</option>').join('') + '</select><button type="button" class="primary-button compact-button" data-weekly-assign="' + esc(period.periodId) + '">Assign</button></div>'
+            : '';
+          return '<article class="weekly-schedule-card' + (unassigned ? ' is-unassigned' : '') +
+            (adjustment ? ' is-adjusted' : '') + (period.cancelled ? ' is-cancelled' : '') + '">' +
+            '<div class="weekly-card-time">' + esc(period.startTime || '—') + '–' + esc(period.endTime || '—') + '</div>' +
+            '<strong>' + esc(period.subjectName || period.periodName || 'Class schedule') + '</strong>' +
+            '<span class="weekly-card-class">' + esc(period.gradeLevel || '—') + ' · ' + esc(period.section || 'All sections') + '</span>' +
+            '<span>' + esc(period.periodName || 'Schedule block') + (period.classroom ? ' · ' + esc(period.classroom) : '') + '</span>' +
+            '<span class="weekly-card-teacher' + (unassigned ? ' is-unassigned' : '') + '">' +
+            (period.cancelled ? 'No class today' : unassigned ? 'Unassigned teacher' : esc(period.assignedTeacherName)) + '</span>' +
+            dayAdjustmentBadge + assignmentControl + editAdjustment + '</article>';
+        }).join('') : '<p class="weekly-day-empty">No classes scheduled</p>') + '</section>';
+    }).join('') : '<div class="weekly-empty-state"><strong>No schedules match these filters.</strong><span>Try another grade level or section, or create a class schedule.</span></div>';
+    const summary = $('weeklyTimetableSummary');
+    if (summary) summary.textContent = filtered.length + ' recurring classes · Week ' +
+      weekDates[0] + ' to ' + weekDates[6] + ' · ' + scheduleAdjustments.length + ' temporary change(s)';
+    if (window.TimetableGrid) {
+      const weekdayDates=Object.fromEntries(days.map(day=>[
+        day,weekDates.find(date=>new Date(date+'T00:00:00Z').getUTCDay()===day)
+      ]));
+      const entries=days.flatMap(day=>cardsForDay(day).map(period=>({
+        ...period,dayIndex:day,date:weekdayDates[day],
+        canEdit:canAssign && (user.role==='SCHOOL_ADMIN' ||
+          String(period.scheduleDepartmentId)===String(user.departmentId)),
+        eligibleTeachers:canAssign && !period.assignedTeacherName
+          ? teachers.filter(t=>t.active && (t.teacherDesignations||[]).includes('SUBJECT_TEACHER') &&
+              String(t.departmentId||'')===String(period.scheduleDepartmentId||period.departmentId||''))
+          : []
+      })));
+      window.TimetableGrid.render({
+        host,days,weekdayDates,entries,today:dataSchoolDate(),
+        onAdjust:(id,date)=>openScheduleAdjustment(id,date),
+        onAddTeacher:()=>openTeacherCreation(),
+        onAssign:async(periodId,teacherUserId)=>{
+          const result=await api('/api/periods/'+encodeURIComponent(periodId)+'/assignments',{
+            method:'POST',body:JSON.stringify({teacherUserId})
+          });
+          await loadSchoolData();
+          setScheduleDisplay('weekly');
+          showToast('Schedule assigned to '+(result.teacher?.displayName||'the selected teacher')+'.');
+        }
+      });
+    }
+    window.ScheduleWorkspaceUI?.update?.({
+      periods,scheduleAdjustments,role:user?.role,teachers,departmentId:user?.departmentId,
+      onAssign:async({periodIds,teacherUserId})=>{
+        const result=await api('/api/periods/bulk-assignments',{
+          method:'POST',body:JSON.stringify({periodIds,teacherUserId})
+        });
+        await loadSchoolData();
+        showToast(result.assigned+' class schedule'+(result.assigned===1?'':'s')+' assigned to '+result.teacher+'.');
+        return result;
+      }
+    });
+  }
+
+  function setScheduleDisplay(mode) {
+    activeScheduleDisplay = mode === 'list' ? 'list' : 'weekly';
+    const weekly = activeScheduleDisplay === 'weekly';
+    if ($('weeklyTimetableBoard')) $('weeklyTimetableBoard').hidden = !weekly;
+    if ($('managerScheduleTableWrap')) $('managerScheduleTableWrap').hidden = weekly;
+    document.querySelectorAll('[data-schedule-display]').forEach(button => {
+      const active = button.dataset.scheduleDisplay === mode;
+      button.classList.toggle('is-active', active);
+      button.setAttribute('aria-pressed', String(active));
+    });
+    if (weekly) renderWeeklyTimetable();
+  }
+
+  function openTeacherCreation() {
+    if (user.role !== 'SCHOOL_ADMIN' && !(user.role === 'DEPARTMENT_HEAD' && user.departmentId && user.departmentCode !== 'UNASSIGNED')) {
+      showToast('Ask the School Administrator to assign your department before adding teachers.', true);
+      return;
+    }
+    setView('teachers');
+    $('teacherForm').hidden = false;
+    if (user.role === 'DEPARTMENT_HEAD') {
+      $('newAccountRole').value = 'TEACHER';
+      $('newTeacherDepartment').value = user.departmentId;
+    }
+    $('newAccountRole').dispatchEvent(new Event('change'));
+    $('teacherFormFeedback').textContent = '';
+    $('teacherForm').scrollIntoView({ behavior: 'smooth', block: 'center' });
+    $('newTeacherName').focus({ preventScroll: true });
+  }
+
+  function renderPeriods() {
+    const canBulkAssign = user.role === 'DEPARTMENT_HEAD';
+    const isTeacher = user.role === 'TEACHER';
+    const isSchoolManager = user.role === 'SCHOOL_ADMIN' || user.role === 'DEPARTMENT_HEAD';
+    if ($('periodBulkToolbar')) $('periodBulkToolbar').hidden = !canBulkAssign;
+    if ($('timetableSettings')) $('timetableSettings').hidden = user.role !== 'SCHOOL_ADMIN';
+    if ($('periodSelectHeader')) $('periodSelectHeader').hidden = !canBulkAssign;
+
+    const eligibleTeachers = teachers.filter(t => t.active && (t.teacherDesignations || []).includes('SUBJECT_TEACHER') &&
+      (user.role !== 'DEPARTMENT_HEAD' || String(t.departmentId) === String(user.departmentId)));
+    const teacherOptions = '<option value="">Choose Subject Teacher</option>' +
+      eligibleTeachers.map(t => '<option value="' + esc(t.userId) + '">' + esc(t.displayName) + '</option>').join('');
+    if ($('bulkScheduleTeacher')) $('bulkScheduleTeacher').innerHTML = teacherOptions;
+    if ($('periodTeacher')) {
+      const previousTeacher = $('periodTeacher').value;
+      $('periodTeacher').innerHTML = teacherOptions;
+      if (eligibleTeachers.some(t => String(t.userId) === String(previousTeacher))) $('periodTeacher').value = previousTeacher;
+    }
+    if ($('periodTeacherGroup')) $('periodTeacherGroup').hidden = false;
+    if ($('periodTeacherSelfGroup')) $('periodTeacherSelfGroup').hidden = true;
+    if ($('periodTeacherHint')) $('periodTeacherHint').textContent =
+      'The Department Head assigns this class schedule to the selected Subject Teacher.';
+    if ($('addScheduleSubject')) $('addScheduleSubject').hidden = !isSchoolManager;
+
+    if ($('weeklyTimetableWorkspace')) $('weeklyTimetableWorkspace').hidden = isTeacher;
+    if (isTeacher) {
+      if ($('managerScheduleTableWrap')) $('managerScheduleTableWrap').hidden = true;
+      if ($('teacherScheduleOverview')) $('teacherScheduleOverview').hidden = false;
+      const hasTeachingRole = teacherHas('SUBJECT_TEACHER');
+      const hasAdviserRole = teacherHas('CLASS_ADVISER');
+      if ($('myTeachingScheduleCard')) $('myTeachingScheduleCard').hidden = !hasTeachingRole;
+      if ($('myAdvisoryScheduleCard')) $('myAdvisoryScheduleCard').hidden = !hasAdviserRole;
+
+      const teachingPeriods = periods.filter(period =>
+        String(period.assignedTeacherUserId || '') === String(user.userId || '')
+      );
+      const advisoryPeriods = periods.filter(period =>
+        hasAdviserRole && adviserAssignments.some(assignment =>
+          String(assignment.gradeLevel) === String(period.gradeLevel) &&
+          String(assignment.section) === String(period.section)
+        )
+      );
+      const classLabel = period => `${period.gradeLevel || '—'} · ${period.section || 'All sections'}`;
+      const timeLabel = period => `${period.startTime || '—'}–${period.endTime || '—'}`;
+      const emptyRow = (columns, message) => `<tr><td colspan="${columns}" class="empty-cell">${message}</td></tr>`;
+
+      if ($('myTeachingScheduleRows')) {
+        $('myTeachingScheduleRows').innerHTML = teachingPeriods.length ? teachingPeriods.map(period => `
+          <tr>
+            <td><strong>${esc(period.subjectName || '—')}</strong></td>
+            <td>${esc(classLabel(period))}</td>
+            <td>${esc(period.periodName || '—')}</td>
+            <td>${esc(timeLabel(period))}<small class="schedule-day-caption">${esc(formatScheduleDays(period.weekdays))}</small></td>
+            <td data-label="Room">${esc(period.classroom || '—')}</td>
+          </tr>`).join('') : emptyRow(5, 'No teaching schedules have been assigned to your account yet.');
+      }
+      if ($('myAdvisoryScheduleRows')) {
+        $('myAdvisoryScheduleRows').innerHTML = advisoryPeriods.length ? advisoryPeriods.map(period => `
+          <tr>
+            <td><strong>${esc(period.subjectName || '—')}</strong></td>
+            <td>${esc(period.periodName || '—')}</td>
+            <td>${esc(timeLabel(period))}</td>
+            <td>${esc(period.classroom || '—')}</td>
+            <td>${esc(String(period.assignedTeacherUserId || '') === String(user.userId || '') ? 'You' : (period.assignedTeacherName || 'Unassigned'))}</td>
+          </tr>`).join('') : emptyRow(5, 'No subject schedules have been added to your advisory section yet.');
+      }
+
+      $('scheduleScopeText').textContent = hasTeachingRole && hasAdviserRole
+        ? 'Your schedule combines all subjects you teach with the complete timetable and Subject Teacher list for your advisory class.'
+        : hasAdviserRole
+          ? 'View every subject schedule assigned to your advisory section, including the teacher handling each subject.'
+          : 'View all class schedules assigned to your teacher account.';
+    } else {
+      if ($('managerScheduleTableWrap')) $('managerScheduleTableWrap').hidden = false;
+      if ($('teacherScheduleOverview')) $('teacherScheduleOverview').hidden = true;
+      $('scheduleRows').innerHTML = periods.length ? periods.map(period => {
+        const canSelectPeriod = (user.role === 'SCHOOL_ADMIN' || String(period.departmentId) === String(user.departmentId)) && !period.assignedTeacherName;
+        const selection = canBulkAssign
+          ? '<td data-label="Select">' + (canSelectPeriod
+            ? '<input type="checkbox" data-select-period="' + esc(period.periodId) + '" ' +
+              (selectedPeriodIds.has(String(period.periodId)) ? 'checked' : '') + ' aria-label="Select ' + esc(period.periodName) + '">'
+            : '—') + '</td>'
+          : '';
+        const canEditPeriod = user.role==='SCHOOL_ADMIN' || (user.role==='DEPARTMENT_HEAD'&&user.departmentCode!=='UNASSIGNED'&&String(period.scheduleDepartmentId)===String(user.departmentId));
+        const canAssignPeriod = canEditPeriod && !period.assignedTeacherUserId && !period.assignedTeacherName;
+        const matchingTeachers = eligibleTeachers.filter(teacher => String(teacher.departmentId) === String(period.scheduleDepartmentId || period.departmentId));
+        const inlineAssign = !canAssignPeriod ? '' : matchingTeachers.length
+          ? `<div class="schedule-quick-assign"><select data-list-teacher="${esc(period.periodId)}" aria-label="Subject Teacher for ${esc(period.periodName)}"><option value="">Choose teacher</option>${matchingTeachers.map(teacher => '<option value="' + esc(teacher.userId) + '">' + esc(teacher.displayName) + '</option>').join('')}</select><button type="button" class="primary-button compact-button" data-list-assign="${esc(period.periodId)}">Assign</button></div>`
+          : '<button type="button" class="outline-button compact-button" data-go-add-teacher>＋ Add Subject Teacher</button>';
+        const deleteAction = canEditPeriod ? `<div class="schedule-row-actions">${inlineAssign}<button type="button" class="outline-button compact-button" data-edit-period="${esc(period.periodId)}">Edit</button>${user.role==='SCHOOL_ADMIN'?'<button type="button" class="outline-button compact-button danger-button" data-delete-period="'+esc(period.periodId)+'">Delete</button>':''}</div>` : '—';
+        return `<tr>
+          ${selection}<td data-label="Schedule"><strong>${esc(period.periodName)}</strong>${period.scheduleType === 'ADVISORY' ? '<small class="schedule-activity-label">Advisory / Homeroom</small>' : period.scheduleType === 'OTHER' ? '<small class="schedule-activity-label">Special class</small>' : ''}</td>
+          <td data-label="Subject">${esc(period.subjectName || '—')}</td>
+          <td data-label="Department">${esc(period.departmentName || 'Unassigned')}</td>
+          <td data-label="Grade">${esc(period.gradeLevel)}</td>
+          <td data-label="Section">${esc(period.section || 'All sections')}</td>
+          <td>${esc(period.classroom || '—')}</td>
+          <td data-label="Days">${esc(formatScheduleDays(period.weekdays))}</td><td data-label="Time">${esc(period.startTime)}–${esc(period.endTime)}</td>
+          <td data-label="Assigned teacher">${esc(period.assignedTeacherName || 'Unassigned')}</td><td data-label="Actions">${deleteAction}</td>
+        </tr>`;
+      }).join('') : '<tr><td colspan="' + (canBulkAssign ? 10 : 9) + '" class="empty-cell">No class schedules are available yet.</td></tr>';
+
+      renderWeeklyTimetable();
+      setScheduleDisplay(activeScheduleDisplay);
+
+      $('scheduleScopeText').textContent = user.role === 'DEPARTMENT_HEAD'
+        ? 'Create and edit classes in your department, assign Subject Teachers, and use school-approved timetable blocks.'
+        : 'Create class schedules and assign Subject Teachers. Department and subject options follow the selected teacher profile.';
+    }
+
+    document.querySelectorAll('[data-select-period]').forEach(box => box.addEventListener('change', () => {
+      if (box.checked) selectedPeriodIds.add(String(box.dataset.selectPeriod)); else selectedPeriodIds.delete(String(box.dataset.selectPeriod));
+      updatePeriodBatchUi();
+    }));
+
+    const canCreate = user.role==='SCHOOL_ADMIN' || (user.role==='DEPARTMENT_HEAD'&&user.departmentId&&user.departmentCode!=='UNASSIGNED');
+    $('showScheduleForm').hidden = !canCreate;
+    $('showScheduleForm').textContent = user.role==='DEPARTMENT_HEAD'?'＋ New department class':'＋ Create class schedule';
+    if (user.role === 'DEPARTMENT_HEAD' && (!user.departmentId || user.departmentCode === 'UNASSIGNED')) {
+      $('scheduleScopeText').textContent = 'Your account is awaiting department assignment. You can monitor schedules until the School Administrator assigns your department.';
+    }
+  }
+
+let teacherActionMenuListenersInstalled = false;
+
+  function closeTeacherActionMenus() {
+    document.querySelectorAll('details.teacher-action-menu[open]').forEach(menu => {
+      menu.open = false;
+    });
+  }
+
+  function ensureTeacherActionMenuStyles() {
+    if (!document.getElementById('teacherActionMenuStyles')) {
+      const style = document.createElement('style');
+      style.id = 'teacherActionMenuStyles';
+      style.textContent = `
+        details.teacher-action-menu { display:inline-block; position:relative; }
+        details.teacher-action-menu > summary { list-style:none; cursor:pointer; user-select:none; }
+        details.teacher-action-menu > summary::-webkit-details-marker { display:none; }
+        details.teacher-action-menu > summary::marker { content:""; }
+        .teacher-actions-trigger { display:inline-flex; align-items:center; justify-content:center; gap:10px; min-width:116px; }
+        .teacher-actions-trigger .teacher-actions-chevron { font-size:12px; opacity:.72; transition:transform .15s ease; }
+        details.teacher-action-menu[open] .teacher-actions-chevron { transform:rotate(180deg); }
+        .teacher-action-menu-panel { position:fixed; z-index:12000; min-width:218px; max-width:calc(100vw - 24px); max-height:70vh; overflow-y:auto; padding:6px; background:#fff; border:1px solid #dce5ed; border-radius:10px; box-shadow:0 12px 32px rgba(24,39,56,.18); }
+        .teacher-action-menu-panel[hidden] { display:none !important; }
+        .teacher-action-menu-label { padding:7px 10px 5px; color:#8593a3; font-size:11px; font-weight:700; letter-spacing:.06em; text-transform:uppercase; }
+        .teacher-action-item { display:block; width:100%; padding:10px 11px; border:0; border-radius:7px; background:transparent; color:#344b60; text-align:left; font:inherit; font-size:14px; line-height:1.35; cursor:pointer; }
+        .teacher-action-item:hover { background:#f1f6fa; }
+        .teacher-action-item:focus-visible, .teacher-actions-trigger:focus-visible { outline:2px solid #0ea5e9; outline-offset:2px; }
+        .teacher-action-item.danger { color:#b4233c; }
+        .teacher-action-item.danger:hover { background:#fff1f2; }
+        .teacher-action-item:disabled { opacity:.48; cursor:not-allowed; background:transparent; }
+        .teacher-action-menu-divider { height:1px; margin:5px 3px; background:#edf1f5; }
+        .account-status { display:inline-flex; align-items:center; padding:5px 9px; border-radius:999px; font-size:12px; line-height:1.2; font-weight:750; white-space:nowrap; }
+        .account-status.active { background:#e7f7ef; color:#147a50; }
+        .account-status.on-leave { background:#fff4dc; color:#9a6500; }
+        .account-status.inactive { background:#eef1f4; color:#596775; }
+        .assignment-chip { display:flex; flex-direction:column; gap:5px; min-width:0; max-width:100%; padding:8px 10px; margin:3px 0; border:1px solid #e5edf3; border-radius:8px; background:#f8fbfd; white-space:normal; }
+        .assignment-chip-heading { display:flex; align-items:center; justify-content:space-between; gap:8px; flex-wrap:wrap; }
+        .assignment-chip-heading strong { min-width:0; }
+        .assignment-kind { display:inline-flex; align-items:center; width:max-content; padding:3px 7px; border-radius:999px; font-size:10px; font-weight:800; letter-spacing:.035em; white-space:nowrap; }
+        .assignment-kind.permanent { background:#e8f2ff; color:#245c9b; }
+        .assignment-kind.temporary { background:#f1eaff; color:#7042a4; }
+        .substitute-assignment { border-color:#e6d9fb; background:#fbf8ff; }
+        .permanent-assignment small, .substitute-assignment small { white-space:normal; overflow-wrap:anywhere; }
+        .assignment-manager-list { display:flex; flex-direction:column; gap:9px; margin:10px 0 16px; }
+        .assignment-manager-row { display:flex; align-items:center; justify-content:space-between; gap:12px; padding:11px 12px; border:1px solid #e6edf3; border-radius:9px; background:#fbfdff; }
+        .assignment-manager-row strong, .assignment-manager-row small { display:block; }
+        .assignment-manager-row strong { color:#344b60; font-size:14px; }
+        .assignment-manager-row small { margin-top:4px; color:#8392a1; font-size:12px; }
+        .assignment-manager-row .assignment-manager-info { min-width:0; }
+        .assignment-manager-empty { padding:13px; border:1px dashed #dbe5ed; border-radius:9px; color:#7f8e9c; font-size:13px; }
+        .assignment-manager-help { margin:5px 0 13px; color:#718294; font-size:13px; line-height:1.5; }
+        @media (max-width:700px) { .teacher-action-menu-panel { min-width:200px; } .assignment-manager-row { align-items:flex-start; } }
+      `;
+      document.head.appendChild(style);
+    }
+
+    if (!teacherActionMenuListenersInstalled) {
+      document.addEventListener('click', event => {
+        if (!event.target.closest('.teacher-action-menu')) closeTeacherActionMenus();
+      });
+      window.addEventListener('resize', closeTeacherActionMenus);
+      window.addEventListener('scroll', closeTeacherActionMenus, true);
+      teacherActionMenuListenersInstalled = true;
+    }
+  }
+
+  function positionTeacherActionMenu(details) {
+    const trigger = details.querySelector('summary');
+    const panel = details.querySelector('.teacher-action-menu-panel');
+    if (!trigger || !panel || !details.open) return;
+    panel.hidden = false;
+    panel.style.left = '12px';
+    panel.style.top = '12px';
+    requestAnimationFrame(() => {
+      if (!details.open) return;
+      const rect = trigger.getBoundingClientRect();
+      const menuRect = panel.getBoundingClientRect();
+      const left = Math.max(12, Math.min(rect.right - menuRect.width, window.innerWidth - menuRect.width - 12));
+      let top = rect.bottom + 6;
+      if (top + menuRect.height > window.innerHeight - 12) top = Math.max(12, rect.top - menuRect.height - 6);
+      panel.style.left = `${left}px`;
+      panel.style.top = `${top}px`;
+    });
+  }
+
+  async function uploadTeacherPhoto(userId, file) {
+    const photo = await window.ProfilePhotos.edit(file, { purpose: 'logo' });
+    if (!photo) return false;
+    await window.ProfilePhotos.post(`/api/photos/official/teacher/${encodeURIComponent(userId)}`, token, photo);
+    return true;
+  }
+
+  async function printTeacherGateQr(userId) {
+    const data = await api(`/api/teachers/${encodeURIComponent(userId)}/qr`);
+    const teacher = data.teacher;
+    const printWindow = window.open('', '_blank');
+    if (!printWindow) throw new Error('Allow pop-ups for this site to print the teacher QR badge.');
+    const photoWarning = teacher.hasTeacherPhoto ? '' : '<p class="warning">No registered teacher photo yet. Upload the photo before using this QR at the gate.</p>';
+    printWindow.document.write(`<!doctype html><html><head><meta charset="utf-8"><title>Teacher Gate QR</title><style>body{font-family:Arial,sans-serif;margin:18mm;color:#24343a}.badge{width:90mm;margin:auto;border:1px solid #d5e0df;border-radius:16px;padding:18px;text-align:center}.qr{width:58mm;height:58mm;object-fit:contain}.name{font-size:20px;font-weight:700;margin:12px}.meta{color:#64777a}.warning{color:#a45623;background:#fff5e9;padding:10px;border-radius:8px}@media print{body{margin:0}}</style></head><body><article class="badge"><h2>TEACHER GATE ID</h2><div class="name">${esc(teacher.displayName)}</div><div class="meta">${esc(teacher.username)}</div><img class="qr" src="${data.qrCode}" alt="Teacher gate QR"><div class="meta">Present this QR to the Gate Keeper for photo verification.</div>${photoWarning}</article><script>window.onload=()=>setTimeout(()=>window.print(),400)<\\/script></body></html>`);
+    printWindow.document.close();
+  }
+
+  function renderTeachers() {
+    ensureTeacherActionMenuStyles();
+    const visibleTeachers = user.role === 'DEPARTMENT_HEAD'
+      ? teachers.filter(teacher => String(teacher.departmentId) === String(user.departmentId))
+      : teachers;
+    const rows = visibleTeachers.length ? visibleTeachers.map(teacher => {
+      const assigned = Array.isArray(teacher.assignedPeriods) ? teacher.assignedPeriods : [];
+      const rawStatus = teacher.teacherStatus ?? teacher.teacher_status ?? '';
+      const normalizedStatus = String(rawStatus).trim().toUpperCase();
+      const leaveType = teacher.leaveType ?? teacher.leave_type ?? null;
+      const expectedReturnDate = teacher.expectedReturnDate ?? teacher.expected_return_date ?? null;
+      const onLeave = normalizedStatus === 'ON_LEAVE' ||
+        (!teacher.active && Boolean(leaveType) && Boolean(expectedReturnDate));
+      const active = !onLeave && normalizedStatus === 'ACTIVE' && Boolean(teacher.active);
+      const statusLabel = onLeave ? 'On Leave' : (active ? 'Active' : 'Inactive');
+      const statusClass = onLeave ? 'on-leave' : (active ? 'active' : 'inactive');
+      const leaveDetails = onLeave
+        ? `<small class="table-subtext" style="display:block;margin-top:4px">${esc(formatLeaveType(leaveType))} · Return: ${esc(formatSchoolDate(expectedReturnDate))}</small>`
+        : '';
+
+      const substitutionAssignments = Array.isArray(teacher.substitutionAssignments) ? teacher.substitutionAssignments : [];
+      const classScopeMap = new Map();
+      const addClassScope = (gradeLevel, section) => {
+        const grade = String(gradeLevel ?? '').trim();
+        const sectionName = String(section ?? '').trim() || 'All sections';
+        if (!grade && sectionName === 'All sections') return;
+        const key = `${grade.toLocaleLowerCase()}|${sectionName.toLocaleLowerCase()}`;
+        if (!classScopeMap.has(key)) classScopeMap.set(key, { gradeLevel: grade || 'Not specified', section: sectionName });
+      };
+      (teacher.adviserSections || []).forEach(item => addClassScope(item.gradeLevel, item.section));
+      assigned.forEach(item => addClassScope(item.gradeLevel, item.section));
+      substitutionAssignments.forEach(item => addClassScope(item.gradeLevel, item.section));
+      const classScopes = [...classScopeMap.values()].sort((a, b) =>
+        a.gradeLevel.localeCompare(b.gradeLevel, undefined, { numeric: true }) || a.section.localeCompare(b.section)
+      );
+      const classScopesHtml = classScopes.length
+        ? `<div class="teacher-scope-list">${classScopes.map(item => `<span class="teacher-scope-item">${esc(item.gradeLevel)} · ${esc(item.section)}</span>`).join('')}</div>`
+        : '<span class="muted-inline">No assigned classes</span>';
+
+      // Keep the monitoring table compact. Detailed periods remain available in
+      // the assignment manager and Class Schedules view, rather than stretching
+      // each teacher row vertically with a stack of schedule cards.
+      const permanentAssignmentCount = assigned.length;
+      const temporaryCoverageCount = substitutionAssignments.length;
+      const assignmentsHtml = permanentAssignmentCount || temporaryCoverageCount
+        ? `<div class="teacher-assignment-summary" title="${permanentAssignmentCount} permanent schedules; ${temporaryCoverageCount} temporary coverage records">
+             <span class="teacher-assignment-count">${permanentAssignmentCount} permanent ${permanentAssignmentCount === 1 ? 'schedule' : 'schedules'}</span>
+             ${temporaryCoverageCount
+               ? `<span class="teacher-assignment-count temporary">${temporaryCoverageCount} temporary ${temporaryCoverageCount === 1 ? 'coverage' : 'coverage records'}</span>`
+               : ''}
+           </div>`
+        : '<span class="muted-inline">No schedules assigned</span>';
+
+      const cancelCoverActions = substitutionAssignments
+        .filter(item => item.relationship !== 'SUBSTITUTE')
+        .map(item => `<button type="button" class="outline-button compact-button danger-button" data-cancel-substitution="${esc(item.substitutionId)}">End cover · ${esc(item.periodName)}</button>`)
+        .join('');
+
+      const isSchoolAdmin = user.role === 'SCHOOL_ADMIN';
+      const accountActions = !isSchoolAdmin ? '<span class="muted-inline">View only</span>' : (active
+        ? `<div class="teacher-action-menu-label">Account &amp; permissions</div>
+           <button type="button" class="teacher-action-item" data-edit-teacher-profile="${esc(teacher.userId)}">Edit account profile</button>
+<button type="button" class="teacher-action-item" data-teacher-qr="${esc(teacher.userId)}">Print gate QR badge</button>
+           <label class="teacher-action-item teacher-photo-upload-menu">${teacher.hasTeacherPhoto ? 'Replace teacher photo' : 'Upload teacher photo'}<input type="file" accept="image/jpeg,image/png,image/webp" data-teacher-photo="${esc(teacher.userId)}" hidden></label>
+           <div class="teacher-action-menu-divider"></div>
+           <div class="teacher-action-menu-label">Account</div>
+           <button type="button" class="teacher-action-item" data-place-leave="${esc(teacher.userId)}">Set on leave</button>
+           <button type="button" class="teacher-action-item danger" data-deactivate-teacher="${esc(teacher.userId)}">Deactivate account</button>`
+        : onLeave
+          ? `<div class="teacher-action-menu-label">Account access</div>
+             <button type="button" class="teacher-action-item" data-return-teacher="${esc(teacher.userId)}">Mark returned</button>`
+          : `<div class="teacher-action-menu-label">Account</div>
+             <button type="button" class="teacher-action-item" data-return-teacher="${esc(teacher.userId)}">Reactivate account</button>`);
+
+      const designationLabels = (teacher.teacherDesignations || []).map(value => value === 'CLASS_ADVISER' ? 'Class Adviser' : 'Subject Teacher').join(' + ') || 'No designation';
+      const canManageDepartment = user.role === 'DEPARTMENT_HEAD' && String(teacher.departmentId) === String(user.departmentId);
+      const canAssignSubstitute = canManageDepartment && onLeave && assigned.length > 0;
+      const departmentHeadCoverageActions = [
+        ...(canManageDepartment && active ? [`<button type="button" class="outline-button compact-button" data-edit-teacher-permission="${esc(teacher.userId)}">Edit designation</button>`, `<button type="button" class="outline-button compact-button" data-manage-permanent="${esc(teacher.userId)}">Manage schedules</button>`] : []),
+        ...(canAssignSubstitute ? [`<button type="button" class="outline-button compact-button" data-assign-substitute="${esc(teacher.userId)}">Assign substitute</button>`] : []),
+        ...(canManageDepartment && cancelCoverActions ? [cancelCoverActions] : [])
+      ].join('');
+      const actionMenu = isSchoolAdmin ? `<details class="teacher-action-menu">
+        <summary class="outline-button compact-button teacher-actions-trigger" aria-label="Actions for ${esc(teacher.displayName)}">Actions <span class="teacher-actions-chevron" aria-hidden="true">▾</span></summary>
+        <div class="teacher-action-menu-panel" hidden>${accountActions}</div>
+      </details>` : (user.role === 'DEPARTMENT_HEAD' && departmentHeadCoverageActions
+        ? `<div class="teacher-coverage-actions">${departmentHeadCoverageActions}</div>`
+        : '<span class="muted-inline">Read only</span>');
+
+      const departmentCell = user.role === 'SCHOOL_ADMIN'
+        ? `<select class="teacher-department-select" data-change-teacher-department="${esc(teacher.userId)}" aria-label="Department for ${esc(teacher.displayName)}">
+            ${departments.filter(item => item.active || String(item.departmentId) === String(teacher.departmentId)).map(item => `<option value="${esc(item.departmentId)}" ${String(item.departmentId) === String(teacher.departmentId) ? 'selected' : ''} ${item.active ? '' : 'disabled'}>${esc(item.name)}${item.active ? '' : ' (Inactive)'}</option>`).join('')}
+          </select>`
+        : esc(teacher.departmentName || 'Unassigned');
+      return `<tr>
+        <td data-label="Teacher"><div class="teacher-cell-value teacher-identity">${user.role === 'SCHOOL_ADMIN' ? '<input type="checkbox" data-select-staff="' + esc(teacher.userId) + '" ' + (selectedStaffIds.has(String(teacher.userId)) ? 'checked' : '') + ' aria-label="Select ' + esc(teacher.displayName) + '">' : ''}<strong>${esc(teacher.displayName)}</strong><small class="table-subtext">${esc(teacher.username)}</small><small class="table-subtext">${esc(teacher.position || 'Position not set')} · ${esc(designationLabels)}</small></div></td>
+        <td data-label="Department"><div class="teacher-cell-value">${departmentCell}</div></td>
+        <td data-label="Status"><div class="teacher-cell-value"><span class="account-status ${statusClass}">${statusLabel}</span>${leaveDetails}</div></td>
+        <td data-label="Assigned classes"><div class="teacher-cell-value">${classScopesHtml}</div></td>
+        <td data-label="Assigned schedules"><div class="teacher-cell-value">${assignmentsHtml}</div></td>
+        <td data-label="Account action"><div class="teacher-cell-value"><div class="action-row">${actionMenu}</div></div></td>
+      </tr>`;
+    }).join('') : '<tr><td colspan="6" class="empty-cell">' +
+      (user.role === 'DEPARTMENT_HEAD'
+        ? 'No teachers are assigned to this department yet. Use Add teacher to create a Subject Teacher.'
+        : 'No teacher accounts have been created for this school yet.') + '</td></tr>';
+
+    $('teacherRows').innerHTML = rows;
+    $('teacherRows').querySelectorAll('[data-select-staff]').forEach(box => box.addEventListener('change', () => {
+      if (box.checked) selectedStaffIds.add(String(box.dataset.selectStaff)); else selectedStaffIds.delete(String(box.dataset.selectStaff));
+      updateStaffBulkUi();
+    }));
+    $('teacherRows').querySelectorAll('input[data-teacher-photo]').forEach(input => input.addEventListener('change', async () => {
+      const file = input.files?.[0]; if (!file) return;
+      input.disabled = true;
+      try {
+        const saved = await uploadTeacherPhoto(input.dataset.teacherPhoto, file);
+        if (saved) { await loadSchoolData(); showToast('Official teacher photo saved.'); }
+      } catch (error) { showToast(error.message, true); }
+      finally { input.disabled = false; input.value = ''; }
+    }));
+    $('teacherRows').querySelectorAll('details.teacher-action-menu').forEach(details => {
+      details.addEventListener('toggle', () => {
+        const panel = details.querySelector('.teacher-action-menu-panel');
+        if (panel) panel.hidden = !details.open;
+        if (details.open) {
+          closeTeacherActionMenusExcept(details);
+          positionTeacherActionMenu(details);
+        }
+      });
+    });
+  }
+
+  function closeTeacherActionMenusExcept(exception) {
+    document.querySelectorAll('details.teacher-action-menu[open]').forEach(menu => {
+      if (menu !== exception) menu.open = false;
+    });
+  }
+
+  function openPermanentAssignmentDialog(teacher, triggerButton) {
+    document.getElementById('teacherAssignmentsDialog')?.remove();
+    const assigned = Array.isArray(teacher.assignedPeriods) ? teacher.assignedPeriods : [];
+    const assignedIds = new Set(assigned.map(item => String(item.periodId)));
+    const assignedByOthers = new Set();
+    teachers.forEach(other => {
+      if (String(other.userId) === String(teacher.userId)) return;
+      (Array.isArray(other.assignedPeriods) ? other.assignedPeriods : [])
+        .forEach(item => assignedByOthers.add(String(item.periodId)));
+    });
+    const hasActiveCover = new Set((teacher.substitutionAssignments || [])
+      .filter(item => item.relationship !== 'SUBSTITUTE')
+      .map(item => String(item.periodId)));
+    const timeConflicts = periods.filter(period => assigned.some(existing =>
+      String(existing.periodId) !== String(period.periodId) &&
+      String(existing.startTime || '') < String(period.endTime || '') &&
+      String(period.startTime || '') < String(existing.endTime || '')
+    )).map(item => String(item.periodId));
+    const available = periods.filter(period =>
+      String(period.departmentId) === String(teacher.departmentId) &&
+      !assignedIds.has(String(period.periodId)) &&
+      !assignedByOthers.has(String(period.periodId)) &&
+      !timeConflicts.includes(String(period.periodId))
+    );
+
+    const listHtml = assigned.length ? assigned.map(period => {
+      const covered = hasActiveCover.has(String(period.periodId));
+      return `<div class="assignment-manager-row">
+        <div class="assignment-manager-info">
+          <strong>${esc(period.periodName)} <span class="assignment-kind permanent">PERMANENT</span></strong>
+          <small>${esc(period.subjectName || 'No subject')} · ${esc(period.gradeLevel)} · ${esc(period.section || 'All sections')} · ${esc(period.startTime || '')}–${esc(period.endTime || '')}</small>
+          ${covered ? '<small>Temporary cover is active. End the cover before removing this permanent assignment.</small>' : ''}
+        </div>
+        <button type="button" class="outline-button compact-button" data-remove-permanent="${esc(period.periodId)}" ${covered ? 'disabled title="End temporary cover first"' : ''}>Remove</button>
+      </div>`;
+    }).join('') : '<div class="assignment-manager-empty">No permanent class schedules assigned to this teacher.</div>';
+
+    const overlay = document.createElement('div');
+    overlay.id = 'teacherAssignmentsDialog';
+    overlay.className = 'leave-dialog-backdrop';
+    overlay.innerHTML = `
+      <section class="leave-dialog" role="dialog" aria-modal="true" aria-labelledby="permanentAssignmentTitle">
+        <div class="leave-dialog-header">
+          <div><h3 id="permanentAssignmentTitle">Manage permanent assignments</h3><p>${esc(teacher.displayName)}</p></div>
+          <button type="button" class="leave-dialog-close" data-assignment-close aria-label="Close">×</button>
+        </div>
+        <div class="leave-dialog-body">
+          <div class="assignment-manager-list">${listHtml}</div>
+          <div class="field-group">
+            <label for="permanentPeriodInput">Add a permanent class schedule</label>
+            <select id="permanentPeriodInput" ${available.length ? '' : 'disabled'}>
+              <option value="">${available.length ? 'Select an unassigned class schedule…' : 'No unassigned schedules available'}</option>
+              ${available.map(period => `<option value="${esc(period.periodId)}">${esc(period.periodName)} · ${esc(period.gradeLevel)} ${esc(period.section || '')} · ${esc(period.startTime)}–${esc(period.endTime)}</option>`).join('')}
+            </select>
+          </div>
+          <p class="assignment-manager-help">Permanent assignments are ongoing. They are different from temporary substitute coverage, which is assigned only from a teacher's On Leave row.</p>
+          <p class="leave-dialog-feedback" id="permanentAssignmentFeedback" role="alert"></p>
+        </div>
+        <div class="leave-dialog-actions">
+          <button type="button" class="outline-button" data-assignment-close>Close</button>
+          <button type="button" class="primary-button" id="addPermanentAssignmentButton" ${available.length ? '' : 'disabled'}>Assign permanently</button>
+        </div>
+      </section>`;
+    document.body.appendChild(overlay);
+
+    const close = () => overlay.remove();
+    overlay.querySelectorAll('[data-assignment-close]').forEach(button => button.addEventListener('click', close));
+    overlay.addEventListener('click', event => { if (event.target === overlay) close(); });
+    const feedback = overlay.querySelector('#permanentAssignmentFeedback');
+    const addButton = overlay.querySelector('#addPermanentAssignmentButton');
+    const periodSelect = overlay.querySelector('#permanentPeriodInput');
+
+    addButton.addEventListener('click', async () => {
+      const periodId = periodSelect.value;
+      if (!periodId) {
+        feedback.textContent = 'Select an unassigned class schedule first.';
+        return;
+      }
+      addButton.disabled = true;
+      feedback.textContent = 'Saving permanent assignment…';
+      try {
+        await api(`/api/periods/${encodeURIComponent(periodId)}/assignments`, {
+          method: 'POST', body: JSON.stringify({ teacherUserId: teacher.userId })
+        });
+        await loadSchoolData();
+        const refreshedTeacher = teachers.find(item => String(item.userId) === String(teacher.userId));
+        close();
+        if (refreshedTeacher) openPermanentAssignmentDialog(refreshedTeacher, triggerButton);
+        showToast('Permanent class assignment added.');
+      } catch (error) {
+        feedback.textContent = error.message;
+        addButton.disabled = false;
+      }
+    });
+
+    overlay.querySelectorAll('[data-remove-permanent]').forEach(button => {
+      button.addEventListener('click', async () => {
+        const periodId = button.dataset.removePermanent;
+        const period = assigned.find(item => String(item.periodId) === String(periodId));
+        if (hasActiveCover.has(String(periodId))) {
+          feedback.textContent = 'End temporary cover before removing this permanent assignment.';
+          return;
+        }
+        if (!await AppDialog.confirm(`Remove the permanent assignment for ${period?.periodName || 'this schedule'} from ${teacher.displayName}? This does not delete attendance history.`, { title: 'Remove permanent assignment', confirmText: 'Continue to verification', variant: 'danger' })) return;
+        const password = await AppDialog.prompt('Enter your account password to confirm this change. The schedule will be deactivated, but attendance history will remain intact.', '', { title: 'Confirm schedule deactivation', label: 'Account password', inputType: 'password', required: true, requiredMessage: 'Enter your password to continue.', confirmText: 'Verify and deactivate' });
+        if (password === null || !password) return;
+        button.disabled = true;
+        feedback.textContent = 'Removing permanent assignment…';
+        try {
+          await api(`/api/periods/${encodeURIComponent(periodId)}/assignments/${encodeURIComponent(teacher.userId)}`, { method: 'DELETE', body: JSON.stringify({ password }) });
+          await loadSchoolData();
+          const refreshedTeacher = teachers.find(item => String(item.userId) === String(teacher.userId));
+          close();
+          if (refreshedTeacher) openPermanentAssignmentDialog(refreshedTeacher, triggerButton);
+          showToast('Permanent assignment removed. Attendance history was preserved.');
+        } catch (error) {
+          feedback.textContent = error.message;
+          button.disabled = false;
+        }
+      });
+    });
+    periodSelect.focus();
+  }
+
+  function openTeacherLeaveDialog(teacherId, teacherName, triggerButton) {
+    document.getElementById('teacherLeaveDialog')?.remove();
+
+    const today = new Date();
+    const localToday = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+    const overlay = document.createElement('div');
+    overlay.id = 'teacherLeaveDialog';
+    overlay.className = 'leave-dialog-backdrop';
+    overlay.innerHTML = `
+      <section class="leave-dialog" role="dialog" aria-modal="true" aria-labelledby="leaveDialogTitle">
+        <div class="leave-dialog-header">
+          <div><h3 id="leaveDialogTitle">Place teacher on leave</h3><p>${esc(teacherName)}</p></div>
+          <button type="button" class="leave-dialog-close" data-leave-cancel aria-label="Close">×</button>
+        </div>
+        <form id="teacherLeaveForm">
+          <div class="leave-dialog-body">
+            <div class="field-group">
+              <label for="leaveTypeInput">Leave type</label>
+              <select id="leaveTypeInput" required>
+                <option value="MATERNITY">Maternity</option>
+                <option value="SICK">Sick</option>
+                <option value="VACATION">Vacation</option>
+                <option value="PERSONAL">Personal</option>
+                <option value="OTHER">Other</option>
+              </select>
+            </div>
+            <div class="leave-date-grid">
+              <div class="field-group">
+                <label for="leaveStartInput">Leave start date</label>
+                <input id="leaveStartInput" type="date" value="${localToday}" required>
+              </div>
+              <div class="field-group">
+                <label for="leaveReturnInput">Expected return date</label>
+                <input id="leaveReturnInput" type="date" min="${localToday}" required>
+              </div>
+            </div>
+            <label class="leave-auto-option" for="leaveAutoReactivate">
+              <input id="leaveAutoReactivate" type="checkbox" checked>
+              <span><strong>Automatically reactivate on expected return date</strong><small>Leave unchecked if an administrator will manually mark the teacher as returned.</small></span>
+            </label>
+            <p class="leave-dialog-feedback" id="leaveDialogFeedback" role="alert"></p>
+          </div>
+          <div class="leave-dialog-actions">
+            <button type="button" class="outline-button" data-leave-cancel>Cancel</button>
+            <button type="submit" class="primary-button" id="saveTeacherLeaveButton">Confirm leave</button>
+          </div>
+        </form>
+      </section>`;
+    document.body.appendChild(overlay);
+
+    const form = overlay.querySelector('#teacherLeaveForm');
+    const startInput = overlay.querySelector('#leaveStartInput');
+    const returnInput = overlay.querySelector('#leaveReturnInput');
+    const feedback = overlay.querySelector('#leaveDialogFeedback');
+    const saveButton = overlay.querySelector('#saveTeacherLeaveButton');
+
+    const close = () => overlay.remove();
+    overlay.querySelectorAll('[data-leave-cancel]').forEach(button => button.addEventListener('click', close));
+    overlay.addEventListener('click', event => { if (event.target === overlay) close(); });
+    startInput.addEventListener('change', () => { returnInput.min = startInput.value || localToday; });
+
+    form.addEventListener('submit', async event => {
+      event.preventDefault();
+      const leaveType = overlay.querySelector('#leaveTypeInput').value;
+      const startDate = startInput.value;
+      const expectedReturnDate = returnInput.value;
+      const autoReactivate = overlay.querySelector('#leaveAutoReactivate').checked;
+
+      if (!startDate || !expectedReturnDate) {
+        feedback.textContent = 'Please select both leave dates.';
+        return;
+      }
+      if (expectedReturnDate < startDate) {
+        feedback.textContent = 'Expected return date cannot be earlier than the leave start date.';
+        return;
+      }
+
+      saveButton.disabled = true;
+      feedback.textContent = 'Saving leave details…';
+      triggerButton.disabled = true;
+      try {
+        await api(`/api/teachers/${encodeURIComponent(teacherId)}/leave`, {
+          method: 'POST',
+          body: JSON.stringify({ leaveType, startDate, expectedReturnDate, autoReactivate })
+        });
+        close();
+        await loadSchoolData();
+        showToast('Teacher placed on leave. Existing class assignments were preserved.');
+      } catch (error) {
+        feedback.textContent = error.message;
+        saveButton.disabled = false;
+        triggerButton.disabled = false;
+      }
+    });
+
+    overlay.querySelector('#leaveTypeInput').focus();
+  }
+
+  function openSubstituteDialog(originalTeacher, triggerButton) {
+    document.getElementById('teacherSubstituteDialog')?.remove();
+    const today = new Date();
+    const localToday = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+    const assigned = Array.isArray(originalTeacher.assignedPeriods) ? originalTeacher.assignedPeriods : [];
+    const eligible = teachers.filter(item => item.active && item.teacherStatus === 'ACTIVE' && String(item.userId) !== String(originalTeacher.userId));
+    const startDefault = String(originalTeacher.leaveStartDate || localToday).slice(0, 10);
+    const expectedReturn = String(originalTeacher.expectedReturnDate || startDefault).slice(0, 10);
+    // When auto-reactivation is enabled, the teacher returns at the start of the expected return date.
+    // Therefore substitute coverage ends the previous day.
+    const endDefault = originalTeacher.leaveAutoReactivate
+      ? previousSchoolDate(expectedReturn)
+      : expectedReturn;
+    const overlay = document.createElement('div');
+    overlay.id = 'teacherSubstituteDialog';
+    overlay.className = 'leave-dialog-backdrop';
+    overlay.innerHTML = `
+      <section class="leave-dialog" role="dialog" aria-modal="true" aria-labelledby="substituteDialogTitle">
+        <div class="leave-dialog-header">
+          <div><h3 id="substituteDialogTitle">Assign temporary substitute</h3><p>${esc(originalTeacher.displayName)} · ${esc(formatLeaveType(originalTeacher.leaveType))}</p></div>
+          <button type="button" class="leave-dialog-close" data-sub-cancel aria-label="Close">×</button>
+        </div>
+        <form id="teacherSubstituteForm">
+          <div class="leave-dialog-body">
+            <div class="field-group">
+              <label for="substitutePeriodInput">Class schedule</label>
+              <select id="substitutePeriodInput" required>
+                <option value="">Select the class to cover…</option>
+                ${assigned.map(period => `<option value="${esc(period.periodId)}">${esc(period.periodName)} · ${esc(period.gradeLevel)} ${esc(period.section || '')}</option>`).join('')}
+              </select>
+            </div>
+            <div class="field-group">
+              <label for="substituteTeacherInput">Substitute teacher</label>
+              <select id="substituteTeacherInput" required>
+                <option value="">Select a class schedule first…</option>
+              </select>
+              <small class="table-subtext" id="substituteCandidateHelp">Only active teachers without a permanent time conflict are listed.</small>
+            </div>
+            <div class="leave-date-grid">
+              <div class="field-group"><label for="substituteStartInput">Coverage starts</label><input id="substituteStartInput" type="date" min="${esc(startDefault)}" max="${esc(endDefault)}" value="${esc(startDefault)}" required></div>
+              <div class="field-group"><label for="substituteEndInput">Coverage ends</label><input id="substituteEndInput" type="date" min="${esc(startDefault)}" max="${esc(endDefault)}" value="${esc(endDefault)}" required></div>
+            </div>
+            <p class="form-help">The original teacher keeps the permanent assignment. The substitute gets access only to this class and only during these dates.</p>
+            <p class="leave-dialog-feedback" id="substituteDialogFeedback" role="alert"></p>
+          </div>
+          <div class="leave-dialog-actions">
+            <button type="button" class="outline-button" data-sub-cancel>Cancel</button>
+            <button type="submit" class="primary-button" id="saveSubstituteButton" disabled>Save substitute</button>
+          </div>
+        </form>
+      </section>`;
+    document.body.appendChild(overlay);
+    const form = overlay.querySelector('#teacherSubstituteForm');
+    const feedback = overlay.querySelector('#substituteDialogFeedback');
+    const saveButton = overlay.querySelector('#saveSubstituteButton');
+    const startInput = overlay.querySelector('#substituteStartInput');
+    const endInput = overlay.querySelector('#substituteEndInput');
+    const periodInput = overlay.querySelector('#substitutePeriodInput');
+    const teacherInput = overlay.querySelector('#substituteTeacherInput');
+    const candidateHelp = overlay.querySelector('#substituteCandidateHelp');
+    const refreshSubstituteCandidates = () => {
+      const selectedPeriod = assigned.find(item => String(item.periodId) === String(periodInput.value));
+      const candidates = selectedPeriod ? eligible.filter(candidate => {
+        const permanent = Array.isArray(candidate.assignedPeriods) ? candidate.assignedPeriods : [];
+        return !permanent.some(item =>
+          String(item.periodId) === String(selectedPeriod.periodId) ||
+          (String(item.startTime || '') < String(selectedPeriod.endTime || '') &&
+           String(selectedPeriod.startTime || '') < String(item.endTime || ''))
+        );
+      }) : [];
+      teacherInput.innerHTML = `<option value="">${selectedPeriod ? 'Select an available teacher…' : 'Select a class schedule first…'}</option>` +
+        candidates.map(item => `<option value="${esc(item.userId)}">${esc(item.displayName)} (${esc(item.username)})</option>`).join('');
+      candidateHelp.textContent = selectedPeriod
+        ? (candidates.length
+          ? 'Only active teachers without a permanent schedule conflict are listed.'
+          : 'No active substitute is available for this schedule. Add an active teacher account without an overlapping permanent schedule.')
+        : 'Choose a class schedule to see eligible active substitute teachers.';
+      saveButton.disabled = !selectedPeriod || !candidates.length;
+    };
+    periodInput.addEventListener('change', refreshSubstituteCandidates);
+    refreshSubstituteCandidates();
+    const close = () => overlay.remove();
+    overlay.querySelectorAll('[data-sub-cancel]').forEach(button => button.addEventListener('click', close));
+    overlay.addEventListener('click', event => { if (event.target === overlay) close(); });
+    form.addEventListener('submit', async event => {
+      event.preventDefault();
+      const periodId = overlay.querySelector('#substitutePeriodInput').value;
+      const substituteTeacherUserId = overlay.querySelector('#substituteTeacherInput').value;
+      const startDate = startInput.value;
+      const endDate = endInput.value;
+      if (!periodId || !substituteTeacherUserId || !startDate || !endDate || endDate < startDate) {
+        feedback.textContent = 'Select a schedule, an active substitute, and a valid date range.';
+        return;
+      }
+      saveButton.disabled = true;
+      feedback.textContent = 'Saving temporary coverage…';
+      triggerButton.disabled = true;
+      try {
+        await api(`/api/teachers/${encodeURIComponent(originalTeacher.userId)}/substitutions`, {
+          method: 'POST',
+          body: JSON.stringify({ periodId, substituteTeacherUserId, startDate, endDate })
+        });
+        close();
+        await loadSchoolData();
+        showToast('Temporary substitute assigned. The original teacher’s permanent schedule was preserved.');
+      } catch (error) {
+        feedback.textContent = error.message;
+        saveButton.disabled = false;
+        triggerButton.disabled = false;
+      }
+    });
+    overlay.querySelector('#substitutePeriodInput').focus();
+  }
+
+  function updateStaffBulkUi() {
+    const eligible = [...teachers.filter(t => t.active).map(t => String(t.userId)),
+      ...schoolUsers.filter(u => u.role === 'DEPARTMENT_HEAD').map(u => String(u.userId))];
+    if ($('selectedStaffCount')) $('selectedStaffCount').textContent = selectedStaffIds.size + ' selected';
+    if ($('selectAllStaff')) {
+      $('selectAllStaff').checked = eligible.length > 0 && eligible.every(id => selectedStaffIds.has(id));
+      $('selectAllStaff').indeterminate = eligible.some(id => selectedStaffIds.has(id)) && !$('selectAllStaff').checked;
+    }
+    if ($('applyBulkStaffDepartment')) $('applyBulkStaffDepartment').disabled = !selectedStaffIds.size || !$('bulkStaffDepartment').value;
+  }
+  $('selectAllStaff')?.addEventListener('change', () => {
+    const eligible = [...teachers.filter(t => t.active).map(t => String(t.userId)),
+      ...schoolUsers.filter(u => u.role === 'DEPARTMENT_HEAD').map(u => String(u.userId))];
+    eligible.forEach(id => $('selectAllStaff').checked ? selectedStaffIds.add(id) : selectedStaffIds.delete(id));
+    renderTeachers(); renderStaffUsers(); updateStaffBulkUi();
+  });
+  $('bulkStaffDepartment')?.addEventListener('change', updateStaffBulkUi);
+  $('applyBulkStaffDepartment')?.addEventListener('click', async () => {
+    const departmentId = $('bulkStaffDepartment').value;
+    if (!departmentId || !selectedStaffIds.size) return;
+    if (!await AppDialog.confirm('Assign ' + selectedStaffIds.size + ' selected teachers/Department Heads to this department?', { title: 'Assign staff to department', confirmText: 'Assign staff' })) return;
+    $('applyBulkStaffDepartment').disabled = true; $('staffBulkDepartmentFeedback').textContent = 'Checking existing schedule assignments…';
+    try {
+      const result = await api('/api/school-users/bulk-department', { method:'POST', body:JSON.stringify({userIds:[...selectedStaffIds],departmentId}) });
+      selectedStaffIds.clear(); $('staffBulkDepartmentFeedback').textContent = result.updated + ' staff accounts assigned.';
+      await loadSchoolData(); showToast(result.updated + ' staff accounts assigned.');
+    } catch (error) { $('staffBulkDepartmentFeedback').textContent = error.message; showToast(error.message,true); }
+    finally { updateStaffBulkUi(); }
+  });
+
+  function renderStaffUsers() {
+    const host = $('staffUserRows');
+    if (!host) return;
+    host.innerHTML = schoolUsers.length ? schoolUsers.map(account => {
+      const staffSelection = account.role === 'DEPARTMENT_HEAD' && user.role === 'SCHOOL_ADMIN'
+        ? '<input type="checkbox" data-select-staff="' + esc(account.userId) + '" ' + (selectedStaffIds.has(String(account.userId)) ? 'checked' : '') + ' aria-label="Select ' + esc(account.displayName || account.username) + '">'
+        : '';
+      const departmentCell = account.role === 'DEPARTMENT_HEAD'
+        ? `<select class="staff-department-select" data-change-staff-department="${esc(account.userId)}" aria-label="Department for ${esc(account.displayName || account.username)}">
+            ${departments.filter(item => item.active || String(item.departmentId) === String(account.departmentId)).map(item => `<option value="${esc(item.departmentId)}" ${String(item.departmentId) === String(account.departmentId) ? 'selected' : ''} ${item.active ? '' : 'disabled'}>${esc(item.name)}${item.active ? '' : ' (Inactive)'}</option>`).join('')}
+          </select>`
+        : '<span class="muted-inline">—</span>';
+      return `<tr>
+        <td data-label="Account"><div class="staff-account-identity"><span class="staff-account-check">${staffSelection}</span><span class="staff-account-name"><strong>${esc(account.displayName || account.username)}</strong><small class="table-subtext">${esc(account.username)}</small></span></div></td>
+        <td data-label="Role">${esc(String(account.role || '').replaceAll('_', ' '))}</td>
+        <td data-label="Department">${departmentCell}</td>
+        <td data-label="Status"><span class="account-status ${account.active ? 'active' : 'inactive'}">${account.active ? 'Active' : 'Inactive'}</span></td>
+        <td data-label="Account action"><button type="button" class="outline-button compact-button" data-edit-staff-profile="${esc(account.userId)}">Edit account</button></td>
+      </tr>`;
+    }).join('') : '<tr><td colspan="5" class="empty-cell">No additional staff accounts have been created.</td></tr>';
+    host.querySelectorAll('[data-select-staff]').forEach(box => box.addEventListener('change', () => {
+      if (box.checked) selectedStaffIds.add(String(box.dataset.selectStaff)); else selectedStaffIds.delete(String(box.dataset.selectStaff));
+      updateStaffBulkUi();
+    }));
+  }
+
+  // Adviser grade choices must never depend on the Department Head roster / student API.
+  async function loadAdviserEligibleSections() {
+    adviserEligibilityLoaded=false;
+    adviserEligibilityError='';
+    const hint=$('adviserGradeHint'),grade=$('adviserGradeInput');
+    if(hint)hint.textContent='Checking active learner sections across the school…';
+    if(grade){grade.disabled=true;grade.innerHTML='<option value="">Loading available grades…</option>';}
+    try{
+      const result=await api('/api/class-adviser-eligible-sections');
+      if(!Array.isArray(result.sections))throw Error('Section service returned invalid data.');
+      adviserEligibleSections=result.sections.filter(item=>String(item.gradeLevel||'').trim()&&String(item.section||'').trim());
+      adviserEligibilityLoaded=true;
+    }catch(error){
+      adviserEligibleSections=[];
+      adviserEligibilityError=error.message||'Unable to retrieve eligible sections.';
+    }
+    renderAdviserGradeChoices();
+  }
+
+  function renderAdviserGradeChoices() {
+    const grade=$('adviserGradeInput'),hint=$('adviserGradeHint'),retry=$('retryAdviserSections');
+    if(!grade)return;
+    const previous=grade.value;
+    const grades=[...new Set(adviserEligibleSections.map(item=>String(item.gradeLevel).trim()))]
+      .sort((a,b)=>a.localeCompare(b,undefined,{numeric:true}));
+    grade.innerHTML='<option value="">'+(adviserEligibilityError?'Unable to load grades':grades.length?'Choose grade level':'No available sections found')+'</option>'+
+      grades.map(value=>'<option value="'+esc(value)+'">'+esc(value)+'</option>').join('');
+    grade.disabled=Boolean(adviserEligibilityError)||!grades.length;
+    if(grades.includes(previous))grade.value=previous;
+    if(hint)hint.textContent=adviserEligibilityError
+      ? 'Grade and section lookup failed: '+adviserEligibilityError+'. Use Retry loading grades.'
+      : !adviserEligibilityLoaded ? 'Loading eligible sections…'
+      : !grades.length
+        ? 'No registered sections or active learner sections found. Ask School Admin to create school sections or verify learner records.'
+        : grades.length+' grade level'+(grades.length===1?'':'s')+' available from registered school sections and active learner records.';
+    if(retry)retry.hidden=!adviserEligibilityError;
+    if(!grade.dataset.sectionPickerBound){
+      grade.addEventListener('change',updateAdviserSections);
+      grade.dataset.sectionPickerBound='1';
+    }
+    updateAdviserSections();
+  }
+
+  function updateAdviserSections() {
+    const grade=$('adviserGradeInput'),select=$('adviserSectionInput'),hint=$('adviserSectionHint');
+    if(!grade||!select)return;
+    const selected=grade.value,previous=select.value;
+    const sections=adviserEligibleSections.filter(item=>String(item.gradeLevel).trim()===selected);
+    select.innerHTML='<option value="">'+(selected?'Choose class section':'Choose grade level first')+'</option>'+
+      sections.map(item=>{
+        const total=Number(item.learnerCount)||0,enrolled=Number(item.enrolledCount)||0;
+        const suffix=enrolled>0
+          ? ' · '+enrolled+' enrolled learner'+(enrolled===1?'':'s')
+          : total>0
+            ? ' · '+total+' active learner record'+(total===1?'':'s')+' (check enrollment)'
+            : item.registered
+              ? ' · registered section (no enrolled learners yet)'
+              : ' · eligible section';
+        return '<option value="'+esc(item.section)+'">'+esc(item.section)+esc(suffix)+'</option>';
+      }).join('');
+    select.disabled=!selected||!sections.length;
+    if(sections.some(item=>String(item.section)===previous))select.value=previous;
+    if(hint)hint.textContent=!selected
+      ? 'Choose a grade to see its available sections.'
+      : sections.length
+        ? sections.length+' school section'+(sections.length===1?'':'s')+' available. Registered sections can receive an adviser before learners enroll; SPJ is supported.'
+        : 'No registered or active learner sections in this grade. Ask School Admin to create a school section.';
+  }
+
+  function renderAdviserAssignments() {
+    const host = $('adviserAssignmentRows');
+    if (!host) return;
+    const advisers = teachers.filter(item => Array.isArray(item.teacherDesignations) &&
+      item.teacherDesignations.includes('CLASS_ADVISER') && item.active &&
+      (user.role !== 'DEPARTMENT_HEAD' || String(item.departmentId) === String(user.departmentId)));
+    const teacherSelect = $('adviserTeacherSelect');
+    if (teacherSelect) {
+      const previous = teacherSelect.value;
+      const placeholder = advisers.length ? 'Choose an eligible teacher' : 'No eligible Class Advisers found';
+      teacherSelect.innerHTML = `<option value="">${placeholder}</option>` +
+        advisers.map(item => `<option value="${esc(item.userId)}">${esc(item.displayName)}</option>`).join('');
+      if (advisers.some(item => String(item.userId) === previous)) teacherSelect.value = previous;
+    }
+
+    renderAdviserGradeChoices();
+
+    const addButton = $('addAdviserAssignmentButton');
+    const form = $('adviserAssignmentForm');
+    const retry = $('retryAdviserSections');
+    if(retry&&!retry.dataset.loadBound){
+      retry.addEventListener('click',()=>{void loadAdviserEligibleSections();});
+      retry.dataset.loadBound='1';
+    }
+    if (addButton && !addButton.dataset.formToggleBound) {
+      addButton.addEventListener('click', () => {
+        form.hidden = false;
+        $('adviserAssignmentFeedback').textContent = '';
+        addButton.hidden = true;
+        $('adviserTeacherSelect')?.focus();
+      });
+      addButton.dataset.formToggleBound = '1';
+    }
+    if (form && !form.dataset.cancelBound) {
+      $('cancelAdviserAssignment')?.addEventListener('click', () => {
+        form.reset();
+        form.hidden = true;
+        if (addButton) addButton.hidden = false;
+        updateAdviserSections();
+        const feedback = $('adviserAssignmentFeedback');
+        if (feedback) { feedback.textContent = ''; feedback.className = 'inline-feedback'; }
+      });
+      form.dataset.cancelBound = '1';
+    }
+
+    const count = $('adviserAssignmentCount');
+    if (count) count.textContent = adviserAssignments.length + ' assigned section' + (adviserAssignments.length === 1 ? '' : 's');
+    host.innerHTML = adviserAssignments.length ? adviserAssignments.map(item => `
+      <tr><td><strong>${esc(item.gradeLevel)}</strong></td><td><span class="adviser-section-chip">${esc(item.section)}</span></td><td>${esc(item.adviserName || item.adviserUserId)}</td>
+      <td>${['SCHOOL_ADMIN','DEPARTMENT_HEAD'].includes(user.role)
+        ? '<div class="action-row"><button type="button" class="outline-button compact-button" data-edit-adviser="' + esc(item.assignmentId) + '">Edit</button><button type="button" class="outline-button compact-button danger-button" data-remove-adviser="' + esc(item.assignmentId) + '">Remove</button></div>'
+        : '<span class="muted-inline">View only</span>'}</td></tr>`).join('')
+      : '<tr><td colspan="4" class="empty-cell">No Class Adviser assignments yet. Use “Assign Class Adviser” to assign the first section.</td></tr>';
+  }
+
+  async function loadSf2Options() {
+    const data = await api('/api/sf2/options');
+    sf2Options = data.sections || [];
+    const gradeSelect = $('sf2Grade');
+    const sectionSelect = $('sf2Section');
+    if (!gradeSelect || !sectionSelect) return;
+    const oldGrade = gradeSelect.value;
+    const grades = [...new Set(sf2Options.map(item => item.gradeLevel))].sort((a,b) => String(a).localeCompare(String(b)));
+    gradeSelect.innerHTML = '<option value="">Select grade</option>' + grades.map(value => `<option value="${esc(value)}">${esc(value)}</option>`).join('');
+    gradeSelect.value = grades.includes(oldGrade) ? oldGrade : (grades.length === 1 ? grades[0] : '');
+    updateSf2SectionOptions();
+    const modeWrap = $('sf2ModeWrap');
+    if (modeWrap) modeWrap.hidden = user.role !== 'TEACHER';
+  }
+
+  function updateSf2SectionOptions() {
+    const grade = $('sf2Grade')?.value || '';
+    const sectionSelect = $('sf2Section');
+    if (!sectionSelect) return;
+    const matching = sf2Options.filter(item => String(item.gradeLevel) === String(grade));
+    const previous = sectionSelect.value;
+    sectionSelect.innerHTML = '<option value="">Select section</option>' + matching.map(item => `<option value="${esc(item.section)}">${esc(item.section)}</option>`).join('');
+    sectionSelect.disabled = !matching.length;
+    sectionSelect.value = matching.some(item => String(item.section) === previous) ? previous : (matching.length === 1 ? matching[0].section : '');
+    updateSf2ModeOptions();
+  }
+
+  function updateSf2ModeOptions() {
+    const grade = $('sf2Grade')?.value || '';
+    const section = $('sf2Section')?.value || '';
+    const item = sf2Options.find(row => String(row.gradeLevel) === String(grade) && String(row.section) === String(section));
+    const modeSelect = $('sf2Mode');
+    if (!modeSelect) return;
+    const modes = item?.modes || [item?.mode || 'OFFICIAL'];
+    const labels = { OFFICIAL: 'Official Class Adviser SF2', PERSONAL: 'Subject Teacher personal copy' };
+    const previous = modeSelect.value;
+    modeSelect.innerHTML = modes.map(mode => `<option value="${mode}">${labels[mode] || mode}</option>`).join('');
+    modeSelect.value = modes.includes(previous) ? previous : (modes[0] || 'OFFICIAL');
+  }
+
+  async function loadSf2Submissions() {
+    const data = await api('/api/sf2/submissions');
+    sf2Submissions = data.submissions || [];
+    renderSf2Submissions();
+  }
+
+  function renderSf2Submissions() {
+    const host = $('sf2SubmissionRows');
+    if (!host) return;
+    host.innerHTML = sf2Submissions.length ? sf2Submissions.map(item => `
+      <tr><td>${esc(String(item.month || '').slice(0,10).slice(0,7))}</td><td>${esc(item.gradeLevel)} · ${esc(item.section)}</td>
+      <td>${esc(item.submittedBy || '')}</td><td>${esc(item.revision)}</td><td><span class="status-tag ${item.status === 'COLLECTED' ? '' : 'neutral'}">${esc(item.status)}</span></td>
+      <td><div class="action-row"><button type="button" class="outline-button compact-button" data-download-sf2="${esc(item.submissionId)}">Download</button>
+      ${item.status === 'SUBMITTED' && user?.role === 'SCHOOL_ADMIN' ? `<button type="button" class="primary-button compact-button" data-collect-sf2="${esc(item.submissionId)}">Mark collected</button>` : ''}</div></td></tr>`).join('')
+      : '<tr><td colspan="6" class="empty-cell">No official SF2 submissions have been received yet.</td></tr>';
+  }
+
+  function renderGateKeeperMonitoring() {
+    const host = $('gateKeeperMonitorRows');
+    if (!host) return;
+    host.innerHTML = gateKeeperMonitoring.length ? gateKeeperMonitoring.map(item => `
+      <tr><td><strong>${esc(item.displayName || item.username)}</strong><small class="table-subtext">${esc(item.username)}</small></td>
+      <td><span class="account-status ${item.active ? 'active' : 'inactive'}">${item.active ? 'Active' : 'Inactive'}</span></td>
+      <td>${Number(item.studentScansToday || 0)}</td><td>${Number(item.teacherPunchesToday || 0)}</td>
+      <td>${item.lastActivityAt ? esc(new Date(item.lastActivityAt).toLocaleString('en-PH', { timeZone: 'Asia/Manila' })) : 'No scans yet'}</td></tr>`).join('')
+      : '<tr><td colspan="5" class="empty-cell">No Gate Keeper accounts have been created yet.</td></tr>';
+  }
+
+  function renderTeacherGateAttendance() {
+    const host = $('teacherGateAttendanceRows');
+    if (!host) return;
+    host.innerHTML = teacherGateAttendance.length ? teacherGateAttendance.map(item => `
+      <tr><td><strong>${esc(item.teacherName)}</strong><small class="table-subtext">${esc(item.username)}</small></td>
+      <td><span class="status-tag ${item.eventType === 'TIME_IN' ? '' : 'neutral'}">${item.eventType === 'TIME_IN' ? 'Time-in' : 'Time-out'}</span></td>
+      <td>${esc(new Date(item.occurredAt).toLocaleTimeString('en-PH', { timeZone: 'Asia/Manila', hour: 'numeric', minute: '2-digit' }))}</td>
+      <td>${esc(item.recordedBy || '')}</td><td>${item.photoVerified ? 'Photo verified' : 'Not verified'}</td></tr>`).join('')
+      : '<tr><td colspan="5" class="empty-cell">No teacher gate attendance has been recorded for this date.</td></tr>';
+  }
+
+  async function loadGateMonitoring() {
+    if ($('teacherGateDate') && !$('teacherGateDate').value) $('teacherGateDate').value = schoolDateManila();
+    if (user.role === 'SCHOOL_ADMIN') {
+      const data = await api('/api/admin/gatekeeper-monitoring');
+      gateKeeperMonitoring = data.gateKeepers || [];
+      renderGateKeeperMonitoring();
+    }
+    if (['SCHOOL_ADMIN', 'DEPARTMENT_HEAD'].includes(user.role)) {
+      const date = $('teacherGateDate')?.value || schoolDateManila();
+      const data = await api(`/api/admin/teacher-gate-attendance?date=${encodeURIComponent(date)}`);
+      teacherGateAttendance = data.events || [];
+      renderTeacherGateAttendance();
+    }
+  }
+
+  async function loadSchedulingSettings() {
+    const canRead = ['SCHOOL_ADMIN','DEPARTMENT_HEAD','TEACHER'].includes(user.role);
+    if (!canRead) return;
+    try {
+      const [daysResult, templatesResult, exceptionsResult] = await Promise.all([
+        api('/api/scheduling-config/operating-days'),
+        api('/api/scheduling-config/templates'),
+        api('/api/scheduling-config/calendar-exceptions?from=' + encodeURIComponent(schoolDateManila()) + '&to=' + encodeURIComponent(new Date(Date.now() + 365 * 86400000).toISOString().slice(0,10)))
+      ]);
+      schoolOperatingDays = daysResult.days || [];
+      timetableTemplates = templatesResult.templates || [];
+      renderCalendarExceptions(exceptionsResult.exceptions || []);
+      const exceptionScheduleSelect = $('calendarExceptionSchedules');
+      if (exceptionScheduleSelect) exceptionScheduleSelect.innerHTML = periods.map(period => '<option value="' + esc(period.periodId) + '">' + esc(period.gradeLevel + ' · ' + (period.section || 'All sections') + ' · ' + (period.subjectName || period.periodName)) + '</option>').join('');
+      const dayMap = new Map(schoolOperatingDays.map(day => [Number(day.weekday), Boolean(day.isOperatingDay)]));
+      document.querySelectorAll('#operatingDayChoices input[type="checkbox"]').forEach(input => {
+        input.checked = dayMap.has(Number(input.value)) ? dayMap.get(Number(input.value)) : Number(input.value)>=1 && Number(input.value)<=5;
+      });
+      const configuredDays = schoolOperatingDays.filter(day=>day.isOperatingDay).map(day=>Number(day.weekday));
+      document.querySelectorAll('#scheduleWeekdayChoices input[type="checkbox"]').forEach(input => {
+        input.checked = configuredDays.length ? configuredDays.includes(Number(input.value)) : Number(input.value)>=1 && Number(input.value)<=5;
+      });
+      populateSavedTimetableChoices();
+      if ($('scheduleForm') && !$('scheduleForm').hidden) {
+        $('scheduleFormFeedback').textContent = 'Timetable options refreshed from the saved school settings.';
+      }
+      const list = $('timetableTemplateList');
+      const archiveList = $('timetableArchiveList');
+      const renderTemplate = (template, archived = false) =>
+        '<div class="timetable-saved-template"><strong>' + esc(template.name) + '</strong>' +
+        (archived ? '<span class="timetable-archive-status">Archived · can be restored</span>' : '') +
+        '<small>' + esc(template.shiftCode) + '</small>' +
+        '<ul>' + (template.periods || []).map(p => '<li>' + esc(p.label) + ' · ' + esc(p.startTime) + '–' + esc(p.endTime) + ' (' + esc(p.blockType) + ')</li>').join('') + '</ul>' +
+        (user.role === 'SCHOOL_ADMIN'
+          ? '<div class="form-actions timetable-template-actions">' +
+            (archived
+              ? '<button type="button" class="primary-button compact-button" data-template-restore="' + esc(template.templateId) + '">Restore</button>'
+              : '<button type="button" class="outline-button compact-button" data-template-edit="' + esc(template.templateId) + '">Edit</button>' +
+                '<button type="button" class="outline-button compact-button" data-template-duplicate="' + esc(template.templateId) + '">Duplicate</button>' +
+                '<button type="button" class="outline-button compact-button" data-template-archive="' + esc(template.templateId) + '">Archive</button>') +
+            '<button type="button" class="outline-button compact-button timetable-delete-action" data-template-delete="' + esc(template.templateId) + '">Delete permanently</button></div>'
+          : '') + '</div>';
+      const activeTemplates = timetableTemplates.filter(t => t.active);
+      const archivedTemplates = timetableTemplates.filter(t => !t.active);
+      if (list) list.innerHTML = '<div class="timetable-list-heading"><strong>Active timetable templates</strong><small>Available when creating new class schedules</small></div>' +
+        (activeTemplates.length
+          ? '<div class="timetable-template-chips">' + activeTemplates.map(t => renderTemplate(t)).join('') + '</div>'
+          : '<p>No active templates. Create one or restore a template from the archive.</p>');
+      if (archiveList) archiveList.innerHTML = '<div class="timetable-list-heading"><strong>Archived timetable templates</strong><small>Stored for future reuse. Archived templates are not offered for new schedules.</small></div>' +
+        (archivedTemplates.length
+          ? '<div class="timetable-template-chips">' + archivedTemplates.map(t => renderTemplate(t, true)).join('') + '</div>'
+          : '<p>No archived timetable templates.</p>');
+    } catch (error) {
+      console.warn('Scheduling settings could not be loaded:', error.message);
+      if ($('operatingDaysFeedback')) { $('operatingDaysFeedback').textContent = 'Unable to load settings. Check your connection and refresh before editing. ' + error.message; $('operatingDaysFeedback').classList.add('error'); }
+    }
+  }
+
+  function renderCalendarExceptions(items) {
+    calendarExceptionItems = Array.isArray(items) ? items : [];
+    const host=$('calendarExceptionList'); if(!host)return;
+    const labels={CLOSED:'Closed',OPEN:'Additional operating day',SPECIAL_CLASS:'Special classes',SHORTENED_DAY:'Shortened day'};
+    host.innerHTML='<strong>Saved calendar dates</strong>'+(items.length?'<div class="timetable-template-chips">'+items.map(item=>
+      '<span><b>'+esc(item.date)+' · '+esc(item.title)+'</b><small>'+esc(labels[item.type]||item.type)+(item.dismissalTime?' · Dismissal '+esc(item.dismissalTime):'')+
+      (item.schedules?.length?' · '+item.schedules.length+' selected schedule(s)':'')+'</small>'+
+      (user.role==='SCHOOL_ADMIN'?'<span class="calendar-exception-actions"><button type="button" class="secondary-button compact-button" data-edit-calendar-exception="'+esc(item.exceptionId)+'">Edit</button><button type="button" class="secondary-button compact-button" data-delete-calendar-exception="'+esc(item.exceptionId)+'">Delete</button></span>':'')+'</span>'
+    ).join('')+'</div>':'<p>No upcoming calendar exceptions have been saved.</p>');
+  }
+  async function refreshCalendarExceptions() {
+    const from=schoolDateManila(),to=new Date(Date.now()+365*86400000).toISOString().slice(0,10);
+    const result=await api('/api/scheduling-config/calendar-exceptions?from='+encodeURIComponent(from)+'&to='+encodeURIComponent(to));
+    renderCalendarExceptions(result.exceptions||[]);
+  }
+  function updateCalendarExceptionFields() {
+    const type=$('calendarExceptionType')?.value;
+    if($('calendarDismissalWrap'))$('calendarDismissalWrap').hidden=type!=='SHORTENED_DAY';
+    if($('calendarSchedulesWrap'))$('calendarSchedulesWrap').hidden=!['OPEN','SPECIAL_CLASS'].includes(type);
+    if($('calendarDismissalTime'))$('calendarDismissalTime').required=type==='SHORTENED_DAY';
+    if($('calendarExceptionSchedules'))$('calendarExceptionSchedules').required=['OPEN','SPECIAL_CLASS'].includes(type);
+  }
+
+  function formatScheduleDays(weekdays) {
+    const names=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+    return Array.isArray(weekdays)&&weekdays.length ? weekdays.map(day=>names[Number(day)]).filter(Boolean).join(', ') : 'Mon–Fri';
+  }
+
+  function selectedScheduleWeekdays() {
+    return Array.from(document.querySelectorAll('#scheduleWeekdayChoices input[type="checkbox"]:checked'))
+      .map(input => Number(input.value)).filter(day => Number.isInteger(day) && day>=0 && day<=6);
+  }
+
+  function populateSavedTimetableChoices() {
+    const selector = $('scheduleTemplate');
+    if (!selector) return;
+    const previous = selector.value;
+    const wasCustom = !previous;
+    selector.innerHTML = (user.role==='DEPARTMENT_HEAD'?'<option value="">Select school timetable</option>':'<option value="">Custom time</option>') +
+      timetableTemplates.filter(item => item.active).map(item =>
+        '<option value="' + esc(item.templateId) + '">' + esc(item.name + ' (' + item.shiftCode + ')') + '</option>'
+      ).join('');
+    selector.value = Array.from(selector.options).some(option => option.value === previous) ? previous : '';
+    if(user.role==='DEPARTMENT_HEAD'&&!selector.value)selector.value=String(timetableTemplates.find(t=>t.active)?.templateId||'');
+    if (wasCustom && !selector.value) selector.dataset.lastTemplate = '';
+    populateSavedTemplateBlocks();
+  }
+
+  function suggestScheduleLabel(suggestion) {
+    const input=$('periodName');if(!input)return;
+    const previous=input.dataset.suggestedLabel||'';
+    if(!input.value.trim()||(previous&&input.value.trim()===previous))input.value=suggestion;
+    input.dataset.suggestedLabel=suggestion;
+  }
+  function scheduleClockLabel(v) {
+    const match=/^([01]\d|2[0-3]):([0-5]\d)/.exec(v||'');if(!match)return '—';
+    const hour=Number(match[1]);return (hour%12||12)+':'+match[2]+(hour>=12?' PM':' AM');
+  }
+  function updateScheduleReview() {
+    const start=$('startTime')?.value||'',end=$('endTime')?.value||'';
+    if($('schedulePreviewStart'))$('schedulePreviewStart').textContent=scheduleClockLabel(start);
+    if($('schedulePreviewEnd'))$('schedulePreviewEnd').textContent=scheduleClockLabel(end);
+    const duration=templateMinutes(end)-templateMinutes(start);
+    if($('schedulePreviewDuration'))$('schedulePreviewDuration').textContent=Number.isFinite(duration)&&duration>0?duration+' min':'—';
+    const review=$('scheduleReviewSummary');if(!review)return;
+    const days=selectedScheduleWeekdays();
+    const dept=user?.role==='DEPARTMENT_HEAD';
+    if($('scheduleDaysCount'))$('scheduleDaysCount').textContent=days.length+' '+(days.length===1?'day':'days')+' selected';
+    const grade=$('periodGrade')?.value||'',section=$('periodSection')?.value||'';
+    const subject=$('periodSubject')?.value||'',label=$('periodName')?.value?.trim()||'';
+    const subjectName=subject?$('periodSubject')?.selectedOptions[0]?.textContent?.trim()||'Subject':'Select subject';
+    const teacherId=$('periodTeacher')?.value||'';
+    const teacherName=teacherId?$('periodTeacher')?.selectedOptions[0]?.textContent?.trim()||'Teacher':'Teacher unassigned';
+    const room=$('periodClassroom')?.value?.trim()||'No room assigned';
+    const approved=Boolean($('scheduleTemplate')?.value&&$('scheduleTemplatePeriod')?.value&&
+      Number.isFinite(duration)&&duration>0);
+    if(dept){
+      const steps=[
+        {ready:Boolean(grade&&section),name:'a section'},
+        {ready:Boolean(subject),name:'a subject'},
+        {ready:approved,name:'an approved timetable period'},
+        {ready:Boolean(label),name:'a schedule label'},
+        {ready:days.length>0,name:'meeting days'}
+      ];
+      const complete=steps.filter(step=>step.ready).length;
+      if($('scheduleReadinessCount'))$('scheduleReadinessCount').textContent=complete+' of 5 ready';
+      if($('scheduleReadinessText'))$('scheduleReadinessText').textContent=complete===5?'Ready to save':'Complete your department class';
+      if($('scheduleReadinessBar'))$('scheduleReadinessBar').setAttribute('aria-valuenow',String(complete));
+      if($('scheduleReadinessFill'))$('scheduleReadinessFill').style.width=(complete*20)+'%';
+      if($('scheduleReadinessHint'))$('scheduleReadinessHint').textContent=complete===5
+        ? 'All required details are present. Conflicts are checked when saving.'
+        : 'Next: choose '+steps.find(step=>!step.ready)?.name+'.';
+      review.textContent=[
+        grade&&section?grade+' · '+section:'Choose grade and section',
+        subjectName,
+        label||'Schedule label missing',
+        approved?scheduleClockLabel(start)+' – '+scheduleClockLabel(end):'Select approved period',
+        days.length?formatScheduleDays(days):'Select meeting days',
+        room,
+        'Subject Teacher: '+teacherName,
+        'Class Adviser: '+($('scheduleClassAdviserName')?.dataset.adviserName||'Not assigned / not loaded')
+      ].join('  •  ');
+    } else {
+      review.textContent=[
+        label||'Choose schedule label',
+        (grade||'Grade')+' · '+(section||'Choose section'),
+        subjectName,
+        start&&end?scheduleClockLabel(start)+' – '+scheduleClockLabel(end):'Choose time block',
+        formatScheduleDays(days)
+      ].join(' • ');
+    }
+  }
+  function populateSavedTemplateBlocks() {
+    const selector=$('scheduleTemplate'),select=$('scheduleTemplatePeriod');
+    if(!selector||!select)return;
+    const template=timetableTemplates.find(t=>t.active&&String(t.templateId)===selector.value);
+    const templateChanged=(selector.dataset.lastTemplate||'')!==selector.value;
+    const previous=templateChanged?'':select.value;
+    const blocks=(template?.periods||[]).filter(p=>!['BREAK','LUNCH'].includes(p.blockType));
+    select.innerHTML=template?'<option value="">Choose a time block</option>'+blocks.map(p=>
+      '<option value="'+esc(template.templateId+'|'+p.templatePeriodId)+'">'+esc(p.label+' · '+p.startTime+'–'+p.endTime)+'</option>').join('')
+      :'<option value="">Custom start and end times</option>';
+    select.disabled=!template||!blocks.length;
+    if(previous&&Array.from(select.options).some(option=>option.value===previous))select.value=previous;
+    selector.dataset.lastTemplate=selector.value;
+    $('periodName').readOnly=false;
+    $('startTime').readOnly=Boolean(template)||user.role==='DEPARTMENT_HEAD';
+    $('endTime').readOnly=Boolean(template)||user.role==='DEPARTMENT_HEAD';
+    if(!template){
+      suggestScheduleLabel('');
+      $('startTime').value=user.role==='DEPARTMENT_HEAD'?'':($('startTime').value||'07:30');
+      $('endTime').value=user.role==='DEPARTMENT_HEAD'?'':($('endTime').value||'08:30');
+      $('scheduleFormFeedback').textContent=user.role==='DEPARTMENT_HEAD'?'Ask School Admin to publish an active school timetable.':'Custom time: enter your own label and start/end times.';
+    }else if(select.value){applyTemplatePeriodSelection();return;}
+    else{
+      suggestScheduleLabel('');$('startTime').value='';$('endTime').value='';
+      $('scheduleFormFeedback').textContent=blocks.length?'Choose a saved time block to fill the times.':'This template has no instructional blocks.';
+    }
+    updateScheduleReview();
+  }
+  function applyTemplatePeriodSelection() {
+    const raw=$('scheduleTemplatePeriod')?.value||'';
+    if(!raw){
+      if($('scheduleTemplate')?.value){suggestScheduleLabel('');$('startTime').value='';$('endTime').value='';}
+      updateScheduleReview();return;
+    }
+    const [templateId,periodId]=raw.split('|');
+    const template=timetableTemplates.find(t=>String(t.templateId)===templateId&&t.active);
+    const period=template?.periods?.find(p=>String(p.templatePeriodId)===periodId&&!['BREAK','LUNCH'].includes(p.blockType));
+    if(!period)return;
+    suggestScheduleLabel(period.label);
+    $('startTime').value=period.startTime;$('endTime').value=period.endTime;
+    const type=$('scheduleActivityType');
+    if(type&&['ADVISORY','HOMEROOM'].includes(period.blockType)&&type.value==='CLASS')type.value='ADVISORY';
+    $('scheduleFormFeedback').textContent='Using '+template.name+' · '+period.label+'. Your custom label will be preserved.';
+    updateScheduleReview();
+  }
+  function resetScheduleTimeSelection() {
+    if($('scheduleTemplate')){$('scheduleTemplate').value='';$('scheduleTemplate').dataset.lastTemplate='';}
+    if($('periodName')){$('periodName').value='';$('periodName').dataset.suggestedLabel='';}
+    if($('startTime'))$('startTime').value='07:30';
+    if($('endTime'))$('endTime').value='08:30';
+    if(user.role==='DEPARTMENT_HEAD')populateSavedTimetableChoices();
+    else populateSavedTemplateBlocks();
+  }
+
+  function templateMinutes(value) {
+    if (!/^\d{2}:\d{2}$/.test(value || '')) return NaN;
+    const parts = value.split(':').map(Number);
+    if (parts[0] > 23 || parts[1] > 59) return NaN;
+    return parts[0] * 60 + parts[1];
+  }
+
+  function templateClock(minutes) {
+    return String(Math.floor(minutes / 60)).padStart(2, '0') + ':' + String(minutes % 60).padStart(2, '0');
+  }
+
+  function updateTemplateBlockSummary() {
+    const host = $('templateBlockRows');
+    const status = $('templateBlockSummary');
+    if (!host || !status) return;
+    const rows = Array.from(host.children);
+    const blocks = rows.map((row, index) => {
+      const label = row.querySelector('[data-block-label]')?.value.trim() || '';
+      const start = templateMinutes(row.querySelector('[data-block-start]')?.value);
+      const end = templateMinutes(row.querySelector('[data-block-end]')?.value);
+      row.querySelector('[data-block-number]').textContent = String(index + 1).padStart(2, '0');
+      row.querySelector('[data-remove-block]').setAttribute('aria-label', 'Remove block ' + (index + 1) + (label ? ': ' + label : ''));
+      const valid = label && Number.isFinite(start) && Number.isFinite(end) && end > start;
+      row.classList.toggle('is-invalid', !valid);
+      row.querySelector('[data-block-duration]').textContent = valid ? (end - start) + ' min' : 'Check time';
+      return { row, start, end, valid };
+    });
+    const ordered = [...blocks].filter(block => block.valid).sort((a, b) => a.start - b.start);
+    let overlaps = 0;
+    for (let i = 1; i < ordered.length; i++) {
+      if (ordered[i].start < ordered[i - 1].end) {
+        ordered[i].row.classList.add('is-invalid');
+        ordered[i - 1].row.classList.add('is-invalid');
+        overlaps++;
+      }
+    }
+    rows.forEach(row => {
+      row.querySelectorAll('[data-block-start],[data-block-end]').forEach(field => {
+        field.setAttribute('aria-invalid', String(row.classList.contains('is-invalid')));
+      });
+    });
+    const outOfOrder = blocks.some((block, index) => index > 0 && Number.isFinite(block.start) && Number.isFinite(blocks[index - 1].start) && block.start < blocks[index - 1].start);
+    const validTimes = ordered.length;
+    const firstTime = validTimes ? templateClock(ordered[0].start) : '';
+    const lastTime = validTimes ? templateClock(Math.max(...ordered.map(block => block.end))) : '';
+    const invalid = blocks.some(block => !block.valid);
+    status.classList.toggle('has-warning', Boolean(invalid || overlaps || outOfOrder));
+    status.textContent = rows.length + (rows.length === 1 ? ' block' : ' blocks') +
+      (firstTime && lastTime ? ' · ' + firstTime + '–' + lastTime : '') +
+      (overlaps ? ' · Overlapping times' : invalid ? ' · Check highlighted blocks' : outOfOrder ? ' · Sort by time' : '');
+  }
+
+  function addTemplateBlock(type = 'CLASS') {
+    const host = $('templateBlockRows');
+    if (!host || host.children.length >= 100) return;
+    const previousEnd = host.lastElementChild?.querySelector('[data-block-end]')?.value || '07:30';
+    const duration = type === 'BREAK' ? 15 : type === 'LUNCH' ? 45 : 60;
+    const startMinutes = templateMinutes(previousEnd);
+    const validStart = Number.isFinite(startMinutes) && startMinutes + duration < 1440 ? startMinutes : 450;
+    const row = document.createElement('div');
+    row.className = 'template-block-row';
+    row.setAttribute('role', 'group');
+    row.innerHTML = '<span class="template-row-index" data-block-number></span>' +
+      '<label class="template-block-name"><span class="template-mobile-label">Period / activity</span><input data-block-label required maxlength="80" placeholder="e.g. Period 1"></label>' +
+      '<label class="template-block-kind"><span class="template-mobile-label">Type</span><select data-block-type><option value="CLASS">Class</option><option value="BREAK">Break</option><option value="LUNCH">Lunch</option><option value="HOMEROOM">Homeroom</option><option value="ADVISORY">Advisory</option><option value="OTHER">Other</option></select></label>' +
+      '<label class="template-block-start"><span class="template-mobile-label">Start</span><input data-block-start type="time" required step="60"></label>' +
+      '<label class="template-block-end"><span class="template-mobile-label">End</span><input data-block-end type="time" required step="60"><small class="template-row-duration" data-block-duration></small></label>' +
+      '<button type="button" class="template-remove-button" data-remove-block title="Remove block" aria-label="Remove block">×</button>';
+    row.querySelector('[data-block-type]').value = type;
+    row.querySelector('[data-block-label]').value = type === 'BREAK' ? 'Morning break' : type === 'LUNCH' ? 'Lunch' : 'Period ' + (host.children.length + 1);
+    row.querySelector('[data-block-start]').value = templateClock(validStart);
+    row.querySelector('[data-block-end]').value = templateClock(validStart + duration);
+    row.querySelector('[data-remove-block]').addEventListener('click', () => {
+      row.remove();
+      if (!host.children.length) addTemplateBlock();
+      updateTemplateBlockSummary();
+    });
+    host.append(row);
+    updateTemplateBlockSummary();
+  }
+
+  function wireSchedulingSettingsForms() {
+    addTemplateBlock();
+    $('addTemplateBlock')?.addEventListener('click', () => {
+      addTemplateBlock();
+      $('templateBlockRows').lastElementChild?.querySelector('[data-block-label]')?.focus();
+    });
+    document.querySelectorAll('#timetableTemplateForm [data-add-template-type]').forEach(button => {
+      button.addEventListener('click', () => {
+        addTemplateBlock(button.dataset.addTemplateType);
+        $('templateBlockRows').lastElementChild?.querySelector('[data-block-label]')?.focus();
+      });
+    });
+    $('sortTemplateBlocks')?.addEventListener('click', () => {
+      const host = $('templateBlockRows');
+      const sorted = [...host.children].sort((left, right) => 
+        (left.querySelector('[data-block-start]').value || '').localeCompare(right.querySelector('[data-block-start]').value || ''));
+      host.append(...sorted);
+      updateTemplateBlockSummary();
+      $('templateFeedback').textContent = 'Blocks sorted by start time.';
+    });
+    $('templateBlockRows')?.addEventListener('input', updateTemplateBlockSummary);
+    $('templateBlockRows')?.addEventListener('change', updateTemplateBlockSummary);
+    $('cancelTemplateEdit')?.addEventListener('click',()=>{
+      delete $('timetableTemplateForm').dataset.editingId;
+      $('timetableTemplateForm').reset();$('templateBlockRows').replaceChildren();addTemplateBlock();updateTemplateBlockSummary();
+      $('saveTemplateButton').textContent='Save template';$('cancelTemplateEdit').hidden=true;
+      $('templateFeedback').textContent='Edit cancelled.';
+    });
+    const handleTemplateAction = async event => {
+      const button=event.target.closest('button[data-template-edit],button[data-template-duplicate],button[data-template-archive],button[data-template-restore],button[data-template-delete]');
+      if(!button||user.role!=='SCHOOL_ADMIN')return;
+      const id=button.dataset.templateEdit||button.dataset.templateDuplicate||button.dataset.templateArchive||button.dataset.templateRestore||button.dataset.templateDelete;
+      const template=timetableTemplates.find(t=>String(t.templateId)===String(id));
+      if(!template)return;
+      if(button.dataset.templateArchive || button.dataset.templateRestore || button.dataset.templateDelete) {
+        const action = button.dataset.templateArchive ? 'archive' : button.dataset.templateRestore ? 'restore' : 'delete';
+        if(action === 'archive' && !await AppDialog.confirm('Archive "' + template.name + '"? It will be hidden from new schedules but kept for future restoration and historical records.', { title: 'Archive timetable template', confirmText: 'Archive' })) return;
+        if(action === 'delete') {
+          if(!await AppDialog.confirm('Permanently delete "' + template.name + '"? This cannot be undone. Templates referenced by class schedules cannot be deleted.', { title: 'Delete timetable template', confirmText: 'Continue', variant: 'danger' })) return;
+          if(await AppDialog.prompt('Type DELETE to permanently remove this unused timetable template.', '', { title: 'Confirm template deletion', confirmText: 'Delete template', variant: 'danger' }) !== 'DELETE') return;
+        }
+        button.disabled=true;
+        try {
+          const endpoint='/api/scheduling-config/templates/'+encodeURIComponent(id);
+          const result=await api(endpoint+(action === 'delete' ? '' : '/'+action),{method:action === 'delete' ? 'DELETE' : 'PATCH'});
+          await loadSchedulingSettings();
+          showToast('Template '+result.action+'.');
+        }catch(error){button.disabled=false;showToast(error.message,true);}
+        return;
+      }
+      $('templateName').value=template.name+(button.dataset.templateDuplicate?' (copy)':'');
+      $('templateShift').value=template.shiftCode;
+      $('templateBlockRows').replaceChildren();
+      (template.periods||[]).forEach(p=>{
+        addTemplateBlock();
+        const row=$('templateBlockRows').lastElementChild;
+        row.querySelector('[data-block-label]').value=p.label;
+        row.querySelector('[data-block-type]').value=p.blockType;
+        row.querySelector('[data-block-start]').value=p.startTime;
+        row.querySelector('[data-block-end]').value=p.endTime;
+      });
+      updateTemplateBlockSummary();
+      if(button.dataset.templateEdit){
+        $('timetableTemplateForm').dataset.editingId=id;
+        $('saveTemplateButton').textContent='Save changes';
+        $('cancelTemplateEdit').hidden=false;
+      }else{
+        delete $('timetableTemplateForm').dataset.editingId;
+        $('saveTemplateButton').textContent='Save duplicate';
+        $('cancelTemplateEdit').hidden=false;
+      }
+      $('timetableTemplateForm').scrollIntoView({behavior:'smooth',block:'start'});
+      $('templateName').focus({preventScroll:true});
+    };
+    $('timetableTemplateList')?.addEventListener('click',handleTemplateAction);
+    $('timetableArchiveList')?.addEventListener('click',handleTemplateAction);
+    $('operatingDaysForm')?.addEventListener('submit', async event => {
+      event.preventDefault();
+      const feedback = $('operatingDaysFeedback');
+      const days = Array.from({length:7},(_,weekday)=>({weekday,isOperatingDay:Boolean(document.querySelector('#operatingDayChoices input[value="' + weekday + '"]')?.checked)}));
+      if (!days.some(day=>day.isOperatingDay)) { feedback.textContent='Select at least one operating day.'; return; }
+      feedback.textContent='Saving…';
+      try { await api('/api/scheduling-config/operating-days',{method:'PUT',body:JSON.stringify({days})}); schoolOperatingDays=days;
+        document.querySelectorAll('#scheduleWeekdayChoices input[type="checkbox"]').forEach(input=>{input.checked=days.some(day=>day.isOperatingDay&&Number(day.weekday)===Number(input.value));});
+        feedback.textContent='Operating days saved.'; }
+      catch(error){feedback.textContent=error.message;}
+    });
+    $('timetableTemplateForm')?.addEventListener('submit', async event => {
+      event.preventDefault();
+      const feedback=$('templateFeedback');
+      const periods = [...$('templateBlockRows').children].map((row,index) => ({
+        order:index+1, label:row.querySelector('[data-block-label]').value.trim(),
+        startTime:row.querySelector('[data-block-start]').value,
+        endTime:row.querySelector('[data-block-end]').value,
+        blockType:row.querySelector('[data-block-type]').value
+      })).sort((a,b) => a.startTime.localeCompare(b.startTime));
+      for (let i=0;i<periods.length;i++) {
+        const block=periods[i]; block.order=i+1;
+        if (!block.label || !block.startTime || !block.endTime || block.endTime<=block.startTime) {
+          feedback.textContent='Each block needs a label and an end time later than its start.'; return;
+        }
+        if (i && block.startTime<periods[i-1].endTime) {
+          feedback.textContent=block.label+' overlaps '+periods[i-1].label+'. Adjust their times.'; return;
+        }
+      }
+      feedback.textContent='Saving template…';
+      try {
+        const editingId = $('timetableTemplateForm').dataset.editingId;
+        await api('/api/scheduling-config/templates' + (editingId ? '/' + encodeURIComponent(editingId) : ''),{method:editingId?'PUT':'POST',body:JSON.stringify({name:$('templateName').value.trim(),shiftCode:$('templateShift').value,periods})});
+        delete $('timetableTemplateForm').dataset.editingId;
+        $('saveTemplateButton').textContent = 'Save template';
+        $('cancelTemplateEdit').hidden = true;
+        $('timetableTemplateForm').reset(); $('templateBlockRows').replaceChildren(); addTemplateBlock(); await loadSchedulingSettings(); feedback.textContent='Template saved.';
+      } catch(error){feedback.textContent=error.message;}
+    });
+    $('cancelCalendarExceptionEdit')?.addEventListener('click',()=>{
+      $('calendarExceptionForm').reset();
+      $('calendarExceptionForm').dataset.editing='false';
+      delete $('calendarExceptionForm').dataset.exceptionId;
+      const saveButton=$('calendarExceptionForm').querySelector('button[type="submit"]');
+      if(saveButton)saveButton.textContent='Save calendar date';
+      $('cancelCalendarExceptionEdit').hidden=true;
+      $('calendarExceptionFeedback').textContent='Edit cancelled.';
+      updateCalendarExceptionFields();
+    });
+    $('calendarExceptionType')?.addEventListener('change',updateCalendarExceptionFields);
+    updateCalendarExceptionFields();
+    $('calendarExceptionForm')?.addEventListener('submit',async event=>{
+      event.preventDefault();const feedback=$('calendarExceptionFeedback');feedback.textContent='Saving…';
+      try{
+        const type=$('calendarExceptionType').value;
+        const periodIds=Array.from($('calendarExceptionSchedules')?.selectedOptions||[]).map(option=>option.value);
+        await api('/api/scheduling-config/calendar-exceptions',{method:'POST',body:JSON.stringify({
+          date:$('calendarExceptionDate').value,title:$('calendarExceptionTitle').value.trim(),type,
+          exceptionId:$('calendarExceptionForm').dataset.exceptionId||null,
+          dismissalTime:type==='SHORTENED_DAY'?$('calendarDismissalTime').value:null,
+          periodIds,notes:$('calendarExceptionNotes').value.trim()||null
+        })});
+        $('calendarExceptionForm').reset();
+        $('calendarExceptionForm').dataset.editing='false';
+        delete $('calendarExceptionForm').dataset.exceptionId;
+        const saveButton=$('calendarExceptionForm').querySelector('button[type="submit"]');
+        if(saveButton)saveButton.textContent='Save calendar date';
+        $('cancelCalendarExceptionEdit')?.setAttribute('hidden','');
+        updateCalendarExceptionFields();await refreshCalendarExceptions();
+        feedback.textContent='Calendar date saved.';
+      }catch(error){feedback.textContent=error.message;}
+    });
+    $('calendarExceptionList')?.addEventListener('click',async event=>{
+      const editButton=event.target.closest('[data-edit-calendar-exception]');
+      if(editButton){
+        const item=calendarExceptionItems.find(entry=>String(entry.exceptionId)===editButton.dataset.editCalendarException);
+        if(!item)return;
+        $('calendarExceptionDate').value=item.date;
+        $('calendarExceptionTitle').value=item.title||'';
+        $('calendarExceptionType').value=item.type;
+        $('calendarDismissalTime').value=item.dismissalTime||'';
+        $('calendarExceptionNotes').value=item.notes||'';
+        const selected=new Set(item.periodIds||[]);
+        Array.from($('calendarExceptionSchedules')?.options||[]).forEach(option=>{option.selected=selected.has(option.value);});
+        $('calendarExceptionForm').dataset.editing='true';
+        $('calendarExceptionForm').dataset.exceptionId=item.exceptionId;
+        const saveButton=$('calendarExceptionForm').querySelector('button[type="submit"]');
+        if(saveButton)saveButton.textContent='Update calendar date';
+        $('cancelCalendarExceptionEdit')?.removeAttribute('hidden');
+        updateCalendarExceptionFields();
+        $('calendarExceptionFeedback').textContent='Editing saved date. Saving will update this date, not create a duplicate.';
+        $('calendarExceptionForm').scrollIntoView({behavior:'smooth',block:'start'});
+        return;
+      }
+      const button=event.target.closest('[data-delete-calendar-exception]');if(!button)return;
+      if(!await AppDialog.confirm('Delete this calendar exception? Attendance records will be preserved.', { title: 'Delete calendar exception', confirmText: 'Delete exception', variant: 'danger' }))return;
+      button.disabled=true;
+      try{await api('/api/scheduling-config/calendar-exceptions/'+encodeURIComponent(button.dataset.deleteCalendarException),{method:'DELETE'});await refreshCalendarExceptions();}
+      catch(error){button.disabled=false;showToast(error.message,true);}
+    });
+    $('scheduleTemplate')?.addEventListener('change',populateSavedTemplateBlocks);
+    $('scheduleTemplatePeriod')?.addEventListener('change',applyTemplatePeriodSelection);
+    $('scheduleApplySchoolDays')?.addEventListener('click',()=>{
+      if(user?.role!=='DEPARTMENT_HEAD')return;
+      const allowed=new Set(schoolOperatingDays.filter(day=>day.isOperatingDay).map(day=>Number(day.weekday)));
+      document.querySelectorAll('#scheduleWeekdayChoices input[type="checkbox"]').forEach(input=>{
+        input.checked=allowed.has(Number(input.value))&&!input.disabled;
+      });
+      updateScheduleReview();
+    });
+    $('scheduleForm')?.addEventListener('input',updateScheduleReview);
+    $('scheduleForm')?.addEventListener('change',updateScheduleReview);
+  }
+
+  wireSchedulingSettingsForms();
+
+  function availableAdjustmentPeriods() {
+    return periods.filter(p=>user.role==='SCHOOL_ADMIN' ||
+      (user.role==='DEPARTMENT_HEAD'&&String(p.scheduleDepartmentId)===String(user.departmentId)));
+  }
+
+  function populateAdjustmentPeriodOptions() {
+    const select=$('adjustmentPeriodId');
+    if(!select)return;
+    const previous=select.value;
+    const options=availableAdjustmentPeriods();
+    select.innerHTML='<option value="">Choose a class schedule</option>'+
+      options.map(p=>'<option value="'+esc(p.periodId)+'">'+
+        esc(p.gradeLevel+' · '+p.section+' · '+p.subjectName+' · '+p.startTime+'–'+p.endTime)+'</option>').join('');
+    if(options.some(p=>String(p.periodId)===previous))select.value=previous;
+    if($('toggleScheduleAdjustmentForm'))$('toggleScheduleAdjustmentForm').hidden=
+      !['SCHOOL_ADMIN','DEPARTMENT_HEAD'].includes(user.role);
+  }
+
+  function setAdjustmentFields() {
+    const type=$('adjustmentType')?.value;
+    const chosen=periods.find(p=>String(p.periodId)===$('adjustmentPeriodId')?.value);
+    if(!chosen)return;
+    $('adjustmentTeacherWrap').hidden=!['SUBSTITUTE','REPLACE'].includes(type);
+    $('adjustmentSubjectWrap').hidden=type!=='REPLACE';
+    $('adjustmentDepartmentWrap').hidden=type!=='REPLACE'||user.role!=='SCHOOL_ADMIN';
+    $('adjustmentStartWrap').hidden=!['RESCHEDULE','REPLACE'].includes(type);
+    $('adjustmentEndWrap').hidden=!['RESCHEDULE','REPLACE'].includes(type);
+    $('adjustmentRoomWrap').hidden=!['RESCHEDULE','REPLACE'].includes(type);
+    const teacherDept=type==='REPLACE'&&user.role==='SCHOOL_ADMIN'
+      ?$('adjustmentDepartment').value:String(chosen.scheduleDepartmentId||chosen.departmentId||'');
+    const select=$('adjustmentTeacher');
+    const previous=select.value;
+    const eligible=teachers.filter(t=>t.active&&(t.teacherDesignations||[]).includes('SUBJECT_TEACHER')&&
+      String(t.departmentId)===String(teacherDept));
+    select.innerHTML='<option value="">'+(type==='REPLACE'?'Keep existing teacher':'Choose covering teacher')+'</option>'+
+      eligible.map(t=>'<option value="'+esc(t.userId)+'">'+esc(t.displayName)+'</option>').join('');
+    if(eligible.some(t=>t.userId===previous))select.value=previous;
+    if(type==='RESCHEDULE'){
+      if(!$('adjustmentStartTime').value)$('adjustmentStartTime').value=chosen.startTime||'';
+      if(!$('adjustmentEndTime').value)$('adjustmentEndTime').value=chosen.endTime||'';
+    }
+    const descriptions={
+      SUBSTITUTE:'The selected Subject Teacher covers this class on the specified date(s). The permanent teacher returns automatically afterward.',
+      REPLACE:'This class meets as a different subject on the specified date(s). Choose a replacement department, subject and teacher as needed. The original timetable returns afterward.',
+      RESCHEDULE:'Change this class time and/or room for the selected date(s). The normal weekday timetable is untouched.',
+      CANCEL:'This class does not meet on the specified date(s). The following scheduled class days are unaffected.'
+    };
+    $('adjustmentFormDescription').textContent=descriptions[type]||'';
+  }
+
+  async function loadAdjustmentSubjects() {
+    const chosen=periods.find(p=>String(p.periodId)===$('adjustmentPeriodId')?.value);
+    const selector=$('adjustmentDepartment');
+    if(!chosen||!selector)return;
+    const departmentId=user.role==='SCHOOL_ADMIN'
+      ?selector.value:String(chosen.scheduleDepartmentId||chosen.departmentId||'');
+    const subject=$('adjustmentSubject'),previous=subject.value;
+    subject.innerHTML='<option value="">Choose replacement subject</option>';
+    if(!departmentId)return;
+    try{
+      const response=await api('/api/subjects?departmentId='+encodeURIComponent(departmentId));
+      subject.innerHTML='<option value="">Choose replacement subject</option>'+
+        (response.subjects||[]).map(item=>'<option value="'+esc(item.subjectId)+'">'+esc(item.subjectName)+'</option>').join('');
+      if((response.subjects||[]).some(item=>item.subjectId===previous))subject.value=previous;
+    }catch(error){$('scheduleAdjustmentFeedback').textContent=error.message;}
+  }
+
+  function openScheduleAdjustment(periodId,date) {
+    const today=dataSchoolDate(),form=$('scheduleAdjustmentForm');
+    if(!form)return;
+    form.reset();
+    populateAdjustmentPeriodOptions();
+    if(periodId&&[...$('adjustmentPeriodId').options].some(option=>option.value===periodId))
+      $('adjustmentPeriodId').value=periodId;
+    const period=periods.find(p=>String(p.periodId)===$('adjustmentPeriodId').value);
+    const departmentsToShow=departments.filter(d=>d.active!==false);
+    $('adjustmentDepartment').innerHTML='<option value="">Choose department</option>'+
+      departmentsToShow.map(d=>'<option value="'+esc(d.departmentId)+'">'+esc(d.name||d.departmentName)+'</option>').join('');
+    const existing=periodId&&date?scheduleDateOverride(periodId,date):null;
+    if(period)$('adjustmentDepartment').value=existing?.subjectDepartmentId||
+      period.scheduleDepartmentId||period.departmentId||'';
+    $('adjustmentStartDate').min=today;
+    $('adjustmentEndDate').min=today;
+    $('adjustmentStartDate').value=date&&date>=today?date:today;
+    $('adjustmentEndDate').value=$('adjustmentStartDate').value;
+    if(existing) {
+      $('adjustmentType').value=existing.type;
+      $('adjustmentReason').value=existing.reason;
+      $('adjustmentNotes').value=existing.notes||'';
+      $('adjustmentStartTime').value=existing.startTime||'';
+      $('adjustmentEndTime').value=existing.endTime||'';
+      $('adjustmentRoom').value=existing.classroom||'';
+    }
+    $('scheduleAdjustmentFeedback').textContent=existing
+      ?'Editing the saved change for '+existing.date+'. This will replace only that date’s adjustment.'
+      :'Choose a date when the selected class normally meets. Unscheduled days are skipped automatically.';
+    form.hidden=false;
+    setAdjustmentFields();
+    if(existing?.teacherUserId&&[...$('adjustmentTeacher').options].some(o=>o.value===existing.teacherUserId))
+      $('adjustmentTeacher').value=existing.teacherUserId;
+    loadAdjustmentSubjects().then(()=>{
+      if(existing?.subjectId&&[...$('adjustmentSubject').options].some(o=>o.value===existing.subjectId))
+        $('adjustmentSubject').value=existing.subjectId;
+    }).catch(error=>showToast(error.message,true));
+    form.scrollIntoView({behavior:'smooth',block:'start'});
+  }
+
+  function wireScheduleAdjustments() {
+    $('toggleScheduleAdjustmentForm')?.addEventListener('click',()=>openScheduleAdjustment());
+    $('cancelScheduleAdjustment')?.addEventListener('click',()=>{$('scheduleAdjustmentForm').hidden=true;});
+    $('adjustmentPeriodId')?.addEventListener('change',()=>{
+      const p=periods.find(p=>String(p.periodId)===$('adjustmentPeriodId').value);
+      if(p)$('adjustmentDepartment').value=p.scheduleDepartmentId||p.departmentId||'';
+      $('adjustmentStartTime').value='';$('adjustmentEndTime').value='';
+      setAdjustmentFields();loadAdjustmentSubjects().catch(e=>showToast(e.message,true));
+    });
+    $('adjustmentType')?.addEventListener('change',()=>{setAdjustmentFields();});
+    $('adjustmentDepartment')?.addEventListener('change',()=>{
+      setAdjustmentFields();loadAdjustmentSubjects().catch(e=>showToast(e.message,true));
+    });
+    $('adjustmentStartDate')?.addEventListener('change',()=>{
+      $('adjustmentEndDate').min=$('adjustmentStartDate').value||dataSchoolDate();
+      if($('adjustmentEndDate').value<$('adjustmentStartDate').value)
+        $('adjustmentEndDate').value=$('adjustmentStartDate').value;
+    });
+    $('scheduleAdjustmentForm')?.addEventListener('submit',async e=>{
+      e.preventDefault();
+      const type=$('adjustmentType').value,periodId=$('adjustmentPeriodId').value;
+      const period=periods.find(p=>String(p.periodId)===periodId);
+      const payload={
+        periodId,type,startDate:$('adjustmentStartDate').value,endDate:$('adjustmentEndDate').value,
+        reason:$('adjustmentReason').value,notes:$('adjustmentNotes').value.trim()
+      };
+      if(['SUBSTITUTE','REPLACE'].includes(type))payload.teacherUserId=$('adjustmentTeacher').value||null;
+      if(type==='REPLACE')payload.subjectId=$('adjustmentSubject').value||null;
+      if(['RESCHEDULE','REPLACE'].includes(type)){
+        payload.startTime=$('adjustmentStartTime').value||null;
+        payload.endTime=$('adjustmentEndTime').value||null;
+        payload.classroom=$('adjustmentRoom').value.trim()||null;
+      }
+      if(!period||!payload.startDate||!payload.endDate||payload.startDate>payload.endDate||
+        (type==='SUBSTITUTE'&&!payload.teacherUserId)||(type==='REPLACE'&&!payload.subjectId)||
+        (type==='RESCHEDULE'&&(!payload.startTime||!payload.endTime))){
+        $('scheduleAdjustmentFeedback').textContent='Complete the required class, date, subject, teacher and time details.';
+        return;
+      }
+      const summary=(type==='CANCEL'?'Cancel':type==='SUBSTITUTE'?'Arrange coverage for':
+        type==='REPLACE'?'Replace subject for':'Change time for')+' '+
+        period.subjectName+' · '+period.gradeLevel+' · '+period.section+' from '+
+        payload.startDate+' through '+payload.endDate+'. The recurring schedule will not change.';
+      if(!await AppDialog.confirm(summary,{title:'Confirm temporary timetable change',confirmText:'Save dated change'}))return;
+      const button=$('saveScheduleAdjustment');
+      button.disabled=true;$('scheduleAdjustmentFeedback').textContent='Checking daily conflicts and saving…';
+      try{
+        const result=await api('/api/schedule-adjustments',{method:'POST',body:JSON.stringify(payload)});
+        $('scheduleAdjustmentForm').hidden=true;
+        await loadScheduleAdjustments();
+        showToast(result.updated+' class date(s) updated'+(result.skipped?' · '+result.skipped+' non-class date(s) skipped':'')+'. The regular timetable remains intact.');
+      }catch(error){$('scheduleAdjustmentFeedback').textContent=error.message;showToast(error.message,true);}
+      finally{button.disabled=false;}
+    });
+    $('datedScheduleList')?.addEventListener('click',async e=>{
+      const button=e.target.closest('[data-remove-adjustment]');
+      if(!button)return;
+      if(!await AppDialog.confirm('Restore the regular timetable on this date? Previously recorded attendance will not be deleted.',{
+        title:'Restore regular schedule',confirmText:'Restore schedule'}))return;
+      button.disabled=true;
+      try{
+        await api('/api/schedule-adjustments/'+encodeURIComponent(button.dataset.removeAdjustment),{method:'DELETE'});
+        await loadScheduleAdjustments();showToast('Regular schedule restored for the selected date.');
+      }catch(error){button.disabled=false;showToast(error.message,true);}
+    });
+  }
+  wireScheduleAdjustments();
+
+  async function loadSchoolData() {
+    const role = user.role;
+    if (role === 'GATE_KEEPER') {
+      // Gate accounts receive a one-student QR lookup only; no full roster is downloaded.
+      students = [];
+      periods = [];
+      dashboardData = null;
+      if ($('scanSetupScope')) { $('scanSetupScope').value = 'SCHOOL'; $('scanSetupScope').disabled = true; }
+      if ($('scanSetupPeriodWrap')) $('scanSetupPeriodWrap').hidden = true;
+      if ($('studentRosterPanel')) $('studentRosterPanel').hidden = true;
+      return;
+    }
+
+    const isSchoolAdmin = role === 'SCHOOL_ADMIN';
+    const isDepartmentHead = role === 'DEPARTMENT_HEAD';
+    const isSchoolManager = isSchoolAdmin || isDepartmentHead;
+    const canViewClassSchedules = isSchoolManager ||
+      (role === 'TEACHER' && (teacherHas('SUBJECT_TEACHER') || teacherHas('CLASS_ADVISER')));
+    $('teacherCoverageCard').hidden = !isDepartmentHead;
+    if ($('departmentHeadOverview')) $('departmentHeadOverview').hidden = !isDepartmentHead;
+
+    // Student records are independent of timetable, department, and dashboard APIs.
+    // A failure in any secondary API must not prevent the roster from rendering.
+    let rosterError = null;
+    try {
+      const roster = await api(isSchoolAdmin ? '/api/students?includeInactive=true' : '/api/students');
+      if (!Array.isArray(roster?.students)) throw new Error('The student service returned an invalid roster.');
+      students = roster.students;
+      // Show real student records immediately, before the slower secondary panels load.
+      renderStudents().catch(error => showToast('Could not render students: ' + error.message, true));
+    } catch (error) {
+      rosterError = error;
+      students = [];
+      const table = $('studentRows');
+      if (table) table.innerHTML = '<tr><td colspan="12" class="empty-cell">Student records could not be loaded: ' +
+        esc(error.message) + '. Use Refresh to retry. No records have been deleted.</td></tr>';
+      showToast('Student roster unavailable: ' + error.message, true);
+    }
+    const secondary = await Promise.allSettled([
+      isSchoolAdmin ? Promise.resolve({}) : api('/api/admin/dashboard'),
+      canViewClassSchedules ? api('/api/periods?weekDate='+encodeURIComponent($('weeklyScheduleAsOf')?.value||dataSchoolDate())) : Promise.resolve({ periods: [] }),
+      isSchoolManager ? api('/api/departments') : Promise.resolve({ departments: [] })
+    ]);
+    const valueOr = (item, fallback, name) => {
+      if (item.status === 'fulfilled') return item.value;
+      console.warn('Attendigo ' + name + ' could not load:', item.reason);
+      return fallback;
+    };
+    dashboardData = valueOr(secondary[0], {}, 'dashboard');
+    periods = valueOr(secondary[1], { periods: [] }, 'timetable').periods || [];
+    departments = valueOr(secondary[2], { departments: [] }, 'departments').departments || [];
+    renderDepartments();
+    const scopeSelect = $('scanSetupScope');
+    const hasSubjectRole = role === 'TEACHER' && teacherHas('SUBJECT_TEACHER');
+    const hasAdviserRole = role === 'TEACHER' && teacherHas('CLASS_ADVISER');
+    scopeSelect.querySelector('option[value="SCHOOL"]').hidden = role !== 'GATE_KEEPER';
+    scopeSelect.querySelector('option[value="CLASS"]').hidden = role === 'TEACHER' && !hasSubjectRole;
+    const advisoryOption = scopeSelect.querySelector('option[value="ADVISORY"]');
+    if (advisoryOption) advisoryOption.hidden = !hasAdviserRole;
+    if (role === 'TEACHER') {
+      scopeSelect.disabled = !(hasSubjectRole && hasAdviserRole);
+      // When a teacher is also a Class Adviser, default to the assigned advisory
+      // section so advisory-only classes (such as Grade 8 - SPJ) are not treated
+      // as regular subject periods. Subject attendance remains selectable.
+      scopeSelect.value = hasAdviserRole && adviserAssignments.length
+        ? 'ADVISORY'
+        : hasSubjectRole ? 'CLASS' : 'ADVISORY';
+    }
+    $('scanSetupPeriod').innerHTML = '<option value="">Select assigned schedule</option>' + periods.map(p => `<option value="${esc(p.periodId)}">${esc(p.periodName)} · ${esc(p.gradeLevel)} · ${esc(p.section || 'All sections')}</option>`).join('');
+    $('scanSetupPeriodWrap').hidden = scopeSelect.value !== 'CLASS';
+    $('scanSetupPeriod').value = periods.length === 1 ? String(periods[0].periodId) : '';
+
+    teachers = [];
+    schoolUsers = [];
+    adviserAssignments = [];
+    if (['SCHOOL_ADMIN', 'DEPARTMENT_HEAD'].includes(role)) {
+      const teacherData = await api('/api/teachers');
+      teachers = teacherData.teachers || [];
+    }
+    if (role === 'SCHOOL_ADMIN') {
+      const staffData = await api('/api/school-users');
+      schoolUsers = (staffData.users || []).filter(account => ['DEPARTMENT_HEAD', 'GATE_KEEPER'].includes(account.role));
+      renderStaffUsers();
+    }
+    if (role === 'DEPARTMENT_HEAD') {
+      const adviserData = await api('/api/class-adviser-assignments');
+      adviserAssignments = adviserData.assignments || [];
+      // An independent, school-scoped lookup keeps grade options available even if
+      // the students roster API is empty, restricted, or temporarily unavailable.
+      await loadAdviserEligibleSections();
+      renderAdviserAssignments();
+    } else if (role === 'TEACHER' && (user.teacherDesignations || []).includes('CLASS_ADVISER')) {
+      const adviserData = await api('/api/class-adviser-assignments');
+      adviserAssignments = adviserData.assignments || [];
+    }
+
+    await loadSchedulingSettings();
+    populateAdjustmentPeriodOptions();
+    await loadScheduleAdjustments();
+    renderStats(dashboardData);
+    if (!rosterError) await renderStudents();
+    renderPeriods();
+    if (isSchoolManager) renderTeachers();
+    if (isDepartmentHead) renderDepartmentHeadOverview();
+    if (isDepartmentHead) {
+      await loadTeacherCoverage(false);
+    }
+    // SF2 options are for Department Heads and teachers only.
+    // School Administrators do not use the academic reporting workflow.
+    if (['DEPARTMENT_HEAD', 'TEACHER'].includes(role)) {
+      await loadSf2Options();
+    }
+    if (role === 'DEPARTMENT_HEAD') {
+      $('sf2SubmissionsCard').hidden = false;
+      await loadSf2Submissions();
+    }
+    if (role === 'TEACHER' && (user.teacherDesignations || []).includes('CLASS_ADVISER')) {
+      renderAdviserAssignments();
+    }
+    if (role === 'SCHOOL_ADMIN') {
+      const currentTab = $('adminManagementTabs')?.querySelector('.is-active')?.dataset.adminManagementTab || 'accounts';
+      setAdminManagementTab(currentTab);
+    }
+  }
+
+  // One read-only daily view; physical gate events never become DTR punches.
+  const myGateTime = timestamp => timestamp
+    ? new Date(timestamp).toLocaleTimeString('en-PH', { timeZone: 'Asia/Manila', hour: 'numeric', minute: '2-digit' })
+    : '—';
+  const myStaffDtrSlots = [['AM_IN','AM In'],['AM_OUT','AM Out'],['PM_IN','PM In'],['PM_OUT','PM Out']];
+  async function loadMyGateAttendance() {
+    if (!['TEACHER','SCHOOL_ADMIN'].includes(user?.role)) return;
+    const fromField=$('myGateFrom'),toField=$('myGateTo');
+    if (!fromField||!toField) return;
+    const today=schoolDateManila();
+    if (!toField.value) toField.value=today;
+    if (!fromField.value) {
+      const start=new Date(today+'T00:00:00+08:00');
+      start.setDate(start.getDate()-6);
+      fromField.value=schoolDateManila(start);
+    }
+    const from=fromField.value,to=toField.value,feedback=$('myGateFeedback');
+    if (!from||!to||from>to||Date.parse(to+'T00:00:00Z')-Date.parse(from+'T00:00:00Z')>31*86400000) {
+      feedback.textContent='Choose a valid date range of up to 31 days.';
+      feedback.className='inline-feedback error';
+      return;
+    }
+    const params=new URLSearchParams({from,to});
+    feedback.textContent='Loading verified staff attendance…';
+    feedback.className='inline-feedback';
+    for (const id of ['myGateApply','myGateRefresh']) $(id).disabled=true;
+    try {
+      const [gateResult,dtrResult]=await Promise.allSettled([
+        api('/api/teacher/my-gate-attendance?'+params),
+        api('/api/staff-attendance/my/dtr-history?'+params)
+      ]);
+      if (gateResult.status==='rejected'&&dtrResult.status==='rejected')
+        throw new Error('Unable to load your attendance history. Please refresh.');
+      const gateAvailable=gateResult.status==='fulfilled',dtrAvailable=dtrResult.status==='fulfilled';
+      const daily=new Map(),dayFor=date=>{
+        if(!daily.has(date))daily.set(date,{
+          date,gateIn:null,gateOut:null,gateCount:0,gateVerified:true,gateEvents:[],obRemarks:[],dtr:new Map()
+        });
+        return daily.get(date);
+      };
+      if(gateAvailable)(gateResult.value.events||[]).forEach(item=>{
+        const day=dayFor(item.schoolDate);
+        if(item.eventType==='TIME_IN'&&!day.gateIn)day.gateIn=item.occurredAt;
+        if(item.eventType==='TIME_OUT')day.gateOut=item.occurredAt;
+        day.gateCount++;
+        day.gateEvents.push(item);
+        day.gateVerified=day.gateVerified&&item.photoVerified===true;
+      });
+      if(dtrAvailable)(dtrResult.value.events||[]).forEach(item=>{
+        if(!myStaffDtrSlots.some(([slot])=>slot===item.slot))return;
+        const day=dayFor(item.schoolDate);
+        if(!day.dtr.has(item.slot))day.dtr.set(item.slot,item.occurredAt);
+      });
+      if(dtrAvailable)(dtrResult.value.obRemarks||[]).forEach(item=>{
+        dayFor(item.date).obRemarks.push(...(item.remarks||[]));
+      });
+      if(from<=today&&to>=today)dayFor(today);
+      const rows=[...daily.values()].sort((a,b)=>b.date.localeCompare(a.date));
+      $('myGateRows').innerHTML=rows.length?rows.map(day=>{
+        const count=day.dtr.size;
+        const dtrSummary=dtrAvailable
+          ? `<span class="my-gate-verified-count ${count===4?'is-complete':''}">${count} of 4 verified</span>`
+          : '<span class="my-gate-unavailable">DTR unavailable</span>';
+        const dtrGrid=dtrAvailable?`<div class="my-gate-dtr-grid">${myStaffDtrSlots.map(([slot,label])=>
+          `<div class="my-gate-dtr-slot"><span>${label}</span><strong>${esc(day.dtr.has(slot)?myGateTime(day.dtr.get(slot)):'Not recorded')}</strong></div>`
+        ).join('')}</div>`:'<p class="my-gate-empty">Verified DTR entries could not be loaded.</p>';
+        const gateTimeline=day.gateEvents.length
+          ?'<div class="my-gate-timeline" aria-label="All verified gate movements">'+
+            [...day.gateEvents].sort((a,b)=>new Date(a.occurredAt)-new Date(b.occurredAt)).map(item=>
+             '<span class="my-gate-movement">'+esc(item.eventType==='TIME_IN'?'Entry':'Exit')+
+             ' '+esc(myGateTime(item.occurredAt))+'</span>').join(' · ')+'</div>'
+          :'';
+        const gateGrid=gateAvailable?`<div class="my-gate-gate-grid">
+          <div><span>First entry</span><strong>${esc(myGateTime(day.gateIn))}</strong></div>
+          <div><span>Latest exit</span><strong>${esc(myGateTime(day.gateOut))}</strong></div>
+        </div>`+gateTimeline:'<p class="my-gate-empty">Gate records unavailable.</p>';
+        const obSummary=day.obRemarks.length?'<div class="my-gate-ob-remarks">'+day.obRemarks.map(ob=>
+          '<p><strong>OB:</strong> '+esc(ob.remark)+
+          (ob.exception?'<span class="status-tag neutral">Review needed</span> '+esc(ob.exceptionRemark||''):'')+
+          '</p>').join('')+'</div>':'';
+        const gateStatus=gateAvailable?(day.gateCount
+          ?`<span class="status-tag ${day.gateVerified?'':'neutral'}">${day.gateVerified?'Photo verified':'Check record'}</span>`
+          :'<span class="my-gate-empty">No gate scan</span>'):'';
+        return `<tr class="my-gate-day-row">
+          <td data-label="Date"><strong class="my-gate-day">${esc(formatSchoolDate(day.date))}</strong></td>
+          <td data-label="Official Form 48 DTR"><div class="my-gate-dtr-summary">${dtrSummary}</div>${dtrGrid}${obSummary}</td>
+          <td data-label="Physical gate scans">${gateGrid}<div class="my-gate-gate-status">${gateStatus}</div></td>
+        </tr>`;
+      }).join(''):'<tr><td colspan="3" class="empty-cell">No attendance entries for the selected dates.</td></tr>';
+      if(!gateAvailable||!dtrAvailable){
+        feedback.textContent='Showing partial history: '+(!dtrAvailable?'official DTR unavailable':'gate scans unavailable')+'. Try Refresh.';
+        feedback.className='inline-feedback error';
+      }else{
+        feedback.textContent=rows.length
+          ?`Showing ${rows.length} day(s) of your personal staff attendance.`
+          :'No verified attendance entries for the selected dates.';
+        feedback.className='inline-feedback';
+      }
+    } catch(error) {
+      $('myGateRows').innerHTML='<tr><td colspan="3" class="empty-cell">Unable to load your attendance history.</td></tr>';
+      feedback.textContent=error.message;
+      feedback.className='inline-feedback error';
+    } finally {
+      for(const id of ['myGateApply','myGateRefresh'])$(id).disabled=false;
+    }
+  }
+
+  let teacherHistoryData = [];
+  let teacherHistoryPage = 0;
+  function renderTeacherClassAttendance(records, requestedPage = 0) {
+    teacherHistoryData = records;
+    const pages = Math.max(1, Math.ceil(records.length / 10));
+    teacherHistoryPage = Math.max(0, Math.min(pages - 1, requestedPage));
+    const visibleRecords = records.slice(teacherHistoryPage * 10, teacherHistoryPage * 10 + 10);
+    if ($('mfQrPageNum')) $('mfQrPageNum').textContent = 'Page ' + (teacherHistoryPage + 1) + ' of ' + pages;
+    if ($('mfQrPrev')) $('mfQrPrev').disabled = teacherHistoryPage === 0;
+    if ($('mfQrNext')) $('mfQrNext').disabled = teacherHistoryPage >= pages - 1;
+    const host = $('teacherAttendanceRows');
+    if (!host) return;
+    $('teacherAttendanceCount').textContent = String(records.length);
+    host.innerHTML = visibleRecords.length ? visibleRecords.map(item => {
+      const time = item.occurredAt
+        ? new Date(item.occurredAt).toLocaleTimeString('en-PH', { timeZone: 'Asia/Manila', hour: 'numeric', minute: '2-digit' })
+        : '—';
+      const date = formatSchoolDate(item.schoolDate);
+      const className = item.scope === 'ADVISORY'
+        ? 'Advisory / homeroom'
+        : [item.periodName, item.subjectName].filter(Boolean).join(' · ') || 'Assigned subject class';
+      const eventLabel = item.eventType === 'TIME_IN' ? 'Time-in' : 'Time-out';
+      return `<tr>
+        <td>${esc(date)}</td><td>${esc(time)}</td>
+        <td><strong>${esc(item.fullName)}</strong><small class="table-subtext">${esc(item.studentId)}</small></td>
+        <td>${esc(item.gradeLevel)} · ${esc(item.section)}</td>
+        <td>${esc(className)}</td>
+        <td><span class="status-tag ${item.eventType === 'TIME_IN' ? '' : 'neutral'}">${eventLabel}</span></td>
+        <td>${item.late ? '<span class="status-tag late">Late</span>' : '<span class="status-tag neutral">On time / not late</span>'}</td>
+      </tr>`;
+    }).join('') : '<tr><td colspan="7" class="empty-cell">No class attendance records match this date range and your assignments.</td></tr>';
+  }
+
+  async function loadTeacherClassAttendance() {
+    if (user?.role !== 'TEACHER') return;
+    const fromInput = $('teacherAttendanceFrom');
+    const toInput = $('teacherAttendanceTo');
+    const select = $('teacherAttendanceViewSelect');
+    if (!fromInput || !toInput || !select) return;
+    const today = schoolDateManila();
+    if (!toInput.value) toInput.value = today;
+    if (!fromInput.value) {
+      const start = new Date(`${today}T00:00:00+08:00`);
+      start.setDate(start.getDate() - 6);
+      fromInput.value = schoolDateManila(start);
+    }
+    const from = fromInput.value;
+    const to = toInput.value;
+    if (!from || !to || from > to) {
+      $('teacherAttendanceFeedback').textContent = 'Choose a valid date range. The start date must not be after the end date.';
+      $('teacherAttendanceFeedback').className = 'inline-feedback error';
+      return;
+    }
+    const view = select.value || 'ALL';
+    $('teacherAttendanceFeedback').textContent = 'Loading assigned class attendance…';
+    $('teacherAttendanceFeedback').className = 'inline-feedback';
+    $('teacherAttendanceApply').disabled = true;
+    $('teacherAttendanceRefresh').disabled = true;
+    try {
+      const query = new URLSearchParams({ view, from, to });
+      const data = await api(`/api/teacher/class-attendance?${query.toString()}`);
+      renderTeacherClassAttendance(data.records || []);
+      $('teacherAttendanceFeedback').textContent = data.records?.length
+        ? `Showing ${data.records.length} accepted record(s) from ${formatSchoolDate(from)} to ${formatSchoolDate(to)}.`
+        : 'No accepted attendance records were found for this date range and your assigned classes.';
+      $('teacherAttendanceFeedback').className = 'inline-feedback';
+    } catch (error) {
+      $('teacherAttendanceCount').textContent = '—';
+      $('teacherAttendanceRows').innerHTML = '<tr><td colspan="7" class="empty-cell">Attendance records could not be loaded.</td></tr>';
+      $('teacherAttendanceFeedback').textContent = error.message;
+      $('teacherAttendanceFeedback').className = 'inline-feedback error';
+    } finally {
+      $('teacherAttendanceApply').disabled = false;
+      $('teacherAttendanceRefresh').disabled = false;
+    }
+  }
+
+  async function refresh() {
+    const button = $('refreshButton');
+    button.disabled = true;
+    button.textContent = 'Refreshing…';
+    try {
+      await loadSchoolData();
+      showToast('Dashboard and school records refreshed.');
+    } catch (error) {
+      showToast(error.message, true);
+    } finally {
+      button.disabled = false;
+      button.textContent = '↻ Refresh';
+    }
+  }
+
+  function applySchoolBranding(data) {
+    schoolBranding = data;
+    const name = data.schoolName || user.schoolName || 'School workspace';
+    // Avoid unnecessary text-node updates: a repeated refresh must not repaint the header.
+    if ($('schoolTitle').textContent !== name) $('schoolTitle').textContent = name;
+    const schoolCode = data.schoolCode || user.schoolCode || 'SCHOOL WORKSPACE';
+    if ($('schoolCodeLabel').textContent !== schoolCode) $('schoolCodeLabel').textContent = schoolCode;
+    if ($('sidebarSchoolName').textContent !== name) $('sidebarSchoolName').textContent = name;
+    const color = /^#[0-9a-f]{6}$/i.test(data.brandColor || '') ? data.brandColor : '#2463a5';
+    document.documentElement.style.setProperty('--brand', color);
+    const rgb = color.match(/[0-9a-f]{2}/gi).map(part => parseInt(part, 16));
+    const darker = '#' + rgb.map(value => Math.round(value * 0.76).toString(16).padStart(2, '0')).join('');
+    document.documentElement.style.setProperty('--brand-strong', darker);
+    document.documentElement.style.setProperty('--sidebar', '#' + rgb.map(value => Math.round(value * 0.32).toString(16).padStart(2, '0')).join(''));
+    document.documentElement.style.setProperty('--nav-active', darker);
+    const emblem = $('schoolEmblem');
+    const sidebarMark = $('sidebarSchoolMark');
+    // Keep the existing image visible until loadSchoolBranding fetches the new binary.
+    if (!data.logoUrl) {
+      if (emblem) emblem.textContent = name.trim().charAt(0).toUpperCase();
+      if (sidebarMark) sidebarMark.textContent = name.trim().charAt(0).toUpperCase();
+    }
+    if ($('schoolBrandingName')) $('schoolBrandingName').value = name;
+    if ($('schoolBrandColor')) $('schoolBrandColor').value = color;
+    const preview = $('schoolLogoPreview');
+    if (preview && !data.logoUrl) preview.textContent = name.trim().charAt(0).toUpperCase();
+  }
+
+  async function loadSchoolBranding() {
+    try {
+      const data = await api('/api/school/branding');
+      applySchoolBranding(data.branding);
+      if (data.branding.logoUrl) {
+        const response = await fetch(data.branding.logoUrl, { headers: { Authorization: `Bearer ${token}` }, cache: 'no-store' });
+        if (response.ok) {
+          const blob = await response.blob();
+          const nextLogoUrl = URL.createObjectURL(blob);
+          // Decode before replacing the current logo to prevent a blank-frame flash.
+          const preparedImage = new Image();
+          preparedImage.src = nextLogoUrl;
+          try {
+            if (typeof preparedImage.decode === 'function') await preparedImage.decode();
+            else if (!preparedImage.complete) await new Promise((resolve, reject) => {
+              preparedImage.onload = resolve;
+              preparedImage.onerror = reject;
+            });
+            const previousLogoUrl = brandingLogoObjectUrl;
+            brandingLogoObjectUrl = nextLogoUrl;
+            for (const node of [$('schoolEmblem'), $('sidebarSchoolMark'), $('schoolLogoPreview')]) {
+              if (!node) continue;
+              const image = preparedImage.cloneNode();
+              image.alt = `${data.branding.schoolName} logo`;
+              node.replaceChildren(image);
+            }
+            if (previousLogoUrl) URL.revokeObjectURL(previousLogoUrl);
+          } catch (error) {
+            URL.revokeObjectURL(nextLogoUrl);
+            console.warn('School logo could not be decoded:', error.message);
+          }
+        } else {
+          $('schoolBrandingFeedback').textContent = 'The previous logo file is unavailable. Please upload it again to store it permanently.';
+        }
+      }
+    } catch (error) {
+      $('schoolBrandingFeedback').textContent = error.message;
+    }
+  }
+
+  $('schoolBrandingForm')?.addEventListener('submit', async event => {
+    event.preventDefault();
+    const feedback = $('schoolBrandingFeedback'); feedback.textContent = 'Saving school identity…'; feedback.className = 'inline-feedback';
+    try {
+      const data = await api('/api/school/branding', { method: 'PUT', body: JSON.stringify({
+        schoolName: $('schoolBrandingName').value.trim(), brandColor: $('schoolBrandColor').value
+      }) });
+      user.schoolName = data.branding.schoolName; sessionStorage.setItem(userKey, JSON.stringify(user));
+      applySchoolBranding({ ...data.branding, logoUrl: schoolBranding?.logoUrl || null });
+      feedback.textContent = 'School identity saved.'; showToast('School identity saved.');
+    } catch (error) { feedback.textContent = error.message; feedback.className = 'inline-feedback error'; }
+  });
+
+  $('uploadSchoolLogo')?.addEventListener('click', async () => {
+    const file = $('schoolLogoFile').files?.[0];
+    const feedback = $('schoolBrandingFeedback');
+    if (!file) { feedback.textContent = 'Choose a logo image first.'; return; }
+    if (!window.ProfilePhotos?.edit) { feedback.textContent = 'Photo editor not available. Refresh the page and try again.'; return; }
+    const button = $('uploadSchoolLogo'); button.disabled = true;
+    try {
+      // Allow zoom and repositioning for every school logo. The editor keeps
+      // transparent pixels intact and exports PNG without a painted background.
+      const edited = await window.ProfilePhotos.edit(file, { purpose: 'school-logo' });
+      if (!edited) return;
+      const binary = atob(edited.cropped);
+      const bytes = new Uint8Array(binary.length);
+      for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+      const mime = 'image/png';
+      if (bytes.length > 2 * 1024 * 1024) throw new Error('Logo exceeds 2 MB. Choose a smaller image.');
+      const response = await fetch('/api/school/branding/logo', {
+        method: 'PUT',
+        headers: { Authorization: `Bearer ${token}`, 'Content-Type': mime },
+        body: bytes, cache: 'no-store'
+      });
+      const result = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(result.error || 'Could not upload logo.');
+      $('schoolLogoFile').value = '';
+      await loadSchoolBranding();
+      feedback.textContent = 'School logo saved permanently.';
+      feedback.className = 'inline-feedback';
+      showToast('School logo updated.');
+    } catch (error) { feedback.textContent = error.message; feedback.className = 'inline-feedback error'; }
+    finally { button.disabled = false; }
+  });
+
+  $('removeSchoolLogo')?.addEventListener('click', async () => {
+    try { await api('/api/school/branding/logo', { method: 'DELETE' }); await loadSchoolBranding(); $('schoolBrandingFeedback').textContent = 'School logo removed.'; }
+    catch (error) { $('schoolBrandingFeedback').textContent = error.message; $('schoolBrandingFeedback').className = 'inline-feedback error'; }
+  });
+
+  let sf2PreviewData = null;
+  async function loadSf2Preview() {
+    const month = $('sf2Month').value;
+    const gradeLevel = $('sf2Grade').value;
+    const section = $('sf2Section').value;
+    const mode = $('sf2Mode')?.value || '';
+    if (!month || !gradeLevel || !section) { $('sf2Feedback').textContent = 'Select month, grade level, and section.'; return; }
+    $('sf2Feedback').textContent = 'Loading attendance preview…';
+    $('sf2ExportButton').disabled = true;
+    $('sf2SubmitButton').hidden = true;
+    try {
+      const query = new URLSearchParams({ month, gradeLevel, section });
+      if (mode) query.set('mode', mode);
+      const data = await api(`/api/sf2/preview?${query}`);
+      sf2PreviewData = data;
+      $('sf2Summary').hidden = false;
+      $('sf2TableWrap').hidden = false;
+      const metrics = [
+        ['Present learner-days', data.summary.present],
+        ['Confirmed absent', data.summary.absent],
+        ['Manual presence days', data.summary.manualPresentDays || 0],
+        ['QR presence days', data.summary.qrPresentDays || 0],
+        ['Conflicts to resolve', data.summary.conflicts || 0],
+        [data.mode === 'PERSONAL' ? 'No record (this teacher)' : 'Pending review', data.mode === 'PERSONAL' ? data.summary.noRecord : data.summary.pending],
+        ['Missing sex', data.summary.missingSex]
+      ];
+      $('sf2Summary').innerHTML = metrics.map(([label, value]) => `<article class="learner-metric"><span>${esc(label)}</span><strong>${esc(value)}</strong></article>`).join('');
+      $('sf2ModeNote').hidden = false;
+      $('sf2ModeNote').textContent = `${data.note} ${data.calendarNote || ''}`;
+      const sf2Head = $('sf2Rows').closest('table').querySelector('thead');
+      sf2Head.innerHTML = '<tr><th scope="col">Learner</th><th scope="col">Sex</th>'+data.dates.map(date=>'<th scope="col" title="'+esc(date)+'">'+esc(new Date(date+'T12:00:00').toLocaleDateString('en-PH',{day:'numeric',month:'short'}))+'</th>').join('')+'</tr>';
+      $('sf2TableWrap').classList.add('sf2-matrix-wrap');
+      const sourceLabel = (status,sources) => {
+        if(status==='CONFLICT')return ['conflict','!','Conflict'];
+        if(status==='ABSENT')return ['absent','X','Confirmed absent'];
+        if(status==='PENDING')return ['pending','?','Needs review'];
+        if(status==='NO_RECORD')return ['missing','—','No record'];
+        if(sources.includes('QR') && sources.some(v=>v.startsWith('MANUAL_')))return ['both','Q+M','QR and manual presence'];
+        if(sources.includes('QR'))return ['qr','QR','QR check-in'];
+        if(sources.includes('MANUAL_LATE'))return ['late','L','Manual late'];
+        if(sources.includes('MANUAL_PRESENT'))return ['manual','M','Manual present'];
+        return ['present','P','Present'];
+      };
+      $('sf2Rows').innerHTML = data.students.map(student => {
+        const cells = student.days.map((status,index) => {
+          const date=data.dates[index], sources=student.sources?.[index]||[];
+          const [tone,label,meaning]=sourceLabel(status,sources);
+          const title=esc(date+' · '+meaning+' · '+(sources.join(', ')||'No evidence source'));
+          if(status==='PENDING'&&data.canConfirmAbsence)return '<td class="sf2-cell"><button type="button" class="sf2-mark pending" data-sf2-absent="'+esc(student.id)+'" data-date="'+esc(date)+'" title="'+title+'" aria-label="Review '+esc(student.name)+' on '+esc(date)+'">Review</button></td>';
+          if(status==='ABSENT'&&data.canConfirmAbsence)return '<td class="sf2-cell"><button type="button" class="sf2-mark absent" data-sf2-remove-absent="'+esc(student.id)+'" data-date="'+esc(date)+'" title="'+title+'" aria-label="Remove confirmed absence for '+esc(student.name)+' on '+esc(date)+'">X</button></td>';
+          return '<td class="sf2-cell"><span class="sf2-mark '+tone+'" title="'+title+'" aria-label="'+title+'">'+label+'</span></td>';
+        }).join('');
+        return '<tr data-sf2-row><th scope="row"><strong>'+esc(student.name)+'</strong><small>'+esc(student.gradeLevel)+' · '+esc(student.section)+'</small></th><td>'+esc(student.sex||'—')+'</td>'+cells+'</tr>';
+      }).join('') || '<tr><td colspan="'+(data.dates.length+2)+'" class="empty-cell">No learners are enrolled in this section.</td></tr>';
+      const wrap=$('sf2TableWrap');
+      wrap.scrollTop=0;
+      wrap.scrollLeft=0;
+      let tools=wrap.previousElementSibling;
+      if(!tools||!tools.classList.contains('sf2-review-tools')){
+        tools=document.createElement('div');tools.className='sf2-review-tools';wrap.before(tools);
+        tools.innerHTML='<div class="sf2-legend"><span class="sf2-mark qr">QR</span> QR present <span class="sf2-mark manual">M</span> Manual present <span class="sf2-mark both">Q+M</span> Both <span class="sf2-mark late">L</span> Late <span class="sf2-mark absent">X</span> Absent <span class="sf2-mark conflict">!</span> Conflict <span class="sf2-mark pending">?</span> Review</div><div class="sf2-navigation"><button type="button" class="outline-button compact-button" data-sf2-scroll="-1">← Earlier</button><button type="button" class="outline-button compact-button" data-sf2-scroll="1">Later →</button><button type="button" class="outline-button compact-button" data-sf2-conflicts>Show conflicts only</button></div>';
+        tools.addEventListener('click',event=>{
+          const scroll=event.target.closest('[data-sf2-scroll]');
+          if(scroll)wrap.scrollBy({left:Number(scroll.dataset.sf2Scroll)*Math.max(320,wrap.clientWidth*.7),behavior:'smooth'});
+          const conflicts=event.target.closest('[data-sf2-conflicts]');
+          if(conflicts){const active=conflicts.dataset.active!=='true';conflicts.dataset.active=String(active);conflicts.textContent=active?'Show all learners':'Show conflicts only';wrap.querySelectorAll('[data-sf2-row]').forEach(row=>{row.hidden=active&&!row.querySelector('.sf2-mark.conflict')});}
+        });
+      } else {
+        const button=tools.querySelector('[data-sf2-conflicts]');
+        if(button){button.dataset.active='false';button.textContent='Show conflicts only';}
+      }
+      const personal = data.mode === 'PERSONAL';
+      const canExport = personal || (data.summary.pending === 0 && data.summary.conflicts === 0 && data.summary.missingSex === 0);
+      const canDownload = !data.readOnly || personal;
+      $('sf2ExportButton').hidden = !canDownload;
+      $('sf2ExportButton').textContent = personal ? 'Generate personal copy' : 'Generate official SF2 Excel';
+      $('sf2ExportButton').disabled = !canExport || !canDownload;
+      $('sf2SubmitButton').hidden = !data.canSubmit || personal;
+      $('sf2SubmitButton').disabled = !canExport || personal;
+      $('sf2Feedback').textContent = personal
+        ? 'Personal copy ready. NR means no accepted subject time-in by this teacher; it does not mean absent.'
+        : data.summary.pending
+          ? `${data.summary.pending} learner-day(s) need review. Only the assigned Class Adviser may confirm full-day absences after checking all scheduled subjects.`
+          : data.summary.missingSex
+            ? `${data.summary.missingSex} learner(s) need Male/Female set in Student Management before official generation.`
+            : data.canSubmit ? 'Official preview ready. The assigned Class Adviser may submit the consolidated monthly SF2.' : 'Read-only or administrative preview ready.';
+    } catch (error) {
+      $('sf2Feedback').textContent = error.message;
+      $('sf2Summary').hidden = true;
+      $('sf2TableWrap').hidden = true;
+    }
+  }
+
+  async function downloadSf2Workbook() {
+    if (!sf2PreviewData) return;
+    const button = $('sf2ExportButton');
+    const previousLabel = button.textContent;
+    const wasDisabled = button.disabled;
+    const query = new URLSearchParams({
+      month: $('sf2Month').value, gradeLevel: $('sf2Grade').value,
+      section: $('sf2Section').value, mode: $('sf2Mode')?.value || ''
+    });
+    button.disabled = true;
+    button.textContent = 'Preparing Excel…';
+    $('sf2Feedback').textContent = 'Generating your workbook. Please keep this page open.';
+    let objectUrl = null;
+    try {
+      const response = await fetch(`/api/sf2/export?${query}`, { headers: { Authorization: `Bearer ${token}` }, cache: 'no-store' });
+      if (!response.ok) {
+        const data = await response.json().catch(() => ({}));
+        throw new Error(data.error || `SF2 export failed (${response.status}).`);
+      }
+      const contentType = response.headers.get('Content-Type') || '';
+      if (!contentType.includes('spreadsheetml.sheet') && !contentType.includes('application/octet-stream')) {
+        throw new Error('The server did not return an Excel workbook. Refresh the preview and try again.');
+      }
+      const blob = await response.blob();
+      if (!blob.size) throw new Error('The generated SF2 workbook is empty. Please preview the attendance again.');
+      objectUrl = URL.createObjectURL(blob);
+      const anchor = document.createElement('a');
+      const disposition = response.headers.get('Content-Disposition') || '';
+      const utf8Match = disposition.match(/filename\*=UTF-8''([^;]+)/i);
+      const basicMatch = disposition.match(/filename="?([^";]+)"?/i);
+      let serverFilename = utf8Match?.[1] || basicMatch?.[1] || '';
+      try { serverFilename = decodeURIComponent(serverFilename.replace(/^"|"$/g, '')); } catch {}
+      anchor.href = objectUrl;
+      anchor.download = serverFilename || `SF2-${query.get('gradeLevel')}-${query.get('section')}-${query.get('month')}${query.get('mode') === 'PERSONAL' ? '-Personal-Copy' : ''}.xlsx`;
+      anchor.style.display = 'none';
+      document.body.appendChild(anchor);
+      anchor.click();
+      anchor.remove();
+      window.setTimeout(() => { if (objectUrl) URL.revokeObjectURL(objectUrl); }, 10000);
+      $('sf2Feedback').textContent = 'Your Excel workbook download has started.';
+      showToast('SF2 Excel workbook generated. Check your browser downloads.');
+    } catch (error) {
+      if (objectUrl) URL.revokeObjectURL(objectUrl);
+      $('sf2Feedback').textContent = error.message || 'SF2 export failed.';
+      showToast($('sf2Feedback').textContent, true);
+    } finally {
+      button.textContent = previousLabel;
+      button.disabled = wasDisabled;
+    }
+  }
+
+  async function submitOfficialSf2() {
+    if (!sf2PreviewData?.canSubmit) return;
+    const payload = { month: $('sf2Month').value, gradeLevel: $('sf2Grade').value, section: $('sf2Section').value };
+    if (!await AppDialog.confirm(`Submit the official monthly SF2 for ${payload.gradeLevel} – ${payload.section}, ${payload.month}?`, { title: 'Submit official SF2', confirmText: 'Submit SF2' })) return;
+    $('sf2SubmitButton').disabled = true;
+    try {
+      const response = await api('/api/sf2/submissions', { method: 'POST', body: JSON.stringify(payload) });
+      $('sf2Feedback').textContent = `Official SF2 submitted successfully (revision ${response.submission.revision}).`;
+      showToast('Official SF2 submitted to the School Administrator.');
+    } catch (error) {
+      $('sf2Feedback').textContent = error.message;
+      $('sf2SubmitButton').disabled = false;
+    }
+  }
+
+  if ($('sf2Month')) {
+    $('sf2Month').value = new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Manila' }).slice(0, 7);
+    $('sf2PreviewButton').addEventListener('click', loadSf2Preview);
+    $('sf2Grade').addEventListener('change', updateSf2SectionOptions);
+    $('sf2Section').addEventListener('change', updateSf2ModeOptions);
+    $('sf2Mode')?.addEventListener('change', () => { sf2PreviewData = null; $('sf2Summary').hidden = true; $('sf2TableWrap').hidden = true; });
+    $('sf2Rows').addEventListener('click', async event => {
+      const absent = event.target.closest('[data-sf2-absent]');
+      const remove = event.target.closest('[data-sf2-remove-absent]');
+      try {
+        if (absent) {
+          const type = await AppDialog.prompt('Classify this confirmed full-day absence.', 'UNEXCUSED', { title: 'Confirm absence type', label: 'Absence classification', helpText: 'Choose EXCUSED or UNEXCUSED.', placeholder: 'EXCUSED or UNEXCUSED', required: true, validate: value => ['EXCUSED', 'UNEXCUSED'].includes(String(value).trim().toUpperCase()) ? true : 'Enter EXCUSED or UNEXCUSED.' });
+          if (!type) return;
+          await api('/api/sf2/absence', { method: 'PUT', body: JSON.stringify({ studentId: absent.dataset.sf2Absent, date: absent.dataset.date, absenceType: type.toUpperCase() }) });
+          await loadSf2Preview();
+        } else if (remove) {
+          if (!await AppDialog.confirm('Remove this absence confirmation?', { title: 'Remove absence confirmation', confirmText: 'Remove', variant: 'danger' })) return;
+          await api('/api/sf2/absence', { method: 'DELETE', body: JSON.stringify({ studentId: remove.dataset.sf2RemoveAbsent, date: remove.dataset.date }) });
+          await loadSf2Preview();
+        }
+      } catch (error) { showToast(error.message, true); }
+    });
+    $('sf2ExportButton').addEventListener('click', downloadSf2Workbook);
+    $('sf2SubmitButton').addEventListener('click', submitOfficialSf2);
+    $('refreshSf2Submissions')?.addEventListener('click', async () => { try { await loadSf2Submissions(); } catch (error) { showToast(error.message, true); } });
+    $('sf2SubmissionRows')?.addEventListener('click', async event => {
+      const download = event.target.closest('[data-download-sf2]');
+      const collect = event.target.closest('[data-collect-sf2]');
+      if (download) {
+        try {
+          const response = await fetch(`/api/sf2/submissions/${encodeURIComponent(download.dataset.downloadSf2)}/download`, { headers: { Authorization: `Bearer ${token}` }, cache: 'no-store' });
+          if (!response.ok) { const d = await response.json().catch(() => ({})); throw new Error(d.error || 'Download failed.'); }
+          const blob = await response.blob(), url = URL.createObjectURL(blob), anchor = document.createElement('a');
+          anchor.href = url; anchor.download = 'Submitted-SF2.xlsx'; anchor.click(); URL.revokeObjectURL(url);
+        } catch (error) { showToast(error.message, true); }
+      } else if (collect) {
+        if (!await AppDialog.confirm('Mark this submitted SF2 as collected?', { title: 'Confirm SF2 collection', confirmText: 'Mark as collected' })) return;
+        collect.disabled = true;
+        try { await api(`/api/sf2/submissions/${encodeURIComponent(collect.dataset.collectSf2)}/collect`, { method: 'PATCH' }); await loadSf2Submissions(); showToast('SF2 marked as collected.'); }
+        catch (error) { showToast(error.message, true); collect.disabled = false; }
+      }
+    });
+  }
+
+  function showPortalStartupFailure(message, error) {
+    console.error('Attendigo portal initialization failed:', error || message);
+    const existing = document.getElementById('portalStartupFailure');
+    if (existing) existing.remove();
+    const overlay = document.createElement('div');
+    overlay.id = 'portalStartupFailure';
+    overlay.setAttribute('role', 'alert');
+    overlay.style.cssText = 'position:fixed;inset:0;z-index:99999;background:#101e35e8;display:flex;align-items:center;justify-content:center;padding:20px';
+    const card = document.createElement('section');
+    card.style.cssText = 'width:min(100%,430px);background:#fff;color:#1a304d;border-radius:20px;padding:26px;box-shadow:0 20px 70px #0005;font:16px/1.5 system-ui,sans-serif';
+    const heading = document.createElement('h2');
+    heading.textContent = 'Unable to load your account';
+    heading.style.cssText = 'font-size:23px;margin:0 0 12px';
+    const details = document.createElement('p');
+    details.textContent = message;
+    const actions = document.createElement('div');
+    actions.style.cssText = 'display:flex;gap:10px;flex-wrap:wrap;margin-top:20px';
+    const retry = document.createElement('button');
+    retry.type = 'button'; retry.textContent = 'Retry';
+    retry.style.cssText = 'background:#2466ac;color:#fff;border:0;border-radius:10px;padding:12px 18px;font-weight:700';
+    retry.onclick = () => window.location.reload();
+    const signIn = document.createElement('button');
+    signIn.type = 'button'; signIn.textContent = 'Sign in again';
+    signIn.style.cssText = 'background:#e8eef6;color:#193451;border:0;border-radius:10px;padding:12px 18px;font-weight:700';
+    signIn.onclick = () => { clearSession(); window.location.replace('/portal-login.html'); };
+    actions.append(retry,signIn);card.append(heading,details,actions);overlay.append(card);document.body.append(overlay);
+    document.dispatchEvent(new Event('attendigo:portal-ready'));
+  }
+
+  async function init() {
+    let me;
+    try {
+      me = await api('/api/auth/me');
+    } catch (error) {
+      showPortalStartupFailure('Your account could not be verified. Please sign in again or retry.', error);
+      return;
+    }
+    if (!me?.user || !['SCHOOL_ADMIN','DEPARTMENT_HEAD','TEACHER','GATE_KEEPER','SUPER_ADMIN','PARENT','STUDENT'].includes(me.user.role)) {
+      showPortalStartupFailure('Your account role could not be verified. Please sign in again.');
+      return;
+    }
+    user = me.user;
+    // Reveal section creation as soon as the authenticated role is known; do not wait for dashboard API loading.
+    if ($('createScheduleSection')) $('createScheduleSection').hidden = user.role !== 'SCHOOL_ADMIN';
+    if (user.mustChangePassword) { window.location.replace('/force-password-change.html'); return; }
+    sessionStorage.setItem(userKey, JSON.stringify(user));
+    resolveStaffIdentity(user);
+    $('userDisplay').textContent = user.displayName || user.username;
+    if ($('userRole')) $('userRole').textContent = user.role.replaceAll('_', ' ');
+    $('accountMenuName').textContent = user.displayName || user.username;
+    $('accountMenuRole').textContent = user.role.replaceAll('_', ' ');
+    $('userAvatar').replaceChildren(Object.assign(document.createElement('img'), { src: defaultPhoto, alt: 'Attendigo default profile logo' }));
+    window.ProfilePhotos?.mountSelf({token,role:user.role,container:'#accountProfileDialog',displayName:user.displayName||user.username});
+    window.ProfilePhotos?.mountReviews({token,role:user.role,designations:user.teacherDesignations||[]});
+    $('rolePill').textContent = user.role.replaceAll('_', ' ');
+    $('dateLabel').textContent = new Date().toLocaleDateString('en-PH', {
+      timeZone: 'Asia/Manila', weekday: 'long', year: 'numeric', month: 'long', day: 'numeric'
+    });
+
+    if (user.role === 'PARENT') {
+      window.location.replace('/parent-portal.html');
+      return;
+    }
+    if (user.role === 'STUDENT') {
+      window.location.replace('/student-portal.html');
+      return;
+    }
+
+    if (user.role === 'SUPER_ADMIN') {
+      $('schoolTitle').textContent = 'Platform workspace';
+      $('schoolCodeLabel').textContent = 'PLATFORM ADMINISTRATION';
+      $('schoolEmblem').textContent = 'P';
+      const platformMenu = [
+        ['platform', 'layout-dashboard', 'Platform overview'],
+        ['platformSchools', 'school', 'Schools'],
+        ['platformOnboard', 'school-plus', 'Onboard school'],
+        ['platformPlans', 'credit-card', 'Plans & feature access'],
+        ['platformSecurity', 'shield-check', 'Account security']
+      ];
+      const navigation = document.querySelector('.side-nav');
+      navigation.replaceChildren();
+      for (const [view, icon, label] of platformMenu) {
+        const button = document.createElement('a');
+        button.href = '/portal.html?view=' + encodeURIComponent(view);
+        button.className = 'nav-item';
+        button.dataset.view = view;
+        button.title = label;
+        const symbol = document.createElement('span');
+        symbol.className = 'nav-icon';
+        symbol.dataset.uiIcon = icon;
+        const text = document.createElement('span');
+        text.className = 'nav-label';
+        text.textContent = label;
+        button.append(symbol, text);
+        navigation.append(button);
+      }
+      $('refreshButton').hidden = true;
+      setView(new URLSearchParams(location.search).get('view') || 'platform');
+      document.dispatchEvent(new Event('attendigo:portal-ready'));
+      try { await loadPlatformData(); }
+      catch (error) { $('platformSchoolRows').innerHTML = `<tr><td colspan="7" class="empty-cell">${esc(error.message)}</td></tr>`; }
+    } else {
+      $('schoolTitle').textContent = user.schoolName || 'School workspace';
+      $('schoolCodeLabel').textContent = user.schoolCode || 'SCHOOL WORKSPACE';
+      $('schoolEmblem').textContent = (user.schoolName || 'S').trim().charAt(0).toUpperCase();
+      try {
+        schoolEntitlements = await api('/api/school/entitlements');
+      } catch (error) {
+        // Fail closed for optional modules when entitlement verification is unavailable.
+        schoolEntitlements = {features:{planner:false,sms_notifications:false,advanced_analytics:false,custom_branding:false}};
+        showToast('School feature access could not be verified. Optional modules are temporarily unavailable.',true);
+      }
+      applyRoleNavigation();
+      appliedNavigationFingerprint = navigationFingerprint(schoolEntitlements);
+      const gateKeeper = user.role === 'GATE_KEEPER';
+      if (gateKeeper) {
+        if ($('studentsNav')) $('studentsNav').hidden = false;
+        if ($('studentsNav')) $('studentsNav').querySelector('.nav-label').textContent = 'Gate scanner';
+        document.querySelectorAll('.quick-action[data-go]').forEach(button => button.hidden = true);
+        setView('students');
+      } else {
+        document.querySelectorAll('.quick-action[data-go]').forEach(button => {
+          button.addEventListener('click', () => setView(button.dataset.go));
+        });
+        restoreDestination();
+      }
+      // Show the correct role layout before optional, slower dashboard requests finish.
+      document.dispatchEvent(new Event('attendigo:portal-ready'));
+      await loadSchoolBranding();
+      await loadSchoolData();
+      await loadCloudSyncStatus();
+      if (user.role === 'SCHOOL_ADMIN') await loadCloudSyncSettings();
+    }
+  }
+
+  async function loadCloudSyncStatus() {
+    // Per-account device sync is handled by Attendance Sync Center itself.
+    // Only School Admins may query school-wide cloud outbox diagnostics.
+    if (user.role !== 'SCHOOL_ADMIN') return;
+    const chip = $('connectionStatus');
+    if (!chip) return;
+    const label = chip.querySelector('.asc-header-label');
+    try {
+      const data = await api('/api/cloud-sync/status');
+      const needsReview = Number(data.needsReviewCount || 0);
+      // The unified component owns the visible header label and combines
+      // this cloud signal with the current user's encrypted device queue.
+      // School-wide cloud configuration must not appear to teachers.
+      if (window.AttendigoSyncCenter?.setCloudStatus) {
+        window.AttendigoSyncCenter.setCloudStatus(user.role === 'SCHOOL_ADMIN' ? data : null);
+      } else if (label) {
+        // Keep the header purpose consistent if the shared Sync Center script
+        // is not yet initialized; never use cloud configuration as its label.
+        label.textContent = 'Attendance sync';
+      }
+      if ($('cloudSyncPendingCount')) $('cloudSyncPendingCount').textContent = String(data.pendingCount || 0);
+      if ($('cloudSyncReviewCount')) $('cloudSyncReviewCount').textContent = String(needsReview);
+      if (user.role === 'SCHOOL_ADMIN' && $('cloudSyncReviewPanel')) {
+        $('cloudSyncReviewPanel').hidden = !needsReview;
+        if (needsReview) await loadCloudSyncReviews();
+      }
+      if ($('cloudSyncLastSuccess')) $('cloudSyncLastSuccess').textContent =
+        data.lastSuccessAt ? new Date(data.lastSuccessAt).toLocaleString('en-PH', { timeZone: 'Asia/Manila' }) : 'Not connected';
+    } catch (error) {
+      if (window.AttendigoSyncCenter?.setCloudStatus) {
+        window.AttendigoSyncCenter.setCloudStatus(null, error.message);
+      } else if (label) {
+        label.textContent = 'Attendance sync';
+      }
+    }
+  }
+
+  async function loadCloudSyncReviews() {
+    const target=$('cloudSyncReviewList');
+    if(!target || user.role!=='SCHOOL_ADMIN')return;
+    try {
+      const data=await api('/api/cloud-sync/review');
+      target.innerHTML=(data.records||[]).length ? data.records.map(item=>{
+        const type=item.type==='QR_SCAN'?'QR scan':item.type==='MANUAL_MARKS'?'Manual correction':'Register sign-off';
+        const when=new Date(item.createdAt).toLocaleString('en-PH',{timeZone:'Asia/Manila'});
+        return `<article class="cloud-review-item" style="padding:12px 0;border-bottom:1px solid var(--line,#a0aaba)">
+          <strong>${esc(type)}</strong> <small>${esc(when)}</small>
+          <p style="margin:7px 0">${esc(item.reason||'Server requested review.')}</p>
+          <button class="outline-button compact-button" type="button"
+            data-cloud-retry-type="${esc(item.type)}"
+            data-cloud-retry-id="${esc(item.operationId)}">Retry after resolving</button>
+        </article>`;
+      }).join(''):'<p class="inline-feedback">No cloud synchronization records currently need review.</p>';
+    }catch(error){
+      $('cloudSyncReviewFeedback').textContent=error.message;
+      $('cloudSyncReviewFeedback').className='inline-feedback error';
+    }
+  }
+
+  $('refreshCloudReviews')?.addEventListener('click',loadCloudSyncReviews);
+  $('cloudSyncReviewList')?.addEventListener('click',async event=>{
+    const button=event.target.closest('button[data-cloud-retry-id]');
+    if(!button || user.role!=='SCHOOL_ADMIN')return;
+    const confirmed=await window.AppDialog.confirm(
+      'Retry this cloud record only after you have fixed the learner, teacher, schedule, or attendance conflict. The original local record will not be discarded.',
+      {title:'Retry reviewed attendance',confirmText:'Retry synchronization'});
+    if(!confirmed)return;
+    button.disabled=true;
+    const feedback=$('cloudSyncReviewFeedback');
+    feedback.className='inline-feedback';
+    feedback.textContent='Requeuing reviewed operation…';
+    try{
+      await api('/api/cloud-sync/retry',{method:'POST',body:JSON.stringify({
+        type:button.dataset.cloudRetryType,operationId:button.dataset.cloudRetryId
+      })});
+      feedback.textContent='Operation requeued. It will be sent in attendance order.';
+      await loadCloudSyncStatus();
+    }catch(error){feedback.textContent=error.message;feedback.className='inline-feedback error';}
+    finally{button.disabled=false;}
+  });
+
+  async function loadCloudSyncSettings() {
+    const input = $('cloudBaseUrl');
+    if (!input) return;
+    try {
+      const data = await api('/api/cloud-sync/settings');
+      input.value = data.cloudBaseUrl || '';
+      $('cloudSyncEnabled').checked = Boolean(data.enabled);
+      $('cloudSyncStatus').textContent = data.configured ? 'Saved · Not connected' : 'Not configured';
+      $('cloudSyncFeedback').textContent = data.secretConfigured ? 'Cloud settings loaded. Confirm the matching school code and per-school secret on the cloud.' : 'Set CLOUD_SYNC_SHARED_SECRET on the local school server before enabling forwarding.';
+    } catch (error) {
+      $('cloudSyncFeedback').textContent = error.message;
+      $('cloudSyncFeedback').className = 'inline-feedback error';
+    }
+  }
+
+  $('cloudSyncForm')?.addEventListener('submit', async event => {
+    event.preventDefault();
+    const button = $('saveCloudDestination');
+    button.disabled = true;
+    $('cloudSyncFeedback').className = 'inline-feedback';
+    $('cloudSyncFeedback').textContent = 'Saving destination…';
+    try {
+      const data = await api('/api/cloud-sync/settings', {
+        method: 'PUT', body: JSON.stringify({ cloudBaseUrl: $('cloudBaseUrl').value.trim(), enabled: $('cloudSyncEnabled').checked })
+      });
+      $('cloudSyncStatus').textContent = data.configured ? 'Saved · Not connected' : 'Not configured';
+      $('cloudSyncFeedback').textContent = data.message;
+      await loadCloudSyncStatus();
+      showToast(data.enabled ? 'Cloud forwarding enabled.' : 'Cloud destination saved.');
+    } catch (error) {
+      $('cloudSyncFeedback').className = 'inline-feedback error';
+      $('cloudSyncFeedback').textContent = error.message;
+    } finally { button.disabled = false; }
+  });
+  $('refreshCloudDestination')?.addEventListener('click', loadCloudSyncSettings);
+  $('testCloudDestination')?.addEventListener('click', async () => {
+    const button=$('testCloudDestination');button.disabled=true;$('cloudSyncFeedback').textContent='Testing secure connection…';
+    try { const data=await api('/api/cloud-sync/test',{method:'POST'});$('cloudSyncFeedback').textContent=data.message;await loadCloudSyncStatus(); }
+    catch(error){$('cloudSyncFeedback').textContent=error.message;$('cloudSyncFeedback').className='inline-feedback error';}
+    finally{button.disabled=false;}
+  });
+  $('runCloudSync')?.addEventListener('click', async () => {
+    const button=$('runCloudSync');button.disabled=true;$('cloudSyncFeedback').textContent='Sending pending attendance…';
+    try { const data=await api('/api/cloud-sync/run',{method:'POST'});$('cloudSyncFeedback').textContent=`Sync checked. Sent ${data.sent||0}; retrying ${data.failed||0}; needs review ${data.review||0}.`;
+      await loadCloudSyncStatus(); }
+    catch(error){$('cloudSyncFeedback').textContent=error.message;$('cloudSyncFeedback').className='inline-feedback error';}
+    finally{button.disabled=false;}
+  });
+
+  async function loadPlatformData() {
+    const [overview, schools, recovery] = await Promise.all([api('/api/platform/overview'),api('/api/platform/schools'),api('/api/platform/recovery/school-admins')]);
+    const selection=$('platformRecoveryAdmin');
+    if(selection){
+      const previous=selection.value;
+      selection.replaceChildren(new Option('Select an active School Admin',''));
+      for(const entry of recovery.administrators){
+        const label=entry.schoolName+' · '+entry.displayName+' ('+entry.username+')';
+        selection.add(new Option(label,entry.schoolId+'|'+entry.userId));
+      }
+      if([...selection.options].some(option=>option.value===previous))selection.value=previous;
+    }
+    $('platformSchoolCount').textContent=String(overview.overview.schoolCount||0);
+    $('platformActiveSchools').textContent=String(overview.overview.activeSchoolCount||0);
+    $('platformActiveAccounts').textContent=String(overview.overview.activeAccountCount||0);
+    $('platformQueuedSync').textContent=String(overview.overview.queuedSyncCount||0);
+    const rows=$('platformSchoolRows');
+    rows.innerHTML=schools.schools.length?schools.schools.map(s=>`<tr>
+      <td><strong>${esc(s.schoolName)}</strong></td><td>${esc(s.schoolCode)}</td>
+      <td>${esc(s.activeAccounts)}</td><td>${esc(s.activeLearners)}</td>
+      <td>${s.cloudSyncEnabled?'Enabled':'—'}${s.cloudSyncError?`<small class="table-subtext">${esc(s.cloudSyncError)}</small>`:''}</td>
+      <td><span class="status-tag ${s.active?'':'late'}">${s.active?'Active':'Inactive'}</span></td>
+      <td><div class="platform-school-actions"><button class="outline-button compact-button" type="button" data-platform-school="${esc(s.schoolId)}" data-next-active="${!s.active}">${s.active?'Deactivate':'Activate'}</button><button class="outline-button compact-button platform-delete-button" type="button" data-platform-school-delete="${esc(s.schoolId)}" aria-label="Delete ${esc(s.schoolName)}">Delete</button></div></td>
+    </tr>`).join(''):'<tr><td colspan="7" class="empty-cell">No schools registered yet.</td></tr>';
+  }
+
+  $('platformRecoveryForm')?.addEventListener('submit',async event=>{
+    event.preventDefault();
+    const button=$('platformRecoveryIssueButton'),feedback=$('platformRecoveryFeedback');
+    $('platformRecoveryResult').hidden=true;
+    feedback.className='inline-feedback';
+    const [schoolId,userId]=($('platformRecoveryAdmin').value||'').split('|');
+    if(!schoolId||!userId){feedback.textContent='Select an active School Administrator.';return;}
+    button.disabled=true;feedback.textContent='Verifying Super Admin identity…';
+    try{
+      const result=await api('/api/platform/recovery/issue',{method:'POST',body:JSON.stringify({
+        schoolId,userId,superAdminPassword:$('platformRecoveryPassword').value
+      })});
+      $('platformRecoveryCode').textContent=result.recoveryCode;
+      $('platformRecoveryExpiry').textContent='Expires '+new Date(result.expiresAt).toLocaleString('en-PH',{
+        timeZone:'Asia/Manila',dateStyle:'medium',timeStyle:'short'
+      })+' (Philippine time).';
+      $('platformRecoveryResult').hidden=false;
+      feedback.textContent='Code issued to '+result.displayName+'. Share it privately.';
+      showToast('Recovery code issued successfully.');
+    }catch(error){feedback.textContent=error.message;feedback.className='inline-feedback error';}
+    finally{button.disabled=false;$('platformRecoveryPassword').value='';}
+  });
+  $('platformRecoveryCopy')?.addEventListener('click',async ()=>{
+    const value=$('platformRecoveryCode').textContent;
+    if(!value)return;
+    try{await navigator.clipboard.writeText(value);showToast('Recovery code copied.');}
+    catch{showToast('Clipboard unavailable. Select the code manually to copy it.',true);}
+  });
+
+  $('platformCreateSchoolForm')?.addEventListener('submit', async event => {
+    event.preventDefault(); const button=$('platformCreateSchoolButton');button.disabled=true;
+    const feedback=$('platformFeedback');feedback.textContent='Creating school and first administrator…';feedback.className='inline-feedback';
+    try {
+      await api('/api/platform/schools',{method:'POST',body:JSON.stringify({
+        schoolCode:$('platformSchoolCode').value.trim(),schoolName:$('platformSchoolName').value.trim(),
+        adminUsername:$('platformAdminUsername').value.trim(),adminDisplayName:$('platformAdminName').value.trim(),adminPassword:$('platformAdminPassword').value
+      })});
+      event.currentTarget.reset();feedback.textContent='School and first administrator created.';showToast('School onboarded.');await loadPlatformData();
+    } catch(error){feedback.textContent=error.message;feedback.className='inline-feedback error';}
+    finally{button.disabled=false;}
+  });
+  $('platformSchoolRows')?.addEventListener('click', async event => {
+    const deleteButton=event.target.closest('[data-platform-school-delete]');
+    if(deleteButton){
+      deleteButton.disabled=true;
+      try {
+        const schoolId=deleteButton.dataset.platformSchoolDelete;
+        const review=await api('/api/platform/schools/'+encodeURIComponent(schoolId)+'/deletion-preview');
+        const school=review.school, counts=school.impact;
+        const warning='Delete '+school.schoolName+' ('+school.schoolCode+')?\n\nThis will remove '+counts.students+' student records, '+counts.accounts+' school accounts, '+counts.attendanceEvents+' attendance events, '+counts.sf2Submissions+' SF2 submissions, '+counts.manualMarks+' manual marks, and '+counts.manualNotes+' notes.\n\n'+(counts.pendingSync?'WARNING: '+counts.pendingSync+' cloud sync items are still pending.\n\n':'')+'All associated school data and logins will be removed. A recovery snapshot must be saved and verified in the database before deletion can finish. This is not an off-site backup.';
+        if(!await AppDialog.confirm(warning,{title:'First confirmation · Delete school',confirmText:'Continue to final confirmation',variant:'danger'}))return;
+        const expected='DELETE '+school.schoolCode;
+        const typed=await AppDialog.prompt('Final confirmation for '+school.schoolName+'. Type the exact phrase below to permanently remove the school from the active system:\n\n'+expected,'',{
+          title:'Final confirmation · Irreversible action',label:'Confirmation phrase',required:true,variant:'danger',confirmText:'Delete school',
+          validate:value=>value===expected?true:'Type exactly: '+expected
+        });
+        if(typed!==expected)return;
+        await api('/api/platform/schools/'+encodeURIComponent(schoolId),{
+          method:'DELETE',body:JSON.stringify({previewToken:review.previewToken,confirmationPhrase:typed})
+        });
+        await loadPlatformData();
+        showToast('School deleted. A database recovery snapshot and audit record were saved.');
+      }catch(error){showToast(error.message,true);}
+      finally{deleteButton.disabled=false;}
+      return;
+    }
+    const button=event.target.closest('[data-platform-school]');if(!button)return;
+    const active=button.dataset.nextActive==='true';
+    if(active===false&&!await AppDialog.confirm('Deactivate this school? All current school and student sessions will be signed out.',{title:'Deactivate school',confirmText:'Deactivate',variant:'danger'}))return;
+    button.disabled=true;
+    try{await api(`/api/platform/schools/${encodeURIComponent(button.dataset.platformSchool)}/status`,{method:'PATCH',body:JSON.stringify({active})});await loadPlatformData();showToast(active?'School activated.':'School deactivated.');}
+    catch(error){showToast(error.message,true);button.disabled=false;}
+  });
+  $('platformRefreshButton')?.addEventListener('click',()=>loadPlatformData().catch(error=>showToast(error.message,true)));
+
+  // Turn navigation buttons into native links for open-in-new-tab and keyboard support.
+  function linkifyStaffNavigation() {
+    document.querySelectorAll('.side-nav .nav-item[data-view]').forEach(button => {
+      if (button.tagName === 'A') return;
+      const anchor = document.createElement('a');
+      anchor.className = button.className;
+      anchor.id = button.id;
+      anchor.dataset.view = button.dataset.view;
+      anchor.title = button.title;
+      anchor.href = '/portal.html?view=' + encodeURIComponent(button.dataset.view);
+      anchor.hidden = button.hidden;
+      anchor.innerHTML = button.innerHTML;
+      button.replaceWith(anchor);
+    });
+  }
+  document.addEventListener('attendigo:portal-ready',linkifyStaffNavigation);
+  // Reapply if another role-specific navigation renderer inserts buttons later.
+  const staffNav=document.querySelector('.side-nav');
+  if(staffNav) {
+    let linking=false;
+    const observer=new MutationObserver(()=>{
+      if(linking)return;
+      linking=true;
+      try{linkifyStaffNavigation();}finally{linking=false;}
+    });
+    observer.observe(staffNav,{childList:true,subtree:true});
+    linkifyStaffNavigation();
+  }
+  window.addEventListener('popstate',() => {
+    if (!user) return;
+    restoringHistory = true;
+    try { restoreDestination(); }
+    finally { restoringHistory = false; }
+  });
+  document.addEventListener('click',event=>{
+    const link=event.target.closest?.('.side-nav a[data-staff-section]');
+    if(!link || event.defaultPrevented || event.button!==0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey)return;
+    if(user?.role!=='SCHOOL_ADMIN')return;
+    event.preventDefault();
+    const section=link.dataset.staffSection;
+    setView('teachers');
+    setAdminManagementTab(section);
+    if(window.matchMedia('(max-width: 860px)').matches)closeMobileSidebar();
+  });
+  document.addEventListener('click',event=>{
+    const link=event.target.closest?.('.side-nav a.nav-item[data-view]');
+    if(!link || event.defaultPrevented || event.button!==0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey)return;
+    event.preventDefault();
+    setView(link.dataset.view);
+    if(window.matchMedia('(max-width: 860px)').matches)closeMobileSidebar();
+  });
+  // Sidebar navigation uses delegated native links; do not bind legacy button handlers.
+  $('adminStaffBadgeShow')?.addEventListener('click', async () => {
+    if (!['SCHOOL_ADMIN','TEACHER'].includes(user?.role)) return;
+    const button = $('adminStaffBadgeShow'), status = $('adminStaffBadgeStatus'), img = $('adminStaffBadgeImage');
+    button.disabled = true;
+    status.textContent = 'Preparing your own staff QR badge…';
+    try {
+      const data = await api('/api/staff-attendance/my/badge', { method: 'POST' });
+      img.src = data.qrCode;
+      img.hidden = false;
+      status.textContent = 'Present this badge to the Gatekeeper for photo-confirmed attendance. Keep it private.';
+    } catch (error) {
+      img.hidden = true;
+      img.removeAttribute('src');
+      status.textContent = error.message;
+    } finally { button.disabled = false; }
+  });
+  $('myGateApply')?.addEventListener('click', loadMyGateAttendance);
+  $('myGateRefresh')?.addEventListener('click', loadMyGateAttendance);
+  $('refreshButton').addEventListener('click', refresh);
+  $('refreshGateMonitoring')?.addEventListener('click', async () => {
+    const button = $('refreshGateMonitoring');
+    button.disabled = true;
+    try { await loadGateMonitoring(); showToast('Gate monitoring refreshed.'); }
+    catch (error) { showToast(error.message, true); }
+    finally { button.disabled = false; }
+  });
+  $('dashboardOpenScanner')?.addEventListener('click', () => {
+    setView('students');
+    $('studentScanSetupModal').hidden = false;
+  });
+  $('dashboardAddStudent')?.addEventListener('click', () => {
+    setView('students');
+    $('studentForm').hidden = false;
+    $('studentForm').scrollIntoView({ behavior: 'smooth', block: 'start' });
+    $('newStudentId').focus({ preventScroll: true });
+  });
+
+  document.querySelectorAll('.nav-group-toggle[data-nav-group]').forEach(button => {
+    button.addEventListener('click', () => {
+      const key = button.dataset.navGroup;
+      const submenu = document.querySelector('[data-submenu="' + key + '"]');
+      const opening = button.getAttribute('aria-expanded') !== 'true';
+      button.setAttribute('aria-expanded', String(opening));
+      if (submenu) submenu.hidden = !opening;
+      const layout = document.querySelector('.portal-layout');
+      if (layout.classList.contains('sidebar-collapsed') && !window.matchMedia('(max-width: 860px)').matches) {
+        setSidebarCollapsed(false);
+      }
+    });
+  });
+
+  function setSidebarCollapsed(collapsed) {
+    const layout = document.querySelector('.portal-layout');
+    const control = $('sidebarCollapseButton');
+    if (!layout) return;
+    const nextCollapsed = Boolean(collapsed);
+    layout.classList.toggle('sidebar-collapsed', nextCollapsed);
+    layout.dataset.sidebarCollapsed = String(nextCollapsed);
+    document.body.classList.toggle('portal-sidebar-collapsed', nextCollapsed);
+    if (control) {
+      control.setAttribute('aria-expanded', String(!nextCollapsed));
+      control.setAttribute('aria-pressed', String(nextCollapsed));
+      control.setAttribute('aria-label', nextCollapsed ? 'Expand sidebar' : 'Collapse sidebar');
+      control.title = nextCollapsed ? 'Expand sidebar' : 'Collapse sidebar';
+      const arrow = control.querySelector('.sidebar-toggle-glyph');
+      if (arrow) arrow.innerHTML = window.DashboardIcons?.html(nextCollapsed ? 'panel-expand' : 'panel-collapse') || (nextCollapsed ? '›' : '‹');
+      const label = control.querySelector('.collapse-control-label');
+      if (label) label.textContent = nextCollapsed ? 'Expand menu' : 'Collapse menu';
+    }
+    // Collapse is an optional temporary view, not a sticky browser preference.
+  }
+  function closeMobileSidebar() {
+    $('sidebar').classList.remove('open');
+    $('sidebarBackdrop').classList.remove('visible');
+    document.body.classList.remove('sidebar-drawer-open');
+    $('sidebarToggle').setAttribute('aria-expanded', 'false');
+    $('sidebarToggle').setAttribute('aria-label', 'Open navigation');
+    $('sidebarToggle').title = 'Open navigation';
+    $('sidebarToggle').textContent = '☰';
+  }
+  function openMobileSidebar() {
+    $('sidebar').classList.add('open');
+    $('sidebarBackdrop').classList.add('visible');
+    document.body.classList.add('sidebar-drawer-open');
+    $('sidebarToggle').setAttribute('aria-expanded', 'true');
+    $('sidebarToggle').setAttribute('aria-label', 'Close navigation');
+    $('sidebarToggle').title = 'Close navigation';
+    $('sidebarToggle').textContent = '×';
+  }
+  // Always start with a readable, expanded desktop sidebar on each page load.
+  setSidebarCollapsed(false);
+  document.addEventListener('click', event => {
+    const control = event.target.closest('#sidebarCollapseButton');
+    if (!control) return;
+    event.preventDefault();
+    const layout = document.querySelector('.portal-layout');
+    const currentlyCollapsed = layout?.dataset.sidebarCollapsed === 'true' ||
+      layout?.classList.contains('sidebar-collapsed');
+    setSidebarCollapsed(!currentlyCollapsed);
+  });
+  $('sidebarToggle').addEventListener('click', () => {
+    if ($('sidebar').classList.contains('open')) closeMobileSidebar();
+    else openMobileSidebar();
+  });
+  $('sidebarBackdrop').addEventListener('click', closeMobileSidebar);
+  document.addEventListener('keydown', event => {
+    if (event.key === 'Escape' && $('sidebar').classList.contains('open')) {
+      closeMobileSidebar();
+      $('sidebarToggle').focus();
+    }
+  });
+  window.addEventListener('resize', () => {
+    if (!window.matchMedia('(max-width: 860px)').matches) closeMobileSidebar();
+  });
+
+  $('accountMenuButton').addEventListener('click', () => {
+    const menu = $('accountDropdown');
+    const opening = menu.hidden;
+    menu.hidden = !opening;
+    $('accountMenuButton').setAttribute('aria-expanded', String(opening));
+  });
+  document.addEventListener('click', event => {
+    if (!event.target.closest('.account-menu-wrap')) {
+      $('accountDropdown').hidden = true;
+      $('accountMenuButton').setAttribute('aria-expanded', 'false');
+    }
+  });
+  async function openAccountProfile(focusPassword = false) {
+    const dialog = $('accountProfileDialog');
+    try {
+      const data = await api('/api/account/profile');
+      $('accountProfileUsername').value = data.profile.username || '';
+      $('accountProfileDisplayName').value = data.profile.displayName || '';
+      $('accountProfileMobile').value = data.profile.mobile || '';
+      $('accountProfileFeedback').textContent = '';
+      $('accountCurrentPassword').value = '';
+      $('accountNewPassword').value = '';
+      dialog.showModal();
+      (focusPassword ? $('accountCurrentPassword') : $('accountProfileDisplayName')).focus();
+    } catch (error) { showToast(error.message, true); }
+  }
+  $('profileMenuButton').addEventListener('click', () => { $('accountDropdown').hidden = true; openAccountProfile(false); });
+  $('settingsMenuButton').addEventListener('click', () => { $('accountDropdown').hidden = true; openAccountProfile(true); });
+  $('closeAccountProfile')?.addEventListener('click', () => $('accountProfileDialog').close());
+  $('accountProfileDialog')?.addEventListener('click', event => { if (event.target === $('accountProfileDialog')) $('accountProfileDialog').close(); });
+  $('accountProfileForm')?.addEventListener('submit', async event => {
+    event.preventDefault();
+    const feedback = $('accountProfileFeedback'); feedback.textContent = 'Saving profile…'; feedback.className = 'inline-feedback';
+    try {
+      const data = await api('/api/account/profile', { method: 'PATCH', body: JSON.stringify({
+        displayName: $('accountProfileDisplayName').value.trim(), mobile: $('accountProfileMobile').value.trim()
+      }) });
+      user.displayName = data.profile.displayName; user.mobile = data.profile.mobile || '';
+      sessionStorage.setItem(userKey, JSON.stringify(user));
+      $('userDisplay').textContent = user.displayName; $('accountMenuName').textContent = user.displayName;
+      if (!$('userAvatar').querySelector('img')) $('userAvatar').textContent = user.displayName.trim().charAt(0).toUpperCase();
+      feedback.textContent = 'Profile saved.'; showToast('Profile saved.');
+    } catch (error) { feedback.textContent = error.message; feedback.className = 'inline-feedback error'; }
+  });
+  $('accountPasswordForm')?.addEventListener('submit', async event => {
+    event.preventDefault();
+    const feedback = $('accountProfileFeedback'); feedback.textContent = 'Updating password…'; feedback.className = 'inline-feedback';
+    try {
+      const data = await api('/api/account/change-password', { method: 'POST', body: JSON.stringify({
+        currentPassword: $('accountCurrentPassword').value, newPassword: $('accountNewPassword').value
+      }) });
+      $('accountCurrentPassword').value = ''; $('accountNewPassword').value = '';
+      feedback.textContent = data.message || 'Password changed.'; showToast('Password changed.');
+    } catch (error) { feedback.textContent = error.message; feedback.className = 'inline-feedback error'; }
+  });
+  $('logoutButton').addEventListener('click', async () => {
+    try { await api('/api/auth/logout', { method: 'POST' }); } catch { /* clear local session regardless */ }
+    clearSession();
+    window.location.replace('/portal-login.html');
+  });
+
+  $('downloadStudentTemplate')?.addEventListener('click', () => {
+    const template = 'Student ID,Full Name,Sex,Grade Level,Section,LRN,Parent Name,Parent Mobile\r\n';
+    const blob = new Blob([String.fromCharCode(0xfeff), template], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob); const a = document.createElement('a'); a.href = url; a.download = 'student-import-template.csv'; a.click(); URL.revokeObjectURL(url);
+  });
+  $('exportStudentsButton')?.addEventListener('click', () => {
+    exportCsv('student-roster.csv', ['Student ID','LRN','Full name','Sex','Grade level','Section','Status'],
+      students.map(s => [s.studentId,s.lrn,s.fullName,s.sex,s.gradeLevel,s.section,s.active === false ? 'Inactive' : 'Active']));
+  });
+  $('exportTeachersButton')?.addEventListener('click', () => {
+    exportCsv('teacher-list.csv', ['Username','Teacher name','Department','Status','Designations','Assigned classes'],
+      teachers.map(t => [t.username,t.displayName,t.departmentName,t.teacherStatus,(t.teacherDesignations || []).join('; '),
+        [...(t.adviserSections || []), ...(t.assignedPeriods || [])].map(x => String(x.gradeLevel || '') + ' ' + String(x.section || '')).join('; ')]));
+  });
+
+  function prepareStudentImportAdvisoryScope() {
+    const group = $('studentImportAdvisoryGroup');
+    const select = $('studentImportAdvisoryAssignment');
+    const isAdviser = user.role === 'TEACHER' && teacherHas('CLASS_ADVISER');
+    if (!group || !select) return;
+    group.hidden = !isAdviser;
+    if (!isAdviser) return;
+    const previous = select.value;
+    select.innerHTML = '<option value="">Use grade and section from file</option>' + adviserAssignments.map(item =>
+      '<option value="' + esc(item.assignmentId) + '">' + esc(item.gradeLevel) + ' · ' + esc(item.section) + '</option>'
+    ).join('');
+    select.value = adviserAssignments.some(item => String(item.assignmentId) === String(previous))
+      ? previous : adviserAssignments.length === 1 ? String(adviserAssignments[0].assignmentId) : '';
+  }
+
+  function studentImportRequestPayload() {
+    const payload = { ...(pendingStudentImport || {}) };
+    const select = $('studentImportAdvisoryAssignment');
+    payload.updateExisting = user.role === 'SCHOOL_ADMIN' && Boolean($('studentImportUpdateExisting')?.checked);
+    if (user.role === 'TEACHER' && teacherHas('CLASS_ADVISER') && select?.value) {
+      payload.advisoryAssignmentId = select.value;
+    }
+    return payload;
+  }
+
+  function resetStudentImport() {
+    pendingStudentImport = null; pendingStudentImportPreview = null;
+    $('studentImportFile').value = ''; $('studentImportSummary').textContent = '';
+    if ($('studentImportUpdateExisting')) $('studentImportUpdateExisting').checked = false;
+    if ($('studentImportExistingList')) { $('studentImportExistingList').hidden = true; $('studentImportExistingList').replaceChildren(); }
+    $('studentImportPreviewRows').innerHTML = '<tr><td colspan="8" class="empty-cell">Choose a file to preview.</td></tr>';
+    $('confirmStudentImport').disabled = true;
+  }
+
+  async function previewStudentImport() {
+    if (!pendingStudentImport) return;
+    const summary = $('studentImportSummary');
+    const list = $('studentImportExistingList');
+    summary.textContent = 'Validating file and checking which students already exist…';
+    $('confirmStudentImport').disabled = true;
+    if (list) { list.hidden = true; list.replaceChildren(); }
+    try {
+      const preview = await api('/api/students/import/preview', { method:'POST', body:JSON.stringify(studentImportRequestPayload()) });
+      pendingStudentImportPreview = preview;
+      const counts = preview.summary || { create:0, update:0, skip:0, error:0 };
+      const eligible = Number(counts.create || 0) + Number(counts.update || 0);
+      summary.textContent = preview.total + ' rows · ' + (counts.create || 0) + ' new · ' +
+        (counts.update || 0) + ' updates · ' + (counts.skip || 0) + ' already exist (skip) · ' +
+        (counts.error || 0) + ' errors.' +
+        (!eligible && !counts.error ? ' All students are already registered; nothing will be imported.' : '');
+      const labels = {CREATE:'Add new', UPDATE:'Update existing', SKIP:'Already exists — skip', ERROR:'Needs correction'};
+      $('studentImportPreviewRows').innerHTML = preview.rows.map(item => {
+        const match = item.existingStudent;
+        const description = match ? '<strong>' + esc(match.fullName) + '</strong><small class="table-subtext">' +
+          esc(match.gradeLevel + ' · ' + match.section) + '</small>' : '<span class="muted-inline">Not registered</span>';
+        return '<tr class="student-import-result-' + esc(String(item.action||'').toLowerCase()) + '"><td>' +
+          esc(item.rowNumber) + '</td><td>' + esc(item.studentId) + '</td><td>' + esc(item.fullName) +
+          '</td><td>' + esc(item.gradeLevel) + '</td><td>' + esc(item.section) +
+          '</td><td><span class="student-import-action-tag">' + esc(labels[item.action] || item.action) +
+          '</span></td><td>' + description + '</td><td>' + esc((item.errors||[]).join(' ')) + '</td></tr>';
+      }).join('') || '<tr><td colspan="8" class="empty-cell">No student rows were found.</td></tr>';
+      const existing = preview.rows.filter(item => item.existingStudent);
+      if (existing.length && list) {
+        list.hidden = false;
+        list.innerHTML = '<strong>' + existing.length + ' student' + (existing.length===1?'':'s') +
+          ' already registered</strong><p>These existing students are shown in the preview. They are skipped unless the School Admin selects Update matching students.</p><ul>' +
+          existing.map(item => '<li><b>' + esc(item.studentId) + '</b> · ' + esc(item.existingStudent.fullName) +
+            ' (' + esc(item.existingStudent.gradeLevel) + ' · ' + esc(item.existingStudent.section) + ')</li>').join('') +
+          '</ul>';
+      }
+      $('confirmStudentImport').disabled = Number(counts.error||0)>0 || !eligible;
+      $('confirmStudentImport').textContent = eligible ? 'Import ' + eligible + ' student' + (eligible===1?'':'s') : 'No new students';
+    } catch(error) {
+      pendingStudentImportPreview = null;
+      summary.textContent = error.message;
+      $('studentImportPreviewRows').innerHTML = '<tr><td colspan="8" class="empty-cell">File could not be validated.</td></tr>';
+    }
+  }
+
+  $('bulkImportStudentsButton')?.addEventListener('click', () => {
+    resetStudentImport();
+    if ($('studentImportUpdateExistingWrap')) $('studentImportUpdateExistingWrap').hidden = user.role !== 'SCHOOL_ADMIN';
+    prepareStudentImportAdvisoryScope();
+    $('studentImportModal').hidden = false;
+  });
+  $('closeStudentImport')?.addEventListener('click', () => { $('studentImportModal').hidden = true; });
+  $('cancelStudentImport')?.addEventListener('click', () => { $('studentImportModal').hidden = true; resetStudentImport(); });
+  $('studentImportAdvisoryAssignment')?.addEventListener('change', () => { previewStudentImport().catch(error => showToast(error.message, true)); });
+  $('studentImportUpdateExisting')?.addEventListener('change', () => { previewStudentImport().catch(error => showToast(error.message, true)); });
+  $('studentImportFile')?.addEventListener('change', async () => {
+    const file = $('studentImportFile').files?.[0]; if (!file) return;
+    pendingStudentImport = null; pendingStudentImportPreview = null;
+    if (file.size > 5 * 1024 * 1024) { showToast('Choose a file no larger than 5 MB.', true); return; }
+    const ext = file.name.toLowerCase().split('.').pop();
+    if (!['csv','xlsx'].includes(ext)) { showToast('Only CSV and Excel .xlsx files are supported.', true); return; }
+    $('studentImportSummary').textContent = 'Reading and validating file…'; $('confirmStudentImport').disabled = true;
+    try {
+      if (ext === 'csv') pendingStudentImport = { csvText: await file.text() };
+      else pendingStudentImport = { fileBase64: await new Promise((resolve,reject) => {
+        const reader = new FileReader(); reader.onerror = () => reject(new Error('Could not read the Excel file.'));
+        reader.onload = () => resolve(String(reader.result).split(',')[1] || ''); reader.readAsDataURL(file);
+      }) };
+      await previewStudentImport();
+    } catch (error) {
+      $('studentImportSummary').textContent = error.message;
+      $('studentImportPreviewRows').innerHTML = '<tr><td colspan="7" class="empty-cell">File could not be validated.</td></tr>';
+    }
+  });
+  $('confirmStudentImport')?.addEventListener('click', async () => {
+    if (!pendingStudentImport || !pendingStudentImportPreview || pendingStudentImportPreview.summary.error) return;
+    if (!await AppDialog.confirm('Import ' + (pendingStudentImportPreview.summary.create + pendingStudentImportPreview.summary.update) + ' student records? ' + (pendingStudentImportPreview.summary.skip || 0) + ' existing students will be skipped. Duplicate IDs will not be created.', { title: 'Import student records', confirmText: 'Import students' })) return;
+    $('confirmStudentImport').disabled = true; $('studentImportSummary').textContent = 'Saving records…';
+    try {
+      const result = await api('/api/students/import/commit', { method:'POST', body:JSON.stringify(studentImportRequestPayload()) });
+      const summary = 'Completed: ' + result.created + ' created, ' + result.updated + ' updated, ' + (result.skipped || 0) + ' already existing skipped.';
+      resetStudentImport(); $('studentImportModal').hidden = true; selectedStudentIds.clear(); await loadSchoolData();
+      showToast(summary);
+    } catch (error) { $('studentImportSummary').textContent = error.message; $('confirmStudentImport').disabled = false; }
+  });
+  function availableStudentBatchSections() {
+    const role = user.role;
+    let destinations;
+    if (role === 'TEACHER') {
+      destinations = adviserAssignments.map(a => ({ gradeLevel:a.gradeLevel, section:a.section }));
+    } else if (role === 'DEPARTMENT_HEAD') {
+      destinations = periods.filter(p => p.active !== false &&
+        String(p.scheduleDepartmentId) === String(user.departmentId))
+        .map(p => ({ gradeLevel:p.gradeLevel, section:p.section }));
+    } else if (role === 'SCHOOL_ADMIN') {
+      destinations = [
+        ...students.filter(s => s.active !== false && !s.archivedAt)
+          .map(s => ({ gradeLevel:s.gradeLevel, section:s.section })),
+        ...periods.filter(p => p.active !== false)
+          .map(p => ({ gradeLevel:p.gradeLevel, section:p.section }))
+      ];
+    } else {
+      destinations = [];
+    }
+    const unique = new Map();
+    for (const section of destinations) {
+      const grade = String(section.gradeLevel || '').trim();
+      const name = String(section.section || '').trim();
+      if (grade && name) unique.set(grade + '|' + name, {gradeLevel:grade,section:name});
+    }
+    return [...unique.values()].sort((a,b) =>
+      a.gradeLevel.localeCompare(b.gradeLevel,undefined,{numeric:true}) ||
+      a.section.localeCompare(b.section,undefined,{numeric:true}));
+  }
+
+  function refreshStudentBatchDestinations() {
+    const gradeSelect = $('batchGrade');
+    const sectionSelect = $('batchSection');
+    const allowed = availableStudentBatchSections();
+    const previousGrade = gradeSelect.value, previousSection = sectionSelect.value;
+    const grades = [...new Set(allowed.map(s => s.gradeLevel))];
+    gradeSelect.innerHTML = '<option value="">Choose grade</option>' +
+      grades.map(grade => '<option value="' + esc(grade) + '">' + esc(grade) + '</option>').join('');
+    gradeSelect.value = grades.includes(previousGrade) ? previousGrade : '';
+    const sections = allowed.filter(s => s.gradeLevel === gradeSelect.value).map(s => s.section);
+    sectionSelect.innerHTML = '<option value="">Choose existing section</option>' +
+      sections.map(section => '<option value="' + esc(section) + '">' + esc(section) + '</option>').join('');
+    sectionSelect.value = sections.includes(previousSection) ? previousSection : '';
+    sectionSelect.disabled = sections.length === 0;
+    gradeSelect.disabled = grades.length === 0;
+    if ($('batchSectionHint')) $('batchSectionHint').textContent = grades.length
+      ? 'Only registered or scheduled sections in your authorized scope can be selected.'
+      : 'No eligible sections are available. Ask the School Admin to create the section or check your assigned timetable.';
+  }
+
+  function closeStudentBatch() {
+    $('studentBatchModal').hidden = true;
+    $('studentBatchForm').reset();
+    $('studentBatchFeedback').textContent = '';
+  }
+
+  function openStudentBatch() {
+    const action = $('studentBatchAction').value;
+    const selected = students.filter(s => selectedStudentIds.has(s.studentId) && canSelectLearnerForBatch(s));
+    if (!action || !selected.length) return;
+    if (selected.length !== selectedStudentIds.size || selected.length > 500) {
+      showToast('Some learners are not in your authorized selection. Refresh and select again (maximum 500).',true);
+      return;
+    }
+    if (action === 'REQUEST_PROGRAM') {
+      const allowed = user.role === 'DEPARTMENT_HEAD' ||
+        (user.role === 'TEACHER' && teacherHas('CLASS_ADVISER'));
+      if (!allowed || selected.length > 200) {
+        showToast('Only Department Heads and Class Advisers can request program changes for up to 200 learners.',true);
+        return;
+      }
+      document.dispatchEvent(new CustomEvent('attendigo:program-batch-open', {
+        detail: { students: selected.map(s => ({
+          studentId: s.studentId, enrollmentId: s.enrollmentId,
+          fullName: s.fullName, gradeLevel: s.gradeLevel,
+          section: s.section, specialProgramCode: s.specialProgramCode
+        })) }
+      }));
+      return;
+    }
+    if (user.role !== 'SCHOOL_ADMIN' && !['SET_SEX','ASSIGN'].includes(action)) {
+      showToast('Only School Admin may manage student account status.',true);
+      return;
+    }
+    $('studentBatchForm').reset();
+    $('studentBatchFeedback').textContent = '';
+    const labels = {
+      SET_SEX:'Set sex', ASSIGN:'Move grade / section', ACTIVATE:'Activate',
+      DEACTIVATE:'Deactivate', ARCHIVE:'Archive'
+    };
+    const descriptions = {
+      SET_SEX:'Choose one sex for the entire selected group. Do not use this when the learners have different sex classifications.',
+      ASSIGN:'Move selected learners to an existing school-year section. Student identity and past attendance are preserved.',
+      ACTIVATE:'Restore access for selected inactive or archived learners. Their historical attendance is preserved.',
+      DEACTIVATE:'Disable selected learners and their student logins without deleting past attendance.',
+      ARCHIVE:'Archive selected learners and disable their logins. Records and attendance history remain available to authorized staff.'
+    };
+    $('studentBatchTitle').textContent = (labels[action] || action) + ' · ' + selected.length + ' learners';
+    $('studentBatchDescription').textContent = descriptions[action] || '';
+    $('studentBatchSelectedCount').textContent = selected.length + ' selected learner' + (selected.length === 1 ? '' : 's');
+    const preview = selected.slice(0,8);
+    $('studentBatchSelectedPreview').innerHTML = preview.map(learner =>
+      '<span class="student-batch-chip">' + esc(learner.fullName) + ' <small>' +
+      esc(learner.studentId) + '</small></span>').join('') +
+      (selected.length > preview.length ? '<span class="student-batch-chip">+' + (selected.length-preview.length) + ' more</span>' : '');
+    $('batchSexGroup').hidden = action !== 'SET_SEX';
+    $('batchGradeGroup').hidden = action !== 'ASSIGN';
+    $('batchSectionGroup').hidden = action !== 'ASSIGN';
+    if (action === 'ASSIGN') refreshStudentBatchDestinations();
+    const acknowledge = ['SET_SEX','DEACTIVATE','ARCHIVE'].includes(action);
+    $('studentBatchAcknowledgeWrap').hidden = !acknowledge;
+    $('studentBatchAcknowledgeText').textContent = action === 'SET_SEX'
+      ? 'I verified that all selected learners should receive the same sex classification.'
+      : 'I understand this changes the selected student accounts and will preserve their attendance history.';
+    $('studentBatchChangeSummary').textContent = descriptions[action];
+    $('confirmStudentBatch').textContent = action === 'ASSIGN' ? 'Review section transfer'
+      : action === 'SET_SEX' ? 'Review sex update' : 'Review ' + (labels[action] || action).toLowerCase();
+    $('studentBatchModal').hidden = false;
+  }
+
+  $('applyStudentBatch')?.addEventListener('click',openStudentBatch);
+  $('studentBatchAction')?.addEventListener('change',updateStudentSelectionUi);
+  $('batchGrade')?.addEventListener('change',refreshStudentBatchDestinations);
+  $('closeStudentBatch')?.addEventListener('click',closeStudentBatch);
+  $('cancelStudentBatch')?.addEventListener('click',closeStudentBatch);
+  $('studentBatchForm')?.addEventListener('submit',async event => {
+    event.preventDefault();
+    const action = $('studentBatchAction').value;
+    const chosen = students.filter(s => selectedStudentIds.has(s.studentId) && canSelectLearnerForBatch(s));
+    const feedback = $('studentBatchFeedback');
+    feedback.className = 'inline-feedback';
+    if (!action || !chosen.length || chosen.length !== selectedStudentIds.size || chosen.length > 500) {
+      feedback.className = 'inline-feedback error';
+      feedback.textContent = 'Please select valid learners and try again.';
+      return;
+    }
+    if (user.role !== 'SCHOOL_ADMIN' && !['SET_SEX','ASSIGN'].includes(action)) {
+      feedback.className = 'inline-feedback error';
+      feedback.textContent = 'This action requires School Admin permissions.';
+      return;
+    }
+    const body = {action,studentIds:chosen.map(s=>s.studentId)};
+    let changeDescription = '';
+    if (action === 'SET_SEX') {
+      const sex = $('batchSex').value;
+      if (!['MALE','FEMALE'].includes(sex)) {
+        feedback.textContent = 'Choose Male or Female for the selected learners.';
+        feedback.className = 'inline-feedback error';
+        return;
+      }
+      body.sex = sex;
+      changeDescription = 'Set sex to ' + (sex === 'MALE' ? 'Male' : 'Female');
+    } else if (action === 'ASSIGN') {
+      const gradeLevel = $('batchGrade').value, section = $('batchSection').value;
+      if (!availableStudentBatchSections().some(d => d.gradeLevel === gradeLevel && d.section === section)) {
+        feedback.textContent = 'Choose an existing section within your authorized scope.';
+        feedback.className = 'inline-feedback error';
+        return;
+      }
+      body.gradeLevel = gradeLevel; body.section = section;
+      changeDescription = 'Move to ' + gradeLevel + ' · ' + section;
+    } else {
+      changeDescription = action === 'ACTIVATE' ? 'Activate learners' :
+        action === 'DEACTIVATE' ? 'Deactivate learners and revoke their login sessions' :
+        'Archive learners and revoke their login sessions';
+    }
+    if (!$('studentBatchAcknowledgeWrap').hidden && !$('studentBatchAcknowledge').checked) {
+      feedback.textContent = 'Please check the confirmation box after verifying the selected learners.';
+      feedback.className = 'inline-feedback error';
+      return;
+    }
+    const preview = chosen.slice(0,4).map(s=>s.fullName).join(', ');
+    const message = changeDescription + ' for ' + chosen.length + ' selected learners?\n' +
+      preview + (chosen.length > 4 ? ' and ' + (chosen.length-4) + ' others' : '') +
+      '\nThis will not change anyone’s name, Student ID, LRN or guardian information.';
+    if (!await AppDialog.confirm(message, {
+      title: 'Confirm batch ' + action.toLowerCase().replaceAll('_',' '),
+      confirmText: action === 'ARCHIVE' ? 'Archive selected' : 'Apply to ' + chosen.length,
+      variant:['ARCHIVE','DEACTIVATE'].includes(action) ? 'danger' : 'primary'
+    })) return;
+    $('confirmStudentBatch').disabled = true;
+    feedback.textContent = 'Applying ' + changeDescription.toLowerCase() + '…';
+    try {
+      const result = await api('/api/students/batch', {method:'POST',body:JSON.stringify(body)});
+      closeStudentBatch();
+      selectedStudentIds.clear();
+      $('studentBatchAction').value = '';
+      await loadSchoolData();
+      showToast(result.updated + ' learners updated: ' + changeDescription + '.');
+    } catch(error) {
+      feedback.textContent = error.message;
+      feedback.className = 'inline-feedback error';
+    } finally {
+      $('confirmStudentBatch').disabled = false;
+      updateStudentSelectionUi();
+    }
+  });
+
+  $('studentRosterSearch').addEventListener('input', () => { renderStudents(); updateStudentSelectionUi(); });
+  if ($('studentRosterView')) {
+    try { if (localStorage.getItem('attendigo.roster.view') === 'grouped') $('studentRosterView').value = 'grouped'; } catch {}
+    $('studentRosterView').addEventListener('change', event => {
+      try { localStorage.setItem('attendigo.roster.view', event.target.value); } catch {}
+      renderStudents();
+    });
+  }
+  $('studentSpecialProgramFilter')?.addEventListener('change', renderStudents);
+  $('studentStatusFilter')?.addEventListener('change', () => { selectedStudentIds.clear(); renderStudents(); updateStudentSelectionUi(); });
+  $('closeStudentQrPreview').addEventListener('click', () => { $('studentQrPreviewModal').hidden = true; });
+  $('closeStudentQrPreviewBottom').addEventListener('click', () => { $('studentQrPreviewModal').hidden = true; });
+  $('studentQrPreviewModal').addEventListener('click', event => {
+    if (event.target === $('studentQrPreviewModal')) $('studentQrPreviewModal').hidden = true;
+  });
+  $('bulkQrGrade').addEventListener('change', () => refreshBulkQrSections());
+  $('printBulkQr').addEventListener('click', generateBulkQrCards);
+  $('bulkQrSection').addEventListener('change', () => renderStudents());
+  $('bulkQrGrade').addEventListener('change', () => { refreshBulkQrSections(); renderStudents(); });
+  $('selectAllStudents').addEventListener('change', () => {
+    const selected = Boolean($('selectAllStudents').checked);
+    visibleBatchLearners().forEach(student => {
+      if (selected) selectedStudentIds.add(student.studentId);
+      else selectedStudentIds.delete(student.studentId);
+    });
+    renderStudents();
+  });
+  $('studentScannerToggle').addEventListener('click', () => {
+    if (studentQrScanner?.isScanning) { stopStudentScanner(); return; }
+    $('studentScanSetupModal').hidden = false;
+  });
+  $('gateScanType')?.addEventListener('change', event => {
+    gateScanType = ['BOTH', 'STUDENT', 'TEACHER'].includes(event.target.value) ? event.target.value : 'BOTH';
+    const label = gateScanType === 'BOTH' ? 'Learners and teachers' : gateScanType === 'TEACHER' ? 'Teachers only' : 'Learners only';
+    if ($('scanModeSummary')) $('scanModeSummary').textContent = `Gate attendance · ${label}.`;
+    if ($('studentScanFeedback')) {
+      $('studentScanFeedback').textContent = `Ready to scan: ${label.toLowerCase()}.`;
+      $('studentScanFeedback').className = 'scanner-feedback';
+    }
+  });
+  $('scanSetupScope').addEventListener('change', () => {
+    $('scanSetupPeriodWrap').hidden = $('scanSetupScope').value !== 'CLASS';
+    $('scanSetupPeriod').value = '';
+  });
+  let qrHistoryFlipping = false;
+  function flipQrHistory(direction) {
+    const pages = Math.max(1, Math.ceil(teacherHistoryData.length / 10));
+    const next = teacherHistoryPage + direction;
+    if (qrHistoryFlipping || next < 0 || next >= pages) return;
+    const page = document.querySelector('#mfQrHistoryDetails .manual-qr-pages');
+    if (!page) { renderTeacherClassAttendance(teacherHistoryData, next); return; }
+    qrHistoryFlipping = true;
+    const prev = $('mfQrPrev'), forward = $('mfQrNext');
+    if (prev) prev.disabled = true;
+    if (forward) forward.disabled = true;
+    const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    if (reduceMotion) {
+      renderTeacherClassAttendance(teacherHistoryData, next);
+      qrHistoryFlipping = false;
+      return;
+    }
+    // A frozen page is animated above the next page; never rotate the live table.
+    const leaf = document.createElement('div');
+    leaf.className = 'manual-qr-turn-leaf ' + (direction > 0 ? 'forward' : 'backward');
+    leaf.setAttribute('aria-hidden', 'true');
+    const snapshot = page.querySelector('table')?.cloneNode(true);
+    if (snapshot) {
+      snapshot.querySelectorAll('[id]').forEach(node => node.removeAttribute('id'));
+      leaf.appendChild(snapshot);
+    }
+    page.appendChild(leaf);
+    page.classList.add('manual-qr-is-turning');
+    const duration = 440;
+    setTimeout(() => renderTeacherClassAttendance(teacherHistoryData, next), Math.round(duration * .46));
+    setTimeout(() => {
+      leaf.remove();
+      page.classList.remove('manual-qr-is-turning');
+      qrHistoryFlipping = false;
+      if (prev) prev.disabled = next === 0;
+      if (forward) forward.disabled = next >= pages - 1;
+    }, duration + 40);
+  }
+  $('mfQrPrev')?.addEventListener('click', () => flipQrHistory(-1));
+  $('mfQrNext')?.addEventListener('click', () => flipQrHistory(1));
+  $('teacherAttendanceApply')?.addEventListener('click', loadTeacherClassAttendance);
+  $('teacherAttendanceRefresh')?.addEventListener('click', loadTeacherClassAttendance);
+  $('teacherAttendanceViewSelect')?.addEventListener('change', loadTeacherClassAttendance);
+  $('scanSetupCancel').addEventListener('click', () => { $('studentScanSetupModal').hidden = true; });
+  $('studentScanSetupModal').addEventListener('click', event => {
+    if (event.target === $('studentScanSetupModal')) $('studentScanSetupModal').hidden = true;
+  });
+  $('scanSetupStart').addEventListener('click', async () => {
+    if (user.role === 'SCHOOL_ADMIN') {
+      showToast('School Administrator accounts do not operate attendance scanners. Use an assigned Gate Keeper or teacher account.', true);
+      return;
+    }
+    activeScanScope = user.role === 'TEACHER' ? $('scanSetupScope').value : 'SCHOOL';
+    activeScanPeriodId = activeScanScope === 'CLASS' ? $('scanSetupPeriod').value : null;
+    if (activeScanScope === 'CLASS' && !activeScanPeriodId) {
+      $('scanSetupPeriodWrap').classList.add('field-missing');
+      $('scanSetupPeriodHint').textContent = 'Please select an assigned class or subject schedule.';
+      $('scanSetupPeriod').focus();
+      return;
+    }
+    $('scanSetupPeriodWrap').classList.remove('field-missing');
+    $('studentScanSetupModal').hidden = true;
+    $('studentScannerPanel').hidden = false;
+    $('studentScanFeedback').className = 'scanner-feedback';
+    $('studentScanFeedback').textContent = 'Starting camera…';
+    try { await startStudentScanner(); }
+    catch (error) {
+      $('studentScanFeedback').textContent = error.message;
+      showToast(error.message, true);
+      $('studentScannerPanel').hidden = true;
+      $('studentScanSetupModal').hidden = false;
+    }
+  });
+  $('scanSetupPeriod').addEventListener('change', () => {
+    $('scanSetupPeriodWrap').classList.remove('field-missing');
+    $('scanSetupPeriodHint').textContent = 'Choose the assigned schedule for this attendance session.';
+  });
+  $('studentScannerStop').addEventListener('click', stopStudentScanner);
+  $('studentScanNoticeContinue').addEventListener('click', () => { $('studentScanNotice').hidden = true; $('studentTimeIn')?.focus(); });
+  $('studentScanNotice').addEventListener('click', event => { if (event.target === $('studentScanNotice')) $('studentScanNotice').hidden = true; });
+  $('closeStudentEdit').addEventListener('click', () => { $('studentEditOverlay').hidden = true; });
+  $('studentEditOverlay').addEventListener('click', event => { if (event.target === $('studentEditOverlay')) $('studentEditOverlay').hidden = true; });
+  $('studentEditForm').addEventListener('submit', async event => {
+    event.preventDefault();
+    const id = $('editStudentId').value;
+    const feedback = $('studentEditFeedback');
+    feedback.textContent = 'Saving changes…'; feedback.className = 'inline-feedback';
+    const restrictedEditor = ['TEACHER','DEPARTMENT_HEAD'].includes(user.role);
+    const placementEditable = !restrictedEditor;
+    const payload = { fullName: $('editFullName').value.trim() };
+    const sexEditable = !restrictedEditor || (user.role === 'TEACHER' && !$('editSexGroup').hidden);
+    if (sexEditable) payload.sex = $('editSex').value;
+    if (placementEditable) Object.assign(payload, { gradeLevel: $('editGrade').value, section: $('editSection').value.trim() });
+    if (!restrictedEditor) Object.assign(payload, { lrn: $('editLrn').value.trim() || null, parentName: $('editParentName').value.trim() || null, parentMobile: $('editParentMobile').value.trim() });
+    try {
+      await api(`/api/students/${encodeURIComponent(id)}`, { method: 'PATCH', body: JSON.stringify(payload) });
+      $('studentEditOverlay').hidden = true; await loadSchoolData(); showToast('Student information updated. Existing QR code was preserved.');
+    }
+    catch (error) { feedback.textContent = error.message; feedback.className = 'inline-feedback error'; }
+  });
+
+  let sectionLoadSequence = 0;
+  async function loadSectionsForGrade(gradeLevel, preferredSection = '') {
+    const select = $('newSection');
+    const hint = $('newSectionHint');
+    const sequence = ++sectionLoadSequence;
+    select.disabled = true;
+    select.innerHTML = '<option value="">Loading sections…</option>';
+    hint.textContent = 'Loading available sections for ' + gradeLevel + '…';
+    try {
+      const result = await api('/api/sections?gradeLevel=' + encodeURIComponent(gradeLevel));
+      if (sequence !== sectionLoadSequence) return;
+      const sections = result.sections || [];
+      select.innerHTML = '<option value="">Select section</option>' +
+        sections.map(section => `<option value="${esc(section)}">${esc(section)}</option>`).join('');
+      if (preferredSection && sections.includes(preferredSection)) select.value = preferredSection;
+      select.disabled = sections.length === 0;
+      updateSectionManagementActions();
+      hint.textContent = sections.length
+        ? `${sections.length} available section${sections.length === 1 ? '' : 's'} for ${gradeLevel}.`
+        : `No active sections found for ${gradeLevel}. Ask the school administrator to configure a class schedule for this grade.`;
+    } catch (error) {
+      if (sequence !== sectionLoadSequence) return;
+      select.innerHTML = '<option value="">Could not load sections</option>';
+      select.disabled = true;
+      hint.textContent = error.message || 'Could not load sections. Check your connection and try again.';
+    }
+  }
+
+  function openParentInvite(student, guardian = {}) {
+    const schoolCode = user.schoolCode || '';
+    const registerUrl = `${window.location.origin}/parent-register.html`;
+    const parentName = guardian.parentName || $('newParentName').value.trim();
+    const mobile = guardian.parentMobile || $('newParentMobile').value.trim();
+    const message = [
+      `Hello${parentName ? ' ' + parentName : ''}!`,
+      `Your child ${student.fullName} (${student.studentId}) has been registered in the school attendance system.`,
+      'To create your parent account, open this registration page:',
+      registerUrl,
+      `School code: ${schoolCode}`,
+      `Child student ID: ${student.studentId}`,
+      'Complete the registration form using your name, mobile number, relationship, username, and password.',
+      'Your account will remain pending until the school administrator verifies and approves the parent-child relationship.',
+      'Please do not share your password with anyone.'
+    ].join('\n');
+    $('parentInviteStudent').textContent = student.fullName;
+    $('parentInviteStudentId').textContent = `Student ID: ${student.studentId} · ${student.gradeLevel} · ${student.section}`;
+    $('parentInviteMobile').textContent = `Guardian mobile: ${mobile || 'Not provided'}`;
+    $('parentInviteMessage').value = message;
+    $('parentInviteModal').hidden = false;
+  }
+
+  function refreshExistingGuardianChoices() {
+    const select = $('existingGuardianSelect');
+    if (!select) return;
+    const contacts = new Map();
+    for (const student of students) {
+      const name = String(student.parentName || '').trim();
+      const mobile = String(student.parentMobile || '').trim();
+      if (!name || !mobile || /^0+$/.test(mobile.replace(/\D/g,''))) continue;
+      const key = mobile.replace(/\D/g,'');
+      if (!contacts.has(key)) contacts.set(key, { name, mobile });
+    }
+    select.replaceChildren(new Option('Enter a new guardian', ''));
+    [...contacts.values()].sort((a,b) => a.name.localeCompare(b.name)).forEach(({name,mobile}) => {
+      select.add(new Option(name + ' · ' + mobile, mobile));
+    });
+  }
+  $('existingGuardianSelect')?.addEventListener('change', event => {
+    const mobile = event.target.value;
+    if (!mobile) return;
+    const match = students.find(student => student.parentMobile === mobile && student.parentName);
+    if (match) {
+      $('newParentName').value = match.parentName;
+      $('newParentMobile').value = match.parentMobile;
+    }
+  });
+  $('showStudentPortalHelp')?.addEventListener('click', () => {
+    // Navigate to the dedicated, role-scoped Student Portal Accounts workspace.
+    // The old action only scrolled to the roster and appeared to do nothing when
+    // a School Admin had an empty list.
+    setView('studentAccounts');
+    $('sapSearch')?.focus({preventScroll:true});
+  });
+    $('showStudentForm').addEventListener('click', () => {
+    $('studentForm').hidden = !$('studentForm').hidden;
+    if (!$('studentForm').hidden && $('newGrade').value) loadSectionsForGrade($('newGrade').value);
+  });
+  $('cancelStudentForm').addEventListener('click', () => {
+    $('studentForm').reset();
+    $('newSection').innerHTML = '<option value="">Select grade level first</option>';
+    $('newSection').disabled = true;
+    $('newSectionHint').textContent = 'Choose a grade to load its available sections.';
+    $('studentForm').hidden = true;
+    $('studentFormFeedback').textContent = '';
+  });
+  $('newGrade').addEventListener('change', () => loadSectionsForGrade($('newGrade').value));
+  $('parentInviteClose').addEventListener('click', () => { $('parentInviteModal').hidden = true; });
+  $('parentInviteModal').addEventListener('click', event => { if (event.target === $('parentInviteModal')) $('parentInviteModal').hidden = true; });
+  $('parentInviteCopy').addEventListener('click', async () => {
+    try { await navigator.clipboard.writeText($('parentInviteMessage').value); showToast('Parent registration instructions copied.'); }
+    catch { $('parentInviteMessage').focus(); $('parentInviteMessage').select(); showToast('Select and copy the instructions manually.', true); }
+  });
+  $('parentInviteShare').addEventListener('click', async () => {
+    if (navigator.share) {
+      try { await navigator.share({ title: 'Parent portal registration', text: $('parentInviteMessage').value }); }
+      catch (error) { if (error.name !== 'AbortError') showToast('Could not open the share menu.', true); }
+    } else {
+      try { await navigator.clipboard.writeText($('parentInviteMessage').value); showToast('Sharing is unavailable here. Instructions copied instead.'); }
+      catch { showToast('Use Copy instructions to share manually.', true); }
+    }
+  });
+  $('studentForm').addEventListener('submit', async event => {
+    event.preventDefault();
+    const feedback = $('studentFormFeedback');
+    feedback.className = 'inline-feedback';
+    feedback.textContent = 'Saving…';
+    const payload = {
+      studentId: $('newStudentId').value.trim(),
+      lrn: $('newLrn').value.trim() || null,
+      sex: $('newSex').value,
+      fullName: $('newFullName').value.trim(),
+      gradeLevel: $('newGrade').value,
+      section: $('newSection').value.trim(),
+      parentName: $('newParentName').value.trim(),
+      parentMobile: $('newParentMobile').value.trim()
+    };
+    try {
+      const photoFile = $('newStudentPhoto').files?.[0];
+      const preparedPhoto = photoFile ? await window.ProfilePhotos.edit(photoFile) : null;
+      const created = await api('/api/students', { method: 'POST', body: JSON.stringify(payload) });
+      if (preparedPhoto) await uploadStudentPhoto(created.student.studentId, photoFile, preparedPhoto);
+      const inviteStudent = { fullName: payload.fullName, studentId: created.student.studentId, gradeLevel: payload.gradeLevel, section: payload.section };
+      $('studentForm').reset();
+      $('newSection').innerHTML = '<option value="">Select grade level first</option>';
+      $('newSection').disabled = true;
+      $('newSectionHint').textContent = 'Choose a grade to load its available sections.';
+      $('studentForm').hidden = true;
+      await loadSchoolData();
+      showToast('Student registered successfully.');
+      if (payload.parentName || payload.parentMobile) openParentInvite(inviteStudent, payload);
+    } catch (error) {
+      feedback.className = 'inline-feedback error';
+      feedback.textContent = error.message;
+    }
+  });
+
+  function updatePeriodBatchUi() {
+    const visibleIds = periods
+      .filter(p => String(p.departmentId) === String(user.departmentId) && !p.assignedTeacherUserId && !p.assignedTeacherName)
+      .map(p => String(p.periodId));
+    const eligibleIds = new Set(visibleIds);
+    [...selectedPeriodIds].forEach(id => { if (!eligibleIds.has(id)) selectedPeriodIds.delete(id); });
+    $('selectedPeriodCount').textContent = selectedPeriodIds.size + ' selected';
+    $('selectAllPeriods').checked = visibleIds.length > 0 && visibleIds.every(id => selectedPeriodIds.has(id));
+    $('selectAllPeriods').indeterminate = visibleIds.some(id => selectedPeriodIds.has(id)) && !$('selectAllPeriods').checked;
+    $('applyBulkScheduleAssignment').disabled = !selectedPeriodIds.size || !$('bulkScheduleTeacher').value;
+  }
+  document.querySelectorAll('[data-schedule-display]').forEach(button => {
+    button.addEventListener('click', () => setScheduleDisplay(button.dataset.scheduleDisplay));
+  });
+  $('weeklyScheduleAsOf')?.addEventListener('change', async () => {
+    if (user.role === 'TEACHER') await loadSchoolData();
+    else await loadScheduleAdjustments();
+  });
+  $('weeklyGradeFilter')?.addEventListener('change', renderWeeklyTimetable);
+  $('weeklySectionFilter')?.addEventListener('change', renderWeeklyTimetable);
+  $('scheduleRows')?.addEventListener('click', async event => {
+    if (event.target.closest('[data-go-add-teacher]')) {
+      openTeacherCreation();
+      return;
+    }
+    const button = event.target.closest('[data-list-assign]');
+    if (!button) return;
+    const periodId = button.dataset.listAssign;
+    const period = periods.find(item => String(item.periodId) === String(periodId));
+    if (!period || !(user.role === 'SCHOOL_ADMIN' || (user.role === 'DEPARTMENT_HEAD' &&
+        String(period.scheduleDepartmentId) === String(user.departmentId)))) {
+      showToast('You can assign teachers only to schedules in your department.', true);
+      return;
+    }
+    const select = [...$('scheduleRows').querySelectorAll('[data-list-teacher]')]
+      .find(item => item.dataset.listTeacher === periodId);
+    if (!select?.value) {
+      showToast('Choose a Subject Teacher from your department first.', true);
+      select?.focus();
+      return;
+    }
+    button.disabled = true;
+    try {
+      const result = await api('/api/periods/' + encodeURIComponent(periodId) + '/assignments', {
+        method: 'POST', body: JSON.stringify({ teacherUserId: select.value })
+      });
+      await loadSchoolData();
+      showToast('Schedule assigned to ' + (result.teacher?.displayName || 'the selected teacher') + '.');
+    } catch (error) {
+      button.disabled = false;
+      showToast(error.message, true);
+    }
+  });
+  $('weeklyTimetableBoard')?.addEventListener('click', async event => {
+    const changeButton = event.target.closest('[data-open-adjustment]');
+    if(changeButton) {
+      openScheduleAdjustment(changeButton.dataset.openAdjustment,changeButton.dataset.adjustmentDate);
+      return;
+    }
+    const button = event.target.closest('[data-weekly-assign]');
+    if (!button) return;
+    const periodId = button.dataset.weeklyAssign;
+    const select = $('weeklyTimetableBoard').querySelector('[data-weekly-teacher="' + CSS.escape(periodId) + '"]');
+    const teacherUserId = select?.value || '';
+    if (!teacherUserId) { showToast('Choose a Subject Teacher before assigning this schedule.', true); return; }
+    button.disabled = true;
+    try {
+      const result = await api('/api/periods/' + encodeURIComponent(periodId) + '/assignments', {
+        method: 'POST', body: JSON.stringify({ teacherUserId })
+      });
+      await loadSchoolData();
+      setScheduleDisplay('weekly');
+      showToast('Schedule assigned to ' + (result.teacher?.displayName || 'the selected teacher') + '.');
+    } catch (error) {
+      button.disabled = false;
+      showToast(error.message, true);
+    }
+  });
+
+  $('selectAllPeriods')?.addEventListener('change', () => {
+    const visible = periods.filter(p =>
+      String(p.departmentId) === String(user.departmentId) && !p.assignedTeacherUserId && !p.assignedTeacherName
+    );
+    visible.forEach(p => $('selectAllPeriods').checked ? selectedPeriodIds.add(String(p.periodId)) : selectedPeriodIds.delete(String(p.periodId)));
+    renderPeriods(); updatePeriodBatchUi();
+  });
+  $('bulkScheduleTeacher')?.addEventListener('change', updatePeriodBatchUi);
+  $('applyBulkScheduleAssignment')?.addEventListener('click', async () => {
+    if (!selectedPeriodIds.size || !$('bulkScheduleTeacher').value) return;
+    if (!await AppDialog.confirm('Assign the selected ' + selectedPeriodIds.size + ' schedules to this teacher?', { title: 'Assign class schedules', confirmText: 'Assign schedules' })) return;
+    $('applyBulkScheduleAssignment').disabled = true; $('bulkScheduleFeedback').textContent = 'Checking department access and timetable conflicts…';
+    try {
+      const result = await api('/api/periods/bulk-assignments', { method:'POST', body:JSON.stringify({
+        periodIds:[...selectedPeriodIds], teacherUserId:$('bulkScheduleTeacher').value
+      }) });
+      selectedPeriodIds.clear(); $('bulkScheduleFeedback').textContent = result.assigned + ' schedules assigned to ' + result.teacher + '.';
+      await loadSchoolData(); showToast(result.assigned + ' schedules assigned.');
+    } catch (error) { $('bulkScheduleFeedback').textContent = error.message; showToast(error.message,true); }
+    finally { updatePeriodBatchUi(); }
+  });
+
+    function selectedScheduleTeacher() {
+    if (user.role === 'TEACHER') {
+      return {
+        userId: user.userId,
+        displayName: user.displayName || user.username,
+        departmentId: user.departmentId,
+        departmentName: user.departmentName || user.departmentCode || 'Department not assigned'
+      };
+    }
+    const selected = teachers.find(item => String(item.userId) === String($('periodTeacher')?.value));
+    if (selected) return selected;
+    if (user.role === 'DEPARTMENT_HEAD' && user.departmentId) {
+      return {
+        userId: null,
+        displayName: null,
+        departmentId: user.departmentId,
+        departmentName: user.departmentName || user.departmentCode || 'Your department'
+      };
+    }
+    return null;
+  }
+
+  async function loadScheduleSubjects(preferredSubjectId = '') {
+    const teacher = selectedScheduleTeacher();
+    const select = $('periodSubject');
+    const hint = $('periodSubjectHint');
+    if (!select) return;
+    select.disabled = true;
+    select.innerHTML = '<option value="">Loading department subjects…</option>';
+    if (!teacher?.departmentId) {
+      select.innerHTML = '<option value="">Choose a department or teacher first</option>';
+      if (hint) hint.textContent = 'Choose a Subject Teacher to load their department subjects. Department Heads can create an unassigned schedule within their own department.';
+      return;
+    }
+    try {
+      const query = user.role === 'SCHOOL_ADMIN'
+        ? '?departmentId=' + encodeURIComponent(teacher.departmentId)
+        : '';
+      const result = await api('/api/subjects' + query);
+      const subjects = result.subjects || [];
+      select.innerHTML = '<option value="">Select subject</option>' +
+        subjects.map(item => '<option value="' + esc(item.subjectId) + '">' + esc(item.subjectName) + '</option>').join('');
+      if (preferredSubjectId && subjects.some(item => String(item.subjectId) === String(preferredSubjectId))) {
+        select.value = preferredSubjectId;
+      }
+      select.disabled = subjects.length === 0;
+      if (hint) hint.textContent = subjects.length
+        ? subjects.length + ' subjects available for the selected teacher.'
+        : (user.role === 'TEACHER'
+          ? 'No subjects have been added to your department. Ask the School Administrator or Department Head to add one.'
+          : 'No subjects are listed in this department yet. Use Add subject to create the department catalogue.');
+    } catch (error) {
+      select.innerHTML = '<option value="">Could not load subjects</option>';
+      select.disabled = true;
+      if (hint) hint.textContent = error.message;
+    }
+  }
+
+  let sectionAdviserLookupRequest=0;
+  async function refreshScheduleSectionAdviser(){
+    const el=$('scheduleClassAdviserName'),hint=$('scheduleClassAdviserHint');
+    if(!el)return;
+    const token=++sectionAdviserLookupRequest;
+    const grade=$('periodGrade')?.value?.trim()||'',section=$('periodSection')?.value?.trim()||'';
+    el.dataset.adviserName='';
+    if(user?.role!=='DEPARTMENT_HEAD')return;
+    if(!grade||!section){
+      el.textContent='Choose grade and section';
+      if(hint)hint.textContent='Official adviser comes from the section assignment, not the Subject Teacher dropdown.';
+      updateScheduleReview();return;
+    }
+    el.textContent='Checking assigned Class Adviser…';
+    if(hint)hint.textContent='Reading the official school section assignment.';
+    updateScheduleReview();
+    try{
+      const res=await api('/api/scheduling/section-adviser?gradeLevel='+encodeURIComponent(grade)+'&section='+encodeURIComponent(section));
+      if(token!==sectionAdviserLookupRequest||$('scheduleForm')?.hidden||
+         $('periodGrade')?.value?.trim()!==grade||$('periodSection')?.value?.trim()!==section)return;
+      const assignment=res.assignment;
+      el.textContent=assignment?.adviserName||'No Class Adviser assigned';
+      el.dataset.adviserName=assignment?.adviserName||'';
+      if(hint)hint.textContent=assignment
+        ? 'Official adviser for '+grade+' · '+section+'. Saving this schedule will not alter the assignment.'+
+          (assignment.adviserActive===false?' Adviser account inactive.':'')
+        : 'This section has no adviser assignment. Manage it separately in Class Adviser assignments.';
+    }catch(error){
+      if(token!==sectionAdviserLookupRequest||$('scheduleForm')?.hidden)return;
+      el.textContent='Class Adviser unavailable';
+      if(hint)hint.textContent='Could not load the official section adviser: '+error.message;
+    }
+    updateScheduleReview();
+  }
+
+  async function loadScheduleSections(gradeLevel, preferredSection = '') {
+    const select = $('periodSection');
+    const hint = $('periodSectionHint');
+    if (!select) return;
+    select.disabled = true;
+    select.innerHTML = '<option value="">Loading sections…</option>';
+    void refreshScheduleSectionAdviser();
+    try {
+      const result = await api('/api/sections?gradeLevel=' + encodeURIComponent(gradeLevel));
+      const sections = result.sections || [];
+      select.innerHTML = '<option value="">Select section</option>' +
+        sections.map(item => '<option value="' + esc(item) + '">' + esc(item) + '</option>').join('');
+      if (preferredSection && sections.includes(preferredSection)) select.value = preferredSection;
+      select.disabled = sections.length === 0;
+      if (hint) hint.textContent = sections.length
+        ? sections.length + ' existing section' + (sections.length === 1 ? '' : 's') + ' found for ' + gradeLevel + '.'
+        : 'No sections found for this grade. Add or enroll learners, or create an approved section first.';
+      void refreshScheduleSectionAdviser();
+    } catch (error) {
+      select.innerHTML = '<option value="">Could not load sections</option>';
+      select.disabled = true;
+      if (hint) hint.textContent = error.message;
+      updateSectionManagementActions();
+      void refreshScheduleSectionAdviser();
+    }
+  }
+
+  $('periodTeacher')?.addEventListener('change', () => {
+    $('periodTeacherHint').textContent = 'Loading this teacher’s subject catalogue…';
+    loadScheduleSubjects();
+  });
+  $('periodGrade')?.addEventListener('change', () => loadScheduleSections($('periodGrade').value));
+  const addSectionButton = $('createScheduleSection');
+  if (addSectionButton) {
+    addSectionButton.hidden = true; // Revealed by init() after /api/auth/me succeeds.
+    addSectionButton.addEventListener('click', async () => {
+      const gradeLevel = $('periodGrade')?.value;
+      if (!gradeLevel) { showToast('Choose a grade first.', true); return; }
+      const section = await AppDialog.prompt('Enter the official section name for ' + gradeLevel + '.', '', { title: 'Add school section', confirmText: 'Create section' });
+      if (section === null || section === undefined) return;
+      if (!section.trim()) { showToast('Enter a section name.', true); return; }
+      addSectionButton.disabled = true;
+      try {
+        await api('/api/sections', {method:'POST',body:JSON.stringify({gradeLevel,section:section.trim()})});
+        await loadScheduleSections(gradeLevel,section.trim());
+        showToast('Section created successfully.');
+      } catch(error) { showToast(error.message || 'Could not create section.', true); }
+      finally { addSectionButton.disabled = false; }
+    });
+  }
+
+  function updateSectionManagementActions() {
+    const controls = $('manageScheduleSectionActions');
+    if (!controls) return;
+    controls.hidden = user?.role !== 'SCHOOL_ADMIN' || !$('periodSection')?.value;
+    controls.style.display = controls.hidden ? 'none' : 'flex';
+  }
+  $('periodSection')?.addEventListener('change',()=>{
+    updateSectionManagementActions();
+    void refreshScheduleSectionAdviser();
+  });
+  $('renameScheduleSection')?.addEventListener('click', async () => {
+    const gradeLevel = $('periodGrade')?.value;
+    const section = $('periodSection')?.value;
+    if (!gradeLevel || !section) return;
+    const newName = await AppDialog.prompt('Rename ' + gradeLevel + ' – ' + section + '. Sections with linked students or schedules cannot be renamed here.', section, {title:'Rename section',label:'New section name',confirmText:'Rename'});
+    if (newName === null || newName === undefined || !newName.trim() || newName.trim() === section) return;
+    try {
+      await api('/api/sections',{method:'PATCH',body:JSON.stringify({gradeLevel,section,newName:newName.trim()})});
+      await loadScheduleSections(gradeLevel,newName.trim());
+      showToast('Section renamed successfully.');
+    } catch(error) { showToast(error.message,true); }
+  });
+  $('archiveScheduleSection')?.addEventListener('click', async () => {
+    const gradeLevel = $('periodGrade')?.value;
+    const section = $('periodSection')?.value;
+    if (!gradeLevel || !section) return;
+    if (!await AppDialog.confirm('Remove ' + gradeLevel + ' – ' + section + ' from available sections? This is only allowed when no learners or schedules are linked. Historical records will not be deleted.',{title:'Remove section',confirmText:'Remove section',variant:'danger'})) return;
+    try {
+      await api('/api/sections',{method:'DELETE',body:JSON.stringify({gradeLevel,section})});
+      await loadScheduleSections(gradeLevel);
+      showToast('Section removed from active choices.');
+    } catch(error) { showToast(error.message,true); }
+  });
+
+  $('addScheduleSubject')?.addEventListener('click', async () => {
+    const teacher = selectedScheduleTeacher();
+    if (!teacher?.departmentId) { showToast('Choose an assigned Subject Teacher first.', true); return; }
+    const subjectName = await AppDialog.prompt('Add a subject to the selected teacher’s department. Existing subjects are reused; duplicate names are not allowed.', '', {
+      title: 'Add department subject', label: 'Subject name', placeholder: 'e.g. Mathematics', required: true, maxLength: 120
+    });
+    if (subjectName === null) return;
+    const button = $('addScheduleSubject');
+    button.disabled = true;
+    try {
+      const result = await api('/api/subjects', {
+        method: 'POST',
+        body: JSON.stringify({ departmentId: teacher.departmentId, subjectName: subjectName.trim() })
+      });
+      await loadScheduleSubjects(result.subject.subjectId);
+      showToast(result.subject.subjectName + ' added to ' + (teacher.departmentName || 'the department') + '.');
+    } catch (error) {
+      showToast(error.message, true);
+      if (/already exists/i.test(error.message)) await loadScheduleSubjects();
+    } finally {
+      button.disabled = false;
+    }
+  });
+
+  // Department Head-specific field order; all existing inputs remain the same DOM nodes,
+  // so event handlers and timetable / attendance validation continue to work.
+  function arrangeDepartmentClassForm() {
+    if(user?.role!=='DEPARTMENT_HEAD')return;
+    const details=$('scheduleForm')?.querySelector('.schedule-details-section');
+    if(!details||details.dataset.departmentLayout==='v2')return;
+    const department=$('scheduleDepartmentGroup');
+    const grade=$('periodGrade')?.closest('.field-group');
+    const section=$('periodSection')?.closest('.field-group');
+    const teacher=$('periodTeacherGroup');
+    const adviser=$('scheduleSectionAdviserGroup');
+    const subject=$('periodSubject')?.closest('.field-group');
+    const type=$('scheduleActivityTypeGroup');
+    const room=$('periodClassroom')?.closest('.field-group');
+    const selfTeacher=$('periodTeacherSelfGroup');
+    if([department,grade,section,teacher,adviser,subject,type,room].some(element=>!element))return;
+    const original=Array.from(details.children).filter(node=>node.classList.contains('form-grid'));
+    const layout=document.createElement('div');
+    layout.className='department-class-layout';
+    layout.setAttribute('aria-label','Department class details and teaching assignment');
+    const band=(className,elements)=>{
+      const row=document.createElement('div');row.className='department-class-band '+className;
+      elements.forEach(element=>{if(element)row.appendChild(element);});
+      layout.appendChild(row);
+    };
+    band('department-class-identity',[department]);
+    band('department-class-section',[grade,section]);
+    band('department-class-roles',[teacher,adviser,selfTeacher]);
+    band('department-class-curriculum',[subject,type]);
+    band('department-class-room',[room]);
+    original.forEach(node=>node.remove());
+    details.appendChild(layout);
+    details.dataset.departmentLayout='v2';
+  }
+
+  function updateSchedulingFormRole() {
+    const form = $('scheduleForm');
+    if (!form) return;
+    const departmentHead = user?.role === 'DEPARTMENT_HEAD';
+    form.dataset.scheduleRole = departmentHead ? 'DEPARTMENT_HEAD' : 'SCHOOL_ADMIN';
+    if(departmentHead)arrangeDepartmentClassForm();
+    const intro = $('scheduleFormRoleIntro');
+    if (intro) {
+      intro.hidden = departmentHead;
+      intro.textContent = 'School-wide scheduling · Choose a time block or custom time, assign a teacher, and set the meeting days, room and attendance grace period.';
+    }
+    // The shared schedule fields get a separate departmental presentation.
+    const header = form.querySelector('.schedule-drawer-heading');
+    if (header) {
+      const kicker = header.querySelector('span');
+      const heading = header.querySelector('h3');
+      const subtitle = header.querySelector('p');
+      if (kicker) kicker.textContent = departmentHead ? 'DEPARTMENT SCHEDULING' : 'CLASS SCHEDULING';
+      if (heading) heading.textContent = departmentHead ? 'Create department schedule' : 'Class schedule';
+      if (subtitle) subtitle.textContent = departmentHead
+        ? 'Assign a teacher and class, select meeting times, then confirm the days.'
+        : 'Set the teacher, class group, weekdays and time.';
+    }
+    if ($('departmentScheduleScopeNote')) $('departmentScheduleScopeNote').hidden = !departmentHead;
+    const roleHeadings = [
+      ['.schedule-details-section .form-section-heading strong', departmentHead ? '1. Class & teacher' : '2. Class details'],
+      ['.schedule-setup-section .form-section-heading strong', departmentHead ? '2. Approved timetable period' : '1. Schedule setup'],
+      ['.schedule-location-section .form-section-heading strong', departmentHead ? '3. Meeting days' : '3. Meeting days & attendance'],
+      ['.schedule-review-section .form-section-heading strong', departmentHead ? '4. Confirm class schedule' : '4. Review & save']
+    ];
+    roleHeadings.forEach(([selector,heading])=>{const el=form.querySelector(selector);if(el)el.textContent=heading;});
+    const setupHelp=form.querySelector('.schedule-setup-section .form-section-heading small');
+    if(setupHelp)setupHelp.textContent=departmentHead
+      ? 'Use school-approved periods. Start and end times cannot be changed here.'
+      : 'Select a saved timetable block or use custom times.';
+    const classHelp=form.querySelector('.schedule-details-section .form-section-heading small');
+    if(classHelp)classHelp.textContent=departmentHead
+      ? 'Choose subject, teacher, schedule type and classroom; the Class Adviser is loaded from the official section record.'
+      : 'Choose the subject teacher, subject, grade, section and classroom.';
+    const dayHelp=$('scheduleWeekdayHint');
+    if(dayHelp)dayHelp.textContent=departmentHead
+      ? 'Only school-approved operating days are available. Tap the days this class meets.'
+      : 'Choose the actual days this class meets.';
+    if($('scheduleActivityTypeGroup'))$('scheduleActivityTypeGroup').hidden=false;
+    if($('scheduleSectionAdviserGroup'))$('scheduleSectionAdviserGroup').hidden=!departmentHead;
+    if(departmentHead && $('scheduleActivityType'))$('scheduleActivityType').value='CLASS';
+    if($('scheduleDaysTools'))$('scheduleDaysTools').hidden=!departmentHead;
+    if($('scheduleReadiness'))$('scheduleReadiness').hidden=!departmentHead;
+    if($('scheduleOperatingDaysWarning'))$('scheduleOperatingDaysWarning').hidden=true;
+    if($('addScheduleSubject'))$('addScheduleSubject').hidden=!['SCHOOL_ADMIN','DEPARTMENT_HEAD'].includes(user.role);
+    if ($('scheduleDepartmentGroup')) $('scheduleDepartmentGroup').hidden = !departmentHead;
+    if ($('scheduleDepartmentName')) $('scheduleDepartmentName').textContent=user.departmentName||user.departmentCode||'Department not assigned';
+    if(departmentHead)void refreshScheduleSectionAdviser();
+    if ($('scheduleGraceGroup')) $('scheduleGraceGroup').hidden = departmentHead;
+    if ($('graceMinutes')) {
+      $('graceMinutes').disabled = departmentHead;
+      if (departmentHead) $('graceMinutes').value = '5';
+    }
+    if ($('saveScheduleButton')) $('saveScheduleButton').textContent =
+      departmentHead ? 'Save department schedule' : 'Save class schedule';
+  }
+
+  $('showScheduleForm').addEventListener('click', async () => {
+    if (!['SCHOOL_ADMIN','DEPARTMENT_HEAD'].includes(user?.role) ||
+      (user.role==='DEPARTMENT_HEAD'&&(!user.departmentId||user.departmentCode==='UNASSIGNED'))) {
+      $('scheduleForm').hidden=true;showToast('An assigned School Admin or Department Head is required.',true);return;
+    }
+    const opening = $('scheduleForm').hidden;
+    $('scheduleForm').hidden = !opening;
+    if (!opening) return;
+    updateSchedulingFormRole();
+    resetScheduleTimeSelection();
+    $('scheduleFormFeedback').textContent = '';
+    const defaultDays = schoolOperatingDays.filter(day=>day.isOperatingDay).map(day=>Number(day.weekday));
+    document.querySelectorAll('#scheduleWeekdayChoices input[type="checkbox"]').forEach(input=>{
+      const isOperatingDay=defaultDays.includes(Number(input.value));
+      input.disabled=user.role==='DEPARTMENT_HEAD'&&!isOperatingDay;
+      // Never hide all seven day choices when school-wide operating days are missing.
+      input.parentElement.hidden=user.role==='DEPARTMENT_HEAD'&&defaultDays.length>0&&!isOperatingDay;
+      input.checked=defaultDays.length?isOperatingDay:(user.role==='SCHOOL_ADMIN'&&Number(input.value)>=1&&Number(input.value)<=5);
+    });
+    if($('scheduleOperatingDaysWarning'))$('scheduleOperatingDaysWarning').hidden=
+      !(user.role==='DEPARTMENT_HEAD'&&!defaultDays.length);
+    if(user.role==='DEPARTMENT_HEAD'&&!defaultDays.length&&$('scheduleWeekdayHint'))
+      $('scheduleWeekdayHint').textContent='No approved operating days are currently available. School Admin must configure them before a class can be scheduled.';
+    if (user.role !== 'TEACHER') {
+      const eligible = teachers.filter(item => item.active && (item.teacherDesignations || []).includes('SUBJECT_TEACHER') &&
+        (user.role !== 'DEPARTMENT_HEAD' || String(item.departmentId) === String(user.departmentId)));
+      $('periodTeacher').innerHTML = '<option value="">Choose active Subject Teacher</option>' +
+        eligible.map(item => '<option value="' + esc(item.userId) + '">' + esc(item.displayName) + '</option>').join('');
+      $('periodTeacher').value = eligible.length === 1 ? String(eligible[0].userId) : '';
+    }
+    const form = $('scheduleForm');
+    form.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    $('periodTeacher')?.focus({ preventScroll: true });
+    const feedback = $('scheduleFormFeedback');
+    feedback.className = 'inline-feedback';
+    feedback.textContent = 'Loading subjects and sections…';
+    const failures = [];
+    try { await loadScheduleSubjects(); } catch (error) { failures.push('Subjects: ' + error.message); }
+    try { await loadScheduleSections($('periodGrade').value); } catch (error) { failures.push('Sections: ' + error.message); }
+    if (failures.length) {
+      feedback.className = 'inline-feedback error';
+      feedback.textContent = 'Unable to load schedule options. ' + failures.join(' | ') + '. Please retry opening the form.';
+      feedback.setAttribute('role', 'alert');
+    } else {
+      feedback.textContent = user.role==='DEPARTMENT_HEAD'
+        ? 'Select a subject, section and school-approved time block to complete this department class.'
+        : 'Choose a subject and section, then save your class schedule.';
+    }
+    updateScheduleReview();
+  });
+  $('cancelScheduleForm').addEventListener('click', () => {
+    ++sectionAdviserLookupRequest;
+    $('scheduleForm').reset();
+    resetScheduleTimeSelection();
+    $('scheduleForm').hidden = true;
+    $('scheduleFormFeedback').textContent = '';
+    if ($('periodSubject')) { $('periodSubject').innerHTML = '<option value="">Choose a teacher or your department</option>'; $('periodSubject').disabled = true; }
+    if ($('periodSection')) { $('periodSection').innerHTML = '<option value="">Select grade first</option>'; $('periodSection').disabled = true; }
+    $('periodTeacherHint').textContent = 'Department and available subjects are determined automatically from the teacher profile.';
+  });
+  $('scheduleForm').addEventListener('submit', async event => {
+    event.preventDefault();
+    const feedback = $('scheduleFormFeedback');
+    if (!['SCHOOL_ADMIN','DEPARTMENT_HEAD'].includes(user?.role)) {
+      feedback.className='inline-feedback error';feedback.textContent='Not authorized to create class schedules.';return;
+    }
+    feedback.className = 'inline-feedback';
+    feedback.textContent = 'Checking the class, teacher, and room timetable…';
+    const teacher = selectedScheduleTeacher();
+    const payload = {
+      teacherUserId: teacher?.userId || '',
+      subjectId: $('periodSubject').value,
+      periodName: $('periodName').value.trim(),
+      scheduleType: $('scheduleActivityType').value,
+      gradeLevel: $('periodGrade').value,
+      section: $('periodSection').value.trim(),
+      classroom: $('periodClassroom').value.trim() || null,
+      startTime: $('startTime').value,
+      endTime: $('endTime').value,
+      ...(user.role === 'SCHOOL_ADMIN' ? { graceMinutes: Number($('graceMinutes').value || 0) } : {}),
+      weekdays: selectedScheduleWeekdays(),
+      timetableTemplateId: $('scheduleTemplate').value || null,
+      timetableTemplatePeriodId: $('scheduleTemplatePeriod').value.split('|')[1] || null
+    };
+    if (payload.timetableTemplateId) {
+      const chosenBlock = $('scheduleTemplatePeriod')?.value || '';
+      if (!chosenBlock) {
+        feedback.className = 'inline-feedback error';
+        feedback.textContent = 'Choose a time block from the selected timetable template.';
+        return;
+      }
+      const template = timetableTemplates.find(t => String(t.templateId) === payload.timetableTemplateId);
+      const period = template?.periods?.find(p => String(p.templatePeriodId) === chosenBlock.split('|')[1]);
+      if (!period || payload.startTime !== period.startTime || payload.endTime !== period.endTime) {
+        feedback.className = 'inline-feedback error';
+        feedback.textContent = 'The selected time block has changed. Choose it again to use the saved timetable times.';
+        return;
+      }
+    }
+    // Recheck the chosen block against the server-owned timetable before saving.
+    if (payload.timetableTemplateId) {
+      try {
+        const refreshed = await api('/api/scheduling-config/templates');
+        const activeTemplate = (refreshed.templates || []).find(item => item.active && String(item.templateId) === String(payload.timetableTemplateId));
+        const blockId = ($('scheduleTemplatePeriod')?.value || '').split('|')[1];
+        const block = activeTemplate?.periods?.find(item => String(item.templatePeriodId) === String(blockId));
+        if (!block || ['BREAK','LUNCH'].includes(block.blockType) ||
+            block.startTime !== payload.startTime || block.endTime !== payload.endTime) {
+          feedback.className = 'inline-feedback error';
+          feedback.textContent = 'The saved timetable block was modified or is unavailable. Refresh the timetable selection and try again.';
+          return;
+        }
+      } catch (error) {
+        feedback.className = 'inline-feedback error';
+        feedback.textContent = 'Could not verify the latest timetable blocks. ' + error.message;
+        return;
+      }
+    }
+    if (user.role==='DEPARTMENT_HEAD'&&!payload.timetableTemplateId) {
+      feedback.className='inline-feedback error';feedback.textContent='Choose a published timetable and time block; custom times require School Admin.';return;
+    }
+    if (!payload.weekdays.length) {
+      feedback.className = 'inline-feedback error';
+      feedback.textContent = 'Select at least one class day.';
+      return;
+    }
+    try {
+      const saved = await api('/api/periods', { method: 'POST', body: JSON.stringify(payload) });
+      $('scheduleForm').reset();
+      $('scheduleForm').hidden = true;
+      if ($('periodSubject')) { $('periodSubject').innerHTML = '<option value="">Choose a teacher or your department</option>'; $('periodSubject').disabled = true; }
+      if ($('periodSection')) { $('periodSection').innerHTML = '<option value="">Select grade first</option>'; $('periodSection').disabled = true; }
+      await loadSchoolData();
+      showToast(saved.teacher ? 'Schedule saved and assigned to ' + saved.teacher + '.' : 'Class schedule saved. Assign a Subject Teacher when ready.');
+    } catch (error) {
+      feedback.className = 'inline-feedback error';
+      feedback.textContent = error.message;
+    }
+  });
+
+  $('teacherGateDate')?.addEventListener('change', async () => {
+    try { await loadGateMonitoring(); } catch (error) { showToast(error.message, true); }
+  });
+
+  if ($('newAccountRole')) {
+    const refreshDesignationFields = () => {
+      $('teacherDesignationFields').hidden = $('newAccountRole').value !== 'TEACHER';
+    };
+    $('newAccountRole').addEventListener('change', refreshDesignationFields);
+    refreshDesignationFields();
+  }
+
+  if ($('adviserAssignmentForm')) {
+    $('adviserAssignmentForm').addEventListener('submit', async event => {
+      event.preventDefault();
+      const feedback = $('adviserAssignmentFeedback');
+      feedback.className = 'inline-feedback';
+      feedback.textContent = 'Saving assignment…';
+      const payload = { adviserUserId: $('adviserTeacherSelect').value, gradeLevel: $('adviserGradeInput').value, section: $('adviserSectionInput').value.trim() };
+      if(!adviserEligibilityLoaded || !adviserEligibleSections.some(item=>
+        String(item.gradeLevel)===payload.gradeLevel&&String(item.section)===payload.section)){
+        feedback.className='inline-feedback error';
+        feedback.textContent='Choose an eligible grade and section. Reload the list if it is empty.';
+        return;
+      }
+      try {
+        await api('/api/class-adviser-assignments', { method: 'POST', body: JSON.stringify(payload) });
+        $('adviserAssignmentForm').reset();
+        $('adviserAssignmentForm').hidden = true;
+        if ($('addAdviserAssignmentButton')) $('addAdviserAssignmentButton').hidden = false;
+        await loadSchoolData();
+        feedback.textContent = 'Class Adviser assignment saved.';
+      } catch (error) { feedback.className = 'inline-feedback error'; feedback.textContent = error.message; }
+    });
+    document.addEventListener('click', async event => {
+
+      const editScheduleButton = event.target.closest('[data-edit-period]');
+      if (editScheduleButton) {
+        const period = periods.find(item => String(item.periodId) === String(editScheduleButton.dataset.editPeriod));
+        if (!period || !(user.role==='SCHOOL_ADMIN' ||
+          (user.role==='DEPARTMENT_HEAD'&&user.departmentCode!=='UNASSIGNED'&&String(period.scheduleDepartmentId)===String(user.departmentId)))) return;
+        const previous = document.getElementById('editScheduleDialog');
+        if (previous) previous.remove();
+        const dialog = document.createElement('dialog');
+        dialog.id = 'editScheduleDialog';
+        dialog.className = 'attendigo-schedule-edit-dialog';
+        const days = [['Sun',0],['Mon',1],['Tue',2],['Wed',3],['Thu',4],['Fri',5],['Sat',6]];
+        const selectedDays = (Array.isArray(period.weekdays) ? period.weekdays : []).map(Number);
+        const normalizedTime = value => String(value || '').slice(0,5);
+        const departmentEdit=user.role==='DEPARTMENT_HEAD';
+        const activeTemplates=timetableTemplates.filter(t=>t.active);
+        const savedTemplate=activeTemplates.find(t=>String(t.templateId)===String(period.timetableTemplateId)&&
+          t.periods?.some(p=>!['BREAK','LUNCH'].includes(p.blockType)&&p.startTime===normalizedTime(period.startTime)&&p.endTime===normalizedTime(period.endTime)));
+        const approvedControls=departmentEdit ? `<div class="schedule-edit-approved">
+          <label>School timetable<select id="editApprovedTemplate"><option value="">Keep existing times</option>${activeTemplates.map(t=>'<option value="'+esc(t.templateId)+'" '+(savedTemplate&&String(savedTemplate.templateId)===String(t.templateId)?'selected':'')+'>'+esc(t.name)+'</option>').join('')}</select></label>
+          <label>Approved time block<select id="editApprovedBlock" disabled><option value="">Choose a timetable</option></select></label>
+        </div>` : '';
+        dialog.innerHTML = `<form method="dialog" id="editScheduleForm" class="schedule-edit-inner">
+          <div class="schedule-edit-heading"><div><small>CLASS SCHEDULE</small><h2>Edit schedule</h2><p>${esc(period.gradeLevel)} · ${esc(period.section)} · ${esc(period.subjectName || '')}</p></div><button type="button" class="outline-button" id="closeEditSchedule" aria-label="Close edit dialog">✕</button></div>
+          <div class="schedule-edit-class"><strong>${esc(period.departmentName||'Department')} · ${esc(period.gradeLevel)} · ${esc(period.section)}</strong><small>${esc(period.subjectName||'Subject')} · ${esc(period.assignedTeacherName||'Teacher unassigned')}</small></div>
+          <label>Schedule label<input name="periodName" maxlength="120" required value="${esc(period.periodName)}"></label>
+          ${approvedControls}
+          <div class="schedule-edit-times"><label>Start time<input name="startTime" type="time" required ${departmentEdit?'readonly':''} value="${esc(normalizedTime(period.startTime))}"></label><label>End time<input name="endTime" type="time" required ${departmentEdit?'readonly':''} value="${esc(normalizedTime(period.endTime))}"></label></div>
+          <label>Classroom / room<input name="classroom" maxlength="100" value="${esc(period.classroom || '')}" placeholder="Optional"></label>
+          <fieldset><legend>Scheduled weekdays</legend><div class="schedule-edit-days">${days.map(([label,day])=>`<label><input type="checkbox" name="weekdays" value="${day}" ${selectedDays.includes(day)?'checked':''} ${departmentEdit&&!schoolOperatingDays.some(x=>x.isOperatingDay&&Number(x.weekday)===day)?'disabled':''}>${label}</label>`).join('')}</div></fieldset>
+          <p class="schedule-edit-note">${departmentEdit?'Change times through published school blocks; teacher assignments are managed separately. Attendance records are preserved.':'Conflicts are checked against the existing timetable. Attendance records are preserved.'}</p>
+          <div id="editScheduleError" role="alert" class="inline-feedback"></div>
+          <div class="schedule-edit-actions"><button type="button" class="outline-button" id="cancelEditSchedule">Cancel</button><button type="submit" class="primary-button" id="submitEditSchedule">Save changes</button></div>
+        </form>`;
+        document.body.appendChild(dialog);
+        const close = () => {dialog.close();dialog.remove();};
+        if (departmentEdit) {
+          const templateSelect=dialog.querySelector('#editApprovedTemplate');
+          const blockSelect=dialog.querySelector('#editApprovedBlock');
+          const originalStart=normalizedTime(period.startTime),originalEnd=normalizedTime(period.endTime);
+          const setTimes=(start,end)=>{
+            dialog.querySelector('[name="startTime"]').value=start;
+            dialog.querySelector('[name="endTime"]').value=end;
+          };
+          const loadBlocks=(initial=false)=>{
+            const template=activeTemplates.find(t=>String(t.templateId)===templateSelect.value);
+            const matching=template?.periods?.find(p=>!['BREAK','LUNCH'].includes(p.blockType)&&p.startTime===originalStart&&p.endTime===originalEnd);
+            blockSelect.innerHTML='<option value="">'+(template?'Select approved block':'Keep current time')+'</option>'+
+              (template?.periods||[]).filter(p=>!['BREAK','LUNCH'].includes(p.blockType)).map(p=>
+                '<option value="'+esc(p.templatePeriodId)+'">'+esc(p.label+' · '+p.startTime+'–'+p.endTime)+'</option>').join('');
+            blockSelect.disabled=!template;
+            blockSelect.value=initial&&matching?String(matching.templatePeriodId):'';
+            setTimes(originalStart,originalEnd);
+          };
+          templateSelect.addEventListener('change',()=>loadBlocks(false));
+          blockSelect.addEventListener('change',()=>{
+            const p=activeTemplates.find(t=>String(t.templateId)===templateSelect.value)?.periods?.find(p=>String(p.templatePeriodId)===blockSelect.value);
+            setTimes(p?.startTime||originalStart,p?.endTime||originalEnd);
+          });
+          loadBlocks(true);
+        }
+        dialog.querySelector('#closeEditSchedule').addEventListener('click',close);
+        dialog.querySelector('#cancelEditSchedule').addEventListener('click',close);
+        dialog.addEventListener('cancel', e => {e.preventDefault();close();});
+        dialog.querySelector('form').addEventListener('submit', async e => {
+          e.preventDefault();
+          const form = e.currentTarget;
+          const payload = {
+            periodName:form.elements.periodName.value.trim(),
+            startTime:form.elements.startTime.value,
+            endTime:form.elements.endTime.value,
+            classroom:form.elements.classroom.value.trim(),
+            weekdays:[...form.querySelectorAll('input[name="weekdays"]:checked')].map(input=>Number(input.value))
+          };
+          const error = dialog.querySelector('#editScheduleError');
+          if (departmentEdit) {
+            const template=dialog.querySelector('#editApprovedTemplate'),block=dialog.querySelector('#editApprovedBlock');
+            if (template.value&&!block.value) {error.textContent='Choose an approved time block or Keep existing times.';return;}
+            if (template.value) {payload.timetableTemplateId=template.value;payload.timetableTemplatePeriodId=block.value;}
+            const allowed=new Set(schoolOperatingDays.filter(d=>d.isOperatingDay).map(d=>Number(d.weekday)));
+            if (payload.weekdays.some(d=>!allowed.has(d))) {error.textContent='Only School Admin operating days are allowed.';return;}
+          }
+          if (!payload.weekdays.length) {error.textContent='Choose at least one weekday.';return;}
+          const submit = dialog.querySelector('#submitEditSchedule');
+          submit.disabled=true;error.textContent='';
+          try {
+            await api('/api/periods/'+encodeURIComponent(period.periodId),{method:'PATCH',body:JSON.stringify(payload)});
+            close();await loadSchoolData();showToast('Class schedule updated. Attendance history preserved.');
+          } catch(err) {error.textContent=err.message;submit.disabled=false;}
+        });
+        dialog.showModal();
+        return;
+      }
+      const deleteScheduleButton = event.target.closest('[data-delete-period]');
+      if (deleteScheduleButton) {
+        const period = periods.find(item => String(item.periodId) === String(deleteScheduleButton.dataset.deletePeriod));
+        if (!period) return;
+        if (!await AppDialog.confirm('Deactivate ' + period.periodName + ' for ' + period.gradeLevel + ' · ' + period.section + '? Attendance history will be preserved.', { title: 'Delete class schedule', confirmText: 'Continue to verification', variant: 'danger' })) return;
+        const password = await AppDialog.prompt('Enter your account password to deactivate this schedule.', '', { title: 'Verify schedule deactivation', label: 'Account password', inputType: 'password', required: true, confirmText: 'Verify and deactivate' });
+        if (password === null || !password) return;
+        deleteScheduleButton.disabled = true;
+        try {
+          await api('/api/periods/' + encodeURIComponent(period.periodId), { method: 'DELETE', body: JSON.stringify({ password }) });
+          await loadSchoolData();
+          showToast('Schedule deleted. Attendance history was preserved.');
+        } catch (error) { showToast(error.message, true); deleteScheduleButton.disabled = false; }
+        return;
+      }
+      const button = event.target.closest('[data-edit-teacher-permission]');
+      if (!button) return;
+      const teacher = teachers.find(item => String(item.userId) === String(button.dataset.editTeacherPermission));
+      if (!teacher) return;
+      const currentValues = teacher.teacherDesignations || [];
+      const current = currentValues.includes('SUBJECT_TEACHER') && currentValues.includes('CLASS_ADVISER')
+        ? 'BOTH' : currentValues[0] || '';
+      const answer = await AppDialog.prompt('Choose the teaching designation for this teacher. Existing subject schedules and advisory assignments are preserved. A designation cannot be removed while linked assignments still depend on it.', current, {
+        title: 'Edit teacher designation',
+        label: 'Teacher designation',
+        helpText: 'Subject Teacher: handles assigned subject-class attendance. Class Adviser: handles an assigned advisory section and official SF2. Both: enables both responsibilities.',
+        placeholder: 'Choose permissions',
+        required: true,
+        selectOptions: [
+          { value: 'SUBJECT_TEACHER', label: 'Subject Teacher' },
+          { value: 'CLASS_ADVISER', label: 'Class Adviser' },
+          { value: 'BOTH', label: 'Both permissions' }
+        ]
+      });
+      if (answer === null) return;
+      const designations = answer === 'BOTH' ? ['SUBJECT_TEACHER','CLASS_ADVISER'] : [answer];
+      button.disabled = true;
+      try {
+        await api('/api/teachers/' + encodeURIComponent(teacher.userId) + '/designations', {
+          method: 'PATCH', body: JSON.stringify({ teacherDesignations: designations })
+        });
+        await loadSchoolData();
+        showToast('Teacher designation updated. Existing schedules and advisory assignments were preserved.');
+      } catch (error) {
+        showToast(error.message, true);
+        button.disabled = false;
+      }
+    });
+
+    $('adviserAssignmentRows').addEventListener('click', async event => {
+      const editButton = event.target.closest('[data-edit-adviser]');
+      if (editButton) {
+        const assignment = adviserAssignments.find(item => String(item.assignmentId) === String(editButton.dataset.editAdviser));
+        if (!assignment) return;
+        const activeAdvisers = teachers.filter(item =>
+          item.active &&
+          Array.isArray(item.teacherDesignations) &&
+          item.teacherDesignations.includes('CLASS_ADVISER') &&
+          (user.role !== 'DEPARTMENT_HEAD' || String(item.departmentId) === String(user.departmentId))
+        );
+        const values = await AppDialog.form(
+          'Update the assigned teacher or class section. The selected Class Adviser must belong to your department.',
+          [
+            { name: 'adviserUserId', label: 'Class Adviser', required: true, defaultValue: String(assignment.adviserUserId),
+              selectOptions: activeAdvisers.map(item => ({ value: String(item.userId), label: item.displayName })) },
+            { name: 'gradeLevel', label: 'Grade level', required: true, defaultValue: assignment.gradeLevel, maxLength: 40,
+              validate: value => String(value).trim().length <= 40 || 'Grade level must be 40 characters or fewer.' },
+            { name: 'section', label: 'Section', required: true, defaultValue: assignment.section, maxLength: 100,
+              validate: value => String(value).trim().length <= 100 || 'Section must be 100 characters or fewer.' }
+          ],
+          { title: 'Edit advisory section', confirmText: 'Save assignment' }
+        );
+        if (values === null) return;
+        editButton.disabled = true;
+        try {
+          await api('/api/class-adviser-assignments/' + encodeURIComponent(assignment.assignmentId), {
+            method: 'PATCH',
+            body: JSON.stringify({ adviserUserId: values.adviserUserId, gradeLevel: values.gradeLevel.trim(), section: values.section.trim() })
+          });
+          await loadSchoolData();
+          showToast('Class Adviser assignment updated.');
+        } catch (error) {
+          showToast(error.message, true);
+          editButton.disabled = false;
+        }
+        return;
+      }
+      const button = event.target.closest('[data-remove-adviser]');
+      if (!button) return;
+      if (!await AppDialog.confirm('Remove this Class Adviser assignment? The teacher account and attendance history will remain unchanged.', {
+        title: 'Remove Class Adviser assignment', confirmText: 'Remove assignment', variant: 'danger'
+      })) return;
+      const password = await AppDialog.prompt('Enter your account password to remove this Class Adviser assignment.', '', { title: 'Verify adviser removal', label: 'Account password', inputType: 'password', required: true, confirmText: 'Verify and remove' });
+      if (password === null || !password) return;
+      button.disabled = true;
+      try {
+        await api('/api/class-adviser-assignments/' + encodeURIComponent(button.dataset.removeAdviser), { method: 'DELETE', body: JSON.stringify({ password }) });
+        await loadSchoolData();
+        showToast('Class Adviser assignment removed.');
+      } catch (error) {
+        showToast(error.message, true);
+        button.disabled = false;
+      }
+    });
+  }
+
+  if ($('showTeacherForm')) {
+    const updateDesignationVisibility = () => {
+      if (user?.role === 'DEPARTMENT_HEAD') {
+        $('newAccountRole').value = 'TEACHER';
+        $('newAccountRole').disabled = true;
+        $('newAccountRole').closest('.field-group').hidden = true;
+        $('newTeacherDepartment').value = user.departmentId || '';
+      } else {
+        $('newAccountRole').disabled = false;
+        $('newAccountRole').closest('.field-group').hidden = false;
+      }
+      const selectedRole = $('newAccountRole')?.value || '';
+      const isTeacherAccount = selectedRole === 'TEACHER';
+      const needsDepartment = ['TEACHER', 'DEPARTMENT_HEAD'].includes(selectedRole);
+      $('teacherDesignationFields').hidden = !isTeacherAccount || user?.role === 'SCHOOL_ADMIN';
+      $('newTeacherDepartmentGroup').hidden = !needsDepartment;
+      $('newTeacherPositionGroup').hidden = !isTeacherAccount;
+      $('newTeacherDepartment').disabled = user?.role === 'DEPARTMENT_HEAD';
+      $('newTeacherDepartment').required = needsDepartment && user?.role !== 'DEPARTMENT_HEAD';
+      if (!isTeacherAccount) {
+        $('designationSubjectTeacher').checked = false;
+        $('designationClassAdviser').checked = false;
+      } else if (!$('designationSubjectTeacher').checked && !$('designationClassAdviser').checked) {
+        $('designationSubjectTeacher').checked = true;
+      }
+    };
+    $('newAccountRole').addEventListener('change', updateDesignationVisibility);
+    updateDesignationVisibility();
+    $('showTeacherForm').addEventListener('click', () => {
+      if ($('teacherForm').hidden) openTeacherCreation();
+      else $('teacherForm').hidden = true;
+    });
+    $('addSchoolStaffAccount')?.addEventListener('click', () => {
+      $('teacherForm').hidden = false;
+      $('newAccountRole').value = 'DEPARTMENT_HEAD';
+      $('newAccountRole').dispatchEvent(new Event('change', { bubbles:true }));
+      $('teacherFormFeedback').className = 'inline-feedback';
+      $('teacherFormFeedback').textContent = 'Creating a Department Head account. You can select Gate Keeper in the Account role field instead.';
+      $('teacherForm').scrollIntoView({ behavior:'smooth', block:'center' });
+      $('newTeacherName').focus({ preventScroll:true });
+    });
+    $('createDemoStudentLogin')?.addEventListener('click', async () => {
+      const button = $('createDemoStudentLogin');
+      const feedback = $('demoStudentLoginFeedback');
+      button.disabled = true;
+      feedback.textContent = 'Creating a secure, one-time demo student password…';
+      feedback.className = 'inline-feedback';
+      try {
+        const created = await api('/api/admin/demo-student-login', { method:'POST', body:'{}' });
+        $('demoStudentLoginUsername').textContent = created.username;
+        $('demoStudentLoginPassword').textContent = created.temporaryPassword;
+        $('demoStudentLoginCredentials').hidden = false;
+        button.hidden = true;
+        feedback.textContent = 'Demo student login created. Copy the temporary password before leaving this page.';
+      } catch (error) {
+        feedback.className = 'inline-feedback error';
+        feedback.textContent = error.message;
+        button.disabled = false;
+      }
+    });
+    $('copyDemoStudentLogin')?.addEventListener('click', async () => {
+      const username = $('demoStudentLoginUsername')?.textContent || '';
+      const password = $('demoStudentLoginPassword')?.textContent || '';
+      if (!username || !password) return;
+      try {
+        await navigator.clipboard.writeText('School: DEMO001\nStudent username: ' + username + '\nTemporary password: ' + password);
+        $('demoStudentLoginFeedback').textContent = 'Credentials copied. Share them only with the intended demo tester.';
+      } catch {
+        $('demoStudentLoginFeedback').textContent = 'Your browser blocked copying. Select and copy the displayed username and password.';
+      }
+    });
+    $('cancelTeacherForm').addEventListener('click', () => {
+      $('teacherForm').reset();
+      updateDesignationVisibility();
+      $('teacherForm').hidden = true;
+      $('teacherFormFeedback').textContent = '';
+      $('teacherFormFeedback').className = 'inline-feedback';
+    });
+    $('teacherForm').addEventListener('submit', async event => {
+      event.preventDefault();
+      const feedback = $('teacherFormFeedback');
+      feedback.className = 'inline-feedback';
+      const username = $('newTeacherUsername').value.trim();
+      const displayName = $('newTeacherName').value.trim();
+      const position = $('newAccountRole').value === 'TEACHER' ? $('newTeacherPosition').value.trim() : null;
+      const password = $('newTeacherPassword').value;
+      const confirm = $('confirmTeacherPassword').value;
+      if (password !== confirm) {
+        feedback.className = 'inline-feedback error';
+        feedback.textContent = 'Passwords do not match.';
+        return;
+      }
+      if (password.length < 12) {
+        feedback.className = 'inline-feedback error';
+        feedback.textContent = 'Password must be at least 12 characters.';
+        return;
+      }
+      $('saveTeacherButton').disabled = true;
+      feedback.textContent = 'Creating account…';
+      try {
+        const role = $('newAccountRole').value;
+        const teacherDesignations = role === 'TEACHER'
+          ? (user?.role === 'SCHOOL_ADMIN'
+              ? ['SUBJECT_TEACHER']
+              : [
+                  $('designationSubjectTeacher').checked ? 'SUBJECT_TEACHER' : null,
+                  $('designationClassAdviser').checked ? 'CLASS_ADVISER' : null
+                ].filter(Boolean))
+          : [];
+        if (role === 'TEACHER' && !teacherDesignations.length) throw new Error('Select Subject Teacher, Class Adviser, or both.');
+        const departmentId = $('newTeacherDepartment').value || null;
+        if (['TEACHER', 'DEPARTMENT_HEAD'].includes(role) && !departmentId) throw new Error('Select a department for this account.');
+        await api('/api/school-users', {
+          method: 'POST',
+          body: JSON.stringify({ username, displayName, password, role, teacherDesignations, departmentId, position })
+        });
+        $('teacherForm').reset();
+        updateDesignationVisibility();
+        $('teacherForm').hidden = true;
+        await loadSchoolData();
+        showToast(`${role.replaceAll('_', ' ')} account created. Save the username and give the initial password securely.`);
+      } catch (error) {
+        feedback.className = 'inline-feedback error';
+        feedback.textContent = error.message;
+      } finally {
+        $('saveTeacherButton').disabled = false;
+      }
+    });
+
+        $('teacherRows').addEventListener('click', async event => {
+      const selectedMenuAction = event.target.closest('.teacher-action-item');
+      if (selectedMenuAction) selectedMenuAction.closest('details.teacher-action-menu')?.removeAttribute('open');
+      const manageAssignmentsButton = event.target.closest('[data-manage-permanent]');
+      const leaveButton = event.target.closest('[data-place-leave]');
+      const profileButton = event.target.closest('[data-edit-teacher-profile]');
+      const teacherQrButton = event.target.closest('[data-teacher-qr]');
+      const substituteButton = event.target.closest('[data-assign-substitute]');
+      const cancelSubstitutionButton = event.target.closest('[data-cancel-substitution]');
+      const returnButton = event.target.closest('[data-return-teacher]');
+      const deactivateButton = event.target.closest('[data-deactivate-teacher]');
+
+      if (profileButton) {
+        const teacher = teachers.find(item => String(item.userId) === String(profileButton.dataset.editTeacherProfile));
+        if (!teacher) return;
+        const values = await AppDialog.form('Update the teacher name and personnel position. Access permissions, QR identity and assigned schedules are preserved.',
+          [
+            { name: 'displayName', label: 'Display name', defaultValue: teacher.displayName || '', required: true, maxLength: 160 },
+            { name: 'position', label: 'Position / rank (e.g., Teacher I, Master Teacher II)', defaultValue: teacher.position || '', maxLength: 100 }
+          ],
+          { title: 'Edit teacher account', confirmText: 'Save account' });
+        if (values === null) return;
+        profileButton.disabled = true;
+        try {
+          await api('/api/teachers/' + encodeURIComponent(teacher.userId), { method: 'PATCH', body: JSON.stringify({ displayName: values.displayName.trim(), position: (values.position || '').trim() }) });
+          await loadSchoolData();
+          showToast('Teacher account updated. Existing teacher QR identity and schedules were preserved.');
+        } catch (error) { showToast(error.message, true); profileButton.disabled = false; }
+        return;
+      }
+
+      if (teacherQrButton) {
+        try { await printTeacherGateQr(teacherQrButton.dataset.teacherQr); }
+        catch (error) { showToast(error.message, true); }
+        return;
+      }
+
+      if (manageAssignmentsButton) {
+        const teacher = teachers.find(item => String(item.userId) === String(manageAssignmentsButton.dataset.managePermanent));
+        if (teacher) openPermanentAssignmentDialog(teacher, manageAssignmentsButton);
+      } else if (substituteButton) {
+        const teacher = teachers.find(item => String(item.userId) === String(substituteButton.dataset.assignSubstitute));
+        if (teacher) openSubstituteDialog(teacher, substituteButton);
+      } else if (cancelSubstitutionButton) {
+        const substitutionId = cancelSubstitutionButton.dataset.cancelSubstitution;
+        if (!await AppDialog.confirm('Cancel this temporary substitute assignment? The original teacher’s permanent schedule will remain unchanged.', { title: 'Cancel substitute assignment', confirmText: 'Cancel assignment', variant: 'danger' })) return;
+        cancelSubstitutionButton.disabled = true;
+        try {
+          await api(`/api/teacher-substitutions/${encodeURIComponent(substitutionId)}`, { method: 'DELETE' });
+          await loadSchoolData();
+          showToast('Temporary substitute assignment cancelled.');
+        } catch (error) {
+          showToast(error.message, true);
+          cancelSubstitutionButton.disabled = false;
+        }
+      } else if (leaveButton) {
+        const teacherId = leaveButton.dataset.placeLeave;
+        const teacher = teachers.find(item => String(item.userId) === String(teacherId));
+        openTeacherLeaveDialog(teacherId, teacher?.displayName || 'Teacher', leaveButton);
+      } else if (returnButton) {
+        const teacherId = returnButton.dataset.returnTeacher;
+        if (!await AppDialog.confirm('Mark this teacher as returned and restore login access? Previous class assignments will be preserved.', { title: 'Return teacher to active status', confirmText: 'Restore access' })) return;
+        returnButton.disabled = true;
+        try {
+          await api(`/api/teachers/${encodeURIComponent(teacherId)}/return`, { method: 'POST' });
+          await loadSchoolData();
+          showToast('Teacher account reactivated. Previous class assignments are available again.');
+        } catch (error) {
+          showToast(error.message, true);
+          returnButton.disabled = false;
+        }
+      } else if (deactivateButton) {
+        const teacherId = deactivateButton.dataset.deactivateTeacher;
+        if (!await AppDialog.confirm('Deactivate this teacher account? Login will be disabled, but historical attendance and schedule assignments will be preserved.', { title: 'Deactivate teacher account', confirmText: 'Deactivate account', variant: 'danger' })) return;
+        deactivateButton.disabled = true;
+        try {
+          await api(`/api/teachers/${encodeURIComponent(teacherId)}`, { method: 'PATCH', body: JSON.stringify({ active: false }) });
+          await loadSchoolData();
+          showToast('Teacher account deactivated.');
+        } catch (error) {
+          showToast(error.message, true);
+          deactivateButton.disabled = false;
+        }
+      }
+    });
+  }
+
+  if ($('studentAccountForm')) {
+    const closeStudentAccount = () => { $('studentAccountModal').hidden = true; $('studentAccountForm').reset(); };
+    $('closeStudentAccount').addEventListener('click', closeStudentAccount);
+    $('studentAccountModal').addEventListener('click', event => { if (event.target === $('studentAccountModal')) closeStudentAccount(); });
+    $('studentAccountForm').addEventListener('submit', async event => {
+      event.preventDefault();
+      const feedback = $('studentAccountFeedback');
+      const studentId = $('studentAccountStudentId').value;
+      const username = $('studentAccountUsername').value.trim();
+      const password = $('studentAccountPassword').value;
+      const confirmation = $('studentAccountConfirm').value;
+      feedback.className = 'inline-feedback';
+      if (password.length < 12) { feedback.className = 'inline-feedback error'; feedback.textContent = 'Use at least 12 characters for the password.'; return; }
+      if (password !== confirmation) { feedback.className = 'inline-feedback error'; feedback.textContent = 'The passwords do not match.'; return; }
+      $('saveStudentAccount').disabled = true;
+      feedback.textContent = studentAccountMode === 'CREATE' ? 'Creating student login…' : 'Resetting student password…';
+      try {
+        if (studentAccountMode === 'CREATE') {
+          await api(`/api/students/${encodeURIComponent(studentId)}/account`, { method: 'POST', body: JSON.stringify({ username, password }) });
+          showToast('Student portal account created. Give the initial credentials to the student securely.');
+        } else {
+          await api(`/api/students/${encodeURIComponent(studentId)}/account/password`, { method: 'PUT', body: JSON.stringify({ password }) });
+          showToast('Student password reset. The student must change it after sign-in.');
+        }
+        closeStudentAccount();
+        await loadSchoolData();
+      } catch (error) {
+        feedback.className = 'inline-feedback error';
+        feedback.textContent = error.message;
+      } finally { $('saveStudentAccount').disabled = false; }
+    });
+  }
+
+  $('departmentForm')?.addEventListener('submit', async event => {
+    event.preventDefault();
+    const feedback = $('departmentFormFeedback');
+    feedback.className = 'inline-feedback';
+    feedback.textContent = 'Saving department…';
+    const payload = {
+      code: $('departmentCode').value.trim(),
+      name: $('departmentName').value.trim(),
+      description: $('departmentDescription').value.trim() || null
+    };
+    try {
+      await api('/api/departments', { method: 'POST', body: JSON.stringify(payload) });
+      $('departmentForm').reset();
+      await loadSchoolData();
+      feedback.textContent = 'Department created. You can now assign teachers and schedules.';
+      showToast('Department added.');
+    } catch (error) {
+      feedback.className = 'inline-feedback error';
+      feedback.textContent = error.message;
+    }
+  });
+
+  $('departmentList')?.addEventListener('click', async event => {
+    const button = event.target.closest('[data-edit-department]');
+    if (!button) return;
+    const department = departments.find(item => String(item.departmentId) === String(button.dataset.editDepartment));
+    if (!department || department.code === 'UNASSIGNED') return;
+    const values = await AppDialog.form(
+      'Update the department code, name, description, and status. Department codes must remain unique. A department with active staff or schedules cannot be deactivated.',
+      [
+        { name: 'code', label: 'Department code', defaultValue: department.code, required: true, maxLength: 20,
+          helpText: '2–20 characters: letters, numbers, underscores, or hyphens.',
+          validate: value => /^[A-Za-z0-9_-]{2,20}$/.test(String(value).trim()) || 'Use 2–20 letters, numbers, underscores, or hyphens.' },
+        { name: 'name', label: 'Department name', defaultValue: department.name, required: true, maxLength: 100 },
+        { name: 'description', label: 'Description', inputType: 'textarea', rows: 3, defaultValue: department.description || '', maxLength: 500,
+          helpText: 'Optional. Up to 500 characters.' },
+        { name: 'active', label: 'Status', selectOptions: [{ value: 'true', label: 'Active' }, { value: 'false', label: 'Inactive' }],
+          defaultValue: department.active ? 'true' : 'false', required: true }
+      ],
+      { title: 'Edit department', confirmText: 'Save department' }
+    );
+    if (values === null) return;
+    button.disabled = true;
+    try {
+      await api('/api/departments/' + encodeURIComponent(department.departmentId), {
+        method: 'PATCH',
+        body: JSON.stringify({ code: values.code.trim(), name: values.name.trim(), description: values.description.trim(), active: values.active === 'true' })
+      });
+      await loadSchoolData();
+      showToast('Department details updated.');
+    } catch (error) {
+      showToast(error.message, true);
+      button.disabled = false;
+    }
+  });
+
+  $('teacherRows')?.addEventListener('change', async event => {
+    const select = event.target.closest('[data-change-teacher-department]');
+    if (!select) return;
+    const teacherId = select.dataset.changeTeacherDepartment;
+    const previousDepartment = teachers.find(item => String(item.userId) === String(teacherId))?.departmentId;
+    select.disabled = true;
+    try {
+      await api(`/api/school-users/${encodeURIComponent(teacherId)}/department`, {
+        method: 'PATCH', body: JSON.stringify({ departmentId: select.value })
+      });
+      await loadSchoolData();
+      showToast('Teacher department updated.');
+    } catch (error) {
+      showToast(error.message, true);
+      select.value = previousDepartment || '';
+      select.disabled = false;
+    }
+  });
+
+  $('staffUserRows')?.addEventListener('click', async event => {
+    const button = event.target.closest('[data-edit-staff-profile]');
+    if (!button) return;
+    const account = schoolUsers.find(item => String(item.userId) === String(button.dataset.editStaffProfile));
+    if (!account) return;
+    const values = await AppDialog.form(
+      'Update the display name or disable/restore sign-in access. Account role and department remain separately controlled.',
+      [
+        { name: 'displayName', label: 'Display name', defaultValue: account.displayName || '', required: true, maxLength: 160 },
+        { name: 'active', label: 'Account access', defaultValue: account.active ? 'true' : 'false', required: true,
+          selectOptions: [{ value: 'true', label: 'Active — sign-in allowed' }, { value: 'false', label: 'Inactive — sign-in disabled' }] }
+      ],
+      { title: 'Edit staff account', confirmText: 'Save account' }
+    );
+    if (values === null) return;
+    button.disabled = true;
+    try {
+      await api('/api/school-users/' + encodeURIComponent(account.userId) + '/profile', { method: 'PATCH', body: JSON.stringify({ displayName: values.displayName.trim(), active: values.active === 'true' }) });
+      await loadSchoolData();
+      showToast('Staff account updated.');
+    } catch (error) {
+      showToast(error.message, true);
+      button.disabled = false;
+    }
+  });
+  $('staffUserRows')?.addEventListener('change', async event => {
+    const select = event.target.closest('[data-change-staff-department]');
+    if (!select) return;
+    const userId = select.dataset.changeStaffDepartment;
+    const previousDepartment = schoolUsers.find(item => String(item.userId) === String(userId))?.departmentId;
+    select.disabled = true;
+    try {
+      await api(`/api/school-users/${encodeURIComponent(userId)}/department`, {
+        method: 'PATCH', body: JSON.stringify({ departmentId: select.value })
+      });
+      await loadSchoolData();
+      showToast('Department Head department updated.');
+    } catch (error) {
+      showToast(error.message, true);
+      select.value = previousDepartment || '';
+      select.disabled = false;
+    }
+  });
+
+$('teacherCoverageCard')?.addEventListener('click', event => {
+    const tab = event.target.closest('[data-coverage-tab]');
+    if (!tab) return;
+    const nextTab = tab.dataset.coverageTab;
+    if (!['MY_DEPARTMENT', 'OTHER_DEPARTMENTS'].includes(nextTab) || nextTab === activeCoverageTab) return;
+    activeCoverageTab = nextTab;
+    renderTeacherCoverage();
+  });
+
+  $('teacherCoverageRows')?.addEventListener('click', async event => {
+    const button = event.target.closest('[data-coverage-action]');
+    if (!button) return;
+    await handleCoverageAction(button.dataset.coverageAction, button);
+  });
+
+  $('refreshTeacherCoverage')?.addEventListener('click', async event => {
+    const button = event.currentTarget;
+    button.disabled = true;
+    try {
+      await loadTeacherCoverage(false);
+      showToast('Teacher coverage refreshed.');
+    } catch (error) {
+      showToast(error.message, true);
+    } finally {
+      button.disabled = false;
+    }
+  });
+
+  $('enableCoverageNotifications')?.addEventListener('click', async () => {
+    if (!('Notification' in window)) {
+      showToast('This browser does not support desktop notifications. The in-page alert list will still work.', true);
+      return;
+    }
+    try {
+      const permission = await Notification.requestPermission();
+      if (permission === 'granted') {
+        showToast('Teacher coverage browser notifications are enabled.');
+        await loadTeacherCoverage(false);
+      } else {
+        showToast('Browser notifications were not enabled. Keep the portal open to see in-page coverage alerts.', true);
+      }
+    } catch {
+      showToast('Could not enable browser notifications. Check your browser site settings.', true);
+    }
+  });
+
+  // Collapse the school identity card only after meaningful page scrolling.
+  // Use two thresholds to avoid repeated resize/repaint near the boundary.
+  function installAdaptiveSchoolHeader() {
+    const page = document.querySelector('.portal-page');
+    const header = document.querySelector('.school-heading');
+    if (!page || !header) return;
+    let compact = false;
+    let pending = false;
+    const update = () => {
+      pending = false;
+      const top = Math.max(window.scrollY || 0, document.scrollingElement?.scrollTop || 0);
+      const next = compact ? top > 75 : top > 150;
+      if (next !== compact) {
+        compact = next;
+        page.classList.toggle('school-header-condensed', compact);
+      }
+    };
+    const schedule = () => {
+      if (pending) return;
+      pending = true;
+      requestAnimationFrame(update);
+    };
+    window.addEventListener('scroll', schedule, { passive:true });
+    window.addEventListener('resize', schedule, { passive:true });
+    schedule();
+  }
+  installAdaptiveSchoolHeader();
+
+  init().then(() => {
+    if ($('studentForm') && !$('studentForm').hidden) loadSectionsForGrade($('newGrade').value);
+    if (user?.role === 'DEPARTMENT_HEAD') {
+      window.setInterval(() => {
+        if (document.visibilityState !== 'visible') return;
+        loadTeacherCoverage(true).catch(error => console.warn('Teacher coverage refresh failed:', error.message));
+      }, 60000);
+    }
+  }).catch(error => showPortalStartupFailure('The dashboard could not finish loading. Retry, or sign in again.', error));
+})();  async function recordStudentAutomaticGatePunch() {
+    if(user?.role!=='GATE_KEEPER'||!scannedStudent)return;
+    if(!$('studentPhotoVerified')?.checked){
+      showToast('Confirm the displayed student photo before recording.',true);
+      return;
+    }
+    // Automatic verification cannot be safely finalized offline because
+    // another Gatekeeper may already have recorded a gate event.
+    if(typeof navigator!=='undefined'&&navigator.onLine===false){
+      showToast('Offline: automatic gate direction cannot be verified. Do not mark attendance as recorded.',true);
+      return;
+    }
+    const student=scannedStudent;
+    const button=$('studentTimeIn');
+    if(button)button.disabled=true;
+    try{
+      student.autoEventId=student.autoEventId||crypto.randomUUID();
+      const event={eventId:student.autoEventId,studentId:student.studentId,eventType:'AUTO',
+        occurredAt:new Date().toISOString(),schoolDate:schoolDateManila(),
+        attendanceScope:'SCHOOL',periodId:null,
+        deviceId:`PORTAL-${user.userId||user.username||'GATE_KEEPER'}`,
+        metadata:{source:'gatekeeper-auto-verified',photoVerified:true}};
+      const result=await api('/api/sync/events',{method:'POST',body:JSON.stringify({events:[event]})});
+      const status=result.results?.[0];
+      if(!['ACCEPTED','ALREADY_SYNCED'].includes(status?.status))throw new Error(status?.reason||'Gate event was not recorded.');
+      const direction=status.eventType==='TIME_IN'?'arrival':'departure';
+      const message=student.fullName+': verified gate '+direction+' recorded.';
+      $('studentScanFeedback').textContent=message;
+      $('studentScanFeedback').className='scanner-feedback is-success';
+      showToast('ATTENDANCE SAVED — '+message);
+      scannedStudent=null;scannedTeacher=null;
+      $('studentScanNotice').hidden=true;$('studentScanResult').hidden=true;
+    }catch(error){
+      $('studentScanFeedback').textContent=error.message;
+      $('studentScanFeedback').className='scanner-feedback is-error';
+      showToast(error.message,true);
+      if(button)button.disabled=false;
+    }
   }
 
   async function recordStudentPunch(eventType) {
