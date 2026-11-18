@@ -4866,7 +4866,7 @@ let teacherActionMenuListenersInstalled = false;
       const label = control.querySelector('.collapse-control-label');
       if (label) label.textContent = nextCollapsed ? 'Expand menu' : 'Collapse menu';
     }
-    try { localStorage.setItem('attendance-sidebar-collapsed', nextCollapsed ? '1' : '0'); } catch {}
+    try { localStorage.setItem('attendance-sidebar-collapsed-v2', nextCollapsed ? '1' : '0'); } catch {}
   }
   function closeMobileSidebar() {
     $('sidebar').classList.remove('open');
@@ -4886,7 +4886,7 @@ let teacherActionMenuListenersInstalled = false;
     $('sidebarToggle').title = 'Close navigation';
     $('sidebarToggle').textContent = '×';
   }
-  try { setSidebarCollapsed(localStorage.getItem('attendance-sidebar-collapsed') === '1'); } catch {}
+  try { setSidebarCollapsed(localStorage.getItem('attendance-sidebar-collapsed-v2') === '1'); } catch {}
   document.addEventListener('click', event => {
     const control = event.target.closest('#sidebarCollapseButton');
     if (!control) return;
