@@ -22,6 +22,17 @@ function registerPlatformRoutes(app, pool, { authenticatePlatform, requirePlatfo
     }
   });
 
+  // Identify the live PostgreSQL provider without exposing the connection string
+  // (which may contain database credentials) to the Super Admin client.
+  function storageProvider() {
+    try {
+      const hostname = new URL(process.env.DATABASE_URL || '').hostname.toLowerCase();
+      if (hostname.endsWith('.supabase.co') || hostname.endsWith('.supabase.com')) return 'Supabase';
+      if (hostname.endsWith('.render.com') || hostname.startsWith('dpg-')) return 'Render';
+    } catch (_) { /* Connection host unavailable or invalid. */ }
+    return 'Unverified PostgreSQL';
+  }
+
   // Platform-only PostgreSQL footprint. Capacity is intentionally unknown unless
   // the operator configures DATABASE_STORAGE_LIMIT_BYTES for this deployment.
   app.get('/api/platform/storage', ...guard, async (_req, res) => {
@@ -36,7 +47,7 @@ function registerPlatformRoutes(app, pool, { authenticatePlatform, requirePlatfo
       const limitBytes = Number.isSafeInteger(validLimit) && validLimit > 0 ? validLimit : null;
       const remainingBytes = limitBytes === null ? null : Math.max(0, limitBytes - usedBytes);
       return res.set('Cache-Control','no-store').json({
-        storage: { usedBytes, limitBytes, remainingBytes,
+        storage: { provider: storageProvider(), usedBytes, limitBytes, remainingBytes,
           percentUsed: limitBytes === null ? null : Math.round(1000 * usedBytes / limitBytes) / 10,
           measuredAt: result.rows[0].measuredAt,
           scope: 'PostgreSQL database only',
