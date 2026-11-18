@@ -64,7 +64,8 @@ const REQUIRED_MIGRATIONS = [
   '056_form48_signatory_positions.sql',
   '057_staff_form48_school_defaults_and_leaves.sql',
   '058_staff_form48_employee_schedules.sql',
-  '059_automatic_record_identifiers.sql'
+  '059_automatic_record_identifiers.sql',
+  '060_year_grade_student_ids.sql'
 ];
 
 function checksum(content) {
