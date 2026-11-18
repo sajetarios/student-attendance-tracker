@@ -1,4 +1,4 @@
-const CACHE = "attendigo-v220-admin-class-monitor-shortcut";
+const CACHE = "attendigo-v221-collapsible-staff-security";
 
 const SHELL = [
   "/typography.css?v=1",
@@ -15,7 +15,7 @@ const SHELL = [
   "/assets/attendigo-wordmark-on-light.svg?v=2",
   "/assets/attendigo-symbol-transparent.svg?v=2",
   "/attendigo-sidebar-adaptive.css?v=19",
-  "/user-management-readability.css?v=4",
+  "/user-management-readability.css?v=5",
   "/user-nav-reorg.css?v=1",
   "/attendigo-sidebar-adaptive.js?v=9",
   "/assets/attendigo-logo.png?v=2",
@@ -52,7 +52,7 @@ const SHELL = [
   "/class-qr-dashboard-link.js?v=9",
   "/teacher-roster-popover.js?v=2",
   "/portal.css",
-  "/portal.js?v=196",
+  "/portal.js?v=197",
   "/form48-report.js?v=7",
   "/form48-bulk-ui.js?v=2",
   "/form48-report.css?v=7",
