@@ -1,0 +1,15 @@
+/* Staff lunch attendance - shared compact UI, role permission enforced server-side. */
+.staff-lunch-panel {margin: 0 0 1rem; padding: 1rem 1.2rem; border:1px solid var(--border-color,rgba(120,134,153,.22));border-radius:12px;background:var(--surface-color,transparent);max-width:100%;color:inherit}
+.staff-lunch-panel .section-toolbar {display:flex;justify-content:space-between;gap:1rem;align-items:flex-start;flex-wrap:wrap;margin-bottom:.75rem}
+.staff-lunch-panel h3 {font-size:1rem;font-weight:620;margin:0 0 .25rem}
+.staff-lunch-panel p {line-height:1.5;margin:.25rem 0 .6rem;font-size:.86rem}
+.staff-lunch-controls {display:flex;gap:.65rem;align-items:flex-end;flex-wrap:wrap}
+.staff-lunch-controls label {display:flex;flex-direction:column;gap:.25rem;font-size:.8rem;font-weight:560;min-width:150px;flex:1 1 170px}
+.staff-lunch-controls label select {max-width:100%;min-height:38px;color:inherit;background:var(--input-bg,var(--surface-color,#fff));border:1px solid var(--border-color,#cbd5e1);border-radius:7px;padding:.4rem .65rem}
+.staff-lunch-controls button {min-height:38px;white-space:normal}
+.staff-lunch-status {font-size:.87rem;margin:.7rem 0 .4rem!important;min-height:1.35rem}
+.staff-lunch-status.is-error {color:var(--danger-color,#b91c1c)}
+.staff-lunch-qr {display:block;margin:1rem auto .35rem;max-width:280px;width:min(280px,100%);height:auto;padding:8px;border-radius:10px;background:#fff;border:1px solid #d5dce6}
+.staff-lunch-qr[hidden],.staff-lunch-panel[hidden] {display:none!important}
+.staff-lunch-expires {text-align:center;font-size:.8rem}
+@media(max-width:600px){.staff-lunch-panel{padding:.85rem}.staff-lunch-controls{align-items:stretch}.staff-lunch-controls label{flex:1 1 100%}.staff-lunch-controls button{flex:1 1 100%}}
