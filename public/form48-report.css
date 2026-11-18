@@ -129,3 +129,10 @@
  .form48-batch-sheet{break-after:page;page-break-after:always;margin:0}
  .form48-batch-sheet:last-of-type{break-after:auto;page-break-after:auto}
 }
+
+.form48-leave-records{border-top:1px solid var(--border-color,#d3dfec);padding-top:12px;margin-top:14px}
+.form48-leave-record-list{display:grid;gap:7px;max-height:230px;overflow:auto;font-size:12px}
+.form48-leave-record{border:1px solid var(--border-color,#d3dfec);border-radius:8px;padding:9px;display:flex;align-items:center;justify-content:space-between;gap:10px}
+.form48-leave-record span{overflow-wrap:anywhere}
+.form48-leave-record button{flex:0 0 auto;min-height:34px}
+@media(max-width:650px){.form48-leave-record{align-items:stretch;flex-direction:column}}
