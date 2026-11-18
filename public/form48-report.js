@@ -34,6 +34,7 @@
   }).join('');
   const s=analysis.summary||{};
   const verifiedName=analysis.signatories?.verifiedBy||'',approvedName=analysis.signatories?.approvedBy||'';
+  const verifiedPosition=analysis.signatories?.verifiedPosition||'',approvedPosition=analysis.signatories?.approvedPosition||'';
   const reviewNote=s.hasUnreviewed||!s.configured?'DRAFT — REVIEW REQUIRED':'PREPARED FOR SIGNATURE';
   const gapText=s.pendingAbsentDays?' ('+s.pendingAbsentDays+' missing day(s) for review)':'';
   return '<article class="form48-copy" aria-label="'+esc(kind)+' DTR copy">'+
@@ -52,6 +53,7 @@
    '<div class="form48-certify">I certify on my honor that the above is a true and correct report of the hours of work performed, record of which was made daily at the time of arrival and departure from office.</div>'+
    '<div class="form48-signature"><span>Employee signature</span></div>'+
    '<div class="form48-signature"><strong>'+esc(verifiedName)+'</strong>'+
+   '<span class="form48-signer-position">'+esc(verifiedPosition)+'</span>'+
    '<span>Verified as to prescribed office hours — In Charge</span></div>'+
    '<div class="form48-remarks">REMARKS: <div class="form48-line"></div><div class="form48-line"></div></div>'+
    '<div class="form48-summary">'+
@@ -61,6 +63,7 @@
    '<span>Undertime: '+esc(duration(s.undertimeMinutes))+'</span>'+
    '</div>'+
    '<div class="form48-signature form48-approval"><strong>'+esc(approvedName)+'</strong>'+
+   '<span class="form48-signer-position">'+esc(approvedPosition)+'</span>'+
    '<span>Approved by (authorized signatory)</span></div>'+
    '<div class="form48-draft-mark">'+esc(reviewNote)+'</div>'+
    '</article>';
@@ -79,13 +82,31 @@
   const invalidate=()=>{button.disabled=true;output.hidden=true;output.replaceChildren();state.data=null;state.analysis=null;reviewHost.hidden=true;};
   const listDays=()=>[...settings.querySelectorAll('[data-form48-day]')];
   const hoursFor=group=>Object.fromEntries([...settings.querySelectorAll('[data-form48-hour="'+group+'"]')].map(x=>[x.dataset.slot,x.value]));
+  const updateScheduleSummary=()=>{
+   const days=listDays().filter(x=>x.checked).map(x=>Number(x.value));
+   const names=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+   const label=days.length===5&&[1,2,3,4,5].every(d=>days.includes(d))
+    ?'Mon–Fri':days.length?days.map(d=>names[d]).join(', '):'No workdays chosen';
+   const regular=hoursFor('regular');
+   const hasRegular=['AM_IN','AM_OUT','PM_IN','PM_OUT'].every(k=>Boolean(regular[k]));
+   const saturday=hoursFor('saturday');
+   const hasSaturday=['AM_IN','AM_OUT','PM_IN','PM_OUT'].every(k=>Boolean(saturday[k]));
+   const needsSaturday=days.includes(6);
+   const badge=$('form48ScheduleSummary');
+   if(badge)badge.textContent=label+' · '+(hasRegular&&(!needsSaturday||hasSaturday)
+    ?'Office hours entered':'Office hours need setup');
+   const saturdayPanel=$('form48SaturdayHours');
+   if(saturdayPanel)saturdayPanel.hidden=!needsSaturday;
+  };
   const snapshot=()=>{
    const r=state.review||{};
    return {staffUserId:person.value,month:month.value,revision:r.revision??0,
     workdays:listDays().filter(x=>x.checked).map(x=>Number(x.value)),
     regularHours:hoursFor('regular'),saturdayHours:hoursFor('saturday'),
     dayReviews:r.dayReviews||{},verifiedBy:$('form48VerifiedBy').value.trim(),
-    approvedBy:$('form48ApprovedBy').value.trim()};
+    approvedBy:$('form48ApprovedBy').value.trim(),
+    verifiedPosition:$('form48VerifiedPosition').value.trim(),
+    approvedPosition:$('form48ApprovedPosition').value.trim()};
   };
   const populate=data=>{
    const r=data.review||{};
@@ -99,6 +120,9 @@
    }
    $('form48VerifiedBy').value=r.verifiedBy||'';
    $('form48ApprovedBy').value=r.approvedBy||'';
+   $('form48VerifiedPosition').value=r.verifiedPosition||'';
+   $('form48ApprovedPosition').value=r.approvedPosition||'';
+   updateScheduleSummary();
   };
   const fetchConfig=async()=>{
    const key=reportKey();
@@ -177,8 +201,8 @@
    state.review.dayReviews=reviews;
    generate();
   });
-  settings.addEventListener('input',()=>{button.disabled=true;});
-  settings.addEventListener('change',()=>{button.disabled=true;});
+  settings.addEventListener('input',()=>{button.disabled=true;updateScheduleSummary();});
+  settings.addEventListener('change',()=>{button.disabled=true;updateScheduleSummary();});
   button.addEventListener('click',()=>{if(!button.disabled&&!output.hidden)window.print();});
  }
  window.attendigoStaffIdentity?.then(init).catch(()=>{});

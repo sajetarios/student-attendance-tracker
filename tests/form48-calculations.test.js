@@ -66,6 +66,8 @@ test('form review save payload is school-admin validated and cannot claim a name
   workdays:[1,2,3,4,5],regularHours:times,saturdayHours:{},
   dayReviews:{'2026-02-02':'ABSENT'},verifiedBy:'In Charge Example',approvedBy:'School Head Example',revision:0}};
  assert.equal(readBody(good).approvedBy,'School Head Example');
+ assert.equal(readBody({...good,body:{...good.body,verifiedPosition:'Administrative Officer',approvedPosition:'School Principal'}}).approvedPosition,'School Principal');
+ assert.equal(readBody({...good,body:{...good.body,approvedPosition:'x'.repeat(121)}}),null);
  assert.equal(readBody({...good,body:{...good.body,dayReviews:{'2026-02-31':'ABSENT'}}}),null);
  assert.equal(readBody({...good,body:{...good.body,workdays:[1,1]}}),null);
  assert.equal(readBody({...good,body:{...good.body,verifiedBy:'x'.repeat(121)}}),null);
@@ -76,14 +78,21 @@ test('server restricts Form 48 draft writes to administrators, school scope and 
  assert.match(src,/staff_user_id=\$2/);
  assert.match(src,/staff_attendance_audit/);
  assert.match(src,/FORM48_DRAFT_UPDATED/);
- assert.match(src,/revision=\$11/);
+ assert.match(src,/revision=\$13/);
  assert.match(src,/verification_status='VERIFIED'/);
  const css=fs.readFileSync('public/form48-report.css','utf8');
  const html=fs.readFileSync('public/portal.html','utf8');
  const js=fs.readFileSync('public/form48-report.js','utf8');
- for(const id of ['form48VerifiedBy','form48ApprovedBy','form48ReviewDays','form48ReportSettings']){
+ for(const id of ['form48VerifiedBy','form48ApprovedBy','form48VerifiedPosition','form48ApprovedPosition','form48ReviewDays','form48ReportSettings','form48ScheduleDetails']){
   assert.ok(html.includes('id="'+id+'"'),id);
  }
  assert.match(js,/Draft names are NOT electronic signatures/);
  assert.match(css,/\.form48-settings-panel/);
+ assert.match(html,/<details id="form48ScheduleDetails" class="form48-schedule-details">/);
+ assert.doesNotMatch(html,/<details id="form48ReportSettings"/);
+ assert.match(js,/form48-signer-position/);
+ assert.match(js,/analysis\.signatories\?\.approvedPosition/);
+ assert.match(js,/updateScheduleSummary/);
+ assert.match(src,/verified_by_position/);
+ assert.match(src,/approved_by_position/);
 });
