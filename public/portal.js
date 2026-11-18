@@ -662,8 +662,11 @@ window.attendigoStaffIdentity = new Promise(resolve => { resolveStaffIdentity = 
       const desc = document.querySelector('.scan-setup-description');
       if (desc) desc.textContent = 'Choose an assigned subject class or advisory section. Only learners within your authorized assignments can be recorded.';
     }
+    // Preserve the requested directory section when entitlements/branding load asynchronously.
+    const requestedSection = new URLSearchParams(location.search).get('section');
     const currentAdminTab = $('adminManagementTabs')?.querySelector('.is-active')?.dataset.adminManagementTab || 'accounts';
-    setAdminManagementTab(currentAdminTab);
+    setAdminManagementTab(!$('teachersView')?.hidden && ['directory','accounts','permissions','departments'].includes(requestedSection)
+      ? requestedSection : currentAdminTab);
   }
 
   function syncStaffNavigation(section = 'accounts') {
@@ -714,6 +717,15 @@ window.attendigoStaffIdentity = new Promise(resolve => { resolveStaffIdentity = 
     if (departmentCard) departmentCard.hidden = activeTab !== 'departments';
     if (note) note.hidden = activeTab !== 'accounts';
     syncStaffNavigation(activeTab);
+    if (!$('teachersView')?.hidden && !restoringHistory && location.pathname === '/portal.html') {
+      const current = new URL(location.href);
+      if (current.searchParams.get('view') !== 'teachers' || current.searchParams.get('section') !== activeTab) {
+        current.searchParams.set('view','teachers');
+        current.searchParams.set('section',activeTab);
+        current.searchParams.delete('panel');
+        history.replaceState({view:'teachers',section:activeTab},'',current.pathname+current.search+current.hash);
+      }
+    }
     if (!$('teachersView')?.hidden) {
       const titles = {directory:'All User Accounts',accounts:'Teachers & Staff',permissions:'Account Access',departments:'Departments'};
       if ($('pageTitle')) $('pageTitle').textContent = titles[activeTab];
@@ -4660,6 +4672,16 @@ let teacherActionMenuListenersInstalled = false;
     restoringHistory = true;
     try { restoreDestination(); }
     finally { restoringHistory = false; }
+  });
+  document.addEventListener('click',event=>{
+    const link=event.target.closest?.('.side-nav a[data-staff-section]');
+    if(!link || event.defaultPrevented || event.button!==0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey)return;
+    if(user?.role!=='SCHOOL_ADMIN')return;
+    event.preventDefault();
+    const section=link.dataset.staffSection;
+    setView('teachers');
+    setAdminManagementTab(section);
+    if(window.matchMedia('(max-width: 860px)').matches)closeMobileSidebar();
   });
   document.addEventListener('click',event=>{
     const link=event.target.closest?.('.side-nav a.nav-item[data-view]');
