@@ -27,6 +27,9 @@
     const output=admin?null:$('staffLunchQrImage');
     const expiry=admin?null:$('staffLunchQrExpiry');
     const teacherSelect=admin?$('staffLunchTeacher'):null;
+    const departmentSelect=admin?$('staffLunchDepartment'):null;
+    const activeList=admin?$('staffLunchAssignedList'):null;
+    let eligibleTeachers=[];
     let assigned=false,expiryTimestamp=0,busy=false;
     function setStatus(message,failed=false) {
       status.textContent=message;
@@ -43,6 +46,8 @@
       action.disabled=value || (!admin&&!assigned);
       if(revoked)revoked.disabled=value||!assigned;
       if(teacherSelect)teacherSelect.disabled=value;
+      if(departmentSelect)departmentSelect.disabled=value;
+      if(activeList)activeList.querySelectorAll('button').forEach(button=>{button.disabled=value;});
     }
     async function refresh() {
       if(busy)return;
@@ -53,12 +58,39 @@
           new URLSearchParams({slot:slot.value}).toString());
         assigned=!!info.assigned;
         if(admin) {
-          if(info.presenterUserId && [...teacherSelect.options].some(x=>x.value===info.presenterUserId))
-            teacherSelect.value=info.presenterUserId;
-          setStatus(assigned
-            ? slotLabel(slot.value)+' presenter: '+info.presenterName
-            : 'No teacher assigned for '+slotLabel(slot.value)+'.');
-          revoked.disabled=!assigned;
+          const presenters=Array.isArray(info.presenters)?info.presenters:[];
+          const filter=departmentSelect.value;
+          const shown=presenters.filter(p=>!filter||p.departmentId===filter);
+          activeList.replaceChildren();
+          if(!shown.length){activeList.textContent='No active presenters for this selection.';}
+          for(const presenter of shown){
+            const row=document.createElement('div');
+            row.className='staff-lunch-presenter-row';
+            const caption=document.createElement('span');
+            const strong=document.createElement('strong');
+            strong.textContent=presenter.presenterName;
+            const small=document.createElement('small');
+            small.textContent=presenter.departmentName||'No department';
+            caption.append(strong,small);
+            const remove=document.createElement('button');
+            remove.type='button';remove.className='outline-button';
+            remove.textContent='Revoke';
+            remove.setAttribute('aria-label','Revoke lunch presenter '+presenter.presenterName);
+            remove.addEventListener('click',async()=>{
+              if(!window.confirm('Revoke lunch QR access for '+presenter.presenterName+'? Only this teacher’s QR will be invalidated.'))return;
+              setBusy(true);
+              try{
+                await request('/api/staff-attendance/lunch/presenter',{
+                  method:'DELETE',body:JSON.stringify({slot:slot.value,presenterUserId:presenter.presenterUserId})
+                });
+                setStatus(presenter.presenterName+' revoked. Other presenters remain active.');
+              }catch(error){setStatus(error.message,true);}
+              finally{setBusy(false);await refresh();}
+            });
+            row.append(caption,remove);activeList.append(row);
+          }
+          setStatus(presenters.length+' active presenter(s) for '+slotLabel(slot.value)+'. Select additional teachers to authorize.');
+          revoked.disabled=true;
         }else{
           assigned=!!info.isCurrentPresenter;
           setStatus(assigned
@@ -72,32 +104,39 @@
     }
     slot.addEventListener('change',()=>{refresh().catch(()=>{});});
     if(admin) {
-      try {
+      try{
         const teachers=(await request('/api/teachers')).teachers||[];
-        const eligible=teachers.filter(t=>t.active===true && t.teacherStatus!=='ON_LEAVE');
-        teacherSelect.replaceChildren(new Option('Select an active teacher',''));
-        eligible.forEach(t=>teacherSelect.add(new Option(t.displayName+' · '+t.departmentName,t.userId)));
+        eligibleTeachers=teachers.filter(t=>t.active===true&&t.teacherStatus!=='ON_LEAVE');
+        const departments=new Map();
+        eligibleTeachers.forEach(t=>{if(t.departmentId)departments.set(t.departmentId,t.departmentName||'Department');});
+        departmentSelect.replaceChildren(new Option('All departments',''));
+        [...departments.entries()].sort((a,b)=>a[1].localeCompare(b[1])).forEach(([id,name])=>departmentSelect.add(new Option(name,id)));
+        function updateTeacherOptions(){
+          const filter=departmentSelect.value;
+          teacherSelect.replaceChildren();
+          eligibleTeachers.filter(t=>!filter||t.departmentId===filter).forEach(t=>{
+            teacherSelect.add(new Option(t.displayName+' · '+(t.departmentName||'No department'),t.userId));
+          });
+        }
+        departmentSelect.addEventListener('change',()=>{updateTeacherOptions();refresh().catch(()=>{});});
+        updateTeacherOptions();
       }catch(error){setStatus('Unable to load teachers: '+error.message,true);action.disabled=true;return;}
       action.addEventListener('click',async()=>{
-        if(!teacherSelect.value){setStatus('Select an active teacher first.',true);return;}
+        const ids=[...teacherSelect.selectedOptions].map(option=>option.value);
+        if(!ids.length){setStatus('Select at least one teacher. Use Ctrl/Command or Shift for multiple.',true);return;}
         setBusy(true);
         try{
-          const result=await request('/api/staff-attendance/lunch/presenter',{
-            method:'PUT',body:JSON.stringify({slot:slot.value,presenterUserId:teacherSelect.value})
-          });
-          assigned=true;
-          setStatus(result.presenterName+' assigned to '+slotLabel(slot.value)+'. Older presenter QR codes were revoked.');
-        }catch(error){setStatus(error.message,true);}finally{setBusy(false);await refresh();}
-      });
-      revoked.addEventListener('click',async()=>{
-        if(!assigned||!window.confirm('Revoke the '+slotLabel(slot.value)+' presenter and all active QR codes?'))return;
-        setBusy(true);
-        try{
-          await request('/api/staff-attendance/lunch/presenter',{
-            method:'DELETE',body:JSON.stringify({slot:slot.value})
-          });
-          assigned=false;setStatus('Presenter revoked. Existing QR codes are no longer valid.');
-        }catch(error){setStatus(error.message,true);}finally{setBusy(false);await refresh();}
+          let added=0;
+          for(const id of ids){
+            const result=await request('/api/staff-attendance/lunch/presenter',{
+              method:'PUT',body:JSON.stringify({slot:slot.value,presenterUserId:id})
+            });
+            if(!result.unchanged)added++;
+          }
+          setStatus(added+' new presenter(s) authorized. Existing presenter QR codes remain active.');
+          [...teacherSelect.options].forEach(o=>{o.selected=false;});
+        }catch(error){setStatus('Some changes may have been saved. '+error.message,true);}
+        finally{setBusy(false);await refresh();}
       });
     }else{
       action.addEventListener('click',()=>issue().catch(()=>{}));
