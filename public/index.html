@@ -5,13 +5,42 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#2463a5">
   <meta name="referrer" content="no-referrer">
-  <meta http-equiv="refresh" content="0; url=/portal-login.html">
   <title>Redirecting to sign in · Attendigo</title>
   <script>
-    // Never forward credentials from a legacy query string to another URL.
-    const params = new URLSearchParams(window.location.search);
-    const mode = params.get('mode') === 'platform' ? '?mode=platform' : '';
-    window.location.replace('/portal-login.html' + mode);
+    // Route the main domain using verified server-side identity, never cached user data.
+    (async () => {
+      const params = new URLSearchParams(location.search);
+      const requestedMode = params.get('mode');
+      const loginUrl = '/portal-login.html' + (requestedMode === 'student' ? '?mode=student' : requestedMode === 'platform' ? '?mode=platform' : '');
+      const go = url => location.replace(url);
+      try {
+        // Explicit role selection must remain accessible for account switching.
+        if (requestedMode === 'platform') return go(loginUrl);
+        const staffToken = sessionStorage.getItem('schoolAttendance.accessToken');
+        const response = await fetch('/api/auth/me', {
+          credentials: 'same-origin', cache: 'no-store',
+          headers: staffToken ? { Authorization: 'Bearer ' + staffToken } : {}
+        });
+        if (response.ok) {
+          const payload = await response.json();
+          const role = payload?.user?.role;
+          if (role === 'STUDENT') return go('/student-portal.html');
+          if (role === 'PARENT') return go('/parent-portal.html');
+          if (role === 'SUPER_ADMIN') return go('/super-admin.html');
+          if (role) return go('/portal.html');
+        }
+        if (response.status === 401 && staffToken) {
+          for (const key of ['schoolAttendance.accessToken','schoolAttendance.user','schoolAttendance.expiresAt']) sessionStorage.removeItem(key);
+          // A stale staff token may mask a valid student cookie.
+          const fallback = await fetch('/api/auth/me',{credentials:'same-origin',cache:'no-store'});
+          if (fallback.ok) {
+            const user = (await fallback.json()).user;
+            if (user?.role === 'STUDENT') return go('/student-portal.html');
+          }
+        }
+      } catch (_) { /* Offline or unavailable authentication: show login. */ }
+      go(loginUrl);
+    })();
   </script>
 <link rel="icon" type="image/png" href="/assets/attendigo-favicon.png?v=2">
 <link rel="apple-touch-icon" href="/assets/attendigo-apple-touch-icon.png?v=2">
@@ -22,7 +51,7 @@
   <link rel="stylesheet" href="/typography.css?v=1">
 </head>
 <body><div class="attendigo-brand"><img class="attendigo-logo" src="/assets/attendigo-sidebar-logo.png?v=2" alt="Attendigo" width="1800" height="430"></div>
-  <p>Opening the Attendigo sign-in page…
+  <p>Checking your Attendigo session…
     <a href="/portal-login.html">Continue to sign in</a>
   </p>
 </body>
