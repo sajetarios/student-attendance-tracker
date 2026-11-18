@@ -990,6 +990,9 @@ window.attendigoStaffIdentity = new Promise(resolve => { resolveStaffIdentity = 
       const view = button.dataset.adminView;
       if (view === 'academicAdmin') {
         $('academicAdminNav')?.click();
+      } else if (view === 'classQrMonitor') {
+        // Separate administrator-only monitoring page; never routes to teacher QR creation.
+        window.location.assign('/class-qr-monitor.html');
       } else if (view === 'schoolBranding') {
         $('schoolBrandingNav')?.click();
       } else {
