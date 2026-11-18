@@ -32,10 +32,20 @@
    return '<tr><td>'+row.day+'</td>'+slots.map(k=>'<td>'+esc(formatTime(v[k]))+'</td>').join('')+
     '<td>'+esc(hours)+'</td><td>'+esc(mins)+'</td></tr>';
   }).join('');
+  const obEntries=data.records.flatMap(row=>(row.obRemarks||[]).map(ob=>({
+   date:row.date,remark:ob.remark,exception:ob.exceptionRemark||'',reviewRequired:Boolean(ob.exception)
+  })));
+  const hasObExceptions=obEntries.some(item=>item.reviewRequired);
+  const obMarkup=obEntries.length
+   ?'<div class="form48-ob-remarks">'+obEntries.map(item=>
+      '<div><strong>'+esc(item.date.slice(8))+'</strong> '+esc(item.remark)+
+      (item.reviewRequired?' — REVIEW REQUIRED: '+esc(item.exception):'')+'</div>'
+     ).join('')+'</div>'
+   :'<div class="form48-line"></div><div class="form48-line"></div>';
   const s=analysis.summary||{};
   const verifiedName=analysis.signatories?.verifiedBy||'',approvedName=analysis.signatories?.approvedBy||'';
   const verifiedPosition=analysis.signatories?.verifiedPosition||'',approvedPosition=analysis.signatories?.approvedPosition||'';
-  const reviewNote=s.hasUnreviewed||!s.configured?'DRAFT — REVIEW REQUIRED':'PREPARED FOR SIGNATURE';
+  const reviewNote=s.hasUnreviewed||!s.configured||hasObExceptions?'DRAFT — REVIEW REQUIRED':'PREPARED FOR SIGNATURE';
   const gapText=s.pendingAbsentDays?' ('+s.pendingAbsentDays+' missing day(s) for review)':'';
   return '<article class="form48-copy" aria-label="'+esc(kind)+' DTR copy">'+
    '<div class="form48-copy-type">'+esc(kind.toUpperCase())+' COPY</div>'+
@@ -55,7 +65,7 @@
    '<div class="form48-signature"><strong>'+esc(verifiedName)+'</strong>'+
    '<span class="form48-signer-position">'+esc(verifiedPosition)+'</span>'+
    '<span>Verified as to prescribed office hours — In Charge</span></div>'+
-   '<div class="form48-remarks">REMARKS: '+esc(s.approvedLeaveDays?String(s.approvedLeaveDays)+' day(s) of documented approved leave (see supporting documents).':'')+'<div class="form48-line"></div><div class="form48-line"></div></div>'+ 
+   '<div class="form48-remarks">REMARKS: '+esc(s.approvedLeaveDays?String(s.approvedLeaveDays)+' day(s) of documented approved leave (see supporting documents).':'')+obMarkup+'</div>'+
    '<div class="form48-summary">'+
    '<span>Days present (verified evidence): '+esc(s.daysPresent)+'</span>'+
    '<span>Days absent (confirmed): '+esc(s.daysAbsent)+esc(gapText)+'</span>'+ 
