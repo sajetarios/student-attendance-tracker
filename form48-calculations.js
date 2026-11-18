@@ -10,6 +10,18 @@ function validHours(value){
  return v.every(Number.isInteger)&&v[0]<v[1]&&v[1]<=v[2]&&v[2]<v[3];
 }
 function clockMinutes(value){const n=minuteOf(value);return n===null?null:n;}
+function implausibleSlot(slots,hours){
+ if(!validHours(hours))return false;
+ const h=Object.fromEntries(SLOTS.map(s=>[s,minuteOf(hours[s])]));
+ return SLOTS.some(slot=>{
+  const at=minuteOf(slots[slot]);
+  if(at===null)return false;
+  if(slot==='AM_IN')return at<Math.max(0,h.AM_IN-240)||at>h.AM_OUT;
+  if(slot==='AM_OUT')return at<h.AM_IN||at>h.PM_IN;
+  if(slot==='PM_IN')return at<h.AM_OUT||at>h.PM_OUT;
+  return at<h.PM_IN;
+ });
+}
 function isoDate(value){return typeof value==='string'&&/^\d{4}-\d{2}-\d{2}$/.test(value)&&!Number.isNaN(Date.parse(value+'T12:00:00Z'));}
 function summarizeForm48({records=[],month,today,settings=null,calendar=[],officialBusiness=[],leave=null,approvedLeaves=[]}){
  if(!/^\d{4}-(0[1-9]|1[0-2])$/.test(month||''))throw Error('Invalid report month');
@@ -21,7 +33,7 @@ function summarizeForm48({records=[],month,today,settings=null,calendar=[],offic
  const calendarMonthDays=new Date(Date.UTC(Number(month.slice(0,4)),Number(month.slice(5,7)),0)).getUTCDate();
  const timeConfigured=configured&&validHours(settings.regularHours)&&(!workdays.includes(6)||validHours(settings.saturdayHours));
  const summary={daysPresent:0,daysAbsent:0,excusedDays:0,pendingAbsentDays:0,
-  partialRecordDays:0,scheduledDays:0,approvedLeaveDays:0,tardyMinutes:timeConfigured?0:null,
+  partialRecordDays:0,scheduledDays:0,approvedLeaveDays:0,timeAnomalyDays:0,tardyMinutes:timeConfigured?0:null,
   undertimeMinutes:timeConfigured?0:null,tardyDays:0,undertimeDays:0,
   incompleteTimingDays:0,unresolvedDays:0,configured,hasUnreviewed:false};
  const assessments=[];
@@ -54,7 +66,10 @@ function summarizeForm48({records=[],month,today,settings=null,calendar=[],offic
   else if(review==='ABSENT'&&past){status='CONFIRMED_ABSENT';summary.daysAbsent++;}
   else if(past){status='MISSING_REVIEW';summary.pendingAbsentDays++;needsReview=true;}
   const hours=weekday===6?settings?.saturdayHours:settings?.regularHours;
-  if(scheduled&&present&&!approvedOB&&!leaveDay&&!documentedLeave&&exception!=='SHORTENED_DAY'){
+  const anomalous=scheduled&&present&&!approvedOB&&!leaveDay&&!documentedLeave&&
+   exception!=='SHORTENED_DAY'&&implausibleSlot(slots,hours);
+  if(anomalous){status='TIME_SLOT_REVIEW';needsReview=true;summary.timeAnomalyDays++;summary.incompleteTimingDays++;}
+  if(scheduled&&present&&!anomalous&&!approvedOB&&!leaveDay&&!documentedLeave&&exception!=='SHORTENED_DAY'){
    if(validHours(hours)){
     for(const slot of ['AM_IN','PM_IN']){
      const at=clockMinutes(slots[slot]),expected=clockMinutes(hours[slot]);
@@ -78,7 +93,7 @@ function summarizeForm48({records=[],month,today,settings=null,calendar=[],offic
   }
   if(needsReview){summary.unresolvedDays++;summary.hasUnreviewed=true;}
   assessments.push({date,day,weekday,status,scheduled,past,verifiedCount,
-   lateMinutes,undertimeMinutes:earlyMinutes,needsReview,approvedOB:Boolean(approvedOB),
+   lateMinutes,undertimeMinutes:earlyMinutes,needsReview,timeAnomaly:Boolean(anomalous),approvedOB:Boolean(approvedOB),
    leaveDay:Boolean(leaveDay||documentedLeave),approvedLeave:Boolean(documentedLeave),calendarException:exception||null,review});
  }
  if(!configured){summary.tardyMinutes=null;summary.undertimeMinutes=null;}
