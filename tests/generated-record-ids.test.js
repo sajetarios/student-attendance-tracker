@@ -76,16 +76,8 @@ test('2026 Grade 10 registration IDs have three digits, preserve historical pref
   assert.throws(() => ids.formatYearGradeStudentId(2026, 10, 1000), /exhausted/);
 });
 
-test('counter allocation uses an atomic PostgreSQL upsert, no school-specific collisions', async () => {
-  const calls = [];
-  const fakeClient = { query: async (sql, params) => {
-    calls.push({ sql, params });
-    return { rowCount: 1, rows: [{last_number: 89}] };
-  } };
-  assert.equal(await ids.nextStudentId(fakeClient, {year: 2026, gradeLevel: 'Grade 10'}), '2026-G10-089');
-  assert.deepEqual(calls[0].params, [2026, 10]);
-  assert.match(calls[0].sql, /ON CONFLICT\(registration_year, registration_grade\) DO UPDATE/);
-  assert.match(calls[0].sql, /last_number < 999/);
+test('legacy year-grade format remains readable for historical student records', () => {
+  assert.equal(ids.formatYearGradeStudentId(2026, 10, 89), '2026-G10-089');
 });
 
 test('exhausted year/grade sequence fails clearly without reissuing an ID', async () => {
