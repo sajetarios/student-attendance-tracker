@@ -396,7 +396,7 @@ body.dark-mode .content-wrap > .school-heading.is-compact,body[data-theme="dark"
  #timetableSettings #templateBlockRows input,#timetableSettings #templateBlockRows select{min-height:46px!important;height:46px!important}
 }
 </style><link rel="stylesheet" href="/attendigo-brand-refresh.css?v=3">
-<link rel="stylesheet" href="/attendigo-sidebar-adaptive.css?v=18">
+<link rel="stylesheet" href="/attendigo-sidebar-adaptive.css?v=19">
   <link rel="preload" href="/fonts/InterVariable.woff2" as="font" type="font/woff2" crossorigin>
   <link rel="stylesheet" href="/typography.css?v=1">
 <style id="attendigo-compact-school-identity-v3">
@@ -911,9 +911,16 @@ body.dark-mode .content-wrap > .school-heading.is-compact,body[data-theme="dark"
             </section>
 
 
-            <div class="surface-card section-card my-gate-attendance">
+            <div class="surface-card section-card" id="adminStaffBadgeCard" hidden>
+                <div class="section-toolbar"><div><h3>My official staff badge</h3><p>Use your existing School Administrator account. Show this QR to the Gatekeeper and confirm your registered photo. Login alone never records attendance.</p></div>
+                  <button class="outline-button" type="button" id="adminStaffBadgeShow">Show my staff QR badge</button>
+                </div>
+                <img id="adminStaffBadgeImage" alt="Your private School Administrator staff gate QR badge" width="240" height="240" style="max-width:100%;height:auto" hidden>
+                <p id="adminStaffBadgeStatus" class="inline-feedback" role="status" aria-live="polite">An official profile photo is required for Gatekeeper verification.</p>
+              </div>
+              <div class="surface-card section-card my-gate-attendance">
               <div class="section-toolbar">
-                <div><h2>My Gate Attendance</h2><p>Your own time-in and time-out recorded by the authorized Gate Keeper. This is not the student class register.</p></div>
+                <div><h2 id="myGateHeading">My Gate Attendance</h2><p id="myGateIntro">Your own time-in and time-out recorded by the authorized Gate Keeper. This is not the student class register.</p></div>
                 <button type="button" class="outline-button" id="myGateRefresh">↻ Refresh</button>
               </div>
               <div class="my-gate-today" aria-label="Today's gate attendance">
@@ -938,7 +945,7 @@ body.dark-mode .content-wrap > .school-heading.is-compact,body[data-theme="dark"
                 <thead><tr><th>Date</th><th>Time in</th><th>Time out</th><th>Verification</th></tr></thead>
                 <tbody id="myGateRows"><tr><td colspan="4" class="empty-cell">No records loaded.</td></tr></tbody>
               </table></div>
-              <p class="attendance-summary-note">Only Gate Keeper-verified badge scans appear here. Missing or incorrect entries should be reported to your School Administrator. Teachers cannot edit gate timestamps.</p>
+              <p class="attendance-summary-note">Only Gate Keeper-verified badge scans appear here. Missing or incorrect entries should be reported for correction. Staff cannot edit Gatekeeper timestamps.</p>
             </div>
           </section>
 

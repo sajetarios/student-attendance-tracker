@@ -719,3 +719,21 @@ html body #sidebar.sidebar #sidebarSchoolName {
     box-shadow:inset 2px 0 0 var(--side-selected-ink)!important;
   }
 }
+
+/* Role-level visibility is authoritative in every desktop, tablet and mobile layout.
+   Expanded and collapsed navigation rules above use !important display overrides;
+   this more-specific rule prevents forbidden links and entire hidden groups appearing. */
+html body .portal-layout:not(.sidebar-collapsed) #sidebar.sidebar .side-nav [hidden],
+html body .portal-layout.sidebar-collapsed #sidebar.sidebar .side-nav [hidden],
+html body .portal-layout #sidebar.sidebar .side-nav [hidden],
+html body .portal-layout #sidebar.sidebar .sidebar-section-label[hidden] {
+  display:none!important;
+}
+/* Keep navigation readable but compact without altering school-controlled colors. */
+html body .portal-layout #sidebar.sidebar .side-nav :is(.nav-item,.nav-group-toggle) {
+  font-size:14px!important;
+  line-height:1.3!important;
+}
+html body .portal-layout #sidebar.sidebar .nav-submenu .nav-item {
+  font-size:13.5px!important;
+}
