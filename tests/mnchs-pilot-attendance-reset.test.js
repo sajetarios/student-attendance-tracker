@@ -7,6 +7,7 @@ const path = require('node:path');
 const sql = fs.readFileSync(path.join(__dirname, '../migrations/062_mnchs_pilot_attendance_reset.sql'),'utf8');
 
 test('MNCHS pilot attendance reset is bound to exact school code, name and UUID', () => {
+  assert.match(sql,/current_database\(\) <> 'student_tracker_bpv7'/);
   assert.match(sql,/school_code='MNCHS'/);
   assert.match(sql,/63643724-c50d-4859-aa42-c54818c2a152/);
   assert.match(sql,/MATI NATIONAL COMPREHENSIVE HIGH SCHOOL/);
