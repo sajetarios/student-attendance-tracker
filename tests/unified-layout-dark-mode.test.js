@@ -44,5 +44,7 @@ test('dark mode covers every core surface and keeps school custom colors intact'
 test('service worker precaches the shared stylesheet for offline portal consistency', () => {
   const sw = read('sw.js');
   assert.ok(sw.includes('/' + themeName));
-  assert.match(sw, /attendigo-v215-dtr-schedule-persistence/);
+  const version = Number(sw.match(/const CACHE = "attendigo-v(\d+)-[a-z0-9-]+"/)?.[1]);
+  assert.ok(version >= 216, 'cache must refresh when sign-in CSS changes');
+  assert.ok(sw.includes('/attendigo-login-refinement.css?v=4'));
 });
