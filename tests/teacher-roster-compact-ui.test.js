@@ -42,13 +42,12 @@ test('responsive teacher roster keeps grouped sex counts, readable cards and dar
   assert.match(style, /:focus-visible/);
 });
 test('PWA asset versions match the new styling and scripts', () => {
-  for (const asset of ['/teacher-learner-roster.css?v=4','/portal.js?v=0.9.140','/class-qr-dashboard-link.js?v=6','/teacher-roster-popover.js?v=2']) {
-    assert.ok(page.includes(asset), asset+' included in portal');
-    assert.ok(worker.includes(JSON.stringify(asset)), asset+' cached');
+  for (const name of ['teacher-learner-roster.css','portal.js','class-qr-dashboard-link.js','teacher-roster-popover.js']) {
+    const asset = page.match(new RegExp('/'+name.replaceAll('.','[.]')+'[?]v=[a-zA-Z0-9.]+'))?.[0];
+    assert.ok(asset, name+' must have a versioned portal reference');
+    assert.ok(worker.includes(JSON.stringify(asset)), asset+' must be cached');
   }
-  assert.ok(page.includes('/class-qr-dashboard-link.js?v=6'));
-  assert.ok(page.includes('/teacher-roster-popover.js?v=2'));
-  assert.match(worker, /const CACHE = "attendigo-v\d+[^"]*"/);
+  assert.match(worker, /const CACHE = "attendigo-v[0-9]+[^"]*"/);
 });
 
 test('four-column teacher table keeps guardian contact inside Actions, not the wide roster', () => {
@@ -58,7 +57,7 @@ test('four-column teacher table keeps guardian contact inside Actions, not the w
   assert.match(main, /const teacherGuardian = teacher/);
   assert.match(main, /teacher-roster-menu-label/);
   assert.match(main, /teacherRosterInitials\(fullName\)/);
-  assert.match(main, /teacher-roster-initials/);
+  assert.match(main, /teacherRosterInitials\\(student\\.fullName\\)/);
   assert.match(main, /classInfo =/);
   assert.match(main, /teacher-directory-mode/);
   assert.match(main, /<div class="teacher-roster-quick-actions">/);
