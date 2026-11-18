@@ -12,6 +12,10 @@ function bearerToken(req) {
 
 function registerAuthRoutes(app, pool) {
   const sessionHours = Math.min(24, Math.max(1, Number(process.env.AUTH_SESSION_HOURS || 12)));
+  const studentCookie='__Host-attendigo-student';
+  const cookieOptions='Path=/; HttpOnly; Secure; SameSite=Lax';
+  const cookieToken=req=>{const raw=String(req.headers.cookie||'').split(';').map(x=>x.trim()).find(x=>x.startsWith(studentCookie+'='));return raw?raw.slice(studentCookie.length+1):'';};
+  function clearStudentCookie(res){res.setHeader('Set-Cookie',studentCookie+'=; '+cookieOptions+'; Max-Age=0');}
   const limitLoginAttempts = createIpRateLimiter({
     windowMs: 15 * 60 * 1000,
     maxRequests: 60,
@@ -166,6 +170,7 @@ function registerAuthRoutes(app, pool) {
          VALUES($1,$2,$3,$4)`,
         [hashToken(token), school.school_id, account.student_account_id, expiresAt]
       );
+      res.setHeader('Set-Cookie',studentCookie+'='+token+'; '+cookieOptions+'; Max-Age='+Math.max(1,Math.floor((expiresAt.getTime()-Date.now())/1000)));
       return res.json({
         accessToken: token, tokenType: 'Bearer', expiresAt: expiresAt.toISOString(),
         user: {
@@ -313,7 +318,7 @@ function registerAuthRoutes(app, pool) {
   });
 
   app.get('/api/auth/me', async (req, res) => {
-    const token = bearerToken(req);
+    const token = bearerToken(req) || cookieToken(req);
     if (!token) return res.status(401).json({ error: 'Authentication required.' });
     try {
       const tokenHash = hashToken(token);
@@ -393,7 +398,8 @@ function registerAuthRoutes(app, pool) {
   });
 
   app.post('/api/auth/logout', async (req, res) => {
-    const token = bearerToken(req);
+    const token = bearerToken(req) || cookieToken(req);
+    clearStudentCookie(res);
     if (!token) return res.status(204).end();
     try {
       await pool.query(
