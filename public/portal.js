@@ -178,7 +178,7 @@ window.attendigoStaffIdentity = new Promise(resolve => { resolveStaffIdentity = 
 
   function allowedViewsForUser() {
     const role = user?.role;
-    if (role === 'SCHOOL_ADMIN') return ['dashboard', 'students', 'studentAccounts', 'parents', 'teachers', 'schedules', 'myGateAttendance', 'cloudSync', 'schoolBranding'];
+    if (role === 'SCHOOL_ADMIN') return ['dashboard', 'students', 'studentAccounts', 'parents', 'teachers', 'schedules', 'myGateAttendance', 'lunchQrAdmin', 'form48Reports', 'cloudSync', 'schoolBranding'];
     if (role === 'DEPARTMENT_HEAD') return ['dashboard', 'planner', 'students', 'teachers', 'schedules', 'sf2'];
     if (role === 'TEACHER') {
       const views = ['dashboard', 'planner', 'myGateAttendance'];
@@ -260,7 +260,7 @@ window.attendigoStaffIdentity = new Promise(resolve => { resolveStaffIdentity = 
     if (!allowedViews.includes(view)) view = allowedViews.includes('dashboard') ? 'dashboard' : (allowedViews[0] || 'dashboard');
     $('platformWorkspace').hidden = true;
     $('schoolWorkspace').hidden = false;
-    ['dashboard', 'students', 'studentAccounts', 'parents', 'schedules', 'teachers', 'sf2', 'classAttendance', 'myGateAttendance', 'cloudSync', 'schoolBranding', 'planner'].forEach(name => {
+    ['dashboard', 'students', 'studentAccounts', 'parents', 'schedules', 'teachers', 'sf2', 'classAttendance', 'myGateAttendance', 'lunchQrAdmin', 'form48Reports', 'cloudSync', 'schoolBranding', 'planner'].forEach(name => {
       const panel = $(`${name}View`);
       if (panel) panel.hidden = name !== view;
     });
@@ -319,6 +319,8 @@ window.attendigoStaffIdentity = new Promise(resolve => { resolveStaffIdentity = 
         sf2: ['SF2 Report Generator', 'Generate the monthly TUVERA SF2 and collect official reports submitted by Class Advisers.'],
         cloudSync: ['Cloud Sync', 'Forward accepted attendance records to your authenticated cloud server.'],
         schoolBranding: ['School identity', 'Manage the name, logo, and interface accent color for your school workspace.'],
+        lunchQrAdmin: ['Lunch QR management', 'Assign authorized lunch QR presenters without changing teacher account access.'],
+        form48Reports: ['Form 48 DTR reports', 'Preview and print the verified monthly Daily Time Record for a selected staff member.'],
         myGateAttendance: ['My Staff Attendance', 'View your own Gatekeeper-verified physical movements and four-slot Form 48 DTR. Administrative login does not record attendance.']
       };
     }
@@ -462,6 +464,8 @@ window.attendigoStaffIdentity = new Promise(resolve => { resolveStaffIdentity = 
       $('classAttendanceNav').querySelector('.nav-label').textContent =
         classAdviser && subjectTeacher ? 'Class attendance' : classAdviser ? 'My advisory attendance' : 'My class attendance';
     }
+    if ($('lunchQrAdminNav')) $('lunchQrAdminNav').hidden = !admin;
+    if ($('form48ReportsNav')) $('form48ReportsNav').hidden = !admin;
     if ($('myGateAttendanceNav')) {
       $('myGateAttendanceNav').hidden = !(teacher || admin);
       $('myGateAttendanceNav').querySelector('.nav-label').textContent = admin ? 'My Staff Attendance' : 'My Gate Attendance';
