@@ -84,8 +84,21 @@ function registerClassQrRoutes(app,pool,{authenticateSchoolClient,requireSchoolR
      [req.auth.schoolId,periodId,date,p.teacher_user_id,p.grade_level,p.section,p.effective_subject,start,end,close,crypto.randomBytes(32).toString('hex')]);
    const found=r.rows[0]|| (await pool.query('SELECT session_id FROM class_qr_sessions WHERE school_id=$1 AND period_id=$2 AND school_date=$3',[req.auth.schoolId,periodId,date])).rows[0];
    const current=await pool.query('SELECT closed_at,closes_at,teacher_user_id FROM class_qr_sessions WHERE session_id=$1 AND school_id=$2',[found.session_id,req.auth.schoolId]);
-   if(current.rows[0]?.closed_at||Date.now()>=new Date(current.rows[0]?.closes_at).getTime())return res.status(410).json({error:'This class QR session was already closed.'});
    if(req.auth.role!=='SCHOOL_ADMIN'&&String(current.rows[0]?.teacher_user_id)!==String(req.auth.userId))return res.sendStatus(403);
+   if(Date.now()>=new Date(current.rows[0]?.closes_at).getTime())return res.status(410).json({error:'The scheduled QR attendance window has ended.'});
+   if(current.rows[0]?.closed_at){
+    if(req.body?.reopen!==true)return res.status(410).json({error:'This class QR session was already closed.',canReopen:true});
+    // Reuse the same session ID to preserve check-ins and rotate the signing
+    // secret so QR codes issued before closure cannot be used after reopening.
+    const reopened=await pool.query(`UPDATE class_qr_sessions
+      SET closed_at=NULL,secret=$3
+      WHERE session_id=$1 AND school_id=$2 AND closed_at IS NOT NULL
+        AND closes_at>NOW() RETURNING session_id,closes_at`,
+      [found.session_id,req.auth.schoolId,crypto.randomBytes(32).toString('hex')]);
+    if(reopened.rowCount)return res.json({sessionId:found.session_id,closesAt:reopened.rows[0].closes_at,onTimeGraceMinutes:10,rotationSeconds:30,reopened:true});
+    const latest=await pool.query('SELECT closed_at FROM class_qr_sessions WHERE session_id=$1 AND school_id=$2',[found.session_id,req.auth.schoolId]);
+    if(latest.rows[0]?.closed_at)return res.status(410).json({error:'The session could not be reopened within its scheduled window.'});
+   }
    res.json({sessionId:found.session_id,closesAt:current.rows[0].closes_at,onTimeGraceMinutes:10,rotationSeconds:30});
   }catch(e){console.error('QR session:',e.message);res.status(500).json({error:'Unable to start QR attendance.'});}
  });
