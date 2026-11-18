@@ -2228,8 +2228,8 @@ app.post('/api/gate/teacher-auto-event', authenticateSchoolClient, requireSchool
     // Serialize gate scans per person and school; never trust browser history.
     await client.query('SELECT pg_advisory_xact_lock(hashtext($1),hashtext($2))',
       [String(req.auth.schoolId),String(teacherId)]);
-    const clock=await client.query(`SELECT NOW() AS occurred_at,
-      to_char(NOW() AT TIME ZONE 'Asia/Manila','YYYY-MM-DD') AS school_date`);
+    const clock=await client.query(`SELECT clock_timestamp() AS occurred_at,
+      to_char(clock_timestamp() AT TIME ZONE 'Asia/Manila','YYYY-MM-DD') AS school_date`);
     const occurredAt=clock.rows[0].occurred_at,schoolDate=clock.rows[0].school_date;
     const calendar=await client.query(`SELECT exception_type,dismissal_time FROM school_calendar_exceptions
       WHERE school_id=$1 AND calendar_date=$2::date`,[req.auth.schoolId,schoolDate]);
@@ -3388,9 +3388,12 @@ app.post('/api/sync/events', authenticateSchoolClient, requireSchoolClient, asyn
   try {
     await client.query('BEGIN');
     for (const event of events) {
+      const automaticGate = event?.eventType === 'AUTO' &&
+        req.auth.type === 'SCHOOL_USER' && req.auth.role === 'GATE_KEEPER' &&
+        event.attendanceScope === 'SCHOOL' && event.metadata?.photoVerified === true;
       if (!event || !event.eventId || !event.studentId || !event.eventType || !event.occurredAt ||
           !isValidSchoolDate(event.schoolDate) || !event.attendanceScope ||
-          !['TIME_IN', 'TIME_OUT'].includes(event.eventType) ||
+          (!['TIME_IN', 'TIME_OUT'].includes(event.eventType) && !automaticGate) ||
           !['SCHOOL', 'CLASS', 'ADVISORY'].includes(event.attendanceScope) ||
           (event.attendanceScope === 'CLASS' && !event.periodId) ||
           (['SCHOOL', 'ADVISORY'].includes(event.attendanceScope) && event.periodId) ||
@@ -3429,6 +3432,41 @@ app.post('/api/sync/events', authenticateSchoolClient, requireSchoolClient, asyn
           results.push({ eventId: event.eventId, status: 'REJECTED', reason: 'Event ID belongs to a different school.' });
         }
         continue;
+      }
+
+      if (automaticGate) {
+        // The Gatekeeper confirms identity; only the server selects the gate
+        // direction and occurrence time. Never derive from browser state.
+        await client.query('SELECT pg_advisory_xact_lock(hashtext($1),hashtext($2))',
+          [String(req.auth.schoolId),'STUDENT_GATE:'+String(event.studentId)]);
+        const clock=await client.query(`SELECT clock_timestamp() AS occurred_at,
+          to_char(clock_timestamp() AT TIME ZONE 'Asia/Manila','YYYY-MM-DD') AS school_date`);
+        event.occurredAt=clock.rows[0].occurred_at.toISOString();
+        event.schoolDate=clock.rows[0].school_date;
+        const prior=await client.query(`SELECT event_type AS "eventType",
+            occurred_at_device AS "occurredAt"
+          FROM attendance_events WHERE school_id=$1 AND student_id=$2
+            AND school_date=$3::date AND attendance_scope='SCHOOL'
+            AND sync_status='ACCEPTED'
+          ORDER BY occurred_at_device ASC,event_id ASC`,
+          [req.auth.schoolId,event.studentId,event.schoolDate]);
+        const {decideNextGateEvent}=require('./gate-event-decision');
+        // Student SCHOOL attendance currently has one verified arrival and
+        // departure per day. Never create a third event without a policy review.
+        const valid=prior.rows.length<=2?decideNextGateEvent(prior.rows):
+          {status:'REVIEW'};
+        if(valid.status!=='READY'||prior.rows.length>=2){
+          results.push({eventId:event.eventId,status:'REJECTED',
+            reason:'School gate attendance is already complete or requires authorized review.'});
+          continue;
+        }
+        const previous=prior.rows[prior.rows.length-1];
+        if(previous&&Date.parse(event.occurredAt)-Date.parse(previous.occurredAt)<90*1000){
+          results.push({eventId:event.eventId,status:'REJECTED',
+            reason:'Recent gate scan detected. Please wait or request authorized review.'});
+          continue;
+        }
+        event.eventType=valid.eventType;
       }
 
       // A finalized class is immutable until the teacher explicitly reopens it.
@@ -3665,7 +3703,7 @@ app.post('/api/sync/events', authenticateSchoolClient, requireSchoolClient, asyn
       );
 
       // SMS is queued transactionally by attendance_sms_enqueue for every attendance entry path.
-      results.push({ eventId: event.eventId, status: 'ACCEPTED', late });
+      results.push({ eventId: event.eventId, status: 'ACCEPTED', late, ...(automaticGate?{eventType:event.eventType,occurredAt:event.occurredAt}: {}) });
     }
     await client.query('COMMIT');
     return res.json({ results, serverTime: new Date().toISOString() });
