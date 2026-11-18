@@ -20,11 +20,9 @@
     catch { return false; }
   };
   const data = async url => {
-    const token = sessionStorage.getItem('schoolAttendance.accessToken');
-    if (!token) throw Error('School session expired. Sign in again.');
+
     const response = await fetch(url, {
-      cache: 'no-store',
-      headers: { Authorization: 'Bearer ' + token }
+      cache: 'no-store'
     });
     const body = await response.json().catch(() => ({}));
     if (!response.ok) throw Error(body.error || 'Cannot read account directory (' + response.status + ')');

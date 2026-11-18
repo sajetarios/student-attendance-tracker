@@ -1,3 +1,6 @@
+// Role-specific modules initialize after the server identifies this tab.
+let resolveStaffIdentity;
+window.attendigoStaffIdentity = new Promise(resolve => { resolveStaffIdentity = resolve; });
 (() => {
   const tokenKey = 'schoolAttendance.accessToken';
   const userKey = 'schoolAttendance.user';
@@ -45,12 +48,10 @@
   let schoolBranding = null;
   let brandingLogoObjectUrl = null;
 
-
   const $ = id => document.getElementById(id);
   const esc = value => String(value ?? '').replace(/[&<>"']/g, ch => ({
     '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
   })[ch]);
-
 
   // Format PostgreSQL DATE values or ISO timestamps using the school's timezone.
   // This prevents a date such as 2026-11-17 from appearing as the previous day.
@@ -190,6 +191,22 @@
     return [];
   }
 
+  function restoreDestination() {
+    const params = new URLSearchParams(location.search);
+    const view = params.get('view');
+    if (user.role === 'SCHOOL_ADMIN' && view === 'academic') {
+      document.dispatchEvent(new Event('attendigo:open-academic'));
+      return;
+    }
+    setView(view || (user.role === 'SUPER_ADMIN' ? 'platform' : 'dashboard'));
+    if (user.role !== 'SCHOOL_ADMIN') return;
+    const section = params.get('section');
+    if (view === 'teachers' && ['directory','accounts','permissions','departments'].includes(section)) {
+      setAdminManagementTab(section);
+    }
+    if (view === 'dashboard' && params.get('panel') === 'requests') $('adminNotificationBell')?.click();
+  }
+
   let restoringHistory = false;
   function setView(view) {
     // Preserve deep links and back/forward navigation without generating history loops.
@@ -200,6 +217,8 @@
       if (permitted.includes(view) && new URLSearchParams(location.search).get('view') !== view) {
         const current = new URL(location.href);
         current.searchParams.set('view',view);
+        current.searchParams.delete('section');
+        current.searchParams.delete('panel');
         history.pushState({view},'',current.pathname+current.search+current.hash);
       }
     }
@@ -526,7 +545,7 @@
     }
     if ($('addSchoolStaffAccount')) $('addSchoolStaffAccount').hidden = !admin;
     if ($('demoStudentLoginCard')) $('demoStudentLoginCard').hidden = !(admin && user?.schoolCode === 'DEMO001');
-    
+
     if ($('staffUserRows')) $('staffUserRows').closest('.staff-accounts-card').hidden = !admin;
     if ($('adviserAssignmentForm') && !(admin || departmentHead)) $('adviserAssignmentForm').hidden = true;
     if ($('adviserAssignmentForm')) $('adviserAssignmentForm').closest('.adviser-assignments-card').hidden = !(admin || departmentHead);
@@ -662,14 +681,6 @@
       else button.removeAttribute('aria-current');
     });
   }
-  $('staffNavChildren')?.addEventListener('click', event => {
-    const button = event.target.closest('[data-staff-section]');
-    if (!button || user?.role !== 'SCHOOL_ADMIN') return;
-    setView('teachers');
-    setAdminManagementTab(button.dataset.staffSection);
-    if (window.matchMedia('(max-width: 860px)').matches) closeMobileSidebar();
-  });
-
   function setAdminManagementTab(tabName = 'accounts') {
     const isAdmin = user?.role === 'SCHOOL_ADMIN';
     const tabs = $('adminManagementTabs');
@@ -722,11 +733,6 @@
     else if (target === 'studentAccounts') $('adminStudentAccountsNav')?.click();
     else if (target === 'parents') $('parentsNav')?.click();
     else if (target === 'requests') $('requestsApprovalsNav')?.click();
-  });
-  $('requestsApprovalsNav')?.addEventListener('click', () => {
-    if (user?.role !== 'SCHOOL_ADMIN') return;
-    if (window.matchMedia('(max-width: 860px)').matches) closeMobileSidebar();
-    $('adminNotificationBell')?.click();
   });
   $('adminManagementTabs')?.addEventListener('click', event => {
     const button = event.target.closest('[data-admin-management-tab]');
@@ -3148,7 +3154,6 @@ let teacherActionMenuListenersInstalled = false;
     populateSavedTemplateBlocks();
   }
 
-
   function suggestScheduleLabel(suggestion) {
     const input=$('periodName');if(!input)return;
     const previous=input.dataset.suggestedLabel||'';
@@ -3715,7 +3720,6 @@ let teacherActionMenuListenersInstalled = false;
   }
   wireScheduleAdjustments();
 
-
   async function loadSchoolData() {
     const role = user.role;
     if (role === 'GATE_KEEPER') {
@@ -4051,7 +4055,6 @@ let teacherActionMenuListenersInstalled = false;
     catch (error) { $('schoolBrandingFeedback').textContent = error.message; $('schoolBrandingFeedback').className = 'inline-feedback error'; }
   });
 
-
   let sf2PreviewData = null;
   async function loadSf2Preview() {
     const month = $('sf2Month').value;
@@ -4299,6 +4302,7 @@ let teacherActionMenuListenersInstalled = false;
     if ($('createScheduleSection')) $('createScheduleSection').hidden = user.role !== 'SCHOOL_ADMIN';
     if (user.mustChangePassword) { window.location.replace('/force-password-change.html'); return; }
     sessionStorage.setItem(userKey, JSON.stringify(user));
+    resolveStaffIdentity(user);
     $('userDisplay').textContent = user.displayName || user.username;
     if ($('userRole')) $('userRole').textContent = user.role.replaceAll('_', ' ');
     $('accountMenuName').textContent = user.displayName || user.username;
@@ -4376,7 +4380,7 @@ let teacherActionMenuListenersInstalled = false;
         document.querySelectorAll('.quick-action[data-go]').forEach(button => {
           button.addEventListener('click', () => setView(button.dataset.go));
         });
-        setView(new URLSearchParams(location.search).get('view') || 'dashboard');
+        restoreDestination();
       }
       // Show the correct role layout before optional, slower dashboard requests finish.
       document.dispatchEvent(new Event('attendigo:portal-ready'));
@@ -4649,7 +4653,7 @@ let teacherActionMenuListenersInstalled = false;
   window.addEventListener('popstate',() => {
     if (!user) return;
     restoringHistory = true;
-    try { setView(new URLSearchParams(location.search).get('view') || (user.role==='SUPER_ADMIN'?'platform':'dashboard')); }
+    try { restoreDestination(); }
     finally { restoringHistory = false; }
   });
   document.addEventListener('click',event=>{
@@ -4679,7 +4683,6 @@ let teacherActionMenuListenersInstalled = false;
     $('newStudentId').focus({ preventScroll: true });
   });
 
-  if ($('parentsNav')) $('parentsNav').addEventListener('click', () => setView('parents'));
   document.querySelectorAll('.nav-group-toggle[data-nav-group]').forEach(button => {
     button.addEventListener('click', () => {
       const key = button.dataset.navGroup;
@@ -5294,7 +5297,6 @@ let teacherActionMenuListenersInstalled = false;
     }
     catch (error) { feedback.textContent = error.message; feedback.className = 'inline-feedback error'; }
   });
-
 
   let sectionLoadSequence = 0;
   async function loadSectionsForGrade(gradeLevel, preferredSection = '') {
@@ -5982,8 +5984,6 @@ let teacherActionMenuListenersInstalled = false;
     }
   });
 
-
-
   $('teacherGateDate')?.addEventListener('change', async () => {
     try { await loadGateMonitoring(); } catch (error) { showToast(error.message, true); }
   });
@@ -6467,7 +6467,6 @@ let teacherActionMenuListenersInstalled = false;
     });
   }
 
-
   $('departmentForm')?.addEventListener('submit', async event => {
     event.preventDefault();
     const feedback = $('departmentFormFeedback');
@@ -6586,8 +6585,6 @@ let teacherActionMenuListenersInstalled = false;
       select.disabled = false;
     }
   });
-
-  
 
 $('teacherCoverageCard')?.addEventListener('click', event => {
     const tab = event.target.closest('[data-coverage-tab]');

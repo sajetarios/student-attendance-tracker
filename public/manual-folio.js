@@ -1,10 +1,9 @@
-(() => {
+window.attendigoStaffIdentity.then(user => {
  'use strict';
  const host=document.getElementById('manualFolio');
  if(!host)return;
- const token=sessionStorage.getItem('schoolAttendance.accessToken');
- const user=JSON.parse(sessionStorage.getItem('schoolAttendance.user')||'{}');
- if(!token||user.role!=='TEACHER')return;
+
+ if(user.role!=='TEACHER')return;
  const scope=[user.schoolId||'school',user.userId||user.id||'teacher'].join(':');
  // Offline preparation is a separate encrypted workflow; never bypass the dashboard session guard.
  const offlineLink=document.createElement('a');
@@ -19,7 +18,7 @@
  try { if(localStorage.getItem('attendigo.attendance.roster.view')==='alphabetical')state.rosterView='alphabetical'; } catch {}
  const statuses=['PRESENT','LATE','ABSENT','EXCUSED'],symbols={PRESENT:'✓',LATE:'◷',ABSENT:'✕',EXCUSED:'!'},names={PRESENT:'Present',LATE:'Late',ABSENT:'Absent',EXCUSED:'Excused'};
  async function api(path,options={}) {
-   const r=await fetch(path,{...options,headers:{Authorization:'Bearer '+token,...(options.body?{'Content-Type':'application/json'}:{})},cache:'no-store'});
+   const r=await fetch(path,{...options,headers:{...(options.body?{'Content-Type':'application/json'}:{})},cache:'no-store'});
    if(!r.ok){const v=await r.json().catch(()=>({}));throw Error(v.error||'Request failed ('+r.status+')');}
    return r.json();
  }
@@ -497,4 +496,4 @@
  });
  window.addEventListener('online',()=>notice('Connection restored. Sync your saved attendance when ready.'));
  initialize();
-})();
+});

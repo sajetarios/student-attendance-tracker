@@ -1,17 +1,16 @@
-(() => {
-  const token=sessionStorage.getItem('schoolAttendance.accessToken');
-  let user={}; try{user=JSON.parse(sessionStorage.getItem('schoolAttendance.user')||'{}');}catch{}
+window.attendigoStaffIdentity.then(user => {
+
   const nav=document.getElementById('academicAdminNav'), panel=document.getElementById('academicAdminWorkspace');
   if(!nav||!panel)return;
   // Role visibility is controlled by the main portal after session validation.
   // Do not permanently disable the module because a cached session object was not yet ready.
   if(user.role!=='SCHOOL_ADMIN'){nav.hidden=true;return;}
   nav.hidden=false;
-  const $=id=>document.getElementById(id), headers={'Authorization':'Bearer '+token,'Content-Type':'application/json'};
+  const $=id=>document.getElementById(id), headers={'Content-Type':'application/json'};
   async function api(url,options={}){const r=await fetch(url,{...options,headers:{...headers,...options.headers},cache:'no-store'});const d=await r.json().catch(()=>({}));if(!r.ok)throw Error(d.error||'Request failed');return d;}
   function message(id,text,error=false){const el=$(id);el.textContent=text;el.className='inline-feedback '+(error?'error':'');}
-  function show(){['dashboardView','studentsView','schedulesView','teachersView','sf2View'].forEach(id=>{const el=$(id);if(el)el.hidden=true;});panel.hidden=false;document.querySelectorAll('.nav-item').forEach(b=>b.classList.remove('active'));nav.classList.add('active');const crumb=$('breadcrumbCurrent');if(crumb)crumb.textContent='School Years & Programs';$('schoolWorkspace').hidden=false;loadAll();}
-  nav.addEventListener('click',show);
+  function show(){document.querySelectorAll('#schoolWorkspace .view-panel').forEach(el=>{el.hidden=true;});panel.hidden=false;document.querySelectorAll('.nav-item').forEach(b=>b.classList.remove('active'));nav.classList.add('active');const crumb=$('breadcrumbCurrent');if(crumb)crumb.textContent='School Years & Programs';$('schoolWorkspace').hidden=false;loadAll();}
+  document.addEventListener('attendigo:open-academic',show);
   async function loadYears(){const d=await api('/api/school-years');const list=$('academicYearList'),select=$('academicSelectedYear'),old=select.value;list.replaceChildren();select.innerHTML='<option value="">Select a school year</option>';d.schoolYears.forEach(y=>{const o=document.createElement('option');o.value=y.schoolYearId;o.textContent=y.label+' · '+y.status;select.append(o);const row=document.createElement('div');row.className='academic-year-row';const info=document.createElement('div');const strong=document.createElement('strong');strong.textContent=y.label;const small=document.createElement('small');small.textContent=y.startDate+' to '+y.endDate+' · '+y.status;info.append(strong,small);row.append(info);if(y.status!=='ACTIVE'){const b=document.createElement('button');b.type='button';b.className='outline-button';b.textContent='Activate';b.addEventListener('click',()=>changeStatus(y.schoolYearId,'ACTIVE'));row.append(b);}else{const b=document.createElement('button');b.type='button';b.className='outline-button';b.textContent='Close year';b.addEventListener('click',()=>changeStatus(y.schoolYearId,'CLOSED'));row.append(b);}list.append(row);});if(old&&d.schoolYears.some(y=>y.schoolYearId===old))select.value=old;else{const active=d.schoolYears.find(y=>y.status==='ACTIVE');if(active)select.value=active.schoolYearId;}await loadEnrollments();}
   async function changeStatus(id,status){if(status==='CLOSED'&&!await AppDialog.confirm('Close this school year? Its enrollment records will become read-only.',{title:'Close school year',confirmText:'Close school year',variant:'danger'}))return;try{await api('/api/school-years/'+id+'/status',{method:'PATCH',body:JSON.stringify({status})});await loadYears();}catch(e){message('academicYearFeedback',e.message,true);}}
   async function loadPrograms(){const d=await api('/api/special-programs'),host=$('academicProgramList');programCatalog=d.programs;host.replaceChildren();d.programs.forEach(p=>{const row=document.createElement('div');row.className='academic-year-row';const label=document.createElement('strong');label.textContent=p.code+' · '+p.name;row.append(label);host.append(row);});}
@@ -43,4 +42,4 @@
   $('academicSelectedYear').addEventListener('change',()=>loadEnrollments().catch(e=>message('academicEnrollmentFeedback',e.message,true)));
   $('academicEnrollmentForm').addEventListener('submit',async e=>{e.preventDefault();const form=e.currentTarget;const f=new FormData(form),id=$('academicSelectedYear').value;if(!id)return message('academicEnrollmentFeedback','Select a school year first.',true);try{await api('/api/school-years/'+id+'/enrollments',{method:'POST',body:JSON.stringify({studentId:f.get('studentId'),gradeLevel:f.get('gradeLevel'),section:f.get('section'),enrollmentDate:f.get('enrollmentDate')})});form.reset();message('academicEnrollmentFeedback','Learner enrolled.');await loadEnrollments();}catch(err){message('academicEnrollmentFeedback',err.message,true);}});
   document.addEventListener('visibilitychange',()=>{if(!document.hidden&&!panel.hidden)loadAll();});
-})();
+});

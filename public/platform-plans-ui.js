@@ -1,16 +1,15 @@
-(() => {
+window.attendigoStaffIdentity.then(user => {
  'use strict';
  const $=id=>document.getElementById(id);
  const section=$('platformPlansSection');
  if(!section)return;
- const token=sessionStorage.getItem('schoolAttendance.accessToken');
- const user=(()=>{try{return JSON.parse(sessionStorage.getItem('schoolAttendance.user')||'null')}catch{return null}})();
+
  if(user?.role!=='SUPER_ADMIN'){section.hidden=true;return;}
  const featureNames={student_management:'Student management',manual_attendance:'Manual attendance',qr_attendance:'QR attendance',parent_portal:'Parent portal',timetable:'Timetable',planner:'Planner',offline_sync:'Offline sync',advanced_analytics:'Advanced analytics',sms_notifications:'SMS notifications',custom_branding:'Custom branding'};
  let plans=[],subscriptions=[],schools=[];
  const message=(text,error=false)=>{const el=$('platformPlansFeedback');el.textContent=text;el.className='inline-feedback'+(error?' error':'');};
  async function api(url,options={}){
-  const response=await fetch(url,{...options,cache:'no-store',headers:{'Authorization':'Bearer '+token,...(options.body?{'Content-Type':'application/json'}:{})}});
+  const response=await fetch(url,{...options,cache:'no-store',headers:{...(options.body?{'Content-Type':'application/json'}:{})}});
   const result=await response.json().catch(()=>({}));
   if(!response.ok)throw Error(result.error||'Request failed');
   return result;
@@ -222,4 +221,4 @@
  backupsRefresh.addEventListener('click',loadDeletedSchoolBackups);
  loadDeletedSchoolBackups();
  load();
-})();
+});

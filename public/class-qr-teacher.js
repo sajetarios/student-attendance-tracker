@@ -1,5 +1,5 @@
-(()=>{'use strict';const $=id=>document.getElementById(id);const token=sessionStorage.getItem('schoolAttendance.accessToken');if(!token){location.replace('/portal-login.html');return;}let session=null,timer=null;
-async function api(url,options={}){const r=await fetch(url,{...options,headers:{Authorization:'Bearer '+token,'Content-Type':'application/json'},cache:'no-store'});const data=await r.json().catch(()=>({}));if(!r.ok)throw Error(data.error||'Request failed');return data;}
+(()=>{'use strict';const $=id=>document.getElementById(id);let session=null,timer=null;
+async function api(url,options={}){const r=await fetch(url,{...options,headers:{'Content-Type':'application/json'},cache:'no-store'});const data=await r.json().catch(()=>({}));if(r.status===401){location.replace('/portal-login.html');throw Error('Session expired.');}if(!r.ok)throw Error(data.error||'Request failed');return data;}
 async function refresh(){if(!session)return;try{const data=await api('/api/class-qr/sessions/'+session+'/qr');$('qr').src=data.qrImage;$('qr').hidden=false;$('qrWrap').hidden=false;$('qrEmpty').hidden=true;$('expiry').textContent='Code rotates every 30 seconds. Closes '+new Date(data.closesAt).toLocaleTimeString('en-PH',{timeZone:'Asia/Manila'});}catch(e){$('notice').textContent=e.message;$('qr').hidden=true;$('qrWrap').hidden=true;$('qrEmpty').hidden=false;clearInterval(timer);timer=null;}}
 $('start').onclick=async()=>{try{const periodId=$('period').value;if(!periodId)throw Error('Choose a class.');let data;try{data=await api('/api/class-qr/sessions',{method:'POST',body:JSON.stringify({periodId})});}catch(error){if(!/already closed/i.test(error.message)||!window.confirm('This QR session was closed. Reopen it for the remaining scheduled class time? Existing attendance will be preserved.'))throw error;data=await api('/api/class-qr/sessions',{method:'POST',body:JSON.stringify({periodId,reopen:true})});}session=data.sessionId;$('notice').textContent=data.reopened?'Session reopened. Previous attendance is preserved.':'Session started.';$('close').disabled=false;await refresh();clearInterval(timer);timer=setInterval(refresh,5000);}catch(e){$('notice').textContent=e.message;}};
 $('close').onclick=async()=>{if(!session)return;try{await api('/api/class-qr/sessions/'+session+'/close',{method:'POST'});clearInterval(timer);timer=null;$('qr').hidden=true;$('qrWrap').hidden=true;$('qrEmpty').hidden=false;$('close').disabled=true;$('expiry').textContent='';$('notice').textContent='Session closed.';}catch(e){$('notice').textContent=e.message;}};
@@ -9,8 +9,7 @@ expand.addEventListener('click',()=>setExpanded(!panel.classList.contains('qr-ex
 document.addEventListener('keydown',e=>{if(e.key==='Escape'&&panel.classList.contains('qr-expanded'))setExpanded(false);});
 (async()=>{
  try{
-  const raw=sessionStorage.getItem('schoolAttendance.user');let user=null;
-  try{user=JSON.parse(raw||'null');}catch{}
+  const {user}=await api('/api/auth/me');
   if(user?.role==='DEPARTMENT_HEAD'){location.replace('/portal.html');return;}
   const r=await api('/api/class-qr/today');
   const label=new Date(r.date+'T12:00:00+08:00').toLocaleDateString('en-PH',{timeZone:'Asia/Manila',weekday:'long',month:'long',day:'numeric',year:'numeric'});

@@ -7,9 +7,8 @@
  const getUser=()=>{try{return JSON.parse(sessionStorage.getItem('schoolAttendance.user')||'null');}catch{return null;}};
  const isAdmin=()=>getUser()?.role==='SCHOOL_ADMIN';
  const api=async path=>{
-   const token=sessionStorage.getItem('schoolAttendance.accessToken');
-   if(!token)throw Error('Your school session has expired.');
-   const response=await fetch(path,{headers:{Authorization:'Bearer '+token},cache:'no-store'});
+
+   const response=await fetch(path,{cache:'no-store'});
    const data=await response.json().catch(()=>({}));
    if(!response.ok)throw Error(data.error||'Unable to load school requests.');
    return data;
@@ -74,9 +73,8 @@
  const reviewPanel=$('adminPhotoReview'),reviewList=$('adminPhotoReviewList');
  const escapeText=value=>String(value??'').replace(/[&<>"']/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));
  const photoApi=async(path,options={})=>{
-   const token=sessionStorage.getItem('schoolAttendance.accessToken');
-   if(!token)throw Error('Your school session has expired.');
-   const response=await fetch(path,{...options,headers:{Authorization:'Bearer '+token,...(options.headers||{})},cache:'no-store'});
+
+   const response=await fetch(path,{...options,headers:{...(options.headers||{})},cache:'no-store'});
    const result=await response.json().catch(()=>({}));
    if(!response.ok)throw Error(result.error||'Unable to review photo.');
    return result;
@@ -103,8 +101,8 @@
    if(button.dataset.photoPreview){
      button.disabled=true;
      try{
-       const token=sessionStorage.getItem('schoolAttendance.accessToken');
-       const response=await fetch('/api/photos/requests/'+encodeURIComponent(id)+'/preview',{headers:{Authorization:'Bearer '+token},cache:'no-store'});
+
+       const response=await fetch('/api/photos/requests/'+encodeURIComponent(id)+'/preview',{cache:'no-store'});
        if(!response.ok)throw Error('Photo preview unavailable.');
        clearPreview();previewUrl=URL.createObjectURL(await response.blob());
        let img=reviewList.querySelector('.admin-photo-preview');
@@ -143,6 +141,5 @@
    refresh();
    window.setInterval(()=>{if(!document.hidden)refresh();},45000);
  };
- if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',start,{once:true});
- else start();
+ window.attendigoStaffIdentity.then(start);
 })();

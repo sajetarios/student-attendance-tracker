@@ -6,9 +6,8 @@
   const eligible = () => { const u=getUser(); return u?.role === 'SCHOOL_ADMIN' || (u?.role === 'TEACHER' && u.teacherDesignations?.includes('CLASS_ADVISER')); };
   const admin = () => getUser()?.role === 'SCHOOL_ADMIN';
   const api = async (path,options={}) => {
-    const token=sessionStorage.getItem('schoolAttendance.accessToken');
-    if(!token) throw Error('Sign in to manage guardians.');
-    const response=await fetch(path,{...options,cache:'no-store',headers:{Authorization:'Bearer '+token,...(options.body?{'Content-Type':'application/json'}:{}),...(options.headers||{})}});
+
+    const response=await fetch(path,{...options,cache:'no-store',headers:{...(options.body?{'Content-Type':'application/json'}:{}),...(options.headers||{})}});
     const data=await response.json().catch(()=>({}));
     if(!response.ok) throw Error(data.error||('Request failed ('+response.status+')'));
     return data;

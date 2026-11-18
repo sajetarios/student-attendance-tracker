@@ -1,6 +1,6 @@
-(() => {
+window.attendigoStaffIdentity.then(user => {
  'use strict';
- const user=(()=>{try{return JSON.parse(sessionStorage.getItem('schoolAttendance.user')||'null')}catch{return null}})();
+
  if(user?.role!=='SUPER_ADMIN')return;
  const directory=document.querySelector('[data-platform-tab="schoolDirectory"]');
  if(!directory)return;
@@ -13,8 +13,8 @@
  async function load(){
   refresh.disabled=true;holder.textContent='Loading school health…';
   try{
-   const token=sessionStorage.getItem('schoolAttendance.accessToken');
-   const response=await fetch('/api/platform/schools/health',{cache:'no-store',headers:{Authorization:'Bearer '+token}});
+
+   const response=await fetch('/api/platform/schools/health',{cache:'no-store',headers:{}});
    const data=await response.json();
    if(!response.ok)throw Error(data.error||'Unable to load school health');
    const table=document.createElement('table'),thead=document.createElement('thead'),tbody=document.createElement('tbody');
@@ -34,4 +34,4 @@
  }
  refresh.addEventListener('click',load);
  load();
-})();
+});

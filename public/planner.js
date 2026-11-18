@@ -1,11 +1,9 @@
-(() => {
+window.attendigoStaffIdentity.then(user => {
  'use strict';
  const root=document.getElementById('plannerView');
  if(!root)return;
- const token=sessionStorage.getItem('schoolAttendance.accessToken');
- let user={};
- try{user=JSON.parse(sessionStorage.getItem('schoolAttendance.user')||'{}')}catch{}
- if(!token||!['TEACHER','DEPARTMENT_HEAD'].includes(user.role))return;
+
+ if(!['TEACHER','DEPARTMENT_HEAD'].includes(user.role))return;
  const $=id=>document.getElementById(id);
  const escape=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
  const phTime=d=>new Intl.DateTimeFormat('en-CA',{timeZone:'Asia/Manila',year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit',hourCycle:'h23'}).format(new Date(d));
@@ -14,7 +12,7 @@
  const dateParts=s=>s.split('-').map(Number);
  const state={month:today().slice(0,7),date:today(),items:[],editing:null,scope:'ALL',view:(typeof window.matchMedia==='function' && window.matchMedia('(max-width:650px)').matches ? 'AGENDA' : 'MONTH'),loaded:false};
  async function api(path,options={}) {
-   const r=await fetch(path,{...options,headers:{Authorization:'Bearer '+token,...(options.body?{'Content-Type':'application/json'}:{})},cache:'no-store'});
+   const r=await fetch(path,{...options,headers:{...(options.body?{'Content-Type':'application/json'}:{})},cache:'no-store'});
    const data=await r.json().catch(()=>({}));
    if(!r.ok)throw Error(data.error||'Request failed ('+r.status+')');
    return data;
@@ -191,4 +189,4 @@
  });
  root.addEventListener('planner:dashboard',updateDashboardWidget);
  root.addEventListener('planner:open',()=>{if(!state.loaded)load()});
-})();
+});
