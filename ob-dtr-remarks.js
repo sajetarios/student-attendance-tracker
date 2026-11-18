@@ -5,7 +5,8 @@ const timeFmt=new Intl.DateTimeFormat('en-GB',{timeZone:ZONE,hour:'2-digit',minu
 function dateInManila(value){const d=new Date(value);if(!Number.isFinite(d.getTime()))return null;const p=Object.fromEntries(dateFmt.formatToParts(d).map(x=>[x.type,x.value]));return `${p.year}-${p.month}-${p.day}`;}
 function localTime(value){const d=new Date(value);return Number.isFinite(d.getTime())?timeFmt.format(d):null;}
 function lateBy(endAt,gateAt){
- const minutes=Math.floor((Date.parse(gateAt)-Date.parse(endAt))/60000);
+ const endMs=typeof endAt==='number'?endAt:Date.parse(endAt);
+ const minutes=Math.floor((Date.parse(gateAt)-endMs)/60000);
  if(!Number.isFinite(minutes)||minutes<0)return null;
  const hours=Math.floor(minutes/60),mins=minutes%60;
  return hours?hours+'h '+String(mins).padStart(2,'0')+'m':minutes+'m';
