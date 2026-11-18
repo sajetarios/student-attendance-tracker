@@ -47,7 +47,7 @@ test('school admin alone can review with audit and explicit note',async()=>{
  assert.equal((await fixture('TEACHER').call('POST',path,{decision:'VERIFY',note:'Photo checked'},{eventId:id})).code,403);
  const admin=fixture('SCHOOL_ADMIN');
  assert.equal((await admin.call('POST',path,{decision:'VERIFY',note:'Photo checked'},{eventId:id})).code,200);
- assert.ok(admin.queries.some(q=>q.sql.includes('STAFF_OFFLINE_DTR_VERIFIED')));
+ assert.ok(admin.queries.some(q=>q.args?.includes('STAFF_OFFLINE_DTR_VERIFIED')));
  assert.match(code,/staff_user_id===req.auth.userId/);
  assert.match(code,/verification_method=CASE WHEN \$3='VERIFIED' THEN 'MANUAL_REVIEW'/);
  assert.match(code,/FOR UPDATE/);
@@ -65,8 +65,8 @@ test('offline staff capture UI is included and cached for offline access',()=>{
  const html=fs.readFileSync('public/portal.html','utf8');
  const sw=fs.readFileSync('public/sw.js','utf8');
  const ui=fs.readFileSync('public/staff-offline-dtr-ui.js','utf8');
- assert.match(html,/staff-offline-dtr-ui.js\\?v=1/);
- assert.match(sw,/staff-offline-dtr-ui.js\\?v=1/);
+ assert.ok(html.includes('staff-offline-dtr-ui.js?v=1'));
+ assert.ok(sw.includes('staff-offline-dtr-ui.js?v=1'));
  assert.match(ui,/PENDING|pending/);
  assert.match(ui,/clientEventKey:crypto.randomUUID\(\)/);
  assert.match(ui,/offline-review/);
