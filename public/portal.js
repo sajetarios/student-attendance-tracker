@@ -77,7 +77,8 @@
 
   async function api(url, options = {}) {
     const headers = new Headers(options.headers || {});
-    if (token) headers.set('Authorization', `Bearer ${token}`);
+    // The HttpOnly browser session is authoritative across all staff tabs.
+    headers.delete('Authorization');
     if (options.body && !headers.has('Content-Type')) headers.set('Content-Type', 'application/json');
     const response = await fetch(url, { ...options, headers, cache: 'no-store' });
     if (response.status === 401) {
