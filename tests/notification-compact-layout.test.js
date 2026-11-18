@@ -54,3 +54,30 @@ test('Read, delete, and full-detail navigation remain available, accessible and 
  assert.match(css, /\.universal-panel-actions button\{min-height:34px/);
  assert.ok(!script.includes('localStorage.setItem('), 'No notification content written to persistent browser storage');
 });
+
+test('System status and full timestamp use lightweight compact presentation', () => {
+ const script = read('public/universal-notifications.js');
+ const css = read('public/universal-notifications.css');
+ assert.match(script, /String\(item\.category \|\| ''\)\.toUpperCase\(\) !== 'SYSTEM'/);
+ assert.match(script, /day \+ ' · ' \+ time/);
+ assert.match(script, /'universal-detail-status'/);
+ assert.match(script, /'universal-detail-when'/);
+ assert.match(css, /universal-notice-title\{font-size:12\.5px;[^}]*font-weight:600/);
+ assert.match(css, /universal-notice-excerpt\{font-size:11\.5px;[^}]*font-weight:400/);
+ assert.match(css, /universal-notice-time\{display:inline;margin:0;font-size:10\.5px;font-weight:400/);
+ assert.match(css, /\.universal-detail-card p\.universal-detail-status\{[^}]*font-size:11px;[^}]*font-weight:450/);
+ assert.match(css, /\.universal-detail-card \.universal-detail-when\{[^}]*font-size:11px;[^}]*font-weight:400/);
+});
+
+test('Online notification assets bypass stale cache but preserve offline fallback', () => {
+ const sw = read('public/sw.js');
+ assert.match(sw, /universal-notifications\.js/);
+ assert.match(sw, /universal-notifications\.css/);
+ assert.match(sw, /\['\/universal-notifications\.js','\/universal-notifications\.css','\/portal\.js'/);
+ assert.match(sw, /fetch\(request, \{ cache: 'no-store' \}\)/);
+ assert.match(sw, /caches\.match\(request\)/);
+ for (const portal of ['public/portal.html','public/student-portal.html','public/parent-portal.html']) {
+   assert.ok(read(portal).includes('/universal-notifications.js?v=5'));
+   assert.ok(read(portal).includes('/universal-notifications.css?v=4'));
+ }
+});
