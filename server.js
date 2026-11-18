@@ -37,6 +37,7 @@ const { registerClassQrRoutes } = require('./class-qr-routes');
 const { registerStaffLunchRoutes } = require('./staff-lunch-routes');
 const { registerStaffObRoutes } = require('./staff-ob-routes');
 const { registerStaffGateDtrRoutes } = require('./staff-gate-dtr-routes');
+const { registerForm48ReviewRoutes } = require('./form48-review-routes');
 const { registerManualAttendanceRoutes } = require('./manual-attendance-routes');
 const { registerClassFinalizationRoutes } = require('./class-finalization-routes');
 const { registerSardoRoutes } = require('./sardo-routes');
@@ -121,6 +122,7 @@ registerClassQrRoutes(app, pool, { authenticateSchoolClient, requireSchoolRoles 
 registerStaffLunchRoutes(app, pool, { authenticateSchoolClient, requireSchoolRoles });
 registerStaffObRoutes(app, pool, { authenticateSchoolClient, requireSchoolRoles });
 registerStaffGateDtrRoutes(app, pool, { authenticateSchoolClient, requireSchoolRoles });
+registerForm48ReviewRoutes(app, pool, { authenticateSchoolClient, requireSchoolRoles });
 registerManualAttendanceRoutes(app, pool, { authenticateSchoolClient, requireSchoolRoles });
 registerClassFinalizationRoutes(app, pool, { authenticateSchoolClient, requireSchoolRoles });
 registerSardoRoutes(app, pool, { authenticateSchoolClient, requireSchoolRoles });
