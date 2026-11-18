@@ -22,7 +22,7 @@
   let mode = 'school';
   const switchButton=document.createElement('button');
   switchButton.type='button';
-  switchButton.textContent='Sign out current student and switch account';
+  switchButton.textContent='Sign out current account and switch';
   switchButton.style.cssText='display:none;margin:12px auto;padding:10px 16px;border-radius:10px;cursor:pointer;';
   feedback.insertAdjacentElement('afterend',switchButton);
   switchButton.addEventListener('click',async()=>{
@@ -33,7 +33,7 @@
       sessionStorage.removeItem('schoolAttendance.accessToken');
       sessionStorage.removeItem('schoolAttendance.user');
       sessionStorage.removeItem('schoolAttendance.expiresAt');
-      feedback.textContent='Previous student signed out. Enter the new student credentials and sign in.';
+      feedback.textContent='Previous account signed out. Enter the new account credentials and sign in.';
       switchButton.style.display='none';
     }catch(error){feedback.textContent=error.message;}
     finally{switchButton.disabled=false;}
