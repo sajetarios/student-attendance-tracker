@@ -8,6 +8,7 @@ const {Pool}=require('pg');
 const {createOpaqueToken,hashToken}=require('../auth-security');
 const {createAuthMiddleware}=require('../auth-middleware');
 const {registerStaffLunchRoutes}=require('../staff-lunch-routes');
+const {registerStaffGateDtrRoutes}=require('../staff-gate-dtr-routes');
 
 async function main(){
  const url=process.env.DATABASE_URL;
@@ -39,9 +40,15 @@ async function main(){
   const admin=await makeUser(a,'SCHOOL_ADMIN','lunch-admin-');
   const teacher=await makeUser(a,'TEACHER','lunch-teacher-');
   const other=await makeUser(b,'TEACHER','lunch-other-');
+  const keeper=await makeUser(a,'GATE_KEEPER','lunch-keeper-');
+  const otherKeeper=await makeUser(b,'GATE_KEEPER','other-keeper-');
+  const teacherQrToken=crypto.randomUUID();
+  await pool.query('UPDATE school_users SET teacher_qr_token=$2,teacher_photo_path=$3 WHERE user_id=$1',
+   [teacher.id,teacherQrToken,'isolated-test-photo.jpg']);
   const app=express();app.use(express.json());
   const {authenticateSchoolClient,requireSchoolRoles}=createAuthMiddleware(pool);
   registerStaffLunchRoutes(app,pool,{authenticateSchoolClient,requireSchoolRoles});
+  registerStaffGateDtrRoutes(app,pool,{authenticateSchoolClient,requireSchoolRoles});
   server=await new Promise((resolve,reject)=>{
    const s=app.listen(0,'127.0.0.1',()=>resolve(s));s.on('error',reject);
   });
@@ -84,6 +91,35 @@ async function main(){
   assert.equal(audit.rows[0].total,1,'One immutable verified DTR audit row persisted');
   const again=await post('/api/staff-attendance/lunch/redeem',qr,teacher.token);
   assert.equal(again.status,409,'Replay denied even after the first request committed');
+
+
+  const gatePath='/api/staff-attendance/gatekeeper/dtr';
+  const gateBody={teacherQrToken,slot:'PM_OUT',photoVerified:true};
+  assert.equal((await post(gatePath,gateBody,teacher.token)).status,403,
+   'Teachers cannot use the Gatekeeper DTR scanner');
+  assert.equal((await post(gatePath,{...gateBody,photoVerified:false},keeper.token)).status,400,
+   'Gatekeeper must explicitly verify registered photo');
+  assert.equal((await post(gatePath,gateBody,otherKeeper.token)).status,404,
+   'Other school Gatekeeper cannot resolve teacher badge');
+  const guarded=await post(gatePath,gateBody,keeper.token);
+  assert.equal(guarded.status,201,'Authenticated Gatekeeper can verify teacher DTR: '+JSON.stringify(guarded.body));
+  assert.equal((await post(gatePath,gateBody,keeper.token)).status,409,
+   'Duplicate photo-verified slot cannot be recorded again');
+  const gateEvent=await pool.query(`SELECT source,verification_method,actor_user_id
+    FROM staff_attendance_events WHERE school_id=$1 AND event_id=$2 AND staff_user_id=$3`,
+    [a.school,guarded.body.eventId,teacher.id]);
+  assert.equal(gateEvent.rowCount,1);
+  assert.equal(gateEvent.rows[0].source,'GATEKEEPER');
+  assert.equal(gateEvent.rows[0].verification_method,'GUARD_PHOTO');
+  assert.equal(gateEvent.rows[0].actor_user_id,keeper.id);
+  const person=await fetch(base+'/api/staff-attendance/my/dtr',{
+   headers:{Authorization:'Bearer '+teacher.token}
+  });
+  assert.equal(person.status,200);
+  const dtr=await person.json();
+  assert.equal(dtr.slots.find(x=>x.slot==='AM_OUT').status,'VERIFIED');
+  assert.equal(dtr.slots.find(x=>x.slot==='PM_OUT').status,'VERIFIED');
+  assert.equal(dtr.slots.find(x=>x.slot==='AM_IN').status,'NOT_RECORDED');
 
   process.stdout.write('PASS: real PostgreSQL: authenticated issuance, tenant rejection, forged QR denial, concurrent duplicate prevention, immutable audit and replay.\\n');
  } finally{
