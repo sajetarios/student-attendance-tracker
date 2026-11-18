@@ -342,7 +342,7 @@
     expired: data?.expired
   });
   async function refreshSchoolEntitlements() {
-    if (!token || !user || user.role === 'SUPER_ADMIN' || entitlementRefreshInFlight) return;
+    if (!user || user.role === 'SUPER_ADMIN' || entitlementRefreshInFlight) return;
     entitlementRefreshInFlight = true;
     try {
       const latest = await api('/api/school/entitlements');
@@ -4334,8 +4334,8 @@ let teacherActionMenuListenersInstalled = false;
       const navigation = document.querySelector('.side-nav');
       navigation.replaceChildren();
       for (const [view, icon, label] of platformMenu) {
-        const button = document.createElement('button');
-        button.type = 'button';
+        const button = document.createElement('a');
+        button.href = '/portal.html?view=' + encodeURIComponent(view);
         button.className = 'nav-item';
         button.dataset.view = view;
         button.title = label;
@@ -4346,7 +4346,6 @@ let teacherActionMenuListenersInstalled = false;
         text.className = 'nav-label';
         text.textContent = label;
         button.append(symbol, text);
-        button.addEventListener('click', () => setView(view));
         navigation.append(button);
       }
       $('refreshButton').hidden = true;
@@ -4635,6 +4634,18 @@ let teacherActionMenuListenersInstalled = false;
     });
   }
   document.addEventListener('attendigo:portal-ready',linkifyStaffNavigation);
+  // Reapply if another role-specific navigation renderer inserts buttons later.
+  const staffNav=document.querySelector('.side-nav');
+  if(staffNav) {
+    let linking=false;
+    const observer=new MutationObserver(()=>{
+      if(linking)return;
+      linking=true;
+      try{linkifyStaffNavigation();}finally{linking=false;}
+    });
+    observer.observe(staffNav,{childList:true,subtree:true});
+    linkifyStaffNavigation();
+  }
   window.addEventListener('popstate',() => {
     if (!user) return;
     restoringHistory = true;
@@ -4648,12 +4659,7 @@ let teacherActionMenuListenersInstalled = false;
     setView(link.dataset.view);
     if(window.matchMedia('(max-width: 860px)').matches)closeMobileSidebar();
   });
-  document.querySelectorAll('.nav-item[data-view]').forEach(button => {
-    button.addEventListener('click', () => {
-      setView(button.dataset.view);
-      if (window.matchMedia('(max-width: 860px)').matches) closeMobileSidebar();
-    });
-  });
+  // Sidebar navigation uses delegated native links; do not bind legacy button handlers.
   $('refreshButton').addEventListener('click', refresh);
   $('refreshGateMonitoring')?.addEventListener('click', async () => {
     const button = $('refreshGateMonitoring');
