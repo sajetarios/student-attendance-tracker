@@ -54,7 +54,12 @@ function registerForm48EmployeeScheduleRoutes(app,pool,{authenticateSchoolClient
  app.put('/api/staff-attendance/admin/form48/schedule',...admin,async(req,res)=>{
   res.set('Cache-Control','private, no-store');
   const input=readEmployeeSchedule(req.body);
+  const month=String(req.body?.month||''),monthlyRevision=req.body?.monthlyRevision;
   if(!input)return res.status(400).json({error:'Choose workdays and enter all four prescribed times for each applicable day type. Verify the times are chronological.'});
+  if(month&&(!/^\\d{4}-(0[1-9]|1[0-2])$/.test(month)||
+     Number(month.slice(0,4))<2000||Number(month.slice(0,4))>2100||
+     !Number.isInteger(monthlyRevision)||monthlyRevision<0))
+   return res.status(400).json({error:'Valid report month and review revision are required.'});
   const client=await pool.connect();
   try{
    await client.query('BEGIN');
@@ -77,15 +82,42 @@ function registerForm48EmployeeScheduleRoutes(app,pool,{authenticateSchoolClient
      JSON.stringify(input.saturdayHours),req.auth.userId,input.revision]);
    if(!updated.rowCount){await client.query('ROLLBACK');
     return res.status(409).json({error:'This employee schedule was changed in another session. Reload and review before saving.'});}
+   // Refresh an existing selected-month draft in the same transaction.
+   // Never change its signatories, absence/excusal decisions, or verified punches.
+   let updatedMonthRevision=0;
+   if(month){
+    const existing=await client.query(
+     'SELECT revision FROM staff_form48_monthly_reviews WHERE school_id=$1'+
+     ' AND staff_user_id=$2 AND report_month=$3::date FOR UPDATE',
+     [req.auth.schoolId,input.staffUserId,month+'-01']);
+    if(existing.rowCount){
+     if(existing.rows[0].revision!==monthlyRevision){
+      await client.query('ROLLBACK');
+      return res.status(409).json({error:'The selected month was updated in another session. Reload before saving the schedule.'});
+     }
+     const monthly=await client.query(
+      'UPDATE staff_form48_monthly_reviews SET workdays=$4::smallint[],'+
+      ' regular_hours=$5::jsonb,saturday_hours=$6::jsonb,'+
+      ' revision=revision+1,updated_at=NOW(),updated_by_user_id=$7'+
+      ' WHERE school_id=$1 AND staff_user_id=$2 AND report_month=$3::date RETURNING revision',
+      [req.auth.schoolId,input.staffUserId,month+'-01',input.workdays,
+       JSON.stringify(input.regularHours),JSON.stringify(input.saturdayHours),req.auth.userId]);
+     updatedMonthRevision=monthly.rows[0].revision;
+    }else if(monthlyRevision!==0){
+     await client.query('ROLLBACK');
+     return res.status(409).json({error:'Selected-month schedule has changed. Reload before saving.'});
+    }
+   }
    await client.query(
     "INSERT INTO staff_attendance_audit(school_id,actor_user_id,action,target_type,target_id,details)"+
     " VALUES($1,$2,'FORM48_EMPLOYEE_SCHEDULE_UPDATED','STAFF_FORM48_SCHEDULE',$3,$4::jsonb)",
     [req.auth.schoolId,req.auth.userId,input.staffUserId,
-     JSON.stringify({revision:updated.rows[0].revision,workdays:input.workdays,
+     JSON.stringify({revision:updated.rows[0].revision,reportMonth:month||null,
+      updatedMonthRevision,workdays:input.workdays,
       regularHours:input.regularHours,saturdayHours:input.saturdayHours})]);
    await client.query('COMMIT');
-   return res.json({saved:true,revision:updated.rows[0].revision,
-    notice:'Employee prescribed hours saved for future report months; no attendance punches were changed.'});
+   return res.json({saved:true,revision:updated.rows[0].revision,monthlyRevision:updatedMonthRevision,
+    notice:'Employee prescribed hours saved; this month and future reports will use them unless an authorized monthly override exists. No attendance punches were changed.'});
   }catch(err){await client.query('ROLLBACK').catch(()=>{});
    console.error('Employee Form 48 schedule save:',err.message);
    return res.status(503).json({error:'Unable to save employee work schedule.'});
