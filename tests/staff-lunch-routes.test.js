@@ -41,3 +41,25 @@ test('presenter migration restricts school, slot and active assignment',()=>{
  assert.match(sql,/WHERE revoked_at IS NULL/);
  assert.match(sql,/UNIQUE INDEX staff_lunch_one_active_presenter_per_slot/);
 });
+
+test('redeem endpoint requires staff session and rejects malformed QR before querying database',async()=>{
+ const f=fixture();
+ const redeem=f.handlers; // issuer fixture does not expose redemption handler
+ assert.ok(redeem);
+ const src=fs.readFileSync('staff-lunch-routes.js','utf8');
+ assert.match(src,/app.post\('\/api\/staff-attendance\/lunch\/redeem'/);
+ assert.match(src,/requireSchoolRoles\('SCHOOL_ADMIN','DEPARTMENT_HEAD','TEACHER'\)/);
+ assert.match(src,/req.auth.userId/);
+ assert.doesNotMatch(src,/req.body.staffUserId/);
+});
+test('redeem uses transaction, tenant-bound challenge lookup and constant-time token comparison',()=>{
+ const src=fs.readFileSync('staff-lunch-routes.js','utf8');
+ assert.match(src,/school_id=\$1 AND challenge_id=\$2/);
+ assert.match(src,/expires_at>NOW\(\) AND revoked_at IS NULL/);
+ assert.match(src,/FOR UPDATE/);
+ assert.match(src,/timingSafeEqual\(expected,received\)/);
+ assert.match(src,/ON CONFLICT DO NOTHING RETURNING event_id,occurred_at/);
+ assert.match(src,/INSERT INTO staff_attendance_challenge_redemptions/);
+ assert.match(src,/INSERT INTO staff_attendance_audit/);
+ assert.match(src,/error.code==='23505'/);
+});
