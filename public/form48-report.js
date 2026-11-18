@@ -86,7 +86,7 @@
   const invalidate=()=>{button.disabled=true;output.hidden=true;output.replaceChildren();state.data=null;state.analysis=null;reviewHost.hidden=true;};
   const listDays=()=>[...settings.querySelectorAll('[data-form48-day]')];
   const hoursFor=group=>Object.fromEntries([...settings.querySelectorAll('[data-form48-hour="'+group+'"]')].map(x=>[x.dataset.slot,x.value]));
-  const clock=v=>/^([01]\\d|2[0-3]):[0-5]\\d$/.test(v||'')?Number(v.slice(0,2))*60+Number(v.slice(3)):null;
+  const clock=v=>/^([01]\d|2[0-3]):[0-5]\d$/.test(v||'')?Number(v.slice(0,2))*60+Number(v.slice(3)):null;
   const validScheduleHours=hours=>{
    const arr=['AM_IN','AM_OUT','PM_IN','PM_OUT'].map(k=>clock(hours[k]));
    return arr.every(Number.isInteger)&&arr[0]<arr[1]&&arr[1]<=arr[2]&&arr[2]<arr[3];
