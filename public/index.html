@@ -26,7 +26,7 @@
           const role = payload?.user?.role;
           if (role === 'STUDENT') return go('/student-portal.html');
           if (role === 'PARENT') return go('/parent-portal.html');
-          if (role === 'SUPER_ADMIN') return go('/super-admin.html');
+          if (role === 'SUPER_ADMIN') return go('/portal.html');
           if (role) return go('/portal.html');
         }
         if (response.status === 401 && staffToken) {
