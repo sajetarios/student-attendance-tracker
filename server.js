@@ -565,14 +565,21 @@ app.get('/api/admin/gatekeeper-monitoring', authenticateSchoolClient, requireSch
                         WHERE e.school_id=su.school_id AND e.recorded_by_user_id=su.user_id
                           AND e.attendance_scope='SCHOOL' AND e.sync_status='ACCEPTED'
                           AND e.school_date=(NOW() AT TIME ZONE 'Asia/Manila')::date),0) AS "studentScansToday",
-              COALESCE((SELECT COUNT(*)::int FROM teacher_gate_events tge
+              (COALESCE((SELECT COUNT(*)::int FROM teacher_gate_events tge
                         WHERE tge.school_id=su.school_id AND tge.recorded_by_user_id=su.user_id
-                          AND tge.school_date=(NOW() AT TIME ZONE 'Asia/Manila')::date),0) AS "teacherPunchesToday",
+                          AND tge.school_date=(NOW() AT TIME ZONE 'Asia/Manila')::date),0)
+                + COALESCE((SELECT COUNT(*)::int FROM staff_attendance_events sae
+                        WHERE sae.school_id=su.school_id AND sae.actor_user_id=su.user_id
+                          AND sae.event_kind='GATE_MOVEMENT' AND sae.verification_status='VERIFIED'
+                          AND sae.school_date=(NOW() AT TIME ZONE 'Asia/Manila')::date),0)) AS "teacherPunchesToday",
               GREATEST(
                 (SELECT MAX(e.received_at_server) FROM attendance_events e
                  WHERE e.school_id=su.school_id AND e.recorded_by_user_id=su.user_id AND e.attendance_scope='SCHOOL'),
                 (SELECT MAX(tge.created_at) FROM teacher_gate_events tge
-                 WHERE tge.school_id=su.school_id AND tge.recorded_by_user_id=su.user_id)
+                 WHERE tge.school_id=su.school_id AND tge.recorded_by_user_id=su.user_id),
+                (SELECT MAX(sae.created_at) FROM staff_attendance_events sae
+                 WHERE sae.school_id=su.school_id AND sae.actor_user_id=su.user_id
+                   AND sae.event_kind='GATE_MOVEMENT' AND sae.verification_status='VERIFIED')
               ) AS "lastActivityAt"
        FROM school_users su
        WHERE su.school_id=$1 AND su.role='GATE_KEEPER'
