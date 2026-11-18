@@ -1,4 +1,4 @@
-const CACHE = "attendigo-v224-login-assistance-alignment";
+const CACHE = "attendigo-v225-class-qr-fixture-coverage";
 
 const SHELL = [
   "/typography.css?v=1",
@@ -92,7 +92,7 @@ const SHELL = [
   "/app-dialog.css?v=1",
   "/app-dialog.js?v=1",
   "/sw-refresh.js?v=3",
-  "/smart-mobile-header.js?v=3",
+  "/smart-mobile-header.js?v=4",
   "/form-system.css?v=1",
   "/password-visibility.css",
   "/password-visibility.js",
