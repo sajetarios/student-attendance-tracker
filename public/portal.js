@@ -307,7 +307,7 @@ window.attendigoStaffIdentity = new Promise(resolve => { resolveStaffIdentity = 
         schedules: ['My teaching and advisory schedules', 'View your assigned teaching periods, active substitute assignments, and advisory class timetable.'],
         sf2: [classAdviser && subjectTeacher ? 'My SF2 reports' : classAdviser ? 'Official section SF2' : 'Personal SF2 copy', classAdviser ? 'Generate the official consolidated section SF2 only for sections assigned to you as Class Adviser.' : 'Generate a personal attendance copy from your own subject-period records.'],
         teacherLunchQr: ['My lunch QR', 'Generate your assigned rotating lunch QR; staff attendance is recorded only after individual confirmation.'],
-        myGateAttendance: ['My Gate Attendance', 'View your own badge scans recorded by authorized gatekeepers.'],
+        myGateAttendance: ['My Staff Attendance', 'Review verified Form 48 punches and photo-verified gate scans together.'],
         officialBusiness: ['Official Business', 'Submit an OB request and follow Department Head recommendation and School Admin approval.'],
         classAttendance: ['Class attendance', classAdviser && subjectTeacher ? 'Review your advisory section and the other sections covered by your assigned subject schedules.' : classAdviser ? 'Review attendance for your assigned advisory section.' : 'Review attendance in the sections covered by your assigned subject schedules.']
       };
@@ -475,13 +475,13 @@ window.attendigoStaffIdentity = new Promise(resolve => { resolveStaffIdentity = 
     if ($('officialBusinessNav')) $('officialBusinessNav').hidden = !(teacher || admin || departmentHead);
     if ($('myGateAttendanceNav')) {
       $('myGateAttendanceNav').hidden = !(teacher || admin);
-      $('myGateAttendanceNav').querySelector('.nav-label').textContent = admin ? 'My Staff Attendance' : 'My Gate Attendance';
+      $('myGateAttendanceNav').querySelector('.nav-label').textContent = 'My Staff Attendance';
     }
     if ($('adminStaffBadgeCard')) $('adminStaffBadgeCard').hidden = !(admin || teacher);
-    if ($('myGateHeading')) $('myGateHeading').textContent = admin ? 'My Staff Attendance' : 'My Gate Attendance';
+    if ($('myGateHeading')) $('myGateHeading').textContent = 'My Staff Attendance';
     if ($('myGateIntro')) $('myGateIntro').textContent = admin
       ? 'Your personal, verified staff attendance. Sign-in to this portal does not mark you present.'
-      : 'Your photo-verified entry and exit history. Official Form 48 DTR entries are tracked separately.';
+      : 'Review your official Form 48 punches alongside your verified physical gate scans.';
     const attendanceViewSelect = $('teacherAttendanceViewSelect');
     if (attendanceViewSelect) {
       const allOption = attendanceViewSelect.querySelector('option[value="ALL"]');
@@ -3930,78 +3930,96 @@ let teacherActionMenuListenersInstalled = false;
     }
   }
 
-  // This page never exposes the gatekeeper scanner or a teacher-identity selector.
+  // One read-only daily view; physical gate events never become DTR punches.
   const myGateTime = timestamp => timestamp
     ? new Date(timestamp).toLocaleTimeString('en-PH', { timeZone: 'Asia/Manila', hour: 'numeric', minute: '2-digit' })
     : '—';
+  const myStaffDtrSlots = [['AM_IN','AM In'],['AM_OUT','AM Out'],['PM_IN','PM In'],['PM_OUT','PM Out']];
   async function loadMyGateAttendance() {
-    if (!['TEACHER', 'SCHOOL_ADMIN'].includes(user?.role)) return;
-    const fromField = $('myGateFrom'), toField = $('myGateTo');
-    if (!fromField || !toField) return;
-    const today = schoolDateManila();
-    if (!toField.value) toField.value = today;
+    if (!['TEACHER','SCHOOL_ADMIN'].includes(user?.role)) return;
+    const fromField=$('myGateFrom'),toField=$('myGateTo');
+    if (!fromField||!toField) return;
+    const today=schoolDateManila();
+    if (!toField.value) toField.value=today;
     if (!fromField.value) {
-      const start = new Date(today + 'T00:00:00+08:00');
-      start.setDate(start.getDate() - 6);
-      fromField.value = schoolDateManila(start);
+      const start=new Date(today+'T00:00:00+08:00');
+      start.setDate(start.getDate()-6);
+      fromField.value=schoolDateManila(start);
     }
-    const from = fromField.value, to = toField.value;
-    const feedback = $('myGateFeedback');
-    if (!from || !to || from > to || Date.parse(to + 'T00:00:00Z') - Date.parse(from + 'T00:00:00Z') > 31 * 86400000) {
-      feedback.textContent = 'Choose a valid date range of up to 31 days.';
-      feedback.className = 'inline-feedback error';
+    const from=fromField.value,to=toField.value,feedback=$('myGateFeedback');
+    if (!from||!to||from>to||Date.parse(to+'T00:00:00Z')-Date.parse(from+'T00:00:00Z')>31*86400000) {
+      feedback.textContent='Choose a valid date range of up to 31 days.';
+      feedback.className='inline-feedback error';
       return;
     }
-    feedback.textContent = 'Loading your verified badge scans…';
-    feedback.className = 'inline-feedback';
-    for (const id of ['myGateApply', 'myGateRefresh']) $(id).disabled = true;
+    const params=new URLSearchParams({from,to});
+    feedback.textContent='Loading verified staff attendance…';
+    feedback.className='inline-feedback';
+    for (const id of ['myGateApply','myGateRefresh']) $(id).disabled=true;
     try {
-      if ($('myGateDtrSlots')) {
-        try {
-          const dtr = await api('/api/staff-attendance/my/dtr?' + new URLSearchParams({date: today}));
-          const targetIds = {
-            AM_IN: 'myGateDtrAmIn', AM_OUT: 'myGateDtrAmOut',
-            PM_IN: 'myGateDtrPmIn', PM_OUT: 'myGateDtrPmOut'
-          };
-          let verifiedCount = 0;
-          for (const [slot, id] of Object.entries(targetIds)) {
-            const entry = dtr.slots?.find(item => item.slot === slot && item.status === 'VERIFIED');
-            if (entry) verifiedCount++;
-            $(id).textContent = entry ? myGateTime(entry.occurredAt) : 'Not recorded';
-          }
-          $('myGateDtrSummary').textContent = verifiedCount + ' of 4 verified';
-        } catch (dtrError) {
-          for (const id of ['myGateDtrAmIn', 'myGateDtrAmOut', 'myGateDtrPmIn', 'myGateDtrPmOut']) {
-            $(id).textContent = 'Unavailable';
-          }
-          $('myGateDtrSummary').textContent = 'DTR unavailable';
-        }
-      }
-      const records = (await api('/api/teacher/my-gate-attendance?' + new URLSearchParams({from,to}))).events || [];
-      const daily = new Map();
-      records.forEach(item => {
-        const entry = daily.get(item.schoolDate) || { date: item.schoolDate, in: null, out: null, verified: true };
-        if (item.eventType === 'TIME_IN') entry.in = item.occurredAt;
-        if (item.eventType === 'TIME_OUT') entry.out = item.occurredAt;
-        entry.verified = entry.verified && item.photoVerified === true;
-        daily.set(item.schoolDate, entry);
+      const [gateResult,dtrResult]=await Promise.allSettled([
+        api('/api/teacher/my-gate-attendance?'+params),
+        api('/api/staff-attendance/my/dtr-history?'+params)
+      ]);
+      if (gateResult.status==='rejected'&&dtrResult.status==='rejected')
+        throw new Error('Unable to load your attendance history. Please refresh.');
+      const gateAvailable=gateResult.status==='fulfilled',dtrAvailable=dtrResult.status==='fulfilled';
+      const daily=new Map(),dayFor=date=>{
+        if(!daily.has(date))daily.set(date,{
+          date,gateIn:null,gateOut:null,gateCount:0,gateVerified:true,dtr:new Map()
+        });
+        return daily.get(date);
+      };
+      if(gateAvailable)(gateResult.value.events||[]).forEach(item=>{
+        const day=dayFor(item.schoolDate);
+        if(item.eventType==='TIME_IN')day.gateIn=item.occurredAt;
+        if(item.eventType==='TIME_OUT')day.gateOut=item.occurredAt;
+        day.gateCount++;
+        day.gateVerified=day.gateVerified&&item.photoVerified===true;
       });
-      const rows = [...daily.values()].sort((a,b) => b.date.localeCompare(a.date));
-      $('myGateRows').innerHTML = rows.length ? rows.map(entry => `<tr>
-        <td>${esc(formatSchoolDate(entry.date))}</td>
-        <td>${esc(myGateTime(entry.in))}</td>
-        <td>${esc(myGateTime(entry.out))}</td>
-        <td><span class="status-tag ${entry.verified ? '' : 'neutral'}">${entry.verified ? 'Photo verified' : 'Check record'}</span></td>
-      </tr>`).join('') : '<tr><td colspan="4" class="empty-cell">No gatekeeper-recorded attendance for these dates.</td></tr>';
-      feedback.textContent = rows.length
-        ? `Showing ${rows.length} day(s) of your personal gate attendance.`
-        : 'No verified gate scans found for the selected period.';
-    } catch (error) {
-      $('myGateRows').innerHTML = '<tr><td colspan="4" class="empty-cell">Unable to load personal gate attendance.</td></tr>';
-      feedback.textContent = error.message;
-      feedback.className = 'inline-feedback error';
+      if(dtrAvailable)(dtrResult.value.events||[]).forEach(item=>{
+        if(!myStaffDtrSlots.some(([slot])=>slot===item.slot))return;
+        const day=dayFor(item.schoolDate);
+        if(!day.dtr.has(item.slot))day.dtr.set(item.slot,item.occurredAt);
+      });
+      if(from<=today&&to>=today)dayFor(today);
+      const rows=[...daily.values()].sort((a,b)=>b.date.localeCompare(a.date));
+      $('myGateRows').innerHTML=rows.length?rows.map(day=>{
+        const count=day.dtr.size;
+        const dtrSummary=dtrAvailable
+          ? `<span class="my-gate-verified-count ${count===4?'is-complete':''}">${count} of 4 verified</span>`
+          : '<span class="my-gate-unavailable">DTR unavailable</span>';
+        const dtrGrid=dtrAvailable?`<div class="my-gate-dtr-grid">${myStaffDtrSlots.map(([slot,label])=>
+          `<div class="my-gate-dtr-slot"><span>${label}</span><strong>${esc(day.dtr.has(slot)?myGateTime(day.dtr.get(slot)):'Not recorded')}</strong></div>`
+        ).join('')}</div>`:'<p class="my-gate-empty">Verified DTR entries could not be loaded.</p>';
+        const gateGrid=gateAvailable?`<div class="my-gate-gate-grid">
+          <div><span>In</span><strong>${esc(myGateTime(day.gateIn))}</strong></div>
+          <div><span>Out</span><strong>${esc(myGateTime(day.gateOut))}</strong></div>
+        </div>`:'<p class="my-gate-empty">Gate records unavailable.</p>';
+        const gateStatus=gateAvailable?(day.gateCount
+          ?`<span class="status-tag ${day.gateVerified?'':'neutral'}">${day.gateVerified?'Photo verified':'Check record'}</span>`
+          :'<span class="my-gate-empty">No gate scan</span>'):'';
+        return `<tr class="my-gate-day-row">
+          <td data-label="Date"><strong class="my-gate-day">${esc(formatSchoolDate(day.date))}</strong></td>
+          <td data-label="Official Form 48 DTR"><div class="my-gate-dtr-summary">${dtrSummary}</div>${dtrGrid}</td>
+          <td data-label="Physical gate scans">${gateGrid}<div class="my-gate-gate-status">${gateStatus}</div></td>
+        </tr>`;
+      }).join(''):'<tr><td colspan="3" class="empty-cell">No attendance entries for the selected dates.</td></tr>';
+      if(!gateAvailable||!dtrAvailable){
+        feedback.textContent='Showing partial history: '+(!dtrAvailable?'official DTR unavailable':'gate scans unavailable')+'. Try Refresh.';
+        feedback.className='inline-feedback error';
+      }else{
+        feedback.textContent=rows.length
+          ?`Showing ${rows.length} day(s) of your personal staff attendance.`
+          :'No verified attendance entries for the selected dates.';
+        feedback.className='inline-feedback';
+      }
+    } catch(error) {
+      $('myGateRows').innerHTML='<tr><td colspan="3" class="empty-cell">Unable to load your attendance history.</td></tr>';
+      feedback.textContent=error.message;
+      feedback.className='inline-feedback error';
     } finally {
-      for (const id of ['myGateApply', 'myGateRefresh']) $(id).disabled = false;
+      for(const id of ['myGateApply','myGateRefresh'])$(id).disabled=false;
     }
   }
 

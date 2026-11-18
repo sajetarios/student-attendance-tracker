@@ -1,4 +1,4 @@
-const CACHE = "attendigo-v204-ob-notifications";
+const CACHE = "attendigo-v205-unified-staff-history";
 
 const SHELL = [
   "/typography.css?v=1",
@@ -42,7 +42,7 @@ const SHELL = [
   "/portal-login.html",
   "/attendigo-login-motion.css?v=2",
   "/attendigo-login-refinement.css?v=3",
-  "/portal.css?v=0.9.117",
+  "/portal.css?v=0.9.118",
   "/student-roster-toolbar.css?v=2",
   "/learner-roster-view.css?v=1",
   "/teacher-learner-roster.css?v=4",
@@ -50,7 +50,7 @@ const SHELL = [
   "/class-qr-dashboard-link.js?v=7",
   "/teacher-roster-popover.js?v=2",
   "/portal.css",
-  "/portal.js?v=191",
+  "/portal.js?v=192",
   "/staff-lunch-ui.js?v=3",
   "/staff-ob-ui.js?v=4",
   "/staff-ob.css?v=1",
