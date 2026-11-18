@@ -8,6 +8,7 @@ const { startSmsWorker } = require('./sms-service');
 let smsWorker;
 const { Pool } = require('pg');
 const { runMigrations } = require('./scripts/migrate');
+const { nextStudentId } = require('./generated-record-ids');
 const QRCode = require('qrcode');
 const path = require('path');
 const https = require('https');
@@ -2388,12 +2389,14 @@ app.post('/api/students', authenticateSchoolClient, requireSchoolAdminOrTeacher,
   const cleanParentName = typeof parentName === 'string' ? parentName.trim() : '';
   const cleanParentMobile = typeof parentMobile === 'string' ? parentMobile.trim() : '';
   const cleanLrn = typeof lrn === 'string' ? lrn.trim() : '';
-  if (![studentId, fullName, gradeLevel, section, cleanParentName, cleanParentMobile].every(validText) ||
-      String(studentId).trim().length > 80 || String(fullName).trim().length > 200 ||
+  const requestedStudentId = typeof studentId === 'string' ? studentId.trim() : '';
+  if ((studentId != null && typeof studentId !== 'string') ||
+      ![fullName, gradeLevel, section, cleanParentName, cleanParentMobile].every(validText) ||
+      requestedStudentId.length > 80 || String(fullName).trim().length > 200 ||
       String(gradeLevel).trim().length > 40 || String(section).trim().length > 100 ||
       cleanParentName.length > 160 || cleanParentMobile.length > 30 || cleanLrn.length > 30 ||
       !['MALE', 'FEMALE'].includes(cleanSex)) {
-    return res.status(400).json({ error: 'Student ID, full name, Male/Female, grade, section, parent/guardian full name, and a valid parent mobile number are required. LRN is optional and must be 30 characters or fewer.' });
+    return res.status(400).json({ error: 'Full name, Male/Female, grade, section, parent/guardian name, and a valid parent mobile number are required. Student ID is generated when left blank; LRN is optional and must be 30 characters or fewer.' });
   }
   const isTeacher = req.auth.role === 'TEACHER';
   if (isTeacher && !req.auth.teacherDesignations?.includes('CLASS_ADVISER')) {
@@ -2401,7 +2404,7 @@ app.post('/api/students', authenticateSchoolClient, requireSchoolAdminOrTeacher,
   }
   const cleanGrade = gradeLevel.trim();
   const cleanSection = section.trim();
-  const cleanStudentId = studentId.trim();
+  let cleanStudentId = requestedStudentId;
   try {
     if (isTeacher) {
       const allowed = await pool.query(
@@ -2424,28 +2427,38 @@ app.post('/api/students', authenticateSchoolClient, requireSchoolAdminOrTeacher,
       const masterGrade = activeYear.rowCount ? 'Unassigned' : cleanGrade;
       const masterSection = activeYear.rowCount ? 'Unassigned' : cleanSection;
       const qrToken = require('crypto').randomUUID();
-      // Teachers can create new records only. Admins retain the existing same-school upsert behavior.
-      const conflictAction = isTeacher
+      // Teachers cannot upsert an existing record; admins retain the legacy
+      // same-school upsert only when they explicitly supply an existing ID.
+      // Automatically generated IDs always use DO NOTHING so a collision can
+      // never modify another student, including one belonging to this school.
+      const conflictAction = (isTeacher || !requestedStudentId)
         ? 'ON CONFLICT(student_id) DO NOTHING'
         : `ON CONFLICT(student_id) DO UPDATE SET
              lrn=EXCLUDED.lrn, full_name=EXCLUDED.full_name, sex=EXCLUDED.sex, parent_name=EXCLUDED.parent_name,
              parent_mobile=EXCLUDED.parent_mobile, active=TRUE, updated_at=NOW()
            WHERE students.school_id=EXCLUDED.school_id`;
-      const result = await client.query(
-        `INSERT INTO students(school_id, student_id, lrn, full_name, grade_level, section,
-                             parent_name, parent_mobile, sex, qr_token)
-         VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)
-         ${conflictAction}
-         RETURNING student_id AS "studentId", full_name AS "fullName", sex,
-                   grade_level AS "gradeLevel", section, qr_token AS "qrToken"`,
-        [req.auth.schoolId, cleanStudentId, cleanLrn || null, fullName.trim(), masterGrade,
-         masterSection, cleanParentName, cleanParentMobile, cleanSex, qrToken]
-      );
+      let result = { rowCount: 0 };
+      for (let attempt = 0; attempt < (requestedStudentId ? 1 : 20); attempt++) {
+        if (!requestedStudentId) cleanStudentId = await nextStudentId(client);
+        result = await client.query(
+          `INSERT INTO students(school_id, student_id, lrn, full_name, grade_level, section,
+                               parent_name, parent_mobile, sex, qr_token)
+           VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)
+           ${conflictAction}
+           RETURNING student_id AS "studentId", full_name AS "fullName", sex,
+                     grade_level AS "gradeLevel", section, qr_token AS "qrToken"`,
+          [req.auth.schoolId, cleanStudentId, cleanLrn || null, fullName.trim(), masterGrade,
+           masterSection, cleanParentName, cleanParentMobile, cleanSex, qrToken]
+        );
+        if (result.rowCount) break;
+      }
       if (!result.rowCount) {
         await client.query('ROLLBACK');
-        return res.status(409).json({ error: isTeacher
-          ? 'That student ID is already in use. Teachers cannot edit existing student records.'
-          : 'That student ID is already used by another school.' });
+        return res.status(409).json({ error: !requestedStudentId
+          ? 'Could not allocate a unique student ID. Please retry.'
+          : isTeacher
+            ? 'That student ID is already in use. Teachers cannot edit existing student records.'
+            : 'That student ID is already used by another school.' });
       }
       if (activeYear.rowCount) {
         await client.query(
