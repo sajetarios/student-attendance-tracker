@@ -22,7 +22,7 @@ test('employee account security layout contains long labels and responds to pane
 test('security account action controls and labels remain available', () => {
   const html = read('public/portal.html');
   const js = read('public/portal.js');
-  assert.match(html, /user-management-readability\.css\?v=5/);
+  assert.match(html, /user-management-readability\.css\?v=6/);
   assert.match(html, /class="security-audit-table security-accounts-table"/);
   for (const label of ['Employee', 'Role / department', 'Access status', 'Last sign-in', 'Failed attempts', 'Sessions', 'Security actions']) {
     assert.ok(js.includes('data-label="' + label + '"'), label + ' responsive card label');
@@ -31,5 +31,5 @@ test('security account action controls and labels remain available', () => {
     assert.ok(js.includes(action), action + ' action hook preserved');
   }
   const sw = read('public/sw.js');
-  assert.match(sw, /"\/user-management-readability\.css\?v=5"/);
+  assert.match(sw, /"\/user-management-readability\.css\?v=6"/);
 });
