@@ -118,7 +118,7 @@ function registerStaffGateDtrRoutes(app,pool,{authenticateSchoolClient,requireSc
        starts_at AS "startsAt",ends_at AS "endsAt"
        FROM staff_official_business_requests WHERE school_id=$1 AND staff_user_id=$2
        AND status='APPROVED'
-       AND starts_at<($4::date + INTERVAL '1 day') AT TIME ZONE 'Asia/Manila'
+       AND starts_at<(($4::date + INTERVAL '1 day') AT TIME ZONE 'Asia/Manila')
        AND ends_at>($3::date AT TIME ZONE 'Asia/Manila')
        ORDER BY starts_at ASC`,[req.auth.schoolId,req.auth.userId,from,to]),
      pool.query(`SELECT "schoolDate","eventType","occurredAt" FROM (
