@@ -13,7 +13,27 @@ function bearerToken(req) {
 function registerAuthRoutes(app, pool) {
   const sessionHours = Math.min(24, Math.max(1, Number(process.env.AUTH_SESSION_HOURS || 12)));
   const studentSessionDays = Math.min(30,Math.max(1,Number(process.env.STUDENT_SESSION_DAYS||7)));
-  const studentCookie='__Host-attendigo-student';
+  const staffCookie='__Host-attendigo-staff';
+  const staffCookieToken=req=>{const item=String(req.headers.cookie||'').split(';').map(x=>x.trim()).find(x=>x.startsWith(staffCookie+'='));return item?item.slice(staffCookie.length+1):'';};
+  const clearStaffCookie=res=>res.setHeader('Set-Cookie',[staffCookie+'=; Path=/; HttpOnly; Secure; SameSite=Lax; Max-Age=0',...(res.getHeader('Set-Cookie')||[]).filter?.(x=>!String(x).startsWith(staffCookie+'='))||[]]);
+  async function checkStaffBrowserAccount(req,principalType,userId){
+    const existing=staffCookieToken(req);
+    if(!existing)return true;
+    const result=await pool.query('SELECT principal_type,school_user_id,platform_user_id FROM user_sessions WHERE token_hash=$1 AND revoked_at IS NULL AND expires_at>NOW() LIMIT 1',[hashToken(existing)]);
+    if(!result.rowCount)return true;
+    const row=result.rows[0];
+    return row.principal_type===principalType && String(principalType==='SCHOOL'?row.school_user_id:row.platform_user_id)===String(userId);
+  }
+  async function revokePriorStaffBrowserSession(req){
+    const existing=staffCookieToken(req);
+    if(existing)await pool.query('UPDATE user_sessions SET revoked_at=NOW() WHERE token_hash=$1 AND revoked_at IS NULL',[hashToken(existing)]);
+  }
+  function setStaffCookie(res,token){
+    const previous=res.getHeader('Set-Cookie');
+    const cookies=Array.isArray(previous)?previous:previous?[previous]:[];
+    res.setHeader('Set-Cookie',[...cookies.filter(x=>!String(x).startsWith(staffCookie+'=')),staffCookie+'='+token+'; Path=/; HttpOnly; Secure; SameSite=Lax']);
+  }
+  
   const cookieOptions='Path=/; HttpOnly; Secure; SameSite=Lax';
   const cookieToken=req=>{const raw=String(req.headers.cookie||'').split(';').map(x=>x.trim()).find(x=>x.startsWith(studentCookie+'='));return raw?raw.slice(studentCookie.length+1):'';};
   function clearStudentCookie(res){res.setHeader('Set-Cookie',studentCookie+'=; '+cookieOptions+'; Max-Age=0');}
@@ -103,10 +123,14 @@ function registerAuthRoutes(app, pool) {
          WHERE user_id=$1`,
         [user.user_id]
       );
+      if(!await checkStaffBrowserAccount(req,'SCHOOL',user.user_id))
+        return res.status(409).json({error:'Another staff account is signed in on this browser. Sign out before switching accounts.',accountSwitchRequired:true});
+      await revokePriorStaffBrowserSession(req);
       await endStudentBrowserSession(req,res);
       const session = await issueSession({
         principalType: 'SCHOOL', schoolId: school.school_id, schoolUserId: user.user_id
       });
+      setStaffCookie(res,session.accessToken);
       return res.json({
         ...session,
         user: {
@@ -170,7 +194,11 @@ function registerAuthRoutes(app, pool) {
          WHERE student_account_id=$1`,
         [account.student_account_id]
       );
-      const existingCookie=cookieToken(req);
+      if(staffCookieToken(req)) {
+      const existingStaff=await pool.query('SELECT session_id FROM user_sessions WHERE token_hash=$1 AND revoked_at IS NULL AND expires_at>NOW() LIMIT 1',[hashToken(staffCookieToken(req))]);
+      if(existingStaff.rowCount)return res.status(409).json({error:'A staff account is signed in on this browser. Sign out before switching to a student.',accountSwitchRequired:true});
+    }
+    const existingCookie=cookieToken(req);
       if(existingCookie){
         const active=await pool.query(`SELECT ss.student_account_id FROM student_sessions ss WHERE ss.token_hash=$1 AND ss.revoked_at IS NULL AND ss.expires_at>NOW() LIMIT 1`,[hashToken(existingCookie)]);
         if(active.rowCount && String(active.rows[0].student_account_id)!==String(account.student_account_id))
@@ -234,8 +262,12 @@ function registerAuthRoutes(app, pool) {
          WHERE user_id=$1`,
         [user.user_id]
       );
+      if(!await checkStaffBrowserAccount(req,'PLATFORM',user.user_id))
+        return res.status(409).json({error:'Another staff account is signed in on this browser. Sign out before switching accounts.',accountSwitchRequired:true});
+      await revokePriorStaffBrowserSession(req);
       await endStudentBrowserSession(req,res);
       const session = await issueSession({ principalType: 'PLATFORM', platformUserId: user.user_id });
+      setStaffCookie(res,session.accessToken);
       return res.json({
         ...session,
         user: {
@@ -333,7 +365,7 @@ function registerAuthRoutes(app, pool) {
   });
 
   app.get('/api/auth/me', async (req, res) => {
-    const token = bearerToken(req) || cookieToken(req);
+    const token = bearerToken(req) || staffCookieToken(req) || cookieToken(req);
     if (!token) return res.status(401).json({ error: 'Authentication required.' });
     try {
       const tokenHash = hashToken(token);
@@ -415,13 +447,16 @@ function registerAuthRoutes(app, pool) {
   app.post('/api/auth/logout', async (req, res) => {
     const token = bearerToken(req);
     const studentToken = cookieToken(req);
+    const staffToken = staffCookieToken(req);
+    clearStaffCookie(res);
     clearStudentCookie(res);
-    if (!token && !studentToken) return res.status(204).end();
+    if (!token && !studentToken && !staffToken) return res.status(204).end();
     try {
       await pool.query(
         'UPDATE user_sessions SET revoked_at=NOW() WHERE token_hash=$1 AND revoked_at IS NULL',
         [token?hashToken(token):null]
       );
+      if(staffToken && staffToken!==token)await pool.query('UPDATE user_sessions SET revoked_at=NOW() WHERE token_hash=$1 AND revoked_at IS NULL',[hashToken(staffToken)]);
       await pool.query(
         'UPDATE student_sessions SET revoked_at=NOW() WHERE token_hash=$1 AND revoked_at IS NULL',
         [hashToken(token || studentToken)]
