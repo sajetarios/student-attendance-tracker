@@ -36,7 +36,7 @@ test('SF2 workflows and teacher QR launch remain untouched by admin tile replace
 });
 
 test('Cached admin shortcut script uses updated portal version',()=>{
-  assert.ok(html.includes('/portal.js?v=196'));
-  assert.ok(worker.includes('"/portal.js?v=196"'));
-  assert.match(worker,/const CACHE = "attendigo-v220-admin-class-monitor-shortcut"/);
+  assert.ok(html.includes('/portal.js?v=197'));
+  assert.ok(worker.includes('"/portal.js?v=197"'));
+  assert.match(worker,/const CACHE = "attendigo-v223-security-accordion-roster"/);
 });
