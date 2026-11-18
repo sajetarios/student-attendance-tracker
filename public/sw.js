@@ -1,4 +1,4 @@
-const CACHE = "attendigo-v189-login-cache-parity";
+const CACHE = "attendigo-v190-portal-cache-parity";
 
 const SHELL = [
   "/typography.css?v=1",
@@ -32,7 +32,7 @@ const SHELL = [
   "/flicker-diagnostics.js?v=1",
   "/school-header-responsive.js?v=2",
   "/student-portal-refinement.css?v=1",
-  "/student-portal.js?v=3",
+  "/student-portal.js?v=20",
   "/parent-portal.js?v=3",
   "/dashboard-appearance.js?v=3",
   "/timetable-grid.js?v=4",
