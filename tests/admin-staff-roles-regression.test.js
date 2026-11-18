@@ -22,7 +22,7 @@ test('School Admin keeps administration menus, not the teacher-only class attend
   assert.match(portal, /\$\('sf2Nav'\)\.hidden = admin \|\| gateKeeper/);
   assert.match(portal, /\$\('myGateAttendanceNav'\)\.hidden = !\(teacher \|\| admin \|\| departmentHead\)/);
   assert.match(portal, /relocate\('myGateAttendanceNav', 'operations'\)/);
-  assert.match(portal, /\$\('myGateAttendanceNav'\)\.querySelector\('\.nav-label'\)\.textContent = 'Gate Attendance & DTR'/);
+  assert.match(portal, /\$\('myGateAttendanceNav'\)\.querySelector\('\.nav-label'\)\.textContent = departmentHead \? 'My Attendance \/ DTR' : 'Gate Attendance & DTR'/);
   assert.match(portal, /role === 'SCHOOL_ADMIN'[\s\S]*?'myGateAttendance'/);
 });
 
