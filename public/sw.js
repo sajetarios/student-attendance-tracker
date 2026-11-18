@@ -1,4 +1,4 @@
-const CACHE = "attendigo-v220-admin-class-monitor-shortcut";
+const CACHE = "attendigo-v222-compact-audit-history";
 
 const SHELL = [
   "/typography.css?v=1",
@@ -15,7 +15,7 @@ const SHELL = [
   "/assets/attendigo-wordmark-on-light.svg?v=2",
   "/assets/attendigo-symbol-transparent.svg?v=2",
   "/attendigo-sidebar-adaptive.css?v=19",
-  "/user-management-readability.css?v=4",
+  "/user-management-readability.css?v=5",
   "/user-nav-reorg.css?v=1",
   "/attendigo-sidebar-adaptive.js?v=9",
   "/assets/attendigo-logo.png?v=2",
