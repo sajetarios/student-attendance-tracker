@@ -66,6 +66,12 @@ test('timestamps remain in their verified slots, even intentional night test sca
  assert.equal(day.verifiedCount,1);
  assert.equal(day.status,'INCOMPLETE_DTR');
  assert.equal(day.needsReview,true);
+ assert.equal(res.summary.timeAnomalyDays,1);
+ assert.equal(res.summary.tardyMinutes,0); // Preserve the punch, do not charge 15+ hours as tardiness.
+ const afterMidnight=summarizeForm48({month:'2026-11',today:'2026-12-01',settings,
+  records:[{date:'2026-11-19',slots:{AM_IN:'00:30'}}]});
+ assert.equal(afterMidnight.summary.timeAnomalyDays,1);
+ assert.equal(afterMidnight.summary.tardyMinutes,0);
 });
 test('default signer values propagate but staff/month overrides are preserved',()=>{
  const defaults={workdays:[1,2,3,4,5],regularHours:times,saturdayHours:{},
