@@ -584,7 +584,7 @@ app.get('/api/admin/gatekeeper-monitoring', authenticateSchoolClient, requireSch
 
 // Teachers can only read their OWN verified gatekeeper-recorded time events.
 // Never accept teacher IDs from query parameters or allow writes through this endpoint.
-app.get('/api/teacher/my-gate-attendance', authenticateSchoolClient, requireSchoolRoles('TEACHER'), async (req, res) => {
+app.get('/api/teacher/my-gate-attendance', authenticateSchoolClient, requireSchoolRoles('TEACHER', 'SCHOOL_ADMIN'), async (req, res) => {
   const schoolDate = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Manila' }).format(new Date());
   const from = typeof req.query.from === 'string' ? req.query.from : schoolDate;
   const to = typeof req.query.to === 'string' ? req.query.to : schoolDate;
@@ -607,6 +607,29 @@ app.get('/api/teacher/my-gate-attendance', authenticateSchoolClient, requireScho
   } catch (err) {
     console.error('Teacher personal gate attendance failed:', err.message);
     return res.status(500).json({ error: 'Could not load your gate attendance records.' });
+  }
+});
+
+// School Admin staff QR badge: self-only, no attendance is written by issuing it.
+app.post('/api/staff-attendance/my/badge', authenticateSchoolClient, requireSchoolAdmin, async (req, res) => {
+  res.set('Cache-Control', 'no-store, private');
+  try {
+    const result = await pool.query(
+      `UPDATE school_users SET teacher_qr_token=COALESCE(teacher_qr_token,gen_random_uuid())
+       WHERE school_id=$1 AND user_id=$2 AND role='SCHOOL_ADMIN' AND active=TRUE
+         AND EXISTS (SELECT 1 FROM official_profile_photos p
+           WHERE p.school_id=school_users.school_id AND p.subject_kind='STAFF'
+             AND p.subject_id=school_users.user_id::text)
+       RETURNING display_name AS "displayName", teacher_qr_token AS "qrToken"`,
+      [req.auth.schoolId, req.auth.userId]);
+    if (!result.rowCount) return res.status(409).json({error:'Upload your official staff profile photo before showing your gate badge.'});
+    const owner = result.rows[0];
+    const qrCode = await QRCode.toDataURL('TCH:' + owner.qrToken,
+      {width:360,margin:2,errorCorrectionLevel:'H'});
+    return res.json({displayName:owner.displayName,qrCode});
+  } catch (error) {
+    console.error('School Admin own gate badge:', error.message);
+    return res.status(503).json({error:'Could not prepare your staff QR badge.'});
   }
 });
 
