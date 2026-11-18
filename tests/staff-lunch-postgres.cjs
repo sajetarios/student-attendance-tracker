@@ -25,8 +25,9 @@ async function main(){
    return {school,dep};
   }
   async function makeUser(tenant,role,username){
-   const user=(await pool.query(`INSERT INTO school_users(school_id,department_id,username,display_name,password_hash,role)
-    VALUES($1,$2,$3,$4,'synthetic-test-no-login',$5) RETURNING user_id`,
+   const user=(await pool.query(`INSERT INTO school_users(school_id,department_id,username,display_name,password_hash,role,teacher_designations)
+    VALUES($1,$2,$3,$4,'synthetic-test-no-login',$5,
+       CASE WHEN $5='TEACHER' THEN ARRAY['SUBJECT_TEACHER']::text[] ELSE ARRAY[]::text[] END) RETURNING user_id`,
     [tenant.school,tenant.dep,username+label,username,role])).rows[0].user_id;
    const token=createOpaqueToken();
    await pool.query(`INSERT INTO user_sessions(token_hash,principal_type,school_id,school_user_id,expires_at)
