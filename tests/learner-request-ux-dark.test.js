@@ -59,13 +59,10 @@ test('dark-mode improvements cover learner menu, pending state, account table an
 });
 
 test('cache versions match the live learner and account scripts and styles',()=>{
-  for(const asset of [
-    '/portal.js?v=0.9.140',
-    '/student-portal-accounts.css?v=6','/student-portal-accounts.js?v=9',
-    '/special-program-ui.css?v=5','/special-program-ui.js?v=5',
-    '/teacher-roster-popover.js?v=2'
-  ]) {
-    assert.ok(html.includes(asset),'HTML missing '+asset);
-    assert.ok(worker.includes(JSON.stringify(asset)),'PWA cache missing '+asset);
+  for(const name of ['portal.js','student-portal-accounts.css','student-portal-accounts.js','special-program-ui.css','special-program-ui.js','teacher-roster-popover.js']) {
+    const pattern = new RegExp('/'+name.replaceAll('.','[.]')+'[?]v=[a-zA-Z0-9.]+');
+    const asset = html.match(pattern)?.[0];
+    assert.ok(asset,'HTML missing versioned '+name);
+    assert.ok(worker.includes(JSON.stringify(asset)),'PWA cache missing current '+asset);
   }
 });
