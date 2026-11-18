@@ -80,9 +80,10 @@ test('server and service worker remove sensitive URL queries and prevent credent
   const html = read('public/portal-login.html');
   assert.match(server,/app\.use\(redirectLeakedCredentials\)/);
   assert.match(server, /'\/portal-login.html'/);
-  assert.match(worker,/attendigo-v170-login-credential-url-guard/);
-  assert.match(html,/src="\/portal-login\.js\?v=8"/);
-  assert.match(worker,/"\/portal-login\.js\?v=8"/);
+  assert.match(worker,/const CACHE = "attendigo-v\\d+-[a-z0-9-]+"/);
+  const loginJs=html.match(/src="(\/portal-login\.js\?v=\d+)"/)?.[1];
+  assert.ok(loginJs,'Login page must use a versioned login script');
+  assert.ok(worker.includes(JSON.stringify(loginJs)), 'Worker must cache the matching login script');
   assert.match(worker,/credentialKey\.test\(key\)/);
   assert.match(worker,/Response\.redirect\(new URL\('\/portal-login\.html', url\.origin\)\.href, 303\)/);
   assert.match(worker,/response\.ok && !url\.search/);
@@ -91,7 +92,8 @@ test('server and service worker remove sensitive URL queries and prevent credent
 test('legacy index redirect never forwards incoming credentials', () => {
   const index = read('public/index.html');
   assert.doesNotMatch(index,/location\.replace\([^\n]*location\.search/);
-  assert.match(index,/params\.get\('mode'\) === 'platform'/);
-  assert.match(index,/window\.location\.replace\('\/portal-login\.html' \+ mode\)/);
+  assert.match(index,/const requestedMode = params\.get\('mode'\)/);
+  assert.match(index,/const loginUrl = '\/portal-login\.html' \+ \(requestedMode === 'student'/);
+  assert.match(index,/go\(loginUrl\)/);
   assert.match(index,/name="referrer" content="no-referrer"/);
 });
