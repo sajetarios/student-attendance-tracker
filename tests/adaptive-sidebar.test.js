@@ -117,6 +117,6 @@ test('collapsed desktop sidebar hides nested icons and expands when a group is s
 
 test('desktop sidebar migration keeps a labeled default with compact uniform icons',()=>{
  assert.match(css,/side-primary-height:44px/);
- assert.match(html,/attendigo-sidebar-adaptive\\.css\\?v=16/);
- assert.match(worker,/attendigo-sidebar-adaptive\\.css\\?v=16/);
+ assert.ok(html.includes('/attendigo-sidebar-adaptive.css?v=16'));
+ assert.ok(worker.includes('/attendigo-sidebar-adaptive.css?v=16'));
 });
