@@ -46,5 +46,5 @@ test('service worker precaches the shared stylesheet for offline portal consiste
   assert.ok(sw.includes('/' + themeName));
   const version = Number(sw.match(/const CACHE = "attendigo-v(\d+)-[a-z0-9-]+"/)?.[1]);
   assert.ok(version >= 216, 'cache must refresh when sign-in CSS changes');
-  assert.ok(sw.includes('/attendigo-login-refinement.css?v=4'));
+  assert.ok(sw.includes('/attendigo-login-refinement.css?v=5'));
 });
