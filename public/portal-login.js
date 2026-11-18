@@ -124,7 +124,8 @@
       if (!destination) throw new Error(`This account has an unsupported role (${data.user.role || 'unknown'}). Please contact the school administrator.`);
 
       // Replace any prior account session only after the new credentials succeed.
-      sessionStorage.setItem('schoolAttendance.accessToken', data.accessToken);
+      if(mode==='student')sessionStorage.removeItem('schoolAttendance.accessToken');
+      else sessionStorage.setItem('schoolAttendance.accessToken', data.accessToken);
       sessionStorage.setItem('schoolAttendance.user', JSON.stringify(data.user));
       sessionStorage.setItem('schoolAttendance.expiresAt', data.expiresAt || '');
       if (mode === 'school' && data.user.mustChangePassword) {
