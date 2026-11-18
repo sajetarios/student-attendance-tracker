@@ -55,10 +55,11 @@
    '<div class="form48-signature"><strong>'+esc(verifiedName)+'</strong>'+
    '<span class="form48-signer-position">'+esc(verifiedPosition)+'</span>'+
    '<span>Verified as to prescribed office hours — In Charge</span></div>'+
-   '<div class="form48-remarks">REMARKS: <div class="form48-line"></div><div class="form48-line"></div></div>'+
+   '<div class="form48-remarks">REMARKS: '+esc(s.approvedLeaveDays?String(s.approvedLeaveDays)+' day(s) of documented approved leave (see supporting documents).':'')+'<div class="form48-line"></div><div class="form48-line"></div></div>'+ 
    '<div class="form48-summary">'+
    '<span>Days present (verified evidence): '+esc(s.daysPresent)+'</span>'+
-   '<span>Days absent (confirmed): '+esc(s.daysAbsent)+esc(gapText)+'</span>'+
+   '<span>Days absent (confirmed): '+esc(s.daysAbsent)+esc(gapText)+'</span>'+ 
+   '<span>Approved leave days: '+esc(s.approvedLeaveDays||0)+'</span>'+ 
    '<span>Tardy: '+esc(duration(s.tardyMinutes))+'</span>'+
    '<span>Undertime: '+esc(duration(s.undertimeMinutes))+'</span>'+
    '</div>'+
@@ -68,6 +69,8 @@
    '<div class="form48-draft-mark">'+esc(reviewNote)+'</div>'+
    '</article>';
  };
+ // Shared renderer is read-only; batch reports reuse the exact official copy formatter.
+ window.attendigoForm48RenderCopy=copy;
  function init(user){
   if(user?.role!=='SCHOOL_ADMIN')return;
   const form=$('form48FilterForm'),month=$('form48Month'),person=$('form48Employee');
@@ -188,6 +191,8 @@
   api('/api/staff-attendance/admin/form48/employees').then(data=>{
    person.replaceChildren(new Option('Select a staff member',''));
    (data.staff||[]).forEach(s=>person.add(new Option(s.displayName+' · '+s.role.replaceAll('_',' '),s.userId)));
+   window.attendigoForm48Staff=data.staff||[];
+   document.dispatchEvent(new CustomEvent('attendigo:form48-staff-loaded',{detail:{staff:data.staff||[]}}));
   }).catch(e=>status(e.message,true));
   month.addEventListener('change',fetchConfig);
   person.addEventListener('change',fetchConfig);
