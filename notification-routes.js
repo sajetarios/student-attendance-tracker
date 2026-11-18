@@ -89,6 +89,42 @@ function registerNotificationRoutes(app, pool, auth) {
         res.status(503).json({ error: 'Unable to update notifications.' });
       }
     });
+    // Hard-delete only the signed-in recipient's notification row.
+    // Underlying requests, school records, and audit trails are never changed.
+    app.delete(base + '/:id', authentication, own, async (req, res) => {
+      if (!UUID.test(String(req.params.id || '')))
+        return res.status(400).json({ error: 'Invalid notification ID.' });
+      try {
+        const result = await pool.query(
+          'DELETE FROM user_notifications WHERE ' + where + ' AND notification_id=$4 RETURNING notification_id',
+          [...scope(req.notificationOwner), req.params.id]
+        );
+        res.setHeader('Cache-Control', 'private, no-store');
+        return result.rowCount
+          ? res.json({ success: true, deleted: 1 })
+          : res.status(404).json({ error: 'Notification not found.' });
+      } catch (error) {
+        console.error('Notification delete:', error.message);
+        return res.status(503).json({ error: 'Unable to delete notification.' });
+      }
+    });
+
+    // Bulk cleanup is deliberately read-only messages: unread reminders and
+    // pending-approval alerts cannot disappear through a one-click cleanup.
+    app.post(base + '/delete-read', authentication, own, async (req, res) => {
+      try {
+        const result = await pool.query(
+          'DELETE FROM user_notifications WHERE ' + where + ' AND read_at IS NOT NULL',
+          scope(req.notificationOwner)
+        );
+        res.setHeader('Cache-Control', 'private, no-store');
+        return res.json({ success: true, deleted: result.rowCount });
+      } catch (error) {
+        console.error('Notification delete-read:', error.message);
+        return res.status(503).json({ error: 'Unable to delete read notifications.' });
+      }
+    });
+
   }
   mount('/api/notifications', auth.authenticateSchoolClient);
   mount('/api/platform/notifications', auth.authenticatePlatform);

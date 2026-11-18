@@ -34,14 +34,16 @@
     '<div class="universal-panel-head"><div><strong>Notifications</strong><small>Requests, decisions and system updates</small></div>' +
     '<button type="button" class="universal-refresh" aria-label="Refresh notifications" title="Refresh">↻</button></div>' +
     '<div class="universal-preview" role="status" aria-live="polite">Loading notifications…</div>' +
-    '<div class="universal-panel-actions"><button type="button" class="universal-read-all">Mark all read</button><button type="button" class="universal-view-all">View all</button></div>' +
+    '<p class="universal-feedback" role="status" aria-live="polite"></p>' +
+    '<div class="universal-panel-actions"><button type="button" class="universal-read-all">Mark all read</button><button type="button" class="universal-delete-read">Delete read</button><button type="button" class="universal-view-all">View all</button></div>' +
     '</section>';
   anchor.prepend(shell);
   const bell = shell.querySelector('.universal-bell');
   const badge = shell.querySelector('.universal-bell-count');
   const panel = shell.querySelector('.universal-panel');
   const preview = shell.querySelector('.universal-preview');
-  let unread = 0, data = [], busy = false, currentFilter = 'ALL', currentQuery = '', nextOffset = null;
+  const panelStatus = shell.querySelector('.universal-feedback');
+  let unread = 0, data = [], busy = false, removing = false, currentFilter = 'ALL', currentQuery = '', nextOffset = null;
   let modal = null, modalList = null, modalStatus = null;
   const text = (tag, cls, content) => {
     const item = document.createElement(tag);
@@ -119,6 +121,12 @@
       goto.addEventListener('click', () => { detail.hidden = true; navigate(item); });
       actions.append(goto);
     }
+    const removeButton = text('button', 'universal-detail-delete', 'Delete');
+    removeButton.type = 'button';
+    removeButton.addEventListener('click', async () => {
+      if (await deleteOne(item, removeButton)) { detail.hidden = true; bell.focus(); }
+    });
+    actions.append(removeButton);
     card.append(actions);
     detail.replaceChildren(card);
     detail.hidden = false;
@@ -134,7 +142,43 @@
     showDetails(item);
     await refresh(false).catch(() => {});
   }
+  function actionStatus(message) {
+    const dest = modal && !modal.hidden ? modalStatus : panelStatus;
+    if (dest) dest.textContent = message;
+  }
+  async function deleteOne(item, control) {
+    if (removing) return false;
+    if (!window.confirm('Delete this notification? This does not remove any related school records or decisions.')) return false;
+    removing = true;
+    if (control) control.disabled = true;
+    try {
+      await api('/' + encodeURIComponent(item.notificationId) , { method: 'DELETE' });
+      await refresh(false);
+      actionStatus('Notification deleted.');
+      return true;
+    } catch (error) {
+      actionStatus(error.message);
+      return false;
+    } finally {
+      removing = false;
+      if (control) control.disabled = false;
+    }
+  }
+  async function deleteRead() {
+    if (removing) return;
+    if (!window.confirm('Delete all READ notifications from your inbox? Unread messages will be kept.')) return;
+    removing = true;
+    try {
+      const result = await api('/delete-read', { method: 'POST' });
+      await refresh(false);
+      actionStatus(result.deleted ? result.deleted + ' read notification(s) deleted.' : 'No read notifications to delete.');
+    } catch (error) {
+      actionStatus(error.message);
+    } finally { removing = false; }
+  }
   function makeItem(item) {
+    const row = document.createElement('div');
+    row.className = 'universal-notice-row';
     const button = document.createElement('button');
     button.type = 'button';
     button.className = 'universal-notice' + (!item.readAt ? ' is-unread' : '');
@@ -148,7 +192,13 @@
     content.append(text('time', null, fmt(item.updatedAt || item.createdAt)));
     button.append(content);
     button.addEventListener('click', () => openItem(item));
-    return button;
+    const removeButton = text('button', 'universal-delete', '✕');
+    removeButton.type = 'button';
+    removeButton.title = 'Delete notification';
+    removeButton.setAttribute('aria-label', 'Delete notification: ' + item.title);
+    removeButton.addEventListener('click', () => deleteOne(item, removeButton));
+    row.append(button, removeButton);
+    return row;
   }
   function fillList(root, items, emptyText) {
     root.replaceChildren();
@@ -206,6 +256,7 @@
     } catch (e) { preview.textContent = e.message; }
   }
   shell.querySelector('.universal-read-all').addEventListener('click', markAll);
+  shell.querySelector('.universal-delete-read').addEventListener('click', deleteRead);
   function makeCenter() {
     if (modal) return;
     modal = document.createElement('section');
@@ -221,6 +272,7 @@
       '<label>Category<select class="universal-filter"><option value="ALL">All</option><option value="UNREAD">Unread</option><option value="REQUEST">Requests</option><option value="APPROVAL">Approvals</option><option value="SYSTEM">System updates</option></select></label></div>' +
       '<div class="universal-center-list"></div><p class="universal-center-status" role="status" aria-live="polite"></p>' +
       '<div class="universal-center-actions"><button type="button" class="universal-read-center">Mark all read</button>' +
+      '<button type="button" class="universal-delete-read-center">Delete read</button>' +
       '<button type="button" class="universal-load-more" hidden>Load more</button></div></div>';
     document.body.append(modal);
     modalList = modal.querySelector('.universal-center-list');
@@ -234,6 +286,7 @@
       currentQuery = e.target.value; refresh();
     });
     modal.querySelector('.universal-read-center').addEventListener('click', markAll);
+    modal.querySelector('.universal-delete-read-center').addEventListener('click', deleteRead);
     modal.querySelector('.universal-load-more').addEventListener('click', more);
   }
   function closeCenter() { if (modal) modal.hidden = true; bell.focus(); }
