@@ -374,7 +374,15 @@ function registerAuthRoutes(app, pool) {
   });
 
   app.get('/api/auth/me', async (req, res) => {
-    const token = bearerToken(req) || staffCookieToken(req) || cookieToken(req);
+    const suppliedBearer=bearerToken(req);
+    const browserStaff=staffCookieToken(req);
+    const browserStudent=cookieToken(req);
+    // A bearer from another tab cannot override the account currently active in this browser.
+    if (suppliedBearer && browserStaff && suppliedBearer!==browserStaff)
+      return res.status(401).json({error:'Another account is active in this browser. Sign in again.'});
+    if (suppliedBearer && browserStudent && suppliedBearer!==browserStudent)
+      return res.status(401).json({error:'Another account is active in this browser. Sign in again.'});
+    const token = suppliedBearer || browserStaff || browserStudent;
     if (!token) return res.status(401).json({ error: 'Authentication required.' });
     try {
       const tokenHash = hashToken(token);
@@ -454,29 +462,34 @@ function registerAuthRoutes(app, pool) {
   });
 
   app.post('/api/auth/logout', async (req, res) => {
-    const token = bearerToken(req);
-    const studentToken = cookieToken(req);
-    const staffToken = staffCookieToken(req);
-    clearStaffCookie(res);
-    clearStudentCookie(res);
-    if (!token && !studentToken && !staffToken) return res.status(204).end();
-    try {
-      await pool.query(
-        'UPDATE user_sessions SET revoked_at=NOW() WHERE token_hash=$1 AND revoked_at IS NULL',
-        [token?hashToken(token):null]
-      );
-      if(staffToken && staffToken!==token)await pool.query('UPDATE user_sessions SET revoked_at=NOW() WHERE token_hash=$1 AND revoked_at IS NULL',[hashToken(staffToken)]);
-      await pool.query(
-        'UPDATE student_sessions SET revoked_at=NOW() WHERE token_hash=$1 AND revoked_at IS NULL',
-        [hashToken(token || studentToken)]
-      );
-      if(studentToken && studentToken!==token){
-        await pool.query('UPDATE student_sessions SET revoked_at=NOW() WHERE token_hash=$1 AND revoked_at IS NULL',[hashToken(studentToken)]);
-      }
+    const tokens = [...new Set([bearerToken(req),staffCookieToken(req),cookieToken(req)].filter(Boolean))];
+    if (!tokens.length) {
+      clearStaffCookie(res);
+      clearStudentCookie(res);
       return res.status(204).end();
-    } catch (err) {
-      console.error('Logout failed:', err.message);
-      return res.status(500).json({ error: 'Logout service unavailable.' });
+    }
+    const client=await pool.connect().catch(error=>{
+      console.error('Logout connection failed:',error.message);
+      return null;
+    });
+    if(!client)return res.status(503).json({error:'Logout service unavailable. Please retry.'});
+    try {
+      await client.query('BEGIN');
+      for(const token of tokens) {
+        const hashed=hashToken(token);
+        await client.query('UPDATE user_sessions SET revoked_at=NOW() WHERE token_hash=$1 AND revoked_at IS NULL',[hashed]);
+        await client.query('UPDATE student_sessions SET revoked_at=NOW() WHERE token_hash=$1 AND revoked_at IS NULL',[hashed]);
+      }
+      await client.query('COMMIT');
+      clearStaffCookie(res);
+      clearStudentCookie(res);
+      return res.status(204).end();
+    } catch(err) {
+      await client.query('ROLLBACK').catch(()=>{});
+      console.error('Logout failed:',err.message);
+      return res.status(503).json({error:'Could not sign out. Please retry.'});
+    } finally {
+      client.release();
     }
   });
 }
