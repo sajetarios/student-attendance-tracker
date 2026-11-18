@@ -110,6 +110,27 @@ test('coverage list restricts records to school, requesting staff and department
  assert.deepEqual(query.params,['s1',id,'TEACHER','d1','u1']);
  assert.equal((await fixture('STUDENT').call('GET','/api/staff-attendance/official-business/:id/coverage',{}, {id})).code,403);
 });
+test('substitute allocation requires department head and locks school-wide coverage decisions',async()=>{
+ const id='a6831ee2-24db-42b2-9d27-39d130eb11f1';
+ const coverageId='b6831ee2-24db-42b2-9d27-39d130eb11f1';
+ const substituteId='c6831ee2-24db-42b2-9d27-39d130eb11f1';
+ const path='/api/staff-attendance/official-business/:id/coverage/:coverageId/substitute';
+ const teacher=fixture('TEACHER','d1');
+ assert.equal((await teacher.call('POST',path,{substituteUserId:substituteId},{id,coverageId})).code,403);
+ const head=fixture('DEPARTMENT_HEAD','d1');
+ const result=await head.call('POST',path,{substituteUserId:substituteId},{id,coverageId});
+ assert.ok([200,409].includes(result.code));
+ assert.ok(head.queries.some(x=>x.sql.includes('pg_advisory_xact_lock')));
+ const scope=head.queries.find(x=>x.sql.includes('FROM staff_ob_class_coverage c')&&x.sql.includes('FOR UPDATE OF c'));
+ assert.match(scope.sql,/o.department_id=\$4/);
+ assert.match(scope.sql,/o.status='APPROVED'/);
+ assert.match(scope.sql,/c.status='NEEDS_COVERAGE'/);
+ assert.ok(head.queries.some(x=>x.sql.includes("role='TEACHER' AND active=TRUE")));
+ assert.match(code,/schedule_day_adjustments a/);
+ assert.match(code,/teacher_period_substitutions ts/);
+ assert.match(code,/staff_ob_class_coverage c/);
+ assert.match(code,/STAFF_OB_SUBSTITUTE_ASSIGNED/);
+});
 test('schema enforces immutable audit, department FKs, status transitions and approval identity',()=>{
  for(const token of ['PENDING_HEAD','PENDING_ADMIN','APPROVED','REJECTED','CANCELLED',
   'staff_attendance_audit_immutable','staff_ob_class_coverage','staff_official_business_requests',
