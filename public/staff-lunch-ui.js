@@ -159,7 +159,7 @@
       // Rotation occurs only for the presenter while the teacher is viewing the
       // personal attendance page; old challenges are revoked server-side.
       window.setInterval(()=>{
-        const view=$('myGateAttendanceView');
+        const view=$('teacherLunchQrView');
         if(!document.hidden && view&&!view.hidden && assigned && expiryTimestamp &&
            Date.now()>expiryTimestamp-15000 && !busy)issue().catch(()=>{});
       },5000);
