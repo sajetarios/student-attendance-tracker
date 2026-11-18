@@ -2423,7 +2423,11 @@ app.post('/api/students', authenticateSchoolClient, requireSchoolAdminOrTeacher,
     const client = await pool.connect();
     try {
       await client.query('BEGIN');
-      const activeYear = await client.query("SELECT school_year_id FROM school_years WHERE school_id=$1 AND status='ACTIVE'", [req.auth.schoolId]);
+      const activeYear = await client.query("SELECT school_year_id, EXTRACT(YEAR FROM start_date)::int AS registration_year FROM school_years WHERE school_id=$1 AND status='ACTIVE'", [req.auth.schoolId]);
+      // The year is the active school year's start year, or Manila calendar
+      // year if this school has not activated a school year yet.
+      const registrationYear = activeYear.rows[0]?.registration_year ||
+        Number(new Intl.DateTimeFormat('en-US', { year: 'numeric', timeZone: 'Asia/Manila' }).format(new Date()));
       const masterGrade = activeYear.rowCount ? 'Unassigned' : cleanGrade;
       const masterSection = activeYear.rowCount ? 'Unassigned' : cleanSection;
       const qrToken = require('crypto').randomUUID();
@@ -2439,7 +2443,7 @@ app.post('/api/students', authenticateSchoolClient, requireSchoolAdminOrTeacher,
            WHERE students.school_id=EXCLUDED.school_id`;
       let result = { rowCount: 0 };
       for (let attempt = 0; attempt < (requestedStudentId ? 1 : 20); attempt++) {
-        if (!requestedStudentId) cleanStudentId = await nextStudentId(client);
+        if (!requestedStudentId) cleanStudentId = await nextStudentId(client, { year: registrationYear, gradeLevel: cleanGrade });
         result = await client.query(
           `INSERT INTO students(school_id, student_id, lrn, full_name, grade_level, section,
                                parent_name, parent_mobile, sex, qr_token)
@@ -2490,7 +2494,9 @@ app.post('/api/students', authenticateSchoolClient, requireSchoolAdminOrTeacher,
       client.release();
     }
   } catch (err) {
-    console.error('Student save failed:', err.message);    if (err.code === '23505') return res.status(409).json({ error: 'That LRN is already registered.' });
+    console.error('Student save failed:', err.message);
+    if (err.code === 'STUDENT_ID_SERIES_EXHAUSTED') return res.status(409).json({ error: err.message });
+    if (err.code === '23505') return res.status(409).json({ error: 'That LRN is already registered.' });
     return res.status(500).json({ error: 'Could not save student.' });
   }
 });
