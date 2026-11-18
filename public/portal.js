@@ -835,38 +835,143 @@ window.attendigoStaffIdentity = new Promise(resolve => { resolveStaffIdentity = 
   });
   let securityAccounts = [];
   let securityAccountsLoaded = false;
+  let securityAccountsPage = 1;
+  let securityAccountsPages = 1;
+  let expandedSecurityAccountId = null;
+  let securityAccountsRequest = 0;
+  let securitySearchTimer = null;
+  function securityAccessStatus(account) {
+    const locked = account.lockedUntil && new Date(account.lockedUntil).getTime() > Date.now();
+    return !account.active ? 'Inactive' : locked ? 'Locked' :
+      account.mustChangePassword ? 'Password change required' : 'Active';
+  }
+  function renderSecurityAccounts() {
+    const host = $('securityAccountsRows');
+    if (!host) return;
+    if (!securityAccounts.some(item => item.userId === expandedSecurityAccountId))
+      expandedSecurityAccountId = null;
+    host.innerHTML = securityAccounts.length ? securityAccounts.map(account => {
+      const status = securityAccessStatus(account);
+      const locked = status === 'Locked';
+      const statusClass = status === 'Active' ? 'active' : 'inactive';
+      const lastLogin = account.lastLoginAt ? new Date(account.lastLoginAt).toLocaleString() : 'Never';
+      const roleLabel = String(account.role || '').replaceAll('_', ' ');
+      const departmentLabel = String(account.departmentName || 'Unassigned');
+      const name = String(account.displayName || account.username || 'Unnamed employee');
+      const id = String(account.userId);
+      const open = expandedSecurityAccountId === id;
+      const actions = [
+        '<button type="button" class="outline-button compact-button" data-reset-staff-password="' + esc(id) + '">Reset password</button>',
+        '<button type="button" class="outline-button compact-button" data-revoke-staff-sessions="' + esc(id) + '" ' + (Number(account.activeSessions) ? '' : 'disabled') + '>Revoke sessions</button>',
+        locked ? '<button type="button" class="outline-button compact-button" data-unlock-staff-account="' + esc(id) + '">Unlock</button>' : ''
+      ].join('');
+      return '<tr class="security-account-row ' + (open ? 'security-account-expanded' : 'security-account-collapsed') + '" data-security-account-id="' + esc(id) + '">' +
+        '<td data-label="Employee"><div class="security-card-heading"><div class="security-card-identity">' +
+        '<strong>' + esc(name) + '</strong><small class="table-subtext">' + esc(account.username) + '</small>' +
+        '<div class="security-card-preview"><span class="account-status ' + statusClass + '">' + esc(status) + '</span>' +
+        '<span class="security-card-preview-role">' + esc(roleLabel) + ' · ' + esc(departmentLabel) + '</span></div></div>' +
+        '<button type="button" class="outline-button compact-button security-card-toggle" data-security-toggle="' + esc(id) +
+        '" aria-expanded="' + String(open) + '" aria-label="' + (open ? 'Hide' : 'Show') + ' security details for ' + esc(name) + '">' +
+        (open ? 'Hide details' : 'Show details') + '</button></div></td>' +
+        '<td data-label="Role / department"><div class="security-role-cell"><span class="role-line" title="' + esc(roleLabel) + '">' + esc(roleLabel) + '</span><span class="department-line" title="' + esc(departmentLabel) + '">' + esc(departmentLabel) + '</span></div></td>' +
+        '<td data-label="Access status"><span class="account-status ' + statusClass + '">' + esc(status) + '</span></td>' +
+        '<td data-label="Last sign-in">' + esc(lastLogin) + '</td>' +
+        '<td data-label="Failed attempts">' + Number(account.failedLoginAttempts || 0) + ' / 5</td>' +
+        '<td data-label="Sessions">' + Number(account.activeSessions || 0) + '</td>' +
+        '<td data-label="Security actions"><div class="action-row">' + actions + '</div></td></tr>';
+    }).join('') : '<tr><td colspan="7" class="empty-cell">No employee accounts match the selected filters.</td></tr>';
+  }
   async function loadSecurityAccounts(force = false) {
     const host = $('securityAccountsRows');
     if (!host || (securityAccountsLoaded && !force)) return;
+    const serial = ++securityAccountsRequest;
     host.innerHTML = '<tr><td colspan="7" class="empty-cell">Loading staff security status…</td></tr>';
+    const search = $('securityAccountsSearch')?.value.trim() || '';
+    const role = $('securityAccountsRole')?.value || 'ALL';
+    const department = $('securityAccountsDepartment')?.value || 'ALL';
+    const status = $('securityAccountsStatus')?.value || 'ALL';
+    const limit = Number($('securityAccountsPageSize')?.value || 25);
+    const query = new URLSearchParams({search,role,department,status,
+      page:String(securityAccountsPage),limit:String(limit)});
     try {
-      const result = await api('/api/admin/security/accounts');
+      const result = await api('/api/admin/security/accounts/paged?' + query);
+      if (serial !== securityAccountsRequest) return;
       securityAccounts = result.accounts || [];
-      host.innerHTML = securityAccounts.length ? securityAccounts.map(account => {
-        const locked = account.lockedUntil && new Date(account.lockedUntil).getTime() > Date.now();
-        const status = !account.active ? 'Inactive' : locked ? 'Locked' : account.mustChangePassword ? 'Password change required' : 'Active';
-        const statusClass = !account.active || locked ? 'inactive' : 'active';
-        const lastLogin = account.lastLoginAt ? new Date(account.lastLoginAt).toLocaleString() : 'Never';
-        const roleLabel = String(account.role || '').replaceAll('_', ' ');
-        const departmentLabel = String(account.departmentName || 'Unassigned');
-        const actions = [
-          '<button type="button" class="outline-button compact-button" data-reset-staff-password="' + esc(account.userId) + '">Reset password</button>',
-          '<button type="button" class="outline-button compact-button" data-revoke-staff-sessions="' + esc(account.userId) + '" ' + (Number(account.activeSessions) ? '' : 'disabled') + '>Revoke sessions</button>',
-          locked ? '<button type="button" class="outline-button compact-button" data-unlock-staff-account="' + esc(account.userId) + '">Unlock</button>' : ''
-        ].join('');
-        return '<tr><td data-label="Employee"><strong>' + esc(account.displayName || account.username) + '</strong><small class="table-subtext">' + esc(account.username) + '</small></td>' +
-          '<td data-label="Role / department"><div class="security-role-cell"><span class="role-line" title="' + esc(roleLabel) + '">' + esc(roleLabel) + '</span><span class="department-line" title="' + esc(departmentLabel) + '">' + esc(departmentLabel) + '</span></div></td>' +
-          '<td data-label="Access status"><span class="account-status ' + statusClass + '">' + esc(status) + '</span></td>' +
-          '<td data-label="Last sign-in">' + esc(lastLogin) + '</td>' +
-          '<td data-label="Failed attempts">' + Number(account.failedLoginAttempts || 0) + ' / 5</td>' +
-          '<td data-label="Sessions">' + Number(account.activeSessions || 0) + '</td>' +
-          '<td data-label="Security actions"><div class="action-row">' + actions + '</div></td></tr>';
-      }).join('') : '<tr><td colspan="7" class="empty-cell">No employee accounts found.</td></tr>';
+      securityAccountsPage = Number(result.page) || 1;
+      securityAccountsPages = Number(result.pages) || 1;
+      const total = Number(result.total) || 0;
+      const departments = $('securityAccountsDepartment');
+      if (departments) {
+        const previous = departments.value;
+        departments.replaceChildren(new Option('All departments', 'ALL'));
+        for (const entry of result.departments || []) {
+          departments.add(new Option(entry.departmentName, entry.departmentId));
+        }
+        departments.value = [...departments.options].some(option => option.value === previous) ? previous : 'ALL';
+      }
+      renderSecurityAccounts();
+      const first = total ? (securityAccountsPage - 1) * limit + 1 : 0;
+      const last = total ? first + securityAccounts.length - 1 : 0;
+      if ($('securityAccountsCount')) $('securityAccountsCount').textContent =
+        'Showing ' + first + '–' + last + ' of ' + total + ' matching employees';
+      if ($('securityAccountsPageInfo')) $('securityAccountsPageInfo').textContent =
+        'Page ' + securityAccountsPage + ' of ' + securityAccountsPages;
+      if ($('securityAccountsPrevious')) $('securityAccountsPrevious').disabled = securityAccountsPage <= 1;
+      if ($('securityAccountsNext')) $('securityAccountsNext').disabled = securityAccountsPage >= securityAccountsPages;
       securityAccountsLoaded = true;
     } catch (error) {
+      if (serial !== securityAccountsRequest) return;
+      securityAccountsLoaded = false;
       host.innerHTML = '<tr><td colspan="7" class="empty-cell">' + esc(error.message || 'Could not load account security status.') + '</td></tr>';
+      if ($('securityAccountsCount')) $('securityAccountsCount').textContent = 'Employee account search unavailable.';
     }
   }
+  function updateSecurityExpansion() {
+    $('securityAccountsRows')?.querySelectorAll('tr[data-security-account-id]').forEach(row => {
+      const open = row.dataset.securityAccountId === expandedSecurityAccountId;
+      row.classList.toggle('security-account-expanded',open);
+      row.classList.toggle('security-account-collapsed',!open);
+      const toggle = row.querySelector('[data-security-toggle]');
+      if (toggle) {
+        toggle.setAttribute('aria-expanded',String(open));
+        toggle.textContent = open ? 'Hide details' : 'Show details';
+        const account = securityAccounts.find(item => String(item.userId) === row.dataset.securityAccountId);
+        const name = account?.displayName || account?.username || 'employee';
+        toggle.setAttribute('aria-label',(open ? 'Hide' : 'Show') + ' security details for ' + name);
+      }
+    });
+  }
+  $('securityAccountsRows')?.addEventListener('click', event => {
+    const toggle = event.target.closest('[data-security-toggle]');
+    if (!toggle) return;
+    const id = toggle.dataset.securityToggle;
+    expandedSecurityAccountId = expandedSecurityAccountId === id ? null : id;
+    updateSecurityExpansion();
+  });
+  function onSecurityFilterChanged() {
+    securityAccountsPage = 1;
+    expandedSecurityAccountId = null;
+    loadSecurityAccounts(true);
+  }
+  $('securityAccountsSearch')?.addEventListener('input', () => {
+    clearTimeout(securitySearchTimer);
+    securitySearchTimer = setTimeout(onSecurityFilterChanged, 250);
+  });
+  ['securityAccountsDepartment','securityAccountsRole','securityAccountsStatus','securityAccountsPageSize'].forEach(id => {
+    $(id)?.addEventListener('change',onSecurityFilterChanged);
+  });
+  $('securityAccountsPrevious')?.addEventListener('click', () => {
+    if (securityAccountsPage <= 1) return;
+    securityAccountsPage--;
+    expandedSecurityAccountId = null;
+    loadSecurityAccounts(true);
+  });
+  $('securityAccountsNext')?.addEventListener('click', () => {
+    if (securityAccountsPage >= securityAccountsPages) return;
+    securityAccountsPage++;
+    expandedSecurityAccountId = null;
+    loadSecurityAccounts(true);
+  });
   function closeTemporaryPasswordModal() {
     $('temporaryPasswordValue').value = '';
     $('temporaryPasswordModal').hidden = true;
