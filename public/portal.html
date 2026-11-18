@@ -7,7 +7,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="theme-color" content="#1c2d45">
   <title>Dashboard · Attendigo</title>
-  <link rel="stylesheet" href="/staff-lunch.css?v=2">
+  <link rel="stylesheet" href="/staff-lunch.css?v=3">
   <link rel="stylesheet" href="/form48-report.css?v=1">
   <link rel="stylesheet" href="/portal.css?v=0.9.116"><link rel="stylesheet" href="/attendigo-brand-polish.css?v=2"><link rel="stylesheet" href="/parent-admin.css?v=7">
   <link rel="stylesheet" href="/schedule-mobile-layout.css?v=1">
@@ -1547,16 +1547,18 @@ body.dark-mode .content-wrap > .school-heading.is-compact,body[data-theme="dark"
             <div class="surface-card section-card"><h3>Lunch QR management</h3><p>Administrative presenter assignments are separate from teacher account access and personal staff attendance. Each assignment applies to the selected lunch DTR entry.</p></div>
             <section class="staff-lunch-panel" id="staffLunchAdminCard" aria-label="Lunch QR presenter management" hidden>
               <div class="section-toolbar"><div><h3>Lunch QR management — presenter assignments</h3>
-                <p>Choose the lunch DTR entry and assign the authorized teacher who will display its QR. Replacing a presenter revokes existing QR codes.</p></div>
+                <p>Authorize multiple teachers within each department for AM Out and PM In. Each teacher displays an independently rotating QR.</p></div>
                 <small id="staffLunchAdminDay" class="field-hint"></small></div>
               <div class="staff-lunch-controls">
                 <label>Attendance entry<select id="staffLunchAdminSlot"><option value="AM_OUT">AM Out</option><option value="PM_IN">PM In</option></select></label>
-                <label>Authorized teacher<select id="staffLunchTeacher"><option value="">Loading teachers…</option></select></label>
-                <button class="primary-button" type="button" id="staffLunchAssign">Assign / replace</button>
-                <button class="outline-button" type="button" id="staffLunchRevoke" disabled>Revoke presenter</button>
+                <label>Department<select id="staffLunchDepartment"><option value="">All departments</option></select></label>
+                <label>Teachers <small>Select multiple with Ctrl/Command or Shift</small><select id="staffLunchTeacher" multiple size="5" aria-label="Select one or more teacher presenters"></select></label>
+                <button class="primary-button" type="button" id="staffLunchAssign">Authorize selected teachers</button>
+                <button class="outline-button" type="button" id="staffLunchRevoke" hidden disabled>Revoke presenter</button>
               </div>
               <p class="staff-lunch-status" role="status" aria-live="polite" id="staffLunchAdminStatus">Checking presenter assignment…</p>
-              <p class="attendance-summary-note">Only School Admin can change presenter assignments. Teachers can generate their assigned QR from My Gate Attendance; Gate Keepers remain the photo-verification fallback.</p>
+              <div id="staffLunchAssignedList" class="staff-lunch-assigned-list" role="region" aria-label="Active lunch QR presenters" aria-live="polite"></div>
+              <p class="attendance-summary-note">School Admin controls presenter access. Any authenticated staff member may scan a valid QR; Gatekeepers remain the photo-verification fallback.</p>
             </section>
           </section>
           <section id="form48ReportsView" class="view-panel" hidden>
@@ -1855,7 +1857,7 @@ body.dark-mode .content-wrap > .school-heading.is-compact,body[data-theme="dark"
   <script src="/attendance-sync-center.js?v=3" defer></script>
   <script src="/learner-roster-view.js?v=1" defer></script>
   <script src="/portal.js?v=188" defer></script>
-  <script src="/staff-lunch-ui.js?v=2" defer></script>
+  <script src="/staff-lunch-ui.js?v=3" defer></script>
   <script src="/form48-report.js?v=1" defer></script>
   <script src="/teacher-roster-popover.js?v=2" defer></script>
   <script src="/sardo-monitor.js?v=2" defer></script><script src="/parent-dashboard.js?v=3" defer></script>
