@@ -115,3 +115,14 @@ test('redemption rejects student and invalid challenge IDs without database acce
  assert.equal((await execute(invalid)).code,400);
  assert.equal(invalid.queries.length,0);
 });
+
+test('database insert rechecks challenge validity against database clock to prevent expiry race',async()=>{
+ const f=redemptionFixture(),res=await execute(f);
+ assert.equal(res.code,201);
+ const insert=f.queries.find(q=>q.sql.includes('INSERT INTO staff_attendance_events'));
+ assert.match(insert.sql,/WHERE EXISTS \(/);
+ assert.match(insert.sql,/school_id=\$2 AND challenge_id=\$7/);
+ assert.match(insert.sql,/issued_at<=NOW\(\) AND expires_at>NOW\(\)/);
+ assert.match(insert.sql,/ON CONFLICT DO NOTHING/);
+ assert.equal(insert.params[6],f.req.body.challengeId);
+});
