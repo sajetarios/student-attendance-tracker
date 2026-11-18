@@ -392,7 +392,7 @@ function registerAuthRoutes(app, pool) {
       return res.status(401).json({error:'Another account is active in this browser. Sign in again.'});
     if (suppliedBearer && browserStudent && suppliedBearer!==browserStudent)
       return res.status(401).json({error:'Another account is active in this browser. Sign in again.'});
-    const token = suppliedBearer || browserStaff || browserStudent;
+    const token = browserStaff || browserStudent || suppliedBearer;
     if (!token) return res.status(401).json({ error: 'Authentication required.' });
     try {
       const tokenHash = hashToken(token);
