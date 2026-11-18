@@ -398,9 +398,10 @@ function registerAuthRoutes(app, pool) {
   });
 
   app.post('/api/auth/logout', async (req, res) => {
-    const token = bearerToken(req) || cookieToken(req);
+    const token = bearerToken(req);
+    const studentToken = cookieToken(req);
     clearStudentCookie(res);
-    if (!token) return res.status(204).end();
+    if (!token && !studentToken) return res.status(204).end();
     try {
       await pool.query(
         'UPDATE user_sessions SET revoked_at=NOW() WHERE token_hash=$1 AND revoked_at IS NULL',
@@ -408,8 +409,11 @@ function registerAuthRoutes(app, pool) {
       );
       await pool.query(
         'UPDATE student_sessions SET revoked_at=NOW() WHERE token_hash=$1 AND revoked_at IS NULL',
-        [hashToken(token)]
+        [hashToken(token || studentToken)]
       );
+      if(studentToken && studentToken!==token){
+        await pool.query('UPDATE student_sessions SET revoked_at=NOW() WHERE token_hash=$1 AND revoked_at IS NULL',[hashToken(studentToken)]);
+      }
       return res.status(204).end();
     } catch (err) {
       console.error('Logout failed:', err.message);
