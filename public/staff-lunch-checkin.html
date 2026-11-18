@@ -12,6 +12,7 @@
 <style>
 :root{font-family:Inter,system-ui,sans-serif;color-scheme:light dark}
 *{box-sizing:border-box}
+[hidden]{display:none!important}
 body{min-height:100dvh;display:grid;place-items:center;margin:0;padding:20px;background:#edf2f8;color:#182a41}
 main{width:min(100%,460px);padding:clamp(20px,5vw,32px);background:#fff;border-radius:16px;box-shadow:0 12px 35px #11243d1a}
 .brand{display:flex;align-items:center;gap:12px;font-weight:650;font-size:1.15rem}
@@ -29,7 +30,7 @@ button:disabled{opacity:.6;cursor:not-allowed}
 small{display:block;line-height:1.5;color:#627186;margin-top:16px}
 @media(prefers-color-scheme:dark){body{background:#101823;color:#e8eff8}main{background:#1c2a3c}p,small{color:#b5c3d4}#lunchName{color:#e8eff8}#lunchStatus{background:#233349;border-color:#47607a}.back{color:#d7e7ff;border-color:#526985}}
 </style>
-<script src="/staff-lunch-checkin.js?v=2" defer></script>
+<script src="/staff-lunch-checkin.js?v=3" defer></script>
 </head>
 <body>
 <main>
