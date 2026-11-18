@@ -13,7 +13,7 @@
  const api='/api/staff-attendance/official-business';
  async function init(user){
   if(!['TEACHER','DEPARTMENT_HEAD','SCHOOL_ADMIN'].includes(user?.role))return;
-  const dash=$('dashboardView');if(!dash)return;
+  const dash=$('officialBusinessView');if(!dash)return;
   const root=document.createElement('section');
   root.className='staff-lunch-panel staff-ob-panel';
   root.setAttribute('aria-label','Official Business requests');
@@ -31,7 +31,7 @@
     </details>
     <p id="obStatus" role="status" aria-live="polite" class="staff-lunch-status">Loading requests…</p>
     <div class="staff-ob-list" id="obList"></div>`;
-  dash.prepend(root);
+  dash.append(root);
   const status=$('obStatus'),list=$('obList');
   const say=(s,error=false)=>{status.textContent=s;status.classList.toggle('is-error',error);};
   let busy=false;
@@ -133,6 +133,8 @@
     });
    }catch(e){say(e.message,true);}
   }
+  // Refresh the OB list when users navigate to this standalone view.
+  dash.addEventListener('official-business:open',()=>refresh().catch(()=>{}));
   $('obRefresh').addEventListener('click',refresh);
   $('obForm').addEventListener('submit',async(event)=>{
    event.preventDefault();
