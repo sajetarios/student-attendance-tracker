@@ -46,8 +46,9 @@
     const form=$('form48FilterForm'),month=$('form48Month'),person=$('form48Employee');
     const button=$('form48Print'),output=$('form48PrintArea'),feedback=$('form48Feedback');
     if(!form||!month||!person||!button||!output||!feedback)return;
-    const current=new Intl.DateTimeFormat('en-CA',{year:'numeric',month:'2-digit',timeZone:'Asia/Manila'}).format(new Date());
-    month.value=current.slice(0,7);
+    const parts=new Intl.DateTimeFormat('en-US',{year:'numeric',month:'2-digit',timeZone:'Asia/Manila'}).formatToParts(new Date());
+    const part=type=>parts.find(p=>p.type===type)?.value||'';
+    month.value=part('year')+'-'+part('month');
     const status=(msg,fail=false)=>{feedback.textContent=msg;feedback.classList.toggle('is-error',fail);};
     api('/api/staff-attendance/admin/form48/employees').then(data=>{
       person.replaceChildren(new Option('Select a staff member',''));
