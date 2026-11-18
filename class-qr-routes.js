@@ -108,6 +108,18 @@ function registerClassQrRoutes(app,pool,{authenticateSchoolClient,requireSchoolR
    res.json({sessionId:s.session_id,token,qrImage,validUntil:new Date((b+1)*30000).toISOString(),closesAt:s.closes_at});
   }catch(e){console.error('QR read:',e.message);res.sendStatus(500);}
  });
+ app.get('/api/class-qr/check-in/status',authenticateSchoolClient,async(req,res)=>{
+  if(req.auth?.type!=='STUDENT')return res.status(403).json({error:'Student authentication required.'});
+  const sessionId=String(req.query.sessionId||'');
+  if(!uuid.test(sessionId))return res.status(400).json({error:'Invalid class QR session.'});
+  try{
+   const session=await pool.query('SELECT session_id,school_date,subject_name,section FROM class_qr_sessions WHERE school_id=$1 AND session_id=$2',[req.auth.schoolId,sessionId]);
+   if(!session.rowCount)return res.status(404).json({error:'Class QR session not found.'});
+   const existing=await pool.query('SELECT attendance_status,checked_in_at FROM class_qr_checkins WHERE school_id=$1 AND session_id=$2 AND student_id=$3 LIMIT 1',[req.auth.schoolId,sessionId,req.auth.studentId]);
+   res.set('Cache-Control','no-store');
+   return res.json({recorded:!!existing.rowCount,status:existing.rows[0]?.attendance_status||null,checkedInAt:existing.rows[0]?.checked_in_at||null,class:session.rows[0]});
+  }catch(e){console.error('QR status:',e.message);res.status(500).json({error:'Could not verify attendance status.'});}
+ });
  app.post('/api/class-qr/check-in',authenticateSchoolClient,checkinLimit,async(req,res)=>{
   if(req.auth?.type!=='STUDENT'||req.auth.mustChangePassword)return res.status(403).json({error:'Student login and password update required.'});
   const {sessionId,token}=req.body||{};
@@ -116,6 +128,8 @@ function registerClassQrRoutes(app,pool,{authenticateSchoolClient,requireSchoolR
    const r=await pool.query('SELECT * FROM class_qr_sessions WHERE school_id=$1 AND session_id=$2',[req.auth.schoolId,sessionId]),s=r.rows[0];
    if(!s||s.closed_at||Date.now()>=new Date(s.closes_at).getTime()||Date.now()<new Date(s.starts_at).getTime())
     return res.status(410).json({error:'QR attendance is closed.'});
+   const already=await pool.query('SELECT attendance_status,checked_in_at FROM class_qr_checkins WHERE school_id=$1 AND session_id=$2 AND student_id=$3 LIMIT 1',[req.auth.schoolId,sessionId,req.auth.studentId]);
+   if(already.rowCount)return res.status(409).json({error:'Attendance already recorded for this class.',alreadyRecorded:true,status:already.rows[0].attendance_status,checkedInAt:already.rows[0].checked_in_at});
    const b=bucket(),matches=[b,b-1].some(n=>crypto.timingSafeEqual(Buffer.from(sign(s.secret,s.session_id,n),'hex'),Buffer.from(token,'hex')));
    if(!matches)return res.status(410).json({error:'QR expired. Scan the latest code.'});
    const eligible=await pool.query(`SELECT 1 FROM students st
@@ -128,7 +142,7 @@ function registerClassQrRoutes(app,pool,{authenticateSchoolClient,requireSchoolR
       [req.auth.schoolId,req.auth.studentId,s.grade_level,s.section]);
    if(!eligible.rowCount)return res.status(403).json({error:'Student is not enrolled in this class.'});
    const result=await saveAttendance(pool,s,req.auth.studentId,'QR',null,null);
-   if(result.duplicate)return res.status(409).json({error:'Attendance already recorded for this class.'});
+   if(result.duplicate)return res.status(409).json({error:'Attendance already recorded for this class.',alreadyRecorded:true});
    res.status(201).json({ok:true,status:result.status,checkedInAt:result.checkedInAt});
   }catch(e){console.error('QR check-in:',e.message);res.status(500).json({error:'Unable to record attendance. Please retry.'});}
  });
