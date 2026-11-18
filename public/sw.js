@@ -1,4 +1,4 @@
-const CACHE = "attendigo-v217-form48-dated-approved-leave";
+const CACHE = "attendigo-v218-account-security-layout";
 
 const SHELL = [
   "/typography.css?v=1",
@@ -15,6 +15,7 @@ const SHELL = [
   "/assets/attendigo-wordmark-on-light.svg?v=2",
   "/assets/attendigo-symbol-transparent.svg?v=2",
   "/attendigo-sidebar-adaptive.css?v=19",
+  "/user-management-readability.css?v=4",
   "/user-nav-reorg.css?v=1",
   "/attendigo-sidebar-adaptive.js?v=9",
   "/assets/attendigo-logo.png?v=2",

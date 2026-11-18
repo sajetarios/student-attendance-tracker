@@ -140,3 +140,228 @@ html[data-ui-theme="dark"] #teachersView .teacher-monitor-table td:nth-child(3) 
  #teachersView .teacher-monitor-table td:first-child{min-height:88px}
  #teachersView .staff-accounts-card .section-toolbar>button{width:100%}
 }
+
+
+/* Employee account security: contain long names/roles and keep all actions accessible.
+   Layout responds to the actual management panel width, not just the browser viewport. */
+#teachersView .security-account-section {
+  min-width:0;
+  container-type:inline-size;
+}
+#teachersView .security-account-section > .table-scroll {
+  width:100%;
+  max-width:100%;
+  min-width:0;
+  overflow-x:auto;
+  overscroll-behavior-x:contain;
+}
+#teachersView .security-accounts-table {
+  width:100%;
+  min-width:1460px;
+  table-layout:fixed;
+}
+#teachersView .security-accounts-table :is(th,td) {
+  box-sizing:border-box;
+  min-width:0;
+  white-space:normal!important;
+  overflow-wrap:anywhere;
+  word-break:normal;
+  vertical-align:middle;
+}
+#teachersView .security-accounts-table td {
+  padding:12px 13px;
+  line-height:1.45;
+}
+#teachersView .security-accounts-table td:first-child :is(strong,.table-subtext) {
+  display:block;
+  max-width:100%;
+  white-space:normal;
+  overflow-wrap:anywhere;
+}
+#teachersView .security-accounts-table td:first-child strong {
+  line-height:1.3;
+  font-weight:750;
+}
+#teachersView .security-accounts-table td:first-child .table-subtext {
+  margin-top:4px;
+}
+#teachersView .security-accounts-table .security-role-cell {
+  display:flex;
+  flex-direction:column;
+  align-items:flex-start;
+  gap:4px;
+  min-width:0;
+  max-width:100%;
+}
+#teachersView .security-accounts-table .role-line {
+  display:block;
+  max-width:100%;
+  font-weight:750;
+  text-transform:capitalize;
+  white-space:normal;
+  overflow-wrap:anywhere;
+  line-height:1.35;
+}
+#teachersView .security-accounts-table .department-line {
+  display:block;
+  max-width:100%;
+  font-size:.92em;
+  color:var(--text-muted,#60758e);
+  white-space:normal;
+  overflow-wrap:anywhere;
+  line-height:1.4;
+}
+#teachersView .security-accounts-table .action-row {
+  display:flex;
+  flex-wrap:wrap;
+  align-items:stretch;
+  gap:7px;
+  min-width:0;
+  max-width:100%;
+}
+#teachersView .security-accounts-table .action-row button {
+  flex:1 1 112px;
+  min-width:0;
+  max-width:100%;
+  white-space:normal;
+  line-height:1.3;
+  padding:8px 10px;
+}
+
+/* At ordinary desktop, tablet and zoomed layouts, each record becomes
+   a two-column security card instead of compressing seven table columns. */
+@container (max-width:1450px) {
+  #teachersView .security-account-section > .table-scroll {
+    overflow-x:visible;
+  }
+  #teachersView .security-accounts-table {
+    display:block;
+    width:100%;
+    min-width:0;
+    background:transparent;
+  }
+  #teachersView .security-accounts-table colgroup {
+    display:none;
+  }
+  #teachersView .security-accounts-table thead {
+    position:absolute;
+    width:1px;
+    height:1px;
+    padding:0;
+    margin:-1px;
+    overflow:hidden;
+    clip-path:inset(50%);
+    white-space:nowrap;
+  }
+  #teachersView .security-accounts-table tbody {
+    display:grid;
+    grid-template-columns:repeat(2,minmax(0,1fr));
+    gap:14px;
+    width:100%;
+    min-width:0;
+  }
+  #teachersView .security-accounts-table tbody tr {
+    display:grid;
+    grid-template-columns:repeat(2,minmax(0,1fr));
+    align-content:start;
+    gap:12px 16px;
+    width:100%;
+    min-width:0;
+    box-sizing:border-box;
+    padding:16px;
+    border:1px solid #d8e3f0;
+    border-radius:15px;
+    background:var(--surface,#fff);
+    box-shadow:0 2px 10px rgba(18,42,76,.06);
+  }
+  #teachersView .security-accounts-table tbody tr td {
+    display:block;
+    width:auto!important;
+    min-width:0!important;
+    padding:0!important;
+    border:0!important;
+    background:transparent!important;
+    text-align:left!important;
+    white-space:normal!important;
+    overflow-wrap:anywhere;
+  }
+  #teachersView .security-accounts-table tbody tr td:not(:first-child)::before {
+    display:block;
+    content:attr(data-label);
+    margin-bottom:5px;
+    color:var(--text-muted,#60758e);
+    font-size:.78rem;
+    font-weight:700;
+    line-height:1.3;
+  }
+  #teachersView .security-accounts-table tbody tr td:first-child {
+    grid-column:1 / -1;
+    padding-bottom:12px!important;
+    border-bottom:1px solid #dce6f1!important;
+  }
+  #teachersView .security-accounts-table tbody tr td:nth-child(2) {
+    grid-column:1 / -1;
+  }
+  #teachersView .security-accounts-table tbody tr td:nth-child(7) {
+    grid-column:1 / -1;
+    padding-top:12px!important;
+    border-top:1px solid #dce6f1!important;
+  }
+  #teachersView .security-accounts-table tbody tr td[colspan] {
+    grid-column:1 / -1;
+    border:0!important;
+    text-align:center!important;
+  }
+  #teachersView .security-accounts-table td .action-row {
+    display:grid;
+    grid-template-columns:repeat(2,minmax(0,1fr));
+    gap:8px;
+  }
+  #teachersView .security-accounts-table td .action-row button {
+    width:100%;
+    min-height:38px;
+  }
+}
+/* Single-column cards when the panel itself becomes narrow. */
+@container (max-width:920px) {
+  #teachersView .security-accounts-table tbody {
+    grid-template-columns:minmax(0,1fr);
+  }
+}
+@container (max-width:440px) {
+  #teachersView .security-accounts-table tbody tr {
+    grid-template-columns:minmax(0,1fr);
+  }
+  #teachersView .security-accounts-table tbody tr td,
+  #teachersView .security-accounts-table tbody tr td:first-child,
+  #teachersView .security-accounts-table tbody tr td:nth-child(2),
+  #teachersView .security-accounts-table tbody tr td:nth-child(7) {
+    grid-column:1;
+  }
+  #teachersView .security-accounts-table td .action-row {
+    grid-template-columns:minmax(0,1fr);
+  }
+}
+/* Avoid light cards or washed-out secondary text in dark mode. */
+@container (max-width:1450px) {
+  :is(html[data-ui-theme="dark"],body.dark-mode,body[data-theme="dark"])
+  #teachersView .security-accounts-table tbody tr {
+    background:#1b304c;
+    border-color:#425d7d;
+    box-shadow:0 2px 12px rgba(0,0,0,.18);
+  }
+  :is(html[data-ui-theme="dark"],body.dark-mode,body[data-theme="dark"])
+  #teachersView .security-accounts-table tbody tr td:first-child {
+    border-bottom-color:#3b5572!important;
+  }
+  :is(html[data-ui-theme="dark"],body.dark-mode,body[data-theme="dark"])
+  #teachersView .security-accounts-table tbody tr td:nth-child(7) {
+    border-top-color:#3b5572!important;
+  }
+}
+:is(html[data-ui-theme="dark"],body.dark-mode,body[data-theme="dark"])
+#teachersView .security-accounts-table .department-line,
+:is(html[data-ui-theme="dark"],body.dark-mode,body[data-theme="dark"])
+#teachersView .security-accounts-table tbody tr td:not(:first-child)::before {
+  color:#c6d9ef;
+}
