@@ -86,5 +86,65 @@ function registerStaffGateDtrRoutes(app,pool,{authenticateSchoolClient,requireSc
    })});
   }catch(err){console.error('Staff DTR personal read:',err.message);return res.status(503).json({error:'DTR records unavailable.'});}
  });
+
+ // School Admin only: staff roster and verified monthly Form 48 reporting.
+ // Never infer or backfill missing punches from gate movements or sign-in events.
+ app.get('/api/staff-attendance/admin/form48/employees',authenticateSchoolClient,
+  requireSchoolRoles('SCHOOL_ADMIN'),async(req,res)=>{
+   res.set('Cache-Control','no-store, private');
+   if(req.auth?.type!=='SCHOOL_USER'||req.auth.role!=='SCHOOL_ADMIN')return res.status(403).json({error:'School Administrator required.'});
+   try{
+    const staff=await pool.query(
+     `SELECT user_id AS "userId",display_name AS "displayName",role
+       FROM school_users WHERE school_id=$1
+       AND role IN ('SCHOOL_ADMIN','DEPARTMENT_HEAD','TEACHER','GATE_KEEPER')
+       ORDER BY display_name ASC`,[req.auth.schoolId]);
+    return res.json({staff:staff.rows});
+   }catch(err){console.error('Form48 employee lookup:',err.message);return res.status(503).json({error:'Staff listing unavailable.'});}
+ });
+ app.get('/api/staff-attendance/admin/form48',authenticateSchoolClient,
+  requireSchoolRoles('SCHOOL_ADMIN'),async(req,res)=>{
+   res.set('Cache-Control','no-store, private');
+   if(req.auth?.type!=='SCHOOL_USER'||req.auth.role!=='SCHOOL_ADMIN')return res.status(403).json({error:'School Administrator required.'});
+   const staffUserId=String(req.query?.staffUserId||'');
+   const month=String(req.query?.month||'');
+   if(!UUID.test(staffUserId)||!/^\\d{4}-(0[1-9]|1[0-2])$/.test(month))
+    return res.status(400).json({error:'Valid staff member and month required.'});
+   const [yearPart,monthPart]=month.split('-').map(Number);
+   if(yearPart<2000||yearPart>2100)return res.status(400).json({error:'Invalid reporting year.'});
+   const from=month+'-01';
+   const to=monthPart===12?(yearPart+1)+'-01-01':yearPart+'-'+String(monthPart+1).padStart(2,'0')+'-01';
+   try{
+    const staff=await pool.query(
+     `SELECT display_name AS "displayName",role FROM school_users
+       WHERE school_id=$1 AND user_id=$2
+       AND role IN ('SCHOOL_ADMIN','DEPARTMENT_HEAD','TEACHER','GATE_KEEPER')`,
+     [req.auth.schoolId,staffUserId]);
+    if(!staff.rowCount)return res.status(404).json({error:'Staff member not found in this school.'});
+    const events=await pool.query(
+     `SELECT to_char(school_date,'YYYY-MM-DD') AS "schoolDate",
+         dtr_slot AS "slot",
+         to_char(occurred_at AT TIME ZONE 'Asia/Manila','HH24:MI') AS "localTime",
+         source,verification_method AS "verificationMethod"
+       FROM staff_attendance_events
+       WHERE school_id=$1 AND staff_user_id=$2
+       AND event_kind='DTR_SLOT' AND verification_status='VERIFIED'
+       AND school_date >= $3::date AND school_date < $4::date
+       ORDER BY school_date ASC,occurred_at ASC`,
+       [req.auth.schoolId,staffUserId,from,to]);
+    const days=new Date(Date.UTC(yearPart,monthPart,0)).getUTCDate();
+    const index=new Map();
+    for(const ev of events.rows){const key=ev.schoolDate+':'+ev.slot;if(!index.has(key))index.set(key,ev);}
+    const records=Array.from({length:days},(_,i)=>{
+      const day=i+1, date=month+'-'+String(day).padStart(2,'0');
+      const slots=Object.fromEntries(DTR_SLOTS.map(slot=>[slot,index.get(date+':'+slot)?.localTime||null]));
+      return {day,date,slots,verifiedCount:Object.values(slots).filter(Boolean).length};
+    });
+    return res.json({month,staffUserId,displayName:staff.rows[0].displayName,role:staff.rows[0].role,
+      timezone:'Asia/Manila',records,verifiedEntries:events.rows.length,
+      notice:'Verified DTR slots only. Missing or pending times are not inferred. Hours, absences, and undertime require authorized review.'});
+   }catch(err){console.error('Form48 monthly report:',err.message);return res.status(503).json({error:'Monthly DTR unavailable.'});}
+ });
+
 }
 module.exports={registerStaffGateDtrRoutes,DTR_SLOTS};
