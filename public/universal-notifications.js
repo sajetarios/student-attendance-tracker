@@ -1,15 +1,30 @@
 /* Attendigo universal inbox — intentionally no service-worker/private-record persistence. */
-(() => {
+(async () => {
   'use strict';
   const tokenKey = 'schoolAttendance.accessToken';
   const token = sessionStorage.getItem(tokenKey);
-  if (!token) return;
-  let user;
-  try { user = JSON.parse(sessionStorage.getItem('schoolAttendance.user') || 'null'); } catch { user = null; }
+  // An HttpOnly browser cookie is authoritative, including after browser restarts.
+  // Never trust a cached role when choosing a notification inbox.
+  let verified;
+  let useBearer = false;
+  try {
+    let response = await fetch('/api/auth/me', { credentials: 'same-origin', cache: 'no-store' });
+    if (response.status === 401 && token) {
+      response = await fetch('/api/auth/me', {
+        credentials: 'same-origin', cache: 'no-store',
+        headers: { Authorization: 'Bearer ' + token }
+      });
+      useBearer = response.ok;
+    }
+    if (!response.ok) return;
+    verified = await response.json();
+  } catch { return; }
+  const user = verified?.user;
+  if (!user) return;
   const anchor = document.querySelector('.topbar-right') ||
     document.querySelector('.student-actions') || document.querySelector('.parent-head');
   if (!anchor) return;
-  const base = user?.role === 'SUPER_ADMIN' ? '/api/platform/notifications' : '/api/notifications';
+  const base = user.role === 'SUPER_ADMIN' ? '/api/platform/notifications' : '/api/notifications';
   const shell = document.createElement('div');
   shell.className = 'universal-notifications';
   shell.innerHTML = '<button type="button" class="universal-bell" aria-label="Notifications" title="Notifications" aria-expanded="false" aria-controls="universalNotificationPanel">' +
@@ -41,10 +56,15 @@
     bell.setAttribute('aria-label', unread ? unread + ' unread notifications' : 'Notifications');
   }
   async function api(path = '', options = {}) {
-    const key = sessionStorage.getItem(tokenKey);
-    if (!key) throw Error('Your session has ended. Sign in to view notifications.');
+    const headers = new Headers(options.headers || {});
+    headers.delete('Authorization');
+    if (useBearer) {
+      const key = sessionStorage.getItem(tokenKey);
+      if (!key) throw Error('Your session has ended. Sign in to view notifications.');
+      headers.set('Authorization', 'Bearer ' + key);
+    }
     const res = await fetch(base + path, {
-      ...options, headers: { Authorization: 'Bearer ' + key, ...(options.headers || {}) }, cache: 'no-store'
+      ...options, credentials: 'same-origin', headers, cache: 'no-store'
     });
     const value = await res.json().catch(() => ({}));
     if (!res.ok) throw Error(res.status === 401 ? 'Session expired. Sign in again.' : value.error || 'Unable to load notifications.');
