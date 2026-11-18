@@ -12,6 +12,7 @@ function bearerToken(req) {
 
 function registerAuthRoutes(app, pool) {
   const sessionHours = Math.min(24, Math.max(1, Number(process.env.AUTH_SESSION_HOURS || 12)));
+  const studentSessionDays = Math.min(30,Math.max(1,Number(process.env.STUDENT_SESSION_DAYS||7)));
   const studentCookie='__Host-attendigo-student';
   const cookieOptions='Path=/; HttpOnly; Secure; SameSite=Lax';
   const cookieToken=req=>{const raw=String(req.headers.cookie||'').split(';').map(x=>x.trim()).find(x=>x.startsWith(studentCookie+'='));return raw?raw.slice(studentCookie.length+1):'';};
@@ -163,8 +164,13 @@ function registerAuthRoutes(app, pool) {
          WHERE student_account_id=$1`,
         [account.student_account_id]
       );
+      const existingCookie=cookieToken(req);
+      if(existingCookie){
+        const active=await pool.query(`SELECT ss.student_account_id FROM student_sessions ss WHERE ss.token_hash=$1 AND ss.revoked_at IS NULL AND ss.expires_at>NOW() LIMIT 1`,[hashToken(existingCookie)]);
+        if(active.rowCount)return res.status(409).json({error:'A student is already signed in on this browser. Please sign out before switching accounts.',accountSwitchRequired:true});
+      }
       const token = createOpaqueToken();
-      const expiresAt = new Date(Date.now() + sessionHours * 60 * 60 * 1000);
+      const expiresAt = new Date(Date.now() + studentSessionDays * 86400000);
       await pool.query(
         `INSERT INTO student_sessions(token_hash, school_id, student_account_id, expires_at)
          VALUES($1,$2,$3,$4)`,
@@ -318,7 +324,7 @@ function registerAuthRoutes(app, pool) {
   });
 
   app.get('/api/auth/me', async (req, res) => {
-    const token = bearerToken(req) || cookieToken(req);
+    const token = cookieToken(req) || bearerToken(req);
     if (!token) return res.status(401).json({ error: 'Authentication required.' });
     try {
       const tokenHash = hashToken(token);
@@ -405,7 +411,7 @@ function registerAuthRoutes(app, pool) {
     try {
       await pool.query(
         'UPDATE user_sessions SET revoked_at=NOW() WHERE token_hash=$1 AND revoked_at IS NULL',
-        [hashToken(token)]
+        [token?hashToken(token):null]
       );
       await pool.query(
         'UPDATE student_sessions SET revoked_at=NOW() WHERE token_hash=$1 AND revoked_at IS NULL',
