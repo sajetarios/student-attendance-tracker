@@ -36,16 +36,29 @@
    date:row.date,remark:ob.remark,exception:ob.exceptionRemark||'',reviewRequired:Boolean(ob.exception)
   })));
   const hasObExceptions=obEntries.some(item=>item.reviewRequired);
+  const leaveEntries=Array.isArray(analysis.approvedLeaveRemarks)?analysis.approvedLeaveRemarks:[];
+  const hasLeaveConflicts=leaveEntries.some(item=>item.conflictDates?.length);
+  const leaveMarkup=leaveEntries.length
+   ?'<div class="form48-leave-remarks">'+leaveEntries.map(item=>
+     '<div>'+esc(item.text)+
+     (item.conflictDates?.length?' — REVIEW REQUIRED: verified punches on '+
+      esc(item.conflictDates.map(date=>Number(date.slice(-2))).join(', '))+'.':'')+
+     '</div>').join('')+'</div>'
+   :'';
   const obMarkup=obEntries.length
    ?'<div class="form48-ob-remarks">'+obEntries.map(item=>
       '<div><strong>'+esc(item.date.slice(8))+'</strong> '+esc(item.remark)+
       (item.reviewRequired?' — REVIEW REQUIRED: '+esc(item.exception):'')+'</div>'
      ).join('')+'</div>'
-   :'<div class="form48-line"></div><div class="form48-line"></div>';
+   :leaveEntries.length?'':'<div class="form48-line"></div><div class="form48-line"></div>';
   const s=analysis.summary||{};
   const verifiedName=analysis.signatories?.verifiedBy||'',approvedName=analysis.signatories?.approvedBy||'';
   const verifiedPosition=analysis.signatories?.verifiedPosition||'',approvedPosition=analysis.signatories?.approvedPosition||'';
-  const reviewNote=s.hasUnreviewed||!s.configured||hasObExceptions?'DRAFT — REVIEW REQUIRED':'PREPARED FOR SIGNATURE';
+  const lastDay=new Date(Date.UTC(Number(data.month.slice(0,4)),Number(data.month.slice(5,7)),0))
+   .toISOString().slice(0,10);
+  const periodIncomplete=Boolean(analysis.asOfDate&&lastDay>analysis.asOfDate);
+  const reviewNote=s.hasUnreviewed||!s.configured||hasObExceptions||hasLeaveConflicts
+   ?'DRAFT — REVIEW REQUIRED':periodIncomplete?'DRAFT — PERIOD NOT COMPLETE':'PREPARED FOR SIGNATURE';
   const gapText=s.pendingAbsentDays?' ('+s.pendingAbsentDays+' missing day(s) for review)':'';
   return '<article class="form48-copy" aria-label="'+esc(kind)+' DTR copy">'+
    '<div class="form48-copy-type">'+esc(kind.toUpperCase())+' COPY</div>'+
@@ -65,7 +78,9 @@
    '<div class="form48-signature"><strong>'+esc(verifiedName)+'</strong>'+
    '<span class="form48-signer-position">'+esc(verifiedPosition)+'</span>'+
    '<span>Verified as to prescribed office hours — In Charge</span></div>'+
-   '<div class="form48-remarks">REMARKS: '+esc(s.approvedLeaveDays?String(s.approvedLeaveDays)+' day(s) of documented approved leave (see supporting documents).':'')+obMarkup+'</div>'+
+   '<div class="form48-remarks">REMARKS: '+leaveMarkup+
+   (!leaveEntries.length&&s.approvedLeaveDays?esc(String(s.approvedLeaveDays)+' documented approved leave day(s).'):'')+
+   obMarkup+'</div>'+
    '<div class="form48-summary">'+
    '<span>Days present (verified evidence): '+esc(s.daysPresent)+'</span>'+
    '<span>Days absent (confirmed): '+esc(s.daysAbsent)+esc(gapText)+'</span>'+ 
