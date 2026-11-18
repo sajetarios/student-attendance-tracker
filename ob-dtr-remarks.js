@@ -4,6 +4,12 @@ const dateFmt=new Intl.DateTimeFormat('en-CA',{timeZone:ZONE,year:'numeric',mont
 const timeFmt=new Intl.DateTimeFormat('en-GB',{timeZone:ZONE,hour:'2-digit',minute:'2-digit',hourCycle:'h23'});
 function dateInManila(value){const d=new Date(value);if(!Number.isFinite(d.getTime()))return null;const p=Object.fromEntries(dateFmt.formatToParts(d).map(x=>[x.type,x.value]));return `${p.year}-${p.month}-${p.day}`;}
 function localTime(value){const d=new Date(value);return Number.isFinite(d.getTime())?timeFmt.format(d):null;}
+function lateBy(endAt,gateAt){
+ const minutes=Math.floor((Date.parse(gateAt)-Date.parse(endAt))/60000);
+ if(!Number.isFinite(minutes)||minutes<0)return null;
+ const hours=Math.floor(minutes/60),mins=minutes%60;
+ return hours?hours+'h '+String(mins).padStart(2,'0')+'m':minutes+'m';
+}
 function buildObDtrRemarks(date,approvedOb=[],physicalGate=[]){
  if(!/^\d{4}-\d{2}-\d{2}$/.test(date))return [];
  const dayStart=Date.parse(date+'T00:00:00+08:00'),dayEnd=dayStart+86400000;
@@ -25,7 +31,7 @@ function buildObDtrRemarks(date,approvedOb=[],physicalGate=[]){
    remark:sameDay?`Approved OB ${localTime(ob.startsAt)}–${localTime(ob.endsAt)}`:'Approved OB (spans reporting date)',
    ...(returnEvent?{actualGateReturn:returnEvent.occurredAt,
      exception:'RETURN_AFTER_APPROVED_END_REVIEW',
-     exceptionRemark:`Gate return at ${localTime(returnEvent.occurredAt)} after approved OB end; completion time and travel require review. No overtime or undertime inferred.`}:{})
+     exceptionRemark:`Gate re-entry ${localTime(returnEvent.occurredAt)} (${lateBy(end,returnEvent.occurredAt)} after OB end).`}:{})
   };
  });
 }
