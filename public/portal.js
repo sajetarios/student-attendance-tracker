@@ -472,7 +472,7 @@ window.attendigoStaffIdentity = new Promise(resolve => { resolveStaffIdentity = 
       $('myGateAttendanceNav').hidden = !(teacher || admin);
       $('myGateAttendanceNav').querySelector('.nav-label').textContent = admin ? 'My Staff Attendance' : 'My Gate Attendance';
     }
-    if ($('adminStaffBadgeCard')) $('adminStaffBadgeCard').hidden = !admin;
+    if ($('adminStaffBadgeCard')) $('adminStaffBadgeCard').hidden = !(admin || teacher);
     if ($('myGateHeading')) $('myGateHeading').textContent = admin ? 'My Staff Attendance' : 'My Gate Attendance';
     if ($('myGateIntro')) $('myGateIntro').textContent = admin
       ? 'Your personal, verified staff attendance. Sign-in to this portal does not mark you present.'
@@ -4831,7 +4831,7 @@ let teacherActionMenuListenersInstalled = false;
   });
   // Sidebar navigation uses delegated native links; do not bind legacy button handlers.
   $('adminStaffBadgeShow')?.addEventListener('click', async () => {
-    if (user?.role !== 'SCHOOL_ADMIN') return;
+    if (!['SCHOOL_ADMIN','TEACHER'].includes(user?.role)) return;
     const button = $('adminStaffBadgeShow'), status = $('adminStaffBadgeStatus'), img = $('adminStaffBadgeImage');
     button.disabled = true;
     status.textContent = 'Preparing your own staff QR badge…';

@@ -42,6 +42,6 @@ test('Teacher personal page distinguishes verified DTR from physical gate histor
  assert.match(portal,/DTR unavailable/);
  assert.doesNotMatch(portal,/\$\('myGateTimeIn'\)/);
  assert.doesNotMatch(portal,/\$\('myGateTimeOut'\)/);
- assert.match(worker,/"\/portal\.js\?v=189"/);
- assert.match(html,/src="\/portal\.js\?v=189"/);
+ assert.match(worker,/"\/portal\.js\?v=190"/);
+ assert.match(html,/src="\/portal\.js\?v=190"/);
 });
