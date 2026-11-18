@@ -1,4 +1,4 @@
-const CACHE = "attendigo-v232-compact-notification-center";
+const CACHE = "attendigo-v233-provider-aware-storage";
 
 const SHELL = [
   "/typography.css?v=1",
