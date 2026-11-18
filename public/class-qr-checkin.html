@@ -11,27 +11,40 @@
 <link rel="stylesheet" href="/typography.css?v=1">
 <link rel="icon" type="image/png" href="/assets/attendigo-favicon.png?v=2">
 <style>
- main{max-width:480px;margin:5vh auto;padding:clamp(18px,4vw,30px);background:var(--surface,#fff);border:1px solid var(--border,#e1e7ee);border-radius:18px;box-shadow:0 12px 36px rgba(13,30,54,.08)}
- h1{font-size:1.65rem;margin:.15rem 0 .5rem}p{line-height:1.5}
- .qr-field{display:grid;gap:6px;margin:14px 0}
- .qr-field label{font-weight:600}
- .qr-field input{width:100%;font:inherit;padding:12px 14px;border-radius:9px;border:1px solid #8b9db5;box-sizing:border-box;color:var(--text-primary,inherit);background:var(--surface,#fff)}
- .qr-field input:focus-visible{outline:3px solid #4e86c855;outline-offset:1px}
- .qr-action{padding:12px 20px;min-height:44px;border:0;border-radius:10px;background:#154e9c;color:#fff;cursor:pointer;font:inherit;font-weight:600;width:100%}
- .qr-action:disabled{opacity:.65;cursor:not-allowed}
- .qr-remember{display:flex;align-items:center;gap:10px;margin:12px 0 20px;font-size:.91rem}
- .qr-remember input{width:18px;height:18px}
- #message{padding:13px 15px;margin-top:16px;border-radius:10px;background:#edf4ff;color:#173f78}
- #message[data-state="error"]{background:#fff0ef;color:#8c2530}
- #message[data-state="success"]{background:#edf8f0;color:#205d39}
- .qr-links{display:flex;flex-wrap:wrap;gap:14px;margin:20px 0 0}
- [hidden]{display:none!important}
- @media(prefers-color-scheme:dark){#message{background:#1b3352;color:#d6e7ff}#message[data-state="error"]{background:#4c2228;color:#ffe1df}#message[data-state="success"]{background:#193d2b;color:#c5f6d8}}
- @media(max-width:540px){main{margin:12px;border-radius:14px}}
+:root{color-scheme:light dark}
+body.portal-page{min-height:100dvh;box-sizing:border-box;margin:0;padding:clamp(18px,4vw,32px) 14px 36px}
+.qr-brand{display:flex;align-items:center;justify-content:center;margin:0 auto 22px;gap:11px;max-width:max-content;border-radius:16px;padding:11px 17px;background:#101f45;color:#fff;box-shadow:0 5px 18px #101f4520}
+.qr-brand img{width:42px;height:42px;object-fit:contain;flex-shrink:0}
+.qr-brand-name{display:block;font-size:1.5rem;font-weight:750;letter-spacing:-.045em;line-height:1.05;color:#fff}
+.qr-brand-tagline{display:block;color:#d4dff2;font-size:.7rem;margin-top:3px;letter-spacing:.01em}
+main{max-width:440px;margin:0 auto;padding:clamp(20px,5vw,28px);background:var(--surface,#fff);border:1px solid var(--border,#e1e7ee);border-radius:18px;box-shadow:0 12px 36px rgba(13,30,54,.06)}
+h1{font-size:clamp(1.45rem,5vw,1.7rem);letter-spacing:-.025em;line-height:1.18;margin:0 0 9px}
+p{line-height:1.48}
+#intro{font-size:.94rem;margin:0 0 18px;color:var(--text-secondary,#44536a)}
+.qr-field{display:grid;gap:7px;margin:0 0 16px}
+.qr-field label{font-size:.93rem;font-weight:650}
+.qr-field input{width:100%;min-height:46px;font:inherit;font-size:1rem;padding:11px 13px;border-radius:10px;border:1px solid #8b9db5;box-sizing:border-box;color:var(--text-primary,inherit);background:var(--surface,#fff)}
+.qr-field input:focus-visible{outline:3px solid #4e86c855;outline-offset:1px}
+.qr-action{padding:12px 18px;min-height:46px;border:0;border-radius:10px;background:#18539e;color:#fff;cursor:pointer;font:inherit;font-weight:650;width:100%}
+.qr-action:disabled{opacity:.65;cursor:not-allowed}
+.qr-remember{display:flex;align-items:flex-start;gap:10px;margin:4px 0 18px;font-size:.81rem;line-height:1.4;color:var(--text-secondary,#526078)}
+.qr-remember input{width:17px;height:17px;flex-shrink:0;margin-top:2px}
+#message{padding:11px 13px;margin:15px 0 0;border-radius:10px;background:var(--qr-status-bg,#eff5fd);color:var(--qr-status-fg,#24486c);font-size:.84rem;line-height:1.4}
+#message[data-state="error"]{background:#fff0ef;color:#8c2530}
+#message[data-state="success"]{background:#edf8f0;color:#205d39}
+.qr-links{display:grid;gap:10px;margin:18px 0 0}
+.qr-secondary{display:flex;align-items:center;justify-content:center;gap:9px;text-align:center;min-height:44px;box-sizing:border-box;border:1px solid var(--border,#c5d0de);border-radius:10px;padding:10px 14px;color:var(--text-primary,#1b3153);background:var(--surface,#fff);text-decoration:none;font-size:.91rem;font-weight:600}
+.qr-secondary:focus-visible{outline:3px solid #4e86c855;outline-offset:2px}
+.qr-help{display:block;text-align:center;font-size:.82rem;color:var(--text-secondary,#526078);text-decoration:underline;text-underline-offset:3px;padding:6px}
+.qr-divider{display:flex;align-items:center;gap:12px;color:var(--text-secondary,#66768c);font-size:.78rem;margin:0}
+.qr-divider:before,.qr-divider:after{content:"";height:1px;flex:1;background:var(--border,#d8e0e9)}
+[hidden]{display:none!important}
+@media(prefers-color-scheme:dark){#message{background:#1b3352;color:#d6e7ff}#message[data-state="error"]{background:#4c2228;color:#ffe1df}#message[data-state="success"]{background:#193d2b;color:#c5f6d8}}
+@media(max-width:540px){body.portal-page{padding:18px 12px 28px}.qr-brand{margin-bottom:16px}main{padding:22px 18px;border-radius:16px}}
 </style>
 </head>
 <body class="portal-page">
-<div class="attendigo-brand"><img class="attendigo-logo" src="/assets/attendigo-sidebar-logo.png?v=2" alt="Attendigo" width="1800" height="430"></div>
+<header class="qr-brand" aria-label="Attendigo"><img src="/assets/attendigo-favicon.png?v=2" alt="" width="42" height="42"><div><span class="qr-brand-name">Attendigo</span><span class="qr-brand-tagline">Every learner counts.</span></div></header>
 <main>
 <h1>Class attendance</h1>
 <p id="intro">Checking your teacher's attendance method…</p>
@@ -45,12 +58,13 @@
 </form>
 <section id="legacyFlow" hidden>
   <button class="qr-action" id="checkin" type="button" disabled>Confirm attendance</button>
-  <p><a id="studentSignIn" href="/portal-login.html?mode=student">Sign in to confirm attendance</a></p>
+  <p><a class="qr-secondary" id="studentSignIn" href="/portal-login.html?mode=student">Sign in to confirm attendance</a></p>
 </section>
 <p id="message" role="status" aria-live="polite">Reading the QR code…</p>
-<nav class="qr-links" aria-label="Attendance help">
-<a href="/student-portal.html" id="leaveCheckin">Student dashboard / Set Attendance PIN</a>
-<a href="/portal-login.html?mode=student" id="useStudentLogin" hidden>Use student account sign-in instead</a>
+<nav class="qr-links" aria-label="Other attendance options">
+<span class="qr-divider" id="fallbackDivider" hidden>Or continue with</span>
+<a class="qr-secondary" href="/portal-login.html?mode=student" id="useStudentLogin" hidden>Student account sign-in</a>
+<a class="qr-help" href="/student-portal.html" id="leaveCheckin">Need to create or reset your Attendance PIN?</a>
 </nav>
 </main>
 <script>
@@ -62,8 +76,8 @@ const form=document.getElementById('pinForm'),pin=document.getElementById('atten
 const confirm=document.getElementById('pinConfirm'),msg=document.getElementById('message'),intro=document.getElementById('intro');
 const pendingKey='schoolAttendance.pendingClassQr',rememberKey='attendigo.classQr.rememberedStudentId';
 const legacy=document.getElementById('legacyFlow'),legacyButton=document.getElementById('checkin');
-const legacyOption=document.getElementById('useStudentLogin');
-legacyOption.addEventListener('click',event=>{event.preventDefault();legacyOption.hidden=true;form.hidden=true;sessionStorage.setItem(pendingKey,location.pathname+location.search);initializeLegacy();});
+const legacyOption=document.getElementById('useStudentLogin'),fallbackDivider=document.getElementById('fallbackDivider');
+legacyOption.addEventListener('click',event=>{event.preventDefault();legacyOption.hidden=true;fallbackDivider.hidden=true;form.hidden=true;sessionStorage.setItem(pendingKey,location.pathname+location.search);initializeLegacy();});
 const show=(value,state='')=>{msg.textContent=value;msg.dataset.state=state;};
 document.getElementById('leaveCheckin').addEventListener('click',()=>sessionStorage.removeItem(pendingKey));
 const validQr=/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(sessionId)&&/^[a-f0-9]{64}$/i.test(qrToken);
@@ -127,7 +141,7 @@ fetch('/api/class-qr/check-in/mode',{cache:'no-store',credentials:'omit'})
   if(!mode.pinEnabled)return initializeLegacy();
   sessionStorage.removeItem(pendingKey);
   intro.textContent='Enter your Student ID and your private Attendance PIN. You do not need to sign in.';
-  form.hidden=false;legacyOption.hidden=false;show('Check your details, then confirm while the teacher QR is valid.');studentId.focus();
+  form.hidden=false;legacyOption.hidden=false;fallbackDivider.hidden=false;show('Check your details, then confirm while the teacher QR is valid.');
  }).catch(()=>{show('Unable to connect to the school server. Retry after reconnecting.','error');});
 })();
 </script>
