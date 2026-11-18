@@ -20,7 +20,11 @@
   root.innerHTML=`<div class="section-toolbar"><div><h3>Official Business requests</h3>
     <p>Department Heads recommend; School Admin makes the final decision. Approved requests flag affected classes for coverage.</p></div>
     <button type="button" class="outline-button" id="obRefresh">Refresh</button></div>
-    <details id="obNew"><summary>Submit Official Business request</summary>
+    <div id="obScopeTabs" class="coverage-tabs" role="tablist" aria-label="Official Business request scope" hidden>
+      <button type="button" class="coverage-tab" id="obMineTab" role="tab" aria-selected="false" aria-controls="obList">My OB Requests</button>
+      <button type="button" class="coverage-tab is-active" id="obDepartmentTab" role="tab" aria-selected="true" aria-controls="obList">Department OB Requests</button>
+    </div>
+    <details id="obNew"><summary>Submit My Official Business request</summary>
       <form id="obForm" class="staff-ob-form">
        <label>Purpose<textarea name="purpose" maxlength="1000" required minlength="3" rows="2"></textarea></label>
        <label>Destination<input name="destination" maxlength="300" required minlength="2"></label>
@@ -35,15 +39,33 @@
   const status=$('obStatus'),list=$('obList');
   const say=(s,error=false)=>{status.textContent=s;status.classList.toggle('is-error',error);};
   let busy=false;
+  let refreshSequence=0;
+  let selectedScope=user.role==='DEPARTMENT_HEAD'?'department':null;
+  const scopeTabs=$('obScopeTabs');
+  if(scopeTabs)scopeTabs.hidden=user.role!=='DEPARTMENT_HEAD';
+  const setScope=scope=>{
+   if(busy)return;
+   selectedScope=scope;
+   for(const [id,active] of [['obMineTab',scope==='mine'],['obDepartmentTab',scope==='department']]){
+    const tab=$(id);if(!tab)continue;
+    tab.classList.toggle('is-active',active);tab.setAttribute('aria-selected',String(active));
+   }
+   refresh().catch(()=>{});
+  };
+  $('obMineTab')?.addEventListener('click',()=>setScope('mine'));
+  $('obDepartmentTab')?.addEventListener('click',()=>setScope('department'));
   async function refresh(){
    if(busy)return;
+   const sequence=++refreshSequence;
    say('Loading Official Business requests…');
    try{
-    const result=await call(api);
+    const scopeQuery=user.role==='DEPARTMENT_HEAD'?'?scope='+encodeURIComponent(selectedScope):'';
+    const result=await call(api+scopeQuery);
+    if(sequence!==refreshSequence)return;
     list.replaceChildren();
     const requests=result.requests||[];
     if(!requests.length){say('No Official Business requests to display.');return;}
-    say(requests.length+' request(s) in your authorized view.');
+    say(requests.length+' request(s) in '+(selectedScope==='mine'?'your personal OB history':selectedScope==='department'?'your department queue':'your authorized view')+'.');
     requests.forEach(ob=>{
      const item=document.createElement('article');item.className='staff-ob-item';
      const statusLabel=String(ob.status||'').replaceAll('_',' ');
@@ -131,7 +153,7 @@
      }
      list.append(item);
     });
-   }catch(e){say(e.message,true);}
+   }catch(e){if(sequence===refreshSequence)say(e.message,true);}
   }
   // Refresh the OB list when users navigate to this standalone view.
   dash.addEventListener('official-business:open',()=>refresh().catch(()=>{}));
@@ -147,7 +169,7 @@
     startsAt:toManilaIso(String(values.get('startsAt'))),endsAt:toManilaIso(String(values.get('endsAt')))};}
    catch{say('Enter valid Philippine dates and times.',true);return;}
    busy=true;say('Submitting OB request…');
-   try{await call(api,'POST',body);document.dispatchEvent(new Event('attendigo:requests-changed'));form.reset();$('obNew').open=false;busy=false;await refresh();}
+   try{await call(api,'POST',body);document.dispatchEvent(new Event('attendigo:requests-changed'));form.reset();$('obNew').open=false;busy=false;if(user.role==='DEPARTMENT_HEAD'){selectedScope='mine';for(const [id,active] of [['obMineTab',true],['obDepartmentTab',false]]){$(id)?.classList.toggle('is-active',active);$(id)?.setAttribute('aria-selected',String(active));}}await refresh();}
    catch(e){busy=false;say(e.message,true);}
   });
   await refresh();
