@@ -1,34 +1,129 @@
-<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Class QR Check-in · Attendigo</title><link rel="stylesheet" href="/portal.css"><style>main{max-width:460px;margin:8vh auto;padding:24px;background:var(--surface,#fff);border-radius:16px}button{padding:12px 20px}#message{padding:16px;margin-top:16px;border-radius:8px;background:#edf4ff}</style><link rel="icon" type="image/png" href="/assets/attendigo-favicon.png?v=2">
-<link rel="apple-touch-icon" href="/assets/attendigo-apple-touch-icon.png?v=2">
+<!doctype html>
+<html lang="en"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="referrer" content="no-referrer">
+<title>Class QR Check-in · Attendigo</title>
+<link rel="stylesheet" href="/portal.css">
 <link rel="stylesheet" href="/attendigo-brand.css?v=2">
-<link rel="manifest" href="/manifest.webmanifest">
-<link rel="stylesheet" href="/attendigo-dark-unified.css?v=1"><script src="/dashboard-appearance.js?v=3"></script><link rel="stylesheet" href="/attendigo-brand-refresh.css?v=1">
-  <link rel="preload" href="/fonts/InterVariable.woff2" as="font" type="font/woff2" crossorigin>
-  <link rel="stylesheet" href="/typography.css?v=1">
-</head><body class="portal-page"><div class="attendigo-brand"><img class="attendigo-logo" src="/assets/attendigo-sidebar-logo.png?v=2" alt="Attendigo" width="1800" height="430"></div><main><h1>Class attendance</h1><p>Sign in to your student account before confirming your class check-in.</p><button id="checkin">Confirm attendance</button><p id="message" role="status">Ready to check in.</p><p><a id="studentSignIn" href="/portal-login.html?mode=student">Sign in to confirm attendance</a></p><p><a id="leaveCheckin" href="/student-portal.html">Back to Student Dashboard</a></p></main><script>
-const q=new URLSearchParams(location.search),button=document.getElementById('checkin'),msg=document.getElementById('message');
-const pendingKey='schoolAttendance.pendingClassQr';
-if(q.get('sessionId')&&q.get('token'))sessionStorage.setItem(pendingKey,location.pathname+location.search);
-document.getElementById('studentSignIn').href='/portal-login.html?mode=student&returnTo='+encodeURIComponent(location.pathname+location.search);
-document.getElementById('leaveCheckin').addEventListener('click',()=>{sessionStorage.removeItem(pendingKey);});
-button.disabled=true;
-fetch('/api/auth/me',{cache:'no-store',credentials:'same-origin'}).then(async r=>{
-  if(!r.ok)throw Error('Sign-in required');
-  const d=await r.json();
-  if(d.user?.role!=='STUDENT'||d.user.mustChangePassword)throw Error('Student sign-in or password update required');
-  const statusResponse=await fetch('/api/class-qr/check-in/status?sessionId='+encodeURIComponent(q.get('sessionId')||''),{cache:'no-store'});
-  if(!statusResponse.ok)throw Error('Could not verify existing attendance');
-  const status=await statusResponse.json();
-  if(status.recorded){
-    button.disabled=true;button.textContent='Already checked in';
-    msg.textContent='Attendance already recorded ('+status.status+'). No further action is required.';
-    sessionStorage.removeItem(pendingKey);return;
+<link rel="stylesheet" href="/typography.css?v=1">
+<link rel="stylesheet" href="/attendigo-dark-unified.css?v=1">
+<link rel="icon" type="image/png" href="/assets/attendigo-favicon.png?v=2">
+<style>
+ main{max-width:480px;margin:5vh auto;padding:clamp(18px,4vw,30px);background:var(--surface,#fff);border:1px solid var(--border,#e1e7ee);border-radius:18px;box-shadow:0 12px 36px rgba(13,30,54,.08)}
+ h1{font-size:1.65rem;margin:.15rem 0 .5rem}p{line-height:1.5}
+ .qr-field{display:grid;gap:6px;margin:14px 0}
+ .qr-field label{font-weight:600}
+ .qr-field input{width:100%;font:inherit;padding:12px 14px;border-radius:9px;border:1px solid #8b9db5;box-sizing:border-box;color:var(--text-primary,inherit);background:var(--surface,#fff)}
+ .qr-field input:focus-visible{outline:3px solid #4e86c855;outline-offset:1px}
+ .qr-action{padding:12px 20px;min-height:44px;border:0;border-radius:10px;background:#154e9c;color:#fff;cursor:pointer;font:inherit;font-weight:600;width:100%}
+ .qr-action:disabled{opacity:.65;cursor:not-allowed}
+ .qr-remember{display:flex;align-items:center;gap:10px;margin:12px 0 20px;font-size:.91rem}
+ .qr-remember input{width:18px;height:18px}
+ #message{padding:13px 15px;margin-top:16px;border-radius:10px;background:#edf4ff;color:#173f78}
+ #message[data-state="error"]{background:#fff0ef;color:#8c2530}
+ #message[data-state="success"]{background:#edf8f0;color:#205d39}
+ .qr-links{display:flex;flex-wrap:wrap;gap:14px;margin:20px 0 0}
+ [hidden]{display:none!important}
+ @media(prefers-color-scheme:dark){#message{background:#1b3352;color:#d6e7ff}#message[data-state="error"]{background:#4c2228;color:#ffe1df}#message[data-state="success"]{background:#193d2b;color:#c5f6d8}}
+ @media(max-width:540px){main{margin:12px;border-radius:14px}}
+</style>
+</head>
+<body class="portal-page">
+<div class="attendigo-brand"><img class="attendigo-logo" src="/assets/attendigo-sidebar-logo.png?v=2" alt="Attendigo" width="1800" height="430"></div>
+<main>
+<h1>Class attendance</h1>
+<p id="intro">Checking your teacher's attendance method…</p>
+<form id="pinForm" hidden>
+  <div class="qr-field"><label for="studentId">Student ID</label>
+    <input id="studentId" name="studentId" required maxlength="160" autocomplete="username" placeholder="Enter your registered Student ID"></div>
+  <div class="qr-field"><label for="attendancePin">Private six-digit Attendance PIN</label>
+    <input id="attendancePin" name="pin" type="password" inputmode="numeric" pattern="[0-9]{6}" minlength="6" maxlength="6" autocomplete="off" required placeholder="••••••"></div>
+  <label class="qr-remember"><input id="rememberStudentId" type="checkbox">Remember Student ID on this device (not recommended on shared phones)</label>
+  <button class="qr-action" id="pinConfirm" type="submit">Confirm class attendance</button>
+</form>
+<section id="legacyFlow" hidden>
+  <button class="qr-action" id="checkin" type="button" disabled>Confirm attendance</button>
+  <p><a id="studentSignIn" href="/portal-login.html?mode=student">Sign in to confirm attendance</a></p>
+</section>
+<p id="message" role="status" aria-live="polite">Reading the QR code…</p>
+<nav class="qr-links" aria-label="Attendance help">
+<a href="/student-portal.html" id="leaveCheckin">Student dashboard / Set Attendance PIN</a>
+</nav>
+</main>
+<script>
+(()=>{
+'use strict';
+const q=new URLSearchParams(location.search);
+const sessionId=q.get('sessionId')||'',qrToken=q.get('token')||'';
+const form=document.getElementById('pinForm'),pin=document.getElementById('attendancePin'),studentId=document.getElementById('studentId');
+const confirm=document.getElementById('pinConfirm'),msg=document.getElementById('message'),intro=document.getElementById('intro');
+const pendingKey='schoolAttendance.pendingClassQr',rememberKey='attendigo.classQr.rememberedStudentId';
+const legacy=document.getElementById('legacyFlow'),legacyButton=document.getElementById('checkin');
+const show=(value,state='')=>{msg.textContent=value;msg.dataset.state=state;};
+document.getElementById('leaveCheckin').addEventListener('click',()=>sessionStorage.removeItem(pendingKey));
+const validQr=/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(sessionId)&&/^[a-f0-9]{64}$/i.test(qrToken);
+if(!validQr){intro.textContent='Invalid class QR code.';show('Please scan the latest QR shown by your teacher.','error');return;}
+const previous=sessionStorage.getItem(pendingKey);
+const studentSignIn=document.getElementById('studentSignIn');
+sessionStorage.setItem(pendingKey,location.pathname+location.search);
+studentSignIn.href='/portal-login.html?mode=student&returnTo='+encodeURIComponent(location.pathname+location.search);
+let remembered='';
+try{remembered=localStorage.getItem(rememberKey)||'';}catch{}
+if(remembered){studentId.value=remembered;document.getElementById('rememberStudentId').checked=true;}
+form.addEventListener('submit',async event=>{
+ event.preventDefault();
+ if(!studentId.value.trim()||!/^[0-9]{6}$/.test(pin.value)){show('Enter your Student ID and exactly six PIN digits.','error');return;}
+ confirm.disabled=true;show('Verifying attendance with the school server…');
+ const id=studentId.value.trim(),pinValue=pin.value;pin.value='';
+ try{
+  const r=await fetch('/api/class-qr/check-in/pin',{method:'POST',credentials:'omit',cache:'no-store',headers:{'Content-Type':'application/json'},body:JSON.stringify({sessionId,token:qrToken,studentId:id,pin:pinValue})});
+  const d=await r.json().catch(()=>({}));
+  if(r.ok){
+   try{if(document.getElementById('rememberStudentId').checked)localStorage.setItem(rememberKey,id);else localStorage.removeItem(rememberKey);}catch{}
+   sessionStorage.removeItem(pendingKey);form.hidden=true;
+   show('Attendance confirmed: '+d.status+'. You may close this page.','success');return;
   }
-  button.disabled=false;
-  msg.textContent='Signed in as '+d.user.displayName+'. Confirm attendance before the QR expires.';
-}).catch(e=>{button.disabled=true;msg.textContent=e.message==='Sign-in required'?'Student sign-in required. Open in Safari to keep your session.':'Unable to verify attendance status. Refresh this page before confirming.';});
-button.onclick=async()=>{const token=sessionStorage.getItem('schoolAttendance.accessToken');
-button.disabled=true;msg.textContent='Submitting to school server…';
-try{const r=await fetch('/api/class-qr/check-in',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({sessionId:q.get('sessionId'),token:q.get('token')}),cache:'no-store'});const d=await r.json();msg.textContent=r.ok?'Attendance confirmed: '+d.status+'.':(d.error||'Check-in failed. Scan the latest QR and retry.');if(r.ok||d.alreadyRecorded){sessionStorage.removeItem(pendingKey);button.disabled=true;button.textContent='Already checked in';msg.textContent=d.alreadyRecorded?'Attendance already recorded for this class. No further action is required.':'Attendance confirmed: '+d.status+'. No further action is required.';}else if(r.status===410){button.disabled=true;msg.textContent='QR code expired or session closed. Scan the latest QR code to continue.';}}
-catch(e){msg.textContent='Network unavailable. Attendance was NOT recorded. Please retry with a fresh QR.';}finally{if(!button.textContent.includes('Already checked in')&&!msg.textContent.startsWith('QR code expired'))button.disabled=false;}};
-</script></body></html>
+  if(d.alreadyRecorded){
+   sessionStorage.removeItem(pendingKey);form.hidden=true;show('Attendance has already been recorded for this class.','success');return;
+  }
+  if(r.status===410){form.hidden=true;show('This QR code expired or the session ended. Scan the latest teacher QR.','error');return;}
+  show(r.status===403?'Unable to confirm attendance. Check your Student ID and PIN.':(d.error||'Attendance not recorded. Please try again.'),'error');
+ }catch{show('Network unavailable. Attendance was NOT recorded. Ask your teacher for assistance.','error');}
+ finally{confirm.disabled=false;}
+});
+async function initializeLegacy(){
+ intro.textContent='Sign in to your student account before confirming your class attendance.';
+ legacy.hidden=false;
+ try{
+  const me=await fetch('/api/auth/me',{cache:'no-store',credentials:'same-origin'});
+  if(!me.ok)throw Error('Sign-in required');
+  const user=(await me.json()).user;
+  if(user?.role!=='STUDENT'||user.mustChangePassword)throw Error('Student sign-in or password update required.');
+  const statusR=await fetch('/api/class-qr/check-in/status?sessionId='+encodeURIComponent(sessionId),{cache:'no-store',credentials:'same-origin'});
+  if(!statusR.ok)throw Error('Unable to verify current attendance status.');
+  const status=await statusR.json();
+  if(status.recorded){legacyButton.textContent='Already checked in';show('Attendance already recorded for this class.','success');sessionStorage.removeItem(pendingKey);return;}
+  legacyButton.disabled=false;show('Signed in as '+user.displayName+'. Confirm attendance before the QR expires.');
+ }catch{show('Student sign-in required for this school. Use the sign-in link above.');}
+}
+legacyButton.addEventListener('click',async()=>{
+ legacyButton.disabled=true;show('Submitting attendance to the school server…');
+ try{
+  const r=await fetch('/api/class-qr/check-in',{method:'POST',credentials:'same-origin',cache:'no-store',headers:{'Content-Type':'application/json'},body:JSON.stringify({sessionId,token:qrToken})});
+  const d=await r.json().catch(()=>({}));
+  if(r.ok||d.alreadyRecorded){legacyButton.textContent='Already checked in';sessionStorage.removeItem(pendingKey);show(r.ok?'Attendance confirmed: '+d.status+'.':'Attendance already recorded for this class.','success');return;}
+  show(d.error||'Attendance not recorded. Scan the latest QR and retry.','error');
+  if(r.status!==410)legacyButton.disabled=false;
+ }catch{show('Network unavailable. Attendance was NOT recorded.','error');legacyButton.disabled=false;}
+});
+fetch('/api/class-qr/check-in/mode',{cache:'no-store',credentials:'omit'})
+ .then(async r=>{if(!r.ok)throw Error('Cannot check attendance method');return r.json();})
+ .then(mode=>{
+  if(!mode.pinEnabled)return initializeLegacy();
+  sessionStorage.removeItem(pendingKey);
+  intro.textContent='Enter your Student ID and your private Attendance PIN. You do not need to sign in.';
+  form.hidden=false;show('Check your details, then confirm while the teacher QR is valid.');studentId.focus();
+ }).catch(()=>{show('Unable to connect to the school server. Retry after reconnecting.','error');});
+})();
+</script>
+</body></html>
