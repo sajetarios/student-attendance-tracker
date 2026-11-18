@@ -225,8 +225,23 @@
       location.replace('/student-portal.html');
     }).catch(()=>{});
   }
-  // Do not auto-redirect merely because a session token exists. A previous
-  // Parent session must not prevent a teacher or administrator from signing in.
+  // A normal visit to the sign-in URL from a new tab should restore the
+  // server-verified browser session. Explicit mode/switch links must continue
+  // to show the login form so account switching remains intentional.
+  if (!loginParams.has('mode') && !loginParams.has('switch') && !loginParams.has('returnTo')) {
+    fetch('/api/auth/me', { credentials: 'same-origin', cache: 'no-store' })
+      .then(async response => {
+        if (!response.ok) return;
+        const data = await response.json();
+        if (!data?.user || data.user.mustChangePassword) {
+          if (data?.user?.mustChangePassword) location.replace('/force-password-change.html');
+          return;
+        }
+        const destination = window.AttendanceLoginRouting?.destinationForRole(data.user.role);
+        if (destination) location.replace(destination);
+      })
+      .catch(() => { /* Keep the sign-in form accessible when verification fails. */ });
+  }
 
   
   // Visiting the login page also forces an update check. This replaces older
