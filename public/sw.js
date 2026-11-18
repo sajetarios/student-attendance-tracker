@@ -1,4 +1,4 @@
-const CACHE = "attendigo-v171-canonical-login-school-code";
+const CACHE = "attendigo-v172-student-cookie-qr";
 
 const SHELL = [
   "/typography.css?v=1",
@@ -129,7 +129,7 @@ self.addEventListener("fetch", event => {
   // This also protects people who still have a legacy cached login form.
   const isAccountPage = ['/', '/index.html', '/portal-login.html',
     '/parent-register.html', '/platform-setup.html',
-    '/force-password-change.html', '/portal.html',
+    '/force-password-change.html', '/class-qr-checkin.html', '/portal.html',
     '/student-portal.html', '/parent-portal.html'].includes(url.pathname);
   const credentialKey = /^(?:password|passwd|pwd|pass|currentpassword|newpassword|confirmpassword|recoverycode|setupcode|accesstoken)$/i;
   if (isAccountPage && [...url.searchParams.keys()].some(key => credentialKey.test(key))) {
@@ -146,7 +146,7 @@ self.addEventListener("fetch", event => {
 
   // Authentication scripts must never remain stale across releases or domain changes.
   // They need the deployed code online, with cached copies available only offline.
-  if (['/portal-login.js', '/login-routing.js'].includes(url.pathname)) {
+  if (['/portal-login.js', '/login-routing.js', '/student-portal.js'].includes(url.pathname)) {
     event.respondWith((async () => {
       try {
         const fresh = await fetch(request, { cache: 'no-store' });
