@@ -65,3 +65,12 @@ test('Form 48 administrator monthly API is scoped and never invents incomplete D
  assert(calls.some(x=>x.sql.includes("verification_status='VERIFIED'")));
  assert(calls.some(x=>x.sql.includes('school_id=$1') && x.args[0]==='school-A'));
 });
+
+test('Form 48 Day heading is wide enough and isolated from dashboard table padding',()=>{
+ const css=fs.readFileSync('public/form48-report.css','utf8');
+ assert.match(css,/#form48PrintArea \.form48-sheet th,#form48PrintArea \.form48-sheet td\{border:/);
+ assert.match(css,/#form48PrintArea \.form48-sheet thead tr:first-child th:first-child,#form48PrintArea \.form48-sheet tbody td:first-child\{width:42px;min-width:42px;white-space:nowrap\}/);
+ assert.doesNotMatch(css,/\.form48-sheet th:first-child,\.form48-sheet td:first-child\{width:23px\}/);
+ assert.match(css,/#form48PrintArea \.form48-sheet th,#form48PrintArea \.form48-sheet td\{height:4\.8mm;padding:1px 0;font-size:7\.5px\}/);
+ assert.match(html,/href="\/form48-report\.css\?v=2"/);
+});
