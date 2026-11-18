@@ -124,3 +124,45 @@ JOIN school_users admin ON admin.school_id=ob.school_id AND admin.role='SCHOOL_A
 LEFT JOIN school_users staff ON staff.school_id=ob.school_id AND staff.user_id=ob.staff_user_id
 WHERE ob.status='PENDING_ADMIN'
 ON CONFLICT(recipient_kind,recipient_id,event_key) DO NOTHING;
+
+
+-- Existing completed OB requests also appear in the requester's bell history.
+-- Never create stale pending approval alerts after the request has been resolved.
+INSERT INTO user_notifications
+ (school_id,recipient_kind,recipient_id,event_key,category,title,body,
+  request_type,request_id,status,action_url,created_at)
+SELECT ob.school_id,'SCHOOL_USER',ob.staff_user_id,
+ 'official-business:'||ob.request_id::text||':final-'||lower(ob.status),
+ 'REQUEST',
+ CASE ob.status WHEN 'APPROVED' THEN 'Official Business approved'
+  WHEN 'REJECTED' THEN 'Official Business rejected'
+  ELSE 'Official Business cancelled' END,
+ CASE ob.status WHEN 'APPROVED' THEN 'Your OB request received final School Admin approval.'
+  WHEN 'REJECTED' THEN 'Your OB request was rejected.'
+  ELSE 'Your OB request was cancelled.' END,
+ 'OFFICIAL_BUSINESS',ob.request_id,ob.status,'/portal.html#officialBusiness',
+ COALESCE(ob.admin_decided_at,ob.head_decided_at,ob.submitted_at)
+FROM staff_official_business_requests ob
+WHERE ob.status IN ('APPROVED','REJECTED','CANCELLED')
+ON CONFLICT(recipient_kind,recipient_id,event_key) DO NOTHING;
+
+-- Completed, admin-decided requests remain visible to the Department Head as
+-- an informational status; there is no approval action attached to these.
+INSERT INTO user_notifications
+ (school_id,recipient_kind,recipient_id,event_key,category,title,body,
+  request_type,request_id,status,action_url,created_at)
+SELECT ob.school_id,'SCHOOL_USER',head.user_id,
+ 'official-business:'||ob.request_id::text||':department-final-'||lower(ob.status),
+ 'REQUEST',
+ CASE ob.status WHEN 'APPROVED' THEN 'Official Business approved'
+  WHEN 'REJECTED' THEN 'Official Business rejected'
+  ELSE 'Official Business cancelled' END,
+ COALESCE(staff.display_name,'A staff member')||'''s OB request: '||lower(ob.status)||'.',
+ 'OFFICIAL_BUSINESS',ob.request_id,ob.status,'/portal.html#officialBusiness',
+ ob.admin_decided_at
+FROM staff_official_business_requests ob
+JOIN school_users head ON head.school_id=ob.school_id AND head.department_id=ob.department_id
+ AND head.role='DEPARTMENT_HEAD' AND head.active=TRUE AND head.user_id<>ob.staff_user_id
+LEFT JOIN school_users staff ON staff.school_id=ob.school_id AND staff.user_id=ob.staff_user_id
+WHERE ob.status IN ('APPROVED','REJECTED') AND ob.admin_decided_at IS NOT NULL
+ON CONFLICT(recipient_kind,recipient_id,event_key) DO NOTHING;
