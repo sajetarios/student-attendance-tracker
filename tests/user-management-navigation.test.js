@@ -20,6 +20,9 @@ test('school admin has a unified account menu while student records remain separ
   for (const name of ['User Management','All User Accounts','Teachers &amp; Staff','Student Accounts','Parents & Guardians','Requests &amp; Approvals'])
     assert.ok(menu.includes(name),name);
   assert.ok(html.includes('id="studentsNav"'));
+  assert.ok(html.includes('id="studentWorkspaceTabs"'), 'student account access belongs inside Students');
+  assert.match(js, /showStudentTabs = \['students', 'studentAccounts'\]/);
+  assert.match(js, /user\?\.role === 'SCHOOL_ADMIN'/);
   assert.ok(html.indexOf('id="studentsNav"') < start);
   assert.ok(html.includes('id="studentAccountsNav"'), 'teacher keeps own authorized student account shortcut');
   assert.match(html,/data-nav-group="users"/);
@@ -40,11 +43,11 @@ test('new directory searches three existing protected account sources without ne
 });
 
 test('staff account permissions stay admin-only, teachers retain scoped student accounts', () => {
-  assert.ok(js.includes("if ($('studentAccountsNav')) $('studentAccountsNav').hidden = !(teacher && (subjectTeacher || classAdviser));"));
-  assert.ok(js.includes("if ($('adminStudentAccountsNav')) $('adminStudentAccountsNav').hidden = !admin;"));
+  assert.ok(js.includes("if ($('studentAccountsNav')) $('studentAccountsNav').hidden = true;"));
+  assert.ok(js.includes("if ($('adminStudentAccountsNav')) $('adminStudentAccountsNav').hidden = true;"));
   assert.ok(js.includes("if ($('requestsApprovalsNav')) $('requestsApprovalsNav').hidden = !admin;"));
   assert.ok(js.includes("if ($('staffNavWrapper')) $('staffNavWrapper').hidden = !admin;"));
-  assert.ok(notifications.includes("$('adminStudentAccountsNav')||$('studentAccountsNav')"));
+  assert.ok(notifications.includes("$('studentAccountsTab')?.click()"));
   assert.ok(notifications.includes('adminRequestsNavBadge'));
   assert.ok(guardian.includes('Keep the legacy guardian trigger hidden'));
   assert.ok(js.includes("$('adminNotificationBell')?.click()"));

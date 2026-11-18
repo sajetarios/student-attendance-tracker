@@ -84,6 +84,10 @@
   function renderDirectory() {
     const admin = isAdmin();
     view.classList.toggle('is-teacher', !admin);
+    if ($('studentAccountWorkspaceTitle')) $('studentAccountWorkspaceTitle').textContent = admin ? 'Portal accounts' : 'Account requests';
+    if ($('studentAccountWorkspaceDescription')) $('studentAccountWorkspaceDescription').textContent = admin
+      ? 'Manage learner sign-ins and review requests. Enrollment records remain unchanged.'
+      : 'View assigned learners and request access changes; School Admin approves all account operations.';
     $('sapBulkToolbar').hidden = !(admin || isTeacher());
     const mode = admin ? 'admin' : 'teacher';
     if (renderedBatchMode !== mode) {

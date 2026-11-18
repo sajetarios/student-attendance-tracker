@@ -81,7 +81,7 @@
   }
   function openAccount(item) {
     if (!isAdmin()) return;
-    const target = item.type === 'student' ? $('adminStudentAccountsNav') :
+    const target = item.type === 'student' ? $('studentAccountsTab') :
       item.type === 'parent' ? $('parentsNav') :
       hub.closest('#teachersView')?.ownerDocument?.querySelector('#staffNavChildren [data-staff-section="accounts"]');
     if (!target || target.hidden) return;

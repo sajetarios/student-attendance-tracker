@@ -1,0 +1,67 @@
+/* One student workspace: role-appropriate records and portal-access tabs.
+   This stylesheet changes presentation only; all API authorization remains server-side. */
+#studentWorkspaceTabs.student-workspace-tabs{
+  display:flex;
+  align-items:center;
+  flex-wrap:wrap;
+  gap:5px;
+  width:fit-content;
+  max-width:100%;
+  margin:0 0 14px;
+  padding:5px;
+  border:1px solid var(--border-color,#dbe5f0);
+  border-radius:12px;
+  background:var(--card-background,#fff);
+  box-shadow:0 2px 10px rgba(15,23,42,.04);
+}
+#studentWorkspaceTabs.student-workspace-tabs[hidden]{display:none!important}
+#studentWorkspaceTabs [data-student-tab]{
+  appearance:none;
+  border:0;
+  border-radius:9px;
+  background:transparent;
+  color:var(--text-color,#243652);
+  font:inherit;
+  font-size:var(--type-table,14px);
+  font-weight:550;
+  padding:10px 17px;
+  min-height:40px;
+  white-space:normal;
+  cursor:pointer;
+  text-align:center;
+  transition:background .15s ease,color .15s ease;
+}
+#studentWorkspaceTabs [data-student-tab]:hover:not(.is-active){
+  background:rgba(112,132,159,.11);
+}
+#studentWorkspaceTabs [data-student-tab].is-active{
+  background:var(--primary-color,#3646a2);
+  color:#fff;
+  font-weight:600;
+  box-shadow:0 2px 7px rgba(15,23,42,.11);
+}
+#studentWorkspaceTabs [data-student-tab]:focus-visible{
+  outline:3px solid var(--primary-color,#3646a2);
+  outline-offset:3px;
+}
+html[data-ui-theme="dark"] #studentWorkspaceTabs,
+body.dark-mode #studentWorkspaceTabs,
+body[data-theme="dark"] #studentWorkspaceTabs{
+  background:var(--card-background,#1c273a);
+  border-color:var(--border-color,#3d4a5d);
+}
+html[data-ui-theme="dark"] #studentWorkspaceTabs [data-student-tab]:not(.is-active),
+body.dark-mode #studentWorkspaceTabs [data-student-tab]:not(.is-active),
+body[data-theme="dark"] #studentWorkspaceTabs [data-student-tab]:not(.is-active){
+  color:var(--text-color,#eef3fc);
+}
+@media(max-width:600px){
+  #studentWorkspaceTabs.student-workspace-tabs{display:grid;grid-template-columns:1fr 1fr;width:100%}
+  #studentWorkspaceTabs [data-student-tab]{padding:10px 8px;font-size:13px;line-height:1.35}
+}
+@media(prefers-reduced-motion:reduce){
+  #studentWorkspaceTabs [data-student-tab]{transition:none}
+}
+
+/* The class QR shortcut belongs to the learner roster, not account-management screens. */
+#classQrTeacherShortcut:not(.is-roster-inline){display:none!important}

@@ -260,14 +260,31 @@ window.attendigoStaffIdentity = new Promise(resolve => { resolveStaffIdentity = 
     if (!allowedViews.includes(view)) view = allowedViews.includes('dashboard') ? 'dashboard' : (allowedViews[0] || 'dashboard');
     $('platformWorkspace').hidden = true;
     $('schoolWorkspace').hidden = false;
+    const studentTabs = $('studentWorkspaceTabs');
+    const showStudentTabs = ['students', 'studentAccounts'].includes(view) &&
+      (user?.role === 'SCHOOL_ADMIN' || (user?.role === 'TEACHER' &&
+        (teacherHas('SUBJECT_TEACHER') || teacherHas('CLASS_ADVISER'))));
+    if (studentTabs) {
+      studentTabs.hidden = !showStudentTabs;
+      if ($('studentRecordsTab')) $('studentRecordsTab').textContent = user?.role === 'TEACHER' ? 'My Students' : 'Student Records';
+      if ($('studentAccountsTab')) $('studentAccountsTab').textContent = user?.role === 'TEACHER' ? 'Account Requests' : 'Portal Accounts';
+      studentTabs.querySelectorAll('[data-student-tab]').forEach(tab => {
+        const active = tab.dataset.studentTab === view;
+        tab.classList.toggle('is-active', active);
+        tab.setAttribute('aria-selected', String(active));
+        tab.tabIndex = active ? 0 : -1;
+      });
+    }
     ['dashboard', 'students', 'studentAccounts', 'parents', 'schedules', 'teachers', 'sf2', 'classAttendance', 'myGateAttendance', 'lunchQrAdmin', 'form48Reports', 'officialBusiness', 'cloudSync', 'schoolBranding', 'planner'].forEach(name => {
       const panel = $(`${name}View`);
       if (panel) panel.hidden = name !== view;
     });
     document.querySelectorAll('.nav-item').forEach(button => {
-      button.classList.toggle('active', button.dataset.view === view);
+      button.classList.toggle('active', button.dataset.view === view ||
+        (view === 'studentAccounts' && button.id === 'studentsNav'));
     });
-    const activeNav = [...document.querySelectorAll('.nav-item[data-view="' + view + '"]')].find(item => !item.hidden);
+    const sidebarView = view === 'studentAccounts' ? 'students' : view;
+    const activeNav = [...document.querySelectorAll('.nav-item[data-view="' + sidebarView + '"]')].find(item => !item.hidden);
     const activeGroup = activeNav?.closest('.nav-group');
     if (activeGroup) {
       const groupToggle = activeGroup.querySelector('.nav-group-toggle[data-nav-group]');
@@ -301,8 +318,8 @@ window.attendigoStaffIdentity = new Promise(resolve => { resolveStaffIdentity = 
       const dashboardName = subjectTeacher && classAdviser ? 'Teacher Dashboard' : classAdviser ? 'Class Adviser Dashboard' : 'Subject Teacher Dashboard';
       titles = {
         dashboard: [dashboardName, classAdviser && subjectTeacher ? 'Your assigned subjects and advisory section at a glance.' : classAdviser ? 'Monitor your assigned section and official SF2 responsibilities.' : 'Monitor your assigned subject classes and record period attendance.'],
-        students: [classAdviser && !subjectTeacher ? 'My advisory section' : 'My assigned learners', 'View only the learners in your assigned sections and subject schedules.'],
-        studentAccounts: ['Student portal account requests', 'Request logins and password recovery for your authorized learners. School Admin approval is required.'],
+        students: ['My Students', 'View only the learners in your assigned sections and subject schedules.'],
+        studentAccounts: ['My Students', 'Request student portal access for your assigned learners. School Admin approval is required.'],
         planner: ['My Planner', 'Plan lessons, tasks, personal meetings and reminders around assigned class schedules.'],
         schedules: ['My teaching and advisory schedules', 'View your assigned teaching periods, active substitute assignments, and advisory class timetable.'],
         sf2: [classAdviser && subjectTeacher ? 'My SF2 reports' : classAdviser ? 'Official section SF2' : 'Personal SF2 copy', classAdviser ? 'Generate the official consolidated section SF2 only for sections assigned to you as Class Adviser.' : 'Generate a personal attendance copy from your own subject-period records.'],
@@ -314,8 +331,8 @@ window.attendigoStaffIdentity = new Promise(resolve => { resolveStaffIdentity = 
     } else {
       titles = {
         dashboard: ['School Administrator Dashboard', 'Manage school attendance operations, users, learner records, devices, schedules, and reporting.'],
-        students: ['Student management', 'Register learners, maintain student details and photos, create student portal accounts, and manage QR cards.'],
-        studentAccounts: ['Student Portal Accounts', 'Issue secure learner logins, review teacher requests, and manage portal access.'],
+        students: ['Students', 'Manage learner records, enrollment, photos, and QR cards. Use Portal Accounts for sign-in access.'],
+        studentAccounts: ['Students', 'Issue student logins, review teacher requests, and manage existing portal access.'],
         parents: ['Parent Management', 'Manage parent accounts, registrations, and verified student relationships.'],
         schedules: ['School-wide timetable and class schedules', 'Configure school timetable templates, manage class schedules, and assign teachers across departments.'],
         teachers: ['User management', 'Create and update school accounts, assign role-based access, manage departments, and disable or restore account access.'],
@@ -471,8 +488,8 @@ window.attendigoStaffIdentity = new Promise(resolve => { resolveStaffIdentity = 
     }
     if ($('lunchQrAdminNav')) $('lunchQrAdminNav').hidden = !admin;
     if ($('form48ReportsNav')) $('form48ReportsNav').hidden = !admin;
-    if ($('teacherLunchQrNav')) $('teacherLunchQrNav').hidden = !teacher;
     if ($('officialBusinessNav')) $('officialBusinessNav').hidden = !(teacher || admin || departmentHead);
+    if ($('teacherLunchQrNav')) $('teacherLunchQrNav').hidden = !teacher;
     if ($('myGateAttendanceNav')) {
       $('myGateAttendanceNav').hidden = !(teacher || admin);
       $('myGateAttendanceNav').querySelector('.nav-label').textContent = 'My Staff Attendance';
@@ -535,8 +552,8 @@ window.attendigoStaffIdentity = new Promise(resolve => { resolveStaffIdentity = 
     }
 
     if ($('dashboardNav')) $('dashboardNav').hidden = gateKeeper;
-    if ($('studentAccountsNav')) $('studentAccountsNav').hidden = !(teacher && (subjectTeacher || classAdviser));
-    if ($('adminStudentAccountsNav')) $('adminStudentAccountsNav').hidden = !admin;
+    if ($('studentAccountsNav')) $('studentAccountsNav').hidden = true; // Account requests now live inside My Students.
+    if ($('adminStudentAccountsNav')) $('adminStudentAccountsNav').hidden = true; // Portal accounts now live inside Students.
     if ($('requestsApprovalsNav')) $('requestsApprovalsNav').hidden = !admin;
     if ($('studentsNav')) {
       $('studentsNav').hidden = !(admin || departmentHead || teacher || gateKeeper);
@@ -559,7 +576,7 @@ window.attendigoStaffIdentity = new Promise(resolve => { resolveStaffIdentity = 
     }
     if ($('parentsNav')) $('parentsNav').hidden = !admin;
     if ($('manageParentsFromStudents')) { $('manageParentsFromStudents').hidden = !admin; $('manageParentsFromStudents').style.display = admin ? 'inline-flex' : 'none'; }
-    if ($('showStudentPortalHelp')) $('showStudentPortalHelp').hidden = !admin;
+    if ($('showStudentPortalHelp')) $('showStudentPortalHelp').hidden = true; // The Portal Accounts tab replaces this duplicate action.
     if ($('showStudentForm')) $('showStudentForm').hidden = !(admin || (teacher && classAdviser));
     if ($('showScheduleForm')) $('showScheduleForm').hidden = !(admin || (departmentHead&&user.departmentId&&user.departmentCode!=='UNASSIGNED'));
     if ($('dashboardAddStudent')) $('dashboardAddStudent').hidden = !(admin || (teacher && classAdviser));
@@ -766,12 +783,28 @@ window.attendigoStaffIdentity = new Promise(resolve => { resolveStaffIdentity = 
     });
   }
 
+  $('studentWorkspaceTabs')?.addEventListener('click', event => {
+    const tab = event.target.closest('[data-student-tab]');
+    if (tab && allowedViewsForUser().includes(tab.dataset.studentTab)) setView(tab.dataset.studentTab);
+  });
+  $('studentWorkspaceTabs')?.addEventListener('keydown', event => {
+    if (!['ArrowLeft','ArrowRight','Home','End'].includes(event.key)) return;
+    const tabs = [...$('studentWorkspaceTabs').querySelectorAll('[data-student-tab]')]
+      .filter(tab => allowedViewsForUser().includes(tab.dataset.studentTab));
+    const index = tabs.indexOf(document.activeElement);
+    if (index < 0 || !tabs.length) return;
+    event.preventDefault();
+    const nextIndex = event.key === 'Home' ? 0 : event.key === 'End' ? tabs.length - 1
+      : (index + (event.key === 'ArrowRight' ? 1 : -1) + tabs.length) % tabs.length;
+    tabs[nextIndex].click();
+    tabs[nextIndex].focus();
+  });
   $('accountDirectoryHub')?.addEventListener('click', event => {
     const action = event.target.closest('[data-directory-target]');
     if (!action || user?.role !== 'SCHOOL_ADMIN') return;
     const target = action.dataset.directoryTarget;
     if (['accounts','permissions','departments'].includes(target)) setAdminManagementTab(target);
-    else if (target === 'studentAccounts') $('adminStudentAccountsNav')?.click();
+    else if (target === 'studentAccounts') setView('studentAccounts');
     else if (target === 'parents') $('parentsNav')?.click();
     else if (target === 'requests') $('requestsApprovalsNav')?.click();
   });
@@ -1469,7 +1502,7 @@ function coverageStatusLabel(status) {
         ? selectHeader + '<th>Student ID</th><th>Full name</th><th>Sex</th><th>Grade</th><th>Section</th><th>Special program</th><th>Status</th><th>Actions</th>'
         : teacher
           ? selectHeader + '<th>Learner</th><th>Class / Program</th><th>Status</th><th>Quick actions</th>'
-          : selectHeader + '<th>Photo</th><th>Student ID</th><th>Full name</th><th>Sex</th><th>Grade</th><th>Section</th><th>Special program</th><th>Status</th><th>QR code</th><th>Actions</th>' + (admin ? '<th>Parent / guardian</th><th>Student portal account</th>' : '');
+          : selectHeader + '<th>Photo</th><th>Student ID</th><th>Full name</th><th>Sex</th><th>Grade</th><th>Section</th><th>Special program</th><th>Status</th><th>Actions</th>' + (admin ? '<th>Parent / guardian</th>' : '');
     }
     if ($('studentRosterDescription')) {
       $('studentRosterDescription').textContent = departmentHead
@@ -1477,12 +1510,12 @@ function coverageStatusLabel(status) {
             ? 'School-wide learner roster. Batch actions are available for learners in your department’s assigned sections.'
             : 'School-wide learner directory. Student records are read-only in the current view.')
         : teacher ? 'Search, review and manage learners in your assigned classes. QR codes, guardian records and program requests are available from each learner\'s actions.'
-          : 'QR previews remain tied to each student\'s existing private token. Editing details does not replace the QR code.';
+          : 'Use Actions to view a learner QR. Student sign-in management is available under Portal Accounts.';
     }
     const rosterColumns = departmentHead
       ? (showSelectionColumn ? 9 : 8)
       : teacher ? (4 + Number(showSelectionColumn))
-        : (10 + Number(showSelectionColumn) + Number(admin || teacher) + Number(admin));
+        : (9 + Number(showSelectionColumn) + Number(admin));
     for (const id of [...selectedStudentIds]) if (!visible.some(student => student.studentId === id)) selectedStudentIds.delete(id);
     if (!visible.length) {
       const emptyMessage = teacher
@@ -1495,31 +1528,20 @@ function coverageStatusLabel(status) {
       const rows = await Promise.all(sortedRoster.map(async (student, index) => {
         const photo = departmentHead ? '' : await photoDataUrl(student.photoUrl);
         const avatar = photo ? `<img class="student-photo-thumb" src="${photo}" alt="Student photo for ${esc(student.fullName)}" loading="lazy">` : `<span class="student-initials-avatar" role="img" aria-label="No photo uploaded for ${esc(student.fullName)}" title="No photo uploaded">${esc(teacherRosterInitials(student.fullName))}</span>`;
-        let qr = '';
-        if (canViewQr && !teacher) {
-          qr = studentQrCache.get(student.studentId) || '';
-          if (!qr) {
-            try { qr = await getStudentQr(student.studentId); studentQrCache.set(student.studentId, qr); }
-            catch { qr = ''; }
-          }
-        }
-        const qrCell = canViewQr
-          ? (qr ? `<button type="button" class="student-qr-preview" data-view-qr="${esc(student.studentId)}" title="View or print QR"><img src="${qr}" alt="QR code for ${esc(student.studentId)}"></button>` : '<span class="qr-unavailable">QR unavailable</span>')
-          : (gateKeeper ? '<span class="muted-inline">Gate scan only</span>' : '<span class="muted-inline">Not available</span>');
+        // QR images are loaded on demand from Actions, not once for every roster row.
         const selection = canSelectLearnerForBatch(student) ? `<input type="checkbox" class="student-select-box" data-select-student="${esc(student.studentId)}" ${selectedStudentIds.has(student.studentId) ? 'checked' : ''} aria-label="Select ${esc(student.fullName)}">` : '';
         const ordinal = groupedRoster ? '<span class="student-roster-number">' + numberedRoster[index].number + '. </span>' : '';
         const editable = canManage && student.active !== false && !student.archivedAt;
         const teacherGuardian = teacher
           ? `<div class="teacher-roster-guardian" aria-label="Parent or guardian contact"><span class="teacher-roster-menu-label">Parent / guardian</span><strong>${esc(student.parentName || 'Not provided')}</strong><small>${esc(student.parentMobile || 'No mobile number')}</small></div>`
           : '';
+        const adminQrAction = admin && canViewQr
+          ? `<button type="button" class="outline-button" data-view-qr="${esc(student.studentId)}" aria-label="View QR code for ${esc(student.fullName)}">View QR</button>`
+          : '';
         const actions = editable
-          ? `<details class="student-actions-dropdown"><summary aria-label="Actions for ${esc(student.fullName)}">Actions</summary><div class="student-row-actions"><button type="button" class="outline-button" data-edit-student="${esc(student.studentId)}">Edit</button>${canUploadPhoto ? `<label class="student-photo-upload">${student.hasPhoto ? 'Replace photo' : 'Upload photo'}<input type="file" accept="image/jpeg,image/png,image/webp" data-student-photo="${esc(student.studentId)}" hidden></label>` : ''}${teacherGuardian}</div></details>`
+          ? `<details class="student-actions-dropdown"><summary aria-label="Actions for ${esc(student.fullName)}">Actions</summary><div class="student-row-actions"><button type="button" class="outline-button" data-edit-student="${esc(student.studentId)}">Edit</button>${canUploadPhoto ? `<label class="student-photo-upload">${student.hasPhoto ? 'Replace photo' : 'Upload photo'}<input type="file" accept="image/jpeg,image/png,image/webp" data-student-photo="${esc(student.studentId)}" hidden></label>` : ''}${adminQrAction}${teacherGuardian}</div></details>`
           : teacher ? `<details class="student-actions-dropdown"><summary aria-label="View contact for ${esc(student.fullName)}">Details</summary><div class="student-row-actions">${teacherGuardian}</div></details>`
             : '<span class="muted-inline">' + (student.archivedAt ? 'Archived' : student.active === false ? 'Inactive' : 'View only') + '</span>';
-        const accountExists = Boolean(student.studentAccountUsername);
-        const accountCell = admin
-          ? `<div class="student-row-actions"><span class="muted-inline">${accountExists ? `Active login · ${esc(student.studentAccountUsername)}` : 'No student login'}</span><button type="button" class="outline-button" data-student-account="${esc(student.studentId)}" data-account-exists="${accountExists ? '1' : '0'}">${accountExists ? 'Reset login' : 'Create login'}</button></div>`
-           : '';
         const statusLabel = student.archivedAt ? 'Archived' : student.active === false ? 'Inactive' : 'Active';
         const programCell = student.specialProgramCode
           ? `<span class="special-program-chip" title="${esc(student.specialProgramName || student.specialProgramCode)}">${esc(student.specialProgramCode)}</span>`
@@ -1539,7 +1561,7 @@ function coverageStatusLabel(status) {
         if (departmentHead) {
           return `<tr data-student-enrollment="${esc(student.enrollmentId || '')}" data-student-name="${esc(student.fullName)}">${showSelectionColumn ? `<td data-label="Select">${selection}</td>` : ''}<td data-label="Student ID">${esc(student.studentId)}</td><td data-label="Full name">${ordinal}<strong>${esc(student.fullName)}</strong></td><td data-label="Sex">${esc(student.sex || 'Not set')}</td><td data-label="Grade">${esc(student.gradeLevel)}</td><td data-label="Section">${esc(student.section)}</td><td data-label="Special program">${programCell}</td><td data-label="Status">${statusLabel}</td><td data-label="Actions"><span class="muted-inline">View only</span></td></tr>`;
         }
-        return `<tr data-student-enrollment="${esc(student.enrollmentId || '')}" data-student-name="${esc(student.fullName)}">${showSelectionColumn ? `<td data-label="Select">${selection}</td>` : ''}<td data-label="Photo">${avatar}</td><td data-label="Student ID">${esc(student.studentId)}</td><td data-label="Full name">${ordinal}${esc(student.fullName)}</td><td data-label="Sex">${esc(student.sex || 'Not set')}</td><td data-label="Grade">${esc(student.gradeLevel)}</td><td data-label="Section">${esc(student.section)}</td><td data-label="Special program">${programCell}</td><td data-label="Status">${statusLabel}</td><td data-label="QR code">${qrCell}</td><td data-label="Actions">${actions}</td>${(admin || teacher) ? `<td data-label="Parent / guardian"><strong>${esc(student.parentName || "Not provided")}</strong><small class="table-subtext">${esc(student.parentMobile || "No mobile number")}</small></td>` : ''}${admin ? `<td data-label="Student account">${accountCell}</td>` : ''}</tr>`;
+        return `<tr data-student-enrollment="${esc(student.enrollmentId || '')}" data-student-name="${esc(student.fullName)}">${showSelectionColumn ? `<td data-label="Select">${selection}</td>` : ''}<td data-label="Photo">${avatar}</td><td data-label="Student ID">${esc(student.studentId)}</td><td data-label="Full name">${ordinal}${esc(student.fullName)}</td><td data-label="Sex">${esc(student.sex || 'Not set')}</td><td data-label="Grade">${esc(student.gradeLevel)}</td><td data-label="Section">${esc(student.section)}</td><td data-label="Special program">${programCell}</td><td data-label="Status">${statusLabel}</td><td data-label="Actions">${actions}</td>${(admin || teacher) ? `<td data-label="Parent / guardian"><strong>${esc(student.parentName || "Not provided")}</strong><small class="table-subtext">${esc(student.parentMobile || "No mobile number")}</small></td>` : ''}</tr>`;
       }));
       let previousSex = null;
       host.innerHTML = rows.map((row, index) => {

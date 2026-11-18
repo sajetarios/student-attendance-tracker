@@ -19,6 +19,7 @@
   <link rel="stylesheet" href="/admin-request-notifications.css?v=2">
   <link rel="stylesheet" href="/universal-notifications.css?v=1">
   <link rel="stylesheet" href="/student-portal-accounts.css?v=6">
+  <link rel="stylesheet" href="/student-workspace-tabs.css?v=1">
   <link rel="stylesheet" href="/academic-admin.css?v=1">
   <link rel="stylesheet" href="/password-visibility.css">
 
@@ -1042,10 +1043,14 @@ body.dark-mode .content-wrap > .school-heading.is-compact,body[data-theme="dark"
             </div>
           </section>
 
+          <div id="studentWorkspaceTabs" class="student-workspace-tabs" role="tablist" aria-label="Student workspace" hidden>
+            <button type="button" id="studentRecordsTab" data-student-tab="students" role="tab" aria-controls="studentsView" aria-selected="true" tabindex="0">Student Records</button>
+            <button type="button" id="studentAccountsTab" data-student-tab="studentAccounts" role="tab" aria-controls="studentAccountsView" aria-selected="false" tabindex="-1">Portal Accounts</button>
+          </div>
           <section id="studentAccountsView" class="view-panel" hidden>
             <div class="sap-workspace">
               <div class="sap-topbar">
-                <div><h3>Student Portal Accounts</h3><p>Manage secure student sign-ins using existing learner records. No duplicate enrollment is created.</p></div>
+                <div><h3 id="studentAccountWorkspaceTitle">Portal accounts</h3><p id="studentAccountWorkspaceDescription">Manage existing student sign-ins without creating duplicate enrollment records.</p></div>
                 <button id="sapRefresh" class="outline-button" type="button">↻ Refresh</button>
               </div>
               <div class="sap-metrics" aria-label="Student portal account totals">
@@ -1218,7 +1223,7 @@ body.dark-mode .content-wrap > .school-heading.is-compact,body[data-theme="dark"
                 <div class="student-roster-viewbar"><label for="studentRosterView">List view <select id="studentRosterView" aria-label="Learner list arrangement"><option value="all">All learners</option><option value="grouped">Grouped by sex</option></select></label><strong id="studentRosterSexCounts" aria-live="polite">Learner counts loading…</strong></div>
                 <div class="student-bulk-actions"><label><input type="checkbox" id="selectAllStudents"> Select all visible students</label><span id="selectedStudentCount">0 selected</span><button class="primary-button" type="button" id="printBulkQr">Print selected ID cards</button><span id="bulkQrFeedback" class="inline-feedback" role="status"></span><select id="studentBatchAction" aria-label="Batch action"><option value="">Choose a batch action…</option><option value="SET_SEX">Set sex (Male/Female)</option><option value="ASSIGN">Move to existing grade/section</option><option value="REQUEST_PROGRAM">Request special-program change (approval)</option><option value="ACTIVATE">Activate selected</option><option value="DEACTIVATE">Deactivate selected</option><option value="ARCHIVE">Archive selected</option></select><button type="button" class="outline-button" id="applyStudentBatch" disabled>Apply</button></div>
               </div>
-              <div class="table-scroll"><table id="studentRosterTable"><thead><tr><th>Select</th><th>Photo</th><th>Student ID</th><th>Full name</th><th>Sex</th><th>Grade</th><th>Section</th><th>Special program</th><th>Status</th><th>QR code</th><th>Actions</th><th>Parent / guardian</th><th>Student portal account</th></tr></thead><tbody id="studentRows"><tr><td colspan="13" class="empty-cell">Loading students…</td></tr></tbody></table></div>
+              <div class="table-scroll"><table id="studentRosterTable"><thead><tr><th>Select</th><th>Photo</th><th>Student ID</th><th>Full name</th><th>Sex</th><th>Grade</th><th>Section</th><th>Special program</th><th>Status</th><th>Actions</th><th>Parent / guardian</th></tr></thead><tbody id="studentRows"><tr><td colspan="11" class="empty-cell">Loading students…</td></tr></tbody></table></div>
               </div>
               <div id="specialProgramBatchModal" class="student-edit-overlay" role="dialog" aria-modal="true" aria-labelledby="specialProgramBatchTitle" hidden>
                 <form id="specialProgramBatchForm" class="student-edit-dialog special-program-batch-dialog" method="post">
@@ -1870,7 +1875,7 @@ body.dark-mode .content-wrap > .school-heading.is-compact,body[data-theme="dark"
   <script src="/platform-school-health.js?v=2" defer></script>
   <script src="/planner.js?v=5" defer></script>
   <script src="/manual-folio.js?v=18" defer></script>
-  <script src="/student-portal-accounts.js?v=10" defer></script>
+  <script src="/student-portal-accounts.js?v=11" defer></script>
   <script src="/account-directory.js?v=2" defer></script>
   <script src="/guardian-ui.js?v=6" defer></script>
   <script src="/admin-request-notifications.js?v=5" defer></script>

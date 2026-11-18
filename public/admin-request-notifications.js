@@ -67,8 +67,8 @@
  $('adminNotificationRefresh')?.addEventListener('click',refresh);
  $('adminStudentRequestsShortcut')?.addEventListener('click',()=>{
    close();
-   const nav=$('adminStudentAccountsNav')||$('studentAccountsNav');
-   if(nav&&!nav.hidden)nav.click();
+   // Open the account tab inside the unified Students workspace.
+   $('studentAccountsTab')?.click();
  });
  const reviewPanel=$('adminPhotoReview'),reviewList=$('adminPhotoReviewList');
  const escapeText=value=>String(value??'').replace(/[&<>"']/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));

@@ -1,4 +1,4 @@
-const CACHE = "attendigo-v205-unified-staff-history";
+const CACHE = "attendigo-v206-students-staff-history";
 
 const SHELL = [
   "/typography.css?v=1",
@@ -68,7 +68,8 @@ const SHELL = [
   "/attendance-sync-center.js?v=3",
   "/manual-folio.js?v=18",
   "/student-portal-accounts.css?v=6",
-  "/student-portal-accounts.js?v=10",
+  "/student-workspace-tabs.css?v=1",
+  "/student-portal-accounts.js?v=11",
   "/account-directory.js?v=2",
   "/admin-request-notifications.js?v=5",
   "/admin-request-notifications.css?v=2",

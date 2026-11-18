@@ -63,7 +63,8 @@ test('four-column teacher table keeps guardian contact inside Actions, not the w
   assert.match(main, /teacher-directory-mode/);
   assert.match(main, /<div class="teacher-roster-quick-actions">/);
   assert.match(main, /data-label="Actions"/);
-  assert.match(main, /if \(canViewQr && !teacher\)/);
+  assert.match(main, /const adminQrAction = admin && canViewQr/);
+  assert.match(main, /QR images are loaded on demand from Actions/);
   assert.match(main, /async function openStudentQrPreview\(student\)/);
   assert.ok(!main.includes('<th>Manage</th><th>Parent / guardian</th>'));
   assert.match(style, /width:238px/);
