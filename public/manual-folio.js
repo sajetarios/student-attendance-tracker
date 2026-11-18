@@ -509,5 +509,20 @@ window.attendigoStaffIdentity.then(user => {
      setSyncPill('review','Needs review','At least one queued device operation requires review in Sync Center.');
  });
  window.addEventListener('online',()=>notice('Connection restored. Sync your saved attendance when ready.'));
+ // Read-only refresh for newly accepted QR check-ins; do not overwrite local manual drafts.
+ async function refreshAcceptedQr(){
+   if(!state.period||!navigator.onLine||document.visibilityState==='hidden')return;
+   const id=state.period.periodId,date=state.date;
+   try{
+     const result=await api('/api/manual-attendance?'+new URLSearchParams({periodId:id,date}));
+     if(state.period?.periodId!==id||state.date!==date)return;
+     const next=Object.fromEntries((result.qrMarks||[]).map(m=>[m.studentId,m]));
+     if(JSON.stringify(next)!==JSON.stringify(state.qrMarks)){
+       state.qrMarks=next;renderStats();renderRows();renderDetails();
+     }
+   }catch{/* Keep the local register usable when the connection is interrupted. */}
+ }
+ window.setInterval(refreshAcceptedQr,20000);
+ window.addEventListener('focus',refreshAcceptedQr);
  initialize();
 });
