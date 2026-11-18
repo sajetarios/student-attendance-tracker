@@ -31,5 +31,5 @@ test('storage widget is within platform overview only', () => {
 test('new portal bundle matches offline shell', () => {
   assert.match(portal,/\/portal\.js\?v=199/);
   assert.match(worker,/"\/portal\.js\?v=199"/);
-  assert.match(worker,/attendigo-v230-memorable-student-ids/);
+  assert.ok(Number(worker.match(/const CACHE = "attendigo-v(\d+)-/)?.[1]) >= 230, "PWA cache must not regress below the ID-generation release");
 });
