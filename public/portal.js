@@ -787,6 +787,18 @@ window.attendigoStaffIdentity = new Promise(resolve => { resolveStaffIdentity = 
     const tab = event.target.closest('[data-student-tab]');
     if (tab && allowedViewsForUser().includes(tab.dataset.studentTab)) setView(tab.dataset.studentTab);
   });
+  $('studentWorkspaceTabs')?.addEventListener('keydown', event => {
+    if (!['ArrowLeft','ArrowRight','Home','End'].includes(event.key)) return;
+    const tabs = [...$('studentWorkspaceTabs').querySelectorAll('[data-student-tab]')]
+      .filter(tab => allowedViewsForUser().includes(tab.dataset.studentTab));
+    const index = tabs.indexOf(document.activeElement);
+    if (index < 0 || !tabs.length) return;
+    event.preventDefault();
+    const nextIndex = event.key === 'Home' ? 0 : event.key === 'End' ? tabs.length - 1
+      : (index + (event.key === 'ArrowRight' ? 1 : -1) + tabs.length) % tabs.length;
+    tabs[nextIndex].click();
+    tabs[nextIndex].focus();
+  });
   $('accountDirectoryHub')?.addEventListener('click', event => {
     const action = event.target.closest('[data-directory-target]');
     if (!action || user?.role !== 'SCHOOL_ADMIN') return;
