@@ -175,6 +175,9 @@
    else target.prepend(wrap);
    const img=wrap.querySelector('img');
    const initial=wrap.querySelector('.my-photo-avatar span');
+   // One shared image is displayed until an approved actual photo exists.
+   img.src='/assets/attendigo-sidebar-logo.png?v=2';
+   img.alt='Attendigo default profile logo';img.hidden=false;initial.hidden=true;
    const status=wrap.querySelector('.my-photo-status');
    const button=wrap.querySelector('button');
    async function refreshPhoto(){
