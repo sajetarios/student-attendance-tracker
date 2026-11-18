@@ -59,7 +59,7 @@ function registerDepartmentRoutes(app, pool, auth) {
           created = result.rows[0];
           break;
         }
-        departmentCode = followingDepartmentCode(departmentCode);
+        if (!requestedCode) departmentCode = followingDepartmentCode(departmentCode);
       }
       if (!created) {
         await client.query('ROLLBACK');
