@@ -1,4 +1,4 @@
-const CACHE = "attendigo-v183-attendance-current-period";
+const CACHE = "attendigo-v184-current-period-parser";
 
 const SHELL = [
   "/typography.css?v=1",
@@ -60,7 +60,7 @@ const SHELL = [
   "/manual-folio.css?v=11",
   "/attendance-sync-center.css?v=4",
   "/attendance-sync-center.js?v=3",
-  "/manual-folio.js?v=17",
+  "/manual-folio.js?v=18",
   "/student-portal-accounts.css?v=6",
   "/student-portal-accounts.js?v=10",
   "/account-directory.js?v=2",
