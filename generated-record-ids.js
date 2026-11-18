@@ -11,7 +11,7 @@ function positiveNumber(value) {
 // This is an immutable registration identifier: year and grade capture the
 // learner's enrollment context at creation, not their current grade.
 function parseGradeNumber(gradeLevel) {
-  const match = /^(?:Grade\\s*|G\\s*)(\\d{1,2})$/i.exec(String(gradeLevel || '').trim());
+  const match = /^(?:Grade\s*|G\s*)(\d{1,2})$/i.exec(String(gradeLevel || '').trim());
   const grade = match ? Number(match[1]) : null;
   return Number.isInteger(grade) && grade >= 1 && grade <= 12 ? grade : null;
 }
