@@ -63,3 +63,55 @@ test('redeem uses transaction, tenant-bound challenge lookup and constant-time t
  assert.match(src,/INSERT INTO staff_attendance_audit/);
  assert.match(src,/error.code==='23505'/);
 });
+
+function redemptionFixture({role='TEACHER',school='school-a',tokenValid=true,duplicate=false,expired=false}={}){
+ const {createLunchChallenge}=require('../staff-lunch-challenge');
+ const {manilaDate}=require('../staff-lunch-routes');
+ const challenge=createLunchChallenge({slot:'AM_OUT'});
+ const challengeId='aaaaaaaa-aaaa-4aaa-aaaa-aaaaaaaaaaaa';
+ const queries=[],routes=new Map();
+ const pool={async connect(){return {async query(sql,params){
+  queries.push({sql,params});
+  if(sql.includes('FROM staff_attendance_challenges'))return {rowCount:expired?0:1,rows:expired?[]:[{
+   challenge_id:challengeId,dtr_slot:'AM_OUT',school_date:manilaDate(),challenge_hash:challenge.challengeHash,
+   issued_at:challenge.issuedAt,expires_at:challenge.expiresAt,revoked_at:null
+  }]};
+  if(sql.includes('INSERT INTO staff_attendance_events'))return {rowCount:duplicate?0:1,rows:duplicate?[]:[{event_id:'bbbbbbbb-bbbb-4bbb-bbbb-bbbbbbbbbbbb',occurred_at:new Date()}]};
+  return {rowCount:1,rows:[]};
+ },release(){}};}};
+ const auth=(req,res,next)=>next();
+ const roles=(...allowed)=>(req,res,next)=>allowed.includes(req.auth.role)?next():res.status(403).json({error:'Forbidden'});
+ registerStaffLunchRoutes({post(path,...handlers){routes.set(path,handlers)}},pool,{authenticateSchoolClient:auth,requireSchoolRoles:roles});
+ const req={auth:{type:'SCHOOL_USER',role,schoolId:school,userId:'teacher-a'},body:{challengeId,token:tokenValid?challenge.token:createLunchChallenge({slot:'AM_OUT'}).token}};
+ const response={code:200,headers:{},set(k,v){this.headers[k]=v;return this;},status(n){this.code=n;return this;},json(body){this.body=body;return this;}};
+ return {handlers:routes.get('/api/staff-attendance/lunch/redeem'),req,response,queries};
+}
+test('redemption commits verified DTR, one redemption and audit atomically',async()=>{
+ const f=redemptionFixture(),res=await execute(f);
+ assert.equal(res.code,201);
+ assert.equal(res.body.status,'VERIFIED');
+ const event=f.queries.find(q=>q.sql.includes('INSERT INTO staff_attendance_events'));
+ assert.equal(event.params[1],'school-a');
+ assert.equal(event.params[2],'teacher-a');
+ assert.ok(f.queries.some(q=>q.sql.includes('INSERT INTO staff_attendance_challenge_redemptions')));
+ assert.ok(f.queries.some(q=>q.sql.includes('INSERT INTO staff_attendance_audit')));
+ assert.equal(f.queries.at(-1).sql,'COMMIT');
+});
+test('wrong token and duplicate verified slot roll back without audit or redemption',async()=>{
+ for(const options of [{tokenValid:false},{duplicate:true},{expired:true}]){
+  const f=redemptionFixture(options),res=await execute(f);
+  assert.equal(res.code,options.duplicate?409:options.expired?410:403);
+  assert.equal(f.queries.at(-1).sql,'ROLLBACK');
+  assert.ok(!f.queries.some(q=>q.sql.includes('INSERT INTO staff_attendance_audit')));
+  assert.ok(!f.queries.some(q=>q.sql.includes('INSERT INTO staff_attendance_challenge_redemptions')));
+ }
+});
+test('redemption rejects student and invalid challenge IDs without database access',async()=>{
+ const student=redemptionFixture({role:'STUDENT'});
+ assert.equal((await execute(student)).code,403);
+ assert.equal(student.queries.length,0);
+ const invalid=redemptionFixture();
+ invalid.req.body.challengeId='invalid';
+ assert.equal((await execute(invalid)).code,400);
+ assert.equal(invalid.queries.length,0);
+});
