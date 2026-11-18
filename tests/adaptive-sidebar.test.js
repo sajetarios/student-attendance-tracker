@@ -111,7 +111,7 @@ test('collapsed desktop sidebar hides nested icons and expands when a group is s
  assert.match(css,/display:none!important/);
  assert.match(source,/sidebar\.addEventListener\?\.\('click'/);
  assert.match(source,/classList\.remove\('sidebar-collapsed'\)/);
- assert.match(html,/attendigo-sidebar-adaptive\.css\?v=17/);
+ assert.match(html,/attendigo-sidebar-adaptive\.css\?v=18/);
  assert.match(worker,/attendigo-sidebar-adaptive\.js\?v=9/);
 });
 
