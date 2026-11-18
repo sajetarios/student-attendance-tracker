@@ -11,7 +11,7 @@ function validHours(value){
 }
 function clockMinutes(value){const n=minuteOf(value);return n===null?null:n;}
 function isoDate(value){return typeof value==='string'&&/^\d{4}-\d{2}-\d{2}$/.test(value)&&!Number.isNaN(Date.parse(value+'T12:00:00Z'));}
-function summarizeForm48({records=[],month,today,settings=null,calendar=[],officialBusiness=[],leave=null}){
+function summarizeForm48({records=[],month,today,settings=null,calendar=[],officialBusiness=[],leave=null,approvedLeaves=[]}){
  if(!/^\d{4}-(0[1-9]|1[0-2])$/.test(month||''))throw Error('Invalid report month');
  const configured=Boolean(settings);
  const workdays=configured&&Array.isArray(settings.workdays)?settings.workdays:[];
@@ -21,7 +21,7 @@ function summarizeForm48({records=[],month,today,settings=null,calendar=[],offic
  const calendarMonthDays=new Date(Date.UTC(Number(month.slice(0,4)),Number(month.slice(5,7)),0)).getUTCDate();
  const timeConfigured=configured&&validHours(settings.regularHours)&&(!workdays.includes(6)||validHours(settings.saturdayHours));
  const summary={daysPresent:0,daysAbsent:0,excusedDays:0,pendingAbsentDays:0,
-  partialRecordDays:0,scheduledDays:0,tardyMinutes:timeConfigured?0:null,
+  partialRecordDays:0,scheduledDays:0,approvedLeaveDays:0,tardyMinutes:timeConfigured?0:null,
   undertimeMinutes:timeConfigured?0:null,tardyDays:0,undertimeDays:0,
   incompleteTimingDays:0,unresolvedDays:0,configured,hasUnreviewed:false};
  const assessments=[];
@@ -37,6 +37,7 @@ function summarizeForm48({records=[],month,today,settings=null,calendar=[],offic
   const present=verifiedCount>0;
   const approvedOB=(officialBusiness||[]).some(b=>date>=b.from&&date<=b.to);
   const leaveDay=leave?.from&&leave?.to&&date>=leave.from&&date<=leave.to;
+  const documentedLeave=(approvedLeaves||[]).some(p=>p.from&&p.to&&date>=p.from&&date<=p.to);
   const review=reviews[date]||'PENDING';
   let status='NOT_SCHEDULED',lateMinutes=0,earlyMinutes=0,needsReview=false;
   if(scheduled&&date<=today)summary.scheduledDays++;
@@ -44,14 +45,16 @@ function summarizeForm48({records=[],month,today,settings=null,calendar=[],offic
   if(scheduled&&present&&past&&verifiedCount<4){summary.partialRecordDays++;needsReview=true;}
   if(!scheduled){status=present?'UNSCHEDULED_PUNCH':'NOT_SCHEDULED';}
   else if(!past&&!present){status='NOT_DUE';}
-  else if(present){status=verifiedCount===4?'VERIFIED':'INCOMPLETE_DTR';}
+  else if(present){status=verifiedCount===4?'VERIFIED':'INCOMPLETE_DTR';
+   if(documentedLeave&&past){status='LEAVE_PUNCH_CONFLICT';needsReview=true;}}
+  else if(documentedLeave){status='APPROVED_LEAVE';summary.excusedDays++;summary.approvedLeaveDays++;}
   else if(approvedOB){status='APPROVED_OB_REVIEW';needsReview=true;}
   else if(leaveDay){status='LEAVE_REVIEW';needsReview=true;}
   else if(review==='EXCUSED'&&past){status='EXCUSED';summary.excusedDays++;}
   else if(review==='ABSENT'&&past){status='CONFIRMED_ABSENT';summary.daysAbsent++;}
   else if(past){status='MISSING_REVIEW';summary.pendingAbsentDays++;needsReview=true;}
   const hours=weekday===6?settings?.saturdayHours:settings?.regularHours;
-  if(scheduled&&present&&!approvedOB&&!leaveDay&&exception!=='SHORTENED_DAY'){
+  if(scheduled&&present&&!approvedOB&&!leaveDay&&!documentedLeave&&exception!=='SHORTENED_DAY'){
    if(validHours(hours)){
     for(const slot of ['AM_IN','PM_IN']){
      const at=clockMinutes(slots[slot]),expected=clockMinutes(hours[slot]);
@@ -70,13 +73,13 @@ function summarizeForm48({records=[],month,today,settings=null,calendar=[],offic
     summary.tardyMinutes=null;summary.undertimeMinutes=null;
     if(past){summary.incompleteTimingDays++;needsReview=true;}
    }
-  }else if(scheduled&&present&&past&&(approvedOB||leaveDay||exception==='SHORTENED_DAY')){
+  }else if(scheduled&&present&&past&&(approvedOB||leaveDay||documentedLeave||exception==='SHORTENED_DAY')){
    summary.incompleteTimingDays++;needsReview=true;
   }
   if(needsReview){summary.unresolvedDays++;summary.hasUnreviewed=true;}
   assessments.push({date,day,weekday,status,scheduled,past,verifiedCount,
    lateMinutes,undertimeMinutes:earlyMinutes,needsReview,approvedOB:Boolean(approvedOB),
-   leaveDay:Boolean(leaveDay),calendarException:exception||null,review});
+   leaveDay:Boolean(leaveDay||documentedLeave),approvedLeave:Boolean(documentedLeave),calendarException:exception||null,review});
  }
  if(!configured){summary.tardyMinutes=null;summary.undertimeMinutes=null;}
  return {summary,assessments};
