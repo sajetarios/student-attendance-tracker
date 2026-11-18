@@ -551,6 +551,25 @@ body.dark-mode .content-wrap > .school-heading.is-compact,body[data-theme="dark"
   .portal-layout[data-attendigo-role="TEACHER"] #dashboardScanCta .dashboard-quick-buttons>*{flex:1 1 100%!important;justify-content:center!important}
 }
   </style>
+<style id="platform-storage-analytics-style">
+#platformWorkspace .platform-storage-card{margin-top:16px;padding:20px}
+#platformWorkspace .platform-storage-heading{display:flex;align-items:flex-start;justify-content:space-between;gap:16px}
+#platformWorkspace .platform-storage-heading h3{margin:4px 0;font-size:19px}
+#platformWorkspace .platform-storage-heading p{margin:0;color:var(--text-secondary,#718198);font-size:13px}
+#platformWorkspace .platform-storage-content{display:flex;align-items:center;gap:30px;padding:20px 0 2px}
+#platformWorkspace .platform-storage-ring{--storage-pct:0%;--storage-color:#2687c9;width:164px;height:164px;flex:0 0 164px;border-radius:50%;background:conic-gradient(var(--storage-color) var(--storage-pct),var(--border-color,#dbe5ef) 0);display:grid;place-items:center;transition:background 650ms ease;position:relative}
+#platformWorkspace .platform-storage-ring:before{content:"";position:absolute;inset:14px;border-radius:50%;background:var(--surface-color,#fff)}
+#platformWorkspace .platform-storage-ring-center{position:relative;text-align:center;display:grid;gap:3px}
+#platformWorkspace .platform-storage-ring-center strong{font-size:29px;font-variant-numeric:tabular-nums}
+#platformWorkspace .platform-storage-ring-center small{font-size:12px;color:var(--text-secondary,#718198)}
+#platformWorkspace .platform-storage-details{flex:1;min-width:0;display:grid;gap:10px}
+#platformWorkspace .platform-storage-details>div{display:flex;justify-content:space-between;gap:12px;border-bottom:1px solid var(--border-color,#e5ebf3);padding-bottom:8px;font-size:13px}
+#platformWorkspace .platform-storage-details strong{font-variant-numeric:tabular-nums}
+#platformWorkspace .platform-storage-details p{margin:0;font-size:12px;color:var(--text-secondary,#718198)}
+#platformWorkspace .platform-storage-details small{color:var(--text-secondary,#718198)}
+@media(max-width:620px){#platformWorkspace .platform-storage-content{flex-direction:column;align-items:stretch;gap:18px}#platformWorkspace .platform-storage-ring{align-self:center;width:146px;height:146px;flex-basis:146px}#platformWorkspace .platform-storage-heading{flex-wrap:wrap}}
+@media(prefers-reduced-motion:reduce){#platformWorkspace .platform-storage-ring{transition:none}}
+</style>
 </head>
 <body class="portal-page">
   <div class="portal-layout">
@@ -1954,6 +1973,24 @@ body.dark-mode .content-wrap > .school-heading.is-compact,body[data-theme="dark"
             <div><div class="eyebrow muted">PLATFORM OWNER</div><h2>Platform administration</h2><p>Manage school onboarding, account access, and cloud synchronization health.</p></div>
           </div>
           <div class="stats-grid platform-stat-grid"><article class="stat-card"><span class="stat-top">Schools</span><strong id="platformSchoolCount">—</strong></article><article class="stat-card"><span class="stat-top">Active schools</span><strong id="platformActiveSchools">—</strong></article><article class="stat-card"><span class="stat-top">Active accounts</span><strong id="platformActiveAccounts">—</strong></article><article class="stat-card"><span class="stat-top">Cloud sync queue</span><strong id="platformQueuedSync">—</strong></article></div>
+            <section class="surface-card platform-storage-card" id="platformStorageCard" aria-label="Database storage analytics">
+              <div class="platform-storage-heading">
+                <div><div class="eyebrow muted">PLATFORM CAPACITY</div><h3>Database storage</h3><p>Live PostgreSQL database footprint, not phone storage or uploaded media.</p></div>
+                <button type="button" class="outline-button compact-button" id="platformStorageRefresh">↻ Refresh</button>
+              </div>
+              <div class="platform-storage-content">
+                <div class="platform-storage-ring" id="platformStorageRing" role="img" aria-label="Database capacity not configured">
+                  <div class="platform-storage-ring-center"><strong id="platformStoragePercent">—</strong><small>of capacity</small></div>
+                </div>
+                <div class="platform-storage-details">
+                  <div><span>Database used</span><strong id="platformStorageUsed">Loading…</strong></div>
+                  <div><span>Estimated remaining</span><strong id="platformStorageRemaining">—</strong></div>
+                  <div><span>Configured capacity</span><strong id="platformStorageLimit">Not available</strong></div>
+                  <p id="platformStorageNote" role="status">Checking current database size…</p>
+                  <small id="platformStorageUpdated">—</small>
+                </div>
+              </div>
+            </section>
           </div>
           <div class="platform-tab-panel" data-platform-tab="schools" hidden>
           <section class="surface-card section-card platform-create-card"><div class="section-toolbar"><div><h3>Onboard a school</h3><p>Create the school and its first School Administrator account.</p></div></div>
@@ -2026,7 +2063,7 @@ body.dark-mode .content-wrap > .school-heading.is-compact,body[data-theme="dark"
   <script src="/offline-attendance.js?v=5" defer></script>
   <script src="/attendance-sync-center.js?v=3" defer></script>
   <script src="/learner-roster-view.js?v=1" defer></script>
-  <script src="/portal.js?v=198" defer></script>
+  <script src="/portal.js?v=199" defer></script>
   <script src="/staff-lunch-ui.js?v=3" defer></script>
   <script src="/staff-ob-ui.js?v=5" defer></script>
   <script src="/department-workspace.js?v=1" defer></script>

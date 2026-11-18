@@ -4967,6 +4967,41 @@ let teacherActionMenuListenersInstalled = false;
     finally{button.disabled=false;}
   });
 
+  const formatStorageBytes = value => {
+    if (!Number.isFinite(value) || value < 0) return 'Unavailable';
+    if (value < 1024) return value + ' B';
+    const units = ['KB','MB','GB','TB'];
+    let n = value, unit = -1;
+    do { n /= 1024; unit++; } while (n >= 1024 && unit < units.length - 1);
+    return n.toFixed(n < 10 ? 2 : 1) + ' ' + units[unit];
+  };
+  async function loadPlatformStorage() {
+    const card = $('platformStorageCard');
+    if (!card || user?.role !== 'SUPER_ADMIN') return;
+    const note = $('platformStorageNote');
+    try {
+      const response = await api('/api/platform/storage');
+      const data = response.storage;
+      $('platformStorageUsed').textContent = formatStorageBytes(data.usedBytes);
+      $('platformStorageLimit').textContent = data.limitBytes === null ? 'Not configured' : formatStorageBytes(data.limitBytes);
+      $('platformStorageRemaining').textContent = data.remainingBytes === null ? 'Unknown' : formatStorageBytes(data.remainingBytes);
+      $('platformStoragePercent').textContent = data.percentUsed === null ? '—' : data.percentUsed.toFixed(1) + '%';
+      const ring = $('platformStorageRing');
+      ring.style.setProperty('--storage-pct', Math.min(100,Math.max(0,data.percentUsed || 0)) + '%');
+      ring.style.setProperty('--storage-color', data.percentUsed >= 90 ? '#dc5260' : data.percentUsed >= 75 ? '#e4a23b' : '#2687c9');
+      ring.setAttribute('aria-label',data.percentUsed === null ? 'Database used: ' + formatStorageBytes(data.usedBytes) + '; capacity not configured' : data.percentUsed + '% of configured database capacity used');
+      note.textContent = data.limitBytes === null
+        ? 'Remaining space cannot be calculated until the verified plan capacity is configured on the server.'
+        : data.percentUsed >= 90 ? 'Critical: database is approaching its configured capacity.'
+        : data.percentUsed >= 75 ? 'Warning: database usage is above 75% of configured capacity.'
+        : 'Database usage is within the configured capacity.';
+      $('platformStorageUpdated').textContent = 'Updated ' + new Date(data.measuredAt).toLocaleString();
+    } catch (error) {
+      note.textContent = 'Unable to refresh database storage: ' + error.message;
+    }
+  }
+  $('platformStorageRefresh')?.addEventListener('click',loadPlatformStorage);
+
   async function loadPlatformData() {
     const [overview, schools, recovery] = await Promise.all([api('/api/platform/overview'),api('/api/platform/schools'),api('/api/platform/recovery/school-admins')]);
     const selection=$('platformRecoveryAdmin');
@@ -4983,6 +5018,7 @@ let teacherActionMenuListenersInstalled = false;
     $('platformActiveSchools').textContent=String(overview.overview.activeSchoolCount||0);
     $('platformActiveAccounts').textContent=String(overview.overview.activeAccountCount||0);
     $('platformQueuedSync').textContent=String(overview.overview.queuedSyncCount||0);
+    await loadPlatformStorage();
     const rows=$('platformSchoolRows');
     rows.innerHTML=schools.schools.length?schools.schools.map(s=>`<tr>
       <td><strong>${esc(s.schoolName)}</strong></td><td>${esc(s.schoolCode)}</td>

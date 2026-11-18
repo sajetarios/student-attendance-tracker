@@ -1,4 +1,4 @@
-const CACHE = "attendigo-v228-year-grade-student-ids";
+const CACHE = "attendigo-v225-platform-storage-analytics";
 
 const SHELL = [
   "/typography.css?v=1",
@@ -52,7 +52,7 @@ const SHELL = [
   "/class-qr-dashboard-link.js?v=9",
   "/teacher-roster-popover.js?v=2",
   "/portal.css",
-  "/portal.js?v=198",
+  "/portal.js?v=199",
   "/department-workspace.css?v=1",
   "/department-workspace.js?v=1",
   "/form48-report.js?v=7",
