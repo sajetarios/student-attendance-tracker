@@ -170,7 +170,7 @@
 <link rel="manifest" href="/manifest.webmanifest">
   <link rel="stylesheet" href="/attendigo-dark-unified.css?v=1">
   <link rel="stylesheet" href="/planner.css?v=3">
-  <link rel="stylesheet" href="/user-management-readability.css?v=5">
+  <link rel="stylesheet" href="/user-management-readability.css?v=6">
 <link rel="stylesheet" href="/user-nav-reorg.css?v=1">
 <link rel="stylesheet" href="/special-program-ui.css?v=5">
 <style id="school-logo-size-fix">
@@ -1766,8 +1766,31 @@ body.dark-mode .content-wrap > .school-heading.is-compact,body[data-theme="dark"
                 <article><div class="security-feature-heading"><strong>Failed sign-in protection</strong><span class="account-status active">Available</span></div><p>Five incorrect attempts trigger a 15-minute lock. Administrators can review and unlock staff accounts.</p></article>
               </div>
               <div class="security-account-section">
-                <div class="section-toolbar security-audit-toolbar"><div><h4>Employee account security</h4><p>Review last sign-in, failed attempts, lockout state, and active sessions.</p></div><button type="button" class="outline-button" id="refreshSecurityAccounts">↻ Refresh accounts</button></div>
+                <div class="section-toolbar security-audit-toolbar"><div><h4>Employee account security</h4><p>Search staff and reveal security details only when needed. Actions remain individual and audited.</p></div><button type="button" class="outline-button" id="refreshSecurityAccounts">↻ Refresh accounts</button></div>
+                <div class="security-directory-filters" role="search" aria-label="Search employee account security">
+                  <label class="security-directory-search">Find employee
+                    <input type="search" id="securityAccountsSearch" placeholder="Name, username or department" autocomplete="off" aria-label="Search staff accounts">
+                  </label>
+                  <label>Department
+                    <select id="securityAccountsDepartment"><option value="ALL">All departments</option></select>
+                  </label>
+                  <label>Role
+                    <select id="securityAccountsRole"><option value="ALL">All roles</option><option value="TEACHER">Teachers</option><option value="DEPARTMENT_HEAD">Department Heads</option><option value="GATE_KEEPER">Gate Keepers</option></select>
+                  </label>
+                  <label>Status
+                    <select id="securityAccountsStatus"><option value="ALL">All statuses</option><option value="ACTIVE">Active</option><option value="LOCKED">Locked</option><option value="PASSWORD_CHANGE">Password change required</option><option value="INACTIVE">Inactive</option></select>
+                  </label>
+                </div>
+                <div class="security-directory-meta">
+                  <span id="securityAccountsCount" role="status" aria-live="polite">Select Account access to load employees.</span>
+                  <label>Per page <select id="securityAccountsPageSize"><option value="10">10</option><option value="25" selected>25</option><option value="50">50</option></select></label>
+                </div>
                 <div class="table-scroll"><table class="security-audit-table security-accounts-table"><colgroup><col style="width:17%"><col style="width:23%"><col style="width:10%"><col style="width:16%"><col style="width:10%"><col style="width:7%"><col style="width:17%"></colgroup><thead><tr><th>Employee</th><th>Role / department</th><th>Access status</th><th>Last sign-in</th><th>Failed attempts</th><th>Sessions</th><th>Security actions</th></tr></thead><tbody id="securityAccountsRows"><tr><td colspan="7" class="empty-cell">Open Account access to load staff security status.</td></tr></tbody></table></div>
+                <nav class="security-directory-pagination" aria-label="Employee security pages">
+                  <button type="button" class="outline-button compact-button" id="securityAccountsPrevious" disabled>Previous</button>
+                  <span id="securityAccountsPageInfo" aria-live="polite">Page 1 of 1</span>
+                  <button type="button" class="outline-button compact-button" id="securityAccountsNext" disabled>Next</button>
+                </nav>
               </div>
               <div class="section-toolbar security-audit-toolbar"><div><h4>Recent administrative activity</h4><p>Latest 50 school changes · Scroll inside the table for more. Sign-in attempts are not included.</p></div><button type="button" class="outline-button" id="refreshSecurityAudit">↻ Refresh history</button></div>
               <div class="table-scroll security-audit-scroll" id="securityAuditScroll" role="region" aria-label="Recent administrative activity history, scroll to see more entries" tabindex="0"><table class="security-audit-table security-history-table"><thead><tr><th scope="col">Date and time</th><th scope="col">Action</th><th scope="col">Changed by</th><th scope="col">Record</th></tr></thead><tbody id="securityAuditRows"><tr><td colspan="4" class="empty-cell">Open Account access to load recent activity.</td></tr></tbody></table></div>

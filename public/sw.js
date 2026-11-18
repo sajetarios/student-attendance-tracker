@@ -1,4 +1,4 @@
-const CACHE = "attendigo-v225-class-qr-fixture-coverage";
+const CACHE = "attendigo-v226-compact-staff-security";
 
 const SHELL = [
   "/typography.css?v=1",
@@ -15,7 +15,7 @@ const SHELL = [
   "/assets/attendigo-wordmark-on-light.svg?v=2",
   "/assets/attendigo-symbol-transparent.svg?v=2",
   "/attendigo-sidebar-adaptive.css?v=19",
-  "/user-management-readability.css?v=5",
+  "/user-management-readability.css?v=6",
   "/user-nav-reorg.css?v=1",
   "/attendigo-sidebar-adaptive.js?v=9",
   "/assets/attendigo-logo.png?v=2",
