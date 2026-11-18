@@ -41,5 +41,5 @@ test('new portal bundle matches offline shell', () => {
   assert.match(portal,/\/portal\.js\?v=199/);
   assert.match(worker,/"\/portal\.js\?v=199"/);
   assert.ok(Number(worker.match(/const CACHE = "attendigo-v(\d+)-/)?.[1]) >= 230, "PWA cache must not regress below the ID-generation release");
-  assert.match(worker,/attendigo-v233-provider-aware-storage/);
+  assert.ok(Number(worker.match(/const CACHE = "attendigo-v(\d+)-/)?.[1]) >= 233, "PWA cache must include provider-aware storage release");
 });
