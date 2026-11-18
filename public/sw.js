@@ -1,4 +1,4 @@
-const CACHE = "attendigo-v219-class-qr-admin-scope";
+const CACHE = "attendigo-v220-admin-class-monitor-shortcut";
 
 const SHELL = [
   "/typography.css?v=1",
@@ -52,7 +52,7 @@ const SHELL = [
   "/class-qr-dashboard-link.js?v=9",
   "/teacher-roster-popover.js?v=2",
   "/portal.css",
-  "/portal.js?v=194",
+  "/portal.js?v=196",
   "/form48-report.js?v=7",
   "/form48-bulk-ui.js?v=2",
   "/form48-report.css?v=7",
