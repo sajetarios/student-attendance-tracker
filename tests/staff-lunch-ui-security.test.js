@@ -1,0 +1,67 @@
+'use strict';
+const test=require('node:test');
+const assert=require('node:assert/strict');
+const fs=require('node:fs');
+const read=file=>fs.readFileSync(file,'utf8');
+const routes=read('staff-lunch-routes.js');
+const portal=read('public/portal.html');
+const ui=read('public/staff-lunch-ui.js');
+const page=read('public/staff-lunch-checkin.html');
+const scan=read('public/staff-lunch-checkin.js');
+const sw=read('public/sw.js');
+const server=read('server.js');
+test('presenter API uses administrator-only assignment and invalidates outgoing QR',()=>{
+ assert.match(routes,/requireSchoolRoles\('SCHOOL_ADMIN'\),async\(req,res\)=>\{/);
+ assert.match(routes,/app\.delete\('\/api\/staff-attendance\/lunch\/presenter'/);
+ assert.match(routes,/app\.get\('\/api\/staff-attendance\/lunch\/presenter'/);
+ assert.match(routes,/role='TEACHER' AND active=TRUE/);
+ assert.match(routes,/pg_advisory_xact_lock\(hashtext\(\$1\),hashtext\(\$2\)\)/);
+ assert.match(routes,/UPDATE staff_attendance_challenges SET revoked_at=NOW\(\)/);
+ assert.match(routes,/LUNCH_PRESENTER_ASSIGNED/);
+ assert.match(routes,/LUNCH_PRESENTER_REVOKED/);
+});
+test('presenter issues real QR image with fragment-only bearer token and 60s expiry',()=>{
+ assert.match(routes,/QRCode\.toDataURL\(scanUrl/);
+ assert.match(routes,/staff-lunch-checkin\.html#/);
+ assert.match(routes,/new URLSearchParams\(\{id,token:challenge\.token\}\)/);
+ assert.match(routes,/qrImage,slot,schoolDate:date,expiresAt/);
+ assert.match(routes,/UPDATE staff_attendance_challenges SET revoked_at=NOW\(\)/);
+ assert.doesNotMatch(routes,/console\.log\(.*challenge\.token/);
+});
+test('admin and teacher interfaces remain isolated to existing role-specific portals',()=>{
+ const teachers=portal.indexOf('id="teachersView"');
+ const admin=portal.indexOf('id="staffLunchAdminCard"');
+ const student=portal.indexOf('id="myGateAttendanceView"');
+ const presenter=portal.indexOf('id="staffLunchPresenterCard"');
+ assert.ok(teachers>=0&&teachers<admin&&admin<student&&student<presenter);
+ assert.match(ui,/\['SCHOOL_ADMIN','TEACHER'\]\.includes\(user\?\.role\)/);
+ assert.match(ui,/window\.attendigoStaffIdentity\?\.then\(init\)/);
+ assert.match(ui,/\/api\/staff-attendance\/lunch\/presenter/);
+ assert.match(ui,/\/api\/staff-attendance\/lunch\/challenges/);
+ assert.match(ui,/setInterval\(/);
+ assert.match(ui,/!document\.hidden/);
+ assert.match(portal,/staff-lunch-ui\.js\?v=1/);
+ assert.match(portal,/staff-lunch\.css\?v=1/);
+});
+test('QR scan does not log in or record until authenticated staff confirms explicitly',()=>{
+ assert.match(page,/name="referrer" content="no-referrer"/);
+ assert.match(page,/name="robots" content="noindex,nofollow,noarchive"/);
+ assert.match(scan,/new URLSearchParams\(location\.hash\.slice\(1\)\)/);
+ assert.match(scan,/history\.replaceState\(null,'',location\.pathname\)/);
+ assert.match(scan,/fetch\('\/api\/auth\/me'/);
+ assert.match(scan,/\['TEACHER','DEPARTMENT_HEAD','SCHOOL_ADMIN'\]\.includes\(me\.role\)/);
+ assert.match(scan,/addEventListener\('click',async\(\)=>\{/);
+ assert.match(scan,/method:'POST',credentials:'same-origin',cache:'no-store'/);
+ assert.doesNotMatch(scan,/localStorage|sessionStorage|location\.search|console\.log/);
+ assert.match(server,/app\.get\('\/staff-lunch-checkin\.html'/);
+ assert.match(server,/res\.set\('Referrer-Policy','no-referrer'\)/);
+});
+test('service worker preloads safe assets but excludes sensitive scan document from offline cache',()=>{
+ assert.match(sw,/staff-lunch-ui\.js\?v=1/);
+ assert.match(sw,/staff-lunch\.css\?v=1/);
+ assert.match(sw,/staff-lunch-checkin\.js\?v=1/);
+ assert.match(sw,/staff-lunch-checkin\.html/);
+ const shell=sw.split('const SHELL = [')[1].split('];')[0];
+ assert.doesNotMatch(shell,/staff-lunch-checkin\.html/);
+ assert.match(sw,/const CACHE = "attendigo-v195-/);
+});
