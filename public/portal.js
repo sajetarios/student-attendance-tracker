@@ -4110,6 +4110,8 @@ let teacherActionMenuListenersInstalled = false;
         return '<tr data-sf2-row><th scope="row"><strong>'+esc(student.name)+'</strong><small>'+esc(student.gradeLevel)+' · '+esc(student.section)+'</small></th><td>'+esc(student.sex||'—')+'</td>'+cells+'</tr>';
       }).join('') || '<tr><td colspan="'+(data.dates.length+2)+'" class="empty-cell">No learners are enrolled in this section.</td></tr>';
       const wrap=$('sf2TableWrap');
+      wrap.scrollTop=0;
+      wrap.scrollLeft=0;
       let tools=wrap.previousElementSibling;
       if(!tools||!tools.classList.contains('sf2-review-tools')){
         tools=document.createElement('div');tools.className='sf2-review-tools';wrap.before(tools);
