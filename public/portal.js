@@ -4063,21 +4063,25 @@ let teacherActionMenuListenersInstalled = false;
       const gateAvailable=gateResult.status==='fulfilled',dtrAvailable=dtrResult.status==='fulfilled';
       const daily=new Map(),dayFor=date=>{
         if(!daily.has(date))daily.set(date,{
-          date,gateIn:null,gateOut:null,gateCount:0,gateVerified:true,dtr:new Map()
+          date,gateIn:null,gateOut:null,gateCount:0,gateVerified:true,gateEvents:[],obRemarks:[],dtr:new Map()
         });
         return daily.get(date);
       };
       if(gateAvailable)(gateResult.value.events||[]).forEach(item=>{
         const day=dayFor(item.schoolDate);
-        if(item.eventType==='TIME_IN')day.gateIn=item.occurredAt;
+        if(item.eventType==='TIME_IN'&&!day.gateIn)day.gateIn=item.occurredAt;
         if(item.eventType==='TIME_OUT')day.gateOut=item.occurredAt;
         day.gateCount++;
+        day.gateEvents.push(item);
         day.gateVerified=day.gateVerified&&item.photoVerified===true;
       });
       if(dtrAvailable)(dtrResult.value.events||[]).forEach(item=>{
         if(!myStaffDtrSlots.some(([slot])=>slot===item.slot))return;
         const day=dayFor(item.schoolDate);
         if(!day.dtr.has(item.slot))day.dtr.set(item.slot,item.occurredAt);
+      });
+      if(dtrAvailable)(dtrResult.value.obRemarks||[]).forEach(item=>{
+        dayFor(item.date).obRemarks.push(...(item.remarks||[]));
       });
       if(from<=today&&to>=today)dayFor(today);
       const rows=[...daily.values()].sort((a,b)=>b.date.localeCompare(a.date));
@@ -4089,16 +4093,26 @@ let teacherActionMenuListenersInstalled = false;
         const dtrGrid=dtrAvailable?`<div class="my-gate-dtr-grid">${myStaffDtrSlots.map(([slot,label])=>
           `<div class="my-gate-dtr-slot"><span>${label}</span><strong>${esc(day.dtr.has(slot)?myGateTime(day.dtr.get(slot)):'Not recorded')}</strong></div>`
         ).join('')}</div>`:'<p class="my-gate-empty">Verified DTR entries could not be loaded.</p>';
+        const gateTimeline=day.gateEvents.length
+          ?'<div class="my-gate-timeline" aria-label="All verified gate movements">'+
+            [...day.gateEvents].sort((a,b)=>new Date(a.occurredAt)-new Date(b.occurredAt)).map(item=>
+             '<span class="my-gate-movement">'+esc(item.eventType==='TIME_IN'?'Entry':'Exit')+
+             ' '+esc(myGateTime(item.occurredAt))+'</span>').join(' · ')+'</div>'
+          :'';
         const gateGrid=gateAvailable?`<div class="my-gate-gate-grid">
-          <div><span>In</span><strong>${esc(myGateTime(day.gateIn))}</strong></div>
-          <div><span>Out</span><strong>${esc(myGateTime(day.gateOut))}</strong></div>
-        </div>`:'<p class="my-gate-empty">Gate records unavailable.</p>';
+          <div><span>First entry</span><strong>${esc(myGateTime(day.gateIn))}</strong></div>
+          <div><span>Latest exit</span><strong>${esc(myGateTime(day.gateOut))}</strong></div>
+        </div>`+gateTimeline:'<p class="my-gate-empty">Gate records unavailable.</p>';
+        const obSummary=day.obRemarks.length?'<div class="my-gate-ob-remarks">'+day.obRemarks.map(ob=>
+          '<p><strong>OB:</strong> '+esc(ob.remark)+
+          (ob.exception?'<span class="status-tag neutral">Review needed</span> '+esc(ob.exceptionRemark||''):'')+
+          '</p>').join('')+'</div>':'';
         const gateStatus=gateAvailable?(day.gateCount
           ?`<span class="status-tag ${day.gateVerified?'':'neutral'}">${day.gateVerified?'Photo verified':'Check record'}</span>`
           :'<span class="my-gate-empty">No gate scan</span>'):'';
         return `<tr class="my-gate-day-row">
           <td data-label="Date"><strong class="my-gate-day">${esc(formatSchoolDate(day.date))}</strong></td>
-          <td data-label="Official Form 48 DTR"><div class="my-gate-dtr-summary">${dtrSummary}</div>${dtrGrid}</td>
+          <td data-label="Official Form 48 DTR"><div class="my-gate-dtr-summary">${dtrSummary}</div>${dtrGrid}${obSummary}</td>
           <td data-label="Physical gate scans">${gateGrid}<div class="my-gate-gate-status">${gateStatus}</div></td>
         </tr>`;
       }).join(''):'<tr><td colspan="3" class="empty-cell">No attendance entries for the selected dates.</td></tr>';
