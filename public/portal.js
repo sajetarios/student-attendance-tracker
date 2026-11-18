@@ -4970,7 +4970,7 @@ let teacherActionMenuListenersInstalled = false;
   const formatStorageBytes = value => {
     if (!Number.isFinite(value) || value < 0) return 'Unavailable';
     if (value < 1024) return value + ' B';
-    const units = ['KB','MB','GB','TB'];
+    const units = ['KiB','MiB','GiB','TiB'];
     let n = value, unit = -1;
     do { n /= 1024; unit++; } while (n >= 1024 && unit < units.length - 1);
     return n.toFixed(n < 10 ? 2 : 1) + ' ' + units[unit];
