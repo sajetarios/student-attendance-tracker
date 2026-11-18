@@ -538,7 +538,7 @@ app.get('/api/admin/security/audit', authenticateSchoolClient, requireSchoolAdmi
   try {
     const result = await pool.query(
       `SELECT a.action, a.entity_type AS "entityType", a.entity_id AS "entityId",
-              a.details, a.updated_at AS "appliedAt",
+              a.details, a.created_at AS "createdAt",
               COALESCE(actor.display_name, actor.username, 'System') AS "actorName"
        FROM audit_logs a
        LEFT JOIN school_users actor
