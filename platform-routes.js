@@ -22,6 +22,33 @@ function registerPlatformRoutes(app, pool, { authenticatePlatform, requirePlatfo
     }
   });
 
+  // Platform-only PostgreSQL footprint. Capacity is intentionally unknown unless
+  // the operator configures DATABASE_STORAGE_LIMIT_BYTES for this deployment.
+  app.get('/api/platform/storage', ...guard, async (_req, res) => {
+    try {
+      const result = await pool.query(`
+        SELECT pg_database_size(current_database())::bigint::text AS "databaseBytes",
+               current_database() AS "databaseName",
+               NOW() AS "measuredAt"`);
+      const usedBytes = Number(result.rows[0].databaseBytes);
+      const configuredLimit = process.env.DATABASE_STORAGE_LIMIT_BYTES || '';
+      const validLimit = /^[1-9]\\d*$/.test(configuredLimit) ? Number(configuredLimit) : null;
+      const limitBytes = Number.isSafeInteger(validLimit) && validLimit > 0 ? validLimit : null;
+      const remainingBytes = limitBytes === null ? null : Math.max(0, limitBytes - usedBytes);
+      return res.set('Cache-Control','no-store').json({
+        storage: { usedBytes, limitBytes, remainingBytes,
+          percentUsed: limitBytes === null ? null : Math.round(1000 * usedBytes / limitBytes) / 10,
+          measuredAt: result.rows[0].measuredAt,
+          scope: 'PostgreSQL database only',
+          capacitySource: limitBytes === null ? 'not-configured' : 'operator-configured'
+        }
+      });
+    } catch (err) {
+      console.error('Platform storage analytics failed:', err.message);
+      return res.status(500).json({error:'Storage analytics unavailable.'});
+    }
+  });
+
   app.get('/api/platform/schools', ...guard, async (_req, res) => {
     try {
       const result = await pool.query(`
