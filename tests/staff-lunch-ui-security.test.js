@@ -63,7 +63,7 @@ test('service worker preloads safe assets but excludes sensitive scan document f
  assert.match(sw,/staff-lunch-checkin\.html/);
  const shell=sw.split('const SHELL = [')[1].split('];')[0];
  assert.doesNotMatch(shell,/staff-lunch-checkin\.html/);
- assert.match(sw,/const CACHE = "attendigo-v198-/);
+ assert.match(sw,/const CACHE = "attendigo-v199-/);
 });
 
 test('staff lunch sign-in resumes same challenge without QR rescan or token in query',()=>{
@@ -81,4 +81,16 @@ test('staff lunch sign-in resumes same challenge without QR rescan or token in q
  assert.match(loginPage,/portal-login\.js\?v=13/);
  assert.match(sw,/staff-lunch-checkin\.js\?v=2/);
  assert.doesNotMatch(scan,/localStorage|sessionStorage|location\.search|console\.log/);
+});
+
+test('lunch confirmation hides unavailable controls and restores auth on browser Back',()=>{
+ assert.match(page,/\[hidden\]\{display:none!important\}/);
+ assert.match(scan,/window\.addEventListener\('pageshow',event=>/);
+ assert.match(scan,/event\.persisted \|\| !valid \|\| completed/);
+ assert.match(scan,/location\.replace\('\/staff-lunch-checkin\.html#'/);
+ assert.match(scan,/let completed=false/);
+ assert.match(scan,/completed=true/);
+ assert.match(page,/staff-lunch-checkin\.js\?v=3/);
+ assert.match(sw,/staff-lunch-checkin\.js\?v=3/);
+ assert.doesNotMatch(scan,/localStorage|sessionStorage|console\.log/);
 });
