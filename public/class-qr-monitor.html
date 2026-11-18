@@ -1,0 +1,85 @@
+<!doctype html>
+<html lang="en" data-protected-role="STAFF">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="theme-color" content="#424bb1">
+  <title>Class Attendance Monitoring · Attendigo</title>
+  <link rel="icon" type="image/png" href="/assets/attendigo-favicon.png?v=2">
+  <link rel="stylesheet" href="/attendigo-brand.css?v=2">
+  <link rel="stylesheet" href="/attendigo-dark-unified.css?v=1">
+  <link rel="stylesheet" href="/typography.css?v=1">
+  <style>
+    :root{font-family:Inter,system-ui,sans-serif;color-scheme:light dark}
+    *{box-sizing:border-box}
+    body{margin:0;min-height:100vh;background:var(--page-bg,var(--bg,#f6f8fc));color:var(--text,#17243c);font-family:Inter,system-ui,sans-serif}
+    .shell{max-width:1220px;margin:auto;padding:clamp(16px,3vw,32px)}
+    .brand{display:flex;align-items:center;gap:14px;margin-bottom:18px}
+    .brand img{width:180px;max-width:45vw;height:auto;object-fit:contain}
+    .back{display:inline-flex;align-items:center;min-height:42px;color:var(--primary,#424bb1);font-weight:650;text-decoration:none}
+    .heading{display:flex;align-items:flex-start;justify-content:space-between;gap:18px;flex-wrap:wrap;margin:6px 0 24px}
+    h1{font-size:clamp(1.45rem,2.3vw,2rem);line-height:1.2;margin:0 0 8px}
+    h2{font-size:1.08rem;margin:0 0 8px}
+    p{line-height:1.5;margin:0 0 12px}
+    .muted{color:var(--muted,#64748b);font-size:.92rem}
+    button{font:inherit;cursor:pointer;background:var(--primary,#424bb1);color:#fff;border:0;border-radius:10px;padding:10px 16px;font-weight:650;min-height:42px}
+    button.secondary{background:transparent;color:inherit;border:1px solid var(--border,#a7b3c8)}
+    button:disabled{opacity:.5;cursor:not-allowed}
+    button:focus-visible,a:focus-visible,textarea:focus-visible{outline:3px solid #758be6;outline-offset:3px}
+    .stats{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin:0 0 18px}
+    .stat,.panel{background:var(--surface,var(--card,#fff));border:1px solid var(--border,#d9e1ef);border-radius:16px;padding:18px}
+    .stat strong{display:block;font-size:1.7rem;margin:7px 0;font-variant-numeric:tabular-nums}
+    .panel{margin-bottom:16px}
+    .table-wrap{overflow-x:auto;max-width:100%}
+    table{width:100%;border-collapse:collapse;text-align:left;min-width:790px;font-size:.92rem}
+    th,td{padding:13px 12px;border-bottom:1px solid var(--border,#e2e8f0);vertical-align:middle}
+    th{font-size:.78rem;letter-spacing:.02em;color:var(--muted,#64748b);font-weight:700}
+    td strong{display:block}
+    td small{color:var(--muted,#64748b)}
+    .status{font-weight:700}
+    .empty{padding:28px 12px;text-align:center;color:var(--muted,#64748b)}
+    .override{border-top:4px solid #b45309}
+    .override[hidden],[hidden]{display:none!important}
+    label{display:block;font-weight:700;margin:16px 0 6px}
+    textarea{display:block;width:100%;min-height:92px;padding:12px;font:inherit;border:1px solid var(--border,#a7b3c8);border-radius:10px;background:var(--surface,#fff);color:inherit;resize:vertical}
+    .actions{display:flex;flex-wrap:wrap;gap:10px;margin-top:14px}
+    #message{min-height:22px}
+    @media(max-width:700px){.stats{grid-template-columns:repeat(2,minmax(0,1fr))}.stat{padding:14px}}
+    @media(max-width:380px){.stats{grid-template-columns:1fr}}
+  </style>
+</head>
+<body>
+  <main class="shell" id="monitorPage" hidden>
+    <div class="brand"><img src="/assets/attendigo-sidebar-logo.png?v=2" alt="Attendigo"></div>
+    <a class="back" href="/portal.html">← Back to School Admin dashboard</a>
+    <div class="heading">
+      <div><h1>Class Attendance Monitoring</h1><p class="muted">School-wide overview of scheduled classes and student QR check-ins. This page does not generate class QR codes.</p><p id="schoolDate" class="muted"></p></div>
+      <button id="refresh" type="button" class="secondary">↻ Refresh</button>
+    </div>
+    <section class="stats" aria-label="Today's attendance overview">
+      <div class="stat"><span class="muted">Scheduled classes</span><strong id="scheduledCount">—</strong></div>
+      <div class="stat"><span class="muted">QR sessions</span><strong id="sessionCount">—</strong></div>
+      <div class="stat"><span class="muted">Active QR sessions</span><strong id="activeCount">—</strong></div>
+      <div class="stat"><span class="muted">Recorded QR check-ins</span><strong id="checkinCount">—</strong></div>
+    </section>
+    <section class="panel" aria-labelledby="scheduleTitle">
+      <h2 id="scheduleTitle">Today's class QR activity</h2>
+      <p class="muted">No QR session does not mean a learner is absent. Refer to official class attendance records for verified marks.</p>
+      <div class="table-wrap">
+        <table><thead><tr><th>Class</th><th>Scheduled time</th><th>QR session</th><th>Recorded</th><th>Present / Late</th><th>Action</th></tr></thead><tbody id="classRows"><tr><td class="empty" colspan="6">Loading classes…</td></tr></tbody></table>
+      </div>
+    </section>
+    <section class="panel override" id="overridePanel" hidden aria-labelledby="overrideTitle">
+      <h2 id="overrideTitle">Emergency close</h2>
+      <p id="overrideDetails"></p>
+      <p class="muted">Use only for an exceptional operational or security reason. This closes the selected QR session; existing attendance check-ins are not removed. The reason and your account are recorded in the audit log.</p>
+      <form id="overrideForm"><label for="overrideReason">Reason (12–500 characters)</label>
+        <textarea id="overrideReason" minlength="12" maxlength="500" required placeholder="Explain the specific reason for stopping this QR session"></textarea>
+        <div class="actions"><button type="submit" id="overrideConfirm">Confirm emergency close</button><button type="button" class="secondary" id="overrideCancel">Cancel</button></div>
+      </form>
+    </section>
+    <p id="message" role="status" aria-live="polite"></p>
+  </main>
+  <script defer src="/class-qr-monitor.js?v=1"></script>
+</body>
+</html>

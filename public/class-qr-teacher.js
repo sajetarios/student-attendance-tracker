@@ -10,7 +10,7 @@ document.addEventListener('keydown',e=>{if(e.key==='Escape'&&panel.classList.con
 (async()=>{
  try{
   const {user}=await api('/api/auth/me');
-  if(user?.role==='DEPARTMENT_HEAD'){location.replace('/portal.html');return;}
+  if(user?.role!=='TEACHER'){location.replace('/portal.html');return;}
   const r=await api('/api/class-qr/today');
   const label=new Date(r.date+'T12:00:00+08:00').toLocaleDateString('en-PH',{timeZone:'Asia/Manila',weekday:'long',month:'long',day:'numeric',year:'numeric'});
   $('schoolDate').textContent='School date: '+label+' (Philippine time)';

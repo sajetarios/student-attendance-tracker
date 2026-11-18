@@ -14,7 +14,22 @@
     return (await response.json()).user;
   }).then(user => {
     remove();
-    if (!user || !['TEACHER', 'SCHOOL_ADMIN'].includes(user.role)) return;
+    if (!user) return;
+    if (user.role === 'SCHOOL_ADMIN') {
+      // Admins monitor class check-ins instead of presenting teacher QR codes.
+      const academics = document.getElementById('academicNavChildren');
+      if (academics && !document.getElementById('classQrAdminMonitorNav')) {
+        const monitor = document.createElement('a');
+        monitor.id = 'classQrAdminMonitorNav';
+        monitor.className = 'nav-item';
+        monitor.href = '/class-qr-monitor.html';
+        monitor.title = 'Monitor school-wide class QR attendance';
+        monitor.innerHTML = '<span class="nav-icon" aria-hidden="true">▤</span><span class="nav-label">Class Attendance Monitoring</span>';
+        academics.insertBefore(monitor, document.getElementById('schedulesNav'));
+      }
+      return;
+    }
+    if (user.role !== 'TEACHER') return;
     const link = document.createElement('a');
     link.id = linkId;
     link.href = '/class-qr-teacher.html';
@@ -27,7 +42,6 @@
       const dashboardVisible = Boolean(dashboard && !dashboard.hidden && !dashboard.closest('[hidden]') && dashboard.getClientRects().length);
       const rosterHost = rosterVisible ? panel.querySelector('#studentRosterPanel .student-roster-viewbar') : null;
       // Teachers get a compact in-page shortcut instead of a floating overlay.
-      // Other roles retain their existing behavior.
       const dashboardHost = user.role === 'TEACHER' && dashboardVisible
         ? dashboard.querySelector('.dashboard-quick-buttons') : null;
       const inlineHost = rosterHost || dashboardHost;

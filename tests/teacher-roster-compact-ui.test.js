@@ -26,7 +26,8 @@ test('teacher roster compresses identity, class, QR and guardian without changin
 });
 test('the QR attendance shortcut moves into the roster toolbar only after role verification', () => {
   assert.match(shortcut, /fetch\('\/api\/auth\/me'/);
-  assert.match(shortcut, /!\['TEACHER', 'SCHOOL_ADMIN'\]\.includes\(user\.role\)/);
+  assert.match(shortcut, /if \(user\.role !== 'TEACHER'\) return/);
+  assert.match(shortcut, /if \(user\.role === 'SCHOOL_ADMIN'\)/);
   assert.match(shortcut, /#?studentsView/);
   assert.match(shortcut, /\.student-roster-viewbar/);
   assert.match(shortcut, /MutationObserver\(positionShortcut\)/);
@@ -42,11 +43,11 @@ test('responsive teacher roster keeps grouped sex counts, readable cards and dar
   assert.match(style, /:focus-visible/);
 });
 test('PWA asset versions match the new styling and scripts', () => {
-  for (const asset of ['/teacher-learner-roster.css?v=4','/portal.js?v=194','/class-qr-dashboard-link.js?v=8','/teacher-roster-popover.js?v=2']) {
+  for (const asset of ['/teacher-learner-roster.css?v=4','/portal.js?v=194','/class-qr-dashboard-link.js?v=9','/teacher-roster-popover.js?v=2']) {
     assert.ok(page.includes(asset), asset+' included in portal');
     assert.ok(worker.includes(JSON.stringify(asset)), asset+' cached');
   }
-  assert.ok(page.includes('/class-qr-dashboard-link.js?v=8'));
+  assert.ok(page.includes('/class-qr-dashboard-link.js?v=9'));
   assert.ok(page.includes('/teacher-roster-popover.js?v=2'));
   assert.match(worker, /const CACHE = "attendigo-v\d+[^"]*"/);
 });
