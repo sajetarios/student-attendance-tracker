@@ -567,8 +567,16 @@ body.dark-mode .content-wrap > .school-heading.is-compact,body[data-theme="dark"
 #platformWorkspace .platform-storage-details strong{font-variant-numeric:tabular-nums}
 #platformWorkspace .platform-storage-details p{margin:0;font-size:12px;color:var(--text-secondary,#718198)}
 #platformWorkspace .platform-storage-details small{color:var(--text-secondary,#718198)}
+#platformWorkspace .platform-storage-source{display:flex;align-items:center;flex-wrap:wrap;gap:6px 12px;padding:10px 0 0;font-size:12px}
+#platformWorkspace .platform-storage-source strong{color:var(--text-primary,inherit)}
+#platformWorkspace .platform-storage-source span{color:var(--text-secondary,#718198)}
+#platformWorkspace .platform-storage-meter{height:10px;background:var(--border-color,#dbe5ef);border-radius:99px;overflow:hidden}
+#platformWorkspace .platform-storage-meter-fill{height:100%;width:0;border-radius:inherit;background:var(--primary-color,#2687c9);transition:width 1000ms cubic-bezier(.2,.8,.2,1)}
+#platformWorkspace .platform-storage-details .platform-storage-exact{border:0;padding:0;font-size:12px;color:var(--text-secondary,#718198)}
+#platformWorkspace .platform-storage-details .platform-storage-exact strong{font-weight:600;color:inherit}
+
 @media(max-width:620px){#platformWorkspace .platform-storage-content{flex-direction:column;align-items:stretch;gap:18px}#platformWorkspace .platform-storage-ring{align-self:center;width:146px;height:146px;flex-basis:146px}#platformWorkspace .platform-storage-heading{flex-wrap:wrap}}
-@media(prefers-reduced-motion:reduce){#platformWorkspace .platform-storage-ring{transition:none}}
+@media(prefers-reduced-motion:reduce){#platformWorkspace .platform-storage-ring{transition:none}#platformWorkspace .platform-storage-meter-fill{transition:none}}
 </style>
 </head>
 <body class="portal-page">
@@ -1978,6 +1986,7 @@ body.dark-mode .content-wrap > .school-heading.is-compact,body[data-theme="dark"
                 <div><div class="eyebrow muted">PLATFORM CAPACITY</div><h3>Database storage</h3><p>Live PostgreSQL database footprint, not phone storage or uploaded media.</p></div>
                 <button type="button" class="outline-button compact-button" id="platformStorageRefresh">↻ Refresh</button>
               </div>
+              <div class="platform-storage-source" aria-live="polite"><strong id="platformStorageProvider">Checking database provider…</strong><span id="platformStorageMigration">Determining the active database connection.</span></div>
               <div class="platform-storage-content">
                 <div class="platform-storage-ring" id="platformStorageRing" role="img" aria-label="Database capacity not configured">
                   <div class="platform-storage-ring-center"><strong id="platformStoragePercent">—</strong><small>of capacity</small></div>
@@ -1985,7 +1994,9 @@ body.dark-mode .content-wrap > .school-heading.is-compact,body[data-theme="dark"
                 <div class="platform-storage-details">
                   <div><span>Database used</span><strong id="platformStorageUsed">Loading…</strong></div>
                   <div><span>Estimated remaining</span><strong id="platformStorageRemaining">—</strong></div>
-                  <div><span>Configured capacity</span><strong id="platformStorageLimit">Not available</strong></div>
+                  <div><span>Configured threshold</span><strong id="platformStorageLimit">Not available</strong></div>
+                  <div class="platform-storage-meter" aria-hidden="true"><div class="platform-storage-meter-fill" id="platformStorageProgress"></div></div>
+                  <div class="platform-storage-exact"><span>Exact measurement: </span><strong id="platformStorageUsedExact">—</strong> bytes</div>
                   <p id="platformStorageNote" role="status">Checking current database size…</p>
                   <small id="platformStorageUpdated">—</small>
                 </div>

@@ -14,6 +14,9 @@ test('database storage endpoint is protected by Super Admin guard', () => {
   assert.match(routes,/const guard = \[authenticatePlatform, requirePlatformAdmin\]/);
   assert.match(routes,/pg_database_size\(current_database\(\)\)/);
   assert.match(routes,/DATABASE_STORAGE_LIMIT_BYTES/);
+  assert.match(routes,/provider: storageProvider\(\)/);
+  assert.match(routes,/hostname\.endsWith\('\.supabase\.co'\)/);
+  assert.match(routes,/hostname\.startsWith\('dpg-'\)/);
   assert.match(routes,/capacitySource: limitBytes === null \? 'not-configured'/);
   assert.match(routes,/remainingBytes = limitBytes === null \? null/);
 });
@@ -23,6 +26,12 @@ test('storage widget is within platform overview only', () => {
   const schools = portal.indexOf('data-platform-tab="schools"');
   assert.ok(overview >= 0 && overview < storage && storage < schools);
   assert.match(portal,/id="platformStorageRefresh"/);
+  assert.match(portal,/id="platformStorageProvider"/);
+  assert.match(portal,/id="platformStorageProgress"/);
+  assert.match(portal,/id="platformStorageUsedExact"/);
+  assert.match(client,/Live database: /);
+  assert.match(client,/toLocaleString\('en-PH'\)/);
+  assert.match(client,/migration pending/);
   assert.match(portal,/prefers-reduced-motion:reduce/);
   assert.match(client,/user\?\.role !== 'SUPER_ADMIN'/);
   assert.match(client,/api\('\/api\/platform\/storage'\)/);
@@ -32,4 +41,5 @@ test('new portal bundle matches offline shell', () => {
   assert.match(portal,/\/portal\.js\?v=199/);
   assert.match(worker,/"\/portal\.js\?v=199"/);
   assert.ok(Number(worker.match(/const CACHE = "attendigo-v(\d+)-/)?.[1]) >= 230, "PWA cache must not regress below the ID-generation release");
+  assert.match(worker,/attendigo-v233-provider-aware-storage/);
 });
