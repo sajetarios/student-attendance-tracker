@@ -109,7 +109,7 @@ test('the service worker caches the deployed variants and correct versioned side
 test('collapsed desktop sidebar hides nested icons and expands when a group is selected',()=>{
  assert.match(css,/sidebar-collapsed #sidebar\.sidebar \.nav-submenu/);
  assert.match(css,/display:none!important/);
- assert.match(source,/sidebar\.addEventListener\('click'/);
+ assert.match(source,/sidebar\.addEventListener\?\.\('click'/);
  assert.match(source,/classList\.remove\('sidebar-collapsed'\)/);
  assert.match(html,/attendigo-sidebar-adaptive\.css\?v=15/);
  assert.match(worker,/attendigo-sidebar-adaptive\.js\?v=9/);
