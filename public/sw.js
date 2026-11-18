@@ -1,4 +1,4 @@
-const CACHE = "attendigo-v220-admin-class-monitor-shortcut";
+const CACHE = "attendigo-v221-login-assistance-alignment";
 
 const SHELL = [
   "/typography.css?v=1",
@@ -43,7 +43,7 @@ const SHELL = [
   "/teacher-assignment-modal.css?v=1",
   "/portal-login.html",
   "/attendigo-login-motion.css?v=2",
-  "/attendigo-login-refinement.css?v=4",
+  "/attendigo-login-refinement.css?v=5",
   "/portal.css?v=0.9.118",
   "/student-roster-toolbar.css?v=2",
   "/learner-roster-view.css?v=1",
