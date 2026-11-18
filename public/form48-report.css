@@ -136,3 +136,11 @@
 .form48-leave-record span{overflow-wrap:anywhere}
 .form48-leave-record button{flex:0 0 auto;min-height:34px}
 @media(max-width:650px){.form48-leave-record{align-items:stretch;flex-direction:column}}
+
+.form48-schedule-actions{display:flex;align-items:center;flex-wrap:wrap;gap:12px;margin:0 13px 14px}
+.form48-schedule-actions button{min-height:40px}
+.form48-schedule-actions span{font-size:12px;line-height:1.4;color:var(--text-muted,#63748a)}
+.form48-schedule-actions span.is-error{color:#bd2424}
+.form48-schedule-actions button:disabled{opacity:.6;cursor:not-allowed}
+@media(max-width:640px){.form48-schedule-actions{align-items:stretch;flex-direction:column}.form48-schedule-actions button{width:100%}}
+@media print{.form48-schedule-actions{display:none!important}}
