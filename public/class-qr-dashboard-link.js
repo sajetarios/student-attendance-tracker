@@ -21,12 +21,20 @@
     link.innerHTML = '<span aria-hidden="true">▦</span><span class="class-qr-link-label">Class QR Attendance</span>';
     link.setAttribute('aria-label', 'Class QR Attendance');
     const panel = document.getElementById('studentsView');
+    const dashboard = document.getElementById('dashboardView');
     const positionShortcut = () => {
       const rosterVisible = Boolean(panel && !panel.hidden && !panel.closest('[hidden]') && panel.getClientRects().length);
-      const inlineHost = rosterVisible ? panel.querySelector('#studentRosterPanel .student-roster-viewbar') : null;
+      const dashboardVisible = Boolean(dashboard && !dashboard.hidden && !dashboard.closest('[hidden]') && dashboard.getClientRects().length);
+      const rosterHost = rosterVisible ? panel.querySelector('#studentRosterPanel .student-roster-viewbar') : null;
+      // Teachers get a compact in-page shortcut instead of a floating overlay.
+      // Other roles retain their existing behavior.
+      const dashboardHost = user.role === 'TEACHER' && dashboardVisible
+        ? dashboard.querySelector('.dashboard-quick-buttons') : null;
+      const inlineHost = rosterHost || dashboardHost;
       const host = inlineHost || document.body;
-      link.classList.toggle('is-roster-inline', Boolean(inlineHost));
-      link.hidden = rosterVisible && !inlineHost;
+      link.classList.toggle('is-roster-inline', Boolean(rosterHost));
+      link.classList.toggle('is-dashboard-inline', Boolean(dashboardHost));
+      link.hidden = (user.role === 'TEACHER' && !inlineHost) || (rosterVisible && !rosterHost);
       // Explicitly reset fixed offsets: a stale fixed position must never cover account controls.
       link.style.setProperty('position', inlineHost ? 'static' : 'fixed', 'important');
       for (const edge of ['top', 'left']) link.style.setProperty(edge, 'auto', 'important');
@@ -38,6 +46,9 @@
     positionShortcut();
     const observer = new MutationObserver(positionShortcut);
     if (panel) observer.observe(panel, {
+      attributes: true, attributeFilter: ['hidden', 'style', 'class']
+    });
+    if (dashboard) observer.observe(dashboard, {
       attributes: true, attributeFilter: ['hidden', 'style', 'class']
     });
     for (const id of ['schoolWorkspace', 'platformWorkspace']) {
