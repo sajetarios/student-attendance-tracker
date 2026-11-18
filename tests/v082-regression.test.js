@@ -45,7 +45,8 @@ test('SF2 personal copies are exportable while Department Head remains read-only
 test('photo column explains missing stored photo and retains upload controls for authorized roles', () => {
   const portal = read('public/portal.js');
   assert.match(portal, /photoDataUrl\(student\.photoUrl\)/);
-  assert.match(portal, /The database has a photo path but the file is missing from storage/);
+  assert.match(portal, /No photo uploaded/);
+  assert.match(portal, /teacherRosterInitials\\(student\\.fullName\\)/);
   assert.match(portal, /canUploadPhoto = admin \|\| \(teacher && designations\.includes\('CLASS_ADVISER'\)\)/);
 });
 
@@ -78,9 +79,10 @@ test('root URL and legacy index open the login page without serving a stale cach
   const index = read('public/index.html');
   const shell = serviceWorker.split('const SHELL = [')[1]?.split('];')[0] || '';
 
-  assert.ok(server.includes("res.sendFile(path.join(__dirname, 'public', 'portal-login.html'));"));
-  assert.ok(server.includes("app.get('/index.html', (_req, res) => {"));
-  assert.ok(server.includes("res.redirect('/');"));
+  assert.ok(server.includes('function canonicalLoginUrl(req)'));
+  assert.ok(server.includes("app.get('/', (req, res) => {"));
+  assert.ok(server.includes("app.get('/index.html', (req, res) => {"));
+  assert.ok(server.includes('res.redirect(302, canonicalLoginUrl(req));'));
   assert.ok(index.includes('/portal-login.html'));
   assert.ok(serviceWorker.includes('if (request.mode === "navigate")'));
   assert.equal(shell.includes('"/"'), false);
