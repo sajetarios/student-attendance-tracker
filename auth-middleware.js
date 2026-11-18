@@ -41,7 +41,8 @@ function createAuthMiddleware(pool) {
   }
 
   async function authenticateSchoolClient(req, res, next) {
-    const token = bearerToken(req);
+    const cookie=String(req.headers.cookie||'').split(';').map(x=>x.trim()).find(x=>x.startsWith('__Host-attendigo-student='));
+    const token = bearerToken(req) || (cookie ? cookie.slice('__Host-attendigo-student='.length) : '');
     if (!token) return res.status(401).json({ error: 'Authentication required.' });
     const tokenHash = hashToken(token);
     try {
