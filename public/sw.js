@@ -1,4 +1,4 @@
-const CACHE = "attendigo-v202-gate-badge-history";
+const CACHE = "attendigo-v203-unified-students";
 
 const SHELL = [
   "/typography.css?v=1",
@@ -50,7 +50,7 @@ const SHELL = [
   "/class-qr-dashboard-link.js?v=7",
   "/teacher-roster-popover.js?v=2",
   "/portal.css",
-  "/portal.js?v=190",
+  "/portal.js?v=191",
   "/staff-lunch-ui.js?v=3",
   "/staff-lunch.css?v=3",
   "/staff-lunch-checkin.js?v=3",
@@ -66,7 +66,8 @@ const SHELL = [
   "/attendance-sync-center.js?v=3",
   "/manual-folio.js?v=18",
   "/student-portal-accounts.css?v=6",
-  "/student-portal-accounts.js?v=10",
+  "/student-workspace-tabs.css?v=1",
+  "/student-portal-accounts.js?v=11",
   "/account-directory.js?v=2",
   "/admin-request-notifications.js?v=5",
   "/admin-request-notifications.css?v=2",
