@@ -9,11 +9,12 @@ function registerStaffObRoutes(app,pool,{authenticateSchoolClient,requireSchoolR
   `INSERT INTO staff_attendance_audit(school_id,actor_user_id,action,target_type,target_id,details)
    VALUES($1,$2,$3,'STAFF_OFFICIAL_BUSINESS',$4,$5::jsonb)`,
   [req.auth.schoolId,req.auth.userId,action,id,JSON.stringify(details)]);
- const scoped=(req)=>req.auth.role==='SCHOOL_ADMIN'?'':req.auth.role==='DEPARTMENT_HEAD'?' AND o.department_id=$2':' AND o.staff_user_id=$2';
- const params=(req)=>req.auth.role==='SCHOOL_ADMIN'?[req.auth.schoolId]:[req.auth.schoolId,req.auth.role==='DEPARTMENT_HEAD'?req.auth.departmentId:req.auth.userId];
+ const ownScope=req=>String(req.query?.scope||'').toLowerCase()==='mine';
+ const scoped=(req)=>ownScope(req)?' AND o.staff_user_id=$2':req.auth.role==='SCHOOL_ADMIN'?'':req.auth.role==='DEPARTMENT_HEAD'?(req.query?.scope==='department'?' AND o.department_id=$2 AND o.staff_user_id<>$3':' AND o.department_id=$2'):' AND o.staff_user_id=$2';
+ const params=(req)=>ownScope(req)?[req.auth.schoolId,req.auth.userId]:req.auth.role==='SCHOOL_ADMIN'?[req.auth.schoolId]:req.auth.role==='DEPARTMENT_HEAD'&&req.query?.scope==='department'?[req.auth.schoolId,req.auth.departmentId,req.auth.userId]:[req.auth.schoolId,req.auth.role==='DEPARTMENT_HEAD'?req.auth.departmentId:req.auth.userId];
  app.get('/api/staff-attendance/official-business',...auth,async(req,res)=>{
   res.set('Cache-Control','no-store, private');
-  if(req.auth.role==='DEPARTMENT_HEAD'&&!req.auth.departmentId)return res.status(403).json({error:'Department assignment required.'});
+  if(req.auth.role==='DEPARTMENT_HEAD'&&!req.auth.departmentId&&!ownScope(req))return res.status(403).json({error:'Department assignment required.'});
   try{
    const result=await pool.query(`SELECT o.request_id AS "requestId",o.staff_user_id AS "staffUserId",
     u.display_name AS "staffName",o.department_id AS "departmentId",

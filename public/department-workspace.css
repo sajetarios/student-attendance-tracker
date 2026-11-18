@@ -1,0 +1,47 @@
+/* Department Head extension: scoped metrics and notices; inherit official school branding. */
+.dh-insights{display:grid;gap:15px;margin-top:20px;border-top:1px solid rgba(128,144,166,.28);padding-top:20px;min-width:0}
+.dh-insights-head{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap}
+.dh-insights h3,.dh-insights h4{margin:0;font-size:1.08rem;line-height:1.4;font-weight:650;color:inherit}
+.dh-insights h3{font-size:1.2rem}
+.dh-insights-head p{font-size:.88rem;line-height:1.5;margin:4px 0 0;opacity:.78;max-width:68ch}
+.dh-insights-metrics{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+.dh-insights-metrics>div{display:flex;flex-direction:column;gap:8px;min-width:0;padding:14px;border:1px solid rgba(128,144,166,.25);border-radius:12px;background:rgba(128,144,166,.06)}
+.dh-insights-metrics span{font-size:.84rem;line-height:1.45}
+.dh-insights-metrics strong{font-variant-numeric:tabular-nums;font-size:1.55rem;font-weight:700;line-height:1.2}
+.dh-workload-scroll{width:100%;max-height:340px;overflow:auto;border:1px solid rgba(128,144,166,.28);border-radius:12px}
+.dh-workload-table{width:100%;min-width:520px;border-collapse:separate;border-spacing:0;text-align:left;font-size:.9rem}
+.dh-workload-table thead th{position:sticky;top:0;z-index:1;background:var(--card,var(--surface,#fff));color:inherit;border-bottom:1px solid rgba(128,144,166,.35);font-weight:650}
+.dh-workload-table td,.dh-workload-table th{padding:10px 12px;line-height:1.45;border-bottom:1px solid rgba(128,144,166,.16)}
+.dh-workload-table td:nth-child(n+3){font-variant-numeric:tabular-nums;text-align:center}
+.dh-workload-table tbody tr:last-child td{border-bottom:0}
+.dh-notice-form{display:grid;gap:12px;padding:14px;border:1px solid rgba(128,144,166,.25);border-radius:12px}
+.dh-notice-form label{display:grid;gap:6px;font-size:.88rem;font-weight:650}
+.dh-notice-form input,.dh-notice-form textarea{width:100%;box-sizing:border-box;padding:10px 12px;border-radius:9px;border:1px solid rgba(128,144,166,.5);background:var(--input-bg,transparent);color:inherit;font:inherit}
+.dh-notice-actions{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.dh-notice-actions span{font-size:.86rem}
+.dh-announcement-list{list-style:none;margin:0;padding:0;display:grid;gap:8px}
+.dh-announcement-list li{border:1px solid rgba(128,144,166,.22);border-radius:10px;padding:12px 14px;display:grid;gap:4px}
+.dh-announcement-list time{opacity:.7;font-size:.8rem}
+.dh-announcement-list p{margin:0;font-size:.9rem;line-height:1.5;white-space:pre-wrap;overflow-wrap:anywhere}
+@media(max-width:720px){.dh-insights-metrics{grid-template-columns:1fr}.dh-insights-head{align-items:flex-start}.dh-insights-head .outline-button{min-height:40px}.dh-workload-table{min-width:480px}}
+@media(prefers-reduced-motion:reduce){.dh-insights *{scroll-behavior:auto}}
+
+/* Scope compact navigation refinements to Department Heads only. */
+@media(max-width:860px){
+  .portal-layout[data-attendigo-role="DEPARTMENT_HEAD"] .side-nav{
+    overflow-y:auto;overscroll-behavior:contain;-webkit-overflow-scrolling:touch;
+  }
+  .portal-layout[data-attendigo-role="DEPARTMENT_HEAD"] .sidebar .nav-item{
+    min-height:42px;padding-block:9px;border-radius:10px;
+  }
+  .portal-layout[data-attendigo-role="DEPARTMENT_HEAD"] .sidebar .nav-item.active{
+    min-height:42px;padding-block:9px;border-radius:10px;
+  }
+}
+
+html[data-ui-theme="dark"] .dh-workload-table thead th,
+body.dark-mode .dh-workload-table thead th,
+body[data-theme="dark"] .dh-workload-table thead th{background:#22334a;color:#eef5ff}
+html[data-ui-theme="dark"] .dh-notice-form :is(input,textarea),
+body.dark-mode .dh-notice-form :is(input,textarea),
+body[data-theme="dark"] .dh-notice-form :is(input,textarea){background:#17273c;color:#f2f7ff;border-color:#4c607a}

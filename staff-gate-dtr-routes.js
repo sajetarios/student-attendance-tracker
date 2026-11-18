@@ -28,7 +28,7 @@ function registerStaffGateDtrRoutes(app,pool,{authenticateSchoolClient,requireSc
    const teacher=await client.query(
     `SELECT user_id,display_name
      FROM school_users
-     WHERE school_id=$1 AND teacher_qr_token=$2 AND role IN ('TEACHER','SCHOOL_ADMIN')
+     WHERE school_id=$1 AND teacher_qr_token=$2 AND role IN ('TEACHER','DEPARTMENT_HEAD','SCHOOL_ADMIN')
        AND active=TRUE AND (teacher_photo_path IS NOT NULL OR EXISTS (
          SELECT 1 FROM official_profile_photos p WHERE p.school_id=school_users.school_id
            AND p.subject_kind='STAFF' AND p.subject_id=school_users.user_id::text))
@@ -91,7 +91,7 @@ function registerStaffGateDtrRoutes(app,pool,{authenticateSchoolClient,requireSc
  // Read-only, self-scoped range of verified Form 48 entries for one attendance timeline.
  // Gate scans remain independent and are never copied into DTR entries.
  app.get('/api/staff-attendance/my/dtr-history',authenticateSchoolClient,
-  requireSchoolRoles('TEACHER','SCHOOL_ADMIN'),async(req,res)=>{
+  requireSchoolRoles('TEACHER','DEPARTMENT_HEAD','SCHOOL_ADMIN'),async(req,res)=>{
   res.set('Cache-Control','no-store, private');
   const from=String(req.query?.from||manilaDate()),to=String(req.query?.to||manilaDate());
   const validDate=value=>{

@@ -1,0 +1,36 @@
+name: Department Head regression
+on:
+  push:
+    branches:
+      - feature/department-head-workspace-20261119
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+    branches:
+      - fix/render-login-landing
+permissions:
+  contents: read
+jobs:
+  regression:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - name: Install application dependencies
+        run: npm ci --ignore-scripts
+      - name: Check changed JavaScript syntax
+        run: |
+          node --check server.js
+          node --check staff-gate-dtr-routes.js
+          node --check staff-ob-routes.js
+          node --check department-workspace-routes.js
+          node --check public/portal.js
+          node --check public/staff-ob-ui.js
+          node --check public/department-workspace.js
+      - name: Test Department Head access and scoped behavior
+        run: node --test tests/department-head-workspace.test.js
+      - name: Run existing regression suite
+        run: npm test

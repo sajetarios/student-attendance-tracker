@@ -179,7 +179,7 @@ window.attendigoStaffIdentity = new Promise(resolve => { resolveStaffIdentity = 
   function allowedViewsForUser() {
     const role = user?.role;
     if (role === 'SCHOOL_ADMIN') return ['dashboard', 'students', 'studentAccounts', 'parents', 'teachers', 'schedules', 'myGateAttendance', 'lunchQrAdmin', 'form48Reports', 'officialBusiness', 'cloudSync', 'schoolBranding'];
-    if (role === 'DEPARTMENT_HEAD') return ['dashboard', 'planner', 'students', 'teachers', 'schedules', 'sf2', 'officialBusiness'];
+    if (role === 'DEPARTMENT_HEAD') return ['dashboard', 'planner', 'students', 'teachers', 'schedules', 'sf2', 'officialBusiness', 'myGateAttendance'];
     if (role === 'TEACHER') {
       const views = ['dashboard', 'planner', 'myGateAttendance', 'teacherLunchQr', 'officialBusiness'];
       if (teacherHas('SUBJECT_TEACHER') || teacherHas('CLASS_ADVISER')) {
@@ -287,6 +287,14 @@ window.attendigoStaffIdentity = new Promise(resolve => { resolveStaffIdentity = 
     const activeNav = [...document.querySelectorAll('.nav-item[data-view="' + sidebarView + '"]')].find(item => !item.hidden);
     const activeGroup = activeNav?.closest('.nav-group');
     if (activeGroup) {
+      if (user?.role === 'DEPARTMENT_HEAD' && window.matchMedia('(max-width: 860px)').matches) {
+        document.querySelectorAll('.nav-group-toggle[data-nav-group]').forEach(other => {
+          if (other.closest('.nav-group') === activeGroup) return;
+          other.setAttribute('aria-expanded', 'false');
+          const otherMenu = document.querySelector('[data-submenu="' + other.dataset.navGroup + '"]');
+          if (otherMenu) otherMenu.hidden = true;
+        });
+      }
       const groupToggle = activeGroup.querySelector('.nav-group-toggle[data-nav-group]');
       const submenu = activeGroup.querySelector('.nav-submenu');
       if (groupToggle) groupToggle.setAttribute('aria-expanded', 'true');
@@ -310,7 +318,8 @@ window.attendigoStaffIdentity = new Promise(resolve => { resolveStaffIdentity = 
         planner: ['Planner', 'Organize departmental meetings, shared deadlines, and your own tasks without changing the official timetable.'],
         schedules: ['Department schedule management', 'View every department’s timetable and create or assign class schedules only within your own department.'],
         sf2: ['SF2 monitoring', 'Preview official section reports. Department Heads cannot edit, submit, or collect SF2 reports.'],
-        officialBusiness: ['Official Business', 'Review departmental OB requests and coordinate approved class substitute coverage.']
+        myGateAttendance: ['My Attendance / DTR & QR Badge', 'Review your own verified attendance and show your personal QR badge to the Gatekeeper.'],
+        officialBusiness: ['Official Business · Department', 'Review department OB requests and approved class coverage. Your own OB request is a separate personal action; final approval remains with the School Admin.']
       };
     } else if (gateKeeper) {
       titles = { students: ['Learner and teacher gate attendance', 'Scan a learner QR card or teacher badge, verify the registered photograph, then record school-gate time-in or time-out.'] };
@@ -353,7 +362,7 @@ window.attendigoStaffIdentity = new Promise(resolve => { resolveStaffIdentity = 
     if (view === 'planner') $('plannerView')?.dispatchEvent(new Event('planner:open'));
     if (view === 'officialBusiness') $('officialBusinessView')?.dispatchEvent(new Event('official-business:open'));
     if (view === 'dashboard' && ['TEACHER','DEPARTMENT_HEAD'].includes(role)) $('plannerView')?.dispatchEvent(new Event('planner:dashboard'));
-    if (view === 'myGateAttendance' && ['TEACHER', 'SCHOOL_ADMIN'].includes(role)) loadMyGateAttendance();
+    if (view === 'myGateAttendance' && ['TEACHER', 'DEPARTMENT_HEAD', 'SCHOOL_ADMIN'].includes(role)) loadMyGateAttendance();
     if (view === 'classAttendance' && role === 'TEACHER') {
       loadTeacherClassAttendance().catch(error => {
         if ($('teacherAttendanceFeedback')) {
@@ -493,10 +502,10 @@ window.attendigoStaffIdentity = new Promise(resolve => { resolveStaffIdentity = 
     if ($('officialBusinessNav')) $('officialBusinessNav').hidden = !(teacher || admin || departmentHead);
     if ($('teacherLunchQrNav')) $('teacherLunchQrNav').hidden = !teacher;
     if ($('myGateAttendanceNav')) {
-      $('myGateAttendanceNav').hidden = !(teacher || admin);
-      $('myGateAttendanceNav').querySelector('.nav-label').textContent = 'Gate Attendance & DTR';
+      $('myGateAttendanceNav').hidden = !(teacher || admin || departmentHead);
+      $('myGateAttendanceNav').querySelector('.nav-label').textContent = departmentHead ? 'My Attendance / DTR' : 'Gate Attendance & DTR';
     }
-    if ($('adminStaffBadgeCard')) $('adminStaffBadgeCard').hidden = !(admin || teacher);
+    if ($('adminStaffBadgeCard')) $('adminStaffBadgeCard').hidden = !(admin || teacher || departmentHead);
     if ($('myGateHeading')) $('myGateHeading').textContent = 'Daily DTR & Gate Records';
     if ($('myGateIntro')) $('myGateIntro').textContent = admin
       ? 'Your personal, verified staff attendance. Sign-in to this portal does not mark you present.'
@@ -650,6 +659,7 @@ window.attendigoStaffIdentity = new Promise(resolve => { resolveStaffIdentity = 
       if ($('teachersNav')) $('teachersNav').querySelector('.nav-label').textContent = 'Department Teachers';
       if ($('schedulesNav')) $('schedulesNav').querySelector('.nav-label').textContent = 'Department Schedules';
       if ($('sf2Nav')) $('sf2Nav').querySelector('.nav-label').textContent = 'SF2 Monitoring';
+      if ($('officialBusinessNav')) $('officialBusinessNav').querySelector('.nav-label').textContent = 'Department OB Requests';
     } else if (teacher) {
       if ($('studentsNav')) $('studentsNav').querySelector('.nav-label').textContent =
         classAdviser && !subjectTeacher ? 'My Advisory Students' : 'My Students';
@@ -699,7 +709,13 @@ window.attendigoStaffIdentity = new Promise(resolve => { resolveStaffIdentity = 
       relocate('teacherLunchQrNav', 'personalAttendance');
       relocate('sf2Nav', 'reports');
     } else if (departmentHead) {
+      // Keep official personal DTR separate from departmental decisions.
+      relocate('myGateAttendanceNav', 'personalAttendance');
+      relocate('officialBusinessNav', 'operations');
       relocate('sf2Nav', 'reports');
+      if ($('operationsGroupLabel')) $('operationsGroupLabel').textContent = 'Requests & Approvals';
+      const personalLabel = $('personalAttendanceNavGroup')?.querySelector('.nav-group-toggle .nav-label');
+      if (personalLabel) personalLabel.textContent = 'My Workspace';
     }
     // Visibility is recalculated AFTER relocation, including planner-only teachers.
     for (const group of ['people','academics','personalAttendance','operations','reports','settings']) {
@@ -707,7 +723,7 @@ window.attendigoStaffIdentity = new Promise(resolve => { resolveStaffIdentity = 
       const submenu = document.querySelector('[data-submenu="' + group + '"]');
       const wrapper = toggle?.closest('.nav-group');
       if (wrapper && submenu && group !== 'operations' && group !== 'reports' && group !== 'settings') {
-        wrapper.hidden = group === 'personalAttendance' && !teacher ||
+        wrapper.hidden = (group === 'personalAttendance' && !(teacher || departmentHead)) ||
           !Array.from(submenu.children).some(item => !item.hidden);
       }
     }
@@ -4058,7 +4074,7 @@ let teacherActionMenuListenersInstalled = false;
     : '—';
   const myStaffDtrSlots = [['AM_IN','AM In'],['AM_OUT','AM Out'],['PM_IN','PM In'],['PM_OUT','PM Out']];
   async function loadMyGateAttendance() {
-    if (!['TEACHER','SCHOOL_ADMIN'].includes(user?.role)) return;
+    if (!['TEACHER','DEPARTMENT_HEAD','SCHOOL_ADMIN'].includes(user?.role)) return;
     const fromField=$('myGateFrom'),toField=$('myGateTo');
     if (!fromField||!toField) return;
     const today=schoolDateManila();
@@ -4991,7 +5007,7 @@ let teacherActionMenuListenersInstalled = false;
   });
   // Sidebar navigation uses delegated native links; do not bind legacy button handlers.
   $('adminStaffBadgeShow')?.addEventListener('click', async () => {
-    if (!['SCHOOL_ADMIN','TEACHER'].includes(user?.role)) return;
+    if (!['SCHOOL_ADMIN','DEPARTMENT_HEAD','TEACHER'].includes(user?.role)) return;
     const button = $('adminStaffBadgeShow'), status = $('adminStaffBadgeStatus'), img = $('adminStaffBadgeImage');
     button.disabled = true;
     status.textContent = 'Preparing your own staff QR badge…';
@@ -5034,6 +5050,14 @@ let teacherActionMenuListenersInstalled = false;
       const opening = button.getAttribute('aria-expanded') !== 'true';
       button.setAttribute('aria-expanded', String(opening));
       if (submenu) submenu.hidden = !opening;
+      if (opening && user?.role === 'DEPARTMENT_HEAD' && window.matchMedia('(max-width: 860px)').matches) {
+        document.querySelectorAll('.nav-group-toggle[data-nav-group]').forEach(other => {
+          if (other === button || other.closest('.nav-group')?.hidden) return;
+          other.setAttribute('aria-expanded', 'false');
+          const otherMenu = document.querySelector('[data-submenu="' + other.dataset.navGroup + '"]');
+          if (otherMenu) otherMenu.hidden = true;
+        });
+      }
       const layout = document.querySelector('.portal-layout');
       if (layout.classList.contains('sidebar-collapsed') && !window.matchMedia('(max-width: 860px)').matches) {
         setSidebarCollapsed(false);
