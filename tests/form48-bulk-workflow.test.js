@@ -64,7 +64,7 @@ test('timestamps remain in their verified slots, even intentional night test sca
   records:[{date:'2026-11-18',slots:{AM_IN:'23:46'}}]});
  const day=res.assessments.find(d=>d.date==='2026-11-18');
  assert.equal(day.verifiedCount,1);
- assert.equal(day.status,'INCOMPLETE_DTR');
+ assert.equal(day.status,'TIME_SLOT_REVIEW');
  assert.equal(day.needsReview,true);
  assert.equal(res.summary.timeAnomalyDays,1);
  assert.equal(res.summary.tardyMinutes,0); // Preserve the punch, do not charge 15+ hours as tardiness.
