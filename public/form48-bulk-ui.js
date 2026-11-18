@@ -18,6 +18,43 @@
   const selected=new Set();
   let staff=[],defaults=null,busy=false;
   const say=(message,error=false)=>{feedback.textContent=message;feedback.classList.toggle('is-error',error);};
+  async function refreshLeaves(){
+   const month=$('form48Month').value,records=$('form48LeaveRecords');
+   if(!/^\d{4}-\d{2}$/.test(month))return;
+   records.textContent='Loading approved leave records…';
+   try{
+    const {leaves}=await api('/api/staff-attendance/admin/form48/leaves?'+new URLSearchParams({month}));
+    records.replaceChildren();
+    if(!leaves?.length){records.textContent='No approved leave records found for this month.';return;}
+    for(const leave of leaves){
+     const row=document.createElement('div'),text=document.createElement('span'),button=document.createElement('button');
+     row.className='form48-leave-record';
+     text.textContent=leave.displayName+' · '+leave.leaveType.replaceAll('_',' ')+
+      ' · '+leave.startDate+' to '+leave.endDate+' · Ref: '+leave.approvalReference;
+     button.className='outline-button';button.type='button';button.textContent='Correct / revoke';
+     button.addEventListener('click',async()=>{
+      if(busy)return;
+      const reason=window.prompt('Reason for correcting this approved leave record (required):');
+      if(reason===null)return;
+      if(reason.trim().length<5){say('Enter a correction reason of at least five characters.',true);return;}
+      if(!window.confirm('Revoke this recorded leave range? Verified DTR punches will remain unchanged.'))return;
+      busy=true;button.disabled=true;
+      try{
+       await api('/api/staff-attendance/admin/form48/leaves/'+encodeURIComponent(leave.leaveId)+'/revoke',{
+        method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({reason:reason.trim()})
+       });
+       say('Leave record revoked with audit trail. Generate a new DTR preview to see the correction.');
+       $('form48Print').disabled=true;$('form48PrintArea').hidden=true;
+       await refreshLeaves();
+      }catch(err){say(err.message,true);}
+      finally{busy=false;button.disabled=false;}
+     });
+     row.append(text,button);records.append(row);
+    }
+   }catch(err){records.textContent='Unable to load approved leave records: '+err.message;}
+  }
+  $('form48RefreshLeaves').addEventListener('click',refreshLeaves);
+  $('form48Month').addEventListener('change',()=>{if(!panel.hidden)refreshLeaves();});
   const visible=()=>staff.filter(s=>String(s.displayName+' '+s.role).toLowerCase().includes(filter.value.trim().toLowerCase()));
   const draw=()=>{
    const rows=visible();
@@ -55,7 +92,7 @@
   toggle.addEventListener('click',()=>{
    panel.hidden=!panel.hidden;
    toggle.setAttribute('aria-expanded',String(!panel.hidden));
-   if(!panel.hidden)filter.focus();
+   if(!panel.hidden){filter.focus();refreshLeaves();}
   });
   $('form48BatchSelectVisible').addEventListener('click',()=>{
    const rows=visible();
@@ -111,6 +148,7 @@
     });
     say(result.recorded+' approved leave period(s) recorded. The date ranges automatically cover overlapping report months.');
     $('form48LeaveCertified').checked=false;
+    await refreshLeaves();
     $('form48Print').disabled=true;
     $('form48PrintArea').hidden=true;
    }catch(err){say(err.message,true);}
