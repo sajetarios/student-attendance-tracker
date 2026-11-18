@@ -49,3 +49,17 @@ body.dark-mode .universal-bell,body[data-theme=dark] .universal-bell{background:
 .universal-detail-actions button.primary{background:#2463a5;color:white;border-color:#2463a5}
 body.dark-mode .universal-detail-card,body[data-theme=dark] .universal-detail-card{background:var(--card,#162339);color:var(--ink,#ecf4ff);border-color:var(--line,#41516c)}
 @media(max-width:600px){.universal-detail{align-items:end;padding:0}.universal-detail-card{width:100%;border-radius:20px 20px 0 0;padding:22px}}
+
+/* Message deletion: separate accessible actions; never nest buttons inside buttons. */
+.universal-notice-row{display:flex;align-items:center;gap:2px;border-bottom:1px solid var(--line,#e3eaf2);border-radius:7px}
+.universal-notice-row .universal-notice{flex:1;min-width:0;width:auto;border:0}
+.universal-delete{flex:0 0 34px;align-self:center;display:grid;place-items:center;min-width:34px;min-height:36px;background:transparent;color:var(--muted,#6d7990);border:1px solid transparent;border-radius:9px;font-size:19px;cursor:pointer}
+.universal-delete:hover,.universal-detail-delete:hover{background:var(--surface-muted,#edf3f9);color:var(--ink,#24374b);border-color:var(--line,#dce5ef)}
+.universal-delete:disabled,.universal-detail-delete:disabled{opacity:.45;cursor:progress}
+.universal-feedback{font-size:var(--type-secondary,12px);color:var(--muted,#64748b);margin:4px 0 0;min-height:0}
+.universal-feedback:empty{display:none}
+.universal-panel-actions,.universal-center-actions{flex-wrap:wrap;gap:7px}
+.universal-panel-actions button,.universal-center-actions button{flex:0 1 auto}
+.universal-detail-actions button.universal-detail-delete{color:#9b3030;border-color:color-mix(in srgb,#b64b4b 45%,var(--line,#dce6f1));background:transparent}
+body.dark-mode .universal-detail-actions button.universal-detail-delete,body[data-theme=dark] .universal-detail-actions button.universal-detail-delete{color:#ffbaba}
+@media(max-width:380px){.universal-panel-actions button{padding:7px 9px;font-size:12px}.universal-delete{min-width:34px}}
