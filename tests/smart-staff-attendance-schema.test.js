@@ -28,3 +28,24 @@ test('offline unverified events cannot be mistaken for verified by default',()=>
  assert.match(sql,/client_event_key UUID NOT NULL/);
  assert.match(sql,/received_at TIMESTAMPTZ NOT NULL DEFAULT NOW\(\)/);
 });
+
+test('staff event ledger enforces school-scoped identities and idempotent capture',()=>{
+ assert.match(sql,/UNIQUE\(school_id,client_event_key\)/);
+ assert.match(sql,/FOREIGN KEY\(school_id,staff_user_id\) REFERENCES school_users\(school_id,user_id\)/);
+ assert.match(sql,/FOREIGN KEY\(school_id,actor_user_id\) REFERENCES school_users\(school_id,user_id\)/);
+ assert.match(sql,/CHECK \(verification_status <> 'VERIFIED' OR verification_method IS NOT NULL\)/);
+ assert.match(sql,/WHERE event_kind='DTR_SLOT' AND verification_status='VERIFIED'/);
+});
+test('staff challenge redemption and OB coverage cannot cross school boundaries',()=>{
+ for(const relationship of [
+  'FOREIGN KEY(school_id,challenge_id) REFERENCES staff_attendance_challenges(school_id,challenge_id)',
+  'FOREIGN KEY(school_id,event_id) REFERENCES staff_attendance_events(school_id,event_id)',
+  'FOREIGN KEY(school_id,request_id) REFERENCES staff_official_business_requests(school_id,request_id)',
+  'FOREIGN KEY(school_id,period_id) REFERENCES class_periods(school_id,period_id)'
+ ]) assert.ok(sql.includes(relationship), 'Missing school-scoped reference: '+relationship);
+});
+test('staff audit trail rejects edits and deletion at the database level',()=>{
+ assert.match(sql,/CREATE TRIGGER staff_attendance_audit_immutable/);
+ assert.match(sql,/BEFORE UPDATE OR DELETE ON staff_attendance_audit/);
+ assert.match(sql,/RAISE EXCEPTION 'Staff attendance audit history is append-only'/);
+});
