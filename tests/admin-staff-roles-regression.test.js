@@ -28,7 +28,12 @@ test('School Admin keeps administration menus, not the teacher-only class attend
 
 test('School Admin own attendance cannot read another staff identity', () => {
   assert.match(server, /app\.get\('\/api\/teacher\/my-gate-attendance', authenticateSchoolClient, requireSchoolRoles\('TEACHER', 'SCHOOL_ADMIN'\)/);
-  assert.match(server, /tge\.school_id=\$1 AND tge\.teacher_user_id=\$2/);
+  const ownRoute = server.slice(
+    server.indexOf("app.get('/api/teacher/my-gate-attendance'"),
+    server.indexOf("// Own staff QR badge:"));
+  assert.match(ownRoute, /WHERE school_id=\$1 AND staff_user_id=\$2/);
+  assert.match(ownRoute, /WHERE school_id=\$1 AND teacher_user_id=\$2/);
+  assert.doesNotMatch(ownRoute, /req\.query\.staffUserId|req\.query\.teacherUserId/);
   assert.match(server, /\[req\.auth\.schoolId, req\.auth\.userId, from, to\]/);
   assert.match(dtr, /requireSchoolRoles\('SCHOOL_ADMIN','DEPARTMENT_HEAD','TEACHER'\)/);
   assert.match(dtr, /WHERE school_id=\$1 AND staff_user_id=\$2/);
