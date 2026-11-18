@@ -1,4 +1,4 @@
-const CACHE = "attendigo-v189-class-qr-pin";
+const CACHE = "attendigo-v192-staff-form48-and-student-pin";
 
 const SHELL = [
   "/typography.css?v=1",
@@ -50,7 +50,7 @@ const SHELL = [
   "/class-qr-dashboard-link.js?v=7",
   "/teacher-roster-popover.js?v=2",
   "/portal.css",
-  "/portal.js?v=185",
+  "/portal.js?v=186",
   "/sardo-monitor.js?v=2",
   "/sardo-monitor.css?v=1",
   "/schedule-form-layout.css?v=12",

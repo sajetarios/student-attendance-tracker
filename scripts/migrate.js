@@ -55,7 +55,9 @@ const REQUIRED_MIGRATIONS = [
   '047_special_program_approvals.sql',
   '048_special_program_request_batches.sql',
   '049_universal_request_notifications.sql',
-  '050_student_attendance_pins.sql'
+  '050_student_attendance_pins.sql',
+  '051_staff_smart_attendance_foundation.sql',
+  '052_staff_lunch_presenter_assignments.sql'
 ];
 
 function checksum(content) {
