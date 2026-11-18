@@ -59,6 +59,8 @@ test('both create APIs support blank IDs while keeping manual IDs and tenant bou
 test('migration only adds a sequence and preserves existing student and department identities', () => {
   const sql = file('migrations/059_automatic_record_identifiers.sql');
   assert.match(sql, /CREATE SEQUENCE IF NOT EXISTS attendigo_student_id_seq/);
+  assert.ok(sql.includes("FROM '^STU-([0-9]+)$'"));
+  assert.ok(sql.includes("student_id ~ '^STU-[0-9]{1,16}$'"));
   assert.doesNotMatch(sql, /UPDATE\s+(students|school_departments)\b/i);
   assert.doesNotMatch(sql, /DELETE\s+FROM\s+(students|school_departments)\b/i);
   assert.match(file('scripts/migrate.js'), /059_automatic_record_identifiers\.sql/);
