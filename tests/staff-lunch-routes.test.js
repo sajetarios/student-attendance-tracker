@@ -4,7 +4,7 @@ const {registerStaffLunchRoutes}=require('../staff-lunch-routes');
 function fixture(role='TEACHER',assigned=true){
  const endpoints=new Map(),queries=[],auth=(req,res,next)=>next(),roles=(...allowed)=>(req,res,next)=>allowed.includes(req.auth.role)?next():res.status(403).json({error:'Forbidden'});
  const pool={async connect(){return {async query(sql,params){queries.push({sql,params});if(sql.includes('FROM staff_lunch_presenter_assignments'))return {rowCount:assigned?1:0};return {rowCount:1};},release(){}};}};
- registerStaffLunchRoutes({post(path,...handlers){endpoints.set(path,handlers)}},pool,{authenticateSchoolClient:auth,requireSchoolRoles:roles});
+ registerStaffLunchRoutes({post(path,...handlers){endpoints.set(path,handlers)},get(path,...handlers){endpoints.set(path,handlers)},put(path,...handlers){endpoints.set(path,handlers)},delete(path,...handlers){endpoints.set(path,handlers)}},pool,{authenticateSchoolClient:auth,requireSchoolRoles:roles});
  const response={code:200,headers:{},set(k,v){this.headers[k]=v;return this;},status(n){this.code=n;return this;},json(body){this.body=body;return this;}};
  const req={body:{slot:'AM_OUT'},auth:{type:'SCHOOL_USER',role,schoolId:'school-a',userId:'teacher-a'}};
  return {handlers:endpoints.get('/api/staff-attendance/lunch/challenges'),req,response,queries};
