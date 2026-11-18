@@ -189,11 +189,15 @@
     return [];
   }
 
+  let restoringHistory = false;
   function setView(view) {
-    // Each staff module has a real, reloadable URL without exposing another role's data.
-    if (user && location.pathname === '/portal.html') {
-      const current = new URL(location.href);
-      if (current.searchParams.get('view') !== view) {
+    // Preserve deep links and back/forward navigation without generating history loops.
+    if (user && !restoringHistory && location.pathname === '/portal.html') {
+      const permitted = user.role === 'SUPER_ADMIN'
+        ? ['platform','platformSchools','platformOnboard','platformPlans','platformSecurity']
+        : allowedViewsForUser();
+      if (permitted.includes(view) && new URLSearchParams(location.search).get('view') !== view) {
+        const current = new URL(location.href);
         current.searchParams.set('view',view);
         history.pushState({view},'',current.pathname+current.search+current.hash);
       }
@@ -4630,7 +4634,12 @@ let teacherActionMenuListenersInstalled = false;
     });
   }
   document.addEventListener('attendigo:portal-ready',linkifyStaffNavigation);
-  window.addEventListener('popstate',() => { if(user)setView(new URLSearchParams(location.search).get('view') || (user.role==='SUPER_ADMIN'?'platform':'dashboard')); });
+  window.addEventListener('popstate',() => {
+    if (!user) return;
+    restoringHistory = true;
+    try { setView(new URLSearchParams(location.search).get('view') || (user.role==='SUPER_ADMIN'?'platform':'dashboard')); }
+    finally { restoringHistory = false; }
+  });
   document.addEventListener('click',event=>{
     const link=event.target.closest?.('.side-nav a.nav-item[data-view]');
     if(!link || event.defaultPrevented || event.button!==0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey)return;
