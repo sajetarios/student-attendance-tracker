@@ -1,7 +1,7 @@
 (() => {
   const tokenKey = 'schoolAttendance.accessToken';
   const userKey = 'schoolAttendance.user';
-  const token = sessionStorage.getItem(tokenKey);
+  const token = null;
   const $ = id => document.getElementById(id);
   const esc = value => String(value ?? '').replace(/[&<>"']/g, ch => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));
   let currentUser = null;
@@ -15,7 +15,7 @@
   }
   async function api(url, options = {}) {
     const headers = new Headers(options.headers || {});
-    if (token) headers.set('Authorization', `Bearer ${token}`);
+    // Student identity is exclusively determined by the HttpOnly cookie.
     if (options.body && !headers.has('Content-Type')) headers.set('Content-Type', 'application/json');
     const response = await fetch(url, {...options, headers, cache: 'no-store'});
     if (response.status === 401) { clearSession(); location.replace('/portal-login.html'); throw new Error('Your session expired. Please sign in again.'); }
