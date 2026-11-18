@@ -51,6 +51,12 @@ function registerAuthRoutes(app, pool) {
     if(token)await pool.query('UPDATE student_sessions SET revoked_at=NOW() WHERE token_hash=$1 AND revoked_at IS NULL',[hashToken(token)]);
     clearStudentCookie(res);
   }
+  async function ensureNoOtherStudent(req){
+    const existing=cookieToken(req);
+    if(!existing)return true;
+    const active=await pool.query('SELECT session_id FROM student_sessions WHERE token_hash=$1 AND revoked_at IS NULL AND expires_at>NOW() LIMIT 1',[hashToken(existing)]);
+    return !active.rowCount;
+  }
   const limitLoginAttempts = createIpRateLimiter({
     windowMs: 15 * 60 * 1000,
     maxRequests: 60,
@@ -134,6 +140,8 @@ function registerAuthRoutes(app, pool) {
       );
       if(!await checkStaffBrowserAccount(req,'SCHOOL',user.user_id))
         return res.status(409).json({error:'Another staff account is signed in on this browser. Sign out before switching accounts.',accountSwitchRequired:true});
+      if(!await ensureNoOtherStudent(req))
+        return res.status(409).json({error:'A student is signed in on this browser. Sign out before switching accounts.',accountSwitchRequired:true});
       await revokePriorStaffBrowserSession(req);
       await endStudentBrowserSession(req,res);
       const session = await issueSession({
@@ -273,6 +281,8 @@ function registerAuthRoutes(app, pool) {
       );
       if(!await checkStaffBrowserAccount(req,'PLATFORM',user.user_id))
         return res.status(409).json({error:'Another staff account is signed in on this browser. Sign out before switching accounts.',accountSwitchRequired:true});
+      if(!await ensureNoOtherStudent(req))
+        return res.status(409).json({error:'A student is signed in on this browser. Sign out before switching accounts.',accountSwitchRequired:true});
       await revokePriorStaffBrowserSession(req);
       await endStudentBrowserSession(req,res);
       const session = await issueSession({ principalType: 'PLATFORM', platformUserId: user.user_id });
