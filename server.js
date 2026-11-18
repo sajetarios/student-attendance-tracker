@@ -578,6 +578,34 @@ app.get('/api/admin/gatekeeper-monitoring', authenticateSchoolClient, requireSch
   }
 });
 
+// Teachers can only read their OWN verified gatekeeper-recorded time events.
+// Never accept teacher IDs from query parameters or allow writes through this endpoint.
+app.get('/api/teacher/my-gate-attendance', authenticateSchoolClient, requireSchoolRoles('TEACHER'), async (req, res) => {
+  const schoolDate = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Manila' }).format(new Date());
+  const from = typeof req.query.from === 'string' ? req.query.from : schoolDate;
+  const to = typeof req.query.to === 'string' ? req.query.to : schoolDate;
+  if (!isValidSchoolDate(from) || !isValidSchoolDate(to) || from > to ||
+      (Date.parse(to + 'T00:00:00Z') - Date.parse(from + 'T00:00:00Z')) > 31 * 86400000) {
+    return res.status(400).json({ error: 'Choose a valid date range of up to 31 days.' });
+  }
+  try {
+    const result = await pool.query(
+      `SELECT tge.event_id AS "eventId", tge.event_type AS "eventType",
+              to_char(tge.school_date, 'YYYY-MM-DD') AS "schoolDate",
+              tge.occurred_at AS "occurredAt", tge.photo_verified AS "photoVerified"
+       FROM teacher_gate_events tge
+       WHERE tge.school_id=$1 AND tge.teacher_user_id=$2
+         AND tge.school_date BETWEEN $3::date AND $4::date
+       ORDER BY tge.school_date DESC, tge.occurred_at ASC`,
+      [req.auth.schoolId, req.auth.userId, from, to]
+    );
+    return res.json({ events: result.rows, from, to });
+  } catch (err) {
+    console.error('Teacher personal gate attendance failed:', err.message);
+    return res.status(500).json({ error: 'Could not load your gate attendance records.' });
+  }
+});
+
 // Read-only teacher gate attendance history for the School Administrator and Department Head.
 app.get('/api/admin/teacher-gate-attendance', authenticateSchoolClient, requireSchoolAdminOrDepartmentHead, async (req, res) => {
   const requestedDate = typeof req.query.date === 'string' ? req.query.date : '';
