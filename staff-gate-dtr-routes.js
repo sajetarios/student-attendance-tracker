@@ -165,13 +165,32 @@ function registerStaffGateDtrRoutes(app,pool,{authenticateSchoolClient,requireSc
        AND school_date >= $3::date AND school_date < $4::date
        ORDER BY school_date ASC,occurred_at ASC`,
        [req.auth.schoolId,staffUserId,from,to]);
+    // OB is an authorization, not a clock punch. Attach approved intervals as
+    // DTR remarks without filling any missing Form 48 arrival/departure slot.
+    const [approvedOb,physicalGate]=await Promise.all([
+      pool.query(`SELECT request_id AS "requestId",purpose,destination,starts_at AS "startsAt",ends_at AS "endsAt"
+        FROM staff_official_business_requests
+        WHERE school_id=$1 AND staff_user_id=$2 AND status='APPROVED'
+          AND starts_at < ($4::date AT TIME ZONE 'Asia/Manila')
+          AND ends_at > ($3::date AT TIME ZONE 'Asia/Manila')
+        ORDER BY starts_at ASC`,[req.auth.schoolId,staffUserId,from,to]),
+      pool.query(`SELECT to_char(school_date,'YYYY-MM-DD') AS "schoolDate",
+          event_type AS "eventType",occurred_at AS "occurredAt"
+        FROM teacher_gate_events
+        WHERE school_id=$1 AND teacher_user_id=$2
+          AND school_date >= $3::date AND school_date < $4::date
+        ORDER BY occurred_at ASC`,[req.auth.schoolId,staffUserId,from,to])
+    ]);
+    const {buildObDtrRemarks}=require('./ob-dtr-remarks');
     const days=new Date(Date.UTC(yearPart,monthPart,0)).getUTCDate();
     const index=new Map();
     for(const ev of events.rows){const key=ev.schoolDate+':'+ev.slot;if(!index.has(key))index.set(key,ev);}
     const records=Array.from({length:days},(_,i)=>{
       const day=i+1, date=month+'-'+String(day).padStart(2,'0');
       const slots=Object.fromEntries(DTR_SLOTS.map(slot=>[slot,index.get(date+':'+slot)?.localTime||null]));
-      return {day,date,slots,verifiedCount:Object.values(slots).filter(Boolean).length};
+      const obRemarks=buildObDtrRemarks(date,approvedOb.rows,physicalGate.rows);
+      return {day,date,slots,verifiedCount:Object.values(slots).filter(Boolean).length,
+        obRemarks};
     });
     return res.json({month,staffUserId,displayName:staff.rows[0].displayName,role:staff.rows[0].role,
       timezone:'Asia/Manila',records,verifiedEntries:events.rows.length,
