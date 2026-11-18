@@ -46,7 +46,7 @@ test('photo column explains missing stored photo and retains upload controls for
   const portal = read('public/portal.js');
   assert.match(portal, /photoDataUrl\(student\.photoUrl\)/);
   assert.match(portal, /No photo uploaded/);
-  assert.match(portal, /teacherRosterInitials\\(student\\.fullName\\)/);
+  assert.ok(portal.includes('teacherRosterInitials(student.fullName)'));
   assert.match(portal, /canUploadPhoto = admin \|\| \(teacher && designations\.includes\('CLASS_ADVISER'\)\)/);
 });
 
