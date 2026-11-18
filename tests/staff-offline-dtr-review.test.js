@@ -72,3 +72,10 @@ test('offline staff capture UI is included and cached for offline access',()=>{
  assert.match(ui,/offline-review/);
  assert.match(ui,/window.addEventListener\('online',sync\)/);
 });
+
+test('review rejects missing evidence note and invalid decision without DB writes',async()=>{
+ const f=fixture('SCHOOL_ADMIN'),path='/api/staff-attendance/offline-review/:eventId';
+ assert.equal((await f.call('POST',path,{decision:'VERIFY',note:'x'},{eventId:id})).code,400);
+ assert.equal((await f.call('POST',path,{decision:'APPROVE',note:'Photo checked'},{eventId:id})).code,400);
+ assert.equal(f.queries.length,0);
+});
