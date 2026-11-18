@@ -62,3 +62,6 @@ body[data-theme="dark"] #studentWorkspaceTabs [data-student-tab]:not(.is-active)
 @media(prefers-reduced-motion:reduce){
   #studentWorkspaceTabs [data-student-tab]{transition:none}
 }
+
+/* The class QR shortcut belongs to the learner roster, not account-management screens. */
+#classQrTeacherShortcut:not(.is-roster-inline){display:none!important}
