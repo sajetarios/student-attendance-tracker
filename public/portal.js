@@ -1718,7 +1718,7 @@ function coverageStatusLabel(status) {
     if (teacherMatch && isGateKeeper) {
       try {
         const lookup = await api('/api/gate/teacher-lookup', { method: 'POST', body: JSON.stringify({ qrToken: teacherMatch[1] }) });
-        await showGatePersonResult(lookup.teacher, 'TEACHER');
+        await showGatePersonResult({ ...lookup.teacher, qrToken: teacherMatch[1] }, 'TEACHER');
       } catch (error) {
         $('studentScanFeedback').textContent = error.message;
         $('studentScanFeedback').className = 'scanner-feedback is-error';
@@ -1768,9 +1768,19 @@ function coverageStatusLabel(status) {
           : `<p class="gate-photo-warning">No registered photo is available. Ask the School Administrator to upload a photo before recording attendance.</p>`)
       : '';
     const initiallyDisabled = user.role === 'GATE_KEEPER' ? 'disabled' : '';
+    const dtrMarkup = isTeacherPerson && user.role === 'GATE_KEEPER'
+      ? `<div class="student-scan-buttons" role="group" aria-label="Form 48 teacher DTR">
+          <label for="teacherDtrSlot">Daily time record</label>
+          <select id="teacherDtrSlot" aria-label="Choose teacher DTR slot">
+            <option value="AM_IN">AM In</option><option value="AM_OUT">AM Out</option>
+            <option value="PM_IN">PM In</option><option value="PM_OUT">PM Out</option>
+          </select>
+          <button type="button" class="primary-button" id="teacherDtrRecord" disabled>Record verified DTR</button>
+        </div><p class="attendance-summary-note">Form 48 DTR is separate from physical gate time-in/time-out.</p>`
+      : '';
     $('studentScanResult').hidden = false;
     const subjectLabel = isTeacherPerson ? 'teacher' : 'learner';
-    $('studentScanResult').innerHTML = `${photoMarkup}<strong>${esc(fullName)}</strong><span>${esc(meta)}</span>${verificationMarkup}<div class="student-scan-buttons"><button type="button" class="primary-button" id="studentTimeIn" ${initiallyDisabled}>Record ${subjectLabel} time-in</button><button type="button" class="outline-button" id="studentTimeOut" ${initiallyDisabled}>Record ${subjectLabel} time-out</button><button type="button" class="outline-button" id="studentScanClear">Scan another</button></div>`;
+    $('studentScanResult').innerHTML = `${photoMarkup}<strong>${esc(fullName)}</strong><span>${esc(meta)}</span>${verificationMarkup}<div class="student-scan-buttons"><button type="button" class="primary-button" id="studentTimeIn" ${initiallyDisabled}>Record ${subjectLabel} time-in</button><button type="button" class="outline-button" id="studentTimeOut" ${initiallyDisabled}>Record ${subjectLabel} time-out</button><button type="button" class="outline-button" id="studentScanClear">Scan another</button></div>${dtrMarkup}`;
     $('studentScanFeedback').textContent = user.role === 'GATE_KEEPER'
       ? `QR recognized. Compare the displayed photo with the ${isTeacherPerson ? 'teacher' : 'learner'} before recording gate attendance.`
       : 'QR scanned successfully. Choose an attendance action.';
@@ -1791,10 +1801,12 @@ function coverageStatusLabel(status) {
     showToast(user.role === 'GATE_KEEPER' ? `Verify photo: ${fullName}` : `QR scanned: ${fullName}`);
     $('studentTimeIn').addEventListener('click', () => isTeacherPerson ? recordTeacherGatePunch('TIME_IN') : recordStudentPunch('TIME_IN'));
     $('studentTimeOut').addEventListener('click', () => isTeacherPerson ? recordTeacherGatePunch('TIME_OUT') : recordStudentPunch('TIME_OUT'));
+    $('teacherDtrRecord')?.addEventListener('click', recordTeacherDtrSlot);
     $('studentPhotoVerified')?.addEventListener('change', event => {
       const verified = Boolean(event.target.checked);
       $('studentTimeIn').disabled = !verified;
       $('studentTimeOut').disabled = !verified;
+      if ($('teacherDtrRecord')) $('teacherDtrRecord').disabled = !verified;
     });
     $('studentScanClear').addEventListener('click', () => {
       scannedStudent = null; scannedTeacher = null;
@@ -1828,6 +1840,37 @@ function coverageStatusLabel(status) {
       $('studentScanFeedback').textContent = error.message;
       $('studentScanFeedback').className = 'scanner-feedback is-error';
       showScanErrorModal(error.message, 'Teacher attendance not recorded');
+    }
+  }
+
+  async function recordTeacherDtrSlot() {
+    if (user.role !== 'GATE_KEEPER' || !scannedTeacher?.qrToken) return;
+    if (!$('studentPhotoVerified')?.checked) {
+      showToast('Confirm the teacher photo matches before verifying the DTR.', true);
+      return;
+    }
+    const slot = $('teacherDtrSlot')?.value;
+    if (!['AM_IN', 'AM_OUT', 'PM_IN', 'PM_OUT'].includes(slot)) return;
+    const button = $('teacherDtrRecord');
+    if (button) button.disabled = true;
+    try {
+      const result = await api('/api/staff-attendance/gatekeeper/dtr', {
+        method: 'POST',
+        body: JSON.stringify({ teacherQrToken: scannedTeacher.qrToken, slot, photoVerified: true })
+      });
+      const name = scannedTeacher.fullName;
+      $('studentScanFeedback').textContent = name + ': ' + slot.replace('_', ' ') + ' DTR verified.';
+      $('studentScanFeedback').className = 'scanner-feedback is-success';
+      showToast('DTR VERIFIED — ' + name + ' · ' + slot.replace('_', ' '));
+      scannedTeacher = null;
+      $('studentScanNotice').hidden = true;
+      $('studentScanResult').hidden = true;
+    } catch (error) {
+      if (button) button.disabled = false;
+      $('studentScanFeedback').textContent = error.message;
+      $('studentScanFeedback').className = 'scanner-feedback is-error';
+      showToast(error.message, true);
+      showScanErrorModal(error.message, 'DTR was not recorded');
     }
   }
 
