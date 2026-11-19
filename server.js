@@ -24,6 +24,7 @@ const { registerGuardianRoutes } = require('./guardian-routes');
 const { registerStudentRoutes } = require('./student-routes');
 const { registerStudentPortalAccountRoutes } = require('./student-portal-account-routes');
 const { registerAcademicRoutes } = require('./academic-routes');
+const { registerShsRoutes } = require('./shs-academic-routes');
 const { registerSpecialProgramRoutes } = require('./special-program-routes');
 const { registerDepartmentRoutes } = require('./department-routes');
 const { registerSchedulingConfigRoutes } = require('./scheduling-config-routes');
@@ -112,6 +113,7 @@ registerStudentRoutes(app, pool, { authenticateSchoolClient, requireSchoolAdmin 
 require('./subject-management-routes').registerSubjectManagementRoutes(app, pool, { authenticateSchoolClient, requireSchoolRoles });
 registerStudentPortalAccountRoutes(app, pool, { authenticateSchoolClient, requireSchoolRoles });
 registerAcademicRoutes(app, pool, { authenticateSchoolClient, requireSchoolRoles });
+registerShsRoutes(app, pool, { authenticateSchoolClient, requireSchoolRoles });
 registerSpecialProgramRoutes(app, pool, { authenticateSchoolClient, requireSchoolRoles });
 registerDepartmentRoutes(app, pool, { authenticateSchoolClient, requireSchoolRoles });
 registerSchedulingConfigRoutes(app, pool, { authenticateSchoolClient, requireSchoolRoles });
