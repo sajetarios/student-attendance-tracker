@@ -1990,6 +1990,17 @@ app.post('/api/sections', authenticateSchoolClient, requireSchoolRoles('SCHOOL_A
  const client=await pool.connect();
  try {
    await client.query('BEGIN');
+   // Serialize section registration within this school; reject equivalent names
+   // even if casing or surrounding whitespace differs.
+   await client.query('SELECT pg_advisory_xact_lock(hashtext($1::text), 16019)',[req.auth.schoolId]);
+   const matching=await client.query(
+     'SELECT section_name FROM school_sections WHERE school_id=$1 AND LOWER(BTRIM(grade_level))=LOWER(BTRIM($2)) AND LOWER(BTRIM(section_name))=LOWER(BTRIM($3)) LIMIT 1',
+     [req.auth.schoolId,gradeLevel,section]
+   );
+   if(matching.rowCount){
+     await client.query('ROLLBACK');
+     return res.status(409).json({error:'This section already exists in the school-wide registry. Select it instead of creating another section.'});
+   }
    // Department Heads may register new school sections, but cannot reactivate or modify an existing one.
    const sql=head
      ? 'INSERT INTO school_sections(school_id,grade_level,section_name) VALUES($1,$2,$3) ON CONFLICT (school_id,grade_level,section_name) DO NOTHING RETURNING grade_level AS "gradeLevel",section_name AS section'
