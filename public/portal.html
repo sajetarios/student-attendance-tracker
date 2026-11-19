@@ -748,6 +748,7 @@ body.dark-mode .content-wrap > .school-heading.is-compact,body[data-theme="dark"
                 </div>
                 <button type="button" class="primary-button admin-command-primary" data-admin-view="academicAdmin">School year &amp; enrollment <span aria-hidden="true">↗</span></button>
               </div>
+              <p><a class="outline-button" href="/gate-offline-review.html">Review offline Gatekeeper observations (not official attendance)</a></p>
               <div class="admin-command-metrics" aria-label="School overview">
                 <div class="admin-command-metric"><span class="admin-metric-icon" aria-hidden="true">🎓</span><span>Active student records</span><strong id="adminOverviewStudents">—</strong><small>Current authorized school roster</small></div>
                 <div class="admin-command-metric"><span class="admin-metric-icon" aria-hidden="true">📋</span><span>Pending school requests</span><strong id="adminOverviewRequests">—</strong><small>Open approval inbox</small></div>
@@ -1226,6 +1227,7 @@ body.dark-mode .content-wrap > .school-heading.is-compact,body[data-theme="dark"
               </div>
               <section id="studentScannerCard" class="student-scanner-card" aria-label="Learner and teacher gate QR scanner">
                 <div class="student-scanner-heading"><div><h3 id="gateScannerHeading">Learner and teacher QR scanner</h3><p id="gateScannerDescription">Scan an authorized learner or teacher QR code to identify the person and record attendance.</p></div><button class="outline-button" type="button" id="studentScannerToggle">Open scanner</button></div>
+                <a id="gateOfflineCaptureLink" class="outline-button" href="/gate-offline.html" hidden style="margin:10px 0;display:inline-flex">Offline Gatekeeper · prepare device &amp; scan</a>
                 <div id="gateScanHelp" class="gate-scan-help" hidden>
                   <div class="gate-scan-help-item"><strong>Learner gate attendance</strong><span>Scan the learner's JHS QR card.</span></div>
                   <div class="gate-scan-help-item"><strong>Teacher gate attendance</strong><span>Scan the teacher's TCH QR badge.</span></div>
