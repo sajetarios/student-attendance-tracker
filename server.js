@@ -2032,6 +2032,8 @@ app.post('/api/sections', authenticateSchoolClient, requireSchoolRoles('SCHOOL_A
  const client=await pool.connect();
  try {
    await client.query('BEGIN');
+   const offered=await client.query('SELECT school_offers_grade($1,$2) AS allowed',[req.auth.schoolId,gradeLevel]);
+   if(!offered.rows[0]?.allowed){await client.query('ROLLBACK');return res.status(409).json({error:'That grade is disabled for this school.'});}
    // Serialize section registration within this school; reject equivalent names
    // even if casing or surrounding whitespace differs.
    await client.query('SELECT pg_advisory_xact_lock(hashtext($1::text), 16019)',[req.auth.schoolId]);
@@ -2537,6 +2539,9 @@ app.post('/api/students', authenticateSchoolClient, requireSchoolAdminOrTeacher,
   const cleanSection = section.trim();
   let cleanStudentId = requestedStudentId;
   try {
+    const offered = await pool.query('SELECT school_offers_grade($1,$2) AS allowed',[req.auth.schoolId,cleanGrade]);
+    if(!offered.rows[0]?.allowed)
+      return res.status(409).json({error:'This grade is not enabled in School Years & Enrollment → School levels.'});
     if (isTeacher) {
       const allowed = await pool.query(
         `SELECT EXISTS (
@@ -2626,6 +2631,7 @@ app.post('/api/students', authenticateSchoolClient, requireSchoolAdminOrTeacher,
     }
   } catch (err) {
     console.error('Student save failed:', err.message);
+    if (err.code === '23514') return res.status(409).json({error:'That grade is not enabled for this school.'});
     if (err.code === 'STUDENT_ID_SERIES_EXHAUSTED') return res.status(409).json({ error: err.message });
     if (err.code === '23505') return res.status(409).json({ error: 'That LRN is already registered.' });
     return res.status(500).json({ error: 'Could not save student.' });
@@ -2780,6 +2786,7 @@ app.patch('/api/students/:studentId', authenticateSchoolClient, requireSchoolAdm
   } catch (err) {
     await client.query('ROLLBACK').catch(() => {});
     if (err.code === '23505') return res.status(409).json({ error: 'That LRN is already registered.' });
+    if (err.code === '23514') return res.status(409).json({ error: 'That grade is not enabled for this school.' });
     console.error('Student update failed:', err.message);
     return res.status(500).json({ error: 'Could not update student information.' });
   } finally {
@@ -3242,6 +3249,13 @@ app.post('/api/periods', authenticateSchoolClient, requireSchoolRoles('SCHOOL_AD
   const timetableTemplateId = req.body?.timetableTemplateId || null;
   const timetableTemplatePeriodId = req.body?.timetableTemplatePeriodId || null;
   const scheduleType = String(req.body?.scheduleType || 'CLASS').toUpperCase();
+  // Server-side grade gate complements the migration trigger and the school UI.
+  if(typeof gradeLevel==='string' && /^Grade (?:[7-9]|1[0-2])$/.test(gradeLevel)){
+    try{
+      const offered=await pool.query('SELECT school_offers_grade($1,$2) AS allowed',[req.auth.schoolId,gradeLevel]);
+      if(!offered.rows[0]?.allowed)return res.status(409).json({error:'That grade is not offered by this school. Enable SHS in School Years & Enrollment first.'});
+    }catch(e){console.error('School grade validation:',e.message);return res.status(503).json({error:'Could not verify the academic-level setting.'});}
+  }
   if (!['CLASS','ADVISORY','OTHER'].includes(scheduleType)) return res.status(400).json({ error: 'Choose a valid schedule type.' });
   if (timetableTemplatePeriodId && !isUuid(timetableTemplatePeriodId)) return res.status(400).json({ error: 'Choose a valid time block.' });
   if (Boolean(timetableTemplateId) !== Boolean(timetableTemplatePeriodId)) return res.status(400).json({ error: 'Choose a saved timetable block, or use custom time.' });
