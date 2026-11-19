@@ -543,3 +543,10 @@ html[data-ui-theme="dark"] .portal-page :is(input[type="date"],input[type="time"
 #schedulesView #showScheduleForm[hidden]{
   display:none!important;
 }
+
+/* Unassigned-class summary is an accessible assignment shortcut for Department Heads. */
+#schedulesView #scheduleUnassignedCard.is-actionable{cursor:pointer;transition:box-shadow .15s ease,transform .15s ease}
+#schedulesView #scheduleUnassignedCard.is-actionable:hover{box-shadow:0 5px 18px rgba(15,23,42,.14);transform:translateY(-1px)}
+#schedulesView #scheduleUnassignedCard.is-actionable:focus-visible{outline:3px solid var(--ui-accent,#15803d);outline-offset:3px}
+#schedulesView #scheduleUnassignedCard.is-actionable::before{content:'Select to assign';position:absolute;right:15px;bottom:11px;font-size:11px;font-weight:700;color:var(--ui-accent,#15803d);z-index:1}
+@media (prefers-reduced-motion:reduce){#schedulesView #scheduleUnassignedCard.is-actionable{transition:none}#schedulesView #scheduleUnassignedCard.is-actionable:hover{transform:none}}
