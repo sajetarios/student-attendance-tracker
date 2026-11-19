@@ -468,7 +468,19 @@ window.attendigoStaffIdentity = new Promise(resolve => { resolveStaffIdentity = 
       if (container && submenu) container.hidden = !Array.from(submenu.children).some(item => !item.hidden);
     }
     if ($('exportTeachersButton')) $('exportTeachersButton').hidden = !(admin || role === 'DEPARTMENT_HEAD');
-    if ($('bulkImportStudentsButton')) $('bulkImportStudentsButton').hidden = !(admin || teacherHas('CLASS_ADVISER'));
+    // Keep the entry point discoverable for every teacher. This is UI guidance,
+    // NOT import authorization: preview and commit retain school/role checks.
+    if ($('bulkImportStudentsButton')) {
+      $('bulkImportStudentsButton').hidden = !(admin || teacher);
+      $('bulkImportStudentsButton').textContent = teacher ? '↑ Import students' : '↑ Bulk import';
+    }
+    if ($('studentImportAccessNote')) {
+      const missingAccess = teacher && !teacherHas('CLASS_ADVISER');
+      $('studentImportAccessNote').hidden = !missingAccess;
+      $('studentImportAccessNote').textContent = missingAccess
+        ? 'SF1 imports require a Class Adviser designation, an assigned advisory class, and an active school year. Ask your School Administrator to set these up.'
+        : '';
+    }
     if ($('studentStatusFilterWrap')) $('studentStatusFilterWrap').hidden = !admin;
     if ($('downloadStudentTemplate')) $('downloadStudentTemplate').hidden = !(admin || (teacher && teacherHas('CLASS_ADVISER')));
     if ($('exportStudentsButton')) $('exportStudentsButton').hidden = !['SCHOOL_ADMIN', 'DEPARTMENT_HEAD', 'TEACHER'].includes(role);
@@ -5557,9 +5569,26 @@ let teacherActionMenuListenersInstalled = false;
   }
 
   $('bulkImportStudentsButton')?.addEventListener('click', () => {
+    if (user.role === 'TEACHER' && !teacherHas('CLASS_ADVISER')) {
+      AppDialog.alert(
+        'Your account is currently authorized as a Subject Teacher, not a Class Adviser. To import students from DepEd LIS SF1, ask your School Administrator to give you the Class Adviser designation, assign an advisory grade and section, and activate the school year. Your existing subject schedules and attendance remain unchanged.',
+        { title: 'Student import access required', confirmText: 'OK' }
+      );
+      return;
+    }
+    if (user.role === 'TEACHER' && !adviserAssignments.length) {
+      AppDialog.alert(
+        'Your Class Adviser designation is present, but you do not yet have an assigned advisory class. Ask your School Administrator to assign your grade and section. An active school year is also required for SF1 enrollment.',
+        { title: 'Assign an advisory class first', confirmText: 'OK' }
+      );
+      return;
+    }
     resetStudentImport();
-    if ($('studentImportFormat')) $('studentImportFormat').value='template';
-    if ($('studentImportUpdateExistingWrap')) $('studentImportUpdateExistingWrap').hidden = user.role !== 'SCHOOL_ADMIN';
+    if ($('studentImportFormat')) {
+      $('studentImportFormat').value = user.role === 'TEACHER' ? 'sf1' : 'template';
+      // Reuse the source switch to set file types and admin-only update controls.
+      $('studentImportFormat').dispatchEvent(new Event('change'));
+    }
     prepareStudentImportAdvisoryScope();
     $('studentImportModal').hidden = false;
   });
