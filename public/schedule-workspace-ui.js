@@ -172,7 +172,7 @@
 
  function setTab(tab){
   if(!choices.some(c=>c.id===tab)|| (tab==='settings'&&role!=='SCHOOL_ADMIN'))return;
-  const view=$('schedulesView');if(!view)return;
+  const view=$('schedulesView');if(!view||!role)return;
   active=tab;view.dataset.scheduleTab=tab;
   document.querySelectorAll('[data-schedule-workspace-tab]').forEach(button=>{
    const selected=button.dataset.scheduleWorkspaceTab===tab;
@@ -190,7 +190,11 @@
  function update(data){
   if(!initialized)initialize();
   const roleChanged=Boolean(data.role && data.role!==role);
-  role=data.role||role;
+  const authorizedRole=['SCHOOL_ADMIN','DEPARTMENT_HEAD','TEACHER'].includes(data.role) ? data.role : '';
+  if (!authorizedRole) return; // Remain default-deny until authenticated role data exists.
+  role=authorizedRole;
+  const view=$('schedulesView');
+  if(view) view.dataset.scheduleRole=role;
   const periods=Array.isArray(data.periods)?data.periods:[];
   assignmentContext={periods,teachers:Array.isArray(data.teachers)?data.teachers:[],departmentId:data.departmentId||null,onAssign:data.onAssign};
   if($('teacherAssignmentOverlay')&&!$('teacherAssignmentOverlay').hidden&&!assignmentSaving)renderAssignmentDialog();
@@ -207,12 +211,17 @@
   if($('scheduleAdjustmentShortcut'))$('scheduleAdjustmentShortcut').hidden=!manager;
   if($('scheduleAssignmentShortcut'))$('scheduleAssignmentShortcut').hidden=role!=='DEPARTMENT_HEAD';
   if($('scheduleAdvancedTools'))$('scheduleAdvancedTools').hidden=!manager;
-  if($('showScheduleForm'))$('showScheduleForm').hidden=role!=='SCHOOL_ADMIN'&&role!=='DEPARTMENT_HEAD';
+  if($('showScheduleForm')) {
+    $('showScheduleForm').hidden=role!=='SCHOOL_ADMIN'&&role!=='DEPARTMENT_HEAD';
+    $('showScheduleForm').textContent=role==='DEPARTMENT_HEAD'?'＋ New department class':'＋ New class schedule';
+  }
+  if($('schedulePrimaryActions'))$('schedulePrimaryActions').hidden=!manager;
   const intro=$('scheduleScopeText');
   if(intro){
     intro.dataset.newCopy='1';
     intro.textContent=role==='TEACHER'?'View your assigned classes and date-specific timetable changes.':role==='DEPARTMENT_HEAD'?'Create, edit and assign department classes within published school timetable rules.':'Create school-wide schedules, including unassigned classes, and manage timetable settings.';
   }
+  if(view) view.dataset.scheduleRoleReady='true';
   if(roleChanged||!active||active==='settings'&&role!=='SCHOOL_ADMIN')setTab('weekly');
   if(!initialized)return;
  }
@@ -221,25 +230,30 @@
   const view=$('schedulesView'),header=view?.querySelector(':scope > .surface-card > .section-toolbar');
   if(!view||!header)return;
   initialized=true;view.classList.add('modern-schedule-workspace');
+  // Controls never become visible until update() receives a verified role.
+  delete view.dataset.scheduleRoleReady;
+  delete view.dataset.scheduleRole;
   initializeAssignmentDialog();
   view.dataset.scheduleTab='weekly';
   const create=$('showScheduleForm');
   if(create){
-    const actionRow=document.createElement('div');actionRow.className='schedule-primary-actions';
+    const actionRow=document.createElement('div');actionRow.className='schedule-primary-actions';actionRow.id='schedulePrimaryActions';actionRow.hidden=true;
     create.parentElement.insertBefore(actionRow,create);actionRow.appendChild(create);
-    create.textContent='＋ New class schedule';
+    create.textContent='＋ New class schedule';create.hidden=true;
     const assignment=document.createElement('button');
     assignment.type='button';assignment.id='scheduleAssignmentShortcut';
     assignment.className='primary-button';assignment.textContent='Assign teachers';assignment.hidden=true;
     actionRow.append(assignment);
     assignment.addEventListener('click',openAssignmentDialog);
     const change=document.createElement('button');change.type='button';change.id='scheduleAdjustmentShortcut';change.className='outline-button';change.textContent='⇄ Temporary adjustment';
+    change.hidden=true;
     change.addEventListener('click',()=>{
       setTab('changes');
       $('toggleScheduleAdjustmentForm')?.click();
     });
     actionRow.appendChild(change);
     const settings=document.createElement('button');settings.type='button';settings.id='scheduleSettingsShortcut';settings.className='outline-button';settings.textContent='⚙ Timetable settings';
+    settings.hidden=true;
     settings.addEventListener('click',()=>setTab('settings'));actionRow.appendChild(settings);
   }
   const overview=document.createElement('div');
@@ -248,12 +262,14 @@
    '<div class="schedule-overview-card"><span class="schedule-overview-icon" data-ui-icon="calendar"></span><span>Regular schedules</span><strong id="scheduleTotalMetric">—</strong><small id="scheduleMetricScope">Visible class schedules</small></div>'+
    '<div class="schedule-overview-card"><span class="schedule-overview-icon is-amber" data-ui-icon="users"></span><span>Unassigned classes</span><strong id="scheduleUnassignedMetric">—</strong><small>Need a Subject Teacher</small></div>'+
    '<div class="schedule-overview-card"><span class="schedule-overview-icon is-violet" data-ui-icon="swap"></span><span>Changes this week</span><strong id="scheduleChangesMetric">—</strong><small>Temporary date changes</small></div>';
+  overview.setAttribute('aria-live','polite');
   header.insertAdjacentElement('afterend',overview);
   const tabs=document.createElement('div');tabs.className='schedule-workspace-tabs';tabs.setAttribute('role','tablist');tabs.setAttribute('aria-label','Class scheduling sections');
   choices.forEach(choice=>{
    const button=document.createElement('button');button.type='button';
    button.id=choice.id==='settings'?'scheduleSettingsTab':'scheduleTab'+choice.id;
-   button.setAttribute('role','tab');button.dataset.scheduleWorkspaceTab=choice.id;button.setAttribute('aria-selected',String(choice.id==='regular'));
+   button.setAttribute('role','tab');button.dataset.scheduleWorkspaceTab=choice.id;button.setAttribute('aria-selected',String(choice.id==='weekly'));
+   if(choice.id==='settings')button.hidden=true;
    button.innerHTML='<span data-ui-icon="'+choice.icon+'" aria-hidden="true"></span>'+choice.label;
    button.addEventListener('click',()=>{
     // Close previous drawer before switching task.
@@ -333,7 +349,8 @@
     [bulk,intro,manager].forEach(node=>{if(node)advanced.append(node);});
     week.insertAdjacentElement('afterend',advanced);
   }
-  setTab('weekly');
+  // update() will activate the tab only after the authenticated role is known.
+  if(role)setTab('weekly');
  }
  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',initialize,{once:true});
  else initialize();
