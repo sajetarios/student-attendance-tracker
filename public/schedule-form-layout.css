@@ -707,3 +707,34 @@ body #scheduleForm.schedule-side-drawer[data-schedule-role="DEPARTMENT_HEAD"]:no
     scroll-behavior:auto!important;
   }
 }
+
+
+/* Department scheduling: distinct accessible Save & Close / Save & Create New actions. */
+#scheduleForm #saveAndCreateScheduleButton[hidden]{display:none!important}
+#scheduleForm[data-schedule-role="DEPARTMENT_HEAD"] > .form-actions{
+  display:flex!important;flex-wrap:wrap!important;align-items:center!important;
+}
+#scheduleForm[data-schedule-role="DEPARTMENT_HEAD"] > .form-actions .schedule-save-new-button{
+  border-color:#5257b7!important;color:#343e9c!important;background:#f3f4ff!important;
+  font-weight:700!important;
+}
+#scheduleForm[data-schedule-role="DEPARTMENT_HEAD"] > .form-actions .schedule-save-new-button:hover{
+  background:#e8eaff!important;
+}
+#scheduleForm[data-schedule-role="DEPARTMENT_HEAD"] > .form-actions button:disabled{
+  opacity:.55!important;cursor:wait!important;
+}
+html[data-ui-theme="dark"] #scheduleForm[data-schedule-role="DEPARTMENT_HEAD"] > .form-actions .schedule-save-new-button{
+  background:#283052!important;color:#d9deff!important;border-color:#727ad3!important;
+}
+@media(max-width:600px){
+  #scheduleForm[data-schedule-role="DEPARTMENT_HEAD"] > .form-actions{
+    display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr))!important;
+  }
+  #scheduleForm[data-schedule-role="DEPARTMENT_HEAD"] > .form-actions #cancelScheduleForm{
+    grid-column:1/-1!important;
+  }
+  #scheduleForm[data-schedule-role="DEPARTMENT_HEAD"] > .form-actions button{
+    white-space:normal!important;line-height:1.25!important;
+  }
+}
