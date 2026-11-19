@@ -1,6 +1,7 @@
 'use strict';
 const test = require('node:test');
 const assert = require('node:assert/strict');
+const {assertCachedAsset}=require('./support/asset-contract');
 const fs = require('node:fs');
 const path = require('node:path');
 const read = name => fs.readFileSync(path.join(__dirname, '..', name), 'utf8');
@@ -43,7 +44,8 @@ test('responsive teacher roster keeps grouped sex counts, readable cards and dar
   assert.match(style, /:focus-visible/);
 });
 test('PWA asset versions match the new styling and scripts', () => {
-  for (const asset of ['/teacher-learner-roster.css?v=4','/portal.js?v=203','/class-qr-dashboard-link.js?v=9','/teacher-roster-popover.js?v=2']) {
+  assertCachedAsset(page,worker,'portal.js',{minimumVersion:203});
+  for (const asset of ['/teacher-learner-roster.css?v=4','/class-qr-dashboard-link.js?v=9','/teacher-roster-popover.js?v=2']) {
     assert.ok(page.includes(asset), asset+' included in portal');
     assert.ok(worker.includes(JSON.stringify(asset)), asset+' cached');
   }
