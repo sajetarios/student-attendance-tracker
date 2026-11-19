@@ -2,7 +2,7 @@
 
 // PDF input uses the same validated SF1 commit pipeline as Excel.
 // Text-only parsing: reject unsupported/scanned layouts rather than guessing student data.
-const pdfParse=require('pdf-parse');
+const pdfjs=require('pdfjs-dist/legacy/build/pdf.js');
 const {extractName}=require('./sf1-import-parser');
 const MAX_BYTES=5*1024*1024, MAX_PAGES=30;
 function gradeFromText(text){
@@ -60,22 +60,32 @@ async function parseSf1PdfBase64(base64){
  const data=Buffer.from(base64,'base64');
  if(data.length<8||data.length>MAX_BYTES||data.subarray(0,5).toString('ascii')!=='%PDF-')
   throw Error('Choose a valid PDF no larger than 5 MB.');
- let result;
+ let loadingTask,doc;
  try{
-  result=await pdfParse(data,{max:MAX_PAGES+1,pagerender:async page=>{
-   const items=(await page.getTextContent()).items.filter(x=>typeof x.str==='string'&&x.str.trim());
+  loadingTask=pdfjs.getDocument({data:new Uint8Array(data),disableFontFace:true,useSystemFonts:true});
+  doc=await loadingTask.promise;
+  if(doc.numPages>MAX_PAGES)throw Error('SF1 PDF must contain at most 30 pages.');
+  const pages=[];
+  for(let pageNo=1;pageNo<=doc.numPages;pageNo++){
+   const page=await doc.getPage(pageNo);
+   const content=await page.getTextContent();
    const grouped=[];
-   for(const item of items){
-    const y=Number(item.transform?.[5]||0), x=Number(item.transform?.[4]||0);
-    let line=grouped.find(x=>Math.abs(x.y-y)<2.8);
+   for(const item of content.items){
+    if(typeof item.str!=='string'||!item.str.trim())continue;
+    const y=Number(item.transform?.[5]||0),x=Number(item.transform?.[4]||0);
+    let line=grouped.find(row=>Math.abs(row.y-y)<2.8);
     if(!line){line={y,items:[]};grouped.push(line);}
     line.items.push({x,text:item.str});
    }
    grouped.sort((a,b)=>b.y-a.y);
-   return grouped.map(row=>row.items.sort((a,b)=>a.x-b.x).map(item=>item.text).join(' ')).join('\n');
-  }});
- }catch(e){try{result=await pdfParse(data,{max:MAX_PAGES+1});}catch(f){throw Error('Could not read PDF text ('+String(f?.message||e?.message||'unknown error').slice(0,120)+'). Upload a searchable SF1 PDF or the original LIS Excel workbook.');}}
- if(!result?.numpages||result.numpages>MAX_PAGES)throw Error('SF1 PDF must contain at most 30 pages.');
- return parseSf1PdfText(result.text);
+   pages.push(grouped.map(row=>row.items.sort((a,b)=>a.x-b.x).map(item=>item.text).join(' ')).join('\n'));
+  }
+  return parseSf1PdfText(pages.join('\n'));
+ }catch(e){
+  if(/SF1 PDF must contain|The PDF has no selectable text|does not appear to contain|Could not reliably detect|No complete SF1 learner rows|maximum of 2,000/.test(e.message))throw e;
+  throw Error('Could not safely read PDF text. Upload a searchable SF1 PDF or the original LIS Excel workbook.');
+ }finally{
+  if(loadingTask)await loadingTask.destroy().catch(()=>{});
+ }
 }
 module.exports={parseSf1PdfText,parseSf1PdfBase64};
