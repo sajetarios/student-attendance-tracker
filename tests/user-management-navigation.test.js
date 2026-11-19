@@ -50,7 +50,8 @@ test('staff account permissions stay admin-only, teachers retain scoped student 
   assert.ok(notifications.includes("$('studentAccountsTab')?.click()"));
   assert.ok(notifications.includes('adminRequestsNavBadge'));
   assert.ok(guardian.includes('Keep the legacy guardian trigger hidden'));
-  assert.ok(js.includes("$('adminNotificationBell')?.click()"));
+  assert.ok(js.includes("attendigo:open-approval-inbox"),'School Admin routes to the new scoped approval inbox');
+  assert.ok(notifications.includes("document.addEventListener('attendigo:open-approval-inbox',openInbox)"));
 });
 
 test('dark/mobile directory assets are version-aligned with current service-worker shell', () => {

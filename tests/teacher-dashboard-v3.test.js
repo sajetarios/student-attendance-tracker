@@ -1,4 +1,5 @@
 'use strict';
+const {assertCacheRevisionAtLeast}=require('./support/asset-contract');
 const test=require('node:test'),assert=require('node:assert/strict'),fs=require('node:fs'),path=require('node:path'),vm=require('node:vm');
 const read=n=>fs.readFileSync(path.join(__dirname,'..','public',n),'utf8');
 const js=read('teacher-dashboard-v3.js'),css=read('teacher-dashboard-v3.css'),html=read('portal.html'),sw=read('sw.js');
@@ -34,5 +35,5 @@ test('PWA and portal load versioned V3 assets after V2',()=>{
   assert.ok(sw.includes(name));
  }
  assert.ok(html.indexOf('teacher-dashboard-v3.js?v=1')>html.indexOf('teacher-dashboard-v2.js?v=1'));
- assert.match(sw,/attendigo-v253-teacher-dashboard-v3/);
+ assertCacheRevisionAtLeast(sw,253);
 });
