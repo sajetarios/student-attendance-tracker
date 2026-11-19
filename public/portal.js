@@ -2382,10 +2382,35 @@ function coverageStatusLabel(status) {
             dayAdjustmentBadge + assignmentControl + editAdjustment + '</article>';
         }).join('') : '<p class="weekly-day-empty">No classes scheduled</p>') + '</section>';
     }).join('') : '<div class="weekly-empty-state"><strong>No schedules match these filters.</strong><span>Try another grade level or section, or create a class schedule.</span></div>';
+    if (activeScheduleDisplay === 'list') {
+      // List the effective schedule for the selected week, not the separate recurring-schedule management table.
+      const rows = days.flatMap(day => cardsForDay(day).map(period => ({
+        day, period
+      }))).sort((a,b) => a.day-b.day ||
+        String(a.period.startTime||'').localeCompare(String(b.period.startTime||'')));
+      host.innerHTML = '<div class="table-scroll weekly-schedule-list"><table><thead><tr>'+
+        '<th>Day / date</th><th>Time</th><th>Subject</th><th>Grade / section</th>'+
+        '<th>Teacher</th><th>Room</th><th>Status</th></tr></thead><tbody>'+
+        (rows.length ? rows.map(({day,period}) => {
+          const date = weekDates.find(value => new Date(value+'T00:00:00Z').getUTCDay() === day);
+          const status = period.cancelled ? 'Cancelled' : period.adjustment
+            ? (period.adjustment.type === 'SUBSTITUTE' ? 'Teacher cover' :
+               period.adjustment.type === 'REPLACE' ? 'Subject replacement' : 'Time / room change')
+            : 'Regular';
+          return '<tr><td>'+esc(names[day]+' '+(date||''))+'</td>'+
+            '<td>'+esc((period.startTime||'—')+'–'+(period.endTime||'—'))+'</td>'+
+            '<td>'+esc(period.subjectName||period.periodName||'Class')+'</td>'+
+            '<td>'+esc(String(period.gradeLevel||'—')+' · '+String(period.section||'All sections'))+'</td>'+
+            '<td>'+esc(period.cancelled?'No class':period.assignedTeacherName||'Unassigned')+'</td>'+
+            '<td>'+esc(period.classroom||'—')+'</td>'+
+            '<td>'+esc(status)+'</td></tr>';
+        }).join('') : '<tr><td colspan="7" class="empty-cell">No classes match this week and these filters.</td></tr>')+
+        '</tbody></table></div>';
+    }
     const summary = $('weeklyTimetableSummary');
     if (summary) summary.textContent = filtered.length + ' recurring classes · Week ' +
       weekDates[0] + ' to ' + weekDates[6] + ' · ' + scheduleAdjustments.length + ' temporary change(s)';
-    if (window.TimetableGrid) {
+    if (window.TimetableGrid && activeScheduleDisplay !== 'list') {
       const weekdayDates=Object.fromEntries(days.map(day=>[
         day,weekDates.find(date=>new Date(date+'T00:00:00Z').getUTCDay()===day)
       ]));
@@ -2428,14 +2453,17 @@ function coverageStatusLabel(status) {
   function setScheduleDisplay(mode) {
     activeScheduleDisplay = mode === 'list' ? 'list' : 'weekly';
     const weekly = activeScheduleDisplay === 'weekly';
-    if ($('weeklyTimetableBoard')) $('weeklyTimetableBoard').hidden = !weekly;
-    if ($('managerScheduleTableWrap')) $('managerScheduleTableWrap').hidden = weekly;
+    // The management list belongs only to Regular schedules; this switch changes
+    // the presentation of the same date-adjusted weekly records within the Weekly tab.
+    const tab = $('schedulesView')?.dataset.scheduleTab || 'regular';
+    if ($('weeklyTimetableBoard')) $('weeklyTimetableBoard').hidden = tab !== 'weekly';
+    if ($('managerScheduleTableWrap')) $('managerScheduleTableWrap').hidden = tab !== 'regular';
     document.querySelectorAll('[data-schedule-display]').forEach(button => {
       const active = button.dataset.scheduleDisplay === mode;
       button.classList.toggle('is-active', active);
       button.setAttribute('aria-pressed', String(active));
     });
-    if (weekly) renderWeeklyTimetable();
+    if (tab === 'weekly') renderWeeklyTimetable();
   }
 
   function openTeacherCreation() {
