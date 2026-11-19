@@ -62,7 +62,7 @@ async function parseSf1PdfBase64(base64){
   throw Error('Choose a valid PDF no larger than 5 MB.');
  let loadingTask,doc;
  try{
-  loadingTask=pdfjs.getDocument({data:new Uint8Array(data),disableFontFace:true,useSystemFonts:true});
+  loadingTask=pdfjs.getDocument({data:new Uint8Array(data),disableFontFace:true,useSystemFonts:true,isEvalSupported:false,enableScripting:false,stopAtErrors:true});
   doc=await loadingTask.promise;
   if(doc.numPages>MAX_PAGES)throw Error('SF1 PDF must contain at most 30 pages.');
   const pages=[];
