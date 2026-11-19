@@ -21,7 +21,7 @@ function registerSf1ImportRoutes(app,pool,{authenticateSchoolClient,requireSchoo
    if(!grades.rows.some(r=>r.grade_level.toUpperCase()===sf1.gradeLevel.toUpperCase()))
     throw Object.assign(Error('The SF1 grade is outside your authorized advisory grade. Ask School Admin for assignment.'),{status:403});
   }
-  if(sf1.errors.length)throw Object.assign(Error('SF1 contains '+sf1.errors.length+' rows needing correction; no students were saved.'),{status:422,details:sf1.errors.slice(0,25)});
+  if(sf1.errors.length)throw Object.assign(Error('SF1 contains '+sf1.errors.length+(sf1.errors.length===1?' row':' rows')+' needing correction; no students were saved.'),{status:422,details:sf1.errors.slice(0,25)});
   const lrnList=sf1.learners.map(r=>r.lrn);
   if(new Set(lrnList).size!==lrnList.length)throw Object.assign(Error('Duplicate LRNs found in the uploaded SF1.'),{status:409});
   const existing=await db.query("SELECT lrn,student_id,full_name,active,archived_at FROM students WHERE school_id=$1 AND lrn=ANY($2::text[])",[req.auth.schoolId,lrnList]);
