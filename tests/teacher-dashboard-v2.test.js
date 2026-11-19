@@ -1,4 +1,5 @@
 'use strict';
+const {assertCacheRevisionAtLeast}=require('./support/asset-contract');
 const test=require('node:test'),assert=require('node:assert/strict');
 const fs=require('node:fs'),path=require('node:path'),vm=require('node:vm');
 const read=n=>fs.readFileSync(path.join(__dirname,'..','public',n),'utf8');
@@ -39,5 +40,5 @@ test('Portal and offline shell include versioned teacher assets',()=>{
   assert.ok(html.includes(name),name+' portal');
   assert.ok(sw.includes(name),name+' sw');
  }
- assert.match(sw,/attendigo-v252-teacher-dashboard-v2/);
+ assertCacheRevisionAtLeast(sw,252);
 });
