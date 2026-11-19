@@ -17,3 +17,19 @@
 #shsSchoolConfiguration .inline-feedback{min-height:1.1em;margin:4px 0 0}
 @media(max-width:770px){.shs-settings-grid{grid-template-columns:1fr}.shs-school-settings-form{align-items:stretch}.shs-school-settings-form button{width:100%}}
 html[data-ui-theme="dark"] .shs-settings-grid form{background:var(--ui-panel,#1d314a);border-color:var(--ui-line,#3f5a75)}
+
+/* Learner pathway: visible enrollment guidance without exposing inactive legacy track options. */
+#shsPathState[hidden],#shsPathCurriculumSummary[hidden],#shsPathEnroll[hidden]{display:none!important}
+.shs-path-state{display:flex;align-items:flex-start;gap:10px;padding:12px 13px;border-radius:10px;border:1px solid var(--ui-line,#d5e3f1);background:var(--ui-soft,#f3f8fd);color:var(--text-primary,inherit);line-height:1.45}
+.shs-path-state-symbol{flex:0 0 auto;font-size:19px;line-height:1.2;color:var(--primary-color,#23649f)}
+.shs-path-state-copy{display:grid;gap:3px;flex:1;min-width:0}
+.shs-path-state-copy strong{font-size:13px;font-weight:650}
+.shs-path-state-copy span{font-size:12px;opacity:.85}
+#shsPathEnroll{font-size:12px;min-height:36px;padding:7px 10px;white-space:nowrap;align-self:center}
+.shs-path-curriculum{font-size:12px;font-weight:600;border:1px solid var(--ui-line,#d5e3f1);background:var(--ui-soft,#f3f8fd);border-radius:9px;padding:9px 11px;color:var(--text-primary,inherit)}
+#shsPathState[data-state="error"]{border-color:#d99898}
+#shsLearnerPathForm :is(select,input,button):disabled{cursor:not-allowed;opacity:.65}
+#shsLearnerPathForm :is(select,input,button):focus-visible{outline:3px solid var(--ui-focus,#5caae9);outline-offset:2px}
+@media(max-width:550px){.shs-path-state{flex-wrap:wrap}#shsPathEnroll{width:100%}}
+html[data-ui-theme="dark"] .shs-path-state,html[data-ui-theme="dark"] .shs-path-curriculum{background:var(--ui-panel,#1d314a);border-color:var(--ui-line,#3f5a75);color:var(--text-primary,#e7f1fa)}
+html[data-ui-theme="dark"] .shs-path-state-symbol{color:#9ec9fb}
