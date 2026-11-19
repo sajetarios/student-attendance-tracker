@@ -13,6 +13,8 @@ function registerSf1ImportRoutes(app,pool,{authenticateSchoolClient,requireSchoo
   if(year.rowCount!==1)throw Object.assign(Error('Configure an active school year before importing SF1.'),{
    status:409,code:'SF1_SCHOOL_YEAR_REQUIRED',schoolYear:sf1.schoolYear||''
   });
+  const enabled=await db.query('SELECT school_offers_grade($1,$2) AS allowed',[req.auth.schoolId,sf1.gradeLevel]);
+  if(!enabled.rows[0]?.allowed)throw Object.assign(Error('This SF1 grade is disabled in School Years & Enrollment → School levels. Enable SHS first.'),{status:409});
   const active=year.rows[0];
   if(sf1.schoolYear&&sf1.schoolYear.replace(/[^0-9]/g,'').slice(0,4)!==String(active.school_year_label).slice(0,4))
    throw Object.assign(Error('SF1 school year does not match the active school year.'),{status:409});
