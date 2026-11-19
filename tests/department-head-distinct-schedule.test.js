@@ -111,5 +111,5 @@ test('Adviser choices and grades do not depend on student roster loading',()=>{
  assert.doesNotMatch(selection,/students\.filter/);
  assert.match(js,/await loadAdviserEligibleSections\(\);/);
  assert.match(js,/Grade and section lookup failed/);
- assert.match(js,/No registered sections or active learner sections found/);
+ assert.match(js,/No section in this grade yet. Use Add class section to register one./);
 });
