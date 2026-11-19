@@ -22,13 +22,18 @@ input{border:1px solid #91a9bf;background:white;color:#183047;width:100%}
 button{background:#235d9a;color:#fff;border:0;cursor:pointer;font-weight:650}
 button.secondary{background:#e6edf6;color:#17436c}
 button:disabled{opacity:.52;cursor:default}
+button.danger{background:#a12d39;color:white}
+.queueActions{margin-top:10px}.queueActions button{font-size:13px;padding:7px 10px}
+.testMode{border:1px solid #93afd0;border-radius:10px;padding:12px;margin:12px 0;background:#edf5ff;color:#16395e}
+.testMode label{display:flex;align-items:center;gap:10px;margin:0}.testMode input{width:auto}
+#queue li{display:flex;align-items:center;justify-content:space-between;gap:8px}
 #reader{max-width:480px;margin:14px auto;border:1px solid #cad8e8;border-radius:10px;overflow:hidden}
 #reader video{max-width:100%}
 #queue{padding-left:20px;max-height:290px;overflow-y:auto}
 #queue li{padding:6px 0;border-bottom:1px solid #e0e8f1}
 [hidden]{display:none!important}
 .note{color:#8c3b14;font-weight:600}
-@media(prefers-color-scheme:dark){body{background:#101b2b;color:#edf3ff}section{background:#1a2b40;border-color:#38516e}input{background:#112239;color:white;border-color:#66819d}small{color:#b7c9da}button.secondary{background:#304a68;color:white}.status{color:#2c3141}.note{color:#ffc98b}#queue li{border-color:#35506e}}
+@media(prefers-color-scheme:dark){body{background:#101b2b;color:#edf3ff}section{background:#1a2b40;border-color:#38516e}input{background:#112239;color:white;border-color:#66819d}small{color:#b7c9da}button.secondary{background:#304a68;color:white}.testMode{background:#233d59;color:#f0f6ff;border-color:#607e9e}.status{color:#2c3141}.note{color:#ffc98b}#queue li{border-color:#35506e}}
 </style></head>
 <body>
 <header><strong>Attendigo · Offline Gatekeeper</strong><a href="/portal.html">Online portal</a></header>
@@ -47,15 +52,17 @@ button:disabled{opacity:.52;cursor:default}
 <section id="scanPanel" hidden><h2>3. Capture badge scans</h2>
 <p id="preparedScope"></p>
 <div class="row"><button id="start">Start camera</button><button id="stop" class="secondary" disabled>Stop camera</button><button id="renew" class="secondary">Renew online authorization</button></div>
+<div class="testMode"><label for="testMode"><input type="checkbox" id="testMode"> Practice mode — test scans only (never synchronized)</label><small>Use for drills and pilot testing. Practice QR observations remain on this device and are excluded from official review submissions.</small></div>
 <div id="reader"></div>
 <p id="scanResult" class="status" role="status">Ready. A scan saves the opaque badge code and device time locally, not an official attendance event.</p>
 <p><small>Offline recognition cannot verify a current registered photo, employee status, student status, or clock accuracy. An administrator must review the synchronized observation.</small></p></section>
 <section id="syncPanel" hidden><h2>4. Synchronize when online</h2>
 <div class="row"><strong id="pendingCount">0 pending</strong><button id="sync">Sync pending observations</button></div>
+<div class="row queueActions"><button id="clearPractice" class="secondary" type="button">Clear practice scans</button><button id="clearPending" class="danger" type="button">Discard all pending scans</button></div>
 <p id="syncResult" role="status" aria-live="polite">Nothing has been submitted yet.</p>
 <ul id="queue"></ul>
-<small>Only server-confirmed acknowledgments remove encrypted local copies. If sync fails, keep the browser data and retry from this device. Leaving this page or closing the browser locks the session.</small></section>
+<small>Discard permanently deletes only encrypted observations on this device after confirmation; it cannot delete synchronized or official attendance. Only server-confirmed acknowledgments remove encrypted local copies. If sync fails, keep the browser data and retry from this device. Leaving this page or closing the browser locks the session.</small></section>
 </main>
 <script src="/vendor/html5-qrcode.min.js"></script>
-<script src="/gate-offline.js?v=1"></script>
+<script src="/gate-offline.js?v=2"></script>
 </body></html>
