@@ -6374,7 +6374,8 @@ let teacherActionMenuListenersInstalled = false;
       if (departmentHead) $('graceMinutes').value = '5';
     }
     if ($('saveScheduleButton')) $('saveScheduleButton').textContent =
-      departmentHead ? 'Save department schedule' : 'Save class schedule';
+      departmentHead ? 'Save & Close' : 'Save class schedule';
+    if ($('saveAndCreateScheduleButton')) $('saveAndCreateScheduleButton').hidden = !departmentHead;
   }
 
   $('showScheduleForm').addEventListener('click', async () => {
@@ -6437,8 +6438,11 @@ let teacherActionMenuListenersInstalled = false;
     if ($('periodSection')) { $('periodSection').innerHTML = '<option value="">Select grade first</option>'; $('periodSection').disabled = true; }
     $('periodTeacherHint').textContent = 'Department and available subjects are determined automatically from the teacher profile.';
   });
+  let scheduleSavePending = false;
   $('scheduleForm').addEventListener('submit', async event => {
     event.preventDefault();
+    if (scheduleSavePending) return;
+    const createAnother = user?.role === 'DEPARTMENT_HEAD' && event.submitter?.id === 'saveAndCreateScheduleButton';
     const feedback = $('scheduleFormFeedback');
     if (!['SCHOOL_ADMIN','DEPARTMENT_HEAD'].includes(user?.role)) {
       feedback.className='inline-feedback error';feedback.textContent='Not authorized to create class schedules.';return;
@@ -6503,17 +6507,25 @@ let teacherActionMenuListenersInstalled = false;
       feedback.textContent = 'Select at least one class day.';
       return;
     }
+    scheduleSavePending = true;
+    const saveButtons = [$('saveScheduleButton'), $('saveAndCreateScheduleButton')].filter(Boolean);
+    saveButtons.forEach(button => { button.disabled = true; });
     try {
       const saved = await api('/api/periods', { method: 'POST', body: JSON.stringify(payload) });
-      $('scheduleForm').reset();
-      $('scheduleForm').hidden = true;
-      if ($('periodSubject')) { $('periodSubject').innerHTML = '<option value="">Choose a teacher or your department</option>'; $('periodSubject').disabled = true; }
-      if ($('periodSection')) { $('periodSection').innerHTML = '<option value="">Select grade first</option>'; $('periodSection').disabled = true; }
-      await loadSchoolData();
+      // Use the standard cancel/reset path so a follow-up form never inherits stale selections.
+      $('cancelScheduleForm').click();
+      try { await loadSchoolData(); }
+      catch (refreshError) { showToast('Schedule saved, but the timetable list could not refresh: ' + refreshError.message, true); }
+      if (createAnother) {
+        $('showScheduleForm').click();
+      }
       showToast(saved.teacher ? 'Schedule saved and assigned to ' + saved.teacher + '.' : 'Class schedule saved. Assign a Subject Teacher when ready.');
     } catch (error) {
       feedback.className = 'inline-feedback error';
       feedback.textContent = error.message;
+    } finally {
+      scheduleSavePending = false;
+      saveButtons.forEach(button => { button.disabled = false; });
     }
   });
 
