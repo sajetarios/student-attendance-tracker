@@ -2465,7 +2465,7 @@ function coverageStatusLabel(status) {
     // the presentation of the same date-adjusted weekly records within the Weekly tab.
     const tab = $('schedulesView')?.dataset.scheduleTab || 'regular';
     if ($('weeklyTimetableBoard')) $('weeklyTimetableBoard').hidden = tab !== 'weekly';
-    if ($('managerScheduleTableWrap')) $('managerScheduleTableWrap').hidden = tab !== 'regular';
+    if ($('managerScheduleTableWrap')) $('managerScheduleTableWrap').hidden = tab !== 'regular' && !$('scheduleAdvancedTools')?.open;
     document.querySelectorAll('[data-schedule-display]').forEach(button => {
       const active = button.dataset.scheduleDisplay === mode;
       button.classList.toggle('is-active', active);
@@ -6431,6 +6431,7 @@ let teacherActionMenuListenersInstalled = false;
     if (user.role === 'TEACHER') await loadSchoolData();
     else await loadScheduleAdjustments();
   });
+  $('scheduleAdvancedTools')?.addEventListener('toggle', () => setScheduleDisplay(activeScheduleDisplay));
   $('weeklyGradeFilter')?.addEventListener('change', renderWeeklyTimetable);
   $('weeklySectionFilter')?.addEventListener('change', renderWeeklyTimetable);
   $('scheduleRows')?.addEventListener('click', async event => {
