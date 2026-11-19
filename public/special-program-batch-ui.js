@@ -104,6 +104,14 @@ window.attendigoStaffIdentity.then(user => {
    toggleProgram();
    try{busy=true;await loadPrograms();}catch(error){feedback('specialProgramBatchFeedback',error.message,true);}
    finally{busy=false;}
+   if(!catalog.length){
+     feedback('specialProgramBatchFeedback','No active special programs exist for this school. Ask the School Administrator to create the program in School Years & Programs before requesting assignment.',true);
+     $('specialProgramBatchProgram').disabled=true;
+     $('specialProgramBatchPreview').disabled=true;
+   }else{
+     $('specialProgramBatchProgram').disabled=false;
+     $('specialProgramBatchPreview').disabled=false;
+   }
    $('specialProgramBatchAction').focus();
  }
  async function requestPreview(){
