@@ -1,6 +1,7 @@
 'use strict';
 const test=require('node:test');
 const assert=require('node:assert/strict');
+const {assertCachedAsset}=require('./support/asset-contract');
 const fs=require('node:fs');
 const path=require('node:path');
 const read=name=>fs.readFileSync(path.join(__dirname,'..',name),'utf8');
@@ -59,8 +60,8 @@ test('dark-mode improvements cover learner menu, pending state, account table an
 });
 
 test('cache versions match the live learner and account scripts and styles',()=>{
+  assertCachedAsset(html,worker,'portal.js',{minimumVersion:203});
   for(const asset of [
-    '/portal.js?v=203',
     '/student-portal-accounts.css?v=6','/student-portal-accounts.js?v=11',
     '/special-program-ui.css?v=5','/special-program-ui.js?v=6',
     '/teacher-roster-popover.js?v=2'
