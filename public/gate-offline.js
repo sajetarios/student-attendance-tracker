@@ -8,6 +8,7 @@ const encoder=new TextEncoder(),decoder=new TextDecoder();
 const QR=/^(JHS|TCH):([0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12})$/i;
 let data=null,secretKey=null,salt=null,scanner=null,active=false,syncing=false,lastScan='',lastScanAt=0;
 let writes=Promise.resolve();
+let queueBusy=false;
 const notice=(id,value,error=false)=>{
  const el=$(id);el.textContent=value;
  if(id==='scanResult'||id==='network')el.className='status'+(error?' error':'');
@@ -57,12 +58,27 @@ function view(){
  $('preparedScope').textContent='Authorized device profile: '+data.scope.role+
    ' · valid for NEW captures until '+new Date(data.scope.validUntil).toLocaleString()+
    ' · already recorded scans stay pending for review';
- $('pendingCount').textContent=data.events.length+' pending local observation'+(data.events.length===1?'':'s');
+ const practiceCount=data.events.filter(item=>item.practice===true).length;
+ const officialCount=data.events.length-practiceCount;
+ $('pendingCount').textContent=officialCount+' pending local observation'+(officialCount===1?'':'s')+
+   (practiceCount?' · '+practiceCount+' practice scan'+(practiceCount===1?'':'s'):'');
+ $('clearPending').disabled=queueBusy||syncing||active||officialCount===0;
+ $('clearPractice').disabled=queueBusy||syncing||active||practiceCount===0;
+ $('sync').disabled=queueBusy||syncing||officialCount===0;
  $('queue').replaceChildren();
  for(const item of data.events.slice(-30).reverse()){
   const li=document.createElement('li');
-  li.textContent=(item.qr.startsWith('TCH:')?'Staff':'Learner')+' badge · device clock '+
-    new Date(item.capturedAtDevice).toLocaleString()+' · pending authorized review';
+  const detail=document.createElement('span');
+  detail.textContent=(item.qr.startsWith('TCH:')?'Staff':'Learner')+' badge · device clock '+
+    new Date(item.capturedAtDevice).toLocaleString()+
+    (item.practice===true?' · PRACTICE ONLY':' · pending authorized review');
+  li.append(detail);
+  const discard=document.createElement('button');
+  discard.type='button';discard.className='secondary';discard.textContent='Discard';
+  discard.setAttribute('aria-label','Discard '+(item.practice===true?'practice':'pending')+' observation recorded '+new Date(item.capturedAtDevice).toLocaleString());
+  discard.disabled=queueBusy||syncing||active;
+  discard.addEventListener('click',()=>discardEvents([item.eventId],item.practice===true?'practice observation':'pending observation').catch(error=>notice('syncResult',error.message,true)));
+  li.append(discard);
   $('queue').append(li);
  }
  $('start').disabled=active||Date.now()>Date.parse(data.scope.validUntil)||data.events.length>=2000;
@@ -152,12 +168,14 @@ async function receive(text){
  if(raw===lastScan&&now-lastScanAt<12000)return; // Repeated camera frames must not create duplicate events.
  if(data.events.length>=2000){notice('scanResult','Device limit reached. Reconnect and synchronize before scanning more.',true);await stop();return;}
  lastScan=raw;lastScanAt=now;
+ const practice=$('testMode').checked;
  const item={eventId:crypto.randomUUID(),qr:match[1].toUpperCase()+':'+match[2].toLowerCase(),
-  capturedAtDevice:new Date(now).toISOString()};
+  capturedAtDevice:new Date(now).toISOString(),...(practice?{practice:true}:{})};
  data.events.push(item);
  try{
   await save();
-  notice('scanResult',(match[1].toUpperCase()==='TCH'?'Staff':'Learner')+' QR captured and encrypted locally. NOT official attendance.');
+  notice('scanResult',(practice?'PRACTICE: ':'')+(match[1].toUpperCase()==='TCH'?'Staff':'Learner')+
+    ' QR captured and encrypted locally. NOT official attendance.');
   view();
  }catch(error){
   data.events.pop();notice('scanResult','Device storage failed. This scan was not saved: '+error.message,true);view();
@@ -179,16 +197,16 @@ async function stop(){
  active=false;view();
 }
 async function sync(){
- if(!data||!data.events.length)return $('syncResult').textContent='No pending scans on this device.';
+ if(!data||!data.events.some(item=>item.practice!==true))return $('syncResult').textContent='No pending non-practice scans to synchronize.';
  if(!online())throw Error('Connect to Wi-Fi or mobile data to synchronize.');
- if(syncing)return;
+ if(syncing||queueBusy)return;
  syncing=true;$('sync').disabled=true;
  try{
   const identity=await api('/api/gate/offline/prepare');
   if(identity.schoolId!==data.scope.schoolId||identity.userId!==data.scope.userId||identity.role!=='GATE_KEEPER')
    throw Error('Different signed-in school or Gatekeeper. Sign into the exact original account. No scans were uploaded.');
-  while(data.events.length){
-   const batch=data.events.slice(0,50);
+  while(data.events.some(item=>item.practice!==true)){
+   const batch=data.events.filter(item=>item.practice!==true).slice(0,50);
    const response=await api('/api/gate/offline/reconcile',{
     method:'POST',body:JSON.stringify({events:batch})});
    if(response.officialAttendance!==false||!Array.isArray(response.results))
@@ -201,10 +219,31 @@ async function sync(){
    data.events=data.events.filter(x=>!acknowledgments.has(x.eventId));
    await save();
    $('syncResult').textContent=acknowledgments.size+
-     ' observations transferred to school review. NONE recorded as official attendance.';
+     ' observations transferred to school review. Practice observations were NOT transferred. NONE recorded as official attendance.';
    view();
   }
  }finally{syncing=false;$('sync').disabled=false;view();}
+}
+async function discardEvents(ids,description){
+ if(!data||!secretKey)throw Error('Unlock the scanner first.');
+ if(syncing||queueBusy||active)throw Error('Stop scanning or synchronization before discarding observations.');
+ const selected=new Set(ids),matching=data.events.filter(event=>selected.has(event.eventId));
+ if(!matching.length)return;
+ if(!window.confirm('Permanently discard '+matching.length+' '+description+(matching.length===1?'':'s')+
+   ' from this device? This cannot be undone and will not change school attendance or already synchronized records.'))return;
+ queueBusy=true;view();
+ try{
+  const originalEvents=data.events;
+  data.events=originalEvents.filter(event=>!selected.has(event.eventId));
+  try{await save();}catch(error){data.events=originalEvents;throw error;}
+  $('syncResult').textContent=matching.length+' local '+description+(matching.length===1?'':'s')+
+    ' discarded. School attendance records were not changed.';
+ }finally{queueBusy=false;view();}
+}
+async function discardSelected(practice){
+ if(!data)return;
+ const selected=data.events.filter(item=>(item.practice===true)===practice);
+ return discardEvents(selected.map(item=>item.eventId),practice?'practice observation':'pending observation');
 }
 function connectivity(){
  const on=online();$('network').className='status'+(on?' good':'');
@@ -223,7 +262,8 @@ function bind(id,callback){
  });
 }
 bind('prepare',prepare);bind('unlock',unlock);bind('lock',lock);bind('start',start);bind('stop',stop);bind('renew',renew);bind('sync',sync);
-window.addEventListener('online',()=>{connectivity();if(data&&data.events.length)sync().catch(e=>{$('syncResult').textContent=e.message;});});
+bind('clearPractice',()=>discardSelected(true));bind('clearPending',()=>discardSelected(false));
+window.addEventListener('online',()=>{connectivity();if(data&&data.events.some(item=>item.practice!==true))sync().catch(e=>{$('syncResult').textContent=e.message;});});
 window.addEventListener('offline',connectivity);
 window.addEventListener('pagehide',()=>{secretKey=null;data=null;}); // never keep decoded badge tokens after navigation
 connectivity();readDoc().then(doc=>{
