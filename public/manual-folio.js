@@ -334,8 +334,8 @@ window.attendigoStaffIdentity.then(user => {
    host.hidden=false;
    el('mfDate').value=state.date;
    try{
-     const [ps,ss]=await Promise.all([api('/api/periods'),api('/api/students')]);
-     state.periods=(ps.periods||[]).filter(p=>p.periodId&&p.section&&p.gradeLevel&&p.assignedTeacherUserId===user.userId);
+     const [ps,ss]=await Promise.all([api('/api/periods?'+new URLSearchParams({weekDate:state.date})),api('/api/students')]);
+     // The /api/periods endpoint already scopes teacher access (subject, substitution, adviser, day adjustment).\n     // Do not filter by assignedTeacherUserId again: an adviser or substitute may not own that field.\n     state.periods=(ps.periods||[]).filter(p=>p.periodId&&p.section&&p.gradeLevel);
      // Authorization is always rechecked server-side.
      state.students=ss.students||[];
      try{localStorage.setItem(rosterKey(),JSON.stringify({periods:state.periods,students:state.students}))}catch{}
