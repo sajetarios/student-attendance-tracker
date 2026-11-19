@@ -521,3 +521,25 @@ html[data-ui-theme="dark"] .portal-page :is(input[type="date"],input[type="time"
 #schedulesView .weekly-schedule-list .schedule-row-actions{display:flex;flex-wrap:wrap;gap:5px}
 #timetableClassDetails .tt-recurring-actions{display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end}
 #timetableClassDetails .tt-action-danger{color:var(--ui-danger,#b42318)}
+
+/* Default-deny schedule controls: no admin control flashes before auth or on role transitions. */
+#schedulesView:not([data-schedule-role-ready="true"]) .schedule-primary-actions,
+#schedulesView:not([data-schedule-role-ready="true"]) .schedule-overview,
+#schedulesView:not([data-schedule-role-ready="true"]) .schedule-workspace-tabs,
+#schedulesView:not([data-schedule-role-ready="true"]) #showScheduleForm,
+#schedulesView:not([data-schedule-role-ready="true"]) #scheduleAdvancedTools{
+  display:none!important;
+}
+#schedulesView:not([data-schedule-role="SCHOOL_ADMIN"]) #scheduleSettingsTab,
+#schedulesView:not([data-schedule-role="SCHOOL_ADMIN"]) #scheduleSettingsShortcut,
+#schedulesView:not([data-schedule-role="SCHOOL_ADMIN"]) #timetableSettings{
+  display:none!important;
+}
+#schedulesView:not([data-schedule-role="DEPARTMENT_HEAD"]) #scheduleAssignmentShortcut{
+  display:none!important;
+}
+#schedulesView .schedule-primary-actions [hidden],
+#schedulesView .schedule-workspace-tabs [hidden],
+#schedulesView #showScheduleForm[hidden]{
+  display:none!important;
+}
