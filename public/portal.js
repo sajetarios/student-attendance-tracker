@@ -606,7 +606,7 @@ window.attendigoStaffIdentity = new Promise(resolve => { resolveStaffIdentity = 
     if ($('sardoCard')) $('sardoCard').hidden = !(admin || departmentHead);
     if ($('learnerSummaryCard')) $('learnerSummaryCard').hidden = gateKeeper || admin || departmentHead;
     if ($('recentActivityCard')) $('recentActivityCard').hidden = gateKeeper || admin || departmentHead;
-    if ($('quickActionsCard')) $('quickActionsCard').hidden = gateKeeper || departmentHead;
+    if ($('quickActionsCard')) $('quickActionsCard').hidden = gateKeeper || departmentHead || admin;
     document.querySelectorAll('.quick-action[data-go]').forEach(button => {
       const target = button.dataset.go;
       const allowed = allowedViewsForUser();
