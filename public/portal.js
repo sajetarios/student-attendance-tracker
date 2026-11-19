@@ -2303,6 +2303,8 @@ function coverageStatusLabel(status) {
   function renderWeeklyTimetable() {
     const host = $('weeklyTimetableBoard');
     if (!host) return;
+    const timetableHeading = $('weeklyTimetableWorkspace')?.querySelector('.weekly-timetable-toolbar strong');
+    if(timetableHeading) timetableHeading.textContent=user.role==='TEACHER'?'My Teaching Schedule':'Weekly timetable';
     const gradeFilter = $('weeklyGradeFilter');
     const sectionFilter = $('weeklySectionFilter');
     const asOfFilter = $('weeklyScheduleAsOf');
@@ -2396,7 +2398,7 @@ function coverageStatusLabel(status) {
         String(a.period.startTime||'').localeCompare(String(b.period.startTime||'')));
       host.innerHTML = '<div class="table-scroll weekly-schedule-list"><table><thead><tr>'+
         '<th>Day / date</th><th>Time</th><th>Subject</th><th>Grade / section</th>'+
-        '<th>Teacher</th><th>Room</th><th>Status</th><th>Actions</th></tr></thead><tbody>'+
+        '<th>Teacher</th><th>Room</th><th>Status</th>'+(user.role==='TEACHER'?'':'<th>Actions</th>')+'</tr></thead><tbody>'+
         (rows.length ? rows.map(({day,period}) => {
           const date = weekDates.find(value => new Date(value+'T00:00:00Z').getUTCDay() === day);
           const status = period.cancelled ? 'Cancelled' : period.adjustment
@@ -2417,8 +2419,8 @@ function coverageStatusLabel(status) {
             (advisoryTag?'<small class="schedule-day-caption">'+esc(advisoryTag)+'</small>':'')+'</td>'+
             '<td>'+esc(period.cancelled?'No class':period.assignedTeacherName||'Unassigned')+'</td>'+
             '<td>'+esc(period.classroom||'—')+'</td>'+
-            '<td>'+esc(status)+'</td><td>'+actions+'</td></tr>';
-        }).join('') : '<tr><td colspan="8" class="empty-cell">No classes match this week and these filters.</td></tr>')+
+            '<td>'+esc(status)+'</td>'+(user.role==='TEACHER'?'':'<td>'+actions+'</td>')+'</tr>';
+        }).join('') : '<tr><td colspan="'+(user.role==='TEACHER'?7:8)+'" class="empty-cell">No classes match this week and these filters.</td></tr>')+
         '</tbody></table></div>';
     }
     const summary = $('weeklyTimetableSummary');
