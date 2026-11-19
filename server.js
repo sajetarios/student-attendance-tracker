@@ -1049,40 +1049,60 @@ app.patch('/api/teachers/:userId/designations', authenticateSchoolClient, requir
   if (!designations.length || designations.some(value => !['CLASS_ADVISER', 'SUBJECT_TEACHER'].includes(value))) {
     return res.status(400).json({ error: 'Select Subject Teacher, Class Adviser, or both.' });
   }
+  let client;
   try {
+    client = await pool.connect();
+    await client.query('BEGIN');
     if (req.auth.role === 'DEPARTMENT_HEAD') {
-      const target = await pool.query(
-        "SELECT department_id FROM school_users WHERE school_id=$1 AND user_id=$2 AND role='TEACHER' AND active=TRUE",
+      const target = await client.query(
+        "SELECT department_id FROM school_users WHERE school_id=$1 AND user_id=$2 AND role='TEACHER' AND active=TRUE FOR UPDATE",
         [req.auth.schoolId, req.params.userId]
       );
       if (!target.rowCount || String(target.rows[0].department_id) !== String(req.auth.departmentId)) {
+        await client.query('ROLLBACK');
         return res.status(403).json({ error: 'You can manage teacher designations only within your own department.' });
       }
     }
     if (!designations.includes('CLASS_ADVISER')) {
-      const assigned = await pool.query(
+      const assigned = await client.query(
         'SELECT 1 FROM class_adviser_assignments WHERE school_id=$1 AND adviser_user_id=$2 LIMIT 1',
         [req.auth.schoolId, req.params.userId]
       );
-      if (assigned.rowCount) return res.status(409).json({ error: 'Remove this teacher\'s Class Adviser section assignments before removing the designation.' });
+      if (assigned.rowCount) {
+        await client.query('ROLLBACK');
+        return res.status(409).json({ error: 'Remove this teacher\'s Class Adviser section assignments before removing the designation.' });
+      }
     }
-    const updated = await pool.query(
+    const updated = await client.query(
       `UPDATE school_users SET teacher_designations=$3, updated_at=NOW()
        WHERE school_id=$1 AND user_id=$2 AND role='TEACHER'
        RETURNING user_id AS "userId", teacher_designations AS "teacherDesignations"`,
       [req.auth.schoolId, req.params.userId, designations]
     );
-    if (!updated.rowCount) return res.status(404).json({ error: 'Teacher account not found in this school.' });
-    await pool.query(
+    if (!updated.rowCount) {
+      await client.query('ROLLBACK');
+      return res.status(404).json({ error: 'Teacher account not found in this school.' });
+    }
+    const auditAction = req.auth.role === 'DEPARTMENT_HEAD'
+      ? 'DEPARTMENT_HEAD_UPDATE_TEACHER_DESIGNATIONS'
+      : 'SCHOOL_ADMIN_UPDATE_TEACHER_DESIGNATIONS';
+    await client.query(
       `INSERT INTO audit_logs(school_id, actor_type, actor_user_id, action, entity_type, entity_id, details)
-       VALUES($1,'SCHOOL',$2,req.auth.role === 'DEPARTMENT_HEAD' ? 'DEPARTMENT_HEAD_UPDATE_TEACHER_DESIGNATIONS' : 'SCHOOL_ADMIN_UPDATE_TEACHER_DESIGNATIONS','school_user',$3,$4::jsonb)`,
-      [req.auth.schoolId, req.auth.userId, req.params.userId, JSON.stringify({ teacherDesignations: designations })]
+       VALUES($1,'SCHOOL',$2,$5,'school_user',$3,$4::jsonb)`,
+      [req.auth.schoolId, req.auth.userId, req.params.userId, JSON.stringify({ teacherDesignations: designations }), auditAction]
     );
+    await client.query('COMMIT');
     return res.json({ teacher: updated.rows[0] });
   } catch (err) {
+    if (client) {
+      try { await client.query('ROLLBACK'); }
+      catch (rollbackError) { console.error('Teacher designation rollback failed:', rollbackError.message); }
+    }
     if (err.code === '23514') return res.status(409).json({ error: err.message });
     console.error('Teacher designation update failed:', err.message);
-    return res.status(500).json({ error: 'Could not update teacher designations.' });
+    return res.status(500).json({ error: 'Teacher designation could not be saved. No changes were committed; please try again.' });
+  } finally {
+    client?.release();
   }
 });
 
