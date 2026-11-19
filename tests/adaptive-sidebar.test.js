@@ -1,6 +1,7 @@
 'use strict';
 const test=require('node:test');
 const assert=require('node:assert/strict');
+const {assertCachedAsset}=require('./support/asset-contract');
 const vm=require('node:vm');
 const fs=require('node:fs');
 const source=fs.readFileSync('public/attendigo-sidebar-adaptive.js','utf8');
@@ -137,5 +138,5 @@ test('expanded staff navigation is default, with accessible labeled desktop menu
  assert.match(css,/grid-template-columns:64px minmax\(0,1fr\)!important/);
  assert.match(css,/sidebar\.sidebar \.nav-item\.active/);
  assert.ok(worker.includes('/attendigo-sidebar-adaptive.css?v=19'));
- assert.ok(html.includes('/portal.js?v=203'));
+ assertCachedAsset(html,worker,'portal.js',{minimumVersion:203});
 });
