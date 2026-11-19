@@ -143,6 +143,9 @@
  };
  const openInbox=()=>{
    if(!isAdmin()||!inboxHost)return;
+   if(document.getElementById('dashboardView')?.hidden){
+     document.querySelector('.nav-item[data-view="dashboard"]')?.click();
+   }
    wrap.hidden=true; // keep the redundant header action hidden
    if(panel.parentNode!==inboxHost)inboxHost.append(panel);
    inboxHost.hidden=false;
