@@ -2009,11 +2009,9 @@ function coverageStatusLabel(status) {
     const photoMarkup = photo
       ? `<img class="student-scan-verified-photo photo-flash" src="${photo}" alt="Registered ${isTeacherPerson ? 'teacher' : 'student'} photo for identity verification">`
       : '<div class="student-scan-verified-photo student-scan-no-photo">No registered photo</div>';
-    const verificationMarkup = user.role === 'GATE_KEEPER'
-      ? (photo
-          ? `<label class="gate-photo-verification"><input type="checkbox" id="studentPhotoVerified"> I confirm the displayed photo matches the ${isTeacherPerson ? 'teacher' : 'learner'}.</label>`
-          : `<p class="gate-photo-warning">No registered photo is available. Ask the School Administrator to upload a photo before recording attendance.</p>`)
-      : '';
+    // The first QR recognition dialog is the Gatekeeper's single verification surface.
+    // No second, duplicate verification control is rendered beneath it.
+    const verificationMarkup = '';
     const initiallyDisabled = user.role === 'GATE_KEEPER' ? 'disabled' : '';
     const dtrMarkup = isTeacherPerson && user.role === 'GATE_KEEPER'
       ? `<details class="gate-dtr-fallback"><summary>Manual DTR fallback (authorized use)</summary><div class="student-scan-buttons" role="group" aria-label="Form 48 teacher DTR">
@@ -2025,14 +2023,16 @@ function coverageStatusLabel(status) {
           <button type="button" class="primary-button" id="teacherDtrRecord" disabled>Record verified DTR</button>
         </div><p class="attendance-summary-note">Form 48 DTR is separate from physical gate movements. Use this fallback only for an authorized DTR entry.</p></details>`
       : '';
-    $('studentScanResult').hidden = false;
+    $('studentScanResult').hidden = user.role === 'GATE_KEEPER';
     const subjectLabel = isTeacherPerson ? 'teacher' : 'learner';
     $('studentScanResult').innerHTML = `${photoMarkup}<strong>${esc(fullName)}</strong><span>${esc(meta)}</span>${verificationMarkup}<div class="student-scan-buttons"><button type="button" class="primary-button" id="studentTimeIn" ${initiallyDisabled}>Record ${subjectLabel} time-in</button><button type="button" class="outline-button" id="studentTimeOut" ${initiallyDisabled}>Record ${subjectLabel} time-out</button><button type="button" class="outline-button" id="studentScanClear">Scan another</button></div>${dtrMarkup}`;
     $('studentScanFeedback').textContent = user.role === 'GATE_KEEPER'
       ? `QR recognized. Compare the displayed photo with the ${isTeacherPerson ? 'teacher' : 'learner'} before recording gate attendance.`
       : 'QR scanned successfully. Choose an attendance action.';
     $('studentScanFeedback').className = 'scanner-feedback is-success';
-    $('studentScanNoticeTitle').textContent = isTeacherPerson ? 'Teacher identity found' : 'Learner identity found';
+    $('studentScanNoticeTitle').textContent = user.role === 'GATE_KEEPER'
+      ? `Verify ${isTeacherPerson ? 'teacher' : 'learner'} identity`
+      : (isTeacherPerson ? 'Teacher identity found' : 'Learner identity found');
     $('studentScanNoticeName').textContent = fullName;
     $('studentScanNoticeMeta').textContent = meta;
     const noticeCopy = document.querySelector('.student-scan-notice-copy');
@@ -2044,8 +2044,33 @@ function coverageStatusLabel(status) {
       noticePhoto.classList.remove('photo-flash');
       if (photo) { void noticePhoto.offsetWidth; noticePhoto.classList.add('photo-flash'); }
     }
+    const isGateVerification = user.role === 'GATE_KEEPER';
+    const noticeRecord = $('studentScanNoticeRecord');
+    const noticeContinue = $('studentScanNoticeContinue');
+    const noticeClear = $('studentScanNoticeClear');
+    const noticeConfirmation = $('studentScanNoticeConfirmation');
+    const noticePhotoWarning = $('studentScanNoticePhotoWarning');
+    const noticeDtr = $('studentScanNoticeDtr');
+    noticeDtr.replaceChildren();
+    $('studentPhotoVerified').checked = false;
+    noticeContinue.hidden = isGateVerification;
+    noticeRecord.hidden = !isGateVerification;
+    noticeClear.hidden = !isGateVerification;
+    noticeRecord.disabled = !photo;
+    noticeConfirmation.hidden = !isGateVerification || !photo;
+    noticePhotoWarning.hidden = !isGateVerification || Boolean(photo);
+    if (isGateVerification && isTeacherPerson) {
+      const fallback = $('studentScanResult').querySelector('.gate-dtr-fallback');
+      if (fallback) {
+        noticeDtr.appendChild(fallback);
+        // This explicit, authorized action also confirms the photo in the same dialog.
+        const dtrButton = $('teacherDtrRecord');
+        dtrButton.disabled = !photo;
+      }
+    }
     $('studentScanNotice').hidden = false;
-    showToast(user.role === 'GATE_KEEPER' ? `Verify photo: ${fullName}` : `QR scanned: ${fullName}`);
+    if (isGateVerification) noticeRecord.focus();
+    showToast(isGateVerification ? `Verify photo: ${fullName}` : `QR scanned: ${fullName}`);
     if (user.role === 'GATE_KEEPER') {
       $('studentTimeIn').textContent = 'Verify & Record';
       $('studentTimeOut').hidden = true;
@@ -2055,7 +2080,12 @@ function coverageStatusLabel(status) {
       $('studentTimeIn').addEventListener('click', () => isTeacherPerson ? recordTeacherGatePunch('TIME_IN') : recordStudentPunch('TIME_IN'));
       $('studentTimeOut').addEventListener('click', () => isTeacherPerson ? recordTeacherGatePunch('TIME_OUT') : recordStudentPunch('TIME_OUT'));
     }
-    $('teacherDtrRecord')?.addEventListener('click', recordTeacherDtrSlot);
+    $('teacherDtrRecord')?.addEventListener('click', () => {
+      if (user.role === 'GATE_KEEPER' && photo && !$('studentScanNotice').hidden) {
+        $('studentPhotoVerified').checked = true;
+      }
+      recordTeacherDtrSlot();
+    });
     $('studentPhotoVerified')?.addEventListener('change', event => {
       const verified = Boolean(event.target.checked);
       $('studentTimeIn').disabled = !verified;
@@ -6245,8 +6275,42 @@ let teacherActionMenuListenersInstalled = false;
     $('scanSetupPeriodHint').textContent = 'Choose the assigned schedule for this attendance session.';
   });
   $('studentScannerStop').addEventListener('click', stopStudentScanner);
+  function clearGateScanDialog() {
+    $('studentScanClear')?.click();
+    $('studentScanNoticeDtr').replaceChildren();
+    $('studentPhotoVerified').checked = false;
+    $('studentScanNotice').hidden = true;
+  }
+  $('studentScanNoticeClear').addEventListener('click', clearGateScanDialog);
+  $('studentScanNoticeRecord').addEventListener('click', async () => {
+    if (user.role !== 'GATE_KEEPER') return;
+    const button = $('studentScanNoticeRecord');
+    if (button.disabled || (!scannedStudent && !scannedTeacher)) return;
+    const photo = $('studentScanNoticePhoto');
+    if (!photo || photo.hidden || !photo.src) {
+      showToast('Registered photo unavailable. Ask the School Administrator to upload a valid photo.', true);
+      return;
+    }
+    // The guard's deliberate Verify & Record click is the photo-match confirmation.
+    // Existing server-side role, photo and idempotency rules remain authoritative.
+    button.disabled = true;
+    $('studentPhotoVerified').checked = true;
+    try {
+      if (scannedTeacher) await recordTeacherAutomaticGatePunch();
+      else await recordStudentAutomaticGatePunch();
+    } finally {
+      if (!$('studentScanNotice').hidden) {
+        $('studentPhotoVerified').checked = false;
+        button.disabled = false;
+      }
+    }
+  });
   $('studentScanNoticeContinue').addEventListener('click', () => { $('studentScanNotice').hidden = true; $('studentTimeIn')?.focus(); });
-  $('studentScanNotice').addEventListener('click', event => { if (event.target === $('studentScanNotice')) $('studentScanNotice').hidden = true; });
+  $('studentScanNotice').addEventListener('click', event => {
+    if (event.target !== $('studentScanNotice')) return;
+    if (user.role === 'GATE_KEEPER') clearGateScanDialog();
+    else $('studentScanNotice').hidden = true;
+  });
   $('closeStudentEdit').addEventListener('click', () => { $('studentEditOverlay').hidden = true; });
   $('studentEditOverlay').addEventListener('click', event => { if (event.target === $('studentEditOverlay')) $('studentEditOverlay').hidden = true; });
   $('studentEditForm').addEventListener('submit', async event => {
