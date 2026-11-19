@@ -1,4 +1,4 @@
-const CACHE = "attendigo-v254-unified-approval-nav";
+const CACHE = "attendigo-v255-shs-academic-levels";
 
 const SHELL = [
   "/typography.css?v=1",
@@ -97,6 +97,8 @@ const SHELL = [
   "/guardian-ui.css?v=4",
   "/academic-admin.css?v=1",
   "/academic-admin.js?v=7",
+  "/shs-school-ui.js?v=1",
+  "/shs-school-ui.css?v=1",
   "/special-program-ui.js?v=6",
   "/special-program-batch-ui.js?v=3",
   "/special-program-ui.css?v=5",
