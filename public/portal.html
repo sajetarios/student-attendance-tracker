@@ -1187,6 +1187,7 @@ body.dark-mode .content-wrap > .school-heading.is-compact,body[data-theme="dark"
           <section id="studentsView" class="view-panel" hidden>
             <div class="surface-card section-card">
               <div class="section-toolbar" id="studentManagementHeader"><div><h3>Student roster</h3><p id="studentScopeText">Students available to your account.</p></div><div class="toolbar-actions"><button class="outline-button" type="button" id="exportStudentsButton">↓ Export list</button><button class="outline-button" type="button" id="downloadStudentTemplate">↓ Template</button><button class="outline-button" type="button" id="bulkImportStudentsButton">↑ Bulk import</button><a class="outline-button" href="/parent-admin.html" id="manageParentsFromStudents" hidden style="display:none;align-items:center;text-decoration:none">Parent portal accounts</a><button class="outline-button" type="button" id="showStudentPortalHelp" hidden>Manage student logins</button><button class="primary-button" id="showStudentForm">＋ Add student</button></div></div>
+              <p id="studentImportAccessNote" class="field-hint" role="status" aria-live="polite" hidden></p>
               <form id="studentForm" class="inline-form" hidden method="post">
                 <div class="form-grid">
                   <div class="field-group"><label for="newStudentId">Student ID <span class="optional-label">Auto-generated</span></label><input id="newStudentId" maxlength="80" placeholder="Auto-generated (e.g. 26-00089)"><small class="field-hint">Leave blank for a short Year–Number ID. It stays fixed through grade promotions. The official DepEd LRN is separate.</small></div>
@@ -2093,7 +2094,7 @@ body.dark-mode .content-wrap > .school-heading.is-compact,body[data-theme="dark"
   <script src="/offline-attendance.js?v=5" defer></script>
   <script src="/attendance-sync-center.js?v=3" defer></script>
   <script src="/learner-roster-view.js?v=1" defer></script>
-  <script src="/portal.js?v=202" defer></script>
+  <script src="/portal.js?v=203" defer></script>
   <script src="/schedule-list-filters.js?v=1" defer></script>
   <script src="/staff-lunch-ui.js?v=3" defer></script>
   <script src="/staff-ob-ui.js?v=5" defer></script>
