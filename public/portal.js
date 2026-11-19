@@ -402,6 +402,32 @@ window.attendigoStaffIdentity = new Promise(resolve => { resolveStaffIdentity = 
   // not rebuild unchanged navigation whenever the tab regains visibility.
   let appliedNavigationFingerprint = null;
   let entitlementRefreshInFlight = false;
+  let offlineReviewBadgeInFlight = false;
+  let offlineReviewBadgeLastCheck = 0;
+  async function refreshOfflineReviewBadge(force = false) {
+    const badge = $('offlineScanReviewsNavBadge');
+    if (!badge) return;
+    if (user?.role !== 'SCHOOL_ADMIN') { badge.hidden = true; return; }
+    // Avoid repeated network requests during entitlements and view updates.
+    if (offlineReviewBadgeInFlight || (!force && Date.now() - offlineReviewBadgeLastCheck < 120000)) return;
+    offlineReviewBadgeInFlight = true;
+    offlineReviewBadgeLastCheck = Date.now();
+    try {
+      const data = await api('/api/gate/offline/review');
+      if (user?.role !== 'SCHOOL_ADMIN') { badge.hidden = true; return; }
+      const pending = Array.isArray(data.items)
+        ? data.items.filter(item => item.status === 'REVIEW_REQUIRED' || item.status === 'INVALID_BADGE').length
+        : 0;
+      badge.textContent = pending > 99 ? '99+' : String(pending);
+      badge.setAttribute('aria-label', pending + ' pending offline scan reviews');
+      badge.hidden = pending === 0;
+    } catch (_) {
+      // A failed count must never expose records or block the rest of the portal.
+      badge.hidden = true;
+    } finally {
+      offlineReviewBadgeInFlight = false;
+    }
+  }
   const navigationFingerprint = data => JSON.stringify({
     planner: data?.features?.planner,
     sms: data?.features?.sms_notifications,
@@ -426,7 +452,7 @@ window.attendigoStaffIdentity = new Promise(resolve => { resolveStaffIdentity = 
       entitlementRefreshInFlight = false;
     }
   }
-  window.addEventListener('pageshow', () => { if (user && user.role !== 'SUPER_ADMIN') refreshSchoolEntitlements(); });
+  window.addEventListener('pageshow', () => { if (user && user.role !== 'SUPER_ADMIN') refreshSchoolEntitlements(); if (user?.role === 'SCHOOL_ADMIN') refreshOfflineReviewBadge(true); });
   document.addEventListener('visibilitychange', () => {
     if (!document.hidden && user && user.role !== 'SUPER_ADMIN') refreshSchoolEntitlements();
   });
@@ -760,6 +786,7 @@ window.attendigoStaffIdentity = new Promise(resolve => { resolveStaffIdentity = 
       const submenu = document.querySelector('[data-submenu="' + group + '"]');
       if (container && submenu) container.hidden = !Array.from(submenu.children).some(item => !item.hidden);
     });
+    if (admin) refreshOfflineReviewBadge();
     if (gateKeeper) {
       if ($('scanSetupScope')) { $('scanSetupScope').value = 'SCHOOL'; $('scanSetupScope').disabled = true; }
       if ($('scanSetupPeriodWrap')) $('scanSetupPeriodWrap').hidden = true;

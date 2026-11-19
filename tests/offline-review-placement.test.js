@@ -41,7 +41,7 @@ test('compact review screen preserves the unverified-only safeguard and audited 
 });
 
 test('new portal navigation is versioned for the service worker', () => {
-  assert.match(portal, /\/portal\.js\?v=211/);
-  assert.match(sw, /"\/portal\.js\?v=211"/);
-  assert.match(sw, /const CACHE = "attendigo-v258-offline-review-navigation"/);
+  assert.match(portal, /\/portal\.js\?v=212/);
+  assert.match(sw, /"\/portal\.js\?v=212"/);
+  assert.match(sw, /const CACHE = "attendigo-v259-admin-attendance-navigation"/);
 });

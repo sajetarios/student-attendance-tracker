@@ -45,11 +45,11 @@ test('responsive teacher roster keeps grouped sex counts, readable cards and dar
 });
 test('PWA asset versions match the new styling and scripts', () => {
   assertCachedAsset(page,worker,'portal.js',{minimumVersion:203});
-  for (const asset of ['/teacher-learner-roster.css?v=4','/class-qr-dashboard-link.js?v=9','/teacher-roster-popover.js?v=2']) {
+  for (const asset of ['/teacher-learner-roster.css?v=4','/class-qr-dashboard-link.js?v=10','/teacher-roster-popover.js?v=2']) {
     assert.ok(page.includes(asset), asset+' included in portal');
     assert.ok(worker.includes(JSON.stringify(asset)), asset+' cached');
   }
-  assert.ok(page.includes('/class-qr-dashboard-link.js?v=9'));
+  assert.ok(page.includes('/class-qr-dashboard-link.js?v=10'));
   assert.ok(page.includes('/teacher-roster-popover.js?v=2'));
   assert.match(worker, /const CACHE = "attendigo-v\d+[^"]*"/);
 });

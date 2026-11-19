@@ -1,4 +1,4 @@
-const CACHE = "attendigo-v258-offline-review-navigation";
+const CACHE = "attendigo-v259-admin-attendance-navigation";
 
 const SHELL = [
   "/typography.css?v=1",
@@ -51,10 +51,10 @@ const SHELL = [
   "/learner-roster-view.css?v=1",
   "/teacher-learner-roster.css?v=4",
   "/learner-roster-view.js?v=1",
-  "/class-qr-dashboard-link.js?v=9",
+  "/class-qr-dashboard-link.js?v=10",
   "/teacher-roster-popover.js?v=2",
   "/portal.css?v=0.9.119",
-  "/portal.js?v=211",
+  "/portal.js?v=212",
   "/department-workspace.css?v=1",
   "/department-workspace.js?v=5",
   "/department-monitor-refresh.css?v=1",
