@@ -1,4 +1,4 @@
-const CACHE = "attendigo-v248-header-avatar-spacing";
+const CACHE = "attendigo-v249-department-monitor-design";
 
 const SHELL = [
   "/typography.css?v=1",
@@ -54,7 +54,8 @@ const SHELL = [
   "/portal.css?v=0.9.119",
   "/portal.js?v=208",
   "/department-workspace.css?v=1",
-  "/department-workspace.js?v=4",
+  "/department-workspace.js?v=5",
+  "/department-monitor-refresh.css?v=1",
   "/form48-report.js?v=7",
   "/form48-bulk-ui.js?v=2",
   "/form48-report.css?v=7",
