@@ -5355,6 +5355,7 @@ let teacherActionMenuListenersInstalled = false;
       $('accountProfileDisplayName').value = data.profile.displayName || '';
       $('accountProfileMobile').value = data.profile.mobile || '';
       $('accountProfileFeedback').textContent = '';
+      accountProfileSavedValues = { displayName: $('accountProfileDisplayName').value.trim(), mobile: $('accountProfileMobile').value.trim() };
       $('accountCurrentPassword').value = '';
       $('accountNewPassword').value = '';
       dialog.showModal();
@@ -5365,19 +5366,45 @@ let teacherActionMenuListenersInstalled = false;
   $('settingsMenuButton').addEventListener('click', () => { $('accountDropdown').hidden = true; openAccountProfile(true); });
   $('closeAccountProfile')?.addEventListener('click', () => $('accountProfileDialog').close());
   $('accountProfileDialog')?.addEventListener('click', event => { if (event.target === $('accountProfileDialog')) $('accountProfileDialog').close(); });
+  $('profileSavedConfirmationClose')?.addEventListener('click', () => $('profileSavedConfirmationDialog').close());
+  let accountProfileSavedValues = null;
   $('accountProfileForm')?.addEventListener('submit', async event => {
     event.preventDefault();
-    const feedback = $('accountProfileFeedback'); feedback.textContent = 'Saving profile…'; feedback.className = 'inline-feedback';
+    const feedback = $('accountProfileFeedback');
+    const saveButton = $('accountProfileForm').querySelector('button[type="submit"]');
+    const values = {
+      displayName: $('accountProfileDisplayName').value.trim(),
+      mobile: $('accountProfileMobile').value.trim()
+    };
+    if (accountProfileSavedValues && values.displayName === accountProfileSavedValues.displayName && values.mobile === accountProfileSavedValues.mobile) {
+      feedback.textContent = 'No profile changes to save.';
+      feedback.className = 'inline-feedback';
+      return;
+    }
+    saveButton.disabled = true;
+    feedback.textContent = 'Saving profile…';
+    feedback.className = 'inline-feedback';
     try {
-      const data = await api('/api/account/profile', { method: 'PATCH', body: JSON.stringify({
-        displayName: $('accountProfileDisplayName').value.trim(), mobile: $('accountProfileMobile').value.trim()
-      }) });
-      user.displayName = data.profile.displayName; user.mobile = data.profile.mobile || '';
+      const data = await api('/api/account/profile', { method: 'PATCH', body: JSON.stringify(values) });
+      if (!data?.profile) throw new Error('Unable to confirm that your profile was saved.');
+      user.displayName = data.profile.displayName;
+      user.mobile = data.profile.mobile || '';
+      accountProfileSavedValues = { displayName: user.displayName.trim(), mobile: user.mobile.trim() };
       sessionStorage.setItem(userKey, JSON.stringify(user));
-      $('userDisplay').textContent = user.displayName; $('accountMenuName').textContent = user.displayName;
+      $('accountProfileDisplayName').value = user.displayName;
+      $('accountProfileMobile').value = user.mobile;
+      $('userDisplay').textContent = user.displayName;
+      $('accountMenuName').textContent = user.displayName;
       if (!$('userAvatar').querySelector('img')) $('userAvatar').textContent = user.displayName.trim().charAt(0).toUpperCase();
-      feedback.textContent = 'Profile saved.'; showToast('Profile saved.');
-    } catch (error) { feedback.textContent = error.message; feedback.className = 'inline-feedback error'; }
+      feedback.textContent = 'Profile changes saved successfully.';
+      $('profileSavedConfirmationDialog').showModal();
+      $('profileSavedConfirmationClose').focus();
+    } catch (error) {
+      feedback.textContent = error.message || 'Could not save your profile. Please try again.';
+      feedback.className = 'inline-feedback error';
+    } finally {
+      saveButton.disabled = false;
+    }
   });
   $('accountPasswordForm')?.addEventListener('submit', async event => {
     event.preventDefault();
