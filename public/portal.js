@@ -6660,7 +6660,7 @@ let teacherActionMenuListenersInstalled = false;
       addSectionButton.disabled = true;
       try {
         const existing = await api('/api/sections?gradeLevel=' + encodeURIComponent(gradeLevel));
-        const identity = value => String(value||'').trim().toLocaleLowerCase().replace(/[\\s._-]+/g,'');
+        const identity = value => String(value||'').trim().toLocaleLowerCase().replace(/[\s._-]+/g,'');
         const duplicate = (existing.sections || []).find(item => identity(item) === identity(normalizedSection));
         if (duplicate) {
           await loadScheduleSections(gradeLevel, duplicate);
