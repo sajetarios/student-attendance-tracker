@@ -13,7 +13,7 @@ test('SHS pathway loads new revision with disabled choices and an enrollment act
   'shsPathEnroll','shsPathCurriculumSummary'])assert.match(html,new RegExp('id="'+id+'"'));
  assert.match(html,/id="shsPathTrack" required disabled/);
  assert.match(html,/id="shsPathStrand"[^>]*disabled/);
- assert.match(html,/id="shsLearnerPathForm"[\\s\\S]*?<button type="submit" class="primary-button" disabled>Save learner pathway/);
+ assert.match(html,/id="shsLearnerPathForm"[\s\S]*?<button type="submit" class="primary-button" disabled>Save learner pathway/);
  for(const asset of ['shs-school-ui.js?v=2','shs-school-ui.css?v=2']){
   assert.ok(html.includes('/'+asset));
   assert.ok(sw.includes('"/'+asset+'"'));
