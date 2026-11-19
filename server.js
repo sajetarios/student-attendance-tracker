@@ -108,6 +108,7 @@ registerSmsRoutes(app, pool, { authenticateSchoolClient, requireSchoolRoles });
 registerParentRoutes(app, pool, { authenticateSchoolClient, requireSchoolRoles });
 registerGuardianRoutes(app, pool, { authenticateSchoolClient, requireSchoolRoles });
 registerStudentRoutes(app, pool, { authenticateSchoolClient, requireSchoolAdmin });
+require('./subject-management-routes').registerSubjectManagementRoutes(app, pool, { authenticateSchoolClient, requireSchoolRoles });
 registerStudentPortalAccountRoutes(app, pool, { authenticateSchoolClient, requireSchoolRoles });
 registerAcademicRoutes(app, pool, { authenticateSchoolClient, requireSchoolRoles });
 registerSpecialProgramRoutes(app, pool, { authenticateSchoolClient, requireSchoolRoles });
