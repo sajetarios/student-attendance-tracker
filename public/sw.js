@@ -1,4 +1,4 @@
-const CACHE = "attendigo-v247-teacher-advisory-schedule";
+const CACHE = "attendigo-v248-header-avatar-spacing";
 
 const SHELL = [
   "/typography.css?v=1",
@@ -44,7 +44,7 @@ const SHELL = [
   "/portal-login.html",
   "/attendigo-login-motion.css?v=2",
   "/attendigo-login-refinement.css?v=5",
-  "/portal.css?v=0.9.119",
+  "/portal.css?v=0.9.120",
   "/student-roster-toolbar.css?v=2",
   "/learner-roster-view.css?v=1",
   "/teacher-learner-roster.css?v=4",
