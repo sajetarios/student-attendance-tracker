@@ -1,0 +1,213 @@
+/* Attendigo Department Head Dashboard V2 — presentation-only, role-scoped */
+html.attendigo-dh-v2 {
+ --dh-v2-blue:var(--ui-accent,var(--brand,#1765a6));
+ --dh-v2-line:var(--ui-line,#d9e5f3);
+ --dh-v2-card:var(--ui-panel,#fff);
+ --dh-v2-muted:var(--ui-muted,#52647e);
+ --dh-v2-text:var(--ui-text,#182c48);
+}
+html.attendigo-dh-v2 #departmentHeadOverview,
+html.attendigo-dh-v2 #plannerDashboardWidget{
+ min-width:0;border:1px solid var(--dh-v2-line);
+ border-radius:15px;padding:14px!important;
+ background:var(--dh-v2-card);
+ box-shadow:0 3px 13px #0e315011;
+ margin-block:12px!important;
+}
+html.attendigo-dh-v2 #departmentHeadOverview .dh-command-intro,
+html.attendigo-dh-v2 #plannerDashboardWidget .planner-dashboard-intro{
+ display:flex;align-items:center;gap:12px;min-height:50px;margin:0 0 12px!important;
+}
+html.attendigo-dh-v2 #departmentHeadOverview .dh-command-intro h3,
+html.attendigo-dh-v2 #plannerDashboardWidget .planner-dashboard-intro h3{
+ font-size:clamp(17px,1.6vw,21px);line-height:1.25;letter-spacing:-.015em;
+ color:var(--dh-v2-text);margin:1px 0 2px;font-weight:760;
+}
+html.attendigo-dh-v2 #departmentHeadOverview .dh-command-intro p,
+html.attendigo-dh-v2 #plannerDashboardWidget .planner-dashboard-intro p{
+ font-size:12px;line-height:1.45;color:var(--dh-v2-muted);margin:0;
+}
+html.attendigo-dh-v2 #departmentHeadOverview .dh-eyebrow,
+html.attendigo-dh-v2 #plannerDashboardWidget .planner-dashboard-kicker{
+ font-size:10px;letter-spacing:.09em;font-weight:800;color:var(--dh-v2-blue);
+}
+html.attendigo-dh-v2 #departmentHeadOverview .dh-command-metrics{
+ display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin:0 0 12px;
+}
+html.attendigo-dh-v2 #departmentHeadOverview .dh-command-metric{
+ min-width:0;min-height:99px;display:grid;grid-template-columns:42px 1fr;
+ grid-template-rows:auto auto auto;align-content:center;column-gap:11px;
+ padding:12px;border-radius:12px;border:1px solid var(--dh-v2-line);
+ background:color-mix(in srgb,var(--dh-v2-blue) 5%,var(--dh-v2-card));
+ box-shadow:none;transition:transform .16s,box-shadow .16s;
+}
+html.attendigo-dh-v2 #departmentHeadOverview .dh-command-metric:nth-child(2){
+ background:color-mix(in srgb,#16a579 7%,var(--dh-v2-card));}
+html.attendigo-dh-v2 #departmentHeadOverview .dh-command-metric:nth-child(3){
+ background:color-mix(in srgb,#795bd5 6%,var(--dh-v2-card));}
+html.attendigo-dh-v2 #departmentHeadOverview .dh-command-metric:nth-child(4){
+ background:color-mix(in srgb,#e5a02e 9%,var(--dh-v2-card));}
+html.attendigo-dh-v2 #departmentHeadOverview .dh-metric-icon{
+ grid-column:1;grid-row:1/4;align-self:center;width:42px;height:42px;
+ display:grid;place-items:center;border-radius:11px;
+ background:color-mix(in srgb,var(--dh-v2-blue) 14%,var(--dh-v2-card));
+ color:var(--dh-v2-blue);font-size:22px;
+}
+html.attendigo-dh-v2 #departmentHeadOverview .dh-command-metric>span:not(.dh-metric-icon){
+ grid-column:2;grid-row:2;font-size:12px;line-height:1.35;
+ color:var(--dh-v2-text);font-weight:700;
+}
+html.attendigo-dh-v2 #departmentHeadOverview .dh-command-metric>strong{
+ grid-column:2;grid-row:1;font-size:24px;line-height:1.15;
+ color:var(--dh-v2-text);font-weight:800;
+}
+html.attendigo-dh-v2 #departmentHeadOverview .dh-command-metric>small{
+ grid-column:2;grid-row:3;font-size:10.5px;color:var(--dh-v2-muted);line-height:1.35;
+}
+html.attendigo-dh-v2 #departmentHeadOverview .dh-actionable-metric{cursor:pointer}
+html.attendigo-dh-v2 #departmentHeadOverview .dh-actionable-metric:hover{
+ transform:translateY(-2px);box-shadow:0 5px 16px #113f6a17;
+}
+html.attendigo-dh-v2 #departmentHeadOverview .dh-actionable-metric:focus-visible,
+html.attendigo-dh-v2 .dh-v2-collapse:focus-visible{
+ outline:3px solid var(--dh-v2-blue);outline-offset:3px;
+}
+html.attendigo-dh-v2 #departmentHeadOverview .dh-command-columns{
+ display:grid;grid-template-columns:1fr 1fr;gap:12px;
+}
+html.attendigo-dh-v2 #departmentHeadOverview .dh-command-panel{
+ min-width:0;padding:12px;border:1px solid var(--dh-v2-line);
+ border-radius:12px;background:var(--dh-v2-card);box-shadow:none;
+}
+html.attendigo-dh-v2 #departmentHeadOverview .dh-panel-heading{margin-bottom:8px}
+html.attendigo-dh-v2 #departmentHeadOverview .dh-panel-heading h4{
+ font-size:14px;line-height:1.3;margin:2px 0 3px;
+}
+html.attendigo-dh-v2 #departmentHeadOverview .dh-panel-heading p,
+html.attendigo-dh-v2 #departmentHeadOverview .dh-attention-row small{
+ font-size:11px;line-height:1.45;
+}
+html.attendigo-dh-v2 #departmentHeadOverview .dh-attention-row{padding:9px 10px}
+html.attendigo-dh-v2 #departmentHeadOverview .dh-shortcut{padding:9px 10px;min-height:48px}
+html.attendigo-dh-v2 #departmentHeadOverview .dh-scope-note{font-size:10.5px;margin:8px 0 0;line-height:1.5}
+html.attendigo-dh-v2 #plannerDashboardWidget .planner-dashboard-metrics{
+ display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin:0;
+}
+html.attendigo-dh-v2 #plannerDashboardWidget .planner-dashboard-metrics>div{
+ min-width:0;display:flex;align-items:center;gap:8px;
+ padding:11px;border:1px solid var(--dh-v2-line);
+ border-radius:10px;background:var(--dh-v2-card);
+}
+html.attendigo-dh-v2 #plannerDashboardWidget .planner-dashboard-metrics strong{
+ font-size:23px;color:var(--dh-v2-text);line-height:1.1;
+}
+html.attendigo-dh-v2 #plannerDashboardWidget .planner-dashboard-metrics span{
+ font-size:12px;color:var(--dh-v2-muted);
+}
+html.attendigo-dh-v2 #plannerDashboardWidget .planner-dashboard-preview{
+ font-size:11px;padding:7px 0 0;margin:0;color:var(--dh-v2-muted);
+}
+html.attendigo-dh-v2 #departmentHeadOverview .dh-insights{
+ margin:12px 0 0;gap:10px;
+}
+html.attendigo-dh-v2 #departmentHeadOverview .dh-monitor-heading{
+ padding:12px 14px;border-radius:12px;min-height:60px;
+}
+html.attendigo-dh-v2 #departmentHeadOverview .dh-monitor-heading h3{
+ font-size:17px;line-height:1.3;
+}
+html.attendigo-dh-v2 #departmentHeadOverview .dh-insights-metrics{
+ gap:9px;
+}
+html.attendigo-dh-v2 #departmentHeadOverview .dh-insights-metrics .dh-kpi{
+ min-height:80px;padding:10px 12px;
+}
+html.attendigo-dh-v2 #departmentHeadOverview .dh-kpi strong{font-size:22px}
+html.attendigo-dh-v2 #departmentHeadOverview .dh-kpi span:not(.dh-kpi-icon){
+ font-size:11.5px;
+}
+html.attendigo-dh-v2 #departmentHeadOverview .dh-monitor-columns{gap:10px}
+html.attendigo-dh-v2 #departmentHeadOverview .dh-monitor-panel{
+ padding:11px;border-radius:12px;
+}
+html.attendigo-dh-v2 #departmentHeadOverview .dh-monitor-panel-head{margin-bottom:8px}
+html.attendigo-dh-v2 #departmentHeadOverview .dh-workload-scroll{max-height:230px}
+html.attendigo-dh-v2 #departmentHeadOverview .dh-workload-table td,
+html.attendigo-dh-v2 #departmentHeadOverview .dh-workload-table th{
+ padding:7px 9px;font-size:11px;
+}
+html.attendigo-dh-v2 #departmentHeadOverview .sardo-card{
+ padding:12px;border-radius:12px;
+}
+html.attendigo-dh-v2 #departmentHeadOverview .sardo-metrics>div{
+ padding:9px 11px;
+}
+html.attendigo-dh-v2 #departmentHeadOverview .sardo-footnote{
+ font-size:10.5px;line-height:1.45;
+}
+html.attendigo-dh-v2 .dh-v2-collapse{
+ display:inline-flex;align-items:center;justify-content:center;
+ width:32px;height:32px;min-width:32px;min-height:32px;
+ padding:0;border:1px solid var(--dh-v2-line);
+ border-radius:10px;background:var(--dh-v2-card);
+ color:var(--dh-v2-blue);font-size:20px;line-height:1;
+ cursor:pointer;margin-left:6px;flex:none;
+}
+html.attendigo-dh-v2 .dh-v2-collapsible[hidden]{display:none!important}
+html.attendigo-dh-v2 #departmentHeadOverview .dh-command-intro .dh-v2-collapse,
+html.attendigo-dh-v2 #plannerDashboardWidget .planner-dashboard-intro .dh-v2-collapse,
+html.attendigo-dh-v2 #departmentHeadOverview .dh-monitor-heading .dh-v2-collapse{
+ margin-left:auto;
+}
+html.attendigo-dh-v2 #departmentHeadOverview .dh-monitor-heading .dh-v2-collapse{
+ background:#ffffff24;color:#fff;border-color:#ffffff55;
+}
+html.attendigo-dh-v2 #departmentHeadOverview .sardo-card>.dh-v2-collapsible{margin-top:9px}
+html.attendigo-dh-v2 #departmentHeadOverview .dh-insights>.dh-v2-collapsible{
+ display:flex;flex-direction:column;gap:10px;
+}
+html.attendigo-dh-v2 #departmentHeadOverview .dh-v2-collapsible>.dh-monitor-feedback{order:-1}
+@media(max-width:1050px){
+ html.attendigo-dh-v2 #departmentHeadOverview .dh-command-metrics{
+  grid-template-columns:repeat(2,minmax(0,1fr));
+ }
+ html.attendigo-dh-v2 #departmentHeadOverview .dh-command-columns{
+  grid-template-columns:1fr;
+ }
+}
+@media(max-width:700px){
+ html.attendigo-dh-v2 #departmentHeadOverview,
+ html.attendigo-dh-v2 #plannerDashboardWidget{padding:11px!important}
+ html.attendigo-dh-v2 #departmentHeadOverview .dh-command-intro,
+ html.attendigo-dh-v2 #plannerDashboardWidget .planner-dashboard-intro{
+  flex-wrap:wrap;gap:8px;
+ }
+ html.attendigo-dh-v2 #departmentHeadOverview .dh-command-metrics{gap:7px}
+ html.attendigo-dh-v2 #departmentHeadOverview .dh-command-metric{
+  grid-template-columns:32px 1fr;min-height:90px;padding:9px;column-gap:7px;
+ }
+ html.attendigo-dh-v2 #departmentHeadOverview .dh-metric-icon{width:32px;height:32px;font-size:17px}
+ html.attendigo-dh-v2 #departmentHeadOverview .dh-command-metric>strong{font-size:21px}
+ html.attendigo-dh-v2 #departmentHeadOverview .dh-command-metric>span:not(.dh-metric-icon){font-size:11px}
+ html.attendigo-dh-v2 #plannerDashboardWidget .planner-dashboard-metrics{
+  grid-template-columns:1fr;
+ }
+ html.attendigo-dh-v2 #departmentHeadOverview .dh-insights-metrics{
+  grid-template-columns:1fr;
+ }
+}
+html[data-ui-theme="dark"].attendigo-dh-v2 #departmentHeadOverview .dh-command-metric,
+html[data-ui-theme="dark"].attendigo-dh-v2 #departmentHeadOverview .dh-command-panel,
+html[data-ui-theme="dark"].attendigo-dh-v2 #plannerDashboardWidget .planner-dashboard-metrics>div{
+ background:var(--ui-panel-soft,#1b2d46)!important;border-color:var(--ui-line,#3b526c)!important;
+}
+html[data-ui-theme="dark"].attendigo-dh-v2 #departmentHeadOverview .dh-command-metric>strong,
+html[data-ui-theme="dark"].attendigo-dh-v2 #departmentHeadOverview .dh-command-metric>span:not(.dh-metric-icon),
+html[data-ui-theme="dark"].attendigo-dh-v2 #departmentHeadOverview .dh-command-intro h3,
+html[data-ui-theme="dark"].attendigo-dh-v2 #plannerDashboardWidget .planner-dashboard-intro h3{
+ color:var(--ui-text,#f1f6ff)!important;
+}
+@media(prefers-reduced-motion:reduce){
+ html.attendigo-dh-v2 #departmentHeadOverview .dh-actionable-metric{transition:none}
+ html.attendigo-dh-v2 #departmentHeadOverview .dh-actionable-metric:hover{transform:none}
+}
