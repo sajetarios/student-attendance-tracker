@@ -67,7 +67,8 @@ const REQUIRED_MIGRATIONS = [
   '059_automatic_record_identifiers.sql',
   '060_year_grade_student_ids.sql',
   '061_memorable_student_ids.sql',
-  '062_mnchs_pilot_attendance_reset.sql'
+  '062_mnchs_pilot_attendance_reset.sql',
+  '063_platform_school_deletion_protected_audit.sql'
 ];
 
 function checksum(content) {
