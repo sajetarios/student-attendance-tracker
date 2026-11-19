@@ -180,8 +180,8 @@
    button.setAttribute('aria-selected',String(selected));
    button.tabIndex=selected?0:-1;
   });
-  if(tab==='weekly') {
-    // Weekly and List are two presentations of the same effective timetable.
+  if(tab==='weekly' && role) {
+    // Wait until authenticated role data is loaded before rendering the timetable.
     document.querySelector('[data-schedule-display="weekly"]')?.click();
   }
   window.TimetableGrid?.close?.(false);
