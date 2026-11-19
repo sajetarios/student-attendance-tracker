@@ -91,37 +91,102 @@
   }
   renderCurriculum();
  }
- function populatePathSelect(){
+ const trackChoices=[
+  {code:'ACADEMIC',label:'Academic'},
+  {code:'TECHPRO',label:'Technical-Professional (TechPro)'},
+  {code:'TVL',label:'TVL (legacy)'},
+  {code:'SPORTS',label:'Sports (legacy)'},
+  {code:'ARTS_AND_DESIGN',label:'Arts and Design (legacy)'}
+ ];
+ let pathRequestSequence=0;
+ function pathState(state,title,description,canEnroll=false){
+  const container=$('shsPathState');
+  if(!container)return;
+  container.hidden=false;
+  container.dataset.state=state;
+  $('shsPathStatusTitle').textContent=title;
+  $('shsPathStatusText').textContent=description;
+  $('shsPathEnroll').hidden=!canEnroll;
+ }
+ function populatePathSelect({loading=false,error=false,restoreId=null}={}){
   const el=$('shsPathEnrollment');if(!el)return;
-  const current=el.value;el.replaceChildren();
-  const none=document.createElement('option');none.value='';none.textContent=paths.length?'Choose enrolled SHS learner':'No enrolled SHS learners';el.append(none);
-  for(const p of paths){
+  const current=restoreId??el.value;
+  el.replaceChildren();
+  const none=document.createElement('option');none.value='';
+  none.textContent=loading?'Loading enrolled learners…':error?'Unable to load learners':paths.length?'Choose enrolled SHS learner':'No enrolled SHS learners';
+  el.append(none);
+  for(const learner of paths){
    const option=document.createElement('option');
-   option.value=p.enrollmentId;
-   option.textContent=[p.fullName,p.gradeLevel,p.section].filter(Boolean).join(' · ');
+   option.value=learner.enrollmentId;
+   option.textContent=[learner.fullName,learner.gradeLevel,learner.section].filter(Boolean).join(' · ');
    el.append(option);
   }
-  if(paths.some(p=>p.enrollmentId===current))el.value=current;
-  else el.value='';
-  renderLearnerPath();
+  el.value=paths.some(learner=>learner.enrollmentId===current)?current:'';
+  el.disabled=loading||error||paths.length===0;
+  renderLearnerPath({loading,error});
  }
- function renderLearnerPath(){
-  const chosen=paths.find(p=>p.enrollmentId===$('shsPathEnrollment')?.value);
-  const y=yearById($('shsPathYear')?.value),start=Number((y?.label||'').slice(0,4));
-  const curriculum=(config?.curricula||[]).find(c=>c.schoolYearId===$('shsPathYear')?.value&&c.gradeLevel===chosen?.gradeLevel);
-  const version=curriculum?.version||(chosen?.gradeLevel==='Grade 11'&&start>=2026?'STRENGTHENED':'LEGACY');
+ function renderLearnerPath({loading=false,error=false}={}){
+  const year=$('shsPathYear')?.value;
+  const chosen=paths.find(learner=>learner.enrollmentId===$('shsPathEnrollment')?.value);
+  const track=$('shsPathTrack'),strand=$('shsPathStrand');
+  const save=$('shsLearnerPathForm')?.querySelector('[type="submit"]');
+  const summary=$('shsPathCurriculumSummary');
+  track.replaceChildren();
+  const placeholder=document.createElement('option');placeholder.value='';
+  if(!chosen){
+   placeholder.textContent='Select an enrolled learner first';
+   track.append(placeholder);
+   track.value='';
+   track.disabled=true;
+   strand.value='';
+   strand.disabled=true;
+   strand.placeholder='Choose an enrolled learner first';
+   if(save)save.disabled=true;
+   if(summary)summary.hidden=true;
+   if(loading)pathState('loading','Loading learners','Checking Grade 11–12 enrollments for the selected school year.');
+   else if(error)pathState('error','Unable to load learners','Check your connection and select Refresh learners to try again.');
+   else if(!year)pathState('empty','Choose a school year','Select a school year to load its enrolled SHS learners.');
+   else if(!paths.length)pathState('empty','No SHS learners enrolled','Enroll a Grade 11 or Grade 12 learner for this school year, then refresh this list.',Boolean($('academicEnrollmentForm')));
+   else pathState('choose','Choose a learner','Select an enrolled learner to configure their curriculum-compatible track.');
+   return;
+  }
+  const schoolYear=yearById(year),start=Number((schoolYear?.label||'').slice(0,4));
+  const curriculum=(config?.curricula||[]).find(row=>row.schoolYearId===year&&row.gradeLevel===chosen.gradeLevel);
+  const version=curriculum?.version||(chosen.gradeLevel==='Grade 11'&&start>=2026?'STRENGTHENED':'LEGACY');
   const allowedTracks=version==='STRENGTHENED'?['ACADEMIC','TECHPRO']:['ACADEMIC','TVL','SPORTS','ARTS_AND_DESIGN'];
-  const el=$('shsPathTrack'),previous=chosen?.track||el.value;
-  for(const option of el.options)option.hidden=option.disabled=!allowedTracks.includes(option.value);
-  el.value=allowedTracks.includes(previous)?previous:allowedTracks[0];
-  $('shsPathStrand').value=chosen?.strand||'';
-  $('shsPathStrand').placeholder=version==='STRENGTHENED'?'Elective cluster (if applicable)':'STEM, ABM, HUMSS, GAS or other applicable strand';
+  for(const item of trackChoices.filter(item=>allowedTracks.includes(item.code))){
+   const option=document.createElement('option');option.value=item.code;option.textContent=item.label;
+   track.append(option);
+  }
+  track.value=allowedTracks.includes(chosen.track)?chosen.track:allowedTracks[0];
+  track.disabled=false;
+  strand.disabled=false;
+  strand.value=chosen.strand||'';
+  strand.placeholder=version==='STRENGTHENED'?'Elective cluster (if applicable)':'STEM, ABM, HUMSS, GAS or other applicable strand';
+  if(save)save.disabled=false;
+  if($('shsPathState'))$('shsPathState').hidden=true;
+  if(summary){
+   summary.textContent=chosen.gradeLevel+' · '+(version==='STRENGTHENED'?'Strengthened SHS':'Existing / legacy SHS')+' curriculum';
+   summary.hidden=false;
+  }
  }
  async function loadPaths(){
-  const year=$('shsPathYear').value;
-  if(!year){paths=[];populatePathSelect();return;}
-  const response=await api('/api/shs/enrollment-paths?schoolYearId='+encodeURIComponent(year));
-  paths=response.items||[];populatePathSelect();
+  const requestId=++pathRequestSequence;
+  const year=$('shsPathYear').value,restoreId=$('shsPathEnrollment').value;
+  paths=[];
+  if(!year){populatePathSelect();return;}
+  populatePathSelect({loading:true});
+  try{
+   const response=await api('/api/shs/enrollment-paths?schoolYearId='+encodeURIComponent(year));
+   if(requestId!==pathRequestSequence||year!==$('shsPathYear').value)return;
+   paths=Array.isArray(response.items)?response.items:[];
+   populatePathSelect({restoreId});
+  }catch(error){
+   if(requestId!==pathRequestSequence||year!==$('shsPathYear').value)return;
+   paths=[];
+   populatePathSelect({error:true});
+   throw error;
+  }
  }
  async function reload(){
   config=await api('/api/shs/config');
@@ -162,14 +227,15 @@
   const btn=event.currentTarget.querySelector('[type="submit"]');btn.disabled=true;
   try{
    const id=$('shsPathEnrollment').value;
-   if(!id)throw Error('Choose an enrolled Grade 11 or Grade 12 learner first.');
+   if(!paths.some(learner=>learner.enrollmentId===id)||$('shsPathTrack').disabled)
+    throw Error('Choose an enrolled Grade 11 or Grade 12 learner first.');
    await api('/api/shs/enrollment-paths/'+encodeURIComponent(id),
     {method:'PUT',body:JSON.stringify({track:$('shsPathTrack').value,strand:$('shsPathStrand').value})});
    await loadPaths();
    $('shsPathEnrollment').value=id;renderLearnerPath();
    message('shsPathFeedback','Learner track and pathway saved without changing student identity or attendance.');
   }catch(error){message('shsPathFeedback',error.message,true);}
-  finally{btn.disabled=false;}
+  finally{btn.disabled=!paths.some(learner=>learner.enrollmentId===$('shsPathEnrollment').value);}
  }
  window.attendigoStaffIdentity?.then(async user=>{
   identity=user;
@@ -184,8 +250,21 @@
   $('shsCurriculumYear')?.addEventListener('change',renderCurriculum);
   $('shsCurriculumVersion')?.addEventListener('change',chooseCurriculumVersion);
   $('shsPathYear')?.addEventListener('change',()=>loadPaths().catch(e=>message('shsPathFeedback',e.message,true)));
-  $('shsPathEnrollment')?.addEventListener('change',renderLearnerPath);
+  $('shsPathEnrollment')?.addEventListener('change',()=>{renderLearnerPath();message('shsPathFeedback','');});
   $('shsPathRefresh')?.addEventListener('click',()=>loadPaths().then(()=>message('shsPathFeedback','SHS learner list refreshed.')).catch(e=>message('shsPathFeedback',e.message,true)));
+  $('shsPathEnroll')?.addEventListener('click',()=>{
+   const year=$('shsPathYear').value;
+   const enrollmentYear=$('academicSelectedYear');
+   const form=$('academicEnrollmentForm');
+   if(!year||!enrollmentYear||!form)return;
+   if(enrollmentYear.value!==year){
+    enrollmentYear.value=year;
+    enrollmentYear.dispatchEvent(new Event('change',{bubbles:true}));
+   }
+   message('shsPathFeedback','Complete the school-year enrollment below, then select Refresh learners here.');
+   form.scrollIntoView({behavior:'smooth',block:'center'});
+   form.querySelector('input[name="studentId"]')?.focus({preventScroll:true});
+  });
   document.addEventListener('attendigo:open-academic',()=>reload().catch(e=>message('shsLevelFeedback',e.message,true)));
  }).catch(()=>{});
 })();
