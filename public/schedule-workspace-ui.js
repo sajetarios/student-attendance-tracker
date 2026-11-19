@@ -3,12 +3,11 @@
 (function(){
  const $=id=>document.getElementById(id);
  const choices=[
-  {id:'regular',label:'Regular schedules',icon:'calendar'},
+  {id:'weekly',label:'Class timetable',icon:'grid'},
   {id:'changes',label:'Date-specific changes',icon:'swap'},
-  {id:'weekly',label:'Weekly timetable',icon:'grid'},
   {id:'settings',label:'Timetable settings',icon:'settings'}
  ];
- let active='regular',role='',initialized=false,focusedBeforeDrawer=null,activeDrawer=null;
+ let active='weekly',role='',initialized=false,focusedBeforeDrawer=null,activeDrawer=null;
 
  // Department-scoped permanent teacher assignment dialog.
  let assignmentContext={periods:[],teachers:[],departmentId:null,onAssign:null};
@@ -181,8 +180,8 @@
    button.setAttribute('aria-selected',String(selected));
    button.tabIndex=selected?0:-1;
   });
-  if(tab==='regular')document.querySelector('[data-schedule-display="list"]')?.click();
-  if(tab==='weekly'){
+  if(tab==='weekly') {
+    // Weekly and List are two presentations of the same effective timetable.
     document.querySelector('[data-schedule-display="weekly"]')?.click();
   }
   window.TimetableGrid?.close?.(false);
@@ -207,13 +206,14 @@
   const manager=role==='SCHOOL_ADMIN'||role==='DEPARTMENT_HEAD';
   if($('scheduleAdjustmentShortcut'))$('scheduleAdjustmentShortcut').hidden=!manager;
   if($('scheduleAssignmentShortcut'))$('scheduleAssignmentShortcut').hidden=role!=='DEPARTMENT_HEAD';
+  if($('scheduleAdvancedTools'))$('scheduleAdvancedTools').hidden=!manager;
   if($('showScheduleForm'))$('showScheduleForm').hidden=role!=='SCHOOL_ADMIN'&&role!=='DEPARTMENT_HEAD';
   const intro=$('scheduleScopeText');
   if(intro){
     intro.dataset.newCopy='1';
     intro.textContent=role==='TEACHER'?'View your assigned classes and date-specific timetable changes.':role==='DEPARTMENT_HEAD'?'Create, edit and assign department classes within published school timetable rules.':'Create school-wide schedules, including unassigned classes, and manage timetable settings.';
   }
-  if(roleChanged||!active||active==='settings'&&role!=='SCHOOL_ADMIN')setTab(role==='TEACHER'?'weekly':'regular');
+  if(roleChanged||!active||active==='settings'&&role!=='SCHOOL_ADMIN')setTab('weekly');
   if(!initialized)return;
  }
  function initialize(){
@@ -222,7 +222,7 @@
   if(!view||!header)return;
   initialized=true;view.classList.add('modern-schedule-workspace');
   initializeAssignmentDialog();
-  view.dataset.scheduleTab='regular';
+  view.dataset.scheduleTab='weekly';
   const create=$('showScheduleForm');
   if(create){
     const actionRow=document.createElement('div');actionRow.className='schedule-primary-actions';
@@ -321,7 +321,19 @@
    const node=[form,adjust].find(node=>node&&!node.hidden);
    if(node){event.preventDefault();$(node===form?'cancelScheduleForm':'cancelScheduleAdjustment')?.click();}
   });
-  setTab('regular');
+  // Preserve the older management controls for bulk tasks without a duplicate primary view.
+  const week=$('weeklyTimetableWorkspace');
+  const bulk=$('periodBulkToolbar'),intro=view.querySelector('.schedule-list-intro'),manager=$('managerScheduleTableWrap');
+  if(week&&manager){
+    const advanced=document.createElement('details');advanced.id='scheduleAdvancedTools';
+    advanced.className='schedule-advanced-tools';
+    const summary=document.createElement('summary');
+    summary.textContent='Advanced schedule management · Bulk actions';
+    advanced.append(summary);
+    [bulk,intro,manager].forEach(node=>{if(node)advanced.append(node);});
+    week.insertAdjacentElement('afterend',advanced);
+  }
+  setTab('weekly');
  }
  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',initialize,{once:true});
  else initialize();
