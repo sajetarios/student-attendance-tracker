@@ -15,6 +15,10 @@ SELECT sc.school_id,
       AND cp.grade_level IN ('Grade 11','Grade 12'))
         OR EXISTS(SELECT 1 FROM school_sections ss WHERE ss.school_id=sc.school_id
       AND ss.grade_level IN ('Grade 11','Grade 12'))
+        OR EXISTS(SELECT 1 FROM student_enrollments en WHERE en.school_id=sc.school_id
+      AND en.grade_level IN ('Grade 11','Grade 12'))
+        OR EXISTS(SELECT 1 FROM class_adviser_assignments ca WHERE ca.school_id=sc.school_id
+      AND ca.grade_level IN ('Grade 11','Grade 12'))
     THEN 'INTEGRATED' ELSE 'JHS_ONLY' END
 FROM schools sc
 ON CONFLICT(school_id) DO NOTHING;
