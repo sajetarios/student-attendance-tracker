@@ -44,7 +44,12 @@ function parseSf1Matrix(rows) {
   const row=rows[i].map(asText), rawLrn=digits(row[lrnCol]), rawName=asText(row[nameCol]).trim();
   const line=row.join(' ').trim();
   if(/^\s*(male|female)\s*$/i.test(rawName)){currentSex=rawName.toUpperCase();continue;}
-  if(/^(?:total|prepared by|certified correct|school form|generated thru lis)/i.test(rawName))continue;
+  // Official LIS roster exports put 3, 25, 28 etc. in the LRN column for
+  // '<=== TOTAL MALE', '<=== TOTAL FEMALE', and '<=== COMBINED' summary rows.
+  // Exclude these only by the explicit summary label; a malformed learner LRN
+  // must still block the entire import.
+  const summaryLabel=rawName.replace(/^[\\s<>=:\-]+/,'').trim();
+  if(/^(?:total(?:\\s+(?:male|female|learners))?|combined(?:\\s+total)?|grand\\s+total|subtotal|prepared\\s+by|certified\\s+correct|school\\s+form|generated\\s+thru\\s+lis)\\b/i.test(summaryLabel))continue;
   if(!rawLrn && !rawName)continue;
   // Repeated header/footers and aggregate cells are never learner records.
   if(!/^\d{12}$/.test(rawLrn)){
