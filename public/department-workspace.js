@@ -47,7 +47,7 @@
       <div class="dh-insights-metrics" aria-label="Department monitoring totals">
         <article class="dh-kpi dh-kpi-gate"><span class="dh-kpi-icon" aria-hidden="true">▣</span><div><span>Verified gate arrivals today</span><strong id="dhGateArrivals">—</strong><small>Gate arrivals only</small></div></article>
         <article class="dh-kpi dh-kpi-ob"><span class="dh-kpi-icon" aria-hidden="true">▤</span><div><span>OB requests awaiting recommendation</span><strong id="dhPendingOb">—</strong><small>Awaiting your action</small></div></article>
-        <article class="dh-kpi dh-kpi-cover"><span class="dh-kpi-icon" aria-hidden="true">▦</span><div><span>Approved classes needing coverage</span><strong id="dhUncoveredClasses">—</strong><small>Review class assignments</small></div></article>
+        <article class="dh-kpi dh-kpi-cover"><span class="dh-kpi-icon" aria-hidden="true">▦</span><div><span>Approved classes needing coverage</span><strong id="dhUncoveredClassesReports">—</strong><small>Review class assignments</small></div></article>
       </div>
       <div class="dh-monitor-columns">
         <section class="dh-monitor-panel dh-monitor-workload">
@@ -279,7 +279,7 @@
         const data = await request('/overview');
         $('dhGateArrivals').textContent = String(data.summary?.verifiedGateArrivals ?? '—');
         $('dhPendingOb').textContent = String(data.summary?.pendingObRecommendations ?? '—');
-        $('dhUncoveredClasses').textContent = String(data.summary?.uncoveredClasses ?? '—');
+        $('dhUncoveredClassesReports').textContent = String(data.summary?.uncoveredClasses ?? '—');
         workload = Array.isArray(data.teachers) ? data.teachers : [];
         const tbody = $('dhWorkloadRows');
         tbody.replaceChildren();
