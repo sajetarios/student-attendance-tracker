@@ -1,0 +1,150 @@
+/* Attendigo Unified Workspace: visual-only standards for staff roles.
+   Never change role visibility, permissions, calculations, school colors or printed reports. */
+@media screen {
+  body.portal-page .content-wrap > .school-heading{
+    position:relative!important;top:auto!important;inset-block-start:auto!important;
+    z-index:1!important;transform:none!important;
+    min-height:0!important;margin:0 0 14px!important;
+    padding:11px 17px!important;gap:11px!important;
+    border-radius:14px!important;box-shadow:0 3px 12px rgba(25,48,80,.045)!important;
+  }
+  body.portal-page .content-wrap > .school-heading .school-emblem{
+    flex:0 0 42px!important;width:42px!important;height:42px!important;
+    min-width:42px!important;min-height:42px!important;
+    border-radius:11px!important;font-size:19px!important;
+  }
+  body.portal-page .content-wrap > .school-heading .school-title-block{
+    flex:1 1 auto!important;min-width:0!important;
+  }
+  body.portal-page .content-wrap > .school-heading .school-title-block h1{
+    font-size:clamp(17px,1.5vw,23px)!important;line-height:1.22!important;
+    margin:2px 0 3px!important;letter-spacing:-.025em!important;
+    overflow-wrap:anywhere;
+  }
+  body.portal-page .content-wrap > .school-heading .school-title-block :is(.eyebrow,p){
+    font-size:11px!important;line-height:1.4!important;
+  }
+  body.portal-page .content-wrap > .school-heading .heading-actions{
+    display:flex!important;align-items:center!important;flex-direction:row!important;
+    flex-wrap:wrap!important;gap:8px!important;margin:0!important;
+  }
+  body.portal-page .content-wrap > .school-heading .heading-actions .role-pill{
+    display:inline-flex!important;align-items:center;min-height:30px;
+    padding:5px 10px;font-size:10.5px!important;letter-spacing:.01em;
+  }
+  body.portal-page .content-wrap > .school-heading .heading-actions #refreshButton{
+    min-height:35px;padding:7px 12px;font-size:12px;border-radius:9px;
+  }
+  body.portal-page #sidebar .side-nav{display:flex;flex-direction:column;gap:2px}
+  body.portal-page #sidebar .nav-item,
+  body.portal-page #sidebar .nav-group-toggle{
+    border-radius:9px!important;line-height:1.35;
+    transition:background-color .12s ease,border-color .12s ease;
+  }
+  body.portal-page #sidebar .nav-icon{display:inline-flex;align-items:center;justify-content:center;
+    flex:0 0 18px;width:18px;height:18px;line-height:1}
+  body.portal-page #sidebar .nav-icon svg{width:17px;height:17px;stroke-width:1.9}
+  body.portal-page #sidebar .nav-label{min-width:0;overflow-wrap:break-word}
+  body.portal-page #sidebar .nav-submenu{max-width:100%}
+  body.portal-page #sidebar .nav-item:focus-visible,
+  body.portal-page #sidebar .nav-group-toggle:focus-visible{
+    outline:2px solid #7bb5f7;outline-offset:2px;
+  }
+  body.portal-page :is(.surface-card,.section-card,.academic-admin-card,.staff-ob-panel){
+    min-width:0;
+  }
+  body.portal-page :is(#studentsView,#academicAdminWorkspace) :is(.table-scroll,.table-wrap){
+    max-width:100%;overflow-x:auto;overscroll-behavior-x:contain;
+  }
+  body.portal-page #studentsView :is(.student-roster-table,.students-table) tbody tr,
+  body.portal-page #academicAdminWorkspace table tbody tr{
+    transition:background-color .12s ease;
+  }
+  body.portal-page #studentsView :is(.student-roster-table,.students-table) tbody tr:hover,
+  body.portal-page #academicAdminWorkspace table tbody tr:hover{
+    background:var(--ui-panel-soft,#f4f8ff);
+  }
+  body.portal-page #academicAdminWorkspace :is(select,button){
+    max-width:100%;border-radius:9px;
+  }
+  body.portal-page #academicAdminWorkspace table :is(td,th){
+    padding-block:10px;vertical-align:middle;
+  }
+  body.portal-page #officialBusinessView .staff-ob-panel{
+    border:1px solid var(--ui-line,#dce5f1);border-radius:16px;
+    padding:17px 19px;background:var(--ui-panel,#fff);
+    box-shadow:0 4px 15px rgba(24,49,78,.035);
+  }
+  body.portal-page #officialBusinessView .staff-ob-panel .section-toolbar{
+    display:flex;align-items:flex-start;justify-content:space-between;gap:12px;
+    margin-bottom:14px;
+  }
+  body.portal-page #officialBusinessView .staff-ob-panel .section-toolbar h3{
+    font-size:17px;letter-spacing:-.02em;margin:0 0 5px;
+  }
+  body.portal-page #officialBusinessView .staff-ob-panel .section-toolbar p{
+    font-size:12px;line-height:1.5;max-width:78ch;margin:0;
+  }
+  body.portal-page #officialBusinessView #obScopeTabs{
+    display:inline-flex;flex-wrap:wrap;gap:4px;padding:4px;
+    border:1px solid var(--ui-line,#dce5f1);
+    background:var(--ui-panel-soft,#f1f5fb);border-radius:11px;
+    margin-bottom:12px;
+  }
+  body.portal-page #officialBusinessView #obScopeTabs[hidden]{display:none!important}
+  body.portal-page #officialBusinessView #obScopeTabs .coverage-tab{
+    border:1px solid transparent!important;background:transparent!important;
+    color:var(--ui-text,#2d4361)!important;padding:9px 13px!important;
+    border-radius:8px!important;min-height:38px;
+    font-size:12px!important;font-weight:650!important;cursor:pointer;
+  }
+  body.portal-page #officialBusinessView #obScopeTabs .coverage-tab.is-active{
+    background:var(--ui-panel,#fff)!important;
+    border-color:var(--ui-line,#dce5f1)!important;
+    box-shadow:0 2px 7px rgba(22,51,83,.08)!important;
+    color:var(--ui-accent,#175fa9)!important;
+  }
+  body.portal-page #officialBusinessView #obNew{
+    margin:0 0 12px!important;padding:0!important;border:1px solid var(--ui-line,#dce5f1)!important;
+    border-radius:11px!important;overflow:hidden;
+    background:var(--ui-panel,#fff);
+  }
+  body.portal-page #officialBusinessView #obNew summary{
+    padding:13px 15px!important;font-size:12.5px;font-weight:750!important;
+    color:var(--ui-accent,#175fa9)!important;
+    background:var(--ui-panel-soft,#f4f8ff);
+  }
+  body.portal-page #officialBusinessView #obNew[open] .staff-ob-form{
+    padding:14px;margin:0;
+  }
+  body.portal-page #officialBusinessView #obStatus{
+    font-size:12px;line-height:1.5;padding:10px 13px;border-radius:10px;
+    border:1px dashed var(--ui-line,#dce5f1);
+    background:var(--ui-panel-soft,#f5f8fd);
+  }
+  body.portal-page #officialBusinessView .staff-ob-item{border-radius:12px}
+  body.portal-page #officialBusinessView :is(button,summary):focus-visible{
+    outline:3px solid var(--ui-accent,#2179c4);outline-offset:2px;
+  }
+}
+@media screen and (max-width:700px){
+  body.portal-page .content-wrap > .school-heading{
+    flex-wrap:wrap!important;padding:10px 12px!important;align-items:center!important;
+  }
+  body.portal-page .content-wrap > .school-heading .school-title-block{
+    flex:1 1 calc(100% - 56px)!important;
+  }
+  body.portal-page .content-wrap > .school-heading .heading-actions{
+    width:100%;justify-content:flex-end;
+  }
+  body.portal-page #officialBusinessView .staff-ob-panel{padding:12px}
+  body.portal-page #officialBusinessView .staff-ob-panel .section-toolbar{flex-wrap:wrap}
+  body.portal-page #officialBusinessView #obScopeTabs{display:flex;width:100%}
+  body.portal-page #officialBusinessView #obScopeTabs .coverage-tab{flex:1}
+}
+html[data-ui-theme="dark"] body.portal-page #officialBusinessView #obScopeTabs .coverage-tab.is-active{
+  color:#b9d8ff!important;
+}
+@media(prefers-reduced-motion:reduce){
+  body.portal-page #sidebar .nav-item,body.portal-page #sidebar .nav-group-toggle{transition:none}
+}
