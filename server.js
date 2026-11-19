@@ -1994,10 +1994,13 @@ app.post('/api/sections', authenticateSchoolClient, requireSchoolRoles('SCHOOL_A
    // even if casing or surrounding whitespace differs.
    await client.query('SELECT pg_advisory_xact_lock(hashtext($1::text), 16019)',[req.auth.schoolId]);
    const matching=await client.query(
-     'SELECT section_name FROM school_sections WHERE school_id=$1 AND LOWER(BTRIM(grade_level))=LOWER(BTRIM($2)) AND LOWER(BTRIM(section_name))=LOWER(BTRIM($3)) LIMIT 1',
+     'SELECT section_name, active FROM school_sections WHERE school_id=$1 AND LOWER(BTRIM(grade_level))=LOWER(BTRIM($2)) AND LOWER(BTRIM(section_name))=LOWER(BTRIM($3)) LIMIT 1',
      [req.auth.schoolId,gradeLevel,section]
    );
-   if(matching.rowCount){
+   // Retain the School Admin's existing ability to reactivate an exact archived entry.
+   const reactivateExact=!head && matching.rowCount && matching.rows[0].active===false &&
+     String(matching.rows[0].section_name)===section;
+   if(matching.rowCount && !reactivateExact){
      await client.query('ROLLBACK');
      return res.status(409).json({error:'This section already exists in the school-wide registry. Select it instead of creating another section.'});
    }
