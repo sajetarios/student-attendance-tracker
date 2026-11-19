@@ -37,6 +37,27 @@ async function run() {
         [reset.rows[0].reset_id,'attendance_events',JSON.stringify({ schoolCode:code, testOnly:true })]);
     }
 
+    // A real staff audit row is append-only, and is referenced by restrictive
+    // foreign keys. Normal DELETE/UPDATE must remain forbidden.
+    const dept=await pool.query(
+      'INSERT INTO school_departments(school_id,department_code,department_name) VALUES($1,$2,$3) RETURNING department_id',
+      [targetId,'AUDIT'+marker,'Audit regression department']);
+    const actor=await pool.query(
+      "INSERT INTO school_users(school_id,department_id,username,display_name,password_hash,role) VALUES($1,$2,$3,$4,$5,'TEACHER') RETURNING user_id",
+      [targetId,dept.rows[0].department_id,'auditor-'+marker,'Audit test staff','test-only-password-hash']);
+    const audit=await pool.query(
+      'INSERT INTO staff_attendance_audit(school_id,actor_user_id,action,target_type,target_id,details) VALUES($1,$2,$3,$4,$5,$6::jsonb) RETURNING audit_id',
+      [targetId,actor.rows[0].user_id,'TEST_AUDIT','school_user',actor.rows[0].user_id,JSON.stringify({testOnly:true})]);
+    const auditId=audit.rows[0].audit_id;
+    await assert.rejects(
+      pool.query('DELETE FROM staff_attendance_audit WHERE audit_id=$1',[auditId]),
+      /Staff attendance audit history is append-only/,
+      'Without a verified school snapshot, staff audit rows cannot be deleted');
+    await assert.rejects(
+      pool.query("UPDATE staff_attendance_audit SET action='TAMPERED' WHERE audit_id=$1",[auditId]),
+      /Staff attendance audit history is append-only/,
+      'Audit history must remain immutable on UPDATE');
+
     const app=express();
     app.use(express.json());
     registerPlatformSchoolDeletionRoutes(app,pool,{
@@ -78,6 +99,11 @@ async function run() {
     const otherArchive=await pool.query(
       'SELECT count(*)::int AS count FROM attendance_pilot_reset_backup_rows b JOIN attendance_pilot_reset_runs r ON b.reset_id=r.reset_id WHERE r.school_id=$1',[otherId]);
     assert.equal(otherArchive.rows[0].count,1,'Other school archives must remain untouched');
+    const auditAfter=await pool.query('SELECT 1 FROM staff_attendance_audit WHERE audit_id=$1',[auditId]);
+    assert.equal(auditAfter.rowCount,0,'Verified school deletion must remove only its archived staff audit rows');
+    const protectedRows=await pool.query(
+      "SELECT count(*)::int AS count FROM platform_school_deletion_backup_rows WHERE backup_id=$1 AND source_table='staff_attendance_audit'",[backupId]);
+    assert.equal(protectedRows.rows[0].count,1,'Staff audit record must be retained in recovery snapshot');
     const archived=await pool.query(
       "SELECT source_table,count(*)::int AS count FROM platform_school_deletion_backup_rows WHERE backup_id=$1 AND source_table IN ('attendance_pilot_reset_backup_rows','attendance_pilot_reset_runs') GROUP BY source_table",
       [backupId]);
