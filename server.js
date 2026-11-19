@@ -15,6 +15,7 @@ const https = require('https');
 const fs = require('fs');
 const fsp = require('fs/promises');
 const crypto = require('crypto');
+const { sectionKey, gradeKey, inspectName, isSimilar } = require('./section-identity');
 const { registerAuthRoutes } = require('./auth-routes');
 const { hashPassword, verifyPassword } = require('./auth-security');
 const { createAuthMiddleware } = require('./auth-middleware');
@@ -1978,6 +1979,45 @@ function isValidSchoolDate(value) {
 
 app.get('/health', (_req, res) => res.json({ ok: true, service: 'school-attendance-api', build: 'roles-sf2-workflow-responsive-2026-11-11', security: 'session-and-school-device-auth' }));
 
+// Read-only normalized/similar-name preview; always scoped to the authenticated school.
+app.get('/api/sections/name-check', authenticateSchoolClient,
+ requireSchoolRoles('SCHOOL_ADMIN','DEPARTMENT_HEAD'), async(req,res)=>{
+ const gradeLevel=String(req.query.gradeLevel||'').trim(),name=String(req.query.name||'').trim();
+ if(!/^Grade (?:[1-9]|1[0-2])$/.test(gradeLevel)||!name||name.length>100)
+   return res.status(400).json({error:'Choose a valid grade and section name.'});
+ try {
+   const rows=await pool.query(
+     'SELECT section_name AS "sectionName", active FROM school_sections WHERE school_id=$1 AND LOWER(BTRIM(grade_level))=LOWER(BTRIM($2)) ORDER BY section_name',
+     [req.auth.schoolId,gradeLevel]);
+   return res.json(inspectName(name,rows.rows));
+ }catch(error){console.error('Section name check:',error.message);return res.status(500).json({error:'Could not check section names.'});}
+});
+
+// Read-only queue for School Admin; no automatic merge or change to linked records.
+app.get('/api/sections/duplicate-review', authenticateSchoolClient,
+ requireSchoolRoles('SCHOOL_ADMIN'), async(req,res)=>{
+ try {
+   const rows=await pool.query(
+     'SELECT grade_level AS "gradeLevel", section_name AS "sectionName", active FROM school_sections WHERE school_id=$1 ORDER BY grade_level,section_name LIMIT 1000',
+     [req.auth.schoolId]);
+   const groups=new Map();
+   rows.rows.forEach(item=>{
+     const key=gradeKey(item.gradeLevel);
+     if(!groups.has(key))groups.set(key,[]);
+     groups.get(key).push(item);
+   });
+   const matches=[];
+   for(const sections of groups.values())for(let i=0;i<sections.length;i++)for(let j=i+1;j<sections.length;j++){
+     const a=sections[i],b=sections[j];
+     if(sectionKey(a.sectionName)===sectionKey(b.sectionName))
+       matches.push({gradeLevel:a.gradeLevel,first:a.sectionName,second:b.sectionName,type:'NORMALIZED_DUPLICATE'});
+     else if(isSimilar(a.sectionName,b.sectionName))
+       matches.push({gradeLevel:a.gradeLevel,first:a.sectionName,second:b.sectionName,type:'POSSIBLE_MATCH'});
+   }
+   return res.json({matches:matches.slice(0,100),truncated:rows.rows.length===1000||matches.length>100});
+ }catch(error){console.error('Section duplicate review:',error.message);return res.status(500).json({error:'Could not review section names.'});}
+});
+
 // Grade-to-section options for student registration. Sections are derived from active class schedules.
 app.post('/api/sections', authenticateSchoolClient, requireSchoolRoles('SCHOOL_ADMIN','DEPARTMENT_HEAD'), async (req,res) => {
  const gradeLevel=String(req.body?.gradeLevel||'').trim();
@@ -1994,7 +2034,7 @@ app.post('/api/sections', authenticateSchoolClient, requireSchoolRoles('SCHOOL_A
    // even if casing or surrounding whitespace differs.
    await client.query('SELECT pg_advisory_xact_lock(hashtext($1::text), 16019)',[req.auth.schoolId]);
    const matching=await client.query(
-     'SELECT section_name, active FROM school_sections WHERE school_id=$1 AND LOWER(BTRIM(grade_level))=LOWER(BTRIM($2)) AND LOWER(BTRIM(section_name))=LOWER(BTRIM($3)) LIMIT 1',
+     'SELECT section_name, active FROM school_sections WHERE school_id=$1 AND LOWER(BTRIM(grade_level))=LOWER(BTRIM($2)) AND school_section_identity_key(section_name)=school_section_identity_key($3) LIMIT 1',
      [req.auth.schoolId,gradeLevel,section]
    );
    // Retain the School Admin's existing ability to reactivate an exact archived entry.
@@ -2003,6 +2043,15 @@ app.post('/api/sections', authenticateSchoolClient, requireSchoolRoles('SCHOOL_A
    if(matching.rowCount && !reactivateExact){
      await client.query('ROLLBACK');
      return res.status(409).json({error:'This section already exists in the school-wide registry. Select it instead of creating another section.'});
+   }
+   // Similar names require an explicit confirmation; resemblance alone never merges records.
+   const related=await client.query(
+     'SELECT section_name AS "sectionName" FROM school_sections WHERE school_id=$1 AND LOWER(BTRIM(grade_level))=LOWER(BTRIM($2))',
+     [req.auth.schoolId,gradeLevel]);
+   const suggestions=inspectName(section,related.rows).similar.map(item=>item.sectionName);
+   if(suggestions.length && req.body?.confirmSimilar!==true){
+     await client.query('ROLLBACK');
+     return res.status(409).json({error:'Similar sections exist. Review them before registering a new section.',similarSections:suggestions});
    }
    // Department Heads may register new school sections, but cannot reactivate or modify an existing one.
    const sql=head
@@ -2023,6 +2072,7 @@ app.post('/api/sections', authenticateSchoolClient, requireSchoolRoles('SCHOOL_A
    return res.status(201).json({section:result.rows[0]});
  } catch(err) {
    await client.query('ROLLBACK').catch(()=>{});
+   if(err.code==='23505') return res.status(409).json({error:'An equivalent school section already exists. Select the existing section instead.'});
    console.error('Create section failed:',err.message);
    return res.status(500).json({error:'Could not create section.'});
  } finally {client.release();}
