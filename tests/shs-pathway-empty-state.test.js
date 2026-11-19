@@ -26,7 +26,7 @@ test('live SHS learner pathway blocks editing until selected and never shows wro
  function element(id){
   const handlers=new Map();
   const control={
-   id,value:'',textContent:'',hidden:false,disabled:false,options:[],classList:{toggle(){}},
+   id,value:'',textContent:'',hidden:false,disabled:false,options:[],dataset:{},classList:{toggle(){}},
    append(...children){this.options.push(...children);},
    replaceChildren(...children){this.options=children;},
    addEventListener(type,fn){handlers.set(type,fn);},
