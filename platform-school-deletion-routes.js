@@ -191,6 +191,13 @@ function registerPlatformSchoolDeletionRoutes(app, pool, { authenticatePlatform,
       await client.query(
         'UPDATE platform_school_deletion_backups SET row_count=$2 WHERE backup_id=$1', [backupId, backedUpRows]
       );
+      // Only within this transaction, allow immutable audit / closed-year DELETEs
+      // when their exact original row is already present in this verified backup.
+      // SET LOCAL is automatically cleared on COMMIT or ROLLBACK; UPDATEs stay blocked.
+      await client.query(
+        "SELECT set_config('attendigo.platform_school_deletion_backup_id',$1,true)",
+        [backupId]
+      );
       // Delete child rows before their parents; PostgreSQL has RESTRICT/NO ACTION
       // relationships between departments, periods, learners and audit history.
       // Every deletion is scoped to the selected school in the same transaction.
