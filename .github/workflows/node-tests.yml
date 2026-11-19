@@ -87,6 +87,8 @@ jobs:
         run: node tests/platform-school-deletion-postgres.cjs
       - name: Verify concurrent staff lunch QR and Gatekeeper DTR against PostgreSQL
         run: node tests/staff-lunch-postgres.cjs
+      - name: Simulate fictional enrollment through SHS classes, OB, simultaneous lunch QR and DTR
+        run: node tests/full-school-day-postgres.cjs
       - name: Verify notification event creation and idempotence against PostgreSQL
         run: node tests/universal-notifications-postgres.cjs
       - name: Verify mixed attendance cloud relay against isolated PostgreSQL
