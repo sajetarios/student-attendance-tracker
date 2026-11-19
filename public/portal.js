@@ -91,6 +91,8 @@ window.attendigoStaffIdentity = new Promise(resolve => { resolveStaffIdentity = 
     const data = response.status === 204 ? null : await response.json().catch(() => ({}));
     if (!response.ok) {
       const error = new Error(data?.error || `Request failed (${response.status}).`);
+      // Structured importer validation only contains row numbers and safe error labels.
+      if(Array.isArray(data?.details)) error.details=data.details.slice(0,25);
       if (data?.code === 'SF1_SCHOOL_YEAR_REQUIRED') {
         error.code = data.code;
         error.schoolYear = data.schoolYear || '';
@@ -5685,7 +5687,12 @@ let teacherActionMenuListenersInstalled = false;
     } catch(error) {
       pendingStudentImportPreview = null;
       summary.textContent = error.message;
-      $('studentImportPreviewRows').innerHTML = '<tr><td colspan="8" class="empty-cell">File could not be validated.</td></tr>';
+      const failedRows=Array.isArray(error.details)?error.details:[];
+      $('studentImportPreviewRows').innerHTML=failedRows.length
+        ? failedRows.map(issue=>'<tr><td>'+esc(issue.rowNumber || '—')
+          +'</td><td colspan="6" class="empty-cell">Validation required — no students saved</td><td>'
+          +esc(issue.message || 'Invalid SF1 row')+'</td></tr>').join('')
+        : '<tr><td colspan="8" class="empty-cell">File could not be validated.</td></tr>';
       if(error.code==='SF1_SCHOOL_YEAR_REQUIRED') {
         await offerSf1SchoolYearSetup(error.schoolYear);
       } else {
