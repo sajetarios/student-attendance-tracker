@@ -1,8 +1,10 @@
-const CACHE = "attendigo-v255-shs-academic-levels";
+const CACHE = "attendigo-v256-unified-workspace";
 
 const SHELL = [
   "/typography.css?v=1",
   "/attendigo-workspace-density-theme.css?v=1",
+  "/attendigo-unified-workspace.css?v=1",
+  "/attendigo-unified-navigation.js?v=1",
   "/fonts/InterVariable.woff2",
   "/fonts/InterVariable-Italic.woff2",
   "/attendigo-brand-refresh.css?v=3",
