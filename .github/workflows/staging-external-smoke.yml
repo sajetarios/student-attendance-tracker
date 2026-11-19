@@ -1,0 +1,23 @@
+name: Staging external browser and API smoke
+on:
+  push:
+    branches: [staging/school-day-dry-run-20261120]
+    paths:
+      - '.github/workflows/staging-external-smoke.yml'
+      - 'tests/staging-external-smoke.mjs'
+  workflow_dispatch:
+jobs:
+  staging-smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install browser
+        run: npx --yes playwright@1.58.2 install --with-deps chromium
+      - name: Check staging API and browser
+        env:
+          STAGING_BASE_URL: https://attendigo-staging.onrender.com
+        run: node tests/staging-external-smoke.mjs
