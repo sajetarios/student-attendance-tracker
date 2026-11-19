@@ -76,12 +76,20 @@ async function api(path,opts={}){
  return json;
 }
 async function registerShell(){
- if(!('serviceWorker' in navigator))throw Error('This browser does not support offline installation.');
+ if(!('serviceWorker' in navigator)||!('caches' in window))
+  throw Error('This browser does not support the required offline PWA storage.');
  await navigator.serviceWorker.register('/sw.js',{updateViaCache:'none'});
  await navigator.serviceWorker.ready;
- // The service worker precaches HTML, scanner library and JavaScript on installation.
- const cached=await caches.match('/gate-offline.html');
- if(!cached)throw Error('Offline scanner files are not cached. Keep internet connected and refresh once.');
+ // The active worker may be from a previous release until its update activates.
+ // Explicitly warm the exact versioned, public offline assets in the new cache.
+ const cache=await caches.open('attendigo-v242-gate-offline-review');
+ const assets=['/gate-offline.html','/gate-offline.js?v=1','/vendor/html5-qrcode.min.js'];
+ for(const asset of assets){
+  if(!await caches.match(asset))await cache.add(asset);
+ }
+ for(const asset of assets){
+  if(!await caches.match(asset))throw Error('Offline asset could not be cached: '+asset);
+ }
 }
 async function prepare(){
  if(!online())throw Error('Online sign-in is required to prepare the scanner.');
