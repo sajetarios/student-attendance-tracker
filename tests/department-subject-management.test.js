@@ -20,7 +20,7 @@ test('Subject updates use session school and department scope, never client-supp
 test('Subject updates log old and new values in same transaction and preserve period snapshots', () => {
   assert.match(api, /BEGIN/);
   assert.match(api, /SUBJECT_RENAMED/);
-  assert.match(api, /JSON\.stringify\(\{before,after:updated\.rows\[0\]\}\)/);
+  assert.match(api, /JSON\.stringify\(\{before,after:updated\.rows\[0\],activeSchedulesUpdated:schedules\.rowCount\}\)/);
   assert.match(api, /COMMIT/);
   assert.match(api, /UPDATE class_periods SET subject_name=\\$3/);
   assert.match(api, /subject_id=\\$2 AND active=TRUE/);
