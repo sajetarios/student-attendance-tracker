@@ -81,6 +81,34 @@
         <div class="dh-notice-actions"><button type="submit" class="outline-button">Add subject</button></div>
       </form>`;
     parent.append(subjectPanel);
+    // Expose the same manager directly from the schedule subject field on mobile.
+    const scheduleSubject = $('periodSubject');
+    if (scheduleSubject) {
+      const trigger = document.createElement('button');
+      trigger.type = 'button';
+      trigger.className = 'outline-button';
+      trigger.textContent = 'Manage Subjects';
+      trigger.style.cssText = 'width:100%;margin-top:8px;min-height:40px';
+      scheduleSubject.closest('.field-group')?.append(trigger);
+      const dialog = document.createElement('dialog');
+      dialog.setAttribute('aria-label', 'Manage department subjects');
+      dialog.style.cssText = 'width:min(94vw,560px);max-height:85dvh;overflow:auto;border:1px solid #cbd5e1;border-radius:16px;padding:18px;background:var(--surface,#fff);color:var(--text,#172b4d)';
+      const close = document.createElement('button');
+      close.type = 'button';
+      close.className = 'outline-button';
+      close.textContent = 'Close';
+      close.style.cssText = 'width:100%;margin-top:12px';
+      dialog.append(close);
+      document.body.append(dialog);
+      trigger.addEventListener('click', () => {
+        dialog.prepend(subjectPanel);
+        dialog.showModal();
+        loadSubjects();
+      });
+      close.addEventListener('click', () => dialog.close());
+      dialog.addEventListener('close', () => parent.append(subjectPanel));
+    }
+
     let ownDepartmentId = user.departmentId;
     async function loadSubjects() {
       const status = $('dhSubjectStatus');
