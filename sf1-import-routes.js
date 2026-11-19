@@ -1,13 +1,14 @@
 'use strict';
 const crypto=require('node:crypto');
 const {parseSf1Base64}=require('./sf1-import-parser');
+const {parseSf1PdfBase64}=require('./sf1-pdf-parser');
 const {nextStudentId}=require('./generated-record-ids');
 function registerSf1ImportRoutes(app,pool,{authenticateSchoolClient,requireSchoolRoles}){
  const permitted=requireSchoolRoles('SCHOOL_ADMIN','TEACHER');
  async function prepare(req,db){
   if(req.auth.role==='TEACHER'&&!req.auth.teacherDesignations?.includes('CLASS_ADVISER'))
    throw Object.assign(Error('Only Class Advisers can import an SF1 roster.'),{status:403});
-  const sf1=await parseSf1Base64(req.body?.fileBase64);
+  const sf1=req.body?.fileType==='pdf' ? await parseSf1PdfBase64(req.body?.fileBase64) : await parseSf1Base64(req.body?.fileBase64);
   const year=await db.query("SELECT school_year_id,school_year_label,start_date FROM school_years WHERE school_id=$1 AND status='ACTIVE'",[req.auth.schoolId]);
   if(year.rowCount!==1)throw Object.assign(Error('Configure an active school year before importing SF1.'),{status:409});
   const active=year.rows[0];
