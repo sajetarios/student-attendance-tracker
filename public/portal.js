@@ -557,6 +557,10 @@ window.attendigoStaffIdentity = new Promise(resolve => { resolveStaffIdentity = 
     if ($('dashboardScanCta')) $('dashboardScanCta').hidden = admin;
     if ($('statsGrid')) $('statsGrid').hidden = admin || departmentHead;
     if ($('gateScanHelp')) $('gateScanHelp').hidden = !gateKeeper;
+    if ($('gateOfflineCaptureLink')) {
+      $('gateOfflineCaptureLink').hidden = !gateKeeper;
+      $('gateOfflineCaptureLink').style.display = gateKeeper ? 'inline-flex' : 'none';
+    }
     if ($('gateScanTypeWrap')) $('gateScanTypeWrap').hidden = !gateKeeper;
     if (gateKeeper) {
       if ($('gateScannerHeading')) $('gateScannerHeading').textContent = 'Learner and teacher gate attendance';
