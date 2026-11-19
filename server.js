@@ -1946,15 +1946,39 @@ function isValidSchoolDate(value) {
 app.get('/health', (_req, res) => res.json({ ok: true, service: 'school-attendance-api', build: 'roles-sf2-workflow-responsive-2026-11-11', security: 'session-and-school-device-auth' }));
 
 // Grade-to-section options for student registration. Sections are derived from active class schedules.
-app.post('/api/sections', authenticateSchoolClient, requireSchoolRoles('SCHOOL_ADMIN'), async (req,res) => {
+app.post('/api/sections', authenticateSchoolClient, requireSchoolRoles('SCHOOL_ADMIN','DEPARTMENT_HEAD'), async (req,res) => {
  const gradeLevel=String(req.body?.gradeLevel||'').trim();
  const section=String(req.body?.section||'').trim();
  if (!/^Grade (?:[1-9]|1[0-2])$/.test(gradeLevel) || !/^[a-zA-Z0-9][a-zA-Z0-9 ._-]{0,99}$/.test(section))
    return res.status(400).json({error:'Enter a valid grade and section name (up to 100 characters).'});
+ const head=req.auth.role==='DEPARTMENT_HEAD';
+ if(head&&(!req.auth.departmentId||req.auth.departmentCode==='UNASSIGNED'))
+   return res.status(403).json({error:'An assigned department is required to register a class section.'});
+ const client=await pool.connect();
  try {
-   const result=await pool.query('INSERT INTO school_sections(school_id,grade_level,section_name) VALUES($1,$2,$3) ON CONFLICT (school_id,grade_level,section_name) DO UPDATE SET active=TRUE RETURNING grade_level AS "gradeLevel",section_name AS section',[req.auth.schoolId,gradeLevel,section]);
+   await client.query('BEGIN');
+   // Department Heads may register new school sections, but cannot reactivate or modify an existing one.
+   const sql=head
+     ? 'INSERT INTO school_sections(school_id,grade_level,section_name) VALUES($1,$2,$3) ON CONFLICT (school_id,grade_level,section_name) DO NOTHING RETURNING grade_level AS "gradeLevel",section_name AS section'
+     : 'INSERT INTO school_sections(school_id,grade_level,section_name) VALUES($1,$2,$3) ON CONFLICT (school_id,grade_level,section_name) DO UPDATE SET active=TRUE RETURNING grade_level AS "gradeLevel",section_name AS section';
+   const result=await client.query(sql,[req.auth.schoolId,gradeLevel,section]);
+   if(!result.rowCount){
+     await client.query('ROLLBACK');
+     return res.status(409).json({error:'This class section already exists for the selected grade.'});
+   }
+   if(head){
+     await client.query(
+       `INSERT INTO audit_logs(school_id,actor_type,actor_user_id,action,entity_type,details)
+       VALUES($1,'SCHOOL',$2,'DEPARTMENT_HEAD_CREATE_SECTION','school_section',$3::jsonb)`,
+       [req.auth.schoolId,req.auth.userId,JSON.stringify({gradeLevel,section,departmentId:req.auth.departmentId})]);
+   }
+   await client.query('COMMIT');
    return res.status(201).json({section:result.rows[0]});
- } catch(err) { console.error('Create section failed:',err.message);return res.status(500).json({error:'Could not create section.'}); }
+ } catch(err) {
+   await client.query('ROLLBACK').catch(()=>{});
+   console.error('Create section failed:',err.message);
+   return res.status(500).json({error:'Could not create section.'});
+ } finally {client.release();}
 });
 
 // Section edits are limited to unused registry entries; never rewrite learner or attendance history.
