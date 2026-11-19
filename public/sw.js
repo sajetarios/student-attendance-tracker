@@ -1,4 +1,4 @@
-const CACHE = "attendigo-v245-department-subject-modal";
+const CACHE = "attendigo-v246-unassigned-class-action";
 
 const SHELL = [
   "/typography.css?v=1",
@@ -22,7 +22,7 @@ const SHELL = [
   "/assets/attendigo-icon.png?v=2",
   "/attendigo-brand.css?v=2",
   "/dashboard-icons.js?v=6",
-  "/dashboard-ui.css?v=wide8",
+  "/dashboard-ui.css?v=wide9",
   "/dashboard-night.css?v=1",
   "/planner.css?v=3",
   "/planner.js?v=5",
@@ -39,7 +39,7 @@ const SHELL = [
   "/parent-portal.js?v=3",
   "/dashboard-appearance.js?v=3",
   "/timetable-grid.js?v=5",
-  "/schedule-workspace-ui.js?v=8",
+  "/schedule-workspace-ui.js?v=9",
   "/teacher-assignment-modal.css?v=1",
   "/portal-login.html",
   "/attendigo-login-motion.css?v=2",
