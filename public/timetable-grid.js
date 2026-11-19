@@ -42,6 +42,8 @@
     tooltip.addEventListener('pointerleave',()=>{if(!pinned)closeTimer=setTimeout(()=>close(false),180);});
     tooltip.addEventListener('click',event=>{
       if(event.target.closest('[data-tt-close]')) {close(true);return;}
+      const recurringAction=event.target.closest('[data-edit-period], [data-delete-period]');
+      if(recurringAction && current) close(false);
       const action=event.target.closest('[data-tt-adjust]');
       if(action && current && current.config.onAdjust){
         const entry=current.entry, callback=current.config.onAdjust;
@@ -114,8 +116,11 @@
     const extra=entry.adjustment ? '<div class="tt-detail-change"><strong>'+escape(tag)+'</strong><span>'+
       escape((entry.adjustment.reason||'').replaceAll('_',' '))+
       (entry.adjustment.notes?' · '+escape(entry.adjustment.notes):'')+'</span></div>' : '';
-    const management=entry.canEdit && entry.date>=config.today
-      ? '<button type="button" class="tt-detail-action" data-tt-adjust>Change this date</button>' : '';
+    const management=entry.canEdit ?
+      '<div class="tt-recurring-actions">'+
+      '<button type="button" class="tt-detail-action" data-edit-period="'+escape(entry.periodId)+'">Edit regular</button>'+
+      (entry.date>=config.today ? '<button type="button" class="tt-detail-action" data-tt-adjust>Change this date</button>' : '')+
+      '<button type="button" class="tt-detail-action tt-action-danger" data-delete-period="'+escape(entry.periodId)+'">Delete</button></div>' : '';
     const assignChoices=!entry.assignedTeacherName && !entry.cancelled && entry.canEdit
       ? (entry.eligibleTeachers?.length
         ? '<div class="tt-quick-assign"><label for="ttQuickTeacher">Assign teacher</label><select id="ttQuickTeacher" data-tt-teacher><option value="">Choose Subject Teacher</option>'+
@@ -172,12 +177,27 @@
     host.innerHTML='<div class="tt-grid-scroll"><table class="tt-grid" aria-label="Weekly class timetable"><thead><tr><th scope="col" class="tt-time-heading">Time</th>'+heading+
       '</tr></thead><tbody>'+rows+'</tbody></table></div>'+
       '<div class="tt-grid-legend"><span><i class="tt-legend-class"></i>Regular class</span><span><i class="tt-legend-adjusted"></i>Temporary change</span><span><i class="tt-legend-cancelled"></i>Cancelled</span>'+
-      '<span class="tt-grid-hint">Tap or click a subject to see details</span></div>';
+      '<span class="tt-grid-hint">Tap or click a subject for details and authorized actions</span></div>';
     // Bind once per render; clearing the board also clears previous handlers.
     host.addEventListener('click',e=>{
       const button=e.target.closest('[data-tt-class]');
-      if(button&&host.contains(button))open(button,config,true);
+      if(button&&host.contains(button)){
+        if(longPressTriggered && button===longPressButton){longPressTriggered=false;return;}
+        open(button,config,true);
+      }
     },{signal:gridController.signal});
+    // A long press is an optional touch shortcut, never the only way to access actions.
+    let longPressTimer=null,longPressButton=null,longPressTriggered=false;
+    const stopPress=()=>{if(longPressTimer!==null)clearTimeout(longPressTimer);longPressTimer=null;};
+    host.addEventListener('pointerdown',e=>{
+      const button=e.target.closest('[data-tt-class]');
+      if(!button||!host.contains(button)||e.pointerType==='mouse')return;
+      longPressButton=button;longPressTriggered=false;stopPress();
+      longPressTimer=setTimeout(()=>{longPressTimer=null;longPressTriggered=true;open(button,config,true);},550);
+    },{signal:gridController.signal});
+    host.addEventListener('pointerup',stopPress,{signal:gridController.signal});
+    host.addEventListener('pointercancel',stopPress,{signal:gridController.signal});
+    host.addEventListener('pointermove',e=>{if(e.buttons)stopPress();},{signal:gridController.signal});
     host.addEventListener('pointerover',e=>{
       if(!window.matchMedia('(hover:hover) and (pointer:fine)').matches)return;
       const button=e.target.closest('[data-tt-class]');
