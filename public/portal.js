@@ -2310,9 +2310,7 @@ function coverageStatusLabel(status) {
     const asOfDate = /^\d{4}-\d{2}-\d{2}$/.test(asOfFilter?.value || '') ? asOfFilter.value : dataSchoolDate();
     const weekDates = scheduleWeekDates(asOfDate);
     const effectivePeriods = periods.filter(period =>
-      (user.role !== 'TEACHER' || String(period.assignedTeacherUserId || '') === String(user.userId || '') ||
-        adviserAssignments.some(a => teacherHas('CLASS_ADVISER') &&
-          String(a.gradeLevel) === String(period.gradeLevel) && String(a.section) === String(period.section))) &&
+      (user.role !== 'TEACHER' || String(period.assignedTeacherUserId || '') === String(user.userId || '')) &&
       (!period.effectiveFrom || String(period.effectiveFrom).slice(0, 10) <= weekDates[6]) &&
       (!period.effectiveTo || String(period.effectiveTo).slice(0, 10) >= weekDates[0])
     );
@@ -2343,6 +2341,10 @@ function coverageStatusLabel(status) {
       String(teacher.departmentId || '') === String(period.scheduleDepartmentId || period.departmentId || '') &&
       (user.role !== 'DEPARTMENT_HEAD' || String(teacher.departmentId || '') === String(user.departmentId || ''))
     );
+    const isMyAdvisorySection = period => user.role === 'TEACHER' && teacherHas('CLASS_ADVISER') &&
+      adviserAssignments.some(a => String(a.gradeLevel) === String(period.gradeLevel) &&
+        String(a.section || '').trim().toLowerCase() === String(period.section || '').trim().toLowerCase());
+    const isAdvisoryActivity = period => period.scheduleType === 'ADVISORY' || period.scheduleType === 'HOMEROOM';
     const canAssign = user.role === 'SCHOOL_ADMIN' || user.role === 'DEPARTMENT_HEAD';
     const canManagePeriod = period => canAssign && (user.role === 'SCHOOL_ADMIN' ||
       (user.departmentCode !== 'UNASSIGNED' && String(period.scheduleDepartmentId || period.departmentId || '') === String(user.departmentId || '')));
@@ -2402,6 +2404,8 @@ function coverageStatusLabel(status) {
                period.adjustment.type === 'REPLACE' ? 'Subject replacement' : 'Time / room change')
             : 'Regular';
           const manage = canManagePeriod(period);
+          const advisoryTag = isAdvisoryActivity(period) ? 'Advisory / Homeroom' :
+            isMyAdvisorySection(period) ? 'My advisory' : '';
           const actions = manage ? '<div class="schedule-row-actions">'+
             '<button type="button" class="outline-button compact-button" data-edit-period="'+esc(period.periodId)+'">Edit regular</button>'+
             (date >= dataSchoolDate() ? '<button type="button" class="outline-button compact-button" data-open-adjustment="'+esc(period.periodId)+'" data-adjustment-date="'+esc(date)+'">Change date</button>' : '')+
@@ -2409,7 +2413,8 @@ function coverageStatusLabel(status) {
           return '<tr><td>'+esc(names[day]+' '+(date||''))+'</td>'+
             '<td>'+esc((period.startTime||'—')+'–'+(period.endTime||'—'))+'</td>'+
             '<td>'+esc(period.subjectName||period.periodName||'Class')+'</td>'+
-            '<td>'+esc(String(period.gradeLevel||'—')+' · '+String(period.section||'All sections'))+'</td>'+
+            '<td>'+esc(String(period.gradeLevel||'—')+' · '+String(period.section||'All sections'))+
+            (advisoryTag?'<small class="schedule-day-caption">'+esc(advisoryTag)+'</small>':'')+'</td>'+
             '<td>'+esc(period.cancelled?'No class':period.assignedTeacherName||'Unassigned')+'</td>'+
             '<td>'+esc(period.classroom||'—')+'</td>'+
             '<td>'+esc(status)+'</td><td>'+actions+'</td></tr>';
@@ -2425,6 +2430,9 @@ function coverageStatusLabel(status) {
       ]));
       const entries=days.flatMap(day=>cardsForDay(day).map(period=>({
         ...period,dayIndex:day,date:weekdayDates[day],
+        isMyAdvisorySection:isMyAdvisorySection(period),
+        isAdvisoryActivity:isAdvisoryActivity(period),
+        teacherScheduleView:user.role==='TEACHER',
         canEdit:canManagePeriod(period),
         eligibleTeachers:canAssign && !period.assignedTeacherName
           ? teachers.filter(t=>t.active && (t.teacherDesignations||[]).includes('SUBJECT_TEACHER') &&
@@ -2524,12 +2532,8 @@ function coverageStatusLabel(status) {
       setScheduleDisplay(activeScheduleDisplay);
       const hasTeachingRole = teacherHas('SUBJECT_TEACHER');
       const hasAdviserRole = teacherHas('CLASS_ADVISER');
-      if ($('myTeachingScheduleCard')) $('myTeachingScheduleCard').hidden = !hasTeachingRole;
       if ($('myAdvisoryScheduleCard')) $('myAdvisoryScheduleCard').hidden = !hasAdviserRole;
 
-      const teachingPeriods = periods.filter(period =>
-        String(period.assignedTeacherUserId || '') === String(user.userId || '')
-      );
       const advisoryPeriods = periods.filter(period =>
         hasAdviserRole && adviserAssignments.some(assignment =>
           String(assignment.gradeLevel) === String(period.gradeLevel) &&
@@ -2540,16 +2544,6 @@ function coverageStatusLabel(status) {
       const timeLabel = period => `${period.startTime || '—'}–${period.endTime || '—'}`;
       const emptyRow = (columns, message) => `<tr><td colspan="${columns}" class="empty-cell">${message}</td></tr>`;
 
-      if ($('myTeachingScheduleRows')) {
-        $('myTeachingScheduleRows').innerHTML = teachingPeriods.length ? teachingPeriods.map(period => `
-          <tr>
-            <td><strong>${esc(period.subjectName || '—')}</strong></td>
-            <td>${esc(classLabel(period))}</td>
-            <td>${esc(period.periodName || '—')}</td>
-            <td>${esc(timeLabel(period))}<small class="schedule-day-caption">${esc(formatScheduleDays(period.weekdays))}</small></td>
-            <td data-label="Room">${esc(period.classroom || '—')}</td>
-          </tr>`).join('') : emptyRow(5, 'No teaching schedules have been assigned to your account yet.');
-      }
       if ($('myAdvisoryScheduleRows')) {
         $('myAdvisoryScheduleRows').innerHTML = advisoryPeriods.length ? advisoryPeriods.map(period => `
           <tr>
@@ -2561,11 +2555,9 @@ function coverageStatusLabel(status) {
           </tr>`).join('') : emptyRow(5, 'No subject schedules have been added to your advisory section yet.');
       }
 
-      $('scheduleScopeText').textContent = hasTeachingRole && hasAdviserRole
-        ? 'Your schedule combines all subjects you teach with the complete timetable and Subject Teacher list for your advisory class.'
-        : hasAdviserRole
-          ? 'View every subject schedule assigned to your advisory section, including the teacher handling each subject.'
-          : 'View all class schedules assigned to your teacher account.';
+      $('scheduleScopeText').textContent = hasAdviserRole
+        ? 'Weekly and List views show the classes you teach. Expand My Advisory Section below to see all subjects and teachers for your official advisory section.'
+        : 'Weekly and List views show the classes assigned to your teacher account.';
     } else {
       if ($('managerScheduleTableWrap')) $('managerScheduleTableWrap').hidden = false;
       if ($('teacherScheduleOverview')) $('teacherScheduleOverview').hidden = true;
