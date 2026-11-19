@@ -738,3 +738,49 @@ html[data-ui-theme="dark"] #scheduleForm[data-schedule-role="DEPARTMENT_HEAD"] >
     white-space:normal!important;line-height:1.25!important;
   }
 }
+
+
+/* Department scheduling tablet width correction: keep every schedule block full-width.
+   This overrides the old 1050px breakpoint that left a vacant second track on iPad. */
+body #scheduleForm.schedule-side-drawer[data-schedule-role="DEPARTMENT_HEAD"]:not([hidden]){
+  grid-template-columns:minmax(0,1fr)!important;
+  width:min(1100px,calc(100vw - 28px))!important;
+  max-width:min(1100px,calc(100vw - 28px))!important;
+}
+body #scheduleForm.schedule-side-drawer[data-schedule-role="DEPARTMENT_HEAD"] > .schedule-details-section,
+body #scheduleForm.schedule-side-drawer[data-schedule-role="DEPARTMENT_HEAD"] > .schedule-setup-section,
+body #scheduleForm.schedule-side-drawer[data-schedule-role="DEPARTMENT_HEAD"] > .schedule-location-section{
+  grid-column:1/-1!important;
+  width:100%!important;
+  max-width:none!important;
+}
+body #scheduleForm.schedule-side-drawer[data-schedule-role="DEPARTMENT_HEAD"] .schedule-details-section .department-class-layout,
+body #scheduleForm.schedule-side-drawer[data-schedule-role="DEPARTMENT_HEAD"] .schedule-details-section .department-class-band{
+  width:100%!important;max-width:none!important;min-width:0!important;
+}
+body #scheduleForm.schedule-side-drawer[data-schedule-role="DEPARTMENT_HEAD"] .schedule-setup-section .schedule-time-preview{
+  display:grid!important;
+  grid-template-columns:repeat(3,minmax(0,1fr))!important;
+  align-items:center!important;
+}
+body #scheduleForm.schedule-side-drawer[data-schedule-role="DEPARTMENT_HEAD"] .schedule-setup-section .schedule-time-preview > div{
+  min-width:0!important;
+}
+body #scheduleForm.schedule-side-drawer[data-schedule-role="DEPARTMENT_HEAD"] .schedule-setup-section .schedule-time-preview .schedule-preview-duration{
+  margin-left:0!important;
+}
+body #scheduleForm.schedule-side-drawer[data-schedule-role="DEPARTMENT_HEAD"] .schedule-setup-section .schedule-time-selector,
+body #scheduleForm.schedule-side-drawer[data-schedule-role="DEPARTMENT_HEAD"] .schedule-setup-section .schedule-time-inputs{
+  grid-template-columns:repeat(2,minmax(0,1fr))!important;
+}
+@media(max-width:700px){
+  body #scheduleForm.schedule-side-drawer[data-schedule-role="DEPARTMENT_HEAD"]:not([hidden]){
+    width:min(100vw,100%)!important;max-width:100vw!important;
+  }
+  body #scheduleForm.schedule-side-drawer[data-schedule-role="DEPARTMENT_HEAD"] .schedule-setup-section .schedule-time-preview{
+    grid-template-columns:repeat(2,minmax(0,1fr))!important;
+  }
+  body #scheduleForm.schedule-side-drawer[data-schedule-role="DEPARTMENT_HEAD"] .schedule-setup-section .schedule-time-selector{
+    grid-template-columns:minmax(0,1fr)!important;
+  }
+}
