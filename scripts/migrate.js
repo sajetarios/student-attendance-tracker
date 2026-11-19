@@ -70,7 +70,8 @@ const REQUIRED_MIGRATIONS = [
   '062_mnchs_pilot_attendance_reset.sql',
   '063_platform_school_deletion_protected_audit.sql',
   '064_offline_gate_observation_review.sql',
-  '065_school_section_identity_guard.sql'
+  '065_school_section_identity_guard.sql',
+  '066_school_shs_levels_and_curriculum.sql'
 ];
 
 function checksum(content) {
