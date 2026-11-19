@@ -11,7 +11,7 @@
   <link rel="stylesheet" href="/staff-ob.css?v=1">
   <link rel="stylesheet" href="/department-workspace.css?v=1">
   <link rel="stylesheet" href="/form48-report.css?v=7">
-  <link rel="stylesheet" href="/portal.css?v=0.9.118"><link rel="stylesheet" href="/attendigo-brand-polish.css?v=2"><link rel="stylesheet" href="/parent-admin.css?v=7">
+  <link rel="stylesheet" href="/portal.css?v=0.9.119"><link rel="stylesheet" href="/attendigo-brand-polish.css?v=2"><link rel="stylesheet" href="/parent-admin.css?v=7">
   <link rel="stylesheet" href="/schedule-mobile-layout.css?v=1">
   <link rel="stylesheet" href="/schedule-form-layout.css?v=15">
   <link rel="stylesheet" href="/teacher-assignment-modal.css?v=1">
@@ -1911,7 +1911,19 @@ body.dark-mode .content-wrap > .school-heading.is-compact,body[data-theme="dark"
                 <div class="form-grid adviser-assignment-fields">
                   <div class="field-group"><label for="adviserTeacherSelect">Class Adviser *</label><select id="adviserTeacherSelect" required><option value="">Choose an eligible teacher</option></select><small class="field-hint">Active teachers in your department with the Class Adviser designation are eligible, including those who also teach subjects.</small></div>
                   <div class="field-group"><label for="adviserGradeInput">Grade level *</label><select id="adviserGradeInput" required disabled><option value="">Loading available grades…</option></select><small class="field-hint" id="adviserGradeHint" role="status" aria-live="polite">Checking registered school sections and active learner sections.</small><button type="button" id="retryAdviserSections" class="outline-button compact-button" hidden>Retry loading grades</button></div>
-                  <div class="field-group"><label for="adviserSectionInput">Class section *</label><select id="adviserSectionInput" required disabled><option value="">Choose grade level first</option></select><small class="field-hint" id="adviserSectionHint" role="status" aria-live="polite">Available sections will appear after you choose a grade.</small></div>
+                  <div class="field-group"><label for="adviserSectionInput">Class section *</label><select id="adviserSectionInput" required disabled><option value="">Choose grade level first</option></select><small class="field-hint" id="adviserSectionHint" role="status" aria-live="polite">Available sections will appear after you choose a grade.</small><button type="button" id="showAdviserNewSection" class="outline-button compact-button" hidden>+ Add class section</button></div>
+                </div>
+                <div id="adviserNewSectionPanel" class="adviser-new-section-panel" hidden>
+                  <div><strong>Register a new class section</strong><small>Create an official section before assigning its Class Adviser. No learner records are changed.</small></div>
+                  <div class="adviser-new-section-fields">
+                    <label for="adviserNewSectionGrade">Grade level
+                      <select id="adviserNewSectionGrade"><option value="">Choose grade level</option><option>Grade 7</option><option>Grade 8</option><option>Grade 9</option><option>Grade 10</option><option>Grade 11</option><option>Grade 12</option></select>
+                    </label>
+                    <label for="adviserNewSectionName">New section name
+                      <input id="adviserNewSectionName" type="text" maxlength="100" placeholder="e.g. SPJ TUVERA" autocomplete="off">
+                    </label>
+                  </div>
+                  <div class="adviser-new-section-actions"><button type="button" class="primary-button compact-button" id="createAdviserNewSection">Create section</button><button type="button" class="outline-button compact-button" id="cancelAdviserNewSection">Cancel</button><span id="adviserNewSectionFeedback" class="inline-feedback" role="status"></span></div>
                 </div>
                 <div class="form-actions"><button class="primary-button" type="submit" id="saveAdviserAssignment">Save assignment</button><span id="adviserAssignmentFeedback" class="inline-feedback" role="status"></span></div>
               </form>
@@ -2074,7 +2086,7 @@ body.dark-mode .content-wrap > .school-heading.is-compact,body[data-theme="dark"
   <script src="/offline-attendance.js?v=5" defer></script>
   <script src="/attendance-sync-center.js?v=3" defer></script>
   <script src="/learner-roster-view.js?v=1" defer></script>
-  <script src="/portal.js?v=200" defer></script>
+  <script src="/portal.js?v=201" defer></script>
   <script src="/staff-lunch-ui.js?v=3" defer></script>
   <script src="/staff-ob-ui.js?v=5" defer></script>
   <script src="/department-workspace.js?v=3" defer></script>

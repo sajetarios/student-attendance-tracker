@@ -3200,7 +3200,7 @@ let teacherActionMenuListenersInstalled = false;
       ? 'Grade and section lookup failed: '+adviserEligibilityError+'. Use Retry loading grades.'
       : !adviserEligibilityLoaded ? 'Loading eligible sections…'
       : !grades.length
-        ? 'No registered sections or active learner sections found. Ask School Admin to create school sections or verify learner records.'
+        ? 'No registered sections found. Use Add class section to register one.'
         : grades.length+' grade level'+(grades.length===1?'':'s')+' available from registered school sections and active learner records.';
     if(retry)retry.hidden=!adviserEligibilityError;
     if(!grade.dataset.sectionPickerBound){
@@ -3233,7 +3233,7 @@ let teacherActionMenuListenersInstalled = false;
       ? 'Choose a grade to see its available sections.'
       : sections.length
         ? sections.length+' school section'+(sections.length===1?'':'s')+' available. Registered sections can receive an adviser before learners enroll; SPJ is supported.'
-        : 'No registered or active learner sections in this grade. Ask School Admin to create a school section.';
+        : 'No section in this grade yet. Use Add class section to register one.';
   }
 
   function renderAdviserAssignments() {
@@ -3269,8 +3269,50 @@ let teacherActionMenuListenersInstalled = false;
       });
       addButton.dataset.formToggleBound = '1';
     }
+    const showSection=$('showAdviserNewSection'),sectionPanel=$('adviserNewSectionPanel');
+    if(showSection){
+      showSection.hidden=user?.role!=='DEPARTMENT_HEAD';
+      if(!showSection.dataset.bound){
+        showSection.addEventListener('click',()=>{
+          sectionPanel.hidden=false;
+          $('adviserNewSectionGrade').value=$('adviserGradeInput')?.value||'';
+          $('adviserNewSectionName').value='';
+          $('adviserNewSectionFeedback').textContent='';
+          $('adviserNewSectionName').focus();
+        });
+        $('cancelAdviserNewSection')?.addEventListener('click',()=>{sectionPanel.hidden=true;});
+        $('createAdviserNewSection')?.addEventListener('click',async()=>{
+          if(user?.role!=='DEPARTMENT_HEAD')return;
+          const gradeLevel=$('adviserNewSectionGrade')?.value||'';
+          const section=$('adviserNewSectionName')?.value.trim()||'';
+          const status=$('adviserNewSectionFeedback'),button=$('createAdviserNewSection');
+          status.className='inline-feedback';
+          if(!gradeLevel||!/^[a-zA-Z0-9][a-zA-Z0-9 ._-]{0,99}$/.test(section)){
+            status.className='inline-feedback error';
+            status.textContent='Choose a grade and enter a valid section name (up to 100 characters).';
+            return;
+          }
+          button.disabled=true;
+          try{
+            await api('/api/sections',{method:'POST',body:JSON.stringify({gradeLevel,section})});
+            await loadAdviserEligibleSections();
+            const grade=$('adviserGradeInput'),select=$('adviserSectionInput');
+            grade.value=gradeLevel;
+            updateAdviserSections();
+            select.value=section;
+            sectionPanel.hidden=true;
+            showToast('Class section '+section+' created for '+gradeLevel+'. Select an adviser and save the assignment.');
+          }catch(error){
+            status.className='inline-feedback error';
+            status.textContent=error.message;
+          }finally{button.disabled=false;}
+        });
+        showSection.dataset.bound='1';
+      }
+    }
     if (form && !form.dataset.cancelBound) {
       $('cancelAdviserAssignment')?.addEventListener('click', () => {
+        if(sectionPanel)sectionPanel.hidden=true;
         form.reset();
         form.hidden = true;
         if (addButton) addButton.hidden = false;
