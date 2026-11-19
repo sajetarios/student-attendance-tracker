@@ -1,5 +1,6 @@
 'use strict';
 const ExcelJS = require('exceljs');
+const XLSX = require('@stackline/xlsx'); // Supports the native BIFF8 .xls exported by DepEd LIS.
 const MAX_BYTES = 5 * 1024 * 1024;
 const digits = value => String(value ?? '').replace(/\s/g, '');
 const asText = value => {
@@ -60,10 +61,42 @@ function parseSf1Matrix(rows) {
  if(learners.length>2000) throw Error('Import a maximum of 2,000 learners at once.');
  return {learners,gradeLevel:grade,schoolYear,errors};
 }
-async function parseSf1Base64(base64) {
+// DepEd LIS still exports genuine Excel 97-2003 BIFF8 workbooks (.xls).
+// Keep the existing ExcelJS .xlsx path, but read BIFF8 with a maintained parser.
+function parseLegacySf1Xls(data) {
+ let workbook;
+ try {
+  workbook = XLSX.read(data, {type:'buffer',bookVBA:false,cellFormula:false,cellStyles:false,sheetRows:4501});
+ } catch (_) { throw Error('Could not read the LIS .xls workbook. Download a fresh SF1 from LIS without changing its extension.'); }
+ if (!workbook.SheetNames?.length || workbook.SheetNames.length>15)
+  throw Error('The LIS workbook does not contain a supported number of worksheets.');
+ const results=[];
+ for (const sheetName of workbook.SheetNames) {
+  const sheet=workbook.Sheets[sheetName];
+  if (!sheet?.['!ref']) continue;
+  const range=XLSX.utils.decode_range(sheet['!ref']);
+  // sheetRows limits parsing, so hitting row 4,501 is also an error.
+  if (range.e.r >= 4500) throw Error('The SF1 worksheet is too large.');
+  const rows=XLSX.utils.sheet_to_json(sheet,{header:1,raw:true,defval:'',blankrows:true});
+  try {results.push(parseSf1Matrix(rows.map(row=>row.slice(0,55))));}
+  catch(e){if(/no valid SF1|does not show an identifiable|Could not identify/.test(e.message))continue;throw e;}
+ }
+ if(results.length!==1)throw Error(results.length?'Multiple SF1 roster worksheets detected. Upload one class SF1 workbook at a time.':'Could not detect an SF1 roster in this .xls workbook.');
+ return results[0];
+}
+
+async function parseSf1Base64(base64, fileType='xlsx') {
  if(typeof base64!=='string'||!base64.length)throw Error('Choose an SF1 Excel workbook.');
  const data=Buffer.from(base64,'base64');
  if(!data.length||data.length>MAX_BYTES)throw Error('The SF1 workbook must be 5 MB or smaller.');
+ if(!['xls','xlsx'].includes(fileType)) throw Error('Unsupported SF1 Excel format. Choose .xls or .xlsx.');
+ const isLegacy=data.subarray(0,8).equals(Buffer.from('d0cf11e0a1b11ae1','hex'));
+ const isOpenXml=data.subarray(0,2).toString('ascii')==='PK';
+ if(fileType==='xls') {
+  if(!isLegacy)throw Error('This is not a genuine Excel .xls workbook. Export SF1 again from LIS.');
+  return parseLegacySf1Xls(data);
+ }
+ if(!isOpenXml)throw Error('This is not a valid .xlsx workbook. If LIS exported .xls, select the original .xls file.');
  const workbook=new ExcelJS.Workbook();
  await workbook.xlsx.load(data);
  const results=[];

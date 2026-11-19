@@ -1,4 +1,4 @@
-const CACHE = "attendigo-v237-teacher-import-discoverability";
+const CACHE = "attendigo-v238-lis-native-xls-import";
 
 const SHELL = [
   "/typography.css?v=1",

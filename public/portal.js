@@ -5608,7 +5608,14 @@ let teacherActionMenuListenersInstalled = false;
   $('studentImportFormat')?.addEventListener('change', () => {
     resetStudentImport();
     const sf1=$('studentImportFormat').value==='sf1';
-    $('studentImportFile').accept=sf1?'.xlsx,.pdf,application/pdf,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet':'.csv,.xlsx,text/csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
+    $('studentImportFile').accept=sf1?'.xls,.xlsx,.pdf,application/vnd.ms-excel,application/pdf,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet':'.csv,.xlsx,text/csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
+    if($('studentImportFileLabel')) $('studentImportFileLabel').textContent=sf1?'Import LIS SF1 (.xls, .xlsx, or .pdf)':'Import Attendigo template (.csv or .xlsx)';
+    if($('studentImportSourceHint')) $('studentImportSourceHint').textContent=sf1
+      ? 'Upload the original DepEd LIS Excel export (.xls or .xlsx) without converting it, or a searchable PDF. Only LRN, name, sex, and grade are imported. New learners remain Unassigned.'
+      : 'Use the Attendigo CSV or Excel student template. Matching records are skipped unless an administrator chooses to update them.';
+    if($('studentImportFileHint')) $('studentImportFileHint').textContent=sf1
+      ? 'Maximum 5 MB and 2,000 learners. LRN, name and sex come from the official SF1. Student IDs are generated; section assignment happens after import. Existing LRNs are skipped.'
+      : 'Maximum 5 MB and 2,000 rows. Student ID, Full Name, Sex, Grade Level, and Section are required. LRN and guardian fields are optional.';
     if($('studentImportUpdateExistingWrap')) $('studentImportUpdateExistingWrap').hidden=sf1||user.role!=='SCHOOL_ADMIN';
     prepareStudentImportAdvisoryScope();
   });
@@ -5619,18 +5626,22 @@ let teacherActionMenuListenersInstalled = false;
     pendingStudentImport = null; pendingStudentImportPreview = null;
     if (file.size > 5 * 1024 * 1024) { showToast('Choose a file no larger than 5 MB.', true); return; }
     const ext = file.name.toLowerCase().split('.').pop();
-    if (!['csv','xlsx','pdf'].includes(ext)||($('studentImportFormat')?.value==='sf1'?!['xlsx','pdf'].includes(ext):ext==='pdf')) { showToast('SF1 accepts LIS Excel (.xlsx) or searchable PDF (.pdf). Standard imports accept CSV or Excel.', true); return; }
+    const sf1Mode=$('studentImportFormat')?.value==='sf1';
+    if (!(sf1Mode?['xls','xlsx','pdf']:['csv','xlsx']).includes(ext)) {
+      $('studentImportSummary').textContent=sf1Mode?'Choose an original LIS SF1 (.xls, .xlsx) or searchable PDF (.pdf).':'Choose an Attendigo CSV (.csv) or Excel (.xlsx) template.';
+      showToast($('studentImportSummary').textContent,true); return;
+    }
     $('studentImportSummary').textContent = 'Reading and validating file…'; $('confirmStudentImport').disabled = true;
     try {
       if (ext === 'csv') pendingStudentImport = { csvText: await file.text() };
       else pendingStudentImport = { fileBase64: await new Promise((resolve,reject) => {
         const reader = new FileReader(); reader.onerror = () => reject(new Error('Could not read the SF1 or Excel file.'));
         reader.onload = () => resolve(String(reader.result).split(',')[1] || ''); reader.readAsDataURL(file);
-      }), ...(ext==='pdf'?{fileType:'pdf'}:{}) };
+      }), ...(ext==='pdf'?{fileType:'pdf'}:ext==='xls'?{fileType:'xls'}:{fileType:'xlsx'}) };
       await previewStudentImport();
     } catch (error) {
       $('studentImportSummary').textContent = error.message;
-      $('studentImportPreviewRows').innerHTML = '<tr><td colspan="7" class="empty-cell">File could not be validated.</td></tr>';
+      $('studentImportPreviewRows').innerHTML = '<tr><td colspan="8" class="empty-cell">File could not be validated.</td></tr>';
     }
   });
   $('confirmStudentImport')?.addEventListener('click', async () => {

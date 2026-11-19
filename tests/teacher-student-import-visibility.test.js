@@ -22,7 +22,7 @@ test('Teacher imports default to LIS SF1 Excel/PDF while authorization remains s
   const sf1 = read('sf1-import-routes.js');
   assert.match(js, /user\.role === 'TEACHER' \? 'sf1' : 'template'/);
   assert.match(js, /studentImportFormat'\)\.dispatchEvent\(new Event\('change'\)\)/);
-  assert.match(js, /\.xlsx,\.pdf,application\/pdf/);
+  assert.match(js, /\.xls,\.xlsx,\.pdf,application\/vnd\.ms-excel/);
   assert.match(sf1, /requireSchoolRoles\('SCHOOL_ADMIN','TEACHER'\)/);
   assert.match(sf1, /!req\.auth\.teacherDesignations\?\.includes\('CLASS_ADVISER'\)/);
   assert.match(sf1, /FROM class_adviser_assignments WHERE school_id=\$1 AND adviser_user_id=\$2/);
