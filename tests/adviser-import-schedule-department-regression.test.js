@@ -61,7 +61,9 @@ test('Class Advisers load the schedules assigned to their advisory section', () 
   const portal = read('public/portal.js');
   const server = read('server.js');
   assert.match(portal, /\$\('schedulesNav'\)\.hidden = gateKeeper \|\| \(teacher && !\(subjectTeacher \|\| classAdviser\)\)/);
-  assert.match(portal, /View every subject schedule assigned to your advisory section/);
+  assert.match(portal, /const advisoryPeriods = periods\.filter\(period =>/);
+  assert.match(portal, /hasAdviserRole && adviserAssignments\.some/);
+  assert.match(portal, /renderWeeklyTimetable\(\)/);
   assert.match(portal, /teacherHas\('SUBJECT_TEACHER'\) \|\| teacherHas\('CLASS_ADVISER'\)\) views\.push\('schedules'\)/);
   const start = server.indexOf("app.get('/api/periods'");
   const end = server.indexOf("app.post('/api/periods'", start);

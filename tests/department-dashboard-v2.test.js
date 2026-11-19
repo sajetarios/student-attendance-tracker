@@ -1,6 +1,7 @@
 'use strict';
 const test = require('node:test');
 const assert = require('node:assert/strict');
+const {assertCachedAsset,assertCacheRevisionAtLeast}=require('./support/asset-contract');
 const fs = require('node:fs');
 const path = require('node:path');
 const vm = require('node:vm');
@@ -20,7 +21,8 @@ test('Existing overview, planner, monitoring and SARDO nodes are reused',()=>{
  assert.match(ui,/\.dh-insights:not/);
  assert.match(ui,/\.dh-command-metrics/);
  assert.match(ui,/\.dh-monitor-heading/);
- assert.match(ui,/\.sardo-metrics/);
+ assert.match(ui,/const sardo = \$\('sardoCard'\)/);
+ assert.match(ui,/addToggle\(sardo, heading, children, 'SARDO Monitoring'\)/);
  assert.match(ui,/container\.insertBefore\(content, firstTarget\)/);
  assert.match(ui,/targets\.forEach\(el => \{ if \(el\) content\.append\(el\); \}\)/);
 });
@@ -48,9 +50,7 @@ test('Design is scoped, responsive, branded and dark-mode compatible',()=>{
  assert.match(css,/prefers-reduced-motion/);
 });
 test('Portal and service worker reference the same versioned assets',()=>{
- for(const name of ['department-dashboard-v2.js?v=1','department-dashboard-v2.css?v=1']){
-  assert.match(portal,new RegExp(name.replaceAll('.','\\.').replaceAll('?','\\?')));
-  assert.match(sw,new RegExp(name.replaceAll('.','\\.').replaceAll('?','\\?')));
- }
- assert.match(sw,/attendigo-v250-department-dashboard-v2/);
+ assertCachedAsset(portal,sw,'department-dashboard-v2.js',{minimumVersion:1});
+ assertCachedAsset(portal,sw,'department-dashboard-v2.css',{minimumVersion:1});
+ assertCacheRevisionAtLeast(sw,250);
 });

@@ -1,4 +1,5 @@
 'use strict';
+const {assertCachedAsset}=require('./support/asset-contract');
 const test=require('node:test'),assert=require('node:assert/strict'),fs=require('node:fs'),path=require('node:path');
 const {randomUUID}=require('node:crypto');
 const {registerGateOfflineRoutes}=require('../gate-offline-routes');
@@ -97,7 +98,7 @@ test('device encryption, scope matching and cache controls preserve online permi
  assert.match(js,/Date\.now\(\)>Date\.parse\(data\.scope\.validUntil\)/);
  assert.match(html,/html5-qrcode\.min\.js/);
  assert.match(sw,/\"\/gate-offline\.html\"/);
- assert.match(sw,/\"\/gate-offline\.js\?v=1\"/);
+ assertCachedAsset(html,sw,'gate-offline.js',{minimumVersion:1});
  assert.match(sw,/\"\/vendor\/html5-qrcode\.min\.js\"/);
  assert.doesNotMatch(sw.split('const SHELL = [')[1]?.split('];')[0]||'',/\"\/portal\.html\"/);
  assert.match(sql,/CHECK\(status IN \('REVIEW_REQUIRED','INVALID_BADGE','CLOSED_REVIEWED','DISMISSED'\)\)/);

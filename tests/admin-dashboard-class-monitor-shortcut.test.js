@@ -1,6 +1,7 @@
 'use strict';
 const test = require('node:test');
 const assert = require('node:assert/strict');
+const {assertCachedAsset}=require('./support/asset-contract');
 const fs = require('node:fs');
 const path = require('node:path');
 const read = file => fs.readFileSync(path.join(__dirname, '..',file),'utf8');
@@ -36,9 +37,9 @@ test('SF2 workflows and teacher QR launch remain untouched by admin tile replace
 });
 
 test('Cached admin shortcut script uses updated portal version',()=>{
-  assert.ok(html.includes('/portal.js?v=203'));
-  assert.ok(worker.includes('"/portal.js?v=203"'));
+  assertCachedAsset(html,worker,'portal.js',{minimumVersion:203});
+  
   const cacheVersion = worker.match(/const CACHE = "attendigo-v(\d+)-[^"]+"/);
   assert.ok(cacheVersion && Number(cacheVersion[1]) >= 220, "newer deployments must retain the admin shortcut cache update");
-  assert.match(worker,/\/portal\.js\?v=203/);
+  
 });

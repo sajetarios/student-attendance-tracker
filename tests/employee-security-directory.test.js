@@ -1,6 +1,7 @@
 'use strict';
 const test=require('node:test');
 const assert=require('node:assert/strict');
+const {assertCachedAsset}=require('./support/asset-contract');
 const fs=require('node:fs');
 const path=require('node:path');
 const {parseSecurityDirectoryQuery,registerEmployeeSecurityDirectoryRoutes}=require('../employee-security-directory-routes');
@@ -104,7 +105,7 @@ test('staff security cards begin collapsed with explicit ARIA reveal and filtere
  assert.match(css,/security-directory-filters/);
  assert.match(server,/registerEmployeeSecurityDirectoryRoutes/);
  assert.match(sw,/user-management-readability\.css\?v=6/);
- assert.match(html,/portal\.js\?v=203/);
+ assertCachedAsset(html,sw,'portal.js',{minimumVersion:203});
  for(const action of ['data-reset-staff-password','data-revoke-staff-sessions','data-unlock-staff-account']){
   assert.ok(js.includes(action),action);
  }

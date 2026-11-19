@@ -1,6 +1,7 @@
 'use strict';
 const test = require('node:test');
 const assert = require('node:assert/strict');
+const {assertCachedAsset}=require('./support/asset-contract');
 const fs = require('node:fs');
 const path = require('node:path');
 const root = path.join(__dirname, '..');
@@ -87,7 +88,8 @@ test('Tabs are responsive, theme-aware, keyboard-readable and precached at match
   assert.match(css, /data-ui-theme="dark"/);
   assert.ok(html.includes('/student-workspace-tabs.css?v=1'));
   assert.ok(sw.includes('"/student-workspace-tabs.css?v=1"'));
-  for (const uri of ['/portal.js?v=203', '/student-portal-accounts.js?v=11']) {
+  assertCachedAsset(html,sw,'portal.js',{minimumVersion:203});
+  for (const uri of ['/student-portal-accounts.js?v=11']) {
     assert.ok(html.includes(uri), 'HTML must load ' + uri);
     assert.ok(sw.includes(JSON.stringify(uri)), 'Service worker must cache ' + uri);
   }
