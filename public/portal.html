@@ -1645,14 +1645,10 @@ body.dark-mode .content-wrap > .school-heading.is-compact,body[data-theme="dark"
               </form>
               <div class="schedule-list-intro"><strong>School-wide timetable</strong><span>Schedules from every department appear here. Only your department records can be managed.</span></div><div id="managerScheduleTableWrap" class="table-scroll"><table><thead><tr><th id="periodSelectHeader" hidden>Select</th><th>Schedule</th><th>Subject</th><th>Department</th><th>Grade</th><th>Section</th><th>Classroom</th><th>Days</th><th>Time</th><th>Assigned teacher</th><th>Actions</th></tr></thead><tbody id="scheduleRows"><tr><td colspan="8" class="empty-cell">Loading schedules…</td></tr></tbody></table></div>
               <div id="teacherScheduleOverview" class="teacher-schedule-overview" hidden>
-                <section id="myTeachingScheduleCard" class="surface-card section-card" hidden>
-                  <div class="section-toolbar"><div><h3>My Teaching Schedule</h3><p>All class periods assigned to your teacher account.</p></div></div>
-                  <div class="table-scroll"><table><thead><tr><th>Subject</th><th>Class / Section</th><th>Schedule block</th><th>Time</th><th>Room</th></tr></thead><tbody id="myTeachingScheduleRows"><tr><td colspan="5" class="empty-cell">Loading your teaching schedule…</td></tr></tbody></table></div>
-                </section>
-                <section id="myAdvisoryScheduleCard" class="surface-card section-card" hidden>
-                  <div class="section-toolbar"><div><h3>My Advisory Class Schedule</h3><p>All subjects and the teachers handling your advisory section(s).</p></div></div>
+                <details id="myAdvisoryScheduleCard" class="surface-card section-card teacher-advisory-details" hidden>
+                  <summary class="teacher-advisory-summary"><span><strong>My Advisory Section</strong><small>View all subjects and Subject Teachers handling your official advisory section(s).</small></span><span class="teacher-advisory-toggle" aria-hidden="true">▾</span></summary>
                   <div class="table-scroll"><table><thead><tr><th>Subject</th><th>Schedule block</th><th>Time</th><th>Room</th><th>Subject Teacher</th></tr></thead><tbody id="myAdvisoryScheduleRows"><tr><td colspan="5" class="empty-cell">Loading your advisory class schedule…</td></tr></tbody></table></div>
-                </section>
+                </details>
               </div>
             </div>
           </section>
