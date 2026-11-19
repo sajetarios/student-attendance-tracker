@@ -1,4 +1,4 @@
-const CACHE = "attendigo-v235-lis-sf1-portal-alignment";
+const CACHE = "attendigo-v236-platform-school-feedback";
 
 const SHELL = [
   "/typography.css?v=1",
@@ -52,7 +52,7 @@ const SHELL = [
   "/class-qr-dashboard-link.js?v=9",
   "/teacher-roster-popover.js?v=2",
   "/portal.css?v=0.9.119",
-  "/portal.js?v=201",
+  "/portal.js?v=202",
   "/department-workspace.css?v=1",
   "/department-workspace.js?v=3",
   "/form48-report.js?v=7",
