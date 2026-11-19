@@ -38,8 +38,8 @@ test('storage widget is within platform overview only', () => {
   assert.match(client,/Remaining space cannot be calculated/);
 });
 test('new portal bundle matches offline shell', () => {
-  assert.match(portal,/\/portal\.js\?v=199/);
-  assert.match(worker,/"\/portal\.js\?v=199"/);
+  assert.match(portal,/\/portal\.js\?v=201/);
+  assert.match(worker,/"\/portal\.js\?v=201"/);
   assert.ok(Number(worker.match(/const CACHE = "attendigo-v(\d+)-/)?.[1]) >= 230, "PWA cache must not regress below the ID-generation release");
   assert.ok(Number(worker.match(/const CACHE = "attendigo-v(\d+)-/)?.[1]) >= 233, "PWA cache must include provider-aware storage release");
 });

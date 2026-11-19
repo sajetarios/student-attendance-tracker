@@ -140,7 +140,13 @@ function registerStudentManagementRoutes(app,pool,auth){
     found=await c.query(`SELECT s.student_id FROM students s
       LEFT JOIN LATERAL (SELECT e.grade_level,e.section FROM student_enrollments e JOIN school_years sy ON sy.school_id=e.school_id AND sy.school_year_id=e.school_year_id WHERE e.school_id=s.school_id AND e.student_id=s.student_id AND sy.status='ACTIVE' AND e.enrollment_status='ENROLLED' ORDER BY e.created_at DESC LIMIT 1) en ON TRUE
       WHERE s.school_id=$1 AND s.student_id=ANY($2::text[]) AND s.active=TRUE AND s.archived_at IS NULL
-        AND EXISTS(SELECT 1 FROM class_adviser_assignments ca WHERE ca.school_id=s.school_id AND ca.adviser_user_id=$3 AND ca.grade_level=COALESCE(en.grade_level,s.grade_level) AND ca.section=COALESCE(en.section,s.section))
+        AND (
+          EXISTS(SELECT 1 FROM class_adviser_assignments ca WHERE ca.school_id=s.school_id AND ca.adviser_user_id=$3 AND ca.grade_level=COALESCE(en.grade_level,s.grade_level) AND ca.section=COALESCE(en.section,s.section))
+          OR EXISTS(SELECT 1 FROM student_enrollments pending JOIN school_years pending_sy ON pending_sy.school_id=pending.school_id AND pending_sy.school_year_id=pending.school_year_id
+           WHERE pending.school_id=s.school_id AND pending.student_id=s.student_id AND pending.created_by_user_id=$3
+             AND pending.section='Unassigned' AND pending.enrollment_status='ENROLLED' AND pending_sy.status='ACTIVE'
+             AND EXISTS(SELECT 1 FROM class_adviser_assignments ca WHERE ca.school_id=s.school_id AND ca.adviser_user_id=$3 AND ca.grade_level=pending.grade_level))
+        )
       FOR UPDATE OF s`,[req.auth.schoolId,ids,req.auth.userId]);
    }else if(isDepartmentHead){
     if(!req.auth.departmentId||req.auth.departmentCode==='UNASSIGNED')throw Object.assign(new Error('Your account must be assigned to a department.'),{statusCode:403});
@@ -159,8 +165,19 @@ function registerStudentManagementRoutes(app,pool,auth){
    }
    if(action==='ASSIGN'){
     if(isTeacher){
-     const dest=await c.query('SELECT 1 FROM class_adviser_assignments WHERE school_id=$1 AND adviser_user_id=$2 AND grade_level=$3 AND section=$4',[req.auth.schoolId,req.auth.userId,clean(b.gradeLevel),clean(b.section)]);
-     if(!dest.rowCount){await c.query('ROLLBACK');return res.status(403).json({error:'You may assign students only to your own assigned advisory sections.'});}
+     const dest=await c.query(`SELECT 1 FROM class_adviser_assignments ca
+        WHERE ca.school_id=$1 AND ca.adviser_user_id=$2 AND ca.grade_level=$3 AND ca.section=$4
+        UNION SELECT 1 FROM school_sections ss
+        WHERE ss.school_id=$1 AND ss.grade_level=$3 AND ss.section_name=$4 AND ss.active=TRUE
+          AND EXISTS(SELECT 1 FROM class_adviser_assignments ca
+            WHERE ca.school_id=$1 AND ca.adviser_user_id=$2 AND ca.grade_level=$3)
+          AND NOT EXISTS(SELECT 1 FROM students s
+            JOIN student_enrollments e ON e.school_id=s.school_id AND e.student_id=s.student_id
+            JOIN school_years sy ON sy.school_id=e.school_id AND sy.school_year_id=e.school_year_id
+            WHERE s.school_id=$1 AND s.student_id=ANY($5::text[]) AND sy.status='ACTIVE'
+              AND (e.section<>'Unassigned' OR e.grade_level<>$3 OR e.created_by_user_id<>$2))
+        LIMIT 1`,[req.auth.schoolId,req.auth.userId,clean(b.gradeLevel),clean(b.section),ids]);
+     if(!dest.rowCount){await c.query('ROLLBACK');return res.status(403).json({error:'You may assign your advisory learners or your own unassigned SF1 imports to a registered section of the same grade.'});}
     }else if(isDepartmentHead){
      const dest=await c.query(`SELECT 1 FROM class_periods WHERE school_id=$1 AND department_id=$2 AND active=TRUE AND grade_level=$3 AND section IS NOT NULL AND TRIM(section)=$4 LIMIT 1`,[req.auth.schoolId,req.auth.departmentId,clean(b.gradeLevel),clean(b.section)]);
      if(!dest.rowCount){await c.query('ROLLBACK');return res.status(403).json({error:'You may assign learners only to an active section in your department.'});}

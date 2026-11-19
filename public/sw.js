@@ -1,4 +1,4 @@
-const CACHE = "attendigo-v234-notification-compact-text-refresh";
+const CACHE = "attendigo-v235-lis-sf1-portal-alignment";
 
 const SHELL = [
   "/typography.css?v=1",
@@ -44,17 +44,17 @@ const SHELL = [
   "/portal-login.html",
   "/attendigo-login-motion.css?v=2",
   "/attendigo-login-refinement.css?v=5",
-  "/portal.css?v=0.9.118",
+  "/portal.css?v=0.9.119",
   "/student-roster-toolbar.css?v=2",
   "/learner-roster-view.css?v=1",
   "/teacher-learner-roster.css?v=4",
   "/learner-roster-view.js?v=1",
   "/class-qr-dashboard-link.js?v=9",
   "/teacher-roster-popover.js?v=2",
-  "/portal.css",
-  "/portal.js?v=199",
+  "/portal.css?v=0.9.119",
+  "/portal.js?v=201",
   "/department-workspace.css?v=1",
-  "/department-workspace.js?v=1",
+  "/department-workspace.js?v=3",
   "/form48-report.js?v=7",
   "/form48-bulk-ui.js?v=2",
   "/form48-report.css?v=7",
@@ -65,7 +65,7 @@ const SHELL = [
   "/staff-lunch-checkin.js?v=3",
   "/sardo-monitor.js?v=2",
   "/sardo-monitor.css?v=1",
-  "/schedule-form-layout.css?v=12",
+  "/schedule-form-layout.css?v=15",
   "/parent-dashboard.js?v=3",
   "/offline-attendance.js?v=5",
   "/offline-sheet.html",
@@ -103,7 +103,12 @@ const SHELL = [
   "/styles.css",
   "/app.js",
   "/manifest.webmanifest",
-  "/vendor/html5-qrcode.min.js"
+  "/vendor/html5-qrcode.min.js",
+  "/attendigo-brand-polish.css?v=2",
+  "/parent-admin.css?v=7",
+  "/schedule-mobile-layout.css?v=1",
+  "/platform-plans-ui.js?v=8",
+  "/platform-school-health.js?v=2"
 ];
 
 self.addEventListener("install", event => {

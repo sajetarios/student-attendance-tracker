@@ -19,6 +19,7 @@ window.attendigoStaffIdentity = new Promise(resolve => { resolveStaffIdentity = 
   let schoolUsers = [];
   let adviserAssignments = [];
   let adviserEligibleSections = [];
+  let sf1AvailableSections = [];
   let adviserEligibilityLoaded = false;
   let adviserEligibilityError = '';
   let studentAccountMode = 'CREATE';
@@ -1549,7 +1550,7 @@ function coverageStatusLabel(status) {
     if (student.active === false || student.archivedAt) return false;
     if (user.role === 'TEACHER' && teacherHas('CLASS_ADVISER')) {
       return adviserAssignments.some(a => String(a.gradeLevel) === String(student.gradeLevel) &&
-        String(a.section) === String(student.section));
+        (String(a.section) === String(student.section) || String(student.section) === 'Unassigned'));
     }
     if (user.role === 'DEPARTMENT_HEAD' && user.departmentId && user.departmentCode !== 'UNASSIGNED') {
       return periods.some(p => p.active !== false && String(p.scheduleDepartmentId) === String(user.departmentId) &&
@@ -5443,7 +5444,7 @@ let teacherActionMenuListenersInstalled = false;
     const select = $('studentImportAdvisoryAssignment');
     const isAdviser = user.role === 'TEACHER' && teacherHas('CLASS_ADVISER');
     if (!group || !select) return;
-    group.hidden = !isAdviser;
+    group.hidden = !isAdviser || $('studentImportFormat')?.value === 'sf1';
     if (!isAdviser) return;
     const previous = select.value;
     select.innerHTML = '<option value="">Use grade and section from file</option>' + adviserAssignments.map(item =>
@@ -5480,7 +5481,17 @@ let teacherActionMenuListenersInstalled = false;
     $('confirmStudentImport').disabled = true;
     if (list) { list.hidden = true; list.replaceChildren(); }
     try {
-      const preview = await api('/api/students/import/preview', { method:'POST', body:JSON.stringify(studentImportRequestPayload()) });
+      const sf1Mode = $('studentImportFormat')?.value === 'sf1';
+      const preview = await api(sf1Mode ? '/api/students/sf1/preview' : '/api/students/import/preview', { method:'POST', body:JSON.stringify(studentImportRequestPayload()) });
+      if (sf1Mode) {
+        pendingStudentImportPreview = preview;
+        const counts=preview.summary||{create:0,skip:0,review:0};
+        summary.textContent=preview.total+' learners · '+counts.create+' new · '+counts.skip+' existing skipped · '+counts.review+' need review. Grade: '+preview.gradeLevel+' · Section: Unassigned.';
+        $('studentImportPreviewRows').innerHTML=preview.rows.map(item=>'<tr><td>'+esc(item.rowNumber)+'</td><td>'+esc(item.existingStudent?.studentId||'Auto-generate')+'</td><td>'+esc(item.fullName)+'</td><td>'+esc(item.gradeLevel)+'</td><td>Unassigned</td><td>'+esc(item.action)+'</td><td>'+esc(item.existingStudent?.fullName||'New learner')+'</td><td>'+esc(item.action==='REVIEW'?'Administrator review required':'')+'</td></tr>').join('');
+        $('confirmStudentImport').disabled=!!counts.review||!counts.create;
+        $('confirmStudentImport').textContent='Import '+counts.create+' new learners';
+        return;
+      }
       pendingStudentImportPreview = preview;
       const counts = preview.summary || { create:0, update:0, skip:0, error:0 };
       const eligible = Number(counts.create || 0) + Number(counts.update || 0);
@@ -5519,12 +5530,20 @@ let teacherActionMenuListenersInstalled = false;
 
   $('bulkImportStudentsButton')?.addEventListener('click', () => {
     resetStudentImport();
+    if ($('studentImportFormat')) $('studentImportFormat').value='template';
     if ($('studentImportUpdateExistingWrap')) $('studentImportUpdateExistingWrap').hidden = user.role !== 'SCHOOL_ADMIN';
     prepareStudentImportAdvisoryScope();
     $('studentImportModal').hidden = false;
   });
   $('closeStudentImport')?.addEventListener('click', () => { $('studentImportModal').hidden = true; });
   $('cancelStudentImport')?.addEventListener('click', () => { $('studentImportModal').hidden = true; resetStudentImport(); });
+  $('studentImportFormat')?.addEventListener('change', () => {
+    resetStudentImport();
+    const sf1=$('studentImportFormat').value==='sf1';
+    $('studentImportFile').accept=sf1?'.xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet':'.csv,.xlsx,text/csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
+    if($('studentImportUpdateExistingWrap')) $('studentImportUpdateExistingWrap').hidden=sf1||user.role!=='SCHOOL_ADMIN';
+    prepareStudentImportAdvisoryScope();
+  });
   $('studentImportAdvisoryAssignment')?.addEventListener('change', () => { previewStudentImport().catch(error => showToast(error.message, true)); });
   $('studentImportUpdateExisting')?.addEventListener('change', () => { previewStudentImport().catch(error => showToast(error.message, true)); });
   $('studentImportFile')?.addEventListener('change', async () => {
@@ -5532,7 +5551,7 @@ let teacherActionMenuListenersInstalled = false;
     pendingStudentImport = null; pendingStudentImportPreview = null;
     if (file.size > 5 * 1024 * 1024) { showToast('Choose a file no larger than 5 MB.', true); return; }
     const ext = file.name.toLowerCase().split('.').pop();
-    if (!['csv','xlsx'].includes(ext)) { showToast('Only CSV and Excel .xlsx files are supported.', true); return; }
+    if (!['csv','xlsx'].includes(ext)||($('studentImportFormat')?.value==='sf1'&&ext!=='xlsx')) { showToast('SF1 requires a LIS-exported .xlsx workbook. Other imports support CSV or Excel.', true); return; }
     $('studentImportSummary').textContent = 'Reading and validating file…'; $('confirmStudentImport').disabled = true;
     try {
       if (ext === 'csv') pendingStudentImport = { csvText: await file.text() };
@@ -5548,11 +5567,14 @@ let teacherActionMenuListenersInstalled = false;
   });
   $('confirmStudentImport')?.addEventListener('click', async () => {
     if (!pendingStudentImport || !pendingStudentImportPreview || pendingStudentImportPreview.summary.error) return;
-    if (!await AppDialog.confirm('Import ' + (pendingStudentImportPreview.summary.create + pendingStudentImportPreview.summary.update) + ' student records? ' + (pendingStudentImportPreview.summary.skip || 0) + ' existing students will be skipped. Duplicate IDs will not be created.', { title: 'Import student records', confirmText: 'Import students' })) return;
+    const sf1Mode=$('studentImportFormat')?.value==='sf1';
+    if (!await AppDialog.confirm(sf1Mode
+      ? 'Import '+pendingStudentImportPreview.summary.create+' new learners into the Unassigned section? Existing LRNs are skipped. School-year history is preserved.'
+      : 'Import ' + (pendingStudentImportPreview.summary.create + pendingStudentImportPreview.summary.update) + ' student records? ' + (pendingStudentImportPreview.summary.skip || 0) + ' existing students will be skipped. Duplicate IDs will not be created.', { title: 'Import student records', confirmText: 'Import students' })) return;
     $('confirmStudentImport').disabled = true; $('studentImportSummary').textContent = 'Saving records…';
     try {
-      const result = await api('/api/students/import/commit', { method:'POST', body:JSON.stringify(studentImportRequestPayload()) });
-      const summary = 'Completed: ' + result.created + ' created, ' + result.updated + ' updated, ' + (result.skipped || 0) + ' already existing skipped.';
+      const result = await api(sf1Mode?'/api/students/sf1/commit':'/api/students/import/commit', { method:'POST', body:JSON.stringify(studentImportRequestPayload()) });
+      const summary = sf1Mode ? ('SF1 imported: '+result.created+' new learners in Grade '+String(result.gradeLevel).replace(/^Grade /,'')+' · Unassigned; '+result.skipped+' already registered.') : 'Completed: ' + result.created + ' created, ' + result.updated + ' updated, ' + (result.skipped || 0) + ' already existing skipped.';
       resetStudentImport(); $('studentImportModal').hidden = true; selectedStudentIds.clear(); await loadSchoolData();
       showToast(summary);
     } catch (error) { $('studentImportSummary').textContent = error.message; $('confirmStudentImport').disabled = false; }
@@ -5561,7 +5583,8 @@ let teacherActionMenuListenersInstalled = false;
     const role = user.role;
     let destinations;
     if (role === 'TEACHER') {
-      destinations = adviserAssignments.map(a => ({ gradeLevel:a.gradeLevel, section:a.section }));
+      destinations = [...adviserAssignments.map(a => ({ gradeLevel:a.gradeLevel, section:a.section })),
+        ...sf1AvailableSections.filter(s=>adviserAssignments.some(a=>a.gradeLevel===s.gradeLevel))];
     } else if (role === 'DEPARTMENT_HEAD') {
       destinations = periods.filter(p => p.active !== false &&
         String(p.scheduleDepartmentId) === String(user.departmentId))
@@ -5592,7 +5615,7 @@ let teacherActionMenuListenersInstalled = false;
     const sectionSelect = $('batchSection');
     const allowed = availableStudentBatchSections();
     const previousGrade = gradeSelect.value, previousSection = sectionSelect.value;
-    const grades = [...new Set(allowed.map(s => s.gradeLevel))];
+    const grades = [...new Set([...allowed.map(s => s.gradeLevel), ...(user.role==='TEACHER'?adviserAssignments.map(a=>a.gradeLevel):[])])];
     gradeSelect.innerHTML = '<option value="">Choose grade</option>' +
       grades.map(grade => '<option value="' + esc(grade) + '">' + esc(grade) + '</option>').join('');
     gradeSelect.value = grades.includes(previousGrade) ? previousGrade : '';
@@ -5614,6 +5637,8 @@ let teacherActionMenuListenersInstalled = false;
   }
 
   function openStudentBatch() {
+    if($('sf1CreateSectionGroup'))$('sf1CreateSectionGroup').hidden=!(user.role==='TEACHER'&&teacherHas('CLASS_ADVISER')&&$('studentBatchAction').value==='ASSIGN');
+    if($('studentBatchAction').value==='ASSIGN')loadSf1SectionOptions().catch(e=>showToast(e.message,true));
     const action = $('studentBatchAction').value;
     const selected = students.filter(s => selectedStudentIds.has(s.studentId) && canSelectLearnerForBatch(s));
     if (!action || !selected.length) return;
@@ -5679,7 +5704,32 @@ let teacherActionMenuListenersInstalled = false;
 
   $('applyStudentBatch')?.addEventListener('click',openStudentBatch);
   $('studentBatchAction')?.addEventListener('change',updateStudentSelectionUi);
+  async function loadSf1SectionOptions() {
+    if(user.role!=='TEACHER'||!teacherHas('CLASS_ADVISER'))return;
+    const grades=[...new Set(adviserAssignments.map(a=>a.gradeLevel))];
+    const found=await Promise.all(grades.map(async grade=>{
+      const result=await api('/api/sections?gradeLevel='+encodeURIComponent(grade));
+      return (result.sections||[]).filter(s=>s!=='Unassigned').map(section=>({gradeLevel:grade,section}));
+    }));
+    sf1AvailableSections=found.flat();
+    refreshStudentBatchDestinations();
+  }
   $('batchGrade')?.addEventListener('change',refreshStudentBatchDestinations);
+  $('sf1CreateSectionButton')?.addEventListener('click',async()=>{
+    const gradeLevel=$('batchGrade').value,section=$('sf1NewSectionName').value.trim();
+    const feedback=$('sf1CreateSectionFeedback');
+    feedback.textContent='';
+    if(!gradeLevel||!section){feedback.textContent='Choose a grade and type a section name.';return;}
+    try {
+      await api('/api/students/sf1/sections',{method:'POST',body:JSON.stringify({gradeLevel,section})});
+      await loadSf1SectionOptions();
+      $('batchGrade').value=gradeLevel;
+      refreshStudentBatchDestinations();
+      $('batchSection').value=section;
+      $('sf1NewSectionName').value='';
+      feedback.textContent='Section created. Confirm batch assignment to enroll selected learners.';
+    }catch(e){feedback.textContent=e.message;}
+  });
   $('closeStudentBatch')?.addEventListener('click',closeStudentBatch);
   $('cancelStudentBatch')?.addEventListener('click',closeStudentBatch);
   $('studentBatchForm')?.addEventListener('submit',async event => {
