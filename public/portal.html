@@ -651,6 +651,14 @@ body.dark-mode .content-wrap > .school-heading.is-compact,body[data-theme="dark"
             <a class="nav-item" id="schoolBrandingNav" data-view="schoolBranding" title="School identity" hidden href="/portal.html?view=schoolBranding"><span class="nav-icon">✦</span><span class="nav-label">School Identity</span></a>
           </div>
         </div>
+        <div class="nav-group" id="attendanceManagementNavGroup" hidden>
+          <button class="nav-group-toggle" type="button" data-nav-group="attendanceManagement" aria-expanded="true" aria-controls="attendanceManagementNavChildren" title="Expand or collapse attendance management">
+            <span class="nav-icon">◷</span><span class="nav-label">Attendance Management</span><span class="nav-chevron" aria-hidden="true">⌄</span>
+          </button>
+          <div class="nav-submenu" id="attendanceManagementNavChildren" data-submenu="attendanceManagement">
+            <a class="nav-item" id="offlineScanReviewsNav" href="/gate-offline-review.html" title="Review offline Gatekeeper scans" hidden><span class="nav-icon">▤</span><span class="nav-label">Offline Scan Reviews</span></a>
+          </div>
+        </div>
         <div class="nav-group" id="operationsNavGroup" hidden>
           <button class="nav-group-toggle" type="button" data-nav-group="operations" aria-expanded="true" aria-controls="operationsNavChildren"><span class="nav-icon">⚙</span><span class="nav-label" id="operationsGroupLabel">Operations</span><span class="nav-chevron">⌄</span></button>
           <div class="nav-submenu" id="operationsNavChildren" data-submenu="operations"></div>
@@ -767,7 +775,6 @@ body.dark-mode .content-wrap > .school-heading.is-compact,body[data-theme="dark"
                 </div>
                 <button type="button" class="primary-button admin-command-primary" data-admin-view="academicAdmin">School year &amp; enrollment <span aria-hidden="true">↗</span></button>
               </div>
-              <p><a class="outline-button" href="/gate-offline-review.html">Review offline Gatekeeper observations (not official attendance)</a></p>
               <div class="admin-command-metrics" aria-label="School overview">
                 <div class="admin-command-metric"><span class="admin-metric-icon" aria-hidden="true">🎓</span><span>Active student records</span><strong id="adminOverviewStudents">—</strong><small>Current authorized school roster</small></div>
                 <div class="admin-command-metric"><span class="admin-metric-icon" aria-hidden="true">📋</span><span>Pending school requests</span><strong id="adminOverviewRequests">—</strong><small>Open approval inbox</small></div>
@@ -2193,7 +2200,7 @@ body.dark-mode .content-wrap > .school-heading.is-compact,body[data-theme="dark"
   <script src="/offline-attendance.js?v=5" defer></script>
   <script src="/attendance-sync-center.js?v=3" defer></script>
   <script src="/learner-roster-view.js?v=1" defer></script>
-  <script src="/portal.js?v=210" defer></script>
+  <script src="/portal.js?v=211" defer></script>
   <script src="/schedule-list-filters.js?v=1" defer></script>
   <script src="/staff-lunch-ui.js?v=3" defer></script>
   <script src="/staff-ob-ui.js?v=5" defer></script>
