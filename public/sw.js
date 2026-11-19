@@ -1,4 +1,4 @@
-const CACHE = "attendigo-v253-teacher-dashboard-v3";
+const CACHE = "attendigo-v254-unified-approval-nav";
 
 const SHELL = [
   "/typography.css?v=1",
@@ -52,7 +52,7 @@ const SHELL = [
   "/class-qr-dashboard-link.js?v=9",
   "/teacher-roster-popover.js?v=2",
   "/portal.css?v=0.9.119",
-  "/portal.js?v=208",
+  "/portal.js?v=209",
   "/department-workspace.css?v=1",
   "/department-workspace.js?v=5",
   "/department-monitor-refresh.css?v=1",
@@ -88,8 +88,9 @@ const SHELL = [
   "/student-workspace-tabs.css?v=1",
   "/student-portal-accounts.js?v=11",
   "/account-directory.js?v=2",
-  "/admin-request-notifications.js?v=5",
+  "/admin-request-notifications.js?v=6",
   "/admin-request-notifications.css?v=2",
+  "/admin-approval-navigation.css?v=1",
   "/universal-notifications.js?v=5",
   "/universal-notifications.css?v=4",
   "/guardian-ui.js?v=6",
