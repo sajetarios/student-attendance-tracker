@@ -1265,7 +1265,15 @@ body.dark-mode .content-wrap > .school-heading.is-compact,body[data-theme="dark"
                       <img id="studentScanNoticePhoto" class="student-scan-verified-photo" alt="Registered student photo" hidden>
                       <strong id="studentScanNoticeName" class="student-scan-notice-name"></strong>
                       <span id="studentScanNoticeMeta" class="student-scan-notice-meta"></span>
-                      <button type="button" class="primary-button" id="studentScanNoticeContinue">Continue to attendance action</button>
+                      <p id="studentScanNoticeConfirmation" class="student-scan-notice-copy" hidden>By selecting Verify &amp; Record, you confirm the registered photo matches the person at the gate.</p>
+                      <p id="studentScanNoticePhotoWarning" class="gate-photo-warning" hidden>Registered photo unavailable. Attendance cannot be recorded until the School Administrator uploads a valid photo.</p>
+                      <input type="checkbox" id="studentPhotoVerified" hidden aria-hidden="true" tabindex="-1">
+                      <div class="student-scan-buttons" role="group" aria-label="Gate scan actions">
+                        <button type="button" class="outline-button" id="studentScanNoticeClear" hidden>Scan another</button>
+                        <button type="button" class="primary-button" id="studentScanNoticeRecord" hidden disabled>Verify &amp; Record</button>
+                        <button type="button" class="primary-button" id="studentScanNoticeContinue">Continue to attendance action</button>
+                      </div>
+                      <div id="studentScanNoticeDtr"></div>
                     </div>
                   </div>
                 </div>
