@@ -5540,7 +5540,7 @@ let teacherActionMenuListenersInstalled = false;
   $('studentImportFormat')?.addEventListener('change', () => {
     resetStudentImport();
     const sf1=$('studentImportFormat').value==='sf1';
-    $('studentImportFile').accept=sf1?'.xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet':'.csv,.xlsx,text/csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
+    $('studentImportFile').accept=sf1?'.xlsx,.pdf,application/pdf,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet':'.csv,.xlsx,text/csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
     if($('studentImportUpdateExistingWrap')) $('studentImportUpdateExistingWrap').hidden=sf1||user.role!=='SCHOOL_ADMIN';
     prepareStudentImportAdvisoryScope();
   });
@@ -5551,14 +5551,14 @@ let teacherActionMenuListenersInstalled = false;
     pendingStudentImport = null; pendingStudentImportPreview = null;
     if (file.size > 5 * 1024 * 1024) { showToast('Choose a file no larger than 5 MB.', true); return; }
     const ext = file.name.toLowerCase().split('.').pop();
-    if (!['csv','xlsx'].includes(ext)||($('studentImportFormat')?.value==='sf1'&&ext!=='xlsx')) { showToast('SF1 requires a LIS-exported .xlsx workbook. Other imports support CSV or Excel.', true); return; }
+    if (!['csv','xlsx','pdf'].includes(ext)||($('studentImportFormat')?.value==='sf1'?!['xlsx','pdf'].includes(ext):ext==='pdf')) { showToast('SF1 accepts LIS Excel (.xlsx) or searchable PDF (.pdf). Standard imports accept CSV or Excel.', true); return; }
     $('studentImportSummary').textContent = 'Reading and validating file…'; $('confirmStudentImport').disabled = true;
     try {
       if (ext === 'csv') pendingStudentImport = { csvText: await file.text() };
       else pendingStudentImport = { fileBase64: await new Promise((resolve,reject) => {
-        const reader = new FileReader(); reader.onerror = () => reject(new Error('Could not read the Excel file.'));
+        const reader = new FileReader(); reader.onerror = () => reject(new Error('Could not read the SF1 or Excel file.'));
         reader.onload = () => resolve(String(reader.result).split(',')[1] || ''); reader.readAsDataURL(file);
-      }) };
+      }), ...(ext==='pdf'?{fileType:'pdf'}:{}) };
       await previewStudentImport();
     } catch (error) {
       $('studentImportSummary').textContent = error.message;
