@@ -1,0 +1,122 @@
+/* Teacher timetable List View must not inherit the multi-day calendar grid. */
+#weeklyTimetableBoard:has(> .weekly-schedule-list) {
+  display:block !important;
+  grid-template-columns:none !important;
+  min-width:0;
+  max-width:100%;
+  width:100%;
+  overflow:visible;
+}
+#weeklyTimetableBoard > .weekly-schedule-list {
+  display:block;
+  min-width:0;
+  max-width:100%;
+  width:100%;
+  overflow-x:auto;
+  -webkit-overflow-scrolling:touch;
+}
+#weeklyTimetableBoard > .weekly-schedule-list table {
+  width:100%;
+  min-width:840px;
+}
+@media (max-width:700px) {
+  #weeklyTimetableBoard:has(> .weekly-schedule-list) {
+    overflow:visible;
+    padding-bottom:0;
+  }
+  #weeklyTimetableBoard > .weekly-schedule-list {
+    overflow:visible;
+    border:0;
+    background:transparent;
+  }
+  #weeklyTimetableBoard > .weekly-schedule-list table,
+  #weeklyTimetableBoard > .weekly-schedule-list tbody {
+    display:block;
+    min-width:0 !important;
+    width:100%;
+    max-width:100%;
+    border:0;
+  }
+  #weeklyTimetableBoard > .weekly-schedule-list thead {
+    position:absolute;
+    width:1px;
+    height:1px;
+    overflow:hidden;
+    clip-path:inset(50%);
+    white-space:nowrap;
+  }
+  #weeklyTimetableBoard > .weekly-schedule-list tbody {
+    display:grid;
+    gap:10px;
+  }
+  #weeklyTimetableBoard > .weekly-schedule-list tbody tr {
+    display:grid;
+    grid-template-columns:repeat(2,minmax(0,1fr));
+    gap:9px 12px;
+    min-width:0;
+    max-width:100%;
+    margin:0;
+    padding:14px;
+    border:1px solid #dce6ef;
+    border-radius:13px;
+    background:var(--surface, #fff);
+    box-sizing:border-box;
+    box-shadow:0 2px 8px rgba(20,49,80,.04);
+  }
+  #weeklyTimetableBoard > .weekly-schedule-list tbody td {
+    display:block;
+    min-width:0 !important;
+    max-width:100%;
+    width:auto !important;
+    padding:0 !important;
+    border:0 !important;
+    white-space:normal;
+    overflow-wrap:anywhere;
+    line-height:1.4;
+    font-size:13px;
+    color:var(--text-primary,#243b53);
+    vertical-align:top;
+  }
+  #weeklyTimetableBoard > .weekly-schedule-list tbody td::before {
+    display:block;
+    margin:0 0 2px;
+    color:var(--text-muted,#64748b);
+    font-size:11px;
+    font-weight:700;
+    letter-spacing:.015em;
+  }
+  #weeklyTimetableBoard > .weekly-schedule-list tbody td:nth-child(1) {
+    grid-column:1/-1;
+    font-weight:800;
+    color:var(--text-primary,#173e65);
+    padding-bottom:7px !important;
+    border-bottom:1px solid #e7edf3 !important;
+  }
+  #weeklyTimetableBoard > .weekly-schedule-list tbody td:nth-child(2)::before { content:"Time"; }
+  #weeklyTimetableBoard > .weekly-schedule-list tbody td:nth-child(3)::before { content:"Subject"; }
+  #weeklyTimetableBoard > .weekly-schedule-list tbody td:nth-child(4)::before { content:"Grade / section"; }
+  #weeklyTimetableBoard > .weekly-schedule-list tbody td:nth-child(5)::before { content:"Teacher"; }
+  #weeklyTimetableBoard > .weekly-schedule-list tbody td:nth-child(6)::before { content:"Room"; }
+  #weeklyTimetableBoard > .weekly-schedule-list tbody td:nth-child(7)::before { content:"Status"; }
+  #weeklyTimetableBoard > .weekly-schedule-list tbody td:nth-child(8)::before { content:"Actions"; }
+  #weeklyTimetableBoard > .weekly-schedule-list tbody td:nth-child(4),
+  #weeklyTimetableBoard > .weekly-schedule-list tbody td:nth-child(5),
+  #weeklyTimetableBoard > .weekly-schedule-list tbody td:nth-child(8) { grid-column:1/-1; }
+  #weeklyTimetableBoard > .weekly-schedule-list tbody .schedule-day-caption {
+    display:block;
+    margin-top:4px;
+    font-weight:750;
+    color:#136795;
+  }
+  #weeklyTimetableBoard > .weekly-schedule-list tbody .schedule-row-actions {
+    display:flex;
+    flex-wrap:wrap;
+    gap:7px;
+  }
+  #weeklyTimetableBoard > .weekly-schedule-list tbody td.empty-cell {
+    grid-column:1/-1;
+    padding:16px 8px !important;
+    text-align:center;
+  }
+  #weeklyTimetableBoard > .weekly-schedule-list tbody td.empty-cell::before { content:none; }
+}
