@@ -1,4 +1,5 @@
 'use strict';
+const {assertCacheRevisionAtLeast}=require('./support/asset-contract');
 const test=require('node:test'),assert=require('node:assert/strict'),fs=require('node:fs'),path=require('node:path'),vm=require('node:vm');
 const read=p=>fs.readFileSync(path.join(__dirname,'..','public',p),'utf8');
 const html=read('portal.html'),portal=read('portal.js'),ob=read('staff-ob-ui.js'),css=read('attendigo-unified-workspace.css'),nav=read('attendigo-unified-navigation.js'),sw=read('sw.js');
@@ -8,7 +9,7 @@ test('new presentation assets parse and are loaded by the portal and PWA',()=>{
   assert.ok(html.includes(asset),asset+' in portal');
   assert.ok(sw.includes(asset),asset+' in offline shell');
  }
- assert.match(sw,/attendigo-v256-unified-workspace/);
+ assertCacheRevisionAtLeast(sw,256);
 });
 test('navigation remains role-scoped and preserves links and events',()=>{
  assert.match(nav,/Only replace legacy text glyphs/);
