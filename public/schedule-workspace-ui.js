@@ -208,7 +208,8 @@
   if(role!=='DEPARTMENT_HEAD'&&!assignmentSaving)closeAssignmentDialog();
   const changes=Array.isArray(data.scheduleAdjustments)?data.scheduleAdjustments:[];
   const total=periods.length;
-  const free=periods.filter(item=>!item.assignedTeacherName&&!item.assignedTeacherUserId).length;
+  const free=role==='DEPARTMENT_HEAD' ? assignmentAvailable().length :
+    periods.filter(item=>!item.assignedTeacherName&&!item.assignedTeacherUserId).length;
   const count=id=>{if($(id))$(id).textContent=String(id==='scheduleTotalMetric'?total:id==='scheduleUnassignedMetric'?free:changes.length);};
   ['scheduleTotalMetric','scheduleUnassignedMetric','scheduleChangesMetric'].forEach(count);
   const unassignedCard=$('scheduleUnassignedCard');
