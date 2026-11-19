@@ -1,4 +1,5 @@
 'use strict';
+const {assertCachedAsset}=require('./support/asset-contract');
 const test=require('node:test'),assert=require('node:assert/strict'),fs=require('node:fs'),path=require('node:path');
 const {randomUUID}=require('node:crypto');
 const {registerGateOfflineRoutes}=require('../gate-offline-routes');
