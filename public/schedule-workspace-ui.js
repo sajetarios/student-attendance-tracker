@@ -100,10 +100,17 @@
   if(assignmentReturnFocus&&document.contains(assignmentReturnFocus))assignmentReturnFocus.focus({preventScroll:true});
   assignmentReturnFocus=null;
  }
- function openAssignmentDialog(){
-  if(role!=='DEPARTMENT_HEAD'||!assignmentContext.departmentId)return;
+ function openAssignmentDialog(options={}){
+  if(role!=='DEPARTMENT_HEAD'||!assignmentContext.departmentId||assignmentSaving)return;
   const overlay=$('teacherAssignmentOverlay');if(!overlay)return;
-  assignmentSelected.clear();assignmentReturnFocus=document.activeElement;
+  const available=assignmentAvailable();
+  const requestedId=options.periodId?String(options.periodId):'';
+  assignmentSelected.clear();
+  // A specific class takes priority; otherwise preselect the only available class.
+  const preferred=available.find(period=>String(period.periodId)===requestedId)||
+    (available.length===1?available[0]:null);
+  if(preferred)assignmentSelected.add(String(preferred.periodId));
+  assignmentReturnFocus=document.activeElement;
   overlay.hidden=false;document.body.classList.add('teacher-assignment-open');
   assignmentFeedback('',false);renderAssignmentDialog();
   $('teacherAssignmentTeacher').focus({preventScroll:true});
@@ -204,6 +211,18 @@
   const free=periods.filter(item=>!item.assignedTeacherName&&!item.assignedTeacherUserId).length;
   const count=id=>{if($(id))$(id).textContent=String(id==='scheduleTotalMetric'?total:id==='scheduleUnassignedMetric'?free:changes.length);};
   ['scheduleTotalMetric','scheduleUnassignedMetric','scheduleChangesMetric'].forEach(count);
+  const unassignedCard=$('scheduleUnassignedCard');
+  if(unassignedCard){
+    const canAssign=role==='DEPARTMENT_HEAD'&&Boolean(assignmentContext.departmentId);
+    unassignedCard.hidden=false;
+    unassignedCard.tabIndex=canAssign?0:-1;
+    unassignedCard.setAttribute('role',canAssign?'button':'group');
+    unassignedCard.setAttribute('aria-label',canAssign?
+      'Assign Subject Teachers to '+assignmentAvailable().length+' unassigned department class schedules':
+      'Unassigned class schedules');
+    unassignedCard.classList.toggle('is-actionable',canAssign);
+    unassignedCard.dataset.assignmentEnabled=String(canAssign);
+  }
   if($('scheduleSettingsTab'))$('scheduleSettingsTab').hidden=role!=='SCHOOL_ADMIN';
   if($('scheduleSettingsShortcut'))$('scheduleSettingsShortcut').hidden=role!=='SCHOOL_ADMIN';
   if($('scheduleMetricScope'))$('scheduleMetricScope').textContent=role==='TEACHER'?'Your assigned classes':role==='DEPARTMENT_HEAD'?'Department timetable':'School-wide timetable';
@@ -264,6 +283,20 @@
    '<div class="schedule-overview-card"><span class="schedule-overview-icon is-violet" data-ui-icon="swap"></span><span>Changes this week</span><strong id="scheduleChangesMetric">—</strong><small>Temporary date changes</small></div>';
   overview.setAttribute('aria-live','polite');
   header.insertAdjacentElement('afterend',overview);
+  const unassignedCard=overview.querySelector('.schedule-overview-card:nth-child(2)');
+  if(unassignedCard){
+    unassignedCard.id='scheduleUnassignedCard';
+    unassignedCard.tabIndex=-1;
+    unassignedCard.setAttribute('role','group');
+    unassignedCard.addEventListener('click',()=>{
+      if(unassignedCard.dataset.assignmentEnabled==='true')openAssignmentDialog();
+    });
+    unassignedCard.addEventListener('keydown',event=>{
+      if(unassignedCard.dataset.assignmentEnabled==='true'&&(event.key==='Enter'||event.key===' ')){
+        event.preventDefault();openAssignmentDialog();
+      }
+    });
+  }
   const tabs=document.createElement('div');tabs.className='schedule-workspace-tabs';tabs.setAttribute('role','tablist');tabs.setAttribute('aria-label','Class scheduling sections');
   choices.forEach(choice=>{
    const button=document.createElement('button');button.type='button';
