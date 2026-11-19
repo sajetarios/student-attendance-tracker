@@ -114,10 +114,6 @@ html[data-ui-theme="dark"]{
 #schedulesView[data-schedule-tab="changes"] #managerScheduleTableWrap,
 #schedulesView[data-schedule-tab="weekly"] #datedSchedulePanel,
 #schedulesView[data-schedule-tab="weekly"] #timetableSettings,
-#schedulesView[data-schedule-tab="weekly"] #periodBulkToolbar,
-#schedulesView[data-schedule-tab="weekly"] .schedule-list-intro,
-#schedulesView[data-schedule-tab="weekly"] #managerScheduleTableWrap,
-#schedulesView[data-schedule-tab="weekly"] #scheduleListFilters,
 #schedulesView[data-schedule-tab="changes"] #scheduleListFilters,
 #schedulesView[data-schedule-tab="settings"] #scheduleListFilters,
 #schedulesView[data-schedule-tab="settings"] #weeklyTimetableWorkspace,
@@ -514,3 +510,14 @@ html[data-ui-theme="dark"] .portal-page :is(input[type="date"],input[type="time"
 #schedulesView .weekly-schedule-list th{position:sticky;top:0;z-index:1;background:var(--ui-panel-soft,#f5f7fa);text-align:left}
 #schedulesView .weekly-schedule-list td,#schedulesView .weekly-schedule-list th{padding:11px 12px;white-space:nowrap}
 #schedulesView[data-schedule-tab="weekly"] #weeklyTimetableBoard:not([hidden]){display:block!important}
+
+/* Consolidated timetable: weekly grid/list is primary; legacy bulk tools live in a closed disclosure. */
+#schedulesView .schedule-advanced-tools{margin:12px 0 20px;border:1px solid var(--ui-line,#d8e0e8);border-radius:12px;background:var(--ui-panel,#fff);overflow:hidden}
+#schedulesView .schedule-advanced-tools>summary{cursor:pointer;padding:12px 15px;font-size:13px;font-weight:650;color:var(--ui-text,#18364f)}
+#schedulesView .schedule-advanced-tools:not([open])>:not(summary){display:none!important}
+#schedulesView .schedule-advanced-tools[hidden]{display:none!important}
+#schedulesView .schedule-advanced-tools[open]>summary{border-bottom:1px solid var(--ui-line,#d8e0e8)}
+#schedulesView .weekly-schedule-list td:last-child{white-space:normal;min-width:190px}
+#schedulesView .weekly-schedule-list .schedule-row-actions{display:flex;flex-wrap:wrap;gap:5px}
+#timetableClassDetails .tt-recurring-actions{display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end}
+#timetableClassDetails .tt-action-danger{color:var(--ui-danger,#b42318)}
