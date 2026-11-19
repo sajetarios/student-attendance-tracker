@@ -1,4 +1,4 @@
-const CACHE = "attendigo-v244-section-identity";
+const CACHE = "attendigo-v245-department-subject-modal";
 
 const SHELL = [
   "/typography.css?v=1",
@@ -54,7 +54,7 @@ const SHELL = [
   "/portal.css?v=0.9.119",
   "/portal.js?v=207",
   "/department-workspace.css?v=1",
-  "/department-workspace.js?v=3",
+  "/department-workspace.js?v=4",
   "/form48-report.js?v=7",
   "/form48-bulk-ui.js?v=2",
   "/form48-report.css?v=7",
