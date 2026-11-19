@@ -106,6 +106,16 @@ async function prepare(){
  }catch(error){data=null;secretKey=null;salt=null;throw error;}
  finally{$('prepare').disabled=false;}
 }
+async function renew(){
+ if(!data||!online())throw Error('Unlock the prepared device and connect to the internet to renew.');
+ const identity=await api('/api/gate/offline/prepare');
+ if(identity.schoolId!==data.scope.schoolId||identity.userId!==data.scope.userId||identity.role!=='GATE_KEEPER')
+  throw Error('Different account: original Gatekeeper must reauthorize this device.');
+ data.scope.validUntil=identity.validUntil;
+ await save();
+ $('scanResult').textContent='Authorized for another 12 hours. Existing encrypted scans are preserved.';
+ view();
+}
 async function unlock(){
  const doc=await readDoc();
  if(!doc)throw Error('No prepared Gatekeeper profile on this device. Prepare online first.');
