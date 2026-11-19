@@ -32,37 +32,119 @@
     panel.className = 'dh-insights';
     panel.setAttribute('aria-label', 'Department monitoring and announcements');
     panel.innerHTML = `
-      <div class="dh-insights-head"><div>
-        <h3>Department monitoring & reports</h3>
-        <p>Only records for your assigned department. Gate arrivals do not determine official DTR or absences.</p>
-      </div><button class="outline-button" type="button" id="dhInsightsRefresh">Refresh</button></div>
-      <p class="inline-feedback" role="status" aria-live="polite" id="dhInsightsStatus"></p>
+      <div class="dh-monitor-heading">
+        <div class="dh-monitor-heading-icon" aria-hidden="true">▥</div>
+        <div class="dh-monitor-heading-title"><span class="dh-monitor-eyebrow">DEPARTMENT WORKSPACE</span>
+          <h3>Department Monitoring &amp; Reports</h3>
+          <p>Gate activity, teacher workload, department notices and learner follow-up.</p>
+        </div>
+        <div class="dh-monitor-heading-actions">
+          <span class="dh-last-updated" id="dhLastUpdated" role="status">Not refreshed yet</span>
+          <button class="outline-button" type="button" id="dhInsightsRefresh">↻ Refresh</button>
+        </div>
+      </div>
+      <p class="inline-feedback dh-monitor-feedback" role="status" aria-live="polite" id="dhInsightsStatus"></p>
       <div class="dh-insights-metrics" aria-label="Department monitoring totals">
-        <div><span>Verified gate arrivals today</span><strong id="dhGateArrivals">—</strong></div>
-        <div><span>OB requests awaiting recommendation</span><strong id="dhPendingOb">—</strong></div>
-        <div><span>Approved classes needing coverage</span><strong id="dhUncoveredClasses">—</strong></div>
+        <article class="dh-kpi dh-kpi-gate"><span class="dh-kpi-icon" aria-hidden="true">▣</span><div><span>Verified gate arrivals today</span><strong id="dhGateArrivals">—</strong><small>Gate arrivals only</small></div></article>
+        <article class="dh-kpi dh-kpi-ob"><span class="dh-kpi-icon" aria-hidden="true">▤</span><div><span>OB requests awaiting recommendation</span><strong id="dhPendingOb">—</strong><small>Awaiting your action</small></div></article>
+        <article class="dh-kpi dh-kpi-cover"><span class="dh-kpi-icon" aria-hidden="true">▦</span><div><span>Approved classes needing coverage</span><strong id="dhUncoveredClasses">—</strong><small>Review class assignments</small></div></article>
       </div>
-      <div class="dh-insights-head"><div><h4>Teacher workload</h4>
-        <p>Assigned class periods and active temporary substitutions; not teaching hours or attendance status.</p>
-      </div><button class="outline-button" type="button" id="dhExportWorkload">Export CSV</button></div>
-      <div class="dh-workload-scroll" role="region" aria-label="Department teacher workload" tabindex="0">
-        <table class="dh-workload-table"><thead><tr>
-          <th scope="col">Teacher</th><th scope="col">Account status</th>
-          <th scope="col">Assigned periods</th><th scope="col">Active substitutions</th>
-        </tr></thead><tbody id="dhWorkloadRows"><tr><td colspan="4">Loading teacher workload…</td></tr></tbody></table>
-      </div>
-      <div class="dh-insights-head"><div><h4>Department announcements</h4>
-        <p>Send a notice to active teachers and Department Heads in your assigned department only.</p>
-      </div></div>
-      <form id="dhAnnouncementForm" class="dh-notice-form">
-        <label>Title<input required name="title" maxlength="120" minlength="3" placeholder="e.g. Department meeting" autocomplete="off"></label>
-        <label>Message<textarea required name="body" maxlength="1200" minlength="3" rows="3" placeholder="Enter a brief departmental notice"></textarea></label>
-        <div class="dh-notice-actions"><button type="submit" class="primary-button">Send department notice</button>
-          <span id="dhNoticeStatus" role="status" aria-live="polite"></span></div>
-      </form>
-      <h4 class="dh-recent-heading">Recent department notices</h4>
-      <ul class="dh-announcement-list" id="dhAnnouncements"><li>Loading notices…</li></ul>`;
+      <div class="dh-monitor-columns">
+        <section class="dh-monitor-panel dh-monitor-workload">
+          <div class="dh-monitor-panel-head">
+            <button type="button" class="dh-panel-toggle" id="dhToggleWorkload" aria-expanded="true" aria-controls="dhWorkloadBody">
+              <span class="dh-panel-glyph" aria-hidden="true">▤</span><span><strong>Teacher Workload</strong><small>Assigned class periods and active temporary substitutions</small></span><span class="dh-panel-chevron" aria-hidden="true">⌄</span>
+            </button>
+            <button class="outline-button" type="button" id="dhExportWorkload">↓ Export CSV</button>
+          </div>
+          <div id="dhWorkloadBody" class="dh-workload-body">
+            <div class="dh-workload-tools">
+              <input type="search" id="dhWorkloadSearch" placeholder="Search teacher or status…" aria-label="Search teacher workload">
+              <button type="button" class="outline-button" id="dhSortTeachers" aria-label="Sort teacher names">Name A–Z</button>
+            </div>
+            <div class="dh-workload-scroll" role="region" aria-label="Department teacher workload" tabindex="0">
+              <table class="dh-workload-table"><thead><tr>
+                <th scope="col">Teacher</th><th scope="col">Account status</th>
+                <th scope="col">Assigned periods</th><th scope="col">Active substitutions</th>
+              </tr></thead><tbody id="dhWorkloadRows"><tr><td colspan="4">Loading teacher workload…</td></tr></tbody></table>
+            </div>
+          </div>
+        </section>
+        <div class="dh-monitor-right">
+          <section class="dh-monitor-panel dh-monitor-notices">
+            <div class="dh-monitor-panel-head">
+              <div class="dh-panel-label"><span class="dh-panel-glyph" aria-hidden="true">◉</span><span><strong>Department Announcements</strong><small>Notify active teachers and Department Heads in your department</small></span></div>
+              <button type="button" class="outline-button" id="dhNewNotice" aria-expanded="false" aria-controls="dhAnnouncementForm">+ New Notice</button>
+            </div>
+            <form id="dhAnnouncementForm" class="dh-notice-form" hidden>
+              <label>Title<input required name="title" maxlength="120" minlength="3" placeholder="e.g. Department meeting" autocomplete="off"></label>
+              <label>Message<textarea required name="body" maxlength="1200" minlength="3" rows="3" placeholder="Enter a brief departmental notice"></textarea></label>
+              <div class="dh-notice-actions"><button type="submit" class="primary-button">Send department notice</button>
+                <span id="dhNoticeStatus" role="status" aria-live="polite"></span></div>
+            </form>
+          </section>
+          <section class="dh-monitor-panel dh-monitor-recent">
+            <div class="dh-monitor-panel-head">
+              <div class="dh-panel-label"><span class="dh-panel-glyph" aria-hidden="true">▤</span><span><strong>Recent Department Notices</strong><small>Messages sent within your department</small></span></div>
+              <button class="outline-button" type="button" id="dhToggleNotices" aria-expanded="false" aria-controls="dhAnnouncements">View all</button>
+            </div>
+            <ul class="dh-announcement-list" id="dhAnnouncements"><li>Loading notices…</li></ul>
+          </section>
+        </div>
+      </div>`;
     parent.append(panel);
+    // Keep the existing SARDO monitor and its permissions, handlers and IDs intact.
+    // Department Heads see it as the next panel in this monitoring workspace.
+    const sardoPanel = $('sardoCard');
+    if (sardoPanel) panel.append(sardoPanel);
+    const toggleWorkload = $('dhToggleWorkload');
+    toggleWorkload.addEventListener('click', () => {
+      const expanded = toggleWorkload.getAttribute('aria-expanded') !== 'true';
+      toggleWorkload.setAttribute('aria-expanded', String(expanded));
+      $('dhWorkloadBody').hidden = !expanded;
+    });
+    const newNotice = $('dhNewNotice');
+    newNotice.addEventListener('click', () => {
+      const expanded = newNotice.getAttribute('aria-expanded') !== 'true';
+      newNotice.setAttribute('aria-expanded', String(expanded));
+      $('dhAnnouncementForm').hidden = !expanded;
+      newNotice.textContent = expanded ? 'Close' : '+ New Notice';
+      if (expanded) $('dhAnnouncementForm').querySelector('input[name="title"]').focus();
+    });
+    let allNotices = false;
+    $('dhToggleNotices').addEventListener('click', () => {
+      allNotices = !allNotices;
+      $('dhToggleNotices').setAttribute('aria-expanded', String(allNotices));
+      $('dhToggleNotices').textContent = allNotices ? 'Show less' : 'View all';
+      updateNoticeVisibility();
+    });
+    function updateNoticeVisibility() {
+      [...$('dhAnnouncements').children].forEach((li, i) => { li.hidden = !allNotices && i >= 3; });
+    }
+    let reverseTeacherSort = false;
+    function filterWorkloadTable() {
+      const tbody = $('dhWorkloadRows');
+      const search = $('dhWorkloadSearch').value.trim().toLocaleLowerCase();
+      const rows = [...tbody.rows];
+      const hasRealRows = rows.every(row => row.cells.length > 1);
+      if (!hasRealRows) return;
+      rows.sort((a, b) => {
+        const aName = a.cells[0]?.textContent || '';
+        const bName = b.cells[0]?.textContent || '';
+        return aName.localeCompare(bName, 'en', { sensitivity: 'base' }) * (reverseTeacherSort ? -1 : 1);
+      });
+      rows.forEach(row => {
+        tbody.append(row);
+        row.hidden = !row.textContent.toLocaleLowerCase().includes(search);
+      });
+    }
+    $('dhWorkloadSearch').addEventListener('input', filterWorkloadTable);
+    $('dhSortTeachers').addEventListener('click', () => {
+      reverseTeacherSort = !reverseTeacherSort;
+      $('dhSortTeachers').textContent = reverseTeacherSort ? 'Name Z–A' : 'Name A–Z';
+      filterWorkloadTable();
+    });
+
 
     const subjectPanel = document.createElement('section');
     subjectPanel.className = 'dh-insights';
@@ -213,6 +295,9 @@
             }
           }
         }
+        filterWorkloadTable();
+        const now = new Date();
+        $('dhLastUpdated').textContent = 'Updated ' + now.toLocaleTimeString('en-PH', {timeZone:'Asia/Manila',hour:'numeric',minute:'2-digit'});
         status.textContent = data.attendanceNote || 'Department totals loaded.';
       } catch (error) {
         status.textContent = error.message;
@@ -227,6 +312,7 @@
           const li = document.createElement('li');
           li.textContent = 'No department announcements have been sent.';
           list.append(li);
+          updateNoticeVisibility();
           return;
         }
         for (const announcement of data.announcements) {
@@ -241,6 +327,7 @@
           li.append(heading, time, body);
           list.append(li);
         }
+        updateNoticeVisibility();
       } catch (error) {
         list.replaceChildren();
         const li = document.createElement('li'); li.textContent = error.message; list.append(li);
@@ -286,6 +373,9 @@
         feedback.textContent = 'Notice delivered to ' + Number(result.recipients || 0) + ' department account(s).';
         document.dispatchEvent(new Event('attendigo:requests-changed'));
         form.reset();
+        newNotice.setAttribute('aria-expanded', 'false');
+        newNotice.textContent = '+ New Notice';
+        form.hidden = true;
         await loadAnnouncements();
       } catch (error) {
         feedback.textContent = error.message;
