@@ -89,7 +89,14 @@ window.attendigoStaffIdentity = new Promise(resolve => { resolveStaffIdentity = 
       throw new Error('Your session has expired. Please sign in again.');
     }
     const data = response.status === 204 ? null : await response.json().catch(() => ({}));
-    if (!response.ok) throw new Error(data?.error || `Request failed (${response.status}).`);
+    if (!response.ok) {
+      const error = new Error(data?.error || `Request failed (${response.status}).`);
+      if (data?.code === 'SF1_SCHOOL_YEAR_REQUIRED') {
+        error.code = data.code;
+        error.schoolYear = data.schoolYear || '';
+      }
+      throw error;
+    }
     return data;
   }
 
@@ -5515,14 +5522,115 @@ let teacherActionMenuListenersInstalled = false;
     return payload;
   }
 
+  let sf1YearSetupInfo = null;
   function resetStudentImport() {
-    pendingStudentImport = null; pendingStudentImportPreview = null;
+    pendingStudentImport = null; pendingStudentImportPreview = null; sf1YearSetupInfo = null;
     $('studentImportFile').value = ''; $('studentImportSummary').textContent = '';
+    $('studentImportSchoolYearSetup').hidden = true;
+    $('studentImportYearFeedback').textContent = '';
+    $('studentImportYearFields').hidden = true;
+    $('studentImportYearActivate').hidden = true;
     if ($('studentImportUpdateExisting')) $('studentImportUpdateExisting').checked = false;
     if ($('studentImportExistingList')) { $('studentImportExistingList').hidden = true; $('studentImportExistingList').replaceChildren(); }
     $('studentImportPreviewRows').innerHTML = '<tr><td colspan="8" class="empty-cell">Choose a file to preview.</td></tr>';
     $('confirmStudentImport').disabled = true;
   }
+
+
+  function normalizedSf1SchoolYear(value) {
+    const match = String(value || '').replace(/[–—/]/g, '-').replace(/\s+/g, '')
+      .match(/^(20\d{2})-(20\d{2}|\d{2})$/);
+    if (!match) return '';
+    const first = Number(match[1]), last = Number(match[2].length===2 ? match[1].slice(0,2)+match[2] : match[2]);
+    return last===first+1 ? first+'-'+last : '';
+  }
+
+  async function offerSf1SchoolYearSetup(yearFromFile) {
+    const setup=$('studentImportSchoolYearSetup'), explanation=$('studentImportYearExplanation');
+    const fields=$('studentImportYearFields'), button=$('studentImportYearActivate');
+    const open=$('studentImportYearOpenAdmin'), label=normalizedSf1SchoolYear(yearFromFile);
+    sf1YearSetupInfo = null;
+    setup.hidden=false;
+    fields.hidden=true; button.hidden=true; open.hidden=true;
+    $('studentImportYearFeedback').textContent='';
+    if (user.role !== 'SCHOOL_ADMIN') {
+      explanation.textContent='This school has no active school year. Ask your School Administrator to activate '
+        +(label ? 'SY '+label : 'the school year on the LIS SF1')
+        +' in School Years & Programs, then reselect this file. Teachers cannot activate academic years.';
+      return;
+    }
+    open.hidden=false;
+    if(!label) {
+      explanation.textContent='The LIS workbook does not expose a reliable school-year label. Open School Years & Programs to configure the correct year, then preview the SF1 again.';
+      return;
+    }
+    $('studentImportYearLabel').value=label;
+    explanation.textContent='SF1 is readable, but this school has no active school year. Set up SY '+label
+      +' using its official start and end dates. No learners will be imported until you confirm the separate preview.';
+    let years;
+    try {years=(await api('/api/school-years')).schoolYears||[];}
+    catch(error) { $('studentImportYearFeedback').textContent='Could not check configured years: '+error.message; return; }
+    const existing=years.find(year=>year.label===label);
+    if(existing?.status==='CLOSED') {
+      explanation.textContent='SY '+label+' is closed. Review it under School Years & Programs before reopening; closed enrollment history must not be changed automatically.';
+      return;
+    }
+    if(existing?.status==='ACTIVE') {
+      explanation.textContent='SY '+label+' is already active. Choose the same SF1 again to refresh the import preview.';
+      return;
+    }
+    sf1YearSetupInfo={label,existingId:existing?.schoolYearId||null};
+    if(existing) {
+      explanation.textContent='SY '+label+' already exists ('+existing.startDate+' to '+existing.endDate+'). Activate it to continue importing.';
+      button.textContent='Activate existing SY '+label;
+    } else {
+      fields.hidden=false;
+      $('studentImportYearStart').value='';
+      $('studentImportYearEnd').value='';
+      button.textContent='Create and activate SY '+label;
+    }
+    button.hidden=false;
+  }
+
+  $('studentImportYearActivate')?.addEventListener('click',async()=>{
+    const state=sf1YearSetupInfo, feedback=$('studentImportYearFeedback'),button=$('studentImportYearActivate');
+    if(!state || user.role!=='SCHOOL_ADMIN' || !pendingStudentImport || $('studentImportFormat').value!=='sf1') return;
+    const start=$('studentImportYearStart').value,end=$('studentImportYearEnd').value;
+    if(!state.existingId && (!/^\d{4}-\d{2}-\d{2}$/.test(start)||!/^\d{4}-\d{2}-\d{2}$/.test(end)||end<start||
+       !start.startsWith(state.label.slice(0,4))||!end.startsWith(state.label.slice(5)))) {
+      feedback.textContent='Enter the official first and last dates for SY '+state.label+' (start in '+state.label.slice(0,4)+', end in '+state.label.slice(5)+').';
+      return;
+    }
+    const description=state.existingId ? 'Activate existing SY '+state.label+'?'
+      : 'Create and activate SY '+state.label+' from '+start+' to '+end+'? Verify these dates against your official school calendar.';
+    if(!await AppDialog.confirm(description,{title:'Confirm school year',confirmText:'Activate school year'}))return;
+    button.disabled=true;feedback.textContent='Activating school year…';
+    try {
+      let yearId=state.existingId;
+      if(!yearId) {
+        const created=await api('/api/school-years',{method:'POST',body:JSON.stringify({label:state.label,startDate:start,endDate:end})});
+        yearId=created.schoolYear.schoolYearId;
+        state.existingId=yearId; // A second attempt can activate an already-created SETUP year.
+      }
+      await api('/api/school-years/'+encodeURIComponent(yearId)+'/status',{method:'PATCH',body:JSON.stringify({status:'ACTIVE'})});
+      $('studentImportSchoolYearSetup').hidden=true;
+      sf1YearSetupInfo=null;
+      await previewStudentImport();
+      showToast('School year '+state.label+' activated. Review your SF1 preview before importing.');
+    } catch(error) {
+      feedback.textContent='School year setup not completed: '+error.message;
+      if(state.existingId) {
+        $('studentImportYearFields').hidden=true;
+        button.textContent='Retry activation for SY '+state.label;
+      }
+    } finally {button.disabled=false;}
+  });
+
+  $('studentImportYearOpenAdmin')?.addEventListener('click',()=>{
+    if(user.role!=='SCHOOL_ADMIN')return;
+    $('studentImportModal').hidden=true;
+    document.dispatchEvent(new Event('attendigo:open-academic'));
+  });
 
   async function previewStudentImport() {
     if (!pendingStudentImport) return;
@@ -5535,6 +5643,8 @@ let teacherActionMenuListenersInstalled = false;
       const sf1Mode = $('studentImportFormat')?.value === 'sf1';
       const preview = await api(sf1Mode ? '/api/students/sf1/preview' : '/api/students/import/preview', { method:'POST', body:JSON.stringify(studentImportRequestPayload()) });
       if (sf1Mode) {
+        $('studentImportSchoolYearSetup').hidden=true;
+        sf1YearSetupInfo=null;
         pendingStudentImportPreview = preview;
         const counts=preview.summary||{create:0,skip:0,review:0};
         summary.textContent=preview.total+' learners · '+counts.create+' new · '+counts.skip+' existing skipped · '+counts.review+' need review. Grade: '+preview.gradeLevel+' · Section: Unassigned.';
@@ -5576,6 +5686,12 @@ let teacherActionMenuListenersInstalled = false;
       pendingStudentImportPreview = null;
       summary.textContent = error.message;
       $('studentImportPreviewRows').innerHTML = '<tr><td colspan="8" class="empty-cell">File could not be validated.</td></tr>';
+      if(error.code==='SF1_SCHOOL_YEAR_REQUIRED') {
+        await offerSf1SchoolYearSetup(error.schoolYear);
+      } else {
+        $('studentImportSchoolYearSetup').hidden=true;
+        sf1YearSetupInfo=null;
+      }
     }
   }
 

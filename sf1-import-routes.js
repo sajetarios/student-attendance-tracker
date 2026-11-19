@@ -10,7 +10,9 @@ function registerSf1ImportRoutes(app,pool,{authenticateSchoolClient,requireSchoo
    throw Object.assign(Error('Only Class Advisers can import an SF1 roster.'),{status:403});
   const sf1=req.body?.fileType==='pdf' ? await parseSf1PdfBase64(req.body?.fileBase64) : await parseSf1Base64(req.body?.fileBase64,req.body?.fileType||'xlsx');
   const year=await db.query("SELECT school_year_id,school_year_label,start_date FROM school_years WHERE school_id=$1 AND status='ACTIVE'",[req.auth.schoolId]);
-  if(year.rowCount!==1)throw Object.assign(Error('Configure an active school year before importing SF1.'),{status:409});
+  if(year.rowCount!==1)throw Object.assign(Error('Configure an active school year before importing SF1.'),{
+   status:409,code:'SF1_SCHOOL_YEAR_REQUIRED',schoolYear:sf1.schoolYear||''
+  });
   const active=year.rows[0];
   if(sf1.schoolYear&&sf1.schoolYear.replace(/[^0-9]/g,'').slice(0,4)!==String(active.school_year_label).slice(0,4))
    throw Object.assign(Error('SF1 school year does not match the active school year.'),{status:409});
@@ -34,7 +36,7 @@ function registerSf1ImportRoutes(app,pool,{authenticateSchoolClient,requireSchoo
  }
  app.post('/api/students/sf1/preview',authenticateSchoolClient,permitted,async(req,res)=>{
   try{const result=await prepare(req,pool);res.json({rows:result.rows,summary:result.summary,gradeLevel:result.gradeLevel,section:'Unassigned',total:result.rows.length});}
-  catch(e){res.status(e.status||400).json({error:e.message,details:e.details||[]});}
+  catch(e){res.status(e.status||400).json({error:e.message,details:e.details||[],...(e.code==='SF1_SCHOOL_YEAR_REQUIRED'?{code:e.code,schoolYear:e.schoolYear}: {})});}
  });
  app.post('/api/students/sf1/commit',authenticateSchoolClient,permitted,async(req,res)=>{
   const client=await pool.connect();
