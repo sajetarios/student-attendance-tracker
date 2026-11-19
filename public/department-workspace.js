@@ -157,6 +157,30 @@
         const result = await response.json();
         if (!response.ok) throw new Error(result.error || 'Could not save subject.');
         await loadSubjects();
+        // Refresh the open class schedule selector without losing the selected subject.
+        const scheduleSelect = $('periodSubject');
+        if (scheduleSelect) {
+          const previousId = isAdd ? result.subject?.subjectId : scheduleSelect.value;
+          try {
+            const response = await fetch('/api/subjects', { credentials: 'same-origin', cache: 'no-store' });
+            const data = await response.json();
+            if (!response.ok) throw new Error(data.error || 'Could not refresh schedule subjects.');
+            scheduleSelect.replaceChildren();
+            const placeholder = document.createElement('option');
+            placeholder.value = '';
+            placeholder.textContent = 'Select subject';
+            scheduleSelect.append(placeholder);
+            for (const subject of data.subjects || []) {
+              const option = document.createElement('option');
+              option.value = subject.subjectId;
+              option.textContent = subject.subjectName;
+              scheduleSelect.append(option);
+            }
+            scheduleSelect.disabled = !(data.subjects || []).length;
+            if ([...scheduleSelect.options].some(option => option.value === previousId)) scheduleSelect.value = previousId;
+            if ($('periodSubjectHint')) $('periodSubjectHint').textContent = (data.subjects || []).length + ' subjects available for the selected teacher.';
+          } catch (error) { status.textContent = 'Subject saved, but refresh the schedule form: ' + error.message; }
+        }
         if (isAdd) form.reset();
         status.textContent = 'Subject saved. Existing class records were not changed.';
       } catch (error) { status.textContent = error.message; }
