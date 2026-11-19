@@ -26,6 +26,17 @@
       if (labels[1]) labels[1].textContent = 'Active Teachers';
       if (labels[2]) labels[2].textContent = 'Temporary Covers';
       if (labels[3]) labels[3].textContent = 'Classes Needing Coverage';
+      // Use one local outline-SVG vocabulary instead of platform-dependent glyphs.
+      const iconPaths = [
+        '<circle cx="9" cy="8" r="3"/><path d="M3 21v-2a6 6 0 0 1 12 0v2M16 5a3 3 0 0 1 0 6m2 4a5 5 0 0 1 3 5v1"/>',
+        '<circle cx="10" cy="8" r="3"/><path d="M4 20v-2a6 6 0 0 1 10-4.5m2 3 2 2 4-4"/>',
+        '<rect x="3" y="5" width="18" height="16" rx="3"/><path d="M7 3v4m10-4v4M3 11h18m5 5h8m-3-3 3 3-3 3"/>',
+        '<rect x="3" y="5" width="18" height="16" rx="3"/><path d="M7 3v4m10-4v4M3 11h18"/><circle cx="12" cy="16" r="3"/><path d="M12 14.5V16l1 1"/>'
+      ];
+      metrics.querySelectorAll('.dh-command-metric .dh-metric-icon').forEach((node, index) => {
+        if (!iconPaths[index]) return;
+        node.innerHTML = '<svg class="ui-icon dh-v2-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">' + iconPaths[index] + '</svg>';
+      });
       const teachers = metrics.querySelectorAll('.dh-command-metric');
       function makeAction(card, source, name) {
         if (!card || !source) return;
