@@ -1,4 +1,4 @@
-const CACHE = "attendigo-v240-lis-summary-rows";
+const CACHE = "attendigo-v241-batch-program-roster";
 
 const SHELL = [
   "/typography.css?v=1",
@@ -183,7 +183,7 @@ self.addEventListener("fetch", event => {
   // Keep scheduling and shared notification UI fresh without breaking offline operation.
   // Notifications change often; always prefer online JS/CSS to avoid old large-text layouts.
   // Unlike cache-first general assets, these role-critical resources prefer the deployed version.
-  if (['/universal-notifications.js','/universal-notifications.css','/portal.js','/learner-roster-view.js','/learner-roster-view.css','/manual-folio.js','/manual-folio.css','/schedule-form-layout.css','/schedule-workspace-ui.js','/teacher-assignment-modal.css'].includes(url.pathname)) {
+  if (['/universal-notifications.js','/universal-notifications.css','/portal.js','/special-program-batch-ui.js','/learner-roster-view.js','/learner-roster-view.css','/manual-folio.js','/manual-folio.css','/schedule-form-layout.css','/schedule-workspace-ui.js','/teacher-assignment-modal.css'].includes(url.pathname)) {
     event.respondWith((async () => {
       try {
         const fresh = await fetch(request, { cache: 'no-store' });
