@@ -6871,13 +6871,26 @@ let teacherActionMenuListenersInstalled = false;
       const designations = answer === 'BOTH' ? ['SUBJECT_TEACHER','CLASS_ADVISER'] : [answer];
       button.disabled = true;
       try {
-        await api('/api/teachers/' + encodeURIComponent(teacher.userId) + '/designations', {
+        const result = await api('/api/teachers/' + encodeURIComponent(teacher.userId) + '/designations', {
           method: 'PATCH', body: JSON.stringify({ teacherDesignations: designations })
         });
-        await loadSchoolData();
-        showToast('Teacher designation updated. Existing schedules and advisory assignments were preserved.');
+        if (!Array.isArray(result?.teacher?.teacherDesignations)) {
+          throw new Error('The server did not confirm the saved designation. Refresh the roster before trying again.');
+        }
+        teacher.teacherDesignations = result.teacher.teacherDesignations;
+        const designationLabel = result.teacher.teacherDesignations.map(value =>
+          value === 'CLASS_ADVISER' ? 'Class Adviser' : 'Subject Teacher'
+        ).join(' + ');
+        try {
+          await loadSchoolData();
+          showToast('Designation saved successfully: ' + designationLabel + '.');
+        } catch (refreshError) {
+          console.error('Teacher roster refresh after designation save failed:', refreshError);
+          showToast('Designation saved successfully. Refresh the page to see the updated teacher roster.');
+        }
       } catch (error) {
         showToast(error.message, true);
+      } finally {
         button.disabled = false;
       }
     });
