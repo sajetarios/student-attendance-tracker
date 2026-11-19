@@ -25,11 +25,18 @@ function registerSubjectManagementRoutes(app, pool, { authenticateSchoolClient, 
          WHERE school_id=$1 AND subject_id=$2
          RETURNING subject_id AS "subjectId",department_id AS "departmentId",subject_name AS "subjectName"`,
         [req.auth.schoolId, req.params.subjectId, name]);
-      // Historical class-period snapshots deliberately remain unchanged.
+      // Keep currently active schedules consistent with the renamed canonical subject.
+      // Inactive schedules and attendance history remain untouched.
+      const schedules = await client.query(
+        `UPDATE class_periods SET subject_name=$3
+         WHERE school_id=$1 AND subject_id=$2 AND active=TRUE
+         RETURNING period_id`,
+        [req.auth.schoolId, req.params.subjectId, name]);
+
       await client.query(
         `INSERT INTO audit_logs(school_id,actor_type,actor_user_id,action,entity_type,entity_id,details)
          VALUES($1,'SCHOOL',$2,'SUBJECT_RENAMED','school_subject',$3,$4::jsonb)`,
-        [req.auth.schoolId,req.auth.userId,req.params.subjectId,JSON.stringify({before,after:updated.rows[0]})]);
+        [req.auth.schoolId,req.auth.userId,req.params.subjectId,JSON.stringify({before,after:updated.rows[0],activeSchedulesUpdated:schedules.rowCount})]);
       await client.query('COMMIT');
       return res.json({ subject: updated.rows[0] });
     } catch (error) {
