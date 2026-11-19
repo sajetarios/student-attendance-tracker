@@ -2000,8 +2000,8 @@ app.post('/api/sections', authenticateSchoolClient, requireSchoolRoles('SCHOOL_A
    if(head){
      await client.query(
        `INSERT INTO audit_logs(school_id,actor_type,actor_user_id,action,entity_type,entity_id,details)
-       VALUES($1,'SCHOOL',$2,'DEPARTMENT_HEAD_CREATE_SECTION','school_section',$2,$3::jsonb)`,
-       [req.auth.schoolId,req.auth.userId,JSON.stringify({gradeLevel,section,departmentId:req.auth.departmentId})]);
+       VALUES($1,'SCHOOL',$2,'DEPARTMENT_HEAD_CREATE_SECTION','school_section',$4,$3::jsonb)`,
+       [req.auth.schoolId,req.auth.userId,JSON.stringify({gradeLevel,section,departmentId:req.auth.departmentId}),`${gradeLevel}:${section}`]);
    }
    await client.query('COMMIT');
    return res.status(201).json({section:result.rows[0]});
