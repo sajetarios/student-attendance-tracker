@@ -23,9 +23,10 @@ test('weekday selection remains native, accessible, and compact instead of stret
   assert.match(css, /#scheduleForm\[data-schedule-role="DEPARTMENT_HEAD"\] \.schedule-review-section/);
 });
 
-test('Department Heads may create/edit but School Admin retains delete permissions',()=>{
+test('Department Heads may create/edit/delete within their own department',()=>{
  const s=read('server.js');
  assert.match(s,/app\.post\('\/api\/periods', authenticateSchoolClient, requireSchoolRoles\('SCHOOL_ADMIN', 'DEPARTMENT_HEAD'\)/);
  assert.match(s,/app\.patch\('\/api\/periods\/:periodId', authenticateSchoolClient, requireSchoolRoles\('SCHOOL_ADMIN', 'DEPARTMENT_HEAD'\)/);
- assert.match(s,/app\.delete\('\/api\/periods\/:periodId', authenticateSchoolClient, requireSchoolRoles\('SCHOOL_ADMIN'\)/);
+ assert.match(s,/app\.delete\('\/api\/periods\/:periodId', authenticateSchoolClient, requireSchoolRoles\('SCHOOL_ADMIN', 'DEPARTMENT_HEAD'\)/);
+ assert.match(s,/You can delete schedules only within your own department/);
 });
