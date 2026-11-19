@@ -2,6 +2,7 @@
 
 const test = require('node:test');
 const assert = require('node:assert/strict');
+const {assertCachedAsset}=require('./support/asset-contract');
 const fs = require('node:fs');
 const path = require('node:path');
 const read = file => fs.readFileSync(path.join(__dirname,'..',file),'utf8');
@@ -31,6 +32,6 @@ test('Teacher imports default to LIS SF1 Excel/PDF while authorization remains s
 
 test('Offline shell loads the version that includes teacher import guidance', () => {
   const html = read('public/portal.html'), worker=read('public/sw.js');
-  assert.match(html, /\/portal\.js\?v=203/);
-  assert.match(worker, /"\/portal\.js\?v=203"/);
+  assertCachedAsset(html,worker,'portal.js',{minimumVersion:203});
+  
 });
