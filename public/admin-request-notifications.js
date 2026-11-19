@@ -135,6 +135,13 @@
  document.addEventListener('attendigo:requests-changed',refresh);
  document.addEventListener('visibilitychange',()=>{if(!document.hidden)refresh();});
  window.addEventListener('focus',refresh);
+ document.addEventListener('attendigo:open-approval-inbox',()=>{
+   if(!isAdmin())return;
+   wrap.hidden=true; // never restore the second header button
+   panel.hidden=false;
+   bell.setAttribute('aria-expanded','true');
+   refresh();
+ });
  const start=()=>{
    if(!isAdmin())return;
    // The approval inbox now belongs to the Requests & Approvals sidebar.
