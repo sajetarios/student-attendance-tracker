@@ -36,3 +36,16 @@ test('Department head can add new section from adviser assignment and choose new
   assert.match(ui,/select\.value=section/);
   assert.match(css,/#adviserAssignmentForm \.adviser-new-section-panel/);
 });
+
+
+test('Department head section creation binds UUID actor and text section audit entity separately', () => {
+  const start=server.indexOf("app.post('/api/sections'");
+  const end=server.indexOf("// Section edits are limited",start);
+  const route=server.slice(start,end);
+  assert.ok(start>=0&&end>start);
+  assert.match(route,/VALUES\(\$1,'SCHOOL',\$2,'DEPARTMENT_HEAD_CREATE_SECTION','school_section',\$4,\$3::jsonb\)/);
+  assert.match(route,/JSON\.stringify\(\{gradeLevel,section,departmentId:req\.auth\.departmentId\}\),`\$\{gradeLevel\}:\$\{section\}`/);
+  assert.doesNotMatch(route,/VALUES\(\$1,'SCHOOL',\$2,'DEPARTMENT_HEAD_CREATE_SECTION','school_section',\$2,/);
+  assert.match(route,/await client\.query\('COMMIT'\)/);
+  assert.match(route,/await client\.query\('ROLLBACK'\)/);
+});
