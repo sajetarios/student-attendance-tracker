@@ -127,6 +127,8 @@ registerStaffLunchRoutes(app, pool, { authenticateSchoolClient, requireSchoolRol
 registerStaffObRoutes(app, pool, { authenticateSchoolClient, requireSchoolRoles });
 registerDepartmentWorkspaceRoutes(app, pool, { authenticateSchoolClient, requireSchoolRoles });
 registerStaffGateDtrRoutes(app, pool, { authenticateSchoolClient, requireSchoolRoles });
+const { registerGateOfflineRoutes } = require('./gate-offline-routes');
+registerGateOfflineRoutes(app,pool,{authenticateSchoolClient,requireSchoolRoles});
 registerForm48ReviewRoutes(app, pool, { authenticateSchoolClient, requireSchoolRoles });
 registerManualAttendanceRoutes(app, pool, { authenticateSchoolClient, requireSchoolRoles });
 registerClassFinalizationRoutes(app, pool, { authenticateSchoolClient, requireSchoolRoles });
