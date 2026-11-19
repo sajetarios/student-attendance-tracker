@@ -1,4 +1,4 @@
-const CACHE = "attendigo-v238-lis-native-xls-import";
+const CACHE = "attendigo-v239-sf1-year-recovery";
 
 const SHELL = [
   "/typography.css?v=1",
