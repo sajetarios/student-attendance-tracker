@@ -214,7 +214,7 @@ function bind(id,callback){
   }finally{view();if(id==='prepare'&&!data)$('prepare').disabled=false;if(id==='unlock'&&!data)$('unlock').disabled=false;}
  });
 }
-bind('prepare',prepare);bind('unlock',unlock);bind('lock',lock);bind('start',start);bind('stop',stop);bind('sync',sync);
+bind('prepare',prepare);bind('unlock',unlock);bind('lock',lock);bind('start',start);bind('stop',stop);bind('renew',renew);bind('sync',sync);
 window.addEventListener('online',()=>{connectivity();if(data&&data.events.length)sync().catch(e=>{$('syncResult').textContent=e.message;});});
 window.addEventListener('offline',connectivity);
 window.addEventListener('pagehide',()=>{secretKey=null;data=null;}); // never keep decoded badge tokens after navigation
