@@ -1,4 +1,4 @@
-const CACHE = "attendigo-v241-batch-program-roster";
+const CACHE = "attendigo-v242-gate-offline-review";
 
 const SHELL = [
   "/typography.css?v=1",
@@ -69,6 +69,9 @@ const SHELL = [
   "/parent-dashboard.js?v=3",
   "/offline-attendance.js?v=5",
   "/offline-sheet.html",
+  "/gate-offline.html",
+  "/gate-offline.js?v=1",
+  "/gate-offline-review.html",
   "/offline-sheet.js?v=4",
   "/manual-folio.css?v=11",
   "/attendance-sync-center.css?v=4",
