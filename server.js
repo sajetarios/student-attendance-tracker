@@ -135,7 +135,9 @@ registerPhotoRoutes(app, pool, { authenticateSchoolClient });
 registerPlatformPhotoRoutes(app, pool, { authenticatePlatform, requirePlatformAdmin });
 registerNotificationRoutes(app, pool, { authenticateSchoolClient, authenticatePlatform });
 const { registerStudentManagementRoutes } = require('./student-management-routes');
+const { registerSf1ImportRoutes } = require('./sf1-import-routes');
 registerStudentManagementRoutes(app, pool, { authenticateSchoolClient, requireSchoolRoles });
+registerSf1ImportRoutes(app, pool, { authenticateSchoolClient, requireSchoolRoles });
 const registerSf2Routes = require('./sf2-routes');
 registerSf2Routes(app, pool, { authenticateSchoolClient, requireSchoolUser, requireSchoolAdmin, requireSchoolAdminOrDepartmentHead });
 
@@ -1863,6 +1865,15 @@ app.delete('/api/periods/:periodId/assignments/:teacherUserId', authenticateScho
 const TEACHER_STUDENT_SCOPE = `
   (
     EXISTS (
+      SELECT 1 FROM student_enrollments own
+      JOIN school_years own_sy ON own_sy.school_id=own.school_id AND own_sy.school_year_id=own.school_year_id
+      JOIN class_adviser_assignments own_ca ON own_ca.school_id=own.school_id AND own_ca.adviser_user_id=$2
+         AND own_ca.grade_level=own.grade_level
+      WHERE own.school_id=s.school_id AND own.student_id=s.student_id
+        AND own.created_by_user_id=$2 AND own.section='Unassigned'
+        AND own.enrollment_status='ENROLLED' AND own_sy.status='ACTIVE'
+    )
+    OR EXISTS (
       SELECT 1
       FROM teacher_period_assignments a
       JOIN class_periods p
