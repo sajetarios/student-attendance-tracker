@@ -23,7 +23,7 @@
   <link rel="stylesheet" href="/student-portal-accounts.css?v=6">
   <link rel="stylesheet" href="/student-workspace-tabs.css?v=1">
   <link rel="stylesheet" href="/academic-admin.css?v=1">
-  <link rel="stylesheet" href="/shs-school-ui.css?v=1">
+  <link rel="stylesheet" href="/shs-school-ui.css?v=2">
   <link rel="stylesheet" href="/password-visibility.css">
 
 <style id="student-scan-setup-styles">
@@ -2072,10 +2072,16 @@ body.dark-mode .content-wrap > .school-heading.is-compact,body[data-theme="dark"
                   <h4>SHS learner pathway</h4>
                   <p class="field-hint">Record each enrolled Grade 11–12 learner's track and applicable legacy strand/cluster; regular attendance continues through their assigned classes.</p>
                   <label>School year<select id="shsPathYear" required><option value="">Choose school year</option></select></label>
-                  <label>Enrolled SHS learner<select id="shsPathEnrollment" required><option value="">Choose enrolled SHS learner</option></select></label>
-                  <label>Track<select id="shsPathTrack" required><option value="ACADEMIC">Academic</option><option value="TECHPRO">Technical-Professional (TechPro)</option><option value="TVL">TVL (legacy)</option><option value="SPORTS">Sports (legacy)</option><option value="ARTS_AND_DESIGN">Arts and Design (legacy)</option></select></label>
-                  <label>Strand or cluster (when applicable)<input id="shsPathStrand" maxlength="80" placeholder="e.g. STEM / ABM / HUMSS / GAS"></label>
-                  <div class="shs-settings-actions"><button type="submit" class="primary-button">Save learner pathway</button><button type="button" class="outline-button" id="shsPathRefresh">Refresh learners</button></div>
+                  <label>Enrolled SHS learner<select id="shsPathEnrollment" required aria-describedby="shsPathStatusText"><option value="">Choose enrolled SHS learner</option></select></label>
+                  <div id="shsPathState" class="shs-path-state" data-state="empty" role="status" aria-live="polite">
+                    <span class="shs-path-state-symbol" aria-hidden="true">ⓘ</span>
+                    <div class="shs-path-state-copy"><strong id="shsPathStatusTitle">Select an enrolled learner</strong><span id="shsPathStatusText">Choose a school year to check its Grade 11–12 enrollments.</span></div>
+                    <button type="button" class="outline-button" id="shsPathEnroll" hidden>Enroll SHS learner</button>
+                  </div>
+                  <p id="shsPathCurriculumSummary" class="shs-path-curriculum" hidden></p>
+                  <label>Track<select id="shsPathTrack" required disabled><option value="">Select an enrolled learner first</option></select></label>
+                  <label>Strand or cluster (when applicable)<input id="shsPathStrand" maxlength="80" placeholder="Choose an enrolled learner first" disabled></label>
+                  <div class="shs-settings-actions"><button type="submit" class="primary-button" disabled>Save learner pathway</button><button type="button" class="outline-button" id="shsPathRefresh">Refresh learners</button></div>
                   <p id="shsPathFeedback" class="inline-feedback" role="status" aria-live="polite"></p>
                 </form>
               </div>
@@ -2253,7 +2259,7 @@ body.dark-mode .content-wrap > .school-heading.is-compact,body[data-theme="dark"
   <script src="/admin-request-notifications.js?v=6" defer></script>
   <script src="/universal-notifications.js?v=5" defer></script>
   <script src="/academic-admin.js?v=7" defer></script>
-  <script src="/shs-school-ui.js?v=1" defer></script>
+  <script src="/shs-school-ui.js?v=2" defer></script>
   <script src="/special-program-ui.js?v=6" defer></script>
   <script src="/special-program-batch-ui.js?v=3" defer></script>
   <script src="/smart-mobile-header.js?v=4" defer></script>
