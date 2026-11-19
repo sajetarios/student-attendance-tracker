@@ -1,4 +1,4 @@
-const CACHE = "attendigo-v243-gate-test-scan-controls";
+const CACHE = "attendigo-v244-section-identity";
 
 const SHELL = [
   "/typography.css?v=1",
@@ -22,7 +22,7 @@ const SHELL = [
   "/assets/attendigo-icon.png?v=2",
   "/attendigo-brand.css?v=2",
   "/dashboard-icons.js?v=6",
-  "/dashboard-ui.css?v=wide5",
+  "/dashboard-ui.css?v=wide8",
   "/dashboard-night.css?v=1",
   "/planner.css?v=3",
   "/planner.js?v=5",
@@ -38,8 +38,8 @@ const SHELL = [
   "/student-portal.js?v=20",
   "/parent-portal.js?v=3",
   "/dashboard-appearance.js?v=3",
-  "/timetable-grid.js?v=4",
-  "/schedule-workspace-ui.js?v=6",
+  "/timetable-grid.js?v=5",
+  "/schedule-workspace-ui.js?v=8",
   "/teacher-assignment-modal.css?v=1",
   "/portal-login.html",
   "/attendigo-login-motion.css?v=2",
@@ -52,7 +52,7 @@ const SHELL = [
   "/class-qr-dashboard-link.js?v=9",
   "/teacher-roster-popover.js?v=2",
   "/portal.css?v=0.9.119",
-  "/portal.js?v=203",
+  "/portal.js?v=207",
   "/department-workspace.css?v=1",
   "/department-workspace.js?v=3",
   "/form48-report.js?v=7",
