@@ -22,8 +22,8 @@ test('Subject updates log old and new values in same transaction and preserve pe
   assert.match(api, /SUBJECT_RENAMED/);
   assert.match(api, /JSON\.stringify\(\{before,after:updated\.rows\[0\],activeSchedulesUpdated:schedules\.rowCount\}\)/);
   assert.match(api, /COMMIT/);
-  assert.match(api, /UPDATE class_periods SET subject_name=\\$3/);
-  assert.match(api, /subject_id=\\$2 AND active=TRUE/);
+  assert.ok(api.includes('UPDATE class_periods SET subject_name=$3'));
+  assert.ok(api.includes('subject_id=$2 AND active=TRUE'));
   assert.match(api, /activeSchedulesUpdated:schedules.rowCount/);
 });
 test('Department head has a mobile-friendly subject management interface', () => {
