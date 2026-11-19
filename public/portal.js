@@ -4880,7 +4880,7 @@ let teacherActionMenuListenersInstalled = false;
     }
     user = me.user;
     // Reveal section creation as soon as the authenticated role is known; do not wait for dashboard API loading.
-    if ($('createScheduleSection')) $('createScheduleSection').hidden = user.role !== 'SCHOOL_ADMIN';
+    if ($('createScheduleSection')) $('createScheduleSection').hidden = !['SCHOOL_ADMIN','DEPARTMENT_HEAD'].includes(user.role);
     if (user.mustChangePassword) { window.location.replace('/force-password-change.html'); return; }
     sessionStorage.setItem(userKey, JSON.stringify(user));
     resolveStaffIdentity(user);
@@ -6620,11 +6620,14 @@ let teacherActionMenuListenersInstalled = false;
       const sections = result.sections || [];
       select.innerHTML = '<option value="">Select section</option>' +
         sections.map(item => '<option value="' + esc(item) + '">' + esc(item) + '</option>').join('');
-      if (preferredSection && sections.includes(preferredSection)) select.value = preferredSection;
+      if (preferredSection) {
+        const matched = sections.find(item => String(item).trim().toLocaleLowerCase() === String(preferredSection).trim().toLocaleLowerCase());
+        if (matched) select.value = matched;
+      }
       select.disabled = sections.length === 0;
       if (hint) hint.textContent = sections.length
-        ? sections.length + ' existing section' + (sections.length === 1 ? '' : 's') + ' found for ' + gradeLevel + '.'
-        : 'No sections found for this grade. Add or enroll learners, or create an approved section first.';
+        ? sections.length + ' school-wide section' + (sections.length === 1 ? '' : 's') + ' available for ' + gradeLevel + '. Sections are shared across all departments; the Class Adviser may be TBA.'
+        : 'No school-wide sections found for this grade. Choose Add Missing Section to register one, regardless of adviser assignment.';
       void refreshScheduleSectionAdviser();
     } catch (error) {
       select.innerHTML = '<option value="">Could not load sections</option>';
@@ -6642,18 +6645,30 @@ let teacherActionMenuListenersInstalled = false;
   $('periodGrade')?.addEventListener('change', () => loadScheduleSections($('periodGrade').value));
   const addSectionButton = $('createScheduleSection');
   if (addSectionButton) {
-    addSectionButton.hidden = true; // Revealed by init() after /api/auth/me succeeds.
+    addSectionButton.hidden = !['SCHOOL_ADMIN','DEPARTMENT_HEAD'].includes(user?.role); // Authenticated roles may register a missing school section.
     addSectionButton.addEventListener('click', async () => {
       const gradeLevel = $('periodGrade')?.value;
       if (!gradeLevel) { showToast('Choose a grade first.', true); return; }
       const section = await AppDialog.prompt('Enter the official section name for ' + gradeLevel + '.', '', { title: 'Add school section', confirmText: 'Create section' });
       if (section === null || section === undefined) return;
-      if (!section.trim()) { showToast('Enter a section name.', true); return; }
+      const normalizedSection = section.trim();
+      if (!normalizedSection) { showToast('Enter a section name.', true); return; }
+      if (!/^[a-zA-Z0-9][a-zA-Z0-9 ._-]{0,99}$/.test(normalizedSection)) {
+        showToast('Use a valid section name (maximum 100 characters).', true); return;
+      }
+      // Recheck the shared registry immediately before creating to avoid duplicate section names.
       addSectionButton.disabled = true;
       try {
-        await api('/api/sections', {method:'POST',body:JSON.stringify({gradeLevel,section:section.trim()})});
-        await loadScheduleSections(gradeLevel,section.trim());
-        showToast('Section created successfully.');
+        const existing = await api('/api/sections?gradeLevel=' + encodeURIComponent(gradeLevel));
+        const duplicate = (existing.sections || []).find(item => String(item).trim().toLocaleLowerCase() === normalizedSection.toLocaleLowerCase());
+        if (duplicate) {
+          await loadScheduleSections(gradeLevel, duplicate);
+          showToast('This section already exists school-wide. It has been selected; no duplicate was created.');
+          return;
+        }
+        await api('/api/sections', {method:'POST',body:JSON.stringify({gradeLevel,section:normalizedSection})});
+        await loadScheduleSections(gradeLevel, normalizedSection);
+        showToast('School section registered and available to all departments.');
       } catch(error) { showToast(error.message || 'Could not create section.', true); }
       finally { addSectionButton.disabled = false; }
     });
