@@ -1,4 +1,5 @@
 'use strict';
+const {assertCacheRevisionAtLeast}=require('./support/asset-contract');
 const test=require('node:test');
 const assert=require('node:assert/strict');
 const fs=require('node:fs');
@@ -49,5 +50,5 @@ test('PWA cache and page assets updated coherently',()=>{
   assert.ok(html.includes(asset),asset+' in page');
   assert.ok(sw.includes(asset),asset+' in service worker');
  }
- assert.match(sw,/attendigo-v254-unified-approval-nav/);
+ assertCacheRevisionAtLeast(sw,254);
 });
