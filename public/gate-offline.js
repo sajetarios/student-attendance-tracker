@@ -98,8 +98,8 @@ async function registerShell(){
  await navigator.serviceWorker.ready;
  // The active worker may be from a previous release until its update activates.
  // Explicitly warm the exact versioned, public offline assets in the new cache.
- const cache=await caches.open('attendigo-v242-gate-offline-review');
- const assets=['/gate-offline.html','/gate-offline.js?v=1','/vendor/html5-qrcode.min.js'];
+ const cache=await caches.open('attendigo-v243-gate-test-scan-controls');
+ const assets=['/gate-offline.html','/gate-offline.js?v=2','/vendor/html5-qrcode.min.js'];
  for(const asset of assets){
   if(!await caches.match(asset))await cache.add(asset);
  }
