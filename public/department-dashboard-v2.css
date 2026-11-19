@@ -211,3 +211,21 @@ html[data-ui-theme="dark"].attendigo-dh-v2 #plannerDashboardWidget .planner-dash
  html.attendigo-dh-v2 #departmentHeadOverview .dh-actionable-metric{transition:none}
  html.attendigo-dh-v2 #departmentHeadOverview .dh-actionable-metric:hover{transform:none}
 }
+
+/* Uniform icon sizing, stroke and placement across Department Overview KPIs. */
+html.attendigo-dh-v2 #departmentHeadOverview .dh-command-metric .dh-metric-icon{
+ display:grid;place-items:center;width:42px;height:42px;min-width:42px;min-height:42px;
+ line-height:1;overflow:hidden;
+}
+html.attendigo-dh-v2 #departmentHeadOverview .dh-command-metric .dh-v2-svg{
+ display:block!important;width:22px!important;height:22px!important;
+ min-width:22px;min-height:22px;stroke-width:1.8;flex:none;
+}
+@media(max-width:700px){
+ html.attendigo-dh-v2 #departmentHeadOverview .dh-command-metric .dh-metric-icon{
+  width:34px;height:34px;min-width:34px;min-height:34px;
+ }
+ html.attendigo-dh-v2 #departmentHeadOverview .dh-command-metric .dh-v2-svg{
+  width:20px!important;height:20px!important;min-width:20px;min-height:20px;
+ }
+}
