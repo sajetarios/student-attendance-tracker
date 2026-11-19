@@ -1,0 +1,111 @@
+/* Teacher V3: scoped visual layer, preserving original Attendigo workflows. */
+html.attendigo-teacher-v3 #dashboardView{gap:13px}
+html.attendigo-teacher-v3 #dashboardView .teacher-v3-hero{
+ order:-1;display:flex;align-items:center;justify-content:space-between;gap:20px;
+ padding:24px 26px;min-height:176px;overflow:hidden;position:relative;
+ border-radius:18px;border:1px solid #b7d3f5;
+ background:linear-gradient(115deg,#0d3975 0%,#175ba4 57%,#2885c7 100%);
+ color:#fff;box-shadow:0 8px 24px #0d397524;
+}
+html.attendigo-teacher-v3 .teacher-v3-hero:after{
+ content:"";position:absolute;width:230px;height:230px;right:13%;top:-150px;
+ border-radius:50%;border:45px solid #ffffff0b;pointer-events:none;
+}
+html.attendigo-teacher-v3 .teacher-v3-hero-copy{max-width:580px;z-index:1}
+html.attendigo-teacher-v3 .teacher-v3-eyebrow{
+ display:block;font-size:10px;font-weight:800;letter-spacing:.14em;color:#c4e6ff;margin-bottom:8px;
+}
+html.attendigo-teacher-v3 .teacher-v3-hero h2{
+ font-size:clamp(21px,2.4vw,30px)!important;font-weight:790!important;
+ line-height:1.18;margin:0 0 8px!important;letter-spacing:-.03em;color:#fff!important;
+}
+html.attendigo-teacher-v3 .teacher-v3-hero p{font-size:12.5px;line-height:1.55;color:#e1f1ff;margin:0;max-width:54ch}
+html.attendigo-teacher-v3 .teacher-v3-hero-pills{display:flex;flex-wrap:wrap;gap:7px;margin-top:15px}
+html.attendigo-teacher-v3 .teacher-v3-hero-pills span{
+ border:1px solid #ffffff4d;border-radius:999px;background:#ffffff18;
+ padding:6px 10px;font-size:11px;font-weight:650;color:#fff;
+}
+html.attendigo-teacher-v3 .teacher-v3-hero-actions{
+ display:flex;flex-direction:column;align-items:flex-end;gap:9px;z-index:1;min-width:180px;
+}
+html.attendigo-teacher-v3 .teacher-v3-schedule{
+ border:0;background:#fff;color:#144d8b;border-radius:11px;
+ padding:12px 16px;min-height:44px;font-size:12.5px;font-weight:780;
+ cursor:pointer;box-shadow:0 5px 18px #061f402e;
+}
+html.attendigo-teacher-v3 .teacher-v3-schedule:hover{background:#e8f3ff}
+html.attendigo-teacher-v3 .teacher-v3-schedule:focus-visible{outline:3px solid #fff;outline-offset:3px}
+html.attendigo-teacher-v3 .teacher-v3-schedule:disabled{opacity:.6;cursor:not-allowed}
+html.attendigo-teacher-v3 .teacher-v3-note{font-size:10.5px;color:#cce8ff;text-align:right;max-width:180px;line-height:1.4}
+html.attendigo-teacher-v3 #dashboardScanCta{
+ order:0!important;padding:13px 17px!important;min-height:82px;
+ border-left:4px solid var(--tv2-accent,#2672bb)!important;
+}
+html.attendigo-teacher-v3 #dashboardScanCta h2{font-size:17px!important}
+html.attendigo-teacher-v3 #learnerSummaryCard{order:1!important}
+html.attendigo-teacher-v3 #learnerSummaryCard .learner-summary-grid{gap:10px}
+html.attendigo-teacher-v3 #learnerSummaryCard .learner-metric{
+ position:relative;min-height:112px!important;padding:15px!important;
+ border-radius:13px;box-shadow:0 3px 12px #0b34530a;
+}
+html.attendigo-teacher-v3 #learnerSummaryCard .learner-metric span:not(.teacher-v3-metric-icon){
+ display:block;max-width:calc(100% - 30px);font-weight:650;
+}
+html.attendigo-teacher-v3 #learnerSummaryCard .learner-metric strong{
+ font-size:29px;letter-spacing:-.04em;margin-top:10px;
+}
+html.attendigo-teacher-v3 #learnerSummaryCard .teacher-v3-metric-icon{
+ position:absolute;top:13px;right:13px;width:36px;height:36px;
+ display:grid;place-items:center;border-radius:11px;
+ background:color-mix(in srgb,var(--tv2-accent,#2672bb) 13%,var(--tv2-panel,#fff));
+ color:var(--tv2-accent,#2672bb);
+}
+html.attendigo-teacher-v3 #learnerSummaryCard .learner-metric:nth-child(2) .teacher-v3-metric-icon{color:#12875c;background:#c9f3e3}
+html.attendigo-teacher-v3 #learnerSummaryCard .learner-metric:nth-child(3) .teacher-v3-metric-icon{color:#ac6a16;background:#fff0d1}
+html.attendigo-teacher-v3 #learnerSummaryCard .learner-metric:nth-child(4) .teacher-v3-metric-icon{color:#7654b5;background:#eee5ff}
+html.attendigo-teacher-v3 #learnerSummaryCard .attendance-summary-note{margin-top:10px}
+html.attendigo-teacher-v3 .teacher-v3-foot{
+ margin-top:12px;padding:12px 14px;border:1px solid var(--tv2-line,#dbe5f1);
+ border-radius:11px;background:var(--tv2-soft,#f5f8fd);
+}
+html.attendigo-teacher-v3 .teacher-v3-foot-top{display:flex;justify-content:space-between;gap:10px;align-items:center;margin-bottom:8px}
+html.attendigo-teacher-v3 .teacher-v3-foot-top span{font-size:12px;font-weight:700;color:var(--tv2-text,#1b2c46)}
+html.attendigo-teacher-v3 .teacher-v3-foot-top strong{font-size:12px;color:var(--tv2-accent,#2672bb)}
+html.attendigo-teacher-v3 .teacher-v3-progress{height:9px;background:var(--tv2-line,#dbe5f1);border-radius:999px;overflow:hidden}
+html.attendigo-teacher-v3 .teacher-v3-progress span{
+ display:block;width:0;height:100%;background:linear-gradient(90deg,#1878ba,#1bb99a);
+ border-radius:999px;transition:width .2s ease;
+}
+html.attendigo-teacher-v3 .teacher-v3-foot small{
+ display:block;font-size:10.5px;color:var(--tv2-muted,#62738d);margin-top:7px;line-height:1.5;
+}
+html.attendigo-teacher-v3 #dashboardView>.dashboard-columns{
+ order:2;grid-template-columns:minmax(0,1.2fr) minmax(0,1fr);
+}
+html.attendigo-teacher-v3 #recentActivityCard{
+ min-height:235px;position:relative;
+}
+html.attendigo-teacher-v3 #recentActivityCard .empty-cell{
+ padding:24px 12px!important;font-size:12px;color:var(--tv2-muted,#62738d);
+}
+html.attendigo-teacher-v3 #quickActionsCard .quick-action{border-radius:12px;min-height:59px}
+html.attendigo-teacher-v3 #plannerDashboardWidget{order:3}
+@media(max-width:1000px){
+ html.attendigo-teacher-v3 #dashboardView>.dashboard-columns{grid-template-columns:1fr}
+}
+@media(max-width:700px){
+ html.attendigo-teacher-v3 #dashboardView .teacher-v3-hero{flex-direction:column;align-items:stretch;padding:19px;min-height:0;gap:16px}
+ html.attendigo-teacher-v3 .teacher-v3-hero-actions{align-items:stretch}
+ html.attendigo-teacher-v3 .teacher-v3-note{text-align:left;max-width:none}
+ html.attendigo-teacher-v3 #learnerSummaryCard .learner-metric{min-height:98px!important;padding:11px!important}
+ html.attendigo-teacher-v3 #learnerSummaryCard .learner-metric strong{font-size:24px}
+ html.attendigo-teacher-v3 #learnerSummaryCard .teacher-v3-metric-icon{width:30px;height:30px;right:9px;top:9px}
+ html.attendigo-teacher-v3 #learnerSummaryCard .teacher-v3-metric-icon svg{width:18px;height:18px}
+}
+html[data-ui-theme="dark"].attendigo-teacher-v3 #learnerSummaryCard .teacher-v3-foot{
+ background:var(--ui-panel-soft,#203149);border-color:var(--ui-line,#40536f);
+}
+html[data-ui-theme="dark"].attendigo-teacher-v3 #learnerSummaryCard .teacher-v3-metric-icon{
+ background:var(--ui-panel-soft,#263b54)!important;color:#9fc9ff!important;
+}
+@media(prefers-reduced-motion:reduce){html.attendigo-teacher-v3 .teacher-v3-progress span{transition:none}}
