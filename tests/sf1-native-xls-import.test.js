@@ -15,7 +15,7 @@ function createLisBiff8Fixture() {
     ['School Name', '', '', '', '', 'Sample High School', '', '', '', '',
       '', '', '', '', '', '', 'School Year', '', '', '2026 - 2027',
       '', '', '', '', '', 'Grade Level', '', '', '', '', 'Grade 8 (Year II)'],
-    ['LRN', '', 'NAME\\n(Last Name, First Name, Middle Name)', '', '', '', 'Sex (M/F)'],
+    ['LRN', '', 'NAME (Last Name, First Name, Middle Name)', '', '', '', 'Sex (M/F)'],
     [],
     [129380180009, '', 'SANTOS,JOHN, REYES', '', '', '', 'M'],
     [129453180016, '', 'CRUZ,MARIA, DIAZ', '', '', '', 'F'],
