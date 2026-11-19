@@ -461,6 +461,7 @@ window.attendigoStaffIdentity = new Promise(resolve => { resolveStaffIdentity = 
     document.querySelector('.portal-layout')?.setAttribute('data-attendigo-role', role || '');
     const admin = role === 'SCHOOL_ADMIN';
     const teacher = role === 'TEACHER';
+    if ($('offlineScanReviewsNav')) $('offlineScanReviewsNav').hidden = !admin;
     if ($('cloudSyncNav')) $('cloudSyncNav').hidden = !admin;
     if ($('schoolBrandingNav')) $('schoolBrandingNav').hidden = !admin || schoolEntitlements?.features?.custom_branding === false;
     if ($('plannerNav')) $('plannerNav').hidden = !['TEACHER', 'DEPARTMENT_HEAD'].includes(role) || schoolEntitlements?.features?.planner === false;
@@ -754,7 +755,7 @@ window.attendigoStaffIdentity = new Promise(resolve => { resolveStaffIdentity = 
           !Array.from(submenu.children).some(item => !item.hidden);
       }
     }
-    ['operations', 'reports', 'settings'].forEach(group => {
+    ['attendanceManagement', 'operations', 'reports', 'settings'].forEach(group => {
       const container = document.getElementById(group + 'NavGroup');
       const submenu = document.querySelector('[data-submenu="' + group + '"]');
       if (container && submenu) container.hidden = !Array.from(submenu.children).some(item => !item.hidden);

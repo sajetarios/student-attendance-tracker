@@ -38,7 +38,7 @@ test('DTR remains separate and role-protected while scan popup supports cancel',
 });
 
 test('PWA uses one coherent scanner asset revision', () => {
-  assert.match(html, /portal\.js\?v=210/);
-  assert.match(worker, /portal\.js\?v=210/);
-  assert.match(worker, /attendigo-v257-gate-verification/);
+  assert.match(html, /portal\.js\?v=211/);
+  assert.match(worker, /portal\.js\?v=211/);
+  assert.match(worker, /attendigo-v258-offline-review-navigation/);
 });

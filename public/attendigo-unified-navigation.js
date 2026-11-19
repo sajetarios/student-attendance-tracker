@@ -24,6 +24,7 @@
   myGateAttendanceNav:'clock',officialBusinessNav:'clipboard',
   sf2Nav:'report',cloudSyncNav:'sync',smsNav:'mail',
   schoolBrandingNav:'school',staffNavWrapper:'users',
+  attendanceManagementNavGroup:'clock',offlineScanReviewsNav:'clipboard',
   operationsNavGroup:'settings',reportsNavGroup:'report',
   settingsNavGroup:'settings',studentRecordsNavGroup:'users'
  };

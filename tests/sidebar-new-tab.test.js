@@ -32,6 +32,11 @@ test('visible staff sidebar destinations have native URLs before module scripts 
   assert.ok(items.length > 15);
   for (const item of items) {
     if (item.includes('id="guardianApprovalsNav"') && item.includes('hidden')) continue;
+    if (item.includes('id="offlineScanReviewsNav"')) {
+      assert.match(item, /href="\/gate-offline-review\.html"/);
+      assert.match(item, /hidden/);
+      continue;
+    }
     assert.match(item, /^<a\b/);
     assert.match(item, /href="\/(portal\.html\?view=|sms\.html)/);
   }
