@@ -1,5 +1,5 @@
 'use strict';
-const {assertCacheRevisionAtLeast}=require('./support/asset-contract');
+const {assertCacheRevisionAtLeast,assertCachedAsset}=require('./support/asset-contract');
 const test=require('node:test');
 const assert=require('node:assert/strict');
 const fs=require('node:fs');
@@ -46,7 +46,8 @@ test('no permission, attendance or OB logic changes in this UI release',()=>{
  assert.match(css,/html\[data-ui-theme="dark"\]/);
 });
 test('PWA cache and page assets updated coherently',()=>{
- for(const asset of ['admin-request-notifications.js?v=6','portal.js?v=209','admin-approval-navigation.css?v=1']){
+ assertCachedAsset(html,sw,'portal.js',{minimumVersion:209});
+ for(const asset of ['admin-request-notifications.js?v=6','admin-approval-navigation.css?v=1']){
   assert.ok(html.includes(asset),asset+' in page');
   assert.ok(sw.includes(asset),asset+' in service worker');
  }
