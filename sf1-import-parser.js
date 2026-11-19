@@ -48,8 +48,8 @@ function parseSf1Matrix(rows) {
   // '<=== TOTAL MALE', '<=== TOTAL FEMALE', and '<=== COMBINED' summary rows.
   // Exclude these only by the explicit summary label; a malformed learner LRN
   // must still block the entire import.
-  const summaryLabel=rawName.replace(/^[\\s<>=:\-]+/,'').trim();
-  if(/^(?:total(?:\\s+(?:male|female|learners))?|combined(?:\\s+total)?|grand\\s+total|subtotal|prepared\\s+by|certified\\s+correct|school\\s+form|generated\\s+thru\\s+lis)\\b/i.test(summaryLabel))continue;
+  const summaryLabel=rawName.replace(/^[\s<>=:\-]+/,'').trim();
+  if(/^(?:total(?:\s+(?:male|female|learners))?|combined(?:\s+total)?|grand\s+total|subtotal|prepared\s+by|certified\s+correct|school\s+form|generated\s+thru\s+lis)\b/i.test(summaryLabel))continue;
   if(!rawLrn && !rawName)continue;
   // Repeated header/footers and aggregate cells are never learner records.
   if(!/^\d{12}$/.test(rawLrn)){
