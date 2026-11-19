@@ -62,9 +62,15 @@ function registerStudentManagementRoutes(app,pool,auth){
     rows=rows.map(r=>({...r,gradeLevel:selectedScope.gradeLevel,section:selectedScope.section,advisoryScopeApplied:true}));
    }
   }
+  const level=await pool.query('SELECT level_mode FROM school_academic_levels WHERE school_id=$1',[req.auth.schoolId]);
+  const mode=level.rows[0]?.level_mode||'JHS_ONLY';
   const seen=new Set(),seenLrn=new Set();
   return rows.map(r=>{
    const errors=validate(r),id=clean(r.studentId),lrn=clean(r.lrn),found=em.get(id);
+   const grade=normalizeGradeLevel(r.gradeLevel);
+   if((['GRADE 11','GRADE 12'].includes(grade)&&mode==='JHS_ONLY')||
+      (['GRADE 7','GRADE 8','GRADE 9','GRADE 10'].includes(grade)&&mode==='SHS_ONLY'))
+     errors.push('This grade is not enabled in the school academic-level settings.');
    const existingStudent=found?.in_school?{ studentId:id,fullName:found.name,gradeLevel:found.grade_level,section:found.section,active:found.active }:null;if(seen.has(id))errors.push('Student ID is duplicated in this file.');seen.add(id);
    if(lrn&&seenLrn.has(lrn))errors.push('LRN is duplicated in this file.');if(lrn)seenLrn.add(lrn);
    if(scopeSelectionError)errors.push(scopeSelectionError);

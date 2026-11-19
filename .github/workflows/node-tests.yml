@@ -81,6 +81,8 @@ jobs:
 
       - name: Validate complete PostgreSQL migration chain
         run: npm run db:migrate
+      - name: Verify JHS/SHS level isolation and tracks against temporary PostgreSQL
+        run: node tests/shs-grade-offerings-postgres.cjs
       - name: Verify school deletion handles pilot reset archives and preserves other schools
         run: node tests/platform-school-deletion-postgres.cjs
       - name: Verify concurrent staff lunch QR and Gatekeeper DTR against PostgreSQL
