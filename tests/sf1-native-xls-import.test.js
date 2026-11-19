@@ -64,3 +64,43 @@ test('live import UI and API select native xls only in SF1 mode, retain duplicat
   assert.match(routes,/nextStudentId\(client/);
   assert.match(routes,/student_enrollments/);
 });
+
+test('actual LIS layout: 3 male + 25 female + numeric COMBINED total is 28 learners, not a bad LRN',async()=>{
+  // All records are synthetic; never commit or expose an actual learner roster.
+  const rows=[
+    ['School Form 1 (SF 1) School Register'],
+    ['School Year: 2026 - 2027','Grade Level: Grade 8 (Year II)'],
+    ['LRN', '', 'NAME\n(Last Name, First Name, Middle Name)', '', '', '', 'Sex (M/F)']
+  ];
+  for(let i=0;i<3;i++)rows.push([129000000001+i,'','MALE, LEARNER'+(i+1)+', SAMPLE','','','','M']);
+  rows.push([3,'','<=== TOTAL MALE']);
+  for(let i=0;i<25;i++)rows.push([129000000004+i,'','FEMALE, LEARNER'+(i+1)+', SAMPLE','','','','F']);
+  rows.push([25,'','<=== TOTAL FEMALE']);
+  rows.push([28,'','<=== COMBINED']);
+  const workbook=XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(workbook,XLSX.utils.aoa_to_sheet(rows),'School Form 1');
+  const base64=XLSX.write(workbook,{bookType:'biff8',type:'base64'});
+  const result=await parseSf1Base64(base64,'xls');
+  assert.equal(result.gradeLevel,'Grade 8');
+  assert.equal(result.schoolYear,'2026-2027');
+  assert.equal(result.learners.length,28);
+  assert.equal(result.learners.filter(x=>x.sex==='MALE').length,3);
+  assert.equal(result.learners.filter(x=>x.sex==='FEMALE').length,25);
+  assert.deepEqual(result.errors,[]);
+  assert.ok(result.learners.every(x=>/^\d{12}$/.test(x.lrn) && x.section==='Unassigned'));
+  // A genuinely malformed learner LRN must not be silently accepted.
+  rows.splice(4,0,[4567,'','INVALID, LEARNER, SAMPLE','','','','M']);
+  const invalid=XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(invalid,XLSX.utils.aoa_to_sheet(rows),'School Form 1');
+  const bad=await parseSf1Base64(XLSX.write(invalid,{bookType:'biff8',type:'base64'}),'xls');
+  assert.ok(bad.errors.some(x=>/Invalid 12-digit LRN/.test(x.message)));
+});
+
+test('SF1 preview displays row-specific validation reasons rather than a generic failure',()=>{
+  const root=path.join(__dirname,'..');
+  const portal=fs.readFileSync(path.join(root,'public/portal.js'),'utf8');
+  assert.match(portal,/error\.details=data\.details\.slice\(0,25\)/);
+  assert.match(portal,/failedRows\.map\(issue=>/);
+  assert.match(portal,/esc\(issue\.rowNumber/);
+  assert.match(portal,/esc\(issue\.message/);
+});

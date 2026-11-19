@@ -1,4 +1,4 @@
-const CACHE = "attendigo-v239-sf1-year-recovery";
+const CACHE = "attendigo-v240-lis-summary-rows";
 
 const SHELL = [
   "/typography.css?v=1",
