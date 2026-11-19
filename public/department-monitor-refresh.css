@@ -1,0 +1,121 @@
+/* Department Head monitoring only. Reuse Attendigo's school-brand and dark-theme tokens. */
+#departmentHeadOverview .dh-insights{
+  --dh-accent:var(--ui-accent,var(--brand,#2868a0));
+  display:flex;flex-direction:column;gap:14px;margin:18px 0 0;padding:0;border-top:0;min-width:0;
+  font-size:var(--type-table,.875rem);color:var(--ui-text,inherit);
+}
+#departmentHeadOverview .dh-insights [hidden]{display:none!important}
+#departmentHeadOverview .dh-monitor-heading{
+  display:flex;align-items:center;gap:13px;min-width:0;
+  padding:16px 18px;border-radius:15px;
+  background:linear-gradient(105deg,color-mix(in srgb,var(--brand,#184a7b) 86%,#091e3d),color-mix(in srgb,var(--brand,#184a7b) 68%,#6ab6e6));
+  color:#fff;
+}
+#departmentHeadOverview .dh-monitor-heading-icon,.dh-panel-glyph{
+  display:grid;place-items:center;flex:none;border-radius:11px;font-weight:800;
+}
+#departmentHeadOverview .dh-monitor-heading-icon{width:42px;height:42px;background:#ffffff25;font-size:25px}
+#departmentHeadOverview .dh-monitor-heading-title{flex:1;min-width:0}
+#departmentHeadOverview .dh-monitor-eyebrow{display:block;font-size:10px;letter-spacing:.12em;font-weight:800;opacity:.84;margin-bottom:2px}
+#departmentHeadOverview .dh-monitor-heading h3{color:#fff!important;font-size:clamp(17px,2vw,22px);line-height:1.2;font-weight:770;margin:0}
+#departmentHeadOverview .dh-monitor-heading p{margin:4px 0 0;font-size:12px;opacity:.9;line-height:1.4;max-width:70ch}
+#departmentHeadOverview .dh-monitor-heading-actions{display:flex;align-items:center;gap:9px;flex-wrap:wrap;justify-content:flex-end}
+#departmentHeadOverview .dh-last-updated{display:block;background:#ffffff27;border:1px solid #ffffff30;border-radius:999px;padding:7px 10px;font-size:11px;white-space:nowrap}
+#departmentHeadOverview .dh-monitor-heading #dhInsightsRefresh{
+  background:#ffffffee!important;color:var(--brand,#235a83)!important;
+  border:1px solid #ffffff88!important;min-height:34px;padding:6px 12px;font-size:12px;box-shadow:none;
+}
+#departmentHeadOverview .dh-monitor-feedback{margin:0;font-size:11px;color:var(--ui-muted,#64748b);min-height:0;line-height:1.5}
+#departmentHeadOverview .dh-insights-metrics{grid-template-columns:repeat(3,minmax(0,1fr));gap:11px}
+#departmentHeadOverview .dh-insights-metrics .dh-kpi{
+  display:flex;flex-direction:row;gap:12px;align-items:center;
+  padding:13px 14px;min-width:0;border-radius:13px;border:1px solid var(--ui-line,#dbe5ef);
+  background:var(--ui-panel,#fff);box-shadow:var(--ui-shadow,0 2px 12px #1231);
+  transition:transform .16s ease,box-shadow .16s ease;
+}
+#departmentHeadOverview .dh-insights-metrics .dh-kpi:hover{transform:translateY(-2px);box-shadow:0 8px 22px #14375a18}
+#departmentHeadOverview .dh-kpi-icon{
+  width:45px;height:45px;border-radius:11px;display:grid;place-items:center;flex:none;
+  background:color-mix(in srgb,var(--dh-accent) 14%,var(--ui-panel,#fff));color:var(--dh-accent);font-size:23px;
+}
+#departmentHeadOverview .dh-kpi-ob .dh-kpi-icon{background:color-mix(in srgb,#e98a2c 13%,var(--ui-panel,#fff));color:#b56b1d}
+#departmentHeadOverview .dh-kpi-cover .dh-kpi-icon{background:color-mix(in srgb,#825add 14%,var(--ui-panel,#fff));color:#7953bf}
+#departmentHeadOverview .dh-kpi>div{display:flex;flex-direction:column;gap:2px;min-width:0}
+#departmentHeadOverview .dh-kpi span:not(.dh-kpi-icon){font-size:12px;line-height:1.3;font-weight:650;color:var(--ui-text,inherit)}
+#departmentHeadOverview .dh-kpi strong{font-size:23px;line-height:1.1;color:var(--ui-text,inherit);font-weight:800}
+#departmentHeadOverview .dh-kpi small{font-size:10px;color:var(--ui-muted,#64748b)}
+#departmentHeadOverview .dh-monitor-columns{display:grid;grid-template-columns:minmax(0,1.15fr) minmax(0,1fr);gap:12px;align-items:start}
+#departmentHeadOverview .dh-monitor-right{display:flex;flex-direction:column;gap:12px;min-width:0}
+#departmentHeadOverview .dh-monitor-panel{
+  min-width:0;padding:12px;border:1px solid var(--ui-line,#dbe5ef);border-radius:14px;
+  background:var(--ui-panel,#fff);box-shadow:var(--ui-shadow,0 2px 15px #1231);
+}
+#departmentHeadOverview .dh-monitor-panel-head{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:10px}
+#departmentHeadOverview .dh-panel-label,#departmentHeadOverview .dh-panel-toggle{display:flex;align-items:center;gap:9px;min-width:0}
+#departmentHeadOverview .dh-panel-label>span:last-child,#departmentHeadOverview .dh-panel-toggle>span:nth-child(2){display:grid;min-width:0;gap:2px;text-align:left}
+#departmentHeadOverview .dh-panel-label strong,#departmentHeadOverview .dh-panel-toggle strong{font-size:14px;font-weight:760;color:var(--ui-text,#182641)}
+#departmentHeadOverview .dh-panel-label small,#departmentHeadOverview .dh-panel-toggle small{font-size:10.5px;font-weight:400;color:var(--ui-muted,#63748d);line-height:1.35}
+#departmentHeadOverview .dh-panel-glyph{width:32px;height:32px;font-size:18px;color:var(--dh-accent);background:color-mix(in srgb,var(--dh-accent) 12%,var(--ui-panel,#fff))}
+#departmentHeadOverview .dh-panel-toggle{flex:1;text-align:left;background:none;border:0;cursor:pointer;padding:0;color:inherit;min-width:0}
+#departmentHeadOverview .dh-panel-chevron{color:var(--ui-muted);font-size:21px;margin-left:5px;transition:transform .16s ease}
+#departmentHeadOverview .dh-panel-toggle[aria-expanded="false"] .dh-panel-chevron{transform:rotate(-90deg)}
+#departmentHeadOverview .dh-monitor-panel .outline-button{min-height:32px;font-size:11px;padding:5px 9px;white-space:nowrap}
+#departmentHeadOverview .dh-workload-tools{display:flex;align-items:center;gap:7px;margin:0 0 8px}
+#departmentHeadOverview #dhWorkloadSearch{flex:1;min-width:0;width:100%;height:33px;padding:6px 10px;font-size:12px}
+#departmentHeadOverview .dh-workload-scroll{max-height:265px;border:1px solid var(--ui-line,#dbe5ef);border-radius:10px;overflow:auto}
+#departmentHeadOverview .dh-workload-table{min-width:520px;font-size:11px}
+#departmentHeadOverview .dh-workload-table td,#departmentHeadOverview .dh-workload-table th{padding:8px 9px;line-height:1.35}
+#departmentHeadOverview .dh-workload-table thead th{background:var(--ui-panel-soft,#f5f8fc);color:var(--ui-text,#182641)}
+#departmentHeadOverview .dh-workload-table tr:hover td{background:var(--ui-hover,#f3f6ff)}
+#departmentHeadOverview .dh-notice-form{padding:11px;border-radius:10px;gap:9px;background:var(--ui-panel-soft,#f8faff);border-color:var(--ui-line,#dbe5ef)}
+#departmentHeadOverview .dh-notice-form label{font-size:11px;gap:5px}
+#departmentHeadOverview .dh-notice-form input,#departmentHeadOverview .dh-notice-form textarea{padding:8px 10px;font-size:12px}
+#departmentHeadOverview .dh-notice-form textarea{min-height:70px}
+#departmentHeadOverview .dh-notice-actions{justify-content:flex-end}
+#departmentHeadOverview .dh-notice-actions .primary-button{font-size:11px;min-height:34px;padding:7px 11px}
+#departmentHeadOverview .dh-announcement-list{max-height:220px;overflow:auto;gap:6px}
+#departmentHeadOverview .dh-announcement-list li{padding:9px 11px;background:var(--ui-panel-soft,#f8faff);border-color:var(--ui-line,#dbe5ef)}
+#departmentHeadOverview .dh-announcement-list li strong{font-size:12px}
+#departmentHeadOverview .dh-announcement-list li time{font-size:10px}
+#departmentHeadOverview .dh-announcement-list li p{font-size:11px}
+#departmentHeadOverview .sardo-card{margin:0;padding:14px;border:1px solid var(--ui-line,#dbe5ef);border-radius:14px;box-shadow:var(--ui-shadow,0 2px 12px #1231);background:var(--ui-panel,#fff)}
+#departmentHeadOverview .sardo-card .card-heading{margin:0}
+#departmentHeadOverview .sardo-card .card-heading h3{font-size:16px;margin:0}
+#departmentHeadOverview .sardo-card .card-heading p{font-size:11px;line-height:1.4}
+#departmentHeadOverview .sardo-metrics{margin:11px 0;gap:9px}
+#departmentHeadOverview .sardo-metrics>div{padding:11px 12px;border-radius:11px;background:var(--ui-panel-soft,#f8faff);border-color:var(--ui-line,#dbe5ef)}
+#departmentHeadOverview .sardo-metrics strong{font-size:22px;color:var(--ui-text,#182641)}
+#departmentHeadOverview .sardo-metrics span{font-size:11px}
+#departmentHeadOverview .sardo-controls input[type="search"]{max-width:none;min-height:34px;padding:7px 10px}
+#departmentHeadOverview .sardo-card .sardo-empty{padding:12px;margin:8px 0;font-size:11px}
+#departmentHeadOverview .sardo-card .sardo-footnote{font-size:10px;line-height:1.5;margin:10px 0 0}
+@media(max-width:1050px){
+ #departmentHeadOverview .dh-monitor-columns{grid-template-columns:1fr}
+ #departmentHeadOverview .dh-monitor-right{display:grid;grid-template-columns:1fr 1fr}
+}
+@media(max-width:760px){
+ #departmentHeadOverview .dh-monitor-heading{padding:13px;flex-wrap:wrap}
+ #departmentHeadOverview .dh-monitor-heading-icon{width:35px;height:35px}
+ #departmentHeadOverview .dh-monitor-heading-actions{width:100%;justify-content:space-between}
+ #departmentHeadOverview .dh-insights-metrics{grid-template-columns:1fr}
+ #departmentHeadOverview .dh-kpi-icon{width:38px;height:38px}
+ #departmentHeadOverview .dh-monitor-right{display:flex}
+ #departmentHeadOverview .dh-monitor-panel-head{flex-wrap:wrap}
+ #departmentHeadOverview .dh-insights-metrics .dh-kpi{padding:10px 12px}
+ #departmentHeadOverview .sardo-metrics{grid-template-columns:repeat(3,minmax(0,1fr))}
+ #departmentHeadOverview .sardo-metrics>div{padding:9px 7px}
+ #departmentHeadOverview .sardo-metrics strong{font-size:19px}
+}
+@media(max-width:400px){
+ #departmentHeadOverview .sardo-metrics{grid-template-columns:1fr}
+ #departmentHeadOverview .dh-monitor-heading h3{font-size:17px}
+}
+html[data-ui-theme="dark"] #departmentHeadOverview .dh-monitor-panel,
+html[data-ui-theme="dark"] #departmentHeadOverview .dh-insights-metrics .dh-kpi,
+html[data-ui-theme="dark"] #departmentHeadOverview .sardo-card{
+ background:var(--ui-panel,#17253b)!important;border-color:var(--ui-line,#40536f)!important;color:var(--ui-text,#eef5ff)!important;
+}
+html[data-ui-theme="dark"] #departmentHeadOverview .dh-monitor-heading h3{color:#fff!important}
+html[data-ui-theme="dark"] #departmentHeadOverview :is(.dh-panel-label strong,.dh-panel-toggle strong,.dh-kpi strong,.dh-kpi span:not(.dh-kpi-icon)){color:var(--ui-text,#eef5ff)!important}
+html[data-ui-theme="dark"] #departmentHeadOverview .dh-insights .dh-workload-table thead th{background:var(--ui-panel-soft,#22334a)!important;color:var(--ui-text,#eef5ff)!important}
+@media(prefers-reduced-motion:reduce){#departmentHeadOverview .dh-kpi,#departmentHeadOverview .dh-panel-chevron{transition:none!important}#departmentHeadOverview .dh-kpi:hover{transform:none}}
