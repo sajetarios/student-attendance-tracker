@@ -57,7 +57,7 @@
      if(errors.length)$('adminNotificationFoot').textContent=errors.join(' · ')+'. Tap ↻ to retry.';
    }finally{fetching=false;if(trigger)trigger.disabled=false;}
  }
- const close=()=>{panel.hidden=true;bell.setAttribute('aria-expanded','false');};
+ const close=()=>{panel.hidden=true;bell.setAttribute('aria-expanded','false');if(inboxHost)inboxHost.hidden=true;};
  bell.addEventListener('click',()=>{
    if(!isAdmin())return;
    panel.hidden=!panel.hidden;
@@ -129,19 +129,30 @@
    else $('guardianApprovalsNav')?.click();
  });
  document.addEventListener('pointerdown',event=>{
-   if(!panel.hidden&&!wrap.contains(event.target))close();
+   if(!panel.hidden && !wrap.contains(event.target) && !(inboxHost && inboxHost.contains(event.target)))close();
  });
  document.addEventListener('keydown',event=>{if(event.key==='Escape'&&!panel.hidden){close();bell.focus();}});
  document.addEventListener('attendigo:requests-changed',refresh);
  document.addEventListener('visibilitychange',()=>{if(!document.hidden)refresh();});
  window.addEventListener('focus',refresh);
- document.addEventListener('attendigo:open-approval-inbox',()=>{
-   if(!isAdmin())return;
-   wrap.hidden=true; // never restore the second header button
+ const inboxHost=$('adminApprovalSidebarPanel');
+ const closeInbox=()=>{
+   panel.hidden=true;
+   bell.setAttribute('aria-expanded','false');
+   inboxHost?.setAttribute('hidden','');
+ };
+ const openInbox=()=>{
+   if(!isAdmin()||!inboxHost)return;
+   wrap.hidden=true; // keep the redundant header action hidden
+   if(panel.parentNode!==inboxHost)inboxHost.append(panel);
+   inboxHost.hidden=false;
    panel.hidden=false;
    bell.setAttribute('aria-expanded','true');
    refresh();
- });
+   inboxHost.scrollIntoView({block:'nearest',behavior:'smooth'});
+ };
+ document.addEventListener('attendigo:open-approval-inbox',openInbox);
+ $('adminApprovalSidebarClose')?.addEventListener('click',closeInbox);
  const start=()=>{
    if(!isAdmin())return;
    // The approval inbox now belongs to the Requests & Approvals sidebar.
