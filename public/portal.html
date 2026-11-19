@@ -23,6 +23,7 @@
   <link rel="stylesheet" href="/student-portal-accounts.css?v=6">
   <link rel="stylesheet" href="/student-workspace-tabs.css?v=1">
   <link rel="stylesheet" href="/academic-admin.css?v=1">
+  <link rel="stylesheet" href="/shs-school-ui.css?v=1">
   <link rel="stylesheet" href="/password-visibility.css">
 
 <style id="student-scan-setup-styles">
@@ -1203,7 +1204,7 @@ body.dark-mode .content-wrap > .school-heading.is-compact,body[data-theme="dark"
                   <div class="field-group"><label for="newLrn">Learner Reference Number (LRN) <span class="optional-label">Optional</span></label><input id="newLrn" maxlength="30" inputmode="numeric" placeholder="Enter the learner's LRN"><small class="field-hint">Leave blank if the learner has no LRN yet.</small></div>
                   <div class="field-group span-2"><label for="newFullName">Learner's full name *</label><input id="newFullName" required maxlength="200" autocomplete="name" placeholder="Last name, First name, Middle name"></div>
                   <div class="field-group"><label for="newSex">Sex *</label><select id="newSex" required><option value="">Select sex</option><option value="MALE">Male</option><option value="FEMALE">Female</option></select></div>
-                  <div class="field-group"><label for="newGrade">Grade level *</label><select id="newGrade" required><option>Grade 7</option><option>Grade 8</option><option>Grade 9</option><option>Grade 10</option></select></div>
+                  <div class="field-group"><label for="newGrade">Grade level *</label><select id="newGrade" required><option>Grade 7</option><option>Grade 8</option><option>Grade 9</option><option>Grade 10</option><option>Grade 11</option><option>Grade 12</option></select></div>
                   <div class="field-group"><label for="newSection">Section *</label><select id="newSection" required disabled><option value="">Select grade level first</option></select><small id="newSectionHint" class="field-hint">Choose a grade to load its available sections.</small></div>
                   <div class="field-group span-2"><label for="existingGuardianSelect">Use an existing guardian contact (optional)</label><select id="existingGuardianSelect"><option value="">Enter a new guardian</option></select><small class="field-hint">Reuse contact details already saved for another learner. This does not grant Parent Portal access or link accounts.</small></div>
                   <div class="field-group"><label for="newParentName">Parent / guardian full name *</label><input id="newParentName" required maxlength="160" autocomplete="name" placeholder="Enter the primary guardian's full name"><small class="field-hint">Saved directly on this learner's central student record.</small></div>
@@ -1297,7 +1298,7 @@ body.dark-mode .content-wrap > .school-heading.is-compact,body[data-theme="dark"
               <div class="student-roster-tools">
                 <div><h3 id="studentRosterHeading">Registered students</h3><p id="studentRosterDescription">Search and filter existing learner records by name, student ID, grade, section, or status. Opening a learner does not create another enrollment or attendance record. QR previews remain tied to each student's existing private token; editing details does not replace the QR code.</p></div>
                 <p id="studentDepartmentScopeNote" class="student-scope-banner" hidden>School-wide learner roster. Department Heads may select and update shared student fields only for sections scheduled in their own department. Individual student identity, photos, and login accounts remain restricted.</p>
-                <div class="student-filter-row"><label class="student-name-filter">Search by name or student ID <input id="studentRosterSearch" type="search" placeholder="Type a student name or ID…" aria-describedby="studentRosterDescription"></label><label>Filter by grade <select id="bulkQrGrade"><option value="ALL">All grades</option><option>Grade 7</option><option>Grade 8</option><option>Grade 9</option><option>Grade 10</option></select></label><label>Filter by section <select id="bulkQrSection"><option value="ALL">All sections</option></select></label><label>Special program <select id="studentSpecialProgramFilter" aria-label="Filter learners by special program"><option value="ALL">All programs</option><option value="NONE">Not assigned</option></select></label><label id="studentStatusFilterWrap" hidden>Record status <select id="studentStatusFilter"><option value="ACTIVE">Active</option><option value="INACTIVE">Inactive</option><option value="ARCHIVED">Archived</option><option value="ALL">All records</option></select></label></div>
+                <div class="student-filter-row"><label class="student-name-filter">Search by name or student ID <input id="studentRosterSearch" type="search" placeholder="Type a student name or ID…" aria-describedby="studentRosterDescription"></label><label>Filter by grade <select id="bulkQrGrade"><option value="ALL">All grades</option><option>Grade 7</option><option>Grade 8</option><option>Grade 9</option><option>Grade 10</option><option>Grade 11</option><option>Grade 12</option></select></label><label>Filter by section <select id="bulkQrSection"><option value="ALL">All sections</option></select></label><label>Special program <select id="studentSpecialProgramFilter" aria-label="Filter learners by special program"><option value="ALL">All programs</option><option value="NONE">Not assigned</option></select></label><label id="studentStatusFilterWrap" hidden>Record status <select id="studentStatusFilter"><option value="ACTIVE">Active</option><option value="INACTIVE">Inactive</option><option value="ARCHIVED">Archived</option><option value="ALL">All records</option></select></label></div>
                 <div class="student-roster-viewbar"><label for="studentRosterView">List view <select id="studentRosterView" aria-label="Learner list arrangement"><option value="all">All learners</option><option value="grouped">Grouped by sex</option></select></label><strong id="studentRosterSexCounts" aria-live="polite">Learner counts loading…</strong></div>
                 <div class="student-bulk-actions"><label><input type="checkbox" id="selectAllStudents"> Select all visible students</label><span id="selectedStudentCount">0 selected</span><button class="primary-button" type="button" id="printBulkQr">Print selected ID cards</button><span id="bulkQrFeedback" class="inline-feedback" role="status"></span><select id="studentBatchAction" aria-label="Batch action"><option value="">Choose a batch action…</option><option value="SET_SEX">Set sex (Male/Female)</option><option value="ASSIGN">Move to an existing grade / section</option><option value="REQUEST_PROGRAM">Request special-program change (School Admin approval)</option><option value="ASSIGN_PROGRAM">Assign special program to selected (School Admin)</option><option value="ACTIVATE">Activate selected</option><option value="DEACTIVATE">Deactivate selected</option><option value="ARCHIVE">Archive selected</option></select><button type="button" class="outline-button" id="applyStudentBatch" disabled>Apply</button></div><p id="studentBatchGuidance" class="field-hint" role="status" aria-live="polite">Select students using the checkboxes, then choose a batch action.</p>
               </div>
@@ -1410,7 +1411,7 @@ body.dark-mode .content-wrap > .school-heading.is-compact,body[data-theme="dark"
                     </div>
                     <div class="field-group" id="batchGradeGroup" hidden>
                       <label for="batchGrade">Destination grade *</label>
-                      <select id="batchGrade"><option value="">Choose grade</option><option>Grade 7</option><option>Grade 8</option><option>Grade 9</option><option>Grade 10</option></select>
+                      <select id="batchGrade"><option value="">Choose grade</option><option>Grade 7</option><option>Grade 8</option><option>Grade 9</option><option>Grade 10</option><option>Grade 11</option><option>Grade 12</option></select>
                     </div>
                     <div class="field-group" id="sf1CreateSectionGroup" hidden><label for="sf1NewSectionName">New class section (authorized grade)</label><div class="toolbar-actions"><input id="sf1NewSectionName" maxlength="100" placeholder="e.g. Rizal"><button type="button" class="outline-button" id="sf1CreateSectionButton">Create section</button></div><small class="field-hint">Only creates a section registry entry; class schedules and adviser assignments remain unchanged.</small><div id="sf1CreateSectionFeedback" class="inline-feedback" role="status"></div></div>
                     <div class="field-group" id="batchProgramGroup" hidden>
@@ -1466,7 +1467,7 @@ body.dark-mode .content-wrap > .school-heading.is-compact,body[data-theme="dark"
                     <div class="field-group" id="editLrnGroup"><label for="editLrn">Learner Reference Number (LRN)</label><input id="editLrn" maxlength="30" inputmode="numeric"></div>
                     <div class="field-group span-2"><label for="editFullName">Full name *</label><input id="editFullName" required maxlength="200"></div>
                     <div class="field-group" id="editSexGroup"><label for="editSex">Sex *</label><select id="editSex" required><option value="">Select sex</option><option value="MALE">Male</option><option value="FEMALE">Female</option></select></div>
-                    <div class="field-group" id="editGradeGroup"><label for="editGrade">Grade *</label><select id="editGrade" required><option>Grade 7</option><option>Grade 8</option><option>Grade 9</option><option>Grade 10</option></select></div>
+                    <div class="field-group" id="editGradeGroup"><label for="editGrade">Grade *</label><select id="editGrade" required><option>Grade 7</option><option>Grade 8</option><option>Grade 9</option><option>Grade 10</option><option>Grade 11</option><option>Grade 12</option></select></div>
                     <div class="field-group" id="editSectionGroup"><label for="editSection">Section *</label><input id="editSection" required maxlength="100"></div>
                     <div class="field-group" id="editParentNameGroup"><label for="editParentName">Parent / guardian full name *</label><input id="editParentName" maxlength="160" autocomplete="name" placeholder="Enter the primary guardian's full name"></div>
                     <div class="field-group" id="editParentMobileGroup"><label for="editParentMobile">Parent / guardian mobile number *</label><input id="editParentMobile" type="tel" inputmode="tel" autocomplete="tel" maxlength="30" placeholder="09XXXXXXXXX"></div>
@@ -1635,7 +1636,7 @@ body.dark-mode .content-wrap > .school-heading.is-compact,body[data-theme="dark"
                     <div class="field-group" id="scheduleActivityTypeGroup"><label for="scheduleActivityType">Schedule type *</label><select id="scheduleActivityType" required><option value="CLASS">Regular subject</option><option value="ADVISORY">Advisory / Homeroom</option><option value="OTHER">Special class</option></select><small class="field-hint">Advisory / Homeroom is a schedule type. It does not change the section's official Class Adviser.</small></div>
                   </div>
                 <div class="form-grid">
-                    <div class="field-group"><label for="periodGrade">Grade level *</label><select id="periodGrade" required><option>Grade 7</option><option>Grade 8</option><option>Grade 9</option><option>Grade 10</option></select></div>
+                    <div class="field-group"><label for="periodGrade">Grade level *</label><select id="periodGrade" required><option>Grade 7</option><option>Grade 8</option><option>Grade 9</option><option>Grade 10</option><option>Grade 11</option><option>Grade 12</option></select></div>
                     <div class="field-group"><label for="periodSection">Section *</label><select id="periodSection" required disabled><option value="">Select grade first</option></select><small class="field-hint" id="periodSectionHint">Sections are shared school-wide, including those with Class Adviser TBA.</small><button type="button" class="outline-button compact-button" id="createScheduleSection" hidden style="margin-top:10px">+ Add Missing Section</button><button type="button" class="outline-button compact-button" id="reviewSchoolSectionNames" hidden style="margin-top:10px">Review possible duplicates</button><div id="manageScheduleSectionActions" hidden style="flex-wrap:wrap;gap:8px;margin-top:10px"><button type="button" class="outline-button compact-button" id="renameScheduleSection">Rename section</button><button type="button" class="outline-button compact-button" id="archiveScheduleSection">Remove section</button></div></div>
                     
                   </div>
@@ -1959,7 +1960,7 @@ body.dark-mode .content-wrap > .school-heading.is-compact,body[data-theme="dark"
                   <div><strong>Register a new class section</strong><small>Create an official section before assigning its Class Adviser. No learner records are changed.</small></div>
                   <div class="adviser-new-section-fields">
                     <label for="adviserNewSectionGrade">Grade level
-                      <select id="adviserNewSectionGrade"><option value="">Choose grade level</option><option>Grade 7</option><option>Grade 8</option><option>Grade 9</option><option>Grade 10</option><option>Grade 11</option><option>Grade 12</option></select>
+                      <select id="adviserNewSectionGrade"><option value="">Choose grade level</option><option>Grade 7</option><option>Grade 8</option><option>Grade 9</option><option>Grade 10</option><option>Grade 11</option><option>Grade 12</option><option>Grade 11</option><option>Grade 12</option></select>
                     </label>
                     <label for="adviserNewSectionName">New section name
                       <input id="adviserNewSectionName" type="text" maxlength="100" placeholder="e.g. SPJ TUVERA" autocomplete="off">
@@ -1984,6 +1985,46 @@ body.dark-mode .content-wrap > .school-heading.is-compact,body[data-theme="dark"
             <div id="specialProgramReviewList" aria-live="polite"></div>
           </article>
           <p class="special-program-workflow-hint">2 · Manage direct enrollment and special-program assignments below. School Admin changes apply immediately; only staff-submitted requests require approval.</p>
+          <article id="shsSchoolConfiguration" class="surface-card academic-admin-card" hidden aria-label="Junior and Senior High School settings">
+            <div class="section-toolbar">
+              <div><h3>School levels and SHS readiness</h3><p>Enable only the grade levels your school offers. JHS attendance, QR badges, staff DTR, and role permissions remain unchanged.</p></div>
+            </div>
+            <form id="shsLevelForm" class="shs-school-settings-form" method="post">
+              <label>Academic levels offered
+                <select id="shsSchoolLevelMode" required>
+                  <option value="JHS_ONLY">Junior High only (Grades 7–10)</option>
+                  <option value="SHS_ONLY">Senior High only (Grades 11–12)</option>
+                  <option value="INTEGRATED">Integrated JHS and SHS (Grades 7–12)</option>
+                </select>
+              </label>
+              <button class="primary-button" type="submit">Save school levels</button>
+            </form>
+            <p id="shsLevelFeedback" class="inline-feedback" role="status" aria-live="polite"></p>
+            <div id="shsProgramPanel" hidden>
+              <div class="shs-settings-grid">
+                <form id="shsCurriculumForm" class="academic-admin-form" method="post">
+                  <h4>SHS curriculum by school year</h4>
+                  <p class="field-hint">For SY 2026–2027, Grade 11 uses Strengthened SHS; Grade 12 uses legacy unless this is a confirmed SSHS pilot school.</p>
+                  <label>School year<select id="shsCurriculumYear" required><option value="">Choose school year</option></select></label>
+                  <label>Grade<select id="shsCurriculumGrade" required><option>Grade 11</option><option>Grade 12</option></select></label>
+                  <label>Curriculum<select id="shsCurriculumVersion" required><option value="STRENGTHENED">Strengthened SHS</option><option value="LEGACY">Existing / legacy SHS</option></select></label>
+                  <label id="shsPilotConfirmationWrap" hidden><input id="shsGrade12PilotConfirmed" type="checkbox"> This school is an officially confirmed Grade 12 SSHS pilot for SY 2026–2027</label>
+                  <button type="submit" class="primary-button">Save curriculum</button>
+                  <p id="shsCurriculumFeedback" class="inline-feedback" role="status" aria-live="polite"></p>
+                </form>
+                <form id="shsLearnerPathForm" class="academic-admin-form" method="post">
+                  <h4>SHS learner pathway</h4>
+                  <p class="field-hint">Record each enrolled Grade 11–12 learner's track and applicable legacy strand/cluster; regular attendance continues through their assigned classes.</p>
+                  <label>School year<select id="shsPathYear" required><option value="">Choose school year</option></select></label>
+                  <label>Enrolled SHS learner<select id="shsPathEnrollment" required><option value="">Choose enrolled SHS learner</option></select></label>
+                  <label>Track<select id="shsPathTrack" required><option value="ACADEMIC">Academic</option><option value="TECHPRO">Technical-Professional (TechPro)</option><option value="TVL">TVL (legacy)</option><option value="SPORTS">Sports (legacy)</option><option value="ARTS_AND_DESIGN">Arts and Design (legacy)</option></select></label>
+                  <label>Strand or cluster (when applicable)<input id="shsPathStrand" maxlength="80" placeholder="e.g. STEM / ABM / HUMSS / GAS"></label>
+                  <div class="shs-settings-actions"><button type="submit" class="primary-button">Save learner pathway</button><button type="button" class="outline-button" id="shsPathRefresh">Refresh learners</button></div>
+                  <p id="shsPathFeedback" class="inline-feedback" role="status" aria-live="polite"></p>
+                </form>
+              </div>
+            </div>
+          </article>
           <div class="academic-admin-grid">
             <article class="surface-card academic-admin-card">
               <h3>Create school year</h3><form id="academicYearForm" class="academic-admin-form" method="post">
@@ -2008,7 +2049,7 @@ body.dark-mode .content-wrap > .school-heading.is-compact,body[data-theme="dark"
             <label>Selected school year<select id="academicSelectedYear"><option value="">Select a school year</option></select></label>
             <form id="academicEnrollmentForm" class="academic-enrollment-form" method="post">
               <label>Student ID<input name="studentId" required maxlength="80" placeholder="Existing student ID"></label>
-              <label>Grade level<input name="gradeLevel" required maxlength="40" placeholder="Grade 7"></label>
+              <label>Grade level<select id="academicEnrollmentGrade" name="gradeLevel" required><option value="">Choose grade level</option><option>Grade 7</option><option>Grade 8</option><option>Grade 9</option><option>Grade 10</option><option>Grade 11</option><option>Grade 12</option></select></label>
               <label>Section<input name="section" required maxlength="100"></label>
               <label>Enrollment date<input name="enrollmentDate" type="date" required></label>
               <button class="primary-button" type="submit">Enroll learner</button>
@@ -2156,6 +2197,7 @@ body.dark-mode .content-wrap > .school-heading.is-compact,body[data-theme="dark"
   <script src="/admin-request-notifications.js?v=6" defer></script>
   <script src="/universal-notifications.js?v=5" defer></script>
   <script src="/academic-admin.js?v=7" defer></script>
+  <script src="/shs-school-ui.js?v=1" defer></script>
   <script src="/special-program-ui.js?v=6" defer></script>
   <script src="/special-program-batch-ui.js?v=3" defer></script>
   <script src="/smart-mobile-header.js?v=4" defer></script>
