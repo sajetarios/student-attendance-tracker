@@ -40,5 +40,5 @@ test('Cached admin shortcut script uses updated portal version',()=>{
   assert.ok(worker.includes('"/portal.js?v=202"'));
   const cacheVersion = worker.match(/const CACHE = "attendigo-v(\d+)-[^"]+"/);
   assert.ok(cacheVersion && Number(cacheVersion[1]) >= 220, "newer deployments must retain the admin shortcut cache update");
-  assert.match(worker,/\/portal\.js\?v=201/);
+  assert.match(worker,/\/portal\.js\?v=202/);
 });
