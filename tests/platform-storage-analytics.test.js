@@ -1,6 +1,7 @@
 'use strict';
 const test = require('node:test');
 const assert = require('node:assert/strict');
+const {assertCachedAsset}=require('./support/asset-contract');
 const fs = require('node:fs');
 const path = require('node:path');
 const root = path.join(__dirname,'..');
@@ -38,8 +39,8 @@ test('storage widget is within platform overview only', () => {
   assert.match(client,/Remaining space cannot be calculated/);
 });
 test('new portal bundle matches offline shell', () => {
-  assert.match(portal,/\/portal\.js\?v=203/);
-  assert.match(worker,/"\/portal\.js\?v=203"/);
+  assertCachedAsset(portal,worker,'portal.js',{minimumVersion:203});
+  
   assert.ok(Number(worker.match(/const CACHE = "attendigo-v(\d+)-/)?.[1]) >= 230, "PWA cache must not regress below the ID-generation release");
   assert.ok(Number(worker.match(/const CACHE = "attendigo-v(\d+)-/)?.[1]) >= 233, "PWA cache must include provider-aware storage release");
 });
