@@ -1,4 +1,4 @@
-const CACHE = "attendigo-v259-admin-attendance-navigation";
+const CACHE = "attendigo-v260-shs-learner-pathway";
 
 const SHELL = [
   "/typography.css?v=1",
@@ -99,8 +99,8 @@ const SHELL = [
   "/guardian-ui.css?v=4",
   "/academic-admin.css?v=1",
   "/academic-admin.js?v=7",
-  "/shs-school-ui.js?v=1",
-  "/shs-school-ui.css?v=1",
+  "/shs-school-ui.js?v=2",
+  "/shs-school-ui.css?v=2",
   "/special-program-ui.js?v=6",
   "/special-program-batch-ui.js?v=3",
   "/special-program-ui.css?v=5",
