@@ -18,6 +18,7 @@
   <link rel="stylesheet" href="/manual-folio.css?v=11">
   <link rel="stylesheet" href="/attendance-sync-center.css?v=4">
   <link rel="stylesheet" href="/admin-request-notifications.css?v=2">
+  <link rel="stylesheet" href="/admin-approval-navigation.css?v=1">
   <link rel="stylesheet" href="/universal-notifications.css?v=4">
   <link rel="stylesheet" href="/student-portal-accounts.css?v=6">
   <link rel="stylesheet" href="/student-workspace-tabs.css?v=1">
@@ -743,6 +744,9 @@ body.dark-mode .content-wrap > .school-heading.is-compact,body[data-theme="dark"
                 <div><strong id="plannerDashboardShared">—</strong><span>Department shared</span></div>
               </div>
               <div id="plannerDashboardPreview" class="planner-dashboard-preview" aria-live="polite">Open Planner to see your upcoming schedule.</div>
+            </section>
+            <section id="adminApprovalSidebarPanel" class="surface-card section-card admin-approval-workspace" aria-label="Requests and Approvals" hidden>
+              <div class="admin-approval-workspace-heading"><div><span class="admin-dashboard-kicker">SCHOOL ADMINISTRATION</span><h3>Requests &amp; Approvals</h3><p>Review pending school requests by category. Actions retain the existing permission and audit checks.</p></div><button type="button" class="outline-button" id="adminApprovalSidebarClose">Close</button></div>
             </section>
             <section id="adminDashboardCard" class="surface-card section-card admin-dashboard-card admin-command-center" hidden>
               <div class="admin-command-hero">
@@ -2130,7 +2134,7 @@ body.dark-mode .content-wrap > .school-heading.is-compact,body[data-theme="dark"
   <script src="/offline-attendance.js?v=5" defer></script>
   <script src="/attendance-sync-center.js?v=3" defer></script>
   <script src="/learner-roster-view.js?v=1" defer></script>
-  <script src="/portal.js?v=208" defer></script>
+  <script src="/portal.js?v=209" defer></script>
   <script src="/schedule-list-filters.js?v=1" defer></script>
   <script src="/staff-lunch-ui.js?v=3" defer></script>
   <script src="/staff-ob-ui.js?v=5" defer></script>
@@ -2149,7 +2153,7 @@ body.dark-mode .content-wrap > .school-heading.is-compact,body[data-theme="dark"
   <script src="/student-portal-accounts.js?v=11" defer></script>
   <script src="/account-directory.js?v=2" defer></script>
   <script src="/guardian-ui.js?v=6" defer></script>
-  <script src="/admin-request-notifications.js?v=5" defer></script>
+  <script src="/admin-request-notifications.js?v=6" defer></script>
   <script src="/universal-notifications.js?v=5" defer></script>
   <script src="/academic-admin.js?v=7" defer></script>
   <script src="/special-program-ui.js?v=6" defer></script>
