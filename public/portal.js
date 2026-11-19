@@ -5116,20 +5116,38 @@ let teacherActionMenuListenersInstalled = false;
   });
 
   $('platformCreateSchoolForm')?.addEventListener('submit', async event => {
-    event.preventDefault(); const button=$('platformCreateSchoolButton');button.disabled=true;
-    const feedback=$('platformFeedback');feedback.textContent='Creating school and first administrator…';feedback.className='inline-feedback';
+    event.preventDefault();
+    const form=event.currentTarget,button=$('platformCreateSchoolButton'),feedback=$('platformFeedback');
+    button.disabled=true;
+    feedback.textContent='Creating school and first administrator…';
+    feedback.className='inline-feedback';
     try {
-      await api('/api/platform/schools',{method:'POST',body:JSON.stringify({
+      const result=await api('/api/platform/schools',{method:'POST',body:JSON.stringify({
         schoolCode:$('platformSchoolCode').value.trim(),schoolName:$('platformSchoolName').value.trim(),
-        adminUsername:$('platformAdminUsername').value.trim(),adminDisplayName:$('platformAdminName').value.trim(),adminPassword:$('platformAdminPassword').value
+        adminUsername:$('platformAdminUsername').value.trim(),adminDisplayName:$('platformAdminName').value.trim(),
+        adminPassword:$('platformAdminPassword').value
       })});
-      event.currentTarget.reset();feedback.textContent='School and first administrator created.';showToast('School onboarded.');await loadPlatformData();
-    } catch(error){feedback.textContent=error.message;feedback.className='inline-feedback error';}
-    finally{button.disabled=false;}
+      if(!result?.school?.schoolId)throw new Error('The server did not confirm school creation. Refresh before trying again.');
+      form.reset();
+      const school=result.school;
+      feedback.textContent=school.schoolName+' ('+school.schoolCode+') and its first administrator were created successfully.';
+      try { await loadPlatformData(); }
+      catch(refreshError){showToast('School created, but the directory could not refresh: '+refreshError.message,true);}
+      showToast('School created successfully.');
+      await AppDialog.alert('School '+school.schoolName+' ('+school.schoolCode+') and its first School Administrator account were created successfully.',{
+        title:'School created successfully',eyebrow:'SUCCESS',confirmText:'OK'
+      });
+    } catch(error){
+      feedback.textContent='School creation failed: '+error.message;
+      feedback.className='inline-feedback error';
+      showToast(feedback.textContent,true);
+    } finally { button.disabled=false; }
   });
   $('platformSchoolRows')?.addEventListener('click', async event => {
     const deleteButton=event.target.closest('[data-platform-school-delete]');
     if(deleteButton){
+      const feedback=$('platformSchoolActionFeedback');
+      if(feedback){feedback.textContent='';feedback.className='inline-feedback';}
       deleteButton.disabled=true;
       try {
         const schoolId=deleteButton.dataset.platformSchoolDelete;
@@ -5143,13 +5161,23 @@ let teacherActionMenuListenersInstalled = false;
           validate:value=>value===expected?true:'Type exactly: '+expected
         });
         if(typed!==expected)return;
-        await api('/api/platform/schools/'+encodeURIComponent(schoolId),{
+        if(feedback)feedback.textContent='Deleting school and saving recovery snapshot…';
+        const result=await api('/api/platform/schools/'+encodeURIComponent(schoolId),{
           method:'DELETE',body:JSON.stringify({previewToken:review.previewToken,confirmationPhrase:typed})
         });
-        await loadPlatformData();
-        showToast('School deleted. A database recovery snapshot and audit record were saved.');
-      }catch(error){showToast(error.message,true);}
-      finally{deleteButton.disabled=false;}
+        if(result?.deleted!==true||result.schoolId!==schoolId)throw new Error('The server did not confirm deletion. Refresh the school directory before trying again.');
+        const message=school.schoolName+' ('+school.schoolCode+') was deleted successfully. A database recovery snapshot and audit record were saved.';
+        if(feedback){feedback.textContent=message;feedback.className='inline-feedback';}
+        try { await loadPlatformData(); }
+        catch(refreshError){showToast('School deleted, but the directory could not refresh: '+refreshError.message,true);}
+        showToast('School deleted successfully.');
+        await AppDialog.alert(message,{title:'School deleted successfully',eyebrow:'SUCCESS',confirmText:'OK'});
+      }catch(error){
+        const message='School was not deleted: '+error.message;
+        if(feedback){feedback.textContent=message;feedback.className='inline-feedback error';}
+        showToast(message,true);
+        await AppDialog.alert(message,{title:'School deletion failed',eyebrow:'ACTION NOT COMPLETED',confirmText:'OK',variant:'danger'});
+      }finally{deleteButton.disabled=false;}
       return;
     }
     const button=event.target.closest('[data-platform-school]');if(!button)return;

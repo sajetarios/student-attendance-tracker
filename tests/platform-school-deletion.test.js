@@ -31,7 +31,7 @@ function setup({ failSnapshot = false } = {}) {
     ] };
     if (sql.startsWith('INSERT INTO platform_school_deletion_backup_rows')) {
       if (failSnapshot) throw new Error('backup storage unavailable');
-      return { rowCount: sql.includes('sms_outbox') ? 0 : 1 };
+      return { rowCount: sql.includes('sms_outbox') || sql.includes('attendance_pilot_reset_backup_rows') ? 0 : 1 };
     }
     if (sql.startsWith('SELECT COUNT(*)::int AS count FROM platform_school_deletion_backup_rows'))
       return { rows: [{ count: 2 }] };

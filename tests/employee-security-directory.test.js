@@ -104,7 +104,7 @@ test('staff security cards begin collapsed with explicit ARIA reveal and filtere
  assert.match(css,/security-directory-filters/);
  assert.match(server,/registerEmployeeSecurityDirectoryRoutes/);
  assert.match(sw,/user-management-readability\.css\?v=6/);
- assert.match(html,/portal\.js\?v=201/);
+ assert.match(html,/portal\.js\?v=202/);
  for(const action of ['data-reset-staff-password','data-revoke-staff-sessions','data-unlock-staff-account']){
   assert.ok(js.includes(action),action);
  }

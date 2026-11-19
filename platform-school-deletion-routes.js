@@ -170,6 +170,17 @@ function registerPlatformSchoolDeletionRoutes(app, pool, { authenticatePlatform,
         [backupId, schoolId]
       );
       backedUpRows += sms.rowCount;
+      // Pilot attendance reset backups lack school_id and reference their run with
+      // ON DELETE RESTRICT. Snapshot these archived rows too, before removal.
+      const pilotArchive = await client.query(
+        'INSERT INTO platform_school_deletion_backup_rows(backup_id,source_table,row_data) ' +
+        "SELECT $1,'attendance_pilot_reset_backup_rows',to_jsonb(src) " +
+        'FROM attendance_pilot_reset_backup_rows src ' +
+        'JOIN attendance_pilot_reset_runs run ON run.reset_id=src.reset_id ' +
+        'WHERE run.school_id=$2',
+        [backupId, schoolId]
+      );
+      backedUpRows += pilotArchive.rowCount;
       const verified = await client.query(
         'SELECT COUNT(*)::int AS count FROM platform_school_deletion_backup_rows WHERE backup_id=$1',
         [backupId]
@@ -183,6 +194,14 @@ function registerPlatformSchoolDeletionRoutes(app, pool, { authenticatePlatform,
       // Delete child rows before their parents; PostgreSQL has RESTRICT/NO ACTION
       // relationships between departments, periods, learners and audit history.
       // Every deletion is scoped to the selected school in the same transaction.
+      // A pilot reset's archived rows must be removed before its school-scoped
+      // reset run, otherwise PostgreSQL rejects the delete (FK RESTRICT).
+      await client.query(
+        'DELETE FROM attendance_pilot_reset_backup_rows src ' +
+        'USING attendance_pilot_reset_runs run ' +
+        'WHERE src.reset_id=run.reset_id AND run.school_id=$1',
+        [schoolId]
+      );
       await client.query(
         'DELETE FROM sms_outbox WHERE event_id IN (SELECT event_id FROM attendance_events WHERE school_id=$1)',
         [schoolId]
