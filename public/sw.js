@@ -1,4 +1,4 @@
-const CACHE = "attendigo-v251-department-icons";
+const CACHE = "attendigo-v252-teacher-dashboard-v2";
 
 const SHELL = [
   "/typography.css?v=1",
@@ -58,6 +58,8 @@ const SHELL = [
   "/department-monitor-refresh.css?v=1",
   "/department-dashboard-v2.css?v=2",
   "/department-dashboard-v2.js?v=2",
+  "/teacher-dashboard-v2.css?v=1",
+  "/teacher-dashboard-v2.js?v=1",
   "/form48-report.js?v=7",
   "/form48-bulk-ui.js?v=2",
   "/form48-report.css?v=7",
