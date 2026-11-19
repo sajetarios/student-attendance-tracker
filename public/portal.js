@@ -1718,7 +1718,7 @@ function coverageStatusLabel(status) {
         const statusLabel = student.archivedAt ? 'Archived' : student.active === false ? 'Inactive' : 'Active';
         const programCell = student.specialProgramCode
           ? `<span class="special-program-chip" title="${esc(student.specialProgramName || student.specialProgramCode)}">${esc(student.specialProgramCode)}</span>`
-          : '<span class="muted-inline">Not assigned</span>';
+           : '<span class="muted-inline">No special program</span>';
         if (teacher) {
           const teacherAvatar = photo
             ? `<img class="student-photo-thumb" src="${photo}" alt="Student photo for ${esc(student.fullName)}" loading="lazy">`
@@ -1799,7 +1799,8 @@ function coverageStatusLabel(status) {
     if (actions) {
       [...actions.options].forEach(option => {
         if (!option.value) return;
-        const available = option.value === 'REQUEST_PROGRAM'
+        const available = option.value === 'ASSIGN_PROGRAM' ? isAdmin
+          : option.value === 'REQUEST_PROGRAM'
           ? !isAdmin && (user.role === 'DEPARTMENT_HEAD' || (user.role === 'TEACHER' && teacherHas('CLASS_ADVISER')))
           : isAdmin || ['SET_SEX','ASSIGN'].includes(option.value);
         option.hidden = !available;
@@ -1809,7 +1810,23 @@ function coverageStatusLabel(status) {
     }
     if ($('applyStudentBatch')) $('applyStudentBatch').disabled =
       !mayBatch || !selectedStudentIds.size || !actions?.value ||
-      selectedStudentIds.size > (actions?.value === 'REQUEST_PROGRAM' ? 200 : 500);
+      selectedStudentIds.size > (['REQUEST_PROGRAM','ASSIGN_PROGRAM'].includes(actions?.value) ? 200 : 500);
+    const guidance=$('studentBatchGuidance');
+    if (guidance) {
+      const action=actions?.value||'';
+      const count=selectedStudentIds.size;
+      guidance.textContent=!count
+        ? 'Select learner checkboxes first (or Select all visible students), then choose an action. No learner changes have been made.'
+        : !action
+          ? count+' learners selected. Choose Move grade / section or Request special-program change to continue.'
+          : action==='ASSIGN'
+            ? 'Move grade / section changes class placement only; it does not assign a special program.'
+            : action==='REQUEST_PROGRAM'
+              ? 'A Class Adviser or Department Head can request a registered special program for School Admin approval; this does not immediately assign one.'
+              : action==='ASSIGN_PROGRAM'
+                ? 'School Admin only: assign one registered special program directly to up to 200 selected active-year enrollments.'
+                : 'Review the '+action.toLowerCase().replaceAll('_',' ')+' action for '+count+' selected learners.';
+    }
     const all = $('selectAllStudents');
     if (all) {
       all.disabled = !mayBatch || !visible.length;
@@ -5840,12 +5857,11 @@ let teacherActionMenuListenersInstalled = false;
 
   function openStudentBatch() {
     if($('sf1CreateSectionGroup'))$('sf1CreateSectionGroup').hidden=!(user.role==='TEACHER'&&teacherHas('CLASS_ADVISER')&&$('studentBatchAction').value==='ASSIGN');
-    if($('studentBatchAction').value==='ASSIGN')loadSf1SectionOptions().catch(e=>showToast(e.message,true));
     const action = $('studentBatchAction').value;
     const selected = students.filter(s => selectedStudentIds.has(s.studentId) && canSelectLearnerForBatch(s));
     if (!action || !selected.length) return;
-    if (selected.length !== selectedStudentIds.size || selected.length > 500) {
-      showToast('Some learners are not in your authorized selection. Refresh and select again (maximum 500).',true);
+    if (selected.length !== selectedStudentIds.size || selected.length > (['ASSIGN_PROGRAM','REQUEST_PROGRAM'].includes(action)?200:500)) {
+      showToast('Some learners are outside your authorized selection, or exceed this action’s batch limit (200 for programs, 500 otherwise).',true);
       return;
     }
     if (action === 'REQUEST_PROGRAM') {
@@ -5871,12 +5887,13 @@ let teacherActionMenuListenersInstalled = false;
     $('studentBatchForm').reset();
     $('studentBatchFeedback').textContent = '';
     const labels = {
-      SET_SEX:'Set sex', ASSIGN:'Move grade / section', ACTIVATE:'Activate',
+      SET_SEX:'Set sex', ASSIGN:'Move grade / section', ASSIGN_PROGRAM:'Assign special program', ACTIVATE:'Activate',
       DEACTIVATE:'Deactivate', ARCHIVE:'Archive'
     };
     const descriptions = {
       SET_SEX:'Choose one sex for the entire selected group. Do not use this when the learners have different sex classifications.',
-      ASSIGN:'Move selected learners to an existing school-year section. Student identity and past attendance are preserved.',
+      ASSIGN:'Move selected learners to an existing school-year section. This does not assign their special program. Student identity and past attendance are preserved.',
+      ASSIGN_PROGRAM:'Assign one active special program to selected learners in the active school year. Their grade, section, LRN, student ID, and history remain unchanged.',
       ACTIVATE:'Restore access for selected inactive or archived learners. Their historical attendance is preserved.',
       DEACTIVATE:'Disable selected learners and their student logins without deleting past attendance.',
       ARCHIVE:'Archive selected learners and disable their logins. Records and attendance history remain available to authorized staff.'
@@ -5892,18 +5909,54 @@ let teacherActionMenuListenersInstalled = false;
     $('batchSexGroup').hidden = action !== 'SET_SEX';
     $('batchGradeGroup').hidden = action !== 'ASSIGN';
     $('batchSectionGroup').hidden = action !== 'ASSIGN';
-    if (action === 'ASSIGN') refreshStudentBatchDestinations();
+    $('batchProgramGroup').hidden = action !== 'ASSIGN_PROGRAM';
+    $('studentBatchManagePrograms').hidden=true;
+    if (action === 'ASSIGN') {
+      refreshStudentBatchDestinations();
+      if(user.role==='TEACHER') loadSf1SectionOptions().catch(e=>{$('studentBatchFeedback').textContent=e.message;});
+    }
+    if (action === 'ASSIGN_PROGRAM') {
+      $('confirmStudentBatch').disabled=true;
+      $('batchProgramHint').textContent='Loading this school’s registered special programs…';
+      api('/api/special-programs/catalog-access').then(result=>{
+        if($('studentBatchModal').hidden || $('studentBatchAction').value!=='ASSIGN_PROGRAM') return;
+        const programs=(result.programs||[]).filter(p=>p.active);
+        $('batchProgram').replaceChildren();
+        const blank=document.createElement('option');blank.value='';blank.textContent='Choose an active special program';
+        $('batchProgram').append(blank);
+        programs.forEach(program=>{
+          const option=document.createElement('option');
+          option.value=program.programTypeId;
+          option.textContent=program.code+' · '+program.name;
+          $('batchProgram').append(option);
+        });
+        $('batchProgram').disabled=!programs.length;
+        $('studentBatchManagePrograms').hidden=!!programs.length;
+        $('batchProgramHint').textContent=programs.length
+          ? 'Choose a registered program, then confirm direct assignment. Maximum 200 learners; no section change.'
+          : 'No special program is registered for this school. Create one under School Years & Programs → Programs, then return to select learners.';
+        $('confirmStudentBatch').disabled=!programs.length;
+      }).catch(error=>{
+        if($('studentBatchModal').hidden) return;
+        $('batchProgramHint').textContent='Could not load available programs: '+error.message;
+      });
+    }
     const acknowledge = ['SET_SEX','DEACTIVATE','ARCHIVE'].includes(action);
     $('studentBatchAcknowledgeWrap').hidden = !acknowledge;
     $('studentBatchAcknowledgeText').textContent = action === 'SET_SEX'
       ? 'I verified that all selected learners should receive the same sex classification.'
       : 'I understand this changes the selected student accounts and will preserve their attendance history.';
     $('studentBatchChangeSummary').textContent = descriptions[action];
-    $('confirmStudentBatch').textContent = action === 'ASSIGN' ? 'Review section transfer'
+    $('confirmStudentBatch').textContent = action === 'ASSIGN_PROGRAM' ? 'Review program assignment' :
+      action === 'ASSIGN' ? 'Review section transfer'
       : action === 'SET_SEX' ? 'Review sex update' : 'Review ' + (labels[action] || action).toLowerCase();
     $('studentBatchModal').hidden = false;
   }
 
+  $('studentBatchManagePrograms')?.addEventListener('click',()=>{
+    closeStudentBatch();
+    document.dispatchEvent(new Event('attendigo:open-academic'));
+  });
   $('applyStudentBatch')?.addEventListener('click',openStudentBatch);
   $('studentBatchAction')?.addEventListener('change',updateStudentSelectionUi);
   async function loadSf1SectionOptions() {
@@ -5970,6 +6023,19 @@ let teacherActionMenuListenersInstalled = false;
       }
       body.gradeLevel = gradeLevel; body.section = section;
       changeDescription = 'Move to ' + gradeLevel + ' · ' + section;
+    } else if (action === 'ASSIGN_PROGRAM') {
+      const id=$('batchProgram').value;
+      const allowed=[...$('batchProgram').options].some(opt=>opt.value===id && id && !opt.disabled);
+      const uuids=chosen.map(student=>student.enrollmentId);
+      const uuidPattern=/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+      if(user.role!=='SCHOOL_ADMIN'||chosen.length>200||!allowed||uuids.some(x=>!uuidPattern.test(String(x||'')))) {
+        feedback.textContent='Choose a registered special program for 1–200 learners with active school-year enrollments.';
+        feedback.className='inline-feedback error';
+        return;
+      }
+      changeDescription='Assign primary special program: '+$('batchProgram').selectedOptions[0].textContent;
+      body.programTypeId=id;
+      body.enrollmentIds=uuids;
     } else {
       changeDescription = action === 'ACTIVATE' ? 'Activate learners' :
         action === 'DEACTIVATE' ? 'Deactivate learners and revoke their login sessions' :
@@ -5992,12 +6058,18 @@ let teacherActionMenuListenersInstalled = false;
     $('confirmStudentBatch').disabled = true;
     feedback.textContent = 'Applying ' + changeDescription.toLowerCase() + '…';
     try {
-      const result = await api('/api/students/batch', {method:'POST',body:JSON.stringify(body)});
+      const result=action==='ASSIGN_PROGRAM'
+        ? await api('/api/special-programs/assignments/bulk', {
+          method:'POST',body:JSON.stringify({action:'ASSIGN',programTypeId:body.programTypeId,enrollmentIds:body.enrollmentIds})
+        })
+        : await api('/api/students/batch', {method:'POST',body:JSON.stringify(body)});
       closeStudentBatch();
       selectedStudentIds.clear();
       $('studentBatchAction').value = '';
       await loadSchoolData();
-      showToast(result.updated + ' learners updated: ' + changeDescription + '.');
+      showToast(action==='ASSIGN_PROGRAM'
+        ? result.count+' learner program assignments completed · '+result.unchangedCount+' already assigned.'
+        : result.updated+' learners updated: '+changeDescription+'.');
     } catch(error) {
       feedback.textContent = error.message;
       feedback.className = 'inline-feedback error';
