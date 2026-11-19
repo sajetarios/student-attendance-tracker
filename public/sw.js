@@ -1,4 +1,4 @@
-const CACHE = "attendigo-v249-department-monitor-design";
+const CACHE = "attendigo-v250-department-dashboard-v2";
 
 const SHELL = [
   "/typography.css?v=1",
@@ -56,6 +56,8 @@ const SHELL = [
   "/department-workspace.css?v=1",
   "/department-workspace.js?v=5",
   "/department-monitor-refresh.css?v=1",
+  "/department-dashboard-v2.css?v=1",
+  "/department-dashboard-v2.js?v=1",
   "/form48-report.js?v=7",
   "/form48-bulk-ui.js?v=2",
   "/form48-report.css?v=7",
