@@ -74,7 +74,7 @@ async function parseSf1PdfBase64(base64){
    grouped.sort((a,b)=>b.y-a.y);
    return grouped.map(row=>row.items.sort((a,b)=>a.x-b.x).map(item=>item.text).join(' ')).join('\n');
   }});
- }catch(e){throw Error('Could not read PDF text ('+String(e?.message||'unknown error').slice(0,120)+'). Upload a searchable SF1 PDF or the original LIS Excel workbook.');}
+ }catch(e){try{result=await pdfParse(data,{max:MAX_PAGES+1});}catch(f){throw Error('Could not read PDF text ('+String(f?.message||e?.message||'unknown error').slice(0,120)+'). Upload a searchable SF1 PDF or the original LIS Excel workbook.');}}
  if(!result?.numpages||result.numpages>MAX_PAGES)throw Error('SF1 PDF must contain at most 30 pages.');
  return parseSf1PdfText(result.text);
 }
