@@ -49,6 +49,15 @@
   .student-scan-notice-name { display:block; color:#142d43; font-size:20px; }
   .student-scan-notice-meta { display:block; margin:5px 0 18px; color:#607487; font-size:13px; }
   .student-scan-notice-dialog button { width:100%; min-height:47px; }
+  .student-scan-notice-dialog #studentScanNoticeConfirmation { font-size:12px; line-height:1.45; margin:12px 0; }
+  .student-scan-notice-dialog #studentScanNoticePhotoWarning { font-size:13px; text-align:left; padding:12px; border-radius:10px; background:#fff3dc; color:#804700; }
+  .student-scan-notice-dialog #studentScanNoticePhoto { max-width:min(180px,60vw); max-height:185px; object-fit:contain; }
+  .student-scan-notice-dialog .student-scan-buttons { display:flex; flex-wrap:wrap; gap:10px; margin-top:14px; }
+  .student-scan-notice-dialog #studentScanNoticeClear,
+  .student-scan-notice-dialog #studentScanNoticeRecord { flex:1 1 160px; width:auto; min-width:0; }
+  .student-scan-notice-dialog #studentScanNoticeDtr { text-align:left; margin-top:12px; }
+  @media(max-width:390px) { .student-scan-notice-dialog .student-scan-buttons { flex-direction:column-reverse; } }
+
   .scanner-feedback.is-success { padding:13px 15px; border:2px solid #15965c; border-left-width:7px; border-radius:10px; background:#e8fff2; color:#075c38; font-weight:750; }
   @media(max-width:560px) { .student-scan-setup-dialog,.student-scan-notice-dialog { padding:22px 17px 18px; } .scan-setup-actions { flex-direction:column-reverse; } .scan-setup-actions button { width:100%; } }
 </style>
@@ -2184,7 +2193,7 @@ body.dark-mode .content-wrap > .school-heading.is-compact,body[data-theme="dark"
   <script src="/offline-attendance.js?v=5" defer></script>
   <script src="/attendance-sync-center.js?v=3" defer></script>
   <script src="/learner-roster-view.js?v=1" defer></script>
-  <script src="/portal.js?v=209" defer></script>
+  <script src="/portal.js?v=210" defer></script>
   <script src="/schedule-list-filters.js?v=1" defer></script>
   <script src="/staff-lunch-ui.js?v=3" defer></script>
   <script src="/staff-ob-ui.js?v=5" defer></script>
