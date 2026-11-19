@@ -3051,3 +3051,35 @@ html[data-ui-theme="dark"] #adviserAssignmentForm .adviser-new-section-panel str
 html[data-ui-theme="dark"] #adviserAssignmentForm .adviser-new-section-panel small{color:#b8cbe0}
 html[data-ui-theme="dark"] #adviserAssignmentForm .adviser-new-section-fields input,
 html[data-ui-theme="dark"] #adviserAssignmentForm .adviser-new-section-fields select{background:#172b40;border-color:#4a6582;color:#edf5ff}
+
+/* Keep the official avatar/emblem comfortably separated from the account label. */
+.portal-page .topbar .account-trigger{
+  display:inline-flex;
+  align-items:center;
+  column-gap:12px;
+  padding:6px 14px 6px 10px;
+}
+.portal-page .topbar .account-trigger .avatar{
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  width:32px;
+  height:32px;
+  flex:0 0 32px;
+  margin:0;
+  object-fit:contain;
+}
+.portal-page .topbar .account-trigger .account-name{
+  min-width:0;
+  margin:0;
+}
+.portal-page .topbar .account-trigger .account-chevron{
+  margin-left:2px;
+  flex-shrink:0;
+}
+@media(max-width:700px){
+  .portal-page .topbar .account-trigger{
+    gap:6px;
+    padding:5px 8px;
+  }
+}
