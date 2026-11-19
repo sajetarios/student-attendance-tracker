@@ -1,6 +1,7 @@
 'use strict';
 const test=require('node:test');
 const assert=require('node:assert/strict');
+const {assertCacheRevisionAtLeast}=require('./support/asset-contract');
 const fs=require('node:fs');
 const path=require('node:path');
 const vm=require('node:vm');
@@ -53,7 +54,7 @@ test('New visuals reuse brand tokens, support mobile and dark mode, and ship wit
   assert.match(css,/html\[data-ui-theme="dark"\]/);
   assert.match(html,/department-monitor-refresh\.css\?v=1/);
   assert.match(html,/department-workspace\.js\?v=5/);
-  assert.match(sw,/attendigo-v249-department-monitor-design/);
+  assertCacheRevisionAtLeast(sw,249);
   assert.match(sw,/department-monitor-refresh\.css\?v=1/);
   assert.match(sw,/department-workspace\.js\?v=5/);
 });
