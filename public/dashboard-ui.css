@@ -550,3 +550,25 @@ html[data-ui-theme="dark"] .portal-page :is(input[type="date"],input[type="time"
 #schedulesView #scheduleUnassignedCard.is-actionable:focus-visible{outline:3px solid var(--ui-accent,#15803d);outline-offset:3px}
 #schedulesView #scheduleUnassignedCard.is-actionable::before{content:'Select to assign';position:absolute;right:15px;bottom:11px;font-size:11px;font-weight:700;color:var(--ui-accent,#15803d);z-index:1}
 @media (prefers-reduced-motion:reduce){#schedulesView #scheduleUnassignedCard.is-actionable{transition:none}#schedulesView #scheduleUnassignedCard.is-actionable:hover{transform:none}}
+
+/* Unified teacher timetable: section and advisory status remain readable without color. */
+.tt-grid .tt-subject{flex-direction:column;gap:3px;min-height:54px;padding:8px 5px;text-align:center;white-space:normal;line-height:1.25}
+.tt-subject-name{display:block;font-weight:750}
+.tt-subject-section{display:block;font-size:11px;line-height:1.3;font-weight:600;opacity:.88;overflow-wrap:anywhere}
+.tt-subject-relation{display:block;font-size:10px;font-weight:750;letter-spacing:.01em;line-height:1.3}
+.tt-tone-my-advisory{background:#d8e9ff;color:#174778;border-color:#8cb3e8}
+.tt-tone-teacher-class{background:#def4e8;color:#176444}
+.tt-tone-advisory-activity{background:#fff0d0;color:#805316;border-color:#dfbc77}
+.tt-grid-legend i.tt-legend-advisory{background:#5f93d5}
+.tt-grid-legend i.tt-legend-teaching{background:#51b98a}
+.tt-grid-legend i.tt-legend-homeroom{background:#e4ab45}
+.teacher-advisory-details{margin-top:14px;overflow:hidden}
+.teacher-advisory-summary{display:flex;align-items:center;justify-content:space-between;gap:12px;cursor:pointer;padding:16px 19px;list-style:none}
+.teacher-advisory-summary::-webkit-details-marker{display:none}
+.teacher-advisory-summary strong{display:block;font-size:19px;color:var(--ui-text)}
+.teacher-advisory-summary small{display:block;margin-top:5px;font-size:12px;color:var(--ui-muted);line-height:1.5}
+.teacher-advisory-summary .teacher-advisory-toggle{font-size:18px;color:var(--ui-muted);transition:transform .15s}
+.teacher-advisory-details[open] .teacher-advisory-toggle{transform:rotate(180deg)}
+.teacher-advisory-summary:focus-visible{outline:3px solid var(--ui-accent);outline-offset:-3px}
+.teacher-advisory-details>.table-scroll{padding:0 16px 16px}
+@media(prefers-reduced-motion:reduce){.teacher-advisory-summary .teacher-advisory-toggle{transition:none}}
