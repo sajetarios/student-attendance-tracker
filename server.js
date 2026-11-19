@@ -2371,7 +2371,14 @@ app.get('/api/students', authenticateSchoolClient, requireSchoolClient, requireS
     let scope = '';
     if (req.auth.type === 'SCHOOL_USER' && req.auth.role === 'TEACHER') {
       params.push(req.auth.userId);
-      scope = ` AND ${TEACHER_STUDENT_SCOPE}`;
+      scope = ` AND (${TEACHER_STUDENT_SCOPE} OR EXISTS (
+        SELECT 1 FROM student_enrollments own
+        JOIN school_years own_sy ON own_sy.school_id=own.school_id AND own_sy.school_year_id=own.school_year_id
+        JOIN class_adviser_assignments own_ca ON own_ca.school_id=own.school_id
+          AND own_ca.adviser_user_id=$2 AND own_ca.grade_level=own.grade_level
+        WHERE own.school_id=s.school_id AND own.student_id=s.student_id AND own.created_by_user_id=$2
+          AND own.enrollment_status='ENROLLED' AND own_sy.status='ACTIVE'
+      ))`;
     }
     const includeParentFields = req.auth.type === 'SCHOOL_USER' && req.auth.role === 'SCHOOL_ADMIN';
     const isGateKeeper = req.auth.type === 'SCHOOL_USER' && req.auth.role === 'GATE_KEEPER';
