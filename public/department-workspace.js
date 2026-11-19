@@ -80,8 +80,18 @@
         <label>Add subject<input name="subjectName" maxlength="120" required placeholder="New department subject"></label>
         <div class="dh-notice-actions"><button type="submit" class="outline-button">Add subject</button></div>
       </form>`;
-    parent.append(subjectPanel);
-    // Expose the same manager directly from the schedule subject field on mobile.
+    // Keep subject management out of the Department Head dashboard.
+    // Its forms remain mounted in a modal for the schedule subject shortcut.
+    const dialog = document.createElement('dialog');
+    dialog.setAttribute('aria-label', 'Manage department subjects');
+    dialog.style.cssText = 'width:min(94vw,560px);max-height:85dvh;overflow:auto;border:1px solid #cbd5e1;border-radius:16px;padding:18px;background:var(--surface,#fff);color:var(--text,#172b4d)';
+    const close = document.createElement('button');
+    close.type = 'button';
+    close.className = 'outline-button';
+    close.textContent = 'Close';
+    close.style.cssText = 'width:100%;margin-top:12px';
+    dialog.append(subjectPanel,close);
+    document.body.append(dialog);
     const scheduleSubject = $('periodSubject');
     if (scheduleSubject) {
       const trigger = document.createElement('button');
@@ -90,24 +100,12 @@
       trigger.textContent = 'Manage Subjects';
       trigger.style.cssText = 'width:100%;margin-top:8px;min-height:40px';
       scheduleSubject.closest('.field-group')?.append(trigger);
-      const dialog = document.createElement('dialog');
-      dialog.setAttribute('aria-label', 'Manage department subjects');
-      dialog.style.cssText = 'width:min(94vw,560px);max-height:85dvh;overflow:auto;border:1px solid #cbd5e1;border-radius:16px;padding:18px;background:var(--surface,#fff);color:var(--text,#172b4d)';
-      const close = document.createElement('button');
-      close.type = 'button';
-      close.className = 'outline-button';
-      close.textContent = 'Close';
-      close.style.cssText = 'width:100%;margin-top:12px';
-      dialog.append(close);
-      document.body.append(dialog);
       trigger.addEventListener('click', () => {
-        dialog.prepend(subjectPanel);
         dialog.showModal();
         loadSubjects();
       });
-      close.addEventListener('click', () => dialog.close());
-      dialog.addEventListener('close', () => parent.append(subjectPanel));
     }
+    close.addEventListener('click', () => dialog.close());
 
     let ownDepartmentId = user.departmentId;
     async function loadSubjects() {
