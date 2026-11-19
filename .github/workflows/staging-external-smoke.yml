@@ -5,6 +5,8 @@ on:
     paths:
       - '.github/workflows/staging-external-smoke.yml'
       - 'tests/staging-external-smoke.mjs'
+      - 'tests/attendance-ui-access.test.js'
+      - 'public/manual-folio.js'
   workflow_dispatch:
 jobs:
   staging-smoke:
@@ -15,6 +17,8 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
+      - name: Run attendance interface regression gates
+        run: node --test tests/attendance-ui-access.test.js
       - name: Install browser
         run: npx --yes playwright@1.58.2 install --with-deps chromium
       - name: Check staging API and browser
