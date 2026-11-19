@@ -64,6 +64,81 @@
       <ul class="dh-announcement-list" id="dhAnnouncements"><li>Loading notices…</li></ul>`;
     parent.append(panel);
 
+    const subjectPanel = document.createElement('section');
+    subjectPanel.className = 'dh-insights';
+    subjectPanel.setAttribute('aria-label', 'Manage department subjects');
+    subjectPanel.innerHTML = `
+      <div class="dh-insights-head"><div><h3>Manage Subjects</h3>
+        <p>Add or rename subjects in your assigned department. Existing class schedules and attendance remain unchanged.</p></div></div>
+      <p id="dhSubjectStatus" role="status" aria-live="polite"></p>
+      <form id="dhSubjectEditForm" class="dh-notice-form">
+        <label>Existing subject<select name="subjectId" id="dhSubjectSelect" required></select></label>
+        <label>New subject name<input name="subjectName" id="dhSubjectName" maxlength="120" required></label>
+        <div class="dh-notice-actions"><button type="submit" class="primary-button">Save subject name</button></div>
+      </form>
+      <form id="dhSubjectAddForm" class="dh-notice-form">
+        <label>Add subject<input name="subjectName" maxlength="120" required placeholder="New department subject"></label>
+        <div class="dh-notice-actions"><button type="submit" class="outline-button">Add subject</button></div>
+      </form>`;
+    parent.append(subjectPanel);
+    let ownDepartmentId = user.departmentId;
+    async function loadSubjects() {
+      const status = $('dhSubjectStatus');
+      try {
+        if (!ownDepartmentId) {
+          const departments = await fetch('/api/departments', { credentials: 'same-origin', cache: 'no-store' });
+          const data = await departments.json();
+          ownDepartmentId = data.ownDepartmentId;
+        }
+        if (!ownDepartmentId) throw new Error('An assigned department is required.');
+        const response = await fetch('/api/subjects', { credentials: 'same-origin', cache: 'no-store' });
+        const data = await response.json();
+        if (!response.ok) throw new Error(data.error || 'Cannot load subjects.');
+        const select = $('dhSubjectSelect');
+        select.replaceChildren();
+        for (const subject of data.subjects || []) {
+          const option = document.createElement('option');
+          option.value = subject.subjectId;
+          option.textContent = subject.subjectName;
+          select.append(option);
+        }
+        const syncName = () => {
+          $('dhSubjectName').value = select.selectedOptions[0]?.textContent || '';
+        };
+        select.onchange = syncName;
+        syncName();
+        $('dhSubjectEditForm').querySelector('button').disabled = !select.options.length;
+        status.textContent = select.options.length ? '' : 'No subjects yet. Add one below.';
+      } catch (error) { status.textContent = error.message; }
+    }
+    async function saveSubject(event, isAdd) {
+      event.preventDefault();
+      const form = event.currentTarget;
+      if (!form.reportValidity()) return;
+      const button = form.querySelector('button[type="submit"]');
+      const status = $('dhSubjectStatus');
+      const name = String(new FormData(form).get('subjectName') || '').trim();
+      button.disabled = true;
+      try {
+        const path = isAdd ? '/api/subjects' : '/api/subjects/' + encodeURIComponent($('dhSubjectSelect').value);
+        const response = await fetch(path, {
+          method: isAdd ? 'POST' : 'PATCH', credentials: 'same-origin',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(isAdd ? { departmentId: ownDepartmentId, subjectName: name } : { subjectName: name })
+        });
+        const result = await response.json();
+        if (!response.ok) throw new Error(result.error || 'Could not save subject.');
+        await loadSubjects();
+        if (isAdd) form.reset();
+        status.textContent = 'Subject saved. Existing class records were not changed.';
+      } catch (error) { status.textContent = error.message; }
+      finally { button.disabled = false; }
+    }
+    $('dhSubjectEditForm').addEventListener('submit', event => saveSubject(event, false));
+    $('dhSubjectAddForm').addEventListener('submit', event => saveSubject(event, true));
+    loadSubjects();
+
+
     let workload = [];
     const status = $('dhInsightsStatus');
     async function loadOverview() {
