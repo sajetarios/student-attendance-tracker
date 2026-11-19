@@ -112,7 +112,7 @@ test('Grade 11–12 selectors, staff privacy and Grade 12 pilot confirmation are
   assert.match(portal,new RegExp('id="'+id+'"'));
  for(const id of ['shsSchoolLevelMode','shsCurriculumForm','shsLearnerPathForm','shsGrade12PilotConfirmed'])
   assert.match(portal,new RegExp('id="'+id+'"'));
- for(const asset of ['/shs-school-ui.js?v=1','/shs-school-ui.css?v=1']){
+ for(const asset of ['/shs-school-ui.js?v=2','/shs-school-ui.css?v=2']){
   assert.ok(portal.includes(asset),'Portal loads '+asset);
   assert.ok(sw.includes(JSON.stringify(asset)),'PWA must cache '+asset);
  }
