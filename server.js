@@ -3122,7 +3122,7 @@ app.patch('/api/periods/:periodId', authenticateSchoolClient, requireSchoolRoles
   finally{client.release();}
 });
 
-app.delete('/api/periods/:periodId', authenticateSchoolClient, requireSchoolRoles('SCHOOL_ADMIN'), async (req, res) => {
+app.delete('/api/periods/:periodId', authenticateSchoolClient, requireSchoolRoles('SCHOOL_ADMIN', 'DEPARTMENT_HEAD'), async (req, res) => {
   if (!isUuid(req.params.periodId)) return res.status(400).json({ error: 'Invalid schedule ID.' });
   const password = req.body?.password;
   if (typeof password !== 'string' || !password) return res.status(400).json({ error: 'Confirm your password to delete this schedule.' });  const actor = await pool.query('SELECT password_hash FROM school_users WHERE school_id=$1 AND user_id=$2 AND active=TRUE', [req.auth.schoolId, req.auth.userId]);
@@ -3136,7 +3136,7 @@ app.delete('/api/periods/:periodId', authenticateSchoolClient, requireSchoolRole
     const cover = await client.query("SELECT 1 FROM teacher_period_substitutions WHERE school_id=$1 AND period_id=$2 AND status='ACTIVE' AND end_date >= (NOW() AT TIME ZONE 'Asia/Manila')::date LIMIT 1", [req.auth.schoolId, req.params.periodId]);
     if (cover.rowCount) { await client.query('ROLLBACK'); return res.status(409).json({ error: 'End active substitute coverage before deleting this schedule.' }); }
     await client.query('UPDATE class_periods SET active=FALSE WHERE school_id=$1 AND period_id=$2', [req.auth.schoolId, req.params.periodId]);
-    await client.query("INSERT INTO audit_logs(school_id,actor_type,actor_user_id,action,entity_type,entity_id,details) VALUES($1,'SCHOOL',$2,'SCHOOL_ADMIN_DEACTIVATE_CLASS_SCHEDULE','class_period',$3,$4::jsonb)", [req.auth.schoolId, req.auth.userId, req.params.periodId, JSON.stringify({periodName:target.rows[0].period_name,departmentId:target.rows[0].department_id})]);
+    await client.query("INSERT INTO audit_logs(school_id,actor_type,actor_user_id,action,entity_type,entity_id,details) VALUES($1,'SCHOOL',$2,'DEACTIVATE_CLASS_SCHEDULE','class_period',$3,$4::jsonb)", [req.auth.schoolId, req.auth.userId, req.params.periodId, JSON.stringify({periodName:target.rows[0].period_name,departmentId:target.rows[0].department_id,actorRole:req.auth.role})]);
     await client.query('COMMIT'); return res.json({ ok:true, message:'Schedule deactivated. Attendance history has been preserved.' });
   } catch (err) { await client.query('ROLLBACK'); console.error('Schedule deactivation failed:',err.message); return res.status(500).json({ error:'Could not delete this class schedule.' }); }
   finally { client.release(); }
