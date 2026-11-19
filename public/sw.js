@@ -1,4 +1,4 @@
-const CACHE = "attendigo-v260-shs-learner-pathway";
+const CACHE = "attendigo-v261-weekly-mobile-list";
 
 const SHELL = [
   "/typography.css?v=1",
@@ -51,10 +51,10 @@ const SHELL = [
   "/learner-roster-view.css?v=1",
   "/teacher-learner-roster.css?v=4",
   "/learner-roster-view.js?v=1",
-  "/class-qr-dashboard-link.js?v=10",
+  "/class-qr-dashboard-link.js?v=11",
   "/teacher-roster-popover.js?v=2",
   "/portal.css?v=0.9.119",
-  "/portal.js?v=212",
+  "/portal.js?v=213",
   "/department-workspace.css?v=1",
   "/department-workspace.js?v=5",
   "/department-monitor-refresh.css?v=1",
@@ -122,6 +122,7 @@ const SHELL = [
   "/attendigo-brand-polish.css?v=2",
   "/parent-admin.css?v=7",
   "/schedule-mobile-layout.css?v=1",
+  "/weekly-list-mobile.css?v=1",
   "/platform-plans-ui.js?v=8",
   "/platform-school-health.js?v=2"
 ];
