@@ -3308,13 +3308,24 @@ let teacherActionMenuListenersInstalled = false;
           button.disabled=true;
           try{
             await api('/api/sections',{method:'POST',body:JSON.stringify({gradeLevel,section})});
-            await loadAdviserEligibleSections();
-            const grade=$('adviserGradeInput'),select=$('adviserSectionInput');
-            grade.value=gradeLevel;
-            updateAdviserSections();
-            select.value=section;
+            // The API has committed the registration. A later list-refresh failure must
+            // not be misreported as a failed create or prompt the user to create a duplicate.
             sectionPanel.hidden=true;
-            showToast('Class section '+section+' created for '+gradeLevel+'. Select an adviser and save the assignment.');
+            await loadAdviserEligibleSections();
+            if(adviserEligibilityError){
+              showToast('Class section '+section+' created successfully for '+gradeLevel+'. Section list could not refresh; choose Retry loading grades.');
+              return;
+            }
+            const grade=$('adviserGradeInput'),select=$('adviserSectionInput');
+            const found=adviserEligibleSections.some(item=>String(item.gradeLevel)===gradeLevel&&String(item.section)===section);
+            if(found){
+              grade.value=gradeLevel;
+              updateAdviserSections();
+              select.value=section;
+              showToast('Class section '+section+' created successfully for '+gradeLevel+'. Select an adviser and save the assignment.');
+            }else{
+              showToast('Class section '+section+' created successfully. Refresh the sections list before assigning its adviser.');
+            }
           }catch(error){
             status.className='inline-feedback error';
             status.textContent=error.message;
