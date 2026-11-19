@@ -216,7 +216,8 @@ window.attendigoStaffIdentity = new Promise(resolve => { resolveStaffIdentity = 
     if (view === 'teachers' && ['directory','accounts','permissions','departments'].includes(section)) {
       setAdminManagementTab(section);
     }
-    if (view === 'dashboard' && params.get('panel') === 'requests') $('adminNotificationBell')?.click();
+    if (view === 'dashboard' && params.get('panel') === 'requests') document.dispatchEvent(new Event('attendigo:open-approval-inbox'));
+
   }
 
   let restoringHistory = false;
@@ -1138,6 +1139,13 @@ window.attendigoStaffIdentity = new Promise(resolve => { resolveStaffIdentity = 
       }
     });
   });
+  $('requestsApprovalsNav')?.addEventListener('click', event => {
+    if (user?.role !== 'SCHOOL_ADMIN') return;
+    // Keep approvals in the sidebar. The existing panel and API remain authoritative.
+    event.preventDefault();
+    setView('dashboard');
+    document.dispatchEvent(new Event('attendigo:open-approval-inbox'));
+  });
   document.querySelectorAll('#adminDashboardCard [data-admin-inbox]').forEach(button => {
     button.addEventListener('click', () => {
       if (user?.role !== 'SCHOOL_ADMIN') return;
@@ -1150,8 +1158,7 @@ window.attendigoStaffIdentity = new Promise(resolve => { resolveStaffIdentity = 
       if (shortcut && !shortcut.hidden) {
         shortcut.click();
       } else {
-        const bell = $('adminNotificationBell');
-        if (bell && !bell.hidden) bell.click();
+        document.dispatchEvent(new Event('attendigo:open-approval-inbox'));
       }
     });
   });
