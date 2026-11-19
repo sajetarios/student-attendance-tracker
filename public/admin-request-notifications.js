@@ -137,7 +137,12 @@
  window.addEventListener('focus',refresh);
  const start=()=>{
    if(!isAdmin())return;
-   wrap.hidden=false;
+   // The approval inbox now belongs to the Requests & Approvals sidebar.
+   // Keep the original secure review panel and polling, but do not display a second header icon.
+   wrap.classList.add('admin-approval-sidebar-owned');
+   wrap.hidden=true;
+   panel.hidden=true;
+   bell.setAttribute('aria-expanded','false');
    refresh();
    window.setInterval(()=>{if(!document.hidden)refresh();},45000);
  };
