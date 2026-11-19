@@ -2310,6 +2310,9 @@ function coverageStatusLabel(status) {
     const asOfDate = /^\d{4}-\d{2}-\d{2}$/.test(asOfFilter?.value || '') ? asOfFilter.value : dataSchoolDate();
     const weekDates = scheduleWeekDates(asOfDate);
     const effectivePeriods = periods.filter(period =>
+      (user.role !== 'TEACHER' || String(period.assignedTeacherUserId || '') === String(user.userId || '') ||
+        adviserAssignments.some(a => teacherHas('CLASS_ADVISER') &&
+          String(a.gradeLevel) === String(period.gradeLevel) && String(a.section) === String(period.section))) &&
       (!period.effectiveFrom || String(period.effectiveFrom).slice(0, 10) <= weekDates[6]) &&
       (!period.effectiveTo || String(period.effectiveTo).slice(0, 10) >= weekDates[0])
     );
@@ -2341,6 +2344,8 @@ function coverageStatusLabel(status) {
       (user.role !== 'DEPARTMENT_HEAD' || String(teacher.departmentId || '') === String(user.departmentId || ''))
     );
     const canAssign = user.role === 'SCHOOL_ADMIN' || user.role === 'DEPARTMENT_HEAD';
+    const canManagePeriod = period => canAssign && (user.role === 'SCHOOL_ADMIN' ||
+      (user.departmentCode !== 'UNASSIGNED' && String(period.scheduleDepartmentId || period.departmentId || '') === String(user.departmentId || '')));
     const cardsForDay = day => {
       const date = weekDates.find(value => new Date(value + 'T00:00:00Z').getUTCDay() === day);
       return filtered.map(period => scheduleOnDay(period, date)).filter(Boolean)
@@ -2355,8 +2360,7 @@ function coverageStatusLabel(status) {
         (dayPeriods.length ? dayPeriods.map(period => {
           const unassigned = !period.assignedTeacherName;
           const teacherChoices = eligibleFor(period);
-          const canEditThisPeriod = canAssign && (user.role === 'SCHOOL_ADMIN' ||
-            String(period.scheduleDepartmentId) === String(user.departmentId));
+          const canEditThisPeriod = canManagePeriod(period);
           const adjustment = period.adjustment;
           const dayAdjustmentBadge = adjustment ?
             '<span class="weekly-adjustment-badge">' + esc(period.cancelled ? 'Cancelled' :
@@ -2390,21 +2394,26 @@ function coverageStatusLabel(status) {
         String(a.period.startTime||'').localeCompare(String(b.period.startTime||'')));
       host.innerHTML = '<div class="table-scroll weekly-schedule-list"><table><thead><tr>'+
         '<th>Day / date</th><th>Time</th><th>Subject</th><th>Grade / section</th>'+
-        '<th>Teacher</th><th>Room</th><th>Status</th></tr></thead><tbody>'+
+        '<th>Teacher</th><th>Room</th><th>Status</th><th>Actions</th></tr></thead><tbody>'+
         (rows.length ? rows.map(({day,period}) => {
           const date = weekDates.find(value => new Date(value+'T00:00:00Z').getUTCDay() === day);
           const status = period.cancelled ? 'Cancelled' : period.adjustment
             ? (period.adjustment.type === 'SUBSTITUTE' ? 'Teacher cover' :
                period.adjustment.type === 'REPLACE' ? 'Subject replacement' : 'Time / room change')
             : 'Regular';
+          const manage = canManagePeriod(period);
+          const actions = manage ? '<div class="schedule-row-actions">'+
+            '<button type="button" class="outline-button compact-button" data-edit-period="'+esc(period.periodId)+'">Edit regular</button>'+
+            (date >= dataSchoolDate() ? '<button type="button" class="outline-button compact-button" data-open-adjustment="'+esc(period.periodId)+'" data-adjustment-date="'+esc(date)+'">Change date</button>' : '')+
+            '<button type="button" class="outline-button compact-button danger-button" data-delete-period="'+esc(period.periodId)+'">Delete</button></div>' : 'View only';
           return '<tr><td>'+esc(names[day]+' '+(date||''))+'</td>'+
             '<td>'+esc((period.startTime||'—')+'–'+(period.endTime||'—'))+'</td>'+
             '<td>'+esc(period.subjectName||period.periodName||'Class')+'</td>'+
             '<td>'+esc(String(period.gradeLevel||'—')+' · '+String(period.section||'All sections'))+'</td>'+
             '<td>'+esc(period.cancelled?'No class':period.assignedTeacherName||'Unassigned')+'</td>'+
             '<td>'+esc(period.classroom||'—')+'</td>'+
-            '<td>'+esc(status)+'</td></tr>';
-        }).join('') : '<tr><td colspan="7" class="empty-cell">No classes match this week and these filters.</td></tr>')+
+            '<td>'+esc(status)+'</td><td>'+actions+'</td></tr>';
+        }).join('') : '<tr><td colspan="8" class="empty-cell">No classes match this week and these filters.</td></tr>')+
         '</tbody></table></div>';
     }
     const summary = $('weeklyTimetableSummary');
@@ -2416,8 +2425,7 @@ function coverageStatusLabel(status) {
       ]));
       const entries=days.flatMap(day=>cardsForDay(day).map(period=>({
         ...period,dayIndex:day,date:weekdayDates[day],
-        canEdit:canAssign && (user.role==='SCHOOL_ADMIN' ||
-          String(period.scheduleDepartmentId)===String(user.departmentId)),
+        canEdit:canManagePeriod(period),
         eligibleTeachers:canAssign && !period.assignedTeacherName
           ? teachers.filter(t=>t.active && (t.teacherDesignations||[]).includes('SUBJECT_TEACHER') &&
               String(t.departmentId||'')===String(period.scheduleDepartmentId||period.departmentId||''))
@@ -2507,10 +2515,13 @@ function coverageStatusLabel(status) {
       'The Department Head assigns this class schedule to the selected Subject Teacher.';
     if ($('addScheduleSubject')) $('addScheduleSubject').hidden = !isSchoolManager;
 
-    if ($('weeklyTimetableWorkspace')) $('weeklyTimetableWorkspace').hidden = isTeacher;
+    if ($('weeklyTimetableWorkspace')) $('weeklyTimetableWorkspace').hidden = false;
     if (isTeacher) {
       if ($('managerScheduleTableWrap')) $('managerScheduleTableWrap').hidden = true;
       if ($('teacherScheduleOverview')) $('teacherScheduleOverview').hidden = false;
+      // Teachers share the same weekly/list board, with read-only access.
+      renderWeeklyTimetable();
+      setScheduleDisplay(activeScheduleDisplay);
       const hasTeachingRole = teacherHas('SUBJECT_TEACHER');
       const hasAdviserRole = teacherHas('CLASS_ADVISER');
       if ($('myTeachingScheduleCard')) $('myTeachingScheduleCard').hidden = !hasTeachingRole;
