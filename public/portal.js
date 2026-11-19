@@ -6660,17 +6660,58 @@ let teacherActionMenuListenersInstalled = false;
       addSectionButton.disabled = true;
       try {
         const existing = await api('/api/sections?gradeLevel=' + encodeURIComponent(gradeLevel));
-        const duplicate = (existing.sections || []).find(item => String(item).trim().toLocaleLowerCase() === normalizedSection.toLocaleLowerCase());
+        const identity = value => String(value||'').trim().toLocaleLowerCase().replace(/[\\s._-]+/g,'');
+        const duplicate = (existing.sections || []).find(item => identity(item) === identity(normalizedSection));
         if (duplicate) {
           await loadScheduleSections(gradeLevel, duplicate);
           showToast('This section already exists school-wide. It has been selected; no duplicate was created.');
           return;
         }
-        await api('/api/sections', {method:'POST',body:JSON.stringify({gradeLevel,section:normalizedSection})});
+        const check = await api('/api/sections/name-check?gradeLevel=' +
+          encodeURIComponent(gradeLevel) + '&name=' + encodeURIComponent(normalizedSection));
+        if(check.exact?.length){
+          const match = check.exact.find(item=>item.active)?.sectionName;
+          if(match) await loadScheduleSections(gradeLevel,match);
+          showToast('An equivalent section is already registered' +
+            (match ? ' and has been selected.' : ' but archived. Ask School Admin to review it.'),true);
+          return;
+        }
+        const suggestions=(check.similar||[]).map(item=>item.sectionName);
+        let confirmSimilar=false;
+        if(suggestions.length){
+          confirmSimilar=await AppDialog.confirm(
+            'Similar school sections already exist: '+suggestions.join(', ')+
+            '. Check that this is a genuinely different section before continuing. Existing records will not be merged.',
+            {title:'Possible duplicate section',confirmText:'Create as different section',variant:'warning'}
+          );
+          if(!confirmSimilar)return;
+        }
+        await api('/api/sections', {method:'POST',body:JSON.stringify({gradeLevel,section:normalizedSection,confirmSimilar})});
         await loadScheduleSections(gradeLevel, normalizedSection);
         showToast('School section registered and available to all departments.');
       } catch(error) { showToast(error.message || 'Could not create section.', true); }
       finally { addSectionButton.disabled = false; }
+    });
+  }
+
+  // School Admin can review potential duplicate section names without modifying records.
+  const reviewSectionsButton=$('reviewSchoolSectionNames');
+  if(reviewSectionsButton){
+    reviewSectionsButton.hidden=user?.role!=='SCHOOL_ADMIN';
+    reviewSectionsButton.addEventListener('click',async()=>{
+      reviewSectionsButton.disabled=true;
+      try{
+        const result=await api('/api/sections/duplicate-review');
+        const matches=result.matches||[];
+        const summary=matches.length
+          ? matches.slice(0,20).map(item=>item.gradeLevel+': "'+item.first+'" / "'+
+              item.second+'" ('+(item.type==='NORMALIZED_DUPLICATE'?'equivalent':'similar')+')').join('\\n')
+          : 'No possible duplicate section names were detected in the current school registry.';
+        await AppDialog.alert(summary+(result.truncated?'\\nMore records require review.':''),{
+          title:'School section name review'
+        });
+      }catch(error){showToast('Section review unavailable: '+error.message,true);}
+      finally{reviewSectionsButton.disabled=false;}
     });
   }
 
