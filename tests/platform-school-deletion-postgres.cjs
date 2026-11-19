@@ -43,7 +43,7 @@ async function run() {
       'INSERT INTO school_departments(school_id,department_code,department_name) VALUES($1,$2,$3) RETURNING department_id',
       [targetId,'AUDIT'+marker,'Audit regression department']);
     const actor=await pool.query(
-      "INSERT INTO school_users(school_id,department_id,username,display_name,password_hash,role) VALUES($1,$2,$3,$4,$5,'TEACHER') RETURNING user_id",
+      "INSERT INTO school_users(school_id,department_id,username,display_name,password_hash,role) VALUES($1,$2,$3,$4,$5,'SCHOOL_ADMIN') RETURNING user_id",
       [targetId,dept.rows[0].department_id,'auditor-'+marker,'Audit test staff','test-only-password-hash']);
     const audit=await pool.query(
       'INSERT INTO staff_attendance_audit(school_id,actor_user_id,action,target_type,target_id,details) VALUES($1,$2,$3,$4,$5,$6::jsonb) RETURNING audit_id',
