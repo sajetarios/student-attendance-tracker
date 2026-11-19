@@ -22,7 +22,9 @@ test('Subject updates log old and new values in same transaction and preserve pe
   assert.match(api, /SUBJECT_RENAMED/);
   assert.match(api, /JSON\.stringify\(\{before,after:updated\.rows\[0\]\}\)/);
   assert.match(api, /COMMIT/);
-  assert.doesNotMatch(api, /UPDATE class_periods/);
+  assert.match(api, /UPDATE class_periods SET subject_name=\\$3/);
+  assert.match(api, /subject_id=\\$2 AND active=TRUE/);
+  assert.match(api, /activeSchedulesUpdated:schedules.rowCount/);
 });
 test('Department head has a mobile-friendly subject management interface', () => {
   assert.match(ui, /Manage Subjects/);
