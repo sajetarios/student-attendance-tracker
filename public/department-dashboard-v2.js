@@ -62,9 +62,11 @@
       button.textContent = defaultOpen ? '⌃' : '⌄';
       const content = document.createElement('div');
       content.id = targetId; content.className = 'dh-v2-collapsible';
-      // Reparent only presentation elements, keeping their original event listeners and IDs.
+      // Insert at the first original target to preserve section order and listeners.
+      const firstTarget = targets.find(el => el && el.parentNode === container);
+      if (firstTarget) container.insertBefore(content, firstTarget);
+      else container.append(content);
       targets.forEach(el => { if (el) content.append(el); });
-      container.append(content);
       content.hidden = !defaultOpen;
       button.addEventListener('click', () => {
         const expanded = button.getAttribute('aria-expanded') !== 'true';
