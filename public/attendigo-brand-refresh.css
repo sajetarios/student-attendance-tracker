@@ -43,9 +43,10 @@ html body > header > .attendigo-brand { width:220px;max-width:100%;flex-shrink:1
   html body > header > .attendigo-brand { width:160px;padding:8px!important; }
 }
 
-/* Official Attendigo 2026 brand assets: visuals only, no role or attendance changes. */
-.attendigo-brand{position:relative!important;isolation:isolate}
-.attendigo-brand:has(>.attendigo-logo){background-image:url('/assets/attendigo-official-lockup.svg')!important;background-repeat:no-repeat!important;background-position:center!important;background-size:contain!important}
-.attendigo-brand:has(>.attendigo-logo)>.attendigo-logo{opacity:0!important}
-.sidebar>.attendigo-brand:has(>.attendigo-logo){background-image:url('/assets/attendigo-official-emblem.svg')!important;background-size:contain!important}
-@media(min-width:861px){html body .portal-layout.sidebar-collapsed #sidebar.sidebar>.attendigo-brand{background-image:url('/assets/attendigo-official-emblem.svg')!important}}
+/* Approved 2026 branding: actual SVG images, never CSS-only overlays. */
+html body .attendigo-brand:has(>.attendigo-logo){background-image:none!important}
+html body .attendigo-brand>.attendigo-logo{opacity:1!important;visibility:visible!important;display:block!important;object-fit:contain!important}
+html body #sidebar.sidebar>.attendigo-brand{display:flex!important;align-items:center!important;justify-content:flex-start!important;gap:12px!important;background:none!important;border:0!important;padding:8px 12px!important;min-height:60px!important}
+html body #sidebar.sidebar>.attendigo-brand>.attendigo-logo{width:44px!important;height:44px!important;max-height:44px!important;aspect-ratio:1!important;flex:0 0 44px!important}
+html body #sidebar.sidebar>.attendigo-brand>.sidebar-product-wordmark{display:inline!important;color:#fff!important;font-size:18px!important;font-weight:750!important;white-space:nowrap!important}
+@media(min-width:861px){html body .portal-layout.sidebar-collapsed #sidebar.sidebar>.attendigo-brand{width:52px!important;height:52px!important;padding:4px!important;background:none!important}html body .portal-layout.sidebar-collapsed #sidebar.sidebar>.attendigo-brand>.attendigo-logo{display:block!important;width:44px!important;height:44px!important}html body .portal-layout.sidebar-collapsed #sidebar.sidebar>.attendigo-brand>.sidebar-product-wordmark{display:none!important}}
