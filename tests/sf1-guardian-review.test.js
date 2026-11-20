@@ -54,9 +54,8 @@ test('SF1 Excel captures labeled guardian and contact fields and normalizes Phil
 
 test('invalid or ambiguous guardian phone produces explicit row validation error',()=>{
  const invalid=rows.map(row=>[...row]);invalid[3][4]='0912 / 0999';
- const result=parseSf1Matrix(invalid);
  // An entirely invalid roster must fail without importing partial data.
- assert.ok(result.errors.length||result.learners.length===0);
+ assert.throws(()=>parseSf1Matrix(invalid),/No valid SF1 learners/);
 });
 
 test('searchable PDF with explicit SF1 table separators maps guardian columns',()=>{
@@ -64,7 +63,7 @@ test('searchable PDF with explicit SF1 table separators maps guardian columns',(
   'School Year: 2026-2027 Grade Level: 8',
   'LRN | NAME (Last Name, First Name, Middle Name) | Sex (M/F) | Name of Parent/Guardian | Contact Number',
   '123456789012 | DELA CRUZ, JUAN, SANTOS | M | MARIA DELA CRUZ | 09123456789'
- ].join('\\n');
+ ].join('\n');
  const parsed=parseSf1PdfText(text);
  assert.equal(parsed.learners[0].parentName,'MARIA DELA CRUZ');
  assert.equal(parsed.learners[0].parentMobile,'09123456789');
@@ -85,8 +84,8 @@ test('SF1 review previews and safely fills only previously empty guardian fields
  const updates=h.calls.filter(c=>c.sql.includes('UPDATE students'));
  assert.equal(updates.length,1);
  assert.deepEqual(updates[0].params.slice(2),['123456789012','MARIA DELA CRUZ','09123456789']);
- assert.match(updates[0].sql,/NULLIF\\(BTRIM\\(parent_name\\)/);
- assert.doesNotMatch(updates[0].sql,/SET\\s+lrn\\s*=|SET\\s+full_name\\s*=|UPDATE\\s+student_enrollments/i);
+ assert.match(updates[0].sql,/NULLIF\(BTRIM\(parent_name\)/);
+ assert.doesNotMatch(updates[0].sql,/SET\s+lrn\s*=|SET\s+full_name\s*=|UPDATE\s+student_enrollments/i);
  assert.equal(h.calls.filter(c=>/DELETE FROM|UPDATE attendance|UPDATE student_enrollments/i.test(c.sql)).length,0);
 });
 
@@ -113,9 +112,9 @@ test('saved identity, attendance and permission controls remain protected',()=>{
  const html=fs.readFileSync(require('node:path').join(root,'public/portal.html'),'utf8');
  assert.match(routes,/pg_advisory_xact_lock/);
  assert.match(routes,/class_adviser_assignments/);
- assert.match(routes,/requireSchoolRoles\\('SCHOOL_ADMIN','TEACHER'\\)/);
+ assert.match(routes,/requireSchoolRoles\('SCHOOL_ADMIN','TEACHER'\)/);
  assert.match(routes,/STUDENT_SF1_IMPORT/);
  assert.match(portal,/Fill missing guardian fields/);
- assert.match(html,/Parent \\/ Guardian/);
- assert.match(html,/Contact<\\/th>/);
+ assert.match(html,/Parent \/ Guardian/);
+ assert.match(html,/Contact<\/th>/);
 });
