@@ -5767,11 +5767,27 @@ let teacherActionMenuListenersInstalled = false;
         $('studentImportSchoolYearSetup').hidden=true;
         sf1YearSetupInfo=null;
         pendingStudentImportPreview = preview;
-        const counts=preview.summary||{create:0,skip:0,review:0};
-        summary.textContent=preview.total+' learners · '+counts.create+' new · '+counts.skip+' existing skipped · '+counts.review+' need review. Grade: '+preview.gradeLevel+' · Section: Unassigned.';
-        $('studentImportPreviewRows').innerHTML=preview.rows.map(item=>'<tr><td>'+esc(item.rowNumber)+'</td><td>'+esc(item.existingStudent?.studentId||'Auto-generate')+'</td><td>'+esc(item.fullName)+'</td><td>'+esc(item.gradeLevel)+'</td><td>Unassigned</td><td>'+esc(item.action)+'</td><td>'+esc(item.existingStudent?.fullName||'New learner')+'</td><td>'+esc(item.action==='REVIEW'?'Administrator review required':'')+'</td></tr>').join('');
-        $('confirmStudentImport').disabled=!!counts.review||!counts.create;
-        $('confirmStudentImport').textContent='Import '+counts.create+' new learners';
+        const counts=preview.summary||{create:0,update:0,skip:0,review:0};
+        const eligible=Number(counts.create||0)+Number(counts.update||0);
+        summary.textContent=preview.total+' learners · '+(counts.create||0)+' new · '+(counts.update||0)+
+          ' existing guardian updates · '+(counts.skip||0)+' unchanged · '+(counts.review||0)+
+          ' require review. Grade: '+preview.gradeLevel+' · New section: Unassigned.'+
+          (counts.review?' Resolve flagged records before saving.':'');
+        const labels={CREATE:'Create',UPDATE:'Fill missing guardian fields',SKIP:'Already complete',REVIEW:'Needs review'};
+        $('studentImportPreviewRows').innerHTML=preview.rows.map(item=>{
+          const match=item.existingStudent;
+          const saved=match?esc(match.fullName)+' · '+esc(match.studentId):'New learner';
+          const issues=(item.errors||[]).join(' ');
+          return '<tr class="student-import-result-'+esc(item.action.toLowerCase())+'"><td>'+esc(item.rowNumber)+
+            '</td><td>'+esc(item.lrn)+'</td><td>'+esc(match?.studentId||'Auto-generate')+
+            '</td><td>'+esc(item.fullName)+'</td><td>'+esc(item.gradeLevel)+
+            '</td><td>Unassigned</td><td>'+esc(item.parentName||'Not provided')+
+            '</td><td>'+esc(item.parentMobile||'Not provided')+
+            '</td><td><span class="student-import-action-tag">'+esc(labels[item.action]||item.action)+
+            '</span></td><td>'+saved+'</td><td>'+esc(issues||'—')+'</td></tr>';
+        }).join('')||'<tr><td colspan="11" class="empty-cell">No learners found.</td></tr>';
+        $('confirmStudentImport').disabled=!!counts.review||!eligible;
+        $('confirmStudentImport').textContent=eligible?'Import / update '+eligible+' learners':'No safe changes';
         return;
       }
       pendingStudentImportPreview = preview;
@@ -5787,11 +5803,12 @@ let teacherActionMenuListenersInstalled = false;
         const description = match ? '<strong>' + esc(match.fullName) + '</strong><small class="table-subtext">' +
           esc(match.gradeLevel + ' · ' + match.section) + '</small>' : '<span class="muted-inline">Not registered</span>';
         return '<tr class="student-import-result-' + esc(String(item.action||'').toLowerCase()) + '"><td>' +
-          esc(item.rowNumber) + '</td><td>' + esc(item.studentId) + '</td><td>' + esc(item.fullName) +
+          esc(item.rowNumber) + '</td><td>' + esc(item.lrn||'—') + '</td><td>' + esc(item.studentId) + '</td><td>' + esc(item.fullName) +
           '</td><td>' + esc(item.gradeLevel) + '</td><td>' + esc(item.section) +
+          '</td><td>' + esc(item.parentName||'—') + '</td><td>' + esc(item.parentMobile||'—') +
           '</td><td><span class="student-import-action-tag">' + esc(labels[item.action] || item.action) +
           '</span></td><td>' + description + '</td><td>' + esc((item.errors||[]).join(' ')) + '</td></tr>';
-      }).join('') || '<tr><td colspan="8" class="empty-cell">No student rows were found.</td></tr>';
+      }).join('') || '<tr><td colspan="11" class="empty-cell">No student rows were found.</td></tr>';
       const existing = preview.rows.filter(item => item.existingStudent);
       if (existing.length && list) {
         list.hidden = false;
@@ -5809,9 +5826,9 @@ let teacherActionMenuListenersInstalled = false;
       const failedRows=Array.isArray(error.details)?error.details:[];
       $('studentImportPreviewRows').innerHTML=failedRows.length
         ? failedRows.map(issue=>'<tr><td>'+esc(issue.rowNumber || '—')
-          +'</td><td colspan="6" class="empty-cell">Validation required — no students saved</td><td>'
+          +'</td><td colspan="9" class="empty-cell">Validation required — no students saved</td><td>'
           +esc(issue.message || 'Invalid SF1 row')+'</td></tr>').join('')
-        : '<tr><td colspan="8" class="empty-cell">File could not be validated.</td></tr>';
+        : '<tr><td colspan="11" class="empty-cell">File could not be validated.</td></tr>';
       if(error.code==='SF1_SCHOOL_YEAR_REQUIRED') {
         await offerSf1SchoolYearSetup(error.schoolYear);
       } else {
@@ -5853,10 +5870,10 @@ let teacherActionMenuListenersInstalled = false;
     $('studentImportFile').accept=sf1?'.xls,.xlsx,.pdf,application/vnd.ms-excel,application/pdf,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet':'.csv,.xlsx,text/csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
     if($('studentImportFileLabel')) $('studentImportFileLabel').textContent=sf1?'Import LIS SF1 (.xls, .xlsx, or .pdf)':'Import Attendigo template (.csv or .xlsx)';
     if($('studentImportSourceHint')) $('studentImportSourceHint').textContent=sf1
-      ? 'Upload the original DepEd LIS Excel export (.xls or .xlsx) without converting it, or a searchable PDF. Only LRN, name, sex, and grade are imported. New learners remain Unassigned.'
+      ? 'Upload the original DepEd LIS Excel export (.xls or .xlsx) without converting it, or a searchable PDF. LRN, name, sex, grade, and explicitly labeled parent/guardian and contact fields are imported. New learners remain Unassigned.'
       : 'Use the Attendigo CSV or Excel student template. Matching records are skipped unless an administrator chooses to update them.';
     if($('studentImportFileHint')) $('studentImportFileHint').textContent=sf1
-      ? 'Maximum 5 MB and 2,000 learners. LRN, name and sex come from the official SF1. Student IDs are generated; section assignment happens after import. Existing LRNs are skipped.'
+      ? 'Maximum 5 MB and 2,000 learners. LRN, learner name and sex are required. Labeled guardian and contact fields fill empty profile fields after review. Existing identities, section and attendance stay intact.'
       : 'Maximum 5 MB and 2,000 rows. Student ID, Full Name, Sex, Grade Level, and Section are required. LRN and guardian fields are optional.';
     if($('studentImportUpdateExistingWrap')) $('studentImportUpdateExistingWrap').hidden=sf1||user.role!=='SCHOOL_ADMIN';
     prepareStudentImportAdvisoryScope();
@@ -5890,12 +5907,12 @@ let teacherActionMenuListenersInstalled = false;
     if (!pendingStudentImport || !pendingStudentImportPreview || pendingStudentImportPreview.summary.error) return;
     const sf1Mode=$('studentImportFormat')?.value==='sf1';
     if (!await AppDialog.confirm(sf1Mode
-      ? 'Import '+pendingStudentImportPreview.summary.create+' new learners into the Unassigned section? Existing LRNs are skipped. School-year history is preserved.'
+      ? 'Create '+pendingStudentImportPreview.summary.create+' new learners and fill guardian information for '+(pendingStudentImportPreview.summary.update||0)+' existing learners? Review flags prevent saving; all existing IDs, LRNs, section assignments and attendance are preserved.'
       : 'Import ' + (pendingStudentImportPreview.summary.create + pendingStudentImportPreview.summary.update) + ' student records? ' + (pendingStudentImportPreview.summary.skip || 0) + ' existing students will be skipped. Duplicate IDs will not be created.', { title: 'Import student records', confirmText: 'Import students' })) return;
     $('confirmStudentImport').disabled = true; $('studentImportSummary').textContent = 'Saving records…';
     try {
       const result = await api(sf1Mode?'/api/students/sf1/commit':'/api/students/import/commit', { method:'POST', body:JSON.stringify(studentImportRequestPayload()) });
-      const summary = sf1Mode ? ('SF1 imported: '+result.created+' new learners in Grade '+String(result.gradeLevel).replace(/^Grade /,'')+' · Unassigned; '+result.skipped+' already registered.') : 'Completed: ' + result.created + ' created, ' + result.updated + ' updated, ' + (result.skipped || 0) + ' already existing skipped.';
+      const summary = sf1Mode ? ('SF1 import: '+result.created+' new learners · '+(result.updated||0)+' guardian updates · '+result.skipped+' unchanged. Existing attendance preserved.') : 'Completed: ' + result.created + ' created, ' + result.updated + ' updated, ' + (result.skipped || 0) + ' already existing skipped.';
       resetStudentImport(); $('studentImportModal').hidden = true; selectedStudentIds.clear(); await loadSchoolData();
       showToast(summary);
     } catch (error) { $('studentImportSummary').textContent = error.message; $('confirmStudentImport').disabled = false; }

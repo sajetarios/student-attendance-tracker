@@ -9,6 +9,26 @@ const asText = value => {
  return String(value);
 };
 const normalize = x => asText(x).trim().toLowerCase().replace(/[^a-z0-9]/g,'');
+const blank = x => /^(?:|n\/?a|none|notavailable|[-—])$/i.test(asText(x).trim());
+function normalizeGuardianContact(value) {
+ const raw=asText(value).trim();
+ if(blank(raw))return '';
+ if(!/^\+?[\d ().-]+$/.test(raw))return null;
+ const number=raw.replace(/\D/g,'');
+ if(number.length<7||number.length>15)return null;
+ if(/^63(9\d{9})$/.test(number))return '0'+number.slice(2);
+ if(/^9\d{9}$/.test(number))return '0'+number;
+ return number;
+}
+// Only import values from explicitly labelled source columns. Do not infer
+// a guardian's name from nearby names or a contact from arbitrary numbers.
+function findOptionalColumn(rows, headerIndex, matcher) {
+ const indices=new Set();
+ for(let row=headerIndex;row<Math.min(rows.length,headerIndex+3);row++){
+  rows[row].map(normalize).forEach((label,index)=>{if(matcher(label))indices.add(index);});
+ }
+ return indices.size===1?[...indices][0]:-1;
+}
 const gradeFromText = x => {
  const text=asText(x);
  const m = /grade\s*(?:level)?\s*[:\-]?\s*(1[0-2]|[1-9])\b/i.exec(text);
@@ -23,7 +43,7 @@ const extractName = name => {
 };
 function parseSf1Matrix(rows) {
  if (!Array.isArray(rows) || !rows.length) throw Error('The SF1 workbook has no readable rows.');
- let grade='',schoolYear='',headerIndex=-1,lrnCol=-1,nameCol=-1,sexCol=-1;
+ let grade='',schoolYear='',headerIndex=-1,lrnCol=-1,nameCol=-1,sexCol=-1,parentCol=-1,contactCol=-1;
  const limit=Math.min(rows.length,65);
  for(let i=0;i<limit;i++){
   const row=rows[i].map(asText);
@@ -34,7 +54,12 @@ function parseSf1Matrix(rows) {
   const li=cols.findIndex(v=>v==='lrn'||v==='learnerreferencenumber');
   const ni=cols.findIndex(v=>v==='name'||v==='learnername'||v.startsWith('namelastname')||v==='nameoflearner');
   const si=cols.findIndex(v=>v==='sexmf'||v==='sex'||v==='gender');
-  if(li>=0 && ni>=0 && li!==ni){headerIndex=i;lrnCol=li;nameCol=ni;sexCol=si;break;}
+  if(li>=0 && ni>=0 && li!==ni){
+   headerIndex=i;lrnCol=li;nameCol=ni;sexCol=si;
+   parentCol=findOptionalColumn(rows,i,v=>/^(?:nameof(?:parent|guardian)|parentguardianname|parentname|guardianname|nameofparentguardian|parentguardian|guardianparentname)/.test(v));
+   contactCol=findOptionalColumn(rows,i,v=>/^(?:contactnumber|contactno|contactnos|mobilenumber|mobileno|cellphonenumber|cellphoneno|parentcontact|guardiancontact|parentmobilenumber|guardianmobilenumber)/.test(v));
+   break;
+  }
  }
  if(headerIndex<0) throw Error('The workbook does not show an identifiable SF1 LRN and NAME header. Export the official School Form 1 from LIS.');
  if(!grade) throw Error('Could not identify the SF1 grade level. Verify the School Form 1 header before importing.');
@@ -60,7 +85,13 @@ function parseSf1Matrix(rows) {
   const rawSex=asText(sexCol>=0?row[sexCol]:'').trim().toUpperCase();
   const sex=rawSex==='M'||rawSex==='MALE'?'MALE':rawSex==='F'||rawSex==='FEMALE'?'FEMALE':currentSex;
   if(!rawName || !['MALE','FEMALE'].includes(sex)){errors.push({rowNumber:i+1,message:'Learner name or sex is missing.'});continue;}
-  learners.push({rowNumber:i+1,lrn:rawLrn,fullName:extractName(rawName),sex,gradeLevel:grade,section:'Unassigned',studentId:'',parentName:'',parentMobile:''});
+  const nameSource=parentCol>=0?row[parentCol]:'';
+  const parentName=blank(nameSource)?'':asText(nameSource).trim().replace(/\s+/g,' ');
+  const contactSource=contactCol>=0?row[contactCol]:'';
+  const parentMobile=normalizeGuardianContact(contactSource);
+  if(parentName.length>200){errors.push({rowNumber:i+1,message:'Parent/guardian name exceeds 200 characters.'});continue;}
+  if(parentMobile===null){errors.push({rowNumber:i+1,message:'Invalid or ambiguous parent/guardian contact number.'});continue;}
+  learners.push({rowNumber:i+1,lrn:rawLrn,fullName:extractName(rawName),sex,gradeLevel:grade,section:'Unassigned',studentId:'',parentName,parentMobile});
  }
  if(!learners.length) throw Error('No valid SF1 learners were found. Check the LIS-exported workbook.');
  if(learners.length>2000) throw Error('Import a maximum of 2,000 learners at once.');
@@ -117,4 +148,4 @@ async function parseSf1Base64(base64, fileType='xlsx') {
  if(results.length!==1)throw Error(results.length?'Multiple SF1 roster worksheets detected. Upload one class SF1 workbook at a time.':'Could not detect an SF1 roster in this workbook.');
  return results[0];
 }
-module.exports={parseSf1Matrix,parseSf1Base64,extractName};
+module.exports={parseSf1Matrix,parseSf1Base64,extractName,normalizeGuardianContact};

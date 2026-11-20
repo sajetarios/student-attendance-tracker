@@ -3,7 +3,7 @@
 // PDF input uses the same validated SF1 commit pipeline as Excel.
 // Text-only parsing: reject unsupported/scanned layouts rather than guessing student data.
 const pdfjs=require('pdfjs-dist/legacy/build/pdf.js');
-const {extractName}=require('./sf1-import-parser');
+const {extractName,parseSf1Matrix}=require('./sf1-import-parser');
 const MAX_BYTES=5*1024*1024, MAX_PAGES=30;
 function gradeFromText(text){
  const m=String(text).match(/\bgrade\s*(?:level)?\s*[:\-]?\s*(1[0-2]|[1-9])\b/i);
@@ -19,6 +19,13 @@ function parseSf1PdfText(text){
  const sy=input.match(/(?:school\s*year|s\.?y\.?)\s*[:\-]?\s*((?:20\d{2})\s*[-–/]\s*(?:20)?\d{2,4})/i);
  const schoolYear=sy?sy[1].replace(/\s/g,''):'';
  const lines=input.split(/\n/).map(x=>x.replace(/\s+/g,' ').trim()).filter(Boolean);
+ // A searchable PDF with explicit cell separators can be treated as a table.
+ // For free-flow PDF text do NOT guess where address stops and guardian begins.
+ const tableHeader=lines.find(line=>line.includes('|') && /\bLRN\b/i.test(line) && /\bNAME\b/i.test(line));
+ if(tableHeader){
+  const matrix=lines.map(line=>line.includes('|')?line.split(/\s*\|\s*/):[line]);
+  return parseSf1Matrix(matrix);
+ }
  const rows=[],errors=[],found=new Set();
  let currentSex='';
  for(let i=0;i<lines.length;i++){
