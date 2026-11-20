@@ -5791,14 +5791,6 @@ let teacherActionMenuListenersInstalled = false;
         return;
       }
       pendingStudentImportPreview = preview;
-        const counts=preview.summary||{create:0,skip:0,review:0};
-        summary.textContent=preview.total+' learners · '+counts.create+' new · '+counts.skip+' existing skipped · '+counts.review+' need review. Grade: '+preview.gradeLevel+' · Section: Unassigned.';
-        $('studentImportPreviewRows').innerHTML=preview.rows.map(item=>'<tr><td>'+esc(item.rowNumber)+'</td><td>'+esc(item.existingStudent?.studentId||'Auto-generate')+'</td><td>'+esc(item.fullName)+'</td><td>'+esc(item.gradeLevel)+'</td><td>Unassigned</td><td>'+esc(item.action)+'</td><td>'+esc(item.existingStudent?.fullName||'New learner')+'</td><td>'+esc(item.action==='REVIEW'?'Administrator review required':'')+'</td></tr>').join('');
-        $('confirmStudentImport').disabled=!!counts.review||!counts.create;
-        $('confirmStudentImport').textContent='Import '+counts.create+' new learners';
-        return;
-      }
-      pendingStudentImportPreview = preview;
       const counts = preview.summary || { create:0, update:0, skip:0, error:0 };
       const eligible = Number(counts.create || 0) + Number(counts.update || 0);
       summary.textContent = preview.total + ' rows · ' + (counts.create || 0) + ' new · ' +
