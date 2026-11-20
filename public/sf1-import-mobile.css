@@ -1,0 +1,58 @@
+/* Responsive SF1/CSV import preview: record cards replace a clipped 11-column table. */
+#studentImportModal .student-import-preview-scroll{
+  max-width:100%;overflow-x:auto;overscroll-behavior-x:contain;
+  -webkit-overflow-scrolling:touch
+}
+#studentImportModal .student-import-preview-table{min-width:900px}
+@media(max-width:700px){
+ #studentImportModal .student-edit-dialog{
+  width:min(100%,560px);max-width:100%;min-width:0;
+  max-height:94dvh;overflow-y:auto;overflow-x:hidden
+ }
+ #studentImportModal .field-group,
+ #studentImportModal .field-group input,
+ #studentImportModal .field-group select{min-width:0;max-width:100%}
+ #studentImportModal #studentImportFormat{width:100%;font-size:15px;text-overflow:ellipsis}
+ #studentImportModal #studentImportFile{width:100%;font-size:13px}
+ #studentImportModal .student-import-preview-scroll{overflow:visible;width:100%}
+ #studentImportModal .student-import-preview-table{
+  display:block;width:100%!important;min-width:0!important;max-width:100%;
+  white-space:normal;table-layout:auto
+ }
+ #studentImportModal .student-import-preview-table thead{display:none}
+ #studentImportModal .student-import-preview-table tbody{display:grid;gap:12px}
+ #studentImportModal .student-import-preview-table tbody tr{
+  display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;
+  border:1px solid var(--border,#dbe3ef);border-radius:12px;
+  padding:12px;background:var(--surface,#fff);min-width:0
+ }
+ #studentImportModal .student-import-preview-table tbody td{
+  display:block;min-width:0;max-width:none;overflow-wrap:anywhere;
+  white-space:normal!important;padding:4px 2px!important;
+  border:0!important;font-size:13px;line-height:1.4
+ }
+ #studentImportModal .student-import-preview-table tbody td::before{
+  display:block;font-size:10px;font-weight:750;letter-spacing:.04em;
+  text-transform:uppercase;color:var(--muted,#65748b);margin-bottom:3px
+ }
+ #studentImportModal .student-import-preview-table td:nth-child(1)::before{content:"Source row"}
+ #studentImportModal .student-import-preview-table td:nth-child(2)::before{content:"LRN"}
+ #studentImportModal .student-import-preview-table td:nth-child(3)::before{content:"Student ID"}
+ #studentImportModal .student-import-preview-table td:nth-child(4)::before{content:"Learner"}
+ #studentImportModal .student-import-preview-table td:nth-child(5)::before{content:"Grade"}
+ #studentImportModal .student-import-preview-table td:nth-child(6)::before{content:"Section"}
+ #studentImportModal .student-import-preview-table td:nth-child(7)::before{content:"Parent / Guardian"}
+ #studentImportModal .student-import-preview-table td:nth-child(8)::before{content:"Contact"}
+ #studentImportModal .student-import-preview-table td:nth-child(9)::before{content:"Import action"}
+ #studentImportModal .student-import-preview-table td:nth-child(10)::before{content:"Existing record"}
+ #studentImportModal .student-import-preview-table td:nth-child(11)::before{content:"Validation"}
+ #studentImportModal .student-import-preview-table td:nth-child(4),
+ #studentImportModal .student-import-preview-table td:nth-child(10),
+ #studentImportModal .student-import-preview-table td:nth-child(11),
+ #studentImportModal .student-import-preview-table .empty-cell{
+  grid-column:1/-1
+ }
+ #studentImportModal .student-import-preview-table .empty-cell::before{content:none}
+ #studentImportModal .form-actions{display:grid;grid-template-columns:1fr;gap:8px}
+ #studentImportModal .form-actions button{width:100%;min-width:0}
+}
