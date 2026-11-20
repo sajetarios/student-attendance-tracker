@@ -21,7 +21,7 @@ html body .attendigo-brand:not(#sidebar > .attendigo-brand) .attendigo-logo {
   width:100%!important;
   height:auto!important;
   max-height:none!important;
-  aspect-ratio:1800 / 430;
+  aspect-ratio:1769 / 496;
   object-fit:contain!important;
   filter:none!important;
 }
@@ -32,7 +32,7 @@ html body > header > .attendigo-brand { width:220px;max-width:100%;flex-shrink:1
   html body .portal-layout.sidebar-collapsed #sidebar.sidebar > .attendigo-brand {
     width:48px!important;height:48px!important;min-height:48px!important;
     padding:0!important;
-    background:transparent url('/assets/attendigo-symbol-transparent.svg?v=2') center/contain no-repeat!important;
+    background:transparent url('/assets/attendigo-symbol-transparent.svg?v=5') center/contain no-repeat!important;
   }
   html body .portal-layout.sidebar-collapsed #sidebar.sidebar > .attendigo-brand .attendigo-logo { display:none!important; }
 }
@@ -43,7 +43,7 @@ html body > header > .attendigo-brand { width:220px;max-width:100%;flex-shrink:1
   html body > header > .attendigo-brand { width:160px;padding:8px!important; }
 }
 
-/* Approved 2026 branding: actual SVG images, never CSS-only overlays. */
+/* Approved Attendigo branding: image-backed SVGs from approved reference artwork. */
 html body .attendigo-brand:has(>.attendigo-logo){background-image:none!important}
 html body .attendigo-brand>.attendigo-logo{opacity:1!important;visibility:visible!important;display:block!important;object-fit:contain!important}
 html body #sidebar.sidebar>.attendigo-brand{display:flex!important;align-items:center!important;justify-content:flex-start!important;gap:12px!important;background:none!important;border:0!important;padding:8px 12px!important;min-height:60px!important}
