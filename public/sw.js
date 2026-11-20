@@ -1,4 +1,4 @@
-const CACHE = "attendigo-v261-weekly-mobile-list";
+const CACHE = "attendigo-v262-form48-a4-gate-evidence";
 
 const SHELL = [
   "/typography.css?v=1",
@@ -64,9 +64,9 @@ const SHELL = [
   "/teacher-dashboard-v2.js?v=1",
   "/teacher-dashboard-v3.css?v=1",
   "/teacher-dashboard-v3.js?v=1",
-  "/form48-report.js?v=7",
+  "/form48-report.js?v=8",
   "/form48-bulk-ui.js?v=2",
-  "/form48-report.css?v=7",
+  "/form48-report.css?v=8",
   "/staff-lunch-ui.js?v=3",
   "/staff-ob-ui.js?v=5",
   "/staff-ob.css?v=1",
