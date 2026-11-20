@@ -1,4 +1,4 @@
-const CACHE = "attendigo-v263-form48-print-proportions";
+const CACHE = "attendigo-v264-official-vector-brand";
 
 const SHELL = [
   "/typography.css?v=1",
@@ -118,6 +118,8 @@ const SHELL = [
   "/styles.css",
   "/app.js",
   "/manifest.webmanifest",
+  "/assets/attendigo-official-emblem.svg?v=4",
+  "/assets/attendigo-official-lockup.svg?v=4",
   "/vendor/html5-qrcode.min.js",
   "/attendigo-brand-polish.css?v=2",
   "/parent-admin.css?v=7",
