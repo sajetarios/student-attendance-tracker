@@ -79,8 +79,7 @@ function registerSf1ImportRoutes(app,pool,{authenticateSchoolClient,requireSchoo
    }
    return {...r,action,errors:issues,
     existingStudent:existingStudent?{
-     studentId:existingStudent.student_id,fullName:existingStudent.full_name,
-     parentName:existingStudent.parent_name||'',parentMobile:existingStudent.parent_mobile||''
+     studentId:existingStudent.student_id,fullName:existingStudent.full_name
     }:null};
   });
   const summary={create:0,update:0,skip:0,review:0};
