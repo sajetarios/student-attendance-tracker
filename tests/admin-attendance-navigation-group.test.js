@@ -66,5 +66,5 @@ test('portal and worker use the same bumped UI cache revisions', () => {
   assert.match(html, /portal\.js\?v=213/);
   assert.match(sw, /class-qr-dashboard-link\.js\?v=11/);
   assert.match(sw, /portal\.js\?v=213/);
-  assert.match(sw, /attendigo-v262-form48-a4-gate-evidence/);
+  assert.match(sw, /attendigo-v263-form48-print-proportions/);
 });
