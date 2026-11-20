@@ -1,4 +1,4 @@
-const CACHE = "attendigo-v262-form48-a4-gate-evidence";
+const CACHE = "attendigo-v263-form48-print-proportions";
 
 const SHELL = [
   "/typography.css?v=1",
@@ -66,7 +66,7 @@ const SHELL = [
   "/teacher-dashboard-v3.js?v=1",
   "/form48-report.js?v=8",
   "/form48-bulk-ui.js?v=2",
-  "/form48-report.css?v=8",
+  "/form48-report.css?v=9",
   "/staff-lunch-ui.js?v=3",
   "/staff-ob-ui.js?v=5",
   "/staff-ob.css?v=1",
