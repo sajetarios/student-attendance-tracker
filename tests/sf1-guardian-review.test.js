@@ -77,6 +77,8 @@ test('SF1 review previews and safely fills only previously empty guardian fields
  assert.equal(preview.body.summary.create,0);
  assert.equal(preview.body.summary.update,1);
  assert.equal(preview.body.rows[0].existingStudent.studentId,'2026-G8-001');
+ assert.equal(Object.hasOwn(preview.body.rows[0].existingStudent,'parentName'),false);
+ assert.equal(Object.hasOwn(preview.body.rows[0].existingStudent,'parentMobile'),false);
  const commit=await h.invoke('/api/students/sf1/commit',payload);
  assert.equal(commit.statusCode,200);
  assert.equal(commit.body.updated,1);
