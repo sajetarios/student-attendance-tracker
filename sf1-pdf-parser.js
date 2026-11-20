@@ -4,9 +4,10 @@
 // Text-only parsing: reject unsupported/scanned layouts rather than guessing student data.
 const pdfjs=require('pdfjs-dist/legacy/build/pdf.js');
 const {extractName,parseSf1Matrix}=require('./sf1-import-parser');
+const {readLayoutPages}=require('./sf1-pdf-layout');
 const MAX_BYTES=5*1024*1024, MAX_PAGES=30;
 function gradeFromText(text){
- const m=String(text).match(/\bgrade\s*(?:level)?\s*[:\-]?\s*(1[0-2]|[1-9])\b/i);
+ const m=String(text).match(/\bgrade\s*(?:level\s*)?(?:grade\s*)?[:\-]?\s*(1[0-2]|[1-9])\b/i);
  return m?'Grade '+Number(m[1]):'';
 }
 function parseSf1PdfText(text){
@@ -72,10 +73,11 @@ async function parseSf1PdfBase64(base64){
   loadingTask=pdfjs.getDocument({data:new Uint8Array(data),disableFontFace:true,useSystemFonts:true,isEvalSupported:false,enableScripting:false,stopAtErrors:true});
   doc=await loadingTask.promise;
   if(doc.numPages>MAX_PAGES)throw Error('SF1 PDF must contain at most 30 pages.');
-  const pages=[];
+  const pages=[],positionedPages=[];
   for(let pageNo=1;pageNo<=doc.numPages;pageNo++){
    const page=await doc.getPage(pageNo);
    const content=await page.getTextContent();
+   positionedPages.push(content);
    const grouped=[];
    for(const item of content.items){
     if(typeof item.str!=='string'||!item.str.trim())continue;
@@ -87,9 +89,17 @@ async function parseSf1PdfBase64(base64){
    grouped.sort((a,b)=>b.y-a.y);
    pages.push(grouped.map(row=>row.items.sort((a,b)=>a.x-b.x).map(item=>item.text).join(' ')).join('\n'));
   }
-  return parseSf1PdfText(pages.join('\n'));
+  const fullText=pages.join('\n');
+  const gradeLevel=gradeFromText(fullText);
+  const sy=fullText.match(/(?:school\s*year|s\.?y\.?)\s*[:\-]?\s*((?:20\d{2})\s*[-–/]\s*(?:20)?\d{2,4})/i);
+  const positioned=readLayoutPages(positionedPages,{gradeLevel,schoolYear:sy?sy[1].replace(/\s/g,''):''});
+  if(positioned){
+   if(!gradeLevel)throw Error('Could not reliably detect the grade level from the SF1 PDF.');
+   return positioned;
+  }
+  return parseSf1PdfText(fullText);
  }catch(e){
-  if(/SF1 PDF must contain|The PDF has no selectable text|does not appear to contain|Could not reliably detect|No complete SF1 learner rows|maximum of 2,000/.test(e.message))throw e;
+  if(/SF1 PDF must contain|The PDF has no selectable text|does not appear to contain|Could not reliably detect|No complete SF1 learner rows|maximum of 2,000|abbreviates .* learner LRN|PDF table was recognized|Some detected LRNs/.test(e.message))throw e;
   throw Error('Could not safely read PDF text. Upload a searchable SF1 PDF or the original LIS Excel workbook.');
  }finally{
   if(loadingTask)await loadingTask.destroy().catch(()=>{});
