@@ -28,9 +28,9 @@ function registerSf1ImportRoutes(app,pool,{authenticateSchoolClient,requireSchoo
   if(new Set(lrnList).size!==lrnList.length)throw Object.assign(Error('Duplicate LRNs found in the uploaded SF1.'),{status:409});
   // LRN is the only automatic identity match. Similar names are held for review.
   const canonical=value=>String(value||'').toLowerCase().replace(/[^a-z0-9]/g,'');
-  const named=sf1.learners.map(r=>r.fullName.trim().toLowerCase());
+  const named=sf1.learners.map(r=>canonical(r.fullName));
   const existing=await db.query(
-   "SELECT lrn,student_id,full_name,parent_name,parent_mobile,sex,grade_level,section,active,archived_at FROM students WHERE school_id=$1 AND (lrn=ANY($2::text[]) OR lower(trim(full_name))=ANY($3::text[]))"+(db===pool?'':' FOR UPDATE'),
+   "SELECT lrn,student_id,full_name,parent_name,parent_mobile,sex,grade_level,section,active,archived_at FROM students WHERE school_id=$1 AND (lrn=ANY($2::text[]) OR lower(regexp_replace(full_name,'[^a-zA-Z0-9]','','g'))=ANY($3::text[]))"+(db===pool?'':' FOR UPDATE'),
    [req.auth.schoolId,lrnList,named]
   );
   const match=new Map(existing.rows.filter(r=>r.lrn).map(r=>[r.lrn,r]));
