@@ -224,12 +224,24 @@ function registerStaffGateDtrRoutes(app,pool,{authenticateSchoolClient,requireSc
     const days=new Date(Date.UTC(yearPart,monthPart,0)).getUTCDate();
     const index=new Map();
     for(const ev of events.rows){const key=ev.schoolDate+':'+ev.slot;if(!index.has(key))index.set(key,ev);}
+    // Expose verified physical gate evidence beside the official slots without
+    // creating synthetic DTR punches or changing payroll/absence calculations.
+    const gateByDate=new Map();
+    for(const gate of physicalGate.rows){
+      if(!gateByDate.has(gate.schoolDate))gateByDate.set(gate.schoolDate,[]);
+      const localTime=new Intl.DateTimeFormat('en-GB',{
+        timeZone:'Asia/Manila',hour:'2-digit',minute:'2-digit',hourCycle:'h23'
+      }).format(new Date(gate.occurredAt));
+      gateByDate.get(gate.schoolDate).push({
+        direction:gate.eventType==='TIME_IN'?'IN':'OUT',time:localTime
+      });
+    }
     const records=Array.from({length:days},(_,i)=>{
       const day=i+1, date=month+'-'+String(day).padStart(2,'0');
       const slots=Object.fromEntries(DTR_SLOTS.map(slot=>[slot,index.get(date+':'+slot)?.localTime||null]));
       const obRemarks=buildObDtrRemarks(date,approvedOb.rows,physicalGate.rows);
       return {day,date,slots,verifiedCount:Object.values(slots).filter(Boolean).length,
-        obRemarks};
+        gateEvidence:gateByDate.get(date)||[],obRemarks};
     });
     return res.json({month,staffUserId,displayName:staff.rows[0].displayName,role:staff.rows[0].role,
       timezone:'Asia/Manila',records,verifiedEntries:events.rows.length,
