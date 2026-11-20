@@ -53,7 +53,7 @@ test('Form 48 report uses same HTML-escaped leave remarks in both copies',()=>{
  assert.match(api,/leave_type AS \\"leaveType\\"/);
  assert.match(api,/approval_reference AS \\"approvalReference\\"/);
  assert.match(api,/school_id=\$1 AND staff_user_id=\$2 AND revoked_at IS NULL/);
- assert.match(html,/form48-report\.js\?v=7/);
- assert.match(sw,/form48-report\.js\?v=7/);
- assert.match(sw,/form48-report\.css\?v=7/);
+ assert.match(html,/form48-report\.js\?v=8/);
+ assert.match(sw,/form48-report\.js\?v=8/);
+ assert.match(sw,/form48-report\.css\?v=8/);
 });
