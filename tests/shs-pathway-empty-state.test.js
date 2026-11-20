@@ -18,7 +18,7 @@ test('SHS pathway loads new revision with disabled choices and an enrollment act
   assert.ok(html.includes('/'+asset));
   assert.ok(sw.includes('"/'+asset+'"'));
  }
- assert.match(sw,/attendigo-v260-shs-learner-pathway/);
+ assert.match(sw,/attendigo-v262-form48-a4-gate-evidence/);
 });
 
 test('live SHS learner pathway blocks editing until selected and never shows wrong curriculum tracks',async()=>{
