@@ -24,6 +24,8 @@
  const copy=(data,analysis,kind)=>{
   const month=new Date(data.month+'-01T12:00:00Z').toLocaleDateString('en-US',{timeZone:'UTC',month:'long',year:'numeric'});
   const assess=new Map((analysis.assessments||[]).map(item=>[item.date,item]));
+  const gateEvidenceShown=data.records.some(row=>!row.slots?.AM_IN&&
+    (row.gateEvidence||[]).some(g=>g.direction==='IN'&&g.time<'12:00'));
   const cells=data.records.map(row=>{
    const v=row.slots||{},a=assess.get(row.date);
    const early=a&&a.undertimeMinutes>0&&a.scheduled;
@@ -77,7 +79,7 @@
    '<tr><th rowspan="2">Day</th><th colspan="2">A M</th><th colspan="2">P M</th><th colspan="2">UNDERTIME</th></tr>'+
    '<tr><th>Arrival</th><th>Departure</th><th>Arrival</th><th>Departure</th><th>Hours</th><th>Minutes</th></tr>'+
    '</thead><tbody>'+cells+'</tbody></table>'+
-   '<div class="form48-gate-note">* Verified physical gate arrival only — official DTR punch not recorded; excluded from calculated DTR totals pending authorized verification.</div>'+
+   (gateEvidenceShown?'<div class="form48-gate-note">* Verified physical gate arrival only — official DTR punch not recorded; excluded from calculated DTR totals pending authorized verification.</div>':'')+
    '<div class="form48-certify">I certify on my honor that the above is a true and correct report of the hours of work performed, record of which was made daily at the time of arrival and departure from office.</div>'+
    '<div class="form48-signature"><span>Employee signature</span></div>'+
    '<div class="form48-signature"><strong>'+esc(verifiedName)+'</strong>'+
