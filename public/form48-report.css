@@ -199,3 +199,31 @@
  .form48-batch-sheet{margin:0!important;break-inside:avoid!important}
  .form48-batch-sheet:last-of-type{break-after:auto!important;page-break-after:auto!important}
 }
+
+/* Reference-sheet proportions: occupy the printable A4 height instead of
+   compressing 31 days and the signature blocks into the upper half. */
+@media print{
+ #form48PrintArea .form48-sheets{align-items:stretch!important}
+ #form48PrintArea .form48-copy{
+   min-height:198mm!important;display:flex!important;flex-direction:column!important;
+   font-size:8pt!important;line-height:1.15!important}
+ #form48PrintArea .form48-copy h3{font-size:12pt!important;margin:3mm 0 1mm!important}
+ #form48PrintArea .form48-form-heading,#form48PrintArea .form48-copy-type{font-size:7.5pt!important}
+ #form48PrintArea .form48-employee{font-size:9pt!important;padding:1mm 0!important}
+ #form48PrintArea .form48-month{margin:2.5mm 0 1mm!important;font-size:8pt!important}
+ #form48PrintArea .form48-official-hours{margin:1mm 0!important;font-size:7.5pt!important}
+ #form48PrintArea .form48-hours-grid{margin:1mm 0 2mm!important;font-size:7.5pt!important}
+ #form48PrintArea .form48-sheet{font-size:7.5pt!important}
+ #form48PrintArea .form48-sheet th,#form48PrintArea .form48-sheet td{
+   height:4.05mm!important;min-height:4.05mm!important;
+   font-size:7.5pt!important;line-height:1.1!important}
+ #form48PrintArea .form48-certify{margin:2.5mm 1mm 0!important;font-size:7.3pt!important;line-height:1.2!important}
+ #form48PrintArea .form48-signature{margin:5mm 3mm 0!important;font-size:7.5pt!important}
+ #form48PrintArea .form48-signature :is(strong,span){font-size:7.3pt!important;line-height:1.2!important}
+ #form48PrintArea .form48-remarks{margin:4mm 1mm 1mm!important;font-size:7.5pt!important}
+ #form48PrintArea .form48-summary{margin:2mm 1mm!important;font-size:7.5pt!important;gap:1mm!important}
+ #form48PrintArea .form48-summary span{line-height:1.2!important}
+ #form48PrintArea .form48-approval{margin-top:auto!important;padding-top:4mm!important;margin-bottom:2mm!important}
+ #form48PrintArea .form48-draft-mark{font-size:6.5pt!important;margin:1mm 0!important}
+ #form48PrintArea .form48-gate-note{font-size:6.5pt!important;line-height:1.15!important;margin:1mm 0!important}
+}
