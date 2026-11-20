@@ -34,6 +34,7 @@ function setup() {
    if(sql.includes('SELECT display_name AS "displayName",role'))
      return {rowCount:args[1]===id?1:0,rows:args[1]===id?[staff]:[]};
    if(sql.includes('SELECT user_id AS "userId"'))return {rows:[{userId:id,...staff}]};
+   if(sql.includes('actual_gate ORDER BY'))return {rows:[{schoolDate:'2026-11-20',eventType:'TIME_IN',occurredAt:'2026-11-19T23:52:49.962Z'}]};
    if(sql.includes('staff_attendance_events'))return {rows:[
      {schoolDate:'2026-11-18',slot:'AM_IN',localTime:'07:25'},
      {schoolDate:'2026-11-18',slot:'AM_OUT',localTime:'12:00'},
@@ -62,6 +63,9 @@ test('Form 48 administrator monthly API is scoped and never invents incomplete D
  assert.equal(res.body.records[17].slots.AM_OUT,'12:00');
  assert.equal(res.body.records[17].slots.PM_IN,null);
  assert.equal(res.body.records[17].slots.PM_OUT,null);
+ assert.equal(res.body.records[19].slots.AM_IN,null,'gate evidence must not create an official DTR punch');
+ assert.equal(res.body.records[19].verifiedCount,0,'gate evidence cannot affect DTR totals');
+ assert.deepEqual(res.body.records[19].gateEvidence,[{direction:'IN',time:'07:52'}]);
  assert(calls.some(x=>x.sql.includes("verification_status='VERIFIED'")));
  assert(calls.some(x=>x.sql.includes('school_id=$1') && x.args[0]==='school-A'));
 });
