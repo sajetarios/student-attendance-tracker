@@ -42,3 +42,10 @@ html body > header > .attendigo-brand { width:220px;max-width:100%;flex-shrink:1
 @media(max-width:480px) {
   html body > header > .attendigo-brand { width:160px;padding:8px!important; }
 }
+
+/* Official Attendigo 2026 brand assets: visuals only, no role or attendance changes. */
+.attendigo-brand{position:relative!important;isolation:isolate}
+.attendigo-brand:has(>.attendigo-logo){background-image:url('/assets/attendigo-official-lockup.svg')!important;background-repeat:no-repeat!important;background-position:center!important;background-size:contain!important}
+.attendigo-brand:has(>.attendigo-logo)>.attendigo-logo{opacity:0!important}
+.sidebar>.attendigo-brand:has(>.attendigo-logo){background-image:url('/assets/attendigo-official-emblem.svg')!important;background-size:contain!important}
+@media(min-width:861px){html body .portal-layout.sidebar-collapsed #sidebar.sidebar>.attendigo-brand{background-image:url('/assets/attendigo-official-emblem.svg')!important}}
