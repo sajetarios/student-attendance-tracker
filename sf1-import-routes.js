@@ -1,6 +1,6 @@
 'use strict';
 const crypto=require('node:crypto');
-const {parseSf1Base64}=require('./sf1-import-parser');
+const {parseSf1Base64,normalizeGuardianContact}=require('./sf1-import-parser');
 const {parseSf1PdfBase64}=require('./sf1-pdf-parser');
 const {nextStudentId}=require('./generated-record-ids');
 function registerSf1ImportRoutes(app,pool,{authenticateSchoolClient,requireSchoolRoles}){
@@ -26,14 +26,65 @@ function registerSf1ImportRoutes(app,pool,{authenticateSchoolClient,requireSchoo
   if(sf1.errors.length)throw Object.assign(Error('SF1 contains '+sf1.errors.length+(sf1.errors.length===1?' row':' rows')+' needing correction; no students were saved.'),{status:422,details:sf1.errors.slice(0,25)});
   const lrnList=sf1.learners.map(r=>r.lrn);
   if(new Set(lrnList).size!==lrnList.length)throw Object.assign(Error('Duplicate LRNs found in the uploaded SF1.'),{status:409});
-  const existing=await db.query("SELECT lrn,student_id,full_name,active,archived_at FROM students WHERE school_id=$1 AND lrn=ANY($2::text[])",[req.auth.schoolId,lrnList]);
-  const match=new Map(existing.rows.map(r=>[r.lrn,r]));
+  // LRN is the only automatic identity match. Similar names are held for review.
+  const canonical=value=>String(value||'').toLowerCase().replace(/[^a-z0-9]/g,'');
+  const named=sf1.learners.map(r=>r.fullName.trim().toLowerCase());
+  const existing=await db.query(
+   "SELECT lrn,student_id,full_name,parent_name,parent_mobile,sex,grade_level,section,active,archived_at FROM students WHERE school_id=$1 AND (lrn=ANY($2::text[]) OR lower(trim(full_name))=ANY($3::text[]))"+(db===pool?'':' FOR UPDATE'),
+   [req.auth.schoolId,lrnList,named]
+  );
+  const match=new Map(existing.rows.filter(r=>r.lrn).map(r=>[r.lrn,r]));
+  const byName=new Map();
+  for(const student of existing.rows){
+   const key=canonical(student.full_name);
+   if(!byName.has(key))byName.set(key,[]);
+   byName.get(key).push(student);
+  }
+  let advisoryUpdateIds=null;
+  if(req.auth.role==='TEACHER'){
+   const ids=existing.rows.map(r=>r.student_id);
+   const entitled=ids.length?await db.query(`SELECT DISTINCT e.student_id FROM student_enrollments e
+     JOIN school_years sy ON sy.school_id=e.school_id AND sy.school_year_id=e.school_year_id
+     WHERE e.school_id=$1 AND e.student_id=ANY($2::text[]) AND sy.status='ACTIVE'
+       AND e.enrollment_status='ENROLLED' AND
+       (EXISTS(SELECT 1 FROM class_adviser_assignments ca WHERE ca.school_id=$1
+         AND ca.adviser_user_id=$3 AND ca.grade_level=e.grade_level AND ca.section=e.section)
+        OR (e.section='Unassigned' AND e.created_by_user_id=$3 AND EXISTS
+         (SELECT 1 FROM class_adviser_assignments ca WHERE ca.school_id=$1 AND ca.adviser_user_id=$3
+          AND ca.grade_level=e.grade_level)))`,[req.auth.schoolId,ids,req.auth.userId]):{rows:[]};
+   advisoryUpdateIds=new Set(entitled.rows.map(r=>r.student_id));
+  }
   const rows=sf1.learners.map(r=>{
    const found=match.get(r.lrn);
-   return {...r,action:found?(found.active&&!found.archived_at?'SKIP':'REVIEW'):'CREATE',
-    existingStudent:found?{studentId:found.student_id,fullName:found.full_name}:null};
+   const similar=(byName.get(canonical(r.fullName))||[]).filter(student=>student.lrn!==r.lrn);
+   const existingStudent=found||similar[0]||null;
+   const issues=[];
+   let action='CREATE';
+   if(!found&&similar.length){
+    action='REVIEW';issues.push('Existing learner with this name has a missing/different LRN. Match manually; no duplicate was created.');
+   }else if(found){
+    if(!found.active||found.archived_at)issues.push('This LRN is archived or inactive; School Admin review required.');
+    if(canonical(found.full_name)!==canonical(r.fullName))issues.push('Name differs from the saved LRN record.');
+    if(found.sex&&String(found.sex).toUpperCase()!==r.sex)issues.push('Sex differs from the saved LRN record.');
+    if(r.parentName&&found.parent_name&&canonical(found.parent_name)!==canonical(r.parentName))
+     issues.push('Parent/guardian name conflicts with the saved value.');
+    if(r.parentMobile&&found.parent_mobile&&
+      normalizeGuardianContact(found.parent_mobile)!==r.parentMobile)
+     issues.push('Parent/guardian contact conflicts with the saved value.');
+    const needsFill=(!!r.parentName&&!String(found.parent_name||'').trim())||
+     (!!r.parentMobile&&!String(found.parent_mobile||'').trim());
+    if(needsFill&&advisoryUpdateIds&&!advisoryUpdateIds.has(found.student_id))
+     issues.push('Existing learner is outside your assigned advisory section.');
+    action=issues.length?'REVIEW':needsFill?'UPDATE':'SKIP';
+   }
+   return {...r,action,errors:issues,
+    existingStudent:existingStudent?{
+     studentId:existingStudent.student_id,fullName:existingStudent.full_name,
+     parentName:existingStudent.parent_name||'',parentMobile:existingStudent.parent_mobile||''
+    }:null};
   });
-  const summary={create:rows.filter(r=>r.action==='CREATE').length,skip:rows.filter(r=>r.action==='SKIP').length,review:rows.filter(r=>r.action==='REVIEW').length};
+  const summary={create:0,update:0,skip:0,review:0};
+  rows.forEach(row=>{summary[row.action.toLowerCase()]++;});
   return {rows,summary,schoolYearId:active.school_year_id,year:Number(String(active.school_year_label).slice(0,4)),gradeLevel:sf1.gradeLevel};
  }
  app.post('/api/students/sf1/preview',authenticateSchoolClient,permitted,async(req,res)=>{
@@ -46,27 +97,41 @@ function registerSf1ImportRoutes(app,pool,{authenticateSchoolClient,requireSchoo
    await client.query('BEGIN');
    // The preview is informational; all checks are repeated inside the commit.
    const prepared=await prepare(req,client);
-   if(prepared.summary.review)throw Object.assign(Error('An archived or inactive LRN needs School Admin review.'),{status:409});
-   let created=0;
+   if(prepared.summary.review)throw Object.assign(Error('Resolve SF1 review flags before saving. No student records were changed.'),{status:409});
+   let created=0,updated=0;
    for(const row of prepared.rows.filter(r=>r.action==='CREATE')){
     // Lock existing LRN namespace within this school to prevent concurrent import races.
     await client.query('SELECT pg_advisory_xact_lock(hashtext($1::text),hashtext($2::text))',[req.auth.schoolId,row.lrn]);
     const duplicate=await client.query('SELECT student_id FROM students WHERE school_id=$1 AND lrn=$2',[req.auth.schoolId,row.lrn]);
     if(duplicate.rowCount)continue;
     const id=await nextStudentId(client,{year:prepared.year});
-    await client.query(`INSERT INTO students(school_id,student_id,lrn,full_name,grade_level,section,parent_mobile,sex,qr_token)
-      VALUES($1,$2,$3,$4,$5,'Unassigned','',$6,gen_random_uuid())`,
-      [req.auth.schoolId,id,row.lrn,row.fullName,row.gradeLevel,row.sex]);
+    await client.query(`INSERT INTO students(school_id,student_id,lrn,full_name,grade_level,section,parent_name,parent_mobile,sex,qr_token)
+      VALUES($1,$2,$3,$4,$5,'Unassigned',$6,$7,$8,gen_random_uuid())`,
+      [req.auth.schoolId,id,row.lrn,row.fullName,row.gradeLevel,row.parentName||null,row.parentMobile||'',row.sex]);
     await client.query(`INSERT INTO student_enrollments(school_id,student_id,school_year_id,grade_level,section,enrollment_date,enrollment_status,created_by_user_id)
       VALUES($1,$2,$3,$4,'Unassigned',CURRENT_DATE,'ENROLLED',$5)`,
       [req.auth.schoolId,id,prepared.schoolYearId,row.gradeLevel,req.auth.userId]);
     created++;
    }
+   // Preserve identity, enrollment, QR tokens and attendance on existing rows.
+   // Locks taken during prepare guard the preview and write in this transaction.
+   for(const row of prepared.rows.filter(r=>r.action==='UPDATE')){
+    const saved=await client.query(`UPDATE students
+      SET parent_name=CASE WHEN NULLIF(BTRIM(parent_name),'') IS NULL
+         THEN NULLIF($4,'') ELSE parent_name END,
+       parent_mobile=CASE WHEN NULLIF(BTRIM(parent_mobile),'') IS NULL
+         THEN $5 ELSE parent_mobile END,
+       updated_at=NOW()
+      WHERE school_id=$1 AND student_id=$2 AND lrn=$3 AND active=TRUE AND archived_at IS NULL
+      RETURNING student_id`,[req.auth.schoolId,row.existingStudent.studentId,row.lrn,row.parentName,row.parentMobile]);
+    if(saved.rowCount!==1)throw Object.assign(Error('Learner record changed during review. Preview again.'),{status:409});
+    updated++;
+   }
    await client.query(`INSERT INTO audit_logs(school_id,actor_type,actor_user_id,action,entity_type,entity_id,details)
      VALUES($1,'SCHOOL',$2,'STUDENT_SF1_IMPORT','student_import',$3,$4::jsonb)`,
-     [req.auth.schoolId,req.auth.userId,crypto.randomUUID(),JSON.stringify({created,skipped:prepared.rows.length-created,gradeLevel:prepared.gradeLevel,section:'Unassigned'})]);
+     [req.auth.schoolId,req.auth.userId,crypto.randomUUID(),JSON.stringify({created,updated,skipped:prepared.summary.skip,gradeLevel:prepared.gradeLevel,section:'Unassigned',identityAndAttendancePreserved:true})]);
    await client.query('COMMIT');
-   res.json({ok:true,created,skipped:prepared.rows.length-created,gradeLevel:prepared.gradeLevel});
+   res.json({ok:true,created,updated,skipped:prepared.summary.skip,gradeLevel:prepared.gradeLevel});
   }catch(e){await client.query('ROLLBACK').catch(()=>{});res.status(e.status||(e.code==='23505'?409:500)).json({error:e.status?e.message:e.code==='23505'?'An LRN was concurrently registered; preview again.':'SF1 import failed without saving changes.'});}
   finally{client.release();}
  });
