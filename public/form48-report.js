@@ -29,7 +29,11 @@
    const early=a&&a.undertimeMinutes>0&&a.scheduled;
    const hours=early?Math.floor(a.undertimeMinutes/60):'';
    const mins=early?a.undertimeMinutes%60:'';
-   return '<tr><td>'+row.day+'</td>'+slots.map(k=>'<td>'+esc(formatTime(v[k]))+'</td>').join('')+
+   const gateArrival=(row.gateEvidence||[]).find(g=>g.direction==='IN'&&g.time<'12:00');
+   return '<tr><td>'+row.day+'</td>'+slots.map(k=>'<td>'+
+    (v[k]?esc(formatTime(v[k])):k==='AM_IN'&&gateArrival
+     ?'<span class="form48-gate-evidence" title="Verified physical gate scan; official DTR slot missing">'+
+       esc(formatTime(gateArrival.time))+'*</span>':'')+'</td>').join('')+
     '<td>'+esc(hours)+'</td><td>'+esc(mins)+'</td></tr>';
   }).join('');
   const obEntries=data.records.flatMap(row=>(row.obRemarks||[]).map(ob=>({
@@ -73,6 +77,7 @@
    '<tr><th rowspan="2">Day</th><th colspan="2">A M</th><th colspan="2">P M</th><th colspan="2">UNDERTIME</th></tr>'+
    '<tr><th>Arrival</th><th>Departure</th><th>Arrival</th><th>Departure</th><th>Hours</th><th>Minutes</th></tr>'+
    '</thead><tbody>'+cells+'</tbody></table>'+
+   '<div class="form48-gate-note">* Verified physical gate arrival only — official DTR punch not recorded; excluded from calculated DTR totals pending authorized verification.</div>'+
    '<div class="form48-certify">I certify on my honor that the above is a true and correct report of the hours of work performed, record of which was made daily at the time of arrival and departure from office.</div>'+
    '<div class="form48-signature"><span>Employee signature</span></div>'+
    '<div class="form48-signature"><strong>'+esc(verifiedName)+'</strong>'+
