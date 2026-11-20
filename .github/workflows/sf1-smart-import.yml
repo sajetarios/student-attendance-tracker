@@ -1,0 +1,34 @@
+name: SF1 smart import targeted checks
+
+on:
+  pull_request:
+    branches:
+      - fix/render-login-landing
+  push:
+    branches:
+      - fix/sf1-position-aware-pdf-20261121
+
+permissions:
+  contents: read
+
+jobs:
+  sf1:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Validate parser syntax
+        run: |
+          node --check sf1-pdf-layout.js
+          node --check sf1-pdf-parser.js
+          node --check sf1-import-parser.js
+          node --check sf1-import-routes.js
+          node --check public/portal.js
+      - name: SF1 parser and guardian safe-update regressions
+        run: |
+          node --test tests/sf1-pdf-import.test.js tests/sf1-positioned-pdf-layout.test.js tests/sf1-smart-import.test.js tests/sf1-guardian-review.test.js tests/sf1-native-xls-import.test.js tests/sf1-school-year-recovery.test.js
