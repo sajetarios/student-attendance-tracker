@@ -2727,7 +2727,7 @@ app.patch('/api/students/:studentId', authenticateSchoolClient, requireSchoolAdm
     }
     if (birthDate !== undefined &&
         (typeof birthDate !== 'string' ||
-         (birthDate !== '' && (!/^\\d{4}-\\d{2}-\\d{2}$/.test(birthDate) ||
+         (birthDate !== '' && (!/^\d{4}-\d{2}-\d{2}$/.test(birthDate) ||
             Number.isNaN(Date.parse(birthDate + 'T00:00:00Z')) ||
             new Date(birthDate + 'T00:00:00Z').toISOString().slice(0,10) !== birthDate)))) {
       return res.status(400).json({ error: 'Provide a valid date of birth (YYYY-MM-DD).' });
