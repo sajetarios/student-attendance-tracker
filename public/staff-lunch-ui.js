@@ -30,13 +30,13 @@
     const departmentSelect=admin?$('staffLunchDepartment'):null;
     const activeList=admin?$('staffLunchAssignedList'):null;
     let eligibleTeachers=[];
-    let assigned=false,expiryTimestamp=0,busy=false;
+    let assigned=false,expiryMonotonicDeadline=0,busy=false;
     function setStatus(message,failed=false) {
       status.textContent=message;
       status.classList.toggle('is-error',failed);
     }
     function clearQr(){
-      expiryTimestamp=0;
+      expiryMonotonicDeadline=0;
       if(output){output.removeAttribute('src');output.hidden=true;}
       if(expiry)expiry.textContent='';
     }
@@ -151,7 +151,10 @@
             throw Error('QR image unavailable. Please retry.');
           output.src=result.qrImage;
           output.hidden=false;
-          expiryTimestamp=new Date(result.expiresAt).getTime();
+          if(!Number.isFinite(Number(result.remainingMs)))
+            throw Error('Secure lunch QR lifetime unavailable.');
+          // Monotonic time does not shift when someone changes the device wall clock.
+          expiryMonotonicDeadline=performance.now()+Math.max(0,Math.min(60000,Number(result.remainingMs)));
           setStatus(slotLabel(slot.value)+' QR ready. Staff scan with their own signed-in phone.');
           if(expiry)expiry.textContent='Expires in about 60 seconds; refreshing automatically while this page is open.';
         }catch(error){clearQr();setStatus(error.message,true);}finally{setBusy(false);}
@@ -160,8 +163,8 @@
       // personal attendance page; old challenges are revoked server-side.
       window.setInterval(()=>{
         const view=$('teacherLunchQrView');
-        if(!document.hidden && view&&!view.hidden && assigned && expiryTimestamp &&
-           Date.now()>expiryTimestamp-15000 && !busy)issue().catch(()=>{});
+        if(!document.hidden && view&&!view.hidden && assigned && expiryMonotonicDeadline &&
+           performance.now()>expiryMonotonicDeadline-15000 && !busy)issue().catch(()=>{});
       },5000);
     }
     await refresh();
