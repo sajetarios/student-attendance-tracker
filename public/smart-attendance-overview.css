@@ -50,3 +50,14 @@
 .form48-advanced-wrapper{margin:10px 0}
 .form48-advanced-wrapper>.form48-advanced-summary{border:1px solid var(--border-color,#d4e0eb);border-radius:9px;padding:12px!important;background:var(--surface,#fff)}
 .form48-advanced-wrapper>.form48-settings-panel{margin-top:8px}
+
+/* Keep Form 48 report-first: daily triage and setup expand only when needed. */
+.form48-daily-insights{margin:12px 0 3px;border:1px solid var(--border-color,#d4e0eb);border-radius:10px;min-width:0}
+.form48-daily-insights>summary{cursor:pointer;list-style:none;padding:12px 14px;font-size:13px;font-weight:650;display:flex;gap:12px;flex-wrap:wrap;justify-content:space-between}
+.form48-daily-insights>summary::-webkit-details-marker{display:none}
+.form48-daily-insights>summary small{font-weight:400;color:var(--text-muted,#64748b)}
+.form48-daily-insights>summary:focus-visible{outline:2px solid #3486d4;outline-offset:2px}
+.form48-daily-insights .smart-attendance-overview{margin:0;border:0;border-top:1px solid var(--border-color,#d4e0eb);border-radius:0}
+.smart-hours-preset{display:grid;gap:6px;font-size:13px;font-weight:650;max-width:530px;margin:12px 0}
+.smart-hours-preset select{width:100%;min-height:42px;border:1px solid var(--border-color,#bdd0df);border-radius:8px;background:var(--surface,#fff);color:inherit;padding:8px 10px;font:inherit}
+@media print{.form48-daily-insights{display:none!important}}
