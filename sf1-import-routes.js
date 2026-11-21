@@ -5,6 +5,24 @@ const {parseSf1PdfBase64}=require('./sf1-pdf-parser');
 const {nextStudentId}=require('./generated-record-ids');
 const PROFILE_FIELDS=[['fatherName','father_name'],['motherMaidenName','mother_maiden_name'],['sf1GuardianName','sf1_guardian_name'],['birthDate','birth_date'],['sf1Address','sf1_address']];
 const validValue=x=>String(x||'').trim();
+// Keep prior LIS SF1 imports compatible with the official "SURNAME, GIVEN MIDDLE"
+// order. These aliases only compare a comma-delimited saved surname; they never
+// guess a surname from an unstructured legacy name.
+const sf1CanonicalName=value=>String(value||'').toLowerCase().replace(/[^a-z0-9]/g,'');
+function sf1NameAliases(value){
+ const text=String(value||'').trim().replace(/\s+/g,' ');
+ const keys=[sf1CanonicalName(text)];
+ const comma=text.indexOf(',');
+ if(comma>0){
+  const surname=text.slice(0,comma).trim();
+  const given=text.slice(comma+1).trim();
+  if(surname&&given)keys.push(sf1CanonicalName(given+' '+surname));
+ }
+ return [...new Set(keys)];
+}
+function sf1NamesEquivalent(current,imported){
+ return sf1NameAliases(current).includes(sf1CanonicalName(imported));
+}
 function registerSf1ImportRoutes(app,pool,{authenticateSchoolClient,requireSchoolRoles}){
  const permitted=requireSchoolRoles('SCHOOL_ADMIN','TEACHER');
  async function prepare(req,db){
@@ -32,15 +50,21 @@ function registerSf1ImportRoutes(app,pool,{authenticateSchoolClient,requireSchoo
   const canonical=value=>String(value||'').toLowerCase().replace(/[^a-z0-9]/g,'');
   const named=sf1.learners.map(r=>canonical(r.fullName));
   const existing=await db.query(
-   "SELECT lrn,student_id,full_name,parent_name,parent_mobile,father_name,mother_maiden_name,sf1_guardian_name,birth_date,sf1_address,sex,grade_level,section,active,archived_at FROM students WHERE school_id=$1 AND (lrn=ANY($2::text[]) OR lower(regexp_replace(full_name,'[^a-zA-Z0-9]','','g'))=ANY($3::text[]))"+(db===pool?'':' FOR UPDATE'),
+   "SELECT lrn,student_id,full_name,parent_name,parent_mobile,father_name,mother_maiden_name,sf1_guardian_name,birth_date,sf1_address,sex,grade_level,section,active,archived_at FROM students WHERE school_id=$1 AND (lrn=ANY($2::text[]) OR (lower(regexp_replace(full_name,'[^a-zA-Z0-9]','','g'))=ANY($3::text[])
+       OR lower(regexp_replace(
+          CASE WHEN strpos(full_name,',')>0
+            THEN btrim(split_part(full_name,',',2))||' '||btrim(split_part(full_name,',',1))
+            ELSE full_name END,
+          '[^a-zA-Z0-9]','','g'))=ANY($3::text[])))"+(db===pool?'':' FOR UPDATE'),
    [req.auth.schoolId,lrnList,named]
   );
   const match=new Map(existing.rows.filter(r=>r.lrn).map(r=>[r.lrn,r]));
   const byName=new Map();
   for(const student of existing.rows){
-   const key=canonical(student.full_name);
-   if(!byName.has(key))byName.set(key,[]);
-   byName.get(key).push(student);
+   for(const key of sf1NameAliases(student.full_name)){
+    if(!byName.has(key))byName.set(key,[]);
+    byName.get(key).push(student);
+   }
   }
   let advisoryUpdateIds=null;
   if(req.auth.role==='TEACHER'){
@@ -84,7 +108,7 @@ function registerSf1ImportRoutes(app,pool,{authenticateSchoolClient,requireSchoo
     }
    }else if(found){
     if(!found.active||found.archived_at)issues.push('This LRN is archived or inactive; School Admin review required.');
-    if(canonical(found.full_name)!==canonical(r.fullName))issues.push('Name differs from the saved LRN record.');
+    if(!sf1NamesEquivalent(found.full_name,r.fullName))issues.push('Name differs from the saved LRN record.');
     if(found.sex&&String(found.sex).toUpperCase()!==r.sex)issues.push('Sex differs from the saved LRN record.');
     if(r.parentName&&found.parent_name&&canonical(found.parent_name)!==canonical(r.parentName))
      issues.push('Parent/guardian name conflicts with the saved value.');
