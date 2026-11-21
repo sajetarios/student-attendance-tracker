@@ -4547,6 +4547,23 @@ let teacherActionMenuListenersInstalled = false;
     ? new Date(timestamp).toLocaleTimeString('en-PH', { timeZone: 'Asia/Manila', hour: 'numeric', minute: '2-digit' })
     : '—';
   const myStaffDtrSlots = [['AM_IN','AM In'],['AM_OUT','AM Out'],['PM_IN','PM In'],['PM_OUT','PM Out']];
+  const myGateReviewReasons = {
+    SCHEDULE_UNAVAILABLE:'Your prescribed work hours are not yet available. Ask the School Admin to check the schedule.',
+    CALENDAR_UNAVAILABLE:'The school calendar could not be verified. No DTR match was suggested.',
+    CALENDAR_EXCEPTION_REQUIRES_REVIEW:'The school calendar includes a closure or shortened day. Confirm the applicable hours.',
+    GATE_HISTORY_AMBIGUOUS:'Gate scans have an incomplete, conflicting, or unexpected entry/exit sequence.',
+    OB_INTERVAL_AMBIGUOUS:'The approved OB crosses a reporting-day boundary or needs a time review.',
+    OB_BOUNDARY_GATE_MOVEMENT:'A gate movement overlaps approved OB and should not be treated as a normal DTR time.',
+    OB_RETURN_AFTER_APPROVED_END_REVIEW:'Gate re-entry followed an OB interval and occurred after the approved end. Review the circumstances.',
+    POST_OB_RETURN_MOVEMENT_REVIEW:'A later movement after the late OB return requires separate verification.',
+    OB_COVERAGE_REQUIRES_REVIEW:'Approved OB documents permission, not an automatic DTR punch.',
+    OUTSIDE_SCHEDULE_WINDOW:'A gate scan is outside the safe matching window of the prescribed hours.',
+    AMBIGUOUS_SCHEDULE_SLOT:'The scan is too close to multiple scheduled AM/PM boundaries to classify safely.',
+    DUPLICATE_SLOT_CANDIDATES:'Several gate scans could match the same DTR slot; the system cannot choose reliably.',
+    SLOT_ALREADY_VERIFIED:'The official DTR slot is already verified and cannot be replaced by a gate suggestion.',
+    NOT_SCHEDULED_WORKDAY:'This is not a configured workday for the employee.'
+  };
+  let myGateRequestRevision=0;
   async function loadMyGateAttendance() {
     if (!['TEACHER','DEPARTMENT_HEAD','SCHOOL_ADMIN'].includes(user?.role)) return;
     const fromField=$('myGateFrom'),toField=$('myGateTo');
@@ -4564,6 +4581,7 @@ let teacherActionMenuListenersInstalled = false;
       feedback.className='inline-feedback error';
       return;
     }
+    const requestRevision=++myGateRequestRevision;
     const params=new URLSearchParams({from,to});
     feedback.textContent='Loading verified staff attendance…';
     feedback.className='inline-feedback';
@@ -4573,12 +4591,14 @@ let teacherActionMenuListenersInstalled = false;
         api('/api/teacher/my-gate-attendance?'+params),
         api('/api/staff-attendance/my/dtr-history?'+params)
       ]);
+      // Do not show earlier dates if the user changed filters while loading.
+      if (requestRevision!==myGateRequestRevision||fromField.value!==from||toField.value!==to) return;
       if (gateResult.status==='rejected'&&dtrResult.status==='rejected')
         throw new Error('Unable to load your attendance history. Please refresh.');
       const gateAvailable=gateResult.status==='fulfilled',dtrAvailable=dtrResult.status==='fulfilled';
       const daily=new Map(),dayFor=date=>{
         if(!daily.has(date))daily.set(date,{
-          date,gateIn:null,gateOut:null,gateCount:0,gateVerified:true,gateEvents:[],obRemarks:[],dtr:new Map()
+          date,gateIn:null,gateOut:null,gateCount:0,gateVerified:true,gateEvents:[],obRemarks:[],dtr:new Map(),insight:null
         });
         return daily.get(date);
       };
@@ -4599,6 +4619,12 @@ let teacherActionMenuListenersInstalled = false;
         dayFor(item.date).obRemarks.push(...(item.remarks||[]));
       });
       if(from<=today&&to>=today)dayFor(today);
+      // Only attach evidence to days already shown. Do not invent absences or
+      // create blank attendance days from calendar-only exceptions.
+      if(dtrAvailable)(dtrResult.value.intelligence||[]).forEach(item=>{
+        const day=daily.get(item.date);
+        if(day&&item.safeToApply===false)day.insight=item;
+      });
       const rows=[...daily.values()].sort((a,b)=>b.date.localeCompare(a.date));
       $('myGateRows').innerHTML=rows.length?rows.map(day=>{
         const count=day.dtr.size;
@@ -4622,12 +4648,29 @@ let teacherActionMenuListenersInstalled = false;
           '<p><strong>OB:</strong> '+esc(ob.remark)+
           (ob.exception?'<span class="status-tag neutral">Review needed</span> '+esc(ob.exceptionRemark||''):'')+
           '</p>').join('')+'</div>':'';
+        const candidates=day.insight?.suggestions||{};
+        const reviewCodes=Array.isArray(day.insight?.review)?day.insight.review:[];
+        const suggested=Object.entries(candidates).filter(([slot,item])=>
+          myStaffDtrSlots.some(([key])=>key===slot)&&item?.requiresApproval===true&&item.time);
+        const insightMarkup=day.insight&&(suggested.length||reviewCodes.length)
+          ?'<details class="my-gate-insight"><summary>Gate evidence review · '+
+            esc(String(suggested.length))+' possible DTR match(es) · '+
+            esc(String(reviewCodes.length))+' note(s)</summary>'+
+            '<div class="my-gate-insight-body">'+
+            (suggested.length?'<ul>'+suggested.map(([slot,item])=>
+              '<li><strong>'+esc(myStaffDtrSlots.find(([key])=>key===slot)[1])+': '+
+              esc(item.time)+'</strong> — suggested gate time only; official DTR not recorded.</li>').join('')+'</ul>':'')+
+            (reviewCodes.length?'<ul>'+reviewCodes.map(reason=>
+              '<li>'+esc(myGateReviewReasons[reason]||'Attendance evidence requires School Admin review.')+'</li>'
+            ).join('')+'</ul>':'')+
+            '<p>No official DTR records or OB approvals were changed.</p></div></details>'
+          :'';
         const gateStatus=gateAvailable?(day.gateCount
           ?`<span class="status-tag ${day.gateVerified?'':'neutral'}">${day.gateVerified?'Photo verified':'Check record'}</span>`
           :'<span class="my-gate-empty">No gate scan</span>'):'';
         return `<tr class="my-gate-day-row">
           <td data-label="Date"><strong class="my-gate-day">${esc(formatSchoolDate(day.date))}</strong></td>
-          <td data-label="Official Form 48 DTR"><div class="my-gate-dtr-summary">${dtrSummary}</div>${dtrGrid}${obSummary}</td>
+          <td data-label="Official Form 48 DTR"><div class="my-gate-dtr-summary">${dtrSummary}</div>${dtrGrid}${obSummary}${insightMarkup}</td>
           <td data-label="Physical gate scans">${gateGrid}<div class="my-gate-gate-status">${gateStatus}</div></td>
         </tr>`;
       }).join(''):'<tr><td colspan="3" class="empty-cell">No attendance entries for the selected dates.</td></tr>';
@@ -4641,11 +4684,13 @@ let teacherActionMenuListenersInstalled = false;
         feedback.className='inline-feedback';
       }
     } catch(error) {
+      if(requestRevision!==myGateRequestRevision)return;
       $('myGateRows').innerHTML='<tr><td colspan="3" class="empty-cell">Unable to load your attendance history.</td></tr>';
       feedback.textContent=error.message;
       feedback.className='inline-feedback error';
     } finally {
-      for(const id of ['myGateApply','myGateRefresh'])$(id).disabled=false;
+      if(requestRevision===myGateRequestRevision)
+        for(const id of ['myGateApply','myGateRefresh'])$(id).disabled=false;
     }
   }
 
