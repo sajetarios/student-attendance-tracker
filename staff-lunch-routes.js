@@ -169,7 +169,9 @@ function registerStaffLunchRoutes(app,pool,{authenticateSchoolClient,requireScho
     [req.auth.schoolId,req.auth.userId,id,JSON.stringify({slot,date})]
    );
    await client.query('COMMIT');
-   return res.status(201).json({challengeId:id,token:challenge.token,qrImage,slot,schoolDate:date,expiresAt:challenge.expiresAt});
+   // Remaining TTL is computed on the server; presenter device clocks are not trusted.
+   const remainingMs=Math.max(0,challenge.expiresAt.getTime()-Date.now());
+   return res.status(201).json({challengeId:id,token:challenge.token,qrImage,slot,schoolDate:date,expiresAt:challenge.expiresAt,remainingMs});
   } catch(error) {
    await client.query('ROLLBACK').catch(()=>{});
    console.error('Staff lunch challenge issue failed:',error.message);
