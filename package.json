@@ -4,7 +4,7 @@
   "private": true,
   "description": "Responsive school attendance PWA with role-specific dashboards and student self-service portal",
   "scripts": {
-    "start": "node server.js",
+    "start": "node scripts/attendigo-start.js",
     "worker": "node sms-worker.js",
     "test": "node --test tests/*.test.js",
     "db:migrate": "node scripts/db-migrate.js",
