@@ -5,6 +5,54 @@ const DTR_SLOTS=Object.freeze(['AM_IN','AM_OUT','PM_IN','PM_OUT']);
 const UUID=/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 function registerStaffGateDtrRoutes(app,pool,{authenticateSchoolClient,requireSchoolRoles}){
+ // School-scoped read-only reconciliation: never create DTR punches from gate movements.
+ app.get('/api/staff-attendance/admin/dtr-reconciliation-preview',authenticateSchoolClient,
+ requireSchoolRoles('SCHOOL_ADMIN'),async(req,res)=>{
+  res.set('Cache-Control','private, no-store');
+  const staffUserId=String(req.query?.staffUserId||''),date=String(req.query?.date||manilaDate());
+  if(!UUID.test(staffUserId)||!/^[0-9]{4}-[0-9]{2}-[0-9]{2}$/.test(date)||
+     Number.isNaN(Date.parse(date+'T00:00:00Z'))||
+     new Date(date+'T00:00:00Z').toISOString().slice(0,10)!==date||date>manilaDate())
+   return res.status(400).json({error:'Valid employee and school date required.'});
+  try{
+   const schoolId=req.auth.schoolId;
+   const [employee,schedule,gate,dtr,ob,calendar]=await Promise.all([
+    pool.query("SELECT 1 FROM school_users WHERE school_id=$1 AND user_id=$2 AND active=TRUE",[schoolId,staffUserId]),
+    require('./form48-employee-schedules').getEmployeeForm48Schedule(pool,schoolId,staffUserId),
+    pool.query(`SELECT "eventType",time FROM (
+      SELECT CASE WHEN gate_direction='IN' THEN 'TIME_IN' ELSE 'TIME_OUT' END AS "eventType",
+       to_char(occurred_at AT TIME ZONE 'Asia/Manila','HH24:MI') AS time,occurred_at
+      FROM staff_attendance_events WHERE school_id=$1 AND staff_user_id=$2 AND school_date=$3::date
+       AND event_kind='GATE_MOVEMENT' AND verification_status='VERIFIED'
+      UNION ALL SELECT event_type AS "eventType",
+       to_char(occurred_at AT TIME ZONE 'Asia/Manila','HH24:MI') AS time,occurred_at
+      FROM teacher_gate_events WHERE school_id=$1 AND teacher_user_id=$2 AND school_date=$3::date
+     ) gate ORDER BY occurred_at`,[schoolId,staffUserId,date]),
+    pool.query(`SELECT dtr_slot AS slot,to_char(occurred_at AT TIME ZONE 'Asia/Manila','HH24:MI') AS time
+      FROM staff_attendance_events WHERE school_id=$1 AND staff_user_id=$2 AND school_date=$3::date
+       AND event_kind='DTR_SLOT' AND verification_status='VERIFIED'`,[schoolId,staffUserId,date]),
+    pool.query(`SELECT to_char(starts_at AT TIME ZONE 'Asia/Manila','HH24:MI') AS start,
+       to_char(ends_at AT TIME ZONE 'Asia/Manila','HH24:MI') AS "end"
+      FROM staff_official_business_requests WHERE school_id=$1 AND staff_user_id=$2 AND status='APPROVED'
+       AND starts_at<(($3::date+INTERVAL '1 day') AT TIME ZONE 'Asia/Manila')
+       AND ends_at>($3::date AT TIME ZONE 'Asia/Manila')`,[schoolId,staffUserId,date]),
+    pool.query(`SELECT exception_type FROM school_calendar_exceptions WHERE school_id=$1
+       AND calendar_date=$2::date AND exception_type IN ('CLOSED','SHORTENED_DAY')`,[schoolId,date])
+   ]);
+   if(!employee.rowCount)return res.status(404).json({error:'Employee not found in school.'});
+   const weekday=new Date(date+'T12:00:00Z').getUTCDay();
+   const existingSlots=Object.fromEntries(dtr.rows.map(x=>[x.slot,x.time]));
+   const result=calendar.rowCount?{suggestions:{},review:['CALENDAR_EXCEPTION_REQUIRES_REVIEW'],safeToApply:false}:
+    !schedule?.workdays?.includes(weekday)?{suggestions:{},review:['NOT_SCHEDULED_WORKDAY'],safeToApply:false}:
+    require('./gate-dtr-reconciliation').reconcileGateDay({
+     movements:gate.rows,existingSlots,
+     hours:weekday===6?schedule.saturdayHours:schedule.regularHours,approvedOb:ob.rows});
+   return res.json({staffUserId,date,existingSlots,gateEventCount:gate.rowCount,
+    approvedObCount:ob.rowCount,...result,notice:'Review only. No DTR punch was created.'});
+  }catch(err){console.error('DTR preview:',err.message);
+   return res.status(503).json({error:'Unable to preview DTR reconciliation.'});}
+ });
+
  // Physical gate movements are maintained separately by existing Gatekeeper
  // endpoints; this endpoint is solely a verified Form-48 DTR fallback.
  app.post('/api/staff-attendance/gatekeeper/dtr',authenticateSchoolClient,
