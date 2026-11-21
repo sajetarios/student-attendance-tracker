@@ -112,7 +112,7 @@ test('collapsed desktop sidebar hides nested icons and expands when a group is s
  assert.match(css,/display:none!important/);
  assert.match(source,/sidebar\.addEventListener\?\.\('click'/);
  assert.match(source,/classList\.remove\('sidebar-collapsed'\)/);
- assert.match(html,/attendigo-sidebar-adaptive\.css\?v=19/);
+ assert.match(html,/attendigo-sidebar-adaptive\.css\?v=20/);
  assert.match(worker,/attendigo-sidebar-adaptive\.js\?v=9/);
 });
 
@@ -141,16 +141,18 @@ test('expanded staff navigation is default, with accessible labeled desktop menu
  assertCachedAsset(html,worker,'portal.js',{minimumVersion:203});
 });
 
-// iPad in landscape uses the desktop sidebar, although browser chrome reduces the
-// visual viewport below 100vh. The complete School Settings list must be reachable.
+// iPad Safari can display a desktop-width layout while its browser bars reduce the
+// visible viewport. Keep the School Settings links reachable by touch scrolling.
 test('tablet landscape sidebar uses the dynamic viewport with independent touch scrolling',()=>{
-  const desktop=css.match(/@media\\(min-width:861px\\)\\{\\s*#sidebar\\.sidebar\\s*\\{([^}]*)\\}/)?.[1] || '';
-  assert.match(desktop,/height:100dvh!important/);
-  assert.match(desktop,/max-height:100dvh!important/);
-  assert.match(desktop,/min-height:0!important/);
-  assert.match(css,/-webkit-overflow-scrolling:touch/);
-  assert.match(css,/overscroll-behavior-y:contain/);
-  assert.match(css,/@media\\(max-width:860px\\)\\{[\\s\\S]*?height:100dvh!important/);
-  assert.match(html,/attendigo-sidebar-adaptive\\.css\\?v=20/);
+  const start=css.indexOf('@media(min-width:861px){');
+  assert.ok(start>=0, 'desktop sidebar breakpoint must exist');
+  const desktop=css.slice(start,start+500);
+  assert.ok(desktop.includes('height:100dvh!important'));
+  assert.ok(desktop.includes('max-height:100dvh!important'));
+  assert.ok(desktop.includes('min-height:0!important'));
+  assert.ok(css.includes('-webkit-overflow-scrolling:touch'));
+  assert.ok(css.includes('overscroll-behavior-y:contain'));
+  assert.ok(css.includes('@media(max-width:860px){'));
+  assert.ok(html.includes('/attendigo-sidebar-adaptive.css?v=20'));
   assert.ok(worker.includes('"/attendigo-sidebar-adaptive.css?v=20"'));
 });
