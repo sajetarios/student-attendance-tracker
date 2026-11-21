@@ -1778,7 +1778,7 @@ function coverageStatusLabel(status) {
           const teacherAvatar = photo
             ? `<img class="student-photo-thumb" src="${photo}" alt="Student photo for ${esc(student.fullName)}" loading="lazy">`
             : `<span class="student-initials-avatar" role="img" aria-label="No photo uploaded for ${esc(student.fullName)}" title="No photo uploaded">${esc(teacherRosterInitials(student.fullName))}</span>`;
-          const identity = `<div class="teacher-roster-identity">${teacherAvatar}<span class="teacher-roster-identity-copy"><strong>${ordinal}${esc(student.fullName)}</strong><small>${esc(student.studentId)}</small></span></div>`;
+          const identity = `<div class="teacher-roster-identity">${teacherAvatar}<span class="teacher-roster-identity-copy"><strong>${ordinal}${esc(learnerRosterDisplayName(student))}</strong><small>${esc(student.studentId)}</small></span></div>`;
           const qrAction = canViewQr
             ? `<button type="button" class="student-qr-preview teacher-roster-qr" data-view-qr="${esc(student.studentId)}" aria-label="View QR code for ${esc(student.fullName)}" title="View or print learner QR"><span class="teacher-roster-qr-glyph" aria-hidden="true">▦</span><span>QR</span></button>`
             : '';
@@ -1787,9 +1787,9 @@ function coverageStatusLabel(status) {
           return `<tr class="teacher-roster-student" data-student-enrollment="${esc(student.enrollmentId || '')}" data-student-name="${esc(student.fullName)}">${showSelectionColumn ? `<td data-label="Select">${selection}</td>` : ''}<td data-label="Full name">${identity}</td><td data-label="Class">${classInfo}</td><td data-label="Status"><span class="teacher-roster-status ${statusClass}">${statusLabel}</span></td><td data-label="Actions"><div class="teacher-roster-quick-actions">${qrAction}${actions}</div></td></tr>`;
         }
         if (departmentHead) {
-          return `<tr data-student-enrollment="${esc(student.enrollmentId || '')}" data-student-name="${esc(student.fullName)}">${showSelectionColumn ? `<td data-label="Select">${selection}</td>` : ''}<td data-label="Student ID">${esc(student.studentId)}</td><td data-label="Full name">${ordinal}<strong>${esc(student.fullName)}</strong></td><td data-label="Sex">${esc(student.sex || 'Not set')}</td><td data-label="Grade">${esc(student.gradeLevel)}</td><td data-label="Section">${esc(student.section)}</td><td data-label="Special program">${programCell}</td><td data-label="Status">${statusLabel}</td><td data-label="Actions"><span class="muted-inline">View only</span></td></tr>`;
+          return `<tr data-student-enrollment="${esc(student.enrollmentId || '')}" data-student-name="${esc(student.fullName)}">${showSelectionColumn ? `<td data-label="Select">${selection}</td>` : ''}<td data-label="Student ID">${esc(student.studentId)}</td><td data-label="Full name">${ordinal}<strong>${esc(learnerRosterDisplayName(student))}</strong></td><td data-label="Sex">${esc(student.sex || 'Not set')}</td><td data-label="Grade">${esc(student.gradeLevel)}</td><td data-label="Section">${esc(student.section)}</td><td data-label="Special program">${programCell}</td><td data-label="Status">${statusLabel}</td><td data-label="Actions"><span class="muted-inline">View only</span></td></tr>`;
         }
-        return `<tr data-student-enrollment="${esc(student.enrollmentId || '')}" data-student-name="${esc(student.fullName)}">${showSelectionColumn ? `<td data-label="Select">${selection}</td>` : ''}<td data-label="Photo">${avatar}</td><td data-label="Student ID">${esc(student.studentId)}</td><td data-label="Full name">${ordinal}${esc(student.fullName)}</td><td data-label="Sex">${esc(student.sex || 'Not set')}</td><td data-label="Grade">${esc(student.gradeLevel)}</td><td data-label="Section">${esc(student.section)}</td><td data-label="Special program">${programCell}</td><td data-label="Status">${statusLabel}</td><td data-label="Actions">${actions}</td>${(admin || teacher) ? `<td data-label="Parent / guardian"><strong>${esc(student.parentName || "Not provided")}</strong><small class="table-subtext">${esc(student.parentMobile || "No mobile number")}</small></td>` : ''}</tr>`;
+        return `<tr data-student-enrollment="${esc(student.enrollmentId || '')}" data-student-name="${esc(student.fullName)}">${showSelectionColumn ? `<td data-label="Select">${selection}</td>` : ''}<td data-label="Photo">${avatar}</td><td data-label="Student ID">${esc(student.studentId)}</td><td data-label="Full name">${ordinal}${esc(learnerRosterDisplayName(student))}</td><td data-label="Sex">${esc(student.sex || 'Not set')}</td><td data-label="Grade">${esc(student.gradeLevel)}</td><td data-label="Section">${esc(student.section)}</td><td data-label="Special program">${programCell}</td><td data-label="Status">${statusLabel}</td><td data-label="Actions">${actions}</td>${(admin || teacher) ? `<td data-label="Parent / guardian"><strong>${esc(student.parentName || "Not provided")}</strong><small class="table-subtext">${esc(student.parentMobile || "No mobile number")}</small></td>` : ''}</tr>`;
       }));
       let previousSex = null;
       host.innerHTML = rows.map((row, index) => {
@@ -2846,6 +2846,23 @@ let teacherActionMenuListenersInstalled = false;
 
   // Position the student Actions panel after its actual SF1 content has been laid out.
   // The existing fixed-position menu otherwise opens beyond the right edge on iPads.
+  // Display-only convention for legacy SF1 records stored as given + middle + surname.
+  // Ambiguous particles, hyphens and suffixes remain in their original order.
+  function learnerRosterDisplayName(student) {
+    const raw=String(student?.fullName||'').trim().replace(/\\s+/g,' ');
+    if(!raw) return '';
+    const titleCase=word=>word.toLocaleLowerCase().replace(/(^|[\\s'-])([\\p{L}])/gu,(_,prefix,letter)=>prefix+letter.toLocaleUpperCase());
+    if(raw.includes(',')){
+      const parts=raw.split(',').map(x=>x.trim()).filter(x=>x&&x!=='-');
+      return parts.map(titleCase).join(', ');
+    }
+    const words=raw.split(' ').filter(Boolean);
+    if(words.length<2 || words.length>4 || words.some(w=>/[-.]/.test(w))) return titleCase(raw);
+    const particles=new Set(['DE','DEL','DELA','DELA','LA','LAS','LOS','VAN','VON','DA','DOS','DAS','SAN','SANTA','JR','SR','III','II','IV']);
+    if(words.some(w=>particles.has(w.toLocaleUpperCase()))) return titleCase(raw);
+    return titleCase(words[words.length-1])+', '+titleCase(words.slice(0,-1).join(' '));
+  }
+
   function positionStudentFamilyMenu(details) {
     if (!details?.open) return;
     const trigger=details.querySelector('summary');
