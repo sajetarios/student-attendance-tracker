@@ -2243,11 +2243,32 @@ app.post('/api/gate/teacher-lookup', authenticateSchoolClient, requireSchoolRole
     if (!result.rowCount) return res.status(404).json({ error: 'Teacher QR code not found or account is inactive.' });
     const teacher = result.rows[0];
     if (!teacher.hasPhoto) return res.status(409).json({ error: 'No registered teacher photo is available. Ask the School Administrator to upload a photo before recording teacher gate attendance.' });
+    // Preview only: derive the next physical gate movement from authoritative history.
+    // Never write to Form 48 DTR or infer an approved OB movement here.
+    const previewClock = await pool.query("SELECT to_char(clock_timestamp() AT TIME ZONE 'Asia/Manila','YYYY-MM-DD') AS school_date, to_char(clock_timestamp() AT TIME ZONE 'Asia/Manila','HH24:MI') AS local_time");
+    const previewDate = previewClock.rows[0].school_date;
+    const previewTime = previewClock.rows[0].local_time;
+    const gateHistory = await pool.query(`SELECT "eventType" FROM (
+      SELECT CASE WHEN gate_direction='IN' THEN 'TIME_IN' ELSE 'TIME_OUT' END AS "eventType",
+        occurred_at AS "occurredAt",event_id
+      FROM staff_attendance_events WHERE school_id=$1 AND staff_user_id=$2
+        AND event_kind='GATE_MOVEMENT' AND verification_status='VERIFIED' AND school_date=$3::date
+      UNION ALL
+      SELECT event_type AS "eventType",occurred_at AS "occurredAt",event_id
+      FROM teacher_gate_events WHERE school_id=$1 AND teacher_user_id=$2 AND school_date=$3::date
+    ) history ORDER BY "occurredAt",event_id`,[req.auth.schoolId,teacher.userId,previewDate]);
+    const previewDecision = require('./gate-event-decision').decideNextGateEvent(gateHistory.rows);
+    const previewPeriod = previewTime < '12:00' ? 'AM' : 'PM';
+    const gatePrediction = previewDecision.status === 'READY'
+      ? {status:'PREDICTED',eventType:previewDecision.eventType,
+         label:previewPeriod + ' ' + (previewDecision.eventType === 'TIME_IN' ? 'Time-In' : 'Time-Out'),
+         schoolDate:previewDate,physicalGateOnly:true}
+      : {status:'REVIEW_REQUIRED',label:'Gate history requires review',schoolDate:previewDate,physicalGateOnly:true};
     return res.json({ teacher: {
       userId: teacher.userId, username: teacher.username, fullName: teacher.fullName,
       teacherDesignations: teacher.teacherDesignations || [], teacherStatus: teacher.teacherStatus, role: teacher.role,
       photoUrl: `/api/gate/teacher/photo/${encodeURIComponent(qrToken)}`
-    }});
+    }, gatePrediction });
   } catch (err) {
     console.error('Gate teacher QR lookup failed:', err.message);
     return res.status(500).json({ error: 'Could not verify this teacher QR code.' });
