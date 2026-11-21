@@ -85,7 +85,7 @@ test('SF1 review previews and safely fills only previously empty guardian fields
  assert.equal(commit.body.created,0);
  const updates=h.calls.filter(c=>c.sql.includes('UPDATE students'));
  assert.equal(updates.length,1);
- assert.deepEqual(updates[0].params.slice(2),['123456789012','MARIA DELA CRUZ','09123456789']);
+ assert.deepEqual(updates[0].params.slice(2,5),['123456789012','MARIA DELA CRUZ','09123456789']);
  assert.match(updates[0].sql,/NULLIF\(BTRIM\(parent_name\)/);
  assert.doesNotMatch(updates[0].sql,/SET\s+lrn\s*=|SET\s+full_name\s*=|UPDATE\s+student_enrollments/i);
  assert.equal(h.calls.filter(c=>/DELETE FROM|UPDATE attendance|UPDATE student_enrollments/i.test(c.sql)).length,0);
@@ -100,7 +100,7 @@ test('existing guardian conflict or ambiguous name forces review and blocks comm
  const commit=await conflict.invoke('/api/students/sf1/commit',payload);
  assert.equal(commit.statusCode,409);
  assert.equal(conflict.calls.filter(c=>c.sql.includes('UPDATE students')).length,0);
- const missingLrn=createHarness([{...learner,lrn:null}]);
+ const missingLrn=createHarness([{...learner,lrn:null,grade_level:'Grade 8'}]);
  const duplicate=await missingLrn.invoke('/api/students/sf1/preview',payload);
  assert.equal(duplicate.body.summary.review,1);
  assert.equal(duplicate.body.summary.create,0);
@@ -116,14 +116,14 @@ test('saved identity, attendance and permission controls remain protected',()=>{
  assert.match(routes,/class_adviser_assignments/);
  assert.match(routes,/requireSchoolRoles\('SCHOOL_ADMIN','TEACHER'\)/);
  assert.match(routes,/STUDENT_SF1_IMPORT/);
- assert.match(portal,/Fill missing guardian fields/);
+ assert.match(portal,/Complete missing profile/);
  assert.match(html,/Parent \/ Guardian/);
  assert.match(html,/Contact<\/th>/);
 });
 
 test('opt-in LRN recovery fills only a uniquely matched blank LRN and preserves enrollment and attendance',async()=>{
  const data=await fixture(),h=createHarness([{...learner,lrn:null,grade_level:'Grade 8'}]);
- const base={fileBase64:data,fileType:'xlsx'};
+ const base={fileBase64:data,fileType:'xlsx',recoverMissingLrn:false};
  const without=await h.invoke('/api/students/sf1/preview',base);
  assert.equal(without.body.summary.review,1);
  const payload={...base,recoverMissingLrn:true};
