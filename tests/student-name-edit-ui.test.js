@@ -43,6 +43,6 @@ test('authorized editor keeps IDs and QR tokens unchanged and protects teacher S
   assert.match(server, /TEACHER_STUDENT_SCOPE/);
   assert.match(server, /qrTokenPreserved: true/);
   assert.match(server, /SCHOOL_ADMIN_UPDATE_STUDENT/);
-  assert.ok(worker.includes('"/student-name-format.js?v=1"'));
-  assert.ok(page.includes('/student-name-format.js?v=1'));
+  assert.ok(worker.includes('"/student-name-format.js?v=2"'));
+  assert.ok(page.includes('/student-name-format.js?v=2'));
 });

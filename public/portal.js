@@ -1651,7 +1651,10 @@ function coverageStatusLabel(status) {
   // Display a surname separately only when the saved name explicitly identifies it.
   // Never guess the last token of a legacy full name: Filipino compound surnames are common.
   function studentRosterName(student, ordinal = '') {
-    const parsed = window.AttendigoStudentName?.parse(student.fullName);
+    const parsed = student.lastName && student.firstName
+      ? {verified:true,surname:student.lastName,
+         givenNames:[student.firstName,student.middleName].filter(Boolean).join(' ')}
+      : window.AttendigoStudentName?.parse(student.fullName);
     if (parsed?.verified) {
       return '<span class="student-roster-name-block">' + ordinal +
         '<strong class="learner-roster-surname">' + esc(parsed.surname) + '</strong>' +
@@ -1669,7 +1672,8 @@ function coverageStatusLabel(status) {
     $('editFullNameGroup').hidden = structured;
     $('editFullName').required = !structured;
     $('editSurname').required = structured;
-    $('editGivenNames').required = structured;
+    $('editFirstName').required = structured;
+    $('editGivenNames').required = false;
   }
 
   async function renderStudents() {
@@ -1958,10 +1962,12 @@ function coverageStatusLabel(status) {
     $('editStudentIdDisplay').value = student.studentId;
     $('editLrn').value = student.lrn || '';
     $('editFullName').value = student.fullName || '';
-    const parsedName = window.AttendigoStudentName?.parse(student.fullName);
-    $('editStructuredNameToggle').checked = Boolean(parsedName?.verified);
-    $('editSurname').value = parsedName?.surname || '';
-    $('editGivenNames').value = parsedName?.givenNames || '';
+    const parsedName=window.AttendigoStudentName?.parse(student.fullName);
+    $('editStructuredNameToggle').checked = Boolean(student.lastName && student.firstName);
+    $('editSurname').value = student.lastName || parsedName?.surname || '';
+    $('editFirstName').value = student.firstName || '';
+    $('editMiddleName').value = student.middleName || '';
+    $('editGivenNames').value = '';
     updateStructuredStudentNameMode();
     $('editSex').value = String(student.sex || '').toUpperCase();
     $('editGrade').value = student.gradeLevel || 'Grade 7';
@@ -6008,7 +6014,7 @@ let teacherActionMenuListenersInstalled = false;
           ' require review. Grade: '+preview.gradeLevel+' · New section: Unassigned.'+
           (counts.review?' Resolve flagged records before saving.':'');
         const labels={CREATE:'New learner',UPDATE:'Complete missing profile',RECOVER:'Recover LRN and missing fields',SKIP:'Already complete',REVIEW:'Needs manual review'};
-        const fieldLabels={lrn:'LRN',parentName:'Parent / primary guardian',parentMobile:'Parent / guardian contact',fatherName:"Father's name",motherMaidenName:"Mother's maiden name",sf1GuardianName:'Guardian (if not parent)',birthDate:'Birth date',sf1Address:'Home address'};
+        const fieldLabels={lrn:'LRN',parentName:'Parent / primary guardian',parentMobile:'Parent / guardian contact',fatherName:"Father's name",motherMaidenName:"Mother's maiden name",sf1GuardianName:'Guardian (if not parent)',birthDate:'Birth date',sf1Address:'Home address',nameParts:'Official surname / first / middle name'};
         const cards=$('studentImportSf1Cards');
         $('studentImportTableWrap').hidden=true;
         cards.hidden=false;
@@ -6017,8 +6023,14 @@ let teacherActionMenuListenersInstalled = false;
             const match=item.existingStudent;
             const fields=item.missingFields||[];
             const proposed=fields.map(key=>{
-              const before=match?.values?.[key]||'Not recorded';
-              const after=item[key]||'Not provided';
+              const before=key==='nameParts'
+                ? [match?.values?.lastName,match?.values?.firstName,match?.values?.middleName]
+                  .filter(Boolean).join(', ')||'Not recorded'
+                : match?.values?.[key]||'Not recorded';
+              const after=key==='nameParts'
+                ? [item.officialNameParts?.lastName,item.officialNameParts?.firstName,
+                   item.officialNameParts?.middleName].filter(Boolean).join(', ')||'Not provided'
+                : item[key]||'Not provided';
               return '<div class="sf1-review-field"><span>'+esc(fieldLabels[key]||key)+'</span><span class="sf1-review-before">'+esc(before)+'</span><strong>'+esc(after)+'</strong></div>';
             }).join('');
             const issues=(item.errors||[]).map(e=>'<p class="sf1-review-warning">'+esc(e)+'</p>').join('');
@@ -6610,9 +6622,12 @@ let teacherActionMenuListenersInstalled = false;
     const restrictedEditor = ['TEACHER','DEPARTMENT_HEAD'].includes(user.role);
     const placementEditable = !restrictedEditor;
     let officialFullName = $('editFullName').value.trim();
+    let selectedParts=null;
     if ($('editStructuredNameToggle').checked) {
       try {
-        officialFullName = window.AttendigoStudentName.compose($('editSurname').value, $('editGivenNames').value);
+        selectedParts=window.AttendigoStudentName.composeParts(
+          $('editSurname').value, $('editFirstName').value, $('editMiddleName').value);
+        officialFullName = selectedParts.fullName;
       } catch (error) {
         feedback.textContent = error.message;
         feedback.className = 'inline-feedback error';
@@ -6620,6 +6635,10 @@ let teacherActionMenuListenersInstalled = false;
       }
     }
     const payload = { fullName: officialFullName };
+    if(selectedParts)Object.assign(payload,{
+      lastName:selectedParts.lastName,firstName:selectedParts.firstName,
+      middleName:selectedParts.middleName
+    });
     const sexEditable = !restrictedEditor || (user.role === 'TEACHER' && !$('editSexGroup').hidden);
     if (sexEditable) payload.sex = $('editSex').value;
     if (placementEditable) Object.assign(payload, { gradeLevel: $('editGrade').value, section: $('editSection').value.trim() });
@@ -6751,6 +6770,17 @@ let teacherActionMenuListenersInstalled = false;
       catch { showToast('Use Copy instructions to share manually.', true); }
     }
   });
+  function updateNewStudentNamePreview() {
+    try {
+      const name=window.AttendigoStudentName.composeParts(
+        $('newLastName').value,$('newFirstName').value,$('newMiddleName').value);
+      $('newFullName').value=name.fullName;
+    } catch (_) {
+      $('newFullName').value='';
+    }
+  }
+  ['newLastName','newFirstName','newMiddleName'].forEach(id=>
+    $(id).addEventListener('input',updateNewStudentNamePreview));
   let studentSaveInProgress = false;
   $('studentForm').addEventListener('submit', async event => {
     event.preventDefault();
@@ -6762,7 +6792,19 @@ let teacherActionMenuListenersInstalled = false;
     const feedback = $('studentFormFeedback');
     feedback.className = 'inline-feedback';
     feedback.textContent = 'Saving…';
+    let nameParts;
+    try {
+      nameParts=window.AttendigoStudentName.composeParts(
+        $('newLastName').value,$('newFirstName').value,$('newMiddleName').value);
+    } catch(error) {
+      feedback.textContent=error.message;feedback.className='inline-feedback error';
+      studentSaveInProgress=false;
+      $('saveStudentClose').disabled=false;$('saveStudentAnother').disabled=false;
+      return;
+    }
+    $('newFullName').value=nameParts.fullName;
     const payload = {
+      lastName:nameParts.lastName,firstName:nameParts.firstName,middleName:nameParts.middleName,
       studentId: $('newStudentId').value.trim(),
       lrn: $('newLrn').value.trim() || null,
       sex: $('newSex').value,
@@ -6788,7 +6830,7 @@ let teacherActionMenuListenersInstalled = false;
       feedback.textContent = 'Student ' + created.student.studentId + ' saved successfully.';
       showToast('Student ' + created.student.studentId + ' registered successfully.');
       if (saveMode === 'another') {
-        $('newFullName').focus();
+        $('newLastName').focus();
       } else if (payload.parentName || payload.parentMobile) {
         openParentInvite(inviteStudent, payload);
       }
