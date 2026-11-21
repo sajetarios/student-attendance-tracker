@@ -1,4 +1,4 @@
-const CACHE = "attendigo-v275-ipad-sidebar-scroll";
+const CACHE = "attendigo-v276-structured-student-name-fields";
 
 const SHELL = [
   "/typography.css?v=1",
@@ -51,11 +51,11 @@ const SHELL = [
   "/learner-roster-view.css?v=1",
   "/teacher-learner-roster.css?v=5",
   "/learner-roster-view.js?v=1",
-  "/student-name-format.js?v=1",
+  "/student-name-format.js?v=2",
   "/class-qr-dashboard-link.js?v=11",
   "/teacher-roster-popover.js?v=2",
   "/portal.css?v=0.9.119",
-  "/portal.js?v=219",
+  "/portal.js?v=220",
   "/department-workspace.css?v=1",
   "/department-workspace.js?v=5",
   "/department-monitor-refresh.css?v=1",

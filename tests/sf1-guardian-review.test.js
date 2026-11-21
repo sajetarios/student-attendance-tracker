@@ -188,7 +188,7 @@ test('the unified SF1 import fills missing family information without altering i
  const preview=await h.invoke('/api/students/sf1/preview',payload);
  assert.equal(preview.statusCode,200);
  assert.equal(preview.body.summary.update,1);
- assert.deepEqual(preview.body.rows[0].missingFields.sort(),['fatherName','motherMaidenName','parentMobile','sf1GuardianName'].sort());
+ assert.deepEqual(preview.body.rows[0].missingFields.sort(),['fatherName','motherMaidenName','nameParts','parentMobile','sf1GuardianName'].sort());
  const commit=await h.invoke('/api/students/sf1/commit',payload);
  assert.equal(commit.statusCode,200);
  const updates=h.calls.filter(c=>c.sql.includes('UPDATE students'));

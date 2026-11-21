@@ -2579,6 +2579,7 @@ app.get('/api/students', authenticateSchoolClient, requireSchoolClient, requireS
     const qrField = canScanQr ? ', s.qr_token AS "qrToken"' : '';
     const result = await pool.query(
       `SELECT s.student_id AS "studentId", s.full_name AS "fullName",
+              s.last_name AS "lastName",s.first_name AS "firstName",s.middle_name AS "middleName",
               COALESCE(active_enrollment.grade_level,s.grade_level) AS "gradeLevel", COALESCE(active_enrollment.section,s.section) AS section,
               s.sex, s.active, s.archived_at AS "archivedAt"${qrField},
               program.program_code AS "specialProgramCode", program.program_name AS "specialProgramName",
@@ -2594,7 +2595,7 @@ app.get('/api/students', authenticateSchoolClient, requireSchoolClient, requireS
           LIMIT 1) program ON TRUE
        ${includeParentFields ? 'LEFT JOIN student_accounts sa ON sa.school_id=s.school_id AND sa.student_id=s.student_id' : ''}
        WHERE s.school_id=$1 AND (s.active=TRUE OR ${includeInactive ? 'TRUE' : 'FALSE'})${scope}
-       ORDER BY s.full_name`,
+       ORDER BY COALESCE(NULLIF(s.last_name,''),s.full_name),COALESCE(NULLIF(s.first_name,''),s.full_name),s.student_id`,
       params
     );
     res.json({ students: result.rows.map(student => ({
@@ -2607,6 +2608,27 @@ app.get('/api/students', authenticateSchoolClient, requireSchoolClient, requireS
   }
 });
 
+// Submitted structured components must reconstruct the same full name. Never
+// guess first/middle boundaries from an unstructured legacy full_name.
+function submittedStudentNameParts(body, fullName) {
+  const keys=['lastName','firstName','middleName'];
+  if(!keys.some(key=>Object.prototype.hasOwnProperty.call(body||{},key)))
+    return {provided:false};
+  if(typeof body.lastName!=='string'||typeof body.firstName!=='string'||
+     (body.middleName!==undefined&&typeof body.middleName!=='string'))
+    return {error:'Enter valid surname, first name and optional middle name.'};
+  const tidy=value=>String(value||'').trim().replace(/\s+/g,' ');
+  const lastName=tidy(body.lastName),firstName=tidy(body.firstName);
+  const middleName=tidy(body.middleName);
+  if(!lastName||!firstName||lastName.length>100||firstName.length>160||
+    middleName.length>160||[lastName,firstName,middleName].some(x=>x.includes(',')))
+    return {error:'Surname and first name are required; check the component lengths.'};
+  const composed=lastName+', '+firstName+(middleName?' '+middleName:'');
+  if(composed!==tidy(fullName)||composed.length>200)
+    return {error:'Name components must match the official formatted full name.'};
+  return {provided:true,lastName,firstName,middleName};
+}
+
 // School admins and teachers may add students for continuity when an administrator is unavailable.
 // Teachers may add ONLY new students to a grade/section covered by one of their assigned periods.
 // A teacher cannot use this endpoint to edit an existing student or move a learner between sections.
@@ -2618,6 +2640,8 @@ app.post('/api/students', authenticateSchoolClient, requireSchoolAdminOrTeacher,
   const cleanParentMobile = typeof parentMobile === 'string' ? parentMobile.trim() : '';
   const cleanLrn = typeof lrn === 'string' ? lrn.trim() : '';
   const requestedStudentId = typeof studentId === 'string' ? studentId.trim() : '';
+  const nameParts=submittedStudentNameParts(req.body,fullName);
+  if(nameParts.error)return res.status(400).json({error:nameParts.error});
   if ((studentId != null && typeof studentId !== 'string') ||
       ![fullName, gradeLevel, section, cleanParentName, cleanParentMobile].every(validText) ||
       requestedStudentId.length > 80 || String(fullName).trim().length > 200 ||
@@ -2670,20 +2694,32 @@ app.post('/api/students', authenticateSchoolClient, requireSchoolAdminOrTeacher,
         ? 'ON CONFLICT(student_id) DO NOTHING'
         : `ON CONFLICT(student_id) DO UPDATE SET
              lrn=EXCLUDED.lrn, full_name=EXCLUDED.full_name, sex=EXCLUDED.sex, parent_name=EXCLUDED.parent_name,
-             parent_mobile=EXCLUDED.parent_mobile, active=TRUE, updated_at=NOW()
+             parent_mobile=EXCLUDED.parent_mobile,
+             last_name=CASE WHEN students.full_name IS DISTINCT FROM EXCLUDED.full_name OR EXCLUDED.first_name IS NOT NULL
+               THEN EXCLUDED.last_name ELSE students.last_name END,
+             first_name=CASE WHEN students.full_name IS DISTINCT FROM EXCLUDED.full_name OR EXCLUDED.first_name IS NOT NULL
+               THEN EXCLUDED.first_name ELSE students.first_name END,
+             middle_name=CASE WHEN students.full_name IS DISTINCT FROM EXCLUDED.full_name OR EXCLUDED.first_name IS NOT NULL
+               THEN EXCLUDED.middle_name ELSE students.middle_name END,
+             name_parts_source=CASE WHEN students.full_name IS DISTINCT FROM EXCLUDED.full_name OR EXCLUDED.first_name IS NOT NULL
+               THEN EXCLUDED.name_parts_source ELSE students.name_parts_source END,
+             active=TRUE, updated_at=NOW()
            WHERE students.school_id=EXCLUDED.school_id`;
       let result = { rowCount: 0 };
       for (let attempt = 0; attempt < (requestedStudentId ? 1 : 20); attempt++) {
         if (!requestedStudentId) cleanStudentId = await nextStudentId(client, { year: registrationYear });
         result = await client.query(
           `INSERT INTO students(school_id, student_id, lrn, full_name, grade_level, section,
-                               parent_name, parent_mobile, sex, qr_token)
-           VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)
+                               parent_name, parent_mobile, sex, qr_token,last_name,first_name,middle_name,name_parts_source)
+           VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14)
            ${conflictAction}
            RETURNING student_id AS "studentId", full_name AS "fullName", sex,
+                     last_name AS "lastName",first_name AS "firstName",middle_name AS "middleName",
                      grade_level AS "gradeLevel", section, qr_token AS "qrToken"`,
           [req.auth.schoolId, cleanStudentId, cleanLrn || null, fullName.trim(), masterGrade,
-           masterSection, cleanParentName, cleanParentMobile, cleanSex, qrToken]
+           masterSection, cleanParentName, cleanParentMobile, cleanSex, qrToken,
+           nameParts.provided?nameParts.lastName:null,nameParts.provided?nameParts.firstName:null,
+           nameParts.provided?nameParts.middleName:null,nameParts.provided?'MANUAL':null]
         );
         if (result.rowCount) break;
       }
@@ -2741,6 +2777,8 @@ app.patch('/api/students/:studentId', authenticateSchoolClient, requireSchoolAdm
   const isClassAdviser = isTeacher && designations.includes('CLASS_ADVISER');
   const isSubjectTeacher = isTeacher && designations.includes('SUBJECT_TEACHER');
   const { lrn, fullName, gradeLevel, section, sex, parentName, parentMobile, fatherName, motherMaidenName, sf1GuardianName, birthDate, sf1Address } = req.body || {};
+  const nameParts=submittedStudentNameParts(req.body,fullName);
+  if(nameParts.error)return res.status(400).json({error:nameParts.error});
   const cleanSex = String(sex || '').trim().toUpperCase();
   if (!validText(fullName) || fullName.trim().length > 200) {
     return res.status(400).json({ error: 'Provide a valid student full name.' });
@@ -2810,22 +2848,42 @@ app.patch('/api/students/:studentId', authenticateSchoolClient, requireSchoolAdm
           return res.status(403).json({ error: 'You may move learners only within sections assigned to you as Class Adviser.' });
         }
         updated = await client.query(
-          `UPDATE students s SET full_name=$4, updated_at=NOW()
+          `UPDATE students s SET full_name=$4,
+           last_name=CASE WHEN $5::text IS NOT NULL THEN $5
+             WHEN s.full_name IS DISTINCT FROM $4 THEN NULL ELSE s.last_name END,
+           first_name=CASE WHEN $5::text IS NOT NULL THEN $6
+             WHEN s.full_name IS DISTINCT FROM $4 THEN NULL ELSE s.first_name END,
+           middle_name=CASE WHEN $5::text IS NOT NULL THEN NULLIF($7::text,'')
+             WHEN s.full_name IS DISTINCT FROM $4 THEN NULL ELSE s.middle_name END,
+           name_parts_source=CASE WHEN $5::text IS NOT NULL THEN 'MANUAL'
+             WHEN s.full_name IS DISTINCT FROM $4 THEN NULL ELSE s.name_parts_source END, updated_at=NOW()
            WHERE s.school_id=$1 AND s.student_id=$2 AND s.active=TRUE
              AND EXISTS (SELECT 1 FROM class_adviser_assignments ca WHERE ca.school_id=s.school_id AND ca.adviser_user_id=$3 AND ca.grade_level=COALESCE((SELECT en.grade_level FROM student_enrollments en JOIN school_years sy ON sy.school_id=en.school_id AND sy.school_year_id=en.school_year_id WHERE en.school_id=s.school_id AND en.student_id=s.student_id AND sy.status='ACTIVE' AND en.enrollment_status='ENROLLED' ORDER BY en.created_at DESC LIMIT 1),s.grade_level) AND ca.section=COALESCE((SELECT en.section FROM student_enrollments en JOIN school_years sy ON sy.school_id=en.school_id AND sy.school_year_id=en.school_year_id WHERE en.school_id=s.school_id AND en.student_id=s.student_id AND sy.status='ACTIVE' AND en.enrollment_status='ENROLLED' ORDER BY en.created_at DESC LIMIT 1),s.section))
-           RETURNING s.student_id AS "studentId", s.full_name AS "fullName",
+           RETURNING s.student_id AS "studentId", s.full_name AS "fullName", s.last_name AS "lastName",s.first_name AS "firstName",s.middle_name AS "middleName",
                      s.grade_level AS "gradeLevel", s.section, s.qr_token AS "qrToken"`,
-          [req.auth.schoolId, req.params.studentId, req.auth.userId, fullName.trim()]
+          [req.auth.schoolId, req.params.studentId, req.auth.userId, fullName.trim(),
+           nameParts.provided?nameParts.lastName:null,nameParts.provided?nameParts.firstName:null,
+           nameParts.provided?nameParts.middleName:null]
         );
       } else {
         // Subject-only edit; the submitted payload cannot change placement or parent/LRN data.
         updated = await client.query(
-          `UPDATE students s SET full_name=$4, updated_at=NOW()
+          `UPDATE students s SET full_name=$4,
+           last_name=CASE WHEN $5::text IS NOT NULL THEN $5
+             WHEN s.full_name IS DISTINCT FROM $4 THEN NULL ELSE s.last_name END,
+           first_name=CASE WHEN $5::text IS NOT NULL THEN $6
+             WHEN s.full_name IS DISTINCT FROM $4 THEN NULL ELSE s.first_name END,
+           middle_name=CASE WHEN $5::text IS NOT NULL THEN NULLIF($7::text,'')
+             WHEN s.full_name IS DISTINCT FROM $4 THEN NULL ELSE s.middle_name END,
+           name_parts_source=CASE WHEN $5::text IS NOT NULL THEN 'MANUAL'
+             WHEN s.full_name IS DISTINCT FROM $4 THEN NULL ELSE s.name_parts_source END, updated_at=NOW()
            WHERE s.school_id=$1 AND s.student_id=$2 AND s.active=TRUE
              AND ${TEACHER_STUDENT_SCOPE.replace(/\$2/g, '$3')}
-           RETURNING s.student_id AS "studentId", s.full_name AS "fullName",
+           RETURNING s.student_id AS "studentId", s.full_name AS "fullName", s.last_name AS "lastName",s.first_name AS "firstName",s.middle_name AS "middleName",
                      s.grade_level AS "gradeLevel", s.section, s.qr_token AS "qrToken"`,
-          [req.auth.schoolId, req.params.studentId, req.auth.userId, fullName.trim()]
+          [req.auth.schoolId, req.params.studentId, req.auth.userId, fullName.trim(),
+           nameParts.provided?nameParts.lastName:null,nameParts.provided?nameParts.firstName:null,
+           nameParts.provided?nameParts.middleName:null]
         );
       }
       if (!updated.rowCount) {
@@ -2862,6 +2920,14 @@ app.patch('/api/students/:studentId', authenticateSchoolClient, requireSchoolAdm
     const updated = await client.query(
       `UPDATE students
        SET lrn=$3, full_name=$4,
+           last_name=CASE WHEN $16::text IS NOT NULL THEN $16
+             WHEN full_name IS DISTINCT FROM $4 THEN NULL ELSE last_name END,
+           first_name=CASE WHEN $16::text IS NOT NULL THEN $17
+             WHEN full_name IS DISTINCT FROM $4 THEN NULL ELSE first_name END,
+           middle_name=CASE WHEN $16::text IS NOT NULL THEN NULLIF($18::text,'')
+             WHEN full_name IS DISTINCT FROM $4 THEN NULL ELSE middle_name END,
+           name_parts_source=CASE WHEN $16::text IS NOT NULL THEN 'MANUAL'
+             WHEN full_name IS DISTINCT FROM $4 THEN NULL ELSE name_parts_source END,
            grade_level=CASE WHEN $10 THEN grade_level ELSE $5 END,
            section=CASE WHEN $10 THEN section ELSE $6 END,
            parent_name=$7, parent_mobile=$8, sex=$9,
@@ -2873,6 +2939,7 @@ app.patch('/api/students/:studentId', authenticateSchoolClient, requireSchoolAdm
            updated_at=NOW()
        WHERE school_id=$1 AND student_id=$2 AND active=TRUE
        RETURNING student_id AS "studentId", lrn, full_name AS "fullName",
+                 last_name AS "lastName",first_name AS "firstName",middle_name AS "middleName",
                  grade_level AS "gradeLevel", section, parent_name AS "parentName",
                  parent_mobile AS "parentMobile", sex, qr_token AS "qrToken"`,
       [req.auth.schoolId, req.params.studentId, lrn?.trim() || null,
@@ -2882,7 +2949,9 @@ app.patch('/api/students/:studentId', authenticateSchoolClient, requireSchoolAdm
        motherMaidenName === undefined ? null : motherMaidenName,
        sf1GuardianName === undefined ? null : sf1GuardianName,
        birthDate === undefined ? null : birthDate,
-       sf1Address === undefined ? null : sf1Address]
+       sf1Address === undefined ? null : sf1Address,
+       nameParts.provided?nameParts.lastName:null,nameParts.provided?nameParts.firstName:null,
+       nameParts.provided?nameParts.middleName:null]
     );
     if (!updated.rowCount) {
       await client.query('ROLLBACK');

@@ -25,5 +25,14 @@
     if (fullName.length > 200) throw new Error('The complete name must be 200 characters or less.');
     return fullName;
   }
-  return Object.freeze({ parse, compose });
+  function composeParts(lastInput, firstInput, middleInput = '') {
+    const lastName=tidy(lastInput), firstName=tidy(firstInput),middleName=tidy(middleInput);
+    if(!lastName||!firstName||lastName.length>100||firstName.length>160||
+       middleName.length>160||[lastName,firstName,middleName].some(value=>value.includes(',')))
+      throw new Error('Surname and first name are required; middle name is optional.');
+    const fullName=lastName+', '+firstName+(middleName?' '+middleName:'');
+    if(fullName.length>200)throw new Error('The complete name must be 200 characters or less.');
+    return {lastName,firstName,middleName,fullName};
+  }
+  return Object.freeze({ parse, compose, composeParts });
 });
