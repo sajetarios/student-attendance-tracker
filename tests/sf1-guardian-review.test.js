@@ -92,7 +92,7 @@ test('SF1 review previews and safely fills only previously empty guardian fields
 });
 
 test('existing guardian conflict or ambiguous name forces review and blocks commit',async()=>{
- const data=await fixture(),payload={fileBase64:data,fileType:'xlsx'};
+ const data=await fixture(),payload={fileBase64:data,fileType:'xlsx',recoverMissingLrn:false};
  const conflict=createHarness([{...learner,parent_name:'ANOTHER GUARDIAN'}]);
  const preview=await conflict.invoke('/api/students/sf1/preview',payload);
  assert.equal(preview.body.summary.review,1);
