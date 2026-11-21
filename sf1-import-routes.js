@@ -229,4 +229,4 @@ function registerSf1ImportRoutes(app,pool,{authenticateSchoolClient,requireSchoo
   finally{client.release();}
  });
 }
-module.exports={registerSf1ImportRoutes};
+module.exports={registerSf1ImportRoutes,sf1NameAliases,sf1NamesEquivalent};
