@@ -56,5 +56,24 @@ test('Supabase connection errors never print passwords or detailed connection st
   });
   assert.deepEqual(out, { status: 'connection_failed', code: '28P01' });
   assert.equal(logs.length, 1);
-  assert.equal(logs[0], '[Supabase preflight] connection_failed code=28P01');
+  assert.equal(logs[0], '[Supabase preflight] connection_failed code=28P01 category=OTHER');
+});
+
+test('Supabase TLS diagnostics show safe category and code without any certificate or secret detail', async () => {
+  const logs = [];
+  class TestPool {
+    async query() {
+      const error = new Error('unable to verify the certificate from TEST_SECRET');
+      error.code = 'UNABLE_TO_VERIFY_LEAF_SIGNATURE';
+      throw error;
+    }
+    async end() {}
+  }
+  const out = await runSupabasePreflight({
+    connectionString: sessionUri,
+    PoolClass: TestPool,
+    logger: { warn: line => logs.push(line), log: line => logs.push(line) }
+  });
+  assert.equal(out.code, 'UNABLE_TO_VERIFY_LEAF_SIGNATURE');
+  assert.deepEqual(logs, ['[Supabase preflight] connection_failed code=UNABLE_TO_VERIFY_LEAF_SIGNATURE category=TLS']);
 });
