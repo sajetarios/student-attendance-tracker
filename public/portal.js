@@ -5880,6 +5880,7 @@ let teacherActionMenuListenersInstalled = false;
       ? 'Maximum 5 MB and 2,000 learners. LRN, learner name and sex are required. Labeled guardian and contact fields fill empty profile fields after review. Existing identities, section and attendance stay intact.'
       : 'Maximum 5 MB and 2,000 rows. Student ID, Full Name, Sex, Grade Level, and Section are required. LRN and guardian fields are optional.';
     if($('studentImportUpdateExistingWrap')) $('studentImportUpdateExistingWrap').hidden=sf1||user.role!=='SCHOOL_ADMIN';
+    if($('studentImportRecoverLrnWrap')) $('studentImportRecoverLrnWrap').hidden=!sf1;
     prepareStudentImportAdvisoryScope();
   });
   $('studentImportAdvisoryAssignment')?.addEventListener('change', () => { previewStudentImport().catch(error => showToast(error.message, true)); });
