@@ -33,3 +33,27 @@ test('unconfigured schedule blocks classification',()=>{
  assert.deepEqual(r.suggestions,{});
  assert.equal(r.safeToApply,false);
 });
+
+test('late verified return following an OB departure requires review, never a DTR slot',()=>{
+ const r=reconcileGateDay({hours,movements:[
+  {eventType:'TIME_IN',time:'07:25'},{eventType:'TIME_OUT',time:'09:00'},
+  {eventType:'TIME_IN',time:'18:00'},{eventType:'TIME_OUT',time:'18:15'}],
+  approvedOb:[{start:'09:00',end:'17:00'}]});
+ assert.ok(r.review.includes('OB_RETURN_AFTER_APPROVED_END_REVIEW'));
+ assert.equal(r.suggestions.PM_IN,undefined);
+ assert.equal(r.safeToApply,false);
+});
+test('an isolated evening arrival is not misclassified as a late OB return',()=>{
+ const r=reconcileGateDay({hours,movements:[{eventType:'TIME_IN',time:'18:00'}],
+  approvedOb:[{start:'09:00',end:'17:00'}]});
+ assert.ok(!r.review.includes('OB_RETURN_AFTER_APPROVED_END_REVIEW'));
+ assert.equal(r.safeToApply,false);
+});
+test('OB return within boundary tolerance remains in standard OB review',()=>{
+ const r=reconcileGateDay({hours,movements:[
+  {eventType:'TIME_IN',time:'07:25'},{eventType:'TIME_OUT',time:'09:00'},
+  {eventType:'TIME_IN',time:'17:10'}],approvedOb:[{start:'09:00',end:'17:00'}]});
+ assert.ok(r.review.includes('OB_BOUNDARY_GATE_MOVEMENT'));
+ assert.ok(!r.review.includes('OB_RETURN_AFTER_APPROVED_END_REVIEW'));
+ assert.equal(r.suggestions.PM_IN,undefined);
+});
