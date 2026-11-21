@@ -114,7 +114,7 @@ function registerSf1ImportRoutes(app,pool,{authenticateSchoolClient,requireSchoo
     if(!found.active||found.archived_at)issues.push('This LRN is archived or inactive; School Admin review required.');
     if(!sf1NamesEquivalent(found.full_name,r.fullName))issues.push('Name differs from the saved LRN record.');
     if(found.sex&&String(found.sex).toUpperCase()!==r.sex)issues.push('Sex differs from the saved LRN record.');
-    if(r.birthDate&&found.birth_date&&String(found.birth_date).slice(0,10)!==r.birthDate)
+    if(r.birthDate&&found.birth_date&&new Date(found.birth_date).toISOString().slice(0,10)!==r.birthDate)
      issues.push('Birthdate differs from the saved LRN record.');
     if(r.officialNameParts&&validValue(found.first_name)&&
        (canonical(found.last_name)!==canonical(r.officialNameParts.lastName)||
