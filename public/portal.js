@@ -6632,8 +6632,14 @@ let teacherActionMenuListenersInstalled = false;
       catch { showToast('Use Copy instructions to share manually.', true); }
     }
   });
+  let studentSaveInProgress = false;
   $('studentForm').addEventListener('submit', async event => {
     event.preventDefault();
+    if (studentSaveInProgress) return;
+    const saveMode = event.submitter?.dataset.saveMode === 'another' ? 'another' : 'close';
+    studentSaveInProgress = true;
+    $('saveStudentClose').disabled = true;
+    $('saveStudentAnother').disabled = true;
     const feedback = $('studentFormFeedback');
     feedback.className = 'inline-feedback';
     feedback.textContent = 'Saving…';
@@ -6657,13 +6663,23 @@ let teacherActionMenuListenersInstalled = false;
       $('newSection').innerHTML = '<option value="">Select grade level first</option>';
       $('newSection').disabled = true;
       $('newSectionHint').textContent = 'Choose a grade to load its available sections.';
-      $('studentForm').hidden = true;
+      $('studentForm').hidden = saveMode !== 'another';
       await loadSchoolData();
+      feedback.className = 'inline-feedback success';
+      feedback.textContent = 'Student ' + created.student.studentId + ' saved successfully.';
       showToast('Student ' + created.student.studentId + ' registered successfully.');
-      if (payload.parentName || payload.parentMobile) openParentInvite(inviteStudent, payload);
+      if (saveMode === 'another') {
+        $('newFullName').focus();
+      } else if (payload.parentName || payload.parentMobile) {
+        openParentInvite(inviteStudent, payload);
+      }
     } catch (error) {
       feedback.className = 'inline-feedback error';
       feedback.textContent = error.message;
+    } finally {
+      studentSaveInProgress = false;
+      $('saveStudentClose').disabled = false;
+      $('saveStudentAnother').disabled = false;
     }
   });
 
