@@ -14,7 +14,7 @@ test('role-based hidden navigation wins against expanded and collapsed display o
   assert.match(css, /portal-layout:not\(\.sidebar-collapsed\) #sidebar\.sidebar \.side-nav \[hidden\]/);
   assert.match(css, /portal-layout\.sidebar-collapsed #sidebar\.sidebar \.side-nav \[hidden\]/);
   assert.match(css, /side-nav \[hidden\][\s\S]*?display:none!important/);
-  assert.match(html, /attendigo-sidebar-adaptive\.css\?v=19/);
+  assert.match(html, /attendigo-sidebar-adaptive\.css\?v=20/);
 });
 
 test('School Admin keeps administration menus, not the teacher-only class attendance or SF2', () => {
