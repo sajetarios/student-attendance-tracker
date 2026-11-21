@@ -1,0 +1,52 @@
+/* Compact school-wide attendance triage, separate from official Form 48 printing. */
+.smart-attendance-overview{margin:14px 0 20px;padding:15px;border:1px solid var(--border-color,#d4e0eb);border-radius:13px;background:var(--surface,#fff);min-width:0;color:inherit}
+.smart-attendance-head{display:flex;align-items:flex-start;justify-content:space-between;flex-wrap:wrap;gap:13px}
+.smart-attendance-head h4{margin:0 0 5px;font-size:17px;font-weight:750}
+.smart-attendance-head p{margin:0;max-width:600px;font-size:12px;line-height:1.5;color:var(--text-muted,#65758a)}
+.smart-attendance-date-control{display:flex;align-items:flex-end;gap:8px;flex-wrap:wrap}
+.smart-attendance-date-control label{display:grid;gap:5px;font-size:12px;font-weight:650}
+.smart-attendance-date-control input,.smart-attendance-hours-grid input{min-width:0;min-height:40px;width:100%;box-sizing:border-box;padding:8px 10px;border:1px solid var(--border-color,#bdd0df);border-radius:8px;background:var(--surface,#fff);color:inherit;font:inherit}
+.smart-attendance-date-control button{min-height:40px}
+.smart-attendance-counts{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:9px;margin:14px 0 11px}
+.smart-attendance-counts>div{display:grid;gap:6px;padding:12px;border:1px solid var(--border-color,#d4e0eb);border-radius:9px;background:var(--surface-secondary,#f7f9fc);min-width:0}
+.smart-attendance-counts span{font-size:12px;color:var(--text-muted,#64748b);line-height:1.35}
+.smart-attendance-counts strong{font-size:22px;font-variant-numeric:tabular-nums}
+#smartAttendanceStatus{margin:10px 0;font-size:12px;line-height:1.5;color:var(--text-muted,#64748b)}
+#smartAttendanceStatus.is-error{color:#b42318}
+.smart-attendance-items{display:grid;gap:7px;max-height:370px;overflow-y:auto;overscroll-behavior:contain}
+.smart-attendance-person{display:flex;align-items:center;justify-content:space-between;gap:10px;border:1px solid var(--border-color,#d4e0eb);border-radius:9px;padding:10px 12px;min-width:0}
+.smart-attendance-person>div{min-width:0}
+.smart-attendance-person strong{display:block;font-size:13px;overflow-wrap:anywhere}
+.smart-attendance-person p{margin:4px 0 0;font-size:12px;line-height:1.4;color:var(--text-muted,#64748b);overflow-wrap:anywhere}
+.smart-attendance-person small{display:block;font-size:11px;color:var(--text-muted,#64748b);margin-bottom:6px}
+.smart-attendance-person button{min-height:34px;white-space:nowrap}
+.smart-attendance-all-clear{margin:2px 0;color:var(--text-muted,#64748b);font-size:12px;line-height:1.5}
+.smart-attendance-other{margin-top:10px;border-top:1px solid var(--border-color,#d4e0eb)}
+.smart-attendance-other>summary,.smart-attendance-hours>summary{cursor:pointer;padding:12px 2px;list-style:none;font-weight:650;font-size:13px}
+.smart-attendance-other>summary::-webkit-details-marker,.smart-attendance-hours>summary::-webkit-details-marker{display:none}
+.smart-attendance-other>summary:focus-visible,.smart-attendance-hours>summary:focus-visible{outline:2px solid #3486d4;outline-offset:2px}
+.smart-attendance-hours{margin-top:14px;border-top:1px solid var(--border-color,#d4e0eb)}
+.smart-attendance-hours>summary{display:flex;gap:8px;justify-content:space-between;align-items:center}
+.smart-attendance-hours>summary small{font-size:12px;font-weight:400;color:var(--text-muted,#64748b)}
+.smart-attendance-hours-body>p,.smart-attendance-note{font-size:12px;line-height:1.5;color:var(--text-muted,#64748b);margin:10px 0}
+.smart-attendance-hours-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}
+.smart-attendance-hours-grid label{display:grid;gap:5px;font-size:12px;font-weight:650;min-width:0}
+.smart-attendance-hours-actions{display:flex;align-items:center;flex-wrap:wrap;gap:12px;margin:12px 0}
+.smart-attendance-hours-actions button{min-height:39px}
+.smart-attendance-hours-actions span{font-size:12px;line-height:1.5;color:var(--text-muted,#64748b)}
+.smart-attendance-hours-actions button:disabled{opacity:.6;cursor:not-allowed}
+@media(max-width:800px){.smart-attendance-counts{grid-template-columns:repeat(3,minmax(0,1fr))}.smart-attendance-hours-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:540px){.smart-attendance-overview{padding:12px}.smart-attendance-head,.smart-attendance-date-control{display:grid;grid-template-columns:1fr;width:100%}.smart-attendance-counts{grid-template-columns:repeat(2,minmax(0,1fr))}.smart-attendance-counts>div:last-child{grid-column:1/-1}.smart-attendance-person{align-items:stretch;flex-direction:column}.smart-attendance-person button{width:100%}}
+@media print{.smart-attendance-overview{display:none!important}}
+
+/* Keep rarely used Form 48 settings unobtrusive during daily review. */
+#form48AdvancedSettings>.form48-advanced-summary{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:5px 14px;padding:5px 0;cursor:pointer;list-style:none;font-size:13px;font-weight:650}
+#form48AdvancedSettings>.form48-advanced-summary::-webkit-details-marker{display:none}
+#form48AdvancedSettings>.form48-advanced-summary small{font-size:12px;color:var(--text-muted,#64748b);font-weight:400}
+#form48AdvancedSettings>.form48-advanced-summary:focus-visible{outline:2px solid #3486d4;outline-offset:3px}
+#form48AdvancedSettings[open]>.form48-advanced-summary{border-bottom:1px solid var(--border-color,#d4e0eb);padding-bottom:12px;margin-bottom:12px}
+@media print{#form48AdvancedSettings{display:none!important}}
+
+.form48-advanced-wrapper{margin:10px 0}
+.form48-advanced-wrapper>.form48-advanced-summary{border:1px solid var(--border-color,#d4e0eb);border-radius:9px;padding:12px!important;background:var(--surface,#fff)}
+.form48-advanced-wrapper>.form48-settings-panel{margin-top:8px}
