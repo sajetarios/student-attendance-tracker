@@ -2560,7 +2560,7 @@ app.get('/api/students', authenticateSchoolClient, requireSchoolClient, requireS
           LIMIT 1) program ON TRUE
        ${includeParentFields ? 'LEFT JOIN student_accounts sa ON sa.school_id=s.school_id AND sa.student_id=s.student_id' : ''}
        WHERE s.school_id=$1 AND (s.active=TRUE OR ${includeInactive ? 'TRUE' : 'FALSE'})${scope}
-       ORDER BY s.full_name`,
+       ORDER BY COALESCE(NULLIF(s.last_name,''),s.full_name),COALESCE(NULLIF(s.first_name,''),s.full_name),s.student_id`,
       params
     );
     res.json({ students: result.rows.map(student => ({
