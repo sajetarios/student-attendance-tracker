@@ -1763,9 +1763,12 @@ function coverageStatusLabel(status) {
         const adminQrAction = admin && canViewQr
           ? `<button type="button" class="outline-button" data-view-qr="${esc(student.studentId)}" aria-label="View QR code for ${esc(student.fullName)}">View QR</button>`
           : '';
+        const detailsButton=canViewFamily
+          ? `<button type="button" class="outline-button" data-view-family="${esc(student.studentId)}">Learner &amp; family details</button><template data-family-template="${esc(student.studentId)}">${teacherGuardian}</template>`
+          : '';
         const actions = editable
-          ? `<details class="student-actions-dropdown"><summary aria-label="Actions for ${esc(student.fullName)}">Actions</summary><div class="student-row-actions"><button type="button" class="outline-button" data-edit-student="${esc(student.studentId)}">Edit</button>${canUploadPhoto ? `<label class="student-photo-upload">${student.hasPhoto ? 'Replace photo' : 'Upload photo'}<input type="file" accept="image/jpeg,image/png,image/webp" data-student-photo="${esc(student.studentId)}" hidden></label>` : ''}${adminQrAction}${teacherGuardian}</div></details>`
-          : teacher ? `<details class="student-actions-dropdown"><summary aria-label="View contact for ${esc(student.fullName)}">Details</summary><div class="student-row-actions">${teacherGuardian}</div></details>`
+          ? `<details class="student-actions-dropdown"><summary aria-label="Actions for ${esc(student.fullName)}">Actions</summary><div class="student-row-actions"><button type="button" class="outline-button" data-edit-student="${esc(student.studentId)}">Edit</button>${canUploadPhoto ? `<label class="student-photo-upload">${student.hasPhoto ? 'Replace photo' : 'Upload photo'}<input type="file" accept="image/jpeg,image/png,image/webp" data-student-photo="${esc(student.studentId)}" hidden></label>` : ''}${adminQrAction}${detailsButton}</div></details>`
+          : teacher ? `<details class="student-actions-dropdown"><summary aria-label="Actions for ${esc(student.fullName)}">Actions</summary><div class="student-row-actions">${detailsButton}</div></details>`
             : '<span class="muted-inline">' + (student.archivedAt ? 'Archived' : student.active === false ? 'Inactive' : 'View only') + '</span>';
         const statusLabel = student.archivedAt ? 'Archived' : student.active === false ? 'Inactive' : 'Active';
         const programCell = student.specialProgramCode
@@ -2753,6 +2756,47 @@ let teacherActionMenuListenersInstalled = false;
       teacherActionMenuListenersInstalled = true;
     }
   }
+
+  // Family information belongs in a viewport-contained dialog, not the floating Actions menu.
+  document.addEventListener('click',event=>{
+    const trigger=event.target.closest?.('[data-view-family]');
+    if(!trigger) return;
+    const details=trigger.closest('.student-actions-dropdown');
+    const template=Array.from(details?.querySelectorAll('template[data-family-template]')||[]).find(el=>el.dataset.familyTemplate===trigger.dataset.viewFamily);
+    if(!template) return;
+    details.open=false;
+    document.getElementById('sf1FamilyDialog')?.remove();
+    const overlay=document.createElement('div');
+    overlay.id='sf1FamilyDialog';
+    overlay.className='sf1-family-overlay';
+    overlay.setAttribute('role','presentation');
+    const dialog=document.createElement('section');
+    dialog.className='sf1-family-dialog';
+    dialog.setAttribute('role','dialog');
+    dialog.setAttribute('aria-modal','true');
+    dialog.setAttribute('aria-label','Learner and family information');
+    const heading=document.createElement('header');
+    const title=document.createElement('strong');
+    title.textContent='Learner & family details';
+    const close=document.createElement('button');
+    close.type='button';close.className='outline-button';close.textContent='Close';close.setAttribute('aria-label','Close learner details');
+    heading.append(title,close);
+    const body=document.createElement('div');
+    body.className='sf1-family-dialog-body';
+    body.append(template.content.cloneNode(true));
+    dialog.append(heading,body);overlay.append(dialog);document.body.append(overlay);
+    const dismiss=()=>{overlay.remove();trigger.focus();};
+    close.addEventListener('click',dismiss);
+    overlay.addEventListener('click',e=>{if(e.target===overlay)dismiss();});
+    overlay.addEventListener('keydown',e=>{
+      if(e.key==='Escape'){e.preventDefault();dismiss();}
+      if(e.key==='Tab'){
+        const controls=[...dialog.querySelectorAll('button:not([disabled]),a[href],input:not([disabled])')];
+        if(controls.length===1){e.preventDefault();close.focus();}
+      }
+    });
+    close.focus();
+  });
 
   // Position the student Actions panel after its actual SF1 content has been laid out.
   // The existing fixed-position menu otherwise opens beyond the right edge on iPads.
