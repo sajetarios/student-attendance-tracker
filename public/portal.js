@@ -1651,7 +1651,10 @@ function coverageStatusLabel(status) {
   // Display a surname separately only when the saved name explicitly identifies it.
   // Never guess the last token of a legacy full name: Filipino compound surnames are common.
   function studentRosterName(student, ordinal = '') {
-    const parsed = window.AttendigoStudentName?.parse(student.fullName);
+    const parsed = student.lastName && student.firstName
+      ? {verified:true,surname:student.lastName,
+         givenNames:[student.firstName,student.middleName].filter(Boolean).join(' ')}
+      : window.AttendigoStudentName?.parse(student.fullName);
     if (parsed?.verified) {
       return '<span class="student-roster-name-block">' + ordinal +
         '<strong class="learner-roster-surname">' + esc(parsed.surname) + '</strong>' +
@@ -1669,7 +1672,8 @@ function coverageStatusLabel(status) {
     $('editFullNameGroup').hidden = structured;
     $('editFullName').required = !structured;
     $('editSurname').required = structured;
-    $('editGivenNames').required = structured;
+    $('editFirstName').required = structured;
+    $('editGivenNames').required = false;
   }
 
   async function renderStudents() {
@@ -1958,10 +1962,12 @@ function coverageStatusLabel(status) {
     $('editStudentIdDisplay').value = student.studentId;
     $('editLrn').value = student.lrn || '';
     $('editFullName').value = student.fullName || '';
-    const parsedName = window.AttendigoStudentName?.parse(student.fullName);
-    $('editStructuredNameToggle').checked = Boolean(parsedName?.verified);
-    $('editSurname').value = parsedName?.surname || '';
-    $('editGivenNames').value = parsedName?.givenNames || '';
+    const parsedName=window.AttendigoStudentName?.parse(student.fullName);
+    $('editStructuredNameToggle').checked = Boolean(student.lastName && student.firstName);
+    $('editSurname').value = student.lastName || parsedName?.surname || '';
+    $('editFirstName').value = student.firstName || '';
+    $('editMiddleName').value = student.middleName || '';
+    $('editGivenNames').value = '';
     updateStructuredStudentNameMode();
     $('editSex').value = String(student.sex || '').toUpperCase();
     $('editGrade').value = student.gradeLevel || 'Grade 7';
@@ -6610,9 +6616,12 @@ let teacherActionMenuListenersInstalled = false;
     const restrictedEditor = ['TEACHER','DEPARTMENT_HEAD'].includes(user.role);
     const placementEditable = !restrictedEditor;
     let officialFullName = $('editFullName').value.trim();
+    let selectedParts=null;
     if ($('editStructuredNameToggle').checked) {
       try {
-        officialFullName = window.AttendigoStudentName.compose($('editSurname').value, $('editGivenNames').value);
+        selectedParts=window.AttendigoStudentName.composeParts(
+          $('editSurname').value, $('editFirstName').value, $('editMiddleName').value);
+        officialFullName = selectedParts.fullName;
       } catch (error) {
         feedback.textContent = error.message;
         feedback.className = 'inline-feedback error';
@@ -6620,6 +6629,10 @@ let teacherActionMenuListenersInstalled = false;
       }
     }
     const payload = { fullName: officialFullName };
+    if(selectedParts)Object.assign(payload,{
+      lastName:selectedParts.lastName,firstName:selectedParts.firstName,
+      middleName:selectedParts.middleName
+    });
     const sexEditable = !restrictedEditor || (user.role === 'TEACHER' && !$('editSexGroup').hidden);
     if (sexEditable) payload.sex = $('editSex').value;
     if (placementEditable) Object.assign(payload, { gradeLevel: $('editGrade').value, section: $('editSection').value.trim() });
@@ -6751,6 +6764,17 @@ let teacherActionMenuListenersInstalled = false;
       catch { showToast('Use Copy instructions to share manually.', true); }
     }
   });
+  function updateNewStudentNamePreview() {
+    try {
+      const name=window.AttendigoStudentName.composeParts(
+        $('newLastName').value,$('newFirstName').value,$('newMiddleName').value);
+      $('newFullName').value=name.fullName;
+    } catch (_) {
+      $('newFullName').value='';
+    }
+  }
+  ['newLastName','newFirstName','newMiddleName'].forEach(id=>
+    $(id).addEventListener('input',updateNewStudentNamePreview));
   let studentSaveInProgress = false;
   $('studentForm').addEventListener('submit', async event => {
     event.preventDefault();
@@ -6762,7 +6786,19 @@ let teacherActionMenuListenersInstalled = false;
     const feedback = $('studentFormFeedback');
     feedback.className = 'inline-feedback';
     feedback.textContent = 'Saving…';
+    let nameParts;
+    try {
+      nameParts=window.AttendigoStudentName.composeParts(
+        $('newLastName').value,$('newFirstName').value,$('newMiddleName').value);
+    } catch(error) {
+      feedback.textContent=error.message;feedback.className='inline-feedback error';
+      studentSaveInProgress=false;
+      $('saveStudentClose').disabled=false;$('saveStudentAnother').disabled=false;
+      return;
+    }
+    $('newFullName').value=nameParts.fullName;
     const payload = {
+      lastName:nameParts.lastName,firstName:nameParts.firstName,middleName:nameParts.middleName,
       studentId: $('newStudentId').value.trim(),
       lrn: $('newLrn').value.trim() || null,
       sex: $('newSex').value,
@@ -6788,7 +6824,7 @@ let teacherActionMenuListenersInstalled = false;
       feedback.textContent = 'Student ' + created.student.studentId + ' saved successfully.';
       showToast('Student ' + created.student.studentId + ' registered successfully.');
       if (saveMode === 'another') {
-        $('newFullName').focus();
+        $('newLastName').focus();
       } else if (payload.parentName || payload.parentMobile) {
         openParentInvite(inviteStudent, payload);
       }
