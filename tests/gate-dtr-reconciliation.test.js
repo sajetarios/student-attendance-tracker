@@ -79,3 +79,33 @@ test('late OB return never implies overtime or automatic DTR',()=>{
  assert.ok(r.review.includes('OB_RETURN_AFTER_APPROVED_END_REVIEW'));
  assert.equal(r.safeToApply,false);
 });
+
+test('early afternoon arrival is suggested as PM_IN from scheduled boundary, not AM_IN',()=>{
+ const r=reconcileGateDay({hours,movements:[
+  {eventType:'TIME_IN',time:'07:25'},
+  {eventType:'TIME_OUT',time:'11:55'},
+  {eventType:'TIME_IN',time:'12:50'}]});
+ assert.deepEqual(r.suggestions.PM_IN,{time:'12:50',source:'VERIFIED_GATE',requiresApproval:true});
+ assert.equal(r.suggestions.AM_IN?.time,'07:25');
+ assert.equal(r.safeToApply,false);
+});
+test('early scheduled departure is suggested as AM_OUT rather than PM_OUT',()=>{
+ const r=reconcileGateDay({hours,movements:[
+  {eventType:'TIME_IN',time:'07:30'},{eventType:'TIME_OUT',time:'12:20'}]});
+ assert.equal(r.suggestions.AM_OUT?.time,'12:20');
+ assert.equal(r.suggestions.PM_OUT,undefined);
+});
+test('equally plausible AM and PM arrival boundaries require review',()=>{
+ const tightShift={AM_IN:'08:00',AM_OUT:'08:10',PM_IN:'08:40',PM_OUT:'09:10'};
+ const r=reconcileGateDay({hours:tightShift,movements:[
+  {eventType:'TIME_IN',time:'08:20'}]});
+ assert.deepEqual(r.suggestions,{});
+ assert.ok(r.review.includes('AMBIGUOUS_SCHEDULE_SLOT'));
+ assert.equal(r.safeToApply,false);
+});
+test('unsupported or remote gate times never become official DTR suggestions',()=>{
+ const r=reconcileGateDay({hours,movements:[{eventType:'TIME_IN',time:'02:05'}]});
+ assert.deepEqual(r.suggestions,{});
+ assert.ok(r.review.includes('OUTSIDE_SCHEDULE_WINDOW'));
+ assert.equal(r.safeToApply,false);
+});
