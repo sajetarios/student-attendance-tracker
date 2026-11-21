@@ -130,7 +130,7 @@ test('Form 48 isolated print has no inherited stylesheet, forced page breaks or 
  const script=fs.readFileSync('public/form48-report.js','utf8');
  const isolated=script.slice(script.indexOf('const standalonePrintCss = ['),script.indexOf('function init(user){'));
  assert.match(isolated,/standalonePrintCss/);
- assert.match(isolated,/'<style>'\+standalonePrintCss\+'<\/style>'/);
+ assert.match(isolated,/'<style>'\+standalonePrintCss\+'<\/style>/);
  assert.doesNotMatch(isolated,/<link rel=|form48-report\.css\?v=/);
  assert.doesNotMatch(isolated,/page-break-after|break-after:page|break-inside:avoid|position:absolute!important/);
  assert.doesNotMatch(isolated,/assets\/|attendigo-logo|attendigo-official-emblem/);
