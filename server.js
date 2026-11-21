@@ -4353,6 +4353,19 @@ async function start() {
   console.log('Checking database migrations...');
   const migrationResult = await runMigrations(pool);
   console.log(`Database migrations ready: ${migrationResult.applied.length} applied, ${migrationResult.total} total.`);
+  // Report only a coarse provider classification; no hostnames, secrets or
+  // personal record values. Helps confirm migration cutover without creating
+  // any public diagnostic endpoint or changing application data.
+  try {
+    const target = await pool.query('SELECT current_database() AS db');
+    const dbName = target.rows?.[0]?.db;
+    const provider = dbName === 'postgres' ? 'supabase_candidate'
+      : dbName === 'student_tracker_bpv7' ? 'render_source' : 'unrecognized';
+    console.log('[Production DB identity] ' + provider);
+  } catch {
+    console.warn('[Production DB identity] unavailable');
+  }
+
   console.log('[Database] Primary=' + (supabasePrimary ? 'supabase' : 'render') +
     ' maintenance=' + (migrationReadOnly ? 'read_only' : 'off'));
   // A maintenance instance must not run autonomous attendance or cleanup
