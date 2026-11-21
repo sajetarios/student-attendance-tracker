@@ -1,6 +1,7 @@
 'use strict';
 const test=require('node:test');
 const assert=require('node:assert/strict');
+const {assertCachedAsset}=require('./support/asset-contract');
 const fs=require('node:fs');
 const path=require('node:path');
 const {readEmployeeSchedule}=require('../form48-employee-schedules');
@@ -69,6 +70,6 @@ test('schedule settings have separate Save control and are not dependent on prev
  assert.match(review,/getEmployeeForm48Schedule/);
  assert.match(review,/mergeSchoolForm48Defaults\(rawSettings,defaults,employeeSchedule\)/);
  assert.match(migration,/FOREIGN KEY \(school_id,staff_user_id\)/);
- assert.match(sw,/form48-report\.js\?v=8/);
- assert.match(sw,/form48-report\.css\?v=9/);
+ assertCachedAsset(html,sw,'form48-report.js',{minimumVersion:8});
+ assertCachedAsset(html,sw,'form48-report.css',{minimumVersion:9});
 });
