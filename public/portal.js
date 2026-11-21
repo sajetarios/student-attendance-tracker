@@ -1965,7 +1965,7 @@ function coverageStatusLabel(status) {
     if (teacherMatch && isGateKeeper) {
       try {
         const lookup = await api('/api/gate/teacher-lookup', { method: 'POST', body: JSON.stringify({ qrToken: teacherMatch[1] }) });
-        await showGatePersonResult({ ...lookup.teacher, qrToken: teacherMatch[1] }, 'TEACHER');
+        await showGatePersonResult({ ...lookup.teacher, gatePrediction: lookup.gatePrediction, qrToken: teacherMatch[1] }, 'TEACHER');
       } catch (error) {
         $('studentScanFeedback').textContent = error.message;
         $('studentScanFeedback').className = 'scanner-feedback is-error';
@@ -2002,6 +2002,11 @@ function coverageStatusLabel(status) {
   async function showGatePersonResult(person, personType) {
     const isTeacherPerson = personType === 'TEACHER';
     const fullName = person.fullName || person.displayName || 'Unknown';
+    const prediction = personType === 'TEACHER' && user.role === 'GATE_KEEPER' ? person.gatePrediction : null;
+    const predictionText = prediction?.status === 'PREDICTED'
+      ? 'Predicted ' + prediction.label + ' · Physical gate only (not official DTR)'
+      : prediction?.status === 'REVIEW_REQUIRED' ? 'Gate history requires authorized review' : '';
+
     const meta = isTeacherPerson
       ? `Teacher · ${(person.teacherDesignations || []).map(value => value === 'CLASS_ADVISER' ? 'Class Adviser' : 'Subject Teacher').join(' + ') || 'Staff'}`
       : `${person.studentId} · ${person.gradeLevel} · ${person.section}`;
@@ -2036,9 +2041,9 @@ function coverageStatusLabel(status) {
       ? `Verify ${isTeacherPerson ? 'teacher' : 'learner'} identity`
       : (isTeacherPerson ? 'Teacher identity found' : 'Learner identity found');
     $('studentScanNoticeName').textContent = fullName;
-    $('studentScanNoticeMeta').textContent = meta;
+    $('studentScanNoticeMeta').textContent = predictionText ? meta + ' · ' + predictionText : meta;
     const noticeCopy = document.querySelector('.student-scan-notice-copy');
-    if (noticeCopy) noticeCopy.textContent = `Compare the displayed registered ${isTeacherPerson ? 'teacher' : 'learner'} photo before recording gate attendance.`;
+    if (noticeCopy) noticeCopy.textContent = predictionText ? predictionText + '. Verify the photo before recording; the final event is decided by the server.' : `Compare the displayed registered ${isTeacherPerson ? 'teacher' : 'learner'} photo before recording gate attendance.`;
     const noticePhoto = $('studentScanNoticePhoto');
     if (noticePhoto) {
       noticePhoto.src = photo || '';
