@@ -13,7 +13,7 @@
   <link rel="stylesheet" href="/staff-ob.css?v=1">
   <link rel="stylesheet" href="/department-workspace.css?v=1">
   <link rel="stylesheet" href="/form48-report.css?v=9">
-  <link rel="stylesheet" href="/portal.css?v=0.9.120"><link rel="stylesheet" href="/attendigo-brand-polish.css?v=2"><link rel="stylesheet" href="/parent-admin.css?v=7">
+  <link rel="stylesheet" href="/portal.css?v=0.9.121"><link rel="stylesheet" href="/attendigo-brand-polish.css?v=2"><link rel="stylesheet" href="/parent-admin.css?v=7">
   <link rel="stylesheet" href="/schedule-mobile-layout.css?v=1">
   <link rel="stylesheet" href="/weekly-list-mobile.css?v=1">
   <link rel="stylesheet" href="/schedule-form-layout.css?v=15">
@@ -184,7 +184,7 @@
 <link rel="stylesheet" href="/attendigo-brand.css?v=2">
 <link rel="stylesheet" href="/student-roster-toolbar.css?v=2">
 <link rel="stylesheet" href="/learner-roster-view.css?v=1">
-<link rel="stylesheet" href="/teacher-learner-roster.css?v=4">
+<link rel="stylesheet" href="/teacher-learner-roster.css?v=5">
 <link rel="manifest" href="/manifest.webmanifest">
   <link rel="stylesheet" href="/attendigo-dark-unified.css?v=1">
   <link rel="stylesheet" href="/planner.css?v=3">
@@ -1522,17 +1522,33 @@ body.dark-mode .content-wrap > .school-heading.is-compact,body[data-theme="dark"
               <p class="form-help">QR codes contain a random private token, not the student's name, LRN, or phone number. Allow pop-ups for this site to print.</p>
               <div id="studentEditOverlay" class="student-edit-overlay" hidden>
                 <form id="studentEditForm" class="student-edit-dialog" method="post">
-                  <div class="section-toolbar"><div><h3>Edit student information</h3><p>Student ID and private QR token remain unchanged.</p></div><button type="button" class="outline-button" id="closeStudentEdit">Close</button></div>
+                  <div class="section-toolbar"><div><h3>Edit student information</h3><p>Update authorized learner details. Student ID and private QR token remain unchanged.</p></div><button type="button" class="outline-button" id="closeStudentEdit">Close</button></div>
                   <input type="hidden" id="editStudentId">
                   <div class="form-grid">
+                    <div class="student-edit-section-title span-2">Learner identity <small>Student ID and QR identity cannot be changed here.</small></div>
                     <div class="field-group"><label>Student ID</label><input id="editStudentIdDisplay" disabled></div>
                     <div class="field-group" id="editLrnGroup"><label for="editLrn">Learner Reference Number (LRN)</label><input id="editLrn" maxlength="30" inputmode="numeric"></div>
-                    <div class="field-group span-2"><label for="editFullName">Full name *</label><input id="editFullName" required maxlength="200"></div>
+                    <div class="field-group span-2" id="editFullNameGroup"><label for="editFullName">Recorded full name *</label><input id="editFullName" required maxlength="200" aria-describedby="editFullNameHelp"><small id="editFullNameHelp" class="student-name-help">Existing names are preserved unless you correct them. A legacy full name may not identify the correct surname.</small></div>
+                    <div class="field-group span-2 student-structured-editor">
+                      <label class="student-name-structure-switch"><input id="editStructuredNameToggle" type="checkbox"> Correct using official surname / given names</label>
+                      <div id="editStructuredNameFields" class="student-name-parts-grid" hidden>
+                        <label for="editSurname">Surname * <input id="editSurname" maxlength="100" autocomplete="off" placeholder="e.g. DE LA CRUZ"></label>
+                        <label for="editGivenNames">Given and middle names * <input id="editGivenNames" maxlength="180" autocomplete="off" placeholder="e.g. MARIA TERESA REYES"></label>
+                        <p class="student-name-help student-name-parts-note">No automatic split is made for legacy records. Verify the surname against the official SF1 before saving; compound surnames stay together. This saves as SURNAME, Given and Middle Names.</p>
+                      </div>
+                    </div>
                     <div class="field-group" id="editSexGroup"><label for="editSex">Sex *</label><select id="editSex" required><option value="">Select sex</option><option value="MALE">Male</option><option value="FEMALE">Female</option></select></div>
+                    <div class="student-edit-section-title span-2">Enrollment <small>Only authorized school users can change grade and section.</small></div>
                     <div class="field-group" id="editGradeGroup"><label for="editGrade">Grade *</label><select id="editGrade" required><option>Grade 7</option><option>Grade 8</option><option>Grade 9</option><option>Grade 10</option><option>Grade 11</option><option>Grade 12</option></select></div>
                     <div class="field-group" id="editSectionGroup"><label for="editSection">Section *</label><input id="editSection" required maxlength="100"></div>
+                    <div class="student-edit-section-title span-2" id="editFamilySectionTitle">Parent / guardian <small>School Admin-managed contact details.</small></div>
                     <div class="field-group" id="editParentNameGroup"><label for="editParentName">Parent / guardian full name *</label><input id="editParentName" maxlength="160" autocomplete="name" placeholder="Enter the primary guardian's full name"></div>
                     <div class="field-group" id="editParentMobileGroup"><label for="editParentMobile">Parent / guardian mobile number *</label><input id="editParentMobile" type="tel" inputmode="tel" autocomplete="tel" maxlength="30" placeholder="09XXXXXXXXX"></div>
+                    <div class="field-group" id="editFatherNameGroup"><label for="editFatherName">Father's name</label><input id="editFatherName" maxlength="160" autocomplete="off"></div>
+                    <div class="field-group" id="editMotherMaidenNameGroup"><label for="editMotherMaidenName">Mother's maiden name</label><input id="editMotherMaidenName" maxlength="160" autocomplete="off"></div>
+                    <div class="field-group" id="editSf1GuardianNameGroup"><label for="editSf1GuardianName">SF1 guardian's name</label><input id="editSf1GuardianName" maxlength="160" autocomplete="off"></div>
+                    <div class="field-group" id="editBirthDateGroup"><label for="editBirthDate">Date of birth</label><input id="editBirthDate" type="date" autocomplete="bday"></div>
+                    <div class="field-group span-2" id="editSf1AddressGroup"><label for="editSf1Address">Address (SF1)</label><input id="editSf1Address" maxlength="500" autocomplete="street-address"></div>
                   </div>
                   <p class="form-context-help">Guardian contact details update the existing student master record. They do not create a separate parent account.</p>
                   <div class="form-actions"><button class="primary-button" type="submit" id="saveStudentEdit">Save changes</button><span id="studentEditFeedback" class="inline-feedback" role="status" aria-live="polite"></span></div>
@@ -2243,7 +2259,8 @@ body.dark-mode .content-wrap > .school-heading.is-compact,body[data-theme="dark"
   <script src="/offline-attendance.js?v=5" defer></script>
   <script src="/attendance-sync-center.js?v=3" defer></script>
   <script src="/learner-roster-view.js?v=1" defer></script>
-  <script src="/portal.js?v=215" defer></script>
+  <script src="/student-name-format.js?v=1" defer></script>
+  <script src="/portal.js?v=216" defer></script>
   <script src="/schedule-list-filters.js?v=1" defer></script>
   <script src="/staff-lunch-ui.js?v=3" defer></script>
   <script src="/staff-ob-ui.js?v=5" defer></script>

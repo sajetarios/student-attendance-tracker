@@ -2704,7 +2704,7 @@ app.patch('/api/students/:studentId', authenticateSchoolClient, requireSchoolAdm
   const designations = Array.isArray(req.auth.teacherDesignations) ? req.auth.teacherDesignations : [];
   const isClassAdviser = isTeacher && designations.includes('CLASS_ADVISER');
   const isSubjectTeacher = isTeacher && designations.includes('SUBJECT_TEACHER');
-  const { lrn, fullName, gradeLevel, section, sex, parentName, parentMobile } = req.body || {};
+  const { lrn, fullName, gradeLevel, section, sex, parentName, parentMobile, fatherName, motherMaidenName, sf1GuardianName, birthDate, sf1Address } = req.body || {};
   const cleanSex = String(sex || '').trim().toUpperCase();
   if (!validText(fullName) || fullName.trim().length > 200) {
     return res.status(400).json({ error: 'Provide a valid student full name.' });
@@ -2715,6 +2715,23 @@ app.patch('/api/students/:studentId', authenticateSchoolClient, requireSchoolAdm
       !validText(parentName) || parentName.trim().length > 160 ||
       (lrn != null && (typeof lrn !== 'string' || lrn.trim().length > 30)))) {
     return res.status(400).json({ error: 'Provide valid student name, grade, section, and permitted student details.' });
+  }
+  if (!isTeacher) {
+    // Only School Admin can edit extended SF1 fields. Absent fields preserve prior values.
+    for (const [field, limit] of [['fatherName',160],['motherMaidenName',160],
+      ['sf1GuardianName',160],['sf1Address',500]]) {
+      const value = req.body?.[field];
+      if (value !== undefined && (typeof value !== 'string' || value.trim().length > limit)) {
+        return res.status(400).json({ error: 'Invalid SF1 field: ' + field });
+      }
+    }
+    if (birthDate !== undefined &&
+        (typeof birthDate !== 'string' ||
+         (birthDate !== '' && (!/^\d{4}-\d{2}-\d{2}$/.test(birthDate) ||
+            Number.isNaN(Date.parse(birthDate + 'T00:00:00Z')) ||
+            new Date(birthDate + 'T00:00:00Z').toISOString().slice(0,10) !== birthDate)))) {
+      return res.status(400).json({ error: 'Provide a valid date of birth (YYYY-MM-DD).' });
+    }
   }
   if (isTeacher && !isClassAdviser && !isSubjectTeacher) {
     return res.status(403).json({ error: 'Your teacher account is not assigned to manage learner records.' });
@@ -2811,14 +2828,25 @@ app.patch('/api/students/:studentId', authenticateSchoolClient, requireSchoolAdm
        SET lrn=$3, full_name=$4,
            grade_level=CASE WHEN $10 THEN grade_level ELSE $5 END,
            section=CASE WHEN $10 THEN section ELSE $6 END,
-           parent_name=$7, parent_mobile=$8, sex=$9, updated_at=NOW()
+           parent_name=$7, parent_mobile=$8, sex=$9,
+           father_name=CASE WHEN $11::text IS NULL THEN father_name ELSE NULLIF(BTRIM($11::text),'') END,
+           mother_maiden_name=CASE WHEN $12::text IS NULL THEN mother_maiden_name ELSE NULLIF(BTRIM($12::text),'') END,
+           sf1_guardian_name=CASE WHEN $13::text IS NULL THEN sf1_guardian_name ELSE NULLIF(BTRIM($13::text),'') END,
+           birth_date=CASE WHEN $14::text IS NULL THEN birth_date ELSE NULLIF($14::text,'')::date END,
+           sf1_address=CASE WHEN $15::text IS NULL THEN sf1_address ELSE NULLIF(BTRIM($15::text),'') END,
+           updated_at=NOW()
        WHERE school_id=$1 AND student_id=$2 AND active=TRUE
        RETURNING student_id AS "studentId", lrn, full_name AS "fullName",
                  grade_level AS "gradeLevel", section, parent_name AS "parentName",
                  parent_mobile AS "parentMobile", sex, qr_token AS "qrToken"`,
       [req.auth.schoolId, req.params.studentId, lrn?.trim() || null,
        fullName.trim(), gradeLevel.trim(), section.trim(),
-       parentName?.trim() || null, parentMobile.trim(), cleanSex, Boolean(activeYear.rowCount)]
+       parentName?.trim() || null, parentMobile.trim(), cleanSex, Boolean(activeYear.rowCount),
+       fatherName === undefined ? null : fatherName,
+       motherMaidenName === undefined ? null : motherMaidenName,
+       sf1GuardianName === undefined ? null : sf1GuardianName,
+       birthDate === undefined ? null : birthDate,
+       sf1Address === undefined ? null : sf1Address]
     );
     if (!updated.rowCount) {
       await client.query('ROLLBACK');
@@ -2838,7 +2866,9 @@ app.patch('/api/students/:studentId', authenticateSchoolClient, requireSchoolAdm
       `INSERT INTO audit_logs(school_id, actor_type, actor_user_id, action, entity_type, entity_id, details)
        VALUES($1,'SCHOOL',$2,'SCHOOL_ADMIN_UPDATE_STUDENT','student',$3,$4::jsonb)`,
       [req.auth.schoolId, req.auth.userId, req.params.studentId,
-       JSON.stringify({ gradeLevel: gradeLevel.trim(), section: section.trim() })]
+       JSON.stringify({ gradeLevel: gradeLevel.trim(), section: section.trim(),
+         sf1FieldsUpdated: ['fatherName','motherMaidenName','sf1GuardianName','birthDate','sf1Address']
+           .filter(field => Object.prototype.hasOwnProperty.call(req.body || {}, field)) })]
     );
     await client.query('COMMIT');
     return res.json({ student: { ...updated.rows[0], ...(activeYear.rowCount ? { gradeLevel: gradeLevel.trim(), section: section.trim() } : {}) }, qrTokenPreserved: true });

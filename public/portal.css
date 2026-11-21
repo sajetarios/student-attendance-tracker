@@ -3083,3 +3083,12 @@ html[data-ui-theme="dark"] #adviserAssignmentForm .adviser-new-section-fields se
     padding:5px 8px;
   }
 }
+
+/* Learner roster readability: preserve original name data and avoid guessing surnames. */
+#studentRosterTable .learner-roster-name{display:block;white-space:normal;overflow-wrap:break-word;line-height:1.4;font-weight:750;letter-spacing:.005em}
+#studentRosterTable .teacher-roster-identity-copy{min-width:0;max-width:100%}
+#studentRosterTable .learner-direct-edit{display:inline-flex;align-items:center;justify-content:center;min-height:36px;padding:7px 12px;font-weight:700;white-space:nowrap}
+#studentRosterTable .teacher-roster-quick-actions{display:flex;flex-wrap:wrap;align-items:center;gap:7px}
+.student-name-help{display:block;margin-top:7px;color:#526579;font-size:12px;line-height:1.5;font-weight:400}
+.student-edit-dialog .field-group{min-width:0}
+@media(max-width:700px){#studentRosterTable .learner-direct-edit{min-height:40px}.student-edit-dialog{max-height:calc(100dvh - 28px)}}

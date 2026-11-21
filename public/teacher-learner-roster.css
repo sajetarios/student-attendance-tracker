@@ -383,3 +383,23 @@ html[data-ui-theme="dark"] #studentsView .teacher-roster-initials{color:#d1e8ff;
   #studentsView.teacher-directory-mode .student-filter-row .student-name-filter{grid-column:1}
   #classQrTeacherShortcut.is-roster-inline{width:100%;order:3;margin:0;justify-content:center}
 }
+
+/* Official learner names: never infer a surname for unstructured legacy records. */
+#studentsView .student-roster-name-block{display:flex;flex-direction:column;gap:2px;min-width:0;overflow-wrap:anywhere;line-height:1.35}
+#studentsView .student-roster-name-block .learner-roster-surname{display:block;color:#213f63;font-weight:800;font-size:var(--type-name,14px);letter-spacing:0}
+#studentsView .student-roster-name-block .learner-roster-given{display:block;font-weight:500;font-size:var(--type-table,13px);color:#41536c}
+#studentsView .student-roster-name-block .learner-roster-original{display:block;font-weight:700}
+#studentsView .student-roster-name-block .learner-roster-unverified{font-size:11px;line-height:1.3;font-weight:500;color:#926b27}
+#studentsView.teacher-directory-mode #studentRosterTable.teacher-roster-compact .teacher-roster-identity-copy .learner-roster-surname{font-weight:800;color:#213f63}
+#studentsView.teacher-directory-mode #studentRosterTable.teacher-roster-compact .teacher-roster-identity-copy .learner-roster-given{font-size:var(--type-table);font-weight:500;color:var(--tr-sub)}
+#studentsView.teacher-directory-mode #studentRosterTable.teacher-roster-compact .learner-direct-edit{display:inline-flex;align-items:center;justify-content:center;min-height:38px;min-width:55px;font-weight:700}
+#studentsView.teacher-directory-mode #studentRosterTable.teacher-roster-compact .teacher-roster-quick-actions{display:flex;flex-wrap:wrap;align-items:center;gap:7px}
+#studentsView .student-edit-section-title{grid-column:1/-1;font-size:15px;font-weight:800;color:#25425f;border-bottom:1px solid #dce6f0;padding:9px 0 7px;margin-top:8px}
+#studentsView .student-edit-section-title small{display:block;margin-top:4px;color:#688095;font-size:12px;font-weight:400}
+#studentsView .student-name-structure-switch{display:flex;align-items:center;gap:9px;font-weight:650;color:#244c73}
+#studentsView .student-name-structure-switch input{width:17px;height:17px;flex:0 0 17px}
+#studentsView .student-name-parts-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin-top:12px}
+#studentsView .student-name-parts-grid label{display:flex;flex-direction:column;gap:5px;min-width:0;font-weight:650;color:#294862}
+#studentsView .student-name-parts-grid input{width:100%;min-width:0;padding:10px 12px;border-radius:9px;border:1px solid #cddaea;background:#fff}
+#studentsView .student-name-parts-grid .student-name-parts-note{grid-column:1/-1;margin:0}
+@media(max-width:600px){#studentsView .student-name-parts-grid{grid-template-columns:1fr}#studentsView .student-edit-dialog{max-height:calc(100dvh - 24px)}}
