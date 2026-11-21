@@ -5637,6 +5637,7 @@ let teacherActionMenuListenersInstalled = false;
     const payload = { ...(pendingStudentImport || {}) };
     const select = $('studentImportAdvisoryAssignment');
     payload.updateExisting = user.role === 'SCHOOL_ADMIN' && Boolean($('studentImportUpdateExisting')?.checked);
+    payload.recoverMissingLrn = $('studentImportFormat')?.value === 'sf1' && Boolean($('studentImportRecoverLrn')?.checked);
     if (user.role === 'TEACHER' && teacherHas('CLASS_ADVISER') && select?.value) {
       payload.advisoryAssignmentId = select.value;
     }
@@ -5652,6 +5653,7 @@ let teacherActionMenuListenersInstalled = false;
     $('studentImportYearFields').hidden = true;
     $('studentImportYearActivate').hidden = true;
     if ($('studentImportUpdateExisting')) $('studentImportUpdateExisting').checked = false;
+    if ($('studentImportRecoverLrn')) $('studentImportRecoverLrn').checked = false;
     if ($('studentImportExistingList')) { $('studentImportExistingList').hidden = true; $('studentImportExistingList').replaceChildren(); }
     $('studentImportPreviewRows').innerHTML = '<tr><td colspan="8" class="empty-cell">Choose a file to preview.</td></tr>';
     $('confirmStudentImport').disabled = true;
@@ -5753,6 +5755,8 @@ let teacherActionMenuListenersInstalled = false;
     document.dispatchEvent(new Event('attendigo:open-academic'));
   });
 
+  $('studentImportRecoverLrn')?.addEventListener('change',()=>{if(pendingStudentImport)previewStudentImport();});
+
   async function previewStudentImport() {
     if (!pendingStudentImport) return;
     const summary = $('studentImportSummary');
@@ -5768,12 +5772,12 @@ let teacherActionMenuListenersInstalled = false;
         sf1YearSetupInfo=null;
         pendingStudentImportPreview = preview;
         const counts=preview.summary||{create:0,update:0,skip:0,review:0};
-        const eligible=Number(counts.create||0)+Number(counts.update||0);
+        const eligible=Number(counts.create||0)+Number(counts.update||0)+Number(counts.recover||0);
         summary.textContent=preview.total+' learners · '+(counts.create||0)+' new · '+(counts.update||0)+
-          ' existing guardian updates · '+(counts.skip||0)+' unchanged · '+(counts.review||0)+
+          ' guardian updates · '+(counts.recover||0)+' LRN recoveries · '+(counts.skip||0)+' unchanged · '+(counts.review||0)+
           ' require review. Grade: '+preview.gradeLevel+' · New section: Unassigned.'+
           (counts.review?' Resolve flagged records before saving.':'');
-        const labels={CREATE:'Create',UPDATE:'Fill missing guardian fields',SKIP:'Already complete',REVIEW:'Needs review'};
+        const labels={CREATE:'Create',UPDATE:'Fill missing guardian fields',RECOVER:'Recover missing LRN + empty guardian fields',SKIP:'Already complete',REVIEW:'Needs review'};
         $('studentImportPreviewRows').innerHTML=preview.rows.map(item=>{
           const match=item.existingStudent;
           const saved=match?esc(match.fullName)+' · '+esc(match.studentId):'New learner';
@@ -5876,6 +5880,7 @@ let teacherActionMenuListenersInstalled = false;
       ? 'Maximum 5 MB and 2,000 learners. LRN, learner name and sex are required. Labeled guardian and contact fields fill empty profile fields after review. Existing identities, section and attendance stay intact.'
       : 'Maximum 5 MB and 2,000 rows. Student ID, Full Name, Sex, Grade Level, and Section are required. LRN and guardian fields are optional.';
     if($('studentImportUpdateExistingWrap')) $('studentImportUpdateExistingWrap').hidden=sf1||user.role!=='SCHOOL_ADMIN';
+    if($('studentImportRecoverLrnWrap')) $('studentImportRecoverLrnWrap').hidden=!sf1;
     prepareStudentImportAdvisoryScope();
   });
   $('studentImportAdvisoryAssignment')?.addEventListener('change', () => { previewStudentImport().catch(error => showToast(error.message, true)); });
@@ -5907,12 +5912,12 @@ let teacherActionMenuListenersInstalled = false;
     if (!pendingStudentImport || !pendingStudentImportPreview || pendingStudentImportPreview.summary.error) return;
     const sf1Mode=$('studentImportFormat')?.value==='sf1';
     if (!await AppDialog.confirm(sf1Mode
-      ? 'Create '+pendingStudentImportPreview.summary.create+' new learners and fill guardian information for '+(pendingStudentImportPreview.summary.update||0)+' existing learners? Review flags prevent saving; all existing IDs, LRNs, section assignments and attendance are preserved.'
+      ? 'Create '+pendingStudentImportPreview.summary.create+' new learners, fill guardian information for '+(pendingStudentImportPreview.summary.update||0)+' existing learners, and recover '+(pendingStudentImportPreview.summary.recover||0)+' missing LRNs? Recovery is limited to unique exact name, sex and grade matches. Existing student IDs, sections and attendance are preserved.'
       : 'Import ' + (pendingStudentImportPreview.summary.create + pendingStudentImportPreview.summary.update) + ' student records? ' + (pendingStudentImportPreview.summary.skip || 0) + ' existing students will be skipped. Duplicate IDs will not be created.', { title: 'Import student records', confirmText: 'Import students' })) return;
     $('confirmStudentImport').disabled = true; $('studentImportSummary').textContent = 'Saving records…';
     try {
       const result = await api(sf1Mode?'/api/students/sf1/commit':'/api/students/import/commit', { method:'POST', body:JSON.stringify(studentImportRequestPayload()) });
-      const summary = sf1Mode ? ('SF1 import: '+result.created+' new learners · '+(result.updated||0)+' guardian updates · '+result.skipped+' unchanged. Existing attendance preserved.') : 'Completed: ' + result.created + ' created, ' + result.updated + ' updated, ' + (result.skipped || 0) + ' already existing skipped.';
+      const summary = sf1Mode ? ('SF1 import: '+result.created+' new learners · '+(result.updated||0)+' profile updates ('+(result.recovered||0)+' LRNs recovered) · '+result.skipped+' unchanged. Existing attendance preserved.') : 'Completed: ' + result.created + ' created, ' + result.updated + ' updated, ' + (result.skipped || 0) + ' already existing skipped.';
       resetStudentImport(); $('studentImportModal').hidden = true; selectedStudentIds.clear(); await loadSchoolData();
       showToast(summary);
     } catch (error) { $('studentImportSummary').textContent = error.message; $('confirmStudentImport').disabled = false; }
