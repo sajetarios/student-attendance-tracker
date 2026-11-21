@@ -20,7 +20,7 @@
   ?formatTime(hours.AM_IN)+'–'+formatTime(hours.AM_OUT)+' / '+formatTime(hours.PM_IN)+'–'+formatTime(hours.PM_OUT)
   :'Not configured';
  const slots=['AM_IN','AM_OUT','PM_IN','PM_OUT'];
- const state={review:null,employeeSchedule:null,scheduleDirty:false,scheduleSaving:false,loading:false,key:'',data:null,analysis:null};
+ const state={review:null,employeeSchedule:null,scheduleDirty:false,draftDirty:false,scheduleSaving:false,loading:false,key:'',data:null,analysis:null};
  const copy=(data,analysis,kind)=>{
   const month=new Date(data.month+'-01T12:00:00Z').toLocaleDateString('en-US',{timeZone:'UTC',month:'long',year:'numeric'});
   const assess=new Map((analysis.assessments||[]).map(item=>[item.date,item]));
@@ -176,6 +176,7 @@ const standalonePrintCss = [
   const button=$('form48Print'),output=$('form48PrintArea'),feedback=$('form48Feedback');
   const settings=$('form48ReportSettings'),reviewHost=$('form48ReviewDays');
   const saveSchedule=$('form48SaveSchedule'),scheduleStatus=$('form48ScheduleSaveStatus');
+  const saveDraft=$('form48SaveDraft');
   if(!form||!month||!person||!button||!output||!feedback||!settings||!reviewHost)return;
   const format=new Intl.DateTimeFormat('en-US',{year:'numeric',month:'2-digit',timeZone:'Asia/Manila'}).formatToParts(new Date());
   const part=type=>format.find(p=>p.type===type)?.value||'';
@@ -239,7 +240,7 @@ const standalonePrintCss = [
    $('form48ApprovedBy').value=r.approvedBy||'';
    $('form48VerifiedPosition').value=r.verifiedPosition||'';
    $('form48ApprovedPosition').value=r.approvedPosition||'';
-   state.scheduleDirty=false;
+   state.scheduleDirty=false;state.draftDirty=false;
    updateScheduleSummary();
    scheduleMessage(state.employeeSchedule?.revision>0?'Employee schedule saved (applies across months).':
     'Complete the prescribed hours, then save once for this employee.');
@@ -287,20 +288,37 @@ const standalonePrintCss = [
       '</select></label>';
     }).join('')+'</div>':'';
   };
+  async function persistDraft(){
+   if(!person.value||!month.value||!state.review)throw Error('Select an employee and month first.');
+   if(state.scheduleDirty)throw Error('Save the employee work schedule first.');
+   if(!scheduleReady())throw Error('Configure approved working hours before saving monthly reviews.');
+   const key=reportKey(),payload=snapshot();
+   const saved=await api('/api/staff-attendance/admin/form48/config',{
+    method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)
+   });
+   if(key!==reportKey())return false;
+   state.review={...state.review,...payload,configured:true,revision:saved.revision};
+   state.draftDirty=false;
+   invalidate();
+   status('Report details saved with an audit trail. Generate a fresh preview.');
+   return true;
+  }
+  if(saveDraft)saveDraft.addEventListener('click',async()=>{
+   saveDraft.disabled=true;
+   try{await persistDraft();}catch(error){status('Nothing saved: '+error.message,true);}
+   finally{saveDraft.disabled=false;}
+  });
   async function generate(){
    if(state.loading)return;
    if(!person.value||!month.value){status('Select an employee and month.',true);return;}
    if(!state.review){status('Load report settings before generating.',true);return;}
+   if(state.scheduleDirty||state.draftDirty){
+    status('Save your changes before generating a fresh preview.',true);return;
+   }
    const key=reportKey();
    state.loading=true;button.disabled=true;
    const submit=form.querySelector('button[type=submit]');submit.disabled=true;
    try{
-    const payload=snapshot();
-    const saved=await api('/api/staff-attendance/admin/form48/config',{
-     method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)
-    });
-    if(key!==reportKey())return;
-    state.review={...state.review,...payload,configured:true,revision:saved.revision};
     const params=new URLSearchParams({staffUserId:person.value,month:month.value});
     const [data,analysis]=await Promise.all([
      api('/api/staff-attendance/admin/form48?'+params),
@@ -356,20 +374,26 @@ const standalonePrintCss = [
   month.addEventListener('change',fetchConfig);
   person.addEventListener('change',fetchConfig);
   form.addEventListener('submit',event=>{event.preventDefault();generate();});
-  reviewHost.addEventListener('change',event=>{
+  reviewHost.addEventListener('change',async event=>{
    const select=event.target.closest('select[data-form48-review]');
    if(!select||!state.review)return;
-   const date=select.dataset.form48Review;
-   const reviews={...(state.review.dayReviews||{})};
+   const date=select.dataset.form48Review,previous={...(state.review.dayReviews||{})};
+   const reviews={...previous};
    if(select.value==='PENDING')delete reviews[date];else reviews[date]=select.value;
    state.review.dayReviews=reviews;
-   generate();
+   select.disabled=true;
+   try{if(await persistDraft())await generate();}
+   catch(error){state.review.dayReviews=previous;status('Review not saved: '+error.message,true);}
+   finally{select.disabled=false;}
   });
   const onSettingsChange=event=>{
    button.disabled=true;
    if(event.target.matches('[data-form48-day],[data-form48-hour]')){
     state.scheduleDirty=true;
     scheduleMessage('Unsaved work hours. Select Save employee work schedule.');
+   }else if(['form48VerifiedBy','form48ApprovedBy','form48VerifiedPosition','form48ApprovedPosition'].includes(event.target.id)){
+    state.draftDirty=true;
+    status('Unsaved certification details. Select Save report details.');
    }
    updateScheduleSummary();
   };
