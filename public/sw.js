@@ -1,4 +1,4 @@
-const CACHE = "attendigo-v281-trusted-clock-easy-hours";
+const CACHE = "attendigo-v282-lunch-clock-hardening";
 
 const SHELL = [
   "/typography.css?v=1",
@@ -72,7 +72,7 @@ const SHELL = [
   "/smart-attendance-overview.css?v=2",
   "/smart-attendance-overview.js?v=2",
   "/my-gate-insights.css?v=2",
-  "/staff-lunch-ui.js?v=3",
+  "/staff-lunch-ui.js?v=4",
   "/staff-ob-ui.js?v=5",
   "/staff-ob.css?v=1",
   "/staff-lunch.css?v=3",
