@@ -52,7 +52,42 @@ const { registerPhotoRoutes, registerPlatformPhotoRoutes, readOfficialPhoto } = 
 const { registerNotificationRoutes } = require('./notification-routes');
 
 const app = express();
-const pool = new Pool({ connectionString: process.env.DATABASE_URL });
+const migrationReadOnly = process.env.ATTENDIGO_MIGRATION_MODE === 'read_only';
+const supabasePrimary = process.env.ATTENDIGO_PRIMARY_DATABASE === 'supabase';
+function configurePrimaryDatabase() {
+  if (!supabasePrimary) return { connectionString: process.env.DATABASE_URL };
+  const ca = process.env.ATTENDIGO_VERIFIED_SUPABASE_ROOT_CA;
+  if (!ca || !ca.startsWith('-----BEGIN CERTIFICATE-----')) {
+    throw new Error('Supabase primary refused: verified certificate was not prepared.');
+  }
+  const { inspectTarget } = require('./scripts/supabase-connection-preflight');
+  const url = process.env.SUPABASE_DATABASE_URL;
+  if (inspectTarget(url).status !== 'configured') {
+    throw new Error('Supabase primary refused: target is not the approved Attendigo project.');
+  }
+  const parsed = new URL(url);
+  // pg-connection-string overwrites an explicit SSL config when URL has sslmode.
+  parsed.searchParams.delete('sslmode');
+  parsed.searchParams.delete('sslrootcert');
+  return {
+    connectionString: parsed.toString(),
+    ssl: { ca, rejectUnauthorized: true }
+  };
+}
+const pool = new Pool(configurePrimaryDatabase());
+if (migrationReadOnly) {
+  app.use((req, res, next) => {
+    if (req.path === '/api/health') return next();
+    if (['GET','HEAD'].includes(req.method) && !req.path.startsWith('/api/')) {
+      return next();
+    }
+    res.set('Cache-Control', 'no-store, private');
+    return res.status(503).json({
+      error: 'Attendigo is completing secure database maintenance. Your records are safe. Please try again shortly.',
+      code: 'DATABASE_MAINTENANCE'
+    });
+  });
+}
 app.disable('x-powered-by');
 app.use((req, res, next) => {
   res.setHeader('X-Content-Type-Options', 'nosniff');
@@ -4249,6 +4284,15 @@ async function start() {
   console.log('Checking database migrations...');
   const migrationResult = await runMigrations(pool);
   console.log(`Database migrations ready: ${migrationResult.applied.length} applied, ${migrationResult.total} total.`);
+  console.log('[Database] Primary=' + (supabasePrimary ? 'supabase' : 'render') +
+    ' maintenance=' + (migrationReadOnly ? 'read_only' : 'off'));
+  // A maintenance instance must not run autonomous attendance or cleanup
+  // workers or write QR tokens during the database snapshot window.
+  if (migrationReadOnly) {
+    app.listen(port, '0.0.0.0', () =>
+      console.log('Attendance API in secure read-only cutover maintenance mode'));
+    return;
+  }
   // Safe read-only connectivity probe; never switches or writes to the target.
   void runSupabasePreflight().catch(() => console.warn('[Supabase preflight] probe_unavailable'));
 
