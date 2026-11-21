@@ -2404,6 +2404,10 @@ app.post('/api/gate/teacher-auto-event', authenticateSchoolClient, requireSchool
     recordingTarget:PHYSICAL_GATE,clientEventType:req.body?.eventType
   });
   if(!allowed.allowed)return res.status(400).json({error:'Gate photo verification or recording request invalid.',reason:allowed.reason});
+  // The prediction is advisory; the transaction still chooses the event.
+  const expectedGateEventType=req.body?.expectedGateEventType;
+  if(expectedGateEventType!==undefined && !['TIME_IN','TIME_OUT'].includes(expectedGateEventType))
+    return res.status(400).json({error:'Invalid expected gate movement.'});
   const clientEventKey=String(req.body?.clientEventKey||'').trim();
   if(!isUuid(clientEventKey))return res.status(400).json({error:'An idempotent gate scan key is required.'});
   const qrToken=String(req.body?.teacherQrToken||'').trim();
@@ -2464,6 +2468,10 @@ app.post('/api/gate/teacher-auto-event', authenticateSchoolClient, requireSchool
     if(decision.status!=='READY'){
       await client.query('ROLLBACK');
       return res.status(409).json({error:'Existing gate history needs authorized review.',status:decision.status});
+    }
+    if(expectedGateEventType && expectedGateEventType!==decision.eventType){
+      await client.query('ROLLBACK');
+      return res.status(409).json({error:'Gate movement changed since verification. Scan the badge again to review the updated prediction.',status:'PREVIEW_CHANGED'});
     }
     // A double scan must never be mistaken for an actual return or departure.
     // Deliberate movements within this conservative interval require review.
