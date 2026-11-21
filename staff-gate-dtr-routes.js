@@ -190,7 +190,25 @@ function registerStaffGateDtrRoutes(app,pool,{authenticateSchoolClient,requireSc
      const remarks=buildObDtrRemarks(date,ob.rows,gate.rows);
      if(remarks.length)obRemarks.push({date,remarks});
    }
-   return res.json({from,to,events:result.rows,obRemarks});
+   // Self-scoped advisory evidence uses the SAME verified DTR/gate/OB rows.
+   // A schedule or calendar lookup failure fails closed for suggestions without
+   // hiding the employee's existing official attendance history.
+   const [scheduleLookup,calendarLookup]=await Promise.allSettled([
+    require('./form48-employee-schedules').getEmployeeForm48Schedule(
+     pool,req.auth.schoolId,req.auth.userId),
+    pool.query(`SELECT to_char(calendar_date,'YYYY-MM-DD') AS "schoolDate",exception_type
+      FROM school_calendar_exceptions WHERE school_id=$1 AND
+       calendar_date BETWEEN $2::date AND $3::date
+       AND exception_type IN ('CLOSED','SHORTENED_DAY')`,
+     [req.auth.schoolId,from,to])
+   ]);
+   const {summarizePersonalAttendance}=require('./personal-attendance-insights');
+   const intelligence=summarizePersonalAttendance({
+    from,to,dtrEvents:result.rows,gateEvents:gate.rows,approvedOb:ob.rows,
+    schedule:scheduleLookup.status==='fulfilled'?scheduleLookup.value:null,
+    calendar:calendarLookup.status==='fulfilled'?calendarLookup.value.rows:null
+   });
+   return res.json({from,to,events:result.rows,obRemarks,intelligence});
   }catch(err){
    console.error('Personal DTR history:',err.message);
    return res.status(503).json({error:'Verified DTR history unavailable.'});

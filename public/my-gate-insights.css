@@ -1,0 +1,12 @@
+/* Read-only evidence notes in the personal Daily DTR & Gate Records view. */
+.my-gate-insight{margin-top:12px;border:1px solid var(--border-color,#d7e2eb);border-radius:9px;background:var(--surface,#fff);overflow:hidden}
+.my-gate-insight summary{cursor:pointer;list-style:none;display:flex;gap:8px;align-items:center;justify-content:space-between;padding:10px 12px;font-size:12px;font-weight:650;line-height:1.4}
+.my-gate-insight summary::-webkit-details-marker{display:none}
+.my-gate-insight summary:after{content:"⌄";font-size:17px;color:var(--text-muted,#62748a);flex:none}
+.my-gate-insight[open] summary:after{transform:rotate(180deg)}
+.my-gate-insight summary:focus-visible{outline:2px solid #3486d4;outline-offset:-3px}
+.my-gate-insight-body{padding:10px 12px;border-top:1px solid var(--border-color,#d7e2eb)}
+.my-gate-insight-body ul{display:grid;gap:6px;margin:0 0 9px;padding-left:18px;font-size:12px;line-height:1.45;overflow-wrap:anywhere}
+.my-gate-insight-body p{margin:8px 0 0;font-size:11px;color:var(--text-muted,#607487);line-height:1.45}
+@media(max-width:760px){.my-gate-insight{margin-top:10px}.my-gate-insight summary{padding:12px}}
+@media print{.my-gate-insight{display:none!important}}

@@ -2,6 +2,7 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
+const {assertCachedAsset,assertCacheRevisionAtLeast}=require('./support/asset-contract');
 
 const html = fs.readFileSync('public/portal.html', 'utf8');
 const portal = fs.readFileSync('public/portal.js', 'utf8');
@@ -40,8 +41,6 @@ test('DTR remains separate and role-protected while scan popup supports cancel',
 });
 
 test('PWA uses one coherent scanner asset revision', () => {
-  assert.match(html, /portal\.js\?v=216/);
-  assert.match(worker, /portal\.js\?v=216/);
-  assert.match(worker, /const CACHE = "attendigo-v(\d+)-[^\"]+"/);
-  assert.ok(Number(worker.match(/const CACHE = "attendigo-v(\d+)-/)[1]) >= 268);
+  assertCachedAsset(html,worker,'portal.js',{minimumVersion:216});
+  assertCacheRevisionAtLeast(worker,268);
 });
