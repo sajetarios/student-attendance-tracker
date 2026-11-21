@@ -25,7 +25,9 @@ test('Excel and PDF importers save official names only when source delimiters ar
  const pdf=read('sf1-pdf-parser.js');
  const layout=read('sf1-pdf-layout.js');
  const route=read('sf1-import-routes.js');
- for(const text of [parser,pdf,layout])assert.match(text,/officialFullName:extractOfficialName/);
+ assert.match(parser,/officialFullName:extractOfficialName/);
+ assert.match(pdf,/const officialFullName=extractOfficialName/);
+ assert.match(layout,/officialFullName:extractOfficialName/);
  assert.match(route,/row\.officialFullName\|\|row\.fullName/);
  assert.match(route,/sf1NamesEquivalent\(found\.full_name,r\.fullName\)/);
  assert.match(route,/sf1NameAliases\(student\.full_name\)/);
