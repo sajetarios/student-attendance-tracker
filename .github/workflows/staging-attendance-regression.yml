@@ -1,0 +1,29 @@
+name: Attendigo staging attendance regression
+
+on:
+  push:
+    branches:
+      - staging/school-day-dry-run-20261120
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  gate-attendance:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - name: Install dependencies
+        run: npm ci
+      - name: Check backend and QR UI syntax
+        run: |
+          node --check server.js
+          node --check public/portal.js
+      - name: Run all regression tests
+        run: npm test
