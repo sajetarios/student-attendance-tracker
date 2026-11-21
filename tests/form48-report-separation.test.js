@@ -92,10 +92,10 @@ test('Form 48 print opens isolated A4 portrait report without dashboard or priva
  assert.ok(js.includes('@page{size:A4 portrait;margin:5mm}'));
  assert.ok(js.includes('popup.document.write(html)'));
  assert.ok(!js.includes("if(!button.disabled&&!output.hidden)window.print()"));
- assert.ok(js.includes('width:194mm!important'));
+ assert.ok(js.includes('width:194mm'));
  assert.ok(js.includes('Two copies on one page'));
  assert.doesNotMatch(js,/A4 landscape|287mm/);
- assertCachedAsset(html,sw,'form48-report.js',{minimumVersion:11});
+ assertCachedAsset(html,sw,'form48-report.js',{minimumVersion:12});
 });
 test('Form 48 physical print is A4 portrait with two copies and no app logo',()=>{
  const css=fs.readFileSync('public/form48-report.css','utf8');
@@ -123,5 +123,18 @@ test('iPad isolated print keeps 31 rows, certification and draft status in a sin
  assert.match(css,/html\.form48-print-document #form48PrintArea \.form48-draft-mark/);
  assert.match(js,/@page\{size:A4 portrait;margin:5mm\}/);
  assertCachedAsset(html,sw,'form48-report.css',{minimumVersion:12});
- assertCachedAsset(html,sw,'form48-report.js',{minimumVersion:11});
+ assertCachedAsset(html,sw,'form48-report.js',{minimumVersion:12});
+});
+
+test('Form 48 isolated print has no inherited stylesheet, forced page breaks or app imagery',()=>{
+ const script=fs.readFileSync('public/form48-report.js','utf8');
+ const isolated=script.slice(script.indexOf('const standalonePrintCss = ['),script.indexOf('function init(user){'));
+ assert.match(isolated,/standalonePrintCss/);
+ assert.match(isolated,/'<style>'\+standalonePrintCss\+'<\/style>'/);
+ assert.doesNotMatch(isolated,/<link rel=|form48-report\.css\?v=/);
+ assert.doesNotMatch(isolated,/page-break-after|break-after:page|break-inside:avoid|position:absolute!important/);
+ assert.doesNotMatch(isolated,/assets\/|attendigo-logo|attendigo-official-emblem/);
+ assert.match(isolated,/min-height:260mm/);
+ assert.match(isolated,/height:4\.1mm/);
+ assert.match(isolated,/grid-template-columns:96mm 96mm/);
 });

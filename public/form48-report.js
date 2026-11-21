@@ -103,30 +103,67 @@
  };
  // Shared renderer is read-only; batch reports reuse the exact official copy formatter.
  window.attendigoForm48RenderCopy=copy;
+
+ // Isolated Form 48 print document MUST NOT load the dashboard stylesheet:
+ // historic overlapping @media print rules cause a phantom second A4 page in
+ // iPad Safari / Chrome despite all visible report content fitting on page one.
+
+const standalonePrintCss = [
+ '@page{size:A4 portrait;margin:5mm}',
+ '*{box-sizing:border-box}',
+ 'html,body{margin:0;padding:0;background:#fff;color:#111;font-family:Arial,sans-serif}',
+ '#form48PrintArea{width:194mm;max-width:194mm;margin:0;padding:0;overflow:visible}',
+ '.form48-sheets{display:grid;width:194mm;grid-template-columns:96mm 96mm;column-gap:2mm;align-items:stretch}',
+ '.form48-copy{display:flex;flex-direction:column;width:96mm;min-height:260mm;padding:0 .8mm;font-size:7pt;line-height:1.15;overflow:visible}',
+ '.form48-copy-type{text-align:right;font-size:6.8pt;font-weight:700}',
+ '.form48-form-heading{font-size:6.8pt}',
+ '.form48-copy h3{text-align:center;font-size:10pt;line-height:1.1;margin:2mm 0 1mm}',
+ '.form48-employee{text-transform:uppercase;text-align:center;font-weight:700;font-size:8pt;border-bottom:1px solid #111;padding:1mm 0;overflow-wrap:anywhere}',
+ '.form48-month{margin:2mm 0 1mm;font-size:7pt}',
+ '.form48-official-hours{margin:1mm 0;font-size:7pt}',
+ '.form48-hours-grid{display:block;font-size:6.8pt;line-height:1.15;margin:1mm 0 2mm}',
+ '.form48-hours-grid span{display:block}',
+ '.form48-sheet{width:100%;table-layout:fixed;border-collapse:collapse;font-size:6.6pt}',
+ '.form48-sheet th,.form48-sheet td{border:1px solid #222;text-align:center;height:4.1mm;min-height:4.1mm;padding:0;font-size:6.6pt;line-height:1;white-space:nowrap;overflow:hidden}',
+ '.form48-sheet th{font-weight:700}',
+ '.form48-sheet thead tr:first-child th:first-child,.form48-sheet tbody td:first-child{width:7mm;min-width:7mm}',
+ '.form48-certify{text-align:center;font-size:6.5pt;margin:2mm 0 1mm;line-height:1.18}',
+ '.form48-signature{border-top:1px solid #111;text-align:center;font-size:6.7pt;margin:3mm 2mm 0;padding-top:1mm}',
+ '.form48-signature strong,.form48-signature span{display:block;font-size:6.7pt;line-height:1.13}',
+ '.form48-signature strong{text-transform:uppercase;font-weight:700}',
+ '.form48-signer-position{font-style:italic;margin:1mm 0}',
+ '.form48-remarks{margin:2mm 0 1mm;font-size:6.7pt;line-height:1.15;overflow-wrap:anywhere}',
+ '.form48-line{display:block;border-bottom:1px solid #111;height:3mm}',
+ '.form48-leave-remarks,.form48-ob-remarks{font-size:6.3pt;line-height:1.12;overflow-wrap:anywhere}',
+ '.form48-leave-remarks>div,.form48-ob-remarks>div{margin:1mm 0}',
+ '.form48-summary{display:grid;gap:.6mm;margin:1mm 0;font-size:6.7pt;line-height:1.15}',
+ '.form48-approval{margin-top:auto;padding-top:2mm;margin-bottom:0}',
+ '.form48-draft-mark{text-align:center;font-size:6pt;font-weight:700;margin:1mm 0 0;line-height:1.12}',
+ '.form48-gate-note{font-size:6pt;line-height:1.1;margin:1mm 0}',
+ '.form48-gate-evidence{font-weight:700;text-decoration:underline dotted}',
+ '.form48-print-toolbar{padding:12px 16px;font:14px Arial,sans-serif;background:#f3f6fb;color:#223}',
+ '.form48-print-toolbar button{padding:9px 14px;border:0;background:#14579b;color:#fff;border-radius:6px;cursor:pointer}',
+ '@media screen{body{width:max-content;min-width:100%}#form48PrintArea{margin:12px auto}}',
+ '@media print{.form48-print-toolbar{display:none!important}html,body{height:auto!important;min-height:0!important;overflow:visible!important}#form48PrintArea{height:auto!important;min-height:0!important}}'
+].join('\n');
+
  function printDtrFromIsolatedPage(output,status){
   const sheets=output.querySelector('.form48-sheets');
   if(!sheets){status('Generate the DTR preview before printing.',true);return;}
-  // Print only the two report copies: dashboard visibility rules fail in iPad Safari print previews.
   const popup=window.open('', '_blank');
   if(!popup){status('Allow pop-ups for Attendigo, then try Print / Save PDF again.',true);return;}
+  // No external CSS, images, scripts or dashboard widgets are loaded.
+  // A self-contained document avoids iOS print paging and cache conflicts.
   const html='<!doctype html><html lang="en" class="form48-print-document"><head><meta charset="utf-8">'+
    '<meta name="viewport" content="width=device-width,initial-scale=1">'+
    '<title>Attendigo — Form 48 Daily Time Record</title>'+
-   '<link rel="stylesheet" href="/form48-report.css?v=12">'+
-   '<style>html,body{background:#fff!important;color:#111!important;margin:0!important;padding:0!important;font-family:Arial,sans-serif!important}'+
-   'body{box-sizing:border-box}#form48PrintArea{width:194mm!important;max-width:none!important;margin:0!important;padding:0!important;overflow:visible!important}'+
-   '#form48PrintArea .form48-sheets{width:100%!important;min-width:0!important;grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:2mm!important}'+
-   '.form48-print-toolbar{padding:12px 16px;font:14px Arial,sans-serif;background:#f3f6fb;color:#223;box-sizing:border-box}'+
-   '.form48-print-toolbar button{padding:9px 14px;border:0;background:#14579b;color:#fff;border-radius:6px;cursor:pointer}'+
-   '@media screen{body{width:max-content;min-width:100%}#form48PrintArea{margin:12px auto!important}}'+
-   '@media print{@page{size:A4 portrait;margin:5mm}.form48-print-toolbar{display:none!important}}'+
-   '</style></head><body>'+
+   '<style>'+standalonePrintCss+'</style></head><body>'+
    '<div class="form48-print-toolbar">DTR print copy · A4 portrait · Two copies on one page. <button id="form48PrintAgain" type="button">Print / Save PDF</button></div>'+
    '<main id="form48PrintArea" class="form48-print-area">'+sheets.outerHTML+'</main>'+
    '</body></html>';
   popup.addEventListener('load',()=>{
-   // The loaded report stylesheet must apply before the system print dialog opens.
-   popup.setTimeout(()=>{popup.focus();popup.print();},350);
+   // The inline CSS is ready at document load; do not depend on cached app assets.
+   popup.setTimeout(()=>{popup.focus();popup.print();},150);
   },{once:true});
   popup.document.open();
   popup.document.write(html);
