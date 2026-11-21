@@ -5,7 +5,7 @@ const read=p=>fs.readFileSync(path.join(__dirname,'..','public',p),'utf8');
 const html=read('portal.html'),portal=read('portal.js'),ob=read('staff-ob-ui.js'),css=read('attendigo-unified-workspace.css'),nav=read('attendigo-unified-navigation.js'),sw=read('sw.js');
 test('new presentation assets parse and are loaded by the portal and PWA',()=>{
  assert.doesNotThrow(()=>new vm.Script(nav));
- for(const asset of ['attendigo-unified-workspace.css?v=1','attendigo-unified-navigation.js?v=1']){
+ for(const asset of ['attendigo-unified-workspace.css?v=2','attendigo-unified-navigation.js?v=1']){
   assert.ok(html.includes(asset),asset+' in portal');
   assert.ok(sw.includes(asset),asset+' in offline shell');
  }
