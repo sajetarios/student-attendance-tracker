@@ -1,4 +1,4 @@
-const CACHE = "attendigo-v270-form48-intelligence";
+const CACHE = "attendigo-v271-daily-dtr-insights";
 
 const SHELL = [
   "/typography.css?v=1",
@@ -55,7 +55,7 @@ const SHELL = [
   "/class-qr-dashboard-link.js?v=11",
   "/teacher-roster-popover.js?v=2",
   "/portal.css?v=0.9.119",
-  "/portal.js?v=216",
+  "/portal.js?v=217",
   "/department-workspace.css?v=1",
   "/department-workspace.js?v=5",
   "/department-monitor-refresh.css?v=1",
@@ -69,6 +69,7 @@ const SHELL = [
   "/form48-intelligence.js?v=1",
   "/form48-bulk-ui.js?v=2",
   "/form48-report.css?v=10",
+  "/my-gate-insights.css?v=1",
   "/staff-lunch-ui.js?v=3",
   "/staff-ob-ui.js?v=5",
   "/staff-ob.css?v=1",
