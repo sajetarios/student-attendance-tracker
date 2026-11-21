@@ -156,3 +156,43 @@ test('LRN recovery blocks duplicate-name matches, sex differences and existing n
   assert.equal(h.calls.filter(c=>c.sql.includes('UPDATE students')).length,0);
  }
 });
+
+test('official LIS SF1 separately maps father, mother, guardian, birth and address',()=>{
+ const sheet=[
+  ['School Form 1 (SF1) School Register'],
+  ['School Year: 2026-2027','Grade Level: 8'],
+  ['LRN','NAME (Last Name, First Name, Middle Name)','Sex (M/F)','Birth Date','Father Name','Mother Maiden Name','Guardian Name (If Not Parent)','Contact Number of Parent or Guardian','House / Street / Sitio / Purok','Barangay','City / Municipality','Province'],
+  ['123456789012','DELA CRUZ, JUAN, SANTOS','M','06/05/2013','JOSE DELA CRUZ','MARIA SANTOS','TITA DELA CRUZ','09123456789','ZONE 3','SAN ROQUE','MATI','DAVAO ORIENTAL']
+ ];
+ const one=parseSf1Matrix(sheet).learners[0];
+ assert.equal(one.fatherName,'JOSE DELA CRUZ');
+ assert.equal(one.motherMaidenName,'MARIA SANTOS');
+ assert.equal(one.sf1GuardianName,'TITA DELA CRUZ');
+ assert.equal(one.birthDate,'2013-06-05');
+ assert.match(one.sf1Address,/SAN ROQUE/);
+ assert.equal(one.parentName,'');
+ assert.equal(one.parentMobile,'09123456789');
+});
+test('the unified SF1 import fills missing family information without altering identifiers or attendance',async()=>{
+ const book=new ExcelJS.Workbook(),sheet=book.addWorksheet('SF1');
+ [
+ ['School Form 1 (SF1) School Register'],['School Year: 2026-2027','Grade Level: 8'],
+ ['LRN','NAME (Last Name, First Name, Middle Name)','Sex (M/F)','Father Name','Mother Maiden Name','Guardian Name','Contact Number'],
+ ['123456789012','DELA CRUZ, JUAN, SANTOS','M','JOSE DELA CRUZ','MARIA SANTOS','TITA DELA CRUZ','09123456789']
+ ].forEach(x=>sheet.addRow(x));
+ const fileBase64=Buffer.from(await book.xlsx.writeBuffer()).toString('base64');
+ const h=createHarness([{...learner,grade_level:'Grade 8',father_name:null,mother_maiden_name:null,sf1_guardian_name:null,birth_date:null,sf1_address:null}]);
+ const payload={fileType:'xlsx',fileBase64,recoverMissingLrn:true};
+ const preview=await h.invoke('/api/students/sf1/preview',payload);
+ assert.equal(preview.statusCode,200);
+ assert.equal(preview.body.summary.update,1);
+ assert.deepEqual(preview.body.rows[0].missingFields.sort(),['fatherName','motherMaidenName','parentMobile','sf1GuardianName'].sort());
+ const commit=await h.invoke('/api/students/sf1/commit',payload);
+ assert.equal(commit.statusCode,200);
+ const updates=h.calls.filter(c=>c.sql.includes('UPDATE students'));
+ assert.equal(updates.length,1);
+ assert.match(updates[0].sql,/father_name=COALESCE/);
+ assert.match(updates[0].sql,/mother_maiden_name=COALESCE/);
+ assert.match(updates[0].sql,/sf1_guardian_name=COALESCE/);
+ assert.equal(h.calls.filter(c=>/DELETE FROM|UPDATE attendance|UPDATE student_enrollments/i.test(c.sql)).length,0);
+});
