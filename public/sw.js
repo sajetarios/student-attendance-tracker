@@ -1,4 +1,4 @@
-const CACHE = "attendigo-v273-clear-attendance-notes";
+const CACHE = "attendigo-v274-smart-attendance";
 
 const SHELL = [
   "/typography.css?v=1",
@@ -69,6 +69,8 @@ const SHELL = [
   "/form48-intelligence.js?v=1",
   "/form48-bulk-ui.js?v=2",
   "/form48-report.css?v=10",
+  "/smart-attendance-overview.css?v=1",
+  "/smart-attendance-overview.js?v=1",
   "/my-gate-insights.css?v=2",
   "/staff-lunch-ui.js?v=3",
   "/staff-ob-ui.js?v=5",
