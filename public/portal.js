@@ -2273,7 +2273,7 @@ function coverageStatusLabel(status) {
     try {
       const result = await api('/api/gate/teacher-events', {
         method: 'POST',
-        body: JSON.stringify({ teacherUserId: scannedTeacher.userId, eventType, occurredAt: new Date().toISOString(), schoolDate: schoolDateManila(), photoVerified: true })
+        body: JSON.stringify({ teacherUserId: scannedTeacher.userId, eventType, photoVerified: true })
       });
       const savedName = scannedTeacher.fullName;
       const label = eventType === 'TIME_IN' ? 'time-in' : 'time-out';
