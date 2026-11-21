@@ -2011,7 +2011,9 @@ function coverageStatusLabel(status) {
       : '<div class="student-scan-verified-photo student-scan-no-photo">No registered photo</div>';
     // The first QR recognition dialog is the Gatekeeper's single verification surface.
     // No second, duplicate verification control is rendered beneath it.
-    const verificationMarkup = '';
+    const verificationMarkup = isTeacherPerson && user.role === 'GATE_KEEPER'
+      ? '<p id="teacherGateEventPreview" role="status" aria-live="polite" class="attendance-summary-note">Checking next gate movement…</p>'
+      : '';
     const initiallyDisabled = user.role === 'GATE_KEEPER' ? 'disabled' : '';
     const dtrMarkup = isTeacherPerson && user.role === 'GATE_KEEPER'
       ? `<details class="gate-dtr-fallback"><summary>Manual DTR fallback (authorized use)</summary><div class="student-scan-buttons" role="group" aria-label="Form 48 teacher DTR">
@@ -2052,6 +2054,10 @@ function coverageStatusLabel(status) {
     const noticePhotoWarning = $('studentScanNoticePhotoWarning');
     const noticeDtr = $('studentScanNoticeDtr');
     noticeDtr.replaceChildren();
+    if (isGateVerification && isTeacherPerson) {
+      const prediction = $('teacherGateEventPreview');
+      if (prediction) noticeDtr.appendChild(prediction);
+    }
     $('studentPhotoVerified').checked = false;
     noticeContinue.hidden = isGateVerification;
     noticeRecord.hidden = !isGateVerification;
@@ -2087,7 +2093,8 @@ function coverageStatusLabel(status) {
       recordTeacherDtrSlot();
     });
     $('studentPhotoVerified')?.addEventListener('change', event => {
-      const verified = Boolean(event.target.checked);
+      const verified = Boolean(event.target.checked) &&
+        !($('teacherGateEventPreview')?.dataset.previewBlocked === 'true');
       $('studentTimeIn').disabled = !verified;
       $('studentTimeOut').disabled = !verified;
       if ($('teacherDtrRecord')) $('teacherDtrRecord').disabled = !verified;
@@ -2098,6 +2105,35 @@ function coverageStatusLabel(status) {
       $('studentScanFeedback').className = 'scanner-feedback'; $('studentScanFeedback').textContent = 'Ready for the next QR code.';
     });
     if (isTeacherPerson) scannedTeacher = person;
+    if (isGateVerification && isTeacherPerson && person.qrToken) {
+      const previewElement = $('teacherGateEventPreview');
+      noticeRecord.disabled = true;
+      if (previewElement) previewElement.dataset.previewBlocked = 'true';
+      try {
+        const preview = await api('/api/gate/teacher-event-preview', {
+          method:'POST',body:JSON.stringify({teacherQrToken:person.qrToken})
+        });
+        if (previewElement) {
+          previewElement.textContent = preview.status === 'READY'
+            ? 'Predicted gate movement: ' + preview.label + ' · ' + preview.localTime +
+              ' (Philippine time). Gate movement only; official DTR and OB remain separate.'
+            : 'Gate movement requires review: ' + (preview.reason || preview.status);
+          previewElement.dataset.previewBlocked = String(preview.status !== 'READY');
+        }
+        if (preview.status === 'READY') noticeRecord.disabled = !photo;
+        else {
+          noticeRecord.disabled = true;
+          $('studentTimeIn').disabled = true;
+        }
+      } catch (error) {
+        if (previewElement) {
+          previewElement.textContent = 'Gate prediction unavailable. No attendance recorded.';
+          previewElement.dataset.previewBlocked = 'true';
+        }
+        noticeRecord.disabled = true;
+        $('studentTimeIn').disabled = true;
+      }
+    }
   }
 
   async function recordTeacherAutomaticGatePunch() {
