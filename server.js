@@ -8,6 +8,7 @@ const { startSmsWorker } = require('./sms-service');
 let smsWorker;
 const { Pool } = require('pg');
 const { runMigrations } = require('./scripts/migrate');
+const { runSupabasePreflight } = require('./scripts/supabase-connection-preflight');
 const { nextStudentId } = require('./generated-record-ids');
 const QRCode = require('qrcode');
 const path = require('path');
@@ -4248,6 +4249,9 @@ async function start() {
   console.log('Checking database migrations...');
   const migrationResult = await runMigrations(pool);
   console.log(`Database migrations ready: ${migrationResult.applied.length} applied, ${migrationResult.total} total.`);
+  // Safe read-only connectivity probe; never switches or writes to the target.
+  void runSupabasePreflight().catch(() => console.warn('[Supabase preflight] probe_unavailable'));
+
   // Remove recovery snapshots 30 days after school deletion, including their
   // child rows via ON DELETE CASCADE. Run at startup and hourly thereafter.
   const { purgeExpiredSchoolDeletionBackups } = require('./platform-school-deletion-routes');
