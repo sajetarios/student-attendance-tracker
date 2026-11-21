@@ -1744,8 +1744,21 @@ function coverageStatusLabel(status) {
         const selection = canSelectLearnerForBatch(student) ? `<input type="checkbox" class="student-select-box" data-select-student="${esc(student.studentId)}" ${selectedStudentIds.has(student.studentId) ? 'checked' : ''} aria-label="Select ${esc(student.fullName)}">` : '';
         const ordinal = groupedRoster ? '<span class="student-roster-number">' + numberedRoster[index].number + '. </span>' : '';
         const editable = canManage && student.active !== false && !student.archivedAt;
-        const teacherGuardian = teacher
-          ? `<div class="teacher-roster-guardian" aria-label="Parent or guardian contact"><span class="teacher-roster-menu-label">Parent / guardian</span><strong>${esc(student.parentName || 'Not provided')}</strong><small>${esc(student.parentMobile || 'No mobile number')}</small></div>`
+        const familyRow=(label,value)=>`<div class="sf1-family-line"><span>${esc(label)}</span><strong>${esc(value||'Not provided')}</strong></div>`;
+        const canViewFamily=teacher||admin;
+        const teacherGuardian=canViewFamily
+          ? `<div class="teacher-roster-guardian sf1-family-details" aria-label="Learner identification and family information">
+              <span class="teacher-roster-menu-label">Learner &amp; family details</span>
+              ${familyRow('LRN',student.lrn)}
+              ${familyRow("Father's name",student.fatherName)}
+              ${familyRow("Mother's maiden name",student.motherMaidenName)}
+              ${familyRow('Guardian (if not parent)',student.sf1GuardianName)}
+              ${familyRow('Primary parent / guardian',student.parentName||'Not assigned')}
+              ${familyRow('Contact number',student.parentMobile)}
+              ${familyRow('Birth date',student.birthDate?String(student.birthDate).slice(0,10):'')}
+              ${familyRow('Address',student.sf1Address)}
+              <small>SF1 family names do not automatically designate a primary guardian.</small>
+            </div>`
           : '';
         const adminQrAction = admin && canViewQr
           ? `<button type="button" class="outline-button" data-view-qr="${esc(student.studentId)}" aria-label="View QR code for ${esc(student.fullName)}">View QR</button>`
