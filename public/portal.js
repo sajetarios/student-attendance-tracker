@@ -1657,9 +1657,10 @@ function coverageStatusLabel(status) {
         '<strong class="learner-roster-surname">' + esc(parsed.surname) + '</strong>' +
         '<span class="learner-roster-given">' + esc(parsed.givenNames) + '</span></span>';
     }
+    // Missing a surname delimiter is not a student-verification failure.
+    // Keep the original name untouched; official SF1 correction is opt-in.
     return '<span class="student-roster-name-block">' + ordinal +
-      '<strong class="learner-roster-original">' + esc(student.fullName) + '</strong>' +
-      '<small class="learner-roster-unverified" title="This legacy record does not identify which part is the official surname.">Surname not verified</small></span>';
+      '<strong class="learner-roster-original">' + esc(student.fullName) + '</strong></span>';
   }
 
   function updateStructuredStudentNameMode() {
