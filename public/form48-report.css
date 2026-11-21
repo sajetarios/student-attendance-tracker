@@ -30,7 +30,7 @@
 .form48-preview-note{font-size:13px;line-height:1.5;max-width:700px}
 @media(max-width:800px){.form48-filter{grid-template-columns:minmax(0,1fr)}.form48-filter button{width:100%}}
 @media print{
- @page{size:A4 landscape;margin:8mm}
+ @page{size:A4 portrait;margin:8mm}
  body *{visibility:hidden!important}
  #form48PrintArea,#form48PrintArea *{visibility:visible!important}
  #form48PrintArea{position:absolute;inset:0;overflow:visible!important;max-width:none!important;margin:0;padding:0!important}
@@ -153,14 +153,14 @@
  #form48PrintArea .form48-leave-remarks>div{break-inside:avoid;page-break-inside:avoid}
 }
 
-/* Single-sheet A4 landscape: two original Form 48 copies on one page. */
+/* Single-sheet A4 portrait: two original Form 48 copies on one page. */
 .form48-gate-evidence{font-weight:700;text-decoration:underline dotted}
 .form48-gate-note{font-size:7px;line-height:1.15;margin:3px 0;max-width:100%}
 @media print{
- @page{size:A4 landscape;margin:5mm}
+ @page{size:A4 portrait;margin:5mm}
  html,body{margin:0!important;padding:0!important;print-color-adjust:exact}
  #form48PrintArea{position:absolute!important;top:0!important;left:0!important;
-   width:287mm!important;max-width:287mm!important;height:auto!important;
+   width:200mm!important;max-width:200mm!important;height:auto!important;
    margin:0!important;padding:0!important;overflow:visible!important}
  #form48PrintArea .form48-sheets{display:grid!important;
    grid-template-columns:repeat(2,minmax(0,1fr))!important;
@@ -205,7 +205,7 @@
 @media print{
  #form48PrintArea .form48-sheets{align-items:stretch!important}
  #form48PrintArea .form48-copy{
-   min-height:198mm!important;display:flex!important;flex-direction:column!important;
+   min-height:280mm!important;display:flex!important;flex-direction:column!important;
    font-size:8pt!important;line-height:1.15!important}
  #form48PrintArea .form48-copy h3{font-size:12pt!important;margin:3mm 0 1mm!important}
  #form48PrintArea .form48-form-heading,#form48PrintArea .form48-copy-type{font-size:7.5pt!important}
@@ -258,3 +258,47 @@
 @media(max-width:800px){.form48-intelligence-slots{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(max-width:480px){.form48-intelligence-slots{grid-template-columns:1fr 1fr}.form48-intelligence-controls label{flex:1 1 100%}.form48-intelligence-controls button{width:100%}.form48-gate-intelligence>summary{align-items:flex-start}}
 @media print{.form48-gate-intelligence{display:none!important}}
+
+/* Physical Form 48 print geometry: printable A4 portrait is 200 x 287 mm.
+   One pair of Office / Employee copies per sheet, no clipping of annotations. */
+@media print{
+ @page{size:A4 portrait;margin:5mm}
+ html,body{background:#fff!important;padding:0!important;margin:0!important}
+ /* Share > Print on iPad must not include the dashboard or floating brand icon. */
+ body:has(#form48PrintArea:not([hidden])) *:not(#form48PrintArea):not(#form48PrintArea *):not(:has(#form48PrintArea)){display:none!important}
+ #form48PrintArea{position:absolute!important;top:0!important;left:0!important;inset:auto!important;
+   width:200mm!important;max-width:200mm!important;min-width:200mm!important;padding:0!important;
+   margin:0!important;overflow:visible!important}
+ #form48PrintArea .form48-sheets{display:grid!important;width:200mm!important;max-width:200mm!important;
+   min-width:0!important;grid-template-columns:99mm 99mm!important;gap:2mm!important;
+   align-items:stretch!important;overflow:visible!important;break-inside:avoid!important}
+ #form48PrintArea .form48-copy{display:flex!important;flex-direction:column!important;box-sizing:border-box!important;
+   width:99mm!important;max-width:99mm!important;min-width:0!important;min-height:280mm!important;
+   padding:0 1mm!important;margin:0!important;border:0!important;overflow:visible!important;
+   background:#fff!important;color:#111!important;font-size:7pt!important;line-height:1.15!important;
+   break-inside:avoid!important;page-break-inside:avoid!important}
+ #form48PrintArea .form48-copy h3{font-size:10pt!important;line-height:1.1!important;margin:2mm 0 1mm!important}
+ #form48PrintArea .form48-form-heading,#form48PrintArea .form48-copy-type{font-size:6.8pt!important}
+ #form48PrintArea .form48-employee{font-size:8pt!important;padding:1mm 0!important;overflow-wrap:anywhere}
+ #form48PrintArea .form48-month{font-size:7pt!important;margin:2mm 0 1mm!important}
+ #form48PrintArea .form48-official-hours{font-size:7pt!important;margin:1mm 0!important}
+ #form48PrintArea .form48-hours-grid{display:block!important;font-size:6.8pt!important;line-height:1.15!important;margin:1mm 0 2mm!important}
+ #form48PrintArea .form48-hours-grid span{display:block!important}
+ #form48PrintArea .form48-sheet{width:100%!important;table-layout:fixed!important;font-size:6.8pt!important}
+ #form48PrintArea .form48-sheet th,#form48PrintArea .form48-sheet td{
+   box-sizing:border-box!important;height:4.6mm!important;min-height:4.6mm!important;
+   padding:0!important;font-size:6.8pt!important;line-height:1!important;white-space:nowrap!important}
+ #form48PrintArea .form48-sheet thead tr:first-child th:first-child,
+ #form48PrintArea .form48-sheet tbody td:first-child{width:7mm!important;min-width:7mm!important}
+ #form48PrintArea .form48-certify{font-size:6.6pt!important;margin:2.5mm 0 1mm!important;line-height:1.18!important}
+ #form48PrintArea .form48-signature{font-size:7pt!important;margin:4mm 2mm 0!important}
+ #form48PrintArea .form48-signature :is(strong,span){font-size:7pt!important;line-height:1.14!important}
+ #form48PrintArea .form48-remarks{margin:3mm 0 1mm!important;font-size:7pt!important}
+ #form48PrintArea .form48-summary{display:grid!important;margin:1mm 0!important;font-size:7pt!important;gap:.6mm!important}
+ #form48PrintArea .form48-summary span{line-height:1.15!important}
+ #form48PrintArea .form48-approval{margin-top:auto!important;margin-bottom:2mm!important;padding-top:3mm!important}
+ #form48PrintArea .form48-gate-note{font-size:6.2pt!important;line-height:1.1!important;margin:1mm 0!important}
+ #form48PrintArea .form48-leave-remarks,#form48PrintArea .form48-ob-remarks{
+   font-size:6.4pt!important;line-height:1.15!important;overflow-wrap:anywhere}
+ .form48-print-toolbar{display:none!important}
+}

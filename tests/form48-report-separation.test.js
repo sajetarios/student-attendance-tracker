@@ -81,7 +81,7 @@ test('Form 48 Day header fits and report-specific cells override dashboard paddi
  assertCachedAsset(html,sw,'form48-report.css',{minimumVersion:9});
 });
 
-test('Form 48 print opens isolated A4 landscape report without dashboard or private controls',()=>{
+test('Form 48 print opens isolated A4 portrait report without dashboard or private controls',()=>{
  const js=fs.readFileSync('public/form48-report.js','utf8');
  const html=fs.readFileSync('public/portal.html','utf8');
  const sw=fs.readFileSync('public/sw.js','utf8');
@@ -89,8 +89,22 @@ test('Form 48 print opens isolated A4 landscape report without dashboard or priv
  assert.ok(js.includes("output.querySelector('.form48-sheets')"));
  assert.ok(js.includes("window.open('', '_blank')"));
  assert.ok(js.includes('<main id="form48PrintArea"'));
- assert.ok(js.includes('@page{size:A4 landscape;margin:5mm}'));
+ assert.ok(js.includes('@page{size:A4 portrait;margin:5mm}'));
  assert.ok(js.includes('popup.document.write(html)'));
  assert.ok(!js.includes("if(!button.disabled&&!output.hidden)window.print()"));
- assertCachedAsset(html,sw,'form48-report.js',{minimumVersion:9});
+ assert.ok(js.includes('width:200mm!important'));
+ assert.ok(js.includes('Two copies on one page'));
+ assert.doesNotMatch(js,/A4 landscape|287mm/);
+ assertCachedAsset(html,sw,'form48-report.js',{minimumVersion:10});
+});
+test('Form 48 physical print is A4 portrait with two copies and no app logo',()=>{
+ const css=fs.readFileSync('public/form48-report.css','utf8');
+ const html=fs.readFileSync('public/portal.html','utf8');
+ const sw=fs.readFileSync('public/sw.js','utf8');
+ assert.doesNotMatch(css,/A4 landscape|287mm/);
+ assert.match(css,/@page\{size:A4 portrait;margin:5mm\}/);
+ assert.match(css,/grid-template-columns:99mm 99mm!important/);
+ assert.match(css,/min-height:280mm!important/);
+ assert.match(css,/body:has\(#form48PrintArea:not\(\[hidden\]\)\)/);
+ assertCachedAsset(html,sw,'form48-report.css',{minimumVersion:11});
 });

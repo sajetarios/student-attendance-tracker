@@ -112,16 +112,16 @@
   const html='<!doctype html><html lang="en"><head><meta charset="utf-8">'+
    '<meta name="viewport" content="width=device-width,initial-scale=1">'+
    '<title>Attendigo — Form 48 Daily Time Record</title>'+
-   '<link rel="stylesheet" href="/form48-report.css?v=10">'+
+   '<link rel="stylesheet" href="/form48-report.css?v=11">'+
    '<style>html,body{background:#fff!important;color:#111!important;margin:0!important;padding:0!important;font-family:Arial,sans-serif!important}'+
-   'body{box-sizing:border-box}#form48PrintArea{width:287mm!important;max-width:none!important;margin:0!important;padding:0!important;overflow:visible!important}'+
+   'body{box-sizing:border-box}#form48PrintArea{width:200mm!important;max-width:none!important;margin:0!important;padding:0!important;overflow:visible!important}'+
    '#form48PrintArea .form48-sheets{width:100%!important;min-width:0!important;grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:3mm!important}'+
    '.form48-print-toolbar{padding:12px 16px;font:14px Arial,sans-serif;background:#f3f6fb;color:#223;box-sizing:border-box}'+
    '.form48-print-toolbar button{padding:9px 14px;border:0;background:#14579b;color:#fff;border-radius:6px;cursor:pointer}'+
    '@media screen{body{width:max-content;min-width:100%}#form48PrintArea{margin:12px auto!important}}'+
-   '@media print{@page{size:A4 landscape;margin:5mm}.form48-print-toolbar{display:none!important}}'+
+   '@media print{@page{size:A4 portrait;margin:5mm}.form48-print-toolbar{display:none!important}}'+
    '</style></head><body>'+
-   '<div class="form48-print-toolbar">DTR print copy · Choose landscape A4 if your printer asks. <button id="form48PrintAgain" type="button">Print / Save PDF</button></div>'+
+   '<div class="form48-print-toolbar">DTR print copy · A4 portrait · Two copies on one page. <button id="form48PrintAgain" type="button">Print / Save PDF</button></div>'+
    '<main id="form48PrintArea" class="form48-print-area">'+sheets.outerHTML+'</main>'+
    '</body></html>';
   popup.addEventListener('load',()=>{
