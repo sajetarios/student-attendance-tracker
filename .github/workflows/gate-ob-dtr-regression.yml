@@ -4,6 +4,7 @@ on:
     branches:
       - fix/render-login-landing
       - 'feature/ob-*'
+      - 'feature/form48-*'
   pull_request:
     branches:
       - fix/render-login-landing
@@ -22,7 +23,7 @@ jobs:
           cache: npm
       - run: npm ci
       - name: Gate, OB and DTR regression tests
-        run: node --test tests/gate-event-decision.test.js tests/gate-attendance-boundary.test.js tests/ob-dtr-remarks.test.js tests/gatekeeper-auto-integration.test.js tests/gate-dtr-reconciliation.test.js tests/gate-dtr-preview-route.test.js tests/gate-preview-regression.test.js
+        run: node --test tests/gate-event-decision.test.js tests/gate-attendance-boundary.test.js tests/ob-dtr-remarks.test.js tests/gatekeeper-auto-integration.test.js tests/gate-dtr-reconciliation.test.js tests/gate-dtr-preview-route.test.js tests/gate-preview-regression.test.js tests/form48-intelligence-ui.test.js tests/staff-gate-dtr-ui.test.js
       - name: Validate server and UI JavaScript syntax
         run: |
           node --check server.js
@@ -31,3 +32,4 @@ jobs:
           node --check gate-dtr-reconciliation.js
           node --check public/portal.js
           node --check public/form48-report.js
+          node --check public/form48-intelligence.js
