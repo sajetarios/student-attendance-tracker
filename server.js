@@ -2,7 +2,9 @@
 require('dotenv').config();
 
 const express = require('express');
-const { Pool } = require('pg');
+const { createPool } = require('./db');
+const { configureProxy, httpsRedirect, createRateLimiter } = require('./http-security');
+const { STUDENT_PHOTO_ROOT, TEACHER_PHOTO_ROOT } = require('./storage-paths');
 const { runMigrations } = require('./scripts/migrate');
 const QRCode = require('qrcode');
 const path = require('path');
@@ -17,16 +19,27 @@ const { registerParentRoutes } = require('./parent-routes');
 const { registerStudentRoutes } = require('./student-routes');
 
 const app = express();
-const pool = new Pool({ connectionString: process.env.DATABASE_URL });
+const pool = createPool();
 app.disable('x-powered-by');
+configureProxy(app);
+app.use(httpsRedirect);
 app.use((req, res, next) => {
   res.setHeader('X-Content-Type-Options', 'nosniff');
   res.setHeader('Referrer-Policy', 'no-referrer');
+  res.setHeader('X-Frame-Options', 'SAMEORIGIN');
+  res.setHeader('Permissions-Policy', 'camera=(self), microphone=(), geolocation=()');
+  if (req.secure) res.setHeader('Strict-Transport-Security', 'max-age=15552000');
   if (req.path.startsWith('/api/')) res.setHeader('Cache-Control', 'no-store');
   next();
 });
 app.use(express.json({ limit: '2mb' }));
 
+// Slow down password guessing per client address, on top of the per-account lockout.
+const loginLimiter = createRateLimiter({
+  windowMs: 15 * 60 * 1000, max: Number(process.env.LOGIN_RATE_LIMIT || 30),
+  message: 'Too many sign-in attempts from this device. Please wait a few minutes and try again.'
+});
+app.use(['/api/auth/school/login', '/api/auth/student/login', '/api/auth/platform/login'], loginLimiter);
 registerAuthRoutes(app, pool);
 const { authenticateSchoolClient, requireSchoolRoles, requireSchoolPermission, requireTeacherDesignations, requireSchoolClient } = createAuthMiddleware(pool);
 const requireSchoolAdmin = requireSchoolRoles('SCHOOL_ADMIN');
@@ -952,7 +965,14 @@ function isValidSchoolDate(value) {
   return Number.isFinite(date.getTime()) && date.toISOString().slice(0, 10) === value;
 }
 
-app.get('/health', (_req, res) => res.json({ ok: true, service: 'school-attendance-api', build: 'roles-sf2-workflow-responsive-2026-11-11', security: 'session-and-school-device-auth' }));
+app.get('/health', async (_req, res) => {
+  let database = 'up';
+  try { await pool.query('SELECT 1'); } catch { database = 'down'; }
+  return res.status(database === 'up' ? 200 : 503).json({
+    ok: database === 'up', database, service: 'school-attendance-api',
+    build: 'roles-sf2-workflow-responsive-2026-11-11', security: 'session-and-school-device-auth'
+  });
+});
 
 // Grade-to-section options for student registration. Sections are derived from active class schedules.
 app.get('/api/sections', authenticateSchoolClient, requireSchoolUser, async (req, res) => {
@@ -1039,7 +1059,7 @@ app.get('/api/gate/photo/:qrToken', authenticateSchoolClient, requireSchoolRoles
     res.setHeader('Content-Type', mime);
     res.setHeader('Cache-Control', 'private, max-age=0, must-revalidate');
     res.setHeader('Content-Disposition', 'inline');
-    return fs.createReadStream(absolute).pipe(res);
+    return fs.createReadStream(absolute).on('error', () => { if (!res.headersSent) res.status(404).end(); else res.destroy(); }).pipe(res);
   } catch (err) {
     if (err.code !== 'ENOENT') console.error('Gate photo retrieval failed:', err.message);
     return res.status(404).end();
@@ -1092,7 +1112,7 @@ app.get('/api/gate/teacher/photo/:qrToken', authenticateSchoolClient, requireSch
     res.setHeader('Content-Type', mime);
     res.setHeader('Cache-Control', 'private, max-age=0, must-revalidate');
     res.setHeader('Content-Disposition', 'inline');
-    return fs.createReadStream(absolute).pipe(res);
+    return fs.createReadStream(absolute).on('error', () => { if (!res.headersSent) res.status(404).end(); else res.destroy(); }).pipe(res);
   } catch (err) {
     if (err.code !== 'ENOENT') console.error('Teacher gate photo retrieval failed:', err.message);
     return res.status(404).end();
@@ -1397,8 +1417,6 @@ app.patch('/api/students/:studentId', authenticateSchoolClient, requireSchoolAdm
 });
 
 // Student photos are stored outside /public and served only after school authentication.
-const STUDENT_PHOTO_ROOT = path.join(__dirname, 'storage', 'student-photos');
-const TEACHER_PHOTO_ROOT = path.join(__dirname, 'storage', 'teacher-photos');
 function photoMimeFromBuffer(buffer) {
   if (!Buffer.isBuffer(buffer)) return null;
   if (buffer.length >= 3 && buffer[0] === 0xff && buffer[1] === 0xd8 && buffer[2] === 0xff) return { mime: 'image/jpeg', ext: '.jpg' };
@@ -1435,7 +1453,7 @@ app.get('/api/students/:studentId/photo', authenticateSchoolClient, requireSchoo
     res.setHeader('Content-Length', String((await fsp.stat(absolute)).size));
     res.setHeader('Cache-Control', 'private, max-age=0, must-revalidate');
     res.setHeader('Content-Disposition', 'inline');
-    return fs.createReadStream(absolute).pipe(res);
+    return fs.createReadStream(absolute).on('error', () => { if (!res.headersSent) res.status(404).end(); else res.destroy(); }).pipe(res);
   } catch (err) {
     if (err.code !== 'ENOENT') console.error('Student photo retrieval failed:', err.message);
     return res.status(err.code === 'ENOENT' ? 404 : 500).json({ error: 'Could not retrieve student photo.' });
@@ -2082,6 +2100,17 @@ app.get('/vendor/html5-qrcode.min.js', (_req, res) =>
 app.use(express.static(path.join(__dirname, 'public')));
 app.use('/api', (_req, res) => res.status(404).json({ error: 'API endpoint not found.' }));
 
+// Final error handler: malformed JSON, oversized bodies and unexpected throws return JSON, never a stack trace.
+app.use((err, req, res, next) => {
+  if (res.headersSent) return next(err);
+  const status = Number(err.status || err.statusCode) || 500;
+  if (status >= 500) console.error('Unhandled request error:', err.message);
+  const message = err.type === 'entity.parse.failed' ? 'Request body is not valid JSON.'
+    : err.type === 'entity.too.large' ? 'Request body is too large.'
+    : status >= 500 ? 'Unexpected server error.' : 'Bad request.';
+  return res.status(status >= 400 && status < 600 ? status : 500).json({ error: message });
+});
+
 const port = Number(process.env.PORT || 3000);
 const httpsPort = Number(process.env.HTTPS_PORT || 3443);
 
@@ -2166,7 +2195,10 @@ start().catch(err => {
   process.exit(1);
 });
 
-process.on('SIGINT', async () => { await pool.end(); process.exit(0); });
-process.on('SIGTERM', async () => { await pool.end(); process.exit(0); });
+process.on('unhandledRejection', reason => {
+  console.error('Unhandled promise rejection:', reason instanceof Error ? reason.message : reason);
+});
+process.on('SIGINT', async () => { await pool.end().catch(() => {}); process.exit(0); });
+process.on('SIGTERM', async () => { await pool.end().catch(() => {}); process.exit(0); });
 
 

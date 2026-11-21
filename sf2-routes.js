@@ -4,7 +4,7 @@ const ExcelJS = require('exceljs');
 const path = require('path');
 const fs = require('fs/promises');
 const TEMPLATE = path.join(__dirname, 'templates', 'School Form 2 (SF2) Daily Attendance Report of Learners.xlsx');
-const SF2_STORAGE = path.join(__dirname, 'storage', 'sf2');
+const { SF2_STORAGE } = require('./storage-paths');
 const MONTHS = ['JANUARY','FEBRUARY','MARCH','APRIL','MAY','JUNE','JULY','AUGUST','SEPTEMBER','OCTOBER','NOVEMBER','DECEMBER'];
 const validMonth = value => /^\d{4}-(0[1-9]|1[0-2])$/.test(value || '');
 const safePart = value => String(value || '').replace(/[^a-z0-9_-]/gi, '_').slice(0, 80) || 'section';
@@ -62,6 +62,8 @@ function registerSf2Routes(app, pool, { authenticateSchoolClient, requireSchoolU
     CREATE INDEX IF NOT EXISTS sf2_submissions_school_month_idx
       ON sf2_submissions(school_id,reporting_month DESC,status);
   `);
+  // Routes await `migration` inside their own try/catch; this keeps a startup failure from crashing the process as an unhandled rejection.
+  migration.catch(err => console.error('SF2 schema setup failed:', err.message));
 
   async function getSectionAccess(req, gradeLevel, section, requestedMode = '') {
     if (req.auth.role === 'SCHOOL_ADMIN') return { allowed: true, mode: 'OFFICIAL', canEditSex: true, canConfirmAbsence: false, canSubmit: false };
@@ -688,7 +690,9 @@ function registerSf2Routes(app, pool, { authenticateSchoolClient, requireSchoolU
       try { await client.query('ROLLBACK'); } catch {}
       if (savedPath) await fs.unlink(savedPath).catch(() => {});
       console.error('Official SF2 submission failed:', err);
-      return res.status(err.status || 500).json({ error: err.message || 'Could not submit the official SF2.' });
+      // Only deliberate 4xx errors carry a user-facing message; internal failures stay generic.
+      const clientError = err.status >= 400 && err.status < 500;
+      return res.status(clientError ? err.status : 500).json({ error: clientError && err.message ? err.message : 'Could not submit the official SF2.' });
     } finally {
       client.release();
     }

@@ -11,7 +11,7 @@ if (!process.env.DATABASE_URL) {
   process.exit(1);
 }
 
-const pool = new Pool({ connectionString: process.env.DATABASE_URL });
+const pool = require('../db').createPool();
 const rl = readline.createInterface({ input: process.stdin, output: process.stdout });
 
 function ask(question, defaultValue = '') {

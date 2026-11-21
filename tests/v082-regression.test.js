@@ -57,5 +57,5 @@ test('new theme is cool neutral blue and all relevant pages use v0.8.2 cache-bus
   const html = ['portal.html','index.html','portal-login.html','parent-portal.html','student-portal.html']
     .map(name => read(`public/${name}`)).join('\n');
   assert.match(html, /comfort-ui\.css\?v=0\.8\.2/);
-  assert.match(read('public/sw.js'), /school-attendance-shell-v13/);
+  assert.match(read('public/sw.js'), /school-attendance-shell-v14/);
 });
