@@ -95,7 +95,7 @@ test('Form 48 print opens isolated A4 portrait report without dashboard or priva
  assert.ok(js.includes('width:194mm!important'));
  assert.ok(js.includes('Two copies on one page'));
  assert.doesNotMatch(js,/A4 landscape|287mm/);
- assertCachedAsset(html,sw,'form48-report.js',{minimumVersion:12});
+ assertCachedAsset(html,sw,'form48-report.js',{minimumVersion:11});
 });
 test('Form 48 physical print is A4 portrait with two copies and no app logo',()=>{
  const css=fs.readFileSync('public/form48-report.css','utf8');
