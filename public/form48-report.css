@@ -266,7 +266,7 @@
  html,body{background:#fff!important;padding:0!important;margin:0!important}
  /* Share > Print on iPad must not include the dashboard or floating brand icon. */
  body:has(#form48PrintArea:not([hidden])) *:not(#form48PrintArea):not(#form48PrintArea *):not(:has(#form48PrintArea)){display:none!important}
- #form48PrintArea{position:absolute!important;top:0!important;left:0!important;inset:auto!important;
+ #form48PrintArea{position:absolute!important;inset:0 auto auto 0!important;
    width:200mm!important;max-width:200mm!important;min-width:200mm!important;padding:0!important;
    margin:0!important;overflow:visible!important}
  #form48PrintArea .form48-sheets{display:grid!important;width:200mm!important;max-width:200mm!important;
