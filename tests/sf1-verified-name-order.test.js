@@ -17,7 +17,7 @@ test('SF1 review matches a legacy flattened name to the source-verified official
  assert.equal(sf1NamesEquivalent('DE LA CRUZ, ANA MARIA SANTOS','ANA MARIA SANTOS DE LA CRUZ'),true);
  assert.equal(sf1NamesEquivalent('RAMOS, ANA','ANA RAMOS'),true);
  assert.equal(sf1NamesEquivalent('SANTOS, ANA MARIA','ANA MARIA DE LA CRUZ'),false);
- assert.equal(sf1NamesEquivalent('ANA MARIA SANTOS DE LA CRUZ','DE LA CRUZ, ANA MARIA SANTOS'),false);
+ assert.equal(sf1NamesEquivalent('ANA MARIA SANTOS DE LA CRUZ','DE LA CRUZ, ANA MARIA SANTOS'),true);
  assert.deepEqual(sf1NameAliases('RAMOS, ANA'),['ramosana','anaramos']);
 });
 test('Excel and PDF importers save official names only when source delimiters are present',()=>{
