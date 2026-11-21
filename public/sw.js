@@ -1,4 +1,4 @@
-const CACHE = "attendigo-v274-smart-attendance";
+const CACHE = "attendigo-v275-ipad-sidebar-scroll";
 
 const SHELL = [
   "/typography.css?v=1",
@@ -16,7 +16,7 @@ const SHELL = [
   "/assets/attendigo-wordmark-on-dark.svg?v=5",
   "/assets/attendigo-wordmark-on-light.svg?v=5",
   "/assets/attendigo-symbol-transparent.svg?v=5",
-  "/attendigo-sidebar-adaptive.css?v=19",
+  "/attendigo-sidebar-adaptive.css?v=20",
   "/user-management-readability.css?v=6",
   "/user-nav-reorg.css?v=1",
   "/attendigo-sidebar-adaptive.js?v=9",
