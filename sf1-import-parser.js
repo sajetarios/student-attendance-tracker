@@ -42,6 +42,20 @@ const extractName = name => {
  const parts=text.split(',').map(x=>x.trim()).filter(Boolean);
  return parts.length>1 ? [parts.slice(1).join(' '),parts[0]].join(' ').trim() : text;
 };
+ // Use source-defined surname boundaries for newly imported official SF1 records.
+ // Preserve legacy `fullName` for existing matching, and never infer an
+ // official surname from an undelimited value.
+const extractOfficialName = name => {
+ const text=asText(name).trim().replace(/\s+/g,' ');
+ const index=text.indexOf(',');
+ if(index<=0) return '';
+ const surname=text.slice(0,index).trim();
+ const parts=text.slice(index+1).split(',').map(x=>x.trim())
+   .filter(x=>x && x!=='-' && x!=='—');
+ const given=parts.join(' ').trim().replace(/\s+/g,' ');
+ const formatted=surname&&given ? surname+', '+given : '';
+ return formatted.length<=200 ? formatted : '';
+};
 function parseSf1Matrix(rows) {
  if (!Array.isArray(rows) || !rows.length) throw Error('The SF1 workbook has no readable rows.');
  let grade='',schoolYear='',headerIndex=-1,lrnCol=-1,nameCol=-1,sexCol=-1,parentCol=-1,contactCol=-1,fatherCol=-1,motherCol=-1,guardianCol=-1,birthCol=-1,addressCols=[];
@@ -131,7 +145,7 @@ function parseSf1Matrix(rows) {
   if(sf1Address.length>500){errors.push({rowNumber:i+1,message:'SF1 address exceeds 500 characters.'});continue;}
   // Do not infer that either parent is the legally designated guardian.
   // A guardian named "if not parent" is stored separately, not as primary parent_name.
-  learners.push({rowNumber:i+1,lrn:rawLrn,fullName:extractName(rawName),sex,gradeLevel:grade,section:'Unassigned',studentId:'',parentName,parentMobile,fatherName,motherMaidenName,sf1GuardianName,birthDate,sf1Address});
+  learners.push({rowNumber:i+1,lrn:rawLrn,fullName:extractName(rawName),officialFullName:extractOfficialName(rawName),sex,gradeLevel:grade,section:'Unassigned',studentId:'',parentName,parentMobile,fatherName,motherMaidenName,sf1GuardianName,birthDate,sf1Address});
  }
  if(!learners.length) throw Error('No valid SF1 learners were found. Check the LIS-exported workbook.');
  if(learners.length>2000) throw Error('Import a maximum of 2,000 learners at once.');
@@ -188,4 +202,4 @@ async function parseSf1Base64(base64, fileType='xlsx') {
  if(results.length!==1)throw Error(results.length?'Multiple SF1 roster worksheets detected. Upload one class SF1 workbook at a time.':'Could not detect an SF1 roster in this workbook.');
  return results[0];
 }
-module.exports={parseSf1Matrix,parseSf1Base64,extractName,normalizeGuardianContact};
+module.exports={parseSf1Matrix,parseSf1Base64,extractName,extractOfficialName,normalizeGuardianContact};

@@ -3,7 +3,7 @@
 // PDF input uses the same validated SF1 commit pipeline as Excel.
 // Text-only parsing: reject unsupported/scanned layouts rather than guessing student data.
 const pdfjs=require('pdfjs-dist/legacy/build/pdf.js');
-const {extractName,parseSf1Matrix}=require('./sf1-import-parser');
+const {extractName,extractOfficialName,parseSf1Matrix}=require('./sf1-import-parser');
 const {readLayoutPages}=require('./sf1-pdf-layout');
 const MAX_BYTES=5*1024*1024, MAX_PAGES=30;
 function gradeFromText(text){
@@ -48,12 +48,14 @@ function parseSf1PdfText(text){
   }
   const sexToken=sexIndex>=0?cells[sexIndex].toUpperCase():currentSex;
   const sex=sexToken==='M'||sexToken==='MALE'?'MALE':'FEMALE';
-  const fullName=extractName(cells.slice(0,sexIndex>=0?sexIndex:cells.length).join(' '));
+  const rawName=cells.slice(0,sexIndex>=0?sexIndex:cells.length).join(' ');
+  const fullName=extractName(rawName);
+  const officialFullName=extractOfficialName(rawName);
   // No speculative names: an SF1 name must contain a comma, as in LAST, FIRST, MIDDLE.
   if(!/[,]/.test(cells.slice(0,sexIndex>=0?sexIndex:cells.length).join(' '))||fullName.length<3||fullName.length>200){
    errors.push({rowNumber:i+1,message:'Learner name could not be read reliably from this PDF. Use LIS Excel SF1.'});continue;
   }
-  rows.push({rowNumber:i+1,lrn,fullName,sex,gradeLevel,section:'Unassigned',studentId:'',parentName:'',parentMobile:''});
+  rows.push({rowNumber:i+1,lrn,fullName,officialFullName,sex,gradeLevel,section:'Unassigned',studentId:'',parentName:'',parentMobile:''});
  }
  // Match all 12-digit LRNs in the document to avoid silently dropping students.
  const expected=new Set([...input.matchAll(/\b\d{12}\b/g)].map(m=>m[0]));
