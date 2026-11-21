@@ -96,7 +96,7 @@ test('personal daily review assets are versioned, responsive and no record-edit 
  assert.match(ui,/myGateReviewReasons/);
  assert.match(ui,/myGateRequestRevision/);
  assert.match(ui,/my-gate-insight/);
- assert.match(ui,/suggested gate time only; official DTR not recorded/);
+ assert.match(ui,/gate scan only; this is not an official DTR time/);
  assert.match(ui,/Your official DTR and OB records have not been changed/);
  assert.match(css,/@media\(max-width:760px\)/);
 });
