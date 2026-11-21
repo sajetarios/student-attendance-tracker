@@ -92,10 +92,10 @@ test('Form 48 print opens isolated A4 portrait report without dashboard or priva
  assert.ok(js.includes('@page{size:A4 portrait;margin:5mm}'));
  assert.ok(js.includes('popup.document.write(html)'));
  assert.ok(!js.includes("if(!button.disabled&&!output.hidden)window.print()"));
- assert.ok(js.includes('width:200mm!important'));
+ assert.ok(js.includes('width:194mm!important'));
  assert.ok(js.includes('Two copies on one page'));
  assert.doesNotMatch(js,/A4 landscape|287mm/);
- assertCachedAsset(html,sw,'form48-report.js',{minimumVersion:10});
+ assertCachedAsset(html,sw,'form48-report.js',{minimumVersion:12});
 });
 test('Form 48 physical print is A4 portrait with two copies and no app logo',()=>{
  const css=fs.readFileSync('public/form48-report.css','utf8');
@@ -104,7 +104,24 @@ test('Form 48 physical print is A4 portrait with two copies and no app logo',()=
  assert.doesNotMatch(css,/A4 landscape|287mm/);
  assert.match(css,/@page\{size:A4 portrait;margin:5mm\}/);
  assert.match(css,/grid-template-columns:99mm 99mm!important/);
- assert.match(css,/min-height:280mm!important/);
+ assert.match(css,/min-height:264mm!important/);
  assert.match(css,/body:has\(#form48PrintArea:not\(\[hidden\]\)\)/);
  assertCachedAsset(html,sw,'form48-report.css',{minimumVersion:11});
+});
+
+test('iPad isolated print keeps 31 rows, certification and draft status in a single A4 page',()=>{
+ const css=fs.readFileSync('public/form48-report.css','utf8');
+ const js=fs.readFileSync('public/form48-report.js','utf8');
+ const html=fs.readFileSync('public/portal.html','utf8');
+ const sw=fs.readFileSync('public/sw.js','utf8');
+ assert.match(js,/class="form48-print-document"/);
+ assert.match(css,/html\.form48-print-document #form48PrintArea \{/);
+ assert.match(css,/position:static!important;inset:auto!important/);
+ assert.match(css,/grid-template-columns:96mm 96mm!important/);
+ assert.match(css,/min-height:264mm!important/);
+ assert.match(css,/height:4\.1mm!important;min-height:4\.1mm!important/);
+ assert.match(css,/html\.form48-print-document #form48PrintArea \.form48-draft-mark/);
+ assert.match(js,/@page\{size:A4 portrait;margin:5mm\}/);
+ assertCachedAsset(html,sw,'form48-report.css',{minimumVersion:12});
+ assertCachedAsset(html,sw,'form48-report.js',{minimumVersion:11});
 });
