@@ -56,7 +56,7 @@ function parseSf1Matrix(rows) {
   const si=cols.findIndex(v=>v==='sexmf'||v==='sex'||v==='gender');
   if(li>=0 && ni>=0 && li!==ni){
    headerIndex=i;lrnCol=li;nameCol=ni;sexCol=si;
-   parentCol=findOptionalColumn(rows,i,v=>/^(?:nameof(?:parent|guardian)|parentguardianname|parentname|guardianname|nameofparentguardian|parentguardian|guardianparentname)/.test(v));
+   parentCol=findOptionalColumn(rows,i,v=>/^(?:nameofparentguardian|parentguardianname|parentname|nameofparent|parentguardian|guardianparentname|primaryguardianname)$/.test(v));
    contactCol=findOptionalColumn(rows,i,v=>/^(?:contactnumber|contactno|contactnos|mobilenumber|mobileno|cellphonenumber|cellphoneno|parentcontact|guardiancontact|parentmobilenumber|guardianmobilenumber)/.test(v));
    fatherCol=findOptionalColumn(rows,i,v=>/^(?:fathers?name|nameof(?:the)?father|fatherfullname)/.test(v));
    motherCol=findOptionalColumn(rows,i,v=>/^(?:mothers?(?:maiden)?name|nameof(?:the)?mother|motherfullname)/.test(v));
