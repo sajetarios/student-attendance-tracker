@@ -34,10 +34,21 @@ function reconcileGateDay({movements=[],existingSlots={},hours={},approvedOb=[]}
   if(intervals.some(o=>t>=o.start-15&&t<=o.end+15)){
    review.push('OB_BOUNDARY_GATE_MOVEMENT');continue;
   }
-  const slot=e.eventType==='TIME_IN'?(t<h[2]?'AM_IN':'PM_IN'):(t<h[2]?'AM_OUT':'PM_OUT');
-  const expected=e.eventType==='TIME_IN'?(slot==='AM_IN'?h[0]:h[2]):(slot==='AM_OUT'?h[1]:h[3]);
-  // Only classify punches near the relevant school boundary, never arbitrary trips.
-  if(Math.abs(t-expected)>120){review.push('OUTSIDE_SCHEDULE_WINDOW');continue;}
+  // Evaluate both AM and PM boundaries for this movement type. A 12:50
+  // arrival should be considered near the 13:00 PM_IN boundary, rather than
+  // incorrectly treated as AM_IN simply because it happened before 13:00.
+  // Suggestions remain review-only; clock proximity never proves attendance.
+  const candidateSlots=e.eventType==='TIME_IN'?['AM_IN','PM_IN']:['AM_OUT','PM_OUT'];
+  const choices=candidateSlots.map(slot=>({
+   slot,minutesAway:Math.abs(t-mins(hours[slot]))
+  })).sort((a,b)=>a.minutesAway-b.minutesAway);
+  if(choices[0].minutesAway>120){review.push('OUTSIDE_SCHEDULE_WINDOW');continue;}
+  // Close or equally plausible boundaries must be resolved by a person,
+  // never assigned to the first alphabetical or chronological slot.
+  if(choices[1].minutesAway<=120&&choices[1].minutesAway-choices[0].minutesAway<=15){
+   review.push('AMBIGUOUS_SCHEDULE_SLOT');continue;
+  }
+  const slot=choices[0].slot;
   if(existingSlots[slot]){review.push('SLOT_ALREADY_VERIFIED');continue;}
   if(blockedSlots.has(slot)){review.push('DUPLICATE_SLOT_CANDIDATES');continue;}
   if(suggestions[slot]){
