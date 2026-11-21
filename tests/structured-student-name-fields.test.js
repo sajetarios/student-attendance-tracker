@@ -61,7 +61,7 @@ test('protected APIs and new/edit forms handle three official fields',()=>{
  assert.match(ui,/student\.lastName && student\.firstName/);
  assert.match(ui,/composeParts\(/);
  assert.match(ui,/payload.*fullName/);
- for(const file of ['portal.js?v=220','student-name-format.js?v=2']){
+ for(const file of ['portal.js?v=221','student-name-format.js?v=2']){
   assert.ok(read('public/portal.html').includes('/'+file));
   assert.ok(read('public/sw.js').includes('"/'+file+'"'));
  }
