@@ -122,7 +122,9 @@
         if(!anchor)continue;
         const id=anchor.dataset.editStudent||anchor.dataset.studentAccount;
         if(!id)continue;
-        const action=anchor.closest('.student-row-actions')||anchor.parentElement;
+        // Direct Edit is outside the overflow menu. Keep guardian management
+        // in the Actions dropdown so the learner row stays compact.
+        const action=anchor.closest('.student-row-actions')||row.querySelector('.student-actions-dropdown .student-row-actions');
         if(!action)continue;
         const button=btn('Manage guardians',()=>openStudent(id));button.dataset.guardianOpen=id;
         action.append(button);
