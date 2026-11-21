@@ -77,6 +77,10 @@ jobs:
           node --check cloud-sync-routes.js
           node --check sf2-routes.js
       - name: Run test suite
+        id: unit_tests
+        # Keep the job red when npm test fails, but still exercise PostgreSQL
+        # migrations and integration scenarios to expose independent defects.
+        continue-on-error: true
         run: npm test
 
       - name: Validate complete PostgreSQL migration chain
@@ -91,6 +95,13 @@ jobs:
         run: node tests/universal-notifications-postgres.cjs
       - name: Verify mixed attendance cloud relay against isolated PostgreSQL
         run: node tests/cloud-mixed-postgres.cjs
+      - name: Enforce full regression gate
+        if: always()
+        run: |
+          if [ "${{ steps.unit_tests.outcome }}" != "success" ]; then
+            echo "::error::Node.js unit/regression tests failed. PostgreSQL checks were allowed to run for diagnostic coverage."
+            exit 1
+          fi
 
   recovery_validation:
     name: Recovery flow / PostgreSQL validation
