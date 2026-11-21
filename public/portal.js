@@ -4562,7 +4562,7 @@ let teacherActionMenuListenersInstalled = false;
     AMBIGUOUS_SCHEDULE_SLOT:'The scan is too close to multiple scheduled AM/PM boundaries to classify safely.',
     DUPLICATE_SLOT_CANDIDATES:'More than one scan could match the same DTR time. A School Admin needs to check which is correct.',
     SLOT_ALREADY_VERIFIED:'The official DTR slot is already verified and cannot be replaced by a gate suggestion.',
-    NOT_SCHEDULED_WORKDAY:'This date is not listed as one of your scheduled workdays. The gate scan remains recorded, but no DTR time is suggested.'
+    NOT_SCHEDULED_WORKDAY:'This date is not one of your scheduled workdays. Any gate scans remain in your history, but Attendigo cannot suggest a regular DTR time for this date.'
   };
   let myGateRequestRevision=0;
   async function loadMyGateAttendance() {
