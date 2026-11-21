@@ -2,6 +2,7 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
+const {assertCachedAsset,assertCacheRevisionAtLeast}=require('./support/asset-contract');
 const path = require('node:path');
 const read = rel => fs.readFileSync(path.join(__dirname, '..', rel), 'utf8');
 
@@ -30,10 +31,8 @@ test('guardian actions are placed in the Actions dropdown, not next to direct Ed
 test('updated guardian and roster assets are versioned and revalidated by service worker', () => {
   const html = read('public/portal.html');
   const sw = read('public/sw.js');
-  for (const asset of ['portal.js?v=218','guardian-ui.js?v=7']) {
-    assert.ok(html.includes('/' + asset), 'HTML includes ' + asset);
-    assert.ok(sw.includes('"/' + asset + '"'), 'SW caches ' + asset);
-  }
+  assertCachedAsset(html,sw,'portal.js',{minimumVersion:218});
+  assertCachedAsset(html,sw,'guardian-ui.js',{minimumVersion:7});
   assert.match(sw, /'\/guardian-ui\.js'/);
-  assert.match(sw, /attendigo-v272-student-roster-cleanup/);
+  assertCacheRevisionAtLeast(sw,272);
 });
