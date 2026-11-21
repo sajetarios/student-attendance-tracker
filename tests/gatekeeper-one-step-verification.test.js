@@ -13,7 +13,9 @@ test('Gatekeeper records from the first QR dialog, not a second verification pan
   assert.match(portal, /noticeContinue\.hidden = isGateVerification/);
   assert.match(portal, /noticeRecord\.hidden = !isGateVerification/);
   assert.match(portal, /\$\('studentScanResult'\)\.hidden = user\.role === 'GATE_KEEPER'/);
-  assert.match(portal, /const verificationMarkup = ''/);
+  assert.match(portal, /const verificationMarkup = isTeacherPerson && user.role === 'GATE_KEEPER'/);
+  assert.match(portal, /noticeDtr.appendChild\(prediction\)/);
+  assert.match(portal, /expectedGateEventType:scan\.expectedGateEventType/);
   assert.equal((html.match(/id="studentPhotoVerified"/g) || []).length, 1);
 });
 
@@ -40,5 +42,5 @@ test('DTR remains separate and role-protected while scan popup supports cancel',
 test('PWA uses one coherent scanner asset revision', () => {
   assert.match(html, /portal\.js\?v=210/);
   assert.match(worker, /portal\.js\?v=210/);
-  assert.match(worker, /attendigo-v257-gate-verification/);
+  assert.match(worker, /attendigo-v258-gate-preview/);
 });
