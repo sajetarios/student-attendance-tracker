@@ -43,7 +43,7 @@ const extractName = name => {
 };
 function parseSf1Matrix(rows) {
  if (!Array.isArray(rows) || !rows.length) throw Error('The SF1 workbook has no readable rows.');
- let grade='',schoolYear='',headerIndex=-1,lrnCol=-1,nameCol=-1,sexCol=-1,parentCol=-1,contactCol=-1;
+ let grade='',schoolYear='',headerIndex=-1,lrnCol=-1,nameCol=-1,sexCol=-1,parentCol=-1,contactCol=-1,fatherCol=-1,motherCol=-1,guardianCol=-1,birthCol=-1,addressCols=[];
  const limit=Math.min(rows.length,65);
  for(let i=0;i<limit;i++){
   const row=rows[i].map(asText);
@@ -56,8 +56,16 @@ function parseSf1Matrix(rows) {
   const si=cols.findIndex(v=>v==='sexmf'||v==='sex'||v==='gender');
   if(li>=0 && ni>=0 && li!==ni){
    headerIndex=i;lrnCol=li;nameCol=ni;sexCol=si;
-   parentCol=findOptionalColumn(rows,i,v=>/^(?:nameof(?:parent|guardian)|parentguardianname|parentname|guardianname|nameofparentguardian|parentguardian|guardianparentname)/.test(v));
+   parentCol=findOptionalColumn(rows,i,v=>/^(?:nameofparentguardian|parentguardianname|parentname|nameofparent|parentguardian|guardianparentname|primaryguardianname)$/.test(v));
    contactCol=findOptionalColumn(rows,i,v=>/^(?:contactnumber|contactno|contactnos|mobilenumber|mobileno|cellphonenumber|cellphoneno|parentcontact|guardiancontact|parentmobilenumber|guardianmobilenumber)/.test(v));
+   fatherCol=findOptionalColumn(rows,i,v=>/^(?:fathers?name|nameof(?:the)?father|fatherfullname)/.test(v));
+   motherCol=findOptionalColumn(rows,i,v=>/^(?:mothers?(?:maiden)?name|nameof(?:the)?mother|motherfullname)/.test(v));
+   guardianCol=findOptionalColumn(rows,i,v=>/^(?:guardians?name|nameofguardian|nameofguardianifnotparent)/.test(v));
+   birthCol=findOptionalColumn(rows,i,v=>/^(?:birthdate|dateofbirth|birthday|dob)/.test(v));
+   addressCols=[];
+   for(let offset=0;offset<Math.min(3,rows.length-i);offset++)(rows[i+offset]||[]).map(normalize).forEach((v,c)=>{
+    if(/^(?:housestreet|street|barangay|citymunicipality|municipalitycity|province|homeaddress|completeaddress|residentialaddress|address)$/.test(v)&&!addressCols.includes(c))addressCols.push(c);
+   });
    break;
   }
  }
@@ -91,7 +99,27 @@ function parseSf1Matrix(rows) {
   const parentMobile=normalizeGuardianContact(contactSource);
   if(parentName.length>200){errors.push({rowNumber:i+1,message:'Parent/guardian name exceeds 200 characters.'});continue;}
   if(parentMobile===null){errors.push({rowNumber:i+1,message:'Invalid or ambiguous parent/guardian contact number.'});continue;}
-  learners.push({rowNumber:i+1,lrn:rawLrn,fullName:extractName(rawName),sex,gradeLevel:grade,section:'Unassigned',studentId:'',parentName,parentMobile});
+  const familyValue=index=>index<0||blank(row[index])?'':asText(row[index]).trim().replace(/\s+/g,' ');
+  const fatherName=familyValue(fatherCol),motherMaidenName=familyValue(motherCol),sf1GuardianName=familyValue(guardianCol);
+  if([fatherName,motherMaidenName,sf1GuardianName].some(x=>x.length>200)){
+   errors.push({rowNumber:i+1,message:'An SF1 family name exceeds 200 characters.'});continue;
+  }
+  const rawBirth=familyValue(birthCol);
+  let birthDate='';
+  if(rawBirth){
+   const parsed=rawBirth.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/)||rawBirth.match(/^(\d{4})-(\d{1,2})-(\d{1,2})$/);
+   if(parsed){
+    const y=parsed[1].length===4?+parsed[1]:+parsed[3],m=parsed[1].length===4?+parsed[2]:+parsed[1],d=parsed[1].length===4?+parsed[3]:+parsed[2];
+    const date=new Date(Date.UTC(y,m-1,d));
+    if(date.getUTCFullYear()===y&&date.getUTCMonth()===m-1&&date.getUTCDate()===d&&y>=1900&&date<=new Date())birthDate=String(y).padStart(4,'0')+'-'+String(m).padStart(2,'0')+'-'+String(d).padStart(2,'0');
+   }
+   if(!birthDate){errors.push({rowNumber:i+1,message:'Birth date cannot be validated; check the LIS SF1 date.'});continue;}
+  }
+  const sf1Address=addressCols.map(index=>familyValue(index)).filter(Boolean).join(', ');
+  if(sf1Address.length>500){errors.push({rowNumber:i+1,message:'SF1 address exceeds 500 characters.'});continue;}
+  // Do not infer that either parent is the legally designated guardian.
+  // A guardian named "if not parent" is stored separately, not as primary parent_name.
+  learners.push({rowNumber:i+1,lrn:rawLrn,fullName:extractName(rawName),sex,gradeLevel:grade,section:'Unassigned',studentId:'',parentName,parentMobile,fatherName,motherMaidenName,sf1GuardianName,birthDate,sf1Address});
  }
  if(!learners.length) throw Error('No valid SF1 learners were found. Check the LIS-exported workbook.');
  if(learners.length>2000) throw Error('Import a maximum of 2,000 learners at once.');

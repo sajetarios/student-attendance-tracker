@@ -3,6 +3,8 @@ const crypto=require('node:crypto');
 const {parseSf1Base64,normalizeGuardianContact}=require('./sf1-import-parser');
 const {parseSf1PdfBase64}=require('./sf1-pdf-parser');
 const {nextStudentId}=require('./generated-record-ids');
+const PROFILE_FIELDS=[['fatherName','father_name'],['motherMaidenName','mother_maiden_name'],['sf1GuardianName','sf1_guardian_name'],['birthDate','birth_date'],['sf1Address','sf1_address']];
+const validValue=x=>String(x||'').trim();
 function registerSf1ImportRoutes(app,pool,{authenticateSchoolClient,requireSchoolRoles}){
  const permitted=requireSchoolRoles('SCHOOL_ADMIN','TEACHER');
  async function prepare(req,db){
@@ -30,7 +32,7 @@ function registerSf1ImportRoutes(app,pool,{authenticateSchoolClient,requireSchoo
   const canonical=value=>String(value||'').toLowerCase().replace(/[^a-z0-9]/g,'');
   const named=sf1.learners.map(r=>canonical(r.fullName));
   const existing=await db.query(
-   "SELECT lrn,student_id,full_name,parent_name,parent_mobile,sex,grade_level,section,active,archived_at FROM students WHERE school_id=$1 AND (lrn=ANY($2::text[]) OR lower(regexp_replace(full_name,'[^a-zA-Z0-9]','','g'))=ANY($3::text[]))"+(db===pool?'':' FOR UPDATE'),
+   "SELECT lrn,student_id,full_name,parent_name,parent_mobile,father_name,mother_maiden_name,sf1_guardian_name,birth_date,sf1_address,sex,grade_level,section,active,archived_at FROM students WHERE school_id=$1 AND (lrn=ANY($2::text[]) OR lower(regexp_replace(full_name,'[^a-zA-Z0-9]','','g'))=ANY($3::text[]))"+(db===pool?'':' FOR UPDATE'),
    [req.auth.schoolId,lrnList,named]
   );
   const match=new Map(existing.rows.filter(r=>r.lrn).map(r=>[r.lrn,r]));
@@ -54,7 +56,8 @@ function registerSf1ImportRoutes(app,pool,{authenticateSchoolClient,requireSchoo
           AND ca.grade_level=e.grade_level)))`,[req.auth.schoolId,ids,req.auth.userId]):{rows:[]};
    advisoryUpdateIds=new Set(entitled.rows.map(r=>r.student_id));
   }
-  const recoverMissingLrn=req.body?.recoverMissingLrn===true;
+  // One reviewed import proposes every safely recoverable missing field.
+  const recoverMissingLrn=req.body?.recoverMissingLrn!==false;
   const rows=sf1.learners.map(r=>{
    const found=match.get(r.lrn);
    const similar=(byName.get(canonical(r.fullName))||[]).filter(student=>student.lrn!==r.lrn);
@@ -63,6 +66,13 @@ function registerSf1ImportRoutes(app,pool,{authenticateSchoolClient,requireSchoo
     String(similar[0].sex||'').toUpperCase()===r.sex&&
     String(similar[0].grade_level||'').toUpperCase()===r.gradeLevel.toUpperCase();
    const existingStudent=found||similar[0]||null;
+   const missingFields=[];
+   if(existingStudent){
+    if(r.parentName&&!validValue(existingStudent.parent_name))missingFields.push('parentName');
+    if(r.parentMobile&&!validValue(existingStudent.parent_mobile))missingFields.push('parentMobile');
+    for(const [key,column] of PROFILE_FIELDS)if(validValue(r[key])&&!validValue(existingStudent[column]))missingFields.push(key);
+    if(!found&&recoveryCandidate)missingFields.unshift('lrn');
+   }
    const issues=[];
    let action='CREATE';
    if(!found&&similar.length){
@@ -81,13 +91,12 @@ function registerSf1ImportRoutes(app,pool,{authenticateSchoolClient,requireSchoo
     if(r.parentMobile&&found.parent_mobile&&
       normalizeGuardianContact(found.parent_mobile)!==r.parentMobile)
      issues.push('Parent/guardian contact conflicts with the saved value.');
-    const needsFill=(!!r.parentName&&!String(found.parent_name||'').trim())||
-     (!!r.parentMobile&&!String(found.parent_mobile||'').trim());
+    const needsFill=missingFields.length>0;
     if(needsFill&&advisoryUpdateIds&&!advisoryUpdateIds.has(found.student_id))
      issues.push('Existing learner is outside your assigned advisory section.');
     action=issues.length?'REVIEW':needsFill?'UPDATE':'SKIP';
    }
-   return {...r,action,errors:issues,
+   return {...r,action,errors:issues,missingFields,
     existingStudent:existingStudent?{
      studentId:existingStudent.student_id,fullName:existingStudent.full_name
     }:null};
@@ -114,9 +123,9 @@ function registerSf1ImportRoutes(app,pool,{authenticateSchoolClient,requireSchoo
     const duplicate=await client.query('SELECT student_id FROM students WHERE school_id=$1 AND lrn=$2',[req.auth.schoolId,row.lrn]);
     if(duplicate.rowCount)continue;
     const id=await nextStudentId(client,{year:prepared.year});
-    await client.query(`INSERT INTO students(school_id,student_id,lrn,full_name,grade_level,section,parent_name,parent_mobile,sex,qr_token)
-      VALUES($1,$2,$3,$4,$5,'Unassigned',$6,$7,$8,gen_random_uuid())`,
-      [req.auth.schoolId,id,row.lrn,row.fullName,row.gradeLevel,row.parentName||null,row.parentMobile||'',row.sex]);
+    await client.query(`INSERT INTO students(school_id,student_id,lrn,full_name,grade_level,section,parent_name,parent_mobile,sex,qr_token,father_name,mother_maiden_name,sf1_guardian_name,birth_date,sf1_address)
+      VALUES($1,$2,$3,$4,$5,'Unassigned',$6,$7,$8,gen_random_uuid(),$9,$10,$11,$12,$13)`,
+      [req.auth.schoolId,id,row.lrn,row.fullName,row.gradeLevel,row.parentName||null,row.parentMobile||'',row.sex,row.fatherName||null,row.motherMaidenName||null,row.sf1GuardianName||null,row.birthDate||null,row.sf1Address||null]);
     await client.query(`INSERT INTO student_enrollments(school_id,student_id,school_year_id,grade_level,section,enrollment_date,enrollment_status,created_by_user_id)
       VALUES($1,$2,$3,$4,'Unassigned',CURRENT_DATE,'ENROLLED',$5)`,
       [req.auth.schoolId,id,prepared.schoolYearId,row.gradeLevel,req.auth.userId]);
@@ -128,10 +137,15 @@ function registerSf1ImportRoutes(app,pool,{authenticateSchoolClient,requireSchoo
       SET lrn=$3,
        parent_name=CASE WHEN NULLIF(BTRIM(parent_name),'') IS NULL THEN NULLIF($4,'') ELSE parent_name END,
        parent_mobile=CASE WHEN NULLIF(BTRIM(parent_mobile),'') IS NULL THEN $5 ELSE parent_mobile END,
+       father_name=COALESCE(NULLIF(BTRIM(father_name),''),NULLIF($6,'')),
+       mother_maiden_name=COALESCE(NULLIF(BTRIM(mother_maiden_name),''),NULLIF($7,'')),
+       sf1_guardian_name=COALESCE(NULLIF(BTRIM(sf1_guardian_name),''),NULLIF($8,'')),
+       birth_date=COALESCE(birth_date,$9::date),
+       sf1_address=COALESCE(NULLIF(BTRIM(sf1_address),''),NULLIF($10,'')),
        updated_at=NOW()
       WHERE school_id=$1 AND student_id=$2 AND NULLIF(BTRIM(lrn),'') IS NULL
        AND active=TRUE AND archived_at IS NULL
-      RETURNING student_id`,[req.auth.schoolId,row.existingStudent.studentId,row.lrn,row.parentName,row.parentMobile]);
+      RETURNING student_id`,[req.auth.schoolId,row.existingStudent.studentId,row.lrn,row.parentName,row.parentMobile,row.fatherName||'',row.motherMaidenName||'',row.sf1GuardianName||'',row.birthDate||null,row.sf1Address||'']);
     if(saved.rowCount!==1)throw Object.assign(Error('Learner LRN changed during review. Preview again.'),{status:409});
     updated++;
    }
@@ -143,9 +157,14 @@ function registerSf1ImportRoutes(app,pool,{authenticateSchoolClient,requireSchoo
          THEN NULLIF($4,'') ELSE parent_name END,
        parent_mobile=CASE WHEN NULLIF(BTRIM(parent_mobile),'') IS NULL
          THEN $5 ELSE parent_mobile END,
+       father_name=COALESCE(NULLIF(BTRIM(father_name),''),NULLIF($6,'')),
+       mother_maiden_name=COALESCE(NULLIF(BTRIM(mother_maiden_name),''),NULLIF($7,'')),
+       sf1_guardian_name=COALESCE(NULLIF(BTRIM(sf1_guardian_name),''),NULLIF($8,'')),
+       birth_date=COALESCE(birth_date,$9::date),
+       sf1_address=COALESCE(NULLIF(BTRIM(sf1_address),''),NULLIF($10,'')),
        updated_at=NOW()
       WHERE school_id=$1 AND student_id=$2 AND lrn=$3 AND active=TRUE AND archived_at IS NULL
-      RETURNING student_id`,[req.auth.schoolId,row.existingStudent.studentId,row.lrn,row.parentName,row.parentMobile]);
+      RETURNING student_id`,[req.auth.schoolId,row.existingStudent.studentId,row.lrn,row.parentName,row.parentMobile,row.fatherName||'',row.motherMaidenName||'',row.sf1GuardianName||'',row.birthDate||null,row.sf1Address||'']);
     if(saved.rowCount!==1)throw Object.assign(Error('Learner record changed during review. Preview again.'),{status:409});
     updated++;
    }

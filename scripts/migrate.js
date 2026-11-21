@@ -71,7 +71,8 @@ const REQUIRED_MIGRATIONS = [
   '063_platform_school_deletion_protected_audit.sql',
   '064_offline_gate_observation_review.sql',
   '065_school_section_identity_guard.sql',
-  '066_school_shs_levels_and_curriculum.sql'
+  '066_school_shs_levels_and_curriculum.sql',
+  '067_sf1_missing_family_profile.sql'
 ];
 
 function checksum(content) {
