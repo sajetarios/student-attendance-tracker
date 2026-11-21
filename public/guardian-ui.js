@@ -122,7 +122,10 @@
         if(!anchor)continue;
         const id=anchor.dataset.editStudent||anchor.dataset.studentAccount;
         if(!id)continue;
-        const action=anchor.closest('.student-row-actions')||anchor.parentElement;
+        // The direct Edit button sits in the compact row toolbar. Keep guardian
+        // management inside the existing Actions dropdown rather than appending
+        // another full-width button and expanding every learner row.
+        const action=anchor.closest('.student-row-actions')||row.querySelector('.student-actions-dropdown .student-row-actions');
         if(!action)continue;
         const button=btn('Manage guardians',()=>openStudent(id));button.dataset.guardianOpen=id;
         action.append(button);
