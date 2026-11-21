@@ -21,7 +21,7 @@ function sf1NameAliases(value){
  return [...new Set(keys)];
 }
 function sf1NamesEquivalent(current,imported){
- return sf1NameAliases(current).includes(sf1CanonicalName(imported));
+ return sf1NameAliases(imported).some(key=>sf1NameAliases(current).includes(key));
 }
 function registerSf1ImportRoutes(app,pool,{authenticateSchoolClient,requireSchoolRoles}){
  const permitted=requireSchoolRoles('SCHOOL_ADMIN','TEACHER');
