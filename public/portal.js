@@ -2754,6 +2754,34 @@ let teacherActionMenuListenersInstalled = false;
     }
   }
 
+  // Position the student Actions panel after its actual SF1 content has been laid out.
+  // The existing fixed-position menu otherwise opens beyond the right edge on iPads.
+  function positionStudentFamilyMenu(details) {
+    if (!details?.open) return;
+    const trigger=details.querySelector('summary');
+    const panel=details.querySelector(':scope > .student-row-actions');
+    if (!trigger || !panel || !panel.querySelector('.sf1-family-details')) return;
+    requestAnimationFrame(()=>{
+      if (!details.open) return;
+      const rect=trigger.getBoundingClientRect();
+      const viewportWidth=document.documentElement.clientWidth;
+      const viewportHeight=window.innerHeight;
+      const panelWidth=Math.min(390,viewportWidth-24);
+      panel.style.width=panelWidth+'px';
+      const left=Math.max(12,Math.min(rect.right-panelWidth,viewportWidth-panelWidth-12));
+      const height=Math.min(panel.scrollHeight,Math.min(viewportHeight*.75,620));
+      let top=rect.bottom+6;
+      if(top+height>viewportHeight-12) top=Math.max(12,rect.top-height-6);
+      panel.style.left=left+'px';
+      panel.style.top=top+'px';
+    });
+  }
+  document.addEventListener('toggle',event=>{
+    if(event.target?.matches?.('#studentRosterTable .student-actions-dropdown')) {
+      positionStudentFamilyMenu(event.target);
+    }
+  },true);
+
   function positionTeacherActionMenu(details) {
     const trigger = details.querySelector('summary');
     const panel = details.querySelector('.teacher-action-menu-panel');
