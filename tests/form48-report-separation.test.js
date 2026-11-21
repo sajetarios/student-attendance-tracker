@@ -1,6 +1,7 @@
 'use strict';
 const test=require('node:test');
 const assert=require('node:assert/strict');
+const {assertCachedAsset}=require('./support/asset-contract');
 const fs=require('node:fs');
 const {registerStaffGateDtrRoutes}=require('../staff-gate-dtr-routes');
 
@@ -76,5 +77,6 @@ test('Form 48 Day header fits and report-specific cells override dashboard paddi
  assert.match(css,/#form48PrintArea \.form48-sheet thead tr:first-child th:first-child,#form48PrintArea \.form48-sheet tbody td:first-child\{width:42px;min-width:42px;white-space:nowrap\}/);
  assert.doesNotMatch(css,/\.form48-sheet th:first-child,\.form48-sheet td:first-child\{width:23px\}/);
  assert.match(css,/#form48PrintArea \.form48-sheet th,#form48PrintArea \.form48-sheet td\{height:4\.8mm;padding:1px 0;font-size:7\.5px\}/);
- assert.match(html,/href="\/form48-report\.css\?v=9"/);
+ const sw=fs.readFileSync('public/sw.js','utf8');
+ assertCachedAsset(html,sw,'form48-report.css',{minimumVersion:9});
 });

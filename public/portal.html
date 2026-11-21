@@ -12,7 +12,7 @@
   <link rel="stylesheet" href="/staff-lunch.css?v=3">
   <link rel="stylesheet" href="/staff-ob.css?v=1">
   <link rel="stylesheet" href="/department-workspace.css?v=1">
-  <link rel="stylesheet" href="/form48-report.css?v=9">
+  <link rel="stylesheet" href="/form48-report.css?v=10">
   <link rel="stylesheet" href="/portal.css?v=0.9.121"><link rel="stylesheet" href="/attendigo-brand-polish.css?v=2"><link rel="stylesheet" href="/parent-admin.css?v=7">
   <link rel="stylesheet" href="/schedule-mobile-layout.css?v=1">
   <link rel="stylesheet" href="/weekly-list-mobile.css?v=1">
@@ -1774,6 +1774,20 @@ body.dark-mode .content-wrap > .school-heading.is-compact,body[data-theme="dark"
                 <button id="form48BatchToggle" type="button" class="outline-button" aria-expanded="false" aria-controls="form48BatchPanel">Bulk actions &amp; reports</button>
                 <button id="form48SaveSchoolDefaults" type="button" class="outline-button" disabled>Save signatories &amp; schedule as school defaults</button>
               </div>
+              <details id="form48GateIntelligence" class="form48-gate-intelligence">
+                <summary>Attendance intelligence <small>Review gate scans, OB exceptions, and possible AM/PM matches</small></summary>
+                <div class="form48-intelligence-body">
+                  <p>Compare verified physical gate movements with the employee's prescribed hours. This is an advisory review only, never an automatic Form 48 entry.</p>
+                  <div class="form48-intelligence-controls">
+                    <label for="form48GateReviewDate">School date
+                      <input id="form48GateReviewDate" type="date" disabled>
+                    </label>
+                    <button id="form48GateReviewButton" type="button" class="outline-button" disabled>Review evidence</button>
+                  </div>
+                  <p id="form48GateReviewStatus" role="status" aria-live="polite">Choose an employee and month first.</p>
+                  <div id="form48GateReviewResult" aria-label="Attendance intelligence findings"></div>
+                </div>
+              </details>
               <section id="form48BatchPanel" class="form48-batch-panel" hidden aria-label="Batch staff attendance actions">
                 <div class="form48-batch-heading"><h4>Bulk actions</h4><p>Select employees once. Approved leave is recorded by date range, not day by day.</p></div>
                 <div class="form48-batch-chooser">
@@ -2269,6 +2283,7 @@ body.dark-mode .content-wrap > .school-heading.is-compact,body[data-theme="dark"
   <script src="/teacher-dashboard-v2.js?v=1" defer></script>
   <script src="/teacher-dashboard-v3.js?v=1" defer></script>
   <script src="/form48-report.js?v=8" defer></script>
+  <script src="/form48-intelligence.js?v=1" defer></script>
   <script src="/form48-bulk-ui.js?v=2" defer></script>
   <script src="/teacher-roster-popover.js?v=2" defer></script>
   <script src="/sardo-monitor.js?v=2" defer></script><script src="/parent-dashboard.js?v=3" defer></script>

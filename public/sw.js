@@ -1,4 +1,4 @@
-const CACHE = "attendigo-v269-dialog-safe-area";
+const CACHE = "attendigo-v270-form48-intelligence";
 
 const SHELL = [
   "/typography.css?v=1",
@@ -66,8 +66,9 @@ const SHELL = [
   "/teacher-dashboard-v3.css?v=1",
   "/teacher-dashboard-v3.js?v=1",
   "/form48-report.js?v=8",
+  "/form48-intelligence.js?v=1",
   "/form48-bulk-ui.js?v=2",
-  "/form48-report.css?v=9",
+  "/form48-report.css?v=10",
   "/staff-lunch-ui.js?v=3",
   "/staff-ob-ui.js?v=5",
   "/staff-ob.css?v=1",
