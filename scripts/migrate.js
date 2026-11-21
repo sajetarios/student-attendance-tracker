@@ -74,7 +74,8 @@ const REQUIRED_MIGRATIONS = [
   '066_school_shs_levels_and_curriculum.sql',
   '067_sf1_missing_family_profile.sql',
   '068_sf1_family_name_punctuation.sql',
-  '069_sf1_family_dash_placeholders.sql'
+  '069_sf1_family_dash_placeholders.sql',
+  '070_sf1_structured_learner_names.sql'
 ];
 
 function checksum(content) {
