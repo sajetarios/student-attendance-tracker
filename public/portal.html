@@ -1768,7 +1768,8 @@ body.dark-mode .content-wrap > .school-heading.is-compact,body[data-theme="dark"
           </section>
           <section id="form48ReportsView" class="view-panel" hidden>
             <div class="surface-card section-card" id="form48ReportCard">
-              <div class="section-toolbar"><div><h3>CS Form No. 48 — Daily Time Record</h3><p>Generate an official-style monthly report from verified staff DTR entries. Missing entries remain blank and signatures are never generated.</p></div></div>
+              <div class="section-toolbar"><div><h3>CS Form No. 48 — Daily Time Record</h3><p>Select an employee and month to preview verified attendance. School working hours are set once.</p></div><button id="form48OpenHours" class="outline-button" type="button">School working hours</button></div>
+              <details id="form48DailyInsights" class="form48-daily-insights"><summary>Daily attendance checks &amp; school hours <small>Open only when needed</small></summary>
               <section id="smartAttendanceOverview" class="smart-attendance-overview" aria-label="Smart attendance daily overview">
                 <div class="smart-attendance-head">
                   <div>
@@ -1798,6 +1799,16 @@ body.dark-mode .content-wrap > .school-heading.is-compact,body[data-theme="dark"
                   <summary>School working hours <small id="smartAttendanceHoursSummary">Checking school setup…</small></summary>
                   <div class="smart-attendance-hours-body">
                     <p>Set the school's normal Monday–Friday hours once. Attendigo will use them for staff without an individual work schedule.</p>
+                    <label class="smart-hours-preset" for="smartHoursPreset">Choose the school's approved working hours
+                      <select id="smartHoursPreset">
+                        <option value="">Select an approved schedule</option>
+                        <option value="6-3">6:00 AM – 3:00 PM (11–12 lunch)</option>
+                        <option value="7-4">7:00 AM – 4:00 PM (12–1 lunch)</option>
+                        <option value="8-5">8:00 AM – 5:00 PM (12–1 lunch)</option>
+                        <option value="custom">Other approved hours / custom</option>
+                      </select>
+                    </label>
+                    <p class="field-hint">Select only officially authorized hours. Temporary heat-related hours must have approved effective dates and should not replace the permanent schedule.</p>
                     <div class="smart-attendance-hours-grid">
                       <label>AM In <input id="smartHoursAmIn" type="time"></label>
                       <label>AM Out <input id="smartHoursAmOut" type="time"></label>
@@ -1812,6 +1823,7 @@ body.dark-mode .content-wrap > .school-heading.is-compact,body[data-theme="dark"
                   </div>
                 </details>
               </section>
+              </details>
               <form id="form48FilterForm" class="form48-filter" method="post">
                 <label>Employee<select id="form48Employee" required><option value="">Select a staff member</option></select></label>
                 <label>Month<input id="form48Month" type="month" required></label>
@@ -1930,7 +1942,8 @@ body.dark-mode .content-wrap > .school-heading.is-compact,body[data-theme="dark"
                   </div>
                 </details>
                 <div id="form48ReviewDays" class="form48-review-days" hidden></div>
-                <p class="form48-draft-notice">Work schedules save with the separate Save employee work schedule button; report draft changes also save when generating a preview. Printed names and positions are not electronic signatures.</p>
+                <p class="form48-draft-notice">Report preview is read-only. Save monthly reviews and signatories explicitly. Employee schedules save separately. Printed names are not electronic signatures.</p>
+                <div class="form48-schedule-actions"><button id="form48SaveDraft" type="button" class="primary-button">Save report details &amp; reviews</button></div>
                 <div class="form48-schedule-actions">
                   <button id="form48SaveSchoolDefaults" type="button" class="outline-button" disabled>Save full report settings as school defaults (advanced)</button>
                 </div>
