@@ -1,1 +1,20 @@
 .student-row-actions .sf1-family-details{display:grid;gap:0;min-width:min(310px,80vw);max-width:360px;padding:10px 0;border-top:1px solid #e2e8f0}.sf1-family-details .teacher-roster-menu-label{font-size:12px;font-weight:700;color:#526681;padding:4px 10px 8px}.sf1-family-line{display:grid;grid-template-columns:minmax(100px,43%) minmax(0,1fr);gap:8px;align-items:start;padding:7px 10px;border-bottom:1px solid #edf1f6;font-size:12px;line-height:1.4}.sf1-family-line span{color:#64748b}.sf1-family-line strong{color:#1e304b;font-weight:600;overflow-wrap:anywhere}.sf1-family-details>small{font-size:11px;line-height:1.5;color:#64748b;padding:10px}.student-actions-dropdown[open] .student-row-actions{max-height:min(70vh,570px);overflow-y:auto;overscroll-behavior:contain}@media(max-width:650px){.sf1-family-line{grid-template-columns:1fr;gap:2px}.student-row-actions .sf1-family-details{min-width:min(270px,76vw)}}
+/* Keep the floating teacher roster menu inside the viewport and give SF1 fields room. */
+#studentsView #studentRosterTable.teacher-roster-compact .student-actions-dropdown[open]>.student-row-actions:has(.sf1-family-details){
+ width:min(390px,calc(100vw - 24px));max-width:calc(100vw - 24px);
+ max-height:min(75dvh,620px);padding:10px;gap:4px;
+}
+#studentsView #studentRosterTable.teacher-roster-compact .student-row-actions .sf1-family-details{
+ width:100%;max-width:100%;min-width:0;min-height:0;
+ padding:8px 0;display:grid;box-sizing:border-box;
+}
+#studentsView #studentRosterTable.teacher-roster-compact .sf1-family-line{
+ display:grid;grid-template-columns:minmax(0,42%) minmax(0,1fr);
+ gap:10px;min-height:0;align-items:start;
+}
+#studentsView #studentRosterTable.teacher-roster-compact .sf1-family-line strong{
+ min-width:0;white-space:normal;overflow-wrap:anywhere;word-break:normal;
+}
+@media(max-width:520px){
+ #studentsView #studentRosterTable.teacher-roster-compact .sf1-family-line{grid-template-columns:1fr;gap:2px}
+}
