@@ -58,6 +58,68 @@ function registerStaffGateDtrRoutes(app,pool,{authenticateSchoolClient,requireSc
    return res.status(503).json({error:'Unable to preview DTR reconciliation.'});}
  });
 
+ // School Admin only: one daily exception queue over VERIFIED evidence.
+ // No absences, punches, OB decisions or attendance records are written here.
+ app.get('/api/staff-attendance/admin/smart-overview',authenticateSchoolClient,
+  requireSchoolRoles('SCHOOL_ADMIN'),async(req,res)=>{
+   res.set('Cache-Control','private, no-store');
+   const date=String(req.query?.date||manilaDate());
+   if(!/^\d{4}-\d{2}-\d{2}$/.test(date)||Number.isNaN(Date.parse(date+'T00:00:00Z'))||
+      new Date(date+'T00:00:00Z').toISOString().slice(0,10)!==date||date>manilaDate())
+    return res.status(400).json({error:'Choose a valid school date, not in the future.'});
+   const schoolId=req.auth.schoolId;
+   try{
+    const [staff,schedules,defaults,gate,dtr,ob,calendar]=await Promise.all([
+     pool.query(`SELECT user_id AS "userId",display_name AS "displayName",role
+      FROM school_users WHERE school_id=$1 AND active=TRUE
+       AND role IN ('TEACHER','DEPARTMENT_HEAD','SCHOOL_ADMIN')
+      ORDER BY display_name`,[schoolId]),
+     pool.query(`SELECT staff_user_id AS "staffUserId",workdays,
+       regular_hours AS "regularHours",saturday_hours AS "saturdayHours"
+       FROM staff_form48_employee_schedules WHERE school_id=$1`,[schoolId]),
+     require('./form48-bulk-routes').getSchoolForm48Defaults(pool,schoolId),
+     pool.query(`SELECT "staffUserId","eventType",time FROM (
+      SELECT staff_user_id AS "staffUserId",
+       CASE WHEN gate_direction='IN' THEN 'TIME_IN' ELSE 'TIME_OUT' END AS "eventType",
+       to_char(occurred_at AT TIME ZONE 'Asia/Manila','HH24:MI') AS time,occurred_at
+       FROM staff_attendance_events WHERE school_id=$1 AND school_date=$2::date
+        AND event_kind='GATE_MOVEMENT' AND verification_status='VERIFIED'
+      UNION ALL
+      SELECT teacher_user_id AS "staffUserId",event_type AS "eventType",
+       to_char(occurred_at AT TIME ZONE 'Asia/Manila','HH24:MI') AS time,occurred_at
+       FROM teacher_gate_events t WHERE t.school_id=$1 AND t.school_date=$2::date
+        AND t.photo_verified=TRUE
+        AND NOT EXISTS(SELECT 1 FROM staff_attendance_events e WHERE
+         e.school_id=t.school_id AND e.legacy_gate_event_id=t.event_id)
+     ) physical ORDER BY occurred_at`,[schoolId,date]),
+     pool.query(`SELECT staff_user_id AS "staffUserId",dtr_slot AS slot,
+      to_char(occurred_at AT TIME ZONE 'Asia/Manila','HH24:MI') AS time
+      FROM staff_attendance_events WHERE school_id=$1 AND school_date=$2::date
+       AND event_kind='DTR_SLOT' AND verification_status='VERIFIED'`,[schoolId,date]),
+     pool.query(`SELECT staff_user_id AS "staffUserId",
+       to_char(starts_at AT TIME ZONE 'Asia/Manila','HH24:MI') AS start,
+       to_char(ends_at AT TIME ZONE 'Asia/Manila','HH24:MI') AS "end",
+       (to_char(starts_at AT TIME ZONE 'Asia/Manila','YYYY-MM-DD')<>$2
+         OR to_char(ends_at AT TIME ZONE 'Asia/Manila','YYYY-MM-DD')<>$2) AS "crossDay"
+      FROM staff_official_business_requests
+      WHERE school_id=$1 AND status='APPROVED'
+       AND starts_at<(($2::date+INTERVAL '1 day') AT TIME ZONE 'Asia/Manila')
+       AND ends_at>($2::date AT TIME ZONE 'Asia/Manila')`,[schoolId,date]),
+     pool.query(`SELECT exception_type FROM school_calendar_exceptions
+      WHERE school_id=$1 AND calendar_date=$2::date
+       AND exception_type IN ('CLOSED','SHORTENED_DAY')`,[schoolId,date])
+    ]);
+    const overview=require('./smart-attendance-overview').buildSmartOverview({
+     date,staff:staff.rows,schedules:schedules.rows,defaults,
+     gate:gate.rows,dtr:dtr.rows,ob:ob.rows,calendarExceptions:calendar.rows
+    });
+    return res.json(overview);
+   }catch(err){
+    console.error('Smart attendance daily overview:',err.message);
+    return res.status(503).json({error:'Attendance overview is temporarily unavailable. No records changed.'});
+   }
+  });
+
  // Physical gate movements are maintained separately by existing Gatekeeper
  // endpoints; this endpoint is solely a verified Form-48 DTR fallback.
  app.post('/api/staff-attendance/gatekeeper/dtr',authenticateSchoolClient,
