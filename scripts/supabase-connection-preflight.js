@@ -72,9 +72,16 @@ async function runSupabasePreflight({
     return { status: 'connected', method: target.method, migrations: row.migrations };
   } catch (error) {
     // Safe diagnostic codes only; error.message might include a credential.
-    const code = /^[A-Z0-9]{2,24}$/.test(error?.code || '') ?
+    const code = /^[A-Z0-9_]{2,64}$/.test(error?.code || '') ?
       error.code : 'UNCLASSIFIED';
-    logger.warn('[Supabase preflight] connection_failed code=' + code);
+    const message = typeof error?.message === 'string' ? error.message : '';
+    const category = /certificate|self.signed|unable to verify|tls|ssl/i.test(message) ?
+      'TLS' : /password|authentication|credentials|tenant|role does not exist/i.test(message) ?
+      'AUTH' : /timeout|timed out/i.test(message) ?
+      'TIMEOUT' : /getaddrinfo|name resolution|dns/i.test(message) ?
+      'DNS' : /permission denied/i.test(message) ?
+      'PERMISSIONS' : 'OTHER';
+    logger.warn('[Supabase preflight] connection_failed code=' + code + ' category=' + category);
     return { status: 'connection_failed', code };
   } finally {
     if (targetPool) {
