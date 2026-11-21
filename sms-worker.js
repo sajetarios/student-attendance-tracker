@@ -1,6 +1,6 @@
 require("dotenv").config();
-const { Pool } = require("pg");
-const pool = new Pool({ connectionString: process.env.DATABASE_URL });
+const { createPool } = require("./db");
+const pool = createPool();
 const API_URL = "https://api.semaphore.co/api/v4/messages";
 const POLL_MS = Number(process.env.SMS_POLL_INTERVAL_MS || 5000);
 const MAX_ATTEMPTS = Number(process.env.SMS_MAX_ATTEMPTS || 5);

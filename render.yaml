@@ -1,0 +1,53 @@
+# Render Blueprint for Attendigo. Review plan names in the Render dashboard before the first sync.
+# Disks and background workers need a paid plan; the database below is created and wired automatically.
+databases:
+  - name: attendigo-db
+    plan: basic-256mb
+    databaseName: attendigo
+    user: attendigo
+
+services:
+  - type: web
+    name: attendigo
+    runtime: node
+    plan: starter
+    buildCommand: npm ci --omit=dev
+    startCommand: node server.js
+    healthCheckPath: /health
+    autoDeploy: true
+    disk:
+      name: attendigo-files
+      mountPath: /var/data
+      sizeGB: 5
+    envVars:
+      - key: NODE_VERSION
+        value: 22
+      - key: NODE_ENV
+        value: production
+      - key: DATABASE_URL
+        fromDatabase:
+          name: attendigo-db
+          property: connectionString
+      - key: STORAGE_DIR
+        value: /var/data
+      - key: AUTH_SESSION_HOURS
+        value: 12
+
+  # SMS notifications. Remove this block if you do not use Semaphore SMS.
+  - type: worker
+    name: attendigo-sms-worker
+    runtime: node
+    plan: starter
+    buildCommand: npm ci --omit=dev
+    startCommand: node sms-worker.js
+    envVars:
+      - key: NODE_VERSION
+        value: 22
+      - key: DATABASE_URL
+        fromDatabase:
+          name: attendigo-db
+          property: connectionString
+      - key: SEMAPHORE_API_KEY
+        sync: false
+      - key: SEMAPHORE_SENDER_NAME
+        sync: false

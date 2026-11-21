@@ -2,7 +2,9 @@
 require('dotenv').config();
 
 const express = require('express');
-const { Pool } = require('pg');
+const { createPool } = require('./db');
+const { configureProxy, httpsRedirect, createRateLimiter } = require('./http-security');
+const { STUDENT_PHOTO_ROOT, TEACHER_PHOTO_ROOT } = require('./storage-paths');
 const { runMigrations } = require('./scripts/migrate');
 const QRCode = require('qrcode');
 const path = require('path');
@@ -17,8 +19,10 @@ const { registerParentRoutes } = require('./parent-routes');
 const { registerStudentRoutes } = require('./student-routes');
 
 const app = express();
-const pool = new Pool({ connectionString: process.env.DATABASE_URL });
+const pool = createPool();
 app.disable('x-powered-by');
+configureProxy(app);
+app.use(httpsRedirect);
 app.use((req, res, next) => {
   res.setHeader('X-Content-Type-Options', 'nosniff');
   res.setHeader('Referrer-Policy', 'no-referrer');
@@ -30,6 +34,12 @@ app.use((req, res, next) => {
 });
 app.use(express.json({ limit: '2mb' }));
 
+// Slow down password guessing per client address, on top of the per-account lockout.
+const loginLimiter = createRateLimiter({
+  windowMs: 15 * 60 * 1000, max: Number(process.env.LOGIN_RATE_LIMIT || 30),
+  message: 'Too many sign-in attempts from this device. Please wait a few minutes and try again.'
+});
+app.use(['/api/auth/school/login', '/api/auth/student/login', '/api/auth/platform/login'], loginLimiter);
 registerAuthRoutes(app, pool);
 const { authenticateSchoolClient, requireSchoolRoles, requireSchoolPermission, requireTeacherDesignations, requireSchoolClient } = createAuthMiddleware(pool);
 const requireSchoolAdmin = requireSchoolRoles('SCHOOL_ADMIN');
@@ -1407,8 +1417,6 @@ app.patch('/api/students/:studentId', authenticateSchoolClient, requireSchoolAdm
 });
 
 // Student photos are stored outside /public and served only after school authentication.
-const STUDENT_PHOTO_ROOT = path.join(__dirname, 'storage', 'student-photos');
-const TEACHER_PHOTO_ROOT = path.join(__dirname, 'storage', 'teacher-photos');
 function photoMimeFromBuffer(buffer) {
   if (!Buffer.isBuffer(buffer)) return null;
   if (buffer.length >= 3 && buffer[0] === 0xff && buffer[1] === 0xd8 && buffer[2] === 0xff) return { mime: 'image/jpeg', ext: '.jpg' };

@@ -1,5 +1,5 @@
 
-const CACHE = "school-attendance-shell-v13";
+const CACHE = "school-attendance-shell-v14";
 
 const SHELL = [
   "/",
@@ -7,6 +7,8 @@ const SHELL = [
   "/styles.css",
   "/responsive.css",
   "/comfort-ui.css",
+  "/app-enhance.css?v=0.9.0",
+  "/app-enhance.js?v=0.9.0",
   "/app.js",
   "/manifest.webmanifest",
   "/vendor/html5-qrcode.min.js"
@@ -46,19 +48,16 @@ self.addEventListener("fetch", event => {
     return;
   }
 
+  // Network first so a new deploy is picked up immediately; the cache is only the offline fallback.
   event.respondWith(
-    caches.match(request).then(cached => {
-      if (cached) return cached;
-
-      return fetch(request).then(response => {
-        if (response.ok) {
-          const copy = response.clone();
-          caches.open(CACHE).then(cache =>
-            cache.put(request, copy)
-          );
-        }
-        return response;
-      });
-    })
+    fetch(request).then(response => {
+      if (response.ok && response.type === "basic") {
+        const copy = response.clone();
+        caches.open(CACHE).then(cache => cache.put(request, copy)).catch(() => {});
+      }
+      return response;
+    }).catch(() =>
+      caches.match(request).then(cached => cached || caches.match("/index.html"))
+    )
   );
 });

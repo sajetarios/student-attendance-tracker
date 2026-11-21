@@ -4,7 +4,7 @@ const ExcelJS = require('exceljs');
 const path = require('path');
 const fs = require('fs/promises');
 const TEMPLATE = path.join(__dirname, 'templates', 'School Form 2 (SF2) Daily Attendance Report of Learners.xlsx');
-const SF2_STORAGE = path.join(__dirname, 'storage', 'sf2');
+const { SF2_STORAGE } = require('./storage-paths');
 const MONTHS = ['JANUARY','FEBRUARY','MARCH','APRIL','MAY','JUNE','JULY','AUGUST','SEPTEMBER','OCTOBER','NOVEMBER','DECEMBER'];
 const validMonth = value => /^\d{4}-(0[1-9]|1[0-2])$/.test(value || '');
 const safePart = value => String(value || '').replace(/[^a-z0-9_-]/gi, '_').slice(0, 80) || 'section';
