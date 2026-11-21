@@ -120,3 +120,39 @@ test('saved identity, attendance and permission controls remain protected',()=>{
  assert.match(html,/Parent \/ Guardian/);
  assert.match(html,/Contact<\/th>/);
 });
+
+test('opt-in LRN recovery fills only a uniquely matched blank LRN and preserves enrollment and attendance',async()=>{
+ const data=await fixture(),h=createHarness([{...learner,lrn:null,grade_level:'Grade 8'}]);
+ const base={fileBase64:data,fileType:'xlsx'};
+ const without=await h.invoke('/api/students/sf1/preview',base);
+ assert.equal(without.body.summary.review,1);
+ const payload={...base,recoverMissingLrn:true};
+ const preview=await h.invoke('/api/students/sf1/preview',payload);
+ assert.equal(preview.statusCode,200);
+ assert.equal(preview.body.summary.recover,1);
+ assert.equal(preview.body.rows[0].action,'RECOVER');
+ assert.equal(preview.body.rows[0].existingStudent.studentId,'2026-G8-001');
+ const result=await h.invoke('/api/students/sf1/commit',payload);
+ assert.equal(result.statusCode,200);
+ assert.equal(result.body.recovered,1);
+ assert.equal(result.body.created,0);
+ const updates=h.calls.filter(c=>c.sql.includes('UPDATE students'));
+ assert.equal(updates.length,1);
+ assert.match(updates[0].sql,/SET lrn=\$3/);
+ assert.match(updates[0].sql,/NULLIF\(BTRIM\(lrn\)/);
+ assert.equal(h.calls.filter(c=>/DELETE FROM|UPDATE attendance|UPDATE student_enrollments/i.test(c.sql)).length,0);
+});
+test('LRN recovery blocks duplicate-name matches, sex differences and existing nonblank LRNs',async()=>{
+ const data=await fixture(),payload={fileBase64:data,fileType:'xlsx',recoverMissingLrn:true};
+ for(const records of [
+  [{...learner,lrn:null,grade_level:'Grade 8',sex:'FEMALE'}],
+  [{...learner,lrn:'999999999999',grade_level:'Grade 8'}],
+  [{...learner,lrn:null,grade_level:'Grade 8'},{...learner,student_id:'2026-G8-002',lrn:null,grade_level:'Grade 8'}]
+ ]){
+  const h=createHarness(records),preview=await h.invoke('/api/students/sf1/preview',payload);
+  assert.equal(preview.body.summary.review,1);
+  const commit=await h.invoke('/api/students/sf1/commit',payload);
+  assert.equal(commit.statusCode,409);
+  assert.equal(h.calls.filter(c=>c.sql.includes('UPDATE students')).length,0);
+ }
+});
