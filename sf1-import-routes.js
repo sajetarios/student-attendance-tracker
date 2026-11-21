@@ -98,7 +98,8 @@ function registerSf1ImportRoutes(app,pool,{authenticateSchoolClient,requireSchoo
    }
    return {...r,action,errors:issues,missingFields,
     existingStudent:existingStudent?{
-     studentId:existingStudent.student_id,fullName:existingStudent.full_name
+     studentId:existingStudent.student_id,fullName:existingStudent.full_name,
+     values:{lrn:existingStudent.lrn||'',parentName:existingStudent.parent_name||'',parentMobile:existingStudent.parent_mobile||'',fatherName:existingStudent.father_name||'',motherMaidenName:existingStudent.mother_maiden_name||'',sf1GuardianName:existingStudent.sf1_guardian_name||'',birthDate:existingStudent.birth_date?String(existingStudent.birth_date).slice(0,10):'',sf1Address:existingStudent.sf1_address||''}
     }:null};
   });
   const summary={create:0,update:0,recover:0,skip:0,review:0};

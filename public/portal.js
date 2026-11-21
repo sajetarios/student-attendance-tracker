@@ -5777,24 +5777,31 @@ let teacherActionMenuListenersInstalled = false;
           ' existing profile completions · '+(counts.recover||0)+' LRN recoveries · '+(counts.skip||0)+' unchanged · '+(counts.review||0)+
           ' require review. Grade: '+preview.gradeLevel+' · New section: Unassigned.'+
           (counts.review?' Resolve flagged records before saving.':'');
-        const labels={CREATE:'Create',UPDATE:'Complete missing profile',RECOVER:'Complete profile + missing LRN',SKIP:'Already complete',REVIEW:'Needs review'};
-        $('studentImportPreviewRows').innerHTML=preview.rows.map(item=>{
-          const match=item.existingStudent;
-          const saved=match?esc(match.fullName)+' · '+esc(match.studentId):'New learner';
-          const fields=(item.missingFields||[]).join(', ');
-          const issues=(item.errors||[]).join(' ');
-          return '<tr class="student-import-result-'+esc(item.action.toLowerCase())+'"><td>'+esc(item.rowNumber)+
-            '</td><td>'+esc(item.lrn)+'</td><td>'+esc(match?.studentId||'Auto-generate')+
-            '</td><td>'+esc(item.fullName)+'</td><td>'+esc(item.gradeLevel)+
-            '</td><td>Unassigned</td><td>'+esc(item.parentName||'Not provided')+
-            '</td><td>'+esc(item.parentMobile||'Not provided')+
-            '</td><td><span class="student-import-action-tag">'+esc(labels[item.action]||item.action)+
-            '</span></td><td>'+saved+'</td><td>'+esc(issues||fields||'—')+'</td></tr>';
-        }).join('')||'<tr><td colspan="11" class="empty-cell">No learners found.</td></tr>';
+        const labels={CREATE:'New learner',UPDATE:'Complete missing profile',RECOVER:'Recover LRN and missing fields',SKIP:'Already complete',REVIEW:'Needs manual review'};
+        const fieldLabels={lrn:'LRN',parentName:'Parent / primary guardian',parentMobile:'Parent / guardian contact',fatherName:"Father's name",motherMaidenName:"Mother's maiden name",sf1GuardianName:'Guardian (if not parent)',birthDate:'Birth date',sf1Address:'Home address'};
+        const cards=$('studentImportSf1Cards');
+        $('studentImportTableWrap').hidden=true;
+        cards.hidden=false;
+        cards.innerHTML='<p class="sf1-review-help">Expand each learner to compare saved values with the information found in the SF1. Only blank saved fields will be completed. Existing values remain unchanged.</p>'+
+          preview.rows.map((item,index)=>{
+            const match=item.existingStudent;
+            const fields=item.missingFields||[];
+            const proposed=fields.map(key=>{
+              const before=match?.values?.[key]||'Not recorded';
+              const after=item[key]||'Not provided';
+              return '<div class="sf1-review-field"><span>'+esc(fieldLabels[key]||key)+'</span><span class="sf1-review-before">'+esc(before)+'</span><strong>'+esc(after)+'</strong></div>';
+            }).join('');
+            const issues=(item.errors||[]).map(e=>'<p class="sf1-review-warning">'+esc(e)+'</p>').join('');
+            const info=match?'<small>Existing ID: '+esc(match.studentId)+'</small>':'<small>New learner — student ID generated on import</small>';
+            return '<details class="sf1-review-item sf1-review-'+esc(item.action.toLowerCase())+'"><summary><span class="sf1-review-index">'+(index+1)+'</span><span class="sf1-review-person"><strong>'+esc(item.fullName)+'</strong>'+info+'</span><span class="sf1-review-status">'+esc(labels[item.action]||item.action)+' · '+fields.length+' field'+(fields.length===1?'':'s')+'</span><span class="sf1-review-chevron" aria-hidden="true">⌄</span></summary><div class="sf1-review-body"><p><strong>LRN:</strong> '+esc(item.lrn||'Not provided')+' · <strong>Grade:</strong> '+esc(item.gradeLevel)+' · <strong>Current section:</strong> '+esc(match?'Preserved':'Unassigned')+'</p>'+(fields.length?'<div class="sf1-review-field sf1-review-field-head"><span>Field</span><span>Saved value</span><span>From SF1</span></div>'+proposed:'<p>No missing fields detected.</p>')+issues+'</div></details>';
+          }).join('')||'<p>No learners found.</p>';
+        $('studentImportPreviewRows').innerHTML='';
         $('confirmStudentImport').disabled=!!counts.review||!eligible;
         $('confirmStudentImport').textContent=eligible?'Import / update '+eligible+' learners':'No safe changes';
         return;
       }
+      $('studentImportSf1Cards').hidden=true;
+      $('studentImportTableWrap').hidden=false;
       pendingStudentImportPreview = preview;
       const counts = preview.summary || { create:0, update:0, skip:0, error:0 };
       const eligible = Number(counts.create || 0) + Number(counts.update || 0);

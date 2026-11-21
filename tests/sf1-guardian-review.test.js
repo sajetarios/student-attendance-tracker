@@ -2,6 +2,8 @@
 const test=require('node:test');
 const assert=require('node:assert/strict');
 const ExcelJS=require('exceljs');
+const fs=require('node:fs');
+const path=require('node:path');
 const {parseSf1Matrix,normalizeGuardianContact}=require('../sf1-import-parser');
 const {parseSf1PdfText}=require('../sf1-pdf-parser');
 const {registerSf1ImportRoutes}=require('../sf1-import-routes');
@@ -217,4 +219,17 @@ test('official LIS SF1 two-row merged header layout reads family fields and Exce
  assert.equal(parsed.learners[0].sf1GuardianName,'GUARDIAN TEST');
  assert.equal(parsed.learners[0].parentMobile,'09123456789');
  assert.match(parsed.learners[0].sf1Address,/CENTRAL/);
+});
+
+test('SF1 review provides an expandable before-and-after view and hides the crowded table',()=>{
+ const html=fs.readFileSync(path.join(__dirname,'../public/portal.html'),'utf8');
+ const js=fs.readFileSync(path.join(__dirname,'../public/portal.js'),'utf8');
+ const css=fs.readFileSync(path.join(__dirname,'../public/sf1-review-cards.css'),'utf8');
+ assert.match(html,/id="studentImportSf1Cards"/);
+ assert.match(html,/id="studentImportTableWrap"/);
+ assert.match(js,/sf1-review-item/);
+ assert.match(js,/Saved value/);
+ assert.match(js,/motherMaidenName:"Mother's maiden name"/);
+ assert.match(js,/\$\('studentImportTableWrap'\)\.hidden=true/);
+ assert.match(css,/sf1-review-field/);
 });
