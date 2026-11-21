@@ -80,3 +80,17 @@ test('Form 48 Day header fits and report-specific cells override dashboard paddi
  const sw=fs.readFileSync('public/sw.js','utf8');
  assertCachedAsset(html,sw,'form48-report.css',{minimumVersion:9});
 });
+
+test('Form 48 print opens isolated A4 landscape report without dashboard or private controls',()=>{
+ const js=fs.readFileSync('public/form48-report.js','utf8');
+ const html=fs.readFileSync('public/portal.html','utf8');
+ const sw=fs.readFileSync('public/sw.js','utf8');
+ assert.ok(js.includes('function printDtrFromIsolatedPage(output,status)'));
+ assert.ok(js.includes("output.querySelector('.form48-sheets')"));
+ assert.ok(js.includes("window.open('', '_blank')"));
+ assert.ok(js.includes('<main id="form48PrintArea"'));
+ assert.ok(js.includes('@page{size:A4 landscape;margin:5mm}'));
+ assert.ok(js.includes('popup.document.write(html)'));
+ assert.ok(!js.includes("if(!button.disabled&&!output.hidden)window.print()"));
+ assertCachedAsset(html,sw,'form48-report.js',{minimumVersion:9});
+});
