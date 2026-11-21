@@ -1522,12 +1522,12 @@ body.dark-mode .content-wrap > .school-heading.is-compact,body[data-theme="dark"
               <p class="form-help">QR codes contain a random private token, not the student's name, LRN, or phone number. Allow pop-ups for this site to print.</p>
               <div id="studentEditOverlay" class="student-edit-overlay" hidden>
                 <form id="studentEditForm" class="student-edit-dialog" method="post">
-                  <div class="section-toolbar"><div><h3>Edit student information</h3><p>Student ID and private QR token remain unchanged.</p></div><button type="button" class="outline-button" id="closeStudentEdit">Close</button></div>
+                  <div class="section-toolbar"><div><h3>Edit student information</h3><p>Update authorized learner details. Student ID and private QR token remain unchanged.</p></div><button type="button" class="outline-button" id="closeStudentEdit">Close</button></div>
                   <input type="hidden" id="editStudentId">
                   <div class="form-grid">
                     <div class="field-group"><label>Student ID</label><input id="editStudentIdDisplay" disabled></div>
                     <div class="field-group" id="editLrnGroup"><label for="editLrn">Learner Reference Number (LRN)</label><input id="editLrn" maxlength="30" inputmode="numeric"></div>
-                    <div class="field-group span-2"><label for="editFullName">Full name *</label><input id="editFullName" required maxlength="200"></div>
+                    <div class="field-group span-2"><label for="editFullName">Full name *</label><input id="editFullName" required maxlength="200" aria-describedby="editFullNameHelp"><small id="editFullNameHelp" class="student-name-help">Use the official SF1 spelling. For clarity, enter <strong>SURNAME, Given Name Middle Name</strong> when correcting an ambiguous legacy name. Compound surnames must remain intact.</small></div>
                     <div class="field-group" id="editSexGroup"><label for="editSex">Sex *</label><select id="editSex" required><option value="">Select sex</option><option value="MALE">Male</option><option value="FEMALE">Female</option></select></div>
                     <div class="field-group" id="editGradeGroup"><label for="editGrade">Grade *</label><select id="editGrade" required><option>Grade 7</option><option>Grade 8</option><option>Grade 9</option><option>Grade 10</option><option>Grade 11</option><option>Grade 12</option></select></div>
                     <div class="field-group" id="editSectionGroup"><label for="editSection">Section *</label><input id="editSection" required maxlength="100"></div>
