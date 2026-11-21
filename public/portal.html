@@ -1257,7 +1257,11 @@ body.dark-mode .content-wrap > .school-heading.is-compact,body[data-theme="dark"
                 <div class="form-grid">
                   <div class="field-group"><label for="newStudentId">Student ID <span class="optional-label">Auto-generated</span></label><input id="newStudentId" maxlength="80" placeholder="Auto-generated (e.g. 26-00089)"><small class="field-hint">Leave blank for a short Year–Number ID. It stays fixed through grade promotions. The official DepEd LRN is separate.</small></div>
                   <div class="field-group"><label for="newLrn">Learner Reference Number (LRN) <span class="optional-label">Optional</span></label><input id="newLrn" maxlength="30" inputmode="numeric" placeholder="Enter the learner's LRN"><small class="field-hint">Leave blank if the learner has no LRN yet.</small></div>
-                  <div class="field-group span-2"><label for="newFullName">Learner's full name *</label><input id="newFullName" required maxlength="200" autocomplete="name" placeholder="Last name, First name, Middle name"></div>
+                  <div class="student-edit-section-title span-2">Learner name <small>Enter names as written in the official SF1. Leave middle name empty if none.</small></div>
+                  <div class="field-group"><label for="newLastName">Surname *</label><input id="newLastName" required maxlength="100" autocomplete="family-name"></div>
+                  <div class="field-group"><label for="newFirstName">First name *</label><input id="newFirstName" required maxlength="160" autocomplete="given-name"></div>
+                  <div class="field-group"><label for="newMiddleName">Middle name <span class="optional-label">Optional</span></label><input id="newMiddleName" maxlength="160" autocomplete="additional-name"></div>
+                  <div class="field-group"><label for="newFullName">Official name preview</label><input id="newFullName" required maxlength="200" readonly aria-describedby="newFullNameHelp"><small id="newFullNameHelp" class="field-hint">Automatically formatted as SURNAME, First Name Middle Name.</small></div>
                   <div class="field-group"><label for="newSex">Sex *</label><select id="newSex" required><option value="">Select sex</option><option value="MALE">Male</option><option value="FEMALE">Female</option></select></div>
                   <div class="field-group"><label for="newGrade">Grade level *</label><select id="newGrade" required><option>Grade 7</option><option>Grade 8</option><option>Grade 9</option><option>Grade 10</option><option>Grade 11</option><option>Grade 12</option></select></div>
                   <div class="field-group"><label for="newSection">Section *</label><select id="newSection" required disabled><option value="">Select grade level first</option></select><small id="newSectionHint" class="field-hint">Choose a grade to load its available sections.</small></div>
@@ -1532,11 +1536,13 @@ body.dark-mode .content-wrap > .school-heading.is-compact,body[data-theme="dark"
                     <div class="field-group" id="editLrnGroup"><label for="editLrn">Learner Reference Number (LRN)</label><input id="editLrn" maxlength="30" inputmode="numeric"></div>
                     <div class="field-group span-2" id="editFullNameGroup"><label for="editFullName">Recorded full name *</label><input id="editFullName" required maxlength="200" aria-describedby="editFullNameHelp"><small id="editFullNameHelp" class="student-name-help">Existing names are preserved unless you correct them. A legacy full name may not identify the correct surname.</small></div>
                     <div class="field-group span-2 student-structured-editor">
-                      <label class="student-name-structure-switch"><input id="editStructuredNameToggle" type="checkbox"> Correct using official surname / given names</label>
+                      <label class="student-name-structure-switch"><input id="editStructuredNameToggle" type="checkbox"> Edit separate official name fields</label>
                       <div id="editStructuredNameFields" class="student-name-parts-grid" hidden>
-                        <label for="editSurname">Surname * <input id="editSurname" maxlength="100" autocomplete="off" placeholder="e.g. DE LA CRUZ"></label>
-                        <label for="editGivenNames">Given and middle names * <input id="editGivenNames" maxlength="180" autocomplete="off" placeholder="e.g. MARIA TERESA REYES"></label>
-                        <p class="student-name-help student-name-parts-note">No automatic split is made for legacy records. Verify the surname against the official SF1 before saving; compound surnames stay together. This saves as SURNAME, Given and Middle Names.</p>
+                        <label for="editSurname">Surname * <input id="editSurname" maxlength="100" autocomplete="family-name" placeholder="e.g. DE LA CRUZ"></label>
+                        <label for="editFirstName">First name * <input id="editFirstName" maxlength="160" autocomplete="given-name" placeholder="e.g. MARIA TERESA"></label>
+                        <label for="editMiddleName">Middle name (optional) <input id="editMiddleName" maxlength="160" autocomplete="additional-name" placeholder="e.g. REYES"></label>
+                        <input id="editGivenNames" type="hidden" aria-hidden="true">
+                        <p class="student-name-help student-name-parts-note">Separate first and middle names are never guessed from an old combined name. Check the learner's official SF1 before correcting them.</p>
                       </div>
                     </div>
                     <div class="field-group" id="editSexGroup"><label for="editSex">Sex *</label><select id="editSex" required><option value="">Select sex</option><option value="MALE">Male</option><option value="FEMALE">Female</option></select></div>
@@ -2324,8 +2330,8 @@ body.dark-mode .content-wrap > .school-heading.is-compact,body[data-theme="dark"
   <script src="/offline-attendance.js?v=5" defer></script>
   <script src="/attendance-sync-center.js?v=3" defer></script>
   <script src="/learner-roster-view.js?v=1" defer></script>
-  <script src="/student-name-format.js?v=1" defer></script>
-  <script src="/portal.js?v=219" defer></script>
+  <script src="/student-name-format.js?v=2" defer></script>
+  <script src="/portal.js?v=220" defer></script>
   <script src="/schedule-list-filters.js?v=1" defer></script>
   <script src="/staff-lunch-ui.js?v=3" defer></script>
   <script src="/staff-ob-ui.js?v=5" defer></script>
