@@ -62,6 +62,12 @@ function parseSf1Matrix(rows) {
    motherCol=findOptionalColumn(rows,i,v=>/^(?:mothers?(?:maiden)?name|nameof(?:the)?mother|motherfullname)/.test(v));
    guardianCol=findOptionalColumn(rows,i,v=>/^(?:guardians?name|nameofguardian|nameofguardianifnotparent)/.test(v));
    birthCol=findOptionalColumn(rows,i,v=>/^(?:birthdate|dateofbirth|birthday|dob)/.test(v));
+   // LIS SF1 uses two-tier merged headers: PARENTS above Father's Name / Mother's Maiden Name,
+   // and GUARDIAN (if Not Parent) above a generic Name column.
+   if(guardianCol<0){const guardianGroup=cols.findIndex(v=>v.startsWith('guardianifnotparent'));if(guardianGroup>=0){for(let k=i+1;k<Math.min(rows.length,i+3);k++){const lower=rows[k].map(normalize);if(lower[guardianGroup]==='name'){guardianCol=guardianGroup;break;}}}}
+   if(birthCol<0)birthCol=cols.findIndex(v=>v.startsWith('birthdate'));
+   if(contactCol<0)contactCol=cols.findIndex(v=>v.startsWith('contactnumberofparentorguardian'));
+   // The parent and guardian names are distinct fields; never infer primary guardian from father/mother.
    addressCols=[];
    for(let offset=0;offset<Math.min(3,rows.length-i);offset++)(rows[i+offset]||[]).map(normalize).forEach((v,c)=>{
     if(/^(?:housestreet|street|barangay|citymunicipality|municipalitycity|province|homeaddress|completeaddress|residentialaddress|address)$/.test(v)&&!addressCols.includes(c))addressCols.push(c);
@@ -107,6 +113,11 @@ function parseSf1Matrix(rows) {
   const rawBirth=familyValue(birthCol);
   let birthDate='';
   if(rawBirth){
+   // BIFF8 LIS exports store dates as Excel serial numbers (e.g. 41430), not text.
+   if(/^\d{4,5}(?:\.0+)?$/.test(rawBirth)){
+    const serial=Number(rawBirth),ms=Math.round((serial-25569)*86400000),date=new Date(ms);
+    if(serial>=1&&serial<100000&&Number.isFinite(ms)&&date.getUTCFullYear()>=1900&&date<=new Date())birthDate=date.toISOString().slice(0,10);
+   }
    const parsed=rawBirth.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/)||rawBirth.match(/^(\d{4})-(\d{1,2})-(\d{1,2})$/);
    if(parsed){
     const y=parsed[1].length===4?+parsed[1]:+parsed[3],m=parsed[1].length===4?+parsed[2]:+parsed[1],d=parsed[1].length===4?+parsed[3]:+parsed[2];

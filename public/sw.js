@@ -1,4 +1,4 @@
-const CACHE = "attendigo-v265-approved-reference-brand";
+const CACHE = "attendigo-v266-sf1-lis-headers";
 
 const SHELL = [
   "/typography.css?v=1",
@@ -54,7 +54,7 @@ const SHELL = [
   "/class-qr-dashboard-link.js?v=11",
   "/teacher-roster-popover.js?v=2",
   "/portal.css?v=0.9.119",
-  "/portal.js?v=213",
+  "/portal.js?v=214",
   "/department-workspace.css?v=1",
   "/department-workspace.js?v=5",
   "/department-monitor-refresh.css?v=1",

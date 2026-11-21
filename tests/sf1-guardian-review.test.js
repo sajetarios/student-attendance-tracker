@@ -196,3 +196,25 @@ test('the unified SF1 import fills missing family information without altering i
  assert.match(updates[0].sql,/sf1_guardian_name=COALESCE/);
  assert.equal(h.calls.filter(c=>/DELETE FROM|UPDATE attendance|UPDATE student_enrollments/i.test(c.sql)).length,0);
 });
+
+
+test('official LIS SF1 two-row merged header layout reads family fields and Excel serial dates',()=>{
+ const row=(pairs)=>{const a=Array(45).fill('');for(const [i,v] of pairs)a[i]=v;return a;};
+ const official=[
+  row([[0,'School Form 1 (SF 1) School Register']]),
+  row([[0,'School Year'],[19,'2026 - 2027'],[25,'Grade Level'],[30,'Grade 8 (Year II)']]),
+  row([[0,'LRN'],[2,'NAME\n(Last Name, First Name, Middle Name)'],[6,'Sex (M/F)'],[7,'BIRTH DATE\n(mm/dd/yyyy)'],[15,'ADDRESS'],[27,'PARENTS'],[36,'GUARDIAN\n(if Not Parent)'],[41,'Contact Number of Parent or Guardian']]),
+  row([[15,'House #/ Street/ Sitio/ Purok'],[17,'Barangay'],[20,'Municipality/ City'],[22,'Province'],[27,"Father's Name (Last Name, First Name, Middle Name)"],[31,"Mother's Maiden Name (Last Name, First Name, Middle Name)"],[36,'Name']]),
+  row([[0,'129380180009'],[2,'NONONG,LANCE JESSE, SOTOMAYOR'],[6,'M'],[7,41430],[17,'CENTRAL (POB.)'],[20,'CITY OF MATI'],[22,'DAVAO ORIENTAL'],[27,'FATHER TEST'],[31,'MOTHER TEST'],[36,'GUARDIAN TEST'],[41,'09123456789']]),
+  row([[0,1],[2,'<=== TOTAL MALE']])
+ ];
+ const parsed=parseSf1Matrix(official);
+ assert.equal(parsed.learners.length,1);
+ assert.equal(parsed.gradeLevel,'Grade 8');
+ assert.equal(parsed.learners[0].birthDate,'2013-06-05');
+ assert.equal(parsed.learners[0].fatherName,'FATHER TEST');
+ assert.equal(parsed.learners[0].motherMaidenName,'MOTHER TEST');
+ assert.equal(parsed.learners[0].sf1GuardianName,'GUARDIAN TEST');
+ assert.equal(parsed.learners[0].parentMobile,'09123456789');
+ assert.match(parsed.learners[0].sf1Address,/CENTRAL/);
+});
