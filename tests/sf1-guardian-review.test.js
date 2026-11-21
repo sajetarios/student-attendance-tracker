@@ -2,6 +2,8 @@
 const test=require('node:test');
 const assert=require('node:assert/strict');
 const ExcelJS=require('exceljs');
+const fs=require('node:fs');
+const path=require('node:path');
 const {parseSf1Matrix,normalizeGuardianContact}=require('../sf1-import-parser');
 const {parseSf1PdfText}=require('../sf1-pdf-parser');
 const {registerSf1ImportRoutes}=require('../sf1-import-routes');
