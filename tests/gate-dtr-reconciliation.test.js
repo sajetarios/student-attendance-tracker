@@ -33,3 +33,16 @@ test('unconfigured schedule blocks classification',()=>{
  assert.deepEqual(r.suggestions,{});
  assert.equal(r.safeToApply,false);
 });
+
+test('three competing AM_IN movements cannot restore an ambiguous DTR candidate',()=>{
+ const r=reconcileGateDay({hours,movements:[
+  {eventType:'TIME_IN',time:'07:30'},
+  {eventType:'TIME_OUT',time:'08:00'},
+  {eventType:'TIME_IN',time:'08:30'},
+  {eventType:'TIME_OUT',time:'09:00'},
+  {eventType:'TIME_IN',time:'09:30'}
+ ]});
+ assert.equal(r.suggestions.AM_IN,undefined);
+ assert.ok(r.review.includes('DUPLICATE_SLOT_CANDIDATES'));
+ assert.equal(r.safeToApply,false);
+});
