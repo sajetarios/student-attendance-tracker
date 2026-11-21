@@ -50,7 +50,7 @@ function registerSf1ImportRoutes(app,pool,{authenticateSchoolClient,requireSchoo
   const canonical=value=>String(value||'').toLowerCase().replace(/[^a-z0-9]/g,'');
   const named=sf1.learners.map(r=>canonical(r.fullName));
   const existing=await db.query(
-   `SELECT lrn,student_id,full_name,parent_name,parent_mobile,father_name,mother_maiden_name,sf1_guardian_name,birth_date,sf1_address,sex,grade_level,section,active,archived_at FROM students WHERE school_id=$1 AND (lrn=ANY($2::text[]) OR (lower(regexp_replace(full_name,'[^a-zA-Z0-9]','','g'))=ANY($3::text[])
+   `SELECT lrn,student_id,full_name,last_name,first_name,middle_name,parent_name,parent_mobile,father_name,mother_maiden_name,sf1_guardian_name,birth_date,sf1_address,sex,grade_level,section,active,archived_at FROM students WHERE school_id=$1 AND (lrn=ANY($2::text[]) OR (lower(regexp_replace(full_name,'[^a-zA-Z0-9]','','g'))=ANY($3::text[])
        OR lower(regexp_replace(
           CASE WHEN strpos(full_name,',')>0
             THEN btrim(split_part(full_name,',',2))||' '||btrim(split_part(full_name,',',1))
@@ -95,6 +95,10 @@ function registerSf1ImportRoutes(app,pool,{authenticateSchoolClient,requireSchoo
     if(r.parentName&&!validValue(existingStudent.parent_name))missingFields.push('parentName');
     if(r.parentMobile&&!validValue(existingStudent.parent_mobile))missingFields.push('parentMobile');
     for(const [key,column] of PROFILE_FIELDS)if(validValue(r[key])&&!validValue(existingStudent[column]))missingFields.push(key);
+    // Resolve missing structured fields only from a source-delimited LIS SF1
+    // and an existing learner proven by the same LRN and compatible full name.
+    if(found&&r.officialNameParts&&!validValue(found.first_name)&&
+       sf1NamesEquivalent(found.full_name,r.fullName))missingFields.push('nameParts');
     if(!found&&recoveryCandidate)missingFields.unshift('lrn');
    }
    const issues=[];
@@ -110,6 +114,13 @@ function registerSf1ImportRoutes(app,pool,{authenticateSchoolClient,requireSchoo
     if(!found.active||found.archived_at)issues.push('This LRN is archived or inactive; School Admin review required.');
     if(!sf1NamesEquivalent(found.full_name,r.fullName))issues.push('Name differs from the saved LRN record.');
     if(found.sex&&String(found.sex).toUpperCase()!==r.sex)issues.push('Sex differs from the saved LRN record.');
+    if(r.birthDate&&found.birth_date&&String(found.birth_date).slice(0,10)!==r.birthDate)
+     issues.push('Birthdate differs from the saved LRN record.');
+    if(r.officialNameParts&&validValue(found.first_name)&&
+       (canonical(found.last_name)!==canonical(r.officialNameParts.lastName)||
+        canonical(found.first_name)!==canonical(r.officialNameParts.firstName)||
+        canonical(found.middle_name)!==canonical(r.officialNameParts.middleName)))
+     issues.push('Structured learner name differs from the saved record; manual review required.');
     if(r.parentName&&found.parent_name&&canonical(found.parent_name)!==canonical(r.parentName))
      issues.push('Parent/guardian name conflicts with the saved value.');
     if(r.parentMobile&&found.parent_mobile&&
@@ -123,7 +134,7 @@ function registerSf1ImportRoutes(app,pool,{authenticateSchoolClient,requireSchoo
    return {...r,action,errors:issues,missingFields,
     existingStudent:existingStudent?{
      studentId:existingStudent.student_id,fullName:existingStudent.full_name,
-     values:{lrn:existingStudent.lrn||'',parentName:existingStudent.parent_name||'',parentMobile:existingStudent.parent_mobile||'',fatherName:existingStudent.father_name||'',motherMaidenName:existingStudent.mother_maiden_name||'',sf1GuardianName:existingStudent.sf1_guardian_name||'',birthDate:existingStudent.birth_date?String(existingStudent.birth_date).slice(0,10):'',sf1Address:existingStudent.sf1_address||''}
+     values:{lrn:existingStudent.lrn||'',lastName:existingStudent.last_name||'',firstName:existingStudent.first_name||'',middleName:existingStudent.middle_name||'',parentName:existingStudent.parent_name||'',parentMobile:existingStudent.parent_mobile||'',fatherName:existingStudent.father_name||'',motherMaidenName:existingStudent.mother_maiden_name||'',sf1GuardianName:existingStudent.sf1_guardian_name||'',birthDate:existingStudent.birth_date?String(existingStudent.birth_date).slice(0,10):'',sf1Address:existingStudent.sf1_address||''}
     }:null};
   });
   const summary={create:0,update:0,recover:0,skip:0,review:0};
@@ -148,9 +159,9 @@ function registerSf1ImportRoutes(app,pool,{authenticateSchoolClient,requireSchoo
     const duplicate=await client.query('SELECT student_id FROM students WHERE school_id=$1 AND lrn=$2',[req.auth.schoolId,row.lrn]);
     if(duplicate.rowCount)continue;
     const id=await nextStudentId(client,{year:prepared.year});
-    await client.query(`INSERT INTO students(school_id,student_id,lrn,full_name,grade_level,section,parent_name,parent_mobile,sex,qr_token,father_name,mother_maiden_name,sf1_guardian_name,birth_date,sf1_address)
-      VALUES($1,$2,$3,$4,$5,'Unassigned',$6,$7,$8,gen_random_uuid(),$9,$10,$11,$12,$13)`,
-      [req.auth.schoolId,id,row.lrn,row.officialFullName||row.fullName,row.gradeLevel,row.parentName||null,row.parentMobile||'',row.sex,row.fatherName||null,row.motherMaidenName||null,row.sf1GuardianName||null,row.birthDate||null,row.sf1Address||null]);
+    await client.query(`INSERT INTO students(school_id,student_id,lrn,full_name,grade_level,section,parent_name,parent_mobile,sex,qr_token,father_name,mother_maiden_name,sf1_guardian_name,birth_date,sf1_address,last_name,first_name,middle_name,name_parts_source)
+      VALUES($1,$2,$3,$4,$5,'Unassigned',$6,$7,$8,gen_random_uuid(),$9,$10,$11,$12,$13,$14,$15,$16,$17)`,
+      [req.auth.schoolId,id,row.lrn,row.officialFullName||row.fullName,row.gradeLevel,row.parentName||null,row.parentMobile||'',row.sex,row.fatherName||null,row.motherMaidenName||null,row.sf1GuardianName||null,row.birthDate||null,row.sf1Address||null,row.officialNameParts?.lastName||null,row.officialNameParts?.firstName||null,row.officialNameParts?.middleName||null,row.officialNameParts?'SF1_IMPORT':null]);
     await client.query(`INSERT INTO student_enrollments(school_id,student_id,school_year_id,grade_level,section,enrollment_date,enrollment_status,created_by_user_id)
       VALUES($1,$2,$3,$4,'Unassigned',CURRENT_DATE,'ENROLLED',$5)`,
       [req.auth.schoolId,id,prepared.schoolYearId,row.gradeLevel,req.auth.userId]);
@@ -187,9 +198,14 @@ function registerSf1ImportRoutes(app,pool,{authenticateSchoolClient,requireSchoo
        sf1_guardian_name=COALESCE(NULLIF(BTRIM(sf1_guardian_name),''),NULLIF($8,'')),
        birth_date=COALESCE(birth_date,$9::date),
        sf1_address=COALESCE(NULLIF(BTRIM(sf1_address),''),NULLIF($10,'')),
+       last_name=CASE WHEN first_name IS NULL AND $11::text IS NOT NULL THEN $11 ELSE last_name END,
+       middle_name=CASE WHEN first_name IS NULL AND $11::text IS NOT NULL THEN NULLIF($13::text,'') ELSE middle_name END,
+       name_parts_source=CASE WHEN first_name IS NULL AND $11::text IS NOT NULL THEN 'SF1_IMPORT' ELSE name_parts_source END,
+       full_name=CASE WHEN first_name IS NULL AND $11::text IS NOT NULL THEN $14 ELSE full_name END,
+       first_name=COALESCE(first_name,$12::text),
        updated_at=NOW()
       WHERE school_id=$1 AND student_id=$2 AND lrn=$3 AND active=TRUE AND archived_at IS NULL
-      RETURNING student_id`,[req.auth.schoolId,row.existingStudent.studentId,row.lrn,row.parentName,row.parentMobile,row.fatherName||'',row.motherMaidenName||'',row.sf1GuardianName||'',row.birthDate||null,row.sf1Address||'']);
+      RETURNING student_id`,[req.auth.schoolId,row.existingStudent.studentId,row.lrn,row.parentName,row.parentMobile,row.fatherName||'',row.motherMaidenName||'',row.sf1GuardianName||'',row.birthDate||null,row.sf1Address||'',row.officialNameParts?.lastName||null,row.officialNameParts?.firstName||null,row.officialNameParts?.middleName||'',row.officialNameParts?row.officialFullName:null]);
     if(saved.rowCount!==1)throw Object.assign(Error('Learner record changed during review. Preview again.'),{status:409});
     updated++;
    }
