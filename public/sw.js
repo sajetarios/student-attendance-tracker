@@ -1,4 +1,4 @@
-const CACHE = "attendigo-v268-structured-student-name";
+const CACHE = "attendigo-v269-dialog-safe-area";
 
 const SHELL = [
   "/typography.css?v=1",
@@ -105,7 +105,7 @@ const SHELL = [
   "/special-program-ui.js?v=6",
   "/special-program-batch-ui.js?v=3",
   "/special-program-ui.css?v=5",
-  "/app-dialog.css?v=1",
+  "/app-dialog.css?v=2",
   "/app-dialog.js?v=1",
   "/sw-refresh.js?v=3",
   "/smart-mobile-header.js?v=4",
