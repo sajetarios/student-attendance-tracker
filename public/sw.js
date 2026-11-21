@@ -1,4 +1,4 @@
-const CACHE = "attendigo-v276-structured-student-name-fields";
+const CACHE = "attendigo-v277-isolated-form48-print";
 
 const SHELL = [
   "/typography.css?v=1",
@@ -65,7 +65,7 @@ const SHELL = [
   "/teacher-dashboard-v2.js?v=1",
   "/teacher-dashboard-v3.css?v=1",
   "/teacher-dashboard-v3.js?v=1",
-  "/form48-report.js?v=8",
+  "/form48-report.js?v=9",
   "/form48-intelligence.js?v=1",
   "/form48-bulk-ui.js?v=2",
   "/form48-report.css?v=10",
