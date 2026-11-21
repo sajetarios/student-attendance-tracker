@@ -22,6 +22,8 @@
   color:var(--side-ink)!important;
   overflow-x:hidden;
   overflow-y:auto;
+  -webkit-overflow-scrolling:touch;
+  overscroll-behavior-y:contain;
   scrollbar-width:thin;
   scrollbar-color:var(--side-border) transparent;
 }
@@ -335,7 +337,15 @@ html body #sidebar.sidebar #sidebarSchoolName {
   border-color:var(--side-border)!important;
 }
 @media(min-width:861px){
-  #sidebar.sidebar {height:100vh!important;max-height:100vh!important}
+  #sidebar.sidebar {
+    /* 100vh is only the fallback: iPad Safari's browser chrome can hide its bottom. */
+    height:100vh!important;
+    max-height:100vh!important;
+    height:100dvh!important;
+    max-height:100dvh!important;
+    min-height:0!important;
+    padding-bottom:calc(24px + env(safe-area-inset-bottom,0px))!important;
+  }
   html body .portal-layout.sidebar-collapsed #sidebar.sidebar > .attendigo-brand {
     box-sizing:border-box!important;
     align-self:center!important;
