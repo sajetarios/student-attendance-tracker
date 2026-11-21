@@ -150,7 +150,7 @@ function registerSf1ImportRoutes(app,pool,{authenticateSchoolClient,requireSchoo
     const id=await nextStudentId(client,{year:prepared.year});
     await client.query(`INSERT INTO students(school_id,student_id,lrn,full_name,grade_level,section,parent_name,parent_mobile,sex,qr_token,father_name,mother_maiden_name,sf1_guardian_name,birth_date,sf1_address)
       VALUES($1,$2,$3,$4,$5,'Unassigned',$6,$7,$8,gen_random_uuid(),$9,$10,$11,$12,$13)`,
-      [req.auth.schoolId,id,row.lrn,row.fullName,row.gradeLevel,row.parentName||null,row.parentMobile||'',row.sex,row.fatherName||null,row.motherMaidenName||null,row.sf1GuardianName||null,row.birthDate||null,row.sf1Address||null]);
+      [req.auth.schoolId,id,row.lrn,row.officialFullName||row.fullName,row.gradeLevel,row.parentName||null,row.parentMobile||'',row.sex,row.fatherName||null,row.motherMaidenName||null,row.sf1GuardianName||null,row.birthDate||null,row.sf1Address||null]);
     await client.query(`INSERT INTO student_enrollments(school_id,student_id,school_year_id,grade_level,section,enrollment_date,enrollment_status,created_by_user_id)
       VALUES($1,$2,$3,$4,'Unassigned',CURRENT_DATE,'ENROLLED',$5)`,
       [req.auth.schoolId,id,prepared.schoolYearId,row.gradeLevel,req.auth.userId]);
