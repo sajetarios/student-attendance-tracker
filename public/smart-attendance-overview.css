@@ -40,9 +40,13 @@
 @media print{.smart-attendance-overview{display:none!important}}
 
 /* Keep rarely used Form 48 settings unobtrusive during daily review. */
-#form48ReportSettings>.form48-advanced-summary{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:5px 14px;padding:5px 0;cursor:pointer;list-style:none;font-size:13px;font-weight:650}
-#form48ReportSettings>.form48-advanced-summary::-webkit-details-marker{display:none}
-#form48ReportSettings>.form48-advanced-summary small{font-size:12px;color:var(--text-muted,#64748b);font-weight:400}
-#form48ReportSettings>.form48-advanced-summary:focus-visible{outline:2px solid #3486d4;outline-offset:3px}
-#form48ReportSettings[open]>.form48-advanced-summary{border-bottom:1px solid var(--border-color,#d4e0eb);padding-bottom:12px;margin-bottom:12px}
-@media print{#form48ReportSettings{display:none!important}}
+#form48AdvancedSettings>.form48-advanced-summary{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:5px 14px;padding:5px 0;cursor:pointer;list-style:none;font-size:13px;font-weight:650}
+#form48AdvancedSettings>.form48-advanced-summary::-webkit-details-marker{display:none}
+#form48AdvancedSettings>.form48-advanced-summary small{font-size:12px;color:var(--text-muted,#64748b);font-weight:400}
+#form48AdvancedSettings>.form48-advanced-summary:focus-visible{outline:2px solid #3486d4;outline-offset:3px}
+#form48AdvancedSettings[open]>.form48-advanced-summary{border-bottom:1px solid var(--border-color,#d4e0eb);padding-bottom:12px;margin-bottom:12px}
+@media print{#form48AdvancedSettings{display:none!important}}
+
+.form48-advanced-wrapper{margin:10px 0}
+.form48-advanced-wrapper>.form48-advanced-summary{border:1px solid var(--border-color,#d4e0eb);border-radius:9px;padding:12px!important;background:var(--surface,#fff)}
+.form48-advanced-wrapper>.form48-settings-panel{margin-top:8px}
