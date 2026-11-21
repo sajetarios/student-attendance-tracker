@@ -1648,6 +1648,29 @@ function coverageStatusLabel(status) {
       (pieces[0] || name.replace(/[^\p{L}]/gu, '').slice(0, 2)).slice(0, 2)).toUpperCase() || 'L';
   }
 
+  // Display a surname separately only when the saved name explicitly identifies it.
+  // Never guess the last token of a legacy full name: Filipino compound surnames are common.
+  function studentRosterName(student, ordinal = '') {
+    const parsed = window.AttendigoStudentName?.parse(student.fullName);
+    if (parsed?.verified) {
+      return '<span class="student-roster-name-block">' + ordinal +
+        '<strong class="learner-roster-surname">' + esc(parsed.surname) + '</strong>' +
+        '<span class="learner-roster-given">' + esc(parsed.givenNames) + '</span></span>';
+    }
+    return '<span class="student-roster-name-block">' + ordinal +
+      '<strong class="learner-roster-original">' + esc(student.fullName) + '</strong>' +
+      '<small class="learner-roster-unverified" title="This legacy record does not identify which part is the official surname.">Surname not verified</small></span>';
+  }
+
+  function updateStructuredStudentNameMode() {
+    const structured = Boolean($('editStructuredNameToggle').checked);
+    $('editStructuredNameFields').hidden = !structured;
+    $('editFullNameGroup').hidden = structured;
+    $('editFullName').required = !structured;
+    $('editSurname').required = structured;
+    $('editGivenNames').required = structured;
+  }
+
   async function renderStudents() {
     refreshExistingGuardianChoices();
     const host = $('studentRows');
@@ -1778,7 +1801,7 @@ function coverageStatusLabel(status) {
           const teacherAvatar = photo
             ? `<img class="student-photo-thumb" src="${photo}" alt="Student photo for ${esc(student.fullName)}" loading="lazy">`
             : `<span class="student-initials-avatar" role="img" aria-label="No photo uploaded for ${esc(student.fullName)}" title="No photo uploaded">${esc(teacherRosterInitials(student.fullName))}</span>`;
-          const identity = `<div class="teacher-roster-identity">${teacherAvatar}<span class="teacher-roster-identity-copy"><strong class="learner-roster-name">${ordinal}${esc(student.fullName)}</strong><small>${esc(student.studentId)}</small></span></div>`;
+          const identity = `<div class="teacher-roster-identity">${teacherAvatar}<span class="teacher-roster-identity-copy">${studentRosterName(student, ordinal)}<small>${esc(student.studentId)}</small></span></div>`;
           const qrAction = canViewQr
             ? `<button type="button" class="student-qr-preview teacher-roster-qr" data-view-qr="${esc(student.studentId)}" aria-label="View QR code for ${esc(student.fullName)}" title="View or print learner QR"><span class="teacher-roster-qr-glyph" aria-hidden="true">▦</span><span>QR</span></button>`
             : '';
@@ -1787,9 +1810,9 @@ function coverageStatusLabel(status) {
           return `<tr class="teacher-roster-student" data-student-enrollment="${esc(student.enrollmentId || '')}" data-student-name="${esc(student.fullName)}">${showSelectionColumn ? `<td data-label="Select">${selection}</td>` : ''}<td data-label="Full name">${identity}</td><td data-label="Class">${classInfo}</td><td data-label="Status"><span class="teacher-roster-status ${statusClass}">${statusLabel}</span></td><td data-label="Actions"><div class="teacher-roster-quick-actions">${qrAction}${editable ? `<button type="button" class="outline-button learner-direct-edit" data-edit-student="${esc(student.studentId)}" aria-label="Edit ${esc(student.fullName)}">Edit</button>` : ""}${actions}</div></td></tr>`;
         }
         if (departmentHead) {
-          return `<tr data-student-enrollment="${esc(student.enrollmentId || '')}" data-student-name="${esc(student.fullName)}">${showSelectionColumn ? `<td data-label="Select">${selection}</td>` : ''}<td data-label="Student ID">${esc(student.studentId)}</td><td data-label="Full name">${ordinal}<strong>${esc(student.fullName)}</strong></td><td data-label="Sex">${esc(student.sex || 'Not set')}</td><td data-label="Grade">${esc(student.gradeLevel)}</td><td data-label="Section">${esc(student.section)}</td><td data-label="Special program">${programCell}</td><td data-label="Status">${statusLabel}</td><td data-label="Actions"><span class="muted-inline">View only</span></td></tr>`;
+          return `<tr data-student-enrollment="${esc(student.enrollmentId || '')}" data-student-name="${esc(student.fullName)}">${showSelectionColumn ? `<td data-label="Select">${selection}</td>` : ''}<td data-label="Student ID">${esc(student.studentId)}</td><td data-label="Full name">${studentRosterName(student, ordinal)}</td><td data-label="Sex">${esc(student.sex || 'Not set')}</td><td data-label="Grade">${esc(student.gradeLevel)}</td><td data-label="Section">${esc(student.section)}</td><td data-label="Special program">${programCell}</td><td data-label="Status">${statusLabel}</td><td data-label="Actions"><span class="muted-inline">View only</span></td></tr>`;
         }
-        return `<tr data-student-enrollment="${esc(student.enrollmentId || '')}" data-student-name="${esc(student.fullName)}">${showSelectionColumn ? `<td data-label="Select">${selection}</td>` : ''}<td data-label="Photo">${avatar}</td><td data-label="Student ID">${esc(student.studentId)}</td><td data-label="Full name">${ordinal}${esc(student.fullName)}</td><td data-label="Sex">${esc(student.sex || 'Not set')}</td><td data-label="Grade">${esc(student.gradeLevel)}</td><td data-label="Section">${esc(student.section)}</td><td data-label="Special program">${programCell}</td><td data-label="Status">${statusLabel}</td><td data-label="Actions">${actions}</td>${(admin || teacher) ? `<td data-label="Parent / guardian"><strong>${esc(student.parentName || "Not provided")}</strong><small class="table-subtext">${esc(student.parentMobile || "No mobile number")}</small></td>` : ''}</tr>`;
+        return `<tr data-student-enrollment="${esc(student.enrollmentId || '')}" data-student-name="${esc(student.fullName)}">${showSelectionColumn ? `<td data-label="Select">${selection}</td>` : ''}<td data-label="Photo">${avatar}</td><td data-label="Student ID">${esc(student.studentId)}</td><td data-label="Full name">${studentRosterName(student, ordinal)}</td><td data-label="Sex">${esc(student.sex || 'Not set')}</td><td data-label="Grade">${esc(student.gradeLevel)}</td><td data-label="Section">${esc(student.section)}</td><td data-label="Special program">${programCell}</td><td data-label="Status">${statusLabel}</td><td data-label="Actions">${actions}</td>${(admin || teacher) ? `<td data-label="Parent / guardian"><strong>${esc(student.parentName || "Not provided")}</strong><small class="table-subtext">${esc(student.parentMobile || "No mobile number")}</small></td>` : ''}</tr>`;
       }));
       let previousSex = null;
       host.innerHTML = rows.map((row, index) => {
@@ -1934,17 +1957,29 @@ function coverageStatusLabel(status) {
     $('editStudentIdDisplay').value = student.studentId;
     $('editLrn').value = student.lrn || '';
     $('editFullName').value = student.fullName || '';
+    const parsedName = window.AttendigoStudentName?.parse(student.fullName);
+    $('editStructuredNameToggle').checked = Boolean(parsedName?.verified);
+    $('editSurname').value = parsedName?.surname || '';
+    $('editGivenNames').value = parsedName?.givenNames || '';
+    updateStructuredStudentNameMode();
     $('editSex').value = String(student.sex || '').toUpperCase();
     $('editGrade').value = student.gradeLevel || 'Grade 7';
     $('editSection').value = student.section || '';
     $('editParentName').value = student.parentName || '';
     $('editParentMobile').value = student.parentMobile || '';
+    $('editFatherName').value = student.fatherName || '';
+    $('editMotherMaidenName').value = student.motherMaidenName || '';
+    $('editSf1GuardianName').value = student.sf1GuardianName || '';
+    $('editBirthDate').value = student.birthDate ? String(student.birthDate).slice(0, 10) : '';
+    $('editSf1Address').value = student.sf1Address || '';
     const isTeacher = user.role === 'TEACHER';
     const isDepartmentHead = user.role === 'DEPARTMENT_HEAD';
     const adviserCanEditPlacement = isTeacher && teacherHas('CLASS_ADVISER') &&
       adviserAssignments.some(item => String(item.gradeLevel) === String(student.gradeLevel) && String(item.section) === String(student.section));
     const restrictedStudentEditor = isTeacher || isDepartmentHead;
-    ['editLrnGroup','editParentNameGroup','editParentMobileGroup'].forEach(id => { $(id).hidden = restrictedStudentEditor; });
+    ['editLrnGroup','editParentNameGroup','editParentMobileGroup','editFatherNameGroup',
+      'editMotherMaidenNameGroup','editSf1GuardianNameGroup','editBirthDateGroup',
+      'editSf1AddressGroup','editFamilySectionTitle'].forEach(id => { $(id).hidden = restrictedStudentEditor; });
     $('editParentName').required = !restrictedStudentEditor;
     $('editParentMobile').required = !restrictedStudentEditor;
     $('editSexGroup').hidden = isTeacher && !adviserCanEditPlacement;
@@ -6502,6 +6537,7 @@ let teacherActionMenuListenersInstalled = false;
   });
   $('closeStudentEdit').addEventListener('click', () => { $('studentEditOverlay').hidden = true; });
   $('studentEditOverlay').addEventListener('click', event => { if (event.target === $('studentEditOverlay')) $('studentEditOverlay').hidden = true; });
+  $('editStructuredNameToggle').addEventListener('change', updateStructuredStudentNameMode);
   $('studentEditForm').addEventListener('submit', async event => {
     event.preventDefault();
     const id = $('editStudentId').value;
@@ -6509,11 +6545,30 @@ let teacherActionMenuListenersInstalled = false;
     feedback.textContent = 'Saving changes…'; feedback.className = 'inline-feedback';
     const restrictedEditor = ['TEACHER','DEPARTMENT_HEAD'].includes(user.role);
     const placementEditable = !restrictedEditor;
-    const payload = { fullName: $('editFullName').value.trim() };
+    let officialFullName = $('editFullName').value.trim();
+    if ($('editStructuredNameToggle').checked) {
+      try {
+        officialFullName = window.AttendigoStudentName.compose($('editSurname').value, $('editGivenNames').value);
+      } catch (error) {
+        feedback.textContent = error.message;
+        feedback.className = 'inline-feedback error';
+        return;
+      }
+    }
+    const payload = { fullName: officialFullName };
     const sexEditable = !restrictedEditor || (user.role === 'TEACHER' && !$('editSexGroup').hidden);
     if (sexEditable) payload.sex = $('editSex').value;
     if (placementEditable) Object.assign(payload, { gradeLevel: $('editGrade').value, section: $('editSection').value.trim() });
-    if (!restrictedEditor) Object.assign(payload, { lrn: $('editLrn').value.trim() || null, parentName: $('editParentName').value.trim() || null, parentMobile: $('editParentMobile').value.trim() });
+    if (!restrictedEditor) Object.assign(payload, {
+      lrn: $('editLrn').value.trim() || null,
+      parentName: $('editParentName').value.trim() || null,
+      parentMobile: $('editParentMobile').value.trim(),
+      fatherName: $('editFatherName').value.trim(),
+      motherMaidenName: $('editMotherMaidenName').value.trim(),
+      sf1GuardianName: $('editSf1GuardianName').value.trim(),
+      birthDate: $('editBirthDate').value,
+      sf1Address: $('editSf1Address').value.trim()
+    });
     try {
       await api(`/api/students/${encodeURIComponent(id)}`, { method: 'PATCH', body: JSON.stringify(payload) });
       $('studentEditOverlay').hidden = true; await loadSchoolData(); showToast('Student information updated. Existing QR code was preserved.');
