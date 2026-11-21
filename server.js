@@ -2324,16 +2324,17 @@ app.get('/api/gate/teacher/photo/:qrToken', authenticateSchoolClient, requireSch
 app.post('/api/gate/teacher-events', authenticateSchoolClient, requireSchoolRoles('GATE_KEEPER'), async (req, res) => {
   const teacherUserId = String(req.body?.teacherUserId || '').trim();
   const eventType = String(req.body?.eventType || '').toUpperCase();
-  const occurredAt = req.body?.occurredAt;
-  const schoolDate = req.body?.schoolDate;
+  // Legacy online route: browser date/time must never become an official timestamp.
   if (!isUuid(teacherUserId) || !['TIME_IN','TIME_OUT'].includes(eventType) ||
-      !Number.isFinite(Date.parse(occurredAt)) || !isValidSchoolDate(schoolDate) ||
       req.body?.photoVerified !== true) {
-    return res.status(400).json({ error: 'A verified teacher photo, valid time-in/time-out action, timestamp, and school date are required.' });
+    return res.status(400).json({ error: 'A verified teacher photo and valid time-in/time-out action are required.' });
   }
-  const manilaDate = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Manila' }).format(new Date(occurredAt));
-  if (manilaDate !== schoolDate) return res.status(400).json({ error: 'The selected school date does not match the scan time in Asia/Manila.' });
   try {
+    const trustedClock=await pool.query(
+      `SELECT instant AS "occurredAt",
+       to_char(instant AT TIME ZONE 'Asia/Manila','YYYY-MM-DD') AS "schoolDate"
+       FROM (SELECT clock_timestamp() AS instant) trusted_clock`);
+    const {occurredAt,schoolDate}=trustedClock.rows[0];
     const calendar = await pool.query(
       `SELECT exception_type AS type,dismissal_time AS "dismissalTime",updated_at AS "appliedAt"
        FROM school_calendar_exceptions WHERE school_id=$1 AND calendar_date=$2::date`,
@@ -2373,9 +2374,9 @@ app.post('/api/gate/teacher-events', authenticateSchoolClient, requireSchoolRole
     await pool.query(
       `INSERT INTO audit_logs(school_id, actor_type, actor_user_id, action, entity_type, entity_id, details)
        VALUES($1,'SCHOOL',$2,'GATE_KEEPER_RECORD_TEACHER_ATTENDANCE','teacher_gate_event',$3,$4::jsonb)`,
-      [req.auth.schoolId, req.auth.userId, saved.rows[0].eventId, JSON.stringify({ teacherUserId, eventType, schoolDate })]
+      [req.auth.schoolId, req.auth.userId, saved.rows[0].eventId, JSON.stringify({ teacherUserId, eventType, schoolDate, timestampSource:'SERVER' })]
     ).catch(err => console.error('Teacher gate audit log failed:', err.message));
-    return res.status(201).json({ event: saved.rows[0], teacherName: teacher.rows[0].display_name });
+    return res.status(201).json({ event: saved.rows[0], teacherName: teacher.rows[0].display_name, timestampSource:'SERVER' });
   } catch (err) {
     console.error('Teacher gate event failed:', err.message);
     return res.status(500).json({ error: 'Could not record teacher gate attendance.' });
