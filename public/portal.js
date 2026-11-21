@@ -1657,9 +1657,10 @@ function coverageStatusLabel(status) {
         '<strong class="learner-roster-surname">' + esc(parsed.surname) + '</strong>' +
         '<span class="learner-roster-given">' + esc(parsed.givenNames) + '</span></span>';
     }
+    // A legacy full name is not evidence of an invalid or unverified learner.
+    // Preserve and display it unchanged; official surname correction remains opt-in.
     return '<span class="student-roster-name-block">' + ordinal +
-      '<strong class="learner-roster-original">' + esc(student.fullName) + '</strong>' +
-      '<small class="learner-roster-unverified" title="This legacy record does not identify which part is the official surname.">Surname not verified</small></span>';
+      '<strong class="learner-roster-original">' + esc(student.fullName) + '</strong></span>';
   }
 
   function updateStructuredStudentNameMode() {
