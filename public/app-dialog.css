@@ -180,8 +180,20 @@ body.app-dialog-open { overflow: hidden; }
 
 @media (max-width: 560px) {
   .app-dialog-fields { grid-template-columns: 1fr; max-height: min(48dvh, 420px); }
-  .app-dialog-overlay { align-items: end; padding: 12px; }
-  .app-dialog-card { width: 100%; max-height: min(85dvh, 700px); padding: 21px 18px 18px; border-radius: 18px; }
+  /* Protect the bottom actions and inputs on notched phones and tablets. */
+  .app-dialog-overlay {
+    align-items: end;
+    padding: max(12px, env(safe-area-inset-top, 0px))
+             max(12px, env(safe-area-inset-right, 0px))
+             max(12px, env(safe-area-inset-bottom, 0px))
+             max(12px, env(safe-area-inset-left, 0px));
+  }
+  .app-dialog-card {
+    width: 100%;
+    max-height: min(85dvh, calc(100dvh - 24px - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px)));
+    padding: 21px 18px 18px;
+    border-radius: 18px;
+  }
   .app-dialog-heading h2 { font-size: 18px; }
   .app-dialog-message { margin-top: 15px; font-size: 13px; }
   .app-dialog-actions { margin-top: 20px; padding-top: 14px; }
