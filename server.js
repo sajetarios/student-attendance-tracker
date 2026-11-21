@@ -2476,10 +2476,13 @@ app.get('/api/students', authenticateSchoolClient, requireSchoolClient, requireS
     const canScanQr = req.auth.type === 'DEVICE' || req.auth.role === 'SCHOOL_ADMIN' ||
       (req.auth.role === 'TEACHER' && req.auth.teacherDesignations?.includes('SUBJECT_TEACHER'));
     if (isGateKeeper) return res.status(403).json({ error: 'Gate Keeper accounts use QR lookup only and cannot download the learner roster.' });
+    // Family details are school-user-only and always scoped by the existing roster permissions.
+    // Never expose parent contacts to device or gate-scanner sessions.
+    const sf1FamilyFields = ', s.lrn, s.parent_name AS "parentName", s.parent_mobile AS "parentMobile", s.father_name AS "fatherName", s.mother_maiden_name AS "motherMaidenName", s.sf1_guardian_name AS "sf1GuardianName", s.birth_date AS "birthDate", s.sf1_address AS "sf1Address"';
     const parentFields = includeParentFields
-      ? ', s.lrn, s.parent_name AS "parentName", s.parent_mobile AS "parentMobile", sa.username AS "studentAccountUsername", sa.active AS "studentAccountActive", sa.must_change_password AS "studentMustChangePassword"'
+      ? sf1FamilyFields + ', sa.username AS "studentAccountUsername", sa.active AS "studentAccountActive", sa.must_change_password AS "studentMustChangePassword"'
       : (req.auth.type === 'SCHOOL_USER' && req.auth.role === 'TEACHER'
-        ? ', s.parent_name AS "parentName", s.parent_mobile AS "parentMobile"'
+        ? sf1FamilyFields
         : '');
     const qrField = canScanQr ? ', s.qr_token AS "qrToken"' : '';
     const result = await pool.query(
