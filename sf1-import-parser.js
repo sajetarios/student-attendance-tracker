@@ -42,6 +42,16 @@ const extractName = name => {
  const parts=text.split(',').map(x=>x.trim()).filter(Boolean);
  return parts.length>1 ? [parts.slice(1).join(' '),parts[0]].join(' ').trim() : text;
 };
+// SF1's labeled comma-separated order is surname, given name, middle name.
+// Do not guess components from unseparated legacy names.
+function extractSf1NameParts(value) {
+ const source=asText(value).trim().replace(/\s+/g,' ');
+ if(!source.includes(','))return {lastName:'',firstName:'',middleName:'',namePartsVerified:false};
+ const parts=source.split(',').map(x=>x.trim()).filter(x=>x&&x!=='-');
+ if(parts.length<2||parts.length>3||!parts[0]||!parts[1])
+  return {lastName:'',firstName:'',middleName:'',namePartsVerified:false};
+ return {lastName:parts[0],firstName:parts[1],middleName:parts[2]||'',namePartsVerified:true};
+}
 function parseSf1Matrix(rows) {
  if (!Array.isArray(rows) || !rows.length) throw Error('The SF1 workbook has no readable rows.');
  let grade='',schoolYear='',headerIndex=-1,lrnCol=-1,nameCol=-1,sexCol=-1,parentCol=-1,contactCol=-1,fatherCol=-1,motherCol=-1,guardianCol=-1,birthCol=-1,addressCols=[];
@@ -131,7 +141,7 @@ function parseSf1Matrix(rows) {
   if(sf1Address.length>500){errors.push({rowNumber:i+1,message:'SF1 address exceeds 500 characters.'});continue;}
   // Do not infer that either parent is the legally designated guardian.
   // A guardian named "if not parent" is stored separately, not as primary parent_name.
-  learners.push({rowNumber:i+1,lrn:rawLrn,fullName:extractName(rawName),sex,gradeLevel:grade,section:'Unassigned',studentId:'',parentName,parentMobile,fatherName,motherMaidenName,sf1GuardianName,birthDate,sf1Address});
+  learners.push({rowNumber:i+1,lrn:rawLrn,fullName:extractName(rawName),...extractSf1NameParts(rawName),sex,gradeLevel:grade,section:'Unassigned',studentId:'',parentName,parentMobile,fatherName,motherMaidenName,sf1GuardianName,birthDate,sf1Address});
  }
  if(!learners.length) throw Error('No valid SF1 learners were found. Check the LIS-exported workbook.');
  if(learners.length>2000) throw Error('Import a maximum of 2,000 learners at once.');
