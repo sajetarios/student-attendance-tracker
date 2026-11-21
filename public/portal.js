@@ -6014,7 +6014,7 @@ let teacherActionMenuListenersInstalled = false;
           ' require review. Grade: '+preview.gradeLevel+' · New section: Unassigned.'+
           (counts.review?' Resolve flagged records before saving.':'');
         const labels={CREATE:'New learner',UPDATE:'Complete missing profile',RECOVER:'Recover LRN and missing fields',SKIP:'Already complete',REVIEW:'Needs manual review'};
-        const fieldLabels={lrn:'LRN',parentName:'Parent / primary guardian',parentMobile:'Parent / guardian contact',fatherName:"Father's name",motherMaidenName:"Mother's maiden name",sf1GuardianName:'Guardian (if not parent)',birthDate:'Birth date',sf1Address:'Home address'};
+        const fieldLabels={lrn:'LRN',parentName:'Parent / primary guardian',parentMobile:'Parent / guardian contact',fatherName:"Father's name",motherMaidenName:"Mother's maiden name",sf1GuardianName:'Guardian (if not parent)',birthDate:'Birth date',sf1Address:'Home address',nameParts:'Official surname / first / middle name'};
         const cards=$('studentImportSf1Cards');
         $('studentImportTableWrap').hidden=true;
         cards.hidden=false;
@@ -6023,8 +6023,14 @@ let teacherActionMenuListenersInstalled = false;
             const match=item.existingStudent;
             const fields=item.missingFields||[];
             const proposed=fields.map(key=>{
-              const before=match?.values?.[key]||'Not recorded';
-              const after=item[key]||'Not provided';
+              const before=key==='nameParts'
+                ? [match?.values?.lastName,match?.values?.firstName,match?.values?.middleName]
+                  .filter(Boolean).join(', ')||'Not recorded'
+                : match?.values?.[key]||'Not recorded';
+              const after=key==='nameParts'
+                ? [item.officialNameParts?.lastName,item.officialNameParts?.firstName,
+                   item.officialNameParts?.middleName].filter(Boolean).join(', ')||'Not provided'
+                : item[key]||'Not provided';
               return '<div class="sf1-review-field"><span>'+esc(fieldLabels[key]||key)+'</span><span class="sf1-review-before">'+esc(before)+'</span><strong>'+esc(after)+'</strong></div>';
             }).join('');
             const issues=(item.errors||[]).map(e=>'<p class="sf1-review-warning">'+esc(e)+'</p>').join('');
