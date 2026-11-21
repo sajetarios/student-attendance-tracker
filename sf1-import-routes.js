@@ -124,9 +124,9 @@ function registerSf1ImportRoutes(app,pool,{authenticateSchoolClient,requireSchoo
     const duplicate=await client.query('SELECT student_id FROM students WHERE school_id=$1 AND lrn=$2',[req.auth.schoolId,row.lrn]);
     if(duplicate.rowCount)continue;
     const id=await nextStudentId(client,{year:prepared.year});
-    await client.query(`INSERT INTO students(school_id,student_id,lrn,full_name,grade_level,section,parent_name,parent_mobile,sex,qr_token,father_name,mother_maiden_name,sf1_guardian_name,birth_date,sf1_address)
-      VALUES($1,$2,$3,$4,$5,'Unassigned',$6,$7,$8,gen_random_uuid(),$9,$10,$11,$12,$13)`,
-      [req.auth.schoolId,id,row.lrn,row.fullName,row.gradeLevel,row.parentName||null,row.parentMobile||'',row.sex,row.fatherName||null,row.motherMaidenName||null,row.sf1GuardianName||null,row.birthDate||null,row.sf1Address||null]);
+    await client.query(`INSERT INTO students(school_id,student_id,lrn,full_name,grade_level,section,parent_name,parent_mobile,sex,qr_token,father_name,mother_maiden_name,sf1_guardian_name,birth_date,sf1_address,sf1_last_name,sf1_first_name,sf1_middle_name,sf1_name_verified)
+      VALUES($1,$2,$3,$4,$5,'Unassigned',$6,$7,$8,gen_random_uuid(),$9,$10,$11,$12,$13,$14,$15,$16,$17)`,
+      [req.auth.schoolId,id,row.lrn,row.fullName,row.gradeLevel,row.parentName||null,row.parentMobile||'',row.sex,row.fatherName||null,row.motherMaidenName||null,row.sf1GuardianName||null,row.birthDate||null,row.sf1Address||null,row.namePartsVerified?row.lastName:null,row.namePartsVerified?row.firstName:null,row.namePartsVerified?row.middleName:null,!!row.namePartsVerified]);
     await client.query(`INSERT INTO student_enrollments(school_id,student_id,school_year_id,grade_level,section,enrollment_date,enrollment_status,created_by_user_id)
       VALUES($1,$2,$3,$4,'Unassigned',CURRENT_DATE,'ENROLLED',$5)`,
       [req.auth.schoolId,id,prepared.schoolYearId,row.gradeLevel,req.auth.userId]);
@@ -168,6 +168,17 @@ function registerSf1ImportRoutes(app,pool,{authenticateSchoolClient,requireSchoo
       RETURNING student_id`,[req.auth.schoolId,row.existingStudent.studentId,row.lrn,row.parentName,row.parentMobile,row.fatherName||'',row.motherMaidenName||'',row.sf1GuardianName||'',row.birthDate||null,row.sf1Address||'']);
     if(saved.rowCount!==1)throw Object.assign(Error('Learner record changed during review. Preview again.'),{status:409});
     updated++;
+   }
+   // Fill only missing structured name components for an exact existing LRN.
+   // Never overwrite previously verified names or alter official full_name.
+   for(const row of prepared.rows.filter(r=>r.namePartsVerified&&r.action!=='CREATE'&&r.action!=='REVIEW'&&r.lrn)){
+    await client.query(`UPDATE students SET
+      sf1_last_name=$3,sf1_first_name=$4,sf1_middle_name=$5,sf1_name_verified=TRUE
+      WHERE school_id=$1 AND lrn=$2 AND active=TRUE AND archived_at IS NULL
+      AND sf1_name_verified=FALSE
+      AND lower(regexp_replace(full_name,'[^a-zA-Z0-9]','','g'))=
+          lower(regexp_replace($6,'[^a-zA-Z0-9]','','g'))`,
+      [req.auth.schoolId,row.lrn,row.lastName,row.firstName,row.middleName||null,row.fullName]);
    }
    await client.query(`INSERT INTO audit_logs(school_id,actor_type,actor_user_id,action,entity_type,entity_id,details)
      VALUES($1,'SCHOOL',$2,'STUDENT_SF1_IMPORT','student_import',$3,$4::jsonb)`,
