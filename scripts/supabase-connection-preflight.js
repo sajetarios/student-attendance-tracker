@@ -22,7 +22,7 @@ function inspectTarget(connectionString) {
   if (uri.pathname !== '/postgres' || (uri.port && uri.port !== '5432')) {
     return { status: 'invalid_target' };
   }
-  const username = decodeURIComponent(uri.username);
+  const username = uri.username;
   const isPooler = SESSION_POOLER_HOST.test(uri.hostname) &&
     username.endsWith('.' + PROJECT_REF);
   const isDirect = uri.hostname === 'db.' + PROJECT_REF + '.supabase.co' &&
