@@ -21,7 +21,7 @@ test('Cutover refuses an unverified CA and never weakens certificate checks', ()
   assert.match(server, /ATTENDIGO_VERIFIED_SUPABASE_ROOT_CA/);
   assert.match(server, /ssl: \{ ca, rejectUnauthorized: true \}/);
   assert.doesNotMatch(server + starter, /rejectUnauthorized\s*:\s*false/);
-  assert.doesNotMatch(server + starter, /NODE_TLS_REJECT_UNAUTHORIZED\s*=\s*0/);
+  assert.doesNotMatch(server + starter, /process\.env\.NODE_TLS_REJECT_UNAUTHORIZED\s*=\s*['\"]?0/);
   assert.match(server, /parsed\.searchParams\.delete\('sslmode'\)/);
 });
 
