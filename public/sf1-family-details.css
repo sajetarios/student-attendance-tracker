@@ -18,3 +18,15 @@
 @media(max-width:520px){
  #studentsView #studentRosterTable.teacher-roster-compact .sf1-family-line{grid-template-columns:1fr;gap:2px}
 }
+
+/* Family profile is a standalone scrollable dialog; the Actions menu stays compact. */
+.sf1-family-overlay{position:fixed;inset:0;z-index:30000;background:rgba(15,23,42,.54);display:flex;align-items:center;justify-content:center;padding:16px;box-sizing:border-box}
+.sf1-family-dialog{width:min(560px,100%);max-height:min(86dvh,780px);min-height:0;display:flex;flex-direction:column;overflow:hidden;background:#fff;color:#1e304b;border-radius:16px;box-shadow:0 22px 60px rgba(0,0,0,.25)}
+.sf1-family-dialog>header{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:15px 18px;border-bottom:1px solid #e2e8f0;flex:none}
+.sf1-family-dialog>header strong{font-size:17px}
+.sf1-family-dialog-body{min-height:0;overflow-y:auto;overscroll-behavior:contain;padding:12px 18px 20px}
+.sf1-family-dialog-body .sf1-family-details{display:block!important;box-sizing:border-box;width:100%;max-width:none;min-width:0;border:0;padding:0}
+.sf1-family-dialog-body .sf1-family-line{display:grid;grid-template-columns:minmax(0,40%) minmax(0,1fr);gap:12px;min-height:0;align-items:start;padding:12px 4px}
+.sf1-family-dialog-body .sf1-family-line strong{overflow-wrap:anywhere;white-space:normal;min-width:0}
+.sf1-family-dialog-body .sf1-family-details>small{display:block;padding:12px 4px}
+@media(max-width:540px){.sf1-family-overlay{padding:10px}.sf1-family-dialog{max-height:90dvh}.sf1-family-dialog-body .sf1-family-line{grid-template-columns:1fr;gap:3px}}
