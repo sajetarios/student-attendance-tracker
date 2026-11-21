@@ -2151,6 +2151,8 @@ function coverageStatusLabel(status) {
     if (isTeacherPerson) scannedTeacher = person;
     if (isGateVerification && isTeacherPerson && person.qrToken) {
       const previewElement = $('teacherGateEventPreview');
+      noticeRecord.disabled = true;
+      if (previewElement) previewElement.dataset.previewBlocked = 'true';
       try {
         const preview = await api('/api/gate/teacher-event-preview', {
           method:'POST',body:JSON.stringify({teacherQrToken:person.qrToken})
@@ -2162,6 +2164,7 @@ function coverageStatusLabel(status) {
             : 'Gate movement requires review: ' + (preview.reason || preview.status);
         }
         if (previewElement) previewElement.dataset.previewBlocked = String(preview.status !== 'READY');
+        if (preview.status === 'READY') noticeRecord.disabled = !photo;
         if (preview.status !== 'READY') {
           noticeRecord.disabled = true;
           $('studentTimeIn').disabled = true;
