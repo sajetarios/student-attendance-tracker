@@ -1,3 +1,4 @@
+const {normalizeSf1FamilyName}=require('./sf1-family-name');
 'use strict';
 const ExcelJS = require('exceljs');
 const XLSX = require('@stackline/xlsx'); // Supports the native BIFF8 .xls exported by DepEd LIS.
@@ -106,7 +107,7 @@ function parseSf1Matrix(rows) {
   if(parentName.length>200){errors.push({rowNumber:i+1,message:'Parent/guardian name exceeds 200 characters.'});continue;}
   if(parentMobile===null){errors.push({rowNumber:i+1,message:'Invalid or ambiguous parent/guardian contact number.'});continue;}
   const familyValue=index=>index<0||blank(row[index])?'':asText(row[index]).trim().replace(/\s+/g,' ');
-  const fatherName=familyValue(fatherCol),motherMaidenName=familyValue(motherCol),sf1GuardianName=familyValue(guardianCol);
+  const fatherName=normalizeSf1FamilyName(familyValue(fatherCol)),motherMaidenName=normalizeSf1FamilyName(familyValue(motherCol)),sf1GuardianName=normalizeSf1FamilyName(familyValue(guardianCol));
   if([fatherName,motherMaidenName,sf1GuardianName].some(x=>x.length>200)){
    errors.push({rowNumber:i+1,message:'An SF1 family name exceeds 200 characters.'});continue;
   }
