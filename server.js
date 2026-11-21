@@ -2346,6 +2346,54 @@ app.post('/api/gate/teacher-events', authenticateSchoolClient, requireSchoolRole
   }
 });
 
+// Read-only preview of the next physical gate movement. Never modifies DTR or OB.
+app.post('/api/gate/teacher-event-preview', authenticateSchoolClient, requireSchoolRoles('GATE_KEEPER'), async (req,res) => {
+  res.set('Cache-Control','no-store, private');
+  const qrToken=String(req.body?.teacherQrToken||'').trim();
+  if(!isUuid(qrToken))return res.status(400).json({error:'Valid staff QR badge required.'});
+  try {
+    const teacher=await pool.query(`SELECT user_id FROM school_users
+      WHERE school_id=$1 AND teacher_qr_token=$2 AND role IN ('TEACHER','DEPARTMENT_HEAD','SCHOOL_ADMIN')
+      AND active=TRUE AND (teacher_photo_path IS NOT NULL OR EXISTS (
+        SELECT 1 FROM official_profile_photos p WHERE p.school_id=school_users.school_id
+        AND p.subject_kind='STAFF' AND p.subject_id=school_users.user_id::text))`,
+      [req.auth.schoolId,qrToken]);
+    if(!teacher.rowCount)return res.status(404).json({error:'Active staff badge and registered photo required.'});
+    const clock=await pool.query(`SELECT clock_timestamp() AS "now",
+      to_char(clock_timestamp() AT TIME ZONE 'Asia/Manila','YYYY-MM-DD') AS "schoolDate",
+      to_char(clock_timestamp() AT TIME ZONE 'Asia/Manila','HH24:MI') AS "localTime"`);
+    const {now,schoolDate,localTime}=clock.rows[0];
+    const calendar=await pool.query(`SELECT exception_type FROM school_calendar_exceptions
+      WHERE school_id=$1 AND calendar_date=$2::date`,[req.auth.schoolId,schoolDate]);
+    if(calendar.rows.some(x=>x.exception_type==='CLOSED'))
+      return res.json({status:'BLOCKED',reason:'School is closed on this date.',schoolDate});
+    const history=await pool.query(`SELECT "eventType","occurredAt" FROM (
+      SELECT CASE WHEN gate_direction='IN' THEN 'TIME_IN' ELSE 'TIME_OUT' END AS "eventType",
+        occurred_at AS "occurredAt",event_id
+      FROM staff_attendance_events WHERE school_id=$1 AND staff_user_id=$2
+        AND event_kind='GATE_MOVEMENT' AND verification_status='VERIFIED' AND school_date=$3::date
+      UNION ALL
+      SELECT event_type AS "eventType",occurred_at AS "occurredAt",event_id
+      FROM teacher_gate_events WHERE school_id=$1 AND teacher_user_id=$2 AND school_date=$3::date
+    ) movements ORDER BY "occurredAt",event_id`,[req.auth.schoolId,teacher.rows[0].user_id,schoolDate]);
+    const {decideNextGateEvent}=require('./gate-event-decision');
+    const decision=decideNextGateEvent(history.rows);
+    if(decision.status!=='READY')return res.json({status:'REVIEW',reason:'Existing gate movements require authorized review.',schoolDate});
+    const last=history.rows[history.rows.length-1];
+    if(last && Date.parse(now)-Date.parse(last.occurredAt)<90000)
+      return res.json({status:'RECENT_SCAN',reason:'A gate scan was recorded less than 90 seconds ago.',schoolDate});
+    // AM/PM is a descriptive gate-time label, NOT a DTR slot assignment.
+    const half=Number(localTime.slice(0,2))<12?'AM':'PM';
+    return res.json({status:'READY',eventType:decision.eventType,
+      label:half+' '+(decision.eventType==='TIME_IN'?'Time-In':'Time-Out'),
+      localTime,schoolDate,recordingTarget:'PHYSICAL_GATE',
+      note:'Gate movement only. Official DTR slots and approved OB are evaluated separately.'});
+  }catch(err){
+    console.error('Gate event preview failed:',err.message);
+    return res.status(503).json({error:'Unable to preview gate attendance.'});
+  }
+});
+
 // Automatic staff gate punch: strictly physical gate history, never OB or Form 48 DTR.
 app.post('/api/gate/teacher-auto-event', authenticateSchoolClient, requireSchoolRoles('GATE_KEEPER'), async (req,res) => {
   res.set('Cache-Control','no-store, private');
