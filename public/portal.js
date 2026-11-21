@@ -4549,20 +4549,20 @@ let teacherActionMenuListenersInstalled = false;
     : '—';
   const myStaffDtrSlots = [['AM_IN','AM In'],['AM_OUT','AM Out'],['PM_IN','PM In'],['PM_OUT','PM Out']];
   const myGateReviewReasons = {
-    SCHEDULE_UNAVAILABLE:'Your prescribed work hours are not yet available. Ask the School Admin to check the schedule.',
-    CALENDAR_UNAVAILABLE:'The school calendar could not be verified. No DTR match was suggested.',
+    SCHEDULE_UNAVAILABLE:'Your official working hours are not available yet. Attendigo cannot suggest AM/PM matches until they are set.',
+    CALENDAR_UNAVAILABLE:'The school calendar could not be checked. Attendigo has not guessed a DTR time.',
     CALENDAR_EXCEPTION_REQUIRES_REVIEW:'The school calendar includes a closure or shortened day. Confirm the applicable hours.',
-    GATE_HISTORY_AMBIGUOUS:'Gate scans have an incomplete, conflicting, or unexpected entry/exit sequence.',
+    GATE_HISTORY_AMBIGUOUS:'Some entry or exit scans are missing, repeated, or out of order. Ask the School Admin to check the scan history.',
     OB_INTERVAL_AMBIGUOUS:'The approved OB crosses a reporting-day boundary or needs a time review.',
     OB_BOUNDARY_GATE_MOVEMENT:'A gate movement overlaps approved OB and should not be treated as a normal DTR time.',
-    OB_RETURN_AFTER_APPROVED_END_REVIEW:'Gate re-entry followed an OB interval and occurred after the approved end. Review the circumstances.',
+    OB_RETURN_AFTER_APPROVED_END_REVIEW:'You returned through the gate after the approved Official Business (OB) ended. Ask the School Admin to verify the reason.',
     POST_OB_RETURN_MOVEMENT_REVIEW:'A later movement after the late OB return requires separate verification.',
     OB_COVERAGE_REQUIRES_REVIEW:'Approved OB documents permission, not an automatic DTR punch.',
-    OUTSIDE_SCHEDULE_WINDOW:'A gate scan is outside the safe matching window of the prescribed hours.',
+    OUTSIDE_SCHEDULE_WINDOW:'This scan is too far from your official working hours to suggest an AM/PM DTR time.',
     AMBIGUOUS_SCHEDULE_SLOT:'The scan is too close to multiple scheduled AM/PM boundaries to classify safely.',
-    DUPLICATE_SLOT_CANDIDATES:'Several gate scans could match the same DTR slot; the system cannot choose reliably.',
+    DUPLICATE_SLOT_CANDIDATES:'More than one scan could match the same DTR time. A School Admin needs to check which is correct.',
     SLOT_ALREADY_VERIFIED:'The official DTR slot is already verified and cannot be replaced by a gate suggestion.',
-    NOT_SCHEDULED_WORKDAY:'This is not a configured workday for the employee.'
+    NOT_SCHEDULED_WORKDAY:'This date is not listed as one of your scheduled workdays. The gate scan remains recorded, but no DTR time is suggested.'
   };
   let myGateRequestRevision=0;
   async function loadMyGateAttendance() {
@@ -4630,7 +4630,7 @@ let teacherActionMenuListenersInstalled = false;
       $('myGateRows').innerHTML=rows.length?rows.map(day=>{
         const count=day.dtr.size;
         const dtrSummary=dtrAvailable
-          ? `<span class="my-gate-verified-count ${count===4?'is-complete':''}">${count} of 4 verified</span>`
+          ? `<span class="my-gate-verified-count ${count===4?'is-complete':''}">${count===4?'Official DTR complete (4 of 4)':count===0?'Official DTR: no times recorded':`Official DTR: ${count} of 4 times recorded`}</span>`
           : '<span class="my-gate-unavailable">DTR unavailable</span>';
         const dtrGrid=dtrAvailable?`<div class="my-gate-dtr-grid">${myStaffDtrSlots.map(([slot,label])=>
           `<div class="my-gate-dtr-slot"><span>${label}</span><strong>${esc(day.dtr.has(slot)?myGateTime(day.dtr.get(slot)):'Not recorded')}</strong></div>`
@@ -4653,18 +4653,36 @@ let teacherActionMenuListenersInstalled = false;
         const reviewCodes=Array.isArray(day.insight?.review)?day.insight.review:[];
         const suggested=Object.entries(candidates).filter(([slot,item])=>
           myStaffDtrSlots.some(([key])=>key===slot)&&item?.requiresApproval===true&&item.time);
+        const needsSchedule=reviewCodes.includes('SCHEDULE_UNAVAILABLE');
+        const notWorkday=reviewCodes.includes('NOT_SCHEDULED_WORKDAY');
+        const insightTitle=needsSchedule?'Work hours need setup':notWorkday?'Not a scheduled workday':
+          reviewCodes.length?reviewCodes.length+' attendance item(s) to check':
+          suggested.length+' possible AM/PM time(s) to review';
+        const scanConfirmation=day.gateCount>0&&gateAvailable
+          ?day.gateVerified?'Your gate scan was saved and photo-verified. ':
+            'Your gate scan appears in the history, but its photo verification needs checking. '
+          :'';
+        const scheduleHelp=needsSchedule
+          ?'<div class="my-gate-insight-help"><strong>Work schedule not available</strong>'+
+            '<p>'+esc(scanConfirmation)+
+            'Attendigo needs your official working hours to suggest whether a scan matches AM or PM attendance.</p>'+
+            (user.role==='SCHOOL_ADMIN'
+              ?'<p><strong>What to do:</strong> Open <a href="/portal.html?view=form48Reports">Form 48 DTR Reports</a>, select the employee, and save the official working days and hours.</p>'
+              :'<p><strong>What to do:</strong> Ask your School Admin to set your official working days and hours in Form 48 DTR Reports.</p>')+
+            '<p>Saving the schedule will not fill missing official DTR times. Those still need separate verification.</p></div>'
+          :'';
+        const displayReasons=reviewCodes.filter(code=>code!=='SCHEDULE_UNAVAILABLE');
         const insightMarkup=day.insight&&(suggested.length||reviewCodes.length)
-          ?'<details class="my-gate-insight"><summary>Gate evidence review · '+
-            esc(String(suggested.length))+' possible DTR match(es) · '+
-            esc(String(reviewCodes.length))+' note(s)</summary>'+
-            '<div class="my-gate-insight-body">'+
-            (suggested.length?'<ul>'+suggested.map(([slot,item])=>
-              '<li><strong>'+esc(myStaffDtrSlots.find(([key])=>key===slot)[1])+': '+
-              esc(item.time)+'</strong> — suggested gate time only; official DTR not recorded.</li>').join('')+'</ul>':'')+
-            (reviewCodes.length?'<ul>'+reviewCodes.map(reason=>
-              '<li>'+esc(myGateReviewReasons[reason]||'Attendance evidence requires School Admin review.')+'</li>'
+          ?'<details class="my-gate-insight"><summary>Attendance check: '+esc(insightTitle)+'</summary>'+
+            '<div class="my-gate-insight-body">'+scheduleHelp+
+            (suggested.length?'<p><strong>Possible DTR matches (not recorded yet):</strong></p><ul>'+suggested.map(([slot,item])=>
+              '<li>'+esc(myStaffDtrSlots.find(([key])=>key===slot)[1])+': '+
+              esc(item.time)+' — gate scan only; this is not an official DTR time.</li>').join('')+'</ul>':'')+
+            (displayReasons.length?'<ul>'+displayReasons.map(reason=>
+              '<li>'+esc(myGateReviewReasons[reason]||'Attendance evidence needs School Admin review.')+'</li>'
             ).join('')+'</ul>':'')+
-            '<p>No official DTR records or OB approvals were changed.</p></div></details>'
+            (!needsSchedule?'<p>These are suggestions only. Your official DTR and OB records have not been changed.</p>':'')+
+            '</div></details>'
           :'';
         const gateStatus=gateAvailable?(day.gateCount
           ?`<span class="status-tag ${day.gateVerified?'':'neutral'}">${day.gateVerified?'Photo verified':'Check record'}</span>`
