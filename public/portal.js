@@ -2104,7 +2104,10 @@ function coverageStatusLabel(status) {
       $('studentScanNotice').hidden = true; $('studentScanResult').hidden = true;
       $('studentScanFeedback').className = 'scanner-feedback'; $('studentScanFeedback').textContent = 'Ready for the next QR code.';
     });
-    if (isTeacherPerson) scannedTeacher = person;
+    if (isTeacherPerson) {
+      person.expectedGateEventType = null;
+      scannedTeacher = person;
+    }
     if (isGateVerification && isTeacherPerson && person.qrToken) {
       const previewElement = $('teacherGateEventPreview');
       noticeRecord.disabled = true;
@@ -2113,6 +2116,10 @@ function coverageStatusLabel(status) {
         const preview = await api('/api/gate/teacher-event-preview', {
           method:'POST',body:JSON.stringify({teacherQrToken:person.qrToken})
         });
+        // Ignore an older response if the guard has scanned another badge.
+        if (scannedTeacher !== person || $('studentScanNotice').hidden ||
+            !previewElement?.isConnected) return;
+        person.expectedGateEventType = preview.status === 'READY' ? preview.eventType : null;
         if (previewElement) {
           previewElement.textContent = preview.status === 'READY'
             ? 'Predicted gate movement: ' + preview.label + ' · ' + preview.localTime +
@@ -2126,6 +2133,8 @@ function coverageStatusLabel(status) {
           $('studentTimeIn').disabled = true;
         }
       } catch (error) {
+        if (scannedTeacher !== person || $('studentScanNotice').hidden ||
+            !previewElement?.isConnected) return;
         if (previewElement) {
           previewElement.textContent = 'Gate prediction unavailable. No attendance recorded.';
           previewElement.dataset.previewBlocked = 'true';
@@ -2150,7 +2159,8 @@ function coverageStatusLabel(status) {
       const result = await api('/api/gate/teacher-auto-event', {
         method: 'POST',
         body: JSON.stringify({ teacherQrToken: scan.qrToken, photoVerified: true,
-          clientEventKey:scan.autoEventId })
+          clientEventKey:scan.autoEventId,
+          ...(scan.expectedGateEventType ? { expectedGateEventType:scan.expectedGateEventType } : {}) })
       });
       const name = scannedTeacher.fullName;
       const label = result.event?.eventType === 'TIME_IN' ? 'time-in' : 'time-out';
