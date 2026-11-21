@@ -16,9 +16,10 @@ function registerStaffGateDtrRoutes(app,pool,{authenticateSchoolClient,requireSc
    return res.status(400).json({error:'Valid employee and school date required.'});
   try{
    const schoolId=req.auth.schoolId;
-   const [employee,schedule,gate,dtr,ob,calendar]=await Promise.all([
+   const [employee,employeeSchedule,schoolDefaults,gate,dtr,ob,calendar]=await Promise.all([
     pool.query("SELECT 1 FROM school_users WHERE school_id=$1 AND user_id=$2 AND active=TRUE",[schoolId,staffUserId]),
     require('./form48-employee-schedules').getEmployeeForm48Schedule(pool,schoolId,staffUserId),
+    require('./form48-bulk-routes').getSchoolForm48Defaults(pool,schoolId),
     pool.query(`SELECT "eventType",time FROM (
       SELECT CASE WHEN gate_direction='IN' THEN 'TIME_IN' ELSE 'TIME_OUT' END AS "eventType",
        to_char(occurred_at AT TIME ZONE 'Asia/Manila','HH24:MI') AS time,occurred_at
@@ -42,13 +43,17 @@ function registerStaffGateDtrRoutes(app,pool,{authenticateSchoolClient,requireSc
    if(!employee.rowCount)return res.status(404).json({error:'Employee not found in school.'});
    const weekday=new Date(date+'T12:00:00Z').getUTCDay();
    const existingSlots=Object.fromEntries(dtr.rows.map(x=>[x.slot,x.time]));
+   const {effectiveStaffSchedule}=require('./staff-attendance-schedule');
+   const {schedule,source}=effectiveStaffSchedule(employeeSchedule,schoolDefaults);
    const result=calendar.rowCount?{suggestions:{},review:['CALENDAR_EXCEPTION_REQUIRES_REVIEW'],safeToApply:false}:
-    !schedule?.workdays?.includes(weekday)?{suggestions:{},review:['NOT_SCHEDULED_WORKDAY'],safeToApply:false}:
+    !schedule?{suggestions:{},review:['SCHEDULE_UNAVAILABLE'],safeToApply:false}:
+    !schedule.workdays.includes(weekday)?{suggestions:{},review:['NOT_SCHEDULED_WORKDAY'],safeToApply:false}:
     require('./gate-dtr-reconciliation').reconcileGateDay({
      movements:gate.rows,existingSlots,
      hours:weekday===6?schedule.saturdayHours:schedule.regularHours,approvedOb:ob.rows});
    return res.json({staffUserId,date,existingSlots,gateEventCount:gate.rowCount,
-    approvedObCount:ob.rowCount,...result,notice:'Review only. No DTR punch was created.'});
+    approvedObCount:ob.rowCount,scheduleSource:source,
+    ...result,notice:'Review only. No DTR punch was created.'});
   }catch(err){console.error('DTR preview:',err.message);
    return res.status(503).json({error:'Unable to preview DTR reconciliation.'});}
  });
