@@ -21,7 +21,16 @@
   const other=$('smartAttendanceOther'),otherItems=$('smartAttendanceOtherItems');
   const hoursDetails=$('smartAttendanceHours'),hoursLabel=$('smartAttendanceHoursSummary');
   const hoursFeedback=$('smartHoursFeedback'),save=$('smartHoursSave');
+  const preset=$('smartHoursPreset'),insights=$('form48DailyInsights');
   const fields=['smartHoursAmIn','smartHoursAmOut','smartHoursPmIn','smartHoursPmOut'].map($);
+  const presets={'6-3':['06:00','11:00','12:00','15:00'],
+   '7-4':['07:00','12:00','13:00','16:00'],
+   '8-5':['08:00','12:00','13:00','17:00']};
+  $('form48OpenHours')?.addEventListener('click',()=>{
+   if(insights)insights.open=true;
+   if(hoursDetails)hoursDetails.open=true;
+   hoursDetails?.scrollIntoView?.({behavior:'smooth',block:'start'});
+  });
   let revision=0,defaults=null,busy=false,customSchedule=false;
   const say=(message,error=false)=>{
    status.textContent=message;status.classList.toggle('is-error',error);
@@ -88,6 +97,8 @@
    if(!data.schoolHoursConfigured){
     say('School work hours need to be set once. Verified scans remain saved; open School working hours below.');
     hoursLabel.textContent='Setup needed';
+    if(insights)insights.open=true;
+    if(hoursDetails)hoursDetails.open=true;
    }else{
     say('Verified attendance checked for '+data.date+'. Review only the items listed above.');
    }
@@ -133,6 +144,11 @@
      fields[i].value=r[slot]||'';
      fields[i].disabled=customSchedule;
     });
+    if(preset){
+     preset.disabled=customSchedule;
+     preset.value=Object.entries(presets).find(([,times])=>times.every((t,i)=>fields[i].value===t))?.[0]||
+       (completeHours()?'custom':'');
+    }
     hoursLabel.textContent=customSchedule?'Custom working days configured':
      completeHours()?'Set for Monday–Friday':'Setup needed';
     hoursFeedback.textContent=customSchedule
@@ -166,8 +182,22 @@
     await loadDefaults();
    }finally{busy=false;updateSave();}
   });
+  preset?.addEventListener('change',()=>{
+   if(customSchedule)return;
+   const hours=presets[preset.value];
+   if(hours)hours.forEach((time,i)=>{fields[i].value=time;});
+   updateSave();
+   hoursFeedback.textContent=hours
+    ?'Preset selected. Check all four times, then Save to confirm your school policy.'
+    :'Enter the school-approved hours before saving.';
+  });
   fields.forEach(field=>{
-   field.addEventListener('input',updateSave);field.addEventListener('change',updateSave);
+   const changed=()=>{
+    if(preset&&!customSchedule)
+     preset.value=Object.entries(presets).find(([,times])=>times.every((t,i)=>fields[i].value===t))?.[0]||'custom';
+    updateSave();
+   };
+   field.addEventListener('input',changed);field.addEventListener('change',changed);
   });
   refresh.addEventListener('click',load);
   date.addEventListener('change',load);
