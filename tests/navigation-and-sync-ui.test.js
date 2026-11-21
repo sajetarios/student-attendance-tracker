@@ -64,10 +64,10 @@ test('all browser-native confirmation and prompt dialogs use the shared in-app d
   assert.ok(dialog.includes("panel.setAttribute('role', 'dialog')"));
   assert.ok(dialog.includes("panel.setAttribute('aria-modal', 'true')"));
   assert.ok(dialog.includes("field.setAttribute('aria-invalid', 'true')"));
-  assert.ok(portalHtml.includes('/app-dialog.css?v=1'));
+  assert.ok(portalHtml.includes('/app-dialog.css?v=2'));
   assert.ok(portalHtml.includes('/app-dialog.js?v=1'));
-  assert.ok(parentHtml.includes('/app-dialog.css?v=1'));
+  assert.ok(parentHtml.includes('/app-dialog.css?v=2'));
   assert.ok(parentHtml.includes('/app-dialog.js?v=1'));
-  assert.ok(serviceWorker.includes('/app-dialog.css?v=1'));
+  assert.ok(serviceWorker.includes('/app-dialog.css?v=2'));
   assert.ok(serviceWorker.includes('/app-dialog.js?v=1'));
 });
