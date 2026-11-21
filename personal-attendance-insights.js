@@ -65,7 +65,8 @@ function summarizePersonalAttendance({from,to,dtrEvents=[],gateEvents=[],approve
   const blocked=reason=>({suggestions:{},review:[reason],safeToApply:false});
   if(!Array.isArray(calendar))result=blocked('CALENDAR_UNAVAILABLE');
   else if(calByDate.has(day.date))result=blocked('CALENDAR_EXCEPTION_REQUIRES_REVIEW');
-  else if(!schedule?.workdays?.includes(weekday))result=blocked('SCHEDULE_UNAVAILABLE');
+  else if(!Array.isArray(schedule?.workdays)||!schedule.workdays.length)result=blocked('SCHEDULE_UNAVAILABLE');
+  else if(!schedule.workdays.includes(weekday))result=blocked('NOT_SCHEDULED_WORKDAY');
   else if(day.invalidGate)result=blocked('GATE_HISTORY_AMBIGUOUS');
   else if(multipleDayOb)result=blocked('OB_INTERVAL_AMBIGUOUS');
   else result=reconcileGateDay({
