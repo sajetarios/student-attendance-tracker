@@ -50,12 +50,12 @@ function registerSf1ImportRoutes(app,pool,{authenticateSchoolClient,requireSchoo
   const canonical=value=>String(value||'').toLowerCase().replace(/[^a-z0-9]/g,'');
   const named=sf1.learners.map(r=>canonical(r.fullName));
   const existing=await db.query(
-   "SELECT lrn,student_id,full_name,parent_name,parent_mobile,father_name,mother_maiden_name,sf1_guardian_name,birth_date,sf1_address,sex,grade_level,section,active,archived_at FROM students WHERE school_id=$1 AND (lrn=ANY($2::text[]) OR (lower(regexp_replace(full_name,'[^a-zA-Z0-9]','','g'))=ANY($3::text[])
+   `SELECT lrn,student_id,full_name,parent_name,parent_mobile,father_name,mother_maiden_name,sf1_guardian_name,birth_date,sf1_address,sex,grade_level,section,active,archived_at FROM students WHERE school_id=$1 AND (lrn=ANY($2::text[]) OR (lower(regexp_replace(full_name,'[^a-zA-Z0-9]','','g'))=ANY($3::text[])
        OR lower(regexp_replace(
           CASE WHEN strpos(full_name,',')>0
             THEN btrim(split_part(full_name,',',2))||' '||btrim(split_part(full_name,',',1))
             ELSE full_name END,
-          '[^a-zA-Z0-9]','','g'))=ANY($3::text[])))"+(db===pool?'':' FOR UPDATE'),
+          '[^a-zA-Z0-9]','','g'))=ANY($3::text[])))`+(db===pool?'':' FOR UPDATE'),
    [req.auth.schoolId,lrnList,named]
   );
   const match=new Map(existing.rows.filter(r=>r.lrn).map(r=>[r.lrn,r]));
