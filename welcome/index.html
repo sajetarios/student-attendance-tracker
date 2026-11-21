@@ -1,0 +1,80 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#123b72"><meta name="robots" content="noindex">
+<title>Welcome to Attendigo</title>
+<style>
+:root{font-family:Inter,ui-sans-serif,system-ui,-apple-system,Segoe UI,sans-serif;color:#19345a;background:#f4f8ff}
+*{box-sizing:border-box}body{min-height:100svh;margin:0;display:grid;place-items:center;padding:22px;background:radial-gradient(circle at 50% 15%,#e0efff 0,transparent 52%),#f4f8ff}
+main{width:min(100%,470px);padding:clamp(28px,7vw,52px) 24px;background:white;border:1px solid #dce8f7;border-radius:24px;box-shadow:0 22px 70px #123b7214;text-align:center}
+.brand{font-size:clamp(30px,7vw,42px);font-weight:800;letter-spacing:-1.7px;color:#1456a0}
+.mark{display:grid;place-items:center;width:72px;height:72px;margin:0 auto 18px;background:#e7f1ff;color:#1556a0;border-radius:21px}
+.mark svg{width:45px;height:45px}h1{font-size:clamp(21px,5vw,27px);letter-spacing:-.5px;margin:22px 0 9px}p{line-height:1.6;color:#64748b;margin:0 0 20px}
+.spinner{width:34px;height:34px;border:3px solid #d9e7f7;border-top-color:#2465b5;border-radius:50%;margin:22px auto;animation:spin .9s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}@media(prefers-reduced-motion:reduce){.spinner{animation:none;border-top-color:#2465b5}}
+.status{font-size:14px;min-height:24px;color:#405978}.hint{font-size:12px;margin-top:16px;color:#78869b}
+a{color:#155bb0;text-decoration:underline;text-underline-offset:3px}button{border:0;background:#155bb0;color:#fff;padding:12px 20px;border-radius:11px;font-weight:650;cursor:pointer;margin-top:15px}
+button:focus-visible,a:focus-visible{outline:3px solid #ffbd59;outline-offset:3px}
+</style>
+</head>
+<body>
+<main aria-labelledby="welcome-title">
+<div class="mark" aria-hidden="true"><svg viewBox="0 0 48 48" fill="none"><path d="M7 15.5 24 8l17 7.5-17 7.5L7 15.5Z" fill="currentColor"/><path d="M13 23v9c7 5 15 5 22 0v-9" stroke="currentColor" stroke-width="3" stroke-linejoin="round"/><path d="M41 16v13" stroke="currentColor" stroke-width="3" stroke-linecap="round"/><circle cx="41" cy="32" r="3" fill="currentColor"/></svg></div>
+<div class="brand">Attendigo</div>
+<h1 id="welcome-title">Welcome to your school workspace</h1>
+<p>We're getting Attendigo ready for you. Your school information remains secure while we connect.</p>
+<div class="spinner" aria-hidden="true"></div>
+<div id="status" class="status" role="status" aria-live="polite">Connecting to Attendigo…</div>
+<button id="retry" hidden type="button">Try again</button>
+<div class="hint">This may take a minute after a period of inactivity.</div>
+</main>
+<script>
+'use strict';
+// Set the actual Render backend origin BEFORE publishing. No DNS or auth changes are made by this page.
+// The fallback points to the verified existing Render service URL.
+const APP_ORIGIN='https://student-attendance-tracker-jmp4.onrender.com';
+const MAX_ATTEMPTS=36;
+const CHECK_INTERVAL_MS=5000;
+const TIMEOUT_MS=7000;
+const statusEl=document.getElementById('status');
+const retry=document.getElementById('retry');
+let generation=0;
+function destination(){
+  // Forward only safe relative paths; never allow an external redirect.
+  const params=new URLSearchParams(location.search);
+  const requested=params.get('next');
+  if(requested && requested.startsWith('/') && !requested.startsWith('//') && !requested.includes('\\') && !/[\r\n]/.test(requested)) return requested;
+  const mode=params.get('mode');
+  return mode==='student' ? '/?mode=student' : mode==='platform' ? '/?mode=platform' : '/';
+}
+function probe(){
+  // An image load verifies the backend is serving actual static assets, not a 200 HTML wakeup page.
+  // This avoids cross-origin fetch/CORS requirements. The image contains no user data.
+  return new Promise(resolve=>{
+    const img=new Image();let finished=false;
+    const done=ok=>{if(finished)return;finished=true;clearTimeout(timer);img.onload=null;img.onerror=null;resolve(ok)};
+    const timer=setTimeout(()=>done(false),TIMEOUT_MS);
+    img.onload=()=>done(img.naturalWidth>0);
+    img.onerror=()=>done(false);
+    img.src=APP_ORIGIN+'/assets/attendigo-favicon.png?ready='+Date.now();
+  });
+}
+const sleep=ms=>new Promise(resolve=>setTimeout(resolve,ms));
+async function start(){
+  const current=++generation;retry.hidden=true;statusEl.textContent='Connecting to Attendigo…';
+  for(let attempt=1;attempt<=MAX_ATTEMPTS;attempt++){
+    const ready=await probe();if(current!==generation)return;
+    if(ready){statusEl.textContent='Attendigo is ready. Opening…';location.replace(APP_ORIGIN+destination());return}
+    statusEl.textContent=attempt<5?'Preparing your school workspace…':attempt<15?'The server is starting. Thank you for waiting…':'Still connecting. We will keep trying…';
+    if(attempt<MAX_ATTEMPTS)await sleep(CHECK_INTERVAL_MS);
+    if(current!==generation)return;
+  }
+  statusEl.textContent='Attendigo is taking longer than expected. Please try again.';
+  retry.hidden=false;
+}
+retry.addEventListener('click',start);
+start();
+</script>
+</body>
+</html>
