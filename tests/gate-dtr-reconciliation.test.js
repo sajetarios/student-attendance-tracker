@@ -41,6 +41,8 @@ test('late verified return following an OB departure requires review, never a DT
   approvedOb:[{start:'09:00',end:'17:00'}]});
  assert.ok(r.review.includes('OB_RETURN_AFTER_APPROVED_END_REVIEW'));
  assert.equal(r.suggestions.PM_IN,undefined);
+ assert.equal(r.suggestions.PM_OUT,undefined);
+ assert.ok(r.review.includes('POST_OB_RETURN_MOVEMENT_REVIEW'));
  assert.equal(r.safeToApply,false);
 });
 test('an isolated evening arrival is not misclassified as a late OB return',()=>{
@@ -56,4 +58,24 @@ test('OB return within boundary tolerance remains in standard OB review',()=>{
  assert.ok(r.review.includes('OB_BOUNDARY_GATE_MOVEMENT'));
  assert.ok(!r.review.includes('OB_RETURN_AFTER_APPROVED_END_REVIEW'));
  assert.equal(r.suggestions.PM_IN,undefined);
+});
+
+test('three competing morning arrivals never restore a rejected DTR slot',()=>{
+ const r=reconcileGateDay({hours,movements:[
+  {eventType:'TIME_IN',time:'07:10'},{eventType:'TIME_OUT',time:'07:30'},
+  {eventType:'TIME_IN',time:'08:00'},{eventType:'TIME_OUT',time:'08:20'},
+  {eventType:'TIME_IN',time:'09:00'}]});
+ assert.equal(r.suggestions.AM_IN,undefined);
+ assert.ok(r.review.includes('DUPLICATE_SLOT_CANDIDATES'));
+ assert.equal(r.safeToApply,false);
+});
+test('late OB return never implies overtime or automatic DTR',()=>{
+ const r=reconcileGateDay({hours,movements:[
+  {eventType:'TIME_IN',time:'07:40'},{eventType:'TIME_OUT',time:'09:00'},
+  {eventType:'TIME_IN',time:'17:45'}],
+  approvedOb:[{start:'09:00',end:'17:00'}]});
+ assert.equal(r.suggestions.PM_IN,undefined);
+ assert.equal(r.suggestions.PM_OUT,undefined);
+ assert.ok(r.review.includes('OB_RETURN_AFTER_APPROVED_END_REVIEW'));
+ assert.equal(r.safeToApply,false);
 });
