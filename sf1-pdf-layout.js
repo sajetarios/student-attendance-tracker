@@ -3,7 +3,7 @@
 // Position-aware extraction for searchable DepEd SF1 PDFs. Unlike a line-based
 // parser, this reconstructs learner fields from the physical table columns.
 // Never infer a full LRN from an abbreviated/scientific-notation cell.
-const {extractName,extractOfficialName,normalizeGuardianContact}=require('./sf1-import-parser');
+const {extractName,extractOfficialName,extractOfficialParts,normalizeGuardianContact}=require('./sf1-import-parser');
 const LRN=/^\d{12}$/;
 const SCI=/^\d+(?:\.\d+)?e[+-]?\d+$/i;
 const safeText=value=>String(value||'').replace(/\u00a0/g,' ').trim();
@@ -88,7 +88,7 @@ function readLayoutPages(pages,{gradeLevel='',schoolYear=''}={}){
     continue;
    }
    seen.add(anchor.lrn);
-   learners.push({rowNumber:i+1,lrn:anchor.lrn,fullName:extractName(nameRaw),officialFullName:extractOfficialName(nameRaw),sex,gradeLevel,section:'Unassigned',studentId:'',parentName:'',parentMobile:''});
+   learners.push({rowNumber:i+1,lrn:anchor.lrn,fullName:extractName(nameRaw),officialFullName:extractOfficialName(nameRaw),officialNameParts:extractOfficialParts(nameRaw),sex,gradeLevel,section:'Unassigned',studentId:'',parentName:'',parentMobile:''});
   }
  });
  if(!recognized||(!lrnCount&&!scientific))return null;
