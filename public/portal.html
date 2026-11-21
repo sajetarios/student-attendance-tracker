@@ -1265,7 +1265,7 @@ body.dark-mode .content-wrap > .school-heading.is-compact,body[data-theme="dark"
                   <div class="field-group span-2"><label for="newStudentPhoto">Student photo (JPG, PNG, WebP · max 5 MB)</label><input id="newStudentPhoto" type="file" accept="image/jpeg,image/png,image/webp"></div>
                 </div>
                 <p class="form-context-help">Guardian contact details are stored on the existing student master record. Creating a Parent Portal login is a separate step and does not create another student record.</p>
-                <div class="form-actions"><button class="primary-button" type="submit">Save student</button><button class="outline-button" type="button" id="cancelStudentForm">Cancel</button><span id="studentFormFeedback" class="inline-feedback"></span></div>
+                <div class="form-actions"><button class="primary-button" type="submit" id="saveStudentClose" data-save-mode="close">Save &amp; Close</button><button class="outline-button" type="submit" id="saveStudentAnother" data-save-mode="another">Save &amp; Add Another</button><button class="outline-button" type="button" id="cancelStudentForm">Cancel</button><span id="studentFormFeedback" class="inline-feedback" role="status" aria-live="polite"></span></div>
               </form>
               <div id="parentInviteModal" class="student-scan-setup-overlay" role="dialog" aria-modal="true" aria-labelledby="parentInviteTitle" hidden>
                 <div class="student-scan-setup-dialog">
@@ -1535,7 +1535,7 @@ body.dark-mode .content-wrap > .school-heading.is-compact,body[data-theme="dark"
                     <div class="field-group" id="editParentMobileGroup"><label for="editParentMobile">Parent / guardian mobile number *</label><input id="editParentMobile" type="tel" inputmode="tel" autocomplete="tel" maxlength="30" placeholder="09XXXXXXXXX"></div>
                   </div>
                   <p class="form-context-help">Guardian contact details update the existing student master record. They do not create a separate parent account.</p>
-                  <div class="form-actions"><button class="primary-button" type="submit" id="saveStudentEdit">Save changes</button><span id="studentEditFeedback" class="inline-feedback"></span></div>
+                  <div class="form-actions"><button class="primary-button" type="submit" id="saveStudentEdit">Save changes</button><span id="studentEditFeedback" class="inline-feedback" role="status" aria-live="polite"></span></div>
                 </form>
               </div>
             </div>
