@@ -15,8 +15,15 @@ function reconcileGateDay({movements=[],existingSlots={},hours={},approvedOb=[]}
  const intervals=approvedOb.map(o=>({start:mins(o.start),end:mins(o.end)}));
  if(intervals.some(o=>o.start===null||o.end===null||o.start>=o.end))
   return {suggestions,review:['OB_INTERVAL_AMBIGUOUS'],safeToApply:false};
- for(const e of sorted){
-  const t=mins(e.time);
+ for(let i=0;i<sorted.length;i++){
+  const e=sorted[i],t=mins(e.time);
+  // A verified return after the authorized OB interval needs an explicit review.
+  // Only recognize it when an earlier verified departure aligns with that OB;
+  // an isolated evening arrival must not be assumed to complete official business.
+  const prior=i>0?sorted[i-1]:null;
+  const lateObReturn=e.eventType==='TIME_IN'&&prior?.eventType==='TIME_OUT'&&
+   intervals.some(o=>mins(prior.time)>=o.start-15&&mins(prior.time)<=o.end+15&&t>o.end+15);
+  if(lateObReturn){review.push('OB_RETURN_AFTER_APPROVED_END_REVIEW');continue;}
   if(intervals.some(o=>t>=o.start-15&&t<=o.end+15)){
    review.push('OB_BOUNDARY_GATE_MOVEMENT');continue;
   }
