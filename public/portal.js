@@ -2098,6 +2098,10 @@ function coverageStatusLabel(status) {
     const noticePhotoWarning = $('studentScanNoticePhotoWarning');
     const noticeDtr = $('studentScanNoticeDtr');
     noticeDtr.replaceChildren();
+    if (isGateVerification && isTeacherPerson) {
+      const prediction = $('teacherGateEventPreview');
+      if (prediction) noticeDtr.appendChild(prediction);
+    }
     $('studentPhotoVerified').checked = false;
     noticeContinue.hidden = isGateVerification;
     noticeRecord.hidden = !isGateVerification;
@@ -2133,7 +2137,8 @@ function coverageStatusLabel(status) {
       recordTeacherDtrSlot();
     });
     $('studentPhotoVerified')?.addEventListener('change', event => {
-      const verified = Boolean(event.target.checked);
+      const verified = Boolean(event.target.checked) &&
+        !($('teacherGateEventPreview')?.dataset.previewBlocked === 'true');
       $('studentTimeIn').disabled = !verified;
       $('studentTimeOut').disabled = !verified;
       if ($('teacherDtrRecord')) $('teacherDtrRecord').disabled = !verified;
@@ -2156,12 +2161,16 @@ function coverageStatusLabel(status) {
               ' (Philippine time). Gate movement only; official DTR and OB remain separate.'
             : 'Gate movement requires review: ' + (preview.reason || preview.status);
         }
+        if (previewElement) previewElement.dataset.previewBlocked = String(preview.status !== 'READY');
         if (preview.status !== 'READY') {
           noticeRecord.disabled = true;
           $('studentTimeIn').disabled = true;
         }
       } catch (error) {
-        if (previewElement) previewElement.textContent = 'Gate prediction unavailable. No attendance recorded.';
+        if (previewElement) {
+          previewElement.textContent = 'Gate prediction unavailable. No attendance recorded.';
+          previewElement.dataset.previewBlocked = 'true';
+        }
         noticeRecord.disabled = true;
         $('studentTimeIn').disabled = true;
       }
