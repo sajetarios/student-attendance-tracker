@@ -4,6 +4,9 @@ const SLOTS=['AM_IN','AM_OUT','PM_IN','PM_OUT'];
 const mins=t=>/^([01]\d|2[0-3]):[0-5]\d$/.test(t||'')?Number(t.slice(0,2))*60+Number(t.slice(3)):null;
 function reconcileGateDay({movements=[],existingSlots={},hours={},approvedOb=[]}={}){
  const suggestions={},review=[];
+ // Once a slot has multiple competing candidates, it stays in review even
+ // if a third or later gate movement falls into the same scheduled slot.
+ const duplicateSlots=new Set();
  const h=SLOTS.map(k=>mins(hours[k]));
  if(h.some(x=>x===null)||!(h[0]<h[1]&&h[1]<=h[2]&&h[2]<h[3]))
   return {suggestions,review:['SCHEDULE_UNAVAILABLE'],safeToApply:false};
@@ -25,7 +28,12 @@ function reconcileGateDay({movements=[],existingSlots={},hours={},approvedOb=[]}
   // Only classify punches near the relevant school boundary, never arbitrary trips.
   if(Math.abs(t-expected)>120){review.push('OUTSIDE_SCHEDULE_WINDOW');continue;}
   if(existingSlots[slot]){review.push('SLOT_ALREADY_VERIFIED');continue;}
-  if(suggestions[slot]){delete suggestions[slot];review.push('DUPLICATE_SLOT_CANDIDATES');continue;}
+  if(suggestions[slot]||duplicateSlots.has(slot)){
+   delete suggestions[slot];
+   duplicateSlots.add(slot);
+   review.push('DUPLICATE_SLOT_CANDIDATES');
+   continue;
+  }
   suggestions[slot]={time:e.time,source:'VERIFIED_GATE',requiresApproval:true};
  }
  if(intervals.length)review.push('OB_COVERAGE_REQUIRES_REVIEW');
