@@ -41,8 +41,10 @@ test('admin and teacher interfaces remain isolated to existing role-specific por
  assert.match(ui,/\/api\/staff-attendance\/lunch\/presenter/);
  assert.match(ui,/\/api\/staff-attendance\/lunch\/challenges/);
  assert.match(ui,/setInterval\(/);
+ assert.match(ui,/performance\.now\(\)/);
+ assert.doesNotMatch(ui,/Date\.now\(\)>expiry/);
  assert.match(ui,/!document\.hidden/);
- assert.match(portal,/staff-lunch-ui\.js\?v=3/);
+ assert.match(portal,/staff-lunch-ui\.js\?v=4/);
  assert.match(portal,/staff-lunch\.css\?v=3/);
 });
 test('My lunch QR is unhidden by the role-aware portal view switch',()=>{
@@ -64,7 +66,7 @@ test('QR scan does not log in or record until authenticated staff confirms expli
  assert.match(server,/res\.set\('Referrer-Policy','no-referrer'\)/);
 });
 test('service worker preloads safe assets but excludes sensitive scan document from offline cache',()=>{
- assert.match(sw,/staff-lunch-ui\.js\?v=3/);
+ assert.match(sw,/staff-lunch-ui\.js\?v=4/);
  assert.match(sw,/staff-lunch\.css\?v=3/);
  assert.match(sw,/staff-lunch-checkin\.js\?v=3/);
  assert.match(sw,/staff-lunch-checkin\.html/);
