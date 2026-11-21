@@ -54,14 +54,24 @@ function registerSf1ImportRoutes(app,pool,{authenticateSchoolClient,requireSchoo
           AND ca.grade_level=e.grade_level)))`,[req.auth.schoolId,ids,req.auth.userId]):{rows:[]};
    advisoryUpdateIds=new Set(entitled.rows.map(r=>r.student_id));
   }
+  const recoverMissingLrn=req.body?.recoverMissingLrn===true;
   const rows=sf1.learners.map(r=>{
    const found=match.get(r.lrn);
    const similar=(byName.get(canonical(r.fullName))||[]).filter(student=>student.lrn!==r.lrn);
+   const recoveryCandidate=!found&&similar.length===1&&
+    !String(similar[0].lrn||'').trim()&&similar[0].active===true&&!similar[0].archived_at&&
+    String(similar[0].sex||'').toUpperCase()===r.sex&&
+    String(similar[0].grade_level||'').toUpperCase()===r.gradeLevel.toUpperCase();
    const existingStudent=found||similar[0]||null;
    const issues=[];
    let action='CREATE';
    if(!found&&similar.length){
-    action='REVIEW';issues.push('Existing learner with this name has a missing/different LRN. Match manually; no duplicate was created.');
+    if(recoveryCandidate&&recoverMissingLrn){
+     if(advisoryUpdateIds&&!advisoryUpdateIds.has(similar[0].student_id))issues.push('Existing learner is outside your assigned advisory section.');
+     action=issues.length?'REVIEW':'RECOVER';
+    }else{
+     action='REVIEW';issues.push(recoveryCandidate?'Exact name, sex and grade match an existing learner with no LRN. Enable reviewed LRN recovery to fill the blank field.':'Existing learner with this name has a missing/different LRN. Manual review required; no duplicate was created.');
+    }
    }else if(found){
     if(!found.active||found.archived_at)issues.push('This LRN is archived or inactive; School Admin review required.');
     if(canonical(found.full_name)!==canonical(r.fullName))issues.push('Name differs from the saved LRN record.');
@@ -82,7 +92,7 @@ function registerSf1ImportRoutes(app,pool,{authenticateSchoolClient,requireSchoo
      studentId:existingStudent.student_id,fullName:existingStudent.full_name
     }:null};
   });
-  const summary={create:0,update:0,skip:0,review:0};
+  const summary={create:0,update:0,recover:0,skip:0,review:0};
   rows.forEach(row=>{summary[row.action.toLowerCase()]++;});
   return {rows,summary,schoolYearId:active.school_year_id,year:Number(String(active.school_year_label).slice(0,4)),gradeLevel:sf1.gradeLevel};
  }
@@ -112,6 +122,19 @@ function registerSf1ImportRoutes(app,pool,{authenticateSchoolClient,requireSchoo
       [req.auth.schoolId,id,prepared.schoolYearId,row.gradeLevel,req.auth.userId]);
     created++;
    }
+   // Recover missing LRNs only with explicit opt-in and unique exact matching.
+   for(const row of prepared.rows.filter(r=>r.action==='RECOVER')){
+    const saved=await client.query(`UPDATE students
+      SET lrn=$3,
+       parent_name=CASE WHEN NULLIF(BTRIM(parent_name),'') IS NULL THEN NULLIF($4,'') ELSE parent_name END,
+       parent_mobile=CASE WHEN NULLIF(BTRIM(parent_mobile),'') IS NULL THEN $5 ELSE parent_mobile END,
+       updated_at=NOW()
+      WHERE school_id=$1 AND student_id=$2 AND NULLIF(BTRIM(lrn),'') IS NULL
+       AND active=TRUE AND archived_at IS NULL
+      RETURNING student_id`,[req.auth.schoolId,row.existingStudent.studentId,row.lrn,row.parentName,row.parentMobile]);
+    if(saved.rowCount!==1)throw Object.assign(Error('Learner LRN changed during review. Preview again.'),{status:409});
+    updated++;
+   }
    // Preserve identity, enrollment, QR tokens and attendance on existing rows.
    // Locks taken during prepare guard the preview and write in this transaction.
    for(const row of prepared.rows.filter(r=>r.action==='UPDATE')){
@@ -128,9 +151,9 @@ function registerSf1ImportRoutes(app,pool,{authenticateSchoolClient,requireSchoo
    }
    await client.query(`INSERT INTO audit_logs(school_id,actor_type,actor_user_id,action,entity_type,entity_id,details)
      VALUES($1,'SCHOOL',$2,'STUDENT_SF1_IMPORT','student_import',$3,$4::jsonb)`,
-     [req.auth.schoolId,req.auth.userId,crypto.randomUUID(),JSON.stringify({created,updated,skipped:prepared.summary.skip,gradeLevel:prepared.gradeLevel,section:'Unassigned',identityAndAttendancePreserved:true})]);
+     [req.auth.schoolId,req.auth.userId,crypto.randomUUID(),JSON.stringify({created,updated,recovered:prepared.summary.recover,skipped:prepared.summary.skip,gradeLevel:prepared.gradeLevel,section:'Unassigned',identityAndAttendancePreserved:true})]);
    await client.query('COMMIT');
-   res.json({ok:true,created,updated,skipped:prepared.summary.skip,gradeLevel:prepared.gradeLevel});
+   res.json({ok:true,created,updated,recovered:prepared.summary.recover,skipped:prepared.summary.skip,gradeLevel:prepared.gradeLevel});
   }catch(e){await client.query('ROLLBACK').catch(()=>{});res.status(e.status||(e.code==='23505'?409:500)).json({error:e.status?e.message:e.code==='23505'?'An LRN was concurrently registered; preview again.':'SF1 import failed without saving changes.'});}
   finally{client.release();}
  });
