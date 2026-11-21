@@ -29,11 +29,14 @@ test('Supabase preflight queries target in read-only mode and leaves primary dat
   const out = await runSupabasePreflight({
     connectionString: sessionUri,
     PoolClass: TestPool,
+    getRootCa: async () => 'PUBLIC_TEST_ROOT_CA',
     logger: { log: line => logs.push(line), warn: line => logs.push(line) }
   });
   assert.equal(out.status, 'connected');
   assert.equal(ended, true);
   assert.equal(options.ssl.rejectUnauthorized, true);
+  assert.equal(options.ssl.ca, 'PUBLIC_TEST_ROOT_CA');
+  assert.equal(new URL(options.connectionString).searchParams.has('sslmode'), false);
   assert.match(query, /^SELECT /);
   assert.doesNotMatch(query, /\b(?:UPDATE|DELETE|INSERT|ALTER|TRUNCATE|DROP)\b/i);
   assert.equal(logs.some(line => line.includes('TEST_SECRET')), false);
@@ -52,6 +55,7 @@ test('Supabase connection errors never print passwords or detailed connection st
   const out = await runSupabasePreflight({
     connectionString: sessionUri,
     PoolClass: TestPool,
+    getRootCa: async () => 'PUBLIC_TEST_ROOT_CA',
     logger: { log: line => logs.push(line), warn: line => logs.push(line) }
   });
   assert.deepEqual(out, { status: 'connection_failed', code: '28P01' });
@@ -72,8 +76,26 @@ test('Supabase TLS diagnostics show safe category and code without any certifica
   const out = await runSupabasePreflight({
     connectionString: sessionUri,
     PoolClass: TestPool,
+    getRootCa: async () => 'PUBLIC_TEST_ROOT_CA',
     logger: { warn: line => logs.push(line), log: line => logs.push(line) }
   });
   assert.equal(out.code, 'UNABLE_TO_VERIFY_LEAF_SIGNATURE');
   assert.deepEqual(logs, ['[Supabase preflight] connection_failed code=UNABLE_TO_VERIFY_LEAF_SIGNATURE category=TLS']);
+});
+
+test('A missing trusted CA fails closed before connecting to the database', async () => {
+  let connectionAttempted = false;
+  class TestPool {
+    constructor() { connectionAttempted = true; }
+  }
+  const logs = [];
+  const result = await runSupabasePreflight({
+    connectionString: sessionUri,
+    PoolClass: TestPool,
+    getRootCa: async () => { throw new Error('CA source unavailable: TEST_SECRET'); },
+    logger: { warn: value => logs.push(value) }
+  });
+  assert.equal(result.status, 'trusted_ca_unavailable');
+  assert.equal(connectionAttempted, false);
+  assert.deepEqual(logs, ['[Supabase preflight] trusted_ca_unavailable']);
 });
