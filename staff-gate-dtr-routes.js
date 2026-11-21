@@ -198,9 +198,10 @@ function registerStaffGateDtrRoutes(app,pool,{authenticateSchoolClient,requireSc
    // Self-scoped advisory evidence uses the SAME verified DTR/gate/OB rows.
    // A schedule or calendar lookup failure fails closed for suggestions without
    // hiding the employee's existing official attendance history.
-   const [scheduleLookup,calendarLookup]=await Promise.allSettled([
+   const [scheduleLookup,defaultsLookup,calendarLookup]=await Promise.allSettled([
     require('./form48-employee-schedules').getEmployeeForm48Schedule(
      pool,req.auth.schoolId,req.auth.userId),
+    require('./form48-bulk-routes').getSchoolForm48Defaults(pool,req.auth.schoolId),
     pool.query(`SELECT to_char(calendar_date,'YYYY-MM-DD') AS "schoolDate",exception_type
       FROM school_calendar_exceptions WHERE school_id=$1 AND
        calendar_date BETWEEN $2::date AND $3::date
@@ -208,9 +209,13 @@ function registerStaffGateDtrRoutes(app,pool,{authenticateSchoolClient,requireSc
      [req.auth.schoolId,from,to])
    ]);
    const {summarizePersonalAttendance}=require('./personal-attendance-insights');
+   const {effectiveStaffSchedule}=require('./staff-attendance-schedule');
+   const effective=scheduleLookup.status==='fulfilled'&&defaultsLookup.status==='fulfilled'
+    ?effectiveStaffSchedule(scheduleLookup.value,defaultsLookup.value)
+    :{schedule:null,source:'UNAVAILABLE'};
    const intelligence=summarizePersonalAttendance({
     from,to,dtrEvents:result.rows,gateEvents:gate.rows,approvedOb:ob.rows,
-    schedule:scheduleLookup.status==='fulfilled'?scheduleLookup.value:null,
+    schedule:effective.schedule,
     calendar:calendarLookup.status==='fulfilled'?calendarLookup.value.rows:null
    });
    return res.json({from,to,events:result.rows,obRemarks,intelligence});
