@@ -23,8 +23,7 @@
   body.portal-page :is(input[type="date"],input[type="time"],input[type="month"]) {
     max-inline-size:100%;
   }
-  body.portal-page :is(input[type="date"],input[type="time"],input[type="month"])
-    ::-webkit-date-and-time-value {
+  body.portal-page :is(input[type="date"],input[type="time"],input[type="month"])::-webkit-date-and-time-value {
     min-inline-size:0;
   }
 
