@@ -111,11 +111,17 @@
       ['Schedule block',entry.periodName||'Not specified'],
       ['Date',asLongDate(entry.date)]
     ];
-    const detailIcons={Teacher:'user',Class:'users',Relationship:'book',Time:'clock',Room:'pin',Weekdays:'calendar','Schedule block':'book',Date:'calendar'};
+    if(entry.teacherScheduleView) {
+      // Ownership can overlap: a teacher may teach a subject in their own
+      // advisory section. Never let the period type override either role.
+      const labels=Array.isArray(entry.relationshipLabels)?entry.relationshipLabels
+        .filter(value=>value!=='Advisory / Homeroom activity'):[];
+      items.splice(2,0,
+        ['Your role',labels.join(' + ')||'Assigned teaching timetable'],
+        ['Period type',entry.isAdvisoryActivity?'Advisory / Homeroom':'Regular subject period']);
+    }
+    const detailIcons={Teacher:'user',Class:'users','Your role':'book','Period type':'calendar',Time:'clock',Room:'pin',Weekdays:'calendar','Schedule block':'book',Date:'calendar'};
     const rows=items.map(item=>'<div class="tt-detail-row"><dt><span data-ui-icon="'+detailIcons[item[0]]+'"></span>'+escape(item[0])+'</dt><dd>'+escape(item[1])+'</dd></div>').join('');
-    const relation=entry.teacherScheduleView?
-      (entry.isAdvisoryActivity?'Advisory / Homeroom activity':entry.isMyAdvisorySection?'My advisory section':'Other teaching class'):'';
-    if(relation)items.splice(2,0,['Relationship',relation]);
     const extra=entry.adjustment ? '<div class="tt-detail-change"><strong>'+escape(tag)+'</strong><span>'+
       escape((entry.adjustment.reason||'').replaceAll('_',' '))+
       (entry.adjustment.notes?' · '+escape(entry.adjustment.notes):'')+'</span></div>' : '';
@@ -168,18 +174,25 @@
         const matches=indexed.get(day+'|'+key)||[];
         return '<td class="tt-class-cell">'+(matches.length?matches.map(e=>{
           const kind=e.cancelled?'cancelled':e.adjustment?'adjusted':
-            e.teacherScheduleView?(e.isAdvisoryActivity?'advisory-activity':e.isMyAdvisorySection?'my-advisory':'teacher-class'):
+            e.teacherScheduleView?(e.isMySubjectClass&&e.isMyAdvisorySection?'teacher-both':
+              e.isMyAdvisorySection?'my-advisory':e.isMySubjectClass?'teacher-class':'teacher-related'):
             palettes[hash(e.subjectName||e.periodName)];
           const subject=label(e);
           const section=String(e.gradeLevel||'—')+' · '+String(e.section||'All sections');
-          const typeLabel=e.teacherScheduleView?(e.isAdvisoryActivity?'Advisory activity':
-            e.isMyAdvisorySection?'My advisory':'Other teaching class'):'';
+          const roles=e.teacherScheduleView?[
+            e.isMySubjectClass?['My subject class','subject']:null,
+            e.isMyAdvisorySection?['My advisory section','advisory']:null
+          ].filter(Boolean):[];
+          const roleMarkup=roles.length?'<span class="tt-relationship-badges">'+roles.map(role=>
+            '<span class="tt-relation-badge tt-relation-'+role[1]+'">'+escape(role[0])+'</span>').join('')+'</span>':'';
+          const accessibleRoles=roles.map(role=>role[0]).join(' · ');
           return '<button type="button" class="tt-subject tt-tone-'+kind+'" data-tt-class="'+e.index+
             '" aria-haspopup="dialog" aria-expanded="false" aria-label="'+escape(subject+' · '+section+
-            (typeLabel?' · '+typeLabel:'')+' · '+clock(e.startTime)+' to '+clock(e.endTime)+' · '+(e.assignedTeacherName||'Unassigned'))+'">'+
+            (accessibleRoles?' · '+accessibleRoles:'')+(e.isAdvisoryActivity?' · Advisory or Homeroom period':'')+
+            ' · '+clock(e.startTime)+' to '+clock(e.endTime)+' · '+(e.assignedTeacherName||'Unassigned'))+'">'+
             '<span class="tt-subject-name">'+escape(subject)+'</span>'+
             '<span class="tt-subject-section">'+escape(section)+'</span>'+
-            (typeLabel?'<span class="tt-subject-relation">'+escape(typeLabel)+'</span>':'')+
+            roleMarkup+
             (e.adjustment?'<span class="tt-change-dot" aria-hidden="true">•</span>':'')+'</button>';
         }).join(''):'<span class="tt-no-class" aria-label="No class">—</span>')+'</td>';
       }).join('')+'</tr>';
@@ -188,7 +201,7 @@
     host.innerHTML='<div class="tt-grid-scroll"><table class="tt-grid" aria-label="Weekly class timetable"><thead><tr><th scope="col" class="tt-time-heading">Time</th>'+heading+
       '</tr></thead><tbody>'+rows+'</tbody></table></div>'+
       '<div class="tt-grid-legend">'+(entries.some(e=>e.teacherScheduleView) ?
-      '<span><i class="tt-legend-advisory"></i>My advisory section</span><span><i class="tt-legend-teaching"></i>Other teaching classes</span><span><i class="tt-legend-homeroom"></i>Advisory / Homeroom activity</span>' :
+      '<span><i class="tt-legend-teaching"></i>My subject class</span><span><i class="tt-legend-advisory"></i>My advisory section</span><span><i class="tt-legend-both"></i>Both roles</span>' :
       '<span><i class="tt-legend-class"></i>Regular class</span>')+
       '<span><i class="tt-legend-adjusted"></i>Temporary change</span><span><i class="tt-legend-cancelled"></i>Cancelled</span>'+
       '<span class="tt-grid-hint">Tap or click a subject for details and authorized actions</span></div>';
