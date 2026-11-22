@@ -2,7 +2,13 @@
 
 // PDF input uses the same validated SF1 commit pipeline as Excel.
 // Text-only parsing: reject unsupported/scanned layouts rather than guessing student data.
-const pdfjs=require('pdfjs-dist/legacy/build/pdf.js');
+// PDF.js 5+ ships ES modules; load it only for a validated SF1 PDF.
+// Avoid ESM imports at server startup when PDF import is not being used.
+let pdfjsModule;
+async function loadPdfjs(){
+  if(!pdfjsModule) pdfjsModule=import('pdfjs-dist/legacy/build/pdf.mjs');
+  return pdfjsModule;
+}
 const {extractName,extractOfficialName,extractOfficialParts,parseSf1Matrix}=require('./sf1-import-parser');
 const {readLayoutPages}=require('./sf1-pdf-layout');
 const MAX_BYTES=5*1024*1024, MAX_PAGES=30;
@@ -72,6 +78,7 @@ async function parseSf1PdfBase64(base64){
   throw Error('Choose a valid PDF no larger than 5 MB.');
  let loadingTask,doc;
  try{
+  const pdfjs=await loadPdfjs();
   loadingTask=pdfjs.getDocument({data:new Uint8Array(data),disableFontFace:true,useSystemFonts:true,isEvalSupported:false,enableScripting:false,stopAtErrors:true});
   doc=await loadingTask.promise;
   if(doc.numPages>MAX_PAGES)throw Error('SF1 PDF must contain at most 30 pages.');
