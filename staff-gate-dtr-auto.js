@@ -62,7 +62,7 @@ async function autoRecordVerifiedGateDtr(client,{schoolId,staffUserId,gateEventI
   const ob=await client.query(
     'SELECT 1 FROM staff_official_business_requests WHERE school_id=$1 AND staff_user_id=$2 '+
     'AND status=\'APPROVED\' AND starts_at < (($3::date + INTERVAL \'1 day\') AT TIME ZONE \'Asia/Manila\') '+
-    'AND ends_at > ($3::date AT TIME ZONE \'Asia/Manila\') LIMIT 1',
+    'AND ends_at > ($3::date::timestamp AT TIME ZONE \'Asia/Manila\') LIMIT 1',
     [schoolId,staffUserId,schoolDate]);
   if(ob.rowCount)return {status:'REVIEW_REQUIRED',reason:'APPROVED_OB_REQUIRES_REVIEW'};
 
