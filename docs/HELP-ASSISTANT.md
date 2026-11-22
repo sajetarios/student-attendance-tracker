@@ -51,3 +51,20 @@ GATE_KEEPER. Confirm different suggested questions, hidden unauthorized
 menus, transcript keyboard input, mobile viewport, voice permission failure,
 dark theme, and that a session expiry never produces a privileged answer.
 Check DTR and attendance remain unchanged after help interaction.
+
+## Accuracy controls and maintenance
+
+The help catalog is a versioned, role-scoped **guide**, not a source of approval authority.
+The currently verified topics are grounded in:
+
+- Staff leave: `public/staff-leave-ui.js` and `public/leave-approval-inbox.js`
+- Official Business: `public/staff-ob-ui.js`
+- Student accounts: `public/student-portal-accounts.js` (inside Students → Portal Accounts)
+- SF1: `public/portal.js` / `sf1-import-routes.js`
+- SF2: `public/portal.js` / `sf2-routes.js`
+- Timetable: `public/schedule-workspace-ui.js`; role navigation in `public/portal.js`
+- Guardian changes: `public/guardian-ui.js`
+
+Whenever a menu, button, role permission or API workflow changes, update `public/attendigo-help-topics.js` and run `node --test tests/attendigo-help-accuracy.test.js tests/attendigo-help.test.js` before release.
+
+Unknown questions are **not** sent to an optional generative model. If the user's actual menu is hidden, Help Guide explains that the feature is unavailable rather than pretending to perform it. A matching guide is not proof that an unauthorized action can be submitted; server-side permissions remain authoritative. The system is not guaranteed to answer every possible question about Attendigo, and the guide cannot certify DepEd legal compliance.
