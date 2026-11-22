@@ -590,6 +590,8 @@
     ],
     "nav": "schedulesNav",
     "keywords": [
+      "school timetable settings",
+      "timetable settings",
       "school settings",
       "operating days",
       "timetable template",
