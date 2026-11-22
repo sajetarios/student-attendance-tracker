@@ -122,6 +122,32 @@
     "note": "Staff gate events, DTR review and final Form 48 certification are distinct."
   },
   {
+    "id": "form48-admin",
+    "title": "Review and print employee Form 48 DTR reports",
+    "roles": [
+      "SCHOOL_ADMIN"
+    ],
+    "nav": "form48ReportsNav",
+    "keywords": [
+      "staff dtr",
+      "employee dtr",
+      "employee form 48",
+      "staff form 48",
+      "print staff dtr",
+      "form48 report",
+      "form 48 report",
+      "review time records",
+      "form 48 reports"
+    ],
+    "steps": [
+      "Open Reports → Form 48 DTR reports (School Admin only), not your personal Gate Attendance & DTR.",
+      "Select the employee and reporting month and generate the preview from verified DTR records.",
+      "Review official hours, punches, OB/leave remarks, missing evidence and authorized adjustment or certification status.",
+      "Use the provided Print / Save PDF control when the review is ready. The print document is formatted as two copies on one A4 portrait page."
+    ],
+    "note": "The printed employee name is not an electronic signature. School Admin review does not invent or infer missing punches."
+  },
+  {
     "id": "official-business",
     "title": "Request Official Business (OB)",
     "roles": [
