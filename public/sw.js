@@ -1,4 +1,4 @@
-const CACHE = "attendigo-v283-pilot-safe-auto-dtr";
+const CACHE = "attendigo-v284-staff-gate-badge-preview";
 
 const SHELL = [
   "/typography.css?v=1",
@@ -55,7 +55,7 @@ const SHELL = [
   "/class-qr-dashboard-link.js?v=11",
   "/teacher-roster-popover.js?v=2",
   "/portal.css?v=0.9.119",
-  "/portal.js?v=222",
+  "/portal.js?v=223",
   "/department-workspace.css?v=1",
   "/department-workspace.js?v=5",
   "/department-monitor-refresh.css?v=1",
@@ -71,7 +71,7 @@ const SHELL = [
   "/form48-report.css?v=12",
   "/smart-attendance-overview.css?v=2",
   "/smart-attendance-overview.js?v=2",
-  "/my-gate-insights.css?v=2",
+  "/my-gate-insights.css?v=3",
   "/staff-lunch-ui.js?v=4",
   "/staff-ob-ui.js?v=5",
   "/staff-ob.css?v=1",

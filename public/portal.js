@@ -5644,21 +5644,70 @@ let teacherActionMenuListenersInstalled = false;
     if(window.matchMedia('(max-width: 860px)').matches)closeMobileSidebar();
   });
   // Sidebar navigation uses delegated native links; do not bind legacy button handlers.
+  // Display the same self-issued, private QR image at full scanning size.
+  // Enlarging or dismissing it is local-only; no gate or DTR action is invoked.
+  let staffBadgeReturnFocus = null;
+  function closeStaffGateBadgePreview() {
+    const modal = $('staffGateBadgeModal'), large = $('staffGateBadgeLargeImage');
+    if (!modal || modal.hidden) return;
+    modal.hidden = true;
+    large.hidden = true;
+    large.removeAttribute('src');
+    document.body.classList.remove('staff-gate-badge-modal-open');
+    const returnFocus = staffBadgeReturnFocus;
+    staffBadgeReturnFocus = null;
+    if (returnFocus?.isConnected) returnFocus.focus({preventScroll:true});
+  }
+  function openStaffGateBadgePreview(trigger) {
+    if (!['SCHOOL_ADMIN','DEPARTMENT_HEAD','TEACHER'].includes(user?.role)) return;
+    const img = $('adminStaffBadgeImage');
+    const modal = $('staffGateBadgeModal'), large = $('staffGateBadgeLargeImage');
+    if (!modal || !large || img?.hidden || !img?.getAttribute('src')) return;
+    staffBadgeReturnFocus = trigger || document.activeElement;
+    large.src = img.getAttribute('src');
+    large.hidden = false;
+    modal.hidden = false;
+    document.body.classList.add('staff-gate-badge-modal-open');
+    $('staffGateBadgeClose').focus({preventScroll:true});
+  }
   $('adminStaffBadgeShow')?.addEventListener('click', async () => {
     if (!['SCHOOL_ADMIN','DEPARTMENT_HEAD','TEACHER'].includes(user?.role)) return;
-    const button = $('adminStaffBadgeShow'), status = $('adminStaffBadgeStatus'), img = $('adminStaffBadgeImage');
+    const button = $('adminStaffBadgeShow'), status = $('adminStaffBadgeStatus');
+    const img = $('adminStaffBadgeImage'), expand = $('adminStaffBadgeExpand');
     button.disabled = true;
     status.textContent = 'Preparing your own staff QR badge…';
     try {
       const data = await api('/api/staff-attendance/my/badge', { method: 'POST' });
+      if (typeof data.qrCode !== 'string' || !data.qrCode.startsWith('data:image/')) {
+        throw new Error('Unable to display the private QR badge.');
+      }
       img.src = data.qrCode;
       img.hidden = false;
-      status.textContent = 'Present this badge to the Gatekeeper for photo-confirmed attendance. Keep it private.';
+      expand.hidden = false;
+      status.textContent = 'Tap the QR to enlarge it for Gatekeeper photo verification. Keep it private.';
+      openStaffGateBadgePreview(button);
     } catch (error) {
+      closeStaffGateBadgePreview();
       img.hidden = true;
       img.removeAttribute('src');
+      expand.hidden = true;
       status.textContent = error.message;
     } finally { button.disabled = false; }
+  });
+  $('adminStaffBadgeExpand')?.addEventListener('click', event => openStaffGateBadgePreview(event.currentTarget));
+  $('staffGateBadgeClose')?.addEventListener('click', closeStaffGateBadgePreview);
+  $('staffGateBadgeModal')?.addEventListener('click', event => {
+    if (event.target === event.currentTarget) closeStaffGateBadgePreview();
+  });
+  $('staffGateBadgeModal')?.addEventListener('keydown', event => {
+    if (event.key === 'Escape') {
+      event.preventDefault();
+      closeStaffGateBadgePreview();
+    } else if (event.key === 'Tab') {
+      // Only the Close button is interactive inside this private preview.
+      event.preventDefault();
+      $('staffGateBadgeClose').focus({preventScroll:true});
+    }
   });
   $('myGateApply')?.addEventListener('click', loadMyGateAttendance);
   $('myGateRefresh')?.addEventListener('click', loadMyGateAttendance);

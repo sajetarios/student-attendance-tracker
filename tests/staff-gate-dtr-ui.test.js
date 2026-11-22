@@ -60,3 +60,24 @@ test('personal DTR history rejects non-self queries and returns only verified fo
  assert.match(block,/31\*86400000/);
  assert.doesNotMatch(block,/req\.query\?\.staffUserId|req\.query\?\.teacherUserId/);
 });
+
+test('private staff gate QR opens a large, keyboard-accessible preview without recording attendance',()=>{
+  const css=fs.readFileSync('public/my-gate-insights.css','utf8');
+  assert.match(html,/id="adminStaffBadgeExpand"[^>]*aria-haspopup="dialog"/);
+  assert.match(html,/id="staffGateBadgeModal"[^>]*role="dialog"[^>]*aria-modal="true"/);
+  assert.match(html,/id="staffGateBadgeLargeImage"/);
+  assert.match(html,/id="staffGateBadgeClose"/);
+  assert.match(portal,/function openStaffGateBadgePreview\(trigger\)/);
+  assert.match(portal,/function closeStaffGateBadgePreview\(\)/);
+  assert.match(portal,/openStaffGateBadgePreview\(button\)/);
+  assert.match(portal,/img\.getAttribute\('src'\)/);
+  assert.match(portal,/if \(event\.key === 'Escape'\)/);
+  assert.match(portal,/if \(event\.target === event\.currentTarget\) closeStaffGateBadgePreview\(\)/);
+  const section=portal.slice(portal.indexOf('function openStaffGateBadgePreview'),portal.indexOf("  $('myGateApply')"));
+  assert.doesNotMatch(section,/\/api\/staff-attendance\/gatekeeper\/dtr|\/api\/staff-attendance\/gatekeeper\/record|\/api\/staff-attendance\/my\/dtr-history/);
+  assert.match(css,/\.staff-gate-badge-modal\{position:fixed/);
+  assert.match(css,/\.staff-gate-badge-large-image\{display:block/);
+  assert.match(css,/#staffGateBadgeModal\[hidden\]/);
+  assertCachedAsset(html,worker,'portal.js',{minimumVersion:223});
+  assertCachedAsset(html,worker,'my-gate-insights.css',{minimumVersion:3});
+});
