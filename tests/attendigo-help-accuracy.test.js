@@ -112,7 +112,7 @@ test('unverified/unauthorized questions never become guessed generative guidance
   assert.ok(aiRoutes.includes('if (!library.match(question, req.auth.role))'));
   assert.ok(aiRoutes.includes("status(422)"));
   assert.ok(aiRoutes.includes('Do not add any steps or UI names not stated'));
-  assert.match(sw,/attendigo-v309-guide-accuracy/);
+  assert.match(sw,/attendigo-v310-help-audit/);
   assert.ok(sw.includes('"/attendigo-help-topics.js?v=2"'));
   assert.ok(sw.includes('"/attendigo-help-guide.js?v=4"'));
 });
