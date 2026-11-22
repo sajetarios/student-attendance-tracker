@@ -227,7 +227,7 @@
     accountControl.disabled=true;
     const today=manilaDate();
     const basis=start.value>today?'Advance-filed':end.value&&end.value<today?
-     'Filed upon return':'During ongoing absence';
+     'Post-absence filing — HR verifies return date':'During ongoing absence';
     sickInfo.textContent=basis+' sick leave: CSC Form No. 6 may be filed immediately after returning to duty. Notify your supervisor of an unexpected absence. '+
      (account==='VSC'?'HR-certified teaching personnel: illness uses Vacation Service Credits (VSC).':
       account==='SL'?'HR-certified regular leave: illness uses Sick Leave (SL).':
@@ -333,7 +333,7 @@
      '<p>'+esc(classify(r.leaveType))+' · '+esc(safeDate(r.startDate))+' to '+esc(safeDate(r.endDate))+'</p>'+
      '<p>Account: '+esc(r.creditAccount)+' · '+esc(r.reason)+'</p>'+
      (r.leaveType==='SICK'?'<p class="leave-help">Filing: '+
-       esc(r.filingBasis==='POST_RETURN'?'Submitted upon return':
+       esc(r.filingBasis==='POST_RETURN'?'Filed after absence; verify return date':
         r.filingBasis==='ADVANCE'?'Submitted in advance':r.filingBasis==='DURING_ABSENCE'?
         'Submitted during absence':'Submission date not classified')+
        ' · Credit account is finalized only after HR certification.</p>':'')+
