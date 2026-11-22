@@ -213,13 +213,13 @@
     const form=document.createElement('form');form.className='leave-inline-form';
     form.innerHTML=textInput('approvalReference','Special Order / signed certification number')+
      textInput('approvedDays','Officially approved credit days',true,'number')+
-     fileInput('file','Official signed Special Order / certification')+
+     fileInput('file',e.entryKind==='OPENING'?'Official HR credit certification':'Official signed Special Order / certification')+
      '<button class="leave-primary" type="submit">Verify credit</button>';
     form.querySelector('[name=approvedDays]').value=e.days;
     form.addEventListener('submit',event=>{
      event.preventDefault();const d=new FormData(form);
      action('Certifying credits',async()=>{
-      const f=d.get('file');if(f instanceof File&&f.size)await upload('/credits/'+e.entryId+'/documents',f,'SPECIAL_ORDER');
+      const f=d.get('file');if(f instanceof File&&f.size)await upload('/credits/'+e.entryId+'/documents',f,e.entryKind==='OPENING'?'CERTIFICATION':'SPECIAL_ORDER');
       return call('/credits/'+e.entryId+'/verify','POST',{
        approvalReference:String(d.get('approvalReference')),approvedDays:Number(d.get('approvedDays'))});
      });
@@ -242,6 +242,27 @@
    const list=document.createElement('div');list.className='leave-list';body.append(list);
    (own.entries||[]).forEach(row=>list.append(creditRow(row)));
    if(!own.entries?.length){list.innerHTML='<p class="leave-empty">No certified or proposed credit transactions yet.</p>';}
+   if(user.role==='SCHOOL_ADMIN'){
+    const importPanel=document.createElement('details');importPanel.className='leave-card';
+    importPanel.innerHTML='<summary>Import certified opening leave balance</summary>'+
+     '<p class="leave-help">Record existing credits from an official HR certificate. This creates a pending entry; attach the certificate and verify separately before any balance is available.</p>'+
+     '<form class="leave-form"><label>Employee<select name="staffUserId" required><option value="">Select employee</option></select></label>'+
+     select('creditAccount','Credit account',[['VSC','Vacation Service Credits'],['VL','Vacation Leave'],['SL','Sick Leave'],['CTO','Compensatory Time Off']])+
+     textInput('openingDays','Existing certified balance (days)',true,'number')+
+     '<label>Notes<textarea name="notes" maxlength="500"></textarea></label>'+
+     '<button class="leave-primary" type="submit">Record pending opening balance</button></form>';
+    const selectStaff=importPanel.querySelector('select[name=staffUserId]');
+    const roster=await call('/staff-roster');
+    (roster.staff||[]).forEach(s=>{
+     const opt=document.createElement('option');opt.value=s.userId;opt.textContent=s.displayName+' ('+s.role.replaceAll('_',' ')+')';selectStaff.append(opt);
+    });
+    importPanel.querySelector('form').addEventListener('submit',event=>{
+     event.preventDefault();const d=new FormData(event.target);
+     action('Importing opening balance',()=>call('/credits/opening','POST',{
+      staffUserId:String(d.get('staffUserId')),creditAccount:String(d.get('creditAccount')),
+      openingDays:Number(d.get('openingDays')),notes:String(d.get('notes')||'')}));
+    });body.append(importPanel);
+   }
    if(user.role==='SCHOOL_ADMIN'){
     const title=document.createElement('h3');title.textContent='Pending staff credit verification';body.append(title);
     const queue=document.createElement('div');queue.className='leave-list';body.append(queue);
