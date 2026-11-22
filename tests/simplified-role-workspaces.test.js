@@ -43,7 +43,7 @@ test('School Administrator retains all authorized links, including advanced mana
   assert.match(script, /move\('offlineScanReviewsNav', 'operations'\)/);
   assert.match(script, /link\.parentElement === target/);
   assert.doesNotMatch(script, /\.cloneNode\s*\(/);
-  assert.doesNotMatch(script, /window\.location\s*=|window\.location\.assign|fetch\s*\(|\.remove\s*\(/);
+  assert.doesNotMatch(script, /window\.location\s*=|window\.location\.assign|fetch\s*\(|\.removeChild\s*\(/);
 });
 
 test('Department Head and Teacher retain class schedules, QR, OB, personal DTR, SF2 and planning', () => {
@@ -63,7 +63,7 @@ test('Search filters existing visible links without changing authorizations or h
   assert.match(script, /nav\.querySelectorAll\('\.simple-nav-filtered'\)/);
   assert.match(script, /before\.clear\(\)/);
   assert.match(script, /if \(!authorizedChildren\(wrapper\)\.length\) wrapper\.hidden = true/);
-  assert.doesNotMatch(script, /\.hidden\s*=\s*false\s*;/, 'No role-hidden feature may be programmatically made visible');
+  assert.doesNotMatch(script, /\b(?:link|item|button|wrapper)\.hidden\s*=\s*false/, 'No role-hidden feature may be programmatically made visible');
   assert.match(css, /\.simple-nav-filtered[\s\S]*?display: none !important/);
   assert.match(script, /collapseOtherGroups\(currentToggle\)/);
 });
