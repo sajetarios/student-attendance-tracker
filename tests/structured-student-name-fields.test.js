@@ -5,6 +5,7 @@ const fs=require('node:fs');
 const path=require('node:path');
 const {extractOfficialParts,extractOfficialName}=require('../sf1-import-parser');
 const formatter=require('../public/student-name-format');
+const {assertCachedAsset}=require('./support/asset-contract');
 const read=pathName=>fs.readFileSync(path.join(__dirname,'..',pathName),'utf8');
 
 test('SF1 LIS triple field provides independently verified names',()=>{
@@ -61,8 +62,6 @@ test('protected APIs and new/edit forms handle three official fields',()=>{
  assert.match(ui,/student\.lastName && student\.firstName/);
  assert.match(ui,/composeParts\(/);
  assert.match(ui,/payload.*fullName/);
- for(const file of ['portal.js?v=221','student-name-format.js?v=2']){
-  assert.ok(read('public/portal.html').includes('/'+file));
-  assert.ok(read('public/sw.js').includes('"/'+file+'"'));
- }
+ assertCachedAsset(page,read('public/sw.js'),'portal.js',{minimumVersion:221});
+ assertCachedAsset(page,read('public/sw.js'),'student-name-format.js',{minimumVersion:2});
 });
