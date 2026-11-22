@@ -1,4 +1,4 @@
-const CACHE = "attendigo-v293-class-qr-admin-merged";
+const CACHE = "attendigo-v294-embedded-class-qr-monitor";
 
 const SHELL = [
   "/typography.css?v=1",
