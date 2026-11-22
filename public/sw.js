@@ -1,11 +1,11 @@
-const CACHE = "attendigo-v301-teacher-current-scanner";
+const CACHE = "attendigo-v302-expanded-navigation";
 
 const SHELL = [
   "/typography.css?v=1",
   "/attendigo-workspace-density-theme.css?v=1",
   "/attendigo-unified-workspace.css?v=1",
   "/attendigo-unified-navigation.js?v=1",
-  "/simplified-workspace.js?v=2",
+  "/simplified-workspace.js?v=3",
   "/simplified-workspace.css?v=1",
   "/teacher-timetable-identities.css?v=2",
   "/schedule-relationships.js?v=2",
@@ -62,7 +62,7 @@ const SHELL = [
   "/teacher-scanner-schedule.js?v=1",
   "/teacher-roster-popover.js?v=2",
   "/portal.css?v=0.9.119",
-  "/portal.js?v=231",
+  "/portal.js?v=232",
   "/department-workspace.css?v=1",
   "/department-workspace.js?v=5",
   "/department-monitor-refresh.css?v=1",
