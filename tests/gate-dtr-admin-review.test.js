@@ -105,7 +105,7 @@ test('admin can inspect safe candidates through a read-only GET',async()=>{
  assert.equal(f.calls.some(x=>/INSERT|DELETE|UPDATE|BEGIN|COMMIT/.test(x.sql)),false);
 });
 test('authorized approval records original server timestamp and audit in one transaction',async()=>{
- const f=fixture(),res=await f.invoke('POST',apply,{body:f.body});
+ const f=fixture(),res=await f.invoke('POST',apply,{body:{...f.body,occurredAt:'2000-01-01T00:00:00Z'}});
  assert.equal(res.code,201);
  assert.equal(res.payload.status,'VERIFIED');
  assert.equal(res.payload.occurredAt,event.occurredAt);
