@@ -65,6 +65,8 @@ test('saved URLs redirect to the embedded view and signed-in roles remain protec
  assert.match(monitor,/if \(!embedded\) location\.replace\('\/portal\.html'\)/);
  assert.match(monitor,/if \(embedded && authorized && !\$\('classQrMonitorView'\)\.hidden\) refresh\(\)/);
  assert.match(legacy,/data-protected-role="STAFF"/);
+ assert.match(sw,/if \(\["\/portal\.html", "\/class-qr-monitor\.html"/);
+
 });
 test('embedded CSS is responsive and isolated from printed reports; all assets are fresh',()=>{
  assert.match(css,/#classQrMonitorView \.class-qr-monitor-stats/);
