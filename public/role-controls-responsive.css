@@ -108,3 +108,92 @@
     scrollbar-width:thin;
   }
 }
+
+/* Button/action alignment pass: avoid inherited fixed widths and nowrap
+   inside shared action rows while preserving menu icons and nav controls. */
+@media screen {
+ body.portal-page :is(.form-actions,.action-row,.toolbar-actions,.filter-actions,.heading-actions)
+   > :is(button,.primary-button,.outline-button,.secondary-button,.compact-button){
+  position:relative;
+  min-width:0;
+  max-width:100%;
+  box-sizing:border-box;
+  flex-shrink:1;
+ }
+ body.portal-page :is(.section-toolbar,.card-heading,.heading-actions,
+   .form-actions,.action-row,.toolbar-actions,.filter-actions){
+  min-width:0;
+  gap:clamp(8px,1vw,14px);
+ }
+ body.portal-page :is(.section-toolbar,.card-heading) > :is(button,.primary-button,.outline-button),
+ body.portal-page :is(.form-actions,.action-row,.toolbar-actions,.filter-actions)
+  > :is(button,.primary-button,.outline-button,.secondary-button){
+  overflow-wrap:anywhere;
+ }
+ /* Attendance evidence buttons can sit beside native dates only when
+    there is enough room. Otherwise each occupies its own row. */
+ body.portal-page .form48-intelligence-controls{
+  min-width:0;
+  column-gap:10px;
+  row-gap:10px;
+ }
+ body.portal-page .form48-intelligence-controls label{
+  min-width:0;
+  max-width:100%;
+ }
+ body.portal-page .form48-intelligence-controls input[type="date"]{
+  min-width:0;
+  max-width:100%;
+  width:100%;
+  box-sizing:border-box;
+ }
+ /* Multi-action table cells can wrap their actions instead of stacking
+    controls over the adjacent column. The table remains scrollable. */
+ body.portal-page :is(.student-row-actions,.teacher-row-actions,.coverage-action-controls,
+   .assign-control,.manual-row-actions){
+  max-width:100%;
+  flex-wrap:wrap;
+  gap:6px;
+ }
+ body.portal-page :is(.student-row-actions,.teacher-row-actions,.coverage-action-controls,
+   .assign-control,.manual-row-actions) :is(button,select,input){
+  min-width:0;
+  max-width:100%;
+  box-sizing:border-box;
+ }
+ body.portal-page :is(.table-scroll,.table-wrap,.manual-table-wrap,.sap-table-wrap)
+   table{
+  max-width:none;
+ }
+}
+@media screen and (max-width:940px){
+ body.portal-page :is(.section-toolbar,.card-heading,.heading-actions,
+   .form-actions,.action-row,.toolbar-actions,.filter-actions){
+  flex-wrap:wrap;
+ }
+ body.portal-page :is(.form-actions,.action-row,.toolbar-actions,.filter-actions)
+   > :is(.primary-button,.outline-button,.secondary-button,.compact-button){
+  white-space:normal;
+  height:auto;
+  min-height:42px;
+ }
+ body.portal-page .form48-intelligence-controls{
+  display:grid;
+  grid-template-columns:minmax(0,1fr);
+  align-items:stretch;
+ }
+ body.portal-page .form48-intelligence-controls label{
+  width:100%;
+  flex:initial;
+ }
+ body.portal-page .form48-intelligence-controls button{
+  width:100%;
+ }
+}
+@media screen and (max-width:540px){
+ body.portal-page :is(.form-actions,.filter-actions)
+   > :is(.primary-button,.outline-button,.secondary-button){
+  flex:1 1 100%;
+  width:100%;
+ }
+}
