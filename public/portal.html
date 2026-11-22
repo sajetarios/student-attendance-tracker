@@ -1311,16 +1311,17 @@ body.dark-mode .content-wrap > .school-heading.is-compact,body[data-theme="dark"
                 <div class="student-scanner-heading"><div><h3 id="gateScannerHeading">Learner and teacher QR scanner</h3><p id="gateScannerDescription">Scan an authorized learner or teacher QR code to identify the person and record attendance.</p></div><button class="outline-button" type="button" id="studentScannerToggle">Open scanner</button></div>
                 <a id="gateOfflineCaptureLink" class="outline-button" href="/gate-offline.html" hidden style="margin:10px 0;display:inline-flex">Offline Gatekeeper · prepare device &amp; scan</a>
                 <div id="gateScanHelp" class="gate-scan-help" hidden>
-                  <div class="gate-scan-help-item"><strong>Learner gate attendance</strong><span>Scan the learner's JHS QR card.</span></div>
-                  <div class="gate-scan-help-item"><strong>Teacher gate attendance</strong><span>Scan the teacher's TCH QR badge.</span></div>
-                  <label id="gateScanTypeWrap" class="gate-scan-type">Who are you recording?
-                    <select id="gateScanType">
-                      <option value="BOTH">Automatic — learners and teachers</option>
-                      <option value="STUDENT">Learner attendance only</option>
-                      <option value="TEACHER">Teacher attendance only</option>
-                    </select>
-                  </label>
-                  <p>The scanner follows your selection. Compare the registered photo, confirm the match, then record time-in or time-out.</p>
+                  <p><strong>Ready to scan:</strong> Open the camera, show the official QR badge, compare the registered photo, then select Verify &amp; Record. Official time comes from the server.</p>
+                  <details class="gate-scan-advanced">
+                    <summary>Advanced: scan only learners or teachers</summary>
+                    <label id="gateScanTypeWrap" class="gate-scan-type">Optional scan filter
+                      <select id="gateScanType">
+                        <option value="BOTH">Automatic — learners and teachers</option>
+                        <option value="STUDENT">Learner attendance only</option>
+                        <option value="TEACHER">Teacher attendance only</option>
+                      </select>
+                    </label>
+                  </details>
                 </div>
                 <div id="studentScannerPanel" hidden>
                   <div id="studentQrReader" class="student-qr-reader"></div>
