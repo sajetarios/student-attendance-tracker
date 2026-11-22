@@ -8,6 +8,10 @@
   let user, open = false, busy = false, apiEnabled = false, lastFocus = null;
   let speaking = false, recognition = null, listening = false, abort = null;
   const $ = id => document.getElementById(id);
+  const robotMarkup = () => '<span class="attendigo-help-robot" aria-hidden="true">'+
+    '<i class="ah-antenna"></i><i class="ah-head"><i class="ah-face">'+
+    '<i class="ah-eye ah-eye-left"></i><i class="ah-eye ah-eye-right"></i><i class="ah-mouth"></i>'+
+    '</i></i><i class="ah-body"><i class="ah-book"></i></i><i class="ah-arm"></i></span>';
   const make = (tag, cls, value) => {
     const element = document.createElement(tag);
     if (cls) element.className = cls;
@@ -204,7 +208,8 @@
   function init(identity) {
     user = identity;
     if (!STAFF_ROLES.has(user?.role) || $('attendigoHelpLauncher')) return;
-    const launcher = make('button', 'attendigo-help-launcher', '✦ Ask Attendigo');
+    const launcher = make('button', 'attendigo-help-launcher');
+    launcher.innerHTML = robotMarkup() + '<span class="attendigo-help-label">Ask Attendigo</span>';
     launcher.id = 'attendigoHelpLauncher';
     launcher.type = 'button';
     launcher.setAttribute('aria-controls', 'attendigoHelpPanel');
@@ -219,7 +224,7 @@
     panel.setAttribute('aria-label', 'Attendigo help assistant');
     panel.innerHTML = `
       <div class="attendigo-help-header">
-        <div><strong>✦ Attendigo Guide</strong><small>Your in-app teacher assistant</small></div>
+        <div class="attendigo-help-brand">${robotMarkup()}<span><strong>Attendigo Guide</strong><small>Your in-app teacher assistant</small></span></div>
         <button id="attendigoHelpClose" type="button" aria-label="Close help assistant">×</button>
       </div>
       <div class="attendigo-help-messages" id="attendigoHelpMessages" aria-label="Help conversation" aria-live="polite" aria-relevant="additions"></div>
@@ -235,7 +240,12 @@
       </form>
       <p class="attendigo-help-status" id="attendigoHelpStatus" role="status" aria-live="polite">Guidance only · No records are modified</p>
       <p class="attendigo-help-disclosure" id="attendigoHelpDisclosure">Built-in guide. Do not share personal details, passwords or private codes.</p>`;
-    document.body.append(launcher, panel);
+    // Header placement prevents the assistant from covering floating scanner,
+    // create, and save actions near the bottom of the dashboard.
+    const headerActions = document.querySelector('.topbar-right');
+    if (headerActions) headerActions.insertBefore(launcher, headerActions.querySelector('.account-menu-wrap'));
+    else document.querySelector('.side-nav')?.append(launcher);
+    document.body.append(panel);
     launcher.addEventListener('click', () => togglePanel());
     $('attendigoHelpClose').addEventListener('click', () => togglePanel(false));
     $('attendigoHelpForm').addEventListener('submit', event => { event.preventDefault(); ask($('attendigoHelpQuestion').value); });
