@@ -2,6 +2,7 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
+const {assertCachedAsset,assertCacheRevisionAtLeast}=require('./support/asset-contract');
 
 const read = file => fs.readFileSync(file, 'utf8');
 const portal = read('public/portal.html');
@@ -41,7 +42,7 @@ test('compact review screen preserves the unverified-only safeguard and audited 
 });
 
 test('new portal navigation is versioned for the service worker', () => {
-  assert.match(portal, /\/portal\.js\?v=213/);
-  assert.match(sw, /"\/portal\.js\?v=213"/);
-  assert.match(sw, /const CACHE = "attendigo-v263-form48-print-proportions"/);
+  assertCachedAsset(portal,sw,'portal.js',{minimumVersion:213});
+  assertCachedAsset(portal,sw,'portal.js',{minimumVersion:213});
+  assertCacheRevisionAtLeast(sw,263);
 });
