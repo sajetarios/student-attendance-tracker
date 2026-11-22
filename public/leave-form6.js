@@ -6,6 +6,27 @@
  const token=sessionStorage.getItem('schoolAttendance.accessToken')||
   (()=>{try{return window.opener?.sessionStorage?.getItem('schoolAttendance.accessToken')||'';}catch{return '';}})();
  const showError=s=>{put('status',s);};
+ // The blank worksheet contains no personal data. It is available before
+ // filing so employees can inspect the actual Form 6 layout safely.
+ if(params.get('template')==='1'){
+  const kinds=['Vacation leave','Mandatory/Forced leave','Sick leave','Maternity leave',
+   'Paternity leave','Special privilege leave','Solo parent leave','Study leave',
+   '10-Day VAWC leave','Rehabilitation privilege','Special leave benefits for women',
+   'Special Emergency (Calamity) leave','Adoption leave','Others (specify)'];
+  const list=$('types');
+  if(list)kinds.forEach(kind=>{
+   const line=document.createElement('span');line.className='checkline';
+   line.textContent='☐ '+kind;list.append(line);
+  });
+  put('salary','_________________');
+  put('workingDays','To be certified by HR');
+  put('dates','_________________');
+  put('commutation','☐ Requested / ☐ Not Requested');
+  put('officialName','Authorized approving official and signature required');
+  put('status','Blank CSC Form No. 6 worksheet — no application submitted. Complete and verify through your school HR office.');
+  $('print')?.addEventListener('click',()=>window.print());
+  return;
+ }
  if(!/^[a-f0-9-]{36}$/i.test(id)||!token){showError('An authenticated school session is required. Open this preview from Leave Management.');return;}
  try{
   const response=await fetch('/api/staff-leave/requests/'+encodeURIComponent(id)+'/form6',{
