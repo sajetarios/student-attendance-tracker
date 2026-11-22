@@ -37,8 +37,9 @@ test('history and dashboard shortcuts use the existing role-guarded view control
  assert.doesNotMatch(controller,/window\.location\.assign\('\/class-qr-monitor\.html'\)/);
 });
 test('the simplified School Admin menu groups monitoring and existing attendance tools in Attendance Management',()=>{
- for(const link of ['offlineScanReviewsNav','myGateAttendanceNav','lunchQrAdminNav','officialBusinessNav'])
+ for(const link of ['offlineScanReviewsNav','myGateAttendanceNav','lunchQrAdminNav'])
   assert.ok(sidebar.includes("move('"+link+"', 'attendanceManagement')"),link+' is lost');
+ assert.ok(sidebar.includes("move('officialBusinessNav', 'operations')"),'OB requests must stay in the approval category');
  assert.match(sidebar,/label\('attendanceManagement', 'Attendance Management'\)/);
  assert.match(sidebar,/group\('attendanceManagement'\), group\('operations'\)/);
  assert.doesNotMatch(sidebar,/\.cloneNode\(/);
