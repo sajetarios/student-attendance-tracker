@@ -24,7 +24,7 @@
   return j;
  }
  const textInput=(name,label,required=true,type='text')=>
-  '<label>'+esc(label)+'<input name="'+esc(name)+'" type="'+esc(type)+'" '+(required?'required':'')+'></label>';
+  '<label>'+esc(label)+'<input name="'+esc(name)+'" type="'+esc(type)+'" '+(type==='number'?'step="0.001" min="0.001" ':'')+(required?'required':'')+'></label>';
  const fileInput=(name,label)=>'<label>'+esc(label)+'<input name="'+esc(name)+'" type="file" accept=".pdf,.jpg,.jpeg,.png,application/pdf,image/jpeg,image/png"></label>';
  const select=(name,label,values)=>
   '<label>'+esc(label)+'<select name="'+name+'">'+values.map(([val,txt])=>'<option value="'+esc(val)+'">'+esc(txt)+'</option>').join('')+'</select></label>';
@@ -92,6 +92,10 @@
     select('commutation','Commutation',[['NOT_REQUESTED','Not requested'],['REQUESTED','Requested']])+
     fileInput('supportingDocument','Supporting document (optional at filing)')+
     '<button type="submit" class="leave-primary">Submit for review</button></form>';
+   details.querySelector('[name=leaveType]').addEventListener('change',e=>{
+    if(e.target.value==='VSC')details.querySelector('[name=creditAccount]').value='VSC';
+    if(['MATERNITY','PATERNITY'].includes(e.target.value))details.querySelector('[name=creditAccount]').value='NONE';
+   });
    details.querySelector('form').addEventListener('submit',e=>{
     e.preventDefault();const f=e.target;if(!f.reportValidity())return;
     const d=new FormData(f);
