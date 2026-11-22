@@ -47,9 +47,22 @@ test('no permission, attendance or OB logic changes in this UI release',()=>{
 });
 test('PWA cache and page assets updated coherently',()=>{
  assertCachedAsset(html,sw,'portal.js',{minimumVersion:209});
- for(const asset of ['admin-request-notifications.js?v=6','admin-approval-navigation.css?v=1']){
+ for(const asset of ['admin-request-notifications.js?v=7','admin-approval-navigation.css?v=1']){
   assert.ok(html.includes(asset),asset+' in page');
   assert.ok(sw.includes(asset),asset+' in service worker');
  }
  assertCacheRevisionAtLeast(sw,254);
+});
+
+test('existing admin photo approval notifications open photo reviews while student links retain their route',()=>{
+ const navigate=universal.slice(universal.indexOf('function navigate(item)'),universal.indexOf('let detail ='));
+ const clicks=[];
+ const context={user:{role:'SCHOOL_ADMIN'},location:{origin:'https://school.test',pathname:'/portal.html'},URL,
+  document:{getElementById:id=>({click:()=>clicks.push(id)}),querySelector:selector=>({click:()=>clicks.push(selector)})}};
+ const run=vm.runInNewContext('('+navigate.trim()+')',context);
+ const legacy={category:'APPROVAL',requestType:'Profile photo',actionUrl:'/portal.html#students'};
+ run(legacy);
+ run({...legacy,requestType:'Student account',actionUrl:'/portal.html#studentAccounts'});
+ assert.deepEqual(clicks,['adminPhotoRequestsShortcut','[data-view="studentAccounts"]']);
+ assert.match(admin,/adminPhotoRequestsShortcut'\)\?\.addEventListener\('click',[\s\S]*?openInbox\(\);[\s\S]*?reviewPanel.hidden=false/);
 });
