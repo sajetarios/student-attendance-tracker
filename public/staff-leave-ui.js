@@ -180,6 +180,43 @@
   }
   async function renderRequests(){
    body.replaceChildren(newRequest());
+   if(user.role==='SCHOOL_ADMIN'){
+    const panel=document.createElement('section');
+    panel.className='leave-card';
+    panel.innerHTML='<div class="leave-section-title"><div><strong>Gate visits during approved leave</strong>'+
+      '<p class="leave-help">Review physical movements that overlap approved leave. A scan does not cancel leave or automatically fill the DTR.</p></div>'+
+      '<label>School date <input type="date" class="leave-overlap-date" required></label>'+
+      '<button class="leave-btn leave-check-overlaps" type="button">Check date</button></div>'+
+      '<div class="leave-overlap-list" role="status" aria-live="polite">Loading…</div>';
+    const fields=new Intl.DateTimeFormat('en-US',{timeZone:'Asia/Manila',year:'numeric',month:'2-digit',day:'2-digit'})
+     .formatToParts(new Date());
+    const val=key=>fields.find(p=>p.type===key)?.value||'';
+    const dateInput=panel.querySelector('.leave-overlap-date');
+    dateInput.value=val('year')+'-'+val('month')+'-'+val('day');
+    const list=panel.querySelector('.leave-overlap-list');
+    async function checkOverlaps(){
+     list.textContent='Checking documented leave and verified gate movements…';
+     try{
+      const data=await call('/overlaps?date='+encodeURIComponent(dateInput.value));
+      list.replaceChildren();
+      if(!data.overlaps?.length){
+       list.textContent='No verified gate movements overlapping approved leave on this date.';
+       return;
+      }
+      data.overlaps.forEach(item=>{
+       const line=document.createElement('div');line.className='leave-overlap-row';
+       const title=document.createElement('strong');title.textContent=item.staffName||'Staff';
+       const detail=document.createElement('span');
+       detail.textContent=item.movementCount+' gate movement(s) · first '+item.firstMovement+
+        ', last '+item.lastMovement+' · HR/DTR review required';
+       line.append(title,detail);list.append(line);
+      });
+     }catch(e){list.textContent='Could not check leave overlaps: '+e.message;}
+    }
+    panel.querySelector('.leave-check-overlaps').addEventListener('click',()=>{void checkOverlaps();});
+    body.append(panel);
+    void checkOverlaps();
+   }
    const header=document.createElement('div');header.className='leave-section-title';header.innerHTML=
     '<h3>Applications and approvals</h3><button class="leave-btn" type="button">Refresh</button>';
    header.querySelector('button').addEventListener('click',()=>load().catch(e=>say(e.message,true)));
