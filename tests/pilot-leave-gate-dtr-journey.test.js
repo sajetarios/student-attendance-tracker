@@ -31,7 +31,7 @@ const requestBody={leaveType:'SICK',creditAccount:'SL',startDate:'2026-11-23',
 
 function fixture(){
  const state={request:null,credit:5,appliedLeaves:[],audits:[],notifications:[],
-  gate:[],dtr:[],signedApproval:false,commits:0,rollbacks:0};
+  gate:[],dtr:[],signedApproval:false,commits:0,rollbacks:0,queryLog:[]};
  const actors={
   [teacher]:{role:'TEACHER',department_id:department,display_name:'Simulated Teacher'},
   [head]:{role:'DEPARTMENT_HEAD',department_id:department,display_name:'Simulated Department Head'},
@@ -43,6 +43,7 @@ function fixture(){
   release(){},
   async query(sql,args=[]){
    const s=String(sql);
+   state.queryLog.push(s.slice(0,350));
    if(s==='BEGIN'||s.startsWith('SAVEPOINT')||s.startsWith('RELEASE SAVEPOINT'))return rows([]);
    if(s==='COMMIT'){state.commits++;return rows([])}
    if(s.startsWith('ROLLBACK')){state.rollbacks++;return rows([])}
@@ -240,7 +241,8 @@ test('seven-step fictional leave, gate and DTR workflow uses real route function
  assert.equal(gateCode,201);
  assert.equal(gateOutput.recordingTarget,'PHYSICAL_GATE');
  assert.equal(gateOutput.autoDtr.status,'REVIEW_REQUIRED');
- assert.equal(gateOutput.autoDtr.reason,'LEAVE_REQUIRES_REVIEW');
+ assert.equal(gateOutput.autoDtr.reason,'LEAVE_REQUIRES_REVIEW',
+  'Recent SQL: '+JSON.stringify(state.queryLog.slice(-15)));
  assert.equal(state.gate.length,1);assert.equal(state.dtr.length,0);
  // 6. Normal Form 48 has approved days and no invented punches;
  // a separate historical punch requires exception handling.
