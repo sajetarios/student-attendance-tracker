@@ -169,6 +169,35 @@ function registerStaffLeaveRoutes(app,pool,{authenticateSchoolClient,requireScho
   }catch(e){await c.query('ROLLBACK').catch(()=>{});sqlErr(res,e);}
   finally{c.release();}
  });
+ app.get('/api/staff-leave/staff-roster',...auth,async(req,res)=>{
+  if(req.auth.role!=='SCHOOL_ADMIN')return res.status(403).json({error:'Only school HR administrators may import staff credit balances.'});
+  try{
+   const q=await pool.query("SELECT user_id AS \"userId\",display_name AS \"displayName\",teacher_position AS \"position\",role FROM school_users WHERE school_id=$1 AND active=TRUE AND role IN ('SCHOOL_ADMIN','DEPARTMENT_HEAD','TEACHER','GATE_KEEPER') ORDER BY display_name LIMIT 1000",[req.auth.schoolId]);
+   res.json({staff:q.rows});
+  }catch(e){sqlErr(res,e);}
+ });
+ app.post('/api/staff-leave/credits/opening',...auth,async(req,res)=>{
+  if(req.auth.role!=='SCHOOL_ADMIN')return res.status(403).json({error:'School HR authorization required.'});
+  const staffId=String(req.body?.staffUserId||''),account=String(req.body?.creditAccount||'').toUpperCase(),
+   days=positiveDays(req.body?.openingDays),note=String(req.body?.notes||'').trim();
+  if(!UUID.test(staffId)||!['VSC','VL','SL','CTO'].includes(account)||!days||note.length>500)
+   return res.status(400).json({error:'Valid employee, account and certified opening days are required.'});
+  const c=await pool.connect();
+  try{
+   await c.query('BEGIN');
+   const staff=await c.query("SELECT 1 FROM school_users WHERE school_id=$1 AND user_id=$2 AND role IN ('TEACHER','DEPARTMENT_HEAD','SCHOOL_ADMIN','GATE_KEEPER')",[req.auth.schoolId,staffId]);
+   if(!staff.rowCount){await c.query('ROLLBACK');return res.status(404).json({error:'Employee not found in this school.'});}
+   await c.query('SELECT pg_advisory_xact_lock(hashtext($1))',[req.auth.schoolId+':credits:'+staffId+':'+account]);
+   const duplicate=await c.query("SELECT 1 FROM staff_leave_credit_entries WHERE school_id=$1 AND staff_user_id=$2 AND credit_account=$3 AND entry_kind='OPENING' AND status<>'VOID' LIMIT 1",[req.auth.schoolId,staffId,account]);
+   if(duplicate.rowCount){await c.query('ROLLBACK');return res.status(409).json({error:'An opening balance already exists for this employee/account. Use documented adjustments after verification.'});}
+   const id=randomUUID();
+   await c.query("INSERT INTO staff_leave_credit_entries(credit_entry_id,school_id,staff_user_id,credit_account,entry_kind,signed_days,activity_kind,status,entered_by_user_id,notes) VALUES($1,$2,$3,$4,'OPENING',$5,'OTHER','PROPOSED',$6,$7)",
+    [id,req.auth.schoolId,staffId,account,days,req.auth.userId,note]);
+   await audit(c,req,'LEAVE_OPENING_BALANCE_PROPOSED',id,{staffUserId:staffId,account,days});
+   await c.query('COMMIT');res.status(201).json({entryId:id,status:'PROPOSED',notice:'Opening balance submitted for supporting certification and verification; it is not yet available.'});
+  }catch(e){await c.query('ROLLBACK').catch(()=>{});sqlErr(res,e);}
+  finally{c.release();}
+ });
  app.get('/api/staff-leave/credits/pending',...auth,async(req,res)=>{
   if(req.auth.role!=='SCHOOL_ADMIN')return res.status(403).json({error:'School HR verification access required.'});
   try{
@@ -222,8 +251,8 @@ function registerStaffLeaveRoutes(app,pool,{authenticateSchoolClient,requireScho
     !(req.auth.role==='SCHOOL_ADMIN'||(req.auth.role==='DEPARTMENT_HEAD'&&e.claimant_role==='SCHOOL_ADMIN'))){
     await c.query('ROLLBACK');return res.status(403).json({error:'A separate authorized verifier is required; only proposed claims can be certified.'});
    }
-   const sourceDoc=await c.query("SELECT 1 FROM staff_leave_documents WHERE school_id=$1 AND credit_entry_id=$2 AND document_kind='SPECIAL_ORDER' LIMIT 1",[req.auth.schoolId,e.credit_entry_id]);
-   if(!sourceDoc.rowCount){await c.query('ROLLBACK');return res.status(409).json({error:'Attach the signed Special Order or official credit certification before granting credits.'});}
+   const sourceDoc=await c.query("SELECT 1 FROM staff_leave_documents WHERE school_id=$1 AND credit_entry_id=$2 AND document_kind IN ('SPECIAL_ORDER','CERTIFICATION') LIMIT 1",[req.auth.schoolId,e.credit_entry_id]);
+   if(!sourceDoc.rowCount){await c.query('ROLLBACK');return res.status(409).json({error:'Attach the signed Special Order or official HR credit certification before granting credits.'});}
    const existing=await c.query('SELECT 1 FROM staff_leave_credit_entries WHERE school_id=$1 AND staff_user_id=$2 AND credit_account=$3 AND activity_kind=$4 AND approval_reference=$5 AND status=\'VERIFIED\' AND entry_kind=\'EARNED\' LIMIT 1',
     [req.auth.schoolId,e.staff_user_id,e.credit_account,e.activity_kind,reference]);
    if(existing.rowCount){await c.query('ROLLBACK');return res.status(409).json({error:'This official reference is already credited for this employee/activity.'});}
