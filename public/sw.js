@@ -1,4 +1,4 @@
-const CACHE = "attendigo-v304-ai-help";
+const CACHE = "attendigo-v305-responsive-login";
 
 const SHELL = [
   "/typography.css?v=1",
@@ -49,7 +49,7 @@ const SHELL = [
   "/teacher-assignment-modal.css?v=1",
   "/portal-login.html",
   "/attendigo-login-motion.css?v=2",
-  "/attendigo-login-refinement.css?v=5",
+  "/attendigo-login-refinement.css?v=6",
   "/portal.css?v=0.9.121",
   "/student-roster-toolbar.css?v=2",
   "/learner-roster-view.css?v=1",
@@ -130,7 +130,7 @@ const SHELL = [
   "/form-system.css?v=1",
   "/password-visibility.css",
   "/password-visibility.js",
-  "/portal-login.js?v=14",
+  "/portal-login.js?v=15",
   "/login-routing.js",
   "/responsive.css?v=0.8.3",
   "/comfort-ui.css?v=0.8.8",
