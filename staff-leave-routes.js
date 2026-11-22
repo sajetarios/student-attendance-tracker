@@ -59,7 +59,14 @@ function registerStaffLeaveRoutes(app,pool,{authenticateSchoolClient,requireScho
    // This is a prefill dataset. Any missing salary, balances, or signatures remain blank.
    const credits=await pool.query('SELECT credit_account,COALESCE(SUM(signed_days) FILTER(WHERE status=\'VERIFIED\'),0) AS balance FROM staff_leave_credit_entries WHERE school_id=$1 AND staff_user_id=$2 GROUP BY credit_account',
     [req.auth.schoolId,row.staff_user_id]);
-   res.json({formVersion:'CS Form No. 6 Revised 2020',request:printable(row),
+   const days=await pool.query(
+    'SELECT COUNT(*)::int AS estimated FROM generate_series($2::date,$3::date,interval \'1 day\') AS dates(day) '+
+    'LEFT JOIN school_operating_days op ON op.school_id=$1 AND op.weekday=EXTRACT(DOW FROM dates.day)::int '+
+    'LEFT JOIN school_calendar_exceptions ce ON ce.school_id=$1 AND ce.calendar_date=dates.day::date '+
+    "WHERE (COALESCE(op.is_operating_day,FALSE)=TRUE OR ce.exception_type IN ('OPEN','SPECIAL_CLASS','SHORTENED_DAY')) " +
+    "AND ce.exception_type IS DISTINCT FROM 'CLOSED'",
+    [req.auth.schoolId,row.start_date,row.end_date]);
+   res.json({formVersion:'CS Form No. 6 Revised 2020',request:printable(row),estimatedSchoolWorkingDays:days.rows[0].estimated,
     credits:credits.rows,applicantSignature:null,certifyingOfficerSignature:null,
     recommendingOfficerSignature:null,approvingOfficerSignature:null,
     officialMonthlySalary:null});
