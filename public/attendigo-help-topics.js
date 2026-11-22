@@ -72,6 +72,13 @@
     ],
     "nav": "studentsNav",
     "keywords": [
+      "scan a teacher qr",
+      "teacher qr",
+      "student qr",
+      "qr card",
+      "scan a teacher",
+      "scan qr",
+      "scan a student",
       "gate scanner",
       "gatekeeper",
       "gate scan",
@@ -129,6 +136,10 @@
     ],
     "nav": "form48ReportsNav",
     "keywords": [
+      "print employee dtr",
+      "review employee dtr",
+      "print staff dtr",
+      "form 48 staff report",
       "staff dtr",
       "employee dtr",
       "employee form 48",
@@ -609,7 +620,7 @@
   function restrictedAnswer(question, role) {
     const q = normalize(question), r = String(role || '');
     if (!['DEPARTMENT_HEAD','SCHOOL_ADMIN'].includes(r) &&
-      /(?:approve|approval|review|recommend|decision).{0,25}leave|leave approvals|leave approval inbox/.test(q))
+      /(?:approve|approval|recommend|official decision).{0,25}leave|leave approvals|leave approval inbox|review (?:department|staff|other|employee) leave/.test(q))
       return {title:'Leave approvals require an authorized reviewer',
         steps:['Teachers submit their own application in Leave Requests; they cannot approve it.',
           'Department Heads can make authorized recommendations. School Admins handle school review and verified official decisions.',
