@@ -29,7 +29,7 @@ function registerStaffLeaveRoutes(app,pool,{authenticateSchoolClient,requireScho
   return row;
  }
  const printable=r=>({
-  requestId:r.request_id,staffUserId:r.staff_user_id,staffName:r.staff_name,
+  requestId:r.request_id,staffUserId:r.staff_user_id,staffName:r.staff_name,staffRole:r.requester_role,
   staffPosition:r.staff_position||'',departmentName:r.department_name||'',schoolName:r.school_name,
   leaveType:r.leave_type,creditAccount:r.credit_account,startDate:r.start_date,
   endDate:r.end_date,reason:r.reason,details:r.details,commutation:r.commutation,
