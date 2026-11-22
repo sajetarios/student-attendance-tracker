@@ -7,6 +7,7 @@ const { registerSmsRoutes } = require('./sms-routes');
 const { startSmsWorker } = require('./sms-service');
 let smsWorker;
 const { Pool } = require('pg');
+const { primaryPoolOptions, handleIdleClientErrors, singleFlight, createDatabaseReadiness } = require('./db-connection-reliability');
 const { runMigrations } = require('./scripts/migrate');
 const { runSupabasePreflight } = require('./scripts/supabase-connection-preflight');
 const { nextStudentId } = require('./generated-record-ids');
@@ -75,7 +76,7 @@ function configurePrimaryDatabase() {
     ssl: { ca, rejectUnauthorized: true }
   };
 }
-const pool = new Pool(configurePrimaryDatabase());
+const pool = handleIdleClientErrors(new Pool(primaryPoolOptions(configurePrimaryDatabase(), { supabasePrimary })));
 if (migrationReadOnly) {
   app.use((req, res, next) => {
     if (req.path === '/api/health') return next();
@@ -2054,16 +2055,7 @@ function isValidSchoolDate(value) {
 
 // Readiness, not just liveness: deployment probes must fail when the primary DB is unavailable.
 // Do not expose connection strings, user data, or backend credentials in the response.
-async function databaseReadiness(_req, res) {
-  res.set('Cache-Control', 'no-store, private');
-  try {
-    await pool.query({ text: 'SELECT 1', query_timeout: 5000 });
-    return res.status(200).json({ ok: true, service: 'school-attendance', database: 'reachable' });
-  } catch (err) {
-    console.error('Readiness DB probe failed:', err.code || err.name || 'unknown');
-    return res.status(503).json({ ok: false, service: 'school-attendance', database: 'unavailable' });
-  }
-}
+const databaseReadiness = createDatabaseReadiness(pool);
 app.get('/health', databaseReadiness);
 
 // Read-only normalized/similar-name preview; always scoped to the authenticated school.
@@ -4433,7 +4425,7 @@ async function processDueTeacherReturns() {
     if (returned) console.log(`Automatically returned ${returned} teacher account(s) from leave.`);
     if (cancelled) console.log(`Automatically ended ${cancelled} temporary substitute cover(s).`);
   } catch (err) {
-    console.error('Automatic teacher return check failed:', err.message);
+    console.error('Automatic teacher return check failed:', err.code || err.name || 'UNKNOWN');
   }
 }
 
@@ -4469,13 +4461,14 @@ async function start() {
   // Remove recovery snapshots 30 days after school deletion, including their
   // child rows via ON DELETE CASCADE. Run at startup and hourly thereafter.
   const { purgeExpiredSchoolDeletionBackups } = require('./platform-school-deletion-routes');
-  const purgeSchoolBackups = () => purgeExpiredSchoolDeletionBackups(pool)
-    .catch(error => console.error('School backup retention worker failed:',error.message));
+  const purgeSchoolBackups = singleFlight(() => purgeExpiredSchoolDeletionBackups(pool)
+    .catch(error => console.error('School backup retention worker failed:', error.code || error.name || 'UNKNOWN')));
   await purgeSchoolBackups();
   const backupRetentionTimer = setInterval(purgeSchoolBackups, 60 * 60 * 1000);
   backupRetentionTimer.unref();
-  await processDueTeacherReturns();
-  const teacherReturnTimer = setInterval(processDueTeacherReturns, 60 * 1000);
+  const checkTeacherReturns = singleFlight(processDueTeacherReturns);
+  await checkTeacherReturns();
+  const teacherReturnTimer = setInterval(() => { void checkTeacherReturns(); }, 60 * 1000);
   teacherReturnTimer.unref();
   // Ensure QR credentials exist before accepting requests; this is a harmless, idempotent compatibility migration.
   await pool.query('ALTER TABLE students ADD COLUMN IF NOT EXISTS qr_token UUID');
@@ -4486,10 +4479,10 @@ async function start() {
   smsWorker = startSmsWorker(pool);
   // Catch up on unacknowledged cloud events immediately after a sleeping Free
   // instance resumes. Existing outbox idempotency prevents duplicate dispatch.
-  const syncOnce=()=>processCloudSyncOutbox(pool)
-    .catch(err=>console.error('Cloud sync worker failed:',err.code||err.message));
+  const syncOnce = singleFlight(() => processCloudSyncOutbox(pool)
+    .catch(err => console.error('Cloud sync worker failed:', err.code || err.name || 'UNKNOWN')));
   void syncOnce();
-  const cloudSyncTimer = setInterval(syncOnce,15 * 1000);
+  const cloudSyncTimer = setInterval(() => { void syncOnce(); }, 15 * 1000);
   cloudSyncTimer.unref();
   const certPath = path.join(__dirname, 'localhost+ip.pem');
   const keyPath = path.join(__dirname, 'localhost+ip-key.pem');
