@@ -41,6 +41,7 @@ const { registerFlexibleScheduleRoutes } = require('./flexible-schedule-routes')
 const { registerClassQrRoutes } = require('./class-qr-routes');
 const { registerStaffLunchRoutes } = require('./staff-lunch-routes');
 const { registerStaffObRoutes } = require('./staff-ob-routes');
+const { registerStaffLeaveRoutes } = require('./staff-leave-routes');
 const { registerDepartmentWorkspaceRoutes } = require('./department-workspace-routes');
 const { registerStaffGateDtrRoutes } = require('./staff-gate-dtr-routes');
 const { registerGateDtrReviewRoutes } = require('./staff-gate-dtr-review-routes');
@@ -201,6 +202,7 @@ registerFlexibleScheduleRoutes(app, pool, { authenticateSchoolClient, requireSch
 registerClassQrRoutes(app, pool, { authenticateSchoolClient, requireSchoolRoles });
 registerStaffLunchRoutes(app, pool, { authenticateSchoolClient, requireSchoolRoles });
 registerStaffObRoutes(app, pool, { authenticateSchoolClient, requireSchoolRoles });
+registerStaffLeaveRoutes(app, pool, { authenticateSchoolClient, requireSchoolRoles });
 registerDepartmentWorkspaceRoutes(app, pool, { authenticateSchoolClient, requireSchoolRoles });
 registerStaffGateDtrRoutes(app, pool, { authenticateSchoolClient, requireSchoolRoles });
 registerGateDtrReviewRoutes(app, pool, { authenticateSchoolClient, requireSchoolRoles });
