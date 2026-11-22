@@ -16,17 +16,7 @@
     remove();
     if (!user) return;
     if (user.role === 'SCHOOL_ADMIN') {
-      // Admins monitor class check-ins instead of presenting teacher QR codes.
-      const attendance = document.getElementById('attendanceManagementNavChildren');
-      if (attendance && !document.getElementById('classQrAdminMonitorNav')) {
-        const monitor = document.createElement('a');
-        monitor.id = 'classQrAdminMonitorNav';
-        monitor.className = 'nav-item';
-        monitor.href = '/class-qr-monitor.html';
-        monitor.title = 'Monitor school-wide class QR attendance';
-        monitor.innerHTML = '<span class="nav-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="3" width="16" height="18" rx="2"/><path d="M8 8h8M8 12h5M8 16h8"/></svg></span><span class="nav-label">Class Attendance</span>';
-        attendance.insertBefore(monitor, document.getElementById('offlineScanReviewsNav'));
-      }
+      // The in-workspace, role-guarded navigation is in portal.html.
       return;
     }
     if (user.role !== 'TEACHER') return;
