@@ -6,6 +6,7 @@ on:
       - fix/render-login-landing
   push:
     branches:
+      - fix/render-login-landing
       - fix/sf1-position-aware-pdf-20261121
       - fix/sf1-safe-profile-recovery-20261121
 
