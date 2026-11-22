@@ -1,0 +1,33 @@
+name: DepEd Leave + DTR Safety
+on:
+  push:
+    branches: [feature/deped-leave-vsc-workflow-20261122]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  leave-and-attendance:
+    runs-on: ubuntu-latest
+    timeout-minutes: 18
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci
+      - name: Syntax check all new modules and existing server
+        run: |
+          node --check server.js
+          node --check staff-leave-routes.js
+          node --check staff-leave-policy.js
+          node --check public/staff-leave-ui.js
+          node --check public/leave-form6.js
+          node --check public/portal.js
+          node --check form48-leave-remarks.js
+      - name: Leave workflow validations
+        run: node --test tests/staff-leave-workflow.test.js
+      - name: Existing gate, OB, Form48 and leave-remarks tests
+        run: node --test tests/gate-event-decision.test.js tests/gate-attendance-boundary.test.js tests/gate-dtr-reconciliation.test.js tests/gate-dtr-preview-route.test.js tests/ob-dtr-remarks.test.js tests/form48-leave-remarks.test.js tests/form48-calculations.test.js tests/staff-gate-dtr-auto.test.js tests/staff-ob-routes.test.js tests/staff-gate-dtr-ui.test.js
+      - name: Migration ordering regression
+        run: node --test tests/migration-chain.test.js
