@@ -86,7 +86,7 @@ test('No new attendance routes; assets match the 305 cache and mobile sidebar st
   assert.ok(html.includes(asset),asset+' HTML');
   assert.ok(sw.includes('"'+asset+'"'),asset+' shell');
  }
- assert.match(sw,/attendigo-v306-robot-help/);
+ assert.match(sw,/attendigo-v307-sidebar-help/);
  assert.match(css,/-webkit-overflow-scrolling:touch/);
  assert.match(css,/overflow-y:auto/);
  assert.doesNotMatch(leave,/INSERT INTO|UPDATE staff_attendance_events|\/api\/gate\/record/);
