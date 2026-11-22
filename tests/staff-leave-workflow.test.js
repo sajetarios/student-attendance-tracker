@@ -42,7 +42,7 @@ test('administrators cannot self-approve; department heads only recommend in the
 test('credit and external approval require documentary evidence; raw gate scans remain independent',()=>{
  const routes=read('staff-leave-routes.js');
  assert.match(routes,/document_kind='APPROVAL'/);
- assert.match(routes,/document_kind='SPECIAL_ORDER'/);
+ assert.match(routes,/document_kind IN \('SPECIAL_ORDER','CERTIFICATION'\)/);
  assert.match(routes,/Insufficient certified/);
  assert.match(routes,/staff_form48_approved_leaves/);
  assert.match(routes,/step==='HEAD'\?'PENDING_ADMIN':'PENDING_EXTERNAL'/);
