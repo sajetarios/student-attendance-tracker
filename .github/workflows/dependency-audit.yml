@@ -1,34 +1,30 @@
-name: Attendigo dependency audit (diagnostic)
+name: Attendigo dependency security gate
 on:
   push:
-    branches: [security/20261122-npm-audit]
+    branches: [fix/render-login-landing]
+  pull_request:
+    branches: [fix/render-login-landing]
   workflow_dispatch:
 permissions:
   contents: read
 jobs:
-  audit:
+  security-and-compatibility:
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: '22'
+          node-version: '24'
           cache: npm
-      - name: Inspect installed dependency security advisories
-        shell: bash
+      - name: Reproducible dependency install
+        run: npm ci --no-audit --no-fund
+      - name: Reject moderate, high, or critical dependency advisories
+        run: npm audit --omit=dev --audit-level=moderate
+      - name: Validate PDF, SF2 and backup compatibility on Node 24
+        run: node --test tests/sf1-pdf-import.test.js tests/sf1-positioned-pdf-layout.test.js tests/sf2-official-template.test.js tests/backup-restore-crypto.test.js
+      - name: Check server and import syntax
         run: |
-          npm ci --ignore-scripts --no-audit --no-fund
-          npm audit --omit=dev --json > "$RUNNER_TEMP/npm-audit.json" || true
-          AUDIT_FILE="$RUNNER_TEMP/npm-audit.json" node - <<'NODE'
-          const fs = require('node:fs');
-          const audit = JSON.parse(fs.readFileSync(process.env.AUDIT_FILE,'utf8'));
-          const summary = Object.entries(audit.vulnerabilities || {}).map(([name, v]) => ({
-            name, severity: v.severity, range: v.range, isDirect: v.isDirect,
-            fixAvailable: v.fixAvailable, via: (v.via || []).map(x =>
-              typeof x === 'string' ? x : { title:x.title, url:x.url, range:x.range, severity:x.severity })
-          }));
-          console.log('AUDIT_SUMMARY_BEGIN');
-          console.log(JSON.stringify({counts: audit.metadata?.vulnerabilities, packages: summary}, null, 2));
-          console.log('AUDIT_SUMMARY_END');
-          NODE
+          node --check server.js
+          node --check sf1-pdf-parser.js
+          node --check sf2-routes.js
