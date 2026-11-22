@@ -123,7 +123,7 @@ test('batch records are tenant scoped, locked, audited, and reversible without D
   'form48SaveSchoolDefaults','form48LeaveCertified'])assert.ok(html.includes('id="'+id+'"'),id);
  assert.match(client,/form48\/leaves\/batch/);
  assert.match(client,/form48\/defaults/);
- assert.match(sw,/form48-bulk-ui\.js\?v=2/);
+ assert.match(sw,/form48-bulk-ui\.js\?v=3/);
 });
 
 test('school certification requires complete and safe school-wide signatories',()=>{
