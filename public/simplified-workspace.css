@@ -129,6 +129,9 @@
   html.attendigo-simple-workspace .simple-workspace-details[open] > summary {
     border-bottom: 1px solid var(--line, var(--ui-line, #d7e2ee));
   }
+  html.attendigo-simple-workspace details.simple-workspace-details:not([open]) > .simple-workspace-details-body {
+    display: none !important;
+  }
   html.attendigo-simple-workspace .simple-workspace-details-body {
     display: grid;
     gap: 10px;
