@@ -1,0 +1,111 @@
+/* Shared responsive control rules for signed-in Attendigo portals.
+   Screen-only: never change DepEd/DTR print layouts or attendance data.
+   Keep native select/date inputs, button semantics, and keyboard focus intact. */
+@media screen {
+  body.portal-page :is(.main-area,.content-wrap,.view-panel,.surface-card,.section-card,
+    .student-page,.parent-page,.field-group,.form-grid,.form-grid > *,
+    .form-actions,.action-row,.toolbar-actions,.section-toolbar,.card-heading,
+    .filter-bar,.filter-row,.filter-controls) {
+    min-inline-size:0;
+  }
+
+  /* Native iOS date/time selectors have an intrinsic width; they may not
+     push the adjacent action outside the card. */
+  body.portal-page :is(input:not([type="checkbox"]):not([type="radio"]),select,textarea) {
+    box-sizing:border-box;
+    max-inline-size:100%;
+  }
+  body.portal-page :is(.field-group,.form-grid,.filter-bar,.filter-row,.filter-controls,
+    .smart-attendance-date-control,.form48-intelligence-controls,.form48-filter)
+    :is(input:not([type="checkbox"]):not([type="radio"]),select,textarea) {
+    min-inline-size:0;
+  }
+  body.portal-page :is(input[type="date"],input[type="time"],input[type="month"]) {
+    max-inline-size:100%;
+  }
+  body.portal-page :is(input[type="date"],input[type="time"],input[type="month"])
+    ::-webkit-date-and-time-value {
+    min-inline-size:0;
+  }
+
+  /* Text buttons can shrink or wrap in dense action bars. Icon-only,
+     QR, navigation and dialog-specific controls keep their own sizes. */
+  body.portal-page :is(.primary-button,.outline-button,.secondary-button,
+    .compact-button,.danger-button) {
+    box-sizing:border-box;
+    min-inline-size:0;
+    max-inline-size:100%;
+    line-height:1.35;
+    overflow-wrap:break-word;
+  }
+  body.portal-page :is(.form-actions,.action-row,.toolbar-actions,.filter-actions,
+    .section-toolbar,.card-heading) {
+    min-inline-size:0;
+    row-gap:8px;
+  }
+  body.portal-page :is(.form-actions,.action-row,.toolbar-actions,.filter-actions)
+    > :is(button,.primary-button,.outline-button,.secondary-button) {
+    max-inline-size:100%;
+    flex-shrink:1;
+  }
+
+  /* Keep full-width selects inside their owner instead of overflowing
+     a grid track on tablet and 200% browser zoom. */
+  body.portal-page :is(.field-group,.form-grid,.filter-bar,.filter-row,.filter-controls)
+    select {
+    min-inline-size:0;
+    max-inline-size:100%;
+    text-overflow:ellipsis;
+  }
+  body.portal-page :is(.field-group,.form-grid,.filter-bar,.filter-row,.filter-controls)
+    label {
+    min-inline-size:0;
+    max-inline-size:100%;
+  }
+
+  /* Preserve data tables as tables, with contained horizontal scrolling.
+     Do not replace cell semantics or hide action columns. */
+  body.portal-page :is(.table-scroll,.table-wrap,.manual-table-wrap,
+    .sap-table-wrap,.student-table-wrap,.teacher-table-wrap) {
+    box-sizing:border-box;
+    display:block;
+    min-inline-size:0;
+    max-inline-size:100%;
+    overflow-x:auto;
+    overscroll-behavior-inline:contain;
+    -webkit-overflow-scrolling:touch;
+  }
+  body.portal-page :is(.table-scroll,.table-wrap,.manual-table-wrap,
+    .sap-table-wrap,.student-table-wrap,.teacher-table-wrap)
+    :is(td,th) {
+    overflow-wrap:break-word;
+  }
+
+  /* Menus remain within the viewport instead of being clipped beyond
+     its inline edge. Existing menu positioning and role guards are untouched. */
+  body.portal-page :is(.account-menu,.account-dropdown,.user-dropdown,
+    .ui-appearance-panel,.teacher-actions-menu) {
+    box-sizing:border-box;
+    max-inline-size:calc(100vw - 24px);
+    overflow-wrap:break-word;
+  }
+}
+@media screen and (max-width:700px) {
+  body.portal-page :is(.section-toolbar,.card-heading,.form-actions,
+    .action-row,.toolbar-actions,.filter-actions) {
+    flex-wrap:wrap;
+  }
+  body.portal-page :is(.form-grid,.filter-row,.filter-controls)
+    > :is(label,.field-group) {
+    min-inline-size:0;
+  }
+  body.portal-page :is(.form-actions,.filter-actions)
+    > :is(.primary-button,.outline-button,.secondary-button) {
+    white-space:normal;
+    min-block-size:42px;
+  }
+  body.portal-page .table-scroll,
+  body.portal-page .table-wrap {
+    scrollbar-width:thin;
+  }
+}
