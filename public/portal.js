@@ -2080,6 +2080,44 @@ function coverageStatusLabel(status) {
     await showGatePersonResult(student, 'STUDENT');
   }
 
+  function gateLeaveBlocksDtr(person) {
+    return ['ACTIVE','ON_LEAVE_REVIEW'].includes(person?.leaveStatus?.status);
+  }
+  function friendlyLeaveDate(iso) {
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(String(iso || ''))) return 'date unavailable';
+    return new Intl.DateTimeFormat('en-PH',{timeZone:'UTC',month:'short',day:'numeric',year:'numeric'})
+      .format(new Date(iso + 'T12:00:00Z'));
+  }
+  function showGateLeaveBanner(person, isTeacherPerson) {
+    const el = $('studentScanNoticeLeave');
+    if (!el) return;
+    el.replaceChildren();
+    el.hidden = true;
+    el.classList.remove('leave-review');
+    if (!isTeacherPerson || !gateLeaveBlocksDtr(person)) return;
+    const leave = person.leaveStatus, active = leave.status === 'ACTIVE';
+    el.classList.toggle('leave-review', !active);
+    const title = document.createElement('strong');
+    title.textContent = active ? 'On Approved Leave' : 'Leave status on record — HR review';
+    const dates = document.createElement('span');
+    dates.className = 'leave-window';
+    dates.textContent = friendlyLeaveDate(leave.startDate) + ' – ' +
+      friendlyLeaveDate(leave.endDate) + ' (inclusive)';
+    const guidance = document.createElement('span');
+    guidance.className = 'leave-guidance';
+    guidance.textContent = 'Physical gate movement may be recorded after photo verification. ' +
+      'This does not establish return-to-duty or automatically fill the DTR. ' +
+      'Overlapping attendance requires authorized review.';
+    el.append(title,dates);
+    if (active && leave.approvalReference) {
+      const reference = document.createElement('span');
+      reference.textContent = 'Approval reference: ' + leave.approvalReference;
+      el.append(reference);
+    }
+    el.append(guidance);
+    el.hidden = false;
+  }
+
   async function showGatePersonResult(person, personType) {
     const isTeacherPerson = personType === 'TEACHER';
     const fullName = person.fullName || person.displayName || 'Unknown';
@@ -2118,6 +2156,7 @@ function coverageStatusLabel(status) {
       : (isTeacherPerson ? 'Teacher identity found' : 'Learner identity found');
     $('studentScanNoticeName').textContent = fullName;
     $('studentScanNoticeMeta').textContent = meta;
+    showGateLeaveBanner(person,isTeacherPerson);
     const noticeCopy = document.querySelector('.student-scan-notice-copy');
     if (noticeCopy) noticeCopy.textContent = `Compare the displayed registered ${isTeacherPerson ? 'teacher' : 'learner'} photo before recording gate attendance.`;
     const noticePhoto = $('studentScanNoticePhoto');
@@ -2149,10 +2188,11 @@ function coverageStatusLabel(status) {
     if (isGateVerification && isTeacherPerson) {
       const fallback = $('studentScanResult').querySelector('.gate-dtr-fallback');
       if (fallback) {
+        fallback.hidden = gateLeaveBlocksDtr(person);
         noticeDtr.appendChild(fallback);
         // This explicit, authorized action also confirms the photo in the same dialog.
         const dtrButton = $('teacherDtrRecord');
-        dtrButton.disabled = !photo;
+        dtrButton.disabled = !photo || gateLeaveBlocksDtr(person);
       }
     }
     $('studentScanNotice').hidden = false;
@@ -2178,7 +2218,7 @@ function coverageStatusLabel(status) {
         !($('teacherGateEventPreview')?.dataset.previewBlocked === 'true');
       $('studentTimeIn').disabled = !verified;
       $('studentTimeOut').disabled = !verified;
-      if ($('teacherDtrRecord')) $('teacherDtrRecord').disabled = !verified;
+      if ($('teacherDtrRecord')) $('teacherDtrRecord').disabled = !verified || gateLeaveBlocksDtr(scannedTeacher);
     });
     $('studentScanClear').addEventListener('click', () => {
       scannedStudent = null; scannedTeacher = null;
@@ -2204,7 +2244,9 @@ function coverageStatusLabel(status) {
         if (previewElement) {
           previewElement.textContent = preview.status === 'READY'
             ? 'Predicted gate movement: ' + preview.label + ' · ' + preview.localTime +
-              ' (Philippine time). A clear, verified scan can fill the matching DTR time; OB and uncertain scans require review.'
+              (gateLeaveBlocksDtr(person)
+                ? ' (Philippine time). Leave overlaps today: physical movement only; DTR requires authorized review.'
+                : ' (Philippine time). A clear, verified scan can fill the matching DTR time; OB and uncertain scans require review.')
             : 'Gate movement requires review: ' + (preview.reason || preview.status);
         }
         if (previewElement) previewElement.dataset.previewBlocked = String(preview.status !== 'READY');
@@ -2251,7 +2293,7 @@ function coverageStatusLabel(status) {
         SCHEDULE_UNAVAILABLE:'school working hours are not configured',
         NOT_SCHEDULED_WORKDAY:'this is outside the regular work schedule',
         APPROVED_OB_REQUIRES_REVIEW:'approved official business needs a review',
-        LEAVE_REQUIRES_REVIEW:'the employee has leave on record',
+        LEAVE_REQUIRES_REVIEW:'a documented leave period overlaps this movement; school HR/DTR review is required',
         CALENDAR_EXCEPTION:'the school calendar needs review',
         MORNING_ARRIVAL_UNCONFIRMED:'a morning arrival was not established'
       };
