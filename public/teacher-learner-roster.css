@@ -497,3 +497,38 @@ body[data-theme="dark"] #studentsView.teacher-directory-mode .teacher-roster-sec
 body.dark-mode #studentsView.teacher-directory-mode .teacher-roster-section.is-unassigned{
   color:#ffdfa2;background:#594326;border-color:#836438;
 }
+
+/* Fix: fixed-layout tables size columns from TH, not TD. At iPad width the
+   former Select header received an equal share (~20%), despite an 18px box.
+   Reserve just 48px and give remaining space to learner / class / quick actions.
+   nth-last-child keeps the same widths with or without an authorized selection. */
+@media (min-width:701px) {
+  #studentsView #studentRosterTable.teacher-roster-compact {
+    table-layout:fixed;
+  }
+  #studentsView #studentRosterTable.teacher-roster-compact thead th:nth-last-child(4) {
+    width:39%;box-sizing:border-box;
+  }
+  #studentsView #studentRosterTable.teacher-roster-compact thead th:nth-last-child(3) {
+    width:24%;box-sizing:border-box;
+  }
+  #studentsView #studentRosterTable.teacher-roster-compact thead th:nth-last-child(2) {
+    width:9%;box-sizing:border-box;
+  }
+  #studentsView #studentRosterTable.teacher-roster-compact thead th:last-child {
+    width:auto;
+  }
+  #studentsView #studentRosterTable.teacher-roster-compact.teacher-roster-with-selection thead th:first-child {
+    width:48px;min-width:48px;max-width:48px;box-sizing:border-box;
+    padding:9px 4px;text-align:center;
+  }
+  #studentsView #studentRosterTable.teacher-roster-compact.teacher-roster-with-selection tbody td[data-label="Select"] {
+    box-sizing:border-box;width:48px;min-width:48px;max-width:48px;
+    padding:6px 4px;text-align:center;
+  }
+  #studentsView #studentRosterTable.teacher-roster-compact.teacher-roster-with-selection tbody td[data-label="Select"] .student-select-box {
+    display:block;margin:0 auto;
+  }
+}
+/* On phones, learner cards retain the existing top-right selection placement;
+   do not impose desktop table-column widths on responsive cards. */
