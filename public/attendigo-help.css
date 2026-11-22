@@ -1,0 +1,119 @@
+/* Standalone, non-invasive Attendigo Help Assistant. */
+.attendigo-help-launcher{
+  position:fixed;right:clamp(12px,2vw,26px);bottom:calc(16px + env(safe-area-inset-bottom,0px));
+  z-index:9600;display:inline-flex;align-items:center;justify-content:center;
+  gap:9px;min-height:50px;padding:11px 18px;border:1px solid rgba(255,255,255,.23);
+  border-radius:99px;background:#0c76a9;color:#fff;
+  font:750 14px/1.2 inherit;letter-spacing:.01em;box-shadow:0 8px 24px rgba(6,40,68,.3);
+  cursor:pointer;white-space:nowrap;
+}
+.attendigo-help-launcher:hover{background:#075d89;transform:translateY(-1px)}
+.attendigo-help-launcher:focus-visible,.attendigo-help-panel button:focus-visible,
+.attendigo-help-panel textarea:focus-visible,.attendigo-help-panel select:focus-visible{
+ outline:3px solid #f6b641;outline-offset:2px
+}
+.attendigo-help-panel[hidden]{display:none!important}
+.attendigo-help-panel{
+  position:fixed;right:clamp(12px,2vw,26px);bottom:calc(80px + env(safe-area-inset-bottom,0px));
+  z-index:9601;box-sizing:border-box;width:min(410px,calc(100vw - 24px));
+  max-height:min(660px,calc(100dvh - 112px));min-height:340px;
+  display:flex;flex-direction:column;overflow:hidden;
+  background:#fff;color:#15334b;border:1px solid #d2e1ee;border-radius:19px;
+  box-shadow:0 22px 65px rgba(13,38,64,.26);font:400 14px/1.5 inherit;
+}
+.attendigo-help-panel *{box-sizing:border-box}
+.attendigo-help-header{display:flex;justify-content:space-between;align-items:center;gap:12px;
+  flex:0 0 auto;padding:15px 17px;color:#fff;background:linear-gradient(105deg,#0c517d,#1381b0)}
+.attendigo-help-header strong{display:block;font-size:17px;font-weight:800;line-height:1.35}
+.attendigo-help-header small{display:block;font-size:11px;opacity:.86;margin-top:2px}
+.attendigo-help-header button{display:grid;place-items:center;width:36px;height:36px;
+  border:1px solid rgba(255,255,255,.3);border-radius:10px;background:rgba(255,255,255,.12);
+  color:#fff;font-size:25px;cursor:pointer}
+.attendigo-help-messages{flex:1 1 auto;min-height:110px;overflow:auto;overscroll-behavior:contain;
+  padding:15px 14px 7px;background:#f6f9fd;scrollbar-width:thin}
+.attendigo-help-msg{max-width:96%;padding:11px 13px;margin-bottom:13px;
+  border:1px solid #dbe6f1;border-radius:14px;background:#fff;overflow-wrap:anywhere}
+.attendigo-help-msg-user{margin-left:auto;background:#e2f3ff;border-color:#b5def8}
+.attendigo-help-msg-label{display:block;font-size:10px;font-weight:800;
+  text-transform:uppercase;letter-spacing:.065em;color:#54748c;margin-bottom:4px}
+.attendigo-help-msg-body{font-size:13px;line-height:1.55;white-space:pre-line;color:#203e57}
+.attendigo-help-msg-body:has(.attendigo-help-steps){white-space:normal}
+.attendigo-help-steps{margin:8px 0 0;padding-left:19px}
+.attendigo-help-steps li{margin:0 0 7px;line-height:1.5}
+.attendigo-help-note{margin:8px 0 0;border-left:3px solid #7eb9dc;padding-left:9px;
+  color:#577087;font-size:12px;line-height:1.5}
+.attendigo-help-go{display:block;width:100%;margin:10px 0 2px;padding:9px 10px;
+  background:#0c76a9;border:1px solid #0c76a9;border-radius:9px;
+  color:#fff;font:700 13px/1.4 inherit;cursor:pointer;text-align:center}
+.attendigo-help-read{display:block;margin:6px 0 0;padding:3px 0;
+  font:600 12px/1.4 inherit;color:#146b9b;background:transparent;border:0;cursor:pointer}
+.attendigo-help-suggestions{display:flex;gap:7px;overflow:auto;flex:0 0 auto;max-width:100%;
+  padding:9px 12px;background:#f6f9fd;border-top:1px solid #e9eff5;
+  scrollbar-width:thin}
+.attendigo-help-chip{flex:0 0 auto;border:1px solid #c8deef;border-radius:30px;
+  background:#fff;color:#1c567a;padding:6px 10px;
+  font:650 12px/1.3 inherit;cursor:pointer}
+.attendigo-help-chip:hover{background:#e8f5fd}
+.attendigo-help-form{flex:0 0 auto;margin:0;padding:10px 13px 8px;
+  border-top:1px solid #e1eaf2;background:#fff}
+.attendigo-help-form label{display:block;margin-bottom:4px;color:#42627b;
+  font-size:11px;font-weight:750}
+.attendigo-help-form textarea{display:block;width:100%;min-height:58px;max-height:106px;
+  padding:9px 11px;font:400 14px/1.45 inherit;border:1px solid #c6d9e7;
+  border-radius:10px;color:#203a50;background:#fff;resize:vertical}
+.attendigo-help-controls{display:flex;align-items:center;justify-content:flex-end;gap:7px;margin-top:7px}
+.attendigo-help-controls select{height:36px;margin-right:auto;padding:0 8px;
+  font:600 12px inherit;color:#234660;background:#fff;border:1px solid #cfdeeb;border-radius:9px}
+.attendigo-help-controls button{height:36px;min-width:38px;padding:0 12px;border:1px solid #cadde9;
+  border-radius:9px;font:750 13px inherit;cursor:pointer;background:#e9f3f9;color:#174967}
+.attendigo-help-controls #attendigoHelpSend{background:#0c76a9;color:#fff;border-color:#0c76a9}
+.attendigo-help-controls button:disabled{opacity:.5;cursor:not-allowed}
+.attendigo-help-controls .is-listening{background:#fee2e2;color:#991b1b;border-color:#fecaca}
+.attendigo-help-status,.attendigo-help-disclosure{flex:0 0 auto;margin:0;
+  padding:1px 13px 5px;background:#fff;font-size:11px;line-height:1.45;color:#5a7184}
+.attendigo-help-status.is-error{color:#a8273e;font-weight:650}
+.attendigo-help-disclosure{padding-bottom:11px;font-size:10px}
+html[data-theme="dark"] .attendigo-help-panel,
+html[data-ui-theme="dark"] .attendigo-help-panel,
+body.dark-mode .attendigo-help-panel,
+body.theme-dark .attendigo-help-panel{
+  background:#142639;color:#eff7fc;border-color:#31516b;
+}
+html[data-theme="dark"] .attendigo-help-panel :is(.attendigo-help-form,.attendigo-help-status,.attendigo-help-disclosure),
+html[data-ui-theme="dark"] .attendigo-help-panel :is(.attendigo-help-form,.attendigo-help-status,.attendigo-help-disclosure),
+body.dark-mode .attendigo-help-panel :is(.attendigo-help-form,.attendigo-help-status,.attendigo-help-disclosure),
+body.theme-dark .attendigo-help-panel :is(.attendigo-help-form,.attendigo-help-status,.attendigo-help-disclosure){background:#142639;color:#bbcbda}
+html[data-theme="dark"] .attendigo-help-panel :is(.attendigo-help-messages,.attendigo-help-suggestions),
+html[data-ui-theme="dark"] .attendigo-help-panel :is(.attendigo-help-messages,.attendigo-help-suggestions),
+body.dark-mode .attendigo-help-panel :is(.attendigo-help-messages,.attendigo-help-suggestions),
+body.theme-dark .attendigo-help-panel :is(.attendigo-help-messages,.attendigo-help-suggestions){background:#101f2e;border-color:#31516b}
+html[data-theme="dark"] .attendigo-help-panel .attendigo-help-msg,
+html[data-ui-theme="dark"] .attendigo-help-panel .attendigo-help-msg,
+body.dark-mode .attendigo-help-panel .attendigo-help-msg,
+body.theme-dark .attendigo-help-panel .attendigo-help-msg{
+  background:#1e344b;border-color:#38566f;color:#f0f6fb
+}
+html[data-theme="dark"] .attendigo-help-panel .attendigo-help-msg-user,
+html[data-ui-theme="dark"] .attendigo-help-panel .attendigo-help-msg-user,
+body.dark-mode .attendigo-help-panel .attendigo-help-msg-user,
+body.theme-dark .attendigo-help-panel .attendigo-help-msg-user{background:#153c58}
+html[data-theme="dark"] .attendigo-help-panel :is(.attendigo-help-msg-body,.attendigo-help-note,.attendigo-help-msg-label),
+html[data-ui-theme="dark"] .attendigo-help-panel :is(.attendigo-help-msg-body,.attendigo-help-note,.attendigo-help-msg-label),
+body.dark-mode .attendigo-help-panel :is(.attendigo-help-msg-body,.attendigo-help-note,.attendigo-help-msg-label),
+body.theme-dark .attendigo-help-panel :is(.attendigo-help-msg-body,.attendigo-help-note,.attendigo-help-msg-label){color:#d6e5f2}
+html[data-theme="dark"] .attendigo-help-panel :is(textarea,select,.attendigo-help-chip),
+html[data-ui-theme="dark"] .attendigo-help-panel :is(textarea,select,.attendigo-help-chip),
+body.dark-mode .attendigo-help-panel :is(textarea,select,.attendigo-help-chip),
+body.theme-dark .attendigo-help-panel :is(textarea,select,.attendigo-help-chip){
+ background:#203b52;color:#eaf6ff;border-color:#4b687e
+}
+@media(max-width:600px){
+ .attendigo-help-launcher{right:12px;bottom:calc(12px + env(safe-area-inset-bottom,0px));
+   min-height:46px;padding:10px 14px;font-size:12px}
+ .attendigo-help-panel{right:10px;bottom:calc(70px + env(safe-area-inset-bottom,0px));
+   width:calc(100vw - 20px);max-height:calc(100dvh - 94px);border-radius:16px}
+ .attendigo-help-header{padding:12px 14px}
+ .attendigo-help-messages{padding:12px 10px 4px}
+}
+@media(max-height:580px){.attendigo-help-panel{max-height:calc(100dvh - 90px);min-height:210px}}
+@media(prefers-reduced-motion:reduce){.attendigo-help-launcher{transition:none!important;transform:none!important}}
