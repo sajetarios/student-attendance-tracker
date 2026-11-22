@@ -48,6 +48,7 @@
    '<button class="leave-close" id="leaveClose" type="button" aria-label="Close Leave Management">✕</button></div>'+
    '<div class="leave-tabs" role="tablist" aria-label="Leave Management sections">'+
    '<button type="button" class="is-active" data-leave-tab="requests">Leave requests</button>'+
+   '<button type="button" data-leave-tab="inbox">Approval inbox</button>'+
    '<button type="button" data-leave-tab="credits">Service credits</button></div>'+
    '<div class="leave-body" id="leaveBody"></div><div class="leave-message" id="leaveMessage" role="status" aria-live="polite"></div></div>';
   document.body.append(dialog);
@@ -108,7 +109,10 @@
    if($('accountProfileDialog')?.open)void refreshProfileLeave();
   });
 
-  let tab='requests',busy=false;
+  const reviewer=user.role==='SCHOOL_ADMIN'||user.role==='DEPARTMENT_HEAD';
+  dialog.querySelector('[data-leave-tab="inbox"]').hidden=!reviewer;
+  window.AttendigoLeaveInbox?.attachNav(button,user,call);
+  let tab=reviewer?'inbox':'requests',busy=false;
   const say=(value,error=false)=>{message.textContent=value;message.classList.toggle('is-error',error);};
   const buttonFor=(label,cb)=>{
    const b=document.createElement('button');b.type='button';b.className='leave-btn';
@@ -124,7 +128,11 @@
   };
   async function load(){
    if(tab==='requests')await renderRequests();
-   else await renderCredits();
+   else if(tab==='inbox'){
+    if(!window.AttendigoLeaveInbox)throw Error('Leave Approval Inbox is unavailable. Refresh the application.');
+    await window.AttendigoLeaveInbox.render({body,user,call,upload,action,message,
+     openRequests:()=>selectTab('requests')});
+   }else await renderCredits();
   }
   const selectTab=next=>{
    tab=next;
@@ -134,10 +142,15 @@
   };
   dialog.querySelectorAll('[data-leave-tab]').forEach(b=>b.addEventListener('click',()=>selectTab(b.dataset.leaveTab)));
   $('leaveClose').addEventListener('click',()=>dialog.close());
-  button.addEventListener('click',()=>{
+  const openLeaveInbox=()=>{
    if(!dialog.open)dialog.showModal();
-   selectTab('requests');
-  });
+   selectTab(reviewer?'inbox':'requests');
+  };
+  button.addEventListener('click',openLeaveInbox);
+  document.addEventListener('attendigo:open-leave-inbox',openLeaveInbox);
+  const handleLeaveHash=()=>{if(location.hash==='#leaveManagement')openLeaveInbox();};
+  window.addEventListener('hashchange',handleLeaveHash);
+  if(location.hash==='#leaveManagement')handleLeaveHash();
   function newRequest(){
    const details=document.createElement('details');details.className='leave-card';details.innerHTML=
     '<summary>New leave application</summary><form id="leaveNewForm" class="leave-form">'+
