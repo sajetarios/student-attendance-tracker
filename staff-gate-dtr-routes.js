@@ -36,7 +36,7 @@ function registerStaffGateDtrRoutes(app,pool,{authenticateSchoolClient,requireSc
        to_char(ends_at AT TIME ZONE 'Asia/Manila','HH24:MI') AS "end"
       FROM staff_official_business_requests WHERE school_id=$1 AND staff_user_id=$2 AND status='APPROVED'
        AND starts_at<(($3::date+INTERVAL '1 day') AT TIME ZONE 'Asia/Manila')
-       AND ends_at>($3::date AT TIME ZONE 'Asia/Manila')`,[schoolId,staffUserId,date]),
+       AND ends_at>($3::date::timestamp AT TIME ZONE 'Asia/Manila')`,[schoolId,staffUserId,date]),
     pool.query(`SELECT exception_type FROM school_calendar_exceptions WHERE school_id=$1
        AND calendar_date=$2::date AND exception_type IN ('CLOSED','SHORTENED_DAY')`,[schoolId,date])
    ]);
@@ -104,7 +104,7 @@ function registerStaffGateDtrRoutes(app,pool,{authenticateSchoolClient,requireSc
       FROM staff_official_business_requests
       WHERE school_id=$1 AND status='APPROVED'
        AND starts_at<(($2::date+INTERVAL '1 day') AT TIME ZONE 'Asia/Manila')
-       AND ends_at>($2::date AT TIME ZONE 'Asia/Manila')`,[schoolId,date]),
+       AND ends_at>($2::date::timestamp AT TIME ZONE 'Asia/Manila')`,[schoolId,date]),
      pool.query(`SELECT exception_type FROM school_calendar_exceptions
       WHERE school_id=$1 AND calendar_date=$2::date
        AND exception_type IN ('CLOSED','SHORTENED_DAY')`,[schoolId,date])
@@ -234,7 +234,7 @@ function registerStaffGateDtrRoutes(app,pool,{authenticateSchoolClient,requireSc
        FROM staff_official_business_requests WHERE school_id=$1 AND staff_user_id=$2
        AND status='APPROVED'
        AND starts_at<(($4::date + INTERVAL '1 day') AT TIME ZONE 'Asia/Manila')
-       AND ends_at>($3::date AT TIME ZONE 'Asia/Manila')
+       AND ends_at>($3::date::timestamp AT TIME ZONE 'Asia/Manila')
        ORDER BY starts_at ASC`,[req.auth.schoolId,req.auth.userId,from,to]),
      pool.query(`SELECT "schoolDate","eventType","occurredAt" FROM (
        SELECT to_char(school_date,'YYYY-MM-DD') AS "schoolDate",
@@ -338,8 +338,8 @@ function registerStaffGateDtrRoutes(app,pool,{authenticateSchoolClient,requireSc
       pool.query(`SELECT request_id AS "requestId",purpose,destination,starts_at AS "startsAt",ends_at AS "endsAt"
         FROM staff_official_business_requests
         WHERE school_id=$1 AND staff_user_id=$2 AND status='APPROVED'
-          AND starts_at < ($4::date AT TIME ZONE 'Asia/Manila')
-          AND ends_at > ($3::date AT TIME ZONE 'Asia/Manila')
+          AND starts_at < ($4::date::timestamp AT TIME ZONE 'Asia/Manila')
+          AND ends_at > ($3::date::timestamp AT TIME ZONE 'Asia/Manila')
         ORDER BY starts_at ASC`,[req.auth.schoolId,staffUserId,from,to]),
       pool.query(`SELECT "schoolDate","eventType","occurredAt" FROM (
         SELECT to_char(school_date,'YYYY-MM-DD') AS "schoolDate",
