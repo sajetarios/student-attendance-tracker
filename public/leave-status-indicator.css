@@ -1,0 +1,30 @@
+/* Minimal, role-safe leave banners. Do not modify scan controls or Form48 formatting. */
+.attendigo-leave-indicator,
+.attendigo-profile-leave-status {
+ display:flex; flex-direction:column; align-items:flex-start; gap:5px;
+ width:100%; text-align:left; border-radius:12px;
+ padding:13px 15px; margin:10px 0;
+ border:1px solid #e4bc79; background:#fff8e8; color:#704b10;
+ box-sizing:border-box; font-size:13px; line-height:1.45;
+}
+.attendigo-leave-indicator[hidden],
+.attendigo-profile-leave-status[hidden] {display:none !important;}
+.attendigo-leave-indicator strong,
+.attendigo-profile-leave-status strong {font-size:14px; font-weight:750; color:#774708;}
+.attendigo-leave-indicator .leave-window,
+.attendigo-profile-leave-status .leave-window {font-variant-numeric:tabular-nums; font-weight:700;}
+.attendigo-leave-indicator .leave-guidance,
+.attendigo-profile-leave-status .leave-guidance {font-size:12px; color:#705b38;}
+.attendigo-profile-leave-status.leave-upcoming {border-color:#b7cbdc;background:#edf6fb;color:#244e66;}
+.attendigo-profile-leave-status.leave-upcoming strong {color:#1e5379;}
+.attendigo-profile-leave-status.leave-review,
+.attendigo-leave-indicator.leave-review {background:#f7f3ee;border-color:#d3b6a0;color:#7a4c38;}
+.attendigo-profile-leave-status.leave-review strong,
+.attendigo-leave-indicator.leave-review strong {color:#8b4233;}
+.attendigo-profile-leave-status.leave-unavailable {background:#f5f6f8;border-color:#cbd2dc;color:#4b6070;}
+#studentScanNoticeLeave{max-width:min(100%,480px);margin:10px auto 4px;}
+#accountProfileLeaveStatus{margin:8px 0 14px;}
+@media(max-width:540px){
+ #studentScanNoticeLeave{padding:10px 12px;font-size:12px}
+ #accountProfileLeaveStatus{padding:10px 12px}
+}
