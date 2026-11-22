@@ -17,30 +17,24 @@ test('School Admin attendance category has the offline queue while academics kee
   assert.match(academic, /id="schedulesNav"/);
   assert.match(attendance, /id="offlineScanReviewsNav"/);
   assert.doesNotMatch(academic, /classQrAdminMonitorNav|Offline Scan Reviews/);
-  assert.match(monitor, /getElementById\('attendanceManagementNavChildren'\)/);
+  assert.match(attendance, /id="classQrAdminMonitorNav"/);
+  assert.match(attendance, /data-view="classQrMonitor"/);
+  assert.doesNotMatch(monitor, /getElementById\('attendanceManagementNavChildren'\)/);
   assert.doesNotMatch(monitor, /getElementById\('academicNavChildren'\)/);
 });
 
-test('Admin monitoring link is inserted before offline scans and never exposes teacher QR creation', async () => {
-  let inserted;
-  const offline = {id: 'offlineScanReviewsNav'};
-  const attendance = { insertBefore(link, anchor) { inserted = {link, anchor}; } };
-  const elements = { attendanceManagementNavChildren: attendance, offlineScanReviewsNav: offline };
-  const document = {
-    querySelectorAll: () => [],
-    getElementById: id => elements[id] || null,
-    createElement: tag => ({tagName:tag.toUpperCase()})
-  };
-  vm.runInNewContext(monitor, {
-    document, fetch: async () => ({ok:true,json: async()=>({user:{role:'SCHOOL_ADMIN'}})})
-  });
-  await new Promise(resolve => setImmediate(resolve));
-  assert.ok(inserted, 'Administrator monitor should appear');
-  assert.equal(inserted.anchor, offline);
-  assert.equal(inserted.link.href, '/class-qr-monitor.html');
-  assert.equal(inserted.link.id, 'classQrAdminMonitorNav');
-  assert.match(inserted.link.innerHTML, /Class Attendance<\/span>/);
-  assert.doesNotMatch(inserted.link.href, /teacher/);
+test('Class QR monitoring has one role-filtered in-workspace link and no dynamic duplicate', async () => {
+  const attendance=html.match(/id="attendanceManagementNavChildren"[^>]*>([\s\S]*?)<\/div>/)?.[1]||'';
+  assert.equal((attendance.match(/id="classQrAdminMonitorNav"/g)||[]).length,1);
+  assert.match(attendance,/href="\/portal\.html\?view=classQrMonitor"/);
+  assert.match(attendance,/id="classQrAdminMonitorNav"[^>]*hidden/);
+  assert.match(portal,/\$\('classQrAdminMonitorNav'\)\) \$\('classQrAdminMonitorNav'\)\.hidden = !admin/);
+  let created=0;
+  const document={querySelectorAll:()=>[],getElementById:()=>null,createElement:()=>{created++;return {};}};
+  vm.runInNewContext(monitor,{document,fetch:async()=>({ok:true,json:async()=>({user:{role:'SCHOOL_ADMIN'}})})});
+  await new Promise(resolve=>setImmediate(resolve));
+  assert.equal(created,0,'School Admin must not dynamically create a duplicate monitor link');
+  assert.doesNotMatch(attendance,/class-qr-teacher\.html/);
 });
 
 test('pending badge is hidden by default and depends on school-scoped review-only API', () => {
@@ -63,9 +57,9 @@ test('Admin-only desktop density keeps mobile touch sizes and existing workflows
 });
 
 test('portal and worker use the same bumped UI cache revisions', () => {
-  assert.match(html, /class-qr-dashboard-link\.js\?v=11/);
+  assert.match(html, /class-qr-dashboard-link\.js\?v=12/);
   assertCachedAsset(html,sw,'portal.js',{minimumVersion:213});
-  assert.match(sw, /class-qr-dashboard-link\.js\?v=11/);
+  assert.match(sw, /class-qr-dashboard-link\.js\?v=12/);
   assertCachedAsset(html,sw,'portal.js',{minimumVersion:213});
   assertCacheRevisionAtLeast(sw,263);
 });
