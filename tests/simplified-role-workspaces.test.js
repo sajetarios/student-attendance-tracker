@@ -102,3 +102,13 @@ test('Layout changes do not alter printed DTR or security checks on deleted scho
   assert.match(css, /@media print/);
   assert.doesNotMatch(script, /api\/|POST|PUT|PATCH|DELETE|\.innerHTML\s*=/);
 });
+
+test('Compact menus survive feature-entitlement refresh without repeating DOM moves', () => {
+  assert.match(portal, /if \(next !== appliedNavigationFingerprint\) \{[\s\S]*?applyRoleNavigation\(\)/);
+  assert.match(script, /monitorRoleNavigation\(role\)/);
+  assert.match(script, /record\.target\.matches\?\.\('\.side-nav,\.nav-submenu'\)/);
+  assert.match(script, /record\.attributeName === 'hidden'/);
+  assert.match(script, /ordered\.some\(\(el, index\) => el !== current\[index\]\)/);
+  assert.match(script, /move\('schoolSmsAccessNotice', 'settings'\)/);
+  assert.match(css, /details\.simple-workspace-details:not\(\[open\]\) > \.simple-workspace-details-body/);
+});
