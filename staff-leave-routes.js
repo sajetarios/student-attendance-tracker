@@ -180,7 +180,7 @@ function registerStaffLeaveRoutes(app,pool,{authenticateSchoolClient,requireScho
    await c.query('COMMIT');
    res.status(201).json({requestId:id,status,creditAccount,filingBasis,
     notice:filingBasis==='POST_RETURN'
-     ?'Sick leave filed upon return for earlier absence dates. HR and the authorized approving official must review the documents and credits. DTR remains pending.'
+     ?'Sick leave filed after the specified absence dates. HR must verify actual return-to-duty date, prompt filing, supervisor notice and applicable credit records. DTR remains pending until official approval.'
      :'Leave submitted for review. The DTR is unchanged until official approval is verified.'});
   }catch(e){await c.query('ROLLBACK').catch(()=>{});sqlErr(res,e);}
   finally{c.release();}
