@@ -51,6 +51,14 @@
 #staffLeaveDialog .leave-inline-form label,#staffLeaveDialog .leave-inline-form button{width:100%;}
 }
 
+/* Filing after return: informative, compact and readable on iPad/mobile. */
+#staffLeaveDialog .leave-sick-guidance{grid-column:1/-1;box-sizing:border-box;display:block;margin:0;padding:11px 13px;
+ background:#f0f7fb;border:1px solid #b9d8e8;border-radius:9px;color:#24465c;font-size:.85rem;
+ line-height:1.5;overflow-wrap:anywhere}
+#staffLeaveDialog .leave-sick-guidance[hidden]{display:none!important}
+#staffLeaveDialog .leave-form select:disabled{color:#29485d;background:#eff3f6;opacity:1}
+#staffLeaveDialog .leave-scheme-record{overflow-wrap:anywhere}
+@media(max-width:700px){#staffLeaveDialog .leave-sick-guidance{font-size:.83rem;padding:10px}}
 /* Leave credit separation: clarify read-only balances and the Form 6 print entry. */
 #staffLeaveDialog .leave-role-guidance{padding:13px 15px;margin-bottom:14px;border:1px solid #c8dfed;border-radius:12px;background:#f1f8fc;color:#20475d;line-height:1.5}
 #staffLeaveDialog .leave-role-guidance strong{font-size:.91rem}
