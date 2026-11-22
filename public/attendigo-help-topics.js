@@ -95,7 +95,7 @@
     {
       id: 'guardian', title: 'Review guardian information', roles: STAFF,
       nav: 'studentsNav',
-      keywords: ['guardian', 'parent', 'mother', 'father', 'parent contact', 'guardian phone', 'guardian details', 'family details'],
+      keywords: ['guardian', 'parent', 'mother', 'father', 'parent contact', 'guardian contact', 'guardian phone', 'guardian details', 'family details'],
       steps: ['Open Students and select the learner within your authorized class or roster.', 'Review the parent/guardian fields imported from the official SF1.', 'Use the approved edit or request flow if a correction is needed.', 'Parent Portal accounts are separate from guardian information on a student record.'],
       note: 'Do not include student names, LRNs, phone numbers or private family data in help questions.'
     },
@@ -148,6 +148,8 @@
         else if (query.includes(term) && term.length >= 3) score += 5 + Math.min(3, term.split(' ').length);
         else if (term.includes(' ') && term.split(' ').every(word => word.length < 3 || tokens.has(word))) score += 2;
       }
+      // Generic navigation words must not outrank a named feature such as DTR.
+      if (topic.id === 'navigation') score = Math.min(score, 5);
       if (score > (best?.score || 0)) best = { topic, score };
     }
     return best && best.score >= 5 ? best.topic : null;
