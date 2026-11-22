@@ -4425,7 +4425,7 @@ async function processDueTeacherReturns() {
     if (returned) console.log(`Automatically returned ${returned} teacher account(s) from leave.`);
     if (cancelled) console.log(`Automatically ended ${cancelled} temporary substitute cover(s).`);
   } catch (err) {
-    console.error('Automatic teacher return check failed:', err.message);
+    console.error('Automatic teacher return check failed:', err.code || err.name || 'UNKNOWN');
   }
 }
 
