@@ -65,6 +65,7 @@
    '<button class="leave-close" id="leaveClose" type="button" aria-label="Close Leave Management">✕</button></div>'+
    '<div class="leave-tabs" role="tablist" aria-label="Leave Management sections">'+
    '<button type="button" class="is-active" data-leave-tab="requests">Leave requests</button>'+
+   '<button type="button" data-leave-tab="inbox">Approval inbox</button>'+
    '<button type="button" data-leave-tab="credits">Service credits</button></div>'+
    '<div class="leave-body" id="leaveBody"></div><div class="leave-message" id="leaveMessage" role="status" aria-live="polite"></div></div>';
   document.body.append(dialog);
@@ -125,6 +126,9 @@
    if($('accountProfileDialog')?.open)void refreshProfileLeave();
   });
 
+  const reviewer=user.role==='SCHOOL_ADMIN'||user.role==='DEPARTMENT_HEAD';
+  dialog.querySelector('[data-leave-tab="inbox"]').hidden=!reviewer;
+  window.AttendigoLeaveInbox?.attachNav(reviewerNav,user,call);
   let tab='requests',busy=false,reviewOnly=false;
   const say=(value,error=false)=>{message.textContent=value;message.classList.toggle('is-error',error);};
   const buttonFor=(label,cb)=>{
@@ -141,9 +145,14 @@
   };
   async function load(){
    if(tab==='requests')await renderRequests();
-   else await renderCredits();
+   else if(tab==='inbox'){
+    if(!window.AttendigoLeaveInbox)throw Error('Leave Approval Inbox is unavailable. Refresh Attendigo.');
+    await window.AttendigoLeaveInbox.render({body,user,call,upload,action,message,
+     openRequests:()=>{reviewOnly=false;selectTab('requests');}});
+   }else await renderCredits();
   }
   const selectTab=next=>{
+   if(next==='requests'&&tab==='inbox')reviewOnly=false;
    tab=next;
    dialog.querySelectorAll('[data-leave-tab]').forEach(b=>b.classList.toggle('is-active',b.dataset.leaveTab===next));
    say('');
@@ -154,10 +163,14 @@
   function openLeave(reviewQueue=false){
    reviewOnly=reviewQueue;
    if(!dialog.open)dialog.showModal();
-   selectTab('requests');
+   selectTab(reviewQueue?'inbox':'requests');
   }
   button.addEventListener('click',()=>openLeave(false));
   reviewerNav?.addEventListener('click',()=>openLeave(true));
+  document.addEventListener('attendigo:open-leave-inbox',()=>openLeave(true));
+  const handleLeaveLink=()=>{if(location.hash==='#leaveManagement')openLeave(true);};
+  window.addEventListener('hashchange',handleLeaveLink);
+  if(location.hash==='#leaveManagement')handleLeaveLink();
   function reviewable(r){
    if(r.staffUserId===user.userId)return false;
    if(user.role==='SCHOOL_ADMIN')
