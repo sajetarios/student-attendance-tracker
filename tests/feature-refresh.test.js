@@ -50,7 +50,8 @@ test('School Administrator manages accounts and monitors Gate Keeper activity bu
 
 test('Gate Keeper scanner explicitly supports both learner and teacher attendance', () => {
   assert.match(html, /Teacher gate attendance/);
-  assert.match(html, /TCH QR badge/);
+  assert.match(html, /Automatic — learners and teachers/);
+  assert.match(html, /Advanced: scan only learners or teachers/);
   assert.match(html, /id="gateScanType"/);
   assert.match(js, /gateScanType === 'TEACHER' && studentMatch/);
   assert.match(js, /gateScanType === 'STUDENT' && teacherMatch/);
