@@ -34,3 +34,6 @@
 #staffLeaveDialog .leave-overlap-row {display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;border:1px solid #e7d5bd;background:#fff9ef;border-radius:9px;padding:9px 11px;color:#654b2a;}
 #staffLeaveDialog .leave-overlap-row strong {color:#62411e;}
 #staffLeaveDialog .leave-overlap-date{min-width:150px;max-width:190px;}
+
+/* A staff member on leave can still record a physical gate visit, but cannot use the DTR shortcut. */
+.gate-dtr-fallback[hidden] {display:none !important;}
