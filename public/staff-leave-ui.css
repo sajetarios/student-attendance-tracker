@@ -77,3 +77,42 @@
  #staffLeaveDialog .leave-tabs{flex-wrap:wrap}
  #staffLeaveDialog .leave-role-guidance{padding:11px}
 }
+
+/* Leave controls: group related actions so they never float onto a new row alone.
+   The card uses a side-by-side layout on wide screens, then a stacked layout
+   on tablets and phones. This is visual only; leave and attendance logic stays intact. */
+#staffLeaveDialog .leave-header > div:first-child{min-width:0;flex:1 1 auto}
+#staffLeaveDialog .leave-tabs{flex-wrap:wrap;row-gap:6px}
+#staffLeaveDialog .leave-tabs button{min-width:0;overflow-wrap:anywhere;flex:0 1 auto}
+#staffLeaveDialog .leave-overlap-header{
+ display:grid;grid-template-columns:minmax(0,1fr) max-content;
+ align-items:start;gap:12px 20px;min-width:0
+}
+#staffLeaveDialog .leave-overlap-intro{min-width:0}
+#staffLeaveDialog .leave-overlap-intro strong{display:block;line-height:1.4}
+#staffLeaveDialog .leave-overlap-intro .leave-help{margin:8px 0 0}
+#staffLeaveDialog .leave-overlap-controls{
+ display:flex;flex-wrap:nowrap;align-items:end;gap:10px;min-width:0;max-width:100%
+}
+#staffLeaveDialog .leave-overlap-controls label{
+ width:168px;max-width:100%;min-width:0;flex:0 1 168px
+}
+#staffLeaveDialog .leave-overlap-controls input{width:100%;min-width:0}
+#staffLeaveDialog .leave-overlap-controls .leave-check-overlaps{
+ flex:0 0 auto;min-height:43px;white-space:nowrap
+}
+#staffLeaveDialog .leave-overlap-list{margin-top:12px;min-width:0;overflow-wrap:anywhere}
+#staffLeaveDialog .leave-section-title > h3{flex:1 1 190px;min-width:0}
+#staffLeaveDialog .leave-section-title > button{flex:0 0 auto}
+#staffLeaveDialog .leave-actions > button{min-width:0;max-width:100%;overflow-wrap:anywhere}
+@media(max-width:850px){
+ #staffLeaveDialog .leave-overlap-header{grid-template-columns:minmax(0,1fr)}
+ #staffLeaveDialog .leave-overlap-controls{justify-content:flex-start}
+}
+@media(max-width:460px){
+ #staffLeaveDialog .leave-overlap-controls{display:grid;grid-template-columns:minmax(0,1fr);width:100%}
+ #staffLeaveDialog .leave-overlap-controls label{width:100%;max-width:none}
+ #staffLeaveDialog .leave-overlap-controls .leave-check-overlaps{width:100%;justify-self:stretch}
+ #staffLeaveDialog .leave-tabs button{flex:1 1 auto}
+ #staffLeaveDialog .leave-header{gap:8px}
+}
