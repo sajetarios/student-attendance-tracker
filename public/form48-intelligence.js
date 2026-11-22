@@ -164,6 +164,9 @@
     const print=$('form48Print'),area=$('form48PrintArea');
     if(print)print.disabled=true;
     if(area)area.hidden=true;
+    const summary=$('form48SummaryStrip'),preview=$('form48PreviewToolbar');
+    if(summary)summary.hidden=true;
+    if(preview)preview.hidden=true;
     const feedback=$('form48Feedback');
     if(feedback)feedback.textContent='DTR evidence was verified. Generate a fresh Form 48 preview to see the approved time.';
     if(typeof CustomEvent!=='undefined')
@@ -174,9 +177,10 @@
     approving=false;action.disabled=false;
     if(token===revision)button.disabled=!validSelection();
    }
-   if(verified&&token===revision){
+   if(verified&&token===revision&&personId===person.value&&schoolDate===day.value){
     await load();
-    say(slotNames[slot]+' verified using original gate time. Generate a new Form 48 preview.');
+    if(personId===person.value&&schoolDate===day.value)
+     say(slotNames[slot]+' verified using original gate time. Generate a new Form 48 preview.');
    }
   });
   person.addEventListener('change',clear);
