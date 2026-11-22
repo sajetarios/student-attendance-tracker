@@ -12,7 +12,7 @@ const staffId='aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa';
 function elem(value=''){
  const events={};
  return {value,events,min:'',max:'',disabled:false,innerHTML:'',textContent:'',
-  classList:{toggle(){}},replaceChildren(){this.innerHTML='';},
+  classList:{toggle(){}},replaceChildren(){this.innerHTML='';},contains(){return true;},
   addEventListener(name,listener){events[name]=listener;}};
 }
 async function setup(role='SCHOOL_ADMIN',fetcher=async()=>({ok:true,json:async()=>({
@@ -22,11 +22,13 @@ async function setup(role='SCHOOL_ADMIN',fetcher=async()=>({ok:true,json:async()
  const fields={
   form48Employee:elem(staffId),form48Month:elem('2025-05'),
   form48GateReviewDate:elem(),form48GateReviewButton:elem(),
-  form48GateReviewStatus:elem(),form48GateReviewResult:elem()
+  form48GateReviewStatus:elem(),form48GateReviewResult:elem(),
+  form48Print:elem(),form48PrintArea:elem(),form48Feedback:elem(),
+  form48GateApprovalReason:elem()
  };
  const calls=[];
  vm.runInNewContext(src,{document:{getElementById:id=>fields[id]},
-  window:{attendigoStaffIdentity:Promise.resolve({role})},
+  window:{attendigoStaffIdentity:Promise.resolve({role}),confirm:()=>true},
   fetch:async(url,opts)=>{calls.push({url,opts});return fetcher(url,opts);},
   Date,Intl,URLSearchParams});
  await new Promise(resolve=>setImmediate(resolve));
@@ -50,13 +52,17 @@ test('review fetch is administrator-triggered, GET-only, and not a DTR mutation'
  assert.equal(calls.length,0);
  await fields.form48GateReviewButton.events.click();
  await new Promise(resolve=>setImmediate(resolve));
- assert.equal(calls.length,1);
- assert.match(calls[0].url,/staffUserId=aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa/);
- assert.match(calls[0].url,/date=2025-05-31/);
- assert.equal(calls[0].opts.method,'GET');
- assert.equal(calls[0].opts.cache,'no-store');
+ assert.equal(calls.length,2);
+ for(const call of calls){
+  assert.match(call.url,/staffUserId=aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa/);
+  assert.match(call.url,/date=2025-05-31/);
+  assert.equal(call.opts.method,'GET');
+  assert.equal(call.opts.cache,'no-store');
+ }
  assert.match(fields.form48GateReviewResult.innerHTML,/No gate evidence/);
- assert.doesNotMatch(src,/method:\s*['"](?:PUT|POST|PATCH|DELETE)['"]/);
+ assert.match(src,/dtr-review-apply/);
+ assert.match(src,/method:'POST'/);
+ assert.equal(calls.filter(x=>x.opts.method==='POST').length,0);
  const part=route.slice(route.indexOf("app.get('/api/staff-attendance/admin/dtr-reconciliation-preview'"),
   route.indexOf("app.post('/api/staff-attendance/gatekeeper/dtr'"));
  assert.match(part,/requireSchoolRoles\('SCHOOL_ADMIN'\)/);
@@ -89,4 +95,40 @@ test('employee changes invalidate an in-flight response without showing stale re
  await work;
  assert.equal(fields.form48GateReviewResult.innerHTML,'');
  assert.match(fields.form48GateReviewStatus.textContent,/Select a school date/);
+});
+
+test('explicit review action requires a reason and sends only the source event ID and slot',async()=>{
+ const id='22222222-2222-4222-8222-222222222222';
+ let authorized=false;
+ const {fields,calls}=await setup('SCHOOL_ADMIN',async(url,opts)=>{
+  if(opts.method==='POST'){
+   authorized=true;
+   return {ok:true,json:async()=>({status:'VERIFIED',slot:'AM_IN',occurredAt:'2025-05-30T22:30:00Z'})};
+  }
+  if(url.includes('dtr-review-options'))return {ok:true,json:async()=>({
+   status:'ELIGIBLE',candidates:authorized?[]:[{eventId:id,slot:'AM_IN',time:'06:30'}]
+  })};
+  return {ok:true,json:async()=>({
+   safeToApply:false,date:'2025-05-31',existingSlots:authorized?{AM_IN:'06:30'}:{},
+   suggestions:authorized?{}:{AM_IN:{time:'06:30'}},review:[],
+   gateEventCount:1,approvedObCount:0
+  })};
+ });
+ await fields.form48GateReviewButton.events.click();
+ assert.match(fields.form48GateReviewResult.innerHTML,/Verify &amp; Apply AM Time-In/);
+ assert.equal(calls.some(x=>x.opts.method==='POST'),false);
+ const action={dataset:{gateApprove:id,dtrSlot:'AM_IN'},disabled:false};
+ fields.form48GateApprovalReason.value='Verified original photo-matched gate entry at arrival.';
+ await fields.form48GateReviewResult.events.click({target:{closest:()=>action}});
+ assert.equal(authorized,true);
+ const submitted=calls.find(x=>x.opts.method==='POST');
+ assert.ok(submitted);
+ assert.match(submitted.url,/dtr-review-apply/);
+ assert.deepEqual(JSON.parse(submitted.opts.body),{
+  staffUserId,date:'2025-05-31',gateEventId:id,slot:'AM_IN',
+  reason:'Verified original photo-matched gate entry at arrival.'
+ });
+ assert.equal(fields.form48Print.disabled,true);
+ assert.equal(fields.form48PrintArea.hidden,true);
+ assert.match(fields.form48GateReviewStatus.textContent,/verified using original gate time/);
 });
