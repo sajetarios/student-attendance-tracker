@@ -104,7 +104,8 @@ jobs:
           node scripts/verified-database-backup.js backup "$RUNNER_TEMP/attendigo-test.attbk"
           createdb -h localhost -U postgres attendigo_restore_test
           node scripts/verified-database-backup.js restore-test "$RUNNER_TEMP/attendigo-test.attbk"
-          psql -h localhost -U postgres -d attendigo_restore_test -Atc "SELECT COUNT(*) FROM schema_migrations;" | grep -Eq '^[1-9][0-9]*
+          psql -h localhost -U postgres -d attendigo_restore_test -Atc "SELECT COUNT(*) FROM schema_migrations;" | grep -E '[1-9]'
+          rm -f "$RUNNER_TEMP/attendigo-test.attbk"
       - name: Verify notification event creation and idempotence against PostgreSQL
         run: node tests/universal-notifications-postgres.cjs
       - name: Verify mixed attendance cloud relay against isolated PostgreSQL
