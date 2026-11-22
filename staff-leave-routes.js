@@ -243,36 +243,55 @@ function registerStaffLeaveRoutes(app,pool,{authenticateSchoolClient,requireScho
     await c.query('COMMIT');
     return res.json({status:'REJECTED',notice:'External disapproval recorded. Attendance remains unchanged.'});
    }
+   // Sick leave may be submitted upon return. The final official decision,
+   // not the applicant's proposal or dashboard role, establishes the charge.
+   let chargeAccount=row.credit_account;
+   if(row.leave_type==='SICK'){
+    const verifiedScheme=await c.query('SELECT leave_scheme AS "leaveScheme" FROM staff_leave_credit_schemes WHERE school_id=$1 AND staff_user_id=$2',
+     [req.auth.schoolId,row.staff_user_id]);
+    chargeAccount=sickAccountForScheme(verifiedScheme.rows[0]?.leaveScheme);
+    if(!chargeAccount){await c.query('ROLLBACK');
+     return res.status(409).json({error:'HR must verify whether this employee uses teaching-personnel VSC or regular VL/SL before recording official sick-leave approval.'});}
+    if(requiredSickEvidence(row.leave_type,row.filing_basis,row.start_date,row.end_date)){
+     const supporting=await c.query("SELECT 1 FROM staff_leave_documents WHERE school_id=$1 AND request_id=$2 AND document_kind IN ('MEDICAL','AFFIDAVIT') LIMIT 1",
+      [req.auth.schoolId,row.request_id]);
+     if(!supporting.rowCount){await c.query('ROLLBACK');
+      return res.status(409).json({error:'Advance-filed sick leave or illness exceeding five consecutive days requires a medical certificate, or an appropriate sworn affidavit where medical consultation was not obtained. HR must check the document.'});}
+    }
+   }
    const attachment=await c.query("SELECT 1 FROM staff_leave_documents WHERE school_id=$1 AND request_id=$2 AND document_kind='APPROVAL' LIMIT 1",[req.auth.schoolId,row.request_id]);
    if(!attachment.rowCount){await c.query('ROLLBACK');return res.status(409).json({error:'Attach the official signed approval (PDF/JPG/PNG) before certifying leave.'});}
    await c.query('SELECT pg_advisory_xact_lock(hashtext($1))',[req.auth.schoolId+':leave:'+row.staff_user_id]);
    const overlap=await c.query('SELECT 1 FROM staff_form48_approved_leaves WHERE school_id=$1 AND staff_user_id=$2 AND revoked_at IS NULL AND start_date<=$4::date AND end_date>=$3::date LIMIT 1',
     [req.auth.schoolId,row.staff_user_id,row.start_date,row.end_date]);
    if(overlap.rowCount){await c.query('ROLLBACK');return res.status(409).json({error:'Overlapping official leave exists. Reconcile before recording approval.'});}
-   if(row.credit_account!=='NONE'){
+   if(chargeAccount!=='NONE'){
     const balance=await c.query('SELECT COALESCE(SUM(signed_days),0)::numeric AS days FROM staff_leave_credit_entries WHERE school_id=$1 AND staff_user_id=$2 AND credit_account=$3 AND status=\'VERIFIED\'',
-     [req.auth.schoolId,row.staff_user_id,row.credit_account]);
-    if(Number(balance.rows[0].days)+1e-8<days){await c.query('ROLLBACK');return res.status(409).json({error:'Insufficient certified '+row.credit_account+' credit balance. Verify opening and earned credits first.'});}
+     [req.auth.schoolId,row.staff_user_id,chargeAccount]);
+    if(Number(balance.rows[0].days)+1e-8<days){await c.query('ROLLBACK');return res.status(409).json({error:'Insufficient HR-certified '+chargeAccount+' balance. Verify entitlement and officially earned credits before approving.'});}
     await c.query('INSERT INTO staff_leave_credit_entries(school_id,staff_user_id,credit_account,entry_kind,signed_days,request_id,status,entered_by_user_id,verified_by_user_id,verified_at,approval_reference) VALUES($1,$2,$3,\'USED\',$4,$5,\'VERIFIED\',$6,$6,now(),$7)',
-     [req.auth.schoolId,row.staff_user_id,row.credit_account,-days,row.request_id,req.auth.userId,reference]);
+     [req.auth.schoolId,row.staff_user_id,chargeAccount,-days,row.request_id,req.auth.userId,reference]);
    }
    const form48id=randomUUID();
-   await c.query('INSERT INTO staff_form48_approved_leaves(leave_id,school_id,staff_user_id,leave_type,start_date,end_date,approval_reference,recorded_by_user_id) VALUES($1,$2,$3,$4,$5,$6,$7,$8)',
-    [form48id,req.auth.schoolId,row.staff_user_id,row.leave_type,row.start_date,row.end_date,reference,req.auth.userId]);
-   await c.query('UPDATE staff_leave_requests SET status=\'APPROVED\',certified_working_days=$3,external_reference=$4,external_approver=$5,external_approver_position=$6,external_approved_on=$7,verified_by_user_id=$8,verified_at=now(),form48_leave_id=$9,revision=revision+1 WHERE school_id=$1 AND request_id=$2',
-    [req.auth.schoolId,row.request_id,days,reference,approver,position,approvedOn,req.auth.userId,form48id]);
-   await audit(c,req,'LEAVE_EXTERNAL_APPROVED',row.request_id,{approvalReference:reference,chargedDays:days,creditAccount:row.credit_account,form48LeaveId:form48id});
+   await c.query('INSERT INTO staff_form48_approved_leaves(leave_id,school_id,staff_user_id,leave_type,start_date,end_date,approval_reference,recorded_by_user_id,credit_account) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9)',
+    [form48id,req.auth.schoolId,row.staff_user_id,row.leave_type,row.start_date,row.end_date,reference,req.auth.userId,chargeAccount]);
+   await c.query('UPDATE staff_leave_requests SET status=\'APPROVED\',certified_working_days=$3,external_reference=$4,external_approver=$5,external_approver_position=$6,external_approved_on=$7,verified_by_user_id=$8,verified_at=now(),form48_leave_id=$9,credit_account=$10,revision=revision+1 WHERE school_id=$1 AND request_id=$2',
+    [req.auth.schoolId,row.request_id,days,reference,approver,position,approvedOn,req.auth.userId,form48id,chargeAccount]);
+   await audit(c,req,'LEAVE_EXTERNAL_APPROVED',row.request_id,{approvalReference:reference,chargedDays:days,creditAccount:chargeAccount,filingBasis:row.filing_basis,form48LeaveId:form48id});
    await notifyLeaveTransition(c,{schoolId:req.auth.schoolId,requestId:row.request_id,
     staffUserId:row.staff_user_id,departmentId:row.department_id,requesterRole:row.requester_role,status:'APPROVED'});
    await c.query('COMMIT');
-   res.json({status:'APPROVED',notice:'Documented leave approved and Form 48 annotation recorded. Original gate/DTR punches are unchanged.'});
+   res.json({status:'APPROVED',creditAccount:chargeAccount,
+    notice:chargeAccount==='VSC'&&row.leave_type==='SICK'
+     ?'Documented sick leave approved; HR-certified VSC charged and VSCA Form 48 remarks recorded. Gate/DTR punches remain unchanged.'
+     :'Documented leave approved and Form 48 annotation recorded. Original gate/DTR punches are unchanged.'});
   }catch(e){await c.query('ROLLBACK').catch(()=>{});sqlErr(res,e);}
   finally{c.release();}
  });
  app.get('/api/staff-leave/staff-roster',...auth,async(req,res)=>{
   if(req.auth.role!=='SCHOOL_ADMIN')return res.status(403).json({error:'Only school HR administrators may import staff credit balances.'});
   try{
-   const q=await pool.query("SELECT user_id AS \"userId\",display_name AS \"displayName\",teacher_position AS \"position\",role FROM school_users WHERE school_id=$1 AND active=TRUE AND role IN ('SCHOOL_ADMIN','DEPARTMENT_HEAD','TEACHER','GATE_KEEPER') ORDER BY display_name LIMIT 1000",[req.auth.schoolId]);
+   const q=await pool.query("SELECT u.user_id AS \"userId\",u.display_name AS \"displayName\",u.teacher_position AS \"position\",u.role,COALESCE(sc.leave_scheme,'UNVERIFIED') AS \"leaveScheme\",sc.hr_reference AS \"hrReference\" FROM school_users u LEFT JOIN staff_leave_credit_schemes sc ON sc.school_id=u.school_id AND sc.staff_user_id=u.user_id WHERE u.school_id=$1 AND u.active=TRUE AND u.role IN ('SCHOOL_ADMIN','DEPARTMENT_HEAD','TEACHER','GATE_KEEPER') ORDER BY u.display_name LIMIT 1000",[req.auth.schoolId]);
    res.json({staff:q.rows});
   }catch(e){sqlErr(res,e);}
  });
@@ -377,7 +396,7 @@ function registerStaffLeaveRoutes(app,pool,{authenticateSchoolClient,requireScho
  async function saveDocument(req,res,kind){
   const id=String(req.params.id||''),mime=contentType(req),documentKind=String(req.headers['x-document-kind']||'').toUpperCase();
   if(!UUID.test(id)||!['application/pdf','image/png','image/jpeg'].includes(mime)||
-   !['APPLICATION','MEDICAL','CERTIFICATION','APPROVAL','SPECIAL_ORDER','OTHER'].includes(documentKind)||
+   !['APPLICATION','MEDICAL','AFFIDAVIT','CERTIFICATION','APPROVAL','SPECIAL_ORDER','OTHER'].includes(documentKind)||
    !Buffer.isBuffer(req.body)||req.body.length<1||req.body.length>4194304)
    return res.status(400).json({error:'Provide a valid PDF, JPG or PNG file up to 4 MB.'});
   try{
@@ -414,7 +433,7 @@ function registerStaffLeaveRoutes(app,pool,{authenticateSchoolClient,requireScho
    if(!doc.rowCount)return res.status(404).json({error:'Document not found.'});
    const d=doc.rows[0],owner=d.leave_staff_id||d.credit_staff_id;
    if(req.auth.userId!==owner&&req.auth.role!=='SCHOOL_ADMIN'&&
-    !(req.auth.role==='DEPARTMENT_HEAD'&&d.document_kind!=='MEDICAL'&&d.department_id===req.auth.departmentId))
+    !(req.auth.role==='DEPARTMENT_HEAD'&&!['MEDICAL','AFFIDAVIT'].includes(d.document_kind)&&d.department_id===req.auth.departmentId))
     return res.status(403).json({error:'Document access denied.'});
    res.set('Cache-Control','no-store, private');
    res.set('Content-Type',d.content_type);
@@ -426,7 +445,7 @@ function registerStaffLeaveRoutes(app,pool,{authenticateSchoolClient,requireScho
   try{
    const row=await getStaff(req,res,req.params.id);if(!row)return;
    const q=await pool.query('SELECT document_id AS "documentId",document_kind AS "documentKind",filename,uploaded_at AS "uploadedAt" FROM staff_leave_documents WHERE school_id=$1 AND request_id=$2 ORDER BY uploaded_at DESC',[req.auth.schoolId,row.request_id]);
-   res.json({documents:q.rows.filter(d=>d.documentKind!=='MEDICAL'||req.auth.role==='SCHOOL_ADMIN'||req.auth.userId===row.staff_user_id)});
+   res.json({documents:q.rows.filter(d=>!['MEDICAL','AFFIDAVIT'].includes(d.documentKind)||req.auth.role==='SCHOOL_ADMIN'||req.auth.userId===row.staff_user_id)});
   }catch(e){sqlErr(res,e);}
  });
  app.get('/api/staff-leave/credits/:id/documents',...auth,async(req,res)=>{
