@@ -25,13 +25,13 @@ const eventKey='eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee';
 const form48Settings={workdays:[1,2,3,4,5],
  regularHours:{AM_IN:'07:00',AM_OUT:'12:00',PM_IN:'13:00',PM_OUT:'16:00'},
  saturdayHours:{},dayReviews:{}};
-const requestBody={leaveType:'SICK',creditAccount:'SL',startDate:'2026-11-23',
+const requestBody={leaveType:'SICK',creditAccount:'VSC',startDate:'2026-11-23',
  endDate:'2026-11-24',reason:'Fictional medical leave for workflow testing',
  details:'Simulation only — no actual illness or official leave',commutation:'NOT_REQUESTED'};
 
 function fixture(){
  const state={request:null,credit:5,appliedLeaves:[],audits:[],notifications:[],
-  gate:[],dtr:[],signedApproval:false,commits:0,rollbacks:0,queryLog:[]};
+  gate:[],dtr:[],signedApproval:false,scheme:'TEACHING_VSC',commits:0,rollbacks:0,queryLog:[]};
  const actors={
   [teacher]:{role:'TEACHER',department_id:department,display_name:'Simulated Teacher'},
   [head]:{role:'DEPARTMENT_HEAD',department_id:department,display_name:'Simulated Department Head'},
@@ -66,7 +66,7 @@ function fixture(){
    }
    if(s.startsWith('INSERT INTO staff_leave_requests')){
     const names=['request_id','school_id','staff_user_id','department_id','leave_type',
-     'credit_account','start_date','end_date','reason','details','commutation','status'];
+     'credit_account','start_date','end_date','reason','details','commutation','status','filing_basis'];
     state.request=Object.fromEntries(names.map((key,i)=>[key,args[i]]));
     return rows([]);
    }
@@ -77,7 +77,7 @@ function fixture(){
     state.request.status='APPROVED';state.request.certified_working_days=args[2];
     state.request.external_reference=args[3];
     state.request.external_approver=args[4];state.request.external_approver_position=args[5];
-    state.request.external_approved_on=args[6];
+    state.request.external_approved_on=args[6];state.request.credit_account=args[9];
     return rows([]);
    }
    if(s.includes("document_kind='APPROVAL'"))
@@ -90,7 +90,7 @@ function fixture(){
    }
    if(s.startsWith('INSERT INTO staff_form48_approved_leaves')){
     const names=['leave_id','school_id','staff_user_id','leave_type','start_date',
-     'end_date','approval_reference','recorded_by_user_id'];
+     'end_date','approval_reference','recorded_by_user_id','credit_account'];
     state.appliedLeaves.push(Object.fromEntries(names.map((key,i)=>[key,args[i]])));
     return rows([]);
    }
@@ -100,8 +100,9 @@ function fixture(){
     state.audits.push({action:args[2],details:args[5]});return rows([]);
    }
    if(s.includes("FROM generate_series("))return rows([{estimated:2}]);
+   if(s.includes('FROM staff_leave_credit_schemes'))return rows([{leaveScheme:state.scheme}]);
    if(s.includes("FROM staff_leave_credit_entries")&&s.includes('AS balance'))
-    return rows([{credit_account:'SL',balance:String(state.credit)}]);
+    return rows([{credit_account:'VSC',balance:String(state.credit)}]);
    // SQL behind leave profile and Gatekeeper badge, date set by this scenario.
    if(s.includes('LEFT JOIN LATERAL')&&s.includes('FROM school_users s')){
     const l=state.appliedLeaves[0];
@@ -165,7 +166,7 @@ test('seven-step fictional leave, gate and DTR workflow uses real route function
  // 1. Applicant submits and opens a prefilled official-looking unsigned worksheet.
  const filed=await run('POST','/api/staff-leave/requests',{body:requestBody});
  assert.equal(filed.status,201);assert.equal(filed.body.status,'PENDING_HEAD');
- assert.equal(state.request.credit_account,'SL');assert.equal(state.credit,5);
+ assert.equal(state.request.credit_account,'VSC');assert.equal(state.credit,5);
  const requestId=filed.body.requestId;
  const form6=await run('GET','/api/staff-leave/requests/:id/form6',{params:{id:requestId}});
  assert.equal(form6.status,200);
@@ -207,6 +208,7 @@ test('seven-step fictional leave, gate and DTR workflow uses real route function
  assert.equal(final.status,200);assert.equal(state.request.status,'APPROVED');
  assert.equal(state.appliedLeaves.length,1);
  assert.equal(state.appliedLeaves[0].approval_reference,approval.approvalReference);
+ assert.equal(state.appliedLeaves[0].credit_account,'VSC');
  assert.equal(state.credit,3);assert.equal(state.gate.length,0);assert.equal(state.dtr.length,0);
  // 4. Profile and QR Gatekeeper show the identical authorized date window.
  const status=await getStaffLeaveStatus(client,school,teacher);
@@ -248,7 +250,7 @@ test('seven-step fictional leave, gate and DTR workflow uses real route function
  // a separate historical punch requires exception handling.
  const approved=state.appliedLeaves[0];
  const leaves=[{from:approved.start_date,to:approved.end_date,
-  leaveType:approved.leave_type,approvalReference:approved.approval_reference}];
+  leaveType:approved.leave_type,creditAccount:approved.credit_account,approvalReference:approved.approval_reference}];
  const form48Args={month:'2026-11',today:'2026-11-24',
   settings:form48Settings,approvedLeaves:leaves};
  const clean=summarizeForm48(form48Args);
@@ -256,7 +258,7 @@ test('seven-step fictional leave, gate and DTR workflow uses real route function
  assert.equal(clean.assessments.find(a=>a.date==='2026-11-24').status,'APPROVED_LEAVE');
  assert.equal(clean.summary.approvedLeaveDays,2);
  const notes=buildForm48LeaveRemarks('2026-11',leaves,clean.assessments);
- assert.match(notes[0].text,/Nov 23–24 — Approved SL \(Ref\. SIM-DO-NOT-FILE-2026\)/);
+ assert.match(notes[0].text,/Nov 23–24 — Approved VSCA \(Vacation Service Credits Applied\) \(Ref\. SIM-DO-NOT-FILE-2026\)/);
  assert.deepEqual(notes[0].conflictDates,[]);
  const conflict=summarizeForm48({...form48Args,records:[{
   date:'2026-11-24',slots:{AM_IN:'07:15'}}]});
