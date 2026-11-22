@@ -153,6 +153,20 @@ function registerStaffGateDtrRoutes(app,pool,{authenticateSchoolClient,requireSc
     return res.status(404).json({error:'An active school staff member and registered photo are required.'});
    }
    const teacherId=teacher.rows[0].user_id,eventId=randomUUID();
+   // Serialize an explicitly manual DTR punch against leave finalization.
+   // Gate movements are still recorded separately, even during approved leave.
+   await client.query('SELECT pg_advisory_xact_lock(hashtext($1))',
+    [schoolId+':leave:'+teacherId]);
+   const {getStaffLeaveStatus,requiresDtrReview}=require('./staff-approved-leave-status');
+   const leave=await getStaffLeaveStatus(client,schoolId,teacherId);
+   if(requiresDtrReview(leave)){
+    await client.query('ROLLBACK');
+    return res.status(409).json({
+     error:'Leave is active on this school date. Physical gate movement may be recorded, but a manual DTR punch requires authorized attendance and leave reconciliation.',
+     code:'LEAVE_DTR_REVIEW_REQUIRED',
+     schoolDate:leave.schoolDate
+    });
+   }
    const recorded=await client.query(
     `INSERT INTO staff_attendance_events
       (event_id,school_id,staff_user_id,event_kind,dtr_slot,school_date,
