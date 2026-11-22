@@ -19,7 +19,7 @@
   put('position',r.staffPosition||'');
   put('filed',date(r.submittedAt));
   put('salary','_________________');
-  put('workingDays',r.certifiedWorkingDays!=null?r.certifiedWorkingDays+' day(s) — verified':'Pending HR computation');
+  put('workingDays',r.certifiedWorkingDays!=null?r.certifiedWorkingDays+' day(s) — HR verified':data.estimatedSchoolWorkingDays+' day(s) — calendar estimate; HR verification required');
   put('dates',date(r.startDate)+' to '+date(r.endDate));
   const types=[
    ['VACATION','Vacation leave'],['MANDATORY','Mandatory/Forced leave'],['SICK','Sick leave'],
