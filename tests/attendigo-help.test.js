@@ -18,9 +18,13 @@ test('teacher guide answers live Attendigo workflows', () => {
     ['I want to apply for leave', 'leave'],
     ['Where is my OB request?', 'official-business'],
     ['How do I view my weekly timetable?', 'schedule'],
+    ['How do I add a class schedule?', 'schedule-create'],
     ['Where is the guardian contact?', 'guardian']
   ];
-  for (const [question,id] of answers) assert.equal(topics.answer(question,'TEACHER').topic?.id,id,question);
+  for (const [question,id] of answers) {
+    const role = id === 'schedule-create' ? 'DEPARTMENT_HEAD' : 'TEACHER';
+    assert.equal(topics.answer(question,role).topic?.id,id,question);
+  }
   const sf1=topics.answer('Upload my SF1','TEACHER');
   assert.match(sf1.steps.join(' '), /review/i);
   const dtr=topics.answer('DTR','TEACHER');
