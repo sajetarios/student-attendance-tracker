@@ -35,12 +35,29 @@
   if(!['TEACHER','DEPARTMENT_HEAD','SCHOOL_ADMIN'].includes(user?.role))return;
   const button=document.createElement('button');button.id='staffLeaveNav';button.type='button';
   button.className='nav-item';button.title='Leave requests, CSC Form 6 and service credits';
-  button.innerHTML='<span class="nav-icon" aria-hidden="true">▣</span><span class="nav-label">Leave Management</span>';
-  const target=document.querySelector('[data-submenu="attendanceManagement"]')||
-    document.querySelector('[data-submenu="personalAttendance"]')||
-    document.querySelector('[data-submenu="academics"]');
-  if(target)target.append(button);
-  else document.querySelector('.side-nav')?.append(button);
+  button.innerHTML='<span class="nav-icon" aria-hidden="true">▣</span><span class="nav-label">Leave Requests</span>';
+  // A personal leave request is distinct from an authorized review queue.
+  // This only moves the existing UI; staff-leave routes still enforce every
+  // approval decision and school/department boundary on the server.
+  const targetKey=user.role==='SCHOOL_ADMIN'?'operations':'personalAttendance';
+  const target=document.querySelector('[data-submenu="'+targetKey+'"]');
+  if(target){
+   target.append(button);
+   target.closest('.nav-group')?.removeAttribute('hidden');
+  }
+  const reviewerNav=user.role!=='TEACHER'?document.createElement('button'):null;
+  if(reviewerNav){
+   reviewerNav.type='button';
+   reviewerNav.id='staffLeaveReviewNav';
+   reviewerNav.className='nav-item';
+   reviewerNav.title='Review leave requests within your authorized scope';
+   reviewerNav.innerHTML='<span class="nav-icon" aria-hidden="true">✓</span><span class="nav-label">Leave Approvals</span>';
+   const approvals=document.querySelector('[data-submenu="operations"]');
+   if(approvals){
+    approvals.append(reviewerNav);
+    approvals.closest('.nav-group')?.removeAttribute('hidden');
+   }
+  }
   const dialog=document.createElement('dialog');dialog.id='staffLeaveDialog';
   dialog.setAttribute('aria-label','Leave Management');
   dialog.innerHTML='<div class="leave-shell"><div class="leave-header"><div><h2>Leave Management</h2>'+
@@ -108,7 +125,7 @@
    if($('accountProfileDialog')?.open)void refreshProfileLeave();
   });
 
-  let tab='requests',busy=false;
+  let tab='requests',busy=false,reviewOnly=false;
   const say=(value,error=false)=>{message.textContent=value;message.classList.toggle('is-error',error);};
   const buttonFor=(label,cb)=>{
    const b=document.createElement('button');b.type='button';b.className='leave-btn';
@@ -134,10 +151,20 @@
   };
   dialog.querySelectorAll('[data-leave-tab]').forEach(b=>b.addEventListener('click',()=>selectTab(b.dataset.leaveTab)));
   $('leaveClose').addEventListener('click',()=>dialog.close());
-  button.addEventListener('click',()=>{
+  function openLeave(reviewQueue=false){
+   reviewOnly=reviewQueue;
    if(!dialog.open)dialog.showModal();
    selectTab('requests');
-  });
+  }
+  button.addEventListener('click',()=>openLeave(false));
+  reviewerNav?.addEventListener('click',()=>openLeave(true));
+  function reviewable(r){
+   if(r.staffUserId===user.userId)return false;
+   if(user.role==='SCHOOL_ADMIN')
+    return r.status==='PENDING_ADMIN'||r.status==='PENDING_EXTERNAL';
+   return user.role==='DEPARTMENT_HEAD'&&
+    (r.status==='PENDING_HEAD'||(r.status==='PENDING_EXTERNAL'&&r.staffRole==='SCHOOL_ADMIN'));
+  }
   function newRequest(){
    const details=document.createElement('details');details.className='leave-card';details.innerHTML=
     '<summary>New leave application</summary><form id="leaveNewForm" class="leave-form">'+
@@ -179,8 +206,9 @@
    });item.append(wrap);
   }
   async function renderRequests(){
-   body.replaceChildren(newRequest());
-   if(user.role==='SCHOOL_ADMIN'){
+   if(reviewOnly)body.replaceChildren();
+   else body.replaceChildren(newRequest());
+   if(user.role==='SCHOOL_ADMIN'&&!reviewOnly){
     const panel=document.createElement('section');
     panel.className='leave-card';
     panel.innerHTML='<div class="leave-section-title"><div><strong>Gate visits during approved leave</strong>'+
@@ -218,13 +246,17 @@
     void checkOverlaps();
    }
    const header=document.createElement('div');header.className='leave-section-title';header.innerHTML=
-    '<h3>Applications and approvals</h3><button class="leave-btn" type="button">Refresh</button>';
+    '<h3>'+(reviewOnly?'Pending leave approvals':'Applications and approvals')+'</h3><button class="leave-btn" type="button">Refresh</button>';
    header.querySelector('button').addEventListener('click',()=>load().catch(e=>say(e.message,true)));
    body.append(header);
    const list=document.createElement('div');list.className='leave-list';body.append(list);
    const response=await call('/requests');
-   if(!response.requests?.length){list.innerHTML='<p class="leave-empty">No leave requests yet. You can submit one above.</p>';return;}
-   response.requests.forEach(r=>{
+   const visibleRequests=reviewOnly?(response.requests||[]).filter(reviewable):(response.requests||[]);
+   if(!visibleRequests.length){
+    list.textContent=reviewOnly?'No leave requests are awaiting your authorized review.':'No leave requests yet. You can submit one above.';
+    return;
+   }
+   visibleRequests.forEach(r=>{
     const card=document.createElement('article');card.className='leave-card';
     card.innerHTML='<div class="leave-card-top"><strong>'+esc(r.staffName)+'</strong>'+
      '<span class="leave-status">'+esc(classify(r.status))+'</span></div>'+

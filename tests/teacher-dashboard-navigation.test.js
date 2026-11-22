@@ -28,15 +28,15 @@ test('teacher regrouping moves links rather than recreating permission-bearing c
   assert.match(js, /teacher \? 'Teaching & Classes'/);
   assert.match(js, /teacher \? 'Planning'/);
   for (const [id, destination] of [
-    ['classAttendanceNav', 'people'], ['schedulesNav', 'people'],
+    ['classAttendanceNav', 'people'], ['schedulesNav', 'people'], ['plannerNav', 'people'],
     ['myGateAttendanceNav', 'personalAttendance'],
     ['officialBusinessNav', 'personalAttendance'],
-    ['teacherLunchQrNav', 'personalAttendance'], ['sf2Nav', 'reports']
+    ['teacherLunchQrNav', 'assignedDuties'], ['sf2Nav', 'reports']
   ]) assert.ok(js.includes("relocate('" + id + "', '" + destination + "')"));
   assert.ok(js.includes("if (role === 'TEACHER')"));
   assert.ok(js.includes("teacherHas('SUBJECT_TEACHER') || teacherHas('CLASS_ADVISER')"));
   assert.ok(js.includes("if (role === 'GATE_KEEPER') return ['students']"));
-  assert.ok(js.includes("relocate('lunchQrAdminNav', 'operations')"), 'Admin operations unchanged');
+  assert.ok(js.includes("relocate('lunchQrAdminNav', 'attendanceManagement')"), 'Admin operations unchanged');
   assert.ok(js.includes("relocate('form48ReportsNav', 'reports')"), 'Admin Form 48 reporting unchanged');
   assert.ok(js.includes("relocate('sf2Nav', 'reports')"), 'Reports remain available to eligible roles');
 });

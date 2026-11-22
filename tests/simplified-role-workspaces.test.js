@@ -14,8 +14,8 @@ const portal = read('public/portal.js');
 
 test('All four staff role layouts load without replacing existing navigation controllers', () => {
   assert.match(html, /href="\/simplified-workspace\.css\?v=1"/);
-  assert.match(html, /src="\/simplified-workspace\.js\?v=3" defer/);
-  assert.match(sw, /"\/simplified-workspace\.js\?v=3"/);
+  assert.match(html, /src="\/simplified-workspace\.js\?v=4" defer/);
+  assert.match(sw, /"\/simplified-workspace\.js\?v=4"/);
   assert.match(sw, /"\/simplified-workspace\.css\?v=1"/);
   for (const role of ['SCHOOL_ADMIN', 'DEPARTMENT_HEAD', 'TEACHER', 'SUPER_ADMIN']) {
     assert.match(script, new RegExp(role));
@@ -38,7 +38,7 @@ test('School Administrator retains all authorized links, including advanced mana
     assert.match(html, new RegExp('data-staff-section="' + section + '"'));
   }
   assert.match(script, /move\('studentsNav', 'users', true\)/);
-  assert.match(script, /move\('requestsApprovalsNav', 'settings'\)/);
+  assert.match(script, /move\('requestsApprovalsNav', 'operations'\)/);
   assert.match(script, /move\('cloudSyncNav', 'settings'\)/);
   assert.match(script, /move\('offlineScanReviewsNav', 'attendanceManagement'\)/);
   assert.match(script, /link\.parentElement === target/);
@@ -51,7 +51,7 @@ test('Department Head and Teacher retain class schedules, QR, OB, personal DTR, 
     'schedules','students','teachers','classAttendance','myGateAttendance',
     'officialBusiness','sf2','planner','teacherLunchQr'
   ]) assert.match(html, new RegExp('data-view="' + view + '"'));
-  assert.match(script, /move\('myGateAttendanceNav', 'operations'\)/);
+  assert.match(script, /move\('myGateAttendanceNav', 'personalAttendance'\)/);
   assert.match(script, /label\('personalAttendance', 'My Attendance'\)/);
   assert.match(portal, /if \(role === 'DEPARTMENT_HEAD'\) return \['dashboard', 'planner', 'students', 'teachers', 'schedules', 'sf2', 'officialBusiness', 'myGateAttendance'\]/);
   assert.match(portal, /if \(teacherHas\('SUBJECT_TEACHER'\) \|\| teacherHas\('CLASS_ADVISER'\)\) views\.push\('sf2'\)/);
