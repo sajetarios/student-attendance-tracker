@@ -8,126 +8,568 @@
   const STAFF = ['TEACHER', 'DEPARTMENT_HEAD', 'SCHOOL_ADMIN'];
   const ALL = [...STAFF, 'GATE_KEEPER', 'SUPER_ADMIN'];
   const topics = [
-    {
-      id: 'class-attendance', title: 'Record class attendance', roles: STAFF,
-      nav: 'classAttendanceNav',
-      keywords: ['class attendance', 'take attendance', 'record attendance', 'attendance qr', 'mag attendance', 'attendance ng klase', 'scan student', 'student qr', 'mark learners', 'present absent'],
-      steps: ['Open Class attendance from your Academics menu if it is available to your account.', 'Select the correct assigned class and schedule before scanning or recording.', 'Verify the learner and the result on screen; check the class record before attempting a second scan.', 'If you cannot access a class, ask the School Admin to verify your assignment.'],
-      note: 'A missing scan does not by itself establish an absence. Only use an attendance action that your account is authorized to perform.'
-    },
-    {
-      id: 'gate-scan', title: 'Gate QR scanning', roles: ALL,
-      nav: 'myGateAttendanceNav',
-      keywords: ['gate', 'gatekeeper', 'gate scan', 'teacher qr', 'qr verification', 'time in', 'time out', 'scan badge', 'school gate', 'mag scan', 'qr code'],
-      steps: ['Teachers can open Gate Attendance & DTR to view their own gate record and badge.', 'At the gate, let an authorized Gatekeeper verify the QR and the predicted event before it is recorded.', 'Check the confirmation message. If it is unclear whether a scan succeeded, review the record before repeating it.', 'For incorrect punches, contact the responsible administrator rather than editing gate logs directly.'],
-      note: 'The Gatekeeper workflow is separate from class attendance and follows official event validation.'
-    },
-    {
-      id: 'dtr', title: 'View your DTR (Form 48)', roles: STAFF,
-      nav: 'myGateAttendanceNav',
-      keywords: ['dtr', 'form 48', 'daily time record', 'my time record', 'time record', 'dtr print', 'print dtr', 'attendance remarks', 'late', 'undertime', 'absent'],
-      steps: ['Open Gate Attendance & DTR in My Attendance (or Academics) to check your own verified punches.', 'Choose the relevant month and review each date, time-in/time-out and remarks before printing.', 'If your DTR looks incomplete, compare it with the confirmed gate scans and any approved OB or leave.', 'Report discrepancies to the School Admin for authorized review.'],
-      note: 'A missing punch is not automatically proof of absence. The official DTR depends on verified records and approved adjustments.'
-    },
-    {
-      id: 'official-business', title: 'Request Official Business (OB)', roles: STAFF,
-      nav: 'officialBusinessNav',
-      keywords: ['official business', 'ob', 'ob request', 'ob approval', 'seminar', 'training', 'ob time', 'file ob', 'mag ob'],
-      steps: ['Open Official Business from the available attendance menu.', 'Submit the correct date, time window, destination and reason using the fields shown.', 'Wait for the authorized approval; submitting a request does not mean it is approved.', 'Continue following Gatekeeper scanning instructions. Approved OB information is considered when DTR remarks are prepared.', 'If you return later than approved, report the actual situation for review.'],
-      note: 'The assistant cannot approve OB, assume overtime, or change recorded times.'
-    },
-    {
-      id: 'leave', title: 'Apply for leave (CSC Form No. 6)', roles: STAFF,
-      nav: 'staffLeaveNav',
-      keywords: ['leave', 'leave application', 'vacation leave', 'sick leave', 'service credit', 'csc form 6', 'form no 6', 'vsc', 'mag leave', 'bakasyon'],
-      steps: ['Choose Leave Management from your attendance menu.', 'Open Leave requests, then New leave application.', 'Choose the leave type, proposed credit account, dates and reason. Add documents if required.', 'Submit for review; approval and certified service credit balances remain subject to authorized review.', 'Check the application status, and verify any DTR remarks for approved dates.'],
-      note: 'Submission is not approval. Do not treat projected leave credits or remarks as final unless certified by the authorized approver.'
-    },
-    {
-      id: 'sf1-import', title: 'Import learners from SF1', roles: STAFF,
-      nav: 'studentsNav',
-      keywords: ['sf1', 'sf 1', 'school form 1', 'import', 'upload students', 'upload sf1', 'learner roster', 'excel import', 'pdf import', 'list of students', 'mag import'],
-      steps: ['Go to Students and locate the SF1 import/upload action available to your role.', 'Upload the accepted SF1 file and review the extracted learner names, LRNs, grade levels and guardian fields.', 'Fix validation warnings before confirming; check existing-record matches carefully to prevent duplicates.', 'After importing, filter the roster by grade and assign sections using authorized batch actions.'],
-      note: 'An adviser can work only in their authorized section scope. The assistant does not import or change records.'
-    },
-    {
-      id: 'section', title: 'Assign learners to a section', roles: STAFF,
-      nav: 'studentsNav',
-      keywords: ['assign section', 'batch action', 'bulk assign', 'section', 'grade level', 'create section', 'move student', 'advisory', 'homeroom'],
-      steps: ['Open Students, then use the grade and section filters to narrow the list.', 'Select the intended learners and choose the available batch assignment action.', 'Select the correct section. Authorized advisers can create a missing section where the screen offers that permission.', 'Review the selected learners before saving, then refresh the roster to confirm the change.'],
-      note: 'Section management permissions depend on your school role and assignments.'
-    },
-    {
-      id: 'sf2', title: 'Generate SF2', roles: STAFF,
-      nav: 'sf2Nav',
-      keywords: ['sf2', 'sf 2', 'school form 2', 'monthly attendance', 'attendance report', 'generate sf2', 'print sf2'],
-      steps: ['Open SF2 Report Generator from the available navigation.', 'Select the correct school year, month and permitted class or section.', 'Check the daily attendance entries and summary computation before generating the file.', 'Preview the output and escalate missing or incorrect records before submitting an official report.'],
-      note: 'Only verified or authorized class data should be treated as official.'
-    },
-    {
-      id: 'schedule', title: 'Find your teaching timetable', roles: STAFF,
-      nav: 'schedulesNav',
-      keywords: ['timetable', 'weekly timetable', 'teaching schedule', 'class schedule', 'schedules', 'lesson period', 'where is my class', 'subject schedule', 'advisory class'],
-      steps: ['Open Class Schedules or the Weekly Timetable on your dashboard.', 'Use the weekly grid or List view to see assigned subjects, times and weekdays.', 'Check the separate advisory designation when applicable.', 'If a schedule is missing or incorrect, ask your Department Head or School Admin to review the assignment.'],
-      note: 'Only authorized scheduling roles can create or edit the underlying class schedules.'
-    },
-    {
-      id: 'schedule-create', title: 'Create a class schedule', roles: ['DEPARTMENT_HEAD','SCHOOL_ADMIN'],
-      nav: 'schedulesNav',
-      keywords: ['add class', 'add a class', 'add a class schedule', 'create a class schedule', 'create class', 'new class', 'add schedule', 'create schedule', 'class period', 'make schedule', 'schedule class'],
-      steps: ['Open Class Schedules from the Academics menu.', 'Choose the option to add or create a schedule, then select the class, subject, teacher, classroom and timetable template.', 'Check the scheduled weekdays and period times.', 'Save only after checking any teacher, room or class conflict warning.'],
-      note: 'Department Heads can create schedules in their own department. School-wide timetable settings remain with the School Admin.'
-    },
-    {
-      id: 'teacher-assignment', title: 'Assign a teacher to a class', roles: ['DEPARTMENT_HEAD', 'SCHOOL_ADMIN'],
-      nav: 'schedulesNav',
-      keywords: ['assign teacher', 'unassigned class', 'class assignment', 'teacher coverage', 'manage class', 'teacher schedule conflict'],
-      steps: ['Open Class Schedules or your department’s coverage tools.', 'Find the class that requires a teacher and review its department and schedule.', 'Use the available assignment control and choose an eligible teacher.', 'Check any conflict warnings before saving, then verify the updated timetable.'],
-      note: 'Department Heads are limited to their own departments. Conflict checks should never be bypassed.'
-    },
-    {
-      id: 'student-account', title: 'Student accounts and requests', roles: STAFF,
-      nav: 'studentAccountsNav',
-      keywords: ['student account', 'learner login', 'account request', 'student sign up', 'student portal', 'student password', 'activate student'],
-      steps: ['Open Student Accounts if your role has that menu.', 'Review the visible account requests for learners assigned to your permitted scope.', 'Follow the approval or creation flow shown on screen; do not share a learner password in chat.', 'If no action is available, ask the School Admin to check the school’s account permissions.'],
-      note: 'Having a student record does not necessarily mean the student has a portal account.'
-    },
-    {
-      id: 'guardian', title: 'Review guardian information', roles: STAFF,
-      nav: 'studentsNav',
-      keywords: ['guardian', 'parent', 'mother', 'father', 'parent contact', 'guardian contact', 'guardian phone', 'guardian details', 'family details'],
-      steps: ['Open Students and select the learner within your authorized class or roster.', 'Review the parent/guardian fields imported from the official SF1.', 'Use the approved edit or request flow if a correction is needed.', 'Parent Portal accounts are separate from guardian information on a student record.'],
-      note: 'Do not include student names, LRNs, phone numbers or private family data in help questions.'
-    },
-    {
-      id: 'password', title: 'Sign in and account security', roles: ALL,
-      nav: null,
-      keywords: ['password', 'login', 'log in', 'cannot sign in', 'account locked', 'forgot password', 'change password', 'profile', 'security', 'sign out'],
-      steps: ['Check that you are using the correct Attendigo sign-in page and your own account.', 'To update an active profile or password, open the profile/account menu in the top bar.', 'For an inaccessible account, follow the available recovery instructions or contact the School Admin.', 'Never share a password, QR private token or recovery code with the help assistant.'],
-      note: 'The assistant cannot see or reset passwords or bypass security checks.'
-    },
-    {
-      id: 'navigation', title: 'Find a feature on the menu', roles: ALL,
-      nav: 'dashboardNav',
-      keywords: ['menu', 'navigation', 'sidebar', 'dashboard', 'where can i find', 'where is', 'paano gamitin', 'paano mag', 'how do i use', 'how to use', 'help'],
-      steps: ['Open the sidebar from the menu icon on a narrow screen.', 'Menus are expanded by default; select the relevant feature under Student Records, Academics or My Attendance.', 'Only features available to your account should appear.', 'Ask a specific question, such as “How do I import SF1?” or “Where is my DTR?”, for guided steps.'],
-      note: 'The assistant explains features; it does not unlock restricted navigation.'
-    },
-    {
-      id: 'technical', title: 'Troubleshoot a screen or error', roles: ALL,
-      nav: null,
-      keywords: ['error', 'blank', 'not showing', 'loading', 'does not work', 'refresh', 'internet', 'offline', 'sync issue', 'bug', 'stuck', 'failed', 'hindi gumagana', 'problema'],
-      steps: ['Check the connection status and any warning shown by Attendigo.', 'Refresh the page once after any pending form submission has been confirmed.', 'For scanning or attendance, check existing events before scanning again to avoid duplicate attempts.', 'Record the exact error message and the affected menu, then report it to your School Admin or support.'],
-      note: 'Do not paste learner records, passwords or private QR tokens into the help chat.'
-    },
-    {
-      id: 'school-settings', title: 'Manage school configuration', roles: ['SCHOOL_ADMIN'],
-      nav: 'settingsNavGroup',
-      keywords: ['school settings', 'operating days', 'timetable template', 'school holiday', 'period times', 'school calendar', 'configure school'],
-      steps: ['Open School Settings from the sidebar.', 'Review the operating days, reusable timetable templates and period definitions.', 'Use school calendar events for holidays, suspensions or shortened days.', 'Check affected schedules and permissions before saving school-wide changes.'],
-      note: 'Only School Admins can manage school-wide timetable settings.'
-    }
-  ];
+  {
+    "id": "class-attendance",
+    "title": "Record class attendance",
+    "roles": [
+      "TEACHER"
+    ],
+    "nav": "classAttendanceNav",
+    "keywords": [
+      "class attendance",
+      "take attendance",
+      "record attendance",
+      "attendance qr",
+      "mag attendance",
+      "attendance ng klase",
+      "scan student",
+      "student qr",
+      "mark learners",
+      "present absent"
+    ],
+    "steps": [
+      "Open Class Attendance under Teaching & Classes. Only teachers assigned as Subject Teacher or Class Adviser have this menu.",
+      "Select the correct assigned class or advisory section and its scheduled period; scan the student QR or use the authorized attendance control.",
+      "Verify the learner and recorded result. Check existing entries before a repeat scan.",
+      "If the class is missing, ask the School Admin to review your teaching designation or schedule."
+    ],
+    "note": "Student class attendance is separate from staff gate scans."
+  },
+  {
+    "id": "gate-scan",
+    "title": "Review your staff gate scans",
+    "roles": [
+      "TEACHER",
+      "DEPARTMENT_HEAD",
+      "SCHOOL_ADMIN"
+    ],
+    "nav": "myGateAttendanceNav",
+    "keywords": [
+      "staff gate",
+      "gate attendance",
+      "teacher qr",
+      "qr badge",
+      "gate time in",
+      "gate time out",
+      "my gate",
+      "my qr",
+      "teacher badge",
+      "staff qr"
+    ],
+    "steps": [
+      "Open My Attendance → Gate Attendance & DTR (Department Head: My Attendance / DTR; School Admin: own staff attendance under Attendance Management).",
+      "Present your staff QR badge to the authorized Gatekeeper. The Gatekeeper must verify the identity and event before saving.",
+      "Check the confirmed scan in your personal gate record and DTR. Logging in to Attendigo does not mark you present.",
+      "Report disputed punches for authorized review instead of rescanning without checking."
+    ],
+    "note": "Gate verification and official DTR punches are subject to their own rules."
+  },
+  {
+    "id": "gatekeeper-scan",
+    "title": "Use the Gatekeeper QR scanner",
+    "roles": [
+      "GATE_KEEPER"
+    ],
+    "nav": "studentsNav",
+    "keywords": [
+      "gate scanner",
+      "gatekeeper",
+      "gate scan",
+      "scan teacher",
+      "student qr",
+      "scan student",
+      "qr verify",
+      "time in",
+      "time out",
+      "gate qr"
+    ],
+    "steps": [
+      "Open Gate scanner from your sidebar; Gatekeeper access does not use the full student roster.",
+      "Scan a student QR card or staff badge, and compare identity and photograph before recording.",
+      "Verify the predicted attendance event and check the confirmation shown on screen.",
+      "If the outcome is uncertain, check the existing record before another scan and report discrepancies."
+    ],
+    "note": "Gatekeeper scans cannot approve leave/OB or alter official DTR reviews."
+  },
+  {
+    "id": "dtr",
+    "title": "Review Daily Time Record (Form 48)",
+    "roles": [
+      "TEACHER",
+      "DEPARTMENT_HEAD",
+      "SCHOOL_ADMIN"
+    ],
+    "nav": "myGateAttendanceNav",
+    "keywords": [
+      "dtr",
+      "form 48",
+      "daily time record",
+      "my time record",
+      "time record",
+      "dtr print",
+      "print dtr",
+      "attendance remarks",
+      "late",
+      "undertime",
+      "absent"
+    ],
+    "steps": [
+      "Open My Attendance → Gate Attendance & DTR (Department Heads may see My Attendance / DTR). School Admins open their personal DTR from Attendance Management.",
+      "Select the reporting month and review verified staff punches, gate evidence and remarks.",
+      "Check approved OB/leave dates alongside the DTR; a missing punch alone is not proof of absence.",
+      "Ask for an authorized correction if an entry is missing or incorrect. Do not treat a draft as officially certified."
+    ],
+    "note": "Staff gate events, DTR review and final Form 48 certification are distinct."
+  },
+  {
+    "id": "official-business",
+    "title": "Request Official Business (OB)",
+    "roles": [
+      "TEACHER",
+      "DEPARTMENT_HEAD",
+      "SCHOOL_ADMIN"
+    ],
+    "nav": "officialBusinessNav",
+    "keywords": [
+      "official business",
+      "ob",
+      "ob request",
+      "ob approval",
+      "seminar",
+      "training",
+      "ob time",
+      "file ob",
+      "mag ob"
+    ],
+    "steps": [
+      "Open Official Business under My Attendance (School Admin: Operations). Department Heads may see Department OB Requests.",
+      "Expand Submit My Official Business request and enter Purpose, Destination, Start (Philippine time) and End (Philippine time).",
+      "Choose Submit OB request. A Department Head recommends and School Admin makes the final decision; submission is not approval.",
+      "Continue the approved gate verification procedure. Returns outside the approved window require review."
+    ],
+    "note": "Approved OB may affect DTR remarks and staff coverage; the guide cannot approve OB or create punches."
+  },
+  {
+    "id": "leave",
+    "title": "Apply for leave (CSC Form No. 6)",
+    "roles": [
+      "TEACHER",
+      "DEPARTMENT_HEAD",
+      "SCHOOL_ADMIN"
+    ],
+    "nav": "staffLeaveNav",
+    "keywords": [
+      "leave",
+      "leave application",
+      "vacation leave",
+      "sick leave",
+      "service credit",
+      "csc form 6",
+      "form no 6",
+      "vsc",
+      "mag leave",
+      "bakasyon"
+    ],
+    "steps": [
+      "Open Leave Requests in My Attendance (School Admin: Operations), then My applications or Leave applications.",
+      "Expand New leave application. Select Type of leave and Proposed credit account, choose Start date and End date, and enter the required Reason.",
+      "Add supporting PDF, JPG or PNG documentation when needed. Submit for review; after saving, use Print prefilled CSC Form No. 6 on the request.",
+      "Track the application. Department recommendation, school review and verification of an officially signed decision are separate authorized stages."
+    ],
+    "note": "Teachers can view certified balances but cannot assign themselves credits or approve their own leave."
+  },
+  {
+    "id": "leave-approvals",
+    "title": "Review leave approvals",
+    "roles": [
+      "DEPARTMENT_HEAD",
+      "SCHOOL_ADMIN"
+    ],
+    "nav": "staffLeaveReviewNav",
+    "keywords": [
+      "leave approvals",
+      "leave approval inbox",
+      "recommend leave",
+      "approve leave",
+      "review leave",
+      "official decision",
+      "pending leave",
+      "principal leave"
+    ],
+    "steps": [
+      "Open Leave Approvals under Requests & Approvals / Operations to see requests within your authorized scope.",
+      "Department Heads provide a department recommendation. School Admins perform the school review or forwarding stage.",
+      "The actual signed decision must be issued by the authorized official and verified before its status is recorded; Attendigo does not digitally grant signing authority.",
+      "You cannot approve your own leave."
+    ],
+    "note": "The approval inbox tracks documentary decisions. A pending request is not approved."
+  },
+  {
+    "id": "leave-credits",
+    "title": "View or certify leave credit balances",
+    "roles": [
+      "TEACHER",
+      "DEPARTMENT_HEAD",
+      "SCHOOL_ADMIN"
+    ],
+    "nav": "staffLeaveNav",
+    "keywords": [
+      "leave credits",
+      "my credits",
+      "hr credits",
+      "service credits",
+      "vsc credits",
+      "credit balance",
+      "leave balance",
+      "who sets leave credits"
+    ],
+    "steps": [
+      "Open Leave Requests and choose My credits (School Admin: HR credits).",
+      "Teachers and Department Heads see their own certified balance; they do not assign themselves credits.",
+      "School Admin / authorized HR personnel manage certified balances through the HR credits interface.",
+      "Report an incorrect balance to School Admin/HR for document-backed verification."
+    ],
+    "note": "Proposed deductions or claims are not certified credit balances."
+  },
+  {
+    "id": "sf1-import",
+    "title": "Import learners from LIS SF1",
+    "roles": [
+      "TEACHER",
+      "SCHOOL_ADMIN"
+    ],
+    "nav": "studentsNav",
+    "keywords": [
+      "sf1",
+      "sf 1",
+      "school form 1",
+      "import",
+      "upload students",
+      "upload sf1",
+      "learner roster",
+      "excel import",
+      "pdf import",
+      "list of students",
+      "mag import"
+    ],
+    "steps": [
+      "Open My Students / My Advisory Students (School Admin: Students) and select Import students or Bulk import.",
+      "Teachers need Class Adviser designation, an assigned advisory class and an active school year before uploading SF1.",
+      "Choose LIS SF1. Upload the original .xls/.xlsx file or a searchable PDF, then review the detected LRN, learner name, sex, grade and labeled guardian/contact fields.",
+      "Resolve flagged records and review existing-record matches before Import / update. New learners start Unassigned; existing identity, section and attendance are preserved."
+    ],
+    "note": "SF1 limits: 5 MB and 2,000 learners. Scanned image-only PDFs may not be readable."
+  },
+  {
+    "id": "section",
+    "title": "Assign learners to a section",
+    "roles": [
+      "TEACHER",
+      "DEPARTMENT_HEAD",
+      "SCHOOL_ADMIN"
+    ],
+    "nav": "studentsNav",
+    "keywords": [
+      "assign section",
+      "batch action",
+      "bulk assign",
+      "section",
+      "grade level",
+      "create section",
+      "move student",
+      "advisory",
+      "homeroom"
+    ],
+    "steps": [
+      "Open My Students, Department Students or Students, and filter the learner roster.",
+      "Select learners and use the permitted batch action Move grade / section.",
+      "Choose an existing authorized section. Class Advisers can create a missing section in the batch dialog when the control is shown; Department Heads have a separate Add class section workflow.",
+      "Review the selected learners and confirm; refresh the roster to check the result."
+    ],
+    "note": "Only assigned Class Advisers, Department Heads or School Admins may use their scoped batch actions."
+  },
+  {
+    "id": "sf2",
+    "title": "Preview, generate or monitor SF2",
+    "roles": [
+      "TEACHER",
+      "DEPARTMENT_HEAD"
+    ],
+    "nav": "sf2Nav",
+    "keywords": [
+      "sf2",
+      "sf 2",
+      "school form 2",
+      "monthly attendance",
+      "attendance report",
+      "generate sf2",
+      "print sf2"
+    ],
+    "steps": [
+      "Open Reports → SF2 Attendance Report (teacher) or SF2 Monitoring (Department Head). Select Reporting month, Grade level and Section, then Preview attendance.",
+      "Only assigned Class Advisers may confirm justified full-day absences and, when unresolved learner-days are cleared, generate or submit the official monthly SF2.",
+      "Subject Teachers can Generate personal copy from their subject records. NR is not absence; a personal copy is not an official submission.",
+      "Department Heads monitor departmental reports and official submissions with read-only privileges."
+    ],
+    "note": "SF2 uses class-attendance evidence, not staff gate scans. The current screen says holidays/suspensions are not yet connected to its SF2 calendar."
+  },
+  {
+    "id": "schedule",
+    "title": "Find your teaching timetable",
+    "roles": [
+      "TEACHER",
+      "DEPARTMENT_HEAD",
+      "SCHOOL_ADMIN"
+    ],
+    "nav": "schedulesNav",
+    "keywords": [
+      "timetable",
+      "weekly timetable",
+      "teaching schedule",
+      "class schedule",
+      "schedules",
+      "lesson period",
+      "where is my class",
+      "subject schedule",
+      "advisory class"
+    ],
+    "steps": [
+      "Open My Timetable (teacher), Department Schedules (Department Head) or Class Schedules (School Admin).",
+      "Use Class timetable or the available List view to check assigned classes, subjects, times and weekdays.",
+      "Look for advisory vs subject assignments, and confirm the correct school timetable period.",
+      "Ask your Department Head or School Admin to correct missing or conflicting assignments."
+    ],
+    "note": "Teachers view their own assigned schedules; timetable settings require School Admin permission."
+  },
+  {
+    "id": "schedule-create",
+    "title": "Create a class schedule",
+    "roles": [
+      "DEPARTMENT_HEAD",
+      "SCHOOL_ADMIN"
+    ],
+    "nav": "schedulesNav",
+    "keywords": [
+      "add class",
+      "add a class",
+      "add a class schedule",
+      "create a class schedule",
+      "create class",
+      "new class",
+      "add schedule",
+      "create schedule",
+      "class period",
+      "make schedule",
+      "schedule class"
+    ],
+    "steps": [
+      "Open Department Schedules (Department Head) or Class Schedules (School Admin).",
+      "Select + New department class or + New class schedule, then configure grade/section, subject, teacher, room and period/weekdays.",
+      "Resolve class, teacher and classroom conflict warnings before saving.",
+      "Department Heads can use Assign Subject Teachers for unassigned department classes with eligible teachers."
+    ],
+    "note": "Only School Admins configure school-wide timetable templates, operating days and calendar settings."
+  },
+  {
+    "id": "teacher-assignment",
+    "title": "Assign a teacher to a class",
+    "roles": [
+      "DEPARTMENT_HEAD",
+      "SCHOOL_ADMIN"
+    ],
+    "nav": "schedulesNav",
+    "keywords": [
+      "assign teacher",
+      "unassigned class",
+      "class assignment",
+      "teacher coverage",
+      "manage class",
+      "teacher schedule conflict"
+    ],
+    "steps": [
+      "Open Department Schedules and choose Unassigned Classes or the available Assign Subject Teachers control.",
+      "Select one or more unassigned classes from your department and an eligible Subject Teacher from that department.",
+      "Check the proposed classes and select Assign teacher; the system validates permissions and conflicts.",
+      "Recheck the weekly timetable after saving, or ask School Admin to correct missing designations."
+    ],
+    "note": "Department Heads cannot assign across department boundaries."
+  },
+  {
+    "id": "student-account",
+    "title": "Request or manage student portal accounts",
+    "roles": [
+      "TEACHER",
+      "SCHOOL_ADMIN"
+    ],
+    "nav": "studentsNav",
+    "keywords": [
+      "student account",
+      "learner login",
+      "account request",
+      "student sign up",
+      "student portal",
+      "student password",
+      "activate student"
+    ],
+    "steps": [
+      "Open My Students (teacher) or Students (School Admin) and select the Portal Accounts tab; the separate Student Accounts sidebar link is hidden.",
+      "Teachers can request new logins, password resets or reactivation for their assigned learners, individually or in authorized batches.",
+      "School Admins review requests and can create, reactivate, reset or suspend student accounts. A teacher request does not immediately issue credentials.",
+      "Use the Portal Accounts request history to track pending and completed decisions."
+    ],
+    "note": "A learner enrolled in Attendigo does not necessarily have an active student login. Never share temporary passwords with Help Guide."
+  },
+  {
+    "id": "guardian",
+    "title": "Review guardian information",
+    "roles": [
+      "TEACHER",
+      "DEPARTMENT_HEAD",
+      "SCHOOL_ADMIN"
+    ],
+    "nav": "studentsNav",
+    "keywords": [
+      "guardian",
+      "parent",
+      "mother",
+      "father",
+      "parent contact",
+      "guardian contact",
+      "guardian phone",
+      "guardian details",
+      "family details"
+    ],
+    "steps": [
+      "Open an authorized student roster and find the learner.",
+      "Choose Manage guardians on the learner row to view approved Guardian contacts and Request history.",
+      "Select Request change, then Add secondary guardian, Change primary guardian or Correct primary contact; provide the requested information and reason.",
+      "Submit the request for authorized review before assuming the guardian change is effective."
+    ],
+    "note": "SF1 family information, student primary contact, approved guardians and parent portal accounts are not interchangeable."
+  },
+  {
+    "id": "password",
+    "title": "Sign in and account security",
+    "roles": [
+      "TEACHER",
+      "DEPARTMENT_HEAD",
+      "SCHOOL_ADMIN",
+      "GATE_KEEPER",
+      "SUPER_ADMIN"
+    ],
+    "nav": null,
+    "keywords": [
+      "password",
+      "login",
+      "log in",
+      "cannot sign in",
+      "account locked",
+      "forgot password",
+      "change password",
+      "profile",
+      "security",
+      "sign out"
+    ],
+    "steps": [
+      "Check that you are using the correct Attendigo sign-in page and your own account.",
+      "To update an active profile or password, open the profile/account menu in the top bar.",
+      "For an inaccessible account, follow the available recovery instructions or contact the School Admin.",
+      "Never share a password, QR private token or recovery code with the help assistant."
+    ],
+    "note": "The assistant cannot see or reset passwords or bypass security checks."
+  },
+  {
+    "id": "navigation",
+    "title": "Find a feature on the menu",
+    "roles": [
+      "TEACHER",
+      "DEPARTMENT_HEAD",
+      "SCHOOL_ADMIN",
+      "GATE_KEEPER",
+      "SUPER_ADMIN"
+    ],
+    "nav": "dashboardNav",
+    "keywords": [
+      "menu",
+      "navigation",
+      "sidebar",
+      "dashboard",
+      "where can i find",
+      "where is",
+      "paano gamitin",
+      "paano mag",
+      "how do i use",
+      "how to use",
+      "help"
+    ],
+    "steps": [
+      "Open the sidebar; its groups and labels change with your school role and assignments.",
+      "Teachers use Teaching & Classes, My Attendance and Reports; Department Heads and School Admins have additional Requests & Approvals or Operations items.",
+      "Only available features are shown. A missing item may mean your designation, class assignment or role is not authorized.",
+      "Ask a specific question such as How do I import SF1? or Where are student account requests?"
+    ],
+    "note": "The assistant only opens currently authorized navigation."
+  },
+  {
+    "id": "technical",
+    "title": "Troubleshoot a screen or error",
+    "roles": [
+      "TEACHER",
+      "DEPARTMENT_HEAD",
+      "SCHOOL_ADMIN",
+      "GATE_KEEPER",
+      "SUPER_ADMIN"
+    ],
+    "nav": null,
+    "keywords": [
+      "error",
+      "blank",
+      "not showing",
+      "loading",
+      "does not work",
+      "refresh",
+      "internet",
+      "offline",
+      "sync issue",
+      "bug",
+      "stuck",
+      "failed",
+      "hindi gumagana",
+      "problema"
+    ],
+    "steps": [
+      "Check the connection status and any warning shown by Attendigo.",
+      "Refresh the page once after any pending form submission has been confirmed.",
+      "For scanning or attendance, check existing events before scanning again to avoid duplicate attempts.",
+      "Record the exact error message and the affected menu, then report it to your School Admin or support."
+    ],
+    "note": "Do not paste learner records, passwords or private QR tokens into the help chat."
+  },
+  {
+    "id": "school-settings",
+    "title": "Manage school configuration",
+    "roles": [
+      "SCHOOL_ADMIN"
+    ],
+    "nav": "schedulesNav",
+    "keywords": [
+      "school settings",
+      "operating days",
+      "timetable template",
+      "school holiday",
+      "period times",
+      "school calendar",
+      "configure school"
+    ],
+    "steps": [
+      "Sign in as School Admin and open Class Schedules → Timetable settings.",
+      "Set Operating days and configure Daily timetable templates and period times.",
+      "Review special calendar events, holidays, suspensions or shortened days as available.",
+      "Save the settings and check affected class schedules."
+    ],
+    "note": "Timetable settings are school-admin-only and are not the same as SF2 attendance calculations."
+  }
+];
   function normalize(input) {
     return String(input == null ? '' : input).normalize('NFD').replace(/[\u0300-\u036f]/g, '')
       .toLowerCase().replace(/[^a-z0-9\s]/g, ' ').replace(/\s+/g, ' ').trim();
