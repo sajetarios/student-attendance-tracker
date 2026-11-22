@@ -45,6 +45,8 @@ test('credit and external approval require documentary evidence; raw gate scans 
  assert.match(routes,/document_kind='SPECIAL_ORDER'/);
  assert.match(routes,/Insufficient certified/);
  assert.match(routes,/staff_form48_approved_leaves/);
+ assert.match(routes,/step==='HEAD'\?'PENDING_ADMIN':'PENDING_EXTERNAL'/);
+ assert.doesNotMatch(routes,/decision==='REJECT'\?'REJECTED'/);
  assert.doesNotMatch(routes,/INSERT INTO (staff_attendance_events|teacher_gate_events)/i);
  assert.doesNotMatch(routes,/UPDATE (staff_attendance_events|teacher_gate_events)/i);
  const sql=read('migrations/074_deped_leave_vsc_workflow.sql');
