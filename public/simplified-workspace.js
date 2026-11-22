@@ -69,21 +69,12 @@
     });
   }
 
-  function collapseOtherGroups(except) {
-    document.querySelectorAll('#sidebar .nav-group-toggle[data-nav-group]').forEach(toggle => {
-      if (toggle === except || toggle.closest('.nav-group')?.hidden) return;
-      toggle.setAttribute('aria-expanded', 'false');
-      const children = menu(toggle.dataset.navGroup);
-      if (children) children.hidden = true;
-    });
-  }
   function focusActiveGroup() {
     const nav = document.querySelector('#sidebar .side-nav');
     const activeLink = [...(nav?.querySelectorAll('.nav-item.active') || [])]
       .find(link => !link.hidden);
     const activeWrapper = activeLink?.closest('.nav-group');
     const currentToggle = activeWrapper?.querySelector('.nav-group-toggle[data-nav-group]');
-    collapseOtherGroups(currentToggle);
     if (currentToggle && !activeWrapper.hidden) {
       currentToggle.setAttribute('aria-expanded', 'true');
       const children = menu(currentToggle.dataset.navGroup);
@@ -162,10 +153,9 @@
     nav.addEventListener('click', event => {
       const toggle = event.target.closest('.nav-group-toggle[data-nav-group]');
       if (input.value.trim()) { input.value = ''; clear(); }
-      if (toggle) {
-        // The existing toggle handler runs before this delegated handler.
-        if (toggle.getAttribute('aria-expanded') === 'true') collapseOtherGroups(toggle);
-      } else if (event.target.closest('.nav-item')) {
+      if (!toggle && event.target.closest('.nav-item')) {
+        // Keep all other groups as the user left them. The original handler
+        // alone controls individual collapse/expand interactions.
         requestAnimationFrame(focusActiveGroup);
       }
     });
@@ -261,6 +251,8 @@
       return;
     }
     arrangeSidebar(role);
+    // The HTML initially expands every authorized group. Keep that default
+    // instead of turning navigation into a single-open accordion.
     focusActiveGroup();
     setUpNavigationSearch();
     monitorRoleNavigation(role);
