@@ -96,3 +96,31 @@ COMMENT ON TABLE staff_leave_requests IS
  'DepEd staged leave requests, external approval verification, and eventual documented Form48 annotation; not an attendance event.';
 COMMENT ON TABLE staff_leave_credit_entries IS
  'Proposed credits do not count toward balances. Verified credits require an official approval reference; entries never create QR events.';
+
+-- Supporting documents stay in protected database storage, never /public or static assets.
+CREATE TABLE IF NOT EXISTS staff_leave_documents (
+ document_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+ school_id UUID NOT NULL REFERENCES schools(school_id) ON DELETE RESTRICT,
+ request_id UUID,
+ credit_entry_id UUID,
+ uploaded_by_user_id UUID NOT NULL,
+ document_kind TEXT NOT NULL CHECK(document_kind IN
+  ('APPLICATION','MEDICAL','CERTIFICATION','APPROVAL','SPECIAL_ORDER','OTHER')),
+ filename TEXT NOT NULL CHECK(length(filename) BETWEEN 1 AND 160),
+ content_type TEXT NOT NULL CHECK(content_type IN ('application/pdf','image/png','image/jpeg')),
+ content BYTEA NOT NULL CHECK(octet_length(content) BETWEEN 1 AND 4194304),
+ sha256 TEXT NOT NULL CHECK(sha256 ~ '^[0-9a-f]{64}$'),
+ uploaded_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+ CONSTRAINT staff_leave_document_one_subject CHECK((request_id IS NOT NULL) <> (credit_entry_id IS NOT NULL)),
+ CONSTRAINT staff_leave_document_request_fk FOREIGN KEY(school_id,request_id)
+  REFERENCES staff_leave_requests(school_id,request_id) ON DELETE RESTRICT,
+ CONSTRAINT staff_leave_document_credit_fk FOREIGN KEY(school_id,credit_entry_id)
+  REFERENCES staff_leave_credit_entries(school_id,credit_entry_id) ON DELETE RESTRICT,
+ CONSTRAINT staff_leave_document_uploader_fk FOREIGN KEY(school_id,uploaded_by_user_id)
+  REFERENCES school_users(school_id,user_id) ON DELETE RESTRICT,
+ UNIQUE(school_id,document_id)
+);
+CREATE INDEX IF NOT EXISTS staff_leave_documents_request_idx
+ ON staff_leave_documents(school_id,request_id) WHERE request_id IS NOT NULL;
+CREATE INDEX IF NOT EXISTS staff_leave_documents_credit_idx
+ ON staff_leave_documents(school_id,credit_entry_id) WHERE credit_entry_id IS NOT NULL;
