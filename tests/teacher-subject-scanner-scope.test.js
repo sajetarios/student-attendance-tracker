@@ -77,8 +77,8 @@ test('teacher scanner mode is set only after assigned advisers and schedules are
  assert.match(data,/p\.subjectName \|\| p\.periodName/);
 });
 test('teacher scanner code and PWA cache versions match without altering QR engine',()=>{
- assertCachedAsset(html,sw,'portal.js',{minimumVersion:228});
- assertCacheRevisionAtLeast(sw,296);
+ assertCachedAsset(html,sw,'portal.js',{minimumVersion:229});
+ assertCacheRevisionAtLeast(sw,297);
  assert.match(js,/Html5Qrcode\.getCameras\(\)/);
  assert.match(js,/window\.AttendigoOffline\.record\(event, api\)/);
  assert.match(js,/attendanceScope: scope, periodId/);
