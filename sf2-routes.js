@@ -3,6 +3,8 @@
 const ExcelJS = require('exceljs');
 const path = require('path');
 const fs = require('fs/promises');
+const crypto = require('node:crypto');
+const MAX_OFFICIAL_SF2_BYTES = 8 * 1024 * 1024;
 const TEMPLATE = path.join(__dirname, 'templates', 'School Form 2 (SF2) Daily Attendance Report of Learners.xlsx');
 const SF2_STORAGE = path.join(__dirname, 'storage', 'sf2');
 const MONTHS = ['JANUARY','FEBRUARY','MARCH','APRIL','MAY','JUNE','JULY','AUGUST','SEPTEMBER','OCTOBER','NOVEMBER','DECEMBER'];
@@ -805,7 +807,6 @@ function registerSf2Routes(app, pool, { authenticateSchoolClient, requireSchoolU
     if (req.auth.role !== 'TEACHER' || !teacherHas(req, 'CLASS_ADVISER')) {
       return res.status(403).json({ error: 'Only a designated Class Adviser may submit the official monthly SF2 for an assigned section.' });
     }
-    let savedPath = null;
     const client = await pool.connect();
     try {
       await migration;
@@ -813,8 +814,9 @@ function registerSf2Routes(app, pool, { authenticateSchoolClient, requireSchoolU
       if (!access.canSubmit || access.mode !== 'OFFICIAL') return res.status(403).json({ error: 'This section is not assigned to you as Class Adviser.' });
       const buffer = await buildOfficialWorkbook(req, month, gradeLevel, section, data);
       const safeFilename = `SF2-${safePart(gradeLevel)}-${safePart(section)}-${month}`;
-      const schoolDir = path.join(SF2_STORAGE, String(req.auth.schoolId), month);
-      await fs.mkdir(schoolDir, { recursive: true });
+      if (!Buffer.isBuffer(buffer) || buffer.length === 0 || buffer.length > MAX_OFFICIAL_SF2_BYTES)
+        return res.status(413).json({error:'The official SF2 file is empty or exceeds the 8 MB submission limit.'});
+      const fileSha256 = crypto.createHash('sha256').update(buffer).digest('hex');
 
       await client.query('BEGIN');
       await client.query('SELECT pg_advisory_xact_lock(hashtext($1),hashtext($2))', [String(req.auth.schoolId), `${month}|${gradeLevel}|${section}`]);
@@ -825,10 +827,6 @@ function registerSf2Routes(app, pool, { authenticateSchoolClient, requireSchoolU
       );
       const revision = revisionResult.rows[0].revision + 1;
       const filename = `${safeFilename}-REV${revision}.xlsx`;
-      const fullPath = path.join(schoolDir, filename);
-      await fs.writeFile(fullPath, buffer, { flag: 'wx' });
-      savedPath = fullPath;
-      const relativePath = path.relative(__dirname, fullPath);
       await client.query(
         `UPDATE sf2_submissions SET is_current=FALSE
          WHERE school_id=$1 AND reporting_month=$2::date AND grade_level=$3 AND section=$4 AND is_current=TRUE`,
@@ -836,10 +834,10 @@ function registerSf2Routes(app, pool, { authenticateSchoolClient, requireSchoolU
       );
       const inserted = await client.query(
         `INSERT INTO sf2_submissions
-          (school_id,reporting_month,grade_level,section,revision,status,is_current,file_name,file_path,submitted_by_user_id,summary)
-         VALUES($1,$2::date,$3,$4,$5,'SUBMITTED',TRUE,$6,$7,$8,$9::jsonb)
+          (school_id,reporting_month,grade_level,section,revision,status,is_current,file_name,file_path,submitted_by_user_id,summary,file_bytes,file_sha256,file_size)
+         VALUES($1,$2::date,$3,$4,$5,'SUBMITTED',TRUE,$6,'db:sf2',$7,$8::jsonb,$9,$10,$11)
          RETURNING submission_id AS "submissionId",revision,status,submitted_at AS "submittedAt"`,
-        [req.auth.schoolId, `${month}-01`, gradeLevel, section, revision, filename, relativePath, req.auth.userId, JSON.stringify(data.summary)]
+        [req.auth.schoolId, `${month}-01`, gradeLevel, section, revision, filename, req.auth.userId, JSON.stringify(data.summary),buffer,fileSha256,buffer.length]
       );
       await client.query(
         `INSERT INTO audit_logs(school_id,actor_type,actor_user_id,action,entity_type,entity_id,details)
@@ -851,8 +849,7 @@ function registerSf2Routes(app, pool, { authenticateSchoolClient, requireSchoolU
       return res.status(201).json({ ok: true, submission: inserted.rows[0] });
     } catch (err) {
       try { await client.query('ROLLBACK'); } catch {}
-      if (savedPath) await fs.unlink(savedPath).catch(() => {});
-      console.error('Official SF2 submission failed:', err);
+       console.error('Official SF2 submission failed:', err);
       return res.status(err.status || 500).json({ error: err.message || 'Could not submit the official SF2.' });
     } finally {
       client.release();
@@ -908,12 +905,27 @@ function registerSf2Routes(app, pool, { authenticateSchoolClient, requireSchoolU
     try {
       await migration;
       const result = await pool.query(
-        `SELECT file_name AS "fileName",file_path AS "filePath",submitted_by_user_id AS "submittedByUserId"
+        `SELECT file_name AS "fileName",file_path AS "filePath",submitted_by_user_id AS "submittedByUserId",
+                file_bytes AS "fileBytes",file_sha256 AS "fileSha256",file_size AS "fileSize"
          FROM sf2_submissions WHERE school_id=$1 AND submission_id=$2 AND is_current=TRUE`,
         [req.auth.schoolId, req.params.submissionId]
       );
       if (!result.rowCount) return res.status(404).json({ error: 'Submitted SF2 file not found.' });
       if (!['SCHOOL_ADMIN', 'DEPARTMENT_HEAD'].includes(req.auth.role) && String(result.rows[0].submittedByUserId) !== String(req.auth.userId)) return res.status(403).json({ error: 'You may download only the SF2 reports you submitted.' });
+      if (result.rows[0].fileBytes) {
+        const {fileBytes,fileSha256,fileSize}=result.rows[0];
+        const verified=Buffer.isBuffer(fileBytes)&&fileBytes.length===fileSize&&
+          crypto.createHash('sha256').update(fileBytes).digest('hex')===fileSha256;
+        if (!verified) return res.status(503).json({error:'Stored SF2 file failed integrity validation. Contact the School Administrator.'});
+        res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+        res.setHeader('Content-Disposition', `attachment; filename="${result.rows[0].fileName.replace(/"/g, '')}"`);
+        res.setHeader('Cache-Control','private, no-store');
+        return res.end(fileBytes);
+      }
+      if (result.rows[0].filePath === 'db:sf2') {
+        return res.status(503).json({error:'Official SF2 content is temporarily unavailable. Contact the School Administrator.'});
+      }
+      // Compatibility only for submissions created before the durable-storage release.
       const storageRoot = path.resolve(SF2_STORAGE) + path.sep;
       const fullPath = path.resolve(__dirname, result.rows[0].filePath);
       if (!fullPath.startsWith(storageRoot)) return res.status(400).json({ error: 'Invalid stored report path.' });
