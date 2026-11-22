@@ -2598,6 +2598,7 @@ function coverageStatusLabel(status) {
           const manage = canManagePeriod(period);
           const relationshipTags = user.role === 'TEACHER'
             ? window.AttendigoScheduleRelationships.relationshipLabels(teacherRelationship(period))
+                .filter(label => label !== 'Advisory / Homeroom activity')
             : [];
           const advisoryTag = isAdvisoryActivity(period) ? 'Advisory / Homeroom activity' : '';
           const actions = manage ? '<div class="schedule-row-actions">'+
