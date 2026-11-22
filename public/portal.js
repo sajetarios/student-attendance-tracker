@@ -1798,8 +1798,8 @@ function coverageStatusLabel(status) {
           ? `<button type="button" class="outline-button" data-view-family="${esc(student.studentId)}">Learner &amp; family details</button><template data-family-template="${esc(student.studentId)}">${teacherGuardian}</template>`
           : '';
         const actions = editable
-          ? `<details class="student-actions-dropdown"><summary aria-label="Actions for ${esc(student.fullName)}">Actions</summary><div class="student-row-actions">${admin ? `<button type="button" class="outline-button" data-edit-student="${esc(student.studentId)}">Edit</button>` : ""}${canUploadPhoto ? `<label class="student-photo-upload">${student.hasPhoto ? 'Replace photo' : 'Upload photo'}<input type="file" accept="image/jpeg,image/png,image/webp" data-student-photo="${esc(student.studentId)}" hidden></label>` : ''}${adminQrAction}${detailsButton}</div></details>`
-          : teacher ? `<details class="student-actions-dropdown"><summary aria-label="Actions for ${esc(student.fullName)}">Actions</summary><div class="student-row-actions">${detailsButton}</div></details>`
+          ? `<details class="student-actions-dropdown"><summary aria-label="Actions for ${esc(student.fullName)}">${teacher ? "More" : "Actions"}</summary><div class="student-row-actions">${admin ? `<button type="button" class="outline-button" data-edit-student="${esc(student.studentId)}">Edit</button>` : ""}${canUploadPhoto ? `<label class="student-photo-upload">${student.hasPhoto ? 'Replace photo' : 'Upload photo'}<input type="file" accept="image/jpeg,image/png,image/webp" data-student-photo="${esc(student.studentId)}" hidden></label>` : ''}${adminQrAction}${detailsButton}</div></details>`
+          : teacher ? `<details class="student-actions-dropdown"><summary aria-label="Actions for ${esc(student.fullName)}">${teacher ? "More" : "Actions"}</summary><div class="student-row-actions">${detailsButton}</div></details>`
             : '<span class="muted-inline">' + (student.archivedAt ? 'Archived' : student.active === false ? 'Inactive' : 'View only') + '</span>';
         const statusLabel = student.archivedAt ? 'Archived' : student.active === false ? 'Inactive' : 'Active';
         const programCell = student.specialProgramCode
@@ -1814,7 +1814,9 @@ function coverageStatusLabel(status) {
             ? `<button type="button" class="student-qr-preview teacher-roster-qr" data-view-qr="${esc(student.studentId)}" aria-label="View QR code for ${esc(student.fullName)}" title="View or print learner QR"><span class="teacher-roster-qr-glyph" aria-hidden="true">▦</span><span>QR</span></button>`
             : '';
           const statusClass = statusLabel === 'Active' ? 'active' : statusLabel === 'Archived' ? 'archived' : 'inactive';
-          const classInfo = `<div class="teacher-roster-class"><strong>${esc(student.gradeLevel)} · ${esc(student.section)}</strong><span class="teacher-roster-program" data-label="Special program">${programCell}</span></div>`;
+          const sectionName = String(student.section || 'Unassigned').trim();
+          const sectionUnassigned = !sectionName || sectionName.toLowerCase() === 'unassigned';
+          const classInfo = `<div class="teacher-roster-class"><strong>${esc(student.gradeLevel)}</strong><span class="teacher-roster-section${sectionUnassigned ? ' is-unassigned' : ''}">${esc(sectionName || 'Unassigned')}</span><span class="teacher-roster-program" data-label="Special program">${student.specialProgramCode ? programCell : ''}</span></div>`;
           return `<tr class="teacher-roster-student" data-student-enrollment="${esc(student.enrollmentId || '')}" data-student-name="${esc(student.fullName)}">${showSelectionColumn ? `<td data-label="Select">${selection}</td>` : ''}<td data-label="Full name">${identity}</td><td data-label="Class">${classInfo}</td><td data-label="Status"><span class="teacher-roster-status ${statusClass}">${statusLabel}</span></td><td data-label="Actions"><div class="teacher-roster-quick-actions">${qrAction}${editable ? `<button type="button" class="outline-button learner-direct-edit" data-edit-student="${esc(student.studentId)}" aria-label="Edit ${esc(student.fullName)}">Edit</button>` : ""}${actions}</div></td></tr>`;
         }
         if (departmentHead) {
