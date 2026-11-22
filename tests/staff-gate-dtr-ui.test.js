@@ -43,7 +43,7 @@ test('one personal attendance table aligns official DTR with gate evidence witho
  assert.match(portal,/Photo verified/);
  assert.match(portal,/DTR unavailable/);
  assert.match(portal,/No gate scan/);
- assert.match(html,/Gate scans do not automatically fill missing DTR times/);
+ assert.match(html,/Missing lunch scans, OB, and uncertain movements are not guessed/);
  assertCachedAsset(html,worker,'portal.js',{minimumVersion:203});
  assertCachedAsset(html,worker,'portal.css');
 });
