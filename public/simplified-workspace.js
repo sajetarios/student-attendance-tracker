@@ -31,17 +31,21 @@
       move('requestsApprovalsNav', 'settings');
       move(nav.querySelector('[data-staff-section="permissions"]'), 'settings');
       move(nav.querySelector('[data-staff-section="departments"]'), 'settings');
-      move('offlineScanReviewsNav', 'operations');
+      move('offlineScanReviewsNav', 'attendanceManagement');
+      move('myGateAttendanceNav', 'attendanceManagement');
+      move('lunchQrAdminNav', 'attendanceManagement');
+      move('officialBusinessNav', 'attendanceManagement');
       move('cloudSyncNav', 'settings');
       move('smsNav', 'settings');
       move('schoolSmsAccessNotice', 'settings');
       label('users', 'People');
       label('academics', 'Academics');
-      label('operations', 'Attendance');
+      label('attendanceManagement', 'Attendance Management');
+      label('operations', 'Operations');
       label('settings', 'Administration');
       label('reports', 'Reports');
       const order = [$('dashboardNav'), $('staffNavWrapper'), group('academics'),
-        group('operations'), group('reports'), group('settings')];
+        group('attendanceManagement'), group('operations'), group('reports'), group('settings')];
       const ordered = order.filter(el => el && el.parentElement === nav);
       const current = [...nav.children].filter(el => ordered.includes(el));
       if (ordered.some((el, index) => el !== current[index])) ordered.forEach(el => nav.append(el));
