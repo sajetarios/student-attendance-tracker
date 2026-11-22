@@ -508,3 +508,15 @@
  #form48SchoolSignatories .form48-signer{background:var(--surface,#fff)}
 }
 @media print{#form48SchoolSignatories{display:none!important}}
+
+/* School-admin verified gate -> Form 48 approval. Preserves compact mobile layouts. */
+.form48-approval-panel{margin:15px 0;border:1px solid var(--border-color,#b6cbe1);border-radius:11px;padding:14px;background:var(--surface-secondary,#f7f9fc);color:inherit}
+.form48-approval-panel h5{margin:0 0 6px;font-size:14px;font-weight:750}
+.form48-approval-panel p,.form48-approval-panel small{display:block;font-size:12px;line-height:1.5;color:var(--text-muted,#65758a);margin:0 0 10px}
+.form48-approval-panel label{display:grid;gap:6px;font-size:12px;font-weight:650}
+.form48-approval-panel textarea{box-sizing:border-box;resize:vertical;width:100%;min-height:76px;max-height:160px;padding:9px;border:1px solid var(--border-color,#b7c8dc);border-radius:9px;background:var(--surface,#fff);color:inherit;font:inherit}
+.form48-approval-actions{display:flex;gap:9px;align-items:stretch;flex-wrap:wrap;margin:10px 0 0}
+.form48-approval-actions button{min-height:42px;max-width:100%;white-space:normal;text-align:center;font-size:12px;line-height:1.3}
+.form48-approval-actions button:disabled{opacity:.58;cursor:not-allowed}
+@media(max-width:650px){.form48-approval-panel{padding:12px}.form48-approval-actions{display:grid;grid-template-columns:1fr}.form48-approval-actions button{width:100%}}
+@media print{.form48-approval-panel{display:none!important}}
