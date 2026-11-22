@@ -95,7 +95,7 @@
 .login-page #schoolCode[aria-invalid="true"] {border-color:#c63d32!important;box-shadow:0 0 0 2px #c63d3222!important;}
 
 /* Account assistance: aligned label/action rows with equal columns and clear wrapping. */
-.login-page .login-assistance{width:100%;margin:17px 0 0;padding:16px 0 0;border-top:1px solid #dde5f2}
+.login-page .login-assistance{box-sizing:border-box;width:100%;margin:17px 0 0;padding:16px clamp(12px, 2vw, 20px);border-top:1px solid #dde5f2}
 .login-page .login-assistance-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));align-items:start;column-gap:18px;row-gap:12px}
 .login-page .login-assistance-item{min-width:0;display:grid;grid-template-rows:auto auto;align-content:start;justify-items:start;gap:5px}
 .login-page .login-assistance-item[hidden]{display:none!important}

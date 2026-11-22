@@ -49,7 +49,7 @@ const SHELL = [
   "/teacher-assignment-modal.css?v=1",
   "/portal-login.html",
   "/attendigo-login-motion.css?v=2",
-  "/attendigo-login-refinement.css?v=6",
+  "/attendigo-login-refinement.css?v=7",
   "/portal.css?v=0.9.121",
   "/student-roster-toolbar.css?v=2",
   "/learner-roster-view.css?v=1",
