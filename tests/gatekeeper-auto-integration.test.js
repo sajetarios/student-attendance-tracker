@@ -25,7 +25,10 @@ test('staff Gatekeeper records append-only verified physical movements with retr
  assert.match(route,/INSERT INTO staff_attendance_events/);
  assert.match(route,/photo_verified|photoVerified/);
  assert.doesNotMatch(route,/INSERT INTO teacher_gate_events/);
- assert.doesNotMatch(route,/DTR_SLOT/);
+ assert.match(route,/autoRecordVerifiedGateDtr/);
+ assert.match(route,/SAVEPOINT auto_gate_dtr/);
+ assert.match(route,/ROLLBACK TO SAVEPOINT auto_gate_dtr/);
+ assert.doesNotMatch(route,/INSERT INTO teacher_gate_events/);
 });
 test('OB remarks annotate 6 PM return, do not create DTR slots',()=>{
  const ob={requestId:'1',startsAt:'2026-11-19T09:00:00+08:00',endsAt:'2026-11-19T17:00:00+08:00'};
