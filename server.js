@@ -4484,7 +4484,12 @@ async function start() {
   await pool.query('UPDATE students SET qr_token=gen_random_uuid() WHERE qr_token IS NULL');
   app.listen(port, '0.0.0.0', () => console.log(`Attendance API listening on ${port} (roles-sf2-workflow-responsive-2026-11-11)`));
   smsWorker = startSmsWorker(pool);
-  const cloudSyncTimer = setInterval(() => processCloudSyncOutbox(pool).catch(err => console.error('Cloud sync worker failed:', err.message)), 15 * 1000);
+  // Catch up on unacknowledged cloud events immediately after a sleeping Free
+  // instance resumes. Existing outbox idempotency prevents duplicate dispatch.
+  const syncOnce=()=>processCloudSyncOutbox(pool)
+    .catch(err=>console.error('Cloud sync worker failed:',err.code||err.message));
+  void syncOnce();
+  const cloudSyncTimer = setInterval(syncOnce,15 * 1000);
   cloudSyncTimer.unref();
   const certPath = path.join(__dirname, 'localhost+ip.pem');
   const keyPath = path.join(__dirname, 'localhost+ip-key.pem');
