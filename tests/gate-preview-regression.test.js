@@ -87,6 +87,8 @@ async function automatic(opts={}){
      if(['BEGIN','ROLLBACK','COMMIT'].includes(sql)||sql.includes('pg_advisory_xact_lock')||/^(SAVEPOINT|RELEASE SAVEPOINT|ROLLBACK TO SAVEPOINT) /.test(sql))return {rows:[],rowCount:0};
      if(sql.includes('SELECT user_id,display_name FROM school_users'))return {rowCount:o.photo?1:0,rows:o.photo?[{user_id:staffId,display_name:'Fictional Teacher'}]:[]};
      if(sql.includes('FROM staff_attendance_events WHERE school_id=$1 AND client_event_key=$2'))return {rowCount:o.duplicate?1:0,rows:o.duplicate?[{eventId:key,staffUserId:staffId,gateDirection:o.duplicate,occurredAt:o.now}]:[]};
+     if(sql.includes('FROM staff_attendance_audit a'))return {rowCount:o.priorDtr?1:0,
+       rows:o.priorDtr?[{eventId:'ffffffff-ffff-4fff-8fff-ffffffffffff',slot:'AM_IN'}]:[]};
      if(sql.includes('SELECT clock_timestamp() AS occurred_at'))return {rows:[{occurred_at:o.now,school_date:'2026-11-23'}]};
      if(sql.includes('FROM school_calendar_exceptions'))return {rows:o.closed?[{exception_type:'CLOSED'}]:[]};
      if(sql.includes(') gate_history ORDER BY'))return {rows:o.history.map((eventType,i)=>({eventType,occurredAt:o.timestamps[i]||'2026-11-23T07:00:00+08:00'}))};
@@ -112,6 +114,18 @@ test('automatic recording alternates gate movements with required audit writes',
    assert.equal(calls.filter(x=>x.sql.includes('INSERT INTO audit_logs')).length,1);
    assert.equal(calls.some(x=>/INSERT INTO (dtr|ob_|official_business)/i.test(x.sql)),false);
  }
+});
+test('network retry returns the original audited DTR outcome without duplicate writes',async()=>{
+ const recorded=await automatic({duplicate:'IN',priorDtr:true});
+ assert.equal(recorded.status,200);
+ assert.equal(recorded.result.alreadyRecorded,true);
+ assert.equal(recorded.result.autoDtr.status,'AUTO_RECORDED');
+ assert.equal(recorded.result.autoDtr.slot,'AM_IN');
+ assert.equal(recorded.calls.some(x=>x.sql.includes('INSERT INTO')),false);
+ const review=await automatic({duplicate:'IN'});
+ assert.equal(review.status,200);
+ assert.equal(review.result.autoDtr.status,'REVIEW_REQUIRED');
+ assert.equal(review.calls.some(x=>x.sql.includes('INSERT INTO')),false);
 });
 test('changed preview blocks recording and rolls back without an audit row',async()=>{
  const {status,result,calls}=await automatic({history:['TIME_IN'],expected:'TIME_IN'});
