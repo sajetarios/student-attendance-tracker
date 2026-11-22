@@ -53,7 +53,7 @@ test('guide has no autonomous record write operations or hardcoded privileged UR
   assert.match(html,/attendigo-help\.css\?v=3/);
   for(const asset of ['/attendigo-help-topics.js?v=1','/attendigo-help-guide.js?v=3','/attendigo-help.css?v=3'])
     assert.ok(sw.includes(JSON.stringify(asset)), 'Offline PWA asset: '+asset);
-  assert.match(sw,/attendigo-v307-sidebar-help/);
+  assert.match(sw,/attendigo-v308-sidebar-help/);
 });
 test('AI endpoint is disabled until explicitly configured and is authenticated', async () => {
   const registered={get:new Map(),post:new Map()};
@@ -93,7 +93,6 @@ test('AI prompt is role-scoped and contains no attendance records',()=>{
   assert.match(server,/registerHelpAiRoutes\(app, authenticateSchoolClient\)/);
   assert.match(server,/microphone=\(self\)/);
 });
-
 
 test('animated help robot stays in sidebar Help & Support, never crowding the header or covering scan buttons',()=>{
   assert.ok(client.includes('robotMarkup()'));
