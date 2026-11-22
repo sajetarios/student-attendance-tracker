@@ -44,26 +44,34 @@ async function reviewEvidence(db,schoolId,staffUserId,date){
   "AND active=TRUE AND role IN ('TEACHER','DEPARTMENT_HEAD','SCHOOL_ADMIN')"),
   [schoolId,staffUserId]);
  if(!staff.rowCount)return blocked('STAFF_NOT_FOUND');
+ // A transaction-scoped PostgreSQL client cannot safely run concurrent queries.
+ // Serialize evidence reads, including reads hidden in schedule helpers.
+ let evidenceQueue=Promise.resolve();
+ const serial={query(...args){
+  const work=evidenceQueue.then(()=>db.query(...args));
+  evidenceQueue=work.catch(()=>{});
+  return work;
+ }};
  const [monthly,employee,defaults,calendar,ob,leave,gate,dtr,links]=await Promise.all([
-  db.query(sql('SELECT workdays, regular_hours AS "regularHours",',
+  serial.query(sql('SELECT workdays, regular_hours AS "regularHours",',
    'saturday_hours AS "saturdayHours", day_reviews AS "dayReviews"',
    'FROM staff_form48_monthly_reviews WHERE school_id=$1 AND staff_user_id=$2',
    "AND report_month=date_trunc('month',$3::date)::date"),[schoolId,staffUserId,date]),
-  getEmployeeForm48Schedule(db,schoolId,staffUserId),
-  getSchoolForm48Defaults(db,schoolId),
-  db.query('SELECT 1 FROM school_calendar_exceptions WHERE school_id=$1 AND calendar_date=$2::date LIMIT 1',
+  getEmployeeForm48Schedule(serial,schoolId,staffUserId),
+  getSchoolForm48Defaults(serial,schoolId),
+  serial.query('SELECT 1 FROM school_calendar_exceptions WHERE school_id=$1 AND calendar_date=$2::date LIMIT 1',
    [schoolId,date]),
-  db.query(sql('SELECT 1 FROM staff_official_business_requests',
+  serial.query(sql('SELECT 1 FROM staff_official_business_requests',
    "WHERE school_id=$1 AND staff_user_id=$2 AND status='APPROVED'",
    "AND starts_at < (($3::date + INTERVAL '1 day') AT TIME ZONE 'Asia/Manila')",
    "AND ends_at > ($3::date AT TIME ZONE 'Asia/Manila') LIMIT 1"),[schoolId,staffUserId,date]),
-  db.query(sql('SELECT (EXISTS(SELECT 1 FROM staff_form48_approved_leaves',
+  serial.query(sql('SELECT (EXISTS(SELECT 1 FROM staff_form48_approved_leaves',
    'WHERE school_id=$1 AND staff_user_id=$2 AND revoked_at IS NULL',
    'AND start_date<=$3::date AND end_date>=$3::date)',
    'OR EXISTS(SELECT 1 FROM school_users WHERE school_id=$1 AND user_id=$2',
    "AND teacher_status='ON_LEAVE' AND leave_start_date<=$3::date",
    'AND expected_return_date>=$3::date)) AS blocked'),[schoolId,staffUserId,date]),
-  db.query(sql('SELECT "eventId","eventType",time,"occurredAt",origin,"actualLocalDate","schoolDate"',
+  serial.query(sql('SELECT "eventId","eventType",time,"occurredAt",origin,"actualLocalDate","schoolDate"',
    'FROM (SELECT event_id AS "eventId",',
    "CASE WHEN gate_direction='IN' THEN 'TIME_IN' ELSE 'TIME_OUT' END AS \"eventType\",",
    "to_char(occurred_at AT TIME ZONE 'Asia/Manila','HH24:MI') AS time,",
@@ -86,12 +94,12 @@ async function reviewEvidence(db,schoolId,staffUserId,date){
    'AND NOT EXISTS(SELECT 1 FROM staff_attendance_events e',
    'WHERE e.school_id=t.school_id AND e.legacy_gate_event_id=t.event_id)',
    ') gate_history ORDER BY occurred_at,"eventId"'),[schoolId,staffUserId,date]),
-  db.query(sql('SELECT dtr_slot AS slot,',
+  serial.query(sql('SELECT dtr_slot AS slot,',
    "to_char(occurred_at AT TIME ZONE 'Asia/Manila','HH24:MI') AS time",
    'FROM staff_attendance_events WHERE school_id=$1 AND staff_user_id=$2',
    "AND school_date=$3::date AND event_kind='DTR_SLOT'",
    "AND verification_status='VERIFIED'"),[schoolId,staffUserId,date]),
-  db.query(sql('SELECT details->>\'sourceGateEventId\' AS "sourceGateEventId"',
+  serial.query(sql('SELECT details->>\'sourceGateEventId\' AS "sourceGateEventId"',
    'FROM staff_attendance_audit WHERE school_id=$1',
    "AND action IN ('AUTO_GATE_TO_DTR_VERIFIED','ADMIN_GATE_TO_DTR_VERIFIED')",
    "AND details->>'staffUserId'=$2 AND details->>'schoolDate'=$3"),
