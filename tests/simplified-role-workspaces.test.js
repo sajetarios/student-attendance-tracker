@@ -14,8 +14,8 @@ const portal = read('public/portal.js');
 
 test('All four staff role layouts load without replacing existing navigation controllers', () => {
   assert.match(html, /href="\/simplified-workspace\.css\?v=1"/);
-  assert.match(html, /src="\/simplified-workspace\.js\?v=3" defer/);
-  assert.match(sw, /"\/simplified-workspace\.js\?v=3"/);
+  assert.match(html, /src="\/simplified-workspace\.js\?v=4" defer/);
+  assert.match(sw, /"\/simplified-workspace\.js\?v=4"/);
   assert.match(sw, /"\/simplified-workspace\.css\?v=1"/);
   for (const role of ['SCHOOL_ADMIN', 'DEPARTMENT_HEAD', 'TEACHER', 'SUPER_ADMIN']) {
     assert.match(script, new RegExp(role));
