@@ -2,6 +2,7 @@
 const {randomUUID,createHash}=require('node:crypto');
 const express=require('express');
 const {parseRequest,positiveDays,dateOk,canView,nextStatus,allowReviewer}=require('./staff-leave-policy');
+const {notifyLeaveTransition}=require('./staff-leave-inbox');
 const UUID=/^[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}$/i;
 const ROLES=['TEACHER','DEPARTMENT_HEAD','SCHOOL_ADMIN'];
 const sqlErr=(res,error)=>{console.error('DepEd leave workflow:',error.message);return res.status(503).json({error:'Leave management is temporarily unavailable. No attendance record was modified.'});};
@@ -134,6 +135,8 @@ function registerStaffLeaveRoutes(app,pool,{authenticateSchoolClient,requireScho
     [id,req.auth.schoolId,req.auth.userId,staff.rows[0].department_id,input.leaveType,input.creditAccount,
      input.startDate,input.endDate,input.reason,input.details,input.commutation,status]);
    await audit(c,req,'LEAVE_SUBMITTED',id,{status,dates:[input.startDate,input.endDate],creditAccount:input.creditAccount});
+   await notifyLeaveTransition(c,{schoolId:req.auth.schoolId,requestId:id,staffUserId:req.auth.userId,
+    departmentId:staff.rows[0].department_id,requesterRole:staff.rows[0].role,status});
    await c.query('COMMIT');
    res.status(201).json({requestId:id,status,notice:'Leave submitted for review. The DTR is unchanged until official approval is verified.'});
   }catch(e){await c.query('ROLLBACK').catch(()=>{});sqlErr(res,e);}
@@ -159,6 +162,8 @@ function registerStaffLeaveRoutes(app,pool,{authenticateSchoolClient,requireScho
    await c.query('UPDATE staff_leave_requests SET status=$3,'+col+',revision=revision+1 WHERE school_id=$1 AND request_id=$2',
     [req.auth.schoolId,req.params.id,status,req.auth.userId,note]);
    await audit(c,req,'LEAVE_'+step+'_REVIEWED',req.params.id,{decision,status});
+   await notifyLeaveTransition(c,{schoolId:req.auth.schoolId,requestId:row.request_id,
+    staffUserId:row.staff_user_id,departmentId:row.department_id,requesterRole:row.requester_role,status});
    await c.query('COMMIT');res.json({requestId:req.params.id,status});
   }catch(e){await c.query('ROLLBACK').catch(()=>{});sqlErr(res,e);}
   finally{c.release();}
@@ -190,6 +195,8 @@ function registerStaffLeaveRoutes(app,pool,{authenticateSchoolClient,requireScho
     await c.query('UPDATE staff_leave_requests SET status=\'REJECTED\',external_reference=$3,external_approver=$4,external_approver_position=$5,external_approved_on=$6,verified_by_user_id=$7,verified_at=now(),revision=revision+1 WHERE school_id=$1 AND request_id=$2',
      [req.auth.schoolId,row.request_id,reference,approver,position,approvedOn,req.auth.userId]);
     await audit(c,req,'LEAVE_EXTERNAL_DISAPPROVED',row.request_id,{approvalReference:reference});
+    await notifyLeaveTransition(c,{schoolId:req.auth.schoolId,requestId:row.request_id,
+     staffUserId:row.staff_user_id,departmentId:row.department_id,requesterRole:row.requester_role,status:'REJECTED'});
     await c.query('COMMIT');
     return res.json({status:'REJECTED',notice:'External disapproval recorded. Attendance remains unchanged.'});
    }
@@ -212,6 +219,8 @@ function registerStaffLeaveRoutes(app,pool,{authenticateSchoolClient,requireScho
    await c.query('UPDATE staff_leave_requests SET status=\'APPROVED\',certified_working_days=$3,external_reference=$4,external_approver=$5,external_approver_position=$6,external_approved_on=$7,verified_by_user_id=$8,verified_at=now(),form48_leave_id=$9,revision=revision+1 WHERE school_id=$1 AND request_id=$2',
     [req.auth.schoolId,row.request_id,days,reference,approver,position,approvedOn,req.auth.userId,form48id]);
    await audit(c,req,'LEAVE_EXTERNAL_APPROVED',row.request_id,{approvalReference:reference,chargedDays:days,creditAccount:row.credit_account,form48LeaveId:form48id});
+   await notifyLeaveTransition(c,{schoolId:req.auth.schoolId,requestId:row.request_id,
+    staffUserId:row.staff_user_id,departmentId:row.department_id,requesterRole:row.requester_role,status:'APPROVED'});
    await c.query('COMMIT');
    res.json({status:'APPROVED',notice:'Documented leave approved and Form 48 annotation recorded. Original gate/DTR punches are unchanged.'});
   }catch(e){await c.query('ROLLBACK').catch(()=>{});sqlErr(res,e);}
