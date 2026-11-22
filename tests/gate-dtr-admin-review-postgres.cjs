@@ -118,7 +118,7 @@ async function main(){
   const obExists=await pool.query("SELECT 1 FROM staff_official_business_requests "+
    "WHERE school_id=$1 AND staff_user_id=$2 AND status='APPROVED' "+
    "AND starts_at < (($3::date + INTERVAL '1 day') AT TIME ZONE 'Asia/Manila') "+
-   "AND ends_at > ($3::date AT TIME ZONE 'Asia/Manila')",[a.school,obTeacher.id,day]);
+   "AND ends_at > ($3::date::timestamp AT TIME ZONE 'Asia/Manila')",[a.school,obTeacher.id,day]);
   assert.equal(obExists.rowCount,1,'Synthetic approved OB overlaps the tested date');
   const obOptions=await request('GET',previewFor(obTeacher.id),admin.token);
   assert.equal(obOptions.status,200,JSON.stringify(obOptions.body));
