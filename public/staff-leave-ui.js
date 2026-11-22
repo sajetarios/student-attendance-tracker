@@ -493,6 +493,42 @@
       staffUserId:String(d.get('staffUserId')),creditAccount:String(d.get('creditAccount')),
       openingDays:Number(d.get('openingDays')),notes:String(d.get('notes')||'')}));
     });
+    // Certify personnel leave classification from HR documents. The system
+    // does not guess eligibility from TEACHER, HEAD, or ADMIN application roles.
+    const schemePanel=document.createElement('details');
+    schemePanel.className='leave-card';
+    schemePanel.innerHTML='<summary>HR verification · employee leave scheme</summary>'+
+     '<p class="leave-help">DepEd DO 013, s. 2024: teaching personnel covered by the VSC scheme use VSC for illness, while employees reassigned to non-teaching functions may use regular VL/SL. Verify appointment/reassignment records. This classification never creates or converts credit days.</p>'+
+     '<form class="leave-form"><label>Employee<select name="staffUserId" required>'+
+     '<option value="">Select employee</option></select></label>'+
+     select('leaveScheme','HR-certified entitlement',[
+      ['TEACHING_VSC','Teaching personnel — VSC for illness'],
+      ['REGULAR_VL_SL','Regular/non-teaching leave — SL for illness']])+
+     textInput('hrReference','Official appointment/reassignment document reference',true)+
+     '<button type="submit" class="leave-primary">Certify leave scheme</button></form>'+
+     '<p class="leave-help leave-scheme-record" aria-live="polite">Select an employee to inspect the current HR classification.</p>';
+    const schemeSelect=schemePanel.querySelector('select[name=staffUserId]');
+    (roster.staff||[]).forEach(s=>{
+     const option=document.createElement('option');option.value=s.userId;
+     option.textContent=s.displayName+' ('+(s.leaveScheme||'UNVERIFIED').replaceAll('_',' ')+')';
+     schemeSelect.append(option);
+    });
+    const schemeHint=schemePanel.querySelector('.leave-scheme-record');
+    schemeSelect.addEventListener('change',()=>{
+     const staff=roster.staff?.find(s=>s.userId===schemeSelect.value);
+     schemeHint.textContent=staff?(staff.leaveScheme==='UNVERIFIED'
+       ?'No HR leave scheme certified yet.'
+       :'HR-certified: '+staff.leaveScheme.replaceAll('_',' ')+' · Ref. '+staff.hrReference)
+      :'Select an employee to inspect the current HR classification.';
+    });
+    schemePanel.querySelector('form').addEventListener('submit',event=>{
+     event.preventDefault();const d=new FormData(event.target),staffId=String(d.get('staffUserId'));
+     if(staffId===user.userId){say('You cannot certify your own leave scheme. Another authorized officer is required.',true);return;}
+     action('Verifying HR leave scheme',()=>call('/staff/'+encodeURIComponent(staffId)+'/credit-scheme','POST',{
+      leaveScheme:String(d.get('leaveScheme')),hrReference:String(d.get('hrReference')||'')
+     }));
+    });
+    body.insertBefore(schemePanel,h);
     // School HR can inspect school-scoped, certified balances before creating
     // an opening entry. This directory is read-only; adjustments remain audited.
     const directory=document.createElement('section');
