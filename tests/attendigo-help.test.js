@@ -28,7 +28,7 @@ test('teacher guide answers live Attendigo workflows', () => {
   const sf1=topics.answer('Upload my SF1','TEACHER');
   assert.match(sf1.steps.join(' '), /review/i);
   const dtr=topics.answer('DTR','TEACHER');
-  assert.match(dtr.note,/missing punch/i);
+  assert.match(dtr.steps.join(' '),/missing punch/i);
 });
 test('teacher questions do not reveal restricted settings or assignment guidance', () => {
   assert.equal(topics.match('school settings','TEACHER'),null);
