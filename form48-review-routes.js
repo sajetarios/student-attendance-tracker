@@ -166,7 +166,7 @@ function registerForm48ReviewRoutes(app,pool,{authenticateSchoolClient,requireSc
      ' WHERE school_id=$1 AND user_id=$2',[req.auth.schoolId,params.staffUserId]),
     getSchoolForm48Defaults(pool,req.auth.schoolId),
     pool.query("SELECT to_char(start_date,'YYYY-MM-DD') AS \"from\","+
-     " to_char(end_date,'YYYY-MM-DD') AS \"to\", leave_type AS \"leaveType\", approval_reference AS \"approvalReference\" FROM staff_form48_approved_leaves"+
+     " to_char(end_date,'YYYY-MM-DD') AS \"to\", leave_type AS \"leaveType\", credit_account AS \"creditAccount\", approval_reference AS \"approvalReference\" FROM staff_form48_approved_leaves"+
      " WHERE school_id=$1 AND staff_user_id=$2 AND revoked_at IS NULL"+
      " AND start_date<$4::date AND end_date>=$3::date",
      [req.auth.schoolId,params.staffUserId,from,to]),
