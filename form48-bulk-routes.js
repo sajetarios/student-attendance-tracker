@@ -69,16 +69,19 @@ function mergeSchoolForm48Defaults(saved,defaults,employeeSchedule=null){
  const monthComplete=Boolean(saved?.configured&&scheduled(saved));
  const chosen=monthComplete?saved:inherited;
  const effective=saved||{revision:0,dayReviews:{}};
- const hasSchoolDefaults=Boolean(defaults); // All staff share school signatories.
+ // Once all four school signatory fields are configured, they supersede every
+ // legacy employee/month name. Until then, retain existing report behavior.
+ const hasSchoolDefaults=Boolean(defaults&&['verifiedBy','verifiedPosition','approvedBy','approvedPosition']
+  .every(key=>String(defaults[key]||'').trim()));
  return {...effective,
   configured:Boolean(monthComplete||scheduled(inherited)),
   workdays:chosen?.workdays||effective.workdays||[],
   regularHours:chosen?.regularHours||effective.regularHours||{},
   saturdayHours:chosen?.saturdayHours||effective.saturdayHours||{},
-  verifiedBy:hasSchoolDefaults?(defaults.verifiedBy||''):(effective.verifiedBy||''),
-  verifiedPosition:hasSchoolDefaults?(defaults.verifiedPosition||''):(effective.verifiedPosition||''),
-  approvedBy:hasSchoolDefaults?(defaults.approvedBy||''):(effective.approvedBy||''),
-  approvedPosition:hasSchoolDefaults?(defaults.approvedPosition||''):(effective.approvedPosition||'')};
+  verifiedBy:hasSchoolDefaults?defaults.verifiedBy:(effective.verifiedBy||defaults?.verifiedBy||''),
+  verifiedPosition:hasSchoolDefaults?defaults.verifiedPosition:(effective.verifiedPosition||defaults?.verifiedPosition||''),
+  approvedBy:hasSchoolDefaults?defaults.approvedBy:(effective.approvedBy||defaults?.approvedBy||''),
+  approvedPosition:hasSchoolDefaults?defaults.approvedPosition:(effective.approvedPosition||defaults?.approvedPosition||'')};
 }
 function monthBounds(month){
  const [year,mm]=month.split('-').map(Number);
