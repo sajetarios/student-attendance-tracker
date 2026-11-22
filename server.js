@@ -96,6 +96,13 @@ app.use((req, res, next) => {
   res.setHeader('X-Frame-Options', 'DENY');
   res.setHeader('Cross-Origin-Resource-Policy', 'same-origin');
   res.setHeader('Permissions-Policy', 'camera=(self), microphone=(), geolocation=()');
+  // Non-disruptive CSP baseline. Inline legacy scripts must be migrated to
+  // external nonce-protected modules before strict script-src enforcement.
+  res.setHeader('Content-Security-Policy',
+    "object-src 'none'; base-uri 'self'; frame-ancestors 'none'");
+  res.setHeader('Content-Security-Policy-Report-Only',
+    "default-src 'self'; script-src 'self' 'unsafe-inline' blob:; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self'; worker-src 'self' blob:; object-src 'none'; base-uri 'self'; frame-ancestors 'none'; form-action 'self'");
+
   if (req.path.startsWith('/api/') ||
       ['/', '/index.html', '/portal-login.html', '/parent-register.html', '/platform-setup.html',
        '/portal.html', '/student-portal.html', '/parent-portal.html',
@@ -107,6 +114,34 @@ app.use((req, res, next) => {
   }
   next();
 });
+
+// Browser-only protection. Device/CLI Bearer requests without an auth cookie are
+// unaffected. SameSite=Lax alone does not replace an explicit origin check.
+const sessionCookiePattern=/(?:^|;\\s*)__Host-attendigo-(?:staff|student)=/;
+app.use((req,res,next)=>{
+ if(['GET','HEAD','OPTIONS'].includes(req.method)||!req.path.startsWith('/api/'))
+  return next();
+ if(!sessionCookiePattern.test(String(req.headers.cookie||'')))return next();
+ const host=String(req.get('host')||'').toLowerCase();
+ const origin=String(req.get('origin')||'');
+ const fetchSite=String(req.get('sec-fetch-site')||'');
+ if(fetchSite&&fetchSite!=='same-origin')
+  return res.status(403).json({error:'Cross-origin session action blocked.',code:'CSRF_ORIGIN_DENIED'});
+ if(origin){
+  let valid=false;
+  try{
+   const parsed=new URL(origin);
+   valid=(parsed.host.toLowerCase()===host
+     &&(parsed.protocol==='https:'||(parsed.protocol==='http:'&&
+       /^(?:localhost|127\\.0\\.0\\.1)(?::\\d+)?$/.test(host))));
+  }catch{}
+  if(!valid)return res.status(403).json({error:'Cross-origin session action blocked.',code:'CSRF_ORIGIN_DENIED'});
+ }else if(fetchSite!=='same-origin'){
+  return res.status(403).json({error:'A trusted same-origin request is required.',code:'CSRF_ORIGIN_REQUIRED'});
+ }
+ next();
+});
+
 app.use(redirectLeakedCredentials);
 app.use(express.json({ limit: '10mb', verify(req, _res, buffer) {
   if (['/api/cloud-sync/receive','/api/cloud-sync/receive-operations',
