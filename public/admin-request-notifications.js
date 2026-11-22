@@ -13,7 +13,7 @@
    if(!response.ok)throw Error(data.error||'Unable to load school requests.');
    return data;
  };
- let fetching=false,studentPending=0,guardianPending=0,photoPending=0,programPending=0,photoRequests=[];
+ let pendingRefresh,photoLoadError=false,studentPending=0,guardianPending=0,photoPending=0,programPending=0,photoRequests=[];
  function render(){
    const total=studentPending+guardianPending+photoPending+programPending;
    const badge=$('adminNotificationCount');
@@ -31,9 +31,12 @@
      ? total+' pending '+(total===1?'request':'requests')+' · Open a category to review.'
      : 'All caught up — no pending requests.';
  }
- async function refresh(){
-   if(!isAdmin()||fetching)return;
-   fetching=true;
+ function refresh(){
+   if(!isAdmin())return;
+   if(!pendingRefresh)pendingRefresh=loadRequests().finally(()=>{pendingRefresh=null;});
+   return pendingRefresh;
+ }
+ async function loadRequests(){
    const trigger=$('adminNotificationRefresh');
    if(trigger)trigger.disabled=true;
    try{
@@ -47,7 +50,8 @@
      if(guardianResult.status==='fulfilled'){
        guardianPending=(guardianResult.value.requests||[]).filter(r=>r.status==='PENDING').length;
      }else errors.push('Guardian requests unavailable');
-     if(photoResult.status==='fulfilled'){
+     photoLoadError=photoResult.status==='rejected';
+     if(!photoLoadError){
        photoRequests=(photoResult.value.requests||[]);
        photoPending=photoRequests.length;
      }else errors.push('Photo requests unavailable');
@@ -55,7 +59,7 @@
      else errors.push('Program requests unavailable');
      render();
      if(errors.length)$('adminNotificationFoot').textContent=errors.join(' · ')+'. Tap ↻ to retry.';
-   }finally{fetching=false;if(trigger)trigger.disabled=false;}
+   }finally{if(trigger)trigger.disabled=false;}
  }
  const close=()=>{panel.hidden=true;bell.setAttribute('aria-expanded','false');if(inboxHost)inboxHost.hidden=true;};
  bell.addEventListener('click',()=>{
@@ -64,7 +68,10 @@
    bell.setAttribute('aria-expanded',String(!panel.hidden));
    if(!panel.hidden)refresh();
  });
- $('adminNotificationRefresh')?.addEventListener('click',refresh);
+ $('adminNotificationRefresh')?.addEventListener('click',async()=>{
+   await refresh();
+   if(!reviewPanel.hidden)showPhotoList();
+ });
  $('adminStudentRequestsShortcut')?.addEventListener('click',()=>{
    close();
    // Open the account tab inside the unified Students workspace.
@@ -84,6 +91,7 @@
  const showPhotoList=()=>{
    clearPreview();
    reviewPanel.hidden=false;
+   if(photoLoadError){reviewList.textContent='Could not load photo requests. Refresh the inbox to try again.';return;}
    reviewList.innerHTML=photoRequests.length?photoRequests.map(request=>
      '<article class="admin-photo-request-row"><div><strong>'+escapeText(request.subjectName||request.subjectId)+'</strong><small>'+escapeText(request.subjectKind==='STAFF'?'Staff photo':'Student photo')+'</small></div>'+
      '<div class="admin-photo-actions"><button type="button" data-photo-preview="'+escapeText(request.requestId)+'">Preview</button><button type="button" data-photo-decision="APPROVED" data-photo-id="'+escapeText(request.requestId)+'">Approve</button><button type="button" data-photo-decision="REJECTED" data-photo-id="'+escapeText(request.requestId)+'">Reject</button></div></article>'
@@ -91,7 +99,11 @@
  };
  $('adminPhotoRequestsShortcut')?.addEventListener('click',async()=>{
    if(!isAdmin())return;
-   try{await refresh();showPhotoList();}catch(e){reviewList.textContent=e.message;reviewPanel.hidden=false;}
+   openInbox();
+   reviewPanel.hidden=false;
+   reviewList.textContent='Loading photo requests…';
+   reviewPanel.scrollIntoView({block:'nearest'});
+   try{await refresh();if(!reviewPanel.hidden)showPhotoList();}catch(e){reviewList.textContent=e.message;reviewPanel.hidden=false;}
  });
  $('adminPhotoReviewClose')?.addEventListener('click',()=>{reviewPanel.hidden=true;clearPreview();});
  reviewList?.addEventListener('click',async event=>{
@@ -165,6 +177,7 @@
    panel.hidden=true;
    bell.setAttribute('aria-expanded','false');
    refresh();
+   if(location.hash==='#photoApprovals')$('adminPhotoRequestsShortcut')?.click();
    window.setInterval(()=>{if(!document.hidden)refresh();},45000);
  };
  window.attendigoStaffIdentity.then(start);

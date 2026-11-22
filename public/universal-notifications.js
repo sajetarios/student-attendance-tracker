@@ -87,6 +87,12 @@
     return day + ' · ' + time;
   };
   function navigate(item) {
+    if (user.role === 'SCHOOL_ADMIN' && item.category === 'APPROVAL' && item.requestType === 'Profile photo') {
+      const shortcut = document.getElementById('adminPhotoRequestsShortcut');
+      if (shortcut) shortcut.click();
+      else location.assign('/portal.html#photoApprovals');
+      return;
+    }
     const link = String(item.actionUrl || '');
     if (!/^\/(?:portal|student-portal|parent-portal)\.html(?:#[A-Za-z0-9_-]+)?$/.test(link)) return;
     const target = new URL(link, location.origin);
