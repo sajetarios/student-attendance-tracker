@@ -174,7 +174,7 @@ test('Department Head navigation stays separated and other roles keep their rout
   assert.match(portal, /relocate\('myGateAttendanceNav', 'personalAttendance'\)/);
   assert.match(portal, /relocate\('officialBusinessNav', 'operations'\)/);
   assert.match(portal, /'Requests & Approvals'/);
-  assert.match(portal, /'My Workspace'/);
+  assert.match(portal, /'My Attendance'/);
   assert.match(server, /const ownDepartment = req\.auth\.role === 'DEPARTMENT_HEAD'/);
   assert.match(server, /su\.department_id=\$2::uuid/);
   assert.match(server, /substitute\.department_id=\$2::uuid/);

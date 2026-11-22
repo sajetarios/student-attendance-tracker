@@ -54,6 +54,25 @@
   };
   $('obMineTab')?.addEventListener('click',()=>setScope('mine'));
   $('obDepartmentTab')?.addEventListener('click',()=>setScope('department'));
+  // Department Heads keep personal OB under My Attendance while the review
+  // shortcut opens the EXISTING department-scoped view (no new authority).
+  if(user.role==='DEPARTMENT_HEAD'){
+   const approvals=document.querySelector('[data-submenu="operations"]');
+   if(approvals&&!$('obDepartmentReviewNav')){
+    const review=document.createElement('button');
+    review.id='obDepartmentReviewNav';
+    review.type='button';
+    review.className='nav-item';
+    review.title='Open department Official Business reviews';
+    review.innerHTML='<span class="nav-icon" aria-hidden="true">✓</span><span class="nav-label">OB Reviews</span>';
+    review.addEventListener('click',()=>{
+     $('officialBusinessNav')?.click();
+     setScope('department');
+    });
+    approvals.append(review);
+    approvals.closest('.nav-group')?.removeAttribute('hidden');
+   }
+  }
   async function refresh(){
    if(busy)return;
    const sequence=++refreshSequence;
