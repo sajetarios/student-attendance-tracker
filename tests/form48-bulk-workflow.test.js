@@ -4,7 +4,7 @@ const assert=require('node:assert/strict');
 const fs=require('node:fs');
 const path=require('node:path');
 const {summarizeForm48}=require('../form48-calculations');
-const {readDefaults,readLeave,validDate,mergeSchoolForm48Defaults}=require('../form48-bulk-routes');
+const {readDefaults,readSchoolSignatories,readLeave,validDate,mergeSchoolForm48Defaults}=require('../form48-bulk-routes');
 const times={AM_IN:'08:00',AM_OUT:'12:00',PM_IN:'13:00',PM_OUT:'17:00'};
 const punch=(date,changes={})=>({date,slots:{...times,...changes}});
 const settings={workdays:[1,2,3,4,5],regularHours:times,saturdayHours:{},dayReviews:{
@@ -73,7 +73,7 @@ test('timestamps remain in their verified slots, even intentional night test sca
  assert.equal(afterMidnight.summary.timeAnomalyDays,1);
  assert.equal(afterMidnight.summary.tardyMinutes,0);
 });
-test('default signer values propagate but staff/month overrides are preserved',()=>{
+test('school-wide signatories override previous employee/month settings',()=>{
  const defaults={workdays:[1,2,3,4,5],regularHours:times,saturdayHours:{},
   verifiedBy:'Administrative Officer',verifiedPosition:'In Charge',
   approvedBy:'Principal',approvedPosition:'School Principal'};
@@ -83,9 +83,11 @@ test('default signer values propagate but staff/month overrides are preserved',(
  assert.deepEqual(newStaff.regularHours,times);
  const prior=mergeSchoolForm48Defaults({configured:true,revision:2,workdays:[1,2,3,4,5],
   regularHours:times,saturdayHours:{},verifiedBy:'Other authorized signer',approvedBy:''},defaults);
- assert.equal(prior.verifiedBy,'Other authorized signer');
+ assert.equal(prior.verifiedBy,'Administrative Officer');
  assert.equal(prior.approvedBy,'Principal');
  assert.equal(prior.revision,2);
+ assert.equal(mergeSchoolForm48Defaults({verifiedBy:'Legacy'},null).verifiedBy,'Legacy');
+ assert.equal(mergeSchoolForm48Defaults({verifiedBy:'Legacy'},{...defaults,verifiedBy:''}).verifiedBy,'');
 });
 test('bulk leave validates dates, authorization references and input bounds',()=>{
  const id='22222222-2222-4222-8222-222222222222';
@@ -122,4 +124,24 @@ test('batch records are tenant scoped, locked, audited, and reversible without D
  assert.match(client,/form48\/leaves\/batch/);
  assert.match(client,/form48\/defaults/);
  assert.match(sw,/form48-bulk-ui\.js\?v=2/);
+});
+
+test('school certification requires complete and safe school-wide signatories',()=>{
+ const good={revision:0,verifiedBy:'In Charge',verifiedPosition:'Administrative Officer',
+  approvedBy:'Principal',approvedPosition:'School Principal'};
+ assert.deepEqual(readSchoolSignatories(good),good);
+ assert.equal(readSchoolSignatories({...good,approvedPosition:''}),null);
+ assert.equal(readSchoolSignatories({...good,approvedBy:'A\nB'}),null);
+ assert.equal(readSchoolSignatories({...good,verifiedBy:'X'.repeat(121)}),null);
+ assert.equal(readSchoolSignatories({...good,revision:-1}),null);
+});
+test('school signatories are audited and never edit an employee DTR or schedule',()=>{
+ const src=fs.readFileSync(path.join(__dirname,'..','form48-bulk-routes.js'),'utf8');
+ const section=src.slice(src.indexOf("app.put('/api/staff-attendance/admin/form48/signatories'"),
+  src.indexOf("app.get('/api/staff-attendance/admin/form48/leaves'"));
+ assert.match(section,/\.\.\.admin/);
+ assert.match(section,/FORM48_SCHOOL_SIGNATORIES_UPDATED/);
+ assert.match(section,/staff_attendance_audit/);
+ assert.match(section,/staff_form48_school_defaults\.revision\+1/);
+ assert.doesNotMatch(section,/staff_attendance_events|day_reviews|regular_hours=|saturday_hours=/);
 });
