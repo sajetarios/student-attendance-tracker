@@ -1,4 +1,4 @@
-const CACHE = "attendigo-v298-teacher-roster-checkbox";
+const CACHE = "attendigo-v301-teacher-current-scanner";
 
 const SHELL = [
   "/typography.css?v=1",
@@ -59,9 +59,10 @@ const SHELL = [
   "/class-qr-dashboard-link.js?v=12",
   "/class-qr-monitor.js?v=2",
   "/class-qr-monitor-embedded.css?v=1",
+  "/teacher-scanner-schedule.js?v=1",
   "/teacher-roster-popover.js?v=2",
   "/portal.css?v=0.9.119",
-  "/portal.js?v=230",
+  "/portal.js?v=231",
   "/department-workspace.css?v=1",
   "/department-workspace.js?v=5",
   "/department-monitor-refresh.css?v=1",
