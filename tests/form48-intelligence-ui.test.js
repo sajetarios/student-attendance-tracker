@@ -39,8 +39,8 @@ test('Form 48 intelligence is school-admin only and preserves existing DTR contr
  assert.match(html,/id="form48GateReviewDate"/);
  assert.match(html,/id="form48Print"/);
  assert.match(html,/id="form48PrintArea"/);
- assert.match(html,/form48-intelligence\.js\?v=1/);
- assert.match(sw,/form48-intelligence\.js\?v=1/);
+ assert.match(html,/form48-intelligence\.js\?v=2/);
+ assert.match(sw,/form48-intelligence\.js\?v=2/);
  const user=await setup('TEACHER');
  assert.equal(user.fields.form48GateReviewButton.events.click,undefined);
  assert.equal(user.calls.length,0);
