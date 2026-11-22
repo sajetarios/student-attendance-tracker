@@ -16,7 +16,13 @@ async function command(bin,args,env){
   let stderr='';
   child.stderr.on('data',buf=>{stderr+=buf.toString().slice(0,1000);});
   child.on('error',()=>reject(Error(bin+' is unavailable. Install a matching PostgreSQL client.')));
-  child.on('exit',code=>code===0?resolve():reject(Error(bin+' failed with exit code '+code+' (details withheld to protect connection credentials)')));
+  child.on('exit',code=>{
+   if(code===0)return resolve();
+   const safeLocalCi=process.env.CI==='true'&&['localhost','127.0.0.1'].includes(env.PGHOST);
+   if(safeLocalCi&&bin==='pg_restore')
+    console.error('[Restore CI diagnostic] '+stderr.replaceAll(env.PGPASSWORD||'__no_password__','[redacted]').slice(-1200));
+   return reject(Error(bin+' failed with exit code '+code+' (details withheld to protect connection credentials)'));
+  });
  });
 }
 function parseDb(url){
