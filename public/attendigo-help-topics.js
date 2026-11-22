@@ -72,6 +72,13 @@
       note: 'Only authorized scheduling roles can create or edit the underlying class schedules.'
     },
     {
+      id: 'schedule-create', title: 'Create a class schedule', roles: ['DEPARTMENT_HEAD','SCHOOL_ADMIN'],
+      nav: 'schedulesNav',
+      keywords: ['add class', 'create class', 'new class', 'add schedule', 'create schedule', 'class period', 'make schedule', 'schedule class'],
+      steps: ['Open Class Schedules from the Academics menu.', 'Choose the option to add or create a schedule, then select the class, subject, teacher, classroom and timetable template.', 'Check the scheduled weekdays and period times.', 'Save only after checking any teacher, room or class conflict warning.'],
+      note: 'Department Heads can create schedules in their own department. School-wide timetable settings remain with the School Admin.'
+    },
+    {
       id: 'teacher-assignment', title: 'Assign a teacher to a class', roles: ['DEPARTMENT_HEAD', 'SCHOOL_ADMIN'],
       nav: 'schedulesNav',
       keywords: ['assign teacher', 'unassigned class', 'class assignment', 'teacher coverage', 'manage class', 'teacher schedule conflict'],
