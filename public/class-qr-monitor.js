@@ -150,18 +150,31 @@
     }
   });
 
+  const embedded = Boolean($('classQrMonitorView'));
+  let authorized = false;
+  document.addEventListener('attendigo:class-qr-monitor-open', () => {
+    if (embedded && authorized && !$('classQrMonitorView').hidden) refresh();
+  });
   (async () => {
     try {
       const {user} = await api('/api/auth/me');
       if (user?.role !== 'SCHOOL_ADMIN') {
-        location.replace('/portal.html');
+        if (!embedded) location.replace('/portal.html');
         return;
       }
+      if (!embedded) {
+        // Existing bookmarks now open the same feature inside the Admin workspace.
+        location.replace('/portal.html?view=classQrMonitor');
+        return;
+      }
+      authorized = true;
       $('monitorPage').hidden = false;
-      await refresh();
+      if (!$('classQrMonitorView').hidden) await refresh();
     } catch (error) {
-      $('monitorPage').hidden = false;
-      $('message').textContent = error.message;
+      // Fail closed on authorization errors; never reveal restricted controls.
+      if (embedded) {
+        if (!$('classQrMonitorView').hidden) $('message').textContent = error.message;
+      } else $('message').textContent = error.message;
     }
   })();
 })();
