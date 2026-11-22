@@ -32,7 +32,10 @@
    return {status:'DISMISSED',today:[],active:[],stamp};
   const today=[];
   for(const period of periods){
-   if(!period||!period.periodId||!Array.isArray(period.weekdays)||!period.weekdays.map(Number).includes(weekday))continue;
+   if(!period||!period.periodId||!Array.isArray(period.weekdays))continue;
+   // Administrators can authorize selected subject periods on special
+   // operating dates outside the normal recurring weekday.
+   if(!period.weekdays.map(Number).includes(weekday)&&!special)continue;
    if(period.effectiveFrom&&String(period.effectiveFrom).slice(0,10)>stamp.date)continue;
    if(period.effectiveTo&&String(period.effectiveTo).slice(0,10)<stamp.date)continue;
    if(['ADVISORY','HOMEROOM','BREAK','LUNCH'].includes(String(period.scheduleType||'').toUpperCase()))continue;
