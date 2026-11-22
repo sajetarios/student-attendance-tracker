@@ -10,10 +10,10 @@ test('All roles use the compact shared notification layout with versioned PWA as
  const css = read('public/universal-notifications.css');
  const sw = read('public/sw.js');
  for (const html of ['public/portal.html', 'public/student-portal.html', 'public/parent-portal.html']) {
-   assert.ok(read(html).includes('/universal-notifications.js?v=5'), html + ': compact JS');
+   assert.ok(read(html).includes('/universal-notifications.js?v='+(html==='public/portal.html'?'6':'5')), html + ': compact JS');
    assert.ok(read(html).includes('/universal-notifications.css?v=4'), html + ': compact CSS');
  }
- assert.ok(sw.includes('"/universal-notifications.js?v=5"'));
+ assert.ok(sw.includes('"/universal-notifications.js?v=6"'));
  assert.ok(sw.includes('"/universal-notifications.css?v=4"'));
  assert.match(script, /role === 'SUPER_ADMIN' \? '\/api\/platform\/notifications' : '\/api\/notifications'/);
  assert.match(css, /\.universal-panel\{display:flex;flex-direction:column;overflow:hidden/);
@@ -77,7 +77,7 @@ test('Online notification assets bypass stale cache but preserve offline fallbac
  assert.match(sw, /fetch\(request, \{ cache: 'no-store' \}\)/);
  assert.match(sw, /caches\.match\(request\)/);
  for (const portal of ['public/portal.html','public/student-portal.html','public/parent-portal.html']) {
-   assert.ok(read(portal).includes('/universal-notifications.js?v=5'));
+   assert.ok(read(portal).includes('/universal-notifications.js?v='+(portal==='public/portal.html'?'6':'5')));
    assert.ok(read(portal).includes('/universal-notifications.css?v=4'));
  }
 });
