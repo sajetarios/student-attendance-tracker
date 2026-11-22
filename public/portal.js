@@ -550,7 +550,10 @@ window.attendigoStaffIdentity = new Promise(resolve => { resolveStaffIdentity = 
     if ($('lunchQrAdminNav')) $('lunchQrAdminNav').hidden = !admin;
     if ($('form48ReportsNav')) $('form48ReportsNav').hidden = !admin;
     if ($('officialBusinessNav')) $('officialBusinessNav').hidden = !(teacher || admin || departmentHead);
-    if ($('teacherLunchQrNav')) $('teacherLunchQrNav').hidden = !teacher;
+    // The presenter page only appears in Assigned Duties after the current
+    // staff session is verified as an active assigned lunch QR presenter.
+    if ($('teacherLunchQrNav')) $('teacherLunchQrNav').hidden =
+      !teacher || $('teacherLunchQrNav').dataset.presenterAuthorized !== 'true';
     if ($('myGateAttendanceNav')) {
       $('myGateAttendanceNav').hidden = !(teacher || admin || departmentHead);
       $('myGateAttendanceNav').querySelector('.nav-label').textContent = departmentHead ? 'My Attendance / DTR' : 'Gate Attendance & DTR';
@@ -746,9 +749,9 @@ window.attendigoStaffIdentity = new Promise(resolve => { resolveStaffIdentity = 
       // Keep enrollment first, followed by existing class scheduling.
       const academicMenu = document.querySelector('.nav-submenu[data-submenu="academics"]');
       if (academicMenu && $('academicAdminNav') && academicMenu.firstElementChild !== $('academicAdminNav')) academicMenu.prepend($('academicAdminNav'));
-      relocate('myGateAttendanceNav', 'operations');
+      relocate('myGateAttendanceNav', 'attendanceManagement');
       relocate('officialBusinessNav', 'operations');
-      relocate('lunchQrAdminNav', 'operations');
+      relocate('lunchQrAdminNav', 'attendanceManagement');
       relocate('form48ReportsNav', 'reports');
       relocate('cloudSyncNav', 'operations');
       relocate('smsNav', 'operations');
@@ -758,26 +761,32 @@ window.attendigoStaffIdentity = new Promise(resolve => { resolveStaffIdentity = 
       // event handlers and server-side role/assignment checks.
       relocate('classAttendanceNav', 'people');
       relocate('schedulesNav', 'people');
+      relocate('plannerNav', 'people');
       relocate('myGateAttendanceNav', 'personalAttendance');
       relocate('officialBusinessNav', 'personalAttendance');
-      relocate('teacherLunchQrNav', 'personalAttendance');
+      relocate('teacherLunchQrNav', 'assignedDuties');
+      $('teacherLunchQrNav')?.querySelector('.nav-label')?.replaceChildren('Lunch QR Presenter');
+      if ($('teacherLunchQrNav')) $('teacherLunchQrNav').title = 'Assigned lunch QR presenter';
       relocate('sf2Nav', 'reports');
     } else if (departmentHead) {
       // Keep official personal DTR separate from departmental decisions.
       relocate('myGateAttendanceNav', 'personalAttendance');
-      relocate('officialBusinessNav', 'operations');
+      relocate('officialBusinessNav', 'personalAttendance');
+      relocate('schedulesNav', 'people');
+      relocate('plannerNav', 'people');
       relocate('sf2Nav', 'reports');
       if ($('operationsGroupLabel')) $('operationsGroupLabel').textContent = 'Requests & Approvals';
       const personalLabel = $('personalAttendanceNavGroup')?.querySelector('.nav-group-toggle .nav-label');
-      if (personalLabel) personalLabel.textContent = 'My Workspace';
+      if (personalLabel) personalLabel.textContent = 'My Attendance';
     }
     // Visibility is recalculated AFTER relocation, including planner-only teachers.
-    for (const group of ['people','academics','personalAttendance','operations','reports','settings']) {
+    for (const group of ['people','academics','personalAttendance','assignedDuties','operations','reports','settings']) {
       const toggle = document.querySelector('[data-nav-group="' + group + '"]');
       const submenu = document.querySelector('[data-submenu="' + group + '"]');
       const wrapper = toggle?.closest('.nav-group');
       if (wrapper && submenu && group !== 'operations' && group !== 'reports' && group !== 'settings') {
         wrapper.hidden = (group === 'personalAttendance' && !(teacher || departmentHead)) ||
+          (group === 'assignedDuties' && !teacher) ||
           !Array.from(submenu.children).some(item => !item.hidden);
       }
     }
