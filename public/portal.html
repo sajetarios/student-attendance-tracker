@@ -12,7 +12,7 @@
   <link rel="stylesheet" href="/staff-lunch.css?v=3">
   <link rel="stylesheet" href="/staff-ob.css?v=1">
   <link rel="stylesheet" href="/department-workspace.css?v=1">
-  <link rel="stylesheet" href="/form48-report.css?v=13">
+  <link rel="stylesheet" href="/form48-report.css?v=14">
   <link rel="stylesheet" href="/smart-attendance-overview.css?v=2">
   <link rel="stylesheet" href="/my-gate-insights.css?v=3">
   <link rel="stylesheet" href="/portal.css?v=0.9.121"><link rel="stylesheet" href="/attendigo-brand-polish.css?v=2"><link rel="stylesheet" href="/parent-admin.css?v=7">
@@ -1837,6 +1837,36 @@ body.dark-mode .content-wrap > .school-heading.is-compact,body[data-theme="dark"
                 </details>
               </section>
               </details>
+              <details id="form48SchoolSignatories" class="form48-advanced-wrapper form48-school-signatories">
+                <summary class="form48-advanced-summary">School-wide DTR signatories <small>Set once · Applies to every staff member and month</small></summary>
+                <div class="form48-settings-panel form48-school-signatory-content">
+                  <p class="form48-draft-notice">Configure the two authorized signatories once for this school. Their names and positions will appear on every staff Form 48 report. Printed names are not electronic signatures.</p>
+                <div class="form48-signatory-heading">
+                  <h4>Report certification</h4>
+                  <p>Printed details for the two authorized signatories</p>
+                </div>
+                <div class="form48-signatory-fields">
+                  <div class="form48-signer">
+                    <h5>Verified as to prescribed office hours — In Charge</h5>
+                    <div class="form48-person-fields">
+                      <label>Name<input type="text" id="form48VerifiedBy" maxlength="120" autocomplete="off" placeholder="Full name"></label>
+                      <label>Position / Designation<input type="text" id="form48VerifiedPosition" maxlength="120" autocomplete="off" placeholder="e.g., Administrative Officer"></label>
+                    </div>
+                  </div>
+                  <div class="form48-signer">
+                    <h5>Approved by</h5>
+                    <div class="form48-person-fields">
+                      <label>Name<input type="text" id="form48ApprovedBy" maxlength="120" autocomplete="off" placeholder="Full name"></label>
+                      <label>Position / Designation<input type="text" id="form48ApprovedPosition" maxlength="120" autocomplete="off" placeholder="e.g., School Principal"></label>
+                    </div>
+                  </div>
+                </div>
+                  <div class="form48-schedule-actions">
+                    <button id="form48SaveSignatories" type="button" class="primary-button" disabled>Save signatories for all staff</button>
+                    <span id="form48SchoolSignatoriesStatus" role="status" aria-live="polite">Loading school-wide signatories…</span>
+                  </div>
+                </div>
+              </details>
               <form id="form48FilterForm" class="form48-filter" method="post">
                 <label>Employee<select id="form48Employee" required><option value="">Select a staff member</option></select></label>
                 <label>Month<input id="form48Month" type="month" required></label>
@@ -1901,28 +1931,8 @@ body.dark-mode .content-wrap > .school-heading.is-compact,body[data-theme="dark"
                 </div>
               </section>
               <details id="form48AdvancedSettings" class="form48-advanced-wrapper">
-                <summary class="form48-advanced-summary">Form 48 certification and employee-specific settings <small>Open only when preparing reports or exceptions</small></summary>
+                <summary class="form48-advanced-summary">Employee work schedules and monthly reviews <small>Open only when preparing reports or exceptions</small></summary>
                 <div id="form48ReportSettings" class="form48-settings-panel" hidden>
-                <div class="form48-signatory-heading">
-                  <h4>Report certification</h4>
-                  <p>Printed details for the two authorized signatories</p>
-                </div>
-                <div class="form48-signatory-fields">
-                  <div class="form48-signer">
-                    <h5>Verified as to prescribed office hours — In Charge</h5>
-                    <div class="form48-person-fields">
-                      <label>Name<input type="text" id="form48VerifiedBy" maxlength="120" autocomplete="off" placeholder="Full name"></label>
-                      <label>Position / Designation<input type="text" id="form48VerifiedPosition" maxlength="120" autocomplete="off" placeholder="e.g., Administrative Officer"></label>
-                    </div>
-                  </div>
-                  <div class="form48-signer">
-                    <h5>Approved by</h5>
-                    <div class="form48-person-fields">
-                      <label>Name<input type="text" id="form48ApprovedBy" maxlength="120" autocomplete="off" placeholder="Full name"></label>
-                      <label>Position / Designation<input type="text" id="form48ApprovedPosition" maxlength="120" autocomplete="off" placeholder="e.g., School Principal"></label>
-                    </div>
-                  </div>
-                </div>
                 <details id="form48ScheduleDetails" class="form48-schedule-details">
                   <summary><span>Work schedule &amp; prescribed hours</span><small id="form48ScheduleSummary" aria-live="polite">Select an employee to load hours</small></summary>
                   <p class="field-hint">Use the employee's prescribed office hours, not class-period times. Saturday is only required when that employee is scheduled to work.</p>
@@ -1961,10 +1971,10 @@ body.dark-mode .content-wrap > .school-heading.is-compact,body[data-theme="dark"
                   </div>
                 </details>
                 <div id="form48ReviewDays" class="form48-review-days" hidden></div>
-                <p class="form48-draft-notice">Report preview is read-only. Save monthly reviews and signatories explicitly. Employee schedules save separately. Printed names are not electronic signatures.</p>
-                <div class="form48-schedule-actions"><button id="form48SaveDraft" type="button" class="primary-button">Save report details &amp; reviews</button></div>
+                <p class="form48-draft-notice">Report preview is read-only. Save monthly absence and excusal reviews here. School-wide signatories are managed above. Employee schedules save separately.</p>
+                <div class="form48-schedule-actions"><button id="form48SaveDraft" type="button" class="primary-button">Save monthly reviews</button></div>
                 <div class="form48-schedule-actions">
-                  <button id="form48SaveSchoolDefaults" type="button" class="outline-button" disabled>Save full report settings as school defaults (advanced)</button>
+                  <button id="form48SaveSchoolDefaults" type="button" class="outline-button" disabled>Save work hours as school defaults (advanced)</button>
                 </div>
                 </div>
               </details>
@@ -2379,10 +2389,10 @@ body.dark-mode .content-wrap > .school-heading.is-compact,body[data-theme="dark"
   <script src="/department-dashboard-v2.js?v=2" defer></script>
   <script src="/teacher-dashboard-v2.js?v=1" defer></script>
   <script src="/teacher-dashboard-v3.js?v=1" defer></script>
-  <script src="/form48-report.js?v=14" defer></script>
+  <script src="/form48-report.js?v=15" defer></script>
   <script src="/form48-intelligence.js?v=1" defer></script>
   <script src="/smart-attendance-overview.js?v=2" defer></script>
-  <script src="/form48-bulk-ui.js?v=2" defer></script>
+  <script src="/form48-bulk-ui.js?v=3" defer></script>
   <script src="/teacher-roster-popover.js?v=2" defer></script>
   <script src="/sardo-monitor.js?v=2" defer></script><script src="/parent-dashboard.js?v=3" defer></script>
   <script src="/platform-plans-ui.js?v=8" defer></script>
