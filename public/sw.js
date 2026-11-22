@@ -1,4 +1,4 @@
-const CACHE = "attendigo-v287-responsive-controls";
+const CACHE = "attendigo-v288-ipad-action-layout";
 
 const SHELL = [
   "/typography.css?v=1",
@@ -69,8 +69,8 @@ const SHELL = [
   "/form48-intelligence.js?v=1",
   "/form48-bulk-ui.js?v=3",
   "/form48-report.css?v=14",
-  "/smart-attendance-overview.css?v=3",
-  "/role-controls-responsive.css?v=1",
+  "/smart-attendance-overview.css?v=4",
+  "/role-controls-responsive.css?v=2",
   "/smart-attendance-overview.js?v=2",
   "/my-gate-insights.css?v=3",
   "/staff-lunch-ui.js?v=4",
@@ -204,10 +204,11 @@ self.addEventListener("fetch", event => {
     return;
   }
 
+  // Native iOS form styling needs current CSS; never pin obsolete button layouts.
   // Keep scheduling and shared notification UI fresh without breaking offline operation.
   // Notifications change often; always prefer online JS/CSS to avoid old large-text layouts.
   // Unlike cache-first general assets, these role-critical resources prefer the deployed version.
-  if (['/universal-notifications.js','/universal-notifications.css','/portal.js','/special-program-batch-ui.js','/learner-roster-view.js','/learner-roster-view.css','/student-name-format.js','/teacher-learner-roster.css','/portal.css','/guardian-ui.js','/manual-folio.js','/manual-folio.css','/schedule-form-layout.css','/schedule-workspace-ui.js','/teacher-assignment-modal.css'].includes(url.pathname)) {
+  if (['/universal-notifications.js','/universal-notifications.css','/portal.js','/special-program-batch-ui.js','/learner-roster-view.js','/learner-roster-view.css','/student-name-format.js','/teacher-learner-roster.css','/portal.css','/guardian-ui.js','/manual-folio.js','/manual-folio.css','/schedule-form-layout.css','/schedule-workspace-ui.js','/teacher-assignment-modal.css','/smart-attendance-overview.css','/role-controls-responsive.css'].includes(url.pathname)) {
     event.respondWith((async () => {
       try {
         const fresh = await fetch(request, { cache: 'no-store' });
