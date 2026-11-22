@@ -40,6 +40,14 @@ function registerStaffLeaveRoutes(app,pool,{authenticateSchoolClient,requireScho
   headReviewedAt:r.head_decided_at,adminReviewedAt:r.admin_reviewed_at,
   verifiedAt:r.verified_at,revision:r.revision
  });
+ app.get('/api/staff-leave/my/status',...auth,async(req,res)=>{
+  res.set('Cache-Control','no-store, private');
+  try{
+   const leave=await require('./staff-approved-leave-status').getStaffLeaveStatus(
+    pool,req.auth.schoolId,req.auth.userId);
+   return res.json({leave});
+  }catch(error){return sqlErr(res,error);}
+ });
  app.get('/api/staff-leave/requests',...auth,async(req,res)=>{
   try{
    let where='WHERE r.school_id=$1',args=[req.auth.schoolId];
