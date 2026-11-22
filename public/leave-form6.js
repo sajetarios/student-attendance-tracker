@@ -39,6 +39,13 @@
   put('name',r.staffName||'');
   put('position',r.staffPosition||'');
   put('filed',date(r.submittedAt));
+  put('filingNote',r.leaveType==='SICK'
+   ?r.filingBasis==='POST_RETURN'
+     ?'Sick leave filed upon return under CSC Sec. 53. Supervisor notification and official review still required.'
+     :r.filingBasis==='ADVANCE'
+       ?'Sick leave filed in advance; medical evidence and approval required.'
+       :'Sick leave application pending official documentation and review.'
+   :'');
   put('salary','_________________');
   put('workingDays',r.certifiedWorkingDays!=null?r.certifiedWorkingDays+' day(s) — HR verified':data.estimatedSchoolWorkingDays+' day(s) — calendar estimate; HR verification required');
   put('dates',date(r.startDate)+' to '+date(r.endDate));
