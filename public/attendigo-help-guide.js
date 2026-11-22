@@ -131,12 +131,28 @@
     }
     addMessage('user', question);
     $('attendigoHelpQuestion').value = '';
-    const response = library.answer(question, user.role);
+    let response = library.answer(question, user.role);
+    // A role may be generally eligible for a topic but lack the particular
+    // designation or actual navigation link. Do not describe an unavailable
+    // feature as if this account could use it.
+    const unavailable = Boolean(response.topic?.nav && !allowedMenu(response.topic));
+    if (unavailable) {
+      response = {
+        topic: null,
+        title: 'This feature is not available to your account',
+        steps: [
+          'The requested feature is not visible in your current Attendigo navigation.',
+          'Check that you have the required role, teaching designation, assigned class or active school year.',
+          'Ask the School Admin to confirm your authorization. The guide cannot enable restricted features.'
+        ],
+        note: 'Do not try to open another user\'s tools through a direct URL.'
+      };
+    }
     busy = true;
     $('attendigoHelpSend').disabled = true;
     setStatus('Finding guidance…');
     let aiText = '';
-    if (apiEnabled && user.role !== 'SUPER_ADMIN') {
+    if (apiEnabled && response.topic && !unavailable && user.role !== 'SUPER_ADMIN') {
       abort = new AbortController();
       try {
         const result = await fetch('/api/help/ask', {
