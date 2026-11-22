@@ -80,13 +80,18 @@ test('Weekly grid actually renders independent role badges and never mislabels h
   });
   assert.match(host.html,/tt-tone-teacher-both/);
   assert.match(host.html,/tt-tone-teacher-class/);
-  assert.match(host.html,/tt-relation-subject/);
-  assert.match(host.html,/tt-relation-advisory/);
+  assert.match(host.html,/tt-compact-relation/);
   assert.match(host.html,/My subject class/);
-  assert.match(host.html,/My advisory section/);
+  assert.match(host.html,/My advisory class/);
+  // At most ONE visible role label per card even when the teacher holds two roles.
+  assert.doesNotMatch(host.html,/tt-relationship-badges|tt-relation-subject|tt-relation-advisory/);
+  assert.equal((host.html.match(/class="tt-subject-relation tt-compact-relation"/g)||[]).length,2);
+  // Full two-role relationship remains available to assistive technology.
+  assert.match(host.html,/My subject class · My advisory section/);
   assert.doesNotMatch(host.html,/tt-tone-advisory-activity/);
   assert.doesNotMatch(host.html,/Other teaching class/);
   assert.match(host.html,/tt-legend-both/);
+  assert.match(host.html,/My advisory class \(also teaches\)/);
 });
 
 test('Weekly/list/popover UI preserve actual assignment labels in every display',()=>{
@@ -98,18 +103,22 @@ test('Weekly/list/popover UI preserve actual assignment labels in every display'
   assert.match(portal,/window\.AttendigoScheduleRelationships\.classify\(period, user, adviserAssignments\)/);
   assert.match(portal,/window\.AttendigoScheduleRelationships\.relationshipLabels\(teacherRelationship\(period\)\)/);
   assert.match(portal,/isMySubjectClass:relationship\.mySubject/);
-  assert.match(portal,/teacher-list-relationship/);
+  assert.match(portal,/AttendigoScheduleRelationships\.compactLabel\(teacherRelationship\(period\)\)/);
+  assert.match(portal,/tt-list-compact-role/);
+  assert.doesNotMatch(portal,/relationshipTags\.map\(/);
   assert.match(grid,/\['Your role',labels\.join\(' \+ '\)/);
   assert.match(grid,/\['Period type',entry\.isAdvisoryActivity\?/);
   assert.match(grid,/const rows=items\.map\(/);
   assert.match(grid,/e\.isMySubjectClass&&e\.isMyAdvisorySection\?'teacher-both'/);
   assert.match(css, /\.tt-tone-teacher-both/);
+  assert.match(css, /background: #fff0d0/);
+  assert.match(css, /\.tt-compact-relation/);
   assert.match(css, /html\[data-ui-theme="dark"\]/);
-  assert.match(html,/href="\/teacher-timetable-identities\.css\?v=1"/);
-  assert.match(html,/src="\/schedule-relationships\.js\?v=1" defer/);
-  assert.match(html,/src="\/timetable-grid\.js\?v=7" defer/);
-  assert.match(html,/src="\/portal\.js\?v=226" defer/);
-  for (const asset of ['/teacher-timetable-identities.css?v=1','/schedule-relationships.js?v=1','/timetable-grid.js?v=7','/portal.js?v=226'])
+  assert.match(html,/href="\/teacher-timetable-identities\.css\?v=2"/);
+  assert.match(html,/src="\/schedule-relationships\.js\?v=2" defer/);
+  assert.match(html,/src="\/timetable-grid\.js\?v=8" defer/);
+  assert.match(html,/src="\/portal\.js\?v=227" defer/);
+  for (const asset of ['/teacher-timetable-identities.css?v=2','/schedule-relationships.js?v=2','/timetable-grid.js?v=8','/portal.js?v=227'])
     assert.ok(sw.includes('"'+asset+'"'),'Missing precache for '+asset);
 });
 
@@ -121,4 +130,28 @@ test('Existing server-side schedule permissions and export calculations are unto
   assert.match(server,/app\.get\('\/api\/periods', authenticateSchoolClient, requireSchoolRoles\('SCHOOL_ADMIN','DEPARTMENT_HEAD','TEACHER'\)/);
   assert.match(portal,/window\.TimetableGrid\.render\(/);
   assert.doesNotMatch(read('public/schedule-relationships.js'),/fetch\s*\(|\.post\s*\(|localStorage|ATTENDANCE|UPDATE\s+|DELETE\s+|INSERT\s+/i);
+});
+
+test('Minimal timetable labels stay accurate for subject only, advisory only and both roles',()=>{
+  const rel={
+    both:classify(period('SPJ Tuvera','ADVISORY'),myself,ownAdvisory),
+    subject:classify(period('Abueva','SUBJECT'),myself,ownAdvisory),
+    advisory:classify(period('SPJ Tuvera','SUBJECT','teacher-two'),myself,ownAdvisory),
+    periodOnly:classify(period('Unknown','ADVISORY','teacher-two'),myself,[])
+  };
+  const {compactLabel}=require('../public/schedule-relationships');
+  assert.equal(compactLabel(rel.both),'My advisory class');
+  assert.equal(compactLabel(rel.subject),'My subject class');
+  assert.equal(compactLabel(rel.advisory),'My advisory section');
+  assert.equal(compactLabel(rel.periodOnly),'Assigned class');
+  assert.deepEqual(relationshipLabels(rel.both),[
+    'My subject class','My advisory section','Advisory / Homeroom activity'
+  ]);
+  const grid=read('public/timetable-grid.js');
+  assert.match(grid,/isMySubjectClass&&e\.isMyAdvisorySection\?'My advisory class'/);
+  assert.match(grid,/e\.isMySubjectClass\?'My subject class'/);
+  assert.match(grid,/e\.isMyAdvisorySection\?'My advisory section'/);
+  assert.match(grid,/\['Period type',entry\.isAdvisoryActivity/);
+  assert.match(grid,/const management=entry\.canEdit/);
+  assert.match(grid,/const kind=e\.cancelled\?'cancelled':e\.adjustment\?'adjusted'/);
 });
