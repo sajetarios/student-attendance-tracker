@@ -58,7 +58,7 @@ test('four-column teacher table keeps guardian contact inside Actions, not the w
   assert.match(main, /<th>Quick actions<\/th>/);
   assert.match(main, /<th>Class \/ Program<\/th>/);
   assert.match(main, /teacher \? \(4 \+ Number\(showSelectionColumn\)\)/);
-  assert.match(main, /const teacherGuardian = teacher/);
+  assert.match(main, /const teacherGuardian\s*=\s*canViewFamily/);
   assert.match(main, /teacher-roster-menu-label/);
   assert.match(main, /teacherRosterInitials\(fullName\)/);
   assert.match(main, /student-initials-avatar/);
