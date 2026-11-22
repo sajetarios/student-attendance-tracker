@@ -50,3 +50,22 @@
 #staffLeaveDialog .leave-inline-form{display:grid;}
 #staffLeaveDialog .leave-inline-form label,#staffLeaveDialog .leave-inline-form button{width:100%;}
 }
+
+/* Leave credit separation: clarify read-only balances and the Form 6 print entry. */
+#staffLeaveDialog .leave-role-guidance{padding:13px 15px;margin-bottom:14px;border:1px solid #c8dfed;border-radius:12px;background:#f1f8fc;color:#20475d;line-height:1.5}
+#staffLeaveDialog .leave-role-guidance strong{font-size:.91rem}
+#staffLeaveDialog .leave-role-guidance p{font-size:.83rem;margin:5px 0 0;color:#506b7f}
+#staffLeaveDialog .leave-balance strong.leave-balance-unrecorded{font-size:.94rem;line-height:1.5;letter-spacing:0;overflow-wrap:anywhere}
+#staffLeaveDialog .leave-form-intro{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin:12px 0 3px;color:#506c80;font-size:.83rem;line-height:1.5}
+#staffLeaveDialog .leave-form-intro span{flex:1 1 280px}
+#staffLeaveDialog .leave-form-intro .leave-btn{display:inline-flex;align-items:center;justify-content:center;text-decoration:none;min-height:40px}
+#staffLeaveDialog .leave-tabs button[hidden]{display:none!important}
+#staffLeaveDialog .leave-hr-directory{margin:12px 0}
+#staffLeaveDialog .leave-hr-directory .leave-form{padding-top:6px}
+#staffLeaveDialog .leave-hr-directory-result{margin:12px 0 0;line-height:1.45}
+#staffLeaveDialog .leave-hr-directory-result ul{margin:9px 0;padding-left:20px}
+@media(max-width:700px){
+ #staffLeaveDialog .leave-form-intro .leave-btn{width:100%}
+ #staffLeaveDialog .leave-tabs{flex-wrap:wrap}
+ #staffLeaveDialog .leave-role-guidance{padding:11px}
+}
