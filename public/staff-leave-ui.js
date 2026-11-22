@@ -155,7 +155,7 @@
      buttons.append(buttonFor('Recommend disapproval',()=>review('admin-review','REJECT')));
     }
     if(r.status==='PENDING_EXTERNAL'&&r.staffUserId!==user.userId&&
-       (user.role==='SCHOOL_ADMIN'||(user.role==='DEPARTMENT_HEAD'&&r.staffPosition))){
+       (user.role==='SCHOOL_ADMIN'||(user.role==='DEPARTMENT_HEAD'&&r.staffRole==='SCHOOL_ADMIN'))){
      const details=document.createElement('details');details.className='leave-approval';
      details.innerHTML='<summary>Record official division decision</summary>'+
       '<p class="leave-help">This records a decision already signed by the authorized official. It does not grant system users new signing authority.</p>'+
