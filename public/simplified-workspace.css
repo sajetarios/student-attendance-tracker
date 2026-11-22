@@ -1,0 +1,367 @@
+/* Attendigo role-aware compact workspace.
+   All original feature links, panels, forms, permissions, and event handlers remain.
+   The layout does not change document printing or report calculations. */
+@media screen {
+  html.attendigo-simple-workspace body.portal-page .content-wrap {
+    --simple-space: 12px;
+  }
+  html.attendigo-simple-workspace body.portal-page .content-wrap > .school-heading {
+    padding: 10px 16px !important;
+    margin-bottom: 10px !important;
+    border-radius: 12px !important;
+    min-height: 0 !important;
+  }
+  html.attendigo-simple-workspace body.portal-page #schoolWorkspace > .view-heading {
+    margin-bottom: 10px !important;
+  }
+  html.attendigo-simple-workspace body.portal-page #schoolWorkspace > .view-heading h2 {
+    font-size: clamp(18px, 1.7vw, 23px) !important;
+    line-height: 1.2 !important;
+    margin: 0 0 3px !important;
+  }
+  html.attendigo-simple-workspace body.portal-page #schoolWorkspace > .view-heading p {
+    font-size: 12px !important;
+    line-height: 1.45 !important;
+  }
+  /* Keep the existing authorized sidebar hierarchy, but make its closed
+     groups quiet and easy to scan without tiny tap targets. */
+  html.attendigo-simple-workspace body.portal-page #sidebar.sidebar .side-nav {
+    gap: 3px !important;
+  }
+  html.attendigo-simple-workspace body.portal-page #sidebar.sidebar .side-nav > .nav-group > .nav-group-toggle,
+  html.attendigo-simple-workspace body.portal-page #sidebar.sidebar .side-nav > .nav-item {
+    min-height: 42px !important;
+    height: auto !important;
+    padding-block: 9px !important;
+    font-size: 13px !important;
+    font-weight: 650 !important;
+    border-radius: 10px !important;
+  }
+  html.attendigo-simple-workspace body.portal-page #sidebar.sidebar .nav-submenu .nav-item {
+    min-height: 38px !important;
+    height: auto !important;
+    padding-block: 8px !important;
+    font-size: 12.5px !important;
+    font-weight: 530 !important;
+  }
+  html.attendigo-simple-workspace #sidebar .nav-group-toggle[aria-expanded="false"] .nav-chevron {
+    transform: none;
+  }
+  html.attendigo-simple-workspace #sidebar .nav-group-toggle[aria-expanded="true"] .nav-chevron {
+    transform: rotate(180deg);
+  }
+  html.attendigo-simple-workspace #sidebar .simple-nav-search {
+    display: flex;
+    flex: 0 0 auto;
+    flex-direction: column;
+    gap: 5px;
+    margin: 2px 0 12px;
+    width: 100%;
+    color: var(--side-ink, #fff);
+  }
+  html.attendigo-simple-workspace #sidebar .simple-nav-search-caption {
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: .05em;
+    color: var(--side-muted, #d6e5f5);
+  }
+  html.attendigo-simple-workspace #sidebar #simpleNavSearch {
+    display: block;
+    box-sizing: border-box;
+    width: 100%;
+    min-height: 39px;
+    min-width: 0;
+    margin: 0;
+    padding: 9px 11px;
+    border: 1px solid var(--side-border, rgba(255,255,255,.24));
+    border-radius: 10px;
+    background: var(--side-hover, rgba(255,255,255,.11));
+    color: var(--side-ink, #fff);
+    font-size: 12.5px;
+    font-weight: 500;
+    line-height: 1.2;
+    font-family: inherit;
+    outline-offset: 2px;
+  }
+  html.attendigo-simple-workspace #sidebar #simpleNavSearch::placeholder {
+    color: var(--side-muted, #d6e5f5);
+    opacity: .92;
+  }
+  html.attendigo-simple-workspace #sidebar #simpleNavSearch:focus-visible {
+    outline: 2px solid var(--side-focus, #fff);
+  }
+  html.attendigo-simple-workspace body.portal-page .portal-layout #sidebar.sidebar .side-nav .simple-nav-filtered,
+  html.attendigo-simple-workspace body.portal-page .portal-layout #sidebar.sidebar .side-nav .simple-nav-filtered.nav-item,
+  html.attendigo-simple-workspace body.portal-page .portal-layout #sidebar.sidebar .side-nav .simple-nav-filtered.nav-group {
+    display: none !important;
+  }
+  html.attendigo-simple-workspace body.portal-page .portal-layout.sidebar-collapsed #sidebar.sidebar > .simple-nav-search {
+    display: none !important;
+  }
+  html.attendigo-simple-workspace .simple-workspace-details {
+    box-sizing: border-box;
+    width: 100%;
+    margin-top: 12px;
+    border: 1px solid var(--line, var(--ui-line, #d7e2ee));
+    border-radius: 11px;
+    background: var(--card, var(--ui-panel, #fff));
+    color: var(--ink, var(--ui-text, #20344d));
+    overflow: clip;
+  }
+  html.attendigo-simple-workspace .simple-workspace-details > summary {
+    min-height: 44px;
+    display: flex;
+    align-items: center;
+    padding: 10px 14px;
+    cursor: pointer;
+    font-size: 12.5px;
+    font-weight: 700;
+    line-height: 1.4;
+    list-style-position: inside;
+  }
+  html.attendigo-simple-workspace .simple-workspace-details > summary:hover {
+    background: color-mix(in srgb, currentColor 4%, transparent);
+  }
+  html.attendigo-simple-workspace .simple-workspace-details > summary:focus-visible {
+    outline: 2px solid #358bd4;
+    outline-offset: -3px;
+  }
+  html.attendigo-simple-workspace .simple-workspace-details[open] > summary {
+    border-bottom: 1px solid var(--line, var(--ui-line, #d7e2ee));
+  }
+  html.attendigo-simple-workspace details.simple-workspace-details:not([open]) > .simple-workspace-details-body {
+    display: none !important;
+  }
+  html.attendigo-simple-workspace .simple-workspace-details-body {
+    display: grid;
+    gap: 10px;
+    padding: 12px;
+    min-width: 0;
+  }
+  /* School Administrator: three practical numbers, one short priority area
+     and three immediate tasks. All other buttons are in expandable sections. */
+  html[data-simple-workspace-role="SCHOOL_ADMIN"] body.portal-page #adminDashboardCard {
+    gap: 12px !important;
+    padding: clamp(12px, 1.5vw, 18px) !important;
+  }
+  html[data-simple-workspace-role="SCHOOL_ADMIN"] body.portal-page #adminDashboardCard .admin-command-hero {
+    min-height: 0 !important;
+    padding: 15px 18px !important;
+    gap: 12px !important;
+    border-radius: 12px !important;
+  }
+  html[data-simple-workspace-role="SCHOOL_ADMIN"] body.portal-page #adminDashboardCard .admin-command-hero h3 {
+    font-size: clamp(18px, 2vw, 24px) !important;
+    line-height: 1.2 !important;
+    margin-block: 4px !important;
+  }
+  html[data-simple-workspace-role="SCHOOL_ADMIN"] body.portal-page #adminDashboardCard .admin-command-hero p {
+    font-size: 12px !important;
+    line-height: 1.45 !important;
+    max-width: 65ch !important;
+  }
+  html[data-simple-workspace-role="SCHOOL_ADMIN"] body.portal-page #adminDashboardCard .admin-command-primary {
+    min-height: 40px !important;
+    padding: 9px 13px !important;
+    font-size: 12px !important;
+  }
+  html[data-simple-workspace-role="SCHOOL_ADMIN"] body.portal-page #adminDashboardCard .admin-command-metrics {
+    gap: 9px !important;
+    margin: 0 !important;
+  }
+  html[data-simple-workspace-role="SCHOOL_ADMIN"] body.portal-page #adminDashboardCard .admin-command-metric {
+    min-height: 96px !important;
+    padding: 12px 14px !important;
+    border-radius: 11px !important;
+    gap: 4px !important;
+  }
+  html[data-simple-workspace-role="SCHOOL_ADMIN"] body.portal-page #adminDashboardCard .admin-command-metric strong {
+    font-size: clamp(22px, 2.5vw, 28px) !important;
+    line-height: 1.15 !important;
+  }
+  html[data-simple-workspace-role="SCHOOL_ADMIN"] body.portal-page #adminDashboardCard .admin-command-metric small {
+    font-size: 11px !important;
+    line-height: 1.35 !important;
+  }
+  html[data-simple-workspace-role="SCHOOL_ADMIN"] body.portal-page #adminDashboardCard .admin-command-columns {
+    gap: 12px !important;
+    margin: 0 !important;
+  }
+  html[data-simple-workspace-role="SCHOOL_ADMIN"] body.portal-page #adminDashboardCard .admin-command-panel {
+    min-width: 0;
+    padding: 14px !important;
+    border-radius: 11px !important;
+  }
+  html[data-simple-workspace-role="SCHOOL_ADMIN"] body.portal-page #adminDashboardCard .admin-command-section-heading h4 {
+    font-size: 16px !important;
+    margin: 3px 0 !important;
+  }
+  html[data-simple-workspace-role="SCHOOL_ADMIN"] body.portal-page #adminDashboardCard .admin-command-section-heading p {
+    font-size: 11.5px !important;
+  }
+  html[data-simple-workspace-role="SCHOOL_ADMIN"] body.portal-page #adminDashboardCard .admin-command-shortcuts {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 9px !important;
+  }
+  html[data-simple-workspace-role="SCHOOL_ADMIN"] body.portal-page #adminDashboardCard .admin-command-shortcuts button,
+  html[data-simple-workspace-role="SCHOOL_ADMIN"] body.portal-page #adminDashboardCard #simpleAdminExtraShortcuts button {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-width: 0;
+    min-height: 92px !important;
+    padding: 11px 7px !important;
+    gap: 8px;
+    border: 1px solid var(--line, #dde5f0);
+    border-radius: 10px;
+    background: var(--card, var(--ui-panel, #fff));
+    color: var(--ink, #20344d);
+    text-align: center;
+    font-family: inherit;
+    cursor: pointer;
+  }
+  html[data-simple-workspace-role="SCHOOL_ADMIN"] body.portal-page #adminDashboardCard #simpleAdminExtraShortcuts .simple-workspace-details-body {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+  html[data-simple-workspace-role="SCHOOL_ADMIN"] body.portal-page #adminDashboardCard #simpleAdminExtraShortcuts .admin-shortcut-icon {
+    display: grid;
+    place-items: center;
+    width: 32px;
+    height: 32px;
+    border-radius: 9px;
+    background: color-mix(in srgb, var(--ui-accent,#2476bc) 11%, transparent);
+    color: var(--ui-accent, #2677be);
+  }
+  html[data-simple-workspace-role="SCHOOL_ADMIN"] body.portal-page #adminDashboardCard .simple-workspace-details-body > .admin-command-action-list {
+    display: grid;
+    gap: 8px;
+  }
+  html[data-simple-workspace-role="SCHOOL_ADMIN"] body.portal-page #adminDashboardCard .admin-command-row {
+    min-height: 55px !important;
+    padding: 10px !important;
+  }
+  html[data-simple-workspace-role="SCHOOL_ADMIN"] body.portal-page #adminDashboardCard .admin-command-more {
+    margin: 0 !important;
+  }
+  /* Department Head: focus on coverage; preserve every section and its
+     own existing expand/reveal actions. */
+  html[data-simple-workspace-role="DEPARTMENT_HEAD"] body.portal-page #departmentHeadOverview .dh-command-metric {
+    min-height: 84px !important;
+    padding: 10px !important;
+  }
+  html[data-simple-workspace-role="DEPARTMENT_HEAD"] body.portal-page #departmentHeadOverview .dh-command-metrics {
+    gap: 8px !important;
+  }
+  html[data-simple-workspace-role="DEPARTMENT_HEAD"] body.portal-page #departmentHeadOverview .dh-command-intro,
+  html[data-simple-workspace-role="DEPARTMENT_HEAD"] body.portal-page #plannerDashboardWidget .planner-dashboard-intro {
+    min-height: 0 !important;
+    margin-bottom: 9px !important;
+  }
+  /* Teacher: reduce banner dominance; retain attendance CTA, DTR, advisory
+     data, reports, and original buttons. */
+  html[data-simple-workspace-role="TEACHER"] body.portal-page #dashboardView .teacher-v3-hero {
+    min-height: 100px !important;
+    padding: 15px 19px !important;
+    gap: 12px !important;
+  }
+  html[data-simple-workspace-role="TEACHER"] body.portal-page #dashboardView .teacher-v3-hero h2 {
+    font-size: clamp(18px, 2vw, 23px) !important;
+  }
+  html[data-simple-workspace-role="TEACHER"] body.portal-page #dashboardView .teacher-v3-hero p {
+    font-size: 12px !important;
+  }
+  html[data-simple-workspace-role="TEACHER"] body.portal-page #dashboardView .teacher-v3-hero-pills {
+    margin-top: 7px !important;
+  }
+  html[data-simple-workspace-role="TEACHER"] body.portal-page #dashboardView #learnerSummaryCard .learner-metric {
+    min-height: 90px !important;
+    padding: 12px !important;
+  }
+  html[data-simple-workspace-role="TEACHER"] body.portal-page #dashboardView #learnerSummaryCard .learner-metric strong {
+    font-size: 24px !important;
+  }
+  /* Super Administrator: five existing role-checked sections remain; large
+     technical capacity charts become an optional disclosure. */
+  html[data-simple-workspace-role="SUPER_ADMIN"] body.portal-page #platformWorkspace .platform-welcome {
+    min-height: 0 !important;
+    padding: 14px 18px !important;
+    margin-bottom: 10px !important;
+    border-radius: 12px !important;
+  }
+  html[data-simple-workspace-role="SUPER_ADMIN"] body.portal-page #platformWorkspace .platform-welcome h2 {
+    font-size: clamp(19px, 2vw, 24px) !important;
+    margin: 3px 0 !important;
+  }
+  html[data-simple-workspace-role="SUPER_ADMIN"] body.portal-page #platformWorkspace .platform-stat-grid {
+    gap: 10px !important;
+  }
+  html[data-simple-workspace-role="SUPER_ADMIN"] body.portal-page #platformWorkspace .platform-stat-grid .stat-card {
+    padding: 13px 16px !important;
+    min-height: 84px !important;
+  }
+  html[data-simple-workspace-role="SUPER_ADMIN"] body.portal-page #platformWorkspace #simplePlatformStorage .platform-storage-card {
+    margin-top: 0 !important;
+    border: 0 !important;
+    box-shadow: none !important;
+    padding: 8px !important;
+    background: transparent !important;
+  }
+  html[data-simple-workspace-role="SUPER_ADMIN"] body.portal-page #platformWorkspace #simplePlatformStorage {
+    margin-top: 14px;
+  }
+  html[data-ui-theme="dark"].attendigo-simple-workspace .simple-workspace-details {
+    background: var(--night-raised, #19263a);
+    color: var(--night-text, #ecf2fc);
+    border-color: var(--night-border, #36445c);
+  }
+  html[data-ui-theme="dark"][data-simple-workspace-role="SCHOOL_ADMIN"] body.portal-page #adminDashboardCard #simpleAdminExtraShortcuts button {
+    color: var(--night-text, #ecf2fc);
+    border-color: var(--night-border, #36445c);
+    background: var(--night-raised, #19263a);
+  }
+  @media (max-width: 900px) {
+    html[data-simple-workspace-role="SCHOOL_ADMIN"] body.portal-page #adminDashboardCard .admin-command-columns {
+      grid-template-columns: minmax(0, 1fr) !important;
+    }
+    html.attendigo-simple-workspace #sidebar #simpleNavSearch {
+      min-height: 44px;
+      font-size: 14px;
+    }
+  }
+  @media (max-width: 640px) {
+    html[data-simple-workspace-role="SCHOOL_ADMIN"] body.portal-page #adminDashboardCard .admin-command-metrics {
+      grid-template-columns: repeat(2, minmax(0,1fr)) !important;
+    }
+    html[data-simple-workspace-role="SCHOOL_ADMIN"] body.portal-page #adminDashboardCard .admin-command-metric:nth-child(3) {
+      grid-column: 1 / -1;
+    }
+    html[data-simple-workspace-role="SCHOOL_ADMIN"] body.portal-page #adminDashboardCard .admin-command-hero {
+      flex-direction: column !important;
+      align-items: stretch !important;
+    }
+    html[data-simple-workspace-role="SCHOOL_ADMIN"] body.portal-page #adminDashboardCard .admin-command-shortcuts,
+    html[data-simple-workspace-role="SCHOOL_ADMIN"] body.portal-page #adminDashboardCard #simpleAdminExtraShortcuts .simple-workspace-details-body {
+      grid-template-columns: repeat(2, minmax(0,1fr)) !important;
+    }
+    html[data-simple-workspace-role="TEACHER"] body.portal-page #dashboardView .teacher-v3-hero {
+      flex-direction: column !important;
+      align-items: stretch !important;
+    }
+    html[data-simple-workspace-role="TEACHER"] body.portal-page #dashboardView .teacher-v3-hero-actions {
+      align-items: stretch !important;
+      min-width: 0 !important;
+    }
+    html[data-simple-workspace-role="DEPARTMENT_HEAD"] body.portal-page #departmentHeadOverview .dh-command-metrics {
+      grid-template-columns: repeat(2,minmax(0,1fr)) !important;
+    }
+    html[data-simple-workspace-role="SUPER_ADMIN"] body.portal-page #platformWorkspace .platform-stat-grid {
+      grid-template-columns: repeat(2,minmax(0,1fr)) !important;
+    }
+  }
+  /* Print preview must remain the official form, not the admin dashboard skin. */
+  @media print {
+    html.attendigo-simple-workspace #sidebar .simple-nav-search { display: none !important; }
+  }
+}

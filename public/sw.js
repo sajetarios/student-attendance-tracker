@@ -1,10 +1,12 @@
-const CACHE = "attendigo-v290-pilot-hardening";
+const CACHE = "attendigo-v291-simplified-role-workspaces";
 
 const SHELL = [
   "/typography.css?v=1",
   "/attendigo-workspace-density-theme.css?v=1",
   "/attendigo-unified-workspace.css?v=1",
   "/attendigo-unified-navigation.js?v=1",
+  "/simplified-workspace.js?v=1",
+  "/simplified-workspace.css?v=1",
   "/fonts/InterVariable.woff2",
   "/fonts/InterVariable-Italic.woff2",
   "/attendigo-brand-refresh.css?v=5",
