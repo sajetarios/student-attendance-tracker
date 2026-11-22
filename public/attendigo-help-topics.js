@@ -603,9 +603,54 @@
   function forRole(role) {
     return topics.filter(topic => topic.roles.includes(String(role || '')));
   }
+  // High-risk instructions must never fall through to a similar, lower-
+  // privilege topic (e.g. a Teacher asking to approve leave must not get
+  // ordinary leave-application instructions).
+  function restrictedAnswer(question, role) {
+    const q = normalize(question), r = String(role || '');
+    if (!['DEPARTMENT_HEAD','SCHOOL_ADMIN'].includes(r) &&
+      /(?:approve|approval|review|recommend|decision).{0,25}leave|leave approvals|leave approval inbox/.test(q))
+      return {title:'Leave approvals require an authorized reviewer',
+        steps:['Teachers submit their own application in Leave Requests; they cannot approve it.',
+          'Department Heads can make authorized recommendations. School Admins handle school review and verified official decisions.',
+          'Ask School Admin about the status of your submitted request.'],
+        note:'The assistant cannot grant approval authority.'};
+    if (r !== 'SCHOOL_ADMIN' &&
+      /(?:employee|staff).{0,18}(?:dtr|form 48|time record)|(?:print|review).{0,15}(?:employee|staff).{0,15}(?:dtr|form 48)/.test(q))
+      return {title:'Employee Form 48 reports are an administrative function',
+        steps:['Use your personal Gate Attendance & DTR to review your own punches.',
+          'Only authorized school personnel can review or print other employees’ Form 48 reports.'],
+        note:'The guide cannot expose another employee’s attendance.'};
+    if (r !== 'GATE_KEEPER' && /gatekeeper|gate scanner/.test(q))
+      return {title:'Gate scanner is a Gatekeeper function',
+        steps:['Staff should use My Attendance → Gate Attendance & DTR to check their own gate records.',
+          'Only an authorized Gatekeeper records student or staff scans at the gate.'],
+        note:'Do not try to access restricted scanner routes.'};
+    if (!['TEACHER','SCHOOL_ADMIN'].includes(r) && /sf1|import students|import learners/.test(q))
+      return {title:'SF1 import is restricted',
+        steps:['School Admins or eligible Class Advisers can import official LIS SF1 files.',
+          'Ask the School Admin to confirm your authorization and advisory assignment.'],
+        note:'A Department Head cannot bypass the import permission with Help Guide.'};
+    if (!['TEACHER','SCHOOL_ADMIN'].includes(r) && /student account|student login|learner login|student password|portal account/.test(q))
+      return {title:'Student portal accounts need school authorization',
+        steps:['Teachers request account access for their assigned learners in My Students → Portal Accounts.',
+          'School Admins review account requests and issue credentials.'],
+        note:'Other roles cannot provision learner passwords via Help Guide.'};
+    if (r !== 'SCHOOL_ADMIN' && /timetable settings|school timetable settings|operating days|school calendar/.test(q))
+      return {title:'School timetable settings require School Admin',
+        steps:['View your assigned timetable from My Timetable or Department Schedules.',
+          'Ask School Admin to change operating days, school-wide templates or calendar settings.'],
+        note:'Teaching timetables and school configuration have different permissions.'};
+    if (r === 'DEPARTMENT_HEAD' && /submit official sf2|submit sf2/.test(q))
+      return {title:'Only Class Advisers submit official SF2',
+        steps:['Department Heads use Reports → SF2 Monitoring to review department submission status.',
+          'The assigned Class Adviser reviews and submits the official monthly section SF2.'],
+        note:'Department monitoring cannot submit an adviser’s official report.'};
+    return null;
+  }
   function match(question, role) {
     const query = normalize(question);
-    if (!query) return null;
+    if (!query || restrictedAnswer(question,role)) return null;
     let best = null;
     const tokens = new Set(query.split(' '));
     for (const topic of forRole(role)) {
@@ -623,6 +668,8 @@
     return best && best.score >= 5 ? best.topic : null;
   }
   function answer(question, role) {
+    const restriction = restrictedAnswer(question, role);
+    if (restriction) return {topic:null, ...restriction};
     const topic = match(question, role);
     if (!topic) return {
       topic: null,
