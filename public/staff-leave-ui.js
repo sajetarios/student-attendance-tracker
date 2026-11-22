@@ -281,10 +281,12 @@
    if(user.role==='SCHOOL_ADMIN'&&!reviewOnly){
     const panel=document.createElement('section');
     panel.className='leave-card';
-    panel.innerHTML='<div class="leave-section-title"><div><strong>Gate visits during approved leave</strong>'+
+    panel.innerHTML='<div class="leave-overlap-header">'+
+      '<div class="leave-overlap-intro"><strong>Gate visits during approved leave</strong>'+
       '<p class="leave-help">Review physical movements that overlap approved leave. A scan does not cancel leave or automatically fill the DTR.</p></div>'+
+      '<div class="leave-overlap-controls">'+
       '<label>School date <input type="date" class="leave-overlap-date" required></label>'+
-      '<button class="leave-btn leave-check-overlaps" type="button">Check date</button></div>'+
+      '<button class="leave-btn leave-check-overlaps" type="button">Check date</button></div></div>'+
       '<div class="leave-overlap-list" role="status" aria-live="polite">Loading…</div>';
     const fields=new Intl.DateTimeFormat('en-US',{timeZone:'Asia/Manila',year:'numeric',month:'2-digit',day:'2-digit'})
      .formatToParts(new Date());
