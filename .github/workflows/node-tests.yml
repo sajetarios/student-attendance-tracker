@@ -93,6 +93,83 @@ jobs:
         run: node tests/staff-lunch-postgres.cjs
       - name: Verify School Admin gate-to-DTR approval, audit and tenant isolation against PostgreSQL
         run: node tests/gate-dtr-admin-review-postgres.cjs
+      - name: Verify encrypted PostgreSQL backup and full restore in disposable database
+        env:
+          PGPASSWORD: postgres
+          ATTENDIGO_PRIMARY_DATABASE: render
+          ATTENDIGO_BACKUP_KEY_BASE64: BwcHBwcHBwcHBwcHBwcHBwcHBwcHBwcHBwcHBwcHBwc=
+          ATTENDIGO_RESTORE_TEST_DATABASE_URL: postgres://postgres:postgres@localhost:5432/attendigo_restore_test
+        run: |
+          pg_dump --version
+          node scripts/verified-database-backup.js backup "$RUNNER_TEMP/attendigo-test.attbk"
+          createdb -h localhost -U postgres attendigo_restore_test
+          node scripts/verified-database-backup.js restore-test "$RUNNER_TEMP/attendigo-test.attbk"
+          psql -h localhost -U postgres -d attendigo_restore_test -Atc "SELECT COUNT(*) FROM schema_migrations;" | grep -Eq '^[1-9][0-9]*
+      - name: Verify notification event creation and idempotence against PostgreSQL
+        run: node tests/universal-notifications-postgres.cjs
+      - name: Verify mixed attendance cloud relay against isolated PostgreSQL
+        run: node tests/cloud-mixed-postgres.cjs
+      - name: Enforce full regression gate
+        if: always()
+        run: |
+          if [ "${{ steps.unit_tests.outcome }}" != "success" ]; then
+            echo "::error::Node.js unit/regression tests failed. PostgreSQL checks were allowed to run for diagnostic coverage."
+            exit 1
+          fi
+
+  recovery_validation:
+    name: Recovery flow / PostgreSQL validation
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: school_attendance_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d school_attendance_test"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    env:
+      DATABASE_URL: postgres://postgres:postgres@localhost:5432/school_attendance_test
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Validate recovery API code and guards
+        run: |
+          node --check school-admin-recovery-routes.js
+          node --test tests/school-admin-recovery.test.js
+      - name: Verify student account approvals and notification UI
+        run: |
+          node --check student-portal-account-routes.js
+          node --check public/admin-request-notifications.js
+          node --check public/guardian-ui.js
+          node --check public/student-portal-accounts.js
+          node --test tests/student-portal-accounts.test.js tests/approval-inbox-regression.test.js
+      - name: Verify student login and roster restoration
+        run: |
+          node --check auth-routes.js
+          node --check public/portal.js
+          node --test tests/student-portal-login-roster-fix.test.js
+      - name: Create fresh PostgreSQL schema
+        run: npm run db:migrate
+      - name: Test full one-time reset against PostgreSQL
+        run: node tests/recovery-smoke.cjs
+      - name: Test persistent photo approvals and access controls against PostgreSQL
+        run: node tests/photo-smoke.cjs
+
+
+          rm -f "$RUNNER_TEMP/attendigo-test.attbk"
+
       - name: Verify notification event creation and idempotence against PostgreSQL
         run: node tests/universal-notifications-postgres.cjs
       - name: Verify mixed attendance cloud relay against isolated PostgreSQL
