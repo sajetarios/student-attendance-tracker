@@ -27,5 +27,13 @@
     if(relationship.advisoryActivity) labels.push('Advisory / Homeroom activity');
     return labels;
   }
-  return Object.freeze({classify,relationshipLabels});
+  // One short, truthful on-card label; full independent relationships remain
+  // available in the class details. Do not infer ownership from scheduleType.
+  function compactLabel(relationship) {
+    if (relationship?.mySubject && relationship?.myAdvisory) return 'My advisory class';
+    if (relationship?.mySubject) return 'My subject class';
+    if (relationship?.myAdvisory) return 'My advisory section';
+    return 'Assigned class';
+  }
+  return Object.freeze({classify,relationshipLabels,compactLabel});
 });
