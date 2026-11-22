@@ -12,7 +12,7 @@
   <link rel="stylesheet" href="/staff-lunch.css?v=3">
   <link rel="stylesheet" href="/staff-ob.css?v=1">
   <link rel="stylesheet" href="/department-workspace.css?v=1">
-  <link rel="stylesheet" href="/form48-report.css?v=12">
+  <link rel="stylesheet" href="/form48-report.css?v=13">
   <link rel="stylesheet" href="/smart-attendance-overview.css?v=2">
   <link rel="stylesheet" href="/my-gate-insights.css?v=3">
   <link rel="stylesheet" href="/portal.css?v=0.9.121"><link rel="stylesheet" href="/attendigo-brand-polish.css?v=2"><link rel="stylesheet" href="/parent-admin.css?v=7">
@@ -1781,7 +1781,7 @@ body.dark-mode .content-wrap > .school-heading.is-compact,body[data-theme="dark"
           </section>
           <section id="form48ReportsView" class="view-panel" hidden>
             <div class="surface-card section-card" id="form48ReportCard">
-              <div class="section-toolbar"><div><h3>CS Form No. 48 — Daily Time Record</h3><p>Select an employee and month to preview verified attendance. School working hours are set once.</p></div><button id="form48OpenHours" class="outline-button" type="button">School working hours</button></div>
+              <div class="section-toolbar form48-heading"><div><h3>CS Form No. 48 — Daily Time Record</h3><p>Preview verified attendance, review exceptions, then print the official two-copy A4 report.</p></div><button id="form48OpenHours" class="outline-button" type="button">School working hours</button></div>
               <details id="form48DailyInsights" class="form48-daily-insights"><summary>Daily attendance checks &amp; school hours <small>Open only when needed</small></summary>
               <section id="smartAttendanceOverview" class="smart-attendance-overview" aria-label="Smart attendance daily overview">
                 <div class="smart-attendance-head">
@@ -1850,6 +1850,12 @@ body.dark-mode .content-wrap > .school-heading.is-compact,body[data-theme="dark"
                 <button id="form48BatchToggle" type="button" class="outline-button" aria-expanded="false" aria-controls="form48BatchPanel">Bulk actions &amp; reports</button>
 
               </div>
+              <section id="form48SummaryStrip" class="form48-kpi-strip" hidden aria-label="Monthly DTR summary">
+                <div class="form48-kpi"><span>Days with verified punches</span><strong id="form48VerifiedDays">—</strong><small id="form48IncompleteDays">— incomplete</small></div>
+                <div class="form48-kpi"><span>Missing days to review</span><strong id="form48ToReview">—</strong><small>Not automatically absent</small></div>
+                <div class="form48-kpi"><span>Tardiness</span><strong id="form48Tardy">—</strong><small>Verified times only</small></div>
+                <div class="form48-kpi"><span>Undertime</span><strong id="form48Undertime">—</strong><small>Verified times only</small></div>
+              </section>
               <details id="form48GateIntelligence" class="form48-gate-intelligence">
                 <summary>Detailed scan review (optional) <small>Inspect one employee’s gate scans, OB exceptions, and possible AM/PM matches</small></summary>
                 <div class="form48-intelligence-body">
@@ -1963,6 +1969,14 @@ body.dark-mode .content-wrap > .school-heading.is-compact,body[data-theme="dark"
                 </div>
               </details>
               <p class="field-hint" id="form48Feedback" role="status" aria-live="polite">Choose an employee and month to generate a verified-record report.</p>
+              <div id="form48PreviewToolbar" class="form48-preview-toolbar" hidden>
+                <div><h4>Report preview <span class="form48-draft-tag">Draft</span></h4><p>Select a copy to read on screen. Printing always includes both on one A4 portrait page.</p></div>
+                <div class="form48-copy-switch" role="group" aria-label="Select DTR screen preview">
+                  <button type="button" data-form48-copy="office" aria-pressed="true">Office copy</button>
+                  <button type="button" data-form48-copy="employee" aria-pressed="false">Employee copy</button>
+                  <button type="button" data-form48-copy="both" aria-pressed="false">Both</button>
+                </div>
+              </div>
               <div id="form48PrintArea" class="form48-print-area" hidden></div>
             </div>
           </section>
@@ -2365,7 +2379,7 @@ body.dark-mode .content-wrap > .school-heading.is-compact,body[data-theme="dark"
   <script src="/department-dashboard-v2.js?v=2" defer></script>
   <script src="/teacher-dashboard-v2.js?v=1" defer></script>
   <script src="/teacher-dashboard-v3.js?v=1" defer></script>
-  <script src="/form48-report.js?v=13" defer></script>
+  <script src="/form48-report.js?v=14" defer></script>
   <script src="/form48-intelligence.js?v=1" defer></script>
   <script src="/smart-attendance-overview.js?v=2" defer></script>
   <script src="/form48-bulk-ui.js?v=2" defer></script>
