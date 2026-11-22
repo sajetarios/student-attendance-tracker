@@ -31,7 +31,7 @@ const requestBody={leaveType:'SICK',creditAccount:'VSC',startDate:'2026-11-23',
 
 function fixture(){
  const state={request:null,credit:5,appliedLeaves:[],audits:[],notifications:[],
-  gate:[],dtr:[],signedApproval:false,scheme:'TEACHING_VSC',commits:0,rollbacks:0,queryLog:[]};
+  gate:[],dtr:[],signedApproval:false,medicalEvidence:false,scheme:'TEACHING_VSC',commits:0,rollbacks:0,queryLog:[]};
  const actors={
   [teacher]:{role:'TEACHER',department_id:department,display_name:'Simulated Teacher'},
   [head]:{role:'DEPARTMENT_HEAD',department_id:department,display_name:'Simulated Department Head'},
@@ -80,6 +80,8 @@ function fixture(){
     state.request.external_approved_on=args[6];state.request.credit_account=args[9];
     return rows([]);
    }
+   if(s.includes("document_kind IN ('MEDICAL','AFFIDAVIT')"))
+    return rows(state.medicalEvidence?[{hasEvidence:1}]:[]);
    if(s.includes("document_kind='APPROVAL'"))
     return rows(state.signedApproval?[{hasDocument:1}]:[]);
    if(s.includes('SELECT COALESCE(SUM(signed_days),0)::numeric AS days'))
@@ -271,4 +273,78 @@ test('seven-step fictional leave, gate and DTR workflow uses real route function
  assert.equal(state.audits.filter(a=>a.action==='LEAVE_EXTERNAL_APPROVED').length,1);
  assert.ok(state.notifications.length>0);
  assert.ok(state.commits>=4);
+});
+
+
+
+async function forwardedSick(sim,body=requestBody){
+ const filed=await sim.run('POST','/api/staff-leave/requests',{body});
+ assert.equal(filed.status,201);
+ const id=filed.body.requestId;
+ const headReview=await sim.run('POST','/api/staff-leave/requests/:id/recommend',
+  {params:{id},body:{decision:'FORWARD',note:'Recommend'},userId:head});
+ assert.equal(headReview.status,200);
+ const schoolReview=await sim.run('POST','/api/staff-leave/requests/:id/admin-review',
+  {params:{id},body:{decision:'FORWARD',note:'Forward to authorized official'},userId:admin});
+ assert.equal(schoolReview.status,200);
+ return {id,filed};
+}
+const documentedApproval=(days)=>({
+ decision:'APPROVE',approvalReference:'SIM-APPROVAL-SIGNED',
+ approverName:'Fictional External Approver',approverPosition:'Assistant Schools Division Superintendent',
+ approvedOn:'2026-11-23',certifiedWorkingDays:days
+});
+test('illness may be filed upon return with no prior Form 6 or artificial DTR punch',async()=>{
+ const sim=fixture();
+ const {id,filed}=await forwardedSick(sim,{
+  ...requestBody,startDate:'2026-11-16',endDate:'2026-11-17'});
+ assert.equal(filed.body.filingBasis,'POST_RETURN');
+ assert.equal(sim.state.request.filing_basis,'POST_RETURN');
+ assert.equal(sim.state.request.credit_account,'VSC');
+ assert.equal(sim.state.appliedLeaves.length,0);
+ assert.equal(sim.state.gate.length,0);
+ assert.equal(sim.state.dtr.length,0);
+ const form6=await sim.run('GET','/api/staff-leave/requests/:id/form6',{params:{id}});
+ assert.equal(form6.status,200);
+ assert.equal(form6.body.request.filingBasis,'POST_RETURN');
+});
+test('unverified HR scheme may not be guessed from TEACHER role at approval',async()=>{
+ const sim=fixture();
+ sim.state.scheme='UNVERIFIED';sim.state.signedApproval=true;
+ const {id,filed}=await forwardedSick(sim);
+ assert.equal(filed.body.creditAccount,'NONE');
+ const decision=await sim.run('POST','/api/staff-leave/requests/:id/external-decision',
+  {params:{id},body:documentedApproval(2),userId:admin});
+ assert.equal(decision.status,409);
+ assert.equal(sim.state.credit,5);
+ assert.equal(sim.state.appliedLeaves.length,0);
+ assert.equal(sim.state.request.status,'PENDING_EXTERNAL');
+});
+test('seven consecutive sick days require medical clearance or notarized affidavit before posting leave',async()=>{
+ const sim=fixture();sim.state.credit=10;sim.state.signedApproval=true;
+ const {id}=await forwardedSick(sim,{
+  ...requestBody,startDate:'2026-11-16',endDate:'2026-11-22'});
+ const missingMedical=await sim.run('POST','/api/staff-leave/requests/:id/external-decision',
+  {params:{id},body:documentedApproval(7),userId:admin});
+ assert.equal(missingMedical.status,409);
+ assert.match(missingMedical.body.error,/medical certificate/);
+ assert.equal(sim.state.credit,10);
+ assert.equal(sim.state.appliedLeaves.length,0);
+ sim.state.medicalEvidence=true;
+ const approved=await sim.run('POST','/api/staff-leave/requests/:id/external-decision',
+  {params:{id},body:documentedApproval(7),userId:admin});
+ assert.equal(approved.status,200);
+ assert.equal(approved.body.creditAccount,'VSC');
+ assert.equal(sim.state.credit,3);
+});
+test('HR-certified regular leave employees charge SL, never automatically consume VSC',async()=>{
+ const sim=fixture();sim.state.scheme='REGULAR_VL_SL';sim.state.signedApproval=true;
+ const {id,filed}=await forwardedSick(sim);
+ assert.equal(filed.body.creditAccount,'SL');
+ const approved=await sim.run('POST','/api/staff-leave/requests/:id/external-decision',
+  {params:{id},body:documentedApproval(2),userId:admin});
+ assert.equal(approved.status,200);
+ assert.equal(approved.body.creditAccount,'SL');
+ assert.equal(sim.state.appliedLeaves[0].credit_account,'SL');
+ assert.equal(sim.state.credit,3);
 });
