@@ -87,7 +87,7 @@ test('school signer form does not depend on employee selection; A4 printing is u
  assert.ok(report.includes('attendigo:form48-signatories-saved'));
  assert.ok(report.includes('function printDtrFromIsolatedPage(output,status)'));
  assert.ok(report.includes('Two copies on one page'));
- for(const asset of ['/form48-report.js?v=15','/form48-bulk-ui.js?v=3','/form48-report.css?v=14']){
+ for(const asset of ['/form48-report.js?v=15','/form48-bulk-ui.js?v=3','/form48-report.css?v=15']){
   assert.ok(html.includes(asset));assert.ok(sw.includes(asset));
  }
 });
