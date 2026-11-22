@@ -38,6 +38,6 @@ test('OB notifications open the correct module and refresh after decisions',()=>
  assert.match(sql,/\/portal\.html#officialBusiness/);
  assert.match(bell,/document\.querySelector\('\[data-view="' \+ view \+ '"\]'\)/);
  assert.match(ui,/document\.dispatchEvent\(new Event\('attendigo:requests-changed'\)\)/);
- assert.match(portal,/staff-ob-ui\.js\?v=5/);
- assert.match(sw,/staff-ob-ui\.js\?v=5/);
+ assert.match(portal,/staff-ob-ui\.js\?v=6/);
+ assert.match(sw,/staff-ob-ui\.js\?v=6/);
 });
