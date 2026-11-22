@@ -141,7 +141,7 @@
      '<div class="leave-actions"></div>';
     const buttons=card.querySelector('.leave-actions');
     buttons.append(buttonFor('CSC Form No. 6',()=>{
-     window.open('/leave-form6.html?requestId='+encodeURIComponent(r.requestId),'_blank','noopener');
+     window.open('/leave-form6.html?requestId='+encodeURIComponent(r.requestId),'_blank');
     }));
     if(r.staffUserId===user.userId&&!['APPROVED','REJECTED','CANCELLED'].includes(r.status))
      attachDocument(card,r,'APPLICATION');
