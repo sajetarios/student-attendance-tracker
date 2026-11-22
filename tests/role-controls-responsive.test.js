@@ -67,7 +67,7 @@ test('unrelated role permission and Form 48 isolated printing scripts remain loa
 test('layout CSS is fetched network-first to avoid stale iPad button rules after release',()=>{
  const worker=read('sw.js');
  const portal=read('portal.html');
- assert.match(worker,/attendigo-v288-ipad-action-layout/);
+ assert.match(worker,/attendigo-v289-dtr-gate-approval/);
  assert.match(worker,/role-controls-responsive\.css/);
  assert.match(worker,/smart-attendance-overview\.css/);
  assert.match(worker,/cache: 'no-store'/);
