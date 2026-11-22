@@ -35,7 +35,7 @@ test('daily cards clearly distinguish gate scan evidence and verified official D
  assert.match(portal,/Work hours need setup/);
  assert.match(portal,/gate scan only; this is not an official DTR time/);
  assert.match(portal,/Saving the schedule will not fill missing official DTR times/);
- assert.match(html,/official DTR \(Daily Time Record\) is separate/);
+ assert.match(html,/Missing lunch scans, OB, and uncertain movements are not guessed/);
  assert.match(html,/A clear, photo-verified gate scan can automatically fill its matching official DTR time/);
 });
 test('next step is appropriate to staff role and does not expose an attendance edit action',()=>{
