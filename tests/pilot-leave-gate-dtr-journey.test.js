@@ -94,7 +94,7 @@ function fixture(){
     state.appliedLeaves.push(Object.fromEntries(names.map((key,i)=>[key,args[i]])));
     return rows([]);
    }
-   if(s.includes("FROM staff_form48_approved_leaves")&&s.includes("SELECT 1"))
+   if(s.includes("FROM staff_form48_approved_leaves")&&s.trimStart().startsWith("SELECT 1"))
     return rows(state.appliedLeaves.length?[{exists:1}]:[]);
    if(s.startsWith('INSERT INTO staff_attendance_audit')){
     state.audits.push({action:args[2],details:args[5]});return rows([]);
