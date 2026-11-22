@@ -425,7 +425,41 @@
      action('Importing opening balance',()=>call('/credits/opening','POST',{
       staffUserId:String(d.get('staffUserId')),creditAccount:String(d.get('creditAccount')),
       openingDays:Number(d.get('openingDays')),notes:String(d.get('notes')||'')}));
-    });body.insertBefore(importPanel,h);
+    });
+    // School HR can inspect school-scoped, certified balances before creating
+    // an opening entry. This directory is read-only; adjustments remain audited.
+    const directory=document.createElement('section');
+    directory.className='leave-card leave-hr-directory';
+    directory.innerHTML='<h3>Staff certified credit directory</h3>'+
+     '<p class="leave-help">Select an employee to inspect verified balances. An unrecorded balance is not proof of zero entitlement. Only authorized HR records may establish credits.</p>'+
+     '<div class="leave-form"><label>Employee<select name="creditDirectoryStaff"><option value="">Select employee</option></select></label>'+
+     '<button type="button" class="leave-btn" data-credit-directory-check>View certified record</button></div>'+
+     '<div class="leave-hr-directory-result" role="status" aria-live="polite">Select an employee to view their HR-certified credits.</div>';
+    const directorySelect=directory.querySelector('select[name=creditDirectoryStaff]');
+    (roster.staff||[]).forEach(s=>{
+     const opt=document.createElement('option');opt.value=s.userId;
+     opt.textContent=s.displayName+' ('+s.role.replaceAll('_',' ')+')';
+     directorySelect.append(opt);
+    });
+    directory.querySelector('[data-credit-directory-check]').addEventListener('click',async e=>{
+     const staffId=directorySelect.value,output=directory.querySelector('.leave-hr-directory-result');
+     if(!staffId){output.textContent='Select an employee first.';return;}
+     const control=e.currentTarget;control.disabled=true;output.textContent='Checking HR-certified records…';
+     try{
+      const record=await call('/credits?staffUserId='+encodeURIComponent(staffId));
+      const confirmed=new Map((record.balances||[]).filter(x=>x.isCertified===true)
+       .map(x=>[x.creditAccount,Number(x.available)]));
+      const labels=[['VSC','Vacation Service Credits'],['VL','Vacation Leave'],['SL','Sick Leave'],['CTO','Compensatory Time Off']];
+      const person=roster.staff.find(s=>s.userId===staffId);
+      output.innerHTML='<strong>'+esc(person?.displayName||'Selected staff')+'</strong><ul>'+
+       labels.map(([key,label])=>'<li>'+esc(label)+': <strong>'+
+        (confirmed.has(key)?esc((confirmed.get(key)||0).toFixed(3))+' certified days':'Not recorded')+
+        '</strong></li>').join('')+'</ul>';
+     }catch(error){output.textContent='Cannot load certified balances: '+error.message;}
+     finally{control.disabled=false;}
+    });
+    body.insertBefore(directory,h);
+    body.insertBefore(importPanel,h);
    }
    if(mayReviewCredits){
     const title=document.createElement('h3');
