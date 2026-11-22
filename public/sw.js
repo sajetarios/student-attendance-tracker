@@ -1,4 +1,4 @@
-const CACHE = "attendigo-v282-lunch-clock-hardening-theme-option-layout";
+const CACHE = "attendigo-v283-pilot-safe-auto-dtr";
 
 const SHELL = [
   "/typography.css?v=1",
@@ -55,7 +55,7 @@ const SHELL = [
   "/class-qr-dashboard-link.js?v=11",
   "/teacher-roster-popover.js?v=2",
   "/portal.css?v=0.9.119",
-  "/portal.js?v=221",
+  "/portal.js?v=222",
   "/department-workspace.css?v=1",
   "/department-workspace.js?v=5",
   "/department-monitor-refresh.css?v=1",
