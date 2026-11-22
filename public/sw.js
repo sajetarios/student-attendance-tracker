@@ -1,4 +1,4 @@
-const CACHE = "attendigo-v291-simplified-role-workspaces";
+const CACHE = "attendigo-v292-teacher-schedule-relations";
 
 const SHELL = [
   "/typography.css?v=1",
@@ -7,6 +7,8 @@ const SHELL = [
   "/attendigo-unified-navigation.js?v=1",
   "/simplified-workspace.js?v=1",
   "/simplified-workspace.css?v=1",
+  "/teacher-timetable-identities.css?v=1",
+  "/schedule-relationships.js?v=1",
   "/fonts/InterVariable.woff2",
   "/fonts/InterVariable-Italic.woff2",
   "/attendigo-brand-refresh.css?v=5",
@@ -42,7 +44,7 @@ const SHELL = [
   "/student-portal.js?v=20",
   "/parent-portal.js?v=3",
   "/dashboard-appearance.js?v=3",
-  "/timetable-grid.js?v=6",
+  "/timetable-grid.js?v=7",
   "/schedule-workspace-ui.js?v=9",
   "/teacher-assignment-modal.css?v=1",
   "/portal-login.html",
@@ -57,7 +59,7 @@ const SHELL = [
   "/class-qr-dashboard-link.js?v=11",
   "/teacher-roster-popover.js?v=2",
   "/portal.css?v=0.9.119",
-  "/portal.js?v=224",
+  "/portal.js?v=225",
   "/department-workspace.css?v=1",
   "/department-workspace.js?v=5",
   "/department-monitor-refresh.css?v=1",
