@@ -158,8 +158,8 @@ function registerForm48ReviewRoutes(app,pool,{authenticateSchoolClient,requireSc
     pool.query("SELECT to_char((starts_at AT TIME ZONE 'Asia/Manila')::date,'YYYY-MM-DD') AS "+
      ' "from", to_char((ends_at AT TIME ZONE \'Asia/Manila\')::date,\'YYYY-MM-DD\') AS "to"'+
      " FROM staff_official_business_requests WHERE school_id=$1 AND staff_user_id=$2"+
-     " AND status='APPROVED' AND ends_at>=($3::date AT TIME ZONE 'Asia/Manila')"+
-     " AND starts_at<($4::date AT TIME ZONE 'Asia/Manila')",
+     " AND status='APPROVED' AND ends_at>=($3::date::timestamp AT TIME ZONE 'Asia/Manila')"+
+     " AND starts_at<($4::date::timestamp AT TIME ZONE 'Asia/Manila')",
      [req.auth.schoolId,params.staffUserId,from,to]),
     pool.query("SELECT teacher_status, to_char(leave_start_date,'YYYY-MM-DD') AS leave_start_date,"+
      " to_char(expected_return_date,'YYYY-MM-DD') AS expected_return_date FROM school_users"+
