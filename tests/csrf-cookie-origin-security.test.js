@@ -27,6 +27,9 @@ test('safe GET and bearer-only non-cookie clients are not blocked',()=>{
 });
 test('same-origin cookie action is accepted',()=>{
  assert.equal(run('POST',local).next,true);
+ assert.equal(run('POST',{...local,cookie:'unrelated=1;  '+cookie}).next,true);
+ assert.equal(run('POST',{...local,cookie:'unrelated=1;  '+cookie,origin:'https://evil.example'}).code,403);
+ assert.equal(run('POST',{cookie,'host':'localhost:3000',origin:'http://localhost:3000','sec-fetch-site':'same-origin'}).next,true);
  assert.equal(run('PATCH',{...local,'origin':undefined}).next,true);
 });
 test('cross-origin CSRF, null origin, and missing proof are rejected',()=>{
