@@ -116,5 +116,5 @@ test('PWA, notification deep links and role-specific inbox assets are wired',()=
  assert.match(note,/leaveManagement:document.getElementById\('staffLeaveReviewNav'\)/);
  assert.match(fs.readFileSync('public/leave-approval-inbox.js','utf8'),/Needs my review/);
  assert.match(fs.readFileSync('public/leave-approval-inbox.js','utf8'),/Awaiting official approval/);
- assert.match(fs.readFileSync('public/staff-leave-ui.js','utf8'),/openLeaveInbox/);
+ assert.match(fs.readFileSync('public/staff-leave-ui.js','utf8'),/openLeave\(reviewQueue=false\)/);
 });
