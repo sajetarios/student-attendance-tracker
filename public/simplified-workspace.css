@@ -77,7 +77,9 @@
     border-radius: 10px;
     background: var(--side-hover, rgba(255,255,255,.11));
     color: var(--side-ink, #fff);
-    font: 500 12.5px/1.2 inherit;
+    font-size: 12.5px;
+    font-weight: 500;
+    line-height: 1.2;
     font-family: inherit;
     outline-offset: 2px;
   }
@@ -88,8 +90,12 @@
   html.attendigo-simple-workspace #sidebar #simpleNavSearch:focus-visible {
     outline: 2px solid var(--side-focus, #fff);
   }
-  html.attendigo-simple-workspace #sidebar .simple-nav-filtered,
-  html.attendigo-simple-workspace body.portal-page #sidebar .side-nav .simple-nav-filtered {
+  html.attendigo-simple-workspace body.portal-page .portal-layout #sidebar.sidebar .side-nav .simple-nav-filtered,
+  html.attendigo-simple-workspace body.portal-page .portal-layout #sidebar.sidebar .side-nav .simple-nav-filtered.nav-item,
+  html.attendigo-simple-workspace body.portal-page .portal-layout #sidebar.sidebar .side-nav .simple-nav-filtered.nav-group {
+    display: none !important;
+  }
+  html.attendigo-simple-workspace body.portal-page .portal-layout.sidebar-collapsed #sidebar.sidebar > .simple-nav-search {
     display: none !important;
   }
   html.attendigo-simple-workspace .simple-workspace-details {
