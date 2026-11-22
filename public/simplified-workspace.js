@@ -34,6 +34,7 @@
       move('offlineScanReviewsNav', 'operations');
       move('cloudSyncNav', 'settings');
       move('smsNav', 'settings');
+      move('schoolSmsAccessNotice', 'settings');
       label('users', 'People');
       label('academics', 'Academics');
       label('operations', 'Attendance');
@@ -41,7 +42,9 @@
       label('reports', 'Reports');
       const order = [$('dashboardNav'), $('staffNavWrapper'), group('academics'),
         group('operations'), group('reports'), group('settings')];
-      order.forEach(el => { if (el && el.parentElement === nav) nav.append(el); });
+      const ordered = order.filter(el => el && el.parentElement === nav);
+      const current = [...nav.children].filter(el => ordered.includes(el));
+      if (ordered.some((el, index) => el !== current[index])) ordered.forEach(el => nav.append(el));
     } else if (role === 'DEPARTMENT_HEAD') {
       move('myGateAttendanceNav', 'operations');
       label('people', 'People');
@@ -58,7 +61,7 @@
     // Hide only genuinely empty structural containers. Existing role-based
     // hidden flags remain authoritative; never unhide a forbidden link or group.
     nav.querySelectorAll('.nav-group').forEach(wrapper => {
-      if (!authorizedChildren(wrapper).length) wrapper.hidden = true;
+      if (!authorizedChildren(wrapper).length && !wrapper.hidden) wrapper.hidden = true;
     });
   }
 
@@ -216,6 +219,34 @@
       overview, [storage]);
   }
 
+  function monitorRoleNavigation(role) {
+    const nav = document.querySelector('#sidebar .side-nav');
+    if (!nav || typeof MutationObserver !== 'function') return;
+    let scheduled = false;
+    const observer = new MutationObserver(records => {
+      // Entitlement changes can re-run the original navigation renderer.
+      // Ignore ordinary menu expansion and text/badge updates: only re-group
+      // actual relocated links or role-based visibility changes.
+      const changed = records.some(record =>
+        (record.type === 'childList' && record.target.matches?.('.side-nav,.nav-submenu')) ||
+        (record.type === 'attributes' && record.attributeName === 'hidden' &&
+          record.target.matches?.('.nav-item,.nav-group'))
+      );
+      if (!changed || scheduled) return;
+      scheduled = true;
+      requestAnimationFrame(() => {
+        scheduled = false;
+        arrangeSidebar(role);
+        const search = $('simpleNavSearch');
+        if (search?.value.trim()) search.dispatchEvent(new Event('input', { bubbles: true }));
+        else focusActiveGroup();
+      });
+    });
+    observer.observe(nav, {
+      childList: true, subtree: true, attributes: true, attributeFilter: ['hidden']
+    });
+  }
+
   function init(user) {
     const role = user?.role;
     if (!['SCHOOL_ADMIN', 'DEPARTMENT_HEAD', 'TEACHER', 'SUPER_ADMIN'].includes(role)) return;
@@ -228,6 +259,7 @@
     arrangeSidebar(role);
     focusActiveGroup();
     setUpNavigationSearch();
+    monitorRoleNavigation(role);
     if (role === 'SCHOOL_ADMIN') simplifySchoolAdminDashboard();
   }
 
