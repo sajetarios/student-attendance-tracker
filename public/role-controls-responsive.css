@@ -114,7 +114,6 @@
 @media screen {
  body.portal-page :is(.form-actions,.action-row,.toolbar-actions,.filter-actions,.heading-actions)
    > :is(button,.primary-button,.outline-button,.secondary-button,.compact-button){
-  position:relative;
   min-width:0;
   max-width:100%;
   box-sizing:border-box;
