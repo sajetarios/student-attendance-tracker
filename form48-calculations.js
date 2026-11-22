@@ -53,13 +53,22 @@ function summarizeForm48({records=[],month,today,settings=null,calendar=[],offic
   const review=reviews[date]||'PENDING';
   let status='NOT_SCHEDULED',lateMinutes=0,earlyMinutes=0,needsReview=false;
   if(scheduled&&date<=today)summary.scheduledDays++;
-  if(present&&scheduled){summary.daysPresent++;}
+  // An approved-leave day with a verified DTR punch is an unresolved conflict,
+  // not an ordinary day present until an authorized attendance review resolves it.
+  if(present&&scheduled&&!documentedLeave){summary.daysPresent++;}
   if(scheduled&&present&&past&&verifiedCount<4){summary.partialRecordDays++;needsReview=true;}
   if(!scheduled){status=present?'UNSCHEDULED_PUNCH':'NOT_SCHEDULED';}
+  else if(documentedLeave&&!present&&date>today){
+   // Future approved leave is scheduled, not yet a completed excused day.
+   status='UPCOMING_APPROVED_LEAVE';
+  }
+  else if(documentedLeave&&!present){
+   // Approved leave must be visible on the actual date, not only a day later.
+   status='APPROVED_LEAVE';summary.excusedDays++;summary.approvedLeaveDays++;
+  }
   else if(!past&&!present){status='NOT_DUE';}
   else if(present){status=verifiedCount===4?'VERIFIED':'INCOMPLETE_DTR';
-   if(documentedLeave&&past){status='LEAVE_PUNCH_CONFLICT';needsReview=true;}}
-  else if(documentedLeave){status='APPROVED_LEAVE';summary.excusedDays++;summary.approvedLeaveDays++;}
+   if(documentedLeave){status='LEAVE_PUNCH_CONFLICT';needsReview=true;}}
   else if(approvedOB){status='APPROVED_OB_REVIEW';needsReview=true;}
   else if(leaveDay){status='LEAVE_REVIEW';needsReview=true;}
   else if(review==='EXCUSED'&&past){status='EXCUSED';summary.excusedDays++;}
