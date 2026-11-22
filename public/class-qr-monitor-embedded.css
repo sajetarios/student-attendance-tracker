@@ -1,0 +1,71 @@
+/* Integrated School Admin Class Attendance Monitoring.
+   Screen-only. Official class records and QR session APIs are unchanged. */
+@media screen{
+ #classQrMonitorView{min-width:0}
+ #classQrMonitorView .class-qr-monitor{display:grid;gap:14px;min-width:0}
+ #classQrMonitorView .class-qr-monitor[hidden]{display:none!important}
+ #classQrMonitorView .class-qr-monitor-heading{
+  display:flex;align-items:flex-start;justify-content:space-between;gap:16px;flex-wrap:wrap;min-width:0
+ }
+ #classQrMonitorView .class-qr-monitor-heading>div{min-width:0;flex:1 1 320px}
+ #classQrMonitorView .class-qr-monitor-heading h3{
+  color:var(--ui-text,var(--ink,#1b2b45));font-size:clamp(17px,1.8vw,23px);line-height:1.25;margin:0 0 6px
+ }
+ #classQrMonitorView .class-qr-monitor-heading p{
+  font-size:13px;line-height:1.5;margin:0 0 7px;color:var(--ui-muted,var(--muted,#63738b))
+ }
+ #classQrMonitorView .class-qr-muted{color:var(--ui-muted,var(--muted,#63738b));font-size:12px;line-height:1.5}
+ #classQrMonitorView #refresh{min-height:42px;white-space:normal;flex:0 1 auto;max-width:100%}
+ #classQrMonitorView .class-qr-monitor-stats{
+  display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;min-width:0
+ }
+ #classQrMonitorView .class-qr-monitor-stat{
+  display:flex;flex-direction:column;gap:8px;min-width:0;padding:15px;
+  border:1px solid var(--ui-line,var(--border-color,#dce5ef));border-radius:13px;
+  background:var(--ui-panel,var(--surface,#fff))
+ }
+ #classQrMonitorView .class-qr-monitor-stat span{
+  font-size:12px;line-height:1.4;color:var(--ui-muted,#60718a)
+ }
+ #classQrMonitorView .class-qr-monitor-stat strong{
+  font-size:clamp(21px,2vw,29px);font-variant-numeric:tabular-nums;line-height:1.1
+ }
+ #classQrMonitorView .class-qr-monitor-panel{min-width:0;margin:0;padding:clamp(12px,1.6vw,20px)}
+ #classQrMonitorView .class-qr-monitor-panel h2{font-size:16px;margin:0 0 8px}
+ #classQrMonitorView .class-qr-monitor-panel p{font-size:12px;line-height:1.5;color:var(--ui-muted,#60718a)}
+ #classQrMonitorView .class-qr-monitor-table-wrap{
+  display:block;max-width:100%;overflow-x:auto;-webkit-overflow-scrolling:touch
+ }
+ #classQrMonitorView .class-qr-monitor-table-wrap table{
+  min-width:790px;width:100%;border-collapse:collapse;table-layout:auto
+ }
+ #classQrMonitorView .class-qr-monitor-table-wrap th,
+ #classQrMonitorView .class-qr-monitor-table-wrap td{
+  padding:11px 10px;font-size:12px;vertical-align:middle;overflow-wrap:break-word
+ }
+ #classQrMonitorView .class-qr-monitor-table-wrap td strong{font-weight:700}
+ #classQrMonitorView .class-qr-monitor-table-wrap td.status{font-weight:700}
+ #classQrMonitorView .class-qr-monitor-table-wrap td.empty{text-align:center;padding:24px 12px}
+ #classQrMonitorView .class-qr-monitor-table-wrap td button{min-height:38px;max-width:100%;white-space:normal}
+ #classQrMonitorView .class-qr-monitor-override{border-top:4px solid #b67e1a}
+ #classQrMonitorView .class-qr-monitor-override label{display:block;font-weight:700;font-size:13px;margin:12px 0 6px}
+ #classQrMonitorView .class-qr-monitor-override textarea{
+  display:block;width:100%;box-sizing:border-box;min-height:100px;resize:vertical;
+  padding:11px;border:1px solid var(--ui-line,#bdcadd);border-radius:10px;
+  background:var(--ui-panel,#fff);color:var(--ui-text,#18283d);font:inherit
+ }
+ #classQrMonitorView .class-qr-monitor-actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:12px}
+ #classQrMonitorView .class-qr-monitor-actions button{min-height:43px;max-width:100%}
+ #classQrMonitorView #message{font-size:12px;line-height:1.5;margin:0}
+}
+@media screen and (max-width:850px){
+ #classQrMonitorView .class-qr-monitor-stats{grid-template-columns:repeat(2,minmax(0,1fr))}
+}
+@media screen and (max-width:520px){
+ #classQrMonitorView .class-qr-monitor-heading{display:grid}
+ #classQrMonitorView #refresh{width:100%}
+ #classQrMonitorView .class-qr-monitor-stats{gap:8px}
+ #classQrMonitorView .class-qr-monitor-stat{padding:11px}
+ #classQrMonitorView .class-qr-monitor-actions{display:grid;grid-template-columns:minmax(0,1fr)}
+ #classQrMonitorView .class-qr-monitor-actions button{width:100%}
+}
