@@ -125,7 +125,7 @@ test('explicit review action requires a reason and sends only the source event I
  assert.ok(submitted);
  assert.match(submitted.url,/dtr-review-apply/);
  assert.deepEqual(JSON.parse(submitted.opts.body),{
-  staffUserId,date:'2025-05-31',gateEventId:id,slot:'AM_IN',
+  staffUserId:staffId,date:'2025-05-31',gateEventId:id,slot:'AM_IN',
   reason:'Verified original photo-matched gate entry at arrival.'
  });
  assert.equal(fields.form48Print.disabled,true);
