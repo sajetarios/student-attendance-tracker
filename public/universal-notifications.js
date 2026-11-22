@@ -95,7 +95,8 @@
       const nav = view && (document.querySelector('[data-view="' + view + '"]') ||
         ({guardians:document.getElementById('guardianApprovalsNav'),
           specialPrograms:document.getElementById('academicAdminNav'),
-          platformSchools:document.querySelector('[data-view="platformSchools"]')})[view]);
+          platformSchools:document.querySelector('[data-view="platformSchools"]'),
+          leaveManagement:document.getElementById('staffLeaveNav')})[view]);
       if (nav && !nav.hidden) nav.click();
       else if (view === 'guardians') window.AttendigoGuardian?.openApprovals?.();
     } else location.assign(link);
