@@ -69,8 +69,9 @@ async function main(){
   const input={staffUserId:teacher.id,date:day,slot:'AM_IN',gateEventId:gateId,
    reason:'Reviewed verified original gate entry and checked the official schedule.',
    occurredAt:'2000-01-01T00:00:00Z'};
-  const urlQuery='/api/staff-attendance/admin/dtr-review-options?'+new URLSearchParams({
-   staffUserId:teacher.id,date:day});
+  const previewFor=id=>'/api/staff-attendance/admin/dtr-review-options?'+new URLSearchParams({
+   staffUserId:id,date:day});
+  const urlQuery=previewFor(teacher.id);
   const approval='/api/staff-attendance/admin/dtr-review-apply';
   const options=await request('GET',urlQuery,admin.token);
   assert.equal(options.status,200,JSON.stringify(options.body));
@@ -114,6 +115,15 @@ async function main(){
   await pool.query("INSERT INTO staff_official_business_requests(request_id,school_id,staff_user_id,department_id,purpose,destination,starts_at,ends_at,status) "+
    "VALUES($1,$2,$3,$4,'Synthetic training','Training room',$5::timestamptz,$6::timestamptz,'APPROVED')",
    [crypto.randomUUID(),a.school,obTeacher.id,a.dep,day+'T09:00:00+08:00',day+'T12:00:00+08:00']);
+  const obExists=await pool.query("SELECT 1 FROM staff_official_business_requests "+
+   "WHERE school_id=$1 AND staff_user_id=$2 AND status='APPROVED' "+
+   "AND starts_at < (($3::date + INTERVAL '1 day') AT TIME ZONE 'Asia/Manila') "+
+   "AND ends_at > ($3::date AT TIME ZONE 'Asia/Manila')",[a.school,obTeacher.id,day]);
+  assert.equal(obExists.rowCount,1,'Synthetic approved OB overlaps the tested date');
+  const obOptions=await request('GET',previewFor(obTeacher.id),admin.token);
+  assert.equal(obOptions.status,200,JSON.stringify(obOptions.body));
+  assert.equal(obOptions.body.reason,'APPROVED_OB_REQUIRES_REVIEW',
+   'Review options must reject an OB-covered day before an admin can apply a time');
   const blocked=await request('POST',approval,admin.token,{
    ...input,staffUserId:obTeacher.id,gateEventId:obGate});
   assert.equal(blocked.status,409,'Approved OB must not be casually converted into a DTR punch');
