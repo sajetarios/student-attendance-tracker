@@ -1129,7 +1129,7 @@ body.dark-mode .content-wrap > .school-heading.is-compact,body[data-theme="dark"
       <h2 id="overrideTitle">Emergency close</h2>
       <p id="overrideDetails"></p>
       <p class="class-qr-muted">Use only for an exceptional operational or security reason. This closes the selected QR session; existing attendance check-ins are not removed. The reason and your account are recorded in the audit log.</p>
-      <form id="overrideForm"><label for="overrideReason">Reason (12–500 characters)</label>
+      <form id="overrideForm" method="post"><label for="overrideReason">Reason (12–500 characters)</label>
         <textarea id="overrideReason" minlength="12" maxlength="500" required placeholder="Explain the specific reason for stopping this QR session"></textarea>
         <div class="class-qr-monitor-actions"><button type="submit" class="primary-button" id="overrideConfirm">Confirm emergency close</button><button type="button" class="outline-button" id="overrideCancel">Cancel</button></div>
       </form>
