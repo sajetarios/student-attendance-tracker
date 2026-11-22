@@ -77,7 +77,8 @@ const REQUIRED_MIGRATIONS = [
   '069_sf1_family_dash_placeholders.sql',
   '070_verified_mnchs_sf1_name_order.sql',
   '071_structured_student_names.sql',
-  '072_durable_sf2_submission_files.sql'
+  '072_durable_sf2_submission_files.sql',
+  '073_attendance_review_lookup_indexes.sql'
 ];
 
 function checksum(content) {
