@@ -4,6 +4,7 @@ const ExcelJS = require('exceljs');
 const path = require('path');
 const fs = require('fs/promises');
 const crypto = require('node:crypto');
+const { publicSf2Failure } = require('./sf2-error-guard');
 const MAX_OFFICIAL_SF2_BYTES = 8 * 1024 * 1024;
 const TEMPLATE = path.join(__dirname, 'templates', 'School Form 2 (SF2) Daily Attendance Report of Learners.xlsx');
 const SF2_STORAGE = path.join(__dirname, 'storage', 'sf2');
@@ -708,7 +709,8 @@ function registerSf2Routes(app, pool, { authenticateSchoolClient, requireSchoolU
       });
     } catch (err) {
       console.error('SF2 preview', err);
-      return res.status(err.status || 500).json({ error: err.message || 'Could not prepare SF2 preview.' });
+      const failure = publicSf2Failure(err, 'Could not prepare SF2 preview.');
+      return res.status(failure.status).json({ error: failure.error });
     }
   });
 
@@ -798,7 +800,8 @@ function registerSf2Routes(app, pool, { authenticateSchoolClient, requireSchoolU
       return res.end(buffer);
     } catch (err) {
       console.error('SF2 export failed:', err);
-      return res.status(err.status || 500).json({ error: err.message || 'SF2 generation failed. Check server logs.' });
+      const failure = publicSf2Failure(err, 'Could not generate the SF2 workbook.');
+      return res.status(failure.status).json({ error: failure.error });
     }
   });
 
@@ -807,9 +810,10 @@ function registerSf2Routes(app, pool, { authenticateSchoolClient, requireSchoolU
     if (req.auth.role !== 'TEACHER' || !teacherHas(req, 'CLASS_ADVISER')) {
       return res.status(403).json({ error: 'Only a designated Class Adviser may submit the official monthly SF2 for an assigned section.' });
     }
-    const client = await pool.connect();
+    let client;
     try {
       await migration;
+      client = await pool.connect();
       const { access, data } = await getAccessAndData(req, month, gradeLevel, section, 'OFFICIAL');
       if (!access.canSubmit || access.mode !== 'OFFICIAL') return res.status(403).json({ error: 'This section is not assigned to you as Class Adviser.' });
       const buffer = await buildOfficialWorkbook(req, month, gradeLevel, section, data);
@@ -848,11 +852,14 @@ function registerSf2Routes(app, pool, { authenticateSchoolClient, requireSchoolU
       await client.query('COMMIT');
       return res.status(201).json({ ok: true, submission: inserted.rows[0] });
     } catch (err) {
-      try { await client.query('ROLLBACK'); } catch {}
-       console.error('Official SF2 submission failed:', err);
-      return res.status(err.status || 500).json({ error: err.message || 'Could not submit the official SF2.' });
+      if (client) {
+        try { await client.query('ROLLBACK'); } catch {}
+      }
+      console.error('Official SF2 submission failed:', err);
+      const failure = publicSf2Failure(err, 'Could not submit the official SF2.');
+      return res.status(failure.status).json({ error: failure.error });
     } finally {
-      client.release();
+      client?.release();
     }
   });
 
