@@ -3,7 +3,7 @@ const test = require('node:test');
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const path = require('node:path');
-const {assertCachedAsset}=require('./support/asset-contract');
+const {assertCachedAsset,assertCacheRevisionAtLeast}=require('./support/asset-contract');
 const read = rel => fs.readFileSync(path.join(__dirname, '..', rel), 'utf8');
 const portal=read('public/portal.js');
 const html=read('public/portal.html');
@@ -41,5 +41,5 @@ test('teacher buttons remain reachable on mobile with keyboard and dark-mode sta
 test('service worker caches the updated roster assets',()=>{
   assertCachedAsset(html,sw,'portal.js',{minimumVersion:228});
   assertCachedAsset(html,sw,'teacher-learner-roster.css',{minimumVersion:6});
-  assert.match(sw, /attendigo-v296-compact-student-roster/);
+  assertCacheRevisionAtLeast(sw,296);
 });
