@@ -256,9 +256,14 @@ function registerStaffLeaveRoutes(app,pool,{authenticateSchoolClient,requireScho
   finally{c.release();}
  });
  app.get('/api/staff-leave/credits/pending',...auth,async(req,res)=>{
-  if(req.auth.role!=='SCHOOL_ADMIN')return res.status(403).json({error:'School HR verification access required.'});
+  if(!['SCHOOL_ADMIN','DEPARTMENT_HEAD'].includes(req.auth.role))
+   return res.status(403).json({error:'School HR verification access required.'});
   try{
-   const q=await pool.query('SELECT e.credit_entry_id AS "entryId",e.staff_user_id AS "staffUserId",u.display_name AS "staffName",e.credit_account AS "creditAccount",e.entry_kind AS "entryKind",e.signed_days AS "days",e.activity_kind AS "activityKind",e.activity_date AS "activityDate",e.status FROM staff_leave_credit_entries e JOIN school_users u ON u.school_id=e.school_id AND u.user_id=e.staff_user_id WHERE e.school_id=$1 AND e.status=\'PROPOSED\' ORDER BY e.created_at DESC LIMIT 200',[req.auth.schoolId]);
+   // A department head can only review an administrator's credit claim,
+   // consistent with /credits/:id/verify. No reviewer may see their own
+   // claim in this approval queue or certify their own balance.
+   const q=await pool.query('SELECT e.credit_entry_id AS "entryId",e.staff_user_id AS "staffUserId",u.display_name AS "staffName",e.credit_account AS "creditAccount",e.entry_kind AS "entryKind",e.signed_days AS "days",e.activity_kind AS "activityKind",e.activity_date AS "activityDate",e.status FROM staff_leave_credit_entries e JOIN school_users u ON u.school_id=e.school_id AND u.user_id=e.staff_user_id WHERE e.school_id=$1 AND e.status=\'PROPOSED\' AND e.staff_user_id<>$2 AND ($3::text=\'SCHOOL_ADMIN\' OR u.role=\'SCHOOL_ADMIN\') ORDER BY e.created_at DESC LIMIT 200',
+    [req.auth.schoolId,req.auth.userId,req.auth.role]);
    res.json({entries:q.rows});
   }catch(e){sqlErr(res,e);}
  });
@@ -269,7 +274,7 @@ function registerStaffLeaveRoutes(app,pool,{authenticateSchoolClient,requireScho
   try{
    const entries=await pool.query('SELECT credit_entry_id AS "entryId",credit_account AS "creditAccount",entry_kind AS "entryKind",signed_days AS "days",activity_kind AS "activityKind",activity_date AS "activityDate",hours,policy_reference AS "policyReference",approval_reference AS "approvalReference",status,created_at AS "createdAt" FROM staff_leave_credit_entries WHERE school_id=$1 AND staff_user_id=$2 ORDER BY created_at DESC LIMIT 200',
     [req.auth.schoolId,wanted]);
-   const balances=await pool.query('SELECT credit_account AS "creditAccount",COALESCE(SUM(signed_days) FILTER(WHERE status=\'VERIFIED\'),0) AS "available" FROM staff_leave_credit_entries WHERE school_id=$1 AND staff_user_id=$2 GROUP BY credit_account',
+   const balances=await pool.query('SELECT credit_account AS "creditAccount",COALESCE(SUM(signed_days) FILTER(WHERE status=\'VERIFIED\'),0) AS "available",COUNT(*) FILTER(WHERE status=\'VERIFIED\')>0 AS "isCertified" FROM staff_leave_credit_entries WHERE school_id=$1 AND staff_user_id=$2 GROUP BY credit_account',
     [req.auth.schoolId,wanted]);
    res.json({staffUserId:wanted,balances:balances.rows,entries:entries.rows});
   }catch(e){sqlErr(res,e);}
