@@ -1397,12 +1397,12 @@ body.dark-mode .content-wrap > .school-heading.is-compact,body[data-theme="dark"
                   <p class="scan-setup-description">Choose where this attendance record should be saved. The camera will start after you confirm.</p>
                   <label class="scan-setup-field">Attendance scope
                     <select id="scanSetupScope">
-                      <option value="SCHOOL">School attendance (gate time-in / time-out)</option>
-                      <option value="CLASS">Class / subject attendance</option>
-                      <option value="ADVISORY" hidden>Advisory / homeroom attendance</option>
+                      <option value="CLASS" selected>Subject-class attendance</option>
+                      <option value="ADVISORY" hidden disabled>Advisory / homeroom attendance</option>
+                      <option value="SCHOOL" hidden disabled>School attendance (gate time-in / time-out)</option>
                     </select>
                   </label>
-                  <label id="scanSetupPeriodWrap" class="scan-setup-field" hidden>Class / subject
+                  <label id="scanSetupPeriodWrap" class="scan-setup-field" hidden>Assigned subject class
                     <select id="scanSetupPeriod"><option value="">Select assigned schedule</option></select>
                     <small id="scanSetupPeriodHint">Choose the assigned schedule for this attendance session.</small>
                   </label>
@@ -2421,7 +2421,7 @@ body.dark-mode .content-wrap > .school-heading.is-compact,body[data-theme="dark"
   <script src="/attendance-sync-center.js?v=3" defer></script>
   <script src="/learner-roster-view.js?v=1" defer></script>
   <script src="/student-name-format.js?v=2" defer></script>
-  <script src="/portal.js?v=227" defer></script>
+  <script src="/portal.js?v=228" defer></script>
   <script src="/schedule-list-filters.js?v=1" defer></script>
   <script src="/staff-lunch-ui.js?v=4" defer></script>
   <script src="/staff-ob-ui.js?v=5" defer></script>
