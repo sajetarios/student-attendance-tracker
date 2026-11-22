@@ -23,7 +23,7 @@ function implausibleSlot(slots,hours){
  });
 }
 function isoDate(value){return typeof value==='string'&&/^\d{4}-\d{2}-\d{2}$/.test(value)&&!Number.isNaN(Date.parse(value+'T12:00:00Z'));}
-function summarizeForm48({records=[],month,today,settings=null,calendar=[],officialBusiness=[],leave=null,approvedLeaves=[]}){
+function summarizeForm48({records=[],month,today,settings=null,calendar=[],officialBusiness=[],leave=null,approvedLeaves=[],pendingSickLeaves=[]}){
  if(!/^\d{4}-(0[1-9]|1[0-2])$/.test(month||''))throw Error('Invalid report month');
  const configured=Boolean(settings);
  const workdays=configured&&Array.isArray(settings.workdays)?settings.workdays:[];
@@ -50,6 +50,7 @@ function summarizeForm48({records=[],month,today,settings=null,calendar=[],offic
   const approvedOB=(officialBusiness||[]).some(b=>date>=b.from&&date<=b.to);
   const leaveDay=leave?.from&&leave?.to&&date>=leave.from&&date<=leave.to;
   const documentedLeave=(approvedLeaves||[]).some(p=>p.from&&p.to&&date>=p.from&&date<=p.to);
+  const sickFilingPending=(pendingSickLeaves||[]).some(p=>p.from&&p.to&&date>=p.from&&date<=p.to);
   const review=reviews[date]||'PENDING';
   let status='NOT_SCHEDULED',lateMinutes=0,earlyMinutes=0,needsReview=false;
   if(scheduled&&date<=today)summary.scheduledDays++;
@@ -71,6 +72,11 @@ function summarizeForm48({records=[],month,today,settings=null,calendar=[],offic
    if(documentedLeave){status='LEAVE_PUNCH_CONFLICT';needsReview=true;}}
   else if(approvedOB){status='APPROVED_OB_REVIEW';needsReview=true;}
   else if(leaveDay){status='LEAVE_REVIEW';needsReview=true;}
+  else if(sickFilingPending&&review==='ABSENT'&&past){
+   // Pending application cannot overturn an administrator's prior absence decision.
+   status='SICK_LEAVE_REVIEW_CONFLICT';summary.daysAbsent++;needsReview=true;
+  }
+  else if(sickFilingPending){status='SICK_LEAVE_PENDING';needsReview=true;}
   else if(review==='EXCUSED'&&past){status='EXCUSED';summary.excusedDays++;}
   else if(review==='ABSENT'&&past){status='CONFIRMED_ABSENT';summary.daysAbsent++;}
   else if(past){status='MISSING_REVIEW';summary.pendingAbsentDays++;needsReview=true;}
@@ -103,7 +109,8 @@ function summarizeForm48({records=[],month,today,settings=null,calendar=[],offic
   if(needsReview){summary.unresolvedDays++;summary.hasUnreviewed=true;}
   assessments.push({date,day,weekday,status,scheduled,past,verifiedCount,
    lateMinutes,undertimeMinutes:earlyMinutes,needsReview,timeAnomaly:Boolean(anomalous),approvedOB:Boolean(approvedOB),
-   leaveDay:Boolean(leaveDay||documentedLeave),approvedLeave:Boolean(documentedLeave),calendarException:exception||null,review});
+   leaveDay:Boolean(leaveDay||documentedLeave),approvedLeave:Boolean(documentedLeave),
+   sickLeavePending:Boolean(sickFilingPending),calendarException:exception||null,review});
  }
  if(!configured){summary.tardyMinutes=null;summary.undertimeMinutes=null;}
  return {summary,assessments};
