@@ -117,8 +117,8 @@ test('Weekly/list/popover UI preserve actual assignment labels in every display'
   assert.match(html,/href="\/teacher-timetable-identities\.css\?v=2"/);
   assert.match(html,/src="\/schedule-relationships\.js\?v=2" defer/);
   assert.match(html,/src="\/timetable-grid\.js\?v=8" defer/);
-  assert.match(html,/src="\/portal\.js\?v=228" defer/);
-  for (const asset of ['/teacher-timetable-identities.css?v=2','/schedule-relationships.js?v=2','/timetable-grid.js?v=8','/portal.js?v=228'])
+  assert.match(html,/src="\/portal\.js\?v=229" defer/);
+  for (const asset of ['/teacher-timetable-identities.css?v=2','/schedule-relationships.js?v=2','/timetable-grid.js?v=8','/portal.js?v=229'])
     assert.ok(sw.includes('"'+asset+'"'),'Missing precache for '+asset);
 });
 

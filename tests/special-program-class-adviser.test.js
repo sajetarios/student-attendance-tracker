@@ -89,8 +89,10 @@ test('Advisory and subject attendance validate against the active school-year en
   assert.match(route, /student\.rows\[0\]\.grade_level, student\.rows\[0\]\.section/);
 });
 
-test('A dual-designated Class Adviser defaults the scanner to an assigned advisory section', () => {
-  assert.match(portal, /scopeSelect\.value = hasAdviserRole && adviserAssignments\.length\s*\? 'ADVISORY'/);
+test('A dual-designated Class Adviser defaults to subject-class attendance while retaining authorized advisory mode', () => {
+  assert.match(portal, /const allowed = gate \? \['SCHOOL'\] : subject/);
+  assert.match(portal, /advisory \? \['CLASS','ADVISORY'\] : \['CLASS'\]/);
+  assert.match(portal, /if \(reset \|\| !allowed\.includes\(scope\.value\)\) scope\.value = allowed\[0\] \|\| ''/);
   assert.match(portal, /function showScanErrorModal\(/);
   assert.match(portal, /showScanErrorModal\(error\.message/);
 });

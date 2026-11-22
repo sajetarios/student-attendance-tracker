@@ -44,7 +44,8 @@ window.attendigoStaffIdentity = new Promise(resolve => { resolveStaffIdentity = 
   let activeCoverageTab = 'MY_DEPARTMENT';
   let coverageAlertKeys = new Set();
   let coverageMonitorInitialized = false;
-  let activeScanScope = 'SCHOOL';
+  // A teacher must explicitly select an authorized class/advisory scope before recording.
+  let activeScanScope = null;
   let activeScanPeriodId = null;
   let schoolBranding = null;
   let brandingLogoObjectUrl = null;
@@ -790,17 +791,7 @@ window.attendigoStaffIdentity = new Promise(resolve => { resolveStaffIdentity = 
       if (container && submenu) container.hidden = !Array.from(submenu.children).some(item => !item.hidden);
     });
     if (admin) refreshOfflineReviewBadge();
-    if (gateKeeper) {
-      if ($('scanSetupScope')) { $('scanSetupScope').value = 'SCHOOL'; $('scanSetupScope').disabled = true; }
-      if ($('scanSetupPeriodWrap')) $('scanSetupPeriodWrap').hidden = true;
-      if ($('scanSetupTitle')) $('scanSetupTitle').textContent = 'Gate attendance scanner';
-      const desc = document.querySelector('.scan-setup-description');
-      if (desc) desc.textContent = 'Scan a learner QR card or teacher badge, verify the registered photo, then record gate time-in or time-out.';
-    } else if (teacher) {
-      if ($('scanSetupTitle')) $('scanSetupTitle').textContent = 'Prepare class attendance scanner';
-      const desc = document.querySelector('.scan-setup-description');
-      if (desc) desc.textContent = 'Choose an assigned subject class or advisory section. Only learners within your authorized assignments can be recorded.';
-    }
+    if (gateKeeper || teacher) configureScannerScopeForRole({reset:true});
     // Preserve the requested directory section when entitlements/branding load asynchronously.
     const requestedSection = new URLSearchParams(location.search).get('section');
     const currentAdminTab = $('adminManagementTabs')?.querySelector('.is-active')?.dataset.adminManagementTab || 'accounts';
@@ -2399,6 +2390,14 @@ function coverageStatusLabel(status) {
     }
     const scope = user.role === 'TEACHER' ? activeScanScope : 'SCHOOL';
     const periodId = scope === 'CLASS' ? activeScanPeriodId : null;
+    if (user.role === 'TEACHER' && !(
+      (scope === 'CLASS' && teacherHas('SUBJECT_TEACHER') && periodId &&
+        periods.some(p => String(p.periodId) === String(periodId))) ||
+      (scope === 'ADVISORY' && teacherHas('CLASS_ADVISER') && adviserAssignments.length > 0)
+    )) {
+      showToast('Teacher QR scans must use an assigned subject class or advisory section. Gate attendance is restricted to Gatekeepers.', true);
+      return;
+    }
     if (scope === 'CLASS' && !periodId) {
       showToast('Select the assigned class or subject before scanning.', true);
       $('studentScanSetupModal').hidden = false;
@@ -4459,6 +4458,42 @@ let teacherActionMenuListenersInstalled = false;
   }
   wireScheduleAdjustments();
 
+  function configureScannerScopeForRole({reset = false} = {}) {
+    const scope = $('scanSetupScope');
+    if (!scope || !user) return;
+    const role = user.role;
+    const gate = role === 'GATE_KEEPER';
+    const subject = role === 'TEACHER' && teacherHas('SUBJECT_TEACHER');
+    const advisory = role === 'TEACHER' && teacherHas('CLASS_ADVISER');
+    const allowed = gate ? ['SCHOOL'] : subject
+      ? advisory ? ['CLASS','ADVISORY'] : ['CLASS']
+      : advisory ? ['ADVISORY'] : [];
+    for (const option of scope.options) {
+      const valid = allowed.includes(option.value);
+      // iPad Safari may retain a hidden <option> as the selected value.
+      // Disable it as well, and assign a valid value explicitly.
+      option.hidden = !valid;
+      option.disabled = !valid;
+    }
+    if (reset || !allowed.includes(scope.value)) scope.value = allowed[0] || '';
+    scope.disabled = allowed.length <= 1;
+    $('scanSetupPeriodWrap').hidden = scope.value !== 'CLASS';
+    const title = $('scanSetupTitle');
+    const description = document.querySelector('#studentScanSetupModal .scan-setup-description');
+    if (gate) {
+      if (title) title.textContent = 'Gate attendance scanner';
+      if (description) description.textContent = 'Verify the registered photo before recording a school-gate arrival or departure.';
+    } else if (subject) {
+      if (title) title.textContent = 'Prepare subject-class attendance scanner';
+      if (description) description.textContent = advisory
+        ? 'Choose your assigned subject class to record learner attendance. Advisory / homeroom attendance remains available as a separate option.'
+        : 'Choose your assigned subject class. QR check-ins are saved to class attendance, not school-gate time-in or time-out.';
+    } else if (advisory) {
+      if (title) title.textContent = 'Prepare advisory attendance scanner';
+      if (description) description.textContent = 'Record attendance for your assigned advisory section, not school-gate time-in or time-out.';
+    }
+  }
+
   async function loadSchoolData() {
     const role = user.role;
     if (role === 'GATE_KEEPER') {
@@ -4466,8 +4501,7 @@ let teacherActionMenuListenersInstalled = false;
       students = [];
       periods = [];
       dashboardData = null;
-      if ($('scanSetupScope')) { $('scanSetupScope').value = 'SCHOOL'; $('scanSetupScope').disabled = true; }
-      if ($('scanSetupPeriodWrap')) $('scanSetupPeriodWrap').hidden = true;
+      configureScannerScopeForRole({reset:true});
       if ($('studentRosterPanel')) $('studentRosterPanel').hidden = true;
       return;
     }
@@ -4511,24 +4545,9 @@ let teacherActionMenuListenersInstalled = false;
     periods = valueOr(secondary[1], { periods: [] }, 'timetable').periods || [];
     departments = valueOr(secondary[2], { departments: [] }, 'departments').departments || [];
     renderDepartments();
-    const scopeSelect = $('scanSetupScope');
-    const hasSubjectRole = role === 'TEACHER' && teacherHas('SUBJECT_TEACHER');
-    const hasAdviserRole = role === 'TEACHER' && teacherHas('CLASS_ADVISER');
-    scopeSelect.querySelector('option[value="SCHOOL"]').hidden = role !== 'GATE_KEEPER';
-    scopeSelect.querySelector('option[value="CLASS"]').hidden = role === 'TEACHER' && !hasSubjectRole;
-    const advisoryOption = scopeSelect.querySelector('option[value="ADVISORY"]');
-    if (advisoryOption) advisoryOption.hidden = !hasAdviserRole;
-    if (role === 'TEACHER') {
-      scopeSelect.disabled = !(hasSubjectRole && hasAdviserRole);
-      // When a teacher is also a Class Adviser, default to the assigned advisory
-      // section so advisory-only classes (such as Grade 8 - SPJ) are not treated
-      // as regular subject periods. Subject attendance remains selectable.
-      scopeSelect.value = hasAdviserRole && adviserAssignments.length
-        ? 'ADVISORY'
-        : hasSubjectRole ? 'CLASS' : 'ADVISORY';
-    }
-    $('scanSetupPeriod').innerHTML = '<option value="">Select assigned schedule</option>' + periods.map(p => `<option value="${esc(p.periodId)}">${esc(p.periodName)} · ${esc(p.gradeLevel)} · ${esc(p.section || 'All sections')}</option>`).join('');
-    $('scanSetupPeriodWrap').hidden = scopeSelect.value !== 'CLASS';
+    // Populate the teacher's server-scoped timetable first; choose scanner
+    // mode after adviser assignments have also loaded.
+    $('scanSetupPeriod').innerHTML = '<option value="">Select assigned subject class</option>' + periods.map(p => `<option value="${esc(p.periodId)}">${esc(p.subjectName || p.periodName)} · ${esc(p.gradeLevel)} · ${esc(p.section || 'All sections')}</option>`).join('');
     $('scanSetupPeriod').value = periods.length === 1 ? String(periods[0].periodId) : '';
 
     teachers = [];
@@ -4555,6 +4574,7 @@ let teacherActionMenuListenersInstalled = false;
       adviserAssignments = adviserData.assignments || [];
     }
 
+    configureScannerScopeForRole({reset:true});
     await loadSchedulingSettings();
     populateAdjustmentPeriodOptions();
     await loadScheduleAdjustments();
@@ -6593,6 +6613,14 @@ let teacherActionMenuListenersInstalled = false;
       }
       return;
     }
+    if (user.role !== 'TEACHER' ||
+        !(teacherHas('SUBJECT_TEACHER') || teacherHas('CLASS_ADVISER'))) {
+      showToast('Only authorized teachers can use the subject or advisory class scanner.', true);
+      return;
+    }
+    // Recheck every time the modal opens: never reuse a stale iPad selection
+    // of SCHOOL attendance from the previous gate-scanner UI.
+    configureScannerScopeForRole({reset:true});
     $('studentScanSetupModal').hidden = false;
   });
   $('gateScanType')?.addEventListener('change', event => {
@@ -6605,7 +6633,7 @@ let teacherActionMenuListenersInstalled = false;
     }
   });
   $('scanSetupScope').addEventListener('change', () => {
-    $('scanSetupPeriodWrap').hidden = $('scanSetupScope').value !== 'CLASS';
+    configureScannerScopeForRole();
     $('scanSetupPeriod').value = '';
   });
   let qrHistoryFlipping = false;
@@ -6660,8 +6688,29 @@ let teacherActionMenuListenersInstalled = false;
       showToast('School Administrator accounts do not operate attendance scanners. Use an assigned Gate Keeper or teacher account.', true);
       return;
     }
-    activeScanScope = user.role === 'TEACHER' ? $('scanSetupScope').value : 'SCHOOL';
-    activeScanPeriodId = activeScanScope === 'CLASS' ? $('scanSetupPeriod').value : null;
+    if (user.role !== 'TEACHER') {
+      showToast('Gate attendance must be recorded from the Gatekeeper scanner.', true);
+      return;
+    }
+    const scope = $('scanSetupScope').value;
+    const canUseScope = (scope === 'CLASS' && teacherHas('SUBJECT_TEACHER')) ||
+      (scope === 'ADVISORY' && teacherHas('CLASS_ADVISER'));
+    if (!canUseScope) {
+      configureScannerScopeForRole({reset:true});
+      showToast('Teachers cannot record school-gate attendance. Choose an authorized subject class or advisory section.', true);
+      return;
+    }
+    if (scope === 'ADVISORY' && !adviserAssignments.length) {
+      showToast('No advisory section is assigned to your teacher account.', true);
+      return;
+    }
+    activeScanScope = scope;
+    activeScanPeriodId = scope === 'CLASS' ? $('scanSetupPeriod').value : null;
+    if (scope === 'CLASS' && activeScanPeriodId &&
+        !periods.some(p => String(p.periodId) === String(activeScanPeriodId))) {
+      showToast('That subject class is not part of your assigned timetable. Refresh and select your class.', true);
+      return;
+    }
     if (activeScanScope === 'CLASS' && !activeScanPeriodId) {
       $('scanSetupPeriodWrap').classList.add('field-missing');
       $('scanSetupPeriodHint').textContent = 'Please select an assigned class or subject schedule.';
