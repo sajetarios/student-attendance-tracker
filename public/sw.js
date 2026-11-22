@@ -1,4 +1,4 @@
-const CACHE = "attendigo-v312-deped-sick-return-vsca";
+const CACHE = "attendigo-v313-leave-actions-responsive";
 
 const SHELL = [
   "/typography.css?v=1",
@@ -66,11 +66,11 @@ const SHELL = [
   "/attendigo-help-topics.js?v=2",
   "/attendigo-help-guide.js?v=4",
   "/attendigo-help.css?v=3",
-  "/staff-leave-ui.js?v=6",
+  "/staff-leave-ui.js?v=7",
   "/leave-approval-inbox.js?v=1",
   "/leave-approval-inbox.css?v=1",
   "/attendigo-presenter-nav.js?v=1",
-  "/staff-leave-ui.css?v=3",
+  "/staff-leave-ui.css?v=4",
   "/leave-status-indicator.css?v=1",
   "/department-workspace.css?v=1",
   "/department-workspace.js?v=5",
