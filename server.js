@@ -2015,7 +2015,19 @@ function isValidSchoolDate(value) {
   return Number.isFinite(date.getTime()) && date.toISOString().slice(0, 10) === value;
 }
 
-app.get('/health', (_req, res) => res.json({ ok: true, service: 'school-attendance-api', build: 'roles-sf2-workflow-responsive-2026-11-11', security: 'session-and-school-device-auth' }));
+// Readiness, not just liveness: deployment probes must fail when the primary DB is unavailable.
+// Do not expose connection strings, user data, or backend credentials in the response.
+async function databaseReadiness(_req, res) {
+  res.set('Cache-Control', 'no-store, private');
+  try {
+    await pool.query({ text: 'SELECT 1', query_timeout: 5000 });
+    return res.status(200).json({ ok: true, service: 'school-attendance', database: 'reachable' });
+  } catch (err) {
+    console.error('Readiness DB probe failed:', err.code || err.name || 'unknown');
+    return res.status(503).json({ ok: false, service: 'school-attendance', database: 'unavailable' });
+  }
+}
+app.get('/health', databaseReadiness);
 
 // Read-only normalized/similar-name preview; always scoped to the authenticated school.
 app.get('/api/sections/name-check', authenticateSchoolClient,
@@ -4270,7 +4282,7 @@ app.get('/vendor/html5-qrcode.min.js', (_req, res) =>
   res.sendFile(path.join(__dirname, 'node_modules', 'html5-qrcode', 'html5-qrcode.min.js'))
 );
 // Basic liveness endpoint for deployment and diagnostics. No school data is exposed.
-app.get('/api/health', (_req, res) => res.json({ ok: true, service: 'school-attendance' }));
+app.get('/api/health', databaseReadiness);
 
 // Serve one canonical login URL for desktop, mobile browsers, and installed PWAs.
 // Preserve only the supported account-mode option; never copy credentials from a URL.
