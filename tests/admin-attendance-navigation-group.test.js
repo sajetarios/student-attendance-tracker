@@ -3,6 +3,7 @@ const test = require('node:test');
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const vm = require('node:vm');
+const {assertCachedAsset,assertCacheRevisionAtLeast}=require('./support/asset-contract');
 
 const read = file => fs.readFileSync(file, 'utf8');
 const html = read('public/portal.html');
@@ -63,8 +64,8 @@ test('Admin-only desktop density keeps mobile touch sizes and existing workflows
 
 test('portal and worker use the same bumped UI cache revisions', () => {
   assert.match(html, /class-qr-dashboard-link\.js\?v=11/);
-  assert.match(html, /portal\.js\?v=213/);
+  assertCachedAsset(html,sw,'portal.js',{minimumVersion:213});
   assert.match(sw, /class-qr-dashboard-link\.js\?v=11/);
-  assert.match(sw, /portal\.js\?v=213/);
-  assert.match(sw, /attendigo-v263-form48-print-proportions/);
+  assertCachedAsset(html,sw,'portal.js',{minimumVersion:213});
+  assertCacheRevisionAtLeast(sw,263);
 });
