@@ -1,4 +1,4 @@
-const CACHE = "attendigo-v285-form48-report-first";
+const CACHE = "attendigo-v286-form48-global-signatories";
 
 const SHELL = [
   "/typography.css?v=1",
@@ -65,10 +65,10 @@ const SHELL = [
   "/teacher-dashboard-v2.js?v=1",
   "/teacher-dashboard-v3.css?v=1",
   "/teacher-dashboard-v3.js?v=1",
-  "/form48-report.js?v=14",
+  "/form48-report.js?v=15",
   "/form48-intelligence.js?v=1",
-  "/form48-bulk-ui.js?v=2",
-  "/form48-report.css?v=13",
+  "/form48-bulk-ui.js?v=3",
+  "/form48-report.css?v=14",
   "/smart-attendance-overview.css?v=2",
   "/smart-attendance-overview.js?v=2",
   "/my-gate-insights.css?v=3",
