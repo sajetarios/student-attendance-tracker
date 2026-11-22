@@ -3,6 +3,8 @@ const {randomUUID,createHash}=require('node:crypto');
 const express=require('express');
 const {parseRequest,positiveDays,dateOk,canView,nextStatus,allowReviewer}=require('./staff-leave-policy');
 const {notifyLeaveTransition}=require('./staff-leave-inbox');
+const {SCHEMES,manilaToday,sickFilingBasis,sickAccountForScheme,requiredSickEvidence}=
+ require('./staff-leave-deped-sick');
 const UUID=/^[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}$/i;
 const ROLES=['TEACHER','DEPARTMENT_HEAD','SCHOOL_ADMIN'];
 const sqlErr=(res,error)=>{console.error('DepEd leave workflow:',error.message);return res.status(503).json({error:'Leave management is temporarily unavailable. No attendance record was modified.'});};
@@ -34,7 +36,7 @@ function registerStaffLeaveRoutes(app,pool,{authenticateSchoolClient,requireScho
   staffPosition:r.staff_position||'',departmentName:r.department_name||'',schoolName:r.school_name,
   leaveType:r.leave_type,creditAccount:r.credit_account,startDate:r.start_date,
   endDate:r.end_date,reason:r.reason,details:r.details,commutation:r.commutation,
-  status:r.status,submittedAt:r.submitted_at,headNote:r.head_note||'',
+  status:r.status,filingBasis:r.filing_basis||'STANDARD',submittedAt:r.submitted_at,headNote:r.head_note||'',
   adminNote:r.admin_note||'',certifiedWorkingDays:r.certified_working_days,
   externalReference:r.external_reference||'',externalApprover:r.external_approver||'',
   externalApproverPosition:r.external_approver_position||'',externalApprovedOn:r.external_approved_on,
@@ -113,6 +115,39 @@ function registerStaffLeaveRoutes(app,pool,{authenticateSchoolClient,requireScho
     officialMonthlySalary:null});
   }catch(e){sqlErr(res,e);}
  });
+ // The employee cannot self-certify a leave scheme. Roles such as TEACHER or
+ // DEPARTMENT_HEAD do not prove a VSC entitlement or any reassignment.
+ app.get('/api/staff-leave/my/credit-scheme',...auth,async(req,res)=>{
+  res.set('Cache-Control','no-store, private');
+  try{
+   const q=await pool.query('SELECT leave_scheme AS "leaveScheme",hr_reference AS "hrReference",certified_at AS "certifiedAt" FROM staff_leave_credit_schemes WHERE school_id=$1 AND staff_user_id=$2',
+    [req.auth.schoolId,req.auth.userId]);
+   res.json({leaveScheme:q.rows[0]?.leaveScheme||'UNVERIFIED',
+    hrReference:q.rows[0]?.hrReference||null,certifiedAt:q.rows[0]?.certifiedAt||null});
+  }catch(e){sqlErr(res,e);}
+ });
+ app.post('/api/staff-leave/staff/:id/credit-scheme',...auth,async(req,res)=>{
+  if(req.auth.role!=='SCHOOL_ADMIN')return res.status(403).json({error:'Authorized School HR access required.'});
+  const staffId=String(req.params.id||''),leaveScheme=String(req.body?.leaveScheme||''),
+   hrReference=String(req.body?.hrReference||'').trim();
+  if(!UUID.test(staffId)||!SCHEMES.includes(leaveScheme)||hrReference.length<3||hrReference.length>200)
+   return res.status(400).json({error:'Select an HR-verified scheme and enter the official personnel document reference.'});
+  if(staffId===req.auth.userId)
+   return res.status(403).json({error:'An employee cannot certify their own leave entitlement. Ask another authorized officer.'});
+  const client=await pool.connect();
+  try{
+   await client.query('BEGIN');
+   const target=await client.query(
+    "SELECT 1 FROM school_users WHERE school_id=$1 AND user_id=$2 AND active=TRUE AND role IN ('TEACHER','DEPARTMENT_HEAD','SCHOOL_ADMIN','GATE_KEEPER') FOR SHARE",
+    [req.auth.schoolId,staffId]);
+   if(!target.rowCount){await client.query('ROLLBACK');return res.status(404).json({error:'Active staff member not found in this school.'});}
+   await client.query('INSERT INTO staff_leave_credit_schemes(school_id,staff_user_id,leave_scheme,hr_reference,certified_by_user_id,certified_at) VALUES($1,$2,$3,$4,$5,now()) ON CONFLICT(school_id,staff_user_id) DO UPDATE SET leave_scheme=EXCLUDED.leave_scheme,hr_reference=EXCLUDED.hr_reference,certified_by_user_id=EXCLUDED.certified_by_user_id,certified_at=now()',
+    [req.auth.schoolId,staffId,leaveScheme,hrReference,req.auth.userId]);
+   await audit(client,req,'LEAVE_CREDIT_SCHEME_CERTIFIED',staffId,{staffUserId:staffId,leaveScheme,hrReference});
+   await client.query('COMMIT');
+   res.json({leaveScheme,status:'HR_VERIFIED',notice:'Employee leave scheme certified. No leave credits or DTR punches were changed.'});
+  }catch(e){await client.query('ROLLBACK').catch(()=>{});sqlErr(res,e);}finally{client.release();}
+ });
  app.post('/api/staff-leave/requests',...auth,async(req,res)=>{
   const input=parseRequest(req.body);
   if(!input)return res.status(400).json({error:'Enter a valid leave type, credit account, reason, and dates (up to 367 calendar days).'});
@@ -130,15 +165,23 @@ function registerStaffLeaveRoutes(app,pool,{authenticateSchoolClient,requireScho
    if(overlaps.rowCount||old.rowCount){await c.query('ROLLBACK');return res.status(409).json({error:'An overlapping leave request or recorded approval already exists.'});}
    const heads=await c.query('SELECT 1 FROM school_users WHERE school_id=$1 AND department_id=$2 AND role=\'DEPARTMENT_HEAD\' AND user_id<>$3 AND active=TRUE LIMIT 1',
     [req.auth.schoolId,staff.rows[0].department_id,req.auth.userId]);
+   const scheme=await c.query('SELECT leave_scheme AS "leaveScheme" FROM staff_leave_credit_schemes WHERE school_id=$1 AND staff_user_id=$2',
+     [req.auth.schoolId,req.auth.userId]);
+   const filingBasis=sickFilingBasis(input.leaveType,input.startDate,input.endDate,manilaToday());
+   const creditAccount=input.leaveType==='SICK'
+    ?(sickAccountForScheme(scheme.rows[0]?.leaveScheme)||'NONE'):input.creditAccount;
    const status=nextStatus(req.auth.role,heads.rowCount>0),id=randomUUID();
-   await c.query('INSERT INTO staff_leave_requests(request_id,school_id,staff_user_id,department_id,leave_type,credit_account,start_date,end_date,reason,details,commutation,status) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12)',
-    [id,req.auth.schoolId,req.auth.userId,staff.rows[0].department_id,input.leaveType,input.creditAccount,
-     input.startDate,input.endDate,input.reason,input.details,input.commutation,status]);
-   await audit(c,req,'LEAVE_SUBMITTED',id,{status,dates:[input.startDate,input.endDate],creditAccount:input.creditAccount});
+   await c.query('INSERT INTO staff_leave_requests(request_id,school_id,staff_user_id,department_id,leave_type,credit_account,start_date,end_date,reason,details,commutation,status,filing_basis) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13)',
+    [id,req.auth.schoolId,req.auth.userId,staff.rows[0].department_id,input.leaveType,creditAccount,
+     input.startDate,input.endDate,input.reason,input.details,input.commutation,status,filingBasis]);
+   await audit(c,req,'LEAVE_SUBMITTED',id,{status,dates:[input.startDate,input.endDate],creditAccount,filingBasis});
    await notifyLeaveTransition(c,{schoolId:req.auth.schoolId,requestId:id,staffUserId:req.auth.userId,
     departmentId:staff.rows[0].department_id,requesterRole:staff.rows[0].role,status});
    await c.query('COMMIT');
-   res.status(201).json({requestId:id,status,notice:'Leave submitted for review. The DTR is unchanged until official approval is verified.'});
+   res.status(201).json({requestId:id,status,creditAccount,filingBasis,
+    notice:filingBasis==='POST_RETURN'
+     ?'Sick leave filed upon return for earlier absence dates. HR and the authorized approving official must review the documents and credits. DTR remains pending.'
+     :'Leave submitted for review. The DTR is unchanged until official approval is verified.'});
   }catch(e){await c.query('ROLLBACK').catch(()=>{});sqlErr(res,e);}
   finally{c.release();}
  });
