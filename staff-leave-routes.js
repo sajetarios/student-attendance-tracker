@@ -105,7 +105,8 @@ function registerStaffLeaveRoutes(app,pool,{authenticateSchoolClient,requireScho
    if(!allowReviewer(req.auth.role,req.auth.userId,req.auth.departmentId,row,step)){
     await c.query('ROLLBACK');return res.status(403).json({error:'This request cannot be reviewed at your level or by its applicant.'});
    }
-   const status=decision==='REJECT'?'REJECTED':step==='HEAD'?'PENDING_ADMIN':'PENDING_EXTERNAL';
+   // Department and school HR recommendations are not final administrative decisions.
+   const status=step==='HEAD'?'PENDING_ADMIN':'PENDING_EXTERNAL';
    const col=step==='HEAD'?'head_user_id=$4,head_decided_at=NOW(),head_note=$5':
     'admin_user_id=$4,admin_reviewed_at=NOW(),admin_note=$5';
    await c.query('UPDATE staff_leave_requests SET status=$3,'+col+',revision=revision+1 WHERE school_id=$1 AND request_id=$2',
