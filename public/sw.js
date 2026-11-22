@@ -1,4 +1,4 @@
-const CACHE = "attendigo-v302-expanded-navigation";
+const CACHE = "attendigo-v303-ai-help";
 
 const SHELL = [
   "/typography.css?v=1",
@@ -63,6 +63,9 @@ const SHELL = [
   "/teacher-roster-popover.js?v=2",
   "/portal.css?v=0.9.119",
   "/portal.js?v=232",
+  "/attendigo-help-topics.js?v=1",
+  "/attendigo-help-guide.js?v=1",
+  "/attendigo-help.css?v=1",
   "/department-workspace.css?v=1",
   "/department-workspace.js?v=5",
   "/department-monitor-refresh.css?v=1",
