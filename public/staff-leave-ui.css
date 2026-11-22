@@ -1,0 +1,52 @@
+/* Isolated Leave Management overlay; never changes QR, DTR, dashboard, or timetable selectors. */
+#staffLeaveDialog {border:0;border-radius:18px;padding:0;width:min(990px,calc(100vw - 20px));max-width:990px;max-height:calc(100dvh - 24px);box-shadow:0 24px 90px #0d1f3444;color:#172d44;background:#fff;}
+#staffLeaveDialog::backdrop {background:rgba(9,22,38,.67);}
+#staffLeaveDialog * {box-sizing:border-box;}
+#staffLeaveDialog .leave-shell {display:flex;flex-direction:column;max-height:calc(100dvh - 24px);}
+#staffLeaveDialog .leave-header{display:flex;align-items:flex-start;justify-content:space-between;gap:15px;padding:20px 24px 12px;border-bottom:1px solid #e3ebf2;}
+#staffLeaveDialog h2{margin:0;font-size:1.4rem;line-height:1.3;color:#193c5c;}
+#staffLeaveDialog .leave-header p{margin:4px 0 0;font-size:.87rem;color:#5e7588;}
+#staffLeaveDialog .leave-close{border:1px solid #c5d4e2;background:#fff;color:#26465b;border-radius:10px;width:40px;height:40px;cursor:pointer;flex:none;}
+#staffLeaveDialog .leave-tabs{display:flex;gap:6px;padding:10px 24px;border-bottom:1px solid #e3ebf2;}
+#staffLeaveDialog .leave-tabs button{border:1px solid transparent;background:transparent;padding:10px 14px;cursor:pointer;border-radius:9px;color:#476276;font-weight:650;}
+#staffLeaveDialog .leave-tabs button.is-active{background:#e7f4fd;border-color:#9ecde9;color:#075a88;}
+#staffLeaveDialog .leave-body{overflow:auto;min-height:200px;flex:1;padding:18px 24px 12px;overscroll-behavior:contain;}
+#staffLeaveDialog .leave-message{min-height:37px;padding:9px 24px;font-size:.87rem;border-top:1px solid #e3ebf2;color:#165c40;}
+#staffLeaveDialog .leave-message.is-error{color:#982c35;}
+#staffLeaveDialog .leave-card{background:#fff;border:1px solid #dbe5ed;border-radius:12px;padding:14px 16px;margin:0 0 12px;min-width:0;overflow-wrap:anywhere;}
+#staffLeaveDialog summary{font-weight:700;color:#214b69;cursor:pointer;padding:2px 0;}
+#staffLeaveDialog .leave-help{color:#667b8c;font-size:.82rem;margin:9px 0 12px;line-height:1.5;}
+#staffLeaveDialog .leave-form{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:13px;padding-top:14px;}
+#staffLeaveDialog .leave-inline-form{display:flex;flex-wrap:wrap;gap:10px;align-items:end;margin-top:12px;border-top:1px dashed #d1dfe9;padding-top:12px;}
+#staffLeaveDialog label{display:grid;gap:6px;font-size:.81rem;font-weight:600;color:#455f74;min-width:0;}
+#staffLeaveDialog input,#staffLeaveDialog select,#staffLeaveDialog textarea{font:inherit;min-width:0;width:100%;border:1px solid #c5d4e1;border-radius:8px;padding:10px 11px;background:#fff;color:#173952;min-height:43px;}
+#staffLeaveDialog input[type=file]{font-size:.8rem;padding:7px;max-width:100%;}
+#staffLeaveDialog textarea{resize:vertical;}
+#staffLeaveDialog button:focus-visible,#staffLeaveDialog input:focus-visible,#staffLeaveDialog select:focus-visible{outline:3px solid #80bce9;outline-offset:2px;}
+#staffLeaveDialog .leave-form label:has(textarea),#staffLeaveDialog .leave-form label:has(input[type=file]){grid-column:1/-1;}
+#staffLeaveDialog .leave-form button{grid-column:1/-1;justify-self:start;}
+#staffLeaveDialog .leave-btn,#staffLeaveDialog .leave-primary{min-height:40px;border-radius:9px;border:1px solid #a9c5d9;background:#f4f9fc;color:#245b7c;padding:9px 13px;cursor:pointer;font-weight:650;font-size:.85rem;max-width:100%;white-space:normal;text-align:center;}
+#staffLeaveDialog .leave-primary{background:#077faf;color:#fff;border-color:#077faf;}
+#staffLeaveDialog .leave-section-title,#staffLeaveDialog .leave-card-top{display:flex;justify-content:space-between;gap:14px;align-items:center;flex-wrap:wrap;}
+#staffLeaveDialog h3{font-size:1rem;margin:14px 0 11px;color:#264358;}
+#staffLeaveDialog .leave-card p{margin:7px 0;font-size:.86rem;line-height:1.5;color:#4d6577;}
+#staffLeaveDialog .leave-status{border:1px solid #d1dee8;background:#f0f5f8;border-radius:999px;padding:4px 10px;font-size:.74rem;font-weight:700;color:#3f6075;white-space:nowrap;}
+#staffLeaveDialog .leave-actions{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px;}
+#staffLeaveDialog .leave-approval{margin-top:10px;padding-top:10px;border-top:1px dashed #dae5ee;}
+#staffLeaveDialog .leave-balances{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin:0 0 16px;}
+#staffLeaveDialog .leave-balance{display:grid;gap:3px;background:#edf7fc;border:1px solid #c7e0ed;border-radius:12px;padding:13px;}
+#staffLeaveDialog .leave-balance small{font-size:.72rem;color:#4f6b7e;}
+#staffLeaveDialog .leave-balance strong{font-size:1.4rem;font-variant-numeric:tabular-nums;color:#135b7c;}
+#staffLeaveDialog .leave-balance span{font-size:.7rem;color:#65859a;}
+#staffLeaveDialog .leave-empty{padding:16px;background:#f7f9fc;color:#5b7184;border-radius:10px;}
+@media(max-width:700px){#staffLeaveDialog{width:calc(100vw - 12px);max-height:calc(100dvh - 12px);}
+#staffLeaveDialog .leave-shell{max-height:calc(100dvh - 12px);}
+#staffLeaveDialog .leave-header{padding:15px 14px 10px;}
+#staffLeaveDialog .leave-tabs{padding:8px 14px;}
+#staffLeaveDialog .leave-body{padding:12px 14px;}
+#staffLeaveDialog .leave-message{padding:9px 14px;}
+#staffLeaveDialog .leave-form{grid-template-columns:1fr;}
+#staffLeaveDialog .leave-balances{grid-template-columns:repeat(2,minmax(0,1fr));}
+#staffLeaveDialog .leave-inline-form{display:grid;}
+#staffLeaveDialog .leave-inline-form label,#staffLeaveDialog .leave-inline-form button{width:100%;}
+}
