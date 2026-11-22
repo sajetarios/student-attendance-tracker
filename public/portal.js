@@ -2531,10 +2531,15 @@ function coverageStatusLabel(status) {
       String(teacher.departmentId || '') === String(period.scheduleDepartmentId || period.departmentId || '') &&
       (user.role !== 'DEPARTMENT_HEAD' || String(teacher.departmentId || '') === String(user.departmentId || ''))
     );
-    const isMyAdvisorySection = period => user.role === 'TEACHER' && teacherHas('CLASS_ADVISER') &&
-      adviserAssignments.some(a => String(a.gradeLevel) === String(period.gradeLevel) &&
-        String(a.section || '').trim().toLowerCase() === String(period.section || '').trim().toLowerCase());
-    const isAdvisoryActivity = period => period.scheduleType === 'ADVISORY' || period.scheduleType === 'HOMEROOM';
+    // Official Class Adviser assignment and actual teaching ownership are
+    // independent. ADVISORY / HOMEROOM is the period type, never proof that
+    // the signed-in teacher is this section's Class Adviser.
+    const teacherRelationship = period => user.role === 'TEACHER'
+      ? window.AttendigoScheduleRelationships.classify(period, user, adviserAssignments)
+      : { mySubject:false, myAdvisory:false, advisoryActivity:false };
+    const isMyAdvisorySection = period => teacherRelationship(period).myAdvisory;
+    const isAdvisoryActivity = period => ['ADVISORY','HOMEROOM'].includes(
+      String(period.scheduleType || '').toUpperCase());
     const canAssign = user.role === 'SCHOOL_ADMIN' || user.role === 'DEPARTMENT_HEAD';
     const canManagePeriod = period => canAssign && (user.role === 'SCHOOL_ADMIN' ||
       (user.departmentCode !== 'UNASSIGNED' && String(period.scheduleDepartmentId || period.departmentId || '') === String(user.departmentId || '')));
@@ -2594,8 +2599,11 @@ function coverageStatusLabel(status) {
                period.adjustment.type === 'REPLACE' ? 'Subject replacement' : 'Time / room change')
             : 'Regular';
           const manage = canManagePeriod(period);
-          const advisoryTag = isAdvisoryActivity(period) ? 'Advisory / Homeroom' :
-            isMyAdvisorySection(period) ? 'My advisory' : '';
+          const relationshipTags = user.role === 'TEACHER'
+            ? window.AttendigoScheduleRelationships.relationshipLabels(teacherRelationship(period))
+                .filter(label => label !== 'Advisory / Homeroom activity')
+            : [];
+          const advisoryTag = isAdvisoryActivity(period) ? 'Advisory / Homeroom activity' : '';
           const actions = manage ? '<div class="schedule-row-actions">'+
             '<button type="button" class="outline-button compact-button" data-edit-period="'+esc(period.periodId)+'">Edit regular</button>'+
             (date >= dataSchoolDate() ? '<button type="button" class="outline-button compact-button" data-open-adjustment="'+esc(period.periodId)+'" data-adjustment-date="'+esc(date)+'">Change date</button>' : '')+
@@ -2604,6 +2612,8 @@ function coverageStatusLabel(status) {
             '<td>'+esc((period.startTime||'—')+'–'+(period.endTime||'—'))+'</td>'+
             '<td>'+esc(period.subjectName||period.periodName||'Class')+'</td>'+
             '<td>'+esc(String(period.gradeLevel||'—')+' · '+String(period.section||'All sections'))+
+            (relationshipTags.length?'<span class="teacher-list-relationships">'+relationshipTags.map(tag=>
+              '<small class="teacher-list-relationship '+(tag==='My subject class'?'is-subject':tag==='My advisory section'?'is-advisory':'is-activity')+'">'+esc(tag)+'</small>').join('')+'</span>':'')+
             (advisoryTag?'<small class="schedule-day-caption">'+esc(advisoryTag)+'</small>':'')+'</td>'+
             '<td>'+esc(period.cancelled?'No class':period.assignedTeacherName||'Unassigned')+'</td>'+
             '<td>'+esc(period.classroom||'—')+'</td>'+
@@ -2618,17 +2628,23 @@ function coverageStatusLabel(status) {
       const weekdayDates=Object.fromEntries(days.map(day=>[
         day,weekDates.find(date=>new Date(date+'T00:00:00Z').getUTCDay()===day)
       ]));
-      const entries=days.flatMap(day=>cardsForDay(day).map(period=>({
-        ...period,dayIndex:day,date:weekdayDates[day],
-        isMyAdvisorySection:isMyAdvisorySection(period),
-        isAdvisoryActivity:isAdvisoryActivity(period),
-        teacherScheduleView:user.role==='TEACHER',
-        canEdit:canManagePeriod(period),
-        eligibleTeachers:canAssign && !period.assignedTeacherName
-          ? teachers.filter(t=>t.active && (t.teacherDesignations||[]).includes('SUBJECT_TEACHER') &&
-              String(t.departmentId||'')===String(period.scheduleDepartmentId||period.departmentId||''))
-          : []
-      })));
+      const entries=days.flatMap(day=>cardsForDay(day).map(period=>{
+        const relationship=teacherRelationship(period);
+        return {
+          ...period,dayIndex:day,date:weekdayDates[day],
+          isMyAdvisorySection:isMyAdvisorySection(period),
+          isMySubjectClass:relationship.mySubject,
+          isAdvisoryActivity:isAdvisoryActivity(period),
+          relationshipLabels:user.role==='TEACHER'
+            ? window.AttendigoScheduleRelationships.relationshipLabels(relationship) : [],
+          teacherScheduleView:user.role==='TEACHER',
+          canEdit:canManagePeriod(period),
+          eligibleTeachers:canAssign && !period.assignedTeacherName
+            ? teachers.filter(t=>t.active && (t.teacherDesignations||[]).includes('SUBJECT_TEACHER') &&
+                String(t.departmentId||'')===String(period.scheduleDepartmentId||period.departmentId||''))
+            : []
+        };
+      }));
       window.TimetableGrid.render({
         host,days,weekdayDates,entries,today:dataSchoolDate(),
         onAdjust:(id,date)=>openScheduleAdjustment(id,date),
@@ -6086,24 +6102,33 @@ let teacherActionMenuListenersInstalled = false;
         const cards=$('studentImportSf1Cards');
         $('studentImportTableWrap').hidden=true;
         cards.hidden=false;
-        cards.innerHTML='<p class="sf1-review-help">Expand each learner to compare saved values with the information found in the SF1. Only blank saved fields will be completed. Existing values remain unchanged.</p>'+
+        cards.innerHTML='<p class="sf1-review-help">Expand each learner to review the exact family information detected in SF1. Blank source fields are shown as not provided; parents are never automatically designated as legal guardians. Existing saved details remain unchanged.</p>'+
           preview.rows.map((item,index)=>{
             const match=item.existingStudent;
             const fields=item.missingFields||[];
-            const proposed=fields.map(key=>{
-              const before=key==='nameParts'
+            // For CREATE rows the "missing fields" count is always zero because
+            // there is no saved profile yet. Show every source family field,
+            // including blanks, rather than misleading users into thinking the
+            // import contains no parent/guardian information.
+            const sf1SourceKeys=['fatherName','motherMaidenName','sf1GuardianName',
+              'parentName','parentMobile','birthDate','sf1Address'];
+            const sourceFields=match?fields:sf1SourceKeys;
+            const detectedSourceCount=match?fields.length:
+              sf1SourceKeys.filter(key=>String(item[key]||'').trim()).length;
+            const proposed=sourceFields.map(key=>{
+              const before=!match?'New learner':key==='nameParts'
                 ? [match?.values?.lastName,match?.values?.firstName,match?.values?.middleName]
                   .filter(Boolean).join(', ')||'Not recorded'
                 : match?.values?.[key]||'Not recorded';
               const after=key==='nameParts'
                 ? [item.officialNameParts?.lastName,item.officialNameParts?.firstName,
                    item.officialNameParts?.middleName].filter(Boolean).join(', ')||'Not provided'
-                : item[key]||'Not provided';
+                : item[key]||(match?'Not provided':'Not provided in SF1');
               return '<div class="sf1-review-field"><span>'+esc(fieldLabels[key]||key)+'</span><span class="sf1-review-before">'+esc(before)+'</span><strong>'+esc(after)+'</strong></div>';
             }).join('');
             const issues=(item.errors||[]).map(e=>'<p class="sf1-review-warning">'+esc(e)+'</p>').join('');
             const info=match?'<small>Existing ID: '+esc(match.studentId)+'</small>':'<small>New learner — student ID generated on import</small>';
-            return '<details class="sf1-review-item sf1-review-'+esc(item.action.toLowerCase())+'"><summary><span class="sf1-review-index">'+(index+1)+'</span><span class="sf1-review-person"><strong>'+esc(item.fullName)+'</strong>'+info+'</span><span class="sf1-review-status">'+esc(labels[item.action]||item.action)+' · '+fields.length+' field'+(fields.length===1?'':'s')+'</span><span class="sf1-review-chevron" aria-hidden="true">⌄</span></summary><div class="sf1-review-body"><p><strong>LRN:</strong> '+esc(item.lrn||'Not provided')+' · <strong>Grade:</strong> '+esc(item.gradeLevel)+' · <strong>Current section:</strong> '+esc(match?'Preserved':'Unassigned')+'</p>'+(fields.length?'<div class="sf1-review-field sf1-review-field-head"><span>Field</span><span>Saved value</span><span>From SF1</span></div>'+proposed:'<p>No missing fields detected.</p>')+issues+'</div></details>';
+            return '<details class="sf1-review-item sf1-review-'+esc(item.action.toLowerCase())+'"><summary><span class="sf1-review-index">'+(index+1)+'</span><span class="sf1-review-person"><strong>'+esc(item.fullName)+'</strong>'+info+'</span><span class="sf1-review-status">'+esc(labels[item.action]||item.action)+' · '+detectedSourceCount+(match?' field':' SF1 detail')+(detectedSourceCount===1?'':'s')+'</span><span class="sf1-review-chevron" aria-hidden="true">⌄</span></summary><div class="sf1-review-body"><p><strong>LRN:</strong> '+esc(item.lrn||'Not provided')+' · <strong>Grade:</strong> '+esc(item.gradeLevel)+' · <strong>Current section:</strong> '+esc(match?'Preserved':'Unassigned')+'</p>'+(sourceFields.length?'<div class="sf1-review-field sf1-review-field-head"><span>Field</span><span>Saved value</span><span>From SF1</span></div>'+proposed:'<p>No missing existing fields to complete.</p>')+issues+'</div></details>';
           }).join('')||'<p>No learners found.</p>';
         $('studentImportPreviewRows').innerHTML='';
         $('confirmStudentImport').disabled=!!counts.review||!eligible;
