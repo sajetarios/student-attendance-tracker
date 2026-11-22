@@ -1,4 +1,4 @@
-const CACHE = "attendigo-v289-dtr-gate-approval";
+const CACHE = "attendigo-v290-pilot-hardening";
 
 const SHELL = [
   "/typography.css?v=1",
@@ -55,7 +55,7 @@ const SHELL = [
   "/class-qr-dashboard-link.js?v=11",
   "/teacher-roster-popover.js?v=2",
   "/portal.css?v=0.9.119",
-  "/portal.js?v=223",
+  "/portal.js?v=224",
   "/department-workspace.css?v=1",
   "/department-workspace.js?v=5",
   "/department-monitor-refresh.css?v=1",
