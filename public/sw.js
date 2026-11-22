@@ -1,4 +1,4 @@
-const CACHE = "attendigo-v295-minimal-teacher-timetable";
+const CACHE = "attendigo-v296-teacher-class-scanner";
 
 const SHELL = [
   "/typography.css?v=1",
@@ -61,7 +61,7 @@ const SHELL = [
   "/class-qr-monitor-embedded.css?v=1",
   "/teacher-roster-popover.js?v=2",
   "/portal.css?v=0.9.119",
-  "/portal.js?v=227",
+  "/portal.js?v=228",
   "/department-workspace.css?v=1",
   "/department-workspace.js?v=5",
   "/department-monitor-refresh.css?v=1",
