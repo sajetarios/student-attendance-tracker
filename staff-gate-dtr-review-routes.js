@@ -64,7 +64,7 @@ async function reviewEvidence(db,schoolId,staffUserId,date){
   serial.query(sql('SELECT 1 FROM staff_official_business_requests',
    "WHERE school_id=$1 AND staff_user_id=$2 AND status='APPROVED'",
    "AND starts_at < (($3::date + INTERVAL '1 day') AT TIME ZONE 'Asia/Manila')",
-   "AND ends_at > ($3::date AT TIME ZONE 'Asia/Manila') LIMIT 1"),[schoolId,staffUserId,date]),
+   "AND ends_at > ($3::date::timestamp AT TIME ZONE 'Asia/Manila') LIMIT 1"),[schoolId,staffUserId,date]),
   serial.query(sql('SELECT (EXISTS(SELECT 1 FROM staff_form48_approved_leaves',
    'WHERE school_id=$1 AND staff_user_id=$2 AND revoked_at IS NULL',
    'AND start_date<=$3::date AND end_date>=$3::date)',
