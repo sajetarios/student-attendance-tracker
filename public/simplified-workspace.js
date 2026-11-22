@@ -28,21 +28,21 @@
 
     if (role === 'SCHOOL_ADMIN') {
       move('studentsNav', 'users', true);
-      move('requestsApprovalsNav', 'settings');
+      move('requestsApprovalsNav', 'operations');
       move(nav.querySelector('[data-staff-section="permissions"]'), 'settings');
       move(nav.querySelector('[data-staff-section="departments"]'), 'settings');
       move('offlineScanReviewsNav', 'attendanceManagement');
       move('myGateAttendanceNav', 'attendanceManagement');
       move('lunchQrAdminNav', 'attendanceManagement');
-      move('officialBusinessNav', 'attendanceManagement');
+      move('officialBusinessNav', 'operations');
       move('cloudSyncNav', 'settings');
       move('smsNav', 'settings');
       move('schoolSmsAccessNotice', 'settings');
       label('users', 'People');
       label('academics', 'Academics');
       label('attendanceManagement', 'Attendance Management');
-      label('operations', 'Operations');
-      label('settings', 'Administration');
+      label('operations', 'Requests & Approvals');
+      label('settings', 'School Settings');
       label('reports', 'Reports');
       const order = [$('dashboardNav'), $('staffNavWrapper'), group('academics'),
         group('attendanceManagement'), group('operations'), group('reports'), group('settings')];
@@ -50,21 +50,33 @@
       const current = [...nav.children].filter(el => ordered.includes(el));
       if (ordered.some((el, index) => el !== current[index])) ordered.forEach(el => nav.append(el));
     } else if (role === 'DEPARTMENT_HEAD') {
-      move('myGateAttendanceNav', 'operations');
-      label('people', 'People');
-      label('academics', 'Academics');
-      label('operations', 'Attendance & OB');
+      move('myGateAttendanceNav', 'personalAttendance');
+      move('officialBusinessNav', 'personalAttendance');
+      move('schedulesNav', 'people');
+      move('plannerNav', 'people');
+      label('people', 'Department Management');
+      label('personalAttendance', 'My Attendance');
+      label('operations', 'Requests & Approvals');
       label('reports', 'Reports');
     } else if (role === 'TEACHER') {
+      move('plannerNav', 'people');
+      move('teacherLunchQrNav', 'assignedDuties');
       label('people', 'My Classes');
-      label('academics', 'Planning');
       label('personalAttendance', 'My Attendance');
+      label('assignedDuties', 'Assigned Duties');
       label('reports', 'Reports');
     }
 
     // Hide only genuinely empty structural containers. Existing role-based
     // hidden flags remain authoritative; never unhide a forbidden link or group.
     nav.querySelectorAll('.nav-group').forEach(wrapper => {
+      // Only this new, role-scoped duty group changes its structural visibility
+      // as the server verifies a presenter's assignment.
+      if (wrapper.id === 'assignedDutiesNavGroup') {
+        const hasDuties = role === 'TEACHER' && authorizedChildren(wrapper).length > 0;
+        wrapper.toggleAttribute('hidden', !hasDuties);
+        return;
+      }
       if (!authorizedChildren(wrapper).length && !wrapper.hidden) wrapper.hidden = true;
     });
   }
