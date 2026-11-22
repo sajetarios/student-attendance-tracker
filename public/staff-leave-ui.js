@@ -52,6 +52,62 @@
    '<div class="leave-body" id="leaveBody"></div><div class="leave-message" id="leaveMessage" role="status" aria-live="polite"></div></div>';
   document.body.append(dialog);
   const body=$('leaveBody'),message=$('leaveMessage');
+  // Own employee profile: read-only live leave window; no account deactivation.
+  const profileLeave=$('accountProfileLeaveStatus');
+  function friendlyDate(s){
+   if(!/^\d{4}-\d{2}-\d{2}$/.test(String(s||'')))return 'date unavailable';
+   return new Intl.DateTimeFormat('en-PH',{timeZone:'UTC',month:'short',day:'numeric',year:'numeric'})
+    .format(new Date(s+'T12:00:00Z'));
+  }
+  function profileLeaveMessage(leave){
+   if(!profileLeave)return;
+   profileLeave.hidden=true;
+   profileLeave.replaceChildren();
+   profileLeave.classList.remove('leave-upcoming','leave-review','leave-unavailable');
+   const status=leave?.status||'NONE';
+   if(status==='NONE')return;
+   const title=document.createElement('strong'),dateLine=document.createElement('span');
+   dateLine.className='leave-window';
+   const guidance=document.createElement('span');
+   guidance.className='leave-guidance';
+   if(status==='ACTIVE'){
+    title.textContent='On Approved Leave';
+    guidance.textContent='Your approved leave is recognized by Form 48 through the end date. '+
+      'Physical gate scans remain recorded separately and require review if they overlap leave.';
+   }else if(status==='UPCOMING'){
+    title.textContent='Approved Leave Scheduled';
+    guidance.textContent='This leave is not active today. Normal attendance processing continues until it begins.';
+    profileLeave.classList.add('leave-upcoming');
+   }else if(status==='ON_LEAVE_REVIEW'){
+    title.textContent='Leave status on record — HR review';
+    guidance.textContent='Confirm the supporting official approval with your school HR office.';
+    profileLeave.classList.add('leave-review');
+   }else return;
+   dateLine.textContent=friendlyDate(leave.startDate)+' – '+friendlyDate(leave.endDate)+' (inclusive)';
+   profileLeave.append(title,dateLine);
+   if(leave.approvalReference&&status!=='ON_LEAVE_REVIEW'){
+    const ref=document.createElement('span');
+    ref.textContent='Approval reference: '+leave.approvalReference;
+    profileLeave.append(ref);
+   }
+   profileLeave.append(guidance);
+   profileLeave.hidden=false;
+  }
+  async function refreshProfileLeave(){
+   if(!profileLeave)return;
+   try{const data=await call('/my/status');profileLeaveMessage(data.leave);}
+   catch(error){
+    profileLeave.replaceChildren();
+    profileLeave.classList.add('leave-unavailable');
+    profileLeave.textContent='Leave status unavailable. Please review Leave Management or retry.';
+    profileLeave.hidden=false;
+   }
+  }
+  $('profileMenuButton')?.addEventListener('click',()=>{void refreshProfileLeave();});
+  document.addEventListener('attendigo:requests-changed',()=>{
+   if($('accountProfileDialog')?.open)void refreshProfileLeave();
+  });
+
   let tab='requests',busy=false;
   const say=(value,error=false)=>{message.textContent=value;message.classList.toggle('is-error',error);};
   const buttonFor=(label,cb)=>{
