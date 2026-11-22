@@ -32,9 +32,9 @@ test('Desktop and mobile menus are independent, not a one-at-a-time accordion', 
 });
 
 test('The new scripts are both versioned in the portal and PWA shell', () => {
-  assert.match(html, /src="\/portal\.js\?v=232" defer/);
+  assert.match(html, /src="\/portal\.js\?v=233" defer/);
   assert.match(html, /src="\/simplified-workspace\.js\?v=3" defer/);
-  assert.ok(worker.includes('"/portal.js?v=232"'));
+  assert.ok(worker.includes('"/portal.js?v=233"'));
   assert.ok(worker.includes('"/simplified-workspace.js?v=3"'));
-  assert.match(worker, /attendigo-v30[3-9]-/);
+  assert.match(worker, /attendigo-v304-ai-help/);
 });

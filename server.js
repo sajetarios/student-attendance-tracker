@@ -42,6 +42,7 @@ const { registerClassQrRoutes } = require('./class-qr-routes');
 const { registerStaffLunchRoutes } = require('./staff-lunch-routes');
 const { registerStaffObRoutes } = require('./staff-ob-routes');
 const { registerStaffLeaveRoutes } = require('./staff-leave-routes');
+const { getStaffLeaveStatus, gateVisibleLeave } = require('./staff-approved-leave-status');
 const { registerDepartmentWorkspaceRoutes } = require('./department-workspace-routes');
 const { registerStaffGateDtrRoutes } = require('./staff-gate-dtr-routes');
 const { registerGateDtrReviewRoutes } = require('./staff-gate-dtr-review-routes');
@@ -2324,9 +2325,13 @@ app.post('/api/gate/teacher-lookup', authenticateSchoolClient, requireSchoolRole
     if (!result.rowCount) return res.status(404).json({ error: 'Teacher QR code not found or account is inactive.' });
     const teacher = result.rows[0];
     if (!teacher.hasPhoto) return res.status(409).json({ error: 'No registered teacher photo is available. Ask the School Administrator to upload a photo before recording teacher gate attendance.' });
+    // School-local, read-only status; QR Gatekeepers never receive medical details.
+    const leaveStatus = gateVisibleLeave(await getStaffLeaveStatus(pool,req.auth.schoolId,teacher.userId));
+    res.set('Cache-Control','no-store, private');
     return res.json({ teacher: {
       userId: teacher.userId, username: teacher.username, fullName: teacher.fullName,
       teacherDesignations: teacher.teacherDesignations || [], teacherStatus: teacher.teacherStatus, role: teacher.role,
+      leaveStatus,
       photoUrl: `/api/gate/teacher/photo/${encodeURIComponent(qrToken)}`
     }});
   } catch (err) {

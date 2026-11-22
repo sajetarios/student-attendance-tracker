@@ -53,7 +53,7 @@ test('guide has no autonomous record write operations or hardcoded privileged UR
   assert.match(html,/attendigo-help\.css\?v=1/);
   for(const asset of ['/attendigo-help-topics.js?v=1','/attendigo-help-guide.js?v=1','/attendigo-help.css?v=1'])
     assert.ok(sw.includes(JSON.stringify(asset)), 'Offline PWA asset: '+asset);
-  assert.match(sw,/attendigo-v303-ai-help/);
+  assert.match(sw,/attendigo-v304-ai-help/);
 });
 test('AI endpoint is disabled until explicitly configured and is authenticated', async () => {
   const registered={get:new Map(),post:new Map()};

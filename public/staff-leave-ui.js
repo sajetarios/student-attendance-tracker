@@ -52,6 +52,62 @@
    '<div class="leave-body" id="leaveBody"></div><div class="leave-message" id="leaveMessage" role="status" aria-live="polite"></div></div>';
   document.body.append(dialog);
   const body=$('leaveBody'),message=$('leaveMessage');
+  // Own employee profile: read-only live leave window; no account deactivation.
+  const profileLeave=$('accountProfileLeaveStatus');
+  function friendlyDate(s){
+   if(!/^\d{4}-\d{2}-\d{2}$/.test(String(s||'')))return 'date unavailable';
+   return new Intl.DateTimeFormat('en-PH',{timeZone:'UTC',month:'short',day:'numeric',year:'numeric'})
+    .format(new Date(s+'T12:00:00Z'));
+  }
+  function profileLeaveMessage(leave){
+   if(!profileLeave)return;
+   profileLeave.hidden=true;
+   profileLeave.replaceChildren();
+   profileLeave.classList.remove('leave-upcoming','leave-review','leave-unavailable');
+   const status=leave?.status||'NONE';
+   if(status==='NONE')return;
+   const title=document.createElement('strong'),dateLine=document.createElement('span');
+   dateLine.className='leave-window';
+   const guidance=document.createElement('span');
+   guidance.className='leave-guidance';
+   if(status==='ACTIVE'){
+    title.textContent='On Approved Leave';
+    guidance.textContent='Your approved leave is recognized by Form 48 through the end date. '+
+      'Physical gate scans remain recorded separately and require review if they overlap leave.';
+   }else if(status==='UPCOMING'){
+    title.textContent='Approved Leave Scheduled';
+    guidance.textContent='This leave is not active today. Normal attendance processing continues until it begins.';
+    profileLeave.classList.add('leave-upcoming');
+   }else if(status==='ON_LEAVE_REVIEW'){
+    title.textContent='Leave status on record — HR review';
+    guidance.textContent='Confirm the supporting official approval with your school HR office.';
+    profileLeave.classList.add('leave-review');
+   }else return;
+   dateLine.textContent=friendlyDate(leave.startDate)+' – '+friendlyDate(leave.endDate)+' (inclusive)';
+   profileLeave.append(title,dateLine);
+   if(leave.approvalReference&&status!=='ON_LEAVE_REVIEW'){
+    const ref=document.createElement('span');
+    ref.textContent='Approval reference: '+leave.approvalReference;
+    profileLeave.append(ref);
+   }
+   profileLeave.append(guidance);
+   profileLeave.hidden=false;
+  }
+  async function refreshProfileLeave(){
+   if(!profileLeave)return;
+   try{const data=await call('/my/status');profileLeaveMessage(data.leave);}
+   catch(error){
+    profileLeave.replaceChildren();
+    profileLeave.classList.add('leave-unavailable');
+    profileLeave.textContent='Leave status unavailable. Please review Leave Management or retry.';
+    profileLeave.hidden=false;
+   }
+  }
+  $('profileMenuButton')?.addEventListener('click',()=>{void refreshProfileLeave();});
+  document.addEventListener('attendigo:requests-changed',()=>{
+   if($('accountProfileDialog')?.open)void refreshProfileLeave();
+  });
+
   let tab='requests',busy=false;
   const say=(value,error=false)=>{message.textContent=value;message.classList.toggle('is-error',error);};
   const buttonFor=(label,cb)=>{
@@ -124,6 +180,43 @@
   }
   async function renderRequests(){
    body.replaceChildren(newRequest());
+   if(user.role==='SCHOOL_ADMIN'){
+    const panel=document.createElement('section');
+    panel.className='leave-card';
+    panel.innerHTML='<div class="leave-section-title"><div><strong>Gate visits during approved leave</strong>'+
+      '<p class="leave-help">Review physical movements that overlap approved leave. A scan does not cancel leave or automatically fill the DTR.</p></div>'+
+      '<label>School date <input type="date" class="leave-overlap-date" required></label>'+
+      '<button class="leave-btn leave-check-overlaps" type="button">Check date</button></div>'+
+      '<div class="leave-overlap-list" role="status" aria-live="polite">Loading…</div>';
+    const fields=new Intl.DateTimeFormat('en-US',{timeZone:'Asia/Manila',year:'numeric',month:'2-digit',day:'2-digit'})
+     .formatToParts(new Date());
+    const val=key=>fields.find(p=>p.type===key)?.value||'';
+    const dateInput=panel.querySelector('.leave-overlap-date');
+    dateInput.value=val('year')+'-'+val('month')+'-'+val('day');
+    const list=panel.querySelector('.leave-overlap-list');
+    async function checkOverlaps(){
+     list.textContent='Checking documented leave and verified gate movements…';
+     try{
+      const data=await call('/overlaps?date='+encodeURIComponent(dateInput.value));
+      list.replaceChildren();
+      if(!data.overlaps?.length){
+       list.textContent='No verified gate movements overlapping approved leave on this date.';
+       return;
+      }
+      data.overlaps.forEach(item=>{
+       const line=document.createElement('div');line.className='leave-overlap-row';
+       const title=document.createElement('strong');title.textContent=item.staffName||'Staff';
+       const detail=document.createElement('span');
+       detail.textContent=item.movementCount+' gate movement(s) · first '+item.firstMovement+
+        ', last '+item.lastMovement+' · HR/DTR review required';
+       line.append(title,detail);list.append(line);
+      });
+     }catch(e){list.textContent='Could not check leave overlaps: '+e.message;}
+    }
+    panel.querySelector('.leave-check-overlaps').addEventListener('click',()=>{void checkOverlaps();});
+    body.append(panel);
+    void checkOverlaps();
+   }
    const header=document.createElement('div');header.className='leave-section-title';header.innerHTML=
     '<h3>Applications and approvals</h3><button class="leave-btn" type="button">Refresh</button>';
    header.querySelector('button').addEventListener('click',()=>load().catch(e=>say(e.message,true)));

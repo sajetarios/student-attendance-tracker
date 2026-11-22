@@ -1381,6 +1381,7 @@ body.dark-mode .content-wrap > .school-heading.is-compact,body[data-theme="dark"
                       <img id="studentScanNoticePhoto" class="student-scan-verified-photo" alt="Registered student photo" hidden>
                       <strong id="studentScanNoticeName" class="student-scan-notice-name"></strong>
                       <span id="studentScanNoticeMeta" class="student-scan-notice-meta"></span>
+                      <div id="studentScanNoticeLeave" class="attendigo-leave-indicator" role="status" aria-live="polite" hidden></div>
                       <p id="studentScanNoticeConfirmation" class="student-scan-notice-copy" hidden>By selecting Verify &amp; Record, you confirm the registered photo matches the person at the gate.</p>
                       <p id="studentScanNoticePhotoWarning" class="gate-photo-warning" hidden>Registered photo unavailable. Attendance cannot be recorded until the School Administrator uploads a valid photo.</p>
                       <input type="checkbox" id="studentPhotoVerified" hidden aria-hidden="true" tabindex="-1">
@@ -2404,6 +2405,7 @@ body.dark-mode .content-wrap > .school-heading.is-compact,body[data-theme="dark"
   <div id="toast" class="toast" role="status" aria-live="polite"></div>
   <dialog id="accountProfileDialog" class="account-profile-dialog" aria-labelledby="accountProfileTitle">
     <div class="dialog-header"><div><p class="eyebrow muted">ACCOUNT</p><h2 id="accountProfileTitle">My profile</h2></div><button type="button" class="dialog-close" id="closeAccountProfile" aria-label="Close">×</button></div>
+    <div id="accountProfileLeaveStatus" class="attendigo-profile-leave-status" role="status" aria-live="polite" hidden></div>
     <form id="accountProfileForm" method="post"><div class="field-group"><label for="accountProfileUsername">Username</label><input id="accountProfileUsername" readonly></div><div class="field-group"><label for="accountProfileDisplayName">Display name</label><input id="accountProfileDisplayName" maxlength="160" required></div><div class="field-group"><label for="accountProfileMobile">Mobile number</label><input id="accountProfileMobile" maxlength="40" autocomplete="tel"></div><div class="form-actions"><button class="primary-button" type="submit">Save profile</button></div></form>
     <form id="accountPasswordForm" class="account-password-form" method="post"><h3>Change password</h3><div class="field-group"><label for="accountCurrentPassword">Current password</label><input id="accountCurrentPassword" type="password" autocomplete="current-password" required></div><div class="field-group"><label for="accountNewPassword">New password</label><input id="accountNewPassword" type="password" minlength="12" maxlength="256" autocomplete="new-password" required><small class="field-hint">Use at least 12 characters. Other active sessions will be signed out.</small></div><div class="form-actions"><button class="outline-button" type="submit">Update password</button></div></form>
     <p id="accountProfileFeedback" class="inline-feedback" role="status" aria-live="polite"></p>
@@ -2428,7 +2430,7 @@ body.dark-mode .content-wrap > .school-heading.is-compact,body[data-theme="dark"
   <script src="/learner-roster-view.js?v=1" defer></script>
   <script src="/student-name-format.js?v=2" defer></script>
   <script src="/teacher-scanner-schedule.js?v=1" defer></script>
-  <script src="/portal.js?v=232" defer></script>
+  <script src="/portal.js?v=233" defer></script>
   <script src="/schedule-list-filters.js?v=1" defer></script>
   <script src="/staff-lunch-ui.js?v=4" defer></script>
   <script src="/staff-ob-ui.js?v=5" defer></script>
@@ -2461,7 +2463,8 @@ body.dark-mode .content-wrap > .school-heading.is-compact,body[data-theme="dark"
   <script src="/simplified-workspace.js?v=3" defer></script>
 <script defer src="/school-header-responsive.js?v=2"></script>
 <link rel="stylesheet" href="/staff-leave-ui.css?v=1">
-  <script src="/staff-leave-ui.js?v=1" defer></script>
+<link rel="stylesheet" href="/leave-status-indicator.css?v=1">
+  <script src="/staff-leave-ui.js?v=2" defer></script>
   <script src="/attendigo-help-topics.js?v=1" defer></script>
   <script src="/attendigo-help-guide.js?v=1" defer></script>
 </body>

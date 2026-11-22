@@ -40,6 +40,14 @@ function registerStaffLeaveRoutes(app,pool,{authenticateSchoolClient,requireScho
   headReviewedAt:r.head_decided_at,adminReviewedAt:r.admin_reviewed_at,
   verifiedAt:r.verified_at,revision:r.revision
  });
+ app.get('/api/staff-leave/my/status',...auth,async(req,res)=>{
+  res.set('Cache-Control','no-store, private');
+  try{
+   const leave=await require('./staff-approved-leave-status').getStaffLeaveStatus(
+    pool,req.auth.schoolId,req.auth.userId);
+   return res.json({leave});
+  }catch(error){return sqlErr(res,error);}
+ });
  app.get('/api/staff-leave/requests',...auth,async(req,res)=>{
   try{
    let where='WHERE r.school_id=$1',args=[req.auth.schoolId];
@@ -51,6 +59,38 @@ function registerStaffLeaveRoutes(app,pool,{authenticateSchoolClient,requireScho
    const rows=await pool.query(rosterSql+' '+where+' ORDER BY r.submitted_at DESC LIMIT 200',args);
    res.json({requests:rows.rows.map(printable)});
   }catch(e){sqlErr(res,e);}
+ });
+ app.get('/api/staff-leave/overlaps',...auth,async(req,res)=>{
+  res.set('Cache-Control','no-store, private');
+  if(req.auth.role!=='SCHOOL_ADMIN')
+   return res.status(403).json({error:'Only the school administrator may review school-wide leave attendance overlaps.'});
+  const date=String(req.query?.date||require('./staff-lunch-routes').manilaDate());
+  if(!dateOk(date))return res.status(400).json({error:'Select a valid Philippine school date.'});
+  try{
+   // A physical visit during approved leave is an audit exception, not proof
+   // of return to duty and never an automatic DTR time punch.
+   const data=await pool.query(
+    "WITH movement AS ("+
+    " SELECT e.staff_user_id AS staff_id,e.occurred_at FROM staff_attendance_events e "+
+    " WHERE e.school_id=$1 AND e.school_date=$2::date AND e.event_kind='GATE_MOVEMENT' "+
+    "   AND e.verification_status='VERIFIED' "+
+    " UNION ALL SELECT t.teacher_user_id,t.occurred_at FROM teacher_gate_events t "+
+    " WHERE t.school_id=$1 AND t.school_date=$2::date AND t.photo_verified=TRUE "+
+    "   AND NOT EXISTS (SELECT 1 FROM staff_attendance_events e WHERE e.school_id=t.school_id "+
+    "    AND e.legacy_gate_event_id=t.event_id)) "+
+    " SELECT m.staff_id AS \"staffUserId\",u.display_name AS \"staffName\", "+
+    " COUNT(*)::int AS \"movementCount\", "+
+    " to_char(MIN(m.occurred_at) AT TIME ZONE 'Asia/Manila','HH24:MI') AS \"firstMovement\", "+
+    " to_char(MAX(m.occurred_at) AT TIME ZONE 'Asia/Manila','HH24:MI') AS \"lastMovement\" "+
+    " FROM movement m JOIN school_users u ON u.school_id=$1 AND u.user_id=m.staff_id "+
+    " WHERE EXISTS(SELECT 1 FROM staff_form48_approved_leaves l "+
+    " WHERE l.school_id=$1 AND l.staff_user_id=m.staff_id AND l.revoked_at IS NULL "+
+    " AND l.start_date<=$2::date AND l.end_date>=$2::date) "+
+    " GROUP BY m.staff_id,u.display_name ORDER BY u.display_name LIMIT 100",
+    [req.auth.schoolId,date]);
+   return res.json({schoolDate:date,overlaps:data.rows,
+    notice:'Read-only exception list. Original gate movements and approved leave remain unchanged.'});
+  }catch(err){return sqlErr(res,err);}
  });
  app.get('/api/staff-leave/requests/:id/form6',...auth,async(req,res)=>{
   try{
