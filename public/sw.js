@@ -1,11 +1,11 @@
-const CACHE = "attendigo-v291-simplified-role-workspaces";
+const CACHE = "attendigo-v292-embedded-class-qr-monitor";
 
 const SHELL = [
   "/typography.css?v=1",
   "/attendigo-workspace-density-theme.css?v=1",
   "/attendigo-unified-workspace.css?v=1",
   "/attendigo-unified-navigation.js?v=1",
-  "/simplified-workspace.js?v=1",
+  "/simplified-workspace.js?v=2",
   "/simplified-workspace.css?v=1",
   "/fonts/InterVariable.woff2",
   "/fonts/InterVariable-Italic.woff2",
@@ -54,10 +54,12 @@ const SHELL = [
   "/teacher-learner-roster.css?v=5",
   "/learner-roster-view.js?v=1",
   "/student-name-format.js?v=2",
-  "/class-qr-dashboard-link.js?v=11",
+  "/class-qr-dashboard-link.js?v=12",
+  "/class-qr-monitor.js?v=2",
+  "/class-qr-monitor-embedded.css?v=1",
   "/teacher-roster-popover.js?v=2",
   "/portal.css?v=0.9.119",
-  "/portal.js?v=224",
+  "/portal.js?v=225",
   "/department-workspace.css?v=1",
   "/department-workspace.js?v=5",
   "/department-monitor-refresh.css?v=1",
@@ -210,7 +212,7 @@ self.addEventListener("fetch", event => {
   // Keep scheduling and shared notification UI fresh without breaking offline operation.
   // Notifications change often; always prefer online JS/CSS to avoid old large-text layouts.
   // Unlike cache-first general assets, these role-critical resources prefer the deployed version.
-  if (['/universal-notifications.js','/universal-notifications.css','/portal.js','/special-program-batch-ui.js','/learner-roster-view.js','/learner-roster-view.css','/student-name-format.js','/teacher-learner-roster.css','/portal.css','/guardian-ui.js','/manual-folio.js','/manual-folio.css','/schedule-form-layout.css','/schedule-workspace-ui.js','/teacher-assignment-modal.css','/smart-attendance-overview.css','/role-controls-responsive.css'].includes(url.pathname)) {
+  if (['/universal-notifications.js','/universal-notifications.css','/portal.js','/special-program-batch-ui.js','/learner-roster-view.js','/learner-roster-view.css','/student-name-format.js','/teacher-learner-roster.css','/portal.css','/guardian-ui.js','/manual-folio.js','/manual-folio.css','/schedule-form-layout.css','/schedule-workspace-ui.js','/teacher-assignment-modal.css','/smart-attendance-overview.css','/role-controls-responsive.css','/class-qr-monitor.js','/class-qr-monitor-embedded.css','/class-qr-dashboard-link.js'].includes(url.pathname)) {
     event.respondWith((async () => {
       try {
         const fresh = await fetch(request, { cache: 'no-store' });
