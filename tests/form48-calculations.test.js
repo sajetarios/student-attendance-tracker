@@ -96,3 +96,32 @@ test('server restricts Form 48 draft writes to administrators, school scope and 
  assert.match(src,/verified_by_position/);
  assert.match(src,/approved_by_position/);
 });
+
+
+test('approved leave is reflected on its first day and is not counted before its start',()=>{
+ const leave={from:'2026-11-23',to:'2026-11-24',leaveType:'SICK',approvalReference:'SAMPLE-SL-23'};
+ const settings={workdays:[1,2,3,4,5],regularHours:{AM_IN:'07:00',AM_OUT:'12:00',PM_IN:'13:00',PM_OUT:'16:00'},saturdayHours:{},dayReviews:{}};
+ const sameDay=summarizeForm48({month:'2026-11',today:'2026-11-23',settings,approvedLeaves:[leave]});
+ assert.equal(sameDay.assessments.find(a=>a.date==='2026-11-23').status,'APPROVED_LEAVE');
+ assert.equal(sameDay.assessments.find(a=>a.date==='2026-11-24').status,'UPCOMING_APPROVED_LEAVE');
+ assert.equal(sameDay.summary.approvedLeaveDays,1);
+ assert.equal(sameDay.summary.excusedDays,1);
+ const previous=summarizeForm48({month:'2026-11',today:'2026-11-22',settings,approvedLeaves:[leave]});
+ assert.equal(previous.assessments.find(a=>a.date==='2026-11-23').status,'UPCOMING_APPROVED_LEAVE');
+ assert.equal(previous.summary.approvedLeaveDays,0);
+ const completed=summarizeForm48({month:'2026-11',today:'2026-11-25',settings,approvedLeaves:[leave]});
+ assert.equal(completed.summary.approvedLeaveDays,2);
+});
+test('verified DTR punch during approved leave requires review without false attendance credit',()=>{
+ const leave={from:'2026-11-23',to:'2026-11-24',leaveType:'SICK',approvalReference:'SAMPLE-SL-23'};
+ const settings={workdays:[1,2,3,4,5],regularHours:{AM_IN:'07:00',AM_OUT:'12:00',PM_IN:'13:00',PM_OUT:'16:00'},saturdayHours:{},dayReviews:{}};
+ for(const today of ['2026-11-23','2026-11-25']){
+  const actual=summarizeForm48({month:'2026-11',today,settings,approvedLeaves:[leave],
+   records:[{date:'2026-11-23',slots:{AM_IN:'07:15'}}]});
+  const row=actual.assessments.find(a=>a.date==='2026-11-23');
+  assert.equal(row.status,'LEAVE_PUNCH_CONFLICT');
+  assert.equal(row.needsReview,true);
+  assert.equal(actual.summary.daysPresent,0);
+  assert.equal(actual.summary.hasUnreviewed,true);
+ }
+});
