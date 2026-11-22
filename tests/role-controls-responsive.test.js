@@ -2,7 +2,7 @@
 const test=require('node:test');
 const assert=require('node:assert/strict');
 const fs=require('node:fs');
-const {assertCachedAsset}=require('./support/asset-contract');
+const {assertCachedAsset,assertCacheRevisionAtLeast}=require('./support/asset-contract');
 const read=name=>fs.readFileSync('public/'+name,'utf8');
 
 test('main admin/staff and standalone learner/guardian dashboards load shared responsive controls',()=>{
@@ -57,7 +57,7 @@ test('table wrappers scroll horizontally without hiding columns or changing tabl
 test('unrelated role permission and Form 48 isolated printing scripts remain loaded',()=>{
  const html=read('portal.html');
  const script=read('form48-report.js');
- assert.match(html,/portal\.js\?v=223/);
+ assertCachedAsset(html,read('sw.js'),'portal.js',{minimumVersion:224});
  assert.match(html,/form48-report\.js\?v=15/);
  assert.match(script,/function printDtrFromIsolatedPage\(output,status\)/);
  assert.match(script,/@page\{size:A4 portrait;margin:5mm\}/);
@@ -67,7 +67,7 @@ test('unrelated role permission and Form 48 isolated printing scripts remain loa
 test('layout CSS is fetched network-first to avoid stale iPad button rules after release',()=>{
  const worker=read('sw.js');
  const portal=read('portal.html');
- assert.match(worker,/attendigo-v289-dtr-gate-approval/);
+ assertCacheRevisionAtLeast(worker,290);
  assert.match(worker,/role-controls-responsive\.css/);
  assert.match(worker,/smart-attendance-overview\.css/);
  assert.match(worker,/cache: 'no-store'/);
