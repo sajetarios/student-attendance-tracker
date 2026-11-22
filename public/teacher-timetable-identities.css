@@ -1,0 +1,145 @@
+/* Teacher timetable identity: different kinds of assignment must never be
+   inferred from schedule_type or represented by color alone. The same class
+   can carry BOTH independently verified roles. No DTR print styles altered. */
+@media screen {
+  #weeklyTimetableBoard.tt-grid-host .tt-subject.tt-tone-teacher-class {
+    background: #e0f5e9;
+    border: 1px solid #8ecfa9;
+    color: #155a3b;
+  }
+  #weeklyTimetableBoard.tt-grid-host .tt-subject.tt-tone-my-advisory {
+    background: #e4f0ff;
+    border: 1px solid #93b8ed;
+    color: #194e86;
+  }
+  #weeklyTimetableBoard.tt-grid-host .tt-subject.tt-tone-teacher-both {
+    background: #ede6ff;
+    border: 1px solid #bda8e8;
+    color: #4d3482;
+  }
+  #weeklyTimetableBoard.tt-grid-host .tt-subject.tt-tone-teacher-related {
+    background: var(--ui-panel-soft, #f3f6fa);
+    border: 1px solid var(--ui-line, #d8e1ee);
+    color: var(--ui-text, #24354e);
+  }
+  /* The amber "changed", red "cancelled" states are intentional and override
+     ordinary role colors; the subject/adviser chips still remain present. */
+  #weeklyTimetableBoard.tt-grid-host .tt-subject.tt-tone-adjusted {
+    background: #fff1d7;
+    color: #835100;
+    border-color: #edc47b;
+  }
+  #weeklyTimetableBoard.tt-grid-host .tt-subject.tt-tone-cancelled {
+    background: #fae5e8;
+    color: #a04454;
+    border-color: #e4a4ae;
+  }
+  #weeklyTimetableBoard.tt-grid-host .tt-relationship-badges {
+    display: flex;
+    flex-flow: row wrap;
+    align-items: center;
+    justify-content: center;
+    gap: 3px;
+    width: 100%;
+    min-width: 0;
+    margin-top: 4px;
+  }
+  #weeklyTimetableBoard.tt-grid-host .tt-relation-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    max-width: 100%;
+    border: 1px solid transparent;
+    border-radius: 6px;
+    padding: 3px 5px;
+    font: 750 10px/1.15 inherit;
+    font-family: inherit;
+    font-size: 10px;
+    line-height: 1.2;
+    font-weight: 750;
+    letter-spacing: 0;
+    text-align: center;
+    overflow-wrap: anywhere;
+  }
+  #weeklyTimetableBoard.tt-grid-host .tt-relation-subject,
+  #weeklyTimetableBoard .teacher-list-relationship.is-subject {
+    background: #d0eddd;
+    color: #155d3a;
+    border-color: #9dceb1;
+  }
+  #weeklyTimetableBoard.tt-grid-host .tt-relation-advisory,
+  #weeklyTimetableBoard .teacher-list-relationship.is-advisory {
+    background: #d5e6ff;
+    color: #164b86;
+    border-color: #a9caee;
+  }
+  #weeklyTimetableBoard.tt-grid-host .tt-grid-legend i.tt-legend-both {
+    background: #8866c9;
+  }
+  #weeklyTimetableBoard.tt-grid-host .tt-grid-legend i.tt-legend-teaching {
+    background: #51b98a;
+  }
+  #weeklyTimetableBoard.tt-grid-host .tt-grid-legend i.tt-legend-advisory {
+    background: #5f93d5;
+  }
+  #weeklyTimetableBoard .teacher-list-relationships {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+    margin-top: 5px;
+  }
+  #weeklyTimetableBoard .teacher-list-relationship {
+    display: inline-block;
+    border: 1px solid var(--ui-line);
+    border-radius: 5px;
+    padding: 3px 6px;
+    font-size: 10px;
+    line-height: 1.3;
+    font-weight: 700;
+  }
+  @media (max-width: 740px) {
+    #weeklyTimetableBoard.tt-grid-host .tt-subject {
+      min-height: 70px;
+      padding: 8px 6px;
+    }
+    #weeklyTimetableBoard.tt-grid-host .tt-relation-badge {
+      font-size: 10px;
+      padding: 4px 5px;
+    }
+  }
+  html[data-ui-theme="dark"] #weeklyTimetableBoard.tt-grid-host .tt-subject.tt-tone-teacher-class {
+    background: #163d32;
+    color: #b4f4cf;
+    border-color: #367b5c;
+  }
+  html[data-ui-theme="dark"] #weeklyTimetableBoard.tt-grid-host .tt-subject.tt-tone-my-advisory {
+    background: #173958;
+    color: #c4e0ff;
+    border-color: #497bad;
+  }
+  html[data-ui-theme="dark"] #weeklyTimetableBoard.tt-grid-host .tt-subject.tt-tone-teacher-both {
+    background: #342653;
+    color: #ebddff;
+    border-color: #785ea5;
+  }
+  html[data-ui-theme="dark"] #weeklyTimetableBoard.tt-grid-host .tt-relation-subject,
+  html[data-ui-theme="dark"] #weeklyTimetableBoard .teacher-list-relationship.is-subject {
+    background: #1b5139;
+    color: #d0ffdf;
+    border-color: #4a8966;
+  }
+  html[data-ui-theme="dark"] #weeklyTimetableBoard.tt-grid-host .tt-relation-advisory,
+  html[data-ui-theme="dark"] #weeklyTimetableBoard .teacher-list-relationship.is-advisory {
+    background: #20476f;
+    color: #d6eaff;
+    border-color: #5885b4;
+  }
+  html[data-ui-theme="dark"] #weeklyTimetableBoard.tt-grid-host .tt-subject.tt-tone-adjusted {
+    background: #46371b;
+    color: #ffdd96;
+  }
+  html[data-ui-theme="dark"] #weeklyTimetableBoard.tt-grid-host .tt-subject.tt-tone-cancelled {
+    background: #4c2735;
+    color: #ffa6b4;
+  }
+}
