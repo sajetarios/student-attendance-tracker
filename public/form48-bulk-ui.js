@@ -120,7 +120,8 @@
     defaults=result.defaults;saveDefaults.disabled=false;
     for(const key of signatoryKeys)signatoryFields[key].value=defaults[key]||'';
     if(saveSignatories)saveSignatories.disabled=false;
-    saySignatories(defaults.revision>0?'These settings apply to all staff DTRs.':
+    saySignatories(signatoryKeys.every(key=>String(defaults[key]||'').trim())?
+     'Both signatories are configured for every staff DTR.':
      'Enter and save both signatories once for the school.');
    }catch(err){
     if(saveSignatories)saveSignatories.disabled=true;
