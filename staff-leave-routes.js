@@ -1,5 +1,6 @@
 'use strict';
-const {randomUUID}=require('node:crypto');
+const {randomUUID,createHash}=require('node:crypto');
+const express=require('express');
 const {parseRequest,positiveDays,dateOk,canView,nextStatus,allowReviewer}=require('./staff-leave-policy');
 const UUID=/^[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}$/i;
 const ROLES=['TEACHER','DEPARTMENT_HEAD','SCHOOL_ADMIN'];
@@ -144,6 +145,8 @@ function registerStaffLeaveRoutes(app,pool,{authenticateSchoolClient,requireScho
     await c.query('COMMIT');
     return res.json({status:'REJECTED',notice:'External disapproval recorded. Attendance remains unchanged.'});
    }
+   const attachment=await c.query("SELECT 1 FROM staff_leave_documents WHERE school_id=$1 AND request_id=$2 AND document_kind='APPROVAL' LIMIT 1",[req.auth.schoolId,row.request_id]);
+   if(!attachment.rowCount){await c.query('ROLLBACK');return res.status(409).json({error:'Attach the official signed approval (PDF/JPG/PNG) before certifying leave.'});}
    await c.query('SELECT pg_advisory_xact_lock(hashtext($1))',[req.auth.schoolId+':leave:'+row.staff_user_id]);
    const overlap=await c.query('SELECT 1 FROM staff_form48_approved_leaves WHERE school_id=$1 AND staff_user_id=$2 AND revoked_at IS NULL AND start_date<=$4::date AND end_date>=$3::date LIMIT 1',
     [req.auth.schoolId,row.staff_user_id,row.start_date,row.end_date]);
@@ -212,6 +215,8 @@ function registerStaffLeaveRoutes(app,pool,{authenticateSchoolClient,requireScho
     !(req.auth.role==='SCHOOL_ADMIN'||(req.auth.role==='DEPARTMENT_HEAD'&&e.claimant_role==='SCHOOL_ADMIN'))){
     await c.query('ROLLBACK');return res.status(403).json({error:'A separate authorized verifier is required; only proposed claims can be certified.'});
    }
+   const sourceDoc=await c.query("SELECT 1 FROM staff_leave_documents WHERE school_id=$1 AND credit_entry_id=$2 AND document_kind='SPECIAL_ORDER' LIMIT 1",[req.auth.schoolId,e.credit_entry_id]);
+   if(!sourceDoc.rowCount){await c.query('ROLLBACK');return res.status(409).json({error:'Attach the signed Special Order or official credit certification before granting credits.'});}
    const existing=await c.query('SELECT 1 FROM staff_leave_credit_entries WHERE school_id=$1 AND staff_user_id=$2 AND credit_account=$3 AND activity_kind=$4 AND approval_reference=$5 AND status=\'VERIFIED\' AND entry_kind=\'EARNED\' LIMIT 1',
     [req.auth.schoolId,e.staff_user_id,e.credit_account,e.activity_kind,reference]);
    if(existing.rowCount){await c.query('ROLLBACK');return res.status(409).json({error:'This official reference is already credited for this employee/activity.'});}
@@ -222,6 +227,77 @@ function registerStaffLeaveRoutes(app,pool,{authenticateSchoolClient,requireScho
    res.json({entryId:e.credit_entry_id,status:'VERIFIED',approvedDays});
   }catch(e){await c.query('ROLLBACK').catch(()=>{});sqlErr(res,e);}
   finally{c.release();}
+ });
+
+ // Official supporting evidence is private, tenant-scoped, access-checked and never a public asset.
+ const readDocument=express.raw({type:['application/pdf','image/png','image/jpeg'],limit:'4mb'});
+ const cleanFilename=s=>String(s||'supporting-document').replace(/[^a-zA-Z0-9 ._()-]/g,'_').slice(0,120);
+ const contentType=req=>String(req.headers['content-type']||'').split(';')[0].trim().toLowerCase();
+ async function saveDocument(req,res,kind){
+  const id=String(req.params.id||''),mime=contentType(req),documentKind=String(req.headers['x-document-kind']||'').toUpperCase();
+  if(!UUID.test(id)||!['application/pdf','image/png','image/jpeg'].includes(mime)||
+   !['APPLICATION','MEDICAL','CERTIFICATION','APPROVAL','SPECIAL_ORDER','OTHER'].includes(documentKind)||
+   !Buffer.isBuffer(req.body)||req.body.length<1||req.body.length>4194304)
+   return res.status(400).json({error:'Provide a valid PDF, JPG or PNG file up to 4 MB.'});
+  try{
+   let query;
+   if(kind==='REQUEST'){
+    const row=await getStaff(req,res,id);
+    if(!row)return;
+    if(['APPROVED','REJECTED','CANCELLED'].includes(row.status))
+     return res.status(409).json({error:'This leave decision is finalized.'});
+   }else{
+    query=await pool.query('SELECT e.staff_user_id,u.role AS claimant_role FROM staff_leave_credit_entries e JOIN school_users u ON u.school_id=e.school_id AND u.user_id=e.staff_user_id WHERE e.school_id=$1 AND e.credit_entry_id=$2 AND e.status=\'PROPOSED\'',
+     [req.auth.schoolId,id]);
+    if(!query.rowCount)return res.status(404).json({error:'Unverified credit claim not found.'});
+    const claim=query.rows[0];
+    if(req.auth.userId!==claim.staff_user_id&&req.auth.role!=='SCHOOL_ADMIN'&&
+     !(req.auth.role==='DEPARTMENT_HEAD'&&claim.claimant_role==='SCHOOL_ADMIN'))
+     return res.status(403).json({error:'You cannot attach evidence to this claim.'});
+   }
+   const sha=createHash('sha256').update(req.body).digest('hex');
+   const name=cleanFilename(req.headers['x-filename']);
+   const saved=await pool.query(
+    'INSERT INTO staff_leave_documents(school_id,request_id,credit_entry_id,uploaded_by_user_id,document_kind,filename,content_type,content,sha256) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9) RETURNING document_id AS "documentId"',
+    [req.auth.schoolId,kind==='REQUEST'?id:null,kind==='CREDIT'?id:null,req.auth.userId,documentKind,name,mime,req.body,sha]);
+   return res.status(201).json({documentId:saved.rows[0].documentId,documentKind,filename:name});
+  }catch(e){return sqlErr(res,e);}
+ }
+ app.post('/api/staff-leave/requests/:id/documents',...auth,readDocument,(req,res)=>saveDocument(req,res,'REQUEST'));
+ app.post('/api/staff-leave/credits/:id/documents',...auth,readDocument,(req,res)=>saveDocument(req,res,'CREDIT'));
+ app.get('/api/staff-leave/documents/:id',...auth,async(req,res)=>{
+  if(!UUID.test(req.params.id))return res.status(400).json({error:'Valid document ID required.'});
+  try{
+   const doc=await pool.query('SELECT d.*,r.staff_user_id AS leave_staff_id,r.department_id, c.staff_user_id AS credit_staff_id FROM staff_leave_documents d LEFT JOIN staff_leave_requests r ON r.school_id=d.school_id AND r.request_id=d.request_id LEFT JOIN staff_leave_credit_entries c ON c.school_id=d.school_id AND c.credit_entry_id=d.credit_entry_id WHERE d.school_id=$1 AND d.document_id=$2',
+    [req.auth.schoolId,req.params.id]);
+   if(!doc.rowCount)return res.status(404).json({error:'Document not found.'});
+   const d=doc.rows[0],owner=d.leave_staff_id||d.credit_staff_id;
+   if(req.auth.userId!==owner&&req.auth.role!=='SCHOOL_ADMIN'&&
+    !(req.auth.role==='DEPARTMENT_HEAD'&&d.document_kind!=='MEDICAL'&&d.department_id===req.auth.departmentId))
+    return res.status(403).json({error:'Document access denied.'});
+   res.set('Cache-Control','no-store, private');
+   res.set('Content-Type',d.content_type);
+   res.set('Content-Disposition','attachment; filename="'+cleanFilename(d.filename)+'"');
+   return res.send(d.content);
+  }catch(e){sqlErr(res,e);}
+ });
+ app.get('/api/staff-leave/requests/:id/documents',...auth,async(req,res)=>{
+  try{
+   const row=await getStaff(req,res,req.params.id);if(!row)return;
+   const q=await pool.query('SELECT document_id AS "documentId",document_kind AS "documentKind",filename,uploaded_at AS "uploadedAt" FROM staff_leave_documents WHERE school_id=$1 AND request_id=$2 ORDER BY uploaded_at DESC',[req.auth.schoolId,row.request_id]);
+   res.json({documents:q.rows.filter(d=>d.documentKind!=='MEDICAL'||req.auth.role==='SCHOOL_ADMIN'||req.auth.userId===row.staff_user_id)});
+  }catch(e){sqlErr(res,e);}
+ });
+ app.get('/api/staff-leave/credits/:id/documents',...auth,async(req,res)=>{
+  if(!UUID.test(req.params.id))return res.status(400).json({error:'Valid claim ID required.'});
+  try{
+   const c=await pool.query('SELECT staff_user_id FROM staff_leave_credit_entries WHERE school_id=$1 AND credit_entry_id=$2',[req.auth.schoolId,req.params.id]);
+   if(!c.rowCount)return res.status(404).json({error:'Credit claim not found.'});
+   if(req.auth.userId!==c.rows[0].staff_user_id&&req.auth.role!=='SCHOOL_ADMIN')
+    return res.status(403).json({error:'Access denied.'});
+   const q=await pool.query('SELECT document_id AS "documentId",document_kind AS "documentKind",filename FROM staff_leave_documents WHERE school_id=$1 AND credit_entry_id=$2 ORDER BY uploaded_at DESC',[req.auth.schoolId,req.params.id]);
+   res.json({documents:q.rows});
+  }catch(e){sqlErr(res,e);}
  });
 }
 module.exports={registerStaffLeaveRoutes};
