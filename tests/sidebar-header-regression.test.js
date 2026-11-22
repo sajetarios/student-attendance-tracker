@@ -12,7 +12,7 @@ const light = read('public/assets/attendigo-wordmark-on-light.svg');
 test('product logo uses its original transparent multicolor symbol and legible Inter text', () => {
   assert.match(html, /class="sidebar-product-wordmark" aria-hidden="true">Attendigo<\/span>/);
   assert.match(css, /img\.attendigo-logo\s*\{[^}]*width:46px!important;[^}]*height:46px!important;[^}]*object-fit:contain!important;[^}]*object-position:center!important/s);
-  assert.match(html, /src="\/assets\/attendigo-symbol-transparent\.svg\?v=2"/);
+  assert.match(html, /src="\/assets\/attendigo-official-emblem\.svg\?v=5"/);
   assert.match(css, /\.sidebar-product-wordmark\s*\{[^}]*font-family:var\(--font-ui,Inter,system-ui,sans-serif\)!important;[^}]*font-weight:620!important/s);
   assert.doesNotMatch(css, /background:var\(--side-logo-back\)!important/);
 });
@@ -43,13 +43,14 @@ test('service worker uses fresh version and precaches matching CSS', () => {
   assert.match(html, /\/typography\.css\?v=1/);
 });
 
-test('no square is painted behind the Attendigo product mark', () => {
-  assert.match(symbol, /id="key-black"/);
-  assert.match(symbol, /3 3 3 0 0/);
-  assert.doesNotMatch(symbol, /id="key-white"/);
+test('official emblem remains embedded and sidebar does not paint a square behind it', () => {
+  assert.match(symbol, /<svg[^>]*viewBox="0 0 300 300"/);
+  assert.match(symbol, /<image[^>]*href="data:image\/webp;base64,/);
+  assert.doesNotMatch(symbol, /<rect\b/);
   for (const svg of [dark, light]) {
-    assert.match(svg, /id="transparent-black"/);
-    assert.ok(svg.includes('clip-path="url(#symbol)" filter="url(#transparent-black)"'));
+    assert.match(svg, /<svg[^>]*viewBox="0 0 1769 496"/);
+    assert.match(svg, /<image[^>]*href="data:image\/jpeg;base64,/);
+    assert.doesNotMatch(svg, /href="https?:\/\//);
   }
-  assert.ok(sw.includes('\"/assets/attendigo-symbol-transparent.svg?v=2\"'));
+  assert.ok(sw.includes('"/assets/attendigo-official-emblem.svg?v=5"'));
 });
