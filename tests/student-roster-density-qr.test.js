@@ -43,3 +43,22 @@ test('service worker caches the updated roster assets',()=>{
   assertCachedAsset(html,sw,'teacher-learner-roster.css',{minimumVersion:6});
   assertCacheRevisionAtLeast(sw,296);
 });
+
+
+test('iPad Select header has an explicit narrow width instead of equal fifth-column sizing',()=>{
+  assert.match(portal, /rosterTable\?\.classList\.toggle\('teacher-roster-with-selection', teacher && showSelectionColumn\)/);
+  assert.match(css, /teacher-roster-compact\.teacher-roster-with-selection thead th:first-child\s*\{\s*width:48px;min-width:48px;max-width:48px/);
+  assert.match(css, /teacher-roster-compact thead th:nth-last-child\(4\)\s*\{\s*width:39%/);
+  assert.match(css, /teacher-roster-compact thead th:nth-last-child\(3\)\s*\{\s*width:24%/);
+  assert.match(css, /teacher-roster-compact thead th:nth-last-child\(2\)\s*\{\s*width:9%/);
+  assert.match(css, /teacher-roster-compact\.teacher-roster-with-selection tbody td\[data-label="Select"\]\s*\{/);
+  assert.match(css, /tbody td\[data-label="Select"\] \.student-select-box\s*\{\s*display:block;margin:0 auto/);
+  assert.match(css, /@media \(min-width:701px\)/);
+  assert.match(css, /On phones, learner cards retain the existing top-right selection placement/);
+});
+
+test('new roster revision is versioned for online and cached iPad sessions',()=>{
+  assertCachedAsset(html,sw,'portal.js',{minimumVersion:230});
+  assertCachedAsset(html,sw,'teacher-learner-roster.css',{minimumVersion:7});
+  assertCacheRevisionAtLeast(sw,298);
+});

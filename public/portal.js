@@ -1726,6 +1726,9 @@ function coverageStatusLabel(status) {
       ((departmentHead || (teacher && designations.includes('CLASS_ADVISER'))) && hasSelectableLearners);
     const rosterTable = $('studentRosterTable');
     rosterTable?.classList.toggle('teacher-roster-compact', teacher);
+    // Table-layout:fixed reads the header widths, not the body cells. Reserve only one
+    // checkbox-sized column when a role is allowed to select learners in bulk.
+    rosterTable?.classList.toggle('teacher-roster-with-selection', teacher && showSelectionColumn);
     $('studentsView')?.classList.toggle('teacher-directory-mode', teacher);
     const rosterHeading = $('studentRosterHeading');
     if (rosterHeading) rosterHeading.textContent = teacher ? 'My assigned learners' : (departmentHead ? 'Learner directory' : 'Registered students');
