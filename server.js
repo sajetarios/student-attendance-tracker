@@ -794,16 +794,17 @@ app.get('/api/class-adviser-assignments', authenticateSchoolClient,
         params.push(req.auth.userId);
         teacherFilter = ' AND ca.adviser_user_id=$2';
       } else if (req.auth.role === 'DEPARTMENT_HEAD') {
-        params.push(req.auth.departmentId);
-        // A section can be advisory-only (for example, SPJ) and have no subject period.
-        // Department Heads see adviser assignments owned by teachers in their department.
-        teacherFilter = ` AND EXISTS (
+        params.push(req.auth.departmentId, req.auth.userId);
+        // Department Heads see teachers in their own department plus their OWN
+        // official adviser assignment, even when their primary role is not TEACHER.
+        // Never expose an unrelated department's adviser assignment.
+        teacherFilter = ` AND (ca.adviser_user_id=$3 OR EXISTS (
           SELECT 1 FROM school_users adviser
           WHERE adviser.school_id=ca.school_id
             AND adviser.user_id=ca.adviser_user_id
             AND adviser.role='TEACHER'
             AND adviser.department_id=$2
-        )`;
+        ))`;
       }
       const result = await pool.query(
         `SELECT ca.assignment_id AS "assignmentId", ca.adviser_user_id AS "adviserUserId",
