@@ -97,7 +97,7 @@ test('Super Administrator keeps all five platform destinations and full storage 
 
 test('Layout changes do not alter printed DTR or security checks on deleted schools', () => {
   const middleware = read('auth-middleware.js');
-  assert.match(middleware, /JOIN schools s ON s\.school_id=us\.school_id AND s\.active=TRUE/);
+  assert.match(middleware, /JOIN schools s ON s\.school_id\s*=\s*us\.school_id AND s\.active\s*=\s*TRUE/);
   assert.match(portal, /api\('\/api\/auth\/me'\)/);
   assert.match(css, /@media print/);
   assert.doesNotMatch(script, /api\/|POST|PUT|PATCH|DELETE|\.innerHTML\s*=/);
