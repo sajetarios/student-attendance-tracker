@@ -2029,7 +2029,7 @@ function coverageStatusLabel(status) {
     $('studentScannerToggle').textContent = 'Open scanner';
     $('studentScanFeedback').textContent = 'Scanner stopped. Choose attendance settings to scan again.';
     $('studentScannerPanel').hidden = true;
-    $('studentScanSetupModal').hidden = false;
+    $('studentScanSetupModal').hidden = user.role === 'GATE_KEEPER';
   }
 
   async function onStudentQrDecoded(decodedText) {
@@ -6545,8 +6545,26 @@ let teacherActionMenuListenersInstalled = false;
     });
     renderStudents();
   });
-  $('studentScannerToggle').addEventListener('click', () => {
-    if (studentQrScanner?.isScanning) { stopStudentScanner(); return; }
+  $('studentScannerToggle').addEventListener('click', async () => {
+    if (studentQrScanner?.isScanning) { await stopStudentScanner(); return; }
+    if (user.role === 'GATE_KEEPER') {
+      // Gatekeepers have one authorized scope. Avoid making nontechnical guards
+      // configure a mode before every scan; teacher class setup is unchanged.
+      activeScanScope = 'SCHOOL';
+      activeScanPeriodId = null;
+      gateScanType = $('gateScanType')?.value || 'BOTH';
+      $('studentScanSetupModal').hidden = true;
+      $('studentScannerPanel').hidden = false;
+      $('studentScanFeedback').textContent = 'Starting gate camera…';
+      try { await startStudentScanner(); }
+      catch(error){
+        $('studentScanFeedback').textContent = error.message;
+        $('studentScanFeedback').className = 'scanner-feedback is-error';
+        showToast(error.message,true);
+        $('studentScannerPanel').hidden = true;
+      }
+      return;
+    }
     $('studentScanSetupModal').hidden = false;
   });
   $('gateScanType')?.addEventListener('change', event => {
