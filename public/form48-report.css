@@ -404,3 +404,86 @@
  }
  html.form48-print-document .form48-print-toolbar {display:none!important}
 }
+
+
+/* Form 48 report-first workspace: SCREEN ONLY, never overrides isolated A4 printing. */
+@media screen {
+ #form48ReportCard{display:flex;flex-direction:column;min-width:0}
+ #form48ReportCard>.section-toolbar{order:0}
+ #form48ReportCard>#form48FilterForm{order:1}
+ #form48ReportCard>.form48-tools{order:2}
+ #form48ReportCard>#form48BatchPanel{order:3}
+ #form48ReportCard>#form48Feedback{order:4}
+ #form48ReportCard>#form48SummaryStrip{order:5}
+ #form48ReportCard>#form48PreviewToolbar{order:6}
+ #form48ReportCard>#form48PrintArea{order:7}
+ #form48ReportCard>#form48DailyInsights{order:8}
+ #form48ReportCard>#form48GateIntelligence{order:9}
+ #form48ReportCard>#form48AdvancedSettings{order:10}
+ #form48ReportCard .form48-heading{align-items:center;gap:12px}
+ #form48ReportCard .form48-heading h3{font-size:clamp(17px,1.6vw,22px);line-height:1.25}
+ #form48ReportCard .form48-heading p{font-size:13px;line-height:1.5}
+ #form48ReportCard .form48-filter{grid-template-columns:minmax(210px,1.8fr) minmax(145px,.8fr) auto auto;gap:10px;margin:15px 0 9px}
+ #form48ReportCard .form48-filter label{font-size:13px;gap:6px}
+ #form48ReportCard .form48-filter button{white-space:nowrap;padding-inline:13px}
+ #form48ReportCard .form48-tools{align-items:center;gap:10px;margin:0 0 8px}
+ #form48ReportCard .form48-tools label{flex:1 1 250px;font-size:12px}
+ #form48ReportCard .form48-tools button{min-height:40px}
+ #form48ReportCard #form48Feedback{font-size:12px;line-height:1.5;margin:6px 0 10px;color:var(--text-muted,#64748b)}
+ #form48ReportCard #form48Feedback.is-error{color:#b42318}
+ #form48ReportCard .form48-kpi-strip{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin:2px 0 16px}
+ #form48ReportCard .form48-kpi-strip[hidden],#form48ReportCard .form48-preview-toolbar[hidden]{display:none!important}
+ #form48ReportCard .form48-kpi{display:flex;flex-direction:column;gap:4px;min-width:0;padding:13px 14px;border:1px solid var(--border-color,#d5e1ee);border-radius:12px;background:var(--surface-secondary,#f6f9fd)}
+ #form48ReportCard .form48-kpi span{font-size:12px;font-weight:650;line-height:1.35;color:var(--text-muted,#52677b)}
+ #form48ReportCard .form48-kpi strong{font-size:clamp(19px,2vw,25px);font-weight:750;line-height:1.15;font-variant-numeric:tabular-nums}
+ #form48ReportCard .form48-kpi small{font-size:11px;line-height:1.35;color:var(--text-muted,#66768b)}
+ #form48ReportCard .form48-preview-toolbar{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;margin-bottom:10px}
+ #form48ReportCard .form48-preview-toolbar h4{display:flex;align-items:center;gap:9px;font-size:16px;line-height:1.35;margin:0}
+ #form48ReportCard .form48-preview-toolbar p{font-size:12px;line-height:1.45;margin:4px 0 0;color:var(--text-muted,#64748b)}
+ #form48ReportCard .form48-draft-tag{font-size:10px;font-weight:700;border:1px solid var(--border-color,#c7d5e5);border-radius:100px;padding:2px 8px;color:var(--text-muted,#64748b)}
+ #form48ReportCard .form48-copy-switch{display:flex;align-items:center;gap:3px;border:1px solid var(--border-color,#c7d5e5);background:var(--surface-secondary,#f3f7fb);border-radius:10px;padding:3px}
+ #form48ReportCard .form48-copy-switch button{border:0;border-radius:7px;background:transparent;color:inherit;padding:9px 11px;min-height:38px;cursor:pointer;font:inherit;font-size:12px;font-weight:650;white-space:nowrap}
+ #form48ReportCard .form48-copy-switch button[aria-pressed="true"]{background:var(--surface,#fff);box-shadow:0 1px 4px #152c461a;color:var(--text-primary,#1b3f63)}
+ #form48ReportCard .form48-copy-switch button:focus-visible{outline:2px solid #2678c9;outline-offset:2px}
+ #form48ReportCard #form48PrintArea{max-width:100%;min-width:0;border:1px solid var(--border-color,#d3e0ec);border-radius:13px;background:var(--surface-secondary,#eff4fa);padding:16px;box-sizing:border-box;overflow-x:auto}
+ #form48ReportCard #form48PrintArea[hidden]{display:none!important}
+ #form48ReportCard #form48PrintArea .form48-sheets{display:grid;grid-template-columns:minmax(0,1fr);min-width:0;width:min(100%,700px);margin:0 auto;gap:12px;background:transparent}
+ #form48ReportCard #form48PrintArea .form48-copy{width:100%;box-sizing:border-box;box-shadow:0 5px 20px #172e4015;border:1px solid #d3d7de;border-radius:2px;padding:22px 22px 30px;background:#fff;color:#111;font-size:11px}
+ #form48ReportCard #form48PrintArea .form48-copy h3{font-size:17px}
+ #form48ReportCard #form48PrintArea .form48-form-heading,#form48ReportCard #form48PrintArea .form48-copy-type{font-size:10px}
+ #form48ReportCard #form48PrintArea .form48-employee{font-size:12px}
+ #form48ReportCard #form48PrintArea .form48-month{font-size:11px}
+ #form48ReportCard #form48PrintArea .form48-hours-grid{font-size:10px}
+ #form48ReportCard #form48PrintArea .form48-sheet{font-size:10px}
+ #form48ReportCard #form48PrintArea .form48-sheet :is(th,td){font-size:10px;height:19px;padding:2px 1px}
+ #form48ReportCard #form48PrintArea[data-copy-view="office"] .form48-copy:nth-child(2),
+ #form48ReportCard #form48PrintArea[data-copy-view="employee"] .form48-copy:nth-child(1){display:none}
+ #form48ReportCard #form48PrintArea[data-copy-view="both"] .form48-sheets{grid-template-columns:repeat(2,minmax(0,1fr));width:100%}
+ #form48ReportCard #form48PrintArea[data-copy-view="both"] .form48-copy{padding:13px 11px 18px}
+ #form48ReportCard #form48PrintArea .form48-preview-note{margin:12px auto 0;font-size:12px;max-width:700px;line-height:1.5;color:var(--text-muted,#536579)}
+ #form48ReportCard>.form48-daily-insights{margin-top:12px}
+ #form48ReportCard>#form48GateIntelligence,#form48ReportCard>#form48AdvancedSettings{margin-top:8px}
+ #form48ReportCard>#form48BatchPanel[hidden]{display:none!important}
+}
+@media screen and (max-width:1100px){
+ #form48ReportCard .form48-filter{grid-template-columns:minmax(0,1.6fr) minmax(145px,1fr);align-items:stretch}
+ #form48ReportCard .form48-filter button{width:100%}
+ #form48ReportCard .form48-kpi-strip{grid-template-columns:repeat(2,minmax(0,1fr))}
+}
+@media screen and (max-width:680px){
+ #form48ReportCard .form48-heading{align-items:flex-start}
+ #form48ReportCard .form48-filter{grid-template-columns:minmax(0,1fr)}
+ #form48ReportCard .form48-tools{align-items:stretch}
+ #form48ReportCard .form48-tools label{flex-basis:100%}
+ #form48ReportCard .form48-tools button{width:100%}
+ #form48ReportCard .form48-kpi-strip{gap:8px}
+ #form48ReportCard .form48-kpi{padding:11px}
+ #form48ReportCard .form48-preview-toolbar{align-items:stretch}
+ #form48ReportCard .form48-copy-switch{width:100%;box-sizing:border-box}
+ #form48ReportCard .form48-copy-switch button{flex:1 1 0;min-width:0;padding-inline:4px}
+ #form48ReportCard #form48PrintArea{padding:8px}
+ #form48ReportCard #form48PrintArea .form48-copy{padding:13px 8px 18px}
+ #form48ReportCard #form48PrintArea .form48-sheet :is(th,td){font-size:9px;height:18px}
+ #form48ReportCard #form48PrintArea[data-copy-view="both"] .form48-sheets{grid-template-columns:minmax(0,1fr)}
+}
+@media print{#form48SummaryStrip,#form48PreviewToolbar{display:none!important}}

@@ -177,13 +177,21 @@ const standalonePrintCss = [
   const settings=$('form48ReportSettings'),reviewHost=$('form48ReviewDays');
   const saveSchedule=$('form48SaveSchedule'),scheduleStatus=$('form48ScheduleSaveStatus');
   const saveDraft=$('form48SaveDraft');
+  const summaryStrip=$('form48SummaryStrip'),previewToolbar=$('form48PreviewToolbar');
   if(!form||!month||!person||!button||!output||!feedback||!settings||!reviewHost)return;
   const format=new Intl.DateTimeFormat('en-US',{year:'numeric',month:'2-digit',timeZone:'Asia/Manila'}).formatToParts(new Date());
   const part=type=>format.find(p=>p.type===type)?.value||'';
   month.value=part('year')+'-'+part('month');
   const reportKey=()=>person.value+'/'+month.value;
   const status=(message,error=false)=>{feedback.textContent=message;feedback.classList.toggle('is-error',error);};
-  const invalidate=()=>{button.disabled=true;output.hidden=true;output.replaceChildren();state.data=null;state.analysis=null;reviewHost.hidden=true;};
+  const invalidate=()=>{button.disabled=true;output.hidden=true;output.replaceChildren();state.data=null;state.analysis=null;reviewHost.hidden=true;if(summaryStrip)summaryStrip.hidden=true;if(previewToolbar)previewToolbar.hidden=true;};
+  output.dataset.copyView='office';
+  previewToolbar?.addEventListener('click',event=>{
+   const choice=event.target.closest('button[data-form48-copy]');
+   if(!choice||!previewToolbar.contains(choice))return;
+   output.dataset.copyView=choice.dataset.form48Copy;
+   previewToolbar.querySelectorAll('button[data-form48-copy]').forEach(item=>item.setAttribute('aria-pressed',String(item===choice)));
+  });
   const listDays=()=>[...settings.querySelectorAll('[data-form48-day]')];
   const hoursFor=group=>Object.fromEntries([...settings.querySelectorAll('[data-form48-hour="'+group+'"]')].map(x=>[x.dataset.slot,x.value]));
   const clock=v=>/^([01]\d|2[0-3]):[0-5]\d$/.test(v||'')?Number(v.slice(0,2))*60+Number(v.slice(3)):null;
@@ -331,10 +339,18 @@ const standalonePrintCss = [
     output.hidden=false;button.disabled=false;
     renderReviews(analysis);
     const sum=analysis.summary;
-    status('Draft: '+sum.daysPresent+' days with verified punches ('+sum.partialRecordDays+' incomplete), '+sum.daysAbsent+' confirmed absent, '+
-      sum.pendingAbsentDays+' missing day(s) for review; tardy '+duration(sum.tardyMinutes)+
-      ', undertime '+duration(sum.undertimeMinutes)+
-      (sum.timeAnomalyDays?', '+sum.timeAnomalyDays+' unexpected time slot(s) need review':'')+'.');
+    if(summaryStrip){
+     $('form48VerifiedDays').textContent=String(sum.daysPresent);
+     $('form48IncompleteDays').textContent=String(sum.partialRecordDays)+' incomplete';
+     $('form48ToReview').textContent=String(sum.pendingAbsentDays);
+     $('form48Tardy').textContent=duration(sum.tardyMinutes);
+     $('form48Undertime').textContent=duration(sum.undertimeMinutes);
+     summaryStrip.hidden=false;
+    }
+    if(previewToolbar)previewToolbar.hidden=false;
+    status('Draft preview · '+sum.daysAbsent+' confirmed absent'+
+     (sum.timeAnomalyDays?' · '+sum.timeAnomalyDays+' unexpected time slot(s) need review':'')+
+     '. Only verified punches contribute to time calculations.');
    }catch(e){status(e.message,true);}
    finally{state.loading=false;submit.disabled=false;}
   }
@@ -388,6 +404,9 @@ const standalonePrintCss = [
   });
   const onSettingsChange=event=>{
    button.disabled=true;
+   output.hidden=true;
+   if(summaryStrip)summaryStrip.hidden=true;
+   if(previewToolbar)previewToolbar.hidden=true;
    if(event.target.matches('[data-form48-day],[data-form48-hour]')){
     state.scheduleDirty=true;
     scheduleMessage('Unsaved work hours. Select Save employee work schedule.');
