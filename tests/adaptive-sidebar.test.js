@@ -62,23 +62,20 @@ test('contrasting gradient colors trigger a neutral brand backing without recolo
  assert.match(css,/object-fit:contain!important/);
  assert.ok(!source.includes('sidebarSchoolMark'));
 });
-test('original approved Attendigo artwork is used in both transparent light/dark variants',()=>{
+test('official branded SVG wrappers embed local artwork without loading external images',()=>{
  for(const asset of [light,dark,symbol]){
-  assert.match(asset,/<svg/);
-  assert.match(asset,/data:image\/png;base64,/);
-  assert.match(asset,/feColorMatrix/);
-  assert.match(asset,/transparent|transparency|key-white|key-black/);
+  assert.match(asset,/^<svg[^>]*role="img"/);
+  assert.match(asset,/<image[^>]*href="data:image\/(?:jpeg|webp);base64,/);
+  assert.doesNotMatch(asset,/href="https?:\/\//);
+  assert.doesNotMatch(asset,/<rect[^>]*fill=/);
  }
- const embedded=asset=>asset.match(/data:image\/png;base64,([A-Za-z0-9+/=]+)/)[1];
- assert.equal(embedded(light),embedded(dark));
- assert.equal(embedded(light),embedded(symbol));
- assert.match(dark,/<clipPath id="symbol">/);
- assert.match(dark,/<clipPath id="wordmark">/);
+ assert.match(symbol,/data:image\/webp;base64,/);
+ assert.equal(light,dark,'The current approved wordmark artwork matches between themes');
 });
 test('sidebar is card-free, compact, and keeps other portals branded with their existing surfaces',()=>{
  assert.match(html,/id="sidebarSchoolMark"/);
  assert.match(html,/id="sidebarSchoolName"/);
- assert.match(html,/attendigo-symbol-transparent\.svg\?v=2/);
+ assertCachedAsset(html,worker,'assets/attendigo-official-emblem.svg',{minimumVersion:5});
  assert.match(css,/attendigo-brand \{/);
  assert.match(css,/background:transparent!important/);
  assert.match(css,/side-primary-height:44px/);
@@ -100,8 +97,8 @@ test('sidebar sync shortcut is removed, while topbar Sync Center and offline syn
 });
 test('the service worker caches the deployed variants and correct versioned sidebar assets',()=>{
  const assets=['/attendigo-sidebar-adaptive.css?v=20','/attendigo-sidebar-adaptive.js?v=9',
- '/attendigo-brand-refresh.css?v=3','/assets/attendigo-wordmark-on-light.svg?v=2',
- '/assets/attendigo-wordmark-on-dark.svg?v=2','/assets/attendigo-symbol-transparent.svg?v=2'];
+ '/attendigo-brand-refresh.css?v=5','/assets/attendigo-wordmark-on-light.svg?v=5',
+ '/assets/attendigo-wordmark-on-dark.svg?v=5','/assets/attendigo-official-emblem.svg?v=5'];
  for(const asset of assets)assert.ok(worker.includes(JSON.stringify(asset)),asset);
  for(const asset of [assets[0],assets[1],assets[2],assets[5]])assert.ok(html.includes(asset),asset);
  assert.ok(Number(worker.match(/const CACHE = "attendigo-v(\d+)-/)[1]) >= 167, 'PWA cache version must include removal of sidebar sync shortcut');
