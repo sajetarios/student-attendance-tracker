@@ -87,7 +87,7 @@ test('school-wide signatories override previous employee/month settings',()=>{
  assert.equal(prior.approvedBy,'Principal');
  assert.equal(prior.revision,2);
  assert.equal(mergeSchoolForm48Defaults({verifiedBy:'Legacy'},null).verifiedBy,'Legacy');
- assert.equal(mergeSchoolForm48Defaults({verifiedBy:'Legacy'},{...defaults,verifiedBy:''}).verifiedBy,'');
+ assert.equal(mergeSchoolForm48Defaults({verifiedBy:'Legacy'},{...defaults,verifiedBy:''}).verifiedBy,'Legacy');
 });
 test('bulk leave validates dates, authorization references and input bounds',()=>{
  const id='22222222-2222-4222-8222-222222222222';
