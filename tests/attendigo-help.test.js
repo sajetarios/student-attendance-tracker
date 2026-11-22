@@ -48,12 +48,12 @@ test('guide has no autonomous record write operations or hardcoded privileged UR
   assert.doesNotMatch(client,/\/api\/(?:students|attendance|staff-ob|staff-leave|gate|form48)\//);
   assert.match(css,/safe-area-inset-bottom/);
   assert.match(css,/prefers-reduced-motion/);
-  assert.match(html,/attendigo-help-topics\.js\?v=1/);
-  assert.match(html,/attendigo-help-guide\.js\?v=3/);
+  assert.match(html,/attendigo-help-topics\.js\?v=2/);
+  assert.match(html,/attendigo-help-guide\.js\?v=4/);
   assert.match(html,/attendigo-help\.css\?v=3/);
-  for(const asset of ['/attendigo-help-topics.js?v=1','/attendigo-help-guide.js?v=3','/attendigo-help.css?v=3'])
+  for(const asset of ['/attendigo-help-topics.js?v=2','/attendigo-help-guide.js?v=4','/attendigo-help.css?v=3'])
     assert.ok(sw.includes(JSON.stringify(asset)), 'Offline PWA asset: '+asset);
-  assert.match(sw,/attendigo-v308-sidebar-help/);
+  assert.match(sw,/attendigo-v309-guide-accuracy/);
 });
 test('AI endpoint is disabled until explicitly configured and is authenticated', async () => {
   const registered={get:new Map(),post:new Map()};
