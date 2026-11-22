@@ -3,6 +3,7 @@ const test=require('node:test');
 const assert=require('node:assert/strict');
 const fs=require('node:fs');
 const vm=require('node:vm');
+const {assertCacheRevisionAtLeast}=require('./support/asset-contract');
 
 const html=fs.readFileSync('public/portal.html','utf8');
 const sw=fs.readFileSync('public/sw.js','utf8');
@@ -18,7 +19,7 @@ test('SHS pathway loads new revision with disabled choices and an enrollment act
   assert.ok(html.includes('/'+asset));
   assert.ok(sw.includes('"/'+asset+'"'));
  }
- assert.match(sw,/attendigo-v263-form48-print-proportions/);
+ assertCacheRevisionAtLeast(sw,263);
 });
 
 test('live SHS learner pathway blocks editing until selected and never shows wrong curriculum tracks',async()=>{
