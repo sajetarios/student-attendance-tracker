@@ -41,6 +41,9 @@
   .scan-setup-field { display:block; margin:0 0 15px; padding:12px; border:1px solid #d7e1eb; border-radius:11px; color:#28445d; font-weight:700; font-size:14px; background:#f8fbfe; }
   .scan-setup-field select { display:block; width:100%; min-height:46px; margin-top:8px; padding:9px 12px; border:1px solid #cbd8e5; border-radius:8px; background:#fff; color:#17324a; font-size:15px; }
   .scan-setup-field select:disabled { opacity:1; color:#17324a; -webkit-text-fill-color:#17324a; background:#eef5ff; }
+  .scan-schedule-detection { box-sizing:border-box; padding:11px 13px; margin:0; border-radius:10px; background:#eef6ff; border:1px solid #cddff5; color:#244b72; font-size:13px; line-height:1.5; }
+  .scan-schedule-detection[data-kind="warning"] { background:#fff8e8; border-color:#ebd39a; color:#795512; }
+  .scan-schedule-detection[data-kind="success"] { background:#eaf8ee; border-color:#b9e4ca; color:#215c39; }
   .scan-setup-field small { display:block; margin-top:7px; color:#66788a; font-size:12px; font-weight:400; }
   .scan-setup-field.field-missing { border:2px solid #c62845; background:#fff6f7; }
   .scan-setup-field.field-missing small { color:#a31934; font-weight:700; }
@@ -1405,8 +1408,9 @@ body.dark-mode .content-wrap > .school-heading.is-compact,body[data-theme="dark"
                   </label>
                   <label id="scanSetupPeriodWrap" class="scan-setup-field" hidden>Assigned subject class
                     <select id="scanSetupPeriod"><option value="">Select assigned schedule</option></select>
-                    <small id="scanSetupPeriodHint">Choose the assigned schedule for this attendance session.</small>
+                    <small id="scanSetupPeriodHint">Automatically detects your current subject class; select manually when necessary.</small>
                   </label>
+                  <p id="scanScheduleDetection" class="scan-schedule-detection" role="status" aria-live="polite">Your active class will be checked using Philippine school time.</p>
                   <div class="scan-setup-actions">
                     <button type="button" class="outline-button" id="scanSetupCancel">Cancel</button>
                     <button type="button" class="primary-button" id="scanSetupStart">Start scanning</button>
@@ -2422,7 +2426,8 @@ body.dark-mode .content-wrap > .school-heading.is-compact,body[data-theme="dark"
   <script src="/attendance-sync-center.js?v=3" defer></script>
   <script src="/learner-roster-view.js?v=1" defer></script>
   <script src="/student-name-format.js?v=2" defer></script>
-  <script src="/portal.js?v=230" defer></script>
+  <script src="/teacher-scanner-schedule.js?v=1" defer></script>
+  <script src="/portal.js?v=231" defer></script>
   <script src="/schedule-list-filters.js?v=1" defer></script>
   <script src="/staff-lunch-ui.js?v=4" defer></script>
   <script src="/staff-ob-ui.js?v=5" defer></script>

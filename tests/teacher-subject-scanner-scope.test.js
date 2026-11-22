@@ -62,7 +62,7 @@ test('teacher role guard is enforced when opening, starting and recording scan e
  assert.match(js,/const canUseScope = \(scope === 'CLASS' && teacherHas\('SUBJECT_TEACHER'\)\) \|\|/);
  assert.match(js,/Teachers cannot record school-gate attendance/);
  assert.match(js,/if \(scope === 'ADVISORY' && !adviserAssignments\.length\)/);
- assert.match(js,/!periods\.some\(p => String\(p\.periodId\) === String\(activeScanPeriodId\)\)/);
+ assert.match(js,/!\(scannerTodayPeriods\|\|periods\)\.some\(p => String\(p\.periodId\) === String\(activeScanPeriodId\)\)/);
  assert.match(js,/Teacher QR scans must use an assigned subject class or advisory section/);
  assert.match(js,/activeScanScope = scope/);
  assert.match(js,/activeScanPeriodId = scope === 'CLASS'/);

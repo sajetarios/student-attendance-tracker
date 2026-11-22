@@ -47,6 +47,10 @@ window.attendigoStaffIdentity = new Promise(resolve => { resolveStaffIdentity = 
   // A teacher must explicitly select an authorized class/advisory scope before recording.
   let activeScanScope = null;
   let activeScanPeriodId = null;
+  let scannerTodayPeriods = null;
+  let scannerScheduleSnapshot = null;
+  let scannerAutoDetected = false;
+  let scannerLookupId = 0;
   let schoolBranding = null;
   let brandingLogoObjectUrl = null;
 
@@ -2393,6 +2397,14 @@ function coverageStatusLabel(status) {
     }
     const scope = user.role === 'TEACHER' ? activeScanScope : 'SCHOOL';
     const periodId = scope === 'CLASS' ? activeScanPeriodId : null;
+    if(user.role==='TEACHER'&&scope==='CLASS'&&!scannerAutoClassStillCurrent()){
+      showToast('The auto-detected subject period has ended or changed. Reopen the scanner to select the correct class.',true);
+      scannedStudent=null;scannedTeacher=null;
+      $('studentScanNotice').hidden=true;
+      $('studentScanResult').hidden=true;
+      await stopStudentScanner();
+      return;
+    }
     if (user.role === 'TEACHER' && !(
       (scope === 'CLASS' && teacherHas('SUBJECT_TEACHER') && periodId &&
         periods.some(p => String(p.periodId) === String(periodId))) ||
@@ -4495,6 +4507,108 @@ let teacherActionMenuListenersInstalled = false;
       if (title) title.textContent = 'Prepare advisory attendance scanner';
       if (description) description.textContent = 'Record attendance for your assigned advisory section, not school-gate time-in or time-out.';
     }
+  }
+
+  // Get today's server-scoped timetable independently of the selected week in
+  // the Weekly Timetable page. No guesses from a stale iPad dropdown value.
+  const scannerMatcher=()=>window.AttendigoTeacherScannerSchedule;
+  function scannerStatus(message,kind='info'){
+    const node=$('scanScheduleDetection');
+    if(node){node.textContent=message;node.dataset.kind=kind;}
+  }
+  function scannerUpdateStart(){
+    if(user?.role==='TEACHER')$('scanSetupStart').disabled=
+      $('scanSetupScope').value==='CLASS'&&!$('scanSetupPeriod').value;
+  }
+  function scannerSetPeriodChoices(items){
+    const select=$('scanSetupPeriod');
+    select.innerHTML='<option value="">Choose an assigned subject class</option>'+
+      items.map(p=>'<option value="'+esc(p.periodId)+'">'+
+        esc((p.subjectName||p.periodName||'Subject')+' · '+(p.gradeLevel||'')+
+          ' · '+(p.section||'All sections')+' · '+p.startTime+'–'+p.endTime)+
+        '</option>').join('');
+    select.value='';
+    scannerUpdateStart();
+  }
+  async function detectCurrentScannerSchedule(){
+    const lookup=++scannerLookupId;
+    scannerScheduleSnapshot=null;
+    scannerAutoDetected=false;
+    scannerTodayPeriods=null;
+    scannerStatus('Checking the Philippine school clock and your current assigned class…');
+    $('scanSetupStart').disabled=true;
+    const fallback=()=>periods.filter(p=>
+      String(p.assignedTeacherUserId||'')===String(user?.userId||'')&&
+      !['ADVISORY','HOMEROOM','BREAK','LUNCH'].includes(String(p.scheduleType||'').toUpperCase()));
+    try{
+      const matcher=scannerMatcher();
+      if(!matcher)throw new Error('Class timetable detection is unavailable; refresh the page.');
+      const stamp=matcher.schoolNow();
+      if(!stamp)throw new Error('The Philippine school date and time could not be determined.');
+      const date=stamp.date;
+      const [scheduled,dated,calendar,settings]=await Promise.all([
+        api('/api/periods?weekDate='+encodeURIComponent(date)),
+        api('/api/schedule-adjustments?from='+encodeURIComponent(date)+'&to='+encodeURIComponent(date)),
+        api('/api/scheduling-config/calendar-exceptions?from='+encodeURIComponent(date)+'&to='+encodeURIComponent(date)),
+        api('/api/scheduling-config/operating-days')
+      ]);
+      if(lookup!==scannerLookupId||$('studentScanSetupModal').hidden)return;
+      const input={
+        periods:scheduled.periods,adjustments:dated.adjustments,
+        exceptions:calendar.exceptions,operatingDays:settings.days,
+        teacherUserId:user.userId
+      };
+      const result=matcher.resolve(input);
+      scannerScheduleSnapshot=input;
+      scannerTodayPeriods=result.today;
+      scannerSetPeriodChoices(result.today||[]);
+      const now=result.stamp?.time||stamp.time;
+      // Do not override an explicit advisory choice made during the async fetch.
+      if($('scanSetupScope').value!=='CLASS'){
+        scannerAutoDetected=false;
+        scannerStatus('Advisory mode selected. Only your assigned advisory section can be recorded.');
+        scannerUpdateStart();
+        return;
+      }
+      if(result.status==='MATCH'&&result.active.length===1){
+        const current=result.active[0];
+        $('scanSetupPeriod').value=String(current.periodId);
+        scannerAutoDetected=true;
+        scannerStatus('Current subject detected: '+(current.subjectName||current.periodName||'Subject')+
+          ' · '+current.gradeLevel+' · '+(current.section||'All sections')+
+          ' · '+current.startTime+'–'+current.endTime+
+          ' (Philippine time '+now+').','success');
+      }else if(result.status==='AMBIGUOUS'){
+        scannerStatus('More than one assigned class overlaps at '+now+
+          ' Philippine time. Choose the correct class manually.','warning');
+      }else if(result.status==='NO_ACTIVE'){
+        scannerStatus('No class is in progress at '+now+
+          ' Philippine time. Select an assigned class scheduled today if scanning earlier or later.','warning');
+      }else if(['CLOSED','NON_OPERATING','DISMISSED'].includes(result.status)){
+        scannerStatus('School calendar indicates no regular subject class now ('+
+          now+' Philippine time). No subject was selected.','warning');
+      }else{
+        scannerStatus('No subject class is scheduled today ('+now+
+          ' Philippine time). Check the timetable or use authorized advisory attendance.','warning');
+      }
+    }catch(error){
+      if(lookup!==scannerLookupId||$('studentScanSetupModal').hidden)return;
+      // Preserve an explicit manual fallback, but never infer a current class
+      // when any school calendar/timetable endpoint could not be verified.
+      scannerScheduleSnapshot=null;
+      scannerTodayPeriods=null;
+      scannerAutoDetected=false;
+      scannerSetPeriodChoices(fallback());
+      scannerStatus('Current timetable could not be verified: '+error.message+
+        '. Select an assigned subject class manually; none has been auto-detected.','warning');
+    }
+    if(lookup===scannerLookupId&&!$('studentScanSetupModal').hidden)scannerUpdateStart();
+  }
+  function scannerAutoClassStillCurrent(){
+    if(!scannerAutoDetected||!scannerScheduleSnapshot||activeScanScope!=='CLASS')return true;
+    const resolved=scannerMatcher()?.resolve(scannerScheduleSnapshot);
+    return resolved?.status==='MATCH'&&
+      String(resolved.active[0]?.periodId)===String(activeScanPeriodId);
   }
 
   async function loadSchoolData() {
@@ -6625,6 +6739,8 @@ let teacherActionMenuListenersInstalled = false;
     // of SCHOOL attendance from the previous gate-scanner UI.
     configureScannerScopeForRole({reset:true});
     $('studentScanSetupModal').hidden = false;
+    // Schedule selection happens first; the camera starts only when confirmed.
+    await detectCurrentScannerSchedule();
   });
   $('gateScanType')?.addEventListener('change', event => {
     gateScanType = ['BOTH', 'STUDENT', 'TEACHER'].includes(event.target.value) ? event.target.value : 'BOTH';
@@ -6637,7 +6753,13 @@ let teacherActionMenuListenersInstalled = false;
   });
   $('scanSetupScope').addEventListener('change', () => {
     configureScannerScopeForRole();
-    $('scanSetupPeriod').value = '';
+    if($('scanSetupScope').value!=='CLASS'){
+      scannerAutoDetected=false;
+      scannerStatus('Advisory attendance: scans are saved only for learners in your assigned advisory section.');
+    }else{
+      scannerStatus('Choose an assigned subject class. Reopen scanner setup to re-detect the current period.');
+    }
+    scannerUpdateStart();
   });
   let qrHistoryFlipping = false;
   function flipQrHistory(direction) {
@@ -6682,9 +6804,15 @@ let teacherActionMenuListenersInstalled = false;
   $('teacherAttendanceApply')?.addEventListener('click', loadTeacherClassAttendance);
   $('teacherAttendanceRefresh')?.addEventListener('click', loadTeacherClassAttendance);
   $('teacherAttendanceViewSelect')?.addEventListener('change', loadTeacherClassAttendance);
-  $('scanSetupCancel').addEventListener('click', () => { $('studentScanSetupModal').hidden = true; });
+  $('scanSetupCancel').addEventListener('click', () => {
+    ++scannerLookupId;
+    $('studentScanSetupModal').hidden = true;
+  });
   $('studentScanSetupModal').addEventListener('click', event => {
-    if (event.target === $('studentScanSetupModal')) $('studentScanSetupModal').hidden = true;
+    if (event.target === $('studentScanSetupModal')) {
+      ++scannerLookupId;
+      $('studentScanSetupModal').hidden = true;
+    }
   });
   $('scanSetupStart').addEventListener('click', async () => {
     if (user.role === 'SCHOOL_ADMIN') {
@@ -6709,8 +6837,14 @@ let teacherActionMenuListenersInstalled = false;
     }
     activeScanScope = scope;
     activeScanPeriodId = scope === 'CLASS' ? $('scanSetupPeriod').value : null;
+    if(scope==='CLASS'&&scannerAutoDetected&&!scannerAutoClassStillCurrent()){
+      scannerAutoDetected=false;
+      await detectCurrentScannerSchedule();
+      showToast('The scheduled class period has changed. Confirm the newly detected subject before scanning.',true);
+      return;
+    }
     if (scope === 'CLASS' && activeScanPeriodId &&
-        !periods.some(p => String(p.periodId) === String(activeScanPeriodId))) {
+        !(scannerTodayPeriods||periods).some(p => String(p.periodId) === String(activeScanPeriodId))) {
       showToast('That subject class is not part of your assigned timetable. Refresh and select your class.', true);
       return;
     }
@@ -6734,8 +6868,12 @@ let teacherActionMenuListenersInstalled = false;
     }
   });
   $('scanSetupPeriod').addEventListener('change', () => {
+    scannerAutoDetected=false;
     $('scanSetupPeriodWrap').classList.remove('field-missing');
-    $('scanSetupPeriodHint').textContent = 'Choose the assigned schedule for this attendance session.';
+    $('scanSetupPeriodHint').textContent = 'Current class is detected automatically, or you may select manually.';
+    if($('scanSetupPeriod').value)
+      scannerStatus('Manual subject selected. Verify that this is the class you are teaching now.','warning');
+    scannerUpdateStart();
   });
   $('studentScannerStop').addEventListener('click', stopStudentScanner);
   function clearGateScanDialog() {
