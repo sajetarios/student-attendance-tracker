@@ -58,15 +58,23 @@
     approvals.closest('.nav-group')?.removeAttribute('hidden');
    }
   }
+  const isHrAdmin=user.role==='SCHOOL_ADMIN';
+  const mayReviewCredits=isHrAdmin||user.role==='DEPARTMENT_HEAD';
+  const leaveHeading=isHrAdmin?'Leave & Credits Administration':'My Leave & Credits';
+  const leaveIntro=isHrAdmin
+   ? 'Submit your own leave separately from HR-certified balances and authorized review queues.'
+   : user.role==='DEPARTMENT_HEAD'
+     ? 'Apply for leave, view your own certified balances, and handle separate authorized recommendations.'
+     : 'Apply for leave and view HR-certified credit balances. Credit claims require independent verification.';
   const dialog=document.createElement('dialog');dialog.id='staffLeaveDialog';
   dialog.setAttribute('aria-label','Leave Management');
-  dialog.innerHTML='<div class="leave-shell"><div class="leave-header"><div><h2>Leave Management</h2>'+
-   '<p>DepEd applications, CSC Form No. 6 (Revised 2020), and certified leave balances</p></div>'+
+  dialog.innerHTML='<div class="leave-shell"><div class="leave-header"><div><h2>'+esc(leaveHeading)+'</h2>'+
+   '<p>'+esc(leaveIntro)+'</p></div>'+
    '<button class="leave-close" id="leaveClose" type="button" aria-label="Close Leave Management">✕</button></div>'+
    '<div class="leave-tabs" role="tablist" aria-label="Leave Management sections">'+
-   '<button type="button" class="is-active" data-leave-tab="requests">Leave requests</button>'+
-   '<button type="button" data-leave-tab="inbox">Approval inbox</button>'+
-   '<button type="button" data-leave-tab="credits">Service credits</button></div>'+
+   '<button type="button" class="is-active" data-leave-tab="requests">'+(isHrAdmin?'Leave applications':'My applications')+'</button>'+
+   '<button type="button" data-leave-tab="inbox" '+(!mayReviewCredits?'hidden':'')+'>Leave approvals</button>'+
+   '<button type="button" data-leave-tab="credits">'+(isHrAdmin?'HR credits':'My credits')+'</button></div>'+
    '<div class="leave-body" id="leaveBody"></div><div class="leave-message" id="leaveMessage" role="status" aria-live="polite"></div></div>';
   document.body.append(dialog);
   const body=$('leaveBody'),message=$('leaveMessage');
@@ -152,6 +160,7 @@
    }else await renderCredits();
   }
   const selectTab=next=>{
+   if(next==='inbox'&&!mayReviewCredits)return;
    if(next==='requests'&&tab==='inbox')reviewOnly=false;
    tab=next;
    dialog.querySelectorAll('[data-leave-tab]').forEach(b=>b.classList.toggle('is-active',b.dataset.leaveTab===next));
@@ -180,7 +189,10 @@
   }
   function newRequest(){
    const details=document.createElement('details');details.className='leave-card';details.innerHTML=
-    '<summary>New leave application</summary><form id="leaveNewForm" class="leave-form">'+
+    '<summary>New leave application</summary>'+
+    '<div class="leave-form-intro"><span>Complete this application first. After saving, use the <strong>Print prefilled CSC Form No. 6</strong> action on your request.</span>'+
+    '<a class="leave-btn" href="/leave-form6.html?template=1" target="_blank" rel="noopener">View blank CSC Form No. 6</a></div>'+
+    '<form id="leaveNewForm" class="leave-form">'+
     select('leaveType','Type of leave',docTypes)+select('creditAccount','Proposed credit account',accounts)+
     textInput('startDate','Start date',true,'date')+textInput('endDate','End date',true,'date')+
     '<label>Reason (required)<textarea name="reason" rows="2" minlength="3" maxlength="1000" required></textarea></label>'+
@@ -278,7 +290,7 @@
      (r.externalReference?'<p>Approval reference: '+esc(r.externalReference)+'</p>':'')+
      '<div class="leave-actions"></div>';
     const buttons=card.querySelector('.leave-actions');
-    buttons.append(buttonFor('CSC Form No. 6',()=>{
+    buttons.append(buttonFor('Print prefilled CSC Form No. 6',()=>{
      window.open('/leave-form6.html?requestId='+encodeURIComponent(r.requestId),'_blank');
     }));
     if(r.staffUserId===user.userId&&!['APPROVED','REJECTED','CANCELLED'].includes(r.status))
