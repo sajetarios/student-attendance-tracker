@@ -9,9 +9,9 @@
 .login-page .login-art .login-motion{height:165px;margin:8px 0 0}
 .login-page .login-art .art-copy{margin:15px 0 28px}
 .login-page .login-art .brand-lockup .attendigo-brand{max-width:290px}
-.login-page .login-art .art-copy h1{font-size:clamp(32px,3.8vw,48px);line-height:1.1}
+.login-page .login-art .art-copy h1{font-size:clamp(30px,2.85vw,42px);text-wrap:balance;line-height:1.1}
 .login-page .login-art .art-copy p{font-size:14px;line-height:1.5}
-.login-page .login-mode{display:grid!important;grid-template-columns:repeat(3,minmax(0,1fr))!important;gap:5px!important;margin:16px 0 13px!important;padding:5px!important;border:1px solid #e0e7fb!important;border-radius:15px!important;background:#eaf0ff!important}
+.login-page .login-mode{display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:5px!important;margin:16px 0 13px!important;padding:5px!important;border:1px solid #e0e7fb!important;border-radius:15px!important;background:#eaf0ff!important}
 .login-page .login-mode .mode-tab{display:flex!important;align-items:center!important;justify-content:center!important;gap:7px!important;min-width:0!important;min-height:58px!important;padding:9px 6px!important;border:0!important;border-radius:11px!important;background:transparent!important;color:#344766!important;font-size:var(--type-table)!important;font-weight:750!important;line-height:1.25!important;white-space:normal!important;transition:background-color .22s ease,transform .22s ease,box-shadow .22s ease,color .22s ease!important}
 .login-page .login-mode .mode-tab svg{flex:0 0 19px;width:19px;height:19px}
 .login-page .login-mode .mode-tab span{text-wrap:balance;overflow-wrap:normal}
@@ -25,7 +25,7 @@
 .login-page .login-panel #loginForm .field-label-row label{display:inline-flex!important;align-items:center!important;gap:8px!important;width:fit-content!important;margin:0!important;opacity:1!important;visibility:visible!important;color:#22314d!important;font-size:var(--type-table)!important;font-weight:750!important;line-height:1.35!important}
 .login-page .login-ui-icon{display:inline-block;width:18px;height:18px;flex:0 0 18px;vertical-align:middle;pointer-events:none}
 .login-page .login-panel #loginForm .field-group label .login-ui-icon{color:#4338ca}
-.login-page .login-panel .field-group input{height:49px!important;min-height:49px!important;padding:0 14px!important;border:1px solid #cbd8ed!important;border-radius:12px!important;background:#fff!important;color:#182941!important;font-size:15px!important;box-shadow:0 2px 6px #243c6410!important}
+.login-page .login-panel .field-group input{height:49px!important;min-height:49px!important;padding:0 14px!important;border:1px solid #cbd8ed!important;border-radius:12px!important;background:#fff!important;color:#182941!important;font-size:16px!important;box-shadow:0 2px 6px #243c6410!important}
 .login-page .login-panel .field-group input:focus{border-color:#5845e7!important;box-shadow:0 0 0 3px #6655dd24!important}
 .login-page .login-panel .field-group input::placeholder{opacity:1!important;color:#788ba8!important}
 .login-page .login-panel .password-input-wrap input{padding-right:52px!important}
@@ -48,12 +48,12 @@
 .login-page .school-admin-recovery-form{background:#f4f7ff!important}
 .login-page .school-admin-recovery-form .field-group label{color:#21334f!important;opacity:1!important}
 @keyframes attendigo-button-shimmer{0%,55%{transform:translateX(-200%) skewX(-16deg)}78%,100%{transform:translateX(430%) skewX(-16deg)}}
-@media (min-width:801px){
+@media (min-width:961px){
   .login-page .login-shell{grid-template-columns:.92fr 1.08fr;max-width:1120px}
   .login-page .login-panel .login-motion{display:none!important}
   .login-page .login-art{min-height:635px;padding:36px 36px 30px}
 }
-@media (max-width:800px){
+@media (max-width:960px){
   .login-page{padding:12px!important;min-height:100svh!important}
   .login-page .login-shell{display:block!important;width:min(600px,100%)!important;max-width:600px!important;min-height:0!important;border-radius:21px!important;margin:0 auto!important}
   .login-page .login-art{display:none!important}
@@ -113,4 +113,12 @@
   .login-page .login-assistance{margin-top:14px;padding-top:13px}
   .login-page .login-assistance-grid{grid-template-columns:minmax(0,1fr);row-gap:9px}
   .login-page .login-security-note{margin-top:12px!important}
+}
+
+.login-page #platformMode {
+  min-height: 44px;
+  margin-top: 8px;
+}
+.login-page #platformMode[aria-pressed="true"] {
+  text-decoration: underline !important;
 }
