@@ -104,3 +104,46 @@ test('SF1 preview displays row-specific validation reasons rather than a generic
   assert.match(portal,/esc\(issue\.rowNumber/);
   assert.match(portal,/esc\(issue\.message/);
 });
+
+
+test('actual LIS two-tier parent headings preserve source family names but never invent guardians',()=>{
+  // Synthetic values with the exact wide-column header structure from an official LIS export.
+  const rows=Array.from({length:7},()=>Array(45).fill(''));
+  rows[0][0]='School Form 1 (SF 1) School Register';
+  rows[3][19]='2026 - 2027'; rows[3][30]='Grade 8 (Year II)';
+  Object.assign(rows[4],{
+    0:'LRN',2:'NAME\n(Last Name, First Name, Middle Name)',6:'Sex (M/F)',
+    7:'BIRTH DATE\n(mm/dd/yyyy)',15:'ADDRESS',27:'PARENTS',
+    36:'GUARDIAN\n(if Not Parent)',41:'Contact Number of Parent or Guardian'
+  });
+  Object.assign(rows[5],{
+    15:'House #/ Street/ Sitio/ Purok',17:'Barangay',
+    20:'Municipality/ City',22:'Province',
+    27:"Father's Name (Last Name, First Name, Middle Name)     ",
+    31:"Mother's Maiden Name (Last Name, First Name, Middle Name)",
+    36:'Name',40:'Relationship'
+  });
+  Object.assign(rows[6],{
+    0:129380180009,2:'SANTOS, MARIA, REYES',6:'F',7:41430,
+    17:'CENTRAL',20:'MATI',22:'DAVAO ORIENTAL',
+    27:'SANTOS, JOSE RAMON',31:'REYES, ANA, LUNA,'
+  });
+  const parsed=require('../sf1-import-parser').parseSf1Matrix(rows);
+  assert.equal(parsed.learners.length,1);
+  const learner=parsed.learners[0];
+  assert.equal(learner.fatherName,'SANTOS, JOSE RAMON');
+  assert.equal(learner.motherMaidenName,'REYES, ANA, LUNA');
+  assert.equal(learner.sf1GuardianName,'');
+  assert.equal(learner.parentName,'');
+  assert.equal(learner.parentMobile,'');
+  assert.equal(learner.birthDate,'2013-06-05');
+  assert.match(learner.sf1Address,/MATI/);
+});
+test('SF1 preview displays source values and explicit blanks even when learner is newly created',()=>{
+  const portal=fs.readFileSync(path.join(__dirname,'..','public/portal.js'),'utf8');
+  assert.match(portal,/const sf1SourceKeys=\['fatherName','motherMaidenName','sf1GuardianName'/);
+  assert.match(portal,/const sourceFields=match\?fields:sf1SourceKeys/);
+  assert.match(portal,/Not provided in SF1/);
+  assert.match(portal,/parents are never automatically designated as legal guardians/);
+  assert.match(portal,/detectedSourceCount/);
+});
