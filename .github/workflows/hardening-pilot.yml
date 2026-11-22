@@ -56,7 +56,9 @@ jobs:
       - name: Validate durable SF2 migration
         run: |
           psql -h localhost -U postgres -d school_attendance_test -Atc "SELECT COUNT(*) FROM information_schema.columns WHERE table_name='sf2_submissions' AND column_name IN ('file_bytes','file_sha256','file_size')" | grep -F '3'
-      - name: Verify submitted SF2 workbook bytes and checksum against PostgreSQL
+      - name: Verify committed SF2 workbook after independent PostgreSQL reconnect
+        env:
+          ATTENDIGO_KEEP_CI_SF2_FIXTURE: 'true'
         run: node tests/sf2-durable-workbook-postgres.cjs
       - name: Use official PostgreSQL 16 client container to match restore target
         run: |
@@ -78,4 +80,5 @@ jobs:
           createdb -h localhost -U postgres attendigo_restore_test
           node scripts/verified-database-backup.js restore-test "$RUNNER_TEMP/pilot-hardening.attbk"
           psql -h localhost -U postgres -d attendigo_restore_test -Atc "SELECT COUNT(*) FROM schema_migrations;" | grep -E '[1-9]'
+          node tests/sf2-restored-workbook-postgres.cjs
           rm -f "$RUNNER_TEMP/pilot-hardening.attbk"
