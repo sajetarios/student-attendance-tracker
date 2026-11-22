@@ -13,9 +13,9 @@
     color: #194e86;
   }
   #weeklyTimetableBoard.tt-grid-host .tt-subject.tt-tone-teacher-both {
-    background: #ede6ff;
-    border: 1px solid #bda8e8;
-    color: #4d3482;
+    background: #fff0d0;
+    border: 1px solid #e9c47f;
+    color: #805316;
   }
   #weeklyTimetableBoard.tt-grid-host .tt-subject.tt-tone-teacher-related {
     background: var(--ui-panel-soft, #f3f6fa);
@@ -33,6 +33,32 @@
     background: #fae5e8;
     color: #a04454;
     border-color: #e4a4ae;
+  }
+  /* The approved minimalist teacher timetable: subject + section + one quiet
+     caption, without nested colored badges. The popover retains full roles. */
+  #weeklyTimetableBoard.tt-grid-host .tt-subject.tt-tone-teacher-both,
+  #weeklyTimetableBoard.tt-grid-host .tt-subject.tt-tone-teacher-class,
+  #weeklyTimetableBoard.tt-grid-host .tt-subject.tt-tone-my-advisory {
+    min-height: 58px;
+    gap: 3px;
+    padding: 8px 6px;
+  }
+  #weeklyTimetableBoard.tt-grid-host .tt-subject .tt-compact-relation {
+    display: block;
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0;
+    line-height: 1.3;
+    margin-top: 2px;
+    padding: 0;
+    border: 0;
+    background: transparent;
+    color: inherit;
+  }
+  #weeklyTimetableBoard .tt-list-compact-role {
+    margin-top: 4px;
+    font-weight: 700;
+    color: var(--ui-muted);
   }
   #weeklyTimetableBoard.tt-grid-host .tt-relationship-badges {
     display: flex;
@@ -73,7 +99,7 @@
     border-color: #a9caee;
   }
   #weeklyTimetableBoard.tt-grid-host .tt-grid-legend i.tt-legend-both {
-    background: #8866c9;
+    background: #e4ab45;
   }
   #weeklyTimetableBoard.tt-grid-host .tt-grid-legend i.tt-legend-teaching {
     background: #51b98a;
@@ -117,9 +143,9 @@
     border-color: #497bad;
   }
   html[data-ui-theme="dark"] #weeklyTimetableBoard.tt-grid-host .tt-subject.tt-tone-teacher-both {
-    background: #342653;
-    color: #ebddff;
-    border-color: #785ea5;
+    background: #44351b;
+    color: #ffdf9e;
+    border-color: #9c742d;
   }
   html[data-ui-theme="dark"] #weeklyTimetableBoard.tt-grid-host .tt-relation-subject,
   html[data-ui-theme="dark"] #weeklyTimetableBoard .teacher-list-relationship.is-subject {
