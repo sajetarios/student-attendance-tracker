@@ -54,6 +54,7 @@ const { registerSardoRoutes } = require('./sardo-routes');
 const { registerPlannerRoutes } = require('./planner-routes');
 const { registerPhotoRoutes, registerPlatformPhotoRoutes, readOfficialPhoto } = require('./profile-photo-routes');
 const { registerNotificationRoutes } = require('./notification-routes');
+const { registerHelpAiRoutes } = require('./help-ai-routes');
 
 const app = express();
 const migrationReadOnly = process.env.ATTENDIGO_MIGRATION_MODE === 'read_only';
@@ -98,7 +99,7 @@ app.use((req, res, next) => {
   res.setHeader('Referrer-Policy', 'no-referrer');
   res.setHeader('X-Frame-Options', 'DENY');
   res.setHeader('Cross-Origin-Resource-Policy', 'same-origin');
-  res.setHeader('Permissions-Policy', 'camera=(self), microphone=(), geolocation=()');
+  res.setHeader('Permissions-Policy', 'camera=(self), microphone=(self), geolocation=()');
   // Non-disruptive CSP baseline. Inline legacy scripts must be migrated to
   // external nonce-protected modules before strict script-src enforcement.
   res.setHeader('Content-Security-Policy',
@@ -154,6 +155,7 @@ app.use(express.json({ limit: '10mb', verify(req, _res, buffer) {
 registerAuthRoutes(app, pool);
 const { authenticateSchoolClient, requireSchoolRoles, requireSchoolPermission, requireTeacherDesignations, requireSchoolClient, authenticatePlatform, requirePlatformAdmin } = createAuthMiddleware(pool);
 const { requireSchoolFeature } = require('./school-feature-guard');
+registerHelpAiRoutes(app, authenticateSchoolClient);
 // Feature checks are additive and preserve access for schools not yet assigned a plan.
 // Only selected feature endpoints are gated; attendance history and essential records remain accessible.
 // School-facing effective entitlements; the Super Admin endpoint is not accessible to school users.

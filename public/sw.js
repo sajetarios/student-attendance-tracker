@@ -1,4 +1,4 @@
-const CACHE = "attendigo-v303-leave-gate-profile";
+const CACHE = "attendigo-v304-ai-help";
 
 const SHELL = [
   "/typography.css?v=1",
@@ -63,6 +63,9 @@ const SHELL = [
   "/teacher-roster-popover.js?v=2",
   "/portal.css?v=0.9.119",
   "/portal.js?v=233",
+  "/attendigo-help-topics.js?v=1",
+  "/attendigo-help-guide.js?v=1",
+  "/attendigo-help.css?v=1",
   "/staff-leave-ui.js?v=2",
   "/staff-leave-ui.css?v=1",
   "/leave-status-indicator.css?v=1",
