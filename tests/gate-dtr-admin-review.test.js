@@ -138,3 +138,13 @@ test('verified slot conflict rolls back, never writes an approval audit',async()
  assert.equal(f.calls.filter(x=>x.sql.includes('INSERT INTO staff_attendance_audit')).length,0);
  assert.equal(f.completed,false);
 });
+
+test('OB overlap SQL uses explicit school-local midnight for all Form 48 paths',()=>{
+ const fs=require('node:fs');
+ for(const file of ['staff-gate-dtr-review-routes.js','staff-gate-dtr-auto.js',
+   'staff-gate-dtr-routes.js','form48-review-routes.js']){
+  const src=fs.readFileSync(file,'utf8');
+  assert.doesNotMatch(src,/::date AT TIME ZONE/);
+  assert.match(src,/::date::timestamp AT TIME ZONE/);
+ }
+});
