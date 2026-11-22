@@ -1,7 +1,7 @@
 name: DepEd Leave + DTR Safety
 on:
   push:
-    branches: [feature/deped-leave-vsc-workflow-20261122, feature/leave-gate-profile-indicators-20261122]
+    branches: [feature/deped-leave-vsc-workflow-20261122, feature/leave-gate-profile-indicators-20261122, feature/leave-approval-inbox-role-nav-20261123]
   workflow_dispatch:
 permissions:
   contents: read
@@ -33,6 +33,10 @@ jobs:
         run: |
           node --check server.js
           node --check staff-leave-routes.js
+          node --check staff-leave-inbox.js
+          node --check staff-leave-inbox-routes.js
+          node --check public/leave-approval-inbox.js
+          node --check public/universal-notifications.js
           node --check staff-leave-policy.js
           node --check staff-approved-leave-status.js
           node --check staff-gate-dtr-routes.js
@@ -41,7 +45,7 @@ jobs:
           node --check public/portal.js
           node --check form48-leave-remarks.js
       - name: Leave workflow validations
-        run: node --test tests/staff-leave-workflow.test.js tests/staff-leave-indicators.test.js
+        run: node --test tests/staff-leave-workflow.test.js tests/staff-leave-indicators.test.js tests/staff-leave-inbox.test.js
       - name: Existing gate, OB, Form48 and leave-remarks tests
         run: node --test tests/gate-event-decision.test.js tests/gate-attendance-boundary.test.js tests/gate-dtr-reconciliation.test.js tests/gate-dtr-preview-route.test.js tests/ob-dtr-remarks.test.js tests/form48-leave-remarks.test.js tests/form48-calculations.test.js tests/staff-gate-dtr-auto.test.js tests/staff-ob-routes.test.js tests/staff-gate-dtr-ui.test.js tests/gate-preview-regression.test.js tests/gatekeeper-auto-integration.test.js tests/gatekeeper-single-step-ui.test.js
       - name: Real PostgreSQL leave migration and constraints
