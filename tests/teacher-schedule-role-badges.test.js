@@ -54,7 +54,7 @@ test('Official adviser match is school-scoped by API and must match self ID, gra
   assert.match(server,/WHERE ca\.school_id=\$1\$\{teacherFilter\}/);
 });
 
-test('Weekly grid actually renders independent role badges and never mislabels homeroom as personal advisory',()=>{
+test('Weekly grid renders a single compact role caption without mislabeling homeroom',()=>{
   const fakeWindow={addEventListener() {},matchMedia(){return {matches:false};}};
   const fakeDocument={addEventListener() {}};
   const sandbox={window:fakeWindow,document:fakeDocument,AbortController,clearTimeout,setTimeout};
@@ -101,7 +101,7 @@ test('Weekly/list/popover UI preserve actual assignment labels in every display'
   const sw=read('public/sw.js');
   const css=read('public/teacher-timetable-identities.css');
   assert.match(portal,/window\.AttendigoScheduleRelationships\.classify\(period, user, adviserAssignments\)/);
-  assert.match(portal,/window\.AttendigoScheduleRelationships\.relationshipLabels\(teacherRelationship\(period\)\)/);
+  assert.match(portal,/window\.AttendigoScheduleRelationships\.relationshipLabels\(relationship\)/);
   assert.match(portal,/isMySubjectClass:relationship\.mySubject/);
   assert.match(portal,/AttendigoScheduleRelationships\.compactLabel\(teacherRelationship\(period\)\)/);
   assert.match(portal,/tt-list-compact-role/);
