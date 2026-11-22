@@ -1,0 +1,66 @@
+'use strict';
+const test=require('node:test');
+const assert=require('node:assert/strict');
+const fs=require('node:fs');
+const path=require('node:path');
+const {dateOk,dateSpan,parseRequest,positiveDays,nextStatus,allowReviewer,canView}=require('../staff-leave-policy');
+const root=path.join(__dirname,'..');
+const read=name=>fs.readFileSync(path.join(root,name),'utf8');
+test('leave validates actual dates and rejects impossible or reversed ranges',()=>{
+ assert.equal(dateOk('2026-02-30'),false);
+ assert.equal(dateOk('2028-02-29'),true);
+ assert.equal(dateSpan('2026-11-23','2026-11-24'),2);
+ assert.equal(dateSpan('2026-11-25','2026-11-22'),null);
+ assert.equal(dateSpan('2026-11-23','2028-11-25'),null);
+ assert.equal(positiveDays(0),null);
+ assert.equal(positiveDays(2.5),2.5);
+ assert.equal(positiveDays(-1),null);
+});
+test('teacher VSC and maternity leave accounts cannot be misclassified',()=>{
+ const base={startDate:'2026-11-23',endDate:'2026-11-24',reason:'Approved medical leave',leaveType:'SICK',creditAccount:'VSC'};
+ assert.equal(parseRequest(base).creditAccount,'VSC');
+ assert.equal(parseRequest({...base,leaveType:'VSC',creditAccount:'VL'}),null);
+ assert.equal(parseRequest({...base,leaveType:'MATERNITY',creditAccount:'SL'}),null);
+ assert.equal(parseRequest({...base,startDate:'2026-11-30',endDate:'2026-11-21'}),null);
+ assert.equal(parseRequest({...base,reason:'a'}),null);
+});
+test('administrators cannot self-approve; department heads only recommend in their scope',()=>{
+ const a='1',b='2',dept='dep-1';
+ const head={staff_user_id:b,department_id:dept,status:'PENDING_HEAD',requester_role:'TEACHER'};
+ assert.equal(nextStatus('SCHOOL_ADMIN',true),'PENDING_EXTERNAL');
+ assert.equal(nextStatus('DEPARTMENT_HEAD',true),'PENDING_ADMIN');
+ assert.equal(nextStatus('TEACHER',false),'PENDING_ADMIN');
+ assert.equal(allowReviewer('DEPARTMENT_HEAD',a,dept,head,'HEAD'),true);
+ assert.equal(allowReviewer('DEPARTMENT_HEAD',a,'other',head,'HEAD'),false);
+ assert.equal(allowReviewer('DEPARTMENT_HEAD',b,dept,head,'HEAD'),false);
+ assert.equal(allowReviewer('SCHOOL_ADMIN',a,null,{...head,status:'PENDING_ADMIN'},'ADMIN'),true);
+ assert.equal(allowReviewer('SCHOOL_ADMIN',b,null,{...head,status:'PENDING_ADMIN'},'ADMIN'),false);
+ assert.equal(allowReviewer('SCHOOL_ADMIN',b,null,{...head,status:'PENDING_EXTERNAL'},'EXTERNAL'),false);
+ assert.equal(allowReviewer('DEPARTMENT_HEAD',a,dept,{...head,status:'PENDING_EXTERNAL',requester_role:'SCHOOL_ADMIN'},'EXTERNAL'),true);
+ assert.equal(canView('TEACHER',a,dept,head),false);
+});
+test('credit and external approval require documentary evidence; raw gate scans remain independent',()=>{
+ const routes=read('staff-leave-routes.js');
+ assert.match(routes,/document_kind='APPROVAL'/);
+ assert.match(routes,/document_kind IN \('SPECIAL_ORDER','CERTIFICATION'\)/);
+ assert.match(routes,/Insufficient certified/);
+ assert.match(routes,/staff_form48_approved_leaves/);
+ assert.match(routes,/step==='HEAD'\?'PENDING_ADMIN':'PENDING_EXTERNAL'/);
+ assert.doesNotMatch(routes,/decision==='REJECT'\?'REJECTED'/);
+ assert.doesNotMatch(routes,/INSERT INTO (staff_attendance_events|teacher_gate_events)/i);
+ assert.doesNotMatch(routes,/UPDATE (staff_attendance_events|teacher_gate_events)/i);
+ const sql=read('migrations/074_deped_leave_vsc_workflow.sql');
+ assert.match(sql,/CREATE TABLE IF NOT EXISTS staff_leave_requests/);
+ assert.match(sql,/CREATE TABLE IF NOT EXISTS staff_leave_credit_entries/);
+ assert.match(sql,/staff_leave_final_evidence/);
+ assert.doesNotMatch(sql,/ALTER TABLE staff_attendance_events/i);
+ assert.doesNotMatch(sql,/ALTER TABLE teacher_gate_events/i);
+});
+test('Form 6 prefill keeps school-specific branding and cannot fabricate signatures or salary',()=>{
+ const src=read('public/leave-form6.js'),html=read('public/leave-form6.html');
+ assert.match(src,/r.schoolName/);
+ assert.match(src,/r.departmentName/);
+ assert.match(html,/Revised 2020/);
+ assert.match(html,/Applicant \(to be supplied\)/);
+ assert.match(src,/put\('salary','_________________'\)/);
+});

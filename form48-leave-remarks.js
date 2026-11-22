@@ -3,7 +3,8 @@
 const DATE=/^\d{4}-(0[1-9]|1[0-2])-(0[1-9]|[12]\d|3[01])$/;
 const MONTH=/^\d{4}-(0[1-9]|1[0-2])$/;
 const TYPES={VACATION:'VL',SICK:'SL',MATERNITY:'Maternity Leave',
- PATERNITY:'Paternity Leave',OTHER:'Leave'};
+ PATERNITY:'Paternity Leave',OTHER:'Leave',VSC:'VSC Availment',
+ WELLNESS:'Wellness Leave',SPECIAL_PRIVILEGE:'Special Privilege Leave'};
 const MONTHS=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 function dateLabel(from,to){
  const month=MONTHS[Number(from.slice(5,7))-1];
