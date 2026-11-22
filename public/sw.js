@@ -1,4 +1,4 @@
-const CACHE = "attendigo-v308-sidebar-help";
+const CACHE = "attendigo-v309-roles-credits-form6";
 
 const SHELL = [
   "/typography.css?v=1",
@@ -66,11 +66,11 @@ const SHELL = [
   "/attendigo-help-topics.js?v=1",
   "/attendigo-help-guide.js?v=3",
   "/attendigo-help.css?v=3",
-  "/staff-leave-ui.js?v=4",
+  "/staff-leave-ui.js?v=5",
   "/leave-approval-inbox.js?v=1",
   "/leave-approval-inbox.css?v=1",
   "/attendigo-presenter-nav.js?v=1",
-  "/staff-leave-ui.css?v=1",
+  "/staff-leave-ui.css?v=2",
   "/leave-status-indicator.css?v=1",
   "/department-workspace.css?v=1",
   "/department-workspace.js?v=5",
