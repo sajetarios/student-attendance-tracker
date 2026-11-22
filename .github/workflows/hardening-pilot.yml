@@ -1,0 +1,66 @@
+name: Attendigo pilot hardening release gate
+on:
+  push:
+    branches:
+      - hardening/20261122-pilot-safety
+  pull_request:
+    branches:
+      - fix/render-login-landing
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  hardening:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: school_attendance_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d school_attendance_test"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      DATABASE_URL: postgres://postgres:postgres@localhost:5432/school_attendance_test
+      ATTENDIGO_PRIMARY_DATABASE: render
+      PGPASSWORD: postgres
+      ATTENDIGO_BACKUP_KEY_BASE64: BwcHBwcHBwcHBwcHBwcHBwcHBwcHBwcHBwcHBwcHBwc=
+      ATTENDIGO_RESTORE_TEST_DATABASE_URL: postgres://postgres:postgres@localhost:5432/attendigo_restore_test
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci
+      - name: JavaScript syntax safety
+        run: |
+          node --check server.js
+          node --check sf2-routes.js
+          node --check scripts/db-migrate.js
+          node --check scripts/verified-database-backup.js
+          node --check public/form48-intelligence.js
+      - name: Full unit and regression suite
+        run: npm test
+      - name: Migrate isolated PostgreSQL database
+        run: npm run db:migrate
+      - name: Integrate verified gate-to-DTR and OB safeguards
+        run: node tests/gate-dtr-admin-review-postgres.cjs
+      - name: Validate durable SF2 migration
+        run: |
+          psql -h localhost -U postgres -d school_attendance_test -Atc "SELECT COUNT(*) FROM information_schema.columns WHERE table_name='sf2_submissions' AND column_name IN ('file_bytes','file_sha256','file_size')" | grep -F '3'
+      - name: Backup encryption and isolated PostgreSQL restore
+        run: |
+          pg_dump --version
+          node scripts/verified-database-backup.js backup "$RUNNER_TEMP/pilot-hardening.attbk"
+          createdb -h localhost -U postgres attendigo_restore_test
+          node scripts/verified-database-backup.js restore-test "$RUNNER_TEMP/pilot-hardening.attbk"
+          psql -h localhost -U postgres -d attendigo_restore_test -Atc "SELECT COUNT(*) FROM schema_migrations;" | grep -E '[1-9]'
+          rm -f "$RUNNER_TEMP/pilot-hardening.attbk"
