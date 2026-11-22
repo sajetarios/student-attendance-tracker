@@ -1,4 +1,4 @@
-const CACHE = "attendigo-v307-robot-leave-inbox";
+const CACHE = "attendigo-v308-sidebar-help";
 
 const SHELL = [
   "/typography.css?v=1",
@@ -64,8 +64,8 @@ const SHELL = [
   "/portal.css?v=0.9.119",
   "/portal.js?v=234",
   "/attendigo-help-topics.js?v=1",
-  "/attendigo-help-guide.js?v=2",
-  "/attendigo-help.css?v=2",
+  "/attendigo-help-guide.js?v=3",
+  "/attendigo-help.css?v=3",
   "/staff-leave-ui.js?v=4",
   "/leave-approval-inbox.js?v=1",
   "/leave-approval-inbox.css?v=1",

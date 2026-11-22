@@ -240,13 +240,27 @@
       </form>
       <p class="attendigo-help-status" id="attendigoHelpStatus" role="status" aria-live="polite">Guidance only · No records are modified</p>
       <p class="attendigo-help-disclosure" id="attendigoHelpDisclosure">Built-in guide. Do not share personal details, passwords or private codes.</p>`;
-    // Header placement prevents the assistant from covering floating scanner,
-    // create, and save actions near the bottom of the dashboard.
-    const headerActions = document.querySelector('.topbar-right');
-    if (headerActions) headerActions.insertBefore(launcher, headerActions.querySelector('.account-menu-wrap'));
-    else document.querySelector('.side-nav')?.append(launcher);
+    // Keep the primary header uncluttered. Dock Help & Support in the existing
+    // sidebar, after the main navigation so it works for every staff role.
+    // The dock stays in normal sidebar flow: it never covers dashboard actions.
+    const sidebar = document.getElementById('sidebar');
+    if (!sidebar) return;
+    const dock = make('div', 'attendigo-help-dock');
+    dock.id = 'attendigoHelpDock';
+    dock.setAttribute('role', 'complementary');
+    dock.setAttribute('aria-label', 'Help and Support');
+    dock.append(make('span', 'attendigo-help-dock-title', 'HELP & SUPPORT'));
+    dock.append(launcher);
+    sidebar.append(dock);
     document.body.append(panel);
-    launcher.addEventListener('click', () => togglePanel());
+    launcher.addEventListener('click', () => {
+      // A phone/tablet sidebar is a temporary drawer. Close it first so the
+      // help conversation is visible and its question field receives focus.
+      if (sidebar.classList.contains('open')) {
+        document.getElementById('sidebarBackdrop')?.click();
+      }
+      togglePanel();
+    });
     $('attendigoHelpClose').addEventListener('click', () => togglePanel(false));
     $('attendigoHelpForm').addEventListener('submit', event => { event.preventDefault(); ask($('attendigoHelpQuestion').value); });
     $('attendigoHelpQuestion').addEventListener('keydown', event => {

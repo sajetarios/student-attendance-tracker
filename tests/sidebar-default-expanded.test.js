@@ -36,5 +36,5 @@ test('The new scripts are both versioned in the portal and PWA shell', () => {
   assert.match(html, /src="\/simplified-workspace\.js\?v=4" defer/);
   assert.ok(worker.includes('"/portal.js?v=234"'));
   assert.ok(worker.includes('"/simplified-workspace.js?v=4"'));
-  assert.match(worker, /attendigo-v307-robot-leave-inbox/);
+  assert.match(worker, /attendigo-v308-sidebar-help/);
 });
