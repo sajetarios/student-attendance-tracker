@@ -26,11 +26,12 @@ jobs:
           cache: npm
       - run: npm ci
       - name: Gate, OB and DTR regression tests
-        run: node --test tests/gate-event-decision.test.js tests/gate-attendance-boundary.test.js tests/ob-dtr-remarks.test.js tests/gatekeeper-auto-integration.test.js tests/gate-dtr-reconciliation.test.js tests/gate-dtr-preview-route.test.js tests/gate-preview-regression.test.js tests/form48-intelligence-ui.test.js tests/staff-gate-dtr-ui.test.js tests/personal-attendance-insights.test.js tests/attendance-message-clarity.test.js tests/smart-attendance-overview.test.js tests/smart-attendance-setup-ui.test.js tests/staff-gate-dtr-auto.test.js
+        run: node --test tests/gate-event-decision.test.js tests/gate-attendance-boundary.test.js tests/ob-dtr-remarks.test.js tests/gatekeeper-auto-integration.test.js tests/gate-dtr-reconciliation.test.js tests/gate-dtr-preview-route.test.js tests/gate-preview-regression.test.js tests/form48-intelligence-ui.test.js tests/staff-gate-dtr-ui.test.js tests/personal-attendance-insights.test.js tests/attendance-message-clarity.test.js tests/smart-attendance-overview.test.js tests/smart-attendance-setup-ui.test.js tests/staff-gate-dtr-auto.test.js tests/gate-dtr-admin-review.test.js
       - name: Validate server and UI JavaScript syntax
         run: |
           node --check server.js
           node --check staff-gate-dtr-routes.js
+          node --check staff-gate-dtr-review-routes.js
           node --check ob-dtr-remarks.js
           node --check gate-dtr-reconciliation.js
           node --check personal-attendance-insights.js
