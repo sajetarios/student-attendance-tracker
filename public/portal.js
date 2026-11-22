@@ -2599,10 +2599,9 @@ function coverageStatusLabel(status) {
                period.adjustment.type === 'REPLACE' ? 'Subject replacement' : 'Time / room change')
             : 'Regular';
           const manage = canManagePeriod(period);
-          const relationshipTags = user.role === 'TEACHER'
-            ? window.AttendigoScheduleRelationships.relationshipLabels(teacherRelationship(period))
-                .filter(label => label !== 'Advisory / Homeroom activity')
-            : [];
+          const compactRelationship = user.role === 'TEACHER'
+            ? window.AttendigoScheduleRelationships.compactLabel(teacherRelationship(period))
+            : '';
           const advisoryTag = isAdvisoryActivity(period) ? 'Advisory / Homeroom activity' : '';
           const actions = manage ? '<div class="schedule-row-actions">'+
             '<button type="button" class="outline-button compact-button" data-edit-period="'+esc(period.periodId)+'">Edit regular</button>'+
@@ -2612,8 +2611,7 @@ function coverageStatusLabel(status) {
             '<td>'+esc((period.startTime||'—')+'–'+(period.endTime||'—'))+'</td>'+
             '<td>'+esc(period.subjectName||period.periodName||'Class')+'</td>'+
             '<td>'+esc(String(period.gradeLevel||'—')+' · '+String(period.section||'All sections'))+
-            (relationshipTags.length?'<span class="teacher-list-relationships">'+relationshipTags.map(tag=>
-              '<small class="teacher-list-relationship '+(tag==='My subject class'?'is-subject':tag==='My advisory section'?'is-advisory':'is-activity')+'">'+esc(tag)+'</small>').join('')+'</span>':'')+
+            (compactRelationship?'<small class="schedule-day-caption tt-list-compact-role">'+esc(compactRelationship)+'</small>':'')+
             (advisoryTag?'<small class="schedule-day-caption">'+esc(advisoryTag)+'</small>':'')+'</td>'+
             '<td>'+esc(period.cancelled?'No class':period.assignedTeacherName||'Unassigned')+'</td>'+
             '<td>'+esc(period.classroom||'—')+'</td>'+

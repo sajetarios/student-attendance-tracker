@@ -183,8 +183,13 @@
             e.isMySubjectClass?['My subject class','subject']:null,
             e.isMyAdvisorySection?['My advisory section','advisory']:null
           ].filter(Boolean):[];
-          const roleMarkup=roles.length?'<span class="tt-relationship-badges">'+roles.map(role=>
-            '<span class="tt-relation-badge tt-relation-'+role[1]+'">'+escape(role[0])+'</span>').join('')+'</span>':'';
+          // Keep the full independent roles in the accessible label and detail
+          // popover, but only a single caption on each visual timetable card.
+          const caption=e.isMySubjectClass&&e.isMyAdvisorySection?'My advisory class':
+            e.isMySubjectClass?'My subject class':
+            e.isMyAdvisorySection?'My advisory section':'Assigned class';
+          const roleMarkup=e.teacherScheduleView
+            ?'<span class="tt-subject-relation tt-compact-relation">'+escape(caption)+'</span>':'';
           const accessibleRoles=roles.map(role=>role[0]).join(' · ');
           return '<button type="button" class="tt-subject tt-tone-'+kind+'" data-tt-class="'+e.index+
             '" aria-haspopup="dialog" aria-expanded="false" aria-label="'+escape(subject+' · '+section+
@@ -201,7 +206,7 @@
     host.innerHTML='<div class="tt-grid-scroll"><table class="tt-grid" aria-label="Weekly class timetable"><thead><tr><th scope="col" class="tt-time-heading">Time</th>'+heading+
       '</tr></thead><tbody>'+rows+'</tbody></table></div>'+
       '<div class="tt-grid-legend">'+(entries.some(e=>e.teacherScheduleView) ?
-      '<span><i class="tt-legend-teaching"></i>My subject class</span><span><i class="tt-legend-advisory"></i>My advisory section</span><span><i class="tt-legend-both"></i>Both roles</span>' :
+      '<span><i class="tt-legend-both"></i>My advisory class (also teaches)</span><span><i class="tt-legend-teaching"></i>My subject class</span><span><i class="tt-legend-advisory"></i>Advisory section only</span>' :
       '<span><i class="tt-legend-class"></i>Regular class</span>')+
       '<span><i class="tt-legend-adjusted"></i>Temporary change</span><span><i class="tt-legend-cancelled"></i>Cancelled</span>'+
       '<span class="tt-grid-hint">Tap or click a subject for details and authorized actions</span></div>';

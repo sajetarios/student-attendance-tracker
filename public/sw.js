@@ -1,4 +1,4 @@
-const CACHE = "attendigo-v294-embedded-class-qr-monitor";
+const CACHE = "attendigo-v295-minimal-teacher-timetable";
 
 const SHELL = [
   "/typography.css?v=1",
@@ -7,8 +7,8 @@ const SHELL = [
   "/attendigo-unified-navigation.js?v=1",
   "/simplified-workspace.js?v=2",
   "/simplified-workspace.css?v=1",
-  "/teacher-timetable-identities.css?v=1",
-  "/schedule-relationships.js?v=1",
+  "/teacher-timetable-identities.css?v=2",
+  "/schedule-relationships.js?v=2",
   "/fonts/InterVariable.woff2",
   "/fonts/InterVariable-Italic.woff2",
   "/attendigo-brand-refresh.css?v=5",
@@ -44,7 +44,7 @@ const SHELL = [
   "/student-portal.js?v=20",
   "/parent-portal.js?v=3",
   "/dashboard-appearance.js?v=3",
-  "/timetable-grid.js?v=7",
+  "/timetable-grid.js?v=8",
   "/schedule-workspace-ui.js?v=9",
   "/teacher-assignment-modal.css?v=1",
   "/portal-login.html",
@@ -61,7 +61,7 @@ const SHELL = [
   "/class-qr-monitor-embedded.css?v=1",
   "/teacher-roster-popover.js?v=2",
   "/portal.css?v=0.9.119",
-  "/portal.js?v=226",
+  "/portal.js?v=227",
   "/department-workspace.css?v=1",
   "/department-workspace.js?v=5",
   "/department-monitor-refresh.css?v=1",
