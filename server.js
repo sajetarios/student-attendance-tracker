@@ -2546,8 +2546,26 @@ app.post('/api/gate/teacher-auto-event', authenticateSchoolClient, requireSchool
       [req.auth.schoolId,req.auth.userId,eventId,
        JSON.stringify({teacherUserId:teacherId,eventType:decision.eventType,schoolDate,
          automatic:true,photoVerified:true,physicalGateOnly:true})]);
+    // An unambiguous, photo-verified server-clock gate scan may also supply one
+    // official DTR slot. This is an OPTIONAL audited projection, never an
+    // inferred lunch punch, OB approval, absence, or overwritten slot.
+    // SAVEPOINT ensures a projection failure cannot discard the real gate scan.
+    let autoDtr={status:'REVIEW_REQUIRED',reason:'AUTO_MATCH_UNAVAILABLE'};
+    try {
+      await client.query('SAVEPOINT auto_gate_dtr');
+      autoDtr=await require('./staff-gate-dtr-auto').autoRecordVerifiedGateDtr(client,{
+        schoolId:req.auth.schoolId,staffUserId:teacherId,gateEventId:eventId,
+        occurredAt:savedEvent.occurredAt,schoolDate,actorUserId:req.auth.userId
+      });
+      await client.query('RELEASE SAVEPOINT auto_gate_dtr');
+    } catch (autoError) {
+      await client.query('ROLLBACK TO SAVEPOINT auto_gate_dtr');
+      await client.query('RELEASE SAVEPOINT auto_gate_dtr');
+      console.error('Gate-to-DTR review fallback:',autoError.code||autoError.name||'unknown');
+    }
     await client.query('COMMIT');
-    return res.status(201).json({event:savedEvent,teacherName:teacher.rows[0].display_name,schoolDate,recordingTarget:'PHYSICAL_GATE'});
+    return res.status(201).json({event:savedEvent,teacherName:teacher.rows[0].display_name,
+      schoolDate,recordingTarget:'PHYSICAL_GATE',autoDtr});
   }catch(err){
     await client.query('ROLLBACK').catch(()=>{});
     console.error('Automatic staff gate event:',err.message);
