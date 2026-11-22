@@ -110,16 +110,14 @@ function registerForm48ReviewRoutes(app,pool,{authenticateSchoolClient,requireSc
     ' ON CONFLICT (school_id,staff_user_id,report_month) DO UPDATE SET'+
     ' workdays=EXCLUDED.workdays,regular_hours=EXCLUDED.regular_hours,'+
     ' saturday_hours=EXCLUDED.saturday_hours,day_reviews=EXCLUDED.day_reviews,'+
-    ' verified_by_name=EXCLUDED.verified_by_name,approved_by_name=EXCLUDED.approved_by_name,'+
-    ' verified_by_position=EXCLUDED.verified_by_position,approved_by_position=EXCLUDED.approved_by_position,'+
     ' updated_by_user_id=EXCLUDED.updated_by_user_id,updated_at=NOW(),'+
     ' revision=staff_form48_monthly_reviews.revision+1'+
     ' WHERE staff_form48_monthly_reviews.revision=$13'+
     ' RETURNING revision',
     [req.auth.schoolId,input.staffUserId,input.month+'-01',input.workdays,
      JSON.stringify(input.regularHours),JSON.stringify(input.saturdayHours),
-     JSON.stringify(input.dayReviews),input.verifiedBy,input.approvedBy,
-     input.verifiedPosition,input.approvedPosition,req.auth.userId,input.revision]);
+     JSON.stringify(input.dayReviews),'','',
+     '','',req.auth.userId,input.revision]);
    if(!saved.rowCount){await client.query('ROLLBACK');return res.status(409).json({error:'Report settings changed in another session. Reload before saving.'});}
    await client.query(
     "INSERT INTO staff_attendance_audit(school_id,actor_user_id,action,target_type,target_id,details)"+
@@ -127,12 +125,10 @@ function registerForm48ReviewRoutes(app,pool,{authenticateSchoolClient,requireSc
     [req.auth.schoolId,req.auth.userId,input.staffUserId,
      JSON.stringify({month:input.month,revision:saved.rows[0].revision,
       confirmedAbsences:Object.entries(input.dayReviews).filter(([,v])=>v==='ABSENT').map(([d])=>d),
-      excusedDays:Object.entries(input.dayReviews).filter(([,v])=>v==='EXCUSED').map(([d])=>d),
-      signatoryNamesEntered:Boolean(input.verifiedBy||input.approvedBy),
-      signatoryPositionsEntered:Boolean(input.verifiedPosition||input.approvedPosition)})]);
+      excusedDays:Object.entries(input.dayReviews).filter(([,v])=>v==='EXCUSED').map(([d])=>d)})]);
    await client.query('COMMIT');
    return res.json({saved:true,revision:saved.rows[0].revision,
-    notice:'Draft names do not constitute actual verification or approval.'});
+    notice:'Monthly attendance reviews saved. Report signatories are managed once at school level.'});
   }catch(err){
    await client.query('ROLLBACK').catch(()=>{});
    console.error('Form48 review save:',err.message);

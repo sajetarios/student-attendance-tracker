@@ -15,6 +15,19 @@
   const filter=$('form48BatchSearch'),badge=$('form48BatchCount');
   const feedback=$('form48BatchStatus'),toggle=$('form48BatchToggle');
   const saveDefaults=$('form48SaveSchoolDefaults');
+  const saveSignatories=$('form48SaveSignatories'),schoolSigners=$('form48SchoolSignatories');
+  const signatoryStatus=$('form48SchoolSignatoriesStatus');
+  const signatoryKeys=['verifiedBy','verifiedPosition','approvedBy','approvedPosition'];
+  const signatoryFields={
+   verifiedBy:$('form48VerifiedBy'),verifiedPosition:$('form48VerifiedPosition'),
+   approvedBy:$('form48ApprovedBy'),approvedPosition:$('form48ApprovedPosition')
+  };
+  const saySignatories=(message,error=false)=>{
+   if(signatoryStatus){
+    signatoryStatus.textContent=message;
+    signatoryStatus.classList.toggle('is-error',error);
+   }
+  };
   const selected=new Set();
   let staff=[],defaults=null,busy=false;
   const say=(message,error=false)=>{feedback.textContent=message;feedback.classList.toggle('is-error',error);};
@@ -105,9 +118,41 @@
    try{
     const result=await api('/api/staff-attendance/admin/form48/defaults');
     defaults=result.defaults;saveDefaults.disabled=false;
-   }catch(err){say('School defaults unavailable: '+err.message,true);}
+    for(const key of signatoryKeys)signatoryFields[key].value=defaults[key]||'';
+    if(saveSignatories)saveSignatories.disabled=false;
+    saySignatories(signatoryKeys.every(key=>String(defaults[key]||'').trim())?
+     'Both signatories are configured for every staff DTR.':
+     'Enter and save both signatories once for the school.');
+   }catch(err){
+    if(saveSignatories)saveSignatories.disabled=true;
+    saySignatories('Unable to load school signatories: '+err.message,true);
+    say('School defaults unavailable: '+err.message,true);
+   }
   }
   fetchDefaults();
+  schoolSigners?.addEventListener('input',event=>{
+   if(Object.values(signatoryFields).includes(event.target))
+    saySignatories('Unsaved changes. Save to apply to all staff and months.');
+  });
+  saveSignatories?.addEventListener('click',async()=>{
+   if(busy||!defaults)return;
+   const payload={revision:defaults.revision};
+   for(const key of signatoryKeys)payload[key]=signatoryFields[key].value.trim();
+   if(signatoryKeys.some(key=>!payload[key]||payload[key].length>120)){
+    saySignatories('Provide the names and positions of both signatories.',true);return;
+   }
+   busy=true;saveSignatories.disabled=true;
+   try{
+    const result=await api('/api/staff-attendance/admin/form48/signatories',{
+     method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)
+    });
+    defaults={...defaults,...payload,revision:result.revision};
+    saySignatories('Saved for all employees. Generate a new DTR preview to see updated names.');
+    document.dispatchEvent(new CustomEvent('attendigo:form48-signatories-saved'));
+   }catch(err){
+    saySignatories('Nothing saved: '+err.message+'. Reload the page if school settings changed elsewhere.',true);
+   }finally{busy=false;saveSignatories.disabled=false;}
+  });
   const hoursFor=group=>Object.fromEntries([...document.querySelectorAll('[data-form48-hour="'+group+'"]')]
    .map(input=>[input.dataset.slot,input.value]));
   saveDefaults.addEventListener('click',async()=>{
@@ -117,17 +162,17 @@
    const details={
     revision:defaults.revision,workdays:[...settings.querySelectorAll('[data-form48-day]:checked')].map(x=>Number(x.value)),
     regularHours:hoursFor('regular'),saturdayHours:hoursFor('saturday'),
-    verifiedBy:$('form48VerifiedBy').value.trim(),verifiedPosition:$('form48VerifiedPosition').value.trim(),
-    approvedBy:$('form48ApprovedBy').value.trim(),approvedPosition:$('form48ApprovedPosition').value.trim()
+    verifiedBy:defaults.verifiedBy||'',verifiedPosition:defaults.verifiedPosition||'',
+    approvedBy:defaults.approvedBy||'',approvedPosition:defaults.approvedPosition||''
    };
-   if(!window.confirm('Apply these printed signatories and prescribed work hours as SCHOOL DEFAULTS for future staff DTR previews? Employee-specific overrides remain unchanged.'))return;
+   if(!window.confirm('Apply these prescribed work hours as SCHOOL DEFAULTS? Employee work schedules and school-wide signatories remain unchanged.'))return;
    busy=true;saveDefaults.disabled=true;
    try{
     const result=await api('/api/staff-attendance/admin/form48/defaults',{
      method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(details)
     });
     defaults={...details,revision:result.revision};
-    say('School defaults saved. They will prefill other employees who have no individual settings.');
+    say('School working hours saved as defaults. Employee-specific schedules remain unchanged.');
    }catch(err){say(err.message,true);await fetchDefaults();}
    finally{busy=false;saveDefaults.disabled=false;}
   });

@@ -487,3 +487,24 @@
  #form48ReportCard #form48PrintArea[data-copy-view="both"] .form48-sheets{grid-template-columns:minmax(0,1fr)}
 }
 @media print{#form48SummaryStrip,#form48PreviewToolbar{display:none!important}}
+
+/* School-wide Form 48 signatories live outside per-employee settings. */
+@media screen{
+ #form48ReportCard>#form48SchoolSignatories{order:1;margin:10px 0 3px}
+ #form48ReportCard>#form48FilterForm{order:2}
+ #form48ReportCard>.form48-tools{order:3}
+ #form48ReportCard>#form48BatchPanel{order:4}
+ #form48ReportCard>#form48Feedback{order:5}
+ #form48ReportCard>#form48SummaryStrip{order:6}
+ #form48ReportCard>#form48PreviewToolbar{order:7}
+ #form48ReportCard>#form48PrintArea{order:8}
+ #form48ReportCard>#form48DailyInsights{order:9}
+ #form48ReportCard>#form48GateIntelligence{order:10}
+ #form48ReportCard>#form48AdvancedSettings{order:11}
+ #form48SchoolSignatories .form48-settings-panel{margin:0;border:0;border-top:1px solid var(--border-color,#d3dfec);border-radius:0;background:transparent}
+ #form48SchoolSignatories .form48-schedule-actions{margin:14px 0 0}
+ #form48SchoolSignatories .form48-schedule-actions span{flex:1 1 240px}
+ #form48SchoolSignatories .form48-draft-notice{margin:0 0 12px}
+ #form48SchoolSignatories .form48-signer{background:var(--surface,#fff)}
+}
+@media print{#form48SchoolSignatories{display:none!important}}

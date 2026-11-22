@@ -229,10 +229,8 @@ const standalonePrintCss = [
    return {staffUserId:person.value,month:month.value,revision:r.revision??0,
     workdays:listDays().filter(x=>x.checked).map(x=>Number(x.value)),
     regularHours:hoursFor('regular'),saturdayHours:hoursFor('saturday'),
-    dayReviews:r.dayReviews||{},verifiedBy:$('form48VerifiedBy').value.trim(),
-    approvedBy:$('form48ApprovedBy').value.trim(),
-    verifiedPosition:$('form48VerifiedPosition').value.trim(),
-    approvedPosition:$('form48ApprovedPosition').value.trim()};
+    // Staff monthly review never persists school-wide signer details.
+    dayReviews:r.dayReviews||{}};
   };
   const populate=data=>{
    const r=data.review||{};
@@ -244,10 +242,6 @@ const standalonePrintCss = [
      input.value=data?.[input.dataset.slot]||'';
     }
    }
-   $('form48VerifiedBy').value=r.verifiedBy||'';
-   $('form48ApprovedBy').value=r.approvedBy||'';
-   $('form48VerifiedPosition').value=r.verifiedPosition||'';
-   $('form48ApprovedPosition').value=r.approvedPosition||'';
    state.scheduleDirty=false;state.draftDirty=false;
    updateScheduleSummary();
    scheduleMessage(state.employeeSchedule?.revision>0?'Employee schedule saved (applies across months).':
@@ -387,6 +381,10 @@ const standalonePrintCss = [
    window.attendigoForm48Staff=data.staff||[];
    document.dispatchEvent(new CustomEvent('attendigo:form48-staff-loaded',{detail:{staff:data.staff||[]}}));
   }).catch(e=>status(e.message,true));
+  document.addEventListener('attendigo:form48-signatories-saved',()=>{
+   invalidate();
+   status('School-wide signatories saved for all staff. Generate a fresh report preview.');
+  });
   month.addEventListener('change',fetchConfig);
   person.addEventListener('change',fetchConfig);
   form.addEventListener('submit',event=>{event.preventDefault();generate();});
@@ -410,9 +408,6 @@ const standalonePrintCss = [
    if(event.target.matches('[data-form48-day],[data-form48-hour]')){
     state.scheduleDirty=true;
     scheduleMessage('Unsaved work hours. Select Save employee work schedule.');
-   }else if(['form48VerifiedBy','form48ApprovedBy','form48VerifiedPosition','form48ApprovedPosition'].includes(event.target.id)){
-    state.draftDirty=true;
-    status('Unsaved certification details. Select Save report details.');
    }
    updateScheduleSummary();
   };
