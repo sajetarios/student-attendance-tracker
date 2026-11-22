@@ -1,7 +1,7 @@
 'use strict';
 // Purely read-only leave-window lookup. Never toggles accounts or writes gate/DTR events.
 // The authoritative source is the active, officially transcribed Form48 approval table.
-const QUERY=String.raw\`
+const QUERY=`
  SELECT to_char((clock_timestamp() AT TIME ZONE 'Asia/Manila')::date,'YYYY-MM-DD') AS "schoolDate",
         to_char(l.start_date,'YYYY-MM-DD') AS "startDate",
         to_char(l.end_date,'YYYY-MM-DD') AS "endDate",
@@ -23,7 +23,7 @@ const QUERY=String.raw\`
    LIMIT 1
  ) l ON true
  WHERE s.school_id=$1 AND s.user_id=$2 AND s.active=TRUE
- LIMIT 1\`;
+ LIMIT 1`;
 function dateValid(s){return typeof s==='string'&&/^\d{4}-\d{2}-\d{2}$/.test(s);}
 function deriveLeaveStatus(row){
  if(!row||!dateValid(row.schoolDate))return {status:'NONE'};
