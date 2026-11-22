@@ -87,7 +87,7 @@ test('staff lunch sign-in resumes same challenge without QR rescan or token in q
  assert.match(login,/lunchContinuation && isLunchStaff\(data\.user\.role\)/);
  assert.match(login,/location\.replace\(lunchContinuation\)/);
  assert.match(page,/id="lunchRetry"/);
- assert.match(loginPage,/portal-login\.js\?v=14/);
+ assert.match(loginPage,/portal-login\.js\?v=15/);
  assert.match(sw,/staff-lunch-checkin\.js\?v=3/);
  assert.doesNotMatch(scan,/localStorage|sessionStorage|location\.search|console\.log/);
 });

@@ -7,7 +7,7 @@
   const schoolCodeGroup = document.getElementById('schoolCodeGroup');
   const schoolCode = document.getElementById('schoolCode');
   const schoolCodeHint = document.getElementById('schoolCodeHint');
-  const schoolCodeHelp = 'Your school code is required, even with a saved username and password.';
+  const schoolCodeHelp = 'Enter your school code even when your browser fills in your password.';
   function clearSchoolCodeError() {
     schoolCode.removeAttribute('aria-invalid');
     schoolCodeHint.textContent = schoolCodeHelp;
@@ -64,10 +64,10 @@
     usernameInput.setAttribute('aria-label', isStudent ? 'Student ID or username' : 'Username');
     if (usernameLabel) { const nameText = usernameLabel.querySelector('span'); if (nameText) nameText.textContent = isStudent ? 'Student ID / username' : 'Username'; else usernameLabel.textContent = isStudent ? 'Student ID / username' : 'Username'; }
     if (accountTypeHint) accountTypeHint.textContent = isStudent
-      ? 'Student account uses the school-issued student login. You can view only your own profile and attendance.'
+      ? 'Use your school-issued student ID or username.'
       : mode === 'platform'
         ? 'Super Admin: enter your platform username and password. School code is not required.'
-        : 'School account includes administrators, teachers, Gate Keepers, and approved Parent/Guardian accounts.';
+        : 'For school staff and approved parents or guardians.';
     feedback.textContent = '';
     feedback.className = 'form-feedback';
     switchButton.style.display='none';
@@ -75,7 +75,10 @@
 
   schoolMode.addEventListener('click', () => setMode('school'));
   studentMode?.addEventListener('click', () => setMode('student'));
-  platformMode.addEventListener('click', () => setMode('platform'));
+  platformMode.addEventListener('click', () => {
+    setMode('platform');
+    document.getElementById('username').focus();
+  });
   const loginParams=new URLSearchParams(window.location.search);
   // Lunch QR sign-in continuation stays in the fragment (never in query
   // parameters, cookie, localStorage, or analytics). Erase it immediately.

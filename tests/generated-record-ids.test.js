@@ -152,5 +152,5 @@ test('short ID login alias is limited to the Student portal and preserves exact 
   assert.match(login,/lower\(sa.username\)=lower\(\$3\)/);
   assert.match(login,/ORDER BY CASE WHEN lower\(sa.username\)=lower\(\$2\) THEN 0 ELSE 1 END/);
   assert.match(file('public/portal-login.js'),/26-00089 or 2600089/);
-  assert.match(file('public/portal-login.html'),/portal-login\.js\?v=14/);
+  assert.match(file('public/portal-login.html'),/portal-login\.js\?v=15/);
 });

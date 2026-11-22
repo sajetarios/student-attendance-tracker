@@ -29,6 +29,15 @@ test('login assistance remains compact, accessible, and scoped to correct accoun
   assert.match(html, /<span>Create parent account<\/span>\s*<svg/);
   assert.match(css, /\.login-assistance-action>span\{min-width:0/);
   assert.match(css, /\.login-security-note\{display:flex;align-items:center/);
-  assert.match(html, /attendigo-login-refinement\.css\?v=5/);
-  assert.match(sw, /attendigo-login-refinement\.css\?v=5/);
+  assert.match(html, /attendigo-login-refinement\.css\?v=6/);
+  assert.match(sw, /attendigo-login-refinement\.css\?v=6/);
+});
+
+test('primary account choices precede credentials and platform access follows the form', () => {
+  const html = read('public/portal-login.html');
+  const picker = html.match(/<div class="login-mode"[^>]*>([\s\S]*?)<\/div>/)[1];
+  assert.match(picker, /Staff &amp; guardians/);
+  assert.match(picker, />Students</);
+  assert.doesNotMatch(picker, /platformMode/);
+  assert.ok(html.indexOf('id="platformMode"') > html.indexOf('id="signInButton"'));
 });
