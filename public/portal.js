@@ -2209,7 +2209,7 @@ function coverageStatusLabel(status) {
         if (previewElement) {
           previewElement.textContent = preview.status === 'READY'
             ? 'Predicted gate movement: ' + preview.label + ' · ' + preview.localTime +
-              ' (Philippine time). Gate movement only; official DTR and OB remain separate.'
+              ' (Philippine time). A clear, verified scan can fill the matching DTR time; OB and uncertain scans require review.'
             : 'Gate movement requires review: ' + (preview.reason || preview.status);
         }
         if (previewElement) previewElement.dataset.previewBlocked = String(preview.status !== 'READY');
@@ -2250,9 +2250,25 @@ function coverageStatusLabel(status) {
       });
       const name = scannedTeacher.fullName;
       const label = result.event?.eventType === 'TIME_IN' ? 'time-in' : 'time-out';
-      $('studentScanFeedback').textContent = name + ': physical gate ' + label + ' recorded. Official DTR and OB remain separate.';
+      const verifiedDtr = result.autoDtr?.status === 'AUTO_RECORDED';
+      const dtrLabel = verifiedDtr ? result.autoDtr.slot.replace('_', ' ') : '';
+      const reviewReasons = {
+        SCHEDULE_UNAVAILABLE:'school working hours are not configured',
+        NOT_SCHEDULED_WORKDAY:'this is outside the regular work schedule',
+        APPROVED_OB_REQUIRES_REVIEW:'approved official business needs a review',
+        LEAVE_REQUIRES_REVIEW:'the employee has leave on record',
+        CALENDAR_EXCEPTION:'the school calendar needs review',
+        MORNING_ARRIVAL_UNCONFIRMED:'a morning arrival was not established'
+      };
+      const statusNote = verifiedDtr
+        ? ' Official DTR ' + dtrLabel + ' saved automatically.'
+        : ' Official DTR not auto-filled; ' +
+          (reviewReasons[result.autoDtr?.reason] || 'the record needs review') + '.';
+      $('studentScanFeedback').textContent = name + ': gate ' + label + ' saved.' + statusNote;
       $('studentScanFeedback').className = 'scanner-feedback is-success';
-      showToast('GATE ATTENDANCE SAVED — ' + name + ' ' + label);
+      showToast(verifiedDtr
+        ? 'GATE + DTR SAVED — ' + name + ' · ' + dtrLabel
+        : 'GATE SAVED — DTR REVIEW NEEDED · ' + name);
       scannedTeacher = null;
       $('studentScanNotice').hidden = true;
       $('studentScanResult').hidden = true;
