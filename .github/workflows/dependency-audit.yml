@@ -1,0 +1,34 @@
+name: Attendigo dependency audit (diagnostic)
+on:
+  push:
+    branches: [security/20261122-npm-audit]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - name: Inspect installed dependency security advisories
+        shell: bash
+        run: |
+          npm ci --ignore-scripts --no-audit --no-fund
+          npm audit --omit=dev --json > "$RUNNER_TEMP/npm-audit.json" || true
+          AUDIT_FILE="$RUNNER_TEMP/npm-audit.json" node - <<'NODE'
+          const fs = require('node:fs');
+          const audit = JSON.parse(fs.readFileSync(process.env.AUDIT_FILE,'utf8'));
+          const summary = Object.entries(audit.vulnerabilities || {}).map(([name, v]) => ({
+            name, severity: v.severity, range: v.range, isDirect: v.isDirect,
+            fixAvailable: v.fixAvailable, via: (v.via || []).map(x =>
+              typeof x === 'string' ? x : { title:x.title, url:x.url, range:x.range, severity:x.severity })
+          }));
+          console.log('AUDIT_SUMMARY_BEGIN');
+          console.log(JSON.stringify({counts: audit.metadata?.vulnerabilities, packages: summary}, null, 2));
+          console.log('AUDIT_SUMMARY_END');
+          NODE
