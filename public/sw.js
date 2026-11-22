@@ -176,7 +176,7 @@ self.addEventListener("fetch", event => {
   // This also protects people who still have a legacy cached login form.
   const isAccountPage = ['/', '/index.html', '/portal-login.html',
     '/parent-register.html', '/platform-setup.html',
-    '/force-password-change.html', '/class-qr-checkin.html', '/attendance-pin.html', '/staff-lunch-checkin.html', '/portal.html',
+    '/force-password-change.html', '/class-qr-checkin.html', '/attendance-pin.html', '/staff-lunch-checkin.html', '/class-qr-monitor.html', '/portal.html',
     '/student-portal.html', '/parent-portal.html'].includes(url.pathname);
   const credentialKey = /^(?:password|passwd|pwd|pass|currentpassword|newpassword|confirmpassword|recoverycode|setupcode|accesstoken)$/i;
   if (isAccountPage && [...url.searchParams.keys()].some(key => credentialKey.test(key))) {
@@ -185,7 +185,7 @@ self.addEventListener("fetch", event => {
   }
 
   // Authenticated dashboards are never served from the offline shell cache.
-  if (["/portal.html", "/student-portal.html", "/parent-portal.html",
+  if (["/portal.html", "/class-qr-monitor.html", "/student-portal.html", "/parent-portal.html",
        "/force-password-change.html", "/attendance-pin.html", "/class-qr-checkin.html", "/staff-lunch-checkin.html"].includes(url.pathname)) {
     event.respondWith(fetch(request, { cache: "no-store" }));
     return;
