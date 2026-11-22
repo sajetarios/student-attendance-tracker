@@ -4563,6 +4563,13 @@ let teacherActionMenuListenersInstalled = false;
       scannerTodayPeriods=result.today;
       scannerSetPeriodChoices(result.today||[]);
       const now=result.stamp?.time||stamp.time;
+      // Do not override an explicit advisory choice made during the async fetch.
+      if($('scanSetupScope').value!=='CLASS'){
+        scannerAutoDetected=false;
+        scannerStatus('Advisory mode selected. Only your assigned advisory section can be recorded.');
+        scannerUpdateStart();
+        return;
+      }
       if(result.status==='MATCH'&&result.active.length===1){
         const current=result.active[0];
         $('scanSetupPeriod').value=String(current.periodId);
