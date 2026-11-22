@@ -632,6 +632,7 @@ body.dark-mode .content-wrap > .school-heading.is-compact,body[data-theme="dark"
   </style>
   <link rel="stylesheet" href="/mobile-overflow-repair.css?v=1">
   <link rel="stylesheet" href="/role-controls-responsive.css?v=2">
+  <link rel="stylesheet" href="/class-qr-monitor-embedded.css?v=1">
 <link rel="stylesheet" href="/sf1-import-mobile.css?v=1">
   <link rel="stylesheet" href="/simplified-workspace.css?v=1">
   <link rel="stylesheet" href="/teacher-timetable-identities.css?v=1">
@@ -697,6 +698,7 @@ body.dark-mode .content-wrap > .school-heading.is-compact,body[data-theme="dark"
             <span class="nav-icon">◷</span><span class="nav-label">Attendance Management</span><span class="nav-chevron" aria-hidden="true">⌄</span>
           </button>
           <div class="nav-submenu" id="attendanceManagementNavChildren" data-submenu="attendanceManagement">
+            <a class="nav-item" id="classQrAdminMonitorNav" data-view="classQrMonitor" hidden href="/portal.html?view=classQrMonitor" title="School-wide class attendance monitoring"><span class="nav-icon" aria-hidden="true">▤</span><span class="nav-label">Class Attendance Monitoring</span></a>
             <a class="nav-item" id="offlineScanReviewsNav" href="/gate-offline-review.html" title="Review offline Gatekeeper scans" hidden><span class="nav-icon">▤</span><span class="nav-label">Offline Scan Reviews</span><span class="request-side-count" id="offlineScanReviewsNavBadge" hidden aria-live="polite">0</span></a>
           </div>
         </div>
@@ -1103,6 +1105,38 @@ body.dark-mode .content-wrap > .school-heading.is-compact,body[data-theme="dark"
               </table></div>
               <p class="my-gate-help">A gate scan shows when you entered or left after Gatekeeper verification. A clear, photo-verified gate scan can automatically fill its matching official DTR time. Missing lunch scans, OB, and uncertain movements are not guessed; ask the School Admin to review those entries.</p>
             </div>
+          </section>
+
+          <section id="classQrMonitorView" class="view-panel" aria-label="Class Attendance Monitoring" hidden>
+  <div class="class-qr-monitor" id="monitorPage" hidden>
+    <div class="class-qr-monitor-heading">
+      <div><h3>Class Attendance Monitoring</h3><p class="class-qr-muted">School-wide overview of scheduled classes and student QR check-ins. This page does not generate class QR codes.</p><p id="schoolDate" class="class-qr-muted"></p></div>
+      <button id="refresh" type="button" class="outline-button">↻ Refresh</button>
+    </div>
+    <section class="class-qr-monitor-stats" aria-label="Today's attendance overview">
+      <div class="class-qr-monitor-stat"><span class="class-qr-muted">Scheduled classes</span><strong id="scheduledCount">—</strong></div>
+      <div class="class-qr-monitor-stat"><span class="class-qr-muted">QR sessions</span><strong id="sessionCount">—</strong></div>
+      <div class="class-qr-monitor-stat"><span class="class-qr-muted">Active QR sessions</span><strong id="activeCount">—</strong></div>
+      <div class="class-qr-monitor-stat"><span class="class-qr-muted">Recorded QR check-ins</span><strong id="checkinCount">—</strong></div>
+    </section>
+    <section class="surface-card section-card class-qr-monitor-panel" aria-labelledby="scheduleTitle">
+      <h2 id="scheduleTitle">Today's class QR activity</h2>
+      <p class="class-qr-muted">No QR session does not mean a learner is absent. Refer to official class attendance records for verified marks.</p>
+      <div class="table-scroll class-qr-monitor-table-wrap" role="region" aria-label="School-wide class QR attendance sessions" tabindex="0">
+        <table><thead><tr><th>Class</th><th>Scheduled time</th><th>QR session</th><th>Recorded</th><th>Present / Late</th><th>Action</th></tr></thead><tbody id="classRows"><tr><td class="empty-cell" colspan="6">Loading classes…</td></tr></tbody></table>
+      </div>
+    </section>
+    <section class="surface-card section-card class-qr-monitor-panel class-qr-monitor-override" id="overridePanel" hidden aria-labelledby="overrideTitle">
+      <h2 id="overrideTitle">Emergency close</h2>
+      <p id="overrideDetails"></p>
+      <p class="class-qr-muted">Use only for an exceptional operational or security reason. This closes the selected QR session; existing attendance check-ins are not removed. The reason and your account are recorded in the audit log.</p>
+      <form id="overrideForm" method="post"><label for="overrideReason">Reason (12–500 characters)</label>
+        <textarea id="overrideReason" minlength="12" maxlength="500" required placeholder="Explain the specific reason for stopping this QR session"></textarea>
+        <div class="class-qr-monitor-actions"><button type="submit" class="primary-button" id="overrideConfirm">Confirm emergency close</button><button type="button" class="outline-button" id="overrideCancel">Cancel</button></div>
+      </form>
+    </section>
+    <p id="message" class="inline-feedback" role="status" aria-live="polite"></p>
+  </div>
           </section>
 
           <section id="classAttendanceView" class="view-panel" hidden>
@@ -2374,7 +2408,8 @@ body.dark-mode .content-wrap > .school-heading.is-compact,body[data-theme="dark"
     <div class="form-actions"><button type="button" class="primary-button" id="profileSavedConfirmationClose">OK</button></div>
   </dialog>
   <script src="/app-dialog.js?v=1" defer></script>
-<script src="/class-qr-dashboard-link.js?v=11" defer></script>
+<script src="/class-qr-dashboard-link.js?v=12" defer></script>
+<script src="/class-qr-monitor.js?v=2" defer></script>
   <script src="/sw-refresh.js?v=3" defer></script>
   <script src="/password-visibility.js" defer></script>
   <script src="/vendor/html5-qrcode.min.js" defer></script>
@@ -2416,7 +2451,7 @@ body.dark-mode .content-wrap > .school-heading.is-compact,body[data-theme="dark"
   <script src="/smart-mobile-header.js?v=4" defer></script>
 <script src="/attendigo-sidebar-adaptive.js?v=9" defer></script>
   <script src="/attendigo-unified-navigation.js?v=1" defer></script>
-  <script src="/simplified-workspace.js?v=1" defer></script>
+  <script src="/simplified-workspace.js?v=2" defer></script>
 <script defer src="/school-header-responsive.js?v=2"></script>
 </body>
 </html>

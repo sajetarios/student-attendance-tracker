@@ -18,7 +18,7 @@ test('School Admin quick-management card routes to school-wide class attendance 
   assert.ok(card.includes('<strong>Class Attendance Monitoring</strong>'), 'Tile has the correct label');
   assert.ok(!card.includes('data-admin-view="sf2"'), 'Old inaccessible SF2 tile removed');
   assert.ok(!card.includes('<strong>SF2 reports</strong>'), 'Old SF2 shortcut is not displayed');
-  assert.match(portal,/view === 'classQrMonitor'[\s\S]{0,220}window\.location\.assign\('\/class-qr-monitor\.html'\)/);
+  assert.match(portal,/view === 'classQrMonitor'[\s\S]{0,220}setView\('classQrMonitor'\)/);
   assert.match(portal,/if \(user\?\.role !== 'SCHOOL_ADMIN'\) return;/);
   assert.match(monitor,/user\?\.role !== 'SCHOOL_ADMIN'/);
   assert.doesNotMatch(card,/class-qr-teacher\.html/);

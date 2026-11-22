@@ -122,7 +122,10 @@ test('Class QR portal UI hides teacher launch from Admin and exposes monitoring 
  const monitorPage=fs.readFileSync(path.join(__dirname,'../public/class-qr-monitor.html'),'utf8');
  const monitorJs=fs.readFileSync(path.join(__dirname,'../public/class-qr-monitor.js'),'utf8');
  assert.match(script,/if \(user\.role === 'SCHOOL_ADMIN'\)/);
- assert.match(script,/href = '\/class-qr-monitor\.html'/);
+ const adminPortal=fs.readFileSync(path.join(__dirname,'../public/portal.html'),'utf8');
+ assert.match(adminPortal,/id="classQrAdminMonitorNav" data-view="classQrMonitor" hidden/);
+ assert.match(adminPortal,/href="\/portal\.html\?view=classQrMonitor"/);
+ assert.doesNotMatch(script,/href = '\/class-qr-monitor\.html'/);
  assert.match(script,/if \(user\.role !== 'TEACHER'\) return/);
  assert.doesNotMatch(script,/\['TEACHER', 'SCHOOL_ADMIN'\]/);
  assert.match(teacherPage,/user\?\.role!=='TEACHER'/);
