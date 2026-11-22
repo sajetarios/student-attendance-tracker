@@ -303,14 +303,6 @@ window.attendigoStaffIdentity = new Promise(resolve => { resolveStaffIdentity = 
     const activeNav = [...document.querySelectorAll('.nav-item[data-view="' + sidebarView + '"]')].find(item => !item.hidden);
     const activeGroup = activeNav?.closest('.nav-group');
     if (activeGroup) {
-      if (user?.role === 'DEPARTMENT_HEAD' && window.matchMedia('(max-width: 860px)').matches) {
-        document.querySelectorAll('.nav-group-toggle[data-nav-group]').forEach(other => {
-          if (other.closest('.nav-group') === activeGroup) return;
-          other.setAttribute('aria-expanded', 'false');
-          const otherMenu = document.querySelector('[data-submenu="' + other.dataset.navGroup + '"]');
-          if (otherMenu) otherMenu.hidden = true;
-        });
-      }
       const groupToggle = activeGroup.querySelector('.nav-group-toggle[data-nav-group]');
       const submenu = activeGroup.querySelector('.nav-submenu');
       if (groupToggle) groupToggle.setAttribute('aria-expanded', 'true');
@@ -5893,14 +5885,6 @@ let teacherActionMenuListenersInstalled = false;
       const opening = button.getAttribute('aria-expanded') !== 'true';
       button.setAttribute('aria-expanded', String(opening));
       if (submenu) submenu.hidden = !opening;
-      if (opening && user?.role === 'DEPARTMENT_HEAD' && window.matchMedia('(max-width: 860px)').matches) {
-        document.querySelectorAll('.nav-group-toggle[data-nav-group]').forEach(other => {
-          if (other === button || other.closest('.nav-group')?.hidden) return;
-          other.setAttribute('aria-expanded', 'false');
-          const otherMenu = document.querySelector('[data-submenu="' + other.dataset.navGroup + '"]');
-          if (otherMenu) otherMenu.hidden = true;
-        });
-      }
       const layout = document.querySelector('.portal-layout');
       if (layout.classList.contains('sidebar-collapsed') && !window.matchMedia('(max-width: 860px)').matches) {
         setSidebarCollapsed(false);
@@ -5946,8 +5930,21 @@ let teacherActionMenuListenersInstalled = false;
     $('sidebarToggle').title = 'Close navigation';
     $('sidebarToggle').textContent = '×';
   }
-  // Always start with a readable, expanded desktop sidebar on each page load.
+  // All role-authorized menu groups start open on each fresh page load.
+  // Never unhide a role-restricted group or link. Users may still collapse
+  // individual sections, including in the mobile drawer.
+  function expandSidebarGroupsByDefault() {
+    document.querySelectorAll('#sidebar .nav-group-toggle[data-nav-group]').forEach(toggle => {
+      const wrapper = toggle.closest('.nav-group');
+      if (!wrapper || wrapper.hidden) return;
+      const submenu = wrapper.querySelector('.nav-submenu');
+      if (!submenu) return;
+      toggle.setAttribute('aria-expanded', 'true');
+      submenu.hidden = false;
+    });
+  }
   setSidebarCollapsed(false);
+  expandSidebarGroupsByDefault();
   document.addEventListener('click', event => {
     const control = event.target.closest('#sidebarCollapseButton');
     if (!control) return;
