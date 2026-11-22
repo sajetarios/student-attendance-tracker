@@ -340,8 +340,8 @@
   }
   function creditForm(){
    const details=document.createElement('details');details.className='leave-card';details.innerHTML=
-    '<summary>Record service credit earned</summary>'+
-    '<p class="leave-help">Seminars and Brigada Eskwela generate proposed credits only. An official Special Order or authorized certification must be verified before they become available.</p>'+
+    '<summary>Submit earned-credit claim (not a balance adjustment)</summary>'+
+    '<p class="leave-help">Teachers may propose an eligible service-credit claim with supporting evidence, not assign or change their certified balance. HR verifies all approved days against an official Special Order or certification.</p>'+
     '<form class="leave-form">'+select('creditAccount','Credit account',[['VSC','Vacation Service Credits'],['VL','Vacation Leave'],['SL','Sick Leave'],['CTO','Compensatory Time Off']])+
     select('activityKind','Activity',[['SEMINAR','Training / seminar'],['BRIGADA_ESKWELA','Brigada Eskwela'],['TEACHING_OVERLOAD','Eligible overload'],['OTHER','Other authorized service']])+
     textInput('activityDate','Date of service',true,'date')+textInput('hours','Qualifying hours',false,'number')+
@@ -382,23 +382,33 @@
    return card;
   }
   async function renderCredits(){
-   body.replaceChildren(creditForm());
+   body.replaceChildren();
+   const guidance=document.createElement('div');guidance.className='leave-role-guidance';
+   guidance.innerHTML=isHrAdmin
+    ? '<strong>HR credit administration</strong><p>Encode an employee\'s existing credits only from official HR records. Entries stay pending until another authorized officer verifies the supporting certification. Your own balances are displayed separately below.</p>'
+    : '<strong>My certified credit balances · read-only</strong><p>These balances come from verified HR records. You cannot edit them. An earned-credit claim is only a proposal until official certification.</p>';
+   body.append(guidance);
    const own=await call('/credits');
    const balance=document.createElement('div');balance.className='leave-balances';
    const credits=new Map((own.balances||[]).map(x=>[x.creditAccount,Number(x.available)]));
+   const certified=new Set((own.balances||[]).filter(x=>x.isCertified===true).map(x=>x.creditAccount));
    [['VSC','Vacation Service Credits'],['VL','Vacation Leave'],['SL','Sick Leave'],['CTO','Compensatory Time Off']]
     .forEach(([key,label])=>{
      const el=document.createElement('div');el.className='leave-balance';
-     el.innerHTML='<small>'+esc(label)+'</small><strong>'+esc((credits.get(key)||0).toFixed(3))+'</strong><span>certified days</span>';balance.append(el);
+     const verified=certified.has(key);
+     el.innerHTML='<small>'+esc(label)+'</small><strong class="'+(verified?'':'leave-balance-unrecorded')+'">'+
+      esc(verified?(credits.get(key)||0).toFixed(3):'Not recorded')+'</strong><span>'+
+      (verified?'HR-certified available days':'No HR-certified balance on file')+'</span>';balance.append(el);
     });
-   body.prepend(balance);
+   body.append(balance);
+   if(!isHrAdmin)body.append(creditForm());
    const h=document.createElement('h3');h.textContent='My credit history';body.append(h);
    const list=document.createElement('div');list.className='leave-list';body.append(list);
    (own.entries||[]).forEach(row=>list.append(creditRow(row)));
    if(!own.entries?.length){list.innerHTML='<p class="leave-empty">No certified or proposed credit transactions yet.</p>';}
    if(user.role==='SCHOOL_ADMIN'){
     const importPanel=document.createElement('details');importPanel.className='leave-card';
-    importPanel.innerHTML='<summary>Import certified opening leave balance</summary>'+
+    importPanel.innerHTML='<summary>Record staff HR opening balance (requires verification)</summary>'+
      '<p class="leave-help">Record existing credits from an official HR certificate. This creates a pending entry; attach the certificate and verify separately before any balance is available.</p>'+
      '<form class="leave-form"><label>Employee<select name="staffUserId" required><option value="">Select employee</option></select></label>'+
      select('creditAccount','Credit account',[['VSC','Vacation Service Credits'],['VL','Vacation Leave'],['SL','Sick Leave'],['CTO','Compensatory Time Off']])+
@@ -415,14 +425,21 @@
      action('Importing opening balance',()=>call('/credits/opening','POST',{
       staffUserId:String(d.get('staffUserId')),creditAccount:String(d.get('creditAccount')),
       openingDays:Number(d.get('openingDays')),notes:String(d.get('notes')||'')}));
-    });body.append(importPanel);
+    });body.insertBefore(importPanel,h);
    }
-   if(user.role==='SCHOOL_ADMIN'){
-    const title=document.createElement('h3');title.textContent='Pending staff credit verification';body.append(title);
-    const queue=document.createElement('div');queue.className='leave-list';body.append(queue);
+   if(mayReviewCredits){
+    const title=document.createElement('h3');
+    title.textContent=isHrAdmin?'Pending staff credit verification':'Administrator credits awaiting independent verification';
+    body.insertBefore(title,h);
+    const queue=document.createElement('div');queue.className='leave-list';
+    body.insertBefore(queue,h);
     const data=await call('/credits/pending');
     (data.entries||[]).forEach(row=>queue.append(creditRow(row,true)));
-    if(!data.entries?.length)queue.textContent='No pending credit claims.';
+    if(!data.entries?.length)queue.textContent='No credit claims awaiting your authorized review.';
+   }
+   if(isHrAdmin){
+    const ownClaim=document.createElement('h3');ownClaim.textContent='My own earned-credit claims (verification by another officer)';
+    body.append(ownClaim,creditForm());
    }
   }
  }
