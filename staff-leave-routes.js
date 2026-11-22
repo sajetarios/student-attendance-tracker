@@ -169,6 +169,13 @@ function registerStaffLeaveRoutes(app,pool,{authenticateSchoolClient,requireScho
   }catch(e){await c.query('ROLLBACK').catch(()=>{});sqlErr(res,e);}
   finally{c.release();}
  });
+ app.get('/api/staff-leave/credits/pending',...auth,async(req,res)=>{
+  if(req.auth.role!=='SCHOOL_ADMIN')return res.status(403).json({error:'School HR verification access required.'});
+  try{
+   const q=await pool.query('SELECT e.credit_entry_id AS "entryId",e.staff_user_id AS "staffUserId",u.display_name AS "staffName",e.credit_account AS "creditAccount",e.entry_kind AS "entryKind",e.signed_days AS "days",e.activity_kind AS "activityKind",e.activity_date AS "activityDate",e.status FROM staff_leave_credit_entries e JOIN school_users u ON u.school_id=e.school_id AND u.user_id=e.staff_user_id WHERE e.school_id=$1 AND e.status=\'PROPOSED\' ORDER BY e.created_at DESC LIMIT 200',[req.auth.schoolId]);
+   res.json({entries:q.rows});
+  }catch(e){sqlErr(res,e);}
+ });
  app.get('/api/staff-leave/credits',...auth,async(req,res)=>{
   const wanted=String(req.query?.staffUserId||req.auth.userId);
   if(!UUID.test(wanted)||(wanted!==req.auth.userId&&req.auth.role!=='SCHOOL_ADMIN'))
