@@ -89,6 +89,6 @@ test('Sensitive medical and notarized affidavit attachments are not shared with 
  const routes=read('staff-leave-routes.js');
  assert.match(routes,/!\['MEDICAL','AFFIDAVIT'\]\.includes\(d\.document_kind\)/);
  assert.match(routes,/!\['MEDICAL','AFFIDAVIT'\]\.includes\(d\.documentKind\)/);
- assert.match(read('public/staff-leave-ui.js'),/Filed upon return/);
+ assert.match(read('public/staff-leave-ui.js'),/Post-absence filing/);
  assert.match(read('public/leave-form6.js'),/filingBasis==='POST_RETURN'/);
 });
