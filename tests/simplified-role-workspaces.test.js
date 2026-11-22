@@ -62,7 +62,7 @@ test('Search filters existing visible links without changing authorizations or h
   assert.match(script, /if \(child\.hidden\) continue/);
   assert.match(script, /nav\.querySelectorAll\('\.simple-nav-filtered'\)/);
   assert.match(script, /before\.clear\(\)/);
-  assert.match(script, /if \(!authorizedChildren\(wrapper\)\.length\) wrapper\.hidden = true/);
+  assert.match(script, /if \(!authorizedChildren\(wrapper\)\.length && !wrapper\.hidden\) wrapper\.hidden = true/);
   assert.doesNotMatch(script, /\b(?:link|item|button|wrapper)\.hidden\s*=\s*false/, 'No role-hidden feature may be programmatically made visible');
   assert.match(css, /\.simple-nav-filtered[\s\S]*?display: none !important/);
   assert.match(script, /collapseOtherGroups\(currentToggle\)/);
