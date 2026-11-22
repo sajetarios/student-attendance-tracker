@@ -16,3 +16,19 @@ test('each account keeps a separate device appearance and changing it never writ
  first.api.select('purple');assert.equal(first.api.get(),'dark');
  assert.equal(storage.size,2);
 });
+
+test('appearance choices stay readable at mobile and large text sizes across school roles',()=>{
+ const css=fs.readFileSync(path.join(__dirname,'../public/dashboard-ui.css'),'utf8');
+ const sw=fs.readFileSync(path.join(__dirname,'../public/sw.js'),'utf8');
+ const portals=['portal.html','student-portal.html','parent-portal.html'];
+ assert.match(css,/\.ui-theme-options\{display:grid;grid-template-columns:repeat\(2,minmax\(0,1fr\)\);gap:6px;min-width:0\}/);
+ assert.match(css,/\.ui-theme-options \[data-dashboard-theme="system"\]\{grid-column:1\/-1\}/);
+ assert.match(css,/\.ui-theme-options button\{min-width:0;min-height:40px/);
+ assert.match(css,/white-space:nowrap;word-break:normal;overflow-wrap:normal/);
+ for(const name of portals){
+  const html=fs.readFileSync(path.join(__dirname,'../public',name),'utf8');
+  assert.match(html,/\/dashboard-ui\.css\?v=wide11/);
+ }
+ assert.match(sw,/\/dashboard-ui\.css\?v=wide11/);
+ assert.match(source,/\[\['system','Automatic'\],\['light','Light'\],\['dark','Dark'\]\]/);
+});

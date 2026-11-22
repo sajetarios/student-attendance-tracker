@@ -1,4 +1,4 @@
-const CACHE = "attendigo-v282-lunch-clock-hardening";
+const CACHE = "attendigo-v282-lunch-clock-hardening-theme-option-layout";
 
 const SHELL = [
   "/typography.css?v=1",
@@ -24,7 +24,7 @@ const SHELL = [
   "/assets/attendigo-icon.png?v=3",
   "/attendigo-brand.css?v=2",
   "/dashboard-icons.js?v=6",
-  "/dashboard-ui.css?v=wide10",
+  "/dashboard-ui.css?v=wide11",
   "/dashboard-night.css?v=1",
   "/planner.css?v=3",
   "/planner.js?v=5",

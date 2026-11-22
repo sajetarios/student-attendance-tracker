@@ -74,9 +74,11 @@ html[data-ui-theme="dark"]{
 .ui-theme-toggle .theme-icon{font-size:18px;line-height:1}
 .ui-theme-control{padding:12px 11px;border-top:1px solid var(--ui-line)}
 .ui-theme-control>span{display:block;font-size:var(--type-table);font-weight:750;margin:0 0 8px;color:var(--ui-muted)}
-.ui-theme-options{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:5px}
-.ui-theme-options button{min-height:34px;padding:7px 4px;border:1px solid var(--ui-line);
- border-radius:8px;background:var(--ui-panel-soft);color:var(--ui-text);font-size:var(--type-table);cursor:pointer}
+.ui-theme-options{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px;min-width:0}
+.ui-theme-options [data-dashboard-theme="system"]{grid-column:1/-1}
+.ui-theme-options button{min-width:0;min-height:40px;padding:8px 10px;border:1px solid var(--ui-line);
+ border-radius:8px;background:var(--ui-panel-soft);color:var(--ui-text);font-size:var(--type-table);
+ line-height:1.2;white-space:nowrap;word-break:normal;overflow-wrap:normal;cursor:pointer}
 .ui-theme-options button[aria-pressed="true"]{border-color:var(--ui-accent);color:var(--ui-accent);background:var(--ui-hover);font-weight:800}
 /* Scheduling page: contextual navigation instead of one endless stack of forms. */
 .modern-schedule-workspace>.surface-card>.section-toolbar{align-items:center;flex-wrap:wrap;gap:16px}
