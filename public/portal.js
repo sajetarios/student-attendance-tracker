@@ -2609,7 +2609,7 @@ function coverageStatusLabel(status) {
             '<td>'+esc(period.subjectName||period.periodName||'Class')+'</td>'+
             '<td>'+esc(String(period.gradeLevel||'—')+' · '+String(period.section||'All sections'))+
             (relationshipTags.length?'<span class="teacher-list-relationships">'+relationshipTags.map(tag=>
-              '<small class="teacher-list-relationship">'+esc(tag)+'</small>').join('')+'</span>':'')+
+              '<small class="teacher-list-relationship '+(tag==='My subject class'?'is-subject':tag==='My advisory section'?'is-advisory':'is-activity')+'">'+esc(tag)+'</small>').join('')+'</span>':'')+
             (advisoryTag?'<small class="schedule-day-caption">'+esc(advisoryTag)+'</small>':'')+'</td>'+
             '<td>'+esc(period.cancelled?'No class':period.assignedTeacherName||'Unassigned')+'</td>'+
             '<td>'+esc(period.classroom||'—')+'</td>'+
