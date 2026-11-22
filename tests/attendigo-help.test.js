@@ -88,7 +88,7 @@ test('AI prompt is role-scoped and contains no attendance records',()=>{
   const prompt=buildInstructions('TEACHER','Where is my DTR?');
   assert.match(prompt,/read-only/i);
   assert.match(prompt,/Never fabricate/i);
-  assert.match(prompt,/View your DTR/i);
+  assert.match(prompt,/Review Daily Time Record/i);
   assert.doesNotMatch(prompt,/Manage school configuration/);
   assert.match(server,/registerHelpAiRoutes\(app, authenticateSchoolClient\)/);
   assert.match(server,/microphone=\(self\)/);
