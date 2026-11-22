@@ -25,6 +25,7 @@ function buildHandler(source,pool) {
     isUuid:value=>/^[a-f0-9]{8}-[a-f0-9-]{27,}$/.test(value),
     require:id=>id.includes('gate-event-decision')?{decideNextGateEvent}:
       id.includes('gate-attendance-boundary')?boundary:
+      id.includes('staff-gate-dtr-auto')?{autoRecordVerifiedGateDtr:async()=>({status:'REVIEW_REQUIRED',reason:'SCHEDULE_UNAVAILABLE'})}:
       id==='node:crypto'?crypto:require(id),
     Date,Intl,console
   });
@@ -83,7 +84,7 @@ async function automatic(opts={}){
    release(){},
    query:async (sql,params)=>{
      calls.push({sql,params});
-     if(['BEGIN','ROLLBACK','COMMIT'].includes(sql)||sql.includes('pg_advisory_xact_lock'))return {rows:[],rowCount:0};
+     if(['BEGIN','ROLLBACK','COMMIT'].includes(sql)||sql.includes('pg_advisory_xact_lock')||/^(SAVEPOINT|RELEASE SAVEPOINT|ROLLBACK TO SAVEPOINT) /.test(sql))return {rows:[],rowCount:0};
      if(sql.includes('SELECT user_id,display_name FROM school_users'))return {rowCount:o.photo?1:0,rows:o.photo?[{user_id:staffId,display_name:'Fictional Teacher'}]:[]};
      if(sql.includes('FROM staff_attendance_events WHERE school_id=$1 AND client_event_key=$2'))return {rowCount:o.duplicate?1:0,rows:o.duplicate?[{eventId:key,staffUserId:staffId,gateDirection:o.duplicate,occurredAt:o.now}]:[]};
      if(sql.includes('SELECT clock_timestamp() AS occurred_at'))return {rows:[{occurred_at:o.now,school_date:'2026-11-23'}]};
