@@ -23,14 +23,19 @@ function buildForm48LeaveRemarks(month,leaves=[],assessments=[]){
   .map(row=>{
    const from=row.from<beginning?beginning:row.from;
    const to=row.to>end?end:row.to;
-   const type=TYPES[row.leaveType]||'Leave';
+   // DepEd DO 013 s.2024 VI.C.5: illness charged to certified VSC is VSCA.
+   // Never label historic or regular sick-leave entries VSCA without the
+   // actually charged VSC account stored on the official approval.
+   const creditAccount=String(row.creditAccount||'NONE').toUpperCase();
+   const type=row.leaveType==='SICK'&&creditAccount==='VSC'
+    ?'VSCA (Vacation Service Credits Applied)':TYPES[row.leaveType]||'Leave';
    const approvalReference=String(row.approvalReference||'').trim();
    const label=dateLabel(from,to);
    const text=label+' — Approved '+type+
     (approvalReference?' (Ref. '+approvalReference+')':'')+'.';
    const conflicts=Array.from(evidence.values()).filter(a=>
     a.date>=from&&a.date<=to&&Number(a.verifiedCount)>0).map(a=>a.date);
-   return {from,to,leaveType:row.leaveType||'OTHER',
+   return {from,to,leaveType:row.leaveType||'OTHER',creditAccount,
     approvalReference,text,conflictDates:conflicts};
   }).sort((a,b)=>a.from.localeCompare(b.from)||a.to.localeCompare(b.to));
 }
