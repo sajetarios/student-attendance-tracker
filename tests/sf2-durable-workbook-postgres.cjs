@@ -90,12 +90,17 @@ async function main() {
     assert.equal(wrongSchool.rowCount, 0);
     console.log('SF2 COMMIT, independent reconnect, workbook checksum and tenant isolation passed.');
   } finally {
-    // Cleanup only the fictional data created by this test. Failure is surfaced.
+    // Retain the synthetic row only inside disposable CI Postgres so the
+    // subsequent pg_dump -> isolated pg_restore can verify actual XLSX bytes.
+    const keepFixture = process.env.CI === 'true' &&
+      process.env.ATTENDIGO_KEEP_CI_SF2_FIXTURE === 'true';
     try {
-      await readerPool.query('DELETE FROM sf2_submissions WHERE school_id=$1 AND submission_id=$2', [school, submissionId]);
-      await readerPool.query('DELETE FROM school_users WHERE school_id=$1', [school]);
-      await readerPool.query('DELETE FROM school_departments WHERE school_id=$1', [school]);
-      await readerPool.query('DELETE FROM schools WHERE school_id=$1', [school]);
+      if (!keepFixture) {
+        await readerPool.query('DELETE FROM sf2_submissions WHERE school_id=$1 AND submission_id=$2', [school, submissionId]);
+        await readerPool.query('DELETE FROM school_users WHERE school_id=$1', [school]);
+        await readerPool.query('DELETE FROM school_departments WHERE school_id=$1', [school]);
+        await readerPool.query('DELETE FROM schools WHERE school_id=$1', [school]);
+      }
     } finally {
       await readerPool.end();
     }
