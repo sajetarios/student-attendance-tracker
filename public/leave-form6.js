@@ -41,7 +41,7 @@
   put('filed',date(r.submittedAt));
   put('filingNote',r.leaveType==='SICK'
    ?r.filingBasis==='POST_RETURN'
-     ?'Sick leave filed upon return under CSC Sec. 53. Supervisor notification and official review still required.'
+     ?'Filed after listed sick-leave dates. Under CSC Sec. 53, HR must verify immediate filing upon actual return and notice to the supervisor.'
      :r.filingBasis==='ADVANCE'
        ?'Sick leave filed in advance; medical evidence and approval required.'
        :'Sick leave application pending official documentation and review.'
