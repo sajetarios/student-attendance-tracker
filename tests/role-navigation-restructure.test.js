@@ -79,9 +79,9 @@ test('Presenter entry is hidden for unassigned teachers and visible for either a
  assert.equal(toggle.state,'true');
  assert.equal(submenu.hidden,false);
 });
-test('No new attendance routes; assets match the 305 cache and mobile sidebar stays scrollable',()=>{
+test('No new attendance routes; assets match the current cache and mobile sidebar stays scrollable',()=>{
  const css=read('attendigo-sidebar-adaptive.css');
- for(const asset of ['/portal.js?v=234','/simplified-workspace.js?v=4','/staff-leave-ui.js?v=4',
+ for(const asset of ['/portal.js?v=234','/simplified-workspace.js?v=4','/staff-leave-ui.js?v=5',
   '/staff-ob-ui.js?v=6','/attendigo-presenter-nav.js?v=1']){
   assert.ok(html.includes(asset),asset+' HTML');
   assert.ok(sw.includes('"'+asset+'"'),asset+' shell');
