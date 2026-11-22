@@ -2485,11 +2485,31 @@ app.post('/api/gate/teacher-auto-event', authenticateSchoolClient, requireSchool
         await client.query('ROLLBACK');
         return res.status(409).json({error:'Gate scan key is already in use.'});
       }
-      await client.query('COMMIT');
       const prior=recorded.rows[0];
+      // A lost HTTP response must not turn a successful audited DTR into an
+      // alarming "review needed" message when the Gatekeeper retries the same key.
+      // Recover only an existing DTR linked to THIS physical gate event.
+      let autoDtr={status:'REVIEW_REQUIRED',reason:'PREVIOUS_GATE_SCAN_NO_AUTO_DTR'};
+      try {
+        const linked=await client.query(`SELECT e.event_id AS "eventId",e.dtr_slot AS slot
+          FROM staff_attendance_audit a
+          JOIN staff_attendance_events e ON e.school_id=a.school_id AND e.event_id=a.target_id
+          WHERE a.school_id=$1 AND a.action='AUTO_GATE_TO_DTR_VERIFIED'
+            AND a.details->>'sourceGateEventId'=$2
+            AND e.staff_user_id=$3 AND e.event_kind='DTR_SLOT'
+            AND e.verification_status='VERIFIED'
+          ORDER BY a.created_at DESC LIMIT 1`,
+          [req.auth.schoolId,String(prior.eventId),teacherId]);
+        if(linked.rowCount)autoDtr={status:'AUTO_RECORDED',
+          slot:linked.rows[0].slot,eventId:linked.rows[0].eventId};
+      } catch (lookupError) {
+        console.error('Gate-to-DTR retry lookup:',lookupError.code||lookupError.name||'unknown');
+      }
+      await client.query('COMMIT');
       return res.status(200).json({event:{eventId:prior.eventId,
         eventType:prior.gateDirection==='IN'?'TIME_IN':'TIME_OUT',occurredAt:prior.occurredAt},
-        teacherName:teacher.rows[0].display_name,recordingTarget:'PHYSICAL_GATE',alreadyRecorded:true});
+        teacherName:teacher.rows[0].display_name,recordingTarget:'PHYSICAL_GATE',
+        autoDtr,alreadyRecorded:true});
     }
     const clock=await client.query(`SELECT clock_timestamp() AS occurred_at,
       to_char(clock_timestamp() AT TIME ZONE 'Asia/Manila','YYYY-MM-DD') AS school_date`);
