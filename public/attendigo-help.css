@@ -117,3 +117,113 @@ body.theme-dark .attendigo-help-panel :is(textarea,select,.attendigo-help-chip){
 }
 @media(max-height:580px){.attendigo-help-panel{max-height:calc(100dvh - 90px);min-height:210px}}
 @media(prefers-reduced-motion:reduce){.attendigo-help-launcher{transition:none!important;transform:none!important}}
+
+/* Robot companion: dock the launcher in the real header layout.
+   Unlike the previous floating pill, it does not cover scanner or Save buttons. */
+.topbar-right {gap:clamp(6px,1.1vw,18px)}
+.topbar-right > .attendigo-help-launcher {
+  position:relative;inset:auto;z-index:auto;flex:0 0 auto;min-height:48px;
+  padding:3px 14px 3px 5px;gap:6px;max-width:195px;
+  border:1px solid #166d9c;border-radius:14px;
+  background:linear-gradient(135deg,#116a9c,#087fb0);color:#fff;
+  box-shadow:0 4px 12px rgba(13,65,106,.15);
+  font-family:inherit;font-size:13px;font-weight:800;line-height:1.2;
+  transform:none;white-space:nowrap;
+}
+.topbar-right > .attendigo-help-launcher:hover {transform:none;background:#075d89}
+.topbar-right > .attendigo-help-launcher[aria-expanded="true"]{
+  outline:2px solid #40b9db;outline-offset:1px;
+}
+.topbar-right > .attendigo-help-launcher .attendigo-help-label{
+  display:block;min-width:0;white-space:nowrap;
+}
+.side-nav > .attendigo-help-launcher {position:static;inset:auto;box-shadow:none}
+.attendigo-help-panel{
+  top:76px;bottom:auto;right:clamp(10px,2vw,28px);
+  max-height:min(670px,calc(100dvh - 90px));
+}
+/* Compact CSS robot keeps graphics local and animation lightweight. */
+.attendigo-help-robot{
+  display:inline-block;position:relative;isolation:isolate;
+  width:43px;height:42px;min-width:43px;flex:0 0 43px;
+  transform-origin:50% 80%;animation:ah-hover 3.4s ease-in-out infinite;
+}
+.attendigo-help-robot i{position:absolute;display:block;box-sizing:border-box}
+.attendigo-help-robot .ah-antenna{
+  width:3px;height:8px;left:20px;top:1px;border-radius:3px;background:#2f86dc;
+}
+.attendigo-help-robot .ah-antenna:after{
+  content:"";position:absolute;top:-4px;left:-3px;width:9px;height:9px;
+  border-radius:50%;background:#5df2ff;border:2px solid #1b88cb;
+  box-shadow:0 0 6px #75ecff;animation:ah-antenna-pulse 2.5s ease-in-out infinite;
+}
+.attendigo-help-robot .ah-head{
+  top:10px;left:2px;width:38px;height:29px;
+  border-radius:13px 13px 12px 12px;
+  background:linear-gradient(135deg,#fff,#dcecf8 80%);border:2px solid #5aa6dd;
+  box-shadow:inset -2px -2px 3px rgba(10,63,113,.15),0 1px 2px rgba(0,0,0,.18);
+}
+.attendigo-help-robot .ah-head:before,.attendigo-help-robot .ah-head:after {
+  content:"";position:absolute;top:8px;width:5px;height:12px;border-radius:5px;
+  background:#1783ce;border:1px solid #defaff;
+}
+.attendigo-help-robot .ah-head:before{left:-4px}
+.attendigo-help-robot .ah-head:after{right:-4px}
+.attendigo-help-robot .ah-face{
+  top:4px;left:4px;right:4px;height:17px;border-radius:8px;
+  background:linear-gradient(135deg,#132841,#173f61);overflow:hidden;
+}
+.attendigo-help-robot .ah-eye {
+  top:5px;width:4px;height:7px;border-radius:4px;
+  background:#66f6ff;box-shadow:0 0 4px rgba(55,232,255,.7);
+  animation:ah-blink 5.5s ease-in-out infinite;
+}
+.attendigo-help-robot .ah-eye-left{left:7px}
+.attendigo-help-robot .ah-eye-right{right:7px}
+.attendigo-help-robot .ah-mouth {
+  left:12px;top:10px;width:7px;height:4px;border-bottom:2px solid #7afaff;
+  border-radius:0 0 8px 8px;
+}
+.attendigo-help-robot .ah-body{
+  left:12px;top:34px;width:20px;height:8px;z-index:-1;
+  background:linear-gradient(135deg,#f6fbff,#bcdaf4);
+  border:1px solid #4d9acc;border-radius:5px 5px 6px 6px;
+}
+.attendigo-help-robot .ah-book{left:7px;top:1px;width:5px;height:4px;
+  border-radius:1px;border-left:2px solid #0d78d0;border-right:2px solid #0d78d0;
+  border-bottom:1px solid #0d78d0}
+.attendigo-help-robot .ah-arm{
+  left:35px;top:32px;width:7px;height:5px;z-index:-1;
+  border:1px solid #6eb8e2;border-radius:5px 6px 3px 3px;
+  background:#fff;transform-origin:1px 80%;animation:ah-wave 4.2s ease-in-out infinite;
+}
+.attendigo-help-brand{display:flex;align-items:center;gap:9px;min-width:0}
+.attendigo-help-brand > span:last-child{display:block;min-width:0}
+.attendigo-help-brand .attendigo-help-robot{flex-basis:43px}
+@keyframes ah-hover{0%,100%{transform:translateY(0)}50%{transform:translateY(-2px)}}
+@keyframes ah-wave{0%,12%,60%,100%{transform:rotate(0deg)}
+  20%,36%,51%{transform:rotate(-34deg)}
+  28%,44%{transform:rotate(12deg)}}
+@keyframes ah-blink{0%,43%,46%,90%,100%{transform:scaleY(1)}
+  44.5%{transform:scaleY(.17)}}
+@keyframes ah-antenna-pulse{0%,100%{opacity:.75}50%{opacity:1}}
+@media (max-width:1060px) {
+ .topbar-right > .attendigo-help-launcher{
+   min-height:44px;min-width:48px;width:48px;max-width:48px;padding:1px 2px;
+   justify-content:center;gap:0;border-radius:12px;
+ }
+ .topbar-right > .attendigo-help-launcher .attendigo-help-label{display:none}
+}
+@media (max-width:600px) {
+ .topbar-right{gap:6px!important;min-width:0}
+ .topbar-right > .attendigo-help-launcher{position:relative;inset:auto;right:auto;bottom:auto;
+   margin:0;min-height:44px;width:46px;min-width:46px;max-width:46px}
+ .attendigo-help-panel{top:70px;bottom:auto;right:8px;width:calc(100vw - 16px);
+   max-height:calc(100dvh - 81px)}
+}
+@media (prefers-reduced-motion:reduce) {
+ .attendigo-help-robot,
+ .attendigo-help-robot .ah-antenna:after,
+ .attendigo-help-robot .ah-eye,
+ .attendigo-help-robot .ah-arm {animation:none!important}
+}

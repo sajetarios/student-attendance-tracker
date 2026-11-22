@@ -49,11 +49,11 @@ test('guide has no autonomous record write operations or hardcoded privileged UR
   assert.match(css,/safe-area-inset-bottom/);
   assert.match(css,/prefers-reduced-motion/);
   assert.match(html,/attendigo-help-topics\.js\?v=1/);
-  assert.match(html,/attendigo-help-guide\.js\?v=1/);
-  assert.match(html,/attendigo-help\.css\?v=1/);
-  for(const asset of ['/attendigo-help-topics.js?v=1','/attendigo-help-guide.js?v=1','/attendigo-help.css?v=1'])
+  assert.match(html,/attendigo-help-guide\.js\?v=2/);
+  assert.match(html,/attendigo-help\.css\?v=2/);
+  for(const asset of ['/attendigo-help-topics.js?v=1','/attendigo-help-guide.js?v=2','/attendigo-help.css?v=2'])
     assert.ok(sw.includes(JSON.stringify(asset)), 'Offline PWA asset: '+asset);
-  assert.match(sw,/attendigo-v305-role-navigation/);
+  assert.match(sw,/attendigo-v306-robot-help/);
 });
 test('AI endpoint is disabled until explicitly configured and is authenticated', async () => {
   const registered={get:new Map(),post:new Map()};
@@ -92,4 +92,16 @@ test('AI prompt is role-scoped and contains no attendance records',()=>{
   assert.doesNotMatch(prompt,/Manage school configuration/);
   assert.match(server,/registerHelpAiRoutes\(app, authenticateSchoolClient\)/);
   assert.match(server,/microphone=\(self\)/);
+});
+
+test('animated robot help is docked in header and never overlays bottom actions',()=>{
+  assert.match(client,/robotMarkup\(\)/);
+  assert.match(client,/headerActions\.insertBefore\(launcher, headerActions\.querySelector\('\.account-menu-wrap'\)\)/);
+  assert.doesNotMatch(client,/document\.body\.append\(launcher, panel\)/);
+  assert.match(css,/\.topbar-right > \.attendigo-help-launcher\s*\{[^}]*position:relative/);
+  assert.match(css,/\.attendigo-help-panel\s*\{[^}]*top:76px/);
+  assert.match(css,/@keyframes ah-wave/);
+  assert.match(css,/@keyframes ah-hover/);
+  assert.match(css,/prefers-reduced-motion:reduce/);
+  assert.match(css,/@media \(max-width:600px\)/);
 });
