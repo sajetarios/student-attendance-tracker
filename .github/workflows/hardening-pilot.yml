@@ -56,13 +56,19 @@ jobs:
       - name: Validate durable SF2 migration
         run: |
           psql -h localhost -U postgres -d school_attendance_test -Atc "SELECT COUNT(*) FROM information_schema.columns WHERE table_name='sf2_submissions' AND column_name IN ('file_bytes','file_sha256','file_size')" | grep -F '3'
-      - name: Match PostgreSQL client to disposable server version
+      - name: Use official PostgreSQL 16 client container to match restore target
         run: |
-          if [ ! -x /usr/lib/postgresql/16/bin/pg_dump ]; then
-            sudo apt-get update
-            sudo apt-get install -y postgresql-client-16
-          fi
-          echo /usr/lib/postgresql/16/bin >> "$GITHUB_PATH"
+          mkdir -p "$RUNNER_TEMP/pg16-tools"
+          cat > "$RUNNER_TEMP/pg16-tools/pg_dump" <<'EOF'
+          #!/bin/sh
+          exec docker run --rm --network host -v /tmp:/tmp -e PGHOST -e PGPORT -e PGUSER -e PGPASSWORD -e PGDATABASE -e PGSSLMODE postgres:16 pg_dump "$@"
+          EOF
+          cat > "$RUNNER_TEMP/pg16-tools/pg_restore" <<'EOF'
+          #!/bin/sh
+          exec docker run --rm --network host -v /tmp:/tmp -e PGHOST -e PGPORT -e PGUSER -e PGPASSWORD -e PGDATABASE -e PGSSLMODE postgres:16 pg_restore "$@"
+          EOF
+          chmod +x "$RUNNER_TEMP/pg16-tools/pg_dump" "$RUNNER_TEMP/pg16-tools/pg_restore"
+          echo "$RUNNER_TEMP/pg16-tools" >> "$GITHUB_PATH"
       - name: Backup encryption and isolated PostgreSQL restore
         run: |
           pg_dump --version
