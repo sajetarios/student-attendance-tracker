@@ -15,8 +15,8 @@ test('staff OB portal view initializes only for authorized roles and uses same-o
  assert.match(ui,/staff-ob-coverage/);
  assert.match(ui,/form\.reportValidity\(\)/);
  assert.match(ui,/const toManilaIso=s=>/);
- assert.match(portal,/staff-ob-ui\.js\?v=5/);
- assert.match(sw,/staff-ob-ui\.js\?v=5/);
+ assert.match(portal,/staff-ob-ui\.js\?v=6/);
+ assert.match(sw,/staff-ob-ui\.js\?v=6/);
 });
 test('substitute picker uses department-filtered names instead of manual user IDs',()=>{
  assert.ok(ui.includes("basePath+'/substitutes'"));
