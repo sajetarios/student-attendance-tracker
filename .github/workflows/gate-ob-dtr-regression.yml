@@ -26,7 +26,7 @@ jobs:
           cache: npm
       - run: npm ci
       - name: Gate, OB and DTR regression tests
-        run: node --test tests/gate-event-decision.test.js tests/gate-attendance-boundary.test.js tests/ob-dtr-remarks.test.js tests/gatekeeper-auto-integration.test.js tests/gate-dtr-reconciliation.test.js tests/gate-dtr-preview-route.test.js tests/gate-preview-regression.test.js tests/form48-intelligence-ui.test.js tests/staff-gate-dtr-ui.test.js tests/personal-attendance-insights.test.js tests/attendance-message-clarity.test.js tests/smart-attendance-overview.test.js tests/smart-attendance-setup-ui.test.js tests/staff-gate-dtr-auto.test.js tests/gate-dtr-admin-review.test.js tests/staff-leave-workflow.test.js tests/staff-leave-roles-and-form6.test.js tests/form48-calculations.test.js tests/form48-leave-remarks.test.js tests/pilot-leave-gate-dtr-journey.test.js tests/deped-sick-return-compliance.test.js
+        run: node --test tests/gate-event-decision.test.js tests/gate-attendance-boundary.test.js tests/ob-dtr-remarks.test.js tests/gatekeeper-auto-integration.test.js tests/gate-dtr-reconciliation.test.js tests/gate-dtr-preview-route.test.js tests/gate-preview-regression.test.js tests/form48-intelligence-ui.test.js tests/staff-gate-dtr-ui.test.js tests/personal-attendance-insights.test.js tests/attendance-message-clarity.test.js tests/smart-attendance-overview.test.js tests/smart-attendance-setup-ui.test.js tests/staff-gate-dtr-auto.test.js tests/gate-dtr-admin-review.test.js tests/staff-leave-workflow.test.js tests/staff-leave-roles-and-form6.test.js tests/form48-calculations.test.js tests/form48-leave-remarks.test.js tests/pilot-leave-gate-dtr-journey.test.js tests/deped-sick-return-compliance.test.js tests/deped-sick-migration-registry.test.js
       - name: Validate server and UI JavaScript syntax
         run: |
           node --check server.js
@@ -44,6 +44,7 @@ jobs:
           node --check public/form48-intelligence.js
           node --check staff-leave-routes.js
           node --check staff-leave-deped-sick.js
+          node --check scripts/migrate.js
           node --check form48-leave-remarks.js
           node --check form48-calculations.js
           node --check form48-review-routes.js
