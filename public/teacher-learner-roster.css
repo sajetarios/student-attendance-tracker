@@ -455,7 +455,7 @@ html[data-ui-theme="dark"] #studentsView .teacher-roster-initials{color:#d1e8ff;
 }
 @media (min-width:701px){
   #studentsView #studentRosterTable.teacher-roster-compact{
-    min-width:800px;table-layout:fixed;
+    min-width:840px;table-layout:fixed;
   }
   #studentsView #studentRosterTable.teacher-roster-compact tbody tr.teacher-roster-student td {
     height:52px;padding:6px 11px;line-height:1.32;
@@ -464,13 +464,13 @@ html[data-ui-theme="dark"] #studentsView .teacher-roster-initials{color:#d1e8ff;
     width:41%;min-width:0;
   }
   #studentsView #studentRosterTable.teacher-roster-compact td[data-label="Class"]{
-    width:30%;min-width:0;
+    width:27%;min-width:0;
   }
   #studentsView #studentRosterTable.teacher-roster-compact td[data-label="Status"]{
     width:9%;min-width:0;padding-left:5px;padding-right:3px;
   }
   #studentsView #studentRosterTable.teacher-roster-compact td[data-label="Actions"]{
-    width:20%;min-width:0;padding-left:3px;padding-right:11px;
+    width:23%;min-width:0;padding-left:3px;padding-right:11px;
   }
   #studentsView #studentRosterTable.teacher-roster-compact td[data-label="Full name"] .teacher-roster-identity{
     gap:8px;
