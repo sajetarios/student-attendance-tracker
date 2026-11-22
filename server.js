@@ -117,7 +117,7 @@ app.use((req, res, next) => {
 
 // Browser-only protection. Device/CLI Bearer requests without an auth cookie are
 // unaffected. SameSite=Lax alone does not replace an explicit origin check.
-const sessionCookiePattern=/(?:^|;\\s*)__Host-attendigo-(?:staff|student)=/;
+const sessionCookiePattern=/(?:^|;\s*)__Host-attendigo-(?:staff|student)=/;
 app.use((req,res,next)=>{
  if(['GET','HEAD','OPTIONS'].includes(req.method)||!req.path.startsWith('/api/'))
   return next();
@@ -133,7 +133,7 @@ app.use((req,res,next)=>{
    const parsed=new URL(origin);
    valid=(parsed.host.toLowerCase()===host
      &&(parsed.protocol==='https:'||(parsed.protocol==='http:'&&
-       /^(?:localhost|127\\.0\\.0\\.1)(?::\\d+)?$/.test(host))));
+       /^(?:localhost|127\.0\.0\.1)(?::\d+)?$/.test(host))));
   }catch{}
   if(!valid)return res.status(403).json({error:'Cross-origin session action blocked.',code:'CSRF_ORIGIN_DENIED'});
  }else if(fetchSite!=='same-origin'){
