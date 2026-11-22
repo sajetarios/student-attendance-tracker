@@ -76,6 +76,7 @@ function summarizeForm48({records=[],month,today,settings=null,calendar=[],offic
    // Pending application cannot overturn an administrator's prior absence decision.
    status='SICK_LEAVE_REVIEW_CONFLICT';summary.daysAbsent++;needsReview=true;
   }
+  else if(sickFilingPending&&date>today){status='SICK_LEAVE_REQUESTED_FUTURE';}
   else if(sickFilingPending){status='SICK_LEAVE_PENDING';needsReview=true;}
   else if(review==='EXCUSED'&&past){status='EXCUSED';summary.excusedDays++;}
   else if(review==='ABSENT'&&past){status='CONFIRMED_ABSENT';summary.daysAbsent++;}
