@@ -30,6 +30,17 @@ function readDefaults(data){
  if(!Number.isInteger(data.revision)||data.revision<0)return null;
  return {...signatories,workdays:data.workdays,regularHours,saturdayHours,revision:data.revision};
 }
+function readSchoolSignatories(data){
+ if(!data||typeof data!=='object'||Array.isArray(data)||!Number.isInteger(data.revision)||data.revision<0)return null;
+ const names={};
+ for(const key of ['verifiedBy','verifiedPosition','approvedBy','approvedPosition']){
+  if(typeof data[key]!=='string')return null;
+  const value=data[key].trim();
+  if(!value||value.length>120||/[\r\n\x00-\x1f]/.test(value))return null;
+  names[key]=value;
+ }
+ return {...names,revision:data.revision};
+}
 function readLeave(value){
  if(!value||typeof value!=='object'||Array.isArray(value)||!UUID.test(String(value.staffUserId||'')))return null;
  const startDate=String(value.startDate||''),endDate=String(value.endDate||'');
@@ -58,15 +69,16 @@ function mergeSchoolForm48Defaults(saved,defaults,employeeSchedule=null){
  const monthComplete=Boolean(saved?.configured&&scheduled(saved));
  const chosen=monthComplete?saved:inherited;
  const effective=saved||{revision:0,dayReviews:{}};
+ const hasSchoolDefaults=Boolean(defaults); // All staff share school signatories.
  return {...effective,
   configured:Boolean(monthComplete||scheduled(inherited)),
   workdays:chosen?.workdays||effective.workdays||[],
   regularHours:chosen?.regularHours||effective.regularHours||{},
   saturdayHours:chosen?.saturdayHours||effective.saturdayHours||{},
-  verifiedBy:effective.verifiedBy||defaults?.verifiedBy||'',
-  verifiedPosition:effective.verifiedPosition||defaults?.verifiedPosition||'',
-  approvedBy:effective.approvedBy||defaults?.approvedBy||'',
-  approvedPosition:effective.approvedPosition||defaults?.approvedPosition||''};
+  verifiedBy:hasSchoolDefaults?(defaults.verifiedBy||''):(effective.verifiedBy||''),
+  verifiedPosition:hasSchoolDefaults?(defaults.verifiedPosition||''):(effective.verifiedPosition||''),
+  approvedBy:hasSchoolDefaults?(defaults.approvedBy||''):(effective.approvedBy||''),
+  approvedPosition:hasSchoolDefaults?(defaults.approvedPosition||''):(effective.approvedPosition||'')};
 }
 function monthBounds(month){
  const [year,mm]=month.split('-').map(Number);
@@ -117,6 +129,46 @@ function registerForm48BulkRoutes(app,pool,{authenticateSchoolClient,requireScho
    await client.query('ROLLBACK').catch(()=>{});
    console.error('Form 48 defaults save:',err.message);
    return res.status(503).json({error:'Unable to save school defaults.'});
+  }finally{client.release();}
+ });
+
+ // Printed names are school-wide; keep employee schedules and DTR punches unchanged.
+ app.put('/api/staff-attendance/admin/form48/signatories',...admin,async(req,res)=>{
+  noStore(res);
+  const input=readSchoolSignatories(req.body);
+  if(!input)return res.status(400).json({error:'Enter the name and position of both signatories and the current revision.'});
+  const client=await pool.connect();
+  try{
+   await client.query('BEGIN');
+   const saved=await client.query(
+    'INSERT INTO staff_form48_school_defaults'+
+    ' (school_id,verified_by_name,verified_by_position,approved_by_name,approved_by_position,updated_by_user_id)'+
+    ' VALUES($1,$2,$3,$4,$5,$6)'+
+    ' ON CONFLICT (school_id) DO UPDATE SET'+
+    ' verified_by_name=EXCLUDED.verified_by_name,verified_by_position=EXCLUDED.verified_by_position,'+
+    ' approved_by_name=EXCLUDED.approved_by_name,approved_by_position=EXCLUDED.approved_by_position,'+
+    ' updated_by_user_id=EXCLUDED.updated_by_user_id,updated_at=NOW(),'+
+    ' revision=staff_form48_school_defaults.revision+1'+
+    ' WHERE staff_form48_school_defaults.revision=$7 RETURNING revision',
+    [req.auth.schoolId,input.verifiedBy,input.verifiedPosition,input.approvedBy,
+     input.approvedPosition,req.auth.userId,input.revision]);
+   if(!saved.rowCount){
+    await client.query('ROLLBACK');
+    return res.status(409).json({error:'Signatory settings changed in another session. Reload to avoid overwriting them.'});
+   }
+   await client.query(
+    "INSERT INTO staff_attendance_audit(school_id,actor_user_id,action,target_type,target_id,details)"+
+    " VALUES($1,$2,'FORM48_SCHOOL_SIGNATORIES_UPDATED','SCHOOL',$1,$3::jsonb)",
+    [req.auth.schoolId,req.auth.userId,JSON.stringify({revision:saved.rows[0].revision,
+     verifiedBy:input.verifiedBy,verifiedPosition:input.verifiedPosition,
+     approvedBy:input.approvedBy,approvedPosition:input.approvedPosition})]);
+   await client.query('COMMIT');
+   return res.json({saved:true,revision:saved.rows[0].revision,
+    notice:'Both signatories apply to all staff Form 48 reports for this school. Printed names are not electronic signatures.'});
+  }catch(err){
+   await client.query('ROLLBACK').catch(()=>{});
+   console.error('Form 48 school signatories save:',err.message);
+   return res.status(503).json({error:'Unable to save school signatories.'});
   }finally{client.release();}
  });
  app.get('/api/staff-attendance/admin/form48/leaves',...admin,async(req,res)=>{
@@ -221,4 +273,4 @@ function registerForm48BulkRoutes(app,pool,{authenticateSchoolClient,requireScho
   }finally{client.release();}
  });
 }
-module.exports={registerForm48BulkRoutes,getSchoolForm48Defaults,mergeSchoolForm48Defaults,readDefaults,readLeave,validDate};
+module.exports={registerForm48BulkRoutes,getSchoolForm48Defaults,mergeSchoolForm48Defaults,readDefaults,readSchoolSignatories,readLeave,validDate};
