@@ -18,7 +18,10 @@
   function allowedMenu(topic) {
     if (!topic?.nav) return null;
     const item = $(topic.nav);
-    if (!item || item.hidden || item.closest('[hidden]') && !item.closest('.nav-submenu[hidden]')) return null;
+    if (!item) return null;
+    for (let parent = item; parent && parent !== document.body; parent = parent.parentElement) {
+      if (parent.hidden && !parent.matches('.nav-submenu')) return null;
+    }
     // Check actual role navigation, not a computed URL or a privileged endpoint.
     const nav = item.matches('.nav-item') ? item : item.querySelector('.nav-item');
     if (!nav && item.matches('.nav-group')) return null;
@@ -142,7 +145,7 @@
         if (result.ok && typeof json.answer === 'string') aiText = json.answer.slice(0,2400);
         else if (result.status === 401) setStatus('Your session expired. Please sign in again.', true);
       } catch (error) {
-        if (error.name === 'AbortError') return;
+        if (error.name === 'AbortError') { aiText = ''; }
       } finally { abort = null; }
     }
     if (open) showAnswer(response, spoken, aiText);
