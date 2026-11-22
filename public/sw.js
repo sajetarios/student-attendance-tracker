@@ -1,4 +1,4 @@
-const CACHE = "attendigo-v304-ai-help";
+const CACHE = "attendigo-v305-robot-help";
 
 const SHELL = [
   "/typography.css?v=1",
@@ -64,8 +64,8 @@ const SHELL = [
   "/portal.css?v=0.9.119",
   "/portal.js?v=233",
   "/attendigo-help-topics.js?v=1",
-  "/attendigo-help-guide.js?v=1",
-  "/attendigo-help.css?v=1",
+  "/attendigo-help-guide.js?v=2",
+  "/attendigo-help.css?v=2",
   "/staff-leave-ui.js?v=2",
   "/staff-leave-ui.css?v=1",
   "/leave-status-indicator.css?v=1",
