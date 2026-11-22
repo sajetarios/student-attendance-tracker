@@ -13,8 +13,9 @@ test('Gatekeeper camera starts directly without exposing teacher class setup',()
  assert.match(action,/activeScanScope = 'SCHOOL'/);
  assert.match(action,/activeScanPeriodId = null/);
  assert.match(action,/await startStudentScanner\(\)/);
- assert.match(action,/return;\s*}\s*\$\('studentScanSetupModal'\)\.hidden = false/);
- assert.match(js,/activeScanScope = user\.role === 'TEACHER' \? \$\('scanSetupScope'\)\.value : 'SCHOOL'/);
+ assert.match(action,/return;\s*}\s*if \(user\.role !== 'TEACHER'/);
+ assert.match(action,/configureScannerScopeForRole\(\{reset:true\}\);\s*\$\('studentScanSetupModal'\)\.hidden = false/);
+ assert.match(js,/const canUseScope = \(scope === 'CLASS' && teacherHas\('SUBJECT_TEACHER'\)\) \|\|/);
 });
 test('guard can still choose an optional advanced learner/teacher filter',()=>{
  assert.match(html,/<details class="gate-scan-advanced">/);
