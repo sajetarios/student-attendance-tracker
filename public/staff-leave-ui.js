@@ -194,25 +194,70 @@
     '<a class="leave-btn" href="/leave-form6.html?template=1" target="_blank" rel="noopener">View blank CSC Form No. 6</a></div>'+
     '<form id="leaveNewForm" class="leave-form">'+
     select('leaveType','Type of leave',docTypes)+select('creditAccount','Proposed credit account',accounts)+
+    '<p class="leave-sick-guidance" role="status" aria-live="polite"></p>'+
     textInput('startDate','Start date',true,'date')+textInput('endDate','End date',true,'date')+
     '<label>Reason (required)<textarea name="reason" rows="2" minlength="3" maxlength="1000" required></textarea></label>'+
     '<label>Details / location (optional)<textarea name="details" rows="2" maxlength="1500"></textarea></label>'+
     select('commutation','Commutation',[['NOT_REQUESTED','Not requested'],['REQUESTED','Requested']])+
     fileInput('supportingDocument','Supporting document (optional at filing)')+
+    select('supportingKind','Supporting-document type',[
+     ['APPLICATION','Application / general evidence'],['MEDICAL','Medical certificate / clearance'],
+     ['AFFIDAVIT','Notarized affidavit if no medical consultation']])+
     '<button type="submit" class="leave-primary">Submit for review</button></form>';
-   details.querySelector('[name=leaveType]').addEventListener('change',e=>{
-    if(e.target.value==='VSC')details.querySelector('[name=creditAccount]').value='VSC';
-    if(['MATERNITY','PATERNITY'].includes(e.target.value))details.querySelector('[name=creditAccount]').value='NONE';
+   const leaveTypeControl=details.querySelector('[name=leaveType]');
+   const accountControl=details.querySelector('[name=creditAccount]');
+   const sickInfo=details.querySelector('.leave-sick-guidance');
+   const start=details.querySelector('[name=startDate]');
+   const end=details.querySelector('[name=endDate]');
+   let certifiedScheme='UNVERIFIED';
+   const manilaDate=()=>{
+    const parts=new Intl.DateTimeFormat('en-US',{
+     timeZone:'Asia/Manila',year:'numeric',month:'2-digit',day:'2-digit'
+    }).formatToParts(new Date());
+    const value=k=>parts.find(p=>p.type===k)?.value;
+    return value('year')+'-'+value('month')+'-'+value('day');
+   };
+   const explainSick=()=>{
+    const sick=leaveTypeControl.value==='SICK';
+    if(!sick){sickInfo.hidden=true;accountControl.disabled=false;return;}
+    sickInfo.hidden=false;
+    const account=certifiedScheme==='TEACHING_VSC'?'VSC':
+     certifiedScheme==='REGULAR_VL_SL'?'SL':'NONE';
+    accountControl.value=account;
+    accountControl.disabled=true;
+    const today=manilaDate();
+    const basis=start.value>today?'Advance-filed':end.value&&end.value<today?
+     'Filed upon return':'During ongoing absence';
+    sickInfo.textContent=basis+' sick leave: CSC Form No. 6 may be filed immediately after returning to duty. Notify your supervisor of an unexpected absence. '+
+     (account==='VSC'?'HR-certified teaching personnel: illness uses Vacation Service Credits (VSC).':
+      account==='SL'?'HR-certified regular leave: illness uses Sick Leave (SL).':
+      'HR leave scheme not yet verified; you may submit now, but no balance will be charged until HR confirms the correct entitlement.')+
+     ' Leave remains pending until the authorized official approves. Advance-filed illness or more than five consecutive days needs a medical certificate/clearance, or an appropriate notarized affidavit if no consultation was obtained.';
+   };
+   leaveTypeControl.addEventListener('change',e=>{
+    if(e.target.value==='VSC')accountControl.value='VSC';
+    if(['MATERNITY','PATERNITY'].includes(e.target.value))accountControl.value='NONE';
+    explainSick();
    });
+   start.addEventListener('change',explainSick);
+   end.addEventListener('change',explainSick);
+   void call('/my/credit-scheme').then(x=>{
+    certifiedScheme=x.leaveScheme||'UNVERIFIED';explainSick();
+   }).catch(()=>{certifiedScheme='UNVERIFIED';explainSick();});
+   explainSick();
    details.querySelector('form').addEventListener('submit',e=>{
     e.preventDefault();const f=e.target;if(!f.reportValidity())return;
     const d=new FormData(f);
     const payload=Object.fromEntries(['leaveType','creditAccount','startDate','endDate','reason','details','commutation'].map(k=>[k,String(d.get(k)||'')]));
+    if(payload.leaveType==='SICK')
+     payload.creditAccount=certifiedScheme==='TEACHING_VSC'?'VSC':
+      certifiedScheme==='REGULAR_VL_SL'?'SL':'NONE';
     action('Submitting leave',async()=>{
      const response=await call('/requests','POST',payload);
      const file=d.get('supportingDocument');
      if(file instanceof File&&file.size){
-      try{await upload('/requests/'+response.requestId+'/documents',file,'APPLICATION');}
+      try{await upload('/requests/'+response.requestId+'/documents',file,
+       String(d.get('supportingKind')||'APPLICATION'));}
       catch(e){return {notice:'Application saved, but the attachment failed: '+e.message+' Please attach it from the request card.'};}
      }
      details.open=false;f.reset();return response;
@@ -287,14 +332,36 @@
      '<span class="leave-status">'+esc(classify(r.status))+'</span></div>'+
      '<p>'+esc(classify(r.leaveType))+' · '+esc(safeDate(r.startDate))+' to '+esc(safeDate(r.endDate))+'</p>'+
      '<p>Account: '+esc(r.creditAccount)+' · '+esc(r.reason)+'</p>'+
+     (r.leaveType==='SICK'?'<p class="leave-help">Filing: '+
+       esc(r.filingBasis==='POST_RETURN'?'Submitted upon return':
+        r.filingBasis==='ADVANCE'?'Submitted in advance':r.filingBasis==='DURING_ABSENCE'?
+        'Submitted during absence':'Submission date not classified')+
+       ' · Credit account is finalized only after HR certification.</p>':'')+
      (r.externalReference?'<p>Approval reference: '+esc(r.externalReference)+'</p>':'')+
      '<div class="leave-actions"></div>';
     const buttons=card.querySelector('.leave-actions');
     buttons.append(buttonFor('Print prefilled CSC Form No. 6',()=>{
      window.open('/leave-form6.html?requestId='+encodeURIComponent(r.requestId),'_blank');
     }));
-    if(r.staffUserId===user.userId&&!['APPROVED','REJECTED','CANCELLED'].includes(r.status))
+    if(r.staffUserId===user.userId&&!['APPROVED','REJECTED','CANCELLED'].includes(r.status)){
      attachDocument(card,r,'APPLICATION');
+     if(r.leaveType==='SICK'){
+      const sickDoc=document.createElement('details');sickDoc.className='leave-card';
+      sickDoc.innerHTML='<summary>Attach medical evidence or notarized affidavit</summary>'+
+       '<p class="leave-help">For advance-filed sick leave or illness exceeding five consecutive days, submit a medical certificate/clearance, or an appropriate notarized affidavit where medical consultation was not obtained. Only authorized HR staff can inspect these sensitive documents.</p>'+
+       '<form class="leave-inline-form">'+
+       select('documentKind','Evidence type',[
+         ['MEDICAL','Medical certificate / clearance'],['AFFIDAVIT','Notarized affidavit']])+
+       fileInput('file','Official evidence (PDF, JPG or PNG)')+
+       '<button class="leave-btn" type="submit">Upload protected evidence</button></form>';
+      sickDoc.querySelector('form').addEventListener('submit',e=>{
+       e.preventDefault();const d=new FormData(e.target),file=d.get('file');
+       if(!(file instanceof File)||!file.size){say('Select the official document first.',true);return;}
+       action('Saving protected medical evidence',()=>upload('/requests/'+r.requestId+'/documents',
+         file,String(d.get('documentKind'))));
+      });card.append(sickDoc);
+     }
+    }
     async function review(endpoint,decision,request){
      const note=window.prompt('Review note (required for disapproval):','');
      if(note===null)return;
