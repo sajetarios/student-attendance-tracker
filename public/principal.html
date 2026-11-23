@@ -11,7 +11,7 @@
 try { const preference = localStorage.getItem('attendigo.principal.theme'); document.documentElement.dataset.theme = ['dark','light','system'].includes(preference) ? preference : 'light'; }
 catch (_) { document.documentElement.dataset.theme = 'light'; }
 </script>
-<link rel="stylesheet" href="/principal-dashboard.css?v=13">
+<link rel="stylesheet" href="/principal-dashboard.css?v=14">
 <script src="/principal-dashboard.js?v=13" defer></script>
 <link rel="stylesheet" href="/school-memo-banner.css?v=3">
 </head>
@@ -416,10 +416,10 @@ catch (_) { document.documentElement.dataset.theme = 'light'; }
      <div id="principalMemoDtrFields" hidden>
       <p class="source-note">Available only for a Temporary schedule notice sent to School personnel. Enter all four official prescribed time slots; the maximum period is 31 inclusive days. This adjusts Form 48 tardiness/undertime calculations, not the recorded actual punches.</p>
       <div class="principal-memo-fields">
-       <label>AM time-in <input name="dtrAmIn" type="time" value="07:30"></label>
-       <label>AM time-out <input name="dtrAmOut" type="time" value="12:00"></label>
-       <label>PM time-in <input name="dtrPmIn" type="time" value="13:00"></label>
-       <label>PM time-out <input name="dtrPmOut" type="time" value="16:30"></label>
+       <label>AM time-in <input name="dtrAmIn" type="time"></label>
+       <label>AM time-out <input name="dtrAmOut" type="time"></label>
+       <label>PM time-in <input name="dtrPmIn" type="time"></label>
+       <label>PM time-out <input name="dtrPmOut" type="time"></label>
       </div>
      </div>
      <p class="source-note">Announcement-only memoranda never change DTR. A temporary DTR adjustment applies to the specified dates only; class suspension, teacher duty status, timetables, OB, leave, and actual attendance records remain separate.</p>
