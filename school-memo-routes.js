@@ -105,6 +105,7 @@ function registerSchoolMemoRoutes(app,pool,{authenticateSchoolClient,requireScho
    !CATEGORIES.has(category)||!AUDIENCES.has(audience)||
    (date&&!validDate(date))||(endDate&&(!validDate(endDate)||!date||endDate<date))||
    (['SCHEDULE_NOTICE','CLASS_SUSPENSION'].includes(category)&&(!date||!endDate))||
+   (category==='CLASS_SUSPENSION'&&audience!=='ALL_USERS')||
    (dtrRequested&&(!dtrHours||category!=='SCHEDULE_NOTICE'||
        !date||!endDate||date<manilaDate()||durationDays(date,endDate)>30))||
    (!dtrRequested&&req.headers['x-memo-dtr-hours'])||
