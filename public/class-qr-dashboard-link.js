@@ -27,16 +27,20 @@
     link.setAttribute('aria-label', 'Class QR Attendance');
     const panel = document.getElementById('studentsView');
     const dashboard = document.getElementById('dashboardView');
+    const classAttendance = document.getElementById('classAttendanceView');
     const positionShortcut = () => {
       const rosterVisible = Boolean(panel && !panel.hidden && !panel.closest('[hidden]') && panel.getClientRects().length);
       const dashboardVisible = Boolean(dashboard && !dashboard.hidden && !dashboard.closest('[hidden]') && dashboard.getClientRects().length);
+      const attendanceVisible = Boolean(classAttendance && !classAttendance.hidden && !classAttendance.closest('[hidden]') && classAttendance.getClientRects().length);
       const rosterHost = rosterVisible ? panel.querySelector('#studentRosterPanel .student-roster-viewbar') : null;
       // Teachers get a compact in-page shortcut instead of a floating overlay.
       const dashboardHost = user.role === 'TEACHER' && dashboardVisible
         ? dashboard.querySelector('.dashboard-quick-buttons') : null;
-      const inlineHost = rosterHost || dashboardHost;
+      const attendanceHost = attendanceVisible ? classAttendance.querySelector('.manual-head') : null;
+      const inlineHost = attendanceHost || rosterHost || dashboardHost;
       const host = inlineHost || document.body;
       link.classList.toggle('is-roster-inline', Boolean(rosterHost));
+      link.classList.toggle('manual-qr-inline', Boolean(attendanceHost));
       link.classList.toggle('is-dashboard-inline', Boolean(dashboardHost));
       link.hidden = (user.role === 'TEACHER' && !inlineHost) || (rosterVisible && !rosterHost);
       // Explicitly reset fixed offsets: a stale fixed position must never cover account controls.
@@ -53,6 +57,9 @@
       attributes: true, attributeFilter: ['hidden', 'style', 'class']
     });
     if (dashboard) observer.observe(dashboard, {
+      attributes: true, attributeFilter: ['hidden', 'style', 'class']
+    });
+    if (classAttendance) observer.observe(classAttendance, {
       attributes: true, attributeFilter: ['hidden', 'style', 'class']
     });
     for (const id of ['schoolWorkspace', 'platformWorkspace']) {
