@@ -60,6 +60,7 @@ const { registerPlannerRoutes } = require('./planner-routes');
 const { registerPhotoRoutes, registerPlatformPhotoRoutes, readOfficialPhoto } = require('./profile-photo-routes');
 const { registerNotificationRoutes } = require('./notification-routes');
 const { registerHelpAiRoutes } = require('./help-ai-routes');
+const { registerStartupReadinessRoute } = require('./startup-readiness-route');
 
 const app = express();
 const migrationReadOnly = process.env.ATTENDIGO_MIGRATION_MODE === 'read_only';
@@ -4360,6 +4361,7 @@ app.get('/vendor/html5-qrcode.min.js', (_req, res) =>
 );
 // Basic liveness endpoint for deployment and diagnostics. No school data is exposed.
 app.get('/api/health', databaseReadiness);
+registerStartupReadinessRoute(app, pool, { migrationReadOnly });
 
 // Serve one canonical login URL for desktop, mobile browsers, and installed PWAs.
 // Preserve only the supported account-mode option; never copy credentials from a URL.
