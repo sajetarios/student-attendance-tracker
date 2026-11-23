@@ -2586,7 +2586,8 @@ function coverageStatusLabel(status) {
       return '<article class="dated-adjustment-card"><span class="status-tag neutral">'+esc(labels[a.type]||a.type)+'</span>'+
         '<div><strong>'+esc(a.date+' · '+(period?.periodName||'Class')+' · '+a.gradeLevel+' · '+a.section)+'</strong>'+
         '<span>'+esc(desc||'Date-specific timetable change')+'</span>'+
-        (a.notes?'<small>'+esc(a.notes)+'</small>':'')+'</div>'+
+        (a.notes?'<small>'+esc(a.notes)+'</small>':'')+
+        (a.memoTitle?'<small>Principal memo: '+esc(a.memoTitle)+'</small>':'')+'</div>'+
         (manager&&a.date>=dataSchoolDate()?'<button type="button" class="outline-button" data-remove-adjustment="'+esc(a.adjustmentId)+'">Restore regular</button>':'')+
         '</article>';
     }).join(''):'<p class="muted-inline">No temporary changes this week. The regular schedule applies.</p>';
@@ -3901,6 +3902,7 @@ let teacherActionMenuListenersInstalled = false;
       schoolOperatingDays = daysResult.days || [];
       timetableTemplates = templatesResult.templates || [];
       renderCalendarExceptions(exceptionsResult.exceptions || []);
+      if(['SCHOOL_ADMIN','DEPARTMENT_HEAD'].includes(user.role))void loadLinkedPrincipalMemos();
       const exceptionScheduleSelect = $('calendarExceptionSchedules');
       if (exceptionScheduleSelect) exceptionScheduleSelect.innerHTML = periods.map(period => '<option value="' + esc(period.periodId) + '">' + esc(period.gradeLevel + ' · ' + (period.section || 'All sections') + ' · ' + (period.subjectName || period.periodName)) + '</option>').join('');
       const dayMap = new Map(schoolOperatingDays.map(day => [Number(day.weekday), Boolean(day.isOperatingDay)]));
@@ -3947,12 +3949,45 @@ let teacherActionMenuListenersInstalled = false;
     }
   }
 
+  let linkedPrincipalMemos=[];
+  function fillPrincipalMemoChoices(){
+    const calendar=$('calendarMemoId'),dated=$('adjustmentMemoId');
+    const date=$('calendarExceptionDate')?.value||'';
+    const from=$('adjustmentStartDate')?.value||'',to=$('adjustmentEndDate')?.value||from;
+    if(calendar){
+      const previous=calendar.value;
+      const eligible=linkedPrincipalMemos.filter(m=>m.category==='CLASS_SUSPENSION'&&m.audience==='ALL_USERS'&&
+        date&&m.effectiveDate&&m.effectiveDate<=date&&m.endDate>=date);
+      calendar.innerHTML='<option value="">Select the published class-suspension notice</option>'+
+        eligible.map(m=>'<option value="'+esc(m.memoId)+'">'+esc(m.title+' ('+m.effectiveDate+'–'+m.endDate+')')+'</option>').join('');
+      if(eligible.some(m=>m.memoId===previous))calendar.value=previous;
+    }
+    if(dated){
+      const previous=dated.value;
+      const eligible=linkedPrincipalMemos.filter(m=>from&&to&&m.effectiveDate&&m.effectiveDate<=from&&m.endDate>=to);
+      dated.innerHTML='<option value="">No memorandum link</option>'+
+        eligible.map(m=>'<option value="'+esc(m.memoId)+'">'+esc(m.title+' ('+m.effectiveDate+'–'+m.endDate+')')+'</option>').join('');
+      if(eligible.some(m=>m.memoId===previous))dated.value=previous;
+    }
+  }
+  async function loadLinkedPrincipalMemos(){
+    try{
+      const response=await api('/api/school-memos?limit=50');
+      linkedPrincipalMemos=(response.memoranda||[]).filter(m=>m.effectiveDate&&m.endDate);
+      fillPrincipalMemoChoices();
+    }catch(error){
+      linkedPrincipalMemos=[];fillPrincipalMemoChoices();
+      console.warn('Principal memorandum links unavailable:',error.message);
+    }
+  }
   function renderCalendarExceptions(items) {
     calendarExceptionItems = Array.isArray(items) ? items : [];
     const host=$('calendarExceptionList'); if(!host)return;
-    const labels={CLOSED:'Closed',OPEN:'Additional operating day',SPECIAL_CLASS:'Special classes',SHORTENED_DAY:'Shortened day'};
+    const labels={CLOSED:'Closed',OPEN:'Additional operating day',SPECIAL_CLASS:'Special classes',SHORTENED_DAY:'Shortened day',CLASS_SUSPENSION:'Class suspension (learners only)'};
     host.innerHTML='<strong>Saved calendar dates</strong>'+(items.length?'<div class="timetable-template-chips">'+items.map(item=>
       '<span><b>'+esc(item.date)+' · '+esc(item.title)+'</b><small>'+esc(labels[item.type]||item.type)+(item.dismissalTime?' · Dismissal '+esc(item.dismissalTime):'')+
+      (item.suspensionTime?' · Begins '+esc(item.suspensionTime):item.type==='CLASS_SUSPENSION'?' · Full day':'')+
+      (item.memoTitle?' · Memo: '+esc(item.memoTitle):'')+
       (item.schedules?.length?' · '+item.schedules.length+' selected schedule(s)':'')+'</small>'+
       (user.role==='SCHOOL_ADMIN'?'<span class="calendar-exception-actions"><button type="button" class="secondary-button compact-button" data-edit-calendar-exception="'+esc(item.exceptionId)+'">Edit</button><button type="button" class="secondary-button compact-button" data-delete-calendar-exception="'+esc(item.exceptionId)+'">Delete</button></span>':'')+'</span>'
     ).join('')+'</div>':'<p>No upcoming calendar exceptions have been saved.</p>');
@@ -3965,9 +4000,13 @@ let teacherActionMenuListenersInstalled = false;
   function updateCalendarExceptionFields() {
     const type=$('calendarExceptionType')?.value;
     if($('calendarDismissalWrap'))$('calendarDismissalWrap').hidden=type!=='SHORTENED_DAY';
+    if($('calendarSuspensionWrap'))$('calendarSuspensionWrap').hidden=type!=='CLASS_SUSPENSION';
+    if($('calendarMemoWrap'))$('calendarMemoWrap').hidden=type!=='CLASS_SUSPENSION';
+    if($('calendarMemoId'))$('calendarMemoId').required=type==='CLASS_SUSPENSION';
     if($('calendarSchedulesWrap'))$('calendarSchedulesWrap').hidden=!['OPEN','SPECIAL_CLASS'].includes(type);
     if($('calendarDismissalTime'))$('calendarDismissalTime').required=type==='SHORTENED_DAY';
     if($('calendarExceptionSchedules'))$('calendarExceptionSchedules').required=['OPEN','SPECIAL_CLASS'].includes(type);
+    fillPrincipalMemoChoices();
   }
 
   function formatScheduleDays(weekdays) {
@@ -4320,6 +4359,7 @@ let teacherActionMenuListenersInstalled = false;
       updateCalendarExceptionFields();
     });
     $('calendarExceptionType')?.addEventListener('change',updateCalendarExceptionFields);
+    $('calendarExceptionDate')?.addEventListener('change',fillPrincipalMemoChoices);
     updateCalendarExceptionFields();
     $('calendarExceptionForm')?.addEventListener('submit',async event=>{
       event.preventDefault();const feedback=$('calendarExceptionFeedback');feedback.textContent='Saving…';
@@ -4330,6 +4370,8 @@ let teacherActionMenuListenersInstalled = false;
           date:$('calendarExceptionDate').value,title:$('calendarExceptionTitle').value.trim(),type,
           exceptionId:$('calendarExceptionForm').dataset.exceptionId||null,
           dismissalTime:type==='SHORTENED_DAY'?$('calendarDismissalTime').value:null,
+          suspensionTime:type==='CLASS_SUSPENSION'?$('calendarSuspensionTime').value||null:null,
+          memoId:type==='CLASS_SUSPENSION'?$('calendarMemoId').value||null:null,
           periodIds,notes:$('calendarExceptionNotes').value.trim()||null
         })});
         $('calendarExceptionForm').reset();
@@ -4351,6 +4393,9 @@ let teacherActionMenuListenersInstalled = false;
         $('calendarExceptionTitle').value=item.title||'';
         $('calendarExceptionType').value=item.type;
         $('calendarDismissalTime').value=item.dismissalTime||'';
+        $('calendarSuspensionTime').value=item.suspensionTime||'';
+        fillPrincipalMemoChoices();
+        $('calendarMemoId').value=item.memoId||'';
         $('calendarExceptionNotes').value=item.notes||'';
         const selected=new Set(item.periodIds||[]);
         Array.from($('calendarExceptionSchedules')?.options||[]).forEach(option=>{option.selected=selected.has(option.value);});
@@ -4475,10 +4520,13 @@ let teacherActionMenuListenersInstalled = false;
       $('adjustmentType').value=existing.type;
       $('adjustmentReason').value=existing.reason;
       $('adjustmentNotes').value=existing.notes||'';
+      fillPrincipalMemoChoices();
+      $('adjustmentMemoId').value=existing.memoId||'';
       $('adjustmentStartTime').value=existing.startTime||'';
       $('adjustmentEndTime').value=existing.endTime||'';
       $('adjustmentRoom').value=existing.classroom||'';
     }
+    if(!existing)fillPrincipalMemoChoices();
     $('scheduleAdjustmentFeedback').textContent=existing
       ?'Editing the saved change for '+existing.date+'. This will replace only that date’s adjustment.'
       :'Choose a date when the selected class normally meets. Unscheduled days are skipped automatically.';
@@ -4510,14 +4558,17 @@ let teacherActionMenuListenersInstalled = false;
       $('adjustmentEndDate').min=$('adjustmentStartDate').value||dataSchoolDate();
       if($('adjustmentEndDate').value<$('adjustmentStartDate').value)
         $('adjustmentEndDate').value=$('adjustmentStartDate').value;
+      fillPrincipalMemoChoices();
     });
+    $('adjustmentEndDate')?.addEventListener('change',fillPrincipalMemoChoices);
     $('scheduleAdjustmentForm')?.addEventListener('submit',async e=>{
       e.preventDefault();
       const type=$('adjustmentType').value,periodId=$('adjustmentPeriodId').value;
       const period=periods.find(p=>String(p.periodId)===periodId);
       const payload={
         periodId,type,startDate:$('adjustmentStartDate').value,endDate:$('adjustmentEndDate').value,
-        reason:$('adjustmentReason').value,notes:$('adjustmentNotes').value.trim()
+        reason:$('adjustmentReason').value,notes:$('adjustmentNotes').value.trim(),
+        memoId:$('adjustmentMemoId')?.value||null
       };
       if(['SUBSTITUTE','REPLACE'].includes(type))payload.teacherUserId=$('adjustmentTeacher').value||null;
       if(type==='REPLACE')payload.subjectId=$('adjustmentSubject').value||null;
