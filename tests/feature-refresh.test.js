@@ -117,9 +117,9 @@ test('Teacher scanner supports designated subject and advisory attendance with a
 });
 
 test('School staff account directory does not duplicate teacher accounts', () => {
-  assert.match(server, /WHERE su.school_id=\$1 AND su.role IN \('DEPARTMENT_HEAD', 'GATE_KEEPER'\)/);
-  assert.match(html, /Department Heads and Gate Keepers/);
-  assert.match(js, /filter\(account => \['DEPARTMENT_HEAD', 'GATE_KEEPER'\]\.includes\(account\.role\)\)/);
+  assert.match(server, /WHERE su.school_id=\$1 AND su.role IN \('PRINCIPAL', 'DEPARTMENT_HEAD', 'GATE_KEEPER'\)/);
+  assert.match(html, /Principals, Department Heads and Gate Keepers/);
+  assert.match(js, /filter\(account => \['PRINCIPAL','DEPARTMENT_HEAD', 'GATE_KEEPER'\]\.includes\(account\.role\)\)/);
 });
 
 test('staff monitoring uses compact assignment summaries and horizontally wrapped class-scope chips', () => {
