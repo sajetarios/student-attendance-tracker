@@ -196,7 +196,7 @@
     '<fieldset><legend>Leave type and dates</legend>'+
     select('leaveType','Type of leave',docTypes)+select('creditAccount','Proposed credit deduction (subject to HR verification)',accounts)+
     '<p class="leave-credit-guidance" role="status" aria-live="polite"></p>'+ 
-    '<p class="leave-sick-guidance" role="status" aria-live="polite"></p>'
+    '<p class="leave-sick-guidance" role="status" aria-live="polite"></p>'+ 
     textInput('startDate','Start date',true,'date')+textInput('endDate','End date',true,'date')+
     '</fieldset><fieldset><legend>Reason and details</legend>'+
     '<label>Reason (required)<textarea name="reason" rows="2" minlength="3" maxlength="1000" required></textarea></label>'+
