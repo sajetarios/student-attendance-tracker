@@ -160,7 +160,8 @@
   const details=make('div','attendigo-memo-record-meta');
   details.append(make('span',null,memo.audience==='ALL_USERS'?'All school users':'School personnel'));
   if(memo.effectiveDate){
-   const today=new Intl.DateTimeFormat('en-CA',{timeZone:'Asia/Manila',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date());
+   const parts=Object.fromEntries(new Intl.DateTimeFormat('en-CA', {timeZone:'Asia/Manila',year:'numeric',month:'2-digit',day:'2-digit'}).formatToParts(new Date()).map(p=>[p.type,p.value]));
+   const today=parts.year+'-'+parts.month+'-'+parts.day;
    const period=memo.endDate?memo.effectiveDate+' to '+memo.endDate:memo.effectiveDate+' (no end date recorded)';
    const stateText=today<memo.effectiveDate?'Upcoming':memo.endDate&&today>memo.endDate?'Ended':'Active';
    details.append(make('span',null,'Effective '+period+' · '+stateText));
