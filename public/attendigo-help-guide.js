@@ -5,8 +5,8 @@
   if (!library || !window.attendigoStaffIdentity) return;
   const STAFF_ROLES = new Set(['TEACHER','DEPARTMENT_HEAD','SCHOOL_ADMIN','GATE_KEEPER','SUPER_ADMIN']);
   const hasSensitiveData = value => /\b\d{12}\b|\b09\d{9}\b|\+63[\s-]?9\d{9}\b|[\w.+-]+@[\w.-]+\.[a-z]{2,}/i.test(value);
-  let user, open = false, busy = false, apiEnabled = false, lastFocus = null;
-  let speaking = false, recognition = null, listening = false, abort = null;
+  let user, open = false, busy = false, lastFocus = null;
+  let speaking = false, recognition = null, listening = false;
   const $ = id => document.getElementById(id);
   const robotMarkup = () => '<span class="attendigo-help-robot" aria-hidden="true">'+
     '<i class="ah-antenna"></i><i class="ah-head"><i class="ah-face">'+
@@ -58,8 +58,6 @@
       lastFocus = document.activeElement === trigger ? trigger : document.activeElement;
       $('attendigoHelpQuestion').focus({preventScroll:true});
     } else {
-      abort?.abort();
-      abort = null;
       stopListening();
       stopSpeech();
       if (lastFocus?.isConnected) lastFocus.focus({preventScroll:true});
@@ -100,6 +98,23 @@
       response.steps.forEach(step => list.append(make('li', '', step)));
       body.append(list);
       if (response.note) body.append(make('p', 'attendigo-help-note', response.note));
+    }
+    if (response.topic) {
+      body.append(make('p', 'attendigo-help-note', 'Source: Verified Attendigo HTG · ' + response.topic.title));
+    }
+    const related = Array.isArray(response.relatedTopics) ? response.relatedTopics
+      .filter(topic => topic && topic.id !== response.topic?.id && (!topic.nav || allowedMenu(topic)))
+      .slice(0,2) : [];
+    if (related.length) {
+      const section = make('div', 'attendigo-help-related');
+      section.append(make('span', 'attendigo-help-msg-label', response.topic ? 'Related guide topics' : 'Choose a guide topic'));
+      related.forEach(topic => {
+        const choose = make('button', 'attendigo-help-chip', topic.title);
+        choose.type = 'button';
+        choose.addEventListener('click', () => ask(topic.title));
+        section.append(choose);
+      });
+      body.append(section);
     }
     const menu = allowedMenu(response.topic);
     if (menu) {
@@ -150,28 +165,11 @@
     }
     busy = true;
     $('attendigoHelpSend').disabled = true;
-    setStatus('Finding guidance…');
-    let aiText = '';
-    if (apiEnabled && response.topic && !unavailable && user.role !== 'SUPER_ADMIN') {
-      abort = new AbortController();
-      try {
-        const result = await fetch('/api/help/ask', {
-          method:'POST', credentials:'same-origin', cache:'no-store',
-          headers: {'Content-Type':'application/json'},
-          body: JSON.stringify({question}),
-          signal: abort.signal
-        });
-        const json = await result.json().catch(() => ({}));
-        if (result.ok && typeof json.answer === 'string') aiText = json.answer.slice(0,2400);
-        else if (result.status === 401) setStatus('Your session expired. Please sign in again.', true);
-      } catch (error) {
-        if (error.name === 'AbortError') { aiText = ''; }
-      } finally { abort = null; }
-    }
-    if (open) showAnswer(response, spoken, aiText);
+    setStatus('Finding verified guide instructions…');
+    if (open) showAnswer(response, spoken);
     busy = false;
     $('attendigoHelpSend').disabled = false;
-    if (open) setStatus(aiText ? 'AI guidance · Always verify before submitting records' : 'Verified feature guide · Read-only help');
+    if (open) setStatus('Free verified HTG guidance · Read-only · No AI billing');
   }
   function startVoice() {
     if (listening) { stopListening(); setStatus('Voice input stopped.'); return; }
@@ -208,19 +206,6 @@
       setStatus('Could not start voice input. Please type instead.', true);
     }
   }
-  async function checkAI() {
-    if (user.role === 'SUPER_ADMIN') return;
-    try {
-      const res = await fetch('/api/help/config', {credentials:'same-origin',cache:'no-store'});
-      if (!res.ok) return;
-      const data = await res.json();
-      apiEnabled = Boolean(data.aiEnabled);
-      const disclosure = $('attendigoHelpDisclosure');
-      if (disclosure) disclosure.textContent = apiEnabled
-        ? 'AI-enabled questions are sent to the configured AI provider. Do not enter personal or confidential information.'
-        : 'Built-in guide. No teacher or learner records are sent to an AI service.';
-    } catch { /* The built-in, offline-friendly guide always remains available. */ }
-  }
   function init(identity) {
     user = identity;
     if (!STAFF_ROLES.has(user?.role) || $('attendigoHelpLauncher')) return;
@@ -255,7 +240,7 @@
         </div>
       </form>
       <p class="attendigo-help-status" id="attendigoHelpStatus" role="status" aria-live="polite">Guidance only · No records are modified</p>
-      <p class="attendigo-help-disclosure" id="attendigoHelpDisclosure">Built-in guide. Do not share personal details, passwords or private codes.</p>`;
+      <p class="attendigo-help-disclosure" id="attendigoHelpDisclosure">Free built-in guide. No questions are sent to an external AI provider. Do not enter private information.</p>`;
     // Keep the primary header uncluttered. Dock Help & Support in the existing
     // sidebar, after the main navigation so it works for every staff role.
     // The dock stays in normal sidebar flow: it never covers dashboard actions.
@@ -309,7 +294,7 @@
       chip.addEventListener('click', () => ask(topic.title));
       suggestions.append(chip);
     });
-    checkAI();
+
   }
   window.attendigoStaffIdentity.then(init).catch(() => {});
 })();
