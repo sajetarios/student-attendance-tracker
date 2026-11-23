@@ -373,9 +373,36 @@
    host.append(button);
   }
  }
+ function renderEarlyArrivals(data){
+  const host=$('earlyArrivalsList'),count=$('earlyArrivalsCount');
+  host.replaceChildren();
+  const entries=data.earlyArrivals?.entries;
+  const date=data.schoolDate||'selected date';
+  $('earlyArrivalsSubtitle').textContent='Photo-verified gate entry before 7:00 AM · '+date+' · Asia/Manila';
+  if(!Array.isArray(entries)){
+   count.textContent='Source unavailable';
+   host.append(make('p','source-note','Verified early-arrival source is unavailable. No recognition candidates can be confirmed.'));
+   return;
+  }
+  count.textContent=entries.length+' verified '+(entries.length===1?'arrival':'arrivals');
+  if(!entries.length){
+   host.append(make('p','source-note','No verified teacher gate entries before 7:00 AM for this date. This does not mean teachers were absent or late.'));
+   return;
+  }
+  for(const person of entries){
+   const item=make('div','principal-early-person');
+   const avatar=make('span','principal-early-avatar','★');
+   avatar.setAttribute('aria-hidden','true');
+   const detail=make('div','principal-early-person-detail');
+   detail.append(make('strong',null,person.name||'Teacher'),make('span',null,person.department||'Department not assigned'));
+   const time=make('span','principal-early-time',String(person.arrivalTime||'—').slice(0,5));
+   time.setAttribute('aria-label','Verified entry at '+time.textContent+' Philippine time');
+   item.append(avatar,detail,time);host.append(item);
+  }
+ }
  function render(data){
   latest=data;applyDepartmentOptions(data);applyMetrics(data);renderTrend(data);
-  renderAttention(data);renderDepartments(data);renderStaff();renderPriorities(data);renderDefinitions(data);renderBriefing(data);
+  renderAttention(data);renderDepartments(data);renderStaff();renderPriorities(data);renderDefinitions(data);renderBriefing(data);renderEarlyArrivals(data);
   const scope=data.departmentId?($('departmentFilter').selectedOptions?.[0]?.textContent||'Selected department'):'All departments';
   status('Live report · '+scope+' · '+data.schoolDate+' · verified source records only','success');
  }
@@ -397,6 +424,8 @@
   }catch(error){
    if(error.name==='AbortError'||current!==sequence)return;
    latest=null;
+   $('earlyArrivalsList').replaceChildren(make('p','source-note','Early-arrival records are currently unavailable; no recognition can be verified.'));
+   $('earlyArrivalsCount').textContent='Unavailable';
    for(const id of ['withVerifiedPunch','pendingDtrSlots','activeStudentRecords','acceptedClassCheckins','heroPending'])$(id).textContent='—';
    status('Unable to verify school records: '+errorText(error)+'. Retry; no estimated figures are displayed.','error');
   }finally{if(current===sequence)$('refreshDashboard').disabled=false;}
