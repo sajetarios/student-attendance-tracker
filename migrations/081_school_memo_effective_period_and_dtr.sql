@@ -9,7 +9,7 @@ ALTER TABLE school_memoranda
 ALTER TABLE school_memoranda
  ADD CONSTRAINT school_memos_dtr_scope_chk
  CHECK (dtr_hours IS NULL OR (
-   category = 'SCHEDULE_NOTICE' AND audience = 'SCHOOL_STAFF'
+   category = 'SCHEDULE_NOTICE'
    AND effective_date IS NOT NULL AND end_date IS NOT NULL
    AND jsonb_typeof(dtr_hours) = 'object'
  ));
