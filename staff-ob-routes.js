@@ -205,7 +205,7 @@ function registerStaffObRoutes(app,pool,{authenticateSchoolClient,requireSchoolR
     const result=await client.query(`UPDATE staff_official_business_requests
       SET status=$4,admin_user_id=$3,admin_decided_at=NOW(),decision_note=$5
       WHERE school_id=$1 AND request_id=$2 AND status='PENDING_ADMIN'
-       AND staff_user_id<>$3 RETURNING request_id,status,staff_user_id,starts_at,ends_at`,
+       AND staff_user_id<>$3 AND NOT EXISTS (SELECT 1 FROM school_users u WHERE u.school_id=$1 AND u.user_id=staff_official_business_requests.staff_user_id AND u.role='PRINCIPAL') RETURNING request_id,status,staff_user_id,starts_at,ends_at`,
       [req.auth.schoolId,req.params.id,req.auth.userId,
        decision==='APPROVE'?'APPROVED':'REJECTED',note||null]);
     if(!result.rowCount){await client.query('ROLLBACK');return res.status(409).json({error:'Request not awaiting School Admin decision or self-approval prohibited.'});}
