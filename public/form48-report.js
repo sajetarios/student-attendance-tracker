@@ -67,7 +67,7 @@
   // Memo adjustments are prescribed-hour annotations, never synthetic punches.
   const memoRows=(analysis.temporarySchedules||[]).filter(m=>(analysis.assessments||[]).some(a=>a.temporaryMemoId===m.memoId));
   const memoMarkup=memoRows.length?'<div class="form48-memo-remarks">'+
-   memoRows.slice(0,3).map(m=>'<div>Temporary hours '+esc(m.from)+' to '+esc(m.archivedDate&&m.archivedDate<=m.to?m.archivedDate+' (archived)':m.to)+
+   memoRows.slice(0,3).map(m=>'<div>Temporary hours '+esc(m.from)+' to '+esc(m.to)+(m.archivedDate&&m.archivedDate<=m.to?' (archived '+esc(m.archivedDate)+')':'')+
     ' · '+esc(String(m.title||'School memorandum').slice(0,55))+' · '+esc(hoursText(m.hours))+'</div>').join('')+
    (memoRows.length>3?'<div>+'+(memoRows.length-3)+' more authorized schedule notices; see school memorandum register.</div>':'')+
    '</div>':'';
