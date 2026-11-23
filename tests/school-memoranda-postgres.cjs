@@ -21,7 +21,7 @@ function makePdf(){
   '<< /Type /Catalog /Pages 2 0 R >>',
   '<< /Type /Pages /Count 1 /Kids [3 0 R] >>',
   '<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Contents 4 0 R /Resources << /Font << /F1 5 0 R >> >> >>',
-  (()=>{const stream='BT /F1 14 Tf 65 690 Td (ATTENDIGO FICTIONAL TEST MEMORANDUM - DO NOT DISTRIBUTE) Tj ET\\n';return '<< /Length '+Buffer.byteLength(stream)+' >>\\nstream\\n'+stream+'endstream';})(),
+  (()=>{const stream='BT /F1 14 Tf 65 690 Td (ATTENDIGO FICTIONAL TEST MEMORANDUM - DO NOT DISTRIBUTE) Tj ET\n';return '<< /Length '+Buffer.byteLength(stream)+' >>\nstream\n'+stream+'endstream';})(),
   '<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>'
  ];
  const length=()=>Buffer.byteLength(chunks.join(''),'utf8');
@@ -41,15 +41,19 @@ async function main(){
  const test=(description,fn)=>{assertions++;return Promise.resolve().then(fn).then(()=>console.log('PASS '+description));};
  try{
   const suffix=crypto.randomBytes(4).toString('hex');
+  const departments=new Map();
   async function school(tag){
-   return (await pool.query('INSERT INTO schools(school_code,school_name) VALUES($1,$2) RETURNING school_id',
+   const id=(await pool.query('INSERT INTO schools(school_code,school_name) VALUES($1,$2) RETURNING school_id',
     ['MEMO-E2E-'+tag+'-'+suffix,'Disposable School '+tag])).rows[0].school_id;
+   const dep=(await pool.query("INSERT INTO school_departments(school_id,department_code,department_name) VALUES($1,'TEST','Fictional Department') RETURNING department_id",[id])).rows[0].department_id;
+   departments.set(id,dep);
+   return id;
   }
   async function account(schoolId,role,n,active=true){
    const id=(await pool.query(`
-    INSERT INTO school_users(school_id,username,display_name,password_hash,role,active,must_change_password)
-    VALUES($1,$2,$3,'e2e-not-login', $4,$5,FALSE) RETURNING user_id`,
-    [schoolId,'memo_'+n+'_'+suffix,'Fictional '+n,role,active])).rows[0].user_id;
+    INSERT INTO school_users(school_id,department_id,username,display_name,password_hash,role,active,must_change_password)
+    VALUES($1,$2,$3,$4,'e2e-not-login', $5,$6,FALSE) RETURNING user_id`,
+    [schoolId,departments.get(schoolId),'memo_'+n+'_'+suffix,'Fictional '+n,role,active])).rows[0].user_id;
    const token=createOpaqueToken();
    await pool.query(`INSERT INTO user_sessions(token_hash,principal_type,school_id,school_user_id,expires_at)
        VALUES($1,'SCHOOL',$2,$3,NOW()+INTERVAL '20 minutes')`,
