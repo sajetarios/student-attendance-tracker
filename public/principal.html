@@ -11,8 +11,8 @@
 try { const preference = localStorage.getItem('attendigo.principal.theme'); document.documentElement.dataset.theme = ['dark','light','system'].includes(preference) ? preference : 'light'; }
 catch (_) { document.documentElement.dataset.theme = 'light'; }
 </script>
-<link rel="stylesheet" href="/principal-dashboard.css?v=3">
-<script src="/principal-dashboard.js?v=3" defer></script>
+<link rel="stylesheet" href="/principal-dashboard.css?v=4">
+<script src="/principal-dashboard.js?v=4" defer></script>
 </head>
 <body>
 <a class="skip" href="#main">Skip to school overview</a>
@@ -32,7 +32,7 @@ catch (_) { document.documentElement.dataset.theme = 'light'; }
    </label>
    <span id="roleBadge" class="role-badge">Principal workspace</span>
    <a href="/portal.html" id="adminBack" class="text-link" hidden>Back to School Admin</a>
-   <button type="button" id="presentationToggle" class="quiet-button" aria-pressed="false" title="Enter larger-text presentation mode">▣ Present dashboard</button>
+   <button type="button" id="presentationToggle" class="quiet-button" aria-pressed="false" title="Enter larger-text presentation mode">Presentation mode</button>
    <button type="button" id="signOut" class="quiet-button">Sign out</button>
   </div>
  </header>
@@ -65,12 +65,50 @@ catch (_) { document.documentElement.dataset.theme = 'light'; }
 
   <nav class="tabs" aria-label="Principal dashboard sections">
    <button type="button" class="tab is-active" data-section="overview" aria-pressed="true">Overview</button>
+   <button type="button" class="tab" data-section="badge" aria-pressed="false">My QR Badge</button>
+   <button type="button" class="tab" data-section="personal" aria-pressed="false">My DTR &amp; Gate</button>
+   <button type="button" class="tab" data-section="students" aria-pressed="false">Students</button>
    <button type="button" class="tab" data-section="departments" aria-pressed="false">Departments</button>
    <button type="button" class="tab" data-section="staff" aria-pressed="false">Staff DTR</button>
-   <button type="button" class="tab" data-section="priorities" aria-pressed="false">Requests &amp; exceptions</button>
+   <button type="button" class="tab" data-section="priorities" aria-pressed="false">Action Inbox</button>
    <button type="button" class="tab" data-section="definitions" aria-pressed="false">Metric definitions</button>
   </nav>
 
+  <section id="badgePanel" class="panel" data-panel="badge" hidden>
+   <div class="section-heading"><div><p class="eyebrow">PERSONAL IDENTITY</p><h2>My QR gate badge</h2><p>Show your personal QR badge to the Gatekeeper. Displaying the badge does not mark attendance.</p></div></div>
+   <div class="principal-personal-grid">
+    <div class="surface badge-surface"><p class="eyebrow">PRIVATE STAFF BADGE</p><strong id="badgeEmployeeName">School Principal</strong>
+     <div id="badgeImageWrap" class="principal-qr-wrap" hidden><img id="principalBadgeImage" alt="Private principal staff gate QR" width="280" height="280"></div>
+     <p id="badgeNotice" role="status" aria-live="polite">Your QR is hidden until requested. A registered staff photo is required.</p>
+     <button type="button" id="showPrincipalBadge" class="refresh-button">Show my QR badge</button>
+     <button type="button" id="hidePrincipalBadge" class="quiet-button" hidden>Hide badge</button>
+    </div>
+    <div class="surface"><h3>Gate verification</h3>
+     <p>1. Present your QR to the authorized Gatekeeper.</p><p>2. The Gatekeeper verifies your registered staff photo.</p>
+     <p>3. Review verified movements in My DTR &amp; Gate.</p>
+     <p class="source-note">A login is not an attendance record. Physical entry and verified official DTR slots remain separate evidence.</p>
+     <button type="button" class="quiet-button" data-jump="personal">View my attendance</button>
+    </div>
+   </div>
+  </section>
+  <section id="personalPanel" class="panel" data-panel="personal" hidden>
+   <div class="section-heading"><div><p class="eyebrow">PERSONAL ATTENDANCE</p><h2>My DTR &amp; verified gate records</h2><p>Only your own verified entries, without automatically inferred or fabricated attendance.</p></div></div>
+   <div class="surface">
+    <div class="staff-filters"><label>School date <input type="date" id="personalDate"></label><button id="refreshPersonal" type="button" class="refresh-button">Refresh</button></div>
+    <p id="personalFeedback" class="feedback" role="status" aria-live="polite">Select a date to view your own records.</p>
+    <div id="personalSlots" class="personal-slot-grid" aria-label="Official DTR time slots"></div>
+    <h3>Verified physical gate movements</h3><div id="personalGate" class="attention-list"></div>
+    <p class="source-note">A missing DTR slot is not an absence finding. Leave and OB require established review procedures.</p>
+   </div>
+  </section>
+  <section id="studentsPanel" class="panel" data-panel="students" hidden>
+   <div class="section-heading"><div><p class="eyebrow">STUDENT OVERSIGHT</p><h2>Student attendance signals</h2><p>School-scoped, source-backed counts; not certified SF2 attendance.</p></div></div>
+   <div class="metric-grid">
+    <div class="metric-card"><span class="metric-label">Active student records</span><strong id="studentSummaryActive">—</strong><small>Active roster</small></div>
+    <div class="metric-card"><span class="metric-label">Accepted classroom QR check-ins</span><strong id="studentSummaryCheckins">—</strong><small>Unique learners on selected date</small></div>
+   </div>
+   <div class="surface"><h3>Reporting caution</h3><p>Official SF2 totals, absences and SARDO designations require separate validated records. QR activity alone does not prove school attendance.</p></div>
+  </section>
   <section id="overviewPanel" class="panel" data-panel="overview">
    <div class="section-heading"><div><p class="eyebrow">AT A GLANCE</p><h2>School health, with evidence</h2><p>Selected date · counts are based on official source records, not simulated percentages.</p></div></div>
    <div class="metric-grid">
@@ -78,6 +116,12 @@ catch (_) { document.documentElement.dataset.theme = 'light'; }
     <button type="button" class="metric-card metric-amber" data-jump="priorities"><span class="metric-icon" aria-hidden="true">!</span><span class="metric-label">Pending DTR slots</span><strong id="pendingDtrSlots">—</strong><small>Not certified · independent review needed</small><span class="metric-action">See exceptions ↗</span></button>
     <div class="metric-card metric-violet"><span class="metric-icon" aria-hidden="true">▤</span><span class="metric-label">Active student records</span><strong id="activeStudentRecords">—</strong><small>All-school roster · not an attendance rate</small></div>
     <div class="metric-card metric-teal"><span class="metric-icon" aria-hidden="true">✓</span><span class="metric-label">Accepted classroom QR check-ins</span><strong id="acceptedClassCheckins">—</strong><small>Unique learners · not official SF2 total</small></div>
+   </div>
+   <div class="principal-quick-links">
+    <button type="button" class="quiet-button" data-jump="badge">▦ My QR badge</button>
+    <button type="button" class="quiet-button" data-jump="personal">◷ My DTR &amp; gate</button>
+    <button type="button" class="quiet-button" data-jump="priorities">☷ Action inbox</button>
+    <button type="button" class="quiet-button" data-jump="students">▤ Student signals</button>
    </div>
    <section class="surface principal-briefing" id="principalBriefing" aria-labelledby="principalBriefingTitle">
     <div class="card-heading"><div><p class="eyebrow">YOUR DAILY LEADERSHIP BRIEFING</p><h3 id="principalBriefingTitle">What deserves attention today?</h3>
@@ -124,6 +168,7 @@ catch (_) { document.documentElement.dataset.theme = 'light'; }
   </section>
 
   <section id="prioritiesPanel" class="panel" data-panel="priorities" hidden>
+   <div class="surface principal-action-summary"><h3>School action inbox</h3><p>School-wide requests and verification issues requiring authorized follow-up. This view does not grant approval rights or disclose medical details.</p><p id="actionInboxSummary" aria-live="polite">Loading school action summary…</p></div>
    <div class="section-heading"><div><p class="eyebrow">DOCUMENTED WORKFLOWS</p><h2>Pending school actions</h2><p>Counts are from live leave, OB and lunch QR review records. The Principal dashboard does not issue approvals or edit official records.</p></div></div>
    <div id="priorityBreakdown" class="priority-grid" aria-live="polite"></div>
    <p class="source-note">Leave application details and medical reasons are intentionally excluded from this leadership overview. The authorized official decision remains in the existing leave workflow.</p>
