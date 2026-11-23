@@ -1,26 +1,29 @@
 'use strict';
-const API='https://api.semaphore.co/api/v4/messages';
+const API='https://app.philsms.com/api/v3/sms/send';
 function normalizePhone(value){let p=String(value||'').replace(/[\s()+-]/g,'');if(/^09\d{9}$/.test(p))p='63'+p.slice(1);else if(/^9\d{9}$/.test(p))p='63'+p;return /^639\d{9}$/.test(p)?p:null;}
-function providerReady(env=process.env){return env.SMS_DELIVERY_ENABLED==='true'&&Boolean(env.SEMAPHORE_API_KEY?.trim());}
+function providerReady(env=process.env){return env.SMS_DELIVERY_ENABLED==='true'&&Boolean(env.PHILSMS_API_TOKEN?.trim())&&Boolean(env.PHILSMS_SENDER_ID?.trim());}
 function validateSettings(v){const keys=['enabled','school_events','class_events','advisory_events','time_in','time_out'];if(!v||keys.some(k=>typeof v[k]!=='boolean'))throw Error('All SMS settings must be true or false.');if(v.enabled&&(![v.school_events,v.class_events,v.advisory_events].some(Boolean)||![v.time_in,v.time_out].some(Boolean)))throw Error('Select at least one attendance type and one notification action.');return Object.fromEntries(keys.map(k=>[k,v[k]]));}
 async function submit(row,{env=process.env,fetchImpl=fetch}={}){
  if(!providerReady(env))return {kind:'disabled'};
  const phone=normalizePhone(row.recipient);if(!phone)return {kind:'failed',error:'INVALID_RECIPIENT: Invalid Philippine mobile number.'};
- const body=new URLSearchParams({apikey:env.SEMAPHORE_API_KEY,number:phone,message:row.message});if(env.SEMAPHORE_SENDER_NAME)body.set('sendername',env.SEMAPHORE_SENDER_NAME);
+ const body=JSON.stringify({recipient:phone,sender_id:env.PHILSMS_SENDER_ID,type:/[^\\x00-\\x7F]/.test(row.message)?'unicode':'plain',message:row.message});
  let response;
- try{response=await fetchImpl(API,{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body,signal:AbortSignal.timeout(15000),redirect:'error'});}catch{return {kind:'unknown',error:'DELIVERY_UNCERTAIN: Connection ended without confirmation. Check the provider before sending again.'};}
+ try{response=await fetchImpl(API,{method:'POST',headers:{'Content-Type':'application/json','Accept':'application/json','Authorization':`Bearer ${env.PHILSMS_API_TOKEN}`},body,signal:AbortSignal.timeout(15000),redirect:'error'});}catch{return {kind:'unknown',error:'DELIVERY_UNCERTAIN: Connection ended without confirmation. Check the provider before sending again.'};}
  if(response.status===429)return {kind:'retry',error:'RATE_LIMIT: Provider asked us to wait.',delay:Math.min(3600,Math.max(60,Number(response.headers.get('retry-after'))||60))};
- if(!response.ok)return {kind:response.status>=500?'unknown':'failed',error:response.status>=500?'DELIVERY_UNCERTAIN: Provider error; check provider history before resending.':`PROVIDER_HTTP_${response.status}: Check API credentials, credits, sender name and recipient in Semaphore.`};
+ if(!response.ok)return {kind:response.status>=500?'unknown':'failed',error:response.status>=500?'DELIVERY_UNCERTAIN: Provider error; check provider history before resending.':`PROVIDER_HTTP_${response.status}: Check API credentials, credits, sender name and recipient in PhilSMS.`};
  let data;try{data=await response.json();}catch{return {kind:'unknown',error:'DELIVERY_UNCERTAIN: Provider response could not be read.'};}
- const item=Array.isArray(data)?data[0]:data;
- if(!item?.message_id)return {kind:'unknown',error:'DELIVERY_UNCERTAIN: Provider did not return a message identifier.'};
- const status=String(item.status||'Queued');return {kind:['failed','refunded'].includes(status.toLowerCase())?'failed':'accepted',id:String(item.message_id),status,error:['failed','refunded'].includes(status.toLowerCase())?'PROVIDER_REJECTED: Review the message in Semaphore.':null};
+ if(data?.status!=='success')return {kind:'failed',error:'PROVIDER_REJECTED: PhilSMS rejected the request; check credentials, credits and sender ID.'};
+ const item=Array.isArray(data.data)?data.data[0]:data.data;
+ const id=item?.uid||item?.id||item?.message_id;
+ if(!id)return {kind:'unknown',error:'DELIVERY_UNCERTAIN: PhilSMS accepted the request but no message identifier was returned; reconcile before retrying.'};
+ const status=String(item?.status||'Accepted');
+ return {kind:'accepted',id:String(id),status,error:null};
 }
 function startSmsWorker(pool,{env=process.env,fetchImpl=fetch,interval=5000,logger=console}={}){
  let stopped=false,running=null;
  async function tick(){
   if(stopped||!providerReady(env))return;
-  // Interrupted sends cannot be safely replayed: Semaphore has no documented idempotency key.
+  // Interrupted sends cannot be safely replayed: No provider idempotency key is configured.
   await pool.query("UPDATE sms_outbox SET status='FAILED',last_error='DELIVERY_UNCERTAIN: Worker interrupted; check provider history before resending.' WHERE status='SENDING' AND claimed_at < NOW()-INTERVAL '2 minutes'");
   const c=await pool.connect();let row;
   try{await c.query('BEGIN');const r=await c.query(`SELECT o.*,e.school_id,e.student_id,e.occurred_at_device,s.parent_mobile,s.active,
@@ -46,7 +49,7 @@ function startSmsWorker(pool,{env=process.env,fetchImpl=fetch,interval=5000,logg
  }
  const launch=()=>{if(running||stopped)return running;running=tick().catch(e=>logger.error('SMS worker:',e.message)).finally(()=>{running=null;});return running;};
  const timer=setInterval(launch,interval);timer.unref();launch();
- logger.log(providerReady(env)?'SMS delivery worker ready; school activation required.':'SMS delivery disabled: configure SEMAPHORE_API_KEY and SMS_DELIVERY_ENABLED=true.');
+ logger.log(providerReady(env)?'SMS delivery worker ready; school activation required.':'SMS delivery disabled: configure PHILSMS_API_TOKEN, PHILSMS_SENDER_ID and SMS_DELIVERY_ENABLED=true.');
  return {stop:async()=>{stopped=true;clearInterval(timer);if(running)await running;},tick:launch};
 }
 module.exports={normalizePhone,providerReady,validateSettings,submit,startSmsWorker};
