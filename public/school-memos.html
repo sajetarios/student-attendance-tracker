@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="robots" content="noindex,nofollow">
+<meta name="referrer" content="no-referrer">
+<title>School Memoranda · Attendigo</title>
+<link rel="icon" href="/assets/attendigo-favicon.png?v=2">
+<link rel="stylesheet" href="/school-memos.css?v=1">
+<script defer src="/school-memos.js?v=1"></script>
+</head>
+<body>
+<a class="memo-skip" href="#memoMain">Skip to memoranda</a>
+<header class="memo-header">
+ <div class="memo-header-inner">
+  <a class="memo-brand" href="/school-memos.html" aria-label="Attendigo school memoranda">
+   <img src="/assets/attendigo-official-emblem.svg?v=5" width="43" height="43" alt="">
+   <span><strong>Attendigo</strong><small>School Communications</small></span>
+  </a>
+  <a class="memo-back" id="memoBack" href="/portal.html">Back to my workspace</a>
+ </div>
+</header>
+<main id="memoMain" class="memo-container">
+ <div class="memo-intro">
+  <p class="memo-eyebrow">OFFICIAL SCHOOL INFORMATION</p>
+  <h1>School Memoranda</h1>
+  <p>Read published school announcements and supporting documents. An acknowledgment confirms you have marked the memorandum as read, not that you approve its contents.</p>
+ </div>
+ <div class="memo-toolbar">
+  <span id="memoSummary" role="status" aria-live="polite">Loading published memoranda…</span>
+  <button id="memoRefresh" type="button">Refresh</button>
+ </div>
+ <div id="memoList" class="memo-list" aria-live="polite"></div>
+ <p class="memo-footnote">Only memoranda published to your account’s audience are shown. School-wide messages are available to authenticated members of the same school. An announcement is not by itself an official change to class or DTR rules.</p>
+</main>
+</body>
+</html>
