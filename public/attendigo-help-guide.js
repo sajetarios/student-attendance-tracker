@@ -90,7 +90,7 @@
     utterance.rate = 0.95;
     window.speechSynthesis.speak(utterance);
   }
-  function showAnswer(response, spoken = false, aiText = '') {
+  function showAnswer(response, spoken = false, aiText = '', sources = []) {
     const article = addMessage('assistant', response.title);
     const body = article.querySelector('.attendigo-help-msg-body');
     if (aiText) {
@@ -100,6 +100,10 @@
       response.steps.forEach(step => list.append(make('li', '', step)));
       body.append(list);
       if (response.note) body.append(make('p', 'attendigo-help-note', response.note));
+    }
+    if (aiText && sources.length) {
+      const readable = sources.map(source => source.title).filter(Boolean).join(' · ');
+      if (readable) body.append(make('p', 'attendigo-help-note', 'Verified in Attendigo HTG: ' + readable));
     }
     const menu = allowedMenu(response.topic);
     if (menu) {
@@ -132,6 +136,7 @@
     addMessage('user', question);
     $('attendigoHelpQuestion').value = '';
     let response = library.answer(question, user.role);
+    const roleRestriction = library.restrictedAnswer?.(question, user.role);
     // A role may be generally eligible for a topic but lack the particular
     // designation or actual navigation link. Do not describe an unavailable
     // feature as if this account could use it.
@@ -152,7 +157,8 @@
     $('attendigoHelpSend').disabled = true;
     setStatus('Finding guidance…');
     let aiText = '';
-    if (apiEnabled && response.topic && !unavailable && user.role !== 'SUPER_ADMIN') {
+    let sources = [];
+    if (apiEnabled && !roleRestriction && !unavailable && user.role !== 'SUPER_ADMIN') {
       abort = new AbortController();
       try {
         const result = await fetch('/api/help/ask', {
@@ -162,16 +168,38 @@
           signal: abort.signal
         });
         const json = await result.json().catch(() => ({}));
-        if (result.ok && typeof json.answer === 'string') aiText = json.answer.slice(0,2400);
-        else if (result.status === 401) setStatus('Your session expired. Please sign in again.', true);
+        if (result.ok && typeof json.answer === 'string' && Array.isArray(json.sources)) {
+          const roleTopics = library.forRole(user.role);
+          const used = new Set();
+          const verified = json.sources.map(item => roleTopics.find(topic => topic.id === item.id))
+            .filter(topic => topic && !used.has(topic.id) && (used.add(topic.id), true));
+          if (verified.length && verified.every(topic => !topic.nav || allowedMenu(topic))) {
+            aiText = json.answer.slice(0,1800);
+            sources = verified.map(topic => ({id:topic.id,title:topic.title}));
+            response = {topic:verified[0],title:'Attendigo How-To Guide',steps:[],note:''};
+          } else {
+            response = {topic:null,title:'This feature is not available to your account',
+              steps:['The requested guide article is not available in your current navigation. Ask your School Admin to check your role or designation.'],
+              note:'Ask Attendigo cannot grant access.'};
+          }
+        } else if (result.status === 422) {
+          response = {topic:null,title:'Not covered by the current HTG',
+            steps:['I could not verify an answer in the current Attendigo How-To Guide.',
+              'Please contact your School Admin or authorized support instead of relying on a guessed procedure.'],
+            note:'No records have been changed.'};
+        } else if (result.status === 403) {
+          response = {topic:null,title:'Restricted guide topic',
+            steps:['The requested procedure is outside your current role. Ask your School Admin for assistance.'],
+            note:'Ask Attendigo cannot change permissions.'};
+        } else if (result.status === 401) setStatus('Your session expired. Please sign in again.', true);
       } catch (error) {
         if (error.name === 'AbortError') { aiText = ''; }
       } finally { abort = null; }
     }
-    if (open) showAnswer(response, spoken, aiText);
+    if (open) showAnswer(response, spoken, aiText, sources);
     busy = false;
     $('attendigoHelpSend').disabled = false;
-    if (open) setStatus(aiText ? 'AI guidance · Always verify before submitting records' : 'Verified feature guide · Read-only help');
+    if (open) setStatus(aiText ? 'Verified HTG guidance · Read-only' : 'Built-in HTG guidance · Read-only');
   }
   function startVoice() {
     if (listening) { stopListening(); setStatus('Voice input stopped.'); return; }
@@ -217,7 +245,7 @@
       apiEnabled = Boolean(data.aiEnabled);
       const disclosure = $('attendigoHelpDisclosure');
       if (disclosure) disclosure.textContent = apiEnabled
-        ? 'AI-enabled questions are sent to the configured AI provider. Do not enter personal or confidential information.'
+        ? 'Only your guide question and role-approved HTG topics are sent to the AI provider. Never enter names, LRNs, passwords or other personal information.'
         : 'Built-in guide. No teacher or learner records are sent to an AI service.';
     } catch { /* The built-in, offline-friendly guide always remains available. */ }
   }
