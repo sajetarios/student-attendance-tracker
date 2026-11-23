@@ -8,7 +8,7 @@ const REQUEST_LIMIT = 12;
 const limiter = new Map();
 const privatePattern = /\b\d{12}\b|\b09\d{9}\b|\+63[\s-]?9\d{9}\b|[\w.+-]+@[\w.-]+\.[a-z]{2,}/i;
 const internalRequest = /source[\s-]*code|(?:app|server|backend|frontend|internal)\s+(?:implementation|files|code)|database\s+(?:schema|credentials)|(?:show|reveal|print|give|download).{0,35}(?:api\s*key|secret|environment\s*variables?|system\s*prompt|sql\s*query)|(?:javascript|python|sql|terminal|shell)\s+(?:code|script)|\/api\//i;
-const unsafeAnswer = /``|(?:<script\b|<\/script|process\.env|\/api\/|(?:SELECT|INSERT|UPDATE|DELETE)\s+.{0,30}\b(?:FROM|INTO|SET)\b|(?:const|let|var)\s+\w+\s*=|function\s*\(|curl\s+|Bearer\s+[A-Za-z0-9_-]+)/i;
+const unsafeAnswer = /\x60|(?:<script\b|<\/script|process\.env|\/api\/|(?:SELECT|INSERT|UPDATE|DELETE)\s+.{0,30}\b(?:FROM|INTO|SET)\b|(?:const|let|var)\s+\w+\s*=|function\s*\(|curl\s+|Bearer\s+[A-Za-z0-9_-]+)/i;
 const unavailable = 'I could not verify an answer in the current Attendigo How-To Guide. Please contact your School Admin or authorized support.';
 
 function allowed(req,res,next){
