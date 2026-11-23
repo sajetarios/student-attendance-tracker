@@ -54,7 +54,7 @@ h1{font-size:clamp(30px,3.8vw,44px);letter-spacing:-.048em;line-height:1.13;marg
     <p class="status-kicker">Connecting to Attendigo</p>
     <h2 class="status" id="startup-heading" role="status" aria-live="polite">Preparing your school workspace</h2>
     <p class="hint" id="startup-hint">The school server may need a moment to start. You can continue to the login page at any time.</p>
-    <a class="continue" id="continue-link" href="https://student-attendance-tracker-jmp4.onrender.com/portal-login.html" rel="noopener noreferrer">Continue to Attendigo <span class="arrow" aria-hidden="true">→</span></a>
+    <a class="continue" id="continue-link" href="https://attendigo.tech/portal-login.html" rel="noopener noreferrer">Continue to Attendigo <span class="arrow" aria-hidden="true">→</span></a>
     <p class="note">This welcome page does not ask for your password or access your school records.</p>
   </section>
   <footer class="bottom-note">Your existing Attendigo login, sessions, and school information remain unchanged.</footer>
@@ -64,6 +64,8 @@ h1{font-size:clamp(30px,3.8vw,44px);letter-spacing:-.048em;line-height:1.13;marg
 // This preview checks only the public, read-only readiness endpoint.
 // No credentials or school records are shared with the welcome page.
 const backend = 'https://student-attendance-tracker-jmp4.onrender.com';
+// Use the official login origin so returning users keep their existing session.
+const loginUrl = 'https://attendigo.tech/portal-login.html';
 const statusText = document.getElementById('startup-heading');
 const hintText = document.getElementById('startup-hint');
 const statusPanel = document.querySelector('.status-panel');
@@ -89,7 +91,7 @@ async function checkReadiness() {
         statusPanel.classList.add('is-ready');
         statusText.textContent = 'Your workspace is ready';
         hintText.textContent = 'Opening Attendigo…';
-        window.location.replace(backend + '/portal-login.html');
+        window.location.replace(loginUrl);
         return;
       }
     }
