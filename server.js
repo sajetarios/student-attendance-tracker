@@ -40,6 +40,7 @@ const { registerSchoolAdminRecoveryRoutes } = require('./school-admin-recovery-r
 const { registerFlexibleScheduleRoutes } = require('./flexible-schedule-routes');
 const { registerClassQrRoutes } = require('./class-qr-routes');
 const { registerStaffLunchRoutes } = require('./staff-lunch-routes');
+const {registerPrincipalRoutes}=require('./principal-routes');
 const { registerStaffObRoutes } = require('./staff-ob-routes');
 const { registerStaffLeaveRoutes } = require('./staff-leave-routes');
 const { registerStaffLeaveInboxRoutes } = require('./staff-leave-inbox-routes');
@@ -205,6 +206,7 @@ registerSchoolAdminRecoveryRoutes(app, pool, { authenticatePlatform, requirePlat
 registerFlexibleScheduleRoutes(app, pool, { authenticateSchoolClient, requireSchoolRoles });
 registerClassQrRoutes(app, pool, { authenticateSchoolClient, requireSchoolRoles });
 registerStaffLunchRoutes(app, pool, { authenticateSchoolClient, requireSchoolRoles });
+registerPrincipalRoutes(app,pool,{authenticateSchoolClient,requireSchoolRoles});
 registerStaffObRoutes(app, pool, { authenticateSchoolClient, requireSchoolRoles });
 registerStaffLeaveRoutes(app, pool, { authenticateSchoolClient, requireSchoolRoles });
 registerStaffLeaveInboxRoutes(app, pool, { authenticateSchoolClient, requireSchoolRoles });
