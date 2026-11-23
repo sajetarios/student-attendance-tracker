@@ -29,3 +29,23 @@
 @media (max-width: 360px) {
   .stats-grid { grid-template-columns:minmax(0,1fr) !important; }
 }
+
+
+/* Portal-wide action and input containment. Layout only: permissions and record actions unchanged. */
+.portal-page :is(.section-toolbar,.heading-actions,.action-row,.form-actions,.card-heading,.toolbar-actions,.modal-actions){
+ min-width:0;max-width:100%;flex-wrap:wrap;gap:8px;
+}
+.portal-page :is(.section-toolbar,.heading-actions,.action-row,.form-actions,.card-heading,.toolbar-actions,.modal-actions)>:is(button,a,select,.primary-button,.outline-button){
+ min-width:0;max-width:100%;box-sizing:border-box;flex-shrink:1;white-space:normal;overflow-wrap:anywhere;
+}
+.portal-page :is(.surface-card,.section-card,.view-panel,.modal,dialog) :is(input,textarea,select){
+ min-width:0;max-width:100%;box-sizing:border-box;
+}
+@media(max-width:767px){
+ .portal-page .content-wrap :is(.section-toolbar,.heading-actions,.action-row,.form-actions,.toolbar-actions,.modal-actions)>:is(button,a,.primary-button,.outline-button){
+  flex:1 1 145px;min-height:40px;
+ }
+ .portal-page .content-wrap :is(.section-toolbar,.heading-actions,.action-row,.form-actions,.toolbar-actions,.modal-actions)>*{
+  min-width:0;max-width:100%;
+ }
+}
