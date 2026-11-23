@@ -20,12 +20,12 @@ test('presenter API uses administrator-only assignment and invalidates outgoing 
  assert.match(routes,/LUNCH_PRESENTER_ASSIGNED/);
  assert.match(routes,/LUNCH_PRESENTER_REVOKED/);
 });
-test('presenter issues real QR image with fragment-only bearer token and 60s expiry',()=>{
+test('presenter issues real QR image with fragment-only bearer token and bounded short-term rotation',()=>{
  assert.match(routes,/QRCode\.toDataURL\(scanUrl/);
  assert.match(routes,/staff-lunch-checkin\.html#/);
  assert.match(routes,/new URLSearchParams\(\{id,token:challenge\.token\}\)/);
  assert.match(routes,/qrImage,slot,schoolDate:date,expiresAt/);
- assert.match(routes,/UPDATE staff_attendance_challenges SET revoked_at=NOW\(\)/);
+ assert.match(routes,/MIN_ROTATION_MS/);
  assert.doesNotMatch(routes,/console\.log\(.*challenge\.token/);
 });
 test('admin and teacher interfaces remain isolated to existing role-specific portals',()=>{
@@ -102,4 +102,17 @@ test('lunch confirmation hides unavailable controls and restores auth on browser
  assert.match(page,/staff-lunch-checkin\.js\?v=3/);
  assert.match(sw,/staff-lunch-checkin\.js\?v=3/);
  assert.doesNotMatch(scan,/localStorage|sessionStorage|console\.log/);
+});
+
+test('department check-in requires location evidence before official DTR approval',()=>{
+ assert.match(routes,/classifyDepartmentPresence/);
+ assert.match(routes,/LUNCH_SCAN_REVIEW_REQUIRED/);
+ assert.match(routes,/verification_status='PENDING_VERIFICATION'/);
+ assert.match(routes,/staff_form48_approved_leaves/);
+ assert.match(routes,/LUNCH_DTR_MANUAL_VERIFIED/);
+ assert.match(ui,/staffLunchSetPoint/);
+ assert.match(ui,/staffLunchPendingList/);
+ assert.match(scan,/getCurrentPosition/);
+ assert.match(scan,/body.status==='VERIFIED'/);
+ assert.match(portal,/staffLunchPointStatus/);
 });
