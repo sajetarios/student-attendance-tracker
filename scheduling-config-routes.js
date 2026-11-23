@@ -224,11 +224,18 @@ function registerSchedulingConfigRoutes(app,pool,auth){
   app.delete('/api/scheduling-config/calendar-exceptions/:exceptionId',authenticateSchoolClient,admin,async(req,res)=>{
     if(!/^([0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12})$/i.test(req.params.exceptionId))
       return res.status(400).json({error:'Invalid calendar exception.'});
+    const c=await pool.connect();
     try{
-      const r=await pool.query('DELETE FROM school_calendar_exceptions WHERE school_id=$1 AND exception_id=$2 RETURNING exception_id',[req.auth.schoolId,req.params.exceptionId]);
-      if(!r.rowCount)return res.status(404).json({error:'Calendar exception not found.'});
-      res.json({ok:true});
-    }catch(e){console.error(e.message);res.status(500).json({error:'Could not delete calendar exception.'});}
+      await c.query('BEGIN');
+      const r=await c.query('DELETE FROM school_calendar_exceptions WHERE school_id=$1 AND exception_id=$2 RETURNING exception_id,calendar_date,exception_type,memo_id',[req.auth.schoolId,req.params.exceptionId]);
+      if(!r.rowCount){await c.query('ROLLBACK');return res.status(404).json({error:'Calendar exception not found.'});}
+      const row=r.rows[0];
+      await c.query(`INSERT INTO audit_logs(school_id,actor_type,actor_user_id,action,entity_type,entity_id,details)
+        VALUES($1,'SCHOOL',$2,'DELETE_CALENDAR_EXCEPTION','school_calendar_exception',$3,$4::jsonb)`,
+        [req.auth.schoolId,req.auth.userId,row.exception_id,JSON.stringify({date:row.calendar_date,type:row.exception_type,memoId:row.memo_id})]);
+      await c.query('COMMIT');res.json({ok:true});
+    }catch(e){await c.query('ROLLBACK').catch(()=>{});console.error(e.message);res.status(500).json({error:'Could not delete calendar exception.'});}
+    finally{c.release();}
   });
 }
 module.exports={registerSchedulingConfigRoutes};
