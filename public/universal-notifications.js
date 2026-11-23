@@ -86,7 +86,15 @@
     const time = date.toLocaleTimeString(undefined, {hour: 'numeric', minute: '2-digit'});
     return day + ' · ' + time;
   };
+  function isSchoolMemo(item) {
+    return item?.requestType==='MEMORANDUM'&&
+      /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(String(item.requestId||''));
+  }
   function navigate(item) {
+    if(isSchoolMemo(item)){
+      window.AttendigoSchoolMemos?.open?.(item.requestId);
+      return;
+    }
     if (user.role === 'SCHOOL_ADMIN' && item.category === 'APPROVAL' && item.requestType === 'Profile photo') {
       const shortcut = document.getElementById('adminPhotoRequestsShortcut');
       if (shortcut) shortcut.click();
@@ -134,8 +142,8 @@
     closeButton.type = 'button';
     closeButton.addEventListener('click', () => { detail.hidden = true; bell.focus(); });
     actions.append(closeButton);
-    if (item.actionUrl && /^\/(?:portal|student-portal|parent-portal)\.html(?:#[A-Za-z0-9_-]+)?$/.test(item.actionUrl)) {
-      const goto = text('button', 'primary', 'Open related module');
+    if (isSchoolMemo(item) || (item.actionUrl && /^\/(?:portal|student-portal|parent-portal)\.html(?:#[A-Za-z0-9_-]+)?$/.test(item.actionUrl))) {
+      const goto = text('button', 'primary', isSchoolMemo(item)?'Read memorandum':'Open related module');
       goto.type = 'button';
       goto.addEventListener('click', () => { detail.hidden = true; navigate(item); });
       actions.append(goto);
