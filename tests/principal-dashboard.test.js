@@ -94,3 +94,33 @@ test('Principal action inbox attributes pending requests by school department wi
  assert.match(css,/\.priority-department-row/);
  assert.doesNotMatch(routes,/app\.(post|put|patch|delete)\(/);
 });
+
+test('Teacher Recognition redesign keeps evidence source contracts and responsive empty states',()=>{
+ const html=read('public/principal.html');
+ const css=read('public/principal-dashboard.css');
+ const js=read('public/principal-dashboard.js');
+ const routes=read('principal-overview-routes.js');
+ for(const id of ['principalRecognitionTitle','earlyArrivalsSubtitle','earlyArrivalsCount',
+  'earlyArrivalsList','principalWatchPeriod','principalWatchCount','principalWatchNomineeList']){
+  assert.equal((html.match(new RegExp('id="'+id+'"','g'))||[]).length,1,'duplicate or missing '+id);
+ }
+ assert.match(html,/class="recognition-hero"/);
+ assert.match(html,/class="principal-recognition-grid"/);
+ assert.match(html,/<details class="principal-recognition-watch" open>/);
+ assert.match(html,/Recognition consideration only—not an official award or punctuality finding/);
+ assert.match(html,/Missing scans do not establish absence/);
+ assert.match(css,/\.principal-recognition \.principal-recognition-grid\s*\{/);
+ assert.match(css,/@media\(max-width:920px\)/);
+ assert.match(css,/@media\(max-width:600px\)/);
+ assert.match(css,/:root\[data-theme="dark"\] \.principal-recognition/);
+ assert.match(css,/prefers-reduced-motion:reduce/);
+ assert.match(js,/function recognitionEmpty\(/);
+ assert.match(js,/No verified early arrivals today/);
+ assert.match(js,/No candidates in this period/);
+ assert.match(js,/count\.dataset\.state=entries\.length\?'active':'empty'/);
+ assert.match(js,/count\.dataset\.state=award\.entries\.length\?'active':'empty'/);
+ assert.match(routes,/watchNominees/);
+ assert.match(routes,/earlyArrivals/);
+ assert.match(html,/principal-dashboard\.css\?v=13/);
+ assert.match(html,/principal-dashboard\.js\?v=12/);
+});
