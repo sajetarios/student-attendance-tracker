@@ -2,7 +2,6 @@
 (()=>{
  function create(tag,cls,value){const e=document.createElement(tag);if(cls)e.className=cls;if(value!==undefined)e.textContent=String(value);return e;}
  async function init(){
-  if(document.querySelector('[data-school-memo-banner]'))return;
   const host=document.querySelector('#schoolWorkspace')||document.querySelector('main');
   if(!host)return;
   try{
@@ -27,9 +26,16 @@
    link.href=latest?'/school-memos.html?id='+encodeURIComponent(latest.memoId):'/school-memos.html';
    strip.append(icon,copy,link);
    if(!unread.length)strip.classList.add('attendigo-memo-quiet');
-   host.insertBefore(strip,host.firstChild);
+   const previous=document.querySelector('[data-school-memo-banner]');
+   if(previous)previous.replaceWith(strip);
+   else host.insertBefore(strip,host.firstChild);
   }catch(_){/* Do not interrupt account workflows when the memo service is unavailable. */}
  }
- if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',()=>void init(),{once:true});
- else void init();
+ const start=()=>{
+  void init();
+  document.addEventListener('visibilitychange',()=>{if(!document.hidden)void init();});
+  window.setInterval(()=>{if(!document.hidden)void init();},120000);
+ };
+ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',start,{once:true});
+ else start();
 })();
