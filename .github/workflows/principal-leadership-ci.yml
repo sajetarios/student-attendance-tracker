@@ -53,7 +53,7 @@ jobs:
           node --check server.js
           node --check public/portal.js
       - name: Run Principal security and frontend contracts
-        run: node --test tests/principal-dashboard.test.js tests/role-permissions.test.js tests/login-routing.test.js
+        run: node --test tests/principal-dashboard.test.js tests/role-permissions.test.js tests/login-routing.test.js tests/principal-briefing.test.js
       - name: Prepare roles required by existing leave migration
         run: |
           node - <<'NODE'
