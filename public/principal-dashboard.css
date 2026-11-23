@@ -275,3 +275,23 @@ changing navigation, permissions, calculations, or the underlying data. */
 .principal-action-summary{margin-bottom:15px}
 @media(max-width:800px){.principal-personal-grid{grid-template-columns:1fr}.personal-slot-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(max-width:420px){.personal-slot{padding:11px}.personal-slot strong{font-size:14px}}
+
+/* Principal integrated test release: scoped, accessible responsive modules */
+.principal-nav{flex-wrap:wrap;overflow-x:visible;gap:6px;margin-bottom:22px}
+.principal-nav .tab{flex:0 1 auto;min-height:42px;padding:9px 12px}
+.principal-data-list{display:flex;flex-direction:column;gap:8px;margin:12px 0;min-height:35px}
+.principal-record-item{display:flex;flex-direction:column;gap:4px;padding:11px 13px;border:1px solid var(--border);background:var(--bg);border-radius:11px;overflow-wrap:anywhere}
+.principal-record-item strong{font-size:12px;line-height:1.45}
+.principal-record-item small{font-size:11px;color:var(--muted);line-height:1.45}
+#personalPanel .surface{margin-bottom:15px}
+#principalHelpQuestion{display:block;width:100%;margin:10px 0 13px;min-height:110px;resize:vertical;border:1px solid var(--border);background:var(--surface);color:var(--ink);padding:12px;border-radius:10px}
+#assistantPanel .refresh-button,#notificationsPanel .refresh-button{min-width:115px}
+#calendarPanel .principal-personal-grid{margin-bottom:16px}
+#securityPanel .metric-card,#studentsPanel .metric-card{min-height:142px}
+@media(max-width:1100px){.principal-nav{display:flex;flex-wrap:nowrap;overflow-x:auto;scrollbar-width:thin;scroll-padding:20px}.principal-nav .tab{flex:0 0 auto}}
+@media(max-width:600px){.principal-nav{margin:11px 0 16px}.principal-nav .tab{font-size:12px;padding:9px 11px}.principal-quick-links button{flex:1 1 135px}.principal-personal-grid{gap:10px}#calendarPanel .surface{padding:15px}}
+@media print{
+ .top-actions,.principal-nav,.controls,.principal-quick-links,.refresh-button,.quiet-button,.inline-button{display:none!important}
+ .shell main{width:100%;padding:0}.hero{background:#fff!important;color:#000!important;box-shadow:none;border:1px solid #ddd}
+ .hero *{color:#000!important}.surface,.metric-card{box-shadow:none;break-inside:avoid}
+}
