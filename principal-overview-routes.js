@@ -42,7 +42,7 @@ function registerPrincipalRoutes(app,pool,{authenticateSchoolClient,requireSchoo
    if(!school.rowCount)return res.status(404).json({error:'School unavailable.'});
    if(departmentId&&!depts.rows.some(d=>d.departmentId===departmentId))
     return res.status(404).json({error:'Department unavailable in your school.'});
-   const [students,staffSummary,staffRows,departmentRows,trends,leaveRows,obRows,approvalDepartmentRows,locationSummary,classCheckins]=await Promise.all([
+   const [students,staffSummary,staffRows,departmentRows,trends,leaveRows,obRows,approvalDepartmentRows,locationSummary,classCheckins,earlyArrivals]=await Promise.all([
     pool.query(`SELECT
        (SELECT COUNT(*)::int FROM students st
           WHERE st.school_id=$1 AND st.active=TRUE) AS "activeStudentRecords",
@@ -159,7 +159,42 @@ function registerPrincipalRoutes(app,pool,{authenticateSchoolClient,requireSchoo
      WHERE e.school_id=$1 AND e.school_date=$2::date
        AND e.attendance_scope IN ('CLASS','ADVISORY')
        AND e.event_type='TIME_IN' AND e.sync_status='ACCEPTED'`,
-      [req.auth.schoolId,schoolDate])
+      [req.auth.schoolId,schoolDate]),
+    // Recognition shortlist: verified physical entry only, not DTR approval or a
+    // claim of punctuality against employee-specific schedules. Legacy photo-
+    // confirmed scans count once only if they have not been migrated.
+    pool.query(`WITH physical_entries AS (
+      SELECT e.staff_user_id,e.occurred_at FROM staff_attendance_events e
+      WHERE e.school_id=$1 AND e.school_date=$2::date
+       AND e.event_kind='GATE_MOVEMENT' AND e.gate_direction='IN'
+       AND e.verification_status='VERIFIED'
+      UNION ALL
+      SELECT t.teacher_user_id,t.occurred_at FROM teacher_gate_events t
+      WHERE t.school_id=$1 AND t.school_date=$2::date
+       AND t.event_type='TIME_IN' AND t.photo_verified=TRUE
+       AND NOT EXISTS (
+        SELECT 1 FROM staff_attendance_events e WHERE e.school_id=t.school_id
+         AND e.legacy_gate_event_id=t.event_id
+       )
+    ), first_entries AS (
+      SELECT staff_user_id,MIN(occurred_at) AS first_at FROM physical_entries
+      GROUP BY staff_user_id
+    )
+    SELECT u.display_name AS name,d.department_name AS department,
+      to_char(f.first_at AT TIME ZONE 'Asia/Manila','HH24:MI') AS "arrivalTime"
+    FROM first_entries f
+    JOIN school_users u ON u.school_id=$1 AND u.user_id=f.staff_user_id
+     AND u.active=TRUE AND u.role IN ('TEACHER','DEPARTMENT_HEAD')
+    LEFT JOIN school_departments d ON d.school_id=u.school_id AND d.department_id=u.department_id
+    WHERE (f.first_at AT TIME ZONE 'Asia/Manila')::time < TIME '07:00'
+      AND ($3::uuid IS NULL OR u.department_id=$3::uuid)
+      AND NOT EXISTS (
+       SELECT 1 FROM staff_form48_approved_leaves leave_record
+       WHERE leave_record.school_id=$1 AND leave_record.staff_user_id=u.user_id
+        AND leave_record.start_date<=$2::date AND leave_record.end_date>=$2::date
+        AND leave_record.revoked_at IS NULL
+      )
+    ORDER BY f.first_at ASC,u.display_name ASC LIMIT 8`,values)
    ]);
    const leave=Object.fromEntries(leaveRows.rows.map(r=>[r.status,integer(r.total)]));
    const ob=Object.fromEntries(obRows.rows.map(r=>[r.status,integer(r.total)]));
@@ -188,6 +223,7 @@ function registerPrincipalRoutes(app,pool,{authenticateSchoolClient,requireSchoo
      approved:integer(locationSummary.rows[0]?.approved),
      pending:integer(locationSummary.rows[0]?.pending)
     },
+    earlyArrivals:{cutoff:'07:00',entries:earlyArrivals.rows,source:'PHOTO_VERIFIED_GATE_ENTRY',timezone:'Asia/Manila'},
     staffRows:staffRows.rows,staffRowsLimited:integer(metrics.trackedStaff)>staffRows.rows.length,
     departmentRows:departmentRows.rows,trends:trends.rows,
     definitions:{
