@@ -463,15 +463,15 @@
    const ownRequests=(response.requests||[]).filter(r=>r.staffUserId===user.userId);
    if(!reviewOnly){
     const counts={
-     pending:ownRequests.filter(r=>!['APPROVED','REJECTED','CANCELLED'].includes(r.status)).length,
+     pending:ownRequests.filter(r=>!['APPROVED','REJECTED','DECLINED_HEAD','CANCELLED'].includes(r.status)).length,
      approved:ownRequests.filter(r=>r.status==='APPROVED').length,
-     closed:ownRequests.filter(r=>['REJECTED','CANCELLED'].includes(r.status)).length
+     closed:ownRequests.filter(r=>['REJECTED','DECLINED_HEAD','CANCELLED'].includes(r.status)).length
     };
     const overview=document.createElement('div');
     overview.className='leave-request-overview';
     overview.setAttribute('aria-label','My leave request summary');
     overview.innerHTML=[
-     ['Pending',counts.pending],['Approved',counts.approved],['Not approved / cancelled',counts.closed]
+     ['Pending',counts.pending],['Approved',counts.approved],['Declined / not approved',counts.closed]
     ].map(([label,count])=>'<div class="leave-request-stat"><span>'+esc(label)+'</span><strong>'+count+'</strong></div>').join('');
     body.insertBefore(overview,body.firstChild);
    }
@@ -483,9 +483,10 @@
    visibleRequests.forEach(r=>{
     const card=document.createElement('article');card.className='leave-card';
     card.innerHTML='<div class="leave-card-top"><strong>'+esc(r.staffName)+'</strong>'+
-     '<span class="leave-status">'+esc(classify(r.status))+'</span></div>'+
+     '<span class="leave-status">'+esc(r.status==='DECLINED_HEAD'?'Declined by Department Head':classify(r.status))+'</span></div>'+
      '<p>'+esc(classify(r.leaveType))+' · '+esc(safeDate(r.startDate))+' to '+esc(safeDate(r.endDate))+'</p>'+
-     '<p>'+esc(r.reason)+'</p>'+
+     '<p>'+esc(r.reason)+'</p>'+ 
+     (r.status==='DECLINED_HEAD'?'<p class="leave-help">Not endorsed by Department Head. No school review or official approval was recorded.'+(r.staffUserId===user.userId&&r.headNote?' Department reason: '+esc(r.headNote):'')+'</p>':'')+
      (r.leaveType==='SICK'?'<p class="leave-help">Filing: '+
        esc(r.filingBasis==='POST_RETURN'?'Filed after absence; verify return date':
         r.filingBasis==='ADVANCE'?'Submitted in advance':r.filingBasis==='DURING_ABSENCE'?
@@ -523,7 +524,7 @@
     }
     if(user.role==='DEPARTMENT_HEAD'&&r.status==='PENDING_HEAD'&&r.staffUserId!==user.userId){
      buttons.append(buttonFor('Recommend',()=>review('recommend','FORWARD')));
-     buttons.append(buttonFor('Recommend disapproval',()=>review('recommend','REJECT')));
+     buttons.append(buttonFor('Decline at department',()=>review('recommend','REJECT')));
     }
     if(user.role==='SCHOOL_ADMIN'&&r.status==='PENDING_ADMIN'&&r.staffUserId!==user.userId){
      buttons.append(buttonFor('Forward for official approval',()=>review('admin-review','FORWARD')));
