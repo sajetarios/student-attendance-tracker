@@ -476,3 +476,33 @@ td{color:#31465a}
  :root[data-theme="system"] .principal-navigation{background:var(--surface);border-color:var(--border)}
  :root[data-theme="system"] .principal-main-tabs .tab.is-active{background:#254a62;border-color:#466e7f;color:#c9eff8}
 }
+
+/* Principal leave/OB and SDO coordination — compact, accessible, brand-aligned */
+.principal-sdo-forms{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;margin:18px 0}
+.principal-sdo-form{min-width:0;display:flex;flex-direction:column;gap:12px;background:var(--surface);
+ border:1px solid var(--border);border-radius:14px;padding:18px;box-shadow:var(--shadow)}
+.principal-sdo-form[hidden]{display:none}
+.principal-sdo-form h4{margin:0;font-size:16px;letter-spacing:-.02em}
+.principal-sdo-form label{display:flex;flex-direction:column;gap:6px;min-width:0;font-size:12px;font-weight:700;color:var(--muted)}
+.principal-sdo-form :is(input,select,textarea){width:100%;min-width:0;max-width:100%;min-height:43px;
+ border:1px solid var(--border);border-radius:10px;padding:10px 11px;color:var(--ink);background:var(--surface);
+ font:inherit;font-weight:450}
+.principal-sdo-form textarea{resize:vertical;line-height:1.5}
+.principal-sdo-form button{align-self:flex-start;min-height:44px}
+.principal-form-pair{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;min-width:0}
+.principal-sdo-progress{padding-top:14px;border-top:1px solid var(--border);margin-top:15px}
+.principal-sdo-progress .section-toolbar{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px}
+.principal-sdo-progress .section-toolbar h4{margin:0}
+.principal-sdo-progress .principal-record-item{gap:5px}
+.principal-sdo-progress .principal-record-item .quiet-button{align-self:flex-start;font-size:12px;margin-top:5px}
+.principal-sdo-admin{margin-bottom:18px}
+.principal-sdo-admin .principal-record-item{gap:8px}
+.principal-sdo-admin .principal-record-item button{align-self:flex-start}
+#principalSdoAdminForms{border-top:1px solid var(--border);padding-top:15px;margin-top:15px;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}
+#principalSdoAdminForms[hidden]{display:none}
+#principalSdoSelected{grid-column:1/-1;margin:0}
+#principalSdoAdminForms form[hidden]{display:none}
+#principalSdoAdminForms form:not([hidden]){grid-column:1/-1}
+@media(max-width:800px){.principal-sdo-forms{grid-template-columns:1fr}}
+@media(max-width:560px){.principal-sdo-form{padding:13px}.principal-form-pair{grid-template-columns:1fr}
+ .principal-sdo-form button{width:100%}}
