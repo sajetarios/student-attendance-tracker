@@ -65,3 +65,47 @@ html[data-theme="dark"] .missing-scan-dialog,
  .missing-scan-dialog .ms-create-grid .ms-slot-status{grid-column:1 / -1}
  .missing-scan-dialog .ms-actions>button{flex:1 1 100%}
 }
+
+
+/* Fix observed iPad/Safari native date input and DTR selector collision.
+   The three employee-claimed fields deliberately occupy independent rows,
+   regardless of display scaling, orientation or browser zoom. */
+.missing-scan-dialog .ms-new .ms-create-grid{
+ display:grid!important;
+ grid-template-columns:minmax(0,1fr)!important;
+ column-gap:0!important;
+ row-gap:14px!important;
+ width:100%;
+ min-width:0;
+ max-width:100%;
+}
+.missing-scan-dialog .ms-new .ms-create-grid > :is(label,.ms-slot-status){
+ display:block;
+ grid-column:1 / -1!important;
+ grid-row:auto!important;
+ min-inline-size:0!important;
+ max-inline-size:100%!important;
+ inline-size:100%!important;
+ margin:0;
+}
+.missing-scan-dialog .ms-new .ms-create-grid > label > :is(input,select){
+ display:block;
+ position:static;
+ transform:none;
+ width:100%!important;
+ inline-size:100%!important;
+ min-width:0!important;
+ max-width:100%!important;
+ max-inline-size:100%!important;
+ margin-inline:0!important;
+ box-sizing:border-box!important;
+ background-clip:padding-box;
+}
+.missing-scan-dialog .ms-new .ms-create-grid select{
+ text-overflow:ellipsis;
+ overflow:hidden;
+ padding-inline-end:36px;
+}
+.missing-scan-dialog .ms-new .ms-create-grid :is(input,select):focus-visible{
+ outline-offset:2px;
+}
