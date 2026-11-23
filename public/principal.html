@@ -7,8 +7,12 @@
 <meta name="referrer" content="no-referrer">
 <title>Principal Leadership Dashboard · Attendigo</title>
 <link rel="icon" href="/assets/attendigo-favicon.png?v=2">
-<link rel="stylesheet" href="/principal-dashboard.css?v=2">
-<script src="/principal-dashboard.js?v=2" defer></script>
+<script>
+try { const preference = localStorage.getItem('attendigo.principal.theme'); document.documentElement.dataset.theme = ['dark','light','system'].includes(preference) ? preference : 'light'; }
+catch (_) { document.documentElement.dataset.theme = 'light'; }
+</script>
+<link rel="stylesheet" href="/principal-dashboard.css?v=3">
+<script src="/principal-dashboard.js?v=3" defer></script>
 </head>
 <body>
 <a class="skip" href="#main">Skip to school overview</a>
@@ -19,6 +23,13 @@
    <span><strong>Attendigo</strong><small>School leadership intelligence</small></span>
   </a>
   <div class="top-actions">
+   <label class="theme-picker" for="themePreference">Appearance
+    <select id="themePreference" aria-label="Dashboard appearance">
+     <option value="light">☀ Light</option>
+     <option value="dark">☾ Dark</option>
+     <option value="system">System</option>
+    </select>
+   </label>
    <span id="roleBadge" class="role-badge">Principal workspace</span>
    <a href="/portal.html" id="adminBack" class="text-link" hidden>Back to School Admin</a>
    <button type="button" id="presentationToggle" class="quiet-button" aria-pressed="false" title="Enter larger-text presentation mode">▣ Present dashboard</button>
