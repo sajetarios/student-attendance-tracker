@@ -73,3 +73,24 @@ test('Principal leadership interface has real interaction and source definitions
  assert.match(css,/prefers-color-scheme:dark/);
  assert.match(sw,/attendigo-v\d+-/);
 });
+
+test('Principal action inbox attributes pending requests by school department without exposing leave reasons',()=>{
+ const routes=read('principal-overview-routes.js');
+ const html=read('public/principal.html');
+ const js=read('public/principal-dashboard.js');
+ const css=read('public/principal-dashboard.css');
+ assert.match(routes,/approvalDepartments:approvalDepartmentRows\.rows\.map/);
+ assert.match(routes,/r\.school_id=\$1/);
+ assert.match(routes,/COALESCE\(r\.department_id,u\.department_id\)/);
+ assert.match(routes,/FROM staff_official_business_requests r/);
+ assert.match(routes,/COALESCE\(d\.department_name,'Unassigned \/ unavailable department'\)/);
+ assert.match(routes,/departmentName:r\.departmentName,total:integer\(r\.total\)/);
+ assert.ok(html.includes('id="actionInboxDepartmentSummary"'));
+ assert.ok(js.includes('renderPriorities(data)'));
+ assert.ok(js.includes('r.kind===kind&&r.status===stage'));
+ assert.ok(js.includes("item.addEventListener('click',()=>{"));
+ assert.ok(js.includes("$('departmentFilter').value=row.departmentId"));
+ assert.ok(js.includes('Show all departments'));
+ assert.match(css,/\.priority-department-row/);
+ assert.doesNotMatch(routes,/app\.(post|put|patch|delete)\(/);
+});
