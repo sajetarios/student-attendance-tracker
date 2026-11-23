@@ -197,26 +197,51 @@
     select('leaveType','Type of leave',docTypes)+select('creditAccount','Proposed credit deduction (subject to HR verification)',accounts)+
     '<p class="leave-credit-guidance" role="status" aria-live="polite"></p>'+ 
     '<p class="leave-sick-guidance" role="status" aria-live="polite"></p>'+ 
+    '<p class="leave-type-guidance" role="status" aria-live="polite"></p>'+
     textInput('startDate','Start date',true,'date')+textInput('endDate','End date',true,'date')+
     '</fieldset><fieldset><legend>Reason and details</legend>'+
-    '<label>Reason (required)<textarea name="reason" rows="2" minlength="3" maxlength="1000" required></textarea></label>'+
+    '<label>Reason / purpose (required)<textarea name="reason" rows="2" minlength="3" maxlength="1000" required placeholder="Briefly explain the purpose of your leave"></textarea></label>'+
+    '<div class="leave-birthday-advice" role="status" aria-live="polite" hidden>'+
+    '<span class="leave-birthday-message"></span>'+
+    '<button type="button" class="leave-btn leave-birthday-switch" hidden>Choose Special Privilege Leave</button></div>'+
     '<label>Details / location (optional)<textarea name="details" rows="2" maxlength="1500"></textarea></label>'+
-    select('commutation','Commutation',[['NOT_REQUESTED','Not requested'],['REQUESTED','Requested']])+
+    select('commutation','Commutation of leave (CSC Form No. 6)',[['NOT_REQUESTED','Not requested'],['REQUESTED','Requested — subject to HR review']])+
+    '<p class="leave-commutation-help" role="status" aria-live="polite">Commutation concerns possible monetary conversion of leave benefits under applicable rules. It is not an ordinary salary payment and Attendigo does not process payment. Leave as Not requested unless HR advises otherwise.</p>'+
     '</fieldset><fieldset><legend>Supporting documents (optional at filing)</legend>'+
     fileInput('supportingDocument','Attach a PDF, JPG or PNG (up to 4 MB)')+
-    select('supportingKind','Supporting-document type',[
-     ['','Choose the type of file'],['APPLICATION','Application / general evidence'],['MEDICAL','Medical certificate / clearance'],
+    select('supportingKind','Supporting-document type (when a file is attached)',[
+     ['','No document attached'],['APPLICATION','Application / general evidence'],['MEDICAL','Medical certificate / clearance'],
      ['AFFIDAVIT','Notarized affidavit if no medical consultation']])+
+    '<p class="leave-attachment-help" role="status" aria-live="polite">No file attached. You can submit now, subject to any supporting documents HR may require.</p>'+
     '</fieldset><button type="submit" class="leave-primary">Submit for review</button></form>';
    const leaveTypeControl=details.querySelector('[name=leaveType]');
    const accountControl=details.querySelector('[name=creditAccount]');
    const creditInfo=details.querySelector('.leave-credit-guidance');
    const sickInfo=details.querySelector('.leave-sick-guidance');
+   const typeInfo=details.querySelector('.leave-type-guidance');
+   const reasonControl=details.querySelector('[name=reason]');
+   const birthdayTip=details.querySelector('.leave-birthday-advice');
+   const birthdayMessage=details.querySelector('.leave-birthday-message');
+   const birthdayAction=details.querySelector('.leave-birthday-switch');
+   const commutationControl=details.querySelector('[name=commutation]');
+   const commutationInfo=details.querySelector('.leave-commutation-help');
+   const attachmentInfo=details.querySelector('.leave-attachment-help');
    const start=details.querySelector('[name=startDate]');
    const end=details.querySelector('[name=endDate]');
    const attachment=details.querySelector('[name=supportingDocument]');
    const attachmentKind=details.querySelector('[name=supportingKind]');
-   attachment.addEventListener('change',()=>{attachmentKind.required=attachment.files.length>0;});
+   function updateAttachmentChoice(){
+    const attached=Boolean(attachment.files?.length);
+    attachmentKind.disabled=!attached;
+    attachmentKind.required=attached;
+    if(!attached)attachmentKind.value='';
+    else if(!attachmentKind.value)attachmentKind.value='APPLICATION';
+    attachmentInfo.textContent=attached
+     ?'Select the actual type of supporting evidence. HR may request additional documents before approving.'
+     :'No file attached. You can submit now, subject to any supporting documents HR may require.';
+   }
+   attachment.addEventListener('change',updateAttachmentChoice);
+   updateAttachmentChoice();
    let certifiedScheme='UNVERIFIED';
    const manilaDate=()=>{
     const parts=new Intl.DateTimeFormat('en-US',{
