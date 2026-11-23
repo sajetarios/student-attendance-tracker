@@ -911,7 +911,7 @@
       certifiedWorkingDays:data.get('certifiedWorkingDays'),note:data.get('note')})});
    }else{
     response=await fetch('/api/principal/sdo-requests/ob/'+encodeURIComponent(req.requestId)+'/decision',{
-     method:'POST',credentials:'same-origin',headers:{'Content-Type':file.type,'x-filename':file.name,
+     method:'POST',credentials:'same-origin',headers:{'Content-Type':file.type,'x-filename':encodeURIComponent(file.name),
       'x-sdo-decision':decision,'x-sdo-reference':String(data.get('approvalReference')),
       'x-sdo-approver':String(data.get('approverName')),'x-sdo-position':String(data.get('approverPosition')),
       'x-sdo-date':String(data.get('approvedOn'))},body:file});
@@ -986,7 +986,7 @@
   try{
    const response=await fetch('/api/school-memos',{method:'POST',credentials:'same-origin',cache:'no-store',
     headers:{'Content-Type':file.type,'x-filename':file.name,
-      'x-memo-title':String(data.get('title')),'x-memo-summary':String(data.get('summary')||''),
+      'x-memo-title':encodeURIComponent(String(data.get('title'))),'x-memo-summary':encodeURIComponent(String(data.get('summary')||'')),
       'x-memo-category':category,'x-memo-audience':audience,'x-memo-effective-date':effectiveDate},body:file});
    const result=await response.json().catch(()=>({}));
    if(!response.ok)throw Error(result.error||'Could not publish memorandum.');
