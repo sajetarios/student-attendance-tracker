@@ -5386,7 +5386,7 @@ let teacherActionMenuListenersInstalled = false;
       showPortalStartupFailure('Your account could not be verified. Please sign in again or retry.', error);
       return;
     }
-    if (!me?.user || !['SCHOOL_ADMIN','DEPARTMENT_HEAD','TEACHER','GATE_KEEPER','SUPER_ADMIN','PARENT','STUDENT'].includes(me.user.role)) {
+    if (!me?.user || !['SCHOOL_ADMIN','PRINCIPAL','DEPARTMENT_HEAD','TEACHER','GATE_KEEPER','SUPER_ADMIN','PARENT','STUDENT'].includes(me.user.role)) {
       showPortalStartupFailure('Your account role could not be verified. Please sign in again.');
       return;
     }
@@ -5394,6 +5394,7 @@ let teacherActionMenuListenersInstalled = false;
     // Reveal section creation as soon as the authenticated role is known; do not wait for dashboard API loading.
     if ($('createScheduleSection')) $('createScheduleSection').hidden = !['SCHOOL_ADMIN','DEPARTMENT_HEAD'].includes(user.role);
     if (user.mustChangePassword) { window.location.replace('/force-password-change.html'); return; }
+    if (user.role === 'PRINCIPAL') { window.location.replace('/principal.html'); return; }
     sessionStorage.setItem(userKey, JSON.stringify(user));
     resolveStaffIdentity(user);
     $('userDisplay').textContent = user.displayName || user.username;
