@@ -18,6 +18,10 @@
     "keywords": [
       "class attendance",
       "take attendance",
+      "save class attendance",
+      "manual attendance",
+      "mark learner present",
+      "qr or manual",
       "record attendance",
       "attendance qr",
       "mag attendance",
@@ -97,6 +101,39 @@
       "If the outcome is uncertain, check the existing record before another scan and report discrepancies."
     ],
     "note": "Gatekeeper scans cannot approve leave/OB or alter official DTR reviews."
+  },
+  {
+    "id": "dtr-tardiness",
+    "title": "Understand missing DTR tardiness or undertime",
+    "roles": ["TEACHER", "DEPARTMENT_HEAD", "SCHOOL_ADMIN"],
+    "nav": "myGateAttendanceNav",
+    "keywords": ["tardiness", "tardy", "tardines", "late", "late dtr",
+      "late not flagged", "dtr not late", "needs schedule", "no schedule",
+      "why no tardiness", "dtr missing tardiness", "undertime needs schedule"],
+    "steps": [
+      "Open My Attendance → Gate Attendance & DTR and select the reporting month.",
+      "Verify that the AM and PM attendance punches appear. Recorded punches cannot establish tardiness or undertime without the approved employee work schedule.",
+      "If the summary says Needs schedule, ask School Admin to verify school working hours and any employee-specific Form 48 schedule.",
+      "After authorized schedule configuration, review the draft Form 48 again. Never alter original verified punches to make a tardiness figure appear."
+    ],
+    "note": "Late minutes depend on approved working hours, applicable adjustments, and verified punches; this guide cannot inspect an individual's DTR."
+  },
+  {
+    "id": "form48-working-hours",
+    "title": "Configure school working hours for Form 48",
+    "roles": ["SCHOOL_ADMIN"],
+    "nav": "form48ReportsNav",
+    "keywords": ["school working hours", "school default hours", "approved working hours",
+      "set work hours", "form 48 work schedule", "form48 hours", "schedule dropdown",
+      "cannot input time", "working hours not working", "time fields disabled",
+      "am in am out pm in pm out", "configure dtr schedule"],
+    "steps": [
+      "As School Admin, open Reports → Form 48 DTR reports and expand Daily attendance checks & school hours → School working hours.",
+      "Use only officially approved working hours. The form has AM In, AM Out, PM In and PM Out inputs and approved schedule choices.",
+      "If the dropdown or inputs are unresponsive, check whether custom workdays were configured and use detailed Form 48 work-schedule settings or report the problem; do not change working days or records just to unlock the form.",
+      "Once an authorized schedule is saved, regenerate the draft DTR for review. Original attendance punches must remain unchanged."
+    ],
+    "note": "School default hours must not override staff-specific schedules, Saturday duty or temporary memorandum dates; historic tardiness requires correct effective dates."
   },
   {
     "id": "dtr",
@@ -649,6 +686,17 @@
         steps:['Teachers request account access for their assigned learners in My Students → Portal Accounts.',
           'School Admins review account requests and issue credentials.'],
         note:'Other roles cannot provision learner passwords via Help Guide.'};
+    if (/source code|sourcecode|backend code|show code|system prompt|api key|database password|server secrets|internal implementation/.test(q))
+      return {title:'Help Guide does not disclose source code',
+        steps:['Ask Attendigo only explains verified application features and safe usage steps.',
+          'Source code, credentials, internal implementation, and private data are not available through Help & Support.'],
+        note:'This is a read-only guide; no system data is exposed.'};
+    if (r !== 'SCHOOL_ADMIN' &&
+      /(?:set|edit|change|configure|save|update|approve).{0,25}(?:school working hours|school default hours|form 48 work schedule|dtr work schedule|official working hours)/.test(q))
+      return {title:'School work schedules require School Admin',
+        steps:['View your personal DTR and its recorded attendance evidence.',
+          'Ask School Admin to configure approved working hours and staff-specific schedules.'],
+        note:'Teachers cannot change school working hours through Help & Support.'};
     if (r !== 'SCHOOL_ADMIN' && /timetable settings|school timetable settings|operating days|school calendar/.test(q))
       return {title:'School timetable settings require School Admin',
         steps:['View your assigned timetable from My Timetable or Department Schedules.',
@@ -661,36 +709,84 @@
         note:'Department monitoring cannot submit an adviser’s official report.'};
     return null;
   }
-  function match(question, role) {
-    const query = normalize(question);
-    if (!query || restrictedAnswer(question,role)) return null;
-    let best = null;
-    const tokens = new Set(query.split(' '));
-    for (const topic of forRole(role)) {
-      let score = 0;
-      for (const phrase of topic.keywords) {
-        const term = normalize(phrase);
-        if (query === term) score += 12;
-        else if (query.includes(term) && term.length >= 3) score += 5 + Math.min(3, term.split(' ').length);
-        else if (term.includes(' ') && term.split(' ').every(word => word.length < 3 || tokens.has(word))) score += 2;
-      }
-      // Generic navigation words must not outrank a named feature such as DTR.
-      if (topic.id === 'navigation') score = Math.min(score, 5);
-      if (score > (best?.score || 0)) best = { topic, score };
-    }
-    return best && best.score >= 5 ? best.topic : null;
-  }
-  function answer(question, role) {
-    const restriction = restrictedAnswer(question, role);
-    if (restriction) return {topic:null, ...restriction};
-    const topic = match(question, role);
-    if (!topic) return {
-      topic: null,
-      title: 'I can help you find the right steps',
-      steps: ['Try asking about SF1 import, class attendance, QR scanning, DTR, leave, OB or schedules.', 'For an issue with a particular page, mention the menu name and what you were trying to do.'],
-      note: 'I only use the known Attendigo guide. I will not guess an answer or change your records.'
+  // Free deterministic guide lookup: no remote service or model.
+  function smartNormalize(input){
+    let q=normalize(input).replace(/\bsf\s+1\b/g,'sf1').replace(/\bsf\s+2\b/g,'sf2')
+      .replace(/\bform\s*48\b/g,'form 48').replace(/\btimein\b/g,'time in');
+    const alias={
+      scedule:'schedule',shedule:'schedule',skedule:'schedule',schdule:'schedule',
+      tardines:'tardiness',tardyness:'tardiness',undettime:'undertime',
+      attendence:'attendance',attendace:'attendance',manwal:'manual',
+      aproval:'approval',pano:'paano',panu:'paano',bkit:'bakit',hndi:'hindi',
+      nagsesave:'save','hindi gumagana':'not working',
+      'hindi lumalabas':'not showing','bakit wala':'why missing',
+      'paano mag':'how to'
     };
-    return {topic, title: topic.title, steps: topic.steps.slice(), note: topic.note};
+    for(const [from,to] of Object.entries(alias)){
+      q=(' '+q+' ').replace(new RegExp('\\b'+from.replace(/ /g,'\\s+')+'\\b','g'),to).trim();
+    }
+    return q;
   }
-  return Object.freeze({ topics, forRole, match, answer, normalize });
+  function matchMany(question,role,limit=3){
+    if(restrictedAnswer(question,role))return [];
+    const query=smartNormalize(question);
+    if(!query)return [];
+    const q=' '+query+' ',words=new Set(query.split(' ').filter(Boolean));
+    const scores=[];
+    for(const topic of forRole(role)){
+      let score=0;
+      for(const phrase of [...topic.keywords,topic.title]){
+        const term=smartNormalize(phrase);
+        if(!term)continue;
+        if(query===term){score+=18;continue;}
+        if(q.includes(' '+term+' ')){
+          const n=term.split(' ').length;
+          score+=n>1?7+Math.min(n,3):term.length>=3?6:3;
+        } else if(term.includes(' ')){
+          const important=term.split(' ').filter(w=>w.length>=4);
+          if(important.length>=2&&important.every(w=>words.has(w)))score+=3;
+        }
+      }
+      if(score>0)scores.push({topic,score});
+    }
+    // Generic phrasing such as "Where is my DTR?" must not beat DTR.
+    if(!/\b(menu|navigation|sidebar|dashboard)\b/.test(query)){
+      for(const item of scores)if(item.topic.id==='navigation')item.score=Math.min(item.score,3);
+    }
+    if(scores.some(x=>!['technical','navigation'].includes(x.topic.id)&&x.score>=5)){
+      for(const x of scores)if(['technical','navigation'].includes(x.topic.id))
+        x.score=Math.min(x.score,3);
+    }
+    scores.sort((a,b)=>b.score-a.score ||
+      b.topic.keywords.join(' ').length-a.topic.keywords.join(' ').length);
+    const strongest=scores[0]?.score||0;
+    return scores.filter(x=>x.score>=5&&x.score>=strongest*.46)
+      .slice(0,Math.max(1,Math.min(3,limit))).map(x=>x.topic);
+  }
+  function match(question,role){return matchMany(question,role,1)[0]||null;}
+  function answer(question,role){
+    const restriction=restrictedAnswer(question,role);
+    if(restriction)return {topic:null,...restriction};
+    const query=smartNormalize(question);
+    const ambiguousQr=/\bqr\b|\bscan(?:ner|ning)?\b/.test(query)&&
+      !/\b(?:class|learner|student|gate|gatekeeper|staff|teacher|subject|advisory|department|lunch)\b/.test(query);
+    if(ambiguousQr){
+      const choices=forRole(role).filter(t=>['class-attendance','gate-scan','gatekeeper-scan'].includes(t.id));
+      return {topic:null,title:'Which attendance scanner do you mean?',
+        steps:['Attendigo has different QR workflows for learner class attendance and staff gate attendance.',
+          'Choose the relevant guide topic below so I do not guess the wrong procedure.'],
+        relatedTopics:choices,note:'Only topics available to your role are shown.'};
+    }
+    const matches=matchMany(question,role,3);
+    if(!matches.length)return {
+      topic:null,title:'Not covered by the verified guide',
+      steps:['I could not find a verified answer to that question in the current Attendigo How-To Guide.',
+        'Mention the menu name and action you are trying to complete, or ask the School Admin or authorized support.'],
+      note:'This free guide will not guess steps, reveal source code, or change records.'
+    };
+    const topic=matches[0];
+    return {topic,title:topic.title,steps:topic.steps.slice(),note:topic.note,
+      relatedTopics:matches.slice(1)};
+  }
+  return Object.freeze({ topics, forRole, match, matchMany, answer, normalize, smartNormalize, restrictedAnswer });
 });
