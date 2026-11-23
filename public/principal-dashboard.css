@@ -259,3 +259,19 @@ changing navigation, permissions, calculations, or the underlying data. */
 :root[data-theme="dark"] .theme-picker select{background:#243449;color:#e3ecf5;border-color:#455a70}
 @media(prefers-color-scheme:dark){:root[data-theme="system"] .theme-picker select{background:#243449;color:#e3ecf5;border-color:#455a70}}
 @media(max-width:560px){.top-actions{gap:8px}.theme-picker{font-size:11px}.theme-picker select{min-height:40px;max-width:100px}}
+
+/* Principal's self-scoped workspace */
+.principal-quick-links{display:flex;flex-wrap:wrap;gap:9px;margin:0 0 20px}
+.principal-quick-links button{flex:1 1 155px;min-height:45px}
+.principal-personal-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:15px}
+.badge-surface{display:flex;flex-direction:column;align-items:center;gap:14px;text-align:center}
+.badge-surface .eyebrow{align-self:flex-start}
+.badge-surface>strong{font-size:20px}
+.principal-qr-wrap{width:min(290px,100%);padding:12px;border-radius:15px;background:#fff;border:1px solid #d9e4eb}
+.principal-qr-wrap img{display:block;width:100%;height:auto;image-rendering:pixelated}
+.personal-slot-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin:16px 0 25px}
+.personal-slot{background:var(--bg);border:1px solid var(--border);border-radius:12px;padding:15px;display:flex;flex-direction:column;gap:8px}
+.personal-slot span{font-size:12px;color:var(--muted)}.personal-slot strong{font-size:17px}
+.principal-action-summary{margin-bottom:15px}
+@media(max-width:800px){.principal-personal-grid{grid-template-columns:1fr}.personal-slot-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:420px){.personal-slot{padding:11px}.personal-slot strong{font-size:14px}}
