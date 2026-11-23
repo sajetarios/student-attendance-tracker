@@ -66,8 +66,14 @@ function registerClassFinalizationRoutes(app,pool,{authenticateSchoolClient,requ
         await client.query('COMMIT');return res.json({finalized:false});
       }
       if(signed.rows[0]?.finalized){await client.query('ROLLBACK');return res.status(409).json({error:'This register is already finalized.'});}
-      const closed=await client.query("SELECT 1 FROM school_calendar_exceptions WHERE school_id=$1 AND calendar_date=$2::date AND exception_type='CLOSED'",[req.auth.schoolId,date]);
-      if(closed.rowCount){await client.query('ROLLBACK');return res.status(409).json({error:'This date is closed on the school calendar.'});}
+      const closed=await client.query(`SELECT 1 FROM school_calendar_exceptions e
+        JOIN class_periods p ON p.school_id=e.school_id AND p.period_id=$3
+        LEFT JOIN schedule_day_adjustments da ON da.school_id=p.school_id AND da.period_id=p.period_id AND da.school_date=e.calendar_date
+        WHERE e.school_id=$1 AND e.calendar_date=$2::date
+          AND (e.exception_type='CLOSED' OR (e.exception_type='CLASS_SUSPENSION'
+           AND (e.suspension_time IS NULL OR COALESCE(da.end_time,p.end_time)>e.suspension_time)))`,
+        [req.auth.schoolId,date,periodId]);
+      if(closed.rowCount){await client.query('ROLLBACK');return res.status(409).json({error:'This class was suspended on this date. Preserve earlier marks; review rather than finalizing new absences.'});}
       const period=assigned.rows[0];
       const summary=await client.query(`
         SELECT COUNT(*)::int AS total,
