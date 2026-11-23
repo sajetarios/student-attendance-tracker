@@ -155,11 +155,14 @@
  }
  function renderAttention(data){
   const host=$('attentionList');host.replaceChildren();
-  const m=data.metrics||{},a=data.approvals||{},loc=data.locationSetup||{};
+  const m=data.metrics||{},loc=data.locationSetup||{};
   addAttention(host,'DTR events pending verification','Selected school date · not part of certified Form 48',m.pendingDtrSlots,'staff','!');
-  addAttention(host,'Leave applications in progress','Documented workflow stages · not final approvals',
-   Object.values(a.leave||{}).reduce((n,v)=>n+numeric(v),0),'priorities','L');
-  addAttention(host,'Official Business in progress','Department or school review',Object.values(a.ob||{}).reduce((n,v)=>n+numeric(v),0),'priorities','O');
+  // Never escalate routine leave or OB workflow stages as Principal alerts.
+  if(classImpact&&(classImpact.limited||numeric(classImpact.unresolvedCount)>0))
+   addAttention(host,'Classes without recorded coverage',
+    'Approved leave/OB · substitute or schedule adjustment not yet documented',
+    classImpact.limited?(classImpact.atLeast||classImpact.cases?.length||0):classImpact.unresolvedCount,
+    'priorities','!');
   addAttention(host,'Department locations awaiting approval','Pending QR location configuration',loc.pending,'priorities','⌖');
  }
  function departmentCard(dep){
@@ -546,12 +549,12 @@
     if(current!==sequence)return;
     classImpact=info;
     renderClassImpact(classImpact);
-    if(latest)renderBriefing(latest);
+    if(latest){renderBriefing(latest);renderAttention(latest);}
    }catch(error){
     if(error.name==='AbortError'||current!==sequence)return;
     classImpact=null;
     renderClassImpact(null,'Could not verify class coverage. '+errorText(error));
-    if(latest)renderBriefing(latest);
+    if(latest){renderBriefing(latest);renderAttention(latest);}
    }
   }catch(error){
    if(error.name==='AbortError'||current!==sequence)return;
