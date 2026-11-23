@@ -1,0 +1,165 @@
+/* Class attendance mobile register: presentation only.
+   The legacy 760px register is retained for desktop/tablet; phone layouts are cards.
+   Existing data-select, data-flip-id, data-status and data-note actions are unchanged. */
+#classAttendanceView .manual-folio,
+#classAttendanceView .manual-book,
+#classAttendanceView #mfSheet,
+#classAttendanceView .manual-table-wrap { min-width:0;max-width:100%;box-sizing:border-box; }
+#classAttendanceView .manual-table-wrap { max-width:100%;overscroll-behavior-x:contain; }
+#classAttendanceView .manual-table-wrap:focus-visible { outline:3px solid #1b6ecc;outline-offset:2px; }
+#classAttendanceView .manual-head .manual-qr-inline {
+  display:inline-flex;align-items:center;justify-content:center;gap:8px;
+  min-height:44px;max-width:100%;padding:10px 14px;border-radius:12px;
+  background:linear-gradient(120deg,#106bbd,#084992);color:#fff;
+  text-decoration:none;font-weight:750;font-size:14px;box-sizing:border-box;
+}
+#classAttendanceView .manual-head .manual-qr-inline:focus-visible {outline:3px solid #f3a921;outline-offset:3px;}
+@media (min-width:768px) and (max-width:1080px) {
+  #classAttendanceView #mfSheet {padding:14px 12px;}
+  #classAttendanceView .manual-table-wrap {overflow-x:auto!important;}
+  #classAttendanceView .manual-head {align-items:flex-start;}
+}
+@media screen and (max-width:767px) {
+  #classAttendanceView {width:100%;min-width:0;}
+  #classAttendanceView .manual-folio {padding:0 0 18px;overflow:visible;}
+  #classAttendanceView .manual-head {
+    display:grid;grid-template-columns:minmax(0,1fr);gap:12px;
+    margin:0 0 12px;padding:8px 2px 2px;min-width:0;
+  }
+  #classAttendanceView .manual-head>div,
+  #classAttendanceView .manual-head .manual-controls {min-width:0;margin:0;}
+  #classAttendanceView .manual-head h2 {font-size:clamp(20px,5.4vw,26px);line-height:1.2;}
+  #classAttendanceView .manual-head p {font-size:13px;line-height:1.5;max-width:60ch;}
+  #classAttendanceView .manual-controls label {flex:1 1 150px;min-width:0;}
+  #classAttendanceView .manual-controls input,
+  #classAttendanceView .manual-controls select {width:100%;min-width:0;box-sizing:border-box;}
+  #classAttendanceView .manual-head .manual-qr-inline {width:100%;white-space:normal;position:static!important;}
+  #classAttendanceView .manual-sync-strip {min-width:0;max-width:100%;flex-wrap:wrap;}
+  #classAttendanceView .manual-sync-left {min-width:0;max-width:100%;}
+  #classAttendanceView .manual-sync-description {overflow-wrap:anywhere;line-height:1.45;}
+  #classAttendanceView .manual-stats {grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin:12px 0;}
+  #classAttendanceView .manual-stat {min-width:0;padding:10px 8px;min-height:68px;}
+  #classAttendanceView .manual-stat strong {font-size:19px;line-height:1.3;white-space:nowrap;}
+  #classAttendanceView .manual-stat span {display:block;font-size:12px;overflow-wrap:anywhere;}
+  #classAttendanceView .manual-roster-options {min-width:0;gap:8px;}
+  #classAttendanceView .manual-roster-options label {min-width:0;max-width:100%;}
+  #classAttendanceView .manual-roster-options select {max-width:100%;}
+  #classAttendanceView .manual-tabs {display:flex;gap:6px;overflow-x:auto;flex-wrap:nowrap;padding:2px 0 7px;scrollbar-width:thin;}
+  #classAttendanceView .manual-tabs button {flex:0 0 auto;min-height:42px;padding:9px 12px;border-radius:11px;font-size:13px;}
+  #classAttendanceView .manual-book {display:block;min-width:0;min-height:0!important;background:transparent!important;overflow:visible;}
+  #classAttendanceView .manual-book::before {display:none!important;}
+  #classAttendanceView #mfSheet {padding:12px 10px!important;min-width:0!important;overflow:visible;}
+  #classAttendanceView .manual-page-header {display:flex;align-items:flex-start;flex-wrap:wrap;gap:10px;}
+  #classAttendanceView .manual-page-header>div {min-width:0;}
+  #classAttendanceView .manual-page-nav {max-width:100%;margin:0;}
+  #classAttendanceView .manual-toolbar {
+    display:flex;justify-content:flex-start;align-items:center;gap:8px 12px;
+    margin:10px 0;padding:10px;border-radius:12px;
+  }
+  #classAttendanceView .manual-toolbar>span {flex:1 0 100%;max-width:none;order:3;font-size:12px;line-height:1.4;}
+  #classAttendanceView .manual-toolbar label {min-height:35px;}
+  #classAttendanceView .manual-table-wrap {
+    width:100%!important;max-width:100%!important;max-height:none!important;
+    min-width:0!important;overflow:visible!important;
+  }
+  /* Override the historical @media screen min-width:760px!important rule. */
+  #classAttendanceView .manual-book #mfSheet .manual-table {
+    display:block!important;width:100%!important;min-width:0!important;
+    max-width:100%!important;table-layout:auto!important;border:0!important;
+    border-spacing:0!important;background:transparent;
+  }
+  #classAttendanceView #mfSheet .manual-table thead {display:none!important;}
+  #classAttendanceView #mfSheet .manual-table tbody {display:grid!important;gap:10px;min-width:0;}
+  #classAttendanceView #mfSheet .manual-table tbody tr.manual-sex-group {
+    display:block!important;min-width:0;border:0;background:transparent;
+  }
+  #classAttendanceView #mfSheet .manual-table tbody tr.manual-sex-group th {
+    display:block;width:100%;box-sizing:border-box;border:0;background:transparent;
+    padding:8px 2px 2px!important;text-align:left;font-size:13px;color:var(--mf-text,#19365f);
+  }
+  #classAttendanceView #mfSheet .manual-table tbody tr.manual-attendance-row {
+    display:grid!important;grid-template-columns:36px minmax(0,1fr) minmax(0,1fr) 46px;
+    grid-template-areas:"check learner learner note" "flip flip extras extras";
+    column-gap:8px;row-gap:10px;align-items:center;min-width:0;
+    padding:12px!important;border:1px solid #d8e4f5;border-radius:14px;
+    background:var(--mf-paper,#fff);box-shadow:0 3px 12px rgba(20,56,108,.065);
+  }
+  #classAttendanceView #mfSheet .manual-table tbody tr.manual-attendance-row>td {
+    display:block!important;width:auto!important;min-width:0!important;
+    max-width:100%!important;box-sizing:border-box!important;
+    padding:0!important;overflow:visible!important;text-align:left;border:0!important;
+    background:transparent!important;
+  }
+  #classAttendanceView #mfSheet .manual-attendance-row>td:nth-child(1) {grid-area:check;}
+  #classAttendanceView #mfSheet .manual-attendance-row>td.manual-learner {grid-area:learner;}
+  #classAttendanceView #mfSheet .manual-attendance-row>td.manual-flip-cell {grid-area:flip;}
+  #classAttendanceView #mfSheet .manual-attendance-row>td.manual-other-status {grid-area:extras;display:flex!important;gap:6px;align-items:stretch;flex-wrap:wrap;}
+  #classAttendanceView #mfSheet .manual-attendance-row>td:nth-child(5) {grid-area:note;display:flex!important;justify-content:flex-end;}
+  #classAttendanceView #mfSheet .manual-attendance-row input[type=checkbox] {
+    width:20px;height:20px;margin:0;accent-color:#135cae;cursor:pointer;
+  }
+  #classAttendanceView #mfSheet .manual-learner strong {
+    display:block;font-size:14px!important;line-height:1.35!important;
+    overflow-wrap:anywhere;word-break:normal;
+  }
+  #classAttendanceView #mfSheet .manual-learner small {
+    display:block;margin-top:3px;font-size:11px!important;line-height:1.35;overflow-wrap:anywhere;
+  }
+  #classAttendanceView #mfSheet .manual-flip-card {
+    display:block;width:100%!important;max-width:100%!important;height:46px!important;
+    min-width:0!important;touch-action:manipulation;
+  }
+  #classAttendanceView #mfSheet .manual-flip-face {flex-direction:row!important;gap:8px!important;}
+  #classAttendanceView #mfSheet .manual-flip-face b {font-size:18px!important;}
+  #classAttendanceView #mfSheet .manual-flip-face small {font-size:12px!important;line-height:1.2!important;}
+  #classAttendanceView #mfSheet .manual-extra-status {
+    flex:1 1 0;min-width:0!important;min-height:46px!important;margin:0!important;
+    padding:0 5px!important;font-size:14px!important;touch-action:manipulation;
+  }
+  #classAttendanceView #mfSheet .manual-other-label {width:100%;text-align:center;font-size:11px;line-height:1.2;}
+  #classAttendanceView #mfSheet .manual-note-btn {
+    width:44px!important;min-width:44px!important;height:44px!important;min-height:44px!important;
+  }
+  #classAttendanceView #mfSheet .manual-table tbody tr:not(.manual-attendance-row):not(.manual-sex-group) {
+    display:block;width:100%;
+  }
+  #classAttendanceView #mfSheet .manual-table td.manual-empty {
+    display:block;width:100%;box-sizing:border-box;white-space:normal;
+  }
+  #classAttendanceView .manual-quick {
+    display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin:12px 0 0;
+  }
+  #classAttendanceView .manual-quick .manual-btn {
+    min-width:0;min-height:44px;padding:10px 8px;white-space:normal;
+    line-height:1.3;font-size:12px;text-align:center;
+  }
+  #classAttendanceView .manual-bottom {display:grid;gap:12px;padding:12px;max-width:100%;}
+  #classAttendanceView .manual-bottom .manual-controls {
+    display:grid;width:100%;grid-template-columns:repeat(2,minmax(0,1fr));
+    gap:8px;margin:0;
+  }
+  #classAttendanceView .manual-bottom .manual-controls button {width:100%;min-width:0;min-height:44px;}
+  #classAttendanceView .manual-bottom #mfSync {grid-column:1/-1;grid-row:1;}
+  #classAttendanceView #mfFinalizationState {white-space:normal;grid-column:1/-1;}
+  #classAttendanceView .manual-folio :is(button,input,select,textarea):focus-visible {
+    outline:3px solid #2372c9;outline-offset:2px;
+  }
+}
+@media screen and (max-width:360px) {
+  #classAttendanceView .manual-stats {grid-template-columns:repeat(2,minmax(0,1fr));}
+  #classAttendanceView #mfSheet {padding:9px 7px!important;}
+  #classAttendanceView #mfSheet .manual-table tbody tr.manual-attendance-row {
+    grid-template-columns:28px minmax(0,1fr) minmax(0,1fr) 44px;
+    column-gap:6px;padding:10px!important;
+  }
+  #classAttendanceView #mfSheet .manual-learner strong {font-size:13px!important;}
+}
+html[data-ui-theme=dark] #classAttendanceView #mfSheet .manual-table tbody tr.manual-attendance-row,
+body.dark-mode #classAttendanceView #mfSheet .manual-table tbody tr.manual-attendance-row,
+body[data-theme=dark] #classAttendanceView #mfSheet .manual-table tbody tr.manual-attendance-row {
+  background:#1c2d48;border-color:#415a7c;box-shadow:none;color:#eef4ff;
+}
+html[data-ui-theme=dark] #classAttendanceView .manual-quick .manual-btn,
+body.dark-mode #classAttendanceView .manual-quick .manual-btn {
+  background:#283c5d;color:#eaf3ff;border-color:#526c95;
+}
