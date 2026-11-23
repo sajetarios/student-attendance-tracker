@@ -169,6 +169,12 @@ function registerStaffLeaveRoutes(app,pool,{authenticateSchoolClient,requireScho
      [req.auth.schoolId,req.auth.userId]);
    const filingBasis=sickFilingBasis(input.leaveType,input.startDate,input.endDate,manilaToday());
    const verifiedScheme=scheme.rows[0]?.leaveScheme||'UNVERIFIED';
+   // Under the regular teachers' leave scheme, birthday SPL is not an automatic
+   // entitlement. Do not allow a teaching-VSC account to file as regular SPL.
+   if(input.leaveType==='SPECIAL_PRIVILEGE'&&verifiedScheme==='TEACHING_VSC'){
+    await c.query('ROLLBACK');
+    return res.status(409).json({error:'Special Privilege Leave is generally excluded for personnel under the teaching leave system. Ask HR to verify the applicable leave category instead.'});
+   }
    // Client choices are proposals, never authorization to charge a different
    // employee leave-credit account. Enforce certified scheme server-side.
    const permitted=verifiedScheme==='TEACHING_VSC'?['NONE','VSC']:
@@ -267,6 +273,24 @@ function registerStaffLeaveRoutes(app,pool,{authenticateSchoolClient,requireScho
    // Sick leave may be submitted upon return. The final official decision,
    // not the applicant's proposal or dashboard role, establishes the charge.
    let chargeAccount=row.credit_account;
+   if(row.leave_type==='SPECIAL_PRIVILEGE'){
+    // Independent external-decision safeguard, including legacy pending requests:
+    // require HR-certified regular leave entitlement; never charge VL/SL/VSC.
+    const schemeForSpl=await c.query('SELECT leave_scheme FROM staff_leave_credit_schemes WHERE school_id=$1 AND staff_user_id=$2',
+     [req.auth.schoolId,row.staff_user_id]);
+    if(schemeForSpl.rows[0]?.leave_scheme!=='REGULAR_VL_SL'||row.commutation!=='NOT_REQUESTED'||days>3){
+     await c.query('ROLLBACK');
+     return res.status(409).json({error:'SPL approval requires HR-certified regular leave eligibility, no commutation, and no more than three certified working days. HR must also verify the annual SPL allowance.'});
+    }
+    chargeAccount='NONE';
+   }
+   if(row.leave_type==='WELLNESS'){
+    if(row.commutation!=='NOT_REQUESTED'||row.credit_account!=='NONE'){
+     await c.query('ROLLBACK');
+     return res.status(409).json({error:'Wellness Leave is non-commutable and must not deduct VL, SL or VSC credits. Reconcile this application with HR.'});
+    }
+    chargeAccount='NONE';
+   }
    if(row.leave_type==='SICK'){
     const verifiedScheme=await c.query('SELECT leave_scheme AS "leaveScheme" FROM staff_leave_credit_schemes WHERE school_id=$1 AND staff_user_id=$2',
      [req.auth.schoolId,row.staff_user_id]);
