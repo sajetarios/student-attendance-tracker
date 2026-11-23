@@ -1,6 +1,16 @@
 'use strict';
 (() => {
  const $=id=>document.getElementById(id);
+ const themePicker=$('themePreference');
+ if(themePicker){
+  themePicker.value=document.documentElement.dataset.theme||'light';
+  themePicker.addEventListener('change',()=>{
+   const selected=themePicker.value;
+   if(!['light','dark','system'].includes(selected))return;
+   document.documentElement.dataset.theme=selected;
+   try{localStorage.setItem('attendigo.principal.theme',selected);}catch(_){}
+  });
+ }
  const MAX_AGE_DAYS=365;
  const fmt=v=>Number.isFinite(Number(v))?new Intl.NumberFormat('en-PH').format(Number(v)):'—';
  const toDay=when=>{
