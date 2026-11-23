@@ -276,7 +276,8 @@ function registerStaffLunchRoutes(app,pool,{authenticateSchoolClient,requireScho
   try{
    await client.query('BEGIN');
    const found=await client.query(`SELECT staff_user_id,dtr_slot,
-      to_char(school_date,'YYYY-MM-DD') AS "schoolDate",verification_status
+      to_char(school_date,'YYYY-MM-DD') AS "schoolDate",
+      occurred_at,verification_status
     FROM staff_attendance_events WHERE school_id=$1 AND event_id=$2
     AND event_kind='DTR_SLOT' AND source='SELF_SERVICE' FOR UPDATE`,
     [req.auth.schoolId,eventId]);
@@ -302,6 +303,17 @@ function registerStaffLunchRoutes(app,pool,{authenticateSchoolClient,requireScho
      await client.query('ROLLBACK');
      return res.status(409).json({error:'Approved leave overlaps this scan. Resolve the leave/DTR conflict through the approved review workflow.'});
     }
+    const ob=await client.query(`SELECT 1 FROM staff_official_business_requests
+      WHERE school_id=$1 AND staff_user_id=$2 AND status='APPROVED'
+        AND starts_at<=$3 AND ends_at>=$3 LIMIT 1`,
+      [req.auth.schoolId,record.staff_user_id,record.occurred_at]);
+    if(ob.rowCount){await client.query('ROLLBACK');
+      return res.status(409).json({error:'Official Business overlaps this scan. Resolve the OB/DTR conflict before verification.'});}
+    const closed=await client.query(`SELECT 1 FROM school_calendar_exceptions
+      WHERE school_id=$1 AND calendar_date=$2::date
+      AND exception_type='CLOSED' LIMIT 1`,[req.auth.schoolId,record.schoolDate]);
+    if(closed.rowCount){await client.query('ROLLBACK');
+      return res.status(409).json({error:'School calendar lists this day as closed. Use the school attendance exception workflow.'});}
    }
    const status=decision==='VERIFY'?'VERIFIED':'REJECTED';
    const updated=await client.query(`UPDATE staff_attendance_events
@@ -400,6 +412,15 @@ function registerStaffLunchRoutes(app,pool,{authenticateSchoolClient,requireScho
     AND expected_return_date>=$3::date LIMIT 1`,
     [req.auth.schoolId,req.auth.userId,today]);
    if(leave.rowCount)reasons.push('APPROVED_LEAVE_CONFLICT');
+   const ob=await client.query(`SELECT 1 FROM staff_official_business_requests
+    WHERE school_id=$1 AND staff_user_id=$2 AND status='APPROVED'
+    AND starts_at<=NOW() AND ends_at>=NOW() LIMIT 1`,
+    [req.auth.schoolId,req.auth.userId]);
+   if(ob.rowCount)reasons.push('APPROVED_OB_CONFLICT');
+   const closed=await client.query(`SELECT 1 FROM school_calendar_exceptions
+    WHERE school_id=$1 AND calendar_date=$2::date AND exception_type='CLOSED' LIMIT 1`,
+    [req.auth.schoolId,today]);
+   if(closed.rowCount)reasons.push('CLOSED_SCHOOL_DAY');
    const verification=reasons.length?'PENDING_VERIFICATION':'VERIFIED';
    const verificationMethod=reasons.length?null:'ROTATING_QR';
    const eventId=randomUUID(),clientKey=randomUUID();
