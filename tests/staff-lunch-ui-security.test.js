@@ -158,5 +158,5 @@ test('GPS sampling is bounded and routes uncertainty to review without changing 
  assert.match(routes,/assessLocationEvidence/);
  assert.match(routes,/sampleCount:presence.sampleCount/);
  assert.match(routes,/locationConfidence:presence.confidence/);
- assert.match(routes,/verification=reasons.length\\?'PENDING_VERIFICATION':'VERIFIED'/);
+ assert.ok(routes.includes("verification=reasons.length?'PENDING_VERIFICATION':'VERIFIED'"));
 });
