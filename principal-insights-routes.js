@@ -34,7 +34,7 @@ function registerPrincipalInsightsRoutes(app,pool,{authenticateSchoolClient,requ
     pool.query(`SELECT COUNT(*)::int AS total
       FROM school_users WHERE school_id=$1 AND active=TRUE
        AND role IN ('TEACHER','DEPARTMENT_HEAD','SCHOOL_ADMIN')
-       AND ($4::uuid IS NULL OR department_id=$4)`,args),
+       AND ($2::uuid IS NULL OR department_id=$2)`,[req.auth.schoolId,departmentId]),
     pool.query(`SELECT
        COUNT(*) FILTER (WHERE e.verification_status='VERIFIED')::int AS verified,
        COUNT(*) FILTER (WHERE e.verification_status='PENDING_VERIFICATION')::int AS pending,
@@ -59,12 +59,12 @@ function registerPrincipalInsightsRoutes(app,pool,{authenticateSchoolClient,requ
       COUNT(*) FILTER (WHERE status='PENDING_ADMIN')::int AS school,
       COUNT(*) FILTER (WHERE status='PENDING_EXTERNAL')::int AS official
       FROM staff_leave_requests
-      WHERE school_id=$1 AND ($4::uuid IS NULL OR department_id=$4)`,args),
+      WHERE school_id=$1 AND ($2::uuid IS NULL OR department_id=$2)`,[req.auth.schoolId,departmentId]),
     pool.query(`SELECT
       COUNT(*) FILTER (WHERE status='PENDING_HEAD')::int AS head,
       COUNT(*) FILTER (WHERE status='PENDING_ADMIN')::int AS school
       FROM staff_official_business_requests
-      WHERE school_id=$1 AND ($4::uuid IS NULL OR department_id=$4)`,args),
+      WHERE school_id=$1 AND ($2::uuid IS NULL OR department_id=$2)`,[req.auth.schoolId,departmentId]),
     pool.query(`SELECT d.department_id AS "departmentId",d.department_name AS name,
        COUNT(DISTINCT u.user_id)::int AS staff,
        COUNT(DISTINCT e.event_id) FILTER (WHERE e.verification_status='VERIFIED')::int AS verified,
