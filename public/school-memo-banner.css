@@ -23,3 +23,88 @@
 :root[data-theme="dark"] .attendigo-memo-copy strong{color:#e3f2f6}
 :root[data-theme="dark"] .attendigo-memo-copy small{color:#b2cbd3}
 :root[data-theme="dark"] .attendigo-memo-banner.attendigo-memo-quiet{background:#223345;border-color:#385268}
+
+/* In-dashboard School Memoranda — Attendigo navy/teal, all staff/parent/student views */
+.attendigo-memo-banner{position:relative;z-index:1;max-width:100%}
+.attendigo-memo-banner button.attendigo-memo-link{font:inherit;cursor:pointer;appearance:none}
+.attendigo-memo-banner button:focus-visible{outline:3px solid #13cae0;outline-offset:3px}
+.attendigo-memo-workspace{box-sizing:border-box;position:relative;isolation:isolate;
+ margin:0 0 22px;padding:clamp(19px,3vw,30px);width:100%;max-width:100%;
+ border:1px solid #195a76;border-radius:18px;
+ background:linear-gradient(115deg,#09243c 0%,#0c3652 58%,#0a4b5e 100%);
+ color:#f2fbff;box-shadow:0 10px 27px rgba(16,61,81,.14);
+ font:14px/1.55 Inter,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
+.attendigo-memo-workspace[hidden]{display:none!important}
+.attendigo-memo-workspace,.attendigo-memo-workspace *{box-sizing:border-box}
+.attendigo-memo-workspace :is(button,a){font:inherit}
+.attendigo-memo-workspace button{cursor:pointer}
+.attendigo-memo-workspace button:disabled{cursor:default;opacity:.65}
+.attendigo-memo-workspace :is(button,a):focus-visible{outline:3px solid #32d6e2;outline-offset:3px}
+.attendigo-memo-workspace-head{display:flex;align-items:flex-start;justify-content:space-between;gap:14px}
+.attendigo-memo-workspace-intro{min-width:0;flex:1}
+.attendigo-memo-eyebrow{display:block;font-size:10px;letter-spacing:.16em;color:#7ce8e4;font-weight:850}
+.attendigo-memo-workspace-intro h2{margin:6px 0 6px;font-weight:830;
+ font-size:clamp(23px,2.55vw,30px);line-height:1.2;letter-spacing:-.045em;color:#f5fcff}
+.attendigo-memo-workspace-intro>p{font-size:12px;margin:0;max-width:690px;color:#c4dce8}
+.attendigo-memo-close,.attendigo-memo-refresh{min-height:41px;border:1px solid #568096;
+ padding:9px 14px;border-radius:10px;color:#ebfaff;background:#ffffff15;font-size:12px;font-weight:750!important}
+.attendigo-memo-close:hover,.attendigo-memo-refresh:hover{background:#ffffff26}
+.attendigo-memo-toolbar{margin:18px 0 14px;display:flex;align-items:center;justify-content:space-between;gap:11px;flex-wrap:wrap}
+.attendigo-memo-counters{display:flex;gap:8px;flex-wrap:wrap}
+.attendigo-memo-counter{display:inline-flex;align-items:center;gap:7px;background:#123c58;
+ border:1px solid #30637c;padding:7px 12px;border-radius:9px;color:#dbf3fa;font-size:11px}
+.attendigo-memo-counter strong{font-size:15px;font-variant-numeric:tabular-nums;color:#a8faf0}
+.attendigo-memo-status{margin:0 0 12px;font-size:12px;line-height:1.5;color:#badbe7}
+.attendigo-memo-list{display:grid;gap:11px;min-height:100px}
+.attendigo-memo-empty{padding:clamp(23px,5vw,58px) 16px;display:flex;align-items:center;
+ justify-content:center;flex-direction:column;text-align:center;gap:8px;
+ border:1px solid #367994;border-radius:15px;
+ background:radial-gradient(ellipse at 75% 10%,#12627a80,transparent 55%),linear-gradient(140deg,#0c3455,#0b5366)}
+.attendigo-memo-empty-icon{width:74px;height:74px;border-radius:19px;display:grid;place-items:center;
+ font-size:39px;color:#8af2ed;border:1px solid #2f98aa;background:linear-gradient(150deg,#0d456e,#147b8b);
+ margin-bottom:6px;box-shadow:0 8px 20px #00152430}
+.attendigo-memo-empty strong{color:#f4fbff;font-size:clamp(19px,2vw,25px);line-height:1.3}
+.attendigo-memo-empty p{max-width:570px;font-size:12px;margin:0;color:#cee0ed}
+.attendigo-memo-record{background:#fafdff;border:1px solid #bcd4e0;border-left:4px solid #d3e2ea;
+ color:#1a3248;border-radius:13px;padding:17px;min-width:0;overflow-wrap:anywhere}
+.attendigo-memo-record.attendigo-memo-unread{border-left-color:#0fadb6}
+.attendigo-memo-record-header{display:flex;justify-content:space-between;align-items:flex-start;gap:11px}
+.attendigo-memo-record-title{min-width:0;flex:1}
+.attendigo-memo-record h3{font-size:16px;font-weight:780;letter-spacing:-.018em;color:#18344a;line-height:1.35;margin:0 0 4px}
+.attendigo-memo-record-title small{font-size:11px;color:#607489}
+.attendigo-memo-category{display:inline-flex;border:1px solid #c6e4e6;background:#e4f7f6;
+ color:#196e78;border-radius:20px;padding:5px 9px;font-size:10px;font-weight:750;text-transform:capitalize}
+.attendigo-memo-summary{font-size:13px;line-height:1.6;white-space:pre-wrap;overflow-wrap:anywhere;color:#405d72;margin:13px 0}
+.attendigo-memo-record-meta{display:flex;flex-wrap:wrap;gap:6px;margin:12px 0}
+.attendigo-memo-record-meta span{font-size:11px;color:#546c7f;background:#eff4f7;border:1px solid #e2eaf0;padding:6px 8px;border-radius:7px}
+.attendigo-memo-actions{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin-top:12px}
+.attendigo-memo-actions button,.attendigo-memo-download{min-height:41px;padding:9px 13px;
+ border:1px solid #c5d9e3;border-radius:10px;background:#fff;color:#25516a;
+ font-size:12px!important;font-weight:750!important;text-decoration:none}
+.attendigo-memo-actions button:hover,.attendigo-memo-download:hover{background:#ecf8fa;border-color:#83c2ce}
+.attendigo-memo-actions .attendigo-memo-preview-toggle{background:#087fa2;border-color:#087fa2;color:#fff}
+.attendigo-memo-actions .attendigo-memo-preview-toggle:hover{background:#0a6c8d}
+.attendigo-memo-actions .attendigo-memo-ack:not(:disabled){border-color:#26a79e;color:#0b756a}
+.attendigo-memo-actions .attendigo-memo-is-read{background:#edf8f0;color:#227c58}
+.attendigo-memo-preview{border-top:1px solid #dce8ef;padding-top:14px;margin-top:15px}
+.attendigo-memo-preview>p{font-size:11px;margin:0 0 10px;color:#587083}
+.attendigo-memo-frame{display:block;width:100%;height:clamp(300px,53vh,620px);border:1px solid #b6cdd9;
+ border-radius:10px;background:white}
+.attendigo-memo-download{display:inline-flex;align-items:center;margin-top:10px}
+.attendigo-memo-receipts{font-size:11px;color:#587083;margin:7px 0 0}
+.attendigo-memo-footnote{margin:17px 0 0;font-size:11px;color:#cce3ef;
+ border-top:1px solid #518197;padding-top:13px;line-height:1.6}
+@media(max-width:640px){
+ .attendigo-memo-workspace{margin:0 0 18px;padding:17px 13px;border-radius:13px}
+ .attendigo-memo-workspace-head{gap:9px}
+ .attendigo-memo-workspace-intro h2{font-size:23px}
+ .attendigo-memo-close{padding:8px 10px;min-height:38px}
+ .attendigo-memo-toolbar{gap:9px}
+ .attendigo-memo-record{padding:13px}
+ .attendigo-memo-record-header{flex-direction:column}
+ .attendigo-memo-actions button{flex:1 1 calc(50% - 8px)}
+ .attendigo-memo-empty{padding:28px 13px}
+ .attendigo-memo-counter{padding:6px 9px}
+ .attendigo-memo-frame{height:55vh;min-height:290px}
+}
+@media(prefers-reduced-motion:reduce){.attendigo-memo-workspace *{scroll-behavior:auto!important}}
