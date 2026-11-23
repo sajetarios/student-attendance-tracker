@@ -108,3 +108,7 @@
  .attendigo-memo-frame{height:55vh;min-height:290px}
 }
 @media(prefers-reduced-motion:reduce){.attendigo-memo-workspace *{scroll-behavior:auto!important}}
+
+.attendigo-memo-frame-loading{display:grid;place-items:center;min-height:135px;padding:18px;border-radius:10px;
+ border:1px dashed #99bed0;background:#f1f8fb;color:#496b7f;font-size:12px;text-align:center}
+.attendigo-memo-image{height:auto!important;max-height:620px;width:100%;object-fit:contain;background:#fff}
