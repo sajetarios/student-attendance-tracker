@@ -320,3 +320,21 @@
   background:#223345;border-color:#385268
  }
 }
+
+/* Maintain accessible acknowledged/read states and quiet notice icon in dark mode. */
+:root[data-ui-theme="dark"] .attendigo-memo-workspace .attendigo-memo-actions .attendigo-memo-is-read,
+:root[data-theme="dark"] .attendigo-memo-workspace .attendigo-memo-actions .attendigo-memo-is-read{
+ background:#1c4a42;border-color:#3a8778;color:#b5f1df
+}
+:root[data-ui-theme="dark"] .attendigo-memo-banner.attendigo-memo-quiet .attendigo-memo-icon,
+:root[data-theme="dark"] .attendigo-memo-banner.attendigo-memo-quiet .attendigo-memo-icon{
+ background:#284b5b;color:#b5e8ee
+}
+@media(prefers-color-scheme:dark){
+ :root[data-theme="system"] .attendigo-memo-workspace .attendigo-memo-actions .attendigo-memo-is-read{
+  background:#1c4a42;border-color:#3a8778;color:#b5f1df
+ }
+ :root[data-theme="system"] .attendigo-memo-banner.attendigo-memo-quiet .attendigo-memo-icon{
+  background:#284b5b;color:#b5e8ee
+ }
+}
