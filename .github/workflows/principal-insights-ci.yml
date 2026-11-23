@@ -46,7 +46,7 @@ jobs:
           node --check principal-insights-routes.js
           node --check public/principal-insights.js
           node --check public/portal.js
-          node --test tests/principal-insights-routes.test.js
+          node --test tests/principal-insights-routes.test.js tests/principal-insights-ui.test.js
       - name: Add standard optional roles for the legacy Supabase migration
         run: |
           node - <<'NODE'
