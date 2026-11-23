@@ -5,6 +5,7 @@ on:
     paths:
       - 'staff-lunch-*.js'
       - 'public/staff-lunch-*'
+      - 'public/staff-department-location.js'
       - 'public/portal.html'
       - 'public/sw.js'
       - 'tests/staff-lunch-*'
@@ -46,6 +47,7 @@ jobs:
           node --check staff-lunch-location.js
           node --check staff-lunch-routes.js
           node --check public/staff-lunch-ui.js
+          node --check public/staff-department-location.js
           node --check public/staff-lunch-checkin.js
       - name: Run focused lunch and Gatekeeper unit tests
         run: |
