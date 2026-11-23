@@ -115,7 +115,7 @@ test('Teacher Recognition redesign keeps evidence source contracts and responsiv
  assert.match(css,/:root\[data-theme="dark"\] \.principal-recognition/);
  assert.match(css,/prefers-reduced-motion:reduce/);
  assert.match(js,/function recognitionEmpty\(/);
- assert.match(js,/No verified early arrivals today/);
+ assert.match(js,/No verified early arrivals on this date/);
  assert.match(js,/No candidates in this period/);
  assert.match(js,/count\.dataset\.state=entries\.length\?'active':'empty'/);
  assert.match(js,/count\.dataset\.state=award\.entries\.length\?'active':'empty'/);
