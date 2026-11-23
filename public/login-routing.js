@@ -10,6 +10,7 @@
 })(typeof window !== 'undefined' ? window : null, function createLoginRouting() {
   const SCHOOL_ROLES = new Set([
     'SCHOOL_ADMIN',
+    'PRINCIPAL',
     'DEPARTMENT_HEAD',
     'TEACHER',
     'GATE_KEEPER',
@@ -19,6 +20,7 @@
   function destinationForRole(role) {
     if (role === 'PARENT') return '/parent-portal.html';
     if (role === 'STUDENT') return '/student-portal.html';
+    if (role === 'PRINCIPAL') return '/principal.html';
     if (SCHOOL_ROLES.has(role)) return '/portal.html';
     return null;
   }
