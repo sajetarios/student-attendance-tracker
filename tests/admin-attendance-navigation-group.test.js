@@ -57,9 +57,9 @@ test('Admin-only desktop density keeps mobile touch sizes and existing workflows
 });
 
 test('portal and worker use the same bumped UI cache revisions', () => {
-  assert.match(html, /class-qr-dashboard-link\.js\?v=12/);
+  assert.match(html, /class-qr-dashboard-link\.js\?v=13/);
   assertCachedAsset(html,sw,'portal.js',{minimumVersion:213});
-  assert.match(sw, /class-qr-dashboard-link\.js\?v=12/);
+  assert.match(sw, /class-qr-dashboard-link\.js\?v=13/);
   assertCachedAsset(html,sw,'portal.js',{minimumVersion:213});
   assertCacheRevisionAtLeast(sw,263);
 });
