@@ -1,5 +1,18 @@
-/* Read-only teacher day overview appended to the existing shortcut panel.
+/* Read-only teacher day overview in the existing dashboard panel.
    No duplicate module, popover, attendance computation or floating controls. */
+/* Once the verified teacher overview mounts, show a single action-oriented panel.
+   Retain the original role-filtered shortcut buttons only as internal navigation targets.
+   If overview initialization fails, the original launcher remains visible. */
+html.attendigo-teacher-v2 body.portal-page #quickActionsCard.teacher-overview-only > .card-heading,
+html.attendigo-teacher-v2 body.portal-page #quickActionsCard.teacher-overview-only > .teacher-shortcut-items,
+html.attendigo-teacher-v2 body.portal-page #quickActionsCard.teacher-overview-only > .scope-note {
+  display: none !important;
+}
+html.attendigo-teacher-v2 body.portal-page #quickActionsCard.teacher-overview-only .teacher-today-overview {
+  margin: 0;
+  padding: 0;
+  border-top: 0;
+}
 html.attendigo-teacher-v2 body.portal-page #quickActionsCard .teacher-today-overview {
   margin: 15px 0 0;
   padding: 14px 0 0;
