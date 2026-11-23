@@ -1,0 +1,45 @@
+/* Screen-only containment for forms on all signed-in Attendigo portals. */
+@media screen {
+ :where(body.portal-page,body:has(> .shell)) :is(
+   .form-grid,.form-row,.field-grid,.filter-grid,.filter-row,.filter-controls,
+   .student-filter-row,.parent-form,.staff-form-grid,.ms-grid,.app-dialog-fields,
+   .form-actions,.action-row,.toolbar-actions,.heading-actions,.section-toolbar,
+   .modal-actions,.filter-actions
+ ) {min-inline-size:0;max-inline-size:100%;box-sizing:border-box;}
+ :where(body.portal-page,body:has(> .shell)) :is(
+   .form-grid,.form-row,.field-grid,.filter-grid,.filter-row,.filter-controls,
+   .student-filter-row,.parent-form,.staff-form-grid,.ms-grid,.app-dialog-fields
+ ) > :is(label,.field-group,.form-field,.input-group,.field,.control-group) {
+   min-inline-size:0!important;max-inline-size:100%;box-sizing:border-box;
+ }
+ /* Native date and select controls need both parent and child constraints on iOS. */
+ :where(body.portal-page,body:has(> .shell)) :is(
+   form,.field-group,.form-field,.input-group,.filter-row,.filter-controls,
+   .student-filter-row,.parent-form,.ms-grid,.app-dialog-field,.controls
+ ) :is(input:not([type=checkbox]):not([type=radio]):not([type=color]):not([type=hidden]):not([type=range]),select,textarea) {
+   min-inline-size:0!important;max-inline-size:100%!important;
+   box-sizing:border-box!important;flex-shrink:1;
+ }
+ :where(body.portal-page,body:has(> .shell)) :is(
+   form,.field-group,.form-field,.input-group,.filter-row,.filter-controls,
+   .student-filter-row,.parent-form,.ms-grid,.app-dialog-field
+ ) label > :is(input:not([type=checkbox]):not([type=radio]):not([type=color]):not([type=hidden]),select,textarea) {
+   inline-size:100%;display:block;
+ }
+ :where(body.portal-page,body:has(> .shell)) :is(
+   .form-actions,.action-row,.toolbar-actions,.heading-actions,.section-toolbar,
+   .modal-actions,.filter-actions
+ ) {flex-wrap:wrap;row-gap:8px;}
+ :where(body.portal-page,body:has(> .shell)) :is(
+   .form-actions,.action-row,.toolbar-actions,.heading-actions,.section-toolbar,
+   .modal-actions,.filter-actions
+ ) > :is(button,a,.primary-button,.outline-button,.secondary-button,.compact-button) {
+   min-inline-size:0;max-inline-size:100%;box-sizing:border-box;
+   white-space:normal;overflow-wrap:anywhere;
+ }
+}
+@media screen and (max-width:700px) {
+ :where(body.portal-page,body:has(> .shell)) :is(
+   .form-actions,.action-row,.toolbar-actions,.modal-actions,.filter-actions
+ ) > :is(button,a,.primary-button,.outline-button,.secondary-button) {flex:1 1 150px;}
+}
