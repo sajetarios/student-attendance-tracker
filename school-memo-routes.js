@@ -7,6 +7,7 @@ const AUDIENCES=new Set(['ALL_USERS','SCHOOL_STAFF']);
 const MIME=new Set(['application/pdf','image/jpeg','image/png']);
 const DAY=/^\d{4}-\d{2}-\d{2}$/;
 const cleaned=(v,max=160)=>String(v||'').trim().slice(0,max+1);
+const decoded=v=>{try{return decodeURIComponent(String(v||''));}catch(_){return '';}};
 const validDate=v=>DAY.test(v)&&!Number.isNaN(Date.parse(v+'T00:00:00Z'))&&
   new Date(v+'T00:00:00Z').toISOString().slice(0,10)===v;
 function validMemoDocument(bytes,mime){
@@ -73,12 +74,12 @@ function registerSchoolMemoRoutes(app,pool,{authenticateSchoolClient,requireScho
  });
  app.post('/api/school-memos',...principal,raw,async(req,res)=>{
   privateResponse(res);
-  const title=cleaned(req.headers['x-memo-title'],180),summary=cleaned(req.headers['x-memo-summary'],1200),
+  const title=cleaned(decoded(req.headers['x-memo-title']),180),summary=cleaned(decoded(req.headers['x-memo-summary']),1200),
     category=String(req.headers['x-memo-category']||'GENERAL').toUpperCase(),
     audience=String(req.headers['x-memo-audience']||'ALL_USERS').toUpperCase(),
     date=String(req.headers['x-memo-effective-date']||'').trim(),
     type=String(req.headers['content-type']||'').split(';')[0].trim().toLowerCase(),
-    filename=cleaned(req.headers['x-filename']||'memo.pdf',160).replace(/[^a-zA-Z0-9 ._()\-]/g,'_');
+    filename=cleaned(decoded(req.headers['x-filename']||'memo.pdf'),160).replace(/[^a-zA-Z0-9 ._()\-]/g,'_');
   if(title.length<5||title.length>180||summary.length>1200||
    !CATEGORIES.has(category)||!AUDIENCES.has(audience)||
    (date&&!validDate(date))||(['SCHEDULE_NOTICE','CLASS_SUSPENSION'].includes(category)&&!date)||
