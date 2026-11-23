@@ -700,7 +700,7 @@ app.get('/api/admin/gatekeeper-monitoring', authenticateSchoolClient, requireSch
 
 // Teachers can only read their OWN verified gatekeeper-recorded time events.
 // Never accept teacher IDs from query parameters or allow writes through this endpoint.
-app.get('/api/teacher/my-gate-attendance', authenticateSchoolClient, requireSchoolRoles('TEACHER', 'DEPARTMENT_HEAD', 'SCHOOL_ADMIN'), async (req, res) => {
+app.get('/api/teacher/my-gate-attendance', authenticateSchoolClient, requireSchoolRoles('TEACHER', 'DEPARTMENT_HEAD', 'SCHOOL_ADMIN', 'PRINCIPAL'), async (req, res) => {
   const schoolDate = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Manila' }).format(new Date());
   const from = typeof req.query.from === 'string' ? req.query.from : schoolDate;
   const to = typeof req.query.to === 'string' ? req.query.to : schoolDate;
@@ -737,12 +737,12 @@ app.get('/api/teacher/my-gate-attendance', authenticateSchoolClient, requireScho
 });
 
 // Own staff QR badge: authenticated staff (including Department Heads), never records attendance.
-app.post('/api/staff-attendance/my/badge', authenticateSchoolClient, requireSchoolRoles('TEACHER','DEPARTMENT_HEAD','SCHOOL_ADMIN'), async (req, res) => {
+app.post('/api/staff-attendance/my/badge', authenticateSchoolClient, requireSchoolRoles('TEACHER','DEPARTMENT_HEAD','SCHOOL_ADMIN','PRINCIPAL'), async (req, res) => {
   res.set('Cache-Control', 'no-store, private');
   try {
     const result = await pool.query(
       `UPDATE school_users SET teacher_qr_token=COALESCE(teacher_qr_token,gen_random_uuid())
-       WHERE school_id=$1 AND user_id=$2 AND role IN ('TEACHER','DEPARTMENT_HEAD','SCHOOL_ADMIN') AND active=TRUE
+       WHERE school_id=$1 AND user_id=$2 AND role IN ('TEACHER','DEPARTMENT_HEAD','SCHOOL_ADMIN','PRINCIPAL') AND active=TRUE
          AND (EXISTS (SELECT 1 FROM official_profile_photos p
            WHERE p.school_id=school_users.school_id AND p.subject_kind='STAFF'
              AND p.subject_id=school_users.user_id::text)
@@ -2326,7 +2326,7 @@ app.post('/api/gate/teacher-lookup', authenticateSchoolClient, requireSchoolRole
                 SELECT 1 FROM official_profile_photos p WHERE p.school_id=school_users.school_id
                  AND p.subject_kind='STAFF' AND p.subject_id=school_users.user_id::text)) AS "hasPhoto"
        FROM school_users
-       WHERE school_id=$1 AND teacher_qr_token=$2 AND role IN ('TEACHER','DEPARTMENT_HEAD','SCHOOL_ADMIN') AND active=TRUE LIMIT 1`,
+       WHERE school_id=$1 AND teacher_qr_token=$2 AND role IN ('TEACHER','DEPARTMENT_HEAD','SCHOOL_ADMIN','PRINCIPAL') AND active=TRUE LIMIT 1`,
       [req.auth.schoolId, qrToken]
     );
     if (!result.rowCount) return res.status(404).json({ error: 'Teacher QR code not found or account is inactive.' });
@@ -2357,7 +2357,7 @@ app.get('/api/gate/teacher/photo/:qrToken', authenticateSchoolClient, requireSch
                 SELECT 1 FROM official_profile_photos p WHERE p.school_id=school_users.school_id
                  AND p.subject_kind='STAFF' AND p.subject_id=school_users.user_id::text)) AS "hasPhoto"
        FROM school_users
-       WHERE school_id=$1 AND teacher_qr_token=$2 AND role IN ('TEACHER','DEPARTMENT_HEAD','SCHOOL_ADMIN') AND active=TRUE`,
+       WHERE school_id=$1 AND teacher_qr_token=$2 AND role IN ('TEACHER','DEPARTMENT_HEAD','SCHOOL_ADMIN','PRINCIPAL') AND active=TRUE`,
       [req.auth.schoolId, qrToken]
     );
     if (!result.rowCount || !result.rows[0].hasPhoto) return res.status(404).end();
@@ -2404,7 +2404,7 @@ app.post('/api/gate/teacher-events', authenticateSchoolClient, requireSchoolRole
       return res.status(409).json({error:'The recorded time is after the scheduled dismissal time for this shortened day.'});
     const teacher = await pool.query(
       `SELECT display_name FROM school_users
-       WHERE school_id=$1 AND user_id=$2 AND role IN ('TEACHER','DEPARTMENT_HEAD','SCHOOL_ADMIN') AND active=TRUE
+       WHERE school_id=$1 AND user_id=$2 AND role IN ('TEACHER','DEPARTMENT_HEAD','SCHOOL_ADMIN','PRINCIPAL') AND active=TRUE
          AND (teacher_photo_path IS NOT NULL OR EXISTS (
             SELECT 1 FROM official_profile_photos p WHERE p.school_id=school_users.school_id
              AND p.subject_kind='STAFF' AND p.subject_id=school_users.user_id::text))`,
@@ -2447,7 +2447,7 @@ app.post('/api/gate/teacher-event-preview', authenticateSchoolClient, requireSch
   if(!isUuid(qrToken))return res.status(400).json({error:'Valid staff QR badge required.'});
   try {
     const teacher=await pool.query(`SELECT user_id FROM school_users
-      WHERE school_id=$1 AND teacher_qr_token=$2 AND role IN ('TEACHER','DEPARTMENT_HEAD','SCHOOL_ADMIN')
+      WHERE school_id=$1 AND teacher_qr_token=$2 AND role IN ('TEACHER','DEPARTMENT_HEAD','SCHOOL_ADMIN','PRINCIPAL')
       AND active=TRUE AND (teacher_photo_path IS NOT NULL OR EXISTS (
         SELECT 1 FROM official_profile_photos p WHERE p.school_id=school_users.school_id
         AND p.subject_kind='STAFF' AND p.subject_id=school_users.user_id::text))`,
@@ -2510,7 +2510,7 @@ app.post('/api/gate/teacher-auto-event', authenticateSchoolClient, requireSchool
   try {
     await client.query('BEGIN');
     const teacher=await client.query(`SELECT user_id,display_name FROM school_users
-      WHERE school_id=$1 AND teacher_qr_token=$2 AND role IN ('TEACHER','DEPARTMENT_HEAD','SCHOOL_ADMIN')
+      WHERE school_id=$1 AND teacher_qr_token=$2 AND role IN ('TEACHER','DEPARTMENT_HEAD','SCHOOL_ADMIN','PRINCIPAL')
       AND active=TRUE AND (teacher_photo_path IS NOT NULL OR EXISTS (
        SELECT 1 FROM official_profile_photos p WHERE p.school_id=school_users.school_id
        AND p.subject_kind='STAFF' AND p.subject_id=school_users.user_id::text))
