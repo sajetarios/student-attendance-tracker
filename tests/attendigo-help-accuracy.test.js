@@ -114,6 +114,6 @@ test('unverified/unauthorized questions never become guessed generative guidance
   assert.ok(aiRoutes.includes("status(422)"));
   assert.ok(aiRoutes.includes('Do not add any steps or UI names not stated'));
   assertCacheRevisionAtLeast(sw,311);
-  assert.ok(sw.includes('"/attendigo-help-topics.js?v=2"'));
+  assert.ok(sw.includes('"/attendigo-help-topics.js?v=3"'));
   assert.ok(sw.includes('"/attendigo-help-guide.js?v=4"'));
 });
