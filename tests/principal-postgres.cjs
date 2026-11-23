@@ -63,7 +63,7 @@ async function main(){
   const first=await overview(principal.token);
   assert.equal(first.status,200,'Principal dashboard API must load: '+JSON.stringify(first.body));
   assert.equal(first.body.school.schoolCode,'P'+suffix+'A');
-  assert.equal(first.body.metrics.trackedStaff,2,'School Admin and Teacher have distinct DTR scopes');
+  assert.equal(first.body.metrics.trackedStaff,3,'Principal, School Admin and Teacher are tracked separately within the school');
   assert.equal(first.body.metrics.withVerifiedPunch,1,'Only verified employee has a verified punch');
   assert.equal(first.body.metrics.withPendingPunch,1);
   assert.equal(first.body.metrics.verifiedDtrSlots,1,'Cross-school event must never count');

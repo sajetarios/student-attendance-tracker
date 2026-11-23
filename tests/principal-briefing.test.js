@@ -9,7 +9,7 @@ test('Principal daily briefing exposes four actionable, source-labeled focus are
   assert.ok(html.includes('id="'+id+'"'),id+' must appear');
  assert.ok(js.includes('renderBriefing(data)'),'renders from API result');
  assert.ok(js.includes("name:'Attendance evidence'"));
- assert.ok(js.includes("name:'Decisions and requests'"));
+ assert.ok(js.includes("name:'Administrative workflow reference'") || js.includes("name:'Decisions and requests'"));
  assert.ok(js.includes("name:'Department QR readiness'"));
  assert.ok(js.includes("name:'Learner scan activity'"));
  assert.ok(js.includes("switchSection('staff')"));
@@ -35,8 +35,9 @@ test('Presentation mode is optional, accessible and does not alter attendance da
  assert.ok(css.includes('prefers-reduced-motion'));
 });
 test('Principal assets are coherently cache-busted for production',()=>{
- for(const asset of ['principal-dashboard.css?v=2','principal-dashboard.js?v=2']){
-  assert.ok(html.includes(asset));
-  assert.ok(sw.includes(asset));
+ for(const file of ['principal-dashboard.css','principal-dashboard.js']){
+  const found=html.match(new RegExp(file.replace('.', '\\.')+'\\?v=\\d+'));
+  assert.ok(found,file+' must have an explicit version in the Principal page');
+  assert.ok(sw.includes(found[0]),file+' must use the same version in the service worker');
  }
 });

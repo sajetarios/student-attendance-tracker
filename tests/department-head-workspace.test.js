@@ -160,10 +160,10 @@ test('Department Head DTR and QR require backend role permission and physical ph
   const server = fs.readFileSync(path.join(__dirname, '../server.js'), 'utf8');
   const dtr = fs.readFileSync(path.join(__dirname, '../staff-gate-dtr-routes.js'), 'utf8');
   const frontend = fs.readFileSync(path.join(__dirname, '../public/portal.js'), 'utf8');
-  assert.match(server, /my-gate-attendance'[\s\S]{0,100}requireSchoolRoles\('TEACHER', 'DEPARTMENT_HEAD', 'SCHOOL_ADMIN'\)/);
-  assert.match(server, /my\/badge'[\s\S]{0,100}requireSchoolRoles\('TEACHER','DEPARTMENT_HEAD','SCHOOL_ADMIN'\)/);
-  assert.match(server, /teacher_qr_token=\$2 AND role IN \('TEACHER','DEPARTMENT_HEAD','SCHOOL_ADMIN'\)/);
-  assert.match(dtr, /my\/dtr-history'[\s\S]{0,110}requireSchoolRoles\('TEACHER','DEPARTMENT_HEAD','SCHOOL_ADMIN'\)/);
+  assert.match(server, /my-gate-attendance'[\s\S]{0,100}requireSchoolRoles\('TEACHER', 'DEPARTMENT_HEAD', 'SCHOOL_ADMIN', 'PRINCIPAL'\)/);
+  assert.match(server, /my\/badge'[\s\S]{0,100}requireSchoolRoles\('TEACHER','DEPARTMENT_HEAD','SCHOOL_ADMIN','PRINCIPAL'\)/);
+  assert.match(server, /teacher_qr_token=\$2 AND role IN \('TEACHER','DEPARTMENT_HEAD','SCHOOL_ADMIN','PRINCIPAL'\)/);
+  assert.match(dtr, /my\/dtr-history'[\s\S]{0,110}requireSchoolRoles\('TEACHER','DEPARTMENT_HEAD','SCHOOL_ADMIN','PRINCIPAL'\)/);
   assert.match(dtr, /photoVerified!==true/);
   assert.match(frontend, /if \(role === 'DEPARTMENT_HEAD'\) return \[[^\]]*'myGateAttendance'/);
 });
