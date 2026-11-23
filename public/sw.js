@@ -1,4 +1,4 @@
-const CACHE = "attendigo-v327-missing-scan-final-principal-memos-memo-inline";
+const CACHE = "attendigo-v328-mobile-class-register";
 
 const SHELL = [
   "/typography.css?v=1",
@@ -57,7 +57,7 @@ const SHELL = [
   "/teacher-learner-roster.css?v=7",
   "/learner-roster-view.js?v=1",
   "/student-name-format.js?v=2",
-  "/class-qr-dashboard-link.js?v=12",
+  "/class-qr-dashboard-link.js?v=13",
   "/class-qr-monitor.js?v=2",
   "/class-qr-monitor-embedded.css?v=1",
   "/teacher-scanner-schedule.js?v=1",
@@ -112,6 +112,7 @@ const SHELL = [
   "/gate-offline-review.js?v=1",
   "/offline-sheet.js?v=4",
   "/manual-folio.css?v=11",
+  "/class-attendance-mobile.css?v=1",
   "/attendance-sync-center.css?v=4",
   "/attendance-sync-center.js?v=3",
   "/manual-folio.js?v=18",
