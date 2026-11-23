@@ -75,7 +75,7 @@ async function main(){
   server=await new Promise(resolve=>{const listener=app.listen(0,'127.0.0.1',()=>resolve(listener));});
   const base='http://127.0.0.1:'+server.address().port;
   const allowed=await fetch(base+'/api/principal/insights?days=1');
-  assert.equal(allowed.status,200,await allowed.text().catch(()=>'')); // text() on success is never read here
+  if(!allowed.ok)throw Error('Principal overview failed: '+allowed.status+' '+await allowed.text());
   const output=await allowed.json();
   assert.equal(output.staff.verifiedSlots,1);
   assert.equal(output.staff.pendingSlots,1);
