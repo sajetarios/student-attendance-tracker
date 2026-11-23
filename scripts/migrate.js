@@ -84,7 +84,8 @@ const REQUIRED_MIGRATIONS = [
   '076_deped_sick_leave_credit_scheme.sql',
   '077_principal_leadership_role.sql',
   '078_principal_sdo_handoff.sql',
-  '079_school_memoranda.sql'
+  '079_school_memoranda.sql',
+  '080_missing_scan_department_logbook_review.sql'
 ];
 
 function checksum(content) {
