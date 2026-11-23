@@ -35,8 +35,8 @@
       <div class="dh-monitor-heading">
         <div class="dh-monitor-heading-icon" aria-hidden="true">▥</div>
         <div class="dh-monitor-heading-title"><span class="dh-monitor-eyebrow">DEPARTMENT WORKSPACE</span>
-          <h3>Department Monitoring &amp; Reports</h3>
-          <p>Gate activity, teacher workload, department notices and learner follow-up.</p>
+          <h3>My Department · Operational Details</h3>
+          <p>Department-scoped gate activity, approved OB requiring class coverage, staff workload and announcements.</p>
         </div>
         <div class="dh-monitor-heading-actions">
           <span class="dh-last-updated" id="dhLastUpdated" role="status">Not refreshed yet</span>
@@ -47,7 +47,7 @@
       <div class="dh-insights-metrics" aria-label="Department monitoring totals">
         <article class="dh-kpi dh-kpi-gate"><span class="dh-kpi-icon" aria-hidden="true">▣</span><div><span>Verified gate arrivals today</span><strong id="dhGateArrivals">—</strong><small>Gate arrivals only</small></div></article>
         <article class="dh-kpi dh-kpi-ob"><span class="dh-kpi-icon" aria-hidden="true">▤</span><div><span>OB requests awaiting recommendation</span><strong id="dhPendingOb">—</strong><small>Awaiting your action</small></div></article>
-        <article class="dh-kpi dh-kpi-cover"><span class="dh-kpi-icon" aria-hidden="true">▦</span><div><span>Approved classes needing coverage</span><strong id="dhUncoveredClassesReports">—</strong><small>Review class assignments</small></div></article>
+        <article class="dh-kpi dh-kpi-cover"><span class="dh-kpi-icon" aria-hidden="true">▦</span><div><span>Approved OB needing coverage</span><strong id="dhUncoveredClassesReports">—</strong><small>My department only · approved OB</small></div></article>
       </div>
       <div class="dh-monitor-columns">
         <section class="dh-monitor-panel dh-monitor-workload">

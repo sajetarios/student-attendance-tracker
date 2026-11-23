@@ -1,4 +1,4 @@
-const CACHE = "attendigo-v328-mobile-class-register";
+const CACHE = "attendigo-v329-role-ui-consolidation";
 
 const SHELL = [
   "/typography.css?v=1",
@@ -74,14 +74,13 @@ const SHELL = [
   "/staff-leave-ui.css?v=7",
   "/leave-status-indicator.css?v=1",
   "/department-workspace.css?v=1",
-  "/department-workspace.js?v=5",
+  "/department-workspace.js?v=6",
   "/department-monitor-refresh.css?v=1",
   "/department-dashboard-v2.css?v=2",
-  "/department-dashboard-v2.js?v=2",
+  "/department-dashboard-v2.js?v=3",
   "/teacher-dashboard-v2.css?v=1",
-  "/teacher-dashboard-v2.js?v=1",
   "/teacher-dashboard-v3.css?v=1",
-  "/teacher-dashboard-v3.js?v=1",
+  "/teacher-dashboard-v3.js?v=2",
   "/form48-report.js?v=19",
   "/missing-scan-ui.js?v=1",
   "/missing-scan-ui.css?v=1",
@@ -102,7 +101,7 @@ const SHELL = [
   "/sardo-monitor.js?v=2",
   "/sardo-monitor.css?v=1",
   "/schedule-form-layout.css?v=15",
-  "/parent-dashboard.js?v=3",
+  "/parent-dashboard.js?v=4",
   "/offline-attendance.js?v=5",
   "/offline-sheet.html",
   "/gate-offline.html",

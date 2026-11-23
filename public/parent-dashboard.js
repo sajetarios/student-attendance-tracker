@@ -11,8 +11,8 @@
     const verified=parents.filter(x=>x.active && (x.children||[]).some(c=>c.status==='APPROVED')).length;
     const inactive=parents.filter(x=>!x.active).length;
     [['statTotal',parents.length],['statVerified',verified],['statPending',registrations.length],['statInactive',inactive],['tabAll',parents.length],['tabVerified',verified],['tabPending',registrations.length],['tabInactive',inactive]].forEach(([id,n])=>{const el=$(id);if(el)el.textContent=count(n)});
-    const q=($('parentSearch')?.value||'').toLowerCase().trim();const status=$('parentStatusFilter')?.value||'all';
-    root.querySelectorAll('#parentRows tr').forEach((tr,i)=>{const x=parents[i];if(!x)return;const verified=x.active&&(x.children||[]).some(c=>c.status==='APPROVED');const match=[x.displayName,x.username,x.mobile,...(x.children||[]).flatMap(c=>[c.fullName,c.studentId])].join(' ').toLowerCase().includes(q);tr.hidden=!(match&&(currentTab==='all'||currentTab==='verified'&&verified||currentTab==='inactive'&&!x.active)&&(status==='all'||status==='verified'&&verified||status==='inactive'&&!x.active));tr.querySelectorAll('td').forEach((td,j)=>td.dataset.label=['Parent','Mobile','Linked students','Status','Actions'][j]);});
+    const q=($('parentSearch')?.value||'').toLowerCase().trim(); // Tabs are the only status filter.
+    root.querySelectorAll('#parentRows tr').forEach((tr,i)=>{const x=parents[i];if(!x)return;const verified=x.active&&(x.children||[]).some(c=>c.status==='APPROVED');const match=[x.displayName,x.username,x.mobile,...(x.children||[]).flatMap(c=>[c.fullName,c.studentId])].join(' ').toLowerCase().includes(q);tr.hidden=!(match&&(currentTab==='all'||currentTab==='verified'&&verified||currentTab==='inactive'&&!x.active));tr.querySelectorAll('td').forEach((td,j)=>td.dataset.label=['Parent','Mobile','Linked students','Status','Actions'][j]);});
     root.querySelectorAll('#pendingRows tr').forEach((tr,i)=>{const x=registrations[i];if(!x)return;tr.hidden=!([x.displayName,x.username,x.mobile,x.studentName,x.studentId].join(' ').toLowerCase().includes(q));tr.querySelectorAll('td').forEach((td,j)=>td.dataset.label=['Parent','Student','Submitted','Decision'][j]);});
     $('pendingPanel').hidden=currentTab!=='pending';$('accountsPanel').hidden=currentTab==='pending';root.querySelectorAll('.parent-tab').forEach(b=>{const active=b.dataset.tab===currentTab;b.classList.toggle('selected',active);b.setAttribute('aria-selected',String(active));});
   }
@@ -27,6 +27,6 @@
   $('openCreate').addEventListener('click',()=>{const panel=$('createPanel');panel.hidden=false;panel.scrollIntoView({behavior:'smooth',block:'start'});$('username').focus({preventScroll:true});});
   $('closeCreate').addEventListener('click',()=>{$('createPanel').hidden=true;});
   root.querySelectorAll('.parent-tab').forEach(b=>b.addEventListener('click',()=>{currentTab=b.dataset.tab;decorate();}));
-  $('parentSearch').addEventListener('input',decorate);$('parentStatusFilter').addEventListener('change',decorate);
+  $('parentSearch').addEventListener('input',decorate);
   $('parentRefreshButton').addEventListener('click',load);init().catch(e=>{ $('pageFeedback').textContent=e.message; $('pageFeedback').className='form-feedback error'; });
 })();
