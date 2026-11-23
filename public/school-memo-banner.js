@@ -192,7 +192,14 @@
   finally{state.loading=false;}
  }
  function build(){
-  host=getHost();if(!host||strip)return false;
+  host=getHost();if(!host)return false;
+  if(strip&&panel){
+   if(!strip.isConnected||!panel.isConnected){
+    host.insertBefore(panel,host.firstChild);
+    host.insertBefore(strip,panel);
+   }
+   return true;
+  }
   strip=make('aside','attendigo-memo-banner');strip.dataset.schoolMemoBanner='true';
   strip.setAttribute('aria-label','School memoranda');
   panel=make('section','attendigo-memo-workspace');
@@ -278,7 +285,7 @@
   else void refresh();
  }
  async function refresh(){
-  if(!strip&&!build())return;
+  if(!build())return;
   if(state.open){await load();return;}
   try{
    const payload=await request('/api/school-memos?limit=50');
