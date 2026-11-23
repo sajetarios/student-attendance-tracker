@@ -11,10 +11,10 @@ function routeHarness(){
  const pool={async query(sql,args){
   queries.push({sql,args});
   if(sql.includes("FROM school_departments WHERE"))return {rowCount:1,rows:[{count:1}]};
-  if(sql.includes('FROM staff_ob_class_coverage c'))return {rows:[
+  if(sql.includes("SELECT DISTINCT 'OB'::text AS \"kind\""))return {rows:[
    {kind:'OB',date:'2026-11-24',periodId:UUID,periodName:'English',gradeLevel:'8',
     section:'A',startTime:'08:00',endTime:'09:00',departmentId:UUID,departmentName:'English',total:1}]};
-  if(sql.includes('FROM staff_form48_approved_leaves l'))return {rows:[]};
+  if(sql.includes("SELECT DISTINCT 'LEAVE'::text AS \"kind\""))return {rows:[]};
   throw Error('Unexpected query');
  }};
  registerPrincipalClassImpactRoutes({get(route,...handlers){
