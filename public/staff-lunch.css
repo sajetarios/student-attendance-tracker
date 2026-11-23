@@ -66,3 +66,16 @@
   .staff-lunch-location-actions label{flex:0 1 auto;min-width:0;width:100%}
   .staff-lunch-location-actions>button{width:100%}
 }
+
+/* School Admin remote review and on-site Department Head capture */
+.staff-lunch-location-decisions{display:flex;flex-wrap:wrap;gap:8px;flex:1 1 100%}
+.staff-lunch-location-decisions button{flex:1 1 145px;min-height:42px}
+.staff-lunch-proposal-detail{flex:1 1 100%;overflow-wrap:anywhere;margin:0}
+.staff-lunch-map-link{display:inline-flex;color:var(--link-color,#2563eb);font-size:.87rem}
+.staff-lunch-dept-head-location{margin:12px 0}
+.staff-lunch-dept-head-location>.primary-button{width:auto;min-height:42px;max-width:100%;white-space:normal}
+@media(max-width:600px){
+ .staff-lunch-dept-head-location>.primary-button{width:100%}
+ .staff-lunch-location-decisions{flex-direction:column}
+ .staff-lunch-location-decisions button{width:100%;flex:0 1 auto}
+}
