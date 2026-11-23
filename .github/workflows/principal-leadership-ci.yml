@@ -1,0 +1,74 @@
+name: Principal leadership dashboard (isolated PostgreSQL)
+on:
+  pull_request:
+    branches: [fix/render-login-landing]
+    paths:
+      - 'principal-routes.js'
+      - 'public/principal*'
+      - 'public/login-routing.js'
+      - 'login-routing.js'
+      - 'public/portal.js'
+      - 'public/portal.html'
+      - 'public/sw.js'
+      - 'server.js'
+      - 'role-permissions.js'
+      - 'migrations/077_principal_leadership_role.sql'
+      - 'scripts/migrate.js'
+      - 'tests/principal-*'
+      - 'tests/login-routing.test.js'
+      - 'tests/role-permissions.test.js'
+      - '.github/workflows/principal-leadership-ci.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  principal-leadership:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: school_attendance_test
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd "pg_isready -U postgres -d school_attendance_test"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    env:
+      DATABASE_URL: postgres://postgres:postgres@localhost:5432/school_attendance_test
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci
+      - name: Check Principal and login JavaScript syntax
+        run: |
+          node --check principal-routes.js
+          node --check public/principal-dashboard.js
+          node --check public/principal-admin-account.js
+          node --check public/portal.js
+          node --check login-routing.js
+          node --check public/login-routing.js
+          node --check server.js
+      - name: Verify least-privilege role and interactive dashboard
+        run: node --test tests/principal-dashboard.test.js tests/role-permissions.test.js tests/login-routing.test.js
+      - name: Bootstrap optional Supabase SQL roles in isolated test DB
+        run: |
+          node - <<'NODE'
+          const {Client}=require('pg');
+          (async()=>{
+            const db=new Client({connectionString:process.env.DATABASE_URL});await db.connect();
+            try{await db.query("DO $$ BEGIN IF NOT EXISTS (SELECT FROM pg_roles WHERE rolname='anon') THEN CREATE ROLE anon; END IF; IF NOT EXISTS (SELECT FROM pg_roles WHERE rolname='authenticated') THEN CREATE ROLE authenticated; END IF; END $$;");}
+            finally{await db.end();}
+          })().catch(error=>{console.error(error);process.exitCode=1;});
+          NODE
+      - name: Validate complete migration chain including Principal role
+        run: npm run db:migrate
+      - name: Verify Principal school isolation and real PostgreSQL analytics
+        run: node tests/principal-postgres.cjs
