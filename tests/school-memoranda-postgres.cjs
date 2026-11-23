@@ -150,9 +150,14 @@ async function main(){
    for(const user of [teacher,parent,student]){
     const r=await call(user,'GET','/api/notifications');
     assert.equal(r.code,200,JSON.stringify(r.body));
-    assert.ok(r.body.notifications.some(n=>n.requestId===memo&&n.actionUrl==='/school-memos.html?id='+memo));
+    const dashboard=user.role==='STUDENT'?'/student-portal.html':user.role==='PARENT'?'/parent-portal.html':'/portal.html';
+    assert.ok(r.body.notifications.some(n=>n.requestId===memo&&n.actionUrl===dashboard+'?memo='+memo),
+      'Recipient opens in '+dashboard+' rather than standalone memo page');
    }
    assert.equal((await call(foreignTeacher,'GET','/api/notifications')).body.notifications.some(n=>n.requestId===memo),false);
+   const principalInbox=await call(p,'GET','/api/notifications');
+   assert.ok(principalInbox.body.notifications.some(n=>n.requestId===memo&&n.actionUrl==='/principal.html?memo='+memo),
+    'Principal should stay in the Principal Portal');
   });
   await test('same-school principal, staff, parent and student can view a published memo',async()=>{
    for(const user of [p,admin,head,teacher,gate,parent,student]){
