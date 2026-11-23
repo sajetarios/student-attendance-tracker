@@ -83,7 +83,8 @@ const REQUIRED_MIGRATIONS = [
   '075_department_optional_for_leave_applicant.sql',
   '076_deped_sick_leave_credit_scheme.sql',
   '077_principal_leadership_role.sql',
-  '078_principal_sdo_handoff.sql'
+  '078_principal_sdo_handoff.sql',
+  '079_school_memoranda.sql'
 ];
 
 function checksum(content) {
