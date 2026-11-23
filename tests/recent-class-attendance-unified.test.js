@@ -53,8 +53,9 @@ test('recent attendance presents all requested fields without mixing unsynced dr
   assert.match(css, /html\[data-ui-theme=dark\]/);
   assert.ok(html.includes('/recent-class-attendance.css?v=2'));
   assert.ok(worker.includes('/recent-class-attendance.css?v=2'));
-  assert.ok(html.includes('/portal.js?v=237'));
-  assert.ok(worker.includes('/portal.js?v=237'));
+  const versionedPortal = html.match(/\/portal\.js\?v=\d+/)?.[0];
+  assert.ok(versionedPortal, 'portal JS must have a version');
+  assert.ok(worker.includes(versionedPortal), 'worker must cache the actual portal JS version');
 });
 
 const localDb = /^postgres(?:ql)?:\/\/[^@]+@(?:localhost|127\.0\.0\.1):5432\/school_attendance_test(?:\?|$)/.test(process.env.DATABASE_URL || '');
