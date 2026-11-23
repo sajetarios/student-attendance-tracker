@@ -1,4 +1,4 @@
-const CACHE = "attendigo-v329-unified-recent-class-attendance";
+const CACHE = "attendigo-v329-unified-recent-class-attendance-attendance-two-actions";
 
 const SHELL = [
   "/typography.css?v=1",
@@ -116,7 +116,7 @@ const SHELL = [
   "/recent-class-attendance.css?v=1",
   "/attendance-sync-center.css?v=4",
   "/attendance-sync-center.js?v=3",
-  "/manual-folio.js?v=18",
+  "/manual-folio.js?v=19",
   "/student-portal-accounts.css?v=6",
   "/student-workspace-tabs.css?v=1",
   "/student-portal-accounts.js?v=11",
