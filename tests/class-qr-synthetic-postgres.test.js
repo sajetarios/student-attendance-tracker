@@ -76,7 +76,7 @@ test('Class monitoring works on realistic synthetic class and check-in data, wit
    'CREATE TEMP TABLE schedule_day_adjustments (school_id uuid,period_id uuid,school_date date,teacher_user_id uuid,start_time time,end_time time,subject_id uuid,adjustment_type text)',
    'CREATE TEMP TABLE school_subjects (school_id uuid,subject_id uuid,subject_name text)',
    'CREATE TEMP TABLE class_period_days (school_id uuid,period_id uuid,weekday int)',
-   'CREATE TEMP TABLE school_calendar_exceptions (school_id uuid,calendar_date date,exception_type text)',
+   'CREATE TEMP TABLE school_calendar_exceptions (school_id uuid,calendar_date date,exception_type text,suspension_time time)',
    'CREATE TEMP TABLE class_qr_sessions (session_id uuid PRIMARY KEY,school_id uuid,period_id uuid,school_date date,teacher_user_id uuid,grade_level text,section text,subject_name text,starts_at timestamptz,ends_at timestamptz,closes_at timestamptz,closed_at timestamptz,secret text)',
    'CREATE TEMP TABLE class_qr_checkins (checkin_id uuid DEFAULT gen_random_uuid() PRIMARY KEY,session_id uuid,school_id uuid,student_id text,attendance_status text)',
    'CREATE TEMP TABLE audit_logs (school_id uuid,actor_type text,actor_user_id uuid,action text,entity_type text,entity_id text,details jsonb)'
