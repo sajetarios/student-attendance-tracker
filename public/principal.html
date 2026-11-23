@@ -11,8 +11,8 @@
 try { const preference = localStorage.getItem('attendigo.principal.theme'); document.documentElement.dataset.theme = ['dark','light','system'].includes(preference) ? preference : 'light'; }
 catch (_) { document.documentElement.dataset.theme = 'light'; }
 </script>
-<link rel="stylesheet" href="/principal-dashboard.css?v=4">
-<script src="/principal-dashboard.js?v=4" defer></script>
+<link rel="stylesheet" href="/principal-dashboard.css?v=5">
+<script src="/principal-dashboard.js?v=5" defer></script>
 </head>
 <body>
 <a class="skip" href="#main">Skip to school overview</a>
@@ -63,17 +63,21 @@ catch (_) { document.documentElement.dataset.theme = 'light'; }
   </section>
   <p id="feedback" class="feedback" role="status" aria-live="polite">Loading verified school records…</p>
 
-  <nav class="tabs" aria-label="Principal dashboard sections">
-   <button type="button" class="tab is-active" data-section="overview" aria-pressed="true">Overview</button>
+  <nav class="tabs principal-nav" aria-label="Principal leadership modules">
+   <button type="button" class="tab is-active" data-section="overview" aria-pressed="true">Executive Dashboard</button>
    <button type="button" class="tab" data-section="badge" aria-pressed="false">My QR Badge</button>
-   <button type="button" class="tab" data-section="personal" aria-pressed="false">My DTR &amp; Gate</button>
-   <button type="button" class="tab" data-section="students" aria-pressed="false">Students</button>
+   <button type="button" class="tab" data-section="personal" aria-pressed="false">My Personnel</button>
+   <button type="button" class="tab" data-section="priorities" aria-pressed="false">Approvals &amp; Decisions</button>
+   <button type="button" class="tab" data-section="staff" aria-pressed="false">Personnel Oversight</button>
+   <button type="button" class="tab" data-section="students" aria-pressed="false">Learners</button>
+   <button type="button" class="tab" data-section="calendar" aria-pressed="false">Calendar &amp; Timetable</button>
+   <button type="button" class="tab" data-section="security" aria-pressed="false">Gate &amp; Security</button>
+   <button type="button" class="tab" data-section="reports" aria-pressed="false">Reports</button>
+   <button type="button" class="tab" data-section="notifications" aria-pressed="false">Notifications</button>
+   <button type="button" class="tab" data-section="assistant" aria-pressed="false">AI Guide</button>
    <button type="button" class="tab" data-section="departments" aria-pressed="false">Departments</button>
-   <button type="button" class="tab" data-section="staff" aria-pressed="false">Staff DTR</button>
-   <button type="button" class="tab" data-section="priorities" aria-pressed="false">Action Inbox</button>
    <button type="button" class="tab" data-section="definitions" aria-pressed="false">Metric definitions</button>
   </nav>
-
   <section id="badgePanel" class="panel" data-panel="badge" hidden>
    <div class="section-heading"><div><p class="eyebrow">PERSONAL IDENTITY</p><h2>My QR gate badge</h2><p>Show your personal QR badge to the Gatekeeper. Displaying the badge does not mark attendance.</p></div></div>
    <div class="principal-personal-grid">
@@ -92,6 +96,11 @@ catch (_) { document.documentElement.dataset.theme = 'light'; }
    </div>
   </section>
   <section id="personalPanel" class="panel" data-panel="personal" hidden>
+   <div class="surface"><h3>Personal requests &amp; leave credits</h3>
+    <p class="source-note">Read-only status of your own requests and certified credit ledger. Principal filing and approval controls are withheld until the leave/OB policy and authorized approval route support your role.</p>
+    <div class="principal-personal-grid"><div><h4>My leave requests</h4><div id="principalLeaveList" class="principal-data-list"></div></div><div><h4>My official business</h4><div id="principalObList" class="principal-data-list"></div></div></div>
+    <h4>Certified leave credits</h4><div id="principalCreditsList" class="principal-data-list"></div>
+   </div>
    <div class="section-heading"><div><p class="eyebrow">PERSONAL ATTENDANCE</p><h2>My DTR &amp; verified gate records</h2><p>Only your own verified entries, without automatically inferred or fabricated attendance.</p></div></div>
    <div class="surface">
     <div class="staff-filters"><label>School date <input type="date" id="personalDate"></label><button id="refreshPersonal" type="button" class="refresh-button">Refresh</button></div>
@@ -107,6 +116,7 @@ catch (_) { document.documentElement.dataset.theme = 'light'; }
     <div class="metric-card"><span class="metric-label">Active student records</span><strong id="studentSummaryActive">—</strong><small>Active roster</small></div>
     <div class="metric-card"><span class="metric-label">Accepted classroom QR check-ins</span><strong id="studentSummaryCheckins">—</strong><small>Unique learners on selected date</small></div>
    </div>
+   <div class="surface"><h3>Learner intervention readiness</h3><p>SF2 attendance, SARDO intervention and grade/section breakdowns are visible only after a verified school-level report source is connected to this principal role. No missing learner records are treated as absence.</p></div>
    <div class="surface"><h3>Reporting caution</h3><p>Official SF2 totals, absences and SARDO designations require separate validated records. QR activity alone does not prove school attendance.</p></div>
   </section>
   <section id="overviewPanel" class="panel" data-panel="overview">
@@ -179,6 +189,66 @@ catch (_) { document.documentElement.dataset.theme = 'light'; }
    <div id="definitionList" class="definition-list"></div>
    <div class="surface note-block"><h3>Data quality before conclusions</h3><p>Attendance, tardiness, SARDO, and official Form 48/SF2 totals require their established validation procedures. This leadership view never manufactures a school attendance percentage from incomplete or pending logs.</p></div>
   </section>
+
+  <section id="calendarPanel" class="panel" hidden>
+   <div class="section-heading"><div><p class="eyebrow">SCHOOL OPERATIONS</p><h2>Calendar &amp; Timetable</h2><p>Recorded operating days and calendar exceptions from your school. Class assignments and timetable conflicts remain subject to administrative scheduling permissions.</p></div></div>
+   <div class="principal-personal-grid">
+    <div class="surface"><h3>School operating days</h3><div id="principalOperatingDays" class="principal-data-list"></div></div>
+    <div class="surface"><h3>Coming calendar exceptions</h3><div id="principalCalendarEvents" class="principal-data-list"></div></div>
+   </div>
+   <p id="principalCalendarStatus" class="source-note" role="status">Opening school calendar…</p>
+   <div class="surface"><h3>Class timetable &amp; classroom conflicts</h3><p>The existing school scheduling module controls these records. Principal-specific timetable access is not yet authorized in this view; no assignments or conflicts are invented.</p></div>
+  </section>
+  <section id="securityPanel" class="panel" hidden>
+   <div class="section-heading"><div><p class="eyebrow">GATEKEEPER OVERSIGHT</p><h2>Gate &amp; Security</h2><p>School-scoped verified physical movements and Gatekeeper accounts. A gate scan does not by itself certify a DTR entry.</p></div></div>
+   <div class="metric-grid">
+    <div class="metric-card"><span class="metric-label">Gatekeeper accounts</span><strong id="principalKeeperTotal">—</strong><small id="principalKeeperActive">Active accounts pending</small></div>
+    <div class="metric-card"><span class="metric-label">Verified gate movements</span><strong id="principalGateVerified">—</strong><small>Selected report date · staff events</small></div>
+    <div class="metric-card"><span class="metric-label">Unique personnel scanned</span><strong id="principalGateScanned">—</strong><small>Selected report date</small></div>
+    <div class="metric-card"><span class="metric-label">Pending staff attendance events</span><strong id="principalGatePending">—</strong><small>All event kinds · not necessarily gate incidents</small></div>
+   </div>
+   <div class="surface"><h3>Security review boundaries</h3><p>Offline scan reconciliation, incident audits, repeated-scan investigation, and manual attendance corrections require authorized review. This overview does not expose private security logs or imply suspicious behavior from count differences.</p></div>
+   <p id="principalSecurityStatus" class="source-note" role="status">Checking verified gate source…</p>
+  </section>
+  <section id="reportsPanel" class="panel" hidden>
+   <div class="section-heading"><div><p class="eyebrow">EVIDENCE-BASED REPORTING</p><h2>Reports &amp; School Analytics</h2><p>Export verified source-backed summaries, not inferred attendance or fabricated official forms.</p></div></div>
+   <div class="surface">
+    <div class="principal-quick-links">
+     <button type="button" id="principalExportSummary" class="refresh-button">Export leadership summary CSV</button>
+     <button type="button" id="principalExportStaff" class="quiet-button">Export staff source CSV</button>
+     <button type="button" id="principalPrint" class="quiet-button">Print this dashboard</button>
+    </div>
+    <h3>Selected reporting period</h3><p id="principalReportingScope">Use the report date and trend period filters above.</p>
+    <div class="personal-slot-grid">
+     <div class="personal-slot"><span>Verified DTR slots</span><strong id="principalReportVerified">—</strong></div>
+     <div class="personal-slot"><span>Pending DTR slots</span><strong id="principalReportPending">—</strong></div>
+     <div class="personal-slot"><span>Class QR check-ins</span><strong id="principalReportClassQr">—</strong></div>
+     <div class="personal-slot"><span>Pending workflows</span><strong id="principalReportWorkflows">—</strong></div>
+    </div>
+    <p class="source-note">Monthly and quarterly official SF2 and Form 48 certification must be generated through their established workflows, with proper authorization and calculation checks.</p>
+   </div>
+  </section>
+  <section id="notificationsPanel" class="panel" hidden>
+   <div class="section-heading"><div><p class="eyebrow">PERSONAL INBOX</p><h2>Notifications &amp; Smart Alerts</h2><p>Notifications addressed to your account, plus school-wide attention counts from the selected report date.</p></div>
+   <button id="principalRefreshNotifications" type="button" class="refresh-button">Refresh</button></div>
+   <p id="principalNotificationStatus" role="status" class="feedback">Retrieving personal notifications…</p>
+   <div class="surface"><h3>My notifications</h3><div id="principalNotificationList" class="principal-data-list"></div></div>
+   <div class="surface"><h3>System attention summary</h3><p id="principalSchoolAlerts">School overview needed.</p><p class="source-note">These summaries are advisory. They do not establish staff misconduct, confirmed absence, or automatic approvals.</p></div>
+  </section>
+  <section id="assistantPanel" class="panel" hidden>
+   <div class="section-heading"><div><p class="eyebrow">HELP &amp; GUIDANCE</p><h2>Attendigo Leadership Assistant</h2><p>Safe, read-only explanations of your dashboard and existing workflows. No automatic decisions or record modifications.</p></div></div>
+   <div class="surface">
+    <label for="principalHelpQuestion">Ask about Attendigo navigation or reporting</label>
+    <textarea id="principalHelpQuestion" maxlength="320" rows="3" placeholder="For example: What do pending DTR slots mean?"></textarea>
+    <div class="principal-quick-links">
+     <button id="principalAskHelp" type="button" class="refresh-button">Ask AI guide</button>
+     <button id="principalHelpDefinitions" type="button" class="quiet-button" data-jump="definitions">View verified metric definitions</button>
+    </div>
+    <p id="principalHelpAnswer" class="feedback" role="status" aria-live="polite">AI answers require configured service and a supported verified guide topic. Personal or student data must never be entered here.</p>
+    <p class="source-note">The assistant does not read confidential personnel/learner records or give final DepEd legal interpretations. Approval and certification decisions always remain human-controlled.</p>
+   </div>
+  </section>
+
   <footer class="footer"><span>Attendigo · Principal Leadership Intelligence</span><span>Authorized school data only · Asia/Manila dates · Read-only oversight</span></footer>
  </main>
 </div>
