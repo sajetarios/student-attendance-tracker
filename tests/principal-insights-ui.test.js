@@ -7,7 +7,7 @@ test('Principal preview is a distinct School Admin-only navigable workspace',()=
  assert.match(portal,/id="principalInsightsView"[^>]*hidden/);
  assert.match(portal,/id="principalInsightsNav"[^>]*data-view="principalInsights"[^>]*hidden/);
  assert.match(controller,/if \(role === 'SCHOOL_ADMIN'\) return \['dashboard', 'principalInsights'/);
- assert.match(controller,/\$('principalInsightsNav'\)\) \$('principalInsightsNav'\)\.hidden = !admin/);
+ assert.ok(controller.includes("$('principalInsightsNav').hidden = !admin"));
  assert.match(controller,/principalInsights: \['Principal View/);
  assert.match(api,/requireSchoolRoles\('SCHOOL_ADMIN'\)/);
  assert.doesNotMatch(api,/app\.(post|put|patch|delete)\('/);
