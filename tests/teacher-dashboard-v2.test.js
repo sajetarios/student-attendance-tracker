@@ -10,7 +10,7 @@ test('Teacher V2 and V3 share one runtime controller without editing secure atte
  assert.doesNotThrow(()=>new vm.Script(ui));
  assert.match(ui,/user\?\.role!=='TEACHER'/);
  assert.match(ui,/attendigoStaffIdentity\.then\(init\)/);
- assert.match(ui,/attendigo-teacher-v2','layout styling stays enabled');
+ assert.match(ui,/attendigo-teacher-v2/,'layout styling stays enabled');
  assert.match(ui,/attendigo-teacher-v3/);
  assert.doesNotMatch(ui,/fetch\s*\(|\/api\/|method\s*:\s*['"](?:POST|PATCH|DELETE|PUT)/);
  assert.doesNotMatch(html,/src="\/teacher-dashboard-v2\.js/);
