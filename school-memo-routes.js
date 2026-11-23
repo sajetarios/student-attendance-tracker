@@ -105,11 +105,11 @@ function registerSchoolMemoRoutes(app,pool,{authenticateSchoolClient,requireScho
    !CATEGORIES.has(category)||!AUDIENCES.has(audience)||
    (date&&!validDate(date))||(endDate&&(!validDate(endDate)||!date||endDate<date))||
    (['SCHEDULE_NOTICE','CLASS_SUSPENSION'].includes(category)&&(!date||!endDate))||
-   (dtrRequested&&(!dtrHours||category!=='SCHEDULE_NOTICE'||audience!=='SCHOOL_STAFF'||
+   (dtrRequested&&(!dtrHours||category!=='SCHEDULE_NOTICE'||
        !date||!endDate||date<manilaDate()||durationDays(date,endDate)>30))||
    (!dtrRequested&&req.headers['x-memo-dtr-hours'])||
    !filename||!validMemoDocument(req.body,type))
-   return res.status(400).json({error:'Provide a valid signed memorandum, effective start/end dates for temporary notices, and four chronological DTR hours when adjustment is enabled (start today or later; maximum 31 days, school personnel only).'});
+   return res.status(400).json({error:'Provide a valid signed memorandum, effective start/end dates for temporary notices, and four chronological DTR hours when adjustment is enabled (start today or later; maximum 31 days; staff DTR only).'});
   const client=await pool.connect();
   try{
    await client.query('BEGIN');
