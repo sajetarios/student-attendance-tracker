@@ -64,6 +64,13 @@
       (item.reviewRequired?' — REVIEW REQUIRED: '+esc(item.exception):'')+'</div>'
      ).join('')+'</div>'
    :leaveEntries.length?'':'<div class="form48-line"></div><div class="form48-line"></div>';
+  // Memo adjustments are prescribed-hour annotations, never synthetic punches.
+  const memoRows=(analysis.temporarySchedules||[]).filter(m=>(analysis.assessments||[]).some(a=>a.temporaryMemoId===m.memoId));
+  const memoMarkup=memoRows.length?'<div class="form48-memo-remarks">'+
+   memoRows.slice(0,3).map(m=>'<div>Temporary hours '+esc(m.from)+' to '+esc(m.archivedDate&&m.archivedDate<=m.to?m.archivedDate+' (archived)':m.to)+
+    ' · '+esc(String(m.title||'School memorandum').slice(0,55))+' · '+esc(hoursText(m.hours))+'</div>').join('')+
+   (memoRows.length>3?'<div>+'+(memoRows.length-3)+' more authorized schedule notices; see school memorandum register.</div>':'')+
+   '</div>':'';
   const s=analysis.summary||{};
   const verifiedName=analysis.signatories?.verifiedBy||'',approvedName=analysis.signatories?.approvedBy||'';
   const verifiedPosition=analysis.signatories?.verifiedPosition||'',approvedPosition=analysis.signatories?.approvedPosition||'';
@@ -94,7 +101,7 @@
    '<span>Verified as to prescribed office hours — In Charge</span></div>'+
    '<div class="form48-remarks">REMARKS: '+leaveMarkup+
    (!leaveEntries.length&&s.approvedLeaveDays?esc(String(s.approvedLeaveDays)+' documented approved leave day(s).'):'')+
-   obMarkup+missingMarkup+'</div>'+
+   obMarkup+missingMarkup+memoMarkup+'</div>'+
    '<div class="form48-summary">'+
    '<span>Days present (verified evidence): '+esc(s.daysPresent)+'</span>'+
    '<span>Days absent (confirmed): '+esc(s.daysAbsent)+esc(gapText)+'</span>'+ 
@@ -141,7 +148,7 @@ const standalonePrintCss = [
  '.form48-signer-position{font-style:italic;margin:1mm 0}',
  '.form48-remarks{margin:2mm 0 1mm;font-size:6.7pt;line-height:1.15;overflow-wrap:anywhere}',
  '.form48-line{display:block;border-bottom:1px solid #111;height:3mm}',
- '.form48-leave-remarks,.form48-ob-remarks,.form48-missing-scan-remarks{font-size:6.3pt;line-height:1.12;overflow-wrap:anywhere}',
+ '.form48-leave-remarks,.form48-ob-remarks,.form48-missing-scan-remarks,.form48-memo-remarks{font-size:6.3pt;line-height:1.12;overflow-wrap:anywhere}',
  '.form48-leave-remarks>div,.form48-ob-remarks>div,.form48-missing-scan-remarks>div{margin:1mm 0}',
  '.form48-summary{display:grid;gap:.6mm;margin:1mm 0;font-size:6.7pt;line-height:1.15}',
  '.form48-approval{margin-top:auto;padding-top:2mm;margin-bottom:0}',
