@@ -51,6 +51,9 @@
   if(response.status===401){window.location.replace('/portal-login.html');return null;}
   if(!response.ok)throw Error('Could not verify your staff session ('+response.status+').');
   const data=await response.json();
+  if(data.user?.mustChangePassword){
+   window.location.replace('/force-password-change.html');return null;
+  }
   if(!data.user||!['PRINCIPAL','SCHOOL_ADMIN'].includes(data.user.role))
    throw Error('This school leadership dashboard requires a Principal or School Admin account.');
   if(data.user.role==='SCHOOL_ADMIN'){
