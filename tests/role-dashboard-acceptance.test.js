@@ -63,11 +63,11 @@ test('Student dashboard is separate and reports only the signed-in student atten
   assert.match(studentJs, /studentAttendanceCard'\)\.hidden = Boolean\(currentUser\.mustChangePassword\)/);
 });
 
-test('Staff creation distinguishes Department Head and Gate Keeper from teacher designations', () => {
+test('Staff creation distinguishes Principal, Department Head and Gate Keeper from teacher designations', () => {
   assert.match(portalHtml, /id="newAccountRole"[\s\S]*?DEPARTMENT_HEAD[\s\S]*?GATE_KEEPER/);
   assert.match(portalHtml, /Subject Teacher/);
   assert.match(portalHtml, /Class Adviser/);
-  assert.match(server, /const allowedRoles = \['TEACHER', 'DEPARTMENT_HEAD', 'GATE_KEEPER'\]/);
+  assert.match(server, /const allowedRoles = \['TEACHER', 'DEPARTMENT_HEAD', 'GATE_KEEPER', 'PRINCIPAL'\]/);
 });
 
 test('Platform Administrator workspace does not invent platform metrics', () => {
