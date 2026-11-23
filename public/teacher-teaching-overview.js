@@ -48,6 +48,8 @@
       'Read-only summary · Open a module to review or update records.</p>'
     ].join('');
     card.append(section);
+    // Keep authorized data-go routes in the DOM for the overview cards, but not as duplicate visible shortcuts.
+    card.classList.add('teacher-overview-only');
     const schedule=$('teacherTodaySchedule'),attendance=$('teacherTodayAttendance'),sf2=$('teacherTodaySf2');
     schedule.disabled=!card.querySelector('[data-go="schedules"]:not([hidden])');
     sf2.disabled=!card.querySelector('[data-go="sf2"]:not([hidden])');
