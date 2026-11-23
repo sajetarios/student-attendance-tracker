@@ -193,7 +193,7 @@ window.attendigoStaffIdentity = new Promise(resolve => { resolveStaffIdentity = 
 
   function allowedViewsForUser() {
     const role = user?.role;
-    if (role === 'SCHOOL_ADMIN') return ['dashboard', 'students', 'studentAccounts', 'parents', 'teachers', 'schedules', 'myGateAttendance', 'lunchQrAdmin', 'form48Reports', 'classQrMonitor', 'offlineScanReviews', 'officialBusiness', 'cloudSync', 'schoolBranding'];
+    if (role === 'SCHOOL_ADMIN') return ['dashboard', 'principalInsights', 'students', 'studentAccounts', 'parents', 'teachers', 'schedules', 'myGateAttendance', 'lunchQrAdmin', 'form48Reports', 'classQrMonitor', 'offlineScanReviews', 'officialBusiness', 'cloudSync', 'schoolBranding'];
     if (role === 'DEPARTMENT_HEAD') return ['dashboard', 'planner', 'students', 'teachers', 'schedules', 'sf2', 'officialBusiness', 'myGateAttendance'];
     if (role === 'TEACHER') {
       const views = ['dashboard', 'planner', 'myGateAttendance', 'teacherLunchQr', 'officialBusiness'];
@@ -291,7 +291,7 @@ window.attendigoStaffIdentity = new Promise(resolve => { resolveStaffIdentity = 
         tab.tabIndex = active ? 0 : -1;
       });
     }
-    ['dashboard', 'students', 'studentAccounts', 'parents', 'schedules', 'teachers', 'sf2', 'offlineScanReviews', 'classAttendance', 'classQrMonitor', 'myGateAttendance', 'lunchQrAdmin', 'teacherLunchQr', 'form48Reports', 'officialBusiness', 'cloudSync', 'schoolBranding', 'planner'].forEach(name => {
+    ['dashboard', 'principalInsights', 'students', 'studentAccounts', 'parents', 'schedules', 'teachers', 'sf2', 'offlineScanReviews', 'classAttendance', 'classQrMonitor', 'myGateAttendance', 'lunchQrAdmin', 'teacherLunchQr', 'form48Reports', 'officialBusiness', 'cloudSync', 'schoolBranding', 'planner'].forEach(name => {
       const panel = $(`${name}View`);
       if (panel) panel.hidden = name !== view;
     });
@@ -348,6 +348,7 @@ window.attendigoStaffIdentity = new Promise(resolve => { resolveStaffIdentity = 
     } else {
       titles = {
         dashboard: ['School Administrator Dashboard', 'Manage school attendance operations, users, learner records, devices, schedules, and reporting.'],
+        principalInsights: ['Principal View · Executive Insights', 'Verified school activity, departments, approval priorities and exception intelligence. School Admin preview.'],
         students: ['Students', 'Manage learner records, enrollment, photos, and QR cards. Use Portal Accounts for sign-in access.'],
         studentAccounts: ['Students', 'Issue student logins, review teacher requests, and manage existing portal access.'],
         parents: ['Parent Management', 'Manage parent accounts, registrations, and verified student relationships.'],
@@ -368,6 +369,7 @@ window.attendigoStaffIdentity = new Promise(resolve => { resolveStaffIdentity = 
     $('viewTitle').textContent = title[0];
     $('viewDescription').textContent = title[1];
     $('breadcrumbCurrent').textContent = title[0];
+    if (view === 'principalInsights' && role === 'SCHOOL_ADMIN') $('principalInsightsView')?.dispatchEvent(new Event('principal:open'));
     if (view === 'parents') $('parentsView')?.dispatchEvent(new Event('parent:open'));
     if (view === 'planner') $('plannerView')?.dispatchEvent(new Event('planner:open'));
     if (view === 'officialBusiness') $('officialBusinessView')?.dispatchEvent(new Event('official-business:open'));
@@ -549,6 +551,7 @@ window.attendigoStaffIdentity = new Promise(resolve => { resolveStaffIdentity = 
       $('classAttendanceNav').querySelector('.nav-label').textContent =
         classAdviser && subjectTeacher ? 'Class attendance' : classAdviser ? 'My advisory attendance' : 'My class attendance';
     }
+    if ($('principalInsightsNav')) $('principalInsightsNav').hidden = !admin;
     if ($('lunchQrAdminNav')) $('lunchQrAdminNav').hidden = !admin;
     if ($('form48ReportsNav')) $('form48ReportsNav').hidden = !admin;
     if ($('officialBusinessNav')) $('officialBusinessNav').hidden = !(teacher || admin || departmentHead);
