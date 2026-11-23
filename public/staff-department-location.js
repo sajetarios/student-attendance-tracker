@@ -21,6 +21,99 @@
   if(error?.code===3)return 'GPS timed out. Try near a window or outdoors near your department.';
   return error?.message||'Location unavailable.';
  }
+
+ // Browsers control their own native prompt. This help dialog guides users when blocked.
+ async function locationPermissionState(){
+  if(!window.isSecureContext||!navigator.geolocation)return 'unavailable';
+  if(!navigator.permissions?.query)return 'unknown';
+  try{return (await navigator.permissions.query({name:'geolocation'})).state;}
+  catch{return 'unknown';}
+ }
+ function locationDeviceGuide(){
+  const agent=navigator.userAgent||'';
+  if(/iPad|iPhone|iPod/.test(agent)||(/Macintosh/.test(agent)&&navigator.maxTouchPoints>1))
+   return 'iPhone / iPad (Safari)';
+  if(/Android/.test(agent))return 'Android (Chrome)';
+  if(/Firefox/.test(agent))return 'Firefox';
+  if(/Safari/.test(agent)&&!/Chrome|Chromium|Edg/.test(agent))return 'Mac (Safari)';
+  return 'Chrome / Edge (computer)';
+ }
+ function buildLocationPermissionDialog(startCapture){
+  const dialog=document.createElement('dialog');
+  dialog.id='staffLocationPermissionDialog';
+  dialog.className='staff-location-permission-dialog';
+  dialog.setAttribute('aria-labelledby','staffLocationPermissionTitle');
+  dialog.setAttribute('aria-describedby','staffLocationPermissionSummary');
+  // Static markup only. No private account details or location values are injected.
+  dialog.innerHTML=[
+   '<div class="staff-location-permission-body">',
+   '<div class="staff-location-permission-heading">',
+   '<span class="staff-location-permission-symbol" aria-hidden="true">⌖</span>',
+   '<div><h2 id="staffLocationPermissionTitle">Enable location access</h2>',
+   '<p id="staffLocationPermissionSummary">Attendigo needs your device location to submit the department QR attendance point for School Admin approval.</p></div></div>',
+   '<p id="staffLocationPermissionMessage" class="staff-location-permission-message"></p>',
+   '<div id="staffLocationPermissionHelp" class="staff-location-permission-help" hidden>',
+   '<label for="staffLocationPermissionDevice">Choose your device or browser</label>',
+   '<select id="staffLocationPermissionDevice">',
+   '<option>Chrome / Edge (computer)</option><option>Android (Chrome)</option>',
+   '<option>iPhone / iPad (Safari)</option><option>Mac (Safari)</option><option>Firefox</option></select>',
+   '<ol id="staffLocationPermissionSteps"></ol>',
+   '<p class="staff-location-permission-tip">If access still fails, check device Location Services and open Attendigo directly in an HTTPS browser tab.</p></div>',
+   '<div class="staff-location-permission-actions">',
+   '<button id="staffLocationPermissionCancel" type="button" class="outline-button">Not now</button>',
+   '<button id="staffLocationPermissionContinue" type="button" class="primary-button">Allow location</button>',
+   '</div></div>'
+  ].join('');
+  document.body.appendChild(dialog);
+  const message=dialog.querySelector('#staffLocationPermissionMessage');
+  const help=dialog.querySelector('#staffLocationPermissionHelp');
+  const choice=dialog.querySelector('#staffLocationPermissionDevice');
+  const steps=dialog.querySelector('#staffLocationPermissionSteps');
+  const proceed=dialog.querySelector('#staffLocationPermissionContinue');
+  const instructions={
+   'Chrome / Edge (computer)':['Click the site controls icon beside the Attendigo website address.','Open Site settings and change Location to Allow.','Reload the Attendigo page, then select Try again.'],
+   'Android (Chrome)':['Tap the site controls icon beside the Attendigo website address.','Open Permissions or Site settings, then allow Location.','Enable Location in phone settings and return to Attendigo.'],
+   'iPhone / iPad (Safari)':['Tap the page menu icon near the website address and choose Website Settings.','Set Location to Allow or Ask for Attendigo.','If necessary, enable Location Services in Settings → Privacy & Security and return to Attendigo.'],
+   'Mac (Safari)':['In Safari, open Settings → Websites → Location.','Find Attendigo and change its permission to Allow or Ask.','Check System Settings → Privacy & Security → Location Services if access still fails.'],
+   'Firefox':['Select the location or permissions icon beside the website address.','Remove the blocked location permission or allow it in site permissions.','Reload Attendigo and select Try again.']
+  };
+  function updateSteps(){
+   steps.replaceChildren();
+   for(const step of instructions[choice.value]||instructions['Chrome / Edge (computer)']){
+    const item=document.createElement('li');item.textContent=step;steps.appendChild(item);
+   }
+  }
+  choice.value=locationDeviceGuide();
+  choice.addEventListener('change',updateSteps);
+  updateSteps();
+  function render(state){
+   const denied=state==='denied',unavailable=state==='unavailable';
+   help.hidden=!denied&&!unavailable;
+   message.textContent=denied
+    ? 'Your browser has already blocked location. Attendigo cannot reopen the browser permission prompt until you change that setting. Follow these steps:'
+    : unavailable
+     ? 'Location requests are unavailable in this browser or connection. Open Attendigo in a secure browser and enable device Location Services.'
+     : 'Select Allow location below, then select Allow or While Using the App in the browser prompt. You can decline at any time.';
+   proceed.textContent=denied?'I enabled it — try again':unavailable?'Try again':'Allow location';
+  }
+  function open(state){
+   render(state);
+   if(!dialog.open)dialog.showModal();
+   proceed.focus();
+  }
+  dialog.querySelector('#staffLocationPermissionCancel').addEventListener('click',()=>dialog.close());
+  proceed.addEventListener('click',()=>{
+   // Request geolocation immediately on the original click when permission is undecided.
+   if(help.hidden){dialog.close();startCapture();return;}
+   // Following a denial, do not imply a native popup can be forced open.
+   void locationPermissionState().then(state=>{
+    if(state==='denied'||state==='unavailable'){render(state);return;}
+    dialog.close();startCapture();
+   });
+  });
+  return open;
+ }
+
  async function initHead(user){
   const card=$('staffLunchHeadLocationCard'),button=$('staffLunchHeadSubmit'),
    status=$('staffLunchHeadStatus'),title=$('staffLunchHeadDepartment');
@@ -43,7 +136,8 @@
     status.textContent=current+review;
    }catch(error){status.textContent='Unable to load department location: '+error.message;}
   }
-  button.addEventListener('click',async()=>{
+  async function submitLocation(){
+   if(button.disabled)return;
    button.disabled=true;
    status.textContent='Checking your position. Allow location access while physically inside your department.';
    try{
@@ -61,8 +155,16 @@
       samples:position.samples,radiusMeters:120})
     });
     status.textContent=result.message||'Location submitted for School Admin approval. This does not change the approved location yet.';
-   }catch(error){status.textContent='Location not submitted: '+failure(error);}
-   finally{button.disabled=false;}
+   }catch(error){
+    status.textContent='Location not submitted: '+failure(error);
+    if(error?.code===1)openGuide('denied');
+   }finally{button.disabled=false;}
+  }
+  const openGuide=buildLocationPermissionDialog(()=>{void submitLocation();});
+  button.addEventListener('click',async()=>{
+   const state=await locationPermissionState();
+   if(state==='granted'){void submitLocation();return;}
+   openGuide(state);
   });
   await refresh();
  }
