@@ -114,6 +114,9 @@ function registerSf1ImportRoutes(app,pool,{authenticateSchoolClient,requireSchoo
     if(!found.active||found.archived_at)issues.push('This LRN is archived or inactive; School Admin review required.');
     if(!sf1NamesEquivalent(found.full_name,r.fullName))issues.push('Name differs from the saved LRN record.');
     if(found.sex&&String(found.sex).toUpperCase()!==r.sex)issues.push('Sex differs from the saved LRN record.');
+    // A changed grade is a promotion/enrollment decision, never an unreviewed SF1 profile update.
+    if(found.grade_level&&String(found.grade_level).toUpperCase()!==r.gradeLevel.toUpperCase())
+     issues.push('SF1 grade '+r.gradeLevel+' differs from the saved '+found.grade_level+'. Ask School Admin to review the grade movement; existing enrollment and attendance are preserved.');
     if(r.birthDate&&found.birth_date&&new Date(found.birth_date).toISOString().slice(0,10)!==r.birthDate)
      issues.push('Birthdate differs from the saved LRN record.');
     if(r.officialNameParts&&validValue(found.first_name)&&
@@ -142,7 +145,7 @@ function registerSf1ImportRoutes(app,pool,{authenticateSchoolClient,requireSchoo
   return {rows,summary,schoolYearId:active.school_year_id,year:Number(String(active.school_year_label).slice(0,4)),gradeLevel:sf1.gradeLevel};
  }
  app.post('/api/students/sf1/preview',authenticateSchoolClient,permitted,async(req,res)=>{
-  try{const result=await prepare(req,pool);res.json({rows:result.rows,summary:result.summary,gradeLevel:result.gradeLevel,section:'Unassigned',total:result.rows.length});}
+  try{const result=await prepare(req,pool);res.json({rows:result.rows,summary:result.summary,gradeLevel:result.gradeLevel,autoAssignedGradeCount:result.summary.create,section:'Unassigned',total:result.rows.length});}
   catch(e){res.status(e.status||400).json({error:e.message,details:e.details||[],...(e.code==='SF1_SCHOOL_YEAR_REQUIRED'?{code:e.code,schoolYear:e.schoolYear}: {})});}
  });
  app.post('/api/students/sf1/commit',authenticateSchoolClient,permitted,async(req,res)=>{
@@ -213,7 +216,7 @@ function registerSf1ImportRoutes(app,pool,{authenticateSchoolClient,requireSchoo
      VALUES($1,'SCHOOL',$2,'STUDENT_SF1_IMPORT','student_import',$3,$4::jsonb)`,
      [req.auth.schoolId,req.auth.userId,crypto.randomUUID(),JSON.stringify({created,updated,recovered:prepared.summary.recover,skipped:prepared.summary.skip,gradeLevel:prepared.gradeLevel,section:'Unassigned',identityAndAttendancePreserved:true})]);
    await client.query('COMMIT');
-   res.json({ok:true,created,updated,recovered:prepared.summary.recover,skipped:prepared.summary.skip,gradeLevel:prepared.gradeLevel});
+   res.json({ok:true,created,updated,recovered:prepared.summary.recover,skipped:prepared.summary.skip,gradeLevel:prepared.gradeLevel,autoAssignedGradeCount:created});
   }catch(e){await client.query('ROLLBACK').catch(()=>{});res.status(e.status||(e.code==='23505'?409:500)).json({error:e.status?e.message:e.code==='23505'?'An LRN was concurrently registered; preview again.':'SF1 import failed without saving changes.'});}
   finally{client.release();}
  });

@@ -1,4 +1,4 @@
-const CACHE = "attendigo-v313-leave-actions-responsive";
+const CACHE = "attendigo-v314-sf1-auto-grade";
 
 const SHELL = [
   "/typography.css?v=1",
@@ -50,6 +50,7 @@ const SHELL = [
   "/portal-login.html",
   "/attendigo-login-motion.css?v=2",
   "/attendigo-login-refinement.css?v=7",
+  "/sf1-review-cards.css?v=2",
   "/portal.css?v=0.9.121",
   "/student-roster-toolbar.css?v=2",
   "/learner-roster-view.css?v=1",
@@ -62,7 +63,7 @@ const SHELL = [
   "/teacher-scanner-schedule.js?v=1",
   "/teacher-roster-popover.js?v=2",
   "/portal.css?v=0.9.119",
-  "/portal.js?v=235",
+  "/portal.js?v=236",
   "/attendigo-help-topics.js?v=2",
   "/attendigo-help-guide.js?v=4",
   "/attendigo-help.css?v=3",
