@@ -1246,6 +1246,13 @@ window.attendigoStaffIdentity = new Promise(resolve => { resolveStaffIdentity = 
         : 'Pending confirmation is not an absence count. A learner is counted Present after at least one accepted subject check-in; unconfirmed learners are not marked Absent.';
     }
     if ((role === 'SCHOOL_ADMIN' || role === 'DEPARTMENT_HEAD') && !document.getElementById('sardoCard')?.hidden) window.AttendigoSardo?.refresh();
+    if (isTeacher) {
+      const recentCard = $('recentActivityCard');
+      const hint = recentCard?.querySelector('.card-heading p');
+      const label = recentCard?.querySelector('.mini-tag');
+      if (hint) hint.textContent = 'Synced manual marks and accepted QR check-ins · one row per learner, class and date';
+      if (label) label.textContent = 'Synced';
+    }
     const rows = Array.isArray(data.recent) ? data.recent : [];
     // Dashboard preview only: server-reconciled teacher records never affect the
     // official class register, SF2, QR events, or attendance totals.
