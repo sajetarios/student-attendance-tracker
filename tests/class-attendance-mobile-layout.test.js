@@ -3,6 +3,7 @@ const test = require('node:test');
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const path = require('node:path');
+const {assertCacheRevisionAtLeast} = require('./support/asset-contract');
 const root = path.join(__dirname, '..', 'public');
 const read = name => fs.readFileSync(path.join(root, name), 'utf8');
 const html = read('portal.html');
@@ -40,7 +41,7 @@ test('teacher QR shortcut uses an inline attendance header location', () => {
   assert.ok(qrShortcut.includes("link.hidden = (user.role === 'TEACHER' && !inlineHost)"));
 });
 test('offline shell caches versioned class attendance assets', () => {
-  assert.ok(worker.includes('attendigo-v328-mobile-class-register'));
+  assertCacheRevisionAtLeast(worker, 328);
   assert.ok(worker.includes('/class-attendance-mobile.css?v=1'));
   assert.ok(worker.includes('/class-qr-dashboard-link.js?v=13'));
 });
