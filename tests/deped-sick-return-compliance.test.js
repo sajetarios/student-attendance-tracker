@@ -29,7 +29,7 @@ test('HR must certify teaching VSC versus regular SL; roles cannot infer an enti
  assert.match(routes,/LEAVE_CREDIT_SCHEME_CERTIFIED/);
  assert.match(routes,/req\.auth\.role!=='SCHOOL_ADMIN'/);
  assert.match(routes,/if\(staffId===req\.auth\.userId\)/);
- assert.match(routes,/sickAccountForScheme\(scheme\.rows\[0\]\?\.leaveScheme\)/);
+ assert.match(routes,/sickAccountForScheme\(verifiedScheme\)/);
  assert.match(routes,/sickAccountForScheme\(verifiedScheme\.rows\[0\]\?\.leaveScheme\)/);
  assert.match(routes,/HR must verify whether this employee uses teaching-personnel VSC/);
 });
