@@ -130,29 +130,35 @@
    return values.every(Number.isInteger)&&values[0]<values[1]&&
     values[1]<=values[2]&&values[2]<values[3];
   }
-  function updateSave(){save.disabled=busy||!defaults||customSchedule||!completeHours();}
+  function updateSave(){
+   const locked=busy||!defaults;
+   fields.forEach(field=>{field.disabled=locked;});
+   if(preset)preset.disabled=locked;
+   save.disabled=locked||!completeHours();
+  }
   async function loadDefaults(){
-   save.disabled=true;
+   defaults=null;updateSave();
    hoursFeedback.textContent='Loading existing school hours…';
    try{
     const result=await api('/api/staff-attendance/admin/form48/defaults');
     defaults=result.defaults;
-    const workdays=defaults.workdays||[];
+    const workdays=Array.isArray(defaults.workdays)?defaults.workdays:[];
     customSchedule=workdays.length!==5||![1,2,3,4,5].every(day=>workdays.includes(day));
     const r=defaults.regularHours||{};
     ['AM_IN','AM_OUT','PM_IN','PM_OUT'].forEach((slot,i)=>{
      fields[i].value=r[slot]||'';
-     fields[i].disabled=customSchedule;
     });
     if(preset){
-     preset.disabled=customSchedule;
      preset.value=Object.entries(presets).find(([,times])=>times.every((t,i)=>fields[i].value===t))?.[0]||
        (completeHours()?'custom':'');
     }
-    hoursLabel.textContent=customSchedule?'Custom working days configured':
-     completeHours()?'Set for Monday–Friday':'Setup needed';
+    hoursLabel.textContent=customSchedule
+     ?(completeHours()?'Custom days · hours set':'Custom days · hours needed')
+     :completeHours()?'Set for Monday–Friday':'Setup needed';
     hoursFeedback.textContent=customSchedule
-     ?'Your school uses custom working days. Keep them unchanged; edit them in the detailed Form 48 settings.'
+     ?(completeHours()
+       ?'These regular-day hours are saved. Your custom working days and Saturday hours are already configured.'
+       :'Your school uses custom working days. Set the approved regular-day hours here; existing workdays and Saturday hours will remain unchanged.')
      :completeHours()
       ?'These hours apply by default to staff without a separate saved schedule.'
       :'Enter the four official Monday–Friday times, then save once for the school.';
@@ -163,19 +169,19 @@
    }
   }
   save.addEventListener('click',async()=>{
-   if(busy||customSchedule||!defaults||!completeHours())return;
-   if(!window.confirm('Save these official Monday–Friday working hours as the school default? Existing staff-specific schedules and DTR punches will not change.'))return;
+   if(busy||!defaults||!completeHours())return;
+   if(!window.confirm('Save these approved regular-day working hours? Your configured working days, Saturday hours, staff-specific schedules, and recorded DTR punches will remain unchanged.'))return;
    busy=true;updateSave();hoursFeedback.textContent='Saving school working hours…';
    try{
-    const current=defaults;
+    const current=defaults,submittedHours=readHours();
     const result=await api('/api/staff-attendance/admin/form48/defaults',{
      method:'PUT',headers:{'Content-Type':'application/json'},
      body:JSON.stringify({...current,revision:current.revision,
-      workdays:[1,2,3,4,5],regularHours:readHours()})
+      regularHours:submittedHours})
     });
-    defaults={...current,regularHours:readHours(),revision:result.revision};
-    hoursLabel.textContent='Set for Monday–Friday';
-    hoursFeedback.textContent='School working hours saved. Staff without an individual schedule now inherit them.';
+    defaults={...current,regularHours:submittedHours,revision:result.revision};
+    hoursLabel.textContent=customSchedule?'Custom days · hours set':'Set for Monday–Friday';
+    hoursFeedback.textContent='School working hours saved. Existing working days, Saturday hours, and attendance punches were preserved.';
     await load();
    }catch(err){
     hoursFeedback.textContent='Nothing was saved: '+err.message;
@@ -183,7 +189,6 @@
    }finally{busy=false;updateSave();}
   });
   preset?.addEventListener('change',()=>{
-   if(customSchedule)return;
    const hours=presets[preset.value];
    if(hours)hours.forEach((time,i)=>{fields[i].value=time;});
    updateSave();
@@ -193,7 +198,7 @@
   });
   fields.forEach(field=>{
    const changed=()=>{
-    if(preset&&!customSchedule)
+    if(preset)
      preset.value=Object.entries(presets).find(([,times])=>times.every((t,i)=>fields[i].value===t))?.[0]||'custom';
     updateSave();
    };

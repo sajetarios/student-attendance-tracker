@@ -1,4 +1,4 @@
-const CACHE = "attendigo-v320-gps-reading-quality";
+const CACHE = "attendigo-v321-edit-school-hours";
 
 const SHELL = [
   "/typography.css?v=1",
@@ -88,7 +88,7 @@ const SHELL = [
   "/form48-report.css?v=16",
   "/smart-attendance-overview.css?v=4",
   "/role-controls-responsive.css?v=2",
-  "/smart-attendance-overview.js?v=2",
+  "/smart-attendance-overview.js?v=3",
   "/my-gate-insights.css?v=3",
   "/staff-lunch-ui.js?v=7",
   "/staff-precise-location.js?v=1",
