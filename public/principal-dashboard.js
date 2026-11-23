@@ -23,7 +23,7 @@
  let latest=null,abort=null,sequence=0,activeSection='overview';
  const buttons=[...document.querySelectorAll('[data-section]')];
  const sectionMap={overview:'overviewPanel',departments:'departmentsPanel',
-  staff:'staffPanel',priorities:'prioritiesPanel',definitions:'definitionsPanel',badge:'badgePanel',personal:'personalPanel',students:'studentsPanel'};
+  staff:'staffPanel',priorities:'prioritiesPanel',definitions:'definitionsPanel',badge:'badgePanel',personal:'personalPanel',students:'studentsPanel',calendar:'calendarPanel',security:'securityPanel',reports:'reportsPanel',notifications:'notificationsPanel',assistant:'assistantPanel'};
  function status(message,state='info'){
   const el=$('feedback');
   el.textContent=message;el.dataset.state=state;
@@ -39,6 +39,8 @@
   for(const [key,id] of Object.entries(sectionMap))$(id).hidden=key!==name;
   if(name==='staff'&&latest)$('staffSearch').focus({preventScroll:true});
   if(name==='personal')void loadPersonal();
+  if(name==='notifications')void loadNotifications();
+  if(['personal','calendar','security'].includes(name))void loadWorkspace();
  }
  function csvSafe(value){
   const raw=String(value??'').replace(/\r|\n/g,' ');
@@ -90,6 +92,12 @@
   $('generatedAt').textContent='Updated '+(Number.isFinite(d.getTime())?
    new Intl.DateTimeFormat('en-PH',{timeZone:'Asia/Manila',dateStyle:'medium',timeStyle:'short'}).format(d):'time unavailable');
   $('heroPending').textContent=fmt(data.approvals?.totalPending);
+  $('principalReportVerified').textContent=fmt(m.verifiedDtrSlots);
+  $('principalReportPending').textContent=fmt(m.pendingDtrSlots);
+  $('principalReportClassQr').textContent=fmt(m.acceptedClassCheckins);
+  $('principalReportWorkflows').textContent=fmt(data.approvals?.totalPending);
+  $('principalReportingScope').textContent='School date '+data.schoolDate+' · Last '+data.trendDays+' days in the DTR trend chart';
+  $('principalSchoolAlerts').textContent=fmt(m.pendingDtrSlots)+' DTR slots pending verification; '+fmt(data.approvals?.totalPending)+' leave/OB workflows pending; '+fmt(data.locationSetup?.pending)+' location proposals pending. Verify source records before decisions.';
   $('studentSummaryActive').textContent=fmt(data.enrollment?.activeStudentRecords);
   $('studentSummaryCheckins').textContent=fmt(m.acceptedClassCheckins);
   $('actionInboxSummary').textContent=fmt(data.approvals?.totalPending)+' pending leave/OB requests across review stages · '+fmt(m.pendingDtrSlots)+' pending DTR slots · '+fmt(data.locationSetup?.pending)+' QR locations pending review.';
@@ -326,6 +334,7 @@
    if(!response.ok)throw Error(data.error||'Report request failed ('+response.status+').');
    if(current!==sequence)return;
    render(data);
+   if(['personal','calendar','security'].includes(activeSection))void loadWorkspace();
   }catch(error){
    if(error.name==='AbortError'||current!==sequence)return;
    latest=null;
@@ -407,7 +416,113 @@
   $('badgeNotice').textContent='Your badge is hidden. Viewing a badge never records attendance.';
  }
 
+
+ const showList=(id,rows,render,empty)=>{
+  const host=$(id);host.replaceChildren();
+  if(!Array.isArray(rows)){host.append(make('p','source-note','Source unavailable.'));return;}
+  if(!rows.length){host.append(make('p','source-note',empty||'No records found.'));return;}
+  for(const row of rows.slice(0,30)){
+   const item=make('div','principal-record-item');
+   const lines=render(row);
+   item.append(make('strong',null,lines[0]),make('small',null,lines[1]||''));
+   host.append(item);
+  }
+ };
+ const sectionRows=(data,key)=>data?.sections?.[key]?.available?data.sections[key].rows:null;
+ let workspaceLoading=null;
+ async function loadWorkspace(){
+  if(workspaceLoading)return workspaceLoading;
+  workspaceLoading=(async()=>{
+   try{
+    const response=await fetch('/api/principal/workspace?date='+encodeURIComponent($('reportDate').value),{credentials:'same-origin',cache:'no-store'});
+    if(response.status===401){window.location.replace('/portal-login.html');return;}
+    const data=await response.json().catch(()=>({}));
+    if(!response.ok)throw Error(data.error||'Leadership details unavailable.');
+    showList('principalLeaveList',sectionRows(data,'personalLeave'),x=>[
+     (x.type||'Leave')+' · '+(x.status||'Unknown'),
+     String(x.startDate||'').slice(0,10)+' to '+String(x.endDate||'').slice(0,10)],'No leave requests recorded.');
+    showList('principalObList',sectionRows(data,'personalOb'),x=>[
+     x.status||'OB request',String(x.startsAt||'').slice(0,10)+' · '+String(x.purpose||'')],'No OB requests recorded.');
+    showList('principalCreditsList',sectionRows(data,'leaveCredits'),x=>[
+     x.account||'Credit account',String(x.balance||0)+' verified days'],'No certified credit entries available.');
+    const weekdays=['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+    showList('principalOperatingDays',sectionRows(data,'operatingDays'),x=>[
+     weekdays[Number(x.dayOfWeek)]||'Day '+x.dayOfWeek,x.operating?'Scheduled operating day':'Not scheduled'],'Operating days have not been configured.');
+    showList('principalCalendarEvents',sectionRows(data,'calendar'),x=>[
+     x.date||'School date',String(x.type||'Recorded exception').replaceAll('_',' ')],'No calendar exceptions recorded in the next 45 days.');
+    $('principalCalendarStatus').textContent='School-scoped calendar sources · '+data.date;
+    const keeper=sectionRows(data,'gatekeeperAccounts')?.[0];
+    const movements=sectionRows(data,'gateActivity')?.[0];
+    const pending=sectionRows(data,'gatePending')?.[0];
+    $('principalKeeperTotal').textContent=keeper?fmt(keeper.total):'—';
+    $('principalKeeperActive').textContent=keeper?fmt(keeper.active)+' active accounts':'Source unavailable';
+    $('principalGateVerified').textContent=movements?fmt(movements.verifiedMovements):'—';
+    $('principalGateScanned').textContent=movements?fmt(movements.staffScanned):'—';
+    $('principalGatePending').textContent=pending?fmt(pending.pendingEvents):'—';
+    $('principalSecurityStatus').textContent='Selected school date '+data.date+' · verified source data only';
+   }catch(err){
+    for(const id of ['principalLeaveList','principalObList','principalCreditsList','principalOperatingDays','principalCalendarEvents']){
+     $(id).textContent='Source currently unavailable. '+errorText(err);
+    }
+    $('principalCalendarStatus').textContent='School calendar unavailable.';
+    $('principalSecurityStatus').textContent='Gate overview unavailable.';
+   }
+  })();
+  try{await workspaceLoading;}finally{workspaceLoading=null;}
+ }
+ async function loadNotifications(){
+  const host=$('principalNotificationList'),label=$('principalNotificationStatus');
+  label.textContent='Reading your notifications…';host.replaceChildren();
+  try{
+   const response=await fetch('/api/notifications?limit=30',{credentials:'same-origin',cache:'no-store'});
+   if(response.status===401){window.location.replace('/portal-login.html');return;}
+   const data=await response.json().catch(()=>({}));
+   if(!response.ok)throw Error(data.error||'Notification service unavailable.');
+   showList('principalNotificationList',data.notifications,x=>[
+    (x.readAt?'':'Unread · ')+(x.title||x.category||'Notification'),
+    x.body||'No message content'],'No personal notifications at this time.');
+   label.textContent=fmt(data.unreadCount)+' unread personal notifications. Open linked requests using their authorized workflow.';
+  }catch(err){host.textContent=errorText(err);label.textContent='Notifications unavailable.';}
+ }
+ function exportLeadershipSummary(){
+  if(!latest){status('Load a verified dashboard first.','error');return;}
+  const source=latest;
+  const rows=[
+   ['School',source.school?.schoolName||''],['School date',source.schoolDate],
+   ['Verified staff',source.metrics?.withVerifiedPunch],['Verified DTR slots',source.metrics?.verifiedDtrSlots],
+   ['Pending DTR slots',source.metrics?.pendingDtrSlots],
+   ['Active students',source.enrollment?.activeStudentRecords],
+   ['Accepted class check-ins',source.metrics?.acceptedClassCheckins],
+   ['Pending leave/OB requests',source.approvals?.totalPending],
+   ['Pending location proposals',source.locationSetup?.pending]
+  ];
+  const csv=[['Metric','Source value'],...rows].map(line=>line.map(csvSafe).join(',')).join('\r\n');
+  const url=URL.createObjectURL(new Blob(['\ufeff'+csv],{type:'text/csv;charset=utf-8'}));
+  const link=document.createElement('a');link.href=url;link.download='attendigo-principal-summary-'+source.schoolDate+'.csv';
+  document.body.append(link);link.click();link.remove();setTimeout(()=>URL.revokeObjectURL(url),0);
+ }
+ async function askPrincipalGuide(){
+  const answer=$('principalHelpAnswer'),question=$('principalHelpQuestion').value.trim();
+  if(!question){answer.textContent='Enter a brief Attendigo usage question.';return;}
+  if(/[\w.+-]+@[\w.-]+\.[a-z]{2,}|\b\d{12}\b/.test(question)){
+   answer.textContent='Please remove personal identifiers before asking.';return;
+  }
+  $('principalAskHelp').disabled=true;answer.textContent='Checking the verified Attendigo guide…';
+  try{
+   const r=await fetch('/api/help/ask',{method:'POST',credentials:'same-origin',
+    headers:{'Content-Type':'application/json'},body:JSON.stringify({question})});
+   const data=await r.json().catch(()=>({}));
+   answer.textContent=r.ok?(data.answer||'No verified answer returned.'):(data.error||'AI guidance unavailable. Consult verified metric definitions.');
+  }catch(err){answer.textContent='AI service unavailable. Use the metric definitions and School Admin guidance.';}
+  finally{$('principalAskHelp').disabled=false;}
+ }
+
  async function init(){
+  $('principalRefreshNotifications').addEventListener('click',()=>void loadNotifications());
+  $('principalExportSummary').addEventListener('click',exportLeadershipSummary);
+  $('principalExportStaff').addEventListener('click',downloadCsv);
+  $('principalPrint').addEventListener('click',()=>window.print());
+  $('principalAskHelp').addEventListener('click',()=>void askPrincipalGuide());
   $('personalDate').value=today;$('personalDate').max=today;$('personalDate').min=minDate;
   $('showPrincipalBadge').addEventListener('click',()=>void showBadge());
   $('hidePrincipalBadge').addEventListener('click',hideBadge);
