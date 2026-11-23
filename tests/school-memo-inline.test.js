@@ -8,7 +8,7 @@ test('all four active dashboard families embed the same memo UI assets',()=>{
  const pages=['principal.html','portal.html','student-portal.html','parent-portal.html'];
  for(const p of pages){
   const s=read(p);
-  assert.match(s,/\/school-memo-banner\.js\?v=3/,'shared memo JS in '+p);
+  assert.match(s,/\/school-memo-banner\.js\?v=4/,'shared memo JS in '+p);
   assert.match(s,/\/school-memo-banner\.css\?v=3/,'shared memo styling in '+p);
   assert.doesNotMatch(s,/href="\/school-memos\.html/,'no standalone memo link in '+p);
  }
@@ -49,7 +49,7 @@ test('old memoranda URLs redirect to role-specific dashboards',()=>{
 });
 test('PWA caches new memo UI and always fetches authenticated portal pages online',()=>{
  const s=read('sw.js');
- for(const file of ['/school-memo-banner.js?v=3','/school-memo-banner.css?v=3',
+ for(const file of ['/school-memo-banner.js?v=4','/school-memo-banner.css?v=3',
     '/school-memos-redirect.js?v=1'])assert.ok(s.includes(file),file);
  assert.match(s,/"\/portal\.html", "\/class-qr-monitor\.html", "\/principal\.html", "\/school-memos\.html"/);
  assert.match(s,/fetch\(request, \{ cache: "no-store" \}\)/);
