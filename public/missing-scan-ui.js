@@ -26,10 +26,10 @@
   dialog.innerHTML='<div class="ms-shell"><header class="ms-header"><div><small>ATTENDANCE MANAGEMENT</small>'+
    '<h2>Missing Scan Requests</h2><p>Document forgotten AM/PM scans without changing the original QR or gate history.</p></div>'+
    '<button type="button" class="ms-close" aria-label="Close">✕</button></header>'+
-   '<nav class="ms-tabs" aria-label="Missing scan request views">'+
+   (isHead||isAdmin?'<nav class="ms-tabs" aria-label="Missing scan request views">'+
    '<button type="button" data-ms-tab="mine">My requests</button>'+
    (isHead||isAdmin?'<button type="button" data-ms-tab="inbox">'+(isHead?'Department review':'School Admin review')+'</button>':'')+
-   '</nav><div class="ms-message" role="status" aria-live="polite"></div>'+
+   '</nav>':'')+'<div class="ms-message" role="status" aria-live="polite"></div>'+
    '<div class="ms-policy" hidden></div><div class="ms-content"></div></div>';
   document.body.append(dialog);
   const message=dialog.querySelector('.ms-message');
@@ -70,15 +70,14 @@
   }
   function renderForm(){
    return '<section class="ms-card ms-new"><h3>Report a forgotten scan</h3>'+
-    '<p>Enter the actual time you believe you arrived or departed. The official Form 48 time remains unchanged until authorized review.</p>'+
-    '<form id="msCreateForm"><div class="ms-grid">'+
+    '<p>Select a date to check your verified Form 48 entries. Attendigo will identify unrecorded slots, but only you can confirm which scan was missed and the time you actually arrived or departed. No QR or gate record will be changed.</p>'+
+    '<form id="msCreateForm"><div class="ms-grid ms-create-grid">'+
     '<label>Attendance date<input type="date" name="date" max="'+esc(today())+'" required></label>'+
-    '<label>Missing DTR entry<select name="slot" required>'+
-    '<option value="AM_IN">AM Time-In</option><option value="AM_OUT">AM Time-Out</option>'+
-    '<option value="PM_IN">PM Time-In</option><option value="PM_OUT" selected>PM Time-Out</option></select></label>'+
-    '<label>Actual time claimed<input name="claimedTime" type="time" required></label></div>'+
+    '<label>Unrecorded DTR entry<select name="slot" required disabled><option value="">Checking DTR entries…</option></select></label>'+
+    '<div class="ms-slot-status" role="status" aria-live="polite">Checking your verified DTR record…</div>'+
+    '<label class="ms-full">Actual time claimed<input name="claimedTime" type="time" required></label></div>'+
     '<label>Explanation<textarea name="explanation" minlength="10" maxlength="1000" rows="3" required placeholder="Explain when and why the scan was missed."></textarea></label>'+
-    '<button class="primary-button" type="submit">Send to Department Head</button></form></section>';
+    '<div class="ms-actions"><button class="primary-button" type="submit" disabled>Send to Department Head</button></div></form></section>';
   }
   function inputText(name,label,value='',type='text'){
    return '<label>'+esc(label)+'<input name="'+name+'" type="'+type+'" value="'+esc(value)+'" required></label>';
@@ -155,6 +154,67 @@
    const form=$('msCreateForm');
    if(form){
     form.elements.date.value=today();
+    const slotSelect=form.elements.slot;
+    const slotStatus=form.querySelector('.ms-slot-status');
+    const submit=form.querySelector('[type=submit]');
+    let checkRevision=0;
+    async function refreshVerifiedSlots(){
+     const revision=++checkRevision,date=form.elements.date.value;
+     slotSelect.disabled=true;
+     submit.disabled=true;
+     slotSelect.innerHTML='<option value="">Checking verified DTR…</option>';
+     slotStatus.textContent='Checking verified Form 48 entries for '+(fmt(date)||'the selected date')+'…';
+     if(!date||date>today()){
+      slotStatus.textContent='Choose a current or earlier attendance date.';
+      return;
+     }
+     try{
+      // Reuse the read-only, identity-scoped DTR endpoint. Never infer punches from gate movement.
+      const response=await fetch('/api/staff-attendance/my/dtr?date='+encodeURIComponent(date),
+       {credentials:'same-origin',cache:'no-store'});
+      if(!response.ok)throw Error('Verified DTR unavailable. Change the date to retry.');
+      const daily=await response.json();
+      if(revision!==checkRevision||!form.isConnected)return;
+      if(daily.schoolDate!==date||!Array.isArray(daily.slots))
+       throw Error('Verified DTR response was incomplete. Please retry.');
+      const names={AM_IN:'AM Time-In',AM_OUT:'AM Time-Out',PM_IN:'PM Time-In',PM_OUT:'PM Time-Out'};
+      const order=['AM_IN','AM_OUT','PM_IN','PM_OUT'];
+      const slotData=new Map(daily.slots.filter(item=>order.includes(item.slot)).map(item=>[item.slot,item]));
+      const verified=new Set(order.filter(slot=>slotData.get(slot)?.status==='VERIFIED'));
+      // Pending and completed requests must not be offered for a second filing.
+      const blocked=new Set(rows.filter(r=>r.date===date &&
+       !['HEAD_REJECTED','ADMIN_REJECTED'].includes(r.status)).map(r=>r.slot));
+      const available=order.filter(slot=>!verified.has(slot)&&!blocked.has(slot));
+      slotSelect.innerHTML='<option value="">Select an unrecorded DTR entry</option>'+
+       order.map(slot=>{
+        const state=verified.has(slot)?' · Recorded':blocked.has(slot)?' · Request already filed':' · Not recorded';
+        return '<option value="'+slot+'"'+(available.includes(slot)?'':' disabled')+'>'+
+         names[slot]+state+'</option>';
+       }).join('');
+      const recorded=order.filter(slot=>verified.has(slot)).map(slot=>names[slot]);
+      const pending=order.filter(slot=>blocked.has(slot)).map(slot=>names[slot]);
+      slotStatus.textContent=(recorded.length?'Verified: '+recorded.join(', ')+'. ':'No verified DTR entries on this date. ')+
+       (pending.length?'Already requested: '+pending.join(', ')+'. ':'')+
+       (available.length?'Not recorded does not automatically mean a missed scan. ':'No unrecorded slots available for a new request. ');
+      if(date===today())slotStatus.textContent+='Today’s later time-out may not be due yet. ';
+      let suggestion='';
+      if(available.includes('AM_OUT')&&verified.has('AM_IN')&&verified.has('PM_IN'))suggestion='AM_OUT';
+      else if(available.includes('PM_OUT')&&verified.has('PM_IN'))suggestion='PM_OUT';
+      else if(available.includes('AM_OUT')&&verified.has('AM_IN'))suggestion='AM_OUT';
+      else if(available.includes('PM_IN')&&verified.has('AM_OUT'))suggestion='PM_IN';
+      else if(available.length===1&&verified.size)suggestion=available[0];
+      slotSelect.value=suggestion;
+      slotSelect.disabled=!available.length;
+      submit.disabled=!available.length;
+      if(suggestion)slotStatus.textContent+='Suggested: '+names[suggestion]+'. Confirm the correct slot before submitting.';
+      else if(available.length)slotStatus.textContent+='Select the specific slot supported by your records.';
+     }catch(error){
+      if(revision!==checkRevision||!form.isConnected)return;
+      slotStatus.textContent=error.message||'Unable to check verified DTR. Please retry.';
+     }
+    }
+    form.elements.date.addEventListener('change',refreshVerifiedSlots);
+    refreshVerifiedSlots();
     form.addEventListener('submit',async e=>{
      e.preventDefault();if(busy)return;
      const v=new FormData(form),data=Object.fromEntries(v.entries());
