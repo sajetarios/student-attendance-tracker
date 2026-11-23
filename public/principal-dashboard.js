@@ -23,7 +23,7 @@
  let latest=null,abort=null,sequence=0,activeSection='overview';
  const buttons=[...document.querySelectorAll('[data-section]')];
  const sectionMap={overview:'overviewPanel',departments:'departmentsPanel',
-  staff:'staffPanel',priorities:'prioritiesPanel',definitions:'definitionsPanel'};
+  staff:'staffPanel',priorities:'prioritiesPanel',definitions:'definitionsPanel',badge:'badgePanel',personal:'personalPanel',students:'studentsPanel'};
  function status(message,state='info'){
   const el=$('feedback');
   el.textContent=message;el.dataset.state=state;
@@ -38,6 +38,7 @@
   }
   for(const [key,id] of Object.entries(sectionMap))$(id).hidden=key!==name;
   if(name==='staff'&&latest)$('staffSearch').focus({preventScroll:true});
+  if(name==='personal')void loadPersonal();
  }
  function csvSafe(value){
   const raw=String(value??'').replace(/\r|\n/g,' ');
@@ -89,6 +90,9 @@
   $('generatedAt').textContent='Updated '+(Number.isFinite(d.getTime())?
    new Intl.DateTimeFormat('en-PH',{timeZone:'Asia/Manila',dateStyle:'medium',timeStyle:'short'}).format(d):'time unavailable');
   $('heroPending').textContent=fmt(data.approvals?.totalPending);
+  $('studentSummaryActive').textContent=fmt(data.enrollment?.activeStudentRecords);
+  $('studentSummaryCheckins').textContent=fmt(m.acceptedClassCheckins);
+  $('actionInboxSummary').textContent=fmt(data.approvals?.totalPending)+' pending leave/OB requests across review stages · '+fmt(m.pendingDtrSlots)+' pending DTR slots · '+fmt(data.locationSetup?.pending)+' QR locations pending review.';
   $('withVerifiedPunch').textContent=fmt(m.withVerifiedPunch);
   $('staffTrackedDescription').textContent='Of '+fmt(m.trackedStaff)+' tracked active staff';
   $('pendingDtrSlots').textContent=fmt(m.pendingDtrSlots);
@@ -341,7 +345,75 @@
   document.body.append(anchor);anchor.click();anchor.remove();
   setTimeout(()=>URL.revokeObjectURL(url),0);
  }
+
+ const ownSlotLabels={AM_IN:'AM time-in',AM_OUT:'AM time-out',PM_IN:'PM time-in',PM_OUT:'PM time-out'};
+ const manilaTime=value=>value?new Intl.DateTimeFormat('en-PH',{timeZone:'Asia/Manila',hour:'numeric',minute:'2-digit',hour12:true}).format(new Date(value)):'Not recorded';
+ let personalRevision=0;
+ async function loadPersonal(){
+  if(activeSection!=='personal')return;
+  const request=++personalRevision,date=$('personalDate').value;
+  const message=$('personalFeedback');
+  message.textContent='Reading your verified attendance…';
+  try{
+   const opts={credentials:'same-origin',cache:'no-store'};
+   const [d,g]=await Promise.all([
+    fetch('/api/staff-attendance/my/dtr?date='+encodeURIComponent(date),opts),
+    fetch('/api/teacher/my-gate-attendance?from='+encodeURIComponent(date)+'&to='+encodeURIComponent(date),opts)
+   ]);
+   if(d.status===401||g.status===401){window.location.replace('/portal-login.html');return;}
+   const dtr=await d.json().catch(()=>({})),gate=await g.json().catch(()=>({}));
+   if(!d.ok||!g.ok)throw Error(dtr.error||gate.error||'Could not verify your attendance.');
+   if(request!==personalRevision)return;
+   const slots=$('personalSlots');slots.replaceChildren();
+   for(const item of dtr.slots||[]){
+    const card=make('div','personal-slot');
+    card.append(make('span',null,ownSlotLabels[item.slot]||item.slot),
+      make('strong',null,item.status==='VERIFIED'?manilaTime(item.occurredAt):'Not recorded'));
+    slots.append(card);
+   }
+   const host=$('personalGate');host.replaceChildren();
+   for(const event of gate.events||[]){
+    const item=make('div','attention-item');
+    item.append(make('strong',null,event.eventType==='TIME_IN'?'Gate entry':'Gate exit'),
+     make('span',null,manilaTime(event.occurredAt)));
+    host.append(item);
+   }
+   if(!gate.events?.length)host.append(make('p','source-note','No verified gate movements for this date.'));
+   message.textContent='Verified personal records for '+date+' · No inferred attendance.';
+  }catch(error){
+   if(request!==personalRevision)return;
+   message.textContent='Unable to load personal attendance: '+errorText(error);
+   $('personalSlots').replaceChildren();$('personalGate').replaceChildren();
+  }
+ }
+ async function showBadge(){
+  const button=$('showPrincipalBadge');button.disabled=true;
+  $('badgeNotice').textContent='Checking your staff identity…';
+  try{
+   const response=await fetch('/api/staff-attendance/my/badge',{method:'POST',credentials:'same-origin',cache:'no-store'});
+   if(response.status===401){window.location.replace('/portal-login.html');return;}
+   const data=await response.json().catch(()=>({}));
+   if(!response.ok)throw Error(data.error||'Your badge is unavailable.');
+   $('principalBadgeImage').src=data.qrCode;
+   $('badgeEmployeeName').textContent=data.displayName||'School Principal';
+   $('badgeImageWrap').hidden=false;$('hidePrincipalBadge').hidden=false;
+   $('badgeNotice').textContent='Show your private QR only to an authorized Gatekeeper.';
+  }catch(error){$('badgeNotice').textContent=errorText(error);}
+  finally{button.disabled=false;}
+ }
+ function hideBadge(){
+  $('principalBadgeImage').removeAttribute('src');
+  $('badgeImageWrap').hidden=true;$('hidePrincipalBadge').hidden=true;
+  $('badgeNotice').textContent='Your badge is hidden. Viewing a badge never records attendance.';
+ }
+
  async function init(){
+  $('personalDate').value=today;$('personalDate').max=today;$('personalDate').min=minDate;
+  $('showPrincipalBadge').addEventListener('click',()=>void showBadge());
+  $('hidePrincipalBadge').addEventListener('click',hideBadge);
+  $('refreshPersonal').addEventListener('click',()=>void loadPersonal());
+  $('personalDate').addEventListener('change',()=>void loadPersonal());
+  document.addEventListener('visibilitychange',()=>{if(document.hidden)hideBadge();});
   $('reportDate').value=today;$('reportDate').max=today;$('reportDate').min=minDate;
   document.querySelectorAll('[data-jump]').forEach(b=>b.addEventListener('click',()=>switchSection(b.dataset.jump)));
   for(const b of buttons)b.addEventListener('click',()=>switchSection(b.dataset.section));
@@ -351,7 +423,7 @@
    document.body.classList.toggle('principal-presentation',enabled);
    if(presentation){
     presentation.setAttribute('aria-pressed',String(enabled));
-    presentation.textContent=enabled?'✕ Exit presentation':'▣ Present dashboard';
+    presentation.textContent=enabled?'Normal view':'Presentation mode';
     presentation.title=enabled?'Exit presentation mode':'Enter larger-text presentation mode';
    }
   }
