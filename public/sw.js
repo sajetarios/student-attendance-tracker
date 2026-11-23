@@ -1,4 +1,4 @@
-const CACHE = "attendigo-v335-teacher-teaching-day-overview";
+const CACHE = "attendigo-v336-teacher-overview-principal-cache-align";
 
 const SHELL = [
   "/typography.css?v=1",
@@ -148,7 +148,7 @@ const SHELL = [
   "/password-visibility.js",
   "/portal-login.js?v=15",
   "/login-routing.js",
-  "/principal-dashboard.js?v=13",
+  "/principal-dashboard.js?v=14",
   "/principal-dashboard.css?v=14",
   "/school-memos.js?v=1",
   "/school-memos.css?v=1",
