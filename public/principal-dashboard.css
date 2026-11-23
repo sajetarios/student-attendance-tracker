@@ -639,3 +639,25 @@ button.priority-department-row:focus-visible,.priority-reset:focus-visible{
  .principal-class-impact-row{padding:12px}
  .principal-class-impact .card-heading .pill{width:max-content;max-width:100%}
 }
+
+/* Principal school-memo publication, access and acknowledgment status */
+.principal-memo-publish{margin:18px 0}
+.principal-memo-publish .card-heading{align-items:center;flex-wrap:wrap}
+.principal-memo-publish .principal-memo-link{display:inline-flex;align-items:center;text-decoration:none;color:var(--primary)}
+.principal-memo-form{display:grid;gap:13px;margin-top:17px;padding:16px;border:1px solid var(--border);background:var(--bg);border-radius:13px}
+.principal-memo-form label{display:flex;flex-direction:column;gap:6px;font-size:12px;font-weight:700;color:var(--muted);min-width:0}
+.principal-memo-form input,.principal-memo-form select,.principal-memo-form textarea{
+ display:block;width:100%;min-width:0;max-width:100%;border:1px solid var(--border);border-radius:10px;
+ background:var(--surface);color:var(--ink);min-height:42px;padding:10px 11px;font:inherit;font-size:13px}
+.principal-memo-form textarea{min-height:90px;resize:vertical}
+.principal-memo-form input[type=file]{padding:10px;line-height:1.5;height:auto}
+.principal-memo-fields{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:11px}
+.principal-memo-form .refresh-button{justify-self:start}
+.principal-memo-published{padding-top:15px;margin-top:17px;border-top:1px solid var(--border)}
+.principal-memo-published .section-toolbar{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px}
+.principal-memo-published h4{margin:0;font-size:14px}
+.principal-memo-links{display:flex;align-items:center;gap:9px;flex-wrap:wrap;margin-top:6px}
+.principal-memo-links .quiet-button{min-height:38px;font-size:11px}
+.principal-memo-links .text-link{font-size:12px}
+@media(max-width:700px){.principal-memo-fields{grid-template-columns:1fr}
+.principal-memo-form{padding:12px}.principal-memo-form .refresh-button{justify-self:stretch;min-height:44px}}
