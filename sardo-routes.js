@@ -27,7 +27,7 @@ function isValidDate(value) {
 function schoolDays(today, operatingRows, exceptionRows, lookback = LOOKBACK_CALENDAR_DAYS) {
   if (!isValidDate(today)) throw new Error('Invalid school date');
   const configured = new Map(operatingRows.map(row => [Number(row.weekday), Boolean(row.isOperatingDay)]));
-  const exceptions = new Map(exceptionRows.map(row => [String(row.date).slice(0, 10), row.type]));
+  const exceptions = new Map(exceptionRows.map(row => [String(row.date).slice(0, 10),row.type==='CLASS_SUSPENSION'&&!row.suspensionTime?'CLOSED':row.type]));
   const current = new Date(today + 'T00:00:00Z');
   const days = [];
   for (let offset = lookback; offset >= 1; offset--) {
@@ -95,7 +95,7 @@ function registerSardoRoutes(app, pool, { authenticateSchoolClient, requireSchoo
     const [operating, exceptions, absences] = await Promise.all([
       pool.query(`SELECT weekday, is_operating_day AS "isOperatingDay"
                   FROM school_operating_days WHERE school_id=$1`, [schoolId]),
-      pool.query(`SELECT calendar_date::text AS date, exception_type AS type
+      pool.query(`SELECT calendar_date::text AS date, exception_type AS type,to_char(suspension_time,'HH24:MI') AS "suspensionTime"
                   FROM school_calendar_exceptions
                   WHERE school_id=$1 AND calendar_date >= $2::date AND calendar_date < $3::date`,
         [schoolId, from, today]),
