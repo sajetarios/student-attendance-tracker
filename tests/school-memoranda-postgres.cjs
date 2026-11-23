@@ -51,9 +51,10 @@ async function main(){
   }
   async function account(schoolId,role,n,active=true){
    const id=(await pool.query(`
-    INSERT INTO school_users(school_id,department_id,username,display_name,password_hash,role,active,must_change_password)
-    VALUES($1,$2,$3,$4,'e2e-not-login', $5,$6,FALSE) RETURNING user_id`,
-    [schoolId,departments.get(schoolId),'memo_'+n+'_'+suffix,'Fictional '+n,role,active])).rows[0].user_id;
+    INSERT INTO school_users(school_id,department_id,username,display_name,password_hash,role,active,must_change_password,teacher_designations)
+    VALUES($1,$2,$3,$4,'e2e-not-login', $5,$6,FALSE,$7::text[]) RETURNING user_id`,
+    [schoolId,departments.get(schoolId),'memo_'+n+'_'+suffix,'Fictional '+n,role,active,
+     role==='TEACHER'?['SUBJECT_TEACHER']:[]])).rows[0].user_id;
    const token=createOpaqueToken();
    await pool.query(`INSERT INTO user_sessions(token_hash,principal_type,school_id,school_user_id,expires_at)
        VALUES($1,'SCHOOL',$2,$3,NOW()+INTERVAL '20 minutes')`,
