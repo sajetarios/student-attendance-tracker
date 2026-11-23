@@ -35,7 +35,7 @@ test('Presentation mode is optional, accessible and does not alter attendance da
  assert.ok(css.includes('prefers-reduced-motion'));
 });
 test('Principal assets are coherently cache-busted for production',()=>{
- for(const asset of ['principal-dashboard.css?v=2','principal-dashboard.js?v=2']){
+ for(const asset of ['principal-dashboard.css?v=9','principal-dashboard.js?v=8']){
   assert.ok(html.includes(asset));
   assert.ok(sw.includes(asset));
  }
