@@ -108,12 +108,12 @@ test('OB, timetables and other restricted actions use current UI labels',()=>{
 test('unverified/unauthorized questions never become guessed generative guidance',async()=>{
   assert.equal(guide.match('Please make a payroll deduction','TEACHER'),null);
   assert.match(guide.answer('Please make a payroll deduction','TEACHER').note,/will not guess/i);
-  assert.ok(client.includes('response.topic && !unavailable'));
+  assert.ok(client.includes('!roleRestriction && !unavailable'));
   assert.ok(client.includes('This feature is not available to your account'));
-  assert.ok(aiRoutes.includes('if (!library.match(question, req.auth.role))'));
+  assert.ok(aiRoutes.includes('library.restrictedAnswer(question,req.auth.role)'));
   assert.ok(aiRoutes.includes("status(422)"));
-  assert.ok(aiRoutes.includes('Do not add any steps or UI names not stated'));
+  assert.ok(aiRoutes.includes('Only answer how to use the features explicitly documented'));
   assertCacheRevisionAtLeast(sw,311);
-  assert.ok(sw.includes('"/attendigo-help-topics.js?v=2"'));
-  assert.ok(sw.includes('"/attendigo-help-guide.js?v=4"'));
+  assert.ok(sw.includes('"/attendigo-help-topics.js?v=3"'));
+  assert.ok(sw.includes('"/attendigo-help-guide.js?v=5"'));
 });
