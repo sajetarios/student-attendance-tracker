@@ -9,7 +9,7 @@ test('all four active dashboard families embed the same memo UI assets',()=>{
  for(const p of pages){
   const s=read(p);
   assert.match(s,/\/school-memo-banner\.js\?v=3/,'shared memo JS in '+p);
-  assert.match(s,/\/school-memo-banner\.css\?v=2/,'shared memo styling in '+p);
+  assert.match(s,/\/school-memo-banner\.css\?v=3/,'shared memo styling in '+p);
   assert.doesNotMatch(s,/href="\/school-memos\.html/,'no standalone memo link in '+p);
  }
 });
