@@ -1,4 +1,4 @@
-const CACHE = "attendigo-v328-mobile-class-register";
+const CACHE = "attendigo-v328-mobile-class-register-memo-theme";
 
 const SHELL = [
   "/typography.css?v=1",
@@ -148,7 +148,7 @@ const SHELL = [
   "/school-memos.js?v=1",
   "/school-memos.css?v=1",
   "/school-memo-banner.js?v=3",
-  "/school-memo-banner.css?v=2",
+  "/school-memo-banner.css?v=3",
   "/school-memos-redirect.js?v=1",
   "/responsive.css?v=0.8.3",
   "/comfort-ui.css?v=0.8.8",
