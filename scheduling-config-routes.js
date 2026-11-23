@@ -162,7 +162,7 @@ function registerSchedulingConfigRoutes(app,pool,auth){
          LEFT JOIN school_calendar_exception_periods ep ON ep.school_id=e.school_id AND ep.exception_id=e.exception_id
          LEFT JOIN class_periods p ON p.school_id=ep.school_id AND p.period_id=ep.period_id
          WHERE e.school_id=$1 AND e.calendar_date BETWEEN $2::date AND $3::date
-         GROUP BY e.exception_id ORDER BY e.calendar_date`,
+         GROUP BY e.exception_id,m.memo_id ORDER BY e.calendar_date`,
         [req.auth.schoolId,from,to]);res.json({exceptions:r.rows});
     }catch(e){console.error(e.message);res.status(500).json({error:'Could not load calendar exceptions.'});}
   });
