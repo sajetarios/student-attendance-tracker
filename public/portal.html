@@ -1201,7 +1201,7 @@ body.dark-mode .content-wrap > .school-heading.is-compact,body[data-theme="dark"
 <h4 class="manual-notes-heading">Notes from all dates</h4><div class="manual-notes-filter"><label><input type="checkbox" id="mfShowArchived"> Show archived notes</label></div>
 <div id="mfNotesList" class="manual-notes-list" aria-live="polite"></div></div></section>
  <section class="manual-page" id="mfRecord" hidden></section>
- </div><div class="manual-bottom"><span id="mfFeedback" class="manual-sync-note" role="status" aria-live="polite">Offline-ready attendance. Unsynced marks stay on this device.</span><div class="manual-controls"><button type="button" class="manual-btn" id="mfSave">▣ Save sheet</button><button type="button" class="manual-btn primary" id="mfSync">⟳ Sync to records</button><button type="button" class="manual-btn" id="mfFinalize">✓ Finalize date</button><span id="mfFinalizationState" class="manual-sync-note" role="status"></span></div></div>
+ </div><div class="manual-bottom"><span id="mfFeedback" class="manual-sync-note" role="status" aria-live="polite">Offline-ready attendance. Unsynced marks stay on this device.</span><div class="manual-controls"><button type="button" class="manual-btn primary" id="mfSync" title="Save attendance to school records when online; queue securely when offline">▣ Save Attendance</button><button type="button" class="manual-btn" id="mfFinalize" title="Verify complete attendance and sign off the daily register">✓ Finalize Day</button><span id="mfFinalizationState" class="manual-sync-note" role="status"></span></div></div>
  </div>
             <div id="mfHistoryPanel" class="surface-card section-card" hidden>
 <nav class="manual-history-tabs" aria-label="Attendance history sources"><button type="button" data-mf-history="manual" aria-selected="true">Manual records</button><button type="button" data-mf-history="qr" aria-selected="false">QR records</button><button type="button" data-mf-history="conflicts" aria-selected="false">Conflict review</button></nav><div class="manual-history-folio" id="mfManualHistoryPanel">
@@ -2512,7 +2512,7 @@ body.dark-mode .content-wrap > .school-heading.is-compact,body[data-theme="dark"
   <script src="/platform-plans-ui.js?v=8" defer></script>
   <script src="/platform-school-health.js?v=2" defer></script>
   <script src="/planner.js?v=5" defer></script>
-  <script src="/manual-folio.js?v=18" defer></script>
+  <script src="/manual-folio.js?v=19" defer></script>
   <script src="/student-portal-accounts.js?v=11" defer></script>
   <script src="/account-directory.js?v=2" defer></script>
   <script src="/guardian-ui.js?v=7" defer></script>
