@@ -42,3 +42,26 @@
 .ms-dtr-action{margin-left:auto;white-space:normal}
 @media(max-width:600px){.missing-scan-dialog{width:calc(100vw - 12px);max-height:calc(100dvh - 18px);border-radius:14px}.missing-scan-dialog .ms-shell{max-height:calc(100dvh - 18px)}.missing-scan-dialog .ms-header{padding:15px 14px 10px}.missing-scan-dialog .ms-content{padding:12px}.missing-scan-dialog .ms-tabs{padding:10px 12px}.missing-scan-dialog .ms-card{padding:13px}.missing-scan-dialog .ms-grid,.missing-scan-dialog .ms-fields{grid-template-columns:1fr}.missing-scan-dialog .ms-row-heading{flex-direction:column}.missing-scan-dialog .ms-status{align-self:flex-start}}
 html[data-theme=dark] .missing-scan-dialog,.dark .missing-scan-dialog{--surface:#18283a;--surface-secondary:#26384b;--text:#eaf0f7;--border:#40556a}
+
+/* Scoped grid safety: iOS date controls and shared form styles must not overrun a column. */
+.missing-scan-dialog,.missing-scan-dialog *{box-sizing:border-box}
+.missing-scan-dialog .ms-header>div{flex:1 1 auto;min-width:0}
+.missing-scan-dialog .ms-close{flex:0 0 42px}
+.missing-scan-dialog .ms-grid{align-items:start}
+.missing-scan-dialog .ms-grid>*{min-width:0!important;max-width:100%;box-sizing:border-box}
+.missing-scan-dialog .ms-grid>label{width:100%!important;margin:0}
+.missing-scan-dialog .ms-grid :is(input,select,textarea){display:block;min-width:0!important;width:100%!important;max-width:100%!important;box-sizing:border-box!important;overflow:hidden}
+.missing-scan-dialog .ms-create-grid .ms-full,
+.missing-scan-dialog .ms-create-grid .ms-slot-status{grid-column:1 / -1}
+.missing-scan-dialog .ms-slot-status{padding:10px 12px;margin:1px 0 6px;border-radius:10px;background:var(--surface-secondary,#f3f6f9);color:var(--text,#223448);line-height:1.5;font-size:.83rem;overflow-wrap:anywhere}
+.missing-scan-dialog .ms-new .ms-actions{margin-top:12px}
+.missing-scan-dialog :is(.ms-actions,.ms-tabs)>button{min-width:0;white-space:normal;overflow-wrap:anywhere}
+html[data-ui-theme="dark"] .missing-scan-dialog,
+html[data-theme="dark"] .missing-scan-dialog,
+.dark .missing-scan-dialog{--surface:#18283a;--surface-secondary:#26384b;--text:#eaf0f7;--border:#40556a}
+@media(max-width:720px){
+ .missing-scan-dialog .ms-create-grid,.missing-scan-dialog .ms-fields{grid-template-columns:minmax(0,1fr)}
+ .missing-scan-dialog .ms-grid>*,.missing-scan-dialog .ms-create-grid .ms-full,
+ .missing-scan-dialog .ms-create-grid .ms-slot-status{grid-column:1 / -1}
+ .missing-scan-dialog .ms-actions>button{flex:1 1 100%}
+}
