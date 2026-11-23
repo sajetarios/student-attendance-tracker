@@ -577,3 +577,25 @@ button.priority-department-row:focus-visible,.priority-reset:focus-visible{
  .principal-watch-criteria span{font-size:11px}}
 :root[data-theme="dark"] .principal-watch-rank{background:#204b38;color:#abe7c9}
 @media(prefers-color-scheme:dark){:root[data-theme="system"] .principal-watch-rank{background:#204b38;color:#abe7c9}}
+
+/* Unified Teacher Recognition: daily signals and expandable Watch shortlist */
+.principal-recognition{margin:0 0 18px}
+.principal-recognition .card-heading{margin-bottom:12px}
+.principal-recognition-today{padding:13px 0}
+.principal-recognition-subheading{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap}
+.principal-recognition-subheading h4{font-size:14px;margin:0 0 3px;font-weight:750;color:var(--ink)}
+.principal-recognition-subheading p{font-size:12px;color:var(--muted);margin:0;line-height:1.5}
+.principal-recognition .principal-early-list{margin:8px 0 5px}
+.principal-recognition-watch{border-top:1px solid var(--border);margin-top:10px;padding:14px 0 3px}
+.principal-recognition-watch summary{list-style:none;cursor:pointer;display:flex;align-items:center;justify-content:space-between;gap:12px;position:relative;min-height:42px;padding-right:27px}
+.principal-recognition-watch summary::-webkit-details-marker{display:none}
+.principal-recognition-watch summary>span:first-child{min-width:0;display:flex;flex-direction:column;gap:3px}
+.principal-recognition-watch summary strong{font-size:14px;color:var(--ink)}
+.principal-recognition-watch summary small{font-size:11px;color:var(--muted);line-height:1.5}
+.principal-recognition-watch summary:after{content:"⌄";position:absolute;right:2px;top:6px;color:var(--primary);font-weight:850;font-size:19px}
+.principal-recognition-watch[open] summary:after{content:"⌃"}
+.principal-recognition-watch summary:focus-visible{outline:3px solid var(--focus);outline-offset:4px;border-radius:6px}
+.principal-recognition-watch-content{padding:6px 0 1px}
+.principal-recognition-note{border-top:1px solid var(--border);margin-top:13px!important;padding-top:12px}
+@media(max-width:560px){.principal-recognition{padding:15px}.principal-recognition-watch summary{align-items:flex-start}
+ .principal-recognition-watch summary .pill{flex:0 0 auto}}
