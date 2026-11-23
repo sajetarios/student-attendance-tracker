@@ -661,3 +661,248 @@ button.priority-department-row:focus-visible,.priority-reset:focus-visible{
 .principal-memo-links .text-link{font-size:12px}
 @media(max-width:700px){.principal-memo-fields{grid-template-columns:1fr}
 .principal-memo-form{padding:12px}.principal-memo-form .refresh-button{justify-self:stretch;min-height:44px}}
+
+
+/* Teacher Recognition refresh — isolated visual layer; no changes to nomination rules. */
+.principal-recognition.surface{
+ padding:0;overflow:hidden;border-radius:20px;
+ box-shadow:0 16px 38px rgba(20,62,88,.09);
+}
+.principal-recognition .recognition-hero{
+ position:relative;isolation:isolate;overflow:hidden;
+ display:flex;align-items:center;gap:18px;
+ background:linear-gradient(113deg,#153b5b 0%,#115c78 64%,#16868c 100%);
+ color:#fff;padding:24px clamp(20px,3.1vw,34px);min-width:0;
+}
+.principal-recognition .recognition-hero:after{
+ content:"";position:absolute;pointer-events:none;z-index:-1;
+ width:280px;height:280px;right:-95px;top:-160px;border-radius:50%;
+ border:45px solid rgba(255,255,255,.07);
+}
+.principal-recognition .recognition-hero-symbol{
+ display:grid;place-items:center;flex:0 0 66px;width:66px;height:66px;
+ border:1px solid rgba(255,255,255,.35);border-radius:18px;
+ background:rgba(255,255,255,.13);color:#ffdf92;
+ box-shadow:0 8px 24px rgba(2,32,55,.14);
+}
+.principal-recognition .recognition-hero-copy{flex:1 1 250px;min-width:0}
+.principal-recognition .recognition-hero .eyebrow{
+ margin:0 0 4px;letter-spacing:.14em;font-size:11px;font-weight:800;color:#bde9f3;
+}
+.principal-recognition .recognition-hero h3{
+ margin:0;font-size:clamp(21px,2.3vw,27px);
+ font-weight:790;letter-spacing:-.04em;line-height:1.22;color:#fff;
+}
+.principal-recognition .recognition-hero p:last-child{
+ margin:7px 0 0;line-height:1.55;color:#dceff5;font-size:13px;max-width:560px;
+}
+.principal-recognition .recognition-hero-tag{
+ display:inline-flex;align-items:center;gap:8px;white-space:nowrap;
+ border:1px solid rgba(255,255,255,.29);background:rgba(255,255,255,.10);
+ border-radius:999px;padding:9px 13px;font-size:12px;font-weight:720;color:#f2fcff;
+}
+.principal-recognition .recognition-hero-tag>span{color:#ffdf92}
+.principal-recognition .principal-recognition-grid{
+ display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px;
+ padding:20px;align-items:stretch;min-width:0;
+}
+.principal-recognition .principal-recognition-today,
+.principal-recognition .principal-recognition-watch{
+ min-width:0;min-height:242px;display:flex;flex-direction:column;
+ padding:21px;border:1px solid #d9e8f0;border-radius:17px;
+ background:linear-gradient(150deg,#f5fbff 0%,#fff 68%);
+ margin:0;box-shadow:0 4px 13px rgba(30,79,105,.045);
+}
+.principal-recognition .principal-recognition-watch{
+ border-color:#e9e3d6;
+ background:linear-gradient(145deg,#fffaf0 0%,#fff 66%);
+}
+.principal-recognition .recognition-card-top{
+ display:flex;gap:10px;align-items:center;min-width:0;margin:0 0 14px;
+}
+.principal-recognition .recognition-card-icon{
+ flex:0 0 45px;width:45px;height:45px;display:grid;place-items:center;
+ border-radius:13px;
+}
+.principal-recognition .recognition-sun-icon{background:#dcf1fa;color:#0879a5}
+.principal-recognition .recognition-award-icon{background:#fff0cc;color:#a46c14}
+.principal-recognition .recognition-card-type{
+ font-size:10px;letter-spacing:.13em;font-weight:850;color:#4c768b;
+ line-height:1.3;overflow-wrap:anywhere;
+}
+.principal-recognition .principal-recognition-watch .recognition-card-type{color:#9a702f}
+.principal-recognition .principal-recognition-subheading{
+ display:flex;flex-direction:column;gap:11px;align-items:flex-start;
+}
+.principal-recognition .principal-recognition-subheading h4,
+.principal-recognition .recognition-watch-title-wrap>strong{
+ font-size:17px;letter-spacing:-.025em;font-weight:760;line-height:1.35;color:var(--ink);
+}
+.principal-recognition .principal-recognition-subheading h4{margin:0 0 5px}
+.principal-recognition .principal-recognition-subheading p,
+.principal-recognition .recognition-watch-title-wrap>small{
+ display:block;margin:0;color:var(--muted);font-size:12px;line-height:1.55;
+ font-weight:420;overflow-wrap:anywhere;
+}
+.principal-recognition .recognition-count{
+ display:inline-flex;align-items:center;gap:6px;
+ font-size:11px;font-weight:770;letter-spacing:.01em;
+ background:#e5f3f9;color:#116486;border:1px solid #c8e4ef;
+ padding:6px 11px;border-radius:999px;white-space:normal;
+}
+.principal-recognition .recognition-count[data-state="empty"]{
+ background:#eef4f7;color:#547488;border-color:#dce8ee;
+}
+.principal-recognition .principal-recognition-watch .recognition-count{
+ background:#fff0ce;border-color:#f4e0b3;color:#906320;
+}
+.principal-recognition .principal-recognition-watch .recognition-count[data-state="empty"]{
+ background:#f8f1e4;color:#876f4d;border-color:#efe4d2;
+}
+.principal-recognition .principal-early-list{
+ width:100%;grid-template-columns:minmax(0,1fr);margin:13px 0 0;gap:9px;
+}
+.principal-recognition .principal-early-person,
+.principal-recognition .principal-watch-person{
+ border-color:var(--border);background:var(--surface);border-radius:11px;
+}
+.principal-recognition .principal-recognition-watch>summary{
+ list-style:none;display:flex;align-items:flex-start;gap:12px;
+ padding:0;min-height:0;cursor:pointer;position:relative;
+}
+.principal-recognition .principal-recognition-watch>summary:after{content:none!important}
+.principal-recognition .principal-recognition-watch>summary::-webkit-details-marker{display:none}
+.principal-recognition .principal-recognition-watch>summary>.recognition-watch-title-wrap{
+ flex:1 1 auto;min-width:0;display:flex;flex-direction:column;gap:0;
+}
+.principal-recognition .recognition-watch-title-wrap>.recognition-card-top{margin-bottom:14px}
+.principal-recognition .recognition-watch-title-wrap>strong{display:block;margin:0 0 5px}
+.principal-recognition .recognition-watch-controls{
+ display:flex;align-items:center;gap:10px;flex:0 0 auto;min-width:0;
+ margin-top:50px;
+}
+.principal-recognition .recognition-chevron{
+ display:block;width:10px;height:10px;
+ border-right:2px solid #8a662e;border-bottom:2px solid #8a662e;
+ transform:rotate(45deg);transition:transform .18s;flex:0 0 10px;
+}
+.principal-recognition .principal-recognition-watch[open] .recognition-chevron{
+ transform:rotate(225deg);
+}
+.principal-recognition .principal-recognition-watch>summary:focus-visible{
+ outline:3px solid var(--focus);outline-offset:5px;border-radius:5px;
+}
+.principal-recognition .principal-recognition-watch-content{
+ display:block;padding:12px 0 0;min-width:0;
+}
+.principal-recognition .principal-watch-criteria{
+ margin:0 0 12px;display:flex;flex-wrap:wrap;gap:7px;
+}
+.principal-recognition .principal-watch-criteria span{
+ border:1px solid #f0dfb8;background:#fff7e8;
+ padding:6px 10px;font-size:10px;color:#785c30;border-radius:999px;
+}
+.principal-recognition .principal-watch-criteria strong{color:#6d4b19}
+.principal-recognition .principal-watch-list{margin:0;gap:9px}
+.principal-recognition .recognition-empty{
+ display:flex;align-items:center;gap:13px;min-width:0;
+ padding:17px 15px;border:1px dashed #c9dce8;
+ border-radius:13px;background:rgba(255,255,255,.7);
+}
+.principal-recognition .principal-recognition-watch .recognition-empty{
+ border-color:#ead9b7;background:rgba(255,255,255,.68);
+}
+.principal-recognition .recognition-empty-icon{
+ display:grid;place-items:center;flex:0 0 43px;width:43px;height:43px;
+ border-radius:13px;background:#e6f4fa;color:#176f92;
+ font-size:24px;
+}
+.principal-recognition .principal-recognition-watch .recognition-empty-icon{
+ background:#fff1cf;color:#9c7136;
+}
+.principal-recognition .recognition-empty>div{min-width:0;flex:1}
+.principal-recognition .recognition-empty strong{
+ display:block;margin:0;color:var(--ink);
+ font-size:13px;font-weight:760;line-height:1.35;
+}
+.principal-recognition .recognition-empty p{
+ margin:5px 0 0;color:var(--muted);font-size:11px;line-height:1.55;
+}
+.principal-recognition .recognition-footnote{
+ display:flex;align-items:flex-start;gap:10px;
+ padding:12px 21px 17px;border-top:1px solid var(--border);
+ background:var(--surface);
+}
+.principal-recognition .recognition-footnote-icon{
+ flex:0 0 20px;height:20px;width:20px;display:grid;place-items:center;
+ border-radius:50%;background:#e9f2f7;color:#406f87;font-size:12px;font-weight:850;
+}
+.principal-recognition .recognition-footnote p{
+ margin:0;color:var(--muted);font-size:11px;line-height:1.6;
+}
+:root[data-theme="dark"] .principal-recognition .principal-recognition-today,
+:root[data-theme="dark"] .principal-recognition .principal-recognition-watch{
+ background:linear-gradient(145deg,#263c50,#1c2b3d 72%);border-color:#39546a;
+}
+:root[data-theme="dark"] .principal-recognition .recognition-empty{
+ background:rgba(13,28,42,.38);border-color:#456376;
+}
+:root[data-theme="dark"] .principal-recognition .principal-watch-criteria span{
+ background:#423b30;border-color:#67563a;color:#f2debc;
+}
+:root[data-theme="dark"] .principal-recognition .principal-watch-criteria strong{color:#f8dda7}
+:root[data-theme="dark"] .principal-recognition .recognition-card-type{color:#a3d8ed}
+:root[data-theme="dark"] .principal-recognition .principal-recognition-watch .recognition-card-type{color:#f2d39b}
+:root[data-theme="dark"] .principal-recognition .recognition-count{
+ background:#244459;border-color:#3f667b;color:#c8eaf6;
+}
+:root[data-theme="dark"] .principal-recognition .principal-recognition-watch .recognition-count{
+ background:#463e32;border-color:#63533c;color:#ffe4ad;
+}
+@media(prefers-color-scheme:dark){
+ :root[data-theme="system"] .principal-recognition .principal-recognition-today,
+ :root[data-theme="system"] .principal-recognition .principal-recognition-watch{
+  background:linear-gradient(145deg,#263c50,#1c2b3d 72%);border-color:#39546a;
+ }
+ :root[data-theme="system"] .principal-recognition .recognition-empty{
+  background:rgba(13,28,42,.38);border-color:#456376;
+ }
+ :root[data-theme="system"] .principal-recognition .principal-watch-criteria span{
+  background:#423b30;border-color:#67563a;color:#f2debc;
+ }
+ :root[data-theme="system"] .principal-recognition .principal-watch-criteria strong{color:#f8dda7}
+ :root[data-theme="system"] .principal-recognition .recognition-card-type{color:#a3d8ed}
+ :root[data-theme="system"] .principal-recognition .principal-recognition-watch .recognition-card-type{color:#f2d39b}
+ :root[data-theme="system"] .principal-recognition .recognition-count{
+  background:#244459;border-color:#3f667b;color:#c8eaf6;
+ }
+ :root[data-theme="system"] .principal-recognition .principal-recognition-watch .recognition-count{
+  background:#463e32;border-color:#63533c;color:#ffe4ad;
+ }
+}
+@media(max-width:920px){
+ .principal-recognition .principal-recognition-grid{grid-template-columns:minmax(0,1fr)}
+ .principal-recognition .principal-recognition-today,
+ .principal-recognition .principal-recognition-watch{min-height:0}
+}
+@media(max-width:600px){
+ .principal-recognition .recognition-hero{padding:20px;gap:12px;flex-wrap:wrap}
+ .principal-recognition .recognition-hero-symbol{flex-basis:51px;width:51px;height:51px;border-radius:14px}
+ .principal-recognition .recognition-hero-symbol svg{width:26px;height:26px}
+ .principal-recognition .recognition-hero-copy{flex:1 1 calc(100% - 70px)}
+ .principal-recognition .recognition-hero-tag{margin-left:0;font-size:11px;padding:6px 10px}
+ .principal-recognition .principal-recognition-grid{padding:12px;gap:12px}
+ .principal-recognition .principal-recognition-today,
+ .principal-recognition .principal-recognition-watch{padding:16px}
+ .principal-recognition .recognition-watch-controls{gap:7px}
+ .principal-recognition .recognition-count{font-size:10px;padding:5px 8px}
+ .principal-recognition .recognition-footnote{padding:12px 16px 15px}
+}
+@media(max-width:390px){
+ .principal-recognition .principal-recognition-watch>summary{flex-wrap:wrap}
+ .principal-recognition .recognition-watch-controls{margin-top:0;margin-left:auto}
+ .principal-recognition .recognition-empty{align-items:flex-start;gap:10px;padding:12px}
+}
+@media(prefers-reduced-motion:reduce){
+ .principal-recognition .recognition-chevron{transition:none}
+}
