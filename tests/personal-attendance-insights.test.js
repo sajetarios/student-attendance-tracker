@@ -78,7 +78,7 @@ test('personal history endpoint is read-only and only evaluates signed-in school
  const end=route.indexOf('// School Admin only:',start);
  assert.ok(start>0&&end>start);
  const block=route.slice(start,end);
- assert.match(block,/requireSchoolRoles\('TEACHER','DEPARTMENT_HEAD','SCHOOL_ADMIN'\)/);
+ assert.match(block,/requireSchoolRoles\('TEACHER','DEPARTMENT_HEAD','SCHOOL_ADMIN','PRINCIPAL'\)/);
  assert.match(block,/req\.auth\.schoolId,req\.auth\.userId,from,to/);
  assert.match(block,/summarizePersonalAttendance/);
  assert.match(block,/Promise\.allSettled/);
