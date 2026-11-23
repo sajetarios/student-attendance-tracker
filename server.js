@@ -44,6 +44,7 @@ const { registerStaffObRoutes } = require('./staff-ob-routes');
 const { registerStaffLeaveRoutes } = require('./staff-leave-routes');
 const { registerStaffLeaveInboxRoutes } = require('./staff-leave-inbox-routes');
 const { registerPrincipalRoutes } = require('./principal-overview-routes');
+const { registerPrincipalClassImpactRoutes } = require('./principal-class-impact-routes');
 const { getStaffLeaveStatus, gateVisibleLeave } = require('./staff-approved-leave-status');
 const { registerDepartmentWorkspaceRoutes } = require('./department-workspace-routes');
 const { registerStaffGateDtrRoutes } = require('./staff-gate-dtr-routes');
@@ -210,6 +211,7 @@ registerStaffObRoutes(app, pool, { authenticateSchoolClient, requireSchoolRoles 
 registerStaffLeaveRoutes(app, pool, { authenticateSchoolClient, requireSchoolRoles });
 registerStaffLeaveInboxRoutes(app, pool, { authenticateSchoolClient, requireSchoolRoles });
 registerPrincipalRoutes(app, pool, { authenticateSchoolClient, requireSchoolRoles });
+registerPrincipalClassImpactRoutes(app, pool, { authenticateSchoolClient, requireSchoolRoles });
 require('./principal-sdo-routes').registerPrincipalSdoRoutes(app,pool,{authenticateSchoolClient,requireSchoolRoles});
 require('./principal-workspace-routes').registerPrincipalWorkspaceRoutes(app,pool,{authenticateSchoolClient,requireSchoolRoles});
 registerDepartmentWorkspaceRoutes(app, pool, { authenticateSchoolClient, requireSchoolRoles });
