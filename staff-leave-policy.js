@@ -23,7 +23,7 @@ function canView(role,actorId,actorDepartment,request){
   (role==='DEPARTMENT_HEAD'&&actorDepartment&&actorDepartment===request.department_id);
 }
 function nextStatus(role,hasActiveHead){
- return role==='SCHOOL_ADMIN'?'PENDING_EXTERNAL':
+ return ['SCHOOL_ADMIN','PRINCIPAL'].includes(role)?'PENDING_EXTERNAL':
   role==='DEPARTMENT_HEAD'?'PENDING_ADMIN':hasActiveHead?'PENDING_HEAD':'PENDING_ADMIN';
 }
 function allowReviewer(role,actorId,actorDepartment,request,action){
