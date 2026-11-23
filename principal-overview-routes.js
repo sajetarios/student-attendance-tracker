@@ -111,13 +111,13 @@ function registerPrincipalRoutes(app,pool,{authenticateSchoolClient,requireSchoo
      FROM staff_leave_requests r LEFT JOIN school_users u
       ON u.school_id=r.school_id AND u.user_id=r.staff_user_id
      WHERE r.school_id=$1 AND r.status IN ('PENDING_HEAD','PENDING_ADMIN','PENDING_EXTERNAL')
-       AND ($3::uuid IS NULL OR u.department_id=$3::uuid)
-     GROUP BY r.status`,values),
+       AND ($2::uuid IS NULL OR u.department_id=$2::uuid)
+     GROUP BY r.status`,[req.auth.schoolId,departmentId]),
     pool.query(`SELECT r.status,COUNT(*)::int AS total FROM staff_official_business_requests r
      JOIN school_users u ON u.school_id=r.school_id AND u.user_id=r.staff_user_id
      WHERE r.school_id=$1 AND r.status IN ('PENDING_HEAD','PENDING_ADMIN')
-       AND ($3::uuid IS NULL OR u.department_id=$3::uuid)
-     GROUP BY r.status`,values),
+       AND ($2::uuid IS NULL OR u.department_id=$2::uuid)
+     GROUP BY r.status`,[req.auth.schoolId,departmentId]),
     pool.query(`SELECT COUNT(*)::int AS total,
        COUNT(*) FILTER(WHERE approved.setting_value IS NOT NULL)::int AS approved,
        COUNT(*) FILTER(WHERE proposals.setting_value->>'status'='PENDING')::int AS pending
@@ -127,7 +127,7 @@ function registerPrincipalRoutes(app,pool,{authenticateSchoolClient,requireSchoo
      LEFT JOIN school_settings proposals
       ON proposals.school_id=d.school_id AND proposals.setting_key='staff_lunch_geo_proposal_'||d.department_id::text
      WHERE d.school_id=$1 AND d.active=TRUE AND d.department_code<>'UNASSIGNED'
-       AND ($3::uuid IS NULL OR d.department_id=$3::uuid)`,values),
+       AND ($2::uuid IS NULL OR d.department_id=$2::uuid)`,[req.auth.schoolId,departmentId]),
     pool.query(`SELECT COUNT(DISTINCT e.student_id)::int AS "acceptedClassCheckins"
      FROM attendance_events e
      WHERE e.school_id=$1 AND e.school_date=$2::date
