@@ -1,4 +1,4 @@
-const CACHE = "attendigo-v327-missing-scan-final-principal-memos";
+const CACHE = "attendigo-v327-missing-scan-final-principal-memos-memo-inline";
 
 const SHELL = [
   "/typography.css?v=1",
@@ -146,8 +146,9 @@ const SHELL = [
   "/principal-dashboard.css?v=13",
   "/school-memos.js?v=1",
   "/school-memos.css?v=1",
-  "/school-memo-banner.js?v=2",
-  "/school-memo-banner.css?v=1",
+  "/school-memo-banner.js?v=3",
+  "/school-memo-banner.css?v=2",
+  "/school-memos-redirect.js?v=1",
   "/responsive.css?v=0.8.3",
   "/comfort-ui.css?v=0.8.8",
   "/styles.css",
@@ -237,7 +238,7 @@ self.addEventListener("fetch", event => {
   // Keep scheduling and shared notification UI fresh without breaking offline operation.
   // Notifications change often; always prefer online JS/CSS to avoid old large-text layouts.
   // Unlike cache-first general assets, these role-critical resources prefer the deployed version.
-  if (['/universal-notifications.js','/universal-notifications.css','/portal.js','/school-memo-banner.js','/school-memo-banner.css','/school-memos.js','/school-memos.css','/principal-dashboard.js','/principal-dashboard.css','/leave-approval-inbox.js','/leave-approval-inbox.css','/staff-leave-ui.js','/staff-leave-ui.css','/leave-status-indicator.css','/special-program-batch-ui.js','/learner-roster-view.js','/learner-roster-view.css','/student-name-format.js','/teacher-learner-roster.css','/portal.css','/guardian-ui.js','/manual-folio.js','/manual-folio.css','/schedule-form-layout.css','/schedule-workspace-ui.js','/teacher-assignment-modal.css','/smart-attendance-overview.css','/role-controls-responsive.css','/class-qr-monitor.js','/class-qr-monitor-embedded.css','/class-qr-dashboard-link.js'].includes(url.pathname)) {
+  if (['/universal-notifications.js','/universal-notifications.css','/portal.js','/school-memo-banner.js','/school-memo-banner.css','/school-memos-redirect.js','/school-memos.js','/school-memos.css','/principal-dashboard.js','/principal-dashboard.css','/leave-approval-inbox.js','/leave-approval-inbox.css','/staff-leave-ui.js','/staff-leave-ui.css','/leave-status-indicator.css','/special-program-batch-ui.js','/learner-roster-view.js','/learner-roster-view.css','/student-name-format.js','/teacher-learner-roster.css','/portal.css','/guardian-ui.js','/manual-folio.js','/manual-folio.css','/schedule-form-layout.css','/schedule-workspace-ui.js','/teacher-assignment-modal.css','/smart-attendance-overview.css','/role-controls-responsive.css','/class-qr-monitor.js','/class-qr-monitor-embedded.css','/class-qr-dashboard-link.js'].includes(url.pathname)) {
     event.respondWith((async () => {
       try {
         const fresh = await fetch(request, { cache: 'no-store' });
