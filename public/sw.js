@@ -1,4 +1,4 @@
-const CACHE = "attendigo-v317-department-qr-security";
+const CACHE = "attendigo-v318-location-picker";
 
 const SHELL = [
   "/typography.css?v=1",
@@ -90,10 +90,10 @@ const SHELL = [
   "/role-controls-responsive.css?v=2",
   "/smart-attendance-overview.js?v=2",
   "/my-gate-insights.css?v=3",
-  "/staff-lunch-ui.js?v=5",
+  "/staff-lunch-ui.js?v=6",
   "/staff-ob-ui.js?v=6",
   "/staff-ob.css?v=1",
-  "/staff-lunch.css?v=4",
+  "/staff-lunch.css?v=5",
   "/staff-lunch-checkin.js?v=4",
   "/sardo-monitor.js?v=2",
   "/sardo-monitor.css?v=1",

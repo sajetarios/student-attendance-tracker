@@ -9,7 +9,7 @@
   <title>Dashboard · Attendigo</title>
   <link rel="stylesheet" href="/sf1-review-cards.css?v=2">
   <link rel="stylesheet" href="/sf1-family-details.css?v=3">
-  <link rel="stylesheet" href="/staff-lunch.css?v=4">
+  <link rel="stylesheet" href="/staff-lunch.css?v=5">
   <link rel="stylesheet" href="/staff-ob.css?v=1">
   <link rel="stylesheet" href="/department-workspace.css?v=1">
   <link rel="stylesheet" href="/form48-report.css?v=16">
@@ -1840,11 +1840,18 @@ body.dark-mode .content-wrap > .school-heading.is-compact,body[data-theme="dark"
                 <button class="primary-button" type="button" id="staffLunchAssign">Authorize selected teachers</button>
                 <button class="outline-button" type="button" id="staffLunchRevoke" hidden disabled>Revoke presenter</button>
               </div>
-              <div class="staff-lunch-security-settings">
+              <div class="staff-lunch-security-settings" aria-label="Department scanning location setup">
                 <div><strong>Department scanning location</strong>
-                  <p>Optional one-time setup: Stand inside the selected department and save its location. Teachers outside the verified area, or without reliable location data, will need attendance review.</p></div>
-                <button type="button" class="outline-button" id="staffLunchSetPoint" disabled>Set department location</button>
-                <p class="staff-lunch-status" id="staffLunchPointStatus" role="status" aria-live="polite"></p>
+                  <p>Choose the department below. While physically inside it, tap Set location and allow your browser to use your current position. This is a one-time setup unless the department moves.</p></div>
+                <div class="staff-lunch-location-actions">
+                  <label for="staffLunchLocationDepartment">Department to configure
+                    <select id="staffLunchLocationDepartment" aria-describedby="staffLunchPointStatus">
+                      <option value="">Loading departments…</option>
+                    </select>
+                  </label>
+                  <button type="button" class="outline-button" id="staffLunchSetPoint">Set department location</button>
+                </div>
+                <p class="staff-lunch-status" id="staffLunchPointStatus" role="status" aria-live="polite">Choose a department in this card, then set its location.</p>
               </div>
               <div class="staff-lunch-security-settings">
                 <div><strong>Lunch scans needing review</strong>
@@ -2468,7 +2475,7 @@ body.dark-mode .content-wrap > .school-heading.is-compact,body[data-theme="dark"
   <script src="/gate-offline-review.js?v=1" defer></script>
   <script src="/portal.js?v=236" defer></script>
   <script src="/schedule-list-filters.js?v=1" defer></script>
-  <script src="/staff-lunch-ui.js?v=5" defer></script>
+  <script src="/staff-lunch-ui.js?v=6" defer></script>
   <script src="/staff-ob-ui.js?v=6" defer></script>
   <script src="/department-workspace.js?v=5" defer></script>
   <script src="/department-dashboard-v2.js?v=2" defer></script>

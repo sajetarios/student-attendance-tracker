@@ -44,8 +44,8 @@ test('admin and teacher interfaces remain isolated to existing role-specific por
  assert.match(ui,/performance\.now\(\)/);
  assert.doesNotMatch(ui,/Date\.now\(\)>expiry/);
  assert.match(ui,/!document\.hidden/);
- assert.match(portal,/staff-lunch-ui\.js\?v=5/);
- assert.match(portal,/staff-lunch\.css\?v=4/);
+ assert.match(portal,/staff-lunch-ui\.js\?v=6/);
+ assert.match(portal,/staff-lunch\.css\?v=5/);
 });
 test('My lunch QR is unhidden by the role-aware portal view switch',()=>{
  const portalJs=read('public/portal.js');
@@ -66,8 +66,8 @@ test('QR scan does not log in or record until authenticated staff confirms expli
  assert.match(server,/res\.set\('Referrer-Policy','no-referrer'\)/);
 });
 test('service worker preloads safe assets but excludes sensitive scan document from offline cache',()=>{
- assert.match(sw,/staff-lunch-ui\.js\?v=5/);
- assert.match(sw,/staff-lunch\.css\?v=4/);
+ assert.match(sw,/staff-lunch-ui\.js\?v=6/);
+ assert.match(sw,/staff-lunch\.css\?v=5/);
  assert.match(sw,/staff-lunch-checkin\.js\?v=4/);
  assert.match(sw,/staff-lunch-checkin\.html/);
  const shell=sw.split('const SHELL = [')[1].split('];')[0];
@@ -115,4 +115,20 @@ test('department check-in requires location evidence before official DTR approva
  assert.match(scan,/getCurrentPosition/);
  assert.match(scan,/body.status==='VERIFIED'/);
  assert.match(portal,/staffLunchPointStatus/);
+});
+
+test('department location action has a nearby independent picker and does not rely on presenter filter',()=>{
+ assert.match(portal,/<select id="staffLunchLocationDepartment"/);
+ assert.match(portal,/<button type="button" class="outline-button" id="staffLunchSetPoint">/);
+ assert.doesNotMatch(portal,/<button[^>]*id="staffLunchSetPoint"[^>]*disabled/);
+ assert.match(ui,/locationDepartment=\$\('staffLunchLocationDepartment'\)/);
+ assert.match(ui,/request\('\/api\/departments'\)/);
+ assert.match(ui,/await loadLocationDepartments\(\)/);
+ assert.match(ui,/const departmentId=locationDepartment\?\.value\|\|''/);
+ assert.match(ui,/locationDepartment\?\.focus\(\)/);
+ assert.match(ui,/locationDepartment\.addEventListener\('change'/);
+ assert.match(ui,/pointMessage\('Location not saved: '\+guidance\)/);
+ const css=read('public/staff-lunch.css');
+ assert.match(css,/\.staff-lunch-location-actions/);
+ assert.match(css,/@media\(max-width:600px\)/);
 });
