@@ -72,7 +72,7 @@ function registerStaffGateDtrRoutes(app,pool,{authenticateSchoolClient,requireSc
     const [staff,schedules,defaults,gate,dtr,ob,calendar]=await Promise.all([
      pool.query(`SELECT user_id AS "userId",display_name AS "displayName",role
       FROM school_users WHERE school_id=$1 AND active=TRUE
-       AND role IN ('TEACHER','DEPARTMENT_HEAD','SCHOOL_ADMIN')
+       AND role IN ('TEACHER','DEPARTMENT_HEAD','SCHOOL_ADMIN','PRINCIPAL')
       ORDER BY display_name`,[schoolId]),
      pool.query(`SELECT staff_user_id AS "staffUserId",workdays,
        regular_hours AS "regularHours",saturday_hours AS "saturdayHours"
@@ -143,7 +143,7 @@ function registerStaffGateDtrRoutes(app,pool,{authenticateSchoolClient,requireSc
    const teacher=await client.query(
     `SELECT user_id,display_name
      FROM school_users
-     WHERE school_id=$1 AND teacher_qr_token=$2 AND role IN ('TEACHER','DEPARTMENT_HEAD','SCHOOL_ADMIN')
+     WHERE school_id=$1 AND teacher_qr_token=$2 AND role IN ('TEACHER','DEPARTMENT_HEAD','SCHOOL_ADMIN','PRINCIPAL')
        AND active=TRUE AND (teacher_photo_path IS NOT NULL OR EXISTS (
          SELECT 1 FROM official_profile_photos p WHERE p.school_id=school_users.school_id
            AND p.subject_kind='STAFF' AND p.subject_id=school_users.user_id::text))
@@ -196,7 +196,7 @@ function registerStaffGateDtrRoutes(app,pool,{authenticateSchoolClient,requireSc
   }finally{client.release();}
  });
  app.get('/api/staff-attendance/my/dtr',authenticateSchoolClient,
-  requireSchoolRoles('SCHOOL_ADMIN','DEPARTMENT_HEAD','TEACHER'),async(req,res)=>{
+  requireSchoolRoles('SCHOOL_ADMIN','DEPARTMENT_HEAD','TEACHER','PRINCIPAL'),async(req,res)=>{
   res.set('Cache-Control','no-store, private');
   const date=String(req.query?.date||manilaDate());
   if(!/^\d{4}-\d{2}-\d{2}$/.test(date)||Number.isNaN(Date.parse(date+'T00:00:00Z')))
@@ -220,7 +220,7 @@ function registerStaffGateDtrRoutes(app,pool,{authenticateSchoolClient,requireSc
  // Read-only, self-scoped range of verified Form 48 entries for one attendance timeline.
  // Gate scans remain independent and are never copied into DTR entries.
  app.get('/api/staff-attendance/my/dtr-history',authenticateSchoolClient,
-  requireSchoolRoles('TEACHER','DEPARTMENT_HEAD','SCHOOL_ADMIN'),async(req,res)=>{
+  requireSchoolRoles('TEACHER','DEPARTMENT_HEAD','SCHOOL_ADMIN','PRINCIPAL'),async(req,res)=>{
   res.set('Cache-Control','no-store, private');
   const from=String(req.query?.from||manilaDate()),to=String(req.query?.to||manilaDate());
   const validDate=value=>{
@@ -311,7 +311,7 @@ function registerStaffGateDtrRoutes(app,pool,{authenticateSchoolClient,requireSc
     const staff=await pool.query(
      `SELECT user_id AS "userId",display_name AS "displayName",role
        FROM school_users WHERE school_id=$1
-       AND role IN ('SCHOOL_ADMIN','DEPARTMENT_HEAD','TEACHER','GATE_KEEPER')
+       AND role IN ('SCHOOL_ADMIN','DEPARTMENT_HEAD','TEACHER','GATE_KEEPER','PRINCIPAL')
        ORDER BY display_name ASC`,[req.auth.schoolId]);
     return res.json({staff:staff.rows});
    }catch(err){console.error('Form48 employee lookup:',err.message);return res.status(503).json({error:'Staff listing unavailable.'});}
@@ -332,7 +332,7 @@ function registerStaffGateDtrRoutes(app,pool,{authenticateSchoolClient,requireSc
     const staff=await pool.query(
      `SELECT display_name AS "displayName",role FROM school_users
        WHERE school_id=$1 AND user_id=$2
-       AND role IN ('SCHOOL_ADMIN','DEPARTMENT_HEAD','TEACHER','GATE_KEEPER')`,
+       AND role IN ('SCHOOL_ADMIN','DEPARTMENT_HEAD','TEACHER','GATE_KEEPER','PRINCIPAL')`,
      [req.auth.schoolId,staffUserId]);
     if(!staff.rowCount)return res.status(404).json({error:'Staff member not found in this school.'});
     const events=await pool.query(
