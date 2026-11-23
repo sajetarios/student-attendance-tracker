@@ -20,7 +20,7 @@
  };
  const today=toDay(new Date());
  const minDate=new Date(Date.parse(today+'T00:00:00Z')-MAX_AGE_DAYS*86400000).toISOString().slice(0,10);
- let latest=null,abort=null,sequence=0,activeSection='overview',currentRole=null,selectedSdoRequest=null;
+ let latest=null,classImpact=null,abort=null,sequence=0,activeSection='overview',currentRole=null,selectedSdoRequest=null;
  const buttons=[...document.querySelectorAll('[data-section]')];
  const sectionMap={overview:'overviewPanel',departments:'departmentsPanel',
   staff:'staffPanel',priorities:'prioritiesPanel',definitions:'definitionsPanel',badge:'badgePanel',personal:'personalPanel',students:'studentsPanel',calendar:'calendarPanel',security:'securityPanel',reports:'reportsPanel',notifications:'notificationsPanel',assistant:'assistantPanel'};
@@ -97,13 +97,13 @@
   const d=new Date(data.generatedAt);
   $('generatedAt').textContent='Updated '+(Number.isFinite(d.getTime())?
    new Intl.DateTimeFormat('en-PH',{timeZone:'Asia/Manila',dateStyle:'medium',timeStyle:'short'}).format(d):'time unavailable');
-  $('heroPending').textContent=fmt(data.approvals?.totalPending);
+  $('heroPending').textContent='—';
   $('principalReportVerified').textContent=fmt(m.verifiedDtrSlots);
   $('principalReportPending').textContent=fmt(m.pendingDtrSlots);
   $('principalReportClassQr').textContent=fmt(m.acceptedClassCheckins);
   $('principalReportWorkflows').textContent=fmt(data.approvals?.totalPending);
   $('principalReportingScope').textContent='School date '+data.schoolDate+' · Last '+data.trendDays+' days in the DTR trend chart';
-  $('principalSchoolAlerts').textContent=fmt(m.pendingDtrSlots)+' DTR slots pending verification; '+fmt(data.approvals?.totalPending)+' leave/OB workflows pending; '+fmt(data.locationSetup?.pending)+' location proposals pending. Verify source records before decisions.';
+  $('principalSchoolAlerts').textContent=fmt(m.pendingDtrSlots)+' DTR slots pending verification; instructional coverage exceptions are checked separately. Routine leave and OB stages are informational, not Principal escalation alerts.';
   $('studentSummaryActive').textContent=fmt(data.enrollment?.activeStudentRecords);
   $('studentSummaryCheckins').textContent=fmt(m.acceptedClassCheckins);
   $('actionInboxSummary').textContent=fmt(data.approvals?.totalPending)+' pending leave/OB requests across review stages · '+fmt(m.pendingDtrSlots)+' pending DTR slots · '+fmt(data.locationSetup?.pending)+' QR locations pending review.';
@@ -315,6 +315,75 @@
    host.append(card);
   }
  }
+
+ // Only missing documented classroom coverage is raised to the Principal.
+ // Routine leave/OB review states are kept under the collapsed reference list.
+ function renderClassImpact(data,errorMessage=''){
+  const detail=$('principalClassImpactList'),scope=$('principalClassImpactStatus'),
+   total=$('principalClassImpactTotal'),overview=$('principalClassOverviewStatus');
+  if(!detail||!scope||!total||!overview)return;
+  detail.replaceChildren();
+  if(!data){
+   const message=errorMessage||'Checking recorded class coverage for the next seven days…';
+   scope.textContent=message;
+   overview.textContent=message;
+   total.textContent='Not verified';
+   $('heroPending').textContent='—';
+   if(errorMessage)detail.append(make('p','source-note',
+    'Coverage cannot currently be verified. Do not interpret this as zero uncovered classes.'));
+   return;
+  }
+  const cases=Array.isArray(data.cases)?data.cases:[];
+  const number=data.limited?fmt(data.atLeast||cases.length)+'+':fmt(data.unresolvedCount);
+  const hasAlerts=data.limited||numeric(data.unresolvedCount)>0;
+  $('heroPending').textContent=number;
+  total.textContent=number+' period'+(!data.limited&&numeric(data.unresolvedCount)===1?'':'s');
+  if(!hasAlerts){
+   const message='No approved leave/OB class periods without recorded coverage from '+
+    data.fromDate+' through '+data.throughDate+'.';
+   scope.textContent=message;
+   overview.textContent='No uncovered class periods found in the recorded timetable for the next seven days.';
+   detail.append(make('div','principal-class-covered','No unresolved class coverage was found. Department-managed requests do not generate a Principal alert.'));
+  }else{
+   scope.textContent='Only approved leave/OB periods without recorded substitutes or valid timetable adjustments are shown. '+
+    (data.limited?'Additional records exist; filter by department to review more.':'');
+   overview.textContent=number+' class period'+(!data.limited&&numeric(data.unresolvedCount)===1?'':'s')+
+    ' still need'+(!data.limited&&numeric(data.unresolvedCount)===1?'s':'')+
+    ' coverage documented by the department. Select Review class coverage.';
+   for(const row of cases.slice(0,60)){
+    const card=make('article','principal-class-impact-row');
+    const head=make('div','principal-class-impact-row-head');
+    const title=make('strong',null,[
+     row.gradeLevel?'Grade '+row.gradeLevel:'',
+     row.section||'Section not recorded'
+    ].filter(Boolean).join(' · '));
+    const when=make('span',null,row.date+' · '+(row.startTime||'—')+'–'+(row.endTime||'—'));
+    head.append(title,when);
+    const line=make('p',null,
+      (row.periodName||'Scheduled class')+' · '+(row.kind==='OB'?'Approved OB':'Approved leave')+
+      ' · No recorded substitute');
+    const footer=make('div','principal-class-impact-row-footer');
+    footer.append(make('span','principal-class-impact-department',row.departmentName||'Department unavailable'));
+    const valid=Boolean(row.departmentId&&(latest?.departments||[]).some(d=>d.departmentId===row.departmentId));
+    if(valid){
+     const button=make('button','quiet-button','Filter department');
+     button.type='button';
+     button.addEventListener('click',()=>{$('departmentFilter').value=row.departmentId;void load();});
+     footer.append(button);
+    }
+    card.append(head,line,footer);detail.append(card);
+   }
+   if(cases.length>60)detail.append(make('p','source-note',
+     'Showing the first 60 of '+number+' returned period(s). Use the department filter for a focused view.'));
+  }
+  if(latest){
+   const m=latest.metrics||{};
+   $('principalSchoolAlerts').textContent=fmt(m.pendingDtrSlots)+' DTR slots pending verification; '+
+    (hasAlerts?number+' approved leave/OB class period(s) without recorded coverage.':
+      'No approved leave/OB class coverage exceptions found in the next seven days.')+
+    ' Other leave/OB workflow stages are informational only.';
+  }
+ }
  function renderBriefing(data){
   const host=$('briefingActions'),summary=$('briefingSummary'),scope=$('briefingScope');
   if(!host||!summary||!scope)return;
@@ -329,7 +398,19 @@
   summary.textContent='For '+data.schoolDate+', '+fmt(m.verifiedDtrSlots)+
    ' verified staff DTR slot entries and '+fmt(m.pendingDtrSlots)+
    ' pending DTR slot entries were recorded in this scope. No employee absence or punctuality is inferred.';
+  const impactCount=classImpact
+   ?(classImpact.limited?fmt(classImpact.atLeast||classImpact.cases?.length||0)+'+':fmt(classImpact.unresolvedCount))
+   :'—';
+  const impacted=Boolean(classImpact&&(classImpact.limited||numeric(classImpact.unresolvedCount)>0));
   const items=[
+   {
+    icon:'▤',name:'Class coverage exceptions',value:impactCount+' periods',
+    text:!classImpact?'Checking seven-day approved leave and OB coverage.':
+     impacted?'Department has not yet recorded substitute coverage for the flagged classes.':
+      'No unresolved class coverage is recorded. Resolved departmental actions stay off the Principal alert list.',
+    action:'Inspect class coverage',kind:!classImpact?'neutral':impacted?'attention':'stable',
+    click:()=>switchSection('priorities')
+   },
    {
     icon:'◷',name:'Attendance evidence',value:fmt(pendingDtr)+' pending',
     text:pendingDtr? 'Review the original evidence before accepting DTR slots.':
@@ -338,10 +419,9 @@
     click:()=>{$('staffStatus').value=pendingDtr?'pending':'all';switchSection('staff');renderStaff();}
    },
    {
-    icon:'▤',name:'Decisions and requests',value:fmt(openRequests)+' open',
-    text:openRequests?'Leave and OB requests still have workflow steps outstanding.':
-      'No pending leave or OB workflows were returned for this scope.',
-    action:'Inspect stages',kind:openRequests?'attention':'stable',click:()=>switchSection('priorities')
+    icon:'▤',name:'Administrative workflow reference',value:fmt(openRequests)+' in review',
+    text:'Department-managed leave and OB review counts are not instructional coverage alerts.',
+    action:'View stage counts',kind:'neutral',click:()=>{$('principalWorkflowDetails').open=true;switchSection('priorities');}
    },
    {
     icon:'⌖',name:'Department QR readiness',value:fmt(approvedDepartments)+' / '+fmt(totalDepartments),
@@ -438,6 +518,8 @@
  }
  async function load(){
   if(abort)abort.abort();abort=new AbortController();const current=++sequence;
+  classImpact=null;
+  renderClassImpact(null);
   $('refreshDashboard').disabled=true;
   status('Checking live school records. DTR and approval data are read-only…');
   try{
@@ -451,6 +533,26 @@
    if(current!==sequence)return;
    render(data);
    if(['personal','calendar','security'].includes(activeSection))void loadWorkspace();
+   // Isolated optional read: an unavailable coverage source does not hide DTR
+   // metrics or turn unknown instructional coverage into a false zero.
+   try{
+    const coverageQuery=new URLSearchParams();
+    if($('departmentFilter').value)coverageQuery.set('departmentId',$('departmentFilter').value);
+    const coverageResponse=await fetch('/api/principal/class-impact?'+coverageQuery,
+     {credentials:'same-origin',cache:'no-store',signal:abort.signal});
+    if(coverageResponse.status===401){window.location.replace('/portal-login.html');return;}
+    const info=await coverageResponse.json().catch(()=>({}));
+    if(!coverageResponse.ok)throw Error(info.error||'Class coverage request failed ('+coverageResponse.status+').');
+    if(current!==sequence)return;
+    classImpact=info;
+    renderClassImpact(classImpact);
+    if(latest)renderBriefing(latest);
+   }catch(error){
+    if(error.name==='AbortError'||current!==sequence)return;
+    classImpact=null;
+    renderClassImpact(null,'Could not verify class coverage. '+errorText(error));
+    if(latest)renderBriefing(latest);
+   }
   }catch(error){
    if(error.name==='AbortError'||current!==sequence)return;
    latest=null;
