@@ -114,7 +114,7 @@ test('Teacher overview is read only, date-aware and reuses existing authorized b
 });
 
 test('Overview resources are versioned and cached, existing shortcuts remain unique',()=>{
- for(const p of ['/teacher-teaching-overview.js?v=2','/teacher-teaching-overview.css?v=2']){
+ for(const p of ['/teacher-teaching-overview.js?v=3','/teacher-teaching-overview.css?v=3']){
   assert.ok(html.includes(p),'portal includes '+p);
   assert.ok(worker.includes(p),'worker includes '+p);
  }
@@ -139,4 +139,17 @@ test('mounted overview replaces duplicate teacher shortcut presentation without 
  for(const route of ['students','schedules','sf2']){
    assert.equal((html.match(new RegExp('data-go="'+route+'"','g'))||[]).length,1);
  }
+});
+
+test('teacher overview keeps preferred roomy shortcut presentation and unique live status actions',()=>{
+ assert.match(css,/teacher-overview-only \.teacher-today-item:not\(\[hidden\]\)/);
+ assert.match(css,/grid-template-columns:\s*42px minmax\(0, 1fr\) 17px/);
+ assert.match(css,/background:\s*var\(--shortcut-bg, #fff\)/);
+ assert.match(css,/grid-template-columns:\s*minmax\(0, 1fr\)/);
+ for(const id of ['teacherTodaySchedule','teacherTodayAttendance','teacherTodaySf2']){
+   assert.ok(css.includes('#'+id+' .teacher-today-symbol'));
+   assert.ok(client.includes('id="'+id+'"'));
+ }
+ assert.equal((client.match(/teacher-today-symbol.*?<svg/g)||[]).length,3);
+ assert.match(client,/card\.classList\.add\('teacher-overview-only'\)/);
 });
