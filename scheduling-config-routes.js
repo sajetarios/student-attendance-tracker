@@ -207,12 +207,11 @@ function registerSchedulingConfigRoutes(app,pool,auth){
         : await c.query(
           `INSERT INTO school_calendar_exceptions(school_id,calendar_date,title,exception_type,notes,created_by_user_id,dismissal_time,suspension_time,memo_id)
            VALUES($1,$2::date,$3,$4,$5,$6,$7::time,$8::time,$9::uuid)
-           ON CONFLICT(school_id,calendar_date) DO UPDATE SET title=EXCLUDED.title,exception_type=EXCLUDED.exception_type,
-            notes=EXCLUDED.notes,dismissal_time=EXCLUDED.dismissal_time,suspension_time=EXCLUDED.suspension_time,memo_id=EXCLUDED.memo_id,updated_at=NOW()
+           ON CONFLICT(school_id,calendar_date) DO NOTHING
            RETURNING exception_id AS "exceptionId",to_char(calendar_date,'YYYY-MM-DD') AS date,title,
             exception_type AS type,notes,to_char(dismissal_time,'HH24:MI') AS "dismissalTime"`,
           [req.auth.schoolId,date,title.trim(),kind,notes,req.auth.userId,dismissalTime,suspensionTime||null,memoId||null]);
-      if(!saved.rowCount){await c.query('ROLLBACK');return res.status(404).json({error:'Calendar exception not found.'});}
+      if(!saved.rowCount){await c.query('ROLLBACK');return res.status(exceptionId?404:409).json({error:exceptionId?'Calendar exception not found.':'This date already has a school calendar exception. Edit the saved date instead of creating a competing record.'});}
       await c.query('DELETE FROM school_calendar_exception_periods WHERE school_id=$1 AND exception_id=$2',[req.auth.schoolId,saved.rows[0].exceptionId]);
       for(const id of ids) await c.query('INSERT INTO school_calendar_exception_periods(school_id,exception_id,period_id) VALUES($1,$2,$3)',[req.auth.schoolId,saved.rows[0].exceptionId,id]);
       await c.query(`INSERT INTO audit_logs(school_id,actor_type,actor_user_id,action,entity_type,entity_id,details)
