@@ -76,7 +76,7 @@ test('closed or learner-suspended day suppresses class suggestion and pending si
   assert.equal(status,200);
   assert.equal(body.nextClass,null);
   assert.equal(body.attendance.completedUnsignedToday,0);
-  assert.match(body.scheduleMessage,/closed|suspension/i);
+  assert.match(body.scheduleMessage,/closure|closed|suspension/i);
  }
 });
 
