@@ -11,7 +11,7 @@
 try { const preference = localStorage.getItem('attendigo.principal.theme'); document.documentElement.dataset.theme = ['dark','light','system'].includes(preference) ? preference : 'light'; }
 catch (_) { document.documentElement.dataset.theme = 'light'; }
 </script>
-<link rel="stylesheet" href="/principal-dashboard.css?v=10">
+<link rel="stylesheet" href="/principal-dashboard.css?v=11">
 <script src="/principal-dashboard.js?v=9" defer></script>
 </head>
 <body>
@@ -192,33 +192,35 @@ catch (_) { document.documentElement.dataset.theme = 'light'; }
     <button type="button" class="quiet-button" data-jump="priorities">☷ Action inbox</button>
     <button type="button" class="quiet-button" data-jump="students">▤ Student signals</button>
    </div>
-   <section class="surface principal-early-arrivals" aria-labelledby="earlyArrivalsHeading">
+   <section class="surface principal-recognition" aria-labelledby="principalRecognitionTitle">
     <div class="card-heading">
-     <div><p class="eyebrow">TEACHER RECOGNITION</p><h3 id="earlyArrivalsHeading">Early Arrivals</h3>
-      <p id="earlyArrivalsSubtitle">First verified Gatekeeper entries before 7:00 AM on the selected school date.</p></div>
-     <span class="pill" id="earlyArrivalsCount">Checking records</span>
+     <div><p class="eyebrow">STAFF RECOGNITION</p><h3 id="principalRecognitionTitle">Teacher Recognition</h3>
+      <p>Verified early arrivals today and potential Watch Recognition nominees.</p></div>
     </div>
-    <div id="earlyArrivalsList" class="principal-early-list" aria-live="polite">
-     <p class="source-note">Checking verified arrival records…</p>
+    <div class="principal-recognition-today">
+     <div class="principal-recognition-subheading">
+      <div><h4>Today's early arrivals</h4><p id="earlyArrivalsSubtitle">Photo-verified Gatekeeper entries before 7:00 AM on the selected school date.</p></div>
+      <span class="pill" id="earlyArrivalsCount">Checking records</span>
+     </div>
+     <div id="earlyArrivalsList" class="principal-early-list" aria-live="polite">
+      <p class="source-note">Checking verified arrival records…</p>
+     </div>
     </div>
-    <p class="source-note">Recognition candidates only. Based on photo-verified physical gate entry, not login, DTR punctuality, an official award, or a comparison against individual work schedules. Staff with approved leave on this date are excluded pending review.</p>
-   </section>
-   <section class="surface principal-watch-nominees" aria-labelledby="principalWatchTitle">
-    <div class="card-heading">
-     <div><p class="eyebrow">TEACHER APPRECIATION · PROVISIONAL</p>
-      <h3 id="principalWatchTitle">Watch Recognition — Suggested Nominees</h3>
-      <p id="principalWatchPeriod">Reviewing the last 30 calendar days of verified Gatekeeper arrivals.</p></div>
-     <span class="pill" id="principalWatchCount">Checking records</span>
-    </div>
-    <div class="principal-watch-criteria" aria-label="Watch Recognition nomination criteria">
-     <span>Before <strong>7:00 AM</strong></span>
-     <span><strong>10+</strong> distinct verified early-entry days</span>
-     <span><strong>3+</strong> different calendar weeks</span>
-    </div>
-    <div id="principalWatchNomineeList" class="principal-watch-list" aria-live="polite">
-     <p class="source-note">Verifying monthly recognition candidates…</p>
-    </div>
-    <p class="source-note">Suggested candidates, not winners. One earliest photo-verified gate entry per date counts; approved leave dates are excluded. Missing scans are not absences. Before giving a watch or publicly recognizing anyone, the principal must review work schedules, unusual scan patterns, approved school activities, and the school's final award criteria.</p>
+    <details class="principal-recognition-watch">
+     <summary><span><strong>Watch Recognition nominees</strong><small id="principalWatchPeriod">Rolling 30-day assessment of verified early arrivals.</small></span>
+      <span class="pill" id="principalWatchCount">Checking records</span></summary>
+     <div class="principal-recognition-watch-content">
+      <div class="principal-watch-criteria" aria-label="Provisional Watch Recognition nomination criteria">
+       <span>Before <strong>7:00 AM</strong></span>
+       <span><strong>10+</strong> distinct verified early-entry days</span>
+       <span><strong>3+</strong> different calendar weeks</span>
+      </div>
+      <div id="principalWatchNomineeList" class="principal-watch-list" aria-live="polite">
+       <p class="source-note">Verifying nomination candidates…</p>
+      </div>
+     </div>
+    </details>
+    <p class="source-note principal-recognition-note">For recognition consideration only—not an official award or punctuality finding. Uses verified gate entries, excludes approved leave dates, and requires principal review of schedules and evidence. Missing scans do not establish absence.</p>
    </section>
    <section class="surface principal-briefing" id="principalBriefing" aria-labelledby="principalBriefingTitle">
     <div class="card-heading"><div><p class="eyebrow">YOUR DAILY LEADERSHIP BRIEFING</p><h3 id="principalBriefingTitle">What deserves attention today?</h3>
