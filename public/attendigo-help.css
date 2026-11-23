@@ -54,6 +54,9 @@
   background:#fff;color:#1c567a;padding:6px 10px;
   font:650 12px/1.3 inherit;cursor:pointer}
 .attendigo-help-chip:hover{background:#e8f5fd}
+.attendigo-help-related{display:flex;flex-wrap:wrap;gap:6px;margin-top:9px;align-items:center}
+.attendigo-help-related>.attendigo-help-msg-label{flex-basis:100%;margin-bottom:1px}
+.attendigo-help-related>.attendigo-help-chip{flex:0 1 auto;min-height:34px;white-space:normal;text-align:left}
 .attendigo-help-form{flex:0 0 auto;margin:0;padding:10px 13px 8px;
   border-top:1px solid #e1eaf2;background:#fff}
 .attendigo-help-form label{display:block;margin-bottom:4px;color:#42627b;
