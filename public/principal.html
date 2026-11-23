@@ -199,34 +199,74 @@ catch (_) { document.documentElement.dataset.theme = 'light'; }
     <button type="button" class="quiet-button" data-jump="students">▤ Student signals</button>
    </div>
    <section class="surface principal-recognition" aria-labelledby="principalRecognitionTitle">
-    <div class="card-heading">
-     <div><p class="eyebrow">STAFF RECOGNITION</p><h3 id="principalRecognitionTitle">Teacher Recognition</h3>
-      <p>Verified early arrivals today and potential Watch Recognition nominees.</p></div>
+    <div class="recognition-hero">
+     <div class="recognition-hero-symbol" aria-hidden="true">
+      <svg viewBox="0 0 48 48" width="33" height="33" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linejoin="round" stroke-linecap="round">
+       <path d="M14 8h20v10c0 7-4.6 12-10 12s-10-5-10-12V8Z"/>
+       <path d="M14 12H8v6c0 5 3.5 7.5 8 7.5M34 12h6v6c0 5-3.5 7.5-8 7.5M24 30v7m-9 4h18M18 37h12"/>
+       <path d="m24 13 1.8 3.6 4 .6-2.9 2.8.7 4-3.6-1.9-3.6 1.9.7-4-2.9-2.8 4-.6Z"/>
+      </svg>
+     </div>
+     <div class="recognition-hero-copy">
+      <p class="eyebrow">STAFF RECOGNITION</p>
+      <h3 id="principalRecognitionTitle">Teacher Recognition</h3>
+      <p>Highlight verified early arrivals and review potential Watch Recognition nominees.</p>
+     </div>
+     <span class="recognition-hero-tag"><span aria-hidden="true">✦</span> Evidence-based</span>
     </div>
-    <div class="principal-recognition-today">
-     <div class="principal-recognition-subheading">
-      <div><h4>Today's early arrivals</h4><p id="earlyArrivalsSubtitle">Photo-verified Gatekeeper entries before 7:00 AM on the selected school date.</p></div>
-      <span class="pill" id="earlyArrivalsCount">Checking records</span>
-     </div>
-     <div id="earlyArrivalsList" class="principal-early-list" aria-live="polite">
-      <p class="source-note">Checking verified arrival records…</p>
-     </div>
+    <div class="principal-recognition-grid">
+     <section class="principal-recognition-today" aria-labelledby="earlyArrivalHeading">
+      <div class="recognition-card-top">
+       <span class="recognition-card-icon recognition-sun-icon" aria-hidden="true">
+        <svg viewBox="0 0 32 32" width="23" height="23" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+         <path d="M5 24h22M9 19a7 7 0 0 1 14 0M16 4v4M5.5 10.5l3 3M26.5 10.5l-3 3M2 18h3m22 0h3"/>
+        </svg>
+       </span>
+       <span class="recognition-card-type">TODAY</span>
+      </div>
+      <div class="principal-recognition-subheading">
+       <div><h4 id="earlyArrivalHeading">Early arrivals</h4><p id="earlyArrivalsSubtitle">Photo-verified Gatekeeper entries before 7:00 AM on the selected school date.</p></div>
+       <span class="pill recognition-count" id="earlyArrivalsCount">Checking records</span>
+      </div>
+      <div id="earlyArrivalsList" class="principal-early-list" aria-live="polite">
+       <p class="source-note">Checking verified arrival records…</p>
+      </div>
+     </section>
+     <details class="principal-recognition-watch" open>
+      <summary>
+       <span class="recognition-watch-title-wrap">
+        <span class="recognition-card-top">
+         <span class="recognition-card-icon recognition-award-icon" aria-hidden="true">
+          <svg viewBox="0 0 32 32" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+           <circle cx="16" cy="11" r="7"/><path d="m11 17-2 11 7-4 7 4-2-11m-8-6 2 2 4-4"/>
+          </svg>
+         </span>
+         <span class="recognition-card-type">ROLLING 30 DAYS</span>
+        </span>
+        <strong>Watch Recognition nominees</strong>
+        <small id="principalWatchPeriod">Rolling 30-day assessment of verified early arrivals.</small>
+       </span>
+       <span class="recognition-watch-controls">
+        <span class="pill recognition-count" id="principalWatchCount">Checking records</span>
+        <span class="recognition-chevron" aria-hidden="true"></span>
+       </span>
+      </summary>
+      <div class="principal-recognition-watch-content">
+       <div class="principal-watch-criteria" aria-label="Provisional Watch Recognition nomination criteria">
+        <span>Before <strong>7:00 AM</strong></span>
+        <span><strong>10+</strong> verified days</span>
+        <span><strong>3+</strong> calendar weeks</span>
+       </div>
+       <div id="principalWatchNomineeList" class="principal-watch-list" aria-live="polite">
+        <p class="source-note">Verifying nomination candidates…</p>
+       </div>
+      </div>
+     </details>
     </div>
-    <details class="principal-recognition-watch">
-     <summary><span><strong>Watch Recognition nominees</strong><small id="principalWatchPeriod">Rolling 30-day assessment of verified early arrivals.</small></span>
-      <span class="pill" id="principalWatchCount">Checking records</span></summary>
-     <div class="principal-recognition-watch-content">
-      <div class="principal-watch-criteria" aria-label="Provisional Watch Recognition nomination criteria">
-       <span>Before <strong>7:00 AM</strong></span>
-       <span><strong>10+</strong> distinct verified early-entry days</span>
-       <span><strong>3+</strong> different calendar weeks</span>
-      </div>
-      <div id="principalWatchNomineeList" class="principal-watch-list" aria-live="polite">
-       <p class="source-note">Verifying nomination candidates…</p>
-      </div>
-     </div>
-    </details>
-    <p class="source-note principal-recognition-note">For recognition consideration only—not an official award or punctuality finding. Uses verified gate entries, excludes approved leave dates, and requires principal review of schedules and evidence. Missing scans do not establish absence.</p>
+    <div class="recognition-footnote">
+     <span class="recognition-footnote-icon" aria-hidden="true">i</span>
+     <p>Recognition consideration only—not an official award or punctuality finding. Verified gate scans exclude approved leave dates; the Principal must review schedules and evidence. Missing scans do not establish absence.</p>
+    </div>
    </section>
    <section class="surface principal-briefing" id="principalBriefing" aria-labelledby="principalBriefingTitle">
     <div class="card-heading"><div><p class="eyebrow">YOUR DAILY LEADERSHIP BRIEFING</p><h3 id="principalBriefingTitle">What deserves attention today?</h3>
