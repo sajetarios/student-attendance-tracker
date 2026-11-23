@@ -11,8 +11,8 @@
 try { const preference = localStorage.getItem('attendigo.principal.theme'); document.documentElement.dataset.theme = ['dark','light','system'].includes(preference) ? preference : 'light'; }
 catch (_) { document.documentElement.dataset.theme = 'light'; }
 </script>
-<link rel="stylesheet" href="/principal-dashboard.css?v=7">
-<script src="/principal-dashboard.js?v=6" defer></script>
+<link rel="stylesheet" href="/principal-dashboard.css?v=8">
+<script src="/principal-dashboard.js?v=7" defer></script>
 </head>
 <body>
 <a class="skip" href="#main">Skip to school overview</a>
@@ -78,7 +78,7 @@ catch (_) { document.documentElement.dataset.theme = 'light'; }
       <select id="principalMyWorkspace" aria-label="My personal workspace">
        <option value="">Open my workspace…</option>
        <option value="badge">My QR badge</option>
-       <option value="personal">My attendance, requests &amp; credits</option>
+       <option value="personal">My attendance, leave &amp; OB</option>
       </select>
      </label>
      <label class="principal-menu-label" for="principalMore"><span>More</span>
@@ -127,7 +127,42 @@ catch (_) { document.documentElement.dataset.theme = 'light'; }
    </div>
    <details id="principalPersonalRequests" class="surface principal-personal-details">
     <summary><strong>My leave, official business &amp; credits</strong><span>View requests and certified balances</span></summary>
-   <div class="principal-compact-request-content"><h3>Requests &amp; certified credits</h3>
+   <div class="principal-compact-request-content"><h3>My Leave &amp; Official Business</h3>
+    <p>Submit a request in Attendigo. The School Admin coordinates delivery to the SDO, and an authorized external officer decides. Submission alone never changes your DTR.</p>
+    <div class="principal-sdo-forms">
+     <form id="principalLeaveForm" class="principal-sdo-form">
+      <h4>File Leave</h4>
+      <label>Leave type
+       <select name="leaveType" required>
+        <option value="">Choose type…</option><option value="VACATION">Vacation leave</option><option value="SICK">Sick leave</option>
+        <option value="SPECIAL_PRIVILEGE">Special privilege</option><option value="WELLNESS">Wellness leave</option>
+        <option value="MATERNITY">Maternity leave</option><option value="PATERNITY">Paternity leave</option>
+        <option value="OTHER">Other leave</option>
+       </select>
+      </label>
+      <label>Requested credit account
+       <select name="creditAccount" required><option value="NONE">No credit account selected</option><option value="VL">VL (HR-certified only)</option><option value="SL">SL (HR-certified only)</option></select>
+      </label>
+      <div class="principal-form-pair"><label>Start date<input type="date" name="startDate" required></label>
+       <label>End date<input type="date" name="endDate" required></label></div>
+      <label>Reason<textarea name="reason" required minlength="3" maxlength="1000" rows="2" placeholder="Brief reason, without unnecessary medical details"></textarea></label>
+      <button type="submit" class="refresh-button">Submit leave for SDO coordination</button>
+      <p id="principalLeaveFormStatus" role="status" class="source-note"></p>
+     </form>
+     <form id="principalObForm" class="principal-sdo-form">
+      <h4>Request Official Business</h4>
+      <label>Official purpose<textarea name="purpose" minlength="3" maxlength="1000" required rows="2" placeholder="Purpose of the official duty"></textarea></label>
+      <label>Destination / receiving office<input type="text" name="destination" required minlength="2" maxlength="300"></label>
+      <div class="principal-form-pair"><label>Start date and time<input type="datetime-local" name="startsAt" required></label>
+       <label>End date and time<input type="datetime-local" name="endsAt" required></label></div>
+      <button type="submit" class="refresh-button">Submit OB for SDO coordination</button>
+      <p id="principalObFormStatus" role="status" class="source-note"></p>
+     </form>
+    </div>
+    <div class="principal-sdo-progress">
+     <div class="section-toolbar"><h4>Application tracking</h4><button id="principalRefreshSdo" class="quiet-button" type="button">Refresh requests</button></div>
+     <div id="principalSdoRequestList" class="principal-data-list" aria-live="polite">Loading requests…</div>
+    </div>
     <p class="source-note">Read-only status of your own requests and certified credit ledger. Principal filing and approval controls are withheld until the leave/OB policy and authorized approval route support your role.</p>
     <div class="principal-personal-grid"><div><h4>My leave requests</h4><div id="principalLeaveList" class="principal-data-list"></div></div><div><h4>My official business</h4><div id="principalObList" class="principal-data-list"></div></div></div>
     <h4>Certified leave credits</h4><div id="principalCreditsList" class="principal-data-list"></div>
@@ -203,6 +238,34 @@ catch (_) { document.documentElement.dataset.theme = 'light'; }
   </section>
 
   <section id="prioritiesPanel" class="panel" data-panel="priorities" hidden>
+   <div id="principalSdoAdminPanel" class="surface principal-sdo-admin" hidden>
+    <h3>Principal requests — School Admin coordination</h3>
+    <p>Only an authorized SDO officer decides. Record the handoff and the signed official decision here; you are not approving the principal's request.</p>
+    <div id="principalSdoAdminList" class="principal-data-list">Loading principal applications…</div>
+    <div id="principalSdoAdminForms" hidden>
+     <p id="principalSdoSelected" class="source-note"></p>
+     <form id="principalSdoHandoffForm" class="principal-sdo-form">
+      <h4>1. Record submission to SDO</h4>
+      <label>Receiving office<input name="receivingOffice" maxlength="180" required placeholder="e.g., SDO Records Section"></label>
+      <label>Submission method<select name="channel" required><option value="SDO_TRACKING">Official tracking system</option><option value="OFFICIAL_EMAIL">Official email</option><option value="PHYSICAL">Physical submission</option><option value="OTHER">Other authorized method</option></select></label>
+      <label>Receiving/reference number<input name="reference" maxlength="160" minlength="3" required></label>
+      <button type="submit" class="quiet-button">Record SDO handoff</button>
+     </form>
+     <form id="principalSdoDecisionForm" class="principal-sdo-form">
+      <h4>2. Record signed external decision</h4>
+      <label>SDO decision<select name="decision" required><option value="">Choose decision…</option><option value="APPROVED">Approved</option><option value="REJECTED">Disapproved</option></select></label>
+      <label>Document reference<input name="approvalReference" required minlength="3" maxlength="120"></label>
+      <div class="principal-form-pair"><label>Approving official<input name="approverName" required minlength="3" maxlength="120"></label><label>Official position<input name="approverPosition" required minlength="3" maxlength="120"></label></div>
+      <div class="principal-form-pair"><label>Decision date<input name="approvedOn" type="date" required></label>
+       <label id="principalCertifiedDaysLabel">Certified working days (leave only)<input name="certifiedWorkingDays" type="number" min=".001" max="366" step=".001"></label></div>
+      <label>Signed official document (PDF/JPG/PNG, max 4MB)<input name="signedDocument" type="file" accept=".pdf,.png,.jpg,.jpeg,application/pdf,image/png,image/jpeg" required></label>
+      <label>Verification note<textarea name="note" rows="2" maxlength="1000" placeholder="Reference to the signed decision"></textarea></label>
+      <button type="submit" class="refresh-button">Record signed SDO decision</button>
+      <p class="source-note">This records the externally signed decision. It does not authorize the School Admin to approve on behalf of SDO.</p>
+     </form>
+    </div>
+    <p id="principalSdoAdminStatus" role="status" class="source-note"></p>
+   </div>
    <div class="surface principal-action-summary"><h3>School action inbox</h3><p>School-wide requests and verification issues requiring authorized follow-up. This view does not grant approval rights or disclose medical details.</p><p id="actionInboxSummary" aria-live="polite">Loading school action summary…</p></div>
    <div class="section-heading"><div><p class="eyebrow">DOCUMENTED WORKFLOWS</p><h2>Pending school actions</h2><p>Counts are from live leave, OB and lunch QR review records. The Principal dashboard does not issue approvals or edit official records.</p></div></div>
    <div id="priorityBreakdown" class="priority-grid" aria-live="polite"></div>
