@@ -158,7 +158,7 @@ function registerStaffLeaveRoutes(app,pool,{authenticateSchoolClient,requireScho
    const staff=await c.query('SELECT department_id,role,active FROM school_users WHERE school_id=$1 AND user_id=$2 FOR UPDATE',
     [req.auth.schoolId,req.auth.userId]);
    if(!staff.rowCount||!staff.rows[0].active){await c.query('ROLLBACK');return res.status(403).json({error:'An active school employee account is required.'});}
-   const overlaps=await c.query('SELECT request_id FROM staff_leave_requests WHERE school_id=$1 AND staff_user_id=$2 AND status NOT IN (\'REJECTED\',\'CANCELLED\') AND start_date<=$4::date AND end_date>=$3::date LIMIT 1',
+   const overlaps=await c.query('SELECT request_id FROM staff_leave_requests WHERE school_id=$1 AND staff_user_id=$2 AND status NOT IN (\'REJECTED\',\'CANCELLED\',\'DECLINED_HEAD\') AND start_date<=$4::date AND end_date>=$3::date LIMIT 1',
     [req.auth.schoolId,req.auth.userId,input.startDate,input.endDate]);
    const old=await c.query('SELECT leave_id FROM staff_form48_approved_leaves WHERE school_id=$1 AND staff_user_id=$2 AND revoked_at IS NULL AND start_date<=$4::date AND end_date>=$3::date LIMIT 1',
     [req.auth.schoolId,req.auth.userId,input.startDate,input.endDate]);
@@ -215,8 +215,9 @@ function registerStaffLeaveRoutes(app,pool,{authenticateSchoolClient,requireScho
    if(!allowReviewer(req.auth.role,req.auth.userId,req.auth.departmentId,row,step)){
     await c.query('ROLLBACK');return res.status(403).json({error:'This request cannot be reviewed at your level or by its applicant.'});
    }
-   // Department and school HR recommendations are not final administrative decisions.
-   const status=step==='HEAD'?'PENDING_ADMIN':'PENDING_EXTERNAL';
+   // Department Heads may stop an application from progressing internally but cannot issue a final official leave disapproval.
+   // A positive recommendation proceeds to school review, while an internal decline closes this workflow.
+   const status=step==='HEAD'?(decision==='REJECT'?'DECLINED_HEAD':'PENDING_ADMIN'):'PENDING_EXTERNAL';
    const col=step==='HEAD'?'head_user_id=$4,head_decided_at=NOW(),head_note=$5':
     'admin_user_id=$4,admin_reviewed_at=NOW(),admin_note=$5';
    await c.query('UPDATE staff_leave_requests SET status=$3,'+col+',revision=revision+1 WHERE school_id=$1 AND request_id=$2',
@@ -449,7 +450,7 @@ function registerStaffLeaveRoutes(app,pool,{authenticateSchoolClient,requireScho
    if(kind==='REQUEST'){
     const row=await getStaff(req,res,id);
     if(!row)return;
-    if(['APPROVED','REJECTED','CANCELLED'].includes(row.status))
+    if(['APPROVED','REJECTED','CANCELLED','DECLINED_HEAD'].includes(row.status))
      return res.status(409).json({error:'This leave decision is finalized.'});
     if(row.requester_role==='PRINCIPAL'&&documentKind==='APPROVAL'&&req.auth.role!=='SCHOOL_ADMIN')
      return res.status(403).json({error:'Only the designated School Admin may attach a verified external decision to a principal leave request.'});
