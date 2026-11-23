@@ -7,6 +7,7 @@ const routes=read('staff-lunch-routes.js');
 const portal=read('public/portal.html');
 const ui=read('public/staff-lunch-ui.js');
 const departmentLocationUi=read('public/staff-department-location.js');
+const preciseLocation=read('public/staff-precise-location.js');
 const page=read('public/staff-lunch-checkin.html');
 const scan=read('public/staff-lunch-checkin.js');
 const sw=read('public/sw.js');
@@ -69,7 +70,7 @@ test('QR scan does not log in or record until authenticated staff confirms expli
 test('service worker preloads safe assets but excludes sensitive scan document from offline cache',()=>{
  assert.match(sw,/staff-lunch-ui\.js\?v=7/);
  assert.match(sw,/staff-lunch\.css\?v=6/);
- assert.match(sw,/staff-lunch-checkin\.js\?v=4/);
+ assert.match(sw,/staff-lunch-checkin\.js\?v=5/);
  assert.match(sw,/staff-lunch-checkin\.html/);
  const shell=sw.split('const SHELL = [')[1].split('];')[0];
  assert.doesNotMatch(shell,/staff-lunch-checkin\.html/);
@@ -89,7 +90,7 @@ test('staff lunch sign-in resumes same challenge without QR rescan or token in q
  assert.match(login,/location\.replace\(lunchContinuation\)/);
  assert.match(page,/id="lunchRetry"/);
  assert.match(loginPage,/portal-login\.js\?v=15/);
- assert.match(sw,/staff-lunch-checkin\.js\?v=4/);
+ assert.match(sw,/staff-lunch-checkin\.js\?v=5/);
  assert.doesNotMatch(scan,/localStorage|sessionStorage|location\.search|console\.log/);
 });
 
@@ -100,8 +101,8 @@ test('lunch confirmation hides unavailable controls and restores auth on browser
  assert.match(scan,/location\.replace\('\/staff-lunch-checkin\.html#'/);
  assert.match(scan,/let completed=false/);
  assert.match(scan,/completed=true/);
- assert.match(page,/staff-lunch-checkin\.js\?v=4/);
- assert.match(sw,/staff-lunch-checkin\.js\?v=4/);
+ assert.match(page,/staff-lunch-checkin\.js\?v=5/);
+ assert.match(sw,/staff-lunch-checkin\.js\?v=5/);
  assert.doesNotMatch(scan,/localStorage|sessionStorage|console\.log/);
 });
 
@@ -114,7 +115,9 @@ test('department check-in requires location evidence before official DTR approva
  assert.match(departmentLocationUi,/staffLunchHeadSubmit/);
  assert.match(departmentLocationUi,/staffLunchApprovePoint/);
  assert.match(ui,/staffLunchPendingList/);
- assert.match(scan,/getCurrentPosition/);
+ assert.match(scan,/collectPreciseLocation/);
+ assert.match(preciseLocation,/watchPosition/);
+ assert.match(preciseLocation,/getCurrentPosition/);
  assert.match(scan,/body.status==='VERIFIED'/);
  assert.match(portal,/staffLunchPointStatus/);
 });
@@ -125,8 +128,8 @@ test('location capture belongs to Department Head; Admin approves independently'
      'staffLunchLocationDepartment','staffLunchApprovePoint','staffLunchRejectPoint'])
   assert.ok(portal.includes('id="'+id+'"'),id+' visible in portal');
  assert.ok(!portal.includes('id="staffLunchSetPoint"'),'obsolete admin GPS button removed');
- assert.ok(portal.includes('staff-department-location.js?v=1'));
- assert.ok(sw.includes('staff-department-location.js?v=1'));
+ assert.ok(portal.includes('staff-department-location.js?v=2'));
+ assert.ok(sw.includes('staff-department-location.js?v=2'));
  assert.ok(departmentLocationUi.includes("role==='DEPARTMENT_HEAD'"));
  assert.ok(departmentLocationUi.includes("role==='SCHOOL_ADMIN'"));
  assert.ok(departmentLocationUi.includes("'/api/staff-attendance/lunch/location/propose'"));
@@ -139,4 +142,21 @@ test('location capture belongs to Department Head; Admin approves independently'
  assert.ok(routes.includes("requireSchoolRoles('SCHOOL_ADMIN')"));
  const css=read('public/staff-lunch.css');
  assert.ok(css.includes('.staff-lunch-location-decisions'));
+});
+
+test('GPS sampling is bounded and routes uncertainty to review without changing DTR logic',()=>{
+ assert.ok(portal.includes('staff-precise-location.js?v=1'));
+ assert.ok(page.includes('staff-precise-location.js?v=1'));
+ assert.ok(sw.includes('staff-precise-location.js?v=1'));
+ assert.ok(departmentLocationUi.includes('collectPreciseLocation'));
+ assert.ok(scan.includes('collectPreciseLocation'));
+ assert.match(preciseLocation,/enableHighAccuracy:true/);
+ assert.match(preciseLocation,/maximumAge:0/);
+ assert.match(preciseLocation,/MAX_MS=8500/);
+ assert.match(preciseLocation,/MAX_SAMPLES=5/);
+ assert.doesNotMatch(preciseLocation,/localStorage|sessionStorage/);
+ assert.match(routes,/assessLocationEvidence/);
+ assert.match(routes,/sampleCount:presence.sampleCount/);
+ assert.match(routes,/locationConfidence:presence.confidence/);
+ assert.ok(routes.includes("verification=reasons.length?'PENDING_VERIFICATION':'VERIFIED'"));
 });

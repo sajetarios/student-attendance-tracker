@@ -61,22 +61,21 @@
   message('Ready to record your verified lunch DTR. Confirm only for yourself.');
   // Only the server can certify a DTR timestamp. Browser geolocation is
   // optional evidence: weak GPS / denied permission becomes Pending Review.
-  function currentPosition(){
-    if(!navigator.geolocation)return Promise.resolve(null);
-    return new Promise(resolve=>{
-      navigator.geolocation.getCurrentPosition(
-        reading=>resolve({latitude:reading.coords.latitude,longitude:reading.coords.longitude,
-          accuracyMeters:reading.coords.accuracy,capturedAt:reading.timestamp}),
-        ()=>resolve(null),{enableHighAccuracy:true,maximumAge:0,timeout:8500}
-      );
-    });
+  async function currentPosition(){
+    if(!window.attendigoPreciseLocation)return null;
+    try{
+      return await window.attendigoPreciseLocation.collectPreciseLocation({
+        onProgress:quality=>message('Checking GPS near your department: reported accuracy about '+
+          quality.accuracyMeters+' m ('+quality.sampleCount+' reading(s))…')
+      });
+    }catch(error){return null;} // Lack of GPS must be Pending Review, not fabricated attendance.
   }
   let submitting=false;
   confirm.addEventListener('click',async()=>{
     if(submitting||completed)return;
     submitting=true;
     confirm.disabled=true;
-    message('Checking your department location and verifying the lunch QR…');
+    message('Collecting fresh GPS readings, then checking your department location…');
     try{
       const position=await currentPosition();
       const response=await fetch('/api/staff-attendance/lunch/redeem',{

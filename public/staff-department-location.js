@@ -10,13 +10,10 @@
   if(!response.ok)throw Error(body.error||'Location request failed ('+response.status+')');
   return body;
  }
- function getPosition(){
-  return new Promise((resolve,reject)=>{
-   if(!window.isSecureContext)return reject(Error('Use HTTPS to capture a department location.'));
-   if(!navigator.geolocation)return reject(Error('Location access is unavailable on this device.'));
-   navigator.geolocation.getCurrentPosition(resolve,reject,
-    {enableHighAccuracy:true,timeout:15000,maximumAge:0});
-  });
+ async function getPosition(onProgress){
+  if(!window.attendigoPreciseLocation)
+   throw Error('Location verification is unavailable. Refresh Attendigo and try again.');
+  return window.attendigoPreciseLocation.collectPreciseLocation({onProgress});
  }
  function failure(error){
   if(error?.code===1)return 'Location permission denied. Allow location access in your browser settings.';
@@ -50,13 +47,18 @@
    button.disabled=true;
    status.textContent='Checking your position. Allow location access while physically inside your department.';
    try{
-    const position=await getPosition(),accuracyMeters=position.coords.accuracy;
-    if(!Number.isFinite(accuracyMeters)||accuracyMeters>100)
-     throw Error('Location accuracy is insufficient. Enable precise location and retry near your department.');
+    const position=await getPosition(quality=>{
+      status.textContent='Collecting GPS readings: about '+quality.accuracyMeters+
+       ' m reported accuracy ('+quality.sampleCount+' readings)…';
+    });
+    if(!Number.isFinite(position.accuracyMeters)||position.accuracyMeters>70||
+       position.samples?.length<2)
+     throw Error('Not enough precise GPS readings to submit. Enable precise location, move near a window and retry.');
     const result=await request('/api/staff-attendance/lunch/location/propose',{
      method:'POST',
-     body:JSON.stringify({departmentId,latitude:position.coords.latitude,
-      longitude:position.coords.longitude,accuracyMeters,radiusMeters:120})
+     body:JSON.stringify({departmentId,latitude:position.latitude,
+      longitude:position.longitude,accuracyMeters:position.accuracyMeters,
+      samples:position.samples,radiusMeters:120})
     });
     status.textContent=result.message||'Location submitted for School Admin approval. This does not change the approved location yet.';
    }catch(error){status.textContent='Location not submitted: '+failure(error);}

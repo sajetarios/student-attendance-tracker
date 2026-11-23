@@ -2,7 +2,7 @@
 const { createLunchChallenge, validateLunchSlot, hashLunchChallenge, isLunchChallengeRedeemable } = require('./staff-lunch-challenge');
 const { randomUUID, timingSafeEqual } = require('node:crypto');
 const QRCode=require('qrcode');
-const {validateDepartmentPoint,classifyDepartmentPresence}=require('./staff-lunch-location');
+const {validateDepartmentPoint,classifyDepartmentPresence,assessLocationEvidence,distanceMeters}=require('./staff-lunch-location');
 const UUID=/^[0-9a-f]{8}(-[0-9a-f]{4}){3}-[0-9a-f]{12}$/i;
 const LATE_DELIVERY_GRACE_MS=90_000;
 const MIN_ROTATION_MS=20_000;
@@ -240,8 +240,19 @@ function registerStaffLunchRoutes(app,pool,{authenticateSchoolClient,requireScho
   if(!UUID.test(departmentId)||req.body?.departmentId!==departmentId)
    return res.status(403).json({error:'You may submit only your assigned department location.'});
   let point;
-  try{point=validateDepartmentPoint(req.body);}
-  catch(error){return res.status(400).json({error:error.message});}
+  try{
+   point=validateDepartmentPoint(req.body);
+   const evidence=assessLocationEvidence(req.body);
+   if(!evidence.valid||!Array.isArray(req.body.samples)||
+      req.body.samples.length<2||evidence.sampleCount<2||
+      !['STABLE_MULTIPLE','EXCELLENT_SINGLE'].includes(evidence.confidence)||
+      !req.body.samples.some(sample=>sample!==evidence.point&&
+       Math.abs(sample.capturedAt-evidence.point.capturedAt)>=500&&
+       sample.accuracyMeters<=70))
+    return res.status(422).json({error:'A department location requires two consistent, fresh and precise GPS readings. Retry near the department, or use another location-enabled device.'});
+   if(distanceMeters(point,evidence.point)>5)
+    return res.status(422).json({error:'Selected department coordinates do not agree with the collected GPS readings.'});
+  }catch(error){return res.status(400).json({error:error.message});}
   const client=await pool.connect();
   try{
    await client.query('BEGIN');
@@ -537,7 +548,9 @@ function registerStaffLunchRoutes(app,pool,{authenticateSchoolClient,requireScho
     [req.auth.schoolId,req.auth.userId,reasons.length?'LUNCH_SCAN_REVIEW_REQUIRED':'LUNCH_DTR_VERIFIED',eventId,
      JSON.stringify({slot:row.dtr_slot,schoolDate:today,challengeId,presenterUserId:row.presenter_user_id,
        departmentId:row.department_id,presence:presence.reason,distanceMeters:presence.distanceMeters??null,
-       accuracyMeters:presence.accuracyMeters??null,flags:reasons})]);
+       accuracyMeters:presence.accuracyMeters??null,
+       sampleCount:presence.sampleCount??null,
+       locationConfidence:presence.confidence??null,flags:reasons})]);
    await client.query('COMMIT');
    return res.status(201).json({eventId,slot:row.dtr_slot,schoolDate:today,
     occurredAt:event.rows[0].occurred_at,status:verification,
