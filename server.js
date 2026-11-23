@@ -43,6 +43,7 @@ const { registerStaffLunchRoutes } = require('./staff-lunch-routes');
 const { registerStaffObRoutes } = require('./staff-ob-routes');
 const { registerStaffLeaveRoutes } = require('./staff-leave-routes');
 const { registerStaffLeaveInboxRoutes } = require('./staff-leave-inbox-routes');
+const { registerPrincipalRoutes } = require('./principal-overview-routes');
 const { getStaffLeaveStatus, gateVisibleLeave } = require('./staff-approved-leave-status');
 const { registerDepartmentWorkspaceRoutes } = require('./department-workspace-routes');
 const { registerStaffGateDtrRoutes } = require('./staff-gate-dtr-routes');
@@ -110,7 +111,7 @@ app.use((req, res, next) => {
 
   if (req.path.startsWith('/api/') ||
       ['/', '/index.html', '/portal-login.html', '/parent-register.html', '/platform-setup.html',
-       '/portal.html', '/student-portal.html', '/parent-portal.html',
+       '/portal.html', '/principal.html', '/student-portal.html', '/parent-portal.html',
        '/force-password-change.html', '/session-guard.js',
        '/portal.js', '/schedule-form-layout.css', '/schedule-workspace-ui.js'].includes(req.path)) {
     res.setHeader('Cache-Control', 'no-store, private');
@@ -208,6 +209,7 @@ registerStaffLunchRoutes(app, pool, { authenticateSchoolClient, requireSchoolRol
 registerStaffObRoutes(app, pool, { authenticateSchoolClient, requireSchoolRoles });
 registerStaffLeaveRoutes(app, pool, { authenticateSchoolClient, requireSchoolRoles });
 registerStaffLeaveInboxRoutes(app, pool, { authenticateSchoolClient, requireSchoolRoles });
+registerPrincipalRoutes(app, pool, { authenticateSchoolClient, requireSchoolRoles });
 registerDepartmentWorkspaceRoutes(app, pool, { authenticateSchoolClient, requireSchoolRoles });
 registerStaffGateDtrRoutes(app, pool, { authenticateSchoolClient, requireSchoolRoles });
 registerGateDtrReviewRoutes(app, pool, { authenticateSchoolClient, requireSchoolRoles });
@@ -350,8 +352,8 @@ app.get('/api/school-users', authenticateSchoolClient, requireSchoolAdmin, async
               su.updated_at AS "appliedAt", su.last_login_at AS "lastLoginAt"
        FROM school_users su
        LEFT JOIN school_departments d ON d.school_id=su.school_id AND d.department_id=su.department_id
-       WHERE su.school_id=$1 AND su.role IN ('DEPARTMENT_HEAD', 'GATE_KEEPER')
-       ORDER BY CASE su.role WHEN 'DEPARTMENT_HEAD' THEN 1 WHEN 'GATE_KEEPER' THEN 2 ELSE 3 END,
+       WHERE su.school_id=$1 AND su.role IN ('PRINCIPAL', 'DEPARTMENT_HEAD', 'GATE_KEEPER')
+       ORDER BY CASE su.role WHEN 'PRINCIPAL' THEN 1 WHEN 'DEPARTMENT_HEAD' THEN 2 WHEN 'GATE_KEEPER' THEN 3 ELSE 4 END,
                 su.display_name, su.username`,
       [req.auth.schoolId]
     );
@@ -383,7 +385,7 @@ app.post('/api/school-users', authenticateSchoolClient, requireSchoolAdminOrDepa
   if (role === 'TEACHER' && req.body?.position != null && (typeof req.body.position !== 'string' || position.length > 100)) {
     return res.status(400).json({ error: 'Teacher position must be text up to 100 characters.' });
   }
-  const allowedRoles = ['TEACHER', 'DEPARTMENT_HEAD', 'GATE_KEEPER'];
+  const allowedRoles = ['TEACHER', 'DEPARTMENT_HEAD', 'GATE_KEEPER', 'PRINCIPAL'];
   let designations = [];
   if (role === 'TEACHER') {
     const supplied = Array.isArray(req.body?.teacherDesignations) ? req.body.teacherDesignations : ['SUBJECT_TEACHER'];
@@ -397,7 +399,9 @@ app.post('/api/school-users', authenticateSchoolClient, requireSchoolAdminOrDepa
       typeof password !== 'string' || password.length < 12 || password.length > 256) {
     return res.status(400).json({ error: 'Provide a valid account role, username, display name, and password of at least 12 characters.' });
   }
-  if (!departmentId && role === 'GATE_KEEPER') {
+  if(role==='PRINCIPAL'&&departmentId)
+    return res.status(400).json({error:'The Principal has school-wide access and must not be assigned to one department.'});
+   if (!departmentId && role === 'GATE_KEEPER') {
     const fallback = await pool.query(
       "SELECT department_id FROM school_departments WHERE school_id=$1 AND department_code='UNASSIGNED' AND active=TRUE",
       [req.auth.schoolId]
@@ -454,13 +458,13 @@ app.patch('/api/school-users/:userId/profile', authenticateSchoolClient, require
     const before = await client.query(
       `SELECT user_id AS "userId", username, display_name AS "displayName", role, active
        FROM school_users
-       WHERE school_id=$1 AND user_id=$2 AND role IN ('DEPARTMENT_HEAD','GATE_KEEPER')
+       WHERE school_id=$1 AND user_id=$2 AND role IN ('PRINCIPAL','DEPARTMENT_HEAD','GATE_KEEPER')
        FOR UPDATE`,
       [req.auth.schoolId, req.params.userId]
     );
     if (!before.rowCount) {
       await client.query('ROLLBACK');
-      return res.status(404).json({ error: 'Department Head or Gate Keeper account not found.' });
+      return res.status(404).json({ error: 'Leadership or staff account not found.' });
     }
     const updated = await client.query(
       `UPDATE school_users
@@ -513,7 +517,7 @@ app.get('/api/admin/security/accounts', authenticateSchoolClient, requireSchoolA
                           AND us.expires_at>NOW()),0) AS "activeSessions"
        FROM school_users su
        LEFT JOIN school_departments d ON d.school_id=su.school_id AND d.department_id=su.department_id
-       WHERE su.school_id=$1 AND su.role IN ('TEACHER','DEPARTMENT_HEAD','GATE_KEEPER')
+       WHERE su.school_id=$1 AND su.role IN ('TEACHER','PRINCIPAL','DEPARTMENT_HEAD','GATE_KEEPER')
        ORDER BY su.active DESC, su.role, su.display_name, su.username`,
       [req.auth.schoolId]
     );
@@ -536,7 +540,7 @@ app.post('/api/admin/security/accounts/:userId/reset-password', authenticateScho
     const target = await client.query(
       `SELECT user_id, username, display_name, role, active
        FROM school_users
-       WHERE school_id=$1 AND user_id=$2 AND role IN ('TEACHER','DEPARTMENT_HEAD','GATE_KEEPER')
+       WHERE school_id=$1 AND user_id=$2 AND role IN ('TEACHER','PRINCIPAL','DEPARTMENT_HEAD','GATE_KEEPER')
        FOR UPDATE`,
       [req.auth.schoolId, req.params.userId]
     );
@@ -584,7 +588,7 @@ app.post('/api/admin/security/accounts/:userId/revoke-sessions', authenticateSch
     await client.query('BEGIN');
     const target = await client.query(
       `SELECT user_id, username FROM school_users
-       WHERE school_id=$1 AND user_id=$2 AND role IN ('TEACHER','DEPARTMENT_HEAD','GATE_KEEPER')
+       WHERE school_id=$1 AND user_id=$2 AND role IN ('TEACHER','PRINCIPAL','DEPARTMENT_HEAD','GATE_KEEPER')
        FOR UPDATE`,
       [req.auth.schoolId, req.params.userId]
     );
@@ -617,7 +621,7 @@ app.post('/api/admin/security/accounts/:userId/unlock', authenticateSchoolClient
   try {
     const updated = await pool.query(
       `UPDATE school_users SET failed_login_attempts=0, locked_until=NULL, updated_at=NOW()
-       WHERE school_id=$1 AND user_id=$2 AND role IN ('TEACHER','DEPARTMENT_HEAD','GATE_KEEPER')
+       WHERE school_id=$1 AND user_id=$2 AND role IN ('TEACHER','PRINCIPAL','DEPARTMENT_HEAD','GATE_KEEPER')
        RETURNING user_id, username`,
       [req.auth.schoolId, req.params.userId]
     );
