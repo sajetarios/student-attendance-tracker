@@ -1,4 +1,4 @@
-const CACHE = "attendigo-v340-teacher-shortcut-style";
+const CACHE = "attendigo-v341-department-leave-closure";
 
 const SHELL = [
   "/typography.css?v=1",
@@ -68,9 +68,9 @@ const SHELL = [
   "/attendigo-help-topics.js?v=3",
   "/attendigo-help-guide.js?v=4",
   "/attendigo-help.css?v=3",
-  "/staff-leave-ui.js?v=11",
-  "/leave-approval-inbox.js?v=1",
-  "/leave-approval-inbox.css?v=1",
+  "/staff-leave-ui.js?v=12",
+  "/leave-approval-inbox.js?v=2",
+  "/leave-approval-inbox.css?v=2",
   "/attendigo-presenter-nav.js?v=1",
   "/staff-leave-ui.css?v=8",
   "/leave-status-indicator.css?v=1",
