@@ -246,9 +246,14 @@ function registerStaffLeaveRoutes(app,pool,{authenticateSchoolClient,requireScho
     await c.query('ROLLBACK');return res.status(403).json({error:'External approval must be recorded by another authorized school officer.'});
    }
    if(row.requester_role==='PRINCIPAL'){
-    const sdo=await c.query("SELECT 1 FROM principal_sdo_handoffs WHERE school_id=$1 AND kind='LEAVE' AND request_id=$2 AND submitted_at IS NOT NULL",
-      [req.auth.schoolId,row.request_id]);
+    const [sdo,signed]=await Promise.all([
+     c.query("SELECT 1 FROM principal_sdo_handoffs WHERE school_id=$1 AND kind='LEAVE' AND request_id=$2 AND submitted_at IS NOT NULL",
+      [req.auth.schoolId,row.request_id]),
+     c.query("SELECT 1 FROM staff_leave_documents WHERE school_id=$1 AND request_id=$2 AND document_kind='APPROVAL' LIMIT 1",
+      [req.auth.schoolId,row.request_id])
+    ]);
     if(!sdo.rowCount){await c.query('ROLLBACK');return res.status(409).json({error:'Record the SDO submission and official receiving reference before the principal leave decision.'});}
+    if(!signed.rowCount){await c.query('ROLLBACK');return res.status(409).json({error:'The principal requires a signed official approval or disapproval document before the decision can be recorded.'});}
    }
    if(decision==='REJECT'){
     await c.query('UPDATE staff_leave_requests SET status=\'REJECTED\',external_reference=$3,external_approver=$4,external_approver_position=$5,external_approved_on=$6,verified_by_user_id=$7,verified_at=now(),revision=revision+1 WHERE school_id=$1 AND request_id=$2',
