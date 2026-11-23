@@ -7,10 +7,24 @@ const dayOfWeek=d=>new Date(d+'T00:00:00Z').getUTCDay();
 const at=(date,time)=>new Date(date+'T'+String(time).slice(0,5)+':00+08:00');
 const sign=(secret,id,bucket)=>crypto.createHmac('sha256',secret).update(id+':'+bucket).digest('hex');
 const bucket=()=>Math.floor(Date.now()/30000);
+// The existing school calendar is the authority for learner suspensions.
+// A learner-only suspension never changes personnel DTR or historical QR check-ins.
+async function classCalendarSuspended(db,schoolId,date){
+ const found=await db.query(`SELECT 1 FROM school_calendar_exceptions
+   WHERE school_id=$1 AND calendar_date=$2::date
+     AND (exception_type='CLOSED' OR (exception_type='CLASS_SUSPENSION'
+       AND (suspension_time IS NULL OR
+        (NOW() AT TIME ZONE 'Asia/Manila') >= (calendar_date+suspension_time))))
+   LIMIT 1`,[schoolId,date]);
+ return found.rowCount>0;
+}
 async function saveAttendance(pool,s,studentId,method,actor,reason,verificationMethod=null){
  const client=await pool.connect();
  try{
   await client.query('BEGIN');
+  if(await classCalendarSuspended(client,s.school_id,s.school_date)){
+   await client.query('ROLLBACK');return {suspended:true};
+  }
   const status=Date.now()<=new Date(s.starts_at).getTime()+600000?'PRESENT':'LATE';
   const id=crypto.randomUUID();
   const inserted=await client.query(`INSERT INTO class_qr_checkins
@@ -116,7 +130,7 @@ function registerClassQrRoutes(app,pool,{authenticateSchoolClient,requireSchoolR
      AND (p.effective_to IS NULL OR p.effective_to>=$3::date)
      AND EXISTS(SELECT 1 FROM class_period_days d WHERE d.school_id=p.school_id
        AND d.period_id=p.period_id AND d.weekday=$4)
-     AND NOT EXISTS(SELECT 1 FROM school_calendar_exceptions ce WHERE ce.school_id=p.school_id AND ce.calendar_date=$3::date AND ce.exception_type='CLOSED')`,[schoolId,periodId,date,dayOfWeek(date)]);
+     AND NOT EXISTS(SELECT 1 FROM school_calendar_exceptions ce WHERE ce.school_id=p.school_id AND ce.calendar_date=$3::date AND (ce.exception_type='CLOSED' OR (ce.exception_type='CLASS_SUSPENSION' AND (ce.suspension_time IS NULL OR (NOW() AT TIME ZONE 'Asia/Manila')>=ce.calendar_date+ce.suspension_time))) )`,[schoolId,periodId,date,dayOfWeek(date)]);
   return r.rows[0];
  };
  app.post('/api/class-qr/sessions',authenticateSchoolClient,teacher,async(req,res)=>{
@@ -124,7 +138,7 @@ function registerClassQrRoutes(app,pool,{authenticateSchoolClient,requireSchoolR
   if(!uuid.test(String(periodId||'')))return res.status(400).json({error:'Valid class period required.'});
   try{
    const p=await read(req.auth.schoolId,periodId,date);
-   if(!p||p.adjustment_type==='CANCEL'||!p.teacher_user_id||!p.section||!p.effective_subject)return res.status(404).json({error:'No active class on this date.'});
+   if(!p||p.adjustment_type==='CANCEL'||!p.teacher_user_id||!p.section||!p.effective_subject||await classCalendarSuspended(pool,req.auth.schoolId,date))return res.status(404).json({error:'No active class on this date or classes have been suspended.'});
    if(String(p.teacher_user_id)!==String(req.auth.userId))
     return res.status(403).json({error:'Only the assigned teacher may start this session.'});
    const start=at(date,p.effective_start),end=at(date,p.effective_end),close=new Date(end.getTime()-300000);
@@ -160,6 +174,7 @@ function registerClassQrRoutes(app,pool,{authenticateSchoolClient,requireSchoolR
    const r=await pool.query('SELECT * FROM class_qr_sessions WHERE school_id=$1 AND session_id=$2',[req.auth.schoolId,req.params.id]),s=r.rows[0];
    if(!s)return res.status(404).json({error:'Session not found.'});
    if(String(s.teacher_user_id)!==String(req.auth.userId))return res.sendStatus(403);
+   if(await classCalendarSuspended(pool,s.school_id,s.school_date))return res.status(410).json({error:'Classes are suspended. Classroom QR attendance is closed.'});
    if(s.closed_at||Date.now()<new Date(s.starts_at).getTime()||Date.now()>=new Date(s.closes_at).getTime())return res.status(410).json({error:'QR attendance closed.'});
    const b=bucket();
    const token=sign(s.secret,s.session_id,b);
@@ -194,6 +209,7 @@ function registerClassQrRoutes(app,pool,{authenticateSchoolClient,requireSchoolR
    const r=await pool.query('SELECT * FROM class_qr_sessions WHERE school_id=$1 AND session_id=$2',[req.auth.schoolId,sessionId]),s=r.rows[0];
    if(!s||s.closed_at||Date.now()>=new Date(s.closes_at).getTime()||Date.now()<new Date(s.starts_at).getTime())
     return res.status(410).json({error:'QR attendance is closed.'});
+   if(await classCalendarSuspended(pool,s.school_id,s.school_date))return res.status(410).json({error:'Classes are suspended. Attendance already recorded is preserved.'});
    const already=await pool.query('SELECT attendance_status,checked_in_at FROM class_qr_checkins WHERE school_id=$1 AND session_id=$2 AND student_id=$3 LIMIT 1',[req.auth.schoolId,sessionId,req.auth.studentId]);
    if(already.rowCount)return res.status(409).json({error:'Attendance already recorded for this class.',alreadyRecorded:true,status:already.rows[0].attendance_status,checkedInAt:already.rows[0].checked_in_at});
    const b=bucket(),matches=[b,b-1].some(n=>crypto.timingSafeEqual(Buffer.from(sign(s.secret,s.session_id,n),'hex'),Buffer.from(token,'hex')));
@@ -208,6 +224,7 @@ function registerClassQrRoutes(app,pool,{authenticateSchoolClient,requireSchoolR
       [req.auth.schoolId,req.auth.studentId,s.grade_level,s.section]);
    if(!eligible.rowCount)return res.status(403).json({error:'Student is not enrolled in this class.'});
    const result=await saveAttendance(pool,s,req.auth.studentId,'QR',null,null);
+   if(result.suspended)return res.status(410).json({error:'Classes are suspended. Check-in has closed.'});
    if(result.duplicate)return res.status(409).json({error:'Attendance already recorded for this class.',alreadyRecorded:true});
    res.status(201).json({ok:true,status:result.status,checkedInAt:result.checkedInAt});
   }catch(e){console.error('QR check-in:',e.message);res.status(500).json({error:'Unable to record attendance. Please retry.'});}
@@ -238,7 +255,7 @@ function registerClassQrRoutes(app,pool,{authenticateSchoolClient,requireSchoolR
       AND (p.effective_to IS NULL OR p.effective_to>=$2::date)
       AND EXISTS(SELECT 1 FROM class_period_days d WHERE d.school_id=p.school_id
         AND d.period_id=p.period_id AND d.weekday=$3)
-      AND NOT EXISTS(SELECT 1 FROM school_calendar_exceptions ce WHERE ce.school_id=p.school_id AND ce.calendar_date=$2::date AND ce.exception_type='CLOSED')
+      AND NOT EXISTS(SELECT 1 FROM school_calendar_exceptions ce WHERE ce.school_id=p.school_id AND ce.calendar_date=$2::date AND (ce.exception_type='CLOSED' OR (ce.exception_type='CLASS_SUSPENSION' AND (ce.suspension_time IS NULL OR (NOW() AT TIME ZONE 'Asia/Manila')>=ce.calendar_date+ce.suspension_time))) )
       AND ($4='SCHOOL_ADMIN' OR COALESCE(a.teacher_user_id,cover.substitute_teacher_user_id,regular.teacher_user_id)=$5)
     ORDER BY start_time`,[req.auth.schoolId,date,dayOfWeek(date),req.auth.role,req.auth.userId]);
    res.json({date,today,classes:result.rows.map(p=>({periodId:p.period_id,gradeLevel:p.grade_level,section:p.section,subjectName:p.subject_name,startTime:String(p.start_time).slice(0,5),endTime:String(p.end_time).slice(0,5)}))});
@@ -310,7 +327,7 @@ function registerClassQrRoutes(app,pool,{authenticateSchoolClient,requireSchoolR
   try{
    const s=(await pool.query('SELECT * FROM class_qr_sessions WHERE school_id=$1 AND session_id=$2',[req.auth.schoolId,req.params.id])).rows[0];
    if(!s)return res.sendStatus(404);
-   if(s.closed_at||Date.now()<new Date(s.starts_at).getTime()||Date.now()>=new Date(s.closes_at).getTime())return res.status(410).json({error:'Class attendance session is closed.'});
+   if(s.closed_at||Date.now()<new Date(s.starts_at).getTime()||Date.now()>=new Date(s.closes_at).getTime()||await classCalendarSuspended(pool,s.school_id,s.school_date))return res.status(410).json({error:'Class attendance session is closed or suspended.'});
    if(req.auth.role!=='SCHOOL_ADMIN'&&String(s.teacher_user_id)!==String(req.auth.userId))return res.sendStatus(403);
    const e=await pool.query(`SELECT 1 FROM students st WHERE st.school_id=$1 AND st.student_id=$2 AND st.active=TRUE
      AND EXISTS(SELECT 1 FROM student_enrollments en JOIN school_years sy ON sy.school_id=en.school_id
@@ -320,6 +337,7 @@ function registerClassQrRoutes(app,pool,{authenticateSchoolClient,requireSchoolR
     [req.auth.schoolId,studentId,s.grade_level,s.section]);
    if(!e.rowCount)return res.status(403).json({error:'Student is not enrolled in this class.'});
    const result=await saveAttendance(pool,s,studentId,'MANUAL',req.auth.userId,reason);
+   if(result.suspended)return res.status(410).json({error:'Class attendance is closed due to suspension.'});
    if(result.duplicate)return res.status(409).json({error:'Attendance already recorded.'});
    res.status(201).json({ok:true,status:result.status});
   }catch(e){console.error('Manual QR attendance:',e.message);res.status(500).json({error:'Manual attendance failed.'});}
