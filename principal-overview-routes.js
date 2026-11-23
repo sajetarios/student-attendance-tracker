@@ -42,7 +42,7 @@ function registerPrincipalRoutes(app,pool,{authenticateSchoolClient,requireSchoo
    if(!school.rowCount)return res.status(404).json({error:'School unavailable.'});
    if(departmentId&&!depts.rows.some(d=>d.departmentId===departmentId))
     return res.status(404).json({error:'Department unavailable in your school.'});
-   const [students,staffSummary,staffRows,departmentRows,trends,leaveRows,obRows,locationSummary,classCheckins]=await Promise.all([
+   const [students,staffSummary,staffRows,departmentRows,trends,leaveRows,obRows,approvalDepartmentRows,locationSummary,classCheckins]=await Promise.all([
     pool.query(`SELECT
        (SELECT COUNT(*)::int FROM students st
           WHERE st.school_id=$1 AND st.active=TRUE) AS "activeStudentRecords",
@@ -111,13 +111,39 @@ function registerPrincipalRoutes(app,pool,{authenticateSchoolClient,requireSchoo
      FROM staff_leave_requests r LEFT JOIN school_users u
       ON u.school_id=r.school_id AND u.user_id=r.staff_user_id
      WHERE r.school_id=$1 AND r.status IN ('PENDING_HEAD','PENDING_ADMIN','PENDING_EXTERNAL')
-       AND ($2::uuid IS NULL OR u.department_id=$2::uuid)
+       AND ($2::uuid IS NULL OR COALESCE(r.department_id,u.department_id)=$2::uuid)
      GROUP BY r.status`,[req.auth.schoolId,departmentId]),
     pool.query(`SELECT r.status,COUNT(*)::int AS total FROM staff_official_business_requests r
      JOIN school_users u ON u.school_id=r.school_id AND u.user_id=r.staff_user_id
      WHERE r.school_id=$1 AND r.status IN ('PENDING_HEAD','PENDING_ADMIN')
        AND ($2::uuid IS NULL OR u.department_id=$2::uuid)
      GROUP BY r.status`,[req.auth.schoolId,departmentId]),
+    // Department-only source attribution. Never send applicant identity,
+    // diagnosis, leave reason, uploaded evidence, or any approval capability.
+    pool.query(`SELECT 'LEAVE'::text AS kind,r.status,
+       d.department_id AS "departmentId",
+       COALESCE(d.department_name,'Unassigned / unavailable department') AS "departmentName",
+       COUNT(*)::int AS total
+     FROM staff_leave_requests r
+     LEFT JOIN school_users u ON u.school_id=r.school_id AND u.user_id=r.staff_user_id
+     LEFT JOIN school_departments d ON d.school_id=r.school_id
+       AND d.department_id=COALESCE(r.department_id,u.department_id)
+     WHERE r.school_id=$1
+       AND r.status IN ('PENDING_HEAD','PENDING_ADMIN','PENDING_EXTERNAL')
+       AND ($2::uuid IS NULL OR COALESCE(r.department_id,u.department_id)=$2::uuid)
+     GROUP BY r.status,d.department_id,d.department_name
+     UNION ALL
+     SELECT 'OB'::text AS kind,r.status,
+       d.department_id AS "departmentId",
+       COALESCE(d.department_name,'Unassigned / unavailable department') AS "departmentName",
+       COUNT(*)::int AS total
+     FROM staff_official_business_requests r
+     JOIN school_users u ON u.school_id=r.school_id AND u.user_id=r.staff_user_id
+     LEFT JOIN school_departments d ON d.school_id=r.school_id AND d.department_id=u.department_id
+     WHERE r.school_id=$1 AND r.status IN ('PENDING_HEAD','PENDING_ADMIN')
+       AND ($2::uuid IS NULL OR u.department_id=$2::uuid)
+     GROUP BY r.status,d.department_id,d.department_name
+     ORDER BY kind,status,"departmentName"`,[req.auth.schoolId,departmentId]),
     pool.query(`SELECT COUNT(*)::int AS total,
        COUNT(*) FILTER(WHERE approved.setting_value IS NOT NULL)::int AS approved,
        COUNT(*) FILTER(WHERE proposals.setting_value->>'status'='PENDING')::int AS pending
@@ -153,6 +179,10 @@ function registerPrincipalRoutes(app,pool,{authenticateSchoolClient,requireSchoo
     },
     approvals:{leave,ob,
       totalPending:Object.values(leave).reduce((a,b)=>a+b,0)+Object.values(ob).reduce((a,b)=>a+b,0)},
+    approvalDepartments:approvalDepartmentRows.rows.map(r=>({
+      kind:r.kind,status:r.status,departmentId:r.departmentId||null,
+      departmentName:r.departmentName,total:integer(r.total)
+    })),
     locationSetup:{
      total:integer(locationSummary.rows[0]?.total),
      approved:integer(locationSummary.rows[0]?.approved),
