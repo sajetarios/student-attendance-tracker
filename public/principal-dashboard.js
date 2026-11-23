@@ -231,19 +231,72 @@
  function renderPriorities(data){
   const root=$('priorityBreakdown');root.replaceChildren();
   const leave=data.approvals?.leave||{},ob=data.approvals?.ob||{},m=data.metrics||{},loc=data.locationSetup||{};
+  const departmentRows=Array.isArray(data.approvalDepartments)?data.approvalDepartments:[];
+  const knownDepartments=new Set((data.departments||[]).map(d=>d.departmentId));
   const entries=[
-   ['Leave: Department recommendation',leave.PENDING_HEAD||0,'Awaiting the Department Head review'],
-   ['Leave: School review',leave.PENDING_ADMIN||0,'Waiting for authorized school-level review'],
-   ['Leave: Official decision',leave.PENDING_EXTERNAL||0,'Requires documented decision by the authorized official'],
-   ['OB: Department review',ob.PENDING_HEAD||0,'Waiting for Department Head recommendation'],
-   ['OB: School review',ob.PENDING_ADMIN||0,'Waiting for School Admin decision'],
-   ['DTR: Unverified slots',m.pendingDtrSlots||0,'Selected school date · not certified'],
-   ['Location proposals',loc.pending||0,'Department points awaiting School Admin approval']
+   ['Leave: Department recommendation',leave.PENDING_HEAD||0,'Awaiting the Department Head review','LEAVE','PENDING_HEAD'],
+   ['Leave: School review',leave.PENDING_ADMIN||0,'Waiting for authorized school-level review','LEAVE','PENDING_ADMIN'],
+   ['Leave: Official decision',leave.PENDING_EXTERNAL||0,'Requires documented decision by the authorized official','LEAVE','PENDING_EXTERNAL'],
+   ['OB: Department review',ob.PENDING_HEAD||0,'Waiting for Department Head recommendation','OB','PENDING_HEAD'],
+   ['OB: School review',ob.PENDING_ADMIN||0,'Waiting for School Admin decision','OB','PENDING_ADMIN'],
+   ['DTR: Unverified slots',m.pendingDtrSlots||0,'Selected school date · not certified',null,null],
+   ['Location proposals',loc.pending||0,'Department points awaiting School Admin approval',null,null]
   ];
-  for(const [label,value,explain] of entries){
+  function addDepartmentButton(parent,row){
+   const department=row.departmentName||'Unassigned / unavailable department';
+   const navigable=Boolean(row.departmentId&&knownDepartments.has(row.departmentId));
+   const item=make(navigable?'button':'div','priority-department-row');
+   if(navigable){
+    item.type='button';
+    item.title='Filter this read-only dashboard to '+department;
+    item.setAttribute('aria-label','Show '+department+' pending school actions ('+fmt(row.total)+')');
+    item.addEventListener('click',()=>{
+     $('departmentFilter').value=row.departmentId;
+     void load();
+    });
+   }
+   item.append(make('span','priority-department-name',department),
+    make('span','priority-department-count',fmt(row.total)));
+   parent.append(item);
+  }
+  for(const [label,value,explain,kind,stage] of entries){
    const card=make('div','priority-card');
    card.append(make('h3',null,label),make('strong',null,fmt(value)),make('p',null,explain));
+   if(kind&&numeric(value)>0){
+    const departmentEntries=departmentRows.filter(r=>r.kind===kind&&r.status===stage&&numeric(r.total)>0);
+    if(departmentEntries.length){
+     const group=make('div','priority-department-group');
+     group.append(make('span','priority-department-heading','Originating department'));
+     for(const item of departmentEntries)addDepartmentButton(group,item);
+     card.append(group);
+    }else card.append(make('p','priority-department-unavailable','Department breakdown unavailable; verify the source record with School Admin.'));
+   }
    root.append(card);
+  }
+  const host=$('actionInboxDepartmentSummary');
+  if(!host)return;
+  host.replaceChildren();
+  const total=numeric(data.approvals?.totalPending);
+  const departments=new Map();
+  for(const item of departmentRows){
+   if(!['LEAVE','OB'].includes(item.kind)||numeric(item.total)===0)continue;
+   const key=item.departmentId||'unassigned';
+   const existing=departments.get(key);
+   if(existing)existing.total+=numeric(item.total);
+   else departments.set(key,{departmentId:item.departmentId,
+    departmentName:item.departmentName,total:numeric(item.total)});
+  }
+  if(total===0)host.append(make('span',null,'No pending leave or OB requests by department.'));
+  else if(departments.size){
+   host.append(make('span','priority-summary-label','Pending requests from:'));
+   const names=[...departments.values()].sort((a,b)=>a.departmentName.localeCompare(b.departmentName));
+   for(const row of names)addDepartmentButton(host,row);
+  }else host.append(make('span',null,'Department source details are currently unavailable.'));
+  if(data.departmentId){
+   const reset=make('button','priority-reset','Show all departments');
+   reset.type='button';
+   reset.addEventListener('click',()=>{$('departmentFilter').value='';void load();});
+   host.append(reset);
   }
  }
  function renderDefinitions(data){
