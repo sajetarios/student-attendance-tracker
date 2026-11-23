@@ -118,7 +118,8 @@ test('Overview resources are versioned and cached, existing shortcuts remain uni
   assert.ok(html.includes(p),'portal includes '+p);
   assert.ok(worker.includes(p),'worker includes '+p);
  }
- assert.match(worker,/attendigo-v\d+-teacher-teaching-day-overview/);
+ const cacheVersion=Number(worker.match(/attendigo-v(\d+)-/)?.[1]);
+ assert.ok(cacheVersion>=335,'Teacher overview requires PWA revision 335 or newer');
  assert.equal((html.match(/id="quickActionsCard"/g)||[]).length,1);
  const block=html.slice(html.indexOf('id="quickActionsCard"'),html.indexOf('</section>',html.indexOf('id="quickActionsCard"')));
  for(const route of ['students','schedules','sf2'])assert.ok(block.includes('data-go="'+route+'"'));
