@@ -3,6 +3,7 @@ const test=require('node:test');
 const assert=require('node:assert/strict');
 const fs=require('node:fs');
 const css=fs.readFileSync('public/recent-class-attendance.css','utf8');
+const compactFinal=css.slice(css.lastIndexOf('/* Compact teacher dashboard activity feed'));
 const html=fs.readFileSync('public/portal.html','utf8');
 const sw=fs.readFileSync('public/sw.js','utf8');
 const ui=fs.readFileSync('public/portal.js','utf8');
@@ -32,7 +33,7 @@ test('compact card keeps all six reconciled attendance fields in balanced three-
 
 test('teacher dashboard retains two balanced columns on desktop and stacks at tablet width',()=>{
  assert.match(css,/@media\(max-width:1120px\)/);
- assert.match(compact,/grid-template-columns:minmax\(0,1\.45fr\) minmax\(275px,1fr\)/);
+ assert.match(compactFinal,/grid-template-columns:minmax\(0,1\.45fr\) minmax\(275px,1fr\)/);
  const v3=fs.readFileSync('public/teacher-dashboard-v3.css','utf8');
  assert.match(v3,/@media\(max-width:1000px\)[\s\S]*?#dashboardView>\.dashboard-columns\{grid-template-columns:1fr\}/);
 });
