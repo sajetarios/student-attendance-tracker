@@ -75,6 +75,12 @@ test('verified, pending, and scan activity remain distinct without fabricated ab
  assert.equal(f.queries.length,8);
  assert.ok(f.queries.some(x=>x.sql.includes("verification_status='VERIFIED'")));
  assert.ok(!f.queries.some(x=>/UPDATE |DELETE |INSERT /i.test(x.sql)));
+ for(const sqlFragment of ["FROM school_users WHERE school_id=$1 AND active=TRUE",
+    "FROM staff_leave_requests","FROM staff_official_business_requests"]){
+  const q=f.queries.find(x=>x.sql.includes(sqlFragment));
+  assert.ok(q,'summary query exists: '+sqlFragment);
+  assert.equal(q.args.length,2,'summary query uses exact database bind parameters');
+ }
  const student=f.queries.find(x=>x.sql.includes('AS learner_days'));
  assert.equal(student.args.length,3);
  const departments=f.queries.find(x=>x.sql.includes('d.department_name AS name'));
