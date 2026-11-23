@@ -73,12 +73,21 @@ test('save school defaults preserves signatories and does not touch official DTR
  assert.equal(requests.filter(r=>r.options.method==='POST').length,0);
  assert.equal(requests.filter(r=>/gatekeeper\/dtr|form48\/config/.test(r.url)).length,0);
 });
-test('custom Saturday schedule stays protected from the simple Monday-Friday preset',async()=>{
+test('custom Saturday schedule stays intact while its regular-day hours can be edited',async()=>{
  const existing={workdays:[1,2,3,4,5,6],regularHours:schoolHours,
   saturdayHours:{AM_IN:'08:00',AM_OUT:'12:00',PM_IN:'13:00',PM_OUT:'16:00'}};
  const {elements,requests}=await setup('SCHOOL_ADMIN',existing);
- assert.equal(elements.smartHoursSave.disabled,true);
- assert.equal(elements.smartHoursAmIn.disabled,true);
+ assert.equal(elements.smartHoursAmIn.disabled,false);
+ assert.equal(elements.smartHoursSave.disabled,false);
  assert.match(elements.smartHoursFeedback.textContent,/custom working days/i);
- assert.equal(requests.filter(r=>r.options.method==='PUT').length,0);
+ elements.smartHoursAmIn.value='07:00';
+ elements.smartHoursAmIn.listeners.input();
+ await elements.smartHoursSave.listeners.click();
+ const writes=requests.filter(r=>r.options.method==='PUT');
+ assert.equal(writes.length,1);
+ const payload=JSON.parse(writes[0].options.body);
+ assert.deepEqual(payload.workdays,existing.workdays);
+ assert.deepEqual(payload.saturdayHours,existing.saturdayHours);
+ assert.equal(payload.regularHours.AM_IN,'07:00');
+ assert.equal(payload.revision,3);
 });
