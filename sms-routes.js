@@ -3,10 +3,10 @@ const {providerReady,validateSettings}=require('./sms-service');
 const defaults={enabled:false,school_events:true,class_events:false,advisory_events:false,time_in:true,time_out:true};
 function registerSmsRoutes(app,pool,{authenticateSchoolClient,requireSchoolRoles}){
  const guards=[authenticateSchoolClient,requireSchoolRoles('SCHOOL_ADMIN')];
- app.get('/api/sms/settings',...guards,async(req,res)=>{try{const r=await pool.query('SELECT * FROM school_sms_settings WHERE school_id=$1',[req.auth.schoolId]);res.set('Cache-Control','no-store').json({settings:r.rows[0]||defaults,provider:{name:'Semaphore',configured:providerReady(),senderName:process.env.SEMAPHORE_SENDER_NAME||'Provider default',deliveryMode:'Web server queue; processing pauses when the service sleeps.'}});}catch(e){res.status(500).json({error:'Could not load SMS settings.'});}});
+ app.get('/api/sms/settings',...guards,async(req,res)=>{try{const r=await pool.query('SELECT * FROM school_sms_settings WHERE school_id=$1',[req.auth.schoolId]);res.set('Cache-Control','no-store').json({settings:r.rows[0]||defaults,provider:{name:'PhilSMS',configured:providerReady(),senderName:process.env.PHILSMS_SENDER_ID||'Not configured',deliveryMode:'Web server queue; processing pauses when the service sleeps.'}});}catch(e){res.status(500).json({error:'Could not load SMS settings.'});}});
  app.put('/api/sms/settings',...guards,async(req,res)=>{
   let v;try{v=validateSettings(req.body);}catch(e){return res.status(400).json({error:e.message});}
-  if(v.enabled&&!providerReady())return res.status(409).json({error:'Delivery is not configured. Set SEMAPHORE_API_KEY and SMS_DELIVERY_ENABLED=true in the server environment, then redeploy.'});
+  if(v.enabled&&!providerReady())return res.status(409).json({error:'Delivery is not configured. Set PHILSMS_API_TOKEN, PHILSMS_SENDER_ID and SMS_DELIVERY_ENABLED=true in the server environment, then redeploy.'});
   try{const r=await pool.query(`INSERT INTO school_sms_settings(school_id,enabled,school_events,class_events,advisory_events,time_in,time_out,enabled_at,updated_by)
    VALUES($1,$2,$3,$4,$5,$6,$7,CASE WHEN $2 THEN NOW() ELSE NULL END,$8)
    ON CONFLICT(school_id) DO UPDATE SET enabled=$2,school_events=$3,class_events=$4,advisory_events=$5,time_in=$6,time_out=$7,
