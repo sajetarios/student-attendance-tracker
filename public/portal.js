@@ -1246,15 +1246,58 @@ window.attendigoStaffIdentity = new Promise(resolve => { resolveStaffIdentity = 
         : 'Pending confirmation is not an absence count. A learner is counted Present after at least one accepted subject check-in; unconfirmed learners are not marked Absent.';
     }
     if ((role === 'SCHOOL_ADMIN' || role === 'DEPARTMENT_HEAD') && !document.getElementById('sardoCard')?.hidden) window.AttendigoSardo?.refresh();
-    const rows = data.recent || [];
-    $('recentRows').innerHTML = rows.length ? rows.map(row => {
-      const date = new Date(row.occurredAt);
-      const time = Number.isNaN(date.getTime()) ? '—' : date.toLocaleString('en-PH', { timeZone: 'Asia/Manila', month: 'short', day: '2-digit', hour: 'numeric', minute: '2-digit' });
-      const label = `${row.scope === 'CLASS' ? 'Class' : 'Gate'} ${String(row.eventType || '').replace('_', ' ').toLowerCase()}`;
-      const status = row.syncStatus || 'ACCEPTED';
-      const statusClass = row.late ? 'status-tag late' : (status === 'ACCEPTED' ? 'status-tag' : 'status-tag neutral');
-      return `<tr><td>${esc(row.fullName || row.studentId)}</td><td>${esc(label)}</td><td>${esc(time)}</td><td><span class="${statusClass}">${esc(row.late ? 'LATE' : status)}</span></td></tr>`;
-    }).join('') : '<tr><td colspan="4" class="empty-cell">No attendance activity is available for this account yet.</td></tr>';
+    if (isTeacher) {
+      const recentCard = $('recentActivityCard');
+      const hint = recentCard?.querySelector('.card-heading p');
+      const label = recentCard?.querySelector('.mini-tag');
+      if (hint) hint.textContent = 'Synced manual marks and accepted QR check-ins · one row per learner, class and date';
+      if (label) label.textContent = 'Synced';
+    }
+    const rows = Array.isArray(data.recent) ? data.recent : [];
+    // Dashboard preview only: server-reconciled teacher records never affect the
+    // official class register, SF2, QR events, or attendance totals.
+    const recentTable = $('recentRows');
+    if (recentTable) {
+      if (role === 'TEACHER') {
+        recentTable.innerHTML = rows.length ? rows.map(row => {
+          const rawDate = String(row.schoolDate || '');
+          const schoolDate = /^\d{4}-\d{2}-\d{2}$/.test(rawDate)
+            ? new Date(rawDate + 'T12:00:00+08:00') : new Date(NaN);
+          const dateLabel = Number.isNaN(schoolDate.getTime()) ? '—'
+            : schoolDate.toLocaleDateString('en-PH', {
+                timeZone: 'Asia/Manila', month: 'short', day: 'numeric', year: 'numeric'
+              });
+          const recorded = new Date(row.recordedAt || NaN);
+          const recordedTime = Number.isNaN(recorded.getTime()) ? '—'
+            : recorded.toLocaleTimeString('en-PH', {
+                timeZone: 'Asia/Manila', hour: 'numeric', minute: '2-digit'
+              });
+          const source = row.source === 'MANUAL' ? 'Manual' : 'QR';
+          const status = ['PRESENT','LATE','ABSENT','EXCUSED'].includes(row.status) ? row.status : 'UNKNOWN';
+          const conflictNote = row.needsReview
+            ? '<small class="recent-conflict-note" role="status">Needs review · QR check-in conflicts with manual mark</small>' : '';
+          return `<tr class="recent-unified-row">
+            <td data-label="Learner"><strong>${esc(row.fullName || row.studentId || 'Unknown learner')}</strong></td>
+            <td data-label="Class"><strong>${esc(row.className || 'Class')}</strong><small>${esc(row.classSection || '')}</small></td>
+            <td data-label="Date">${esc(dateLabel)}</td>
+            <td data-label="Status"><span class="recent-status recent-status--${status.toLowerCase()}">${esc(status === 'UNKNOWN' ? 'Unverified' : status.charAt(0) + status.slice(1).toLowerCase())}</span>${conflictNote}</td>
+            <td data-label="Source"><span class="recent-source recent-source--${source.toLowerCase()}">${source}</span></td>
+            <td data-label="Recorded time">${esc(recordedTime)}<small>${source === 'Manual' ? 'Last saved' : 'Check-in time'}</small></td>
+          </tr>`;
+        }).join('') : `<tr class="recent-empty-row"><td colspan="6" class="empty-cell">${data.recentLoadFailed
+          ? 'Unable to load recent class attendance. Refresh to retry; existing records have not been changed.'
+          : 'No synced manual marks or accepted QR class check-ins are available yet. Device-only drafts appear after syncing.'}</td></tr>`;
+      } else {
+        // The card is hidden for school-wide managers; preserve their existing
+        // event-only dashboard response, without presenting it as manual data.
+        recentTable.innerHTML = rows.length ? rows.map(row => {
+          const occurred = new Date(row.occurredAt || NaN);
+          const dateLabel = Number.isNaN(occurred.getTime()) ? '—' : occurred.toLocaleDateString('en-PH', {timeZone:'Asia/Manila',month:'short',day:'numeric',year:'numeric'});
+          const timeLabel = Number.isNaN(occurred.getTime()) ? '—' : occurred.toLocaleTimeString('en-PH',{timeZone:'Asia/Manila',hour:'numeric',minute:'2-digit'});
+          return `<tr><td data-label="Learner">${esc(row.fullName || row.studentId)}</td><td data-label="Class">${esc(row.scope || '—')}</td><td data-label="Date">${esc(dateLabel)}</td><td data-label="Status">${esc(row.late ? 'Late' : row.syncStatus || 'Accepted')}</td><td data-label="Source">Event</td><td data-label="Recorded time">${esc(timeLabel)}</td></tr>`;
+        }).join('') : '<tr class="recent-empty-row"><td colspan="6" class="empty-cell">No attendance activity is available for this account yet.</td></tr>';
+      }
+    }
   }
 
   // Department-specific shortcuts use existing, role-authorized navigation.
@@ -4704,6 +4747,7 @@ let teacherActionMenuListenersInstalled = false;
       return fallback;
     };
     dashboardData = valueOr(secondary[0], {}, 'dashboard');
+    if (secondary[0].status === 'rejected') dashboardData.recentLoadFailed = true;
     periods = valueOr(secondary[1], { periods: [] }, 'timetable').periods || [];
     departments = valueOr(secondary[2], { departments: [] }, 'departments').departments || [];
     renderDepartments();

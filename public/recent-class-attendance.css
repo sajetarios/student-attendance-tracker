@@ -1,0 +1,133 @@
+/* Read-only, reconciled teacher class-attendance activity preview.
+   Only #recentActivityCard is affected: QR and manual history stay in their
+   existing workflows, with no changes to record status or write operations. */
+#recentActivityCard {
+  container-type:inline-size;
+  min-width:0;
+  --recent-border:var(--ui-line,#d9e3f0);
+  --recent-ink:var(--ui-text,#19365f);
+  --recent-muted:var(--ui-muted,#697c97);
+  --recent-surface:var(--surface,#fff);
+}
+#recentActivityCard .table-scroll {
+  width:100%;max-width:100%;max-height:480px;overflow:auto;
+  border:1px solid var(--recent-border);border-radius:12px;
+  box-sizing:border-box;
+}
+#recentActivityCard table {
+  width:100%;min-width:730px;table-layout:auto;
+  border-collapse:separate;border-spacing:0;white-space:normal;
+}
+#recentActivityCard th {
+  position:sticky;top:0;z-index:1;
+  background:var(--recent-surface,#fff);
+  border-bottom:1px solid var(--recent-border);
+  font-size:12px;font-weight:750;line-height:1.4;
+  white-space:nowrap;padding:12px 10px;
+  color:var(--recent-muted);
+}
+#recentActivityCard td {
+  min-width:0;padding:12px 10px;vertical-align:middle;
+  font-size:13px;line-height:1.45;
+  overflow-wrap:anywhere;color:var(--recent-ink);
+  border-bottom:1px solid var(--recent-border);
+}
+#recentActivityCard td strong {
+  display:block;font-weight:750;font-size:13px;line-height:1.4;
+}
+#recentActivityCard td small {
+  display:block;font-size:11px;line-height:1.4;
+  margin-top:4px;color:var(--recent-muted);
+}
+#recentActivityCard tr:last-child td {border-bottom:0;}
+#recentActivityCard .recent-status,
+#recentActivityCard .recent-source {
+  display:inline-flex;align-items:center;max-width:100%;
+  padding:4px 9px;border-radius:999px;font-size:12px;
+  font-weight:750;line-height:1.35;white-space:normal;
+  border:1px solid var(--recent-border);
+}
+#recentActivityCard .recent-status--present {color:#087745;background:#e0f7e9;border-color:#b8e9ca;}
+#recentActivityCard .recent-status--late {color:#955900;background:#fff1da;border-color:#f2d39d;}
+#recentActivityCard .recent-status--absent {color:#a82338;background:#ffedf0;border-color:#fac2cb;}
+#recentActivityCard .recent-status--excused {color:#6034a9;background:#eee7ff;border-color:#d6c6ff;}
+#recentActivityCard .recent-status--unknown {color:var(--recent-muted);background:transparent;}
+#recentActivityCard .recent-source--manual {background:#e7f1fd;color:#175caa;border-color:#bdd7f5;}
+#recentActivityCard .recent-source--qr {background:#eef4fb;color:#435f82;border-color:#d7e3ef;}
+#recentActivityCard .recent-conflict-note {
+  display:block;margin-top:5px;font-weight:700;font-size:11px;
+  line-height:1.4;color:#a55200;overflow-wrap:anywhere;
+}
+#recentActivityCard .recent-empty-row td {
+  text-align:center!important;padding:24px 14px!important;
+  white-space:normal!important;line-height:1.6!important;
+  overflow-wrap:anywhere;
+}
+#recentActivityCard .card-heading {flex-wrap:wrap;gap:10px;min-width:0;}
+#recentActivityCard .card-heading>div {min-width:0;flex:1 1 220px;}
+#recentActivityCard .card-heading p {line-height:1.45;white-space:normal;}
+
+/* The teacher dashboard can use two columns even at desktop widths.
+   Layout follows the card's actual width, not the device's outer width. */
+@container (max-width:710px) {
+  #recentActivityCard .table-scroll {
+    max-height:none;overflow:visible;border:0;border-radius:0;
+  }
+  html.attendigo-teacher-v2 #recentActivityCard .table-scroll {
+    max-height:none;overflow:visible;border:0;
+  }
+  #recentActivityCard table,
+  #recentActivityCard tbody {display:block;width:100%;min-width:0!important;}
+  #recentActivityCard thead {display:none;}
+  #recentActivityCard tbody {display:grid;gap:10px;}
+  #recentActivityCard tbody tr.recent-unified-row {
+    display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px 12px;
+    min-width:0;border:1px solid var(--recent-border);
+    border-radius:12px;padding:12px;background:var(--recent-surface,#fff);
+  }
+  #recentActivityCard tbody tr.recent-unified-row td {
+    display:block;width:auto;min-width:0;max-width:100%;
+    padding:0!important;border:0!important;white-space:normal;
+  }
+  #recentActivityCard tbody tr.recent-unified-row td:nth-child(1),
+  #recentActivityCard tbody tr.recent-unified-row td:nth-child(2) {
+    grid-column:1/-1;
+  }
+  #recentActivityCard tbody tr.recent-unified-row td::before {
+    display:block;content:attr(data-label);margin:0 0 3px;
+    font-size:11px;line-height:1.3;font-weight:750;
+    color:var(--recent-muted);
+  }
+  #recentActivityCard tbody tr.recent-unified-row td:nth-child(1)::before {content:none;}
+  #recentActivityCard tbody tr.recent-unified-row td:nth-child(1) strong {font-size:15px;}
+  #recentActivityCard tbody tr.recent-unified-row td:nth-child(2) {
+    padding-bottom:8px!important;border-bottom:1px solid var(--recent-border)!important;
+  }
+  #recentActivityCard tbody tr.recent-empty-row {display:block;}
+  #recentActivityCard tbody tr.recent-empty-row td {
+    display:block;width:100%;box-sizing:border-box;
+    border:1px solid var(--recent-border);border-radius:12px;
+  }
+}
+html[data-ui-theme=dark] #recentActivityCard,
+body.dark-mode #recentActivityCard,
+body[data-theme=dark] #recentActivityCard {
+  --recent-border:#425573;--recent-ink:#eef4ff;
+  --recent-muted:#b7c9e3;--recent-surface:#1c2c45;
+}
+html[data-ui-theme=dark] #recentActivityCard .recent-status--present,
+body.dark-mode #recentActivityCard .recent-status--present {color:#b8f1d0;background:#184b39;border-color:#2f7555;}
+html[data-ui-theme=dark] #recentActivityCard .recent-status--late,
+body.dark-mode #recentActivityCard .recent-status--late {color:#ffe0aa;background:#594021;border-color:#88643a;}
+html[data-ui-theme=dark] #recentActivityCard .recent-status--absent,
+body.dark-mode #recentActivityCard .recent-status--absent {color:#ffd2d9;background:#5a2939;border-color:#905164;}
+html[data-ui-theme=dark] #recentActivityCard .recent-status--excused,
+body.dark-mode #recentActivityCard .recent-status--excused {color:#e1d4ff;background:#423366;border-color:#745b9f;}
+html[data-ui-theme=dark] #recentActivityCard .recent-source,
+body.dark-mode #recentActivityCard .recent-source {background:#293d5b;color:#d5e6ff;border-color:#536f95;}
+html[data-ui-theme=dark] #recentActivityCard .recent-conflict-note,
+body.dark-mode #recentActivityCard .recent-conflict-note {color:#ffd18e;}
+@media (max-width:680px) {
+  #recentActivityCard {padding:13px!important;}
+  #recentActivityCard .card-heading .mini-tag {font-size:12px;white-space:nowrap;}
+}

@@ -1,4 +1,4 @@
-const CACHE = "attendigo-v328-mobile-class-register-memo-theme";
+const CACHE = "attendigo-v329-unified-recent-class-attendance";
 
 const SHELL = [
   "/typography.css?v=1",
@@ -63,7 +63,7 @@ const SHELL = [
   "/teacher-scanner-schedule.js?v=1",
   "/teacher-roster-popover.js?v=2",
   "/portal.css?v=0.9.119",
-  "/portal.js?v=236",
+  "/portal.js?v=237",
   "/attendigo-help-topics.js?v=2",
   "/attendigo-help-guide.js?v=4",
   "/attendigo-help.css?v=3",
@@ -113,6 +113,7 @@ const SHELL = [
   "/offline-sheet.js?v=4",
   "/manual-folio.css?v=11",
   "/class-attendance-mobile.css?v=1",
+  "/recent-class-attendance.css?v=1",
   "/attendance-sync-center.css?v=4",
   "/attendance-sync-center.js?v=3",
   "/manual-folio.js?v=18",
