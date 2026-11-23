@@ -1,0 +1,105 @@
+/* Principal executive preview: responsive, contrast-safe, and isolated */
+.pi-shell{--pi-ink:#172c45;--pi-muted:#61738c;--pi-blue:#2563eb;--pi-teal:#0b8f81;--pi-line:#dce5ee;
+ display:flex;flex-direction:column;gap:17px;max-width:1480px;margin:0 auto;padding:4px 0 32px;
+ color:var(--text-color,var(--pi-ink));min-width:0}
+.pi-shell [hidden]{display:none!important}
+.pi-hero{position:relative;overflow:hidden;display:grid;grid-template-columns:minmax(0,1fr) minmax(220px,300px);
+ gap:clamp(16px,3vw,38px);padding:clamp(20px,3vw,36px);border-radius:21px;
+ background:linear-gradient(115deg,#112947,#1b4166 65%,#135b65);color:#fff}
+.pi-hero:after{content:"";position:absolute;right:8%;top:-160px;border:1px solid #ffffff20;
+ width:370px;height:370px;border-radius:50%;pointer-events:none}
+.pi-hero-copy,.pi-hero-tools{z-index:1}
+.pi-eyebrow,.pi-panel-kicker{font-size:.7rem;font-weight:750;letter-spacing:.13em}
+.pi-eyebrow{color:#b8e7df;display:flex;align-items:center;gap:7px}
+.pi-live-dot{width:7px;height:7px;border-radius:50%;background:#8df0c2;box-shadow:0 0 0 4px #8df0c226}
+.pi-hero h2{font-size:clamp(1.55rem,3vw,2.45rem);line-height:1.14;font-weight:760;letter-spacing:-.035em;
+ margin:15px 0 12px;color:#fff;max-width:650px}
+.pi-hero-copy>p{color:#e2edf7;line-height:1.55;max-width:630px;margin:0 0 10px}
+.pi-hero .pi-note{font-size:.75rem;color:#add1e7}
+.pi-hero-tools{display:flex;flex-direction:column;gap:10px;padding:14px;border:1px solid #ffffff35;
+ border-radius:14px;background:#ffffff10;backdrop-filter:blur(8px)}
+.pi-hero-tools label{display:flex;flex-direction:column;gap:5px;color:#e2edf7;font-size:.75rem;font-weight:650}
+.pi-hero-tools select{min-height:42px;width:100%;border-radius:9px;background:#fff;color:#162b47;
+ padding:9px 11px;border:1px solid #bed5e7;font-size:.875rem}
+.pi-refresh{width:100%;min-height:43px;border:1px solid #93c9d0;background:#d0f7ec;color:#173e49;
+ font-size:.86rem;font-weight:750;border-radius:10px;cursor:pointer}
+.pi-refresh:hover{background:#f1fff9}
+.pi-refresh:disabled{opacity:.55;cursor:wait}
+.pi-hero-tools small{color:#d2e8f0;font-size:.68rem;overflow-wrap:anywhere}
+.pi-status{margin:0;padding:9px 14px;font-size:.8rem;color:#275268;background:#e9f5f7;
+ border-radius:10px;border:1px solid #cce4e7}
+.pi-status.pi-error{background:#fff2f2;border-color:#f5bdbd;color:#9b3030}
+.pi-overview{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}
+.pi-kpi{display:flex;min-width:0;text-align:left;flex-direction:column;gap:9px;padding:20px 19px;
+ border:1px solid var(--pi-line);border-radius:16px;background:var(--card-bg,#fff);
+ color:var(--text-color,var(--pi-ink));cursor:pointer;transition:box-shadow .2s,border-color .2s,transform .2s}
+.pi-kpi:hover,.pi-kpi:focus-visible,.pi-kpi.pi-selected{border-color:#71a4db;box-shadow:0 9px 24px #1d42641a}
+.pi-kpi:hover{transform:translateY(-2px)}
+.pi-kpi-label{display:flex;align-items:flex-start;justify-content:space-between;gap:5px;color:var(--pi-muted);
+ font-size:.78rem;font-weight:700}
+.pi-kpi strong{font-size:clamp(1.65rem,3vw,2.45rem);font-weight:750;letter-spacing:-.045em;line-height:1.1}
+.pi-kpi small{color:var(--pi-muted);font-size:.72rem;line-height:1.45}
+.pi-kpi-review{border-top:3px solid #de9134}.pi-kpi-actions{border-top:3px solid #368c86}
+.pi-main-grid{display:grid;grid-template-columns:minmax(0,1.18fr) minmax(0,.82fr);gap:14px;align-items:stretch}
+.pi-panel{min-width:0;background:var(--card-bg,#fff);border:1px solid var(--pi-line);
+ padding:clamp(15px,2vw,22px);border-radius:18px;box-shadow:0 3px 15px #18344d06}
+.pi-panel-head{display:flex;align-items:flex-start;justify-content:space-between;gap:10px;margin-bottom:16px}
+.pi-panel-kicker{color:var(--pi-teal)}
+.pi-panel h3{font-size:1.12rem;font-weight:750;line-height:1.3;margin:6px 0;color:var(--text-color,var(--pi-ink))}
+.pi-panel p{color:var(--pi-muted);font-size:.78rem;line-height:1.5;margin:0}
+.pi-chip{border-radius:99px;border:1px solid #c8e3df;background:#e8f5f2;
+ color:#12645a;font-weight:700;font-size:.75rem;white-space:nowrap;padding:6px 11px}
+.pi-trend{min-width:0;min-height:215px}
+.pi-bars{height:210px;display:grid;grid-auto-columns:minmax(6px,1fr);grid-auto-flow:column;gap:clamp(2px,.7vw,12px);
+ padding:18px 0 6px;align-items:stretch}
+.pi-bar-button{border:0;border-bottom:1px solid #d8e0e8;border-radius:4px 4px 0 0;
+ background:transparent;padding:0 1px;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;
+ gap:3px;min-width:0;color:var(--pi-muted);cursor:pointer}
+.pi-bar-fill{display:block;width:100%;max-width:50px;border-radius:6px 6px 0 0;background:linear-gradient(#2f9cb8,#2869ad);
+ min-height:3px;transition:filter .2s}
+.pi-bar-button:hover .pi-bar-fill,.pi-bar-button.pi-active .pi-bar-fill{filter:brightness(1.22)}
+.pi-bar-button:focus-visible{outline:2px solid #4e83bd;outline-offset:2px}
+.pi-bar-date,.pi-bar-number{font-size:.65rem;color:var(--pi-muted);white-space:nowrap}
+.pi-bar-number{font-weight:700}
+.pi-caption{padding-top:10px;color:var(--pi-muted)!important;font-size:.7rem!important}
+.pi-action-items,.pi-departments,.pi-cases{display:flex;flex-direction:column;gap:8px;min-width:0}
+.pi-action{display:flex;gap:12px;align-items:center;text-decoration:none!important;color:inherit;
+ padding:11px 10px;border-radius:11px;border:1px solid var(--pi-line);background:var(--surface-secondary,#f8fafc)}
+.pi-action:hover{border-color:#76a9c8;background:#eff8ff}
+.pi-action-count{flex:0 0 40px;text-align:center;background:#edf3fa;padding:9px 3px;border-radius:8px;color:#164d79}
+.pi-action>span:nth-child(2){flex:1;min-width:0;display:flex;flex-direction:column;gap:4px}
+.pi-action b{font-size:.82rem}.pi-action small{font-size:.71rem;color:var(--pi-muted)}
+.pi-action>span:last-child{color:#537c95}
+.pi-dept{display:flex;flex-direction:column;gap:9px;text-align:left;border:1px solid var(--pi-line);
+ border-radius:11px;background:transparent;padding:10px 12px;cursor:pointer;color:inherit}
+.pi-dept:hover,.pi-dept-active{border-color:#368fa9;background:#eef8fb}
+.pi-dept-line{display:flex;justify-content:space-between;gap:8px;align-items:center}
+.pi-dept-line strong{font-size:.82rem;overflow-wrap:anywhere}
+.pi-dept-line small{font-size:.69rem;color:var(--pi-muted);text-align:right}
+.pi-dept-track{height:6px;background:#e2ebf2;border-radius:6px;overflow:hidden}
+.pi-dept-track span{display:block;height:100%;background:linear-gradient(90deg,#40aab4,#3c78bd);border-radius:6px}
+.pi-text-button{background:none;border:0;font-weight:700;color:#22729a;cursor:pointer;white-space:nowrap}
+.pi-case{display:flex;justify-content:space-between;align-items:center;gap:8px;
+ padding:10px 0;border-bottom:1px solid var(--pi-line)}
+.pi-case>span:first-child{min-width:0;display:flex;flex-direction:column;gap:5px}
+.pi-case strong{font-size:.81rem;overflow-wrap:anywhere}
+.pi-case small{font-size:.7rem;color:var(--pi-muted)}
+.pi-review-tag{font-size:.69rem;font-weight:700;color:#91601f;background:#fff4dd;padding:5px 9px;border-radius:20px}
+.pi-spotlight{border-left:3px solid #208b8f}.pi-quick-links{display:flex;flex-wrap:wrap;gap:8px;margin-top:14px}
+.pi-quick-links a{text-decoration:none;border-radius:10px;border:1px solid #c9d9e8;padding:10px 13px;
+ font-size:.77rem;font-weight:700;color:#22628d}
+.pi-quick-links a:hover{background:#eff7ff}
+.pi-blank{margin:14px 0;color:var(--pi-muted);font-size:.83rem}
+@media(max-width:1060px){.pi-overview{grid-template-columns:repeat(2,minmax(0,1fr))}
+ .pi-main-grid{grid-template-columns:1fr}}
+@media(max-width:650px){.pi-hero{grid-template-columns:1fr;border-radius:13px;padding:18px}
+ .pi-hero-tools{padding:12px}.pi-overview{gap:8px}
+ .pi-kpi{padding:14px 12px;border-radius:12px;gap:8px}
+ .pi-kpi strong{font-size:1.8rem}.pi-kpi-label{font-size:.72rem}
+ .pi-panel{padding:14px;border-radius:13px}.pi-dept-line{align-items:flex-start;flex-direction:column;gap:3px}
+ .pi-dept-line small{text-align:left}.pi-quick-links a{flex:1 1 auto;text-align:center}}
+@media(prefers-reduced-motion:reduce){.pi-kpi,.pi-bar-fill{transition:none}.pi-kpi:hover{transform:none}}
+/* Existing app has a dark mode. Maintain legible non-decorative information. */
+[data-theme="dark"] .pi-shell,.dark-mode .pi-shell{--pi-ink:#edf4fb;--pi-muted:#adbed0;--pi-line:#415368}
+[data-theme="dark"] .pi-panel,[data-theme="dark"] .pi-kpi,.dark-mode .pi-panel,.dark-mode .pi-kpi{background:#1c2d41}
+[data-theme="dark"] .pi-dept-active,.dark-mode .pi-dept-active{background:#233d4a}
