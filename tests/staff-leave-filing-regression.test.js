@@ -39,3 +39,11 @@ test('the final approval handler independently requires HR-certified SPL eligibi
  assert.ok(source.includes("row.commutation!=='NOT_REQUESTED'||days>3"));
  assert.ok(source.includes("chargeAccount='NONE'"));
 });
+
+test('date inputs use independent tracks inside padded leave form fieldsets',()=>{
+ const css=fs.readFileSync(path.join(__dirname,'..','public','staff-leave-ui.css'),'utf8');
+ assert.match(css,/#staffLeaveDialog #leaveNewForm fieldset\s*\{[\s\S]*?grid-template-columns:repeat\(2,minmax\(0,1fr\)\)/);
+ assert.doesNotMatch(css,/#leaveNewForm fieldset\{[^}]*grid-template-columns:inherit/);
+ assert.match(css,/@media\(max-width:700px\)\s*\{\s*#staffLeaveDialog #leaveNewForm fieldset\{grid-template-columns:minmax\(0,1fr\)/);
+ assert.match(css,/#staffLeaveDialog #leaveNewForm fieldset > label > input,[\s\S]*?max-width:100%/);
+});
