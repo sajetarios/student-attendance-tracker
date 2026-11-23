@@ -400,9 +400,39 @@
    item.append(avatar,detail,time);host.append(item);
   }
  }
+ function renderWatchNominees(data){
+  const host=$('principalWatchNomineeList'),count=$('principalWatchCount'),
+    period=$('principalWatchPeriod'),award=data.watchNominees;
+  host.replaceChildren();
+  if(!award||!Array.isArray(award.entries)){
+   count.textContent='Unavailable';
+   period.textContent='Recognition evidence could not be verified.';
+   host.append(make('p','source-note','Watch nominee records unavailable. No award decisions can be made from this display.'));
+   return;
+  }
+  period.textContent='Rolling 30-day window · '+award.periodStart+' to '+award.periodEnd+
+   ' · Asia/Manila · '+(data.departmentId?'selected department':'all departments');
+  count.textContent=award.entries.length+' '+(award.entries.length===1?'candidate':'candidates');
+  if(!award.entries.length){
+   host.append(make('p','source-note','No teacher meets all nomination thresholds in this period. This is not an absence or performance finding.'));
+   return;
+  }
+  for(const [i,person] of award.entries.entries()){
+   const card=make('div','principal-watch-person');
+   const numeral=make('span','principal-watch-rank',String(i+1));numeral.setAttribute('aria-label','Shortlist position '+(i+1));
+   const identity=make('div','principal-watch-person-detail');
+   identity.append(make('strong',null,person.name||'Teacher'),
+    make('span',null,person.department||'Department not assigned'));
+   const metrics=make('div','principal-watch-metrics');
+   metrics.append(make('strong',null,String(person.earlyDays||0)+' early-entry days'),
+    make('span',null,String(person.activeWeeks||0)+' different weeks'));
+   card.append(numeral,identity,metrics);
+   host.append(card);
+  }
+ }
  function render(data){
   latest=data;applyDepartmentOptions(data);applyMetrics(data);renderTrend(data);
-  renderAttention(data);renderDepartments(data);renderStaff();renderPriorities(data);renderDefinitions(data);renderBriefing(data);renderEarlyArrivals(data);
+  renderAttention(data);renderDepartments(data);renderStaff();renderPriorities(data);renderDefinitions(data);renderBriefing(data);renderEarlyArrivals(data);renderWatchNominees(data);
   const scope=data.departmentId?($('departmentFilter').selectedOptions?.[0]?.textContent||'Selected department'):'All departments';
   status('Live report · '+scope+' · '+data.schoolDate+' · verified source records only','success');
  }
@@ -426,6 +456,8 @@
    latest=null;
    $('earlyArrivalsList').replaceChildren(make('p','source-note','Early-arrival records are currently unavailable; no recognition can be verified.'));
    $('earlyArrivalsCount').textContent='Unavailable';
+   $('principalWatchNomineeList').replaceChildren(make('p','source-note','Watch nomination records are unavailable; no candidate can be verified.'));
+   $('principalWatchCount').textContent='Unavailable';
    for(const id of ['withVerifiedPunch','pendingDtrSlots','activeStudentRecords','acceptedClassCheckins','heroPending'])$(id).textContent='—';
    status('Unable to verify school records: '+errorText(error)+'. Retry; no estimated figures are displayed.','error');
   }finally{if(current===sequence)$('refreshDashboard').disabled=false;}
