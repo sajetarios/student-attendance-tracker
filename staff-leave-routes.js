@@ -6,7 +6,7 @@ const {notifyLeaveTransition}=require('./staff-leave-inbox');
 const {SCHEMES,manilaToday,sickFilingBasis,sickAccountForScheme,requiredSickEvidence}=
  require('./staff-leave-deped-sick');
 const UUID=/^[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}$/i;
-const ROLES=['TEACHER','DEPARTMENT_HEAD','SCHOOL_ADMIN'];
+const ROLES=['TEACHER','DEPARTMENT_HEAD','SCHOOL_ADMIN','PRINCIPAL'];
 const sqlErr=(res,error)=>{console.error('DepEd leave workflow:',error.message);return res.status(503).json({error:'Leave management is temporarily unavailable. No attendance record was modified.'});};
 function registerStaffLeaveRoutes(app,pool,{authenticateSchoolClient,requireSchoolRoles}){
  const auth=[authenticateSchoolClient,requireSchoolRoles(...ROLES)];
@@ -54,7 +54,7 @@ function registerStaffLeaveRoutes(app,pool,{authenticateSchoolClient,requireScho
  app.get('/api/staff-leave/requests',...auth,async(req,res)=>{
   try{
    let where='WHERE r.school_id=$1',args=[req.auth.schoolId];
-   if(req.auth.role==='TEACHER'){where+=' AND r.staff_user_id=$2';args.push(req.auth.userId);}
+   if(['TEACHER','PRINCIPAL'].includes(req.auth.role)){where+=' AND r.staff_user_id=$2';args.push(req.auth.userId);}
    if(req.auth.role==='DEPARTMENT_HEAD'){
     where+=' AND (r.staff_user_id=$2 OR r.department_id=$3 OR (u.role=\'SCHOOL_ADMIN\' AND r.status=\'PENDING_EXTERNAL\'))';
     args.push(req.auth.userId,req.auth.departmentId||null);
@@ -244,6 +244,11 @@ function registerStaffLeaveRoutes(app,pool,{authenticateSchoolClient,requireScho
    if(!row){await c.query('ROLLBACK');return;}
    if(!allowReviewer(req.auth.role,req.auth.userId,req.auth.departmentId,row,'EXTERNAL')){
     await c.query('ROLLBACK');return res.status(403).json({error:'External approval must be recorded by another authorized school officer.'});
+   }
+   if(row.requester_role==='PRINCIPAL'){
+    const sdo=await c.query("SELECT 1 FROM principal_sdo_handoffs WHERE school_id=$1 AND kind='LEAVE' AND request_id=$2 AND submitted_at IS NOT NULL",
+      [req.auth.schoolId,row.request_id]);
+    if(!sdo.rowCount){await c.query('ROLLBACK');return res.status(409).json({error:'Record the SDO submission and official receiving reference before the principal leave decision.'});}
    }
    if(decision==='REJECT'){
     await c.query('UPDATE staff_leave_requests SET status=\'REJECTED\',external_reference=$3,external_approver=$4,external_approver_position=$5,external_approved_on=$6,verified_by_user_id=$7,verified_at=now(),revision=revision+1 WHERE school_id=$1 AND request_id=$2',
