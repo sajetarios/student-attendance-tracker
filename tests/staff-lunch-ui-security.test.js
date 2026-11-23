@@ -44,8 +44,8 @@ test('admin and teacher interfaces remain isolated to existing role-specific por
  assert.match(ui,/performance\.now\(\)/);
  assert.doesNotMatch(ui,/Date\.now\(\)>expiry/);
  assert.match(ui,/!document\.hidden/);
- assert.match(portal,/staff-lunch-ui\.js\?v=4/);
- assert.match(portal,/staff-lunch\.css\?v=3/);
+ assert.match(portal,/staff-lunch-ui\.js\?v=5/);
+ assert.match(portal,/staff-lunch\.css\?v=4/);
 });
 test('My lunch QR is unhidden by the role-aware portal view switch',()=>{
  const portalJs=read('public/portal.js');
@@ -66,9 +66,9 @@ test('QR scan does not log in or record until authenticated staff confirms expli
  assert.match(server,/res\.set\('Referrer-Policy','no-referrer'\)/);
 });
 test('service worker preloads safe assets but excludes sensitive scan document from offline cache',()=>{
- assert.match(sw,/staff-lunch-ui\.js\?v=4/);
- assert.match(sw,/staff-lunch\.css\?v=3/);
- assert.match(sw,/staff-lunch-checkin\.js\?v=3/);
+ assert.match(sw,/staff-lunch-ui\.js\?v=5/);
+ assert.match(sw,/staff-lunch\.css\?v=4/);
+ assert.match(sw,/staff-lunch-checkin\.js\?v=4/);
  assert.match(sw,/staff-lunch-checkin\.html/);
  const shell=sw.split('const SHELL = [')[1].split('];')[0];
  assert.doesNotMatch(shell,/staff-lunch-checkin\.html/);
@@ -88,7 +88,7 @@ test('staff lunch sign-in resumes same challenge without QR rescan or token in q
  assert.match(login,/location\.replace\(lunchContinuation\)/);
  assert.match(page,/id="lunchRetry"/);
  assert.match(loginPage,/portal-login\.js\?v=15/);
- assert.match(sw,/staff-lunch-checkin\.js\?v=3/);
+ assert.match(sw,/staff-lunch-checkin\.js\?v=4/);
  assert.doesNotMatch(scan,/localStorage|sessionStorage|location\.search|console\.log/);
 });
 
@@ -99,8 +99,8 @@ test('lunch confirmation hides unavailable controls and restores auth on browser
  assert.match(scan,/location\.replace\('\/staff-lunch-checkin\.html#'/);
  assert.match(scan,/let completed=false/);
  assert.match(scan,/completed=true/);
- assert.match(page,/staff-lunch-checkin\.js\?v=3/);
- assert.match(sw,/staff-lunch-checkin\.js\?v=3/);
+ assert.match(page,/staff-lunch-checkin\.js\?v=4/);
+ assert.match(sw,/staff-lunch-checkin\.js\?v=4/);
  assert.doesNotMatch(scan,/localStorage|sessionStorage|console\.log/);
 });
 
