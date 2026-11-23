@@ -1,4 +1,4 @@
-const CACHE = "attendigo-v329-unified-recent-class-attendance-attendance-two-actions";
+const CACHE = "attendigo-v330-free-smart-htg";
 
 const SHELL = [
   "/typography.css?v=1",
@@ -64,9 +64,9 @@ const SHELL = [
   "/teacher-roster-popover.js?v=2",
   "/portal.css?v=0.9.119",
   "/portal.js?v=237",
-  "/attendigo-help-topics.js?v=2",
-  "/attendigo-help-guide.js?v=4",
-  "/attendigo-help.css?v=3",
+  "/attendigo-help-topics.js?v=3",
+  "/attendigo-help-guide.js?v=5",
+  "/attendigo-help.css?v=4",
   "/staff-leave-ui.js?v=10",
   "/leave-approval-inbox.js?v=1",
   "/leave-approval-inbox.css?v=1",
