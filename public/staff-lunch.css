@@ -46,3 +46,23 @@
  #staffLunchPendingList .staff-lunch-review-actions{width:100%}
  #staffLunchPendingList .staff-lunch-review-actions button{flex:1}
 }
+
+/* Location setup is self-contained and does not depend on presenter filters. */
+.staff-lunch-location-actions{
+  flex:1 1 100%;min-width:0;display:flex;align-items:flex-end;gap:12px;flex-wrap:wrap
+}
+.staff-lunch-location-actions label{
+  min-width:200px;flex:1 1 240px;display:flex;flex-direction:column;gap:6px;
+  font-size:.84rem;font-weight:550
+}
+.staff-lunch-location-actions select{
+  min-height:42px;width:100%;max-width:100%;padding:8px 12px;border-radius:9px;
+  color:inherit;background:var(--input-bg,var(--surface-color,#fff));
+  border:1px solid var(--border-color,#cbd5e1)
+}
+.staff-lunch-location-actions>button{min-height:42px;white-space:normal}
+@media(max-width:600px){
+  .staff-lunch-location-actions{flex-direction:column;align-items:stretch;gap:10px}
+  .staff-lunch-location-actions label{flex:0 1 auto;min-width:0;width:100%}
+  .staff-lunch-location-actions>button{width:100%}
+}
