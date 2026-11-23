@@ -506,3 +506,39 @@ td{color:#31465a}
 @media(max-width:800px){.principal-sdo-forms{grid-template-columns:1fr}}
 @media(max-width:560px){.principal-sdo-form{padding:13px}.principal-form-pair{grid-template-columns:1fr}
  .principal-sdo-form button{width:100%}}
+
+/* School action inbox: department attribution without personnel leave details. */
+.principal-action-summary .priority-department-summary{
+ display:flex;flex-wrap:wrap;align-items:center;gap:8px 10px;
+ margin-top:12px;padding-top:12px;border-top:1px solid var(--border);
+ min-width:0;font-size:12px;color:var(--muted);line-height:1.5;
+}
+.priority-summary-label{font-weight:700;color:var(--ink);flex:0 0 auto}
+.priority-department-group{margin-top:14px;padding-top:11px;
+ border-top:1px solid var(--border);display:grid;gap:7px;min-width:0}
+.priority-department-heading{font-size:11px;font-weight:750;
+ color:var(--muted);line-height:1.4}
+.priority-department-row{display:flex;align-items:center;justify-content:space-between;
+ gap:10px;text-align:left;border:1px solid var(--border);border-radius:9px;
+ background:var(--surface);color:var(--ink);min-width:0;padding:8px 10px;
+ font:inherit;font-size:12px;line-height:1.4}
+button.priority-department-row{cursor:pointer;min-height:42px}
+button.priority-department-row:hover{border-color:#4d9fb0;background:rgba(17,134,159,.07)}
+button.priority-department-row:focus-visible,.priority-reset:focus-visible{
+ outline:3px solid #3a9fc7;outline-offset:2px}
+.priority-department-name{min-width:0;overflow-wrap:anywhere;font-weight:650}
+.priority-department-count{flex:0 0 auto;font-weight:800;color:var(--primary);
+ font-variant-numeric:tabular-nums}
+.priority-department-summary .priority-department-row{flex:0 1 auto;max-width:100%}
+.priority-department-summary .priority-department-name{max-width:300px}
+.priority-department-unavailable{margin-top:9px!important}
+.priority-reset{font:inherit;color:var(--primary);background:transparent;
+ border:1px solid var(--border);border-radius:9px;padding:8px 11px;
+ min-height:42px;cursor:pointer;font-size:12px;font-weight:700}
+@media(max-width:640px){
+ .priority-department-summary{align-items:stretch}
+ .priority-department-summary .priority-summary-label{flex:1 1 100%}
+ .priority-department-summary .priority-department-row{flex:1 1 100%}
+ .priority-department-summary .priority-department-name{max-width:none}
+ .priority-card{padding:14px}
+}
