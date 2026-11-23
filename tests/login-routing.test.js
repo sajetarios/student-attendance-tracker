@@ -14,6 +14,8 @@ test('school management roles enter the Management Portal', () => {
   }
 });
 
+test('Principal role goes to distinct read-only leadership dashboard',()=>{assert.equal(destinationForRole('PRINCIPAL'),'/principal.html');});
+
 test('Parent accounts enter the Parent Portal', () => {
   assert.equal(destinationForRole('PARENT'), '/parent-portal.html');
 });
