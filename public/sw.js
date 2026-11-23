@@ -1,4 +1,4 @@
-const CACHE = "attendigo-v325-principal-briefing";
+const CACHE = "attendigo-v326-final-missing-scan";
 
 const SHELL = [
   "/typography.css?v=1",
@@ -67,11 +67,11 @@ const SHELL = [
   "/attendigo-help-topics.js?v=2",
   "/attendigo-help-guide.js?v=4",
   "/attendigo-help.css?v=3",
-  "/staff-leave-ui.js?v=8",
+  "/staff-leave-ui.js?v=10",
   "/leave-approval-inbox.js?v=1",
   "/leave-approval-inbox.css?v=1",
   "/attendigo-presenter-nav.js?v=1",
-  "/staff-leave-ui.css?v=5",
+  "/staff-leave-ui.css?v=7",
   "/leave-status-indicator.css?v=1",
   "/department-workspace.css?v=1",
   "/department-workspace.js?v=5",
@@ -82,7 +82,9 @@ const SHELL = [
   "/teacher-dashboard-v2.js?v=1",
   "/teacher-dashboard-v3.css?v=1",
   "/teacher-dashboard-v3.js?v=1",
-  "/form48-report.js?v=18",
+  "/form48-report.js?v=19",
+  "/missing-scan-ui.js?v=1",
+  "/missing-scan-ui.css?v=1",
   "/form48-intelligence.js?v=2",
   "/form48-bulk-ui.js?v=3",
   "/form48-report.css?v=16",
@@ -140,8 +142,8 @@ const SHELL = [
   "/password-visibility.js",
   "/portal-login.js?v=15",
   "/login-routing.js",
-  "/principal-dashboard.js?v=2",
-  "/principal-dashboard.css?v=2",
+  "/principal-dashboard.js?v=11",
+  "/principal-dashboard.css?v=12",
   "/responsive.css?v=0.8.3",
   "/comfort-ui.css?v=0.8.8",
   "/styles.css",
