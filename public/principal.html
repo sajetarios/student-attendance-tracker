@@ -12,7 +12,7 @@ try { const preference = localStorage.getItem('attendigo.principal.theme'); docu
 catch (_) { document.documentElement.dataset.theme = 'light'; }
 </script>
 <link rel="stylesheet" href="/principal-dashboard.css?v=12">
-<script src="/principal-dashboard.js?v=10" defer></script>
+<script src="/principal-dashboard.js?v=11" defer></script>
 <link rel="stylesheet" href="/school-memo-banner.css?v=1">
 </head>
 <body>
@@ -334,6 +334,46 @@ catch (_) { document.documentElement.dataset.theme = 'light'; }
     <div class="surface"><h3>Coming calendar exceptions</h3><div id="principalCalendarEvents" class="principal-data-list"></div></div>
    </div>
    <p id="principalCalendarStatus" class="source-note" role="status">Opening school calendar…</p>
+   <section id="principalMemoPublishPanel" class="surface principal-memo-publish" hidden>
+    <div class="card-heading"><div><p class="eyebrow">SCHOOL COMMUNICATIONS</p>
+     <h3>Publish School Memorandum</h3>
+     <p>Upload a signed official memorandum for all school users or for school personnel only.</p></div>
+     <a class="quiet-button principal-memo-link" href="/school-memos.html">Open Memoranda</a>
+    </div>
+    <form id="principalMemoForm" class="principal-memo-form">
+     <label>Memorandum title
+      <input type="text" name="title" maxlength="180" minlength="5" required placeholder="e.g., Class Suspension Notice — Nov 24"></label>
+     <label>Short announcement
+      <textarea name="summary" rows="3" maxlength="1200" placeholder="Brief description visible in notifications. Avoid private personal data."></textarea></label>
+     <div class="principal-memo-fields">
+      <label>Notice category
+       <select name="category" required>
+        <option value="GENERAL">General memorandum</option>
+        <option value="SCHOOL_ADVISORY">School advisory</option>
+        <option value="SCHEDULE_NOTICE">Temporary schedule notice</option>
+        <option value="CLASS_SUSPENSION">Class suspension notice</option>
+       </select></label>
+      <label>Who can view and acknowledge?
+       <select name="audience" required>
+        <option value="ALL_USERS">All school users, including registered students &amp; parents</option>
+        <option value="SCHOOL_STAFF">School personnel only</option>
+       </select></label>
+     </div>
+     <div class="principal-memo-fields">
+      <label>Effective date (required for schedule or suspension notices)
+       <input type="date" name="effectiveDate"></label>
+      <label>Attach official signed memorandum (PDF, JPG or PNG; up to 4 MB)
+       <input type="file" name="document" accept=".pdf,.jpg,.jpeg,.png,application/pdf,image/jpeg,image/png" required></label>
+     </div>
+     <p class="source-note">Publishing alerts the selected school audience. A memo alone does not change timetables, class suspension status, attendance, or DTR calculations. Enter authorized calendar exceptions separately.</p>
+     <button type="submit" id="principalMemoPublish" class="refresh-button">Publish and notify school users</button>
+     <p id="principalMemoPublishStatus" class="source-note" role="status" aria-live="polite"></p>
+    </form>
+    <div class="principal-memo-published">
+     <div class="section-toolbar"><h4>Recently published</h4><button id="principalMemoRefresh" type="button" class="quiet-button">Refresh</button></div>
+     <div id="principalMemoPublishedList" class="principal-data-list"><p class="source-note">Checking school memoranda…</p></div>
+    </div>
+   </section>
    <div class="surface"><h3>Class timetable &amp; classroom conflicts</h3><p>The existing school scheduling module controls these records. Principal-specific timetable access is not yet authorized in this view; no assignments or conflicts are invented.</p></div>
   </section>
   <section id="securityPanel" class="panel" hidden>
