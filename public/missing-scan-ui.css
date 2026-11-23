@@ -1,0 +1,44 @@
+.missing-scan-dialog{border:0;padding:0;border-radius:19px;width:min(800px,calc(100vw - 24px));max-height:min(90dvh,880px);background:var(--surface,#fff);color:var(--text,#223448);box-shadow:0 28px 75px rgba(6,24,45,.25)}
+.missing-scan-dialog::backdrop{background:rgba(8,23,42,.65);backdrop-filter:blur(3px)}
+.missing-scan-dialog .ms-shell{display:flex;flex-direction:column;max-height:min(90dvh,880px)}
+.missing-scan-dialog .ms-header{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;padding:21px 22px 12px;border-bottom:1px solid var(--border,#dce3e9)}
+.missing-scan-dialog .ms-header small{font-size:11px;letter-spacing:.09em;font-weight:750;color:#3179ad}
+.missing-scan-dialog .ms-header h2{font-size:1.4rem;margin:6px 0}
+.missing-scan-dialog .ms-header p,.missing-scan-dialog .ms-card p{font-size:.87rem;line-height:1.5;opacity:.88;margin:6px 0 12px}
+.missing-scan-dialog .ms-close{border:1px solid var(--border,#dce3e9);background:transparent;color:inherit;border-radius:11px;min-width:42px;min-height:42px;cursor:pointer}
+.missing-scan-dialog .ms-tabs{display:flex;gap:7px;padding:10px 20px;border-bottom:1px solid var(--border,#dce3e9)}
+.missing-scan-dialog .ms-tabs button{min-height:42px;flex:1;background:transparent;border:1px solid var(--border,#dce3e9);color:inherit;border-radius:10px;padding:6px 12px;font-weight:650;cursor:pointer}
+.missing-scan-dialog .ms-tabs button.active{background:#2463a5;color:#fff;border-color:#2463a5}
+.missing-scan-dialog .ms-message{margin:0 20px;font-size:.88rem;line-height:1.45;color:#216c4b}
+.missing-scan-dialog .ms-message:not(:empty){padding:12px 0}
+.missing-scan-dialog .ms-message.is-error{color:#ad3434}
+.missing-scan-dialog .ms-policy{padding:12px 20px;background:rgba(36,99,165,.06);border-bottom:1px solid var(--border,#dce3e9)}
+.missing-scan-dialog .ms-policy[hidden]{display:none}
+.missing-scan-dialog .ms-policy p{margin:8px 0;font-size:.81rem}
+.missing-scan-dialog .ms-content{overflow:auto;overscroll-behavior:contain;padding:14px 20px 24px}
+.missing-scan-dialog .ms-card{border:1px solid var(--border,#dce3e9);background:var(--surface,#fff);border-radius:14px;padding:16px;margin:0 0 14px;min-width:0}
+.missing-scan-dialog h3{margin:0 0 9px;font-size:1.08rem}
+.missing-scan-dialog h4{margin:10px 0;font-size:.95rem}
+.missing-scan-dialog label{display:block;font-size:.84rem;font-weight:650;margin-bottom:12px;min-width:0}
+.missing-scan-dialog input,.missing-scan-dialog textarea,.missing-scan-dialog select{display:block;width:100%;min-width:0;box-sizing:border-box;margin-top:6px;border:1px solid var(--border,#ccd6e0);border-radius:10px;background:var(--surface,#fff);color:var(--text,#223448);padding:10px 12px;font:inherit;min-height:43px}
+.missing-scan-dialog input[type=file]{padding:8px 4px;font-size:.8rem}
+.missing-scan-dialog button{cursor:pointer;max-width:100%}
+.missing-scan-dialog button:disabled{opacity:.55;cursor:wait}
+.missing-scan-dialog button:focus-visible,.missing-scan-dialog input:focus-visible,.missing-scan-dialog textarea:focus-visible,.missing-scan-dialog select:focus-visible{outline:2px solid #3181c5;outline-offset:2px}
+.missing-scan-dialog .ms-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.missing-scan-dialog .ms-actions{display:flex;gap:8px;flex-wrap:wrap}
+.missing-scan-dialog .ms-actions button{flex:1 1 145px}
+.missing-scan-dialog .ms-row-heading{display:flex;align-items:flex-start;justify-content:space-between;gap:10px}
+.missing-scan-dialog .ms-row-heading strong{font-size:1rem}
+.missing-scan-dialog .ms-row-heading p{margin:4px 0 8px;font-size:.82rem}
+.missing-scan-dialog .ms-status{font-size:.74rem;font-weight:700;border-radius:16px;padding:5px 9px;background:rgba(36,99,165,.09);color:inherit;text-align:center}
+.missing-scan-dialog .ms-fields{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:9px;margin:12px 0}
+.missing-scan-dialog .ms-fields div{padding:10px;background:var(--surface-secondary,#f3f6f9);border-radius:9px}
+.missing-scan-dialog .ms-fields dt{font-size:.74rem;opacity:.75}
+.missing-scan-dialog .ms-fields dd{font-size:.84rem;font-weight:750;margin:4px 0 0;overflow-wrap:anywhere}
+.missing-scan-dialog .ms-review{border-top:1px solid var(--border,#dce3e9);margin-top:16px;padding-top:14px}
+.missing-scan-dialog .ms-review>button{margin-bottom:10px}
+.missing-scan-dialog .ms-muted{opacity:.7;font-size:.85rem}
+.ms-dtr-action{margin-left:auto;white-space:normal}
+@media(max-width:600px){.missing-scan-dialog{width:calc(100vw - 12px);max-height:calc(100dvh - 18px);border-radius:14px}.missing-scan-dialog .ms-shell{max-height:calc(100dvh - 18px)}.missing-scan-dialog .ms-header{padding:15px 14px 10px}.missing-scan-dialog .ms-content{padding:12px}.missing-scan-dialog .ms-tabs{padding:10px 12px}.missing-scan-dialog .ms-card{padding:13px}.missing-scan-dialog .ms-grid,.missing-scan-dialog .ms-fields{grid-template-columns:1fr}.missing-scan-dialog .ms-row-heading{flex-direction:column}.missing-scan-dialog .ms-status{align-self:flex-start}}
+html[data-theme=dark] .missing-scan-dialog,.dark .missing-scan-dialog{--surface:#18283a;--surface-secondary:#26384b;--text:#eaf0f7;--border:#40556a}
