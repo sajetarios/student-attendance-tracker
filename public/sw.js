@@ -1,4 +1,4 @@
-const CACHE = "attendigo-v330-memo-period-temporary-form48";
+const CACHE = "attendigo-v331-missing-scan-responsive-slots";
 
 const SHELL = [
   "/typography.css?v=1",
@@ -83,8 +83,8 @@ const SHELL = [
   "/teacher-dashboard-v3.css?v=1",
   "/teacher-dashboard-v3.js?v=1",
   "/form48-report.js?v=20",
-  "/missing-scan-ui.js?v=1",
-  "/missing-scan-ui.css?v=1",
+  "/missing-scan-ui.js?v=2",
+  "/missing-scan-ui.css?v=2",
   "/form48-intelligence.js?v=2",
   "/form48-bulk-ui.js?v=3",
   "/form48-report.css?v=16",
