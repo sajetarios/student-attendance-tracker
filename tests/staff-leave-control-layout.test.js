@@ -32,9 +32,21 @@ test('gate date action, tabs and dialog header have explicit responsive overflow
  assert.match(css,/\.leave-header > div:first-child\{min-width:0/);
 });
 test('cache versions match, preventing iPad from retaining overlapping old controls',()=>{
- assert.match(html,/\/staff-leave-ui\.js\?v=10/);
- assert.match(html,/\/staff-leave-ui\.css\?v=7/);
- assert.match(sw,/"\/staff-leave-ui\.js\?v=10"/);
- assert.match(sw,/"\/staff-leave-ui\.css\?v=7"/);
+ assert.match(html,/\/staff-leave-ui\.js\?v=11/);
+ assert.match(html,/\/staff-leave-ui\.css\?v=8/);
+ assert.match(sw,/"\/staff-leave-ui\.js\?v=11"/);
+ assert.match(sw,/"\/staff-leave-ui\.css\?v=8"/);
  assert.match(sw,/const CACHE = "attendigo-v\d+-[^"]+";/);
+});
+
+test('leave requests remain attendance-focused while credit records are restricted',()=>{
+ assert.match(ui,/const leaveHeading='Leave Requests'/);
+ assert.match(ui,/New Leave Request/);
+ assert.match(ui,/Official leave-record verification/);
+ assert.match(ui,/if\(!mayReviewCredits\|\|!target\)return/);
+ assert.doesNotMatch(ui,/data-leave-tab="credits"/);
+ assert.match(ui,/const ownRequests=\(response.requests\|\|\[\]\)\.filter\(r=>r.staffUserId===user.userId\)/);
+ assert.match(ui,/Print prefilled CSC Form No\. 6/);
+ assert.match(ui,/call\('\/my\/credit-scheme'\)/);
+ assert.match(css,/\.leave-request-overview\{/);
 });

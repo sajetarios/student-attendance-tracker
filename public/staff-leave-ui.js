@@ -34,7 +34,7 @@
  function init(user){
   if(!['TEACHER','DEPARTMENT_HEAD','SCHOOL_ADMIN'].includes(user?.role))return;
   const button=document.createElement('button');button.id='staffLeaveNav';button.type='button';
-  button.className='nav-item';button.title='Leave requests, CSC Form 6 and service credits';
+  button.className='nav-item';button.title='Prepare leave requests and print CSC Form No. 6';
   button.innerHTML='<span class="nav-icon" aria-hidden="true">▣</span><span class="nav-label">Leave Requests</span>';
   // A personal leave request is distinct from an authorized review queue.
   // This only moves the existing UI; staff-leave routes still enforce every
@@ -60,21 +60,17 @@
   }
   const isHrAdmin=user.role==='SCHOOL_ADMIN';
   const mayReviewCredits=isHrAdmin||user.role==='DEPARTMENT_HEAD';
-  const leaveHeading=isHrAdmin?'Leave & Credits Administration':'My Leave & Credits';
-  const leaveIntro=isHrAdmin
-   ? 'Submit your own leave separately from HR-certified balances and authorized review queues.'
-   : user.role==='DEPARTMENT_HEAD'
-     ? 'Apply for leave, view your own certified balances, and handle separate authorized recommendations.'
-     : 'Apply for leave and view HR-certified credit balances. Credit claims require independent verification.';
+  const leaveHeading='Leave Requests';
+  const leaveIntro='Prepare leave applications, track verified decisions and keep attendance records accurate. Official approval remains with authorized DepEd personnel.';
   const dialog=document.createElement('dialog');dialog.id='staffLeaveDialog';
-  dialog.setAttribute('aria-label','Leave Management');
+  dialog.setAttribute('aria-label','Leave Requests');
   dialog.innerHTML='<div class="leave-shell"><div class="leave-header"><div><h2>'+esc(leaveHeading)+'</h2>'+
    '<p>'+esc(leaveIntro)+'</p></div>'+
-   '<button class="leave-close" id="leaveClose" type="button" aria-label="Close Leave Management">✕</button></div>'+
-   '<div class="leave-tabs" role="tablist" aria-label="Leave Management sections">'+
+   '<button class="leave-close" id="leaveClose" type="button" aria-label="Close Leave Requests">✕</button></div>'+
+   '<div class="leave-tabs" role="tablist" aria-label="Leave Requests sections">'+
    '<button type="button" class="is-active" data-leave-tab="requests">'+(isHrAdmin?'Leave applications':'My applications')+'</button>'+
    '<button type="button" data-leave-tab="inbox" '+(!mayReviewCredits?'hidden':'')+'>Leave approvals</button>'+
-   '<button type="button" data-leave-tab="credits">'+(isHrAdmin?'HR credits':'My credits')+'</button></div>'+
+   '</div>'+
    '<div class="leave-body" id="leaveBody"></div><div class="leave-message" id="leaveMessage" role="status" aria-live="polite"></div></div>';
   document.body.append(dialog);
   const body=$('leaveBody'),message=$('leaveMessage');
@@ -125,7 +121,7 @@
    catch(error){
     profileLeave.replaceChildren();
     profileLeave.classList.add('leave-unavailable');
-    profileLeave.textContent='Leave status unavailable. Please review Leave Management or retry.';
+    profileLeave.textContent='Leave status unavailable. Please review Leave Requests or retry.';
     profileLeave.hidden=false;
    }
   }
@@ -137,7 +133,7 @@
   const reviewer=user.role==='SCHOOL_ADMIN'||user.role==='DEPARTMENT_HEAD';
   dialog.querySelector('[data-leave-tab="inbox"]').hidden=!reviewer;
   window.AttendigoLeaveInbox?.attachNav(reviewerNav,user,call);
-  let tab='requests',busy=false,reviewOnly=false;
+  let tab='requests',busy=false,reviewOnly=false,officialRecordsOpen=false;
   const say=(value,error=false)=>{message.textContent=value;message.classList.toggle('is-error',error);};
   const buttonFor=(label,cb)=>{
    const b=document.createElement('button');b.type='button';b.className='leave-btn';
@@ -152,14 +148,34 @@
    catch(e){say(e.message,true);}finally{busy=false;}
   };
   async function load(){
-   if(tab==='requests')await renderRequests();
-   else if(tab==='inbox'){
-    if(!window.AttendigoLeaveInbox)throw Error('Leave Approval Inbox is unavailable. Refresh Attendigo.');
-    await window.AttendigoLeaveInbox.render({body,user,call,upload,action,message,
-     openRequests:()=>{reviewOnly=false;selectTab('requests');}});
-   }else await renderCredits();
+   if(tab==='requests'){await renderRequests();return;}
+   if(tab!=='inbox'||!mayReviewCredits)return;
+   if(!window.AttendigoLeaveInbox)throw Error('Leave Approval Inbox is unavailable. Refresh Attendigo.');
+   await window.AttendigoLeaveInbox.render({body,user,call,upload,action,message,
+    openRequests:()=>{reviewOnly=false;selectTab('requests');}});
+   // Keep supporting credit records restricted to the existing approval workspace.
+   const records=document.createElement('details');
+   records.className='leave-card leave-official-records';
+   records.innerHTML='<summary>Official leave-record verification</summary>'+
+    '<p class="leave-help">Restricted documentation only. Use verified DepEd source records; this does not grant HR certification or approval authority.</p>'+
+    '<div class="leave-records-content"></div>';
+   records.open=officialRecordsOpen;
+   body.append(records);
+   let loaded=false;
+   const fill=async()=>{
+    if(loaded)return;
+    loaded=true;
+    try{await renderCredits(records.querySelector('.leave-records-content'));}
+    catch(error){loaded=false;say('Official records unavailable: '+error.message,true);}
+   };
+   records.addEventListener('toggle',()=>{
+    officialRecordsOpen=records.open;
+    if(records.open)void fill();
+   });
+   if(officialRecordsOpen)await fill();
   }
   const selectTab=next=>{
+   if(next!=='requests'&&next!=='inbox')return;
    if(next==='inbox'&&!mayReviewCredits)return;
    if(next==='requests'&&tab==='inbox')reviewOnly=false;
    tab=next;
@@ -188,13 +204,13 @@
     (r.status==='PENDING_HEAD'||(r.status==='PENDING_EXTERNAL'&&r.staffRole==='SCHOOL_ADMIN'));
   }
   function newRequest(){
-   const details=document.createElement('details');details.className='leave-card';details.innerHTML=
-    '<summary>New leave application</summary>'+
+   const details=document.createElement('details');details.className='leave-card leave-start-application';details.innerHTML=
+    '<summary>＋ New Leave Request</summary>'+
     '<div class="leave-form-intro"><span>Complete this application first. After saving, use the <strong>Print prefilled CSC Form No. 6</strong> action on your request.</span>'+
     '<a class="leave-btn" href="/leave-form6.html?template=1" target="_blank" rel="noopener">View blank CSC Form No. 6</a></div>'+
     '<form id="leaveNewForm" class="leave-form">'+
     '<fieldset><legend>Leave type and dates</legend>'+
-    select('leaveType','Type of leave',docTypes)+select('creditAccount','Proposed credit deduction (subject to HR verification)',accounts)+
+    select('leaveType','Type of leave',docTypes)+select('creditAccount','Applicable leave account (official verification required)',accounts)+
     '<p class="leave-credit-guidance" role="status" aria-live="polite"></p>'+ 
     '<p class="leave-sick-guidance" role="status" aria-live="polite"></p>'+ 
     '<p class="leave-type-guidance" role="status" aria-live="polite"></p>'+
@@ -439,12 +455,27 @@
     void checkOverlaps();
    }
    const header=document.createElement('div');header.className='leave-section-title';header.innerHTML=
-    '<h3>'+(reviewOnly?'Pending leave approvals':'Applications and approvals')+'</h3><button class="leave-btn" type="button">Refresh</button>';
+    '<h3>'+(reviewOnly?'Pending leave approvals':'My applications')+'</h3><button class="leave-btn" type="button">Refresh</button>';
    header.querySelector('button').addEventListener('click',()=>load().catch(e=>say(e.message,true)));
    body.append(header);
    const list=document.createElement('div');list.className='leave-list';body.append(list);
    const response=await call('/requests');
-   const visibleRequests=reviewOnly?(response.requests||[]).filter(reviewable):(response.requests||[]);
+   const ownRequests=(response.requests||[]).filter(r=>r.staffUserId===user.userId);
+   if(!reviewOnly){
+    const counts={
+     pending:ownRequests.filter(r=>!['APPROVED','REJECTED','CANCELLED'].includes(r.status)).length,
+     approved:ownRequests.filter(r=>r.status==='APPROVED').length,
+     closed:ownRequests.filter(r=>['REJECTED','CANCELLED'].includes(r.status)).length
+    };
+    const overview=document.createElement('div');
+    overview.className='leave-request-overview';
+    overview.setAttribute('aria-label','My leave request summary');
+    overview.innerHTML=[
+     ['Pending',counts.pending],['Approved',counts.approved],['Not approved / cancelled',counts.closed]
+    ].map(([label,count])=>'<div class="leave-request-stat"><span>'+esc(label)+'</span><strong>'+count+'</strong></div>').join('');
+    body.insertBefore(overview,body.firstChild);
+   }
+   const visibleRequests=reviewOnly?(response.requests||[]).filter(reviewable):ownRequests;
    if(!visibleRequests.length){
     list.textContent=reviewOnly?'No leave requests are awaiting your authorized review.':'No leave requests yet. You can submit one above.';
     return;
@@ -454,7 +485,7 @@
     card.innerHTML='<div class="leave-card-top"><strong>'+esc(r.staffName)+'</strong>'+
      '<span class="leave-status">'+esc(classify(r.status))+'</span></div>'+
      '<p>'+esc(classify(r.leaveType))+' · '+esc(safeDate(r.startDate))+' to '+esc(safeDate(r.endDate))+'</p>'+
-     '<p>Account: '+esc(r.creditAccount)+' · '+esc(r.reason)+'</p>'+
+     '<p>'+esc(r.reason)+'</p>'+
      (r.leaveType==='SICK'?'<p class="leave-help">Filing: '+
        esc(r.filingBasis==='POST_RETURN'?'Filed after absence; verify return date':
         r.filingBasis==='ADVANCE'?'Submitted in advance':r.filingBasis==='DURING_ABSENCE'?
@@ -571,7 +602,9 @@
    }
    return card;
   }
-  async function renderCredits(){
+  async function renderCredits(target){
+   if(!mayReviewCredits||!target)return;
+   const body=target;
    body.replaceChildren();
    const guidance=document.createElement('div');guidance.className='leave-role-guidance';
    guidance.innerHTML=isHrAdmin
@@ -591,7 +624,6 @@
       (verified?'HR-certified available days':'No HR-certified balance on file')+'</span>';balance.append(el);
     });
    body.append(balance);
-   if(!isHrAdmin)body.append(creditForm());
    const h=document.createElement('h3');h.textContent='My credit history';body.append(h);
    const list=document.createElement('div');list.className='leave-list';body.append(list);
    (own.entries||[]).forEach(row=>list.append(creditRow(row)));
@@ -696,10 +728,6 @@
     const data=await call('/credits/pending');
     (data.entries||[]).forEach(row=>queue.append(creditRow(row,true)));
     if(!data.entries?.length)queue.textContent='No credit claims awaiting your authorized review.';
-   }
-   if(isHrAdmin){
-    const ownClaim=document.createElement('h3');ownClaim.textContent='My own earned-credit claims (verification by another officer)';
-    body.append(ownClaim,creditForm());
    }
   }
  }
