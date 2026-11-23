@@ -1,0 +1,71 @@
+name: Principal leadership oversight (isolated PostgreSQL)
+on:
+  pull_request:
+    branches: [fix/render-login-landing]
+    paths:
+      - 'principal-overview-routes.js'
+      - 'role-permissions.js'
+      - 'login-routing.js'
+      - 'public/login-routing.js'
+      - 'public/principal*'
+      - 'public/portal.html'
+      - 'public/portal.js'
+      - 'public/sw.js'
+      - 'server.js'
+      - 'scripts/migrate.js'
+      - 'migrations/077_principal_leadership_role.sql'
+      - 'tests/principal-*'
+      - '.github/workflows/principal-leadership-ci.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  principal-reporting:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: school_attendance_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d school_attendance_test"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    env:
+      DATABASE_URL: postgres://postgres:postgres@localhost:5432/school_attendance_test
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci
+      - name: Validate backend and frontend JavaScript
+        run: |
+          node --check principal-overview-routes.js
+          node --check public/principal-dashboard.js
+          node --check server.js
+          node --check public/portal.js
+      - name: Run Principal security and frontend contracts
+        run: node --test tests/principal-dashboard.test.js tests/role-permissions.test.js tests/login-routing.test.js
+      - name: Prepare roles required by existing leave migration
+        run: |
+          node - <<'NODE'
+          const {Client}=require('pg');
+          (async()=>{
+            const db=new Client({connectionString:process.env.DATABASE_URL});
+            await db.connect();
+            try {await db.query("DO $$ BEGIN IF NOT EXISTS(SELECT 1 FROM pg_roles WHERE rolname='anon') THEN CREATE ROLE anon; END IF; IF NOT EXISTS(SELECT 1 FROM pg_roles WHERE rolname='authenticated') THEN CREATE ROLE authenticated; END IF; END $$;");}
+            finally {await db.end();}
+          })().catch(e=>{console.error(e.message);process.exitCode=1});
+          NODE
+      - name: Validate full additive database migration chain
+        run: npm run db:migrate
+      - name: Validate Principal reports against real isolated PostgreSQL
+        run: node tests/principal-postgres.cjs
