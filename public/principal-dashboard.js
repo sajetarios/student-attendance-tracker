@@ -482,7 +482,7 @@
   count.textContent=entries.length+' verified '+(entries.length===1?'arrival':'arrivals');
   count.dataset.state=entries.length?'active':'empty';
   if(!entries.length){
-   host.append(recognitionEmpty('☀','No verified early arrivals today',
+   host.append(recognitionEmpty('☀','No verified early arrivals on this date',
     'No photo-verified entries before 7:00 AM for this date. This does not mean teachers were absent or late.'));
    return;
   }
