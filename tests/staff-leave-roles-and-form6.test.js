@@ -82,7 +82,7 @@ test('CSC Form 6 blank worksheet is available before filing, but request details
  assert.match(ui,/Print prefilled CSC Form No\. 6/);
  assert.match(print,/params\.get\('template'\)==='1'/);
  assert.ok(print.indexOf("params.get('template')==='1'") <
-  print.indexOf("if(!/^[a-f0-9-]{36}$/i.test(id)||!token)"));
+  print.indexOf("if(!/^[a-f0-9-]{36}$/i.test(id))"));
  assert.match(print,/\/api\/staff-leave\/requests\/.*\/form6/);
  assert.match(read('public/leave-form6.html'),/Revised 2020/);
 });
@@ -93,4 +93,30 @@ test('leave changes do not write gate punches or bypass school approval',()=>{
  assert.doesNotMatch(routes,/INSERT INTO teacher_gate_events/i);
  assert.match(routes,/LEAVE_EXTERNAL_APPROVED/);
  assert.match(routes,/staff_form48_approved_leaves/);
+});
+
+test('Form 6 uses the staff cookie, Manila filing date and recorded decision',async()=>{
+ const vm=require('node:vm');
+ for(const [status,decision] of [['REJECTED','Disapproved'],['CANCELLED','Application cancelled'],['APPROVED','Fictional Officer'],['PENDING_EXTERNAL','Authorization pending']]){
+  const nodes=new Map();
+  const get=id=>{
+   if(!nodes.has(id))nodes.set(id,{append(){},replaceChildren(){},addEventListener(){}});
+   return nodes.get(id);
+  };
+  const request={status,leaveType:'SICK',submittedAt:'2026-11-22T17:00:00Z',
+   startDate:'2026-11-23',endDate:'2026-11-23',externalApprover:'Fictional Officer'};
+  let fetched=false;
+  await vm.runInNewContext(read('public/leave-form6.js'),{
+   URLSearchParams,location:{search:'?requestId=11111111-1111-4111-8111-111111111111'},
+   window:{},sessionStorage:{getItem:()=>null},
+   document:{getElementById:get,createElement:()=>({})},
+   fetch:async(url,options)=>{
+    assert.equal(options.credentials,'same-origin');assert.equal(options.headers.Authorization,undefined);
+    fetched=true;return {ok:true,json:async()=>({request,estimatedSchoolWorkingDays:1})};
+   }
+  });
+  assert.equal(fetched,true);
+  assert.equal(get('filed').textContent,'2026-11-23');
+  assert.ok(get(status==='REJECTED'?'disapproval':'officialName').textContent.includes(decision));
+ }
 });

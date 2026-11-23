@@ -32,9 +32,9 @@ test('gate date action, tabs and dialog header have explicit responsive overflow
  assert.match(css,/\.leave-header > div:first-child\{min-width:0/);
 });
 test('cache versions match, preventing iPad from retaining overlapping old controls',()=>{
- assert.match(html,/\/staff-leave-ui\.js\?v=7/);
- assert.match(html,/\/staff-leave-ui\.css\?v=4/);
- assert.match(sw,/"\/staff-leave-ui\.js\?v=7"/);
- assert.match(sw,/"\/staff-leave-ui\.css\?v=4"/);
+ assert.match(html,/\/staff-leave-ui\.js\?v=8/);
+ assert.match(html,/\/staff-leave-ui\.css\?v=5/);
+ assert.match(sw,/"\/staff-leave-ui\.js\?v=8"/);
+ assert.match(sw,/"\/staff-leave-ui\.css\?v=5"/);
  assert.match(sw,/const CACHE = "attendigo-v\d+-[^"]+";/);
 });

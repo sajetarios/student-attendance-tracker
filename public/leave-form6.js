@@ -27,10 +27,10 @@
   $('print')?.addEventListener('click',()=>window.print());
   return;
  }
- if(!/^[a-f0-9-]{36}$/i.test(id)||!token){showError('An authenticated school session is required. Open this preview from Leave Management.');return;}
+ if(!/^[a-f0-9-]{36}$/i.test(id)){showError('Open a saved application from Leave Management.');return;}
  try{
   const response=await fetch('/api/staff-leave/requests/'+encodeURIComponent(id)+'/form6',{
-   headers:{Authorization:'Bearer '+token},cache:'no-store'});
+   credentials:'same-origin',headers:token?{Authorization:'Bearer '+token}:{},cache:'no-store'});
   const data=await response.json();
   if(!response.ok)throw Error(data.error||'The authorized application could not be loaded.');
   const r=data.request||{},date=s=>String(s||'').slice(0,10);
@@ -38,13 +38,15 @@
   put('office',[r.schoolName,r.departmentName].filter(Boolean).join(' — '));
   put('name',r.staffName||'');
   put('position',r.staffPosition||'');
-  put('filed',date(r.submittedAt));
+  const filed=new Date(r.submittedAt);
+  put('filed',r.submittedAt&&Number.isFinite(filed.getTime())
+   ?new Intl.DateTimeFormat('en-CA',{timeZone:'Asia/Manila',year:'numeric',month:'2-digit',day:'2-digit'}).format(filed):'');
   put('filingNote',r.leaveType==='SICK'
    ?r.filingBasis==='POST_RETURN'
      ?'Filed after listed sick-leave dates. Under CSC Sec. 53, HR must verify immediate filing upon actual return and notice to the supervisor.'
      :r.filingBasis==='ADVANCE'
        ?'Sick leave filed in advance; medical evidence and approval required.'
-       :'Sick leave application pending official documentation and review.'
+       :'Sick leave filed during the listed absence.'
    :'');
   put('salary','_________________');
   put('workingDays',r.certifiedWorkingDays!=null?r.certifiedWorkingDays+' day(s) — HR verified':data.estimatedSchoolWorkingDays+' day(s) — calendar estimate; HR verification required');
@@ -68,6 +70,8 @@
   put('details',(r.reason||'')+(r.details?' — '+r.details:''));
   put('commutation',(r.commutation==='REQUESTED'?'☑ Requested / ☐ Not Requested':'☐ Requested / ☑ Not Requested'));
   if(r.status==='APPROVED')put('officialName',(r.externalApprover||'')+' · '+(r.externalApproverPosition||'')+' (printed reference only; signature required)');
+  else if(r.status==='REJECTED')put('disapproval','Disapproved'+(r.externalReference?' · '+r.externalReference:'')+'.');
+  else if(r.status==='CANCELLED')put('officialName','Application cancelled.');
   else put('officialName','Authorization pending. Not approved.');
   put('status','Prefill loaded. Check all unverified fields before filing.');
   $('print').addEventListener('click',()=>window.print());

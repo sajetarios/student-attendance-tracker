@@ -116,3 +116,6 @@
  #staffLeaveDialog .leave-tabs button{flex:1 1 auto}
  #staffLeaveDialog .leave-header{gap:8px}
 }
+
+#leaveNewForm fieldset{grid-column:1/-1;display:grid;grid-template-columns:inherit;gap:13px;min-width:0;margin:0;padding:12px;border:1px solid #dbe5ed;border-radius:10px}
+#leaveNewForm legend{font-weight:650;padding:0 5px}

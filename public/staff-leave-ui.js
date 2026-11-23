@@ -177,7 +177,7 @@
   button.addEventListener('click',()=>openLeave(false));
   reviewerNav?.addEventListener('click',()=>openLeave(true));
   document.addEventListener('attendigo:open-leave-inbox',()=>openLeave(true));
-  const handleLeaveLink=()=>{if(location.hash==='#leaveManagement')openLeave(true);};
+  const handleLeaveLink=()=>{if(location.hash==='#leaveManagement')openLeave(reviewer);};
   window.addEventListener('hashchange',handleLeaveLink);
   if(location.hash==='#leaveManagement')handleLeaveLink();
   function reviewable(r){
@@ -193,22 +193,28 @@
     '<div class="leave-form-intro"><span>Complete this application first. After saving, use the <strong>Print prefilled CSC Form No. 6</strong> action on your request.</span>'+
     '<a class="leave-btn" href="/leave-form6.html?template=1" target="_blank" rel="noopener">View blank CSC Form No. 6</a></div>'+
     '<form id="leaveNewForm" class="leave-form">'+
+    '<fieldset><legend>Leave type and dates</legend>'+
     select('leaveType','Type of leave',docTypes)+select('creditAccount','Proposed credit account',accounts)+
     '<p class="leave-sick-guidance" role="status" aria-live="polite"></p>'+
     textInput('startDate','Start date',true,'date')+textInput('endDate','End date',true,'date')+
+    '</fieldset><fieldset><legend>Reason and details</legend>'+
     '<label>Reason (required)<textarea name="reason" rows="2" minlength="3" maxlength="1000" required></textarea></label>'+
     '<label>Details / location (optional)<textarea name="details" rows="2" maxlength="1500"></textarea></label>'+
     select('commutation','Commutation',[['NOT_REQUESTED','Not requested'],['REQUESTED','Requested']])+
-    fileInput('supportingDocument','Supporting document (optional at filing)')+
+    '</fieldset><fieldset><legend>Supporting documents (optional at filing)</legend>'+
+    fileInput('supportingDocument','Attach a PDF, JPG or PNG (up to 4 MB)')+
     select('supportingKind','Supporting-document type',[
-     ['APPLICATION','Application / general evidence'],['MEDICAL','Medical certificate / clearance'],
+     ['','Choose the type of file'],['APPLICATION','Application / general evidence'],['MEDICAL','Medical certificate / clearance'],
      ['AFFIDAVIT','Notarized affidavit if no medical consultation']])+
-    '<button type="submit" class="leave-primary">Submit for review</button></form>';
+    '</fieldset><button type="submit" class="leave-primary">Submit for review</button></form>';
    const leaveTypeControl=details.querySelector('[name=leaveType]');
    const accountControl=details.querySelector('[name=creditAccount]');
    const sickInfo=details.querySelector('.leave-sick-guidance');
    const start=details.querySelector('[name=startDate]');
    const end=details.querySelector('[name=endDate]');
+   const attachment=details.querySelector('[name=supportingDocument]');
+   const attachmentKind=details.querySelector('[name=supportingKind]');
+   attachment.addEventListener('change',()=>{attachmentKind.required=attachment.files.length>0;});
    let certifiedScheme='UNVERIFIED';
    const manilaDate=()=>{
     const parts=new Intl.DateTimeFormat('en-US',{
@@ -219,7 +225,13 @@
    };
    const explainSick=()=>{
     const sick=leaveTypeControl.value==='SICK';
-    if(!sick){sickInfo.hidden=true;accountControl.disabled=false;return;}
+    if(!sick){
+     sickInfo.hidden=true;
+     const fixed={VSC:'VSC',MATERNITY:'NONE',PATERNITY:'NONE'}[leaveTypeControl.value];
+     accountControl.disabled=Boolean(fixed);
+     if(fixed)accountControl.value=fixed;
+     return;
+    }
     sickInfo.hidden=false;
     const account=certifiedScheme==='TEACHING_VSC'?'VSC':
      certifiedScheme==='REGULAR_VL_SL'?'SL':'NONE';
@@ -232,26 +244,34 @@
      (account==='VSC'?'HR-certified teaching personnel: illness uses Vacation Service Credits (VSC).':
       account==='SL'?'HR-certified regular leave: illness uses Sick Leave (SL).':
       'HR leave scheme not yet verified; you may submit now, but no balance will be charged until HR confirms the correct entitlement.')+
-     ' Leave remains pending until the authorized official approves. Advance-filed illness or more than five consecutive days needs a medical certificate/clearance, or an appropriate notarized affidavit if no consultation was obtained.';
+     ' For medical evidence, select Medical certificate or Notarized affidavit as the supporting-document type. Leave remains pending until the authorized official approves. Advance-filed illness or more than five consecutive days needs a medical certificate/clearance, or an appropriate notarized affidavit if no consultation was obtained.';
    };
-   leaveTypeControl.addEventListener('change',e=>{
-    if(e.target.value==='VSC')accountControl.value='VSC';
-    if(['MATERNITY','PATERNITY'].includes(e.target.value))accountControl.value='NONE';
+   leaveTypeControl.addEventListener('change',()=>{
+    accountControl.value='NONE';
     explainSick();
    });
-   start.addEventListener('change',explainSick);
+   function updateDates(){
+    end.min=start.value;
+    end.max=start.value&&Number.isFinite(start.valueAsNumber)
+     ?new Date(start.valueAsNumber+366*86400000).toISOString().slice(0,10):'';
+    explainSick();
+   }
+   start.addEventListener('input',updateDates);
+   start.addEventListener('change',updateDates);
    end.addEventListener('change',explainSick);
    void call('/my/credit-scheme').then(x=>{
     certifiedScheme=x.leaveScheme||'UNVERIFIED';explainSick();
    }).catch(()=>{certifiedScheme='UNVERIFIED';explainSick();});
    explainSick();
    details.querySelector('form').addEventListener('submit',e=>{
-    e.preventDefault();const f=e.target;if(!f.reportValidity())return;
+    e.preventDefault();const f=e.target;
+    const reason=f.elements.reason;
+    reason.value=reason.value.trim();
+    if(!f.reportValidity())return;
+    if(reason.value.length<3){reason.setCustomValidity('Enter a reason of at least three characters.');reason.reportValidity();reason.setCustomValidity('');return;}
     const d=new FormData(f);
     const payload=Object.fromEntries(['leaveType','creditAccount','startDate','endDate','reason','details','commutation'].map(k=>[k,String(d.get(k)||'')]));
-    if(payload.leaveType==='SICK')
-     payload.creditAccount=certifiedScheme==='TEACHING_VSC'?'VSC':
-      certifiedScheme==='REGULAR_VL_SL'?'SL':'NONE';
+    payload.creditAccount=accountControl.value;
     action('Submitting leave',async()=>{
      const response=await call('/requests','POST',payload);
      const file=d.get('supportingDocument');
