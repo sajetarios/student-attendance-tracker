@@ -46,6 +46,7 @@
   if(name==='personal'){void loadPersonal();void loadSdoRequests();}
   if(name==='priorities'&&currentRole==='SCHOOL_ADMIN')void loadSdoRequests();
   if(name==='notifications')void loadNotifications();
+  if(name==='calendar'&&currentRole==='PRINCIPAL')void loadMemoAdmin();
   if(['personal','calendar','security'].includes(name))void loadWorkspace();
  }
  function csvSafe(value){
@@ -924,8 +925,82 @@
   finally{button.disabled=false;}
  }
 
+ async function loadMemoAdmin(){
+  if(currentRole!=='PRINCIPAL')return;
+  const host=$('principalMemoPublishedList');host.replaceChildren();
+  host.append(make('p','source-note','Loading published memoranda…'));
+  try{
+   const response=await fetch('/api/school-memos?limit=30',{credentials:'same-origin',cache:'no-store'});
+   const data=await response.json().catch(()=>({}));
+   if(!response.ok)throw Error(data.error||'Unable to load school memoranda.');
+   host.replaceChildren();
+   const list=Array.isArray(data.memoranda)?data.memoranda:[];
+   if(!list.length){host.append(make('p','source-note','No school memoranda have been published yet.'));return;}
+   for(const memo of list){
+    const item=make('div','principal-record-item');
+    item.append(make('strong',null,memo.title),
+      make('span',null,String(memo.category||'GENERAL').replaceAll('_',' ')+' · '+
+       (memo.audience==='ALL_USERS'?'All school users':'School personnel only')));
+    const actions=make('div','principal-memo-links');
+    const link=make('a','text-link','Open document & read status');
+    link.href='/school-memos.html?id='+encodeURIComponent(memo.memoId);
+    actions.append(link);
+    const count=make('button','quiet-button','Check acknowledgments');
+    count.type='button';count.addEventListener('click',async()=>{
+     count.disabled=true;
+     try{
+      const response=await fetch('/api/school-memos/'+encodeURIComponent(memo.memoId)+'/receipts',
+       {credentials:'same-origin',cache:'no-store'});
+      const detail=await response.json().catch(()=>({}));
+      if(!response.ok)throw Error(detail.error||'Receipts unavailable');
+      count.textContent=fmt(detail.acknowledgedAccounts)+' acknowledged · '+
+       fmt(detail.notifiedAccounts)+' inboxes notified';
+     }catch(e){count.textContent=errorText(e);}
+     finally{count.disabled=false;}
+    });
+    actions.append(count);item.append(actions);host.append(item);
+   }
+  }catch(e){host.replaceChildren(make('p','source-note','Memoranda unavailable: '+errorText(e)));}
+ }
+ async function publishPrincipalMemo(){
+  if(currentRole!=='PRINCIPAL')return;
+  const form=$('principalMemoForm'),feedback=$('principalMemoPublishStatus'),
+    button=$('principalMemoPublish');
+  if(!form.reportValidity())return;
+  const data=new FormData(form),file=data.get('document'),
+    category=String(data.get('category')),audience=String(data.get('audience')),
+    effectiveDate=String(data.get('effectiveDate')||'');
+  if(!(file instanceof File)||!file.size||file.size>4194304||
+    !['application/pdf','image/jpeg','image/png'].includes(file.type)){
+    feedback.textContent='Attach a PDF, JPG or PNG document up to 4 MB.';return;
+  }
+  if(['CLASS_SUSPENSION','SCHEDULE_NOTICE'].includes(category)&&!effectiveDate){
+   feedback.textContent='Choose an effective date for a schedule or class suspension notice.';return;
+  }
+  const notice=audience==='ALL_USERS'
+   ?'all active school accounts including registered students and parents'
+   :'school personnel accounts only';
+  if(!window.confirm('Publish this memorandum to '+notice+
+    '? In-app notifications will be created. Uploading a memo does NOT automatically change timetable or attendance rules.'))return;
+  button.disabled=true;feedback.textContent='Publishing memorandum and creating school notifications…';
+  try{
+   const response=await fetch('/api/school-memos',{method:'POST',credentials:'same-origin',cache:'no-store',
+    headers:{'Content-Type':file.type,'x-filename':file.name,
+      'x-memo-title':String(data.get('title')),'x-memo-summary':String(data.get('summary')||''),
+      'x-memo-category':category,'x-memo-audience':audience,'x-memo-effective-date':effectiveDate},body:file});
+   const result=await response.json().catch(()=>({}));
+   if(!response.ok)throw Error(result.error||'Could not publish memorandum.');
+   feedback.textContent='Published successfully. '+fmt(result.notifiedAccounts)+
+    ' in-app inbox records created. Recipients must open and explicitly acknowledge the memo.';
+   form.reset();void loadMemoAdmin();
+  }catch(e){feedback.textContent='Not published: '+errorText(e);}
+  finally{button.disabled=false;}
+ }
+
  async function init(){
   $('principalRefreshNotifications').addEventListener('click',()=>void loadNotifications());
+  $('principalMemoForm').addEventListener('submit',e=>{e.preventDefault();void publishPrincipalMemo();});
+  $('principalMemoRefresh').addEventListener('click',()=>void loadMemoAdmin());
   $('principalExportSummary').addEventListener('click',exportLeadershipSummary);
   $('principalExportStaff').addEventListener('click',downloadCsv);
   $('principalPrint').addEventListener('click',()=>window.print());
@@ -983,6 +1058,8 @@
   });
   const me=await getSession();if(!me)return;
   currentRole=me.role;
+  $('principalMemoPublishPanel').hidden=currentRole!=='PRINCIPAL';
+  if(currentRole==='PRINCIPAL')void loadMemoAdmin();
   $('principalLeaveForm').hidden=currentRole!=='PRINCIPAL';
   $('principalObForm').hidden=currentRole!=='PRINCIPAL';
   $('principalSdoAdminPanel').hidden=currentRole!=='SCHOOL_ADMIN';
