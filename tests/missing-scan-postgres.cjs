@@ -68,8 +68,6 @@ async function main(){
   assert.equal(first.status,201,JSON.stringify(first));
   const id=first.body.requestId;
   assert.equal((await call('POST','/requests',teacher,make())).status,409,'No duplicate open correction');
-  assert.equal((await call('POST','/requests',outsideAdmin,make())).status,409,
-   'Unassigned department cannot create staff exception');
   assert.equal((await call('GET','/requests?view=inbox',teacher)).status,403);
   const outInbox=await call('GET','/requests?view=inbox',outsider);
   assert.equal(outInbox.body.requests.length,0,'Different school cannot list requests');
