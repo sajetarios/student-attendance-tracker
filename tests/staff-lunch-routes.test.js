@@ -82,6 +82,8 @@ function redemptionFixture({role='TEACHER',school='school-a',tokenValid=true,dup
   if(sql.includes('SELECT setting_value AS point FROM school_settings'))return {
     rowCount:1,rows:[{point:{latitude:9,longitude:125,radiusMeters:120}}]};
   if(sql.includes('SELECT 1 FROM staff_form48_approved_leaves'))return {rowCount:0,rows:[]};
+  if(sql.includes('SELECT 1 FROM staff_official_business_requests'))return {rowCount:0,rows:[]};
+  if(sql.includes('SELECT 1 FROM school_calendar_exceptions'))return {rowCount:0,rows:[]};
   if(sql.includes('INSERT INTO staff_attendance_events'))return {
     rowCount:1,rows:[{event_id:'bbbbbbbb-bbbb-4bbb-bbbb-bbbbbbbbbbbb',occurred_at:new Date()}]};
   return {rowCount:1,rows:[]};
