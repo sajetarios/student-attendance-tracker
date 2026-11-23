@@ -966,6 +966,9 @@
     item.append(make('strong',null,memo.title),
       make('span',null,String(memo.category||'GENERAL').replaceAll('_',' ')+' · '+
        (memo.audience==='ALL_USERS'?'All school users':'School personnel only')));
+    const windowText=memo.effectiveDate?(memo.effectiveDate+(memo.endDate?' through '+memo.endDate:' · end not specified')):'No defined effective period';
+    item.append(make('span',null,windowText+
+     (memo.dtrHours?' · Temporary prescribed DTR hours':' · Announcement only')));
     const actions=make('div','principal-memo-links');
     const link=make('button','text-link','View memorandum in dashboard');
     link.type='button';
@@ -988,6 +991,24 @@
    }
   }catch(e){host.replaceChildren(make('p','source-note','Memoranda unavailable: '+errorText(e)));}
  }
+ function syncPrincipalMemoOptions(){
+  const form=$('principalMemoForm');if(!form)return;
+  const category=form.elements.namedItem('category').value,
+   audience=form.elements.namedItem('audience').value,
+   from=form.elements.namedItem('effectiveDate'),
+   to=form.elements.namedItem('endDate'),
+   apply=$('principalMemoApplyDtr'),
+   required=['SCHEDULE_NOTICE','CLASS_SUSPENSION'].includes(category);
+  from.required=required;to.required=required;
+  to.min=from.value||'';
+  apply.disabled=category!=='SCHEDULE_NOTICE'||audience!=='SCHOOL_STAFF';
+  if(apply.disabled)apply.checked=false;
+  const enabled=apply.checked&&!apply.disabled;
+  $('principalMemoDtrFields').hidden=!enabled;
+  $('principalMemoDtrFields').querySelectorAll('input[type="time"]').forEach(input=>{
+   input.required=enabled;
+  });
+ }
  async function publishPrincipalMemo(){
   if(currentRole!=='PRINCIPAL')return;
   const form=$('principalMemoForm'),feedback=$('principalMemoPublishStatus'),
@@ -995,30 +1016,55 @@
   if(!form.reportValidity())return;
   const data=new FormData(form),file=data.get('document'),
     category=String(data.get('category')),audience=String(data.get('audience')),
-    effectiveDate=String(data.get('effectiveDate')||'');
+    effectiveDate=String(data.get('effectiveDate')||''),
+    endDate=String(data.get('endDate')||''),
+    applyDtr=data.get('applyDtr')==='on',
+    dtrHours={
+     AM_IN:String(data.get('dtrAmIn')||''),AM_OUT:String(data.get('dtrAmOut')||''),
+     PM_IN:String(data.get('dtrPmIn')||''),PM_OUT:String(data.get('dtrPmOut')||'')
+    };
   if(!(file instanceof File)||!file.size||file.size>4194304||
     !['application/pdf','image/jpeg','image/png'].includes(file.type)){
     feedback.textContent='Attach a PDF, JPG or PNG document up to 4 MB.';return;
   }
-  if(['CLASS_SUSPENSION','SCHEDULE_NOTICE'].includes(category)&&!effectiveDate){
-   feedback.textContent='Choose an effective date for a schedule or class suspension notice.';return;
+  if((endDate&&(!effectiveDate||endDate<effectiveDate))||
+     (['CLASS_SUSPENSION','SCHEDULE_NOTICE'].includes(category)&&(!effectiveDate||!endDate))){
+   feedback.textContent='Choose a valid start and inclusive end date for the temporary memorandum.';return;
+  }
+  if(applyDtr){
+   const validTime=s=>/^([01]\\d|2[0-3]):[0-5]\\d$/.test(s);
+   const min=s=>Number(s.slice(0,2))*60+Number(s.slice(3));
+   const diff=Math.round((Date.parse(endDate+'T12:00:00Z')-Date.parse(effectiveDate+'T12:00:00Z'))/86400000);
+   if(category!=='SCHEDULE_NOTICE'||audience!=='SCHOOL_STAFF'||!effectiveDate||!endDate||
+      diff<0||diff>30||!Object.values(dtrHours).every(validTime)||
+      !(min(dtrHours.AM_IN)<min(dtrHours.AM_OUT)&&
+        min(dtrHours.AM_OUT)<=min(dtrHours.PM_IN)&&
+        min(dtrHours.PM_IN)<min(dtrHours.PM_OUT))){
+    feedback.textContent='DTR adjustment requires a staff-only temporary schedule notice, 31 days maximum, and four chronological prescribed times.';return;
+   }
   }
   const notice=audience==='ALL_USERS'
    ?'all active school accounts including registered students and parents'
    :'school personnel accounts only';
   if(!window.confirm('Publish this memorandum to '+notice+
-    '? In-app notifications will be created. Uploading a memo does NOT automatically change timetable or attendance rules.'))return;
+    (effectiveDate?' from '+effectiveDate+(endDate?' through '+endDate:''):'')+
+    '? In-app notifications will be created. '+
+    (applyDtr?'The entered prescribed DTR hours will apply during this period; actual punches, leave, OB, and class suspension remain unchanged.':
+     'Announcement only: no DTR or timetable rules will change.')))return;
   button.disabled=true;feedback.textContent='Publishing memorandum and creating school notifications…';
   try{
    const response=await fetch('/api/school-memos',{method:'POST',credentials:'same-origin',cache:'no-store',
     headers:{'Content-Type':file.type,'x-filename':file.name,
       'x-memo-title':encodeURIComponent(String(data.get('title'))),'x-memo-summary':encodeURIComponent(String(data.get('summary')||'')),
-      'x-memo-category':category,'x-memo-audience':audience,'x-memo-effective-date':effectiveDate},body:file});
+      'x-memo-category':category,'x-memo-audience':audience,'x-memo-effective-date':effectiveDate,
+      'x-memo-end-date':endDate,'x-memo-apply-dtr':String(applyDtr),
+      ...(applyDtr?{'x-memo-dtr-hours':encodeURIComponent(JSON.stringify(dtrHours))}:{})},body:file});
    const result=await response.json().catch(()=>({}));
    if(!response.ok)throw Error(result.error||'Could not publish memorandum.');
    feedback.textContent='Published successfully. '+fmt(result.notifiedAccounts)+
     ' in-app inbox records created. Recipients must open and explicitly acknowledge the memo.';
-   form.reset();void loadMemoAdmin();void window.AttendigoSchoolMemos?.refresh?.();
+   form.reset();syncPrincipalMemoOptions();
+   void loadMemoAdmin();void window.AttendigoSchoolMemos?.refresh?.();
   }catch(e){feedback.textContent='Not published: '+errorText(e);}
   finally{button.disabled=false;}
  }
@@ -1026,6 +1072,12 @@
  async function init(){
   $('principalRefreshNotifications').addEventListener('click',()=>void loadNotifications());
   $('principalMemoForm').addEventListener('submit',e=>{e.preventDefault();void publishPrincipalMemo();});
+  for(const name of ['category','audience','effectiveDate','endDate']){
+   $('principalMemoForm').elements.namedItem(name).addEventListener('change',syncPrincipalMemoOptions);
+  }
+  $('principalMemoForm').elements.namedItem('effectiveDate').addEventListener('input',syncPrincipalMemoOptions);
+  $('principalMemoApplyDtr').addEventListener('change',syncPrincipalMemoOptions);
+  syncPrincipalMemoOptions();
   $('principalMemoRefresh').addEventListener('click',()=>void loadMemoAdmin());
   $('principalExportSummary').addEventListener('click',exportLeadershipSummary);
   $('principalExportStaff').addEventListener('click',downloadCsv);
