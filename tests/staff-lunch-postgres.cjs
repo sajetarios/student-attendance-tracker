@@ -38,6 +38,8 @@ async function main(){
   }
   const a=await makeSchool('LUNCH_A_'),b=await makeSchool('LUNCH_B_');
   const admin=await makeUser(a,'SCHOOL_ADMIN','lunch-admin-');
+  const head=await makeUser(a,'DEPARTMENT_HEAD','lunch-head-');
+  const outsiderHead=await makeUser(b,'DEPARTMENT_HEAD','lunch-outsider-head-');
   const teacher=await makeUser(a,'TEACHER','lunch-teacher-');
   const other=await makeUser(b,'TEACHER','lunch-other-');
   const keeper=await makeUser(a,'GATE_KEEPER','lunch-keeper-');
@@ -116,13 +118,57 @@ async function main(){
   const issued=await post('/api/staff-attendance/lunch/challenges',{slot:'AM_OUT'},admin.token);
   assert.equal(issued.status,201,'School admin can issue a time-limited lunch QR: '+JSON.stringify(issued.body));
   const qr={challengeId:issued.body.challengeId,token:issued.body.token};
-  // Location setup is an independent School Admin operation, not a teacher
-  // browser setting. The test uses synthetic coordinates only.
-  const setLocation=await fetch(base+'/api/staff-attendance/lunch/location',{
+  // Department Head submits their own physical location. The School Admin
+  // cannot silently bypass review, and no teacher can impersonate the Head.
+  const proposed={departmentId:a.dep,latitude:9,longitude:125,accuracyMeters:10,radiusMeters:120};
+  assert.equal((await post('/api/staff-attendance/lunch/location/propose',proposed,teacher.token)).status,403,
+    'Ordinary teachers cannot submit department locations');
+  assert.equal((await post('/api/staff-attendance/lunch/location/propose',proposed,outsiderHead.token)).status,403,
+    'A Head from another school cannot propose this department location');
+  assert.equal((await post('/api/staff-attendance/lunch/location/propose',proposed,admin.token)).status,403,
+    'School Admin cannot submit instead of an on-site Department Head');
+  const obsolete=await fetch(base+'/api/staff-attendance/lunch/location',{
    method:'PUT',headers:{'Content-Type':'application/json',Authorization:'Bearer '+admin.token},
-   body:JSON.stringify({departmentId:a.dep,latitude:9,longitude:125,accuracyMeters:10,radiusMeters:120})
+   body:JSON.stringify(proposed)
   });
-  assert.equal(setLocation.status,200,'School Admin can set the department scanning point');
+  assert.equal(obsolete.status,409,'Legacy direct Admin GPS write is disabled');
+  const submission=await post('/api/staff-attendance/lunch/location/propose',proposed,head.token);
+  assert.equal(submission.status,201,'Assigned Department Head may submit on-site location');
+  assert.equal(submission.body.status,'PENDING_APPROVAL');
+  const beforeApproval=await pool.query(`SELECT setting_value FROM school_settings
+    WHERE school_id=$1 AND setting_key=$2`,[a.school,'staff_lunch_geo_'+a.dep]);
+  assert.equal(beforeApproval.rowCount,0,'Unapproved submission cannot change active check-in location');
+  const readLocation=async(token,departmentId)=>{
+   const res=await fetch(base+'/api/staff-attendance/lunch/location'+
+      (departmentId?'?departmentId='+encodeURIComponent(departmentId):''),{
+     headers:{Authorization:'Bearer '+token}});
+   return {status:res.status,body:await res.json()};
+  };
+  const pending=await readLocation(admin.token,a.dep);
+  assert.equal(pending.status,200);
+  assert.equal(pending.body.configured,false);
+  assert.equal(pending.body.proposalStatus,'PENDING');
+  assert.equal(pending.body.candidate.latitude,9);
+  const headView=await readLocation(head.token,b.dep);
+  assert.equal(headView.status,200,'Department Head can only inspect their own assigned department');
+  assert.equal(headView.body.departmentId,a.dep);
+  assert.equal(headView.body.candidate,undefined,'Department Head does not receive Admin review coordinates');
+  assert.equal((await post('/api/staff-attendance/lunch/location/decision',
+    {departmentId:a.dep,decision:'APPROVE',note:'Location independently checked'},head.token)).status,403,
+    'Department Head cannot approve own point');
+  assert.equal((await post('/api/staff-attendance/lunch/location/decision',
+    {departmentId:a.dep,decision:'APPROVE',note:'Location independently checked'},outsiderHead.token)).status,403,
+    'Other school staff cannot approve point');
+  const approved=await post('/api/staff-attendance/lunch/location/decision',
+    {departmentId:a.dep,decision:'APPROVE',note:'Coordinates checked against known school building'},admin.token);
+  assert.equal(approved.status,200,'School Admin approves independently submitted point');
+  assert.equal(approved.body.status,'APPROVED');
+  const active=await readLocation(admin.token,a.dep);
+  assert.equal(active.body.configured,true);
+  assert.equal(active.body.proposalStatus,'APPROVED');
+  assert.equal((await post('/api/staff-attendance/lunch/location/decision',
+    {departmentId:a.dep,decision:'APPROVE',note:'Repeat approval not allowed'},admin.token)).status,409,
+    'Approved proposal cannot be approved again');
   const presence={latitude:9,longitude:125,accuracyMeters:12,capturedAt:Date.now()};
   const verifiedQr={...qr,location:presence};
   const crossSchool=await post('/api/staff-attendance/lunch/redeem',qr,other.token);
