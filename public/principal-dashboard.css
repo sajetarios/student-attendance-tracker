@@ -169,3 +169,52 @@ tr:hover td{background:#f7fbff}
  .pill{background:#294456;color:#c7e5ed}
  .dept-card:hover{background:#284459}
 }
+
+/* Daily Leadership Briefing: interactive evidence cards, no made-up scores. */
+.principal-briefing{margin:18px 0 20px;overflow:hidden}
+.briefing-summary{font-size:13px;line-height:1.7;margin:0 0 15px;color:var(--text,#31475b);max-width:900px}
+.briefing-actions{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}
+.briefing-item{appearance:none;display:flex;flex-direction:column;gap:9px;text-align:left;
+ border:1px solid var(--border,#d8e2ed);border-radius:13px;background:#f9fbfe;
+ color:var(--text,#233c55);min-height:188px;padding:15px;cursor:pointer;
+ transition:border-color .17s,transform .17s,box-shadow .17s;min-width:0}
+.briefing-item:hover,.briefing-item:focus-visible{border-color:#4c96b1;
+ background:#f0f9fc;box-shadow:0 9px 22px #123b5314;transform:translateY(-2px)}
+.briefing-item:focus-visible{outline:2px solid #4488cb;outline-offset:2px}
+.briefing-item-head{display:flex;align-items:center;gap:8px;min-width:0}
+.briefing-item-head strong{font-size:12px;line-height:1.3;overflow-wrap:anywhere}
+.briefing-item-icon{display:grid;place-items:center;flex:0 0 27px;height:27px;border-radius:8px;
+ background:#e6eff5;color:#276584;font-size:16px}
+.briefing-item-value{font-size:clamp(19px,2vw,28px);font-weight:800;letter-spacing:-.03em;line-height:1.25}
+.briefing-item-description{font-size:11px;color:var(--muted,#576d82);line-height:1.5;flex:1}
+.briefing-item-link{font-size:11px;font-weight:750;color:#246f93}
+.briefing-attention{border-top:3px solid #df9b4b}
+.briefing-stable{border-top:3px solid #3caa91}
+.briefing-neutral{border-top:3px solid #5596c9}
+@media(max-width:1100px){.briefing-actions{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:560px){.principal-briefing{margin:13px 0}
+ .briefing-actions{gap:8px}.briefing-item{padding:12px;min-height:190px;gap:8px}
+ .briefing-item-value{font-size:20px}.briefing-item-head{align-items:flex-start;gap:6px}
+ .briefing-item-head strong{font-size:11px}}
+/* Presentation mode enlarges live evidence without requesting fullscreen or
+changing navigation, permissions, calculations, or the underlying data. */
+.principal-presentation .shell{max-width:1700px}
+.principal-presentation main{max-width:1600px}
+.principal-presentation .hero h1{font-size:clamp(30px,3.7vw,54px)}
+.principal-presentation .briefing-item{min-height:210px;padding:20px}
+.principal-presentation .briefing-item-value{font-size:clamp(26px,2.7vw,38px)}
+.principal-presentation .briefing-item-description{font-size:13px}
+.principal-presentation .metric-card strong{font-size:clamp(32px,3vw,48px)}
+.principal-presentation .feedback{font-size:14px}
+@media(max-width:720px){.principal-presentation .briefing-item{min-height:190px;padding:13px}
+ .principal-presentation .briefing-item-value{font-size:24px}}
+@media(prefers-reduced-motion:reduce){.briefing-item{transition:none}
+ .briefing-item:hover{transform:none}}
+@media(prefers-color-scheme:dark){
+ .briefing-item{background:#203447;border-color:#415668;color:#eaf2f9}
+ .briefing-item:hover,.briefing-item:focus-visible{background:#28475a}
+ .briefing-summary{color:#c4d5e4}
+ .briefing-item-icon{background:#2f5269;color:#c2ebf4}
+ .briefing-item-description{color:#b9cadb}
+ .briefing-item-link{color:#87d0ee}
+}
