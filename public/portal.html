@@ -644,6 +644,7 @@ body.dark-mode .content-wrap > .school-heading.is-compact,body[data-theme="dark"
 <link rel="stylesheet" href="/gate-offline-review.css?v=1">
 <link rel="stylesheet" href="/school-memo-banner.css?v=3">
   <link rel="stylesheet" href="/class-attendance-mobile.css?v=1">
+  <link rel="stylesheet" href="/recent-class-attendance.css?v=1">
 </head>
 <body class="portal-page">
   <div class="portal-layout">
@@ -1003,7 +1004,7 @@ body.dark-mode .content-wrap > .school-heading.is-compact,body[data-theme="dark"
             <div class="dashboard-columns">
               <section class="surface-card recent-card" id="recentActivityCard">
                 <div class="card-heading"><div><h3>Recent attendance activity</h3><p>Latest records visible to your account</p></div><span class="mini-tag">Live data</span></div>
-                <div class="table-scroll"><table><thead><tr><th>Student</th><th>Attendance</th><th>Time</th><th>Status</th></tr></thead><tbody id="recentRows"><tr><td colspan="4" class="empty-cell">Loading attendance activity…</td></tr></tbody></table></div>
+                <div class="table-scroll" role="region" aria-label="Latest verified manual and QR class attendance" tabindex="0"><table><thead><tr><th>Learner</th><th>Class</th><th>Date</th><th>Status</th><th>Source</th><th>Recorded time</th></tr></thead><tbody id="recentRows" aria-live="polite"><tr class="recent-empty-row"><td colspan="6" class="empty-cell">Loading synced class attendance…</td></tr></tbody></table></div>
               </section>
               <section class="surface-card quick-card" id="quickActionsCard">
                 <div class="card-heading"><div><h3>Quick actions</h3><p>Common school tasks</p></div></div>
@@ -2491,7 +2492,7 @@ body.dark-mode .content-wrap > .school-heading.is-compact,body[data-theme="dark"
   <script src="/student-name-format.js?v=2" defer></script>
   <script src="/teacher-scanner-schedule.js?v=1" defer></script>
   <script src="/gate-offline-review.js?v=1" defer></script>
-  <script src="/portal.js?v=236" defer></script>
+  <script src="/portal.js?v=237" defer></script>
   <script src="/schedule-list-filters.js?v=1" defer></script>
   <script src="/staff-lunch-ui.js?v=7" defer></script>
   <script src="/staff-precise-location.js?v=1" defer></script>
