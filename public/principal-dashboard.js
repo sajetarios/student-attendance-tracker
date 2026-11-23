@@ -1032,7 +1032,7 @@
    feedback.textContent='Choose a valid start and inclusive end date for the temporary memorandum.';return;
   }
   if(applyDtr){
-   const validTime=s=>/^([01]\\d|2[0-3]):[0-5]\\d$/.test(s);
+   const validTime=s=>/^([01]\d|2[0-3]):[0-5]\d$/.test(s);
    const min=s=>Number(s.slice(0,2))*60+Number(s.slice(3));
    const diff=Math.round((Date.parse(endDate+'T12:00:00Z')-Date.parse(effectiveDate+'T12:00:00Z'))/86400000);
    if(category!=='SCHEDULE_NOTICE'||audience!=='SCHOOL_STAFF'||!effectiveDate||!endDate||
