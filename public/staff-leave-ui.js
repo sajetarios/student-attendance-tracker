@@ -250,6 +250,22 @@
     const value=k=>parts.find(p=>p.type===k)?.value;
     return value('year')+'-'+value('month')+'-'+value('day');
    };
+   const updateBirthdayHint=()=>{
+    const birthdayRelated=/\b(?:birthday|birth[\s-]?day|b[\s-]?day)\b/i.test(reasonControl.value);
+    birthdayTip.hidden=!birthdayRelated;
+    birthdayAction.hidden=true;
+    if(!birthdayRelated)return;
+    if(certifiedScheme==='TEACHING_VSC'){
+     birthdayMessage.textContent='Birthday-related Special Privilege Leave generally excludes employees under the teaching leave system. Contact HR to confirm a different permitted leave category; your birthday alone does not create an entitlement.';
+    }else if(certifiedScheme==='REGULAR_VL_SL'){
+     birthdayMessage.textContent=leaveTypeControl.value==='SPECIAL_PRIVILEGE'
+      ?'Birthday-related Special Privilege Leave has been selected. HR must verify eligibility and remaining annual SPL days (maximum three in a calendar year).'
+      :'Birthday-related occasions may qualify for Special Privilege Leave for eligible non-teaching personnel. HR must verify eligibility and remaining SPL days.';
+     birthdayAction.hidden=leaveTypeControl.value==='SPECIAL_PRIVILEGE';
+    }else{
+     birthdayMessage.textContent='Birthday-related Special Privilege Leave may apply to eligible non-teaching staff. Your HR leave scheme is not yet verified; ask HR to confirm before choosing this category.';
+    }
+   };
    const refreshCreditChoice=()=>{
     const leaveType=leaveTypeControl.value;
     const verifiedTeaching=certifiedScheme==='TEACHING_VSC';
@@ -257,7 +273,7 @@
     const lockedAccount=leaveType==='SICK'?
      (verifiedTeaching?'VSC':verifiedRegular?'SL':'NONE'):
      leaveType==='VSC'?'VSC':
-     ['MATERNITY','PATERNITY'].includes(leaveType)?'NONE':null;
+     ['MATERNITY','PATERNITY','SPECIAL_PRIVILEGE','WELLNESS'].includes(leaveType)?'NONE':null;
     // Do not infer certified teaching leave entitlement from the user's dashboard role.
     // A school role may also be assigned to non-teaching personnel.
     const allowed=lockedAccount?[lockedAccount]:
@@ -275,7 +291,9 @@
      allowed.includes(previous)?previous:
      verifiedTeaching?'VSC':verifiedRegular?(leaveType==='VACATION'?'VL':'NONE'):'NONE');
     accountControl.disabled=Boolean(lockedAccount)||allowed.length===1;
-    if(leaveType==='VSC'&&!verifiedTeaching){
+    if(leaveType==='SPECIAL_PRIVILEGE'||leaveType==='WELLNESS'){
+     creditInfo.textContent='This leave category is separate from VSC, VL and SL. No credit deduction from those accounts is proposed. HR must confirm the separate entitlement.';
+    }else if(leaveType==='VSC'&&!verifiedTeaching){
      creditInfo.textContent='Vacation Service Credits requested. HR must verify your teaching-personnel entitlement before approval. Submitting does not certify credits.';
     }else if(!verifiedTeaching&&!verifiedRegular){
      creditInfo.textContent='Your leave-credit scheme has not been certified by HR. Your application may be filed for review; no credit account will be assumed. HR must verify the entitlement before final approval.';
@@ -294,7 +312,31 @@
        'HR must verify the applicable leave scheme before final approval.')+
       ' An authorized officer checks medical evidence and dates; filing alone does not change the DTR. For advance-filed illness or illness over five consecutive days, supporting medical evidence or an appropriate affidavit is required under the existing approval checks.';
     }else sickInfo.hidden=true;
+    const nonCommutable=['SPECIAL_PRIVILEGE','WELLNESS'].includes(leaveType);
+    if(nonCommutable)commutationControl.value='NOT_REQUESTED';
+    commutationControl.disabled=nonCommutable;
+    commutationInfo.textContent=nonCommutable
+     ?(leaveType==='SPECIAL_PRIVILEGE'
+       ?'Special Privilege Leave is non-commutable. Not requested is automatically selected; no cash payment is generated.'
+       :'Wellness Leave is non-commutable under CSC MC No. 01, s. 2026. Not requested is automatically selected.')
+     :'Select Requested only if HR confirms that monetary commutation is permitted for this particular leave. This is not regular salary and does not initiate a payment.';
+    typeInfo.hidden=!['SPECIAL_PRIVILEGE','WELLNESS'].includes(leaveType);
+    typeInfo.textContent=leaveType==='SPECIAL_PRIVILEGE'
+     ?'Special Privilege Leave is generally for eligible non-teaching personnel, up to three days per year. Teachers under the teaching leave scheme are excluded. HR must confirm the remaining annual allowance before approval.'
+     :leaveType==='WELLNESS'
+       ?'2026 Wellness Leave is a separate, non-cumulative, non-commutable leave benefit. HR must verify eligibility, the annual entitlement and supporting requirements.'
+       :'';
+    // The server also independently enforces certified teaching-personnel restrictions.
+    leaveTypeControl.setCustomValidity(leaveType==='SPECIAL_PRIVILEGE'&&verifiedTeaching
+     ?'Special Privilege Leave generally excludes teachers under the teaching leave scheme. Ask HR to confirm the correct leave type.':'');
+    updateBirthdayHint();
    };
+   birthdayAction.addEventListener('click',()=>{
+    leaveTypeControl.value='SPECIAL_PRIVILEGE';
+    refreshCreditChoice();
+    leaveTypeControl.focus();
+   });
+   reasonControl.addEventListener('input',updateBirthdayHint);
    leaveTypeControl.addEventListener('change',refreshCreditChoice);
    function updateDates(){
     end.min=start.value;
