@@ -1,4 +1,5 @@
-.sf1-review-cards[hidden],#studentImportTableWrap[hidden]{display:none!important}
+.sf1-review-cards[hidden],#studentImportTableWrap[hidden],.sf1-detected-grade[hidden]{display:none!important}
+.sf1-detected-grade{padding:12px 14px;margin:10px 0;border:1px solid #a6dcc2;border-left:4px solid #16875b;border-radius:10px;background:var(--surface-muted,#eaf8f1);color:var(--text-color,#173e34);font-size:13px;line-height:1.5;font-weight:600;overflow-wrap:anywhere}
 .sf1-review-cards{max-height:min(53vh,570px);overflow:auto;overscroll-behavior:contain;padding:3px 5px 12px;display:grid;gap:9px}
 .sf1-review-help{font-size:13px;color:#536580;margin:4px 0 10px;line-height:1.5}
 .sf1-review-item{border:1px solid #dbe3ef;border-radius:12px;background:#fff;overflow:hidden}
