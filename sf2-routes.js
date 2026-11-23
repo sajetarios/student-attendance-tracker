@@ -249,7 +249,19 @@ function registerSf2Routes(app, pool, { authenticateSchoolClient, requireSchoolU
       );
     }
 
-    const dates = datesFor(month);
+    // The existing school calendar determines which dates actually held classes.
+    // Full-day learner suspensions are not reportable class days, even if a
+    // learner was already scanned before the emergency announcement.
+    const calendar=await pool.query(`SELECT calendar_date::text AS date,exception_type AS type,
+      to_char(suspension_time,'HH24:MI') AS "suspensionTime"
+      FROM school_calendar_exceptions WHERE school_id=$1
+       AND calendar_date>=$2::date AND calendar_date<($2::date+INTERVAL '1 month')`,
+       [req.auth.schoolId,dateFrom]);
+    const noClassDates=new Set(calendar.rows.filter(row=>row.type==='CLOSED'||
+      (row.type==='CLASS_SUSPENSION'&&!row.suspensionTime)).map(row=>row.date));
+    const partialSuspensionDates=new Set(calendar.rows.filter(row=>
+      row.type==='CLASS_SUSPENSION'&&row.suspensionTime).map(row=>row.date));
+    const dates = datesFor(month).filter(date=>!noClassDates.has(date));
     const presentSet = new Set(present.rows.map(row => `${row.id}|${String(row.date).slice(0, 10)}`));
     const manualPresentSet = new Set(manual.rows.filter(row => ['PRESENT','LATE'].includes(row.status))
       .map(row => `${row.id}|${String(row.date).slice(0, 10)}`));
@@ -285,12 +297,16 @@ function registerSf2Routes(app, pool, { authenticateSchoolClient, requireSchoolU
         if (presentSet.has(key)) return 'PRESENT';
         if (access.mode === 'PERSONAL') return 'NO_RECORD';
         if (absentMap.has(`${student.id}|${date}`)) return 'ABSENT';
+        // A mid-day suspension needs adviser review of the earlier classes;
+        // a missing afternoon scan is not proof of a whole-day absence.
+        if (partialSuspensionDates.has(date)) return 'PENDING';
         return 'PENDING';
       })
     }));
 
     return {
       dates,
+      calendarSuspensions:{fullDays:[...noClassDates],partialDays:[...partialSuspensionDates]},
       students: rows,
       summary: {
         manualPresentDays: new Set([...manualPresentSet]).size,
@@ -705,7 +721,7 @@ function registerSf2Routes(app, pool, { authenticateSchoolClient, requireSchoolU
         note: access.mode === 'PERSONAL'
           ? 'Personal subject-teacher copy: NR means this teacher has no accepted subject time-in record for that learner/date. NR is not an absence.'
           : 'Official daily SF2 view: accepted QR time-ins and teacher-confirmed manual Present/Late marks count as presence. Manual Absent/Excused marks do not independently establish whole-day absence. Conflicts require adviser review.',
-        calendarNote: 'The current report includes weekdays only. School holidays, suspensions, and special non-class days are not yet connected to a school calendar.'
+        calendarNote: 'School calendar closures and full-day learner suspensions are excluded from reportable weekdays. Mid-day suspensions retain morning attendance and require Class Adviser review.'
       });
     } catch (err) {
       console.error('SF2 preview', err);
@@ -742,6 +758,13 @@ function registerSf2Routes(app, pool, { authenticateSchoolClient, requireSchoolU
         [req.auth.schoolId, studentId, date]
       );
       if (hasPresent.rowCount) return res.status(409).json({ error: 'A verified QR or manual presence record exists on this date. Review the evidence before confirming a whole-day absence.' });
+      const calendar=await pool.query(`SELECT exception_type,suspension_time FROM school_calendar_exceptions
+        WHERE school_id=$1 AND calendar_date=$2::date`,[req.auth.schoolId,date]);
+      if(calendar.rows[0]?.exception_type==='CLOSED'||
+       (calendar.rows[0]?.exception_type==='CLASS_SUSPENSION'&&!calendar.rows[0].suspension_time))
+       return res.status(409).json({error:'This was a non-class date or a full-day learner suspension. A normal SF2 absence cannot be confirmed for this date.'});
+      if(calendar.rows[0]?.exception_type==='CLASS_SUSPENSION'&&String(note||'').trim().length<12)
+       return res.status(409).json({error:'A mid-day suspension requires a documented Class Adviser review of classes held before the cutoff (at least 12 characters).'});
       const savedNote = String(note || 'Class Adviser/Admin confirmed that all scheduled subject attendance was reviewed.').slice(0, 500);
       await pool.query(
         `INSERT INTO sf2_daily_overrides(school_id,student_id,school_date,status,absence_type,note,recorded_by_user_id)
