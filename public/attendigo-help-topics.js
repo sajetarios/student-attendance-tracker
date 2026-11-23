@@ -99,6 +99,39 @@
     "note": "Gatekeeper scans cannot approve leave/OB or alter official DTR reviews."
   },
   {
+    "id": "dtr-tardiness",
+    "title": "Understand missing DTR tardiness or undertime",
+    "roles": ["TEACHER", "DEPARTMENT_HEAD", "SCHOOL_ADMIN"],
+    "nav": "myGateAttendanceNav",
+    "keywords": ["tardiness", "tardy", "late in dtr", "late not flagged", "needs schedule",
+      "why no tardiness", "dtr not late", "dtr missing tardiness", "undertime needs schedule",
+      "dtr working hours", "why not marked late"],
+    "steps": [
+      "Open My Attendance → Gate Attendance & DTR and select the reporting month.",
+      "Check that the actual verified AM and PM punches appear. A recorded time alone cannot establish tardiness without the employee's approved work schedule.",
+      "If the DTR displays Needs schedule for tardiness or undertime, ask the School Admin to check the school default hours and any employee-specific Form 48 work schedule.",
+      "Once the authorized schedule is configured, review the DTR again. Do not invent or manually replace original verified punches."
+    ],
+    "note": "Official DTR interpretation depends on approved work hours, exceptions, and verified evidence; the guide cannot calculate an individual's actual status."
+  },
+  {
+    "id": "form48-working-hours",
+    "title": "Set the school's official Form 48 working hours",
+    "roles": ["SCHOOL_ADMIN"],
+    "nav": "form48ReportsNav",
+    "keywords": ["school working hours", "approved working hours", "school default hours",
+      "select an approved schedule", "am in am out pm in pm out", "enter work hours",
+      "cannot input time", "time fields disabled", "schedule dropdown not working",
+      "configure dtr schedule", "form 48 work schedule"],
+    "steps": [
+      "Open Reports → Form 48 DTR reports, then Daily attendance checks & school hours → School working hours.",
+      "Choose the officially authorized regular-day schedule or enter AM In, AM Out, PM In and PM Out. Do not guess the official hours.",
+      "Where the school has custom workdays, Saturday duty or staff-specific hours, review the detailed Form 48 work-schedule settings instead of changing those selections without authorization.",
+      "Save approved changes and review the DTR again. If controls remain unresponsive, report the setup problem to authorized support; never correct the missing schedule by inventing DTR punches."
+    ],
+    "note": "Only School Admin can change school defaults. Historical DTR summaries must be reviewed against the schedule applicable on their dates."
+  },
+  {
     "id": "dtr",
     "title": "Review Daily Time Record (Form 48)",
     "roles": [
@@ -692,5 +725,5 @@
     };
     return {topic, title: topic.title, steps: topic.steps.slice(), note: topic.note};
   }
-  return Object.freeze({ topics, forRole, match, answer, normalize });
+  return Object.freeze({ topics, forRole, match, answer, restrictedAnswer, normalize });
 });
