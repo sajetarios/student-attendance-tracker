@@ -210,6 +210,7 @@ registerStaffObRoutes(app, pool, { authenticateSchoolClient, requireSchoolRoles 
 registerStaffLeaveRoutes(app, pool, { authenticateSchoolClient, requireSchoolRoles });
 registerStaffLeaveInboxRoutes(app, pool, { authenticateSchoolClient, requireSchoolRoles });
 registerPrincipalRoutes(app, pool, { authenticateSchoolClient, requireSchoolRoles });
+require('./principal-workspace-routes').registerPrincipalWorkspaceRoutes(app,pool,{authenticateSchoolClient,requireSchoolRoles});
 registerDepartmentWorkspaceRoutes(app, pool, { authenticateSchoolClient, requireSchoolRoles });
 registerStaffGateDtrRoutes(app, pool, { authenticateSchoolClient, requireSchoolRoles });
 registerGateDtrReviewRoutes(app, pool, { authenticateSchoolClient, requireSchoolRoles });
