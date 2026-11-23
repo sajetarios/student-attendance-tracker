@@ -10,6 +10,11 @@ test('all attendance-tracker roles are defined', () => {
   }
 });
 
+test('Principal sees school leadership insights but cannot mutate accounts or DTR',()=>{
+ assert.equal(hasPermission('PRINCIPAL','principal.insights.view'),true);
+ for(const p of ['students.manage','teachers.manage','attendance.corrections.manage','devices.manage','schedules.manage'])assert.equal(hasPermission('PRINCIPAL',p),false);
+});
+
 test('School Administrator can manage official SF2 collection', () => {
   assert.equal(hasPermission('SCHOOL_ADMIN', 'sf2.official.generate'), true);
   assert.equal(hasPermission('SCHOOL_ADMIN', 'sf2.submissions.collect'), true);
