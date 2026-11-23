@@ -36,5 +36,5 @@ test('cache versions match, preventing iPad from retaining overlapping old contr
  assert.match(html,/\/staff-leave-ui\.css\?v=4/);
  assert.match(sw,/"\/staff-leave-ui\.js\?v=7"/);
  assert.match(sw,/"\/staff-leave-ui\.css\?v=4"/);
- assert.match(sw,/const CACHE = "attendigo-v\\d+-[^"]+";/);
+ assert.match(sw,/const CACHE = "attendigo-v\d+-[^"]+";/);
 });
