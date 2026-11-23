@@ -16,6 +16,12 @@ html.attendigo-teacher-v2 body.portal-page #quickActionsCard {
   border-radius: 17px;
   box-sizing: border-box;
 }
+html.attendigo-teacher-v2 body.portal-page #quickActionsCard .teacher-shortcut-items {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 8px;
+  min-width: 0;
+}
 html.attendigo-teacher-v2 body.portal-page #quickActionsCard .card-heading {
   display: flex;
   align-items: flex-start;
@@ -66,9 +72,7 @@ html.attendigo-teacher-v2 body.portal-page #quickActionsCard .quick-action:not([
 html.attendigo-teacher-v2 body.portal-page #quickActionsCard .quick-action[hidden] {
   display: none !important;
 }
-html.attendigo-teacher-v2 body.portal-page #quickActionsCard .quick-action:not([hidden]):last-of-type {
-  margin-bottom: 0 !important;
-}
+
 html.attendigo-teacher-v2 body.portal-page #quickActionsCard .quick-action:not([hidden]):hover {
   background: var(--shortcut-soft) !important;
   border-color: var(--shortcut-accent) !important;
@@ -139,16 +143,9 @@ html.attendigo-teacher-v2 body.portal-page #quickActionsCard .scope-note {
 }
 /* On wide cards, use a real launcher grid instead of three tall stacked rows. */
 @container (min-width: 730px) {
-  html.attendigo-teacher-v2 body.portal-page #quickActionsCard {
-    display: grid !important;
+  html.attendigo-teacher-v2 body.portal-page #quickActionsCard .teacher-shortcut-items {
     grid-template-columns: repeat(3, minmax(0, 1fr));
-    column-gap: 10px;
-    row-gap: 0;
-    align-items: stretch;
-  }
-  html.attendigo-teacher-v2 body.portal-page #quickActionsCard .card-heading {
-    grid-column: 1 / -1;
-    margin-bottom: 14px !important;
+    gap: 10px;
   }
   html.attendigo-teacher-v2 body.portal-page #quickActionsCard .quick-action:not([hidden]) {
     display: flex !important;
