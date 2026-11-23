@@ -1,0 +1,25 @@
+.attendigo-memo-banner{position:relative;box-sizing:border-box;display:flex;align-items:center;gap:13px;flex-wrap:wrap;
+ margin:12px 0 17px;padding:13px 16px;border:1px solid #a7d8e0;border-radius:13px;
+ background:#eef9fa;color:#20455a;box-shadow:0 5px 15px #1f4a5709;font:13px/1.45 Inter,system-ui,sans-serif}
+.attendigo-memo-banner>*{box-sizing:border-box}
+.attendigo-memo-icon{width:34px;height:34px;min-width:34px;display:grid;place-items:center;border-radius:10px;
+ background:#d8f0f0;color:#087d8d;font-size:19px}
+.attendigo-memo-copy{display:flex;flex-direction:column;flex:1 1 180px;min-width:0;gap:2px}
+.attendigo-memo-copy strong{font-size:13px;font-weight:800;color:#244659}
+.attendigo-memo-copy small{font-size:11px;font-weight:500;color:#526e7c;overflow-wrap:anywhere}
+.attendigo-memo-link{flex:0 0 auto;display:inline-flex;align-items:center;justify-content:center;min-height:40px;
+ border:1px solid #0c7d9b;background:#087f9d;color:#fff!important;text-decoration:none!important;border-radius:9px;
+ padding:8px 13px;font-weight:800;font-size:12px}
+.attendigo-memo-link:hover{background:#066c85}
+.attendigo-memo-link:focus-visible{outline:3px solid #16b8d3;outline-offset:2px}
+.attendigo-memo-banner.attendigo-memo-quiet{border-color:#dce7ef;background:#f8fbfd}
+.attendigo-memo-banner.attendigo-memo-quiet .attendigo-memo-icon{background:#eaf1f6;color:#536f83}
+@media(max-width:550px){.attendigo-memo-banner{gap:10px;padding:12px}.attendigo-memo-link{flex:1 1 100%}}
+@media(prefers-color-scheme:dark){.attendigo-memo-banner{background:#203c4b;color:#e6f5f8;border-color:#396c79}
+.attendigo-memo-copy strong{color:#e3f2f6}.attendigo-memo-copy small{color:#b2cbd3}
+.attendigo-memo-banner.attendigo-memo-quiet{background:#223345;border-color:#385268}
+.attendigo-memo-icon{background:#24525c;color:#b8f1ee}}
+:root[data-theme="dark"] .attendigo-memo-banner{background:#203c4b;border-color:#396c79}
+:root[data-theme="dark"] .attendigo-memo-copy strong{color:#e3f2f6}
+:root[data-theme="dark"] .attendigo-memo-copy small{color:#b2cbd3}
+:root[data-theme="dark"] .attendigo-memo-banner.attendigo-memo-quiet{background:#223345;border-color:#385268}
