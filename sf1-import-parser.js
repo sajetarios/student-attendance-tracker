@@ -144,7 +144,7 @@ function parseSf1Matrix(rows) {
     const serial=Number(rawBirth),ms=Math.round((serial-25569)*86400000),date=new Date(ms);
     if(serial>=1&&serial<100000&&Number.isFinite(ms)&&date.getUTCFullYear()>=1900&&date<=new Date())birthDate=date.toISOString().slice(0,10);
    }
-   const parsed=rawBirth.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/)||rawBirth.match(/^(\d{4})-(\d{1,2})-(\d{1,2})$/);
+   const parsed=rawBirth.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/)||rawBirth.match(/^(\d{1,2})-(\d{1,2})-(\d{4})$/)||rawBirth.match(/^(\d{4})-(\d{1,2})-(\d{1,2})$/);
    if(parsed){
     const y=parsed[1].length===4?+parsed[1]:+parsed[3],m=parsed[1].length===4?+parsed[2]:+parsed[1],d=parsed[1].length===4?+parsed[3]:+parsed[2];
     const date=new Date(Date.UTC(y,m-1,d));

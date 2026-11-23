@@ -15,9 +15,9 @@ function createLisBiff8Fixture() {
     ['School Name', '', '', '', '', 'Sample High School', '', '', '', '',
       '', '', '', '', '', '', 'School Year', '', '', '2026 - 2027',
       '', '', '', '', '', 'Grade Level', '', '', '', '', 'Grade 8 (Year II)'],
-    ['LRN', '', 'NAME (Last Name, First Name, Middle Name)', '', '', '', 'Sex (M/F)'],
+    ['LRN', '', 'NAME (Last Name, First Name, Middle Name)', '', '', '', 'Sex (M/F)', 'BIRTH DATE (mm/dd/yyyy)'],
     [],
-    [129380180009, '', 'SANTOS,JOHN, REYES', '', '', '', 'M'],
+    [129380180009, '', 'SANTOS,JOHN, REYES', '', '', '', 'M', '05-28-2011'],
     [129453180016, '', 'CRUZ,MARIA, DIAZ', '', '', '', 'F'],
     ['', '', '<=== TOTAL MALE'],
     ['', '', '<=== TOTAL FEMALE']
@@ -31,6 +31,7 @@ test('official LIS-style BIFF8 .xls yields LRN, name, sex and grade, not private
   const data = createLisBiff8Fixture();
   assert.deepEqual([...data.subarray(0,8)],[0xd0,0xcf,0x11,0xe0,0xa1,0xb1,0x1a,0xe1]);
   const result = await parseSf1Base64(data.toString('base64'),'xls');
+  assert.equal(result.learners[0].birthDate,'2011-05-28');
   assert.equal(result.schoolYear,'2026-2027');
   assert.equal(result.gradeLevel,'Grade 8');
   assert.deepEqual(result.learners.map(({lrn,sex})=>({lrn,sex})),[
