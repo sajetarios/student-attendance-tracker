@@ -720,7 +720,15 @@
    showList('principalNotificationList',data.notifications,x=>[
     (x.readAt?'':'Unread · ')+(x.title||x.category||'Notification'),
     x.body||'No message content'],'No personal notifications at this time.');
-   label.textContent=fmt(data.unreadCount)+' unread personal notifications. Open linked requests using their authorized workflow.';
+   const memoAlerts=Array.isArray(data.notifications)?data.notifications.filter(x=>
+    x.requestType==='MEMORANDUM'&&/^[0-9a-f-]{36}$/i.test(String(x.requestId||''))):[];
+   if(memoAlerts.length){
+    const shortcut=make('button','quiet-button','Read school memoranda ('+memoAlerts.length+')');
+    shortcut.type='button';
+    shortcut.addEventListener('click',()=>window.AttendigoSchoolMemos?.open?.(memoAlerts[0].requestId));
+    host.append(shortcut);
+   }
+   label.textContent=fmt(data.unreadCount)+' unread notifications. School memoranda open inside this workspace.';
   }catch(err){host.textContent=errorText(err);label.textContent='Notifications unavailable.';}
  }
  function exportLeadershipSummary(){
@@ -959,8 +967,9 @@
       make('span',null,String(memo.category||'GENERAL').replaceAll('_',' ')+' · '+
        (memo.audience==='ALL_USERS'?'All school users':'School personnel only')));
     const actions=make('div','principal-memo-links');
-    const link=make('a','text-link','Open document & read status');
-    link.href='/school-memos.html?id='+encodeURIComponent(memo.memoId);
+    const link=make('button','text-link','View memorandum in dashboard');
+    link.type='button';
+    link.addEventListener('click',()=>window.AttendigoSchoolMemos?.open?.(memo.memoId));
     actions.append(link);
     const count=make('button','quiet-button','Check acknowledgments');
     count.type='button';count.addEventListener('click',async()=>{
@@ -1009,7 +1018,7 @@
    if(!response.ok)throw Error(result.error||'Could not publish memorandum.');
    feedback.textContent='Published successfully. '+fmt(result.notifiedAccounts)+
     ' in-app inbox records created. Recipients must open and explicitly acknowledge the memo.';
-   form.reset();void loadMemoAdmin();
+   form.reset();void loadMemoAdmin();void window.AttendigoSchoolMemos?.refresh?.();
   }catch(e){feedback.textContent='Not published: '+errorText(e);}
   finally{button.disabled=false;}
  }
