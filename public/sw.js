@@ -1,4 +1,4 @@
-const CACHE = "attendigo-v321-edit-school-hours";
+const CACHE = "attendigo-v322-principal-leadership";
 
 const SHELL = [
   "/typography.css?v=1",
@@ -140,6 +140,8 @@ const SHELL = [
   "/password-visibility.js",
   "/portal-login.js?v=15",
   "/login-routing.js",
+  "/principal-dashboard.js?v=1",
+  "/principal-dashboard.css?v=1",
   "/responsive.css?v=0.8.3",
   "/comfort-ui.css?v=0.8.8",
   "/styles.css",

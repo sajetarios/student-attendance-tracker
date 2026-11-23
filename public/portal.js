@@ -4721,7 +4721,7 @@ let teacherActionMenuListenersInstalled = false;
     }
     if (role === 'SCHOOL_ADMIN') {
       const staffData = await api('/api/school-users');
-      schoolUsers = (staffData.users || []).filter(account => ['DEPARTMENT_HEAD', 'GATE_KEEPER'].includes(account.role));
+      schoolUsers = (staffData.users || []).filter(account => ['PRINCIPAL','DEPARTMENT_HEAD', 'GATE_KEEPER'].includes(account.role));
       renderStaffUsers();
     }
     if (role === 'DEPARTMENT_HEAD') {
@@ -5386,7 +5386,7 @@ let teacherActionMenuListenersInstalled = false;
       showPortalStartupFailure('Your account could not be verified. Please sign in again or retry.', error);
       return;
     }
-    if (!me?.user || !['SCHOOL_ADMIN','DEPARTMENT_HEAD','TEACHER','GATE_KEEPER','SUPER_ADMIN','PARENT','STUDENT'].includes(me.user.role)) {
+    if (!me?.user || !['SCHOOL_ADMIN','PRINCIPAL','DEPARTMENT_HEAD','TEACHER','GATE_KEEPER','SUPER_ADMIN','PARENT','STUDENT'].includes(me.user.role)) {
       showPortalStartupFailure('Your account role could not be verified. Please sign in again.');
       return;
     }
@@ -5394,6 +5394,7 @@ let teacherActionMenuListenersInstalled = false;
     // Reveal section creation as soon as the authenticated role is known; do not wait for dashboard API loading.
     if ($('createScheduleSection')) $('createScheduleSection').hidden = !['SCHOOL_ADMIN','DEPARTMENT_HEAD'].includes(user.role);
     if (user.mustChangePassword) { window.location.replace('/force-password-change.html'); return; }
+    if (user.role === 'PRINCIPAL') { window.location.replace('/principal.html'); return; }
     sessionStorage.setItem(userKey, JSON.stringify(user));
     resolveStaffIdentity(user);
     $('userDisplay').textContent = user.displayName || user.username;
@@ -8082,6 +8083,7 @@ let teacherActionMenuListenersInstalled = false;
       const needsDepartment = ['TEACHER', 'DEPARTMENT_HEAD'].includes(selectedRole);
       $('teacherDesignationFields').hidden = !isTeacherAccount || user?.role === 'SCHOOL_ADMIN';
       $('newTeacherDepartmentGroup').hidden = !needsDepartment;
+      if(selectedRole==='PRINCIPAL')$('newTeacherDepartment').value='';
       $('newTeacherPositionGroup').hidden = !isTeacherAccount;
       $('newTeacherDepartment').disabled = user?.role === 'DEPARTMENT_HEAD';
       $('newTeacherDepartment').required = needsDepartment && user?.role !== 'DEPARTMENT_HEAD';
@@ -8103,7 +8105,7 @@ let teacherActionMenuListenersInstalled = false;
       $('newAccountRole').value = 'DEPARTMENT_HEAD';
       $('newAccountRole').dispatchEvent(new Event('change', { bubbles:true }));
       $('teacherFormFeedback').className = 'inline-feedback';
-      $('teacherFormFeedback').textContent = 'Creating a Department Head account. You can select Gate Keeper in the Account role field instead.';
+      $('teacherFormFeedback').textContent = 'You can also create a Principal account for the dedicated school leadership dashboard using Account role.';
       $('teacherForm').scrollIntoView({ behavior:'smooth', block:'center' });
       $('newTeacherName').focus({ preventScroll:true });
     });
@@ -8176,7 +8178,7 @@ let teacherActionMenuListenersInstalled = false;
                 ].filter(Boolean))
           : [];
         if (role === 'TEACHER' && !teacherDesignations.length) throw new Error('Select Subject Teacher, Class Adviser, or both.');
-        const departmentId = $('newTeacherDepartment').value || null;
+        const departmentId = role==='PRINCIPAL'?null:($('newTeacherDepartment').value || null);
         if (['TEACHER', 'DEPARTMENT_HEAD'].includes(role) && !departmentId) throw new Error('Select a department for this account.');
         await api('/api/school-users', {
           method: 'POST',
