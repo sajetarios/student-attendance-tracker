@@ -159,7 +159,18 @@
   if(memo.summary)record.append(make('p','attendigo-memo-summary',memo.summary));
   const details=make('div','attendigo-memo-record-meta');
   details.append(make('span',null,memo.audience==='ALL_USERS'?'All school users':'School personnel'));
-  if(memo.effectiveDate)details.append(make('span',null,'Effective '+memo.effectiveDate));
+  if(memo.effectiveDate){
+   const today=new Intl.DateTimeFormat('en-CA',{timeZone:'Asia/Manila',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date());
+   const period=memo.endDate?memo.effectiveDate+' to '+memo.endDate:memo.effectiveDate+' (no end date recorded)';
+   const stateText=today<memo.effectiveDate?'Upcoming':memo.endDate&&today>memo.endDate?'Ended':'Active';
+   details.append(make('span',null,'Effective '+period+' · '+stateText));
+  }
+  if(memo.dtrHours){
+   const h=memo.dtrHours;
+   details.append(make('span',null,'Temporary personnel DTR hours: '+
+    h.AM_IN+'–'+h.AM_OUT+' / '+h.PM_IN+'–'+h.PM_OUT+
+    ' (prescribed hours only; recorded punches unchanged)'));
+  }else details.append(make('span',null,'Announcement only · No DTR changes'));
   details.append(make('span',null,'Attachment: '+(memo.filename||'Document')));
   record.append(details);
   const actions=make('div','attendigo-memo-actions');
