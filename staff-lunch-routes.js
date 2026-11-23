@@ -197,51 +197,137 @@ function registerStaffLunchRoutes(app,pool,{authenticateSchoolClient,requireScho
 
  // Department points are deliberately configured by the School Admin on-site.
  // Use existing school_settings (JSONB) and append-only staff audit records.
+ // Department Heads collect site coordinates in person. An independent School
+ // Admin approves them. No client role can directly write approved coordinates.
+ // Existing approved locations stay active until an approved replacement.
+ const proposalKey=departmentId=>'staff_lunch_geo_proposal_'+departmentId;
  app.get('/api/staff-attendance/lunch/location',authenticateSchoolClient,
-  requireSchoolRoles('SCHOOL_ADMIN'),async(req,res)=>{
+  requireSchoolRoles('SCHOOL_ADMIN','DEPARTMENT_HEAD'),async(req,res)=>{
   res.set('Cache-Control','private, no-store');
-  const departmentId=String(req.query?.departmentId||'');
-  if(!UUID.test(departmentId))return res.status(400).json({error:'Select a department.'});
-  try {
-   const found=await pool.query(`SELECT d.department_name AS "departmentName",
-    s.setting_value AS "point",s.updated_at AS "updatedAt"
-    FROM school_departments d LEFT JOIN school_settings s
-      ON s.school_id=d.school_id AND s.setting_key=$3
-    WHERE d.school_id=$1 AND d.department_id=$2 AND d.active=TRUE`,
-    [req.auth.schoolId,departmentId,locationKey(departmentId)]);
-   if(!found.rowCount)return res.status(404).json({error:'Department not found.'});
-   const row=found.rows[0];
+  const admin=req.auth.role==='SCHOOL_ADMIN';
+  const departmentId=admin?String(req.query?.departmentId||''):String(req.auth.departmentId||'');
+  if(!UUID.test(departmentId))return res.status(400).json({error:'A valid assigned department is required.'});
+  try{
+   const result=await pool.query(`SELECT d.department_name AS "departmentName",
+     approved.setting_value AS approved,approved.updated_at AS "approvedAt",
+     proposed.setting_value AS proposal
+     FROM school_departments d
+     LEFT JOIN school_settings approved ON approved.school_id=d.school_id AND approved.setting_key=$3
+     LEFT JOIN school_settings proposed ON proposed.school_id=d.school_id AND proposed.setting_key=$4
+     WHERE d.school_id=$1 AND d.department_id=$2 AND d.active=TRUE`,
+    [req.auth.schoolId,departmentId,locationKey(departmentId),proposalKey(departmentId)]);
+   if(!result.rowCount)return res.status(404).json({error:'Department not found or inactive.'});
+   const row=result.rows[0],proposal=row.proposal;
    return res.json({departmentId,departmentName:row.departmentName,
-    configured:!!row.point,radiusMeters:row.point?.radiusMeters||null,updatedAt:row.updatedAt||null});
-  }catch(error){console.error('Lunch location read failed:',error.message);return res.status(503).json({error:'Department location unavailable.'});}
+    configured:!!row.approved,radiusMeters:row.approved?.radiusMeters||null,
+    approvedAt:row.approvedAt||null,
+    proposalStatus:proposal?.status||'NONE',
+    proposedAt:proposal?.proposedAt||null,
+    proposedByOwnAccount:proposal?.proposedBy===req.auth.userId,
+    ...(admin&&proposal?.status==='PENDING'?{candidate:{
+      latitude:proposal.point?.latitude,longitude:proposal.point?.longitude,
+      radiusMeters:proposal.point?.radiusMeters,accuracyMeters:proposal.accuracyMeters
+    }}:{})});
+  }catch(error){
+   console.error('Department lunch location read failed:',error.message);
+   return res.status(503).json({error:'Department location unavailable.'});
+  }
  });
- app.put('/api/staff-attendance/lunch/location',authenticateSchoolClient,
-  requireSchoolRoles('SCHOOL_ADMIN'),async(req,res)=>{
+ app.post('/api/staff-attendance/lunch/location/propose',authenticateSchoolClient,
+  requireSchoolRoles('DEPARTMENT_HEAD'),async(req,res)=>{
   res.set('Cache-Control','private, no-store');
-  const departmentId=String(req.body?.departmentId||'');
-  if(!UUID.test(departmentId))return res.status(400).json({error:'Select a department.'});
+  const departmentId=String(req.auth.departmentId||'');
+  if(!UUID.test(departmentId)||req.body?.departmentId!==departmentId)
+   return res.status(403).json({error:'You may submit only your assigned department location.'});
   let point;
   try{point=validateDepartmentPoint(req.body);}
   catch(error){return res.status(400).json({error:error.message});}
   const client=await pool.connect();
-  try {
+  try{
    await client.query('BEGIN');
    const dept=await client.query(`SELECT department_id FROM school_departments
-    WHERE school_id=$1 AND department_id=$2 AND active=TRUE FOR SHARE`,[req.auth.schoolId,departmentId]);
-   if(!dept.rowCount){await client.query('ROLLBACK');return res.status(404).json({error:'Department not found.'});}
+    WHERE school_id=$1 AND department_id=$2 AND active=TRUE AND department_code<>'UNASSIGNED'
+    FOR SHARE`,[req.auth.schoolId,departmentId]);
+   if(!dept.rowCount){await client.query('ROLLBACK');
+    return res.status(403).json({error:'A valid active department assignment is required.'});}
+   const proposal={status:'PENDING',proposedBy:req.auth.userId,
+    proposedAt:new Date().toISOString(),point,accuracyMeters:req.body.accuracyMeters};
    await client.query(`INSERT INTO school_settings(school_id,setting_key,setting_value,updated_at)
-     VALUES($1,$2,$3::jsonb,NOW()) ON CONFLICT(school_id,setting_key)
-     DO UPDATE SET setting_value=EXCLUDED.setting_value,updated_at=NOW()`,
-     [req.auth.schoolId,locationKey(departmentId),JSON.stringify(point)]);
+    VALUES($1,$2,$3::jsonb,NOW()) ON CONFLICT(school_id,setting_key)
+    DO UPDATE SET setting_value=EXCLUDED.setting_value,updated_at=NOW()`,
+    [req.auth.schoolId,proposalKey(departmentId),JSON.stringify(proposal)]);
    await client.query(`INSERT INTO staff_attendance_audit
     (school_id,actor_user_id,action,target_type,target_id,details)
-    VALUES($1,$2,'LUNCH_DEPARTMENT_LOCATION_SET','SCHOOL_DEPARTMENT',$3,$4::jsonb)`,
-    [req.auth.schoolId,req.auth.userId,departmentId,JSON.stringify({radiusMeters:point.radiusMeters})]);
+    VALUES($1,$2,'LUNCH_LOCATION_PROPOSED','SCHOOL_DEPARTMENT',$3,$4::jsonb)`,
+    [req.auth.schoolId,req.auth.userId,departmentId,
+     JSON.stringify({accuracyMeters:proposal.accuracyMeters,radiusMeters:point.radiusMeters,
+       proposedAt:proposal.proposedAt})]);
    await client.query('COMMIT');
-   return res.json({configured:true,departmentId,radiusMeters:point.radiusMeters});
+   return res.status(201).json({status:'PENDING_APPROVAL',departmentId,
+    message:'Location submitted. The School Admin must approve it before it becomes active.'});
   }catch(error){await client.query('ROLLBACK').catch(()=>{});
-   console.error('Lunch location configuration failed:',error.message);
-   return res.status(503).json({error:'Unable to save department location.'});
+   console.error('Department location proposal failed:',error.message);
+   return res.status(503).json({error:'Unable to submit department location.'});
+  }finally{client.release();}
+ });
+ // The legacy direct write endpoint must not bypass independent approval.
+ app.put('/api/staff-attendance/lunch/location',authenticateSchoolClient,
+  requireSchoolRoles('SCHOOL_ADMIN'),(req,res)=>{
+   res.set('Cache-Control','private, no-store');
+   return res.status(409).json({error:'Direct location activation is disabled. Ask the Department Head to submit an on-site location for School Admin approval.'});
+ });
+ app.post('/api/staff-attendance/lunch/location/decision',authenticateSchoolClient,
+  requireSchoolRoles('SCHOOL_ADMIN'),async(req,res)=>{
+  res.set('Cache-Control','private, no-store');
+  const departmentId=String(req.body?.departmentId||''),
+    decision=String(req.body?.decision||''),note=String(req.body?.note||'').trim();
+  if(!UUID.test(departmentId)||!['APPROVE','REJECT'].includes(decision)||
+     note.length<10||note.length>500)
+   return res.status(400).json({error:'Choose a department, approval decision and reason (10–500 characters).'});
+  const client=await pool.connect();
+  try{
+   await client.query('BEGIN');
+   const found=await client.query(`SELECT setting_value AS proposal FROM school_settings
+    WHERE school_id=$1 AND setting_key=$2 FOR UPDATE`,
+    [req.auth.schoolId,proposalKey(departmentId)]);
+   const proposal=found.rows[0]?.proposal;
+   if(!proposal||proposal.status!=='PENDING'){
+    await client.query('ROLLBACK');
+    return res.status(409).json({error:'There is no pending location proposal for this department.'});
+   }
+   const dept=await client.query(`SELECT 1 FROM school_departments
+     WHERE school_id=$1 AND department_id=$2 AND active=TRUE`,
+     [req.auth.schoolId,departmentId]);
+   if(!dept.rowCount){await client.query('ROLLBACK');return res.status(404).json({error:'Department unavailable.'});}
+   if(proposal.proposedBy===req.auth.userId){
+    await client.query('ROLLBACK');return res.status(403).json({error:'The location proposer cannot approve their own submission.'});
+   }
+   if(decision==='APPROVE'){
+    try{validateDepartmentPoint({...proposal.point,accuracyMeters:proposal.accuracyMeters});}
+    catch(error){await client.query('ROLLBACK');return res.status(409).json({error:'Location proposal failed integrity checks.'});}
+    await client.query(`INSERT INTO school_settings(school_id,setting_key,setting_value,updated_at)
+     VALUES($1,$2,$3::jsonb,NOW()) ON CONFLICT(school_id,setting_key)
+     DO UPDATE SET setting_value=EXCLUDED.setting_value,updated_at=NOW()`,
+     [req.auth.schoolId,locationKey(departmentId),JSON.stringify(proposal.point)]);
+   }
+   const reviewed={...proposal,status:decision==='APPROVE'?'APPROVED':'REJECTED',
+     reviewedBy:req.auth.userId,reviewedAt:new Date().toISOString()};
+   await client.query(`UPDATE school_settings SET setting_value=$3::jsonb,updated_at=NOW()
+     WHERE school_id=$1 AND setting_key=$2`,
+     [req.auth.schoolId,proposalKey(departmentId),JSON.stringify(reviewed)]);
+   await client.query(`INSERT INTO staff_attendance_audit
+    (school_id,actor_user_id,action,target_type,target_id,details)
+    VALUES($1,$2,$3,'SCHOOL_DEPARTMENT',$4,$5::jsonb)`,
+    [req.auth.schoolId,req.auth.userId,
+     decision==='APPROVE'?'LUNCH_LOCATION_APPROVED':'LUNCH_LOCATION_REJECTED',
+     departmentId,JSON.stringify({reason:note,proposedBy:proposal.proposedBy,
+       proposedAt:proposal.proposedAt,radiusMeters:proposal.point.radiusMeters})]);
+   await client.query('COMMIT');
+   return res.json({departmentId,status:reviewed.status,
+    message:decision==='APPROVE'?'Approved department location is now active.':'Proposal rejected; existing approved location unchanged.'});
+  }catch(error){await client.query('ROLLBACK').catch(()=>{});
+   console.error('Department location decision failed:',error.message);
+   return res.status(503).json({error:'Unable to review department location.'});
   }finally{client.release();}
  });
  // A pending scan never becomes an official DTR entry without independent

@@ -118,94 +118,10 @@
             teacherSelect.add(new Option(t.displayName+' · '+(t.departmentName||'No department'),t.userId));
           });
         }
-        const setPoint=$('staffLunchSetPoint'),pointStatus=$('staffLunchPointStatus');
-        const locationDepartment=$('staffLunchLocationDepartment');
         const pendingList=$('staffLunchPendingList'),pendingRefresh=$('staffLunchPendingRefresh');
-        const pointMessage=text=>{if(pointStatus)pointStatus.textContent=text;};
-        async function showPoint(){
-          const departmentId=locationDepartment?.value||'';
-          if(!departmentId){
-            pointMessage('Choose the department from the dropdown above, then tap Set department location.');
-            return;
-          }
-          pointMessage('Checking the saved location…');
-          try{
-            const point=await request('/api/staff-attendance/lunch/location?'+
-              new URLSearchParams({departmentId}).toString());
-            // A slow response for the previously selected department must not
-            // overwrite the status of the current choice.
-            if(locationDepartment.value!==departmentId)return;
-            pointMessage(point.configured
-              ? 'Location saved for '+point.departmentName+' · '+point.radiusMeters+' m verification radius. Tap Set department location to update it.'
-              : 'No location saved yet for '+point.departmentName+'. Stand inside that department and tap Set department location.');
-          }catch(error){
-            if(locationDepartment.value===departmentId)pointMessage('Could not load location: '+error.message);
-          }
-        }
-        async function loadLocationDepartments(){
-          if(!locationDepartment)return;
-          try{
-            const data=await request('/api/departments');
-            const departments=(data.departments||[])
-              .filter(d=>d.active===true&&d.departmentId&&d.code!=='UNASSIGNED');
-            locationDepartment.replaceChildren(new Option('Choose a department',''));
-            for(const department of departments){
-              locationDepartment.add(new Option(department.name||'Department',department.departmentId));
-            }
-            if(departments.length===1){
-              locationDepartment.value=departments[0].departmentId;
-            }
-            if(!departments.length)pointMessage('No active departments found. Create a department in School Settings → Departments first.');
-            else await showPoint();
-          }catch(error){
-            locationDepartment.replaceChildren(new Option('Unable to load departments',''));
-            pointMessage('Department list unavailable: '+error.message+'. Refresh this page to try again.');
-          }
-        }
-        departmentSelect.addEventListener('change',()=>{updateTeacherOptions();refresh().catch(()=>{});});
-        if(locationDepartment)locationDepartment.addEventListener('change',()=>{void showPoint();});
-        if(setPoint)setPoint.addEventListener('click',async()=>{
-          const departmentId=locationDepartment?.value||'';
-          if(!departmentId){
-            pointMessage('Please choose a department above before setting its location.');
-            locationDepartment?.focus();
-            return;
-          }
-          if(!window.isSecureContext){
-            pointMessage('Location permission requires HTTPS. Open Attendigo through its secure school URL.');
-            return;
-          }
-          if(!navigator.geolocation){
-            pointMessage('Location services are unavailable here. Open Attendigo on a location-enabled phone while inside the department.');
-            return;
-          }
-          setPoint.disabled=true;
-          if(locationDepartment)locationDepartment.disabled=true;
-          pointMessage('Getting your current position. Allow location access when your browser asks.');
-          try{
-            const position=await new Promise((resolve,reject)=>navigator.geolocation.getCurrentPosition(resolve,reject,{
-              enableHighAccuracy:true,timeout:12000,maximumAge:0
-            }));
-            const accuracyMeters=position.coords.accuracy;
-            if(!Number.isFinite(accuracyMeters)||accuracyMeters>100)
-              throw Error('Your location is not precise enough. Move closer to a window, enable precise location, or retry outdoors nearby.');
-            await request('/api/staff-attendance/lunch/location',{
-              method:'PUT',body:JSON.stringify({departmentId,latitude:position.coords.latitude,
-                longitude:position.coords.longitude,accuracyMeters,radiusMeters:120})
-            });
-            pointMessage('Department location saved successfully. Staff can scan here without visiting the central kiosk.');
-          }catch(error){
-            const guidance=error?.code===1?'Location permission denied. Allow location access for Attendigo in your browser settings.':
-              error?.code===2?'Location is unavailable. Enable device location services and try again.':
-              error?.code===3?'Location request timed out. Try again where your phone has a clearer GPS signal.':
-              error?.message||'Unknown location error';
-            pointMessage('Location not saved: '+guidance);
-          }finally{
-            if(locationDepartment)locationDepartment.disabled=false;
-            setPoint.disabled=false;
-          }
+        departmentSelect.addEventListener('change',()=>{
+          updateTeacherOptions();refresh().catch(()=>{});
         });
-        await loadLocationDepartments();
         async function showPending(){
           if(!pendingList)return;
           pendingList.textContent='Loading scans that need checking…';

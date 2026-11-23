@@ -6,6 +6,7 @@ const read=file=>fs.readFileSync(file,'utf8');
 const routes=read('staff-lunch-routes.js');
 const portal=read('public/portal.html');
 const ui=read('public/staff-lunch-ui.js');
+const departmentLocationUi=read('public/staff-department-location.js');
 const page=read('public/staff-lunch-checkin.html');
 const scan=read('public/staff-lunch-checkin.js');
 const sw=read('public/sw.js');
@@ -44,8 +45,8 @@ test('admin and teacher interfaces remain isolated to existing role-specific por
  assert.match(ui,/performance\.now\(\)/);
  assert.doesNotMatch(ui,/Date\.now\(\)>expiry/);
  assert.match(ui,/!document\.hidden/);
- assert.match(portal,/staff-lunch-ui\.js\?v=6/);
- assert.match(portal,/staff-lunch\.css\?v=5/);
+ assert.match(portal,/staff-lunch-ui\.js\?v=7/);
+ assert.match(portal,/staff-lunch\.css\?v=6/);
 });
 test('My lunch QR is unhidden by the role-aware portal view switch',()=>{
  const portalJs=read('public/portal.js');
@@ -66,8 +67,8 @@ test('QR scan does not log in or record until authenticated staff confirms expli
  assert.match(server,/res\.set\('Referrer-Policy','no-referrer'\)/);
 });
 test('service worker preloads safe assets but excludes sensitive scan document from offline cache',()=>{
- assert.match(sw,/staff-lunch-ui\.js\?v=6/);
- assert.match(sw,/staff-lunch\.css\?v=5/);
+ assert.match(sw,/staff-lunch-ui\.js\?v=7/);
+ assert.match(sw,/staff-lunch\.css\?v=6/);
  assert.match(sw,/staff-lunch-checkin\.js\?v=4/);
  assert.match(sw,/staff-lunch-checkin\.html/);
  const shell=sw.split('const SHELL = [')[1].split('];')[0];
@@ -110,25 +111,32 @@ test('department check-in requires location evidence before official DTR approva
  assert.match(routes,/verification_status='PENDING_VERIFICATION'/);
  assert.match(routes,/staff_form48_approved_leaves/);
  assert.match(routes,/LUNCH_DTR_MANUAL_VERIFIED/);
- assert.match(ui,/staffLunchSetPoint/);
+ assert.match(departmentLocationUi,/staffLunchHeadSubmit/);
+ assert.match(departmentLocationUi,/staffLunchApprovePoint/);
  assert.match(ui,/staffLunchPendingList/);
  assert.match(scan,/getCurrentPosition/);
  assert.match(scan,/body.status==='VERIFIED'/);
  assert.match(portal,/staffLunchPointStatus/);
 });
 
-test('department location action has a nearby independent picker and does not rely on presenter filter',()=>{
- assert.match(portal,/<select id="staffLunchLocationDepartment"/);
- assert.match(portal,/<button type="button" class="outline-button" id="staffLunchSetPoint">/);
- assert.doesNotMatch(portal,/<button[^>]*id="staffLunchSetPoint"[^>]*disabled/);
- assert.match(ui,/locationDepartment=\$\('staffLunchLocationDepartment'\)/);
- assert.match(ui,/request\('\/api\/departments'\)/);
- assert.match(ui,/await loadLocationDepartments\(\)/);
- assert.match(ui,/const departmentId=locationDepartment\?\.value\|\|''/);
- assert.match(ui,/locationDepartment\?\.focus\(\)/);
- assert.match(ui,/locationDepartment\.addEventListener\('change'/);
- assert.match(ui,/pointMessage\('Location not saved: '\+guidance\)/);
+
+test('location capture belongs to Department Head; Admin approves independently',()=>{
+ for(const id of ['staffLunchHeadLocationCard','staffLunchHeadSubmit',
+     'staffLunchLocationDepartment','staffLunchApprovePoint','staffLunchRejectPoint'])
+  assert.ok(portal.includes('id="'+id+'"'),id+' visible in portal');
+ assert.ok(!portal.includes('id="staffLunchSetPoint"'),'obsolete admin GPS button removed');
+ assert.ok(portal.includes('staff-department-location.js?v=1'));
+ assert.ok(sw.includes('staff-department-location.js?v=1'));
+ assert.ok(departmentLocationUi.includes("role==='DEPARTMENT_HEAD'"));
+ assert.ok(departmentLocationUi.includes("role==='SCHOOL_ADMIN'"));
+ assert.ok(departmentLocationUi.includes("'/api/staff-attendance/lunch/location/propose'"));
+ assert.ok(departmentLocationUi.includes("'/api/staff-attendance/lunch/location/decision'"));
+ assert.ok(!departmentLocationUi.includes("method:'PUT'"));
+ for(const action of ['LUNCH_LOCATION_PROPOSED','LUNCH_LOCATION_APPROVED',
+     'LUNCH_LOCATION_REJECTED','FOR UPDATE'])
+  assert.ok(routes.includes(action),action+' is enforced server-side');
+ assert.ok(routes.includes("requireSchoolRoles('DEPARTMENT_HEAD')"));
+ assert.ok(routes.includes("requireSchoolRoles('SCHOOL_ADMIN')"));
  const css=read('public/staff-lunch.css');
- assert.match(css,/\.staff-lunch-location-actions/);
- assert.match(css,/@media\(max-width:600px\)/);
+ assert.ok(css.includes('.staff-lunch-location-decisions'));
 });

@@ -9,7 +9,7 @@
   <title>Dashboard · Attendigo</title>
   <link rel="stylesheet" href="/sf1-review-cards.css?v=2">
   <link rel="stylesheet" href="/sf1-family-details.css?v=3">
-  <link rel="stylesheet" href="/staff-lunch.css?v=5">
+  <link rel="stylesheet" href="/staff-lunch.css?v=6">
   <link rel="stylesheet" href="/staff-ob.css?v=1">
   <link rel="stylesheet" href="/department-workspace.css?v=1">
   <link rel="stylesheet" href="/form48-report.css?v=16">
@@ -885,6 +885,16 @@ body.dark-mode .content-wrap > .school-heading.is-compact,body[data-theme="dark"
               </div>
               <div class="table-scroll"><table class="monitoring-table"><thead><tr><th>Teacher</th><th>Event</th><th>Recorded time</th><th>Gate Keeper</th><th>Identity check</th></tr></thead><tbody id="teacherGateAttendanceRows"><tr><td colspan="5" class="empty-cell">Loading teacher gate attendance…</td></tr></tbody></table></div>
               <p class="attendance-summary-note">These are gate time records. They are not yet a complete teacher DTR or class-period punctuality report.</p>
+            </section>
+            <section id="staffLunchHeadLocationCard" class="staff-lunch-panel staff-lunch-dept-head-location" hidden>
+              <div class="section-toolbar">
+                <div><h3>Department attendance location</h3>
+                  <p>Capture the location where your department displays its lunch attendance QR. The School Admin must approve it before staff scans can be verified automatically.</p></div>
+                <span id="staffLunchHeadDepartment" class="field-hint">My department</span>
+              </div>
+              <button id="staffLunchHeadSubmit" type="button" class="primary-button">Submit my department's location</button>
+              <p id="staffLunchHeadStatus" class="staff-lunch-status" role="status" aria-live="polite">Checking department location…</p>
+              <p class="attendance-summary-note">Be physically at your department, allow precise location access, and submit for approval. Existing approved locations remain unchanged until approval. No teacher device registration is required.</p>
             </section>
             <section id="departmentHeadOverview" class="surface-card section-card department-head-overview dh-command-center" hidden>
               <div class="dh-command-intro">
@@ -1840,18 +1850,23 @@ body.dark-mode .content-wrap > .school-heading.is-compact,body[data-theme="dark"
                 <button class="primary-button" type="button" id="staffLunchAssign">Authorize selected teachers</button>
                 <button class="outline-button" type="button" id="staffLunchRevoke" hidden disabled>Revoke presenter</button>
               </div>
-              <div class="staff-lunch-security-settings" aria-label="Department scanning location setup">
-                <div><strong>Department scanning location</strong>
-                  <p>Choose the department below. While physically inside it, tap Set location and allow your browser to use your current position. This is a one-time setup unless the department moves.</p></div>
+              <div class="staff-lunch-security-settings" aria-label="Department attendance location approvals">
+                <div><strong>Department location approvals</strong>
+                  <p>Department Heads capture their actual on-site location. Review and approve each department remotely; only approved coordinates affect QR verification.</p></div>
                 <div class="staff-lunch-location-actions">
-                  <label for="staffLunchLocationDepartment">Department to configure
+                  <label for="staffLunchLocationDepartment">Department to review
                     <select id="staffLunchLocationDepartment" aria-describedby="staffLunchPointStatus">
                       <option value="">Loading departments…</option>
                     </select>
                   </label>
-                  <button type="button" class="outline-button" id="staffLunchSetPoint">Set department location</button>
                 </div>
-                <p class="staff-lunch-status" id="staffLunchPointStatus" role="status" aria-live="polite">Choose a department in this card, then set its location.</p>
+                <p class="staff-lunch-status" id="staffLunchPointStatus" role="status" aria-live="polite">Choose a department to review its location.</p>
+                <p id="staffLunchLocationReview" class="staff-lunch-proposal-detail" hidden></p>
+                <a id="staffLunchCandidateMap" class="staff-lunch-map-link" href="https://www.google.com/maps" target="_blank" rel="noopener noreferrer" hidden>Inspect submitted point on map</a>
+                <div class="staff-lunch-location-decisions">
+                  <button id="staffLunchApprovePoint" type="button" class="primary-button" disabled>Approve location</button>
+                  <button id="staffLunchRejectPoint" type="button" class="outline-button" disabled>Reject location</button>
+                </div>
               </div>
               <div class="staff-lunch-security-settings">
                 <div><strong>Lunch scans needing review</strong>
@@ -2475,7 +2490,9 @@ body.dark-mode .content-wrap > .school-heading.is-compact,body[data-theme="dark"
   <script src="/gate-offline-review.js?v=1" defer></script>
   <script src="/portal.js?v=236" defer></script>
   <script src="/schedule-list-filters.js?v=1" defer></script>
-  <script src="/staff-lunch-ui.js?v=6" defer></script>
+  <script src="/staff-lunch-ui.js?v=7" defer></script>
+  <script src="/staff-department-location.js?v=1" defer></script>
+
   <script src="/staff-ob-ui.js?v=6" defer></script>
   <script src="/department-workspace.js?v=5" defer></script>
   <script src="/department-dashboard-v2.js?v=2" defer></script>
