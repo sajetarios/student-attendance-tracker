@@ -50,7 +50,7 @@ test('Form 48 report uses same HTML-escaped leave remarks in both copies',()=>{
  assert.match(front,/window\.attendigoForm48RenderCopy=copy/);
  assert.match(front,/copy\(data,analysis,"Office's"\)\+copy\(data,analysis,"Employee's"\)/);
  assert.match(api,/buildForm48LeaveRemarks\(params\.month,approvedLeaves\.rows,analysis\.assessments\)/);
- assert.match(api,/approvedLeaveRemarks,asOfDate:manilaDate\(\)/);
+ assert.match(api,/return res\.json\(\{\.\.\.analysis,approvedLeaveRemarks,[\s\S]*?asOfDate:manilaDate\(\)/);
  assert.match(api,/leave_type AS \\"leaveType\\"/);
  assert.match(api,/approval_reference AS \\"approvalReference\\"/);
  assert.match(api,/school_id=\$1 AND staff_user_id=\$2 AND revoked_at IS NULL/);
