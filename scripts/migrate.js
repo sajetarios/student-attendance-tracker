@@ -86,7 +86,8 @@ const REQUIRED_MIGRATIONS = [
   '078_principal_sdo_handoff.sql',
   '079_school_memoranda.sql',
   '080_missing_scan_department_logbook_review.sql',
-  '081_school_memo_effective_period_and_dtr.sql'
+  '081_school_memo_effective_period_and_dtr.sql',
+  '082_link_suspension_calendar_and_date_changes.sql'
 ];
 
 function checksum(content) {
