@@ -348,7 +348,7 @@ function registerStaffGateDtrRoutes(app,pool,{authenticateSchoolClient,requireSc
        [req.auth.schoolId,staffUserId,from,to]);
     // OB is an authorization, not a clock punch. Attach approved intervals as
     // DTR remarks without filling any missing Form 48 arrival/departure slot.
-    const [approvedOb,physicalGate]=await Promise.all([
+    const [approvedOb,physicalGate,missingScans]=await Promise.all([
       pool.query(`SELECT request_id AS "requestId",purpose,destination,starts_at AS "startsAt",ends_at AS "endsAt"
         FROM staff_official_business_requests
         WHERE school_id=$1 AND staff_user_id=$2 AND status='APPROVED'
@@ -370,7 +370,12 @@ function registerStaffGateDtrRoutes(app,pool,{authenticateSchoolClient,requireSc
         WHERE school_id=$1 AND teacher_user_id=$2
           AND school_date >= $3::date AND school_date < $4::date
       ) actual_gate ORDER BY "occurredAt" ASC,event_id ASC`,
-       [req.auth.schoolId,staffUserId,from,to])
+       [req.auth.schoolId,staffUserId,from,to]),
+      pool.query("SELECT to_char(school_date,'YYYY-MM-DD') AS date,slot,status,evidence_reference AS reference,"+
+        "to_char(verified_time,'HH24:MI') AS time FROM staff_missing_scan_requests "+
+        "WHERE school_id=$1 AND staff_user_id=$2 AND school_date >= $3::date AND school_date < $4::date "+
+        "AND status IN ('DOCUMENTED','DTR_CORRECTED') ORDER BY school_date,created_at",
+        [req.auth.schoolId,staffUserId,from,to])
     ]);
     const {buildObDtrRemarks}=require('./ob-dtr-remarks');
     const days=new Date(Date.UTC(yearPart,monthPart,0)).getUTCDate();
@@ -388,12 +393,23 @@ function registerStaffGateDtrRoutes(app,pool,{authenticateSchoolClient,requireSc
         direction:gate.eventType==='TIME_IN'?'IN':'OUT',time:localTime
       });
     }
+    const missingByDate=new Map();
+    for(const item of missingScans.rows){
+      if(!missingByDate.has(item.date))missingByDate.set(item.date,[]);
+      missingByDate.get(item.date).push({
+        slot:item.slot,status:item.status,reference:item.reference,time:item.time,
+        remark:item.status==='DTR_CORRECTED'
+          ?'Authorized '+item.slot.replace('_',' ')+' correction using department logbook ('+item.reference+').'
+          :'Reviewed missing '+item.slot.replace('_',' ')+'; logbook reference '+item.reference+
+            '. Official DTR slot remains blank under school policy.'
+      });
+    }
     const records=Array.from({length:days},(_,i)=>{
       const day=i+1, date=month+'-'+String(day).padStart(2,'0');
       const slots=Object.fromEntries(DTR_SLOTS.map(slot=>[slot,index.get(date+':'+slot)?.localTime||null]));
       const obRemarks=buildObDtrRemarks(date,approvedOb.rows,physicalGate.rows);
       return {day,date,slots,verifiedCount:Object.values(slots).filter(Boolean).length,
-        gateEvidence:gateByDate.get(date)||[],obRemarks};
+        gateEvidence:gateByDate.get(date)||[],obRemarks,missingScanRemarks:missingByDate.get(date)||[]};
     });
     return res.json({month,staffUserId,displayName:staff.rows[0].displayName,role:staff.rows[0].role,
       timezone:'Asia/Manila',records,verifiedEntries:events.rows.length,
