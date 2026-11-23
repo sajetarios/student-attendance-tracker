@@ -1,4 +1,4 @@
-const CACHE = "attendigo-v333-form-control-overlap-guard";
+const CACHE = "attendigo-v334-calendar-memo-suspension";
 
 const SHELL = [
   "/typography.css?v=1",
@@ -64,7 +64,7 @@ const SHELL = [
   "/teacher-scanner-schedule.js?v=1",
   "/teacher-roster-popover.js?v=2",
   "/portal.css?v=0.9.119",
-  "/portal.js?v=237",
+  "/portal.js?v=238",
   "/attendigo-help-topics.js?v=2",
   "/attendigo-help-guide.js?v=4",
   "/attendigo-help.css?v=3",
