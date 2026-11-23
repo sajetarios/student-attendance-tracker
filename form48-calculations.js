@@ -31,7 +31,9 @@ function summarizeForm48({records=[],month,today,settings=null,calendar=[],offic
  const exceptions=new Map((calendar||[]).map(x=>[x.date,x.type]));
  const reviews=configured&&settings.dayReviews&&typeof settings.dayReviews==='object'?settings.dayReviews:{};
  const calendarMonthDays=new Date(Date.UTC(Number(month.slice(0,4)),Number(month.slice(5,7)),0)).getUTCDate();
- const timeConfigured=configured&&validHours(settings.regularHours)&&(!workdays.includes(6)||validHours(settings.saturdayHours));
+ const timeConfigured=workdays.length>0&&
+  (!workdays.some(day=>day!==6)||validHours(settings.regularHours))&&
+  (!workdays.includes(6)||validHours(settings.saturdayHours));
  const summary={daysPresent:0,daysAbsent:0,excusedDays:0,pendingAbsentDays:0,
   partialRecordDays:0,scheduledDays:0,approvedLeaveDays:0,timeAnomalyDays:0,tardyMinutes:timeConfigured?0:null,
   undertimeMinutes:timeConfigured?0:null,tardyDays:0,undertimeDays:0,
@@ -67,7 +69,13 @@ function summarizeForm48({records=[],month,today,settings=null,calendar=[],offic
    // Approved leave must be visible on the actual date, not only a day later.
    status='APPROVED_LEAVE';summary.excusedDays++;summary.approvedLeaveDays++;
   }
-  else if(!past&&!present){status='NOT_DUE';}
+  else if(!past&&!present){
+   status='NOT_DUE';
+   if(sickFilingPending){
+    status=date>today?'SICK_LEAVE_REQUESTED_FUTURE':'SICK_LEAVE_PENDING';
+    needsReview=date===today;
+   }
+  }
   else if(present){status=verifiedCount===4?'VERIFIED':'INCOMPLETE_DTR';
    if(documentedLeave){status='LEAVE_PUNCH_CONFLICT';needsReview=true;}}
   else if(approvedOB){status='APPROVED_OB_REVIEW';needsReview=true;}
@@ -76,7 +84,6 @@ function summarizeForm48({records=[],month,today,settings=null,calendar=[],offic
    // Pending application cannot overturn an administrator's prior absence decision.
    status='SICK_LEAVE_REVIEW_CONFLICT';summary.daysAbsent++;needsReview=true;
   }
-  else if(sickFilingPending&&date>today){status='SICK_LEAVE_REQUESTED_FUTURE';}
   else if(sickFilingPending){status='SICK_LEAVE_PENDING';needsReview=true;}
   else if(review==='EXCUSED'&&past){status='EXCUSED';summary.excusedDays++;}
   else if(review==='ABSENT'&&past){status='CONFIRMED_ABSENT';summary.daysAbsent++;}

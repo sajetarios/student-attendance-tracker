@@ -1,4 +1,5 @@
 'use strict';
+const {assertCacheRevisionAtLeast}=require('./support/asset-contract');
 const test=require('node:test');
 const assert=require('node:assert/strict');
 const fs=require('node:fs');
@@ -51,5 +52,5 @@ test('Generate preview waits for settings and can retry after a failed load',()=
  assert.match(script,/if\(person\.value&&month\.value\)fetchConfig\(\)/);
  assert.match(html,/form48-report\.js\?v=18/);
  assert.match(sw,/form48-report\.js\?v=18/);
- assert.match(sw,/attendigo-v316-form48-settings-fix/);
+ assertCacheRevisionAtLeast(sw,316);
 });

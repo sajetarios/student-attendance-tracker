@@ -21,7 +21,7 @@ test('My Students always identifies the import entry point and advisory prerequi
 test('Teacher imports default to LIS SF1 Excel/PDF while authorization remains server-side', () => {
   const js = read('public/portal.js');
   const sf1 = read('sf1-import-routes.js');
-  assert.match(js, /user\.role === 'TEACHER' \? 'sf1' : 'template'/);
+  assert.match(js, /studentImportFormat'\)\.value = 'sf1'/);
   assert.match(js, /studentImportFormat'\)\.dispatchEvent\(new Event\('change'\)\)/);
   assert.match(js, /\.xls,\.xlsx,\.pdf,application\/vnd\.ms-excel/);
   assert.match(sf1, /requireSchoolRoles\('SCHOOL_ADMIN','TEACHER'\)/);

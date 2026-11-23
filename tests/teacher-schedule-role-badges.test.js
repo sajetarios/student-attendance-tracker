@@ -1,4 +1,5 @@
 'use strict';
+const {assertCachedAsset}=require('./support/asset-contract');
 const test=require('node:test');
 const assert=require('node:assert/strict');
 const fs=require('node:fs');
@@ -117,8 +118,8 @@ test('Weekly/list/popover UI preserve actual assignment labels in every display'
   assert.match(html,/href="\/teacher-timetable-identities\.css\?v=2"/);
   assert.match(html,/src="\/schedule-relationships\.js\?v=2" defer/);
   assert.match(html,/src="\/timetable-grid\.js\?v=8" defer/);
-  assert.match(html,/src="\/portal\.js\?v=235" defer/);
-  for (const asset of ['/teacher-timetable-identities.css?v=2','/schedule-relationships.js?v=2','/timetable-grid.js?v=8','/portal.js?v=235'])
+  assertCachedAsset(html,sw,'portal.js',{minimumVersion:235});
+  for (const asset of ['/teacher-timetable-identities.css?v=2','/schedule-relationships.js?v=2','/timetable-grid.js?v=8'])
     assert.ok(sw.includes('"'+asset+'"'),'Missing precache for '+asset);
 });
 

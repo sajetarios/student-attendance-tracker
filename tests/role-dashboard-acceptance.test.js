@@ -19,7 +19,7 @@ test('School Administrator dashboard includes learner, staff, schedule, and SF2 
   for (const view of ['students', 'teachers', 'schedules', 'sf2']) {
     assert.match(portalHtml, new RegExp(`data-go="${view}"`));
   }
-  assert.match(portalJs, /if \(role === 'SCHOOL_ADMIN'\) return \['dashboard', 'students', 'studentAccounts', 'parents', 'teachers', 'schedules', 'myGateAttendance', 'lunchQrAdmin', 'form48Reports', 'classQrMonitor', 'officialBusiness', 'cloudSync', 'schoolBranding'\]/);
+  assert.match(portalJs, /if \(role === 'SCHOOL_ADMIN'\) return \['dashboard', 'students', 'studentAccounts', 'parents', 'teachers', 'schedules', 'myGateAttendance', 'lunchQrAdmin', 'form48Reports', 'classQrMonitor', 'offlineScanReviews', 'officialBusiness', 'cloudSync', 'schoolBranding'\]/);
   assert.match(server, /app\.post\('\/api\/school-users', authenticateSchoolClient, requireSchoolAdmin/);
 });
 
@@ -86,8 +86,8 @@ test('Department Head may view and download submitted SF2 reports but cannot col
 test('Login screen clearly explains the School/Parent, Student, and Platform account types', () => {
   const loginHtml = read('public/portal-login.html');
   const loginJs = read('public/portal-login.js');
-  assert.match(loginHtml, /Student account/);
+  assert.match(loginHtml, /id="studentMode"[^\n]+>Students<\/span>/);
   assert.match(loginHtml, /Super Admin/);
-  assert.match(loginJs, /approved Parent\/Guardian accounts/);
-  assert.match(loginJs, /Student account uses the school-issued student login/);
+  assert.match(loginJs, /approved parents or guardians/);
+  assert.match(loginJs, /Use your school-issued student ID or username/);
 });

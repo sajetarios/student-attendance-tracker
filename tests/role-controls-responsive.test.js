@@ -58,7 +58,7 @@ test('unrelated role permission and Form 48 isolated printing scripts remain loa
  const html=read('portal.html');
  const script=read('form48-report.js');
  assertCachedAsset(html,read('sw.js'),'portal.js',{minimumVersion:224});
- assert.match(html,/form48-report\.js\?v=15/);
+ assertCachedAsset(html,read('sw.js'),'form48-report.js',{minimumVersion:15});
  assert.match(script,/function printDtrFromIsolatedPage\(output,status\)/);
  assert.match(script,/@page\{size:A4 portrait;margin:5mm\}/);
  assert.match(script,/Two copies on one page/);

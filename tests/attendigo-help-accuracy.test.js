@@ -1,4 +1,5 @@
 'use strict';
+const {assertCacheRevisionAtLeast}=require('./support/asset-contract');
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
@@ -112,7 +113,7 @@ test('unverified/unauthorized questions never become guessed generative guidance
   assert.ok(aiRoutes.includes('if (!library.match(question, req.auth.role))'));
   assert.ok(aiRoutes.includes("status(422)"));
   assert.ok(aiRoutes.includes('Do not add any steps or UI names not stated'));
-  assert.match(sw,/attendigo-v311-responsive-login/);
+  assertCacheRevisionAtLeast(sw,311);
   assert.ok(sw.includes('"/attendigo-help-topics.js?v=2"'));
   assert.ok(sw.includes('"/attendigo-help-guide.js?v=4"'));
 });

@@ -125,3 +125,27 @@ test('verified DTR punch during approved leave requires review without false att
   assert.equal(actual.summary.hasUnreviewed,true);
  }
 });
+
+test('Saturday-only staff get monthly timing totals without weekday hours',()=>{
+ const result=summarizeForm48({
+  month:'2026-02',today:'2026-02-09',
+  settings:{workdays:[6],regularHours:{},saturdayHours:times},
+  records:[{date:'2026-02-07',slots:{...times,AM_IN:'08:12',PM_OUT:'16:55'}}]
+ });
+ assert.equal(result.summary.tardyMinutes,12);
+ assert.equal(result.summary.undertimeMinutes,5);
+});
+
+test('pending sick leave is visible today and upcoming filings do not count as absences',()=>{
+ const result=summarizeForm48({
+  month:'2026-02',today:'2026-02-05',
+  settings:{workdays:[4,5],regularHours:times},
+  pendingSickLeaves:[{from:'2026-02-05',to:'2026-02-06'}]
+ });
+ assert.equal(result.assessments[4].status,'SICK_LEAVE_PENDING');
+ assert.equal(result.assessments[4].needsReview,true);
+ assert.equal(result.assessments[5].status,'SICK_LEAVE_REQUESTED_FUTURE');
+ assert.equal(result.assessments[5].needsReview,false);
+ assert.equal(result.summary.daysAbsent,0);
+ assert.equal(result.summary.excusedDays,0);
+});
