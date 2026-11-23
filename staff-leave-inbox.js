@@ -73,7 +73,7 @@ const statusMessage=status=>({
 async function notifyLeaveTransition(client,{schoolId,requestId,staffUserId,departmentId,requesterRole,status}){
  if(!STATUS_LABELS[status])return;
  const baseKey='leave:'+requestId+':'+status;
- const url='/portal.html#leaveManagement';
+ const url=requesterRole==='PRINCIPAL'?'/principal.html':'/portal.html#leaveManagement';
  const title=status==='PENDING_HEAD'?'Leave request submitted':
   status==='PENDING_ADMIN'?'Leave request awaiting school review':
   status==='PENDING_EXTERNAL'?'Leave request awaiting official decision':
