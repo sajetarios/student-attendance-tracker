@@ -18,14 +18,15 @@ async function main(){
    const id=(await pool.query('INSERT INTO schools(school_code,school_name) VALUES($1,$2) RETURNING school_id',
      ['P'+suffix+name,'Principal integration '+name])).rows[0].school_id;
    const dep=(await pool.query("INSERT INTO school_departments(school_id,department_code,department_name) VALUES($1,'ENG','English Department') RETURNING department_id",[id])).rows[0].department_id;
-   return {id,dep};
+   const unassigned=(await pool.query("INSERT INTO school_departments(school_id,department_code,department_name) VALUES($1,'UNASSIGNED','Unassigned') RETURNING department_id",[id])).rows[0].department_id;
+   return {id,dep,unassigned};
   }
   async function staff(s,role,name){
    const teacher=role==='TEACHER';
    const id=(await pool.query(`INSERT INTO school_users
     (school_id,department_id,username,display_name,password_hash,role,teacher_designations)
     VALUES($1,$2,$3,$4,'test-only-hash',$5,$6) RETURNING user_id`,
-    [s.id,teacher?s.dep:null,name+suffix,name,role,teacher?['SUBJECT_TEACHER']:[]])).rows[0].user_id;
+    [s.id,teacher?s.dep:s.unassigned,name+suffix,name,role,teacher?['SUBJECT_TEACHER']:[]])).rows[0].user_id;
    const token=createOpaqueToken();
    await pool.query(`INSERT INTO user_sessions(token_hash,principal_type,school_id,school_user_id,expires_at)
      VALUES($1,'SCHOOL',$2,$3,NOW()+INTERVAL '10 minutes')`,[hashToken(token),s.id,id]);
