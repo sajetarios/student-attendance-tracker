@@ -76,7 +76,7 @@ function registerPrincipalInsightsRoutes(app,pool,{authenticateSchoolClient,requ
        AND e.event_kind='DTR_SLOT' AND e.school_date BETWEEN $2::date AND $3::date
        AND e.verification_status IN ('VERIFIED','PENDING_VERIFICATION')
       WHERE d.school_id=$1 AND d.active=TRUE AND d.department_code<>'UNASSIGNED'
-      GROUP BY d.department_id,d.department_name ORDER BY d.department_name`,args),
+      GROUP BY d.department_id,d.department_name ORDER BY d.department_name`,args.slice(0,3)),
     pool.query(`SELECT to_char(day.day::date,'YYYY-MM-DD') AS date,
       COUNT(e.event_id)::int AS verified
       FROM generate_series($2::date,$3::date,INTERVAL '1 day') day(day)
