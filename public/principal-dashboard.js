@@ -457,6 +457,15 @@
    host.append(button);
   }
  }
+ function recognitionEmpty(icon,title,description){
+  const element=make('div','recognition-empty');
+  const symbol=make('span','recognition-empty-icon',icon);
+  symbol.setAttribute('aria-hidden','true');
+  const body=make('div');
+  body.append(make('strong',null,title),make('p',null,description));
+  element.append(symbol,body);
+  return element;
+ }
  function renderEarlyArrivals(data){
   const host=$('earlyArrivalsList'),count=$('earlyArrivalsCount');
   host.replaceChildren();
@@ -464,13 +473,17 @@
   const date=data.schoolDate||'selected date';
   $('earlyArrivalsSubtitle').textContent='Photo-verified gate entry before 7:00 AM · '+date+' · Asia/Manila';
   if(!Array.isArray(entries)){
-   count.textContent='Source unavailable';
-   host.append(make('p','source-note','Verified early-arrival source is unavailable. No recognition candidates can be confirmed.'));
+   count.textContent='Data unavailable';
+   count.dataset.state='empty';
+   host.append(recognitionEmpty('–','Arrival data unavailable',
+    'Verified gate entry records could not be checked. No attendance conclusion can be made.'));
    return;
   }
   count.textContent=entries.length+' verified '+(entries.length===1?'arrival':'arrivals');
+  count.dataset.state=entries.length?'active':'empty';
   if(!entries.length){
-   host.append(make('p','source-note','No verified teacher gate entries before 7:00 AM for this date. This does not mean teachers were absent or late.'));
+   host.append(recognitionEmpty('☀','No verified early arrivals today',
+    'No photo-verified entries before 7:00 AM for this date. This does not mean teachers were absent or late.'));
    return;
   }
   for(const person of entries){
@@ -489,16 +502,20 @@
     period=$('principalWatchPeriod'),award=data.watchNominees;
   host.replaceChildren();
   if(!award||!Array.isArray(award.entries)){
-   count.textContent='Unavailable';
+   count.textContent='Data unavailable';
+   count.dataset.state='empty';
    period.textContent='Recognition evidence could not be verified.';
-   host.append(make('p','source-note','Watch nominee records unavailable. No award decisions can be made from this display.'));
+   host.append(recognitionEmpty('–','Nomination data unavailable',
+    'The evidence source could not be verified. No award decisions can be made from this display.'));
    return;
   }
   period.textContent='Rolling 30-day window · '+award.periodStart+' to '+award.periodEnd+
    ' · Asia/Manila · '+(data.departmentId?'selected department':'all departments');
   count.textContent=award.entries.length+' '+(award.entries.length===1?'candidate':'candidates');
+  count.dataset.state=award.entries.length?'active':'empty';
   if(!award.entries.length){
-   host.append(make('p','source-note','No teacher meets all nomination thresholds in this period. This is not an absence or performance finding.'));
+   host.append(recognitionEmpty('✦','No candidates in this period',
+    'No teacher meets all Watch Recognition thresholds yet. This is not an absence or performance finding.'));
    return;
   }
   for(const [i,person] of award.entries.entries()){
