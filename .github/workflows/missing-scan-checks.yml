@@ -1,0 +1,27 @@
+name: Missing scan workflow checks
+on:
+  push:
+    branches:
+      - feature/missing-scan-department-review-20261123
+  pull_request:
+    paths:
+      - "missing-scan-routes.js"
+      - "tests/missing-scan-policy.test.js"
+      - "public/missing-scan-ui.js"
+      - "public/form48-report.js"
+      - "server.js"
+      - "migrations/078_missing_scan_department_logbook_review.sql"
+jobs:
+  missing-scan:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci --ignore-scripts
+      - run: node --check missing-scan-routes.js && node --check public/missing-scan-ui.js && node --check server.js && node --check public/form48-report.js
+      - run: node --test tests/missing-scan-policy.test.js
