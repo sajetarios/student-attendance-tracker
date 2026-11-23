@@ -21,7 +21,7 @@ function makePdf(){
   '<< /Type /Catalog /Pages 2 0 R >>',
   '<< /Type /Pages /Count 1 /Kids [3 0 R] >>',
   '<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Contents 4 0 R /Resources << /Font << /F1 5 0 R >> >> >>',
-  '<< /Length 86 >>\nstream\nBT /F1 14 Tf 65 690 Td (ATTENDIGO FICTIONAL TEST MEMORANDUM - DO NOT DISTRIBUTE) Tj ET\nendstream',
+  (()=>{const stream='BT /F1 14 Tf 65 690 Td (ATTENDIGO FICTIONAL TEST MEMORANDUM - DO NOT DISTRIBUTE) Tj ET\\n';return '<< /Length '+Buffer.byteLength(stream)+' >>\\nstream\\n'+stream+'endstream';})(),
   '<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>'
  ];
  const length=()=>Buffer.byteLength(chunks.join(''),'utf8');
@@ -227,7 +227,7 @@ async function main(){
    assert.match(principalHtml,/id="principalMemoForm"/);
    assert.match(principalHtml,/school-memo-banner\.js\?v=/);
    assert.match(viewerHtml,/id="memoList"/);
-   assert.match(viewerJs,/\/api\/school-memos\/.*\/acknowledge/);
+   assert.ok(viewerJs.includes("'/acknowledge'")&&viewerJs.includes("'/api/school-memos/"));
   });
   console.log('MEMORANDA E2E PASS: '+assertions+' grouped assertions; fictional accounts; real HTTP, sessions, SQL, files and notifications; isolated DB.');
  }finally{
