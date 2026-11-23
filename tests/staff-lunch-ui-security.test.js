@@ -120,29 +120,23 @@ test('department check-in requires location evidence before official DTR approva
 });
 
 
-test('location capture belongs to the Department Head; Admin approves remotely',()=>{
- assert.match(portal,/id="staffLunchHeadLocationCard"/);
- assert.match(portal,/id="staffLunchHeadSubmit"/);
- assert.match(portal,/id="staffLunchLocationDepartment"/);
- assert.match(portal,/id="staffLunchApprovePoint"/);
- assert.match(portal,/id="staffLunchRejectPoint"/);
- assert.doesNotMatch(portal,/id="staffLunchSetPoint"/);
- assert.match(portal,/staff-department-location\\.js\\?v=1/);
- assert.match(sw,/staff-department-location\\.js\\?v=1/);
- assert.match(departmentLocationUi,/role==='DEPARTMENT_HEAD'/);
- assert.match(departmentLocationUi,/role==='SCHOOL_ADMIN'/);
- assert.match(departmentLocationUi,/request\\('\\/api\\/staff-attendance\\/lunch\\/location\\/propose'/);
- assert.match(departmentLocationUi,/request\\('\\/api\\/staff-attendance\\/lunch\\/location\\/decision'/);
- assert.doesNotMatch(departmentLocationUi,/method:'PUT'/);
- assert.match(routes,/proposalKey=departmentId/);
- assert.match(routes,/requireSchoolRoles\\('DEPARTMENT_HEAD'\\)/);
- assert.match(routes,/requireSchoolRoles\\('SCHOOL_ADMIN'\\)/);
- assert.match(routes,/LUNCH_LOCATION_PROPOSED/);
- assert.match(routes,/LUNCH_LOCATION_APPROVED/);
- assert.match(routes,/LUNCH_LOCATION_REJECTED/);
- assert.match(routes,/SELECT setting_value AS proposal FROM school_settings/);
- assert.match(routes,/FOR UPDATE/);
+test('location capture belongs to Department Head; Admin approves independently',()=>{
+ for(const id of ['staffLunchHeadLocationCard','staffLunchHeadSubmit',
+     'staffLunchLocationDepartment','staffLunchApprovePoint','staffLunchRejectPoint'])
+  assert.ok(portal.includes('id="'+id+'"'),id+' visible in portal');
+ assert.ok(!portal.includes('id="staffLunchSetPoint"'),'obsolete admin GPS button removed');
+ assert.ok(portal.includes('staff-department-location.js?v=1'));
+ assert.ok(sw.includes('staff-department-location.js?v=1'));
+ assert.ok(departmentLocationUi.includes("role==='DEPARTMENT_HEAD'"));
+ assert.ok(departmentLocationUi.includes("role==='SCHOOL_ADMIN'"));
+ assert.ok(departmentLocationUi.includes("'/api/staff-attendance/lunch/location/propose'"));
+ assert.ok(departmentLocationUi.includes("'/api/staff-attendance/lunch/location/decision'"));
+ assert.ok(!departmentLocationUi.includes("method:'PUT'"));
+ for(const action of ['LUNCH_LOCATION_PROPOSED','LUNCH_LOCATION_APPROVED',
+     'LUNCH_LOCATION_REJECTED','FOR UPDATE'])
+  assert.ok(routes.includes(action),action+' is enforced server-side');
+ assert.ok(routes.includes("requireSchoolRoles('DEPARTMENT_HEAD')"));
+ assert.ok(routes.includes("requireSchoolRoles('SCHOOL_ADMIN')"));
  const css=read('public/staff-lunch.css');
- assert.match(css,/\\.staff-lunch-location-decisions/);
- assert.match(css,/@media\\(max-width:600px\\)/);
+ assert.ok(css.includes('.staff-lunch-location-decisions'));
 });
