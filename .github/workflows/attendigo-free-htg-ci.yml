@@ -1,0 +1,35 @@
+name: Free Ask Attendigo HTG regression
+on:
+  pull_request:
+    branches: [fix/render-login-landing]
+    paths:
+      - 'help-ai-routes.js'
+      - 'public/attendigo-help-*'
+      - 'public/portal.html'
+      - 'public/sw.js'
+      - 'tests/attendigo-help*'
+      - 'tests/attendigo-free-htg.test.js'
+      - '.github/workflows/attendigo-free-htg-ci.yml'
+  push:
+    branches: [feature/free-smart-attendigo-htg-20261123]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  free-help:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci
+      - name: Syntax check
+        run: |
+          node --check help-ai-routes.js
+          node --check public/attendigo-help-topics.js
+          node --check public/attendigo-help-guide.js
+      - name: Existing and new HTG regression tests
+        run: node --test tests/attendigo-help.test.js tests/attendigo-help-accuracy.test.js tests/attendigo-free-htg.test.js
