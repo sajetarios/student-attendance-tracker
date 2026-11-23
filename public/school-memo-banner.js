@@ -138,7 +138,10 @@
   finally{button.disabled=false;}
  }
  async function archive(memo,button){
-  if(!window.confirm('Archive this memorandum for all recipients? Existing audit history will remain.'))return;
+  const message=memo.dtrHours?
+   'Archive this temporary DTR schedule memorandum? The prescribed-hour exception will stop for today and future dates, while earlier applicable DTR days and the audit history remain preserved.':
+   'Archive this memorandum for all recipients? Existing audit history will remain.';
+  if(!window.confirm(message))return;
   button.disabled=true;
   try{
    await request('/api/school-memos/'+encodeURIComponent(memo.memoId)+'/archive',{method:'POST'});
