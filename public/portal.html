@@ -826,6 +826,7 @@ body.dark-mode .content-wrap > .school-heading.is-compact,body[data-theme="dark"
             <section id="adminDashboardCard" class="surface-card section-card admin-dashboard-card admin-command-center" hidden>
               <div class="admin-command-hero">
                 <div><span class="admin-dashboard-kicker">SCHOOL OPERATIONS · ADMIN WORKSPACE</span>
+                  <a href="/principal.html" class="outline-button" style="display:inline-flex;margin:10px 0 0;min-height:40px;align-items:center;text-decoration:none">Preview Principal Dashboard ↗</a>
                   <h3>School administration</h3>
                   <p>Manage school enrollment, staff accounts, academic setup and approvals from one organized workspace.</p>
                 </div>
@@ -2146,7 +2147,7 @@ body.dark-mode .content-wrap > .school-heading.is-compact,body[data-theme="dark"
                     <select id="securityAccountsDepartment"><option value="ALL">All departments</option></select>
                   </label>
                   <label>Role
-                    <select id="securityAccountsRole"><option value="ALL">All roles</option><option value="TEACHER">Teachers</option><option value="DEPARTMENT_HEAD">Department Heads</option><option value="GATE_KEEPER">Gate Keepers</option></select>
+                    <select id="securityAccountsRole"><option value="ALL">All roles</option><option value="TEACHER">Teachers</option><option value="DEPARTMENT_HEAD">Department Heads</option><option value="PRINCIPAL">Principal</option><option value="GATE_KEEPER">Gate Keepers</option></select>
                   </label>
                   <label>Status
                     <select id="securityAccountsStatus"><option value="ALL">All statuses</option><option value="ACTIVE">Active</option><option value="LOCKED">Locked</option><option value="PASSWORD_CHANGE">Password change required</option><option value="INACTIVE">Inactive</option></select>
@@ -2187,7 +2188,7 @@ body.dark-mode .content-wrap > .school-heading.is-compact,body[data-theme="dark"
               <div id="staffBulkDepartmentToolbar" class="student-bulk-actions" hidden><div class="staff-bulk-selection"><label class="staff-bulk-select-label" for="selectAllStaff"><input type="checkbox" id="selectAllStaff"><span class="staff-bulk-select-copy">Select all staff<small>Teachers and Department Heads</small></span></label><span id="selectedStaffCount" class="staff-bulk-selected-count" role="status" aria-live="polite">0 selected</span></div><label for="bulkStaffDepartment">Assign department</label><select id="bulkStaffDepartment"><option value="">Choose department</option></select><button type="button" class="primary-button" id="applyBulkStaffDepartment" disabled>Assign selected staff</button><span id="staffBulkDepartmentFeedback" class="inline-feedback" role="status"></span></div>
               <form id="teacherForm" class="inline-form" hidden method="post">
                 <div class="form-grid">
-                  <div class="field-group"><label for="newAccountRole">Account role *</label><select id="newAccountRole" required><option value="TEACHER">Teacher</option><option value="DEPARTMENT_HEAD">Department Head</option><option value="GATE_KEEPER">Gate Keeper</option></select></div>
+                  <div class="field-group"><label for="newAccountRole">Account role *</label><select id="newAccountRole" required><option value="TEACHER">Teacher</option><option value="DEPARTMENT_HEAD">Department Head</option><option value="PRINCIPAL">Principal · Leadership Dashboard</option><option value="GATE_KEEPER">Gate Keeper</option></select></div>
                   <div class="field-group" id="newTeacherDepartmentGroup"><label for="newTeacherDepartment">Department *</label><select id="newTeacherDepartment"><option value="">Select department</option></select><small class="field-hint">Assign each teacher and Department Head to one department.</small></div>
                   <div class="field-group"><label for="newTeacherUsername">Username *</label><input id="newTeacherUsername" required maxlength="80" autocomplete="off" placeholder="e.g. teacher.delacruz"></div>
                   <div class="field-group"><label for="newTeacherName">Display name *</label><input id="newTeacherName" required maxlength="160" autocomplete="name" placeholder="Teacher full name"></div>
