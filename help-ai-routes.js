@@ -2,7 +2,7 @@
 // Optional server-side AI answers for the read-only Attendigo Help Assistant.
 // No attendance, school, user, or student data is queried or forwarded.
 const library = require('./public/attendigo-help-topics');
-const ROLES = new Set(['TEACHER','DEPARTMENT_HEAD','SCHOOL_ADMIN','GATE_KEEPER']);
+const ROLES = new Set(['TEACHER','DEPARTMENT_HEAD','SCHOOL_ADMIN','GATE_KEEPER','PRINCIPAL']);
 const WINDOW_MS = 5 * 60 * 1000;
 const REQUEST_LIMIT = 12;
 const limiter = new Map();
