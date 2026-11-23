@@ -233,4 +233,4 @@ function registerSchoolMemoRoutes(app,pool,{authenticateSchoolClient,requireScho
   }catch(e){await client.query('ROLLBACK').catch(()=>{});return fail(res,e);}finally{client.release();}
  });
 }
-module.exports={registerSchoolMemoRoutes,validMemoDocument,memoViewer,canReadMemo};
+module.exports={registerSchoolMemoRoutes,validMemoDocument,memoViewer,canReadMemo,readTemporaryHours,durationDays};
