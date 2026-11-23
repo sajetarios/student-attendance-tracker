@@ -67,6 +67,124 @@ function registerFlexibleScheduleRoutes(app,pool,auth) {
    subject_name:p.alt_subject_name,start_time:p.alt_start,end_time:p.alt_end,classroom:p.alt_room
   }:null));
  };
+
+ // Read-only summary for the existing Teacher Dashboard shortcuts.
+ // Effective timetable is shared with date-specific schedule validation.
+ // This never writes attendance, DTR, SF2 or teacher assignments.
+ app.get('/api/teacher/today-overview',authenticateSchoolClient,requireSchoolRoles('TEACHER'),async(req,res)=>{
+  const schoolId=req.auth.schoolId,teacherId=req.auth.userId,date=now();
+  const localTime=new Intl.DateTimeFormat('en-GB',{
+   timeZone:'Asia/Manila',hourCycle:'h23',hour:'2-digit',minute:'2-digit'
+  }).format(new Date());
+  try {
+   const [allPeriods,calendar,conflicts,sf2] = await Promise.all([
+    queryDate(pool)(schoolId,date),
+    pool.query([
+     'SELECT e.exception_type AS type,e.title,',
+     "to_char(e.dismissal_time,'HH24:MI') AS \"dismissalTime\",",
+     "to_char(e.suspension_time,'HH24:MI') AS \"suspensionTime\",",
+     "COALESCE(array_agg(ep.period_id) FILTER(WHERE ep.period_id IS NOT NULL),'{}') AS \"periodIds\"",
+     'FROM school_calendar_exceptions e',
+     'LEFT JOIN school_calendar_exception_periods ep ON ep.school_id=e.school_id AND ep.exception_id=e.exception_id',
+     'WHERE e.school_id=$1 AND e.calendar_date=$2::date',
+     'GROUP BY e.exception_id'
+    ].join(' '),[schoolId,date]),
+    // Same accepted-QR/manual contradiction as the existing conflict review:
+    // one distinct manual mark per learner, period, and date; no gate scans.
+    pool.query([
+     'SELECT COUNT(*)::int AS total FROM manual_attendance_marks m',
+     'JOIN class_periods p ON p.school_id=m.school_id AND p.period_id=m.period_id',
+     "WHERE m.school_id=$1 AND m.school_date=$3::date AND m.status IN ('ABSENT','EXCUSED')",
+     "AND EXISTS(SELECT 1 FROM attendance_events e WHERE e.school_id=m.school_id",
+     " AND e.period_id=m.period_id AND e.student_id=m.student_id AND e.school_date=m.school_date",
+     " AND e.attendance_scope='CLASS' AND e.event_type='TIME_IN' AND e.sync_status='ACCEPTED')",
+     'AND (EXISTS(SELECT 1 FROM teacher_period_assignments ta WHERE ta.school_id=m.school_id',
+     ' AND ta.period_id=m.period_id AND ta.teacher_user_id=$2)',
+     'OR EXISTS(SELECT 1 FROM teacher_period_substitutions ts WHERE ts.school_id=m.school_id',
+     " AND ts.period_id=m.period_id AND ts.substitute_teacher_user_id=$2 AND ts.status='ACTIVE'",
+     ' AND m.school_date BETWEEN ts.start_date AND ts.end_date)',
+     'OR EXISTS(SELECT 1 FROM schedule_day_adjustments da WHERE da.school_id=m.school_id',
+     ' AND da.period_id=m.period_id AND da.teacher_user_id=$2 AND da.school_date=m.school_date)',
+     'OR EXISTS(SELECT 1 FROM class_adviser_assignments ca WHERE ca.school_id=m.school_id',
+     ' AND ca.adviser_user_id=$2 AND ca.grade_level=p.grade_level AND ca.section=p.section))'
+    ].join(' '),[schoolId,teacherId,date]),
+    pool.query([
+     'SELECT ca.grade_level AS "gradeLevel",ca.section,sub.status',
+     'FROM class_adviser_assignments ca',
+     'LEFT JOIN sf2_submissions sub ON sub.school_id=ca.school_id',
+     ' AND sub.grade_level=ca.grade_level AND sub.section=ca.section',
+     " AND sub.reporting_month=date_trunc('month',$3::date)::date AND sub.is_current=TRUE",
+     'WHERE ca.school_id=$1 AND ca.adviser_user_id=$2',
+     'ORDER BY ca.grade_level,ca.section'
+    ].join(' '),[schoolId,teacherId,date])
+   ]);
+
+   // Full-day or time-specific learner class suspension remains a school
+   // calendar exception, not an attendance/DTR event.
+   const exception=calendar.rows[0]||null;
+   const selected=new Set((exception?.periodIds||[]).map(String));
+   const affects=id=>exception&&(!selected.size||selected.has(String(id)));
+   const permitted=allPeriods.filter(p=>!p.cancelled && String(p.teacherUserId||'')===String(teacherId));
+   const scheduled=permitted.filter(p=>{
+    if(!affects(p.periodId))return true;
+    if(exception.type==='CLOSED'||exception.type==='SPECIAL_CLASS')return false;
+    if(exception.type==='CLASS_SUSPENSION')
+     return !exception.suspensionTime || p.endTime>exception.suspensionTime ? false : true;
+    if(exception.type==='SHORTENED_DAY')
+     return !exception.dismissalTime || p.endTime>exception.dismissalTime ? false : true;
+    return true;
+   }).sort((a,b)=>String(a.startTime||'').localeCompare(String(b.startTime||'')));
+
+   const next=scheduled.find(p=>p.endTime && p.endTime>localTime && p.startTime);
+   const completed=scheduled.filter(p=>p.endTime && p.endTime<=localTime);
+   const periodIds=[...new Set(completed.map(p=>p.periodId))];
+   let unsigned=0;
+   if(periodIds.length){
+    const signed=await pool.query(
+     'SELECT period_id FROM class_attendance_finalizations WHERE school_id=$1 AND school_date=$2::date AND finalized=TRUE AND period_id=ANY($3::uuid[])',
+     [schoolId,date,periodIds]);
+    const signedIds=new Set(signed.rows.map(r=>String(r.period_id)));
+    unsigned=periodIds.filter(id=>!signedIds.has(String(id))).length;
+   }
+   let scheduleMessage=next?'':'No remaining assigned teaching periods today.';
+   if(exception?.type==='CLOSED'&&permitted.some(p=>affects(p.periodId)))
+    scheduleMessage='School calendar closure today. Review the official timetable.';
+   else if(exception?.type==='CLASS_SUSPENSION'&&permitted.some(p=>affects(p.periodId)))
+    scheduleMessage=exception.suspensionTime
+     ? 'Class suspension applies from '+exception.suspensionTime+'. Check the school calendar.'
+     : 'Full-day class suspension. Review the school calendar.';
+   else if(exception?.type==='SPECIAL_CLASS'&&permitted.some(p=>affects(p.periodId)))
+    scheduleMessage='Special-class calendar change. Confirm the timetable before class.';
+   else if(exception?.type==='SHORTENED_DAY'&&permitted.some(p=>affects(p.periodId)))
+    scheduleMessage='Shortened school day. Verify the published timetable.';
+   const counts={
+    sections:sf2.rows.length,
+    submitted:sf2.rows.filter(r=>r.status==='SUBMITTED').length,
+    collected:sf2.rows.filter(r=>r.status==='COLLECTED').length,
+    notSubmitted:sf2.rows.filter(r=>!r.status).length,
+    month:date.slice(0,7)
+   };
+   return res.json({
+    asOfDate:date,
+    nextClass:next?{
+     periodId:next.periodId,subject:next.subjectName||'Class',
+     gradeLevel:next.gradeLevel,section:next.section,
+     startTime:next.startTime,endTime:next.endTime,
+     inProgress:next.startTime<=localTime
+    }:null,
+    scheduleMessage,
+    attendance:{
+     verifiedConflictsToday:Number(conflicts.rows[0]?.total||0),
+     completedUnsignedToday:unsigned
+    },
+    sf2:counts
+   });
+  }catch(err){
+   console.error('Teacher teaching overview:',err.message);
+   return res.status(500).json({error:'Today’s teaching overview is unavailable. Open the timetable or attendance register to verify details.'});
+  }
+ });
+
  app.get('/api/schedule-adjustments',authenticateSchoolClient,reader,async(req,res)=>{
   const {from,to}=req.query||{};
   if(!dateOk(from)||!dateOk(to)||from>to||(Date.parse(to)-Date.parse(from)>62*86400000))
