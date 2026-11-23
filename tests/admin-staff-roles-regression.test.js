@@ -27,13 +27,13 @@ test('School Admin keeps administration menus, not the teacher-only class attend
 });
 
 test('School Admin own attendance cannot read another staff identity', () => {
-  assert.match(server, /app\.get\('\/api\/teacher\/my-gate-attendance', authenticateSchoolClient, requireSchoolRoles\('TEACHER', 'DEPARTMENT_HEAD', 'SCHOOL_ADMIN'\)/);
+  assert.match(server, /app\.get\('\/api\/teacher\/my-gate-attendance', authenticateSchoolClient, requireSchoolRoles\('TEACHER', 'DEPARTMENT_HEAD', 'SCHOOL_ADMIN', 'PRINCIPAL'\)/);
   const ownRoute=server.slice(server.indexOf("app.get('/api/teacher/my-gate-attendance'"),server.indexOf("// Own staff QR badge:"));
   assert.match(ownRoute,/WHERE school_id=\$1 AND staff_user_id=\$2/);
   assert.match(ownRoute,/WHERE school_id=\$1 AND teacher_user_id=\$2/);
   assert.doesNotMatch(ownRoute,/req\.query\.staffUserId|req\.query\.teacherUserId/);
   assert.match(server, /\[req\.auth\.schoolId, req\.auth\.userId, from, to\]/);
-  assert.match(dtr, /requireSchoolRoles\('SCHOOL_ADMIN','DEPARTMENT_HEAD','TEACHER'\)/);
+  assert.match(dtr, /requireSchoolRoles\('SCHOOL_ADMIN','DEPARTMENT_HEAD','TEACHER','PRINCIPAL'\)/);
   assert.match(dtr, /WHERE school_id=\$1 AND staff_user_id=\$2/);
   assert.match(dtr, /\[req\.auth\.schoolId,req\.auth\.userId,date\]/);
 });
@@ -43,8 +43,8 @@ test('admin badge is self-only and never creates attendance on login', () => {
   const end = server.indexOf("// Read-only teacher gate attendance history", start);
   assert.ok(start > 0 && end > start);
   const route = server.slice(start, end);
-  assert.match(route, /requireSchoolRoles\('TEACHER','DEPARTMENT_HEAD','SCHOOL_ADMIN'\)/);
-  assert.match(route, /role IN \('TEACHER','DEPARTMENT_HEAD','SCHOOL_ADMIN'\) AND active=TRUE/);
+  assert.match(route, /requireSchoolRoles\('TEACHER','DEPARTMENT_HEAD','SCHOOL_ADMIN','PRINCIPAL'\)/);
+  assert.match(route, /role IN \('TEACHER','DEPARTMENT_HEAD','SCHOOL_ADMIN','PRINCIPAL'\) AND active=TRUE/);
   assert.match(route, /\[req\.auth\.schoolId, req\.auth\.userId\]/);
   assert.match(route, /official_profile_photos/);
   assert.match(route, /QRCode\.toDataURL/);
@@ -54,11 +54,11 @@ test('admin badge is self-only and never creates attendance on login', () => {
 });
 
 test('Gatekeeper photo verifies School Admin while keeping the four-slot DTR separate', () => {
-  assert.match(server, /role IN \('TEACHER','DEPARTMENT_HEAD','SCHOOL_ADMIN'\)/);
+  assert.match(server, /role IN \('TEACHER','DEPARTMENT_HEAD','SCHOOL_ADMIN','PRINCIPAL'\)/);
   assert.match(server, /official_profile_photos/);
   assert.match(dtr, /requireSchoolRoles\('GATE_KEEPER'\)/);
   assert.match(dtr, /req\.body\?\.photoVerified!==true/);
-  assert.match(dtr, /role IN \('TEACHER','DEPARTMENT_HEAD','SCHOOL_ADMIN'\)/);
+  assert.match(dtr, /role IN \('TEACHER','DEPARTMENT_HEAD','SCHOOL_ADMIN','PRINCIPAL'\)/);
   assert.match(dtr, /INSERT INTO staff_attendance_events/);
   assert.match(dtr, /ON CONFLICT DO NOTHING/);
   assert.match(photos, /WHERE school_id=\$1 AND user_id=\$2 AND role IN \('TEACHER','DEPARTMENT_HEAD','SCHOOL_ADMIN'\)/);
