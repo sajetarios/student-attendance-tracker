@@ -121,6 +121,6 @@ test('Teacher Recognition redesign keeps evidence source contracts and responsiv
  assert.match(js,/count\.dataset\.state=award\.entries\.length\?'active':'empty'/);
  assert.match(routes,/watchNominees/);
  assert.match(routes,/earlyArrivals/);
- assert.match(html,/principal-dashboard\.css\?v=13/);
- assert.match(html,/principal-dashboard\.js\?v=12/);
+ assert.match(html,/principal-dashboard\.css\?v=14/);
+ assert.match(html,/principal-dashboard\.js\?v=13/);
 });
