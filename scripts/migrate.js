@@ -82,7 +82,8 @@ const REQUIRED_MIGRATIONS = [
   '074_deped_leave_vsc_workflow.sql',
   '075_department_optional_for_leave_applicant.sql',
   '076_deped_sick_leave_credit_scheme.sql',
-  '077_principal_leadership_role.sql'
+  '077_principal_leadership_role.sql',
+  '078_missing_scan_department_logbook_review.sql'
 ];
 
 function checksum(content) {
