@@ -168,8 +168,19 @@ function registerStaffLeaveRoutes(app,pool,{authenticateSchoolClient,requireScho
    const scheme=await c.query('SELECT leave_scheme AS "leaveScheme" FROM staff_leave_credit_schemes WHERE school_id=$1 AND staff_user_id=$2',
      [req.auth.schoolId,req.auth.userId]);
    const filingBasis=sickFilingBasis(input.leaveType,input.startDate,input.endDate,manilaToday());
+   const verifiedScheme=scheme.rows[0]?.leaveScheme||'UNVERIFIED';
+   // Client choices are proposals, never authorization to charge a different
+   // employee leave-credit account. Enforce certified scheme server-side.
+   const permitted=verifiedScheme==='TEACHING_VSC'?['NONE','VSC']:
+    verifiedScheme==='REGULAR_VL_SL'?['NONE','VL','SL']:['NONE'];
+   if(input.leaveType!=='SICK'&&input.leaveType!=='VSC'&&
+      !['MATERNITY','PATERNITY'].includes(input.leaveType)&&
+      !permitted.includes(input.creditAccount)){
+    await c.query('ROLLBACK');
+    return res.status(409).json({error:'The selected credit account is not authorized by the HR-certified leave scheme. Refresh your application or ask HR to verify your entitlement.'});
+   }
    const creditAccount=input.leaveType==='SICK'
-    ?(sickAccountForScheme(scheme.rows[0]?.leaveScheme)||'NONE'):input.creditAccount;
+    ?(sickAccountForScheme(verifiedScheme)||'NONE'):input.creditAccount;
    const status=nextStatus(req.auth.role,heads.rowCount>0),id=randomUUID();
    await c.query('INSERT INTO staff_leave_requests(request_id,school_id,staff_user_id,department_id,leave_type,credit_account,start_date,end_date,reason,details,commutation,status,filing_basis) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13)',
     [id,req.auth.schoolId,req.auth.userId,staff.rows[0].department_id,input.leaveType,creditAccount,
