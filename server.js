@@ -48,6 +48,7 @@ const { getStaffLeaveStatus, gateVisibleLeave } = require('./staff-approved-leav
 const { registerDepartmentWorkspaceRoutes } = require('./department-workspace-routes');
 const { registerStaffGateDtrRoutes } = require('./staff-gate-dtr-routes');
 const { registerGateDtrReviewRoutes } = require('./staff-gate-dtr-review-routes');
+const { registerMissingScanRoutes } = require('./missing-scan-routes');
 const { registerForm48ReviewRoutes } = require('./form48-review-routes');
 const { registerEmployeeSecurityDirectoryRoutes } = require('./employee-security-directory-routes');
 const { registerManualAttendanceRoutes } = require('./manual-attendance-routes');
@@ -214,6 +215,7 @@ require('./principal-workspace-routes').registerPrincipalWorkspaceRoutes(app,poo
 registerDepartmentWorkspaceRoutes(app, pool, { authenticateSchoolClient, requireSchoolRoles });
 registerStaffGateDtrRoutes(app, pool, { authenticateSchoolClient, requireSchoolRoles });
 registerGateDtrReviewRoutes(app, pool, { authenticateSchoolClient, requireSchoolRoles });
+registerMissingScanRoutes(app, pool, { authenticateSchoolClient, requireSchoolRoles });
 const { registerGateOfflineRoutes } = require('./gate-offline-routes');
 registerGateOfflineRoutes(app,pool,{authenticateSchoolClient,requireSchoolRoles});
 registerForm48ReviewRoutes(app, pool, { authenticateSchoolClient, requireSchoolRoles });
