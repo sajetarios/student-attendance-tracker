@@ -52,7 +52,7 @@ test('leave requests, leave approvals and certified balances do not share author
   assert.equal(guide.match('leave credits','TEACHER')?.id,'leave-credits');
   assert.match(guide.answer('How do I review my leave status?','TEACHER').title,/leave/i);
   assert.ok(leave.includes('Leave Requests'));
-  assert.ok(leave.includes('New leave application'));
+  assert.ok(leave.includes('New Leave Request'));
   assert.ok(leave.includes('Print prefilled CSC Form No. 6'));
   assert.ok(leaveInbox.includes('Department recommendation'));
   assert.ok(leaveInbox.includes('signed by the authorized DepEd official'));

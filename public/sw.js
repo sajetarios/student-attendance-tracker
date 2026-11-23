@@ -1,4 +1,4 @@
-const CACHE = "attendigo-v337-attendance-leave-requests";
+const CACHE = "attendigo-v338-attendance-leave-help-aligned";
 
 const SHELL = [
   "/typography.css?v=1",
@@ -65,7 +65,7 @@ const SHELL = [
   "/teacher-roster-popover.js?v=2",
   "/portal.css?v=0.9.119",
   "/portal.js?v=238",
-  "/attendigo-help-topics.js?v=2",
+  "/attendigo-help-topics.js?v=3",
   "/attendigo-help-guide.js?v=4",
   "/attendigo-help.css?v=3",
   "/staff-leave-ui.js?v=11",

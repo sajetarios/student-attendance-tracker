@@ -208,12 +208,12 @@
       "bakasyon"
     ],
     "steps": [
-      "Open Leave Requests in My Attendance (School Admin: Operations), then My applications or Leave applications.",
-      "Expand New leave application. Select Type of leave and Proposed credit account, choose Start date and End date, and enter the required Reason.",
+      "Open Leave Requests in My Attendance (School Admin: Operations), then My applications.",
+      "Expand New Leave Request. Select Type of leave and the applicable account when prompted, choose Start date and End date, and enter the required Reason.",
       "Add supporting PDF, JPG or PNG documentation when needed. Submit for review; after saving, use Print prefilled CSC Form No. 6 on the request.",
       "Track the application. Department recommendation, school review and verification of an officially signed decision are separate authorized stages."
     ],
-    "note": "Teachers can view certified balances but cannot assign themselves credits or approve their own leave."
+    "note": "Teachers cannot certify leave credits or approve their own leave; verified decisions are reflected in attendance and DTR records."
   },
   {
     "id": "leave-approvals",
@@ -243,7 +243,7 @@
   },
   {
     "id": "leave-credits",
-    "title": "View or certify leave credit balances",
+    "title": "Where to check official leave credits",
     "roles": [
       "TEACHER",
       "DEPARTMENT_HEAD",
@@ -261,12 +261,12 @@
       "who sets leave credits"
     ],
     "steps": [
-      "Open Leave Requests and choose My credits (School Admin: HR credits).",
-      "Teachers and Department Heads see their own certified balance; they do not assign themselves credits.",
-      "School Admin / authorized HR personnel manage certified balances through the HR credits interface.",
-      "Report an incorrect balance to School Admin/HR for document-backed verification."
+      "The Leave Requests window is for filing and tracking leave, not viewing or awarding credits.",
+      "For an official credit balance or correction, request the certified record from authorized DepEd HR or the school's authorized personnel.",
+      "Authorized school reviewers may open Leave Approvals, then expand Official leave-record verification to document verified source records.",
+      "Only official records and separately authorized certification establish credit entitlements."
     ],
-    "note": "Proposed deductions or claims are not certified credit balances."
+    "note": "Attendigo does not itself grant or certify credits. Absence of a recorded balance must not be treated as zero credits."
   },
   {
     "id": "sf1-import",

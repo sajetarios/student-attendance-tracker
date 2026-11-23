@@ -63,7 +63,8 @@ test('only School Admin receives staff balance directory and opening import',()=
  const ui=read('public/staff-leave-ui.js'),routes=read('staff-leave-routes.js');
  assert.match(ui,/if\(user\.role==='SCHOOL_ADMIN'\)/);
  assert.match(ui,/Staff certified credit directory/);
- assert.match(ui,/if\(isHrAdmin\)/);
+ assert.match(ui,/guidance\.innerHTML=isHrAdmin/);
+ assert.match(ui,/if\(!mayReviewCredits\|\|!target\)return/);
  assert.match(routes,/School HR authorization required/);
  assert.match(routes,/wanted!==req\.auth\.userId&&req\.auth\.role!=='SCHOOL_ADMIN'/);
  assert.match(routes,/req\.auth\.userId===e\.staff_user_id/);
