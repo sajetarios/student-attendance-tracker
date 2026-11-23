@@ -1,4 +1,4 @@
-const CACHE = "attendigo-v320-gps-reading-quality";
+const CACHE = "attendigo-v321-principal-leadership";
 
 const SHELL = [
   "/typography.css?v=1",
@@ -64,6 +64,9 @@ const SHELL = [
   "/teacher-roster-popover.js?v=2",
   "/portal.css?v=0.9.119",
   "/portal.js?v=236",
+  "/principal-dashboard.js?v=1",
+  "/principal-dashboard.css?v=1",
+  "/principal-admin-account.js?v=1",
   "/attendigo-help-topics.js?v=2",
   "/attendigo-help-guide.js?v=4",
   "/attendigo-help.css?v=3",
@@ -194,7 +197,7 @@ self.addEventListener("fetch", event => {
   const isAccountPage = ['/', '/index.html', '/portal-login.html',
     '/parent-register.html', '/platform-setup.html',
     '/force-password-change.html', '/class-qr-checkin.html', '/attendance-pin.html', '/staff-lunch-checkin.html', '/class-qr-monitor.html', '/portal.html',
-    '/student-portal.html', '/parent-portal.html'].includes(url.pathname);
+    '/student-portal.html', '/parent-portal.html', '/principal.html'].includes(url.pathname);
   const credentialKey = /^(?:password|passwd|pwd|pass|currentpassword|newpassword|confirmpassword|recoverycode|setupcode|accesstoken)$/i;
   if (isAccountPage && [...url.searchParams.keys()].some(key => credentialKey.test(key))) {
     event.respondWith(Response.redirect(new URL('/portal-login.html', url.origin).href, 303));
@@ -202,7 +205,7 @@ self.addEventListener("fetch", event => {
   }
 
   // Authenticated dashboards are never served from the offline shell cache.
-  if (["/portal.html", "/class-qr-monitor.html", "/student-portal.html", "/parent-portal.html",
+  if (["/principal.html", "/portal.html", "/class-qr-monitor.html", "/student-portal.html", "/parent-portal.html",
        "/force-password-change.html", "/attendance-pin.html", "/class-qr-checkin.html", "/staff-lunch-checkin.html"].includes(url.pathname)) {
     event.respondWith(fetch(request, { cache: "no-store" }));
     return;
@@ -210,7 +213,7 @@ self.addEventListener("fetch", event => {
 
   // Authentication scripts must never remain stale across releases or domain changes.
   // They need the deployed code online, with cached copies available only offline.
-  if (['/portal-login.js', '/login-routing.js', '/student-portal.js'].includes(url.pathname)) {
+  if (['/portal-login.js', '/login-routing.js', '/student-portal.js', '/principal-dashboard.js', '/principal-admin-account.js'].includes(url.pathname)) {
     event.respondWith((async () => {
       try {
         const fresh = await fetch(request, { cache: 'no-store' });
