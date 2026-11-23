@@ -15,7 +15,7 @@ const {allowReviewer}=require('../staff-leave-policy');
 
 test('negative department recommendation closes internal routing, positive one still advances',()=>{
  assert.match(route,/step==='HEAD'\?\(decision==='REJECT'\?'DECLINED_HEAD':'PENDING_ADMIN'\):'PENDING_EXTERNAL'/);
- assert.match(route,/LEAVE_\+'\+step\+'\+_REVIEWED/);
+ assert.ok(route.includes("'LEAVE_'+step+'_REVIEWED'"));
  assert.match(route,/notifyLeaveTransition/);
  assert.match(route,/status NOT IN \(\\'REJECTED\\',\\'CANCELLED\\',\\'DECLINED_HEAD\\'\)/);
  assert.doesNotMatch(route,/decision==='REJECT'\?'REJECTED'/);
