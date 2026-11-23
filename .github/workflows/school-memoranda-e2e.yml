@@ -1,0 +1,69 @@
+name: School Memoranda end-to-end (isolated PostgreSQL)
+on:
+  push:
+    branches: [fix/render-login-landing]
+    paths:
+      - 'school-memo-routes.js'
+      - 'notification-routes.js'
+      - 'auth-middleware.js'
+      - 'migrations/079_school_memoranda.sql'
+      - 'public/school-memo*'
+      - 'public/principal.html'
+      - 'public/principal-dashboard.js'
+      - 'tests/school-memoranda*'
+      - '.github/workflows/school-memoranda-e2e.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  memorandum-e2e:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: school_attendance_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d school_attendance_test"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    env:
+      DATABASE_URL: postgres://postgres:postgres@127.0.0.1:5432/school_attendance_test
+      ATTENDIGO_PRIMARY_DATABASE: render
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci
+      - name: Check memorandum scripts and server syntax
+        run: |
+          node --check school-memo-routes.js
+          node --check public/school-memos.js
+          node --check public/school-memo-banner.js
+          node --check public/principal-dashboard.js
+          node --check tests/school-memoranda-postgres.cjs
+      - name: Prepare existing Supabase compatibility roles in disposable database
+        run: |
+          node - <<'NODE'
+          const {Client}=require('pg');
+          (async()=>{
+            const db=new Client({connectionString:process.env.DATABASE_URL});
+            await db.connect();
+            try {await db.query("DO $$ BEGIN IF NOT EXISTS(SELECT 1 FROM pg_roles WHERE rolname='anon') THEN CREATE ROLE anon; END IF; IF NOT EXISTS(SELECT 1 FROM pg_roles WHERE rolname='authenticated') THEN CREATE ROLE authenticated; END IF; END $$;");}
+            finally {await db.end();}
+          })().catch(e=>{console.error(e.message);process.exitCode=1});
+          NODE
+      - name: Apply exact production migration chain to disposable database
+        run: npm run db:migrate
+      - name: Verify memo unit and authorization rules
+        run: node --test tests/school-memoranda.test.js
+      - name: Simulate real authenticated HTTP publication across fictional roles
+        run: node tests/school-memoranda-postgres.cjs
