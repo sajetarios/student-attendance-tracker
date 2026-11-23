@@ -82,9 +82,7 @@ function registerForm48ReviewRoutes(app,pool,{authenticateSchoolClient,requireSc
     lookup(pool,req.auth.schoolId,params.staffUserId,params.month),
     pool.query('SELECT weekday FROM school_operating_days WHERE school_id=$1 AND is_operating_day=TRUE ORDER BY weekday',[req.auth.schoolId]),
     getSchoolForm48Defaults(pool,req.auth.schoolId),
-    getEmployeeForm48Schedule(pool,req.auth.schoolId,params.staffUserId),
-    pool.query("SELECT to_char(start_date,'YYYY-MM-DD') AS \"from\",to_char(end_date,'YYYY-MM-DD') AS \"to\" FROM staff_leave_requests WHERE school_id=$1 AND staff_user_id=$2 AND leave_type='SICK' AND status IN ('PENDING_HEAD','PENDING_ADMIN','PENDING_EXTERNAL') AND start_date<$4::date AND end_date>=$3::date",
-     [req.auth.schoolId,params.staffUserId,from,to])
+    getEmployeeForm48Schedule(pool,req.auth.schoolId,params.staffUserId)
    ]);
    const defaultWorkdays=days.rows.map(x=>Number(x.weekday));
    return res.json({staffUserId:params.staffUserId,month:params.month,
@@ -172,7 +170,9 @@ function registerForm48ReviewRoutes(app,pool,{authenticateSchoolClient,requireSc
      " WHERE school_id=$1 AND staff_user_id=$2 AND revoked_at IS NULL"+
      " AND start_date<$4::date AND end_date>=$3::date",
      [req.auth.schoolId,params.staffUserId,from,to]),
-    getEmployeeForm48Schedule(pool,req.auth.schoolId,params.staffUserId)
+    getEmployeeForm48Schedule(pool,req.auth.schoolId,params.staffUserId),
+    pool.query("SELECT to_char(start_date,'YYYY-MM-DD') AS \"from\",to_char(end_date,'YYYY-MM-DD') AS \"to\" FROM staff_leave_requests WHERE school_id=$1 AND staff_user_id=$2 AND leave_type='SICK' AND status IN ('PENDING_HEAD','PENDING_ADMIN','PENDING_EXTERNAL') AND start_date<$4::date AND end_date>=$3::date",
+     [req.auth.schoolId,params.staffUserId,from,to])
    ]);
    const settings=mergeSchoolForm48Defaults(rawSettings,defaults,employeeSchedule);
    const byDate=new Map();

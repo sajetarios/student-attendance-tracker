@@ -189,6 +189,7 @@ const standalonePrintCss = [
   const part=type=>format.find(p=>p.type===type)?.value||'';
   month.value=part('year')+'-'+part('month');
   const reportKey=()=>person.value+'/'+month.value;
+  let configLoad=null,configError='',configGeneration=0;
   const status=(message,error=false)=>{feedback.textContent=message;feedback.classList.toggle('is-error',error);};
   const invalidate=()=>{button.disabled=true;output.hidden=true;output.replaceChildren();state.data=null;state.analysis=null;reviewHost.hidden=true;if(summaryStrip)summaryStrip.hidden=true;if(previewToolbar)previewToolbar.hidden=true;};
   output.dataset.copyView='office';
@@ -253,25 +254,38 @@ const standalonePrintCss = [
    scheduleMessage(state.employeeSchedule?.revision>0?'Employee schedule saved (applies across months).':
     'Complete the prescribed hours, then save once for this employee.');
   };
-  const fetchConfig=async()=>{
-   const key=reportKey();
+  const fetchConfig=()=>{
+   const key=reportKey(),generation=++configGeneration;
    invalidate();state.key=key;state.review=null;state.employeeSchedule=null;
+   configError='';
    if(saveSchedule)saveSchedule.disabled=true;
    scheduleMessage('Loading employee schedule…');
    settings.hidden=!person.value||!month.value;
-   if(settings.hidden)return;
-   status('Loading report work hours and signatory draft…');
-   try{
-    const query=new URLSearchParams({staffUserId:person.value,month:month.value});
-    const [result,schedule]=await Promise.all([
-     api('/api/staff-attendance/admin/form48/config?'+query),
-     api('/api/staff-attendance/admin/form48/schedule?'+new URLSearchParams({staffUserId:person.value}))
-    ]);
-    if(key!==reportKey())return;
-    state.employeeSchedule=schedule.schedule||{revision:0};
-    populate(result);
-    status('Work hours save separately. Generate preview when ready to review the DTR.');
-   }catch(e){if(key===reportKey())status(e.message,true);}
+   if(settings.hidden)return Promise.resolve(false);
+   status('Loading report settings…');
+   const load=(async()=>{
+    try{
+     const query=new URLSearchParams({staffUserId:person.value,month:month.value});
+     const [result,schedule]=await Promise.all([
+      api('/api/staff-attendance/admin/form48/config?'+query),
+      api('/api/staff-attendance/admin/form48/schedule?'+new URLSearchParams({staffUserId:person.value}))
+     ]);
+     if(key!==reportKey()||generation!==configGeneration)return false;
+     state.employeeSchedule=schedule.schedule||{revision:0};
+     populate(result);
+     status('Ready to generate a DTR preview. Incomplete evidence remains flagged for review.');
+     return true;
+    }catch(error){
+     if(key===reportKey()&&generation===configGeneration){
+      configError=error.message;
+      status('Unable to load report settings: '+error.message+'. Select Generate preview to retry.',true);
+     }
+     return false;
+    }
+   })();
+   configLoad=load;
+   load.finally(()=>{if(configLoad===load)configLoad=null;});
+   return load;
   };
   const renderReviews=analysis=>{
    const list=(analysis.assessments||[]).filter(a=>
@@ -324,14 +338,22 @@ const standalonePrintCss = [
   async function generate(){
    if(state.loading)return;
    if(!person.value||!month.value){status('Select an employee and month.',true);return;}
-   if(!state.review){status('Load report settings before generating.',true);return;}
-   if(state.scheduleDirty||state.draftDirty){
-    status('Save your changes before generating a fresh preview.',true);return;
-   }
-   const key=reportKey();
-   state.loading=true;button.disabled=true;
-   const submit=form.querySelector('button[type=submit]');submit.disabled=true;
+   const key=reportKey(),submit=form.querySelector('button[type=submit]');
+   state.loading=true;submit.disabled=true;button.disabled=true;
    try{
+    if(!state.review||state.key!==key){
+     // Wait for a selection fetch, or recover when a mobile browser restores a
+     // selected employee without dispatching a change event.
+     const loaded=await (configLoad&&state.key===key?configLoad:fetchConfig());
+     if(key!==reportKey())return;
+     if(!loaded||!state.review){
+      status('Unable to load report settings: '+(configError||'Please check your connection')+'. Select Generate preview to retry.',true);
+      return;
+     }
+    }
+    if(state.scheduleDirty||state.draftDirty){
+     status('Save your changes before generating a fresh preview.',true);return;
+    }
     const params=new URLSearchParams({staffUserId:person.value,month:month.value});
     const [data,analysis]=await Promise.all([
      api('/api/staff-attendance/admin/form48?'+params),
@@ -356,7 +378,7 @@ const standalonePrintCss = [
     status('Draft preview · '+sum.daysAbsent+' confirmed absent'+
      (sum.timeAnomalyDays?' · '+sum.timeAnomalyDays+' unexpected time slot(s) need review':'')+
      '. Only verified punches contribute to time calculations.');
-   }catch(e){status(e.message,true);}
+   }catch(error){if(key===reportKey())status(error.message,true);}
    finally{state.loading=false;submit.disabled=false;}
   }
   if(saveSchedule){
@@ -391,6 +413,7 @@ const standalonePrintCss = [
    (data.staff||[]).forEach(s=>person.add(new Option(s.displayName+' · '+s.role.replaceAll('_',' '),s.userId)));
    window.attendigoForm48Staff=data.staff||[];
    document.dispatchEvent(new CustomEvent('attendigo:form48-staff-loaded',{detail:{staff:data.staff||[]}}));
+   if(person.value&&month.value)fetchConfig();
   }).catch(e=>status(e.message,true));
   document.addEventListener('attendigo:form48-signatories-saved',()=>{
    invalidate();
