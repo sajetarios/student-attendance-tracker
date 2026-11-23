@@ -117,8 +117,40 @@
  #staffLeaveDialog .leave-header{gap:8px}
 }
 
-#leaveNewForm fieldset{grid-column:1/-1;display:grid;grid-template-columns:inherit;gap:13px;min-width:0;margin:0;padding:12px;border:1px solid #dbe5ed;border-radius:10px}
-#leaveNewForm legend{font-weight:650;padding:0 5px}
+/* Each fieldset establishes its own tracks. Inheriting the outer form's resolved
+   columns makes the inner content wider than the fieldset padding box in Safari. */
+#staffLeaveDialog #leaveNewForm fieldset{
+ grid-column:1/-1;
+ display:grid;
+ grid-template-columns:repeat(2,minmax(0,1fr));
+ gap:13px;
+ min-width:0;
+ width:100%;
+ max-width:100%;
+ margin:0;
+ padding:12px;
+ border:1px solid #dbe5ed;
+ border-radius:10px;
+}
+#staffLeaveDialog #leaveNewForm fieldset > label{
+ width:100%;
+ min-width:0;
+ max-width:100%;
+ justify-self:stretch;
+}
+#staffLeaveDialog #leaveNewForm fieldset > label > input,
+#staffLeaveDialog #leaveNewForm fieldset > label > select,
+#staffLeaveDialog #leaveNewForm fieldset > label > textarea{
+ width:100%;
+ max-width:100%;
+ min-width:0;
+ box-sizing:border-box;
+}
+#staffLeaveDialog #leaveNewForm legend{font-weight:650;padding:0 5px}
+@media(max-width:700px){
+ #staffLeaveDialog #leaveNewForm fieldset{grid-template-columns:minmax(0,1fr)}
+ #staffLeaveDialog #leaveNewForm fieldset > label{grid-column:1/-1}
+}
 
 /* Contextual CSC Form No. 6 leave guidance: contained, readable on phones. */
 #staffLeaveDialog .leave-credit-guidance,
