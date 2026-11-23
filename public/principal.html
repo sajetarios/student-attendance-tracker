@@ -11,8 +11,8 @@
 try { const preference = localStorage.getItem('attendigo.principal.theme'); document.documentElement.dataset.theme = ['dark','light','system'].includes(preference) ? preference : 'light'; }
 catch (_) { document.documentElement.dataset.theme = 'light'; }
 </script>
-<link rel="stylesheet" href="/principal-dashboard.css?v=6">
-<script src="/principal-dashboard.js?v=5" defer></script>
+<link rel="stylesheet" href="/principal-dashboard.css?v=7">
+<script src="/principal-dashboard.js?v=6" defer></script>
 </head>
 <body>
 <a class="skip" href="#main">Skip to school overview</a>
@@ -63,20 +63,36 @@ catch (_) { document.documentElement.dataset.theme = 'light'; }
   </section>
   <p id="feedback" class="feedback" role="status" aria-live="polite">Loading verified school records…</p>
 
-  <nav class="tabs principal-nav" aria-label="Principal leadership modules">
-   <button type="button" class="tab is-active" data-section="overview" aria-pressed="true">Executive Dashboard</button>
-   <button type="button" class="tab" data-section="badge" aria-pressed="false">My QR Badge</button>
-   <button type="button" class="tab" data-section="personal" aria-pressed="false">My Personnel</button>
-   <button type="button" class="tab" data-section="priorities" aria-pressed="false">Approvals &amp; Decisions</button>
-   <button type="button" class="tab" data-section="staff" aria-pressed="false">Personnel Oversight</button>
-   <button type="button" class="tab" data-section="students" aria-pressed="false">Learners</button>
-   <button type="button" class="tab" data-section="calendar" aria-pressed="false">Calendar &amp; Timetable</button>
-   <button type="button" class="tab" data-section="security" aria-pressed="false">Gate &amp; Security</button>
-   <button type="button" class="tab" data-section="reports" aria-pressed="false">Reports</button>
-   <button type="button" class="tab" data-section="notifications" aria-pressed="false">Notifications</button>
-   <button type="button" class="tab" data-section="assistant" aria-pressed="false">AI Guide</button>
-   <button type="button" class="tab" data-section="departments" aria-pressed="false">Departments</button>
-   <button type="button" class="tab" data-section="definitions" aria-pressed="false">Metric definitions</button>
+  <nav class="principal-navigation" aria-label="Principal navigation">
+   <div class="principal-navigation-top">
+    <div class="principal-main-tabs" role="group" aria-label="School leadership sections">
+     <button type="button" class="tab is-active" data-section="overview" aria-pressed="true">Overview</button>
+     <button type="button" class="tab" data-section="priorities" aria-pressed="false">Approvals</button>
+     <button type="button" class="tab" data-section="staff" aria-pressed="false">Personnel</button>
+     <button type="button" class="tab" data-section="students" aria-pressed="false">Learners</button>
+     <button type="button" class="tab" data-section="calendar" aria-pressed="false">School Operations</button>
+     <button type="button" class="tab" data-section="reports" aria-pressed="false">Reports</button>
+    </div>
+    <div class="principal-navigation-secondary">
+     <label class="principal-menu-label" for="principalMyWorkspace"><span>My Workspace</span>
+      <select id="principalMyWorkspace" aria-label="My personal workspace">
+       <option value="">Open my workspace…</option>
+       <option value="badge">My QR badge</option>
+       <option value="personal">My attendance, requests &amp; credits</option>
+      </select>
+     </label>
+     <label class="principal-menu-label" for="principalMore"><span>More</span>
+      <select id="principalMore" aria-label="Additional principal features">
+       <option value="">More features…</option>
+       <option value="security">Gatekeeper &amp; security</option>
+       <option value="departments">Departments</option>
+       <option value="notifications">Notifications</option>
+       <option value="assistant">Help &amp; AI guide</option>
+       <option value="definitions">Metric definitions</option>
+      </select>
+     </label>
+    </div>
+   </div>
   </nav>
   <section id="badgePanel" class="panel" data-panel="badge" hidden>
    <div class="section-heading"><div><p class="eyebrow">PERSONAL IDENTITY</p><h2>My QR gate badge</h2><p>Show your personal QR badge to the Gatekeeper. Displaying the badge does not mark attendance.</p></div></div>
@@ -96,19 +112,28 @@ catch (_) { document.documentElement.dataset.theme = 'light'; }
    </div>
   </section>
   <section id="personalPanel" class="panel" data-panel="personal" hidden>
-   <div class="surface"><h3>Personal requests &amp; leave credits</h3>
+   <div class="section-heading"><div><p class="eyebrow">MY WORKSPACE</p><h2>My Attendance</h2><p>Your verified DTR and physical gate entries, with other personal records organized below.</p></div></div>
+   <div class="principal-workspace-actions">
+    <button type="button" class="refresh-button" data-jump="badge">▦ Show my QR badge</button>
+    <button type="button" class="quiet-button" id="principalRequestsShortcut">Leave, OB &amp; credits</button>
+   </div>
+   <div class="surface">
+    <div class="staff-filters"><label>School date <input type="date" id="personalDate"></label><button id="refreshPersonal" type="button" class="refresh-button">Refresh</button></div>
+    <p id="personalFeedback" class="feedback" role="status" aria-live="polite">Select a date to view your own records.</p>
+    <div id="personalSlots" class="personal-slot-grid" aria-label="Verified official DTR time slots"></div>
+    <p class="source-note principal-dtr-explainer">These are verified DTR slots only. A blank slot is not an absence finding; the applicable work schedule, approved leave/OB and pending verification must be reviewed separately.</p>
+    <h3>Verified physical gate movements</h3><div id="personalGate" class="attention-list"></div>
+    <p class="source-note">A missing DTR slot is not an absence finding. Leave and OB require established review procedures.</p>
+   </div>
+   <details id="principalPersonalRequests" class="surface principal-personal-details">
+    <summary><strong>My leave, official business &amp; credits</strong><span>View requests and certified balances</span></summary>
+   <div class="principal-compact-request-content"><h3>Requests &amp; certified credits</h3>
     <p class="source-note">Read-only status of your own requests and certified credit ledger. Principal filing and approval controls are withheld until the leave/OB policy and authorized approval route support your role.</p>
     <div class="principal-personal-grid"><div><h4>My leave requests</h4><div id="principalLeaveList" class="principal-data-list"></div></div><div><h4>My official business</h4><div id="principalObList" class="principal-data-list"></div></div></div>
     <h4>Certified leave credits</h4><div id="principalCreditsList" class="principal-data-list"></div>
    </div>
-   <div class="section-heading"><div><p class="eyebrow">PERSONAL ATTENDANCE</p><h2>My DTR &amp; verified gate records</h2><p>Only your own verified entries, without automatically inferred or fabricated attendance.</p></div></div>
-   <div class="surface">
-    <div class="staff-filters"><label>School date <input type="date" id="personalDate"></label><button id="refreshPersonal" type="button" class="refresh-button">Refresh</button></div>
-    <p id="personalFeedback" class="feedback" role="status" aria-live="polite">Select a date to view your own records.</p>
-    <div id="personalSlots" class="personal-slot-grid" aria-label="Official DTR time slots"></div>
-    <h3>Verified physical gate movements</h3><div id="personalGate" class="attention-list"></div>
-    <p class="source-note">A missing DTR slot is not an absence finding. Leave and OB require established review procedures.</p>
-   </div>
+
+   </details>
   </section>
   <section id="studentsPanel" class="panel" data-panel="students" hidden>
    <div class="section-heading"><div><p class="eyebrow">STUDENT OVERSIGHT</p><h2>Student attendance signals</h2><p>School-scoped, source-backed counts; not certified SF2 attendance.</p></div></div>
