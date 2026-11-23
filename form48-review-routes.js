@@ -179,7 +179,7 @@ function registerForm48ReviewRoutes(app,pool,{authenticateSchoolClient,requireSc
       to_char((archived_at AT TIME ZONE 'Asia/Manila')::date,'YYYY-MM-DD') AS "archivedDate",
       dtr_hours AS hours FROM school_memoranda
      WHERE school_id=$1 AND dtr_hours IS NOT NULL
-       AND audience='SCHOOL_STAFF' AND category='SCHEDULE_NOTICE'
+       AND audience IN ('ALL_USERS','SCHOOL_STAFF') AND category='SCHEDULE_NOTICE'
        AND effective_date<$3::date AND end_date>=$2::date
      ORDER BY effective_date,published_at`,[req.auth.schoolId,from,to])
    ]);
