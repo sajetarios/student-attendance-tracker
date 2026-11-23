@@ -37,6 +37,11 @@
    button.setAttribute('aria-pressed',String(selected));
   }
   for(const [key,id] of Object.entries(sectionMap))$(id).hidden=key!==name;
+  for(const id of ['principalMyWorkspace','principalMore']){
+   const select=$(id);
+   if(select)select.value=Array.from(select.options).some(o=>o.value===name)?name:'';
+  }
+  if(name==='personal')$('principalPersonalRequests').open=false;
   if(name==='staff'&&latest)$('staffSearch').focus({preventScroll:true});
   if(name==='personal')void loadPersonal();
   if(name==='notifications')void loadNotifications();
@@ -377,7 +382,8 @@
    for(const item of dtr.slots||[]){
     const card=make('div','personal-slot');
     card.append(make('span',null,ownSlotLabels[item.slot]||item.slot),
-      make('strong',null,item.status==='VERIFIED'?manilaTime(item.occurredAt):'Not recorded'));
+      make('strong',null,item.status==='VERIFIED'&&item.occurredAt?manilaTime(item.occurredAt):'No verified punch'));
+    card.title=item.status==='VERIFIED'?'Verified official DTR slot':'No verified official DTR slot in this source for the selected date; this does not establish absence.';
     slots.append(card);
    }
    const host=$('personalGate');host.replaceChildren();
@@ -388,10 +394,10 @@
     host.append(item);
    }
    if(!gate.events?.length)host.append(make('p','source-note','No verified gate movements for this date.'));
-   message.textContent='Verified personal records for '+date+' · No inferred attendance.';
+   message.textContent='Loaded verified source records for '+date+'. Unverified entries, leave and OB are not included in these DTR slots.';
   }catch(error){
    if(request!==personalRevision)return;
-   message.textContent='Unable to load personal attendance: '+errorText(error);
+   message.textContent='Attendance source unavailable — times cannot be determined. '+errorText(error);
    $('personalSlots').replaceChildren();$('personalGate').replaceChildren();
   }
  }
@@ -532,6 +538,13 @@
   $('reportDate').value=today;$('reportDate').max=today;$('reportDate').min=minDate;
   document.querySelectorAll('[data-jump]').forEach(b=>b.addEventListener('click',()=>switchSection(b.dataset.jump)));
   for(const b of buttons)b.addEventListener('click',()=>switchSection(b.dataset.section));
+  for(const id of ['principalMyWorkspace','principalMore']){
+   $(id).addEventListener('change',()=>{if(sectionMap[$(id).value])switchSection($(id).value);});
+  }
+  $('principalRequestsShortcut').addEventListener('click',()=>{
+   const details=$('principalPersonalRequests');details.open=true;
+   details.scrollIntoView({behavior:'smooth',block:'nearest'});
+  });
   $('openPriorities').addEventListener('click',()=>switchSection('priorities'));
   const presentation=$('presentationToggle');
   function setPresentation(enabled){
