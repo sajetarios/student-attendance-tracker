@@ -1,7 +1,8 @@
-const CACHE = "attendigo-v332-compact-teacher-shortcuts";
+const CACHE = "attendigo-v333-form-control-overlap-guard";
 
 const SHELL = [
   "/typography.css?v=1",
+  "/attendigo-form-overlap-guard.css?v=1",
   "/attendigo-workspace-density-theme.css?v=1",
   "/attendigo-unified-workspace.css?v=1",
   "/attendigo-unified-navigation.js?v=1",
@@ -84,8 +85,8 @@ const SHELL = [
   "/teacher-shortcuts-compact.css?v=1",
   "/teacher-dashboard-v3.js?v=1",
   "/form48-report.js?v=20",
-  "/missing-scan-ui.js?v=2",
-  "/missing-scan-ui.css?v=2",
+  "/missing-scan-ui.js?v=3",
+  "/missing-scan-ui.css?v=3",
   "/form48-intelligence.js?v=2",
   "/form48-bulk-ui.js?v=3",
   "/form48-report.css?v=16",
