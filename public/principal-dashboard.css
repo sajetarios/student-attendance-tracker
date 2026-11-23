@@ -555,3 +555,25 @@ button.priority-department-row:focus-visible,.priority-reset:focus-visible{
 :root[data-theme="dark"] .principal-early-avatar{background:#1e4b4f;color:#a5ede3}
 @media(prefers-color-scheme:dark){:root[data-theme="system"] .principal-early-avatar{background:#1e4b4f;color:#a5ede3}}
 @media(max-width:520px){.principal-early-list{grid-template-columns:1fr}.principal-early-person{padding:10px 12px}}
+
+/* Provisional teacher Watch Recognition shortlist; no automatic award */
+.principal-watch-nominees{margin:0 0 18px}
+.principal-watch-criteria{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin:13px 0}
+.principal-watch-criteria span{padding:7px 11px;border-radius:999px;border:1px solid var(--border);
+ background:var(--bg);font-size:11px;color:var(--muted)}
+.principal-watch-criteria strong{color:var(--ink)}
+.principal-watch-list{display:grid;gap:9px;margin:13px 0 16px}
+.principal-watch-person{min-width:0;display:flex;align-items:center;gap:12px;border:1px solid var(--border);
+ background:var(--bg);border-radius:12px;padding:12px 14px}
+.principal-watch-rank{width:33px;height:33px;min-width:33px;display:grid;place-items:center;
+ border-radius:10px;background:#e5f6ed;color:#1d7652;font-size:13px;font-weight:800}
+.principal-watch-person-detail{display:flex;min-width:0;flex:1;flex-direction:column;gap:3px}
+.principal-watch-person-detail strong{font-size:13px;overflow-wrap:anywhere;line-height:1.35}
+.principal-watch-person-detail span,.principal-watch-metrics span{font-size:11px;color:var(--muted)}
+.principal-watch-metrics{display:flex;flex-direction:column;text-align:right;gap:3px;white-space:nowrap}
+.principal-watch-metrics strong{font-size:13px;color:var(--primary)}
+@media(max-width:540px){.principal-watch-person{gap:9px;padding:11px}
+ .principal-watch-metrics{white-space:normal;max-width:120px}
+ .principal-watch-criteria span{font-size:11px}}
+:root[data-theme="dark"] .principal-watch-rank{background:#204b38;color:#abe7c9}
+@media(prefers-color-scheme:dark){:root[data-theme="system"] .principal-watch-rank{background:#204b38;color:#abe7c9}}
