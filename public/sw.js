@@ -1,4 +1,4 @@
-const CACHE = "attendigo-v328-mobile-class-register-memo-theme";
+const CACHE = "attendigo-v329-grounded-help-guide";
 
 const SHELL = [
   "/typography.css?v=1",
@@ -64,8 +64,8 @@ const SHELL = [
   "/teacher-roster-popover.js?v=2",
   "/portal.css?v=0.9.119",
   "/portal.js?v=236",
-  "/attendigo-help-topics.js?v=2",
-  "/attendigo-help-guide.js?v=4",
+  "/attendigo-help-topics.js?v=3",
+  "/attendigo-help-guide.js?v=5",
   "/attendigo-help.css?v=3",
   "/staff-leave-ui.js?v=10",
   "/leave-approval-inbox.js?v=1",
