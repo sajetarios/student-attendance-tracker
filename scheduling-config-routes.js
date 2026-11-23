@@ -153,10 +153,12 @@ function registerSchedulingConfigRoutes(app,pool,auth){
       const r=await pool.query(
         `SELECT e.exception_id AS "exceptionId",to_char(e.calendar_date,'YYYY-MM-DD') AS date,e.title,
           e.exception_type AS type,e.notes,to_char(e.dismissal_time,'HH24:MI') AS "dismissalTime",
+          to_char(e.suspension_time,'HH24:MI') AS "suspensionTime",e.memo_id AS "memoId",m.title AS "memoTitle",
           COALESCE(array_agg(ep.period_id) FILTER(WHERE ep.period_id IS NOT NULL),'{}') AS "periodIds",
           COALESCE(json_agg(json_build_object('periodId',p.period_id,'periodName',p.period_name,'gradeLevel',p.grade_level,'section',p.section)
             ORDER BY p.grade_level,p.section,p.start_time) FILTER(WHERE p.period_id IS NOT NULL),'[]'::json) AS schedules
          FROM school_calendar_exceptions e
+         LEFT JOIN school_memoranda m ON m.school_id=e.school_id AND m.memo_id=e.memo_id
          LEFT JOIN school_calendar_exception_periods ep ON ep.school_id=e.school_id AND ep.exception_id=e.exception_id
          LEFT JOIN class_periods p ON p.school_id=ep.school_id AND p.period_id=ep.period_id
          WHERE e.school_id=$1 AND e.calendar_date BETWEEN $2::date AND $3::date
@@ -165,10 +167,12 @@ function registerSchedulingConfigRoutes(app,pool,auth){
     }catch(e){console.error(e.message);res.status(500).json({error:'Could not load calendar exceptions.'});}
   });
   app.post('/api/scheduling-config/calendar-exceptions',authenticateSchoolClient,admin,async(req,res)=>{
-    const {date,title,type,notes=null,dismissalTime=null,periodIds=[],exceptionId=null}=req.body||{};
-    const kind=String(type||'').toUpperCase(),allowed=['CLOSED','OPEN','SPECIAL_CLASS','SHORTENED_DAY'];
+    const {date,title,type,notes=null,dismissalTime=null,suspensionTime=null,memoId=null,periodIds=[],exceptionId=null}=req.body||{};
+    const kind=String(type||'').toUpperCase(),allowed=['CLOSED','OPEN','SPECIAL_CLASS','SHORTENED_DAY','CLASS_SUSPENSION'];
     if((exceptionId!==null&&!/^([0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12})$/i.test(exceptionId))||!dateOk(date)||!date||!textOk(title)||!allowed.includes(kind)||!Array.isArray(periodIds)||periodIds.length>200||(notes!=null&&(typeof notes!=='string'||notes.length>500))||
       (kind==='SHORTENED_DAY'?!timeOk(dismissalTime):Boolean(dismissalTime))||
+      (kind==='CLASS_SUSPENSION'?(suspensionTime!=null&&suspensionTime!==''&&!timeOk(suspensionTime)||!memoId||!/^([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})$/i.test(memoId)) : Boolean(suspensionTime))||
+      (memoId!=null&&memoId!==''&&!/^([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})$/i.test(memoId))||
       (['OPEN','SPECIAL_CLASS'].includes(kind)&&!periodIds.length)||
       (!['OPEN','SPECIAL_CLASS'].includes(kind)&&periodIds.length))
       return res.status(400).json({error:'Choose a valid date and title. Additional operating and special-class days require selected schedules; shortened days require a dismissal time.'});
@@ -178,6 +182,16 @@ function registerSchedulingConfigRoutes(app,pool,auth){
     const c=await pool.connect();
     try{
       await c.query('BEGIN');
+      if(memoId){
+        const memo=await c.query(`SELECT category,audience FROM school_memoranda
+         WHERE school_id=$1 AND memo_id=$2 AND archived_at IS NULL
+           AND effective_date<=$3::date AND (end_date IS NULL OR end_date>=$3::date)`,[req.auth.schoolId,memoId,date]);
+        if(!memo.rowCount||(kind==='CLASS_SUSPENSION'&&
+            (memo.rows[0].category!=='CLASS_SUSPENSION'||memo.rows[0].audience!=='ALL_USERS'))){
+          await c.query('ROLLBACK');
+          return res.status(409).json({error:'Choose an active Principal memorandum covering this date. Learner suspensions require an all-users Class Suspension notice.'});
+        }
+      }
       if(ids.length){
         const valid=await c.query('SELECT period_id FROM class_periods WHERE school_id=$1 AND active=TRUE AND period_id=ANY($2::uuid[]) AND (effective_from IS NULL OR effective_from<=$3::date) AND (effective_to IS NULL OR effective_to>=$3::date)',[req.auth.schoolId,ids,date]);
         if(valid.rowCount!==ids.length){await c.query('ROLLBACK');return res.status(400).json({error:'One or more selected schedules are inactive, outside their effective dates, or belong to another school.'});}
@@ -185,22 +199,25 @@ function registerSchedulingConfigRoutes(app,pool,auth){
       const saved=exceptionId
         ? await c.query(
           `UPDATE school_calendar_exceptions SET calendar_date=$3::date,title=$4,exception_type=$5,notes=$6,
-             dismissal_time=$7::time,updated_at=NOW()
+             dismissal_time=$7::time,suspension_time=$8::time,memo_id=$9::uuid,updated_at=NOW()
            WHERE school_id=$1 AND exception_id=$2
            RETURNING exception_id AS "exceptionId",to_char(calendar_date,'YYYY-MM-DD') AS date,title,
             exception_type AS type,notes,to_char(dismissal_time,'HH24:MI') AS "dismissalTime"`,
-          [req.auth.schoolId,exceptionId,date,title.trim(),kind,notes,dismissalTime])
+          [req.auth.schoolId,exceptionId,date,title.trim(),kind,notes,dismissalTime,suspensionTime||null,memoId||null])
         : await c.query(
-          `INSERT INTO school_calendar_exceptions(school_id,calendar_date,title,exception_type,notes,created_by_user_id,dismissal_time)
-           VALUES($1,$2::date,$3,$4,$5,$6,$7::time)
+          `INSERT INTO school_calendar_exceptions(school_id,calendar_date,title,exception_type,notes,created_by_user_id,dismissal_time,suspension_time,memo_id)
+           VALUES($1,$2::date,$3,$4,$5,$6,$7::time,$8::time,$9::uuid)
            ON CONFLICT(school_id,calendar_date) DO UPDATE SET title=EXCLUDED.title,exception_type=EXCLUDED.exception_type,
-            notes=EXCLUDED.notes,dismissal_time=EXCLUDED.dismissal_time,updated_at=NOW()
+            notes=EXCLUDED.notes,dismissal_time=EXCLUDED.dismissal_time,suspension_time=EXCLUDED.suspension_time,memo_id=EXCLUDED.memo_id,updated_at=NOW()
            RETURNING exception_id AS "exceptionId",to_char(calendar_date,'YYYY-MM-DD') AS date,title,
             exception_type AS type,notes,to_char(dismissal_time,'HH24:MI') AS "dismissalTime"`,
-          [req.auth.schoolId,date,title.trim(),kind,notes,dismissalTime,req.auth.userId]);
+          [req.auth.schoolId,date,title.trim(),kind,notes,req.auth.userId,dismissalTime,suspensionTime||null,memoId||null]);
       if(!saved.rowCount){await c.query('ROLLBACK');return res.status(404).json({error:'Calendar exception not found.'});}
       await c.query('DELETE FROM school_calendar_exception_periods WHERE school_id=$1 AND exception_id=$2',[req.auth.schoolId,saved.rows[0].exceptionId]);
       for(const id of ids) await c.query('INSERT INTO school_calendar_exception_periods(school_id,exception_id,period_id) VALUES($1,$2,$3)',[req.auth.schoolId,saved.rows[0].exceptionId,id]);
+      await c.query(`INSERT INTO audit_logs(school_id,actor_type,actor_user_id,action,entity_type,entity_id,details)
+        VALUES($1,'SCHOOL',$2,'SAVE_CALENDAR_EXCEPTION','school_calendar_exception',$3,$4::jsonb)`,
+        [req.auth.schoolId,req.auth.userId,saved.rows[0].exceptionId,JSON.stringify({date,kind,suspensionTime:suspensionTime||null,memoId:memoId||null})]);
       await c.query('COMMIT');res.status(201).json({exception:saved.rows[0]});
     }catch(e){await c.query('ROLLBACK').catch(()=>{});console.error(e.message);res.status(e.code==='23505'?409:500).json({error:e.code==='23505'?'Another calendar exception already exists on that date.':'Could not save calendar exception.'});}
     finally{c.release();}
