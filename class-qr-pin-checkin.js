@@ -95,6 +95,7 @@ function registerQrPinCheckin(app,pool,{saveAttendance}){
    finally{db.release();}
    if(!verified)return res.status(403).json({error:genericError});
    const result=await saveAttendance(pool,s,studentId,'QR',null,null,'STUDENT_PIN');
+   if(result.suspended)return res.status(410).json({error:'Classes are suspended. QR check-in is closed; earlier records are preserved.'});
    if(result.duplicate)return res.status(409).json({error:'Attendance has already been recorded for this class.',alreadyRecorded:true});
    return res.status(201).json({ok:true,status:result.status,checkedInAt:result.checkedInAt});
   }catch(e){
