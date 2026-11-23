@@ -21,8 +21,8 @@ test('Principal dashboard never uses fake attendance or self-approval links',()=
  assert.ok(js.includes('/api/principal/overview?'));
  assert.ok(js.includes('activeStudents'));
  assert.ok(js.includes('windowPendingScans'));
- assert.ok(js.includes('selected date range'));
- assert.ok(js.includes('not an attendance rate'));
+ assert.ok(js.includes('selected dates'));
+ assert.ok(js.includes('not a student attendance rate'));
  assert.ok(css.includes('@media(max-width:720px)'));
  assert.match(server,/requireSchoolRoles\('PRINCIPAL'\)/);
  assert.match(server,/requireSchoolRoles\('SCHOOL_ADMIN'\)/);
