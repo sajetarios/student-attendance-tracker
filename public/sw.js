@@ -1,4 +1,4 @@
-const CACHE = "attendigo-v326-missing-scan-review";
+const CACHE = "attendigo-v327-principal-missing-scan-assets";
 
 const SHELL = [
   "/typography.css?v=1",
@@ -142,8 +142,8 @@ const SHELL = [
   "/password-visibility.js",
   "/portal-login.js?v=15",
   "/login-routing.js",
-  "/principal-dashboard.js?v=2",
-  "/principal-dashboard.css?v=2",
+  "/principal-dashboard.js?v=8",
+  "/principal-dashboard.css?v=9",
   "/responsive.css?v=0.8.3",
   "/comfort-ui.css?v=0.8.8",
   "/styles.css",
