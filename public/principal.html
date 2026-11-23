@@ -11,7 +11,7 @@
 try { const preference = localStorage.getItem('attendigo.principal.theme'); document.documentElement.dataset.theme = ['dark','light','system'].includes(preference) ? preference : 'light'; }
 catch (_) { document.documentElement.dataset.theme = 'light'; }
 </script>
-<link rel="stylesheet" href="/principal-dashboard.css?v=5">
+<link rel="stylesheet" href="/principal-dashboard.css?v=6">
 <script src="/principal-dashboard.js?v=5" defer></script>
 </head>
 <body>
@@ -19,8 +19,8 @@ catch (_) { document.documentElement.dataset.theme = 'light'; }
 <div class="shell">
  <header class="topbar">
   <a class="brand" href="/principal.html" aria-label="Attendigo Principal Dashboard">
-   <img src="/assets/attendigo-symbol-transparent.svg?v=2" alt="" width="40" height="40">
-   <span><strong>Attendigo</strong><small>School leadership intelligence</small></span>
+   <img src="/assets/attendigo-symbol-transparent.svg?v=5" alt="" width="44" height="44">
+   <span><strong>Attendigo</strong><small>Principal Workspace</small></span>
   </a>
   <div class="top-actions">
    <label class="theme-picker" for="themePreference">Appearance
@@ -39,9 +39,9 @@ catch (_) { document.documentElement.dataset.theme = 'light'; }
  <main id="main">
   <section class="hero">
    <div class="hero-copy">
-    <span class="eyebrow">LEADERSHIP OVERVIEW · LIVE SCHOOL RECORDS</span>
+    <span class="eyebrow">ATTENDIGO / SCHOOL LEADERSHIP</span>
     <h1 id="schoolTitle">School leadership dashboard</h1>
-    <p>See what is verified, what needs attention, and which departments need support—without guessing attendance or changing official records.</p>
+    <p>Your school at a glance—verified activity, pending decisions, and the teams that need your attention.</p>
     <div class="hero-meta">
      <span id="schoolCode">School identity loading</span>
      <span id="generatedAt" aria-live="polite">Checking current records…</span>
