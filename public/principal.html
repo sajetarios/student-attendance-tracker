@@ -11,8 +11,8 @@
 try { const preference = localStorage.getItem('attendigo.principal.theme'); document.documentElement.dataset.theme = ['dark','light','system'].includes(preference) ? preference : 'light'; }
 catch (_) { document.documentElement.dataset.theme = 'light'; }
 </script>
-<link rel="stylesheet" href="/principal-dashboard.css?v=11">
-<script src="/principal-dashboard.js?v=9" defer></script>
+<link rel="stylesheet" href="/principal-dashboard.css?v=12">
+<script src="/principal-dashboard.js?v=10" defer></script>
 </head>
 <body>
 <a class="skip" href="#main">Skip to school overview</a>
@@ -48,9 +48,9 @@ catch (_) { document.documentElement.dataset.theme = 'light'; }
     </div>
    </div>
    <div class="hero-right" aria-label="School priority">
-    <span>Requires school processing</span>
+    <span>Class coverage needs attention</span>
     <strong id="heroPending">—</strong>
-    <small>Pending leave + OB requests · all review stages</small>
+    <small>Approved leave / OB · no recorded coverage · next 7 days</small>
     <button type="button" id="openPriorities" class="light-button">Review school priorities <span aria-hidden="true">↗</span></button>
    </div>
   </section>
@@ -186,6 +186,11 @@ catch (_) { document.documentElement.dataset.theme = 'light'; }
     <div class="metric-card metric-violet"><span class="metric-icon" aria-hidden="true">▤</span><span class="metric-label">Active student records</span><strong id="activeStudentRecords">—</strong><small>All-school roster · not an attendance rate</small></div>
     <div class="metric-card metric-teal"><span class="metric-icon" aria-hidden="true">✓</span><span class="metric-label">Accepted classroom QR check-ins</span><strong id="acceptedClassCheckins">—</strong><small>Unique learners · not official SF2 total</small></div>
    </div>
+   <section class="surface principal-class-overview" aria-labelledby="principalClassOverviewHeading">
+    <div><p class="eyebrow">INSTRUCTIONAL CONTINUITY</p><h3 id="principalClassOverviewHeading">Classes still needing recorded coverage</h3>
+     <p id="principalClassOverviewStatus" role="status">Checking approved leave and OB against the next seven days of class schedules…</p></div>
+    <button type="button" class="quiet-button" data-jump="priorities">Review class coverage</button>
+   </section>
    <div class="principal-quick-links">
     <button type="button" class="quiet-button" data-jump="badge">▦ My QR badge</button>
     <button type="button" class="quiet-button" data-jump="personal">◷ My DTR &amp; gate</button>
@@ -295,10 +300,24 @@ catch (_) { document.documentElement.dataset.theme = 'light'; }
     </div>
     <p id="principalSdoAdminStatus" role="status" class="source-note"></p>
    </div>
-   <div class="surface principal-action-summary"><h3>School action inbox</h3><p>School-wide requests and verification issues requiring authorized follow-up. This view does not grant approval rights or disclose medical details.</p><p id="actionInboxSummary" aria-live="polite">Loading school action summary…</p><div id="actionInboxDepartmentSummary" class="priority-department-summary" aria-live="polite">Loading department source details…</div></div>
-   <div class="section-heading"><div><p class="eyebrow">DOCUMENTED WORKFLOWS</p><h2>Pending school actions</h2><p>Counts are from live leave, OB and lunch QR review records. The Principal cannot self-approve. School Admins can coordinate SDO submissions and record signed external decisions without becoming the approving authority.</p></div></div>
-   <div id="priorityBreakdown" class="priority-grid" aria-live="polite"></div>
-   <p class="source-note">Leave application details and medical reasons are intentionally excluded from this leadership overview. The authorized official decision remains in the existing leave workflow.</p>
+   <section class="surface principal-class-impact" aria-labelledby="principalClassImpactTitle">
+    <div class="card-heading"><div><p class="eyebrow">EXCEPTIONS ONLY · NEXT 7 DAYS</p><h2 id="principalClassImpactTitle">Classes with no recorded coverage</h2>
+      <p>Approved leave or OB affects a scheduled class and there is no documented substitute or valid timetable adjustment. Classes covered by the department are excluded automatically.</p></div>
+      <span id="principalClassImpactTotal" class="pill" aria-live="polite">Checking…</span></div>
+    <p id="principalClassImpactStatus" class="source-note" role="status" aria-live="polite">Checking current departmental coverage records…</p>
+    <div id="principalClassImpactList" class="principal-class-impact-list"></div>
+    <p class="source-note">This is a read-only oversight alert, not a leave approval, attendance finding or instruction to bypass the Department Head. Department Heads should document substitutes or adjustments in their existing schedule tools. An offline arrangement that has not been recorded cannot be verified here.</p>
+   </section>
+   <details id="principalWorkflowDetails" class="surface principal-workflow-overview">
+    <summary>Administrative leave &amp; OB stages (reference only — not class-coverage alerts)</summary>
+    <div class="principal-action-summary"><h3>Workflow status</h3>
+      <p>Routine filing and review are managed through established department and school workflows. These counts do not indicate an uncovered class and do not trigger Principal escalation.</p>
+      <p id="actionInboxSummary" aria-live="polite">Loading workflow totals…</p>
+      <div id="actionInboxDepartmentSummary" class="priority-department-summary" aria-live="polite">Loading department source details…</div></div>
+    <div class="section-heading"><div><p class="eyebrow">READ-ONLY STAGE COUNTS</p><h2>Leave, OB and other workflow stages</h2></div></div>
+    <div id="priorityBreakdown" class="priority-grid" aria-live="polite"></div>
+    <p class="source-note">Application reasons and medical information are excluded. The official approving authority and department-level permissions are unchanged.</p>
+   </details>
   </section>
 
   <section id="definitionsPanel" class="panel" data-panel="definitions" hidden>

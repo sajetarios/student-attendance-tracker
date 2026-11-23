@@ -599,3 +599,43 @@ button.priority-department-row:focus-visible,.priority-reset:focus-visible{
 .principal-recognition-note{border-top:1px solid var(--border);margin-top:13px!important;padding-top:12px}
 @media(max-width:560px){.principal-recognition{padding:15px}.principal-recognition-watch summary{align-items:flex-start}
  .principal-recognition-watch summary .pill{flex:0 0 auto}}
+
+/* Class continuity: only class periods still lacking recorded departmental coverage. */
+.principal-class-overview{
+ display:flex;gap:16px;justify-content:space-between;align-items:center;
+ margin:17px 0;min-width:0;border-left:4px solid var(--primary);
+}
+.principal-class-overview>div{flex:1;min-width:0}
+.principal-class-overview h3{font-size:17px;margin:5px 0 7px;line-height:1.3;color:var(--ink)}
+.principal-class-overview p{font-size:13px;line-height:1.55;color:var(--muted);margin:0}
+.principal-class-overview button{flex:0 0 auto;max-width:100%}
+.principal-class-impact{margin-bottom:18px}
+.principal-class-impact .card-heading{display:flex;flex-wrap:wrap;gap:14px;align-items:center;justify-content:space-between}
+.principal-class-impact .card-heading>div{flex:1 1 220px;min-width:0}
+.principal-class-impact .card-heading p:not(.eyebrow){font-size:13px;line-height:1.55;color:var(--muted);margin:6px 0 0}
+.principal-class-impact .card-heading .pill{white-space:nowrap}
+.principal-class-impact-list{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:11px;margin-top:15px;min-width:0}
+.principal-class-impact-row{min-width:0;border:1px solid var(--border);border-radius:12px;background:var(--surface);padding:15px}
+.principal-class-impact-row-head{display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:6px 13px}
+.principal-class-impact-row-head strong{font-size:14px;color:var(--ink)}
+.principal-class-impact-row-head span{font-size:12px;color:var(--muted);font-variant-numeric:tabular-nums}
+.principal-class-impact-row p{font-size:12px;margin:8px 0 11px;color:var(--muted);line-height:1.5;overflow-wrap:anywhere}
+.principal-class-impact-row-footer{display:flex;justify-content:space-between;align-items:center;gap:9px;flex-wrap:wrap}
+.principal-class-impact-department{font-size:12px;color:var(--ink);font-weight:700;min-width:0;overflow-wrap:anywhere}
+.principal-class-impact-row-footer button{min-height:38px;font-size:12px}
+.principal-class-covered{padding:14px;border:1px solid var(--border);background:var(--surface);border-radius:11px;color:var(--muted);font-size:13px;line-height:1.6;grid-column:1/-1}
+.principal-workflow-overview{margin:18px 0}
+.principal-workflow-overview>summary{cursor:pointer;font-size:14px;line-height:1.5;font-weight:750;color:var(--ink);
+ padding:4px 0;list-style-position:inside;overflow-wrap:anywhere}
+.principal-workflow-overview>summary:focus-visible{outline:3px solid var(--primary);outline-offset:4px}
+.principal-workflow-overview .principal-action-summary{padding-top:14px}
+.principal-workflow-overview .section-heading{margin-top:18px}
+@media(max-width:850px){
+ .principal-class-impact-list{grid-template-columns:minmax(0,1fr)}
+}
+@media(max-width:570px){
+ .principal-class-overview{align-items:stretch;flex-direction:column;padding:14px}
+ .principal-class-overview button{width:100%}
+ .principal-class-impact-row{padding:12px}
+ .principal-class-impact .card-heading .pill{width:max-content;max-width:100%}
+}
