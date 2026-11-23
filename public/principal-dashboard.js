@@ -999,6 +999,9 @@
    to=form.elements.namedItem('endDate'),
    apply=$('principalMemoApplyDtr'),
    required=['SCHEDULE_NOTICE','CLASS_SUSPENSION'].includes(category);
+  const audienceControl=form.elements.namedItem('audience');
+  if(category==='CLASS_SUSPENSION')audienceControl.value='ALL_USERS';
+  audienceControl.querySelector('option[value="SCHOOL_STAFF"]').disabled=category==='CLASS_SUSPENSION';
   from.required=required;to.required=required;
   to.min=from.value||'';
   apply.disabled=category!=='SCHEDULE_NOTICE';
