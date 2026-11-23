@@ -1,4 +1,4 @@
-const CACHE = "attendigo-v330-memo-period-temporary-form48";
+const CACHE = "attendigo-v331-compact-teacher-shortcuts";
 
 const SHELL = [
   "/typography.css?v=1",
@@ -81,6 +81,7 @@ const SHELL = [
   "/teacher-dashboard-v2.css?v=1",
   "/teacher-dashboard-v2.js?v=1",
   "/teacher-dashboard-v3.css?v=1",
+  "/teacher-shortcuts-compact.css?v=1",
   "/teacher-dashboard-v3.js?v=1",
   "/form48-report.js?v=20",
   "/missing-scan-ui.js?v=1",
