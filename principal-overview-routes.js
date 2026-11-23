@@ -60,7 +60,7 @@ function registerPrincipalRoutes(app,pool,{authenticateSchoolClient,requireSchoo
       FROM school_users u LEFT JOIN staff_attendance_events e
        ON e.school_id=u.school_id AND e.staff_user_id=u.user_id AND e.school_date=$2::date
        AND e.event_kind='DTR_SLOT' AND e.verification_status IN ('VERIFIED','PENDING_VERIFICATION')
-      WHERE u.school_id=$1 AND u.active=TRUE AND u.role IN ('TEACHER','DEPARTMENT_HEAD','SCHOOL_ADMIN')
+      WHERE u.school_id=$1 AND u.active=TRUE AND u.role IN ('TEACHER','DEPARTMENT_HEAD','SCHOOL_ADMIN','PRINCIPAL')
        AND ($3::uuid IS NULL OR u.department_id=$3::uuid)
       GROUP BY u.user_id)
      SELECT COUNT(*)::int AS "trackedStaff",
@@ -81,7 +81,7 @@ function registerPrincipalRoutes(app,pool,{authenticateSchoolClient,requireSchoo
      LEFT JOIN staff_attendance_events e ON e.school_id=u.school_id
       AND e.staff_user_id=u.user_id AND e.school_date=$2::date AND e.event_kind='DTR_SLOT'
       AND e.verification_status IN ('VERIFIED','PENDING_VERIFICATION')
-     WHERE u.school_id=$1 AND u.active=TRUE AND u.role IN ('TEACHER','DEPARTMENT_HEAD','SCHOOL_ADMIN')
+     WHERE u.school_id=$1 AND u.active=TRUE AND u.role IN ('TEACHER','DEPARTMENT_HEAD','SCHOOL_ADMIN','PRINCIPAL')
       AND ($3::uuid IS NULL OR u.department_id=$3::uuid)
      GROUP BY u.school_id,u.user_id,u.display_name,u.role,d.department_name
      ORDER BY "pendingSlots" DESC,"verifiedSlots" ASC,u.display_name LIMIT 200`,values),
@@ -91,7 +91,7 @@ function registerPrincipalRoutes(app,pool,{authenticateSchoolClient,requireSchoo
       COUNT(DISTINCT u.user_id) FILTER(WHERE e.verification_status='PENDING_VERIFICATION')::int AS "withPendingPunch"
      FROM school_departments d
      LEFT JOIN school_users u ON u.school_id=d.school_id AND u.department_id=d.department_id
-      AND u.active=TRUE AND u.role IN ('TEACHER','DEPARTMENT_HEAD','SCHOOL_ADMIN')
+      AND u.active=TRUE AND u.role IN ('TEACHER','DEPARTMENT_HEAD','SCHOOL_ADMIN','PRINCIPAL')
      LEFT JOIN staff_attendance_events e ON e.school_id=d.school_id AND e.staff_user_id=u.user_id
       AND e.school_date=$2::date AND e.event_kind='DTR_SLOT'
       AND e.verification_status IN ('VERIFIED','PENDING_VERIFICATION')
