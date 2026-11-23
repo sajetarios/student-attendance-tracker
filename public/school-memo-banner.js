@@ -18,6 +18,11 @@
    {timeZone:'Asia/Manila',dateStyle:'medium'}).format(d):'Date unavailable';
  };
  const state={open:false,loading:false,role:'',memoId:'',memos:[],ready:false};
+ const previews=new Map();
+ function clearPreviews(){
+  for(const url of previews.values())URL.revokeObjectURL(url);
+  previews.clear();
+ }
  let strip,panel,host,opener,refreshCount=0;
  const find=(id)=>panel?.querySelector('[data-memo-id="'+id+'"]');
  const getHost=()=>document.querySelector('#schoolWorkspace')||document.querySelector('main');
@@ -58,6 +63,7 @@
  function close(){
   if(!panel)return;
   state.open=false;panel.hidden=true;
+  clearPreviews();
   panel.querySelector('.attendigo-memo-list')?.replaceChildren();
   if(opener?.isConnected)opener.focus();
   else strip?.querySelector('button')?.focus();
@@ -70,21 +76,43 @@
   card.scrollIntoView({block:'nearest',behavior:'smooth'});
   card.querySelector('.attendigo-memo-preview-toggle')?.focus({preventScroll:true});
  }
- function preview(card,memo){
+ async function preview(card,memo){
   const existing=card.querySelector('.attendigo-memo-preview');
-  if(existing){existing.remove();return false;}
+  if(existing){
+   const uri=previews.get(existing);if(uri)URL.revokeObjectURL(uri);
+   previews.delete(existing);existing.remove();return false;
+  }
   const area=make('div','attendigo-memo-preview');
-  const description=make('p',null,'Preview of the attached memorandum. Opening a document does not acknowledge it as read.');
-  const frame=make('iframe','attendigo-memo-frame');
-  frame.title='Attachment: '+memo.title;
-  frame.src='/api/school-memos/'+encodeURIComponent(memo.memoId)+'/file';
-  frame.setAttribute('loading','lazy');
-  frame.setAttribute('referrerpolicy','no-referrer');
+  const description=make('p',null,'Preview of the attached memorandum. Viewing does not mark it read.');
+  const content=make('div','attendigo-memo-frame-loading','Loading secure attachment…');
   const download=make('a','attendigo-memo-download','Download attachment instead');
-  download.href=frame.src;download.setAttribute('download',memo.filename||'school-memorandum');
-  area.append(description,frame,download);
-  card.append(area);
-  return true;
+  const uri='/api/school-memos/'+encodeURIComponent(memo.memoId)+'/file';
+  download.href=uri;download.setAttribute('download',memo.filename||'school-memorandum');
+  area.append(description,content,download);card.append(area);
+  try{
+   const response=await fetch(uri,{credentials:'same-origin',cache:'no-store'});
+   if(!response.ok)throw Error('Attachment unavailable for this account.');
+   const kind=String(response.headers.get('content-type')||'').split(';')[0].trim();
+   if(!['application/pdf','image/png','image/jpeg'].includes(kind))
+    throw Error('Unsupported attachment format.');
+   const bytes=await response.blob();
+   if(!bytes.size||bytes.size>4194304)throw Error('Invalid attachment size.');
+   if(!area.isConnected)return false;
+   const blobUrl=URL.createObjectURL(new Blob([bytes],{type:kind}));
+   previews.set(area,blobUrl);
+   const viewer=kind==='application/pdf'?make('iframe','attendigo-memo-frame'):
+     make('img','attendigo-memo-frame attendigo-memo-image');
+   if(kind==='application/pdf'){
+    viewer.title='Attachment: '+memo.title;
+    viewer.setAttribute('loading','lazy');viewer.setAttribute('referrerpolicy','no-referrer');
+   }else viewer.alt='Attached memorandum: '+memo.title;
+   viewer.src=blobUrl;
+   content.replaceWith(viewer);
+   return true;
+  }catch(e){
+   if(area.isConnected)content.textContent=e.message+' You can download the file instead.';
+   return true;
+  }
  }
  async function markRead(memo,button){
   button.disabled=true;button.textContent='Recording…';
@@ -137,10 +165,13 @@
   const actions=make('div','attendigo-memo-actions');
   const view=make('button','attendigo-memo-preview-toggle','View attachment');
   view.type='button';view.setAttribute('aria-expanded','false');
-  view.addEventListener('click',()=>{
-   const shown=preview(record,memo);
+  view.addEventListener('click',async()=>{
+   if(view.disabled)return;
+   view.disabled=true;
+   const shown=await preview(record,memo);
    view.textContent=shown?'Hide attachment':'View attachment';
    view.setAttribute('aria-expanded',String(shown));record.setAttribute('aria-expanded',String(shown));
+   view.disabled=false;
   });
   actions.append(view);
   const ack=make('button','attendigo-memo-ack',memo.acknowledgedAt?'Acknowledged':'Mark as read');
@@ -166,7 +197,7 @@
  }
  function render(){
   const list=panel.querySelector('.attendigo-memo-list');
-  list.replaceChildren();
+  clearPreviews();list.replaceChildren();
   updateCounters();
   if(!state.memos.length){
    const empty=make('div','attendigo-memo-empty');
