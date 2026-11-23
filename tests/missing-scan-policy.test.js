@@ -44,3 +44,27 @@ test('corrected times must be chronologically consistent with verified slots',()
  assert.equal(chronological({AM_IN:'07:30',PM_IN:'13:00'},'AM_OUT','14:00'),false);
  assert.equal(chronological({PM_IN:'13:00',PM_OUT:'17:00'},'AM_IN','18:00'),false);
 });
+
+
+test('missing scan UI only offers unrecorded slots and keeps role review boundaries',()=>{
+ const fs=require('node:fs'),path=require('node:path'),vm=require('node:vm');
+ const read=name=>fs.readFileSync(path.join(__dirname,'../public',name),'utf8');
+ const ui=read('missing-scan-ui.js'),css=read('missing-scan-ui.css');
+ const portal=read('portal.html'),mobile=read('mobile-overflow-repair.css'),sw=read('sw.js');
+ assert.doesNotThrow(()=>new vm.Script(ui),'missing scan UI must parse cleanly');
+ assert.match(ui,/staff-attendance\/my\/dtr\?date=/,'check self-scoped verified DTR on date change');
+ assert.match(ui,/new Set\(order\.filter\(slot=>slotData\.get\(slot\)\?\.status==='VERIFIED'\)\)/);
+ assert.match(ui,/const available=order\.filter\(slot=>!verified\.has\(slot\)&&!blocked\.has\(slot\)\)/);
+ assert.match(ui,/verified\.has\('PM_IN'\)/,'PM Time-Out suggestion needs PM Time-In evidence');
+ assert.match(ui,/slotSelect\.value=suggestion/,'a suggestion must not replace claimed time');
+ assert.match(ui,/slotSelect\.disabled=!available\.length/,'do not offer duplicate or recorded DTR slots');
+ assert.doesNotMatch(ui,/claimedTime\.value\s*=/,'never fabricate the actual time');
+ assert.match(ui,/isHead\|\|isAdmin\?'<nav/,'single-tab teacher navigation is hidden');
+ assert.match(css,/ms-grid :is\(input,select,textarea\)/,'date and select controls must fit');
+ assert.match(css,/ms-slot-status/);
+ assert.match(css,/data-ui-theme="dark"/,'modal must honor portal dark mode');
+ assert.match(mobile,/Portal-wide action and input containment/);
+ for(const name of ['missing-scan-ui.js','missing-scan-ui.css','mobile-overflow-repair.css'])
+  assert.match(portal,new RegExp(name.replaceAll('.','\\.')+'\\?v=2'));
+ assert.match(sw,/attendigo-v331-missing-scan-responsive-slots/);
+});
