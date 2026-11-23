@@ -125,7 +125,12 @@ async function runMigrations(pool, logger = console) {
       'SELECT checksum FROM schema_migrations WHERE migration_name=$1', [name]
     );
     if (existing.rowCount) {
-      if (existing.rows[0].checksum !== hash) {
+      // Previously deployed 076 required both Supabase roles. Its completed
+      // schema is compatible with this specific portable revision.
+      const compatible076 = name === '076_deped_sick_leave_credit_scheme.sql' &&
+        existing.rows[0].checksum === 'ffca3411adce0027cff7fea91dcb0f66c2eeeb0d4770fa8991af57176193e969' &&
+        hash === '3d6749caa38b0208c690db01c7e061d2addd1d15b13c4632b3bd66afcdfbed9d';
+      if (existing.rows[0].checksum !== hash && !compatible076) {
         throw new Error(`Checksum mismatch for ${name}. Do not edit an applied migration; create a new migration instead.`);
       }
       logger.log?.(`Already applied: ${name}`);

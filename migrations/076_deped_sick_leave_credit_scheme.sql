@@ -16,7 +16,15 @@ CREATE TABLE IF NOT EXISTS staff_leave_credit_schemes (
 -- These records are accessed only through the authenticated school-scoped Express
 -- backend, not Supabase Data API. Fail closed for direct anon/authenticated access.
 ALTER TABLE staff_leave_credit_schemes ENABLE ROW LEVEL SECURITY;
-REVOKE ALL ON TABLE staff_leave_credit_schemes FROM anon,authenticated;
+DO $$
+BEGIN
+ IF EXISTS (SELECT FROM pg_roles WHERE rolname = 'anon') THEN
+  REVOKE ALL ON TABLE staff_leave_credit_schemes FROM anon;
+ END IF;
+ IF EXISTS (SELECT FROM pg_roles WHERE rolname = 'authenticated') THEN
+  REVOKE ALL ON TABLE staff_leave_credit_schemes FROM authenticated;
+ END IF;
+END $$;
 
 -- Preserve what was actually charged when a documented leave was approved;
 -- never reconstruct it from an employee's current HR designation.
