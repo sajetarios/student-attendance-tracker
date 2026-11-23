@@ -193,7 +193,7 @@ window.attendigoStaffIdentity = new Promise(resolve => { resolveStaffIdentity = 
 
   function allowedViewsForUser() {
     const role = user?.role;
-    if (role === 'SCHOOL_ADMIN') return ['dashboard', 'students', 'studentAccounts', 'parents', 'teachers', 'schedules', 'myGateAttendance', 'lunchQrAdmin', 'form48Reports', 'classQrMonitor', 'officialBusiness', 'cloudSync', 'schoolBranding'];
+    if (role === 'SCHOOL_ADMIN') return ['dashboard', 'students', 'studentAccounts', 'parents', 'teachers', 'schedules', 'myGateAttendance', 'lunchQrAdmin', 'form48Reports', 'classQrMonitor', 'offlineScanReviews', 'officialBusiness', 'cloudSync', 'schoolBranding'];
     if (role === 'DEPARTMENT_HEAD') return ['dashboard', 'planner', 'students', 'teachers', 'schedules', 'sf2', 'officialBusiness', 'myGateAttendance'];
     if (role === 'TEACHER') {
       const views = ['dashboard', 'planner', 'myGateAttendance', 'teacherLunchQr', 'officialBusiness'];
@@ -291,7 +291,7 @@ window.attendigoStaffIdentity = new Promise(resolve => { resolveStaffIdentity = 
         tab.tabIndex = active ? 0 : -1;
       });
     }
-    ['dashboard', 'students', 'studentAccounts', 'parents', 'schedules', 'teachers', 'sf2', 'classAttendance', 'classQrMonitor', 'myGateAttendance', 'lunchQrAdmin', 'teacherLunchQr', 'form48Reports', 'officialBusiness', 'cloudSync', 'schoolBranding', 'planner'].forEach(name => {
+    ['dashboard', 'students', 'studentAccounts', 'parents', 'schedules', 'teachers', 'sf2', 'offlineScanReviews', 'classAttendance', 'classQrMonitor', 'myGateAttendance', 'lunchQrAdmin', 'teacherLunchQr', 'form48Reports', 'officialBusiness', 'cloudSync', 'schoolBranding', 'planner'].forEach(name => {
       const panel = $(`${name}View`);
       if (panel) panel.hidden = name !== view;
     });
@@ -358,6 +358,7 @@ window.attendigoStaffIdentity = new Promise(resolve => { resolveStaffIdentity = 
         schoolBranding: ['School identity', 'Manage the name, logo, and interface accent color for your school workspace.'],
         lunchQrAdmin: ['Lunch QR management', 'Assign authorized lunch QR presenters without changing teacher account access.'],
         form48Reports: ['Form 48 DTR reports', 'Preview and print the verified monthly Daily Time Record for a selected staff member.'],
+        offlineScanReviews: ['Offline Scan Reviews', 'Review Gatekeeper observations captured while the scanner was offline.'],
         classQrMonitor: ['Class Attendance Monitoring', 'Monitor scheduled classes, verified student QR check-ins and audited emergency session closure.'],
         officialBusiness: ['Official Business', 'Review final OB approvals and monitor requests across the school.'],
         myGateAttendance: ['My Attendance', 'View your own Gatekeeper-verified physical movements and four-slot Form 48 DTR. Administrative login does not record attendance.']
@@ -372,6 +373,7 @@ window.attendigoStaffIdentity = new Promise(resolve => { resolveStaffIdentity = 
     if (view === 'officialBusiness') $('officialBusinessView')?.dispatchEvent(new Event('official-business:open'));
     if (view === 'dashboard' && ['TEACHER','DEPARTMENT_HEAD'].includes(role)) $('plannerView')?.dispatchEvent(new Event('planner:dashboard'));
     if (view === 'myGateAttendance' && ['TEACHER', 'DEPARTMENT_HEAD', 'SCHOOL_ADMIN'].includes(role)) loadMyGateAttendance();
+    if (view === 'offlineScanReviews' && role === 'SCHOOL_ADMIN') document.dispatchEvent(new Event('attendigo:offline-reviews-open'));
     if (view === 'classQrMonitor' && role === 'SCHOOL_ADMIN') document.dispatchEvent(new Event('attendigo:class-qr-monitor-open'));
     if (view === 'classAttendance' && role === 'TEACHER') {
       loadTeacherClassAttendance().catch(error => {

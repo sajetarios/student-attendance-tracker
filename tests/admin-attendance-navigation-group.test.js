@@ -52,7 +52,7 @@ test('Admin-only desktop density keeps mobile touch sizes and existing workflows
   assert.match(html, /data-attendigo-role="SCHOOL_ADMIN"/);
   assert.match(html, /font-size:13px!important/);
   assert.match(html, /font-size:12\.5px!important/);
-  assert.match(html, /id="offlineScanReviewsNav" href="\/gate-offline-review\.html"/);
+  assert.match(html, /id="offlineScanReviewsNav" href="\/portal\.html\?view=offlineScanReviews"/);
   assert.match(portal, /\$\('offlineScanReviewsNav'\)\.hidden = !admin/);
 });
 

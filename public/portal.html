@@ -641,6 +641,7 @@ body.dark-mode .content-wrap > .school-heading.is-compact,body[data-theme="dark"
   <link rel="stylesheet" href="/simplified-workspace.css?v=1">
   <link rel="stylesheet" href="/teacher-timetable-identities.css?v=2">
   <link rel="stylesheet" href="/attendigo-help.css?v=3">
+<link rel="stylesheet" href="/gate-offline-review.css?v=1">
 </head>
 <body class="portal-page">
   <div class="portal-layout">
@@ -704,7 +705,7 @@ body.dark-mode .content-wrap > .school-heading.is-compact,body[data-theme="dark"
           </button>
           <div class="nav-submenu" id="attendanceManagementNavChildren" data-submenu="attendanceManagement">
             <a class="nav-item" id="classQrAdminMonitorNav" data-view="classQrMonitor" hidden href="/portal.html?view=classQrMonitor" title="School-wide class attendance monitoring"><span class="nav-icon" aria-hidden="true">▤</span><span class="nav-label">Class Attendance Monitoring</span></a>
-            <a class="nav-item" id="offlineScanReviewsNav" href="/gate-offline-review.html" title="Review offline Gatekeeper scans" hidden><span class="nav-icon">▤</span><span class="nav-label">Offline Scan Reviews</span><span class="request-side-count" id="offlineScanReviewsNavBadge" hidden aria-live="polite">0</span></a>
+            <a class="nav-item" id="offlineScanReviewsNav" href="/portal.html?view=offlineScanReviews" data-view="offlineScanReviews" title="Review offline Gatekeeper scans" hidden><span class="nav-icon">▤</span><span class="nav-label">Offline Scan Reviews</span><span class="request-side-count" id="offlineScanReviewsNavBadge" hidden aria-live="polite">0</span></a>
           </div>
         </div>
         <div class="nav-group" id="operationsNavGroup" hidden>
@@ -1119,6 +1120,18 @@ body.dark-mode .content-wrap > .school-heading.is-compact,body[data-theme="dark"
             </div>
           </section>
 
+          <section id="offlineScanReviewsView" class="view-panel" aria-label="Offline Scan Reviews" hidden>
+            <div class="surface-card section-card">
+              <div class="section-toolbar">
+                <div><h2><span id="offlineReviewSummaryCount">—</span> <span id="offlineReviewSummaryLabel">Pending observations</span></h2>
+                <small id="offlineReviewSummaryMeta">Checking school observations…</small></div>
+                <button id="offlineReviewRefresh" class="outline-button" type="button">Refresh reviews</button>
+              </div>
+              <p class="review-guidance">Closing a review does not record attendance or change a DTR. Submit any correction through the existing approval workflow.</p>
+              <p id="offlineReviewMessage" role="status"></p>
+              <div id="offlineReviewRows"></div>
+            </div>
+          </section>
           <section id="classQrMonitorView" class="view-panel" aria-label="Class Attendance Monitoring" hidden>
   <div class="class-qr-monitor" id="monitorPage" hidden>
     <div class="class-qr-monitor-heading">
@@ -2437,7 +2450,8 @@ body.dark-mode .content-wrap > .school-heading.is-compact,body[data-theme="dark"
   <script src="/learner-roster-view.js?v=1" defer></script>
   <script src="/student-name-format.js?v=2" defer></script>
   <script src="/teacher-scanner-schedule.js?v=1" defer></script>
-  <script src="/portal.js?v=234" defer></script>
+  <script src="/gate-offline-review.js?v=1" defer></script>
+  <script src="/portal.js?v=235" defer></script>
   <script src="/schedule-list-filters.js?v=1" defer></script>
   <script src="/staff-lunch-ui.js?v=4" defer></script>
   <script src="/staff-ob-ui.js?v=6" defer></script>

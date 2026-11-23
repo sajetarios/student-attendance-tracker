@@ -1,4 +1,6 @@
 'use strict';
+const {assertCacheRevisionAtLeast}=require('./support/asset-contract');
+
 const test=require('node:test');
 const assert=require('node:assert/strict');
 const fs=require('node:fs');
@@ -81,12 +83,12 @@ test('Presenter entry is hidden for unassigned teachers and visible for either a
 });
 test('No new attendance routes; assets match the current cache and mobile sidebar stays scrollable',()=>{
  const css=read('attendigo-sidebar-adaptive.css');
- for(const asset of ['/portal.js?v=234','/simplified-workspace.js?v=4','/staff-leave-ui.js?v=5',
+ for(const asset of ['/portal.js?v=235','/simplified-workspace.js?v=4','/staff-leave-ui.js?v=7',
   '/staff-ob-ui.js?v=6','/attendigo-presenter-nav.js?v=1']){
   assert.ok(html.includes(asset),asset+' HTML');
   assert.ok(sw.includes('"'+asset+'"'),asset+' shell');
  }
- assert.match(sw,/attendigo-v311-responsive-login/);
+ assertCacheRevisionAtLeast(sw,311);
  assert.match(css,/-webkit-overflow-scrolling:touch/);
  assert.match(css,/overflow-y:auto/);
  assert.doesNotMatch(leave,/INSERT INTO|UPDATE staff_attendance_events|\/api\/gate\/record/);

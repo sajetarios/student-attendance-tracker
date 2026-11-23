@@ -8,14 +8,14 @@ const read = file => fs.readFileSync(file, 'utf8');
 const portal = read('public/portal.html');
 const navigation = read('public/portal.js');
 const iconMap = read('public/attendigo-unified-navigation.js');
-const review = read('public/gate-offline-review.html');
+const review = read('public/gate-offline-review.js') + portal;
 const sw = read('public/sw.js');
 
 test('offline scan reviews live under School Admin Attendance Management, not on the dashboard', () => {
   assert.match(portal, /id="attendanceManagementNavGroup" hidden/);
   assert.match(portal, /data-nav-group="attendanceManagement"/);
   assert.match(portal, /id="attendanceManagementNavChildren" data-submenu="attendanceManagement"/);
-  assert.match(portal, /id="offlineScanReviewsNav" href="\/gate-offline-review\.html"[^>]*hidden/);
+  assert.match(portal, /id="offlineScanReviewsNav" href="\/portal\.html\?view=offlineScanReviews"[^>]*hidden/);
   assert.ok(portal.indexOf('attendanceManagementNavGroup') < portal.indexOf('operationsNavGroup'));
   assert.doesNotMatch(portal, /Review offline Gatekeeper observations \(not official attendance\)/);
 });
@@ -30,8 +30,8 @@ test('review navigation is only visible for School Admin and uses the existing a
 
 test('compact review screen preserves the unverified-only safeguard and audited close workflow', () => {
   assert.match(review, /No offline scans to review/);
-  assert.match(review, /id="summaryCount"/);
-  assert.match(review, /id="summaryMeta"/);
+  assert.match(review, /id="offlineReviewSummaryCount"/);
+  assert.match(review, /id="offlineReviewSummaryMeta"/);
   assert.match(review, /Closing a review does not record attendance/);
   assert.match(review, /existing approval workflow/);
   assert.match(review, /\['REVIEW_REQUIRED','INVALID_BADGE'\]/);
@@ -42,7 +42,8 @@ test('compact review screen preserves the unverified-only safeguard and audited 
 });
 
 test('new portal navigation is versioned for the service worker', () => {
-  assertCachedAsset(portal,sw,'portal.js',{minimumVersion:213});
-  assertCachedAsset(portal,sw,'portal.js',{minimumVersion:213});
+  assertCachedAsset(portal,sw,'gate-offline-review.js',{minimumVersion:1});
+  assertCachedAsset(portal,sw,'gate-offline-review.css',{minimumVersion:1});
+  assert.match(read('public/gate-offline-review.html'), /url=\/portal\.html\?view=offlineScanReviews/);
   assertCacheRevisionAtLeast(sw,263);
 });
