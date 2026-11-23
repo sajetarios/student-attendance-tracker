@@ -76,7 +76,7 @@
   if(!data.user||!['PRINCIPAL','SCHOOL_ADMIN'].includes(data.user.role))
    throw Error('This school leadership dashboard requires a Principal or School Admin account.');
   if(data.user.role==='SCHOOL_ADMIN'){
-   $('roleBadge').textContent='School Admin preview · Read-only';
+   $('roleBadge').textContent='School Admin · SDO coordinator';
    $('adminBack').hidden=false;
   }else $('roleBadge').textContent='Principal · School oversight';
   return data.user;
@@ -445,11 +445,6 @@
     if(response.status===401){window.location.replace('/portal-login.html');return;}
     const data=await response.json().catch(()=>({}));
     if(!response.ok)throw Error(data.error||'Leadership details unavailable.');
-    showList('principalLeaveList',sectionRows(data,'personalLeave'),x=>[
-     (x.type||'Leave')+' · '+(x.status||'Unknown'),
-     String(x.startDate||'').slice(0,10)+' to '+String(x.endDate||'').slice(0,10)],'No leave requests recorded.');
-    showList('principalObList',sectionRows(data,'personalOb'),x=>[
-     x.status||'OB request',String(x.startsAt||'').slice(0,10)+' · '+String(x.purpose||'')],'No OB requests recorded.');
     showList('principalCreditsList',sectionRows(data,'leaveCredits'),x=>[
      x.account||'Credit account',String(x.balance||0)+' verified days'],'No certified credit entries available.');
     const weekdays=['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
@@ -468,7 +463,7 @@
     $('principalGatePending').textContent=pending?fmt(pending.pendingEvents):'—';
     $('principalSecurityStatus').textContent='Selected school date '+data.date+' · verified source data only';
    }catch(err){
-    for(const id of ['principalLeaveList','principalObList','principalCreditsList','principalOperatingDays','principalCalendarEvents']){
+    for(const id of ['principalCreditsList','principalOperatingDays','principalCalendarEvents']){
      $(id).textContent='Source currently unavailable. '+errorText(err);
     }
     $('principalCalendarStatus').textContent='School calendar unavailable.';
