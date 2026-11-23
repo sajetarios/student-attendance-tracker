@@ -280,3 +280,114 @@ html[data-ui-theme="dark"] #recentActivityCard .table-scroll{
 html[data-ui-theme="dark"] #recentActivityCard .table-scroll::-webkit-scrollbar-thumb{
   background:#567493;
 }
+
+/* Compact teacher dashboard activity feed (presentation only).
+   Keep reconciled Manual/QR row data and sign-off logic untouched. */
+html.attendigo-teacher-v2 #dashboardView,
+html.attendigo-teacher-v3 #dashboardView{
+  width:100%;max-width:none;min-width:0;
+}
+html.attendigo-teacher-v2 #dashboardView>.dashboard-columns,
+html.attendigo-teacher-v3 #dashboardView>.dashboard-columns{
+  width:100%;max-width:none;min-width:0;
+  display:grid;grid-template-columns:minmax(0,1.45fr) minmax(275px,1fr);
+  gap:14px;align-items:start;
+}
+html.attendigo-teacher-v2 #dashboardView>.dashboard-columns>*,
+html.attendigo-teacher-v3 #dashboardView>.dashboard-columns>*{min-width:0;max-width:100%}
+html.attendigo-teacher-v2 #recentActivityCard,
+html.attendigo-teacher-v3 #recentActivityCard{min-width:0;min-height:0;padding:15px!important}
+html.attendigo-teacher-v2 #recentActivityCard .table-scroll,
+html.attendigo-teacher-v3 #recentActivityCard .table-scroll{
+  width:100%;max-width:100%;max-height:min(440px,55dvh)!important;
+  overflow-x:auto!important;overflow-y:auto!important;
+  overscroll-behavior:contain;-webkit-overflow-scrolling:touch;
+  scrollbar-width:thin;scrollbar-color:#9db3c8 transparent;
+  border:1px solid var(--recent-border)!important;border-radius:11px!important;
+}
+html.attendigo-teacher-v2 #recentActivityCard .card-heading,
+html.attendigo-teacher-v3 #recentActivityCard .card-heading{
+  margin-bottom:11px;align-items:flex-start;
+}
+html.attendigo-teacher-v2 #quickActionsCard,
+html.attendigo-teacher-v3 #quickActionsCard{align-self:start;min-width:0}
+@container (max-width:710px){
+  #recentActivityCard .table-scroll,
+  html.attendigo-teacher-v2 #recentActivityCard .table-scroll,
+  html.attendigo-teacher-v3 #recentActivityCard .table-scroll{
+    max-height:min(440px,55dvh)!important;
+    overflow-x:hidden!important;overflow-y:auto!important;
+    border:1px solid var(--recent-border)!important;
+    border-radius:11px!important;
+    padding:7px;
+  }
+  #recentActivityCard tbody{display:grid;gap:7px}
+  #recentActivityCard tbody tr.recent-unified-row{
+    display:grid;
+    grid-template-columns:minmax(0,1fr) minmax(95px,max-content);
+    grid-template-rows:auto auto auto;
+    gap:5px 10px;align-items:center;
+    padding:10px 11px;margin:0;border-radius:10px;
+  }
+  #recentActivityCard tbody tr.recent-unified-row td{
+    font-size:11px;line-height:1.35;min-width:0;
+    padding:0!important;border:0!important;
+    overflow-wrap:anywhere;
+  }
+  #recentActivityCard tbody tr.recent-unified-row td::before{display:none!important}
+  #recentActivityCard tbody tr.recent-unified-row td:nth-child(1){
+    grid-column:1!important;grid-row:1;
+  }
+  #recentActivityCard tbody tr.recent-unified-row td:nth-child(1) strong{
+    font-size:13px;line-height:1.3;font-weight:750;
+  }
+  #recentActivityCard tbody tr.recent-unified-row td:nth-child(2){
+    grid-column:1!important;grid-row:2;
+    border:0!important;padding:0!important;
+  }
+  #recentActivityCard tbody tr.recent-unified-row td:nth-child(2) strong{
+    font-size:11.5px;line-height:1.25;
+  }
+  #recentActivityCard tbody tr.recent-unified-row td:nth-child(2) small{
+    margin-top:1px;font-size:10px;line-height:1.25;
+  }
+  #recentActivityCard tbody tr.recent-unified-row td:nth-child(3){
+    grid-column:1!important;grid-row:3;
+    font-size:10.5px;color:var(--recent-muted);
+  }
+  #recentActivityCard tbody tr.recent-unified-row td:nth-child(4){
+    grid-column:2!important;grid-row:1;text-align:right;
+  }
+  #recentActivityCard tbody tr.recent-unified-row td:nth-child(5){
+    grid-column:2!important;grid-row:2;text-align:right;
+  }
+  #recentActivityCard tbody tr.recent-unified-row td:nth-child(6){
+    grid-column:2!important;grid-row:3;
+    text-align:right;font-size:11px;font-variant-numeric:tabular-nums;
+  }
+  #recentActivityCard tbody tr.recent-unified-row td:nth-child(6) small{
+    display:block;font-size:9.5px;margin-top:0;
+  }
+  #recentActivityCard .recent-status,
+  #recentActivityCard .recent-source{
+    padding:3px 8px;font-size:10.5px;line-height:1.3;
+  }
+  #recentActivityCard .recent-conflict-note{
+    text-align:right;font-size:10px;line-height:1.3;
+  }
+  #recentActivityCard tbody tr.recent-empty-row td{
+    padding:20px 13px!important;
+  }
+}
+@media(max-width:1120px){
+  html.attendigo-teacher-v2 #dashboardView>.dashboard-columns,
+  html.attendigo-teacher-v3 #dashboardView>.dashboard-columns{
+    grid-template-columns:minmax(0,1fr);
+  }
+}
+@media(max-width:560px){
+  html.attendigo-teacher-v2 #recentActivityCard,
+  html.attendigo-teacher-v3 #recentActivityCard{padding:12px!important}
+  #recentActivityCard .table-scroll{max-height:min(390px,55dvh)!important}
+  #recentActivityCard tbody tr.recent-unified-row{padding:9px}
+}
