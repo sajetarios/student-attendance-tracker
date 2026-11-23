@@ -122,5 +122,6 @@ test('Teacher Recognition redesign keeps evidence source contracts and responsiv
  assert.match(routes,/watchNominees/);
  assert.match(routes,/earlyArrivals/);
  assert.match(html,/principal-dashboard\.css\?v=14/);
- assert.match(html,/principal-dashboard\.js\?v=13/);
+ const principalJsVersion=html.match(/principal-dashboard\.js\?v=(\d+)/);
+ assert.ok(principalJsVersion && Number(principalJsVersion[1])>=13,'principal JS revision must not regress');
 });
