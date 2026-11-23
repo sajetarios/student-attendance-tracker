@@ -163,9 +163,8 @@ catch (_) { document.documentElement.dataset.theme = 'light'; }
      <div class="section-toolbar"><h4>Application tracking</h4><button id="principalRefreshSdo" class="quiet-button" type="button">Refresh requests</button></div>
      <div id="principalSdoRequestList" class="principal-data-list" aria-live="polite">Loading requests…</div>
     </div>
-    <p class="source-note">Read-only status of your own requests and certified credit ledger. Principal filing and approval controls are withheld until the leave/OB policy and authorized approval route support your role.</p>
-    <div class="principal-personal-grid"><div><h4>My leave requests</h4><div id="principalLeaveList" class="principal-data-list"></div></div><div><h4>My official business</h4><div id="principalObList" class="principal-data-list"></div></div></div>
-    <h4>Certified leave credits</h4><div id="principalCreditsList" class="principal-data-list"></div>
+    <p class="source-note">The SDO's official decision controls the request. The School Admin records submissions and signed evidence; no self-approval is available.</p>
+    <h4>HR-certified leave credits (read-only)</h4><div id="principalCreditsList" class="principal-data-list"></div>
    </div>
 
    </details>
@@ -267,7 +266,7 @@ catch (_) { document.documentElement.dataset.theme = 'light'; }
     <p id="principalSdoAdminStatus" role="status" class="source-note"></p>
    </div>
    <div class="surface principal-action-summary"><h3>School action inbox</h3><p>School-wide requests and verification issues requiring authorized follow-up. This view does not grant approval rights or disclose medical details.</p><p id="actionInboxSummary" aria-live="polite">Loading school action summary…</p></div>
-   <div class="section-heading"><div><p class="eyebrow">DOCUMENTED WORKFLOWS</p><h2>Pending school actions</h2><p>Counts are from live leave, OB and lunch QR review records. The Principal dashboard does not issue approvals or edit official records.</p></div></div>
+   <div class="section-heading"><div><p class="eyebrow">DOCUMENTED WORKFLOWS</p><h2>Pending school actions</h2><p>Counts are from live leave, OB and lunch QR review records. The Principal cannot self-approve. School Admins can coordinate SDO submissions and record signed external decisions without becoming the approving authority.</p></div></div>
    <div id="priorityBreakdown" class="priority-grid" aria-live="polite"></div>
    <p class="source-note">Leave application details and medical reasons are intentionally excluded from this leadership overview. The authorized official decision remains in the existing leave workflow.</p>
   </section>
