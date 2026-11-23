@@ -64,7 +64,35 @@ test('missing scan UI only offers unrecorded slots and keeps role review boundar
  assert.match(css,/ms-slot-status/);
  assert.match(css,/data-ui-theme="dark"/,'modal must honor portal dark mode');
  assert.match(mobile,/Portal-wide action and input containment/);
- for(const name of ['missing-scan-ui.js','missing-scan-ui.css','mobile-overflow-repair.css'])
-  assert.match(portal,new RegExp(name.replaceAll('.','\\.')+'\\?v=2'));
+ for(const name of ['missing-scan-ui.js','missing-scan-ui.css'])
+  assert.ok(portal.includes(name+'?v=3'),name+' must be refreshed');
+ assert.ok(portal.includes('mobile-overflow-repair.css?v=2'));
  assert.ok(Number(sw.match(/attendigo-v(\d+)-/)?.[1])>=331,'PWA cache must include the new UI assets');
+});
+
+test('all signed-in portals contain form controls and missing scan fields cannot overlap',()=>{
+ const fs=require('node:fs'),path=require('node:path');
+ const read=name=>fs.readFileSync(path.join(__dirname,'../public',name),'utf8');
+ const css=read('attendigo-form-overlap-guard.css');
+ const modal=read('missing-scan-ui.css');
+ const sw=read('sw.js');
+ for(const page of ['portal.html','student-portal.html','parent-portal.html','principal.html']){
+  const html=read(page);
+  assert.ok(html.includes('/attendigo-form-overlap-guard.css?v=1'),page+' must load the shared guard');
+  assert.equal(html.split('/attendigo-form-overlap-guard.css?v=1').length-1,1);
+  assert.ok(html.indexOf('attendigo-form-overlap-guard.css?v=1')<html.indexOf('</head>'));
+ }
+ assert.match(css,/body:has\(> \.shell\)/,'principal workspace must be covered');
+ assert.match(css,/body\.portal-page/,'staff, parent, student pages must be covered');
+ assert.match(css,/min-inline-size:0!important/,'native date controls must be able to shrink');
+ assert.match(css,/max-inline-size:100%!important/,'native controls must not overrun their owners');
+ assert.match(css,/box-sizing:border-box!important/);
+ assert.match(css,/flex-wrap:wrap/,'actions must wrap when screen space is limited');
+ assert.match(css,/@media screen/,'paper Form 48 and SF2 layouts must remain untouched');
+ assert.match(modal,/\.ms-new \.ms-create-grid\{\s*display:grid!important;\s*grid-template-columns:minmax\(0,1fr\)!important/);
+ assert.match(modal,/\.ms-create-grid > :is\(label,\.ms-slot-status\)/);
+ assert.match(modal,/grid-column:1 \/ -1!important/);
+ assert.match(modal,/\.ms-create-grid select\{/);
+ assert.match(sw,/attendigo-form-overlap-guard\.css\?v=1/);
+ assert.match(sw,/missing-scan-ui\.css\?v=3/);
 });
