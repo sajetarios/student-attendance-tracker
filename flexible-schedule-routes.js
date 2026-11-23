@@ -86,7 +86,7 @@ function registerFlexibleScheduleRoutes(app,pool,auth) {
      'FROM school_calendar_exceptions e',
      'LEFT JOIN school_calendar_exception_periods ep ON ep.school_id=e.school_id AND ep.exception_id=e.exception_id',
      'WHERE e.school_id=$1 AND e.calendar_date=$2::date',
-     'GROUP BY e.exception_id'
+     'GROUP BY e.exception_id,e.exception_type,e.title,e.dismissal_time,e.suspension_time'
     ].join(' '),[schoolId,date]),
     // Same accepted-QR/manual contradiction as the existing conflict review:
     // one distinct manual mark per learner, period, and date; no gate scans.
