@@ -1,6 +1,7 @@
 'use strict';
 const express=require('express');
 const {validHours}=require('./form48-calculations');
+const {manilaDate}=require('./staff-lunch-routes');
 const {createHash}=require('node:crypto');
 const UUID=/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const CATEGORIES=new Set(['GENERAL','SCHOOL_ADVISORY','SCHEDULE_NOTICE','CLASS_SUSPENSION']);
@@ -105,10 +106,10 @@ function registerSchoolMemoRoutes(app,pool,{authenticateSchoolClient,requireScho
    (date&&!validDate(date))||(endDate&&(!validDate(endDate)||!date||endDate<date))||
    (['SCHEDULE_NOTICE','CLASS_SUSPENSION'].includes(category)&&(!date||!endDate))||
    (dtrRequested&&(!dtrHours||category!=='SCHEDULE_NOTICE'||audience!=='SCHOOL_STAFF'||
-       !date||!endDate||durationDays(date,endDate)>30))||
+       !date||!endDate||date<manilaDate()||durationDays(date,endDate)>30))||
    (!dtrRequested&&req.headers['x-memo-dtr-hours'])||
    !filename||!validMemoDocument(req.body,type))
-   return res.status(400).json({error:'Provide a valid signed memorandum, effective start/end dates for temporary notices, and four chronological DTR hours when adjustment is enabled (maximum 31 days, school personnel only).'});
+   return res.status(400).json({error:'Provide a valid signed memorandum, effective start/end dates for temporary notices, and four chronological DTR hours when adjustment is enabled (start today or later; maximum 31 days, school personnel only).'});
   const client=await pool.connect();
   try{
    await client.query('BEGIN');
