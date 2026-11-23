@@ -228,6 +228,7 @@ registerSardoRoutes(app, pool, { authenticateSchoolClient, requireSchoolRoles })
 registerPhotoRoutes(app, pool, { authenticateSchoolClient });
 registerPlatformPhotoRoutes(app, pool, { authenticatePlatform, requirePlatformAdmin });
 registerNotificationRoutes(app, pool, { authenticateSchoolClient, authenticatePlatform });
+require('./school-memo-routes').registerSchoolMemoRoutes(app,pool,{authenticateSchoolClient,requireSchoolRoles});
 const { registerStudentManagementRoutes } = require('./student-management-routes');
 const { registerSf1ImportRoutes } = require('./sf1-import-routes');
 registerStudentManagementRoutes(app, pool, { authenticateSchoolClient, requireSchoolRoles });
