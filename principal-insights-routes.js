@@ -53,7 +53,7 @@ function registerPrincipalInsightsRoutes(app,pool,{authenticateSchoolClient,requ
       FROM attendance_events
       WHERE school_id=$1 AND school_date BETWEEN $2::date AND $3::date
        AND attendance_scope='SCHOOL' AND event_type='TIME_IN'
-       AND sync_status='ACCEPTED'`,args),
+       AND sync_status='ACCEPTED'`,args.slice(0,3)),
     pool.query(`SELECT
       COUNT(*) FILTER (WHERE status='PENDING_HEAD')::int AS head,
       COUNT(*) FILTER (WHERE status='PENDING_ADMIN')::int AS school,
