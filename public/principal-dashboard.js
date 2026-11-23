@@ -234,9 +234,67 @@
    host.append(card);
   }
  }
+ function renderBriefing(data){
+  const host=$('briefingActions'),summary=$('briefingSummary'),scope=$('briefingScope');
+  if(!host||!summary||!scope)return;
+  host.replaceChildren();
+  const m=data.metrics||{},a=data.approvals||{},loc=data.locationSetup||{};
+  const pendingDtr=numeric(m.pendingDtrSlots);
+  const openRequests=numeric(a.totalPending);
+  const totalDepartments=numeric(loc.total),approvedDepartments=numeric(loc.approved);
+  const unapprovedDepartments=Math.max(0,totalDepartments-approvedDepartments);
+  const dept=data.departmentId?($('departmentFilter').selectedOptions?.[0]?.textContent||'Selected department'):'All departments';
+  scope.textContent=dept+' · '+data.schoolDate;
+  summary.textContent='For '+data.schoolDate+', '+fmt(m.verifiedDtrSlots)+
+   ' verified staff DTR slot entries and '+fmt(m.pendingDtrSlots)+
+   ' pending DTR slot entries were recorded in this scope. No employee absence or punctuality is inferred.';
+  const items=[
+   {
+    icon:'◷',name:'Attendance evidence',value:fmt(pendingDtr)+' pending',
+    text:pendingDtr? 'Review the original evidence before accepting DTR slots.':
+      'No unverified DTR slots are recorded for this date. This does not establish full attendance.',
+    action:'Inspect DTR',kind:pendingDtr?'attention':'stable',
+    click:()=>{$('staffStatus').value=pendingDtr?'pending':'all';switchSection('staff');renderStaff();}
+   },
+   {
+    icon:'▤',name:'Decisions and requests',value:fmt(openRequests)+' open',
+    text:openRequests?'Leave and OB requests still have workflow steps outstanding.':
+      'No pending leave or OB workflows were returned for this scope.',
+    action:'Inspect stages',kind:openRequests?'attention':'stable',click:()=>switchSection('priorities')
+   },
+   {
+    icon:'⌖',name:'Department QR readiness',value:fmt(approvedDepartments)+' / '+fmt(totalDepartments),
+    text:totalDepartments===0?'No active department locations are available for comparison.':
+     unapprovedDepartments?
+      fmt(unapprovedDepartments)+' department location(s) lack an approved QR check-in point.':
+      'All returned department locations have approved QR check-in points.',
+    action:'Explore departments',kind:unapprovedDepartments?'attention':'stable',
+    click:()=>switchSection('departments')
+   },
+   {
+    icon:'✓',name:'Learner scan activity',value:fmt(m.acceptedClassCheckins)+' learners',
+    text:'Unique learners with an accepted classroom QR Time-In on the selected school date. This is not the official SF2 attendance count.',
+    action:'Understand measure',kind:'neutral',click:()=>switchSection('definitions')
+   }
+  ];
+  for(const item of items){
+   const button=make('button','briefing-item briefing-'+item.kind);
+   button.type='button';
+   const heading=make('span','briefing-item-head');
+   heading.append(make('span','briefing-item-icon',item.icon),
+    make('strong',null,item.name));
+   const count=make('span','briefing-item-value',item.value);
+   const description=make('span','briefing-item-description',item.text);
+   const action=make('span','briefing-item-link',item.action+' ↗');
+   button.append(heading,count,description,action);
+   button.setAttribute('aria-label',item.name+': '+item.value+'. '+item.text+' '+item.action);
+   button.addEventListener('click',item.click);
+   host.append(button);
+  }
+ }
  function render(data){
   latest=data;applyDepartmentOptions(data);applyMetrics(data);renderTrend(data);
-  renderAttention(data);renderDepartments(data);renderStaff();renderPriorities(data);renderDefinitions(data);
+  renderAttention(data);renderDepartments(data);renderStaff();renderPriorities(data);renderDefinitions(data);renderBriefing(data);
   const scope=data.departmentId?($('departmentFilter').selectedOptions?.[0]?.textContent||'Selected department'):'All departments';
   status('Live report · '+scope+' · '+data.schoolDate+' · verified source records only','success');
  }
@@ -278,6 +336,21 @@
   document.querySelectorAll('[data-jump]').forEach(b=>b.addEventListener('click',()=>switchSection(b.dataset.jump)));
   for(const b of buttons)b.addEventListener('click',()=>switchSection(b.dataset.section));
   $('openPriorities').addEventListener('click',()=>switchSection('priorities'));
+  const presentation=$('presentationToggle');
+  function setPresentation(enabled){
+   document.body.classList.toggle('principal-presentation',enabled);
+   if(presentation){
+    presentation.setAttribute('aria-pressed',String(enabled));
+    presentation.textContent=enabled?'✕ Exit presentation':'▣ Present dashboard';
+    presentation.title=enabled?'Exit presentation mode':'Enter larger-text presentation mode';
+   }
+  }
+  if(presentation)presentation.addEventListener('click',()=>setPresentation(
+   !document.body.classList.contains('principal-presentation')));
+  document.addEventListener('keydown',event=>{
+   if(event.key==='Escape'&&document.body.classList.contains('principal-presentation'))
+    setPresentation(false);
+  });
   $('refreshDashboard').addEventListener('click',()=>void load());
   for(const id of ['reportDate','departmentFilter','periodFilter'])$(id).addEventListener('change',()=>void load());
   for(const id of ['staffSearch','staffStatus'])$(id).addEventListener(id==='staffSearch'?'input':'change',renderStaff);
