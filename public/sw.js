@@ -1,4 +1,4 @@
-const CACHE = "attendigo-v338-attendance-leave-help-aligned";
+const CACHE = "attendigo-v339-teacher-overview-deduplicated";
 
 const SHELL = [
   "/typography.css?v=1",
@@ -83,9 +83,9 @@ const SHELL = [
   "/teacher-dashboard-v2.js?v=1",
   "/teacher-dashboard-v3.css?v=1",
   "/teacher-shortcuts-compact.css?v=1",
-  "/teacher-teaching-overview.css?v=1",
+  "/teacher-teaching-overview.css?v=2",
   "/teacher-dashboard-v3.js?v=1",
-  "/teacher-teaching-overview.js?v=1",
+  "/teacher-teaching-overview.js?v=2",
   "/form48-report.js?v=20",
   "/missing-scan-ui.js?v=3",
   "/missing-scan-ui.css?v=3",
