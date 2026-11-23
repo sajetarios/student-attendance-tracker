@@ -74,12 +74,12 @@ function registerFlexibleScheduleRoutes(app,pool,auth) {
   try {
    const sql=[
     'SELECT a.adjustment_id AS "adjustmentId",a.period_id AS "periodId",to_char(a.school_date,\'YYYY-MM-DD\') AS date,',
-    'a.adjustment_type AS type,a.teacher_user_id AS "teacherUserId",t.display_name AS "teacherName",',
-    'a.subject_id AS "subjectId",sub.subject_name AS "subjectName",sub.department_id AS "subjectDepartmentId",',
+    'a.adjustment_type AS type,a.teacher_user_id AS "teacherUserId",t.display_name AS "teacherName",a.memo_id AS "memoId",m.title AS "memoTitle",',    'a.subject_id AS "subjectId",sub.subject_name AS "subjectName",sub.department_id AS "subjectDepartmentId",',
     'to_char(a.start_time,\'HH24:MI\') AS "startTime",to_char(a.end_time,\'HH24:MI\') AS "endTime",',
     'a.classroom,a.reason_type AS reason,a.notes,p.grade_level AS "gradeLevel",p.section,p.department_id AS "departmentId"',
     'FROM schedule_day_adjustments a JOIN class_periods p ON p.school_id=a.school_id AND p.period_id=a.period_id',
     'LEFT JOIN school_users t ON t.school_id=a.school_id AND t.user_id=a.teacher_user_id',
+    'LEFT JOIN school_memoranda m ON m.school_id=a.school_id AND m.memo_id=a.memo_id',
     'LEFT JOIN school_subjects sub ON sub.school_id=a.school_id AND sub.subject_id=a.subject_id',
     'WHERE a.school_id=$1 AND a.school_date BETWEEN $2::date AND $3::date',
     'AND ($4::boolean=FALSE OR a.teacher_user_id=$5::uuid',
@@ -95,10 +95,10 @@ function registerFlexibleScheduleRoutes(app,pool,auth) {
  app.post('/api/schedule-adjustments',authenticateSchoolClient,manager,async(req,res)=>{
   const b=req.body||{},dates=eachDate(b.startDate,b.endDate||b.startDate),type=b.type,reason=b.reason;
   const types=['SUBSTITUTE','REPLACE','RESCHEDULE','CANCEL'],reasons=['SEMINAR','TRAINING','EXAMINATION','SPECIAL_ACTIVITY','LEAVE','OTHER'];
-  const teacherId=b.teacherUserId||null,subjectId=b.subjectId||null,
+  const memoId=b.memoId||null,teacherId=b.teacherUserId||null,subjectId=b.subjectId||null,
    start=b.startTime||null,end=b.endTime||null,room=b.classroom==null?null:String(b.classroom).trim(),
    notes=b.notes==null?null:String(b.notes).trim();
-  if(!uuidOk(b.periodId)||!dates||!types.includes(type)||!reasons.includes(reason))
+  if(!uuidOk(b.periodId)||(memoId&&!uuidOk(memoId))||!dates||!types.includes(type)||!reasons.includes(reason))
    return res.status(400).json({error:'Choose a class, change, reason and date range of up to 31 days.'});
   if(dates.some(date=>date<now()))return res.status(409).json({error:'Past class schedules cannot be changed.'});
   if((teacherId&&!uuidOk(teacherId))||(subjectId&&!uuidOk(subjectId))||
@@ -165,8 +165,15 @@ function registerFlexibleScheduleRoutes(app,pool,auth) {
     if(base.effective_from&&iso(base.effective_from)>date||base.effective_to&&iso(base.effective_to)<date){
      continue; // Days outside the class's effective range are not altered.
     }
-    const cal=await c.query('SELECT exception_type FROM school_calendar_exceptions WHERE school_id=$1 AND calendar_date=$2::date',[req.auth.schoolId,date]);
-    if(cal.rows[0]?.exception_type==='CLOSED')continue; // A closure already means no class meets.
+    const cal=await c.query("SELECT exception_type,to_char(suspension_time,'HH24:MI') AS suspension_time FROM school_calendar_exceptions WHERE school_id=$1 AND calendar_date=$2::date",[req.auth.schoolId,date]);
+    if(cal.rows[0]?.exception_type==='CLOSED'||(cal.rows[0]?.exception_type==='CLASS_SUSPENSION'&&
+       (!cal.rows[0].suspension_time||String(base.start_time).slice(0,5)>=cal.rows[0].suspension_time)))continue; // Already suspended or closed; do not create duplicate cancellations.
+    if(memoId){
+     const memo=await c.query(`SELECT 1 FROM school_memoranda WHERE school_id=$1 AND memo_id=$2
+       AND archived_at IS NULL AND effective_date<=$3::date AND end_date>=$3::date`,
+       [req.auth.schoolId,memoId,date]);
+     if(!memo.rowCount){await c.query('ROLLBACK');return res.status(409).json({error:'Selected Principal memorandum does not cover '+date+'.'});}
+    }
     const schedules=await schedulesFor(req.auth.schoolId,date);
     const current=schedules.find(x=>String(x.periodId)===String(b.periodId));
     if(!current)continue; // Skip weekends or weekdays on which this subject does not meet.
@@ -202,19 +209,19 @@ function registerFlexibleScheduleRoutes(app,pool,auth) {
    for(const date of applicable){
     const saved=await c.query([
      'INSERT INTO schedule_day_adjustments(school_id,period_id,school_date,adjustment_type,',
-     'teacher_user_id,subject_id,start_time,end_time,classroom,reason_type,notes,created_by_user_id)',
-     'VALUES($1,$2,$3::date,$4,$5,$6,$7::time,$8::time,$9,$10,$11,$12)',
+     'teacher_user_id,subject_id,start_time,end_time,classroom,reason_type,notes,created_by_user_id,memo_id)',
+     'VALUES($1,$2,$3::date,$4,$5,$6,$7::time,$8::time,$9,$10,$11,$12,$13)',
      'ON CONFLICT(school_id,period_id,school_date) DO UPDATE SET',
      'adjustment_type=EXCLUDED.adjustment_type,teacher_user_id=EXCLUDED.teacher_user_id,',
      'subject_id=EXCLUDED.subject_id,start_time=EXCLUDED.start_time,end_time=EXCLUDED.end_time,',
-     'classroom=EXCLUDED.classroom,reason_type=EXCLUDED.reason_type,notes=EXCLUDED.notes,updated_at=NOW()',
+     'classroom=EXCLUDED.classroom,reason_type=EXCLUDED.reason_type,notes=EXCLUDED.notes,memo_id=EXCLUDED.memo_id,updated_at=NOW()',
      'RETURNING adjustment_id'
-    ].join(' '),[req.auth.schoolId,b.periodId,date,type,teacherId,subjectId,start,end,room,reason,notes||null,req.auth.userId]);
+    ].join(' '),[req.auth.schoolId,b.periodId,date,type,teacherId,subjectId,start,end,room,reason,notes||null,req.auth.userId,memoId]);
     savedIds.push(saved.rows[0].adjustment_id);
     await c.query([
      'INSERT INTO audit_logs(school_id,actor_type,actor_user_id,action,entity_type,entity_id,details)',
      "VALUES($1,'SCHOOL',$2,'SAVE_DATE_SPECIFIC_SCHEDULE','schedule_day_adjustment',$3,$4::jsonb)"
-    ].join(' '),[req.auth.schoolId,req.auth.userId,saved.rows[0].adjustment_id,JSON.stringify({periodId:b.periodId,date,type,reason})]);
+    ].join(' '),[req.auth.schoolId,req.auth.userId,saved.rows[0].adjustment_id,JSON.stringify({periodId:b.periodId,date,type,reason,memoId})]);
    }
    await c.query('COMMIT');res.status(201).json({ok:true,changedDates:applicable,updated:applicable.length,skipped:dates.length-applicable.length});
   }catch(err){
