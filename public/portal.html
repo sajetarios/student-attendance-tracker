@@ -2093,6 +2093,22 @@ body.dark-mode .content-wrap > .school-heading.is-compact,body[data-theme="dark"
             </div>
           </section>
           <section id="teachersView" class="view-panel" hidden>
+<section id="principalAdminAccountCard" class="surface-card section-card" hidden aria-label="Principal access management">
+  <div class="section-toolbar"><div><h3>Principal leadership access</h3>
+    <p>Create a dedicated, read-only Principal account. Principal accounts see school-wide evidence and leadership insights without gaining the School Administrator's editing permissions.</p></div>
+    <a class="outline-button" href="/principal.html" target="_blank" rel="noopener noreferrer">Principal dashboard</a>
+  </div>
+  <form id="principalCreateForm" autocomplete="off">
+    <div class="form-grid">
+      <div class="field-group"><label for="principalName">Principal name</label><input id="principalName" name="displayName" maxlength="160" minlength="3" required autocomplete="off" placeholder="Official school leader name"></div>
+      <div class="field-group"><label for="principalUsername">Principal username</label><input id="principalUsername" name="username" pattern="[A-Za-z0-9._-]{3,80}" maxlength="80" minlength="3" required autocomplete="off" placeholder="Principal account username"></div>
+      <div class="field-group"><label for="principalPassword">Temporary password</label><input id="principalPassword" name="password" type="password" minlength="12" maxlength="256" required autocomplete="new-password" placeholder="At least 12 characters"></div>
+    </div>
+    <div class="form-actions"><button type="submit" class="primary-button">Create Principal access</button>
+      <span id="principalCreateStatus" class="inline-feedback" role="status" aria-live="polite">The Principal will change their password on first login. Do not share it in school group chats.</span></div>
+  </form>
+</section>
+
 
 
 
@@ -2489,6 +2505,7 @@ body.dark-mode .content-wrap > .school-heading.is-compact,body[data-theme="dark"
   <script src="/teacher-scanner-schedule.js?v=1" defer></script>
   <script src="/gate-offline-review.js?v=1" defer></script>
   <script src="/portal.js?v=236" defer></script>
+  <script src="/principal-admin-account.js?v=1" defer></script>
   <script src="/schedule-list-filters.js?v=1" defer></script>
   <script src="/staff-lunch-ui.js?v=7" defer></script>
   <script src="/staff-precise-location.js?v=1" defer></script>
