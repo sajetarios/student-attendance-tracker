@@ -45,5 +45,6 @@ test('portal and offline service worker load the versioned shortcut asset',()=>{
   assert.ok(html.includes('href="'+path+'"'));
   assert.ok(worker.includes('"'+path+'"'));
   assert.ok(html.lastIndexOf(path)<html.lastIndexOf('</head>'));
-  assert.match(worker,/attendigo-v\d+-compact-teacher-shortcuts/);
+  const version=Number(worker.match(/attendigo-v(\d+)-/)?.[1]);
+  assert.ok(version>=332,'PWA cache must include compact teacher shortcut assets');
 });
