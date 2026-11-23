@@ -48,7 +48,7 @@ test('read-only changes leave unified attendance reconciliation and six columns 
  const sql=fs.readFileSync('recent-class-attendance.js','utf8');
  assert.match(sql,/COALESCE\(m\.status, q\.status\)/);
  assert.match(sql,/sync_status = 'ACCEPTED'/);
- assert.match(sql,/ROW_NUMBER\(/i);
+ assert.match(sql,/SELECT DISTINCT ON \(e\.school_id, e\.period_id, e\.student_id, e\.school_date\)/);
  const table=html.slice(html.indexOf('id="recentActivityCard"'),html.indexOf('id="quickActionsCard"'));
  for(const label of ['Learner','Class','Date','Status','Source','Recorded time'])
   assert.ok(table.includes('<th>'+label+'</th>'));
