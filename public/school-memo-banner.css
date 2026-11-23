@@ -112,3 +112,211 @@
 .attendigo-memo-frame-loading{display:grid;place-items:center;min-height:135px;padding:18px;border-radius:10px;
  border:1px dashed #99bed0;background:#f1f8fb;color:#496b7f;font-size:12px;text-align:center}
 .attendigo-memo-image{height:auto!important;max-height:620px;width:100%;object-fit:contain;background:#fff}
+
+/* Theme contract: follow Attendigo's per-account appearance, not device dark mode
+   when a user has explicitly chosen Light. Shared dashboards use data-ui-theme;
+   Principal uses data-theme and resolves system via prefers-color-scheme. */
+.attendigo-memo-workspace{
+  color-scheme:light;
+  --memo-panel:linear-gradient(125deg,#ffffff 0%,#f8fbff 65%,#eef9fa 100%);
+  --memo-panel-border:#d3e6ee;
+  --memo-panel-text:#20354c;
+  --memo-muted:#62798e;
+  --memo-heading:#1e3349;
+  --memo-accent:#087e91;
+  --memo-button-bg:#fff;
+  --memo-button-border:#bfd5e2;
+  --memo-button-text:#24506b;
+  --memo-counter-bg:#edf7fa;
+  --memo-counter-border:#c9e4e9;
+  --memo-counter-text:#435c71;
+  --memo-counter-value:#0a7c8c;
+  --memo-empty-bg:linear-gradient(135deg,#f2f8fc 0%,#edf9f9 100%);
+  --memo-empty-border:#c5e1e9;
+  --memo-empty-heading:#21384c;
+  --memo-empty-text:#596f82;
+  --memo-icon-bg:linear-gradient(145deg,#e2f6fa,#cfefed);
+  --memo-icon-border:#b5e2e6;
+  --memo-icon-ink:#13899b;
+  --memo-card-bg:#fff;
+  --memo-card-border:#cddfe9;
+  --memo-card-title:#1d3449;
+  --memo-card-body:#435c70;
+  --memo-card-muted:#637b8e;
+  --memo-card-chip-bg:#f0f5f9;
+  --memo-card-chip-border:#e0eaf0;
+  --memo-card-chip-text:#50697f;
+  --memo-tag-bg:#e9f6f7;
+  --memo-tag-border:#c6e7e8;
+  --memo-tag-text:#197587;
+  --memo-viewer-bg:#f2f8fb;
+  --memo-viewer-border:#b6d3e1;
+  --memo-footer-border:#d5e4eb;
+  --memo-shadow:0 12px 30px rgba(33,67,90,.08);
+  background:var(--memo-panel);
+  border-color:var(--memo-panel-border);
+  box-shadow:var(--memo-shadow);
+  color:var(--memo-panel-text);
+}
+.attendigo-memo-workspace .attendigo-memo-eyebrow{color:var(--memo-accent)}
+.attendigo-memo-workspace .attendigo-memo-workspace-intro h2{color:var(--memo-heading)}
+.attendigo-memo-workspace .attendigo-memo-workspace-intro>p,
+.attendigo-memo-workspace .attendigo-memo-status{color:var(--memo-muted)}
+.attendigo-memo-workspace :is(.attendigo-memo-close,.attendigo-memo-refresh){
+ background:var(--memo-button-bg);color:var(--memo-button-text);
+ border-color:var(--memo-button-border)
+}
+.attendigo-memo-workspace :is(.attendigo-memo-close,.attendigo-memo-refresh):hover{
+ background:var(--memo-counter-bg)
+}
+.attendigo-memo-workspace .attendigo-memo-counter{
+ background:var(--memo-counter-bg);border-color:var(--memo-counter-border);
+ color:var(--memo-counter-text)
+}
+.attendigo-memo-workspace .attendigo-memo-counter strong{color:var(--memo-counter-value)}
+.attendigo-memo-workspace .attendigo-memo-empty{
+ background:var(--memo-empty-bg);border-color:var(--memo-empty-border)
+}
+.attendigo-memo-workspace .attendigo-memo-empty-icon{
+ background:var(--memo-icon-bg);border-color:var(--memo-icon-border);color:var(--memo-icon-ink)
+}
+.attendigo-memo-workspace .attendigo-memo-empty strong{color:var(--memo-empty-heading)}
+.attendigo-memo-workspace .attendigo-memo-empty p{color:var(--memo-empty-text)}
+.attendigo-memo-workspace .attendigo-memo-record{
+ background:var(--memo-card-bg);color:var(--memo-card-body);border-color:var(--memo-card-border)
+}
+.attendigo-memo-workspace .attendigo-memo-record.attendigo-memo-unread{border-left-color:var(--memo-accent)}
+.attendigo-memo-workspace .attendigo-memo-record h3{color:var(--memo-card-title)}
+.attendigo-memo-workspace :is(.attendigo-memo-record-title small,.attendigo-memo-receipts,
+ .attendigo-memo-preview>p){color:var(--memo-card-muted)}
+.attendigo-memo-workspace .attendigo-memo-summary{color:var(--memo-card-body)}
+.attendigo-memo-workspace .attendigo-memo-record-meta span{
+ background:var(--memo-card-chip-bg);color:var(--memo-card-chip-text);border-color:var(--memo-card-chip-border)
+}
+.attendigo-memo-workspace .attendigo-memo-category{
+ background:var(--memo-tag-bg);border-color:var(--memo-tag-border);color:var(--memo-tag-text)
+}
+.attendigo-memo-workspace .attendigo-memo-actions button,
+.attendigo-memo-workspace .attendigo-memo-download{
+ background:var(--memo-button-bg);border-color:var(--memo-button-border);color:var(--memo-button-text)
+}
+.attendigo-memo-workspace .attendigo-memo-actions button:hover,
+.attendigo-memo-workspace .attendigo-memo-download:hover{background:var(--memo-counter-bg)}
+.attendigo-memo-workspace .attendigo-memo-actions .attendigo-memo-preview-toggle{
+ background:#087fa2;border-color:#087fa2;color:#fff
+}
+.attendigo-memo-workspace .attendigo-memo-actions .attendigo-memo-preview-toggle:hover{background:#066b8d}
+.attendigo-memo-workspace .attendigo-memo-actions .attendigo-memo-ack:not(:disabled){
+ border-color:#2aab9f;color:var(--memo-accent)
+}
+.attendigo-memo-workspace .attendigo-memo-preview{border-top-color:var(--memo-footer-border)}
+.attendigo-memo-workspace .attendigo-memo-frame-loading{
+ background:var(--memo-viewer-bg);border-color:var(--memo-viewer-border);color:var(--memo-card-body)
+}
+.attendigo-memo-workspace .attendigo-memo-frame{border-color:var(--memo-viewer-border)}
+.attendigo-memo-workspace .attendigo-memo-footnote{
+ color:var(--memo-muted);border-top-color:var(--memo-footer-border)
+}
+/* Banner must also respect a manual Light choice, even on a dark device. */
+.attendigo-memo-banner{
+ background:#eef9fa;border-color:#bcdfe7;color:#244b61
+}
+.attendigo-memo-banner .attendigo-memo-copy strong{color:#244659}
+.attendigo-memo-banner .attendigo-memo-copy small{color:#526e7c}
+.attendigo-memo-banner .attendigo-memo-icon{background:#d8f0f0;color:#087d8d}
+.attendigo-memo-banner.attendigo-memo-quiet{
+ background:#f8fbfd;border-color:#dce7ef
+}
+.attendigo-memo-banner.attendigo-memo-quiet .attendigo-memo-icon{
+ background:#eaf1f6;color:#536f83
+}
+/* Shared staff, parent and student appearances; principal uses its own picker. */
+:root[data-ui-theme="dark"] .attendigo-memo-workspace,
+:root[data-theme="dark"] .attendigo-memo-workspace{
+ color-scheme:dark;
+ --memo-panel:linear-gradient(115deg,#0b2238 0%,#0e314b 62%,#0a4859 100%);
+ --memo-panel-border:#2b5870;
+ --memo-panel-text:#e9f5fa;
+ --memo-muted:#b9d1df;
+ --memo-heading:#f0fbff;
+ --memo-accent:#7ce8e4;
+ --memo-button-bg:#203d53;
+ --memo-button-border:#4c758b;
+ --memo-button-text:#ecf8fc;
+ --memo-counter-bg:#173f58;
+ --memo-counter-border:#3c6980;
+ --memo-counter-text:#cbe5f0;
+ --memo-counter-value:#a8faf0;
+ --memo-empty-bg:linear-gradient(140deg,#0d3451,#0b5061);
+ --memo-empty-border:#387e92;
+ --memo-empty-heading:#f5fcff;
+ --memo-empty-text:#cde2ec;
+ --memo-icon-bg:linear-gradient(145deg,#164e6e,#167d88);
+ --memo-icon-border:#3b90a1;
+ --memo-icon-ink:#a9f5ed;
+ --memo-card-bg:#152c40;
+ --memo-card-border:#416277;
+ --memo-card-title:#f0f7fc;
+ --memo-card-body:#d1e2ec;
+ --memo-card-muted:#a7c2d3;
+ --memo-card-chip-bg:#243e52;
+ --memo-card-chip-border:#355d71;
+ --memo-card-chip-text:#d0e3ed;
+ --memo-tag-bg:#1e4d55;
+ --memo-tag-border:#36777a;
+ --memo-tag-text:#9bece1;
+ --memo-viewer-bg:#203a4b;
+ --memo-viewer-border:#52788c;
+ --memo-footer-border:#467086;
+ --memo-shadow:0 12px 30px rgba(0,0,0,.21);
+}
+:root[data-ui-theme="dark"] .attendigo-memo-banner,
+:root[data-theme="dark"] .attendigo-memo-banner{
+ background:#203c4b;border-color:#396c79;color:#e6f5f8
+}
+:root[data-ui-theme="dark"] .attendigo-memo-banner .attendigo-memo-copy strong,
+:root[data-theme="dark"] .attendigo-memo-banner .attendigo-memo-copy strong{color:#e3f2f6}
+:root[data-ui-theme="dark"] .attendigo-memo-banner .attendigo-memo-copy small,
+:root[data-theme="dark"] .attendigo-memo-banner .attendigo-memo-copy small{color:#b2cbd3}
+:root[data-ui-theme="dark"] .attendigo-memo-banner .attendigo-memo-icon,
+:root[data-theme="dark"] .attendigo-memo-banner .attendigo-memo-icon{
+ background:#24525c;color:#b8f1ee
+}
+:root[data-ui-theme="dark"] .attendigo-memo-banner.attendigo-memo-quiet,
+:root[data-theme="dark"] .attendigo-memo-banner.attendigo-memo-quiet{
+ background:#223345;border-color:#385268
+}
+/* In Principal Automatic mode, OS appearance is authoritative. */
+@media(prefers-color-scheme:dark){
+ :root[data-theme="system"] .attendigo-memo-workspace{
+  color-scheme:dark;
+  --memo-panel:linear-gradient(115deg,#0b2238,#0e314b 62%,#0a4859);
+  --memo-panel-border:#2b5870;--memo-panel-text:#e9f5fa;
+  --memo-muted:#b9d1df;--memo-heading:#f0fbff;--memo-accent:#7ce8e4;
+  --memo-button-bg:#203d53;--memo-button-border:#4c758b;--memo-button-text:#ecf8fc;
+  --memo-counter-bg:#173f58;--memo-counter-border:#3c6980;
+  --memo-counter-text:#cbe5f0;--memo-counter-value:#a8faf0;
+  --memo-empty-bg:linear-gradient(140deg,#0d3451,#0b5061);
+  --memo-empty-border:#387e92;--memo-empty-heading:#f5fcff;
+  --memo-empty-text:#cde2ec;--memo-icon-bg:linear-gradient(145deg,#164e6e,#167d88);
+  --memo-icon-border:#3b90a1;--memo-icon-ink:#a9f5ed;
+  --memo-card-bg:#152c40;--memo-card-border:#416277;
+  --memo-card-title:#f0f7fc;--memo-card-body:#d1e2ec;--memo-card-muted:#a7c2d3;
+  --memo-card-chip-bg:#243e52;--memo-card-chip-border:#355d71;
+  --memo-card-chip-text:#d0e3ed;--memo-tag-bg:#1e4d55;
+  --memo-tag-border:#36777a;--memo-tag-text:#9bece1;
+  --memo-viewer-bg:#203a4b;--memo-viewer-border:#52788c;
+  --memo-footer-border:#467086;--memo-shadow:0 12px 30px rgba(0,0,0,.21)
+ }
+ :root[data-theme="system"] .attendigo-memo-banner{
+  background:#203c4b;border-color:#396c79;color:#e6f5f8
+ }
+ :root[data-theme="system"] .attendigo-memo-banner .attendigo-memo-copy strong{color:#e3f2f6}
+ :root[data-theme="system"] .attendigo-memo-banner .attendigo-memo-copy small{color:#b2cbd3}
+ :root[data-theme="system"] .attendigo-memo-banner .attendigo-memo-icon{
+  background:#24525c;color:#b8f1ee
+ }
+ :root[data-theme="system"] .attendigo-memo-banner.attendigo-memo-quiet{
+  background:#223345;border-color:#385268
+ }
+}
