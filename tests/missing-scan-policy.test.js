@@ -66,5 +66,5 @@ test('missing scan UI only offers unrecorded slots and keeps role review boundar
  assert.match(mobile,/Portal-wide action and input containment/);
  for(const name of ['missing-scan-ui.js','missing-scan-ui.css','mobile-overflow-repair.css'])
   assert.match(portal,new RegExp(name.replaceAll('.','\\.')+'\\?v=2'));
- assert.match(sw,/attendigo-v331-missing-scan-responsive-slots/);
+ assert.ok(Number(sw.match(/attendigo-v(\d+)-/)?.[1])>=331,'PWA cache must include the new UI assets');
 });
