@@ -23,8 +23,8 @@ test('Simplified Form 48 preserves print and DTR source and invalidates old cach
  assert.match(js,/@page\{size:A4 portrait;margin:5mm\}/);
  assert.match(js,/api\('\/api\/staff-attendance\/admin\/form48\/analysis\?/);
  assert.match(html,/form48-report\.css\?v=16/);
- assert.match(html,/form48-report\.js\?v=17/);
- assert.match(sw,/attendigo-v315-form48-report-first/);
+ assert.match(html,/form48-report\.js\?v=18/);
+ assert.match(sw,/attendigo-v316-form48-settings-fix/);
  assert.match(sw,/form48-report\.css\?v=16/);
- assert.match(sw,/form48-report\.js\?v=17/);
+ assert.match(sw,/form48-report\.js\?v=18/);
 });
