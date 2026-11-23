@@ -401,12 +401,13 @@ app.post('/api/school-users', authenticateSchoolClient, requireSchoolAdminOrDepa
   }
   if(role==='PRINCIPAL'&&departmentId)
     return res.status(400).json({error:'The Principal has school-wide access and must not be assigned to one department.'});
-   if (!departmentId && role === 'GATE_KEEPER') {
+   if (!departmentId && ['GATE_KEEPER','PRINCIPAL'].includes(role)) {
     const fallback = await pool.query(
       "SELECT department_id FROM school_departments WHERE school_id=$1 AND department_code='UNASSIGNED' AND active=TRUE",
       [req.auth.schoolId]
     );
     departmentId = fallback.rows[0]?.department_id || null;
+    if (!departmentId) return res.status(409).json({ error:'The school must have an active Unassigned system department before creating leadership or Gatekeeper accounts.' });
   }
   if (['TEACHER', 'DEPARTMENT_HEAD'].includes(role) && !isUuid(departmentId)) {
     return res.status(400).json({ error: 'Choose the department for this teacher or Department Head account.' });
