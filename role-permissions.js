@@ -3,6 +3,7 @@
 // Server-side permission catalog. UI visibility never replaces API enforcement.
 const ROLE_PERMISSIONS = Object.freeze({
   SUPER_ADMIN: Object.freeze(['platform.overview.view']),
+  PRINCIPAL: Object.freeze(['dashboard.view.school','principal.insights.view','reports.attendance.view']),
   SCHOOL_ADMIN: Object.freeze([
     'dashboard.view.school', 'students.view.all', 'students.manage', 'students.accounts.manage',
     'schedules.view.all', 'schedules.manage', 'teachers.view', 'teachers.manage',
