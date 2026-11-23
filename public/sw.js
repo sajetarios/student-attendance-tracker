@@ -1,4 +1,4 @@
-const CACHE = "attendigo-v329-unified-recent-class-attendance-attendance-two-actions";
+const CACHE = "attendigo-v329-unified-recent-class-attendance-attendance-two-actions-compact-recent";
 
 const SHELL = [
   "/typography.css?v=1",
@@ -113,7 +113,7 @@ const SHELL = [
   "/offline-sheet.js?v=4",
   "/manual-folio.css?v=11",
   "/class-attendance-mobile.css?v=1",
-  "/recent-class-attendance.css?v=1",
+  "/recent-class-attendance.css?v=2",
   "/attendance-sync-center.css?v=4",
   "/attendance-sync-center.js?v=3",
   "/manual-folio.js?v=19",
