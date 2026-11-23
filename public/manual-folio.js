@@ -24,7 +24,7 @@ window.attendigoStaffIdentity.then(user => {
  }
  const key=()=>['attendigo.manual.v1',scope,state.period?.periodId||'none',state.date].join(':');
  const rosterKey=()=>['attendigo.manual.roster.v1',scope].join(':');
- function draftSave(){if(!state.period)return;try{localStorage.setItem(key(),JSON.stringify({marks:state.marks,notes:state.notes,updatedAt:new Date().toISOString()}));setSyncPill('local','Saved on device','A local draft exists. Press Sync to records for school-server confirmation.');}catch{setSyncPill('review','Save unavailable','This browser could not retain the attendance draft. Check device storage.');}}
+ function draftSave(){if(!state.period)return;try{localStorage.setItem(key(),JSON.stringify({marks:state.marks,notes:state.notes,updatedAt:new Date().toISOString()}));setSyncPill('local','Saved on device','A local draft exists. Choose Save Attendance to confirm it in school records.');}catch{setSyncPill('review','Save unavailable','This browser could not retain the attendance draft. Check device storage.');}}
  function draftLoad(){let raw={};try{raw=JSON.parse(localStorage.getItem(key())||'{}')}catch{}state.marks=raw.marks||{};state.notes=raw.notes||'';}
  const roster=()=>window.AttendigoRoster.sortLearners(
    state.students.filter(s=>state.period&&s.active!==false&&s.gradeLevel===state.period.gradeLevel&&s.section===state.period.section),
@@ -237,13 +237,13 @@ window.attendigoStaffIdentity.then(user => {
 
  function renderRecord(){
    const out=Object.entries(state.synced);
-   el('mfRecord').innerHTML='<h3>Saved class record</h3><p>Server-confirmed manual entries for the selected date.</p>'+(out.length?'<div class="manual-detail-card">'+out.map(([id,m])=>{const s=state.students.find(v=>v.studentId===id);return '<p>'+esc(s?.fullName||id)+' — '+esc(names[m.status]||m.status)+'</p>'}).join('')+'</div>':'<p class="manual-empty">No server-confirmed entries for this date. Mark your sheet and choose Sync to records.</p>');
+   el('mfRecord').innerHTML='<h3>Saved class record</h3><p>Server-confirmed manual entries for the selected date.</p>'+(out.length?'<div class="manual-detail-card">'+out.map(([id,m])=>{const s=state.students.find(v=>v.studentId===id);return '<p>'+esc(s?.fullName||id)+' — '+esc(names[m.status]||m.status)+'</p>'}).join('')+'</div>':'<p class="manual-empty">No server-confirmed entries for this date. Mark your sheet and choose Save Attendance.</p>');
  }
  function render(){
  renderStats();renderRows();renderDetails();renderTab();
   if(el('mfRosterView'))el('mfRosterView').value=state.rosterView;
  host.classList.toggle('is-finalized',Boolean(state.finalized));
- if(el('mfFinalize')){el('mfFinalize').disabled=!state.period;el('mfFinalize').textContent=state.finalized?'↺ Reopen register':'✓ Finalize date';}
+ if(el('mfFinalize')){el('mfFinalize').disabled=!state.period;el('mfFinalize').textContent=state.finalized?'↺ Reopen register':'✓ Finalize Day';}
  if(el('mfFinalizationState'))el('mfFinalizationState').textContent=state.finalized?'Finalized · editing locked':'Not finalized';
  if(el('mfSync'))el('mfSync').disabled=Boolean(state.finalized);
 }
@@ -464,7 +464,6 @@ window.attendigoStaffIdentity.then(user => {
  el('mfHistoryNext').addEventListener('click',()=>historyFlip(1));
  el('mfPrev').addEventListener('click',()=>pageFlip(-1));
  el('mfNext').addEventListener('click',()=>pageFlip(1));
- el('mfSave').addEventListener('click',()=>{draftSave();notice('Saved on this device. Use Sync to records when connected.')});
  el('mfSync').addEventListener('click',sync);
  el('mfFinalize')?.addEventListener('click',async()=>{
    if(!state.period)return notice('Select a class first.',true);
