@@ -1,4 +1,4 @@
-const CACHE = "attendigo-v340-teacher-shortcut-style";
+const CACHE = "attendigo-v341-location-permission-guide";
 
 const SHELL = [
   "/typography.css?v=1",
@@ -98,10 +98,10 @@ const SHELL = [
   "/my-gate-insights.css?v=3",
   "/staff-lunch-ui.js?v=7",
   "/staff-precise-location.js?v=1",
-  "/staff-department-location.js?v=2",
+  "/staff-department-location.js?v=3",
   "/staff-ob-ui.js?v=6",
   "/staff-ob.css?v=1",
-  "/staff-lunch.css?v=6",
+  "/staff-lunch.css?v=7",
   "/staff-lunch-checkin.js?v=5",
   "/sardo-monitor.js?v=2",
   "/sardo-monitor.css?v=1",
