@@ -1,0 +1,122 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="robots" content="noindex,nofollow,noarchive">
+<meta name="referrer" content="no-referrer">
+<title>Principal Leadership Dashboard · Attendigo</title>
+<link rel="icon" href="/assets/attendigo-favicon.png?v=2">
+<link rel="stylesheet" href="/principal-dashboard.css?v=1">
+<script src="/principal-dashboard.js?v=1" defer></script>
+</head>
+<body>
+<a class="skip" href="#main">Skip to school overview</a>
+<div class="shell">
+ <header class="topbar">
+  <a class="brand" href="/principal.html" aria-label="Attendigo Principal Dashboard">
+   <img src="/assets/attendigo-symbol-transparent.svg?v=2" alt="" width="40" height="40">
+   <span><strong>Attendigo</strong><small>School leadership intelligence</small></span>
+  </a>
+  <div class="top-actions">
+   <span id="roleBadge" class="role-badge">Principal workspace</span>
+   <a href="/portal.html" id="adminBack" class="text-link" hidden>Back to School Admin</a>
+   <button type="button" id="signOut" class="quiet-button">Sign out</button>
+  </div>
+ </header>
+ <main id="main">
+  <section class="hero">
+   <div class="hero-copy">
+    <span class="eyebrow">LEADERSHIP OVERVIEW · LIVE SCHOOL RECORDS</span>
+    <h1 id="schoolTitle">School leadership dashboard</h1>
+    <p>See what is verified, what needs attention, and which departments need support—without guessing attendance or changing official records.</p>
+    <div class="hero-meta">
+     <span id="schoolCode">School identity loading</span>
+     <span id="generatedAt" aria-live="polite">Checking current records…</span>
+    </div>
+   </div>
+   <div class="hero-right" aria-label="School priority">
+    <span>Requires school processing</span>
+    <strong id="heroPending">—</strong>
+    <small>Pending leave + OB requests · all review stages</small>
+    <button type="button" id="openPriorities" class="light-button">Review school priorities <span aria-hidden="true">↗</span></button>
+   </div>
+  </section>
+
+  <section class="controls" aria-label="Leadership report filters">
+   <label>Report date <input id="reportDate" type="date"></label>
+   <label>Department <select id="departmentFilter"><option value="">All departments</option></select></label>
+   <label>Trend period <select id="periodFilter"><option value="7">Last 7 calendar days</option><option value="14">Last 14 calendar days</option><option value="30">Last 30 calendar days</option></select></label>
+   <button id="refreshDashboard" type="button" class="refresh-button"><span aria-hidden="true">↻</span> Refresh</button>
+  </section>
+  <p id="feedback" class="feedback" role="status" aria-live="polite">Loading verified school records…</p>
+
+  <nav class="tabs" aria-label="Principal dashboard sections">
+   <button type="button" class="tab is-active" data-section="overview" aria-pressed="true">Overview</button>
+   <button type="button" class="tab" data-section="departments" aria-pressed="false">Departments</button>
+   <button type="button" class="tab" data-section="staff" aria-pressed="false">Staff DTR</button>
+   <button type="button" class="tab" data-section="priorities" aria-pressed="false">Requests &amp; exceptions</button>
+   <button type="button" class="tab" data-section="definitions" aria-pressed="false">Metric definitions</button>
+  </nav>
+
+  <section id="overviewPanel" class="panel" data-panel="overview">
+   <div class="section-heading"><div><p class="eyebrow">AT A GLANCE</p><h2>School health, with evidence</h2><p>Selected date · counts are based on official source records, not simulated percentages.</p></div></div>
+   <div class="metric-grid">
+    <button type="button" class="metric-card metric-blue" data-jump="staff"><span class="metric-icon" aria-hidden="true">◉</span><span class="metric-label">Staff with verified DTR punch</span><strong id="withVerifiedPunch">—</strong><small id="staffTrackedDescription">Of — tracked active staff</small><span class="metric-action">Inspect staff records ↗</span></button>
+    <button type="button" class="metric-card metric-amber" data-jump="priorities"><span class="metric-icon" aria-hidden="true">!</span><span class="metric-label">Pending DTR slots</span><strong id="pendingDtrSlots">—</strong><small>Not certified · independent review needed</small><span class="metric-action">See exceptions ↗</span></button>
+    <div class="metric-card metric-violet"><span class="metric-icon" aria-hidden="true">▤</span><span class="metric-label">Active student records</span><strong id="activeStudentRecords">—</strong><small>All-school roster · not an attendance rate</small></div>
+    <div class="metric-card metric-teal"><span class="metric-icon" aria-hidden="true">✓</span><span class="metric-label">Accepted classroom QR check-ins</span><strong id="acceptedClassCheckins">—</strong><small>Unique learners · not official SF2 total</small></div>
+   </div>
+   <div class="main-grid">
+    <section class="surface chart-surface" aria-labelledby="trendHeading">
+     <div class="card-heading"><div><p class="eyebrow">VERIFIED SOURCE ACTIVITY</p><h3 id="trendHeading">Staff DTR trend</h3><p>Verified and pending DTR slots by calendar day. Tap a day to inspect.</p></div><span class="pill">Selected range</span></div>
+     <div class="legend"><span><i class="legend-swatch verified"></i> Verified slots</span><span><i class="legend-swatch pending"></i> Pending slots</span></div>
+     <div id="trendChart" class="trend-chart" role="group" aria-label="Interactive daily DTR event counts"></div>
+     <p class="source-note">Zero slots may mean a weekend, holiday, missing data, or no recorded activity. They do not prove absence.</p>
+    </section>
+    <section class="surface insights-surface" aria-labelledby="attentionHeading">
+     <div class="card-heading"><div><p class="eyebrow">NEXT DECISIONS</p><h3 id="attentionHeading">What needs attention?</h3><p>Read-only oversight of pending workflows</p></div></div>
+     <div id="attentionList" class="attention-list" aria-live="polite"></div>
+     <button type="button" class="inline-button" data-jump="priorities">See all review stages ↗</button>
+    </section>
+   </div>
+   <section class="surface" aria-labelledby="deptPreviewHeading">
+    <div class="card-heading"><div><p class="eyebrow">DEPARTMENT SIGNALS</p><h3 id="deptPreviewHeading">Which teams have recorded activity?</h3><p>Staff with at least one verified punch—not a staff attendance rate.</p></div><button type="button" class="inline-button" data-jump="departments">Explore departments ↗</button></div>
+    <div id="departmentPreview" class="dept-grid" aria-live="polite"></div>
+   </section>
+  </section>
+
+  <section id="departmentsPanel" class="panel" data-panel="departments" hidden>
+   <div class="section-heading"><div><p class="eyebrow">DEPARTMENT VIEW</p><h2>Compare department signals</h2><p>Click a department to filter the live overview and staff records.</p></div></div>
+   <div id="departmentsList" class="department-list" aria-live="polite"></div>
+   <p class="source-note">A missing verified punch is not a finding of absence or misconduct. Check schedules, approved leave, OB and source evidence first.</p>
+  </section>
+
+  <section id="staffPanel" class="panel" data-panel="staff" hidden>
+   <div class="section-heading"><div><p class="eyebrow">OFFICIAL DTR SOURCE</p><h2>Individual staff monitoring</h2><p>Source counts are for the selected date. No automatic tardiness or absence judgments.</p></div></div>
+   <div class="staff-filters">
+    <label>Search staff <input id="staffSearch" type="search" placeholder="Name, department or role" autocomplete="off"></label>
+    <label>Show <select id="staffStatus"><option value="all">All tracked staff</option><option value="pending">Needs DTR review</option><option value="verified">With verified punch</option><option value="no-punch">No verified punch recorded</option><option value="leave">Approved leave dates</option></select></label>
+    <button type="button" id="downloadStaff" class="quiet-button">Export visible CSV</button>
+   </div>
+   <p class="table-note" id="staffCount">Loading staff summary…</p>
+   <div class="table-wrap"><table><thead><tr><th scope="col">Employee</th><th scope="col">Department</th><th scope="col">Verified slots</th><th scope="col">Pending slots</th><th scope="col">Source status</th></tr></thead><tbody id="staffTable"><tr><td colspan="5">Loading official source records…</td></tr></tbody></table></div>
+   <p class="source-note">Source status is not a disciplinary decision. Full day completion depends on the employee's applicable timetable and approved exceptions.</p>
+  </section>
+
+  <section id="prioritiesPanel" class="panel" data-panel="priorities" hidden>
+   <div class="section-heading"><div><p class="eyebrow">DOCUMENTED WORKFLOWS</p><h2>Pending school actions</h2><p>Counts are from live leave, OB and lunch QR review records. The Principal dashboard does not issue approvals or edit official records.</p></div></div>
+   <div id="priorityBreakdown" class="priority-grid" aria-live="polite"></div>
+   <p class="source-note">Leave application details and medical reasons are intentionally excluded from this leadership overview. The authorized official decision remains in the existing leave workflow.</p>
+  </section>
+
+  <section id="definitionsPanel" class="panel" data-panel="definitions" hidden>
+   <div class="section-heading"><div><p class="eyebrow">TRANSPARENT REPORTING</p><h2>What every metric means</h2><p>Real reports are more persuasive when their limitations are clear.</p></div></div>
+   <div id="definitionList" class="definition-list"></div>
+   <div class="surface note-block"><h3>Data quality before conclusions</h3><p>Attendance, tardiness, SARDO, and official Form 48/SF2 totals require their established validation procedures. This leadership view never manufactures a school attendance percentage from incomplete or pending logs.</p></div>
+  </section>
+  <footer class="footer"><span>Attendigo · Principal Leadership Intelligence</span><span>Authorized school data only · Asia/Manila dates · Read-only oversight</span></footer>
+ </main>
+</div>
+</body>
+</html>

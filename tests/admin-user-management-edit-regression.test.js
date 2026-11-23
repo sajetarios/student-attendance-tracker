@@ -80,7 +80,7 @@ test('staff profile editing is school-scoped, audited, and disables sessions rat
   const start = server.indexOf("app.patch('/api/school-users/:userId/profile'");
   const end = server.indexOf('// Gate Keeper monitoring', start);
   const route = server.slice(start, end);
-  assert.match(route, /role IN \('DEPARTMENT_HEAD','GATE_KEEPER'\)/);
+  assert.match(route, /role IN \('PRINCIPAL','DEPARTMENT_HEAD','GATE_KEEPER'\)/);
   assert.match(route, /session_version=CASE WHEN \$4 IS FALSE/);
   assert.match(route, /UPDATE user_sessions SET revoked_at=NOW\(\)/);
   assert.match(route, /SCHOOL_ADMIN_UPDATE_STAFF_ACCOUNT/);
