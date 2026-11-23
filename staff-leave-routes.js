@@ -249,8 +249,8 @@ function registerStaffLeaveRoutes(app,pool,{authenticateSchoolClient,requireScho
     const [sdo,signed]=await Promise.all([
      c.query("SELECT 1 FROM principal_sdo_handoffs WHERE school_id=$1 AND kind='LEAVE' AND request_id=$2 AND submitted_at IS NOT NULL",
       [req.auth.schoolId,row.request_id]),
-     c.query("SELECT 1 FROM staff_leave_documents WHERE school_id=$1 AND request_id=$2 AND document_kind='APPROVAL' LIMIT 1",
-      [req.auth.schoolId,row.request_id])
+     c.query("SELECT 1 FROM staff_leave_documents d JOIN school_users uploader ON uploader.school_id=d.school_id AND uploader.user_id=d.uploaded_by_user_id WHERE d.school_id=$1 AND d.request_id=$2 AND d.document_kind='APPROVAL' AND uploader.role='SCHOOL_ADMIN' AND d.uploaded_by_user_id<>$3 LIMIT 1",
+      [req.auth.schoolId,row.request_id,row.staff_user_id])
     ]);
     if(!sdo.rowCount){await c.query('ROLLBACK');return res.status(409).json({error:'Record the SDO submission and official receiving reference before the principal leave decision.'});}
     if(!signed.rowCount){await c.query('ROLLBACK');return res.status(409).json({error:'The principal requires a signed official approval or disapproval document before the decision can be recorded.'});}
@@ -427,6 +427,8 @@ function registerStaffLeaveRoutes(app,pool,{authenticateSchoolClient,requireScho
     if(!row)return;
     if(['APPROVED','REJECTED','CANCELLED'].includes(row.status))
      return res.status(409).json({error:'This leave decision is finalized.'});
+    if(row.requester_role==='PRINCIPAL'&&documentKind==='APPROVAL'&&req.auth.role!=='SCHOOL_ADMIN')
+     return res.status(403).json({error:'Only the designated School Admin may attach a verified external decision to a principal leave request.'});
    }else{
     query=await pool.query('SELECT e.staff_user_id,u.role AS claimant_role FROM staff_leave_credit_entries e JOIN school_users u ON u.school_id=e.school_id AND u.user_id=e.staff_user_id WHERE e.school_id=$1 AND e.credit_entry_id=$2 AND e.status=\'PROPOSED\'',
      [req.auth.schoolId,id]);
