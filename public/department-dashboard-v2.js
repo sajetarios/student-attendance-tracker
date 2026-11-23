@@ -18,14 +18,14 @@
       const title = header.querySelector('h3');
       if (title) title.textContent = 'Department Overview';
       const desc = header.querySelector('p');
-      if (desc) desc.textContent = 'Your department team, coverage, and daily priorities at a glance.';
+      if (desc) desc.textContent = 'School-wide coverage signals and your department actions, clearly separated.';
     }
     if (metrics) {
       const labels = metrics.querySelectorAll('.dh-command-metric > span:not(.dh-metric-icon)');
       if (labels[0]) labels[0].textContent = 'Teachers';
       if (labels[1]) labels[1].textContent = 'Active Teachers';
       if (labels[2]) labels[2].textContent = 'Temporary Covers';
-      if (labels[3]) labels[3].textContent = 'Classes Needing Coverage';
+      if (labels[3]) labels[3].textContent = 'School-wide uncovered classes';
       // Use one local outline-SVG vocabulary instead of platform-dependent glyphs.
       const iconPaths = [
         '<circle cx="9" cy="8" r="3"/><path d="M3 21v-2a6 6 0 0 1 12 0v2M16 5a3 3 0 0 1 0 6m2 4a5 5 0 0 1 3 5v1"/>',

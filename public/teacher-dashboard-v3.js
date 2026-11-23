@@ -7,12 +7,52 @@
   const dashboard=$('dashboardView'),scan=$('dashboardScanCta'),summary=$('learnerSummaryCard');
   if(!dashboard||!scan||!summary||dashboard.dataset.teacherV3==='true')return;
   dashboard.dataset.teacherV3='true';
-  document.documentElement.classList.add('attendigo-teacher-v3');
+  // One teacher-only presenter retains V2 layout styles and V3 teaching summary.
+  // It reuses existing metrics, routes and role-scoped actions; no new attendance source.
+  document.documentElement.classList.add('attendigo-teacher-v2','attendigo-teacher-v3');
+  const stats=$('statsGrid');
+  if(stats){
+   stats.classList.add('teacher-v2-redundant-stats');
+   stats.setAttribute('aria-hidden','true');
+  }
   const shortcuts=$('quickActionsCard'),recent=$('recentActivityCard'),planner=$('plannerDashboardWidget');
   const hero=document.createElement('section');
   hero.className='teacher-v3-hero';hero.setAttribute('aria-label','Teaching day overview');
   hero.innerHTML='<div class="teacher-v3-hero-copy"><span class="teacher-v3-eyebrow">MY TEACHING DAY</span><h2>Ready for today’s classes?</h2><p>Review your assigned timetable, then record class attendance using the existing secure workflow.</p><div class="teacher-v3-hero-pills"><span>▣ Subject classes</span><span>✦ Advisory classes</span></div></div><div class="teacher-v3-hero-actions"><button type="button" class="teacher-v3-schedule">View My Timetable <span aria-hidden="true">↗</span></button><span class="teacher-v3-note">Actual class times are shown in My Timetable.</span></div>';
   dashboard.insertBefore(hero,scan);
+  const designations=new Set(Array.isArray(user.teacherDesignations)?user.teacherDesignations:[]);
+  const isSubject=designations.has('SUBJECT_TEACHER');
+  const isAdviser=designations.has('CLASS_ADVISER');
+  const pills=hero.querySelector('.teacher-v3-hero-pills');
+  pills.replaceChildren();
+  for(const [enabled,label] of [
+   [isSubject,'▣ Subject classes'],
+   [isAdviser,'✦ Advisory classes']
+  ]){
+   if(!enabled)continue;
+   const pill=document.createElement('span');pill.textContent=label;pills.append(pill);
+  }
+  if(!pills.childElementCount){
+   const pill=document.createElement('span');pill.textContent='Assigned classes';pills.append(pill);
+  }
+  const scanHeading=scan.querySelector('h2');
+  if(scanHeading)scanHeading.textContent='Record Class Attendance';
+  const scanHint=scan.querySelector('.dashboard-scan-cta-copy p');
+  if(scanHint)scanHint.textContent='Choose an assigned class or advisory section before scanning.';
+  $('dashboardAddStudent')?.classList.add('teacher-v2-secondary-action');
+  const shortcutTitle=shortcuts?.querySelector('.card-heading h3');
+  if(shortcutTitle)shortcutTitle.textContent='My Teaching Shortcuts';
+  const shortcutDesc=shortcuts?.querySelector('.card-heading p');
+  if(shortcutDesc)shortcutDesc.textContent='Assigned learners, timetable and authorized reports';
+  const sf2Shortcut=shortcuts?.querySelector('[data-go="sf2"] strong');
+  if(sf2Shortcut)sf2Shortcut.textContent=isAdviser
+   ?(isSubject?'Section SF2 & personal copy':'Official section SF2')
+   :'Personal SF2 copy';
+  const studentsShortcut=shortcuts?.querySelector('[data-go="students"] strong');
+  if(studentsShortcut)studentsShortcut.textContent=isAdviser&&!isSubject
+   ?'My Advisory Students':'My Assigned Learners';
+  const scheduleShortcut=shortcuts?.querySelector('[data-go="schedules"] strong');
+  if(scheduleShortcut)scheduleShortcut.textContent='My Timetable';
   const timetableAction=shortcuts?.querySelector('[data-go="schedules"]');
   const timetableButton=hero.querySelector('.teacher-v3-schedule');
   timetableButton.addEventListener('click',()=>{
@@ -52,13 +92,48 @@
    if(confirmed)observer.observe(confirmed,{childList:true,characterData:true,subtree:true});
    if(total)observer.observe(total,{childList:true,characterData:true,subtree:true});
   }
+  // Preserve original planner and activity elements and their event handlers.
+  // Only their container is collapsible; no data or handler is cloned.
+  function addCollapse(section,header,elements,label,defaultOpen){
+   if(!section||!header||!elements.length)return;
+   const first=elements.find(element=>element?.parentNode===section);
+   if(!first)return;
+   const body=document.createElement('div');
+   body.className='teacher-v2-panel-body';
+   body.id='teacher-v2-'+label.toLowerCase().replace(/[^a-z0-9]+/g,'-');
+   section.insertBefore(body,first);
+   elements.forEach(element=>{if(element)body.append(element);});
+   const button=document.createElement('button');
+   button.type='button';button.className='teacher-v2-toggle';
+   button.setAttribute('aria-controls',body.id);
+   button.setAttribute('aria-expanded',String(defaultOpen));
+   button.setAttribute('aria-label','Toggle '+label);
+   button.textContent=defaultOpen?'⌃':'⌄';
+   header.append(button);
+   body.hidden=!defaultOpen;
+   button.addEventListener('click',()=>{
+    const open=button.getAttribute('aria-expanded')!=='true';
+    button.setAttribute('aria-expanded',String(open));
+    button.textContent=open?'⌃':'⌄';
+    body.hidden=!open;
+   });
+  }
   if(recent){
+   const heading=recent.querySelector('.card-heading');
+   const title=heading?.querySelector('h3');
+   if(title)title.textContent='Recent Class Attendance';
+   const desc=heading?.querySelector('p');
+   if(desc)desc.textContent='Recent records available to your teacher account';
+   addCollapse(recent,heading,[recent.querySelector('.table-scroll')],'Recent Attendance',true);
    const empty=recent.querySelector('#recentRows');
    if(empty)empty.setAttribute('aria-live','polite');
   }
   if(planner){
    const header=planner.querySelector('.planner-dashboard-intro h3');
    if(header)header.textContent='My Planner & Priorities';
+   addCollapse(planner,planner.querySelector('.planner-dashboard-intro'),
+    [planner.querySelector('.planner-dashboard-metrics'),$('plannerDashboardPreview')],
+    'Planner',false);
   }
  }
  if(window.attendigoStaffIdentity?.then)window.attendigoStaffIdentity.then(init).catch(()=>{});

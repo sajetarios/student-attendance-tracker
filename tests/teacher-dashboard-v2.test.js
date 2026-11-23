@@ -3,42 +3,55 @@ const {assertCacheRevisionAtLeast}=require('./support/asset-contract');
 const test=require('node:test'),assert=require('node:assert/strict');
 const fs=require('node:fs'),path=require('node:path'),vm=require('node:vm');
 const read=n=>fs.readFileSync(path.join(__dirname,'..','public',n),'utf8');
-const js=read('teacher-dashboard-v2.js'),css=read('teacher-dashboard-v2.css');
+const ui=read('teacher-dashboard-v3.js'),css=read('teacher-dashboard-v2.css');
 const html=read('portal.html'),sw=read('sw.js');
-test('Teacher UI parses, is role scoped, and does not modify server calculations',()=>{
- assert.doesNotThrow(()=>new vm.Script(js));
- assert.match(js,/user\?\.role !== 'TEACHER'/);
- assert.match(js,/attendigoStaffIdentity\.then\(init\)/);
- assert.doesNotMatch(js,/fetch\s*\(|\/api\/|method\s*:\s*['"](?:POST|PATCH|DELETE|PUT)/);
+
+test('Teacher V2 and V3 share one runtime controller without editing secure attendance data',()=>{
+ assert.doesNotThrow(()=>new vm.Script(ui));
+ assert.match(ui,/user\?\.role!=='TEACHER'/);
+ assert.match(ui,/attendigoStaffIdentity\.then\(init\)/);
+ assert.match(ui,/attendigo-teacher-v2/,'layout styling stays enabled');
+ assert.match(ui,/attendigo-teacher-v3/);
+ assert.doesNotMatch(ui,/fetch\s*\(|\/api\/|method\s*:\s*['"](?:POST|PATCH|DELETE|PUT)/);
+ assert.doesNotMatch(html,/src="\/teacher-dashboard-v2\.js/);
+ assert.doesNotMatch(sw,/"\/teacher-dashboard-v2\.js/);
+ assert.equal((html.match(/src="\/teacher-dashboard-v3\.js/g)||[]).length,1);
 });
-test('Retains live learner metrics and existing authorized actions',()=>{
- for(const id of ['dashboardScanCta','statsGrid','learnerSummaryCard','learnerTotal','learnerPresent','learnerPending','learnerMonthDays','recentRows','quickActionsCard','plannerDashboardWidget']){
+test('Keeps live learner totals, role-aware shortcuts and no extra metric calculations',()=>{
+ for(const id of ['dashboardScanCta','statsGrid','learnerSummaryCard','learnerTotal','learnerPresent',
+  'learnerPending','learnerMonthDays','recentRows','quickActionsCard','plannerDashboardWidget']){
   assert.match(html,new RegExp('id="'+id+'"'),id);
  }
- assert.match(js,/teacher-v2-redundant-stats/);
- assert.match(js,/\[data-go="schedules"\]/);
- assert.match(js,/\[data-go="sf2"\]/);
- assert.match(js,/\[data-go="students"\]/);
- assert.doesNotMatch(js,/\.click\(\)/);
+ assert.match(ui,/teacher-v2-redundant-stats/);
+ assert.match(ui,/teacherDesignations/);
+ assert.match(ui,/isSubject/);
+ assert.match(ui,/isAdviser/);
+ assert.match(ui,/Personal SF2 copy/);
+ assert.match(ui,/Official section SF2/);
+ assert.match(ui,/\[data-go="schedules"\]/);
+ assert.match(ui,/\[data-go="sf2"\]/);
+ assert.match(ui,/\[data-go="students"\]/);
 });
-test('Collapsible planner and recent attendance preserve existing nodes and handlers',()=>{
- assert.match(js,/section\.insertBefore\(body,first\)/);
- assert.match(js,/body\.append\(el\)/);
- assert.match(js,/aria-expanded/);
- assert.match(js,/aria-controls/);
- assert.match(js,/body\.hidden=!open/);
+test('Collapsible planner and recent activity keep original elements and event handlers',()=>{
+ assert.match(ui,/section\.insertBefore\(body,first\)/);
+ assert.match(ui,/body\.append\(element\)/);
+ assert.match(ui,/aria-expanded/);
+ assert.match(ui,/aria-controls/);
+ assert.match(ui,/body\.hidden=!open/);
+ assert.match(ui,/addCollapse\(recent,/);
+ assert.match(ui,/addCollapse\(planner,/);
 });
-test('Styles remain teacher-scoped, accessible, mobile and dark compatible',()=>{
+test('Retained V2 stylesheet remains teacher-scoped, responsive and dark-mode compatible',()=>{
  assert.match(css,/html\.attendigo-teacher-v2/);
  assert.match(css,/var\(--ui-accent/);
  assert.match(css,/@media\(max-width:680px\)/);
  assert.match(css,/html\[data-ui-theme="dark"\]/);
  assert.match(css,/focus-visible/);
 });
-test('Portal and offline shell include versioned teacher assets',()=>{
- for(const name of ['teacher-dashboard-v2.js?v=1','teacher-dashboard-v2.css?v=1']){
-  assert.ok(html.includes(name),name+' portal');
-  assert.ok(sw.includes(name),name+' sw');
- }
- assertCacheRevisionAtLeast(sw,252);
+test('Legacy styling is retained but its controller is retired from the portal and offline shell',()=>{
+ assert.ok(html.includes('teacher-dashboard-v2.css?v=1'));
+ assert.ok(sw.includes('teacher-dashboard-v2.css?v=1'));
+ assert.ok(html.includes('teacher-dashboard-v3.js?v=2'));
+ assert.ok(sw.includes('teacher-dashboard-v3.js?v=2'));
+ assertCacheRevisionAtLeast(sw,328);
 });

@@ -29,11 +29,16 @@ test('V3 design is branded, responsive and dark mode compatible',()=>{
  assert.match(css,/prefers-reduced-motion/);
  assert.match(css,/focus-visible/);
 });
-test('PWA and portal load versioned V3 assets after V2',()=>{
- for(const name of ['teacher-dashboard-v3.css?v=1','teacher-dashboard-v3.js?v=1']){
+test('PWA and portal load just one versioned teacher presenter while retaining V2 styling',()=>{
+ for(const name of ['teacher-dashboard-v3.css?v=1','teacher-dashboard-v3.js?v=2','teacher-dashboard-v2.css?v=1']){
   assert.ok(html.includes(name));
   assert.ok(sw.includes(name));
  }
- assert.ok(html.indexOf('teacher-dashboard-v3.js?v=1')>html.indexOf('teacher-dashboard-v2.js?v=1'));
- assertCacheRevisionAtLeast(sw,253);
+ assert.doesNotMatch(html,/src="\/teacher-dashboard-v2\.js/);
+ assert.doesNotMatch(sw,/"\/teacher-dashboard-v2\.js/);
+ assert.equal((html.match(/src="\/teacher-dashboard-v3\.js/g)||[]).length,1);
+ assert.match(js,/teacherDesignations/);
+ assert.match(js,/isAdviser/);
+ assert.match(js,/isSubject/);
+ assertCacheRevisionAtLeast(sw,328);
 });

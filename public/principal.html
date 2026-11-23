@@ -68,7 +68,7 @@ catch (_) { document.documentElement.dataset.theme = 'light'; }
    <div class="principal-navigation-top">
     <div class="principal-main-tabs" role="group" aria-label="School leadership sections">
      <button type="button" class="tab is-active" data-section="overview" aria-pressed="true">Overview</button>
-     <button type="button" class="tab" data-section="priorities" aria-pressed="false">Approvals</button>
+     <button type="button" class="tab" data-section="priorities" aria-pressed="false">School Priorities</button>
      <button type="button" class="tab" data-section="staff" aria-pressed="false">Personnel</button>
      <button type="button" class="tab" data-section="students" aria-pressed="false">Learners</button>
      <button type="button" class="tab" data-section="calendar" aria-pressed="false">School Operations</button>
@@ -195,7 +195,7 @@ catch (_) { document.documentElement.dataset.theme = 'light'; }
    <div class="principal-quick-links">
     <button type="button" class="quiet-button" data-jump="badge">▦ My QR badge</button>
     <button type="button" class="quiet-button" data-jump="personal">◷ My DTR &amp; gate</button>
-    <button type="button" class="quiet-button" data-jump="priorities">☷ Action inbox</button>
+    <button type="button" class="quiet-button" data-jump="priorities">☷ School priorities</button>
     <button type="button" class="quiet-button" data-jump="students">▤ Student signals</button>
    </div>
    <section class="surface principal-recognition" aria-labelledby="principalRecognitionTitle">
@@ -269,8 +269,8 @@ catch (_) { document.documentElement.dataset.theme = 'light'; }
     </div>
    </section>
    <section class="surface principal-briefing" id="principalBriefing" aria-labelledby="principalBriefingTitle">
-    <div class="card-heading"><div><p class="eyebrow">YOUR DAILY LEADERSHIP BRIEFING</p><h3 id="principalBriefingTitle">What deserves attention today?</h3>
-     <p>Evidence-first recommendations based on recorded school activity. Select a focus area to investigate.</p></div><span class="pill" id="briefingScope">Loading school scope</span></div>
+    <div class="card-heading"><div><p class="eyebrow">PRIMARY ACTION SUMMARY</p><h3 id="principalBriefingTitle">School priorities · selected date</h3>
+     <p>Start here for evidence-backed follow-up. Select an item to review its existing authorized workflow.</p></div><span class="pill" id="briefingScope">Loading school scope</span></div>
     <p id="briefingSummary" class="briefing-summary">Checking verified staff records and pending workflows…</p>
     <div id="briefingActions" class="briefing-actions" role="group" aria-label="Leadership briefing focus areas"></div>
     <p class="source-note">Briefing counts describe recorded activity and workflow status. They are not judgments of attendance, tardiness, employee performance or official approval.</p>
@@ -283,9 +283,12 @@ catch (_) { document.documentElement.dataset.theme = 'light'; }
      <p class="source-note">Zero slots may mean a weekend, holiday, missing data, or no recorded activity. They do not prove absence.</p>
     </section>
     <section class="surface insights-surface" aria-labelledby="attentionHeading">
-     <div class="card-heading"><div><p class="eyebrow">NEXT DECISIONS</p><h3 id="attentionHeading">What needs attention?</h3><p>Read-only oversight of pending workflows</p></div></div>
-     <div id="attentionList" class="attention-list" aria-live="polite"></div>
-     <button type="button" class="inline-button" data-jump="priorities">See all review stages ↗</button>
+     <div class="card-heading"><div><p class="eyebrow">SUPPORTING INFORMATION</p><h3 id="attentionHeading">Workflow stage breakdown</h3><p>Expand to inspect read-only stage details. Decisions belong in the authorized approval workflow.</p></div></div>
+     <details class="principal-workflow-details">
+      <summary>Show workflow stage details</summary>
+      <div id="attentionList" class="attention-list" aria-live="polite"></div>
+      <button type="button" class="inline-button" data-jump="priorities">Open authorized review stages ↗</button>
+     </details>
     </section>
    </div>
    <section class="surface" aria-labelledby="deptPreviewHeading">
