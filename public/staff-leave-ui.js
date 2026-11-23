@@ -498,7 +498,7 @@
     buttons.append(buttonFor('Print prefilled CSC Form No. 6',()=>{
      window.open('/leave-form6.html?requestId='+encodeURIComponent(r.requestId),'_blank');
     }));
-    if(r.staffUserId===user.userId&&!['APPROVED','REJECTED','CANCELLED'].includes(r.status)){
+    if(r.staffUserId===user.userId&&!['APPROVED','REJECTED','DECLINED_HEAD','CANCELLED'].includes(r.status)){
      attachDocument(card,r,'APPLICATION');
      if(r.leaveType==='SICK'){
       const sickDoc=document.createElement('details');sickDoc.className='leave-card';
