@@ -223,6 +223,17 @@ function registerSchoolMemoRoutes(app,pool,{authenticateSchoolClient,requireScho
   const client=await pool.connect();
   try{
    await client.query('BEGIN');
+   // Never sever the current/future operational calendar source by archiving
+   // the supporting Principal memo before the School Admin clears the link.
+   const dependent=await client.query(`SELECT 1 FROM school_calendar_exceptions
+     WHERE school_id=$1 AND memo_id=$2 AND calendar_date>=(NOW() AT TIME ZONE 'Asia/Manila')::date
+     UNION ALL SELECT 1 FROM schedule_day_adjustments
+     WHERE school_id=$1 AND memo_id=$2 AND school_date>=(NOW() AT TIME ZONE 'Asia/Manila')::date
+     LIMIT 1`,[req.auth.schoolId,req.params.id]);
+   if(dependent.rowCount){
+    await client.query('ROLLBACK');
+    return res.status(409).json({error:'This memorandum is linked to a current or upcoming calendar/schedule change. First update the existing change in School Calendar or Date-Specific Changes.'});
+   }
    const result=await client.query(`
     UPDATE school_memoranda SET archived_at=NOW(),archived_by=$3
     WHERE school_id=$1 AND memo_id=$2 AND archived_at IS NULL RETURNING memo_id`,
