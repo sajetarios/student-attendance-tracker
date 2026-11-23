@@ -114,7 +114,7 @@ test('Teacher overview is read only, date-aware and reuses existing authorized b
 });
 
 test('Overview resources are versioned and cached, existing shortcuts remain unique',()=>{
- for(const p of ['/teacher-teaching-overview.js?v=1','/teacher-teaching-overview.css?v=1']){
+ for(const p of ['/teacher-teaching-overview.js?v=2','/teacher-teaching-overview.css?v=2']){
   assert.ok(html.includes(p),'portal includes '+p);
   assert.ok(worker.includes(p),'worker includes '+p);
  }
@@ -123,4 +123,20 @@ test('Overview resources are versioned and cached, existing shortcuts remain uni
  assert.equal((html.match(/id="quickActionsCard"/g)||[]).length,1);
  const block=html.slice(html.indexOf('id="quickActionsCard"'),html.indexOf('</section>',html.indexOf('id="quickActionsCard"')));
  for(const route of ['students','schedules','sf2'])assert.ok(block.includes('data-go="'+route+'"'));
+});
+
+test('mounted overview replaces duplicate teacher shortcut presentation without removing permission checks',()=>{
+ assert.match(client,/card\.append\(section\);[\s\S]*?card\.classList\.add\('teacher-overview-only'\)/);
+ assert.match(css,/#quickActionsCard\.teacher-overview-only > \.card-heading/);
+ assert.match(css,/#quickActionsCard\.teacher-overview-only > \.teacher-shortcut-items/);
+ assert.match(css,/#quickActionsCard\.teacher-overview-only \.teacher-today-overview/);
+ assert.match(css,/display:\s*none !important/);
+ assert.match(css,/border-top:\s*0/);
+ assert.match(client,/if\(user\?\.role!=='TEACHER'\)return/);
+ assert.match(client,/if\(!card\|\|card\.querySelector\('#teacherTodayOverview'\)\)return/);
+ assert.match(client,/if \(!link \|\| link\.hidden \|\| link\.disabled\) return false/);
+ assert.doesNotMatch(client,/card\.hidden\s*=\s*true/);
+ for(const route of ['students','schedules','sf2']){
+   assert.equal((html.match(new RegExp('data-go="'+route+'"','g'))||[]).length,1);
+ }
 });
