@@ -41,6 +41,13 @@
   const obEntries=data.records.flatMap(row=>(row.obRemarks||[]).map(ob=>({
    date:row.date,remark:ob.remark,exception:ob.exceptionRemark||'',reviewRequired:Boolean(ob.exception)
   })));
+  const missingEntries=data.records.flatMap(row=>(row.missingScanRemarks||[]).map(entry=>({
+   date:row.date,remark:entry.remark
+  })));
+  const missingMarkup=missingEntries.length
+   ?'<div class="form48-missing-scan-remarks">'+missingEntries.map(item=>
+     '<div><strong>'+esc(item.date.slice(-2))+'</strong> '+esc(item.remark)+'</div>'
+    ).join('')+'</div>':'';
   const hasObExceptions=obEntries.some(item=>item.reviewRequired);
   const leaveEntries=Array.isArray(analysis.approvedLeaveRemarks)?analysis.approvedLeaveRemarks:[];
   const hasLeaveConflicts=leaveEntries.some(item=>item.conflictDates?.length);
@@ -87,7 +94,7 @@
    '<span>Verified as to prescribed office hours — In Charge</span></div>'+
    '<div class="form48-remarks">REMARKS: '+leaveMarkup+
    (!leaveEntries.length&&s.approvedLeaveDays?esc(String(s.approvedLeaveDays)+' documented approved leave day(s).'):'')+
-   obMarkup+'</div>'+
+   obMarkup+missingMarkup+'</div>'+
    '<div class="form48-summary">'+
    '<span>Days present (verified evidence): '+esc(s.daysPresent)+'</span>'+
    '<span>Days absent (confirmed): '+esc(s.daysAbsent)+esc(gapText)+'</span>'+ 
@@ -134,8 +141,8 @@ const standalonePrintCss = [
  '.form48-signer-position{font-style:italic;margin:1mm 0}',
  '.form48-remarks{margin:2mm 0 1mm;font-size:6.7pt;line-height:1.15;overflow-wrap:anywhere}',
  '.form48-line{display:block;border-bottom:1px solid #111;height:3mm}',
- '.form48-leave-remarks,.form48-ob-remarks{font-size:6.3pt;line-height:1.12;overflow-wrap:anywhere}',
- '.form48-leave-remarks>div,.form48-ob-remarks>div{margin:1mm 0}',
+ '.form48-leave-remarks,.form48-ob-remarks,.form48-missing-scan-remarks{font-size:6.3pt;line-height:1.12;overflow-wrap:anywhere}',
+ '.form48-leave-remarks>div,.form48-ob-remarks>div,.form48-missing-scan-remarks>div{margin:1mm 0}',
  '.form48-summary{display:grid;gap:.6mm;margin:1mm 0;font-size:6.7pt;line-height:1.15}',
  '.form48-approval{margin-top:auto;padding-top:2mm;margin-bottom:0}',
  '.form48-draft-mark{text-align:center;font-size:6pt;font-weight:700;margin:1mm 0 0;line-height:1.12}',
