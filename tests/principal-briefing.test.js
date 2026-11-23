@@ -20,7 +20,7 @@ test('Principal daily briefing exposes four actionable, source-labeled focus are
 test('Briefing never treats missing punches, pending leave or classroom QR as official attendance findings',()=>{
  assert.ok(js.includes('No employee absence or punctuality is inferred'));
  assert.ok(js.includes('not the official SF2 attendance count'));
- assert.ok(js.includes('independent verification'));
+ assert.ok(js.includes('Review the original evidence before accepting DTR slots'));
  assert.ok(html.includes('not judgments of attendance, tardiness, employee performance'));
  assert.ok(!js.includes('Math.random'));
  assert.ok(!js.includes("fetch('/api/principal/approve"));
