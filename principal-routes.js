@@ -141,7 +141,7 @@ function registerPrincipalRoutes(app,pool,{authenticateSchoolClient,requireSchoo
        LEFT JOIN punches ON punches.department_id=d.department_id
      WHERE d.school_id=$1 AND d.active=TRUE AND d.department_code<>'UNASSIGNED'
        AND ($4::uuid IS NULL OR d.department_id=$4::uuid)
-     ORDER BY pendingScans DESC,name`,scope)
+     ORDER BY "pendingScans" DESC,name`,scope)
    ]);
    const allStaff=numeric(staff.rows[0],'active_teachers');
    const selectedStaff=departmentId?numeric(staff.rows[0],'selected_department_teachers'):allStaff;
