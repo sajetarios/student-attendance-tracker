@@ -51,8 +51,8 @@ test('recent attendance presents all requested fields without mixing unsynced dr
   assert.match(ui, /status\.charAt\(0\)/);
   assert.match(css, /@container \(max-width:710px\)/);
   assert.match(css, /html\[data-ui-theme=dark\]/);
-  assert.ok(html.includes('/recent-class-attendance.css?v=1'));
-  assert.ok(worker.includes('/recent-class-attendance.css?v=1'));
+  assert.ok(html.includes('/recent-class-attendance.css?v=2'));
+  assert.ok(worker.includes('/recent-class-attendance.css?v=2'));
   assert.ok(html.includes('/portal.js?v=237'));
   assert.ok(worker.includes('/portal.js?v=237'));
 });
