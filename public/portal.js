@@ -1254,7 +1254,7 @@ window.attendigoStaffIdentity = new Promise(resolve => { resolveStaffIdentity = 
       if (role === 'TEACHER') {
         recentTable.innerHTML = rows.length ? rows.map(row => {
           const rawDate = String(row.schoolDate || '');
-          const schoolDate = /^\\d{4}-\\d{2}-\\d{2}$/.test(rawDate)
+          const schoolDate = /^\d{4}-\d{2}-\d{2}$/.test(rawDate)
             ? new Date(rawDate + 'T12:00:00+08:00') : new Date(NaN);
           const dateLabel = Number.isNaN(schoolDate.getTime()) ? '—'
             : schoolDate.toLocaleDateString('en-PH', {
