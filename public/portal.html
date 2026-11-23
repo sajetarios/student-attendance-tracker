@@ -1734,8 +1734,10 @@ body.dark-mode .content-wrap > .school-heading.is-compact,body[data-theme="dark"
                     <strong>Special calendar date</strong><p>Record holidays, suspensions, special classes, or shortened days.</p>
                     <label>Date<input id="calendarExceptionDate" type="date" required></label>
                     <label>Description<input id="calendarExceptionTitle" maxlength="140" required placeholder="e.g. School foundation day"></label>
-                    <label>Type<select id="calendarExceptionType"><option value="CLOSED">Closed / holiday</option><option value="OPEN">Additional operating day</option><option value="SPECIAL_CLASS">Special classes</option><option value="SHORTENED_DAY">Shortened day</option></select></label>
+                    <label>Type<select id="calendarExceptionType"><option value="CLOSED">Closed / holiday</option><option value="OPEN">Additional operating day</option><option value="SPECIAL_CLASS">Special classes</option><option value="SHORTENED_DAY">Shortened day</option><option value="CLASS_SUSPENSION">Class suspension (learners only)</option></select></label>
                     <label id="calendarDismissalWrap" hidden>Dismissal time<input id="calendarDismissalTime" type="time"></label>
+                    <label id="calendarSuspensionWrap" hidden>Class suspension begins (leave blank for full day)<input id="calendarSuspensionTime" type="time"><small>For an unexpected mid-day suspension, enter the exact local time; earlier attendance stays recorded.</small></label>
+                    <label id="calendarMemoWrap" hidden>Official Principal memorandum *<select id="calendarMemoId"><option value="">Select the published class-suspension notice</option></select><small>A class-only suspension does not change personnel DTR. Publish and notify all users from the existing Principal dashboard first.</small></label>
                     <label id="calendarSchedulesWrap" hidden>Schedules operating on this date<select id="calendarExceptionSchedules" multiple size="5" aria-describedby="calendarScheduleHelp"></select><small id="calendarScheduleHelp">Select only the classes that will meet on this date. Use Ctrl/Command or tap to select multiple schedules.</small></label>
                     <label>Notes (optional)<input id="calendarExceptionNotes" maxlength="500"></label>
                     <div class="form-actions"><button class="primary-button" type="submit">Save calendar date</button><button class="secondary-button" type="button" id="cancelCalendarExceptionEdit" hidden>Cancel edit</button></div><span class="inline-feedback" id="calendarExceptionFeedback" role="status"></span>
@@ -1791,6 +1793,7 @@ body.dark-mode .content-wrap > .school-heading.is-compact,body[data-theme="dark"
                     <label id="adjustmentStartWrap" hidden>New start time *<input id="adjustmentStartTime" type="time"></label>
                     <label id="adjustmentEndWrap" hidden>New end time *<input id="adjustmentEndTime" type="time"></label>
                     <label id="adjustmentRoomWrap" hidden>Room (optional)<input id="adjustmentRoom" maxlength="100" placeholder="Leave empty to keep original room"></label>
+                    <label>Related Principal memorandum (optional)<select id="adjustmentMemoId"><option value="">No memorandum link</option></select></label>
                     <label class="dated-notes">Notes (optional)<textarea id="adjustmentNotes" rows="2" maxlength="500" placeholder="e.g. English teacher attends regional seminar; replacement teacher covers Period 1"></textarea></label>
                   </div>
                   <div id="adjustmentFormDescription" class="dated-schedule-explanation" role="status"></div>
@@ -2495,7 +2498,7 @@ body.dark-mode .content-wrap > .school-heading.is-compact,body[data-theme="dark"
   <script src="/student-name-format.js?v=2" defer></script>
   <script src="/teacher-scanner-schedule.js?v=1" defer></script>
   <script src="/gate-offline-review.js?v=1" defer></script>
-  <script src="/portal.js?v=237" defer></script>
+  <script src="/portal.js?v=238" defer></script>
   <script src="/schedule-list-filters.js?v=1" defer></script>
   <script src="/staff-lunch-ui.js?v=7" defer></script>
   <script src="/staff-precise-location.js?v=1" defer></script>
