@@ -11,8 +11,8 @@
 try { const preference = localStorage.getItem('attendigo.principal.theme'); document.documentElement.dataset.theme = ['dark','light','system'].includes(preference) ? preference : 'light'; }
 catch (_) { document.documentElement.dataset.theme = 'light'; }
 </script>
-<link rel="stylesheet" href="/principal-dashboard.css?v=9">
-<script src="/principal-dashboard.js?v=8" defer></script>
+<link rel="stylesheet" href="/principal-dashboard.css?v=10">
+<script src="/principal-dashboard.js?v=9" defer></script>
 </head>
 <body>
 <a class="skip" href="#main">Skip to school overview</a>
@@ -202,6 +202,23 @@ catch (_) { document.documentElement.dataset.theme = 'light'; }
      <p class="source-note">Checking verified arrival records…</p>
     </div>
     <p class="source-note">Recognition candidates only. Based on photo-verified physical gate entry, not login, DTR punctuality, an official award, or a comparison against individual work schedules. Staff with approved leave on this date are excluded pending review.</p>
+   </section>
+   <section class="surface principal-watch-nominees" aria-labelledby="principalWatchTitle">
+    <div class="card-heading">
+     <div><p class="eyebrow">TEACHER APPRECIATION · PROVISIONAL</p>
+      <h3 id="principalWatchTitle">Watch Recognition — Suggested Nominees</h3>
+      <p id="principalWatchPeriod">Reviewing the last 30 calendar days of verified Gatekeeper arrivals.</p></div>
+     <span class="pill" id="principalWatchCount">Checking records</span>
+    </div>
+    <div class="principal-watch-criteria" aria-label="Watch Recognition nomination criteria">
+     <span>Before <strong>7:00 AM</strong></span>
+     <span><strong>10+</strong> distinct verified early-entry days</span>
+     <span><strong>3+</strong> different calendar weeks</span>
+    </div>
+    <div id="principalWatchNomineeList" class="principal-watch-list" aria-live="polite">
+     <p class="source-note">Verifying monthly recognition candidates…</p>
+    </div>
+    <p class="source-note">Suggested candidates, not winners. One earliest photo-verified gate entry per date counts; approved leave dates are excluded. Missing scans are not absences. Before giving a watch or publicly recognizing anyone, the principal must review work schedules, unusual scan patterns, approved school activities, and the school's final award criteria.</p>
    </section>
    <section class="surface principal-briefing" id="principalBriefing" aria-labelledby="principalBriefingTitle">
     <div class="card-heading"><div><p class="eyebrow">YOUR DAILY LEADERSHIP BRIEFING</p><h3 id="principalBriefingTitle">What deserves attention today?</h3>
