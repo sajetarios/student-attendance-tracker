@@ -148,27 +148,7 @@ tr:hover td{background:#f7fbff}
  .metric-grid{grid-template-columns:1fr 1fr}
 }
 @media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}.panel{animation:none}button.metric-card:hover{transform:none}}
-@media(prefers-color-scheme:dark){
- :root{color-scheme:dark;--bg:#111d2c;--ink:#e3ecf5;--muted:#a4b5c5;
- --surface:#1c2b3d;--border:#3a4c60;--primary:#74c5db;--shadow:none}
- .topbar{background:#172536}.brand strong{color:#e9f5fb}
- .controls,.surface,.metric-card,.dept-card,.priority-card,.definition-item{background:var(--surface)}
- .controls input,.controls select,.staff-filters input,.staff-filters select,.quiet-button,.table-wrap{background:#243449;color:#e3ecf5;border-color:#455a70}
- .metric-label,td,.attention-item b,.note-block p{color:#c8dae9}
- .metric-card small,.metric-card .metric-action{color:#acc7d6}
- .metric-blue .metric-icon{background:#1a4968;color:#a2d4fa}.metric-teal .metric-icon{background:#1c494a;color:#98e4ce}
- .metric-amber .metric-icon{background:#5a4023;color:#ffcc88}.metric-violet .metric-icon{background:#41345e;color:#c4adff}
- .attention-item{background:#233347;border-color:var(--border)}.attention-item .mark{background:#583d1f;color:#f4cd96}
- .tab{color:#b2c5d7}.tab.is-active,.tab:hover{background:#244658;color:#d6f2f6;border-color:#466a7c}
- .table-wrap,th,td{background:#1c2b3d;color:#dfebf5;border-color:#3b5167}
- th{background:#24384d}tr:hover td{background:#25384d}
- .progress{background:#39516a}.note-block{background:#1b3942}
- .status.missing{background:#2c3c4a;color:#aabed1}
- .status.pending{background:#593f1e;color:#f8cf96}
- .status.leave{background:#403354;color:#d8c1ff}
- .pill{background:#294456;color:#c7e5ed}
- .dept-card:hover{background:#284459}
-}
+
 
 /* Daily Leadership Briefing: interactive evidence cards, no made-up scores. */
 .principal-briefing{margin:18px 0 20px;overflow:hidden}
@@ -210,11 +190,72 @@ changing navigation, permissions, calculations, or the underlying data. */
  .principal-presentation .briefing-item-value{font-size:24px}}
 @media(prefers-reduced-motion:reduce){.briefing-item{transition:none}
  .briefing-item:hover{transform:none}}
+
+
+/* Explicit Principal appearance preference; light is the first-visit default. */
+
+ :root[data-theme="dark"]{color-scheme:dark;--bg:#111d2c;--ink:#e3ecf5;--muted:#a4b5c5;
+ --surface:#1c2b3d;--border:#3a4c60;--primary:#74c5db;--shadow:none}
+ :root[data-theme="dark"] .topbar{background:#172536}:root[data-theme="dark"] .brand strong{color:#e9f5fb}
+ :root[data-theme="dark"] .controls,:root[data-theme="dark"] .surface,:root[data-theme="dark"] .metric-card,:root[data-theme="dark"] .dept-card,:root[data-theme="dark"] .priority-card,:root[data-theme="dark"] .definition-item{background:var(--surface)}
+ :root[data-theme="dark"] .controls input,:root[data-theme="dark"] .controls select,:root[data-theme="dark"] .staff-filters input,:root[data-theme="dark"] .staff-filters select,:root[data-theme="dark"] .quiet-button,:root[data-theme="dark"] .table-wrap{background:#243449;color:#e3ecf5;border-color:#455a70}
+ :root[data-theme="dark"] .metric-label,:root[data-theme="dark"] td,:root[data-theme="dark"] .attention-item b,:root[data-theme="dark"] .note-block p{color:#c8dae9}
+ :root[data-theme="dark"] .metric-card small,:root[data-theme="dark"] .metric-card .metric-action{color:#acc7d6}
+ :root[data-theme="dark"] .metric-blue .metric-icon{background:#1a4968;color:#a2d4fa}:root[data-theme="dark"] .metric-teal .metric-icon{background:#1c494a;color:#98e4ce}
+ :root[data-theme="dark"] .metric-amber .metric-icon{background:#5a4023;color:#ffcc88}:root[data-theme="dark"] .metric-violet .metric-icon{background:#41345e;color:#c4adff}
+ :root[data-theme="dark"] .attention-item{background:#233347;border-color:var(--border)}:root[data-theme="dark"] .attention-item .mark{background:#583d1f;color:#f4cd96}
+ :root[data-theme="dark"] .tab{color:#b2c5d7}:root[data-theme="dark"] .tab.is-active,:root[data-theme="dark"] .tab:hover{background:#244658;color:#d6f2f6;border-color:#466a7c}
+ :root[data-theme="dark"] .table-wrap,:root[data-theme="dark"] th,:root[data-theme="dark"] td{background:#1c2b3d;color:#dfebf5;border-color:#3b5167}
+ :root[data-theme="dark"] th{background:#24384d}:root[data-theme="dark"] tr:hover td{background:#25384d}
+ :root[data-theme="dark"] .progress{background:#39516a}:root[data-theme="dark"] .note-block{background:#1b3942}
+ :root[data-theme="dark"] .status.missing{background:#2c3c4a;color:#aabed1}
+ :root[data-theme="dark"] .status.pending{background:#593f1e;color:#f8cf96}
+ :root[data-theme="dark"] .status.leave{background:#403354;color:#d8c1ff}
+ :root[data-theme="dark"] .pill{background:#294456;color:#c7e5ed}
+ :root[data-theme="dark"] .dept-card:hover{background:#284459}
+
+
+ :root[data-theme="dark"] .briefing-item{background:#203447;border-color:#415668;color:#eaf2f9}
+ :root[data-theme="dark"] .briefing-item:hover,:root[data-theme="dark"] .briefing-item:focus-visible{background:#28475a}
+ :root[data-theme="dark"] .briefing-summary{color:#c4d5e4}
+ :root[data-theme="dark"] .briefing-item-icon{background:#2f5269;color:#c2ebf4}
+ :root[data-theme="dark"] .briefing-item-description{color:#b9cadb}
+ :root[data-theme="dark"] .briefing-item-link{color:#87d0ee}
+
 @media(prefers-color-scheme:dark){
- .briefing-item{background:#203447;border-color:#415668;color:#eaf2f9}
- .briefing-item:hover,.briefing-item:focus-visible{background:#28475a}
- .briefing-summary{color:#c4d5e4}
- .briefing-item-icon{background:#2f5269;color:#c2ebf4}
- .briefing-item-description{color:#b9cadb}
- .briefing-item-link{color:#87d0ee}
+
+ :root[data-theme="system"]{color-scheme:dark;--bg:#111d2c;--ink:#e3ecf5;--muted:#a4b5c5;
+ --surface:#1c2b3d;--border:#3a4c60;--primary:#74c5db;--shadow:none}
+ :root[data-theme="system"] .topbar{background:#172536}:root[data-theme="system"] .brand strong{color:#e9f5fb}
+ :root[data-theme="system"] .controls,:root[data-theme="system"] .surface,:root[data-theme="system"] .metric-card,:root[data-theme="system"] .dept-card,:root[data-theme="system"] .priority-card,:root[data-theme="system"] .definition-item{background:var(--surface)}
+ :root[data-theme="system"] .controls input,:root[data-theme="system"] .controls select,:root[data-theme="system"] .staff-filters input,:root[data-theme="system"] .staff-filters select,:root[data-theme="system"] .quiet-button,:root[data-theme="system"] .table-wrap{background:#243449;color:#e3ecf5;border-color:#455a70}
+ :root[data-theme="system"] .metric-label,:root[data-theme="system"] td,:root[data-theme="system"] .attention-item b,:root[data-theme="system"] .note-block p{color:#c8dae9}
+ :root[data-theme="system"] .metric-card small,:root[data-theme="system"] .metric-card .metric-action{color:#acc7d6}
+ :root[data-theme="system"] .metric-blue .metric-icon{background:#1a4968;color:#a2d4fa}:root[data-theme="system"] .metric-teal .metric-icon{background:#1c494a;color:#98e4ce}
+ :root[data-theme="system"] .metric-amber .metric-icon{background:#5a4023;color:#ffcc88}:root[data-theme="system"] .metric-violet .metric-icon{background:#41345e;color:#c4adff}
+ :root[data-theme="system"] .attention-item{background:#233347;border-color:var(--border)}:root[data-theme="system"] .attention-item .mark{background:#583d1f;color:#f4cd96}
+ :root[data-theme="system"] .tab{color:#b2c5d7}:root[data-theme="system"] .tab.is-active,:root[data-theme="system"] .tab:hover{background:#244658;color:#d6f2f6;border-color:#466a7c}
+ :root[data-theme="system"] .table-wrap,:root[data-theme="system"] th,:root[data-theme="system"] td{background:#1c2b3d;color:#dfebf5;border-color:#3b5167}
+ :root[data-theme="system"] th{background:#24384d}:root[data-theme="system"] tr:hover td{background:#25384d}
+ :root[data-theme="system"] .progress{background:#39516a}:root[data-theme="system"] .note-block{background:#1b3942}
+ :root[data-theme="system"] .status.missing{background:#2c3c4a;color:#aabed1}
+ :root[data-theme="system"] .status.pending{background:#593f1e;color:#f8cf96}
+ :root[data-theme="system"] .status.leave{background:#403354;color:#d8c1ff}
+ :root[data-theme="system"] .pill{background:#294456;color:#c7e5ed}
+ :root[data-theme="system"] .dept-card:hover{background:#284459}
+
+
+ :root[data-theme="system"] .briefing-item{background:#203447;border-color:#415668;color:#eaf2f9}
+ :root[data-theme="system"] .briefing-item:hover,:root[data-theme="system"] .briefing-item:focus-visible{background:#28475a}
+ :root[data-theme="system"] .briefing-summary{color:#c4d5e4}
+ :root[data-theme="system"] .briefing-item-icon{background:#2f5269;color:#c2ebf4}
+ :root[data-theme="system"] .briefing-item-description{color:#b9cadb}
+ :root[data-theme="system"] .briefing-item-link{color:#87d0ee}
+
 }
+
+.theme-picker{display:flex;align-items:center;gap:7px;font-weight:700;font-size:12px;color:var(--muted)}
+.theme-picker select{min-height:40px;max-width:130px;padding:8px 10px;border:1px solid var(--border);border-radius:10px;background:var(--surface);color:var(--ink)}
+:root[data-theme="dark"] .theme-picker select{background:#243449;color:#e3ecf5;border-color:#455a70}
+@media(prefers-color-scheme:dark){:root[data-theme="system"] .theme-picker select{background:#243449;color:#e3ecf5;border-color:#455a70}}
+@media(max-width:560px){.top-actions{gap:8px}.theme-picker{font-size:11px}.theme-picker select{min-height:40px;max-width:100px}}
