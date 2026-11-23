@@ -73,6 +73,9 @@
   #recentActivityCard .table-scroll {
     max-height:none;overflow:visible;border:0;border-radius:0;
   }
+  html.attendigo-teacher-v2 #recentActivityCard .table-scroll {
+    max-height:none;overflow:visible;border:0;
+  }
   #recentActivityCard table,
   #recentActivityCard tbody {display:block;width:100%;min-width:0!important;}
   #recentActivityCard thead {display:none;}
