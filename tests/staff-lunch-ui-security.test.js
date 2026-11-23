@@ -47,7 +47,7 @@ test('admin and teacher interfaces remain isolated to existing role-specific por
  assert.doesNotMatch(ui,/Date\.now\(\)>expiry/);
  assert.match(ui,/!document\.hidden/);
  assert.match(portal,/staff-lunch-ui\.js\?v=7/);
- assert.match(portal,/staff-lunch\.css\?v=6/);
+ assert.match(portal,/staff-lunch\.css\?v=7/);
 });
 test('My lunch QR is unhidden by the role-aware portal view switch',()=>{
  const portalJs=read('public/portal.js');
@@ -69,7 +69,7 @@ test('QR scan does not log in or record until authenticated staff confirms expli
 });
 test('service worker preloads safe assets but excludes sensitive scan document from offline cache',()=>{
  assert.match(sw,/staff-lunch-ui\.js\?v=7/);
- assert.match(sw,/staff-lunch\.css\?v=6/);
+ assert.match(sw,/staff-lunch\.css\?v=7/);
  assert.match(sw,/staff-lunch-checkin\.js\?v=5/);
  assert.match(sw,/staff-lunch-checkin\.html/);
  const shell=sw.split('const SHELL = [')[1].split('];')[0];
@@ -128,8 +128,8 @@ test('location capture belongs to Department Head; Admin approves independently'
      'staffLunchLocationDepartment','staffLunchApprovePoint','staffLunchRejectPoint'])
   assert.ok(portal.includes('id="'+id+'"'),id+' visible in portal');
  assert.ok(!portal.includes('id="staffLunchSetPoint"'),'obsolete admin GPS button removed');
- assert.ok(portal.includes('staff-department-location.js?v=2'));
- assert.ok(sw.includes('staff-department-location.js?v=2'));
+ assert.ok(portal.includes('staff-department-location.js?v=3'));
+ assert.ok(sw.includes('staff-department-location.js?v=3'));
  assert.ok(departmentLocationUi.includes("role==='DEPARTMENT_HEAD'"));
  assert.ok(departmentLocationUi.includes("role==='SCHOOL_ADMIN'"));
  assert.ok(departmentLocationUi.includes("'/api/staff-attendance/lunch/location/propose'"));
@@ -159,4 +159,28 @@ test('GPS sampling is bounded and routes uncertainty to review without changing 
  assert.match(routes,/sampleCount:presence.sampleCount/);
  assert.match(routes,/locationConfidence:presence.confidence/);
  assert.ok(routes.includes("verification=reasons.length?'PENDING_VERIFICATION':'VERIFIED'"));
+});
+
+
+test('location permission popup guides staff without bypassing approval',()=>{
+ const css=read('public/staff-lunch.css');
+ assert.match(departmentLocationUi,/navigator\.permissions\.query\(\{name:'geolocation'\}\)/);
+ assert.match(departmentLocationUi,/staffLocationPermissionDialog/);
+ assert.match(departmentLocationUi,/dialog\.showModal\(\)/);
+ assert.match(departmentLocationUi,/staffLocationPermissionDevice/);
+ assert.match(departmentLocationUi,/Chrome \/ Edge \(computer\)/);
+ assert.match(departmentLocationUi,/Android \(Chrome\)/);
+ assert.match(departmentLocationUi,/iPhone \/ iPad \(Safari\)/);
+ assert.match(departmentLocationUi,/if\(state==='granted'\)\{void submitLocation\(\);return;\}/);
+ assert.match(departmentLocationUi,/if\(error\?\.code===1\)openGuide\('denied'\)/);
+ assert.match(departmentLocationUi,/Your browser has already blocked location/);
+ assert.match(departmentLocationUi,/startCapture\(\)/);
+ assert.match(departmentLocationUi,/\/api\/staff-attendance\/lunch\/location\/propose/);
+ assert.match(departmentLocationUi,/position\.samples\?\.length<2/);
+ assert.match(css,/\.staff-location-permission-dialog::backdrop/);
+ assert.match(css,/\.staff-location-permission-actions/);
+ assert.match(portal,/staff-lunch\.css\?v=7/);
+ assert.match(portal,/staff-department-location\.js\?v=3/);
+ assert.match(sw,/staff-lunch\.css\?v=7/);
+ assert.match(sw,/staff-department-location\.js\?v=3/);
 });

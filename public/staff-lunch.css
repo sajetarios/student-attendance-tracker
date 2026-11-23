@@ -79,3 +79,47 @@
  .staff-lunch-location-decisions{flex-direction:column}
  .staff-lunch-location-decisions button{width:100%;flex:0 1 auto}
 }
+
+
+/* Accessible location-permission recovery popup (no browser permission spoofing). */
+.staff-location-permission-dialog{
+ border:1px solid var(--border-color,#d1dbe8);border-radius:18px;
+ padding:0;width:min(92vw,490px);max-width:490px;max-height:min(86dvh,720px);
+ overflow-y:auto;overscroll-behavior:contain;
+ background:var(--surface-color,#fff);color:var(--text-color,#17283e);
+ box-shadow:0 18px 60px rgba(11,31,54,.25)
+}
+.staff-location-permission-dialog:not([open]){display:none}
+.staff-location-permission-dialog::backdrop{background:rgba(13,29,51,.58)}
+.staff-location-permission-body{padding:clamp(16px,3.5vw,26px);display:grid;gap:14px;min-width:0}
+.staff-location-permission-heading{display:flex;align-items:flex-start;gap:12px}
+.staff-location-permission-heading>div{flex:1;min-width:0}
+.staff-location-permission-symbol{flex:0 0 44px;width:44px;height:44px;
+ display:grid;place-items:center;border-radius:14px;font-size:29px;
+ background:rgba(42,109,184,.1);color:var(--primary-color,#2467ad)}
+.staff-location-permission-heading h2{font-size:1.14rem;line-height:1.35;margin:0 0 5px}
+.staff-location-permission-heading p,.staff-location-permission-message{
+ font-size:.9rem;line-height:1.5;margin:0;overflow-wrap:break-word
+}
+.staff-location-permission-heading p{color:var(--text-muted,#576a80)}
+.staff-location-permission-message{padding:12px;background:var(--input-bg,rgba(56,121,200,.07));border-radius:10px}
+.staff-location-permission-help{display:grid;gap:10px}
+.staff-location-permission-help[hidden]{display:none}
+.staff-location-permission-help label{font-size:.88rem;font-weight:650}
+.staff-location-permission-help select{width:100%;max-width:100%;min-height:42px;
+ padding:8px 12px;border-radius:9px;border:1px solid var(--border-color,#cbd5e1);
+ background:var(--input-bg,#fff);color:inherit}
+.staff-location-permission-help ol{padding-left:22px;margin:0;display:grid;gap:8px;
+ font-size:.89rem;line-height:1.5;overflow-wrap:anywhere}
+.staff-location-permission-tip{font-size:.82rem!important;line-height:1.5;
+ margin:2px 0 0!important;color:var(--text-muted,#60748b)}
+.staff-location-permission-actions{display:flex;justify-content:flex-end;flex-wrap:wrap;gap:10px}
+.staff-location-permission-actions button{min-height:44px;white-space:normal;max-width:100%}
+.staff-location-permission-actions button:focus-visible,
+.staff-location-permission-help select:focus-visible{outline:3px solid #4b90e5;outline-offset:2px}
+@media(max-width:480px){
+ .staff-location-permission-heading{gap:8px}
+ .staff-location-permission-symbol{width:38px;height:38px;flex-basis:38px}
+ .staff-location-permission-actions{flex-direction:column-reverse}
+ .staff-location-permission-actions button{width:100%}
+}
