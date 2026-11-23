@@ -94,7 +94,7 @@ function registerSchoolMemoRoutes(app,pool,{authenticateSchoolClient,requireScho
     VALUES($1,$2,$3,$4,$5,$6,$7::date,$8,$9,$10,$11)
     RETURNING memo_id AS "memoId",published_at AS "publishedAt"`,
     [req.auth.schoolId,req.auth.userId,title,summary,category,audience,date||null,filename,type,req.body,sha]);
-   const id=q.rows[0].memoId,url='/school-memos.html?id='+encodeURIComponent(id);
+   const id=q.rows[0].memoId;
    // Send durable in-app notifications to active school accounts and, for the
    // ALL_USERS audience, active registered student accounts in this school.
    // No unverified browser push delivery is claimed.
@@ -102,23 +102,26 @@ function registerSchoolMemoRoutes(app,pool,{authenticateSchoolClient,requireScho
     INSERT INTO user_notifications
       (school_id,recipient_kind,recipient_id,event_key,category,title,body,request_type,request_id,status,action_url)
     SELECT $1,'SCHOOL_USER',u.user_id,'memo:'||$2::text,'SYSTEM',$3,$4,
-      'MEMORANDUM',$2::uuid,'PUBLISHED',$5
+      'MEMORANDUM',$2::uuid,'PUBLISHED',
+      CASE WHEN u.role='PRINCIPAL' THEN '/principal.html?memo='||$2::text
+           WHEN u.role='PARENT' THEN '/parent-portal.html?memo='||$2::text
+           ELSE '/portal.html?memo='||$2::text END
     FROM school_users u WHERE u.school_id=$1 AND u.active=TRUE
-      AND ($6='ALL_USERS' OR u.role<>'PARENT')
+      AND ($5='ALL_USERS' OR u.role<>'PARENT')
     ON CONFLICT(recipient_kind,recipient_id,event_key) DO NOTHING`,
-    [req.auth.schoolId,id,'School memorandum: '+title,summary.slice(0,280),url,audience]);
+    [req.auth.schoolId,id,'School memorandum: '+title,summary.slice(0,280),audience]);
    let learners={rowCount:0};
    if(audience==='ALL_USERS'){
     learners=await client.query(`
      INSERT INTO user_notifications
        (school_id,recipient_kind,recipient_id,event_key,category,title,body,request_type,request_id,status,action_url)
      SELECT $1,'STUDENT',sa.student_account_id,'memo:'||$2::text,'SYSTEM',$3,$4,
-      'MEMORANDUM',$2::uuid,'PUBLISHED',$5
+      'MEMORANDUM',$2::uuid,'PUBLISHED','/student-portal.html?memo='||$2::text
      FROM student_accounts sa JOIN students st ON st.school_id=sa.school_id
         AND st.student_id=sa.student_id AND st.active=TRUE
      WHERE sa.school_id=$1 AND sa.active=TRUE
      ON CONFLICT(recipient_kind,recipient_id,event_key) DO NOTHING`,
-     [req.auth.schoolId,id,'School memorandum: '+title,summary.slice(0,280),url]);
+     [req.auth.schoolId,id,'School memorandum: '+title,summary.slice(0,280)]);
    }
    await client.query(`
     INSERT INTO school_memo_audit(school_id,memo_id,actor_user_id,action,detail)
