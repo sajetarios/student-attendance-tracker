@@ -358,11 +358,24 @@
     if(!f.reportValidity())return;
     if(reason.value.length<3){reason.setCustomValidity('Enter a reason of at least three characters.');reason.reportValidity();reason.setCustomValidity('');return;}
     const d=new FormData(f);
+    const file=d.get('supportingDocument');
+    if(file instanceof File&&file.size){
+     if(!['application/pdf','image/png','image/jpeg'].includes(file.type)||file.size>4194304){
+      say('Select a valid PDF, JPG or PNG document no larger than 4 MB before submitting.',true);
+      attachment.focus();return;
+     }
+     if(!attachmentKind.value){
+      say('Choose the correct type for your supporting document.',true);
+      attachmentKind.focus();return;
+     }
+    }
     const payload=Object.fromEntries(['leaveType','creditAccount','startDate','endDate','reason','details','commutation'].map(k=>[k,String(d.get(k)||'')]));
     payload.creditAccount=accountControl.value;
+    // Disabled controls are excluded from FormData, so preserve the chosen
+    // Not requested value for non-commutable leave.
+    payload.commutation=commutationControl.value;
     action('Submitting leave',async()=>{
      const response=await call('/requests','POST',payload);
-     const file=d.get('supportingDocument');
      if(file instanceof File&&file.size){
       try{await upload('/requests/'+response.requestId+'/documents',file,
        String(d.get('supportingKind')||'APPLICATION'));}
