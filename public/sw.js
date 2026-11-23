@@ -1,4 +1,4 @@
-const CACHE = "attendigo-v329-unified-recent-class-attendance-attendance-two-actions-compact-recent";
+const CACHE = "attendigo-v330-memo-period-temporary-form48";
 
 const SHELL = [
   "/typography.css?v=1",
@@ -82,7 +82,7 @@ const SHELL = [
   "/teacher-dashboard-v2.js?v=1",
   "/teacher-dashboard-v3.css?v=1",
   "/teacher-dashboard-v3.js?v=1",
-  "/form48-report.js?v=19",
+  "/form48-report.js?v=20",
   "/missing-scan-ui.js?v=1",
   "/missing-scan-ui.css?v=1",
   "/form48-intelligence.js?v=2",
@@ -144,11 +144,11 @@ const SHELL = [
   "/password-visibility.js",
   "/portal-login.js?v=15",
   "/login-routing.js",
-  "/principal-dashboard.js?v=12",
-  "/principal-dashboard.css?v=13",
+  "/principal-dashboard.js?v=13",
+  "/principal-dashboard.css?v=14",
   "/school-memos.js?v=1",
   "/school-memos.css?v=1",
-  "/school-memo-banner.js?v=3",
+  "/school-memo-banner.js?v=4",
   "/school-memo-banner.css?v=3",
   "/school-memos-redirect.js?v=1",
   "/responsive.css?v=0.8.3",
