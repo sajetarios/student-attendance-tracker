@@ -69,7 +69,13 @@
   if(['VSC','WELLNESS'].includes(r.leaveType)){const more=document.createElement('p');more.textContent='Others: '+(r.leaveType==='VSC'?'Vacation Service Credit availment':'Wellness Leave');$('types').append(more);}
   put('details',(r.reason||'')+(r.details?' — '+r.details:''));
   put('commutation',(r.commutation==='REQUESTED'?'☑ Requested / ☐ Not Requested':'☐ Requested / ☑ Not Requested'));
+  if(r.status==='DECLINED_HEAD'){
+   put('recommendApprove','☐ For approval');
+   put('recommendDisapprove','☑ For disapproval due to:');
+   put('recommendationNote',r.headNote||'See Department Head recommendation.');
+  }
   if(r.status==='APPROVED')put('officialName',(r.externalApprover||'')+' · '+(r.externalApproverPosition||'')+' (printed reference only; signature required)');
+  else if(r.status==='DECLINED_HEAD')put('officialName','Not endorsed by Department Head; no official approval/disapproval recorded.');
   else if(r.status==='REJECTED')put('disapproval','Disapproved'+(r.externalReference?' · '+r.externalReference:'')+'.');
   else if(r.status==='CANCELLED')put('officialName','Application cancelled.');
   else put('officialName','Authorization pending. Not approved.');
