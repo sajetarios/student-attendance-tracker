@@ -49,8 +49,28 @@ test('old memoranda URLs redirect to role-specific dashboards',()=>{
 });
 test('PWA caches new memo UI and always fetches authenticated portal pages online',()=>{
  const s=read('sw.js');
- for(const file of ['/school-memo-banner.js?v=3','/school-memo-banner.css?v=2',
+ for(const file of ['/school-memo-banner.js?v=3','/school-memo-banner.css?v=3',
     '/school-memos-redirect.js?v=1'])assert.ok(s.includes(file),file);
  assert.match(s,/"\/portal\.html", "\/class-qr-monitor\.html", "\/principal\.html", "\/school-memos\.html"/);
  assert.match(s,/fetch\(request, \{ cache: "no-store" \}\)/);
+});
+
+test('School Memoranda inherits active Light, Dark and Automatic settings across roles',()=>{
+ const styles=read('school-memo-banner.css');
+ const appearance=read('dashboard-appearance.js');
+ const principal=read('principal-dashboard.js');
+ assert.match(styles,/\.attendigo-memo-workspace\s*\{\s*color-scheme:light/);
+ assert.match(styles,/:root\[data-ui-theme="dark"\] \.attendigo-memo-workspace/);
+ assert.match(styles,/:root\[data-theme="dark"\] \.attendigo-memo-workspace/);
+ assert.match(styles,/@media\(prefers-color-scheme:dark\)\s*\{\s*:root\[data-theme="system"\] \.attendigo-memo-workspace/);
+ assert.match(styles,/--memo-panel:linear-gradient\(125deg,#ffffff/);
+ assert.match(styles,/--memo-panel:linear-gradient\(115deg,#0b2238/);
+ assert.match(styles,/:root\[data-ui-theme="dark"\] \.attendigo-memo-banner/);
+ assert.match(styles,/:root\[data-theme="system"\] \.attendigo-memo-banner/);
+ assert.match(appearance,/root\.dataset\.uiTheme=current/);
+ assert.match(principal,/document\.documentElement\.dataset\.theme=selected/);
+ // Explicit Light must take precedence over the device's dark media query.
+ const base=styles.lastIndexOf('.attendigo-memo-banner{\n background:#eef9fa;');
+ const oldMedia=styles.indexOf('@media(prefers-color-scheme:dark)');
+ assert.ok(base>oldMedia,'Light appearance override must follow older OS media rule');
 });
