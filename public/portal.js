@@ -5386,6 +5386,7 @@ let teacherActionMenuListenersInstalled = false;
       showPortalStartupFailure('Your account could not be verified. Please sign in again or retry.', error);
       return;
     }
+    if(me?.user?.role==='PRINCIPAL'){ window.location.replace('/principal.html'); return; }
     if (!me?.user || !['SCHOOL_ADMIN','DEPARTMENT_HEAD','TEACHER','GATE_KEEPER','SUPER_ADMIN','PARENT','STUDENT'].includes(me.user.role)) {
       showPortalStartupFailure('Your account role could not be verified. Please sign in again.');
       return;
