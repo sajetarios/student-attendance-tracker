@@ -53,6 +53,7 @@ const { registerMissingScanRoutes } = require('./missing-scan-routes');
 const { registerForm48ReviewRoutes } = require('./form48-review-routes');
 const { registerEmployeeSecurityDirectoryRoutes } = require('./employee-security-directory-routes');
 const { registerManualAttendanceRoutes } = require('./manual-attendance-routes');
+const { teacherRecentClassAttendanceSql } = require('./recent-class-attendance');
 const { registerClassFinalizationRoutes } = require('./class-finalization-routes');
 const { registerSardoRoutes } = require('./sardo-routes');
 const { registerPlannerRoutes } = require('./planner-routes');
@@ -4274,21 +4275,7 @@ app.get('/api/admin/dashboard', authenticateSchoolClient, requireSchoolUser, asy
            ON s.school_id=e.school_id AND s.student_id=e.student_id
          WHERE e.school_id=$1
          ORDER BY e.received_at_server DESC LIMIT 20`
-      : `SELECT e.event_id AS "eventId", e.student_id AS "studentId", s.full_name AS "fullName",
-                e.attendance_scope AS scope, e.event_type AS "eventType", e.late,
-                e.occurred_at_device AS "occurredAt", e.sync_status AS "syncStatus"
-         FROM attendance_events e JOIN students s
-           ON s.school_id=e.school_id AND s.student_id=e.student_id
-         WHERE e.school_id=$1 AND e.attendance_scope='CLASS'
-           AND (
-             EXISTS (SELECT 1 FROM teacher_period_assignments a
-                     WHERE a.school_id=e.school_id AND a.period_id=e.period_id AND a.teacher_user_id=$2)
-             OR EXISTS (SELECT 1 FROM teacher_period_substitutions ts
-                        WHERE ts.school_id=e.school_id AND ts.period_id=e.period_id
-                          AND ts.substitute_teacher_user_id=$2 AND ts.status='ACTIVE'
-                          AND e.school_date BETWEEN ts.start_date AND ts.end_date)
-           )
-         ORDER BY e.received_at_server DESC LIMIT 20`;
+      : teacherRecentClassAttendanceSql;
 
     const learnerSummarySql = isSchoolWideViewer
       ? `SELECT
