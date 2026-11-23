@@ -196,7 +196,7 @@ html.attendigo-teacher-v2 #recentActivityCard .table-scroll{
   }
   #recentActivityCard tbody{gap:8px}
   #recentActivityCard tbody tr.recent-unified-row{
-    grid-template-columns:minmax(0,1fr) minmax(96px,max-content);
+    grid-template-columns:minmax(0,1fr) minmax(96px,36%);
     grid-template-areas:
       "learner status"
       "class date"
