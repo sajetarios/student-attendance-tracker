@@ -1,0 +1,224 @@
+/* Attendigo teacher shortcuts: a compact, responsive launcher.
+   Visual only. Existing data-go routes, auth checks, keyboard click handlers,
+   school scope, and SF2 designation-specific labels remain authoritative. */
+html.attendigo-teacher-v2 body.portal-page #quickActionsCard {
+  --shortcut-bg: var(--ui-panel, #fff);
+  --shortcut-soft: var(--ui-panel-soft, #f5f8fd);
+  --shortcut-border: var(--ui-line, #dce5f1);
+  --shortcut-text: var(--ui-text, #213750);
+  --shortcut-muted: var(--ui-muted, #657891);
+  --shortcut-accent: var(--ui-accent, #2268a7);
+  container-type: inline-size;
+  align-self: start;
+  min-width: 0;
+  height: fit-content;
+  padding: clamp(12px, 1.5vw, 18px) !important;
+  border-radius: 17px;
+  box-sizing: border-box;
+}
+html.attendigo-teacher-v2 body.portal-page #quickActionsCard .card-heading {
+  display: flex;
+  align-items: flex-start;
+  flex-wrap: wrap;
+  gap: 5px 10px;
+  margin: 0 0 12px !important;
+}
+html.attendigo-teacher-v2 body.portal-page #quickActionsCard .card-heading > div {
+  min-width: 0;
+}
+html.attendigo-teacher-v2 body.portal-page #quickActionsCard .card-heading h3 {
+  margin: 0 !important;
+  color: var(--shortcut-text) !important;
+  font-size: clamp(16px, 1.4vw, 19px) !important;
+  font-weight: 760;
+  line-height: 1.2;
+  letter-spacing: -.018em;
+}
+html.attendigo-teacher-v2 body.portal-page #quickActionsCard .card-heading p {
+  margin: 4px 0 0 !important;
+  color: var(--shortcut-muted) !important;
+  font-size: 12px !important;
+  line-height: 1.45;
+  overflow-wrap: anywhere;
+}
+html.attendigo-teacher-v2 body.portal-page #quickActionsCard .quick-action:not([hidden]) {
+  position: relative;
+  display: grid !important;
+  grid-template-columns: 42px minmax(0, 1fr) 16px;
+  align-items: center;
+  column-gap: 11px;
+  min-width: 0;
+  width: 100%;
+  min-height: 70px !important;
+  padding: 10px 12px !important;
+  margin: 0 0 8px !important;
+  border: 1px solid var(--shortcut-border) !important;
+  border-radius: 12px !important;
+  background: var(--shortcut-bg) !important;
+  box-shadow: none !important;
+  box-sizing: border-box;
+  color: var(--shortcut-text) !important;
+  text-align: left;
+  cursor: pointer;
+  transition: border-color .17s ease, background-color .17s ease,
+              box-shadow .17s ease, transform .17s ease;
+}
+html.attendigo-teacher-v2 body.portal-page #quickActionsCard .quick-action[hidden] {
+  display: none !important;
+}
+html.attendigo-teacher-v2 body.portal-page #quickActionsCard .quick-action:not([hidden]):last-of-type {
+  margin-bottom: 0 !important;
+}
+html.attendigo-teacher-v2 body.portal-page #quickActionsCard .quick-action:not([hidden]):hover {
+  background: var(--shortcut-soft) !important;
+  border-color: var(--shortcut-accent) !important;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(13, 54, 110, .08) !important;
+}
+html.attendigo-teacher-v2 body.portal-page #quickActionsCard .quick-action:not([hidden]):active {
+  transform: translateY(0);
+}
+html.attendigo-teacher-v2 body.portal-page #quickActionsCard .quick-action:focus-visible {
+  outline: 3px solid var(--shortcut-accent) !important;
+  outline-offset: 2px !important;
+}
+html.attendigo-teacher-v2 body.portal-page #quickActionsCard .quick-action-icon {
+  width: 42px !important;
+  height: 42px !important;
+  min-width: 42px;
+  display: grid;
+  place-items: center;
+  border-radius: 11px !important;
+  box-sizing: border-box;
+}
+html.attendigo-teacher-v2 body.portal-page #quickActionsCard .quick-action-icon svg {
+  width: 21px !important;
+  height: 21px !important;
+}
+html.attendigo-teacher-v2 body.portal-page #quickActionsCard .quick-action > span:nth-child(2) {
+  display: block;
+  min-width: 0;
+  width: 100%;
+}
+html.attendigo-teacher-v2 body.portal-page #quickActionsCard .quick-action strong {
+  display: block;
+  margin: 0 !important;
+  color: var(--shortcut-text) !important;
+  font-size: 14px !important;
+  font-weight: 730;
+  line-height: 1.32 !important;
+  overflow-wrap: anywhere;
+  letter-spacing: -.008em;
+}
+html.attendigo-teacher-v2 body.portal-page #quickActionsCard .quick-action small {
+  display: -webkit-box;
+  margin: 3px 0 0 !important;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  overflow: hidden;
+  color: var(--shortcut-muted) !important;
+  font-size: 11.5px !important;
+  font-weight: 450;
+  line-height: 1.38 !important;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+html.attendigo-teacher-v2 body.portal-page #quickActionsCard .quick-action > b {
+  justify-self: end;
+  margin: 0 !important;
+  color: var(--shortcut-muted) !important;
+  font-size: 21px !important;
+  font-weight: 500;
+  line-height: 1;
+}
+/* The scope note repeats the authenticated sidebar information.
+   Hide only this optional teacher-only presentation; no permissions change. */
+html.attendigo-teacher-v2 body.portal-page #quickActionsCard .scope-note {
+  display: none !important;
+}
+/* On wide cards, use a real launcher grid instead of three tall stacked rows. */
+@container (min-width: 730px) {
+  html.attendigo-teacher-v2 body.portal-page #quickActionsCard {
+    display: grid !important;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    column-gap: 10px;
+    row-gap: 0;
+    align-items: stretch;
+  }
+  html.attendigo-teacher-v2 body.portal-page #quickActionsCard .card-heading {
+    grid-column: 1 / -1;
+    margin-bottom: 14px !important;
+  }
+  html.attendigo-teacher-v2 body.portal-page #quickActionsCard .quick-action:not([hidden]) {
+    display: flex !important;
+    flex-direction: column;
+    align-items: flex-start;
+    justify-content: flex-start;
+    gap: 8px;
+    min-height: 127px !important;
+    margin: 0 !important;
+    padding: 12px 13px !important;
+  }
+  html.attendigo-teacher-v2 body.portal-page #quickActionsCard .quick-action > span:nth-child(2) {
+    flex: 1;
+    padding-right: 3px;
+  }
+  html.attendigo-teacher-v2 body.portal-page #quickActionsCard .quick-action > b {
+    position: absolute;
+    right: 12px;
+    top: 15px;
+  }
+}
+@container (max-width: 370px) {
+  html.attendigo-teacher-v2 body.portal-page #quickActionsCard .quick-action:not([hidden]) {
+    grid-template-columns: 38px minmax(0, 1fr) 15px;
+    column-gap: 9px;
+    padding: 9px 10px !important;
+    min-height: 66px !important;
+  }
+  html.attendigo-teacher-v2 body.portal-page #quickActionsCard .quick-action-icon {
+    width: 38px !important;
+    height: 38px !important;
+    min-width: 38px !important;
+  }
+  html.attendigo-teacher-v2 body.portal-page #quickActionsCard .quick-action strong {
+    font-size: 13px !important;
+  }
+  html.attendigo-teacher-v2 body.portal-page #quickActionsCard .quick-action small {
+    font-size: 11px !important;
+  }
+}
+html[data-ui-theme="dark"].attendigo-teacher-v2 body.portal-page #quickActionsCard,
+html.attendigo-teacher-v2 body.portal-page[data-theme="dark"] #quickActionsCard {
+  --shortcut-bg: var(--ui-panel, #1c2b42);
+  --shortcut-soft: var(--ui-panel-soft, #283b55);
+  --shortcut-border: var(--ui-line, #405573);
+  --shortcut-text: var(--ui-text, #eef4ff);
+  --shortcut-muted: var(--ui-muted, #b0c2dc);
+  --shortcut-accent: var(--ui-accent, #8bbdff);
+}
+html[data-ui-theme="dark"].attendigo-teacher-v2 body.portal-page #quickActionsCard .quick-action:not([hidden]) {
+  background: var(--shortcut-bg) !important;
+  color: var(--shortcut-text) !important;
+}
+html[data-ui-theme="dark"].attendigo-teacher-v2 body.portal-page #quickActionsCard .quick-action-icon.blue {
+  background: #253f60 !important;
+  color: #a7cfff !important;
+}
+html[data-ui-theme="dark"].attendigo-teacher-v2 body.portal-page #quickActionsCard .quick-action-icon.purple {
+  background: #37345c !important;
+  color: #d4c3ff !important;
+}
+html[data-ui-theme="dark"].attendigo-teacher-v2 body.portal-page #quickActionsCard .quick-action-icon.amber {
+  background: #4c3a25 !important;
+  color: #ffe0ad !important;
+}
+@media (prefers-reduced-motion: reduce) {
+  html.attendigo-teacher-v2 body.portal-page #quickActionsCard .quick-action {
+    transition: none !important;
+  }
+  html.attendigo-teacher-v2 body.portal-page #quickActionsCard .quick-action:not([hidden]):hover {
+    transform: none;
+  }
+}
