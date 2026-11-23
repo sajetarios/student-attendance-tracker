@@ -542,3 +542,16 @@ button.priority-department-row:focus-visible,.priority-reset:focus-visible{
  .priority-department-summary .priority-department-name{max-width:none}
  .priority-card{padding:14px}
 }
+
+/* Principal teacher recognition: verified early arrival, not a DTR award */
+.principal-early-arrivals{margin:0 0 18px;border:1px solid var(--border);background:var(--surface)}
+.principal-early-list{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,255px),1fr));gap:10px;margin:14px 0}
+.principal-early-person{min-width:0;display:flex;align-items:center;gap:11px;border:1px solid var(--border);background:var(--bg);border-radius:12px;padding:12px 14px}
+.principal-early-avatar{width:36px;height:36px;min-width:36px;display:grid;place-items:center;border-radius:11px;background:#e6f6f4;color:#087d79;font-size:18px}
+.principal-early-person-detail{display:flex;flex-direction:column;gap:3px;flex:1;min-width:0}
+.principal-early-person-detail strong{font-size:13px;overflow-wrap:anywhere;line-height:1.35}
+.principal-early-person-detail span{font-size:11px;color:var(--muted);overflow-wrap:anywhere}
+.principal-early-time{font-variant-numeric:tabular-nums;font-size:16px;font-weight:800;color:var(--primary);white-space:nowrap}
+:root[data-theme="dark"] .principal-early-avatar{background:#1e4b4f;color:#a5ede3}
+@media(prefers-color-scheme:dark){:root[data-theme="system"] .principal-early-avatar{background:#1e4b4f;color:#a5ede3}}
+@media(max-width:520px){.principal-early-list{grid-template-columns:1fr}.principal-early-person{padding:10px 12px}}
