@@ -1,0 +1,177 @@
+/* Read-only teacher day overview appended to the existing shortcut panel.
+   No duplicate module, popover, attendance computation or floating controls. */
+html.attendigo-teacher-v2 body.portal-page #quickActionsCard .teacher-today-overview {
+  margin: 15px 0 0;
+  padding: 14px 0 0;
+  border-top: 1px solid var(--shortcut-border, #dbe5f0);
+  min-width: 0;
+  max-width: 100%;
+  color: var(--shortcut-text, #213750);
+}
+html.attendigo-teacher-v2 body.portal-page #quickActionsCard .teacher-today-heading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  min-width: 0;
+  margin-bottom: 10px;
+}
+html.attendigo-teacher-v2 body.portal-page #quickActionsCard .teacher-today-heading > div {
+  min-width: 0;
+  flex: 1 1 180px;
+}
+html.attendigo-teacher-v2 body.portal-page #quickActionsCard .teacher-today-heading h4 {
+  font-size: 14px;
+  line-height: 1.3;
+  font-weight: 780;
+  letter-spacing: -.01em;
+  margin: 0;
+  color: var(--shortcut-text, #213750);
+}
+html.attendigo-teacher-v2 body.portal-page #quickActionsCard .teacher-today-heading p {
+  margin: 3px 0 0;
+  font-size: 11px;
+  line-height: 1.4;
+  color: var(--shortcut-muted, #657891);
+  overflow-wrap: anywhere;
+}
+html.attendigo-teacher-v2 body.portal-page #quickActionsCard .teacher-today-state {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  min-height: 25px;
+  max-width: 100%;
+  padding: 4px 9px;
+  border-radius: 999px;
+  background: var(--shortcut-soft, #eef4fb);
+  border: 1px solid var(--shortcut-border, #dbe5f0);
+  color: var(--shortcut-muted, #657891);
+  font-size: 10px;
+  font-weight: 720;
+  box-sizing: border-box;
+}
+html.attendigo-teacher-v2 body.portal-page #quickActionsCard .teacher-today-actions {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 7px;
+  min-width: 0;
+}
+html.attendigo-teacher-v2 body.portal-page #quickActionsCard .teacher-today-item:not([hidden]) {
+  display: grid;
+  grid-template-columns: 36px minmax(0, 1fr) 15px;
+  align-items: center;
+  column-gap: 10px;
+  width: 100%;
+  min-width: 0;
+  min-height: 65px;
+  padding: 9px 10px;
+  border: 1px solid var(--shortcut-border, #dbe5f0);
+  border-radius: 11px;
+  background: var(--shortcut-soft, #f5f8fd);
+  color: var(--shortcut-text, #213750);
+  font-family: inherit;
+  text-align: left;
+  cursor: pointer;
+  box-sizing: border-box;
+  transition: background .16s, border-color .16s, transform .16s;
+}
+html.attendigo-teacher-v2 body.portal-page #quickActionsCard .teacher-today-item[hidden] {
+  display: none !important;
+}
+html.attendigo-teacher-v2 body.portal-page #quickActionsCard .teacher-today-item:hover:not(:disabled) {
+  border-color: var(--shortcut-accent, #2268a7);
+  transform: translateY(-1px);
+}
+html.attendigo-teacher-v2 body.portal-page #quickActionsCard .teacher-today-item:focus-visible {
+  outline: 3px solid var(--shortcut-accent, #2268a7);
+  outline-offset: 2px;
+}
+html.attendigo-teacher-v2 body.portal-page #quickActionsCard .teacher-today-item:disabled {
+  cursor: default;
+  opacity: .75;
+}
+html.attendigo-teacher-v2 body.portal-page #quickActionsCard .teacher-today-symbol {
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--shortcut-accent, #2268a7) 12%, var(--shortcut-bg, #fff));
+  color: var(--shortcut-accent, #2268a7);
+  font-size: 18px;
+  font-weight: 750;
+}
+html.attendigo-teacher-v2 body.portal-page #quickActionsCard .teacher-today-copy {
+  display: block;
+  min-width: 0;
+  max-width: 100%;
+}
+html.attendigo-teacher-v2 body.portal-page #quickActionsCard .teacher-today-copy strong {
+  display: block;
+  color: var(--shortcut-text, #213750);
+  font-size: 12.5px;
+  font-weight: 750;
+  line-height: 1.35;
+  white-space: normal;
+}
+html.attendigo-teacher-v2 body.portal-page #quickActionsCard .teacher-today-copy small {
+  display: block;
+  margin-top: 3px;
+  color: var(--shortcut-muted, #657891);
+  font-size: 11px;
+  line-height: 1.42;
+  overflow-wrap: anywhere;
+  white-space: normal;
+}
+html.attendigo-teacher-v2 body.portal-page #quickActionsCard .teacher-today-chevron {
+  justify-self: end;
+  color: var(--shortcut-muted, #657891);
+  font-size: 20px;
+  line-height: 1;
+}
+html.attendigo-teacher-v2 body.portal-page #quickActionsCard .teacher-today-footnote {
+  margin: 10px 2px 0;
+  color: var(--shortcut-muted, #657891);
+  font-size: 10.5px;
+  line-height: 1.45;
+}
+/* School-wide container queries prevent overflow when the dashboard uses
+   one column on tablets or mobile. */
+@container (min-width: 550px) {
+  html.attendigo-teacher-v2 body.portal-page #quickActionsCard .teacher-today-actions {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  html.attendigo-teacher-v2 body.portal-page #quickActionsCard .teacher-today-item {
+    align-content: center;
+  }
+  html.attendigo-teacher-v2 body.portal-page #quickActionsCard #teacherTodaySchedule {
+    grid-column: 1 / -1;
+  }
+}
+@container (max-width: 320px) {
+  html.attendigo-teacher-v2 body.portal-page #quickActionsCard .teacher-today-item:not([hidden]) {
+    grid-template-columns: 30px minmax(0, 1fr) 12px;
+    padding: 8px;
+    column-gap: 8px;
+  }
+  html.attendigo-teacher-v2 body.portal-page #quickActionsCard .teacher-today-symbol {
+    width: 30px;
+    height: 30px;
+    font-size: 16px;
+  }
+}
+html[data-ui-theme="dark"].attendigo-teacher-v2 body.portal-page #quickActionsCard .teacher-today-item,
+html.attendigo-teacher-v2 body.portal-page[data-theme="dark"] #quickActionsCard .teacher-today-item {
+  background: var(--shortcut-soft, #283b55);
+  border-color: var(--shortcut-border, #405573);
+  color: var(--shortcut-text, #eef4ff);
+}
+@media (prefers-reduced-motion: reduce) {
+  html.attendigo-teacher-v2 body.portal-page #quickActionsCard .teacher-today-item {
+    transition: none;
+  }
+  html.attendigo-teacher-v2 body.portal-page #quickActionsCard .teacher-today-item:hover:not(:disabled) {
+    transform: none;
+  }
+}
