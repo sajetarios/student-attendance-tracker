@@ -1,4 +1,4 @@
-const CACHE = "attendigo-v321-edit-school-hours";
+const CACHE = "attendigo-v322-principal-insights";
 
 const SHELL = [
   "/typography.css?v=1",
@@ -63,7 +63,7 @@ const SHELL = [
   "/teacher-scanner-schedule.js?v=1",
   "/teacher-roster-popover.js?v=2",
   "/portal.css?v=0.9.119",
-  "/portal.js?v=236",
+  "/portal.js?v=237",
   "/attendigo-help-topics.js?v=2",
   "/attendigo-help-guide.js?v=4",
   "/attendigo-help.css?v=3",
@@ -90,6 +90,8 @@ const SHELL = [
   "/role-controls-responsive.css?v=2",
   "/smart-attendance-overview.js?v=3",
   "/my-gate-insights.css?v=3",
+  "/principal-insights.css?v=1",
+  "/principal-insights.js?v=1",
   "/staff-lunch-ui.js?v=7",
   "/staff-precise-location.js?v=1",
   "/staff-department-location.js?v=2",
