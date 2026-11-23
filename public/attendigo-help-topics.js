@@ -741,13 +741,17 @@
         if(query===term){score+=18;continue;}
         if(q.includes(' '+term+' ')){
           const n=term.split(' ').length;
-          score+=n>1?7+Math.min(n,3):term.length>=4?5:3;
+          score+=n>1?7+Math.min(n,3):term.length>=3?6:3;
         } else if(term.includes(' ')){
           const important=term.split(' ').filter(w=>w.length>=4);
           if(important.length>=2&&important.every(w=>words.has(w)))score+=3;
         }
       }
       if(score>0)scores.push({topic,score});
+    }
+    // Generic phrasing such as "Where is my DTR?" must not beat DTR.
+    if(!/\b(menu|navigation|sidebar|dashboard)\b/.test(query)){
+      for(const item of scores)if(item.topic.id==='navigation')item.score=Math.min(item.score,3);
     }
     if(scores.some(x=>!['technical','navigation'].includes(x.topic.id)&&x.score>=5)){
       for(const x of scores)if(['technical','navigation'].includes(x.topic.id))
