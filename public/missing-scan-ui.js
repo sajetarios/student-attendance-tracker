@@ -185,7 +185,7 @@
       const blocked=new Set(rows.filter(r=>r.date===date &&
        !['HEAD_REJECTED','ADMIN_REJECTED'].includes(r.status)).map(r=>r.slot));
       const available=order.filter(slot=>!verified.has(slot)&&!blocked.has(slot));
-      slotSelect.innerHTML='<option value="">Select an unrecorded DTR entry</option>'+
+      slotSelect.innerHTML='<option value="">Choose missing DTR entry</option>'+
        order.map(slot=>{
         const state=verified.has(slot)?' · Recorded':blocked.has(slot)?' · Request already filed':' · Not recorded';
         return '<option value="'+slot+'"'+(available.includes(slot)?'':' disabled')+'>'+
