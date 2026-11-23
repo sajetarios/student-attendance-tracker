@@ -120,7 +120,20 @@ async function main(){
   const qr={challengeId:issued.body.challengeId,token:issued.body.token};
   // Department Head submits their own physical location. The School Admin
   // cannot silently bypass review, and no teacher can impersonate the Head.
-  const proposed={departmentId:a.dep,latitude:9,longitude:125,accuracyMeters:10,radiusMeters:120};
+  const proposed={departmentId:a.dep,latitude:9,longitude:125,accuracyMeters:10,radiusMeters:120,
+   samples:[
+    {latitude:9,longitude:125,accuracyMeters:10,capturedAt:Date.now()-1800},
+    {latitude:9.00001,longitude:125.00001,accuracyMeters:14,capturedAt:Date.now()-500}
+   ]};
+  const badProposal={...proposed,samples:[
+    {latitude:9,longitude:125,accuracyMeters:10,capturedAt:Date.now()-1800},
+    {latitude:10,longitude:126,accuracyMeters:12,capturedAt:Date.now()-500}
+   ]};
+  assert.equal((await post('/api/staff-attendance/lunch/location/propose',badProposal,head.token)).status,422,
+   'Conflicting GPS positions may not be proposed for department approval');
+  assert.equal((await post('/api/staff-attendance/lunch/location/propose',
+   {...proposed,samples:proposed.samples.slice(0,1)},head.token)).status,422,
+   'A single observation cannot set the school location');
   assert.equal((await post('/api/staff-attendance/lunch/location/propose',proposed,teacher.token)).status,403,
     'Ordinary teachers cannot submit department locations');
   assert.equal((await post('/api/staff-attendance/lunch/location/propose',proposed,outsiderHead.token)).status,403,
