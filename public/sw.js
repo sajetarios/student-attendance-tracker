@@ -1,4 +1,4 @@
-const CACHE = "attendigo-v314-sf1-auto-grade";
+const CACHE = "attendigo-v315-form48-report-first";
 
 const SHELL = [
   "/typography.css?v=1",
@@ -82,10 +82,10 @@ const SHELL = [
   "/teacher-dashboard-v2.js?v=1",
   "/teacher-dashboard-v3.css?v=1",
   "/teacher-dashboard-v3.js?v=1",
-  "/form48-report.js?v=16",
+  "/form48-report.js?v=17",
   "/form48-intelligence.js?v=2",
   "/form48-bulk-ui.js?v=3",
-  "/form48-report.css?v=15",
+  "/form48-report.css?v=16",
   "/smart-attendance-overview.css?v=4",
   "/role-controls-responsive.css?v=2",
   "/smart-attendance-overview.js?v=2",

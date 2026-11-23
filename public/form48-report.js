@@ -179,6 +179,12 @@ const standalonePrintCss = [
   const saveDraft=$('form48SaveDraft');
   const summaryStrip=$('form48SummaryStrip'),previewToolbar=$('form48PreviewToolbar');
   if(!form||!month||!person||!button||!output||!feedback||!settings||!reviewHost)return;
+  const reviewShortcut=$('form48ReviewOpen'),advancedReview=$('form48AdvancedSettings');
+  reviewShortcut?.addEventListener('click',()=>{
+   if(!advancedReview)return;
+   advancedReview.open=true;
+   advancedReview.scrollIntoView({behavior:'smooth',block:'start'});
+  });
   const format=new Intl.DateTimeFormat('en-US',{year:'numeric',month:'2-digit',timeZone:'Asia/Manila'}).formatToParts(new Date());
   const part=type=>format.find(p=>p.type===type)?.value||'';
   month.value=part('year')+'-'+part('month');

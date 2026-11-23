@@ -520,3 +520,60 @@
 .form48-approval-actions button:disabled{opacity:.58;cursor:not-allowed}
 @media(max-width:650px){.form48-approval-panel{padding:12px}.form48-approval-actions{display:grid;grid-template-columns:1fr}.form48-approval-actions button{width:100%}}
 @media print{.form48-approval-panel{display:none!important}}
+
+
+/* Simplified report-first Form 48 workspace (screen only).
+   Preserve the original two-copy A4 print styles and DTR logic above. */
+@media screen {
+ #form48ReportCard>.section-toolbar{order:0}
+ #form48ReportCard>#form48FilterForm{order:1}
+ #form48ReportCard>.form48-tools{order:2}
+ #form48ReportCard>#form48Feedback{order:3}
+ #form48ReportCard>#form48SummaryStrip{order:4}
+ #form48ReportCard>#form48PreviewToolbar{order:5}
+ #form48ReportCard>#form48PrintArea{order:6}
+ #form48ReportCard>.form48-extra-heading{order:7;display:flex;align-items:baseline;gap:9px;margin:18px 0 6px;padding-top:12px;border-top:1px solid var(--border-color,#dbe3ec);font-size:13px}
+ #form48ReportCard>.form48-extra-heading small{font-weight:400;color:var(--text-muted,#64748b);font-size:11px}
+ #form48ReportCard>#form48BatchPanel{order:8}
+ #form48ReportCard>#form48GateIntelligence{order:9}
+ #form48ReportCard>#form48AdvancedSettings{order:10}
+ #form48ReportCard>#form48DailyInsights{order:11}
+ #form48ReportCard>#form48SchoolSignatories{order:12;margin:7px 0}
+ #form48ReportCard .form48-heading{align-items:center;gap:10px;flex-wrap:wrap}
+ #form48ReportCard .form48-heading>div{min-width:0;flex:1 1 250px}
+ #form48ReportCard .form48-heading h3{font-size:clamp(18px,2vw,22px);margin:0;line-height:1.25}
+ #form48ReportCard .form48-heading p{font-size:12px;line-height:1.45;max-width:610px;margin:4px 0 0}
+ #form48ReportCard #form48OpenHours{min-height:36px;padding:7px 11px;font-size:12px;white-space:normal}
+ #form48ReportCard .form48-filter{grid-template-columns:minmax(0,1.7fr) minmax(145px,.8fr) auto auto;gap:9px;margin:13px 0 7px;align-items:end}
+ #form48ReportCard .form48-filter label{gap:5px;min-width:0;font-size:12px}
+ #form48ReportCard .form48-filter :is(select,input){min-width:0;max-width:100%;font-size:14px}
+ #form48ReportCard .form48-filter button{min-height:42px;font-size:13px;padding:9px 12px}
+ #form48ReportCard .form48-tools{display:flex;flex-wrap:wrap;gap:8px;align-items:flex-end;margin:3px 0 4px}
+ #form48ReportCard .form48-tools label{flex:1 1 270px;min-width:0;font-size:12px}
+ #form48ReportCard .form48-tools input{max-width:100%;box-sizing:border-box}
+ #form48ReportCard .form48-tools button{min-height:38px;font-size:12px}
+ #form48ReportCard #form48Feedback{font-size:12px;margin:4px 0 8px;line-height:1.4}
+ #form48ReportCard .form48-review-open{grid-column:1/-1;justify-self:start;min-height:38px;padding:8px 12px;font-size:12px;white-space:normal}
+ #form48ReportCard>.form48-gate-intelligence,
+ #form48ReportCard>.form48-advanced-wrapper,
+ #form48ReportCard>.form48-daily-insights{margin:6px 0 0}
+ #form48ReportCard :is(.form48-gate-intelligence,.form48-advanced-wrapper,.form48-daily-insights)>summary{font-size:13px;line-height:1.4}
+ #form48ReportCard :is(.form48-gate-intelligence,.form48-advanced-wrapper,.form48-daily-insights)>summary small{font-size:11px}
+}
+@media screen and (max-width:1170px){
+ #form48ReportCard .form48-filter{grid-template-columns:minmax(0,1.4fr) minmax(0,1fr)}
+ #form48ReportCard .form48-filter button{width:100%;min-width:0}
+}
+@media screen and (max-width:580px){
+ #form48ReportCard .form48-heading>div{flex-basis:100%}
+ #form48ReportCard #form48OpenHours{min-height:34px}
+ #form48ReportCard .form48-filter{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+ #form48ReportCard .form48-filter label{grid-column:1/-1}
+ #form48ReportCard .form48-filter button{font-size:12px;line-height:1.25;padding:9px 5px;min-height:44px;white-space:normal}
+ #form48ReportCard .form48-tools{align-items:stretch}
+ #form48ReportCard .form48-tools label{flex-basis:100%}
+ #form48ReportCard .form48-tools button{width:100%}
+ #form48ReportCard .form48-kpi-strip{gap:8px}
+ #form48ReportCard .form48-review-open{width:100%}
+ #form48ReportCard>.form48-extra-heading{margin-top:13px}
+}

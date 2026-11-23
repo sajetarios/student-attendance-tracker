@@ -12,7 +12,7 @@
   <link rel="stylesheet" href="/staff-lunch.css?v=3">
   <link rel="stylesheet" href="/staff-ob.css?v=1">
   <link rel="stylesheet" href="/department-workspace.css?v=1">
-  <link rel="stylesheet" href="/form48-report.css?v=15">
+  <link rel="stylesheet" href="/form48-report.css?v=16">
   <link rel="stylesheet" href="/smart-attendance-overview.css?v=4">
   <link rel="stylesheet" href="/my-gate-insights.css?v=3">
   <link rel="stylesheet" href="/portal.css?v=0.9.121"><link rel="stylesheet" href="/attendigo-brand-polish.css?v=2"><link rel="stylesheet" href="/parent-admin.css?v=7">
@@ -1847,8 +1847,8 @@ body.dark-mode .content-wrap > .school-heading.is-compact,body[data-theme="dark"
           </section>
           <section id="form48ReportsView" class="view-panel" hidden>
             <div class="surface-card section-card" id="form48ReportCard">
-              <div class="section-toolbar form48-heading"><div><h3>CS Form No. 48 — Daily Time Record</h3><p>Preview verified attendance, review exceptions, then print the official two-copy A4 report.</p></div><button id="form48OpenHours" class="outline-button" type="button">School working hours</button></div>
-              <details id="form48DailyInsights" class="form48-daily-insights"><summary>Daily attendance checks &amp; school hours <small>Open only when needed</small></summary>
+              <div class="section-toolbar form48-heading"><div><h3>Form 48 DTR</h3><p>Choose an employee and month, review attendance, then preview and print.</p></div><button id="form48OpenHours" class="outline-button" type="button">School hours</button></div>
+              <details id="form48DailyInsights" class="form48-daily-insights"><summary>Daily attendance checks &amp; school hours <small>Advanced tools</small></summary>
               <section id="smartAttendanceOverview" class="smart-attendance-overview" aria-label="Smart attendance daily overview">
                 <div class="smart-attendance-head">
                   <div>
@@ -1904,7 +1904,7 @@ body.dark-mode .content-wrap > .school-heading.is-compact,body[data-theme="dark"
               </section>
               </details>
               <details id="form48SchoolSignatories" class="form48-advanced-wrapper form48-school-signatories">
-                <summary class="form48-advanced-summary">School-wide DTR signatories <small>Set once · Applies to every staff member and month</small></summary>
+                <summary class="form48-advanced-summary">Report signatories <small>School-wide settings</small></summary>
                 <div class="form48-settings-panel form48-school-signatory-content">
                   <p class="form48-draft-notice">Configure the two authorized signatories once for this school. Their names and positions will appear on every staff Form 48 report. Printed names are not electronic signatures.</p>
                 <div class="form48-signatory-heading">
@@ -1951,7 +1951,9 @@ body.dark-mode .content-wrap > .school-heading.is-compact,body[data-theme="dark"
                 <div class="form48-kpi"><span>Missing days to review</span><strong id="form48ToReview">—</strong><small>Not automatically absent</small></div>
                 <div class="form48-kpi"><span>Tardiness</span><strong id="form48Tardy">—</strong><small>Verified times only</small></div>
                 <div class="form48-kpi"><span>Undertime</span><strong id="form48Undertime">—</strong><small>Verified times only</small></div>
+                <button id="form48ReviewOpen" type="button" class="outline-button form48-review-open">Review attendance &amp; work schedule</button>
               </section>
+              <div class="form48-extra-heading"><strong>Additional tools</strong><small>Open only when needed</small></div>
               <details id="form48GateIntelligence" class="form48-gate-intelligence">
                 <summary>Detailed scan review (optional) <small>Inspect one employee’s gate scans, OB exceptions, and possible AM/PM matches</small></summary>
                 <div class="form48-intelligence-body">
@@ -1997,7 +1999,7 @@ body.dark-mode .content-wrap > .school-heading.is-compact,body[data-theme="dark"
                 </div>
               </section>
               <details id="form48AdvancedSettings" class="form48-advanced-wrapper">
-                <summary class="form48-advanced-summary">Employee work schedules and monthly reviews <small>Open only when preparing reports or exceptions</small></summary>
+                <summary class="form48-advanced-summary">Attendance review &amp; employee schedules <small>Open when needed</small></summary>
                 <div id="form48ReportSettings" class="form48-settings-panel" hidden>
                 <details id="form48ScheduleDetails" class="form48-schedule-details">
                   <summary><span>Work schedule &amp; prescribed hours</span><small id="form48ScheduleSummary" aria-live="polite">Select an employee to load hours</small></summary>
@@ -2460,7 +2462,7 @@ body.dark-mode .content-wrap > .school-heading.is-compact,body[data-theme="dark"
   <script src="/department-dashboard-v2.js?v=2" defer></script>
   <script src="/teacher-dashboard-v2.js?v=1" defer></script>
   <script src="/teacher-dashboard-v3.js?v=1" defer></script>
-  <script src="/form48-report.js?v=16" defer></script>
+  <script src="/form48-report.js?v=17" defer></script>
   <script src="/form48-intelligence.js?v=2" defer></script>
   <script src="/smart-attendance-overview.js?v=2" defer></script>
   <script src="/form48-bulk-ui.js?v=3" defer></script>
