@@ -83,7 +83,7 @@ test('AI endpoint is disabled until explicitly configured and is authenticated',
   const req={auth:{type:'SCHOOL_USER',role:'TEACHER',schoolId:'test',userId:'teacher'},body:{question:'How do I view DTR?'}};
   await post[2](req,res);
   assert.equal(status.code,503);
-  assert.match(status.body.error,/not configured/i);
+  assert.match(status.body.error,/free built-in guide/i);
 });
 test('AI prompt is role-scoped and contains no attendance records',()=>{
   const prompt=buildInstructions('TEACHER','Where is my DTR?');
