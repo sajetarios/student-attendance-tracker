@@ -36,7 +36,7 @@ test('Desktop and mobile menus are independent, not a one-at-a-time accordion', 
 test('The new scripts are both versioned in the portal and PWA shell', () => {
   assert.match(html, /src="\/portal\.js\?v=235" defer/);
   assert.match(html, /src="\/simplified-workspace\.js\?v=4" defer/);
-  assert.ok(worker.includes('"/portal.js?v=235"'));
+  assert.ok(worker.includes('"/portal.js?v=236"'));
   assert.ok(worker.includes('"/simplified-workspace.js?v=4"'));
   assertCacheRevisionAtLeast(worker,311);
 });
