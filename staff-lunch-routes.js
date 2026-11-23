@@ -2,6 +2,13 @@
 const { createLunchChallenge, validateLunchSlot, hashLunchChallenge, isLunchChallengeRedeemable } = require('./staff-lunch-challenge');
 const { randomUUID, timingSafeEqual } = require('node:crypto');
 const QRCode=require('qrcode');
+const {validateDepartmentPoint,classifyDepartmentPresence}=require('./staff-lunch-location');
+const UUID=/^[0-9a-f]{8}(-[0-9a-f]{4}){3}-[0-9a-f]{12}$/i;
+const LATE_DELIVERY_GRACE_MS=90_000;
+const MIN_ROTATION_MS=20_000;
+const MAX_ACTIVE_QR_MS=60_000;
+const locationKey=departmentId=>'staff_lunch_geo_'+departmentId;
+
 function manilaDate(now = new Date()) {
  const parts = new Intl.DateTimeFormat('en-CA', { timeZone:'Asia/Manila', year:'numeric',month:'2-digit',day:'2-digit' }).formatToParts(now);
  const p = Object.fromEntries(parts.map(x=>[x.type,x.value]));
@@ -143,7 +150,18 @@ function registerStaffLunchRoutes(app,pool,{authenticateSchoolClient,requireScho
     );
     if(!permission.rowCount){await client.query('ROLLBACK');return res.status(403).json({error:'Not assigned to present the lunch QR.'});}
    }
-   const challenge=createLunchChallenge({slot});
+   // At most one new QR every 20 seconds per presenter. Overlapping challenges
+   // let a slow browser submit the previously displayed QR without trusting
+   // a device-supplied clock. Tokens remain valid for only 60 seconds.
+   const recent=await client.query(`SELECT issued_at FROM staff_attendance_challenges
+      WHERE school_id=$1 AND school_date=$2::date AND dtr_slot=$3
+        AND presenter_user_id=$4 ORDER BY issued_at DESC LIMIT 1`,
+     [req.auth.schoolId,manilaDate(),slot,req.auth.userId]);
+   if(recent.rows[0] && Date.now()-Date.parse(recent.rows[0].issued_at)<MIN_ROTATION_MS){
+    await client.query('ROLLBACK');
+    return res.status(429).json({error:'QR is already rotating. Try again in a few seconds.'});
+   }
+   const challenge=createLunchChallenge({slot,ttlMs:MAX_ACTIVE_QR_MS});
    const id=randomUUID(),date=manilaDate();
    // The bearer QR token lives solely in the QR image and presenter response.
    // A fragment prevents it being sent in HTTP URLs, proxies and referrers.
@@ -152,11 +170,8 @@ function registerStaffLunchRoutes(app,pool,{authenticateSchoolClient,requireScho
    const qrImage=await QRCode.toDataURL(scanUrl,{
      width:360,margin:2,errorCorrectionLevel:'M'
    });
-   // Only the newest QR for a school, presenter, day and slot stays valid.
-   // The advisory lock above serializes this with reassignments and revocations.
-   await client.query(`UPDATE staff_attendance_challenges SET revoked_at=NOW()
-      WHERE school_id=$1 AND school_date=$2::date AND dtr_slot=$3
-        AND presenter_user_id=$4 AND revoked_at IS NULL`,[req.auth.schoolId,date,slot,req.auth.userId]);
+   // Preserve unexpired previous rotations for slow networks. Revocation of
+   // the actual presenter assignment still immediately revokes every QR.
    await client.query(
     `INSERT INTO staff_attendance_challenges
      (challenge_id,school_id,presenter_user_id,dtr_slot,school_date,challenge_hash,issued_at,expires_at)
@@ -179,68 +194,269 @@ function registerStaffLunchRoutes(app,pool,{authenticateSchoolClient,requireScho
   } finally {client.release();}
  });
 
- // The redeeming identity always comes from the authenticated session, never
- // from a submitted staff ID or a device-supplied timestamp.
+
+ // Department points are deliberately configured by the School Admin on-site.
+ // Use existing school_settings (JSONB) and append-only staff audit records.
+ app.get('/api/staff-attendance/lunch/location',authenticateSchoolClient,
+  requireSchoolRoles('SCHOOL_ADMIN'),async(req,res)=>{
+  res.set('Cache-Control','private, no-store');
+  const departmentId=String(req.query?.departmentId||'');
+  if(!UUID.test(departmentId))return res.status(400).json({error:'Select a department.'});
+  try {
+   const found=await pool.query(`SELECT d.department_name AS "departmentName",
+    s.setting_value AS "point",s.updated_at AS "updatedAt"
+    FROM school_departments d LEFT JOIN school_settings s
+      ON s.school_id=d.school_id AND s.setting_key=$3
+    WHERE d.school_id=$1 AND d.department_id=$2 AND d.active=TRUE`,
+    [req.auth.schoolId,departmentId,locationKey(departmentId)]);
+   if(!found.rowCount)return res.status(404).json({error:'Department not found.'});
+   const row=found.rows[0];
+   return res.json({departmentId,departmentName:row.departmentName,
+    configured:!!row.point,radiusMeters:row.point?.radiusMeters||null,updatedAt:row.updatedAt||null});
+  }catch(error){console.error('Lunch location read failed:',error.message);return res.status(503).json({error:'Department location unavailable.'});}
+ });
+ app.put('/api/staff-attendance/lunch/location',authenticateSchoolClient,
+  requireSchoolRoles('SCHOOL_ADMIN'),async(req,res)=>{
+  res.set('Cache-Control','private, no-store');
+  const departmentId=String(req.body?.departmentId||'');
+  if(!UUID.test(departmentId))return res.status(400).json({error:'Select a department.'});
+  let point;
+  try{point=validateDepartmentPoint(req.body);}
+  catch(error){return res.status(400).json({error:error.message});}
+  const client=await pool.connect();
+  try {
+   await client.query('BEGIN');
+   const dept=await client.query(`SELECT department_id FROM school_departments
+    WHERE school_id=$1 AND department_id=$2 AND active=TRUE FOR SHARE`,[req.auth.schoolId,departmentId]);
+   if(!dept.rowCount){await client.query('ROLLBACK');return res.status(404).json({error:'Department not found.'});}
+   await client.query(`INSERT INTO school_settings(school_id,setting_key,setting_value,updated_at)
+     VALUES($1,$2,$3::jsonb,NOW()) ON CONFLICT(school_id,setting_key)
+     DO UPDATE SET setting_value=EXCLUDED.setting_value,updated_at=NOW()`,
+     [req.auth.schoolId,locationKey(departmentId),JSON.stringify(point)]);
+   await client.query(`INSERT INTO staff_attendance_audit
+    (school_id,actor_user_id,action,target_type,target_id,details)
+    VALUES($1,$2,'LUNCH_DEPARTMENT_LOCATION_SET','SCHOOL_DEPARTMENT',$3,$4::jsonb)`,
+    [req.auth.schoolId,req.auth.userId,departmentId,JSON.stringify({radiusMeters:point.radiusMeters})]);
+   await client.query('COMMIT');
+   return res.json({configured:true,departmentId,radiusMeters:point.radiusMeters});
+  }catch(error){await client.query('ROLLBACK').catch(()=>{});
+   console.error('Lunch location configuration failed:',error.message);
+   return res.status(503).json({error:'Unable to save department location.'});
+  }finally{client.release();}
+ });
+ // A pending scan never becomes an official DTR entry without independent
+ // School Admin review. A presenter cannot approve anyone's pending scan.
+ app.get('/api/staff-attendance/lunch/pending',authenticateSchoolClient,
+  requireSchoolRoles('SCHOOL_ADMIN'),async(req,res)=>{
+  res.set('Cache-Control','private, no-store');
+  try {
+   const rows=await pool.query(`SELECT e.event_id AS "eventId",
+    e.staff_user_id AS "staffUserId",u.display_name AS "teacherName",
+    e.dtr_slot AS "slot",to_char(e.school_date,'YYYY-MM-DD') AS "schoolDate",
+    e.received_at AS "receivedAt",e.notes
+    FROM staff_attendance_events e
+    JOIN school_users u ON u.school_id=e.school_id AND u.user_id=e.staff_user_id
+    WHERE e.school_id=$1 AND e.event_kind='DTR_SLOT'
+      AND e.source='SELF_SERVICE' AND e.verification_status='PENDING_VERIFICATION'
+      AND e.school_date >= ($2::date - 7)
+      AND e.dtr_slot IN ('AM_OUT','PM_IN')
+    ORDER BY e.created_at DESC LIMIT 100`,[req.auth.schoolId,manilaDate()]);
+   return res.json({items:rows.rows});
+  }catch(error){console.error('Lunch pending read failed:',error.message);
+   return res.status(503).json({error:'Pending lunch scans unavailable.'});}
+ });
+ app.post('/api/staff-attendance/lunch/review',authenticateSchoolClient,
+  requireSchoolRoles('SCHOOL_ADMIN'),async(req,res)=>{
+  res.set('Cache-Control','private, no-store');
+  const eventId=String(req.body?.eventId||''),decision=String(req.body?.decision||'');
+  const note=String(req.body?.note||'').trim();
+  if(!UUID.test(eventId)||!['VERIFY','REJECT'].includes(decision)||note.length<10||note.length>500)
+   return res.status(400).json({error:'Choose a pending scan, decision and a reason of 10–500 characters.'});
+  const client=await pool.connect();
+  try{
+   await client.query('BEGIN');
+   const found=await client.query(`SELECT staff_user_id,dtr_slot,
+      to_char(school_date,'YYYY-MM-DD') AS "schoolDate",
+      occurred_at,verification_status
+    FROM staff_attendance_events WHERE school_id=$1 AND event_id=$2
+    AND event_kind='DTR_SLOT' AND source='SELF_SERVICE' FOR UPDATE`,
+    [req.auth.schoolId,eventId]);
+   const record=found.rows[0];
+   if(!record||record.verification_status!=='PENDING_VERIFICATION'){
+    await client.query('ROLLBACK');return res.status(409).json({error:'This scan is no longer pending.'});
+   }
+   if(record.staff_user_id===req.auth.userId){
+    await client.query('ROLLBACK');return res.status(403).json({error:'You cannot approve your own attendance.'});
+   }
+   if(decision==='VERIFY'){
+    await client.query('SELECT pg_advisory_xact_lock(hashtext($1))',
+      [req.auth.schoolId+':leave:'+record.staff_user_id]);
+    const leave=await client.query(`SELECT 1 FROM staff_form48_approved_leaves
+      WHERE school_id=$1 AND staff_user_id=$2 AND revoked_at IS NULL
+      AND start_date<=$3::date AND end_date>=$3::date
+      UNION ALL
+      SELECT 1 FROM school_users WHERE school_id=$1 AND user_id=$2
+      AND teacher_status='ON_LEAVE' AND leave_start_date<=$3::date
+      AND expected_return_date>=$3::date LIMIT 1`,
+      [req.auth.schoolId,record.staff_user_id,record.schoolDate]);
+    if(leave.rowCount){
+     await client.query('ROLLBACK');
+     return res.status(409).json({error:'Approved leave overlaps this scan. Resolve the leave/DTR conflict through the approved review workflow.'});
+    }
+    const ob=await client.query(`SELECT 1 FROM staff_official_business_requests
+      WHERE school_id=$1 AND staff_user_id=$2 AND status='APPROVED'
+        AND starts_at<=$3 AND ends_at>=$3 LIMIT 1`,
+      [req.auth.schoolId,record.staff_user_id,record.occurred_at]);
+    if(ob.rowCount){await client.query('ROLLBACK');
+      return res.status(409).json({error:'Official Business overlaps this scan. Resolve the OB/DTR conflict before verification.'});}
+    const closed=await client.query(`SELECT 1 FROM school_calendar_exceptions
+      WHERE school_id=$1 AND calendar_date=$2::date
+      AND exception_type='CLOSED' LIMIT 1`,[req.auth.schoolId,record.schoolDate]);
+    if(closed.rowCount){await client.query('ROLLBACK');
+      return res.status(409).json({error:'School calendar lists this day as closed. Use the school attendance exception workflow.'});}
+   }
+   const status=decision==='VERIFY'?'VERIFIED':'REJECTED';
+   const updated=await client.query(`UPDATE staff_attendance_events
+    SET verification_status=$3,
+      verification_method=CASE WHEN $3='VERIFIED' THEN 'MANUAL_REVIEW' ELSE NULL END
+    WHERE school_id=$1 AND event_id=$2 AND verification_status='PENDING_VERIFICATION'
+    RETURNING event_id`,[req.auth.schoolId,eventId,status]);
+   if(!updated.rowCount){await client.query('ROLLBACK');return res.status(409).json({error:'Scan already reviewed.'});}
+   await client.query(`INSERT INTO staff_attendance_audit
+    (school_id,actor_user_id,action,target_type,target_id,details)
+    VALUES($1,$2,$3,'STAFF_ATTENDANCE_EVENT',$4,$5::jsonb)`,
+    [req.auth.schoolId,req.auth.userId,decision==='VERIFY'?'LUNCH_DTR_MANUAL_VERIFIED':'LUNCH_DTR_REJECTED',eventId,
+     JSON.stringify({reason:note,staffUserId:record.staff_user_id,slot:record.dtr_slot,schoolDate:record.schoolDate})]);
+   await client.query('COMMIT');
+   return res.json({eventId,status});
+  }catch(error){await client.query('ROLLBACK').catch(()=>{});
+   if(error.code==='23505')return res.status(409).json({error:'This DTR slot already has a verified entry.'});
+   console.error('Lunch manual review failed:',error.message);return res.status(503).json({error:'Unable to review pending lunch scan.'});
+  }finally{client.release();}
+ });
+
+ // Identity is taken only from the HttpOnly staff session. Location supplied
+ // by a browser is a spoofable risk signal; it is never a trusted timestamp.
  app.post('/api/staff-attendance/lunch/redeem',authenticateSchoolClient,
   requireSchoolRoles('SCHOOL_ADMIN','DEPARTMENT_HEAD','TEACHER'),async(req,res)=>{
   res.set('Cache-Control','no-store, private');
   const {challengeId,token}=req.body||{};
   if(req.auth?.type!=='SCHOOL_USER'||!req.auth.schoolId||!req.auth.userId)
    return res.status(403).json({error:'Authenticated school staff required.'});
-  if(!/^[0-9a-f]{8}(-[0-9a-f]{4}){3}-[0-9a-f]{12}$/i.test(String(challengeId||''))||
-     typeof token!=='string'||!/^[A-Za-z0-9_-]{43}$/.test(token))
+  if(!UUID.test(String(challengeId||''))||typeof token!=='string'||!/^[A-Za-z0-9_-]{43}$/.test(token))
    return res.status(400).json({error:'Invalid lunch QR challenge.'});
   const client=await pool.connect();
   try {
    await client.query('BEGIN');
-   const found=await client.query(
-    `SELECT challenge_id,dtr_slot,school_date::text AS school_date,challenge_hash,
-       issued_at,expires_at,revoked_at
-     FROM staff_attendance_challenges
-     WHERE school_id=$1 AND challenge_id=$2
-       AND issued_at<=NOW() AND expires_at>NOW() AND revoked_at IS NULL
-     FOR UPDATE`,[req.auth.schoolId,challengeId]);
-   const row=found.rows[0],today=manilaDate();
-   if(!row||!isLunchChallengeRedeemable(row,{slot:row.dtr_slot,schoolDate:today})){
+   const found=await client.query(`SELECT c.challenge_id,c.dtr_slot,
+      c.school_date::text AS school_date,c.challenge_hash,
+      c.issued_at,c.expires_at,c.revoked_at,c.presenter_user_id,
+      p.department_id,p.role AS presenter_role
+     FROM staff_attendance_challenges c
+     JOIN school_users p ON p.school_id=c.school_id AND p.user_id=c.presenter_user_id AND p.active=TRUE
+     WHERE c.school_id=$1 AND c.challenge_id=$2
+       AND c.issued_at<=NOW() AND c.expires_at>NOW()-INTERVAL '90 seconds'
+       AND c.revoked_at IS NULL
+     FOR UPDATE OF c`,[req.auth.schoolId,challengeId]);
+   const row=found.rows[0],today=manilaDate(),now=Date.now();
+   const issued=Date.parse(row?.issued_at),expires=Date.parse(row?.expires_at);
+   if(!row||row.school_date!==today||!Number.isFinite(issued)||!Number.isFinite(expires)||
+      expires<=issued||expires-issued>5*60_000||now<issued||
+      now>=expires+LATE_DELIVERY_GRACE_MS){
     await client.query('ROLLBACK');
-    return res.status(410).json({error:'Lunch QR is expired or unavailable.'});
+    return res.status(410).json({error:'Lunch QR expired. Scan the currently displayed QR or use the Gatekeeper fallback.'});
    }
    const expected=Buffer.from(row.challenge_hash,'hex');
    const received=Buffer.from(hashLunchChallenge(token),'hex');
    if(expected.length!==32||!timingSafeEqual(expected,received)){
-    await client.query('ROLLBACK');
-    return res.status(403).json({error:'Invalid lunch QR.'});
+    await client.query('ROLLBACK');return res.status(403).json({error:'Invalid lunch QR.'});
    }
+   if(row.presenter_role!=='SCHOOL_ADMIN'){
+    const permission=await client.query(`SELECT 1 FROM staff_lunch_presenter_assignments
+       WHERE school_id=$1 AND presenter_user_id=$2 AND school_date=$3::date
+       AND dtr_slot=$4 AND revoked_at IS NULL LIMIT 1`,
+      [req.auth.schoolId,row.presenter_user_id,today,row.dtr_slot]);
+    if(!permission.rowCount){await client.query('ROLLBACK');return res.status(410).json({error:'Presenter is no longer authorized.'});}
+   }
+   // Serialize duplicates from concurrent scans without changing existing DTR
+   // calculation or the unique verified-slot database constraint.
+   await client.query('SELECT pg_advisory_xact_lock(hashtext($1))',
+    [req.auth.schoolId+':lunch:'+req.auth.userId+':'+today+':'+row.dtr_slot]);
+   const existing=await client.query(`SELECT verification_status FROM staff_attendance_events
+    WHERE school_id=$1 AND staff_user_id=$2 AND school_date=$3::date
+    AND dtr_slot=$4 AND event_kind='DTR_SLOT'
+    AND verification_status IN ('VERIFIED','PENDING_VERIFICATION') LIMIT 1`,
+    [req.auth.schoolId,req.auth.userId,today,row.dtr_slot]);
+   if(existing.rowCount){
+    await client.query('ROLLBACK');
+    return res.status(409).json({error:existing.rows[0].verification_status==='VERIFIED'?
+      'This lunch DTR slot has already been recorded.':'Your lunch scan is pending review. Contact the School Admin.',
+      alreadyRecorded:existing.rows[0].verification_status==='VERIFIED'});
+   }
+   const pointRow=await client.query(`SELECT setting_value AS point FROM school_settings
+    WHERE school_id=$1 AND setting_key=$2`,
+    [req.auth.schoolId,locationKey(row.department_id)]);
+   const presence=classifyDepartmentPresence(pointRow.rows[0]?.point,req.body?.location,now);
+   const reasons=[];
+   if(now>=expires)reasons.push('LATE_DELIVERY');
+   if(!presence.verified)reasons.push(presence.reason);
+   if(row.presenter_user_id===req.auth.userId)reasons.push('SELF_SCAN_BY_PRESENTER');
+   // A DTR punch during an approved leave requires independent reconciliation.
+   await client.query('SELECT pg_advisory_xact_lock(hashtext($1))',
+    [req.auth.schoolId+':leave:'+req.auth.userId]);
+   const leave=await client.query(`SELECT 1 FROM staff_form48_approved_leaves
+    WHERE school_id=$1 AND staff_user_id=$2 AND revoked_at IS NULL
+    AND start_date<=$3::date AND end_date>=$3::date
+    UNION ALL SELECT 1 FROM school_users WHERE school_id=$1 AND user_id=$2
+    AND teacher_status='ON_LEAVE' AND leave_start_date<=$3::date
+    AND expected_return_date>=$3::date LIMIT 1`,
+    [req.auth.schoolId,req.auth.userId,today]);
+   if(leave.rowCount)reasons.push('APPROVED_LEAVE_CONFLICT');
+   const ob=await client.query(`SELECT 1 FROM staff_official_business_requests
+    WHERE school_id=$1 AND staff_user_id=$2 AND status='APPROVED'
+    AND starts_at<=NOW() AND ends_at>=NOW() LIMIT 1`,
+    [req.auth.schoolId,req.auth.userId]);
+   if(ob.rowCount)reasons.push('APPROVED_OB_CONFLICT');
+   const closed=await client.query(`SELECT 1 FROM school_calendar_exceptions
+    WHERE school_id=$1 AND calendar_date=$2::date AND exception_type='CLOSED' LIMIT 1`,
+    [req.auth.schoolId,today]);
+   if(closed.rowCount)reasons.push('CLOSED_SCHOOL_DAY');
+   const verification=reasons.length?'PENDING_VERIFICATION':'VERIFIED';
+   const verificationMethod=reasons.length?null:'ROTATING_QR';
    const eventId=randomUUID(),clientKey=randomUUID();
-   const event=await client.query(
-    `INSERT INTO staff_attendance_events
+   const event=await client.query(`INSERT INTO staff_attendance_events
       (event_id,school_id,staff_user_id,event_kind,dtr_slot,school_date,
-       occurred_at,source,verification_status,verification_method,actor_user_id,client_event_key)
-     SELECT $1,$2,$3,'DTR_SLOT',$4,$5,NOW(),'SELF_SERVICE','VERIFIED','ROTATING_QR',$3,$6
+       occurred_at,source,verification_status,verification_method,actor_user_id,client_event_key,notes)
+     SELECT $1,$2,$3,'DTR_SLOT',$4,$5,NOW(),'SELF_SERVICE',$6,$7,$3,$8,$10
      WHERE EXISTS (
        SELECT 1 FROM staff_attendance_challenges
-       WHERE school_id=$2 AND challenge_id=$7
-         AND school_date=$5::date AND dtr_slot=$4
-         AND revoked_at IS NULL AND issued_at<=NOW() AND expires_at>NOW()
+       WHERE school_id=$2 AND challenge_id=$9 AND school_date=$5::date
+         AND dtr_slot=$4 AND revoked_at IS NULL AND issued_at<=NOW()
+         AND expires_at>NOW()-INTERVAL '90 seconds'
      )
      ON CONFLICT DO NOTHING RETURNING event_id,occurred_at`,
-    [eventId,req.auth.schoolId,req.auth.userId,row.dtr_slot,today,clientKey,challengeId]);
+    [eventId,req.auth.schoolId,req.auth.userId,row.dtr_slot,today,
+     verification,verificationMethod,clientKey,challengeId,
+     reasons.length?'QR scan requires review: '+reasons.join(', '):null]);
    if(!event.rowCount){
     await client.query('ROLLBACK');
-    return res.status(409).json({error:'QR expired or this DTR slot was already verified.',alreadyRecorded:false});
+    return res.status(409).json({error:'QR expired or this DTR slot was already recorded.',alreadyRecorded:false});
    }
-   await client.query(
-    `INSERT INTO staff_attendance_challenge_redemptions
-      (school_id,challenge_id,staff_user_id,event_id)
-     VALUES($1,$2,$3,$4)`,
+   await client.query(`INSERT INTO staff_attendance_challenge_redemptions
+      (school_id,challenge_id,staff_user_id,event_id) VALUES($1,$2,$3,$4)`,
     [req.auth.schoolId,challengeId,req.auth.userId,eventId]);
-   await client.query(
-    `INSERT INTO staff_attendance_audit
+   await client.query(`INSERT INTO staff_attendance_audit
       (school_id,actor_user_id,action,target_type,target_id,details)
-     VALUES($1,$2,'LUNCH_DTR_VERIFIED','STAFF_ATTENDANCE_EVENT',$3,$4::jsonb)`,
-    [req.auth.schoolId,req.auth.userId,eventId,JSON.stringify({slot:row.dtr_slot,schoolDate:today,challengeId})]);
+     VALUES($1,$2,$3,'STAFF_ATTENDANCE_EVENT',$4,$5::jsonb)`,
+    [req.auth.schoolId,req.auth.userId,reasons.length?'LUNCH_SCAN_REVIEW_REQUIRED':'LUNCH_DTR_VERIFIED',eventId,
+     JSON.stringify({slot:row.dtr_slot,schoolDate:today,challengeId,presenterUserId:row.presenter_user_id,
+       departmentId:row.department_id,presence:presence.reason,distanceMeters:presence.distanceMeters??null,
+       accuracyMeters:presence.accuracyMeters??null,flags:reasons})]);
    await client.query('COMMIT');
-   return res.status(201).json({eventId,slot:row.dtr_slot,schoolDate:today,occurredAt:event.rows[0].occurred_at,status:'VERIFIED'});
+   return res.status(201).json({eventId,slot:row.dtr_slot,schoolDate:today,
+    occurredAt:event.rows[0].occurred_at,status:verification,
+    message:reasons.length?'Scan received; School Admin review is required. This is not yet a verified DTR entry.':
+      'Lunch DTR verified.'});
   }catch(error){
    await client.query('ROLLBACK').catch(()=>{});
    if(error.code==='23505')return res.status(409).json({error:'This DTR slot was already recorded.',alreadyRecorded:true});

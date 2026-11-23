@@ -3,7 +3,7 @@ const test=require('node:test'),assert=require('node:assert/strict'),fs=require(
 const {registerStaffLunchRoutes}=require('../staff-lunch-routes');
 function fixture(role='TEACHER',assigned=true){
  const endpoints=new Map(),queries=[],auth=(req,res,next)=>next(),roles=(...allowed)=>(req,res,next)=>allowed.includes(req.auth.role)?next():res.status(403).json({error:'Forbidden'});
- const pool={async connect(){return {async query(sql,params){queries.push({sql,params});if(sql.includes('FROM staff_lunch_presenter_assignments'))return {rowCount:assigned?1:0};return {rowCount:1};},release(){}};}};
+ const pool={async connect(){return {async query(sql,params){queries.push({sql,params});if(sql.includes('FROM staff_lunch_presenter_assignments'))return {rowCount:assigned?1:0,rows:assigned?[{}]:[]};if(sql.includes('SELECT issued_at FROM staff_attendance_challenges'))return {rowCount:0,rows:[]};return {rowCount:1,rows:[]};},release(){}};}};
  registerStaffLunchRoutes({post(path,...handlers){endpoints.set(path,handlers)},get(path,...handlers){endpoints.set(path,handlers)},put(path,...handlers){endpoints.set(path,handlers)},delete(path,...handlers){endpoints.set(path,handlers)}},pool,{authenticateSchoolClient:auth,requireSchoolRoles:roles});
  const response={code:200,headers:{},set(k,v){this.headers[k]=v;return this;},status(n){this.code=n;return this;},json(body){this.body=body;return this;}};
  const req={body:{slot:'AM_OUT'},auth:{type:'SCHOOL_USER',role,schoolId:'school-a',userId:'teacher-a'}};
@@ -54,8 +54,8 @@ test('redeem endpoint requires staff session and rejects malformed QR before que
 });
 test('redeem uses transaction, tenant-bound challenge lookup and constant-time token comparison',()=>{
  const src=fs.readFileSync('staff-lunch-routes.js','utf8');
- assert.match(src,/school_id=\$1 AND challenge_id=\$2/);
- assert.match(src,/expires_at>NOW\(\) AND revoked_at IS NULL/);
+ assert.match(src,/c.school_id=\$1 AND c.challenge_id=\$2/);
+ assert.match(src,/c.expires_at>NOW\(\)-INTERVAL '90 seconds'/);
  assert.match(src,/FOR UPDATE/);
  assert.match(src,/timingSafeEqual\(expected,received\)/);
  assert.match(src,/ON CONFLICT DO NOTHING RETURNING event_id,occurred_at/);
@@ -72,17 +72,26 @@ function redemptionFixture({role='TEACHER',school='school-a',tokenValid=true,dup
  const queries=[],routes=new Map();
  const pool={async connect(){return {async query(sql,params){
   queries.push({sql,params});
-  if(sql.trimStart().startsWith('SELECT challenge_id,dtr_slot,school_date::text AS school_date,challenge_hash'))return {rowCount:expired?0:1,rows:expired?[]:[{
+  if(sql.trimStart().startsWith('SELECT c.challenge_id,c.dtr_slot'))return {rowCount:expired?0:1,rows:expired?[]:[{
    challenge_id:challengeId,dtr_slot:'AM_OUT',school_date:manilaDate(),challenge_hash:challenge.challengeHash,
-   issued_at:challenge.issuedAt,expires_at:challenge.expiresAt,revoked_at:null
+   issued_at:challenge.issuedAt,expires_at:challenge.expiresAt,revoked_at:null,
+   presenter_user_id:'presenter-a',presenter_role:'SCHOOL_ADMIN',department_id:'department-a'
   }]};
-  if(sql.includes('INSERT INTO staff_attendance_events'))return {rowCount:duplicate?0:1,rows:duplicate?[]:[{event_id:'bbbbbbbb-bbbb-4bbb-bbbb-bbbbbbbbbbbb',occurred_at:new Date()}]};
+  if(sql.includes('SELECT verification_status FROM staff_attendance_events'))return {
+    rowCount:duplicate?1:0,rows:duplicate?[{verification_status:'VERIFIED'}]:[]};
+  if(sql.includes('SELECT setting_value AS point FROM school_settings'))return {
+    rowCount:1,rows:[{point:{latitude:9,longitude:125,radiusMeters:120}}]};
+  if(sql.includes('SELECT 1 FROM staff_form48_approved_leaves'))return {rowCount:0,rows:[]};
+  if(sql.includes('SELECT 1 FROM staff_official_business_requests'))return {rowCount:0,rows:[]};
+  if(sql.includes('SELECT 1 FROM school_calendar_exceptions'))return {rowCount:0,rows:[]};
+  if(sql.includes('INSERT INTO staff_attendance_events'))return {
+    rowCount:1,rows:[{event_id:'bbbbbbbb-bbbb-4bbb-bbbb-bbbbbbbbbbbb',occurred_at:new Date()}]};
   return {rowCount:1,rows:[]};
  },release(){}};}};
  const auth=(req,res,next)=>next();
  const roles=(...allowed)=>(req,res,next)=>allowed.includes(req.auth.role)?next():res.status(403).json({error:'Forbidden'});
  registerStaffLunchRoutes({post(path,...handlers){routes.set(path,handlers)},get(path,...handlers){routes.set(path,handlers)},put(path,...handlers){routes.set(path,handlers)},delete(path,...handlers){routes.set(path,handlers)}},pool,{authenticateSchoolClient:auth,requireSchoolRoles:roles});
- const req={auth:{type:'SCHOOL_USER',role,schoolId:school,userId:'teacher-a'},body:{challengeId,token:tokenValid?challenge.token:createLunchChallenge({slot:'AM_OUT'}).token}};
+ const req={auth:{type:'SCHOOL_USER',role,schoolId:school,userId:'teacher-a'},body:{challengeId,token:tokenValid?challenge.token:createLunchChallenge({slot:'AM_OUT'}).token,location:{latitude:9,longitude:125,accuracyMeters:10,capturedAt:Date.now()}}};
  const response={code:200,headers:{},set(k,v){this.headers[k]=v;return this;},status(n){this.code=n;return this;},json(body){this.body=body;return this;}};
  return {handlers:routes.get('/api/staff-attendance/lunch/redeem'),req,response,queries};
 }
@@ -121,8 +130,21 @@ test('database insert rechecks challenge validity against database clock to prev
  assert.equal(res.code,201);
  const insert=f.queries.find(q=>q.sql.includes('INSERT INTO staff_attendance_events'));
  assert.match(insert.sql,/WHERE EXISTS \(/);
- assert.match(insert.sql,/school_id=\$2 AND challenge_id=\$7/);
- assert.match(insert.sql,/issued_at<=NOW\(\) AND expires_at>NOW\(\)/);
+ assert.match(insert.sql,/school_id=\$2 AND challenge_id=\$9/);
+ assert.match(insert.sql,/issued_at<=NOW\(\)/);
+ assert.match(insert.sql,/expires_at>NOW\(\)-INTERVAL '90 seconds'/);
  assert.match(insert.sql,/ON CONFLICT DO NOTHING/);
- assert.equal(insert.params[6],f.req.body.challengeId);
+ assert.equal(insert.params[8],f.req.body.challengeId);
+});
+
+test('missing department location produces a reviewable scan, never a verified DTR',async()=>{
+ const f=redemptionFixture();
+ f.req.body.location=null;
+ const res=await execute(f);
+ assert.equal(res.code,201);
+ assert.equal(res.body.status,'PENDING_VERIFICATION');
+ const insert=f.queries.find(q=>q.sql.includes('INSERT INTO staff_attendance_events'));
+ assert.equal(insert.params[5],'PENDING_VERIFICATION');
+ assert.equal(insert.params[6],null);
+ assert.ok(f.queries.some(q=>q.sql.includes('INSERT INTO staff_attendance_audit')));
 });

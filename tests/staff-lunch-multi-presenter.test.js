@@ -22,10 +22,11 @@ test("presenter grants do not revoke other presenters' authorization",()=>{
  const grant=routes.slice(routes.indexOf("app.put('/api/staff-attendance/lunch/presenter'"),routes.indexOf("app.delete('/api/staff-attendance/lunch/presenter'"));
  assert.doesNotMatch(grant,/UPDATE staff_lunch_presenter_assignments SET revoked_at/);
 });
-test('rotating a challenge revokes only that presenter’s old challenge',()=>{
+test('rotating a challenge preserves a short overlap and presenter revocation remains scoped',()=>{
  const issue=routes.slice(routes.indexOf("app.post('/api/staff-attendance/lunch/challenges'"),routes.indexOf("app.post('/api/staff-attendance/lunch/redeem'"));
- assert.match(issue,/presenter_user_id=\$4 AND revoked_at IS NULL/);
- assert.match(issue,/\[req.auth.schoolId,date,slot,req.auth.userId\]/);
+ assert.match(issue,/MIN_ROTATION_MS/);
+ assert.match(issue,/presenter_user_id=\$4 ORDER BY issued_at DESC LIMIT 1/);
+ assert.doesNotMatch(issue,/UPDATE staff_attendance_challenges SET revoked_at/);
 });
 test('revocation targets one assigned presenter and preserves audit',()=>{
  const revoke=routes.slice(routes.indexOf("app.delete('/api/staff-attendance/lunch/presenter'"),routes.indexOf("app.post('/api/staff-attendance/lunch/challenges'"));

@@ -1,4 +1,4 @@
-const CACHE = "attendigo-v316-form48-settings-fix";
+const CACHE = "attendigo-v317-department-qr-security";
 
 const SHELL = [
   "/typography.css?v=1",
@@ -90,11 +90,11 @@ const SHELL = [
   "/role-controls-responsive.css?v=2",
   "/smart-attendance-overview.js?v=2",
   "/my-gate-insights.css?v=3",
-  "/staff-lunch-ui.js?v=4",
+  "/staff-lunch-ui.js?v=5",
   "/staff-ob-ui.js?v=6",
   "/staff-ob.css?v=1",
-  "/staff-lunch.css?v=3",
-  "/staff-lunch-checkin.js?v=3",
+  "/staff-lunch.css?v=4",
+  "/staff-lunch-checkin.js?v=4",
   "/sardo-monitor.js?v=2",
   "/sardo-monitor.css?v=1",
   "/schedule-form-layout.css?v=15",

@@ -27,3 +27,22 @@
 .staff-lunch-presenter-row strong{font-size:.85rem}
 .staff-lunch-presenter-row small{font-size:.72rem;color:var(--text-muted,#627389)}
 .staff-lunch-presenter-row button{flex:none;min-height:34px}
+
+/* Compact security setup and independent lunch verification queue. */
+.staff-lunch-security-settings{display:flex;flex-wrap:wrap;align-items:center;gap:10px;
+ margin:12px 0;padding:12px;border:1px solid var(--border-color,#d2dbe6);border-radius:10px;
+ background:var(--surface-color,transparent)}
+.staff-lunch-security-settings>div:first-child{flex:1 1 230px;min-width:0}
+.staff-lunch-security-settings strong{font-size:.88rem}
+.staff-lunch-security-settings p{font-size:.78rem;margin:4px 0}
+.staff-lunch-security-settings>.staff-lunch-status,
+.staff-lunch-security-settings>.staff-lunch-assigned-list{flex:1 0 100%;min-width:0}
+.staff-lunch-review-actions{display:flex;flex-wrap:wrap;gap:6px}
+.staff-lunch-review-actions button{min-width:64px}
+@media(max-width:600px){
+ .staff-lunch-security-settings{padding:10px}
+ .staff-lunch-security-settings>button{width:100%}
+ #staffLunchPendingList .staff-lunch-presenter-row{align-items:flex-start;flex-direction:column}
+ #staffLunchPendingList .staff-lunch-review-actions{width:100%}
+ #staffLunchPendingList .staff-lunch-review-actions button{flex:1}
+}

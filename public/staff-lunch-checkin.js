@@ -59,24 +59,49 @@
   confirm.hidden=false;
   confirm.disabled=false;
   message('Ready to record your verified lunch DTR. Confirm only for yourself.');
+  // Only the server can certify a DTR timestamp. Browser geolocation is
+  // optional evidence: weak GPS / denied permission becomes Pending Review.
+  function currentPosition(){
+    if(!navigator.geolocation)return Promise.resolve(null);
+    return new Promise(resolve=>{
+      navigator.geolocation.getCurrentPosition(
+        reading=>resolve({latitude:reading.coords.latitude,longitude:reading.coords.longitude,
+          accuracyMeters:reading.coords.accuracy,capturedAt:reading.timestamp}),
+        ()=>resolve(null),{enableHighAccuracy:true,maximumAge:0,timeout:8500}
+      );
+    });
+  }
+  let submitting=false;
   confirm.addEventListener('click',async()=>{
+    if(submitting||completed)return;
+    submitting=true;
     confirm.disabled=true;
-    message('Checking the QR and recording attendance…');
+    message('Checking your department location and verifying the lunch QR…');
     try{
+      const position=await currentPosition();
       const response=await fetch('/api/staff-attendance/lunch/redeem',{
         method:'POST',credentials:'same-origin',cache:'no-store',
         headers:{'Content-Type':'application/json'},
-        body:JSON.stringify({challengeId,token})
+        body:JSON.stringify({challengeId,token,location:position})
       });
       const body=await response.json().catch(()=>({}));
       if(!response.ok)throw Error(body.error||('Verification failed ('+response.status+').'));
-      message((body.slot==='AM_OUT'?'AM Out':'PM In')+
-        ' successfully verified. Your official DTR was recorded.','success');
+      if(body.status==='VERIFIED'){
+        message((body.slot==='AM_OUT'?'Lunch Time-Out':'Lunch Return')+
+          ' verified. Your official DTR entry was recorded.','success');
+      }else{
+        message('Scan received, but NOT yet recorded in the official DTR. School Admin review is required. You may also use supervised Gatekeeper scanning.','info');
+      }
       completed=true;
       confirm.hidden=true;
     }catch(error){
-      message(error.message+' Request a fresh QR from the presenter or use the Gatekeeper fallback.','error');
-      confirm.hidden=true; // Never reuse a failed/possibly expired QR.
-    }
-  },{once:true});
+      if(error instanceof TypeError){
+        message('Connection interrupted. No verified attendance confirmed. Reconnect and retry this scan promptly, or use Gatekeeper scanning.','error');
+        confirm.disabled=false; // Safe to retry: server rejects duplicate events.
+      }else{
+        message(error.message+' Ask for a current QR or use supervised Gatekeeper scanning.','error');
+        confirm.hidden=true;
+      }
+    }finally{submitting=false;}
+  });
 })();

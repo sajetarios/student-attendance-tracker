@@ -20,12 +20,12 @@ test('presenter API uses administrator-only assignment and invalidates outgoing 
  assert.match(routes,/LUNCH_PRESENTER_ASSIGNED/);
  assert.match(routes,/LUNCH_PRESENTER_REVOKED/);
 });
-test('presenter issues real QR image with fragment-only bearer token and 60s expiry',()=>{
+test('presenter issues real QR image with fragment-only bearer token and bounded short-term rotation',()=>{
  assert.match(routes,/QRCode\.toDataURL\(scanUrl/);
  assert.match(routes,/staff-lunch-checkin\.html#/);
  assert.match(routes,/new URLSearchParams\(\{id,token:challenge\.token\}\)/);
  assert.match(routes,/qrImage,slot,schoolDate:date,expiresAt/);
- assert.match(routes,/UPDATE staff_attendance_challenges SET revoked_at=NOW\(\)/);
+ assert.match(routes,/MIN_ROTATION_MS/);
  assert.doesNotMatch(routes,/console\.log\(.*challenge\.token/);
 });
 test('admin and teacher interfaces remain isolated to existing role-specific portals',()=>{
@@ -44,8 +44,8 @@ test('admin and teacher interfaces remain isolated to existing role-specific por
  assert.match(ui,/performance\.now\(\)/);
  assert.doesNotMatch(ui,/Date\.now\(\)>expiry/);
  assert.match(ui,/!document\.hidden/);
- assert.match(portal,/staff-lunch-ui\.js\?v=4/);
- assert.match(portal,/staff-lunch\.css\?v=3/);
+ assert.match(portal,/staff-lunch-ui\.js\?v=5/);
+ assert.match(portal,/staff-lunch\.css\?v=4/);
 });
 test('My lunch QR is unhidden by the role-aware portal view switch',()=>{
  const portalJs=read('public/portal.js');
@@ -66,9 +66,9 @@ test('QR scan does not log in or record until authenticated staff confirms expli
  assert.match(server,/res\.set\('Referrer-Policy','no-referrer'\)/);
 });
 test('service worker preloads safe assets but excludes sensitive scan document from offline cache',()=>{
- assert.match(sw,/staff-lunch-ui\.js\?v=4/);
- assert.match(sw,/staff-lunch\.css\?v=3/);
- assert.match(sw,/staff-lunch-checkin\.js\?v=3/);
+ assert.match(sw,/staff-lunch-ui\.js\?v=5/);
+ assert.match(sw,/staff-lunch\.css\?v=4/);
+ assert.match(sw,/staff-lunch-checkin\.js\?v=4/);
  assert.match(sw,/staff-lunch-checkin\.html/);
  const shell=sw.split('const SHELL = [')[1].split('];')[0];
  assert.doesNotMatch(shell,/staff-lunch-checkin\.html/);
@@ -88,7 +88,7 @@ test('staff lunch sign-in resumes same challenge without QR rescan or token in q
  assert.match(login,/location\.replace\(lunchContinuation\)/);
  assert.match(page,/id="lunchRetry"/);
  assert.match(loginPage,/portal-login\.js\?v=15/);
- assert.match(sw,/staff-lunch-checkin\.js\?v=3/);
+ assert.match(sw,/staff-lunch-checkin\.js\?v=4/);
  assert.doesNotMatch(scan,/localStorage|sessionStorage|location\.search|console\.log/);
 });
 
@@ -99,7 +99,20 @@ test('lunch confirmation hides unavailable controls and restores auth on browser
  assert.match(scan,/location\.replace\('\/staff-lunch-checkin\.html#'/);
  assert.match(scan,/let completed=false/);
  assert.match(scan,/completed=true/);
- assert.match(page,/staff-lunch-checkin\.js\?v=3/);
- assert.match(sw,/staff-lunch-checkin\.js\?v=3/);
+ assert.match(page,/staff-lunch-checkin\.js\?v=4/);
+ assert.match(sw,/staff-lunch-checkin\.js\?v=4/);
  assert.doesNotMatch(scan,/localStorage|sessionStorage|console\.log/);
+});
+
+test('department check-in requires location evidence before official DTR approval',()=>{
+ assert.match(routes,/classifyDepartmentPresence/);
+ assert.match(routes,/LUNCH_SCAN_REVIEW_REQUIRED/);
+ assert.match(routes,/verification_status='PENDING_VERIFICATION'/);
+ assert.match(routes,/staff_form48_approved_leaves/);
+ assert.match(routes,/LUNCH_DTR_MANUAL_VERIFIED/);
+ assert.match(ui,/staffLunchSetPoint/);
+ assert.match(ui,/staffLunchPendingList/);
+ assert.match(scan,/getCurrentPosition/);
+ assert.match(scan,/body.status==='VERIFIED'/);
+ assert.match(portal,/staffLunchPointStatus/);
 });

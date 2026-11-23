@@ -9,7 +9,7 @@
   <title>Dashboard · Attendigo</title>
   <link rel="stylesheet" href="/sf1-review-cards.css?v=2">
   <link rel="stylesheet" href="/sf1-family-details.css?v=3">
-  <link rel="stylesheet" href="/staff-lunch.css?v=3">
+  <link rel="stylesheet" href="/staff-lunch.css?v=4">
   <link rel="stylesheet" href="/staff-ob.css?v=1">
   <link rel="stylesheet" href="/department-workspace.css?v=1">
   <link rel="stylesheet" href="/form48-report.css?v=16">
@@ -1056,7 +1056,7 @@ body.dark-mode .content-wrap > .school-heading.is-compact,body[data-theme="dark"
             <div class="surface-card section-card"><h3>My lunch QR</h3><p>This presenter workspace is separate from your own attendance. It does not record your personal AM Out or PM In automatically.</p></div>
             <section class="staff-lunch-panel" id="staffLunchPresenterCard" aria-label="Present rotating lunch attendance QR" hidden>
               <div class="section-toolbar"><div><h3>My lunch QR — authorized presenter</h3>
-                <p>Only assigned teachers may display the QR for staff to scan and confirm on their own signed-in phone. Codes expire after one minute.</p></div>
+                <p>Only assigned teachers may display the QR for staff to scan and confirm on their own signed-in phone. Codes refresh every 30 seconds, with brief overlap for slow connections.</p></div>
                 <small id="staffLunchPresenterDay" class="field-hint"></small></div>
               <div class="staff-lunch-controls">
                 <label>DTR entry<select id="staffLunchPresenterSlot"><option value="AM_OUT">AM Out</option><option value="PM_IN">PM In</option></select></label>
@@ -1065,7 +1065,7 @@ body.dark-mode .content-wrap > .school-heading.is-compact,body[data-theme="dark"
               <p id="staffLunchPresenterStatus" class="staff-lunch-status" role="status" aria-live="polite">Checking whether you are assigned…</p>
               <img id="staffLunchQrImage" class="staff-lunch-qr" src="" alt="Rotating lunch attendance QR for authorized staff" hidden>
               <p id="staffLunchQrExpiry" class="staff-lunch-expires" role="status" aria-live="polite"></p>
-              <p class="attendance-summary-note">Only a School Admin can assign or replace the presenter. When the presenter is away, ask for reassignment or use Gatekeeper photo-confirmed fallback.</p>
+              <p class="attendance-summary-note">Only assigned presenters may display the QR. Staff scan from their own signed-in phone near the department; uncertain scans go to administrator review. Gatekeeper photo-confirmed scanning remains available.</p>
             </section>
           </section>
           <section id="officialBusinessView" class="view-panel" aria-label="Official Business requests" hidden></section>
@@ -1840,9 +1840,21 @@ body.dark-mode .content-wrap > .school-heading.is-compact,body[data-theme="dark"
                 <button class="primary-button" type="button" id="staffLunchAssign">Authorize selected teachers</button>
                 <button class="outline-button" type="button" id="staffLunchRevoke" hidden disabled>Revoke presenter</button>
               </div>
+              <div class="staff-lunch-security-settings">
+                <div><strong>Department scanning location</strong>
+                  <p>Optional one-time setup: Stand inside the selected department and save its location. Teachers outside the verified area, or without reliable location data, will need attendance review.</p></div>
+                <button type="button" class="outline-button" id="staffLunchSetPoint" disabled>Set department location</button>
+                <p class="staff-lunch-status" id="staffLunchPointStatus" role="status" aria-live="polite"></p>
+              </div>
+              <div class="staff-lunch-security-settings">
+                <div><strong>Lunch scans needing review</strong>
+                  <p>Uncertain or delayed scans do not appear in Form 48 until independently verified. Approved leave conflicts remain blocked.</p></div>
+                <button type="button" class="outline-button" id="staffLunchPendingRefresh">Refresh pending scans</button>
+                <div id="staffLunchPendingList" class="staff-lunch-assigned-list" aria-live="polite">Loading…</div>
+              </div>
               <p class="staff-lunch-status" role="status" aria-live="polite" id="staffLunchAdminStatus">Checking presenter assignment…</p>
               <div id="staffLunchAssignedList" class="staff-lunch-assigned-list" role="region" aria-label="Active lunch QR presenters" aria-live="polite"></div>
-              <p class="attendance-summary-note">School Admin controls presenter access. Any authenticated staff member may scan a valid QR; Gatekeepers remain the photo-verification fallback.</p>
+              <p class="attendance-summary-note">School Admin controls presenter access and department check-in areas. A valid QR alone does not certify attendance; Gatekeeper scanning remains a supervised fallback.</p>
             </section>
           </section>
           <section id="form48ReportsView" class="view-panel" hidden>
@@ -2456,7 +2468,7 @@ body.dark-mode .content-wrap > .school-heading.is-compact,body[data-theme="dark"
   <script src="/gate-offline-review.js?v=1" defer></script>
   <script src="/portal.js?v=236" defer></script>
   <script src="/schedule-list-filters.js?v=1" defer></script>
-  <script src="/staff-lunch-ui.js?v=4" defer></script>
+  <script src="/staff-lunch-ui.js?v=5" defer></script>
   <script src="/staff-ob-ui.js?v=6" defer></script>
   <script src="/department-workspace.js?v=5" defer></script>
   <script src="/department-dashboard-v2.js?v=2" defer></script>

@@ -82,19 +82,16 @@ async function main(){
   const permitted=await post('/api/staff-attendance/lunch/challenges',{slot:'PM_IN'},teacher.token);
   assert.equal(permitted.status,201,'Assigned teacher may issue lunch QR');
   assert.match(permitted.body.qrImage,/^data:image\/png;base64,/,'Presenter receives real scannable PNG');
-  const rotatedQr=await post('/api/staff-attendance/lunch/challenges',{slot:'PM_IN'},teacher.token);
-  assert.equal(rotatedQr.status,201,'Presenter can rotate a fresh one-minute QR');
-  const outdated=await post('/api/staff-attendance/lunch/redeem',
-   {challengeId:permitted.body.challengeId,token:permitted.body.token},teacher.token);
-  assert.equal(outdated.status,410,'Previous QR is revoked immediately on rotation');
+  const rapidQr=await post('/api/staff-attendance/lunch/challenges',{slot:'PM_IN'},teacher.token);
+  assert.equal(rapidQr.status,429,'Presenter cannot flood QR issues within 20 seconds');
   const additional=await presenterChange('PUT',{slot:'PM_IN',presenterUserId:teacher2.id});
   assert.equal(additional.status,201,'School Admin may authorize another presenter for the same slot');
   const originalQr=await pool.query('SELECT revoked_at FROM staff_attendance_challenges WHERE challenge_id=$1',
-   [rotatedQr.body.challengeId]);
+   [permitted.body.challengeId]);
   assert.equal(originalQr.rowCount,1);
   assert.equal(originalQr.rows[0].revoked_at,null,"Adding a second presenter preserves the first presenter's QR");
-  const firstPresenterAgain=await post('/api/staff-attendance/lunch/challenges',{slot:'PM_IN'},teacher.token);
-  assert.equal(firstPresenterAgain.status,201,'First teacher remains authorized as a presenter');
+  const firstPresenterAgain=permitted;
+  assert.equal(firstPresenterAgain.status,201,'First presenter retains a still-valid QR during short rotation overlap');
   const newPresenter=await post('/api/staff-attendance/lunch/challenges',{slot:'PM_IN'},teacher2.token);
   assert.equal(newPresenter.status,201,'Second teacher can issue an independent lunch QR');
   const firstStillLive=await pool.query('SELECT revoked_at FROM staff_attendance_challenges WHERE challenge_id=$1',
@@ -119,6 +116,15 @@ async function main(){
   const issued=await post('/api/staff-attendance/lunch/challenges',{slot:'AM_OUT'},admin.token);
   assert.equal(issued.status,201,'School admin can issue a time-limited lunch QR: '+JSON.stringify(issued.body));
   const qr={challengeId:issued.body.challengeId,token:issued.body.token};
+  // Location setup is an independent School Admin operation, not a teacher
+  // browser setting. The test uses synthetic coordinates only.
+  const setLocation=await fetch(base+'/api/staff-attendance/lunch/location',{
+   method:'PUT',headers:{'Content-Type':'application/json',Authorization:'Bearer '+admin.token},
+   body:JSON.stringify({departmentId:a.dep,latitude:9,longitude:125,accuracyMeters:10,radiusMeters:120})
+  });
+  assert.equal(setLocation.status,200,'School Admin can set the department scanning point');
+  const presence={latitude:9,longitude:125,accuracyMeters:12,capturedAt:Date.now()};
+  const verifiedQr={...qr,location:presence};
   const crossSchool=await post('/api/staff-attendance/lunch/redeem',qr,other.token);
   assert.equal(crossSchool.status,410,'Cross-school challenge cannot be redeemed');
   const invalid=await post('/api/staff-attendance/lunch/redeem',{...qr,token:crypto.randomBytes(32).toString('base64url')},teacher.token);
@@ -127,8 +133,8 @@ async function main(){
   // Requests use different real PostgreSQL clients. Unique verified DTR slot
   // constraint serializes the conflict and exactly one transaction commits.
   const results=await Promise.all([
-   post('/api/staff-attendance/lunch/redeem',qr,teacher.token),
-   post('/api/staff-attendance/lunch/redeem',qr,teacher.token)
+   post('/api/staff-attendance/lunch/redeem',verifiedQr,teacher.token),
+   post('/api/staff-attendance/lunch/redeem',verifiedQr,teacher.token)
   ]);
   assert.deepEqual(results.map(x=>x.status).sort((x,y)=>x-y),[201,409],
    'Exactly one of two simultaneous redemptions must succeed: '+JSON.stringify(results));
@@ -147,9 +153,34 @@ async function main(){
     WHERE school_id=$1 AND action='LUNCH_DTR_VERIFIED' AND target_id=$2`,
     [a.school,events.rows[0].event_id]);
   assert.equal(audit.rows[0].total,1,'One immutable verified DTR audit row persisted');
-  const again=await post('/api/staff-attendance/lunch/redeem',qr,teacher.token);
+  const again=await post('/api/staff-attendance/lunch/redeem',verifiedQr,teacher.token);
   assert.equal(again.status,409,'Replay denied even after the first request committed');
 
+
+
+  // A remote or inaccurate scan must NOT silently alter Form 48.
+  const outside=await post('/api/staff-attendance/lunch/redeem',
+   {...qr,location:{latitude:10,longitude:126,accuracyMeters:9,capturedAt:Date.now()}},teacher2.token);
+  assert.equal(outside.status,201,'Uncertain but authentic QR can be recorded for review');
+  assert.equal(outside.body.status,'PENDING_VERIFICATION');
+  const pendingOnly=await pool.query(`SELECT verification_status FROM staff_attendance_events
+    WHERE school_id=$1 AND staff_user_id=$2 AND dtr_slot='AM_OUT'`,
+    [a.school,teacher2.id]);
+  assert.equal(pendingOnly.rows[0].verification_status,'PENDING_VERIFICATION');
+  const pendingList=await fetch(base+'/api/staff-attendance/lunch/pending',{
+    headers:{Authorization:'Bearer '+admin.token}});
+  assert.equal(pendingList.status,200);
+  assert.ok((await pendingList.json()).items.some(row=>row.eventId===outside.body.eventId));
+  const deniedReview=await post('/api/staff-attendance/lunch/review',
+    {eventId:outside.body.eventId,decision:'VERIFY',note:'Independent evidence checked'},teacher2.token);
+  assert.equal(deniedReview.status,403,'Teachers cannot self-approve pending QR scans');
+  const reviewed=await post('/api/staff-attendance/lunch/review',
+    {eventId:outside.body.eventId,decision:'VERIFY',note:'School Admin inspected independent on-site evidence'},admin.token);
+  assert.equal(reviewed.status,200,'School Admin can verify only after explicit documented review');
+  const reviewedRow=await pool.query(`SELECT verification_status,verification_method
+     FROM staff_attendance_events WHERE event_id=$1`,[outside.body.eventId]);
+  assert.equal(reviewedRow.rows[0].verification_status,'VERIFIED');
+  assert.equal(reviewedRow.rows[0].verification_method,'MANUAL_REVIEW');
 
   const gatePath='/api/staff-attendance/gatekeeper/dtr';
   const gateBody={teacherQrToken,slot:'PM_OUT',photoVerified:true};

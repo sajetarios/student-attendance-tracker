@@ -30,7 +30,7 @@ button:disabled{opacity:.6;cursor:not-allowed}
 small{display:block;line-height:1.5;color:#627186;margin-top:16px}
 @media(prefers-color-scheme:dark){body{background:#101823;color:#e8eff8}main{background:#1c2a3c}p,small{color:#b5c3d4}#lunchName{color:#e8eff8}#lunchStatus{background:#233349;border-color:#47607a}.back{color:#d7e7ff;border-color:#526985}}
 </style>
-<script src="/staff-lunch-checkin.js?v=3" defer></script>
+<script src="/staff-lunch-checkin.js?v=4" defer></script>
 </head>
 <body>
 <main>
@@ -43,7 +43,7 @@ small{display:block;line-height:1.5;color:#627186;margin-top:16px}
 <a href="/portal-login.html" id="lunchLogin" class="back" hidden>Sign in as staff and continue</a>
 <button type="button" id="lunchRetry" hidden>Retry session verification</button>
 <a href="/portal.html?view=myGateAttendance" class="back">Back to Attendigo</a>
-<small>Short-lived rotating QR · Only signed-in school staff can confirm · Invalid, duplicate, or expired scans are rejected. Your login password is never entered here.</small>
+<small>Short-lived rotating QR · Authenticated staff and department location checks · Uncertain scans require independent School Admin review. Your login password is never entered here.</small>
 </main>
 </body>
 </html>
