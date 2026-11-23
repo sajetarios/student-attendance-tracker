@@ -1,0 +1,75 @@
+<!doctype html>
+<html lang="en"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="robots" content="noindex,nofollow,noarchive"><meta name="referrer" content="no-referrer">
+<meta name="theme-color" content="#143d6b">
+<title>Principal Leadership · Attendigo</title>
+<link rel="icon" href="/assets/attendigo-favicon.png?v=3">
+<link rel="stylesheet" href="/typography.css?v=1">
+<link rel="stylesheet" href="/principal-dashboard.css?v=1">
+<script src="/principal-dashboard.js?v=1" defer></script>
+</head><body>
+<div class="pl-shell">
+ <aside class="pl-side">
+  <div class="pl-brand"><img src="/assets/attendigo-symbol-transparent.svg?v=5" alt="" width="40" height="40"><div><strong>Attendigo</strong><small>Leadership Workspace</small></div></div>
+  <nav aria-label="Leadership sections">
+   <button type="button" class="pl-nav active" data-section="overview" aria-current="page"><span aria-hidden="true">▦</span> School overview</button>
+   <button type="button" class="pl-nav" data-section="departments"><span aria-hidden="true">▤</span> Departments</button>
+   <button type="button" class="pl-nav" data-section="decisions"><span aria-hidden="true">◷</span> Needs attention</button>
+   <button type="button" class="pl-nav" data-section="methodology"><span aria-hidden="true">ⓘ</span> Data definitions</button>
+  </nav>
+  <div class="pl-side-foot"><span class="pl-safe">● Verified data only</span><p>Read-only leadership oversight. Formal approvals remain with authorized officials.</p></div>
+ </aside>
+ <div class="pl-main">
+  <header class="pl-top">
+   <div><span class="pl-eyebrow">SCHOOL LEADERSHIP</span><h1>Principal's Overview</h1><p id="plGreeting">Loading your school information…</p></div>
+   <div class="pl-top-actions"><button id="plRefresh" type="button" class="pl-btn">↻ Refresh</button><button id="plExport" type="button" class="pl-btn">↓ Export summary</button><button id="plLogout" type="button" class="pl-btn pl-btn-quiet">Sign out</button></div>
+  </header>
+  <div id="plError" role="alert" class="pl-alert" hidden></div>
+  <div class="pl-controls" aria-label="Report filters">
+   <label for="plRange">Time period<select id="plRange"><option value="7">Last 7 days</option><option value="30">Last 30 days</option><option value="90">Last 90 days</option></select></label>
+   <label for="plDepartment">Department<select id="plDepartment"><option value="">All departments</option></select></label>
+   <div class="pl-snapshot"><span id="plSnapshotDate">Checking current records</span><small id="plSnapshotSource">Source: school database</small></div>
+  </div>
+  <main id="plContent" aria-live="polite">
+   <section class="pl-hero">
+    <div><span class="pl-eyebrow">SCHOOL PULSE</span><h2>Understand the school. Act on what matters.</h2><p>Leadership metrics are built from existing records. No synthetic scores, predicted absences or unsupported tardiness claims.</p></div>
+    <div class="pl-hero-stamp"><span id="plHealthLabel">Loading verified records</span><strong id="plHealthValue">—</strong><small>Open operational items</small></div>
+   </section>
+   <section id="plOverview" class="pl-section" aria-labelledby="plOverviewHeading">
+    <div class="pl-section-heading"><div><span class="pl-eyebrow">AT A GLANCE</span><h2 id="plOverviewHeading">School snapshot</h2></div><p>Tap any card to see how the figure is defined.</p></div>
+    <div class="pl-kpi-grid">
+     <button class="pl-kpi" type="button" data-metric="activeStudents"><span class="pl-kpi-icon">🎓</span><span>Active learner records</span><strong id="plStudents">—</strong><small>Whole-school roster</small></button>
+     <button class="pl-kpi" type="button" data-metric="activeTeachers"><span class="pl-kpi-icon">👥</span><span>Active teacher accounts</span><strong id="plTeachers">—</strong><small>Current assignments</small></button>
+     <button class="pl-kpi" type="button" data-metric="todayVerifiedAmIn"><span class="pl-kpi-icon">✓</span><span>Verified AM Time-In</span><strong id="plAmIn">—</strong><small>Today's recorded punches</small></button>
+     <button class="pl-kpi" type="button" data-metric="windowPendingScans"><span class="pl-kpi-icon">◷</span><span>Scans awaiting review</span><strong id="plPending">—</strong><small>Selected date range</small></button>
+    </div>
+   </section>
+   <section class="pl-two-column">
+    <div class="pl-panel" id="plTrendPanel">
+     <div class="pl-panel-head"><div><span class="pl-eyebrow">STAFF ATTENDANCE EVIDENCE</span><h2>Verified AM Time-In activity</h2></div><span class="pl-subtag">Daily records</span></div>
+     <p class="pl-panel-desc">Each bar is the number of distinct teachers with a verified AM Time-In DTR entry that day. This is not an attendance rate.</p>
+     <div id="plTrend" class="pl-trend" role="img" aria-label="Verified staff AM Time-In trend">Loading trend…</div>
+     <div id="plTrendDetail" class="pl-trend-detail" role="status">Choose a day to inspect its verified and pending records.</div>
+    </div>
+    <div class="pl-panel" id="plPriorityPanel">
+     <div class="pl-panel-head"><div><span class="pl-eyebrow">MANAGEMENT ATTENTION</span><h2>Pending work</h2></div><span class="pl-subtag">Not approval shortcuts</span></div>
+     <div id="plPriorityItems" class="pl-priorities">Loading pending items…</div>
+     <p class="pl-panel-desc">These are outstanding workflow records. Authorized reviewers handle decisions in their own protected modules.</p>
+    </div>
+   </section>
+   <section id="plDepartments" class="pl-panel pl-departments" aria-labelledby="plDepartmentsHeading">
+    <div class="pl-panel-head"><div><span class="pl-eyebrow">DEPARTMENT LENS</span><h2 id="plDepartmentsHeading">Where should leadership focus?</h2></div><button id="plClearDepartment" type="button" class="pl-btn pl-btn-quiet">Show all departments</button></div>
+    <p class="pl-panel-desc">Compare current teacher rosters with recorded verified AM Time-In activity. Tap a department to filter the entire dashboard.</p>
+    <div class="pl-table-scroll"><table><thead><tr><th scope="col">Department</th><th scope="col">Active teachers</th><th scope="col">Teachers with verified AM In</th><th scope="col">Pending scans</th><th scope="col">Explore</th></tr></thead><tbody id="plDepartmentRows"><tr><td colspan="5">Loading departments…</td></tr></tbody></table></div>
+   </section>
+   <section id="plDefinitions" class="pl-panel pl-method" aria-labelledby="plDefinitionsHeading">
+    <div class="pl-panel-head"><div><span class="pl-eyebrow">INTEGRITY FIRST</span><h2 id="plDefinitionsHeading">What these figures actually mean</h2></div></div>
+    <div id="plDefinitionsBody" class="pl-definitions">Loading data definitions…</div>
+    <p>Figures are school-scoped and computed on request. Blank or zero values are not proof of absence, misconduct, or poor department performance. Department staffing is attributed using current assignments.</p>
+   </section>
+  </main>
+ </div>
+</div>
+<dialog id="plExplain"><div class="pl-modal-head"><h2 id="plExplainTitle">About this metric</h2><button type="button" id="plExplainClose" aria-label="Close explanation">✕</button></div><p id="plExplainBody"></p><button id="plExplainDone" type="button" class="pl-btn pl-btn-primary">Understood</button></dialog>
+</body></html>
