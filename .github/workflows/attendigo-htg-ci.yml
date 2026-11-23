@@ -1,0 +1,35 @@
+name: Ask Attendigo HTG safety and compatibility
+on:
+  pull_request:
+    branches: [fix/render-login-landing]
+    paths:
+      - 'help-ai-routes.js'
+      - 'public/attendigo-help-*'
+      - 'public/portal.html'
+      - 'public/sw.js'
+      - 'tests/attendigo-help*.test.js'
+      - 'tests/attendigo-htg*.test.js'
+      - '.github/workflows/attendigo-htg-ci.yml'
+  push:
+    branches: [feature/htg-grounded-help-20261123]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  verified-htg:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci
+      - name: Validate existing Help UI and server syntax
+        run: |
+          node --check help-ai-routes.js
+          node --check public/attendigo-help-guide.js
+          node --check public/attendigo-help-topics.js
+      - name: Test HTG accuracy, role permissions, AI grounding and voice compatibility
+        run: node --test tests/attendigo-help.test.js tests/attendigo-help-accuracy.test.js tests/attendigo-htg-grounding.test.js
