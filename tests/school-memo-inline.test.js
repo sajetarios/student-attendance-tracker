@@ -18,7 +18,7 @@ test('memo reader remains inside current dashboard and previews attached documen
  assert.match(s,/document\.querySelector\('#schoolWorkspace'\)\|\|document\.querySelector\('main'\)/);
  assert.match(s,/host\.insertBefore\(panel,host\.firstChild\)/);
  assert.match(s,/panel\.hidden=false/);
- assert.match(s,/const frame=make\('iframe','attendigo-memo-frame'\)/);
+ assert.match(s,/kind==='application\/pdf'\?make\('iframe','attendigo-memo-frame'\)/);
  assert.match(s,/const uri='\/api\/school-memos\/'/);
  assert.match(s,/URL\.createObjectURL\(new Blob\(\[bytes\],\{type:kind\}\)\)/);
  assert.match(s,/URL\.revokeObjectURL/);
