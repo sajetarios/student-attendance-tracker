@@ -1001,7 +1001,7 @@
    required=['SCHEDULE_NOTICE','CLASS_SUSPENSION'].includes(category);
   from.required=required;to.required=required;
   to.min=from.value||'';
-  apply.disabled=category!=='SCHEDULE_NOTICE'||audience!=='SCHOOL_STAFF';
+  apply.disabled=category!=='SCHEDULE_NOTICE';
   if(apply.disabled)apply.checked=false;
   const enabled=apply.checked&&!apply.disabled;
   $('principalMemoDtrFields').hidden=!enabled;
@@ -1035,12 +1035,12 @@
    const validTime=s=>/^([01]\d|2[0-3]):[0-5]\d$/.test(s);
    const min=s=>Number(s.slice(0,2))*60+Number(s.slice(3));
    const diff=Math.round((Date.parse(endDate+'T12:00:00Z')-Date.parse(effectiveDate+'T12:00:00Z'))/86400000);
-   if(category!=='SCHEDULE_NOTICE'||audience!=='SCHOOL_STAFF'||!effectiveDate||!endDate||
+   if(category!=='SCHEDULE_NOTICE'||!effectiveDate||!endDate||
       diff<0||diff>30||!Object.values(dtrHours).every(validTime)||
       !(min(dtrHours.AM_IN)<min(dtrHours.AM_OUT)&&
         min(dtrHours.AM_OUT)<=min(dtrHours.PM_IN)&&
         min(dtrHours.PM_IN)<min(dtrHours.PM_OUT))){
-    feedback.textContent='DTR adjustment requires a staff-only temporary schedule notice, 31 days maximum, and four chronological prescribed times.';return;
+    feedback.textContent='DTR adjustment requires a temporary schedule notice, 31 days maximum, and four chronological prescribed times.';return;
    }
   }
   const notice=audience==='ALL_USERS'
