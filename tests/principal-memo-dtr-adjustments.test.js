@@ -57,7 +57,8 @@ test('memo DTR link requires principal, staff-only schedule notice, period and s
  const db=fs.readFileSync('migrations/081_school_memo_effective_period_and_dtr.sql','utf8');
  assert.match(source,/requireSchoolRoles\('PRINCIPAL'\)/);
  assert.match(source,/category!=='SCHEDULE_NOTICE'/);
- assert.match(source,/audience!=='SCHOOL_STAFF'/);
+ assert.match(source,/dtrRequested/);
+ assert.match(source,/AUDIENCES=new Set\(\['ALL_USERS','SCHOOL_STAFF'\]\)/);
  assert.match(source,/pg_advisory_xact_lock/);
  assert.match(source,/MEMO_DTR_DATE_CONFLICT/);
  assert.match(source,/end_date/);
