@@ -30,7 +30,7 @@
   '<label>'+esc(label)+'<select name="'+name+'">'+values.map(([val,txt])=>'<option value="'+esc(val)+'">'+esc(txt)+'</option>').join('')+'</select></label>';
  const docTypes=[['VACATION','Vacation leave'],['SICK','Sick leave'],['VSC','Vacation service credit availment'],['MATERNITY','Maternity leave'],
   ['PATERNITY','Paternity leave'],['SPECIAL_PRIVILEGE','Special privilege leave'],['WELLNESS','Wellness leave'],['OTHER','Other leave']];
- const accounts=[['NONE','No credit deduction / HR determines'],['VSC','Vacation Service Credits (teacher)'],['VL','Vacation Leave'],['SL','Sick Leave']];
+ const accounts=[['NONE','HR will determine the applicable credit'],['VSC','Vacation Service Credits (VSC)'],['VL','Vacation Leave (VL)'],['SL','Sick Leave (SL)']];
  function init(user){
   if(!['TEACHER','DEPARTMENT_HEAD','SCHOOL_ADMIN'].includes(user?.role))return;
   const button=document.createElement('button');button.id='staffLeaveNav';button.type='button';
@@ -194,8 +194,9 @@
     '<a class="leave-btn" href="/leave-form6.html?template=1" target="_blank" rel="noopener">View blank CSC Form No. 6</a></div>'+
     '<form id="leaveNewForm" class="leave-form">'+
     '<fieldset><legend>Leave type and dates</legend>'+
-    select('leaveType','Type of leave',docTypes)+select('creditAccount','Proposed credit account',accounts)+
-    '<p class="leave-sick-guidance" role="status" aria-live="polite"></p>'+
+    select('leaveType','Type of leave',docTypes)+select('creditAccount','Proposed credit deduction (subject to HR verification)',accounts)+
+    '<p class="leave-credit-guidance" role="status" aria-live="polite"></p>'+ 
+    '<p class="leave-sick-guidance" role="status" aria-live="polite"></p>'
     textInput('startDate','Start date',true,'date')+textInput('endDate','End date',true,'date')+
     '</fieldset><fieldset><legend>Reason and details</legend>'+
     '<label>Reason (required)<textarea name="reason" rows="2" minlength="3" maxlength="1000" required></textarea></label>'+
@@ -209,6 +210,7 @@
     '</fieldset><button type="submit" class="leave-primary">Submit for review</button></form>';
    const leaveTypeControl=details.querySelector('[name=leaveType]');
    const accountControl=details.querySelector('[name=creditAccount]');
+   const creditInfo=details.querySelector('.leave-credit-guidance');
    const sickInfo=details.querySelector('.leave-sick-guidance');
    const start=details.querySelector('[name=startDate]');
    const end=details.querySelector('[name=endDate]');
@@ -223,46 +225,65 @@
     const value=k=>parts.find(p=>p.type===k)?.value;
     return value('year')+'-'+value('month')+'-'+value('day');
    };
-   const explainSick=()=>{
-    const sick=leaveTypeControl.value==='SICK';
-    if(!sick){
-     sickInfo.hidden=true;
-     const fixed={VSC:'VSC',MATERNITY:'NONE',PATERNITY:'NONE'}[leaveTypeControl.value];
-     accountControl.disabled=Boolean(fixed);
-     if(fixed)accountControl.value=fixed;
-     return;
+   const refreshCreditChoice=()=>{
+    const leaveType=leaveTypeControl.value;
+    const verifiedTeaching=certifiedScheme==='TEACHING_VSC';
+    const verifiedRegular=certifiedScheme==='REGULAR_VL_SL';
+    const lockedAccount=leaveType==='SICK'?
+     (verifiedTeaching?'VSC':verifiedRegular?'SL':'NONE'):
+     leaveType==='VSC'?'VSC':
+     ['MATERNITY','PATERNITY'].includes(leaveType)?'NONE':null;
+    // Do not infer certified teaching leave entitlement from the user's dashboard role.
+    // A school role may also be assigned to non-teaching personnel.
+    const allowed=lockedAccount?[lockedAccount]:
+     verifiedTeaching?['NONE','VSC']:
+     verifiedRegular?['NONE','VL','SL']:['NONE'];
+    const previous=accountControl.value;
+    accountControl.replaceChildren();
+    for(const code of allowed){
+     const entry=accounts.find(([id])=>id===code);
+     if(!entry)continue;
+     const option=document.createElement('option');
+     option.value=entry[0];option.textContent=entry[1];accountControl.append(option);
     }
-    sickInfo.hidden=false;
-    const account=certifiedScheme==='TEACHING_VSC'?'VSC':
-     certifiedScheme==='REGULAR_VL_SL'?'SL':'NONE';
-    accountControl.value=account;
-    accountControl.disabled=true;
-    const today=manilaDate();
-    const basis=start.value>today?'Advance-filed':end.value&&end.value<today?
-     'Post-absence filing — HR verifies return date':'During ongoing absence';
-    sickInfo.textContent=basis+' sick leave: CSC Form No. 6 may be filed immediately after returning to duty. Notify your supervisor of an unexpected absence. '+
-     (account==='VSC'?'HR-certified teaching personnel: illness uses Vacation Service Credits (VSC).':
-      account==='SL'?'HR-certified regular leave: illness uses Sick Leave (SL).':
-      'HR leave scheme not yet verified; you may submit now, but no balance will be charged until HR confirms the correct entitlement.')+
-     ' For medical evidence, select Medical certificate or Notarized affidavit as the supporting-document type. Leave remains pending until the authorized official approves. Advance-filed illness or more than five consecutive days needs a medical certificate/clearance, or an appropriate notarized affidavit if no consultation was obtained.';
+    accountControl.value=lockedAccount||(
+     allowed.includes(previous)?previous:
+     verifiedTeaching?'VSC':verifiedRegular?(leaveType==='VACATION'?'VL':'NONE'):'NONE');
+    accountControl.disabled=Boolean(lockedAccount)||allowed.length===1;
+    if(leaveType==='VSC'&&!verifiedTeaching){
+     creditInfo.textContent='Vacation Service Credits requested. HR must verify your teaching-personnel entitlement before approval. Submitting does not certify credits.';
+    }else if(!verifiedTeaching&&!verifiedRegular){
+     creditInfo.textContent='Your leave-credit scheme has not been certified by HR. Your application may be filed for review; no credit account will be assumed. HR must verify the entitlement before final approval.';
+    }else{
+     creditInfo.textContent='HR-certified '+(verifiedTeaching?'teaching-personnel service credits':'regular VL/SL leave scheme')+
+      '. The proposed account is not a final charge. Only authorized verification and documented approval can adjust your certified balance.';
+    }
+    if(leaveType==='SICK'){
+     sickInfo.hidden=false;
+     const today=manilaDate();
+     const basis=start.value>today?'Advance-filed':end.value&&end.value<today?
+      'Post-absence filing — HR verifies return date':'During ongoing absence';
+     sickInfo.textContent=basis+' sick leave. Notify your supervisor of unexpected illness and submit CSC Form No. 6 as applicable. '+
+      (verifiedTeaching?'HR-certified VSC is proposed for illness.':
+       verifiedRegular?'HR-certified Sick Leave is proposed for illness.':
+       'HR must verify the applicable leave scheme before final approval.')+
+      ' An authorized officer checks medical evidence and dates; filing alone does not change the DTR. For advance-filed illness or illness over five consecutive days, supporting medical evidence or an appropriate affidavit is required under the existing approval checks.';
+    }else sickInfo.hidden=true;
    };
-   leaveTypeControl.addEventListener('change',()=>{
-    accountControl.value='NONE';
-    explainSick();
-   });
+   leaveTypeControl.addEventListener('change',refreshCreditChoice);
    function updateDates(){
     end.min=start.value;
     end.max=start.value&&Number.isFinite(start.valueAsNumber)
      ?new Date(start.valueAsNumber+366*86400000).toISOString().slice(0,10):'';
-    explainSick();
+    refreshCreditChoice();
    }
    start.addEventListener('input',updateDates);
    start.addEventListener('change',updateDates);
-   end.addEventListener('change',explainSick);
+   end.addEventListener('change',refreshCreditChoice);
    void call('/my/credit-scheme').then(x=>{
-    certifiedScheme=x.leaveScheme||'UNVERIFIED';explainSick();
-   }).catch(()=>{certifiedScheme='UNVERIFIED';explainSick();});
-   explainSick();
+    certifiedScheme=x.leaveScheme||'UNVERIFIED';refreshCreditChoice();
+   }).catch(()=>{certifiedScheme='UNVERIFIED';refreshCreditChoice();});
+   refreshCreditChoice();
    details.querySelector('form').addEventListener('submit',e=>{
     e.preventDefault();const f=e.target;
     const reason=f.elements.reason;
