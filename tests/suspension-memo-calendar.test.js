@@ -49,7 +49,7 @@ test('date-specific per-class schedule links same memorandum without duplicate c
  assert.match(src,/m\.title AS "memoTitle"/);
  assert.match(src,/exception_type==='CLASS_SUSPENSION'/);
  assert.match(src,/memo_id=EXCLUDED\.memo_id/);
- assert.match(src,/effective_date<=\$3::date AND end_date>\$3::date/);
+ assert.match(src,/effective_date<=\$3::date AND end_date>=\$3::date/);
 });
 test('all QR recording modes enforce current school calendar cutoff without clearing old events',()=>{
  const qr=root('class-qr-routes.js'),pin=root('class-qr-pin-checkin.js');
