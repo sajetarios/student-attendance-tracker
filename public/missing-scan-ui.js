@@ -200,7 +200,6 @@
       let suggestion='';
       if(available.includes('AM_OUT')&&verified.has('AM_IN')&&verified.has('PM_IN'))suggestion='AM_OUT';
       else if(available.includes('PM_OUT')&&verified.has('PM_IN'))suggestion='PM_OUT';
-      else if(available.includes('AM_OUT')&&verified.has('AM_IN'))suggestion='AM_OUT';
       else if(available.includes('PM_IN')&&verified.has('AM_OUT'))suggestion='PM_IN';
       else if(available.length===1&&verified.size)suggestion=available[0];
       slotSelect.value=suggestion;
