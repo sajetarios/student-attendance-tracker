@@ -548,7 +548,7 @@ function registerSf2Routes(app, pool, { authenticateSchoolClient, requireSchoolU
       const matches = signers.rows.filter(row=>row.kind===kind);
       return matches.length===1 ? String(matches[0].name||'').trim() : '';
     };
-    const output = createReferenceWorkbook({source, data, summary, monthName:MONTHS[monthNumber-1],
+    const output = createReferenceWorkbook({source, data, summary, month, monthName:MONTHS[monthNumber-1],
       schoolName:setting('school_name') || 'SCHOOL NAME', schoolId:setting('school_id') || String(req.auth.schoolId),
       schoolYear:setting('school_year') || `${year}-${year+1}`, gradeLevel, section, personalCopy, adviserName:signer('ADVISER'), schoolHeadName:signer('HEAD')});
     return Buffer.from(await output.xlsx.writeBuffer());
