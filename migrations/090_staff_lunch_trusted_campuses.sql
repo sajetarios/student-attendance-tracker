@@ -18,3 +18,12 @@ CREATE TABLE staff_lunch_campuses (
 CREATE UNIQUE INDEX staff_lunch_active_campus_name ON staff_lunch_campuses(school_id,lower(name)) WHERE active;
 CREATE INDEX staff_lunch_campus_school_active ON staff_lunch_campuses(school_id,active,campus_id);
 CREATE INDEX staff_lunch_challenge_department_active ON staff_attendance_challenges(school_id,department_id,expires_at) WHERE revoked_at IS NULL;
+
+-- Match the application's existing private-server PostgreSQL access model.
+-- Browser clients must use the authorized Attendigo API, never the Data API.
+ALTER TABLE staff_lunch_campuses ENABLE ROW LEVEL SECURITY;
+REVOKE ALL ON TABLE staff_lunch_campuses FROM PUBLIC;
+DO $$ BEGIN
+ IF EXISTS(SELECT 1 FROM pg_roles WHERE rolname='anon') THEN REVOKE ALL ON TABLE staff_lunch_campuses FROM anon; END IF;
+ IF EXISTS(SELECT 1 FROM pg_roles WHERE rolname='authenticated') THEN REVOKE ALL ON TABLE staff_lunch_campuses FROM authenticated; END IF;
+END $$;

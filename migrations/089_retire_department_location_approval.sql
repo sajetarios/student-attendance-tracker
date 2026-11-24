@@ -38,3 +38,10 @@ BEGIN
 END $$;
 CREATE TRIGGER staff_lunch_revoke_on_staff_change AFTER UPDATE OF department_id,role,active ON school_users
  FOR EACH ROW EXECUTE FUNCTION attendigo_revoke_lunch_on_staff_change();
+
+-- Internal trigger only; never expose it as a public Data API RPC.
+REVOKE ALL ON FUNCTION attendigo_revoke_lunch_on_staff_change() FROM PUBLIC;
+DO $$ BEGIN
+ IF EXISTS(SELECT 1 FROM pg_roles WHERE rolname='anon') THEN REVOKE ALL ON FUNCTION attendigo_revoke_lunch_on_staff_change() FROM anon; END IF;
+ IF EXISTS(SELECT 1 FROM pg_roles WHERE rolname='authenticated') THEN REVOKE ALL ON FUNCTION attendigo_revoke_lunch_on_staff_change() FROM authenticated; END IF;
+END $$;

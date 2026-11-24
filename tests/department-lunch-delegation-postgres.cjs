@@ -17,6 +17,16 @@ async function main(){
  const pool=new Pool({connectionString:url,max:8,connectionTimeoutMillis:5000});
  let server;
  try{
+  const protection=await pool.query("SELECT relrowsecurity FROM pg_class WHERE oid='public.staff_lunch_campuses'::regclass");
+  assert.equal(protection.rows[0].relrowsecurity,true,'New campus table must enforce RLS');
+  for(const role of ['anon','authenticated']){
+   const exists=await pool.query('SELECT 1 FROM pg_roles WHERE rolname=$1',[role]);
+   if(exists.rowCount){
+    const privileges=await pool.query("SELECT has_table_privilege($1,'public.staff_lunch_campuses','SELECT,INSERT,UPDATE,DELETE') AS table_access,has_function_privilege($1,'public.attendigo_lunch_review_pending(uuid,uuid)','EXECUTE') AS notify_access",[role]);
+    assert.equal(privileges.rows[0].table_access,false,role+' cannot access campus registry directly');
+    assert.equal(privileges.rows[0].notify_access,false,role+' cannot invoke internal notification function');
+   }
+  }
   const label=crypto.randomBytes(5).toString('hex');
   async function makeSchool(code){
    const school=(await pool.query('INSERT INTO schools(school_code,school_name) VALUES($1,$2) RETURNING school_id',

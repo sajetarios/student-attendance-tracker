@@ -63,3 +63,10 @@ WHERE e.source='SELF_SERVICE' AND e.event_kind='DTR_SLOT' AND e.verification_sta
  AND e.dtr_slot IN ('AM_OUT','PM_IN')
  AND e.school_date>=((NOW() AT TIME ZONE 'Asia/Manila')::date-7)
  AND EXISTS(SELECT 1 FROM staff_attendance_challenge_redemptions r WHERE r.school_id=e.school_id AND r.event_id=e.event_id);
+
+-- Internal notification functions are invoked only by the server's transactions.
+REVOKE ALL ON FUNCTION attendigo_lunch_review_pending(UUID,UUID),attendigo_lunch_redemption_notify(),attendigo_lunch_review_notify() FROM PUBLIC;
+DO $$ BEGIN
+ IF EXISTS(SELECT 1 FROM pg_roles WHERE rolname='anon') THEN REVOKE ALL ON FUNCTION attendigo_lunch_review_pending(UUID,UUID),attendigo_lunch_redemption_notify(),attendigo_lunch_review_notify() FROM anon; END IF;
+ IF EXISTS(SELECT 1 FROM pg_roles WHERE rolname='authenticated') THEN REVOKE ALL ON FUNCTION attendigo_lunch_review_pending(UUID,UUID),attendigo_lunch_redemption_notify(),attendigo_lunch_review_notify() FROM authenticated; END IF;
+END $$;
