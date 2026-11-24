@@ -35,7 +35,7 @@
   const message=dialog.querySelector('.ms-message');
   const content=dialog.querySelector('.ms-content');
   const policyArea=dialog.querySelector('.ms-policy');
-  let tab=isPrincipal?'inbox':'mine',busy=false,mode='DOCUMENT_EXCEPTION';
+  let tab=isPrincipal?'inbox':'mine',busy=false,mode='DOCUMENT_EXCEPTION',focusedId=null,loadRevision=0;
   const messageSet=(txt,err=false)=>{message.textContent=txt;message.classList.toggle('is-error',err);};
   function nav(id,label,target,view){
    const host=document.querySelector('[data-submenu="'+target+'"]');
@@ -61,17 +61,16 @@
   dialog.querySelector('.ms-close').addEventListener('click',()=>dialog.close());
   dialog.addEventListener('click',event=>{if(event.target===dialog)dialog.close();});
   dialog.querySelectorAll('[data-ms-tab]').forEach(button=>button.addEventListener('click',()=>{
-   tab=button.dataset.msTab;load().catch(e=>messageSet(e.message,true));
+   focusedId=null;tab=button.dataset.msTab;load().catch(e=>messageSet(e.message,true));
   }));
-  function open(view,requestId){
+  async function open(view,requestId){
+   if(busy)return false;
+   focusedId=requestId?String(requestId):null;
    tab=isPrincipal||(view==='inbox'&&(isAdmin||isHead))?'inbox':'mine';
    messageSet('');
    if(!dialog.open)dialog.showModal();
-   load().then(()=>{
-    if(requestId){const row=[...content.querySelectorAll('[data-ms-id]')].find(el=>el.dataset.msId===String(requestId));
-      if(row){row.tabIndex=-1;row.focus({preventScroll:true});row.scrollIntoView({block:'center'});}
-    }
-   }).catch(e=>messageSet(e.message,true));
+   try{await load();}catch(e){messageSet(e.message,true);content.textContent='Unable to open this request. Close and reopen the notification to retry.';}
+   return true;
   }
   window.AttendigoMissingScans={open};
   function renderForm(){
@@ -124,11 +123,17 @@
    return html+'</article>';
   }
   async function load(){
-   dialog.querySelectorAll('[data-ms-tab]').forEach(b=>b.classList.toggle('active',b.dataset.msTab===tab));
+   const revision=++loadRevision,id=focusedId;
    content.textContent='Loading missing-scan records…';policyArea.hidden=true;
-   const [result,settings]=await Promise.all([api('/requests?view='+tab),api('/policy')]);
+   const [result,settings]=await Promise.all([api(id?'/requests/'+encodeURIComponent(id):'/requests?view='+tab),api('/policy')]);
+   if(revision!==loadRevision)return;
+   if(id){
+    if(!result.request||String(result.request.requestId)!==id||!['mine','inbox'].includes(result.view))throw Error('The requested record could not be verified.');
+    tab=result.view;
+   }
+   dialog.querySelectorAll('[data-ms-tab]').forEach(b=>b.classList.toggle('active',b.dataset.msTab===tab));
    mode=settings.mode||'DOCUMENT_EXCEPTION';
-   if(isAdmin&&tab==='inbox'){
+   if(isAdmin&&tab==='inbox'&&!id){
     policyArea.hidden=false;
     policyArea.innerHTML='<label><strong>School DTR policy</strong> (confirm applicable SDO procedure)'+
      '<select id="msPolicySelect"><option value="DOCUMENT_EXCEPTION">Documented exception · keep missing slot blank</option>'+
@@ -143,10 +148,15 @@
      catch(e){messageSet(e.message,true);}
     });
    }
-   const rows=result.requests||[];
-   content.innerHTML=(tab==='mine'?renderForm():'')+
-    '<section class="ms-records"><h3>'+esc(tab==='mine'?'My requests':(isAdmin?'Read-only audit history':'Review queue & history'))+'</h3>'+
+   const rows=id?[result.request]:(result.requests||[]);
+   content.innerHTML=(id?'<div class="ms-actions"><button type="button" class="outline-button" id="msBackToList">Back to all requests</button></div>':tab==='mine'?renderForm():'')+
+    '<section class="ms-records"><h3>'+esc(id?'Selected request':tab==='mine'?'My requests':(isAdmin?'Read-only audit history':'Review queue & history'))+'</h3>'+
     (!rows.length?'<p class="ms-muted">No missing-scan requests in this view.</p>':rows.map(renderRow).join(''))+'</section>';
+   if(id){
+    $('msBackToList').addEventListener('click',()=>open(tab));
+    const row=content.querySelector('[data-ms-id]');
+    if(row){row.tabIndex=-1;row.focus({preventScroll:true});row.scrollIntoView({block:'start'});}
+   }
    const form=$('msCreateForm');
    if(form){
     form.elements.date.value=today();
@@ -271,6 +281,6 @@
    }catch(error){messageSet(error.message,true);}finally{busy=false;button.disabled=false;}
   });
  }
- if($('principalMissingScanReview'))fetch('/api/auth/me',{credentials:'same-origin',cache:'no-store'}).then(r=>r.ok?r.json():null).then(d=>{if(d?.user?.role==='PRINCIPAL'&&!d.user.mustChangePassword)init(d.user);}).catch(()=>{});
- else window.attendigoStaffIdentity?.then(init).catch(()=>{});
+ const identity=$('principalMissingScanReview')?fetch('/api/auth/me',{credentials:'same-origin',cache:'no-store'}).then(r=>r.ok?r.json():null).then(d=>d?.user?.role==='PRINCIPAL'&&!d.user.mustChangePassword?d.user:null):window.attendigoStaffIdentity;
+ window.AttendigoMissingScansReady=Promise.resolve(identity).then(user=>{if(user)init(user);return window.AttendigoMissingScans||null;}).catch(()=>null);
 })();

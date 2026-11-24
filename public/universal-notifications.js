@@ -118,9 +118,9 @@
     if(dest==='specialTeacher'){if(!go('students'))return false;document.getElementById('mySpecialRequestsRefresh')?.scrollIntoView({block:'center'});return true;}
     if(dest==='photo'){const shortcut=document.getElementById('adminPhotoRequestsShortcut');if(shortcut){shortcut.click();return true;}return false;}
     if(dest==='missingScan'){
-      const inbox=item.category==='APPROVAL'&&['DEPARTMENT_HEAD','PRINCIPAL'].includes(user.role);
-      if(!window.AttendigoMissingScans?.open)return false;
-      window.AttendigoMissingScans.open(inbox?'inbox':'mine',item.requestId);return true;
+      if(!/^[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}$/i.test(String(item.requestId||'')))return false;
+      return Promise.resolve(window.AttendigoMissingScans||window.AttendigoMissingScansReady)
+        .then(module=>module?.open?module.open(null,item.requestId):false);
     }
     if(dest==='memo'){if(!window.AttendigoSchoolMemos?.open)return false;window.AttendigoSchoolMemos?.open?.(item.requestId);return true;}
     const view=dest.searchParams.get('view')||dest.hash.slice(1);
@@ -162,7 +162,13 @@
     if (destination(item)) {
       const goto = text('button', 'primary', isSchoolMemo(item)?'Read memorandum':'Open related module');
       goto.type = 'button';
-      goto.addEventListener('click', () => { if(navigate(item))detail.hidden=true;else{let warning=card.querySelector('.universal-route-warning');if(!warning){warning=text('p','universal-route-warning','This module is unavailable for your current account.');warning.setAttribute('role','status');actions.before(warning);}} });
+      goto.addEventListener('click', async () => {
+        if(goto.disabled)return;goto.disabled=true;
+        try{if(await navigate(item)){detail.hidden=true;return;}
+          throw Error('This module is unavailable for your current account.');
+        }catch(e){let warning=card.querySelector('.universal-route-warning');if(!warning){warning=text('p','universal-route-warning','');warning.setAttribute('role','status');actions.before(warning);}warning.textContent=e.message||'Unable to open the request.';}
+        finally{goto.disabled=false;}
+      });
       actions.append(goto);
     }
     const removeButton = text('button', 'universal-detail-delete', 'Delete');

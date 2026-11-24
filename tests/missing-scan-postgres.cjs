@@ -67,6 +67,18 @@ async function main(){
   const first=await call('POST','/requests',teacher,make());
   assert.equal(first.status,201,JSON.stringify(first));
   const id=first.body.requestId;
+  for(const [who,view] of [[teacher,'mine'],[head,'inbox'],[admin,'inbox']]){
+   const exact=await call('GET','/requests/'+id,who);
+   assert.equal(exact.status,200,JSON.stringify(exact));
+   assert.equal(exact.body.view,view);
+   assert.equal(exact.body.request.requestId,id);
+  }
+  for(const who of [other,outsider,outsideAdmin]){
+   const denied=await call('GET','/requests/'+id,who);
+   assert.equal(denied.status,404);
+   assert.equal(denied.body.request,undefined);
+  }
+  assert.equal((await call('GET','/requests/not-a-uuid',head)).status,404);
   const alerts=await pool.query("SELECT recipient_id,category,status FROM user_notifications WHERE school_id=$1 AND request_type='MISSING_SCAN' AND request_id=$2",[a.school,id]);
   assert.equal(alerts.rowCount,2,'Requester and assigned department head only');
   assert.ok(alerts.rows.some(x=>x.recipient_id===head.id&&x.category==='APPROVAL'&&x.status==='PENDING_HEAD'));
@@ -88,6 +100,10 @@ async function main(){
    verifiedTime:'17:03',reference:'Department logbook page 4 entry 12'});
   assert.equal(headDecision.status,200,JSON.stringify(headDecision));
   assert.equal(headDecision.body.status,'DOCUMENTED');
+  const oldLink=await call('GET','/requests/'+id,head);
+  assert.equal(oldLink.status,200);
+  assert.equal(oldLink.body.request.status,'DOCUMENTED');
+  assert.equal(oldLink.body.view,'inbox');
   const closed=await pool.query("SELECT status,read_at FROM user_notifications WHERE school_id=$1 AND request_id=$2 AND category='APPROVAL' AND recipient_id=$3",[a.school,id,head.id]);
   assert.equal(closed.rows[0].status,'DOCUMENTED');assert.ok(closed.rows[0].read_at);
   const decisionAlert=await pool.query("SELECT 1 FROM user_notifications WHERE school_id=$1 AND request_id=$2 AND recipient_id=$3 AND status='DOCUMENTED' AND category='REQUEST'",[a.school,id,teacher.id]);
