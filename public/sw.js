@@ -1,4 +1,4 @@
-const CACHE = "attendigo-v328-parent-subject-admin-controls";
+const CACHE = "attendigo-v329-parent-phone-web-push";
 
 const SHELL = [
   "/typography.css?v=1",
@@ -178,6 +178,48 @@ self.addEventListener("activate", event => {
   );
 });
 
+
+// Notifications are displayed only for the currently opted-in browser push subscription.
+// The payload deliberately contains no student names, subject marks, or other private data.
+self.addEventListener('push', event => {
+  let payload={};
+  try {payload=event.data?.json()||{}} catch {payload={}}
+  const title=typeof payload.title==='string'?payload.title.slice(0,75):'Attendigo';
+  const body=typeof payload.body==='string'?payload.body.slice(0,170):
+    'An attendance update is available. Open Attendigo to view it securely.';
+  let url='/parent-portal.html';
+  if(typeof payload.url==='string'&&
+     /^\/parent-portal\.html(?:#[a-zA-Z0-9?&=%._:-]{0,220})?$/.test(payload.url)) url=payload.url;
+  const tag=typeof payload.tag==='string'&&/^attendigo-[a-z0-9-]{1,70}$/.test(payload.tag)?
+    payload.tag:'attendigo-subject-update';
+  event.waitUntil(self.registration.showNotification(title,{
+    body,tag,icon:'/assets/attendigo-icon-192.png?v=3',
+    badge:'/assets/attendigo-icon-192.png?v=3',
+    data:{url},renotify:false
+  }));
+});
+
+self.addEventListener('notificationclick',event=>{
+  event.notification.close();
+  event.waitUntil((async()=>{
+    const path=event.notification?.data?.url||'/parent-portal.html';
+    const target=new URL(path,self.location.origin);
+    if(target.origin!==self.location.origin||target.pathname!=='/parent-portal.html')return;
+    const windows=await self.clients.matchAll({type:'window',includeUncontrolled:true});
+    for(const client of windows){
+      try{
+        const current=new URL(client.url);
+        if(current.origin===self.location.origin&&current.pathname==='/parent-portal.html'){
+          if(client.navigate)await client.navigate(target.href);
+          if(client.focus)await client.focus();
+          return;
+        }
+      }catch{}
+    }
+    if(self.clients.openWindow)await self.clients.openWindow(target.href);
+  })());
+});
+
 self.addEventListener("fetch", event => {
   const request = event.request;
 
@@ -233,7 +275,7 @@ self.addEventListener("fetch", event => {
   // Keep scheduling and shared notification UI fresh without breaking offline operation.
   // Notifications change often; always prefer online JS/CSS to avoid old large-text layouts.
   // Unlike cache-first general assets, these role-critical resources prefer the deployed version.
-  if (['/universal-notifications.js','/universal-notifications.css','/portal.js','/leave-approval-inbox.js','/leave-approval-inbox.css','/staff-leave-ui.js','/staff-leave-ui.css','/leave-status-indicator.css','/special-program-batch-ui.js','/learner-roster-view.js','/learner-roster-view.css','/student-name-format.js','/teacher-learner-roster.css','/portal.css','/guardian-ui.js','/manual-folio.js','/manual-folio.css','/schedule-form-layout.css','/schedule-workspace-ui.js','/teacher-assignment-modal.css','/smart-attendance-overview.css','/role-controls-responsive.css','/class-qr-monitor.js','/class-qr-monitor-embedded.css','/class-qr-dashboard-link.js'].includes(url.pathname)) {
+  if (['/parent-push.js', '/parent-push.css', '/universal-notifications.js','/universal-notifications.css','/portal.js','/leave-approval-inbox.js','/leave-approval-inbox.css','/staff-leave-ui.js','/staff-leave-ui.css','/leave-status-indicator.css','/special-program-batch-ui.js','/learner-roster-view.js','/learner-roster-view.css','/student-name-format.js','/teacher-learner-roster.css','/portal.css','/guardian-ui.js','/manual-folio.js','/manual-folio.css','/schedule-form-layout.css','/schedule-workspace-ui.js','/teacher-assignment-modal.css','/smart-attendance-overview.css','/role-controls-responsive.css','/class-qr-monitor.js','/class-qr-monitor-embedded.css','/class-qr-dashboard-link.js'].includes(url.pathname)) {
     event.respondWith((async () => {
       try {
         const fresh = await fetch(request, { cache: 'no-store' });
