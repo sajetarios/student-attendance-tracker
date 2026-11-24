@@ -253,6 +253,9 @@ async function main(){
   const deniedReview=await post('/api/staff-attendance/lunch/review',
     {eventId:outside.body.eventId,decision:'VERIFY',note:'Independent evidence checked'},teacher2.token);
   assert.equal(deniedReview.status,403,'Teachers cannot self-approve pending QR scans');
+  const teacherAlerts=await pool.query("SELECT recipient_id,category,status FROM user_notifications WHERE school_id=$1 AND request_type='LUNCH_QR_REVIEW' AND request_id=$2",[a.school,outside.body.eventId]);
+  assert.deepEqual(teacherAlerts.rows.filter(x=>x.category==='APPROVAL').map(x=>x.recipient_id),[head.id],'Only own Department Head receives review notification');
+  assert.ok(teacherAlerts.rows.some(x=>x.recipient_id===teacher2.id&&x.category==='REQUEST'&&x.status==='PENDING_VERIFICATION'));
   const reviewBody={eventId:outside.body.eventId,decision:'VERIFY',note:'Independent on-site evidence inspected'};
   assert.equal((await post('/api/staff-attendance/lunch/review',reviewBody,admin.token)).status,403);
   assert.ok([403,409].includes((await post('/api/staff-attendance/lunch/review',reviewBody,sameSchoolHead.token)).status),'Cross-department review denied');
@@ -262,10 +265,15 @@ async function main(){
      FROM staff_attendance_events WHERE event_id=$1`,[outside.body.eventId]);
   assert.equal(reviewedRow.rows[0].verification_status,'VERIFIED');
   assert.equal(reviewedRow.rows[0].verification_method,'MANUAL_REVIEW');
+  const closedAlerts=await pool.query("SELECT recipient_id,category,status,read_at FROM user_notifications WHERE school_id=$1 AND request_type='LUNCH_QR_REVIEW' AND request_id=$2",[a.school,outside.body.eventId]);
+  assert.ok(closedAlerts.rows.some(x=>x.recipient_id===head.id&&x.category==='APPROVAL'&&x.status==='VERIFIED'&&x.read_at));
+  assert.ok(closedAlerts.rows.some(x=>x.recipient_id===teacher2.id&&x.category==='REQUEST'&&x.status==='VERIFIED'));
 
   const headScan=await post('/api/staff-attendance/lunch/redeem',{...qr,location:null},head.token);
   assert.equal(headScan.status,201);
   assert.equal(headScan.body.status,'PENDING_VERIFICATION');
+  const headAlerts=await pool.query("SELECT recipient_id FROM user_notifications WHERE school_id=$1 AND request_type='LUNCH_QR_REVIEW' AND request_id=$2 AND category='APPROVAL'",[a.school,headScan.body.eventId]);
+  assert.deepEqual(headAlerts.rows.map(x=>x.recipient_id),[principal.id],'Only Principal receives Head exception notification');
   const headReview={eventId:headScan.body.eventId,decision:'VERIFY',note:'Independent physical evidence verified'};
   const principalPending=await fetch(base+'/api/staff-attendance/lunch/pending',{headers:{Authorization:'Bearer '+principal.token}});
   assert.equal(principalPending.status,200);

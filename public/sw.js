@@ -1,4 +1,4 @@
-const CACHE = "attendigo-v381-campus-review-verified";
+const CACHE = "attendigo-v382-lunch-review-notifications";
 
 // Only public, non-personal offline shells and their executable dependencies.
 // An update must not discard the working cache before these are all ready.
@@ -162,7 +162,7 @@ const SHELL = [
   "/admin-request-notifications.js?v=7",
   "/admin-request-notifications.css?v=2",
   "/admin-approval-navigation.css?v=1",
-  "/universal-notifications.js?v=10",
+  "/universal-notifications.js?v=11",
   "/universal-notifications.css?v=4",
   "/guardian-ui.js?v=7",
   "/guardian-ui.css?v=4",
