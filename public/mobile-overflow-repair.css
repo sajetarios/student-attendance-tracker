@@ -43,7 +43,7 @@
 }
 @media(max-width:767px){
  .portal-page .content-wrap :is(.section-toolbar,.heading-actions,.action-row,.form-actions,.toolbar-actions,.modal-actions)>:is(button,a,.primary-button,.outline-button){
-  flex:1 1 145px;min-height:40px;
+  flex:1 1 auto;min-height:44px;height:auto;
  }
  .portal-page .content-wrap :is(.section-toolbar,.heading-actions,.action-row,.form-actions,.toolbar-actions,.modal-actions)>*{
   min-width:0;max-width:100%;
