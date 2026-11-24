@@ -39,13 +39,14 @@ async function renderMasterWorkbook({calculated,data,month,personalCopy=false,sc
     set('A3','UNOFFICIAL SUBJECT ATTENDANCE COPY — Not for official submission');
     set('G9','White blank = present | Gray = no record | X = absent (subject only)');
     set('T118','White blank: Present; Gray: no record (not absent); X: Absent; L: Late; E: Excused; —: No class; !: Review.');
-    set('AO14','[white blank]');set('AP14','confirmed presence');set('AO15','X');set('AP15','subject absence');set('AO16','[gray blank]');set('AP16','no record / future');
     for(const a of ['AE139','AE140','AE142','AE144','AE145','AE146'])set(a,null);
     set('AE142','Subject teacher reference only');
   }else{
     set('AE140',adviserName||null);set('AE145',schoolHeadName||null);
   }
-  set('AQ9',personalCopy?null:data.dates.length);
+  // The old manual calculation panel is obsolete. Its visible labels and
+  // input are not part of the printable SF2 and must not appear in either export.
+  for(const address of ['AO6','AO9','AQ9','AO13','AO14','AP14','AO15','AP15','AO16','AP16','AO18','AP18'])set(address,null);
   for(let i=0;i<25;i++){copy(col(7+i)+'10');copy(col(7+i)+'11');}
   const helper=new Map();
   const addHelper=(row,address,value)=>{if(!helper.has(row))helper.set(row,[]);const v=encode(value);helper.get(row).push('<c r="'+address+'"'+(v.type?' t="'+v.type+'"':'')+'>'+v.body+'</c>');};
@@ -84,7 +85,10 @@ async function renderMasterWorkbook({calculated,data,month,personalCopy=false,sc
     copy('AF'+total);copy('AG'+total);
   }
   for(let slot=0;slot<25;slot++)copy(col(7+slot)+'115');
-  copy('AF115');copy('AG115');cache('AG117','AA6',read('AA6'));if(personalCopy)set('AJ117',null);else cache('AJ117','AQ9',data.dates.length);
+  copy('AF115');copy('AG115');cache('AG117','AA6',read('AA6'));
+  // Calculate school days from the exported date headers instead of the
+  // old editable AQ9 field. Blank holidays and unused slots never count.
+  if(personalCopy)set('AJ117',null);else cache('AJ117','COUNT(G10:AE10)',data.dates.length);
   for(const r of [119,121,123,125,127,128,130,132,134,136])for(const c of ['AK','AL','AM'])copy(c+r);
   // Exact template cells only: preserve original style indices and all unrelated
   // elements. Gray uses a clone of each original style with only its fill changed.
@@ -109,13 +113,21 @@ async function renderMasterWorkbook({calculated,data,month,personalCopy=false,sc
     if(helper.has(row))a=a.replace(/\bspans="[^"]*"/,'spans="1:72"');
     return '<row'+a+'>'+body+(helper.get(row)||[]).join('')+'</row>';
   });
-  // The original final col spans AQ:XFD. Split it to keep the new evidence
-  // ledger hidden without altering any visible printed column or helper note.
-  sheet=sheet.replace(/<col\b([^>]*\bmin="43"[^>]*\bmax="16384"[^>]*?)\/>/,(whole,attrs)=>{
-    const a=attrs.replace(/\bmax="16384"/,'max="46"');
-    return '<col'+a+'/><col min="47" max="72" width="10" hidden="1" customWidth="1"/><col min="73" max="16384" width="10.36328125" customWidth="1"/>';
+  // Hide the entire legacy side panel and the evidence ledger (AO:BT).
+  // The original printable area A:AN and its column widths remain untouched.
+  sheet=sheet.replace(/<col\b([^>]*?)\/>/g,(whole,attrs)=>{
+    const min=Number(attrs.match(/\bmin="(\d+)"/)?.[1]),max=Number(attrs.match(/\bmax="(\d+)"/)?.[1]);
+    if(min<41||min>72)return whole;
+    const hidden=attrs.replace(/\s+hidden="[^"]*"/g,'').replace(/\bmax="\d+"/,'max="'+Math.min(max,72)+'"')+' hidden="1"';
+    const remainder=max>72?'<col'+attrs.replace(/\bmin="\d+"/,'min="73"')+'/>':'';
+    return '<col'+hidden+'/>'+remainder;
   });
-  if(!/min="47" max="72"[^>]*hidden="1"/.test(sheet))throw new Error('SF2 evidence ledger is not hidden');
+  const covered=new Set();
+  for(const m of sheet.matchAll(/<col\b([^>]*?)\/>/g)){
+    const a=m[1],min=Number(a.match(/\bmin="(\d+)"/)?.[1]),max=Number(a.match(/\bmax="(\d+)"/)?.[1]);
+    if(/\bhidden="1"/.test(a))for(let n=Math.max(min,41);n<=Math.min(max,72);n++)covered.add(n);
+  }
+  if(covered.size!==32)throw new Error('SF2 nonprinted helper columns are not fully hidden');
   sheet=sheet.replace(/<dimension ref="[^"]*"\/>/,'<dimension ref="A1:BT146"/>');
   zip.file(file,sheet);
   if(personalCopy){const p='xl/workbook.xml';const w=await zip.file(p).async('string');zip.file(p,w.replaceAll('School Form 2 (SF2)','SF2 Subject Copy'));}
