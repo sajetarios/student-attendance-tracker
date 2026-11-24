@@ -168,6 +168,7 @@
    // A real denial opens the help dialog; never fabricate coordinates or bypass approval.
    void submitLocation();
   });
+  document.addEventListener('attendigo:dashboard-refresh',event=>{if(!card.hidden&&!button.disabled)event.detail.tasks.push(refresh());});
   await refresh();
  }
  async function initAdmin(){
@@ -227,6 +228,8 @@
    if(departments.length===1)select.value=departments[0].departmentId;
    await refresh();
   }catch(error){status.textContent='Department list unavailable: '+error.message;return;}
+  window.AttendigoDepartmentLocation={open(id){if(busy||!Array.from(select.options).some(o=>o.value===id))return false;select.value=id;void refresh();status.scrollIntoView({block:'center'});return true;}};
+  document.addEventListener('attendigo:dashboard-refresh',event=>{if(!busy&&!$('lunchQrAdminView')?.hidden)event.detail.tasks.push(refresh());});
   select.addEventListener('change',()=>{showFeedback('');void refresh();});
   refreshButton.addEventListener('click',()=>{if(!busy)void refresh();});
   async function decide(decision){

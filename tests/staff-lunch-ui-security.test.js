@@ -128,8 +128,8 @@ test('location capture belongs to Department Head; Admin approves independently'
      'staffLunchLocationDepartment','staffLunchApprovePoint','staffLunchRejectPoint'])
   assert.ok(portal.includes('id="'+id+'"'),id+' visible in portal');
  assert.ok(!portal.includes('id="staffLunchSetPoint"'),'obsolete admin GPS button removed');
- assert.ok(portal.includes('staff-department-location.js?v=3'));
- assert.ok(sw.includes('staff-department-location.js?v=3'));
+ require('./support/asset-contract').assertCachedAsset(portal,sw,'staff-department-location.js',{minimumVersion:3});
+ require('./support/asset-contract').assertCachedAsset(portal,sw,'staff-department-location.js',{minimumVersion:3});
  assert.ok(departmentLocationUi.includes("role==='DEPARTMENT_HEAD'"));
  assert.ok(departmentLocationUi.includes("role==='SCHOOL_ADMIN'"));
  assert.ok(departmentLocationUi.includes("'/api/staff-attendance/lunch/location/propose'"));
@@ -185,9 +185,9 @@ test('location permission popup guides staff without bypassing approval',()=>{
  assert.match(css,/\.staff-location-permission-dialog::backdrop/);
  assert.match(css,/\.staff-location-permission-actions/);
  assert.match(portal,/staff-lunch\.css\?v=7/);
- assert.match(portal,/staff-department-location\.js\?v=3/);
+ require('./support/asset-contract').assertCachedAsset(portal,sw,'staff-department-location.js',{minimumVersion:3});
  assert.match(sw,/staff-lunch\.css\?v=7/);
- assert.match(sw,/staff-department-location\.js\?v=3/);
+ require('./support/asset-contract').assertCachedAsset(portal,sw,'staff-department-location.js',{minimumVersion:3});
 });
 
 test('department location review uses in-app confirmation and persisted server status',()=>{

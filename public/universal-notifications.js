@@ -2,7 +2,7 @@
 (async () => {
   'use strict';
   const tokenKey = 'schoolAttendance.accessToken';
-  const token = sessionStorage.getItem(tokenKey);
+  let token;try{token=sessionStorage.getItem(tokenKey);}catch{}
   // An HttpOnly browser cookie is authoritative, including after browser restarts.
   // Never trust a cached role when choosing a notification inbox.
   let verified;
@@ -22,7 +22,7 @@
   const user = verified?.user;
   if (!user) return;
   const anchor = document.querySelector('.topbar-right') ||
-    document.querySelector('.student-actions') || document.querySelector('.parent-head');
+    document.querySelector('.student-actions') || document.querySelector('.parent-head') || (user.role==='PRINCIPAL'?document.querySelector('.top-actions'):null);
   if (!anchor) return;
   const base = user.role === 'SUPER_ADMIN' ? '/api/platform/notifications' : '/api/notifications';
   const shell = document.createElement('div');
@@ -37,7 +37,10 @@
     '<p class="universal-feedback" role="status" aria-live="polite"></p>' +
     '<div class="universal-panel-actions"><button type="button" class="universal-read-all">Mark all read</button><button type="button" class="universal-delete-read">Delete read</button><button type="button" class="universal-view-all">View all</button></div>' +
     '</section>';
+  if(anchor.querySelector('.universal-notifications'))return;
   anchor.prepend(shell);
+  const live=document.createElement('div');live.setAttribute('role','status');live.setAttribute('aria-live','polite');live.style.cssText='position:fixed;bottom:20px;right:16px;z-index:9998;max-width:calc(100vw - 32px);padding:12px 16px;border-radius:12px;background:#174f91;color:#fff;box-shadow:0 4px 16px #0003;pointer-events:none';live.hidden=true;document.body.append(live);
+  let liveTimer,initialized=false,lastSignature='',queuedRefresh=false;
   const bell = shell.querySelector('.universal-bell');
   const badge = shell.querySelector('.universal-bell-count');
   const panel = shell.querySelector('.universal-panel');
@@ -65,9 +68,8 @@
       if (!key) throw Error('Your session has ended. Sign in to view notifications.');
       headers.set('Authorization', 'Bearer ' + key);
     }
-    const res = await fetch(base + path, {
-      ...options, credentials: 'same-origin', headers, cache: 'no-store'
-    });
+    const controller=new AbortController();const timeout=setTimeout(()=>controller.abort(),12000);
+    let res;try{res=await fetch(base+path,{...options,credentials:'same-origin',headers,cache:'no-store',signal:controller.signal});}finally{clearTimeout(timeout);}
     const value = await res.json().catch(() => ({}));
     if (!res.ok) throw Error(res.status === 401 ? 'Session expired. Sign in again.' : value.error || 'Unable to load notifications.');
     return value;
@@ -90,30 +92,39 @@
     return item?.requestType==='MEMORANDUM'&&
       /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(String(item.requestId||''));
   }
+  function destination(item){
+    if(isSchoolMemo(item))return 'memo';
+    if(item.requestType==='DEPARTMENT_LOCATION'&&user.role==='SCHOOL_ADMIN')return 'locationAdmin';
+    if(item.requestType==='DEPARTMENT_LOCATION'&&user.role==='DEPARTMENT_HEAD')return 'locationHead';
+    if(user.role==='SCHOOL_ADMIN'&&item.category==='APPROVAL'&&item.requestType==='Profile photo')return 'photo';
+    if(user.role==='SCHOOL_ADMIN'&&item.requestType==='Guardian verification')return 'parents';
+    if(user.role==='SCHOOL_ADMIN'&&item.requestType==='Special-program')return 'specialAdmin';
+    if(user.role==='TEACHER'&&item.requestType==='Special-program')return 'specialTeacher';
+    const link=String(item.actionUrl||'');
+    if(!/^\/(?:portal|student-portal|parent-portal|principal)\.html(?:#[A-Za-z0-9_-]+|\?view=[A-Za-z0-9_-]+)?$/.test(link))return null;
+    const target=new URL(link,location.origin);
+    const expected=user.role==='STUDENT'?'/student-portal.html':user.role==='PARENT'?'/parent-portal.html':user.role==='PRINCIPAL'?'/principal.html':'/portal.html';
+    return target.pathname===expected?target:null;
+  }
   function navigate(item) {
-    if(isSchoolMemo(item)){
-      window.AttendigoSchoolMemos?.open?.(item.requestId);
-      return;
-    }
-    if (user.role === 'SCHOOL_ADMIN' && item.category === 'APPROVAL' && item.requestType === 'Profile photo') {
-      const shortcut = document.getElementById('adminPhotoRequestsShortcut');
-      if (shortcut) shortcut.click();
-      else location.assign('/portal.html#photoApprovals');
-      return;
-    }
-    const link = String(item.actionUrl || '');
-    if (!/^\/(?:portal|student-portal|parent-portal)\.html(?:#[A-Za-z0-9_-]+)?$/.test(link)) return;
-    const target = new URL(link, location.origin);
-    if (target.pathname === location.pathname) {
-      const view = target.hash.slice(1);
-      const nav = view && (document.querySelector('[data-view="' + view + '"]') ||
-        ({guardians:document.getElementById('guardianApprovalsNav'),
-          specialPrograms:document.getElementById('academicAdminNav'),
-          platformSchools:document.querySelector('[data-view="platformSchools"]'),
-          leaveManagement:document.getElementById('staffLeaveReviewNav')})[view]);
-      if (nav && !nav.hidden) nav.click();
-      else if (view === 'guardians') window.AttendigoGuardian?.openApprovals?.();
-    } else location.assign(link);
+    const dest=destination(item);if(!dest)return false;
+    const click=id=>{const el=document.getElementById(id);if(!el||el.hidden)return false;el.click();return true;};
+    const go=view=>{const nav=document.querySelector('.nav-item[data-view="'+view+'"]');if(nav&&!nav.hidden){nav.click();return true;}return false;};
+    if(dest==='locationAdmin'){if(!go('lunchQrAdmin'))return false;window.AttendigoDepartmentLocation?.open(item.requestId);return true;}
+    if(dest==='locationHead'){if(!go('dashboard'))return false;document.getElementById('staffLunchHeadLocationCard')?.scrollIntoView({block:'center'});return true;}
+    if(dest==='parents')return go('parents');
+    if(dest==='specialAdmin'){const shortcut=document.getElementById('adminProgramRequestsShortcut');if(shortcut){shortcut.click();return true;}return click('academicAdminNav');}
+    if(dest==='specialTeacher'){if(!go('students'))return false;document.getElementById('mySpecialRequestsRefresh')?.scrollIntoView({block:'center'});return true;}
+    if(dest==='photo'){const shortcut=document.getElementById('adminPhotoRequestsShortcut');if(shortcut){shortcut.click();return true;}return false;}
+    if(dest==='memo'){if(!window.AttendigoSchoolMemos?.open)return false;window.AttendigoSchoolMemos?.open?.(item.requestId);return true;}
+    const view=dest.searchParams.get('view')||dest.hash.slice(1);
+    if(dest.pathname!==location.pathname){location.assign(dest.pathname+dest.search+dest.hash);return true;}
+    if(!view)return true;
+    if(view==='studentAccounts')return click('studentAccountsTab')||go('studentAccounts');
+    if(view==='guardians'){if(window.AttendigoGuardian?.openApprovals&&user.role==='SCHOOL_ADMIN'){window.AttendigoGuardian.openApprovals();return true;}return go('students');}
+    if(view==='leaveManagement'){if(item.category==='APPROVAL'&&(user.role==='SCHOOL_ADMIN'||user.role==='DEPARTMENT_HEAD'))return click('staffLeaveReviewNav');return click('staffLeaveNav');}
+    if(view==='specialPrograms')return user.role==='SCHOOL_ADMIN'?click('academicAdminNav'):go('students');
+    return go(view);
   }
   let detail = null;
   function showDetails(item) {
@@ -142,10 +153,10 @@
     closeButton.type = 'button';
     closeButton.addEventListener('click', () => { detail.hidden = true; bell.focus(); });
     actions.append(closeButton);
-    if (isSchoolMemo(item) || (item.actionUrl && /^\/(?:portal|student-portal|parent-portal)\.html(?:#[A-Za-z0-9_-]+)?$/.test(item.actionUrl))) {
+    if (destination(item)) {
       const goto = text('button', 'primary', isSchoolMemo(item)?'Read memorandum':'Open related module');
       goto.type = 'button';
-      goto.addEventListener('click', () => { detail.hidden = true; navigate(item); });
+      goto.addEventListener('click', () => { if(navigate(item))detail.hidden=true;else{let warning=card.querySelector('.universal-route-warning');if(!warning){warning=text('p','universal-route-warning','This module is unavailable for your current account.');warning.setAttribute('role','status');actions.before(warning);}} });
       actions.append(goto);
     }
     const removeButton = text('button', 'universal-detail-delete', 'Delete');
@@ -244,12 +255,18 @@
     else items.forEach(item => root.append(makeItem(item)));
   }
   async function refresh(showError = true) {
-    if (busy || document.hidden) return;
+    if(document.hidden||navigator.onLine===false)return;
+    if(busy){queuedRefresh=true;return;}
     busy = true;
     try {
       const params = new URLSearchParams({ limit: modal && !modal.hidden ? '25' : '6',
         filter: currentFilter, q: currentQuery });
       const result = await api('?' + params.toString());
+      const count=Number(result.unreadCount)||0;
+      const signature=JSON.stringify([count,(result.notifications||[]).map(n=>[n.notificationId,n.updatedAt,n.readAt])]);
+      if(initialized&&count>unread){live.textContent=(count-unread)+' new notification'+(count-unread===1?'':'s')+' · Open the bell to view.';live.hidden=false;clearTimeout(liveTimer);liveTimer=setTimeout(()=>{live.hidden=true;},5000);}
+      if(signature!==lastSignature){document.dispatchEvent(new Event('attendigo:notifications-updated'));lastSignature=signature;}
+      initialized=true;
       data = result.notifications || [];
       updateCount(result.unreadCount);
       nextOffset = result.nextOffset;
@@ -263,7 +280,7 @@
         preview.textContent = error.message;
         if (modalStatus) modalStatus.textContent = error.message;
       }
-    } finally { busy = false; }
+    } finally { busy = false;if(queuedRefresh){queuedRefresh=false;void refresh(false);} }
   }
   async function more() {
     if (busy || nextOffset == null) return;
@@ -345,6 +362,8 @@
   document.addEventListener('attendigo:requests-changed', () => refresh(false));
   document.addEventListener('visibilitychange', () => { if (!document.hidden) refresh(false); });
   window.addEventListener('focus', () => refresh(false));
-  setInterval(() => { if (!document.hidden) refresh(false); }, 45000);
+  window.addEventListener('online',()=>refresh(false));
+  window.addEventListener('pageshow',()=>refresh(false));
+  setInterval(() => { if (!document.hidden && navigator.onLine!==false) refresh(false); }, 10000);
   refresh(false);
 })();

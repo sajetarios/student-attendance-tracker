@@ -204,6 +204,7 @@
    };
    field.addEventListener('input',changed);field.addEventListener('change',changed);
   });
+  document.addEventListener('attendigo:dashboard-refresh',event=>{if(!$('dashboardView')?.hidden)event.detail.tasks.push(load());});
   refresh.addEventListener('click',load);
   date.addEventListener('change',load);
   loadDefaults();load();
