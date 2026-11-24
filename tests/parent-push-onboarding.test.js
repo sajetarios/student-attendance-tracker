@@ -50,7 +50,9 @@ test('guided setup stays responsive and remains compatible with the light and da
  assert.match(css,/data-state=current/);
  assert.match(css,/@media\(max-width:700px\)/);
  assert.match(css,/var\(--card/);
- assert.match(sw,/attendigo-v365-parent-notification-production/);
+ require('./support/asset-contract').assertCacheRevisionAtLeast(sw,365);
+ require('./support/asset-contract').assertCachedAsset(ui,sw,'parent-push.js',{minimumVersion:3});
+ require('./support/asset-contract').assertCachedAsset(ui,sw,'parent-push.css',{minimumVersion:3});
  assert.match(sw,/\/parent-push\.js/);
 });
 
