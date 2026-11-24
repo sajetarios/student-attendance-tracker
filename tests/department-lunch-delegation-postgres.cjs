@@ -263,6 +263,18 @@ async function main(){
   assert.equal(reviewedRow.rows[0].verification_status,'VERIFIED');
   assert.equal(reviewedRow.rows[0].verification_method,'MANUAL_REVIEW');
 
+  const headScan=await post('/api/staff-attendance/lunch/redeem',{...qr,location:null},head.token);
+  assert.equal(headScan.status,201);
+  assert.equal(headScan.body.status,'PENDING_VERIFICATION');
+  const headReview={eventId:headScan.body.eventId,decision:'VERIFY',note:'Independent physical evidence verified'};
+  const principalPending=await fetch(base+'/api/staff-attendance/lunch/pending',{headers:{Authorization:'Bearer '+principal.token}});
+  assert.equal(principalPending.status,200);
+  assert.ok((await principalPending.json()).items.some(x=>x.eventId===headScan.body.eventId));
+  assert.equal((await post('/api/staff-attendance/lunch/review',headReview,head.token)).status,409,'Head cannot review own pending scan');
+  const unrelatedPrincipal=await makeUser(b,'PRINCIPAL','other-principal-');
+  assert.equal((await post('/api/staff-attendance/lunch/review',headReview,unrelatedPrincipal.token)).status,409,'Principal cannot review across schools');
+  assert.equal((await post('/api/staff-attendance/lunch/review',headReview,principal.token)).status,200,'Principal independently verifies Head lunch scan');
+  assert.equal((await post('/api/staff-attendance/lunch/review',headReview,principal.token)).status,409,'Cannot repeat completed review');
   assert.equal((await config(false)).status,200);
   assert.equal((await post('/api/staff-attendance/lunch/redeem',verifiedQr,head.token)).status,410,'Disabling invalidates outstanding codes');
   // A transferred presenter cannot inherit the old grant or revive it by moving back.
