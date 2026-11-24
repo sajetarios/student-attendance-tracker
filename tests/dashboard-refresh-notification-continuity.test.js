@@ -16,7 +16,13 @@ test('notification refresh is active without page reload and explicit location r
  assert.match(src,/addEventListener\('online'/);
  assert.match(src,/requestType==='DEPARTMENT_LOCATION'&&user.role==='SCHOOL_ADMIN'/);
  assert.match(src,/go\('lunchQrAdmin'\)/);
- assert.match(src,/AttendigoDepartmentLocation\?\.open\(item.requestId\)/);
+ assert.doesNotMatch(src,/AttendigoDepartmentLocation\?\.open\(item.requestId\)/);
+ assert.match(src,/requestType==='DEPARTMENT_LOCATION'&&user.role==='SCHOOL_ADMIN'\)return null/);
+ assert.match(src,/requestType==='DEPARTMENT_LOCATION'&&user.role==='DEPARTMENT_HEAD'\)return 'locationHead'/);
+ assert.match(src,/item.category==='APPROVAL'&&user.role==='DEPARTMENT_HEAD'\)return 'lunchReviewHead'/);
+ assert.match(src,/item.category==='APPROVAL'&&user.role==='PRINCIPAL'\)return 'lunchReviewPrincipal'/);
+ assert.match(src,/document.getElementById\('principalLunchReview'\)/);
+ assert.match(src,/document.getElementById\('staffLunchPendingList'\)/);
  assert.match(src,/This module is unavailable for your current account/);
 });
 test('dashboard refresh updates existing role widgets without reloading the page',()=>{
