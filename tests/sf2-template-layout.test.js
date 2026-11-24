@@ -21,14 +21,16 @@ test('official SF2 has correct summary anchors for male, female, total, and atte
   }
 });
 
-test('SF2 generator populates monthly summary and left-aligns learner names', () => {
+test('reference SF2 generator populates monthly summary and left-aligns learner names', () => {
   const fs = require('node:fs');
   const sf2 = fs.readFileSync(path.join(__dirname, '..', 'sf2-routes.js'),'utf8');
+  const layout = fs.readFileSync(path.join(__dirname, '..', 'sf2-reference-workbook.js'),'utf8');
   assert.match(sf2,/getMonthlySf2Summary\(/);
   assert.match(sf2,/fiveConsecutiveAbsences\(/);
-  assert.match(sf2,/\[66, m\.early, f\.early/);
-  assert.match(sf2,/\[83, m\.transferIn, f\.transferIn/);
-  assert.match(sf2,/worksheet\.getCell\('AB65'\)/);
-  assert.match(sf2,/worksheet\.getCell\('AE65'\)/);
-  assert.match(sf2,/horizontal:'left'/);
+  assert.match(sf2,/createReferenceWorkbook\(/);
+  assert.match(layout,/\[119,[^\n]*'early'\]/);
+  assert.match(layout,/\[136,[^\n]*'transferIn'\]/);
+  assert.match(layout,/AJ117:AJ118/);
+  assert.match(layout,/AG117:AG118/);
+  assert.match(layout,/align='left'/);
 });

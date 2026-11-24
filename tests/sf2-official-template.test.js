@@ -62,11 +62,13 @@ test('official SF2 route uses the official template and protects attendance conf
   assert.match(routes, /buildOfficialWorkbook\(req, month, gradeLevel, section, data\)/);
 });
 
-test('official SF2 generator preserves male and female learner capacities', () => {
+test('reference SF2 generator supports 50 male and 50 female learner slots without overlap', () => {
   const routes = fs.readFileSync(path.join(root, 'sf2-routes.js'), 'utf8');
-
-  assert.match(routes, /boys\.length > 21 \|\| girls\.length > 25/);
-  assert.match(routes, /fillGroup\(boys, 14, 21, 35\)/);
-  assert.match(routes, /fillGroup\(girls, 36, 25, 61\)/);
-  assert.match(routes, /worksheet\.getCell\(62, 4 \+ index\)\.value = maleDaily\[index\] \+ femaleDaily\[index\]/);
+  const { LAYOUT } = require('../sf2-reference-workbook');
+  assert.match(routes, /boys\.length > 50 \|\| girls\.length > 50/);
+  assert.equal(LAYOUT.capacity, 50);
+  assert.equal(LAYOUT.firstMale + LAYOUT.capacity, LAYOUT.maleTotal);
+  assert.equal(LAYOUT.firstFemale + LAYOUT.capacity, LAYOUT.femaleTotal);
+  assert.equal(LAYOUT.femaleTotal + 1, LAYOUT.total);
+  assert.equal(LAYOUT.firstDate + LAYOUT.dates, LAYOUT.absent);
 });
