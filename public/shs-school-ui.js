@@ -201,8 +201,8 @@
  async function saveLevels(event){
   event.preventDefault();
   const mode=$('shsSchoolLevelMode').value,previous=config?.mode;
-  if(mode!==previous&&!window.confirm('Update academic levels for this school? Existing learner and timetable records will be preserved; disabling grades with records is blocked.'))return;
-  const btn=event.currentTarget.querySelector('[type="submit"]');btn.disabled=true;
+  const btn=event.currentTarget.querySelector('[type="submit"]');if(btn.disabled)return;btn.disabled=true;
+  if(mode!==previous&&!await window.AppDialog.confirm('Update academic levels for this school? Existing learner and timetable records will be preserved; disabling grades with records is blocked.',{title:'Update academic levels',confirmText:'Update'})){btn.disabled=false;return;}
   try{
    await api('/api/shs/config',{method:'PUT',body:JSON.stringify({mode})});
    await reload();
