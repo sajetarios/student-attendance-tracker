@@ -120,6 +120,9 @@ async function main(){
   };
   assert.equal((await readLocation(head.token)).body.configured,false);
   assert.equal((await post('/api/staff-attendance/lunch/challenges',{slot:'PM_IN',location:{latitude:9,longitude:125,accuracyMeters:12,capturedAt:Date.now()}},teacher.token)).status,403);
+  assert.equal((await post('/api/staff-attendance/lunch/location/propose',proposed,head.token)).status,409,'Unanchored first location must fail closed');
+  // Synthetic fixture represents an already independently approved pre-upgrade point.
+  await pool.query('INSERT INTO school_settings(school_id,setting_key,setting_value) VALUES($1,$2,$3::jsonb)',[a.school,'staff_lunch_geo_'+a.dep,JSON.stringify({latitude:9,longitude:125,radiusMeters:120})]);
   const submission=await post('/api/staff-attendance/lunch/location/propose',proposed,head.token);
   assert.equal(submission.status,201);
   assert.equal(submission.body.status,'ACTIVE');
@@ -249,6 +252,14 @@ async function main(){
 
   assert.equal((await config(false)).status,200);
   assert.equal((await post('/api/staff-attendance/lunch/redeem',verifiedQr,head.token)).status,410,'Disabling invalidates outstanding codes');
+  // A transferred presenter cannot inherit the old grant or revive it by moving back.
+  const transfer=await makeUser(a,'TEACHER','transfer-');
+  assert.equal((await presenterChange('PUT',{slot:'PM_IN',presenterUserId:transfer.id})).status,201);
+  await pool.query('UPDATE school_users SET department_id=$2 WHERE user_id=$1',[transfer.id,dep2]);
+  await pool.query('UPDATE school_users SET department_id=$2 WHERE user_id=$1',[transfer.id,a.dep]);
+  const transferGrant=await pool.query('SELECT revoked_at FROM staff_lunch_presenter_assignments WHERE school_id=$1 AND presenter_user_id=$2',[a.school,transfer.id]);
+  assert.ok(transferGrant.rows[0].revoked_at,'Transfer permanently revokes old presenter grant');
+  assert.equal((await post('/api/staff-attendance/lunch/challenges',{slot:'PM_IN',location:presenterPosition()},transfer.token)).status,403);
   const gatePath='/api/staff-attendance/gatekeeper/dtr';
   const gateBody={teacherQrToken,slot:'PM_OUT',photoVerified:true};
   assert.equal((await post(gatePath,gateBody,teacher.token)).status,403,

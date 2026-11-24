@@ -7,3 +7,9 @@ This is an isolated implementation branch, not approved for production.
 - Routine pending teacher scans are scoped to the Department Head; the Principal backend can review Department Head scans. Principal UI, notification routing, and exceptions for legacy unassigned/Admin scans must be integrated before release.
 - Operational lunch time windows, assignment rotation and notifications remain to implement; do not allow these to override prescribed school/employee hours, memoranda, calendar exceptions, or DTR.
 - Existing tests encode the prior Admin approval workflow and require updates plus full isolated PostgreSQL regression verification before release.
+
+## Safety revision after first failed CI run
+- Migration 089 registered without relaxing the migration manifest or checksums.
+- Existing presenter grants are bound to recorded department provenance; unprovable or transferred grants are revoked, not deleted. Fresh QR required at cutover. Transfer, deactivation or role change revokes grants and outstanding challenges.
+- First location activation fails closed without a trusted pre-existing point; independent one-time onboarding/relocation workflow remains to implement (no routine School Admin approval). Gatekeeper remains available.
+- Still not ready to deploy: merge with the advanced production branch, verify transfer concurrency and reviewer paths, align legacy tests and complete operational schedule constraints. No historical DTR rows modified.

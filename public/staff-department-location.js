@@ -125,7 +125,7 @@
    try{
     const info=await request('/api/staff-attendance/lunch/location');
     title.textContent=info.departmentName||title.textContent;
-    const current=info.configured?'Attendance location is active.':'No active attendance location yet.';
+    const current=info.configured?'Attendance location is active.':'No trusted attendance location yet. Use Gatekeeper scanning until an independently established location is available.';
     const radius=$('staffLunchHeadRadius');if(radius&&info.radiusMeters)radius.value=String(info.radiusMeters);
     status.textContent=current+(info.proposalStatus==='PENDING'?' Capture fresh GPS to replace the former pending proposal.':'');
    }catch(error){status.textContent='Unable to load department location: '+error.message;}
