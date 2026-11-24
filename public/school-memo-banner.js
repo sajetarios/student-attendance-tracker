@@ -40,7 +40,7 @@
   const principal=state.role==='PRINCIPAL';
   strip.hidden=state.open||state.role==='SUPER_ADMIN';
   strip.replaceChildren();
-  strip.classList.add('attendigo-memo-compact');
+  strip.classList.add('attendigo-memo-compact','attendigo-memo-launcher-shell');
   const emblem=make('span','attendigo-memo-icon');
   emblem.setAttribute('aria-hidden','true');
   const ns='http://www.w3.org/2000/svg';
@@ -54,8 +54,8 @@
   const path=document.createElementNS(ns,'path');
   path.setAttribute('d','M13 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V10l-7-7z M13 3v7h7 M8 14h8 M8 17h6');
   svg.append(path);emblem.replaceChildren(svg);
-  const info=make('div','attendigo-memo-copy');
-  const heading=make('div','attendigo-memo-heading');
+  const info=make('span','attendigo-memo-copy');
+  const heading=make('span','attendigo-memo-heading');
   heading.append(make('strong',null,'School Memoranda'));
   if(unread.length){
    const count=make('span','attendigo-memo-unread-count',unread.length+' unread');
@@ -67,14 +67,19 @@
   info.append(make('small',null,unread.length
    ?'New school notices require acknowledgment.'
    :principal?'Publish and manage official school notices.':'Read official school announcements and notices.'));
-  const button=make('button','attendigo-memo-link',principal?'Manage memoranda':unread.length?'Read memoranda':'View memoranda');
+  const button=make('button','attendigo-memo-launcher');
+  const action=make('span','attendigo-memo-launcher-action',principal?'Manage memoranda':unread.length?'Read memoranda':'View memoranda');
+  const arrow=make('span','attendigo-memo-launcher-arrow','›');
+  arrow.setAttribute('aria-hidden','true');
+  info.append(action);
+  button.append(emblem,info,arrow);
   button.type='button';button.setAttribute('aria-expanded',String(state.open));
   button.setAttribute('aria-controls','attendigoSchoolMemoPanel');
   button.addEventListener('click',()=>{
    if(state.open)close();else void open();
   });
   strip.classList.toggle('attendigo-memo-quiet',!unread.length);
-  strip.append(emblem,info,button);
+  strip.append(button);
  }
  function setStatus(message){
   const target=panel?.querySelector('.attendigo-memo-status');
