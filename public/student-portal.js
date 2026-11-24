@@ -105,6 +105,7 @@
     } catch (error) { feedback.textContent = error.message; }
     finally { $('studentSavePassword').disabled = false; }
   });
+  window.addEventListener('student-class-attendance-recorded',()=>{void loadAttendance().catch(error=>{$('studentPortalFeedback').textContent=error.message;});});
   $('studentAttendanceSearch')?.addEventListener('input', renderAttendance);
   $('studentAttendanceScopeFilter')?.addEventListener('change', renderAttendance);
   $('studentRefresh').addEventListener('click', refresh);

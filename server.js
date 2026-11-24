@@ -116,7 +116,7 @@ app.use((req, res, next) => {
   if (req.path.startsWith('/api/') ||
       ['/', '/index.html', '/portal-login.html', '/parent-register.html', '/platform-setup.html',
        '/portal.html', '/principal.html', '/student-portal.html', '/parent-portal.html',
-       '/force-password-change.html', '/session-guard.js',
+       '/force-password-change.html', '/class-qr-checkin.html', '/student-qr-scanner.js', '/student-portal.js', '/portal-login.js', '/session-guard.js',
        '/portal.js', '/schedule-form-layout.css', '/schedule-workspace-ui.js'].includes(req.path)) {
     res.setHeader('Cache-Control', 'no-store, private');
     res.setHeader('Pragma', 'no-cache');

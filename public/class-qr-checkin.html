@@ -62,6 +62,7 @@ p{line-height:1.48}
 </section>
 <p id="message" role="status" aria-live="polite">Reading the QR code…</p>
 <nav class="qr-links" aria-label="Other attendance options">
+<button class="qr-secondary" type="button" id="copyQrLink" hidden>Copy QR link for my signed-in browser</button>
 <button class="qr-secondary" type="button" id="retryCheckin" hidden>Retry connection</button>
 <span class="qr-divider" id="fallbackDivider" hidden>Or continue with</span>
 <a class="qr-secondary" href="/portal-login.html?mode=student" id="useStudentLogin" hidden>Student account sign-in</a>
@@ -76,17 +77,19 @@ const sessionId=q.get('sessionId')||'',qrToken=q.get('token')||'';
 const form=document.getElementById('pinForm'),pin=document.getElementById('attendancePin'),studentId=document.getElementById('studentId');
 const confirm=document.getElementById('pinConfirm'),msg=document.getElementById('message'),intro=document.getElementById('intro');
 const pendingKey='schoolAttendance.pendingClassQr',rememberKey='attendigo.classQr.rememberedStudentId';
+const clearPending=()=>{try{sessionStorage.removeItem(pendingKey);}catch{}};
 const legacy=document.getElementById('legacyFlow'),legacyButton=document.getElementById('checkin');
 const legacyOption=document.getElementById('useStudentLogin'),fallbackDivider=document.getElementById('fallbackDivider');
 const retry=document.getElementById('retryCheckin');
+const copyQr=document.getElementById('copyQrLink');
+copyQr.addEventListener('click',async()=>{try{await navigator.clipboard.writeText(location.href);show('QR link copied. Return to your signed-in Student Portal, tap Scan class QR, and paste the link.');}catch{show('Copy this page’s address using your browser menu, then paste it in your signed-in Student Portal.');}});
 retry.addEventListener('click',initialize);
 const show=(value,state='')=>{msg.textContent=value;msg.dataset.state=state;};
-document.getElementById('leaveCheckin').addEventListener('click',()=>sessionStorage.removeItem(pendingKey));
+document.getElementById('leaveCheckin').addEventListener('click',()=>clearPending());
 const validQr=/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(sessionId)&&/^[a-f0-9]{64}$/i.test(qrToken);
 if(!validQr){intro.textContent='Invalid class QR code.';show('Please scan the latest QR shown by your teacher.','error');return;}
-const previous=sessionStorage.getItem(pendingKey);
 const studentSignIn=document.getElementById('studentSignIn');
-sessionStorage.setItem(pendingKey,location.pathname+location.search);
+try{sessionStorage.setItem(pendingKey,location.pathname+location.search);}catch{}
 studentSignIn.href='/portal-login.html?mode=student&returnTo='+encodeURIComponent(location.pathname+location.search);
 legacyOption.href=studentSignIn.href;
 let remembered='';
@@ -102,11 +105,11 @@ form.addEventListener('submit',async event=>{
   const d=await r.json().catch(()=>({}));
   if(r.ok){
    try{if(document.getElementById('rememberStudentId').checked)localStorage.setItem(rememberKey,id);else localStorage.removeItem(rememberKey);}catch{}
-   sessionStorage.removeItem(pendingKey);form.hidden=true;
+   clearPending();form.hidden=true;
    show('Attendance confirmed: '+d.status+'. You may close this page.','success');return;
   }
   if(d.alreadyRecorded){
-   sessionStorage.removeItem(pendingKey);form.hidden=true;show('Attendance has already been recorded for this class.','success');return;
+   clearPending();form.hidden=true;show('Attendance has already been recorded for this class.','success');return;
   }
   if(r.status===410){form.hidden=true;show('This QR code expired or the session ended. Scan the latest teacher QR.','error');return;}
   show(r.status===403?'Unable to confirm attendance. Check your Student ID and PIN.':(d.error||'Attendance not recorded. Please try again.'),'error');
@@ -115,7 +118,7 @@ form.addEventListener('submit',async event=>{
 });
 function resetOptions(){
  form.hidden=true;legacy.hidden=true;legacyButton.hidden=false;legacyButton.disabled=true;legacyButton.textContent='Confirm attendance';
- studentSignIn.hidden=true;legacyOption.hidden=true;fallbackDivider.hidden=true;retry.hidden=true;
+ studentSignIn.hidden=true;legacyOption.hidden=true;fallbackDivider.hidden=true;retry.hidden=true;copyQr.hidden=true;
 }
 function connectionError(){
  resetOptions();intro.textContent='Unable to verify attendance right now.';show('Reconnect and retry. Attendance has not been confirmed.','error');retry.hidden=false;
@@ -126,10 +129,10 @@ async function signedOut(){
   const r=await fetch('/api/class-qr/check-in/mode',{cache:'no-store',credentials:'omit'});
   if(!r.ok)throw Error('Attendance method unavailable');
   const mode=await r.json();
-  intro.textContent='No active student session in this browser.';
+  intro.textContent='No active student session in this browser.';copyQr.hidden=false;
   if(mode.pinEnabled){form.hidden=false;legacyOption.hidden=false;fallbackDivider.hidden=false;}
   else{legacy.hidden=false;legacyButton.hidden=true;studentSignIn.hidden=false;}
-  show('Already signed in elsewhere? Open the Student Portal and use Scan class QR, or continue here.');
+  show('Already signed in on your phone? Copy this QR link, return to that signed-in Student Portal, and use Scan class QR. Your browser may have opened a separate session.');
  }catch{connectionError();}
 }
 async function initialize(){
@@ -151,7 +154,7 @@ async function initialize(){
   if(!statusR.ok)throw Error('Status check unavailable');
   const status=await statusR.json();
   legacy.hidden=false;
-  if(status.recorded){legacyButton.textContent='Already checked in';show('Attendance already recorded for this class.','success');sessionStorage.removeItem(pendingKey);return;}
+  if(status.recorded){legacyButton.textContent='Already checked in';show('Attendance already recorded for this class.','success');clearPending();return;}
   legacyButton.disabled=false;show('Confirm attendance before the QR expires.');
  }catch{connectionError();}
 }
@@ -161,7 +164,7 @@ legacyButton.addEventListener('click',async()=>{
  try{
   const r=await fetch('/api/class-qr/check-in',{method:'POST',credentials:'same-origin',cache:'no-store',headers:{'Content-Type':'application/json'},body:JSON.stringify({sessionId,token:qrToken})});
   const d=await r.json().catch(()=>({}));
-  if(r.ok||d.alreadyRecorded){legacyButton.textContent='Already checked in';sessionStorage.removeItem(pendingKey);show(r.ok?'Attendance confirmed: '+d.status+'.':'Attendance already recorded for this class.','success');return;}
+  if(r.ok||d.alreadyRecorded){legacyButton.textContent='Already checked in';clearPending();show(r.ok?'Attendance confirmed: '+d.status+'.':'Attendance already recorded for this class.','success');return;}
   if(r.status===401)return signedOut();
   if(r.status===410){show('This QR code expired or the session ended. Scan the latest teacher QR.','error');return;}
   show(d.error||'Attendance not recorded. Please retry.','error');legacyButton.disabled=false;

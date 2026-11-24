@@ -77,6 +77,17 @@
       <h2>Scan your teacher’s class QR</h2><p>Allow camera access to scan without leaving your signed-in Student Portal.</p>
       <div id="studentQrReader" style="width:100%;max-width:440px;margin:0 auto"></div>
       <p id="studentQrFeedback" role="status" aria-live="polite"></p>
+      <div id="studentQrActions" hidden style="display:none;flex-wrap:wrap;gap:8px;margin:12px 0">
+        <button class="primary-button" type="button" id="studentQrConfirm" disabled>Confirm attendance</button>
+        <button class="outline-button" type="button" id="studentQrRescan">Scan another QR</button>
+      </div>
+      <details style="margin:12px 0"><summary>Camera not working? Paste a QR link instead</summary>
+        <form id="studentQrPasteForm" style="display:grid;gap:8px;margin-top:10px">
+          <label for="studentQrLink">Teacher's class QR link</label>
+          <input id="studentQrLink" type="url" required autocomplete="off" spellcheck="false" placeholder="https://attendigo.tech/class-qr-checkin.html?…">
+          <button class="outline-button" type="submit">Read QR link</button>
+        </form>
+      </details>
       <button class="outline-button" type="button" id="studentQrStop">Close scanner</button>
     </section>
     <section class="student-summary-grid" id="studentAttendanceSummary" aria-label="My attendance summary">
@@ -120,8 +131,8 @@
     <p class="student-feedback" id="studentPortalFeedback" role="status"></p>
   </main>
   <script src="/photo-editor.js?v=9" defer></script>
-  <script src="/student-qr-scanner.js?v=1" defer></script>
-  <script src="/student-portal.js?v=21" defer></script>
+  <script src="/student-qr-scanner.js?v=2" defer></script>
+  <script src="/student-portal.js?v=22" defer></script>
   <script src="/universal-notifications.js?v=5" defer></script>
 <script defer src="/school-memo-banner.js?v=4"></script>
 </body>
