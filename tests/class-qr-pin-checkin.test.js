@@ -52,12 +52,16 @@ test('QR input accepts a valid ID and PIN, not arbitrary credentials',()=>{
  assert.equal(validQrInput({...request().body,token:'not-qr'}),false);
  assert.equal(validQrInput({...request().body,studentId:''}),false);
 });
-test('rotating HMAC verifies current token only for intended session',()=>{
- const token=freshToken();
- assert.equal(currentQrTokenMatches(secret,sessionId,token),true);
- assert.equal(currentQrTokenMatches(secret,'other-id',token),false);
- assert.equal(currentQrTokenMatches(secret,sessionId,'0'.repeat(64)),false);
- assert.equal(currentQrTokenMatches(secret,sessionId,token,Date.now()+90000),false);
+test('rotating HMAC accepts delayed check-ins within a bounded window for the intended session',()=>{
+ const start=30000*1000;
+ const token=crypto.createHmac('sha256',secret).update(sessionId+':1000').digest('hex');
+ for(const delay of [0,29999,30000,90000,120000,149999])
+  assert.equal(currentQrTokenMatches(secret,sessionId,token,start+delay),true);
+ for(const delay of [-1,150000,180000])
+  assert.equal(currentQrTokenMatches(secret,sessionId,token,start+delay),false);
+ assert.equal(currentQrTokenMatches(secret,'other-id',token,start),false);
+ assert.equal(currentQrTokenMatches('rotated-secret',sessionId,token,start),false);
+ assert.equal(currentQrTokenMatches(secret,sessionId,'0'.repeat(64),start),false);
 });
 test('passwordless check-in is off by default and exposes no credentials',async()=>{
  const previous=process.env.ENABLE_CLASS_QR_PIN_CHECKIN;
@@ -106,6 +110,10 @@ test('closed and expired QR or network rate limit rejects without attendance wri
  try{
   const closed=harness({sessionOverride:{closed_at:new Date().toISOString()}});
   assert.equal((await invoke(closed,request())).statusCode,410);
+  const expired=harness();
+  const oldToken=crypto.createHmac('sha256',secret).update(sessionId+':'+(Math.floor(Date.now()/30000)-5)).digest('hex');
+  assert.equal((await invoke(expired,request({body:{...request().body,token:oldToken}}))).statusCode,410);
+  assert.equal(expired.state.saved.length,0);
   const throttled=harness({rate:121});
   assert.equal((await invoke(throttled,request())).statusCode,429);
   assert.equal(throttled.state.saved.length,0);
