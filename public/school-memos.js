@@ -33,8 +33,9 @@
   finally{button.disabled=false;}
  }
  async function archive(memo,button){
-  if(!window.confirm('Archive this memorandum? It will no longer be available to school users, but the audit record will be retained.'))return;
+  if(button.disabled)return;
   button.disabled=true;
+  if(!await window.AppDialog.confirm('Archive this memorandum? It will no longer be available to school users, but the audit record will be retained.',{title:'Archive memorandum',confirmText:'Archive',variant:'danger'})){button.disabled=false;return;}
   try{
    await api('/api/school-memos/'+encodeURIComponent(memo.memoId)+'/archive',{method:'POST'});
    await load();

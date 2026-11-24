@@ -156,7 +156,7 @@ window.attendigoStaffIdentity.then(user => {
    }catch(e){return notice('Could not read previous device notes: '+e.message,true)}
    const missing=drafts.filter(d=>!state.noteItems.some(n=>n.date===d.date&&n.body===d.body));
    if(!missing.length)return notice('No unsaved older notes found on this device.');
-   if(!window.confirm('Import '+missing.length+' older device note(s) to school records?'))return;
+   if(!await window.AppDialog.confirm('Import '+missing.length+' older device note(s) to school records?',{title:'Import device notes',confirmText:'Import'}))return;
    el('mfImportNotes').disabled=true;
    let saved=0;let failure='';
    try{
@@ -186,7 +186,7 @@ window.attendigoStaffIdentity.then(user => {
    const entry=state.noteItems.find(n=>n.noteId===id);
    if(!entry)return;
    if(action==='edit'){state.editingNoteId=id;state.notes=entry.body;el('mfTeacherNotes').value=entry.body;el('mfTeacherNotes').focus();renderNotes();notice('Editing note from '+entry.date+'. Select Update note to save changes.');return}
-   if(action==='delete'&&!window.confirm('Permanently delete the note dated '+entry.date+'? This cannot be undone.'))return;
+   if(action==='delete'&&!await window.AppDialog.confirm('Permanently delete the note dated '+entry.date+'? This cannot be undone.',{title:'Delete attendance note',confirmText:'Delete',variant:'danger'}))return;
    try{
      await api('/api/manual-attendance/notes/'+encodeURIComponent(id),{method:'PATCH',body:JSON.stringify({action})});
      await loadNotes();notice('Note '+(action==='delete'?'deleted':action==='archive'?'archived':'restored')+'.');
@@ -358,7 +358,7 @@ window.attendigoStaffIdentity.then(user => {
    if(state.period)el('mfPeriod').value=state.period.periodId;
    draftLoad();render();if(state.period&&navigator.onLine){loadRemote();loadNotes();}
  }
- host.addEventListener('click',event=>{
+ host.addEventListener('click',async event=>{
    const b=event.target.closest('button');if(!b)return;
    if(state.finalized&&(b.dataset.flipId||b.dataset.batch||b.dataset.note||b.dataset.status)){
     notice('This register is finalized. Reopen it before editing.',true);return;
@@ -379,7 +379,7 @@ window.attendigoStaffIdentity.then(user => {
    if(b.dataset.editNote!==undefined)return noteAction(b.dataset.editNote,'edit');
    if(b.dataset.archiveNote!==undefined){const entry=state.noteItems.find(n=>n.noteId===b.dataset.archiveNote);return noteAction(b.dataset.archiveNote,entry?.archivedAt?'restore':'archive')}
    if(b.dataset.deleteNote!==undefined)return noteAction(b.dataset.deleteNote,'delete');
-   if(b.dataset.note){const id=b.dataset.note;const current=state.marks[id]||{};const text=prompt('Learner attendance note (max 500 characters)',current.note||'');if(text!==null){state.marks[id]={...current,note:text.slice(0,500)};draftSave();render()}return}
+   if(b.dataset.note){const id=b.dataset.note;const current=state.marks[id]||{};const periodId=state.period?.periodId,date=state.date;const text=await window.AppDialog.prompt('Learner attendance note (max 500 characters)',current.note||'',{title:'Learner attendance note',label:'Note',inputType:'textarea',maxLength:500,confirmText:'Save note'});if(text!==null&&!state.finalized&&state.period?.periodId===periodId&&state.date===date){state.marks[id]={...state.marks[id],note:text.slice(0,500)};draftSave();render()}return}
    if(b.dataset.mfTab){state.tab=b.dataset.mfTab;renderTab();return}
    if(b.dataset.batch){
      const allowed=new Set(roster().map(s=>s.studentId));
@@ -394,7 +394,7 @@ window.attendigoStaffIdentity.then(user => {
      };
      const message='Mark '+ids.length+' selected learners '+names[status]+' for '+date+'?';
      if(window.AppDialog?.confirm)window.AppDialog.confirm(message,{title:'Confirm batch attendance',confirmText:'Mark selected'}).then(ok=>{if(ok)apply()}).catch(error=>notice(error.message,true));
-     else if(window.confirm(message))apply();
+     else notice('The confirmation dialog could not load. Refresh Attendigo and try again.',true);
      return;
    }
  });
@@ -437,7 +437,10 @@ window.attendigoStaffIdentity.then(user => {
    if(!button)return;
    const {conflictStudent:studentId,conflictDate:date,conflictStatus:status}=button.dataset;
    const mark=conflictRecords.find(m=>m.studentId===studentId&&m.date===date);
-   if(!mark||!state.period||!confirm('Correct '+mark.fullName+' to '+names[status]+' after verifying the paper register and QR event? This change will be audited.'))return;
+   if(!mark||!state.period)return;
+   const periodId=state.period.periodId;
+   if(!await window.AppDialog.confirm('Correct '+mark.fullName+' to '+names[status]+' after verifying the paper register and QR event? This change will be audited.',{title:'Resolve attendance conflict',confirmText:'Apply correction'}))return;
+   if(state.period?.periodId!==periodId)return;
    button.disabled=true;
    try{
      await api('/api/manual-attendance/conflicts/resolve',{method:'POST',body:JSON.stringify({periodId:state.period.periodId,studentId,date,status})});

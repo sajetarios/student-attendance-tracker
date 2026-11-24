@@ -121,7 +121,7 @@ test('overview UI is accessible, responsive and uses versioned PWA assets',()=>{
  assert.match(script,/user\?\.role!=='SCHOOL_ADMIN'/);
  assert.match(script,/method:'PUT'/);
  assert.match(script,/admin\/form48\/defaults/);
- assert.match(script,/window\.confirm/);
+ assert.match(script,/window\.AppDialog\.confirm/);
  assert.match(css,/@media\(max-width:540px\)/);
  assert.match(css,/@media print/);
 });

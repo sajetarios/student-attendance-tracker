@@ -43,7 +43,7 @@ function harness(givenDefaults){
   throw Error('Unexpected request '+url);
  };
  vm.runInNewContext(script,{
-  window:{attendigoStaffIdentity:Promise.resolve({role:'SCHOOL_ADMIN'}),confirm:()=>true},
+  window:{attendigoStaffIdentity:Promise.resolve({role:'SCHOOL_ADMIN'}),AppDialog:{confirm:async()=>true}},
   document:{getElementById:get,createElement:element,addEventListener(){}},fetch,Intl,Date,
   URLSearchParams,console
  },{filename:'smart-attendance-overview.js'});

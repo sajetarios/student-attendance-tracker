@@ -47,10 +47,11 @@
      button.className='outline-button';button.type='button';button.textContent='Correct / revoke';
      button.addEventListener('click',async()=>{
       if(busy)return;
-      const reason=window.prompt('Reason for correcting this approved leave record (required):');
+      const reason=await window.AppDialog.prompt('Reason for correcting this approved leave record (required):','',{title:'Correct recorded leave',label:'Correction reason',required:true,inputType:'textarea',validate:value=>value.trim().length>=5||'Enter at least five characters.',confirmText:'Continue'});
       if(reason===null)return;
       if(reason.trim().length<5){say('Enter a correction reason of at least five characters.',true);return;}
-      if(!window.confirm('Revoke this recorded leave range? Verified DTR punches will remain unchanged.'))return;
+      if(!await window.AppDialog.confirm('Revoke this recorded leave range? Verified DTR punches will remain unchanged.',{title:'Revoke recorded leave',confirmText:'Revoke',variant:'danger'}))return;
+      if(busy)return;
       busy=true;button.disabled=true;
       try{
        await api('/api/staff-attendance/admin/form48/leaves/'+encodeURIComponent(leave.leaveId)+'/revoke',{
@@ -165,7 +166,8 @@
     verifiedBy:defaults.verifiedBy||'',verifiedPosition:defaults.verifiedPosition||'',
     approvedBy:defaults.approvedBy||'',approvedPosition:defaults.approvedPosition||''
    };
-   if(!window.confirm('Apply these prescribed work hours as SCHOOL DEFAULTS? Employee work schedules and school-wide signatories remain unchanged.'))return;
+   if(!await window.AppDialog.confirm('Apply these prescribed work hours as SCHOOL DEFAULTS? Employee work schedules and school-wide signatories remain unchanged.',{title:'Save school default hours',confirmText:'Save defaults'}))return;
+   if(busy)return;
    busy=true;saveDefaults.disabled=true;
    try{
     const result=await api('/api/staff-attendance/admin/form48/defaults',{
@@ -185,7 +187,8 @@
    if(!start||!end||start>end||ref.length<3){say('Enter valid approved start/end dates and a documented approval reference.',true);return;}
    if(!$('form48LeaveCertified').checked){say('Confirm these dates are already approved and documented.',true);return;}
    const entries=ids.map(staffUserId=>({staffUserId,leaveType:type,startDate:start,endDate:end,approvalReference:ref}));
-   if(!window.confirm('Record '+ids.length+' already-approved '+type.toLowerCase()+' leave period(s)? This is an audited record update, not a new approval.'))return;
+   if(!await window.AppDialog.confirm('Record '+ids.length+' already-approved '+type.toLowerCase()+' leave period(s)? This is an audited record update, not a new approval.',{title:'Record approved leave periods',confirmText:'Record leave'}))return;
+   if(busy)return;
    busy=true;$('form48BatchRecordLeave').disabled=true;
    try{
     const result=await api('/api/staff-attendance/admin/form48/leaves/batch',{

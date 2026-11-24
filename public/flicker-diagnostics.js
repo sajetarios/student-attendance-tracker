@@ -85,7 +85,7 @@
         await navigator.clipboard.writeText(report);
         copy.textContent='Copied — paste in chat';
       } catch {
-        window.prompt('Copy this diagnostic report and paste it into ChatGPT:', report);
+        const output=document.createElement('textarea');output.readOnly=true;output.value=report;output.style.cssText='width:100%;min-height:100px;box-sizing:border-box;margin-top:8px;font:12px monospace';panel.append(output);output.focus();output.select();copy.textContent='Select and copy report';
       }
     });
     const dismiss = document.createElement('button');

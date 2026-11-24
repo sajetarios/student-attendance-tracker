@@ -135,8 +135,8 @@ window.attendigoStaffIdentity.then(user => {
     !Number.isSafeInteger(data.limits.sms_monthly)||data.limits.sms_monthly<0){
    feedback.textContent='Check the name, price and quota values.';return;
   }
-  if(!confirm('Save plan defaults? Schools assigned to this plan may be affected.'))return;
-  save.disabled=true;
+  if(save.disabled)return;save.disabled=true;
+  if(!await window.AppDialog.confirm('Save plan defaults? Schools assigned to this plan may be affected.',{title:'Save plan defaults',confirmText:'Save defaults'})){save.disabled=false;return;}
   try{
    const existing=!!template.value;
    await api(existing?'/api/platform/plans/'+template.value:'/api/platform/plans',
@@ -156,8 +156,8 @@ window.attendigoStaffIdentity.then(user => {
   const date=$('platformPlansEnd').value;
   const endsAt=date?new Date(date+'T23:59:59+08:00').toISOString():null;
   if(endsAt && Date.parse(endsAt)<=Date.now())return message('Expiration must be in the future.',true);
-  if(!confirm('Save this school subscription and feature overrides?'))return;
-  const button=$('platformPlansSave');button.disabled=true;
+  const button=$('platformPlansSave');if(button.disabled)return;button.disabled=true;
+  if(!await window.AppDialog.confirm('Save this school subscription and feature overrides?',{title:'Save school subscription',confirmText:'Save'})){button.disabled=false;return;}
   try{
    await api('/api/platform/schools/'+encodeURIComponent(schoolId)+'/subscription',{method:'PUT',body:JSON.stringify({planId,status:$('platformPlansStatus').value,endsAt,overrides})});
    const effective=await api('/api/platform/schools/'+encodeURIComponent(schoolId)+'/effective-features');
@@ -202,16 +202,17 @@ window.attendigoStaffIdentity.then(user => {
     const action=document.createElement('td'),button=document.createElement('button');
     button.type='button';button.className='secondary-button';button.textContent='Erase now';
     button.addEventListener('click',async()=>{
-     if(!confirm('Permanently erase the recovery snapshot for '+item.schoolName+' ('+item.schoolCode+')? This cannot be undone.'))return;
+     if(button.disabled)return;button.disabled=true;
+     if(!await window.AppDialog.confirm('Permanently erase the recovery snapshot for '+item.schoolName+' ('+item.schoolCode+')? This cannot be undone.',{title:'Erase recovery snapshot',confirmText:'Continue',variant:'danger'})){button.disabled=false;return;}
      const phrase='ERASE '+item.schoolCode;
-     const typed=prompt('Final confirmation: type '+phrase+' exactly to permanently erase '+item.rowCount+' backed-up rows.');
-     if(typed!==phrase){if(typed!==null)alert('Confirmation phrase did not match. Nothing was erased.');return;}
+     const typed=await window.AppDialog.prompt('Final confirmation: type '+phrase+' exactly to permanently erase '+item.rowCount+' backed-up rows.','',{title:'Final confirmation',label:'Confirmation phrase',required:true,variant:'danger',confirmText:'Permanently erase'});
+     if(typed!==phrase){if(typed!==null)await window.AppDialog.alert('Confirmation phrase did not match. Nothing was erased.',{title:'Erasure canceled'});button.disabled=false;return;}
      button.disabled=true;
      try{
       await api('/api/platform/deleted-school-backups/'+encodeURIComponent(item.backupId),{method:'DELETE',body:JSON.stringify({confirmationPhrase:typed})});
       message('Recovery snapshot for '+item.schoolCode+' permanently erased.');
       await loadDeletedSchoolBackups();
-     }catch(error){alert(error.message);button.disabled=false;}
+     }catch(error){await window.AppDialog.alert(error.message,{title:'Unable to erase snapshot'});button.disabled=false;}
     });
     action.append(button);tr.append(action);body.append(tr);
    }

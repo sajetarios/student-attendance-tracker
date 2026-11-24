@@ -27,6 +27,23 @@ async function setup(page,name,body,attrs='',classes='portal-page'){
  const browser=await chromium.launch({headless:true});
  try{
   const page=await browser.newPage();
+  // Verify the real cascade, including the formerly smaller School Admin rules.
+  for(const width of [320,390,768,1280]){
+   for(const role of ['SCHOOL_ADMIN','TEACHER']){
+    await page.setViewportSize({width,height:844});
+    await setup(page,'portal.html','<div class="portal-layout" data-attendigo-role="'+role+'"><aside class="sidebar open" id="sidebar"><nav class="side-nav"><a class="nav-item" href="#dashboard"><span class="nav-icon">▦</span><span class="nav-label">Dashboard</span></a><div class="nav-group"><button class="nav-group-toggle"><span class="nav-icon">▣</span><span class="nav-label">Student Records and Management</span><span class="nav-chevron">⌄</span></button><div class="nav-submenu"><a class="nav-item" href="#learners"><span class="nav-icon">▦</span><span class="nav-label">Requests and Approvals</span></a><a class="nav-item" hidden href="#restricted">Restricted</a></div></div></nav></aside><div class="main-area"></div></div>');
+    const sizes=await page.evaluate(()=>{
+     const main=document.querySelector('.nav-group-toggle .nav-label'),child=document.querySelector('.nav-submenu .nav-label'),row=main.parentElement;
+     return {main:getComputedStyle(main).fontSize,child:getComputedStyle(child).fontSize,height:row.getBoundingClientRect().height,hidden:getComputedStyle(document.querySelector('.nav-item[hidden]')).display};
+    });
+    assert.equal(sizes.main,'17px',role+' main label at '+width);
+    assert.equal(sizes.child,'16px',role+' submenu label at '+width);
+    assert.ok(sizes.height>=44,role+' tap target at '+width);
+    assert.equal(sizes.hidden,'none',role+' hidden nav remains hidden');
+    console.log('Sidebar type and role visibility: '+role+' '+width+'px passed');
+   }
+  }
+
   for(const width of [320,375,390,430,768,1280]){
    await page.setViewportSize({width,height:900});
    await setup(page,'portal.html','<div id="adminDashboardCard" class="admin-command-center"><div class="admin-command-metrics">'+metric+metric+metric+'</div></div>'+roster+form,'data-simple-workspace-role="SCHOOL_ADMIN"');

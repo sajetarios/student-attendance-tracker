@@ -46,8 +46,9 @@ async function load(){
      const button=text('button',choice[1]);button.className='outline-button';
      button.addEventListener('click',async()=>{
       if(note.value.trim().length<8)return $('offlineReviewMessage').textContent='Enter a review explanation of at least 8 characters.';
-      if(!window.confirm(choice[1]+'? No attendance record will be created.'))return;
+      if(button.disabled)return;
       button.disabled=true;
+      if(!await window.AppDialog.confirm(choice[1]+'? No attendance record will be created.',{title:'Review offline observation',confirmText:choice[1]})){button.disabled=false;return;}
       try{
        await api('/api/gate/offline/review/'+encodeURIComponent(item.eventId),
         {method:'POST',body:JSON.stringify({status:choice[0],note:note.value.trim()})});
