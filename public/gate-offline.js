@@ -241,8 +241,9 @@ async function discardEvents(ids,description){
  if(syncing||queueBusy||active)throw Error('Stop scanning or synchronization before discarding observations.');
  const selected=new Set(ids),matching=data.events.filter(event=>selected.has(event.eventId));
  if(!matching.length)return;
- if(!window.confirm('Permanently discard '+matching.length+' '+description+(matching.length===1?'':'s')+
-   ' from this device? This cannot be undone and will not change school attendance or already synchronized records.'))return;
+ if(!await window.AppDialog.confirm('Permanently discard '+matching.length+' '+description+(matching.length===1?'':'s')+
+   ' from this device? This cannot be undone and will not change school attendance or already synchronized records.',{title:'Discard offline observations',confirmText:'Discard',variant:'danger'}))return;
+ if(syncing||queueBusy||active)throw Error('Stop scanning or synchronization before discarding observations.');
  queueBusy=true;view();
  try{
   const originalEvents=data.events;
