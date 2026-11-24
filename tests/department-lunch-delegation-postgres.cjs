@@ -306,6 +306,16 @@ async function main(){
   assert.equal((await readLocation(sameSchoolHead.token)).body.campusId,remoteCampus.body.campusId);
   assert.equal((await readLocation(sameSchoolHead.token)).body.configured,true);
   assert.equal((await post('/api/staff-attendance/lunch/location/propose',secondPoint,sameSchoolHead.token)).status,409);
+  // Optional window constraints must not rewrite the official school schedule.
+  const windowConfig=async(body,token)=>{const r=await fetch(base+'/api/staff-attendance/lunch/config',{method:'PUT',headers:{'Content-Type':'application/json',Authorization:'Bearer '+token},body:JSON.stringify(body)});return {status:r.status,body:await r.json()};};
+  const local=require('../staff-lunch-windows').localTime();
+  const deniedWindow=local<'12:00'?{start:'20:00',end:'21:00'}:{start:'01:00',end:'02:00'};
+  const windows={AM_OUT:deniedWindow,PM_IN:deniedWindow};
+  assert.equal((await windowConfig({enabled:true,windows},admin.token)).status,403);
+  assert.equal((await windowConfig({enabled:true,windows:{AM_OUT:{start:'12:00',end:'11:00'}}},head.token)).status,400);
+  assert.equal((await windowConfig({enabled:true,windows},head.token)).status,200);
+  assert.equal((await post('/api/staff-attendance/lunch/challenges',{slot:'AM_OUT',location:presenterPosition()},issuer.token)).body.code,'OUTSIDE_DEPARTMENT_QR_WINDOW');
+  assert.equal((await windowConfig({enabled:true,windows:null},head.token)).status,200);
   const gatePath='/api/staff-attendance/gatekeeper/dtr';
   const gateBody={teacherQrToken,slot:'PM_OUT',photoVerified:true};
   assert.equal((await post(gatePath,gateBody,teacher.token)).status,403,

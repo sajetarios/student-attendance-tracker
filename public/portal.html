@@ -1856,7 +1856,7 @@ body.dark-mode .content-wrap > .school-heading.is-compact,body[data-theme="dark"
               <div class="section-toolbar"><div><h3>Lunch QR management — presenter assignments</h3>
                 <p>Authorize multiple teachers in your assigned department for AM Out and PM In. Each teacher displays an independently rotating QR.</p></div>
                 <small id="staffLunchAdminDay" class="field-hint"></small></div>
-              <div class="staff-lunch-security-settings"><label><input id="staffLunchEnabled" type="checkbox"> Enable department Lunch QR</label><button id="staffLunchSaveEnabled" type="button" class="primary-button">Save QR availability</button><p>Turning this off does not waive required DTR punches. Gatekeeper scanning remains available.</p></div>
+              <div class="staff-lunch-security-settings"><label><input id="staffLunchEnabled" type="checkbox"> Enable department Lunch QR</label><label><input id="staffLunchWindowsEnabled" type="checkbox"> Limit QR to department operating windows (optional)</label><div id="staffLunchWindows" class="form-grid" hidden><label>AM Out starts<input id="staffLunchAMOutStart" type="time"></label><label>AM Out ends<input id="staffLunchAMOutEnd" type="time"></label><label>PM In starts<input id="staffLunchPMInStart" type="time"></label><label>PM In ends<input id="staffLunchPMInEnd" type="time"></label></div><p>Windows use Philippine time and only control QR operation. Official school, employee and memorandum hours continue to govern DTR. Outside these windows, use supervised Gatekeeper scanning.</p><button id="staffLunchSaveEnabled" type="button" class="primary-button">Save QR availability</button><p>Turning this off does not waive required DTR punches. Gatekeeper scanning remains available.</p></div>
               <div class="staff-lunch-controls">
                 <label>Attendance entry<select id="staffLunchAdminSlot"><option value="AM_OUT">AM Out</option><option value="PM_IN">PM In</option></select></label>
                 <select id="staffLunchDepartment" aria-label="Assigned department" hidden></select>
@@ -2499,7 +2499,7 @@ body.dark-mode .content-wrap > .school-heading.is-compact,body[data-theme="dark"
   <script src="/gate-offline-review.js?v=1" defer></script>
   <script src="/portal.js?v=242" defer></script>
   <script src="/schedule-list-filters.js?v=1" defer></script>
-  <script src="/staff-lunch-ui.js?v=8" defer></script>
+  <script src="/staff-lunch-ui.js?v=9" defer></script>
   <script src="/staff-precise-location.js?v=1" defer></script>
   <script src="/staff-department-location.js?v=7" defer></script>
 

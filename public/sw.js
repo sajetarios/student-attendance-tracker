@@ -1,4 +1,4 @@
-const CACHE = "attendigo-v382-lunch-review-notifications";
+const CACHE = "attendigo-v383-lunch-operating-windows";
 
 // Only public, non-personal offline shells and their executable dependencies.
 // An update must not discard the working cache before these are all ready.
@@ -130,7 +130,7 @@ const SHELL = [
   "/role-controls-responsive.css?v=2",
   "/smart-attendance-overview.js?v=5",
   "/my-gate-insights.css?v=4",
-  "/staff-lunch-ui.js?v=8",
+  "/staff-lunch-ui.js?v=9",
   "/staff-precise-location.js?v=1",
   "/staff-department-location.js?v=7",
   "/staff-ob-ui.js?v=6",

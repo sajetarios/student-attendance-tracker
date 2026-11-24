@@ -2,6 +2,7 @@
 const { createLunchChallenge, validateLunchSlot, hashLunchChallenge, isLunchChallengeRedeemable } = require('./staff-lunch-challenge');
 const { randomUUID, timingSafeEqual } = require('node:crypto');
 const QRCode=require('qrcode');
+const {readWindows,localTime,withinWindow,officialScheduleDecision}=require('./staff-lunch-windows');
 const {validCampus,containsDepartment,campusById,trustedDepartmentPoint}=require('./staff-lunch-campus');
 const {validateDepartmentPoint,classifyDepartmentPresence,assessLocationEvidence,distanceMeters}=require('./staff-lunch-location');
 const UUID=/^[0-9a-f]{8}(-[0-9a-f]{4}){3}-[0-9a-f]{12}$/i;
@@ -52,7 +53,7 @@ function registerStaffLunchRoutes(app,pool,{authenticateSchoolClient,requireScho
    const presenters=found.rows||[],row=presenters[0]||null;
    const config=departmentId?await pool.query('SELECT setting_value FROM school_settings WHERE school_id=$1 AND setting_key=$2',[req.auth.schoolId,configKey(departmentId)]):null;
    const enabled=config?.rows[0]?.setting_value?.enabled!==false;
-   return res.json({schoolDate:date,slot,enabled,assigned:enabled&&presenters.length>0,
+   return res.json({schoolDate:date,slot,enabled,windows:config?.rows[0]?.setting_value?.windows||null,assigned:enabled&&presenters.length>0,
     presenterName:row?.presenterName||null,
     // Other teachers need to know whether they are the assigned presenter,
     // not the assigned teacher's stable internal ID.
@@ -191,6 +192,7 @@ function registerStaffLunchRoutes(app,pool,{authenticateSchoolClient,requireScho
      [req.auth.schoolId,req.auth.userId]);
    const location=department.rows[0],now=Date.now();
    if(location?.config?.enabled===false){await client.query('ROLLBACK');return res.status(403).json({error:'Lunch QR is disabled for your department. Use supervised Gatekeeper scanning.'});}
+   if(!withinWindow(location?.config?.windows,slot,localTime(new Date(now)))){await client.query('ROLLBACK');return res.status(403).json({code:'OUTSIDE_DEPARTMENT_QR_WINDOW',error:'This department QR slot is outside its configured operating window. Use supervised Gatekeeper scanning.'});}
    const evidence=assessLocationEvidence(req.body?.location,now);
    const trustedPoint=await trustedDepartmentPoint(client,req.auth.schoolId,location?.point);
    let presence=classifyDepartmentPresence(trustedPoint,req.body?.location,now);
@@ -271,6 +273,9 @@ function registerStaffLunchRoutes(app,pool,{authenticateSchoolClient,requireScho
   const departmentId=ownDepartment(req),enabled=req.body?.enabled;
   if(!departmentId)return res.status(403).json({error:'An assigned department is required.'});
   if(typeof enabled!=='boolean')return res.status(400).json({error:'A boolean enabled value is required.'});
+  const provided=Object.hasOwn(req.body||{},'windows');
+  const windows=provided?readWindows(req.body.windows):undefined;
+  if(provided&&windows===undefined)return res.status(400).json({error:'Provide valid start and end times for AM Out and PM In, or disable optional operating windows.'});
   const client=await pool.connect();
   try{
    await client.query('BEGIN');
@@ -278,14 +283,16 @@ function registerStaffLunchRoutes(app,pool,{authenticateSchoolClient,requireScho
    const dept=await client.query("SELECT 1 FROM school_departments WHERE school_id=$1 AND department_id=$2 AND active=TRUE AND department_code<>'UNASSIGNED' FOR SHARE",[req.auth.schoolId,departmentId]);
    if(!dept.rowCount){await client.query('ROLLBACK');return res.status(403).json({error:'Active department required.'});}
    const prior=await client.query('SELECT setting_value FROM school_settings WHERE school_id=$1 AND setting_key=$2 FOR UPDATE',[req.auth.schoolId,configKey(departmentId)]);
+   const previous=prior.rows[0]?.setting_value||{};
+   const next={...previous,enabled,windows:provided?windows:previous.windows||null};
    await client.query(`INSERT INTO school_settings(school_id,setting_key,setting_value,updated_at)
     VALUES($1,$2,$3::jsonb,NOW()) ON CONFLICT(school_id,setting_key)
-    DO UPDATE SET setting_value=EXCLUDED.setting_value,updated_at=NOW()`,[req.auth.schoolId,configKey(departmentId),JSON.stringify({enabled})]);
-   if(!enabled)await revokeDepartmentCodes(client,req.auth.schoolId,departmentId);
+    DO UPDATE SET setting_value=EXCLUDED.setting_value,updated_at=NOW()`,[req.auth.schoolId,configKey(departmentId),JSON.stringify(next)]);
+   if(!enabled||provided)await revokeDepartmentCodes(client,req.auth.schoolId,departmentId);
    await client.query(`INSERT INTO staff_attendance_audit(school_id,actor_user_id,action,target_type,target_id,details)
-    VALUES($1,$2,'LUNCH_CONFIG_CHANGED','SCHOOL_DEPARTMENT',$3,$4::jsonb)`,[req.auth.schoolId,req.auth.userId,departmentId,JSON.stringify({previousEnabled:prior.rows[0]?.setting_value?.enabled!==false,enabled})]);
+    VALUES($1,$2,'LUNCH_CONFIG_CHANGED','SCHOOL_DEPARTMENT',$3,$4::jsonb)`,[req.auth.schoolId,req.auth.userId,departmentId,JSON.stringify({previousEnabled:prior.rows[0]?.setting_value?.enabled!==false,enabled,previousWindows:previous.windows||null,windows:next.windows})]);
    await client.query('COMMIT');
-   return res.json({enabled,departmentId});
+   return res.json({enabled,departmentId,windows:next.windows});
   }catch(error){await client.query('ROLLBACK').catch(()=>{});return res.status(503).json({error:'Unable to save lunch QR configuration.'});}
   finally{client.release();}
  });
@@ -656,6 +663,13 @@ function registerStaffLunchRoutes(app,pool,{authenticateSchoolClient,requireScho
    if(now>=expires)reasons.push('LATE_DELIVERY');
    if(!presence.verified)reasons.push(presence.reason);
    if(row.presenter_user_id===req.auth.userId)reasons.push('SELF_SCAN_BY_PRESENTER');
+   const operationalWindows=config.rows[0]?.setting_value?.windows;
+   if(operationalWindows!=null){
+    const time=localTime(new Date(now));
+    if(!withinWindow(operationalWindows,row.dtr_slot,time))reasons.push('OUTSIDE_DEPARTMENT_QR_WINDOW');
+    const officialReason=await officialScheduleDecision(client,{schoolId:req.auth.schoolId,staffUserId:req.auth.userId,date:today,slot:row.dtr_slot,time});
+    if(officialReason)reasons.push(officialReason);
+   }
    // A DTR punch during an approved leave requires independent reconciliation.
    await client.query('SELECT pg_advisory_xact_lock(hashtext($1))',
     [req.auth.schoolId+':leave:'+req.auth.userId]);

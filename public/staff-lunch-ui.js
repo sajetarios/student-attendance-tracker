@@ -30,6 +30,9 @@
     const departmentSelect=admin?$('staffLunchDepartment'):null;
     const activeList=admin?$('staffLunchAssignedList'):null;
     const enabledSwitch=$('staffLunchEnabled'),saveEnabled=$('staffLunchSaveEnabled');
+    const windowToggle=$('staffLunchWindowsEnabled'),windowFields=$('staffLunchWindows');
+    const windowInputs={AM_OUT:[$('staffLunchAMOutStart'),$('staffLunchAMOutEnd')],PM_IN:[$('staffLunchPMInStart'),$('staffLunchPMInEnd')]};
+    windowToggle?.addEventListener('change',()=>{if(windowFields)windowFields.hidden=!windowToggle.checked;});
     let eligibleTeachers=[];
     let assigned=false,expiryMonotonicDeadline=0,rotationMonotonicDeadline=0,busy=false;
     function setStatus(message,failed=false) {
@@ -60,6 +63,7 @@
         assigned=!!info.assigned;
         if(admin) {
           if(enabledSwitch)enabledSwitch.checked=info.enabled!==false;
+          if(windowToggle){windowToggle.checked=!!info.windows;if(windowFields)windowFields.hidden=!windowToggle.checked;for(const [key,inputs] of Object.entries(windowInputs)){if(inputs[0])inputs[0].value=info.windows?.[key]?.start||'';if(inputs[1])inputs[1].value=info.windows?.[key]?.end||'';}}
           const presenters=Array.isArray(info.presenters)?info.presenters:[];
           const filter=departmentSelect.value;
           const shown=presenters.filter(p=>!filter||p.departmentId===filter);
@@ -112,7 +116,7 @@
     if(admin) {
       if(saveEnabled&&enabledSwitch)saveEnabled.addEventListener('click',async()=>{
         saveEnabled.disabled=true;
-        try{await request('/api/staff-attendance/lunch/config',{method:'PUT',body:JSON.stringify({enabled:enabledSwitch.checked})});await refresh();}
+        try{await request('/api/staff-attendance/lunch/config',{method:'PUT',body:JSON.stringify({enabled:enabledSwitch.checked,...(windowToggle?{windows:windowToggle.checked?Object.fromEntries(Object.entries(windowInputs).map(([key,inputs])=>[key,{start:inputs[0]?.value||'',end:inputs[1]?.value||''}])):null}:{})})});await refresh();}
         catch(error){setStatus(error.message,true);}
         finally{saveEnabled.disabled=false;}
       });
