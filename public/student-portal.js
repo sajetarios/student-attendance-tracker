@@ -122,6 +122,16 @@
     updateHistoryFilters();
     renderAttendance();
   }
+  function mountStudentPhoto() {
+    try {
+      window.ProfilePhotos?.mountSelf({token,role:'STUDENT',studentId:currentUser.studentId,container:'#studentProfilePhoto',displayName:currentUser.displayName});
+      const widget=$('studentProfilePhoto')?.querySelector('.my-photo-widget');
+      const note=widget?.querySelector('.my-photo-copy p');
+      if(note)note.textContent='New photos require School Admin approval.';
+      const button=widget?.querySelector('.my-photo-copy button');
+      if(button)button.textContent='Request photo change';
+    } catch {}
+  }
   async function loadProfile() {
     const data = await api('/api/student/profile');
     profile = data.student;
@@ -181,6 +191,7 @@
     window.AttendigoOfflineAccount?.record(me.user,me.expiresAt);
     if (me.user.role !== 'STUDENT') { location.replace(me.user.role === 'PARENT' ? '/parent-portal.html' : '/portal.html'); return; }
     currentUser = me.user;
+    mountStudentPhoto();
     // The class scanner depends on the verified session only, not on unrelated dashboard data.
     $('studentAttendanceSummary').hidden = Boolean(currentUser.mustChangePassword);
     $('studentAttendanceCard').hidden = Boolean(currentUser.mustChangePassword);
@@ -199,7 +210,7 @@
     const results = await Promise.allSettled(tasks);
     const failed = results.find(result => result.status === 'rejected');
     if (failed) $('studentPortalFeedback').textContent = failed.reason?.message || 'Some dashboard information could not be loaded.';
-    try { window.ProfilePhotos?.mountSelf({token,role:'STUDENT',studentId:currentUser.studentId,container:'#studentProfileCard',displayName:currentUser.displayName}); } catch {}
+
   }
   init().catch(error => { $('studentPortalFeedback').textContent = error.message || 'Could not load the Student Portal.'; });
 })();

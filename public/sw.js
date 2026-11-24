@@ -1,4 +1,4 @@
-const CACHE = "attendigo-v362-student-attendance-history";
+const CACHE = "attendigo-v363-student-profile-first";
 
 // Only public, non-personal offline shells and their executable dependencies.
 // An update must not discard the working cache before these are all ready.
@@ -59,8 +59,8 @@ const SHELL = [
   "/session-guard.js?v=6",
   "/flicker-diagnostics.js?v=1",
   "/school-header-responsive.js?v=2",
-  "/student-portal-refinement.css?v=2",
-  "/student-portal.js?v=27",
+  "/student-portal-refinement.css?v=3",
+  "/student-portal.js?v=28",
   "/student-qr-offline.js?v=4",
   "/student-qr-offline.html",
   "/student-qr-offline-page.js?v=5",

@@ -48,7 +48,7 @@
 <link rel="icon" type="image/png" href="/assets/attendigo-favicon.png?v=3">
 <link rel="apple-touch-icon" href="/assets/attendigo-apple-touch-icon.png?v=3">
 <link rel="stylesheet" href="/attendigo-brand.css?v=2">
-<link rel="stylesheet" href="/student-portal-refinement.css?v=2">
+<link rel="stylesheet" href="/student-portal-refinement.css?v=3">
 <link rel="manifest" href="/manifest.webmanifest">
   <link rel="stylesheet" href="/attendigo-dark-unified.css?v=1">
   <link rel="stylesheet" href="/universal-notifications.css?v=4">
@@ -79,6 +79,24 @@
         <button class="outline-button" id="studentLogout" type="button"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h4"/><path d="M16 17l5-5-5-5M21 12H9"/></svg>Sign out</button>
       </div>
     </header>
+    <section class="student-card student-profile-overview" id="studentProfileCard" aria-labelledby="studentProfileHeading">
+      <div class="student-profile-heading"><h2 id="studentProfileHeading">My profile</h2><p class="muted" id="studentProfileIntro">Student information</p></div>
+      <div class="student-profile-identity">
+        <div id="studentProfilePhoto" aria-label="Profile photo"></div>
+        <div class="student-profile-grid">
+          <div class="student-profile-item"><span>Student ID</span><strong id="studentIdValue">—</strong></div>
+          <div class="student-profile-item"><span>Grade level</span><strong id="studentGradeValue">—</strong></div>
+          <div class="student-profile-item"><span>Section</span><strong id="studentSectionValue">—</strong></div>
+        </div>
+      </div>
+      <details class="student-profile-settings" id="studentProfileSettings">
+        <summary>More profile &amp; account settings</summary>
+        <div class="student-profile-settings-body">
+          <div class="student-profile-item"><span>Primary special program</span><strong id="studentSpecialProgramValue">Not assigned</strong></div>
+          <div id="attendancePinSetup"><a class="outline-button" href="/attendance-pin.html">Set or reset Attendance PIN</a><span class="muted">Six-digit PIN for classroom QR check-ins without signing in.</span></div>
+        </div>
+      </details>
+    </section>
     <section class="student-card student-qr-entry" aria-labelledby="studentQrEntryTitle">
       <div><h2 id="studentQrEntryTitle">Class attendance</h2>
       <p class="muted" id="studentQrReady">Verifying your student session…</p><p id="studentQrQueueStatus" role="status">Offline scans are not official attendance until verified.</p><ul id="studentQrQueueItems"></ul><button class="outline-button" type="button" id="studentQrSync">Sync pending scans</button></div>
@@ -118,7 +136,7 @@
       <p class="student-feedback" id="studentPasswordFeedback" role="status"></p>
     </section>
 
-    <div class="student-main-grid">
+    <div class="student-main-grid student-attendance-workspace">
     <section class="student-card" id="studentAttendanceCard" hidden>
       <div class="student-attendance-head"><div><h2>My attendance</h2><p class="muted">Verified attendance records grouped by date and subject.</p></div></div>
       <div class="student-history-filters">
@@ -137,23 +155,14 @@
       <nav id="studentAttendancePages" class="student-history-pages" aria-label="Attendance dates" hidden><button type="button" class="outline-button" id="studentHistoryPrevious">Previous</button><span id="studentHistoryPageLabel"></span><button type="button" class="outline-button" id="studentHistoryNext">Next</button></nav>
       <p class="student-attendance-footer" id="studentAttendanceVisibleCount" role="status" aria-live="polite">Loading attendance records…</p>
     </section>
-    <section class="student-card" id="studentProfileCard">
-      <h2>My profile</h2><p class="muted" id="studentProfileIntro">Your registered school information.</p>
-      <div class="student-profile-grid">
-        <div class="student-profile-item"><span>Student ID</span><strong id="studentIdValue">—</strong></div>
-        <div class="student-profile-item"><span>Grade level</span><strong id="studentGradeValue">—</strong></div>
-        <div class="student-profile-item"><span>Section</span><strong id="studentSectionValue">—</strong></div>
-        <div class="student-profile-item"><span>Primary special program</span><strong id="studentSpecialProgramValue">Not assigned</strong></div>
-      </div>
-      <p id="attendancePinSetup" style="margin:18px 0 0"><a class="outline-button" href="/attendance-pin.html">Set or reset my Attendance PIN</a><span class="muted" style="display:block;margin-top:7px">Use this separate six-digit PIN for classroom QR check-ins without signing in.</span></p>
-    </section>
+    
     </div>
     <p class="student-feedback" id="studentPortalFeedback" role="status"></p>
   </main>
   <script src="/photo-editor.js?v=9" defer></script>
   <script src="/student-qr-offline.js?v=4" defer></script>
   <script src="/student-qr-scanner.js?v=5" defer></script>
-  <script src="/student-portal.js?v=27" defer></script>
+  <script src="/student-portal.js?v=28" defer></script>
   <script src="/universal-notifications.js?v=8" defer></script>
 <script defer src="/school-memo-banner.js?v=4"></script>
 </body>
