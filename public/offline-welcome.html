@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="theme-color" content="#f3f7fc">
   <meta name="referrer" content="no-referrer">
-  <title>You're offline · Attendigo</title>
+  <title>Offline Tools · Attendigo</title>
   <style>
     :root{font-family:Inter,ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif;color:#153451}
     *{box-sizing:border-box}html{min-height:100%}
@@ -46,11 +46,11 @@
   <section class="intro" aria-label="Attendigo offline welcome">
     <span class="eyebrow">Your school workspace</span>
     <div class="brand-panel"><img class="brand-logo" alt="Attendigo — Every learner counts" width="1769" height="496" src="/assets/attendigo-official-lockup.svg?v=5"></div>
-    <h1>Welcome to Attendigo.</h1>
-    <p class="intro-text">Your school's attendance and management workspace, ready when your connection returns.</p>
+    <h1>Offline Tools</h1>
+    <p class="intro-text">Prepare or use your authorized attendance tool, with or without a connection.</p>
     <p class="tagline">Every learner counts.</p>
     <nav class="offline-actions" aria-label="Prepared offline attendance tools">
-      <h2>Work offline on this device</h2>
+      <h2>Your attendance tool</h2>
       <p id="offlineRoleMessage">Checking your last verified account. Full portal login still requires internet.</p>
       <a class="offline-link" data-offline-role="TEACHER" hidden href="/offline-sheet.html">Teacher attendance <span aria-hidden="true">→</span></a>
       <a class="offline-link" data-offline-role="GATE_KEEPER" hidden href="/gate-offline.html">Gatekeeper scanner <span aria-hidden="true">→</span></a>
@@ -60,10 +60,11 @@
   <section class="status-panel" aria-labelledby="connection-heading">
     <div class="icon-frame" aria-hidden="true"><svg viewBox="0 0 32 32"><path d="M3 11a21 21 0 0 1 7-3M16 7a21 21 0 0 1 13 4M7 16a14 14 0 0 1 4-2M21 14a14 14 0 0 1 4 2M12 21a7 7 0 0 1 8 0M16 26h.01M3 3l26 26"/></svg></div>
     <p class="status-kicker">Internet connection</p>
-    <h2 id="connection-heading" role="status" aria-live="polite">You're offline</h2>
-    <p class="hint" id="connection-hint">Connect to the internet, then select Try Again. Attendance and login cannot be verified while disconnected.</p>
-    <button id="retry" type="button">Try Again</button>
-    <p class="note">This page is a cached welcome screen. It does not log attendance or claim that records were submitted.</p>
+    <h2 id="connection-heading" role="status" aria-live="polite">Checking connection…</h2>
+    <p class="hint" id="connection-hint">You can stay here to use your prepared attendance tool.</p>
+    <button id="retry" type="button">Check connection</button>
+    <a id="returnOnline" class="offline-link" href="/portal-login.html" hidden>Return to online portal <span aria-hidden="true">→</span></a>
+    <p class="note">You stay on this page when the connection returns. Use the portal link when you are ready.</p>
   </section>
   <footer>Your existing Attendigo account and school records remain unchanged.</footer>
 </main>
@@ -76,18 +77,22 @@ function showOfflineRole(){
  document.getElementById('offlineRoleMessage').textContent=account?'Only your verified account’s offline tool is available. Reconnect to switch accounts.':'No verified offline account in this tab. Reconnect and sign in to prepare your tool.';
 }
 showOfflineRole();roleGuard?.watch(showOfflineRole);
+async function refreshOfflineRole(){await roleGuard?.authorize();showOfflineRole();}
 const retryButton = document.getElementById('retry');
 const heading = document.getElementById('connection-heading');
 const hint = document.getElementById('connection-hint');
+const returnOnline = document.getElementById('returnOnline');
 let checking = false;
 async function retryConnection() {
   if (checking) return;
   if (navigator.onLine === false) {
     heading.textContent = "You're offline";
-    hint.textContent = 'Please reconnect to the internet and try again.';
+    returnOnline.hidden = true;
+    hint.textContent = 'Use your prepared attendance tool. Reconnect for online sign-in.';
     return;
   }
   checking = true;
+  returnOnline.hidden = true;
   retryButton.disabled = true;
   heading.textContent = 'Checking Attendigo…';
   hint.textContent = 'Verifying that the school server and database are available.';
@@ -100,9 +105,10 @@ async function retryConnection() {
     if (response.ok) {
       const status = await response.json();
       if (status && status.ready === true && status.service === 'attendigo') {
-        heading.textContent = 'Connection restored';
-        hint.textContent = 'Opening your school workspace…';
-        window.location.replace('/');
+        heading.textContent = 'Connected';
+        hint.textContent = 'Continue using your attendance tool or return to the online portal when ready.';
+        returnOnline.hidden = false;
+        void refreshOfflineRole();
         return;
       }
     }
@@ -120,10 +126,11 @@ async function retryConnection() {
 retryButton.addEventListener('click', () => { void retryConnection(); });
 window.addEventListener('offline', () => {
   heading.textContent = "You're offline";
-  hint.textContent = 'Reconnect to the internet. We will check again automatically.';
+  returnOnline.hidden = true;
+  hint.textContent = 'Use your prepared attendance tool. We will check again when you reconnect.';
 });
 window.addEventListener('online', () => { void retryConnection(); });
-setInterval(() => { if (navigator.onLine !== false) void retryConnection(); }, 15000);
+void retryConnection();
 </script>
 </body>
 </html>

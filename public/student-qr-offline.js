@@ -42,8 +42,9 @@
   const status=document.getElementById('studentQrQueueStatus'),items=document.getElementById('studentQrQueueItems');if(!status||!items||!owner||!allowed(owner))return;
   const o=owner,rows=await list(o);if(!same(o,owner)||!allowed(o))return;
   const pending=rows.filter(x=>x.state==='PENDING').length,review=rows.length-pending;
-  status.textContent=pending+' waiting to sync · '+review+' need teacher review. Pending scans are not official attendance.';
+
   const pendingCount=document.getElementById('studentQrPendingCount'),reviewCount=document.getElementById('studentQrReviewCount');if(pendingCount)pendingCount.textContent=String(pending);if(reviewCount)reviewCount.textContent=String(review);
+  status.textContent=pendingCount&&reviewCount?'Pending scans are not official attendance.':pending+' waiting to sync · '+review+' need teacher review. Pending scans are not official attendance.';
   items.replaceChildren();
   for(const row of rows.filter(x=>x.state==='REVIEW')){
    const item=document.createElement('li');item.textContent=new Date(row.createdAt).toLocaleString()+' (device time) — '+row.reason+' Show your teacher; use the existing manual class register.';

@@ -219,3 +219,52 @@ test('worker will not activate a partial offline cache after a required tool fai
   await assert.rejects(installation,/Required gate shell unavailable/);
   assert.equal(activated,false);
 });
+
+test('offline hub reconnects without navigating away and exposes explicit online link',async()=>{
+ const source=[...page.matchAll(/<script>([\s\S]*?)<\/script>/g)].at(-1)[1];
+ const elements={},events={},links=['STUDENT','TEACHER','GATE_KEEPER'].map(role=>({dataset:{offlineRole:role},hidden:true}));
+ const document={getElementById(id){return elements[id]??={hidden:true,textContent:'',addEventListener(k,fn){this[k]=fn;}};},querySelectorAll:()=>links};
+ const navigator={onLine:true};
+ const window={AttendigoOfflineAccount:{current:()=>({role:'STUDENT'}),authorize:async()=>({role:'STUDENT'}),watch(){}},addEventListener(k,fn){events[k]=fn;},location:{replace(){throw Error('Unexpected navigation');}}};
+ vm.runInNewContext(source,{document,window,navigator,AbortController,setTimeout,clearTimeout,fetch:async()=>({ok:true,json:async()=>({ready:true,service:'attendigo'})})});
+ for(let i=0;i<12;i++)await Promise.resolve();
+ assert.equal(elements['connection-heading'].textContent,'Connected');
+ assert.equal(elements.returnOnline.hidden,false);
+ assert.deepEqual(links.map(x=>x.hidden),[false,true,true]);
+ navigator.onLine=false;events.offline();assert.equal(elements.returnOnline.hidden,true);
+ navigator.onLine=true;events.online();for(let i=0;i<12;i++)await Promise.resolve();
+ assert.equal(elements['connection-heading'].textContent,'Connected');
+ assert.equal(elements.returnOnline.hidden,false);
+ assert.match(page,/id="returnOnline"[^>]*href="\/portal-login.html"/);
+ assert.doesNotMatch(source,/location\.(replace|assign)|setInterval/);
+});
+test('student portal offers one scan action and standalone counters avoid duplicated warnings',()=>{
+ const html=fs.readFileSync(path.join(root,'public/student-portal.html'),'utf8');
+ const offline=fs.readFileSync(path.join(root,'public/student-qr-offline.html'),'utf8');
+ assert.equal((html.match(/id="studentScanQr"/g)||[]).length,1);
+ assert.doesNotMatch(html,/Open offline-capable scanner/);
+ assert.doesNotMatch(offline,/<p class="ow-note">Pending scans are not official attendance/);
+});
+
+test('offline appearance defaults to light and changes only through an explicit choice',()=>{
+ const names=['offline-sheet.html','gate-offline.html','student-qr-offline.html'];
+ let stored=null;
+ for(const name of names){
+   const html=fs.readFileSync(path.join(root,'public',name),'utf8');
+   assert.match(html,/id="offlineThemeToggle"/);
+   assert.match(html,/html\[data-theme="dark"\] body\.offline-workspace/);
+   const source=html.match(/<script id="offlineAppearanceScript">([\s\S]*?)<\/script>/)[1];
+   const rootEl={dataset:{theme:'light'}},meta={},button={textContent:'',setAttribute(k,v){this[k]=v;},addEventListener(k,fn){this[k]=fn;}};
+   const listeners={};
+   const document={documentElement:rootEl,querySelector:()=>meta,getElementById:()=>button,addEventListener(k,fn){listeners[k]=fn;}};
+   const window={addEventListener(){}};
+   vm.runInNewContext(source,{document,window,localStorage:{getItem:()=>stored,setItem:(k,v)=>{stored=v;}}});
+   listeners.DOMContentLoaded();
+   assert.equal(rootEl.dataset.theme,stored==='dark'?'dark':'light');
+   const before=rootEl.dataset.theme;
+   button.click();
+   assert.equal(rootEl.dataset.theme,before==='dark'?'light':'dark');
+   assert.equal(stored,rootEl.dataset.theme);
+   assert.equal(button['aria-pressed'],String(stored==='dark'));
+ }
+});

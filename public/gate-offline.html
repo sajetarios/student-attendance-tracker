@@ -73,9 +73,46 @@ body.offline-workspace{--ow-bg:#f3f7fc;--ow-card:#fff;--ow-text:#102e4c;--ow-mut
 .offline-workspace [hidden]{display:none!important}
 @media(max-width:420px){.offline-workspace .ow-nav a{flex-basis:100%}.offline-workspace .actions button,.offline-workspace .row button{flex-basis:100%}.offline-workspace #queue li{flex-wrap:wrap}.offline-workspace .row select{width:100%;flex-basis:100%}}
 
-</style></head>
+</style><style>
+html[data-theme="dark"]{color-scheme:dark}
+.offline-workspace .ow-brand-row{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:20px}
+.offline-workspace .ow-brand-row .ow-brand{margin:0;max-width:100%}
+.offline-workspace #offlineThemeToggle{min-height:44px;font-size:13px;padding:9px 12px;background:var(--ow-card);color:var(--ow-primary);border:1px solid var(--ow-line);flex:0 0 auto}
+html[data-theme="dark"] body.offline-workspace{--ow-bg:#101c2c;--ow-card:#1a2b40;--ow-text:#edf4ff;--ow-muted:#b8cce0;--ow-line:#3b526b;--ow-soft:#233c58;--ow-primary:#91c5ff;--ow-on-primary:#102e4c;background:var(--ow-bg)}
+html[data-theme="dark"] .offline-workspace .ow-brand{background:#fff;border-radius:8px;padding:7px}
+html[data-theme="dark"] .offline-workspace .note{color:#ffd09b}
+html[data-theme="dark"] .offline-workspace .hint,html[data-theme="dark"] .offline-workspace .testMode{background:var(--ow-soft);color:var(--ow-text);border-color:var(--ow-line)}
+html[data-theme="dark"] .offline-workspace .row,html[data-theme="dark"] .offline-workspace #queue li{border-color:var(--ow-line)}
+html[data-theme="dark"] .offline-workspace .error{color:#ffafc0}
+html[data-theme="dark"] .offline-workspace .success{color:#94e4ba}
+html[data-theme="dark"] .offline-workspace .status{color:#25354b}
+html[data-theme="dark"] .offline-workspace summary,html[data-theme="dark"] .offline-workspace a{color:var(--ow-primary)}
+html[data-theme="dark"][data-offline-sheet="true"]{--asc-surface:#17243a;--asc-elevated:#1f304b;--asc-ink:#f0f6ff;--asc-subtle:#c1d0e5;--asc-line:#3d526f;--asc-accent:#72b5fb;--asc-accent-ink:#092341;--asc-success:#94e4ba;--asc-success-bg:#173c35;--asc-warn:#ffce87;--asc-warn-bg:#4a3820;--asc-danger:#ffafc0;--asc-danger-bg:#512839;}
+@media(max-width:360px){.offline-workspace .ow-brand-row .ow-brand{width:145px}.offline-workspace #offlineThemeToggle{padding:8px}}
+</style><script id="offlineAppearanceScript">
+(()=>{'use strict';
+ const root=document.documentElement,key='attendigo.offline.appearance';
+ let choice='light';
+ try{if(localStorage.getItem(key)==='dark')choice='dark';}catch{}
+ function apply(value,persist=false){
+   choice=value==='dark'?'dark':'light';
+   root.dataset.theme=choice;
+   if(persist){try{localStorage.setItem(key,choice);}catch{}}
+   const meta=document.querySelector('meta[name="theme-color"]');
+   if(meta)meta.content=choice==='dark'?'#101c2c':'#f3f7fc';
+   const button=document.getElementById('offlineThemeToggle');
+   if(button){button.textContent=choice==='dark'?'☀ Light mode':'☾ Night mode';button.setAttribute('aria-pressed',String(choice==='dark'));}
+ }
+ apply(choice);
+ document.addEventListener('DOMContentLoaded',()=>{
+   apply(choice);
+   document.getElementById('offlineThemeToggle')?.addEventListener('click',()=>apply(choice==='dark'?'light':'dark',true));
+ });
+ window.addEventListener('storage',event=>{if(event.key===key)apply(event.newValue);});
+})();
+</script></head>
 <body class="offline-workspace">
-<main><img class="ow-brand" src="/assets/attendigo-official-lockup.svg?v=5" alt="Attendigo" width="1769" height="496"><div class="ow-intro"><h1>Gatekeeper scanner</h1><p>Capture badge observations when the internet is unavailable.</p></div><nav class="ow-nav" aria-label="Attendance navigation"><a href="/offline-welcome.html">← Back to Offline Tools</a><a href="/portal.html">Gatekeeper portal (online)</a></nav>
+<main><div class="ow-brand-row"><img class="ow-brand" src="/assets/attendigo-official-lockup.svg?v=5" alt="Attendigo" width="1769" height="496"><button type="button" id="offlineThemeToggle" aria-pressed="false">☾ Night mode</button></div><div class="ow-intro"><h1>Gatekeeper scanner</h1><p>Capture badge observations when the internet is unavailable.</p></div><nav class="ow-nav" aria-label="Attendance navigation"><a href="/offline-welcome.html">← Back to Offline Tools</a><a href="/portal.html">Gatekeeper portal (online)</a></nav>
 <p class="note">Captures are encrypted on this device. They are NOT verified attendance, arrival/departure or official DTR punches until authorized review.</p>
 <div id="network" class="status" role="status" aria-live="polite">Checking connectivity…</div>
 <section id="unlockPanel" hidden><h2>Unlock prepared scanner</h2>
