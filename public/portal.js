@@ -3861,10 +3861,48 @@ let teacherActionMenuListenersInstalled = false;
     const modeSelect = $('sf2Mode');
     if (!modeSelect) return;
     const modes = item?.modes || [item?.mode || 'OFFICIAL'];
-    const labels = { OFFICIAL: 'Official Class Adviser SF2', PERSONAL: 'Subject Teacher personal copy' };
+    const labels = { OFFICIAL: 'SF2 Preparation & Reconciliation', PERSONAL: 'Subject Attendance Report' };
     const previous = modeSelect.value;
     modeSelect.innerHTML = modes.map(mode => `<option value="${mode}">${labels[mode] || mode}</option>`).join('');
     modeSelect.value = modes.includes(previous) ? previous : (modes[0] || 'OFFICIAL');
+    void refreshSf2Subjects();
+  }
+  let sf2SubjectRequest=0;
+  let sf2PreviewEpoch=0;
+  function invalidateSf2Preview(){
+    sf2PreviewEpoch++;
+    sf2PreviewData=null;
+    $('sf2Summary').hidden=true;
+    $('sf2TableWrap').hidden=true;
+    $('sf2ModeNote').hidden=true;
+    $('sf2ExportButton').disabled=true;
+    $('sf2SubmitButton').hidden=true;
+  }
+  async function refreshSf2Subjects(){
+    invalidateSf2Preview();
+    const generation=++sf2SubjectRequest;
+    const field=$('sf2Subject'),wrap=$('sf2SubjectWrap'),button=$('sf2PreviewButton');
+    if(!field||!wrap||!button)return;
+    const personal=$('sf2Mode').value==='PERSONAL';
+    const previous=field.value;
+    wrap.hidden=!personal;
+    field.disabled=true;
+    field.innerHTML='<option value="">Select subject</option>';
+    if(!personal){button.disabled=false;return;}
+    const month=$('sf2Month').value,gradeLevel=$('sf2Grade').value,section=$('sf2Section').value;
+    button.disabled=true;
+    if(!month||!gradeLevel||!section)return;
+    try{
+      const {subjects=[]}=await api('/api/sf2/subjects?'+new URLSearchParams({month,gradeLevel,section}));
+      if(generation!==sf2SubjectRequest)return;
+      field.innerHTML='<option value="">Select subject</option>'+subjects.map(x=>'<option value="'+esc(x.key)+'">'+esc(x.label)+'</option>').join('');
+      field.disabled=!subjects.length;
+      field.value=subjects.some(x=>x.key===previous)?previous:subjects.length===1?subjects[0].key:'';
+      button.disabled=!field.value;
+      $('sf2Feedback').textContent=subjects.length?(field.value?'Select Preview attendance to load the chosen subject.':'Select one assigned subject.'):'No assigned subject for this reporting month.';
+    }catch(error){
+      if(generation===sf2SubjectRequest)$('sf2Feedback').textContent=error.message;
+    }
   }
 
   async function loadSf2Submissions() {
@@ -3881,7 +3919,7 @@ let teacherActionMenuListenersInstalled = false;
       <td>${esc(item.submittedBy || '')}</td><td>${esc(item.revision)}</td><td><span class="status-tag ${item.status === 'COLLECTED' ? '' : 'neutral'}">${esc(item.status)}</span></td>
       <td><div class="action-row"><button type="button" class="outline-button compact-button" data-download-sf2="${esc(item.submissionId)}">Download</button>
       ${item.status === 'SUBMITTED' && user?.role === 'SCHOOL_ADMIN' ? `<button type="button" class="primary-button compact-button" data-collect-sf2="${esc(item.submissionId)}">Mark collected</button>` : ''}</div></td></tr>`).join('')
-      : '<tr><td colspan="6" class="empty-cell">No official SF2 submissions have been received yet.</td></tr>';
+      : '<tr><td colspan="6" class="empty-cell">No SF2 preparation submissions have been received yet.</td></tr>';
   }
 
   function renderGateKeeperMonitoring() {
@@ -5285,14 +5323,20 @@ let teacherActionMenuListenersInstalled = false;
     const gradeLevel = $('sf2Grade').value;
     const section = $('sf2Section').value;
     const mode = $('sf2Mode')?.value || '';
+    const subject = $('sf2Subject')?.value || '';
+    if (mode==='PERSONAL'&&!subject){$('sf2Feedback').textContent='Select an assigned subject.';return;}
     if (!month || !gradeLevel || !section) { $('sf2Feedback').textContent = 'Select month, grade level, and section.'; return; }
+    invalidateSf2Preview();
+    const epoch=sf2PreviewEpoch;
     $('sf2Feedback').textContent = 'Loading attendance preview…';
     $('sf2ExportButton').disabled = true;
     $('sf2SubmitButton').hidden = true;
     try {
       const query = new URLSearchParams({ month, gradeLevel, section });
       if (mode) query.set('mode', mode);
+      if(mode==='PERSONAL')query.set('subject',subject);
       const data = await api(`/api/sf2/preview?${query}`);
+      if(epoch!==sf2PreviewEpoch)return;
       sf2PreviewData = data;
       $('sf2Summary').hidden = false;
       $('sf2TableWrap').hidden = false;
@@ -5302,7 +5346,8 @@ let teacherActionMenuListenersInstalled = false;
         ['Manual presence days', data.summary.manualPresentDays || 0],
         ['QR presence days', data.summary.qrPresentDays || 0],
         ['Conflicts to resolve', data.summary.conflicts || 0],
-        [data.mode === 'PERSONAL' ? 'No record (this teacher)' : 'Pending review', data.mode === 'PERSONAL' ? data.summary.noRecord : data.summary.pending],
+        [data.mode === 'PERSONAL' ? 'No record (selected subject)' : 'Pending review', data.mode === 'PERSONAL' ? data.summary.noRecord : data.summary.pending],
+        ...(data.mode==='PERSONAL'?[['Excused',data.summary.excused||0],['Late',data.summary.late||0]]:[]),
         ['Missing sex', data.summary.missingSex]
       ];
       $('sf2Summary').innerHTML = metrics.map(([label, value]) => `<article class="learner-metric"><span>${esc(label)}</span><strong>${esc(value)}</strong></article>`).join('');
@@ -5313,7 +5358,11 @@ let teacherActionMenuListenersInstalled = false;
       $('sf2TableWrap').classList.add('sf2-matrix-wrap');
       const sourceLabel = (status,sources) => {
         if(status==='CONFLICT')return ['conflict','!','Conflict'];
-        if(status==='ABSENT')return ['absent','X','Confirmed absent'];
+        if(status==='ABSENT'||status==='SUBJECT_ABSENT')return ['absent','X','Confirmed absent'];
+        if(status==='EXCUSED')return ['missing','E','Excused subject absence'];
+        if(status==='NO_CLASS')return ['missing','—','No scheduled subject class'];
+        if(status==='FUTURE')return ['missing','—','Future date'];
+        if(status==='LATE')return ['late','L','Recorded late'];
         if(status==='PENDING')return ['pending','?','Needs review'];
         if(status==='NO_RECORD')return ['missing','—','No record'];
         if(sources.includes('QR') && sources.some(v=>v.startsWith('MANUAL_')))return ['both','Q+M','QR and manual presence'];
@@ -5323,7 +5372,8 @@ let teacherActionMenuListenersInstalled = false;
         return ['present','P','Present'];
       };
       $('sf2Rows').innerHTML = data.students.map(student => {
-        const cells = student.days.map((status,index) => {
+        const reportDays=data.mode==='PERSONAL'?(student.subjectDays||student.days):student.days;
+        const cells = reportDays.map((status,index) => {
           const date=data.dates[index], sources=student.sources?.[index]||[];
           const [tone,label,meaning]=sourceLabel(status,sources);
           const title=esc(date+' · '+meaning+' · '+(sources.join(', ')||'No evidence source'));
@@ -5354,18 +5404,19 @@ let teacherActionMenuListenersInstalled = false;
       const canExport = personal || (data.summary.pending === 0 && data.summary.conflicts === 0 && data.summary.missingSex === 0);
       const canDownload = !data.readOnly || personal;
       $('sf2ExportButton').hidden = !canDownload;
-      $('sf2ExportButton').textContent = personal ? 'Generate personal copy' : 'Generate official SF2 Excel';
+      $('sf2ExportButton').textContent = personal ? 'Download subject report' : 'Download SF2 preparation Excel';
       $('sf2ExportButton').disabled = !canExport || !canDownload;
       $('sf2SubmitButton').hidden = !data.canSubmit || personal;
       $('sf2SubmitButton').disabled = !canExport || personal;
       $('sf2Feedback').textContent = personal
-        ? 'Personal copy ready. NR means no accepted subject time-in by this teacher; it does not mean absent.'
+        ? `Subject report ready: ${data.subject?.label||'selected subject'}. X means confirmed subject absence; gray means unrecorded, not absent.`
         : data.summary.pending
           ? `${data.summary.pending} learner-day(s) need review. Only the assigned Class Adviser may confirm full-day absences after checking all scheduled subjects.`
           : data.summary.missingSex
             ? `${data.summary.missingSex} learner(s) need Male/Female set in Student Management before official generation.`
-            : data.canSubmit ? 'Official preview ready. The assigned Class Adviser may submit the consolidated monthly SF2.' : 'Read-only or administrative preview ready.';
+            : data.canSubmit ? 'Daily preparation ready. Verify against the LIS-issued SF2; the assigned Class Adviser may submit the supporting worksheet for school review.' : 'Read-only or administrative preview ready.';
     } catch (error) {
+      if(epoch!==sf2PreviewEpoch)return;
       $('sf2Feedback').textContent = error.message;
       $('sf2Summary').hidden = true;
       $('sf2TableWrap').hidden = true;
@@ -5377,10 +5428,12 @@ let teacherActionMenuListenersInstalled = false;
     const button = $('sf2ExportButton');
     const previousLabel = button.textContent;
     const wasDisabled = button.disabled;
+    const epoch=sf2PreviewEpoch;
     const query = new URLSearchParams({
       month: $('sf2Month').value, gradeLevel: $('sf2Grade').value,
       section: $('sf2Section').value, mode: $('sf2Mode')?.value || ''
     });
+    if(query.get('mode')==='PERSONAL')query.set('subject',$('sf2Subject').value);
     button.disabled = true;
     button.textContent = 'Preparing Excel…';
     $('sf2Feedback').textContent = 'Generating your workbook. Please keep this page open.';
@@ -5418,20 +5471,19 @@ let teacherActionMenuListenersInstalled = false;
       $('sf2Feedback').textContent = error.message || 'SF2 export failed.';
       showToast($('sf2Feedback').textContent, true);
     } finally {
-      button.textContent = previousLabel;
-      button.disabled = wasDisabled;
+      if(epoch===sf2PreviewEpoch){button.textContent = previousLabel;button.disabled = wasDisabled;}
     }
   }
 
   async function submitOfficialSf2() {
     if (!sf2PreviewData?.canSubmit) return;
     const payload = { month: $('sf2Month').value, gradeLevel: $('sf2Grade').value, section: $('sf2Section').value };
-    if (!await AppDialog.confirm(`Submit the official monthly SF2 for ${payload.gradeLevel} – ${payload.section}, ${payload.month}?`, { title: 'Submit official SF2', confirmText: 'Submit SF2' })) return;
+    if (!await AppDialog.confirm(`Submit the reconciled monthly attendance preparation for ${payload.gradeLevel} – ${payload.section}, ${payload.month}? This supports, but does not replace, the LIS-issued SF2.`, { title: 'Submit SF2 preparation', confirmText: 'Submit for review' })) return;
     $('sf2SubmitButton').disabled = true;
     try {
       const response = await api('/api/sf2/submissions', { method: 'POST', body: JSON.stringify(payload) });
-      $('sf2Feedback').textContent = `Official SF2 submitted successfully (revision ${response.submission.revision}).`;
-      showToast('Official SF2 submitted to the School Administrator.');
+      $('sf2Feedback').textContent = `SF2 preparation submitted successfully (revision ${response.submission.revision}).`;
+      showToast('SF2 preparation submitted to the school for review.');
     } catch (error) {
       $('sf2Feedback').textContent = error.message;
       $('sf2SubmitButton').disabled = false;
@@ -5443,7 +5495,9 @@ let teacherActionMenuListenersInstalled = false;
     $('sf2PreviewButton').addEventListener('click', loadSf2Preview);
     $('sf2Grade').addEventListener('change', updateSf2SectionOptions);
     $('sf2Section').addEventListener('change', updateSf2ModeOptions);
-    $('sf2Mode')?.addEventListener('change', () => { sf2PreviewData = null; $('sf2Summary').hidden = true; $('sf2TableWrap').hidden = true; });
+    $('sf2Mode')?.addEventListener('change', refreshSf2Subjects);
+    $('sf2Month').addEventListener('change',refreshSf2Subjects);
+    $('sf2Subject')?.addEventListener('change',()=>{invalidateSf2Preview();$('sf2PreviewButton').disabled=!$('sf2Subject').value;});
     $('sf2Rows').addEventListener('click', async event => {
       const absent = event.target.closest('[data-sf2-absent]');
       const remove = event.target.closest('[data-sf2-remove-absent]');
