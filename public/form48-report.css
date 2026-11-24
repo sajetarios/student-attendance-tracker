@@ -142,7 +142,7 @@
 .form48-schedule-actions span{font-size:12px;line-height:1.4;color:var(--text-muted,#63748a)}
 .form48-schedule-actions span.is-error{color:#bd2424}
 .form48-schedule-actions button:disabled{opacity:.6;cursor:not-allowed}
-@media(max-width:640px){.form48-schedule-actions{align-items:stretch;flex-direction:column}.form48-schedule-actions button{width:100%}}
+@media(max-width:640px){.form48-schedule-actions{align-items:stretch;flex-direction:column}.form48-schedule-actions button{width:100%}#form48SchoolSignatories .form48-schedule-actions span{flex:0 1 auto}}
 @media print{.form48-schedule-actions{display:none!important}}
 
 /* Supplementary approved-leave annotations: preserve the standard Form 48 punch columns. */
