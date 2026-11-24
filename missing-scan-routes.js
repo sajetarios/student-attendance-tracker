@@ -205,6 +205,7 @@ function registerMissingScanRoutes(app,pool,{authenticateSchoolClient,requireSch
  });
  app.post('/api/missing-scans/requests/:id/head-decision',...head,async(req,res)=>{
   const decision=String(req.body?.decision||'');
+  const promoteDocumented=req.body?.promoteDocumented===true;
   const comment=String(req.body?.comment||'').trim(),reference=String(req.body?.reference||'').trim();
   const verifiedTime=String(req.body?.verifiedTime||'');
   if(!['VERIFY','REJECT','MORE_EVIDENCE'].includes(decision)||comment.length<10||comment.length>1000||
@@ -215,8 +216,12 @@ function registerMissingScanRoutes(app,pool,{authenticateSchoolClient,requireSch
    await c.query('BEGIN');
    const row=await getRow(c,req,req.params.id,true);
    if(!row){await c.query('ROLLBACK');return res.status(404).json({error:'Request not found.'});}
-   if(!canReview(req.auth,row)||!['PENDING_HEAD','NEEDS_EVIDENCE','HEAD_VERIFIED'].includes(row.status)){
+   const promotion=promoteDocumented&&decision==='VERIFY'&&row.status==='DOCUMENTED';
+   if(!canReview(req.auth,row)||(!promotion&&!['PENDING_HEAD','NEEDS_EVIDENCE','HEAD_VERIFIED'].includes(row.status))||(promoteDocumented&&!promotion)){
     await c.query('ROLLBACK');return res.status(403).json({error:'You cannot review this request or its status has already changed.'});
+   }
+   if(promotion&&(String(row.head_user_id)!==String(req.auth.userId)||String(row.verified_time||'').slice(0,5)!==verifiedTime||row.evidence_reference!==reference||row.correction_event_id)){
+    await c.query('ROLLBACK');return res.status(409).json({error:'Only the original authorized reviewer can apply the same previously verified logbook time and reference.'});
    }
    if(decision==='VERIFY' && (!row.evidence_bytes || row.evidence_uploaded_by!==req.auth.userId)){
     await c.query('ROLLBACK');return res.status(409).json({error:'Upload your department logbook evidence before verification.'});
@@ -229,9 +234,14 @@ function registerMissingScanRoutes(app,pool,{authenticateSchoolClient,requireSch
     await c.query('ROLLBACK');return res.status(409).json({error:'An official DTR time is already recorded. A second correction is not allowed.'});
    }
    const schoolDate=typeof row.school_date==='string'?row.school_date:row.school_date.toISOString().slice(0,10);
+   await c.query('SELECT pg_advisory_xact_lock(hashtext($1),hashtext($2))',[String(req.auth.schoolId),String(row.staff_user_id)]);
    await c.query('SELECT pg_advisory_xact_lock(hashtext($1),hashtext($2))',
     [String(req.auth.schoolId),String(row.staff_user_id)+':'+schoolDate+':'+row.slot]);
    const mode=await policy(c,req.auth.schoolId);
+   if(promotion&&mode!=='DTR_CORRECTION'){
+    await c.query('ROLLBACK');return res.status(409).json({error:'School policy does not authorize official logbook-based DTR corrections.'});
+   }
+   if(promotion)await audit(c,req,'MISSING_SCAN_DOCUMENTED_RECONSIDERED',row.request_id,{previousStatus:row.status,previousNote:row.head_note,previousReviewedAt:row.head_reviewed_at,verifiedTime,reference});
    let status=decision==='REJECT'?'HEAD_REJECTED':'NEEDS_EVIDENCE',eventId=null;
    if(decision==='VERIFY'){
     if(!row.evidence_bytes||!verifiedTime||!reference){

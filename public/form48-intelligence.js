@@ -74,11 +74,13 @@
 
    if(data.safeToApply!==false)throw Error('Unexpected attendance preview status. No changes made.');
    const verified=data.existingSlots||{},suggestions=data.suggestions||{};
-   const reviews=Array.isArray(data.review)?data.review:[];
+   const reviews=(Array.isArray(data.review)?data.review:[]).filter(reason=>reason!=='SLOT_ALREADY_VERIFIED'&&!(options?.resolvedDirection&&reason==='OUTSIDE_SCHEDULE_WINDOW'));
    const slotMarkup=Object.keys(slotNames).map(slot=>{
     const official=verified[slot],candidate=suggestions[slot]?.time;
-    const kind=official?'Verified official DTR':candidate?'Suggested gate evidence':'No verified DTR slot';
-    const time=official||candidate||'—';
+    const historical=slot==='PM_OUT'?options?.candidates?.find(c=>c.slot===slot&&c.requiresDirectionConfirmation):null;
+    const documented=slot==='PM_IN'?options?.documentedReturn:null;
+    const kind=official?'Verified official DTR':historical?'Possible exit · confirmation required':documented?'Verified logbook · not official DTR':candidate?'Suggested gate evidence':'No verified DTR slot';
+    const time=official||historical?.time||documented||candidate||'—';
     return '<div class="form48-intelligence-slot"><span>'+esc(slotNames[slot])+'</span>'+
       '<strong>'+esc(time)+'</strong><small>'+esc(kind)+'</small></div>';
    }).join('');
@@ -89,6 +91,7 @@
    const count=Number(data.gateEventCount)||0,obCount=Number(data.approvedObCount)||0;
    const allowed=(options?.status==='ELIGIBLE'&&Array.isArray(options.candidates))
     ?options.candidates.filter(c=>slotNames[c.slot]&&/^[0-9a-f-]{36}$/i.test(c.eventId||'')):[];
+   const evidence=Array.isArray(options?.gateEvents)&&options.gateEvents.length?'<h5>Original gate movements</h5><ul class="form48-intelligence-flags">'+options.gateEvents.map(e=>'<li>'+esc(e.time)+' · '+esc(e.eventType==='TIME_IN'?'Recorded entry':'Recorded exit')+'</li>').join('')+'</ul>':'';
    const approval=allowed.length?
     '<section class="form48-approval-panel" aria-label="Verify verified gate times for DTR">'+
     '<h5>Verify &amp; Apply to DTR</h5>'+
@@ -96,14 +99,16 @@
     '<label>Approval reason <textarea id="form48GateApprovalReason" rows="2" maxlength="500" placeholder="Example: Reviewed verified gate arrival against employee schedule" aria-describedby="form48GateApprovalHint"></textarea></label>'+
     '<small id="form48GateApprovalHint">At least 10 characters. The decision and original gate-event ID will be audited.</small>'+
     '<div class="form48-approval-actions">'+allowed.map(c=>
-     '<button type="button" class="primary-button" data-gate-approve="'+esc(c.eventId)+'" data-dtr-slot="'+esc(c.slot)+'">'+
-     'Verify &amp; Apply '+esc(slotNames[c.slot])+' · '+esc(c.time)+'</button>').join('')+'</div>'+
+     '<button type="button" class="primary-button" data-gate-approve="'+esc(c.eventId)+'" data-dtr-slot="'+esc(c.slot)+'"'+(c.requiresDirectionConfirmation?' data-confirm-exit="true"':'')+'>'+ 
+     (c.requiresDirectionConfirmation?'Confirm actual exit &amp; apply ':'Verify &amp; Apply ')+esc(slotNames[c.slot])+' · '+esc(c.time)+'</button>').join('')+'</div>'+
     '</section>':
-    (options?.reason&&options.reason!=='NO_CLEAR_UNVERIFIED_SLOT'
+    (options?.reason&&!options?.resolvedDirection&&options.reason!=='NO_CLEAR_UNVERIFIED_SLOT'
      ?'<p class="form48-intelligence-disclaimer">One-click DTR verification unavailable: '+esc(reasons[options.reason]||'Further attendance review is required.')+'</p>':'');
    host.innerHTML='<div class="form48-intelligence-counts">'+esc(count)+' verified gate movement(s) · '+
     esc(obCount)+' approved OB interval(s) · '+esc(data.date||day.value)+'</div>'+
     '<div class="form48-intelligence-slots">'+slotMarkup+'</div>'+
+    evidence+(options?.resolvedDirection?'<p>Historical gate direction reviewed; original scan preserved and official departure verified.</p>':'')+
+    (allowed.some(c=>c.requiresDirectionConfirmation)?'<p>The last scan was recorded as entry. Confirm independent evidence of departure before applying the original time; the clock alone does not establish direction.</p>':'')+
     '<h5>Evidence requiring attention</h5>'+flags+
     (count===0?'<p class="form48-intelligence-empty">No gate evidence was found for this date. This is not proof of absence.</p>':'')+
     approval+
@@ -147,6 +152,8 @@
    const slot=action.dataset.dtrSlot,gateEventId=action.dataset.gateApprove;
    if(!slotNames[slot]||!gateEventId)return;
    const personId=person.value,schoolDate=day.value,token=revision;
+   const confirmActualExit=action.dataset.confirmExit==='true';
+   if(confirmActualExit&&!window.confirm('I have checked independent evidence that this recorded entry was actually an exit. The original gate timestamp and direction will remain in history. Continue?'))return;
    if(!window.confirm('Verify the original gate evidence as '+slotNames[slot]+' for '+schoolDate+
      '? This creates an audited official DTR entry and cannot be undone from this screen.'))return;
    approving=true;action.disabled=true;button.disabled=true;
@@ -155,7 +162,7 @@
     const response=await fetch('/api/staff-attendance/admin/dtr-review-apply',{
      method:'POST',credentials:'same-origin',cache:'no-store',
      headers:{'Content-Type':'application/json'},
-     body:JSON.stringify({staffUserId:personId,date:schoolDate,gateEventId,slot,reason})
+     body:JSON.stringify({staffUserId:personId,date:schoolDate,gateEventId,slot,reason,...(confirmActualExit?{confirmActualExit:true}:{})})
     });
     const result=await response.json().catch(()=>({}));
     if(token!==revision||personId!==person.value||schoolDate!==day.value)return;

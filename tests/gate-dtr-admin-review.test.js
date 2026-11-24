@@ -60,6 +60,7 @@ function fixture({role='SCHOOL_ADMIN',approvedOb=false,approvedLeave=false,
   if(sql.includes('FROM staff_attendance_events')&&sql.includes("event_kind='DTR_SLOT'"))
    return rows(existing?[{slot:'AM_IN',time:'06:25'}]:[]);
   if(sql.includes("details->>'sourceGateEventId'"))return rows([]);
+  if(sql.includes('FROM staff_missing_scan_requests'))return rows([]);
   if(sql.includes('INSERT INTO staff_attendance_events'))return rows(insertConflict?[]:[{event_id:'77777777-7777-4777-8777-777777777777'}]);
   if(sql.includes('INSERT INTO staff_attendance_audit'))return rows([]);
   throw Error('Unhandled SQL: '+sql.slice(0,120));
@@ -147,4 +148,20 @@ test('OB overlap SQL uses explicit school-local midnight for all Form 48 paths',
   assert.doesNotMatch(src,/::date AT TIME ZONE/);
   assert.match(src,/::date::timestamp AT TIME ZONE/);
  }
+});
+
+test('historical misclassified exit requires verified return evidence and explicit separate approval',()=>{
+ const movements=[{...event,eventId:'morning',time:'07:43'},
+  {...event,eventId:'lunch',eventType:'TIME_OUT',time:'12:05'},
+  {...event,time:'16:51'}];
+ const input={movements,existingSlots:{AM_IN:'07:43',AM_OUT:'12:05'},
+  hours:{AM_IN:'07:00',AM_OUT:'11:30',PM_IN:'13:00',PM_OUT:'16:30'},documentedReturn:'12:30'};
+ const result=reviewableGateCandidates(input);
+ assert.equal(result.status,'ELIGIBLE');
+ assert.deepEqual(result.candidates,[{slot:'PM_OUT',time:'16:51',eventId:gateId,requiresDirectionConfirmation:true,recordedDirection:'TIME_IN',returnTime:'12:30'}]);
+ assert.equal(reviewableGateCandidates({...input,documentedReturn:null}).status,'REVIEW_REQUIRED');
+ assert.equal(reviewableGateCandidates({...input,usedGateIds:[gateId]}).status,'REVIEW_REQUIRED');
+ assert.equal(reviewableGateCandidates({...input,blockedReason:'LEAVE_REQUIRES_REVIEW'}).status,'REVIEW_REQUIRED');
+ assert.equal(reviewableGateCandidates({...input,existingSlots:{...input.existingSlots,PM_OUT:'16:51'}}).status,'REVIEW_REQUIRED');
+ assert.equal(reviewableGateCandidates({...input,documentedReturn:'17:00'}).status,'REVIEW_REQUIRED');
 });

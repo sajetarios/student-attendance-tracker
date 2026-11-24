@@ -1,4 +1,4 @@
-const CACHE = "attendigo-v370-exact-request-links";
+const CACHE = "attendigo-v371-attendance-evidence-review";
 
 // Only public, non-personal offline shells and their executable dependencies.
 // An update must not discard the working cache before these are all ready.
@@ -117,9 +117,9 @@ const SHELL = [
   "/teacher-dashboard-v3.js?v=1",
   "/teacher-teaching-overview.js?v=4",
   "/form48-report.js?v=20",
-  "/missing-scan-ui.js?v=6",
+  "/missing-scan-ui.js?v=7",
   "/missing-scan-ui.css?v=3",
-  "/form48-intelligence.js?v=2",
+  "/form48-intelligence.js?v=3",
   "/form48-bulk-ui.js?v=3",
   "/form48-report.css?v=17",
   "/smart-attendance-overview.css?v=4",

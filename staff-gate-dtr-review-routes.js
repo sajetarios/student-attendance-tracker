@@ -16,19 +16,35 @@ function dateValid(value){
 }
 const blocked=reason=>({status:'REVIEW_REQUIRED',reason,candidates:[]});
 const kindFor=slot=>slot.endsWith('_IN')?'TIME_IN':'TIME_OUT';
-function reviewableGateCandidates({movements=[],existingSlots={},hours={},blockedReason=null,usedGateIds=[]}={}){
+const minutes=t=>/^([01]\d|2[0-3]):[0-5]\d$/.test(t||'')?Number(t.slice(0,2))*60+Number(t.slice(3)):null;
+function reviewableGateCandidates({movements=[],existingSlots={},hours={},blockedReason=null,usedGateIds=[],documentedReturn=null}={}){
  if(blockedReason)return blocked(blockedReason);
  if(!movements.length||movements.length>4)return blocked('UNUSUAL_GATE_SEQUENCE');
  if(movements.some(row=>row.origin!=='TRUSTED_SERVER_GATE'||
     row.actualLocalDate!==row.schoolDate))return blocked('UNTRUSTED_GATE_TIMESTAMP');
  if(movements[0].eventType!=='TIME_IN')return blocked('MORNING_ARRIVAL_UNCONFIRMED');
+ // Never infer direction automatically. Offer a separate, explicitly attested review.
+ const used=new Set(usedGateIds.map(String));
+ const [first,lunch,last]=movements;
+ const h=SLOTS.map(slot=>minutes(hours[slot]));
+ const returnTime=existingSlots.PM_IN||documentedReturn;
+ if(movements.length===3&&first.eventType==='TIME_IN'&&lunch.eventType==='TIME_OUT'&&last.eventType==='TIME_IN'&&
+  first.time===existingSlots.AM_IN&&lunch.time===existingSlots.AM_OUT&&!existingSlots.PM_OUT&&
+  h.every(x=>x!==null)&&h[0]<h[1]&&h[1]<=h[2]&&h[2]<h[3]&&
+  [first.time,lunch.time,last.time,returnTime].every(x=>minutes(x)!==null)&&
+  minutes(first.time)<minutes(lunch.time)&&minutes(lunch.time)<minutes(returnTime)&&minutes(returnTime)<minutes(last.time)&&
+  minutes(last.time)>=h[2]&&Math.abs(minutes(last.time)-h[3])<=120&&
+  Math.abs(minutes(last.time)-h[2])>120&&Math.abs(minutes(last.time)-h[1])-Math.abs(minutes(last.time)-h[3])>15&&
+  !used.has(String(last.eventId))){
+  return {status:'ELIGIBLE',reason:null,candidates:[{slot:'PM_OUT',time:last.time,eventId:String(last.eventId),requiresDirectionConfirmation:true,recordedDirection:'TIME_IN',returnTime}]};
+ }
  const decision=reconcileGateDay({movements,existingSlots,hours,approvedOb:[]});
  const flags=decision.review.filter(x=>x!=='SLOT_ALREADY_VERIFIED');
  if(flags.length)return blocked(flags[0]);
  // A first noon/afternoon-only arrival cannot establish a full morning.
  if(!existingSlots.AM_IN&&!decision.suggestions.AM_IN)
   return blocked('MORNING_ARRIVAL_UNCONFIRMED');
- const used=new Set(usedGateIds.map(String)),candidates=[];
+ const candidates=[];
  for(const [slot,proposal] of Object.entries(decision.suggestions)){
   if(!SLOTS.includes(slot)||existingSlots[slot])continue;
   const matching=movements.filter(e=>e.time===proposal.time&&
@@ -71,7 +87,7 @@ async function reviewEvidence(db,schoolId,staffUserId,date){
    'OR EXISTS(SELECT 1 FROM school_users WHERE school_id=$1 AND user_id=$2',
    "AND teacher_status='ON_LEAVE' AND leave_start_date<=$3::date",
    'AND expected_return_date>=$3::date)) AS blocked'),[schoolId,staffUserId,date]),
-  serial.query(sql('SELECT "eventId","eventType",time,"occurredAt",origin,"actualLocalDate","schoolDate"',
+  serial.query(sql('SELECT "eventId","eventType",time,"occurredAt",origin,"actualLocalDate","schoolDate","confirmedMissingReturnExit"',
    'FROM (SELECT event_id AS "eventId",',
    "CASE WHEN gate_direction='IN' THEN 'TIME_IN' ELSE 'TIME_OUT' END AS \"eventType\",",
    "to_char(occurred_at AT TIME ZONE 'Asia/Manila','HH24:MI') AS time,",
@@ -80,7 +96,7 @@ async function reviewEvidence(db,schoolId,staffUserId,date){
    "AND actor_user_id IS NOT NULL AND legacy_gate_event_id IS NULL",
    "THEN 'TRUSTED_SERVER_GATE' ELSE 'OTHER_GATE_SOURCE' END AS origin,",
    "to_char(occurred_at AT TIME ZONE 'Asia/Manila','YYYY-MM-DD') AS \"actualLocalDate\",",
-   'to_char(school_date,\'YYYY-MM-DD\') AS "schoolDate", occurred_at',
+   'to_char(school_date,\'YYYY-MM-DD\') AS "schoolDate", occurred_at, COALESCE(notes=\'GUARD_CONFIRMED_EXIT_MISSING_RETURN\',FALSE) AS "confirmedMissingReturnExit"',
    'FROM staff_attendance_events WHERE school_id=$1 AND staff_user_id=$2',
    "AND school_date=$3::date AND event_kind='GATE_MOVEMENT'",
    "AND verification_status='VERIFIED'",
@@ -88,7 +104,7 @@ async function reviewEvidence(db,schoolId,staffUserId,date){
    "to_char(t.occurred_at AT TIME ZONE 'Asia/Manila','HH24:MI'),t.occurred_at,",
    "'LEGACY_CLIENT_CLOCK',",
    "to_char(t.occurred_at AT TIME ZONE 'Asia/Manila','YYYY-MM-DD'),",
-   "to_char(t.school_date,'YYYY-MM-DD'),t.occurred_at",
+   "to_char(t.school_date,'YYYY-MM-DD'),t.occurred_at,FALSE",
    'FROM teacher_gate_events t WHERE t.school_id=$1 AND t.teacher_user_id=$2',
    'AND t.school_date=$3::date AND t.photo_verified=TRUE',
    'AND NOT EXISTS(SELECT 1 FROM staff_attendance_events e',
@@ -119,11 +135,22 @@ async function reviewEvidence(db,schoolId,staffUserId,date){
  else if(leave.rows[0]?.blocked)blocker='LEAVE_REQUIRES_REVIEW';
  const existingSlots=Object.fromEntries(dtr.rows.map(row=>[row.slot,row.time]));
  const hours=schedule?(weekday===6?schedule.saturdayHours:schedule.regularHours):{};
+ const documented=await serial.query(sql(
+  "SELECT to_char(verified_time,'HH24:MI') AS time FROM staff_missing_scan_requests",
+  "WHERE school_id=$1 AND staff_user_id=$2 AND school_date=$3::date AND slot='PM_IN'",
+  "AND status='DOCUMENTED' AND head_user_id IS NOT NULL AND head_reviewed_at IS NOT NULL",
+  "AND verified_time IS NOT NULL AND evidence_bytes IS NOT NULL AND evidence_reference IS NOT NULL"),[schoolId,staffUserId,date]);
+ const usedGateIds=links.rows.map(row=>row.sourceGateEventId).filter(Boolean);
  const decision=reviewableGateCandidates({
-  movements:gate.rows,existingSlots,hours,blockedReason:blocker,
-  usedGateIds:links.rows.map(row=>row.sourceGateEventId).filter(Boolean)
+  movements:gate.rows,existingSlots,hours,blockedReason:blocker,usedGateIds,
+  documentedReturn:documented.rowCount===1?documented.rows[0].time:null
  });
- return {...decision,existingSlots,scheduleSource,gateEvents:gate.rows};
+ const [first,lunch,last]=gate.rows;
+ const resolvedDirection=Boolean(!blocker&&gate.rows.length===3&&first.eventType==='TIME_IN'&&
+  lunch.eventType==='TIME_OUT'&&last.eventType==='TIME_IN'&&first.time===existingSlots.AM_IN&&
+  lunch.time===existingSlots.AM_OUT&&last.time===existingSlots.PM_OUT&&usedGateIds.includes(String(last.eventId)));
+ return {...decision,existingSlots,scheduleSource,gateEvents:gate.rows,hours,
+  documentedReturn:documented.rowCount===1?documented.rows[0].time:null,resolvedDirection};
 }
 function registerGateDtrReviewRoutes(app,pool,{authenticateSchoolClient,requireSchoolRoles}){
  const admin=requireSchoolRoles('SCHOOL_ADMIN');
@@ -135,7 +162,9 @@ function registerGateDtrReviewRoutes(app,pool,{authenticateSchoolClient,requireS
   try{
    const decision=await reviewEvidence(pool,req.auth.schoolId,staffUserId,date);
    return res.json({staffUserId,date,status:decision.status,reason:decision.reason,
-    candidates:decision.candidates});
+    candidates:decision.candidates,hours:decision.hours||{},documentedReturn:decision.documentedReturn||null,
+    resolvedDirection:decision.resolvedDirection===true,
+    gateEvents:(decision.gateEvents||[]).map(e=>({time:e.time,eventType:e.eventType,origin:e.origin}))});
   }catch(error){
    console.error('DTR review options:',error.code||error.message);
    return res.status(503).json({error:'Could not inspect DTR approval options.'});
@@ -160,6 +189,9 @@ function registerGateDtrReviewRoutes(app,pool,{authenticateSchoolClient,requireS
     await client.query('ROLLBACK');
     return res.status(409).json({error:'Evidence changed. Refresh the scan review before approving.',
      reason:evidence.reason||'SLOT_NOT_ELIGIBLE'});
+   }
+   if(candidate.requiresDirectionConfirmation&&req.body?.confirmActualExit!==true){
+    await client.query('ROLLBACK');return res.status(409).json({error:'Explicitly confirm independent evidence of the actual exit; a timestamp alone is not proof of direction.'});
    }
    const original=evidence.gateEvents.find(row=>String(row.eventId)===gateEventId);
    if(!original||original.origin!=='TRUSTED_SERVER_GATE'){
@@ -186,7 +218,8 @@ function registerGateDtrReviewRoutes(app,pool,{authenticateSchoolClient,requireS
     [req.auth.schoolId,req.auth.userId,eventId,JSON.stringify({
      sourceGateEventId:gateEventId,sourceOccurredAt:original.occurredAt,
      staffUserId,schoolDate:date,slot,reviewReason:reason,
-     verificationMethod:'MANUAL_REVIEW',scheduleSource:evidence.scheduleSource
+     verificationMethod:'MANUAL_REVIEW',scheduleSource:evidence.scheduleSource,
+     ...(candidate.requiresDirectionConfirmation?{originalDirection:original.eventType,confirmedActualDirection:'TIME_OUT',verifiedReturnTime:candidate.returnTime}:{})
     })]);
    await client.query('COMMIT');
    return res.status(201).json({status:'VERIFIED',eventId,sourceGateEventId:gateEventId,
