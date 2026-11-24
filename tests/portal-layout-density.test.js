@@ -8,7 +8,8 @@ test('layout styles load after page CSS on all key portals',()=>{
  for(const name of ['portal.html','principal.html','student-portal.html','parent-portal.html','portal-login.html','gate-offline.html','offline-sheet.html','student-qr-offline.html']){
   const html=read(name);
   assert.ok(html.split("</head>")[0].includes('href="/attendigo-layout-density.css?v=1"'));
-  assert.ok(html.split("</head>")[0].includes('src="/app-dialog.js?v=1"'));
+  assert.ok(html.includes('src="/app-dialog.js?v=1"'), name + " must load the shared dialog script");
+  assert.ok(html.split("</head>")[0].includes('href="/app-dialog.css?v=2"'), name + " must load shared dialog styling");
  }
  const sw=read('sw.js');
  assert.ok(Number(sw.match(/attendigo-v(\d+)-/)?.[1])>=376);
