@@ -2,6 +2,7 @@
 
 const ExcelJS = require('exceljs');
 const { createReferenceWorkbook } = require('./sf2-reference-workbook');
+const { renderMasterWorkbook, MASTER } = require('./sf2-master-export');
 const path = require('path');
 const fs = require('fs/promises');
 const crypto = require('node:crypto');
@@ -234,7 +235,7 @@ function registerSf2Routes(app, pool, { authenticateSchoolClient, requireSchoolU
       );
 
       tardy = await pool.query(
-        `SELECT e.student_id AS id,COUNT(DISTINCT e.school_date)::int AS count
+        `SELECT e.student_id AS id,COUNT(DISTINCT e.school_date)::int AS count, ARRAY_AGG(DISTINCT e.school_date::text) AS "lateDates"
          FROM attendance_events e
          JOIN students s ON s.school_id=e.school_id AND s.student_id=e.student_id
          LEFT JOIN LATERAL (SELECT en.grade_level,en.section FROM student_enrollments en JOIN school_years sy ON sy.school_id=en.school_id AND sy.school_year_id=en.school_year_id WHERE en.school_id=s.school_id AND en.student_id=s.student_id AND sy.status='ACTIVE' AND en.enrollment_status='ENROLLED' ORDER BY en.created_at DESC LIMIT 1) active_enrollment ON TRUE
@@ -323,6 +324,7 @@ function registerSf2Routes(app, pool, { authenticateSchoolClient, requireSchoolU
     }
     const absentMap = new Map(absent.rows.map(row => [`${row.id}|${String(row.date).slice(0, 10)}`, row.absenceType]));
     const tardyMap = new Map(tardy.rows.map(row => [row.id, Number(row.count) || 0]));
+    const tardyDates = new Map(tardy.rows.map(row=>[row.id,new Set(Array.isArray(row.lateDates)?row.lateDates:[])]));
 
     const conflictSet = new Set([
       ...[...presentSet].filter(key => absentMap.has(key)),
@@ -368,6 +370,7 @@ function registerSf2Routes(app, pool, { authenticateSchoolClient, requireSchoolU
     const rows = students.rows.map(student => ({
       ...student,
       tardyCount: tardyMap.get(student.id) || 0,
+      ...(access.mode === 'OFFICIAL' ? { lateDays: dates.map(date=>tardyDates.get(student.id)?.has(date)===true && presentSet.has(`${student.id}|${date}`) && !conflictSet.has(`${student.id}|${date}`)) } : {}),
       ...(access.mode === 'PERSONAL' ? { subjectDays: dates.map(date=>subjectStatus(student,date)) } : {}),
       sources: dates.map(date => [...(sourceByDay.get(`${student.id}|${date}`) || [])].sort()),
       days: dates.map(date => {
@@ -473,6 +476,7 @@ function registerSf2Routes(app, pool, { authenticateSchoolClient, requireSchoolU
   async function buildOfficialWorkbook(req, month, gradeLevel, section, data, personalCopy = false) {
     try {
       await fs.access(TEMPLATE);
+      await fs.access(MASTER);
     } catch {
       const error = new Error('Official DepEd SF2 template is missing.');
       error.status = 500;
@@ -519,16 +523,27 @@ function registerSf2Routes(app, pool, { authenticateSchoolClient, requireSchoolU
     const [year, monthNumber] = month.split('-').map(Number);
     const school = await pool.query(
       `SELECT setting_key,setting_value FROM school_settings
-       WHERE school_id=$1 AND setting_key IN ('school_name','school_id','school_year')`,
+       WHERE school_id=$1 AND setting_key IN ('school_name','school_id','deped_school_id','school_year')`,
       [req.auth.schoolId]
     );
 
     const config = Object.fromEntries(school.rows.map(row => [row.setting_key, row.setting_value]));
     const setting = key => {
       const value = config[key];
-      return typeof value === 'string' ? value : (value?.value || value?.name || '');
+      return String(typeof value === 'string' || typeof value === 'number' ? value : (value?.value || value?.name || '')).trim();
     };
 
+    const registeredSchool = await pool.query(
+      'SELECT school_name,school_code FROM schools WHERE school_id=$1 LIMIT 1',
+      [req.auth.schoolId]
+    );
+    const registered = registeredSchool.rows[0] || {};
+    const schoolName = String(registered.school_name || setting('school_name') || '').trim();
+    const schoolId = [setting('deped_school_id'),setting('school_id'),String(registered.school_code||'').trim()]
+      .find(value=>/^\d{6}$/.test(value)) || '';
+    // Do not print internal UUIDs or fake school placeholders.
+    const academicYearStart = monthNumber >= 6 ? year : year-1;
+    const schoolYear = setting('school_year') || `${academicYearStart}-${academicYearStart+1}`;
     const summary = personalCopy ? null : await getMonthlySf2Summary(req, month, gradeLevel, section, data);
     // Printed names are role-scoped, never copied from the reference school.
     // If there is no unique active signer, leave the name blank for verification.
@@ -548,10 +563,10 @@ function registerSf2Routes(app, pool, { authenticateSchoolClient, requireSchoolU
       const matches = signers.rows.filter(row=>row.kind===kind);
       return matches.length===1 ? String(matches[0].name||'').trim() : '';
     };
+    const adviserName=signer('ADVISER'), schoolHeadName=signer('HEAD');
     const output = createReferenceWorkbook({source, data, summary, month, monthName:MONTHS[monthNumber-1],
-      schoolName:setting('school_name') || 'SCHOOL NAME', schoolId:setting('school_id') || String(req.auth.schoolId),
-      schoolYear:setting('school_year') || `${year}-${year+1}`, gradeLevel, section, personalCopy, adviserName:signer('ADVISER'), schoolHeadName:signer('HEAD')});
-    return Buffer.from(await output.xlsx.writeBuffer());
+      schoolName,schoolId,schoolYear,gradeLevel,section,personalCopy,adviserName,schoolHeadName});
+    return renderMasterWorkbook({calculated:output,data,month,personalCopy,schoolName,schoolId,schoolYear,gradeLevel,section,adviserName,schoolHeadName});
   }
 
   async function buildPersonalCopyWorkbook(req, month, gradeLevel, section, data) {

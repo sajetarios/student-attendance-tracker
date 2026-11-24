@@ -36,6 +36,7 @@ for(const b of benchmarks) test('SF2 reconciled benchmark '+b.month+' actual XLS
     if(sql.includes('COUNT(DISTINCT e.school_date)'))return result([]);
     if(sql.includes('FROM school_calendar_exceptions'))return result([]);
     if(sql.includes("SELECT 'ADVISER' AS kind"))return result([{kind:'ADVISER',name:'TEST ADVISER'},{kind:'HEAD',name:'TEST HEAD'}]);
+    if(sql.includes('SELECT school_name,school_code FROM schools')) return result([{school_name:'TEST SCHOOL',school_code:'123456'}]);
     if(sql.includes('FROM school_settings'))return result([{setting_key:'school_name',setting_value:'TEST SCHOOL'}]);
     if(sql.includes('SELECT start_date FROM school_years'))return result([{start_date:'2026-06-01'}]);
     // October reference correction confirmed by the user: beginning enrollment was
@@ -56,7 +57,7 @@ for(const b of benchmarks) test('SF2 reconciled benchmark '+b.month+' actual XLS
   const wb=new ExcelJS.Workbook();await wb.xlsx.load(res.bytes);
   const sheet=wb.worksheets[0];
   assert.equal(sheet.name,'School Form 2 (SF2)');
-  assert.equal(sheet.getCell('AJ117').value,b.days);
+  assert.equal(value(sheet.getCell('AJ117')),b.days);
   assert.equal(sheet.getCell(b.month.endsWith('-07')?'I10':'J10').value,1);
   assert.equal(sheet.getCell('G10').value,null);
   assert.equal(sheet.getCell('H10').value,null);
