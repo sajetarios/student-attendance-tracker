@@ -48,7 +48,7 @@
 <link rel="icon" type="image/png" href="/assets/attendigo-favicon.png?v=3">
 <link rel="apple-touch-icon" href="/assets/attendigo-apple-touch-icon.png?v=3">
 <link rel="stylesheet" href="/attendigo-brand.css?v=2">
-<link rel="stylesheet" href="/student-portal-refinement.css?v=1">
+<link rel="stylesheet" href="/student-portal-refinement.css?v=2">
 <link rel="manifest" href="/manifest.webmanifest">
   <link rel="stylesheet" href="/attendigo-dark-unified.css?v=1">
   <link rel="stylesheet" href="/universal-notifications.css?v=4">
@@ -101,8 +101,8 @@
       </details>
       <button class="outline-button" type="button" id="studentQrStop">Close scanner</button>
     </section>
-    <section class="student-summary-grid" id="studentAttendanceSummary" aria-label="My attendance summary">
-      <article class="student-summary-item"><span>Accepted records</span><strong id="studentRecordCount">—</strong><span class="student-summary-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12l5 5L20 6"/></svg></span></article>
+    <section class="student-summary-grid" id="studentAttendanceSummary" aria-label="Latest accepted attendance records" hidden>
+      <article class="student-summary-item"><span>Recent accepted records</span><strong id="studentRecordCount">—</strong><span class="student-summary-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12l5 5L20 6"/></svg></span></article>
       <article class="student-summary-item"><span>Subject records</span><strong id="studentSubjectCount">—</strong><span class="student-summary-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 5.5c3-1.8 6.2-1.8 9 0 2.8-1.8 6-1.8 9 0v14c-3-1.8-6.2-1.8-9 0-2.8-1.8-6-1.8-9 0v-14ZM12 5.5v14"/></svg></span></article>
       <article class="student-summary-item"><span>Gate records</span><strong id="studentGateCount">—</strong><span class="student-summary-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 21V4h14v17M9 8h6M9 12h6M2 21h20"/></svg></span></article>
     </section>
@@ -119,6 +119,24 @@
     </section>
 
     <div class="student-main-grid">
+    <section class="student-card" id="studentAttendanceCard" hidden>
+      <div class="student-attendance-head"><div><h2>My attendance</h2><p class="muted">Verified attendance records grouped by date and subject.</p></div></div>
+      <div class="student-history-filters">
+        <label for="studentAttendanceDate"><span>Attendance date</span><select id="studentAttendanceDate"><option value="LATEST">Latest recorded day</option><option value="ALL">All recent dates</option></select></label>
+        <label for="studentAttendanceScopeFilter"><span>Attendance area</span><select id="studentAttendanceScopeFilter"><option value="ALL">All attendance</option><option value="CLASS">Subject classes</option><option value="SCHOOL">School gate</option></select></label>
+        <label for="studentAttendanceSubject"><span>Subject</span><select id="studentAttendanceSubject"><option value="ALL">All subjects</option></select></label>
+        <label for="studentAttendanceSearch"><span>Search records</span><input type="search" id="studentAttendanceSearch" placeholder="Subject, date, or event" autocomplete="off"></label>
+      </div>
+      <div class="student-history-stats" id="studentAttendanceDayStats" aria-label="Filtered attendance summary" hidden>
+        <div><strong id="studentHistoryClassCount">—</strong><span>Subject groups</span></div>
+        <div><strong id="studentHistoryLateCount">—</strong><span>Late events</span></div>
+        <div><strong id="studentHistoryGateCount">—</strong><span>Gate events</span></div>
+      </div>
+      <p id="studentAttendanceRangeNote" class="student-history-note">Shows up to 200 latest accepted records. This is not a complete class register.</p>
+      <div id="studentAttendanceRows" class="student-history-list" aria-label="Attendance history"><p class="student-history-empty">Loading attendance…</p></div>
+      <nav id="studentAttendancePages" class="student-history-pages" aria-label="Attendance dates" hidden><button type="button" class="outline-button" id="studentHistoryPrevious">Previous</button><span id="studentHistoryPageLabel"></span><button type="button" class="outline-button" id="studentHistoryNext">Next</button></nav>
+      <p class="student-attendance-footer" id="studentAttendanceVisibleCount" role="status" aria-live="polite">Loading attendance records…</p>
+    </section>
     <section class="student-card" id="studentProfileCard">
       <h2>My profile</h2><p class="muted" id="studentProfileIntro">Your registered school information.</p>
       <div class="student-profile-grid">
@@ -129,22 +147,13 @@
       </div>
       <p id="attendancePinSetup" style="margin:18px 0 0"><a class="outline-button" href="/attendance-pin.html">Set or reset my Attendance PIN</a><span class="muted" style="display:block;margin-top:7px">Use this separate six-digit PIN for classroom QR check-ins without signing in.</span></p>
     </section>
-    <section class="student-card" id="studentAttendanceCard">
-      <div class="student-attendance-head"><div><h2>My attendance</h2><p class="muted">Accepted school-gate and class attendance records.</p></div></div>
-      <div class="student-attendance-controls">
-        <label for="studentAttendanceSearch"><span>Search your attendance history</span><input type="search" id="studentAttendanceSearch" placeholder="Search date, subject, or event" autocomplete="off"></label>
-        <label for="studentAttendanceScopeFilter"><span>Attendance area</span><select id="studentAttendanceScopeFilter"><option value="ALL">All attendance</option><option value="CLASS">Subject classes</option><option value="SCHOOL">School gate</option></select></label>
-      </div>
-      <div class="table-scroll" role="region" aria-label="Scrollable student attendance history" tabindex="0"><table class="student-table"><thead><tr><th>Date</th><th>Attendance area</th><th>Class / subject</th><th>Event</th><th>Time</th><th>Status</th></tr></thead><tbody id="studentAttendanceRows"><tr><td colspan="6" class="empty-cell">Loading attendance…</td></tr></tbody></table></div>
-      <p class="student-attendance-footer" id="studentAttendanceVisibleCount" role="status" aria-live="polite">Loading attendance records…</p>
-    </section>
     </div>
     <p class="student-feedback" id="studentPortalFeedback" role="status"></p>
   </main>
   <script src="/photo-editor.js?v=9" defer></script>
   <script src="/student-qr-offline.js?v=4" defer></script>
   <script src="/student-qr-scanner.js?v=5" defer></script>
-  <script src="/student-portal.js?v=26" defer></script>
+  <script src="/student-portal.js?v=27" defer></script>
   <script src="/universal-notifications.js?v=8" defer></script>
 <script defer src="/school-memo-banner.js?v=4"></script>
 </body>

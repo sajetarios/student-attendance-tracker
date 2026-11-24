@@ -116,3 +116,44 @@ html[data-ui-theme=dark] .student-portal-body .student-summary-item::before{opac
 .student-portal-body #studentAttendanceCard[hidden],
 .student-portal-body #studentPasswordRequired[hidden]{display:none!important}
 .student-portal-body #studentProfileCard .my-photo-status{display:block;max-width:100%;overflow-wrap:anywhere}
+
+/* Compact attendance history: one expandable group per subject and day. */
+.student-portal-body #studentAttendanceCard{min-width:0}
+.student-portal-body .student-history-filters{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin:16px 0}
+.student-portal-body .student-history-filters label{display:grid;gap:5px;min-width:0;color:var(--ui-muted,#60738c);font-size:13px;font-weight:650}
+.student-portal-body .student-history-filters :is(select,input){width:100%;min-width:0;max-width:100%;box-sizing:border-box;min-height:44px;border:1px solid var(--ui-line,#cad7e9);border-radius:10px;padding:9px 11px;background:var(--ui-panel,#fff);color:var(--ui-text,#182d47);font:inherit;font-size:16px}
+.student-portal-body .student-history-stats{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin:12px 0}
+.student-portal-body .student-history-stats>div{background:var(--ui-panel-soft,#f3f7fb);border:1px solid var(--ui-line,#dce5ef);border-radius:12px;padding:12px;min-width:0;display:grid;gap:4px}
+.student-portal-body .student-history-stats strong{font-size:24px;line-height:1.1;font-variant-numeric:tabular-nums;color:var(--ui-text,#182947)}
+.student-portal-body .student-history-stats span,.student-portal-body .student-history-note{font-size:12px;color:var(--ui-muted,#60738c);overflow-wrap:anywhere}
+.student-portal-body .student-history-note{margin:10px 0 16px}
+.student-portal-body .student-history-day{margin:14px 0;min-width:0}
+.student-portal-body .student-history-day h3{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:6px;margin:0 0 8px;font-size:15px;color:var(--ui-text,#182947)}
+.student-portal-body .student-history-day h3 span{font-size:12px;font-weight:500;color:var(--ui-muted,#60738c)}
+.student-portal-body .student-history-groups{border:1px solid var(--ui-line,#dce5ef);border-radius:13px;overflow:hidden}
+.student-portal-body .student-history-group{margin:0;border-bottom:1px solid var(--ui-line,#dce5ef);background:var(--ui-panel,#fff);min-width:0;padding:0}
+.student-portal-body .student-history-group:last-child{border-bottom:0}
+.student-portal-body .student-history-group summary{display:grid;grid-template-columns:minmax(0,1fr) auto auto;gap:8px;align-items:center;min-height:62px;padding:12px;cursor:pointer;list-style:none;color:var(--ui-text,#182947)}
+.student-portal-body .student-history-group summary::-webkit-details-marker{display:none}
+.student-portal-body .student-history-group summary:focus-visible{outline:2px solid var(--ui-accent,#2563a9);outline-offset:-2px}
+.student-portal-body .student-history-name{display:grid;gap:4px;min-width:0;overflow-wrap:anywhere}
+.student-portal-body .student-history-name strong{font-size:15px;font-weight:700}
+.student-portal-body .student-history-name small,.student-portal-body .student-history-events small{font-size:12px;color:var(--ui-muted,#60738c)}
+.student-portal-body .student-history-status{font-size:11px;font-weight:750;padding:5px 8px;border-radius:20px;background:#e7f4ed;color:#216143;text-align:center;white-space:nowrap}
+.student-portal-body .student-history-status.is-late{background:#fff2d9;color:#80540c}
+.student-portal-body .student-history-chevron{color:var(--ui-muted,#60738c);font-size:20px;line-height:1}
+.student-portal-body .student-history-group[open] .student-history-chevron{transform:rotate(180deg)}
+.student-portal-body .student-history-events{list-style:none;padding:0 12px 8px;margin:0;background:var(--ui-panel-soft,#f3f7fb)}
+.student-portal-body .student-history-events li{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:3px 12px;padding:10px 0;border-top:1px solid var(--ui-line,#dce5ef);font-size:13px;color:var(--ui-text,#182947)}
+.student-portal-body .student-history-events li>div{display:grid;gap:3px;overflow-wrap:anywhere}
+.student-portal-body .student-history-event-status{grid-column:2;text-align:right}
+.student-portal-body .student-history-empty{padding:22px 14px;border:1px dashed var(--ui-line,#dce5ef);border-radius:12px;text-align:center;color:var(--ui-text,#182947);background:var(--ui-panel-soft,#f3f7fb)}
+.student-portal-body .student-history-empty p{font-size:13px;color:var(--ui-muted,#60738c);margin:6px 0 0}
+.student-portal-body .student-history-pages{display:flex;gap:8px;align-items:center;justify-content:space-between;flex-wrap:wrap;margin-top:12px}
+.student-portal-body .student-history-pages button{min-height:44px}
+.student-portal-body .student-history-pages span{font-size:12px;color:var(--ui-muted,#60738c)}
+.student-portal-body :is(.student-history-pages,.student-history-stats)[hidden]{display:none!important}
+html[data-ui-theme=dark] .student-history-status{background:#1c4638;color:#a2eac4}
+html[data-ui-theme=dark] .student-history-status.is-late{background:#523c20;color:#ffd58d}
+@media(min-width:1101px){.student-portal-body .student-main-grid{grid-template-areas:"profile attendance"}.student-portal-body #studentProfileCard{grid-area:profile}.student-portal-body #studentAttendanceCard{grid-area:attendance}}
+@media(max-width:420px){.student-portal-body .student-history-filters{grid-template-columns:minmax(0,1fr)}.student-portal-body .student-history-stats>div{padding:9px 7px}.student-portal-body .student-history-group summary{padding:10px 8px;gap:6px}}

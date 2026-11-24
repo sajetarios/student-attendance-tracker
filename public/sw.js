@@ -1,4 +1,4 @@
-const CACHE = "attendigo-v361-dashboard-notifications";
+const CACHE = "attendigo-v362-student-attendance-history";
 
 // Only public, non-personal offline shells and their executable dependencies.
 // An update must not discard the working cache before these are all ready.
@@ -59,8 +59,8 @@ const SHELL = [
   "/session-guard.js?v=6",
   "/flicker-diagnostics.js?v=1",
   "/school-header-responsive.js?v=2",
-  "/student-portal-refinement.css?v=1",
-  "/student-portal.js?v=26",
+  "/student-portal-refinement.css?v=2",
+  "/student-portal.js?v=27",
   "/student-qr-offline.js?v=4",
   "/student-qr-offline.html",
   "/student-qr-offline-page.js?v=5",
