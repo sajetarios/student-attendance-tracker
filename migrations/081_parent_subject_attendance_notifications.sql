@@ -5,6 +5,12 @@ CREATE OR REPLACE FUNCTION attendigo_parent_subject_finalized_notice()
 RETURNS TRIGGER LANGUAGE plpgsql AS $$
 BEGIN
  IF NEW.action <> 'FINALIZE' THEN RETURN NEW; END IF;
+ -- Explicit school opt-in prevents staging/database sharing from notifying real parents.
+ IF NOT EXISTS (
+   SELECT 1 FROM school_settings
+   WHERE school_id=NEW.school_id AND setting_key='parent_subject_notifications'
+     AND setting_value='true'::jsonb
+ ) THEN RETURN NEW; END IF;
 
  INSERT INTO user_notifications
    (school_id,recipient_kind,recipient_id,event_key,category,title,body,status,action_url)
