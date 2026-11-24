@@ -76,7 +76,7 @@ function redemptionFixture({role='TEACHER',school='school-a',tokenValid=true,dup
   if(sql.trimStart().startsWith('SELECT c.challenge_id,c.dtr_slot'))return {rowCount:expired?0:1,rows:expired?[]:[{
    challenge_id:challengeId,dtr_slot:'AM_OUT',school_date:manilaDate(),challenge_hash:challenge.challengeHash,
    issued_at:challenge.issuedAt,expires_at:challenge.expiresAt,revoked_at:null,
-   presenter_user_id:'presenter-a',presenter_role:'SCHOOL_ADMIN',department_id:'department-a'
+   presenter_user_id:'presenter-a',presenter_role:'TEACHER',department_id:'cccccccc-cccc-4ccc-accc-cccccccccccc'
   }]};
   if(sql.includes('SELECT verification_status FROM staff_attendance_events'))return {
     rowCount:duplicate?1:0,rows:duplicate?[{verification_status:'VERIFIED'}]:[]};
@@ -92,7 +92,7 @@ function redemptionFixture({role='TEACHER',school='school-a',tokenValid=true,dup
  const auth=(req,res,next)=>next();
  const roles=(...allowed)=>(req,res,next)=>allowed.includes(req.auth.role)?next():res.status(403).json({error:'Forbidden'});
  registerStaffLunchRoutes({post(path,...handlers){routes.set(path,handlers)},get(path,...handlers){routes.set(path,handlers)},put(path,...handlers){routes.set(path,handlers)},delete(path,...handlers){routes.set(path,handlers)}},pool,{authenticateSchoolClient:auth,requireSchoolRoles:roles});
- const req={auth:{type:'SCHOOL_USER',role,schoolId:school,userId:'teacher-a'},body:{challengeId,token:tokenValid?challenge.token:createLunchChallenge({slot:'AM_OUT'}).token,location:{latitude:9,longitude:125,accuracyMeters:10,capturedAt:Date.now()}}};
+ const req={auth:{type:'SCHOOL_USER',role,schoolId:school,userId:'teacher-a',departmentId:'cccccccc-cccc-4ccc-accc-cccccccccccc'},body:{challengeId,token:tokenValid?challenge.token:createLunchChallenge({slot:'AM_OUT'}).token,location:{latitude:9,longitude:125,accuracyMeters:10,capturedAt:Date.now()}}};
  const response={code:200,headers:{},set(k,v){this.headers[k]=v;return this;},status(n){this.code=n;return this;},json(body){this.body=body;return this;}};
  return {handlers:routes.get('/api/staff-attendance/lunch/redeem'),req,response,queries};
 }
@@ -163,10 +163,10 @@ test('presenter QR issuance fails closed and revokes own outstanding codes for m
   assert.equal(f.queries.at(-1).sql,'COMMIT');
  }
 });
-test('unapproved department location blocks presenter issuance even for an administrator',async()=>{
+test('unapproved location blocks teacher issuance and Admin cannot present',async()=>{
  for(const role of ['TEACHER','SCHOOL_ADMIN']){
   const f=fixture(role,true,false),res=await execute(f);
-  assert.equal(res.code,403);assert.equal(res.body.code,'DEPARTMENT_LOCATION_NOT_CONFIGURED');
+  assert.equal(res.code,403);if(role==='TEACHER')assert.equal(res.body.code,'DEPARTMENT_LOCATION_NOT_CONFIGURED');else assert.equal(f.queries.length,0);
   assert.ok(!f.queries.some(q=>q.sql.includes('INSERT INTO staff_attendance_challenges')));
  }
 });

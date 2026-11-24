@@ -48,7 +48,7 @@
    '<div class="staff-location-permission-heading">',
    '<span class="staff-location-permission-symbol" aria-hidden="true">⌖</span>',
    '<div><h2 id="staffLocationPermissionTitle">Enable location access</h2>',
-   '<p id="staffLocationPermissionSummary">Attendigo needs your device location to submit the department QR attendance point for School Admin approval.</p></div></div>',
+   '<p id="staffLocationPermissionSummary">Attendigo needs your device location to activate the department QR attendance point after GPS validation.</p></div></div>',
    '<p id="staffLocationPermissionMessage" class="staff-location-permission-message"></p>',
    '<div id="staffLocationPermissionHelp" class="staff-location-permission-help" hidden>',
    '<label for="staffLocationPermissionDevice">Choose your device or browser</label>',
@@ -123,13 +123,13 @@
   title.textContent=user.departmentName||'My assigned department';
   async function refresh(){
    try{
-    const info=await request('/api/staff-attendance/lunch/location');
+    const [info,registry]=await Promise.all([request('/api/staff-attendance/lunch/location'),request('/api/staff-attendance/lunch/campuses')]);
+    const campus=$('staffLunchHeadCampus');
+    if(campus){campus.replaceChildren(new Option('Existing trusted department area (if configured)',''));for(const c of registry.campuses||[])campus.add(new Option(c.name,c.campusId));if(info.campusId){if(![...campus.options].some(o=>o.value===info.campusId))campus.add(new Option('Previously assigned campus (unavailable)',info.campusId));campus.value=info.campusId;campus.disabled=true;}}
     title.textContent=info.departmentName||title.textContent;
-    const current=info.configured?'Approved attendance location is active.':'No approved attendance location yet.';
-    const review=info.proposalStatus==='PENDING'?' Your latest submission is pending School Admin approval.':
-      info.proposalStatus==='REJECTED'?' Previous proposal was rejected; you may submit a corrected location.':
-      info.proposalStatus==='APPROVED'?' Location proposal was approved.':'';
-    status.textContent=current+review;
+    const current=info.relocationPending?'Relocation authorized. Capture fresh GPS at the destination campus; Gatekeeper remains available.':info.configured?'Attendance location is active.':'No active department location. Select an authorized campus, or use Gatekeeper scanning.';
+    const radius=$('staffLunchHeadRadius');if(radius&&info.radiusMeters)radius.value=String(info.radiusMeters);
+    status.textContent=current+(info.proposalStatus==='PENDING'?' Capture fresh GPS to replace the former pending proposal.':'');
    }catch(error){status.textContent='Unable to load department location: '+error.message;}
   }
   async function submitLocation(){
@@ -149,14 +149,18 @@
     if(!Number.isFinite(position.accuracyMeters)||position.accuracyMeters>70||
        !Array.isArray(position.samples)||position.samples.length<2)
      throw Error('Not enough precise GPS readings to submit. Enable precise location, move near a window and retry.');
-    status.textContent='GPS captured (about '+Math.round(position.accuracyMeters)+' m accuracy). Submitting for School Admin approval…';
+    status.textContent='GPS captured (about '+Math.round(position.accuracyMeters)+' m accuracy). Validating and activating…';
     const result=await request('/api/staff-attendance/lunch/location/propose',{
      method:'POST',
      body:JSON.stringify({departmentId,latitude:position.latitude,
       longitude:position.longitude,accuracyMeters:position.accuracyMeters,
-      samples:position.samples,radiusMeters:120})
+      samples:position.samples,campusId:$('staffLunchHeadCampus')?.value||undefined,radiusMeters:Number($('staffLunchHeadRadius')?.value||120)})
     });
-    status.textContent=result.message||'Location submitted for School Admin approval. This does not change the approved location yet.';
+    if(result.status!=='ACTIVE')throw Error('The server did not confirm activation.');
+    const saved=await request('/api/staff-attendance/lunch/location');
+    if(!saved.configured||saved.departmentId!==departmentId)throw Error('Activation could not be confirmed. Refresh before retrying.');
+    await refresh();
+    status.textContent=result.message||'Department attendance location is active.';
    }catch(error){
     status.textContent='Location not submitted: '+failure(error);
     if(error?.code===1)openGuide('denied');
@@ -171,113 +175,8 @@
   document.addEventListener('attendigo:dashboard-refresh',event=>{if(!card.hidden&&!button.disabled)event.detail.tasks.push(refresh());});
   await refresh();
  }
- async function initAdmin(){
-  const select=$('staffLunchLocationDepartment'),status=$('staffLunchPointStatus'),
-   review=$('staffLunchLocationReview'),approve=$('staffLunchApprovePoint'),
-   reject=$('staffLunchRejectPoint'),map=$('staffLunchCandidateMap');
-  if(!select||!status||!approve||!reject||!review)return;
-  let seq=0,busy=false;
-  const feedback=document.createElement('p');
-  feedback.className='staff-lunch-status';
-  feedback.setAttribute('role','status');feedback.setAttribute('aria-live','polite');
-  feedback.hidden=true;status.after(feedback);
-  function showFeedback(message){feedback.textContent=message;feedback.hidden=!message;}
-  const refreshButton=document.createElement('button');
-  refreshButton.type='button';refreshButton.className='outline-button';
-  refreshButton.textContent='Refresh location status';
-  approve.parentElement.append(refreshButton);
-  function pendingButtons(enabled){approve.disabled=!enabled;reject.disabled=!enabled;}
-  async function refresh(){
-   const id=select.value,requestSeq=++seq;
-   pendingButtons(false);review.hidden=true;
-   if(map){map.hidden=true;map.removeAttribute('href');}
-   if(!id){status.textContent='Choose a department to review its location status.';return;}
-   status.textContent='Loading location proposal…';
-   try{
-    const result=await request('/api/staff-attendance/lunch/location?'+
-     new URLSearchParams({departmentId:id}).toString());
-    if(seq!==requestSeq||select.value!==id)return;
-    const approved=result.configured?'APPROVED — active location ('+result.radiusMeters+' m radius).'+
-     (result.approvedAt?' Activated: '+new Date(result.approvedAt).toLocaleString('en-PH',{timeZone:'Asia/Manila'})+'.':''):
-     'No approved location. Teacher scans will need review until approval.';
-    if(result.proposalStatus==='PENDING'&&result.candidate){
-     const point=result.candidate;
-     status.textContent=approved+' PENDING APPROVAL — a Department Head has submitted a location for review.';
-     review.hidden=false;
-     review.textContent='Submitted point: '+Number(point.latitude).toFixed(5)+', '+
-      Number(point.longitude).toFixed(5)+' · Accuracy reported: '+Math.round(point.accuracyMeters)+' m.';
-     if(map){
-      map.href='https://www.google.com/maps?q='+encodeURIComponent(point.latitude+','+point.longitude);
-      map.hidden=false;
-     }
-     pendingButtons(true);
-    }else{
-     status.textContent=approved+(
-      result.proposalStatus==='APPROVED'?' Latest submission: APPROVED.':
-      result.proposalStatus==='REJECTED'?' Latest proposal: REJECTED.':
-      ' Awaiting a Department Head submission.');
-    }
-    return result;
-   }catch(error){if(seq===requestSeq)status.textContent='Unable to load location: '+error.message;return null;}
-  }
-  try{
-   const data=await request('/api/departments');
-   const departments=(data.departments||[]).filter(d=>d.active===true&&d.code!=='UNASSIGNED');
-   select.replaceChildren(new Option('Choose a department',''));
-   for(const d of departments)select.add(new Option(d.name||'Department',d.departmentId));
-   if(departments.length===1)select.value=departments[0].departmentId;
-   await refresh();
-  }catch(error){status.textContent='Department list unavailable: '+error.message;return;}
-  window.AttendigoDepartmentLocation={open(id){if(busy||!Array.from(select.options).some(o=>o.value===id))return false;select.value=id;void refresh();status.scrollIntoView({block:'center'});return true;}};
-  document.addEventListener('attendigo:dashboard-refresh',event=>{if(!busy&&!$('lunchQrAdminView')?.hidden)event.detail.tasks.push(refresh());});
-  select.addEventListener('change',()=>{showFeedback('');void refresh();});
-  refreshButton.addEventListener('click',()=>{if(!busy)void refresh();});
-  async function decide(decision){
-   const departmentId=select.value;
-   if(!departmentId||busy)return;
-   const isApproval=decision==='APPROVE';
-   const departmentName=select.selectedOptions[0].text;
-   busy=true;pendingButtons(false);select.disabled=true;refreshButton.disabled=true;
-   showFeedback('');
-   let outcome='';
-   try{
-    if(!window.AppDialog?.prompt)throw Error('The confirmation dialog did not load. Refresh Attendigo and try again.');
-    const note=await window.AppDialog.prompt(
-     isApproval?'Confirm the submitted point for '+departmentName+'. Once approved, it becomes the active location for QR verification.':
-      'Reject the proposed point for '+departmentName+'. Any existing approved location remains active.','',{
-      title:isApproval?'Approve department location':'Reject department location',
-      label:'Review reason',inputType:'textarea',required:true,maxLength:500,
-      helpText:'Enter 10–500 characters for the approval audit history.',
-      confirmText:isApproval?'Confirm approval':'Confirm rejection',
-      variant:isApproval?'default':'danger',
-      validate:value=>value.trim().length>=10&&value.trim().length<=500?true:'Enter a reason between 10 and 500 characters.'
-     });
-    if(note===null){outcome='Review cancelled. No decision was submitted.';return;}
-    showFeedback(isApproval?'Saving approval…':'Saving rejection…');
-    const result=await request('/api/staff-attendance/lunch/location/decision',{
-     method:'POST',body:JSON.stringify({departmentId,decision,note:note.trim()})
-    });
-    const expected=isApproval?'APPROVED':'REJECTED';
-    if(result.status!==expected)throw Error('The server did not confirm the requested decision. Check location status before retrying.');
-    const saved=await refresh();
-    if(saved?.proposalStatus===expected&&(!isApproval||saved.configured)){
-     outcome=isApproval?'Approval confirmed — '+departmentName+' location is active.':'Rejection confirmed — '+departmentName+' proposal was rejected.';
-    }else{
-     outcome='Server saved the '+expected.toLowerCase()+' decision, but the latest location status could not be confirmed. Refresh location status to check.';
-    }
-   }catch(error){
-    outcome='Review not confirmed: '+error.message+' Check the current status before retrying.';
-   }finally{
-    await refresh();
-    showFeedback(outcome);
-    busy=false;select.disabled=false;refreshButton.disabled=false;
-   }
-  }
-  approve.addEventListener('click',()=>{void decide('APPROVE');});
-  reject.addEventListener('click',()=>{void decide('REJECT');});
- }
  window.attendigoStaffIdentity?.then(user=>{
   if(user?.role==='DEPARTMENT_HEAD')return initHead(user);
-  if(user?.role==='SCHOOL_ADMIN')return initAdmin();
+  // The former School Admin approval interface is intentionally retired.
  }).catch(()=>{});
 })();

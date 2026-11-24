@@ -14,8 +14,8 @@
     return data;
   }
   async function init(user) {
-    if(!['SCHOOL_ADMIN','TEACHER'].includes(user?.role))return;
-    const admin=user.role==='SCHOOL_ADMIN';
+    if(!['DEPARTMENT_HEAD','TEACHER'].includes(user?.role))return;
+    const admin=user.role==='DEPARTMENT_HEAD';
     const host=$(admin?'staffLunchAdminCard':'staffLunchPresenterCard');
     if(!host)return;
     host.hidden=false;
@@ -29,6 +29,10 @@
     const teacherSelect=admin?$('staffLunchTeacher'):null;
     const departmentSelect=admin?$('staffLunchDepartment'):null;
     const activeList=admin?$('staffLunchAssignedList'):null;
+    const enabledSwitch=$('staffLunchEnabled'),saveEnabled=$('staffLunchSaveEnabled');
+    const windowToggle=$('staffLunchWindowsEnabled'),windowFields=$('staffLunchWindows');
+    const windowInputs={AM_OUT:[$('staffLunchAMOutStart'),$('staffLunchAMOutEnd')],PM_IN:[$('staffLunchPMInStart'),$('staffLunchPMInEnd')]};
+    windowToggle?.addEventListener('change',()=>{if(windowFields)windowFields.hidden=!windowToggle.checked;});
     let eligibleTeachers=[];
     let assigned=false,expiryMonotonicDeadline=0,rotationMonotonicDeadline=0,busy=false;
     function setStatus(message,failed=false) {
@@ -58,6 +62,8 @@
           new URLSearchParams({slot:slot.value}).toString());
         assigned=!!info.assigned;
         if(admin) {
+          if(enabledSwitch)enabledSwitch.checked=info.enabled!==false;
+          if(windowToggle){windowToggle.checked=!!info.windows;if(windowFields)windowFields.hidden=!windowToggle.checked;for(const [key,inputs] of Object.entries(windowInputs)){if(inputs[0])inputs[0].value=info.windows?.[key]?.start||'';if(inputs[1])inputs[1].value=info.windows?.[key]?.end||'';}}
           const presenters=Array.isArray(info.presenters)?info.presenters:[];
           const filter=departmentSelect.value;
           const shown=presenters.filter(p=>!filter||p.departmentId===filter);
@@ -97,24 +103,30 @@
           revoked.disabled=true;
         }else{
           assigned=!!info.isCurrentPresenter;
-          setStatus(assigned
+          setStatus(info.enabled===false?'Lunch QR is disabled in your department. Use supervised Gatekeeper scanning.':assigned
             ? 'You are assigned to present the '+slotLabel(slot.value)+' QR today.'
             : info.assigned
               ? slotLabel(slot.value)+' QR is assigned to another teacher.'
-              : 'No presenter assigned. Ask your School Administrator.');
+              : 'No presenter assigned. Ask your Department Head.');
           action.disabled=!assigned;
         }
       }catch(error){assigned=false;action.disabled=true;if(revoked)revoked.disabled=true;setStatus(error.message,true);}
     }
     slot.addEventListener('change',()=>{refresh().catch(()=>{});});
     if(admin) {
+      if(saveEnabled&&enabledSwitch)saveEnabled.addEventListener('click',async()=>{
+        saveEnabled.disabled=true;
+        try{await request('/api/staff-attendance/lunch/config',{method:'PUT',body:JSON.stringify({enabled:enabledSwitch.checked,...(windowToggle?{windows:windowToggle.checked?Object.fromEntries(Object.entries(windowInputs).map(([key,inputs])=>[key,{start:inputs[0]?.value||'',end:inputs[1]?.value||''}])):null}:{})})});await refresh();}
+        catch(error){setStatus(error.message,true);}
+        finally{saveEnabled.disabled=false;}
+      });
       try{
         const teachers=(await request('/api/teachers')).teachers||[];
-        eligibleTeachers=teachers.filter(t=>t.active===true&&t.teacherStatus!=='ON_LEAVE');
+        eligibleTeachers=teachers.filter(t=>t.active===true&&t.teacherStatus!=='ON_LEAVE'&&String(t.departmentId)===String(user.departmentId));
         const departments=new Map();
         eligibleTeachers.forEach(t=>{if(t.departmentId)departments.set(t.departmentId,t.departmentName||'Department');});
-        departmentSelect.replaceChildren(new Option('All departments',''));
-        [...departments.entries()].sort((a,b)=>a[1].localeCompare(b[1])).forEach(([id,name])=>departmentSelect.add(new Option(name,id)));
+        departmentSelect.replaceChildren(new Option(user.departmentName||'My department',user.departmentId||''));
+        departmentSelect.hidden=true;
         function updateTeacherOptions(){
           const filter=departmentSelect.value;
           teacherSelect.replaceChildren();

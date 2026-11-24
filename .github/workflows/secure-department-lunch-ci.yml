@@ -69,4 +69,6 @@ jobs:
       - name: Validate schema in disposable CI PostgreSQL
         run: npm run db:migrate
       - name: Validate real lunch QR, location, independent review and Gatekeeper flows
-        run: node tests/staff-lunch-postgres.cjs
+        run: node tests/department-lunch-delegation-postgres.cjs
+      - name: Multi-campus concurrent load and duplicate prevention
+        run: node tests/department-lunch-scale-postgres.cjs

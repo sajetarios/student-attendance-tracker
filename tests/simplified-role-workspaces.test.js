@@ -53,7 +53,7 @@ test('Department Head and Teacher retain class schedules, QR, OB, personal DTR, 
   ]) assert.match(html, new RegExp('data-view="' + view + '"'));
   assert.match(script, /move\('myGateAttendanceNav', 'personalAttendance'\)/);
   assert.match(script, /label\('personalAttendance', 'My Attendance'\)/);
-  assert.match(portal, /if \(role === 'DEPARTMENT_HEAD'\) return \['dashboard', 'planner', 'students', 'teachers', 'schedules', 'sf2', 'officialBusiness', 'myGateAttendance'\]/);
+  assert.match(portal, /if \(role === 'DEPARTMENT_HEAD'\) return \['dashboard', 'planner', 'students', 'teachers', 'schedules', 'sf2', 'officialBusiness', 'myGateAttendance', 'lunchQrAdmin'\]/);
   assert.match(portal, /if \(teacherHas\('SUBJECT_TEACHER'\) \|\| teacherHas\('CLASS_ADVISER'\)\) views\.push\('sf2'\)/);
 });
 

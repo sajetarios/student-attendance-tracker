@@ -31,10 +31,15 @@ async function main() {
     const key='staff_lunch_geo_proposal_'+dept,proposal={status:'PENDING',proposedBy:head,proposedAt:new Date().toISOString(),point:{latitude:1,longitude:2}};
     await client.query("INSERT INTO school_settings(school_id,setting_key,setting_value) VALUES($1,$2,$3::jsonb)",[schoolA,key,JSON.stringify(proposal)]);
     const alerts=async()=> (await client.query("SELECT recipient_id,status,category,action_url,read_at FROM user_notifications WHERE request_type='DEPARTMENT_LOCATION' AND request_id=$1 ORDER BY category",[dept])).rows;
-    let list=await alerts();assert.equal(list.length,1);assert.equal(list[0].recipient_id,admin);assert.equal(list[0].action_url,'/portal.html?view=lunchQrAdmin');
+    // The legacy proposal approval trigger must be gone, not merely hidden in the UI.
+    const retired=await client.query("SELECT count(*)::int AS count FROM pg_trigger WHERE tgname='department_location_notification' AND NOT tgisinternal");
+    assert.equal(retired.rows[0].count,0);
+    assert.deepEqual(await alerts(),[],'Retired location proposal cannot notify Admin or any other account');
     await client.query("UPDATE school_settings SET setting_value=$3::jsonb WHERE school_id=$1 AND setting_key=$2",[schoolA,key,JSON.stringify({...proposal,status:'APPROVED'})]);
-    list=await alerts();assert.equal(list.length,2);assert.equal(list.find(x=>x.category==='REQUEST').recipient_id,head);assert.equal(list.find(x=>x.category==='APPROVAL').status,'APPROVED');assert.ok(list.find(x=>x.category==='APPROVAL').read_at);assert.ok(!list.some(x=>x.recipient_id===outsider));
-    console.log('Notification migration, event idempotence, tenant isolation and department location lifecycle checks passed.');
+    assert.deepEqual(await alerts(),[],'Stale approval writes cannot create approval or decision notifications');
+    const livePoint=await client.query("SELECT 1 FROM school_settings WHERE school_id=$1 AND setting_key=$2",[schoolA,'staff_lunch_geo_'+dept]);
+    assert.equal(livePoint.rowCount,0,'Legacy proposal cannot activate a trusted department point');
+    console.log('Notification migration, event idempotence, tenant isolation and retired location lifecycle checks passed.');
   } finally {
     await client.query('ROLLBACK').catch(()=>{});
     client.release();

@@ -90,7 +90,7 @@ jobs:
       - name: Verify school deletion handles pilot reset archives and preserves other schools
         run: node tests/platform-school-deletion-postgres.cjs
       - name: Verify concurrent staff lunch QR and Gatekeeper DTR against PostgreSQL
-        run: node tests/staff-lunch-postgres.cjs
+        run: node tests/department-lunch-delegation-postgres.cjs
       - name: Verify School Admin gate-to-DTR approval, audit and tenant isolation against PostgreSQL
         run: node tests/gate-dtr-admin-review-postgres.cjs
       - name: Verify notification event creation and idempotence against PostgreSQL

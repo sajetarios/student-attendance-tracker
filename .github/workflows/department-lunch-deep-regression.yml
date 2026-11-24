@@ -1,0 +1,204 @@
+name: Department lunch deep regression (disposable DB)
+on:
+  pull_request:
+    branches: [fix/render-login-landing, staging/school-day-dry-run-20261120]
+  push:
+    branches: [feature/department-lunch-delegation-20261124, staging/school-day-dry-run-20261120]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  full-unit-regression:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci
+      - name: Full legacy regression suite (including prior permission expectations)
+        run: npm test
+  isolated-department-lunch:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: school_attendance_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d school_attendance_test"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    env:
+      DATABASE_URL: postgres://postgres:postgres@localhost:5432/school_attendance_test
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci
+      - name: Syntax checks
+        run: |
+          node --check staff-lunch-routes.js
+          node --check public/staff-lunch-ui.js
+          node --check public/staff-department-location.js
+          node --check public/portal.js
+          node --check public/universal-notifications.js
+          node --check tests/department-lunch-delegation-postgres.cjs
+          node --check staff-lunch-campus.js
+          node --check staff-lunch-windows.js
+          node --check public/principal-trusted-campus.js
+          node --check tests/department-lunch-scale-postgres.cjs
+      - name: Install database roles
+        run: |
+          node - <<'NODE'
+          const {Client}=require('pg');
+          (async()=>{const db=new Client({connectionString:process.env.DATABASE_URL});await db.connect();try{await db.query("DO $$ BEGIN IF NOT EXISTS(SELECT 1 FROM pg_roles WHERE rolname='anon') THEN CREATE ROLE anon; END IF; IF NOT EXISTS(SELECT 1 FROM pg_roles WHERE rolname='authenticated') THEN CREATE ROLE authenticated; END IF; END $$;");}finally{await db.end();}})().catch(e=>{console.error(e);process.exitCode=1});
+          NODE
+      - run: npm run db:migrate
+      - name: Full application regression with disposable PostgreSQL (including DB-only cases)
+        run: npm test
+      - name: Department delegation and existing Gatekeeper regression
+        run: node tests/department-lunch-delegation-postgres.cjs
+      - name: Concurrent synthetic campus and department load (10, 50, 100 departments)
+        run: node tests/department-lunch-scale-postgres.cjs
+  responsive-browser:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: npm install --no-save --package-lock=false --ignore-scripts playwright@1.56.1
+      - run: npx playwright install --with-deps chromium
+      - run: node scripts/check-responsive-layout.cjs
+
+  upgrade-existing-schema:
+    name: Upgrade from ${{ matrix.baseline.name }} (PostgreSQL 17)
+    strategy:
+      fail-fast: false
+      matrix:
+        baseline:
+          - name: live-production-source
+            sha: 8a3235da8e5e21a94f69b42dcb3ced5ea79ad425
+          - name: existing-staging-source
+            sha: ec6ce0d6e99247247bc5296dcb5398a3b03e99b7
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: school_attendance_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d school_attendance_test"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    env:
+      DATABASE_URL: postgres://postgres:postgres@localhost:5432/school_attendance_test
+      ATTENDIGO_PRIMARY_DATABASE: render
+      PGPASSWORD: postgres
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ matrix.baseline.sha }}
+          path: baseline
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci
+      - name: Install database roles for Supabase parity
+        run: psql -h localhost -U postgres -d school_attendance_test -v ON_ERROR_STOP=1 -c 'CREATE ROLE anon; CREATE ROLE authenticated;'
+      - name: Apply exact older release migration history
+        working-directory: baseline
+        run: |
+          npm ci
+          npm run db:migrate
+      - name: Insert synthetic school and persistent settings
+        run: |
+          psql -h localhost -U postgres -d school_attendance_test -v ON_ERROR_STOP=1 <<'SQL'
+          INSERT INTO schools(school_code,school_name) VALUES('UPGRADE_FIXTURE','Synthetic migration continuity');
+          INSERT INTO school_settings(school_id,setting_key,setting_value) SELECT school_id,'upgrade-continuity','{"preserve":true}'::jsonb FROM schools WHERE school_code='UPGRADE_FIXTURE';
+          SQL
+      - name: Apply candidate migrations without clearing prior schema or data
+        run: npm run db:migrate
+      - name: Verify idempotence and synthetic data continuity
+        run: |
+          npm run db:migrate
+          psql -h localhost -U postgres -d school_attendance_test -v ON_ERROR_STOP=1 -Atc "SELECT count(*) FROM school_settings s JOIN schools sc ON s.school_id=sc.school_id WHERE sc.school_code='UPGRADE_FIXTURE' AND s.setting_key='upgrade-continuity' AND s.setting_value='{\"preserve\":true}'::jsonb" | grep -x 1
+          psql -h localhost -U postgres -d school_attendance_test -v ON_ERROR_STOP=1 -Atc "SELECT count(*) FROM schema_migrations WHERE migration_name IN ('089_retire_department_location_approval.sql','090_staff_lunch_trusted_campuses.sql','091_lunch_qr_review_notifications.sql')" | grep -x 3
+      - name: Verify real authenticated lunch and Gatekeeper flows after upgrade
+        run: node tests/department-lunch-delegation-postgres.cjs
+
+  live-staging-public-smoke:
+    name: Live staging public browser smoke (no real accounts)
+    if: github.event_name == 'pull_request' && startsWith(github.head_ref, 'qa/department-lunch-release-gate-')
+    runs-on: ubuntu-24.04
+    timeout-minutes: 12
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: npm install --no-save --package-lock=false --ignore-scripts playwright@1.56.1
+      - run: npx playwright install --with-deps chromium
+      - name: Check staging startup, unauthenticated access and login on mobile and desktop
+        run: |
+          node - <<'NODE'
+          const assert = require('node:assert/strict');
+          const { chromium } = require('playwright');
+          const origin = 'https://attendigo-staging.onrender.com';
+          (async () => {
+            const browser = await chromium.launch({ headless: true });
+            try {
+              for (const width of [320, 390, 1280]) {
+                const context = await browser.newContext({ viewport: { width, height: 900 } });
+                try {
+                  const page = await context.newPage();
+                  let response;
+                  for (let attempt = 0; attempt < 3; attempt++) {
+                    try {
+                      response = await page.goto(origin + '/', { waitUntil: 'domcontentloaded', timeout: 90000 });
+                      await page.waitForURL(url => url.origin === origin && url.pathname === '/portal-login.html', { timeout: 30000 });
+                      await page.locator('#loginForm').waitFor({ state: 'visible', timeout: 30000 });
+                      break;
+                    } catch (e) {
+                      if (attempt === 2) throw e;
+                    }
+                  }
+                  assert.equal(new URL(page.url()).origin, origin);
+                  assert.match(await page.title(), /Attendigo/i);
+                  for (const selector of ['#schoolCode', '#username', '#password', '#signInButton', '#studentMode', '#schoolMode']) {
+                    assert.ok(await page.locator(selector).isVisible(), selector + ' at ' + width + 'px');
+                  }
+                  await page.locator('#studentMode').click();
+                  assert.equal(await page.locator('#studentMode').getAttribute('aria-pressed'), 'true');
+                  await page.locator('#schoolMode').click();
+                  assert.equal(await page.locator('#schoolMode').getAttribute('aria-pressed'), 'true');
+                  const auth = await context.request.get(origin + '/api/auth/me');
+                  assert.equal(auth.status(), 401, 'Unauthenticated session must not expose a user');
+                  console.log('Live public staging login, role switching, and session rejection passed at ' + width + 'px');
+                } finally { await context.close(); }
+              }
+            } finally { await browser.close(); }
+          })().catch(error => { console.error(error.message); process.exitCode = 1; });
+          NODE
