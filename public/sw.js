@@ -1,4 +1,4 @@
-const CACHE = "attendigo-v386-principal-memoranda";
+const CACHE = "attendigo-v387-document-branding";
 
 // Only public, non-personal offline shells and their executable dependencies.
 // An update must not discard the working cache before these are all ready.
@@ -336,7 +336,7 @@ self.addEventListener("fetch", event => {
 
   // Authenticated dashboards are never served from the offline shell cache.
   if (["/portal.html", "/class-qr-monitor.html", "/principal.html", "/school-memos.html", "/admin-sdo-coordination.html", "/student-portal.html", "/parent-portal.html",
-       "/force-password-change.html", "/attendance-pin.html", "/class-qr-checkin.html", "/staff-lunch-checkin.html"].includes(url.pathname)) {
+       "/force-password-change.html", "/attendance-pin.html", "/class-qr-checkin.html", "/staff-lunch-checkin.html", "/leave-form6.html"].includes(url.pathname)) {
     event.respondWith(fetch(request, { cache: "no-store" }).catch(async error=>{
       if(url.pathname==='/student-portal.html')return (await caches.match('/student-qr-offline.html'))||Response.error();
       if(request.mode==='navigate' && url.pathname==='/portal.html')return (await caches.match('/offline-welcome.html'))||Response.error();

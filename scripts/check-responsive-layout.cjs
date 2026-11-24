@@ -150,5 +150,42 @@ async function setup(page,name,body,attrs='',classes='portal-page'){
    await contained(page,'.campus-preview','#trustedCampusForm');
    console.log('Campus GPS, radius, attestation and mobile geometry: '+width+'px passed');
   }
+
+  // Actual new School Identity settings and Form 6 layout, with fictional data.
+  for(const width of [320,390,768,1280]){
+   await page.setViewportSize({width,height:900});
+   const portal=read('portal.html');
+   const start=portal.indexOf('<div class="surface-card section-card document-branding-card"');
+   const end=portal.indexOf('</section>',start);
+   assert.ok(start>=0&&end>start);
+   await setup(page,'portal.html',portal.slice(start,end),'data-simple-workspace-role="SCHOOL_ADMIN"');
+   await page.evaluate(()=>{
+    document.getElementById('documentBrandingFields').disabled=false;
+    document.getElementById('documentPreviewSchool').textContent='Fictional School With a Long Registered Name';
+    document.getElementById('documentPreviewAddress').textContent='Fictional long school address for wrapping and layout checks';
+   });
+   await contained(page,'.doc-brand-grid input','.document-branding-card');
+   await contained(page,'.doc-brand-actions button','.document-branding-card');
+   await contained(page,'.doc-brand-preview','.document-branding-card');
+   const input=await box(page,'.doc-brand-grid input');
+   assert.ok(input.height>=44,'document settings touch target');
+   await page.setContent(read('leave-form6.html').replace(/<script\b[^>]*>[\s\S]*?<\/script>/gi,''));
+   await page.evaluate(()=>{
+    document.getElementById('school').textContent='Fictional School With a Long Registered Name';
+    document.getElementById('formDivision').textContent='Fictional Division Office';
+    document.getElementById('name').textContent='Fictional Applicant Name';
+    document.getElementById('details').textContent='Fictional leave detail';
+    for(let i=0;i<14;i++){const node=document.createElement('span');node.className='checkline';node.textContent='☐ Example leave type';document.getElementById('types').append(node);}
+   });
+   await contained(page,'.document-head','.sheet');
+   await contained(page,'.approval','.sheet');
+   assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1),true,'Form 6 screen overflows at '+width);
+   await page.emulateMedia({media:'print'});
+   assert.equal(await page.locator('.print-tools').isVisible(),false);
+   const printCols=await page.locator('.grid').first().evaluate(el=>getComputedStyle(el).gridTemplateColumns.split(' ').length);
+   assert.equal(printCols,12,'print grid must not use the mobile stacked layout');
+   await page.emulateMedia({media:'screen'});
+   console.log('Document identity and Form 6 screen/print geometry: '+width+'px passed');
+  }
  }finally{await browser.close();}
 })().catch(e=>{console.error(e);process.exitCode=1;});
