@@ -35,7 +35,12 @@ async function checkMemoGeometry(engine,engineName){
      assert.ok(start>=0&&end>start,'actual publisher fixture found');
      const publisher=source.slice(start,end+10).replace('class="surface principal-memo-publish" hidden','class="surface principal-memo-publish attendigo-memo-embedded-publisher"').replace('id="principalMemoDtrFields" hidden','id="principalMemoDtrFields"');
      await page.setContent('<!doctype html><html data-theme="'+theme+'"><head><meta name="viewport" content="width=device-width,initial-scale=1"></head><body><div class="shell"><main style="width:100%;min-width:0"><section id="attendigoSchoolMemoPanel" class="attendigo-memo-workspace attendigo-memo-management"><div class="attendigo-memo-toolbar"><div class="attendigo-memo-counters"><span class="attendigo-memo-counter">Published</span></div><div class="attendigo-memo-manager-actions"><button class="attendigo-memo-create">Hide publication form</button><button class="attendigo-memo-refresh">Refresh</button></div></div><div class="attendigo-memo-composer">'+publisher+'</div></section></main></div></body></html>');
-     for(const css of styles('principal.html'))await page.addStyleTag({content:css});
+     // WebKit can reject addStyleTag when a stylesheet's remote font import fails.
+     // Load the same local CSS in order without waiting on third-party font requests.
+     await page.evaluate(sheets=>{for(const css of sheets){const node=document.createElement('style');node.textContent=css;document.head.append(node);}},styles('principal.html').map(css=>css.replace(/@import\s+[^;]+;/g,'')));
+     assert.equal(await page.locator('#principalMemoForm').evaluate(e=>getComputedStyle(e).display),'grid');
+     for(const name of ['effectiveDate','endDate'])await page.locator('input[name='+name+']').fill('2026-11-24');
+     for(const name of ['dtrAmIn','dtrAmOut','dtrPmIn','dtrPmOut'])await page.locator('input[name='+name+']').fill('08:00');
      const geometry=await page.evaluate(()=>{
       const rect=e=>{const r=e.getBoundingClientRect();return {x:r.x,y:r.y,width:r.width,height:r.height};};
       const form=document.getElementById('principalMemoForm');

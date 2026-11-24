@@ -375,10 +375,10 @@ catch (_) { document.documentElement.dataset.theme = 'light'; }
         <option value="CLASS_SUSPENSION">Class suspension notice</option>
        </select></label>
       <label>Who can view and acknowledge?
-       <select name="audience" required>
-        <option value="ALL_USERS">All school users, including registered students &amp; parents</option>
+       <select name="audience" required aria-describedby="principalMemoAudienceHelp">
+        <option value="ALL_USERS">All school users</option>
         <option value="SCHOOL_STAFF">School personnel only</option>
-       </select></label>
+       </select><small id="principalMemoAudienceHelp" class="source-note">All school users includes registered students and parents.</small></label>
      </div>
      <div class="principal-memo-fields principal-memo-date-fields">
       <label>Effective start date (required for temporary notices)

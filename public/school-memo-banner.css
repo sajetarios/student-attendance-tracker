@@ -431,3 +431,7 @@
   grid-template-columns:minmax(0,1fr);
  }
 }
+
+/* Keep label tracks shrinkable independently of the native control's intrinsic size. */
+#attendigoSchoolMemoPanel #principalMemoForm .principal-memo-fields > label{display:grid;grid-template-columns:minmax(0,1fr);align-content:start;}
+#attendigoSchoolMemoPanel #principalMemoAudienceHelp{margin:0;font-weight:400;font-size:14px;}
