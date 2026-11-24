@@ -36,12 +36,18 @@ async function renderMasterWorkbook({calculated,data,month,personalCopy=false,sc
   set('G6',schoolId||null);set('N6',schoolYear||null);copy('AA6');
   set('G7',schoolName||null);set('AA7',String(gradeLevel||'').replace(/^Grade\s+/i,''));set('AF7',section);
   if(personalCopy){
-    set('A3','UNOFFICIAL SUBJECT ATTENDANCE COPY — Not for official submission');
+    set('A2','Subject Attendance Report');
+    set('A3','UNOFFICIAL — '+(data.subject?.label||'Selected subject')+' — Not for official submission');
     set('G9','White blank = present | Gray = no record | X = absent (subject only)');
     set('T118','White blank: Present; Gray: no record (not absent); X: Absent; Upper half shaded: Late; E: Excused; —: No class; !: Review.');
     for(const a of ['AE139','AE140','AE142','AE144','AE145','AE146'])set(a,null);
     set('AE142','Subject teacher reference only');
   }else{
+    // This locally prepared worksheet supports completing the actual LIS form;
+    // it is not represented as an authorized DepEd/LIS-issued electronic form.
+    set('A2','SF2 Preparation Worksheet');
+    set('A3','Supporting daily attendance record — Verify against the school’s LIS-issued SF2');
+    set('AE139','Prepared for school verification');
     set('AE140',adviserName||null);set('AE145',schoolHeadName||null);
   }
   // The old manual calculation panel is obsolete. Its visible labels and
@@ -76,7 +82,13 @@ async function renderMasterWorkbook({calculated,data,month,personalCopy=false,sc
       const present=read('AG'+row);
       if(personalCopy&&present&&typeof present==='object')cache('AG'+row,'COUNTIF(AU'+row+':BS'+row+',"P")+COUNTIF(AU'+row+':BS'+row+',"L")',present.result);
       else copy('AG'+row);
-      if(learner&&!personalCopy)addHelper(row,'BT'+row,Number(learner.tardyCount)||0);
+      if(learner&&!personalCopy){
+        const tardy=Array.isArray(learner.lateDays)?learner.lateDays.filter(Boolean).length:0;
+        addHelper(row,'BT'+row,tardy);
+        // The TUVERA layout uses ABSENT/PRESENT. Retain the proven attendance
+        // totals and also surface the verified tardy count for LIS preparation.
+        set('AH'+row,tardy?'Tardy: '+tardy:null);
+      }
     }
     for(let slot=0;slot<25;slot++){
       const address=col(7+slot)+total,v=read(address),c=col(47+slot);
