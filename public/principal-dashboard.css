@@ -911,3 +911,67 @@ button.priority-department-row:focus-visible,.priority-reset:focus-visible{
 @media(prefers-reduced-motion:reduce){
  .principal-recognition .recognition-chevron{transition:none}
 }
+
+/* Principal report filters and navigation: explicit shrinkable tracks for
+   native iOS controls, independent of their intrinsic date/select widths. */
+@media screen{
+ #main > .controls{
+  display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.25fr) minmax(0,1fr) max-content;
+  gap:12px;align-items:end;min-width:0;max-width:100%;box-sizing:border-box;
+ }
+ #main > .controls > label{
+  display:grid;grid-template-columns:minmax(0,1fr);align-content:start;
+  min-width:0!important;max-width:100%;gap:6px;box-sizing:border-box;
+ }
+ #main > .controls > label > :is(input,select),
+ #main .principal-navigation .principal-menu-label > select,
+ #main .staff-filters > label > :is(input,select){
+  display:block;box-sizing:border-box!important;
+  width:100%!important;min-width:0!important;max-width:100%!important;
+  inline-size:100%!important;min-inline-size:0!important;max-inline-size:100%!important;
+  min-height:44px;margin:0;font-size:16px;line-height:1.35;
+ }
+ #main :is(.controls,.staff-filters) input[type=date]{
+  -webkit-appearance:none;appearance:none;text-align:left;
+ }
+ #main :is(.controls,.staff-filters) input[type=date]::-webkit-date-and-time-value{
+  text-align:left;min-width:0;margin:0;min-height:1.35em;
+ }
+ #main > .controls > #refreshDashboard{
+  min-width:0;max-width:100%;width:auto;min-height:44px;height:auto;
+  margin:0;white-space:normal;overflow-wrap:anywhere;justify-self:stretch;
+ }
+ #main > .principal-navigation{min-width:0;max-width:100%}
+ #main .principal-navigation-top{
+  display:grid;grid-template-columns:minmax(0,1fr);gap:10px;min-width:0;
+ }
+ #main .principal-main-tabs{
+  display:flex;flex-wrap:wrap;overflow:visible;gap:6px;min-width:0;max-width:100%;
+ }
+ #main .principal-main-tabs > .tab{
+  flex:0 1 auto;min-width:0;max-width:100%;min-height:44px;
+  white-space:normal;overflow-wrap:anywhere;font-size:14px;
+ }
+ #main .principal-navigation-secondary{
+  display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;
+  width:100%;min-width:0;max-width:100%;
+ }
+ #main .principal-menu-label{
+  display:grid;grid-template-columns:minmax(0,1fr);gap:5px;
+  min-width:0;max-width:100%;font-size:14px;
+ }
+ #main .principal-menu-label > span{width:auto;min-width:0}
+ #main .principal-menu-label > select{outline-offset:2px}
+ #main .staff-filters > label{display:grid;grid-template-columns:minmax(0,1fr);min-width:0}
+}
+@media screen and (max-width:1100px){
+ #main > .controls{grid-template-columns:repeat(2,minmax(0,1fr))}
+}
+@media screen and (pointer:coarse) and (max-width:1400px){
+ #main > .controls{grid-template-columns:repeat(2,minmax(0,1fr))}
+}
+@media screen and (max-width:560px){
+ #main > .controls,#main .principal-navigation-secondary{grid-template-columns:minmax(0,1fr)}
+ #main .principal-main-tabs{display:grid;grid-template-columns:repeat(2,minmax(0,1fr))}
+ #main .principal-main-tabs > .tab{width:100%;text-align:center}
+}
