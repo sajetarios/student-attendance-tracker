@@ -137,3 +137,45 @@ test('offline welcome links to the existing prepared attendance tools, not dashb
   assert.match(page, /Full portal login still requires internet/i);
   assert.doesNotMatch(page, /<form\b/i);
 });
+
+
+test('staff portal offline navigation returns the public tools hub, not a cached dashboard', async () => {
+  const hub = { branded: true };
+  const result = await requestServiceWorker('https://attendigo.tech/portal.html', { hit: {'/offline-welcome.html':hub,'/portal.html':{private:true}} });
+  assert.equal(await result, hub);
+});
+test('staff online portal continues to use the live authenticated response', async () => {
+  assert.equal((await requestServiceWorker('https://attendigo.tech/portal.html',{offline:false})).live,true);
+});
+test('explicit offline tools hub remains available on disconnected devices', async () => {
+  const hub={branded:true};
+  assert.equal(await requestServiceWorker('https://attendigo.tech/offline-welcome.html',{hit:{'/offline-welcome.html':hub}}),hub);
+});
+test('all three offline tools and the sign-in page link directly to the shared hub', () => {
+  for(const name of ['offline-sheet.html','gate-offline.html','student-qr-offline.html','portal-login.html']) {
+    assert.match(fs.readFileSync(path.join(root,'public',name),'utf8'),/href="\/offline-welcome\.html"/);
+  }
+});
+test('protected dashboards without an approved offline fallback remain fail closed', async () => {
+  await assert.rejects(requestServiceWorker('https://attendigo.tech/principal.html',{hit:{'/principal.html':{private:true}}}),/Disconnected/);
+});
+
+
+test('all offline attendance pages share responsive branding and direct navigation',()=>{
+  for(const name of ['offline-sheet.html','gate-offline.html','student-qr-offline.html']){
+    const html=fs.readFileSync(path.join(root,'public',name),'utf8');
+    assert.match(html,/class="offline-workspace"/);
+    assert.match(html,/attendigo-official-lockup\.svg\?v=5/);
+    assert.match(html,/href="\/offline-welcome\.html"/);
+    assert.match(html,/@media\(max-width:420px\)/);
+  }
+});
+test('student scanner displays real queue counters, not hard-coded zeroes',()=>{
+  const html=fs.readFileSync(path.join(root,'public/student-qr-offline.html'),'utf8');
+  const js=fs.readFileSync(path.join(root,'public/student-qr-offline.js'),'utf8');
+  assert.match(html,/id="studentQrPendingCount">—/);
+  assert.match(html,/id="studentQrReviewCount">—/);
+  assert.match(js,/pendingCount.textContent=String\(pending\)/);
+  assert.match(js,/reviewCount.textContent=String\(review\)/);
+  assert.match(js,/You are offline\. Reconnect to sync saved scans/);
+});

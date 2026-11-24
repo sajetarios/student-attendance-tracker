@@ -5,6 +5,9 @@ const {Pool}=require('pg');
 const {createOpaqueToken,hashToken}=require('../auth-security');
 const {createAuthMiddleware}=require('../auth-middleware');
 const {registerPrincipalRoutes}=require('../principal-overview-routes');
+const {registerPrincipalClassImpactRoutes}=require('../principal-class-impact-routes');
+const {registerPrincipalWorkspaceRoutes}=require('../principal-workspace-routes');
+const fs=require('node:fs'),path=require('node:path');
 const {manilaDate}=require('../staff-lunch-routes');
 async function main(){
  const url=process.env.DATABASE_URL;
@@ -51,6 +54,12 @@ async function main(){
   const app=express();app.use(express.json());
   const {authenticateSchoolClient,requireSchoolRoles}=createAuthMiddleware(pool);
   registerPrincipalRoutes(app,pool,{authenticateSchoolClient,requireSchoolRoles});
+  registerPrincipalClassImpactRoutes(app,pool,{authenticateSchoolClient,requireSchoolRoles});
+  registerPrincipalWorkspaceRoutes(app,pool,{authenticateSchoolClient,requireSchoolRoles});
+  // Verify the production document guard and exercise that same middleware in this isolated app.
+  const serverSource=fs.readFileSync(path.join(__dirname,'../server.js'),'utf8');
+  assert.match(serverSource,/app\.get\('\/principal\.html', authenticateSchoolClient, requireSchoolRoles\('PRINCIPAL'\)/);
+  app.get('/principal.html',authenticateSchoolClient,requireSchoolRoles('PRINCIPAL'),(_req,res)=>res.sendStatus(200));
   server=await new Promise((resolve,reject)=>{
    const instance=app.listen(0,'127.0.0.1',()=>resolve(instance));instance.on('error',reject);
   });

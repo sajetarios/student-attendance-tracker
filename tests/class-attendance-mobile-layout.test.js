@@ -3,7 +3,7 @@ const test = require('node:test');
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const path = require('node:path');
-const {assertCacheRevisionAtLeast} = require('./support/asset-contract');
+const {assertCacheRevisionAtLeast,assertCachedAsset} = require('./support/asset-contract');
 const root = path.join(__dirname, '..', 'public');
 const read = name => fs.readFileSync(path.join(root, name), 'utf8');
 const html = read('portal.html');
@@ -33,15 +33,15 @@ test('mobile attendance keeps the existing marking, selection and note controls'
   assert.match(css, /\.manual-folio :is\(button,input,select,textarea\):focus-visible/);
 });
 test('teacher QR shortcut uses an inline attendance header location', () => {
-  assert.ok(html.includes('class-qr-dashboard-link.js?v=13'));
+  assertCachedAsset(html,worker,'class-qr-dashboard-link.js',{minimumVersion:13});
   assert.ok(qrShortcut.includes("classAttendance.querySelector('.manual-head')"));
   assert.ok(qrShortcut.includes("link.classList.toggle('manual-qr-inline', Boolean(attendanceHost))"));
   assert.ok(qrShortcut.includes("if (classAttendance) observer.observe(classAttendance"));
   assert.ok(qrShortcut.includes("if (user.role !== 'TEACHER') return"));
-  assert.ok(qrShortcut.includes("link.hidden = (user.role === 'TEACHER' && !inlineHost)"));
+  assert.match(qrShortcut,/if \(!inlineHost \|\| \(rosterVisible && !rosterHost\)\) \{\s*link\.hidden = true;\s*link\.remove\(\);\s*return;/);
 });
 test('offline shell caches versioned class attendance assets', () => {
   assertCacheRevisionAtLeast(worker, 328);
   assert.ok(worker.includes('/class-attendance-mobile.css?v=1'));
-  assert.ok(worker.includes('/class-qr-dashboard-link.js?v=13'));
+  assertCachedAsset(html,worker,'class-qr-dashboard-link.js',{minimumVersion:13});
 });

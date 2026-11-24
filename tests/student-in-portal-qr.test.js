@@ -8,7 +8,7 @@ async function harness(responses){
  const document={getElementById(id){return els[id]??={hidden:false,disabled:false,value:'',style:{},events:{},addEventListener(n,f){this.events[n]=f;}};}};
  const window={addEventListener(){},dispatchEvent(e){events.push(e.type);}};
  const location={origin:'https://attendigo.tech',assign(){throw Error('Navigation is forbidden in portal check-in');}};
- vm.runInNewContext(source,{document,window,location,URL,Event:class{constructor(type){this.type=type;}},fetch:async(url,opts)=>{calls.push({url,opts});const res=responses.shift();if(!res)throw Error('Unexpected request');return res;}});
+ vm.runInNewContext(source,{document,window,location,URL,navigator:{onLine:true},Event:class{constructor(type){this.type=type;}},fetch:async(url,opts)=>{calls.push({url,opts});const res=responses.shift();if(!res)throw Error('Unexpected request');return res;}});
  window.StudentClassQrScanner.enable();
  const paste=async raw=>{els.studentQrLink??=document.getElementById('studentQrLink');els.studentQrLink.value=raw;await els.studentQrPasteForm.events.submit({preventDefault(){}});};
  return {els,calls,events,paste};

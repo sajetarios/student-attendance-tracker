@@ -1,4 +1,4 @@
-const CACHE = "attendigo-v353-principal-privacy";
+const CACHE = "attendigo-v356-offline-workspace-validation";
 
 const SHELL = [
   "/typography.css?v=1",
@@ -43,9 +43,9 @@ const SHELL = [
   "/school-header-responsive.js?v=2",
   "/student-portal-refinement.css?v=1",
   "/student-portal.js?v=24",
-  "/student-qr-offline.js?v=1",
+  "/student-qr-offline.js?v=2",
   "/student-qr-offline.html",
-  "/student-qr-offline-page.js?v=1",
+  "/student-qr-offline-page.js?v=3",
   "/vendor/html5-qrcode.min.js",
   "/session-guard.js?v=5",
   "/student-qr-scanner.js?v=4",
@@ -242,6 +242,7 @@ self.addEventListener("fetch", event => {
        "/force-password-change.html", "/attendance-pin.html", "/class-qr-checkin.html", "/staff-lunch-checkin.html"].includes(url.pathname)) {
     event.respondWith(fetch(request, { cache: "no-store" }).catch(async error=>{
       if(url.pathname==='/student-portal.html')return (await caches.match('/student-qr-offline.html'))||Response.error();
+      if(request.mode==='navigate' && url.pathname==='/portal.html')return (await caches.match('/offline-welcome.html'))||Response.error();
       throw error;
     }));
     return;
@@ -312,7 +313,7 @@ self.addEventListener("fetch", event => {
         // welcome on previously visited devices; the separate static welcome
         // origin cannot intercept an offline request to attendigo.tech.
         // Keep QR attendance and role-specific offline pages unchanged.
-        if (["/", "/index.html", "/portal-login.html"].includes(url.pathname)) {
+        if (["/", "/index.html", "/portal-login.html", "/offline-welcome.html"].includes(url.pathname)) {
           const offlineWelcome = await caches.match("/offline-welcome.html");
           if (offlineWelcome) return offlineWelcome;
         }

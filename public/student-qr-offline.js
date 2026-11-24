@@ -40,6 +40,7 @@
   const o=owner,rows=await list(o);if(!same(o,owner))return;
   const pending=rows.filter(x=>x.state==='PENDING').length,review=rows.length-pending;
   status.textContent=pending+' waiting to sync · '+review+' need teacher review. Pending scans are not official attendance.';
+  const pendingCount=document.getElementById('studentQrPendingCount'),reviewCount=document.getElementById('studentQrReviewCount');if(pendingCount)pendingCount.textContent=String(pending);if(reviewCount)reviewCount.textContent=String(review);
   items.replaceChildren();
   for(const row of rows.filter(x=>x.state==='REVIEW')){
    const item=document.createElement('li');item.textContent=new Date(row.createdAt).toLocaleString()+' (device time) — '+row.reason+' Show your teacher; use the existing manual class register.';
@@ -76,6 +77,6 @@
  window.addEventListener('online',()=>{void sync();});
  window.addEventListener('pageshow',()=>{void sync();});
  document.addEventListener('visibilitychange',()=>{if(!document.hidden)void sync();});
- document.getElementById('studentQrSync')?.addEventListener('click',()=>{void sync();});
+ document.getElementById('studentQrSync')?.addEventListener('click',async()=>{const feedback=document.getElementById('studentQrSyncFeedback');if(!feedback){void sync();return;}if(!owner){feedback.textContent='Sign in online to prepare this scanner.';return;}if(navigator.onLine===false){feedback.textContent='You are offline. Reconnect to sync saved scans.';return;}feedback.textContent='Checking pending scans…';await sync();feedback.textContent='Sync check finished. See the queue above for remaining scans.';});
  window.StudentQrOffline={enable,disable,restoreCapture,enqueue,sync,render,ready:()=>prepared};
 })();
