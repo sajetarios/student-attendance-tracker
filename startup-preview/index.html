@@ -71,6 +71,9 @@ const hintText = document.getElementById('startup-hint');
 const statusPanel = document.querySelector('.status-panel');
 const previewMode = new URLSearchParams(window.location.search).get('preview') === '1';
 const maxAttempts = 24;
+// Let visitors actually see the branded welcome even when Render is already awake.
+const minimumWelcomeMs = 2000;
+const welcomeStartedAt = Date.now();
 let attempts = 0;
 let stopped = false;
 let nextCheck = null;
@@ -91,7 +94,10 @@ async function checkReadiness() {
         statusPanel.classList.add('is-ready');
         statusText.textContent = 'Your workspace is ready';
         hintText.textContent = 'Opening Attendigo…';
-        window.location.replace(loginUrl);
+        // Only delay an already-ready server; never mask an unavailable one.
+        // pagehide cleans up this timer if the visitor leaves or taps Continue.
+        const remaining = Math.max(0, minimumWelcomeMs - (Date.now() - welcomeStartedAt));
+        nextCheck = setTimeout(() => window.location.replace(loginUrl), remaining);
         return;
       }
     }
