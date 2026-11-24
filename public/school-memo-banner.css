@@ -435,3 +435,20 @@
 /* Keep label tracks shrinkable independently of the native control's intrinsic size. */
 #attendigoSchoolMemoPanel #principalMemoForm .principal-memo-fields > label{display:grid;grid-template-columns:minmax(0,1fr);align-content:start;}
 #attendigoSchoolMemoPanel #principalMemoAudienceHelp{margin:0;font-weight:400;font-size:14px;}
+
+/* Explicit grid tracks avoid WebKit flex-wrap/intrinsic button overlap. */
+#attendigoSchoolMemoPanel .attendigo-memo-toolbar{
+ display:flex;flex-wrap:wrap;align-items:center;min-width:0;max-width:100%;box-sizing:border-box;
+}
+#attendigoSchoolMemoPanel .attendigo-memo-counters{min-width:0;max-width:100%;}
+#attendigoSchoolMemoPanel .attendigo-memo-manager-actions{
+ display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:8px;
+ flex:0 1 340px;min-width:0;max-width:100%;box-sizing:border-box;
+}
+#attendigoSchoolMemoPanel .attendigo-memo-manager-actions > button{
+ display:block;position:static;box-sizing:border-box;width:100%;min-width:0;max-width:100%;
+ margin:0;min-height:44px;height:auto;white-space:normal;overflow-wrap:anywhere;
+}
+@media(max-width:700px){
+ #attendigoSchoolMemoPanel .attendigo-memo-manager-actions{flex:0 0 100%;width:100%;grid-template-columns:minmax(0,1fr);}
+}
