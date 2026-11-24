@@ -135,4 +135,7 @@ test('reviewed historical departure and documented lunch return are not open exc
  assert.equal(review({...input,gate:input.gate.map(x=>({...x,reviewedActualExit:false}))}).reviewCount,1);
  assert.equal(review({...input,documentedExceptions:[]}).pendingCount,1);
  assert.equal(review({...input,calendarExceptions:[{exception_type:'CLOSED'}]}).reviewCount,1);
+ const early={...input,gate:input.gate.map((x,i)=>i===0?{...x,time:'04:00'}:x),dtr:input.dtr.map(x=>x.slot==='AM_IN'?{...x,time:'04:00'}:x)};
+ assert.equal(review(early).reviewCount,1,'An unrelated morning boundary anomaly remains open');
+ assert.equal(result.verifiedGateEvents,3,'Resolved physical scan remains in the scan count');
 });

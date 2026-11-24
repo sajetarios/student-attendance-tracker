@@ -32,6 +32,13 @@ function buildSmartOverview({date,staff=[],schedules=[],defaults=null,gate=[],dt
   if(count)officialDtrStaff++;
   const effective=effectiveStaffSchedule(scheduleMap.get(id)||null,defaults);
   const schedule=effective.schedule;
+  // Exclude only the exact audited historical direction error from fresh gate
+  // matching; keep the raw scan in counts and leave other evidence under review.
+  const [first,lunch,last]=gateRows;
+  const reviewedExit=!obRows.length&&gateRows.length===3&&first.eventType==='TIME_IN'&&
+   lunch.eventType==='TIME_OUT'&&last.eventType==='TIME_IN'&&last.reviewedActualExit===true&&
+   first.time===verified.AM_IN&&lunch.time===verified.AM_OUT&&last.time===verified.PM_OUT;
+  const matchingGateRows=reviewedExit?gateRows.slice(0,2):gateRows;
   let result={review:[],suggestions:{},safeToApply:false};
   if(calendarExceptions.length)result.review=['CALENDAR_EXCEPTION_REQUIRES_REVIEW'];
   else if(!schedule){
@@ -39,14 +46,10 @@ function buildSmartOverview({date,staff=[],schedules=[],defaults=null,gate=[],dt
    scheduleNotSet.add(id);
   }else if(!schedule.workdays.includes(weekday))result.review=['NOT_SCHEDULED_WORKDAY'];
   else if(obRows.some(x=>x.crossDay))result.review=['OB_INTERVAL_AMBIGUOUS'];
-  else result=reconcileGateDay({movements:gateRows.map(x=>({eventType:x.eventType,time:x.time,confirmedMissingReturnExit:x.confirmedMissingReturnExit})),
+  else result=reconcileGateDay({movements:matchingGateRows.map(x=>({eventType:x.eventType,time:x.time,confirmedMissingReturnExit:x.confirmedMissingReturnExit})),
    existingSlots:verified,hours:weekday===6?schedule.saturdayHours:schedule.regularHours,
    approvedOb:obRows.map(x=>({start:x.start,end:x.end}))});
-  // Suppress only the exact direction anomaly already reviewed and linked to the verified departure.
-  // Keep unrelated gate, OB, calendar, and schedule exceptions visible.
-  const [first,lunch,last]=gateRows;
-  const reviewedExit=gateRows.length===3&&first.eventType==='TIME_IN'&&lunch.eventType==='TIME_OUT'&&last.eventType==='TIME_IN'&&last.reviewedActualExit===true&&first.time===verified.AM_IN&&lunch.time===verified.AM_OUT&&last.time===verified.PM_OUT;
-  const reasons=(result.review||[]).filter(reason=>reason!=='SLOT_ALREADY_VERIFIED'&&!(reviewedExit&&reason==='OUTSIDE_SCHEDULE_WINDOW'));
+  const reasons=(result.review||[]).filter(reason=>reason!=='SLOT_ALREADY_VERIFIED');
   const documentedSlots=new Set((documented.get(id)||[]).filter(r=>slots.has(r.slot)&&r.time).map(r=>r.slot));
   const unresolvedSlots=[...slots].filter(slot=>!verified[slot]&&!documentedSlots.has(slot));
   // An off-day scan does not prove a missed attendance duty or warrant an
