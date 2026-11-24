@@ -17,6 +17,8 @@ function weekdays(month) {
 for(const b of benchmarks) test('SF2 reconciled benchmark '+b.month+' actual XLSX round trip',async()=>{
   const dates=weekdays(b.month);
   assert.equal(dates.length,b.days);
+  const {slots}=require('../sf2-reference-workbook').referenceDateSlots(b.month,dates);
+  const col=d=>7+slots.indexOf(d);
   const roster=b.groups.flatMap((group,g)=>group.map((absence,i)=>({id:g+'-'+i,name:'LEARNER '+g+'-'+String(i).padStart(2,'0'),sex:g===0?'MALE':'FEMALE',absence})));
   const present=[],absent=[];
   for(const learner of roster) for(const date of dates) {
@@ -54,6 +56,10 @@ for(const b of benchmarks) test('SF2 reconciled benchmark '+b.month+' actual XLS
   const sheet=wb.worksheets[0];
   assert.equal(sheet.name,'School Form 2 (SF2)');
   assert.equal(sheet.getCell('AJ117').value,b.days);
+  assert.equal(sheet.getCell(b.month.endsWith('-07')?'I10':'J10').value,1);
+  assert.equal(sheet.getCell('G10').value,null);
+  assert.equal(sheet.getCell('H10').value,null);
+  if(b.month.endsWith('-10'))assert.equal(sheet.getCell('I10').value,null);
   let rowSum=[0,0],totalAbsent=0;
   for(let g=0;g<2;g++){
     const group=roster.filter(x=>x.sex===(g===0?'MALE':'FEMALE'));
@@ -61,9 +67,10 @@ for(const b of benchmarks) test('SF2 reconciled benchmark '+b.month+' actual XLS
       const row=(g===0?13:64)+i, learner=group[i];
       assert.equal(sheet.getCell(row,2).value,learner.name);
       assert.equal(value(sheet.getCell(row,32)),learner.absence.length);
+      assert.equal(value(sheet.getCell(row,33)),b.days-learner.absence.length);
       for(let d=0;d<dates.length;d++){
         const missing=learner.absence.includes(Number(dates[d].slice(-2)));
-        assert.equal(sheet.getCell(row,7+d).value,missing?'X':null);
+        assert.equal(sheet.getCell(row,col(d)).value,missing?'X':null);
         if(missing)totalAbsent++;else rowSum[g]++;
       }
     }
@@ -75,10 +82,10 @@ for(const b of benchmarks) test('SF2 reconciled benchmark '+b.month+' actual XLS
   assert.equal(wb.worksheets.length,1);
   for(let d=0;d<dates.length;d++){
     const bySex=[0,1].map(g=>roster.filter(x=>x.sex===(g===0?'MALE':'FEMALE')&&!x.absence.includes(Number(dates[d].slice(-2)))).length);
-    assert.equal(value(sheet.getCell(63,7+d)),bySex[0]);
-    assert.equal(value(sheet.getCell(114,7+d)),bySex[1]);
-    assert.equal(value(sheet.getCell(115,7+d)),bySex[0]+bySex[1]);
-    if(b.daily)assert.equal(value(sheet.getCell(115,7+d)),b.daily[d]);
+    assert.equal(value(sheet.getCell(63,col(d))),bySex[0]);
+    assert.equal(value(sheet.getCell(114,col(d))),bySex[1]);
+    assert.equal(value(sheet.getCell(115,col(d))),bySex[0]+bySex[1]);
+    if(b.daily)assert.equal(value(sheet.getCell(115,col(d))),b.daily[d]);
   }
   const total=b.present[0]+b.present[1];
   for(const [i,n,denom] of [[37,b.present[0],3],[38,b.present[1],25],[39,total,28]]){
