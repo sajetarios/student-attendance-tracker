@@ -138,7 +138,12 @@ html[data-ui-theme="dark"] #teachersView .teacher-monitor-table td:nth-child(3) 
  #teachersView .teacher-monitor-table td:not(:first-child)::before{content:attr(data-label)!important}
  #teachersView .teacher-monitor-table td .teacher-cell-value{min-width:0;flex:1 1 auto}
  #teachersView .teacher-monitor-table td:first-child{min-height:88px}
- #teachersView .staff-accounts-card .section-toolbar>button{width:100%}
+ #teachersView .staff-accounts-card .section-toolbar{display:grid;grid-template-columns:minmax(0,1fr);align-items:start;gap:10px;min-height:0;height:auto}
+ #teachersView .staff-accounts-card .section-toolbar>div{flex:none;min-height:0;height:auto}
+ #teachersView .staff-accounts-card .section-toolbar>button{width:100%;flex:none;height:auto;min-height:44px;padding:10px 14px;line-height:1.4;align-self:start}
+ #teachersView #staffAccountsTable tbody tr:has(>td.empty-cell){padding:0!important;margin:0!important;border:0!important;box-shadow:none!important;background:transparent!important}
+ #teachersView #staffAccountsTable tbody td.empty-cell{padding:10px!important;min-height:0!important;text-align:center;line-height:1.5!important}
+ #teachersView #staffAccountsTable tbody td.empty-cell::before{display:none!important;content:none!important}
 }
 
 
