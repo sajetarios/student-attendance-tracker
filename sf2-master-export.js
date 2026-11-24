@@ -26,7 +26,7 @@ async function renderMasterWorkbook({calculated,data,month,personalCopy=false,sc
   let sheet=await zip.file(file).async('string');
   if(!/<mergeCells count="257">/.test(sheet))throw new Error('Unexpected SF2 master geometry');
   const changes=new Map();
-  const set=(address,value,gray=false)=>changes.set(address,{value,gray});
+  const set=(address,value,shade=null)=>changes.set(address,{value,shade});
   const source=calculated.worksheets[0];
   const read=address=>{const c=source.getCell(address);return c.formula?{formula:c.formula,result:c.result}:c.value;};
   const copy=address=>set(address,read(address));
@@ -38,7 +38,7 @@ async function renderMasterWorkbook({calculated,data,month,personalCopy=false,sc
   if(personalCopy){
     set('A3','UNOFFICIAL SUBJECT ATTENDANCE COPY — Not for official submission');
     set('G9','White blank = present | Gray = no record | X = absent (subject only)');
-    set('T118','White blank: Present; Gray: no record (not absent); X: Absent; L: Late; E: Excused; —: No class; !: Review.');
+    set('T118','White blank: Present; Gray: no record (not absent); X: Absent; Upper half shaded: Late; E: Excused; —: No class; !: Review.');
     for(const a of ['AE139','AE140','AE142','AE144','AE145','AE146'])set(a,null);
     set('AE142','Subject teacher reference only');
   }else{
@@ -64,8 +64,9 @@ async function renderMasterWorkbook({calculated,data,month,personalCopy=false,sc
         if(personalCopy){
           const code={PRESENT:'P',LATE:'L',SUBJECT_ABSENT:'X',EXCUSED:'E',NO_RECORD:'NR',NO_CLASS:'—',CONFLICT:'!',FUTURE:'FUTURE'}[status]||'NR';
           addHelper(row,col(47+slot)+row,code);
-          set(address,code==='P'||code==='NR'||code==='FUTURE'?null:code,code==='NR'||code==='FUTURE');
-        }else copy(address);
+          set(address,['P','L','NR','FUTURE'].includes(code)?null:code,code==='L'?'late':code==='NR'||code==='FUTURE'?'gray':null);
+        }else if(status==='PRESENT'&&learner.lateDays?.[d]===true)set(address,null,'late');
+        else copy(address);
       }
       // Both subject totals use the same verified evidence ledger. A visible
       // white or gray blank never creates a positive or negative record.
@@ -90,17 +91,40 @@ async function renderMasterWorkbook({calculated,data,month,personalCopy=false,sc
   // old editable AQ9 field. Blank holidays and unused slots never count.
   if(personalCopy)set('AJ117',null);else cache('AJ117','COUNT(G10:AE10)',data.dates.length);
   for(const r of [119,121,123,125,127,128,130,132,134,136])for(const c of ['AK','AL','AM'])copy(c+r);
-  // Exact template cells only: preserve original style indices and all unrelated
-  // elements. Gray uses a clone of each original style with only its fill changed.
+  // Original style geometry is immutable. Add a single hard-stop gradient for
+  // verified late arrivals and clone only the original grid styles that use it.
+  // No inferred cutting-class or half-day absence marking is introduced.
+  const styleFile='xl/styles.xml';
+  let styles=await zip.file(styleFile).async('string');
+  const xfBlock=styles.match(/<cellXfs count="(\d+)">([\s\S]*?)<\/cellXfs>/);
+  const fillBlock=styles.match(/<fills count="(\d+)">([\s\S]*?)<\/fills>/);
+  if(!xfBlock||!fillBlock)throw Error('Unexpected SF2 master styles');
+  const originals=[...xfBlock[2].matchAll(/<xf\b[^>]*?(?:\/>|>[\s\S]*?<\/xf>)/g)].map(m=>m[0]);
+  if(originals.length!==Number(xfBlock[1]))throw Error('Invalid SF2 master style count');
+  const lateFill=Number(fillBlock[1]);
+  const lateStyles=new Map();
+  const styleForLate=id=>{
+    if(lateStyles.has(id))return lateStyles.get(id).id;
+    const base=originals[id];
+    if(!base)throw Error('Missing SF2 grid style '+id);
+    let xf=base.replace(/\bfillId="\d+"/,'fillId="'+lateFill+'"');
+    if(/\bapplyFill="/.test(xf))xf=xf.replace(/\bapplyFill="[^"]*"/,'applyFill="1"');
+    else xf=xf.replace(/<xf\b/,'<xf applyFill="1"');
+    const next=originals.length+lateStyles.size;
+    lateStyles.set(id,{id:next,xf});
+    return next;
+  };
+  // Exact template cells only: preserve original style indices and all unrelated elements.
   sheet=sheet.replace(/<c\b([^>]*\br="([A-Z]+\d+)"[^>]*?)(?:\/>|>([\s\S]*?)<\/c>)/g,(whole,attrs,address)=>{
     const patch=changes.get(address);
     if(!patch)return whole;
     changes.delete(address);
     let a=attrs.replace(/\s+t="[^"]*"/g,'');
-    if(patch.gray){
+    if(patch.shade){
       const m=a.match(/\bs="(\d+)"/);
       if(!m)throw new Error('Missing original grid style '+address);
-      a=a.replace(/\bs="\d+"/,'s="'+(Number(m[1])+STYLE_OFFSET)+'"');
+      const id=Number(m[1]);
+      a=a.replace(/\bs="\d+"/,'s="'+(patch.shade==='late'?styleForLate(id):id+STYLE_OFFSET)+'"');
     }
     const v=encode(patch.value);
     return '<c'+a+(v.type?' t="'+v.type+'"':'')+'>'+v.body+'</c>';
@@ -129,6 +153,12 @@ async function renderMasterWorkbook({calculated,data,month,personalCopy=false,sc
   }
   if(covered.size!==32)throw new Error('SF2 nonprinted helper columns are not fully hidden');
   sheet=sheet.replace(/<dimension ref="[^"]*"\/>/,'<dimension ref="A1:BT146"/>');
+  if(lateStyles.size){
+    const gradient='<fill><gradientFill degree="90"><stop position="0"><color rgb="FF000000"/></stop><stop position="0.499"><color rgb="FF000000"/></stop><stop position="0.5"><color rgb="FFFFFFFF"/></stop><stop position="1"><color rgb="FFFFFFFF"/></stop></gradientFill></fill>';
+    styles=styles.replace(fillBlock[0],()=>'<fills count="'+(lateFill+1)+'">'+fillBlock[2]+gradient+'</fills>');
+    styles=styles.replace(xfBlock[0],()=>'<cellXfs count="'+(originals.length+lateStyles.size)+'">'+xfBlock[2]+[...lateStyles.values()].map(x=>x.xf).join('')+'</cellXfs>');
+    zip.file(styleFile,styles);
+  }
   zip.file(file,sheet);
   if(personalCopy){const p='xl/workbook.xml';const w=await zip.file(p).async('string');zip.file(p,w.replaceAll('School Form 2 (SF2)','SF2 Subject Copy'));}
   return zip.generateAsync({type:'nodebuffer',compression:'DEFLATE'});
