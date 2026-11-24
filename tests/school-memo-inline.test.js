@@ -9,7 +9,7 @@ test('all four active dashboard families embed the same memo UI assets',()=>{
  for(const p of pages){
   const s=read(p);
   assert.match(s,/\/school-memo-banner\.js\?v=5/,'shared memo JS in '+p);
-  assert.match(s,/\/school-memo-banner\.css\?v=4/,'shared memo styling in '+p);
+  assert.match(s,/\/school-memo-banner\.css\?v=5/,'shared memo styling in '+p);
   assert.doesNotMatch(s,/href="\/school-memos\.html/,'no standalone memo link in '+p);
  }
 });
@@ -49,7 +49,7 @@ test('old memoranda URLs redirect to role-specific dashboards',()=>{
 });
 test('PWA caches new memo UI and always fetches authenticated portal pages online',()=>{
  const s=read('sw.js');
- for(const file of ['/school-memo-banner.js?v=5','/school-memo-banner.css?v=4',
+ for(const file of ['/school-memo-banner.js?v=5','/school-memo-banner.css?v=5',
     '/school-memos-redirect.js?v=1'])assert.ok(s.includes(file),file);
  assert.match(s,/"\/portal\.html", "\/class-qr-monitor\.html", "\/principal\.html", "\/school-memos\.html"/);
  assert.match(s,/fetch\(request, \{ cache: "no-store" \}\)/);
@@ -87,4 +87,13 @@ test('principal memorandum management reuses the authorized publication form in 
  assert.match(css,/\.attendigo-memo-embedded-publisher \.principal-memo-published\{display:none!important\}/);
  assert.equal((html.match(/id="principalMemoForm"/g)||[]).length,1);
  assert.doesNotMatch(s,/\/api\/school-memos['"],\{method:'POST'/,'publication remains in existing principal handler');
+});
+
+test('principal memo form constrains native pickers and stacks touch-device dates',()=>{
+ const css=read('school-memo-banner.css'),html=read('principal.html');
+ assert.match(html,/principal-memo-fields principal-memo-date-fields/);
+ assert.match(html,/principal-memo-fields principal-memo-attachment/);
+ assert.match(css,/#attendigoSchoolMemoPanel #principalMemoForm\{[\s\S]*?grid-template-columns:minmax\(0,1fr\)/);
+ assert.match(css,/input\[type=date\],input\[type=time\]\)\{\s*-webkit-appearance:none/);
+ assert.match(css,/@media\(pointer:coarse\)\{[\s\S]*?\.principal-memo-date-fields[\s\S]*?grid-template-columns:minmax\(0,1fr\)/);
 });
