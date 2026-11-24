@@ -19,7 +19,7 @@ test('screen typography uses 16px reading text without changing print defaults',
 test('all key portals share typography and offline assets are cached',()=>{
  for(const page of ['portal.html','principal.html','student-portal.html','parent-portal.html','portal-login.html','gate-offline.html','offline-sheet.html','student-qr-offline.html']) assert.match(read(page),/href="\/typography\.css\?v=1"/);
  const sw=read('sw.js');
- assert.match(sw,/attendigo-v374-readable-typography/);
+ require('./support/asset-contract').assertCacheRevisionAtLeast(sw,374);
  assert.ok(sw.includes("'/typography.css'"));
  assert.ok(sw.split('const SHELL')[0].includes('"/typography.css?v=1"'));
 });
