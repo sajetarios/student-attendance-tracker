@@ -25,7 +25,8 @@ test('date, subject, area and search filters combine without treating missing re
 test('student history is compact, private and supports light/dark appearance',()=>{
  assert.doesNotMatch(html,/<table class="student-table">/);
  assert.match(html,/id="studentAttendanceCard" hidden/);
- assert.ok(html.indexOf('id="studentAttendanceCard"')<html.indexOf('id="studentProfileCard"'));
+ assert.ok(html.indexOf('id="studentProfileCard"')<html.indexOf('id="studentQrEntryTitle"'));
+ assert.ok(html.indexOf('id="studentQrEntryTitle"')<html.indexOf('id="studentAttendanceCard"'));
  assert.match(js,/<details class="student-history-group"/);
  assert.match(js,/HISTORY_DAYS_PER_PAGE = 5/);
  assert.match(html,/up to 200 latest accepted records/);
@@ -35,4 +36,14 @@ test('student history is compact, private and supports light/dark appearance',()
  const {assertCachedAsset}=require('./support/asset-contract');
  assertCachedAsset(html,read('public/sw.js'),'student-portal.js',{minimumVersion:27});
  assertCachedAsset(html,read('public/sw.js'),'student-portal-refinement.css',{minimumVersion:2});
+});
+
+test('profile photo is mounted in the first identity row and account settings are collapsed',()=>{
+ assert.ok(html.indexOf('id="studentProfilePhoto"')<html.indexOf('id="studentIdValue"'));
+ assert.match(html,/<details class="student-profile-settings" id="studentProfileSettings">[\s\S]*?id="attendancePinSetup"[\s\S]*?<\/details>/);
+ assert.match(js,/container:'#studentProfilePhoto'/);
+ assert.match(js,/currentUser = me.user;\s*mountStudentPhoto\(\)/);
+ assert.match(js,/New photos require School Admin approval/);
+ assert.match(css,/#studentProfileCard #studentProfilePhoto \.my-photo-widget\{display:flex;align-items:center;flex-direction:row/);
+ assert.match(css,/grid-template-columns:repeat\(3,minmax\(0,1fr\)\)/);
 });
