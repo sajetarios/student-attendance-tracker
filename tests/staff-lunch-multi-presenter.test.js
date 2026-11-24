@@ -13,9 +13,11 @@ test('per-teacher unique active lunch grants allow simultaneous presenters',()=>
  assert.match(migration,/\(school_id,school_date,dtr_slot,presenter_user_id\)/);
  assert.match(migration,/WHERE revoked_at IS NULL/);
 });
-test('School Admin can enumerate presenters but teachers receive only their own grant status',()=>{
- assert.match(routes,/isCurrentPresenter:presenters\.some/);
- assert.match(routes,/req\.auth\.role==='SCHOOL_ADMIN'\?\{presenterUserId:.*?,presenters\}/);
+test('Admin has read-only visibility, Heads see own department, teachers receive only own grant status',()=>{
+ assert.match(routes,/isCurrentPresenter:enabled&&presenters\.some/);
+ assert.match(routes,/\['SCHOOL_ADMIN','DEPARTMENT_HEAD'\]\.includes\(req\.auth\.role\)\?\{presenterUserId:.*?,presenters\}/);
+ assert.match(routes,/AND a\.department_id=u\.department_id/);
+ assert.match(routes,/admin\?null:departmentId/);
 });
 test("presenter grants do not revoke other presenters' authorization",()=>{
  assert.match(routes,/presenter_user_id=\$4 AND revoked_at IS NULL FOR UPDATE/);

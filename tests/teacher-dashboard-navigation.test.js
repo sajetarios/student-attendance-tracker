@@ -36,7 +36,7 @@ test('teacher regrouping moves links rather than recreating permission-bearing c
   assert.ok(js.includes("if (role === 'TEACHER')"));
   assert.ok(js.includes("teacherHas('SUBJECT_TEACHER') || teacherHas('CLASS_ADVISER')"));
   assert.ok(js.includes("if (role === 'GATE_KEEPER') return ['students']"));
-  assert.ok(js.includes("relocate('lunchQrAdminNav', 'attendanceManagement')"), 'Admin operations unchanged');
+  assert.ok(js.includes("relocate('lunchQrAdminNav', 'operations')"), 'Department Head operational navigation');
   assert.ok(js.includes("relocate('form48ReportsNav', 'reports')"), 'Admin Form 48 reporting unchanged');
   assert.ok(js.includes("relocate('sf2Nav', 'reports')"), 'Reports remain available to eligible roles');
 });
