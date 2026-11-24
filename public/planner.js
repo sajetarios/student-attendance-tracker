@@ -141,8 +141,9 @@ window.attendigoStaffIdentity.then(user => {
    const edit=e.target.closest('[data-planner-edit]'),del=e.target.closest('[data-planner-delete]');
    if(edit){const item=state.items.find(x=>x.itemId===edit.dataset.plannerEdit);if(item)openForm(item);return;}
    if(!del)return;
-   if(!confirm('Delete this planner item? This does not alter the official timetable.'))return;
+   if(del.disabled)return;
    del.disabled=true;
+   if(!await window.AppDialog.confirm('Delete this planner item? This does not alter the official timetable.',{title:'Delete planner item',confirmText:'Delete',variant:'danger'})){del.disabled=false;return;}
    try{await api('/api/planner/items/'+encodeURIComponent(del.dataset.plannerDelete),{method:'DELETE'});await load();updateDashboardWidget();msg('Planner item deleted.')}
    catch(error){msg(error.message,true);del.disabled=false}
  });
