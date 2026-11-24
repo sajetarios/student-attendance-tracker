@@ -126,7 +126,7 @@ test('actual subject XLSX removes diagonal borders, distinguishes daily evidence
   assert.equal(sheet.getCell('AJ117').value,days.length-3);
   assert.equal(value(sheet.getCell('AG117')),'JAN');
   assert.equal(sheet.getCell('AG117').formula,'LEFT(AA6,3)');
-  assert.equal(sheet.getCell('AK117').value,'Subject monthly summary');
+  assert.equal(sheet.getCell('AK117').value,'Subject Attendance Summary');
   assert.equal(value(sheet.getCell('AK119')),1);
   assert.equal(value(sheet.getCell('AL119')),1);
   assert.equal(value(sheet.getCell('AM119')),2);
@@ -134,16 +134,12 @@ test('actual subject XLSX removes diagonal borders, distinguishes daily evidence
   assert.equal(value(sheet.getCell('AM123')),1);
   assert.equal(value(sheet.getCell('AM125')),0.6);
   assert.equal(sheet.getCell('AM125').numFmt,'0.00%');
-  assert.equal(value(sheet.getCell('AM127')),1);
-  assert.equal(value(sheet.getCell('AM128')),1);
-  assert.equal(value(sheet.getCell('AM132')),1);
-  assert.equal(value(sheet.getCell('AM134')),5);
-  assert.equal(value(sheet.getCell('AM136')),4);
-  assert.equal(value(sheet.getCell('AM130')),2*(days.length-2)-6);
-  assert.equal(sheet.getCell('AM128').numFmt??'General','General');
-  assert.match(sheet.getCell('AM125').formula,/IFERROR/);
-  assert.match(sheet.getCell('AM136').formula,/COUNTIF\(AU115:BS115/);
-  assert.equal(sheet.getCell('AE132').value,'Conflicts to review');
+  assert.deepEqual([119,121,123,125].map(r=>sheet.getCell('AE'+r).value),['Enrolled learners','Present','Absent','Attendance percentage']);
+  for(const row of [127,128,130,132,134,136])for(const col of ['AE','AK','AL','AM']){
+    assert.equal(sheet.getCell(col+row).value,null,col+row+' must not contain an additional indicator or formula');
+  }
+  assert.match(sheet.getCell('AM125').formula,/IFERROR\(AM121\/\(AM121\+AM123\+COUNTIF\(AU13:BS62,"E"\)\+COUNTIF\(AU64:BS113,"E"\)\)/);
+  assert.match(String(sheet.getCell('A128').value),/Present \+ Absent \+ Excused/);
   assert.equal(sheet.getCell('T128').value,null);
   assert.ok(sheet.getCell('G115').alignment.textRotation===0 || !sheet.getCell('G115').alignment.textRotation);
   blankSlots(sheet,days);
@@ -158,7 +154,8 @@ test('future subject dates have no attendance symbols or totals',async()=>{
   const {res,sheet}=await exportFixture({month:'2099-01'});
   assert.equal(res.code,200,JSON.stringify(res.body));
   assert.equal(sheet.getCell('AJ117').value,0);
-  for(const row of [121,123,127,128,130,132,134,136])assert.equal(value(sheet.getCell('AM'+row)),0);
+  for(const row of [121,123])assert.equal(value(sheet.getCell('AM'+row)),0);
+  for(const row of [127,128,130,132,134,136])assert.equal(sheet.getCell('AM'+row).value,null);
   assert.ok([null,undefined,''].includes(value(sheet.getCell('AM125'))));
   for(let col=7;col<=31;col++) {
     assert.equal(sheet.getCell(13,col).value,null);
@@ -245,7 +242,7 @@ test('three assigned subjects: explicit selection, isolated evidence, and correc
   assert.equal(conflicted.res.body.summary.absent,0);
 });
 
-test('November subject report: 28 learners, 26 present, two X marks, weighted 92.86% and one recorded date',async()=>{
+test('November subject report: four indicators, 28 learners, 26 present, two X marks and weighted 92.86%',async()=>{
   const {res,sheet,days}=await exportFixture({month:'2026-11',productionLike:true});
   assert.equal(res.code,200,JSON.stringify(res.body));
   assert.equal(value(sheet.getCell('AG117')),'NOV');
@@ -254,9 +251,7 @@ test('November subject report: 28 learners, 26 present, two X marks, weighted 92
   assert.deepEqual(values(121),[3,23,26]);
   assert.deepEqual(values(123),[0,2,2]);
   assert.deepEqual(values(125),[1,23/25,26/28]);
-  assert.deepEqual(values(128),[0,0,0]);
-  assert.deepEqual(values(134),[3,25,28]);
-  assert.deepEqual(values(136),[1,1,1]);
+  for(const row of [127,128,130,132,134,136])assert.deepEqual(values(row),[null,null,null]);
   assert.equal(value(sheet.getCell('AM125')).toFixed(4),'0.9286');
   assert.equal(value(sheet.getCell('AF115')),2);
   assert.equal(value(sheet.getCell('AG115')),26);
@@ -264,7 +259,16 @@ test('November subject report: 28 learners, 26 present, two X marks, weighted 92
   assert.ok(d>=0);
   assert.equal(dayCell(sheet,days,87,d).value,'X');
   assert.equal(dayCell(sheet,days,88,d).value,'X');
-  assert.ok(value(sheet.getCell('AM130'))>0,'Unrecorded days stay separate from absences');
+  assert.equal(value(sheet.getCell('AM123')),2,'Unrecorded days must not be included as absences');
   assert.equal(sheet.model.merges.length,257);
   assertNoManualCalculationPanel(sheet);
+  const master=new ExcelJS.Workbook();
+  await master.xlsx.readFile(require('../sf2-master-export').MASTER);
+  const original=master.worksheets[0];
+  assert.deepEqual([...sheet.model.merges].sort(),[...original.model.merges].sort());
+  for(let c=1;c<=40;c++)assert.equal(sheet.getColumn(c).width,original.getColumn(c).width,'Original printable width '+c);
+  for(let row=117;row<=146;row++)assert.equal(sheet.getRow(row).height,original.getRow(row).height,'Original summary row height '+row);
+  assert.equal(sheet.pageSetup.orientation,original.pageSetup.orientation);
+  assert.equal(sheet.pageSetup.printArea,original.pageSetup.printArea);
+  assert.equal(sheet.pageSetup.scale,original.pageSetup.scale);
 });
