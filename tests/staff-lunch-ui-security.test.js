@@ -189,3 +189,18 @@ test('location permission popup guides staff without bypassing approval',()=>{
  assert.match(sw,/staff-lunch\.css\?v=7/);
  assert.match(sw,/staff-department-location\.js\?v=3/);
 });
+
+test('department location review uses in-app confirmation and persisted server status',()=>{
+ assert.doesNotMatch(departmentLocationUi,/window\.prompt\(/);
+ assert.match(departmentLocationUi,/await window\.AppDialog\.prompt\(/);
+ assert.match(departmentLocationUi,/Confirm approval/);
+ assert.match(departmentLocationUi,/Review cancelled\. No decision was submitted/);
+ assert.match(departmentLocationUi,/result\.status!==expected/);
+ assert.match(departmentLocationUi,/saved\?\.proposalStatus===expected&&\(!isApproval\|\|saved\.configured\)/);
+ assert.match(departmentLocationUi,/Approval confirmed/);
+ assert.match(departmentLocationUi,/Review not confirmed/);
+ assert.match(departmentLocationUi,/showFeedback\(outcome\)/);
+ assert.match(departmentLocationUi,/Refresh location status/);
+ assert.match(departmentLocationUi,/result\.approvedAt/);
+ assert.match(departmentLocationUi,/if\(!departmentId\|\|busy\)return/);
+});
