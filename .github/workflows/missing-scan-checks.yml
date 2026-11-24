@@ -7,6 +7,7 @@ on:
     paths:
       - "missing-scan-routes.js"
       - "tests/missing-scan-policy.test.js"
+      - "tests/missing-scan-postgres.cjs"
       - "public/missing-scan-ui.js"
       - "public/form48-report.js"
       - "server.js"

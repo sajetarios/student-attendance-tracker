@@ -1,4 +1,4 @@
-const CACHE = "attendigo-v367-compact-my-attendance";
+const CACHE = "attendigo-v368-department-missing-scan-review";
 
 // Only public, non-personal offline shells and their executable dependencies.
 // An update must not discard the working cache before these are all ready.
@@ -117,7 +117,7 @@ const SHELL = [
   "/teacher-dashboard-v3.js?v=1",
   "/teacher-teaching-overview.js?v=4",
   "/form48-report.js?v=20",
-  "/missing-scan-ui.js?v=3",
+  "/missing-scan-ui.js?v=4",
   "/missing-scan-ui.css?v=3",
   "/form48-intelligence.js?v=2",
   "/form48-bulk-ui.js?v=3",

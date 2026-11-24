@@ -5,7 +5,7 @@
  const fmt=d=>d?new Intl.DateTimeFormat('en-PH',{timeZone:'UTC',month:'short',day:'numeric',year:'numeric'}).format(new Date(d+'T12:00:00Z')):'—';
  const today=()=>new Intl.DateTimeFormat('en-CA',{timeZone:'Asia/Manila',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date());
  const labels={PENDING_HEAD:'Pending Department Head',NEEDS_EVIDENCE:'Needs more evidence',
-  HEAD_VERIFIED:'Department verified · Admin review',HEAD_REJECTED:'Rejected by Department Head',
+  HEAD_VERIFIED:'Previously verified · awaiting final reviewer',HEAD_REJECTED:'Rejected by Department Head',
   DOCUMENTED:'Approved · documented exception',DTR_CORRECTED:'Approved · official DTR correction',
   ADMIN_REJECTED:'Rejected by School Admin'};
  async function api(path,{method='GET',data,file}={}){
@@ -18,8 +18,8 @@
   return response.json();
  }
  function init(user){
-  if(!['TEACHER','DEPARTMENT_HEAD','SCHOOL_ADMIN'].includes(user?.role))return;
-  const isHead=user.role==='DEPARTMENT_HEAD',isAdmin=user.role==='SCHOOL_ADMIN';
+  if(!['TEACHER','DEPARTMENT_HEAD','SCHOOL_ADMIN','PRINCIPAL'].includes(user?.role))return;
+  const isHead=user.role==='DEPARTMENT_HEAD',isAdmin=user.role==='SCHOOL_ADMIN',isPrincipal=user.role==='PRINCIPAL';
   const dialog=document.createElement('dialog');
   dialog.id='missingScanDialog';dialog.className='missing-scan-dialog';
   dialog.setAttribute('aria-label','Missing scan correction requests');
@@ -28,14 +28,14 @@
    '<button type="button" class="ms-close" aria-label="Close">✕</button></header>'+
    (isHead||isAdmin?'<nav class="ms-tabs" aria-label="Missing scan request views">'+
    '<button type="button" data-ms-tab="mine">My requests</button>'+
-   (isHead||isAdmin?'<button type="button" data-ms-tab="inbox">'+(isHead?'Department review':'School Admin review')+'</button>':'')+
+   (isHead||isAdmin?'<button type="button" data-ms-tab="inbox">'+(isHead?'Department review':'School audit & policy')+'</button>':'')+
    '</nav>':'')+'<div class="ms-message" role="status" aria-live="polite"></div>'+
    '<div class="ms-policy" hidden></div><div class="ms-content"></div></div>';
   document.body.append(dialog);
   const message=dialog.querySelector('.ms-message');
   const content=dialog.querySelector('.ms-content');
   const policyArea=dialog.querySelector('.ms-policy');
-  let tab='mine',busy=false,mode='DOCUMENT_EXCEPTION';
+  let tab=isPrincipal?'inbox':'mine',busy=false,mode='DOCUMENT_EXCEPTION';
   const messageSet=(txt,err=false)=>{message.textContent=txt;message.classList.toggle('is-error',err);};
   function nav(id,label,target,view){
    const host=document.querySelector('[data-submenu="'+target+'"]');
@@ -47,7 +47,8 @@
   }
   nav('missingScanMyNav','Missing Scan Requests',isAdmin?'attendanceManagement':'personalAttendance','mine');
   if(isHead)nav('missingScanHeadNav','Department Scan Reviews','operations','inbox');
-  if(isAdmin)nav('missingScanAdminNav','Missing Scan Reviews','attendanceManagement','inbox');
+  if(isAdmin)nav('missingScanAdminNav','Missing Scan Audit & Policy','attendanceManagement','inbox');
+  if(isPrincipal)$('principalMissingScanReview')?.addEventListener('click',()=>open('inbox'));
   // Discoverable from the existing personal DTR; no new dashboard page.
   const myDtr=$('myGateAttendanceView');
   if(myDtr){
@@ -63,7 +64,7 @@
    tab=button.dataset.msTab;load().catch(e=>messageSet(e.message,true));
   }));
   function open(view){
-   tab=view==='inbox'&&(isAdmin||isHead)?'inbox':'mine';
+   tab=isPrincipal||(view==='inbox'&&(isAdmin||isHead))?'inbox':'mine';
    messageSet('');
    dialog.showModal();
    load().catch(e=>messageSet(e.message,true));
@@ -84,8 +85,7 @@
   }
   function renderRow(r){
    const own=tab==='mine';
-   const canHead=isHead&&!own&&['PENDING_HEAD','NEEDS_EVIDENCE'].includes(r.status);
-   const canAdmin=isAdmin&&!own&&r.status==='HEAD_VERIFIED';
+   const canHead=(isHead||isPrincipal)&&!own&&['PENDING_HEAD','NEEDS_EVIDENCE','HEAD_VERIFIED'].includes(r.status);
    let html='<article class="ms-card ms-row" data-ms-id="'+esc(r.requestId)+'">'+
     '<div class="ms-row-heading"><div><strong>'+esc(r.staffName)+'</strong>'+
     '<p>'+esc(r.departmentName)+' · '+esc(fmt(r.date))+' · '+esc(r.slot.replace('_',' '))+'</p></div>'+
@@ -104,26 +104,17 @@
      '<button type="submit" class="primary-button">Resubmit to Department Head</button></form>';
    }
    if(canHead){
-    html+='<div class="ms-review"><h4>Department Head verification</h4>'+
-     '<p>Compare the teacher claim with the department logbook. Upload a clear excerpt showing this teacher and the logged time; crop or redact other staff entries.</p>'+
+    html+='<div class="ms-review"><h4>Authorized reviewer decision</h4>'+
+     '<p>Compare the staff claim with the department logbook. Approval is final under the existing school DTR policy. Upload a clear excerpt showing this teacher and the logged time; crop or redact other staff entries.</p>'+
      '<label>Logbook evidence (JPG, PNG, PDF · 3 MB maximum)<input type="file" data-ms-file accept="image/jpeg,image/png,application/pdf"></label>'+
      '<button type="button" class="outline-button" data-ms-action="upload">Upload evidence</button>'+
      '<div class="ms-grid">'+
-     inputText('verifiedTime','Time shown in logbook',r.claimedTime||'','time')+
+     inputText('verifiedTime','Time shown in logbook',r.verifiedTime||r.claimedTime||'','time')+
      inputText('reference','Logbook page / entry reference',r.evidenceReference||'')+'</div>'+
      '<label>Reviewer comment<textarea name="comment" minlength="10" maxlength="1000" rows="2" placeholder="Describe what the logbook confirms or why more evidence is needed."></textarea></label>'+
-     '<div class="ms-actions"><button type="button" data-ms-action="verify" class="primary-button">Verify entry</button>'+
+     '<div class="ms-actions"><button type="button" data-ms-action="verify" class="primary-button">Approve verified entry</button>'+
      '<button type="button" data-ms-action="more" class="outline-button">Request evidence</button>'+
      '<button type="button" data-ms-action="reject" class="outline-button">Reject</button></div></div>';
-   }
-   if(canAdmin){
-    html+='<div class="ms-review"><h4>School Admin reconciliation</h4>'+
-     '<p>'+esc(mode==='DOCUMENT_EXCEPTION'?
-      'Current policy: supporting evidence is certified, but the missing DTR time stays blank.':
-      'Current policy permits an authorized, audited time correction. Check the logbook and conflicting records first.')+'</p>'+
-     '<label>Final decision comment<textarea name="comment" minlength="10" maxlength="1000" rows="2" placeholder="State the basis for this final decision."></textarea></label>'+
-     '<div class="ms-actions"><button type="button" data-ms-action="approve" class="primary-button">Approve under school policy</button>'+
-     '<button type="button" data-ms-action="admin-reject" class="outline-button">Reject</button></div></div>';
    }
    return html+'</article>';
   }
@@ -149,7 +140,7 @@
    }
    const rows=result.requests||[];
    content.innerHTML=(tab==='mine'?renderForm():'')+
-    '<section class="ms-records"><h3>'+esc(tab==='mine'?'My requests':'Review queue & history')+'</h3>'+
+    '<section class="ms-records"><h3>'+esc(tab==='mine'?'My requests':(isAdmin?'Read-only audit history':'Review queue & history'))+'</h3>'+
     (!rows.length?'<p class="ms-muted">No missing-scan requests in this view.</p>':rows.map(renderRow).join(''))+'</section>';
    const form=$('msCreateForm');
    if(form){
@@ -266,20 +257,14 @@
       verifiedTime:row.querySelector('[name=verifiedTime]')?.value||'',
       reference:row.querySelector('[name=reference]')?.value?.trim()||''
      };
-     if(action==='verify'&&!confirm('Verify this exact logbook time and forward the documented request for School Admin review?'))return;
-     await api('/requests/'+encodeURIComponent(id)+'/head-decision',{method:'POST',data:request});
-     messageSet('Department Head decision recorded with audit history.');
-    }else if(['approve','admin-reject'].includes(action)){
-     if(action==='approve'&&!confirm(mode==='DTR_CORRECTION'?
-      'Approve the verified logbook time as an official DTR correction? Original scan history will remain unchanged.':
-      'Approve the documentation while preserving a blank official DTR time?'))return;
-     await api('/requests/'+encodeURIComponent(id)+'/admin-decision',{
-      method:'POST',data:{decision:action==='approve'?'APPROVE':'REJECT',comment}});
-     messageSet('School Admin decision saved. See the official DTR for any authorized correction.');
+     if(action==='verify'&&!confirm((mode==='DTR_CORRECTION'?'Approve this exact logbook time as an official DTR correction? Original scan history is unchanged.':'Approve this documented exception? School policy leaves the official DTR slot blank.')))return;
+     const result=await api('/requests/'+encodeURIComponent(id)+'/head-decision',{method:'POST',data:request});
+     messageSet(result.status==='DTR_CORRECTED'?'Approved correction recorded in DTR.':result.status==='DOCUMENTED'?'Approved documentation; DTR slot remains blank under school policy.':'Reviewer decision recorded with audit history.');
     }
     await load();
    }catch(error){messageSet(error.message,true);}finally{busy=false;button.disabled=false;}
   });
  }
- window.attendigoStaffIdentity?.then(init).catch(()=>{});
+ if($('principalMissingScanReview'))fetch('/api/auth/me',{credentials:'same-origin',cache:'no-store'}).then(r=>r.ok?r.json():null).then(d=>{if(d?.user?.role==='PRINCIPAL'&&!d.user.mustChangePassword)init(d.user);}).catch(()=>{});
+ else window.attendigoStaffIdentity?.then(init).catch(()=>{});
 })();

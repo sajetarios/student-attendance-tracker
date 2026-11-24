@@ -81,31 +81,26 @@ async function main(){
    decision:'VERIFY',comment:'Verified the signed departure entry against the department logbook.',
    verifiedTime:'17:03',reference:'Department logbook page 4 entry 12'});
   assert.equal(headDecision.status,200,JSON.stringify(headDecision));
-  assert.equal(headDecision.body.status,'HEAD_VERIFIED');
+  assert.equal(headDecision.body.status,'DOCUMENTED');
   assert.equal((await call('POST','/requests/'+id+'/admin-decision',outsideAdmin,{
-   decision:'APPROVE',comment:'Other school should not approve.'})).status,404);
+   decision:'APPROVE',comment:'Other school should not approve.'})).status,403);
   const defaultPolicy=await call('GET','/policy',admin);
   assert.equal(defaultPolicy.body.mode,'DOCUMENT_EXCEPTION');
-  const finalized=await call('POST','/requests/'+id+'/admin-decision',admin,{
-   decision:'APPROVE',comment:'Evidence reviewed and accepted as documented missing scan.'});
-  assert.equal(finalized.status,200,JSON.stringify(finalized));
-  assert.equal(finalized.body.status,'DOCUMENTED');
+  assert.equal((await call('POST','/requests/'+id+'/admin-decision',admin,{decision:'APPROVE',comment:'Admin cannot finalize this request.'})).status,403);
   const blank=await pool.query("SELECT 1 FROM staff_attendance_events WHERE school_id=$1 AND staff_user_id=$2 AND school_date=$3::date AND dtr_slot='PM_OUT' AND event_kind='DTR_SLOT'",
    [a.school,teacher.id,day]);
   assert.equal(blank.rowCount,0,'Documented exception leaves official DTR blank');
   assert.equal((await call('POST','/requests/'+id+'/admin-decision',admin,{
-   decision:'APPROVE',comment:'Replay approval should be blocked.'})).status,409);
+   decision:'APPROVE',comment:'Replay approval should be blocked.'})).status,403);
   const setPolicy=await call('POST','/policy',admin,{mode:'DTR_CORRECTION'});
   assert.equal(setPolicy.status,200,JSON.stringify(setPolicy));
   const secondRequest=await call('POST','/requests',second,make('16:58'));
   assert.equal(secondRequest.status,201,JSON.stringify(secondRequest));
   const secondId=secondRequest.body.requestId;
   assert.equal((await call('POST','/requests/'+secondId+'/evidence',head,png,'image/png')).status,200);
-  assert.equal((await call('POST','/requests/'+secondId+'/head-decision',head,{
+  const corrected=await call('POST','/requests/'+secondId+'/head-decision',head,{
    decision:'VERIFY',comment:'Checked signed attendance register and recorded time.',
-   verifiedTime:'16:58',reference:'Department logbook page 5 entry 8'})).status,200);
-  const corrected=await call('POST','/requests/'+secondId+'/admin-decision',admin,{
-   decision:'APPROVE',comment:'Authorized correction based on head-verified signed logbook.'});
+   verifiedTime:'16:58',reference:'Department logbook page 5 entry 8'});
   assert.equal(corrected.status,200,JSON.stringify(corrected));
   assert.equal(corrected.body.status,'DTR_CORRECTED');
   const pm=await pool.query("SELECT occurred_at,source,verification_method FROM staff_attendance_events WHERE school_id=$1 AND staff_user_id=$2 AND school_date=$3::date AND event_kind='DTR_SLOT' AND dtr_slot='PM_OUT' AND verification_status='VERIFIED'",
@@ -119,7 +114,8 @@ async function main(){
    [a.school,secondId]);
   assert.ok(audit.rows.some(r=>r.action==='MISSING_SCAN_OFFICIAL_DTR_CORRECTED'));
   assert.equal((await call('POST','/requests/'+secondId+'/admin-decision',admin,{
-   decision:'APPROVE',comment:'Duplicate final approval must be blocked.'})).status,409);
+   decision:'APPROVE',comment:'Duplicate final approval must be blocked.'})).status,403);
+  assert.equal((await call('POST','/requests/'+secondId+'/head-decision',head,{decision:'VERIFY',comment:'Duplicate approval cannot be accepted.',verifiedTime:'16:58',reference:'page 5'})).status,403);
   const own=await call('GET','/requests?view=mine',teacher);
   assert.equal(own.status,200);
   assert.equal(own.body.requests.length,1);
