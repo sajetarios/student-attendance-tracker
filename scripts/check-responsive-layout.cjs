@@ -4,7 +4,7 @@
 const assert=require('node:assert/strict');
 const fs=require('node:fs');
 const path=require('node:path');
-const {chromium}=require('playwright');
+const {chromium,webkit}=require('playwright');
 const dir=path.join(__dirname,'..','public');
 const read=name=>fs.readFileSync(path.join(dir,name),'utf8');
 function styles(name){
@@ -23,7 +23,56 @@ async function setup(page,name,body,attrs='',classes='portal-page'){
  await page.setContent('<!doctype html><html '+attrs+'><head><meta name="viewport" content="width=device-width,initial-scale=1"></head><body class="'+classes+'"><main class="content-wrap" style="width:100%;max-width:100%;margin:0;box-sizing:border-box;padding:12px">'+body+'</main></body></html>');
  for(const css of styles(name)) await page.addStyleTag({content:css});
 }
+async function checkMemoGeometry(engine,engineName){
+ const browser=await engine.launch({headless:true});
+ try{
+  for(const theme of ['light','dark']){
+   for(const width of [320,390,768,820,1024,1194,1366]){
+    const touch=width<=1194;
+    const page=await browser.newPage({viewport:{width,height:900},hasTouch:touch,isMobile:touch});
+    try{
+     const source=read('principal.html'),start=source.indexOf('<section id="principalMemoPublishPanel"'),end=source.indexOf('</section>',start);
+     assert.ok(start>=0&&end>start,'actual publisher fixture found');
+     const publisher=source.slice(start,end+10).replace('class="surface principal-memo-publish" hidden','class="surface principal-memo-publish attendigo-memo-embedded-publisher"').replace('id="principalMemoDtrFields" hidden','id="principalMemoDtrFields"');
+     await page.setContent('<!doctype html><html data-theme="'+theme+'"><head><meta name="viewport" content="width=device-width,initial-scale=1"></head><body><div class="shell"><main style="width:100%;min-width:0"><section id="attendigoSchoolMemoPanel" class="attendigo-memo-workspace attendigo-memo-management"><div class="attendigo-memo-toolbar"><div class="attendigo-memo-counters"><span class="attendigo-memo-counter">Published</span></div><div class="attendigo-memo-manager-actions"><button class="attendigo-memo-create">Hide publication form</button><button class="attendigo-memo-refresh">Refresh</button></div></div><div class="attendigo-memo-composer">'+publisher+'</div></section></main></div></body></html>');
+     // WebKit can reject addStyleTag when a stylesheet's remote font import fails.
+     // Load the same local CSS in order without waiting on third-party font requests.
+     await page.evaluate(sheets=>{for(const css of sheets){const node=document.createElement('style');node.textContent=css;document.head.append(node);}},styles('principal.html').map(css=>css.replace(/@import\s+[^;]+;/g,'')));
+     assert.equal(await page.locator('#principalMemoForm').evaluate(e=>getComputedStyle(e).display),'grid');
+     for(const name of ['effectiveDate','endDate'])await page.locator('input[name='+name+']').fill('2026-11-24');
+     for(const name of ['dtrAmIn','dtrAmOut','dtrPmIn','dtrPmOut'])await page.locator('input[name='+name+']').fill('08:00');
+     const geometry=await page.evaluate(()=>{
+      const rect=e=>{const r=e.getBoundingClientRect();return {x:r.x,y:r.y,width:r.width,height:r.height};};
+      const form=document.getElementById('principalMemoForm');
+      const fields=[...form.querySelectorAll('input:not([type=checkbox]),select,textarea')].map(e=>({name:e.name,control:rect(e),label:rect(e.closest('label'))}));
+      return {fields,form:rect(form),panel:rect(document.getElementById('attendigoSchoolMemoPanel')),touch:matchMedia('(pointer:coarse)').matches};
+     });
+     for(const f of geometry.fields){
+      const a=f.control,b=f.label;
+      assert.ok(a.width>0&&a.height>=43,f.name+' visible touch target');
+      assert.ok(a.x>=b.x-1&&a.x+a.width<=b.x+b.width+1,f.name+' exceeds label at '+width);
+      assert.ok(a.x>=geometry.form.x-1&&a.x+a.width<=geometry.form.x+geometry.form.width+1,f.name+' exceeds form at '+width);
+     }
+     for(let i=0;i<geometry.fields.length;i++)for(let j=i+1;j<geometry.fields.length;j++){
+      const a=geometry.fields[i],b=geometry.fields[j];
+      assert.ok(!overlap(a.control,b.control),a.name+' overlaps '+b.name+' at '+width);
+     }
+     const dates=geometry.fields.filter(f=>['effectiveDate','endDate'].includes(f.name));
+     if(geometry.touch||width<=800)assert.ok(dates[1].control.y>=dates[0].control.y+dates[0].control.height+8,'native dates must stack');
+     await contained(page,'#principalMemoPublish','#principalMemoForm');
+     const create=await box(page,'.attendigo-memo-create'),refresh=await box(page,'.attendigo-memo-refresh');
+     assert.ok(!overlap(create,refresh),'memo toolbar buttons overlap');
+     await contained(page,'.attendigo-memo-create','.attendigo-memo-toolbar');
+     await contained(page,'.attendigo-memo-refresh','.attendigo-memo-toolbar');
+     console.log('Principal memo native control geometry: '+engineName+' '+theme+' '+width+'px passed');
+    }finally{await page.close();}
+   }
+  }
+ }finally{await browser.close();}
+}
 (async()=>{
+ await checkMemoGeometry(chromium,'Chromium');
+ await checkMemoGeometry(webkit,'WebKit');
  const browser=await chromium.launch({headless:true});
  try{
   const page=await browser.newPage();

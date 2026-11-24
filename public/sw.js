@@ -1,4 +1,4 @@
-const CACHE = "attendigo-v387-document-branding";
+const CACHE = "attendigo-v388-document-branding-memo-layout";
 
 // Only public, non-personal offline shells and their executable dependencies.
 // An update must not discard the working cache before these are all ready.
@@ -189,7 +189,7 @@ const SHELL = [
   "/school-memos.js?v=1",
   "/school-memos.css?v=1",
   "/school-memo-banner.js?v=5",
-  "/school-memo-banner.css?v=4",
+  "/school-memo-banner.css?v=5",
   "/school-memos-redirect.js?v=1",
   "/responsive.css?v=0.8.3",
   "/comfort-ui.css?v=0.8.8",

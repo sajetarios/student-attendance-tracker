@@ -383,3 +383,55 @@
  .attendigo-memo-composer .attendigo-memo-embedded-publisher{padding:12px}
  .attendigo-memo-composer .principal-memo-fields{grid-template-columns:minmax(0,1fr)}
 }
+
+/* Native WebKit date/time widgets can exceed a grid track at tablet widths.
+   Size the actual form, its tracks, labels and controls; never hide overflow. */
+#attendigoSchoolMemoPanel #principalMemoForm{
+ display:grid;grid-template-columns:minmax(0,1fr);gap:16px;
+ min-inline-size:0;max-inline-size:100%;box-sizing:border-box;
+}
+#attendigoSchoolMemoPanel #principalMemoForm > *,
+#attendigoSchoolMemoPanel #principalMemoForm .principal-memo-fields,
+#attendigoSchoolMemoPanel #principalMemoForm .principal-memo-fields > label{
+ min-width:0;min-inline-size:0;max-width:100%;max-inline-size:100%;box-sizing:border-box;
+}
+#attendigoSchoolMemoPanel #principalMemoForm .principal-memo-fields{
+ grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;align-items:start;
+}
+#attendigoSchoolMemoPanel #principalMemoForm .principal-memo-attachment{
+ grid-template-columns:minmax(0,1fr);
+}
+#attendigoSchoolMemoPanel #principalMemoForm :is(input:not([type=checkbox]),select,textarea){
+ display:block;box-sizing:border-box!important;min-width:0!important;min-inline-size:0!important;
+ width:100%!important;inline-size:100%!important;max-width:100%!important;max-inline-size:100%!important;
+ margin:0;min-height:44px;font-size:16px;align-self:stretch;
+}
+#attendigoSchoolMemoPanel #principalMemoForm :is(input[type=date],input[type=time]){
+ -webkit-appearance:none;appearance:none;min-block-size:48px;
+}
+#attendigoSchoolMemoPanel #principalMemoForm :is(input[type=date],input[type=time])::-webkit-date-and-time-value{
+ text-align:left;min-width:0;margin:0;min-height:1.4em;
+}
+#attendigoSchoolMemoPanel #principalMemoForm label{overflow-wrap:anywhere}
+#attendigoSchoolMemoPanel #principalMemoForm .principal-memo-dtr-toggle input[type=checkbox]{
+ flex:0 0 20px;width:20px;height:20px;min-width:20px;max-width:20px;
+}
+#attendigoSchoolMemoPanel .attendigo-memo-manager-actions > button,
+#attendigoSchoolMemoPanel #principalMemoPublish{
+ min-width:0;max-width:100%;height:auto;min-height:44px;white-space:normal;overflow-wrap:anywhere;
+}
+@media(max-width:800px){
+ #attendigoSchoolMemoPanel #principalMemoForm .principal-memo-fields{grid-template-columns:minmax(0,1fr)}
+ #attendigoSchoolMemoPanel #principalMemoPublish{justify-self:stretch}
+}
+/* Touch devices (including landscape iPad): give native pickers their own row. */
+@media(pointer:coarse){
+ #attendigoSchoolMemoPanel #principalMemoForm .principal-memo-date-fields,
+ #attendigoSchoolMemoPanel #principalMemoForm #principalMemoDtrFields .principal-memo-fields{
+  grid-template-columns:minmax(0,1fr);
+ }
+}
+
+/* Keep label tracks shrinkable independently of the native control's intrinsic size. */
+#attendigoSchoolMemoPanel #principalMemoForm .principal-memo-fields > label{display:grid;grid-template-columns:minmax(0,1fr);align-content:start;}
+#attendigoSchoolMemoPanel #principalMemoAudienceHelp{margin:0;font-weight:400;font-size:14px;}
