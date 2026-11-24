@@ -2,6 +2,8 @@
 (()=>{
 'use strict';
 const $=id=>document.getElementById(id);
+const guard=window.AttendigoOfflineAccount;
+const matchesGate=scope=>!!guard?.matches('GATE_KEEPER',scope?.schoolId,scope?.userId);
 const DB='attendigo-gatekeeper-capture-v1',STORE='prepared';
 const KEY='gatekeeper-device';
 const encoder=new TextEncoder(),decoder=new TextDecoder();
@@ -40,6 +42,7 @@ async function derive(passphrase,s){
    raw,{name:'AES-GCM',length:256},false,['encrypt','decrypt']);
 }
 async function save(){
+ if(!matchesGate(data?.scope))throw Error('Offline Gatekeeper account changed.');
  if(!data||!secretKey)throw Error('Unlock this device first.');
  const documentCopy=JSON.stringify(data),key=secretKey,documentSalt=salt;
  writes=writes.catch(()=>{}).then(async()=>{
@@ -50,7 +53,7 @@ async function save(){
  return writes;
 }
 function view(){
- const unlocked=!!data;
+ const unlocked=!!data&&matchesGate(data.scope);
  $('scanPanel').hidden=!unlocked;$('syncPanel').hidden=!unlocked;
  $('lock').disabled=!unlocked;$('unlock').disabled=unlocked;
  $('prepare').disabled=unlocked;
@@ -99,7 +102,7 @@ async function registerShell(){
  // The active worker may be from a previous release until its update activates.
  // Explicitly warm the exact versioned, public offline assets in the new cache.
  const cache=await caches.open('attendigo-v243-gate-test-scan-controls');
- const assets=['/gate-offline.html','/gate-offline.js?v=2','/vendor/html5-qrcode.min.js'];
+ const assets=['/gate-offline.html','/gate-offline.js?v=3','/offline-account-guard.js?v=1','/vendor/html5-qrcode.min.js'];
  for(const asset of assets){
   if(!await caches.match(asset))await cache.add(asset);
  }
@@ -108,6 +111,7 @@ async function registerShell(){
  }
 }
 async function prepare(){
+ if(!await guard?.authorize('GATE_KEEPER'))throw Error('Verified Gatekeeper access required.');
  if(!online())throw Error('Online sign-in is required to prepare the scanner.');
  const pass=$('newPass').value;
  if(pass.length<12)throw Error('Choose a device passphrase with at least 12 characters.');
@@ -117,6 +121,7 @@ async function prepare(){
   await registerShell();
   const identity=await api('/api/gate/offline/prepare');
   if(identity.role!=='GATE_KEEPER'||!identity.schoolId||!identity.userId)throw Error('Gatekeeper role is required.');
+  if(!matchesGate(identity))throw Error('Gatekeeper account mismatch.');
   salt=crypto.getRandomValues(new Uint8Array(16));
   secretKey=await derive(pass,salt);
   data={scope:identity,events:[]};
@@ -131,6 +136,7 @@ async function prepare(){
  finally{$('prepare').disabled=false;}
 }
 async function renew(){
+ if(!matchesGate(data?.scope))throw Error('Verified Gatekeeper account required.');
  if(!data||!online())throw Error('Unlock the prepared device and connect to the internet to renew.');
  const identity=await api('/api/gate/offline/prepare');
  if(identity.schoolId!==data.scope.schoolId||identity.userId!==data.scope.userId||identity.role!=='GATE_KEEPER')
@@ -141,6 +147,7 @@ async function renew(){
  view();
 }
 async function unlock(){
+ if(!await guard?.authorize('GATE_KEEPER'))throw Error('Gatekeeper access is restricted. Reconnect to switch accounts.');
  const doc=await readDoc();
  if(!doc)throw Error('No prepared Gatekeeper profile on this device. Prepare online first.');
  const pass=$('pass').value;if(!pass)throw Error('Enter the device passphrase.');
@@ -150,6 +157,7 @@ async function unlock(){
   const decoded=JSON.parse(decoder.decode(plain));
   if(decoded?.scope?.role!=='GATE_KEEPER'||!decoded.scope.schoolId||!decoded.scope.userId||
    !Array.isArray(decoded.events)||decoded.events.length>2000)throw Error('Invalid device profile.');
+  if(!matchesGate(decoded.scope))throw Error('Prepared scanner belongs to another account.');
   data=decoded;$('pass').value='';
   $('syncResult').textContent='Unlocked. Internet not required to capture; syncing requires the same signed-in Gatekeeper.';
   view();
@@ -161,6 +169,7 @@ async function lock(){
  $('scanResult').textContent='Device locked.';
 }
 async function receive(text){
+ if(!matchesGate(data?.scope)){await lock();return;}
  if(!data||Date.now()>Date.parse(data.scope.validUntil)){notice('scanResult','Offline authorization expired. Reconnect and renew by preparing a device again after securely syncing existing scans.',true);await stop();return;}
  const raw=String(text||'').trim(),match=QR.exec(raw);
  if(!match){notice('scanResult','Not a valid JHS or TCH Attendigo QR. Nothing saved.',true);return;}
@@ -182,6 +191,7 @@ async function receive(text){
  }
 }
 async function start(){
+ if(!matchesGate(data?.scope))throw Error('Verified Gatekeeper account required.');
  if(!data)return;
  if(Date.now()>Date.parse(data.scope.validUntil))throw Error('Prepared scanner expired. Reconnect to prepare a new session after syncing.');
  if(typeof Html5Qrcode==='undefined')throw Error('Offline camera library not available. Reconnect and reload after preparation.');
@@ -197,6 +207,7 @@ async function stop(){
  active=false;view();
 }
 async function sync(){
+ if(!matchesGate(data?.scope))throw Error('Verified Gatekeeper account required.');
  if(!data||!data.events.some(item=>item.practice!==true))return $('syncResult').textContent='No pending non-practice scans to synchronize.';
  if(!online())throw Error('Connect to Wi-Fi or mobile data to synchronize.');
  if(syncing||queueBusy)return;
@@ -225,6 +236,7 @@ async function sync(){
  }finally{syncing=false;$('sync').disabled=false;view();}
 }
 async function discardEvents(ids,description){
+ if(!matchesGate(data?.scope))throw Error('Verified Gatekeeper account required.');
  if(!data||!secretKey)throw Error('Unlock the scanner first.');
  if(syncing||queueBusy||active)throw Error('Stop scanning or synchronization before discarding observations.');
  const selected=new Set(ids),matching=data.events.filter(event=>selected.has(event.eventId));
@@ -253,7 +265,7 @@ function connectivity(){
 function bind(id,callback){
  $(id).addEventListener('click',async()=>{
   $(id).disabled=true;
-  try{await callback();}
+  try{if(!guard?.current('GATE_KEEPER'))throw Error('Gatekeeper access restricted. Reconnect and sign in.');await callback();}
   catch(error){
    const target=id==='prepare'?'prepareResult':id==='sync'?'syncResult':id==='start'?'scanResult':'scanResult';
    if(target==='scanResult')notice(target,error.message,true);
@@ -265,8 +277,11 @@ bind('prepare',prepare);bind('unlock',unlock);bind('lock',lock);bind('start',sta
 bind('clearPractice',()=>discardSelected(true));bind('clearPending',()=>discardSelected(false));
 window.addEventListener('online',()=>{connectivity();if(data&&data.events.some(item=>item.practice!==true))sync().catch(e=>{$('syncResult').textContent=e.message;});});
 window.addEventListener('offline',connectivity);
-window.addEventListener('pagehide',()=>{secretKey=null;data=null;}); // never keep decoded badge tokens after navigation
-connectivity();readDoc().then(doc=>{
+window.addEventListener('pagehide',()=>{secretKey=null;data=null;$('queue').replaceChildren();$('scanPanel').hidden=true;$('syncPanel').hidden=true;}); // never keep decoded badge tokens after navigation
+function deny(){void lock();$('pass').value='';$('newPass').value='';$('queue').replaceChildren();for(const id of ['unlockPanel','preparePanel','scanPanel','syncPanel'])$(id).hidden=true;$('network').textContent='Gatekeeper access restricted. Reconnect to switch accounts.';}
+guard?.watch(()=>{if(!guard.current('GATE_KEEPER')||(data&&!matchesGate(data.scope)))deny();});
+connectivity();(async()=>{if(!await guard?.authorize('GATE_KEEPER')){deny();return null;}$('unlockPanel').hidden=false;$('preparePanel').hidden=false;return await readDoc();})().then(doc=>{
+ if(!guard?.current('GATE_KEEPER'))return;
  $('prepareResult').textContent=doc?'Device already prepared. Unlock using its passphrase.':'No prepared device on this browser.';
 }).catch(error=>{$('prepareResult').textContent='Local storage unavailable: '+error.message;});
 })();

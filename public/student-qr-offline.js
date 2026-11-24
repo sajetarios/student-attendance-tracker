@@ -3,6 +3,8 @@
 (()=>{'use strict';
  const DB='attendigo-student-class-outbox-v1',MARKER='attendigo.studentQrCapture',MAX=50,encoder=new TextEncoder(),decoder=new TextDecoder();
  let owner=null,syncing=false,prepared=false;
+ const guard=window.AttendigoOfflineAccount;
+ const allowed=o=>!!guard?.matches('STUDENT',o?.schoolId,o?.accountId);
  const scope=u=>u?.role==='STUDENT'&&!u.mustChangePassword&&u.schoolId&&u.studentAccountId?{schoolId:String(u.schoolId),accountId:String(u.studentAccountId)}:null;
  const same=(a,b)=>!!a&&!!b&&a.schoolId===b.schoolId&&a.accountId===b.accountId;
  const ownerId=o=>o.schoolId+':'+o.accountId;
@@ -19,40 +21,41 @@
  async function verify(){const res=await fetch('/api/auth/me',{credentials:'same-origin',cache:'no-store'});if(res.status===401||res.status===403)return null;if(!res.ok)throw Error('Session verification unavailable');return scope((await res.json()).user);}
  async function enable(user){
   const next=scope(user);if(!next)return false;
+  guard?.record(user);if(!allowed(next))return false;
   owner=next;prepared=true;try{sessionStorage.setItem(MARKER,JSON.stringify({...next,until:Date.now()+12*60*60*1000}));}catch{}
   void render().catch(()=>{});void sync().catch(()=>{});return true;
  }
  function disable(){owner=null;prepared=false;try{sessionStorage.removeItem(MARKER);}catch{}}
- function restoreCapture(){try{const marker=JSON.parse(sessionStorage.getItem(MARKER)||'null');if(!marker?.schoolId||!marker.accountId||marker.until<Date.now())return false;owner={schoolId:marker.schoolId,accountId:marker.accountId};prepared=true;return true;}catch{return false;}}
+ function restoreCapture(){try{const marker=JSON.parse(sessionStorage.getItem(MARKER)||'null');if(!marker?.schoolId||!marker.accountId||marker.until<Date.now()||!allowed(marker))return false;owner={schoolId:marker.schoolId,accountId:marker.accountId};prepared=true;return true;}catch{return false;}}
  async function enqueue(qr){
-  if(!prepared||!owner)throw Error('Open the Student Portal online first.');
+  if(!prepared||!owner||!allowed(owner))throw Error('Open the Student Portal online first.');
   if(!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(qr.sessionId||'')||!/^[a-f0-9]{64}$/i.test(qr.token||''))throw Error('Invalid QR.');
   const o=owner,id=ownerId(o)+':'+qr.sessionId,rows=await list(o);
   if(rows.length>=MAX&&!rows.some(row=>row.id===id))throw Error('Offline queue is full. Reconnect or ask your teacher.');
   const iv=crypto.getRandomValues(new Uint8Array(12)),cipher=await crypto.subtle.encrypt({name:'AES-GCM',iv,additionalData:encoder.encode(id)},await key(ownerId(o)),encoder.encode(JSON.stringify({sessionId:qr.sessionId,token:qr.token})));
-  if(!same(o,owner))throw Error('Student account changed. Scan again.');
+  if(!same(o,owner)||!allowed(o))throw Error('Student account changed. Scan again.');
   await save({id,owner:ownerId(o),sessionId:qr.sessionId,iv:Array.from(iv),cipher:Array.from(new Uint8Array(cipher)),createdAt:Date.now(),state:'PENDING'});
   await render();return id;
  }
  async function decrypt(row){const saved=await tx('keys','readonly',st=>st.get(row.owner));if(!saved)throw Error('Device key unavailable');const data=await crypto.subtle.decrypt({name:'AES-GCM',iv:new Uint8Array(row.iv),additionalData:encoder.encode(row.id)},saved.key,new Uint8Array(row.cipher));return JSON.parse(decoder.decode(data));}
  async function render(){
-  const status=document.getElementById('studentQrQueueStatus'),items=document.getElementById('studentQrQueueItems');if(!status||!items||!owner)return;
-  const o=owner,rows=await list(o);if(!same(o,owner))return;
+  const status=document.getElementById('studentQrQueueStatus'),items=document.getElementById('studentQrQueueItems');if(!status||!items||!owner||!allowed(owner))return;
+  const o=owner,rows=await list(o);if(!same(o,owner)||!allowed(o))return;
   const pending=rows.filter(x=>x.state==='PENDING').length,review=rows.length-pending;
   status.textContent=pending+' waiting to sync · '+review+' need teacher review. Pending scans are not official attendance.';
   const pendingCount=document.getElementById('studentQrPendingCount'),reviewCount=document.getElementById('studentQrReviewCount');if(pendingCount)pendingCount.textContent=String(pending);if(reviewCount)reviewCount.textContent=String(review);
   items.replaceChildren();
   for(const row of rows.filter(x=>x.state==='REVIEW')){
    const item=document.createElement('li');item.textContent=new Date(row.createdAt).toLocaleString()+' (device time) — '+row.reason+' Show your teacher; use the existing manual class register.';
-   const dismiss=document.createElement('button');dismiss.type='button';dismiss.textContent='Dismiss after teacher review';dismiss.addEventListener('click',async()=>{if(!same(o,owner))return;await remove(row.id);await render();});item.append(' ',dismiss);items.append(item);
+   const dismiss=document.createElement('button');dismiss.type='button';dismiss.textContent='Dismiss after teacher review';dismiss.addEventListener('click',async()=>{if(!same(o,owner)||!allowed(o))return;await remove(row.id);await render();});item.append(' ',dismiss);items.append(item);
   }
  }
  async function sync(){
-  if(syncing||!owner||navigator.onLine===false)return;syncing=true;const o=owner;
+  if(syncing||!owner||!allowed(owner)||navigator.onLine===false)return;syncing=true;const o=owner;
   try{
    const verified=await verify();if(!same(o,verified)||!same(o,owner))return;
    for(const row of (await list(o)).sort((a,b)=>a.createdAt-b.createdAt)){
-    if(!same(o,owner))break;
+    if(!same(o,owner)||!allowed(o))break;
     const expectedStudentAccountId=o.accountId,expectedSchoolId=o.schoolId;
     const query=new URLSearchParams({sessionId:row.sessionId,expectedStudentAccountId,expectedSchoolId});
     try{
@@ -78,5 +81,6 @@
  window.addEventListener('pageshow',()=>{void sync();});
  document.addEventListener('visibilitychange',()=>{if(!document.hidden)void sync();});
  document.getElementById('studentQrSync')?.addEventListener('click',async()=>{const feedback=document.getElementById('studentQrSyncFeedback');if(!feedback){void sync();return;}if(!owner){feedback.textContent='Sign in online to prepare this scanner.';return;}if(navigator.onLine===false){feedback.textContent='You are offline. Reconnect to sync saved scans.';return;}feedback.textContent='Checking pending scans…';await sync();feedback.textContent='Sync check finished. See the queue above for remaining scans.';});
- window.StudentQrOffline={enable,disable,restoreCapture,enqueue,sync,render,ready:()=>prepared};
+ guard?.watch(()=>{if(owner&&!allowed(owner)){disable();const items=document.getElementById('studentQrQueueItems');items?.replaceChildren();for(const id of ['studentQrPendingCount','studentQrReviewCount']){const el=document.getElementById(id);if(el)el.textContent='—';}const scan=document.getElementById('studentScanQr');if(scan)scan.disabled=true;}});
+ window.StudentQrOffline={enable,disable,restoreCapture,enqueue,sync,render,ready:()=>prepared&&allowed(owner)};
 })();

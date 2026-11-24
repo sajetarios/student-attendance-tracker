@@ -1,17 +1,18 @@
-const CACHE = "attendigo-v358-reliable-offline-reload";
+const CACHE = "attendigo-v359-offline-role-isolation";
 
 // Only public, non-personal offline shells and their executable dependencies.
 // An update must not discard the working cache before these are all ready.
 const OFFLINE_TOOL_PAGES = ["/offline-sheet.html", "/gate-offline.html", "/student-qr-offline.html", "/offline-welcome.html"];
 const OFFLINE_REQUIRED = [
   ...OFFLINE_TOOL_PAGES,
+  "/offline-account-guard.js?v=1",
   "/offline-attendance.js?v=5",
-  "/offline-sheet.js?v=4",
+  "/offline-sheet.js?v=5",
   "/attendance-sync-center.js?v=3",
   "/attendance-sync-center.css?v=4",
-  "/gate-offline.js?v=2",
-  "/student-qr-offline.js?v=2",
-  "/student-qr-offline-page.js?v=3",
+  "/gate-offline.js?v=3",
+  "/student-qr-offline.js?v=3",
+  "/student-qr-offline-page.js?v=4",
   "/student-qr-scanner.js?v=4",
   "/vendor/html5-qrcode.min.js",
   "/assets/attendigo-official-lockup.svg?v=5"
@@ -55,16 +56,16 @@ const SHELL = [
   "/photo-editor.css?v=2",
   "/photo-editor.js?v=11",
   "/photo-editor.js?v=9",
-  "/session-guard.js?v=4",
+  "/session-guard.js?v=6",
   "/flicker-diagnostics.js?v=1",
   "/school-header-responsive.js?v=2",
   "/student-portal-refinement.css?v=1",
-  "/student-portal.js?v=24",
-  "/student-qr-offline.js?v=2",
+  "/student-portal.js?v=25",
+  "/student-qr-offline.js?v=3",
   "/student-qr-offline.html",
-  "/student-qr-offline-page.js?v=3",
+  "/student-qr-offline-page.js?v=4",
   "/vendor/html5-qrcode.min.js",
-  "/session-guard.js?v=5",
+  "/session-guard.js?v=6",
   "/student-qr-scanner.js?v=4",
   "/parent-portal.js?v=3",
   "/dashboard-appearance.js?v=3",
@@ -88,7 +89,7 @@ const SHELL = [
   "/teacher-scanner-schedule.js?v=1",
   "/teacher-roster-popover.js?v=2",
   "/portal.css?v=0.9.119",
-  "/portal.js?v=238",
+  "/portal.js?v=239",
   "/attendigo-help-topics.js?v=3",
   "/attendigo-help-guide.js?v=4",
   "/attendigo-help.css?v=3",
@@ -134,11 +135,11 @@ const SHELL = [
   "/offline-attendance.js?v=5",
   "/offline-sheet.html",
   "/gate-offline.html",
-  "/gate-offline.js?v=2",
+  "/gate-offline.js?v=3",
   "/gate-offline-review.html",
   "/gate-offline-review.css?v=1",
   "/gate-offline-review.js?v=1",
-  "/offline-sheet.js?v=4",
+  "/offline-sheet.js?v=5",
   "/manual-folio.css?v=11",
   "/class-attendance-mobile.css?v=1",
   "/recent-class-attendance.css?v=2",
@@ -170,7 +171,7 @@ const SHELL = [
   "/form-system.css?v=1",
   "/password-visibility.css",
   "/password-visibility.js",
-  "/portal-login.js?v=16",
+  "/portal-login.js?v=17",
   "/login-routing.js",
   "/principal-dashboard.js?v=15",
   "/principal-dashboard.css?v=14",
@@ -296,7 +297,7 @@ self.addEventListener("fetch", event => {
 
   // Authentication scripts must never remain stale across releases or domain changes.
   // They need the deployed code online, with cached copies available only offline.
-  if (['/portal-login.js', '/login-routing.js', '/student-portal.js', '/student-qr-scanner.js', '/student-qr-offline.js', '/student-qr-offline-page.js'].includes(url.pathname)) {
+  if (['/offline-account-guard.js','/portal-login.js', '/login-routing.js', '/student-portal.js', '/student-qr-scanner.js', '/student-qr-offline.js', '/student-qr-offline-page.js'].includes(url.pathname)) {
     event.respondWith((async () => {
       try {
         const fresh = await fetch(request, { cache: 'no-store' });

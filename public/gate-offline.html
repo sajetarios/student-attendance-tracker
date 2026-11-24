@@ -1,6 +1,6 @@
 <!doctype html>
 <html lang="en" data-theme="light">
-<head><meta name="color-scheme" content="light"><style>html{color-scheme:only light}</style><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<head><script src="/offline-account-guard.js?v=1"></script><meta name="color-scheme" content="light"><style>html{color-scheme:only light}</style><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="theme-color" content="#f3f7fc"><title>Offline Gatekeeper · Attendigo</title>
 <link rel="manifest" href="/manifest.webmanifest">
 <link rel="icon" href="/assets/attendigo-favicon.png?v=2">
@@ -78,10 +78,10 @@ body.offline-workspace{--ow-bg:#f3f7fc;--ow-card:#fff;--ow-text:#102e4c;--ow-mut
 <main><img class="ow-brand" src="/assets/attendigo-official-lockup.svg?v=5" alt="Attendigo" width="1769" height="496"><div class="ow-intro"><h1>Gatekeeper scanner</h1><p>Capture badge observations when the internet is unavailable.</p></div><nav class="ow-nav" aria-label="Attendance navigation"><a href="/offline-welcome.html">← Back to Offline Tools</a><a href="/portal.html">Gatekeeper portal (online)</a></nav>
 <p class="note">Captures are encrypted on this device. They are NOT verified attendance, arrival/departure or official DTR punches until authorized review.</p>
 <div id="network" class="status" role="status" aria-live="polite">Checking connectivity…</div>
-<section id="unlockPanel"><h2>Unlock prepared scanner</h2>
+<section id="unlockPanel" hidden><h2>Unlock prepared scanner</h2>
 <label for="pass">Device passphrase</label><input id="pass" type="password" autocomplete="off">
 <div class="row"><button id="unlock">Unlock scanner</button><button id="lock" class="secondary" disabled>Lock</button></div></section>
-<section id="preparePanel"><h2>Prepare this device (online)</h2>
+<section id="preparePanel" hidden><h2>Prepare this device (online)</h2>
 <p>Sign in as an authorized Gatekeeper in this browser, open this page while connected, and create a device passphrase of at least 12 characters. Preparation expires after 12 hours; it cannot silently renew offline.</p>
 <label for="newPass">Private device passphrase</label><input id="newPass" type="password" minlength="12" autocomplete="new-password">
 <div class="row"><button id="prepare">Prepare this device</button><span id="prepareResult"></span></div>
@@ -101,5 +101,5 @@ body.offline-workspace{--ow-bg:#f3f7fc;--ow-card:#fff;--ow-text:#102e4c;--ow-mut
 <small>Discard permanently deletes only encrypted observations on this device after confirmation; it cannot delete synchronized or official attendance. Only server-confirmed acknowledgments remove encrypted local copies. If sync fails, keep the browser data and retry from this device. Leaving this page or closing the browser locks the session.</small></section>
 </main>
 <script src="/vendor/html5-qrcode.min.js"></script>
-<script src="/gate-offline.js?v=2"></script>
+<script src="/gate-offline.js?v=3"></script>
 </body></html>

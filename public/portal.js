@@ -132,6 +132,7 @@ window.attendigoStaffIdentity = new Promise(resolve => { resolveStaffIdentity = 
   }
 
   function clearSession() {
+    window.AttendigoOfflineAccount?.clear();
     sessionStorage.removeItem(tokenKey);
     sessionStorage.removeItem(userKey);
     sessionStorage.removeItem('schoolAttendance.expiresAt');
@@ -5486,6 +5487,7 @@ let teacherActionMenuListenersInstalled = false;
       return;
     }
     user = me.user;
+    window.AttendigoOfflineAccount?.record(user,me.expiresAt);
     // Reveal section creation as soon as the authenticated role is known; do not wait for dashboard API loading.
     if ($('createScheduleSection')) $('createScheduleSection').hidden = !['SCHOOL_ADMIN','DEPARTMENT_HEAD'].includes(user.role);
     if (user.mustChangePassword) { window.location.replace('/force-password-change.html'); return; }

@@ -9,6 +9,7 @@
 
 
   function clearSession() {
+    window.AttendigoOfflineAccount?.clear();
     window.StudentQrOffline?.disable();
     sessionStorage.removeItem(tokenKey);
     sessionStorage.removeItem(userKey);
@@ -116,6 +117,7 @@
   });
   async function init() {
     const me = await api('/api/auth/me');
+    window.AttendigoOfflineAccount?.record(me.user,me.expiresAt);
     if (me.user.role !== 'STUDENT') { location.replace(me.user.role === 'PARENT' ? '/parent-portal.html' : '/portal.html'); return; }
     currentUser = me.user;
     // The class scanner depends on the verified session only, not on unrelated dashboard data.

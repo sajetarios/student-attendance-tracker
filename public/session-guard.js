@@ -35,7 +35,8 @@
         headers: {}
       });
       if (sequence !== checkSequence) return;
-      if (response.status === 401) {
+      if ([401,403,428].includes(response.status)) {
+        window.AttendigoOfflineAccount?.clear();
         if (sessionStorage.getItem(tokenKey) === token) {
           for (const key of [tokenKey, 'schoolAttendance.user', 'schoolAttendance.expiresAt']) sessionStorage.removeItem(key);
         }
@@ -47,6 +48,7 @@
       if (sequence !== checkSequence) return;
       const expected = document.documentElement.dataset.protectedRole;
       const role = payload?.user?.role;
+      window.AttendigoOfflineAccount?.record(payload.user,payload.expiresAt);
       if (!role) { redirect(); return; }
       if ((expected === 'STUDENT' && role !== 'STUDENT') ||
           (expected === 'PARENT' && role !== 'PARENT') ||
