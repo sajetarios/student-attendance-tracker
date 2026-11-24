@@ -23,6 +23,8 @@ const { hashPassword, verifyPassword } = require('./auth-security');
 const { createAuthMiddleware } = require('./auth-middleware');
 const { registerParentRoutes } = require('./parent-routes');
 const { registerParentSubjectRoutes } = require('./parent-subject-routes');
+const { registerParentPushRoutes } = require('./parent-push-routes');
+const { startParentPushWorker } = require('./parent-web-push');
 const { registerGuardianRoutes } = require('./guardian-routes');
 const { registerStudentRoutes } = require('./student-routes');
 const { registerStudentPortalAccountRoutes } = require('./student-portal-account-routes');
@@ -191,6 +193,7 @@ const validText = value => typeof value === 'string' && value.trim().length > 0;
 registerSmsRoutes(app, pool, { authenticateSchoolClient, requireSchoolRoles });
 registerParentRoutes(app, pool, { authenticateSchoolClient, requireSchoolRoles });
 registerParentSubjectRoutes(app, pool, { authenticateSchoolClient, requireSchoolRoles });
+registerParentPushRoutes(app, pool, { authenticateSchoolClient, requireSchoolRoles });
 registerGuardianRoutes(app, pool, { authenticateSchoolClient, requireSchoolRoles });
 registerStudentRoutes(app, pool, { authenticateSchoolClient, requireSchoolAdmin });
 require('./subject-management-routes').registerSubjectManagementRoutes(app, pool, { authenticateSchoolClient, requireSchoolRoles });
@@ -4502,6 +4505,7 @@ async function start() {
   await pool.query('UPDATE students SET qr_token=gen_random_uuid() WHERE qr_token IS NULL');
   app.listen(port, '0.0.0.0', () => console.log(`Attendance API listening on ${port} (roles-sf2-workflow-responsive-2026-11-11)`));
   smsWorker = startSmsWorker(pool);
+  startParentPushWorker(pool);
   // Catch up on unacknowledged cloud events immediately after a sleeping Free
   // instance resumes. Existing outbox idempotency prevents duplicate dispatch.
   const syncOnce = singleFlight(() => processCloudSyncOutbox(pool)
