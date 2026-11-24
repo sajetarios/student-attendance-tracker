@@ -41,7 +41,7 @@
 @media screen and (max-width:700px) {
  :where(body.portal-page,body:has(> .shell)) :is(
    .form-actions,.action-row,.toolbar-actions,.modal-actions,.filter-actions
- ) > :is(button,a,.primary-button,.outline-button,.secondary-button) {flex:1 1 150px;}
+ ) > :is(button,a,.primary-button,.outline-button,.secondary-button) {flex:1 1 auto;min-block-size:44px;block-size:auto;}
 }
 
 /* Personal attendance: do not let the shared mobile flex-basis become a
