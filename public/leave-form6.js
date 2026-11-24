@@ -6,7 +6,7 @@
  const token=sessionStorage.getItem('schoolAttendance.accessToken')||
   (()=>{try{return window.opener?.sessionStorage?.getItem('schoolAttendance.accessToken')||'';}catch{return '';}})();
  const showError=s=>{put('status',s);};
- const enablePrint=()=>{const print=$('print');if(print){print.disabled=false;print.addEventListener('click',()=>window.print());}};
+ const enablePrint=()=>{const print=$('print');if(print){print.disabled=false;$('print').addEventListener('click',()=>window.print());}};
  async function branding(){
   try{
    const response=await fetch('/api/school/document-branding',{credentials:'same-origin',headers:token?{Authorization:'Bearer '+token}:{},cache:'no-store'});
