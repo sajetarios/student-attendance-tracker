@@ -1,7 +1,7 @@
 name: Attendigo regression checks
 on:
   push:
-    branches: [fix/render-login-landing]
+    branches: [fix/render-login-landing, staging/school-day-dry-run-20261120]
   workflow_dispatch:
 jobs:
   test:
@@ -15,5 +15,7 @@ jobs:
       - run: npm ci
       - run: npm test
       - run: node --check server.js
+      - run: node --check parent-subject-routes.js
+      - run: node --check public/parent-subject.js
       - run: node --check platform-plan-routes.js
       - run: node --check public/platform-plans-ui.js
