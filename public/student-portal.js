@@ -94,7 +94,7 @@
     try {
       await api('/api/student/change-password', {method:'POST',body:JSON.stringify({currentPassword,newPassword})});
       currentUser.mustChangePassword = false;
-      sessionStorage.setItem(userKey, JSON.stringify(currentUser));
+      try { sessionStorage.setItem(userKey, JSON.stringify(currentUser)); } catch {}
       $('studentPasswordRequired').hidden = true;
       $('studentAttendanceSummary').hidden = false;
       $('studentAttendanceCard').hidden = false;
@@ -117,16 +117,25 @@
     const me = await api('/api/auth/me');
     if (me.user.role !== 'STUDENT') { location.replace(me.user.role === 'PARENT' ? '/parent-portal.html' : '/portal.html'); return; }
     currentUser = me.user;
-    sessionStorage.setItem(userKey, JSON.stringify(currentUser));
-    await loadProfile();
-    // The student dashboard is an explicit exit from QR check-in. Only the
-    // sign-in flow's validated returnTo parameter may resume a QR session.
-    sessionStorage.removeItem('schoolAttendance.pendingClassQr');
-    window.ProfilePhotos?.mountSelf({token,role:'STUDENT',studentId:currentUser.studentId,container:'#studentProfileCard',displayName:currentUser.displayName});
+    // The class scanner depends on the verified session only, not on unrelated dashboard data.
     $('studentAttendanceSummary').hidden = Boolean(currentUser.mustChangePassword);
     $('studentAttendanceCard').hidden = Boolean(currentUser.mustChangePassword);
     $('studentPasswordRequired').hidden = !currentUser.mustChangePassword;
-    if (!currentUser.mustChangePassword) { window.StudentClassQrScanner?.enable(); await loadAttendance(); }
+    if (!currentUser.mustChangePassword) {
+      if (window.StudentClassQrScanner) window.StudentClassQrScanner.enable();
+      else $('studentQrReady').textContent = 'Scanner could not load. Reload this page to try again.';
+    } else $('studentQrReady').textContent = 'Change your initial password below to use classroom QR attendance.';
+    try {
+      sessionStorage.setItem(userKey, JSON.stringify(currentUser));
+      sessionStorage.removeItem('schoolAttendance.pendingClassQr');
+    } catch {}
+    // Load the rest of the dashboard independently so an unavailable profile does not hide the scanner.
+    const tasks = [loadProfile()];
+    if (!currentUser.mustChangePassword) tasks.push(loadAttendance());
+    const results = await Promise.allSettled(tasks);
+    const failed = results.find(result => result.status === 'rejected');
+    if (failed) $('studentPortalFeedback').textContent = failed.reason?.message || 'Some dashboard information could not be loaded.';
+    try { window.ProfilePhotos?.mountSelf({token,role:'STUDENT',studentId:currentUser.studentId,container:'#studentProfileCard',displayName:currentUser.displayName}); } catch {}
   }
   init().catch(error => { $('studentPortalFeedback').textContent = error.message || 'Could not load the Student Portal.'; });
 })();

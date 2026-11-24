@@ -79,5 +79,5 @@
  $('studentQrPasteForm').addEventListener('submit',async e=>{e.preventDefault();if(submitting||verifying)return;const raw=$('studentQrLink').value.trim();$('studentQrLink').value='';if(!parseQr(raw)){message('Paste a valid Attendigo classroom QR link.');return;}clearSelection();await readQr(raw);});
  $('studentQrStop').addEventListener('click',async()=>{if(submitting)return;closing=true;generation++;verifying=false;clearSelection();visible(card,false);await stop();if(!starting)open.disabled=false;});
  window.addEventListener('pagehide',()=>{closing=true;generation++;void stop();});
- window.StudentClassQrScanner={enable:()=>visible(open,true)};
+ window.StudentClassQrScanner={enable:()=>{open.disabled=false;visible(open,true,'inline-flex');$('studentQrReady').textContent='Scan your teacher’s QR here. No additional sign-in is needed while your session is active.';}};
 })();

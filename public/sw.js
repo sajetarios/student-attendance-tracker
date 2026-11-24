@@ -1,4 +1,4 @@
-const CACHE = "attendigo-v344-in-portal-class-checkin";
+const CACHE = "attendigo-v345-visible-student-qr-action";
 
 const SHELL = [
   "/typography.css?v=1",
@@ -42,8 +42,8 @@ const SHELL = [
   "/flicker-diagnostics.js?v=1",
   "/school-header-responsive.js?v=2",
   "/student-portal-refinement.css?v=1",
-  "/student-portal.js?v=22",
-  "/student-qr-scanner.js?v=2",
+  "/student-portal.js?v=23",
+  "/student-qr-scanner.js?v=3",
   "/parent-portal.js?v=3",
   "/dashboard-appearance.js?v=3",
   "/timetable-grid.js?v=8",
