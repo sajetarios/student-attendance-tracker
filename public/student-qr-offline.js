@@ -18,7 +18,7 @@
  const list=o=>tx('scans','readonly',st=>st.index('owner').getAll(ownerId(o)));
  const save=row=>tx('scans','readwrite',st=>st.put(row));
  const remove=id=>tx('scans','readwrite',st=>st.delete(id));
- async function verify(){const res=await fetch('/api/auth/me',{credentials:'same-origin',cache:'no-store'});if(res.status===401||res.status===403)return null;if(!res.ok)throw Error('Session verification unavailable');return scope((await res.json()).user);}
+ async function verify(){const res=await fetch('/api/auth/me',{credentials:'same-origin',cache:'no-store'});if([401,403,428].includes(res.status)){guard?.clear();return null;}if(!res.ok)throw Error('Session verification unavailable');const d=await res.json();guard?.record(d.user,d.expiresAt);return scope(d.user);}
  async function enable(user){
   const next=scope(user);if(!next)return false;
   guard?.record(user);if(!allowed(next))return false;

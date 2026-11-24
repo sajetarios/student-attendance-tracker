@@ -11,7 +11,7 @@
   const id=identity(user);if(!id){clear();return null;}
   try{
    const old=parse(localStorage,KEY),prior=parse(sessionStorage,TAB);
-   const end=Date.parse(expiresAt||'');
+   const end=Date.parse(expiresAt||(same(prior,id)?sessionStorage.getItem('schoolAttendance.expiresAt'):'')||'');
    const until=Math.min(Date.now()+12*60*60*1000,Number.isFinite(end)?end:Infinity);
    if(until<=Date.now()){clear();return null;}
    const epoch=same(old,id)&&old.until>Date.now()&&old.epoch?old.epoch:crypto.randomUUID();
@@ -32,7 +32,9 @@
  async function authorize(role){
   if(navigator.onLine!==false){
    try{
-    const r=await fetch('/api/auth/me',{credentials:'same-origin',cache:'no-store'});
+    const controller=typeof AbortController==='function'?new AbortController():null;
+    const timer=controller?setTimeout(()=>controller.abort(),4500):null;
+    let r;try{r=await fetch('/api/auth/me',{credentials:'same-origin',cache:'no-store',...(controller?{signal:controller.signal}:{})});}finally{if(timer!==null)clearTimeout(timer);}
     if([401,403,428].includes(r.status)){clear();return null;}
     if(r.ok){const d=await r.json();record(d.user,d.expiresAt);return current(role);}
    }catch{}

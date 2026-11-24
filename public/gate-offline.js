@@ -101,13 +101,13 @@ async function registerShell(){
  await navigator.serviceWorker.ready;
  // The active worker may be from a previous release until its update activates.
  // Explicitly warm the exact versioned, public offline assets in the new cache.
- const cache=await caches.open('attendigo-v243-gate-test-scan-controls');
+ const cache=await caches.open('attendigo-v359-offline-role-isolation');
  const assets=['/gate-offline.html','/gate-offline.js?v=3','/offline-account-guard.js?v=1','/vendor/html5-qrcode.min.js'];
  for(const asset of assets){
-  if(!await caches.match(asset))await cache.add(asset);
+  if(!await cache.match(asset))await cache.add(asset);
  }
  for(const asset of assets){
-  if(!await caches.match(asset))throw Error('Offline asset could not be cached: '+asset);
+  if(!await cache.match(asset))throw Error('Offline asset could not be cached: '+asset);
  }
 }
 async function prepare(){
@@ -267,7 +267,7 @@ function bind(id,callback){
   $(id).disabled=true;
   try{if(!guard?.current('GATE_KEEPER'))throw Error('Gatekeeper access restricted. Reconnect and sign in.');await callback();}
   catch(error){
-   const target=id==='prepare'?'prepareResult':id==='sync'?'syncResult':id==='start'?'scanResult':'scanResult';
+   const target=id==='prepare'?'prepareResult':id==='unlock'?'unlockStatus':id==='sync'?'syncResult':'scanResult';
    if(target==='scanResult')notice(target,error.message,true);
    else $(target).textContent=error.message;
   }finally{view();if(id==='prepare'&&!data)$('prepare').disabled=false;if(id==='unlock'&&!data)$('unlock').disabled=false;}
