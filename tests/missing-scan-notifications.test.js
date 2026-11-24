@@ -12,13 +12,19 @@ test('missing scan alerts use transactional, tenant and department scoped routin
 });
 test('bell routes directly to the correct missing scan dialog and refreshes after mutations',()=>{
  const js=fs.readFileSync('public/universal-notifications.js','utf8'),ui=fs.readFileSync('public/missing-scan-ui.js','utf8');
- assert.match(js,/AttendigoMissingScans\.open\(inbox\?'inbox':'mine',item\.requestId\)/);
+ assert.match(js,/await module\.open\(null,item\.requestId\)/);
+ assert.match(js,/await navigate\(item\)/);
+ assert.match(ui,/api\(id\?'\/requests\/'\+encodeURIComponent\(id\)/);
+ assert.match(ui,/tab=result\.view/);
+ assert.match(ui,/Selected request/);
+ assert.match(ui,/msBackToList/);
+ assert.match(ui,/AttendigoMissingScansReady/);
  assert.match(ui,/window\.AttendigoMissingScans=\{open\}/);
  assert.match(ui,/attendigo:requests-changed/);
  const sw=fs.readFileSync('public/sw.js','utf8');
  for(const p of ['portal.html','principal.html']){
   const html=fs.readFileSync('public/'+p,'utf8');
-  assertCachedAsset(html,sw,'missing-scan-ui.js',{minimumVersion:5});
-  assertCachedAsset(html,sw,'universal-notifications.js',{minimumVersion:9});
+  assertCachedAsset(html,sw,'missing-scan-ui.js',{minimumVersion:6});
+  assertCachedAsset(html,sw,'universal-notifications.js',{minimumVersion:10});
  }
 });

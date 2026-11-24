@@ -51,7 +51,7 @@ function registerMissingScanRoutes(app,pool,{authenticateSchoolClient,requireSch
  };
  const select='SELECT r.request_id AS "requestId",r.school_date::text AS date,r.slot,'+
   'to_char(r.claimed_time,\'HH24:MI\') AS "claimedTime",r.explanation,r.status,'+
-  'r.staff_user_id AS "staffUserId",u.display_name AS "staffName",r.department_id AS "departmentId",'+
+  'r.staff_user_id AS "staffUserId",u.display_name AS "staffName",u.role AS "requesterRole",r.department_id AS "departmentId",'+
   'd.department_name AS "departmentName",r.created_at AS "createdAt",r.updated_at AS "updatedAt",'+
   'r.head_user_id AS "headUserId",r.head_note AS "headNote",'+
   'to_char(r.verified_time,\'HH24:MI\') AS "verifiedTime",r.head_reviewed_at AS "headReviewedAt",'+
@@ -112,6 +112,18 @@ function registerMissingScanRoutes(app,pool,{authenticateSchoolClient,requireSch
   try{
    const q=await pool.query(select+' '+where+' ORDER BY r.created_at DESC LIMIT 200',params);
    return res.json({requests:q.rows});
+  }catch(e){return error(res,e);}
+ });
+ app.get('/api/missing-scans/requests/:id',...auth,async(req,res)=>{
+  res.set('Cache-Control','no-store, private');
+  const id=req.params.id;
+  const notFound=()=>res.status(404).json({error:'This missing-scan request is no longer available to your account.'});
+  if(!UUID.test(id))return notFound();
+  try{
+   const q=await pool.query(select+' WHERE r.school_id=$1 AND r.request_id=$2',[req.auth.schoolId,id]);
+   const request=q.rows[0];
+   if(!request||!canView(req.auth,{staff_user_id:request.staffUserId,department_id:request.departmentId,requester_role:request.requesterRole}))return notFound();
+   return res.json({view:String(request.staffUserId)===String(req.auth.userId)?'mine':'inbox',request});
   }catch(e){return error(res,e);}
  });
  app.post('/api/missing-scans/requests',...auth,async(req,res)=>{

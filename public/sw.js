@@ -1,4 +1,4 @@
-const CACHE = "attendigo-v369-missing-scan-notifications";
+const CACHE = "attendigo-v370-exact-request-links";
 
 // Only public, non-personal offline shells and their executable dependencies.
 // An update must not discard the working cache before these are all ready.
@@ -117,7 +117,7 @@ const SHELL = [
   "/teacher-dashboard-v3.js?v=1",
   "/teacher-teaching-overview.js?v=4",
   "/form48-report.js?v=20",
-  "/missing-scan-ui.js?v=5",
+  "/missing-scan-ui.js?v=6",
   "/missing-scan-ui.css?v=3",
   "/form48-intelligence.js?v=2",
   "/form48-bulk-ui.js?v=3",
@@ -158,7 +158,7 @@ const SHELL = [
   "/admin-request-notifications.js?v=7",
   "/admin-request-notifications.css?v=2",
   "/admin-approval-navigation.css?v=1",
-  "/universal-notifications.js?v=9",
+  "/universal-notifications.js?v=10",
   "/universal-notifications.css?v=4",
   "/guardian-ui.js?v=7",
   "/guardian-ui.css?v=4",
@@ -360,7 +360,7 @@ self.addEventListener("fetch", event => {
   // Keep scheduling and shared notification UI fresh without breaking offline operation.
   // Notifications change often; always prefer online JS/CSS to avoid old large-text layouts.
   // Unlike cache-first general assets, these role-critical resources prefer the deployed version.
-  if (['/universal-notifications.js','/universal-notifications.css','/portal.js','/parent-push.js','/parent-push.css','/parent-subject.js','/parent-subject.css','/parent-portal.js','/parent-dashboard.js','/parent-admin.js','/parent-admin.css','/school-memo-banner.js','/school-memo-banner.css','/school-memos-redirect.js','/school-memos.js','/school-memos.css','/principal-dashboard.js','/principal-dashboard.css','/leave-approval-inbox.js','/leave-approval-inbox.css','/staff-leave-ui.js','/staff-leave-ui.css','/leave-status-indicator.css','/special-program-batch-ui.js','/learner-roster-view.js','/learner-roster-view.css','/student-name-format.js','/teacher-learner-roster.css','/portal.css','/guardian-ui.js','/manual-folio.js','/manual-folio.css','/schedule-form-layout.css','/schedule-workspace-ui.js','/teacher-assignment-modal.css','/smart-attendance-overview.css','/role-controls-responsive.css','/class-qr-monitor.js','/class-qr-monitor-embedded.css','/class-qr-dashboard-link.js','/attendigo-form-overlap-guard.css','/staff-department-location.js','/staff-lunch-ui.js'].includes(url.pathname)) {
+  if (['/missing-scan-ui.js','/universal-notifications.js','/universal-notifications.css','/portal.js','/parent-push.js','/parent-push.css','/parent-subject.js','/parent-subject.css','/parent-portal.js','/parent-dashboard.js','/parent-admin.js','/parent-admin.css','/school-memo-banner.js','/school-memo-banner.css','/school-memos-redirect.js','/school-memos.js','/school-memos.css','/principal-dashboard.js','/principal-dashboard.css','/leave-approval-inbox.js','/leave-approval-inbox.css','/staff-leave-ui.js','/staff-leave-ui.css','/leave-status-indicator.css','/special-program-batch-ui.js','/learner-roster-view.js','/learner-roster-view.css','/student-name-format.js','/teacher-learner-roster.css','/portal.css','/guardian-ui.js','/manual-folio.js','/manual-folio.css','/schedule-form-layout.css','/schedule-workspace-ui.js','/teacher-assignment-modal.css','/smart-attendance-overview.css','/role-controls-responsive.css','/class-qr-monitor.js','/class-qr-monitor-embedded.css','/class-qr-dashboard-link.js','/attendigo-form-overlap-guard.css','/staff-department-location.js','/staff-lunch-ui.js'].includes(url.pathname)) {
     event.respondWith((async () => {
       try {
         const fresh = await fetch(request, { cache: 'no-store' });
