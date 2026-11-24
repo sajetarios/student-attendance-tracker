@@ -85,6 +85,10 @@ test('actual subject XLSX removes diagonal borders, distinguishes daily evidence
   assert.equal(value(dayCell(sheet,days,115,5)),null);
   assert.equal(value(sheet.getCell('AF13')),1);
   assert.equal(value(sheet.getCell('AG13')),2);
+  assert.match(sheet.getCell('AF13').formula,/COUNTIF\(AU13:BS13,"X"\)/);
+  assert.match(sheet.getCell('AG13').formula,/COUNTIF\(AU13:BS13,"P"\)/);
+  assert.equal(sheet.getColumn('AU').hidden,true);
+  assert.equal(sheet.getColumn('BS').hidden,true);
   assert.equal(sheet.getCell('AJ117').value,null);
   assert.equal(sheet.getCell('AK119').value,null);
   assert.ok(sheet.getCell('G115').alignment.textRotation===0 || !sheet.getCell('G115').alignment.textRotation);
