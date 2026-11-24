@@ -698,7 +698,7 @@ body.dark-mode .content-wrap > .school-heading.is-compact,body[data-theme="dark"
             <a class="nav-item" id="teacherLunchQrNav" data-view="teacherLunchQr" title="My lunch QR" hidden href="/portal.html?view=teacherLunchQr"><span class="nav-icon">▣</span><span class="nav-label">My lunch QR</span></a>
             <a class="nav-item" id="myGateAttendanceNav" data-view="myGateAttendance" title="Gate Attendance & DTR" hidden href="/portal.html?view=myGateAttendance"><span class="nav-icon">◷</span><span class="nav-label">Gate Attendance &amp; DTR</span></a>
             <a class="nav-item" id="officialBusinessNav" data-view="officialBusiness" title="Official Business requests" hidden href="/portal.html?view=officialBusiness"><span class="nav-icon">▣</span><span class="nav-label">Official Business</span></a>
-            <a class="nav-item" id="sf2Nav" data-view="sf2" title="SF2 Report Generator" href="/portal.html?view=sf2"><span class="nav-icon">▦</span><span class="nav-label">SF2 Report Generator</span></a>
+            <a class="nav-item" id="sf2Nav" data-view="sf2" title="SF2 Preparation &amp; Subject Attendance" href="/portal.html?view=sf2"><span class="nav-icon">▦</span><span class="nav-label">SF2 Preparation &amp; Subject Attendance</span></a>
             <a class="nav-item" id="plannerNav" data-view="planner" title="Planner" hidden href="/portal.html?view=planner"><span class="nav-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M7 2v6M17 2v6M3 10h18M8 15h3m4 0h2m-9 3h3"/></svg></span><span class="nav-label">Planner</span></a>
             <a class="nav-item" id="schedulesNav" data-view="schedules" title="Class schedules" href="/portal.html?view=schedules"><span class="nav-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="18" height="17" rx="2"/><path d="M16 2v4M8 2v4M3 9h18M7 13h3M7 17h6"/></svg></span><span class="nav-label">Class Schedules</span></a>
 
@@ -1273,23 +1273,24 @@ body.dark-mode .content-wrap > .school-heading.is-compact,body[data-theme="dark"
 
           <section id="sf2View" class="view-panel" hidden>
             <div class="surface-card section-card">
-              <div class="section-toolbar"><div><h3 id="sf2ViewTitle">SF2 Report Generator</h3><p id="sf2ViewDescription">Generate the monthly TUVERA SF2 using confirmed subject attendance. Gate scans are excluded.</p></div></div>
+              <div class="section-toolbar"><div><h3 id="sf2ViewTitle">SF2 Preparation &amp; Subject Attendance</h3><p id="sf2ViewDescription">Prepare reconciled daily attendance for the school’s LIS-issued SF2, or review a selected subject. Gate scans alone do not establish class attendance.</p></div></div>
               <div class="form-grid sf2-filters">
                 <div class="field-group"><label for="sf2Month">Reporting month</label><input id="sf2Month" type="month" required></div>
                 <div class="field-group"><label for="sf2Grade">Grade level</label><select id="sf2Grade" required><option value="">Select grade</option></select></div>
                 <div class="field-group"><label for="sf2Section">Section</label><select id="sf2Section" required disabled><option value="">Select grade first</option></select></div>
                 <div class="field-group" id="sf2ModeWrap" hidden><label for="sf2Mode">Report type</label><select id="sf2Mode"></select></div>
+                <div class="field-group" id="sf2SubjectWrap" hidden><label for="sf2Subject">Subject</label><select id="sf2Subject" disabled><option value="">Select subject</option></select></div>
               </div>
-              <div class="form-actions"><button class="primary-button" id="sf2PreviewButton" type="button">Preview attendance</button><button class="primary-button" id="sf2ExportButton" type="button" disabled>Generate SF2 Excel</button><button class="primary-button" id="sf2SubmitButton" type="button" hidden disabled>Submit official SF2</button></div>
+              <div class="form-actions"><button class="primary-button" id="sf2PreviewButton" type="button">Preview attendance</button><button class="primary-button" id="sf2ExportButton" type="button" disabled>Download attendance Excel</button><button class="primary-button" id="sf2SubmitButton" type="button" hidden disabled>Submit for school review</button></div>
               <div id="sf2Feedback" class="inline-feedback" role="status"></div>
               
               <p id="sf2ModeNote" class="attendance-summary-note" hidden></p>
               <div id="sf2Summary" class="learner-summary-grid" hidden></div>
               <p class="attendance-summary-note" id="sf2ScrollHelp">Scroll inside the attendance table to view every learner and date. Learner names and date headings stay visible.</p><div class="table-scroll" id="sf2TableWrap" role="region" aria-label="SF2 learner attendance table, scroll horizontally and vertically" tabindex="0" hidden><table><thead><tr><th>Learner</th><th>Sex</th><th>Attendance review</th></tr></thead><tbody id="sf2Rows"></tbody></table></div>
-              <p class="attendance-summary-note">Official SF2: Present is left blank and confirmed Absent is marked X. Unresolved learner-days block submission. A Subject Teacher’s personal copy uses P and NR; NR is not an absence. Weekends are excluded, but school holidays and suspensions are not yet connected to a calendar.</p>
+              <p class="attendance-summary-note">Daily preparation: blank means confirmed presence; X means confirmed full-day absence. Unresolved days block preparation submission. Subject reports use only the selected subject; gray means unrecorded, not absent. Full-day closures and suspensions are excluded. Use the school’s LIS-issued SF2 for official submission.</p>
             </div>
             <div class="surface-card section-card" id="sf2SubmissionsCard" hidden>
-              <div class="section-toolbar"><div><h3>Official SF2 submissions</h3><p>Review monthly reports submitted by Class Advisers.</p></div><button class="outline-button" type="button" id="refreshSf2Submissions">↻ Refresh submissions</button></div>
+              <div class="section-toolbar"><div><h3>SF2 preparation submissions</h3><p>Review Class Adviser supporting worksheets against the school’s LIS-issued form.</p></div><button class="outline-button" type="button" id="refreshSf2Submissions">↻ Refresh submissions</button></div>
               <div class="table-scroll"><table><thead><tr><th>Month</th><th>Grade &amp; Section</th><th>Submitted by</th><th>Revision</th><th>Status</th><th>Actions</th></tr></thead><tbody id="sf2SubmissionRows"><tr><td colspan="6" class="empty-cell">No submitted SF2 reports loaded.</td></tr></tbody></table></div>
             </div>
           </section>
@@ -2522,7 +2523,7 @@ body.dark-mode .content-wrap > .school-heading.is-compact,body[data-theme="dark"
   <script src="/student-name-format.js?v=2" defer></script>
   <script src="/teacher-scanner-schedule.js?v=1" defer></script>
   <script src="/gate-offline-review.js?v=1" defer></script>
-  <script src="/portal.js?v=242" defer></script>
+  <script src="/portal.js?v=243" defer></script>
   <script src="/schedule-list-filters.js?v=1" defer></script>
   <script src="/staff-lunch-ui.js?v=9" defer></script>
   <script src="/staff-precise-location.js?v=1" defer></script>
