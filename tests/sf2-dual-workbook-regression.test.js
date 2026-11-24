@@ -40,7 +40,7 @@ async function exportFixture({personal=true,month='2026-01',pending=false,confli
     if(sql.includes('FROM manual_attendance_marks m')) return result(manual);
     if(sql.includes('SELECT DISTINCT e.student_id AS id') && sql.includes('FROM attendance_events')) return result(qr);
     if(sql.includes('FROM sf2_daily_overrides o')) return result(overrides);
-    if(sql.includes('COUNT(DISTINCT e.school_date)')) return result([{id:'A',count:2}]);
+    if(sql.includes('COUNT(DISTINCT e.school_date)')) return result([{id:'A',count:2,lateDates:[a,b]}]);
     if(sql.includes('FROM school_calendar_exceptions')) return result([{date:closed,type:'CLOSED'},{date:h,type:'CLASS_SUSPENSION',suspensionTime:'10:00'}]);
     if(sql.includes('FROM generate_series') && sql.includes('class_period_days')) return result(schedule);
     if(sql.includes("SELECT 'ADVISER' AS kind"))return result([{kind:'ADVISER',name:'TEST ADVISER'},{kind:'HEAD',name:'TEST HEAD'}]);
@@ -77,11 +77,16 @@ test('actual subject XLSX removes diagonal borders, distinguishes daily evidence
   assert.equal(res.code,200,JSON.stringify(res.body));
   assert.equal(sheet.name,'SF2 Subject Copy');
   assertNoManualCalculationPanel(sheet);
-  assert.deepEqual(Array.from({length:9},(_,i)=>dayCell(sheet,days,13,i).value),[null,'L','—','X','E',null,'!','—',null]);
+  assert.deepEqual(Array.from({length:9},(_,i)=>dayCell(sheet,days,13,i).value),[null,null,'—','X','E',null,'!','—',null]);
   for(const row of [13,14,62,64,65,113]) for(let col=7;col<=31;col++) {
     assert.ok(!sheet.getCell(row,col).border?.diagonal,'Unexpected diagonal at '+row+','+col);
   }
   assert.equal(sheet.getCell('G14').value,null);
+  const shade=dayCell(sheet,days,13,1).fill;
+  assert.equal(shade.type,'gradient');
+  assert.equal(shade.degree,90);
+  assert.equal(shade.stops[0].color.argb,'FF000000');
+  assert.equal(shade.stops.at(-1).color.argb,'FFFFFFFF');
   assert.equal(dayCell(sheet,days,13,5).fill.fgColor.argb,'FFD9D9D9');
   assert.notEqual(dayCell(sheet,days,13,0).fill?.fgColor?.argb,'FFD9D9D9');
   assert.equal(sheet.getColumn('AU').hidden,true);
@@ -129,6 +134,9 @@ test('actual official XLSX follows reference geometry, preserves daily marks, gr
   assert.equal(sheet.getCell('B13').value,'ALPHA');
   assert.equal(sheet.getCell('B64').value,'BETA');
   assert.equal(dayCell(sheet,days,13,0).value,null);
+  assert.equal(dayCell(sheet,days,13,0).fill.type,'gradient');
+  assert.equal(dayCell(sheet,days,13,1).fill.type,'gradient');
+  assert.notEqual(dayCell(sheet,days,13,2).fill?.type,'gradient');
   assert.equal(dayCell(sheet,days,64,0).value,null);
   assert.equal(dayCell(sheet,days,64,1).value,'X');
   assert.ok(!dayCell(sheet,days,13,0).border?.diagonal);
