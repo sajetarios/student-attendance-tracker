@@ -11,7 +11,7 @@
     (navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1);
   const installed=()=>window.matchMedia?.('(display-mode: standalone)')?.matches||navigator.standalone===true;
   const supported=()=>('serviceWorker' in navigator)&&('PushManager' in window)&&('Notification' in window);
-  let config=null,working=false,opted=false;
+  let config=null,working=false,opted=false,syncedThisPage=false;
   const setOptIn=value=>{
     opted=value;
     try {if(value)localStorage.setItem(OPT_IN,'yes');else localStorage.removeItem(OPT_IN);} catch {}
@@ -115,7 +115,10 @@
         try{
           // Restore an existing consented subscription after app/login changes.
           // Server still enforces parent identity and approved-child scope.
-          await registerExisting(current);
+          if(!syncedThisPage){
+            await registerExisting(current);
+            syncedThisPage=true;
+          }
         }catch(error){
           state('Needs attention');stage(2);controls({allow:true});
           message('This phone needs to reconnect: '+error.message,{error:true});
@@ -170,6 +173,7 @@
         throw error;
       }
       setOptIn(true);
+      syncedThisPage=true;
       state('Enabled');stage(3);controls({active:true});
       message('Phone notifications are enabled. Sending your first test…');
       try{
@@ -198,6 +202,7 @@
         await current.unsubscribe();
       }
       setOptIn(false);
+      syncedThisPage=false;
       state('Disabled');stage(2);controls({allow:true});
       message('Phone notifications are off for this device. In-app alerts still work.');
     }catch(error){
