@@ -67,6 +67,12 @@ async function main(){
   const first=await call('POST','/requests',teacher,make());
   assert.equal(first.status,201,JSON.stringify(first));
   const id=first.body.requestId;
+  const alerts=await pool.query("SELECT recipient_id,category,status FROM user_notifications WHERE school_id=$1 AND request_type='MISSING_SCAN' AND request_id=$2",[a.school,id]);
+  assert.equal(alerts.rowCount,2,'Requester and assigned department head only');
+  assert.ok(alerts.rows.some(x=>x.recipient_id===head.id&&x.category==='APPROVAL'&&x.status==='PENDING_HEAD'));
+  assert.ok(alerts.rows.some(x=>x.recipient_id===teacher.id&&x.category==='REQUEST'));
+  await pool.query('SELECT attendigo_missing_scan_pending($1,$2)',[a.school,id]);
+  assert.equal((await pool.query("SELECT 1 FROM user_notifications WHERE school_id=$1 AND request_type='MISSING_SCAN' AND request_id=$2",[a.school,id])).rowCount,2,'Backfill cannot duplicate alerts');
   assert.equal((await call('POST','/requests',teacher,make())).status,409,'No duplicate open correction');
   assert.equal((await call('GET','/requests?view=inbox',teacher)).status,403);
   const outInbox=await call('GET','/requests?view=inbox',outsider);
@@ -82,6 +88,10 @@ async function main(){
    verifiedTime:'17:03',reference:'Department logbook page 4 entry 12'});
   assert.equal(headDecision.status,200,JSON.stringify(headDecision));
   assert.equal(headDecision.body.status,'DOCUMENTED');
+  const closed=await pool.query("SELECT status,read_at FROM user_notifications WHERE school_id=$1 AND request_id=$2 AND category='APPROVAL' AND recipient_id=$3",[a.school,id,head.id]);
+  assert.equal(closed.rows[0].status,'DOCUMENTED');assert.ok(closed.rows[0].read_at);
+  const decisionAlert=await pool.query("SELECT 1 FROM user_notifications WHERE school_id=$1 AND request_id=$2 AND recipient_id=$3 AND status='DOCUMENTED' AND category='REQUEST'",[a.school,id,teacher.id]);
+  assert.equal(decisionAlert.rowCount,1);
   assert.equal((await call('POST','/requests/'+id+'/admin-decision',outsideAdmin,{
    decision:'APPROVE',comment:'Other school should not approve.'})).status,403);
   const defaultPolicy=await call('GET','/policy',admin);
