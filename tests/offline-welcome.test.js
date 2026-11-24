@@ -79,3 +79,52 @@ test('fallback markup is branded, responsive, and has retry but no sign-in form'
   assert.match(page, /@media\(max-width:720px\)/);
   assert.doesNotMatch(page, /<form\b/i);
 });
+
+test('offline worker installs even when an optional shell asset fails', async () => {
+  const handlers = {};
+  const added = [];
+  let activated = false;
+  const self = {
+    addEventListener(name, fn) { handlers[name] = fn; },
+    skipWaiting: async () => { activated = true; }
+  };
+  const cache = {
+    add: async url => {
+      added.push(url);
+      if (url === '/portal.css?v=0.9.121') throw new Error('Temporary CDN failure');
+    },
+    addAll: async () => { throw new Error('Legacy atomic install must not run'); }
+  };
+  vm.runInNewContext(script, {
+    self, caches: { open: async () => cache }, Promise,
+    URL, Response, fetch: async () => ({ ok: true })
+  });
+  let installation;
+  handlers.install({ waitUntil(task) { installation = task; } });
+  await installation;
+  assert.equal(activated, true);
+  assert.equal(added[0], '/offline-welcome.html');
+  assert.equal(added.filter(url => url === '/vendor/html5-qrcode.min.js').length, 1);
+  assert.equal(new Set(added).size, added.length);
+  assert.ok(added.includes('/student-qr-offline.html'));
+  assert.ok(added.includes('/gate-offline.html'));
+});
+
+test('offline worker refuses installation when the welcome fallback itself is missing', async () => {
+  const handlers = {};
+  let skipWaitingCalled = false;
+  const self = {
+    addEventListener(name, fn) { handlers[name] = fn; },
+    skipWaiting: async () => { skipWaitingCalled = true; }
+  };
+  vm.runInNewContext(script, {
+    self, caches: { open: async () => ({
+      add: async url => { if (url === '/offline-welcome.html') throw new Error('Offline page missing'); }
+    }) },
+    Promise, URL, Response, fetch: async () => ({ ok: true })
+  });
+  let installation;
+  handlers.install({ waitUntil(task) { installation = task; } });
+  await assert.rejects(installation, /Offline page missing/);
+  assert.equal(skipWaitingCalled, false);
+});
