@@ -107,6 +107,15 @@
      '<label>Clarification<textarea name="explanation" minlength="10" maxlength="1000" rows="2" required>'+esc(r.explanation)+'</textarea></label>'+
      '<button type="submit" class="primary-button">Resubmit to Department Head</button></form>';
    }
+   if(r.status==='DOCUMENTED'){
+    html+='<p class="ms-muted"><strong>Official DTR: not recorded.</strong> This verified logbook entry is documentation only under the policy used for the earlier decision.</p>';
+    if(!own&&(isHead||isPrincipal)&&mode==='DTR_CORRECTION'&&String(r.headUserId)===String(user.userId||user.id)&&r.hasEvidence&&r.verifiedTime&&r.evidenceReference){
+     html+='<div class="ms-review"><h4>Apply previously verified logbook time</h4><p>Reconsider this same evidence under the current correction policy. The earlier decision remains in the audit trail.</p>'+
+      '<input type="hidden" name="verifiedTime" value="'+esc(r.verifiedTime)+'"><input type="hidden" name="reference" value="'+esc(r.evidenceReference)+'">'+
+      '<label>New review reason<textarea name="comment" minlength="10" maxlength="1000" rows="2"></textarea></label>'+
+      '<button type="button" data-ms-action="promote" class="primary-button">Apply '+esc(r.verifiedTime)+' to official DTR</button></div>';
+    }
+   }
    if(canHead){
     html+='<div class="ms-review"><h4>Authorized reviewer decision</h4>'+
      '<p>Compare the staff claim with the department logbook. Approval is final under the existing school DTR policy. Upload a clear excerpt showing this teacher and the logged time; crop or redact other staff entries.</p>'+
@@ -139,7 +148,7 @@
      '<select id="msPolicySelect"><option value="DOCUMENT_EXCEPTION">Documented exception · keep missing slot blank</option>'+
      '<option value="DTR_CORRECTION">Authorized DTR correction · verified logbook time</option></select></label>'+
      '<button type="button" class="outline-button" id="msSavePolicy">Save policy</button>'+
-     '<p>Policy changes affect future decisions only. Original QR scans remain unchanged.</p>';
+     '<p>Policy changes never rewrite past records automatically. An authorized reviewer can reconsider a documented exception under the current policy. Original QR scans remain unchanged.</p>';
     $('msPolicySelect').value=mode;
     $('msSavePolicy').addEventListener('click',async()=>{
      const next=$('msPolicySelect').value;
@@ -265,14 +274,15 @@
     }
     const comment=row.querySelector('textarea[name=comment]')?.value?.trim()||'';
     if(comment.length<10)throw Error('Please provide a meaningful reviewer comment (at least 10 characters).');
-    if(['verify','more','reject'].includes(action)){
+    if(['verify','more','reject','promote'].includes(action)){
      const request={
-      decision:action==='verify'?'VERIFY':action==='more'?'MORE_EVIDENCE':'REJECT',
+      decision:['verify','promote'].includes(action)?'VERIFY':action==='more'?'MORE_EVIDENCE':'REJECT',
+      ...(action==='promote'?{promoteDocumented:true}:{}),
       comment,
       verifiedTime:row.querySelector('[name=verifiedTime]')?.value||'',
       reference:row.querySelector('[name=reference]')?.value?.trim()||''
      };
-     if(action==='verify'&&!confirm((mode==='DTR_CORRECTION'?'Approve this exact logbook time as an official DTR correction? Original scan history is unchanged.':'Approve this documented exception? School policy leaves the official DTR slot blank.')))return;
+     if(['verify','promote'].includes(action)&&!confirm((mode==='DTR_CORRECTION'?'Approve this exact logbook time as an official DTR correction? Original scan history is unchanged.':'Approve this documented exception? School policy leaves the official DTR slot blank.')))return;
      const result=await api('/requests/'+encodeURIComponent(id)+'/head-decision',{method:'POST',data:request});
      document.dispatchEvent(new Event('attendigo:requests-changed'));
      messageSet(result.status==='DTR_CORRECTED'?'Approved correction recorded in DTR.':result.status==='DOCUMENTED'?'Approved documentation; DTR slot remains blank under school policy.':'Reviewer decision recorded with audit history.');

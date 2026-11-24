@@ -146,6 +146,11 @@ async function main(){
   assert.equal(own.status,200);
   assert.equal(own.body.requests.length,1);
   assert.equal(own.body.requests[0].status,'DOCUMENTED');
+  const reconsider={decision:'VERIFY',promoteDocumented:true,comment:'Reconsidered the original signed logbook under the authorized correction policy.',verifiedTime:'17:03',reference:'Department logbook page 4 entry 12'};
+  assert.equal((await call('POST','/requests/'+id+'/head-decision',head,{...reconsider,verifiedTime:'17:04'})).status,409);
+  const promoted=await call('POST','/requests/'+id+'/head-decision',head,reconsider);
+  assert.equal(promoted.status,200,JSON.stringify(promoted));assert.equal(promoted.body.status,'DTR_CORRECTED');
+  assert.equal((await call('POST','/requests/'+id+'/head-decision',head,reconsider)).status,403);
   console.log('PASS: missing scan departmental review, school isolation, logbook evidence, default blank DTR, audited authorized correction, duplicate prevention.');
  }finally{
   if(server)await new Promise(resolve=>server.close(resolve));
