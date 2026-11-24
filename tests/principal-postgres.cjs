@@ -81,7 +81,11 @@ async function main(){
   const invalid=await overview(principal.token,'?date=2020-01-01');
   assert.equal(invalid.status,400);
   const preview=await overview(admin.token);
-  assert.equal(preview.status,200,'School Admin can preview only its own school leadership dashboard');
+  assert.equal(preview.status,403,'School Admin cannot access Principal leadership records');
+  for(const path of ['/api/principal/class-impact','/api/principal/workspace','/principal.html']){
+   const blocked=await fetch(base+path,{headers:{Authorization:'Bearer '+admin.token},cache:'no-store'});
+   assert.equal(blocked.status,403,'School Admin denied '+path);
+  }
   const outside=await overview(outsider.token);
   assert.equal(outside.status,200);
   assert.equal(outside.body.metrics.verifiedDtrSlots,1,'Other tenant sees only its own event');

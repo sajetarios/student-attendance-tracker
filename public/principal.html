@@ -12,7 +12,7 @@ try { const preference = localStorage.getItem('attendigo.principal.theme'); docu
 catch (_) { document.documentElement.dataset.theme = 'light'; }
 </script>
 <link rel="stylesheet" href="/principal-dashboard.css?v=14">
-<script src="/principal-dashboard.js?v=14" defer></script>
+<script src="/principal-dashboard.js?v=15" defer></script>
 <link rel="stylesheet" href="/school-memo-banner.css?v=3">
   <link rel="stylesheet" href="/attendigo-form-overlap-guard.css?v=1">
 </head>
@@ -33,7 +33,6 @@ catch (_) { document.documentElement.dataset.theme = 'light'; }
     </select>
    </label>
    <span id="roleBadge" class="role-badge">Principal workspace</span>
-   <a href="/portal.html" id="adminBack" class="text-link" hidden>Back to School Admin</a>
    <button type="button" id="presentationToggle" class="quiet-button" aria-pressed="false" title="Enter larger-text presentation mode">Presentation mode</button>
    <button type="button" id="signOut" class="quiet-button">Sign out</button>
   </div>
@@ -314,34 +313,6 @@ catch (_) { document.documentElement.dataset.theme = 'light'; }
   </section>
 
   <section id="prioritiesPanel" class="panel" data-panel="priorities" hidden>
-   <div id="principalSdoAdminPanel" class="surface principal-sdo-admin" hidden>
-    <h3>Principal requests — School Admin coordination</h3>
-    <p>Only an authorized SDO officer decides. Record the handoff and the signed official decision here; you are not approving the principal's request.</p>
-    <div id="principalSdoAdminList" class="principal-data-list">Loading principal applications…</div>
-    <div id="principalSdoAdminForms" hidden>
-     <p id="principalSdoSelected" class="source-note"></p>
-     <form id="principalSdoHandoffForm" class="principal-sdo-form">
-      <h4>1. Record submission to SDO</h4>
-      <label>Receiving office<input name="receivingOffice" maxlength="180" required placeholder="e.g., SDO Records Section"></label>
-      <label>Submission method<select name="channel" required><option value="SDO_TRACKING">Official tracking system</option><option value="OFFICIAL_EMAIL">Official email</option><option value="PHYSICAL">Physical submission</option><option value="OTHER">Other authorized method</option></select></label>
-      <label>Receiving/reference number<input name="reference" maxlength="160" minlength="3" required></label>
-      <button type="submit" class="quiet-button">Record SDO handoff</button>
-     </form>
-     <form id="principalSdoDecisionForm" class="principal-sdo-form">
-      <h4>2. Record signed external decision</h4>
-      <label>SDO decision<select name="decision" required><option value="">Choose decision…</option><option value="APPROVED">Approved</option><option value="REJECTED">Disapproved</option></select></label>
-      <label>Document reference<input name="approvalReference" required minlength="3" maxlength="120"></label>
-      <div class="principal-form-pair"><label>Approving official<input name="approverName" required minlength="3" maxlength="120"></label><label>Official position<input name="approverPosition" required minlength="3" maxlength="120"></label></div>
-      <div class="principal-form-pair"><label>Decision date<input name="approvedOn" type="date" required></label>
-       <label id="principalCertifiedDaysLabel">Certified working days (leave only)<input name="certifiedWorkingDays" type="number" min=".001" max="366" step=".001"></label></div>
-      <label>Signed official document (PDF/JPG/PNG, max 4MB)<input name="signedDocument" type="file" accept=".pdf,.png,.jpg,.jpeg,application/pdf,image/png,image/jpeg" required></label>
-      <label>Verification note<textarea name="note" rows="2" maxlength="1000" placeholder="Reference to the signed decision"></textarea></label>
-      <button type="submit" class="refresh-button">Record signed SDO decision</button>
-      <p class="source-note">This records the externally signed decision. It does not authorize the School Admin to approve on behalf of SDO.</p>
-     </form>
-    </div>
-    <p id="principalSdoAdminStatus" role="status" class="source-note"></p>
-   </div>
    <section class="surface principal-class-impact" aria-labelledby="principalClassImpactTitle">
     <div class="card-heading"><div><p class="eyebrow">EXCEPTIONS ONLY · NEXT 7 DAYS</p><h2 id="principalClassImpactTitle">Classes with no recorded coverage</h2>
       <p>Approved leave or OB affects a scheduled class and there is no documented substitute or valid timetable adjustment. Classes covered by the department are excluded automatically.</p></div>

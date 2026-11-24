@@ -40,7 +40,7 @@ test('Principal database migration is additive and account creation is school-ad
 test('Principal overview is read-only, tenant-bound and honest about verified evidence',()=>{
  const routes=read('principal-overview-routes.js');
  assert.match(routes,/app.get\('\/api\/principal\/overview'/);
- assert.match(routes,/requireSchoolRoles\('PRINCIPAL','SCHOOL_ADMIN'\)/);
+ assert.match(routes,/requireSchoolRoles\('PRINCIPAL'\)/);
  assert.doesNotMatch(routes,/app\.(post|put|patch|delete)\(/);
  assert.match(routes,/req.auth.schoolId/);
  assert.match(routes,/e.verification_status='VERIFIED'/);

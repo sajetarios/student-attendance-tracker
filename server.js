@@ -115,7 +115,7 @@ app.use((req, res, next) => {
 
   if (req.path.startsWith('/api/') ||
       ['/', '/index.html', '/portal-login.html', '/parent-register.html', '/platform-setup.html',
-       '/portal.html', '/principal.html', '/student-portal.html', '/parent-portal.html',
+       '/portal.html', '/principal.html', '/admin-sdo-coordination.html', '/student-portal.html', '/parent-portal.html',
        '/force-password-change.html', '/class-qr-checkin.html', '/student-qr-scanner.js', '/student-portal.js', '/portal-login.js', '/session-guard.js',
        '/portal.js', '/schedule-form-layout.css', '/schedule-workspace-ui.js'].includes(req.path)) {
     res.setHeader('Cache-Control', 'no-store, private');
@@ -4382,6 +4382,16 @@ app.get('/staff-lunch-checkin.html',(_req,res)=>{
   res.set('Referrer-Policy','no-referrer');
   res.set('X-Content-Type-Options','nosniff');
   return res.sendFile(path.join(__dirname,'public','staff-lunch-checkin.html'));
+});
+// Leadership and SDO coordination documents have independent role gates.
+// Their APIs also enforce their own role and school boundaries.
+app.get('/principal.html', authenticateSchoolClient, requireSchoolRoles('PRINCIPAL'), (_req,res)=>{
+  res.set('Cache-Control','no-store, private');
+  return res.sendFile(path.join(__dirname,'public','principal.html'));
+});
+app.get('/admin-sdo-coordination.html', authenticateSchoolClient, requireSchoolRoles('SCHOOL_ADMIN'), (_req,res)=>{
+  res.set('Cache-Control','no-store, private');
+  return res.sendFile(path.join(__dirname,'public','admin-sdo-coordination.html'));
 });
 app.use(express.static(path.join(__dirname, 'public')));
 app.use('/api', (_req, res) => res.status(404).json({ error: 'API endpoint not found.' }));

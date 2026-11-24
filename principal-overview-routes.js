@@ -20,11 +20,11 @@ function scopeParams(auth,query,today=manilaDate()){
 }
 const integer=value=>Number.parseInt(value,10)||0;
 function registerPrincipalRoutes(app,pool,{authenticateSchoolClient,requireSchoolRoles}){
- // SCHOOL_ADMIN may preview the read-only leadership experience. This endpoint
+ // Only the Principal may access the read-only leadership experience. This endpoint
  // grants no administrative writes to PRINCIPAL and never accepts a school ID
  // from the caller. Never infer absence from a missing QR/DTR event.
  app.get('/api/principal/overview',authenticateSchoolClient,
-  requireSchoolRoles('PRINCIPAL','SCHOOL_ADMIN'),async(req,res)=>{
+  requireSchoolRoles('PRINCIPAL'),async(req,res)=>{
   res.set('Cache-Control','private, no-store');
   const params=scopeParams(req.auth,req.query);
   if(!params)return res.status(400).json({error:'Choose a valid school date within the last 365 days, a 7/14/30-day trend, and an optional department.'});

@@ -20,7 +20,7 @@
  };
  const today=toDay(new Date());
  const minDate=new Date(Date.parse(today+'T00:00:00Z')-MAX_AGE_DAYS*86400000).toISOString().slice(0,10);
- let latest=null,classImpact=null,abort=null,sequence=0,activeSection='overview',currentRole=null,selectedSdoRequest=null;
+ let latest=null,classImpact=null,abort=null,sequence=0,activeSection='overview',currentRole=null;
  const buttons=[...document.querySelectorAll('[data-section]')];
  const sectionMap={overview:'overviewPanel',departments:'departmentsPanel',
   staff:'staffPanel',priorities:'prioritiesPanel',definitions:'definitionsPanel',badge:'badgePanel',personal:'personalPanel',students:'studentsPanel',calendar:'calendarPanel',security:'securityPanel',reports:'reportsPanel',notifications:'notificationsPanel',assistant:'assistantPanel'};
@@ -44,7 +44,6 @@
   if(name==='personal')$('principalPersonalRequests').open=false;
   if(name==='staff'&&latest)$('staffSearch').focus({preventScroll:true});
   if(name==='personal'){void loadPersonal();void loadSdoRequests();}
-  if(name==='priorities'&&currentRole==='SCHOOL_ADMIN')void loadSdoRequests();
   if(name==='notifications')void loadNotifications();
   if(name==='calendar'&&currentRole==='PRINCIPAL')void loadMemoAdmin();
   if(['personal','calendar','security'].includes(name))void loadWorkspace();
@@ -74,12 +73,11 @@
   if(data.user?.mustChangePassword){
    window.location.replace('/force-password-change.html');return null;
   }
-  if(!data.user||!['PRINCIPAL','SCHOOL_ADMIN'].includes(data.user.role))
-   throw Error('This school leadership dashboard requires a Principal or School Admin account.');
-  if(data.user.role==='SCHOOL_ADMIN'){
-   $('roleBadge').textContent='School Admin · SDO coordinator';
-   $('adminBack').hidden=false;
-  }else $('roleBadge').textContent='Principal · School oversight';
+  if(data.user?.role!=='PRINCIPAL'){
+   if(data.user?.role==='SCHOOL_ADMIN'){window.location.replace('/portal.html');return null;}
+   throw Error('This school leadership dashboard requires a Principal account.');
+  }
+  $('roleBadge').textContent='Principal · School oversight';
   return data.user;
  }
  function applyDepartmentOptions(data){
@@ -779,8 +777,8 @@
    if(response.status===401){window.location.replace('/portal-login.html');return;}
    const data=await response.json().catch(()=>({}));
    if(!response.ok)throw Error(data.error||'Unable to load SDO applications.');
-   const list=$('principalSdoRequestList'),admin=$('principalSdoAdminList');
-   list.replaceChildren();admin.replaceChildren();
+   const list=$('principalSdoRequestList');
+   list.replaceChildren();
    const requests=Array.isArray(data.requests)?data.requests:[];
    const mine=requests.filter(r=>currentRole==='PRINCIPAL');
    for(const r of mine){
@@ -801,34 +799,8 @@
    }
    if(currentRole==='PRINCIPAL'&&!mine.length)
     list.append(make('p','source-note','No requests filed yet.'));
-   if(currentRole==='SCHOOL_ADMIN'){
-    $('principalSdoAdminPanel').hidden=false;
-    for(const r of requests){
-     const card=make('div','principal-record-item');
-     card.append(make('strong',null,(r.principalName||'Principal')+' · '+r.kind+' · '+(r.title||'')),
-      make('small',null,sdoPhase(r)));
-     if(!['APPROVED','REJECTED','CANCELLED'].includes(r.status)){
-      const choose=make('button','quiet-button',r.sdoSubmittedAt?'Record signed decision':'Record SDO handoff');
-      choose.type='button';
-      choose.addEventListener('click',()=>{
-       selectedSdoRequest=r;
-       $('principalSdoAdminForms').hidden=false;
-       $('principalSdoSelected').textContent=(r.principalName||'Principal')+' · '+r.kind+
-          ' · '+(r.title||'')+' · '+sdoPhase(r);
-       $('principalSdoHandoffForm').hidden=Boolean(r.sdoSubmittedAt);
-       $('principalSdoDecisionForm').hidden=!r.sdoSubmittedAt;
-       $('principalCertifiedDaysLabel').hidden=r.kind!=='LEAVE';
-       $('principalSdoAdminForms').scrollIntoView({behavior:'smooth',block:'nearest'});
-      });
-      card.append(choose);
-     }
-     admin.append(card);
-    }
-    if(!requests.length)admin.append(make('p','source-note','No principal applications need coordination.'));
-   }
   }catch(error){
    $('principalSdoRequestList').textContent='Requests unavailable: '+errorText(error);
-   $('principalSdoAdminList').textContent='SDO coordination unavailable: '+errorText(error);
   }
  }
  async function showForm6(id){
@@ -888,68 +860,6 @@
   }catch(error){status.textContent=errorText(error);}
   finally{button.disabled=false;}
  }
- async function saveSdoHandoff(){
-  if(!selectedSdoRequest||currentRole!=='SCHOOL_ADMIN')return;
-  const form=$('principalSdoHandoffForm'),data=new FormData(form),status=$('principalSdoAdminStatus');
-  if(!form.reportValidity())return;
-  const button=form.querySelector('[type="submit"]');button.disabled=true;status.textContent='Recording SDO receiving details…';
-  try{
-   const {kind,requestId}=selectedSdoRequest;
-   const r=await fetch('/api/principal/sdo-requests/'+kind.toLowerCase()+'/'+encodeURIComponent(requestId)+'/handoff',{
-    method:'POST',credentials:'same-origin',headers:{'Content-Type':'application/json'},
-    body:JSON.stringify({channel:data.get('channel'),receivingOffice:data.get('receivingOffice'),
-      reference:data.get('reference')})});
-   const result=await r.json().catch(()=>({}));
-   if(!r.ok)throw Error(result.error||'Handoff could not be saved.');
-   status.textContent='SDO handoff recorded. Signed decision is still required.';
-   form.reset();$('principalSdoAdminForms').hidden=true;selectedSdoRequest=null;void loadSdoRequests();
-  }catch(error){status.textContent=errorText(error);}
-  finally{button.disabled=false;}
- }
- async function saveSdoDecision(){
-  if(!selectedSdoRequest||currentRole!=='SCHOOL_ADMIN')return;
-  const form=$('principalSdoDecisionForm'),data=new FormData(form),status=$('principalSdoAdminStatus');
-  if(!form.reportValidity())return;
-  const file=data.get('signedDocument'),button=form.querySelector('[type="submit"]');
-  if(!(file instanceof File)||!file.size||file.size>4194304||
-    !['application/pdf','image/png','image/jpeg'].includes(file.type)){
-   status.textContent='Choose a signed PDF/JPG/PNG document up to 4 MB.';return;
-  }
-  const req=selectedSdoRequest,decision=String(data.get('decision'));
-  if(req.kind==='LEAVE'&&decision==='APPROVED'&&!(Number(data.get('certifiedWorkingDays'))>0)){
-   status.textContent='Enter verified working days for an approved leave.';return;
-  }
-  button.disabled=true;status.textContent='Uploading signed external decision…';
-  try{
-   let response,result;
-   if(req.kind==='LEAVE'){
-    response=await fetch('/api/staff-leave/requests/'+encodeURIComponent(req.requestId)+'/documents',{
-     method:'POST',credentials:'same-origin',
-     headers:{'Content-Type':file.type,'x-document-kind':'APPROVAL','x-filename':file.name},body:file});
-    result=await response.json().catch(()=>({}));
-    if(!response.ok)throw Error(result.error||'Signed leave document could not be stored.');
-    response=await fetch('/api/staff-leave/requests/'+encodeURIComponent(req.requestId)+'/external-decision',{
-     method:'POST',credentials:'same-origin',headers:{'Content-Type':'application/json'},
-     body:JSON.stringify({decision:decision==='APPROVED'?'APPROVE':'REJECT',
-      approvalReference:data.get('approvalReference'),approverName:data.get('approverName'),
-      approverPosition:data.get('approverPosition'),approvedOn:data.get('approvedOn'),
-      certifiedWorkingDays:data.get('certifiedWorkingDays'),note:data.get('note')})});
-   }else{
-    response=await fetch('/api/principal/sdo-requests/ob/'+encodeURIComponent(req.requestId)+'/decision',{
-     method:'POST',credentials:'same-origin',headers:{'Content-Type':file.type,'x-filename':encodeURIComponent(file.name),
-      'x-sdo-decision':decision,'x-sdo-reference':String(data.get('approvalReference')),
-      'x-sdo-approver':String(data.get('approverName')),'x-sdo-position':String(data.get('approverPosition')),
-      'x-sdo-date':String(data.get('approvedOn'))},body:file});
-   }
-   result=await response.json().catch(()=>({}));
-   if(!response.ok)throw Error(result.error||'External decision verification failed.');
-   status.textContent='Signed SDO decision recorded. School Admin acted only as recorder.';
-   form.reset();$('principalSdoAdminForms').hidden=true;selectedSdoRequest=null;
-   void loadSdoRequests();void load();
-  }catch(error){status.textContent='Decision not recorded: '+errorText(error);}
-  finally{button.disabled=false;}
- }
-
  async function loadMemoAdmin(){
   if(currentRole!=='PRINCIPAL')return;
   const host=$('principalMemoPublishedList');host.replaceChildren();
@@ -1089,8 +999,6 @@
   $('principalLeaveForm').addEventListener('submit',e=>{e.preventDefault();void submitPrincipalLeave();});
   $('principalObForm').addEventListener('submit',e=>{e.preventDefault();void submitPrincipalOb();});
   $('principalRefreshSdo').addEventListener('click',()=>void loadSdoRequests());
-  $('principalSdoHandoffForm').addEventListener('submit',e=>{e.preventDefault();void saveSdoHandoff();});
-  $('principalSdoDecisionForm').addEventListener('submit',e=>{e.preventDefault();void saveSdoDecision();});
   $('personalDate').value=today;$('personalDate').max=today;$('personalDate').min=minDate;
   $('showPrincipalBadge').addEventListener('click',()=>void showBadge());
   $('hidePrincipalBadge').addEventListener('click',hideBadge);
@@ -1143,8 +1051,6 @@
   if(currentRole==='PRINCIPAL')void loadMemoAdmin();
   $('principalLeaveForm').hidden=currentRole!=='PRINCIPAL';
   $('principalObForm').hidden=currentRole!=='PRINCIPAL';
-  $('principalSdoAdminPanel').hidden=currentRole!=='SCHOOL_ADMIN';
-  if(currentRole==='SCHOOL_ADMIN')void loadSdoRequests();
   await load();
  }
  void init().catch(error=>{

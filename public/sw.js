@@ -1,4 +1,4 @@
-const CACHE = "attendigo-v351-presenter-location-verification";
+const CACHE = "attendigo-v352-principal-privacy";
 
 const SHELL = [
   "/typography.css?v=1",
@@ -155,7 +155,7 @@ const SHELL = [
   "/password-visibility.js",
   "/portal-login.js?v=16",
   "/login-routing.js",
-  "/principal-dashboard.js?v=14",
+  "/principal-dashboard.js?v=15",
   "/principal-dashboard.css?v=14",
   "/school-memos.js?v=1",
   "/school-memos.css?v=1",
@@ -238,7 +238,7 @@ self.addEventListener("fetch", event => {
   }
 
   // Authenticated dashboards are never served from the offline shell cache.
-  if (["/portal.html", "/class-qr-monitor.html", "/principal.html", "/school-memos.html", "/student-portal.html", "/parent-portal.html",
+  if (["/portal.html", "/class-qr-monitor.html", "/principal.html", "/admin-sdo-coordination.html", "/school-memos.html", "/student-portal.html", "/parent-portal.html",
        "/force-password-change.html", "/attendance-pin.html", "/class-qr-checkin.html", "/staff-lunch-checkin.html"].includes(url.pathname)) {
     event.respondWith(fetch(request, { cache: "no-store" }).catch(async error=>{
       if(url.pathname==='/student-portal.html')return (await caches.match('/student-qr-offline.html'))||Response.error();
