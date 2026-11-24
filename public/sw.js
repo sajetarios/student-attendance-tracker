@@ -1,4 +1,4 @@
-const CACHE = "attendigo-v348-branded-offline-welcome";
+const CACHE = "attendigo-v349-offline-install-repair";
 
 const SHELL = [
   "/typography.css?v=1",
@@ -169,7 +169,6 @@ const SHELL = [
   "/manifest.webmanifest",
   "/assets/attendigo-official-emblem.svg?v=5",
   "/assets/attendigo-official-lockup.svg?v=5",
-  "/vendor/html5-qrcode.min.js",
   "/attendigo-brand-polish.css?v=2",
   "/parent-admin.css?v=7",
   "/schedule-mobile-layout.css?v=1",
@@ -178,10 +177,25 @@ const SHELL = [
   "/platform-school-health.js?v=2"
 ];
 
+// A single missing or duplicated optional asset must never prevent installing
+// the branded offline fallback. Cache that document first, then warm the
+// existing attendance/QR shell independently, without changing its routes.
 self.addEventListener("install", event => {
   event.waitUntil((async () => {
     const cache = await caches.open(CACHE);
-    await cache.addAll(SHELL);
+    // This resource is essential and must be available before activation.
+    await cache.add("/offline-welcome.html");
+    const resources = [...new Set(SHELL)].filter(url => url !== "/offline-welcome.html");
+    // AllSettled avoids the all-or-nothing Cache.addAll failure caused by
+    // duplicates and intermittent errors in any nonessential stylesheet/script.
+    await Promise.allSettled(resources.map(async url => {
+      try {
+        await cache.add(url);
+      } catch {
+        // Individual failures are retried by the existing network-first/cache
+        // fetch handlers during subsequent online use.
+      }
+    }));
     await self.skipWaiting();
   })());
 });
