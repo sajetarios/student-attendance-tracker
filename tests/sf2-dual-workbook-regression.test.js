@@ -9,6 +9,9 @@ const template = path.join(__dirname,'..','templates','School Form 2 (SF2) Daily
 const learners = [{id:'A',name:'ALPHA',sex:'MALE'}, {id:'B',name:'BETA',sex:'FEMALE'}];
 const result = rows => ({rows,rowCount:rows.length});
 const value = cell => cell.value?.formula ? cell.value.result : cell.value;
+const {referenceDateSlots}=require('../sf2-reference-workbook');
+const dayCell=(sheet,days,row,index)=>sheet.getCell(row,7+referenceDateSlots(days[0].slice(0,7),days).slots.indexOf(index));
+const blankSlots=(sheet,days)=>referenceDateSlots(days[0].slice(0,7),days).slots.forEach((i,slot)=>{if(i<0)assert.equal(sheet.getCell(115,7+slot).value,null);});
 function weekdays(month) {
   const [year,m]=month.split('-').map(Number);
   return Array.from({length:new Date(Date.UTC(year,m,0)).getUTCDate()},(_,i)=>new Date(Date.UTC(year,m-1,i+1)))
@@ -63,22 +66,22 @@ test('actual subject XLSX removes diagonal borders, distinguishes daily evidence
   const {res,sheet,workbook,days}=await exportFixture();
   assert.equal(res.code,200,JSON.stringify(res.body));
   assert.equal(sheet.name,'SF2 Subject Copy');
-  assert.deepEqual(Array.from({length:9},(_,i)=>sheet.getCell(13,i+7).value),['P','L','—','X','E','NR','!','—','NR']);
+  assert.deepEqual(Array.from({length:9},(_,i)=>dayCell(sheet,days,13,i).value),['P','L','—','X','E','NR','!','—','NR']);
   for(const row of [13,14,62,64,65,113]) for(let col=7;col<=31;col++) {
     assert.ok(!sheet.getCell(row,col).border?.diagonal,'Unexpected diagonal at '+row+','+col);
   }
   assert.equal(sheet.getCell('G14').value,null);
-  assert.equal(value(sheet.getCell('G115')),2);
-  assert.equal(value(sheet.getCell('H115')),1);
-  assert.equal(value(sheet.getCell('I115')),null);
-  assert.equal(value(sheet.getCell('J115')),0);
-  assert.equal(value(sheet.getCell('L115')),null);
+  assert.equal(value(dayCell(sheet,days,115,0)),2);
+  assert.equal(value(dayCell(sheet,days,115,1)),1);
+  assert.equal(value(dayCell(sheet,days,115,2)),null);
+  assert.equal(value(dayCell(sheet,days,115,3)),0);
+  assert.equal(value(dayCell(sheet,days,115,5)),null);
   assert.equal(value(sheet.getCell('AF13')),1);
   assert.equal(value(sheet.getCell('AG13')),2);
   assert.equal(sheet.getCell('AJ117').value,null);
   assert.equal(sheet.getCell('AK119').value,null);
   assert.ok(sheet.getCell('G115').alignment.textRotation===0 || !sheet.getCell('G115').alignment.textRotation);
-  assert.equal(sheet.getCell(115,7+days.length).value,null);
+  blankSlots(sheet,days);
   assert.equal(workbook.worksheets.length,1);
   assert.equal(sheet.getRow(14).hidden,true);
   assert.equal(sheet.getRow(64).hidden,false);
@@ -104,13 +107,13 @@ test('actual official XLSX follows reference geometry, preserves daily marks, gr
   assert.equal(sheet.getCell('G9').value,source.getCell('D10').value);
   assert.equal(sheet.getCell('B13').value,'ALPHA');
   assert.equal(sheet.getCell('B64').value,'BETA');
-  assert.equal(sheet.getCell('G13').value,null);
-  assert.equal(sheet.getCell('G64').value,null);
-  assert.equal(sheet.getCell('H64').value,'X');
-  assert.deepEqual(sheet.getCell('G13').border?.diagonal,source.getCell('D14').border?.diagonal);
+  assert.equal(dayCell(sheet,days,13,0).value,null);
+  assert.equal(dayCell(sheet,days,64,0).value,null);
+  assert.equal(dayCell(sheet,days,64,1).value,'X');
+  assert.ok(!dayCell(sheet,days,13,0).border?.diagonal);
   assert.ok(!sheet.getCell('G14').border?.diagonal);
-  assert.equal(value(sheet.getCell('G115')),2);
-  assert.equal(value(sheet.getCell('H115')),1);
+  assert.equal(value(dayCell(sheet,days,115,0)),2);
+  assert.equal(value(dayCell(sheet,days,115,1)),1);
   assert.equal(value(sheet.getCell('AF64')),days.length-1);
   assert.equal(value(sheet.getCell('AG64')),1);
   assert.equal(sheet.getCell('AO13').value,2);
@@ -118,7 +121,9 @@ test('actual official XLSX follows reference geometry, preserves daily marks, gr
   assert.equal(sheet.getCell('AE140').value,'TEST ADVISER');
   assert.equal(sheet.getCell('AE145').value,'TEST HEAD');
   assert.equal(sheet.getCell('AJ117').value,days.length);
-  assert.equal(sheet.getCell(115,7+days.length).value,null);
+  assert.equal(sheet.getCell('K10').value,2);
+  assert.equal(sheet.getCell('J10').value,null);
+  blankSlots(sheet,days);
   assert.equal(workbook.worksheets.length,1);
   assert.equal(sheet.getRow(14).hidden,true);
   assert.equal(sheet.getRow(65).hidden,true);
