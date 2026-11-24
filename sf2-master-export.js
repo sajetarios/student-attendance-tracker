@@ -26,11 +26,11 @@ async function renderMasterWorkbook({calculated,data,month,personalCopy=false,sc
   let sheet=await zip.file(file).async('string');
   if(!/<mergeCells count="257">/.test(sheet))throw new Error('Unexpected SF2 master geometry');
   const changes=new Map();
-  const set=(address,value,shade=null)=>changes.set(address,{value,shade});
+  const set=(address,value,shade=null,format=null)=>changes.set(address,{value,shade,format});
   const source=calculated.worksheets[0];
   const read=address=>{const c=source.getCell(address);return c.formula?{formula:c.formula,result:c.result}:c.value;};
   const copy=address=>set(address,read(address));
-  const cache=(address,formula,result)=>set(address,{formula,result});
+  const cache=(address,formula,result,format=null)=>set(address,{formula,result},null,format);
   const {slots}=referenceDateSlots(month,data.dates);
   const groups=[data.students.filter(x=>String(x.sex).toUpperCase()==='MALE'),data.students.filter(x=>String(x.sex).toUpperCase()==='FEMALE')];
   set('G6',schoolId||null);set('N6',schoolYear||null);copy('AA6');
@@ -42,6 +42,21 @@ async function renderMasterWorkbook({calculated,data,month,personalCopy=false,sc
     set('T118','White blank: Present; Gray: no record (not absent); X: Absent; Upper half shaded: Late; E: Excused; —: No class; !: Review.');
     for(const a of ['AE139','AE140','AE142','AE144','AE145','AE146'])set(a,null);
     set('AE142','Subject teacher reference only');
+    set('A117','SUBJECT REPORT GUIDE:');
+    set('A118','1. Only the selected subject is included. Future dates are excluded.');
+    set('A119','2. Present includes late arrivals; excused absences are listed separately.');
+    set('A120','3. Summary counts are learner-days unless labeled otherwise.');
+    for(const a of ['A121','B121','G121','Q121','G122','A123','B123','G123','G124','A125','B125','G125','Q125','G126','A128','A130','A132','A133','B133'])set(a,null);
+    set('A128','Attendance % = present ÷ (present + absent + excused). Unrecorded and conflicting days are excluded. No recorded attendance means no percentage.');
+    set('A130','Scheduled days: verified subject days elapsed, excluding full-day closures and uncertain schedules. Recorded dates: dates with at least one conclusive learner record.');
+    set('A132','Roster counts reflect the current report roster, not official monthly enrollment.');
+    set('T121','2. RECORDING NOTES');
+    for(let row=122;row<=146;row++)if(row!==142)set('T'+row,null);
+    set('T122','Gray: incomplete evidence');
+    set('T123','! : resolve conflict');
+    set('T124','E : excused absence');
+    set('T125','— : no scheduled class');
+    set('T126','Future dates excluded');
   }else{
     // This locally prepared worksheet supports completing the actual LIS form;
     // it is not represented as an authorized DepEd/LIS-issued electronic form.
@@ -98,11 +113,54 @@ async function renderMasterWorkbook({calculated,data,month,personalCopy=false,sc
     copy('AF'+total);copy('AG'+total);
   }
   for(let slot=0;slot<25;slot++)copy(col(7+slot)+'115');
-  copy('AF115');copy('AG115');cache('AG117','AA6',read('AA6'));
+  copy('AF115');copy('AG115');cache('AG117','LEFT(AA6,3)',String(read('AA6')||'').slice(0,3));
   // Calculate school days from the exported date headers instead of the
   // old editable AQ9 field. Blank holidays and unused slots never count.
-  if(personalCopy)set('AJ117',null);else cache('AJ117','COUNT(G10:AE10)',data.dates.length);
-  for(const r of [119,121,123,125,127,128,130,132,134,136])for(const c of ['AK','AL','AM'])copy(c+r);
+  if(personalCopy){
+    set('AH117','Scheduled days:');
+    set('AJ117',data.subjectScheduledDays??0);
+    set('AK117','Subject monthly summary');
+    const labels={119:'Learners in report roster',121:'Present (includes late)',123:'Absent (unexcused)',125:'Attendance % (recorded only)',127:'Late (included in present)',128:'Excused absences',130:'Unrecorded / incomplete',132:'Conflicts to review',134:'Recorded learner-days',136:'Recorded subject dates'};
+    for(const [row,label] of Object.entries(labels))set('AE'+row,label);
+    const dayStatus=(learner,d)=>learner.subjectDays?.[d]||learner.days[d];
+    const confirmed=['PRESENT','LATE','SUBJECT_ABSENT','EXCUSED'];
+    const stats=learners=>{
+      const all=learners.flatMap(learner=>data.dates.map((_,d)=>dayStatus(learner,d)));
+      const count=(...codes)=>all.filter(x=>codes.includes(x)).length;
+      const present=count('PRESENT','LATE'),absent=count('SUBJECT_ABSENT'),excused=count('EXCUSED');
+      const recorded=present+absent+excused;
+      return {119:learners.length,121:present,123:absent,125:recorded?present/recorded:'',127:count('LATE'),128:excused,130:count('NO_RECORD'),132:count('CONFLICT'),134:recorded,136:data.dates.filter((_,d)=>learners.some(learner=>confirmed.includes(dayStatus(learner,d)))).length};
+    };
+    const groupStats=groups.map(stats);
+    const totalStats=stats(groups.flat());
+    const countCode=(range,code)=>'COUNTIF('+range+',"'+code+'")';
+    for(let g=0;g<2;g++){
+      const c=g?'AL':'AK',start=g?64:13,end=start+49,subtotal=g?114:63,range='AU'+start+':BS'+end;
+      const x=groupStats[g];
+      const formulas={119:'COUNTA(B'+start+':B'+end+')',121:'SUM(AG'+start+':AG'+end+')',123:'SUM(AF'+start+':AF'+end+')',125:'IFERROR('+c+'121/'+c+'134,"")',127:countCode(range,'L'),128:countCode(range,'E'),130:countCode(range,'NR'),132:countCode(range,'!'),134:c+'121+'+c+'123+'+c+'128'};
+      // A recorded subject date is a unique date with >=1 conclusive learner-day.
+      // Hidden subtotal evidence makes this formula short and auditable.
+      for(let slot=0;slot<25;slot++){
+        const d=slots[slot],hc=col(47+slot);
+        const dateRange=hc+start+':'+hc+end;
+        const count=d<0?0:groups[g].filter(learner=>confirmed.includes(dayStatus(learner,d))).length;
+        addHelper(subtotal,hc+subtotal,{formula:['P','L','X','E'].map(code=>countCode(dateRange,code)).join('+'),result:count});
+      }
+      formulas[136]='COUNTIF(AU'+subtotal+':BS'+subtotal+',">0")';
+      for(const row of Object.keys(labels))cache(c+row,formulas[row],x[row],Number(row)===125?'percent':'integer');
+    }
+    for(let slot=0;slot<25;slot++){
+      const d=slots[slot],hc=col(47+slot);
+      addHelper(115,hc+'115',{formula:hc+'63+'+hc+'114',result:d<0?0:groups.flat().filter(learner=>confirmed.includes(dayStatus(learner,d))).length});
+    }
+    for(const row of Object.keys(labels)){
+      const formula=row==='125'?'IFERROR(AM121/AM134,"")':row==='136'?'COUNTIF(AU115:BS115,">0")':'AK'+row+'+AL'+row;
+      cache('AM'+row,formula,totalStats[row],row==='125'?'percent':'integer');
+    }
+  }else{
+    cache('AJ117','COUNT(G10:AE10)',data.dates.length);
+    for(const r of [119,121,123,125,127,128,130,132,134,136])for(const c of ['AK','AL','AM'])copy(c+r);
+  }
   // Original style geometry is immutable. Add a single hard-stop gradient for
   // verified late arrivals and clone only the original grid styles that use it.
   // No inferred cutting-class or half-day absence marking is introduced.
@@ -115,6 +173,7 @@ async function renderMasterWorkbook({calculated,data,month,personalCopy=false,sc
   if(originals.length!==Number(xfBlock[1]))throw Error('Invalid SF2 master style count');
   const lateFill=Number(fillBlock[1]);
   const lateStyles=new Map();
+  const numberStyles=new Map();
   const styleForLate=id=>{
     if(lateStyles.has(id))return lateStyles.get(id).id;
     const base=originals[id];
@@ -122,8 +181,20 @@ async function renderMasterWorkbook({calculated,data,month,personalCopy=false,sc
     let xf=base.replace(/\bfillId="\d+"/,'fillId="'+lateFill+'"');
     if(/\bapplyFill="/.test(xf))xf=xf.replace(/\bapplyFill="[^"]*"/,'applyFill="1"');
     else xf=xf.replace(/<xf\b/,'<xf applyFill="1"');
-    const next=originals.length+lateStyles.size;
+    const next=originals.length+lateStyles.size+numberStyles.size;
     lateStyles.set(id,{id:next,xf});
+    return next;
+  };
+  const styleForNumber=(id,format)=>{
+    const key=id+':'+format;
+    if(numberStyles.has(key))return numberStyles.get(key).id;
+    const base=originals[id];
+    if(!base)throw Error('Missing SF2 summary style '+id);
+    let xf=base.replace(/\bnumFmtId="\d+"/,'numFmtId="'+(format==='percent'?10:0)+'"');
+    if(/\bapplyNumberFormat="/.test(xf))xf=xf.replace(/\bapplyNumberFormat="[^"]*"/,'applyNumberFormat="1"');
+    else xf=xf.replace(/<xf\b/,'<xf applyNumberFormat="1"');
+    const next=originals.length+lateStyles.size+numberStyles.size;
+    numberStyles.set(key,{id:next,xf});
     return next;
   };
   // Exact template cells only: preserve original style indices and all unrelated elements.
@@ -132,11 +203,11 @@ async function renderMasterWorkbook({calculated,data,month,personalCopy=false,sc
     if(!patch)return whole;
     changes.delete(address);
     let a=attrs.replace(/\s+t="[^"]*"/g,'');
-    if(patch.shade){
+    if(patch.shade||patch.format){
       const m=a.match(/\bs="(\d+)"/);
       if(!m)throw new Error('Missing original grid style '+address);
       const id=Number(m[1]);
-      a=a.replace(/\bs="\d+"/,'s="'+(patch.shade==='late'?styleForLate(id):id+STYLE_OFFSET)+'"');
+      a=a.replace(/\bs="\d+"/,'s="'+(patch.format?styleForNumber(id,patch.format):patch.shade==='late'?styleForLate(id):id+STYLE_OFFSET)+'"');
     }
     const v=encode(patch.value);
     return '<c'+a+(v.type?' t="'+v.type+'"':'')+'>'+v.body+'</c>';
@@ -168,7 +239,10 @@ async function renderMasterWorkbook({calculated,data,month,personalCopy=false,sc
   if(lateStyles.size){
     const gradient='<fill><gradientFill degree="90"><stop position="0"><color rgb="FF000000"/></stop><stop position="0.499"><color rgb="FF000000"/></stop><stop position="0.5"><color rgb="FFFFFFFF"/></stop><stop position="1"><color rgb="FFFFFFFF"/></stop></gradientFill></fill>';
     styles=styles.replace(fillBlock[0],()=>'<fills count="'+(lateFill+1)+'">'+fillBlock[2]+gradient+'</fills>');
-    styles=styles.replace(xfBlock[0],()=>'<cellXfs count="'+(originals.length+lateStyles.size)+'">'+xfBlock[2]+[...lateStyles.values()].map(x=>x.xf).join('')+'</cellXfs>');
+  }
+  const extraStyles=[...lateStyles.values(),...numberStyles.values()].sort((a,b)=>a.id-b.id);
+  if(extraStyles.length){
+    styles=styles.replace(xfBlock[0],()=>'<cellXfs count="'+(originals.length+extraStyles.length)+'">'+xfBlock[2]+extraStyles.map(x=>x.xf).join('')+'</cellXfs>');
     zip.file(styleFile,styles);
   }
   zip.file(file,sheet);
