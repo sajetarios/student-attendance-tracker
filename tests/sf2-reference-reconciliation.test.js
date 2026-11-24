@@ -8,7 +8,8 @@ const register=require('../sf2-routes');
 // names, IDs, school identifiers, original row order or real records are included.
 const benchmarks=[{"month":"2026-07","days":23,"groups":[[[],[],[7,8]],[[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[10],[13],[27,28,29],[28],[29]]],"present":[67,568],"absent":9,"daily":[28,28,28,28,27,27,28,27,27,28,28,28,28,28,28,28,28,28,27,26,26,28,28]},{"month":"2026-10","days":22,"groups":[[[],[23],[23]],[[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[12],[16],[19,28],[19,28],[20],[5],[5,19],[7,13,14]]],"present":[64,537],"absent":15}];
 const result=rows=>({rows,rowCount:rows.length});
-const value=cell=>cell.value?.formula?cell.value.result:cell.value;
+// ExcelJS cell.value copies formula metadata using truthiness; cell.result retains numeric zero.
+const value = cell => cell.formula ? cell.result : cell.value;
 function weekdays(month) {
   const [y,m]=month.split('-').map(Number);
   return Array.from({length:new Date(Date.UTC(y,m,0)).getUTCDate()},(_,i)=>new Date(Date.UTC(y,m-1,i+1)))
