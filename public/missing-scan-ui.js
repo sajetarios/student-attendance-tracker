@@ -159,11 +159,15 @@
      '<button type="button" class="outline-button" id="msSavePolicy">Save policy</button>'+
      '<p>Policy changes never rewrite past records automatically. An authorized reviewer can reconsider a documented exception under the current policy. Original QR scans remain unchanged.</p>';
     $('msPolicySelect').value=mode;
-    $('msSavePolicy').addEventListener('click',async()=>{
+    $('msSavePolicy').addEventListener('click',async(event)=>{
+     const save=event.currentTarget;
+     if(save.disabled)return;
+     save.disabled=true;
      const next=$('msPolicySelect').value;
-     if(next==='DTR_CORRECTION'&&!confirm('Confirm that your SDO permits approved logbook-based Form 48 time corrections. This will never manufacture a QR scan.'))return;
+     const message='Confirm that your SDO permits approved logbook-based Form 48 time corrections. This will never manufacture a QR scan.';
+     if(next==='DTR_CORRECTION'&&!(window.AppDialog ? await window.AppDialog.confirm(message,{title:'Confirm correction policy',confirmText:'Confirm policy'}) : confirm(message))){save.disabled=false;return;}
      try{const saved=await api('/policy',{method:'POST',data:{mode:next}});mode=saved.mode;messageSet('School correction policy saved.');await load();}
-     catch(e){messageSet(e.message,true);}
+     catch(e){messageSet(e.message,true);}finally{save.disabled=false;}
     });
     content.innerHTML='<p class="ms-muted">These settings control how authorized missing-scan reviews affect official Form 48 records. Working hours and signatories remain in Form 48.</p>';
     return;
@@ -293,7 +297,8 @@
       verifiedTime:row.querySelector('[name=verifiedTime]')?.value||'',
       reference:row.querySelector('[name=reference]')?.value?.trim()||''
      };
-     if(['verify','promote'].includes(action)&&!confirm((mode==='DTR_CORRECTION'?'Approve this exact logbook time as an official DTR correction? Original scan history is unchanged.':'Approve this documented exception? School policy leaves the official DTR slot blank.')))return;
+     const message=mode==='DTR_CORRECTION'?'Approve this exact logbook time as an official DTR correction? Original scan history is unchanged.':'Approve this documented exception? School policy leaves the official DTR slot blank.';
+     if(['verify','promote'].includes(action)&&!(window.AppDialog ? await window.AppDialog.confirm(message,{title:'Confirm attendance review',confirmText:'Approve'}) : confirm(message)))return;
      const result=await api('/requests/'+encodeURIComponent(id)+'/head-decision',{method:'POST',data:request});
      document.dispatchEvent(new Event('attendigo:requests-changed'));
      messageSet(result.status==='DTR_CORRECTED'?'Approved correction recorded in DTR.':result.status==='DOCUMENTED'?'Approved documentation; DTR slot remains blank under school policy.':'Reviewer decision recorded with audit history.');

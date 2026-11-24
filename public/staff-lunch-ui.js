@@ -79,15 +79,19 @@
             remove.textContent='Revoke';
             remove.setAttribute('aria-label','Revoke lunch presenter '+presenter.presenterName);
             remove.addEventListener('click',async()=>{
-              if(!window.confirm('Revoke lunch QR access for '+presenter.presenterName+'? Only this teacher’s QR will be invalidated.'))return;
+              if(remove.disabled)return;
+              remove.disabled=true;
+              const selectedSlot=slot.value;
+              const message='Revoke lunch QR access for '+presenter.presenterName+'? Only this teacher’s QR will be invalidated.';
+              if(!(window.AppDialog ? await window.AppDialog.confirm(message,{title:'Revoke lunch QR access',variant:'danger',confirmText:'Revoke access'}) : window.confirm(message))){remove.disabled=false;return;}
               setBusy(true);
               try{
                 await request('/api/staff-attendance/lunch/presenter',{
-                  method:'DELETE',body:JSON.stringify({slot:slot.value,presenterUserId:presenter.presenterUserId})
+                  method:'DELETE',body:JSON.stringify({slot:selectedSlot,presenterUserId:presenter.presenterUserId})
                 });
                 setStatus(presenter.presenterName+' revoked. Other presenters remain active.');
               }catch(error){setStatus(error.message,true);}
-              finally{setBusy(false);await refresh();}
+              finally{remove.disabled=false;setBusy(false);await refresh();}
             });
             row.append(caption,remove);activeList.append(row);
           }
@@ -148,17 +152,20 @@
                 const button=document.createElement('button');button.type='button';button.className='outline-button';
                 button.textContent=decision==='VERIFY'?'Verify':'Reject';
                 button.addEventListener('click',async()=>{
-                  const note=window.prompt('Reason for '+decision.toLowerCase()+'ing '+item.teacherName+
-                    ' on '+item.schoolDate+' (at least 10 characters). Independent evidence is required to verify:');
-                  if(note===null)return;
-                  if(note.trim().length<10){window.alert('Provide a meaningful reason of at least 10 characters.');return;}
+                  if([...controls.querySelectorAll('button')].some(b=>b.disabled))return;
+                  const setReviewBusy=busy=>controls.querySelectorAll('button').forEach(b=>b.disabled=busy);
+                  setReviewBusy(true);
+                  const message='Reason for '+(decision==='VERIFY'?'verifying':'rejecting')+' '+item.teacherName+' on '+item.schoolDate+' (at least 10 characters). Independent evidence is required to verify.';
+                  const note=window.AppDialog ? await window.AppDialog.prompt(message,'',{title:'Review lunch scan',label:'Review reason',inputType:'textarea',required:true,validate:value=>value.trim().length>=10||'Enter at least 10 characters.',confirmText:decision==='VERIFY'?'Verify':'Reject',variant:decision==='REJECT'?'danger':undefined}) : window.prompt(message);
+                  if(note===null){setReviewBusy(false);return;}
+                  if(note.trim().length<10){if(window.AppDialog)await window.AppDialog.alert('Provide a meaningful reason of at least 10 characters.');else window.alert('Provide a meaningful reason of at least 10 characters.');setReviewBusy(false);return;}
                   button.disabled=true;
                   try{
                     await request('/api/staff-attendance/lunch/review',{
                       method:'POST',body:JSON.stringify({eventId:item.eventId,decision,note:note.trim()})
                     });
                     await showPending();
-                  }catch(error){window.alert(error.message);button.disabled=false;}
+                  }catch(error){if(window.AppDialog)await window.AppDialog.alert(error.message,{title:'Unable to save review'});else window.alert(error.message);}finally{setReviewBusy(false);}
                 });
                 controls.append(button);
               }

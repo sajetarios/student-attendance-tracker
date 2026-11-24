@@ -227,3 +227,72 @@ body.app-dialog-open { overflow: hidden; }
   border-radius: 11px;
   font-size: 14px;
 }
+
+/* Shared dialog design tokens: light by default, follow the active portal theme. */
+@media screen {
+  .app-dialog-overlay {
+    --dialog-bg:#fff;--dialog-text:#19304a;--dialog-muted:#52647b;
+    --dialog-line:#94a3b8;--dialog-soft:#f1f5f9;--dialog-primary:#245f9d;
+    --dialog-primary-text:#fff;--dialog-danger:#b4232b;--dialog-error:#a81d28;
+    --dialog-focus:#245f9d;box-sizing:border-box;
+  }
+  html:is([data-ui-theme="dark"],[data-theme="dark"]) .app-dialog-overlay,
+  body:is(.dark-mode,[data-theme="dark"]) .app-dialog-overlay {
+    --dialog-bg:#162337;--dialog-text:#eef4ff;--dialog-muted:#bfd0e5;
+    --dialog-line:#7187a2;--dialog-soft:#21334b;--dialog-primary:#a6cfff;
+    --dialog-primary-text:#142c48;--dialog-danger:#a32430;--dialog-error:#ffb4bc;
+    --dialog-focus:#a6cfff;color-scheme:dark;
+  }
+  dialog.app-dialog-overlay {
+    width:100%;height:100%;max-width:none;max-height:none;margin:0;border:0;
+    overflow:hidden;background:transparent;
+  }
+  dialog.app-dialog-overlay:not([open]) {display:none!important}
+  dialog.app-dialog-overlay::backdrop {background:rgba(15,23,42,.58);backdrop-filter:blur(3px)}
+  .app-dialog-card {
+    box-sizing:border-box;background:var(--dialog-bg);color:var(--dialog-text);
+    border-color:var(--dialog-line);min-width:0;max-width:100%;overscroll-behavior:contain;
+    scroll-padding-block:16px 90px;
+  }
+  .app-dialog-card [hidden] {display:none!important}
+  .app-dialog-heading h2 {font-size:20px;line-height:1.3;color:var(--dialog-text);overflow-wrap:anywhere}
+  .app-dialog-eyebrow {font-size:14px;color:var(--dialog-muted);letter-spacing:.06em}
+  .app-dialog-message,.app-dialog-help,.app-dialog-label,.app-dialog-error {
+    font-size:16px;line-height:1.5;overflow-wrap:anywhere;
+  }
+  .app-dialog-message,.app-dialog-help {color:var(--dialog-muted)}
+  .app-dialog-label {color:var(--dialog-text);font-weight:650}
+  .app-dialog-error {color:var(--dialog-error)}
+  .app-dialog-fields {max-height:none;overflow:visible;padding:0;gap:0 12px}
+  .app-dialog-overlay .app-dialog-card :is(input.app-dialog-input,select.app-dialog-input,textarea.app-dialog-input) {
+    box-sizing:border-box;min-width:0;max-width:100%;font-size:16px!important;
+    background:var(--dialog-bg);color:var(--dialog-text);border-color:var(--dialog-line);
+  }
+  .app-dialog-overlay .app-dialog-card .app-dialog-input::placeholder {color:var(--dialog-muted);opacity:1}
+  .app-dialog-overlay .app-dialog-card .app-dialog-input[aria-invalid="true"] {border-color:var(--dialog-error)}
+  .app-dialog-overlay .app-dialog-card :is(button,input,select,textarea):focus-visible {
+    outline:2px solid var(--dialog-focus);outline-offset:2px;
+  }
+  .app-dialog-overlay .app-dialog-card .app-dialog-close {
+    width:44px;min-height:44px;height:44px;color:var(--dialog-text);right:0;
+  }
+  .app-dialog-header {padding-right:48px;align-items:start;gap:10px}
+  .app-dialog-icon {background:var(--dialog-soft);color:var(--dialog-text)}
+  .app-dialog-actions {flex-wrap:wrap;position:sticky;bottom:-1px;background:var(--dialog-bg);
+    border-color:var(--dialog-line);padding:12px 0 2px;z-index:1}
+  .app-dialog-overlay .app-dialog-card .app-dialog-button {
+    box-sizing:border-box;min-width:0;max-width:100%;min-height:44px;height:auto;
+    font-size:16px;line-height:1.35;white-space:normal;overflow-wrap:anywhere;
+  }
+  .app-dialog-overlay .app-dialog-button-secondary {background:var(--dialog-bg);color:var(--dialog-text);border-color:var(--dialog-line)}
+  .app-dialog-overlay .app-dialog-button-primary {background:var(--dialog-primary);color:var(--dialog-primary-text)}
+  .app-dialog-overlay .app-dialog-button-primary.is-danger {background:var(--dialog-danger);color:#fff}
+  .app-dialog-overlay .app-dialog-button:hover {filter:brightness(.96)}
+  .app-dialog-discard {display:flex;flex-wrap:wrap;gap:8px;padding:12px;margin-top:16px;background:var(--dialog-soft);border-radius:10px}
+  .app-dialog-discard p {flex:1 1 100%;margin:0;font-size:16px;color:var(--dialog-text)}
+  @media (max-width:560px) {
+    .app-dialog-card {padding:16px;max-height:calc(100dvh - 24px - env(safe-area-inset-top,0px) - env(safe-area-inset-bottom,0px))}
+    .app-dialog-actions .app-dialog-button {flex:1 1 120px}
+    .app-dialog-fields {grid-template-columns:minmax(0,1fr)}
+  }
+}

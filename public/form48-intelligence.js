@@ -153,9 +153,11 @@
    if(!slotNames[slot]||!gateEventId)return;
    const personId=person.value,schoolDate=day.value,token=revision;
    const confirmActualExit=action.dataset.confirmExit==='true';
-   if(confirmActualExit&&!window.confirm('I have checked independent evidence that this recorded entry was actually an exit. The original gate timestamp and direction will remain in history. Continue?'))return;
-   if(!window.confirm('Verify the original gate evidence as '+slotNames[slot]+' for '+schoolDate+
-     '? This creates an audited official DTR entry and cannot be undone from this screen.'))return;
+   const confirmReview=(message,options)=>window.AppDialog ? window.AppDialog.confirm(message,options) : window.confirm(message);
+   if(confirmActualExit&&!await confirmReview('I have checked independent evidence that this recorded entry was actually an exit. The original gate timestamp and direction will remain in history. Continue?',{title:'Confirm actual exit',confirmText:'Confirm evidence'}))return;
+   if(!await confirmReview('Verify the original gate evidence as '+slotNames[slot]+' for '+schoolDate+
+     '? This creates an audited official DTR entry and cannot be undone from this screen.',{title:'Apply official DTR entry',confirmText:'Verify & apply'}))return;
+   if(token!==revision||personId!==person.value||schoolDate!==day.value||approving)return;
    approving=true;action.disabled=true;button.disabled=true;
    let verified=false;
    try{

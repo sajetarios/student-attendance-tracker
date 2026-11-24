@@ -518,7 +518,8 @@
      }
     }
     async function review(endpoint,decision,request){
-     const note=window.prompt('Review note (required for disapproval):','');
+     const message='Review note (required for disapproval):';
+     const note=window.AppDialog ? await window.AppDialog.prompt(message,'',{title:'Review leave request',label:'Review note',inputType:'textarea',required:decision==='REJECT',confirmText:'Save review'}) : window.prompt(message,'');
      if(note===null)return;
      action('Saving review',()=>call('/requests/'+r.requestId+'/'+endpoint,'POST',{decision,note,...request}));
     }
