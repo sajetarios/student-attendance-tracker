@@ -3,7 +3,29 @@
   const $ = id => document.getElementById(id); const esc = v => String(v ?? '').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 
   async function api(url, options={}) { const headers = new Headers(options.headers||{});  if(options.body) headers.set('Content-Type','application/json'); const r=await fetch(url,{...options,headers,cache:'no-store'}); const d=await r.json().catch(()=>({})); if(r.status===401){location.replace('/portal-login.html');throw Error('Session expired.');}if(!r.ok) throw new Error(d.error||`Request failed (${r.status})`); return d; }
-  async function init(){ const me=await api('/api/auth/me'); if(me.user.role!=='SCHOOL_ADMIN'){ location.replace('/portal.html'); return; } await load(); }
+  async function init(){ const me=await api('/api/auth/me'); if(me.user.role!=='SCHOOL_ADMIN'){ location.replace('/portal.html'); return; } await Promise.all([load(),loadParentSubjectNotices()]); }
+
+  async function loadParentSubjectNotices(){
+    const feedback=$('parentSubjectNoticeFeedback');
+    try{
+      const data=await api('/api/parent/subject-notifications/settings');
+      $('parentSubjectNoticeEnable').checked=Boolean(data.enabled);
+      feedback.textContent=data.enabled?'Subject alerts are enabled for this school.':'Subject alerts are disabled for this school.';
+    }catch(error){feedback.textContent=error.message;$('parentSubjectNoticeSave').disabled=true;}
+  }
+  $('parentSubjectNoticeSave').addEventListener('click',async()=>{
+    const enabled=$('parentSubjectNoticeEnable').checked;
+    const feedback=$('parentSubjectNoticeFeedback');
+    if(enabled&&!(await AppDialog.confirm('Enable in-app notifications after every finalized subject register for all verified parent-child links? Check your parent contact permissions and pilot records first.',{
+      title:'Enable guardian subject alerts',confirmText:'Enable alerts'
+    }))){$('parentSubjectNoticeEnable').checked=false;return;}
+    $('parentSubjectNoticeSave').disabled=true;feedback.textContent='Saving…';
+    try{
+      await api('/api/parent/subject-notifications/settings',{method:'PUT',body:JSON.stringify({enabled})});
+      feedback.textContent=enabled?'Subject alerts enabled. Only future finalizations will trigger notifications.':'Subject alerts disabled.';
+    }catch(error){feedback.textContent=error.message;await loadParentSubjectNotices();}
+    finally{$('parentSubjectNoticeSave').disabled=false;}
+  });
   let currentTab='all', lastParents=[], lastRegistrations=[];
   const count = n => Number(n||0).toLocaleString('en-PH');
   function decorate(){
