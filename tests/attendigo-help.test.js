@@ -1,5 +1,5 @@
 'use strict';
-const {assertCacheRevisionAtLeast}=require('./support/asset-contract');
+const {assertCachedAsset,assertCacheRevisionAtLeast}=require('./support/asset-contract');
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
@@ -49,11 +49,8 @@ test('guide has no autonomous record write operations or hardcoded privileged UR
   assert.doesNotMatch(client,/\/api\/(?:students|attendance|staff-ob|staff-leave|gate|form48)\//);
   assert.match(css,/safe-area-inset-bottom/);
   assert.match(css,/prefers-reduced-motion/);
-  assert.match(html,/attendigo-help-topics\.js\?v=3/);
-  assert.match(html,/attendigo-help-guide\.js\?v=4/);
-  assert.match(html,/attendigo-help\.css\?v=4/);
-  for(const asset of ['/attendigo-help-topics.js?v=3','/attendigo-help-guide.js?v=4','/attendigo-help.css?v=4'])
-    assert.ok(sw.includes(JSON.stringify(asset)), 'Offline PWA asset: '+asset);
+  for(const asset of ['attendigo-help-topics.js','attendigo-help-guide.js','attendigo-help.css'])
+    assertCachedAsset(html,sw,asset,{minimumVersion:4});
   assertCacheRevisionAtLeast(sw,311);
 });
 test('AI endpoint is disabled until explicitly configured and is authenticated', async () => {
