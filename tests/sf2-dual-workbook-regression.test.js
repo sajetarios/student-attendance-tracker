@@ -8,7 +8,8 @@ const registerSf2Routes = require('../sf2-routes');
 const template = path.join(__dirname,'..','templates','School Form 2 (SF2) Daily Attendance Report of Learners.xlsx');
 const learners = [{id:'A',name:'ALPHA',sex:'MALE'}, {id:'B',name:'BETA',sex:'FEMALE'}];
 const result = rows => ({rows,rowCount:rows.length});
-const value = cell => cell.value?.formula ? cell.value.result : cell.value;
+// ExcelJS cell.value copies formula metadata using truthiness; cell.result retains numeric zero.
+const value = cell => cell.formula ? cell.result : cell.value;
 const {referenceDateSlots}=require('../sf2-reference-workbook');
 const dayCell=(sheet,days,row,index)=>sheet.getCell(row,7+referenceDateSlots(days[0].slice(0,7),days).slots.indexOf(index));
 const blankSlots=(sheet,days)=>referenceDateSlots(days[0].slice(0,7),days).slots.forEach((i,slot)=>{if(i<0)assert.equal(sheet.getCell(115,7+slot).value,null);});
