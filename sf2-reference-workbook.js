@@ -200,33 +200,7 @@ function createReferenceWorkbook({source,data,summary,month,monthName,schoolName
       if(key==='enrollmentRate')formula(cell,'IFERROR('+col+'123/'+col+'119,"N/A")',divide(values.registered,values.early),'0%');
       else if(key==='average')formula(cell,'IFERROR(AG'+[63,114,115][i]+'/$AJ$117,"N/A")',divide(values.presentDays,summary.days),'0.00');
       else if(key==='attendanceRate')formula(cell,'IFERROR('+col+'127/'+col+'123,"N/A")',divide(values.presentDays,values.registered*summary.days),'0%');
-      else if(key==='registered'&&i<2)formula(cell,'COUNTA($B
-      else {cell.value=values[key];cell.numFmt='0';}
-    });
-  }
-  put('AE139',personalCopy?'Unofficial — subject attendance only.':'I certify that this is a true and correct report.',{size:11,wrap:false});
-  merge('AE140:AM141',personalCopy?null:(adviserName||null),{align:'center'});
-  merge('AE142:AM142',personalCopy?'Not for official submission':'(Signature of Adviser over Printed Name)',{align:'center'});
-  put('AE144',personalCopy?null:'Attested by:');
-  merge('AE145:AM145',personalCopy?null:(schoolHeadName||null),{align:'center'});
-  merge('AE146:AM146',personalCopy?null:'(Signature of School Head over Printed Name)',{align:'center'});
-  return wb;
-}
-module.exports={createReferenceWorkbook,referenceDateSlots,LAYOUT};
-+[13,64][i]+':$B
-      else {cell.value=values[key];cell.numFmt='0';}
-    });
-  }
-  put('AE139',personalCopy?'Unofficial — subject attendance only.':'I certify that this is a true and correct report.',{size:11,wrap:false});
-  merge('AE140:AM141',personalCopy?null:(adviserName||null),{align:'center'});
-  merge('AE142:AM142',personalCopy?'Not for official submission':'(Signature of Adviser over Printed Name)',{align:'center'});
-  put('AE144',personalCopy?null:'Attested by:');
-  merge('AE145:AM145',personalCopy?null:(schoolHeadName||null),{align:'center'});
-  merge('AE146:AM146',personalCopy?null:'(Signature of School Head over Printed Name)',{align:'center'});
-  return wb;
-}
-module.exports={createReferenceWorkbook,referenceDateSlots,LAYOUT};
-+[62,113][i]+')',values.registered,'0');
+      else if(key==='registered'&&i<2)formula(cell,'COUNTA($B$'+[13,64][i]+':$B$'+[62,113][i]+')',values.registered,'0');
       else if(i===2)formula(cell,'SUM(AK'+r+':AL'+r+')',values[key],'0');
       else {cell.value=values[key];cell.numFmt='0';}
     });
