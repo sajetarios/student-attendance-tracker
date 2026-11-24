@@ -11,6 +11,37 @@ const manilaMinutes=()=>{
 };
 function registerParentSubjectRoutes(app,pool,{authenticateSchoolClient,requireSchoolRoles}){
  const guards=[authenticateSchoolClient,requireSchoolRoles('PARENT')];
+
+ const admin=[authenticateSchoolClient,requireSchoolRoles('SCHOOL_ADMIN')];
+ app.get('/api/parent/subject-notifications/settings',...admin,async(req,res)=>{
+  try{
+   const r=await pool.query("SELECT setting_value FROM school_settings WHERE school_id=$1 AND setting_key='parent_subject_notifications'",[req.auth.schoolId]);
+   res.set('Cache-Control','private, no-store').json({enabled:r.rows[0]?.setting_value===true});
+  }catch(error){console.error('Subject notification setting:',error.message);res.status(503).json({error:'Could not load parent notification settings.'});}
+ });
+ app.put('/api/parent/subject-notifications/settings',...admin,async(req,res)=>{
+  if(typeof req.body?.enabled!=='boolean')return res.status(400).json({error:'Choose whether notifications are enabled.'});
+  const client=await pool.connect();
+  try{
+   await client.query('BEGIN');
+   await client.query(`INSERT INTO school_settings(school_id,setting_key,setting_value,updated_at)
+     VALUES($1,'parent_subject_notifications',$2::jsonb,NOW())
+     ON CONFLICT(school_id,setting_key)
+     DO UPDATE SET setting_value=$2::jsonb,updated_at=NOW()`,
+     [req.auth.schoolId,JSON.stringify(req.body.enabled)]);
+   await client.query(`INSERT INTO audit_logs(school_id,actor_type,actor_user_id,action,entity_type,entity_id,details)
+     VALUES($1,'SCHOOL',$2,'PARENT_SUBJECT_NOTIFICATIONS_CONFIGURED','school_settings',
+       'parent_subject_notifications',$3::jsonb)`,
+     [req.auth.schoolId,req.auth.userId,JSON.stringify({enabled:req.body.enabled})]);
+   await client.query('COMMIT');
+   res.set('Cache-Control','no-store').json({enabled:req.body.enabled});
+  }catch(error){
+   await client.query('ROLLBACK').catch(()=>{});
+   console.error('Subject notification setting change:',error.message);
+   res.status(503).json({error:'Could not save parent notification settings.'});
+  }finally{client.release();}
+ });
+
  app.get('/api/parent/children/:studentId/subjects',...guards,async(req,res)=>{
   const studentId=String(req.params.studentId||'');
   const today=manilaDate();
