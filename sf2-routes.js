@@ -417,7 +417,7 @@ function registerSf2Routes(app, pool, { authenticateSchoolClient, requireSchoolU
 
     return {
       dates,
-      ...(access.mode==='PERSONAL'?{subject:selectedSubject,subjectChoices}:{}),
+      ...(access.mode==='PERSONAL'?{subject:selectedSubject,subjectChoices,subjectScheduledDays:dates.filter(date=>date<=today&&!uncertainSchedule.has(date)&&subjectSchedule.get(date)?.size>0).length}:{}),
       calendarSuspensions:{fullDays:[...noClassDates],partialDays:[...partialSuspensionDates]},
       students: rows,
       summary: {
