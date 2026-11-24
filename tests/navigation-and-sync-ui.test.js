@@ -61,9 +61,11 @@ test('all browser-native confirmation and prompt dialogs use the shared in-app d
   const portalHtml = readFile('public/portal.html');
   const parentHtml = readFile('public/parent-admin.html');
   const serviceWorker = readFile('public/sw.js');
-  assert.ok(dialog.includes("panel.setAttribute('role', 'dialog')"));
-  assert.ok(dialog.includes("panel.setAttribute('aria-modal', 'true')"));
+  assert.ok(dialog.includes("accessibleDialog.setAttribute('role', 'dialog')"));
+  assert.ok(dialog.includes("accessibleDialog.setAttribute('aria-modal', 'true')"));
   assert.ok(dialog.includes("field.setAttribute('aria-invalid', 'true')"));
+  assert.ok(dialog.includes('const accessibleDialog = useTopLayer ? overlay : panel'));
+  assert.ok(dialog.includes('overlay.showModal()'));
   assert.ok(portalHtml.includes('/app-dialog.css?v=2'));
   assert.ok(portalHtml.includes('/app-dialog.js?v=1'));
   assert.ok(parentHtml.includes('/app-dialog.css?v=2'));
