@@ -60,10 +60,21 @@ async function checkMemoGeometry(engine,engineName){
      const dates=geometry.fields.filter(f=>['effectiveDate','endDate'].includes(f.name));
      if(geometry.touch||width<=800)assert.ok(dates[1].control.y>=dates[0].control.y+dates[0].control.height+8,'native dates must stack');
      await contained(page,'#principalMemoPublish','#principalMemoForm');
-     const create=await box(page,'.attendigo-memo-create'),refresh=await box(page,'.attendigo-memo-refresh');
-     assert.ok(!overlap(create,refresh),'memo toolbar buttons overlap');
-     await contained(page,'.attendigo-memo-create','.attendigo-memo-toolbar');
-     await contained(page,'.attendigo-memo-refresh','.attendigo-memo-toolbar');
+     // Measure all three rectangles in the same browser/layout snapshot.
+     // Native input focus can scroll or zoom the mobile WebKit viewport between
+     // separate Playwright boundingBox calls; keep the actual overlap and
+     // containment assertions, and report geometry on failure.
+     const toolbar=await page.evaluate(()=>{
+      const rect=selector=>{const e=document.querySelector(selector),r=e.getBoundingClientRect();return {x:r.x,y:r.y,width:r.width,height:r.height};};
+      return {create:rect('.attendigo-memo-create'),refresh:rect('.attendigo-memo-refresh'),parent:rect('.attendigo-memo-toolbar'),viewport:window.innerWidth,actionDisplay:getComputedStyle(document.querySelector('.attendigo-memo-manager-actions')).display};
+     });
+     const detail=engineName+' '+theme+' '+width+'px '+JSON.stringify(toolbar);
+     assert.ok(toolbar.create.width>0&&toolbar.create.height>=43&&toolbar.refresh.width>0&&toolbar.refresh.height>=43,'memo toolbar visible touch targets: '+detail);
+     assert.ok(!overlap(toolbar.create,toolbar.refresh),'memo toolbar buttons overlap: '+detail);
+     for(const a of [toolbar.create,toolbar.refresh]){
+      const b=toolbar.parent;
+      assert.ok(a.x>=b.x-1&&a.x+a.width<=b.x+b.width+1&&a.y>=b.y-1&&a.y+a.height<=b.y+b.height+1,'memo toolbar containment: '+detail);
+     }
      console.log('Principal memo native control geometry: '+engineName+' '+theme+' '+width+'px passed');
     }finally{await page.close();}
    }
