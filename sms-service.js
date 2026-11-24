@@ -6,7 +6,7 @@ function validateSettings(v){const keys=['enabled','school_events','class_events
 async function submit(row,{env=process.env,fetchImpl=fetch}={}){
  if(!providerReady(env))return {kind:'disabled'};
  const phone=normalizePhone(row.recipient);if(!phone)return {kind:'failed',error:'INVALID_RECIPIENT: Invalid Philippine mobile number.'};
- const body=JSON.stringify({recipient:phone,sender_id:env.PHILSMS_SENDER_ID,type:/[^\\x00-\\x7F]/.test(row.message)?'unicode':'plain',message:row.message});
+ const body=JSON.stringify({recipient:phone,sender_id:env.PHILSMS_SENDER_ID,type:/[^\x00-\x7F]/.test(row.message)?'unicode':'plain',message:row.message});
  let response;
  try{response=await fetchImpl(API,{method:'POST',headers:{'Content-Type':'application/json','Accept':'application/json','Authorization':`Bearer ${env.PHILSMS_API_TOKEN}`},body,signal:AbortSignal.timeout(15000),redirect:'error'});}catch{return {kind:'unknown',error:'DELIVERY_UNCERTAIN: Connection ended without confirmation. Check the provider before sending again.'};}
  if(response.status===429)return {kind:'retry',error:'RATE_LIMIT: Provider asked us to wait.',delay:Math.min(3600,Math.max(60,Number(response.headers.get('retry-after'))||60))};
@@ -17,6 +17,7 @@ async function submit(row,{env=process.env,fetchImpl=fetch}={}){
  const id=item?.uid||item?.id||item?.message_id;
  if(!id)return {kind:'unknown',error:'DELIVERY_UNCERTAIN: PhilSMS accepted the request but no message identifier was returned; reconcile before retrying.'};
  const status=String(item?.status||'Accepted');
+ if(['failed','rejected','refunded','error'].includes(status.toLowerCase()))return {kind:'failed',id:String(id),status,error:'PROVIDER_REJECTED: PhilSMS reported a failed message.'};
  return {kind:'accepted',id:String(id),status,error:null};
 }
 function startSmsWorker(pool,{env=process.env,fetchImpl=fetch,interval=5000,logger=console}={}){
