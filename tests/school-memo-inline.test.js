@@ -8,8 +8,8 @@ test('all four active dashboard families embed the same memo UI assets',()=>{
  const pages=['principal.html','portal.html','student-portal.html','parent-portal.html'];
  for(const p of pages){
   const s=read(p);
-  assert.match(s,/\/school-memo-banner\.js\?v=5/,'shared memo JS in '+p);
-  assert.match(s,/\/school-memo-banner\.css\?v=5/,'shared memo styling in '+p);
+  assert.match(s,/\/school-memo-banner\.js\?v=7/,'shared memo JS in '+p);
+  assert.match(s,/\/school-memo-banner\.css\?v=7/,'shared memo styling in '+p);
   assert.doesNotMatch(s,/href="\/school-memos\.html/,'no standalone memo link in '+p);
  }
 });
@@ -49,7 +49,7 @@ test('old memoranda URLs redirect to role-specific dashboards',()=>{
 });
 test('PWA caches new memo UI and always fetches authenticated portal pages online',()=>{
  const s=read('sw.js');
- for(const file of ['/school-memo-banner.js?v=5','/school-memo-banner.css?v=5',
+ for(const file of ['/school-memo-banner.js?v=7','/school-memo-banner.css?v=7',
     '/school-memos-redirect.js?v=1'])assert.ok(s.includes(file),file);
  assert.match(s,/"\/portal\.html", "\/class-qr-monitor\.html", "\/principal\.html", "\/school-memos\.html"/);
  assert.match(s,/fetch\(request, \{ cache: "no-store" \}\)/);
@@ -96,4 +96,26 @@ test('principal memo form constrains native pickers and stacks touch-device date
  assert.match(css,/#attendigoSchoolMemoPanel #principalMemoForm\{[\s\S]*?grid-template-columns:minmax\(0,1fr\)/);
  assert.match(css,/input\[type=date\],input\[type=time\]\)\{\s*-webkit-appearance:none/);
  assert.match(css,/@media\(pointer:coarse\)\{[\s\S]*?\.principal-memo-date-fields[\s\S]*?grid-template-columns:minmax\(0,1fr\)/);
+});
+
+test('shared memo shortcut is role-aware and uses the existing acknowledgment feed',()=>{
+ const s=read('school-memo-banner.js');
+ const source=s.slice(s.indexOf(' function currentList('),s.indexOf(' function setStatus('));
+ const make=(tag,cls,value)=>({tag,cls,value,children:[],attrs:{},classes:new Set(),
+  append(...v){this.children.push(...v)},replaceChildren(...v){this.children=v},
+  setAttribute(k,v){this.attrs[k]=v},addEventListener(k,v){this.handler=v},
+  get classList(){return {add:x=>this.classes.add(x),toggle:(x,v)=>v?this.classes.add(x):this.classes.delete(x)}}});
+ const render=new Function('state','strip','make','document','open','close',source+'\nbanner();return strip;');
+ for(const role of ['PRINCIPAL','SCHOOL_ADMIN','DEPARTMENT_HEAD','TEACHER','GATE_KEEPER','STUDENT','PARENT','SUPER_ADMIN']){
+  for(const n of [0,1,2]){
+   let opened=false;
+   const card=render({role,open:false,memos:Array.from({length:n},()=>({acknowledgedAt:null})).concat({acknowledgedAt:'2026-11-24'})},make('aside'),make,{createElementNS:(ns,tag)=>make(tag)},()=>{opened=true},()=>{});
+   const button=card.children[2],badge=card.children[1].children[0].children[1];
+   assert.equal(card.hidden,role==='SUPER_ADMIN');
+   assert.ok(card.classes.has('attendigo-memo-compact'));
+   assert.equal(button.value,role==='PRINCIPAL'?'Manage memoranda':n?'Read memoranda':'View memoranda');
+   assert.equal(badge?.value,n?n+' unread':undefined);
+   button.handler();assert.ok(opened);
+  }
+ }
 });
