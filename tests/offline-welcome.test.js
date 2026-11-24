@@ -191,3 +191,31 @@ test('offline tools use the branded light palette independently of OS dark mode'
   const sheet=fs.readFileSync(path.join(root,'public','offline-sheet.html'),'utf8');
   assert.match(sheet,/html\[data-offline-sheet="true"\]\[data-theme="light"\]\{--asc-surface:#ffffff/);
 });
+
+test('each offline tool survives reload including query-string variations', async () => {
+  for (const route of ['/offline-sheet.html','/gate-offline.html','/student-qr-offline.html']) {
+    const shell = { tool: route };
+    const options = { hit: { [route]: shell, '/offline-welcome.html': { hub: true } } };
+    assert.equal(await requestServiceWorker('https://attendigo.tech'+route, options), shell);
+    assert.equal(await requestServiceWorker('https://attendigo.tech'+route+'?reload=1', options), shell);
+  }
+});
+test('missing tool falls back to offline hub rather than a blank browser error', async () => {
+  const hub = { hub: true };
+  assert.equal(await requestServiceWorker('https://attendigo.tech/gate-offline.html', {hit:{'/offline-welcome.html':hub}}),hub);
+});
+test('online offline-tool reload still refreshes the shell from network', async () => {
+  assert.equal((await requestServiceWorker('https://attendigo.tech/student-qr-offline.html',{offline:false})).live,true);
+});
+test('worker will not activate a partial offline cache after a required tool fails', async () => {
+  const handlers = {}; let activated=false;
+  vm.runInNewContext(script,{
+    self:{addEventListener(name,fn){handlers[name]=fn;},skipWaiting:async()=>{activated=true;}},
+    caches:{open:async()=>({add:async url=>{if(url==='/gate-offline.html')throw Error('Required gate shell unavailable');}})},
+    Promise,URL,Response,fetch:async()=>({ok:true})
+  });
+  let installation;
+  handlers.install({waitUntil(task){installation=task;}});
+  await assert.rejects(installation,/Required gate shell unavailable/);
+  assert.equal(activated,false);
+});

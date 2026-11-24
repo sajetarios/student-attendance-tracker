@@ -1,4 +1,21 @@
-const CACHE = "attendigo-v357-light-offline-tools";
+const CACHE = "attendigo-v358-reliable-offline-reload";
+
+// Only public, non-personal offline shells and their executable dependencies.
+// An update must not discard the working cache before these are all ready.
+const OFFLINE_TOOL_PAGES = ["/offline-sheet.html", "/gate-offline.html", "/student-qr-offline.html", "/offline-welcome.html"];
+const OFFLINE_REQUIRED = [
+  ...OFFLINE_TOOL_PAGES,
+  "/offline-attendance.js?v=5",
+  "/offline-sheet.js?v=4",
+  "/attendance-sync-center.js?v=3",
+  "/attendance-sync-center.css?v=4",
+  "/gate-offline.js?v=2",
+  "/student-qr-offline.js?v=2",
+  "/student-qr-offline-page.js?v=3",
+  "/student-qr-scanner.js?v=4",
+  "/vendor/html5-qrcode.min.js",
+  "/assets/attendigo-official-lockup.svg?v=5"
+];
 
 const SHELL = [
   "/typography.css?v=1",
@@ -183,9 +200,10 @@ const SHELL = [
 self.addEventListener("install", event => {
   event.waitUntil((async () => {
     const cache = await caches.open(CACHE);
-    // This resource is essential and must be available before activation.
+    // Keep the previous active worker if any core offline route or script fails.
     await cache.add("/offline-welcome.html");
-    const resources = [...new Set(SHELL)].filter(url => url !== "/offline-welcome.html");
+    await Promise.all(OFFLINE_REQUIRED.filter(url => url !== "/offline-welcome.html").map(url => cache.add(url)));
+    const resources = [...new Set(SHELL)].filter(url => !OFFLINE_REQUIRED.includes(url));
     // AllSettled avoids the all-or-nothing Cache.addAll failure caused by
     // duplicates and intermittent errors in any nonessential stylesheet/script.
     await Promise.allSettled(resources.map(async url => {
@@ -234,6 +252,34 @@ self.addEventListener("fetch", event => {
   const credentialKey = /^(?:password|passwd|pwd|pass|currentpassword|newpassword|confirmpassword|recoverycode|setupcode|accesstoken)$/i;
   if (isAccountPage && [...url.searchParams.keys()].some(key => credentialKey.test(key))) {
     event.respondWith(Response.redirect(new URL('/portal-login.html', url.origin).href, 303));
+    return;
+  }
+
+  // Reloads and query-string variations of public offline tools use the same
+  // canonical shell. Network failure, timeout, and server errors must not
+  // replace a prepared attendance screen with a browser error or login page.
+  if (request.mode === "navigate" && OFFLINE_TOOL_PAGES.includes(url.pathname)) {
+    event.respondWith((async () => {
+      const cache = await caches.open(CACHE);
+      const canonical = url.pathname;
+      const fallback = async () => (await caches.match(canonical)) ||
+        (await caches.match("/offline-welcome.html")) || Response.error();
+      const controller = typeof AbortController === "function" ? new AbortController() : null;
+      const timer = controller && typeof setTimeout === "function" ? setTimeout(() => controller.abort(), 4500) : null;
+      try {
+        const fresh = await fetch(request, { cache: "no-store", ...(controller ? { signal: controller.signal } : {}) });
+        if (!fresh.ok || fresh.redirected) return await fallback();
+        // Avoid caching unexpected HTML or redirected login responses as a tool.
+        if (fresh.url && new URL(fresh.url).pathname !== canonical) return await fallback();
+        if (fresh.headers && !(fresh.headers.get("content-type") || "").includes("text/html")) return await fallback();
+        await cache.put(canonical, fresh.clone()).catch(() => {});
+        return fresh;
+      } catch {
+        return await fallback();
+      } finally {
+        if (timer !== null) clearTimeout(timer);
+      }
+    })());
     return;
   }
 
