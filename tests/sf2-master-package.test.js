@@ -7,7 +7,7 @@ const JSZip=require(require.resolve('jszip',{paths:[require.resolve('exceljs')]}
 const {MASTER}=require('../sf2-master-export');
 test('actual sanitized TUVERA master is present and preserves original layout without personal source data',async()=>{
  const bytes=await fs.readFile(MASTER);
- assert.equal(crypto.createHash('sha256').update(bytes).digest('hex'),'5c258a4e41cd5e40ee294da78c7b3255b25770ca1e947af37fd9ea33be4e7d44');
+ assert.equal(crypto.createHash('sha256').update(bytes).digest('hex'),'6317603fa8f7fd9c1417d9871da33233e32a0745fd5ed1f06dc8d703787506e3');
  const zip=await JSZip.loadAsync(bytes);
  const ws=await zip.file('xl/worksheets/sheet1.xml').async('string');
  assert.match(ws,/<mergeCells count="257">/);
