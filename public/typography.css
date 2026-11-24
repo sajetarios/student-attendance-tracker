@@ -26,6 +26,14 @@
   --type-line: 1.5;
 }
 @media screen {
+  :root {
+    --type-body: 1rem;
+    --type-name: 1rem;
+    --type-table: 1rem;
+    --type-control: 1rem;
+    --type-secondary: 1rem;
+    --type-count: .875rem;
+  }
   html { font-family: var(--font-ui); -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
   body, body.portal-page { font-family: var(--font-ui); font-size: var(--type-body); line-height: var(--type-line); }
   body :is(button, input, select, textarea, optgroup, option, dialog, [role="button"], [contenteditable="true"]) { font-family: var(--font-ui); }
@@ -63,4 +71,78 @@
     }
     :is(.page-title, .view-title) { overflow-wrap: anywhere; }
   }
+}
+
+/* Readability floor for text, not icons, charts or official printed forms.
+   Scope to screen UI and semantic text; keep existing large headings and KPIs. */
+@media screen {
+  html body:is(.portal-page,.offline-workspace,.login-page) :is(
+    .field-hint,.form-help,.table-subtext,.muted-inline,.inline-feedback,
+    .empty-cell,.student-note,.parent-note,.scope-note p,.student-card .muted,
+    .student-profile-item span,.student-summary-item span,.parent-stat span,
+    .teacher-cell-value,.staff-account-name small,.student-roster-name-block small,
+    .learner-roster-unverified,.teacher-roster-identity-copy small,
+    .section-toolbar p,.card-heading p,.view-heading p,.stat-card small,
+    .form-field label,.field-group label,.student-filter-row label
+  ),
+  html body:has(> .shell) :is(.field-hint,.muted,.controls label,.staff-filters label,.metric-card small) {
+    font-size:var(--type-body)!important;
+    line-height:1.45;
+    overflow-wrap:break-word;
+  }
+  html body.portal-page :is(.content-wrap,.student-page,.parent-page) :is(
+    .table-scroll,.table-wrap,.manual-table-wrap,.sap-table-wrap
+  ) :is(th,td) {font-size:var(--type-table);line-height:1.4;}
+  html body.portal-page :is(.form-actions,.action-row,.section-toolbar,.filter-actions,.modal-actions)
+    > :is(.primary-button,.outline-button,.secondary-button,.compact-button) {
+    font-size:var(--type-control);white-space:normal;min-inline-size:0;
+    overflow-wrap:break-word;line-height:1.4;
+  }
+  html body.portal-page #smartAttendanceOverview :is(
+    p,small,label,summary,.smart-attendance-note,.smart-attendance-person strong,
+    .smart-attendance-counts span,.smart-attendance-all-clear,.smart-attendance-hours-actions span
+  ),
+  html body .missing-scan-dialog :is(
+    p,small,label,dt,dd,.ms-message,.ms-muted,.ms-slot-status,.ms-status,
+    input,select,textarea,.ms-tabs button,.ms-actions button,.ms-policy button
+  ) {font-size:var(--type-body)!important;line-height:1.45;overflow-wrap:break-word;}
+  html body .missing-scan-dialog h4 {font-size:1.0625rem;line-height:1.35;}
+  html body .missing-scan-dialog :is(.ms-tabs,.ms-actions) {min-width:0;flex-wrap:wrap;}
+  html body .missing-scan-dialog :is(.ms-tabs,.ms-actions)>button {
+    white-space:normal;min-width:0;height:auto;min-height:44px;
+  }
+  html body .portal-layout #sidebar.sidebar .side-nav :is(.nav-item,.nav-group-toggle),
+  html body .portal-layout #sidebar.sidebar .nav-submenu .nav-item {
+    font-size:var(--type-table)!important;line-height:1.35;white-space:normal;
+  }
+  html body :is(.universal-notice-content,.universal-notification-center) :is(p,time,small) {
+    font-size:var(--type-body);line-height:1.45;
+  }
+}
+@media screen and (max-width:767px) {
+  html body.portal-page :is(#studentsView,#teachersView) :is(
+    #studentRosterTable,#teacherMonitorTable,#staffAccountsTable
+  ) tbody td::before {font-size:var(--type-table)!important;line-height:1.35;}
+  html body.portal-page :is(#studentsView,#teachersView) :is(
+    #studentRosterTable,#teacherMonitorTable,#staffAccountsTable
+  ) tbody td :is(strong,small,.teacher-cell-value,.staff-account-name) {
+    font-size:var(--type-body)!important;line-height:1.4;
+  }
+  html body.portal-page :is(#studentsView,#teachersView) :is(
+    #studentRosterTable,#teacherMonitorTable,#staffAccountsTable
+  ) tbody td {overflow-wrap:anywhere;}
+  html body.portal-page :is(.field-group,.form-field,.filter-controls) :is(input,select,textarea) {
+    min-width:0;max-width:100%;
+  }
+}
+
+@media screen {
+  html body.offline-workspace :is(p,small,label,summary,li,.hint,.ow-note,.ow-intro),
+  html body.portal-page :is(.qr-field label,#intro,.qr-brand-tagline),
+  html body.login-page :is(.field-hint,.form-help,.login-hint) {
+    font-size:var(--type-body);line-height:1.45;
+  }
+  html body.portal-page #smartAttendanceOverview .smart-attendance-person {min-width:0;}
+  html body .missing-scan-dialog .ms-fields {min-width:0;}
+  html body .missing-scan-dialog .ms-fields > * {min-width:0;overflow-wrap:anywhere;}
 }
