@@ -195,6 +195,7 @@ function registerClassQrRoutes(app,pool,{authenticateSchoolClient,requireSchoolR
  });
  app.get('/api/class-qr/check-in/status',authenticateSchoolClient,async(req,res)=>{
   if(req.auth?.type!=='STUDENT')return res.status(403).json({error:'Student authentication required.'});
+  if((req.query.expectedStudentAccountId&&String(req.query.expectedStudentAccountId)!==String(req.auth.studentAccountId))||(req.query.expectedSchoolId&&String(req.query.expectedSchoolId)!==String(req.auth.schoolId)))return res.status(409).json({error:'Different student account is active.'});
   const sessionId=String(req.query.sessionId||'');
   if(!uuid.test(sessionId))return res.status(400).json({error:'Invalid class QR session.'});
   try{
@@ -207,7 +208,8 @@ function registerClassQrRoutes(app,pool,{authenticateSchoolClient,requireSchoolR
  });
  app.post('/api/class-qr/check-in',authenticateSchoolClient,checkinLimit,async(req,res)=>{
   if(req.auth?.type!=='STUDENT'||req.auth.mustChangePassword)return res.status(403).json({error:'Student login and password update required.'});
-  const {sessionId,token}=req.body||{};
+  const {sessionId,token,expectedStudentAccountId,expectedSchoolId}=req.body||{};
+  if((expectedStudentAccountId&&String(expectedStudentAccountId)!==String(req.auth.studentAccountId))||(expectedSchoolId&&String(expectedSchoolId)!==String(req.auth.schoolId)))return res.status(409).json({error:'Different student account is active.'});
   if(!uuid.test(String(sessionId||''))||!(/^[a-f0-9]{64}$/i).test(String(token||'')))return res.status(400).json({error:'Invalid QR.'});
   try{
    const r=await pool.query('SELECT * FROM class_qr_sessions WHERE school_id=$1 AND session_id=$2',[req.auth.schoolId,sessionId]),s=r.rows[0];

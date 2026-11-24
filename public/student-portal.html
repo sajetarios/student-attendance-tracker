@@ -1,7 +1,7 @@
 <!doctype html>
 <html lang="en" data-protected-role="STUDENT">
 <head>
-  <script src="/session-guard.js?v=2"></script>
+  <script src="/session-guard.js?v=5"></script>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="theme-color" content="#0e2053">
@@ -81,7 +81,7 @@
     </header>
     <section class="student-card student-qr-entry" aria-labelledby="studentQrEntryTitle">
       <div><h2 id="studentQrEntryTitle">Class attendance</h2>
-      <p class="muted" id="studentQrReady">Verifying your student session…</p></div>
+      <p class="muted" id="studentQrReady">Verifying your student session…</p><p id="studentQrQueueStatus" role="status">Offline scans are not official attendance until verified.</p><ul id="studentQrQueueItems"></ul><button class="outline-button" type="button" id="studentQrSync">Sync pending scans</button> <a href="/student-qr-offline.html">Open offline-capable scanner</a></div>
       <button class="primary-button" id="studentScanQr" type="button" disabled><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 8V3h5M16 3h5v5M21 16v5h-5M8 21H3v-5M7 7h3v3H7zM14 7h3v3h-3zM7 14h3v3H7zM14 14h3v3h-3z"/></svg> Scan class QR</button>
     </section>
     <section class="student-card" id="studentQrScannerCard" hidden style="display:none">
@@ -142,8 +142,9 @@
     <p class="student-feedback" id="studentPortalFeedback" role="status"></p>
   </main>
   <script src="/photo-editor.js?v=9" defer></script>
-  <script src="/student-qr-scanner.js?v=3" defer></script>
-  <script src="/student-portal.js?v=23" defer></script>
+  <script src="/student-qr-offline.js?v=1" defer></script>
+  <script src="/student-qr-scanner.js?v=4" defer></script>
+  <script src="/student-portal.js?v=24" defer></script>
   <script src="/universal-notifications.js?v=5" defer></script>
 <script defer src="/school-memo-banner.js?v=4"></script>
 </body>

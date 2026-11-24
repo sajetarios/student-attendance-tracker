@@ -9,6 +9,7 @@
 
 
   function clearSession() {
+    window.StudentQrOffline?.disable();
     sessionStorage.removeItem(tokenKey);
     sessionStorage.removeItem(userKey);
     sessionStorage.removeItem('schoolAttendance.expiresAt');
@@ -98,7 +99,7 @@
       $('studentPasswordRequired').hidden = true;
       $('studentAttendanceSummary').hidden = false;
       $('studentAttendanceCard').hidden = false;
-      window.StudentClassQrScanner?.enable();
+      window.StudentClassQrScanner?.enable(currentUser);
       $('studentPasswordForm').reset();
       feedback.textContent = 'Password changed successfully.';
       await loadAttendance();
@@ -122,7 +123,7 @@
     $('studentAttendanceCard').hidden = Boolean(currentUser.mustChangePassword);
     $('studentPasswordRequired').hidden = !currentUser.mustChangePassword;
     if (!currentUser.mustChangePassword) {
-      if (window.StudentClassQrScanner) window.StudentClassQrScanner.enable();
+      if (window.StudentClassQrScanner) window.StudentClassQrScanner.enable(currentUser);
       else $('studentQrReady').textContent = 'Scanner could not load. Reload this page to try again.';
     } else $('studentQrReady').textContent = 'Change your initial password below to use classroom QR attendance.';
     try {

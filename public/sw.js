@@ -1,4 +1,4 @@
-const CACHE = "attendigo-v346-personal-attendance-layout";
+const CACHE = "attendigo-v347-student-offline-qr";
 
 const SHELL = [
   "/typography.css?v=1",
@@ -42,8 +42,13 @@ const SHELL = [
   "/flicker-diagnostics.js?v=1",
   "/school-header-responsive.js?v=2",
   "/student-portal-refinement.css?v=1",
-  "/student-portal.js?v=23",
-  "/student-qr-scanner.js?v=3",
+  "/student-portal.js?v=24",
+  "/student-qr-offline.js?v=1",
+  "/student-qr-offline.html",
+  "/student-qr-offline-page.js?v=1",
+  "/vendor/html5-qrcode.min.js",
+  "/session-guard.js?v=5",
+  "/student-qr-scanner.js?v=4",
   "/parent-portal.js?v=3",
   "/dashboard-appearance.js?v=3",
   "/timetable-grid.js?v=8",
@@ -220,13 +225,16 @@ self.addEventListener("fetch", event => {
   // Authenticated dashboards are never served from the offline shell cache.
   if (["/portal.html", "/class-qr-monitor.html", "/principal.html", "/school-memos.html", "/student-portal.html", "/parent-portal.html",
        "/force-password-change.html", "/attendance-pin.html", "/class-qr-checkin.html", "/staff-lunch-checkin.html"].includes(url.pathname)) {
-    event.respondWith(fetch(request, { cache: "no-store" }));
+    event.respondWith(fetch(request, { cache: "no-store" }).catch(async error=>{
+      if(url.pathname==='/student-portal.html')return (await caches.match('/student-qr-offline.html'))||Response.error();
+      throw error;
+    }));
     return;
   }
 
   // Authentication scripts must never remain stale across releases or domain changes.
   // They need the deployed code online, with cached copies available only offline.
-  if (['/portal-login.js', '/login-routing.js', '/student-portal.js', '/student-qr-scanner.js'].includes(url.pathname)) {
+  if (['/portal-login.js', '/login-routing.js', '/student-portal.js', '/student-qr-scanner.js', '/student-qr-offline.js', '/student-qr-offline-page.js'].includes(url.pathname)) {
     event.respondWith((async () => {
       try {
         const fresh = await fetch(request, { cache: 'no-store' });

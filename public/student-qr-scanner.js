@@ -22,7 +22,7 @@
   if(scanner&&!starting){try{scanner.clear();}catch{}scanner=null;}
  }
  function message(text){feedback.textContent=text;}
- function clearSelection(){selection=null;confirm.disabled=true;visible(actions,false);}
+ function clearSelection(){selection=null;confirm.textContent='Confirm attendance';confirm.disabled=true;visible(actions,false);}
  async function readQr(raw){
   if(closing||selection||verifying||submitting)return;
   const next=parseQr(raw);
@@ -31,6 +31,7 @@
   message('Checking class attendance in your signed-in portal…');visible(actions,true,'flex');confirm.disabled=true;
   await stop();
   try{
+   if(navigator.onLine===false)throw Error('Offline');
    const r=await fetch('/api/class-qr/check-in/status?sessionId='+encodeURIComponent(next.sessionId),{credentials:'same-origin',cache:'no-store'});
    const data=await r.json().catch(()=>({}));
    if(seq!==generation||closing)return;
@@ -39,7 +40,7 @@
    if(data.recorded){message('Attendance already recorded for this class'+(data.status?': '+data.status:'')+'.');return;}
    const details=[data.class?.subject_name,data.class?.section].filter(Boolean).join(' · ');
    message((details?details+' — ':'')+'QR read successfully. Tap Confirm attendance.');confirm.disabled=false;
-  }catch{if(seq===generation&&!closing)message('Connection unavailable. Scan again to retry. Attendance has not been confirmed.');}
+  }catch{if(seq===generation&&!closing){if(window.StudentQrOffline?.ready()){message('Offline or server unavailable. Tap Save pending scan. This is NOT confirmed attendance.');confirm.textContent='Save pending scan';confirm.disabled=false;}else message('Connection unavailable. Open the Student Portal online first, or ask your teacher.');}}
   finally{if(seq===generation)verifying=false;}
  }
  async function start(){
@@ -60,6 +61,7 @@
   submitting=true;confirm.disabled=true;$('studentQrRescan').disabled=true;$('studentQrStop').disabled=true;
   message('Recording your class attendance…');const qr=selection;
   try{
+   if(navigator.onLine===false||confirm.textContent==='Save pending scan')throw Error('Queue pending');
    const r=await fetch('/api/class-qr/check-in',{method:'POST',credentials:'same-origin',cache:'no-store',headers:{'Content-Type':'application/json'},body:JSON.stringify(qr)});
    const data=await r.json().catch(()=>({}));
    if(r.ok||data.alreadyRecorded){
@@ -71,7 +73,7 @@
    if(r.status===401){message('Your student session has expired. Sign in again before scanning.');return;}
    if(r.status===410){message('QR expired or the class session ended. Scan the current teacher QR.');return;}
    message(data.error||'Attendance not confirmed. Please retry.');confirm.disabled=false;
-  }catch{message('Connection interrupted. Retry to verify whether the server recorded attendance.');confirm.disabled=false;}
+  }catch{try{if(!window.StudentQrOffline?.ready())throw Error('Offline capture not prepared');await window.StudentQrOffline.enqueue(qr);selection=null;message('Saved on this device — pending verification. Reconnect to sync automatically.');void window.StudentQrOffline.sync();}catch{message('Unable to save offline scan. Ask your teacher to record attendance.');confirm.disabled=false;}}
   finally{submitting=false;$('studentQrRescan').disabled=false;$('studentQrStop').disabled=false;}
  });
  open.addEventListener('click',start);
@@ -79,5 +81,5 @@
  $('studentQrPasteForm').addEventListener('submit',async e=>{e.preventDefault();if(submitting||verifying)return;const raw=$('studentQrLink').value.trim();$('studentQrLink').value='';if(!parseQr(raw)){message('Paste a valid Attendigo classroom QR link.');return;}clearSelection();await readQr(raw);});
  $('studentQrStop').addEventListener('click',async()=>{if(submitting)return;closing=true;generation++;verifying=false;clearSelection();visible(card,false);await stop();if(!starting)open.disabled=false;});
  window.addEventListener('pagehide',()=>{closing=true;generation++;void stop();});
- window.StudentClassQrScanner={enable:()=>{open.disabled=false;visible(open,true,'inline-flex');$('studentQrReady').textContent='Scan your teacher’s QR here. No additional sign-in is needed while your session is active.';}};
+ window.StudentClassQrScanner={enable:(user)=>{open.disabled=false;visible(open,true,'inline-flex');$('studentQrReady').textContent='Scan your teacher’s QR here. Offline scans remain pending until verified.';if(user)void window.StudentQrOffline?.enable(user);}};
 })();
