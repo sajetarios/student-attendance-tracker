@@ -5,6 +5,10 @@ const {validAttendancePin,hashAttendancePin,verifyAttendancePin}=require('./atte
 const UUID=/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const QR_TOKEN=/^[a-f0-9]{64}$/i;
 const MAX_PER_NETWORK_AND_SESSION=120;
+// Rotate every 30s; keep four previous buckets for a bounded 120–150s window.
+// Closed/suspended sessions, PIN limits, and enrollment checks remain independent.
+const QR_ROTATION_MS=30000;
+const QR_ACCEPTED_BUCKETS=5;
 const genericError='Unable to confirm attendance. Check your Student ID and private PIN.';
 
 function validQrInput(body){
@@ -14,9 +18,9 @@ function validQrInput(body){
 }
 function currentQrTokenMatches(secret,sessionId,token,now=Date.now()){
  if(typeof secret!=='string'||typeof token!=='string'||!QR_TOKEN.test(token))return false;
- const b=Math.floor(now/30000);
+ const b=Math.floor(now/QR_ROTATION_MS);
  const supplied=Buffer.from(token,'hex');
- return [b,b-1].some(n=>{
+ return Array.from({length:QR_ACCEPTED_BUCKETS},(_,i)=>b-i).some(n=>{
   const expected=crypto.createHmac('sha256',secret).update(sessionId+':'+n).digest();
   return crypto.timingSafeEqual(supplied,expected);
  });
@@ -104,4 +108,4 @@ function registerQrPinCheckin(app,pool,{saveAttendance}){
   }
  });
 }
-module.exports={registerQrPinCheckin,validQrInput,currentQrTokenMatches};
+module.exports={registerQrPinCheckin,validQrInput,currentQrTokenMatches,QR_ROTATION_MS,QR_ACCEPTED_BUCKETS};
