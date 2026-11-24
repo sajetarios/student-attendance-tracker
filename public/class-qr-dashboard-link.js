@@ -38,16 +38,21 @@
         ? dashboard.querySelector('.dashboard-quick-buttons') : null;
       const attendanceHost = attendanceVisible ? classAttendance.querySelector('.manual-head') : null;
       const inlineHost = attendanceHost || rosterHost || dashboardHost;
-      const host = inlineHost || document.body;
+      // Never attach an attendance shortcut to the viewport. If this view
+      // has no authorized inline destination, keep the link detached.
+      if (!inlineHost || (rosterVisible && !rosterHost)) {
+        link.hidden = true;
+        link.remove();
+        return;
+      }
+      const host = inlineHost;
       link.classList.toggle('is-roster-inline', Boolean(rosterHost));
       link.classList.toggle('manual-qr-inline', Boolean(attendanceHost));
       link.classList.toggle('is-dashboard-inline', Boolean(dashboardHost));
-      link.hidden = (user.role === 'TEACHER' && !inlineHost) || (rosterVisible && !rosterHost);
-      // Explicitly reset fixed offsets: a stale fixed position must never cover account controls.
-      link.style.setProperty('position', inlineHost ? 'static' : 'fixed', 'important');
-      for (const edge of ['top', 'left']) link.style.setProperty(edge, 'auto', 'important');
-      link.style.setProperty('right', inlineHost ? 'auto' : '18px', 'important');
-      link.style.setProperty('bottom', inlineHost ? 'auto' : '18px', 'important');
+      link.hidden = false;
+      // Inline placement only; never cover account or attendance controls.
+      link.style.setProperty('position', 'static', 'important');
+      for (const edge of ['top', 'left', 'right', 'bottom']) link.style.setProperty(edge, 'auto', 'important');
       link.style.setProperty('transform', 'none', 'important');
       if (link.parentElement !== host) host.append(link);
     };
