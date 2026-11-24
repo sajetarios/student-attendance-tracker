@@ -13,3 +13,7 @@
 .doc-brand-preview [hidden]{display:none!important}
 #documentBrandingStatus{font-size:15px;line-height:1.45;overflow-wrap:anywhere}
 @media(max-width:640px){.doc-brand-grid{grid-template-columns:minmax(0,1fr)}.doc-brand-actions button{flex:1 1 140px}.doc-brand-preview{grid-template-columns:minmax(0,48px) minmax(0,1fr) minmax(0,48px)}}
+
+/* Document controls take precedence over the shared compact dashboard rules. */
+#documentBrandingForm .doc-brand-grid :is(input,select){box-sizing:border-box!important;min-height:46px!important;height:auto!important;max-height:none!important;font-size:16px!important}
+#documentBrandingForm .doc-brand-actions :is(button,a){box-sizing:border-box!important;min-height:46px!important;height:auto!important;max-height:none!important;white-space:normal!important}
