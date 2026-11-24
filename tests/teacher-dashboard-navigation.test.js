@@ -55,7 +55,7 @@ test('teacher dashboard is more compact without altering QR event handlers or sc
 test('class QR shortcut docks into teacher dashboard and roster; it cannot cover unrelated teacher screens', () => {
   assert.ok(qr.includes("user.role === 'TEACHER' && dashboardVisible"));
   assert.ok(qr.includes("dashboard.querySelector('.dashboard-quick-buttons')"));
-  assert.ok(qr.includes("link.hidden = (user.role === 'TEACHER' && !inlineHost)"));
+  assert.match(qr,/if \(!inlineHost \|\| \(rosterVisible && !rosterHost\)\) \{\s*link\.hidden = true;\s*link\.remove\(\);\s*return;/);
   assert.ok(qr.includes("observer.observe(dashboard"));
   assert.ok(qr.includes("link.href = '/class-qr-teacher.html'"));
   assert.match(html, /#classQrTeacherShortcut\[hidden\]\{display:none!important\}/);

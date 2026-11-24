@@ -45,11 +45,11 @@ test('responsive teacher roster keeps grouped sex counts, readable cards and dar
 });
 test('PWA asset versions match the new styling and scripts', () => {
   assertCachedAsset(page,worker,'portal.js',{minimumVersion:203});
-  for (const asset of ['/teacher-learner-roster.css?v=7','/class-qr-dashboard-link.js?v=13','/teacher-roster-popover.js?v=2']) {
+  for (const asset of ['/teacher-learner-roster.css?v=7','/teacher-roster-popover.js?v=2']) {
     assert.ok(page.includes(asset), asset+' included in portal');
     assert.ok(worker.includes(JSON.stringify(asset)), asset+' cached');
   }
-  assert.ok(page.includes('/class-qr-dashboard-link.js?v=13'));
+  assertCachedAsset(page,worker,'class-qr-dashboard-link.js',{minimumVersion:13});
   assert.ok(page.includes('/teacher-roster-popover.js?v=2'));
   assert.match(worker, /const CACHE = "attendigo-v\d+[^"]*"/);
 });
@@ -76,8 +76,9 @@ test('four-column teacher table keeps guardian contact inside Actions, not the w
 test('QR shortcut cannot sit over header account controls when on roster', () => {
   assert.match(shortcut, /panel\.getClientRects\(\)\.length/);
   assert.match(shortcut, /#studentRosterPanel \.student-roster-viewbar/);
-  assert.match(shortcut, /setProperty\('position', inlineHost \? 'static' : 'fixed', 'important'\)/);
+  assert.match(shortcut, /setProperty\('position', 'static', 'important'\)/);
   assert.match(style, /#classQrTeacherShortcut\.is-roster-inline/);
+  assert.doesNotMatch(shortcut,/setProperty\('position',[^\n]*'fixed'/);
 });
 test('teacher dropdown supports keyboard dismissal and does not increase row height', () => {
   const popover = read('public/teacher-roster-popover.js');

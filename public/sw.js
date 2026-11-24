@@ -1,4 +1,4 @@
-const CACHE = "attendigo-v355-offline-workspace-ui";
+const CACHE = "attendigo-v356-offline-workspace-validation";
 
 const SHELL = [
   "/typography.css?v=1",
@@ -45,7 +45,7 @@ const SHELL = [
   "/student-portal.js?v=24",
   "/student-qr-offline.js?v=2",
   "/student-qr-offline.html",
-  "/student-qr-offline-page.js?v=2",
+  "/student-qr-offline-page.js?v=3",
   "/vendor/html5-qrcode.min.js",
   "/session-guard.js?v=5",
   "/student-qr-scanner.js?v=4",

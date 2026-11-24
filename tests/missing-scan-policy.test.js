@@ -76,11 +76,11 @@ test('all signed-in portals contain form controls and missing scan fields cannot
  const css=read('attendigo-form-overlap-guard.css');
  const modal=read('missing-scan-ui.css');
  const sw=read('sw.js');
+ const {assertCachedAsset}=require('./support/asset-contract');
  for(const page of ['portal.html','student-portal.html','parent-portal.html','principal.html']){
   const html=read(page);
-  assert.ok(html.includes('/attendigo-form-overlap-guard.css?v=1'),page+' must load the shared guard');
-  assert.equal(html.split('/attendigo-form-overlap-guard.css?v=1').length-1,1);
-  assert.ok(html.indexOf('attendigo-form-overlap-guard.css?v=1')<html.indexOf('</head>'));
+  const uri=assertCachedAsset(html,sw,'attendigo-form-overlap-guard.css',{minimumVersion:1});
+  assert.ok(html.indexOf(uri)<html.indexOf('</head>'));
  }
  assert.match(css,/body:has\(> \.shell\)/,'principal workspace must be covered');
  assert.match(css,/body\.portal-page/,'staff, parent, student pages must be covered');
@@ -93,6 +93,6 @@ test('all signed-in portals contain form controls and missing scan fields cannot
  assert.match(modal,/\.ms-create-grid > :is\(label,\.ms-slot-status\)/);
  assert.match(modal,/grid-column:1 \/ -1!important/);
  assert.match(modal,/\.ms-create-grid select\{/);
- assert.match(sw,/attendigo-form-overlap-guard\.css\?v=1/);
+ assert.match(sw,/attendigo-form-overlap-guard\.css\?v=\d+/);
  assert.match(sw,/missing-scan-ui\.css\?v=3/);
 });

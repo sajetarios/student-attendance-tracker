@@ -50,7 +50,7 @@ body.offline-workspace{--ow-bg:#f3f7fc;--ow-card:#fff;--ow-text:#102e4c;--ow-mut
         <button class="outline-button" type="button" id="studentQrRescan">Scan another QR</button>
       </div>
       <details style="margin:12px 0"><summary>Camera not working? Paste a QR link instead</summary>
-        <form id="studentQrPasteForm" style="display:grid;gap:8px;margin-top:10px">
+        <form method="post" id="studentQrPasteForm" style="display:grid;gap:8px;margin-top:10px">
           <label for="studentQrLink">Teacher's class QR link</label>
           <input id="studentQrLink" type="url" required autocomplete="off" spellcheck="false" placeholder="https://attendigo.tech/class-qr-checkin.html?…">
           <button class="outline-button" type="submit">Read QR link</button>
@@ -58,4 +58,4 @@ body.offline-workspace{--ow-bg:#f3f7fc;--ow-card:#fff;--ow-text:#102e4c;--ow-mut
       </details>
       <button class="outline-button" type="button" id="studentQrStop">Close scanner</button>
     </section>
-<script src="/student-qr-offline.js?v=2" defer></script><script src="/student-qr-scanner.js?v=4" defer></script><script src="/student-qr-offline-page.js?v=2" defer></script></main></body></html>
+<script src="/student-qr-offline.js?v=2" defer></script><script src="/student-qr-scanner.js?v=4" defer></script><script src="/student-qr-offline-page.js?v=3" defer></script></main></body></html>

@@ -3,6 +3,7 @@ const test = require('node:test');
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const path = require('node:path');
+const {EventEmitter}=require('node:events');
 const { registerAuthRoutes } = require('../auth-routes');
 const { hashPassword } = require('../auth-security');
 const root = path.resolve(__dirname, '..');
@@ -34,14 +35,15 @@ function fixture(passwordHash) {
   };
   registerAuthRoutes(app,pool);
   async function signIn(password) {
-    const req = {ip:'192.0.2.1',headers:{cookie:''},body:{schoolCode:'DEMO001',username:'TEST-01',password}};
+    const req = {path:'/api/auth/student/login',ip:'192.0.2.1',headers:{cookie:''},body:{schoolCode:'DEMO001',username:'TEST-01',password}};
     let status=200,payload;
-    const res = {
-      status(code) {status=code;return this;},
-      json(value) {payload=value;return this;},
+    const res = Object.assign(new EventEmitter(),{
+      statusCode:200,
+      status(code) {status=code;this.statusCode=code;return this;},
+      json(value) {payload=value;this.emit('finish');return this;},
       setHeader() {return this;},
-      end() {return this;}
-    };
+      end() {this.emit('finish');return this;}
+    });
     const handlers=endpoints.get('POST /api/auth/student/login');
     assert.ok(handlers,'The student sign-in route must exist');
     for(const handler of handlers) {
