@@ -61,11 +61,31 @@ function registerAuthRoutes(app, pool) {
     const active=await pool.query('SELECT session_id FROM student_sessions WHERE token_hash=$1 AND revoked_at IS NULL AND expires_at>NOW() LIMIT 1',[hashToken(existing)]);
     return !active.rowCount;
   }
-  const limitLoginAttempts = createIpRateLimiter({
-    windowMs: 15 * 60 * 1000,
-    maxRequests: 60,
-    message: 'Too many sign-in attempts. Please wait a little before trying again.'
+  // Normal school-day sign-ins must not exhaust a shared school/proxy IP
+  // quota. Keep a bounded aggregate failure budget and a separate account
+  // budget, in addition to the existing database-backed five-failure lock.
+  // Do not trust arbitrary forwarded IP headers.
+  const loginWindowMs = 15 * 60 * 1000;
+  const message = 'Too many sign-in attempts. Please wait before trying again.';
+  const limitSchoolNetwork = createIpRateLimiter({
+    windowMs: loginWindowMs, maxRequests: 300, countOnlyFailures: true, message
   });
+  const limitPlatformNetwork = createIpRateLimiter({
+    windowMs: loginWindowMs, maxRequests: 60, countOnlyFailures: true, message
+  });
+  const normalize = value => validString(value, 256) ? value.trim().toLowerCase() : '';
+  const limitAccount = createIpRateLimiter({
+    windowMs: loginWindowMs, maxRequests: 10, countOnlyFailures: true, message,
+    keyForRequest: req => JSON.stringify([
+      req.path, req.path === '/api/auth/platform/login' ? '' : normalize(req.body?.schoolCode),
+      req.path === '/api/auth/student/login' ? normalize(canonicalStudentLoginUsername(normalize(req.body?.username))) : normalize(req.body?.username)
+    ])
+  });
+  function accountLockResponse(res, lockedUntil) {
+    const seconds = Math.max(1, Math.ceil((new Date(lockedUntil).getTime() - Date.now()) / 1000));
+    res.setHeader('Retry-After', String(seconds));
+    return res.status(423).json({ error: 'Account temporarily locked. Try again later.' });
+  }
 
   async function issueSession({ principalType, schoolId = null, schoolUserId = null, platformUserId = null }) {
     const token = createOpaqueToken();
@@ -103,7 +123,7 @@ function registerAuthRoutes(app, pool) {
     );
   }
 
-  app.post('/api/auth/school/login', limitLoginAttempts, async (req, res) => {
+  app.post('/api/auth/school/login', limitSchoolNetwork, limitAccount, async (req, res) => {
     const { schoolCode, username, password } = req.body || {};
     if (![schoolCode, username, password].every(v => validString(v, 256))) {
       return res.status(400).json({ error: 'School code, username, and password are required.' });
@@ -129,7 +149,7 @@ function registerAuthRoutes(app, pool) {
       const user = userResult.rows[0];
       if (!user.active) return res.status(401).json({ error: 'Invalid login credentials.' });
       if (user.locked_until && new Date(user.locked_until).getTime() > Date.now()) {
-        return res.status(423).json({ error: 'Account temporarily locked. Try again later.' });
+        return accountLockResponse(res, user.locked_until);
       }
       const correct = await verifyPassword(password, user.password_hash);
       if (!correct) {
@@ -175,7 +195,7 @@ function registerAuthRoutes(app, pool) {
   });
 
   // Student accounts are separate principals and never receive staff or parent permissions.
-  app.post('/api/auth/student/login', limitLoginAttempts, async (req, res) => {
+  app.post('/api/auth/student/login', limitSchoolNetwork, limitAccount, async (req, res) => {
     const { schoolCode, username, password } = req.body || {};
     if (![schoolCode, username, password].every(v => validString(v, 256))) {
       return res.status(400).json({ error: 'School code, student ID/username, and password are required.' });
@@ -204,7 +224,7 @@ function registerAuthRoutes(app, pool) {
       const account = accountResult.rows[0];
       if (!account.active) return res.status(401).json({ error: 'Invalid login credentials.' });
       if (account.locked_until && new Date(account.locked_until).getTime() > Date.now()) {
-        return res.status(423).json({ error: 'Account temporarily locked. Try again later.' });
+        return accountLockResponse(res, account.locked_until);
       }
       const correct = await verifyPassword(password, account.password_hash);
       if (!correct) {
@@ -257,7 +277,7 @@ function registerAuthRoutes(app, pool) {
     }
   });
 
-  app.post('/api/auth/platform/login', limitLoginAttempts, async (req, res) => {
+  app.post('/api/auth/platform/login', limitPlatformNetwork, limitAccount, async (req, res) => {
     const { username, password } = req.body || {};
     if (![username, password].every(v => validString(v, 256))) {
       return res.status(400).json({ error: 'Username and password are required.' });
@@ -272,7 +292,7 @@ function registerAuthRoutes(app, pool) {
       const user = result.rows[0];
       if (!user.active) return res.status(401).json({ error: 'Invalid login credentials.' });
       if (user.locked_until && new Date(user.locked_until).getTime() > Date.now()) {
-        return res.status(423).json({ error: 'Account temporarily locked. Try again later.' });
+        return accountLockResponse(res, user.locked_until);
       }
       const correct = await verifyPassword(password, user.password_hash);
       if (!correct) {
