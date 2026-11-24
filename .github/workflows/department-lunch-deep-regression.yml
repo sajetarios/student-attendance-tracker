@@ -80,3 +80,67 @@ jobs:
       - run: npm install --no-save --package-lock=false --ignore-scripts playwright@1.56.1
       - run: npx playwright install --with-deps chromium
       - run: node scripts/check-responsive-layout.cjs
+
+  upgrade-existing-schema:
+    name: Upgrade from ${{ matrix.baseline.name }} (PostgreSQL 17)
+    strategy:
+      fail-fast: false
+      matrix:
+        baseline:
+          - name: live-production-source
+            sha: 8a3235da8e5e21a94f69b42dcb3ced5ea79ad425
+          - name: existing-staging-source
+            sha: ec6ce0d6e99247247bc5296dcb5398a3b03e99b7
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: school_attendance_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d school_attendance_test"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    env:
+      DATABASE_URL: postgres://postgres:postgres@localhost:5432/school_attendance_test
+      ATTENDIGO_PRIMARY_DATABASE: render
+      PGPASSWORD: postgres
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ matrix.baseline.sha }}
+          path: baseline
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci
+      - name: Install database roles for Supabase parity
+        run: psql -h localhost -U postgres -d school_attendance_test -v ON_ERROR_STOP=1 -c 'CREATE ROLE anon; CREATE ROLE authenticated;'
+      - name: Apply exact older release migration history
+        working-directory: baseline
+        run: |
+          npm ci
+          npm run db:migrate
+      - name: Insert synthetic school and persistent settings
+        run: |
+          psql -h localhost -U postgres -d school_attendance_test -v ON_ERROR_STOP=1 <<'SQL'
+          INSERT INTO schools(school_code,school_name) VALUES('UPGRADE_FIXTURE','Synthetic migration continuity');
+          INSERT INTO school_settings(school_id,setting_key,setting_value) SELECT school_id,'upgrade-continuity','{"preserve":true}'::jsonb FROM schools WHERE school_code='UPGRADE_FIXTURE';
+          SQL
+      - name: Apply candidate migrations without clearing prior schema or data
+        run: npm run db:migrate
+      - name: Verify idempotence and synthetic data continuity
+        run: |
+          npm run db:migrate
+          psql -h localhost -U postgres -d school_attendance_test -v ON_ERROR_STOP=1 -Atc "SELECT count(*) FROM school_settings s JOIN schools sc ON s.school_id=sc.school_id WHERE sc.school_code='UPGRADE_FIXTURE' AND s.setting_key='upgrade-continuity' AND s.setting_value='{\"preserve\":true}'::jsonb" | grep -x 1
+          psql -h localhost -U postgres -d school_attendance_test -v ON_ERROR_STOP=1 -Atc "SELECT count(*) FROM schema_migrations WHERE migration_name IN ('089_retire_department_location_approval.sql','090_staff_lunch_trusted_campuses.sql','091_lunch_qr_review_notifications.sql')" | grep -x 3
+      - name: Verify real authenticated lunch and Gatekeeper flows after upgrade
+        run: node tests/department-lunch-delegation-postgres.cjs
