@@ -33,7 +33,7 @@ async function exportFixture({personal=true,month='2026-01',pending=false,confli
   const reportLearners=productionLike?Array.from({length:28},(_,i)=>({id:'L'+i,name:'LEARNER '+String(i).padStart(2,'0'),sex:i<3?'MALE':'FEMALE'})):learners;
   if(productionLike){
     qr.splice(0);
-    manual.splice(0,...reportLearners.map((learner,i)=>({id:learner.id,date:'2026-11-23',status:i>=26?'ABSENT':'PRESENT',periodId:'p1'})));
+    manual.splice(0,manual.length,...reportLearners.map((learner,i)=>({id:learner.id,date:'2026-11-23',status:i>=26?'ABSENT':'PRESENT',periodId:'p1'})));
   }
   const schedule=dates.map(date=>({date,periodId:'p1',subjectName:'Advance English',scheduled:date!==c,hasWeekdays:date!==i,startTime:date===h?'11:00':'08:00'}));
   if(multiSubject){
@@ -140,7 +140,7 @@ test('actual subject XLSX removes diagonal borders, distinguishes daily evidence
   assert.equal(value(sheet.getCell('AM134')),5);
   assert.equal(value(sheet.getCell('AM136')),4);
   assert.equal(value(sheet.getCell('AM130')),2*(days.length-2)-6);
-  assert.equal(sheet.getCell('AM128').numFmt,'General');
+  assert.equal(sheet.getCell('AM128').numFmt??'General','General');
   assert.match(sheet.getCell('AM125').formula,/IFERROR/);
   assert.match(sheet.getCell('AM136').formula,/COUNTIF\(AU115:BS115/);
   assert.equal(sheet.getCell('AE132').value,'Conflicts to review');
