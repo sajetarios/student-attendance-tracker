@@ -1,4 +1,4 @@
-const CACHE = "attendigo-v366-form48-missing-return-exit";
+const CACHE = "attendigo-v367-compact-my-attendance";
 
 // Only public, non-personal offline shells and their executable dependencies.
 // An update must not discard the working cache before these are all ready.
@@ -125,7 +125,7 @@ const SHELL = [
   "/smart-attendance-overview.css?v=4",
   "/role-controls-responsive.css?v=2",
   "/smart-attendance-overview.js?v=4",
-  "/my-gate-insights.css?v=3",
+  "/my-gate-insights.css?v=4",
   "/staff-lunch-ui.js?v=7",
   "/staff-precise-location.js?v=1",
   "/staff-department-location.js?v=4",
