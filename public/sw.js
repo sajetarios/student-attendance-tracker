@@ -1,4 +1,4 @@
-const CACHE = "attendigo-v327-missing-scan-final-principal";
+const CACHE = "attendigo-v328-parent-subject-admin-controls";
 
 const SHELL = [
   "/typography.css?v=1",
@@ -153,7 +153,7 @@ const SHELL = [
   "/assets/attendigo-official-lockup.svg?v=5",
   "/vendor/html5-qrcode.min.js",
   "/attendigo-brand-polish.css?v=2",
-  "/parent-admin.css?v=7",
+  "/parent-admin.css?v=8",
   "/schedule-mobile-layout.css?v=1",
   "/weekly-list-mobile.css?v=1",
   "/platform-plans-ui.js?v=8",
