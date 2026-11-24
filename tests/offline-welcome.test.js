@@ -128,3 +128,12 @@ test('offline worker refuses installation when the welcome fallback itself is mi
   await assert.rejects(installation, /Offline page missing/);
   assert.equal(skipWaitingCalled, false);
 });
+
+test('offline welcome links to the existing prepared attendance tools, not dashboard bypass', () => {
+  for (const route of ['/offline-sheet.html', '/gate-offline.html', '/student-qr-offline.html']) {
+    assert.ok(page.includes('href="' + route + '"'), 'Missing prepared offline route: ' + route);
+    assert.ok(script.includes('"' + route + '"'), 'Offline route not precached: ' + route);
+  }
+  assert.match(page, /Full portal login still requires internet/i);
+  assert.doesNotMatch(page, /<form\b/i);
+});
