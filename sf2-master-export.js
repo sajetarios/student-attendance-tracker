@@ -26,11 +26,11 @@ async function renderMasterWorkbook({calculated,data,month,personalCopy=false,sc
   let sheet=await zip.file(file).async('string');
   if(!/<mergeCells count="257">/.test(sheet))throw new Error('Unexpected SF2 master geometry');
   const changes=new Map();
-  const set=(address,value,shade=null)=>changes.set(address,{value,shade});
+  const set=(address,value,shade=null,format=null)=>changes.set(address,{value,shade,format});
   const source=calculated.worksheets[0];
   const read=address=>{const c=source.getCell(address);return c.formula?{formula:c.formula,result:c.result}:c.value;};
   const copy=address=>set(address,read(address));
-  const cache=(address,formula,result)=>set(address,{formula,result});
+  const cache=(address,formula,result,format=null)=>set(address,{formula,result},null,format);
   const {slots}=referenceDateSlots(month,data.dates);
   const groups=[data.students.filter(x=>String(x.sex).toUpperCase()==='MALE'),data.students.filter(x=>String(x.sex).toUpperCase()==='FEMALE')];
   set('G6',schoolId||null);set('N6',schoolYear||null);copy('AA6');
@@ -42,6 +42,20 @@ async function renderMasterWorkbook({calculated,data,month,personalCopy=false,sc
     set('T118','White blank: Present; Gray: no record (not absent); X: Absent; Upper half shaded: Late; E: Excused; —: No class; !: Review.');
     for(const a of ['AE139','AE140','AE142','AE144','AE145','AE146'])set(a,null);
     set('AE142','Subject teacher reference only');
+    set('A117','SUBJECT REPORT GUIDE:');
+    set('A118','1. Only the selected subject is included. Future dates are excluded.');
+    set('A119','2. Present includes late arrivals. Absent counts X; excused absences remain E.');
+    set('A120','3. Present and Absent are totals of recorded learner-days in the month.');
+    for(const a of ['A121','B121','G121','Q121','G122','A123','B123','G123','G124','A125','B125','G125','Q125','G126','A128','A130','A132','A133','B133'])set(a,null);
+    set('A128','Attendance % = Present / (Present + Absent + Excused). No recorded attendance = blank percentage.');
+    set('A130','Unrecorded, conflicting, future and no-class dates are excluded from the percentage.');
+    set('A132','Enrolled learners are the learners included in the selected subject report roster.');
+    set('T121','2. RECORDING NOTES');
+    for(let row=122;row<=146;row++)if(row!==142)set('T'+row,null);
+    set('T122','Gray: incomplete evidence');
+    set('T123','! : resolve conflict');
+    set('T124','E : excused absence');
+    set('T125','— : no scheduled class');
   }else{
     // This locally prepared worksheet supports completing the actual LIS form;
     // it is not represented as an authorized DepEd/LIS-issued electronic form.
@@ -98,11 +112,46 @@ async function renderMasterWorkbook({calculated,data,month,personalCopy=false,sc
     copy('AF'+total);copy('AG'+total);
   }
   for(let slot=0;slot<25;slot++)copy(col(7+slot)+'115');
-  copy('AF115');copy('AG115');cache('AG117','AA6',read('AA6'));
+  copy('AF115');copy('AG115');cache('AG117','LEFT(AA6,3)',String(read('AA6')||'').slice(0,3),'integer');
   // Calculate school days from the exported date headers instead of the
   // old editable AQ9 field. Blank holidays and unused slots never count.
-  if(personalCopy)set('AJ117',null);else cache('AJ117','COUNT(G10:AE10)',data.dates.length);
-  for(const r of [119,121,123,125,127,128,130,132,134,136])for(const c of ['AK','AL','AM'])copy(c+r);
+  if(personalCopy){
+    // Keep the existing summary geometry: only four indicators, in the
+    // original rows and columns. No added sheet, rows, columns or merges.
+    set('AH117','Scheduled days:');
+    set('AJ117',data.subjectScheduledDays??0);
+    set('AK117','Subject Attendance Summary');
+    const labels={119:'Enrolled learners',121:'Present',123:'Absent',125:'Attendance percentage'};
+    for(const [row,label] of Object.entries(labels))set('AE'+row,label);
+    // Clear all unused official-statistics labels and values, retaining their
+    // existing cells, borders, spacing and original merged ranges.
+    for(const row of [127,128,130,132,134,136]){
+      set('AE'+row,null);
+      for(const c of ['AK','AL','AM'])set(c+row,null);
+    }
+    const stats=learners=>{
+      const all=learners.flatMap(learner=>data.dates.map((_,d)=>learner.subjectDays?.[d]||learner.days[d]));
+      const present=all.filter(x=>x==='PRESENT'||x==='LATE').length;
+      const absent=all.filter(x=>x==='SUBJECT_ABSENT').length;
+      const excused=all.filter(x=>x==='EXCUSED').length;
+      const recorded=present+absent+excused;
+      return {119:learners.length,121:present,123:absent,125:recorded?present/recorded:''};
+    };
+    const groupStats=groups.map(stats),totalStats=stats(groups.flat());
+    const excusedCount=(start,end)=>'COUNTIF(AU'+start+':BS'+end+',"E")';
+    for(let g=0;g<2;g++){
+      const c=g?'AL':'AK',start=g?64:13,end=start+49;
+      const formulas={119:'COUNTA(B'+start+':B'+end+')',121:'SUM(AG'+start+':AG'+end+')',123:'SUM(AF'+start+':AF'+end+')',125:'IFERROR('+c+'121/('+c+'121+'+c+'123+'+excusedCount(start,end)+'),"")'};
+      for(const row of Object.keys(labels))cache(c+row,formulas[row],groupStats[g][row],Number(row)===125?'percent':'integer');
+    }
+    for(const row of Object.keys(labels)){
+      const formula=row==='125'?'IFERROR(AM121/(AM121+AM123+'+excusedCount(13,62)+'+'+excusedCount(64,113)+'),"")':'AK'+row+'+AL'+row;
+      cache('AM'+row,formula,totalStats[row],row==='125'?'percent':'integer');
+    }
+  }else{
+    cache('AJ117','COUNT(G10:AE10)',data.dates.length);
+    for(const r of [119,121,123,125,127,128,130,132,134,136])for(const c of ['AK','AL','AM'])copy(c+r);
+  }
   // Original style geometry is immutable. Add a single hard-stop gradient for
   // verified late arrivals and clone only the original grid styles that use it.
   // No inferred cutting-class or half-day absence marking is introduced.
@@ -115,6 +164,7 @@ async function renderMasterWorkbook({calculated,data,month,personalCopy=false,sc
   if(originals.length!==Number(xfBlock[1]))throw Error('Invalid SF2 master style count');
   const lateFill=Number(fillBlock[1]);
   const lateStyles=new Map();
+  const numberStyles=new Map();
   const styleForLate=id=>{
     if(lateStyles.has(id))return lateStyles.get(id).id;
     const base=originals[id];
@@ -122,8 +172,20 @@ async function renderMasterWorkbook({calculated,data,month,personalCopy=false,sc
     let xf=base.replace(/\bfillId="\d+"/,'fillId="'+lateFill+'"');
     if(/\bapplyFill="/.test(xf))xf=xf.replace(/\bapplyFill="[^"]*"/,'applyFill="1"');
     else xf=xf.replace(/<xf\b/,'<xf applyFill="1"');
-    const next=originals.length+lateStyles.size;
+    const next=originals.length+lateStyles.size+numberStyles.size;
     lateStyles.set(id,{id:next,xf});
+    return next;
+  };
+  const styleForNumber=(id,format)=>{
+    const key=id+':'+format;
+    if(numberStyles.has(key))return numberStyles.get(key).id;
+    const base=originals[id];
+    if(!base)throw Error('Missing SF2 summary style '+id);
+    let xf=base.replace(/\bnumFmtId="\d+"/,'numFmtId="'+(format==='percent'?10:0)+'"');
+    if(/\bapplyNumberFormat="/.test(xf))xf=xf.replace(/\bapplyNumberFormat="[^"]*"/,'applyNumberFormat="1"');
+    else xf=xf.replace(/<xf\b/,'<xf applyNumberFormat="1"');
+    const next=originals.length+lateStyles.size+numberStyles.size;
+    numberStyles.set(key,{id:next,xf});
     return next;
   };
   // Exact template cells only: preserve original style indices and all unrelated elements.
@@ -132,11 +194,11 @@ async function renderMasterWorkbook({calculated,data,month,personalCopy=false,sc
     if(!patch)return whole;
     changes.delete(address);
     let a=attrs.replace(/\s+t="[^"]*"/g,'');
-    if(patch.shade){
+    if(patch.shade||patch.format){
       const m=a.match(/\bs="(\d+)"/);
       if(!m)throw new Error('Missing original grid style '+address);
       const id=Number(m[1]);
-      a=a.replace(/\bs="\d+"/,'s="'+(patch.shade==='late'?styleForLate(id):id+STYLE_OFFSET)+'"');
+      a=a.replace(/\bs="\d+"/,'s="'+(patch.format?styleForNumber(id,patch.format):patch.shade==='late'?styleForLate(id):id+STYLE_OFFSET)+'"');
     }
     const v=encode(patch.value);
     return '<c'+a+(v.type?' t="'+v.type+'"':'')+'>'+v.body+'</c>';
@@ -168,7 +230,10 @@ async function renderMasterWorkbook({calculated,data,month,personalCopy=false,sc
   if(lateStyles.size){
     const gradient='<fill><gradientFill degree="90"><stop position="0"><color rgb="FF000000"/></stop><stop position="0.499"><color rgb="FF000000"/></stop><stop position="0.5"><color rgb="FFFFFFFF"/></stop><stop position="1"><color rgb="FFFFFFFF"/></stop></gradientFill></fill>';
     styles=styles.replace(fillBlock[0],()=>'<fills count="'+(lateFill+1)+'">'+fillBlock[2]+gradient+'</fills>');
-    styles=styles.replace(xfBlock[0],()=>'<cellXfs count="'+(originals.length+lateStyles.size)+'">'+xfBlock[2]+[...lateStyles.values()].map(x=>x.xf).join('')+'</cellXfs>');
+  }
+  const extraStyles=[...lateStyles.values(),...numberStyles.values()].sort((a,b)=>a.id-b.id);
+  if(extraStyles.length){
+    styles=styles.replace(xfBlock[0],()=>'<cellXfs count="'+(originals.length+extraStyles.length)+'">'+xfBlock[2]+extraStyles.map(x=>x.xf).join('')+'</cellXfs>');
     zip.file(styleFile,styles);
   }
   zip.file(file,sheet);
