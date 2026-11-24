@@ -57,5 +57,49 @@ async function setup(page,name,body,attrs='',classes='portal-page'){
    await contained(page,'.section-toolbar > button','.section-toolbar');
    console.log(name+' representative form containment passed');
   }
+
+  // Exercise the real shared dialog component, including native top-layer nesting,
+  // focus, dirty dismissal, validation, actual computed colors and narrow layouts.
+  const luminance=rgb=>{
+   const n=rgb.match(/[\d.]+/g).slice(0,3).map(Number).map(c=>{c/=255;return c<=.04045?c/12.92:((c+.055)/1.055)**2.4;});
+   return .2126*n[0]+.7152*n[1]+.0722*n[2];
+  };
+  const contrast=(a,b)=>{const x=luminance(a),y=luminance(b);return (Math.max(x,y)+.05)/(Math.min(x,y)+.05);};
+  for(const theme of ['light','dark']){
+   for(const width of [320,390,768,1280]){
+    await page.setViewportSize({width,height:width<700?540:900});
+    await setup(page,'portal.html','<button id="origin">Open review</button><dialog id="underlying"><button id="nested">Nested review</button></dialog>','data-ui-theme="'+theme+'"');
+    await page.addScriptTag({content:read('app-dialog.js')});
+    await page.evaluate(()=>{document.querySelector('#underlying').showModal();document.querySelector('#nested').focus();window.pendingDialog=window.AppDialog.prompt('A detailed review reason is required. Original records remain unchanged.','',{title:'Review attendance correction',inputType:'textarea',required:true,confirmText:'Save review'});});
+    const panel=page.locator('.app-dialog-card');
+    await panel.waitFor({state:'visible'});
+    assert.equal(await page.locator('dialog.app-dialog-overlay').evaluate(d=>d.matches(':modal')),true);
+    await contained(page,'.app-dialog-input','.app-dialog-card');
+    await contained(page,'.app-dialog-actions','.app-dialog-card');
+    const colors=await page.evaluate(()=>{
+     const p=document.querySelector('.app-dialog-card'),m=document.querySelector('.app-dialog-message'),b=document.querySelector('.app-dialog-button-primary');
+     return {fg:getComputedStyle(m).color,bg:getComputedStyle(p).backgroundColor,button:getComputedStyle(b).color,buttonBg:getComputedStyle(b).backgroundColor,font:getComputedStyle(m).fontSize};
+    });
+    assert.ok(contrast(colors.fg,colors.bg)>=4.5,theme+' message contrast');
+    assert.ok(contrast(colors.button,colors.buttonBg)>=4.5,theme+' primary button contrast');
+    assert.equal(colors.font,'16px');
+    await page.getByRole('button',{name:'Save review',exact:true}).click();
+    assert.ok(await page.locator('.app-dialog-error').isVisible());
+    await page.locator('.app-dialog-input').fill('Verified sample evidence');
+    await page.getByRole('button',{name:'Close dialog',exact:true}).click();
+    assert.ok(await page.getByRole('button',{name:'Keep editing',exact:true}).isVisible());
+    await page.getByRole('button',{name:'Keep editing',exact:true}).click();
+    assert.equal(await page.locator('.app-dialog-input').inputValue(),'Verified sample evidence');
+    await page.getByRole('button',{name:'Save review',exact:true}).click();
+    assert.equal(await page.evaluate(()=>window.pendingDialog),'Verified sample evidence');
+    assert.equal(await page.locator('#underlying').evaluate(d=>d.open),true);
+    await page.evaluate(()=>{document.querySelector('#underlying').close();window.pendingDialog=window.AppDialog.confirm('Remove this item?',{variant:'danger',confirmText:'Remove item'});});
+    await page.locator('.app-dialog-card').waitFor();
+    await page.waitForFunction(()=>document.activeElement?.textContent==='Cancel');
+    await page.getByRole('button',{name:'Cancel',exact:true}).click();
+    assert.equal(await page.evaluate(()=>window.pendingDialog),false);
+    console.log('Dialog behavior and contrast: '+theme+' '+width+'px passed');
+   }
+  }
  }finally{await browser.close();}
 })().catch(e=>{console.error(e);process.exitCode=1;});
