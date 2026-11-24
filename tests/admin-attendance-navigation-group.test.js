@@ -50,8 +50,12 @@ test('Admin-only desktop density keeps mobile touch sizes and existing workflows
   assert.match(html, /id="school-admin-sidebar-density"/);
   assert.match(html, /@media screen and \(min-width:861px\)/);
   assert.match(html, /data-attendigo-role="SCHOOL_ADMIN"/);
-  assert.match(html, /font-size:13px!important/);
-  assert.match(html, /font-size:12\.5px!important/);
+  const density=html.match(/<style id="school-admin-sidebar-density">([\s\S]*?)<\/style>/)?.[1]||'';
+  assert.match(density,/font-size:var\(--ag-nav-main,17px\)!important/);
+  assert.match(density,/font-size:var\(--ag-nav-child,16px\)!important/);
+  assert.equal((density.match(/min-height:44px!important/g)||[]).length,2);
+  const shared=read('public/attendigo-layout-density.css');
+  assert.match(shared,/--ag-nav-main:17px;--ag-nav-child:16px/);
   assert.match(html, /id="offlineScanReviewsNav" href="\/portal\.html\?view=offlineScanReviews"/);
   assert.match(portal, /\$\('offlineScanReviewsNav'\)\.hidden = !admin/);
 });
