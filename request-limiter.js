@@ -6,7 +6,7 @@
  * cannot grow memory usage indefinitely. Use a shared store if the server is
  * later deployed with multiple workers or instances.
  */
-function createIpRateLimiter({ windowMs, maxRequests, message, maxKeys = 10000 }) {
+function createIpRateLimiter({ windowMs, maxRequests, message, maxKeys = 10000, keyForRequest, countOnlyFailures = false }) {
   if (!Number.isFinite(windowMs) || windowMs < 1 || !Number.isInteger(maxRequests) || maxRequests < 1) {
     throw new TypeError('A positive windowMs and maxRequests are required.');
   }
@@ -16,7 +16,7 @@ function createIpRateLimiter({ windowMs, maxRequests, message, maxKeys = 10000 }
 
   return function ipRateLimit(req, res, next) {
     const now = Date.now();
-    const key = req.ip || req.socket?.remoteAddress || 'unknown';
+    const key = keyForRequest ? keyForRequest(req) : (req.ip || req.socket?.remoteAddress || 'unknown');
     let bucket = buckets.get(key);
 
     if (!bucket || bucket.resetAt <= now) {
@@ -42,7 +42,20 @@ function createIpRateLimiter({ windowMs, maxRequests, message, maxKeys = 10000 }
 
     if (bucket.count > maxRequests) {
       res.setHeader('Retry-After', String(Math.max(1, Math.ceil((bucket.resetAt - now) / 1000))));
+      // Rejected requests do not extend the fixed window or inflate its count.
+      bucket.count -= 1;
       return res.status(429).json({ error: message || 'Too many requests. Please try again later.' });
+    }
+    if (countOnlyFailures) {
+      // Reserve capacity before async password verification, including concurrent
+      // attempts. Release it only when the request finishes without a credential
+      // failure. An aborted request still consumes its reservation.
+      res.once('finish', () => {
+        if (![400, 401, 423].includes(res.statusCode)) {
+          bucket.count = Math.max(0, bucket.count - 1);
+          if (!bucket.count && buckets.get(key) === bucket) buckets.delete(key);
+        }
+      });
     }
     return next();
   };
