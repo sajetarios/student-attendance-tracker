@@ -109,3 +109,16 @@ html[data-theme="dark"] .missing-scan-dialog,
 .missing-scan-dialog .ms-new .ms-create-grid :is(input,select):focus-visible{
  outline-offset:2px;
 }
+
+/* Contextual attendance actions replace duplicate sidebar entries. */
+@media screen{
+ body.portal-page #myGateAttendanceView .ms-attendance-entry{display:flex;justify-content:flex-start;min-width:0;max-width:100%;margin:8px 0 12px}
+ body.portal-page #myGateAttendanceView .ms-attendance-entry .ms-dtr-action{margin:0!important;min-width:0!important;max-width:100%;width:auto;min-height:44px;height:auto;white-space:normal;flex:0 1 auto!important;padding:8px 12px}
+ body.portal-page #form48ReportCard .form48-extra-heading{flex-wrap:wrap;align-items:center}
+ body.portal-page #form48ReportCard #form48MissingScanAudit:not([hidden]){margin-left:auto;min-height:44px;min-width:0!important;max-width:100%;height:auto;flex:0 1 auto!important;white-space:normal;padding:8px 12px}
+ body.portal-page #form48ReportCard #form48MissingScanAudit[hidden]{display:none!important}
+}
+@media screen and (max-width:580px){
+ body.portal-page #myGateAttendanceView .ms-attendance-entry .ms-dtr-action{width:100%}
+ body.portal-page #form48ReportCard #form48MissingScanAudit:not([hidden]){margin-left:0;width:100%;flex:0 0 100%!important}
+}

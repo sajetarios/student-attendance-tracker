@@ -26,9 +26,9 @@
   dialog.innerHTML='<div class="ms-shell"><header class="ms-header"><div><small>ATTENDANCE MANAGEMENT</small>'+
    '<h2>Missing Scan Requests</h2><p>Document forgotten AM/PM scans without changing the original QR or gate history.</p></div>'+
    '<button type="button" class="ms-close" aria-label="Close">✕</button></header>'+
-   (isHead||isAdmin?'<nav class="ms-tabs" aria-label="Missing scan request views">'+
+   (isHead?'<nav class="ms-tabs" aria-label="Missing scan request views">'+
    '<button type="button" data-ms-tab="mine">My requests</button>'+
-   (isHead||isAdmin?'<button type="button" data-ms-tab="inbox">'+(isHead?'Department review':'School audit & policy')+'</button>':'')+
+   '<button type="button" data-ms-tab="inbox">Department review</button>'+
    '</nav>':'')+'<div class="ms-message" role="status" aria-live="polite"></div>'+
    '<div class="ms-policy" hidden></div><div class="ms-content"></div></div>';
   document.body.append(dialog);
@@ -42,21 +42,27 @@
    if(!host)return;
    const button=document.createElement('button');button.type='button';button.className='nav-item';button.id=id;
    button.innerHTML='<span class="nav-icon" aria-hidden="true">◷</span><span class="nav-label">'+esc(label)+'</span>';
-   button.addEventListener('click',()=>open(view));
+   button.title=label;
+   button.addEventListener('click',()=>{const backdrop=$('sidebarBackdrop');if(backdrop?.classList.contains('visible'))backdrop.click();void open(view);});
    host.append(button);host.closest('.nav-group')?.removeAttribute('hidden');
   }
-  nav('missingScanMyNav','Missing Scan Requests',isAdmin?'attendanceManagement':'personalAttendance','mine');
-  if(isHead)nav('missingScanHeadNav','Department Scan Reviews','operations','inbox');
-  if(isAdmin)nav('missingScanAdminNav','Missing Scan Audit & Policy','attendanceManagement','inbox');
+  // Personal requests live inside My Attendance; department review remains in Requests & Approvals.
+  if(isHead)nav('missingScanHeadNav','Missing Scan Reviews','operations','inbox');
+  if(isAdmin){
+   nav('missingScanPolicyNav','Attendance Settings','settings','policy');
+   const auditLink=$('form48MissingScanAudit');
+   if(auditLink){auditLink.hidden=false;auditLink.addEventListener('click',()=>open('inbox'));}
+  }
   if(isPrincipal)$('principalMissingScanReview')?.addEventListener('click',()=>open('inbox'));
   // Discoverable from the existing personal DTR; no new dashboard page.
   const myDtr=$('myGateAttendanceView');
   if(myDtr){
    const action=document.createElement('button');action.type='button';
-   action.className='outline-button ms-dtr-action';action.textContent='Report a missing AM/PM scan';
-   action.addEventListener('click',()=>open('mine'));
-   const head=myDtr.querySelector('.section-toolbar');
-   (head||myDtr).append(action);
+   action.className='outline-button ms-dtr-action';action.textContent='Missing scan requests';
+   action.id='myAttendanceMissingScans';action.addEventListener('click',()=>open('mine'));
+   const history=myDtr.querySelector('.my-gate-history-heading');
+   const actions=document.createElement('div');actions.className='ms-attendance-entry';actions.append(action);
+   if(history)history.before(actions);else myDtr.append(actions);
   }
   dialog.querySelector('.ms-close').addEventListener('click',()=>dialog.close());
   dialog.addEventListener('click',event=>{if(event.target===dialog)dialog.close();});
@@ -66,7 +72,7 @@
   async function open(view,requestId){
    if(busy)return false;
    focusedId=requestId?String(requestId):null;
-   tab=isPrincipal||(view==='inbox'&&(isAdmin||isHead))?'inbox':'mine';
+   tab=isAdmin&&view==='policy'&&!focusedId?'policy':isPrincipal||(view==='inbox'&&(isAdmin||isHead))?'inbox':'mine';
    messageSet('');
    if(!dialog.open)dialog.showModal();
    try{await load();}catch(e){messageSet(e.message,true);content.textContent='Unable to open this request. Close and reopen the notification to retry.';}
@@ -134,7 +140,8 @@
   async function load(){
    const revision=++loadRevision,id=focusedId;
    content.textContent='Loading missing-scan records…';policyArea.hidden=true;
-   const [result,settings]=await Promise.all([api(id?'/requests/'+encodeURIComponent(id):'/requests?view='+tab),api('/policy')]);
+   const policyOnly=isAdmin&&tab==='policy'&&!id;
+   const [result,settings]=await Promise.all([policyOnly?Promise.resolve({}):api(id?'/requests/'+encodeURIComponent(id):'/requests?view='+tab),api('/policy')]);
    if(revision!==loadRevision)return;
    if(id){
     if(!result.request||String(result.request.requestId)!==id||!['mine','inbox'].includes(result.view))throw Error('The requested record could not be verified.');
@@ -142,7 +149,9 @@
    }
    dialog.querySelectorAll('[data-ms-tab]').forEach(b=>b.classList.toggle('active',b.dataset.msTab===tab));
    mode=settings.mode||'DOCUMENT_EXCEPTION';
-   if(isAdmin&&tab==='inbox'&&!id){
+   const heading=dialog.querySelector('.ms-header h2');
+   heading.textContent=policyOnly?'Attendance Settings':tab==='mine'?'My Missing Scan Requests':isAdmin?'Missing Scan Audit':'Missing Scan Reviews';
+   if(policyOnly){
     policyArea.hidden=false;
     policyArea.innerHTML='<label><strong>School DTR policy</strong> (confirm applicable SDO procedure)'+
      '<select id="msPolicySelect"><option value="DOCUMENT_EXCEPTION">Documented exception · keep missing slot blank</option>'+
@@ -156,6 +165,8 @@
      try{const saved=await api('/policy',{method:'POST',data:{mode:next}});mode=saved.mode;messageSet('School correction policy saved.');await load();}
      catch(e){messageSet(e.message,true);}
     });
+    content.innerHTML='<p class="ms-muted">These settings control how authorized missing-scan reviews affect official Form 48 records. Working hours and signatories remain in Form 48.</p>';
+    return;
    }
    const rows=id?[result.request]:(result.requests||[]);
    content.innerHTML=(id?'<div class="ms-actions"><button type="button" class="outline-button" id="msBackToList">Back to all requests</button></div>':tab==='mine'?renderForm():'')+

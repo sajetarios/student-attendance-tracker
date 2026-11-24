@@ -64,13 +64,13 @@ test('missing scan UI only offers unrecorded slots and keeps role review boundar
  assert.match(ui,/slotSelect\.value=suggestion/,'a suggestion must not replace claimed time');
  assert.match(ui,/slotSelect\.disabled=!available\.length/,'do not offer duplicate or recorded DTR slots');
  assert.doesNotMatch(ui,/claimedTime\.value\s*=/,'never fabricate the actual time');
- assert.match(ui,/isHead\|\|isAdmin\?'<nav/,'single-tab teacher navigation is hidden');
+ assert.match(ui,/isHead\?'<nav/,'only Department Head needs review tabs');
  assert.match(css,/ms-grid :is\(input,select,textarea\)/,'date and select controls must fit');
  assert.match(css,/ms-slot-status/);
  assert.match(css,/data-ui-theme="dark"/,'modal must honor portal dark mode');
  assert.match(mobile,/Portal-wide action and input containment/);
  for(const name of ['missing-scan-ui.js','missing-scan-ui.css'])
-  assert.ok(portal.includes(name+(name.endsWith('.js')?'?v=7':'?v=3')),name+' must be refreshed');
+  assert.ok(portal.includes(name+(name.endsWith('.js')?'?v=8':'?v=4')),name+' must be refreshed');
  assert.ok(portal.includes('mobile-overflow-repair.css?v=2'));
  assert.ok(Number(sw.match(/attendigo-v(\d+)-/)?.[1])>=331,'PWA cache must include the new UI assets');
 });
@@ -99,5 +99,19 @@ test('all signed-in portals contain form controls and missing scan fields cannot
  assert.match(modal,/grid-column:1 \/ -1!important/);
  assert.match(modal,/\.ms-create-grid select\{/);
  assert.match(sw,/attendigo-form-overlap-guard\.css\?v=\d+/);
- assert.match(sw,/missing-scan-ui\.css\?v=3/);
+ assert.match(sw,/missing-scan-ui\.css\?v=4/);
+});
+
+test('missing scan shortcuts are contextual, with one department review and admin settings entry',()=>{
+ const ui=read('missing-scan-ui.js'),html=read('portal.html'),css=read('missing-scan-ui.css');
+ assert.doesNotMatch(ui,/nav\('missingScanMyNav'|nav\('missingScanAdminNav'/);
+ assert.match(ui,/if\(isHead\)nav\('missingScanHeadNav','Missing Scan Reviews','operations','inbox'\)/);
+ assert.match(ui,/nav\('missingScanPolicyNav','Attendance Settings','settings','policy'\)/);
+ assert.match(ui,/if\(isAdmin\)\{[\s\S]*?auditLink\.addEventListener\('click',\(\)=>open\('inbox'\)\)/);
+ assert.match(ui,/myAttendanceMissingScans/);
+ assert.match(ui,/history\.before\(actions\)/);
+ assert.match(ui,/policyOnly\?Promise\.resolve\(\{\}\):api/);
+ assert.match(ui,/if\(policyOnly\)\{/);
+ assert.match(html,/id="form48MissingScanAudit"[^>]*hidden/);
+ assert.match(css,/#form48MissingScanAudit\[hidden\]\{display:none!important\}/);
 });
