@@ -327,7 +327,7 @@
   },
   {
     "id": "sf2",
-    "title": "Preview, generate or monitor SF2",
+    "title": "Prepare SF2 or review subject attendance",
     "roles": [
       "TEACHER",
       "DEPARTMENT_HEAD"
@@ -343,12 +343,12 @@
       "print sf2"
     ],
     "steps": [
-      "Open Reports → SF2 Attendance Report (teacher) or SF2 Monitoring (Department Head). Select Reporting month, Grade level and Section, then Preview attendance.",
-      "Only assigned Class Advisers may confirm justified full-day absences and, when unresolved learner-days are cleared, generate or submit the official monthly SF2.",
-      "Subject Teachers can Generate personal copy from their subject records. NR is not absence; a personal copy is not an official submission.",
-      "Department Heads monitor departmental reports and official submissions with read-only privileges."
+      "Open Reports → SF2 Attendance Report (teacher) or SF2 Monitoring (Department Head). Select month, grade and section. Select your report type before previewing.",
+      "Only assigned Class Advisers may confirm full-day absences with a documented evidence review. Clear unresolved learner-days before submitting the supporting SF2 preparation worksheet for school verification against the LIS-issued SF2.",
+      "Subject Teachers select one assigned subject and download its Subject Attendance Report. X means confirmed absence in that subject; gray means unrecorded, not absent. Subject attendance does not establish whole-day absence.",
+      "Department Heads monitor departmental attendance preparation and submissions with read-only privileges."
     ],
-    "note": "SF2 uses class-attendance evidence, not staff gate scans. The current screen says holidays/suspensions are not yet connected to its SF2 calendar."
+    "note": "Daily preparation uses class/advisory evidence, not gate scans alone. The school calendar excludes full-day closures and suspensions. Use the LIS-issued SF2 for official submission."
   },
   {
     "id": "schedule",
@@ -655,10 +655,10 @@
           'Ask School Admin to change operating days, school-wide templates or calendar settings.'],
         note:'Teaching timetables and school configuration have different permissions.'};
     if (r === 'DEPARTMENT_HEAD' && /submit official sf2|submit sf2/.test(q))
-      return {title:'Only Class Advisers submit official SF2',
+      return {title:'Only Class Advisers submit daily attendance preparation',
         steps:['Department Heads use Reports → SF2 Monitoring to review department submission status.',
-          'The assigned Class Adviser reviews and submits the official monthly section SF2.'],
-        note:'Department monitoring cannot submit an adviser’s official report.'};
+          'The assigned Class Adviser reconciles daily attendance and submits the supporting worksheet for school review against the LIS-issued SF2.'],
+        note:'Department monitoring cannot submit the adviser’s preparation worksheet.'};
     return null;
   }
   function match(question, role) {

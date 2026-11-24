@@ -14,6 +14,13 @@ const MONTHS = ['JANUARY','FEBRUARY','MARCH','APRIL','MAY','JUNE','JULY','AUGUST
 const validMonth = value => /^\d{4}-(0[1-9]|1[0-2])$/.test(value || '');
 const safePart = value => String(value || '').replace(/[^a-z0-9_-]/gi, '_').slice(0, 80) || 'section';
 
+// A subject can span several recurring period IDs; an unnamed period must
+// remain isolated, not merged with every other unnamed timetable entry.
+function subjectIdentity(row) {
+  const label=String(row.subjectName||'').trim();
+  return label ? {key:'subject:'+label.toLocaleLowerCase('en-PH'),label}
+    : {key:'period:'+String(row.periodId),label:String(row.periodName||'Unnamed subject / period')};
+}
 function datesFor(month) {
   const [year, monthNumber] = month.split('-').map(Number);
   const last = new Date(Date.UTC(year, monthNumber, 0)).getUTCDate();
@@ -140,7 +147,7 @@ function registerSf2Routes(app, pool, { authenticateSchoolClient, requireSchoolU
     let present;
     if (access.mode === 'PERSONAL') {
       present = await pool.query(
-        `SELECT DISTINCT e.student_id AS id,e.school_date::text AS date,e.late AS late
+        `SELECT DISTINCT e.student_id AS id,e.school_date::text AS date,e.late AS late,e.period_id AS "periodId"
          FROM attendance_events e
          JOIN students s ON s.school_id=e.school_id AND s.student_id=e.student_id
          LEFT JOIN LATERAL (SELECT en.grade_level,en.section FROM student_enrollments en JOIN school_years sy ON sy.school_id=en.school_id AND sy.school_year_id=en.school_year_id WHERE en.school_id=s.school_id AND en.student_id=s.student_id AND sy.status='ACTIVE' AND en.enrollment_status='ENROLLED' ORDER BY en.created_at DESC LIMIT 1) active_enrollment ON TRUE
@@ -206,7 +213,7 @@ function registerSf2Routes(app, pool, { authenticateSchoolClient, requireSchoolU
     // Detect QR Present vs Manual Absent for the SAME class period only.
     // A learner absent in one subject but present in another is not a contradiction.
     const periodQrConflicts = await pool.query(
-      `SELECT DISTINCT m.student_id AS id, m.school_date::text AS date
+      `SELECT DISTINCT m.student_id AS id, m.school_date::text AS date,m.period_id AS "periodId"
        FROM manual_attendance_marks m
        JOIN class_periods p ON p.school_id=m.school_id AND p.period_id=m.period_id
        JOIN attendance_events e ON e.school_id=m.school_id
@@ -269,9 +276,11 @@ function registerSf2Routes(app, pool, { authenticateSchoolClient, requireSchoolU
     const subjectSchedule = new Map();
     const uncertainSchedule = new Set(calendar.rows.filter(row=>['OPEN','SPECIAL_CLASS','SHORTENED_DAY'].includes(row.type)).map(row=>row.date));
     const suspensionByDate = new Map(calendar.rows.filter(row=>row.suspensionTime).map(row=>[row.date,row.suspensionTime]));
+    let selectedSubject=null;
+    let subjectChoices=[];
     if (access.mode === 'PERSONAL') {
       const schedule = await pool.query(
-        `SELECT DISTINCT d.day::date::text AS date,p.period_id AS "periodId",
+        `SELECT DISTINCT d.day::date::text AS date,p.period_id AS "periodId",p.subject_name AS "subjectName",p.period_name AS "periodName",
                  to_char(p.start_time,'HH24:MI') AS "startTime",
                  EXISTS (SELECT 1 FROM class_period_days pd
                    WHERE pd.school_id=p.school_id AND pd.period_id=p.period_id) AS "hasWeekdays",
@@ -291,13 +300,33 @@ function registerSf2Routes(app, pool, { authenticateSchoolClient, requireSchoolU
                      AND d.day::date BETWEEN ts.start_date AND ts.end_date))`,
         [req.auth.schoolId,gradeLevel,section,dateFrom,req.auth.userId]
       );
+      const subjects=new Map(schedule.rows.map(row=>{const subject=subjectIdentity(row);return [subject.key,subject];}));
+      subjectChoices=[...subjects.values()].sort((a,b)=>a.label.localeCompare(b.label));
+      const requested=String(req.query?.subject||'').trim();
+      if(requested&&!subjects.has(requested)){
+        const error=new Error('Select an assigned subject for this section and reporting month.');error.status=403;throw error;
+      }
+      if(!requested&&subjects.size>1){
+        const error=new Error('Select one subject before previewing or exporting its attendance.');error.status=400;throw error;
+      }
+      selectedSubject=subjects.get(requested)||subjectChoices[0]||null;
+      const eligibleByDate=new Map();
       for (const row of schedule.rows) {
+        if(!selectedSubject||subjectIdentity(row).key!==selectedSubject.key)continue;
+        if(!eligibleByDate.has(row.date))eligibleByDate.set(row.date,new Set());
+        eligibleByDate.get(row.date).add(String(row.periodId));
         if (!subjectSchedule.has(row.date)) subjectSchedule.set(row.date,new Set());
         if (!row.hasWeekdays) uncertainSchedule.add(row.date);
         const suspendedAt=suspensionByDate.get(row.date);
         if (suspendedAt && !row.startTime) uncertainSchedule.add(row.date);
         if (row.scheduled && (!suspendedAt || !row.startTime || row.startTime<suspendedAt)) subjectSchedule.get(row.date).add(String(row.periodId));
       }
+      // Scope ALL sources, including conflicts, to the chosen subject's
+      // effective assigned/substitute periods. Never borrow another subject.
+      const eligible=record=>eligibleByDate.get(String(record.date).slice(0,10))?.has(String(record.periodId));
+      present.rows=present.rows.filter(eligible);
+      manual.rows=manual.rows.filter(eligible);
+      periodQrConflicts.rows=periodQrConflicts.rows.filter(eligible);
     }
     const reportDates = new Set(datesFor(month));
     if (access.mode === 'PERSONAL') {
@@ -388,16 +417,18 @@ function registerSf2Routes(app, pool, { authenticateSchoolClient, requireSchoolU
 
     return {
       dates,
+      ...(access.mode==='PERSONAL'?{subject:selectedSubject,subjectChoices}:{}),
       calendarSuspensions:{fullDays:[...noClassDates],partialDays:[...partialSuspensionDates]},
       students: rows,
       summary: {
         manualPresentDays: new Set([...manualPresentSet]).size,
         qrPresentDays: new Set([...qrPresentSet]).size,
-        present: rows.reduce((count, row) => count + row.days.filter(status => status === 'PRESENT').length, 0),
-        absent: rows.reduce((count, row) => count + row.days.filter(status => status === 'ABSENT').length, 0),
+        present: rows.reduce((count, row) => count + (access.mode==='PERSONAL'?row.subjectDays:row.days).filter(status => ['PRESENT','LATE'].includes(status)).length, 0),
+        absent: rows.reduce((count, row) => count + (access.mode==='PERSONAL'?row.subjectDays:row.days).filter(status => ['ABSENT','SUBJECT_ABSENT'].includes(status)).length, 0),
         pending: rows.reduce((count, row) => count + row.days.filter(status => status === 'PENDING').length, 0),
         conflicts: rows.reduce((count, row) => count + row.days.filter(status => status === 'CONFLICT').length, 0),
-        noRecord: rows.reduce((count, row) => count + row.days.filter(status => status === 'NO_RECORD').length, 0),
+        noRecord: rows.reduce((count, row) => count + (access.mode==='PERSONAL'?row.subjectDays:row.days).filter(status => status === 'NO_RECORD').length, 0),
+        ...(access.mode==='PERSONAL'?{excused:rows.reduce((n,row)=>n+row.subjectDays.filter(x=>x==='EXCUSED').length,0),late:rows.reduce((n,row)=>n+row.subjectDays.filter(x=>x==='LATE').length,0),noClass:rows.reduce((n,row)=>n+row.subjectDays.filter(x=>x==='NO_CLASS').length,0)}:{}),
         missingSex: rows.filter(row => !['MALE', 'FEMALE'].includes(String(row.sex || '').toUpperCase())).length
       }
     };
@@ -594,6 +625,29 @@ function registerSf2Routes(app, pool, { authenticateSchoolClient, requireSchoolU
     return { access, data };
   }
 
+  app.get('/api/sf2/subjects', authenticateSchoolClient, requireSchoolUser, async (req,res)=>{
+    try{
+      await migration;
+      const {month,gradeLevel,section}=req.query;
+      if(!validMonth(month)||!gradeLevel||!section)return res.status(400).json({error:'Select month, grade and section.'});
+      const access=await getSectionAccess(req,gradeLevel,section,'PERSONAL');
+      if(!access.allowed||access.mode!=='PERSONAL')return res.status(403).json({error:'Subject attendance is available only for your assigned classes.'});
+      const assigned=await pool.query(
+        `SELECT DISTINCT p.period_id AS "periodId",p.subject_name AS "subjectName",p.period_name AS "periodName"
+         FROM class_periods p
+         WHERE p.school_id=$1 AND p.grade_level=$2 AND p.section=$3
+          AND (p.active=TRUE OR p.effective_to IS NOT NULL)
+          AND (p.effective_from IS NULL OR p.effective_from < ($4::date + INTERVAL '1 month'))
+          AND (p.effective_to IS NULL OR p.effective_to >= $4::date)
+          AND (EXISTS(SELECT 1 FROM teacher_period_assignments a WHERE a.school_id=p.school_id AND a.period_id=p.period_id AND a.teacher_user_id=$5)
+            OR EXISTS(SELECT 1 FROM teacher_period_substitutions ts WHERE ts.school_id=p.school_id AND ts.period_id=p.period_id AND ts.substitute_teacher_user_id=$5 AND ts.status='ACTIVE'
+              AND ts.start_date < ($4::date + INTERVAL '1 month') AND ts.end_date >= $4::date))`,
+        [req.auth.schoolId,gradeLevel,section,month+'-01',req.auth.userId]);
+      const choices=new Map(assigned.rows.map(row=>{const subject=subjectIdentity(row);return [subject.key,subject];}));
+      return res.json({subjects:[...choices.values()].sort((a,b)=>a.label.localeCompare(b.label))});
+    }catch(err){console.error('SF2 subject options',err);return res.status(500).json({error:'Could not load assigned subjects.'});}
+  });
+
   app.get('/api/sf2/options', authenticateSchoolClient, requireSchoolUser, async (req, res) => {
     try {
       await migration;
@@ -683,8 +737,8 @@ function registerSf2Routes(app, pool, { authenticateSchoolClient, requireSchoolU
         canConfirmAbsence: Boolean(access.canConfirmAbsence),
         canSubmit: Boolean(access.canSubmit),
         note: access.mode === 'PERSONAL'
-          ? 'Personal subject-teacher copy: NR means this teacher has no accepted subject time-in record for that learner/date. NR is not an absence.'
-          : 'Official daily SF2 view: accepted QR time-ins and teacher-confirmed manual Present/Late marks count as presence. Manual Absent/Excused marks do not independently establish whole-day absence. Conflicts require adviser review.',
+          ? 'Subject Attendance Report: only the selected subject is included. X means confirmed subject absence; gray means incomplete or unrecorded evidence, not absence.'
+          : 'SF2 Preparation and Reconciliation: verify daily records against the school’s LIS-issued SF2. Accepted class/advisory check-ins and manual Present/Late establish presence; a subject absence does not establish whole-day absence. Conflicts require adviser review.',
         calendarNote: 'School calendar closures and full-day learner suspensions are excluded from reportable weekdays. Mid-day suspensions retain morning attendance and require Class Adviser review.'
       });
     } catch (err) {
@@ -710,7 +764,7 @@ function registerSf2Routes(app, pool, { authenticateSchoolClient, requireSchoolU
       );
       if (!student.rowCount) return res.status(404).json({ error: 'Learner not found.' });
       const access = await getSectionAccess(req, student.rows[0].gradeLevel, student.rows[0].section);
-      if (!access.allowed || !access.canConfirmAbsence) return res.status(403).json({ error: 'Only the School Administrator or assigned Class Adviser may confirm a daily SF2 absence.' });
+      if (!access.allowed || !access.canConfirmAbsence) return res.status(403).json({ error: 'Only the assigned Class Adviser may confirm a daily SF2 absence.' });
       const hasPresent = await pool.query(
         `SELECT 1 FROM attendance_events WHERE school_id=$1 AND student_id=$2 AND school_date=$3
            AND attendance_scope IN ('CLASS','ADVISORY') AND event_type='TIME_IN'
@@ -729,7 +783,8 @@ function registerSf2Routes(app, pool, { authenticateSchoolClient, requireSchoolU
        return res.status(409).json({error:'This was a non-class date or a full-day learner suspension. A normal SF2 absence cannot be confirmed for this date.'});
       if(calendar.rows[0]?.exception_type==='CLASS_SUSPENSION'&&String(note||'').trim().length<12)
        return res.status(409).json({error:'A mid-day suspension requires a documented Class Adviser review of classes held before the cutoff (at least 12 characters).'});
-      const savedNote = String(note || 'Class Adviser/Admin confirmed that all scheduled subject attendance was reviewed.').slice(0, 500);
+      const savedNote=String(note||'').trim().slice(0,500);
+      if(savedNote.length<12)return res.status(400).json({error:'Document the evidence confirming full-day absence (at least 12 characters). A single subject absence or missing scan is insufficient.'});
       await pool.query(
         `INSERT INTO sf2_daily_overrides(school_id,student_id,school_date,status,absence_type,note,recorded_by_user_id)
          VALUES($1,$2,$3,'ABSENT',$4,$5,$6)
@@ -755,7 +810,7 @@ function registerSf2Routes(app, pool, { authenticateSchoolClient, requireSchoolU
       );
       if (!student.rowCount) return res.status(404).json({ error: 'Learner not found.' });
       const access = await getSectionAccess(req, student.rows[0].gradeLevel, student.rows[0].section);
-      if (!access.allowed || !access.canConfirmAbsence) return res.status(403).json({ error: 'Only the School Administrator or assigned Class Adviser may remove an absence confirmation.' });
+      if (!access.allowed || !access.canConfirmAbsence) return res.status(403).json({ error: 'Only the assigned Class Adviser may remove an absence confirmation.' });
       await pool.query('DELETE FROM sf2_daily_overrides WHERE school_id=$1 AND student_id=$2 AND school_date=$3', [req.auth.schoolId, studentId, date]);
       return res.json({ ok: true });
     } catch (err) {
@@ -774,10 +829,10 @@ function registerSf2Routes(app, pool, { authenticateSchoolClient, requireSchoolU
       let filename;
       if (access.mode === 'PERSONAL') {
         buffer = await buildPersonalCopyWorkbook(req, month, gradeLevel, section, data);
-        filename = `SF2-Personal-Copy-${safePart(gradeLevel)}-${safePart(section)}-${month}.xlsx`;
+        filename = `Subject-Attendance-${safePart(data.subject?.label||'subject')}-${safePart(gradeLevel)}-${safePart(section)}-${month}.xlsx`;
       } else {
         buffer = await buildOfficialWorkbook(req, month, gradeLevel, section, data);
-        filename = `SF2-${safePart(gradeLevel)}-${safePart(section)}-${month}.xlsx`;
+        filename = `SF2-Preparation-${safePart(gradeLevel)}-${safePart(section)}-${month}.xlsx`;
       }
       res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
       res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
@@ -804,7 +859,7 @@ function registerSf2Routes(app, pool, { authenticateSchoolClient, requireSchoolU
       const { access, data } = await getAccessAndData(req, month, gradeLevel, section, 'OFFICIAL');
       if (!access.canSubmit || access.mode !== 'OFFICIAL') return res.status(403).json({ error: 'This section is not assigned to you as Class Adviser.' });
       const buffer = await buildOfficialWorkbook(req, month, gradeLevel, section, data);
-      const safeFilename = `SF2-${safePart(gradeLevel)}-${safePart(section)}-${month}`;
+      const safeFilename = `SF2-Preparation-${safePart(gradeLevel)}-${safePart(section)}-${month}`;
       if (!Buffer.isBuffer(buffer) || buffer.length === 0 || buffer.length > MAX_OFFICIAL_SF2_BYTES)
         return res.status(413).json({error:'The official SF2 file is empty or exceeds the 8 MB submission limit.'});
       const fileSha256 = crypto.createHash('sha256').update(buffer).digest('hex');

@@ -18,10 +18,10 @@ function weekdays(month) {
   return Array.from({length:new Date(Date.UTC(year,m,0)).getUTCDate()},(_,i)=>new Date(Date.UTC(year,m-1,i+1)))
     .filter(d=>![0,6].includes(d.getUTCDay())).map(d=>d.toISOString().slice(0,10));
 }
-async function exportFixture({personal=true,month='2026-01',pending=false,conflict=false}={}) {
+async function exportFixture({personal=true,month='2026-01',pending=false,conflict=false,multiSubject=false,subject='',preview=false,subjectOptions=false}={}) {
   const dates=weekdays(month), closed=dates[0], days=dates.slice(1);
   const [a,b,c,d,e,f,g,h,i]=days;
-  const qr=personal ? [{id:'A',date:a,late:false},{id:'B',date:a,late:false},{id:'A',date:g,late:false}]
+  const qr=personal ? [{id:'A',date:a,late:false,periodId:'p1'},{id:'B',date:a,late:false,periodId:'p1'},{id:'A',date:g,late:false,periodId:'p1'}]
     : days.map(date=>({id:'A',date}));
   const manual=personal ? [
     {id:'A',date:a,status:'PRESENT',periodId:'p1'},
@@ -30,19 +30,33 @@ async function exportFixture({personal=true,month='2026-01',pending=false,confli
     {id:'A',date:e,status:'EXCUSED',periodId:'p1'},
     {id:'A',date:g,status:'ABSENT',periodId:'p1'}
   ] : [{id:'B',date:a,status:'PRESENT',periodId:'p1'}];
-  const schedule=dates.map(date=>({date,periodId:'p1',scheduled:date!==c,hasWeekdays:date!==i,startTime:date===h?'11:00':'08:00'}));
+  const schedule=dates.map(date=>({date,periodId:'p1',subjectName:'Advance English',scheduled:date!==c,hasWeekdays:date!==i,startTime:date===h?'11:00':'08:00'}));
+  if(multiSubject){
+    for(const date of dates){
+      schedule.push({date,periodId:'p2',subjectName:'English 8',scheduled:true,hasWeekdays:true,startTime:'09:00'});
+      schedule.push({date,periodId:'p3',subjectName:'Journalism 8',scheduled:true,hasWeekdays:true,startTime:'10:00'});
+    }
+    // The learner absent in Advance English attends English 8 that day.
+    // Neither the unrelated positive mark nor unrelated conflict can change
+    // Advance English's explicit absence.
+    manual.push({id:'A',date:d,status:'PRESENT',periodId:'p2'});
+    qr.push({id:'A',date:d,late:false,periodId:'p2'});
+    manual.push({id:'A',date:d,status:'ABSENT',periodId:'p3'});
+    qr.push({id:'A',date:d,late:false,periodId:'p3'});
+  }
   const overrides=personal ? [] : days.slice(1).filter((_,idx)=>!pending||idx!==0).map(date=>({id:'B',date,absenceType:'UNEXCUSED'}));
   const pool={query:async (sql)=>{
     if(sql.includes('ALTER TABLE students')) return result([]);
     if(sql.includes('SELECT 1') && sql.includes('UNION ALL') && sql.includes('teacher_period_assignments')) return result([{}]);
     if(sql.includes('SELECT s.student_id AS id,s.full_name')) return result(learners);
-    if(sql.includes('SELECT DISTINCT m.student_id') && sql.includes('JOIN attendance_events')) return result(personal||conflict?[{id:'A',date:g}]:[]);
+    if(sql.includes('SELECT DISTINCT m.student_id') && sql.includes('JOIN attendance_events')) return result(personal||conflict?[{id:'A',date:g,periodId:'p1'},...(multiSubject?[{id:'A',date:d,periodId:'p3'}]:[])]:[]);
     if(sql.includes('FROM manual_attendance_marks m')) return result(manual);
     if(sql.includes('SELECT DISTINCT e.student_id AS id') && sql.includes('FROM attendance_events')) return result(qr);
     if(sql.includes('FROM sf2_daily_overrides o')) return result(overrides);
     if(sql.includes('COUNT(DISTINCT e.school_date)')) return result([{id:'A',count:2,lateDates:[a,b]}]);
     if(sql.includes('FROM school_calendar_exceptions')) return result([{date:closed,type:'CLOSED'},{date:h,type:'CLASS_SUSPENSION',suspensionTime:'10:00'}]);
     if(sql.includes('FROM generate_series') && sql.includes('class_period_days')) return result(schedule);
+    if(sql.includes('SELECT DISTINCT p.period_id AS "periodId"')) return result(schedule.filter(x=>x.date===dates[0]));
     if(sql.includes("SELECT 'ADVISER' AS kind"))return result([{kind:'ADVISER',name:'TEST ADVISER'},{kind:'HEAD',name:'TEST HEAD'}]);
     if(sql.includes('SELECT school_name,school_code FROM schools')) return result([{school_name:'TEST SCHOOL',school_code:'123456'}]);
     if(sql.includes('FROM school_settings')) return result([{setting_key:'school_name',setting_value:'TEST SCHOOL'}]);
@@ -56,9 +70,10 @@ async function exportFixture({personal=true,month='2026-01',pending=false,confli
   for(const method of ['get','post','put','delete','patch']) app[method]=(url,...handlers)=>{routes[method+url]=handlers.at(-1);};
   const noop=()=>{};
   registerSf2Routes(app,pool,{authenticateSchoolClient:noop,requireSchoolUser:noop,requireSchoolAdmin:noop,requireSchoolAdminOrDepartmentHead:noop});
-  const req={query:{month,gradeLevel:'9',section:'TEST',mode:personal?'PERSONAL':'OFFICIAL'},auth:{schoolId:'school-fixture',userId:'teacher-fixture',role:personal?'TEACHER':'SCHOOL_ADMIN',teacherDesignations:['SUBJECT_TEACHER']}};
+  const req={query:{month,gradeLevel:'9',section:'TEST',mode:personal?'PERSONAL':'OFFICIAL',subject},auth:{schoolId:'school-fixture',userId:'teacher-fixture',role:personal?'TEACHER':'SCHOOL_ADMIN',teacherDesignations:['SUBJECT_TEACHER']}};
   const res={code:200,headers:{},setHeader(k,v){this.headers[k]=v;},status(n){this.code=n;return this;},json(v){this.body=v;return this;},end(v){this.bytes=v;return this;}};
-  await routes['get/api/sf2/export'](req,res);
+  await routes[subjectOptions?'get/api/sf2/subjects':preview?'get/api/sf2/preview':'get/api/sf2/export'](req,res);
+  if(preview||subjectOptions)return {res,days};
   if(res.code!==200) return {res,days};
   const workbook=new ExcelJS.Workbook();
   await workbook.xlsx.load(res.bytes);
@@ -110,7 +125,8 @@ test('actual subject XLSX removes diagonal borders, distinguishes daily evidence
   assert.equal(workbook.worksheets.length,1);
   assert.equal(sheet.getRow(14).hidden,true);
   assert.equal(sheet.getRow(64).hidden,false);
-  assert.match(String(sheet.getCell('A3').value),/UNOFFICIAL/);
+  assert.match(String(sheet.getCell('A3').value),/UNOFFICIAL.*Advance English/);
+  assert.equal(sheet.getCell('A2').value,'Subject Attendance Report');
   assert.match(String(sheet.getCell('T118').value),/not absent/);
 });
 test('future subject dates have no attendance symbols or totals',async()=>{
@@ -146,6 +162,9 @@ test('actual official XLSX follows reference geometry, preserves daily marks, gr
   assert.equal(value(sheet.getCell('AF64')),days.length-1);
   assert.equal(value(sheet.getCell('AG64')),1);
   assert.equal(sheet.getCell('BT13').value,2);
+  assert.equal(sheet.getCell('AH13').value,'Tardy: 2');
+  assert.equal(sheet.getCell('A2').value,'SF2 Preparation Worksheet');
+  assert.match(String(sheet.getCell('A3').value),/LIS-issued SF2/);
   assert.equal(sheet.getColumn('BT').hidden,true);
   assert.equal(sheet.getCell('AE140').value,'TEST ADVISER');
   assert.equal(sheet.getCell('AE145').value,'TEST HEAD');
@@ -170,4 +189,30 @@ test('official export still blocks unresolved days and conflicting same-period e
   assert.equal(pending.res.code,409);
   const conflict=await exportFixture({personal:false,conflict:true});
   assert.equal(conflict.res.code,409);
+});
+
+test('three assigned subjects: explicit selection, isolated evidence, and correct XLSX absence',async()=>{
+  const unselected=await exportFixture({multiSubject:true});
+  assert.equal(unselected.res.code,400);
+  const foreign=await exportFixture({multiSubject:true,subject:'subject:not assigned'});
+  assert.equal(foreign.res.code,403);
+  const choices=await exportFixture({multiSubject:true,subjectOptions:true});
+  assert.equal(choices.res.code,200);
+  assert.deepEqual(choices.res.body.subjects.map(x=>x.label),['Advance English','English 8','Journalism 8']);
+  const subject='subject:advance english';
+  const report=await exportFixture({multiSubject:true,subject,preview:true});
+  assert.equal(report.res.code,200);
+  assert.equal(report.res.body.subject.label,'Advance English');
+  assert.equal(report.res.body.students[0].subjectDays[3],'SUBJECT_ABSENT');
+  assert.equal(report.res.body.summary.absent,1);
+  const exported=await exportFixture({multiSubject:true,subject});
+  assert.equal(exported.res.code,200,JSON.stringify(exported.res.body));
+  assert.equal(dayCell(exported.sheet,exported.days,13,3).value,'X');
+  assert.equal(value(exported.sheet.getCell('AF13')),1);
+  const other=await exportFixture({multiSubject:true,subject:'subject:english 8',preview:true});
+  assert.equal(other.res.body.students[0].subjectDays[3],'PRESENT');
+  assert.equal(other.res.body.summary.absent,0);
+  const conflicted=await exportFixture({multiSubject:true,subject:'subject:journalism 8',preview:true});
+  assert.equal(conflicted.res.body.students[0].subjectDays[3],'CONFLICT');
+  assert.equal(conflicted.res.body.summary.absent,0);
 });
