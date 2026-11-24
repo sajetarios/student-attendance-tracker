@@ -3,8 +3,36 @@
  const panel=document.getElementById('trustedCampusSettings'),form=document.getElementById('trustedCampusForm'),status=document.getElementById('trustedCampusStatus'),list=document.getElementById('trustedCampusList');
  if(!panel||!form||!status||!list)return;
  const base='/api/staff-attendance/lunch';
+ const gps=document.getElementById('trustedCampusGps'),gpsStatus=document.getElementById('trustedCampusGpsStatus'),slider=document.getElementById('trustedCampusRadiusSlider'),scale=document.getElementById('trustedCampusPreviewScale'),circle=document.getElementById('trustedCampusCircle'),line=document.getElementById('trustedCampusRadiusLine'),radiusText=document.getElementById('trustedCampusRadiusText'),map=document.getElementById('trustedCampusMapLink');
+ const radius=form.elements.radiusMeters,lat=form.elements.latitude,lon=form.elements.longitude,attested=form.elements.attested;
+ function resetAttestation(){attested.checked=false;}
+ function updatePreview(autoScale=true){
+  const meters=Number(radius.value),valid=Number.isInteger(meters)&&meters>=100&&meters<=5000;
+  if(valid&&slider)slider.value=String(meters);
+  if(valid&&autoScale&&scale&&meters>Number(scale.value))scale.value=meters<=1000?'1000':'5000';
+  const max=Number(scale?.value||5000),r=valid?Math.min(70,70*meters/max):0;
+  circle?.setAttribute('r',String(r));line?.setAttribute('d','M160 77H'+(160+r));
+  if(radiusText)radiusText.textContent=valid?meters.toLocaleString()+' m radius · '+(meters>max?'boundary exceeds scale':max.toLocaleString()+' m scale'):'Enter 100–5,000 m';
+  const validCenter=lat.value.trim()!==''&&lon.value.trim()!==''&&lat.validity.valid&&lon.validity.valid;
+  if(map){map.hidden=!validCenter;if(validCenter){const a=Number(lat.value),b=Number(lon.value);map.href='https://www.openstreetmap.org/?mlat='+encodeURIComponent(a)+'&mlon='+encodeURIComponent(b)+'#map=17/'+encodeURIComponent(a)+'/'+encodeURIComponent(b);}else map.removeAttribute('href');}
+ }
+ form.addEventListener('input',event=>{if(event.target!==attested&&event.target!==scale){resetAttestation();updatePreview();}});
+ slider?.addEventListener('input',()=>{radius.value=slider.value;resetAttestation();updatePreview();});
+ scale?.addEventListener('change',()=>updatePreview(false));
+ gps?.addEventListener('click',async()=>{
+  gps.disabled=true;gpsStatus.textContent='Collecting GPS. Allow precise location if asked.';
+  try{
+   if(!window.attendigoPreciseLocation)throw Error('GPS unavailable. Enter verified coordinates manually.');
+   const position=await window.attendigoPreciseLocation.collectPreciseLocation({onProgress:q=>gpsStatus.textContent='GPS accuracy about '+q.accuracyMeters+' m ('+q.sampleCount+' readings)…'});
+   if(!Number.isFinite(position.latitude)||!Number.isFinite(position.longitude)||Math.abs(position.latitude)>90||Math.abs(position.longitude)>180||!Number.isFinite(position.accuracyMeters)||position.accuracyMeters<=0||position.accuracyMeters>70)throw Error('GPS is not precise enough. Try outdoors or enter verified coordinates manually.');
+   lat.value=String(position.latitude);lon.value=String(position.longitude);resetAttestation();updatePreview();
+   gpsStatus.textContent='Center filled (about '+Math.round(position.accuracyMeters)+' m accuracy). Check against the site record before registration.';
+  }catch(e){gpsStatus.textContent=e?.code===1?'Location denied. Enable precise location for this browser, or enter verified coordinates manually.':e?.message||'GPS unavailable. Enter verified coordinates manually.';}
+  finally{gps.disabled=false;}
+ });
+ updatePreview();
  async function request(path='/campuses',body){const r=await fetch(base+path,{credentials:'same-origin',cache:'no-store',...(body?{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)}:{})});const data=await r.json().catch(()=>({}));if(!r.ok)throw Error(data.error||'Request failed.');return data;}
- async function refresh(){const data=await request();list.replaceChildren();for(const campus of data.campuses||[]){const row=document.createElement('p');row.textContent=campus.name+' · '+campus.radiusMeters+' m · '+(campus.active?'Active':'Retired');if(campus.active){const button=document.createElement('button');button.type='button';button.className='quiet-button';button.textContent='Retire campus';button.addEventListener('click',async()=>{if(!window.AppDialog?.prompt){status.textContent='Confirmation dialog unavailable. Refresh first.';return;}const reason=await window.AppDialog.prompt('Retirement stops Lunch QR at linked departments. Gatekeeper remains available.','',{title:'Retire trusted campus',inputType:'textarea',required:true,maxLength:500,confirmText:'Retire campus',variant:'danger',validate:v=>v.trim().length>=10||'Enter at least 10 characters.'});if(!reason||reason.trim().length<10)return;button.disabled=true;try{await request('/campuses/retire',{campusId:campus.campusId,reason});status.textContent='Campus retired. Linked departments must use Gatekeeper until authorized relocation.';await refresh();}catch(e){status.textContent=e.message;button.disabled=false;}});row.append(' ',button);}list.append(row);}}
+ async function refresh(){const data=await request();list.replaceChildren();if(!data.campuses?.length)list.textContent='No trusted campus registered yet.';for(const campus of data.campuses||[]){const row=document.createElement('p');row.textContent=campus.name+' · '+campus.radiusMeters+' m · '+(campus.active?'Active':'Retired');if(campus.active){const button=document.createElement('button');button.type='button';button.className='quiet-button';button.textContent='Retire campus';button.addEventListener('click',async()=>{if(!window.AppDialog?.prompt){status.textContent='Confirmation dialog unavailable. Refresh first.';return;}const reason=await window.AppDialog.prompt('Retirement stops Lunch QR at linked departments. Gatekeeper remains available.','',{title:'Retire trusted campus',inputType:'textarea',required:true,maxLength:500,confirmText:'Retire campus',variant:'danger',validate:v=>v.trim().length>=10||'Enter at least 10 characters.'});if(!reason||reason.trim().length<10)return;button.disabled=true;try{await request('/campuses/retire',{campusId:campus.campusId,reason});status.textContent='Campus retired. Linked departments must use Gatekeeper until authorized relocation.';await refresh();}catch(e){status.textContent=e.message;button.disabled=false;}});row.append(' ',button);}list.append(row);}}
  const relocation=document.getElementById('trustedCampusRelocation');
  async function refreshRelocation(){
   if(!relocation)return;
@@ -21,7 +49,7 @@
   if(!await window.AppDialog.confirm('The current department geofence and QR codes will stop working until the Head captures fresh GPS in the destination campus.',{title:'Authorize exceptional relocation',confirmText:'Authorize relocation',variant:'danger'}))return;
   button.disabled=true;try{const r=await request('/location/relocate',{departmentId:d.get('departmentId'),campusId:d.get('campusId'),reason:d.get('reason'),attested:d.get('attested')==='on'});if(r.status!=='RELOCATION_PENDING')throw Error('Relocation authorization not confirmed.');relocation.reset();status.textContent='Relocation authorized. Gatekeeper remains available until the Head activates the new location.';await refreshRelocation();}catch(e){status.textContent=e.message;}finally{button.disabled=false;}
  });
- form.addEventListener('submit',async event=>{event.preventDefault();const d=new FormData(form),button=form.querySelector('button[type=submit]');button.disabled=true;try{await request('/campuses',{name:d.get('name'),latitude:Number(d.get('latitude')),longitude:Number(d.get('longitude')),radiusMeters:Number(d.get('radiusMeters')),evidenceReference:d.get('evidenceReference'),attested:d.get('attested')==='on'});form.reset();status.textContent='Trusted campus registered. Heads can configure locations within it.';await Promise.all([refresh(),refreshRelocation()]);}catch(e){status.textContent=e.message;}finally{button.disabled=false;}});
+ form.addEventListener('submit',async event=>{event.preventDefault();const d=new FormData(form),button=form.querySelector('button[type=submit]');button.disabled=true;try{await request('/campuses',{name:d.get('name'),latitude:Number(d.get('latitude')),longitude:Number(d.get('longitude')),radiusMeters:Number(d.get('radiusMeters')),evidenceReference:d.get('evidenceReference'),attested:d.get('attested')==='on'});form.reset();updatePreview();if(gpsStatus)gpsStatus.textContent='';status.textContent='Trusted campus registered. Heads can configure locations within it.';await Promise.all([refresh(),refreshRelocation()]);}catch(e){status.textContent=e.message;}finally{button.disabled=false;}});
 })();
 
 (()=>{
