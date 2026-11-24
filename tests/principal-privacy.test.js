@@ -25,5 +25,5 @@ test('Principal leadership APIs and HTML reject all non-Principal roles',()=>{
  assert.match(server,/app\.get\('\/principal\.html', authenticateSchoolClient, requireSchoolRoles\('PRINCIPAL'\)/);
  assert.match(server,/app\.get\('\/admin-sdo-coordination\.html', authenticateSchoolClient, requireSchoolRoles\('SCHOOL_ADMIN'\)/);
  assert.match(read('public/principal-dashboard.js'),/data\.user\?\.role!=='PRINCIPAL'/);
- assert.match(read('public/sw.js'),/\/principal\.html", "\/admin-sdo-coordination\.html"/);
+ assert.match(read('public/sw.js'),/\/principal\.html", "\/school-memos\.html", "\/admin-sdo-coordination\.html"/);
 });

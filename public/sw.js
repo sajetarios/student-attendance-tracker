@@ -1,4 +1,4 @@
-const CACHE = "attendigo-v352-principal-privacy";
+const CACHE = "attendigo-v353-principal-privacy";
 
 const SHELL = [
   "/typography.css?v=1",
@@ -238,7 +238,7 @@ self.addEventListener("fetch", event => {
   }
 
   // Authenticated dashboards are never served from the offline shell cache.
-  if (["/portal.html", "/class-qr-monitor.html", "/principal.html", "/admin-sdo-coordination.html", "/school-memos.html", "/student-portal.html", "/parent-portal.html",
+  if (["/portal.html", "/class-qr-monitor.html", "/principal.html", "/school-memos.html", "/admin-sdo-coordination.html", "/student-portal.html", "/parent-portal.html",
        "/force-password-change.html", "/attendance-pin.html", "/class-qr-checkin.html", "/staff-lunch-checkin.html"].includes(url.pathname)) {
     event.respondWith(fetch(request, { cache: "no-store" }).catch(async error=>{
       if(url.pathname==='/student-portal.html')return (await caches.match('/student-qr-offline.html'))||Response.error();
