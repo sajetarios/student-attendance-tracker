@@ -118,5 +118,37 @@ async function setup(page,name,body,attrs='',classes='portal-page'){
     console.log('Dialog behavior and contrast: '+theme+' '+width+'px passed');
    }
   }
+
+  // Exercise the actual campus form and script with synthetic GPS and registry responses.
+  for(const width of [320,390,768,1280]){
+   await page.setViewportSize({width,height:900});
+   const html=read('principal.html'), start=html.indexOf('<details class="surface" id="trustedCampusSettings">'), end=html.indexOf('   <div class="section-heading">',start);
+   assert.ok(start>=0&&end>start,'campus panel fixture found');
+   await setup(page,'principal.html',html.slice(start,end),'','');
+   await page.addStyleTag({content:read('campus-location-ui.css')});
+   await page.evaluate(()=>{
+    window.fetch=async()=>({ok:true,json:async()=>({campuses:[],departments:[]})});
+    window.attendigoPreciseLocation={collectPreciseLocation:async()=>({latitude:7.1,longitude:125.6,accuracyMeters:12})};
+   });
+   await page.addScriptTag({content:read('principal-trusted-campus.js')});
+   await page.locator('#trustedCampusSettings > summary').click();
+   await page.getByText('Register a campus',{exact:true}).click();
+   await page.locator('#trustedCampusGps').click();
+   assert.equal(await page.locator('#trustedCampusForm input[name=latitude]').inputValue(),'7.1');
+   assert.equal(await page.locator('#trustedCampusForm input[name=longitude]').inputValue(),'125.6');
+   assert.equal(await page.locator('#trustedCampusForm input[name=attested]').isChecked(),false);
+   await page.locator('#trustedCampusForm input[name=attested]').check();
+   await page.locator('#trustedCampusForm input[name=radiusMeters]').fill('500');
+   assert.equal(await page.locator('#trustedCampusForm input[name=attested]').isChecked(),false);
+   assert.equal(await page.locator('#trustedCampusRadiusSlider').inputValue(),'500');
+   assert.ok((await page.locator('#trustedCampusRadiusText').textContent()).includes('500 m radius'));
+   assert.ok(await page.locator('#trustedCampusMapLink').isVisible());
+   const checkbox=await box(page,'#trustedCampusForm input[name=attested]');
+   assert.ok(checkbox.width>=20&&checkbox.width<=26,'checkbox must remain compact');
+   await contained(page,'#trustedCampusGps','#trustedCampusForm');
+   await contained(page,'#trustedCampusForm input[name=radiusMeters]','#trustedCampusForm');
+   await contained(page,'.campus-preview','#trustedCampusForm');
+   console.log('Campus GPS, radius, attestation and mobile geometry: '+width+'px passed');
+  }
  }finally{await browser.close();}
 })().catch(e=>{console.error(e);process.exitCode=1;});

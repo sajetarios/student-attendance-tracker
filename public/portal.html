@@ -1870,9 +1870,10 @@ body.dark-mode .content-wrap > .school-heading.is-compact,body[data-theme="dark"
                   <p>Capture the location where your department displays its lunch attendance QR. Attendigo activates the location after on-site GPS validation.</p></div>
                 <span id="staffLunchHeadDepartment" class="field-hint">My department</span>
               </div>
-              <label for="staffLunchHeadCampus">Trusted campus</label><select id="staffLunchHeadCampus"><option value="">Existing trusted department area (if configured)</option></select>
-              <label for="staffLunchHeadRadius">Scanning radius (60–250 m)</label><input id="staffLunchHeadRadius" type="number" min="60" max="250" step="1" value="120">
-              <button id="staffLunchHeadSubmit" type="button" class="primary-button">Activate my department's location</button>
+              <div class="campus-current-location"><strong id="staffLunchHeadLocationState">Checking location…</strong><p id="staffLunchHeadCurrentDetails">Loading saved location details.</p><button id="staffLunchHeadLocationRefresh" type="button" class="outline-button">Refresh current location</button></div>
+              <div class="campus-head-fields"><label for="staffLunchHeadCampus">Trusted campus</label><select id="staffLunchHeadCampus"><option value="">Select an authorized campus</option></select>
+              <label for="staffLunchHeadRadius">Scanning radius (60–250 m)</label><input id="staffLunchHeadRadius" type="number" min="60" max="250" step="1" value="120" inputmode="numeric"></div>
+              <button id="staffLunchHeadSubmit" type="button" class="primary-button" disabled>Activate department location</button>
               <p id="staffLunchHeadStatus" class="staff-lunch-status" role="status" aria-live="polite">Checking department location…</p>
               <p class="attendance-summary-note">Be physically at your department and allow precise location. Changes revoke existing QR codes and are audited. GPS is location evidence, not independent institutional authorization.</p>
             </section>
@@ -2501,7 +2502,8 @@ body.dark-mode .content-wrap > .school-heading.is-compact,body[data-theme="dark"
   <script src="/schedule-list-filters.js?v=1" defer></script>
   <script src="/staff-lunch-ui.js?v=9" defer></script>
   <script src="/staff-precise-location.js?v=1" defer></script>
-  <script src="/staff-department-location.js?v=7" defer></script>
+  <script src="/staff-department-location.js?v=8" defer></script>
+  <link rel="stylesheet" href="/campus-location-ui.css?v=1">
 
   <script src="/staff-ob-ui.js?v=6" defer></script>
   <script src="/department-workspace.js?v=6" defer></script>

@@ -1,0 +1,22 @@
+/* Guided campus location controls: scoped to the two existing attendance panels. */
+#trustedCampusSettings,#staffLunchHeadLocationCard{min-width:0;overflow-wrap:anywhere}
+#trustedCampusSettings .campus-help{font-size:15px;line-height:1.5}
+#trustedCampusSettings .campus-subsection{border:1px solid var(--border,#cbd5e1);border-radius:12px;padding:12px;margin-top:12px;min-width:0}
+#trustedCampusSettings .campus-subsection summary{cursor:pointer;padding:8px 0;min-height:44px}
+#trustedCampusSettings .principal-sdo-form{box-shadow:none;margin-top:10px}
+#trustedCampusSettings .principal-sdo-form label{font-size:16px;line-height:1.4}
+#trustedCampusSettings .principal-sdo-form :is(input,textarea,select){font-size:16px;box-sizing:border-box}
+#trustedCampusSettings .campus-attestation{display:grid!important;grid-template-columns:24px minmax(0,1fr);align-items:start;gap:10px}
+#trustedCampusSettings .campus-attestation input[type=checkbox]{width:22px!important;height:22px!important;min-width:22px!important;max-width:22px!important;min-height:22px!important;padding:0!important;margin:2px 0 0!important;appearance:auto;accent-color:#2463a5}
+#trustedCampusSettings input[type=range]{min-height:44px;padding:0;accent-color:#2463a5}
+#trustedCampusSettings .campus-instructions p,#trustedCampusSettings #trustedCampusGpsStatus{margin:4px 0;line-height:1.5}
+#trustedCampusSettings .campus-preview{border:1px solid var(--border,#cbd5e1);border-radius:10px;padding:10px;min-width:0}
+#trustedCampusSettings .campus-preview svg{display:block;width:100%;height:auto;max-height:220px}
+#trustedCampusSettings .campus-preview a:not([hidden]){display:inline-flex;align-items:center;min-height:44px;text-decoration:underline}
+#trustedCampusSettings .campus-preview [hidden]{display:none!important}
+#trustedCampusSettings button,#staffLunchHeadLocationCard button{min-height:44px;max-width:100%;white-space:normal;overflow-wrap:anywhere}
+#staffLunchHeadLocationCard .campus-current-location{border:1px solid var(--border,#cbd5e1);border-radius:12px;padding:12px;margin:10px 0;display:grid;gap:8px}
+#staffLunchHeadLocationCard .campus-current-location p{margin:0}
+#staffLunchHeadLocationCard .campus-head-fields{display:grid;grid-template-columns:minmax(0,1fr);gap:8px;margin:12px 0}
+#staffLunchHeadLocationCard .campus-head-fields :is(input,select){display:block;width:100%;min-width:0;max-width:100%;box-sizing:border-box;font-size:16px;min-height:44px}
+@media(max-width:560px){#trustedCampusSettings .campus-subsection{padding:8px}#trustedCampusSettings .principal-sdo-form{padding:10px}#trustedCampusSettings button,#staffLunchHeadLocationCard button{width:100%}}
