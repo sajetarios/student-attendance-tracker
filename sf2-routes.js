@@ -530,9 +530,27 @@ function registerSf2Routes(app, pool, { authenticateSchoolClient, requireSchoolU
     };
 
     const summary = personalCopy ? null : await getMonthlySf2Summary(req, month, gradeLevel, section, data);
+    // Printed names are role-scoped, never copied from the reference school.
+    // If there is no unique active signer, leave the name blank for verification.
+    // This does not sign or attest the workbook on anyone's behalf.
+    const signers = personalCopy ? {rows:[]} : await pool.query(
+      `SELECT 'ADVISER' AS kind,su.display_name AS name
+       FROM class_adviser_assignments ca JOIN school_users su
+         ON su.school_id=ca.school_id AND su.user_id=ca.adviser_user_id
+       WHERE ca.school_id=$1 AND LOWER(BTRIM(ca.grade_level))=LOWER(BTRIM($2))
+         AND UPPER(BTRIM(ca.section))=UPPER(BTRIM($3)) AND su.active=TRUE AND su.role='TEACHER'
+       UNION ALL
+       SELECT 'HEAD' AS kind,su.display_name AS name FROM school_users su
+       WHERE su.school_id=$1 AND su.role='PRINCIPAL' AND su.active=TRUE`,
+      [req.auth.schoolId,gradeLevel,section]
+    );
+    const signer = kind => {
+      const matches = signers.rows.filter(row=>row.kind===kind);
+      return matches.length===1 ? String(matches[0].name||'').trim() : '';
+    };
     const output = createReferenceWorkbook({source, data, summary, monthName:MONTHS[monthNumber-1],
       schoolName:setting('school_name') || 'SCHOOL NAME', schoolId:setting('school_id') || String(req.auth.schoolId),
-      schoolYear:setting('school_year') || `${year}-${year+1}`, gradeLevel, section, personalCopy});
+      schoolYear:setting('school_year') || `${year}-${year+1}`, gradeLevel, section, personalCopy, adviserName:signer('ADVISER'), schoolHeadName:signer('HEAD')});
     return Buffer.from(await output.xlsx.writeBuffer());
   }
 
