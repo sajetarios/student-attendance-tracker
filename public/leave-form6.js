@@ -6,6 +6,25 @@
  const token=sessionStorage.getItem('schoolAttendance.accessToken')||
   (()=>{try{return window.opener?.sessionStorage?.getItem('schoolAttendance.accessToken')||'';}catch{return '';}})();
  const showError=s=>{put('status',s);};
+ const enablePrint=()=>{const print=$('print');if(print){print.disabled=false;$('print').addEventListener('click',()=>window.print());}};
+ async function branding(){
+  try{
+   const response=await fetch('/api/school/document-branding',{credentials:'same-origin',headers:token?{Authorization:'Bearer '+token}:{},cache:'no-store'});
+   if(!response.ok)return false;
+   const b=(await response.json()).branding;if(!b)return false;
+   for(const [id,value] of [['school',b.schoolName],['formRegion',b.region],['formDivision',b.division],['formAddress',b.address],['formSchoolId',b.officialSchoolId?'School ID: '+b.officialSchoolId:'']])put(id,value);
+   const safe=v=>typeof v==='string'&&/^data:image\/(?:png|jpeg|webp);base64,[A-Za-z0-9+/=]+$/.test(v)?v:null;
+   const agency=safe(b.agencyLogo),school=safe(b.schoolLogo);let left=null,right=null;
+   if(b.layout==='AUTO')left=agency||school;
+   if(b.layout==='DUAL'){left=agency||school;right=agency&&school?school:null;}
+   if(b.layout==='AGENCY')left=agency;if(b.layout==='SCHOOL')left=school;
+   await Promise.all([['formLogoLeft',left],['formLogoRight',right]].map(async([id,src])=>{
+    const img=$(id);if(!img)return;img.hidden=true;if(!src)return;
+    try{img.src=src;if(typeof img.decode==='function')await img.decode();img.hidden=false;}catch{img.hidden=true;}
+   }));
+   return true;
+  }catch{return false;}
+ }
  // The blank worksheet contains no personal data. It is available before
  // filing so employees can inspect the actual Form 6 layout safely.
  if(params.get('template')==='1'){
@@ -24,7 +43,8 @@
   put('commutation','☐ Requested / ☐ Not Requested');
   put('officialName','Authorized approving official and signature required');
   put('status','Blank CSC Form No. 6 worksheet — no application submitted. Complete and verify through your school HR office.');
-  $('print')?.addEventListener('click',()=>window.print());
+  await branding();
+  enablePrint();
   return;
  }
  if(!/^[a-f0-9-]{36}$/i.test(id)){showError('Open a saved application from Leave Management.');return;}
@@ -79,7 +99,8 @@
   else if(r.status==='REJECTED')put('disapproval','Disapproved'+(r.externalReference?' · '+r.externalReference:'')+'.');
   else if(r.status==='CANCELLED')put('officialName','Application cancelled.');
   else put('officialName','Authorization pending. Not approved.');
-  put('status','Prefill loaded. Check all unverified fields before filing.');
-  $('print').addEventListener('click',()=>window.print());
+  const branded=await branding();
+  put('status',branded?'Prefill loaded. Check all unverified fields before filing.':'Prefill loaded. School document identity unavailable; verify the header before filing.');
+  enablePrint();
  }catch(e){showError(e.message);}
 })();

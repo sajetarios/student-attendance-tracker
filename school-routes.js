@@ -30,6 +30,7 @@ function registerSchoolRoutes(app, pool, { authenticateSchoolClient, requireScho
 
   const { requireSchoolFeature } = require('./school-feature-guard');
   const canCustomizeBranding = requireSchoolFeature(pool, 'custom_branding');
+  require('./school-document-branding').registerDocumentBranding(app,pool,{authenticateSchoolClient,requireSchoolRoles,canCustomizeBranding,detectLogo});
 
   app.put('/api/school/branding', authenticateSchoolClient, admin, canCustomizeBranding, async (req, res) => {
     const { schoolName, brandColor } = req.body || {};
