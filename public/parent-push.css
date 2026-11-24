@@ -25,3 +25,13 @@
 .parent-push-install-guide li{font-size:14px;line-height:1.6;margin:6px 0;overflow-wrap:anywhere}
 .parent-phone-push [hidden]{display:none!important}
 @media(max-width:700px){.parent-push-steps{grid-template-columns:minmax(0,1fr)}.parent-push-steps li{align-items:center}}
+
+/* Keep the subscribed dashboard compact; details stay accessible on demand. */
+.parent-phone-push[data-compact=true]{padding:12px 16px}
+.parent-phone-push[data-compact=true] .parent-phone-push-head{align-items:center;gap:8px 12px}
+.parent-phone-push[data-compact=true] .parent-phone-push-head h2{font-size:16px;margin:0 0 3px}
+.parent-phone-push[data-compact=true] .parent-phone-push-head p{font-size:13px;margin:0;line-height:1.45}
+.parent-phone-push[data-compact=true] .parent-phone-push-head>div{flex:1 1 220px;min-width:0}
+.parent-push-settings-toggle{min-height:44px;max-width:100%;white-space:normal}
+.parent-phone-push[data-compact=true] .parent-phone-push-badge{display:none}
+@media(max-width:480px){.parent-phone-push[data-compact=true] .parent-push-settings-toggle{flex:1 1 auto}}

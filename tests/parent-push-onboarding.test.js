@@ -10,15 +10,15 @@ const sw=fs.readFileSync('public/sw.js','utf8');
 
 test('parental notification setup is a readable sequence with clear controls',()=>{
  for(const id of ['pushNotifications','pushSetupSteps','pushIosGuide','pushCopyLink',
-   'pushEnable','pushTest','pushDisable','pushStatus','pushStateBadge']){
+   'pushEnable','pushTest','pushDisable','pushStatus','pushStateBadge','pushSettings','pushSettingsToggle','pushSummary']){
    assert.ok(ui.includes('id="'+id+'"'),id+' missing from parent portal');
  }
  assert.match(ui,/Add to Home Screen/);
  assert.match(ui,/Open as Web App/);
  assert.match(ui,/Activate phone alerts/);
  assert.match(ui,/Send another test/);
- assert.match(ui,/\/parent-push\.js\?v=2/);
- assert.match(ui,/\/parent-push\.css\?v=2/);
+ assert.match(ui,/\/parent-push\.js\?v=3/);
+ assert.match(ui,/\/parent-push\.css\?v=3/);
 });
 test('iPhones show required Home Screen instructions before requesting permission',()=>{
  assert.match(script,/isIOS&&!installed\(\)/);
@@ -50,6 +50,17 @@ test('guided setup stays responsive and remains compatible with the light and da
  assert.match(css,/data-state=current/);
  assert.match(css,/@media\(max-width:700px\)/);
  assert.match(css,/var\(--card/);
- assert.match(sw,/attendigo-v330-guided-parent-push-setup/);
+ assert.match(sw,/attendigo-v331-compact-parent-push-settings/);
  assert.match(sw,/\/parent-push\.js/);
+});
+
+test('active subscriptions collapse setup and retain accessible settings; errors reopen details',()=>{
+ assert.match(ui,/id="pushSettingsToggle" aria-expanded="false" aria-controls="pushSettings" hidden/);
+ assert.ok(ui.indexOf('id="pushSettings"')<ui.indexOf('id="pushTest"'));
+ assert.match(script,/settings\.hidden=activeLayout&&!settingsOpen/);
+ assert.match(script,/setActiveLayout\(active\)/);
+ assert.match(script,/if\(active!==activeLayout\)\{settingsOpen=false;activeLayout=active;\}/);
+ assert.match(script,/if\(error&&activeLayout\)\{settingsOpen=true;renderSettings\(\);\}/);
+ assert.match(script,/toggle\.setAttribute\('aria-expanded',String\(activeLayout&&settingsOpen\)\)/);
+ assert.match(css,/\.parent-phone-push\[data-compact=true\]/);
 });

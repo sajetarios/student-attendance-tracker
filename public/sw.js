@@ -1,4 +1,4 @@
-const CACHE = "attendigo-v330-guided-parent-push-setup";
+const CACHE = "attendigo-v331-compact-parent-push-settings";
 
 const SHELL = [
   "/typography.css?v=1",

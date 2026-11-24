@@ -6,12 +6,28 @@
   const enable=$('pushEnable'),disable=$('pushDisable'),test=$('pushTest');
   const status=$('pushStatus'),help=$('pushInstructions'),steps=$('pushSetupSteps');
   const iosGuide=$('pushIosGuide'),link=$('pushCopyLink'),stateBadge=$('pushStateBadge');
+  const settings=$('pushSettings'),toggle=$('pushSettingsToggle'),summary=$('pushSummary');
   const OPT_IN='attendigo.parentPush.consent.v1';
   const isIOS=/iPad|iPhone|iPod/.test(navigator.userAgent) ||
     (navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1);
   const installed=()=>window.matchMedia?.('(display-mode: standalone)')?.matches||navigator.standalone===true;
   const supported=()=>('serviceWorker' in navigator)&&('PushManager' in window)&&('Notification' in window);
   let config=null,working=false,opted=false,syncedThisPage=false;
+  let activeLayout=false,settingsOpen=false;
+  function renderSettings(){
+    if(!settings||!toggle||!summary)return;
+    settings.hidden=activeLayout&&!settingsOpen;
+    toggle.hidden=!activeLayout;
+    toggle.setAttribute('aria-expanded',String(activeLayout&&settingsOpen));
+    toggle.textContent=settingsOpen?'Close settings':'Notification settings';
+    panel.dataset.compact=String(activeLayout&&!settingsOpen);
+    summary.textContent=activeLayout?'Enabled on this device. Confirmed subject attendance alerts can arrive automatically.':'Receive a private alert on your phone after a teacher finalizes a subject attendance record. In-app notifications will continue to work.';
+  }
+  function setActiveLayout(active){
+    if(active!==activeLayout){settingsOpen=false;activeLayout=active;}
+    renderSettings();
+  }
+  if(toggle)toggle.addEventListener('click',()=>{settingsOpen=!settingsOpen;renderSettings();});
   const setOptIn=value=>{
     opted=value;
     try {if(value)localStorage.setItem(OPT_IN,'yes');else localStorage.removeItem(OPT_IN);} catch {}
@@ -19,6 +35,7 @@
   try{opted=localStorage.getItem(OPT_IN)==='yes'}catch{}
   function message(text,{error=false}={}){
     status.textContent=text;status.dataset.error=String(error);
+    if(error&&activeLayout){settingsOpen=true;renderSettings();}
   }
   function state(label){
     if(stateBadge)stateBadge.textContent=label;
@@ -59,6 +76,7 @@
     }
   }
   function controls({allow=false,active=false,install=false}={}){
+    setActiveLayout(active);
     enable.hidden=!allow;
     disable.hidden=!active;
     test.hidden=!active;
@@ -178,6 +196,7 @@
       message('Phone notifications are enabled. Sending your first test…');
       try{
         await sendTest(current);
+        stage(4);
         message('Setup complete. Test sent to your phone! Check the Lock Screen or Notification Center. Future confirmed subject updates will be pushed automatically.');
       }catch(error){
         message('Phone setup succeeded, but the test could not be sent: '+error.message,{error:true});
@@ -216,6 +235,7 @@
       const current=await subscription();
       if(!current)throw Error('Activate phone notifications first.');
       await sendTest(current);
+      stage(4);
       message('The push service accepted your test. Check the Lock Screen or Notification Center.');
     }catch(error){
       message('Test failed: '+error.message,{error:true});
