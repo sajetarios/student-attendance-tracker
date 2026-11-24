@@ -903,16 +903,6 @@ body.dark-mode .content-wrap > .school-heading.is-compact,body[data-theme="dark"
               <div class="table-scroll"><table class="monitoring-table"><thead><tr><th>Teacher</th><th>Event</th><th>Recorded time</th><th>Gate Keeper</th><th>Identity check</th></tr></thead><tbody id="teacherGateAttendanceRows"><tr><td colspan="5" class="empty-cell">Loading teacher gate attendance…</td></tr></tbody></table></div>
               <p class="attendance-summary-note">These are gate time records. They are not yet a complete teacher DTR or class-period punctuality report.</p>
             </section>
-            <section id="staffLunchHeadLocationCard" class="staff-lunch-panel staff-lunch-dept-head-location" hidden>
-              <div class="section-toolbar">
-                <div><h3>Department attendance location</h3>
-                  <p>Capture the location where your department displays its lunch attendance QR. The School Admin must approve it before staff scans can be verified automatically.</p></div>
-                <span id="staffLunchHeadDepartment" class="field-hint">My department</span>
-              </div>
-              <button id="staffLunchHeadSubmit" type="button" class="primary-button">Submit my department's location</button>
-              <p id="staffLunchHeadStatus" class="staff-lunch-status" role="status" aria-live="polite">Checking department location…</p>
-              <p class="attendance-summary-note">Be physically at your department, allow precise location access, and submit for approval. Existing approved locations remain unchanged until approval. No teacher device registration is required.</p>
-            </section>
             <section id="departmentHeadOverview" class="surface-card section-card department-head-overview dh-command-center" hidden>
               <div class="dh-command-intro">
                 <div><span class="dh-eyebrow">DEPARTMENT WORKSPACE</span><h3>Department overview</h3><p>Monitor your teachers, class coverage, and daily priorities in one place.</p></div>
@@ -1860,36 +1850,30 @@ body.dark-mode .content-wrap > .school-heading.is-compact,body[data-theme="dark"
           </section>
 
           <section id="lunchQrAdminView" class="view-panel" hidden>
-            <div class="surface-card section-card"><h3>Lunch QR management</h3><p>Administrative presenter assignments are separate from teacher account access and personal staff attendance. Each assignment applies to the selected lunch DTR entry.</p></div>
+            <div class="surface-card section-card"><h3>Lunch QR management</h3><p>Manage QR availability, authorized presenters, department location, and attendance exceptions for your own department. Official working hours and Form 48 rules remain unchanged.</p></div>
             <section class="staff-lunch-panel" id="staffLunchAdminCard" aria-label="Lunch QR presenter management" hidden>
               <div class="section-toolbar"><div><h3>Lunch QR management — presenter assignments</h3>
-                <p>Authorize multiple teachers within each department for AM Out and PM In. Each teacher displays an independently rotating QR.</p></div>
+                <p>Authorize multiple teachers in your assigned department for AM Out and PM In. Each teacher displays an independently rotating QR.</p></div>
                 <small id="staffLunchAdminDay" class="field-hint"></small></div>
+              <div class="staff-lunch-security-settings"><label><input id="staffLunchEnabled" type="checkbox"> Enable department Lunch QR</label><button id="staffLunchSaveEnabled" type="button" class="primary-button">Save QR availability</button><p>Turning this off does not waive required DTR punches. Gatekeeper scanning remains available.</p></div>
               <div class="staff-lunch-controls">
                 <label>Attendance entry<select id="staffLunchAdminSlot"><option value="AM_OUT">AM Out</option><option value="PM_IN">PM In</option></select></label>
-                <label>Department<select id="staffLunchDepartment"><option value="">All departments</option></select></label>
+                <select id="staffLunchDepartment" aria-label="Assigned department" hidden></select>
                 <label>Teachers <small>Select multiple with Ctrl/Command or Shift</small><select id="staffLunchTeacher" multiple size="5" aria-label="Select one or more teacher presenters"></select></label>
                 <button class="primary-button" type="button" id="staffLunchAssign">Authorize selected teachers</button>
                 <button class="outline-button" type="button" id="staffLunchRevoke" hidden disabled>Revoke presenter</button>
               </div>
-              <div class="staff-lunch-security-settings" aria-label="Department attendance location approvals">
-                <div><strong>Department location approvals</strong>
-                  <p>Department Heads capture their actual on-site location. Review and approve each department remotely; only approved coordinates affect QR verification.</p></div>
-                <div class="staff-lunch-location-actions">
-                  <label for="staffLunchLocationDepartment">Department to review
-                    <select id="staffLunchLocationDepartment" aria-describedby="staffLunchPointStatus">
-                      <option value="">Loading departments…</option>
-                    </select>
-                  </label>
-                </div>
-                <p class="staff-lunch-status" id="staffLunchPointStatus" role="status" aria-live="polite">Choose a department to review its location.</p>
-                <p id="staffLunchLocationReview" class="staff-lunch-proposal-detail" hidden></p>
-                <a id="staffLunchCandidateMap" class="staff-lunch-map-link" href="https://www.google.com/maps" target="_blank" rel="noopener noreferrer" hidden>Inspect submitted point on map</a>
-                <div class="staff-lunch-location-decisions">
-                  <button id="staffLunchApprovePoint" type="button" class="primary-button" disabled>Approve location</button>
-                  <button id="staffLunchRejectPoint" type="button" class="outline-button" disabled>Reject location</button>
-                </div>
+            <section id="staffLunchHeadLocationCard" class="staff-lunch-panel staff-lunch-dept-head-location" hidden>
+              <div class="section-toolbar">
+                <div><h3>Department attendance location</h3>
+                  <p>Capture the location where your department displays its lunch attendance QR. Attendigo activates the location after on-site GPS validation.</p></div>
+                <span id="staffLunchHeadDepartment" class="field-hint">My department</span>
               </div>
+              <label for="staffLunchHeadRadius">Scanning radius (60–250 m)</label><input id="staffLunchHeadRadius" type="number" min="60" max="250" step="1" value="120">
+              <button id="staffLunchHeadSubmit" type="button" class="primary-button">Activate my department's location</button>
+              <p id="staffLunchHeadStatus" class="staff-lunch-status" role="status" aria-live="polite">Checking department location…</p>
+              <p class="attendance-summary-note">Be physically at your department and allow precise location. Changes revoke existing QR codes and are audited. GPS is location evidence, not independent institutional authorization.</p>
+            </section>
               <div class="staff-lunch-security-settings">
                 <div><strong>Lunch scans needing review</strong>
                   <p>Uncertain or delayed scans do not appear in Form 48 until independently verified. Approved leave conflicts remain blocked.</p></div>
@@ -1898,7 +1882,7 @@ body.dark-mode .content-wrap > .school-heading.is-compact,body[data-theme="dark"
               </div>
               <p class="staff-lunch-status" role="status" aria-live="polite" id="staffLunchAdminStatus">Checking presenter assignment…</p>
               <div id="staffLunchAssignedList" class="staff-lunch-assigned-list" role="region" aria-label="Active lunch QR presenters" aria-live="polite"></div>
-              <p class="attendance-summary-note">School Admin controls presenter access and department check-in areas. A valid QR alone does not certify attendance; Gatekeeper scanning remains a supervised fallback.</p>
+              <p class="attendance-summary-note">Your Department Head controls presenter access and department check-in areas. A valid QR alone does not certify attendance; Gatekeeper scanning remains a supervised fallback.</p>
             </section>
           </section>
           <section id="form48ReportsView" class="view-panel" hidden>
@@ -2511,11 +2495,11 @@ body.dark-mode .content-wrap > .school-heading.is-compact,body[data-theme="dark"
   <script src="/student-name-format.js?v=2" defer></script>
   <script src="/teacher-scanner-schedule.js?v=1" defer></script>
   <script src="/gate-offline-review.js?v=1" defer></script>
-  <script src="/portal.js?v=241" defer></script>
+  <script src="/portal.js?v=242" defer></script>
   <script src="/schedule-list-filters.js?v=1" defer></script>
-  <script src="/staff-lunch-ui.js?v=7" defer></script>
+  <script src="/staff-lunch-ui.js?v=8" defer></script>
   <script src="/staff-precise-location.js?v=1" defer></script>
-  <script src="/staff-department-location.js?v=4" defer></script>
+  <script src="/staff-department-location.js?v=5" defer></script>
 
   <script src="/staff-ob-ui.js?v=6" defer></script>
   <script src="/department-workspace.js?v=6" defer></script>

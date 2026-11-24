@@ -48,7 +48,7 @@
    '<div class="staff-location-permission-heading">',
    '<span class="staff-location-permission-symbol" aria-hidden="true">⌖</span>',
    '<div><h2 id="staffLocationPermissionTitle">Enable location access</h2>',
-   '<p id="staffLocationPermissionSummary">Attendigo needs your device location to submit the department QR attendance point for School Admin approval.</p></div></div>',
+   '<p id="staffLocationPermissionSummary">Attendigo needs your device location to activate the department QR attendance point after GPS validation.</p></div></div>',
    '<p id="staffLocationPermissionMessage" class="staff-location-permission-message"></p>',
    '<div id="staffLocationPermissionHelp" class="staff-location-permission-help" hidden>',
    '<label for="staffLocationPermissionDevice">Choose your device or browser</label>',
@@ -125,11 +125,9 @@
    try{
     const info=await request('/api/staff-attendance/lunch/location');
     title.textContent=info.departmentName||title.textContent;
-    const current=info.configured?'Approved attendance location is active.':'No approved attendance location yet.';
-    const review=info.proposalStatus==='PENDING'?' Your latest submission is pending School Admin approval.':
-      info.proposalStatus==='REJECTED'?' Previous proposal was rejected; you may submit a corrected location.':
-      info.proposalStatus==='APPROVED'?' Location proposal was approved.':'';
-    status.textContent=current+review;
+    const current=info.configured?'Attendance location is active.':'No active attendance location yet.';
+    const radius=$('staffLunchHeadRadius');if(radius&&info.radiusMeters)radius.value=String(info.radiusMeters);
+    status.textContent=current+(info.proposalStatus==='PENDING'?' Capture fresh GPS to replace the former pending proposal.':'');
    }catch(error){status.textContent='Unable to load department location: '+error.message;}
   }
   async function submitLocation(){
@@ -149,14 +147,14 @@
     if(!Number.isFinite(position.accuracyMeters)||position.accuracyMeters>70||
        !Array.isArray(position.samples)||position.samples.length<2)
      throw Error('Not enough precise GPS readings to submit. Enable precise location, move near a window and retry.');
-    status.textContent='GPS captured (about '+Math.round(position.accuracyMeters)+' m accuracy). Submitting for School Admin approval…';
+    status.textContent='GPS captured (about '+Math.round(position.accuracyMeters)+' m accuracy). Validating and activating…';
     const result=await request('/api/staff-attendance/lunch/location/propose',{
      method:'POST',
      body:JSON.stringify({departmentId,latitude:position.latitude,
       longitude:position.longitude,accuracyMeters:position.accuracyMeters,
-      samples:position.samples,radiusMeters:120})
+      samples:position.samples,radiusMeters:Number($('staffLunchHeadRadius')?.value||120)})
     });
-    status.textContent=result.message||'Location submitted for School Admin approval. This does not change the approved location yet.';
+    status.textContent=result.message||'Department attendance location is active.';
    }catch(error){
     status.textContent='Location not submitted: '+failure(error);
     if(error?.code===1)openGuide('denied');
@@ -278,6 +276,6 @@
  }
  window.attendigoStaffIdentity?.then(user=>{
   if(user?.role==='DEPARTMENT_HEAD')return initHead(user);
-  if(user?.role==='SCHOOL_ADMIN')return initAdmin();
+  // The former School Admin approval interface is intentionally retired.
  }).catch(()=>{});
 })();

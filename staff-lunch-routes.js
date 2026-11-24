@@ -8,6 +8,17 @@ const LATE_DELIVERY_GRACE_MS=90_000;
 const MIN_ROTATION_MS=20_000;
 const MAX_ACTIVE_QR_MS=60_000;
 const locationKey=departmentId=>'staff_lunch_geo_'+departmentId;
+const configKey=departmentId=>'staff_lunch_config_'+departmentId;
+const ownDepartment=req=>UUID.test(String(req.auth?.departmentId||''))?String(req.auth.departmentId):null;
+async function lockLunchSlots(client,schoolId){
+ for(const slot of ['AM_OUT','PM_IN']) await client.query('SELECT pg_advisory_xact_lock(hashtext($1),hashtext($2))',[String(schoolId),manilaDate()+':'+slot]);
+}
+async function revokeDepartmentCodes(client,schoolId,departmentId){
+ return client.query(`UPDATE staff_attendance_challenges c SET revoked_at=NOW()
+  FROM school_users u WHERE c.school_id=$1 AND u.school_id=c.school_id
+  AND u.user_id=c.presenter_user_id AND u.department_id=$2 AND c.revoked_at IS NULL
+  AND c.expires_at>NOW()-INTERVAL '90 seconds'`,[schoolId,departmentId]);
+}
 
 function manilaDate(now = new Date()) {
  const parts = new Intl.DateTimeFormat('en-CA', { timeZone:'Asia/Manila', year:'numeric',month:'2-digit',day:'2-digit' }).formatToParts(now);
@@ -15,14 +26,16 @@ function manilaDate(now = new Date()) {
  return p.year+'-'+p.month+'-'+p.day;
 }
 function registerStaffLunchRoutes(app,pool,{authenticateSchoolClient,requireSchoolRoles}) {
- const presenter=requireSchoolRoles('SCHOOL_ADMIN','DEPARTMENT_HEAD','TEACHER');
+ const presenter=requireSchoolRoles('TEACHER');
 
- // School Admin may authorize multiple teachers from every department.
+ // Department Heads authorize multiple teachers within their own active department.
  // Each presenter's challenges rotate independently and grants are audited.
  app.get('/api/staff-attendance/lunch/presenter',authenticateSchoolClient,
   requireSchoolRoles('SCHOOL_ADMIN','DEPARTMENT_HEAD','TEACHER'),async(req,res)=>{
   res.set('Cache-Control','no-store, private');
   const date=manilaDate(),slot=String(req.query?.slot||'');
+  const admin=req.auth.role==='SCHOOL_ADMIN',departmentId=ownDepartment(req);
+  if(!admin&&!departmentId)return res.status(403).json({error:'An assigned department is required.'});
   if(!['AM_OUT','PM_IN'].includes(slot))return res.status(400).json({error:'Invalid lunch slot.'});
   try{
    const found=await pool.query(
@@ -32,21 +45,27 @@ function registerStaffLunchRoutes(app,pool,{authenticateSchoolClient,requireScho
      JOIN school_users u ON u.school_id=a.school_id AND u.user_id=a.presenter_user_id
      LEFT JOIN school_departments d ON d.school_id=u.school_id AND d.department_id=u.department_id
      WHERE a.school_id=$1 AND a.school_date=$2::date AND a.dtr_slot=$3
-       AND a.revoked_at IS NULL AND u.active=TRUE ORDER BY d.department_name NULLS LAST,u.display_name`,
-    [req.auth.schoolId,date,slot]);
+       AND a.revoked_at IS NULL AND u.active=TRUE AND d.active=TRUE AND d.department_code<>'UNASSIGNED'
+       AND ($4::uuid IS NULL OR u.department_id=$4::uuid)
+     ORDER BY d.department_name NULLS LAST,u.display_name`,
+    [req.auth.schoolId,date,slot,admin?null:departmentId]);
    const presenters=found.rows||[],row=presenters[0]||null;
-   return res.json({schoolDate:date,slot,assigned:presenters.length>0,
+   const config=departmentId?await pool.query('SELECT setting_value FROM school_settings WHERE school_id=$1 AND setting_key=$2',[req.auth.schoolId,configKey(departmentId)]):null;
+   const enabled=config?.rows[0]?.setting_value?.enabled!==false;
+   return res.json({schoolDate:date,slot,enabled,assigned:enabled&&presenters.length>0,
     presenterName:row?.presenterName||null,
     // Other teachers need to know whether they are the assigned presenter,
     // not the assigned teacher's stable internal ID.
-    isCurrentPresenter:presenters.some(p=>p.presenterUserId===req.auth.userId),
-    ...(req.auth.role==='SCHOOL_ADMIN'?{presenterUserId:row?.presenterUserId||null,presenters}:{}),
+    isCurrentPresenter:enabled&&presenters.some(p=>p.presenterUserId===req.auth.userId),
+    ...(['SCHOOL_ADMIN','DEPARTMENT_HEAD'].includes(req.auth.role)?{presenterUserId:row?.presenterUserId||null,presenters}:{}),
     assignedAt:row?.assignedAt||null});
   }catch(error){console.error('Lunch presenter read failed:',error.message);return res.status(503).json({error:'Presenter unavailable.'});}
  });
  app.put('/api/staff-attendance/lunch/presenter',authenticateSchoolClient,
-  requireSchoolRoles('SCHOOL_ADMIN'),async(req,res)=>{
+  requireSchoolRoles('DEPARTMENT_HEAD'),async(req,res)=>{
   res.set('Cache-Control','no-store, private');
+  const departmentId=ownDepartment(req);
+  if(!departmentId)return res.status(403).json({error:'An assigned department is required.'});
   const slot=String(req.body?.slot||''),presenterId=String(req.body?.presenterUserId||'');
   const date=manilaDate();
   if(!['AM_OUT','PM_IN'].includes(slot)||!/^[0-9a-f]{8}(-[0-9a-f]{4}){3}-[0-9a-f]{12}$/i.test(presenterId))
@@ -60,9 +79,11 @@ function registerStaffLunchRoutes(app,pool,{authenticateSchoolClient,requireScho
     [String(req.auth.schoolId),date+':'+slot]);
    const teacher=await client.query(
     `SELECT user_id,display_name,department_id FROM school_users
-     WHERE school_id=$1 AND user_id=$2 AND role='TEACHER' AND active=TRUE`,
-    [req.auth.schoolId,presenterId]);
-   if(!teacher.rowCount){await client.query('ROLLBACK');return res.status(404).json({error:'Active teacher not found in this school.'});}
+     WHERE school_id=$1 AND user_id=$2 AND role='TEACHER' AND active=TRUE
+      AND department_id=$3 AND EXISTS(SELECT 1 FROM school_departments d WHERE d.school_id=$1 AND d.department_id=$3 AND d.active=TRUE AND d.department_code<>'UNASSIGNED')
+      FOR SHARE`,
+    [req.auth.schoolId,presenterId,departmentId]);
+   if(!teacher.rowCount){await client.query('ROLLBACK');return res.status(404).json({error:'Active teacher not found in your assigned department.'});}
    const current=await client.query(
     `SELECT assignment_id,presenter_user_id FROM staff_lunch_presenter_assignments
      WHERE school_id=$1 AND school_date=$2::date AND dtr_slot=$3 AND presenter_user_id=$4 AND revoked_at IS NULL FOR UPDATE`,
@@ -93,8 +114,10 @@ function registerStaffLunchRoutes(app,pool,{authenticateSchoolClient,requireScho
   }finally{client.release();}
  });
  app.delete('/api/staff-attendance/lunch/presenter',authenticateSchoolClient,
-  requireSchoolRoles('SCHOOL_ADMIN'),async(req,res)=>{
+  requireSchoolRoles('DEPARTMENT_HEAD'),async(req,res)=>{
   res.set('Cache-Control','no-store, private');
+  const departmentId=ownDepartment(req);
+  if(!departmentId)return res.status(403).json({error:'An assigned department is required.'});
   const slot=String(req.body?.slot||''),date=manilaDate(),presenterId=String(req.body?.presenterUserId||'');
   if(!['AM_OUT','PM_IN'].includes(slot)||!/^[0-9a-f]{8}(-[0-9a-f]{4}){3}-[0-9a-f]{12}$/i.test(presenterId))
    return res.status(400).json({error:'Select a presenter and valid lunch slot.'});
@@ -103,6 +126,8 @@ function registerStaffLunchRoutes(app,pool,{authenticateSchoolClient,requireScho
    await client.query('BEGIN');
    await client.query('SELECT pg_advisory_xact_lock(hashtext($1),hashtext($2))',
     [String(req.auth.schoolId),date+':'+slot]);
+   const allowed=await client.query(`SELECT 1 FROM school_users u JOIN school_departments d ON d.school_id=u.school_id AND d.department_id=u.department_id WHERE u.school_id=$1 AND u.user_id=$2 AND u.department_id=$3 AND u.role='TEACHER' AND d.active=TRUE AND d.department_code<>'UNASSIGNED' FOR SHARE OF u,d`,[req.auth.schoolId,presenterId,departmentId]);
+   if(!allowed.rowCount){await client.query('ROLLBACK');return res.status(404).json({error:'Presenter not found in your assigned department.'});}
    const old=await client.query(`UPDATE staff_lunch_presenter_assignments SET revoked_at=NOW()
     WHERE school_id=$1 AND school_date=$2::date AND dtr_slot=$3 AND presenter_user_id=$4 AND revoked_at IS NULL
     RETURNING assignment_id,presenter_user_id`,[req.auth.schoolId,date,slot,presenterId]);
@@ -141,7 +166,7 @@ function registerStaffLunchRoutes(app,pool,{authenticateSchoolClient,requireScho
    // The presenting teacher must be explicitly assigned by the school. This
    // endpoint intentionally fails closed until a separate authorization
    // workflow for rotating presenters is available.
-   if(req.auth.role!=='SCHOOL_ADMIN') {
+   {
     const permission=await client.query(
      `SELECT 1 FROM staff_lunch_presenter_assignments
        WHERE school_id=$1 AND presenter_user_id=$2 AND school_date=$3::date
@@ -152,15 +177,17 @@ function registerStaffLunchRoutes(app,pool,{authenticateSchoolClient,requireScho
    }
    // Resolve the presenter's current department and approved point on the server.
    // An administrator is not exempt from the same GPS requirement.
-   const department=await client.query(`SELECT d.department_id,s.setting_value AS point
+   const department=await client.query(`SELECT d.department_id,s.setting_value AS point,c.setting_value AS config
      FROM school_users u
      JOIN school_departments d ON d.school_id=u.school_id AND d.department_id=u.department_id
      LEFT JOIN school_settings s ON s.school_id=d.school_id
        AND s.setting_key='staff_lunch_geo_'||d.department_id::text
+     LEFT JOIN school_settings c ON c.school_id=d.school_id AND c.setting_key='staff_lunch_config_'||d.department_id::text
      WHERE u.school_id=$1 AND u.user_id=$2 AND u.active=TRUE
        AND d.active=TRUE AND d.department_code<>'UNASSIGNED'`,
      [req.auth.schoolId,req.auth.userId]);
    const location=department.rows[0],now=Date.now();
+   if(location?.config?.enabled===false){await client.query('ROLLBACK');return res.status(403).json({error:'Lunch QR is disabled for your department. Use supervised Gatekeeper scanning.'});}
    const evidence=assessLocationEvidence(req.body?.location,now);
    let presence=classifyDepartmentPresence(location?.point,req.body?.location,now);
    if(presence.verified&&now-evidence.point.capturedAt>30000)
@@ -179,7 +206,7 @@ function registerStaffLunchRoutes(app,pool,{authenticateSchoolClient,requireScho
      [req.auth.schoolId,req.auth.userId,JSON.stringify({slot,reason:presence.reason,revoked:revoked.rowCount})]);
     await client.query('COMMIT');
     const messages={
-     DEPARTMENT_LOCATION_NOT_CONFIGURED:'Your department has no approved attendance location. Ask the School Admin.',
+     DEPARTMENT_LOCATION_NOT_CONFIGURED:'Your department has no active attendance location. Ask your Department Head.',
      OUTSIDE_DEPARTMENT_AREA:'You are outside the approved department attendance area.',
      DEPARTMENT_BOUNDARY_UNCERTAIN:'Your GPS accuracy overlaps the department boundary. Move closer to the approved point and retry.',
      LOCATION_NOT_AVAILABLE:'Location is unavailable. Enable precise location and try again.',
@@ -234,11 +261,33 @@ function registerStaffLunchRoutes(app,pool,{authenticateSchoolClient,requireScho
  });
 
 
- // Department points are deliberately configured by the School Admin on-site.
+ // Operational QR switch only: never changes official working hours or DTR requirements.
+ app.put('/api/staff-attendance/lunch/config',authenticateSchoolClient,requireSchoolRoles('DEPARTMENT_HEAD'),async(req,res)=>{
+  res.set('Cache-Control','private, no-store');
+  const departmentId=ownDepartment(req),enabled=req.body?.enabled;
+  if(!departmentId)return res.status(403).json({error:'An assigned department is required.'});
+  if(typeof enabled!=='boolean')return res.status(400).json({error:'A boolean enabled value is required.'});
+  const client=await pool.connect();
+  try{
+   await client.query('BEGIN');
+   await lockLunchSlots(client,req.auth.schoolId);
+   const dept=await client.query("SELECT 1 FROM school_departments WHERE school_id=$1 AND department_id=$2 AND active=TRUE AND department_code<>'UNASSIGNED' FOR SHARE",[req.auth.schoolId,departmentId]);
+   if(!dept.rowCount){await client.query('ROLLBACK');return res.status(403).json({error:'Active department required.'});}
+   const prior=await client.query('SELECT setting_value FROM school_settings WHERE school_id=$1 AND setting_key=$2 FOR UPDATE',[req.auth.schoolId,configKey(departmentId)]);
+   await client.query(`INSERT INTO school_settings(school_id,setting_key,setting_value,updated_at)
+    VALUES($1,$2,$3::jsonb,NOW()) ON CONFLICT(school_id,setting_key)
+    DO UPDATE SET setting_value=EXCLUDED.setting_value,updated_at=NOW()`,[req.auth.schoolId,configKey(departmentId),JSON.stringify({enabled})]);
+   if(!enabled)await revokeDepartmentCodes(client,req.auth.schoolId,departmentId);
+   await client.query(`INSERT INTO staff_attendance_audit(school_id,actor_user_id,action,target_type,target_id,details)
+    VALUES($1,$2,'LUNCH_CONFIG_CHANGED','SCHOOL_DEPARTMENT',$3,$4::jsonb)`,[req.auth.schoolId,req.auth.userId,departmentId,JSON.stringify({previousEnabled:prior.rows[0]?.setting_value?.enabled!==false,enabled})]);
+   await client.query('COMMIT');
+   return res.json({enabled,departmentId});
+  }catch(error){await client.query('ROLLBACK').catch(()=>{});return res.status(503).json({error:'Unable to save lunch QR configuration.'});}
+  finally{client.release();}
+ });
+ // Department Heads capture fresh on-site coordinates; the server validates and audits activation.
  // Use existing school_settings (JSONB) and append-only staff audit records.
- // Department Heads collect site coordinates in person. An independent School
- // Admin approves them. No client role can directly write approved coordinates.
- // Existing approved locations stay active until an approved replacement.
+ // Existing approved locations remain active until a fresh, validated replacement.
  const proposalKey=departmentId=>'staff_lunch_geo_proposal_'+departmentId;
  app.get('/api/staff-attendance/lunch/location',authenticateSchoolClient,
   requireSchoolRoles('SCHOOL_ADMIN','DEPARTMENT_HEAD'),async(req,res)=>{
@@ -295,96 +344,51 @@ function registerStaffLunchRoutes(app,pool,{authenticateSchoolClient,requireScho
   const client=await pool.connect();
   try{
    await client.query('BEGIN');
+   await lockLunchSlots(client,req.auth.schoolId);
    const dept=await client.query(`SELECT department_id FROM school_departments
     WHERE school_id=$1 AND department_id=$2 AND active=TRUE AND department_code<>'UNASSIGNED'
     FOR SHARE`,[req.auth.schoolId,departmentId]);
    if(!dept.rowCount){await client.query('ROLLBACK');
     return res.status(403).json({error:'A valid active department assignment is required.'});}
-   const proposal={status:'PENDING',proposedBy:req.auth.userId,
-    proposedAt:new Date().toISOString(),point,accuracyMeters:req.body.accuracyMeters};
+   const prior=await client.query('SELECT setting_value AS point FROM school_settings WHERE school_id=$1 AND setting_key=$2 FOR UPDATE',[req.auth.schoolId,locationKey(departmentId)]);
+   const previous=prior.rows[0]?.point||null;
+   // Preserve the original trusted location as a fixed anchor. Repeated small changes must not move it.
+   // Initial setup is departmental authorization, not independent institutional verification.
+   const anchor=previous?.anchor||(previous?{latitude:previous.latitude,longitude:previous.longitude,radiusMeters:previous.radiusMeters}:null);
+   if(anchor&&distanceMeters(anchor,point)+point.radiusMeters>anchor.radiusMeters){
+    await client.query('ROLLBACK');return res.status(422).json({error:'The replacement area would extend beyond the existing authorized location. Use the existing location or request a separately authorized relocation.'});
+   }
+   const activePoint={...point,anchor:anchor||{latitude:point.latitude,longitude:point.longitude,radiusMeters:point.radiusMeters}};
    await client.query(`INSERT INTO school_settings(school_id,setting_key,setting_value,updated_at)
     VALUES($1,$2,$3::jsonb,NOW()) ON CONFLICT(school_id,setting_key)
-    DO UPDATE SET setting_value=EXCLUDED.setting_value,updated_at=NOW()`,
-    [req.auth.schoolId,proposalKey(departmentId),JSON.stringify(proposal)]);
+    DO UPDATE SET setting_value=EXCLUDED.setting_value,updated_at=NOW()`,[req.auth.schoolId,locationKey(departmentId),JSON.stringify(activePoint)]);
+   // Pending proposals from the former approval workflow are preserved as superseded, not activated.
+   await client.query(`UPDATE school_settings SET setting_value=setting_value||'{"status":"SUPERSEDED"}'::jsonb,updated_at=NOW()
+    WHERE school_id=$1 AND setting_key=$2 AND setting_value->>'status'='PENDING'`,[req.auth.schoolId,proposalKey(departmentId)]);
+   await client.query(`UPDATE user_notifications SET status='SUPERSEDED',read_at=COALESCE(read_at,NOW()),updated_at=NOW()
+    WHERE school_id=$1 AND request_type='DEPARTMENT_LOCATION' AND request_id=$2 AND status='PENDING'`,[req.auth.schoolId,departmentId]);
+   const revoked=await revokeDepartmentCodes(client,req.auth.schoolId,departmentId);
    await client.query(`INSERT INTO staff_attendance_audit
     (school_id,actor_user_id,action,target_type,target_id,details)
-    VALUES($1,$2,'LUNCH_LOCATION_PROPOSED','SCHOOL_DEPARTMENT',$3,$4::jsonb)`,
-    [req.auth.schoolId,req.auth.userId,departmentId,
-     JSON.stringify({accuracyMeters:proposal.accuracyMeters,radiusMeters:point.radiusMeters,
-       proposedAt:proposal.proposedAt})]);
+    VALUES($1,$2,'LUNCH_LOCATION_ACTIVATED','SCHOOL_DEPARTMENT',$3,$4::jsonb)`,
+    [req.auth.schoolId,req.auth.userId,departmentId,JSON.stringify({previous,point:activePoint,accuracyMeters:req.body.accuracyMeters,revoked:revoked.rowCount})]);
    await client.query('COMMIT');
-   return res.status(201).json({status:'PENDING_APPROVAL',departmentId,
-    message:'Location submitted. The School Admin must approve it before it becomes active.'});
+   return res.status(201).json({status:'ACTIVE',departmentId,message:'Department attendance location is active. Generate a fresh QR.'});
   }catch(error){await client.query('ROLLBACK').catch(()=>{});
    console.error('Department location proposal failed:',error.message);
    return res.status(503).json({error:'Unable to submit department location.'});
   }finally{client.release();}
  });
- // The legacy direct write endpoint must not bypass independent approval.
- app.put('/api/staff-attendance/lunch/location',authenticateSchoolClient,
-  requireSchoolRoles('SCHOOL_ADMIN'),(req,res)=>{
-   res.set('Cache-Control','private, no-store');
-   return res.status(409).json({error:'Direct location activation is disabled. Ask the Department Head to submit an on-site location for School Admin approval.'});
- });
- app.post('/api/staff-attendance/lunch/location/decision',authenticateSchoolClient,
-  requireSchoolRoles('SCHOOL_ADMIN'),async(req,res)=>{
-  res.set('Cache-Control','private, no-store');
-  const departmentId=String(req.body?.departmentId||''),
-    decision=String(req.body?.decision||''),note=String(req.body?.note||'').trim();
-  if(!UUID.test(departmentId)||!['APPROVE','REJECT'].includes(decision)||
-     note.length<10||note.length>500)
-   return res.status(400).json({error:'Choose a department, approval decision and reason (10–500 characters).'});
-  const client=await pool.connect();
-  try{
-   await client.query('BEGIN');
-   const found=await client.query(`SELECT setting_value AS proposal FROM school_settings
-    WHERE school_id=$1 AND setting_key=$2 FOR UPDATE`,
-    [req.auth.schoolId,proposalKey(departmentId)]);
-   const proposal=found.rows[0]?.proposal;
-   if(!proposal||proposal.status!=='PENDING'){
-    await client.query('ROLLBACK');
-    return res.status(409).json({error:'There is no pending location proposal for this department.'});
-   }
-   const dept=await client.query(`SELECT 1 FROM school_departments
-     WHERE school_id=$1 AND department_id=$2 AND active=TRUE`,
-     [req.auth.schoolId,departmentId]);
-   if(!dept.rowCount){await client.query('ROLLBACK');return res.status(404).json({error:'Department unavailable.'});}
-   if(proposal.proposedBy===req.auth.userId){
-    await client.query('ROLLBACK');return res.status(403).json({error:'The location proposer cannot approve their own submission.'});
-   }
-   if(decision==='APPROVE'){
-    try{validateDepartmentPoint({...proposal.point,accuracyMeters:proposal.accuracyMeters});}
-    catch(error){await client.query('ROLLBACK');return res.status(409).json({error:'Location proposal failed integrity checks.'});}
-    await client.query(`INSERT INTO school_settings(school_id,setting_key,setting_value,updated_at)
-     VALUES($1,$2,$3::jsonb,NOW()) ON CONFLICT(school_id,setting_key)
-     DO UPDATE SET setting_value=EXCLUDED.setting_value,updated_at=NOW()`,
-     [req.auth.schoolId,locationKey(departmentId),JSON.stringify(proposal.point)]);
-   }
-   const reviewed={...proposal,status:decision==='APPROVE'?'APPROVED':'REJECTED',
-     reviewedBy:req.auth.userId,reviewedAt:new Date().toISOString()};
-   await client.query(`UPDATE school_settings SET setting_value=$3::jsonb,updated_at=NOW()
-     WHERE school_id=$1 AND setting_key=$2`,
-     [req.auth.schoolId,proposalKey(departmentId),JSON.stringify(reviewed)]);
-   await client.query(`INSERT INTO staff_attendance_audit
-    (school_id,actor_user_id,action,target_type,target_id,details)
-    VALUES($1,$2,$3,'SCHOOL_DEPARTMENT',$4,$5::jsonb)`,
-    [req.auth.schoolId,req.auth.userId,
-     decision==='APPROVE'?'LUNCH_LOCATION_APPROVED':'LUNCH_LOCATION_REJECTED',
-     departmentId,JSON.stringify({reason:note,proposedBy:proposal.proposedBy,
-       proposedAt:proposal.proposedAt,radiusMeters:proposal.point.radiusMeters})]);
-   await client.query('COMMIT');
-   return res.json({departmentId,status:reviewed.status,
-    message:decision==='APPROVE'?'Approved department location is now active.':'Proposal rejected; existing approved location unchanged.'});
-  }catch(error){await client.query('ROLLBACK').catch(()=>{});
-   console.error('Department location decision failed:',error.message);
-   return res.status(503).json({error:'Unable to review department location.'});
-  }finally{client.release();}
- });
+ // Retire the old Admin approval mutations; stale clients cannot activate a point.
+ app.put('/api/staff-attendance/lunch/location',authenticateSchoolClient,requireSchoolRoles('SCHOOL_ADMIN','DEPARTMENT_HEAD'),(req,res)=>res.status(410).json({error:'Use the Department Head on-site GPS activation workflow.'}));
+ app.post('/api/staff-attendance/lunch/location/decision',authenticateSchoolClient,requireSchoolRoles('SCHOOL_ADMIN'),(req,res)=>res.status(410).json({error:'Department location approval has been retired.'}));
  // A pending scan never becomes an official DTR entry without independent
- // School Admin review. A presenter cannot approve anyone's pending scan.
+ // Department Head review; an independently authorized principal handles head exceptions.
  app.get('/api/staff-attendance/lunch/pending',authenticateSchoolClient,
-  requireSchoolRoles('SCHOOL_ADMIN'),async(req,res)=>{
+  requireSchoolRoles('DEPARTMENT_HEAD','PRINCIPAL'),async(req,res)=>{
   res.set('Cache-Control','private, no-store');
+  const principal=req.auth.role==='PRINCIPAL',departmentId=ownDepartment(req);
+  if(!principal&&!departmentId)return res.status(403).json({error:'An assigned department is required.'});
   try {
    const rows=await pool.query(`SELECT e.event_id AS "eventId",
     e.staff_user_id AS "staffUserId",u.display_name AS "teacherName",
@@ -396,14 +400,17 @@ function registerStaffLunchRoutes(app,pool,{authenticateSchoolClient,requireScho
       AND e.source='SELF_SERVICE' AND e.verification_status='PENDING_VERIFICATION'
       AND e.school_date >= ($2::date - 7)
       AND e.dtr_slot IN ('AM_OUT','PM_IN')
-    ORDER BY e.created_at DESC LIMIT 100`,[req.auth.schoolId,manilaDate()]);
+      AND (($3::boolean AND u.role='DEPARTMENT_HEAD') OR (NOT $3::boolean AND u.role='TEACHER' AND u.department_id=$4::uuid))
+    ORDER BY e.created_at DESC LIMIT 100`,[req.auth.schoolId,manilaDate(),principal,departmentId]);
    return res.json({items:rows.rows});
   }catch(error){console.error('Lunch pending read failed:',error.message);
    return res.status(503).json({error:'Pending lunch scans unavailable.'});}
  });
  app.post('/api/staff-attendance/lunch/review',authenticateSchoolClient,
-  requireSchoolRoles('SCHOOL_ADMIN'),async(req,res)=>{
+  requireSchoolRoles('DEPARTMENT_HEAD','PRINCIPAL'),async(req,res)=>{
   res.set('Cache-Control','private, no-store');
+  const principal=req.auth.role==='PRINCIPAL',departmentId=ownDepartment(req);
+  if(!principal&&!departmentId)return res.status(403).json({error:'An assigned department is required.'});
   const eventId=String(req.body?.eventId||''),decision=String(req.body?.decision||'');
   const note=String(req.body?.note||'').trim();
   if(!UUID.test(eventId)||!['VERIFY','REJECT'].includes(decision)||note.length<10||note.length>500)
@@ -411,12 +418,14 @@ function registerStaffLunchRoutes(app,pool,{authenticateSchoolClient,requireScho
   const client=await pool.connect();
   try{
    await client.query('BEGIN');
-   const found=await client.query(`SELECT staff_user_id,dtr_slot,
-      to_char(school_date,'YYYY-MM-DD') AS "schoolDate",
-      occurred_at,verification_status
-    FROM staff_attendance_events WHERE school_id=$1 AND event_id=$2
-    AND event_kind='DTR_SLOT' AND source='SELF_SERVICE' FOR UPDATE`,
-    [req.auth.schoolId,eventId]);
+   const found=await client.query(`SELECT e.staff_user_id,e.dtr_slot,
+      to_char(e.school_date,'YYYY-MM-DD') AS "schoolDate",
+      e.occurred_at,e.verification_status
+    FROM staff_attendance_events e JOIN school_users u ON u.school_id=e.school_id AND u.user_id=e.staff_user_id
+    WHERE e.school_id=$1 AND e.event_id=$2 AND e.event_kind='DTR_SLOT' AND e.source='SELF_SERVICE'
+    AND e.dtr_slot IN ('AM_OUT','PM_IN')
+    AND (($3::boolean AND u.role='DEPARTMENT_HEAD') OR (NOT $3::boolean AND u.role='TEACHER' AND u.department_id=$4::uuid)) FOR UPDATE OF e FOR SHARE OF u`,
+    [req.auth.schoolId,eventId,principal,departmentId]);
    const record=found.rows[0];
    if(!record||record.verification_status!=='PENDING_VERIFICATION'){
     await client.query('ROLLBACK');return res.status(409).json({error:'This scan is no longer pending.'});
@@ -507,7 +516,9 @@ function registerStaffLunchRoutes(app,pool,{authenticateSchoolClient,requireScho
    if(expected.length!==32||!timingSafeEqual(expected,received)){
     await client.query('ROLLBACK');return res.status(403).json({error:'Invalid lunch QR.'});
    }
-   if(row.presenter_role!=='SCHOOL_ADMIN'){
+   if(row.presenter_role!=='TEACHER'){await client.query('ROLLBACK');return res.status(410).json({error:'Presenter is no longer authorized.'});}
+   if(!ownDepartment(req)||String(row.department_id)!==ownDepartment(req)){await client.query('ROLLBACK');return res.status(403).json({error:'Use your own department QR or Gatekeeper scanning.'});}
+   {
     const permission=await client.query(`SELECT 1 FROM staff_lunch_presenter_assignments
        WHERE school_id=$1 AND presenter_user_id=$2 AND school_date=$3::date
        AND dtr_slot=$4 AND revoked_at IS NULL LIMIT 1`,
@@ -526,9 +537,11 @@ function registerStaffLunchRoutes(app,pool,{authenticateSchoolClient,requireScho
    if(existing.rowCount){
     await client.query('ROLLBACK');
     return res.status(409).json({error:existing.rows[0].verification_status==='VERIFIED'?
-      'This lunch DTR slot has already been recorded.':'Your lunch scan is pending review. Contact the School Admin.',
+      'This lunch DTR slot has already been recorded.':'Your lunch scan is pending review. Contact your Department Head.',
       alreadyRecorded:existing.rows[0].verification_status==='VERIFIED'});
    }
+   const config=await client.query('SELECT setting_value FROM school_settings WHERE school_id=$1 AND setting_key=$2',[req.auth.schoolId,configKey(row.department_id)]);
+   if(config.rows[0]?.setting_value?.enabled===false){await client.query('ROLLBACK');return res.status(410).json({error:'Lunch QR is disabled. Use Gatekeeper scanning.'});}
    const pointRow=await client.query(`SELECT setting_value AS point FROM school_settings
     WHERE school_id=$1 AND setting_key=$2`,
     [req.auth.schoolId,locationKey(row.department_id)]);
@@ -593,7 +606,7 @@ function registerStaffLunchRoutes(app,pool,{authenticateSchoolClient,requireScho
    await client.query('COMMIT');
    return res.status(201).json({eventId,slot:row.dtr_slot,schoolDate:today,
     occurredAt:event.rows[0].occurred_at,status:verification,
-    message:reasons.length?'Scan received; School Admin review is required. This is not yet a verified DTR entry.':
+    message:reasons.length?'Scan received; Independent attendance review is required. This is not yet a verified DTR entry.':
       'Lunch DTR verified.'});
   }catch(error){
    await client.query('ROLLBACK').catch(()=>{});

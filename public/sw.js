@@ -1,4 +1,4 @@
-const CACHE = "attendigo-v376-sidebar-help-last";
+const CACHE = "attendigo-v377-department-lunch-draft";
 
 // Only public, non-personal offline shells and their executable dependencies.
 // An update must not discard the working cache before these are all ready.
