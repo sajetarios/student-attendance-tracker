@@ -161,7 +161,8 @@
     $('msPolicySelect').value=mode;
     $('msSavePolicy').addEventListener('click',async()=>{
      const next=$('msPolicySelect').value;
-     if(next==='DTR_CORRECTION'&&!confirm('Confirm that your SDO permits approved logbook-based Form 48 time corrections. This will never manufacture a QR scan.'))return;
+     const message='Confirm that your SDO permits approved logbook-based Form 48 time corrections. This will never manufacture a QR scan.';
+     if(next==='DTR_CORRECTION'&&!(window.AppDialog ? await window.AppDialog.confirm(message,{title:'Confirm correction policy',confirmText:'Confirm policy'}) : confirm(message)))return;
      try{const saved=await api('/policy',{method:'POST',data:{mode:next}});mode=saved.mode;messageSet('School correction policy saved.');await load();}
      catch(e){messageSet(e.message,true);}
     });
@@ -293,7 +294,8 @@
       verifiedTime:row.querySelector('[name=verifiedTime]')?.value||'',
       reference:row.querySelector('[name=reference]')?.value?.trim()||''
      };
-     if(['verify','promote'].includes(action)&&!confirm((mode==='DTR_CORRECTION'?'Approve this exact logbook time as an official DTR correction? Original scan history is unchanged.':'Approve this documented exception? School policy leaves the official DTR slot blank.')))return;
+     const message=mode==='DTR_CORRECTION'?'Approve this exact logbook time as an official DTR correction? Original scan history is unchanged.':'Approve this documented exception? School policy leaves the official DTR slot blank.';
+     if(['verify','promote'].includes(action)&&!(window.AppDialog ? await window.AppDialog.confirm(message,{title:'Confirm attendance review',confirmText:'Approve'}) : confirm(message)))return;
      const result=await api('/requests/'+encodeURIComponent(id)+'/head-decision',{method:'POST',data:request});
      document.dispatchEvent(new Event('attendigo:requests-changed'));
      messageSet(result.status==='DTR_CORRECTED'?'Approved correction recorded in DTR.':result.status==='DOCUMENTED'?'Approved documentation; DTR slot remains blank under school policy.':'Reviewer decision recorded with audit history.');
