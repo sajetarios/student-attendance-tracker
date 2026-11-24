@@ -104,7 +104,7 @@ test('shared memo shortcut is role-aware and uses the existing acknowledgment fe
  const make=(tag,cls,value)=>({tag,cls,value,children:[],attrs:{},classes:new Set(),
   append(...v){this.children.push(...v)},replaceChildren(...v){this.children=v},
   setAttribute(k,v){this.attrs[k]=v},addEventListener(k,v){this.handler=v},
-  get classList(){return {add:x=>this.classes.add(x),toggle:(x,v)=>v?this.classes.add(x):this.classes.delete(x)}}});
+  get classList(){return {add:(...xs)=>xs.forEach(x=>this.classes.add(x)),toggle:(x,v)=>v?this.classes.add(x):this.classes.delete(x)}}});
  const render=new Function('state','strip','make','document','open','close',source+'\nbanner();return strip;');
  for(const role of ['PRINCIPAL','SCHOOL_ADMIN','DEPARTMENT_HEAD','TEACHER','GATE_KEEPER','STUDENT','PARENT','SUPER_ADMIN']){
   for(const n of [0,1,2]){
