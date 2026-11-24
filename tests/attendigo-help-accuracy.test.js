@@ -77,10 +77,12 @@ test('SF2 guidance respects adviser submission, personal copies and read-only mo
   const steps=guide.answer('How to generate SF2?','TEACHER').steps.join(' ');
   assert.match(steps,/Class Advisers/);
   assert.match(steps,/Subject Teachers/);
-  assert.match(steps,/NR is not absence/);
-  assert.ok(portal.includes('Generate personal copy'));
-  assert.ok(portal.includes('Submit official SF2'));
-  assert.ok(html.includes('holidays and suspensions are not yet connected to a calendar'));
+  assert.match(steps,/gray means unrecorded, not absent/);
+  assert.match(steps,/LIS-issued SF2/);
+  assert.ok(portal.includes('Download subject report'));
+  assert.ok(portal.includes('Select an assigned subject.'));
+  assert.ok(portal.includes('Submit SF2 preparation'));
+  assert.ok(html.includes('Full-day closures and suspensions are excluded.'));
 });
 
 test('gatekeeper and administrator Form 48 are not mixed with staff self-service',()=>{
