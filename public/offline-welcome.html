@@ -18,6 +18,14 @@
     h1{font-size:clamp(30px,3.8vw,44px);letter-spacing:-.048em;line-height:1.13;margin:0 0 15px;color:#102e4c}
     .intro-text{font-size:16px;line-height:1.65;color:#587189;max-width:380px;margin:0}
     .tagline{margin:29px 0 0;font-size:13px;font-weight:700;color:#24658e}
+    .offline-actions{margin-top:23px;padding-top:18px;border-top:1px solid #e4edf6}
+    .offline-actions h2{font-size:15px;letter-spacing:0;line-height:1.3;margin:0 0 6px;color:#183956}
+    .offline-actions p{font-size:12px;line-height:1.55;color:#617d91;margin:0 0 12px}
+    .offline-link{display:flex;align-items:center;justify-content:space-between;gap:8px;margin:7px 0;padding:10px 13px;min-height:41px;background:#f4f8fc;border:1px solid #dce7f1;border-radius:11px;text-decoration:none;font-size:13px;font-weight:700;color:#174b78}
+    .offline-link:hover,.offline-link:focus-visible{background:#e4f0fa;border-color:#b7d5ed}
+    .offline-link:focus-visible{outline:3px solid #58b9b0;outline-offset:2px}
+    .offline-link span{color:#347aa8}
+
     .status-panel{padding:clamp(28px,4.5vw,52px);display:flex;flex-direction:column;justify-content:center;align-items:flex-start;background:linear-gradient(156deg,#10385f 0%,#174b78 68%,#0d6571 125%);color:#fff;min-width:0}
     .icon-frame{display:grid;place-items:center;width:84px;height:84px;border-radius:25px;background:rgba(255,255,255,.10);border:1px solid rgba(255,255,255,.15);margin-bottom:32px}
     .icon-frame svg{width:38px;height:38px;stroke:#ffd49a;fill:none;stroke-width:2.3;stroke-linecap:round;stroke-linejoin:round}
@@ -40,6 +48,13 @@
     <h1>Welcome to Attendigo.</h1>
     <p class="intro-text">Your school's attendance and management workspace, ready when your connection returns.</p>
     <p class="tagline">Every learner counts.</p>
+    <nav class="offline-actions" aria-label="Prepared offline attendance tools">
+      <h2>Work offline on this device</h2>
+      <p>These tools must be prepared while online. Unlock them using your existing device passphrase or prepared session. Full portal login still requires internet.</p>
+      <a class="offline-link" href="/offline-sheet.html">Teacher attendance <span aria-hidden="true">→</span></a>
+      <a class="offline-link" href="/gate-offline.html">Gatekeeper scanner <span aria-hidden="true">→</span></a>
+      <a class="offline-link" href="/student-qr-offline.html">Student QR check-in <span aria-hidden="true">→</span></a>
+    </nav>
   </section>
   <section class="status-panel" aria-labelledby="connection-heading">
     <div class="icon-frame" aria-hidden="true"><svg viewBox="0 0 32 32"><path d="M3 11a21 21 0 0 1 7-3M16 7a21 21 0 0 1 13 4M7 16a14 14 0 0 1 4-2M21 14a14 14 0 0 1 4 2M12 21a7 7 0 0 1 8 0M16 26h.01M3 3l26 26"/></svg></div>
