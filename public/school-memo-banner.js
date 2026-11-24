@@ -39,15 +39,29 @@
   const unread=currentList();
   strip.hidden=state.open;
   strip.replaceChildren();
+  strip.classList.toggle('attendigo-memo-principal',state.role==='PRINCIPAL');
   const emblem=make('span','attendigo-memo-icon','▤');
   emblem.setAttribute('aria-hidden','true');
+  if(state.role==='PRINCIPAL'){
+   const ns='http://www.w3.org/2000/svg';
+   const svg=document.createElementNS(ns,'svg');
+   svg.setAttribute('viewBox','0 0 24 24');
+   svg.setAttribute('fill','none');
+   svg.setAttribute('stroke','currentColor');
+   svg.setAttribute('stroke-width','1.7');
+   svg.setAttribute('stroke-linecap','round');
+   svg.setAttribute('stroke-linejoin','round');
+   const path=document.createElementNS(ns,'path');
+   path.setAttribute('d','M13 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V10l-7-7z M13 3v7h7 M8 14h8 M8 17h6');
+   svg.append(path);emblem.replaceChildren(svg);
+  }
   const info=make('div','attendigo-memo-copy');
   info.append(make('strong',null,unread.length
    ?unread.length+' school '+(unread.length===1?'memorandum needs':'memoranda need')+' acknowledgment'
    :'School Memoranda'));
   info.append(make('small',null,unread.length
    ?unread[0].title+' · Open to read and acknowledge'
-   :state.role==='PRINCIPAL'?'Publish, manage and review official school notices':'School notices and official documents in your workspace'));
+   :state.role==='PRINCIPAL'?'Publish and manage official school notices.':'School notices and official documents in your workspace'));
   const button=make('button','attendigo-memo-link',state.role==='PRINCIPAL'?'Manage memoranda':'View memoranda');
   button.type='button';button.setAttribute('aria-expanded',String(state.open));
   button.setAttribute('aria-controls','attendigoSchoolMemoPanel');
