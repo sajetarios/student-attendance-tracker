@@ -105,7 +105,7 @@ test('migration keeps API-only subscriptions and explicit school opt-in',()=>{
  assert.match(registry,/'083_parent_web_push\.sql'/);
  assert.match(portal,/id="pushEnable"/);
  assert.match(portal,/id="pushTest"/);
- assert.match(portal,/\/parent-push\.js\?v=1/);
+ assert.match(portal,/\/parent-push\.js\?v=2/);
  assert.match(sw,/addEventListener\('push'/);
  assert.match(sw,/addEventListener\('notificationclick'/);
 });
