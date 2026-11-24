@@ -1,4 +1,4 @@
-const CACHE = "attendigo-v379-campus-delegation-integrated";
+const CACHE = "attendigo-v380-campus-relocation-review";
 
 // Only public, non-personal offline shells and their executable dependencies.
 // An update must not discard the working cache before these are all ready.
@@ -132,7 +132,7 @@ const SHELL = [
   "/my-gate-insights.css?v=4",
   "/staff-lunch-ui.js?v=8",
   "/staff-precise-location.js?v=1",
-  "/staff-department-location.js?v=6",
+  "/staff-department-location.js?v=7",
   "/staff-ob-ui.js?v=6",
   "/staff-ob.css?v=1",
   "/staff-lunch.css?v=7",
@@ -183,7 +183,7 @@ const SHELL = [
   "/portal-login.js?v=17",
   "/login-routing.js",
   "/principal-dashboard.js?v=16",
-  "/principal-trusted-campus.js?v=1",
+  "/principal-trusted-campus.js?v=2",
   "/principal-dashboard.css?v=14",
   "/school-memos.js?v=1",
   "/school-memos.css?v=1",

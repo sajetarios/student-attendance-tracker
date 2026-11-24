@@ -276,6 +276,16 @@ async function main(){
   assert.equal((await post(campusPath+'/retire',{campusId:campus.body.campusId,reason:'Synthetic campus closure for regression'},head.token)).status,403);
   assert.equal((await post(campusPath+'/retire',{campusId:campus.body.campusId,reason:'Synthetic campus closure for regression'},principal.token)).status,200);
   assert.equal((await post('/api/staff-attendance/lunch/location/propose',secondPoint,sameSchoolHead.token)).status,403,'Retired campus cannot authorize new location');
+  const relocate={departmentId:dep2,campusId:remoteCampus.body.campusId,reason:'Independently verified relocation record',attested:true};
+  assert.equal((await post('/api/staff-attendance/lunch/location/relocate',relocate,sameSchoolHead.token)).status,403);
+  assert.equal((await post('/api/staff-attendance/lunch/location/relocate',relocate,admin.token)).status,403);
+  assert.equal((await post('/api/staff-attendance/lunch/location/relocate',relocate,principal.token)).status,201);
+  assert.equal((await readLocation(sameSchoolHead.token)).body.configured,false);
+  const relocated={...secondPoint,campusId:remoteCampus.body.campusId,latitude:10,longitude:126,samples:[{latitude:10,longitude:126,accuracyMeters:10,capturedAt:Date.now()-1800},{latitude:10.00001,longitude:126.00001,accuracyMeters:14,capturedAt:Date.now()-500}]};
+  assert.equal((await post('/api/staff-attendance/lunch/location/propose',relocated,sameSchoolHead.token)).status,201);
+  assert.equal((await readLocation(sameSchoolHead.token)).body.campusId,remoteCampus.body.campusId);
+  assert.equal((await readLocation(sameSchoolHead.token)).body.configured,true);
+  assert.equal((await post('/api/staff-attendance/lunch/location/propose',secondPoint,sameSchoolHead.token)).status,409);
   const gatePath='/api/staff-attendance/gatekeeper/dtr';
   const gateBody={teacherQrToken,slot:'PM_OUT',photoVerified:true};
   assert.equal((await post(gatePath,gateBody,teacher.token)).status,403,

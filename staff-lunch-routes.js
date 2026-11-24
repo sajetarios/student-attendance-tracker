@@ -16,8 +16,7 @@ async function lockLunchSlots(client,schoolId){
 }
 async function revokeDepartmentCodes(client,schoolId,departmentId){
  return client.query(`UPDATE staff_attendance_challenges c SET revoked_at=NOW()
-  FROM school_users u WHERE c.school_id=$1 AND u.school_id=c.school_id
-  AND u.user_id=c.presenter_user_id AND u.department_id=$2 AND c.revoked_at IS NULL
+  WHERE c.school_id=$1 AND c.department_id=$2 AND c.revoked_at IS NULL
   AND c.expires_at>NOW()-INTERVAL '90 seconds'`,[schoolId,departmentId]);
 }
 
@@ -338,6 +337,42 @@ function registerStaffLunchRoutes(app,pool,{authenticateSchoolClient,requireScho
   }catch(e){await client.query('ROLLBACK').catch(()=>{});return res.status(503).json({error:'Campus retirement could not be confirmed.'});}
   finally{client.release();}
  });
+ // Exceptional relocation is independent of routine department setup. The old
+ // location stays in history, but cannot authorize QR until fresh on-site capture.
+ app.get('/api/staff-attendance/lunch/relocation-departments',authenticateSchoolClient,requireSchoolRoles('PRINCIPAL'),async(req,res)=>{
+  res.set('Cache-Control','private, no-store');
+  try{
+   const r=await pool.query(`SELECT d.department_id AS "departmentId",d.department_name AS "departmentName",
+    s.setting_value->>'campusId' AS "campusId",s.setting_value->'relocationPending'->>'campusId' AS "pendingCampusId"
+    FROM school_departments d JOIN school_settings s ON s.school_id=d.school_id AND s.setting_key='staff_lunch_geo_'||d.department_id::text
+    WHERE d.school_id=$1 AND d.active=TRUE AND d.department_code<>'UNASSIGNED' ORDER BY d.department_name`,[req.auth.schoolId]);
+   return res.json({departments:r.rows});
+  }catch(e){return res.status(503).json({error:'Department relocation list unavailable.'});}
+ });
+ app.post('/api/staff-attendance/lunch/location/relocate',authenticateSchoolClient,requireSchoolRoles('PRINCIPAL'),async(req,res)=>{
+  res.set('Cache-Control','private, no-store');
+  const departmentId=String(req.body?.departmentId||''),campusId=String(req.body?.campusId||''),reason=String(req.body?.reason||'').trim();
+  if(!UUID.test(departmentId)||!UUID.test(campusId)||reason.length<10||reason.length>500||req.body?.attested!==true)
+   return res.status(400).json({error:'Select an established department, trusted destination campus, and documented independent authorization.'});
+  const client=await pool.connect();
+  try{
+   await client.query('BEGIN');
+   await lockLunchSlots(client,req.auth.schoolId);
+   const dept=await client.query("SELECT department_id FROM school_departments WHERE school_id=$1 AND department_id=$2 AND active=TRUE AND department_code<>'UNASSIGNED' FOR SHARE",[req.auth.schoolId,departmentId]);
+   const campus=await campusById(client,req.auth.schoolId,campusId,true);
+   if(!dept.rowCount||!campus){await client.query('ROLLBACK');return res.status(404).json({error:'Active department or campus not found in this school.'});}
+   const old=await client.query('SELECT setting_value AS point FROM school_settings WHERE school_id=$1 AND setting_key=$2 FOR UPDATE',[req.auth.schoolId,locationKey(departmentId)]);
+   const previous=old.rows[0]?.point;
+   if(!previous||previous.relocationPending||previous.campusId===campusId){await client.query('ROLLBACK');return res.status(409).json({error:'No eligible relocation, or a relocation is already pending.'});}
+   const relocationPending={campusId,authorizedBy:req.auth.userId,authorizedAt:new Date().toISOString()};
+   await client.query('UPDATE school_settings SET setting_value=$3::jsonb,updated_at=NOW() WHERE school_id=$1 AND setting_key=$2',[req.auth.schoolId,locationKey(departmentId),JSON.stringify({...previous,relocationPending})]);
+   const revoked=await revokeDepartmentCodes(client,req.auth.schoolId,departmentId);
+   await client.query(`INSERT INTO staff_attendance_audit(school_id,actor_user_id,action,target_type,target_id,details)
+     VALUES($1,$2,'LUNCH_LOCATION_RELOCATION_AUTHORIZED','SCHOOL_DEPARTMENT',$3,$4::jsonb)`,[req.auth.schoolId,req.auth.userId,departmentId,JSON.stringify({previous,destinationCampusId:campusId,reason,revoked:revoked.rowCount})]);
+   await client.query('COMMIT');return res.status(201).json({status:'RELOCATION_PENDING',departmentId,campusId});
+  }catch(e){await client.query('ROLLBACK').catch(()=>{});return res.status(503).json({error:'Relocation authorization could not be confirmed.'});}
+  finally{client.release();}
+ });
  app.get('/api/staff-attendance/lunch/location',authenticateSchoolClient,
   requireSchoolRoles('SCHOOL_ADMIN','DEPARTMENT_HEAD'),async(req,res)=>{
   res.set('Cache-Control','private, no-store');
@@ -357,8 +392,9 @@ function registerStaffLunchRoutes(app,pool,{authenticateSchoolClient,requireScho
    const row=result.rows[0],proposal=row.proposal;
    const campus=row.approved?.campusId?await campusById(pool,req.auth.schoolId,row.approved.campusId):null;
    return res.json({departmentId,departmentName:row.departmentName,
-    campusId:row.approved?.campusId||null,campusName:campus?.name||null,
-    configured:!!row.approved&&(!row.approved.campusId||containsDepartment(campus,row.approved)),radiusMeters:row.approved?.radiusMeters||null,
+    campusId:row.approved?.relocationPending?.campusId||row.approved?.campusId||null,campusName:campus?.name||null,
+    relocationPending:!!row.approved?.relocationPending,
+    configured:!!row.approved&&!row.approved.relocationPending&&(!row.approved.campusId||containsDepartment(campus,row.approved)),radiusMeters:row.approved?.radiusMeters||null,
     approvedAt:row.approvedAt||null,
     proposalStatus:proposal?.status||'NONE',
     proposedAt:proposal?.proposedAt||null,
@@ -405,7 +441,7 @@ function registerStaffLunchRoutes(app,pool,{authenticateSchoolClient,requireScho
    const previous=prior.rows[0]?.point||null;
    // A head can enroll within an independently authorized campus, but cannot switch a bound department
    // to another campus or self-authorize a site. Legacy trusted points remain protected.
-   const requestedCampus=String(req.body?.campusId||''),boundCampus=String(previous?.campusId||'');
+   const requestedCampus=String(req.body?.campusId||''),boundCampus=String(previous?.relocationPending?.campusId||previous?.campusId||'');
    if(boundCampus&&requestedCampus&&requestedCampus!==boundCampus){await client.query('ROLLBACK');return res.status(409).json({error:'Cross-campus relocation requires independent authorization. Use Gatekeeper scanning.'});}
    const selectedCampus=boundCampus||requestedCampus;
    let activePoint;
@@ -614,7 +650,7 @@ function registerStaffLunchRoutes(app,pool,{authenticateSchoolClient,requireScho
     [req.auth.schoolId,locationKey(row.department_id)]);
    const storedPoint=pointRow.rows[0]?.point;
    const trustedPoint=await trustedDepartmentPoint(client,req.auth.schoolId,storedPoint);
-   if(storedPoint?.campusId&&!trustedPoint){await client.query('ROLLBACK');return res.status(410).json({error:'The authorized campus is unavailable. Use supervised Gatekeeper scanning.'});}
+   if((storedPoint?.campusId||storedPoint?.relocationPending)&&!trustedPoint){await client.query('ROLLBACK');return res.status(410).json({error:'The authorized campus is unavailable. Use supervised Gatekeeper scanning.'});}
    const presence=classifyDepartmentPresence(trustedPoint,req.body?.location,now);
    const reasons=[];
    if(now>=expires)reasons.push('LATE_DELIVERY');

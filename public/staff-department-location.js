@@ -127,7 +127,7 @@
     const campus=$('staffLunchHeadCampus');
     if(campus){campus.replaceChildren(new Option('Existing trusted department area (if configured)',''));for(const c of registry.campuses||[])campus.add(new Option(c.name,c.campusId));if(info.campusId){if(![...campus.options].some(o=>o.value===info.campusId))campus.add(new Option('Previously assigned campus (unavailable)',info.campusId));campus.value=info.campusId;campus.disabled=true;}}
     title.textContent=info.departmentName||title.textContent;
-    const current=info.configured?'Attendance location is active.':'No active department location. Select an authorized campus, or use Gatekeeper scanning.';
+    const current=info.relocationPending?'Relocation authorized. Capture fresh GPS at the destination campus; Gatekeeper remains available.':info.configured?'Attendance location is active.':'No active department location. Select an authorized campus, or use Gatekeeper scanning.';
     const radius=$('staffLunchHeadRadius');if(radius&&info.radiusMeters)radius.value=String(info.radiusMeters);
     status.textContent=current+(info.proposalStatus==='PENDING'?' Capture fresh GPS to replace the former pending proposal.':'');
    }catch(error){status.textContent='Unable to load department location: '+error.message;}

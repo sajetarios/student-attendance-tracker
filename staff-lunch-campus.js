@@ -16,6 +16,7 @@ async function campusById(db,schoolId,campusId,lock=false){
  return r.rows[0]||null;
 }
 async function trustedDepartmentPoint(db,schoolId,point){
+ if(point?.relocationPending)return null;
  if(!point||!point.campusId)return point||null; // legacy independently approved location
  const campus=await campusById(db,schoolId,point.campusId,true);
  return containsDepartment(campus,point)?point:null;
