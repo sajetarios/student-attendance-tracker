@@ -1,4 +1,4 @@
-const CACHE = "attendigo-v363-student-profile-first";
+const CACHE = "attendigo-v364-parent-portal-refinement";
 
 // Only public, non-personal offline shells and their executable dependencies.
 // An update must not discard the working cache before these are all ready.
@@ -67,7 +67,8 @@ const SHELL = [
   "/vendor/html5-qrcode.min.js",
   "/session-guard.js?v=6",
   "/student-qr-scanner.js?v=5",
-  "/parent-portal.js?v=4",
+  "/parent-portal.js?v=5",
+  "/parent-portal-refinement.css?v=1",
   "/dashboard-appearance.js?v=3",
   "/timetable-grid.js?v=8",
   "/schedule-workspace-ui.js?v=9",
