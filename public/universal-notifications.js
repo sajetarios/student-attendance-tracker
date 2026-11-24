@@ -94,6 +94,7 @@
   }
   function destination(item){
     if(isSchoolMemo(item))return 'memo';
+    if(item.requestType==='MISSING_SCAN'&&['TEACHER','DEPARTMENT_HEAD','SCHOOL_ADMIN','PRINCIPAL'].includes(user.role))return 'missingScan';
     if(item.requestType==='DEPARTMENT_LOCATION'&&user.role==='SCHOOL_ADMIN')return 'locationAdmin';
     if(item.requestType==='DEPARTMENT_LOCATION'&&user.role==='DEPARTMENT_HEAD')return 'locationHead';
     if(user.role==='SCHOOL_ADMIN'&&item.category==='APPROVAL'&&item.requestType==='Profile photo')return 'photo';
@@ -116,6 +117,11 @@
     if(dest==='specialAdmin'){const shortcut=document.getElementById('adminProgramRequestsShortcut');if(shortcut){shortcut.click();return true;}return click('academicAdminNav');}
     if(dest==='specialTeacher'){if(!go('students'))return false;document.getElementById('mySpecialRequestsRefresh')?.scrollIntoView({block:'center'});return true;}
     if(dest==='photo'){const shortcut=document.getElementById('adminPhotoRequestsShortcut');if(shortcut){shortcut.click();return true;}return false;}
+    if(dest==='missingScan'){
+      const inbox=item.category==='APPROVAL'&&['DEPARTMENT_HEAD','PRINCIPAL'].includes(user.role);
+      if(!window.AttendigoMissingScans?.open)return false;
+      window.AttendigoMissingScans.open(inbox?'inbox':'mine',item.requestId);return true;
+    }
     if(dest==='memo'){if(!window.AttendigoSchoolMemos?.open)return false;window.AttendigoSchoolMemos?.open?.(item.requestId);return true;}
     const view=dest.searchParams.get('view')||dest.hash.slice(1);
     if(dest.pathname!==location.pathname){location.assign(dest.pathname+dest.search+dest.hash);return true;}

@@ -63,12 +63,17 @@
   dialog.querySelectorAll('[data-ms-tab]').forEach(button=>button.addEventListener('click',()=>{
    tab=button.dataset.msTab;load().catch(e=>messageSet(e.message,true));
   }));
-  function open(view){
+  function open(view,requestId){
    tab=isPrincipal||(view==='inbox'&&(isAdmin||isHead))?'inbox':'mine';
    messageSet('');
-   dialog.showModal();
-   load().catch(e=>messageSet(e.message,true));
+   if(!dialog.open)dialog.showModal();
+   load().then(()=>{
+    if(requestId){const row=[...content.querySelectorAll('[data-ms-id]')].find(el=>el.dataset.msId===String(requestId));
+      if(row){row.tabIndex=-1;row.focus({preventScroll:true});row.scrollIntoView({block:'center'});}
+    }
+   }).catch(e=>messageSet(e.message,true));
   }
+  window.AttendigoMissingScans={open};
   function renderForm(){
    return '<section class="ms-card ms-new"><h3>Report a forgotten scan</h3>'+
     '<p>Select a date to check your verified Form 48 entries. Attendigo will identify unrecorded slots, but only you can confirm which scan was missed and the time you actually arrived or departed. No QR or gate record will be changed.</p>'+
@@ -209,7 +214,7 @@
      e.preventDefault();if(busy)return;
      const v=new FormData(form),data=Object.fromEntries(v.entries());
      busy=true;form.querySelector('[type=submit]').disabled=true;
-     try{await api('/requests',{method:'POST',data});messageSet('Request sent to Department Head. Your DTR has not been edited.');await load();}
+     try{await api('/requests',{method:'POST',data});messageSet(isHead?'Request sent to the Principal. Your DTR has not been edited.':'Request sent to Department Head. Your DTR has not been edited.');document.dispatchEvent(new Event('attendigo:requests-changed'));await load();}
      catch(err){messageSet(err.message,true);}
      finally{busy=false;}
     });
@@ -222,7 +227,7 @@
    const row=form.closest('.ms-row');
    try{
     await api('/requests/'+encodeURIComponent(row.dataset.msId)+'/resubmit',{method:'POST',data:Object.fromEntries(new FormData(form).entries())});
-    messageSet('Clarification resubmitted to the Department Head.');await load();
+    messageSet('Clarification resubmitted to the authorized reviewer.');document.dispatchEvent(new Event('attendigo:requests-changed'));await load();
    }catch(error){messageSet(error.message,true);}finally{busy=false;}
   });
   content.addEventListener('click',async event=>{
@@ -259,6 +264,7 @@
      };
      if(action==='verify'&&!confirm((mode==='DTR_CORRECTION'?'Approve this exact logbook time as an official DTR correction? Original scan history is unchanged.':'Approve this documented exception? School policy leaves the official DTR slot blank.')))return;
      const result=await api('/requests/'+encodeURIComponent(id)+'/head-decision',{method:'POST',data:request});
+     document.dispatchEvent(new Event('attendigo:requests-changed'));
      messageSet(result.status==='DTR_CORRECTED'?'Approved correction recorded in DTR.':result.status==='DOCUMENTED'?'Approved documentation; DTR slot remains blank under school policy.':'Reviewer decision recorded with audit history.');
     }
     await load();

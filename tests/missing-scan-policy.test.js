@@ -70,7 +70,7 @@ test('missing scan UI only offers unrecorded slots and keeps role review boundar
  assert.match(css,/data-ui-theme="dark"/,'modal must honor portal dark mode');
  assert.match(mobile,/Portal-wide action and input containment/);
  for(const name of ['missing-scan-ui.js','missing-scan-ui.css'])
-  assert.ok(portal.includes(name+(name.endsWith('.js')?'?v=4':'?v=3')),name+' must be refreshed');
+  assert.ok(portal.includes(name+(name.endsWith('.js')?'?v=5':'?v=3')),name+' must be refreshed');
  assert.ok(portal.includes('mobile-overflow-repair.css?v=2'));
  assert.ok(Number(sw.match(/attendigo-v(\d+)-/)?.[1])>=331,'PWA cache must include the new UI assets');
 });

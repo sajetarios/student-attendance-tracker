@@ -1,4 +1,4 @@
-const CACHE = "attendigo-v368-department-missing-scan-review";
+const CACHE = "attendigo-v369-missing-scan-notifications";
 
 // Only public, non-personal offline shells and their executable dependencies.
 // An update must not discard the working cache before these are all ready.
@@ -117,7 +117,7 @@ const SHELL = [
   "/teacher-dashboard-v3.js?v=1",
   "/teacher-teaching-overview.js?v=4",
   "/form48-report.js?v=20",
-  "/missing-scan-ui.js?v=4",
+  "/missing-scan-ui.js?v=5",
   "/missing-scan-ui.css?v=3",
   "/form48-intelligence.js?v=2",
   "/form48-bulk-ui.js?v=3",
@@ -158,7 +158,7 @@ const SHELL = [
   "/admin-request-notifications.js?v=7",
   "/admin-request-notifications.css?v=2",
   "/admin-approval-navigation.css?v=1",
-  "/universal-notifications.js?v=8",
+  "/universal-notifications.js?v=9",
   "/universal-notifications.css?v=4",
   "/guardian-ui.js?v=7",
   "/guardian-ui.css?v=4",
