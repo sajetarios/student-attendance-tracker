@@ -354,7 +354,7 @@ window.attendigoStaffIdentity = new Promise(resolve => { resolveStaffIdentity = 
         parents: ['Parent Management', 'Manage parent accounts, registrations, and verified student relationships.'],
         schedules: ['School-wide timetable and class schedules', 'Configure school timetable templates, manage class schedules, and assign teachers across departments.'],
         teachers: ['User management', 'Create and update school accounts, assign role-based access, manage departments, and disable or restore account access.'],
-        sf2: ['SF2 Report Generator', 'Generate the monthly TUVERA SF2 and collect official reports submitted by Class Advisers.'],
+        sf2: ['SF2 Report Generator', 'Prepare monthly daily attendance, verify it against the LIS-issued SF2, and collect supporting worksheets submitted by Class Advisers.'],
         cloudSync: ['Cloud Sync', 'Forward accepted attendance records to your authenticated cloud server.'],
         schoolBranding: ['School identity', 'Manage the name, logo, and interface accent color for your school workspace.'],
         lunchQrAdmin: ['Lunch QR management', 'Assign authorized lunch QR presenters without changing teacher account access.'],
@@ -391,8 +391,8 @@ window.attendigoStaffIdentity = new Promise(resolve => { resolveStaffIdentity = 
     if ($('teacherActionHeader')) $('teacherActionHeader').textContent = departmentHead ? 'Manage' : 'Account action';
     if ($('sf2ViewTitle')) $('sf2ViewTitle').textContent = departmentHead ? 'SF2 Monitoring' : 'SF2 Report Generator';
     if ($('sf2ViewDescription')) $('sf2ViewDescription').textContent = departmentHead
-      ? 'Preview official section attendance reports. This role has read-only access and cannot submit or collect reports.'
-      : 'Generate a personal subject copy or the official consolidated section SF2 according to your teacher designations.';
+      ? 'Preview section attendance preparation for LIS verification. This role has read-only access and cannot submit or collect reports.'
+      : 'Review attendance for one assigned subject or reconcile daily attendance for the LIS-issued SF2, according to your teacher designations.';
     if (gateKeeper) {
       $('studentScopeText').textContent = 'Gate Keeper access: use QR lookup only. The full learner roster is not available to this account.';
       if ($('studentRosterPanel')) $('studentRosterPanel').hidden = true;
@@ -5505,7 +5505,9 @@ let teacherActionMenuListenersInstalled = false;
         if (absent) {
           const type = await AppDialog.prompt('Classify this confirmed full-day absence.', 'UNEXCUSED', { title: 'Confirm absence type', label: 'Absence classification', helpText: 'Choose EXCUSED or UNEXCUSED.', placeholder: 'EXCUSED or UNEXCUSED', required: true, validate: value => ['EXCUSED', 'UNEXCUSED'].includes(String(value).trim().toUpperCase()) ? true : 'Enter EXCUSED or UNEXCUSED.' });
           if (!type) return;
-          await api('/api/sf2/absence', { method: 'PUT', body: JSON.stringify({ studentId: absent.dataset.sf2Absent, date: absent.dataset.date, absenceType: type.toUpperCase() }) });
+          const note=await AppDialog.prompt('Confirm the learner was absent for the entire school day based on verified evidence. Do not treat a single subject absence or missing scan as whole-day absence.', '', {title:'Document daily absence review',label:'Evidence reviewed',placeholder:'Briefly describe the evidence and checks performed',required:true,validate:value=>String(value).trim().length>=12?true:'Enter at least 12 characters describing the evidence.'});
+          if(!note)return;
+          await api('/api/sf2/absence', { method: 'PUT', body: JSON.stringify({ studentId: absent.dataset.sf2Absent, date: absent.dataset.date, absenceType: type.toUpperCase(),note:String(note).trim() }) });
           await loadSf2Preview();
         } else if (remove) {
           if (!await AppDialog.confirm('Remove this absence confirmation?', { title: 'Remove absence confirmation', confirmText: 'Remove', variant: 'danger' })) return;
