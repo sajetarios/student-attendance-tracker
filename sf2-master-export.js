@@ -37,8 +37,8 @@ async function renderMasterWorkbook({calculated,data,month,personalCopy=false,sc
   set('G7',schoolName||null);set('AA7',String(gradeLevel||'').replace(/^Grade\s+/i,''));set('AF7',section);
   if(personalCopy){
     set('A3','UNOFFICIAL SUBJECT ATTENDANCE COPY — Not for official submission');
-    set('G9','White blank=Present • Gray=Not recorded • X=Absent • L=Late • E=Excused • —=No class • !=Review');
-    set('T118','White blank: Present; Gray: Unrecorded/future (not absent); X: Subject absence; L: Late; E: Excused; —: No class; !: Review.');
+    set('G9','White blank = present | Gray = no record | X = absent (subject only)');
+    set('T118','White blank: Present; Gray: no record (not absent); X: Absent; L: Late; E: Excused; —: No class; !: Review.');
     set('AO14','[white blank]');set('AP14','confirmed presence');set('AO15','X');set('AP15','subject absence');set('AO16','[gray blank]');set('AP16','no record / future');
     for(const a of ['AE139','AE140','AE142','AE144','AE145','AE146'])set(a,null);
     set('AE142','Subject teacher reference only');
@@ -66,7 +66,11 @@ async function renderMasterWorkbook({calculated,data,month,personalCopy=false,sc
           set(address,code==='P'||code==='NR'||code==='FUTURE'?null:code,code==='NR'||code==='FUTURE');
         }else copy(address);
       }
-      copy('AF'+row);
+      // Both subject totals use the same verified evidence ledger. A visible
+      // white or gray blank never creates a positive or negative record.
+      const absence=read('AF'+row);
+      if(personalCopy&&absence&&typeof absence==='object')cache('AF'+row,'COUNTIF(AU'+row+':BS'+row+',"X")',absence.result);
+      else copy('AF'+row);
       const present=read('AG'+row);
       if(personalCopy&&present&&typeof present==='object')cache('AG'+row,'COUNTIF(AU'+row+':BS'+row+',"P")+COUNTIF(AU'+row+':BS'+row+',"L")',present.result);
       else copy('AG'+row);
