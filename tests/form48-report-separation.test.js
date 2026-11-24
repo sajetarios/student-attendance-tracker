@@ -13,7 +13,7 @@ const form=fs.readFileSync('public/form48-report.js','utf8');
 test('lunch presenter and Form 48 reporting are separate from teacher accounts',()=>{
   for(const id of ['lunchQrAdminView','teacherLunchQrView','form48ReportsView','staffLunchAdminCard','staffLunchPresenterCard'])
     assert.match(html,new RegExp('id="'+id+'"'));
-  assert.match(portal,/relocate\('lunchQrAdminNav', 'attendanceManagement'\)/);
+  assert.match(portal,/relocate\('lunchQrAdminNav', 'operations'\)/);
   assert.match(portal,/relocate\('form48ReportsNav', 'reports'\)/);
   assert.match(portal,/relocate\('myGateAttendanceNav', 'attendanceManagement'\)/);
   assert.match(portal,/teacherLunchQr: \['My lunch QR'/);

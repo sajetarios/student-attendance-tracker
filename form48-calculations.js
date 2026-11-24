@@ -23,7 +23,7 @@ function implausibleSlot(slots,hours){
  });
 }
 function isoDate(value){return typeof value==='string'&&/^\d{4}-\d{2}-\d{2}$/.test(value)&&!Number.isNaN(Date.parse(value+'T12:00:00Z'));}
-function summarizeForm48({records=[],month,today,settings=null,calendar=[],officialBusiness=[],leave=null,approvedLeaves=[],pendingSickLeaves=[]}){
+function summarizeForm48({records=[],month,today,settings=null,calendar=[],officialBusiness=[],leave=null,approvedLeaves=[],pendingSickLeaves=[],scheduleAdjustments=[]}){
  if(!/^\d{4}-(0[1-9]|1[0-2])$/.test(month||''))throw Error('Invalid report month');
  const configured=Boolean(settings);
  const workdays=configured&&Array.isArray(settings.workdays)?settings.workdays:[];
@@ -88,7 +88,10 @@ function summarizeForm48({records=[],month,today,settings=null,calendar=[],offic
   else if(review==='EXCUSED'&&past){status='EXCUSED';summary.excusedDays++;}
   else if(review==='ABSENT'&&past){status='CONFIRMED_ABSENT';summary.daysAbsent++;}
   else if(past){status='MISSING_REVIEW';summary.pendingAbsentDays++;needsReview=true;}
-  const hours=weekday===6?settings?.saturdayHours:settings?.regularHours;
+  const adjustment=(scheduleAdjustments||[]).find(item=>item.from<=date&&date<=item.to&&
+   (!item.archivedDate||date<item.archivedDate))||null;
+  const hours=adjustment&&validHours(adjustment.hours)?adjustment.hours:
+   weekday===6?settings?.saturdayHours:settings?.regularHours;
   const anomalous=scheduled&&present&&!approvedOB&&!leaveDay&&!documentedLeave&&
    exception!=='SHORTENED_DAY'&&implausibleSlot(slots,hours);
   if(anomalous){status='TIME_SLOT_REVIEW';needsReview=true;summary.timeAnomalyDays++;summary.incompleteTimingDays++;}
@@ -118,7 +121,8 @@ function summarizeForm48({records=[],month,today,settings=null,calendar=[],offic
   assessments.push({date,day,weekday,status,scheduled,past,verifiedCount,
    lateMinutes,undertimeMinutes:earlyMinutes,needsReview,timeAnomaly:Boolean(anomalous),approvedOB:Boolean(approvedOB),
    leaveDay:Boolean(leaveDay||documentedLeave),approvedLeave:Boolean(documentedLeave),
-   sickLeavePending:Boolean(sickFilingPending),calendarException:exception||null,review});
+   sickLeavePending:Boolean(sickFilingPending),calendarException:exception||null,review,
+   temporaryMemoId:adjustment?.memoId||null,temporaryHours:adjustment?.hours||null});
  }
  if(!configured){summary.tardyMinutes=null;summary.undertimeMinutes=null;}
  return {summary,assessments};

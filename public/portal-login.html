@@ -1,6 +1,6 @@
 <!doctype html>
 <html lang="en">
-<head>
+<head><script src="/offline-account-guard.js?v=1"></script>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="theme-color" content="#2463a5">
@@ -89,6 +89,9 @@
 <link rel="stylesheet" href="/attendigo-brand-refresh.css?v=5">
   <link rel="preload" href="/fonts/InterVariable.woff2" as="font" type="font/woff2" crossorigin>
   <link rel="stylesheet" href="/typography.css?v=1">
+<link rel="stylesheet" href="/attendigo-layout-density.css?v=1">
+<link rel="stylesheet" href="/app-dialog.css?v=2">
+<script src="/app-dialog.js?v=1" defer></script>
 </head>
 <body class="login-page">
   <main class="login-shell">
@@ -157,6 +160,7 @@
           <noscript><p class="form-feedback error" role="alert">JavaScript is required for secure sign-in. Enable JavaScript and reload the page.</p></noscript>
         </form>
         <div class="login-assistance" role="group" aria-label="Account assistance">
+          <a class="login-assistance-action" href="/offline-welcome.html"><span>Open Offline Tools (prepared devices)</span></a>
           <div class="login-assistance-grid">
             <div class="login-assistance-item" id="schoolAdminRecoveryLink">
               <span class="login-assistance-label">School admin?</span>
@@ -194,7 +198,7 @@
     </section>
   </main>
   <script src="/login-routing.js" defer></script>
-  <script src="/portal-login.js?v=15" defer></script>
+  <script src="/portal-login.js?v=17" defer></script>
   <script>
     (() => {
       const passwordInput = document.getElementById('password');

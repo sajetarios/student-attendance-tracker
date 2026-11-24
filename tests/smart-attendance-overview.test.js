@@ -121,7 +121,21 @@ test('overview UI is accessible, responsive and uses versioned PWA assets',()=>{
  assert.match(script,/user\?\.role!=='SCHOOL_ADMIN'/);
  assert.match(script,/method:'PUT'/);
  assert.match(script,/admin\/form48\/defaults/);
- assert.match(script,/window\.confirm/);
+ assert.match(script,/window\.AppDialog\.confirm/);
  assert.match(css,/@media\(max-width:540px\)/);
  assert.match(css,/@media print/);
+});
+
+test('reviewed historical departure and documented lunch return are not open exceptions',()=>{
+ const input={gate:[gate('teacher1','TIME_IN','07:43'),gate('teacher1','TIME_OUT','12:05'),{...gate('teacher1','TIME_IN','16:51'),reviewedActualExit:true}],
+ dtr:[dtr('teacher1','AM_IN','07:43'),dtr('teacher1','AM_OUT','12:05'),dtr('teacher1','PM_OUT','16:51')],
+ documentedExceptions:[{staffUserId:'teacher1',slot:'PM_IN',time:'12:30'}]};
+ const result=review(input);
+ assert.equal(result.reviewCount,0);assert.equal(result.pendingCount,0);assert.equal(result.items[0].status,'info');assert.equal(result.items[0].dtrCount,3);
+ assert.equal(review({...input,gate:input.gate.map(x=>({...x,reviewedActualExit:false}))}).reviewCount,1);
+ assert.equal(review({...input,documentedExceptions:[]}).pendingCount,1);
+ assert.equal(review({...input,calendarExceptions:[{exception_type:'CLOSED'}]}).reviewCount,1);
+ const early={...input,gate:input.gate.map((x,i)=>i===0?{...x,time:'04:00'}:x),dtr:input.dtr.map(x=>x.slot==='AM_IN'?{...x,time:'04:00'}:x)};
+ assert.equal(review(early).reviewCount,1,'An unrelated morning boundary anomaly remains open');
+ assert.equal(result.verifiedGateEvents,3,'Resolved physical scan remains in the scan count');
 });

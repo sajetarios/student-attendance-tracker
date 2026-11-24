@@ -1,4 +1,4 @@
--- 083: secure, opt-in Web Push for verified parent accounts (staging pilot).
+-- 087: secure, opt-in Web Push for verified parent accounts.
 -- Subscriptions are private and are never exposed through Supabase's Data API.
 CREATE TABLE IF NOT EXISTS parent_push_subscriptions (
  subscription_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),

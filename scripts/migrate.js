@@ -86,9 +86,17 @@ const REQUIRED_MIGRATIONS = [
   '078_principal_sdo_handoff.sql',
   '079_school_memoranda.sql',
   '080_missing_scan_department_logbook_review.sql',
-  '081_parent_subject_attendance_notifications.sql',
-  '082_parent_department_optional.sql',
-  '083_parent_web_push.sql'
+  '081_school_memo_effective_period_and_dtr.sql',
+  '082_link_suspension_calendar_and_date_changes.sql',
+  '083_department_declined_leave_workflow.sql',
+  '084_department_location_notifications.sql',
+  '085_parent_subject_attendance_notifications.sql',
+  '086_parent_department_optional.sql',
+  '087_parent_web_push.sql',
+  '088_missing_scan_notifications.sql',
+  '089_retire_department_location_approval.sql',
+  '090_staff_lunch_trusted_campuses.sql',
+  '091_lunch_qr_review_notifications.sql'
 ];
 
 function checksum(content) {

@@ -11,9 +11,15 @@
 try { const preference = localStorage.getItem('attendigo.principal.theme'); document.documentElement.dataset.theme = ['dark','light','system'].includes(preference) ? preference : 'light'; }
 catch (_) { document.documentElement.dataset.theme = 'light'; }
 </script>
-<link rel="stylesheet" href="/principal-dashboard.css?v=13">
-<script src="/principal-dashboard.js?v=12" defer></script>
-<link rel="stylesheet" href="/school-memo-banner.css?v=1">
+<link rel="stylesheet" href="/principal-dashboard.css?v=14">
+<script src="/principal-dashboard.js?v=16" defer></script>
+<script src="/principal-trusted-campus.js?v=3" defer></script>
+<link rel="stylesheet" href="/school-memo-banner.css?v=3">
+  <link rel="stylesheet" href="/attendigo-form-overlap-guard.css?v=2">
+<link rel="stylesheet" href="/universal-notifications.css?v=4"><script src="/universal-notifications.js?v=11" defer></script><link rel="stylesheet" href="/missing-scan-ui.css?v=4"><script src="/missing-scan-ui.js?v=8" defer></script><link rel="stylesheet" href="/typography.css?v=1">
+<link rel="stylesheet" href="/attendigo-layout-density.css?v=1">
+<link rel="stylesheet" href="/app-dialog.css?v=2">
+<script src="/app-dialog.js?v=1" defer></script>
 </head>
 <body>
 <a class="skip" href="#main">Skip to school overview</a>
@@ -32,7 +38,6 @@ catch (_) { document.documentElement.dataset.theme = 'light'; }
     </select>
    </label>
    <span id="roleBadge" class="role-badge">Principal workspace</span>
-   <a href="/portal.html" id="adminBack" class="text-link" hidden>Back to School Admin</a>
    <button type="button" id="presentationToggle" class="quiet-button" aria-pressed="false" title="Enter larger-text presentation mode">Presentation mode</button>
    <button type="button" id="signOut" class="quiet-button">Sign out</button>
   </div>
@@ -69,6 +74,7 @@ catch (_) { document.documentElement.dataset.theme = 'light'; }
     <div class="principal-main-tabs" role="group" aria-label="School leadership sections">
      <button type="button" class="tab is-active" data-section="overview" aria-pressed="true">Overview</button>
      <button type="button" class="tab" data-section="priorities" aria-pressed="false">Approvals</button>
+     <button type="button" class="tab" id="principalMissingScanReview">Head scan requests</button>
      <button type="button" class="tab" data-section="staff" aria-pressed="false">Personnel</button>
      <button type="button" class="tab" data-section="students" aria-pressed="false">Learners</button>
      <button type="button" class="tab" data-section="calendar" aria-pressed="false">School Operations</button>
@@ -199,34 +205,74 @@ catch (_) { document.documentElement.dataset.theme = 'light'; }
     <button type="button" class="quiet-button" data-jump="students">▤ Student signals</button>
    </div>
    <section class="surface principal-recognition" aria-labelledby="principalRecognitionTitle">
-    <div class="card-heading">
-     <div><p class="eyebrow">STAFF RECOGNITION</p><h3 id="principalRecognitionTitle">Teacher Recognition</h3>
-      <p>Verified early arrivals today and potential Watch Recognition nominees.</p></div>
+    <div class="recognition-hero">
+     <div class="recognition-hero-symbol" aria-hidden="true">
+      <svg viewBox="0 0 48 48" width="33" height="33" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linejoin="round" stroke-linecap="round">
+       <path d="M14 8h20v10c0 7-4.6 12-10 12s-10-5-10-12V8Z"/>
+       <path d="M14 12H8v6c0 5 3.5 7.5 8 7.5M34 12h6v6c0 5-3.5 7.5-8 7.5M24 30v7m-9 4h18M18 37h12"/>
+       <path d="m24 13 1.8 3.6 4 .6-2.9 2.8.7 4-3.6-1.9-3.6 1.9.7-4-2.9-2.8 4-.6Z"/>
+      </svg>
+     </div>
+     <div class="recognition-hero-copy">
+      <p class="eyebrow">STAFF RECOGNITION</p>
+      <h3 id="principalRecognitionTitle">Teacher Recognition</h3>
+      <p>Highlight verified early arrivals and review potential Watch Recognition nominees.</p>
+     </div>
+     <span class="recognition-hero-tag"><span aria-hidden="true">✦</span> Evidence-based</span>
     </div>
-    <div class="principal-recognition-today">
-     <div class="principal-recognition-subheading">
-      <div><h4>Today's early arrivals</h4><p id="earlyArrivalsSubtitle">Photo-verified Gatekeeper entries before 7:00 AM on the selected school date.</p></div>
-      <span class="pill" id="earlyArrivalsCount">Checking records</span>
-     </div>
-     <div id="earlyArrivalsList" class="principal-early-list" aria-live="polite">
-      <p class="source-note">Checking verified arrival records…</p>
-     </div>
+    <div class="principal-recognition-grid">
+     <section class="principal-recognition-today" aria-labelledby="earlyArrivalHeading">
+      <div class="recognition-card-top">
+       <span class="recognition-card-icon recognition-sun-icon" aria-hidden="true">
+        <svg viewBox="0 0 32 32" width="23" height="23" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+         <path d="M5 24h22M9 19a7 7 0 0 1 14 0M16 4v4M5.5 10.5l3 3M26.5 10.5l-3 3M2 18h3m22 0h3"/>
+        </svg>
+       </span>
+       <span class="recognition-card-type">SELECTED DATE</span>
+      </div>
+      <div class="principal-recognition-subheading">
+       <div><h4 id="earlyArrivalHeading">Early arrivals</h4><p id="earlyArrivalsSubtitle">Photo-verified Gatekeeper entries before 7:00 AM on the selected school date.</p></div>
+       <span class="pill recognition-count" id="earlyArrivalsCount">Checking records</span>
+      </div>
+      <div id="earlyArrivalsList" class="principal-early-list" aria-live="polite">
+       <p class="source-note">Checking verified arrival records…</p>
+      </div>
+     </section>
+     <details class="principal-recognition-watch" open>
+      <summary>
+       <span class="recognition-watch-title-wrap">
+        <span class="recognition-card-top">
+         <span class="recognition-card-icon recognition-award-icon" aria-hidden="true">
+          <svg viewBox="0 0 32 32" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+           <circle cx="16" cy="11" r="7"/><path d="m11 17-2 11 7-4 7 4-2-11m-8-6 2 2 4-4"/>
+          </svg>
+         </span>
+         <span class="recognition-card-type">ROLLING 30 DAYS</span>
+        </span>
+        <strong>Watch Recognition nominees</strong>
+        <small id="principalWatchPeriod">Rolling 30-day assessment of verified early arrivals.</small>
+       </span>
+       <span class="recognition-watch-controls">
+        <span class="pill recognition-count" id="principalWatchCount">Checking records</span>
+        <span class="recognition-chevron" aria-hidden="true"></span>
+       </span>
+      </summary>
+      <div class="principal-recognition-watch-content">
+       <div class="principal-watch-criteria" aria-label="Provisional Watch Recognition nomination criteria">
+        <span>Before <strong>7:00 AM</strong></span>
+        <span><strong>10+</strong> verified days</span>
+        <span><strong>3+</strong> calendar weeks</span>
+       </div>
+       <div id="principalWatchNomineeList" class="principal-watch-list" aria-live="polite">
+        <p class="source-note">Verifying nomination candidates…</p>
+       </div>
+      </div>
+     </details>
     </div>
-    <details class="principal-recognition-watch">
-     <summary><span><strong>Watch Recognition nominees</strong><small id="principalWatchPeriod">Rolling 30-day assessment of verified early arrivals.</small></span>
-      <span class="pill" id="principalWatchCount">Checking records</span></summary>
-     <div class="principal-recognition-watch-content">
-      <div class="principal-watch-criteria" aria-label="Provisional Watch Recognition nomination criteria">
-       <span>Before <strong>7:00 AM</strong></span>
-       <span><strong>10+</strong> distinct verified early-entry days</span>
-       <span><strong>3+</strong> different calendar weeks</span>
-      </div>
-      <div id="principalWatchNomineeList" class="principal-watch-list" aria-live="polite">
-       <p class="source-note">Verifying nomination candidates…</p>
-      </div>
-     </div>
-    </details>
-    <p class="source-note principal-recognition-note">For recognition consideration only—not an official award or punctuality finding. Uses verified gate entries, excludes approved leave dates, and requires principal review of schedules and evidence. Missing scans do not establish absence.</p>
+    <div class="recognition-footnote">
+     <span class="recognition-footnote-icon" aria-hidden="true">i</span>
+     <p>Recognition consideration only—not an official award or punctuality finding. Verified gate scans exclude approved leave dates; the Principal must review schedules and evidence. Missing scans do not establish absence.</p>
+    </div>
    </section>
    <section class="surface principal-briefing" id="principalBriefing" aria-labelledby="principalBriefingTitle">
     <div class="card-heading"><div><p class="eyebrow">YOUR DAILY LEADERSHIP BRIEFING</p><h3 id="principalBriefingTitle">What deserves attention today?</h3>
@@ -273,34 +319,7 @@ catch (_) { document.documentElement.dataset.theme = 'light'; }
   </section>
 
   <section id="prioritiesPanel" class="panel" data-panel="priorities" hidden>
-   <div id="principalSdoAdminPanel" class="surface principal-sdo-admin" hidden>
-    <h3>Principal requests — School Admin coordination</h3>
-    <p>Only an authorized SDO officer decides. Record the handoff and the signed official decision here; you are not approving the principal's request.</p>
-    <div id="principalSdoAdminList" class="principal-data-list">Loading principal applications…</div>
-    <div id="principalSdoAdminForms" hidden>
-     <p id="principalSdoSelected" class="source-note"></p>
-     <form id="principalSdoHandoffForm" class="principal-sdo-form">
-      <h4>1. Record submission to SDO</h4>
-      <label>Receiving office<input name="receivingOffice" maxlength="180" required placeholder="e.g., SDO Records Section"></label>
-      <label>Submission method<select name="channel" required><option value="SDO_TRACKING">Official tracking system</option><option value="OFFICIAL_EMAIL">Official email</option><option value="PHYSICAL">Physical submission</option><option value="OTHER">Other authorized method</option></select></label>
-      <label>Receiving/reference number<input name="reference" maxlength="160" minlength="3" required></label>
-      <button type="submit" class="quiet-button">Record SDO handoff</button>
-     </form>
-     <form id="principalSdoDecisionForm" class="principal-sdo-form">
-      <h4>2. Record signed external decision</h4>
-      <label>SDO decision<select name="decision" required><option value="">Choose decision…</option><option value="APPROVED">Approved</option><option value="REJECTED">Disapproved</option></select></label>
-      <label>Document reference<input name="approvalReference" required minlength="3" maxlength="120"></label>
-      <div class="principal-form-pair"><label>Approving official<input name="approverName" required minlength="3" maxlength="120"></label><label>Official position<input name="approverPosition" required minlength="3" maxlength="120"></label></div>
-      <div class="principal-form-pair"><label>Decision date<input name="approvedOn" type="date" required></label>
-       <label id="principalCertifiedDaysLabel">Certified working days (leave only)<input name="certifiedWorkingDays" type="number" min=".001" max="366" step=".001"></label></div>
-      <label>Signed official document (PDF/JPG/PNG, max 4MB)<input name="signedDocument" type="file" accept=".pdf,.png,.jpg,.jpeg,application/pdf,image/png,image/jpeg" required></label>
-      <label>Verification note<textarea name="note" rows="2" maxlength="1000" placeholder="Reference to the signed decision"></textarea></label>
-      <button type="submit" class="refresh-button">Record signed SDO decision</button>
-      <p class="source-note">This records the externally signed decision. It does not authorize the School Admin to approve on behalf of SDO.</p>
-     </form>
-    </div>
-    <p id="principalSdoAdminStatus" role="status" class="source-note"></p>
-   </div>
+   <details class="surface" id="principalLunchReview"><summary><strong>Department Head lunch QR exceptions</strong></summary><p>Review only Department Head pending lunch QR scans. Verify independent evidence before recording an official DTR punch. This is separate from forgotten-scan requests.</p><button type="button" class="quiet-button" id="principalLunchRefresh">Refresh pending lunch scans</button><p id="principalLunchStatus" role="status" aria-live="polite"></p><div id="principalLunchList" class="principal-data-list"></div></details>
    <section class="surface principal-class-impact" aria-labelledby="principalClassImpactTitle">
     <div class="card-heading"><div><p class="eyebrow">EXCEPTIONS ONLY · NEXT 7 DAYS</p><h2 id="principalClassImpactTitle">Classes with no recorded coverage</h2>
       <p>Approved leave or OB affects a scheduled class and there is no documented substitute or valid timetable adjustment. Classes covered by the department are excluded automatically.</p></div>
@@ -338,7 +357,7 @@ catch (_) { document.documentElement.dataset.theme = 'light'; }
     <div class="card-heading"><div><p class="eyebrow">SCHOOL COMMUNICATIONS</p>
      <h3>Publish School Memorandum</h3>
      <p>Upload a signed official memorandum for all school users or for school personnel only.</p></div>
-     <a class="quiet-button principal-memo-link" href="/school-memos.html">Open Memoranda</a>
+     <button class="quiet-button principal-memo-link" type="button" data-school-memo-open>View memoranda in dashboard</button>
     </div>
     <form id="principalMemoForm" class="principal-memo-form">
      <label>Memorandum title
@@ -360,12 +379,29 @@ catch (_) { document.documentElement.dataset.theme = 'light'; }
        </select></label>
      </div>
      <div class="principal-memo-fields">
-      <label>Effective date (required for schedule or suspension notices)
+      <label>Effective start date (required for temporary notices)
        <input type="date" name="effectiveDate"></label>
+      <label>Effective end date (inclusive; required for temporary notices)
+       <input type="date" name="endDate" min=""></label>
+     </div>
+     <div class="principal-memo-fields">
       <label>Attach official signed memorandum (PDF, JPG or PNG; up to 4 MB)
        <input type="file" name="document" accept=".pdf,.jpg,.jpeg,.png,application/pdf,image/jpeg,image/png" required></label>
      </div>
-     <p class="source-note">Publishing alerts the selected school audience. A memo alone does not change timetables, class suspension status, attendance, or DTR calculations. Enter authorized calendar exceptions separately.</p>
+     <label class="principal-memo-dtr-toggle">
+      <input type="checkbox" name="applyDtr" id="principalMemoApplyDtr">
+      Apply a temporary prescribed DTR schedule to school personnel for these dates
+     </label>
+     <div id="principalMemoDtrFields" hidden>
+      <p class="source-note">Available for a Temporary schedule notice sent to either audience. Only personnel DTR calculations are affected. Enter all four official prescribed time slots; the maximum period is 31 inclusive days. This adjusts Form 48 tardiness/undertime calculations, not the recorded actual punches.</p>
+      <div class="principal-memo-fields">
+       <label>AM time-in <input name="dtrAmIn" type="time"></label>
+       <label>AM time-out <input name="dtrAmOut" type="time"></label>
+       <label>PM time-in <input name="dtrPmIn" type="time"></label>
+       <label>PM time-out <input name="dtrPmOut" type="time"></label>
+      </div>
+     </div>
+     <p class="source-note">Announcement-only memoranda never change DTR. A temporary DTR adjustment applies to the specified dates only; class suspension, teacher duty status, timetables, OB, leave, and actual attendance records remain separate.</p>
      <button type="submit" id="principalMemoPublish" class="refresh-button">Publish and notify school users</button>
      <p id="principalMemoPublishStatus" class="source-note" role="status" aria-live="polite"></p>
     </form>
@@ -377,6 +413,7 @@ catch (_) { document.documentElement.dataset.theme = 'light'; }
    <div class="surface"><h3>Class timetable &amp; classroom conflicts</h3><p>The existing school scheduling module controls these records. Principal-specific timetable access is not yet authorized in this view; no assignments or conflicts are invented.</p></div>
   </section>
   <section id="securityPanel" class="panel" hidden>
+   <details class="surface" id="trustedCampusSettings"><summary><strong>Trusted campus boundaries</strong> · occasional onboarding only</summary><p>Register independently verified institutional boundaries, not individual department locations. Use the smallest suitable radius based on school site records. GPS is not proof of institutional authority.</p><form id="trustedCampusForm" class="principal-sdo-form"><label>Campus name<input name="name" minlength="2" maxlength="100" required></label><div class="principal-form-pair"><label>Latitude<input type="number" name="latitude" min="-90" max="90" step="any" required></label><label>Longitude<input type="number" name="longitude" min="-180" max="180" step="any" required></label></div><label>Boundary radius (meters)<input type="number" name="radiusMeters" min="100" max="5000" step="1" required></label><label>Verified site record / evidence reference<textarea name="evidenceReference" minlength="10" maxlength="500" required></textarea></label><label><input type="checkbox" name="attested" required> I independently checked the campus boundary against authorized institutional records.</label><button type="submit" class="refresh-button">Register trusted campus</button></form><p id="trustedCampusStatus" role="status" aria-live="polite"></p><div id="trustedCampusList" class="principal-data-list"></div><hr><h4>Exceptional department relocation</h4><p>Authorizing a move suspends the old location immediately. The Head must capture fresh GPS inside the approved destination campus.</p><form id="trustedCampusRelocation" class="principal-sdo-form"><label>Department<select name="departmentId" required></select></label><label>Destination campus<select name="campusId" required></select></label><label>Institutional relocation evidence<textarea name="reason" minlength="10" maxlength="500" required></textarea></label><label><input type="checkbox" name="attested" required> I independently verified this relocation.</label><button type="submit" class="quiet-button">Authorize exceptional relocation</button></form></details>
    <div class="section-heading"><div><p class="eyebrow">GATEKEEPER OVERSIGHT</p><h2>Gate &amp; Security</h2><p>School-scoped verified physical movements and Gatekeeper accounts. A gate scan does not by itself certify a DTR entry.</p></div></div>
    <div class="metric-grid">
     <div class="metric-card"><span class="metric-label">Gatekeeper accounts</span><strong id="principalKeeperTotal">—</strong><small id="principalKeeperActive">Active accounts pending</small></div>
@@ -429,6 +466,6 @@ catch (_) { document.documentElement.dataset.theme = 'light'; }
   <footer class="footer"><span>Attendigo · Principal Leadership Intelligence</span><span>Authorized school data only · Asia/Manila dates · Read-only oversight</span></footer>
  </main>
 </div>
-<script defer src="/school-memo-banner.js?v=1"></script>
+<script defer src="/school-memo-banner.js?v=4"></script>
 </body>
 </html>

@@ -196,3 +196,14 @@
  #staffLeaveDialog .leave-birthday-advice{display:grid;grid-template-columns:minmax(0,1fr)}
  #staffLeaveDialog .leave-birthday-switch{width:100%}
 }
+
+/* Leave applications take priority over restricted administrative documentation. */
+#staffLeaveDialog .leave-request-overview{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin-bottom:14px;}
+#staffLeaveDialog .leave-request-stat{display:flex;flex-direction:column;justify-content:space-between;gap:7px;min-width:0;background:#f3f8fc;border:1px solid #dbe8f1;border-radius:12px;padding:13px 15px;}
+#staffLeaveDialog .leave-request-stat span{font-size:.78rem;color:#526b7e;line-height:1.3;}
+#staffLeaveDialog .leave-request-stat strong{font-size:1.6rem;line-height:1.1;color:#194b6c;font-variant-numeric:tabular-nums;}
+#staffLeaveDialog .leave-start-application>summary{display:flex;align-items:center;min-height:44px;cursor:pointer;color:#075b87;font-weight:750;}
+#staffLeaveDialog .leave-official-records{margin-top:18px;background:#f8fafc;}
+#staffLeaveDialog .leave-records-content{min-width:0;overflow-wrap:anywhere;padding-top:12px;}
+#staffLeaveDialog .leave-records-content .leave-balances{grid-template-columns:repeat(2,minmax(0,1fr));}
+@media(max-width:540px){#staffLeaveDialog .leave-request-overview{gap:6px;}#staffLeaveDialog .leave-request-stat{padding:10px 8px;}#staffLeaveDialog .leave-request-stat span{font-size:.7rem;}#staffLeaveDialog .leave-request-stat strong{font-size:1.35rem;}#staffLeaveDialog .leave-records-content .leave-balances{grid-template-columns:minmax(0,1fr);}}

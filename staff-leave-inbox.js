@@ -1,12 +1,13 @@
 'use strict';
 const {allowReviewer}=require('./staff-leave-policy');
-const FILTERS=Object.freeze(['ACTION','ALL','PENDING','RECOMMENDATION','SCHOOL_REVIEW','EXTERNAL','APPROVED','DISAPPROVED','CANCELLED']);
+const FILTERS=Object.freeze(['ACTION','ALL','PENDING','RECOMMENDATION','SCHOOL_REVIEW','EXTERNAL','APPROVED','DISAPPROVED','DECLINED','CANCELLED']);
 const STATUS_LABELS=Object.freeze({
  PENDING_HEAD:'For Department Recommendation',
  PENDING_ADMIN:'For School Review',
  PENDING_EXTERNAL:'Awaiting Official Approval',
  APPROVED:'Approved',
  REJECTED:'Disapproved',
+ DECLINED_HEAD:'Declined by Department Head',
  CANCELLED:'Cancelled'
 });
 function canUseInbox(role){return role==='SCHOOL_ADMIN'||role==='DEPARTMENT_HEAD';}
@@ -63,6 +64,7 @@ const statusMessage=status=>({
  PENDING_EXTERNAL:'Awaiting the authorized official decision; not yet approved.',
  APPROVED:'Official approval was verified and entered into the leave record.',
  REJECTED:'An official disapproval was recorded.',
+ DECLINED_HEAD:'Your request was not endorsed by the Department Head and will not proceed to School Admin review. This is not an official leave disapproval.',
  CANCELLED:'The application was cancelled.'
 }[status]||'Your leave application was updated.');
 /**
@@ -78,7 +80,8 @@ async function notifyLeaveTransition(client,{schoolId,requestId,staffUserId,depa
   status==='PENDING_ADMIN'?'Leave request awaiting school review':
   status==='PENDING_EXTERNAL'?'Leave request awaiting official decision':
   status==='APPROVED'?'Leave request approved':
-  status==='REJECTED'?'Leave request disapproved':'Leave request updated';
+  status==='REJECTED'?'Leave request disapproved':
+  status==='DECLINED_HEAD'?'Leave request not endorsed by department':'Leave request updated';
  await client.query(
   "SELECT attendigo_notify($1,'SCHOOL_USER',$2,$3,'REQUEST',$4,$5,'Leave',$6,$7,$8,TRUE)",
   [schoolId,staffUserId,baseKey+':requester',title,statusMessage(status),requestId,status,url]

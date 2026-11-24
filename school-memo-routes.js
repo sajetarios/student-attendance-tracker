@@ -1,5 +1,7 @@
 'use strict';
 const express=require('express');
+const {validHours}=require('./form48-calculations');
+const {manilaDate}=require('./staff-lunch-routes');
 const {createHash}=require('node:crypto');
 const UUID=/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const CATEGORIES=new Set(['GENERAL','SCHOOL_ADVISORY','SCHEDULE_NOTICE','CLASS_SUSPENSION']);
@@ -7,6 +9,7 @@ const AUDIENCES=new Set(['ALL_USERS','SCHOOL_STAFF']);
 const MIME=new Set(['application/pdf','image/jpeg','image/png']);
 const DAY=/^\d{4}-\d{2}-\d{2}$/;
 const cleaned=(v,max=160)=>String(v||'').trim().slice(0,max+1);
+const decoded=v=>{try{return decodeURIComponent(String(v||''));}catch(_){return '';}};
 const validDate=v=>DAY.test(v)&&!Number.isNaN(Date.parse(v+'T00:00:00Z'))&&
   new Date(v+'T00:00:00Z').toISOString().slice(0,10)===v;
 function validMemoDocument(bytes,mime){
@@ -14,6 +17,20 @@ function validMemoDocument(bytes,mime){
  if(mime==='application/pdf')return bytes.subarray(0,5).toString('ascii')==='%PDF-';
  if(mime==='image/jpeg')return bytes.length>3&&bytes[0]===255&&bytes[1]===216&&bytes[2]===255;
  return bytes.length>=8&&bytes.subarray(0,8).equals(Buffer.from([137,80,78,71,13,10,26,10]));
+}
+const DTR_KEYS=['AM_IN','AM_OUT','PM_IN','PM_OUT'];
+function readTemporaryHours(raw){
+ if(!raw)return null;
+ try {
+  const input=JSON.parse(decoded(raw));
+  if(!input||typeof input!=='object'||Array.isArray(input)||
+    Object.keys(input).length!==4||!Object.keys(input).every(key=>DTR_KEYS.includes(key)))return null;
+  const hours=Object.fromEntries(DTR_KEYS.map(key=>[key,String(input[key]||'')]));
+  return validHours(hours)?hours:null;
+ }catch(_){return null;}
+}
+function durationDays(from,to){
+ return Math.round((Date.parse(to+'T12:00:00Z')-Date.parse(from+'T12:00:00Z'))/86400000);
 }
 function memoViewer(auth){
  if(auth?.type==='SCHOOL_USER'&&auth.schoolId&&auth.userId)
@@ -55,7 +72,9 @@ function registerSchoolMemoRoutes(app,pool,{authenticateSchoolClient,requireScho
   try{
    const result=await pool.query(`
     SELECT m.memo_id AS "memoId",m.title,m.summary,m.category,m.audience,
-     to_char(m.effective_date,'YYYY-MM-DD') AS "effectiveDate",m.filename,
+     to_char(m.effective_date,'YYYY-MM-DD') AS "effectiveDate",
+     to_char(m.end_date,'YYYY-MM-DD') AS "endDate",
+     m.dtr_hours AS "dtrHours",m.filename,
      m.published_at AS "publishedAt",u.display_name AS "publisher",
      a.acknowledged_at AS "acknowledgedAt"
     FROM school_memoranda m
@@ -73,27 +92,50 @@ function registerSchoolMemoRoutes(app,pool,{authenticateSchoolClient,requireScho
  });
  app.post('/api/school-memos',...principal,raw,async(req,res)=>{
   privateResponse(res);
-  const title=cleaned(req.headers['x-memo-title'],180),summary=cleaned(req.headers['x-memo-summary'],1200),
+  const title=cleaned(decoded(req.headers['x-memo-title']),180),summary=cleaned(decoded(req.headers['x-memo-summary']),1200),
     category=String(req.headers['x-memo-category']||'GENERAL').toUpperCase(),
     audience=String(req.headers['x-memo-audience']||'ALL_USERS').toUpperCase(),
     date=String(req.headers['x-memo-effective-date']||'').trim(),
+    endDate=String(req.headers['x-memo-end-date']||'').trim(),
+    dtrRequested=String(req.headers['x-memo-apply-dtr']||'false')==='true',
+    dtrHours=dtrRequested?readTemporaryHours(req.headers['x-memo-dtr-hours']):null,
     type=String(req.headers['content-type']||'').split(';')[0].trim().toLowerCase(),
-    filename=cleaned(req.headers['x-filename']||'memo.pdf',160).replace(/[^a-zA-Z0-9 ._()\-]/g,'_');
+    filename=cleaned(decoded(req.headers['x-filename']||'memo.pdf'),160).replace(/[^a-zA-Z0-9 ._()\-]/g,'_');
   if(title.length<5||title.length>180||summary.length>1200||
    !CATEGORIES.has(category)||!AUDIENCES.has(audience)||
-   (date&&!validDate(date))||(['SCHEDULE_NOTICE','CLASS_SUSPENSION'].includes(category)&&!date)||
+   (date&&!validDate(date))||(endDate&&(!validDate(endDate)||!date||endDate<date))||
+   (['SCHEDULE_NOTICE','CLASS_SUSPENSION'].includes(category)&&(!date||!endDate))||
+   (category==='CLASS_SUSPENSION'&&audience!=='ALL_USERS')||
+   (dtrRequested&&(!dtrHours||category!=='SCHEDULE_NOTICE'||
+       !date||!endDate||date<manilaDate()||durationDays(date,endDate)>30))||
+   (!dtrRequested&&req.headers['x-memo-dtr-hours'])||
    !filename||!validMemoDocument(req.body,type))
-   return res.status(400).json({error:'Provide a title, valid audience/category/date and a genuine PDF, PNG or JPG memo up to 4 MB.'});
+   return res.status(400).json({error:'Provide a valid signed memorandum, effective start/end dates for temporary notices, and four chronological DTR hours when adjustment is enabled (start today or later; maximum 31 days; staff DTR only).'});
   const client=await pool.connect();
   try{
    await client.query('BEGIN');
    const sha=createHash('sha256').update(req.body).digest('hex');
+   if(dtrHours){
+    // Serialize concurrent Principal publications for this school. No two live
+    // prescribed-hour exceptions may compete for the same day.
+    await client.query('SELECT pg_advisory_xact_lock(hashtext($1))',['memo-dtr:'+req.auth.schoolId]);
+    const overlap=await client.query(`
+     SELECT memo_id FROM school_memoranda WHERE school_id=$1
+      AND archived_at IS NULL AND dtr_hours IS NOT NULL
+      AND effective_date<=$3::date AND end_date>=$2::date LIMIT 1`,
+      [req.auth.schoolId,date,endDate]);
+    if(overlap.rowCount){
+     await client.query('ROLLBACK');
+     return res.status(409).json({error:'Another active temporary DTR schedule already covers one or more of these dates. Archive or resolve that notice before publishing a conflicting adjustment.',code:'MEMO_DTR_DATE_CONFLICT'});
+    }
+   }
    const q=await client.query(`
-    INSERT INTO school_memoranda(school_id,published_by,title,summary,category,audience,effective_date,filename,content_type,content,sha256)
-    VALUES($1,$2,$3,$4,$5,$6,$7::date,$8,$9,$10,$11)
+    INSERT INTO school_memoranda(school_id,published_by,title,summary,category,audience,effective_date,end_date,dtr_hours,filename,content_type,content,sha256)
+    VALUES($1,$2,$3,$4,$5,$6,$7::date,$8::date,$9::jsonb,$10,$11,$12,$13)
     RETURNING memo_id AS "memoId",published_at AS "publishedAt"`,
-    [req.auth.schoolId,req.auth.userId,title,summary,category,audience,date||null,filename,type,req.body,sha]);
-   const id=q.rows[0].memoId,url='/school-memos.html?id='+encodeURIComponent(id);
+    [req.auth.schoolId,req.auth.userId,title,summary,category,audience,date||null,endDate||null,
+     dtrHours?JSON.stringify(dtrHours):null,filename,type,req.body,sha]);
+   const id=q.rows[0].memoId;
    // Send durable in-app notifications to active school accounts and, for the
    // ALL_USERS audience, active registered student accounts in this school.
    // No unverified browser push delivery is claimed.
@@ -101,32 +143,36 @@ function registerSchoolMemoRoutes(app,pool,{authenticateSchoolClient,requireScho
     INSERT INTO user_notifications
       (school_id,recipient_kind,recipient_id,event_key,category,title,body,request_type,request_id,status,action_url)
     SELECT $1,'SCHOOL_USER',u.user_id,'memo:'||$2::text,'SYSTEM',$3,$4,
-      'MEMORANDUM',$2::uuid,'PUBLISHED',$5
+      'MEMORANDUM',$2::uuid,'PUBLISHED',
+      CASE WHEN u.role='PRINCIPAL' THEN '/principal.html?memo='||$2::text
+           WHEN u.role='PARENT' THEN '/parent-portal.html?memo='||$2::text
+           ELSE '/portal.html?memo='||$2::text END
     FROM school_users u WHERE u.school_id=$1 AND u.active=TRUE
-      AND ($6='ALL_USERS' OR u.role<>'PARENT')
+      AND ($5='ALL_USERS' OR u.role<>'PARENT')
     ON CONFLICT(recipient_kind,recipient_id,event_key) DO NOTHING`,
-    [req.auth.schoolId,id,'School memorandum: '+title,summary.slice(0,280),url,audience]);
+    [req.auth.schoolId,id,'School memorandum: '+title,summary.slice(0,280),audience]);
    let learners={rowCount:0};
    if(audience==='ALL_USERS'){
     learners=await client.query(`
      INSERT INTO user_notifications
        (school_id,recipient_kind,recipient_id,event_key,category,title,body,request_type,request_id,status,action_url)
      SELECT $1,'STUDENT',sa.student_account_id,'memo:'||$2::text,'SYSTEM',$3,$4,
-      'MEMORANDUM',$2::uuid,'PUBLISHED',$5
+      'MEMORANDUM',$2::uuid,'PUBLISHED','/student-portal.html?memo='||$2::text
      FROM student_accounts sa JOIN students st ON st.school_id=sa.school_id
         AND st.student_id=sa.student_id AND st.active=TRUE
      WHERE sa.school_id=$1 AND sa.active=TRUE
      ON CONFLICT(recipient_kind,recipient_id,event_key) DO NOTHING`,
-     [req.auth.schoolId,id,'School memorandum: '+title,summary.slice(0,280),url]);
+     [req.auth.schoolId,id,'School memorandum: '+title,summary.slice(0,280)]);
    }
    await client.query(`
     INSERT INTO school_memo_audit(school_id,memo_id,actor_user_id,action,detail)
     VALUES($1,$2,$3,'PUBLISHED',$4::jsonb)`,
-    [req.auth.schoolId,id,req.auth.userId,JSON.stringify({category,audience,effectiveDate:date||null,notified:staff.rowCount+learners.rowCount,sha256:sha})]);
+    [req.auth.schoolId,id,req.auth.userId,JSON.stringify({category,audience,effectiveDate:date||null,endDate:endDate||null,
+      dtrHours,notified:staff.rowCount+learners.rowCount,sha256:sha})]);
    await client.query('COMMIT');
    return res.status(201).json({memoId:id,publishedAt:q.rows[0].publishedAt,
     notifiedAccounts:staff.rowCount+learners.rowCount,
-    notice:'Published and queued in in-app inboxes. This does not automatically alter school schedules or certify that recipients have read the memo.'});
+    notice:dtrHours?'Published with date-bounded prescribed DTR hours for school personnel. Actual punches, class timetables, and manual reviews remain unchanged.':'Published as an announcement; no DTR or timetable changes. Delivery does not prove that recipients read the memo.'});
   }catch(e){await client.query('ROLLBACK').catch(()=>{});return fail(res,e);}finally{client.release();}
  });
  app.get('/api/school-memos/:id/file',...read,async(req,res)=>{
@@ -177,6 +223,17 @@ function registerSchoolMemoRoutes(app,pool,{authenticateSchoolClient,requireScho
   const client=await pool.connect();
   try{
    await client.query('BEGIN');
+   // Never sever the current/future operational calendar source by archiving
+   // the supporting Principal memo before the School Admin clears the link.
+   const dependent=await client.query(`SELECT 1 FROM school_calendar_exceptions
+     WHERE school_id=$1 AND memo_id=$2 AND calendar_date>=(NOW() AT TIME ZONE 'Asia/Manila')::date
+     UNION ALL SELECT 1 FROM schedule_day_adjustments
+     WHERE school_id=$1 AND memo_id=$2 AND school_date>=(NOW() AT TIME ZONE 'Asia/Manila')::date
+     LIMIT 1`,[req.auth.schoolId,req.params.id]);
+   if(dependent.rowCount){
+    await client.query('ROLLBACK');
+    return res.status(409).json({error:'This memorandum is linked to a current or upcoming calendar/schedule change. First update the existing change in School Calendar or Date-Specific Changes.'});
+   }
    const result=await client.query(`
     UPDATE school_memoranda SET archived_at=NOW(),archived_by=$3
     WHERE school_id=$1 AND memo_id=$2 AND archived_at IS NULL RETURNING memo_id`,
@@ -189,4 +246,4 @@ function registerSchoolMemoRoutes(app,pool,{authenticateSchoolClient,requireScho
   }catch(e){await client.query('ROLLBACK').catch(()=>{});return fail(res,e);}finally{client.release();}
  });
 }
-module.exports={registerSchoolMemoRoutes,validMemoDocument,memoViewer,canReadMemo};
+module.exports={registerSchoolMemoRoutes,validMemoDocument,memoViewer,canReadMemo,readTemporaryHours,durationDays};

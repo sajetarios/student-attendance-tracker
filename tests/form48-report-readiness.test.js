@@ -50,7 +50,7 @@ test('Generate preview waits for settings and can retry after a failed load',()=
  assert.match(script,/const loaded=await \(configLoad&&state\.key===key\?configLoad:fetchConfig\(\)\)/);
  assert.match(script,/if\(!loaded\|\|!state\.review\)/);
  assert.match(script,/if\(person\.value&&month\.value\)fetchConfig\(\)/);
- assert.match(html,/form48-report\.js\?v=19/);
- assert.match(sw,/form48-report\.js\?v=19/);
+ assert.match(html,/form48-report\.js\?v=20/);
+ assert.match(sw,/form48-report\.js\?v=20/);
  assertCacheRevisionAtLeast(sw,316);
 });

@@ -16,7 +16,7 @@
   $('parentSubjectNoticeSave').addEventListener('click',async()=>{
     const enabled=$('parentSubjectNoticeEnable').checked;
     const feedback=$('parentSubjectNoticeFeedback');
-    if(enabled&&!(await AppDialog.confirm('Enable in-app notifications after every finalized subject register for all verified parent-child links? Check your parent contact permissions and pilot records first.',{
+    if(enabled&&!(await AppDialog.confirm('Enable in-app notifications after every finalized subject register for all verified parent-child links? Check your parent contact permissions and approved relationships first.',{
       title:'Enable guardian subject alerts',confirmText:'Enable alerts'
     }))){$('parentSubjectNoticeEnable').checked=false;return;}
     $('parentSubjectNoticeSave').disabled=true;feedback.textContent='Saving…';

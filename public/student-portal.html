@@ -1,7 +1,7 @@
 <!doctype html>
 <html lang="en" data-protected-role="STUDENT">
-<head>
-  <script src="/session-guard.js?v=2"></script>
+<head><script src="/offline-account-guard.js?v=1"></script>
+  <script src="/session-guard.js?v=6"></script>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="theme-color" content="#0e2053">
@@ -28,6 +28,13 @@
     .student-table{min-width:680px}
     .password-required{border:2px solid #f59e0b;background:#fffbeb}
     .password-required[hidden]{display:none!important}
+    .student-portal-body .student-qr-entry{display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;margin-bottom:16px;border-left:4px solid #2563a9}
+    .student-qr-entry h2{margin:0 0 6px;font-size:1.2rem}
+    .student-qr-entry p{margin:0;line-height:1.5}
+    .student-qr-entry #studentScanQr{display:inline-flex;align-items:center;justify-content:center;gap:9px;min-height:48px;padding:12px 20px;font-size:1rem;font-weight:700;white-space:normal}
+    .student-qr-entry #studentScanQr svg{flex-shrink:0}
+    .student-portal-body #studentQrScannerCard{margin-bottom:16px}
+    @media(max-width:600px){.student-qr-entry #studentScanQr{width:100%}.student-portal-body .student-qr-entry{gap:12px}}
     .student-feedback{min-height:22px;color:#a12b42;font-size:14px}
     @media(max-width:700px){.student-page{padding:18px 12px 34px}.student-header{align-items:flex-start;flex-direction:column}.student-profile-grid{grid-template-columns:1fr}.student-card{padding:16px}}
   </style>
@@ -36,12 +43,12 @@
   <link rel="stylesheet" href="/dashboard-night.css?v=1">
 <link rel="stylesheet" href="/dashboard-polish.css?v=1">
   <link rel="stylesheet" href="/photo-editor.css?v=2">
-<script src="/dashboard-icons.js?v=4"></script>
+<script src="/dashboard-icons.js?v=7"></script>
 <script src="/dashboard-appearance.js?v=3"></script>
 <link rel="icon" type="image/png" href="/assets/attendigo-favicon.png?v=3">
 <link rel="apple-touch-icon" href="/assets/attendigo-apple-touch-icon.png?v=3">
 <link rel="stylesheet" href="/attendigo-brand.css?v=2">
-<link rel="stylesheet" href="/student-portal-refinement.css?v=1">
+<link rel="stylesheet" href="/student-portal-refinement.css?v=3">
 <link rel="manifest" href="/manifest.webmanifest">
   <link rel="stylesheet" href="/attendigo-dark-unified.css?v=1">
   <link rel="stylesheet" href="/universal-notifications.css?v=4">
@@ -50,7 +57,11 @@
   <link rel="stylesheet" href="/typography.css?v=1">
   <link rel="stylesheet" href="/attendigo-workspace-density-theme.css?v=1">
   <link rel="stylesheet" href="/role-controls-responsive.css?v=2">
-<link rel="stylesheet" href="/school-memo-banner.css?v=1">
+<link rel="stylesheet" href="/school-memo-banner.css?v=3">
+  <link rel="stylesheet" href="/attendigo-form-overlap-guard.css?v=2">
+<link rel="stylesheet" href="/attendigo-layout-density.css?v=1">
+<link rel="stylesheet" href="/app-dialog.css?v=2">
+<script src="/app-dialog.js?v=1" defer></script>
 </head>
 <body class="portal-page student-portal-body">
   <header class="student-site-header">
@@ -71,8 +82,48 @@
         <button class="outline-button" id="studentLogout" type="button"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h4"/><path d="M16 17l5-5-5-5M21 12H9"/></svg>Sign out</button>
       </div>
     </header>
-    <section class="student-summary-grid" id="studentAttendanceSummary" aria-label="My attendance summary">
-      <article class="student-summary-item"><span>Accepted records</span><strong id="studentRecordCount">—</strong><span class="student-summary-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12l5 5L20 6"/></svg></span></article>
+    <section class="student-card student-profile-overview" id="studentProfileCard" aria-labelledby="studentProfileHeading">
+      <div class="student-profile-heading"><h2 id="studentProfileHeading">My profile</h2><p class="muted" id="studentProfileIntro">Student information</p></div>
+      <div class="student-profile-identity">
+        <div id="studentProfilePhoto" aria-label="Profile photo"></div>
+        <div class="student-profile-grid">
+          <div class="student-profile-item"><span>Student ID</span><strong id="studentIdValue">—</strong></div>
+          <div class="student-profile-item"><span>Grade level</span><strong id="studentGradeValue">—</strong></div>
+          <div class="student-profile-item"><span>Section</span><strong id="studentSectionValue">—</strong></div>
+        </div>
+      </div>
+      <details class="student-profile-settings" id="studentProfileSettings">
+        <summary>More profile &amp; account settings</summary>
+        <div class="student-profile-settings-body">
+          <div class="student-profile-item"><span>Primary special program</span><strong id="studentSpecialProgramValue">Not assigned</strong></div>
+          <div id="attendancePinSetup"><a class="outline-button" href="/attendance-pin.html">Set or reset Attendance PIN</a><span class="muted">Six-digit PIN for classroom QR check-ins without signing in.</span></div>
+        </div>
+      </details>
+    </section>
+    <section class="student-card student-qr-entry" aria-labelledby="studentQrEntryTitle">
+      <div><h2 id="studentQrEntryTitle">Class attendance</h2>
+      <p class="muted" id="studentQrReady">Verifying your student session…</p><p id="studentQrQueueStatus" role="status">Offline scans are not official attendance until verified.</p><ul id="studentQrQueueItems"></ul><button class="outline-button" type="button" id="studentQrSync">Sync pending scans</button></div>
+      <button class="primary-button" id="studentScanQr" type="button" disabled><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 8V3h5M16 3h5v5M21 16v5h-5M8 21H3v-5M7 7h3v3H7zM14 7h3v3h-3zM7 14h3v3H7zM14 14h3v3h-3z"/></svg> Scan class QR</button>
+    </section>
+    <section class="student-card" id="studentQrScannerCard" hidden style="display:none">
+      <h2>Scan your teacher’s class QR</h2><p>Allow camera access to scan without leaving your signed-in Student Portal.</p>
+      <div id="studentQrReader" style="width:100%;max-width:440px;margin:0 auto"></div>
+      <p id="studentQrFeedback" role="status" aria-live="polite"></p>
+      <div id="studentQrActions" hidden style="display:none;flex-wrap:wrap;gap:8px;margin:12px 0">
+        <button class="primary-button" type="button" id="studentQrConfirm" disabled>Confirm attendance</button>
+        <button class="outline-button" type="button" id="studentQrRescan">Scan another QR</button>
+      </div>
+      <details style="margin:12px 0"><summary>Camera not working? Paste a QR link instead</summary>
+        <form method="post" id="studentQrPasteForm" style="display:grid;gap:8px;margin-top:10px">
+          <label for="studentQrLink">Teacher's class QR link</label>
+          <input id="studentQrLink" type="url" required autocomplete="off" spellcheck="false" placeholder="https://attendigo.tech/class-qr-checkin.html?…">
+          <button class="outline-button" type="submit">Read QR link</button>
+        </form>
+      </details>
+      <button class="outline-button" type="button" id="studentQrStop">Close scanner</button>
+    </section>
+    <section class="student-summary-grid" id="studentAttendanceSummary" aria-label="Latest accepted attendance records" hidden>
+      <article class="student-summary-item"><span>Recent accepted records</span><strong id="studentRecordCount">—</strong><span class="student-summary-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12l5 5L20 6"/></svg></span></article>
       <article class="student-summary-item"><span>Subject records</span><strong id="studentSubjectCount">—</strong><span class="student-summary-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 5.5c3-1.8 6.2-1.8 9 0 2.8-1.8 6-1.8 9 0v14c-3-1.8-6.2-1.8-9 0-2.8-1.8-6-1.8-9 0v-14ZM12 5.5v14"/></svg></span></article>
       <article class="student-summary-item"><span>Gate records</span><strong id="studentGateCount">—</strong><span class="student-summary-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 21V4h14v17M9 8h6M9 12h6M2 21h20"/></svg></span></article>
     </section>
@@ -88,32 +139,34 @@
       <p class="student-feedback" id="studentPasswordFeedback" role="status"></p>
     </section>
 
-    <div class="student-main-grid">
-    <section class="student-card" id="studentProfileCard">
-      <h2>My profile</h2><p class="muted" id="studentProfileIntro">Your registered school information.</p>
-      <div class="student-profile-grid">
-        <div class="student-profile-item"><span>Student ID</span><strong id="studentIdValue">—</strong></div>
-        <div class="student-profile-item"><span>Grade level</span><strong id="studentGradeValue">—</strong></div>
-        <div class="student-profile-item"><span>Section</span><strong id="studentSectionValue">—</strong></div>
-        <div class="student-profile-item"><span>Primary special program</span><strong id="studentSpecialProgramValue">Not assigned</strong></div>
-      </div>
-      <p id="attendancePinSetup" style="margin:18px 0 0"><a class="outline-button" href="/attendance-pin.html">Set or reset my Attendance PIN</a><span class="muted" style="display:block;margin-top:7px">Use this separate six-digit PIN for classroom QR check-ins without signing in.</span></p>
-    </section>
-    <section class="student-card" id="studentAttendanceCard">
-      <div class="student-attendance-head"><div><h2>My attendance</h2><p class="muted">Accepted school-gate and class attendance records.</p></div></div>
-      <div class="student-attendance-controls">
-        <label for="studentAttendanceSearch"><span>Search your attendance history</span><input type="search" id="studentAttendanceSearch" placeholder="Search date, subject, or event" autocomplete="off"></label>
+    <div class="student-main-grid student-attendance-workspace">
+    <section class="student-card" id="studentAttendanceCard" hidden>
+      <div class="student-attendance-head"><div><h2>My attendance</h2><p class="muted">Verified attendance records grouped by date and subject.</p></div></div>
+      <div class="student-history-filters">
+        <label for="studentAttendanceDate"><span>Attendance date</span><select id="studentAttendanceDate"><option value="LATEST">Latest recorded day</option><option value="ALL">All recent dates</option></select></label>
         <label for="studentAttendanceScopeFilter"><span>Attendance area</span><select id="studentAttendanceScopeFilter"><option value="ALL">All attendance</option><option value="CLASS">Subject classes</option><option value="SCHOOL">School gate</option></select></label>
+        <label for="studentAttendanceSubject"><span>Subject</span><select id="studentAttendanceSubject"><option value="ALL">All subjects</option></select></label>
+        <label for="studentAttendanceSearch"><span>Search records</span><input type="search" id="studentAttendanceSearch" placeholder="Subject, date, or event" autocomplete="off"></label>
       </div>
-      <div class="table-scroll" role="region" aria-label="Scrollable student attendance history" tabindex="0"><table class="student-table"><thead><tr><th>Date</th><th>Attendance area</th><th>Class / subject</th><th>Event</th><th>Time</th><th>Status</th></tr></thead><tbody id="studentAttendanceRows"><tr><td colspan="6" class="empty-cell">Loading attendance…</td></tr></tbody></table></div>
+      <div class="student-history-stats" id="studentAttendanceDayStats" aria-label="Filtered attendance summary" hidden>
+        <div><strong id="studentHistoryClassCount">—</strong><span>Subject groups</span></div>
+        <div><strong id="studentHistoryLateCount">—</strong><span>Late events</span></div>
+        <div><strong id="studentHistoryGateCount">—</strong><span>Gate events</span></div>
+      </div>
+      <p id="studentAttendanceRangeNote" class="student-history-note">Shows up to 200 latest accepted records. This is not a complete class register.</p>
+      <div id="studentAttendanceRows" class="student-history-list" aria-label="Attendance history"><p class="student-history-empty">Loading attendance…</p></div>
+      <nav id="studentAttendancePages" class="student-history-pages" aria-label="Attendance dates" hidden><button type="button" class="outline-button" id="studentHistoryPrevious">Previous</button><span id="studentHistoryPageLabel"></span><button type="button" class="outline-button" id="studentHistoryNext">Next</button></nav>
       <p class="student-attendance-footer" id="studentAttendanceVisibleCount" role="status" aria-live="polite">Loading attendance records…</p>
     </section>
+    
     </div>
     <p class="student-feedback" id="studentPortalFeedback" role="status"></p>
   </main>
   <script src="/photo-editor.js?v=9" defer></script>
-  <script src="/student-portal.js?v=20" defer></script>
-  <script src="/universal-notifications.js?v=5" defer></script>
-<script defer src="/school-memo-banner.js?v=1"></script>
+  <script src="/student-qr-offline.js?v=4" defer></script>
+  <script src="/student-qr-scanner.js?v=5" defer></script>
+  <script src="/student-portal.js?v=28" defer></script>
+  <script src="/universal-notifications.js?v=11" defer></script>
+<script defer src="/school-memo-banner.js?v=4"></script>
 </body>
 </html>

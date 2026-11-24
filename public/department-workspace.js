@@ -383,6 +383,7 @@
         button.disabled = false;
       }
     });
+    document.addEventListener('attendigo:dashboard-refresh',event=>{if(!$('dashboardView')?.hidden)event.detail.tasks.push(Promise.all([loadOverview(),loadAnnouncements()]));});
     await Promise.all([loadOverview(), loadAnnouncements()]);
   }
 

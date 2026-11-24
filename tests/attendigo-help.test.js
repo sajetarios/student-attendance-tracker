@@ -49,10 +49,10 @@ test('guide has no autonomous record write operations or hardcoded privileged UR
   assert.doesNotMatch(client,/\/api\/(?:students|attendance|staff-ob|staff-leave|gate|form48)\//);
   assert.match(css,/safe-area-inset-bottom/);
   assert.match(css,/prefers-reduced-motion/);
-  assert.match(html,/attendigo-help-topics\.js\?v=2/);
+  assert.match(html,/attendigo-help-topics\.js\?v=3/);
   assert.match(html,/attendigo-help-guide\.js\?v=4/);
-  assert.match(html,/attendigo-help\.css\?v=3/);
-  for(const asset of ['/attendigo-help-topics.js?v=2','/attendigo-help-guide.js?v=4','/attendigo-help.css?v=3'])
+  assert.match(html,/attendigo-help\.css\?v=4/);
+  for(const asset of ['/attendigo-help-topics.js?v=3','/attendigo-help-guide.js?v=4','/attendigo-help.css?v=4'])
     assert.ok(sw.includes(JSON.stringify(asset)), 'Offline PWA asset: '+asset);
   assertCacheRevisionAtLeast(sw,311);
 });
@@ -104,7 +104,11 @@ test('animated help robot stays in sidebar Help & Support, never crowding the he
   assert.ok(!client.includes('headerActions.insertBefore'));
   assert.ok(!css.includes('.topbar-right > .attendigo-help-launcher'));
   assert.ok(css.includes('#sidebar.sidebar .attendigo-help-dock'));
-  assert.ok(css.includes('position:sticky;bottom:0'));
+  const dock=css.match(/#sidebar\.sidebar \.attendigo-help-dock\s*\{([^}]+)\}/)[1];
+  assert.match(dock,/position:static!important;inset:auto!important;z-index:auto!important/);
+  assert.match(dock,/order:999!important;flex:0 0 auto/);
+  assert.doesNotMatch(dock,/position:\s*(?:sticky|fixed|absolute)/);
+  assert.ok(sw.includes("'/attendigo-help.css'"),'online sidebar CSS must refresh even with stale shell');
   assert.ok(css.includes('sidebar-collapsed'));
   assert.ok(css.includes('@keyframes ah-wave'));
   assert.ok(css.includes('@keyframes ah-blink'));

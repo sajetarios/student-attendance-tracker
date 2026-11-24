@@ -22,7 +22,7 @@
   if(subjectSave)subjectSave.addEventListener('click',async()=>{
     const checkbox=$('parentSubjectNoticeEnable'),feedback=$('parentSubjectNoticeFeedback');
     const enabled=checkbox.checked;
-    if(enabled && !await AppDialog.confirm('Enable in-app subject attendance alerts to all approved parents in this school when teachers finalize class registers? Confirm pilot parent links are correct first.',{
+    if(enabled && !await AppDialog.confirm('Enable in-app subject attendance alerts to all approved parents in this school when teachers finalize class registers? Confirm approved parent links are correct first.',{
       title:'Enable subject notifications',confirmText:'Enable alerts'
     })){
       await loadSubjectNotificationSetting();

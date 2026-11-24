@@ -89,7 +89,7 @@
         message((body.slot==='AM_OUT'?'Lunch Time-Out':'Lunch Return')+
           ' verified. Your official DTR entry was recorded.','success');
       }else{
-        message('Scan received, but NOT yet recorded in the official DTR. School Admin review is required. You may also use supervised Gatekeeper scanning.','info');
+        message('Scan received, but NOT yet recorded in the official DTR. Independent attendance review is required. You may also use supervised Gatekeeper scanning.','info');
       }
       completed=true;
       confirm.hidden=true;

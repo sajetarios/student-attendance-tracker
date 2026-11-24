@@ -1,4 +1,4 @@
--- 081: Notify verified guardians when a teacher finalizes an individual subject register.
+-- 085: Notify verified guardians when a teacher finalizes an individual subject register.
 -- Never derive subject attendance from physical gate events or provisional marks.
 -- Re-finalization with an unchanged status is idempotent; a real correction updates the same inbox item.
 CREATE OR REPLACE FUNCTION attendigo_parent_subject_finalized_notice()

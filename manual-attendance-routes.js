@@ -50,6 +50,14 @@ function registerManualAttendanceRoutes(app,pool,{authenticateSchoolClient,requi
          [req.auth.schoolId,periodId+'|'+date]);
      const period=await authorizedPeriod(client,req,periodId,date);
      if(!period){await client.query('ROLLBACK');return res.status(403).json({error:'This class is not assigned to you.'});}
+     const suspended=await client.query(`SELECT 1 FROM school_calendar_exceptions e
+       JOIN class_periods p ON p.school_id=e.school_id AND p.period_id=$3
+       LEFT JOIN schedule_day_adjustments a ON a.school_id=p.school_id AND a.period_id=p.period_id AND a.school_date=e.calendar_date
+       WHERE e.school_id=$1 AND e.calendar_date=$2::date
+         AND (e.exception_type='CLOSED' OR (e.exception_type='CLASS_SUSPENSION'
+          AND (e.suspension_time IS NULL OR COALESCE(a.end_time,p.end_time)>e.suspension_time)))`,
+       [req.auth.schoolId,date,periodId]);
+     if(suspended.rowCount){await client.query('ROLLBACK');return res.status(409).json({error:'This class is suspended. Recorded learner attendance is preserved; do not enter new absences for the cancelled period.'});}
      const signed=await client.query('SELECT 1 FROM class_attendance_finalizations WHERE school_id=$1 AND period_id=$2 AND school_date=$3 AND finalized=TRUE',[req.auth.schoolId,periodId,date]);
        if(signed.rowCount){await client.query('ROLLBACK');return res.status(409).json({error:'This register is finalized. Reopen it before editing marks.'});}
        // Scope is checked in the database, including the active school-year enrollment.

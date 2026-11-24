@@ -92,7 +92,7 @@ test('phone notifications use protected, privacy-safe deep links',()=>{
  assert.ok(!url.includes('00000000-0000-4000-8000-000000000001'));
 });
 test('migration keeps API-only subscriptions and explicit school opt-in',()=>{
- const migration=fs.readFileSync('migrations/083_parent_web_push.sql','utf8');
+ const migration=fs.readFileSync('migrations/087_parent_web_push.sql','utf8');
  const registry=fs.readFileSync('scripts/migrate.js','utf8');
  const portal=fs.readFileSync('public/parent-portal.html','utf8');
  const sw=fs.readFileSync('public/sw.js','utf8');
@@ -102,10 +102,10 @@ test('migration keeps API-only subscriptions and explicit school opt-in',()=>{
  assert.match(migration,/parent_push_deliveries/);
  assert.match(migration,/queue_parent_subject_push/);
  assert.match(migration,/parent_subject_notifications/);
- assert.match(registry,/'083_parent_web_push\.sql'/);
+ assert.match(registry,/'087_parent_web_push\.sql'/);
  assert.match(portal,/id="pushEnable"/);
  assert.match(portal,/id="pushTest"/);
- assert.match(portal,/\/parent-push\.js\?v=2/);
+ require('./support/asset-contract').assertCachedAsset(portal,sw,'parent-push.js',{minimumVersion:2});
  assert.match(sw,/addEventListener\('push'/);
  assert.match(sw,/addEventListener\('notificationclick'/);
 });

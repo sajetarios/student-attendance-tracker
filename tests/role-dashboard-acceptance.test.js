@@ -19,12 +19,12 @@ test('School Administrator dashboard includes learner, staff, schedule, and SF2 
   for (const view of ['students', 'teachers', 'schedules', 'sf2']) {
     assert.match(portalHtml, new RegExp(`data-go="${view}"`));
   }
-  assert.match(portalJs, /if \(role === 'SCHOOL_ADMIN'\) return \['dashboard', 'students', 'studentAccounts', 'parents', 'teachers', 'schedules', 'myGateAttendance', 'lunchQrAdmin', 'form48Reports', 'classQrMonitor', 'offlineScanReviews', 'officialBusiness', 'cloudSync', 'schoolBranding'\]/);
+  assert.match(portalJs, /if \(role === 'SCHOOL_ADMIN'\) return \['dashboard', 'students', 'studentAccounts', 'parents', 'teachers', 'schedules', 'myGateAttendance', 'form48Reports', 'classQrMonitor', 'offlineScanReviews', 'officialBusiness', 'cloudSync', 'schoolBranding'\]/);
   assert.match(server, /app\.post\('\/api\/school-users', authenticateSchoolClient, requireSchoolAdmin/);
 });
 
 test('Department Head dashboard has school monitoring pages and read-only SF2 submission monitoring', () => {
-  assert.match(portalJs, /if \(role === 'DEPARTMENT_HEAD'\) return \['dashboard', 'planner', 'students', 'teachers', 'schedules', 'sf2', 'officialBusiness', 'myGateAttendance'\]/);
+  assert.match(portalJs, /if \(role === 'DEPARTMENT_HEAD'\) return \['dashboard', 'planner', 'students', 'teachers', 'schedules', 'sf2', 'officialBusiness', 'myGateAttendance', 'lunchQrAdmin'\]/);
   assert.match(portalJs, /sf2SubmissionsCard'\)\) \$\('sf2SubmissionsCard'\)\.hidden = admin \|\| !departmentHead/);
   assert.match(portalJs, /item\.status === 'SUBMITTED' && user\?\.role === 'SCHOOL_ADMIN'/);
   assert.match(sf2Routes, /app\.get\('\/api\/sf2\/submissions', authenticateSchoolClient, requireSchoolAdminOrDepartmentHead/);
@@ -51,7 +51,7 @@ test('Parent dashboard aggregates only the parent account linked children', () =
   assert.match(parentHtml, /id="parentChildCount"/);
   assert.match(parentHtml, /id="parentTodayTimeIns"/);
   assert.match(parentJs, /api\('\/api\/parent\/children'\)/);
-  assert.match(parentJs, /api\(`\/api\/parent\/children\/\$\{encodeURIComponent\(b\.dataset\.history\)\}\/attendance`\)/);
+  assert.match(parentJs, /api\(`\/api\/parent\/children\/\$\{encodeURIComponent\(studentId\)\}\/attendance`\)/);
 });
 
 test('Student dashboard is separate and reports only the signed-in student attendance', () => {

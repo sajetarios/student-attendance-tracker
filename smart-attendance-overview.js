@@ -9,7 +9,7 @@ const needsHumanReview=new Set([
  'AMBIGUOUS_SCHEDULE_SLOT','OUTSIDE_SCHEDULE_WINDOW',
  'CALENDAR_EXCEPTION_REQUIRES_REVIEW'
 ]);
-function buildSmartOverview({date,staff=[],schedules=[],defaults=null,gate=[],dtr=[],ob=[],calendarExceptions=[]}={}){
+function buildSmartOverview({date,staff=[],schedules=[],defaults=null,gate=[],dtr=[],ob=[],calendarExceptions=[],documentedExceptions=[]}={}){
  const weekday=new Date(date+'T12:00:00Z').getUTCDay();
  const scheduleMap=new Map(schedules.map(x=>[String(x.staffUserId),x]));
  const collect=rows=>{
@@ -18,7 +18,7 @@ function buildSmartOverview({date,staff=[],schedules=[],defaults=null,gate=[],dt
    map.get(id).push(r);
   }return map;
  };
- const gates=collect(gate),dtrs=collect(dtr),obs=collect(ob);
+ const gates=collect(gate),dtrs=collect(dtr),obs=collect(ob),documented=collect(documentedExceptions);
  let verifiedGateEvents=0,scannedStaff=0,officialDtrStaff=0;
  const items=[];const health={review:0,pending:0,info:0};
  const scheduleNotSet=new Set();
@@ -32,6 +32,13 @@ function buildSmartOverview({date,staff=[],schedules=[],defaults=null,gate=[],dt
   if(count)officialDtrStaff++;
   const effective=effectiveStaffSchedule(scheduleMap.get(id)||null,defaults);
   const schedule=effective.schedule;
+  // Exclude only the exact audited historical direction error from fresh gate
+  // matching; keep the raw scan in counts and leave other evidence under review.
+  const [first,lunch,last]=gateRows;
+  const reviewedExit=!obRows.length&&gateRows.length===3&&first.eventType==='TIME_IN'&&
+   lunch.eventType==='TIME_OUT'&&last.eventType==='TIME_IN'&&last.reviewedActualExit===true&&
+   first.time===verified.AM_IN&&lunch.time===verified.AM_OUT&&last.time===verified.PM_OUT;
+  const matchingGateRows=reviewedExit?gateRows.slice(0,2):gateRows;
   let result={review:[],suggestions:{},safeToApply:false};
   if(calendarExceptions.length)result.review=['CALENDAR_EXCEPTION_REQUIRES_REVIEW'];
   else if(!schedule){
@@ -39,10 +46,12 @@ function buildSmartOverview({date,staff=[],schedules=[],defaults=null,gate=[],dt
    scheduleNotSet.add(id);
   }else if(!schedule.workdays.includes(weekday))result.review=['NOT_SCHEDULED_WORKDAY'];
   else if(obRows.some(x=>x.crossDay))result.review=['OB_INTERVAL_AMBIGUOUS'];
-  else result=reconcileGateDay({movements:gateRows.map(x=>({eventType:x.eventType,time:x.time})),
+  else result=reconcileGateDay({movements:matchingGateRows.map(x=>({eventType:x.eventType,time:x.time,confirmedMissingReturnExit:x.confirmedMissingReturnExit})),
    existingSlots:verified,hours:weekday===6?schedule.saturdayHours:schedule.regularHours,
    approvedOb:obRows.map(x=>({start:x.start,end:x.end}))});
-  const reasons=result.review||[];
+  const reasons=(result.review||[]).filter(reason=>reason!=='SLOT_ALREADY_VERIFIED');
+  const documentedSlots=new Set((documented.get(id)||[]).filter(r=>slots.has(r.slot)&&r.time).map(r=>r.slot));
+  const unresolvedSlots=[...slots].filter(slot=>!verified[slot]&&!documentedSlots.has(slot));
   // An off-day scan does not prove a missed attendance duty or warrant an
   // automatic DTR entry. It remains visible for authorized special-duty review.
   let status='ok',message='Verified attendance evidence is available.';
@@ -52,15 +61,17 @@ function buildSmartOverview({date,staff=[],schedules=[],defaults=null,gate=[],dt
    status='info';message='Gate activity on a day outside this employee’s regular work schedule.';
   }else if(reasons.some(x=>needsHumanReview.has(x))){
    status='review';message='Unusual or conflicting gate / OB movements need checking.';
-  }else if(gateRows.length&&count<4){
-   status='pending';message='Gate scans were saved, but some official DTR times are not recorded.';
+  }else if(gateRows.length&&unresolvedSlots.length){
+   status='pending';message='Some official DTR slots still need verification: '+unresolvedSlots.map(x=>x.replace('_',' ')).join(', ')+'.';
   }else if(obRows.length){
    status='pending';message='Approved OB is recorded; verify the official DTR separately.';
+  }else if(documentedSlots.size&&count<4){
+   status='info';message='Missing scan reviewed and documented; official DTR stays blank for the documented slot under school policy.';
   }
   if(status==='ok')continue;
   health[status]++;
   items.push({staffUserId:id,name:String(person.displayName||'Staff member'),role:person.role,
-   status,message,gateCount:gateRows.length,dtrCount:count,approvedObCount:obRows.length,
+   status,message,gateCount:gateRows.length,dtrCount:count,documentedCount:[...documentedSlots].filter(slot=>!verified[slot]).length,approvedObCount:obRows.length,
    review:reasons,suggestions:Object.keys(result.suggestions||{}).length});
  }
  const order={review:0,pending:1,info:2};

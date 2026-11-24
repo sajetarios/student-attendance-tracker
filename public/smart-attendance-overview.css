@@ -126,3 +126,51 @@
   max-width:100%;
  }
 }
+
+/* Form 48 review workspace: compact and contained at phone/tablet/desktop widths. */
+@media screen{
+ body.portal-page #form48ReportCard :is(#form48GateIntelligence,#form48DailyInsights,#smartAttendanceOverview,#smartAttendanceHours,.form48-intelligence-body,.smart-attendance-hours-body,.smart-attendance-head,.smart-attendance-date-control,.smart-attendance-hours-grid,.smart-hours-preset,.form48-intelligence-controls){box-sizing:border-box;min-width:0!important;min-inline-size:0!important;max-width:100%!important}
+ body.portal-page #form48ReportCard :is(.smart-attendance-date-control,.smart-attendance-hours-grid,.smart-hours-preset,.form48-intelligence-controls,.form48-hour-inputs) :is(input,select){display:block;box-sizing:border-box!important;width:100%!important;inline-size:100%!important;min-width:0!important;min-inline-size:0!important;max-width:100%!important;max-inline-size:100%!important;min-height:44px!important;height:auto!important;font-size:16px;padding:8px}
+ body.portal-page #form48ReportCard :is(input[type=date],input[type=time])::-webkit-date-and-time-value{min-width:0;min-inline-size:0;text-align:left}
+ body.portal-page #form48ReportCard :is(.smart-attendance-hours-grid,.form48-hour-inputs) label{display:grid;grid-template-columns:minmax(0,1fr);min-width:0!important;max-width:100%!important}
+ body.portal-page #form48ReportCard .smart-attendance-head{display:flex!important;flex-wrap:wrap;align-items:flex-end!important;gap:10px}
+ body.portal-page #form48ReportCard .smart-attendance-head>div:first-child{flex:1 1 230px;min-width:0}
+ body.portal-page #form48ReportCard :is(.smart-attendance-date-control,.form48-intelligence-controls){display:grid!important;grid-template-columns:minmax(0,1fr) auto;align-items:end;gap:8px;width:100%;min-width:0}
+ body.portal-page #form48ReportCard .smart-attendance-date-control{flex:1 1 330px;max-width:440px!important}
+ body.portal-page #form48ReportCard :is(.smart-attendance-date-control,.form48-intelligence-controls) label{min-width:0;width:100%;display:grid;grid-template-columns:minmax(0,1fr)}
+ body.portal-page #form48ReportCard :is(.smart-attendance-date-control,.form48-intelligence-controls) button{width:auto!important;min-width:0!important;min-height:44px!important;max-width:100%;white-space:normal;padding:8px 12px}
+ body.portal-page #form48ReportCard .smart-attendance-counts{grid-template-columns:repeat(3,minmax(0,1fr));gap:6px;margin:10px 0}
+ body.portal-page #form48ReportCard .smart-attendance-counts>div{grid-column:auto;padding:9px;gap:4px;min-width:0}
+ body.portal-page #form48ReportCard .smart-attendance-counts strong{font-size:20px;line-height:1.2}
+ body.portal-page #form48ReportCard .smart-attendance-counts span{font-size:11px;overflow-wrap:anywhere}
+ body.portal-page #form48ReportCard .smart-attendance-person{padding:10px;gap:8px;min-width:0}
+ body.portal-page #form48ReportCard .smart-attendance-person button{min-height:44px;white-space:normal}
+ body.portal-page #form48ReportCard .smart-attendance-items{max-height:none;overflow:visible}
+ body.portal-page #form48ReportCard .smart-attendance-hours-grid{grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}
+ body.portal-page #form48ReportCard :is(#form48GateIntelligence,#form48DailyInsights,#smartAttendanceHours){scroll-margin-top:100px}
+ body.portal-page #form48ReportCard .smart-hours-preset[hidden]{display:none!important}
+ body.portal-page #form48ReportCard .smart-attendance-hours>summary::after{content:"⌄";font-size:18px}
+ body.portal-page #form48ReportCard .smart-attendance-hours[open]>summary::after{transform:rotate(180deg)}
+}
+@media screen and (max-width:760px){
+ body.portal-page #form48ReportCard .smart-attendance-hours-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+ body.portal-page #form48ReportCard .smart-attendance-date-control{max-width:100%!important}
+ body.portal-page #form48ReportCard .smart-attendance-head{flex-direction:column;align-items:stretch!important}
+ body.portal-page #form48ReportCard .smart-attendance-head>div{flex:0 0 auto!important}
+}
+@media screen and (max-width:420px){
+ body.portal-page #form48ReportCard :is(.smart-attendance-date-control,.form48-intelligence-controls){grid-template-columns:minmax(0,1fr)}
+ body.portal-page #form48ReportCard :is(.smart-attendance-date-control,.form48-intelligence-controls) button{width:100%!important}
+ body.portal-page #form48ReportCard .smart-attendance-counts span{font-size:10px}
+}
+
+/* Native date inputs can keep a large intrinsic width even on tablets.
+   Keep Smart Attendance date and refresh in separate tracks on every screen. */
+@media screen{
+ body.portal-page #form48ReportCard #smartAttendanceOverview .smart-attendance-date-control{grid-template-columns:minmax(0,1fr)!important}
+ body.portal-page #form48ReportCard #smartAttendanceOverview #smartAttendanceRefresh{width:100%!important}
+}
+@media screen and (max-width:940px){
+ body.portal-page #form48ReportCard .form48-intelligence-controls{grid-template-columns:minmax(0,1fr)!important}
+ body.portal-page #form48ReportCard .form48-intelligence-controls button{width:100%!important}
+}

@@ -14,8 +14,8 @@
     return data;
   }
   async function init(user) {
-    if(!['SCHOOL_ADMIN','TEACHER'].includes(user?.role))return;
-    const admin=user.role==='SCHOOL_ADMIN';
+    if(!['DEPARTMENT_HEAD','TEACHER'].includes(user?.role))return;
+    const admin=user.role==='DEPARTMENT_HEAD';
     const host=$(admin?'staffLunchAdminCard':'staffLunchPresenterCard');
     if(!host)return;
     host.hidden=false;
@@ -29,6 +29,10 @@
     const teacherSelect=admin?$('staffLunchTeacher'):null;
     const departmentSelect=admin?$('staffLunchDepartment'):null;
     const activeList=admin?$('staffLunchAssignedList'):null;
+    const enabledSwitch=$('staffLunchEnabled'),saveEnabled=$('staffLunchSaveEnabled');
+    const windowToggle=$('staffLunchWindowsEnabled'),windowFields=$('staffLunchWindows');
+    const windowInputs={AM_OUT:[$('staffLunchAMOutStart'),$('staffLunchAMOutEnd')],PM_IN:[$('staffLunchPMInStart'),$('staffLunchPMInEnd')]};
+    windowToggle?.addEventListener('change',()=>{if(windowFields)windowFields.hidden=!windowToggle.checked;});
     let eligibleTeachers=[];
     let assigned=false,expiryMonotonicDeadline=0,rotationMonotonicDeadline=0,busy=false;
     function setStatus(message,failed=false) {
@@ -58,6 +62,8 @@
           new URLSearchParams({slot:slot.value}).toString());
         assigned=!!info.assigned;
         if(admin) {
+          if(enabledSwitch)enabledSwitch.checked=info.enabled!==false;
+          if(windowToggle){windowToggle.checked=!!info.windows;if(windowFields)windowFields.hidden=!windowToggle.checked;for(const [key,inputs] of Object.entries(windowInputs)){if(inputs[0])inputs[0].value=info.windows?.[key]?.start||'';if(inputs[1])inputs[1].value=info.windows?.[key]?.end||'';}}
           const presenters=Array.isArray(info.presenters)?info.presenters:[];
           const filter=departmentSelect.value;
           const shown=presenters.filter(p=>!filter||p.departmentId===filter);
@@ -77,15 +83,19 @@
             remove.textContent='Revoke';
             remove.setAttribute('aria-label','Revoke lunch presenter '+presenter.presenterName);
             remove.addEventListener('click',async()=>{
-              if(!window.confirm('Revoke lunch QR access for '+presenter.presenterName+'? Only this teacher’s QR will be invalidated.'))return;
+              if(remove.disabled)return;
+              remove.disabled=true;
+              const selectedSlot=slot.value;
+              const message='Revoke lunch QR access for '+presenter.presenterName+'? Only this teacher’s QR will be invalidated.';
+              if(!(window.AppDialog ? await window.AppDialog.confirm(message,{title:'Revoke lunch QR access',variant:'danger',confirmText:'Revoke access'}) : window.confirm(message))){remove.disabled=false;return;}
               setBusy(true);
               try{
                 await request('/api/staff-attendance/lunch/presenter',{
-                  method:'DELETE',body:JSON.stringify({slot:slot.value,presenterUserId:presenter.presenterUserId})
+                  method:'DELETE',body:JSON.stringify({slot:selectedSlot,presenterUserId:presenter.presenterUserId})
                 });
                 setStatus(presenter.presenterName+' revoked. Other presenters remain active.');
               }catch(error){setStatus(error.message,true);}
-              finally{setBusy(false);await refresh();}
+              finally{remove.disabled=false;setBusy(false);await refresh();}
             });
             row.append(caption,remove);activeList.append(row);
           }
@@ -93,24 +103,30 @@
           revoked.disabled=true;
         }else{
           assigned=!!info.isCurrentPresenter;
-          setStatus(assigned
+          setStatus(info.enabled===false?'Lunch QR is disabled in your department. Use supervised Gatekeeper scanning.':assigned
             ? 'You are assigned to present the '+slotLabel(slot.value)+' QR today.'
             : info.assigned
               ? slotLabel(slot.value)+' QR is assigned to another teacher.'
-              : 'No presenter assigned. Ask your School Administrator.');
+              : 'No presenter assigned. Ask your Department Head.');
           action.disabled=!assigned;
         }
       }catch(error){assigned=false;action.disabled=true;if(revoked)revoked.disabled=true;setStatus(error.message,true);}
     }
     slot.addEventListener('change',()=>{refresh().catch(()=>{});});
     if(admin) {
+      if(saveEnabled&&enabledSwitch)saveEnabled.addEventListener('click',async()=>{
+        saveEnabled.disabled=true;
+        try{await request('/api/staff-attendance/lunch/config',{method:'PUT',body:JSON.stringify({enabled:enabledSwitch.checked,...(windowToggle?{windows:windowToggle.checked?Object.fromEntries(Object.entries(windowInputs).map(([key,inputs])=>[key,{start:inputs[0]?.value||'',end:inputs[1]?.value||''}])):null}:{})})});await refresh();}
+        catch(error){setStatus(error.message,true);}
+        finally{saveEnabled.disabled=false;}
+      });
       try{
         const teachers=(await request('/api/teachers')).teachers||[];
-        eligibleTeachers=teachers.filter(t=>t.active===true&&t.teacherStatus!=='ON_LEAVE');
+        eligibleTeachers=teachers.filter(t=>t.active===true&&t.teacherStatus!=='ON_LEAVE'&&String(t.departmentId)===String(user.departmentId));
         const departments=new Map();
         eligibleTeachers.forEach(t=>{if(t.departmentId)departments.set(t.departmentId,t.departmentName||'Department');});
-        departmentSelect.replaceChildren(new Option('All departments',''));
-        [...departments.entries()].sort((a,b)=>a[1].localeCompare(b[1])).forEach(([id,name])=>departmentSelect.add(new Option(name,id)));
+        departmentSelect.replaceChildren(new Option(user.departmentName||'My department',user.departmentId||''));
+        departmentSelect.hidden=true;
         function updateTeacherOptions(){
           const filter=departmentSelect.value;
           teacherSelect.replaceChildren();
@@ -140,17 +156,20 @@
                 const button=document.createElement('button');button.type='button';button.className='outline-button';
                 button.textContent=decision==='VERIFY'?'Verify':'Reject';
                 button.addEventListener('click',async()=>{
-                  const note=window.prompt('Reason for '+decision.toLowerCase()+'ing '+item.teacherName+
-                    ' on '+item.schoolDate+' (at least 10 characters). Independent evidence is required to verify:');
-                  if(note===null)return;
-                  if(note.trim().length<10){window.alert('Provide a meaningful reason of at least 10 characters.');return;}
+                  if([...controls.querySelectorAll('button')].some(b=>b.disabled))return;
+                  const setReviewBusy=busy=>controls.querySelectorAll('button').forEach(b=>b.disabled=busy);
+                  setReviewBusy(true);
+                  const message='Reason for '+(decision==='VERIFY'?'verifying':'rejecting')+' '+item.teacherName+' on '+item.schoolDate+' (at least 10 characters). Independent evidence is required to verify.';
+                  const note=window.AppDialog ? await window.AppDialog.prompt(message,'',{title:'Review lunch scan',label:'Review reason',inputType:'textarea',required:true,validate:value=>value.trim().length>=10||'Enter at least 10 characters.',confirmText:decision==='VERIFY'?'Verify':'Reject',variant:decision==='REJECT'?'danger':undefined}) : window.prompt(message);
+                  if(note===null){setReviewBusy(false);return;}
+                  if(note.trim().length<10){if(window.AppDialog)await window.AppDialog.alert('Provide a meaningful reason of at least 10 characters.');else window.alert('Provide a meaningful reason of at least 10 characters.');setReviewBusy(false);return;}
                   button.disabled=true;
                   try{
                     await request('/api/staff-attendance/lunch/review',{
                       method:'POST',body:JSON.stringify({eventId:item.eventId,decision,note:note.trim()})
                     });
                     await showPending();
-                  }catch(error){window.alert(error.message);button.disabled=false;}
+                  }catch(error){if(window.AppDialog)await window.AppDialog.alert(error.message,{title:'Unable to save review'});else window.alert(error.message);}finally{setReviewBusy(false);}
                 });
                 controls.append(button);
               }
@@ -183,11 +202,23 @@
       action.addEventListener('click',()=>issue().catch(()=>{}));
       async function issue(){
         if(busy||!assigned)return;
-        setBusy(true);clearQr();setStatus('Generating a secure, rotating department QR…');
+        setBusy(true);clearQr();setStatus('Verifying your location before generating the QR…');
+        let position=null,gpsError='';
         try{
+          if(!window.attendigoPreciseLocation)throw Error('Location service unavailable. Refresh Attendigo.');
+          position=await window.attendigoPreciseLocation.collectPreciseLocation({onProgress:quality=>{
+            setStatus('Checking department GPS: about '+quality.accuracyMeters+' m accuracy…');
+          }});
+        }catch(error){
+          gpsError=error?.code===1?'Location permission denied. Enable precise location in your phone and browser settings.':
+            'Could not capture fresh GPS. Enable location services and retry near your department.';
+        }
+        try{
+          // Report missing GPS too, allowing the server to revoke this presenter's old QR.
           const result=await request('/api/staff-attendance/lunch/challenges',{
-            method:'POST',body:JSON.stringify({slot:slot.value})
+            method:'POST',body:JSON.stringify({slot:slot.value,location:position})
           });
+          if(result.locationVerified!==true)throw Error('Presenter location was not verified. Refresh Attendigo and try again.');
           if(typeof result.qrImage!=='string'||!result.qrImage.startsWith('data:image/png;base64,'))
             throw Error('QR image unavailable. Please retry.');
           output.src=result.qrImage;
@@ -197,9 +228,9 @@
           // Monotonic time does not shift when someone changes the device wall clock.
           expiryMonotonicDeadline=performance.now()+Math.max(0,Math.min(60000,Number(result.remainingMs)));
           rotationMonotonicDeadline=performance.now()+30000;
-          setStatus(slotLabel(slot.value)+' QR ready. Staff scan with their own signed-in phone.');
+          setStatus('Location verified — '+slotLabel(slot.value)+' QR ready. Staff scan with their own signed-in phone.');
           if(expiry)expiry.textContent='Changes every 30 seconds. Previous QR remains valid briefly for slow connections.';
-        }catch(error){clearQr();setStatus(error.message,true);}finally{setBusy(false);}
+        }catch(error){clearQr();setStatus(error.message+(gpsError?' '+gpsError:'')+' QR stopped. Use the Gatekeeper fallback if needed.',true);}finally{setBusy(false);}
       }
       // Rotations happen only in the visible presenter view. The backend
       // overlaps at most a short 60-second validity window for slow networks.

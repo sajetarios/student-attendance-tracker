@@ -1,0 +1,378 @@
+'use strict';
+// Isolated CI-only PostgreSQL integration test: real sessions, SQL constraints,
+// two concurrent redemption requests, and cross-school isolation.
+const assert=require('node:assert/strict');
+const crypto=require('node:crypto');
+const express=require('express');
+const {Pool}=require('pg');
+const {createOpaqueToken,hashToken}=require('../auth-security');
+const {createAuthMiddleware}=require('../auth-middleware');
+const {registerStaffLunchRoutes}=require('../staff-lunch-routes');
+const {registerStaffGateDtrRoutes}=require('../staff-gate-dtr-routes');
+
+async function main(){
+ const url=process.env.DATABASE_URL;
+ assert.ok(url && new URL(url).pathname==='/school_attendance_test',
+  'Refusing staff lunch integration tests outside disposable school_attendance_test');
+ const pool=new Pool({connectionString:url,max:8,connectionTimeoutMillis:5000});
+ let server;
+ try{
+  const protection=await pool.query("SELECT relrowsecurity FROM pg_class WHERE oid='public.staff_lunch_campuses'::regclass");
+  assert.equal(protection.rows[0].relrowsecurity,true,'New campus table must enforce RLS');
+  for(const role of ['anon','authenticated']){
+   const exists=await pool.query('SELECT 1 FROM pg_roles WHERE rolname=$1',[role]);
+   if(exists.rowCount){
+    const privileges=await pool.query("SELECT has_table_privilege($1,'public.staff_lunch_campuses','SELECT,INSERT,UPDATE,DELETE') AS table_access,has_function_privilege($1,'public.attendigo_lunch_review_pending(uuid,uuid)','EXECUTE') AS notify_access",[role]);
+    assert.equal(privileges.rows[0].table_access,false,role+' cannot access campus registry directly');
+    assert.equal(privileges.rows[0].notify_access,false,role+' cannot invoke internal notification function');
+   }
+  }
+  const label=crypto.randomBytes(5).toString('hex');
+  async function makeSchool(code){
+   const school=(await pool.query('INSERT INTO schools(school_code,school_name) VALUES($1,$2) RETURNING school_id',
+    [code+label,'Lunch QR isolated integration test'])).rows[0].school_id;
+   const dep=(await pool.query('INSERT INTO school_departments(school_id,department_code,department_name) VALUES($1,$2,$3) RETURNING department_id',
+    [school,'TEST','Isolated Test Department'])).rows[0].department_id;
+   return {school,dep};
+  }
+  async function makeUser(tenant,role,username){
+   const user=(await pool.query(`INSERT INTO school_users(school_id,department_id,username,display_name,password_hash,role,teacher_designations)
+    VALUES($1,$2,$3,$4,'synthetic-test-no-login',$5,
+       CASE WHEN $5='TEACHER' THEN ARRAY['SUBJECT_TEACHER']::text[] ELSE ARRAY[]::text[] END) RETURNING user_id`,
+    [tenant.school,tenant.dep,username+label,username,role])).rows[0].user_id;
+   const token=createOpaqueToken();
+   await pool.query(`INSERT INTO user_sessions(token_hash,principal_type,school_id,school_user_id,expires_at)
+    VALUES($1,'SCHOOL',$2,$3,NOW()+INTERVAL '10 minutes')`,
+    [hashToken(token),tenant.school,user]);
+   return {id:user,token};
+  }
+  const a=await makeSchool('LUNCH_A_'),b=await makeSchool('LUNCH_B_');
+  const admin=await makeUser(a,'SCHOOL_ADMIN','lunch-admin-');
+  const head=await makeUser(a,'DEPARTMENT_HEAD','lunch-head-');
+  const outsiderHead=await makeUser(b,'DEPARTMENT_HEAD','lunch-outsider-head-');
+  const teacher=await makeUser(a,'TEACHER','lunch-teacher-');
+  const other=await makeUser(b,'TEACHER','lunch-other-');
+  const keeper=await makeUser(a,'GATE_KEEPER','lunch-keeper-');
+  const otherKeeper=await makeUser(b,'GATE_KEEPER','other-keeper-');
+  const teacherQrToken=crypto.randomUUID();
+  await pool.query('UPDATE school_users SET teacher_qr_token=$2,teacher_photo_path=$3 WHERE user_id=$1',
+   [teacher.id,teacherQrToken,'isolated-test-photo.jpg']);
+  const app=express();app.use(express.json());
+  const {authenticateSchoolClient,requireSchoolRoles}=createAuthMiddleware(pool);
+  registerStaffLunchRoutes(app,pool,{authenticateSchoolClient,requireSchoolRoles});
+  registerStaffGateDtrRoutes(app,pool,{authenticateSchoolClient,requireSchoolRoles});
+  server=await new Promise((resolve,reject)=>{
+   const s=app.listen(0,'127.0.0.1',()=>resolve(s));s.on('error',reject);
+  });
+  const base='http://127.0.0.1:'+server.address().port;
+  async function post(path,body,token){
+   const r=await fetch(base+path,{method:'POST',
+    headers:{'Content-Type':'application/json',Authorization:'Bearer '+token},body:JSON.stringify(body)});
+   return {status:r.status,body:await r.json()};
+  }
+  const teacher2=await makeUser(a,'TEACHER','lunch-backup-');
+  const dep2=(await pool.query("INSERT INTO school_departments(school_id,department_code,department_name) VALUES($1,'SECOND','Second Department') RETURNING department_id",[a.school])).rows[0].department_id;
+  const sameSchoolOther=await makeUser({school:a.school,dep:dep2},'TEACHER','other-department-');
+  const sameSchoolHead=await makeUser({school:a.school,dep:dep2},'DEPARTMENT_HEAD','other-department-head-');
+  const teacherDenied=await post('/api/staff-attendance/lunch/challenges',{slot:'PM_IN'},teacher.token);
+  assert.equal(teacherDenied.status,403,'Teacher cannot present lunch QR without school assignment');
+  const assignPath='/api/staff-attendance/lunch/presenter';
+  const assignment={slot:'PM_IN',presenterUserId:teacher.id};
+  const teacherAssign=await fetch(base+assignPath,{method:'PUT',
+   headers:{'Content-Type':'application/json',Authorization:'Bearer '+teacher.token},
+   body:JSON.stringify(assignment)});
+  assert.equal(teacherAssign.status,403,'Teachers cannot assign themselves');
+  const crossAssign=await fetch(base+assignPath,{method:'PUT',
+   headers:{'Content-Type':'application/json',Authorization:'Bearer '+head.token},
+   body:JSON.stringify({...assignment,presenterUserId:other.id})});
+  assert.equal(crossAssign.status,404,'Admin cannot assign teacher from another school');
+  async function presenterChange(method,body,token=head.token){
+   const response=await fetch(base+assignPath,{method,
+    headers:{'Content-Type':'application/json',Authorization:'Bearer '+token},
+    body:JSON.stringify(body)});
+   return {status:response.status,body:await response.json()};
+  }
+  assert.equal((await presenterChange('PUT',assignment,admin.token)).status,403,'Admin mutation retired');
+  assert.equal((await presenterChange('PUT',{...assignment,presenterUserId:sameSchoolOther.id})).status,404,'Same-school cross-department assignment blocked');
+  const assigned=await presenterChange('PUT',assignment);
+  assert.equal((await presenterChange('DELETE',assignment,sameSchoolHead.token)).status,404,'Other department head cannot revoke grant');
+  assert.equal(assigned.status,201,'Department Head can assign active teacher');
+  // Department Head submits their own physical location. The School Admin
+  // cannot silently bypass review, and no teacher can impersonate the Head.
+  const proposed={departmentId:a.dep,latitude:9,longitude:125,accuracyMeters:10,radiusMeters:120,
+   samples:[
+    {latitude:9,longitude:125,accuracyMeters:10,capturedAt:Date.now()-1800},
+    {latitude:9.00001,longitude:125.00001,accuracyMeters:14,capturedAt:Date.now()-500}
+   ]};
+  const badProposal={...proposed,samples:[
+    {latitude:9,longitude:125,accuracyMeters:10,capturedAt:Date.now()-1800},
+    {latitude:10,longitude:126,accuracyMeters:12,capturedAt:Date.now()-500}
+   ]};
+  assert.equal((await post('/api/staff-attendance/lunch/location/propose',badProposal,head.token)).status,422,
+   'Conflicting GPS positions may not be proposed for department approval');
+  assert.equal((await post('/api/staff-attendance/lunch/location/propose',
+   {...proposed,samples:proposed.samples.slice(0,1)},head.token)).status,422,
+   'A single observation cannot set the school location');
+  assert.equal((await post('/api/staff-attendance/lunch/location/propose',proposed,teacher.token)).status,403,
+    'Ordinary teachers cannot submit department locations');
+  assert.equal((await post('/api/staff-attendance/lunch/location/propose',proposed,outsiderHead.token)).status,403,
+    'A Head from another school cannot propose this department location');
+  assert.equal((await post('/api/staff-attendance/lunch/location/propose',proposed,admin.token)).status,403,
+    'School Admin cannot submit instead of an on-site Department Head');
+  const obsolete=await fetch(base+'/api/staff-attendance/lunch/location',{
+   method:'PUT',headers:{'Content-Type':'application/json',Authorization:'Bearer '+admin.token},
+   body:JSON.stringify(proposed)
+  });
+  assert.equal(obsolete.status,410,'Legacy direct Admin GPS write is disabled');
+  const readLocation=async(token,departmentId)=>{
+   const res=await fetch(base+'/api/staff-attendance/lunch/location'+(departmentId?'?departmentId='+encodeURIComponent(departmentId):''),{headers:{Authorization:'Bearer '+token}});
+   return {status:res.status,body:await res.json()};
+  };
+  assert.equal((await readLocation(head.token)).body.configured,false);
+  assert.equal((await post('/api/staff-attendance/lunch/challenges',{slot:'PM_IN',location:{latitude:9,longitude:125,accuracyMeters:12,capturedAt:Date.now()}},teacher.token)).status,403);
+  assert.equal((await post('/api/staff-attendance/lunch/location/propose',proposed,head.token)).status,409,'Unanchored first location must fail closed');
+  // Synthetic fixture represents an already independently approved pre-upgrade point.
+  await pool.query('INSERT INTO school_settings(school_id,setting_key,setting_value) VALUES($1,$2,$3::jsonb)',[a.school,'staff_lunch_geo_'+a.dep,JSON.stringify({latitude:9,longitude:125,radiusMeters:120})]);
+  const principal=await makeUser(a,'PRINCIPAL','lunch-principal-');
+  const campusPath='/api/staff-attendance/lunch/campuses';
+  const campusBody={name:'Main Campus',latitude:9,longitude:125,radiusMeters:600,evidenceReference:'Verified synthetic campus plan 001',attested:true};
+  assert.equal((await post(campusPath,campusBody,head.token)).status,403,'Head cannot self-authorize a campus');
+  assert.equal((await post(campusPath,campusBody,admin.token)).status,403,'Admin has no routine campus approval operation');
+  const campus=await post(campusPath,campusBody,principal.token);
+  assert.equal(campus.status,201,JSON.stringify(campus.body));
+  const remoteCampus=await post(campusPath,{...campusBody,name:'Extension Campus',latitude:10,longitude:126},principal.token);
+  assert.equal(remoteCampus.status,201);
+  assert.equal((await post('/api/staff-attendance/lunch/location/propose',{...proposed,campusId:remoteCampus.body.campusId},head.token)).status,422,'Wrong campus geofence rejected');
+  const secondPoint={...proposed,departmentId:dep2,campusId:campus.body.campusId};
+  assert.equal((await post('/api/staff-attendance/lunch/location/propose',secondPoint,sameSchoolHead.token)).status,201,'New department may use trusted campus without admin review');
+  assert.equal((await post('/api/staff-attendance/lunch/location/propose',{...secondPoint,campusId:remoteCampus.body.campusId},sameSchoolHead.token)).status,409,'Department cannot change campus');
+  const submission=await post('/api/staff-attendance/lunch/location/propose',proposed,head.token);
+  assert.equal(submission.status,201);
+  assert.equal(submission.body.status,'ACTIVE');
+  assert.equal((await readLocation(head.token,b.dep)).body.departmentId,a.dep);
+  assert.equal((await readLocation(admin.token,a.dep)).body.configured,true);
+  assert.equal((await post('/api/staff-attendance/lunch/location/decision',{departmentId:a.dep,decision:'APPROVE',note:'Retired route'},admin.token)).status,410);
+  assert.equal((await post('/api/staff-attendance/lunch/location/propose', {...proposed,radiusMeters:250},head.token)).status,422,'Cannot expand established boundary');
+  async function config(enabled,token=head.token){
+   const r=await fetch(base+'/api/staff-attendance/lunch/config',{method:'PUT',headers:{'Content-Type':'application/json',Authorization:'Bearer '+token},body:JSON.stringify({enabled})});
+   return {status:r.status,body:await r.json()};
+  }
+  assert.equal((await config(false,admin.token)).status,403);
+  assert.equal((await config(false)).status,200);
+  assert.equal((await post('/api/staff-attendance/lunch/challenges',{slot:'PM_IN',location:{latitude:9,longitude:125,accuracyMeters:12,capturedAt:Date.now()}},teacher.token)).status,403);
+  assert.equal((await config(true)).status,200);
+  const presenterPosition=()=>({latitude:9,longitude:125,accuracyMeters:12,capturedAt:Date.now()});
+  const permitted=await post('/api/staff-attendance/lunch/challenges',{slot:'PM_IN',location:presenterPosition()},teacher.token);
+  assert.equal(permitted.status,201,'Assigned teacher may issue lunch QR');
+  assert.match(permitted.body.qrImage,/^data:image\/png;base64,/,'Presenter receives real scannable PNG');
+  const rapidQr=await post('/api/staff-attendance/lunch/challenges',{slot:'PM_IN',location:presenterPosition()},teacher.token);
+  assert.equal(rapidQr.status,429,'Presenter cannot flood QR issues within 20 seconds');
+  const additional=await presenterChange('PUT',{slot:'PM_IN',presenterUserId:teacher2.id});
+  assert.equal(additional.status,201,'Department Head may authorize another presenter for the same slot');
+  const originalQr=await pool.query('SELECT revoked_at FROM staff_attendance_challenges WHERE challenge_id=$1',
+   [permitted.body.challengeId]);
+  assert.equal(originalQr.rowCount,1);
+  assert.equal(originalQr.rows[0].revoked_at,null,"Adding a second presenter preserves the first presenter's QR");
+  const firstPresenterAgain=permitted;
+  assert.equal(firstPresenterAgain.status,201,'First presenter retains a still-valid QR during short rotation overlap');
+  const newPresenter=await post('/api/staff-attendance/lunch/challenges',{slot:'PM_IN',location:presenterPosition()},teacher2.token);
+  assert.equal(newPresenter.status,201,'Second teacher can issue an independent lunch QR');
+  const firstStillLive=await pool.query('SELECT revoked_at FROM staff_attendance_challenges WHERE challenge_id=$1',
+   [firstPresenterAgain.body.challengeId]);
+  assert.equal(firstStillLive.rows[0].revoked_at,null,"Second presenter's QR does not rotate the first");
+  const removed=await presenterChange('DELETE',{slot:'PM_IN',presenterUserId:teacher2.id});
+  assert.equal(removed.status,200);
+  assert.equal(removed.body.revoked,true);
+  assert.equal((await post('/api/staff-attendance/lunch/redeem',
+   {challengeId:newPresenter.body.challengeId,token:newPresenter.body.token},teacher.token)).status,410,
+   'Revoking the second presenter invalidates only their active QR');
+  assert.equal((await post('/api/staff-attendance/lunch/challenges',{slot:'PM_IN'},teacher2.token)).status,403,
+   'Revoked presenter cannot issue challenges');
+  const independentQr=await pool.query('SELECT revoked_at FROM staff_attendance_challenges WHERE challenge_id=$1',
+   [firstPresenterAgain.body.challengeId]);
+  assert.equal(independentQr.rows[0].revoked_at,null,"Revoking another presenter preserves the first presenter's QR");
+  const auditPresenter=await pool.query(`SELECT action FROM staff_attendance_audit
+    WHERE school_id=$1 AND action IN ('LUNCH_PRESENTER_ASSIGNED','LUNCH_PRESENTER_REVOKED')`,
+    [a.school]);
+  assert.equal(auditPresenter.rowCount,3,'Two independent grants and one targeted revocation are audited');
+
+  const remote=await post('/api/staff-attendance/lunch/challenges',
+    {slot:'PM_IN',location:{latitude:10,longitude:126,accuracyMeters:10,capturedAt:Date.now()}},teacher.token);
+  assert.equal(remote.status,403,'Outside presenter cannot renew QR');
+  assert.equal(remote.body.code,'OUTSIDE_DEPARTMENT_AREA');
+  assert.equal((await post('/api/staff-attendance/lunch/redeem',
+    {challengeId:permitted.body.challengeId,token:permitted.body.token,location:presenterPosition()},teacher2.token)).status,410,
+    'Failed presenter renewal revokes the previous QR');
+  assert.equal((await post('/api/staff-attendance/lunch/challenges',{slot:'AM_OUT'},admin.token)).status,403,
+    'Admin cannot bypass presenter GPS');
+  assert.equal((await post('/api/staff-attendance/lunch/challenges',{slot:'AM_OUT',location:presenterPosition()},admin.token)).status,403,'Admin cannot present');
+  const issuer=await makeUser(a,'TEACHER','lunch-issuer-');
+  assert.equal((await presenterChange('PUT',{slot:'AM_OUT',presenterUserId:issuer.id})).status,201);
+  const issued=await post('/api/staff-attendance/lunch/challenges',{slot:'AM_OUT',location:presenterPosition()},issuer.token);
+  assert.equal(issued.status,201,'Assigned teacher issues QR: '+JSON.stringify(issued.body));
+  const qr={challengeId:issued.body.challengeId,token:issued.body.token};
+  const presence={latitude:9,longitude:125,accuracyMeters:12,capturedAt:Date.now()};
+  const verifiedQr={...qr,location:presence};
+  const crossSchool=await post('/api/staff-attendance/lunch/redeem',qr,other.token);
+  assert.equal(crossSchool.status,410,'Cross-school challenge cannot be redeemed');
+  assert.equal((await post('/api/staff-attendance/lunch/redeem',verifiedQr,sameSchoolOther.token)).status,403,'Same-school cross-department scan blocked');
+  const invalid=await post('/api/staff-attendance/lunch/redeem',{...qr,token:crypto.randomBytes(32).toString('base64url')},teacher.token);
+  assert.equal(invalid.status,403,'Forged token must be rejected');
+
+  // Requests use different real PostgreSQL clients. Unique verified DTR slot
+  // constraint serializes the conflict and exactly one transaction commits.
+  const results=await Promise.all([
+   post('/api/staff-attendance/lunch/redeem',verifiedQr,teacher.token),
+   post('/api/staff-attendance/lunch/redeem',verifiedQr,teacher.token)
+  ]);
+  assert.deepEqual(results.map(x=>x.status).sort((x,y)=>x-y),[201,409],
+   'Exactly one of two simultaneous redemptions must succeed: '+JSON.stringify(results));
+  const events=await pool.query(`SELECT event_id,verification_status,verification_method
+    FROM staff_attendance_events WHERE school_id=$1 AND staff_user_id=$2 AND school_date=$3
+    AND dtr_slot='AM_OUT' AND verification_status='VERIFIED'`,
+    [a.school,teacher.id,issued.body.schoolDate]);
+  assert.equal(events.rowCount,1,'One verified DTR punch persisted');
+  assert.equal(events.rows[0].verification_method,'ROTATING_QR');
+  const redemption=await pool.query(`SELECT event_id FROM staff_attendance_challenge_redemptions
+    WHERE school_id=$1 AND challenge_id=$2 AND staff_user_id=$3`,
+    [a.school,qr.challengeId,teacher.id]);
+  assert.equal(redemption.rowCount,1,'Exactly one redemption record persisted');
+  assert.equal(redemption.rows[0].event_id,events.rows[0].event_id);
+  const audit=await pool.query(`SELECT count(*)::int AS total FROM staff_attendance_audit
+    WHERE school_id=$1 AND action='LUNCH_DTR_VERIFIED' AND target_id=$2`,
+    [a.school,events.rows[0].event_id]);
+  assert.equal(audit.rows[0].total,1,'One immutable verified DTR audit row persisted');
+  const again=await post('/api/staff-attendance/lunch/redeem',verifiedQr,teacher.token);
+  assert.equal(again.status,409,'Replay denied even after the first request committed');
+
+
+
+  // A remote or inaccurate scan must NOT silently alter Form 48.
+  const outside=await post('/api/staff-attendance/lunch/redeem',
+   {...qr,location:{latitude:10,longitude:126,accuracyMeters:9,capturedAt:Date.now()}},teacher2.token);
+  assert.equal(outside.status,201,'Uncertain but authentic QR can be recorded for review');
+  assert.equal(outside.body.status,'PENDING_VERIFICATION');
+  const pendingOnly=await pool.query(`SELECT verification_status FROM staff_attendance_events
+    WHERE school_id=$1 AND staff_user_id=$2 AND dtr_slot='AM_OUT'`,
+    [a.school,teacher2.id]);
+  assert.equal(pendingOnly.rows[0].verification_status,'PENDING_VERIFICATION');
+  const pendingList=await fetch(base+'/api/staff-attendance/lunch/pending',{
+    headers:{Authorization:'Bearer '+head.token}});
+  assert.equal(pendingList.status,200);
+  assert.ok((await pendingList.json()).items.some(row=>row.eventId===outside.body.eventId));
+  const deniedReview=await post('/api/staff-attendance/lunch/review',
+    {eventId:outside.body.eventId,decision:'VERIFY',note:'Independent evidence checked'},teacher2.token);
+  assert.equal(deniedReview.status,403,'Teachers cannot self-approve pending QR scans');
+  const teacherAlerts=await pool.query("SELECT recipient_id,category,status FROM user_notifications WHERE school_id=$1 AND request_type='LUNCH_QR_REVIEW' AND request_id=$2",[a.school,outside.body.eventId]);
+  assert.deepEqual(teacherAlerts.rows.filter(x=>x.category==='APPROVAL').map(x=>x.recipient_id),[head.id],'Only own Department Head receives review notification');
+  assert.ok(teacherAlerts.rows.some(x=>x.recipient_id===teacher2.id&&x.category==='REQUEST'&&x.status==='PENDING_VERIFICATION'));
+  const reviewBody={eventId:outside.body.eventId,decision:'VERIFY',note:'Independent on-site evidence inspected'};
+  assert.equal((await post('/api/staff-attendance/lunch/review',reviewBody,admin.token)).status,403);
+  assert.ok([403,409].includes((await post('/api/staff-attendance/lunch/review',reviewBody,sameSchoolHead.token)).status),'Cross-department review denied');
+  const reviewed=await post('/api/staff-attendance/lunch/review',reviewBody,head.token);
+  assert.equal(reviewed.status,200,'Department Head verifies after independent documented review');
+  const reviewedRow=await pool.query(`SELECT verification_status,verification_method
+     FROM staff_attendance_events WHERE event_id=$1`,[outside.body.eventId]);
+  assert.equal(reviewedRow.rows[0].verification_status,'VERIFIED');
+  assert.equal(reviewedRow.rows[0].verification_method,'MANUAL_REVIEW');
+  const closedAlerts=await pool.query("SELECT recipient_id,category,status,read_at FROM user_notifications WHERE school_id=$1 AND request_type='LUNCH_QR_REVIEW' AND request_id=$2",[a.school,outside.body.eventId]);
+  assert.ok(closedAlerts.rows.some(x=>x.recipient_id===head.id&&x.category==='APPROVAL'&&x.status==='VERIFIED'&&x.read_at));
+  assert.ok(closedAlerts.rows.some(x=>x.recipient_id===teacher2.id&&x.category==='REQUEST'&&x.status==='VERIFIED'));
+
+  const headScan=await post('/api/staff-attendance/lunch/redeem',{...qr,location:null},head.token);
+  assert.equal(headScan.status,201);
+  assert.equal(headScan.body.status,'PENDING_VERIFICATION');
+  const headAlerts=await pool.query("SELECT recipient_id FROM user_notifications WHERE school_id=$1 AND request_type='LUNCH_QR_REVIEW' AND request_id=$2 AND category='APPROVAL'",[a.school,headScan.body.eventId]);
+  assert.deepEqual(headAlerts.rows.map(x=>x.recipient_id),[principal.id],'Only Principal receives Head exception notification');
+  const headReview={eventId:headScan.body.eventId,decision:'VERIFY',note:'Independent physical evidence verified'};
+  const principalPending=await fetch(base+'/api/staff-attendance/lunch/pending',{headers:{Authorization:'Bearer '+principal.token}});
+  assert.equal(principalPending.status,200);
+  assert.ok((await principalPending.json()).items.some(x=>x.eventId===headScan.body.eventId));
+  assert.equal((await post('/api/staff-attendance/lunch/review',headReview,head.token)).status,409,'Head cannot review own pending scan');
+  const unrelatedPrincipal=await makeUser(b,'PRINCIPAL','other-principal-');
+  assert.equal((await post('/api/staff-attendance/lunch/review',headReview,unrelatedPrincipal.token)).status,409,'Principal cannot review across schools');
+  assert.equal((await post('/api/staff-attendance/lunch/review',headReview,principal.token)).status,200,'Principal independently verifies Head lunch scan');
+  assert.equal((await post('/api/staff-attendance/lunch/review',headReview,principal.token)).status,409,'Cannot repeat completed review');
+  assert.equal((await config(false)).status,200);
+  assert.equal((await post('/api/staff-attendance/lunch/redeem',verifiedQr,head.token)).status,410,'Disabling invalidates outstanding codes');
+  // A transferred presenter cannot inherit the old grant or revive it by moving back.
+  const transfer=await makeUser(a,'TEACHER','transfer-');
+  assert.equal((await presenterChange('PUT',{slot:'PM_IN',presenterUserId:transfer.id})).status,201);
+  await pool.query('UPDATE school_users SET department_id=$2 WHERE user_id=$1',[transfer.id,dep2]);
+  await pool.query('UPDATE school_users SET department_id=$2 WHERE user_id=$1',[transfer.id,a.dep]);
+  const transferGrant=await pool.query('SELECT revoked_at FROM staff_lunch_presenter_assignments WHERE school_id=$1 AND presenter_user_id=$2',[a.school,transfer.id]);
+  assert.ok(transferGrant.rows[0].revoked_at,'Transfer permanently revokes old presenter grant');
+  assert.equal((await post('/api/staff-attendance/lunch/challenges',{slot:'PM_IN',location:presenterPosition()},transfer.token)).status,403);
+  assert.equal((await post(campusPath+'/retire',{campusId:campus.body.campusId,reason:'Synthetic campus closure for regression'},head.token)).status,403);
+  assert.equal((await post(campusPath+'/retire',{campusId:campus.body.campusId,reason:'Synthetic campus closure for regression'},principal.token)).status,200);
+  assert.equal((await post('/api/staff-attendance/lunch/location/propose',secondPoint,sameSchoolHead.token)).status,403,'Retired campus cannot authorize new location');
+  const relocate={departmentId:dep2,campusId:remoteCampus.body.campusId,reason:'Independently verified relocation record',attested:true};
+  assert.equal((await post('/api/staff-attendance/lunch/location/relocate',relocate,sameSchoolHead.token)).status,403);
+  assert.equal((await post('/api/staff-attendance/lunch/location/relocate',relocate,admin.token)).status,403);
+  assert.equal((await post('/api/staff-attendance/lunch/location/relocate',relocate,principal.token)).status,201);
+  assert.equal((await readLocation(sameSchoolHead.token)).body.configured,false);
+  const relocated={...secondPoint,campusId:remoteCampus.body.campusId,latitude:10,longitude:126,samples:[{latitude:10,longitude:126,accuracyMeters:10,capturedAt:Date.now()-1800},{latitude:10.00001,longitude:126.00001,accuracyMeters:14,capturedAt:Date.now()-500}]};
+  assert.equal((await post('/api/staff-attendance/lunch/location/propose',relocated,sameSchoolHead.token)).status,201);
+  assert.equal((await readLocation(sameSchoolHead.token)).body.campusId,remoteCampus.body.campusId);
+  assert.equal((await readLocation(sameSchoolHead.token)).body.configured,true);
+  assert.equal((await post('/api/staff-attendance/lunch/location/propose',secondPoint,sameSchoolHead.token)).status,409);
+  // Optional window constraints must not rewrite the official school schedule.
+  const windowConfig=async(body,token)=>{const r=await fetch(base+'/api/staff-attendance/lunch/config',{method:'PUT',headers:{'Content-Type':'application/json',Authorization:'Bearer '+token},body:JSON.stringify(body)});return {status:r.status,body:await r.json()};};
+  const local=require('../staff-lunch-windows').localTime();
+  const deniedWindow=local<'12:00'?{start:'20:00',end:'21:00'}:{start:'01:00',end:'02:00'};
+  const windows={AM_OUT:deniedWindow,PM_IN:deniedWindow};
+  assert.equal((await windowConfig({enabled:true,windows},admin.token)).status,403);
+  assert.equal((await windowConfig({enabled:true,windows:{AM_OUT:{start:'12:00',end:'11:00'}}},head.token)).status,400);
+  assert.equal((await windowConfig({enabled:true,windows},head.token)).status,200);
+  assert.equal((await post('/api/staff-attendance/lunch/challenges',{slot:'AM_OUT',location:presenterPosition()},issuer.token)).body.code,'OUTSIDE_DEPARTMENT_QR_WINDOW');
+  assert.equal((await windowConfig({enabled:true,windows:null},head.token)).status,200);
+  // Real authenticated redemption must not automatically verify an out-of-policy scan.
+  // Wide synthetic QR windows deliberately exercise the independent official schedule gate.
+  const wideWindows={AM_OUT:{start:'00:00',end:'23:59'},PM_IN:{start:'00:00',end:'23:59'}};
+  assert.equal((await windowConfig({enabled:true,windows:wideWindows},sameSchoolHead.token)).status,200);
+  const relocatedPresenter=await makeUser({school:a.school,dep:dep2},'TEACHER','relocated-window-presenter-');
+  assert.equal((await presenterChange('PUT',{slot:'PM_IN',presenterUserId:relocatedPresenter.id},sameSchoolHead.token)).status,201);
+  const newPosition=()=>({latitude:10,longitude:126,accuracyMeters:12,capturedAt:Date.now()});
+  const windowQr=await post('/api/staff-attendance/lunch/challenges',{slot:'PM_IN',location:newPosition()},relocatedPresenter.token);
+  assert.equal(windowQr.status,201,JSON.stringify(windowQr.body));
+  const pendingWindowScan=await post('/api/staff-attendance/lunch/redeem',{challengeId:windowQr.body.challengeId,token:windowQr.body.token,location:newPosition()},sameSchoolOther.token);
+  assert.equal(pendingWindowScan.status,201,JSON.stringify(pendingWindowScan.body));
+  assert.equal(pendingWindowScan.body.status,'PENDING_VERIFICATION','Missing official staff schedule cannot auto-verify an opted-in window scan');
+  const windowEvidence=await pool.query('SELECT notes,verification_status FROM staff_attendance_events WHERE school_id=$1 AND event_id=$2',[a.school,pendingWindowScan.body.eventId]);
+  assert.match(windowEvidence.rows[0].notes,/OFFICIAL_SCHEDULE_UNAVAILABLE/);
+  assert.equal(windowEvidence.rows[0].verification_status,'PENDING_VERIFICATION');
+  const gatePath='/api/staff-attendance/gatekeeper/dtr';
+  const gateBody={teacherQrToken,slot:'PM_OUT',photoVerified:true};
+  assert.equal((await post(gatePath,gateBody,teacher.token)).status,403,
+   'Teachers cannot use the Gatekeeper DTR scanner');
+  assert.equal((await post(gatePath,{...gateBody,photoVerified:false},keeper.token)).status,400,
+   'Gatekeeper must explicitly verify registered photo');
+  assert.equal((await post(gatePath,gateBody,otherKeeper.token)).status,404,
+   'Other school Gatekeeper cannot resolve teacher badge');
+  const guarded=await post(gatePath,gateBody,keeper.token);
+  assert.equal(guarded.status,201,'Authenticated Gatekeeper can verify teacher DTR: '+JSON.stringify(guarded.body));
+  assert.equal((await post(gatePath,gateBody,keeper.token)).status,409,
+   'Duplicate photo-verified slot cannot be recorded again');
+  const gateEvent=await pool.query(`SELECT source,verification_method,actor_user_id
+    FROM staff_attendance_events WHERE school_id=$1 AND event_id=$2 AND staff_user_id=$3`,
+    [a.school,guarded.body.eventId,teacher.id]);
+  assert.equal(gateEvent.rowCount,1);
+  assert.equal(gateEvent.rows[0].source,'GATEKEEPER');
+  assert.equal(gateEvent.rows[0].verification_method,'GUARD_PHOTO');
+  assert.equal(gateEvent.rows[0].actor_user_id,keeper.id);
+  const person=await fetch(base+'/api/staff-attendance/my/dtr',{
+   headers:{Authorization:'Bearer '+teacher.token}
+  });
+  assert.equal(person.status,200);
+  const dtr=await person.json();
+  assert.equal(dtr.slots.find(x=>x.slot==='AM_OUT').status,'VERIFIED');
+  assert.equal(dtr.slots.find(x=>x.slot==='PM_OUT').status,'VERIFIED');
+  assert.equal(dtr.slots.find(x=>x.slot==='AM_IN').status,'NOT_RECORDED');
+
+  process.stdout.write('PASS: real PostgreSQL: authenticated issuance, tenant rejection, forged QR denial, concurrent duplicate prevention, immutable audit and replay.\\n');
+ } finally{
+  if(server) await new Promise(resolve=>server.close(resolve));
+  await pool.end();
+ }
+}
+main().catch(error=>{console.error(error.stack||error.message);process.exitCode=1;});

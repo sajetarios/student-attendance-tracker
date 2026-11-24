@@ -1,7 +1,7 @@
 <!doctype html>
 <html lang="en" data-protected-role="STAFF">
-<head>
-  <script src="/session-guard.js?v=4"></script>
+<head><script src="/offline-account-guard.js?v=1"></script>
+  <script src="/session-guard.js?v=6"></script>
   <script src="/flicker-diagnostics.js?v=1"></script>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
@@ -9,12 +9,12 @@
   <title>Dashboard · Attendigo</title>
   <link rel="stylesheet" href="/sf1-review-cards.css?v=2">
   <link rel="stylesheet" href="/sf1-family-details.css?v=3">
-  <link rel="stylesheet" href="/staff-lunch.css?v=6">
+  <link rel="stylesheet" href="/staff-lunch.css?v=7">
   <link rel="stylesheet" href="/staff-ob.css?v=1">
   <link rel="stylesheet" href="/department-workspace.css?v=1">
-  <link rel="stylesheet" href="/form48-report.css?v=16">
-  <link rel="stylesheet" href="/smart-attendance-overview.css?v=4">
-  <link rel="stylesheet" href="/my-gate-insights.css?v=3">
+  <link rel="stylesheet" href="/form48-report.css?v=18">
+  <link rel="stylesheet" href="/smart-attendance-overview.css?v=5">
+  <link rel="stylesheet" href="/my-gate-insights.css?v=4">
   <link rel="stylesheet" href="/portal.css?v=0.9.121"><link rel="stylesheet" href="/attendigo-brand-polish.css?v=2"><link rel="stylesheet" href="/parent-admin.css?v=8">
   <link rel="stylesheet" href="/schedule-mobile-layout.css?v=1">
   <link rel="stylesheet" href="/weekly-list-mobile.css?v=1">
@@ -182,7 +182,7 @@
   <link rel="stylesheet" href="/teacher-dashboard-v2.css?v=1">
   <link rel="stylesheet" href="/teacher-dashboard-v3.css?v=1">
   <link rel="stylesheet" href="/photo-editor.css?v=2">
-  <script src="/dashboard-icons.js?v=6"></script>
+  <script src="/dashboard-icons.js?v=7"></script>
   <script src="/dashboard-appearance.js?v=3"></script>
   <link rel="stylesheet" href="/guardian-ui.css?v=4">
 <link rel="icon" type="image/png" href="/assets/attendigo-favicon.png?v=3">
@@ -611,9 +611,9 @@ body.dark-mode .content-wrap > .school-heading.is-compact,body[data-theme="dark"
         gap:1px!important;
       }
       html body.portal-page .portal-layout[data-attendigo-role="SCHOOL_ADMIN"]:not(.sidebar-collapsed) #sidebar.sidebar .nav-group-toggle {
-        min-height:37px!important;
-        padding:6px 7px!important;
-        font-size:13px!important;
+        min-height:44px!important;
+        padding:8px 9px!important;
+        font-size:var(--ag-nav-main,17px)!important;
         line-height:1.3!important;
         font-weight:600!important;
         gap:8px!important;
@@ -626,23 +626,29 @@ body.dark-mode .content-wrap > .school-heading.is-compact,body[data-theme="dark"
         padding-bottom:1px!important;
       }
       html body.portal-page .portal-layout[data-attendigo-role="SCHOOL_ADMIN"]:not(.sidebar-collapsed) #sidebar.sidebar .nav-submenu .nav-item {
-        min-height:34px!important;
-        padding:6px 7px!important;
+        min-height:44px!important;
+        padding:8px 9px!important;
         gap:8px!important;
-        font-size:12.5px!important;
+        font-size:var(--ag-nav-child,16px)!important;
         line-height:1.3!important;
       }
     }
   </style>
-  <link rel="stylesheet" href="/mobile-overflow-repair.css?v=1">
+  <link rel="stylesheet" href="/mobile-overflow-repair.css?v=2">
   <link rel="stylesheet" href="/role-controls-responsive.css?v=2">
   <link rel="stylesheet" href="/class-qr-monitor-embedded.css?v=1">
 <link rel="stylesheet" href="/sf1-import-mobile.css?v=1">
   <link rel="stylesheet" href="/simplified-workspace.css?v=1">
   <link rel="stylesheet" href="/teacher-timetable-identities.css?v=2">
-  <link rel="stylesheet" href="/attendigo-help.css?v=3">
+  <link rel="stylesheet" href="/attendigo-help.css?v=4">
 <link rel="stylesheet" href="/gate-offline-review.css?v=1">
-<link rel="stylesheet" href="/school-memo-banner.css?v=1">
+<link rel="stylesheet" href="/school-memo-banner.css?v=3">
+  <link rel="stylesheet" href="/class-attendance-mobile.css?v=1">
+  <link rel="stylesheet" href="/recent-class-attendance.css?v=2">
+  <link rel="stylesheet" href="/teacher-shortcuts-compact.css?v=1">
+  <link rel="stylesheet" href="/attendigo-form-overlap-guard.css?v=2">
+  <link rel="stylesheet" href="/teacher-teaching-overview.css?v=3">
+<link rel="stylesheet" href="/attendigo-layout-density.css?v=1">
 </head>
 <body class="portal-page">
   <div class="portal-layout">
@@ -786,7 +792,7 @@ body.dark-mode .content-wrap > .school-heading.is-compact,body[data-theme="dark"
             <h1 id="schoolTitle">Loading school…</h1>
             <p id="dateLabel">Attendance overview</p>
           </div>
-          <div class="heading-actions"><span class="role-pill" id="rolePill">Account</span><button class="outline-button" id="refreshButton">↻ Refresh</button></div>
+          <div class="heading-actions"><span class="role-pill" id="rolePill">Account</span><button class="outline-button" id="refreshButton">Refresh</button></div>
         </section>
 
         <section id="schoolWorkspace">
@@ -795,7 +801,7 @@ body.dark-mode .content-wrap > .school-heading.is-compact,body[data-theme="dark"
   <div class="parent-subject-settings-copy">
     <h2 id="parentSubjectNoticeTitle">Subject attendance notifications</h2>
     <p>Notify verified parents after teachers finalize subject attendance. School gate entry is not proof of class attendance. Uses Attendigo notifications, not paid SMS.</p>
-    <p class="parent-subject-settings-note">For the staging pilot, review approved parent-child links before enabling. New notifications only start after activation.</p>
+    <p class="parent-subject-settings-note">Review approved parent-child links before enabling. New notifications only start after activation.</p>
   </div>
   <div class="parent-subject-settings-actions">
     <label for="parentSubjectNoticeEnable"><input type="checkbox" id="parentSubjectNoticeEnable"> <span>Enable subject alerts</span></label>
@@ -833,12 +839,11 @@ body.dark-mode .content-wrap > .school-heading.is-compact,body[data-theme="dark"
               <div id="plannerDashboardPreview" class="planner-dashboard-preview" aria-live="polite">Open Planner to see your upcoming schedule.</div>
             </section>
             <section id="adminApprovalSidebarPanel" class="surface-card section-card admin-approval-workspace" aria-label="Requests and Approvals" hidden>
-              <div class="admin-approval-workspace-heading"><div><span class="admin-dashboard-kicker">SCHOOL ADMINISTRATION</span><h3>Requests &amp; Approvals</h3><p>Review pending school requests by category. Actions retain the existing permission and audit checks.</p></div><button type="button" class="outline-button" id="adminApprovalSidebarClose">Close</button></div>
+              <div class="admin-approval-workspace-heading"><div><span class="admin-dashboard-kicker">SCHOOL ADMINISTRATION</span><h3>Requests &amp; Approvals</h3><p>Review pending school requests by category. Actions retain the existing permission and audit checks.</p><a href="/admin-sdo-coordination.html" class="outline-button" style="display:inline-flex;margin-top:8px;min-height:40px;align-items:center;text-decoration:none">SDO request coordination ↗</a></div><button type="button" class="outline-button" id="adminApprovalSidebarClose">Close</button></div>
             </section>
             <section id="adminDashboardCard" class="surface-card section-card admin-dashboard-card admin-command-center" hidden>
               <div class="admin-command-hero">
                 <div><span class="admin-dashboard-kicker">SCHOOL OPERATIONS · ADMIN WORKSPACE</span>
-                  <a href="/principal.html" class="outline-button" style="display:inline-flex;margin:10px 0 0;min-height:40px;align-items:center;text-decoration:none">Preview Principal Dashboard ↗</a>
                   <h3>School administration</h3>
                   <p>Manage school enrollment, staff accounts, academic setup and approvals from one organized workspace.</p>
                 </div>
@@ -898,16 +903,6 @@ body.dark-mode .content-wrap > .school-heading.is-compact,body[data-theme="dark"
               </div>
               <div class="table-scroll"><table class="monitoring-table"><thead><tr><th>Teacher</th><th>Event</th><th>Recorded time</th><th>Gate Keeper</th><th>Identity check</th></tr></thead><tbody id="teacherGateAttendanceRows"><tr><td colspan="5" class="empty-cell">Loading teacher gate attendance…</td></tr></tbody></table></div>
               <p class="attendance-summary-note">These are gate time records. They are not yet a complete teacher DTR or class-period punctuality report.</p>
-            </section>
-            <section id="staffLunchHeadLocationCard" class="staff-lunch-panel staff-lunch-dept-head-location" hidden>
-              <div class="section-toolbar">
-                <div><h3>Department attendance location</h3>
-                  <p>Capture the location where your department displays its lunch attendance QR. The School Admin must approve it before staff scans can be verified automatically.</p></div>
-                <span id="staffLunchHeadDepartment" class="field-hint">My department</span>
-              </div>
-              <button id="staffLunchHeadSubmit" type="button" class="primary-button">Submit my department's location</button>
-              <p id="staffLunchHeadStatus" class="staff-lunch-status" role="status" aria-live="polite">Checking department location…</p>
-              <p class="attendance-summary-note">Be physically at your department, allow precise location access, and submit for approval. Existing approved locations remain unchanged until approval. No teacher device registration is required.</p>
             </section>
             <section id="departmentHeadOverview" class="surface-card section-card department-head-overview dh-command-center" hidden>
               <div class="dh-command-intro">
@@ -1013,14 +1008,16 @@ body.dark-mode .content-wrap > .school-heading.is-compact,body[data-theme="dark"
             <div class="dashboard-columns">
               <section class="surface-card recent-card" id="recentActivityCard">
                 <div class="card-heading"><div><h3>Recent attendance activity</h3><p>Latest records visible to your account</p></div><span class="mini-tag">Live data</span></div>
-                <div class="table-scroll"><table><thead><tr><th>Student</th><th>Attendance</th><th>Time</th><th>Status</th></tr></thead><tbody id="recentRows"><tr><td colspan="4" class="empty-cell">Loading attendance activity…</td></tr></tbody></table></div>
+                <div class="table-scroll" role="region" aria-label="Latest verified manual and QR class attendance" tabindex="0"><table><thead><tr><th>Learner</th><th>Class</th><th>Date</th><th>Status</th><th>Source</th><th>Recorded time</th></tr></thead><tbody id="recentRows" aria-live="polite"><tr class="recent-empty-row"><td colspan="6" class="empty-cell">Loading synced class attendance…</td></tr></tbody></table></div>
               </section>
               <section class="surface-card quick-card" id="quickActionsCard">
                 <div class="card-heading"><div><h3>Quick actions</h3><p>Common school tasks</p></div></div>
+                <div class="teacher-shortcut-items" role="group" aria-label="Teaching shortcuts">
                 <button class="quick-action" data-go="students"><span class="quick-action-icon blue" data-ui-icon="graduation"></span><span><strong>Manage student records</strong><small>View students within your authorized scope</small></span><b>›</b></button>
                 <button class="quick-action" data-go="teachers"><span class="quick-action-icon green" data-ui-icon="users"></span><span><strong>Manage staff and teachers</strong><small>Review staff accounts and assignments</small></span><b>›</b></button>
                 <button class="quick-action" data-go="schedules"><span class="quick-action-icon purple" data-ui-icon="calendar"></span><span><strong>Class schedules</strong><small>View assigned or school schedules</small></span><b>›</b></button>
                 <button class="quick-action" data-go="sf2"><span class="quick-action-icon amber" data-ui-icon="report"></span><span><strong>SF2 reports</strong><small>Generate, preview, or monitor reports according to your role</small></span><b>›</b></button>
+                </div>
                 <div class="scope-note"><span>✓</span><p>Your dashboard is filtered to the school and permissions assigned to your account.</p></div>
               </section>
             </div>
@@ -1210,7 +1207,7 @@ body.dark-mode .content-wrap > .school-heading.is-compact,body[data-theme="dark"
 <h4 class="manual-notes-heading">Notes from all dates</h4><div class="manual-notes-filter"><label><input type="checkbox" id="mfShowArchived"> Show archived notes</label></div>
 <div id="mfNotesList" class="manual-notes-list" aria-live="polite"></div></div></section>
  <section class="manual-page" id="mfRecord" hidden></section>
- </div><div class="manual-bottom"><span id="mfFeedback" class="manual-sync-note" role="status" aria-live="polite">Offline-ready attendance. Unsynced marks stay on this device.</span><div class="manual-controls"><button type="button" class="manual-btn" id="mfSave">▣ Save sheet</button><button type="button" class="manual-btn primary" id="mfSync">⟳ Sync to records</button><button type="button" class="manual-btn" id="mfFinalize">✓ Finalize date</button><span id="mfFinalizationState" class="manual-sync-note" role="status"></span></div></div>
+ </div><div class="manual-bottom"><span id="mfFeedback" class="manual-sync-note" role="status" aria-live="polite">Offline-ready attendance. Unsynced marks stay on this device.</span><div class="manual-controls"><button type="button" class="manual-btn primary" id="mfSync" title="Save attendance to school records when online; queue securely when offline">▣ Save Attendance</button><button type="button" class="manual-btn" id="mfFinalize" title="Verify complete attendance and sign off the daily register">✓ Finalize Day</button><span id="mfFinalizationState" class="manual-sync-note" role="status"></span></div></div>
  </div>
             <div id="mfHistoryPanel" class="surface-card section-card" hidden>
 <nav class="manual-history-tabs" aria-label="Attendance history sources"><button type="button" data-mf-history="manual" aria-selected="true">Manual records</button><button type="button" data-mf-history="qr" aria-selected="false">QR records</button><button type="button" data-mf-history="conflicts" aria-selected="false">Conflict review</button></nav><div class="manual-history-folio" id="mfManualHistoryPanel">
@@ -1740,8 +1737,10 @@ body.dark-mode .content-wrap > .school-heading.is-compact,body[data-theme="dark"
                     <strong>Special calendar date</strong><p>Record holidays, suspensions, special classes, or shortened days.</p>
                     <label>Date<input id="calendarExceptionDate" type="date" required></label>
                     <label>Description<input id="calendarExceptionTitle" maxlength="140" required placeholder="e.g. School foundation day"></label>
-                    <label>Type<select id="calendarExceptionType"><option value="CLOSED">Closed / holiday</option><option value="OPEN">Additional operating day</option><option value="SPECIAL_CLASS">Special classes</option><option value="SHORTENED_DAY">Shortened day</option></select></label>
+                    <label>Type<select id="calendarExceptionType"><option value="CLOSED">Closed / holiday</option><option value="OPEN">Additional operating day</option><option value="SPECIAL_CLASS">Special classes</option><option value="SHORTENED_DAY">Shortened day</option><option value="CLASS_SUSPENSION">Class suspension (learners only)</option></select></label>
                     <label id="calendarDismissalWrap" hidden>Dismissal time<input id="calendarDismissalTime" type="time"></label>
+                    <label id="calendarSuspensionWrap" hidden>Class suspension begins (leave blank for full day)<input id="calendarSuspensionTime" type="time"><small>For an unexpected mid-day suspension, enter the exact local time; earlier attendance stays recorded.</small></label>
+                    <label id="calendarMemoWrap" hidden>Official Principal memorandum *<select id="calendarMemoId"><option value="">Select the published class-suspension notice</option></select><small>A class-only suspension does not change personnel DTR. Publish and notify all users from the existing Principal dashboard first.</small></label>
                     <label id="calendarSchedulesWrap" hidden>Schedules operating on this date<select id="calendarExceptionSchedules" multiple size="5" aria-describedby="calendarScheduleHelp"></select><small id="calendarScheduleHelp">Select only the classes that will meet on this date. Use Ctrl/Command or tap to select multiple schedules.</small></label>
                     <label>Notes (optional)<input id="calendarExceptionNotes" maxlength="500"></label>
                     <div class="form-actions"><button class="primary-button" type="submit">Save calendar date</button><button class="secondary-button" type="button" id="cancelCalendarExceptionEdit" hidden>Cancel edit</button></div><span class="inline-feedback" id="calendarExceptionFeedback" role="status"></span>
@@ -1797,6 +1796,7 @@ body.dark-mode .content-wrap > .school-heading.is-compact,body[data-theme="dark"
                     <label id="adjustmentStartWrap" hidden>New start time *<input id="adjustmentStartTime" type="time"></label>
                     <label id="adjustmentEndWrap" hidden>New end time *<input id="adjustmentEndTime" type="time"></label>
                     <label id="adjustmentRoomWrap" hidden>Room (optional)<input id="adjustmentRoom" maxlength="100" placeholder="Leave empty to keep original room"></label>
+                    <label>Related Principal memorandum (optional)<select id="adjustmentMemoId"><option value="">No memorandum link</option></select></label>
                     <label class="dated-notes">Notes (optional)<textarea id="adjustmentNotes" rows="2" maxlength="500" placeholder="e.g. English teacher attends regional seminar; replacement teacher covers Period 1"></textarea></label>
                   </div>
                   <div id="adjustmentFormDescription" class="dated-schedule-explanation" role="status"></div>
@@ -1851,36 +1851,31 @@ body.dark-mode .content-wrap > .school-heading.is-compact,body[data-theme="dark"
           </section>
 
           <section id="lunchQrAdminView" class="view-panel" hidden>
-            <div class="surface-card section-card"><h3>Lunch QR management</h3><p>Administrative presenter assignments are separate from teacher account access and personal staff attendance. Each assignment applies to the selected lunch DTR entry.</p></div>
+            <div class="surface-card section-card"><h3>Lunch QR management</h3><p>Manage QR availability, authorized presenters, department location, and attendance exceptions for your own department. Official working hours and Form 48 rules remain unchanged.</p></div>
             <section class="staff-lunch-panel" id="staffLunchAdminCard" aria-label="Lunch QR presenter management" hidden>
               <div class="section-toolbar"><div><h3>Lunch QR management — presenter assignments</h3>
-                <p>Authorize multiple teachers within each department for AM Out and PM In. Each teacher displays an independently rotating QR.</p></div>
+                <p>Authorize multiple teachers in your assigned department for AM Out and PM In. Each teacher displays an independently rotating QR.</p></div>
                 <small id="staffLunchAdminDay" class="field-hint"></small></div>
+              <div class="staff-lunch-security-settings"><label><input id="staffLunchEnabled" type="checkbox"> Enable department Lunch QR</label><label><input id="staffLunchWindowsEnabled" type="checkbox"> Limit QR to department operating windows (optional)</label><div id="staffLunchWindows" class="form-grid" hidden><label>AM Out starts<input id="staffLunchAMOutStart" type="time"></label><label>AM Out ends<input id="staffLunchAMOutEnd" type="time"></label><label>PM In starts<input id="staffLunchPMInStart" type="time"></label><label>PM In ends<input id="staffLunchPMInEnd" type="time"></label></div><p>Windows use Philippine time and only control QR operation. Official school, employee and memorandum hours continue to govern DTR. Outside these windows, use supervised Gatekeeper scanning.</p><button id="staffLunchSaveEnabled" type="button" class="primary-button">Save QR availability</button><p>Turning this off does not waive required DTR punches. Gatekeeper scanning remains available.</p></div>
               <div class="staff-lunch-controls">
                 <label>Attendance entry<select id="staffLunchAdminSlot"><option value="AM_OUT">AM Out</option><option value="PM_IN">PM In</option></select></label>
-                <label>Department<select id="staffLunchDepartment"><option value="">All departments</option></select></label>
+                <select id="staffLunchDepartment" aria-label="Assigned department" hidden></select>
                 <label>Teachers <small>Select multiple with Ctrl/Command or Shift</small><select id="staffLunchTeacher" multiple size="5" aria-label="Select one or more teacher presenters"></select></label>
                 <button class="primary-button" type="button" id="staffLunchAssign">Authorize selected teachers</button>
                 <button class="outline-button" type="button" id="staffLunchRevoke" hidden disabled>Revoke presenter</button>
               </div>
-              <div class="staff-lunch-security-settings" aria-label="Department attendance location approvals">
-                <div><strong>Department location approvals</strong>
-                  <p>Department Heads capture their actual on-site location. Review and approve each department remotely; only approved coordinates affect QR verification.</p></div>
-                <div class="staff-lunch-location-actions">
-                  <label for="staffLunchLocationDepartment">Department to review
-                    <select id="staffLunchLocationDepartment" aria-describedby="staffLunchPointStatus">
-                      <option value="">Loading departments…</option>
-                    </select>
-                  </label>
-                </div>
-                <p class="staff-lunch-status" id="staffLunchPointStatus" role="status" aria-live="polite">Choose a department to review its location.</p>
-                <p id="staffLunchLocationReview" class="staff-lunch-proposal-detail" hidden></p>
-                <a id="staffLunchCandidateMap" class="staff-lunch-map-link" href="https://www.google.com/maps" target="_blank" rel="noopener noreferrer" hidden>Inspect submitted point on map</a>
-                <div class="staff-lunch-location-decisions">
-                  <button id="staffLunchApprovePoint" type="button" class="primary-button" disabled>Approve location</button>
-                  <button id="staffLunchRejectPoint" type="button" class="outline-button" disabled>Reject location</button>
-                </div>
+            <section id="staffLunchHeadLocationCard" class="staff-lunch-panel staff-lunch-dept-head-location" hidden>
+              <div class="section-toolbar">
+                <div><h3>Department attendance location</h3>
+                  <p>Capture the location where your department displays its lunch attendance QR. Attendigo activates the location after on-site GPS validation.</p></div>
+                <span id="staffLunchHeadDepartment" class="field-hint">My department</span>
               </div>
+              <label for="staffLunchHeadCampus">Trusted campus</label><select id="staffLunchHeadCampus"><option value="">Existing trusted department area (if configured)</option></select>
+              <label for="staffLunchHeadRadius">Scanning radius (60–250 m)</label><input id="staffLunchHeadRadius" type="number" min="60" max="250" step="1" value="120">
+              <button id="staffLunchHeadSubmit" type="button" class="primary-button">Activate my department's location</button>
+              <p id="staffLunchHeadStatus" class="staff-lunch-status" role="status" aria-live="polite">Checking department location…</p>
+              <p class="attendance-summary-note">Be physically at your department and allow precise location. Changes revoke existing QR codes and are audited. GPS is location evidence, not independent institutional authorization.</p>
+            </section>
               <div class="staff-lunch-security-settings">
                 <div><strong>Lunch scans needing review</strong>
                   <p>Uncertain or delayed scans do not appear in Form 48 until independently verified. Approved leave conflicts remain blocked.</p></div>
@@ -1889,18 +1884,18 @@ body.dark-mode .content-wrap > .school-heading.is-compact,body[data-theme="dark"
               </div>
               <p class="staff-lunch-status" role="status" aria-live="polite" id="staffLunchAdminStatus">Checking presenter assignment…</p>
               <div id="staffLunchAssignedList" class="staff-lunch-assigned-list" role="region" aria-label="Active lunch QR presenters" aria-live="polite"></div>
-              <p class="attendance-summary-note">School Admin controls presenter access and department check-in areas. A valid QR alone does not certify attendance; Gatekeeper scanning remains a supervised fallback.</p>
+              <p class="attendance-summary-note">Your Department Head controls presenter access and department check-in areas. A valid QR alone does not certify attendance; Gatekeeper scanning remains a supervised fallback.</p>
             </section>
           </section>
           <section id="form48ReportsView" class="view-panel" hidden>
             <div class="surface-card section-card" id="form48ReportCard">
               <div class="section-toolbar form48-heading"><div><h3>Form 48 DTR</h3><p>Choose an employee and month, review attendance, then preview and print.</p></div><button id="form48OpenHours" class="outline-button" type="button">School hours</button></div>
-              <details id="form48DailyInsights" class="form48-daily-insights"><summary>Daily attendance checks &amp; school hours <small>Advanced tools</small></summary>
+              <details id="form48DailyInsights" class="form48-daily-insights"><summary>Daily attendance &amp; school hours <small>Exceptions and settings</small></summary>
               <section id="smartAttendanceOverview" class="smart-attendance-overview" aria-label="Smart attendance daily overview">
                 <div class="smart-attendance-head">
                   <div>
                     <h4>Smart Attendance</h4>
-                    <p>See verified scans and only the attendance items that need checking. No daily configuration needed.</p>
+                    <p>Review outstanding exceptions for the selected date.</p>
                   </div>
                   <div class="smart-attendance-date-control">
                     <label for="smartAttendanceDate">School date
@@ -1912,7 +1907,7 @@ body.dark-mode .content-wrap > .school-heading.is-compact,body[data-theme="dark"
                 <div id="smartAttendanceCounts" class="smart-attendance-counts" aria-live="polite">
                   <div><span>Verified gate scans</span><strong id="smartAttendanceScans">—</strong></div>
                   <div><span>Needs checking</span><strong id="smartAttendanceReviewCount">—</strong></div>
-                  <div><span>Missing official times to review</span><strong id="smartAttendancePendingCount">—</strong></div>
+                  <div><span>Staff with missing times</span><strong id="smartAttendancePendingCount">—</strong></div>
                 </div>
                 <p id="smartAttendanceStatus" role="status" aria-live="polite">Loading today's verified attendance…</p>
                 <div id="smartAttendanceItems" class="smart-attendance-items" aria-live="polite"></div>
@@ -1920,11 +1915,12 @@ body.dark-mode .content-wrap > .school-heading.is-compact,body[data-theme="dark"
                   <summary>Other recorded activity</summary>
                   <div id="smartAttendanceOtherItems" class="smart-attendance-items"></div>
                 </details>
-                <p class="smart-attendance-note">Only staff with recorded evidence appear here. No scan does not automatically mean absent. Clear verified scans can create audited DTR times; OB and uncertain movements still require review.</p>
+                <p class="smart-attendance-note">Only recorded activity is shown. Missing scans alone do not establish absence.</p>
                 <details id="smartAttendanceHours" class="smart-attendance-hours">
                   <summary>School working hours <small id="smartAttendanceHoursSummary">Checking school setup…</small></summary>
                   <div class="smart-attendance-hours-body">
                     <p>Set the approved hours for regular working days. Attendigo will use them for staff without an individual work schedule.</p>
+                    <label class="smart-hours-preset" id="smartHoursWorkdaysLabel" hidden>Approved working days<select id="smartHoursWorkdays"><option value="">Choose approved workdays</option><option value="weekdays">Monday–Friday</option></select><small>For custom days, use the detailed work schedule settings.</small></label>
                     <label class="smart-hours-preset" for="smartHoursPreset">Choose the school's approved working hours
                       <select id="smartHoursPreset">
                         <option value="">Select an approved schedule</option>
@@ -2000,11 +1996,11 @@ body.dark-mode .content-wrap > .school-heading.is-compact,body[data-theme="dark"
                 <div class="form48-kpi"><span>Undertime</span><strong id="form48Undertime">—</strong><small>Verified times only</small></div>
                 <button id="form48ReviewOpen" type="button" class="outline-button form48-review-open">Review attendance &amp; work schedule</button>
               </section>
-              <div class="form48-extra-heading"><strong>Additional tools</strong><small>Open only when needed</small></div>
+              <div class="form48-extra-heading"><strong>Additional tools</strong><small>Open only when needed</small><button id="form48MissingScanAudit" type="button" class="outline-button" hidden>Missing scan audit</button></div>
               <details id="form48GateIntelligence" class="form48-gate-intelligence">
                 <summary>Detailed scan review (optional) <small>Inspect one employee’s gate scans, OB exceptions, and possible AM/PM matches</small></summary>
                 <div class="form48-intelligence-body">
-                  <p>Compare verified gate movements with prescribed hours. Evidence preview does not change the DTR; an authorized administrator can explicitly verify and apply eligible original server-timestamped scans below.</p>
+                  <p>Review original scans against prescribed hours. Only explicit authorized verification changes the official DTR.</p>
                   <div class="form48-intelligence-controls">
                     <label for="form48GateReviewDate">School date
                       <input id="form48GateReviewDate" type="date" disabled>
@@ -2426,7 +2422,7 @@ body.dark-mode .content-wrap > .school-heading.is-compact,body[data-theme="dark"
               <div class="field-group"><label for="platformAdminUsername">Administrator username</label><input id="platformAdminUsername" required maxlength="80" autocomplete="off"></div>
               <div class="field-group"><label for="platformAdminName">Administrator name</label><input id="platformAdminName" required maxlength="160"></div>
               <div class="field-group"><label for="platformAdminPassword">Initial password</label><input id="platformAdminPassword" type="password" required minlength="12" maxlength="256" autocomplete="new-password"></div>
-              <div class="form-actions"><button class="primary-button" id="platformCreateSchoolButton" type="submit">Create school</button><button class="outline-button" id="platformRefreshButton" type="button">↻ Refresh overview</button></div>
+              <div class="form-actions"><button class="primary-button" id="platformCreateSchoolButton" type="submit">Create school</button><button class="outline-button" id="platformRefreshButton" type="button">Refresh overview</button></div>
             </form><p id="platformFeedback" class="inline-feedback" role="status" aria-live="polite"></p>
           </section>
           </div>
@@ -2486,7 +2482,7 @@ body.dark-mode .content-wrap > .school-heading.is-compact,body[data-theme="dark"
     <div class="form-actions"><button type="button" class="primary-button" id="profileSavedConfirmationClose">OK</button></div>
   </dialog>
   <script src="/app-dialog.js?v=1" defer></script>
-<script src="/class-qr-dashboard-link.js?v=12" defer></script>
+<script src="/class-qr-dashboard-link.js?v=14" defer></script>
 <script src="/class-qr-monitor.js?v=2" defer></script>
   <script src="/sw-refresh.js?v=3" defer></script>
   <script src="/password-visibility.js" defer></script>
@@ -2501,32 +2497,33 @@ body.dark-mode .content-wrap > .school-heading.is-compact,body[data-theme="dark"
   <script src="/student-name-format.js?v=2" defer></script>
   <script src="/teacher-scanner-schedule.js?v=1" defer></script>
   <script src="/gate-offline-review.js?v=1" defer></script>
-  <script src="/portal.js?v=236" defer></script>
+  <script src="/portal.js?v=242" defer></script>
   <script src="/schedule-list-filters.js?v=1" defer></script>
-  <script src="/staff-lunch-ui.js?v=7" defer></script>
+  <script src="/staff-lunch-ui.js?v=9" defer></script>
   <script src="/staff-precise-location.js?v=1" defer></script>
-  <script src="/staff-department-location.js?v=2" defer></script>
+  <script src="/staff-department-location.js?v=7" defer></script>
 
   <script src="/staff-ob-ui.js?v=6" defer></script>
-  <script src="/department-workspace.js?v=5" defer></script>
+  <script src="/department-workspace.js?v=6" defer></script>
   <script src="/department-dashboard-v2.js?v=2" defer></script>
   <script src="/teacher-dashboard-v2.js?v=1" defer></script>
   <script src="/teacher-dashboard-v3.js?v=1" defer></script>
-  <script src="/form48-report.js?v=19" defer></script>
-  <script src="/form48-intelligence.js?v=2" defer></script>
-  <script src="/smart-attendance-overview.js?v=3" defer></script>
+  <script src="/teacher-teaching-overview.js?v=4" defer></script>
+  <script src="/form48-report.js?v=20" defer></script>
+  <script src="/form48-intelligence.js?v=4" defer></script>
+  <script src="/smart-attendance-overview.js?v=5" defer></script>
   <script src="/form48-bulk-ui.js?v=3" defer></script>
   <script src="/teacher-roster-popover.js?v=2" defer></script>
   <script src="/sardo-monitor.js?v=2" defer></script><script src="/parent-dashboard.js?v=4" defer></script>
   <script src="/platform-plans-ui.js?v=8" defer></script>
   <script src="/platform-school-health.js?v=2" defer></script>
   <script src="/planner.js?v=5" defer></script>
-  <script src="/manual-folio.js?v=18" defer></script>
+  <script src="/manual-folio.js?v=19" defer></script>
   <script src="/student-portal-accounts.js?v=11" defer></script>
   <script src="/account-directory.js?v=2" defer></script>
   <script src="/guardian-ui.js?v=7" defer></script>
   <script src="/admin-request-notifications.js?v=7" defer></script>
-  <script src="/universal-notifications.js?v=7" defer></script>
+  <script src="/universal-notifications.js?v=11" defer></script>
   <script src="/academic-admin.js?v=7" defer></script>
   <script src="/shs-school-ui.js?v=2" defer></script>
   <script src="/special-program-ui.js?v=6" defer></script>
@@ -2536,16 +2533,16 @@ body.dark-mode .content-wrap > .school-heading.is-compact,body[data-theme="dark"
   <script src="/attendigo-unified-navigation.js?v=1" defer></script>
   <script src="/simplified-workspace.js?v=4" defer></script>
 <script defer src="/school-header-responsive.js?v=2"></script>
-<link rel="stylesheet" href="/staff-leave-ui.css?v=7">
-<link rel="stylesheet" href="/leave-approval-inbox.css?v=1">
+<link rel="stylesheet" href="/staff-leave-ui.css?v=8">
+<link rel="stylesheet" href="/leave-approval-inbox.css?v=2">
 <link rel="stylesheet" href="/leave-status-indicator.css?v=1">
-  <script src="/leave-approval-inbox.js?v=1" defer></script>
-  <script src="/staff-leave-ui.js?v=10" defer></script>
-  <link rel="stylesheet" href="/missing-scan-ui.css?v=1">
-  <script src="/missing-scan-ui.js?v=1" defer></script>
+  <script src="/leave-approval-inbox.js?v=2" defer></script>
+  <script src="/staff-leave-ui.js?v=12" defer></script>
+  <link rel="stylesheet" href="/missing-scan-ui.css?v=4">
+  <script src="/missing-scan-ui.js?v=8" defer></script>
   <script src="/attendigo-presenter-nav.js?v=1" defer></script>
-  <script src="/attendigo-help-topics.js?v=2" defer></script>
+  <script src="/attendigo-help-topics.js?v=3" defer></script>
   <script src="/attendigo-help-guide.js?v=4" defer></script>
-<script defer src="/school-memo-banner.js?v=1"></script>
+<script defer src="/school-memo-banner.js?v=4"></script>
 </body>
 </html>

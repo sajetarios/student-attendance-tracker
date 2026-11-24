@@ -35,7 +35,8 @@
         headers: {}
       });
       if (sequence !== checkSequence) return;
-      if (response.status === 401) {
+      if ([401,403,428].includes(response.status)) {
+        window.AttendigoOfflineAccount?.clear();
         if (sessionStorage.getItem(tokenKey) === token) {
           for (const key of [tokenKey, 'schoolAttendance.user', 'schoolAttendance.expiresAt']) sessionStorage.removeItem(key);
         }
@@ -47,6 +48,7 @@
       if (sequence !== checkSequence) return;
       const expected = document.documentElement.dataset.protectedRole;
       const role = payload?.user?.role;
+      window.AttendigoOfflineAccount?.record(payload.user,payload.expiresAt);
       if (!role) { redirect(); return; }
       if ((expected === 'STUDENT' && role !== 'STUDENT') ||
           (expected === 'PARENT' && role !== 'PARENT') ||
@@ -73,6 +75,7 @@
         overlay.innerHTML = '<strong>Unable to verify your session</strong><p>Connect to the internet and reload this page to continue securely.</p><button type="button" style="padding:10px 20px;cursor:pointer">Retry</button>';
         document.body.appendChild(overlay);
         overlay.querySelector('button').addEventListener('click', () => verify({ block: true }));
+        if(studentPage){const link=document.createElement('a');link.href='/student-qr-offline.html';link.textContent='Open offline class QR scanner';link.style.marginTop='18px';overlay.appendChild(link);}
       }
       document.documentElement.style.visibility = '';
       for (const child of document.body.children) if (child !== overlay) child.style.visibility = 'hidden';

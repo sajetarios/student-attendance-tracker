@@ -192,9 +192,10 @@ body.theme-dark .attendigo-help-panel :is(textarea,select,.attendigo-help-chip){
 }
 
 /* The help entry occupies sidebar space rather than overlaying any app controls.
-   In tall menus this footer remains accessible, while the sidebar itself scrolls. */
+   Keep Help & Support after every menu in the same scroll flow, even when role-specific items are added. */
 #sidebar.sidebar .attendigo-help-dock{
-  position:sticky;bottom:0;z-index:2;flex:0 0 auto;margin-top:auto;
+  position:static!important;inset:auto!important;z-index:auto!important;
+  order:999!important;flex:0 0 auto;margin-top:auto;
   display:flex;flex-direction:column;gap:7px;
   padding:12px 7px calc(12px + env(safe-area-inset-bottom,0px));
   background:var(--sidebar,#152739);

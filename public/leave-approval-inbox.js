@@ -8,7 +8,8 @@
   ['SCHOOL_REVIEW','School review','schoolReview'],
   ['EXTERNAL','Awaiting official approval','external'],
   ['APPROVED','Approved','approved'],
-  ['DISAPPROVED','Disapproved','disapproved'],
+  ['DISAPPROVED','Officially disapproved','disapproved'],
+  ['DECLINED','Declined by department','declined'],
   ['ALL','All requests','total']
  ];
  let filter='ACTION',query='',offset=0,badge=null,badgeButton=null,badgeApi=null;
@@ -47,16 +48,16 @@
   const choices=make('div','leave-inbox-form-actions');
   const submit=decision=>{
    const value=note.querySelector('textarea').value.trim();
-   if(decision==='REJECT'&&value.length<3){notify(ctx.message,'Explain the reason for recommending disapproval.',true);return;}
+   if(decision==='REJECT'&&value.length<3){notify(ctx.message,kind==='HEAD'?'Explain why the department is declining the application.':'Explain the reason for recommending disapproval.',true);return;}
    const path=kind==='HEAD'?'recommend':'admin-review';
    void ctx.action('Recording '+title.toLowerCase(),()=>ctx.call('/requests/'+request.requestId+'/'+path,'POST',{decision,note:value}));
   };
   choices.append(
    makeButton(kind==='HEAD'?'Recommend approval':'Forward for official decision','leave-primary',()=>submit('FORWARD')),
-   makeButton('Recommend disapproval','leave-btn',()=>submit('REJECT'))
+   makeButton(kind==='HEAD'?'Decline at department':'Recommend disapproval','leave-btn',()=>submit('REJECT'))
   );
   form.append(choices);
-  form.append(make('p','leave-help','A recommendation is not a final approval or disapproval. The authorized official must issue the final decision.'));
+  form.append(make('p','leave-help',kind==='HEAD'?'A department decline closes internal routing and does not become an official DepEd disapproval. A positive recommendation goes to school review.':'A school recommendation is not a final approval or disapproval. The authorized official must issue the final decision.'));
   return form;
  }
  function officialForm(request,ctx){
@@ -141,8 +142,11 @@
   }));
   actions.append(makeButton(record.own?'My request details':'Open Leave Requests','leave-btn',ctx.openRequests));
   article.append(actions);
-  if(record.own && record.status!=='APPROVED' && record.status!=='REJECTED'){
+  if(record.own && !['APPROVED','REJECTED','DECLINED_HEAD','CANCELLED'].includes(record.status)){
    article.append(make('p','leave-help','Your request is awaiting the next authorized review. You cannot approve your own leave.'));
+  }
+  if(record.status==='DECLINED_HEAD'){
+   article.append(make('p','leave-help','Department Head declined this application. Internal review is closed; no official leave disapproval has been recorded.'));
   }
   if(record.actions?.recommend||record.actions?.schoolReview||record.actions?.recordOfficialDecision){
    const details=make('details','leave-approval leave-inbox-action');

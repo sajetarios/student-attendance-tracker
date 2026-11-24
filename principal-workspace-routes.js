@@ -4,7 +4,7 @@
 const {manilaDate}=require('./staff-lunch-routes');
 function registerPrincipalWorkspaceRoutes(app,pool,{authenticateSchoolClient,requireSchoolRoles}){
  app.get('/api/principal/workspace',authenticateSchoolClient,
-  requireSchoolRoles('PRINCIPAL','SCHOOL_ADMIN'),async(req,res)=>{
+  requireSchoolRoles('PRINCIPAL'),async(req,res)=>{
    res.set('Cache-Control','no-store, private');
    const schoolId=req.auth.schoolId,staffId=req.auth.userId;
    const day=String(req.query?.date||manilaDate());

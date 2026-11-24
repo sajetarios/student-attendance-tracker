@@ -5,6 +5,9 @@ const {Pool}=require('pg');
 const {createOpaqueToken,hashToken}=require('../auth-security');
 const {createAuthMiddleware}=require('../auth-middleware');
 const {registerPrincipalRoutes}=require('../principal-overview-routes');
+const {registerPrincipalClassImpactRoutes}=require('../principal-class-impact-routes');
+const {registerPrincipalWorkspaceRoutes}=require('../principal-workspace-routes');
+const fs=require('node:fs'),path=require('node:path');
 const {manilaDate}=require('../staff-lunch-routes');
 async function main(){
  const url=process.env.DATABASE_URL;
@@ -51,6 +54,12 @@ async function main(){
   const app=express();app.use(express.json());
   const {authenticateSchoolClient,requireSchoolRoles}=createAuthMiddleware(pool);
   registerPrincipalRoutes(app,pool,{authenticateSchoolClient,requireSchoolRoles});
+  registerPrincipalClassImpactRoutes(app,pool,{authenticateSchoolClient,requireSchoolRoles});
+  registerPrincipalWorkspaceRoutes(app,pool,{authenticateSchoolClient,requireSchoolRoles});
+  // Verify the production document guard and exercise that same middleware in this isolated app.
+  const serverSource=fs.readFileSync(path.join(__dirname,'../server.js'),'utf8');
+  assert.match(serverSource,/app\.get\('\/principal\.html', authenticateSchoolClient, requireSchoolRoles\('PRINCIPAL'\)/);
+  app.get('/principal.html',authenticateSchoolClient,requireSchoolRoles('PRINCIPAL'),(_req,res)=>res.sendStatus(200));
   server=await new Promise((resolve,reject)=>{
    const instance=app.listen(0,'127.0.0.1',()=>resolve(instance));instance.on('error',reject);
   });
@@ -63,7 +72,7 @@ async function main(){
   const first=await overview(principal.token);
   assert.equal(first.status,200,'Principal dashboard API must load: '+JSON.stringify(first.body));
   assert.equal(first.body.school.schoolCode,'P'+suffix+'A');
-  assert.equal(first.body.metrics.trackedStaff,2,'School Admin and Teacher have distinct DTR scopes');
+  assert.equal(first.body.metrics.trackedStaff,3,'Principal, School Admin and Teacher are tracked separately within the school');
   assert.equal(first.body.metrics.withVerifiedPunch,1,'Only verified employee has a verified punch');
   assert.equal(first.body.metrics.withPendingPunch,1);
   assert.equal(first.body.metrics.verifiedDtrSlots,1,'Cross-school event must never count');
@@ -81,7 +90,11 @@ async function main(){
   const invalid=await overview(principal.token,'?date=2020-01-01');
   assert.equal(invalid.status,400);
   const preview=await overview(admin.token);
-  assert.equal(preview.status,200,'School Admin can preview only its own school leadership dashboard');
+  assert.equal(preview.status,403,'School Admin cannot access Principal leadership records');
+  for(const path of ['/api/principal/class-impact','/api/principal/workspace','/principal.html']){
+   const blocked=await fetch(base+path,{headers:{Authorization:'Bearer '+admin.token},cache:'no-store'});
+   assert.equal(blocked.status,403,'School Admin denied '+path);
+  }
   const outside=await overview(outsider.token);
   assert.equal(outside.status,200);
   assert.equal(outside.body.metrics.verifiedDtrSlots,1,'Other tenant sees only its own event');

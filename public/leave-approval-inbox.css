@@ -27,6 +27,7 @@
 #staffLeaveDialog .leave-inbox-pagination{display:flex;justify-content:flex-end;gap:8px;margin:12px 0}
 #staffLeaveDialog .leave-status[data-leave-status=APPROVED]{background:#e9f9f1;border-color:#aadcc5;color:#12583a}
 #staffLeaveDialog .leave-status[data-leave-status=REJECTED]{background:#fff2f1;border-color:#e4bbb8;color:#9b3b37}
+#staffLeaveDialog .leave-status[data-leave-status=DECLINED_HEAD]{background:#fff4ee;border-color:#edc6b3;color:#92502c}
 #staffLeaveDialog .leave-status[data-leave-status=PENDING_EXTERNAL]{background:#fff7e7;border-color:#e4c594;color:#855814}
 #staffLeaveDialog [data-leave-tab=inbox][hidden]{display:none!important}
 #staffLeaveReviewNav .leave-inbox-nav-badge{margin-left:auto;display:inline-flex;align-items:center;justify-content:center;border-radius:999px;min-width:20px;height:20px;padding:0 5px;font-size:10px;font-weight:750;background:#fef3c7;color:#874c11;flex:none}

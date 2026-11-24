@@ -30,7 +30,7 @@ function response(){
 }
 test('Principal class-impact endpoint is read only and has no cross-school identifiers from client',async()=>{
  const h=routeHarness(),{out,res}=response();
- assert.deepEqual(h.roles,['PRINCIPAL','SCHOOL_ADMIN']);
+ assert.deepEqual(h.roles,['PRINCIPAL']);
  await h.handler({auth:{schoolId:SCHOOL},query:{departmentId:UUID}},res);
  assert.equal(out.code,200);
  assert.equal(out.headers['Cache-Control'],'no-store, private');

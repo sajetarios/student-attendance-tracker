@@ -1,5 +1,5 @@
 /* Mobile overflow repair: presentation only; no scheduling or attendance logic. */
-@media (max-width: 767px) {
+@media screen and (max-width: 767px) {
   html, body, .portal-layout, .main-area, .content-wrap, .view-panel { max-width:100%; min-width:0; }
   .content-wrap, .content-wrap * { box-sizing:border-box; }
   .content-wrap :is(.surface-card,.section-card,.stats-grid,.dashboard-columns,.section-toolbar,.card-heading,.form-grid) { min-width:0; max-width:100%; }
@@ -26,6 +26,26 @@
   .account-menu, .account-dropdown, .user-dropdown { max-width:calc(100vw - 24px); }
   .account-menu button, .account-dropdown button, .user-dropdown button { min-width:0; overflow-wrap:normal; }
 }
-@media (max-width: 360px) {
+@media screen and (max-width: 360px) {
   .stats-grid { grid-template-columns:minmax(0,1fr) !important; }
+}
+
+
+/* Portal-wide action and input containment. Layout only: permissions and record actions unchanged. */
+.portal-page :is(.section-toolbar,.heading-actions,.action-row,.form-actions,.card-heading,.toolbar-actions,.modal-actions){
+ min-width:0;max-width:100%;flex-wrap:wrap;gap:8px;
+}
+.portal-page :is(.section-toolbar,.heading-actions,.action-row,.form-actions,.card-heading,.toolbar-actions,.modal-actions)>:is(button,a,select,.primary-button,.outline-button){
+ min-width:0;max-width:100%;box-sizing:border-box;flex-shrink:1;white-space:normal;overflow-wrap:anywhere;
+}
+.portal-page :is(.surface-card,.section-card,.view-panel,.modal,dialog) :is(input,textarea,select){
+ min-width:0;max-width:100%;box-sizing:border-box;
+}
+@media screen and (max-width:767px){
+ .portal-page .content-wrap :is(.section-toolbar,.heading-actions,.action-row,.form-actions,.toolbar-actions,.modal-actions)>:is(button,a,.primary-button,.outline-button){
+  flex:0 1 auto;min-height:44px;height:auto;
+ }
+ .portal-page .content-wrap :is(.section-toolbar,.heading-actions,.action-row,.form-actions,.toolbar-actions,.modal-actions)>*{
+  min-width:0;max-width:100%;
+ }
 }

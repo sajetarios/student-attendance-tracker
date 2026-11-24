@@ -101,13 +101,25 @@
       b.textContent=label;b.addEventListener('click',handler);actions.append(b);
      }
      async function decide(kind,decision){
-      const note=window.prompt('Decision note (optional; maximum 1000 characters):','');
-      if(note===null)return;
-      busy=true;say('Saving decision…');
+      if(busy)return;
+      if(!window.AppDialog){say('The review dialog could not load. Refresh Attendigo before recording a decision.',true);return;}
+      busy=true;
+      const controls=[...actions.querySelectorAll('button')];
+      controls.forEach(button=>button.disabled=true);
+      const label=decision==='RECOMMEND'?'Recommend':decision==='APPROVE'?'Approve':'Reject';
+      let saved=false;
       try{
+       const note=await window.AppDialog.prompt(label+' this Official Business request for '+(ob.staffName||'this staff member')+'? Add an optional decision note (maximum 1000 characters).','',{
+        title:label+' Official Business request',label:'Decision note (optional)',inputType:'textarea',maxLength:1000,
+        validate:value=>value.length<=1000||'Use no more than 1000 characters.',confirmText:label,variant:decision==='REJECT'?'danger':undefined
+       });
+       if(note===null)return;
+       say('Saving decision…');
        await call(api+'/'+encodeURIComponent(ob.requestId)+'/'+kind,'POST',{decision,note});
-       say('Decision recorded.');document.dispatchEvent(new Event('attendigo:requests-changed'));busy=false;await refresh();
-      }catch(e){busy=false;say(e.message,true);}
+       saved=true;say('Decision recorded.');document.dispatchEvent(new Event('attendigo:requests-changed'));
+      }catch(e){say(e.message,true);}
+      finally{busy=false;controls.forEach(button=>button.disabled=false);}
+      if(saved)await refresh();
      }
      if(user.role==='DEPARTMENT_HEAD'&&ob.status==='PENDING_HEAD'&&ob.staffUserId!==user.userId){
       action('Recommend',()=>decide('recommend','RECOMMEND'));

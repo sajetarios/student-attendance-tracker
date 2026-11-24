@@ -132,6 +132,7 @@ window.attendigoStaffIdentity = new Promise(resolve => { resolveStaffIdentity = 
   }
 
   function clearSession() {
+    window.AttendigoOfflineAccount?.clear();
     sessionStorage.removeItem(tokenKey);
     sessionStorage.removeItem(userKey);
     sessionStorage.removeItem('schoolAttendance.expiresAt');
@@ -193,8 +194,8 @@ window.attendigoStaffIdentity = new Promise(resolve => { resolveStaffIdentity = 
 
   function allowedViewsForUser() {
     const role = user?.role;
-    if (role === 'SCHOOL_ADMIN') return ['dashboard', 'students', 'studentAccounts', 'parents', 'teachers', 'schedules', 'myGateAttendance', 'lunchQrAdmin', 'form48Reports', 'classQrMonitor', 'offlineScanReviews', 'officialBusiness', 'cloudSync', 'schoolBranding'];
-    if (role === 'DEPARTMENT_HEAD') return ['dashboard', 'planner', 'students', 'teachers', 'schedules', 'sf2', 'officialBusiness', 'myGateAttendance'];
+    if (role === 'SCHOOL_ADMIN') return ['dashboard', 'students', 'studentAccounts', 'parents', 'teachers', 'schedules', 'myGateAttendance', 'form48Reports', 'classQrMonitor', 'offlineScanReviews', 'officialBusiness', 'cloudSync', 'schoolBranding'];
+    if (role === 'DEPARTMENT_HEAD') return ['dashboard', 'planner', 'students', 'teachers', 'schedules', 'sf2', 'officialBusiness', 'myGateAttendance', 'lunchQrAdmin'];
     if (role === 'TEACHER') {
       const views = ['dashboard', 'planner', 'myGateAttendance', 'teacherLunchQr', 'officialBusiness'];
       if (teacherHas('SUBJECT_TEACHER') || teacherHas('CLASS_ADVISER')) {
@@ -364,7 +365,7 @@ window.attendigoStaffIdentity = new Promise(resolve => { resolveStaffIdentity = 
         myGateAttendance: ['My Attendance', 'View your own Gatekeeper-verified physical movements and four-slot Form 48 DTR. Administrative login does not record attendance.']
       };
     }
-    const title = titles[view] || ['Dashboard', 'Attendance overview.'];
+    const title = view==='lunchQrAdmin'&&role==='DEPARTMENT_HEAD'?['Lunch QR Management','Manage your department QR availability, location, presenter duties and pending scans.']:titles[view] || ['Dashboard', 'Attendance overview.'];
     $('viewTitle').textContent = title[0];
     $('viewDescription').textContent = title[1];
     $('breadcrumbCurrent').textContent = title[0];
@@ -549,7 +550,7 @@ window.attendigoStaffIdentity = new Promise(resolve => { resolveStaffIdentity = 
       $('classAttendanceNav').querySelector('.nav-label').textContent =
         classAdviser && subjectTeacher ? 'Class attendance' : classAdviser ? 'My advisory attendance' : 'My class attendance';
     }
-    if ($('lunchQrAdminNav')) $('lunchQrAdminNav').hidden = !admin;
+    if ($('lunchQrAdminNav')) $('lunchQrAdminNav').hidden = !departmentHead;
     if ($('form48ReportsNav')) $('form48ReportsNav').hidden = !admin;
     if ($('officialBusinessNav')) $('officialBusinessNav').hidden = !(teacher || admin || departmentHead);
     // The presenter page only appears in Assigned Duties after the current
@@ -753,7 +754,7 @@ window.attendigoStaffIdentity = new Promise(resolve => { resolveStaffIdentity = 
       if (academicMenu && $('academicAdminNav') && academicMenu.firstElementChild !== $('academicAdminNav')) academicMenu.prepend($('academicAdminNav'));
       relocate('myGateAttendanceNav', 'attendanceManagement');
       relocate('officialBusinessNav', 'operations');
-      relocate('lunchQrAdminNav', 'attendanceManagement');
+      // Lunch QR management is no longer an Admin module.
       relocate('form48ReportsNav', 'reports');
       relocate('cloudSyncNav', 'operations');
       relocate('smsNav', 'operations');
@@ -771,6 +772,7 @@ window.attendigoStaffIdentity = new Promise(resolve => { resolveStaffIdentity = 
       if ($('teacherLunchQrNav')) $('teacherLunchQrNav').title = 'Assigned lunch QR presenter';
       relocate('sf2Nav', 'reports');
     } else if (departmentHead) {
+      relocate('lunchQrAdminNav', 'operations');
       // Keep official personal DTR separate from departmental decisions.
       relocate('myGateAttendanceNav', 'personalAttendance');
       relocate('officialBusinessNav', 'personalAttendance');
@@ -1217,7 +1219,7 @@ window.attendigoStaffIdentity = new Promise(resolve => { resolveStaffIdentity = 
     const statNotes = [...document.querySelectorAll('.stat-card small')];
 
     $('statStudents').textContent = data.students?.active ?? 0;
-    if ($('adminOverviewStudents') && user?.role === 'SCHOOL_ADMIN') $('adminOverviewStudents').textContent = data.students?.active ?? '—';
+    if ($('adminOverviewStudents') && user?.role === 'SCHOOL_ADMIN') $('adminOverviewStudents').textContent = data.students?.active ?? (Array.isArray(students)?students.filter(s=>s.active!==false).length:'—');
     $('statClasses').textContent = data.today?.class_checkins ?? 0;
     if (isTeacher) {
       $('statArrivals').textContent = learner.confirmedPresentToday ?? 0;
@@ -1246,15 +1248,58 @@ window.attendigoStaffIdentity = new Promise(resolve => { resolveStaffIdentity = 
         : 'Pending confirmation is not an absence count. A learner is counted Present after at least one accepted subject check-in; unconfirmed learners are not marked Absent.';
     }
     if ((role === 'SCHOOL_ADMIN' || role === 'DEPARTMENT_HEAD') && !document.getElementById('sardoCard')?.hidden) window.AttendigoSardo?.refresh();
-    const rows = data.recent || [];
-    $('recentRows').innerHTML = rows.length ? rows.map(row => {
-      const date = new Date(row.occurredAt);
-      const time = Number.isNaN(date.getTime()) ? '—' : date.toLocaleString('en-PH', { timeZone: 'Asia/Manila', month: 'short', day: '2-digit', hour: 'numeric', minute: '2-digit' });
-      const label = `${row.scope === 'CLASS' ? 'Class' : 'Gate'} ${String(row.eventType || '').replace('_', ' ').toLowerCase()}`;
-      const status = row.syncStatus || 'ACCEPTED';
-      const statusClass = row.late ? 'status-tag late' : (status === 'ACCEPTED' ? 'status-tag' : 'status-tag neutral');
-      return `<tr><td>${esc(row.fullName || row.studentId)}</td><td>${esc(label)}</td><td>${esc(time)}</td><td><span class="${statusClass}">${esc(row.late ? 'LATE' : status)}</span></td></tr>`;
-    }).join('') : '<tr><td colspan="4" class="empty-cell">No attendance activity is available for this account yet.</td></tr>';
+    if (isTeacher) {
+      const recentCard = $('recentActivityCard');
+      const hint = recentCard?.querySelector('.card-heading p');
+      const label = recentCard?.querySelector('.mini-tag');
+      if (hint) hint.textContent = 'Synced manual marks and accepted QR check-ins · one row per learner, class and date';
+      if (label) label.textContent = 'Synced';
+    }
+    const rows = Array.isArray(data.recent) ? data.recent : [];
+    // Dashboard preview only: server-reconciled teacher records never affect the
+    // official class register, SF2, QR events, or attendance totals.
+    const recentTable = $('recentRows');
+    if (recentTable) {
+      if (role === 'TEACHER') {
+        recentTable.innerHTML = rows.length ? rows.map(row => {
+          const rawDate = String(row.schoolDate || '');
+          const schoolDate = /^\d{4}-\d{2}-\d{2}$/.test(rawDate)
+            ? new Date(rawDate + 'T12:00:00+08:00') : new Date(NaN);
+          const dateLabel = Number.isNaN(schoolDate.getTime()) ? '—'
+            : schoolDate.toLocaleDateString('en-PH', {
+                timeZone: 'Asia/Manila', month: 'short', day: 'numeric', year: 'numeric'
+              });
+          const recorded = new Date(row.recordedAt || NaN);
+          const recordedTime = Number.isNaN(recorded.getTime()) ? '—'
+            : recorded.toLocaleTimeString('en-PH', {
+                timeZone: 'Asia/Manila', hour: 'numeric', minute: '2-digit'
+              });
+          const source = row.source === 'MANUAL' ? 'Manual' : 'QR';
+          const status = ['PRESENT','LATE','ABSENT','EXCUSED'].includes(row.status) ? row.status : 'UNKNOWN';
+          const conflictNote = row.needsReview
+            ? '<small class="recent-conflict-note" role="status">Needs review · QR check-in conflicts with manual mark</small>' : '';
+          return `<tr class="recent-unified-row">
+            <td data-label="Learner"><strong>${esc(row.fullName || row.studentId || 'Unknown learner')}</strong></td>
+            <td data-label="Class"><strong>${esc(row.className || 'Class')}</strong><small>${esc(row.classSection || '')}</small></td>
+            <td data-label="Date">${esc(dateLabel)}</td>
+            <td data-label="Status"><span class="recent-status recent-status--${status.toLowerCase()}">${esc(status === 'UNKNOWN' ? 'Unverified' : status.charAt(0) + status.slice(1).toLowerCase())}</span>${conflictNote}</td>
+            <td data-label="Source"><span class="recent-source recent-source--${source.toLowerCase()}">${source}</span></td>
+            <td data-label="Recorded time">${esc(recordedTime)}<small>${source === 'Manual' ? 'Last saved' : 'Check-in time'}</small></td>
+          </tr>`;
+        }).join('') : `<tr class="recent-empty-row"><td colspan="6" class="empty-cell">${data.recentLoadFailed
+          ? 'Unable to load recent class attendance. Refresh to retry; existing records have not been changed.'
+          : 'No synced manual marks or accepted QR class check-ins are available yet. Device-only drafts appear after syncing.'}</td></tr>`;
+      } else {
+        // The card is hidden for school-wide managers; preserve their existing
+        // event-only dashboard response, without presenting it as manual data.
+        recentTable.innerHTML = rows.length ? rows.map(row => {
+          const occurred = new Date(row.occurredAt || NaN);
+          const dateLabel = Number.isNaN(occurred.getTime()) ? '—' : occurred.toLocaleDateString('en-PH', {timeZone:'Asia/Manila',month:'short',day:'numeric',year:'numeric'});
+          const timeLabel = Number.isNaN(occurred.getTime()) ? '—' : occurred.toLocaleTimeString('en-PH',{timeZone:'Asia/Manila',hour:'numeric',minute:'2-digit'});
+          return `<tr><td data-label="Learner">${esc(row.fullName || row.studentId)}</td><td data-label="Class">${esc(row.scope || '—')}</td><td data-label="Date">${esc(dateLabel)}</td><td data-label="Status">${esc(row.late ? 'Late' : row.syncStatus || 'Accepted')}</td><td data-label="Source">Event</td><td data-label="Recorded time">${esc(timeLabel)}</td></tr>`;
+        }).join('') : '<tr class="recent-empty-row"><td colspan="6" class="empty-cell">No attendance activity is available for this account yet.</td></tr>';
+      }
+    }
   }
 
   // Department-specific shortcuts use existing, role-authorized navigation.
@@ -1733,6 +1778,7 @@ function coverageStatusLabel(status) {
       ((departmentHead || (teacher && designations.includes('CLASS_ADVISER'))) && hasSelectableLearners);
     const rosterTable = $('studentRosterTable');
     rosterTable?.classList.toggle('teacher-roster-compact', teacher);
+    rosterTable?.classList.toggle('roster-mobile-compact', !teacher);
     // Table-layout:fixed reads the header widths, not the body cells. Reserve only one
     // checkbox-sized column when a role is allowed to select learners in bulk.
     rosterTable?.classList.toggle('teacher-roster-with-selection', teacher && showSelectionColumn);
@@ -1820,10 +1866,21 @@ function coverageStatusLabel(status) {
           const classInfo = `<div class="teacher-roster-class"><strong>${esc(student.gradeLevel)}</strong><span class="teacher-roster-section${sectionUnassigned ? ' is-unassigned' : ''}">${esc(sectionName || 'Unassigned')}</span><span class="teacher-roster-program" data-label="Special program">${student.specialProgramCode ? programCell : ''}</span></div>`;
           return `<tr class="teacher-roster-student" data-student-enrollment="${esc(student.enrollmentId || '')}" data-student-name="${esc(student.fullName)}">${showSelectionColumn ? `<td data-label="Select">${selection}</td>` : ''}<td data-label="Full name">${identity}</td><td data-label="Class">${classInfo}</td><td data-label="Status"><span class="teacher-roster-status ${statusClass}">${statusLabel}</span></td><td data-label="Actions"><div class="teacher-roster-quick-actions">${qrAction}${editable ? `<button type="button" class="outline-button learner-direct-edit" data-edit-student="${esc(student.studentId)}" aria-label="Edit ${esc(student.fullName)}">Edit</button>` : ""}${actions}</div></td></tr>`;
         }
+        // Keep the full desktop table and its role boundaries. Phones show a
+        // compact learner identity with an accessible, on-demand detail section.
+        const mobileRosterDetails = !teacher ? `<div class="roster-mobile-summary">
+          <span class="roster-mobile-class">${esc(student.gradeLevel || '—')} · ${esc(student.section || 'Unassigned')}</span>
+          <span class="roster-mobile-status">${esc(statusLabel)}</span>
+          <details class="roster-mobile-details"><summary>Details</summary><dl>
+          <dt>Student ID</dt><dd>${esc(student.studentId)}</dd>
+          <dt>Sex</dt><dd>${esc(student.sex || 'Not set')}</dd>
+          <dt>Special program</dt><dd>${programCell}</dd>
+          ${admin ? `<dt>Parent / guardian</dt><dd>${esc(student.parentName || 'Not provided')}<br>${esc(student.parentMobile || 'No mobile number')}</dd>` : ''}
+          </dl></details></div>` : '';
         if (departmentHead) {
-          return `<tr data-student-enrollment="${esc(student.enrollmentId || '')}" data-student-name="${esc(student.fullName)}">${showSelectionColumn ? `<td data-label="Select">${selection}</td>` : ''}<td data-label="Student ID">${esc(student.studentId)}</td><td data-label="Full name">${studentRosterName(student, ordinal)}</td><td data-label="Sex">${esc(student.sex || 'Not set')}</td><td data-label="Grade">${esc(student.gradeLevel)}</td><td data-label="Section">${esc(student.section)}</td><td data-label="Special program">${programCell}</td><td data-label="Status">${statusLabel}</td><td data-label="Actions"><span class="muted-inline">View only</span></td></tr>`;
+          return `<tr data-student-enrollment="${esc(student.enrollmentId || '')}" data-student-name="${esc(student.fullName)}">${showSelectionColumn ? `<td data-label="Select">${selection}</td>` : ''}<td data-label="Student ID">${esc(student.studentId)}</td><td data-label="Full name">${studentRosterName(student, ordinal)}${mobileRosterDetails}</td><td data-label="Sex">${esc(student.sex || 'Not set')}</td><td data-label="Grade">${esc(student.gradeLevel)}</td><td data-label="Section">${esc(student.section)}</td><td data-label="Special program">${programCell}</td><td data-label="Status">${statusLabel}</td><td data-label="Actions"><span class="muted-inline">View only</span></td></tr>`;
         }
-        return `<tr data-student-enrollment="${esc(student.enrollmentId || '')}" data-student-name="${esc(student.fullName)}">${showSelectionColumn ? `<td data-label="Select">${selection}</td>` : ''}<td data-label="Photo">${avatar}</td><td data-label="Student ID">${esc(student.studentId)}</td><td data-label="Full name">${studentRosterName(student, ordinal)}</td><td data-label="Sex">${esc(student.sex || 'Not set')}</td><td data-label="Grade">${esc(student.gradeLevel)}</td><td data-label="Section">${esc(student.section)}</td><td data-label="Special program">${programCell}</td><td data-label="Status">${statusLabel}</td><td data-label="Actions">${actions}</td>${(admin || teacher) ? `<td data-label="Parent / guardian"><strong>${esc(student.parentName || "Not provided")}</strong><small class="table-subtext">${esc(student.parentMobile || "No mobile number")}</small></td>` : ''}</tr>`;
+        return `<tr data-student-enrollment="${esc(student.enrollmentId || '')}" data-student-name="${esc(student.fullName)}">${showSelectionColumn ? `<td data-label="Select">${selection}</td>` : ''}<td data-label="Photo">${avatar}</td><td data-label="Student ID">${esc(student.studentId)}</td><td data-label="Full name">${studentRosterName(student, ordinal)}${mobileRosterDetails}</td><td data-label="Sex">${esc(student.sex || 'Not set')}</td><td data-label="Grade">${esc(student.gradeLevel)}</td><td data-label="Section">${esc(student.section)}</td><td data-label="Special program">${programCell}</td><td data-label="Status">${statusLabel}</td><td data-label="Actions">${actions}</td>${(admin || teacher) ? `<td data-label="Parent / guardian"><strong>${esc(student.parentName || "Not provided")}</strong><small class="table-subtext">${esc(student.parentMobile || "No mobile number")}</small></td>` : ''}</tr>`;
       }));
       let previousSex = null;
       host.innerHTML = rows.map((row, index) => {
@@ -2192,6 +2249,7 @@ function coverageStatusLabel(status) {
     $('studentPhotoVerified').checked = false;
     noticeContinue.hidden = isGateVerification;
     noticeRecord.hidden = !isGateVerification;
+    noticeRecord.textContent = 'Verify & Record';
     noticeClear.hidden = !isGateVerification;
     noticeRecord.disabled = !photo;
     noticeConfirmation.hidden = !isGateVerification || !photo;
@@ -2238,6 +2296,7 @@ function coverageStatusLabel(status) {
     });
     if (isTeacherPerson) {
       person.expectedGateEventType = null;
+      person.confirmedMissingReturnExit = false;
       scannedTeacher = person;
     }
     if (isGateVerification && isTeacherPerson && person.qrToken) {
@@ -2259,6 +2318,20 @@ function coverageStatusLabel(status) {
                 ? ' (Philippine time). Leave overlaps today: physical movement only; DTR requires authorized review.'
                 : ' (Philippine time). A clear, verified scan can fill the matching DTR time; OB and uncertain scans require review.')
             : 'Gate movement requires review: ' + (preview.reason || preview.status);
+        }
+        if (preview.status === 'READY' && preview.canConfirmMissingReturnExit && previewElement) {
+          const option = document.createElement('label');
+          option.style.cssText = 'display:flex;align-items:flex-start;gap:8px;line-height:1.4;margin:8px 0;';
+          const checkbox = document.createElement('input');
+          checkbox.type = 'checkbox';
+          checkbox.style.cssText = 'flex:none;width:20px;height:20px;margin:0;';
+          option.append(checkbox,document.createTextNode('I confirm the employee is leaving school now (return scan was missed).'));
+          checkbox.addEventListener('change',()=>{
+            if(scannedTeacher!==person)return;
+            person.confirmedMissingReturnExit=checkbox.checked;
+            noticeRecord.textContent=checkbox.checked?'Verify & Record Exit':'Verify & Record';
+          });
+          previewElement.after(option);
         }
         if (previewElement) previewElement.dataset.previewBlocked = String(preview.status !== 'READY');
         if (preview.status === 'READY') noticeRecord.disabled = !photo;
@@ -2294,6 +2367,7 @@ function coverageStatusLabel(status) {
         method: 'POST',
         body: JSON.stringify({ teacherQrToken: scan.qrToken, photoVerified: true,
           clientEventKey:scan.autoEventId,
+          ...(scan.confirmedMissingReturnExit ? {confirmedMissingReturnExit:true} : {}),
           ...(scan.expectedGateEventType ? { expectedGateEventType:scan.expectedGateEventType } : {}) })
       });
       const name = scannedTeacher.fullName;
@@ -2543,7 +2617,8 @@ function coverageStatusLabel(status) {
       return '<article class="dated-adjustment-card"><span class="status-tag neutral">'+esc(labels[a.type]||a.type)+'</span>'+
         '<div><strong>'+esc(a.date+' · '+(period?.periodName||'Class')+' · '+a.gradeLevel+' · '+a.section)+'</strong>'+
         '<span>'+esc(desc||'Date-specific timetable change')+'</span>'+
-        (a.notes?'<small>'+esc(a.notes)+'</small>':'')+'</div>'+
+        (a.notes?'<small>'+esc(a.notes)+'</small>':'')+
+        (a.memoTitle?'<small>Principal memo: '+esc(a.memoTitle)+'</small>':'')+'</div>'+
         (manager&&a.date>=dataSchoolDate()?'<button type="button" class="outline-button" data-remove-adjustment="'+esc(a.adjustmentId)+'">Restore regular</button>':'')+
         '</article>';
     }).join(''):'<p class="muted-inline">No temporary changes this week. The regular schedule applies.</p>';
@@ -3858,6 +3933,7 @@ let teacherActionMenuListenersInstalled = false;
       schoolOperatingDays = daysResult.days || [];
       timetableTemplates = templatesResult.templates || [];
       renderCalendarExceptions(exceptionsResult.exceptions || []);
+      if(['SCHOOL_ADMIN','DEPARTMENT_HEAD'].includes(user.role))void loadLinkedPrincipalMemos();
       const exceptionScheduleSelect = $('calendarExceptionSchedules');
       if (exceptionScheduleSelect) exceptionScheduleSelect.innerHTML = periods.map(period => '<option value="' + esc(period.periodId) + '">' + esc(period.gradeLevel + ' · ' + (period.section || 'All sections') + ' · ' + (period.subjectName || period.periodName)) + '</option>').join('');
       const dayMap = new Map(schoolOperatingDays.map(day => [Number(day.weekday), Boolean(day.isOperatingDay)]));
@@ -3904,12 +3980,45 @@ let teacherActionMenuListenersInstalled = false;
     }
   }
 
+  let linkedPrincipalMemos=[];
+  function fillPrincipalMemoChoices(){
+    const calendar=$('calendarMemoId'),dated=$('adjustmentMemoId');
+    const date=$('calendarExceptionDate')?.value||'';
+    const from=$('adjustmentStartDate')?.value||'',to=$('adjustmentEndDate')?.value||from;
+    if(calendar){
+      const previous=calendar.value;
+      const eligible=linkedPrincipalMemos.filter(m=>m.category==='CLASS_SUSPENSION'&&m.audience==='ALL_USERS'&&
+        date&&m.effectiveDate&&m.effectiveDate<=date&&m.endDate>=date);
+      calendar.innerHTML='<option value="">Select the published class-suspension notice</option>'+
+        eligible.map(m=>'<option value="'+esc(m.memoId)+'">'+esc(m.title+' ('+m.effectiveDate+'–'+m.endDate+')')+'</option>').join('');
+      if(eligible.some(m=>m.memoId===previous))calendar.value=previous;
+    }
+    if(dated){
+      const previous=dated.value;
+      const eligible=linkedPrincipalMemos.filter(m=>from&&to&&m.effectiveDate&&m.effectiveDate<=from&&m.endDate>=to);
+      dated.innerHTML='<option value="">No memorandum link</option>'+
+        eligible.map(m=>'<option value="'+esc(m.memoId)+'">'+esc(m.title+' ('+m.effectiveDate+'–'+m.endDate+')')+'</option>').join('');
+      if(eligible.some(m=>m.memoId===previous))dated.value=previous;
+    }
+  }
+  async function loadLinkedPrincipalMemos(){
+    try{
+      const response=await api('/api/school-memos?limit=50');
+      linkedPrincipalMemos=(response.memoranda||[]).filter(m=>m.effectiveDate&&m.endDate);
+      fillPrincipalMemoChoices();
+    }catch(error){
+      linkedPrincipalMemos=[];fillPrincipalMemoChoices();
+      console.warn('Principal memorandum links unavailable:',error.message);
+    }
+  }
   function renderCalendarExceptions(items) {
     calendarExceptionItems = Array.isArray(items) ? items : [];
     const host=$('calendarExceptionList'); if(!host)return;
-    const labels={CLOSED:'Closed',OPEN:'Additional operating day',SPECIAL_CLASS:'Special classes',SHORTENED_DAY:'Shortened day'};
+    const labels={CLOSED:'Closed',OPEN:'Additional operating day',SPECIAL_CLASS:'Special classes',SHORTENED_DAY:'Shortened day',CLASS_SUSPENSION:'Class suspension (learners only)'};
     host.innerHTML='<strong>Saved calendar dates</strong>'+(items.length?'<div class="timetable-template-chips">'+items.map(item=>
       '<span><b>'+esc(item.date)+' · '+esc(item.title)+'</b><small>'+esc(labels[item.type]||item.type)+(item.dismissalTime?' · Dismissal '+esc(item.dismissalTime):'')+
+      (item.suspensionTime?' · Begins '+esc(item.suspensionTime):item.type==='CLASS_SUSPENSION'?' · Full day':'')+
+      (item.memoTitle?' · Memo: '+esc(item.memoTitle):'')+
       (item.schedules?.length?' · '+item.schedules.length+' selected schedule(s)':'')+'</small>'+
       (user.role==='SCHOOL_ADMIN'?'<span class="calendar-exception-actions"><button type="button" class="secondary-button compact-button" data-edit-calendar-exception="'+esc(item.exceptionId)+'">Edit</button><button type="button" class="secondary-button compact-button" data-delete-calendar-exception="'+esc(item.exceptionId)+'">Delete</button></span>':'')+'</span>'
     ).join('')+'</div>':'<p>No upcoming calendar exceptions have been saved.</p>');
@@ -3922,9 +4031,13 @@ let teacherActionMenuListenersInstalled = false;
   function updateCalendarExceptionFields() {
     const type=$('calendarExceptionType')?.value;
     if($('calendarDismissalWrap'))$('calendarDismissalWrap').hidden=type!=='SHORTENED_DAY';
+    if($('calendarSuspensionWrap'))$('calendarSuspensionWrap').hidden=type!=='CLASS_SUSPENSION';
+    if($('calendarMemoWrap'))$('calendarMemoWrap').hidden=type!=='CLASS_SUSPENSION';
+    if($('calendarMemoId'))$('calendarMemoId').required=type==='CLASS_SUSPENSION';
     if($('calendarSchedulesWrap'))$('calendarSchedulesWrap').hidden=!['OPEN','SPECIAL_CLASS'].includes(type);
     if($('calendarDismissalTime'))$('calendarDismissalTime').required=type==='SHORTENED_DAY';
     if($('calendarExceptionSchedules'))$('calendarExceptionSchedules').required=['OPEN','SPECIAL_CLASS'].includes(type);
+    fillPrincipalMemoChoices();
   }
 
   function formatScheduleDays(weekdays) {
@@ -4277,6 +4390,7 @@ let teacherActionMenuListenersInstalled = false;
       updateCalendarExceptionFields();
     });
     $('calendarExceptionType')?.addEventListener('change',updateCalendarExceptionFields);
+    $('calendarExceptionDate')?.addEventListener('change',fillPrincipalMemoChoices);
     updateCalendarExceptionFields();
     $('calendarExceptionForm')?.addEventListener('submit',async event=>{
       event.preventDefault();const feedback=$('calendarExceptionFeedback');feedback.textContent='Saving…';
@@ -4287,6 +4401,8 @@ let teacherActionMenuListenersInstalled = false;
           date:$('calendarExceptionDate').value,title:$('calendarExceptionTitle').value.trim(),type,
           exceptionId:$('calendarExceptionForm').dataset.exceptionId||null,
           dismissalTime:type==='SHORTENED_DAY'?$('calendarDismissalTime').value:null,
+          suspensionTime:type==='CLASS_SUSPENSION'?$('calendarSuspensionTime').value||null:null,
+          memoId:type==='CLASS_SUSPENSION'?$('calendarMemoId').value||null:null,
           periodIds,notes:$('calendarExceptionNotes').value.trim()||null
         })});
         $('calendarExceptionForm').reset();
@@ -4308,6 +4424,9 @@ let teacherActionMenuListenersInstalled = false;
         $('calendarExceptionTitle').value=item.title||'';
         $('calendarExceptionType').value=item.type;
         $('calendarDismissalTime').value=item.dismissalTime||'';
+        $('calendarSuspensionTime').value=item.suspensionTime||'';
+        fillPrincipalMemoChoices();
+        $('calendarMemoId').value=item.memoId||'';
         $('calendarExceptionNotes').value=item.notes||'';
         const selected=new Set(item.periodIds||[]);
         Array.from($('calendarExceptionSchedules')?.options||[]).forEach(option=>{option.selected=selected.has(option.value);});
@@ -4432,10 +4551,13 @@ let teacherActionMenuListenersInstalled = false;
       $('adjustmentType').value=existing.type;
       $('adjustmentReason').value=existing.reason;
       $('adjustmentNotes').value=existing.notes||'';
+      fillPrincipalMemoChoices();
+      $('adjustmentMemoId').value=existing.memoId||'';
       $('adjustmentStartTime').value=existing.startTime||'';
       $('adjustmentEndTime').value=existing.endTime||'';
       $('adjustmentRoom').value=existing.classroom||'';
     }
+    if(!existing)fillPrincipalMemoChoices();
     $('scheduleAdjustmentFeedback').textContent=existing
       ?'Editing the saved change for '+existing.date+'. This will replace only that date’s adjustment.'
       :'Choose a date when the selected class normally meets. Unscheduled days are skipped automatically.';
@@ -4467,14 +4589,17 @@ let teacherActionMenuListenersInstalled = false;
       $('adjustmentEndDate').min=$('adjustmentStartDate').value||dataSchoolDate();
       if($('adjustmentEndDate').value<$('adjustmentStartDate').value)
         $('adjustmentEndDate').value=$('adjustmentStartDate').value;
+      fillPrincipalMemoChoices();
     });
+    $('adjustmentEndDate')?.addEventListener('change',fillPrincipalMemoChoices);
     $('scheduleAdjustmentForm')?.addEventListener('submit',async e=>{
       e.preventDefault();
       const type=$('adjustmentType').value,periodId=$('adjustmentPeriodId').value;
       const period=periods.find(p=>String(p.periodId)===periodId);
       const payload={
         periodId,type,startDate:$('adjustmentStartDate').value,endDate:$('adjustmentEndDate').value,
-        reason:$('adjustmentReason').value,notes:$('adjustmentNotes').value.trim()
+        reason:$('adjustmentReason').value,notes:$('adjustmentNotes').value.trim(),
+        memoId:$('adjustmentMemoId')?.value||null
       };
       if(['SUBSTITUTE','REPLACE'].includes(type))payload.teacherUserId=$('adjustmentTeacher').value||null;
       if(type==='REPLACE')payload.subjectId=$('adjustmentSubject').value||null;
@@ -4704,6 +4829,7 @@ let teacherActionMenuListenersInstalled = false;
       return fallback;
     };
     dashboardData = valueOr(secondary[0], {}, 'dashboard');
+    if (secondary[0].status === 'rejected') dashboardData.recentLoadFailed = true;
     periods = valueOr(secondary[1], { periods: [] }, 'timetable').periods || [];
     departments = valueOr(secondary[2], { departments: [] }, 'departments').departments || [];
     renderDepartments();
@@ -5015,16 +5141,23 @@ let teacherActionMenuListenersInstalled = false;
 
   async function refresh() {
     const button = $('refreshButton');
+    if(button.disabled)return;
+    const tasks=[];
+    document.dispatchEvent(new CustomEvent('attendigo:dashboard-refresh',{detail:{tasks}}));
+    document.dispatchEvent(new Event('attendigo:requests-changed'));
     button.disabled = true;
     button.textContent = 'Refreshing…';
     try {
-      await loadSchoolData();
-      showToast('Dashboard and school records refreshed.');
+      await Promise.all([loadSchoolData(),...tasks]);
+      if(user.role==='SCHOOL_ADMIN')await refreshOfflineReviewBadge(true);
+      if(!$('myGateAttendanceView')?.hidden&&['SCHOOL_ADMIN','DEPARTMENT_HEAD','TEACHER'].includes(user.role))await loadMyGateAttendance();
+      if(!$('classAttendanceView')?.hidden&&user.role==='TEACHER')await loadTeacherClassAttendance();
+      showToast(user.role==='GATE_KEEPER'?'Gate scanner ready.':'Dashboard and school records refreshed.');
     } catch (error) {
       showToast(error.message, true);
     } finally {
       button.disabled = false;
-      button.textContent = '↻ Refresh';
+      button.textContent = 'Refresh';
     }
   }
 
@@ -5391,6 +5524,7 @@ let teacherActionMenuListenersInstalled = false;
       return;
     }
     user = me.user;
+    window.AttendigoOfflineAccount?.record(user,me.expiresAt);
     // Reveal section creation as soon as the authenticated role is known; do not wait for dashboard API loading.
     if ($('createScheduleSection')) $('createScheduleSection').hidden = !['SCHOOL_ADMIN','DEPARTMENT_HEAD'].includes(user.role);
     if (user.mustChangePassword) { window.location.replace('/force-password-change.html'); return; }
@@ -5792,7 +5926,7 @@ let teacherActionMenuListenersInstalled = false;
     try{await api(`/api/platform/schools/${encodeURIComponent(button.dataset.platformSchool)}/status`,{method:'PATCH',body:JSON.stringify({active})});await loadPlatformData();showToast(active?'School activated.':'School deactivated.');}
     catch(error){showToast(error.message,true);button.disabled=false;}
   });
-  $('platformRefreshButton')?.addEventListener('click',()=>loadPlatformData().catch(error=>showToast(error.message,true)));
+  $('platformRefreshButton')?.addEventListener('click',async()=>{const button=$('platformRefreshButton');if(button.disabled)return;button.disabled=true;document.dispatchEvent(new Event('attendigo:requests-changed'));try{await loadPlatformData();showToast('Platform overview refreshed.');}catch(error){showToast(error.message,true);}finally{button.disabled=false;}});
 
   // Turn navigation buttons into native links for open-in-new-tab and keyboard support.
   function linkifyStaffNavigation() {

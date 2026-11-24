@@ -27,9 +27,9 @@ function registerStaffLeaveInboxRoutes(app,pool,{authenticateSchoolClient,requir
    ]);
    const counts={total:0,action:actionCount.rows[0]?.count||0,
     pending:0,recommendation:0,schoolReview:0,external:0,
-    approved:0,disapproved:0,cancelled:0};
+    approved:0,disapproved:0,declined:0,cancelled:0};
    const field={PENDING_HEAD:'recommendation',PENDING_ADMIN:'schoolReview',
-    PENDING_EXTERNAL:'external',APPROVED:'approved',REJECTED:'disapproved',
+    PENDING_EXTERNAL:'external',APPROVED:'approved',REJECTED:'disapproved',DECLINED_HEAD:'declined',
     CANCELLED:'cancelled'};
    statusRows.rows.forEach(x=>{
     const count=Number(x.count)||0;
@@ -44,7 +44,7 @@ function registerStaffLeaveInboxRoutes(app,pool,{authenticateSchoolClient,requir
    else if(filter==='PENDING')where+=" AND r.status IN ('PENDING_HEAD','PENDING_ADMIN','PENDING_EXTERNAL')";
    else {
     const mapped={RECOMMENDATION:'PENDING_HEAD',SCHOOL_REVIEW:'PENDING_ADMIN',
-     EXTERNAL:'PENDING_EXTERNAL',APPROVED:'APPROVED',DISAPPROVED:'REJECTED',CANCELLED:'CANCELLED'};
+     EXTERNAL:'PENDING_EXTERNAL',APPROVED:'APPROVED',DISAPPROVED:'REJECTED',DECLINED:'DECLINED_HEAD',CANCELLED:'CANCELLED'};
     if(mapped[filter]){args.push(mapped[filter]);where+=' AND r.status=$'+args.length;}
    }
    if(q){

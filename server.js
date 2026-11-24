@@ -56,12 +56,14 @@ const { registerMissingScanRoutes } = require('./missing-scan-routes');
 const { registerForm48ReviewRoutes } = require('./form48-review-routes');
 const { registerEmployeeSecurityDirectoryRoutes } = require('./employee-security-directory-routes');
 const { registerManualAttendanceRoutes } = require('./manual-attendance-routes');
+const { teacherRecentClassAttendanceSql } = require('./recent-class-attendance');
 const { registerClassFinalizationRoutes } = require('./class-finalization-routes');
 const { registerSardoRoutes } = require('./sardo-routes');
 const { registerPlannerRoutes } = require('./planner-routes');
 const { registerPhotoRoutes, registerPlatformPhotoRoutes, readOfficialPhoto } = require('./profile-photo-routes');
 const { registerNotificationRoutes } = require('./notification-routes');
 const { registerHelpAiRoutes } = require('./help-ai-routes');
+const { registerStartupReadinessRoute } = require('./startup-readiness-route');
 
 const app = express();
 const migrationReadOnly = process.env.ATTENDIGO_MIGRATION_MODE === 'read_only';
@@ -116,8 +118,8 @@ app.use((req, res, next) => {
 
   if (req.path.startsWith('/api/') ||
       ['/', '/index.html', '/portal-login.html', '/parent-register.html', '/platform-setup.html',
-       '/portal.html', '/principal.html', '/student-portal.html', '/parent-portal.html',
-       '/force-password-change.html', '/session-guard.js',
+       '/portal.html', '/principal.html', '/admin-sdo-coordination.html', '/student-portal.html', '/parent-portal.html',
+       '/force-password-change.html', '/class-qr-checkin.html', '/student-qr-scanner.js', '/student-portal.js', '/portal-login.js', '/session-guard.js',
        '/portal.js', '/schedule-form-layout.css', '/schedule-workspace-ui.js'].includes(req.path)) {
     res.setHeader('Cache-Control', 'no-store, private');
     res.setHeader('Pragma', 'no-cache');
@@ -2493,6 +2495,7 @@ app.post('/api/gate/teacher-event-preview', authenticateSchoolClient, requireSch
     return res.json({status:'READY',eventType:decision.eventType,
       label:half+' '+(decision.eventType==='TIME_IN'?'Time-In':'Time-Out'),
       localTime,schoolDate,recordingTarget:'PHYSICAL_GATE',
+      canConfirmMissingReturnExit:history.rows.length===2&&decision.eventType==='TIME_IN',
       note:'Gate movement only. Official DTR slots and approved OB are evaluated separately.'});
   }catch(err){
     console.error('Gate event preview failed:',err.message);
@@ -2512,6 +2515,9 @@ app.post('/api/gate/teacher-auto-event', authenticateSchoolClient, requireSchool
   if(!allowed.allowed)return res.status(400).json({error:'Gate photo verification or recording request invalid.',reason:allowed.reason});
   // The prediction is advisory; the transaction still chooses the event.
   const expectedGateEventType=req.body?.expectedGateEventType;
+  const confirmedMissingReturnExit=req.body?.confirmedMissingReturnExit===true;
+  if(req.body?.confirmedMissingReturnExit!==undefined&&typeof req.body.confirmedMissingReturnExit!=='boolean')
+    return res.status(400).json({error:'Invalid physical exit confirmation.'});
   if(expectedGateEventType!==undefined && !['TIME_IN','TIME_OUT'].includes(expectedGateEventType))
     return res.status(400).json({error:'Invalid expected gate movement.'});
   const clientEventKey=String(req.body?.clientEventKey||'').trim();
@@ -2599,6 +2605,12 @@ app.post('/api/gate/teacher-auto-event', authenticateSchoolClient, requireSchool
       await client.query('ROLLBACK');
       return res.status(409).json({error:'Gate movement changed since verification. Scan the badge again to review the updated prediction.',status:'PREVIEW_CHANGED'});
     }
+    // The guard may explicitly attest an observed exit despite a missing return.
+    // Never infer this from time or overwrite the earlier physical gate records.
+    if(confirmedMissingReturnExit&&(history.rows.length!==2||decision.eventType!=='TIME_IN'||expectedGateEventType!=='TIME_IN')){
+      await client.query('ROLLBACK');return res.status(409).json({error:'Exit confirmation no longer matches the gate history. Rescan the badge.',status:'PREVIEW_CHANGED'});
+    }
+    const recordedEventType=confirmedMissingReturnExit?'TIME_OUT':decision.eventType;
     // A double scan must never be mistaken for an actual return or departure.
     // Deliberate movements within this conservative interval require review.
     const last=history.rows[history.rows.length-1];
@@ -2610,19 +2622,19 @@ app.post('/api/gate/teacher-auto-event', authenticateSchoolClient, requireSchool
     const eventId=require('node:crypto').randomUUID();
     const saved=await client.query(`INSERT INTO staff_attendance_events
       (event_id,school_id,staff_user_id,event_kind,gate_direction,school_date,
-       occurred_at,source,verification_status,verification_method,actor_user_id,client_event_key)
+       occurred_at,source,verification_status,verification_method,actor_user_id,client_event_key,notes)
       VALUES($1,$2,$3,'GATE_MOVEMENT',$4,$5::date,$6,
-        'GATEKEEPER','VERIFIED','GUARD_PHOTO',$7,$8)
+        'GATEKEEPER','VERIFIED','GUARD_PHOTO',$7,$8,$9)
       RETURNING event_id AS "eventId",gate_direction AS "gateDirection",occurred_at AS "occurredAt"`,
-      [eventId,req.auth.schoolId,teacherId,decision.eventType==='TIME_IN'?'IN':'OUT',
-       schoolDate,occurredAt,req.auth.userId,clientEventKey]);
-    const savedEvent={eventId:saved.rows[0].eventId,eventType:decision.eventType,
+      [eventId,req.auth.schoolId,teacherId,recordedEventType==='TIME_IN'?'IN':'OUT',
+       schoolDate,occurredAt,req.auth.userId,clientEventKey,confirmedMissingReturnExit?'GUARD_CONFIRMED_EXIT_MISSING_RETURN':null]);
+    const savedEvent={eventId:saved.rows[0].eventId,eventType:recordedEventType,
       occurredAt:saved.rows[0].occurredAt};
     await client.query(`INSERT INTO audit_logs(school_id,actor_type,actor_user_id,action,entity_type,entity_id,details)
       VALUES($1,'SCHOOL',$2,'GATE_KEEPER_RECORD_TEACHER_ATTENDANCE','staff_attendance_event',$3,$4::jsonb)`,
       [req.auth.schoolId,req.auth.userId,eventId,
-       JSON.stringify({teacherUserId:teacherId,eventType:decision.eventType,schoolDate,
-         automatic:true,photoVerified:true,physicalGateOnly:true})]);
+       JSON.stringify({teacherUserId:teacherId,eventType:recordedEventType,schoolDate,
+         automatic:!confirmedMissingReturnExit,confirmedMissingReturnExit,photoVerified:true,physicalGateOnly:true})]);
     // An unambiguous, photo-verified server-clock gate scan may also supply one
     // official DTR slot. This is an OPTIONAL audited projection, never an
     // inferred lunch punch, OB approval, absence, or overwritten slot.
@@ -4279,21 +4291,7 @@ app.get('/api/admin/dashboard', authenticateSchoolClient, requireSchoolUser, asy
            ON s.school_id=e.school_id AND s.student_id=e.student_id
          WHERE e.school_id=$1
          ORDER BY e.received_at_server DESC LIMIT 20`
-      : `SELECT e.event_id AS "eventId", e.student_id AS "studentId", s.full_name AS "fullName",
-                e.attendance_scope AS scope, e.event_type AS "eventType", e.late,
-                e.occurred_at_device AS "occurredAt", e.sync_status AS "syncStatus"
-         FROM attendance_events e JOIN students s
-           ON s.school_id=e.school_id AND s.student_id=e.student_id
-         WHERE e.school_id=$1 AND e.attendance_scope='CLASS'
-           AND (
-             EXISTS (SELECT 1 FROM teacher_period_assignments a
-                     WHERE a.school_id=e.school_id AND a.period_id=e.period_id AND a.teacher_user_id=$2)
-             OR EXISTS (SELECT 1 FROM teacher_period_substitutions ts
-                        WHERE ts.school_id=e.school_id AND ts.period_id=e.period_id
-                          AND ts.substitute_teacher_user_id=$2 AND ts.status='ACTIVE'
-                          AND e.school_date BETWEEN ts.start_date AND ts.end_date)
-           )
-         ORDER BY e.received_at_server DESC LIMIT 20`;
+      : teacherRecentClassAttendanceSql;
 
     const learnerSummarySql = isSchoolWideViewer
       ? `SELECT
@@ -4378,6 +4376,7 @@ app.get('/vendor/html5-qrcode.min.js', (_req, res) =>
 );
 // Basic liveness endpoint for deployment and diagnostics. No school data is exposed.
 app.get('/api/health', databaseReadiness);
+registerStartupReadinessRoute(app, pool, { migrationReadOnly });
 
 // Serve one canonical login URL for desktop, mobile browsers, and installed PWAs.
 // Preserve only the supported account-mode option; never copy credentials from a URL.
@@ -4398,6 +4397,16 @@ app.get('/staff-lunch-checkin.html',(_req,res)=>{
   res.set('Referrer-Policy','no-referrer');
   res.set('X-Content-Type-Options','nosniff');
   return res.sendFile(path.join(__dirname,'public','staff-lunch-checkin.html'));
+});
+// Leadership and SDO coordination documents have independent role gates.
+// Their APIs also enforce their own role and school boundaries.
+app.get('/principal.html', authenticateSchoolClient, requireSchoolRoles('PRINCIPAL'), (_req,res)=>{
+  res.set('Cache-Control','no-store, private');
+  return res.sendFile(path.join(__dirname,'public','principal.html'));
+});
+app.get('/admin-sdo-coordination.html', authenticateSchoolClient, requireSchoolRoles('SCHOOL_ADMIN'), (_req,res)=>{
+  res.set('Cache-Control','no-store, private');
+  return res.sendFile(path.join(__dirname,'public','admin-sdo-coordination.html'));
 });
 app.use(express.static(path.join(__dirname, 'public')));
 app.use('/api', (_req, res) => res.status(404).json({ error: 'API endpoint not found.' }));

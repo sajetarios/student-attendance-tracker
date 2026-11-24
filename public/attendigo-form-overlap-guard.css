@@ -1,0 +1,96 @@
+/* Screen-only containment for forms on all signed-in Attendigo portals. */
+@media screen {
+ :where(body.portal-page,body:has(> .shell)) :is(
+   .form-grid,.form-row,.field-grid,.filter-grid,.filter-row,.filter-controls,
+   .student-filter-row,.parent-form,.staff-form-grid,.ms-grid,.app-dialog-fields,
+   .form-actions,.action-row,.toolbar-actions,.heading-actions,.section-toolbar,
+   .modal-actions,.filter-actions
+ ) {min-inline-size:0;max-inline-size:100%;box-sizing:border-box;}
+ :where(body.portal-page,body:has(> .shell)) :is(
+   .form-grid,.form-row,.field-grid,.filter-grid,.filter-row,.filter-controls,
+   .student-filter-row,.parent-form,.staff-form-grid,.ms-grid,.app-dialog-fields
+ ) > :is(label,.field-group,.form-field,.input-group,.field,.control-group) {
+   min-inline-size:0!important;max-inline-size:100%;box-sizing:border-box;
+ }
+ /* Native date and select controls need both parent and child constraints on iOS. */
+ :where(body.portal-page,body:has(> .shell)) :is(
+   form,.field-group,.form-field,.input-group,.filter-row,.filter-controls,
+   .student-filter-row,.parent-form,.ms-grid,.app-dialog-field,.controls
+ ) :is(input:not([type=checkbox]):not([type=radio]):not([type=color]):not([type=hidden]):not([type=range]),select,textarea) {
+   min-inline-size:0!important;max-inline-size:100%!important;
+   box-sizing:border-box!important;flex-shrink:1;
+ }
+ :where(body.portal-page,body:has(> .shell)) :is(
+   form,.field-group,.form-field,.input-group,.filter-row,.filter-controls,
+   .student-filter-row,.parent-form,.ms-grid,.app-dialog-field
+ ) label > :is(input:not([type=checkbox]):not([type=radio]):not([type=color]):not([type=hidden]),select,textarea) {
+   inline-size:100%;display:block;
+ }
+ :where(body.portal-page,body:has(> .shell)) :is(
+   .form-actions,.action-row,.toolbar-actions,.heading-actions,.section-toolbar,
+   .modal-actions,.filter-actions
+ ) {flex-wrap:wrap;row-gap:8px;}
+ :where(body.portal-page,body:has(> .shell)) :is(
+   .form-actions,.action-row,.toolbar-actions,.heading-actions,.section-toolbar,
+   .modal-actions,.filter-actions
+ ) > :is(button,a,.primary-button,.outline-button,.secondary-button,.compact-button) {
+   min-inline-size:0;max-inline-size:100%;box-sizing:border-box;
+   white-space:normal;overflow-wrap:anywhere;
+ }
+}
+@media screen and (max-width:700px) {
+ :where(body.portal-page,body:has(> .shell)) :is(
+   .form-actions,.action-row,.toolbar-actions,.modal-actions,.filter-actions
+ ) > :is(button,a,.primary-button,.outline-button,.secondary-button) {flex:0 1 auto;min-block-size:44px;block-size:auto;}
+}
+
+/* Personal attendance: do not let the shared mobile flex-basis become a
+   vertical button height when the toolbar changes to a column. */
+@media screen {
+ body.portal-page #myGateAttendanceView #adminStaffBadgeCard > .section-toolbar {
+   display:grid!important;
+   grid-template-columns:repeat(2,minmax(0,1fr))!important;
+   align-items:center!important;
+   gap:10px!important;
+   min-width:0;
+ }
+ body.portal-page #myGateAttendanceView #adminStaffBadgeCard > .section-toolbar > div {
+   grid-column:1 / -1;
+   min-width:0;
+ }
+ body.portal-page #myGateAttendanceView #adminStaffBadgeCard > .section-toolbar > :is(#adminStaffBadgeShow,.ms-dtr-action),
+ body.portal-page #myGateAttendanceView .my-gate-attendance > .section-toolbar > #myGateRefresh {
+   flex:none!important;
+   height:auto!important;
+   block-size:auto!important;
+   min-height:44px!important;
+   min-block-size:44px!important;
+   max-height:none!important;
+   margin:0!important;
+   padding:10px 14px!important;
+   line-height:1.4!important;
+   white-space:normal!important;
+   overflow-wrap:anywhere;
+   box-sizing:border-box;
+   align-self:center!important;
+ }
+ body.portal-page #myGateAttendanceView #adminStaffBadgeCard > .section-toolbar > :is(#adminStaffBadgeShow,.ms-dtr-action) {
+   width:100%!important;
+   min-width:0!important;
+   justify-self:stretch;
+   text-align:center;
+ }
+ body.portal-page #myGateAttendanceView #adminStaffBadgeCard {
+   margin-bottom:12px;
+ }
+ /* A stale cached shortcut must not cover records or fixed navigation. */
+ body.portal-page > #classQrTeacherShortcut,
+ body.portal-page #classQrTeacherShortcut[hidden] {
+   display:none!important;
+ }
+}
+@media screen and (max-width:600px) {
+ body.portal-page #myGateAttendanceView #adminStaffBadgeCard > .section-toolbar {
+   grid-template-columns:minmax(0,1fr)!important;
+ }
+}

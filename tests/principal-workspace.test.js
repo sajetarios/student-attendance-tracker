@@ -8,7 +8,7 @@ test('principal workspace registers read-only role-scoped endpoint',()=>{
  const app={get(...args){registered.push(args);}};
  registerPrincipalWorkspaceRoutes(app,{query:async()=>({rows:[]})},{
   authenticateSchoolClient:(_req,_res,next)=>next(),
-  requireSchoolRoles:(...roles)=>{assert.deepEqual(roles,['PRINCIPAL','SCHOOL_ADMIN']);return (_req,_res,next)=>next();}
+  requireSchoolRoles:(...roles)=>{assert.deepEqual(roles,['PRINCIPAL']);return (_req,_res,next)=>next();}
  });
  assert.equal(registered.length,1);
  assert.equal(registered[0][0],'/api/principal/workspace');

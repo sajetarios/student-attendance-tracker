@@ -76,15 +76,16 @@ async function autoRecordVerifiedGateDtr(client,{schoolId,staffUserId,gateEventI
   if(leave.rows[0]?.blocked)return {status:'REVIEW_REQUIRED',reason:'LEAVE_REQUIRES_REVIEW'};
 
   const gate=await client.query(
-    'SELECT "eventId","eventType",time FROM ('+
+    'SELECT "eventId","eventType",time,"confirmedMissingReturnExit" FROM ('+
     ' SELECT event_id AS "eventId",CASE WHEN gate_direction=\'IN\' THEN \'TIME_IN\' '+
     ' ELSE \'TIME_OUT\' END AS "eventType",'+
-    ' to_char(occurred_at AT TIME ZONE \'Asia/Manila\',\'HH24:MI\') AS time,occurred_at '+
+    ' to_char(occurred_at AT TIME ZONE \'Asia/Manila\',\'HH24:MI\') AS time,occurred_at, '+
+    ' COALESCE(notes=\'GUARD_CONFIRMED_EXIT_MISSING_RETURN\',FALSE) AS "confirmedMissingReturnExit" '+
     ' FROM staff_attendance_events WHERE school_id=$1 AND staff_user_id=$2 AND school_date=$3::date '+
     ' AND event_kind=\'GATE_MOVEMENT\' AND verification_status=\'VERIFIED\' '+
     ' UNION ALL '+
     ' SELECT t.event_id AS "eventId",t.event_type AS "eventType",'+
-    ' to_char(t.occurred_at AT TIME ZONE \'Asia/Manila\',\'HH24:MI\') AS time,t.occurred_at '+
+    ' to_char(t.occurred_at AT TIME ZONE \'Asia/Manila\',\'HH24:MI\') AS time,t.occurred_at,FALSE AS "confirmedMissingReturnExit" '+
     ' FROM teacher_gate_events t WHERE t.school_id=$1 AND t.teacher_user_id=$2 AND t.school_date=$3::date '+
     ' AND t.photo_verified=TRUE AND NOT EXISTS (SELECT 1 FROM staff_attendance_events e '+
     ' WHERE e.school_id=t.school_id AND e.legacy_gate_event_id=t.event_id)'+

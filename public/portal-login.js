@@ -20,6 +20,7 @@
   const feedback = document.getElementById('loginFeedback');
   const button = document.getElementById('signInButton');
   let mode = 'school';
+  let signingIn = false;
   const switchButton=document.createElement('button');
   switchButton.type='button';
   switchButton.textContent='Sign out current account and switch';
@@ -30,6 +31,7 @@
     try{
       const response=await fetch('/api/auth/logout',{method:'POST',credentials:'same-origin',cache:'no-store'});
       if(!response.ok)throw Error('Could not sign out the previous account.');
+      window.AttendigoOfflineAccount?.clear();
       sessionStorage.removeItem('schoolAttendance.accessToken');
       sessionStorage.removeItem('schoolAttendance.user');
       sessionStorage.removeItem('schoolAttendance.expiresAt');
@@ -110,6 +112,7 @@
 
   form.addEventListener('submit', async event => {
     event.preventDefault();
+    if (signingIn || button.disabled) return;
     feedback.textContent = '';
     feedback.className = 'form-feedback';
     switchButton.style.display='none';
@@ -142,6 +145,7 @@
       return;
     }
 
+    signingIn = true;
     button.disabled = true;
     button.querySelector('span:first-child').textContent = 'Signing in…';
     try {
@@ -155,7 +159,12 @@
       const data = await response.json().catch(() => ({}));
       if (!response.ok){
         if(response.status===409 && data.accountSwitchRequired) switchButton.style.display='block';
-        throw new Error(data.error || `Sign-in failed (${response.status}).`);
+        const error = new Error(data.error || `Sign-in failed (${response.status}).`);
+        if ([423, 429].includes(response.status)) {
+          const seconds = Number(response.headers.get('Retry-After'));
+          if (Number.isFinite(seconds) && seconds > 0) error.retryAfter = Math.ceil(seconds);
+        }
+        throw error;
       }
       if (!data.accessToken || !data.user) throw new Error('The server returned an incomplete sign-in response.');
 
@@ -168,6 +177,7 @@
       else sessionStorage.setItem('schoolAttendance.accessToken', data.accessToken);
       sessionStorage.setItem('schoolAttendance.user', JSON.stringify(data.user));
       sessionStorage.setItem('schoolAttendance.expiresAt', data.expiresAt || '');
+      window.AttendigoOfflineAccount?.record(data.user,data.expiresAt);
       if (mode === 'school' && data.user.mustChangePassword) {
         window.location.assign('/force-password-change.html');
         return;
@@ -192,7 +202,14 @@
       feedback.textContent = locked
         ? 'Account temporarily locked after incorrect passwords. School Administrators can use a valid Super Admin recovery code through the recovery option below to reset their password and clear this lock; other users must wait for the lock to expire.'
         : (error.message || 'Unable to sign in. Check the local server connection.');
+      if (error.retryAfter) {
+        const minutes = Math.floor(error.retryAfter / 60);
+        const seconds = error.retryAfter % 60;
+        feedback.textContent += ` Retry after ${minutes ? minutes + 'm ' : ''}${seconds}s.`;
+      }
+      feedback.className = 'form-feedback error';
     } finally {
+      signingIn = false;
       button.disabled = false;
       button.querySelector('span:first-child').textContent = 'Sign in';
     }
@@ -235,6 +252,7 @@
     fetch('/api/auth/me',{credentials:'same-origin',cache:'no-store'}).then(async response=>{
       if(!response.ok)return;
       const data=await response.json();
+      window.AttendigoOfflineAccount?.record(data.user,data.expiresAt);
       if(data.user?.role!=='STUDENT'||data.user.mustChangePassword)return;
       const returnTo=loginParams.get('returnTo');
       if(returnTo){
@@ -254,6 +272,7 @@
       .then(async response => {
         if (!response.ok) return;
         const data = await response.json();
+        window.AttendigoOfflineAccount?.record(data.user,data.expiresAt);
         if (!data?.user || data.user.mustChangePassword) {
           if (data?.user?.mustChangePassword) location.replace('/force-password-change.html');
           return;

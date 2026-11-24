@@ -12,8 +12,9 @@ const page=read('public/staff-lunch-checkin.html');
 const scan=read('public/staff-lunch-checkin.js');
 const sw=read('public/sw.js');
 const server=read('server.js');
-test('presenter API uses administrator-only assignment and invalidates outgoing QR',()=>{
- assert.match(routes,/requireSchoolRoles\('SCHOOL_ADMIN'\),async\(req,res\)=>\{/);
+test('presenter API uses department-head-only assignment and invalidates outgoing QR',()=>{
+ assert.match(routes,/app\.put\('\/api\/staff-attendance\/lunch\/presenter',authenticateSchoolClient,\s*requireSchoolRoles\('DEPARTMENT_HEAD'\)/);
+ assert.match(routes,/AND department_id=\$3/);
  assert.match(routes,/app\.delete\('\/api\/staff-attendance\/lunch\/presenter'/);
  assert.match(routes,/app\.get\('\/api\/staff-attendance\/lunch\/presenter'/);
  assert.match(routes,/role='TEACHER' AND active=TRUE/);
@@ -30,7 +31,7 @@ test('presenter issues real QR image with fragment-only bearer token and bounded
  assert.match(routes,/MIN_ROTATION_MS/);
  assert.doesNotMatch(routes,/console\.log\(.*challenge\.token/);
 });
-test('admin and teacher interfaces remain isolated to existing role-specific portals',()=>{
+test('Department Head and teacher interfaces remain isolated to existing role-specific portals',()=>{
  const teachers=portal.indexOf('id="teachersView"');
  const admin=portal.indexOf('id="staffLunchAdminCard"');
  const student=portal.indexOf('id="myGateAttendanceView"');
@@ -38,7 +39,7 @@ test('admin and teacher interfaces remain isolated to existing role-specific por
  assert.ok(teachers>=0 && admin>=0 && student>=0 && presenter>=0);
  assert.match(portal, /<section id="lunchQrAdminView" class="view-panel" hidden>/);
  assert.match(portal, /<section id="myGateAttendanceView" class="view-panel" hidden>/);
- assert.match(ui,/\['SCHOOL_ADMIN','TEACHER'\]\.includes\(user\?\.role\)/);
+ assert.match(ui,/\['DEPARTMENT_HEAD','TEACHER'\]\.includes\(user\?\.role\)/);
  assert.match(ui,/window\.attendigoStaffIdentity\?\.then\(init\)/);
  assert.match(ui,/\/api\/staff-attendance\/lunch\/presenter/);
  assert.match(ui,/\/api\/staff-attendance\/lunch\/challenges/);
@@ -46,8 +47,8 @@ test('admin and teacher interfaces remain isolated to existing role-specific por
  assert.match(ui,/performance\.now\(\)/);
  assert.doesNotMatch(ui,/Date\.now\(\)>expiry/);
  assert.match(ui,/!document\.hidden/);
- assert.match(portal,/staff-lunch-ui\.js\?v=7/);
- assert.match(portal,/staff-lunch\.css\?v=6/);
+ assert.match(portal,/staff-lunch-ui\.js\?v=9/);
+ assert.match(portal,/staff-lunch\.css\?v=7/);
 });
 test('My lunch QR is unhidden by the role-aware portal view switch',()=>{
  const portalJs=read('public/portal.js');
@@ -68,8 +69,8 @@ test('QR scan does not log in or record until authenticated staff confirms expli
  assert.match(server,/res\.set\('Referrer-Policy','no-referrer'\)/);
 });
 test('service worker preloads safe assets but excludes sensitive scan document from offline cache',()=>{
- assert.match(sw,/staff-lunch-ui\.js\?v=7/);
- assert.match(sw,/staff-lunch\.css\?v=6/);
+ assert.match(sw,/staff-lunch-ui\.js\?v=9/);
+ assert.match(sw,/staff-lunch\.css\?v=7/);
  assert.match(sw,/staff-lunch-checkin\.js\?v=5/);
  assert.match(sw,/staff-lunch-checkin\.html/);
  const shell=sw.split('const SHELL = [')[1].split('];')[0];
@@ -89,7 +90,7 @@ test('staff lunch sign-in resumes same challenge without QR rescan or token in q
  assert.match(login,/lunchContinuation && isLunchStaff\(data\.user\.role\)/);
  assert.match(login,/location\.replace\(lunchContinuation\)/);
  assert.match(page,/id="lunchRetry"/);
- assert.match(loginPage,/portal-login\.js\?v=15/);
+ require('./support/asset-contract').assertCachedAsset(loginPage,sw,'portal-login.js',{minimumVersion:16});
  assert.match(sw,/staff-lunch-checkin\.js\?v=5/);
  assert.doesNotMatch(scan,/localStorage|sessionStorage|location\.search|console\.log/);
 });
@@ -113,37 +114,32 @@ test('department check-in requires location evidence before official DTR approva
  assert.match(routes,/staff_form48_approved_leaves/);
  assert.match(routes,/LUNCH_DTR_MANUAL_VERIFIED/);
  assert.match(departmentLocationUi,/staffLunchHeadSubmit/);
- assert.match(departmentLocationUi,/staffLunchApprovePoint/);
+ assert.match(departmentLocationUi,/staffLunchHeadCampus/);
  assert.match(ui,/staffLunchPendingList/);
  assert.match(scan,/collectPreciseLocation/);
  assert.match(preciseLocation,/watchPosition/);
  assert.match(preciseLocation,/getCurrentPosition/);
  assert.match(scan,/body.status==='VERIFIED'/);
- assert.match(portal,/staffLunchPointStatus/);
+ assert.match(portal,/staffLunchHeadStatus/);
 });
 
 
-test('location capture belongs to Department Head; Admin approves independently',()=>{
- for(const id of ['staffLunchHeadLocationCard','staffLunchHeadSubmit',
-     'staffLunchLocationDepartment','staffLunchApprovePoint','staffLunchRejectPoint'])
-  assert.ok(portal.includes('id="'+id+'"'),id+' visible in portal');
- assert.ok(!portal.includes('id="staffLunchSetPoint"'),'obsolete admin GPS button removed');
- assert.ok(portal.includes('staff-department-location.js?v=2'));
- assert.ok(sw.includes('staff-department-location.js?v=2'));
+test('location capture is department-scoped and campus trust is independently authorized',()=>{
+ for(const id of ['staffLunchHeadLocationCard','staffLunchHeadSubmit','staffLunchHeadCampus','staffLunchHeadRadius'])
+  assert.ok(portal.includes('id="'+id+'"'));
+ for(const id of ['staffLunchSetPoint','staffLunchApprovePoint','staffLunchRejectPoint'])
+  assert.ok(!portal.includes('id="'+id+'"'));
+ require('./support/asset-contract').assertCachedAsset(portal,sw,'staff-department-location.js',{minimumVersion:6});
  assert.ok(departmentLocationUi.includes("role==='DEPARTMENT_HEAD'"));
- assert.ok(departmentLocationUi.includes("role==='SCHOOL_ADMIN'"));
  assert.ok(departmentLocationUi.includes("'/api/staff-attendance/lunch/location/propose'"));
- assert.ok(departmentLocationUi.includes("'/api/staff-attendance/lunch/location/decision'"));
- assert.ok(!departmentLocationUi.includes("method:'PUT'"));
- for(const action of ['LUNCH_LOCATION_PROPOSED','LUNCH_LOCATION_APPROVED',
-     'LUNCH_LOCATION_REJECTED','FOR UPDATE'])
-  assert.ok(routes.includes(action),action+' is enforced server-side');
- assert.ok(routes.includes("requireSchoolRoles('DEPARTMENT_HEAD')"));
- assert.ok(routes.includes("requireSchoolRoles('SCHOOL_ADMIN')"));
- const css=read('public/staff-lunch.css');
- assert.ok(css.includes('.staff-lunch-location-decisions'));
+ assert.ok(!departmentLocationUi.includes("'/api/staff-attendance/lunch/location/decision'"));
+ assert.ok(routes.includes("requireSchoolRoles('PRINCIPAL')"));
+ assert.ok(routes.includes("containsDepartment(campus,point"));
+ assert.ok(routes.includes("LUNCH_LOCATION_ACTIVATED"));
+ assert.ok(routes.includes("LUNCH_CAMPUS_AUTHORIZED"));
+ assert.ok(routes.includes("TRUSTED_LOCATION_REQUIRED"));
+ assert.ok(routes.includes("FOR UPDATE"));
 });
-
 test('GPS sampling is bounded and routes uncertainty to review without changing DTR logic',()=>{
  assert.ok(portal.includes('staff-precise-location.js?v=1'));
  assert.ok(page.includes('staff-precise-location.js?v=1'));
@@ -159,4 +155,52 @@ test('GPS sampling is bounded and routes uncertainty to review without changing 
  assert.match(routes,/sampleCount:presence.sampleCount/);
  assert.match(routes,/locationConfidence:presence.confidence/);
  assert.ok(routes.includes("verification=reasons.length?'PENDING_VERIFICATION':'VERIFIED'"));
+});
+
+
+test('location permission popup guides staff without bypassing approval',()=>{
+ const css=read('public/staff-lunch.css');
+ assert.doesNotMatch(departmentLocationUi,/navigator\.permissions\.query/);
+ assert.match(departmentLocationUi,/staffLocationPermissionDialog/);
+ assert.match(departmentLocationUi,/dialog\.showModal\(\)/);
+ assert.match(departmentLocationUi,/staffLocationPermissionDevice/);
+ assert.match(departmentLocationUi,/Chrome \/ Edge \(computer\)/);
+ assert.match(departmentLocationUi,/Android \(Chrome\)/);
+ assert.match(departmentLocationUi,/iPhone \/ iPad \(Safari\)/);
+ assert.match(departmentLocationUi,/button\.addEventListener\('click',\(\)=>\{[\s\S]*?void submitLocation\(\);/);
+ assert.match(departmentLocationUi,/dialog\.close\(\);startCapture\(\);/);
+ assert.match(departmentLocationUi,/isEmbeddedBrowser/);
+ assert.match(departmentLocationUi,/Precise Location/);
+ assert.match(departmentLocationUi,/navigator\.onLine===false/);
+ assert.match(sw,/'\/staff-department-location\.js','\/staff-lunch-ui\.js'\]\.includes\(url\.pathname\)/);
+ assert.match(departmentLocationUi,/if\(error\?\.code===1\)openGuide\('denied'\)/);
+ assert.match(departmentLocationUi,/Location access was denied or blocked/);
+ assert.match(departmentLocationUi,/startCapture\(\)/);
+ assert.match(departmentLocationUi,/\/api\/staff-attendance\/lunch\/location\/propose/);
+ assert.match(departmentLocationUi,/!Array\.isArray\(position\.samples\)\|\|position\.samples\.length<2/);
+ assert.match(css,/\.staff-location-permission-dialog::backdrop/);
+ assert.match(css,/\.staff-location-permission-actions/);
+ assert.match(portal,/staff-lunch\.css\?v=7/);
+ require('./support/asset-contract').assertCachedAsset(portal,sw,'staff-department-location.js',{minimumVersion:3});
+ assert.match(sw,/staff-lunch\.css\?v=7/);
+ require('./support/asset-contract').assertCachedAsset(portal,sw,'staff-department-location.js',{minimumVersion:3});
+});
+
+test('department location activation reflects persisted server status and no obsolete approval UI',()=>{
+ assert.doesNotMatch(departmentLocationUi,/window\.prompt\(/);
+ assert.doesNotMatch(departmentLocationUi,/async function initAdmin/);
+ assert.match(departmentLocationUi,/await refresh\(\)/);
+ assert.match(departmentLocationUi,/info\.configured/);
+ assert.match(departmentLocationUi,/info\.campusId/);
+ assert.match(departmentLocationUi,/result\.status!=='ACTIVE'/);
+ assert.match(departmentLocationUi,/saved\.configured/);
+});
+test('presenter obtains fresh GPS for each QR issue and automatic rotation',()=>{
+ assert.match(ui,/collectPreciseLocation/);
+ assert.match(ui,/JSON\.stringify\(\{slot:slot\.value,location:position\}\)/);
+ assert.match(ui,/result\.locationVerified!==true/);
+ assert.match(ui,/Location verified/);
+ assert.match(routes,/classifyDepartmentPresence\(trustedPoint,req\.body\?\.location,now\)/);
+ assert.match(routes,/now-evidence\.point\.capturedAt>30000/);
+ assert.match(routes,/LUNCH_PRESENTER_LOCATION_BLOCKED/);
 });

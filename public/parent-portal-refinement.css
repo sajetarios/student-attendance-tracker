@@ -1,0 +1,77 @@
+
+.parent-portal-body{background:var(--ui-bg,#f3f6fb);color:var(--ui-text,#182947);min-height:100svh}
+.parent-portal-body .parent-site-header{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;padding:12px clamp(16px,4vw,44px);background:linear-gradient(112deg,#0c1b4e,#1b3674);color:#fff;font-weight:700}
+.parent-portal-body .parent-site-header .attendigo-brand{margin:0!important;width:clamp(150px,40vw,225px);max-width:100%;background:transparent!important;padding:0!important}
+.parent-portal-body .parent-site-header .attendigo-logo{width:100%;height:auto;display:block;max-height:68px;object-fit:contain}
+.parent-portal-body .parent-page{width:min(1100px,100%);box-sizing:border-box;padding:clamp(14px,3vw,32px);margin:auto}
+.parent-portal-body .parent-head{display:flex;flex-wrap:wrap;align-items:center;gap:12px;margin:0 0 16px}
+.parent-portal-body .parent-welcome{flex:1;min-width:0}
+.parent-portal-body .parent-welcome h1{font-size:clamp(24px,4vw,34px);line-height:1.2;margin:6px 0;overflow-wrap:anywhere;color:var(--ui-text,#182947)}
+.parent-portal-body .parent-welcome p,.parent-portal-body .parent-help,.parent-portal-body #historyDescription{font-size:13px;color:var(--ui-muted,#60738c);line-height:1.5;margin:6px 0}
+.parent-portal-body .action-row{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.parent-portal-body .parent-card{min-width:0;border:1px solid var(--ui-line,#dce5ef);border-radius:16px;background:var(--ui-panel,#fff);padding:clamp(14px,3vw,22px);margin:0 0 14px;box-shadow:0 5px 18px #12345b08}
+.parent-portal-body .parent-card h2{font-size:20px;line-height:1.25;color:var(--ui-text,#182947);margin:0 0 10px}
+.parent-portal-body #parentProfilePhoto .my-photo-widget{display:flex;align-items:center;flex-wrap:nowrap;gap:12px;padding:0;margin:0;border:0;background:transparent;box-shadow:none;min-width:0}
+.parent-portal-body #parentProfilePhoto .my-photo-avatar{width:64px;height:64px;flex:0 0 64px}
+.parent-portal-body #parentProfilePhoto .my-photo-copy{min-width:0}
+.parent-portal-body #parentProfilePhoto .my-photo-copy p{font-size:12px;color:var(--ui-muted,#60738c)}
+.parent-portal-body #parentProfilePhoto button,.parent-portal-body .parent-child-settings button,.parent-portal-body .action-row button{min-height:44px;max-width:100%;white-space:normal;overflow-wrap:anywhere}
+.parent-portal-body .parent-summary-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin:0}
+.parent-portal-body .parent-summary-grid .student-profile-item{display:grid;gap:6px;min-width:0;padding:10px;border:1px solid var(--ui-line,#dce5ef);border-radius:11px;background:var(--ui-panel-soft,#f3f7fb)}
+.parent-portal-body .parent-summary-grid span{font-size:12px;line-height:1.35;color:var(--ui-muted,#60738c);overflow-wrap:anywhere}
+.parent-portal-body .parent-summary-grid strong{font-size:25px;color:var(--ui-text,#182947);font-variant-numeric:tabular-nums}
+.parent-portal-body .parent-select-label{display:block;font-size:13px;font-weight:650;color:var(--ui-muted,#60738c);margin-bottom:5px}
+.parent-portal-body #parentChildSelect{width:100%;min-width:0;max-width:100%;min-height:44px;font-size:16px;color:var(--ui-text,#182947);background:var(--ui-panel,#fff);border:1px solid var(--ui-line,#dce5ef);border-radius:10px;padding:8px 12px}
+.parent-portal-body .parent-selected-child{margin-top:12px}
+.parent-portal-body .parent-child-identity{display:flex;gap:12px;align-items:center;min-width:0}
+.parent-portal-body .parent-child-identity>div:last-child{min-width:0;overflow-wrap:anywhere}
+.parent-portal-body .parent-child-initial{display:grid;place-items:center;width:44px;height:44px;flex:0 0 44px;background:var(--ui-panel-soft,#eaf2ff);color:var(--ui-accent,#174f91);border-radius:50%;font-size:20px;font-weight:750}
+.parent-portal-body .parent-child-identity h3{font-size:16px;color:var(--ui-text,#182947);margin:0 0 4px}
+.parent-portal-body .parent-child-identity p,.parent-portal-body .parent-child-settings p{font-size:13px;color:var(--ui-muted,#60738c);margin:4px 0;overflow-wrap:anywhere}
+.parent-portal-body .parent-child-settings{border-top:1px solid var(--ui-line,#dce5ef);margin-top:10px;padding-top:4px}
+.parent-portal-body .parent-child-settings summary{min-height:44px;display:flex;align-items:center;justify-content:space-between;cursor:pointer;font-size:14px;font-weight:700;list-style:none}
+.parent-portal-body .parent-child-settings summary::after{content:"⌄";font-size:20px}
+.parent-portal-body .parent-child-settings[open] summary::after{transform:rotate(180deg)}
+.parent-portal-body .parent-note{font-size:13px;color:var(--ui-muted,#60738c);background:var(--ui-panel-soft,#f3f7fb);border-radius:10px;padding:12px}
+.parent-portal-body #parentAttendanceCard[hidden]{display:none!important}
+@media(max-width:600px){.parent-portal-body .parent-head .action-row{width:100%}.parent-portal-body .parent-summary-grid .student-profile-item{padding:8px 6px}}
+/* Compact attendance history: one expandable group per subject and day. */
+.parent-portal-body #parentAttendanceCard{min-width:0}
+.parent-portal-body .parent-history-filters{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin:16px 0}
+.parent-portal-body .parent-history-filters label{display:grid;gap:5px;min-width:0;color:var(--ui-muted,#60738c);font-size:13px;font-weight:650}
+.parent-portal-body .parent-history-filters :is(select,input){width:100%;min-width:0;max-width:100%;box-sizing:border-box;min-height:44px;border:1px solid var(--ui-line,#cad7e9);border-radius:10px;padding:9px 11px;background:var(--ui-panel,#fff);color:var(--ui-text,#182d47);font:inherit;font-size:16px}
+.parent-portal-body .parent-history-stats{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin:12px 0}
+.parent-portal-body .parent-history-stats>div{background:var(--ui-panel-soft,#f3f7fb);border:1px solid var(--ui-line,#dce5ef);border-radius:12px;padding:12px;min-width:0;display:grid;gap:4px}
+.parent-portal-body .parent-history-stats strong{font-size:24px;line-height:1.1;font-variant-numeric:tabular-nums;color:var(--ui-text,#182947)}
+.parent-portal-body .parent-history-stats span,.parent-portal-body .parent-history-note{font-size:12px;color:var(--ui-muted,#60738c);overflow-wrap:anywhere}
+.parent-portal-body .parent-history-note{margin:10px 0 16px}
+.parent-portal-body .parent-history-day{margin:14px 0;min-width:0}
+.parent-portal-body .parent-history-day h3{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:6px;margin:0 0 8px;font-size:15px;color:var(--ui-text,#182947)}
+.parent-portal-body .parent-history-day h3 span{font-size:12px;font-weight:500;color:var(--ui-muted,#60738c)}
+.parent-portal-body .parent-history-groups{border:1px solid var(--ui-line,#dce5ef);border-radius:13px;overflow:hidden}
+.parent-portal-body .parent-history-group{margin:0;border-bottom:1px solid var(--ui-line,#dce5ef);background:var(--ui-panel,#fff);min-width:0;padding:0}
+.parent-portal-body .parent-history-group:last-child{border-bottom:0}
+.parent-portal-body .parent-history-group summary{display:grid;grid-template-columns:minmax(0,1fr) auto auto;gap:8px;align-items:center;min-height:62px;padding:12px;cursor:pointer;list-style:none;color:var(--ui-text,#182947)}
+.parent-portal-body .parent-history-group summary::-webkit-details-marker{display:none}
+.parent-portal-body .parent-history-group summary:focus-visible{outline:2px solid var(--ui-accent,#2563a9);outline-offset:-2px}
+.parent-portal-body .parent-history-name{display:grid;gap:4px;min-width:0;overflow-wrap:anywhere}
+.parent-portal-body .parent-history-name strong{font-size:15px;font-weight:700}
+.parent-portal-body .parent-history-name small,.parent-portal-body .parent-history-events small{font-size:12px;color:var(--ui-muted,#60738c)}
+.parent-portal-body .parent-history-status{font-size:11px;font-weight:750;padding:5px 8px;border-radius:20px;background:#e7f4ed;color:#216143;text-align:center;white-space:nowrap}
+.parent-portal-body .parent-history-status.is-late{background:#fff2d9;color:#80540c}
+.parent-portal-body .parent-history-chevron{color:var(--ui-muted,#60738c);font-size:20px;line-height:1}
+.parent-portal-body .parent-history-group[open] .parent-history-chevron{transform:rotate(180deg)}
+.parent-portal-body .parent-history-events{list-style:none;padding:0 12px 8px;margin:0;background:var(--ui-panel-soft,#f3f7fb)}
+.parent-portal-body .parent-history-events li{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:3px 12px;padding:10px 0;border-top:1px solid var(--ui-line,#dce5ef);font-size:13px;color:var(--ui-text,#182947)}
+.parent-portal-body .parent-history-events li>div{display:grid;gap:3px;overflow-wrap:anywhere}
+.parent-portal-body .parent-history-event-status{grid-column:2;text-align:right}
+.parent-portal-body .parent-history-empty{padding:22px 14px;border:1px dashed var(--ui-line,#dce5ef);border-radius:12px;text-align:center;color:var(--ui-text,#182947);background:var(--ui-panel-soft,#f3f7fb)}
+.parent-portal-body .parent-history-empty p{font-size:13px;color:var(--ui-muted,#60738c);margin:6px 0 0}
+.parent-portal-body .parent-history-pages{display:flex;gap:8px;align-items:center;justify-content:space-between;flex-wrap:wrap;margin-top:12px}
+.parent-portal-body .parent-history-pages button{min-height:44px}
+.parent-portal-body .parent-history-pages span{font-size:12px;color:var(--ui-muted,#60738c)}
+.parent-portal-body :is(.parent-history-pages,.parent-history-stats)[hidden]{display:none!important}
+html[data-ui-theme=dark] .parent-history-status{background:#1c4638;color:#a2eac4}
+html[data-ui-theme=dark] .parent-history-status.is-late{background:#523c20;color:#ffd58d}
+@media(max-width:420px){.parent-portal-body .parent-history-filters{grid-template-columns:minmax(0,1fr)}.parent-portal-body .parent-history-stats>div{padding:9px 7px}.parent-portal-body .parent-history-group summary{padding:10px 8px;gap:6px}}
+

@@ -20,7 +20,7 @@
  };
  const today=toDay(new Date());
  const minDate=new Date(Date.parse(today+'T00:00:00Z')-MAX_AGE_DAYS*86400000).toISOString().slice(0,10);
- let latest=null,classImpact=null,abort=null,sequence=0,activeSection='overview',currentRole=null,selectedSdoRequest=null;
+ let latest=null,classImpact=null,abort=null,sequence=0,activeSection='overview',currentRole=null;
  const buttons=[...document.querySelectorAll('[data-section]')];
  const sectionMap={overview:'overviewPanel',departments:'departmentsPanel',
   staff:'staffPanel',priorities:'prioritiesPanel',definitions:'definitionsPanel',badge:'badgePanel',personal:'personalPanel',students:'studentsPanel',calendar:'calendarPanel',security:'securityPanel',reports:'reportsPanel',notifications:'notificationsPanel',assistant:'assistantPanel'};
@@ -44,7 +44,6 @@
   if(name==='personal')$('principalPersonalRequests').open=false;
   if(name==='staff'&&latest)$('staffSearch').focus({preventScroll:true});
   if(name==='personal'){void loadPersonal();void loadSdoRequests();}
-  if(name==='priorities'&&currentRole==='SCHOOL_ADMIN')void loadSdoRequests();
   if(name==='notifications')void loadNotifications();
   if(name==='calendar'&&currentRole==='PRINCIPAL')void loadMemoAdmin();
   if(['personal','calendar','security'].includes(name))void loadWorkspace();
@@ -74,12 +73,11 @@
   if(data.user?.mustChangePassword){
    window.location.replace('/force-password-change.html');return null;
   }
-  if(!data.user||!['PRINCIPAL','SCHOOL_ADMIN'].includes(data.user.role))
-   throw Error('This school leadership dashboard requires a Principal or School Admin account.');
-  if(data.user.role==='SCHOOL_ADMIN'){
-   $('roleBadge').textContent='School Admin · SDO coordinator';
-   $('adminBack').hidden=false;
-  }else $('roleBadge').textContent='Principal · School oversight';
+  if(data.user?.role!=='PRINCIPAL'){
+   if(data.user?.role==='SCHOOL_ADMIN'){window.location.replace('/portal.html');return null;}
+   throw Error('This school leadership dashboard requires a Principal account.');
+  }
+  $('roleBadge').textContent='Principal · School oversight';
   return data.user;
  }
  function applyDepartmentOptions(data){
@@ -457,6 +455,15 @@
    host.append(button);
   }
  }
+ function recognitionEmpty(icon,title,description){
+  const element=make('div','recognition-empty');
+  const symbol=make('span','recognition-empty-icon',icon);
+  symbol.setAttribute('aria-hidden','true');
+  const body=make('div');
+  body.append(make('strong',null,title),make('p',null,description));
+  element.append(symbol,body);
+  return element;
+ }
  function renderEarlyArrivals(data){
   const host=$('earlyArrivalsList'),count=$('earlyArrivalsCount');
   host.replaceChildren();
@@ -464,13 +471,17 @@
   const date=data.schoolDate||'selected date';
   $('earlyArrivalsSubtitle').textContent='Photo-verified gate entry before 7:00 AM · '+date+' · Asia/Manila';
   if(!Array.isArray(entries)){
-   count.textContent='Source unavailable';
-   host.append(make('p','source-note','Verified early-arrival source is unavailable. No recognition candidates can be confirmed.'));
+   count.textContent='Data unavailable';
+   count.dataset.state='empty';
+   host.append(recognitionEmpty('–','Arrival data unavailable',
+    'Verified gate entry records could not be checked. No attendance conclusion can be made.'));
    return;
   }
   count.textContent=entries.length+' verified '+(entries.length===1?'arrival':'arrivals');
+  count.dataset.state=entries.length?'active':'empty';
   if(!entries.length){
-   host.append(make('p','source-note','No verified teacher gate entries before 7:00 AM for this date. This does not mean teachers were absent or late.'));
+   host.append(recognitionEmpty('☀','No verified early arrivals on this date',
+    'No photo-verified entries before 7:00 AM for this date. This does not mean teachers were absent or late.'));
    return;
   }
   for(const person of entries){
@@ -489,16 +500,20 @@
     period=$('principalWatchPeriod'),award=data.watchNominees;
   host.replaceChildren();
   if(!award||!Array.isArray(award.entries)){
-   count.textContent='Unavailable';
+   count.textContent='Data unavailable';
+   count.dataset.state='empty';
    period.textContent='Recognition evidence could not be verified.';
-   host.append(make('p','source-note','Watch nominee records unavailable. No award decisions can be made from this display.'));
+   host.append(recognitionEmpty('–','Nomination data unavailable',
+    'The evidence source could not be verified. No award decisions can be made from this display.'));
    return;
   }
   period.textContent='Rolling 30-day window · '+award.periodStart+' to '+award.periodEnd+
    ' · Asia/Manila · '+(data.departmentId?'selected department':'all departments');
   count.textContent=award.entries.length+' '+(award.entries.length===1?'candidate':'candidates');
+  count.dataset.state=award.entries.length?'active':'empty';
   if(!award.entries.length){
-   host.append(make('p','source-note','No teacher meets all nomination thresholds in this period. This is not an absence or performance finding.'));
+   host.append(recognitionEmpty('✦','No candidates in this period',
+    'No teacher meets all Watch Recognition thresholds yet. This is not an absence or performance finding.'));
    return;
   }
   for(const [i,person] of award.entries.entries()){
@@ -703,7 +718,15 @@
    showList('principalNotificationList',data.notifications,x=>[
     (x.readAt?'':'Unread · ')+(x.title||x.category||'Notification'),
     x.body||'No message content'],'No personal notifications at this time.');
-   label.textContent=fmt(data.unreadCount)+' unread personal notifications. Open linked requests using their authorized workflow.';
+   const memoAlerts=Array.isArray(data.notifications)?data.notifications.filter(x=>
+    x.requestType==='MEMORANDUM'&&/^[0-9a-f-]{36}$/i.test(String(x.requestId||''))):[];
+   if(memoAlerts.length){
+    const shortcut=make('button','quiet-button','Read school memoranda ('+memoAlerts.length+')');
+    shortcut.type='button';
+    shortcut.addEventListener('click',()=>window.AttendigoSchoolMemos?.open?.(memoAlerts[0].requestId));
+    host.append(shortcut);
+   }
+   label.textContent=fmt(data.unreadCount)+' unread notifications. School memoranda open inside this workspace.';
   }catch(err){host.textContent=errorText(err);label.textContent='Notifications unavailable.';}
  }
  function exportLeadershipSummary(){
@@ -754,8 +777,8 @@
    if(response.status===401){window.location.replace('/portal-login.html');return;}
    const data=await response.json().catch(()=>({}));
    if(!response.ok)throw Error(data.error||'Unable to load SDO applications.');
-   const list=$('principalSdoRequestList'),admin=$('principalSdoAdminList');
-   list.replaceChildren();admin.replaceChildren();
+   const list=$('principalSdoRequestList');
+   list.replaceChildren();
    const requests=Array.isArray(data.requests)?data.requests:[];
    const mine=requests.filter(r=>currentRole==='PRINCIPAL');
    for(const r of mine){
@@ -776,34 +799,8 @@
    }
    if(currentRole==='PRINCIPAL'&&!mine.length)
     list.append(make('p','source-note','No requests filed yet.'));
-   if(currentRole==='SCHOOL_ADMIN'){
-    $('principalSdoAdminPanel').hidden=false;
-    for(const r of requests){
-     const card=make('div','principal-record-item');
-     card.append(make('strong',null,(r.principalName||'Principal')+' · '+r.kind+' · '+(r.title||'')),
-      make('small',null,sdoPhase(r)));
-     if(!['APPROVED','REJECTED','CANCELLED'].includes(r.status)){
-      const choose=make('button','quiet-button',r.sdoSubmittedAt?'Record signed decision':'Record SDO handoff');
-      choose.type='button';
-      choose.addEventListener('click',()=>{
-       selectedSdoRequest=r;
-       $('principalSdoAdminForms').hidden=false;
-       $('principalSdoSelected').textContent=(r.principalName||'Principal')+' · '+r.kind+
-          ' · '+(r.title||'')+' · '+sdoPhase(r);
-       $('principalSdoHandoffForm').hidden=Boolean(r.sdoSubmittedAt);
-       $('principalSdoDecisionForm').hidden=!r.sdoSubmittedAt;
-       $('principalCertifiedDaysLabel').hidden=r.kind!=='LEAVE';
-       $('principalSdoAdminForms').scrollIntoView({behavior:'smooth',block:'nearest'});
-      });
-      card.append(choose);
-     }
-     admin.append(card);
-    }
-    if(!requests.length)admin.append(make('p','source-note','No principal applications need coordination.'));
-   }
   }catch(error){
    $('principalSdoRequestList').textContent='Requests unavailable: '+errorText(error);
-   $('principalSdoAdminList').textContent='SDO coordination unavailable: '+errorText(error);
   }
  }
  async function showForm6(id){
@@ -828,7 +825,7 @@
  }
  async function submitPrincipalLeave(){
   const form=$('principalLeaveForm'),status=$('principalLeaveFormStatus');
-  if(!form.reportValidity())return;
+  if(button.disabled||!form.reportValidity())return;
   const data=new FormData(form),button=form.querySelector('[type="submit"]');
   button.disabled=true;status.textContent='Submitting leave application…';
   try{
@@ -863,68 +860,6 @@
   }catch(error){status.textContent=errorText(error);}
   finally{button.disabled=false;}
  }
- async function saveSdoHandoff(){
-  if(!selectedSdoRequest||currentRole!=='SCHOOL_ADMIN')return;
-  const form=$('principalSdoHandoffForm'),data=new FormData(form),status=$('principalSdoAdminStatus');
-  if(!form.reportValidity())return;
-  const button=form.querySelector('[type="submit"]');button.disabled=true;status.textContent='Recording SDO receiving details…';
-  try{
-   const {kind,requestId}=selectedSdoRequest;
-   const r=await fetch('/api/principal/sdo-requests/'+kind.toLowerCase()+'/'+encodeURIComponent(requestId)+'/handoff',{
-    method:'POST',credentials:'same-origin',headers:{'Content-Type':'application/json'},
-    body:JSON.stringify({channel:data.get('channel'),receivingOffice:data.get('receivingOffice'),
-      reference:data.get('reference')})});
-   const result=await r.json().catch(()=>({}));
-   if(!r.ok)throw Error(result.error||'Handoff could not be saved.');
-   status.textContent='SDO handoff recorded. Signed decision is still required.';
-   form.reset();$('principalSdoAdminForms').hidden=true;selectedSdoRequest=null;void loadSdoRequests();
-  }catch(error){status.textContent=errorText(error);}
-  finally{button.disabled=false;}
- }
- async function saveSdoDecision(){
-  if(!selectedSdoRequest||currentRole!=='SCHOOL_ADMIN')return;
-  const form=$('principalSdoDecisionForm'),data=new FormData(form),status=$('principalSdoAdminStatus');
-  if(!form.reportValidity())return;
-  const file=data.get('signedDocument'),button=form.querySelector('[type="submit"]');
-  if(!(file instanceof File)||!file.size||file.size>4194304||
-    !['application/pdf','image/png','image/jpeg'].includes(file.type)){
-   status.textContent='Choose a signed PDF/JPG/PNG document up to 4 MB.';return;
-  }
-  const req=selectedSdoRequest,decision=String(data.get('decision'));
-  if(req.kind==='LEAVE'&&decision==='APPROVED'&&!(Number(data.get('certifiedWorkingDays'))>0)){
-   status.textContent='Enter verified working days for an approved leave.';return;
-  }
-  button.disabled=true;status.textContent='Uploading signed external decision…';
-  try{
-   let response,result;
-   if(req.kind==='LEAVE'){
-    response=await fetch('/api/staff-leave/requests/'+encodeURIComponent(req.requestId)+'/documents',{
-     method:'POST',credentials:'same-origin',
-     headers:{'Content-Type':file.type,'x-document-kind':'APPROVAL','x-filename':file.name},body:file});
-    result=await response.json().catch(()=>({}));
-    if(!response.ok)throw Error(result.error||'Signed leave document could not be stored.');
-    response=await fetch('/api/staff-leave/requests/'+encodeURIComponent(req.requestId)+'/external-decision',{
-     method:'POST',credentials:'same-origin',headers:{'Content-Type':'application/json'},
-     body:JSON.stringify({decision:decision==='APPROVED'?'APPROVE':'REJECT',
-      approvalReference:data.get('approvalReference'),approverName:data.get('approverName'),
-      approverPosition:data.get('approverPosition'),approvedOn:data.get('approvedOn'),
-      certifiedWorkingDays:data.get('certifiedWorkingDays'),note:data.get('note')})});
-   }else{
-    response=await fetch('/api/principal/sdo-requests/ob/'+encodeURIComponent(req.requestId)+'/decision',{
-     method:'POST',credentials:'same-origin',headers:{'Content-Type':file.type,'x-filename':file.name,
-      'x-sdo-decision':decision,'x-sdo-reference':String(data.get('approvalReference')),
-      'x-sdo-approver':String(data.get('approverName')),'x-sdo-position':String(data.get('approverPosition')),
-      'x-sdo-date':String(data.get('approvedOn'))},body:file});
-   }
-   result=await response.json().catch(()=>({}));
-   if(!response.ok)throw Error(result.error||'External decision verification failed.');
-   status.textContent='Signed SDO decision recorded. School Admin acted only as recorder.';
-   form.reset();$('principalSdoAdminForms').hidden=true;selectedSdoRequest=null;
-   void loadSdoRequests();void load();
-  }catch(error){status.textContent='Decision not recorded: '+errorText(error);}
-  finally{button.disabled=false;}
- }
-
  async function loadMemoAdmin(){
   if(currentRole!=='PRINCIPAL')return;
   const host=$('principalMemoPublishedList');host.replaceChildren();
@@ -941,9 +876,13 @@
     item.append(make('strong',null,memo.title),
       make('span',null,String(memo.category||'GENERAL').replaceAll('_',' ')+' · '+
        (memo.audience==='ALL_USERS'?'All school users':'School personnel only')));
+    const windowText=memo.effectiveDate?(memo.effectiveDate+(memo.endDate?' through '+memo.endDate:' · end not specified')):'No defined effective period';
+    item.append(make('span',null,windowText+
+     (memo.dtrHours?' · Temporary prescribed DTR hours':' · Announcement only')));
     const actions=make('div','principal-memo-links');
-    const link=make('a','text-link','Open document & read status');
-    link.href='/school-memos.html?id='+encodeURIComponent(memo.memoId);
+    const link=make('button','text-link','View memorandum in dashboard');
+    link.type='button';
+    link.addEventListener('click',()=>window.AttendigoSchoolMemos?.open?.(memo.memoId));
     actions.append(link);
     const count=make('button','quiet-button','Check acknowledgments');
     count.type='button';count.addEventListener('click',async()=>{
@@ -962,6 +901,27 @@
    }
   }catch(e){host.replaceChildren(make('p','source-note','Memoranda unavailable: '+errorText(e)));}
  }
+ function syncPrincipalMemoOptions(){
+  const form=$('principalMemoForm');if(!form)return;
+  const category=form.elements.namedItem('category').value,
+   audience=form.elements.namedItem('audience').value,
+   from=form.elements.namedItem('effectiveDate'),
+   to=form.elements.namedItem('endDate'),
+   apply=$('principalMemoApplyDtr'),
+   required=['SCHEDULE_NOTICE','CLASS_SUSPENSION'].includes(category);
+  const audienceControl=form.elements.namedItem('audience');
+  if(category==='CLASS_SUSPENSION')audienceControl.value='ALL_USERS';
+  audienceControl.querySelector('option[value="SCHOOL_STAFF"]').disabled=category==='CLASS_SUSPENSION';
+  from.required=required;to.required=required;
+  to.min=from.value||'';
+  apply.disabled=category!=='SCHEDULE_NOTICE';
+  if(apply.disabled)apply.checked=false;
+  const enabled=apply.checked&&!apply.disabled;
+  $('principalMemoDtrFields').hidden=!enabled;
+  $('principalMemoDtrFields').querySelectorAll('input[type="time"]').forEach(input=>{
+   input.required=enabled;
+  });
+ }
  async function publishPrincipalMemo(){
   if(currentRole!=='PRINCIPAL')return;
   const form=$('principalMemoForm'),feedback=$('principalMemoPublishStatus'),
@@ -969,30 +929,57 @@
   if(!form.reportValidity())return;
   const data=new FormData(form),file=data.get('document'),
     category=String(data.get('category')),audience=String(data.get('audience')),
-    effectiveDate=String(data.get('effectiveDate')||'');
+    effectiveDate=String(data.get('effectiveDate')||''),
+    endDate=String(data.get('endDate')||''),
+    applyDtr=data.get('applyDtr')==='on',
+    dtrHours={
+     AM_IN:String(data.get('dtrAmIn')||''),AM_OUT:String(data.get('dtrAmOut')||''),
+     PM_IN:String(data.get('dtrPmIn')||''),PM_OUT:String(data.get('dtrPmOut')||'')
+    };
   if(!(file instanceof File)||!file.size||file.size>4194304||
     !['application/pdf','image/jpeg','image/png'].includes(file.type)){
     feedback.textContent='Attach a PDF, JPG or PNG document up to 4 MB.';return;
   }
-  if(['CLASS_SUSPENSION','SCHEDULE_NOTICE'].includes(category)&&!effectiveDate){
-   feedback.textContent='Choose an effective date for a schedule or class suspension notice.';return;
+  if((endDate&&(!effectiveDate||endDate<effectiveDate))||
+     (['CLASS_SUSPENSION','SCHEDULE_NOTICE'].includes(category)&&(!effectiveDate||!endDate))){
+   feedback.textContent='Choose a valid start and inclusive end date for the temporary memorandum.';return;
+  }
+  if(applyDtr){
+   const validTime=s=>/^([01]\d|2[0-3]):[0-5]\d$/.test(s);
+   const min=s=>Number(s.slice(0,2))*60+Number(s.slice(3));
+   const diff=Math.round((Date.parse(endDate+'T12:00:00Z')-Date.parse(effectiveDate+'T12:00:00Z'))/86400000);
+   if(category!=='SCHEDULE_NOTICE'||!effectiveDate||!endDate||
+      diff<0||diff>30||!Object.values(dtrHours).every(validTime)||
+      !(min(dtrHours.AM_IN)<min(dtrHours.AM_OUT)&&
+        min(dtrHours.AM_OUT)<=min(dtrHours.PM_IN)&&
+        min(dtrHours.PM_IN)<min(dtrHours.PM_OUT))){
+    feedback.textContent='DTR adjustment requires a temporary schedule notice, 31 days maximum, and four chronological prescribed times.';return;
+   }
   }
   const notice=audience==='ALL_USERS'
    ?'all active school accounts including registered students and parents'
    :'school personnel accounts only';
-  if(!window.confirm('Publish this memorandum to '+notice+
-    '? In-app notifications will be created. Uploading a memo does NOT automatically change timetable or attendance rules.'))return;
-  button.disabled=true;feedback.textContent='Publishing memorandum and creating school notifications…';
+  const publishMessage='Publish this memorandum to '+notice+
+    (effectiveDate?' from '+effectiveDate+(endDate?' through '+endDate:''):'')+
+    '? In-app notifications will be created. '+
+    (applyDtr?'The entered prescribed DTR hours will apply during this period; actual punches, leave, OB, and class suspension remain unchanged.':
+     'Announcement only: no DTR or timetable rules will change.');
+  button.disabled=true;
+  if(!(window.AppDialog ? await window.AppDialog.confirm(publishMessage,{title:'Publish memorandum',confirmText:'Publish'}) : window.confirm(publishMessage))){button.disabled=false;return;}
+  feedback.textContent='Publishing memorandum and creating school notifications…';
   try{
    const response=await fetch('/api/school-memos',{method:'POST',credentials:'same-origin',cache:'no-store',
     headers:{'Content-Type':file.type,'x-filename':file.name,
-      'x-memo-title':String(data.get('title')),'x-memo-summary':String(data.get('summary')||''),
-      'x-memo-category':category,'x-memo-audience':audience,'x-memo-effective-date':effectiveDate},body:file});
+      'x-memo-title':encodeURIComponent(String(data.get('title'))),'x-memo-summary':encodeURIComponent(String(data.get('summary')||'')),
+      'x-memo-category':category,'x-memo-audience':audience,'x-memo-effective-date':effectiveDate,
+      'x-memo-end-date':endDate,'x-memo-apply-dtr':String(applyDtr),
+      ...(applyDtr?{'x-memo-dtr-hours':encodeURIComponent(JSON.stringify(dtrHours))}:{})},body:file});
    const result=await response.json().catch(()=>({}));
    if(!response.ok)throw Error(result.error||'Could not publish memorandum.');
    feedback.textContent='Published successfully. '+fmt(result.notifiedAccounts)+
     ' in-app inbox records created. Recipients must open and explicitly acknowledge the memo.';
-   form.reset();void loadMemoAdmin();
+   form.reset();syncPrincipalMemoOptions();
+   void loadMemoAdmin();void window.AttendigoSchoolMemos?.refresh?.();
   }catch(e){feedback.textContent='Not published: '+errorText(e);}
   finally{button.disabled=false;}
  }
@@ -1000,6 +987,12 @@
  async function init(){
   $('principalRefreshNotifications').addEventListener('click',()=>void loadNotifications());
   $('principalMemoForm').addEventListener('submit',e=>{e.preventDefault();void publishPrincipalMemo();});
+  for(const name of ['category','audience','effectiveDate','endDate']){
+   $('principalMemoForm').elements.namedItem(name).addEventListener('change',syncPrincipalMemoOptions);
+  }
+  $('principalMemoForm').elements.namedItem('effectiveDate').addEventListener('input',syncPrincipalMemoOptions);
+  $('principalMemoApplyDtr').addEventListener('change',syncPrincipalMemoOptions);
+  syncPrincipalMemoOptions();
   $('principalMemoRefresh').addEventListener('click',()=>void loadMemoAdmin());
   $('principalExportSummary').addEventListener('click',exportLeadershipSummary);
   $('principalExportStaff').addEventListener('click',downloadCsv);
@@ -1008,8 +1001,6 @@
   $('principalLeaveForm').addEventListener('submit',e=>{e.preventDefault();void submitPrincipalLeave();});
   $('principalObForm').addEventListener('submit',e=>{e.preventDefault();void submitPrincipalOb();});
   $('principalRefreshSdo').addEventListener('click',()=>void loadSdoRequests());
-  $('principalSdoHandoffForm').addEventListener('submit',e=>{e.preventDefault();void saveSdoHandoff();});
-  $('principalSdoDecisionForm').addEventListener('submit',e=>{e.preventDefault();void saveSdoDecision();});
   $('personalDate').value=today;$('personalDate').max=today;$('personalDate').min=minDate;
   $('showPrincipalBadge').addEventListener('click',()=>void showBadge());
   $('hidePrincipalBadge').addEventListener('click',hideBadge);
@@ -1042,7 +1033,8 @@
    if(event.key==='Escape'&&document.body.classList.contains('principal-presentation'))
     setPresentation(false);
   });
-  $('refreshDashboard').addEventListener('click',()=>void load());
+  $('refreshDashboard').addEventListener('click',()=>{document.dispatchEvent(new Event('attendigo:requests-changed'));void load();if(activeSection==='notifications')void loadNotifications();if(activeSection==='personal')void loadPersonal();});
+  document.addEventListener('attendigo:notifications-updated',()=>{if(activeSection==='notifications')void loadNotifications();});
   for(const id of ['reportDate','departmentFilter','periodFilter'])$(id).addEventListener('change',()=>void load());
   for(const id of ['staffSearch','staffStatus'])$(id).addEventListener(id==='staffSearch'?'input':'change',renderStaff);
   $('downloadStaff').addEventListener('click',downloadCsv);
@@ -1062,8 +1054,6 @@
   if(currentRole==='PRINCIPAL')void loadMemoAdmin();
   $('principalLeaveForm').hidden=currentRole!=='PRINCIPAL';
   $('principalObForm').hidden=currentRole!=='PRINCIPAL';
-  $('principalSdoAdminPanel').hidden=currentRole!=='SCHOOL_ADMIN';
-  if(currentRole==='SCHOOL_ADMIN')void loadSdoRequests();
   await load();
  }
  void init().catch(error=>{

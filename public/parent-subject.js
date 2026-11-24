@@ -1,7 +1,7 @@
 (() => {
  'use strict';
  const $=id=>document.getElementById(id);
- const ui={select:$('subjectChild'),date:$('subjectDate'),refresh:$('subjectRefresh'),
+ const ui={select:$('parentChildSelect'),date:$('subjectDate'),refresh:$('subjectRefresh'),
    gate:$('subjectGate'),items:$('subjectItems'),feedback:$('subjectFeedback')};
  if(!ui.items)return;
  const today=()=>new Intl.DateTimeFormat('sv-SE',{timeZone:'Asia/Manila',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date());
@@ -28,7 +28,7 @@
    if(!r.ok)throw Error(result.error||'Could not load subject attendance.');
    return result;
  }
- let selected='',loading=false;
+ let selected='',request=0;
  function render(data){
    const first=data.gate?.arrival,leave=data.gate?.departure;
    ui.gate.innerHTML='<strong>School gate (separate from subjects)</strong>'+
@@ -49,43 +49,28 @@
      ' confirmed absent. Only finalized subject attendance is counted.';
  }
  async function refresh(){
-   if(loading||!selected)return;
-   loading=true;ui.refresh.disabled=true;ui.feedback.textContent='Loading verified subject attendance…';
+   selected=ui.select.value;
+   const id=selected,date=ui.date.value,seq=++request;
+   if(!id){ui.gate.textContent='';ui.items.textContent='Select an approved linked child above.';ui.feedback.textContent='';ui.refresh.disabled=true;return;}
+   ui.refresh.disabled=true;ui.feedback.textContent='Loading verified subject attendance…';ui.items.textContent='';ui.gate.textContent='';
    try{
-      const data=await api('/api/parent/children/'+encodeURIComponent(selected)+'/subjects?date='+encodeURIComponent(ui.date.value));
-      if(selected===data.studentId)render(data);
-   }catch(error){ui.feedback.textContent=error.message;ui.items.textContent='Subject attendance is temporarily unavailable.';}
-   finally{loading=false;ui.refresh.disabled=false;}
+     const data=await api('/api/parent/children/'+encodeURIComponent(id)+'/subjects?date='+encodeURIComponent(date));
+     if(seq===request&&id===ui.select.value&&date===ui.date.value)render(data);
+   }catch(error){if(seq===request){ui.feedback.textContent=error.message;ui.items.textContent='Subject attendance is temporarily unavailable.';}}
+   finally{if(seq===request)ui.refresh.disabled=false;}
  }
- async function init(){
+ function init(){
    ui.date.value=today();
-   ui.items.textContent='Loading linked learners…';
-   try{
-      const r=await api('/api/parent/children');
-      const children=r.children||[];
-      ui.select.replaceChildren();
-      for(const child of children){
-       const option=document.createElement('option');
-       option.value=child.studentId;option.textContent=child.fullName+' ('+child.gradeLevel+' '+child.section+')';
-       ui.select.append(option);
-      }
-      if(!children.length){ui.items.textContent='Only approved parent-child links can view subject attendance.';ui.refresh.disabled=true;return;}
-      selected=children[0].studentId;
-      // Open the approved learner and date referenced by a phone notification.
-      // Student identity remains in the URL fragment, never an authorization source.
-      const hash=String(location.hash||'');
-      if(hash.startsWith('#subjectAttendance?')){
-        const params=new URLSearchParams(hash.slice('#subjectAttendance?'.length));
-        const child=params.get('child'),date=params.get('date');
-        if(children.some(c=>c.studentId===child))selected=child;
-        if(date&&/^20\d{2}-\d{2}-\d{2}$/.test(date))ui.date.value=date;
-        ui.select.value=selected;
-        $('subjectAttendance')?.scrollIntoView({block:'start'});
-      }
-      await refresh();
-   }catch(error){ui.items.textContent='Unable to load linked children.';ui.feedback.textContent=error.message;}
+   const hash=String(location.hash||'');
+   if(hash.startsWith('#subjectAttendance?')){
+     const date=new URLSearchParams(hash.slice('#subjectAttendance?'.length)).get('date');
+     if(date&&/^20\d{2}-\d{2}-\d{2}$/.test(date))ui.date.value=date;
+     $('subjectAttendance')?.scrollIntoView({block:'start'});
+   }
+   refresh();
  }
- ui.select.addEventListener('change',()=>{selected=ui.select.value;refresh();});
+ ui.select.addEventListener('change',refresh);
+ ui.select.addEventListener('attendigo:parent-child-loaded',refresh);
  ui.date.addEventListener('change',()=>{if(ui.date.value)refresh();});
  ui.refresh.addEventListener('click',()=>refresh());
  document.addEventListener('visibilitychange',()=>{if(!document.hidden&&ui.date.value===today())refresh();});

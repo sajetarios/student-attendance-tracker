@@ -5,7 +5,7 @@ const LIMIT=151; // One extra row reveals truncation; never pretend a partial li
 
 function registerPrincipalClassImpactRoutes(app,pool,{authenticateSchoolClient,requireSchoolRoles}){
  app.get('/api/principal/class-impact',
-  authenticateSchoolClient,requireSchoolRoles('PRINCIPAL','SCHOOL_ADMIN'),async(req,res)=>{
+  authenticateSchoolClient,requireSchoolRoles('PRINCIPAL'),async(req,res)=>{
    res.set('Cache-Control','no-store, private');
    const departmentId=req.query?.departmentId?String(req.query.departmentId):null;
    if(departmentId&&!UUID.test(departmentId))

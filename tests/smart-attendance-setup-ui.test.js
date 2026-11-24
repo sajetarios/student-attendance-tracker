@@ -36,8 +36,8 @@ async function setup(role='SCHOOL_ADMIN',initial={}){
   return {ok:true,json:async()=>response};
  };
  const context={
-  document:{getElementById:id=>elements[id],createElement:()=>mockElement()},
-  window:{attendigoStaffIdentity:Promise.resolve({role}),confirm:()=>true},
+  document:{getElementById:id=>elements[id],createElement:()=>mockElement(),addEventListener(){}},
+  window:{attendigoStaffIdentity:Promise.resolve({role}),AppDialog:{confirm:async()=>true}},
   fetch,Date,Intl,URLSearchParams
  };
  vm.runInNewContext(src,context);

@@ -53,8 +53,8 @@ test('New visuals reuse brand tokens, support mobile and dark mode, and ship wit
   assert.match(css,/@media\(max-width:760px\)/);
   assert.match(css,/html\[data-ui-theme="dark"\]/);
   assert.match(html,/department-monitor-refresh\.css\?v=1/);
-  assert.match(html,/department-workspace\.js\?v=5/);
+  require('./support/asset-contract').assertCachedAsset(html,sw,'department-workspace.js',{minimumVersion:5});
   assertCacheRevisionAtLeast(sw,249);
   assert.match(sw,/department-monitor-refresh\.css\?v=1/);
-  assert.match(sw,/department-workspace\.js\?v=5/);
+  require('./support/asset-contract').assertCachedAsset(html,sw,'department-workspace.js',{minimumVersion:5});
 });

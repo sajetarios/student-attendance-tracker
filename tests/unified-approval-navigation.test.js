@@ -59,10 +59,12 @@ test('existing admin photo approval notifications open photo reviews while stude
  const clicks=[];
  const context={user:{role:'SCHOOL_ADMIN'},location:{origin:'https://school.test',pathname:'/portal.html'},URL,
   document:{getElementById:id=>({click:()=>clicks.push(id)}),querySelector:selector=>({click:()=>clicks.push(selector)})}};
- const run=vm.runInNewContext('('+navigate.trim()+')',context);
+ const memoGuard=universal.slice(universal.indexOf('function isSchoolMemo(item)'),universal.indexOf('function navigate(item)'));
+ const run=vm.runInNewContext(memoGuard+'\n'+navigate+'\nnavigate',context);
  const legacy={category:'APPROVAL',requestType:'Profile photo',actionUrl:'/portal.html#students'};
  run(legacy);
  run({...legacy,requestType:'Student account',actionUrl:'/portal.html#studentAccounts'});
- assert.deepEqual(clicks,['adminPhotoRequestsShortcut','[data-view="studentAccounts"]']);
+ assert.deepEqual(clicks,['adminPhotoRequestsShortcut','studentAccountsTab']);
+ assert.equal(run({...legacy,actionUrl:'https://evil.example',requestType:'OTHER'}),false);
  assert.match(admin,/adminPhotoRequestsShortcut'\)\?\.addEventListener\('click',[\s\S]*?openInbox\(\);[\s\S]*?reviewPanel.hidden=false/);
 });

@@ -1,4 +1,4 @@
--- 082: Parent accounts are not staff and must not be assigned a teaching department.
+-- 086: Parent accounts are not staff and must not be assigned a teaching department.
 -- Staff roles still require a valid school department, preserving existing permissions.
 -- Additive role-aware repair for the 013 migration's blanket NOT NULL constraint.
 ALTER TABLE school_users ALTER COLUMN department_id DROP NOT NULL;

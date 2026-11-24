@@ -113,7 +113,9 @@ test('PWA, notification deep links and role-specific inbox assets are wired',()=
  assertCachedAsset(html,sw,'leave-approval-inbox.js',{minimumVersion:1});
  assertCachedAsset(html,sw,'leave-approval-inbox.css',{minimumVersion:1});
  assertCachedAsset(html,sw,'universal-notifications.js',{minimumVersion:6});
- assert.match(note,/leaveManagement:document.getElementById\('staffLeaveReviewNav'\)/);
+ assert.match(note,/view==='leaveManagement'/);
+ assert.match(note,/click\('staffLeaveReviewNav'\)/);
+ assert.match(note,/click\('staffLeaveNav'\)/);
  assert.match(fs.readFileSync('public/leave-approval-inbox.js','utf8'),/Needs my review/);
  assert.match(fs.readFileSync('public/leave-approval-inbox.js','utf8'),/Awaiting official approval/);
  assert.match(fs.readFileSync('public/staff-leave-ui.js','utf8'),/openLeave\(reviewQueue=false\)/);

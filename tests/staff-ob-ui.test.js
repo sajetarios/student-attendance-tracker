@@ -11,7 +11,12 @@ test('staff OB portal view initializes only for authorized roles and uses same-o
  assert.match(portal,/id="officialBusinessView"/);
  assert.match(portal,/id="officialBusinessNav"/);
  assert.match(ui,/credentials:'same-origin',cache:'no-store'/);
- assert.match(ui,/window\.prompt/);
+ assert.match(ui,/await window\.AppDialog\.prompt/);
+ assert.doesNotMatch(ui,/window\.(?:prompt|confirm|alert)\s*\(/);
+ assert.match(ui,/maxLength:1000/);
+ assert.match(ui,/if\(note===null\)return/);
+ assert.match(ui,/\{decision,note\}/);
+ assert.match(ui,/finally\{busy=false;controls\.forEach/);
  assert.match(ui,/staff-ob-coverage/);
  assert.match(ui,/form\.reportValidity\(\)/);
  assert.match(ui,/const toManilaIso=s=>/);

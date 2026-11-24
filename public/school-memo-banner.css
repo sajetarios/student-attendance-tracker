@@ -23,3 +23,318 @@
 :root[data-theme="dark"] .attendigo-memo-copy strong{color:#e3f2f6}
 :root[data-theme="dark"] .attendigo-memo-copy small{color:#b2cbd3}
 :root[data-theme="dark"] .attendigo-memo-banner.attendigo-memo-quiet{background:#223345;border-color:#385268}
+
+/* In-dashboard School Memoranda — Attendigo navy/teal, all staff/parent/student views */
+.attendigo-memo-banner{position:relative;z-index:1;max-width:100%}
+.attendigo-memo-banner button.attendigo-memo-link{font:inherit;cursor:pointer;appearance:none}
+.attendigo-memo-banner button:focus-visible{outline:3px solid #13cae0;outline-offset:3px}
+.attendigo-memo-workspace{box-sizing:border-box;position:relative;isolation:isolate;
+ margin:0 0 22px;padding:clamp(19px,3vw,30px);width:100%;max-width:100%;
+ border:1px solid #195a76;border-radius:18px;
+ background:linear-gradient(115deg,#09243c 0%,#0c3652 58%,#0a4b5e 100%);
+ color:#f2fbff;box-shadow:0 10px 27px rgba(16,61,81,.14);
+ font:14px/1.55 Inter,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
+.attendigo-memo-workspace[hidden]{display:none!important}
+.attendigo-memo-workspace,.attendigo-memo-workspace *{box-sizing:border-box}
+.attendigo-memo-workspace :is(button,a){font:inherit}
+.attendigo-memo-workspace button{cursor:pointer}
+.attendigo-memo-workspace button:disabled{cursor:default;opacity:.65}
+.attendigo-memo-workspace :is(button,a):focus-visible{outline:3px solid #32d6e2;outline-offset:3px}
+.attendigo-memo-workspace-head{display:flex;align-items:flex-start;justify-content:space-between;gap:14px}
+.attendigo-memo-workspace-intro{min-width:0;flex:1}
+.attendigo-memo-eyebrow{display:block;font-size:10px;letter-spacing:.16em;color:#7ce8e4;font-weight:850}
+.attendigo-memo-workspace-intro h2{margin:6px 0 6px;font-weight:830;
+ font-size:clamp(23px,2.55vw,30px);line-height:1.2;letter-spacing:-.045em;color:#f5fcff}
+.attendigo-memo-workspace-intro>p{font-size:12px;margin:0;max-width:690px;color:#c4dce8}
+.attendigo-memo-close,.attendigo-memo-refresh{min-height:41px;border:1px solid #568096;
+ padding:9px 14px;border-radius:10px;color:#ebfaff;background:#ffffff15;font-size:12px;font-weight:750!important}
+.attendigo-memo-close:hover,.attendigo-memo-refresh:hover{background:#ffffff26}
+.attendigo-memo-toolbar{margin:18px 0 14px;display:flex;align-items:center;justify-content:space-between;gap:11px;flex-wrap:wrap}
+.attendigo-memo-counters{display:flex;gap:8px;flex-wrap:wrap}
+.attendigo-memo-counter{display:inline-flex;align-items:center;gap:7px;background:#123c58;
+ border:1px solid #30637c;padding:7px 12px;border-radius:9px;color:#dbf3fa;font-size:11px}
+.attendigo-memo-counter strong{font-size:15px;font-variant-numeric:tabular-nums;color:#a8faf0}
+.attendigo-memo-status{margin:0 0 12px;font-size:12px;line-height:1.5;color:#badbe7}
+.attendigo-memo-list{display:grid;gap:11px;min-height:100px}
+.attendigo-memo-empty{padding:clamp(23px,5vw,58px) 16px;display:flex;align-items:center;
+ justify-content:center;flex-direction:column;text-align:center;gap:8px;
+ border:1px solid #367994;border-radius:15px;
+ background:radial-gradient(ellipse at 75% 10%,#12627a80,transparent 55%),linear-gradient(140deg,#0c3455,#0b5366)}
+.attendigo-memo-empty-icon{width:74px;height:74px;border-radius:19px;display:grid;place-items:center;
+ font-size:39px;color:#8af2ed;border:1px solid #2f98aa;background:linear-gradient(150deg,#0d456e,#147b8b);
+ margin-bottom:6px;box-shadow:0 8px 20px #00152430}
+.attendigo-memo-empty strong{color:#f4fbff;font-size:clamp(19px,2vw,25px);line-height:1.3}
+.attendigo-memo-empty p{max-width:570px;font-size:12px;margin:0;color:#cee0ed}
+.attendigo-memo-record{background:#fafdff;border:1px solid #bcd4e0;border-left:4px solid #d3e2ea;
+ color:#1a3248;border-radius:13px;padding:17px;min-width:0;overflow-wrap:anywhere}
+.attendigo-memo-record.attendigo-memo-unread{border-left-color:#0fadb6}
+.attendigo-memo-record-header{display:flex;justify-content:space-between;align-items:flex-start;gap:11px}
+.attendigo-memo-record-title{min-width:0;flex:1}
+.attendigo-memo-record h3{font-size:16px;font-weight:780;letter-spacing:-.018em;color:#18344a;line-height:1.35;margin:0 0 4px}
+.attendigo-memo-record-title small{font-size:11px;color:#607489}
+.attendigo-memo-category{display:inline-flex;border:1px solid #c6e4e6;background:#e4f7f6;
+ color:#196e78;border-radius:20px;padding:5px 9px;font-size:10px;font-weight:750;text-transform:capitalize}
+.attendigo-memo-summary{font-size:13px;line-height:1.6;white-space:pre-wrap;overflow-wrap:anywhere;color:#405d72;margin:13px 0}
+.attendigo-memo-record-meta{display:flex;flex-wrap:wrap;gap:6px;margin:12px 0}
+.attendigo-memo-record-meta span{font-size:11px;color:#546c7f;background:#eff4f7;border:1px solid #e2eaf0;padding:6px 8px;border-radius:7px}
+.attendigo-memo-actions{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin-top:12px}
+.attendigo-memo-actions button,.attendigo-memo-download{min-height:41px;padding:9px 13px;
+ border:1px solid #c5d9e3;border-radius:10px;background:#fff;color:#25516a;
+ font-size:12px!important;font-weight:750!important;text-decoration:none}
+.attendigo-memo-actions button:hover,.attendigo-memo-download:hover{background:#ecf8fa;border-color:#83c2ce}
+.attendigo-memo-actions .attendigo-memo-preview-toggle{background:#087fa2;border-color:#087fa2;color:#fff}
+.attendigo-memo-actions .attendigo-memo-preview-toggle:hover{background:#0a6c8d}
+.attendigo-memo-actions .attendigo-memo-ack:not(:disabled){border-color:#26a79e;color:#0b756a}
+.attendigo-memo-actions .attendigo-memo-is-read{background:#edf8f0;color:#227c58}
+.attendigo-memo-preview{border-top:1px solid #dce8ef;padding-top:14px;margin-top:15px}
+.attendigo-memo-preview>p{font-size:11px;margin:0 0 10px;color:#587083}
+.attendigo-memo-frame{display:block;width:100%;height:clamp(300px,53vh,620px);border:1px solid #b6cdd9;
+ border-radius:10px;background:white}
+.attendigo-memo-download{display:inline-flex;align-items:center;margin-top:10px}
+.attendigo-memo-receipts{font-size:11px;color:#587083;margin:7px 0 0}
+.attendigo-memo-footnote{margin:17px 0 0;font-size:11px;color:#cce3ef;
+ border-top:1px solid #518197;padding-top:13px;line-height:1.6}
+@media(max-width:640px){
+ .attendigo-memo-workspace{margin:0 0 18px;padding:17px 13px;border-radius:13px}
+ .attendigo-memo-workspace-head{gap:9px}
+ .attendigo-memo-workspace-intro h2{font-size:23px}
+ .attendigo-memo-close{padding:8px 10px;min-height:38px}
+ .attendigo-memo-toolbar{gap:9px}
+ .attendigo-memo-record{padding:13px}
+ .attendigo-memo-record-header{flex-direction:column}
+ .attendigo-memo-actions button{flex:1 1 calc(50% - 8px)}
+ .attendigo-memo-empty{padding:28px 13px}
+ .attendigo-memo-counter{padding:6px 9px}
+ .attendigo-memo-frame{height:55vh;min-height:290px}
+}
+@media(prefers-reduced-motion:reduce){.attendigo-memo-workspace *{scroll-behavior:auto!important}}
+
+.attendigo-memo-frame-loading{display:grid;place-items:center;min-height:135px;padding:18px;border-radius:10px;
+ border:1px dashed #99bed0;background:#f1f8fb;color:#496b7f;font-size:12px;text-align:center}
+.attendigo-memo-image{height:auto!important;max-height:620px;width:100%;object-fit:contain;background:#fff}
+
+/* Theme contract: follow Attendigo's per-account appearance, not device dark mode
+   when a user has explicitly chosen Light. Shared dashboards use data-ui-theme;
+   Principal uses data-theme and resolves system via prefers-color-scheme. */
+.attendigo-memo-workspace{
+  color-scheme:light;
+  --memo-panel:linear-gradient(125deg,#ffffff 0%,#f8fbff 65%,#eef9fa 100%);
+  --memo-panel-border:#d3e6ee;
+  --memo-panel-text:#20354c;
+  --memo-muted:#62798e;
+  --memo-heading:#1e3349;
+  --memo-accent:#087e91;
+  --memo-button-bg:#fff;
+  --memo-button-border:#bfd5e2;
+  --memo-button-text:#24506b;
+  --memo-counter-bg:#edf7fa;
+  --memo-counter-border:#c9e4e9;
+  --memo-counter-text:#435c71;
+  --memo-counter-value:#0a7c8c;
+  --memo-empty-bg:linear-gradient(135deg,#f2f8fc 0%,#edf9f9 100%);
+  --memo-empty-border:#c5e1e9;
+  --memo-empty-heading:#21384c;
+  --memo-empty-text:#596f82;
+  --memo-icon-bg:linear-gradient(145deg,#e2f6fa,#cfefed);
+  --memo-icon-border:#b5e2e6;
+  --memo-icon-ink:#13899b;
+  --memo-card-bg:#fff;
+  --memo-card-border:#cddfe9;
+  --memo-card-title:#1d3449;
+  --memo-card-body:#435c70;
+  --memo-card-muted:#637b8e;
+  --memo-card-chip-bg:#f0f5f9;
+  --memo-card-chip-border:#e0eaf0;
+  --memo-card-chip-text:#50697f;
+  --memo-tag-bg:#e9f6f7;
+  --memo-tag-border:#c6e7e8;
+  --memo-tag-text:#197587;
+  --memo-viewer-bg:#f2f8fb;
+  --memo-viewer-border:#b6d3e1;
+  --memo-footer-border:#d5e4eb;
+  --memo-shadow:0 12px 30px rgba(33,67,90,.08);
+  background:var(--memo-panel);
+  border-color:var(--memo-panel-border);
+  box-shadow:var(--memo-shadow);
+  color:var(--memo-panel-text);
+}
+.attendigo-memo-workspace .attendigo-memo-eyebrow{color:var(--memo-accent)}
+.attendigo-memo-workspace .attendigo-memo-workspace-intro h2{color:var(--memo-heading)}
+.attendigo-memo-workspace .attendigo-memo-workspace-intro>p,
+.attendigo-memo-workspace .attendigo-memo-status{color:var(--memo-muted)}
+.attendigo-memo-workspace :is(.attendigo-memo-close,.attendigo-memo-refresh){
+ background:var(--memo-button-bg);color:var(--memo-button-text);
+ border-color:var(--memo-button-border)
+}
+.attendigo-memo-workspace :is(.attendigo-memo-close,.attendigo-memo-refresh):hover{
+ background:var(--memo-counter-bg)
+}
+.attendigo-memo-workspace .attendigo-memo-counter{
+ background:var(--memo-counter-bg);border-color:var(--memo-counter-border);
+ color:var(--memo-counter-text)
+}
+.attendigo-memo-workspace .attendigo-memo-counter strong{color:var(--memo-counter-value)}
+.attendigo-memo-workspace .attendigo-memo-empty{
+ background:var(--memo-empty-bg);border-color:var(--memo-empty-border)
+}
+.attendigo-memo-workspace .attendigo-memo-empty-icon{
+ background:var(--memo-icon-bg);border-color:var(--memo-icon-border);color:var(--memo-icon-ink)
+}
+.attendigo-memo-workspace .attendigo-memo-empty strong{color:var(--memo-empty-heading)}
+.attendigo-memo-workspace .attendigo-memo-empty p{color:var(--memo-empty-text)}
+.attendigo-memo-workspace .attendigo-memo-record{
+ background:var(--memo-card-bg);color:var(--memo-card-body);border-color:var(--memo-card-border)
+}
+.attendigo-memo-workspace .attendigo-memo-record.attendigo-memo-unread{border-left-color:var(--memo-accent)}
+.attendigo-memo-workspace .attendigo-memo-record h3{color:var(--memo-card-title)}
+.attendigo-memo-workspace :is(.attendigo-memo-record-title small,.attendigo-memo-receipts,
+ .attendigo-memo-preview>p){color:var(--memo-card-muted)}
+.attendigo-memo-workspace .attendigo-memo-summary{color:var(--memo-card-body)}
+.attendigo-memo-workspace .attendigo-memo-record-meta span{
+ background:var(--memo-card-chip-bg);color:var(--memo-card-chip-text);border-color:var(--memo-card-chip-border)
+}
+.attendigo-memo-workspace .attendigo-memo-category{
+ background:var(--memo-tag-bg);border-color:var(--memo-tag-border);color:var(--memo-tag-text)
+}
+.attendigo-memo-workspace .attendigo-memo-actions button,
+.attendigo-memo-workspace .attendigo-memo-download{
+ background:var(--memo-button-bg);border-color:var(--memo-button-border);color:var(--memo-button-text)
+}
+.attendigo-memo-workspace .attendigo-memo-actions button:hover,
+.attendigo-memo-workspace .attendigo-memo-download:hover{background:var(--memo-counter-bg)}
+.attendigo-memo-workspace .attendigo-memo-actions .attendigo-memo-preview-toggle{
+ background:#087fa2;border-color:#087fa2;color:#fff
+}
+.attendigo-memo-workspace .attendigo-memo-actions .attendigo-memo-preview-toggle:hover{background:#066b8d}
+.attendigo-memo-workspace .attendigo-memo-actions .attendigo-memo-ack:not(:disabled){
+ border-color:#2aab9f;color:var(--memo-accent)
+}
+.attendigo-memo-workspace .attendigo-memo-preview{border-top-color:var(--memo-footer-border)}
+.attendigo-memo-workspace .attendigo-memo-frame-loading{
+ background:var(--memo-viewer-bg);border-color:var(--memo-viewer-border);color:var(--memo-card-body)
+}
+.attendigo-memo-workspace .attendigo-memo-frame{border-color:var(--memo-viewer-border)}
+.attendigo-memo-workspace .attendigo-memo-footnote{
+ color:var(--memo-muted);border-top-color:var(--memo-footer-border)
+}
+/* Banner must also respect a manual Light choice, even on a dark device. */
+.attendigo-memo-banner{
+ background:#eef9fa;border-color:#bcdfe7;color:#244b61
+}
+.attendigo-memo-banner .attendigo-memo-copy strong{color:#244659}
+.attendigo-memo-banner .attendigo-memo-copy small{color:#526e7c}
+.attendigo-memo-banner .attendigo-memo-icon{background:#d8f0f0;color:#087d8d}
+.attendigo-memo-banner.attendigo-memo-quiet{
+ background:#f8fbfd;border-color:#dce7ef
+}
+.attendigo-memo-banner.attendigo-memo-quiet .attendigo-memo-icon{
+ background:#eaf1f6;color:#536f83
+}
+/* Shared staff, parent and student appearances; principal uses its own picker. */
+:root[data-ui-theme="dark"] .attendigo-memo-workspace,
+:root[data-theme="dark"] .attendigo-memo-workspace{
+ color-scheme:dark;
+ --memo-panel:linear-gradient(115deg,#0b2238 0%,#0e314b 62%,#0a4859 100%);
+ --memo-panel-border:#2b5870;
+ --memo-panel-text:#e9f5fa;
+ --memo-muted:#b9d1df;
+ --memo-heading:#f0fbff;
+ --memo-accent:#7ce8e4;
+ --memo-button-bg:#203d53;
+ --memo-button-border:#4c758b;
+ --memo-button-text:#ecf8fc;
+ --memo-counter-bg:#173f58;
+ --memo-counter-border:#3c6980;
+ --memo-counter-text:#cbe5f0;
+ --memo-counter-value:#a8faf0;
+ --memo-empty-bg:linear-gradient(140deg,#0d3451,#0b5061);
+ --memo-empty-border:#387e92;
+ --memo-empty-heading:#f5fcff;
+ --memo-empty-text:#cde2ec;
+ --memo-icon-bg:linear-gradient(145deg,#164e6e,#167d88);
+ --memo-icon-border:#3b90a1;
+ --memo-icon-ink:#a9f5ed;
+ --memo-card-bg:#152c40;
+ --memo-card-border:#416277;
+ --memo-card-title:#f0f7fc;
+ --memo-card-body:#d1e2ec;
+ --memo-card-muted:#a7c2d3;
+ --memo-card-chip-bg:#243e52;
+ --memo-card-chip-border:#355d71;
+ --memo-card-chip-text:#d0e3ed;
+ --memo-tag-bg:#1e4d55;
+ --memo-tag-border:#36777a;
+ --memo-tag-text:#9bece1;
+ --memo-viewer-bg:#203a4b;
+ --memo-viewer-border:#52788c;
+ --memo-footer-border:#467086;
+ --memo-shadow:0 12px 30px rgba(0,0,0,.21);
+}
+:root[data-ui-theme="dark"] .attendigo-memo-banner,
+:root[data-theme="dark"] .attendigo-memo-banner{
+ background:#203c4b;border-color:#396c79;color:#e6f5f8
+}
+:root[data-ui-theme="dark"] .attendigo-memo-banner .attendigo-memo-copy strong,
+:root[data-theme="dark"] .attendigo-memo-banner .attendigo-memo-copy strong{color:#e3f2f6}
+:root[data-ui-theme="dark"] .attendigo-memo-banner .attendigo-memo-copy small,
+:root[data-theme="dark"] .attendigo-memo-banner .attendigo-memo-copy small{color:#b2cbd3}
+:root[data-ui-theme="dark"] .attendigo-memo-banner .attendigo-memo-icon,
+:root[data-theme="dark"] .attendigo-memo-banner .attendigo-memo-icon{
+ background:#24525c;color:#b8f1ee
+}
+:root[data-ui-theme="dark"] .attendigo-memo-banner.attendigo-memo-quiet,
+:root[data-theme="dark"] .attendigo-memo-banner.attendigo-memo-quiet{
+ background:#223345;border-color:#385268
+}
+/* In Principal Automatic mode, OS appearance is authoritative. */
+@media(prefers-color-scheme:dark){
+ :root[data-theme="system"] .attendigo-memo-workspace{
+  color-scheme:dark;
+  --memo-panel:linear-gradient(115deg,#0b2238,#0e314b 62%,#0a4859);
+  --memo-panel-border:#2b5870;--memo-panel-text:#e9f5fa;
+  --memo-muted:#b9d1df;--memo-heading:#f0fbff;--memo-accent:#7ce8e4;
+  --memo-button-bg:#203d53;--memo-button-border:#4c758b;--memo-button-text:#ecf8fc;
+  --memo-counter-bg:#173f58;--memo-counter-border:#3c6980;
+  --memo-counter-text:#cbe5f0;--memo-counter-value:#a8faf0;
+  --memo-empty-bg:linear-gradient(140deg,#0d3451,#0b5061);
+  --memo-empty-border:#387e92;--memo-empty-heading:#f5fcff;
+  --memo-empty-text:#cde2ec;--memo-icon-bg:linear-gradient(145deg,#164e6e,#167d88);
+  --memo-icon-border:#3b90a1;--memo-icon-ink:#a9f5ed;
+  --memo-card-bg:#152c40;--memo-card-border:#416277;
+  --memo-card-title:#f0f7fc;--memo-card-body:#d1e2ec;--memo-card-muted:#a7c2d3;
+  --memo-card-chip-bg:#243e52;--memo-card-chip-border:#355d71;
+  --memo-card-chip-text:#d0e3ed;--memo-tag-bg:#1e4d55;
+  --memo-tag-border:#36777a;--memo-tag-text:#9bece1;
+  --memo-viewer-bg:#203a4b;--memo-viewer-border:#52788c;
+  --memo-footer-border:#467086;--memo-shadow:0 12px 30px rgba(0,0,0,.21)
+ }
+ :root[data-theme="system"] .attendigo-memo-banner{
+  background:#203c4b;border-color:#396c79;color:#e6f5f8
+ }
+ :root[data-theme="system"] .attendigo-memo-banner .attendigo-memo-copy strong{color:#e3f2f6}
+ :root[data-theme="system"] .attendigo-memo-banner .attendigo-memo-copy small{color:#b2cbd3}
+ :root[data-theme="system"] .attendigo-memo-banner .attendigo-memo-icon{
+  background:#24525c;color:#b8f1ee
+ }
+ :root[data-theme="system"] .attendigo-memo-banner.attendigo-memo-quiet{
+  background:#223345;border-color:#385268
+ }
+}
+
+/* Maintain accessible acknowledged/read states and quiet notice icon in dark mode. */
+:root[data-ui-theme="dark"] .attendigo-memo-workspace .attendigo-memo-actions .attendigo-memo-is-read,
+:root[data-theme="dark"] .attendigo-memo-workspace .attendigo-memo-actions .attendigo-memo-is-read{
+ background:#1c4a42;border-color:#3a8778;color:#b5f1df
+}
+:root[data-ui-theme="dark"] .attendigo-memo-banner.attendigo-memo-quiet .attendigo-memo-icon,
+:root[data-theme="dark"] .attendigo-memo-banner.attendigo-memo-quiet .attendigo-memo-icon{
+ background:#284b5b;color:#b5e8ee
+}
+@media(prefers-color-scheme:dark){
+ :root[data-theme="system"] .attendigo-memo-workspace .attendigo-memo-actions .attendigo-memo-is-read{
+  background:#1c4a42;border-color:#3a8778;color:#b5f1df
+ }
+ :root[data-theme="system"] .attendigo-memo-banner.attendigo-memo-quiet .attendigo-memo-icon{
+  background:#284b5b;color:#b5e8ee
+ }
+}
