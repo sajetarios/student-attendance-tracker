@@ -8,6 +8,12 @@ const at=(date,time)=>new Date(date+'T'+String(time).slice(0,5)+':00+08:00');
 const sign=(secret,id,bucket)=>crypto.createHmac('sha256',secret).update(id+':'+bucket).digest('hex');
 const {registerQrPinCheckin,currentQrTokenMatches,QR_ROTATION_MS,QR_ACCEPTED_BUCKETS}=require('./class-qr-pin-checkin');
 const bucket=()=>Math.floor(Date.now()/QR_ROTATION_MS);
+function classQrOrigin(configured,environment){
+ if(!configured)return environment==='production'?'https://attendigo.tech':'http://localhost:3000';
+ const url=new URL(configured);
+ if(environment==='production'&&['student-attendance-tracker-jmp4.onrender.com','www.attendigo.tech','attendigo.tech'].includes(url.hostname))return 'https://attendigo.tech';
+ return url.origin;
+}
 // The existing school calendar is the authority for learner suspensions.
 // A learner-only suspension never changes personnel DTR or historical QR check-ins.
 async function classCalendarSuspended(db,schoolId,date){
@@ -179,9 +185,7 @@ function registerClassQrRoutes(app,pool,{authenticateSchoolClient,requireSchoolR
    const b=bucket();
    const token=sign(s.secret,s.session_id,b);
    // QR links must share the canonical student-login origin for persistent cookies.
-   const configured=process.env.PUBLIC_BASE_URL||'';
-   const origin=(process.env.NODE_ENV==='production' && (!configured || /student-attendance-tracker-jmp4\\.onrender\\.com/.test(configured)))
-     ? 'https://attendigo.tech' : (configured || 'http://localhost:3000');
+   const origin=classQrOrigin(process.env.PUBLIC_BASE_URL,process.env.NODE_ENV);
    const url=new URL('/class-qr-checkin.html',origin);
    url.searchParams.set('sessionId',String(s.session_id));url.searchParams.set('token',token);
    const qrImage=await QRCode.toDataURL(url.toString(),{margin:2,width:320});
@@ -353,4 +357,4 @@ function registerClassQrRoutes(app,pool,{authenticateSchoolClient,requireSchoolR
   }catch(e){res.status(500).json({error:'Unable to close session.'});}
  });
 }
-module.exports={registerClassQrRoutes,localDate,dayOfWeek,at,sign};
+module.exports={registerClassQrRoutes,localDate,dayOfWeek,at,sign,classQrOrigin};

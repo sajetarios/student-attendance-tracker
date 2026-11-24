@@ -98,6 +98,7 @@
       $('studentPasswordRequired').hidden = true;
       $('studentAttendanceSummary').hidden = false;
       $('studentAttendanceCard').hidden = false;
+      window.StudentClassQrScanner?.enable();
       $('studentPasswordForm').reset();
       feedback.textContent = 'Password changed successfully.';
       await loadAttendance();
@@ -124,7 +125,7 @@
     $('studentAttendanceSummary').hidden = Boolean(currentUser.mustChangePassword);
     $('studentAttendanceCard').hidden = Boolean(currentUser.mustChangePassword);
     $('studentPasswordRequired').hidden = !currentUser.mustChangePassword;
-    if (!currentUser.mustChangePassword) await loadAttendance();
+    if (!currentUser.mustChangePassword) { window.StudentClassQrScanner?.enable(); await loadAttendance(); }
   }
   init().catch(error => { $('studentPortalFeedback').textContent = error.message || 'Could not load the Student Portal.'; });
 })();

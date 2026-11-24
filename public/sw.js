@@ -1,4 +1,4 @@
-const CACHE = "attendigo-v342-staff-location-permission-guide";
+const CACHE = "attendigo-v343-student-qr-session-first";
 
 const SHELL = [
   "/typography.css?v=1",
@@ -42,7 +42,8 @@ const SHELL = [
   "/flicker-diagnostics.js?v=1",
   "/school-header-responsive.js?v=2",
   "/student-portal-refinement.css?v=1",
-  "/student-portal.js?v=20",
+  "/student-portal.js?v=21",
+  "/student-qr-scanner.js?v=1",
   "/parent-portal.js?v=3",
   "/dashboard-appearance.js?v=3",
   "/timetable-grid.js?v=8",
@@ -225,7 +226,7 @@ self.addEventListener("fetch", event => {
 
   // Authentication scripts must never remain stale across releases or domain changes.
   // They need the deployed code online, with cached copies available only offline.
-  if (['/portal-login.js', '/login-routing.js', '/student-portal.js'].includes(url.pathname)) {
+  if (['/portal-login.js', '/login-routing.js', '/student-portal.js', '/student-qr-scanner.js'].includes(url.pathname)) {
     event.respondWith((async () => {
       try {
         const fresh = await fetch(request, { cache: 'no-store' });

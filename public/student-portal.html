@@ -68,10 +68,17 @@
     <header class="student-header">
       <div class="student-welcome-block"><div class="eyebrow muted" id="studentSchoolLabel">STUDENT PORTAL</div><h1 id="studentWelcome">Welcome</h1><p>Your school profile and attendance, all in one place.</p></div>
       <div class="student-actions">
+        <button class="outline-button" id="studentScanQr" type="button" hidden style="display:none">Scan class QR</button>
         <button class="outline-button" id="studentRefresh" type="button"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6v5h-5M4 18v-5h5"/><path d="M5.7 9A7 7 0 0 1 18.5 7l1.5 4M4 13l1.5 4A7 7 0 0 0 18.4 15"/></svg>Refresh</button>
         <button class="outline-button" id="studentLogout" type="button"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h4"/><path d="M16 17l5-5-5-5M21 12H9"/></svg>Sign out</button>
       </div>
     </header>
+    <section class="student-card" id="studentQrScannerCard" hidden style="display:none">
+      <h2>Scan your teacher’s class QR</h2><p>Allow camera access to scan without leaving your signed-in Student Portal.</p>
+      <div id="studentQrReader" style="width:100%;max-width:440px;margin:0 auto"></div>
+      <p id="studentQrFeedback" role="status" aria-live="polite"></p>
+      <button class="outline-button" type="button" id="studentQrStop">Close scanner</button>
+    </section>
     <section class="student-summary-grid" id="studentAttendanceSummary" aria-label="My attendance summary">
       <article class="student-summary-item"><span>Accepted records</span><strong id="studentRecordCount">—</strong><span class="student-summary-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12l5 5L20 6"/></svg></span></article>
       <article class="student-summary-item"><span>Subject records</span><strong id="studentSubjectCount">—</strong><span class="student-summary-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 5.5c3-1.8 6.2-1.8 9 0 2.8-1.8 6-1.8 9 0v14c-3-1.8-6.2-1.8-9 0-2.8-1.8-6-1.8-9 0v-14ZM12 5.5v14"/></svg></span></article>
@@ -113,7 +120,8 @@
     <p class="student-feedback" id="studentPortalFeedback" role="status"></p>
   </main>
   <script src="/photo-editor.js?v=9" defer></script>
-  <script src="/student-portal.js?v=20" defer></script>
+  <script src="/student-qr-scanner.js?v=1" defer></script>
+  <script src="/student-portal.js?v=21" defer></script>
   <script src="/universal-notifications.js?v=5" defer></script>
 <script defer src="/school-memo-banner.js?v=4"></script>
 </body>
