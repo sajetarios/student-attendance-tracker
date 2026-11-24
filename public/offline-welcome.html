@@ -1,0 +1,106 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#10385f">
+  <meta name="referrer" content="no-referrer">
+  <title>You're offline · Attendigo</title>
+  <style>
+    :root{font-family:Inter,ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif;color:#153451}
+    *{box-sizing:border-box}html{min-height:100%}
+    body{min-height:100vh;min-height:100dvh;margin:0;padding:clamp(16px,4vw,52px);display:grid;place-items:center;background:radial-gradient(circle at 8% 15%,#dceaff 0,transparent 34%),radial-gradient(circle at 100% 92%,#dcf2ed 0,transparent 36%),#f5f8fc}
+    .shell{width:min(100%,940px);display:grid;grid-template-columns:minmax(0,1.08fr) minmax(320px,.92fr);background:#fff;border:1px solid #e0eaf4;border-radius:28px;box-shadow:0 22px 75px rgba(21,58,92,.10);overflow:hidden}
+    .intro{padding:clamp(28px,5vw,60px);display:flex;flex-direction:column;justify-content:center;min-width:0}
+    .eyebrow{color:#23578e;font-size:12px;font-weight:750;letter-spacing:.13em;text-transform:uppercase}
+    .brand-panel{display:grid;place-items:center;width:min(100%,380px);min-height:82px;margin:31px 0 28px;padding:17px 23px;border:1px solid #e9eff6;border-radius:19px;background:#fff;box-shadow:0 10px 27px rgba(14,67,116,.07)}
+    .brand-logo{display:block;width:100%;height:auto;object-fit:contain}
+    h1{font-size:clamp(30px,3.8vw,44px);letter-spacing:-.048em;line-height:1.13;margin:0 0 15px;color:#102e4c}
+    .intro-text{font-size:16px;line-height:1.65;color:#587189;max-width:380px;margin:0}
+    .tagline{margin:29px 0 0;font-size:13px;font-weight:700;color:#24658e}
+    .status-panel{padding:clamp(28px,4.5vw,52px);display:flex;flex-direction:column;justify-content:center;align-items:flex-start;background:linear-gradient(156deg,#10385f 0%,#174b78 68%,#0d6571 125%);color:#fff;min-width:0}
+    .icon-frame{display:grid;place-items:center;width:84px;height:84px;border-radius:25px;background:rgba(255,255,255,.10);border:1px solid rgba(255,255,255,.15);margin-bottom:32px}
+    .icon-frame svg{width:38px;height:38px;stroke:#ffd49a;fill:none;stroke-width:2.3;stroke-linecap:round;stroke-linejoin:round}
+    .status-kicker{font-size:12px;font-weight:750;letter-spacing:.13em;text-transform:uppercase;color:#ffddb4;margin:0 0 9px}
+    h2{font-size:clamp(23px,2.6vw,29px);font-weight:750;line-height:1.23;letter-spacing:-.027em;margin:0 0 13px}
+    .hint{color:#d0e3f2;font-size:14px;line-height:1.6;margin:0 0 30px;max-width:310px}
+    button{display:inline-flex;justify-content:center;align-items:center;min-height:51px;width:100%;max-width:315px;padding:13px 18px;border:0;border-radius:13px;background:#fff;color:#174b78;font:inherit;font-weight:750;font-size:14px;cursor:pointer}
+    button:focus-visible{outline:3px solid #86e2db;outline-offset:4px}button:disabled{opacity:.75;cursor:wait}
+    .note{max-width:320px;margin:19px 0 0;font-size:12px;line-height:1.6;color:#c4d8e8}
+    footer{grid-column:1/-1;display:flex;align-items:center;justify-content:center;padding:14px 20px;border-top:1px solid #eaf0f6;color:#627c91;font-size:12px;text-align:center}
+    @media(max-width:720px){body{padding:14px}.shell{max-width:490px;grid-template-columns:1fr;border-radius:23px}.intro{padding:29px 26px 26px}.brand-panel{max-width:320px;margin:20px 0 16px;padding:12px 17px;min-height:0}.intro h1{font-size:30px;margin-bottom:11px}.intro-text{font-size:14px;line-height:1.55}.tagline{margin-top:17px}.status-panel{padding:27px 26px 30px}.icon-frame{width:64px;height:64px;border-radius:19px;margin-bottom:18px}.icon-frame svg{width:32px;height:32px}h2{font-size:23px;margin-bottom:9px}.hint{margin-bottom:20px}.note{margin-top:13px}button{max-width:none}}
+    @media(max-width:375px){body{padding:10px}.intro{padding:23px 19px 21px}.status-panel{padding:23px 19px}h1{font-size:27px}h2{font-size:21px}}
+  </style>
+</head>
+<body>
+<main class="shell">
+  <section class="intro" aria-label="Attendigo offline welcome">
+    <span class="eyebrow">Your school workspace</span>
+    <div class="brand-panel"><img class="brand-logo" alt="Attendigo — Every learner counts" width="1769" height="496" src="/assets/attendigo-official-lockup.svg?v=5"></div>
+    <h1>Welcome to Attendigo.</h1>
+    <p class="intro-text">Your school's attendance and management workspace, ready when your connection returns.</p>
+    <p class="tagline">Every learner counts.</p>
+  </section>
+  <section class="status-panel" aria-labelledby="connection-heading">
+    <div class="icon-frame" aria-hidden="true"><svg viewBox="0 0 32 32"><path d="M3 11a21 21 0 0 1 7-3M16 7a21 21 0 0 1 13 4M7 16a14 14 0 0 1 4-2M21 14a14 14 0 0 1 4 2M12 21a7 7 0 0 1 8 0M16 26h.01M3 3l26 26"/></svg></div>
+    <p class="status-kicker">Internet connection</p>
+    <h2 id="connection-heading" role="status" aria-live="polite">You're offline</h2>
+    <p class="hint" id="connection-hint">Connect to the internet, then select Try Again. Attendance and login cannot be verified while disconnected.</p>
+    <button id="retry" type="button">Try Again</button>
+    <p class="note">This page is a cached welcome screen. It does not log attendance or claim that records were submitted.</p>
+  </section>
+  <footer>Your existing Attendigo account and school records remain unchanged.</footer>
+</main>
+<script>
+'use strict';
+const retryButton = document.getElementById('retry');
+const heading = document.getElementById('connection-heading');
+const hint = document.getElementById('connection-hint');
+let checking = false;
+async function retryConnection() {
+  if (checking) return;
+  if (navigator.onLine === false) {
+    heading.textContent = "You're offline";
+    hint.textContent = 'Please reconnect to the internet and try again.';
+    return;
+  }
+  checking = true;
+  retryButton.disabled = true;
+  heading.textContent = 'Checking Attendigo…';
+  hint.textContent = 'Verifying that the school server and database are available.';
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 8000);
+  try {
+    const response = await fetch('/api/startup-readiness', {
+      method:'GET', credentials:'omit', cache:'no-store', signal:controller.signal
+    });
+    if (response.ok) {
+      const status = await response.json();
+      if (status && status.ready === true && status.service === 'attendigo') {
+        heading.textContent = 'Connection restored';
+        hint.textContent = 'Opening your school workspace…';
+        window.location.replace('/');
+        return;
+      }
+    }
+    heading.textContent = 'School server is starting';
+    hint.textContent = 'Your internet connection is available, but Attendigo is not ready. Please try again shortly.';
+  } catch {
+    heading.textContent = navigator.onLine === false ? "You're offline" : 'Connection unavailable';
+    hint.textContent = 'Could not reach Attendigo. Check your connection and try again.';
+  } finally {
+    clearTimeout(timeout);
+    checking = false;
+    retryButton.disabled = false;
+  }
+}
+retryButton.addEventListener('click', () => { void retryConnection(); });
+window.addEventListener('offline', () => {
+  heading.textContent = "You're offline";
+  hint.textContent = 'Reconnect to the internet. We will check again automatically.';
+});
+window.addEventListener('online', () => { void retryConnection(); });
+setInterval(() => { if (navigator.onLine !== false) void retryConnection(); }, 15000);
+</script>
+</body>
+</html>
