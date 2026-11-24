@@ -37,8 +37,8 @@ async function renderMasterWorkbook({calculated,data,month,personalCopy=false,sc
   set('G7',schoolName||null);set('AA7',String(gradeLevel||'').replace(/^Grade\s+/i,''));set('AF7',section);
   if(personalCopy){
     set('A3','UNOFFICIAL SUBJECT ATTENDANCE COPY — Not for official submission');
-    set('G9','Blank white = present; gray = not recorded; X = subject absence; L = late; E = excused; — = no class; ! = review');
-    set('T118','White blank = confirmed presence; gray blank = not recorded/future (not present or absent); X = confirmed subject absence; L = late; E = excused; — = no class; ! = review.');
+    set('G9','White blank=Present • Gray=Not recorded • X=Absent • L=Late • E=Excused • —=No class • !=Review');
+    set('T118','White blank: Present; Gray: Unrecorded/future (not absent); X: Subject absence; L: Late; E: Excused; —: No class; !: Review.');
     set('AO14','[white blank]');set('AP14','confirmed presence');set('AO15','X');set('AP15','subject absence');set('AO16','[gray blank]');set('AP16','no record / future');
     for(const a of ['AE139','AE140','AE142','AE144','AE145','AE146'])set(a,null);
     set('AE142','Subject teacher reference only');
@@ -48,7 +48,7 @@ async function renderMasterWorkbook({calculated,data,month,personalCopy=false,sc
   set('AQ9',personalCopy?null:data.dates.length);
   for(let i=0;i<25;i++){copy(col(7+i)+'10');copy(col(7+i)+'11');}
   const helper=new Map();
-  const addHelper=(row,address,value)=>{if(!helper.has(row))helper.set(row,[]);helper.get(row).push('<c r="'+address+'" t="inlineStr"><is><t>'+xml(value)+'</t></is></c>');};
+  const addHelper=(row,address,value)=>{if(!helper.has(row))helper.set(row,[]);const v=encode(value);helper.get(row).push('<c r="'+address+'"'+(v.type?' t="'+v.type+'"':'')+'>'+v.body+'</c>');};
   const active=new Set();
   for(let g=0;g<2;g++){
     const start=g?64:13,end=start+49,total=g?114:63;
@@ -70,7 +70,7 @@ async function renderMasterWorkbook({calculated,data,month,personalCopy=false,sc
       const present=read('AG'+row);
       if(personalCopy&&present&&typeof present==='object')cache('AG'+row,'COUNTIF(AU'+row+':BS'+row+',"P")+COUNTIF(AU'+row+':BS'+row+',"L")',present.result);
       else copy('AG'+row);
-      if(learner&&!personalCopy)addHelper(row,'BT'+row,String(learner.tardyCount||0));
+      if(learner&&!personalCopy)addHelper(row,'BT'+row,Number(learner.tardyCount)||0);
     }
     for(let slot=0;slot<25;slot++){
       const address=col(7+slot)+total,v=read(address),c=col(47+slot);
@@ -80,7 +80,7 @@ async function renderMasterWorkbook({calculated,data,month,personalCopy=false,sc
     copy('AF'+total);copy('AG'+total);
   }
   for(let slot=0;slot<25;slot++)copy(col(7+slot)+'115');
-  copy('AF115');copy('AG115');copy('AG117');copy('AJ117');
+  copy('AF115');copy('AG115');cache('AG117','AA6',read('AA6'));if(personalCopy)set('AJ117',null);else cache('AJ117','AQ9',data.dates.length);
   for(const r of [119,121,123,125,127,128,130,132,134,136])for(const c of ['AK','AL','AM'])copy(c+r);
   // Exact template cells only: preserve original style indices and all unrelated
   // elements. Gray uses a clone of each original style with only its fill changed.
@@ -102,6 +102,7 @@ async function renderMasterWorkbook({calculated,data,month,personalCopy=false,sc
   sheet=sheet.replace(/<row\b([^>]*\br="(\d+)"[^>]*)>([\s\S]*?)<\/row>/g,(whole,attrs,n,body)=>{
     const row=Number(n);let a=attrs;
     if(slotsSet.has(row)){a=a.replace(/\s+hidden="[^"]*"/g,'');if(!active.has(row))a+=' hidden="1"';}
+    if(helper.has(row))a=a.replace(/\bspans="[^"]*"/,'spans="1:72"');
     return '<row'+a+'>'+body+(helper.get(row)||[]).join('')+'</row>';
   });
   // The original final col spans AQ:XFD. Split it to keep the new evidence
@@ -113,6 +114,7 @@ async function renderMasterWorkbook({calculated,data,month,personalCopy=false,sc
   if(!/min="47" max="72"[^>]*hidden="1"/.test(sheet))throw new Error('SF2 evidence ledger is not hidden');
   sheet=sheet.replace(/<dimension ref="[^"]*"\/>/,'<dimension ref="A1:BT146"/>');
   zip.file(file,sheet);
+  if(personalCopy){const p='xl/workbook.xml';const w=await zip.file(p).async('string');zip.file(p,w.replaceAll('School Form 2 (SF2)','SF2 Subject Copy'));}
   return zip.generateAsync({type:'nodebuffer',compression:'DEFLATE'});
 }
 module.exports={renderMasterWorkbook,MASTER};
