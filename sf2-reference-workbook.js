@@ -15,8 +15,29 @@ function formula(cell,expression,result,format='0.##'){
   cell.value={formula:expression,result};
   cell.numFmt=format;
 }
-function createReferenceWorkbook({source,data,summary,monthName,schoolName,schoolId,schoolYear,gradeLevel,section,personalCopy=false,adviserName='',schoolHeadName=''}){
+// Monday–Friday reference positions (including blank leading/closure slots).
+// For a personal weekend timetable, retain every date in chronological order.
+function referenceDateSlots(month,dates){
+  const slots=Array(25).fill(-1);
+  const [y,m]=month.split('-').map(Number);
+  let day=new Date(Date.UTC(y,m-1,1));
+  let slot=[0,6].includes(day.getUTCDay())?0:day.getUTCDay()-1;
+  const index=new Map(dates.map((date,i)=>[date,i]));
+  let mapped=0;
+  while(day.getUTCMonth()===m-1){
+    if(![0,6].includes(day.getUTCDay())){
+      const i=index.get(day.toISOString().slice(0,10));
+      if(i!==undefined&&slot<25){slots[slot]=i;mapped++;}
+      slot++;
+    }
+    day.setUTCDate(day.getUTCDate()+1);
+  }
+  if(mapped===dates.length)return {slots,weekly:true};
+  return {slots:Array.from({length:25},(_,i)=>i<dates.length?i:-1),weekly:false};
+}
+function createReferenceWorkbook({source,data,summary,month,monthName,schoolName,schoolId,schoolYear,gradeLevel,section,personalCopy=false,adviserName='',schoolHeadName=''}){
   const wb=new ExcelJS.Workbook();
+  const {slots,weekly}=referenceDateSlots(month,data.dates);
   wb.calcProperties.fullCalcOnLoad=true;
   const ws=wb.addWorksheet(personalCopy?'SF2 Subject Copy':'School Form 2 (SF2)',{
     views:[{showGridLines:false,zoomScale:80,activeCell:'A1'}],
@@ -57,10 +78,10 @@ function createReferenceWorkbook({source,data,summary,monthName,schoolName,schoo
   merge('AG11:AG12',personalCopy?'SUBJECT PRESENT':'PRESENT',header);
   merge('AH9:AM12','REMARKS (If NLS, state reason, please refer to legend number 2. If TRANSFERRED IN/OUT, write the name of School.)',header);
   for(let i=0;i<25;i++){
-    const c=7+i,date=data.dates[i],d=date?new Date(date+'T00:00:00Z'):null;
+    const c=7+i,date=data.dates[slots[i]],d=date?new Date(date+'T00:00:00Z'):null;
     const day=ws.getCell(10,c),weekday=ws.getCell(11,c);
     put(day.address,d?d.getUTCDate():null,header);
-    put(weekday.address,d?['SU','M','T','W','TH','F','SA'][d.getUTCDay()]:null,header);
+    put(weekday.address,weekly?['M','T','W','TH','F'][i%5]:(d?['SU','M','T','W','TH','F','SA'][d.getUTCDay()]:null),header);
     weekday.alignment={horizontal:'center',vertical:'middle',textRotation:90};
     ws.getCell(12,c).border=border;
   }
@@ -82,8 +103,9 @@ function createReferenceWorkbook({source,data,summary,monthName,schoolName,schoo
       put('A'+row,learner?i+1:null,{align:'center',box:true});
       put('B'+row,learner?learner.name:null,{box:true});
       let rowAbsent=0,rowPresent=0,rowEvidence=false;
-      for(let d=0;d<25;d++){
-        const status=learner&&d<data.dates.length?(personalCopy?(learner.subjectDays?.[d]||learner.days[d]):learner.days[d]):null;
+      for(let slot=0;slot<25;slot++){
+        const d=slots[slot];
+        const status=learner&&d>=0?(personalCopy?(learner.subjectDays?.[d]||learner.days[d]):learner.days[d]):null;
         let value=null;
         if(personalCopy){
           value=codes[status]||null;
@@ -92,14 +114,12 @@ function createReferenceWorkbook({source,data,summary,monthName,schoolName,schoo
           if(status==='SUBJECT_ABSENT')rowAbsent++;
         }else if(status==='PRESENT'){daily[d]++;rowPresent++;rowEvidence=true;recorded[d]=true;}
         else if(status==='ABSENT'){value='X';rowAbsent++;rowEvidence=true;recorded[d]=true;}
-        const cell=ws.getCell(row,7+d);
+        const cell=ws.getCell(row,7+slot);
         put(cell.address,value,{align:'center',size:status==='NO_RECORD'?9:11,box:true});
-        // Keep the official half-day diagonal guide in populated date cells.
-        // Do not infer half-day evidence from a tardy event or missing scan.
-        if(!personalCopy&&learner&&d<data.dates.length){
-          const guide=source.getCell(14,4+d).border?.diagonal;
-          if(guide)cell.border={...border,diagonal:{...guide}};
-        }
+        // Reference July/October have no diagonal guide borders. Preserve
+        // weekly separators without fabricating tardy or half-day evidence.
+        if(weekly&&slot%5===0)cell.border={...border,left:{...edge,style:'medium'}};
+        if(slot===24)cell.border={...cell.border,right:{...edge,style:'medium'}};
       }
       const a=put('AF'+row,null,{align:'center',bold:true,box:true,fill:true});
       const p=put('AG'+row,null,{align:'center',bold:true,box:true,fill:true});
@@ -114,10 +134,10 @@ function createReferenceWorkbook({source,data,summary,monthName,schoolName,schoo
       abs+=rowAbsent;pres+=rowPresent;hasEvidence=hasEvidence||rowEvidence;
     }
     merge('A'+total+':B'+total,g?'FEMALE  | TOTAL Per Day':'MALE  | TOTAL Per Day',{...header,fill:true});
-    for(let d=0;d<25;d++){
-      const c=ws.getCell(total,7+d),col=c.address.replace(/\d+$/,'');
+    for(let slot=0;slot<25;slot++){
+      const d=slots[slot],c=ws.getCell(total,7+slot),col=c.address.replace(/\d+$/,'');
       put(c.address,null,{...header,fill:true});
-      if(d>=data.dates.length||(personalCopy&&!recorded[d]))continue;
+      if(d<0||(personalCopy&&!recorded[d]))continue;
       const range=col+start+':'+col+end;
       const expr=personalCopy?'COUNTIF('+range+',"P")+COUNTIF('+range+',"L")':'COUNTA($B$'+start+':$B$'+end+')-COUNTIF('+range+',"X")-COUNTIF('+range+',"H")*0.5';
       formula(c,expr,daily[d],'0.##');
@@ -130,10 +150,10 @@ function createReferenceWorkbook({source,data,summary,monthName,schoolName,schoo
     totals.push({daily,recorded,abs,pres,hasEvidence});
   });
   merge('A115:B115','    Combined TOTAL PER DAY',{...header,fill:true});
-  for(let d=0;d<25;d++){
-    const c=ws.getCell(115,7+d),col=c.address.replace(/\d+$/,'');
+  for(let slot=0;slot<25;slot++){
+    const d=slots[slot],c=ws.getCell(115,7+slot),col=c.address.replace(/\d+$/,'');
     put(c.address,null,{...header,fill:true});
-    if(d<data.dates.length&&(!personalCopy||totals.some(x=>x.recorded[d])))formula(c,'SUM('+col+'63,'+col+'114)',totals[0].daily[d]+totals[1].daily[d],'0.##');
+    if(d>=0&&(!personalCopy||totals.some(x=>x.recorded[d])))formula(c,'SUM('+col+'63,'+col+'114)',totals[0].daily[d]+totals[1].daily[d],'0.##');
   }
   for(const [col,key] of [['AF','abs'],['AG','pres']]){
     const cell=put(col+'115',null,{...header,fill:true});
@@ -192,4 +212,4 @@ function createReferenceWorkbook({source,data,summary,monthName,schoolName,schoo
   merge('AE146:AM146',personalCopy?null:'(Signature of School Head over Printed Name)',{align:'center'});
   return wb;
 }
-module.exports={createReferenceWorkbook,LAYOUT};
+module.exports={createReferenceWorkbook,referenceDateSlots,LAYOUT};
