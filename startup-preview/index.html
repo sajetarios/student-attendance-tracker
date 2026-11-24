@@ -31,6 +31,12 @@ h1{font-size:clamp(30px,3.8vw,44px);letter-spacing:-.048em;line-height:1.13;marg
 .continue{display:inline-flex;align-items:center;justify-content:center;gap:12px;min-height:51px;width:100%;max-width:315px;padding:13px 18px;border-radius:13px;background:#fff;color:#174b78;font-size:14px;font-weight:750;text-decoration:none;box-shadow:0 8px 22px rgba(0,0,0,.13);transition:transform .2s,background .2s}
 .continue:hover{background:#eaf6ff;transform:translateY(-1px)}.continue:focus-visible{outline:3px solid #86e2db;outline-offset:4px}
 .continue .arrow{font-size:20px;line-height:1}
+.retry{display:inline-flex;align-items:center;justify-content:center;min-height:51px;width:100%;max-width:315px;padding:13px 18px;border:0;border-radius:13px;background:#fff;color:#174b78;font:inherit;font-size:14px;font-weight:750;cursor:pointer;box-shadow:0 8px 22px rgba(0,0,0,.13)}
+.retry:focus-visible{outline:3px solid #86e2db;outline-offset:4px}
+.retry[hidden],.continue[hidden]{display:none!important}
+.status-panel.is-offline .loader{animation:none;border-color:#ffc680;opacity:.85}
+.status-panel.is-offline .loader::after{border-color:#ffc680}
+.status-panel.is-offline .status-kicker{color:#ffddb4}
 .note{max-width:320px;margin:19px 0 0;font-size:12px;line-height:1.6;color:#c4d8e8}
 .bottom-note{grid-column:1/-1;display:flex;align-items:center;justify-content:center;gap:9px;padding:14px 20px;border-top:1px solid #eaf0f6;color:#627c91;font-size:12px;text-align:center}
 .bottom-note::before{content:"";width:7px;height:7px;flex:none;border-radius:50%;background:#2eae93}
@@ -55,6 +61,7 @@ h1{font-size:clamp(30px,3.8vw,44px);letter-spacing:-.048em;line-height:1.13;marg
     <h2 class="status" id="startup-heading" role="status" aria-live="polite">Preparing your school workspace</h2>
     <p class="hint" id="startup-hint">The school server may need a moment to start. You can continue to the login page at any time.</p>
     <a class="continue" id="continue-link" href="https://attendigo.tech/portal-login.html" rel="noopener noreferrer">Continue to Attendigo <span class="arrow" aria-hidden="true">→</span></a>
+    <button class="retry" id="retry-button" type="button" hidden>Try Again</button>
     <p class="note">This welcome page does not ask for your password or access your school records.</p>
   </section>
   <footer class="bottom-note">Your existing Attendigo login, sessions, and school information remain unchanged.</footer>
@@ -69,6 +76,8 @@ const loginUrl = 'https://attendigo.tech/portal-login.html';
 const statusText = document.getElementById('startup-heading');
 const hintText = document.getElementById('startup-hint');
 const statusPanel = document.querySelector('.status-panel');
+const continueLink = document.getElementById('continue-link');
+const retryButton = document.getElementById('retry-button');
 const previewMode = new URLSearchParams(window.location.search).get('preview') === '1';
 const maxAttempts = 24;
 // Let visitors actually see the branded welcome even when Render is already awake.
@@ -77,8 +86,88 @@ const welcomeStartedAt = Date.now();
 let attempts = 0;
 let stopped = false;
 let nextCheck = null;
+let offlineTimer = null;
+let reconnecting = false;
+let leaving = false;
+function clearPending() {
+  if (nextCheck !== null) clearTimeout(nextCheck);
+  nextCheck = null;
+}
+function clearOfflineTimer() {
+  if (offlineTimer !== null) clearInterval(offlineTimer);
+  offlineTimer = null;
+}
+function showOffline(isDefinitelyOffline) {
+  clearPending();
+  statusPanel.classList.remove('is-ready');
+  statusPanel.classList.add('is-offline');
+  statusText.textContent = isDefinitelyOffline ? "You're offline" : 'Connection unavailable';
+  hintText.textContent = 'Connect to the internet and tap Try Again. Attendigo cannot verify your session or submit attendance while this connection is unavailable.';
+  continueLink.hidden = true;
+  retryButton.hidden = false;
+  if (offlineTimer === null) {
+    offlineTimer = setInterval(() => { void tryAgain(); }, 15000);
+  }
+}
+// The dedicated probe intentionally bypasses the service worker's navigation
+// cache, so a cached page never falsely proves internet access.
+async function hasNetworkConnection() {
+  if (navigator.onLine === false) return false;
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 5000);
+  try {
+    await fetch('/__attendigo_welcome_online_probe?at=' + Date.now(), {
+      method: 'GET', credentials: 'omit', cache: 'no-store', signal: controller.signal
+    });
+    // A static host may return 404 for the probe; receiving an HTTP response
+    // still proves a live connection to the welcome host.
+    return true;
+  } catch {
+    return false;
+  } finally {
+    clearTimeout(timeout);
+  }
+}
+async function tryAgain() {
+  if (leaving || reconnecting || !statusPanel.classList.contains('is-offline')) return;
+  if (navigator.onLine === false) return;
+  reconnecting = true;
+  retryButton.disabled = true;
+  try {
+    if (!(await hasNetworkConnection())) return;
+    clearOfflineTimer();
+    statusPanel.classList.remove('is-offline');
+    retryButton.hidden = true;
+    continueLink.hidden = false;
+    retryButton.disabled = false;
+    attempts = 0;
+    if (previewMode) {
+      statusText.textContent = 'Preparing your school workspace';
+      hintText.textContent = 'Design preview. Select Continue to Attendigo to open the existing login page.';
+    } else {
+      statusText.textContent = 'Preparing your school workspace';
+      hintText.textContent = 'Your internet connection is back. Checking Attendigo…';
+      void checkReadiness();
+    }
+  } finally {
+    retryButton.disabled = false;
+    reconnecting = false;
+  }
+}
+retryButton.addEventListener('click', () => { void tryAgain(); });
+window.addEventListener('offline', () => {
+  if (leaving) return;
+  stopped = false;
+  showOffline(true);
+});
+window.addEventListener('online', () => { void tryAgain(); });
+
 async function checkReadiness() {
-  if (stopped) return;
+  if (stopped || leaving) return;
+  if (navigator.onLine === false) {
+    showOffline(true);
+    return;
+  }
   attempts++;
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), 10000);
@@ -97,12 +186,25 @@ async function checkReadiness() {
         // Only delay an already-ready server; never mask an unavailable one.
         // pagehide cleans up this timer if the visitor leaves or taps Continue.
         const remaining = Math.max(0, minimumWelcomeMs - (Date.now() - welcomeStartedAt));
-        nextCheck = setTimeout(() => window.location.replace(loginUrl), remaining);
+        nextCheck = setTimeout(() => {
+          if (leaving) return;
+          if (navigator.onLine === false) {
+            stopped = false;
+            showOffline(true);
+          } else {
+            window.location.replace(loginUrl);
+          }
+        }, remaining);
         return;
       }
     }
   } catch (_) {
-    // Cold start, offline, or CORS not yet enabled; never guess readiness.
+    // A sleeping Render service must not be mistaken for a disconnected device.
+    // Confirm the welcome host is unreachable before displaying offline state.
+    if (navigator.onLine === false || !(await hasNetworkConnection())) {
+      showOffline(navigator.onLine === false);
+      return;
+    }
   } finally {
     clearTimeout(timeout);
   }
@@ -118,15 +220,23 @@ async function checkReadiness() {
   }
   nextCheck = setTimeout(checkReadiness, 5000);
 }
-if (previewMode) {
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('/sw.js', { updateViaCache: 'none' })
+    .catch(() => { /* Normal online navigation still works without offline support. */ });
+}
+if (navigator.onLine === false) {
+  showOffline(true);
+} else if (previewMode) {
   statusText.textContent = 'Preparing your school workspace';
   hintText.textContent = 'Design preview. Select Continue to Attendigo to open the existing login page.';
 } else {
-  checkReadiness();
+  void checkReadiness();
 }
 window.addEventListener('pagehide', () => {
+  leaving = true;
   stopped = true;
-  if (nextCheck !== null) clearTimeout(nextCheck);
+  clearPending();
+  clearOfflineTimer();
 }, { once: true });
 </script>
 </body></html>
