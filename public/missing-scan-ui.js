@@ -159,12 +159,15 @@
      '<button type="button" class="outline-button" id="msSavePolicy">Save policy</button>'+
      '<p>Policy changes never rewrite past records automatically. An authorized reviewer can reconsider a documented exception under the current policy. Original QR scans remain unchanged.</p>';
     $('msPolicySelect').value=mode;
-    $('msSavePolicy').addEventListener('click',async()=>{
+    $('msSavePolicy').addEventListener('click',async(event)=>{
+     const save=event.currentTarget;
+     if(save.disabled)return;
+     save.disabled=true;
      const next=$('msPolicySelect').value;
      const message='Confirm that your SDO permits approved logbook-based Form 48 time corrections. This will never manufacture a QR scan.';
-     if(next==='DTR_CORRECTION'&&!(window.AppDialog ? await window.AppDialog.confirm(message,{title:'Confirm correction policy',confirmText:'Confirm policy'}) : confirm(message)))return;
+     if(next==='DTR_CORRECTION'&&!(window.AppDialog ? await window.AppDialog.confirm(message,{title:'Confirm correction policy',confirmText:'Confirm policy'}) : confirm(message))){save.disabled=false;return;}
      try{const saved=await api('/policy',{method:'POST',data:{mode:next}});mode=saved.mode;messageSet('School correction policy saved.');await load();}
-     catch(e){messageSet(e.message,true);}
+     catch(e){messageSet(e.message,true);}finally{save.disabled=false;}
     });
     content.innerHTML='<p class="ms-muted">These settings control how authorized missing-scan reviews affect official Form 48 records. Working hours and signatories remain in Form 48.</p>';
     return;
