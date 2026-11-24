@@ -23,16 +23,14 @@
  }
 
  // Browsers control their own native prompt. This help dialog guides users when blocked.
- async function locationPermissionState(){
-  if(!window.isSecureContext||!navigator.geolocation)return 'unavailable';
-  if(!navigator.permissions?.query)return 'unknown';
-  try{return (await navigator.permissions.query({name:'geolocation'})).state;}
-  catch{return 'unknown';}
+ function isEmbeddedBrowser(){
+  return /FBAN|FBAV|FB_IAB|FB4A|FBIOS|Messenger|Instagram|Line\//i.test(navigator.userAgent||'');
  }
  function locationDeviceGuide(){
   const agent=navigator.userAgent||'';
+  if(isEmbeddedBrowser())return 'In-app browser (Messenger / Facebook / Instagram)';
   if(/iPad|iPhone|iPod/.test(agent)||(/Macintosh/.test(agent)&&navigator.maxTouchPoints>1))
-   return 'iPhone / iPad (Safari)';
+   return /CriOS|FxiOS|EdgiOS/.test(agent)?'iPhone / iPad (other browser)':'iPhone / iPad (Safari)';
   if(/Android/.test(agent))return 'Android (Chrome)';
   if(/Firefox/.test(agent))return 'Firefox';
   if(/Safari/.test(agent)&&!/Chrome|Chromium|Edg/.test(agent))return 'Mac (Safari)';
@@ -56,7 +54,7 @@
    '<label for="staffLocationPermissionDevice">Choose your device or browser</label>',
    '<select id="staffLocationPermissionDevice">',
    '<option>Chrome / Edge (computer)</option><option>Android (Chrome)</option>',
-   '<option>iPhone / iPad (Safari)</option><option>Mac (Safari)</option><option>Firefox</option></select>',
+   '<option>iPhone / iPad (Safari)</option><option>iPhone / iPad (other browser)</option><option>In-app browser (Messenger / Facebook / Instagram)</option><option>Mac (Safari)</option><option>Firefox</option></select>',
    '<ol id="staffLocationPermissionSteps"></ol>',
    '<p class="staff-location-permission-tip">If access still fails, check device Location Services and open Attendigo directly in an HTTPS browser tab.</p></div>',
    '<div class="staff-location-permission-actions">',
@@ -73,7 +71,9 @@
   const instructions={
    'Chrome / Edge (computer)':['Click the site controls icon beside the Attendigo website address.','Open Site settings and change Location to Allow.','Reload the Attendigo page, then select Try again.'],
    'Android (Chrome)':['Tap the site controls icon beside the Attendigo website address.','Open Permissions or Site settings, then allow Location.','Enable Location in phone settings and return to Attendigo.'],
-   'iPhone / iPad (Safari)':['Tap the page menu icon near the website address and choose Website Settings.','Set Location to Allow or Ask for Attendigo.','If necessary, enable Location Services in Settings → Privacy & Security and return to Attendigo.'],
+   'iPhone / iPad (Safari)':['Open iPhone Settings → Privacy & Security → Location Services. Turn it on.','Select Safari Websites, allow location while using the app, and turn on Precise Location if shown.','In Safari, open Attendigo, tap the page menu beside the address, and set website Location to Allow or Ask. Return here and tap Try GPS again.'],
+   'iPhone / iPad (other browser)':['Open iPhone Settings → Privacy & Security → Location Services and enable it.','Allow location for your browser while using it and turn on Precise Location if shown.','Open Attendigo in Safari if your browser still cannot request location.'],
+   'In-app browser (Messenger / Facebook / Instagram)':['Open the browser menu (often three dots) and choose Open in browser, Open in Safari, or Open in Chrome if available.','If that option is missing, copy the Attendigo website address and paste it into Safari or Chrome. Sign in there if asked.','Enable location and precise location for that browser, then return to department location and try again.'],
    'Mac (Safari)':['In Safari, open Settings → Websites → Location.','Find Attendigo and change its permission to Allow or Ask.','Check System Settings → Privacy & Security → Location Services if access still fails.'],
    'Firefox':['Select the location or permissions icon beside the website address.','Remove the blocked location permission or allow it in site permissions.','Reload Attendigo and select Try again.']
   };
@@ -90,11 +90,11 @@
    const denied=state==='denied',unavailable=state==='unavailable';
    help.hidden=!denied&&!unavailable;
    message.textContent=denied
-    ? 'Your browser has already blocked location. Attendigo cannot reopen the browser permission prompt until you change that setting. Follow these steps:'
+    ? 'Location access was denied or blocked. Check both your phone and browser permissions below, then try GPS again.'
     : unavailable
      ? 'Location requests are unavailable in this browser or connection. Open Attendigo in a secure browser and enable device Location Services.'
-     : 'Select Allow location below, then select Allow or While Using the App in the browser prompt. You can decline at any time.';
-   proceed.textContent=denied?'I enabled it — try again':unavailable?'Try again':'Allow location';
+     : 'Select Allow location below, then select Allow or While Using the App if your browser asks.';
+   proceed.textContent=denied||unavailable?'Try GPS again':'Allow location';
   }
   function open(state){
    render(state);
@@ -103,13 +103,9 @@
   }
   dialog.querySelector('#staffLocationPermissionCancel').addEventListener('click',()=>dialog.close());
   proceed.addEventListener('click',()=>{
-   // Request geolocation immediately on the original click when permission is undecided.
-   if(help.hidden){dialog.close();startCapture();return;}
-   // Following a denial, do not imply a native popup can be forced open.
-   void locationPermissionState().then(state=>{
-    if(state==='denied'||state==='unavailable'){render(state);return;}
-    dialog.close();startCapture();
-   });
+   // A permission status can be stale or incomplete, especially in mobile browsers.
+   // Always retry actual GPS on this user gesture; the browser still controls access.
+   dialog.close();startCapture();
   });
   return open;
  }
@@ -141,13 +137,19 @@
    button.disabled=true;
    status.textContent='Checking your position. Allow location access while physically inside your department.';
    try{
+    if(!window.isSecureContext||!navigator.geolocation){
+     status.textContent='Location not submitted: this browser does not support secure GPS access.';
+     openGuide('unavailable');return;
+    }
+    if(navigator.onLine===false)throw Error('Reconnect to the internet before submitting your department location.');
     const position=await getPosition(quality=>{
       status.textContent='Collecting GPS readings: about '+quality.accuracyMeters+
        ' m reported accuracy ('+quality.sampleCount+' readings)…';
     });
     if(!Number.isFinite(position.accuracyMeters)||position.accuracyMeters>70||
-       position.samples?.length<2)
+       !Array.isArray(position.samples)||position.samples.length<2)
      throw Error('Not enough precise GPS readings to submit. Enable precise location, move near a window and retry.');
+    status.textContent='GPS captured (about '+Math.round(position.accuracyMeters)+' m accuracy). Submitting for School Admin approval…';
     const result=await request('/api/staff-attendance/lunch/location/propose',{
      method:'POST',
      body:JSON.stringify({departmentId,latitude:position.latitude,
@@ -161,10 +163,10 @@
    }finally{button.disabled=false;}
   }
   const openGuide=buildLocationPermissionDialog(()=>{void submitLocation();});
-  button.addEventListener('click',async()=>{
-   const state=await locationPermissionState();
-   if(state==='granted'){void submitLocation();return;}
-   openGuide(state);
+  button.addEventListener('click',()=>{
+   // Request on the original tap, even when a cached Permissions API state says denied.
+   // A real denial opens the help dialog; never fabricate coordinates or bypass approval.
+   void submitLocation();
   });
   await refresh();
  }

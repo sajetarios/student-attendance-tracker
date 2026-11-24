@@ -164,19 +164,24 @@ test('GPS sampling is bounded and routes uncertainty to review without changing 
 
 test('location permission popup guides staff without bypassing approval',()=>{
  const css=read('public/staff-lunch.css');
- assert.match(departmentLocationUi,/navigator\.permissions\.query\(\{name:'geolocation'\}\)/);
+ assert.doesNotMatch(departmentLocationUi,/navigator\.permissions\.query/);
  assert.match(departmentLocationUi,/staffLocationPermissionDialog/);
  assert.match(departmentLocationUi,/dialog\.showModal\(\)/);
  assert.match(departmentLocationUi,/staffLocationPermissionDevice/);
  assert.match(departmentLocationUi,/Chrome \/ Edge \(computer\)/);
  assert.match(departmentLocationUi,/Android \(Chrome\)/);
  assert.match(departmentLocationUi,/iPhone \/ iPad \(Safari\)/);
- assert.match(departmentLocationUi,/if\(state==='granted'\)\{void submitLocation\(\);return;\}/);
+ assert.match(departmentLocationUi,/button\.addEventListener\('click',\(\)=>\{[\s\S]*?void submitLocation\(\);/);
+ assert.match(departmentLocationUi,/dialog\.close\(\);startCapture\(\);/);
+ assert.match(departmentLocationUi,/isEmbeddedBrowser/);
+ assert.match(departmentLocationUi,/Precise Location/);
+ assert.match(departmentLocationUi,/navigator\.onLine===false/);
+ assert.match(sw,/'\/staff-department-location\.js'\]\.includes\(url\.pathname\)/);
  assert.match(departmentLocationUi,/if\(error\?\.code===1\)openGuide\('denied'\)/);
- assert.match(departmentLocationUi,/Your browser has already blocked location/);
+ assert.match(departmentLocationUi,/Location access was denied or blocked/);
  assert.match(departmentLocationUi,/startCapture\(\)/);
  assert.match(departmentLocationUi,/\/api\/staff-attendance\/lunch\/location\/propose/);
- assert.match(departmentLocationUi,/position\.samples\?\.length<2/);
+ assert.match(departmentLocationUi,/!Array\.isArray\(position\.samples\)\|\|position\.samples\.length<2/);
  assert.match(css,/\.staff-location-permission-dialog::backdrop/);
  assert.match(css,/\.staff-location-permission-actions/);
  assert.match(portal,/staff-lunch\.css\?v=7/);
