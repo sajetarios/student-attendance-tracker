@@ -1,4 +1,4 @@
-const CACHE = "attendigo-v347-student-offline-qr";
+const CACHE = "attendigo-v348-branded-offline-welcome";
 
 const SHELL = [
   "/typography.css?v=1",
@@ -55,6 +55,7 @@ const SHELL = [
   "/schedule-workspace-ui.js?v=9",
   "/teacher-assignment-modal.css?v=1",
   "/portal-login.html",
+  "/offline-welcome.html",
   "/attendigo-login-motion.css?v=2",
   "/attendigo-login-refinement.css?v=7",
   "/sf1-review-cards.css?v=2",
@@ -293,6 +294,14 @@ self.addEventListener("fetch", event => {
         }
         return response;
       } catch {
+        // The official-domain service worker can show the branded offline
+        // welcome on previously visited devices; the separate static welcome
+        // origin cannot intercept an offline request to attendigo.tech.
+        // Keep QR attendance and role-specific offline pages unchanged.
+        if (["/", "/index.html", "/portal-login.html"].includes(url.pathname)) {
+          const offlineWelcome = await caches.match("/offline-welcome.html");
+          if (offlineWelcome) return offlineWelcome;
+        }
         const cached = await caches.match(request);
         if (cached) return cached;
         if (url.pathname === "/" || url.pathname === "/index.html") {
