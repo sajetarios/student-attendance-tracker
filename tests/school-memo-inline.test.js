@@ -8,8 +8,8 @@ test('all four active dashboard families embed the same memo UI assets',()=>{
  const pages=['principal.html','portal.html','student-portal.html','parent-portal.html'];
  for(const p of pages){
   const s=read(p);
-  assert.match(s,/\/school-memo-banner\.js\?v=7/,'shared memo JS in '+p);
-  assert.match(s,/\/school-memo-banner\.css\?v=7/,'shared memo styling in '+p);
+  assert.match(s,/\/school-memo-banner\.js\?v=8/,'shared memo JS in '+p);
+  assert.match(s,/\/school-memo-banner\.css\?v=8/,'shared memo styling in '+p);
   assert.doesNotMatch(s,/href="\/school-memos\.html/,'no standalone memo link in '+p);
  }
 });
@@ -49,7 +49,7 @@ test('old memoranda URLs redirect to role-specific dashboards',()=>{
 });
 test('PWA caches new memo UI and always fetches authenticated portal pages online',()=>{
  const s=read('sw.js');
- for(const file of ['/school-memo-banner.js?v=7','/school-memo-banner.css?v=7',
+ for(const file of ['/school-memo-banner.js?v=8','/school-memo-banner.css?v=8',
     '/school-memos-redirect.js?v=1'])assert.ok(s.includes(file),file);
  assert.match(s,/"\/portal\.html", "\/class-qr-monitor\.html", "\/principal\.html", "\/school-memos\.html"/);
  assert.match(s,/fetch\(request, \{ cache: "no-store" \}\)/);
@@ -110,10 +110,12 @@ test('shared memo shortcut is role-aware and uses the existing acknowledgment fe
   for(const n of [0,1,2]){
    let opened=false;
    const card=render({role,open:false,memos:Array.from({length:n},()=>({acknowledgedAt:null})).concat({acknowledgedAt:'2026-11-24'})},make('aside'),make,{createElementNS:(ns,tag)=>make(tag)},()=>{opened=true},()=>{});
-   const button=card.children[2],badge=card.children[1].children[0].children[1];
+   const button=card.children[0],info=button.children[1],badge=info.children[0].children[1];
    assert.equal(card.hidden,role==='SUPER_ADMIN');
    assert.ok(card.classes.has('attendigo-memo-compact'));
-   assert.equal(button.value,role==='PRINCIPAL'?'Manage memoranda':n?'Read memoranda':'View memoranda');
+   assert.ok(card.classes.has('attendigo-memo-launcher-shell'));
+   assert.equal(card.children.length,1);assert.equal(button.tag,'button');
+   assert.equal(info.children[2].value,role==='PRINCIPAL'?'Manage memoranda':n?'Read memoranda':'View memoranda');
    assert.equal(badge?.value,n?n+' unread':undefined);
    button.handler();assert.ok(opened);
   }
