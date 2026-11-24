@@ -8,6 +8,7 @@ const register=require('../sf2-routes');
 // names, IDs, school identifiers, original row order or real records are included.
 const benchmarks=[{"month":"2026-07","days":23,"groups":[[[],[],[7,8]],[[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[10],[13],[27,28,29],[28],[29]]],"present":[67,568],"absent":9,"daily":[28,28,28,28,27,27,28,27,27,28,28,28,28,28,28,28,28,28,27,26,26,28,28]},{"month":"2026-10","days":22,"groups":[[[],[23],[23]],[[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[12],[16],[19,28],[19,28],[20],[5],[5,19],[7,13,14]]],"present":[64,537],"absent":15}];
 const result=rows=>({rows,rowCount:rows.length});
+const value=cell=>cell.value?.formula?cell.value.result:cell.value;
 function weekdays(month) {
   const [y,m]=month.split('-').map(Number);
   return Array.from({length:new Date(Date.UTC(y,m,0)).getUTCDate()},(_,i)=>new Date(Date.UTC(y,m-1,i+1)))
@@ -51,39 +52,42 @@ for(const b of benchmarks) test('SF2 reconciled benchmark '+b.month+' actual XLS
   const wb=new ExcelJS.Workbook();await wb.xlsx.load(res.bytes);
   const sheet=wb.worksheets[0];
   assert.equal(sheet.name,'School Form 2 (SF2)');
-  assert.equal(sheet.getCell('AE65').value,b.days);
+  assert.equal(sheet.getCell('AJ117').value,b.days);
   let rowSum=[0,0],totalAbsent=0;
   for(let g=0;g<2;g++){
     const group=roster.filter(x=>x.sex===(g===0?'MALE':'FEMALE'));
     for(let i=0;i<group.length;i++){
-      const row=(g===0?14:36)+i, learner=group[i];
+      const row=(g===0?13:64)+i, learner=group[i];
       assert.equal(sheet.getCell(row,2).value,learner.name);
-      assert.equal(sheet.getCell(row,29).value,learner.absence.length);
+      assert.equal(value(sheet.getCell(row,32)),learner.absence.length);
       for(let d=0;d<dates.length;d++){
         const missing=learner.absence.includes(Number(dates[d].slice(-2)));
-        assert.equal(sheet.getCell(row,4+d).value,missing?'X':null);
+        assert.equal(sheet.getCell(row,7+d).value,missing?'X':null);
         if(missing)totalAbsent++;else rowSum[g]++;
       }
     }
   }
   assert.deepEqual(rowSum,b.present);
   assert.equal(totalAbsent,b.absent);
+  assert.equal(value(sheet.getCell('AF115')),b.absent);
+  assert.equal(value(sheet.getCell('AG115')),b.present[0]+b.present[1]);
+  assert.equal(wb.worksheets.length,1);
   for(let d=0;d<dates.length;d++){
     const bySex=[0,1].map(g=>roster.filter(x=>x.sex===(g===0?'MALE':'FEMALE')&&!x.absence.includes(Number(dates[d].slice(-2)))).length);
-    assert.equal(sheet.getCell(35,4+d).value,bySex[0]);
-    assert.equal(sheet.getCell(61,4+d).value,bySex[1]);
-    assert.equal(sheet.getCell(62,4+d).value,bySex[0]+bySex[1]);
-    if(b.daily)assert.equal(sheet.getCell(62,4+d).value,b.daily[d]);
+    assert.equal(value(sheet.getCell(63,7+d)),bySex[0]);
+    assert.equal(value(sheet.getCell(114,7+d)),bySex[1]);
+    assert.equal(value(sheet.getCell(115,7+d)),bySex[0]+bySex[1]);
+    if(b.daily)assert.equal(value(sheet.getCell(115,7+d)),b.daily[d]);
   }
   const total=b.present[0]+b.present[1];
-  for(const [i,n,denom] of [[34,b.present[0],3],[35,b.present[1],25],[36,total,28]]){
-    const cell=(r)=>{const c=sheet.getCell(r,i);return (c.isMerged?c.master:c).value;};
-    assert.equal(cell(66),denom); // Beginning enrollment: corrected reference
-    assert.equal(cell(68),0); // No late enrollment in this fixture
-    assert.equal(cell(70),denom);
-    assert.equal(cell(72),'100.0%'); // Corrected enrollment percentage
-    assert.ok(Math.abs(Number(cell(74))-n/b.days)<1e-10);
-    assert.equal(cell(75),(100*n/(denom*b.days)).toFixed(1)+'%');
-    assert.equal(cell(77),0);
+  for(const [i,n,denom] of [[37,b.present[0],3],[38,b.present[1],25],[39,total,28]]){
+    const cell=(r)=>{const c=sheet.getCell(r,i);return value(c.isMerged?c.master:c);};
+    assert.equal(cell(119),denom); // Beginning enrollment: corrected reference
+    assert.equal(cell(121),0); // No late enrollment in this fixture
+    assert.equal(cell(123),denom);
+    assert.equal(cell(125),1); // Corrected enrollment percentage
+    assert.ok(Math.abs(Number(cell(127))-n/b.days)<1e-10);
+    assert.ok(Math.abs(cell(128)-n/(denom*b.days))<1e-10);
+    assert.equal(cell(130),0);
   }
 });
