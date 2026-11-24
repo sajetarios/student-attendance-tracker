@@ -198,10 +198,10 @@
   }
   async function deleteOne(item, control) {
     if (removing) return false;
-    if (!window.confirm('Delete this notification? This does not remove any related school records or decisions.')) return false;
     removing = true;
     if (control) control.disabled = true;
     try {
+      if (!await window.AppDialog.confirm('Delete this notification? This does not remove any related school records or decisions.',{title:'Delete notification',confirmText:'Delete',variant:'danger'})) return false;
       await api('/' + encodeURIComponent(item.notificationId) , { method: 'DELETE' });
       await refresh(false);
       actionStatus('Notification deleted.');
@@ -216,9 +216,9 @@
   }
   async function deleteRead() {
     if (removing) return;
-    if (!window.confirm('Delete all READ notifications from your inbox? Unread messages will be kept.')) return;
     removing = true;
     try {
+      if (!await window.AppDialog.confirm('Delete all READ notifications from your inbox? Unread messages will be kept.',{title:'Delete read notifications',confirmText:'Delete read',variant:'danger'})) return;
       const result = await api('/delete-read', { method: 'POST' });
       await refresh(false);
       actionStatus(result.deleted ? result.deleted + ' read notification(s) deleted.' : 'No read notifications to delete.');
