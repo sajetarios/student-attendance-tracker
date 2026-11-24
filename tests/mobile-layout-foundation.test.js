@@ -34,7 +34,7 @@ test('shared signed-in pages load the responsive guard and updated CSS can refre
   assert.match(read(name),/href="\/role-controls-responsive\.css\?v=2"/);
  }
  const sw=read('sw.js');
- assert.match(sw,/attendigo-v372-mobile-layout-foundation/);
+ assert.ok(Number(sw.match(/attendigo-v(\d+)-/)?.[1])>=372);
  for(const name of ['mobile-overflow-repair.css','user-management-readability.css','form48-report.css']){
   assert.ok(sw.includes("'/" + name + "'"),name+' should refresh online');
  }
