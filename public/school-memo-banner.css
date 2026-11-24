@@ -338,3 +338,48 @@
   background:#284b5b;color:#b5e8ee
  }
 }
+
+/* Compact memorandum workspace: one close action, one existing Principal publisher. */
+.attendigo-memo-banner[hidden],.attendigo-memo-composer[hidden]{display:none!important}
+.attendigo-memo-banner .attendigo-memo-copy strong{font-size:16px}
+.attendigo-memo-banner .attendigo-memo-copy small{font-size:14px;line-height:1.45}
+.attendigo-memo-workspace{padding:clamp(16px,2.3vw,24px);scroll-margin-top:12px}
+.attendigo-memo-workspace .attendigo-memo-workspace-intro>p,
+.attendigo-memo-workspace .attendigo-memo-status,
+.attendigo-memo-workspace .attendigo-memo-empty p,
+.attendigo-memo-workspace .attendigo-memo-summary{font-size:15px;line-height:1.5}
+.attendigo-memo-workspace .attendigo-memo-counter,
+.attendigo-memo-workspace .attendigo-memo-record-title small,
+.attendigo-memo-workspace .attendigo-memo-record-meta span,
+.attendigo-memo-workspace .attendigo-memo-footnote,
+.attendigo-memo-workspace .attendigo-memo-receipts{font-size:14px}
+.attendigo-memo-workspace .attendigo-memo-category{font-size:12px}
+.attendigo-memo-workspace .attendigo-memo-empty{padding:20px 14px;gap:6px}
+.attendigo-memo-workspace .attendigo-memo-empty-icon{width:44px;height:44px;font-size:24px;border-radius:12px;margin:0;box-shadow:none}
+.attendigo-memo-workspace .attendigo-memo-empty strong{font-size:19px}
+.attendigo-memo-workspace .attendigo-memo-list{min-height:0}
+.attendigo-memo-manager-actions{display:flex;flex-wrap:wrap;gap:8px;min-width:0}
+.attendigo-memo-workspace .attendigo-memo-create{min-height:44px;background:#087b94;color:#fff;border:1px solid #087b94;border-radius:10px;padding:9px 14px;font-weight:750;white-space:normal}
+.attendigo-memo-workspace .attendigo-memo-create:hover{background:#06687e}
+.attendigo-memo-workspace :is(.attendigo-memo-close,.attendigo-memo-refresh){min-height:44px;font-size:15px;white-space:normal}
+.attendigo-memo-workspace .attendigo-memo-actions button{min-height:44px;font-size:14px!important;white-space:normal}
+.attendigo-memo-search{display:grid;gap:6px;font-size:14px;font-weight:700;color:var(--memo-heading);margin:0 0 14px}
+.attendigo-memo-search-input{width:100%;max-width:100%;min-width:0;min-height:44px;padding:10px 12px;border-radius:9px;border:1px solid var(--memo-button-border);background:var(--memo-card-bg);color:var(--memo-heading);font:inherit;font-size:16px}
+.attendigo-memo-search-input::placeholder{color:var(--memo-muted);font-weight:400}
+.attendigo-memo-composer{min-width:0;margin-bottom:16px}
+.attendigo-memo-composer .attendigo-memo-embedded-publisher{margin:0;padding:16px;min-width:0;border:1px solid var(--memo-card-border);border-radius:12px;background:var(--memo-card-bg);color:var(--memo-card-body)}
+.attendigo-memo-embedded-publisher .principal-memo-link,.attendigo-memo-embedded-publisher .principal-memo-published{display:none!important}
+.attendigo-memo-composer .principal-memo-form{padding:0;border:0;background:transparent;margin:12px 0 0}
+.attendigo-memo-composer .principal-memo-form label{font-size:15px;color:var(--memo-heading);line-height:1.45}
+.attendigo-memo-composer .principal-memo-form :is(input:not([type=checkbox]),select,textarea){min-width:0;width:100%;max-width:100%;min-height:44px;font-size:16px;line-height:1.4;background:var(--memo-card-bg);color:var(--memo-heading);border-color:var(--memo-button-border)}
+.attendigo-memo-composer .principal-memo-form input[type=file]{overflow:hidden}
+.attendigo-memo-composer .source-note{font-size:14px;line-height:1.5;overflow-wrap:anywhere;color:var(--memo-card-muted)}
+.attendigo-memo-composer .principal-memo-form .refresh-button{min-height:44px;white-space:normal}
+@media(max-width:700px){
+ .attendigo-memo-management .attendigo-memo-toolbar{align-items:stretch}
+ .attendigo-memo-manager-actions{width:100%}
+ .attendigo-memo-manager-actions .attendigo-memo-create{flex:1 1 180px}
+ .attendigo-memo-manager-actions .attendigo-memo-refresh{flex:1 1 90px}
+ .attendigo-memo-composer .attendigo-memo-embedded-publisher{padding:12px}
+ .attendigo-memo-composer .principal-memo-fields{grid-template-columns:minmax(0,1fr)}
+}

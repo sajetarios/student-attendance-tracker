@@ -8,8 +8,8 @@ test('all four active dashboard families embed the same memo UI assets',()=>{
  const pages=['principal.html','portal.html','student-portal.html','parent-portal.html'];
  for(const p of pages){
   const s=read(p);
-  assert.match(s,/\/school-memo-banner\.js\?v=4/,'shared memo JS in '+p);
-  assert.match(s,/\/school-memo-banner\.css\?v=3/,'shared memo styling in '+p);
+  assert.match(s,/\/school-memo-banner\.js\?v=5/,'shared memo JS in '+p);
+  assert.match(s,/\/school-memo-banner\.css\?v=4/,'shared memo styling in '+p);
   assert.doesNotMatch(s,/href="\/school-memos\.html/,'no standalone memo link in '+p);
  }
 });
@@ -49,7 +49,7 @@ test('old memoranda URLs redirect to role-specific dashboards',()=>{
 });
 test('PWA caches new memo UI and always fetches authenticated portal pages online',()=>{
  const s=read('sw.js');
- for(const file of ['/school-memo-banner.js?v=4','/school-memo-banner.css?v=3',
+ for(const file of ['/school-memo-banner.js?v=5','/school-memo-banner.css?v=4',
     '/school-memos-redirect.js?v=1'])assert.ok(s.includes(file),file);
  assert.match(s,/"\/portal\.html", "\/class-qr-monitor\.html", "\/principal\.html", "\/school-memos\.html"/);
  assert.match(s,/fetch\(request, \{ cache: "no-store" \}\)/);
@@ -73,4 +73,18 @@ test('School Memoranda inherits active Light, Dark and Automatic settings across
  const base=styles.lastIndexOf('.attendigo-memo-banner{\n background:#eef9fa;');
  const oldMedia=styles.indexOf('@media(prefers-color-scheme:dark)');
  assert.ok(base>oldMedia,'Light appearance override must follow older OS media rule');
+});
+
+test('principal memorandum management reuses the authorized publication form in the shared panel',()=>{
+ const s=read('school-memo-banner.js'),css=read('school-memo-banner.css'),html=read('principal.html');
+ assert.match(s,/if\(state\.role!=='PRINCIPAL'\|\|!panel\|\|manager\)return/);
+ assert.match(s,/document\.getElementById\('principalMemoPublishPanel'\)/);
+ assert.match(s,/manager\.append\(publisher\)/);
+ assert.match(s,/\+ Create memorandum/);
+ assert.match(s,/managerSearch\.type='search'/);
+ assert.match(s,/strip\.hidden=state\.open/);
+ assert.match(css,/\.attendigo-memo-banner\[hidden\]/);
+ assert.match(css,/\.attendigo-memo-embedded-publisher \.principal-memo-published\{display:none!important\}/);
+ assert.equal((html.match(/id="principalMemoForm"/g)||[]).length,1);
+ assert.doesNotMatch(s,/\/api\/school-memos['"],\{method:'POST'/,'publication remains in existing principal handler');
 });

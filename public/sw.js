@@ -1,4 +1,4 @@
-const CACHE = "attendigo-v385-guided-campus-location";
+const CACHE = "attendigo-v386-principal-memoranda";
 
 // Only public, non-personal offline shells and their executable dependencies.
 // An update must not discard the working cache before these are all ready.
@@ -188,8 +188,8 @@ const SHELL = [
   "/principal-dashboard.css?v=14",
   "/school-memos.js?v=1",
   "/school-memos.css?v=1",
-  "/school-memo-banner.js?v=4",
-  "/school-memo-banner.css?v=3",
+  "/school-memo-banner.js?v=5",
+  "/school-memo-banner.css?v=4",
   "/school-memos-redirect.js?v=1",
   "/responsive.css?v=0.8.3",
   "/comfort-ui.css?v=0.8.8",
