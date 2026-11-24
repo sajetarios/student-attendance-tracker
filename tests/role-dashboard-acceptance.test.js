@@ -51,7 +51,7 @@ test('Parent dashboard aggregates only the parent account linked children', () =
   assert.match(parentHtml, /id="parentChildCount"/);
   assert.match(parentHtml, /id="parentTodayTimeIns"/);
   assert.match(parentJs, /api\('\/api\/parent\/children'\)/);
-  assert.match(parentJs, /api\(`\/api\/parent\/children\/\$\{encodeURIComponent\(b\.dataset\.history\)\}\/attendance`\)/);
+  assert.match(parentJs, /api\(`\/api\/parent\/children\/\$\{encodeURIComponent\(studentId\)\}\/attendance`\)/);
 });
 
 test('Student dashboard is separate and reports only the signed-in student attendance', () => {
