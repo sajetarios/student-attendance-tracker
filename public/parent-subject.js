@@ -71,6 +71,17 @@
       }
       if(!children.length){ui.items.textContent='Only approved parent-child links can view subject attendance.';ui.refresh.disabled=true;return;}
       selected=children[0].studentId;
+      // Open the approved learner and date referenced by a phone notification.
+      // Student identity remains in the URL fragment, never an authorization source.
+      const hash=String(location.hash||'');
+      if(hash.startsWith('#subjectAttendance?')){
+        const params=new URLSearchParams(hash.slice('#subjectAttendance?'.length));
+        const child=params.get('child'),date=params.get('date');
+        if(children.some(c=>c.studentId===child))selected=child;
+        if(date&&/^20\d{2}-\d{2}-\d{2}$/.test(date))ui.date.value=date;
+        ui.select.value=selected;
+        $('subjectAttendance')?.scrollIntoView({block:'start'});
+      }
       await refresh();
    }catch(error){ui.items.textContent='Unable to load linked children.';ui.feedback.textContent=error.message;}
  }
