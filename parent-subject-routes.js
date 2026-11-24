@@ -95,6 +95,8 @@ function registerParentSubjectRoutes(app,pool,{authenticateSchoolClient,requireS
           AND e.sync_status='ACCEPTED'
       ) qr ON TRUE
       WHERE s.school_id=$1 AND s.student_id=$3 AND s.active=TRUE
+        AND EXISTS(SELECT 1 FROM parent_student_links l WHERE l.school_id=s.school_id
+          AND l.student_id=s.student_id AND l.parent_user_id=$2 AND l.status='APPROVED')
         AND (p.effective_from IS NULL OR p.effective_from<=$4::date)
         AND (p.effective_to IS NULL OR p.effective_to>=$4::date)
         AND (
