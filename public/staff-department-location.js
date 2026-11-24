@@ -1,6 +1,6 @@
 'use strict';
-// School Admin reviews submitted department locations; Department Head captures
-// the location on site. QR verification continues to use only approved points.
+// Department Heads manage locations inside independently authorized boundaries.
+// QR verification continues to use only server-validated points.
 (() => {
  const $=id=>document.getElementById(id);
  async function request(path,options={}){
@@ -121,20 +121,29 @@
    button.disabled=true;return;
   }
   title.textContent=user.departmentName||'My assigned department';
+  let locationLoaded=false;
+  const state=$('staffLunchHeadLocationState'),details=$('staffLunchHeadCurrentDetails'),refreshButton=$('staffLunchHeadLocationRefresh');
   async function refresh(){
+   locationLoaded=false;button.disabled=true;
    try{
     const [info,registry]=await Promise.all([request('/api/staff-attendance/lunch/location'),request('/api/staff-attendance/lunch/campuses')]);
     const campus=$('staffLunchHeadCampus');
-    if(campus){campus.replaceChildren(new Option('Existing trusted department area (if configured)',''));for(const c of registry.campuses||[])campus.add(new Option(c.name,c.campusId));if(info.campusId){if(![...campus.options].some(o=>o.value===info.campusId))campus.add(new Option('Previously assigned campus (unavailable)',info.campusId));campus.value=info.campusId;campus.disabled=true;}}
+    if(campus){campus.disabled=false;campus.replaceChildren(new Option(info.configured&&!info.campusId?'Existing trusted department area':'Select an authorized campus',''));for(const c of registry.campuses||[])campus.add(new Option(c.name,c.campusId));if(info.campusId){if(![...campus.options].some(o=>o.value===info.campusId))campus.add(new Option('Previously assigned campus (unavailable)',info.campusId));campus.value=info.campusId;campus.disabled=true;}}
     title.textContent=info.departmentName||title.textContent;
     const current=info.relocationPending?'Relocation authorized. Capture fresh GPS at the destination campus; Gatekeeper remains available.':info.configured?'Attendance location is active.':'No active department location. Select an authorized campus, or use Gatekeeper scanning.';
     const radius=$('staffLunchHeadRadius');if(radius&&info.radiusMeters)radius.value=String(info.radiusMeters);
+    if(state)state.textContent=info.relocationPending?'Relocation pending':info.configured?'Active location':'Not configured';
+    if(details){const savedDate=info.approvedAt?new Date(info.approvedAt):null;details.textContent=[info.campusName||(!info.campusId&&info.configured?'Existing authorized department area':info.relocationPending?'Destination campus authorized':'No active campus location'),info.radiusMeters?'Saved radius: '+info.radiusMeters+' m':'',savedDate&&!Number.isNaN(savedDate.getTime())?'Updated: '+savedDate.toLocaleString():''].filter(Boolean).join(' · ');}
+    button.textContent=info.relocationPending?'Activate relocated department location':info.configured?'Update department location':'Activate department location';
+    locationLoaded=true;button.disabled=false;
     status.textContent=current+(info.proposalStatus==='PENDING'?' Capture fresh GPS to replace the former pending proposal.':'');
-   }catch(error){status.textContent='Unable to load department location: '+error.message;}
+   }catch(error){if(state)state.textContent='Location status unavailable';if(details)details.textContent='Refresh before making changes.';status.textContent='Unable to load department location: '+error.message;}
   }
   async function submitLocation(){
-   if(button.disabled)return;
-   button.disabled=true;
+   if(button.disabled||!locationLoaded)return;
+   const radiusField=$('staffLunchHeadRadius');
+   if(!radiusField?.checkValidity()||!radiusField.value){status.textContent='Enter a scanning radius from 60 to 250 meters.';return;}
+   button.disabled=true;if(refreshButton)refreshButton.disabled=true;
    status.textContent='Checking your position. Allow location access while physically inside your department.';
    try{
     if(!window.isSecureContext||!navigator.geolocation){
@@ -162,9 +171,10 @@
     await refresh();
     status.textContent=result.message||'Department attendance location is active.';
    }catch(error){
-    status.textContent='Location not submitted: '+failure(error);
+    const message=failure(error);
+    status.textContent='Location not submitted: '+message+(/two consistent|precise GPS readings/i.test(message)?' Turn on Precise Location, keep the phone still near your department, and retry. Your saved location has not been replaced by this failed submission.':'');
     if(error?.code===1)openGuide('denied');
-   }finally{button.disabled=false;}
+   }finally{button.disabled=!locationLoaded;if(refreshButton)refreshButton.disabled=false;}
   }
   const openGuide=buildLocationPermissionDialog(()=>{void submitLocation();});
   button.addEventListener('click',()=>{
@@ -172,6 +182,7 @@
    // A real denial opens the help dialog; never fabricate coordinates or bypass approval.
    void submitLocation();
   });
+  refreshButton?.addEventListener('click',()=>{if(!refreshButton.disabled)void refresh();});
   document.addEventListener('attendigo:dashboard-refresh',event=>{if(!card.hidden&&!button.disabled)event.detail.tasks.push(refresh());});
   await refresh();
  }
