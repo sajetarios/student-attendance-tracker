@@ -21,8 +21,8 @@ async function main() {
     await client.query('SELECT attendigo_notify($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12)',[...attrs,true]);
     rows = await client.query('SELECT read_at FROM user_notifications WHERE recipient_kind=$1 AND recipient_id=$2 AND event_key=$3',['PLATFORM',recipient,'smoke:test']);
     assert.equal(rows.rows[0].read_at,null,'a changed batch status must become unread');
-    const schoolA=(await client.query("INSERT INTO schools(school_code,school_name) VALUES('NTF'+left(gen_random_uuid()::text,8),'Notification test') RETURNING school_id")).rows[0].school_id;
-    const schoolB=(await client.query("INSERT INTO schools(school_code,school_name) VALUES('NTF'+left(gen_random_uuid()::text,8),'Other school') RETURNING school_id")).rows[0].school_id;
+    const schoolA=(await client.query("INSERT INTO schools(school_code,school_name) VALUES('NTF'||upper(left(gen_random_uuid()::text,8)),'Notification test') RETURNING school_id")).rows[0].school_id;
+    const schoolB=(await client.query("INSERT INTO schools(school_code,school_name) VALUES('NTF'||upper(left(gen_random_uuid()::text,8)),'Other school') RETURNING school_id")).rows[0].school_id;
     const dept=(await client.query("INSERT INTO school_departments(school_id,department_code,department_name) VALUES($1,'SCI','Science') RETURNING department_id",[schoolA])).rows[0].department_id;
     async function account(school,department,role,name){return (await client.query("INSERT INTO school_users(school_id,department_id,username,display_name,password_hash,role,teacher_designations) VALUES($1,$2,$3,$3,'test-hash',$4,ARRAY[]::text[]) RETURNING user_id",[school,department,name,role])).rows[0].user_id;}
     const admin=await account(schoolA,dept,'SCHOOL_ADMIN','admin'),head=await account(schoolA,dept,'DEPARTMENT_HEAD','head');
