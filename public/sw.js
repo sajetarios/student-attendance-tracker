@@ -1,4 +1,4 @@
-const CACHE = "attendigo-v329-parent-phone-web-push";
+const CACHE = "attendigo-v330-guided-parent-push-setup";
 
 const SHELL = [
   "/typography.css?v=1",
