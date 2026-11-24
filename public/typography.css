@@ -17,15 +17,23 @@
   --font-ui: "Inter", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Arial, sans-serif;
   --type-title: 1.625rem;          /* 26px desktop */
   --type-section: 1.1875rem;      /* 19px */
-  --type-body: 1rem;             /* 16px */
-  --type-name: 1rem;             /* 16px */
-  --type-table: 1rem;            /* 16px */
-  --type-control: 1rem;          /* 16px */
-  --type-secondary: 1rem;        /* 16px */
-  --type-count: .875rem;         /* 14px, compact numeric badges only */
+  --type-body: .9375rem;          /* 15px */
+  --type-name: .9375rem;          /* 15px */
+  --type-table: .875rem;          /* 14px */
+  --type-control: .875rem;        /* 14px */
+  --type-secondary: .8125rem;    /* 13px */
+  --type-count: .75rem;          /* 12px, counts only */
   --type-line: 1.5;
 }
 @media screen {
+  :root {
+    --type-body: 1rem;
+    --type-name: 1rem;
+    --type-table: 1rem;
+    --type-control: 1rem;
+    --type-secondary: 1rem;
+    --type-count: .875rem;
+  }
   html { font-family: var(--font-ui); -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
   body, body.portal-page { font-family: var(--font-ui); font-size: var(--type-body); line-height: var(--type-line); }
   body :is(button, input, select, textarea, optgroup, option, dialog, [role="button"], [contenteditable="true"]) { font-family: var(--font-ui); }
@@ -126,4 +134,15 @@
   html body.portal-page :is(.field-group,.form-field,.filter-controls) :is(input,select,textarea) {
     min-width:0;max-width:100%;
   }
+}
+
+@media screen {
+  html body.offline-workspace :is(p,small,label,summary,li,.hint,.ow-note,.ow-intro),
+  html body.portal-page :is(.qr-field label,#intro,.qr-brand-tagline),
+  html body.login-page :is(.field-hint,.form-help,.login-hint) {
+    font-size:var(--type-body);line-height:1.45;
+  }
+  html body.portal-page #smartAttendanceOverview .smart-attendance-person {min-width:0;}
+  html body .missing-scan-dialog .ms-fields {min-width:0;}
+  html body .missing-scan-dialog .ms-fields > * {min-width:0;overflow-wrap:anywhere;}
 }
