@@ -23,6 +23,48 @@ async function setup(page,name,body,attrs='',classes='portal-page'){
  await page.setContent('<!doctype html><html '+attrs+'><head><meta name="viewport" content="width=device-width,initial-scale=1"></head><body class="'+classes+'"><main class="content-wrap" style="width:100%;max-width:100%;margin:0;box-sizing:border-box;padding:12px">'+body+'</main></body></html>');
  for(const css of styles(name)) await page.addStyleTag({content:css});
 }
+async function checkMemoLauncher(engine,engineName){
+ const browser=await engine.launch({headless:true});
+ try{
+  const page=await browser.newPage();
+  const source=read('school-memo-banner.js');
+  const fragment=source.slice(source.indexOf(' function currentList('),source.indexOf(' function setStatus('));
+  for(const [name,role] of [['principal.html','PRINCIPAL'],['portal.html','TEACHER'],['student-portal.html','STUDENT'],['parent-portal.html','PARENT']]){
+   for(const theme of ['light','dark']){
+    for(const width of [320,390,768,1280]){
+     await page.setViewportSize({width,height:844});
+     await page.setContent('<!doctype html><html data-theme="'+theme+'" data-ui-theme="'+theme+'"><head><meta name="viewport" content="width=device-width,initial-scale=1"></head><body class="'+(name==='portal.html'?'portal-page':'')+'"><main style="width:100%;min-width:0;max-width:100%;box-sizing:border-box;padding:12px"><aside class="attendigo-memo-banner"></aside></main></body></html>');
+     await page.evaluate(sheets=>{for(const css of sheets){const node=document.createElement('style');node.textContent=css;document.head.append(node);}},styles(name).map(css=>css.replace(/@import\s+[^;]+;/g,'')));
+     await page.evaluate(({fragment,role})=>{
+      const state={role,open:false,memos:[{acknowledgedAt:null}]};
+      const strip=document.querySelector('aside');
+      const make=(tag,cls,value)=>{const el=document.createElement(tag);if(cls)el.className=cls;if(value!==undefined)el.textContent=String(value);return el;};
+      const render=new Function('state','strip','make','document','open','close',fragment+'\nbanner();');
+      window.memoOpened=false;
+      render(state,strip,make,document,()=>{window.memoOpened=true},()=>{});
+     },{fragment,role});
+     const geometry=await page.evaluate(()=>{
+      const rect=sel=>{const r=document.querySelector(sel).getBoundingClientRect();return {x:r.x,y:r.y,width:r.width,height:r.height};};
+      return {card:rect('.attendigo-memo-launcher'),icon:rect('.attendigo-memo-icon'),copy:rect('.attendigo-memo-copy'),arrow:rect('.attendigo-memo-launcher-arrow'),parent:rect('main'),count:document.querySelectorAll('aside button').length,display:getComputedStyle(document.querySelector('.attendigo-memo-launcher')).display};
+     });
+     const detail=engineName+' '+name+' '+theme+' '+width+' '+JSON.stringify(geometry);
+     assert.equal(geometry.count,1,detail);
+     assert.equal(geometry.display,'grid',detail);
+     assert.ok(geometry.card.height>=44,detail);
+     for(const a of [geometry.icon,geometry.copy,geometry.arrow]){
+      const b=geometry.card;
+      assert.ok(a.width>0&&a.height>0&&a.x>=b.x-1&&a.x+a.width<=b.x+b.width+1&&a.y>=b.y-1&&a.y+a.height<=b.y+b.height+1,detail);
+     }
+     for(const [a,b] of [[geometry.icon,geometry.copy],[geometry.copy,geometry.arrow],[geometry.icon,geometry.arrow]])assert.ok(!overlap(a,b),detail);
+     assert.ok(geometry.card.x>=geometry.parent.x-1&&geometry.card.x+geometry.card.width<=geometry.parent.x+geometry.parent.width+1,detail);
+     await page.locator('.attendigo-memo-launcher').click();
+     assert.equal(await page.evaluate(()=>window.memoOpened),true,detail);
+    }
+   }
+  }
+  console.log(engineName+' shared memo launcher: 32 role/theme/viewport checks passed');
+ }finally{await browser.close();}
+}
 async function checkMemoGeometry(engine,engineName){
  const browser=await engine.launch({headless:true});
  try{
@@ -82,6 +124,8 @@ async function checkMemoGeometry(engine,engineName){
  }finally{await browser.close();}
 }
 (async()=>{
+ await checkMemoLauncher(chromium,'Chromium');
+ await checkMemoLauncher(webkit,'WebKit');
  await checkMemoGeometry(chromium,'Chromium');
  await checkMemoGeometry(webkit,'WebKit');
  const browser=await chromium.launch({headless:true});
