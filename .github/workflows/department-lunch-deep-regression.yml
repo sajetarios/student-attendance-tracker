@@ -146,3 +146,59 @@ jobs:
           psql -h localhost -U postgres -d school_attendance_test -v ON_ERROR_STOP=1 -Atc "SELECT count(*) FROM schema_migrations WHERE migration_name IN ('089_retire_department_location_approval.sql','090_staff_lunch_trusted_campuses.sql','091_lunch_qr_review_notifications.sql')" | grep -x 3
       - name: Verify real authenticated lunch and Gatekeeper flows after upgrade
         run: node tests/department-lunch-delegation-postgres.cjs
+
+  live-staging-public-smoke:
+    name: Live staging public browser smoke (no real accounts)
+    if: github.event_name == 'pull_request' && startsWith(github.head_ref, 'qa/department-lunch-release-gate-')
+    runs-on: ubuntu-24.04
+    timeout-minutes: 12
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: npm install --no-save --package-lock=false --ignore-scripts playwright@1.56.1
+      - run: npx playwright install --with-deps chromium
+      - name: Check staging startup, unauthenticated access and login on mobile and desktop
+        run: |
+          node - <<'NODE'
+          const assert = require('node:assert/strict');
+          const { chromium } = require('playwright');
+          const origin = 'https://attendigo-staging.onrender.com';
+          (async () => {
+            const browser = await chromium.launch({ headless: true });
+            try {
+              for (const width of [320, 390, 1280]) {
+                const context = await browser.newContext({ viewport: { width, height: 900 } });
+                try {
+                  const page = await context.newPage();
+                  let response;
+                  for (let attempt = 0; attempt < 3; attempt++) {
+                    try {
+                      response = await page.goto(origin + '/', { waitUntil: 'domcontentloaded', timeout: 90000 });
+                      await page.waitForURL(url => url.origin === origin && url.pathname === '/portal-login.html', { timeout: 30000 });
+                      await page.locator('#loginForm').waitFor({ state: 'visible', timeout: 30000 });
+                      break;
+                    } catch (e) {
+                      if (attempt === 2) throw e;
+                    }
+                  }
+                  assert.equal(new URL(page.url()).origin, origin);
+                  assert.match(await page.title(), /Attendigo/i);
+                  for (const selector of ['#schoolCode', '#username', '#password', '#signInButton', '#studentMode', '#schoolMode']) {
+                    assert.ok(await page.locator(selector).isVisible(), selector + ' at ' + width + 'px');
+                  }
+                  await page.locator('#studentMode').click();
+                  assert.equal(await page.locator('#studentMode').getAttribute('aria-pressed'), 'true');
+                  await page.locator('#schoolMode').click();
+                  assert.equal(await page.locator('#schoolMode').getAttribute('aria-pressed'), 'true');
+                  const auth = await context.request.get(origin + '/api/auth/me');
+                  assert.equal(auth.status(), 401, 'Unauthenticated session must not expose a user');
+                  console.log('Live public staging login, role switching, and session rejection passed at ' + width + 'px');
+                } finally { await context.close(); }
+              }
+            } finally { await browser.close(); }
+          })().catch(error => { console.error(error.message); process.exitCode = 1; });
+          NODE
