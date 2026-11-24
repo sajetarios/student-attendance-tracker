@@ -64,10 +64,19 @@ async function exportFixture({personal=true,month='2026-01',pending=false,confli
   await workbook.xlsx.load(res.bytes);
   return {res,days,workbook,sheet:workbook.worksheets[0]};
 }
+function assertNoManualCalculationPanel(sheet){
+  for(const address of ['AO6','AO9','AQ9','AO13','AO14','AP14','AO15','AP15','AO16','AP16','AO18','AP18']) {
+    assert.equal(sheet.getCell(address).value,null,address+' must be blank');
+  }
+  for(let column=41;column<=72;column++) assert.equal(sheet.getColumn(column).hidden,true,'Nonprinted column '+column+' must be hidden');
+  assert.equal(sheet.getColumn(40).hidden,false,'Printable boundary must stay visible');
+  assert.equal(sheet.pageSetup.printArea,'A1:AN146');
+}
 test('actual subject XLSX removes diagonal borders, distinguishes daily evidence, and keeps totals honest',async()=>{
   const {res,sheet,workbook,days}=await exportFixture();
   assert.equal(res.code,200,JSON.stringify(res.body));
   assert.equal(sheet.name,'SF2 Subject Copy');
+  assertNoManualCalculationPanel(sheet);
   assert.deepEqual(Array.from({length:9},(_,i)=>dayCell(sheet,days,13,i).value),[null,'L','—','X','E',null,'!','—',null]);
   for(const row of [13,14,62,64,65,113]) for(let col=7;col<=31;col++) {
     assert.ok(!sheet.getCell(row,col).border?.diagonal,'Unexpected diagonal at '+row+','+col);
@@ -115,6 +124,7 @@ test('actual official XLSX follows reference geometry, preserves daily marks, gr
   await original.xlsx.readFile(template);
   const source=original.worksheets[0];
   assert.equal(sheet.name,source.name);
+  assertNoManualCalculationPanel(sheet);
   assert.match(String(sheet.getCell('G9').value),/1st row for date/);
   assert.equal(sheet.getCell('B13').value,'ALPHA');
   assert.equal(sheet.getCell('B64').value,'BETA');
@@ -132,6 +142,8 @@ test('actual official XLSX follows reference geometry, preserves daily marks, gr
   assert.equal(sheet.getCell('AE140').value,'TEST ADVISER');
   assert.equal(sheet.getCell('AE145').value,'TEST HEAD');
   assert.equal(value(sheet.getCell('AJ117')),days.length);
+  assert.equal(sheet.getCell('AJ117').formula,'COUNT(G10:AE10)');
+  assert.equal(Array.from({length:25},(_,i)=>sheet.getCell(10,7+i).value).filter(v=>typeof v==='number').length,days.length);
   assert.equal(sheet.getCell('K10').value,2);
   assert.equal(sheet.getCell('J10').value,null);
   blankSlots(sheet,days);
