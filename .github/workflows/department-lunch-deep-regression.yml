@@ -1,7 +1,9 @@
 name: Department lunch deep regression (disposable DB)
 on:
+  pull_request:
+    branches: [fix/render-login-landing, staging/school-day-dry-run-20261120]
   push:
-    branches: [feature/department-lunch-delegation-20261124]
+    branches: [feature/department-lunch-delegation-20261124, staging/school-day-dry-run-20261120]
   workflow_dispatch:
 permissions:
   contents: read
