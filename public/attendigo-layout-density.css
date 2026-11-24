@@ -63,10 +63,16 @@
   html body.portal-page .student-summary-item > span:not(.student-summary-icon) {min-width:0;overflow-wrap:anywhere;}
   html body.portal-page .student-summary-item::before {pointer-events:none;}
 }
-@media screen and (max-width:767px) {
+@media screen and (max-width:700px) {
   html body.portal-page :is(.section-toolbar,.card-heading,.form-actions,.action-row,.toolbar-actions,.filter-actions,.modal-actions) > :is(button,a,.primary-button,.outline-button,.secondary-button) {
     flex-basis:auto;min-height:44px;height:auto;
   }
+  html body.portal-page #studentsView #studentRosterTable.roster-mobile-compact {
+    display:block;width:100%!important;min-width:0!important;
+  }
+  html body.portal-page #studentsView #studentRosterTable.roster-mobile-compact thead {display:none;}
+  html body.portal-page #studentsView #studentRosterTable.roster-mobile-compact tbody tr.student-sex-group {display:block!important;padding:0!important;box-shadow:none;border:0;}
+  html body.portal-page #studentsView #studentRosterTable.roster-mobile-compact tbody tr.student-sex-group th {display:block;width:100%;white-space:normal;}
   html body.portal-page #studentsView #studentRosterTable.roster-mobile-compact tbody {
     display:grid!important;grid-template-columns:minmax(0,1fr);gap:6px;
   }
@@ -105,7 +111,7 @@
   html body.portal-page #studentsView #studentRosterTable .student-actions-dropdown > summary {min-height:44px;height:auto;white-space:normal;}
   html body.portal-page #studentsView #studentRosterTable .student-row-actions > * {min-width:0;max-width:100%;white-space:normal;}
   html body.portal-page #studentsView #studentRosterTable.teacher-roster-compact tbody tr.teacher-roster-student {
-    gap:0 7px;padding:8px 10px!important;grid-template-columns:minmax(0,1fr) minmax(0,auto);
+    gap:0 7px;padding:8px 10px!important;grid-template-columns:minmax(0,1fr) minmax(0,1fr);
   }
   html body.portal-page #studentsView #studentRosterTable.teacher-roster-compact tbody tr.teacher-roster-student td {padding-block:3px!important;}
   html body.portal-page #studentsView #studentRosterTable.teacher-roster-compact tbody td:is([data-label="Class"],[data-label="Status"])::before {display:none!important;}
@@ -117,8 +123,8 @@
   html body.portal-page .student-summary-item::before {display:none;}
   html body.portal-page .student-summary-item > span:not(.student-summary-icon) {padding:0;}
   html body.portal-page .student-actions > button {flex:0 1 auto;}
-  html body.portal-page :is(.form-grid,.parent-form,.field-grid,.filter-grid,.ms-grid,.app-dialog-fields) {grid-template-columns:minmax(0,1fr);}
-  html body.portal-page :is(.form-grid,.parent-form,.field-grid,.filter-grid,.ms-grid,.app-dialog-fields) > * {grid-column:1/-1;}
+  html body.portal-page :is(.form-grid,.parent-form) {grid-template-columns:minmax(0,1fr);}
+  html body.portal-page :is(.form-grid,.parent-form) > * {min-width:0;max-width:100%;}
 }
 @media screen and (max-width:400px) {
   html body.portal-page #adminDashboardCard .admin-command-metrics {grid-template-columns:minmax(0,1fr)!important;}
