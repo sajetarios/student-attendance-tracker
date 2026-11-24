@@ -22,6 +22,7 @@ const { registerAuthRoutes } = require('./auth-routes');
 const { hashPassword, verifyPassword } = require('./auth-security');
 const { createAuthMiddleware } = require('./auth-middleware');
 const { registerParentRoutes } = require('./parent-routes');
+const { registerParentSubjectRoutes } = require('./parent-subject-routes');
 const { registerGuardianRoutes } = require('./guardian-routes');
 const { registerStudentRoutes } = require('./student-routes');
 const { registerStudentPortalAccountRoutes } = require('./student-portal-account-routes');
@@ -189,6 +190,7 @@ const requireSchoolAdminOrDepartmentHead = requireSchoolRoles('SCHOOL_ADMIN', 'D
 const validText = value => typeof value === 'string' && value.trim().length > 0;
 registerSmsRoutes(app, pool, { authenticateSchoolClient, requireSchoolRoles });
 registerParentRoutes(app, pool, { authenticateSchoolClient, requireSchoolRoles });
+registerParentSubjectRoutes(app, pool, { authenticateSchoolClient, requireSchoolRoles });
 registerGuardianRoutes(app, pool, { authenticateSchoolClient, requireSchoolRoles });
 registerStudentRoutes(app, pool, { authenticateSchoolClient, requireSchoolAdmin });
 require('./subject-management-routes').registerSubjectManagementRoutes(app, pool, { authenticateSchoolClient, requireSchoolRoles });
