@@ -6,7 +6,8 @@ const localDate=()=>{const p=new Intl.DateTimeFormat('en-US',{timeZone:'Asia/Man
 const dayOfWeek=d=>new Date(d+'T00:00:00Z').getUTCDay();
 const at=(date,time)=>new Date(date+'T'+String(time).slice(0,5)+':00+08:00');
 const sign=(secret,id,bucket)=>crypto.createHmac('sha256',secret).update(id+':'+bucket).digest('hex');
-const bucket=()=>Math.floor(Date.now()/30000);
+const {registerQrPinCheckin,currentQrTokenMatches,QR_ROTATION_MS,QR_ACCEPTED_BUCKETS}=require('./class-qr-pin-checkin');
+const bucket=()=>Math.floor(Date.now()/QR_ROTATION_MS);
 // The existing school calendar is the authority for learner suspensions.
 // A learner-only suspension never changes personnel DTR or historical QR check-ins.
 async function classCalendarSuspended(db,schoolId,date){
@@ -107,7 +108,6 @@ function registerClassQrRoutes(app,pool,{authenticateSchoolClient,requireSchoolR
    return res.status(500).json({error:'Unable to save attendance PIN.'});
   }finally{client.release();}
  });
- const {registerQrPinCheckin}=require('./class-qr-pin-checkin');
  registerQrPinCheckin(app,pool,{saveAttendance});
  const read=async(schoolId,periodId,date)=>{
   const r=await pool.query(`SELECT p.period_id,p.grade_level,p.section,p.subject_name,p.start_time,p.end_time,
@@ -186,7 +186,7 @@ function registerClassQrRoutes(app,pool,{authenticateSchoolClient,requireSchoolR
    url.searchParams.set('sessionId',String(s.session_id));url.searchParams.set('token',token);
    const qrImage=await QRCode.toDataURL(url.toString(),{margin:2,width:320});
    res.set('Cache-Control','no-store, private');
-   res.json({sessionId:s.session_id,token,qrImage,validUntil:new Date((b+1)*30000).toISOString(),closesAt:s.closes_at});
+   res.json({sessionId:s.session_id,token,qrImage,validUntil:new Date((b+1)*QR_ROTATION_MS).toISOString(),acceptUntil:new Date(Math.min((b+QR_ACCEPTED_BUCKETS)*QR_ROTATION_MS,new Date(s.closes_at).getTime())).toISOString(),closesAt:s.closes_at});
   }catch(e){console.error('QR read:',e.message);res.sendStatus(500);}
  });
  app.get('/api/class-qr/check-in/status',authenticateSchoolClient,async(req,res)=>{
@@ -212,7 +212,7 @@ function registerClassQrRoutes(app,pool,{authenticateSchoolClient,requireSchoolR
    if(await classCalendarSuspended(pool,s.school_id,s.school_date))return res.status(410).json({error:'Classes are suspended. Attendance already recorded is preserved.'});
    const already=await pool.query('SELECT attendance_status,checked_in_at FROM class_qr_checkins WHERE school_id=$1 AND session_id=$2 AND student_id=$3 LIMIT 1',[req.auth.schoolId,sessionId,req.auth.studentId]);
    if(already.rowCount)return res.status(409).json({error:'Attendance already recorded for this class.',alreadyRecorded:true,status:already.rows[0].attendance_status,checkedInAt:already.rows[0].checked_in_at});
-   const b=bucket(),matches=[b,b-1].some(n=>crypto.timingSafeEqual(Buffer.from(sign(s.secret,s.session_id,n),'hex'),Buffer.from(token,'hex')));
+   const matches=currentQrTokenMatches(s.secret,s.session_id,token);
    if(!matches)return res.status(410).json({error:'QR expired. Scan the latest code.'});
    const eligible=await pool.query(`SELECT 1 FROM students st
     WHERE st.school_id=$1 AND st.student_id=$2 AND st.active=TRUE
