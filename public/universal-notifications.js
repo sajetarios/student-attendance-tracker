@@ -68,9 +68,8 @@
       if (!key) throw Error('Your session has ended. Sign in to view notifications.');
       headers.set('Authorization', 'Bearer ' + key);
     }
-    const res = await fetch(base + path, {
-      ...options, credentials: 'same-origin', headers, cache: 'no-store'
-    });
+    const controller=new AbortController();const timeout=setTimeout(()=>controller.abort(),12000);
+    let res;try{res=await fetch(base+path,{...options,credentials:'same-origin',headers,cache:'no-store',signal:controller.signal});}finally{clearTimeout(timeout);}
     const value = await res.json().catch(() => ({}));
     if (!res.ok) throw Error(res.status === 401 ? 'Session expired. Sign in again.' : value.error || 'Unable to load notifications.');
     return value;
@@ -117,13 +116,13 @@
     if(dest==='specialAdmin'){const shortcut=document.getElementById('adminProgramRequestsShortcut');if(shortcut){shortcut.click();return true;}return click('academicAdminNav');}
     if(dest==='specialTeacher'){if(!go('students'))return false;document.getElementById('mySpecialRequestsRefresh')?.scrollIntoView({block:'center'});return true;}
     if(dest==='photo'){const shortcut=document.getElementById('adminPhotoRequestsShortcut');if(shortcut){shortcut.click();return true;}return false;}
-    if(dest==='memo'){if(!window.AttendigoSchoolMemos?.open)return false;window.AttendigoSchoolMemos.open(item.requestId);return true;}
+    if(dest==='memo'){if(!window.AttendigoSchoolMemos?.open)return false;window.AttendigoSchoolMemos?.open?.(item.requestId);return true;}
     const view=dest.searchParams.get('view')||dest.hash.slice(1);
     if(dest.pathname!==location.pathname){location.assign(dest.pathname+dest.search+dest.hash);return true;}
     if(!view)return true;
     if(view==='studentAccounts')return click('studentAccountsTab')||go('studentAccounts');
     if(view==='guardians'){if(window.AttendigoGuardian?.openApprovals&&user.role==='SCHOOL_ADMIN'){window.AttendigoGuardian.openApprovals();return true;}return go('students');}
-    if(view==='leaveManagement'){if(user.role==='SCHOOL_ADMIN'||user.role==='DEPARTMENT_HEAD')return click('staffLeaveReviewNav');return false;}
+    if(view==='leaveManagement'){if(item.category==='APPROVAL'&&(user.role==='SCHOOL_ADMIN'||user.role==='DEPARTMENT_HEAD'))return click('staffLeaveReviewNav');return click('staffLeaveNav');}
     if(view==='specialPrograms')return user.role==='SCHOOL_ADMIN'?click('academicAdminNav'):go('students');
     return go(view);
   }

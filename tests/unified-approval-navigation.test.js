@@ -64,6 +64,7 @@ test('existing admin photo approval notifications open photo reviews while stude
  const legacy={category:'APPROVAL',requestType:'Profile photo',actionUrl:'/portal.html#students'};
  run(legacy);
  run({...legacy,requestType:'Student account',actionUrl:'/portal.html#studentAccounts'});
- assert.deepEqual(clicks,['adminPhotoRequestsShortcut','[data-view="studentAccounts"]']);
+ assert.deepEqual(clicks,['adminPhotoRequestsShortcut','studentAccountsTab']);
+ assert.equal(run({...legacy,actionUrl:'https://evil.example',requestType:'OTHER'}),false);
  assert.match(admin,/adminPhotoRequestsShortcut'\)\?\.addEventListener\('click',[\s\S]*?openInbox\(\);[\s\S]*?reviewPanel.hidden=false/);
 });

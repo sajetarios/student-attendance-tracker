@@ -14,6 +14,9 @@ BEGIN
  v_status:=p_proposal->>'status';
  v_key:='department-location:'||p_department::TEXT||':'||(p_proposal->>'proposedAt');
  IF v_status='PENDING' THEN
+   UPDATE user_notifications SET status='SUPERSEDED',read_at=COALESCE(read_at,NOW()),updated_at=NOW()
+     WHERE school_id=p_school AND request_type='DEPARTMENT_LOCATION' AND request_id=p_department
+       AND category='APPROVAL' AND status='PENDING' AND event_key<>v_key||':pending';
    FOR v_admin IN SELECT user_id FROM school_users WHERE school_id=p_school AND role='SCHOOL_ADMIN' AND active=TRUE LOOP
      PERFORM attendigo_notify(p_school,'SCHOOL_USER',v_admin.user_id,v_key||':pending','APPROVAL',
        'Department location awaiting approval',v_department||' submitted an attendance location for review.',

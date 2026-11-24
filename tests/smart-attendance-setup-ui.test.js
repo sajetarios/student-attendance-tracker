@@ -36,7 +36,7 @@ async function setup(role='SCHOOL_ADMIN',initial={}){
   return {ok:true,json:async()=>response};
  };
  const context={
-  document:{getElementById:id=>elements[id],createElement:()=>mockElement()},
+  document:{getElementById:id=>elements[id],createElement:()=>mockElement(),addEventListener(){}},
   window:{attendigoStaffIdentity:Promise.resolve({role}),confirm:()=>true},
   fetch,Date,Intl,URLSearchParams
  };

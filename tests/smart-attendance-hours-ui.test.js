@@ -44,7 +44,7 @@ function harness(givenDefaults){
  };
  vm.runInNewContext(script,{
   window:{attendigoStaffIdentity:Promise.resolve({role:'SCHOOL_ADMIN'}),confirm:()=>true},
-  document:{getElementById:get,createElement:element},fetch,Intl,Date,
+  document:{getElementById:get,createElement:element,addEventListener(){}},fetch,Intl,Date,
   URLSearchParams,console
  },{filename:'smart-attendance-overview.js'});
  return {get,writes,latest:()=>defaults};
@@ -122,7 +122,7 @@ test('default Monday-Friday schedules still work normally',async()=>{
 });
 
 test('portal and service worker load matching repaired attendance script',()=>{
- assert.match(portal,/smart-attendance-overview\.js\?v=3/);
- assert.match(sw,/smart-attendance-overview\.js\?v=3/);
+ require('./support/asset-contract').assertCachedAsset(portal,sw,'smart-attendance-overview.js',{minimumVersion:3});
+ require('./support/asset-contract').assertCachedAsset(portal,sw,'smart-attendance-overview.js',{minimumVersion:3});
  assert.match(portal,/staff-lunch-ui\.js\?v=7/);
 });

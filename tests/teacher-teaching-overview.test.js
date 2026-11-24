@@ -114,7 +114,8 @@ test('Teacher overview is read only, date-aware and reuses existing authorized b
 });
 
 test('Overview resources are versioned and cached, existing shortcuts remain unique',()=>{
- for(const p of ['/teacher-teaching-overview.js?v=3','/teacher-teaching-overview.css?v=3']){
+ require('./support/asset-contract').assertCachedAsset(html,worker,'teacher-teaching-overview.js',{minimumVersion:3});
+ for(const p of ['/teacher-teaching-overview.css?v=3']){
   assert.ok(html.includes(p),'portal includes '+p);
   assert.ok(worker.includes(p),'worker includes '+p);
  }
