@@ -20,7 +20,8 @@ CREATE TABLE IF NOT EXISTS parent_push_subscriptions (
 CREATE INDEX IF NOT EXISTS parent_push_owner_idx
  ON parent_push_subscriptions(school_id,parent_user_id,active);
 ALTER TABLE parent_push_subscriptions ENABLE ROW LEVEL SECURITY;
-REVOKE ALL ON parent_push_subscriptions FROM anon, authenticated;
+DO $ BEGIN IF EXISTS(SELECT 1 FROM pg_roles WHERE rolname='anon') THEN REVOKE ALL ON parent_push_subscriptions FROM anon; END IF;
+IF EXISTS(SELECT 1 FROM pg_roles WHERE rolname='authenticated') THEN REVOKE ALL ON parent_push_subscriptions FROM authenticated; END IF; END $;
 
 CREATE TABLE IF NOT EXISTS parent_push_deliveries (
  delivery_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -40,7 +41,8 @@ CREATE TABLE IF NOT EXISTS parent_push_deliveries (
 CREATE INDEX IF NOT EXISTS parent_push_outbox_idx
  ON parent_push_deliveries(state,next_attempt_at,created_at);
 ALTER TABLE parent_push_deliveries ENABLE ROW LEVEL SECURITY;
-REVOKE ALL ON parent_push_deliveries FROM anon, authenticated;
+DO $ BEGIN IF EXISTS(SELECT 1 FROM pg_roles WHERE rolname='anon') THEN REVOKE ALL ON parent_push_deliveries FROM anon; END IF;
+IF EXISTS(SELECT 1 FROM pg_roles WHERE rolname='authenticated') THEN REVOKE ALL ON parent_push_deliveries FROM authenticated; END IF; END $;
 
 -- The existing class register finalization creates in-app notifications.
 -- Queue a phone delivery only to devices that previously opted in, and only
