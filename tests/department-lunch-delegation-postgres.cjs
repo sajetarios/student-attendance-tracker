@@ -316,6 +316,21 @@ async function main(){
   assert.equal((await windowConfig({enabled:true,windows},head.token)).status,200);
   assert.equal((await post('/api/staff-attendance/lunch/challenges',{slot:'AM_OUT',location:presenterPosition()},issuer.token)).body.code,'OUTSIDE_DEPARTMENT_QR_WINDOW');
   assert.equal((await windowConfig({enabled:true,windows:null},head.token)).status,200);
+  // Real authenticated redemption must not automatically verify an out-of-policy scan.
+  // Wide synthetic QR windows deliberately exercise the independent official schedule gate.
+  const wideWindows={AM_OUT:{start:'00:00',end:'23:59'},PM_IN:{start:'00:00',end:'23:59'}};
+  assert.equal((await windowConfig({enabled:true,windows:wideWindows},sameSchoolHead.token)).status,200);
+  const relocatedPresenter=await makeUser({school:a.school,dep:dep2},'TEACHER','relocated-window-presenter-');
+  assert.equal((await presenterChange('PUT',{slot:'PM_IN',presenterUserId:relocatedPresenter.id},sameSchoolHead.token)).status,201);
+  const newPosition=()=>({latitude:10,longitude:126,accuracyMeters:12,capturedAt:Date.now()});
+  const windowQr=await post('/api/staff-attendance/lunch/challenges',{slot:'PM_IN',location:newPosition()},relocatedPresenter.token);
+  assert.equal(windowQr.status,201,JSON.stringify(windowQr.body));
+  const pendingWindowScan=await post('/api/staff-attendance/lunch/redeem',{challengeId:windowQr.body.challengeId,token:windowQr.body.token,location:newPosition()},sameSchoolOther.token);
+  assert.equal(pendingWindowScan.status,201,JSON.stringify(pendingWindowScan.body));
+  assert.equal(pendingWindowScan.body.status,'PENDING_VERIFICATION','Missing official staff schedule cannot auto-verify an opted-in window scan');
+  const windowEvidence=await pool.query('SELECT notes,verification_status FROM staff_attendance_events WHERE school_id=$1 AND event_id=$2',[a.school,pendingWindowScan.body.eventId]);
+  assert.match(windowEvidence.rows[0].notes,/OFFICIAL_SCHEDULE_UNAVAILABLE/);
+  assert.equal(windowEvidence.rows[0].verification_status,'PENDING_VERIFICATION');
   const gatePath='/api/staff-attendance/gatekeeper/dtr';
   const gateBody={teacherQrToken,slot:'PM_OUT',photoVerified:true};
   assert.equal((await post(gatePath,gateBody,teacher.token)).status,403,

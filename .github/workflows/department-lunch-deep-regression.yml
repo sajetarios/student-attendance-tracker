@@ -53,6 +53,7 @@ jobs:
           node --check public/universal-notifications.js
           node --check tests/department-lunch-delegation-postgres.cjs
           node --check staff-lunch-campus.js
+          node --check staff-lunch-windows.js
           node --check public/principal-trusted-campus.js
           node --check tests/department-lunch-scale-postgres.cjs
       - name: Install database roles
