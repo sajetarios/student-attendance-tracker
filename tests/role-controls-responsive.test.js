@@ -22,7 +22,7 @@ test('school-date native iOS input and Refresh use separate grid rows at all wid
  const sw=read('sw.js');
  assert.match(html,/id="smartAttendanceDate" type="date"/);
  assert.match(html,/id="smartAttendanceRefresh"/);
- assert.match(html,/smart-attendance-overview\.css\?v=4/);
+ assertCachedAsset(html,sw,'smart-attendance-overview.css',{minimumVersion:4});
  assert.match(css,/#smartAttendanceOverview \.smart-attendance-date-control\{\s*box-sizing:border-box;\s*display:grid;\s*grid-template-columns:minmax\(0,1fr\);/);
  assert.match(css,/#smartAttendanceOverview \.smart-attendance-date-control label\{\s*display:grid;/);
  assert.match(css,/#smartAttendanceOverview #smartAttendanceDate\{/);
@@ -72,7 +72,7 @@ test('layout CSS is fetched network-first to avoid stale iPad button rules after
  assert.match(worker,/smart-attendance-overview\.css/);
  assert.match(worker,/cache: 'no-store'/);
  assert.match(portal,/role-controls-responsive\.css\?v=2/);
- assert.match(portal,/smart-attendance-overview\.css\?v=4/);
+ assertCachedAsset(portal,worker,'smart-attendance-overview.css',{minimumVersion:4});
 });
 test('button updates do not override role navigation, scanner controls, or printable DTR',()=>{
  const css=read('role-controls-responsive.css');

@@ -126,3 +126,17 @@ test('portal and service worker load matching repaired attendance script',()=>{
  require('./support/asset-contract').assertCachedAsset(portal,sw,'smart-attendance-overview.js',{minimumVersion:3});
  assert.match(portal,/staff-lunch-ui\.js\?v=7/);
 });
+
+test('saved hours without approved days cannot falsely appear configured or be saved silently',async()=>{
+ const h=harness({...base,workdays:[],regularHours:{AM_IN:'07:00',AM_OUT:'11:30',PM_IN:'13:00',PM_OUT:'16:30'}});
+ await settle();
+ assert.equal(h.get('smartHoursSave').disabled,true);
+ assert.match(h.get('smartAttendanceHoursSummary').textContent,/choose workdays/i);
+ assert.equal(h.get('smartHoursWorkdaysLabel').hidden,false);
+ await h.get('smartHoursSave').fire('click');assert.equal(h.writes.length,0);
+ h.get('smartHoursWorkdays').value='weekdays';await h.get('smartHoursWorkdays').fire('change');
+ assert.equal(h.get('smartHoursSave').disabled,false);
+ await h.get('smartHoursSave').fire('click');
+ assert.deepEqual(h.writes[0].workdays,[1,2,3,4,5]);
+ assert.equal(h.writes[0].regularHours.PM_OUT,'16:30');
+});

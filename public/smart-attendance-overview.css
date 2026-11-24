@@ -163,3 +163,14 @@
  body.portal-page #form48ReportCard :is(.smart-attendance-date-control,.form48-intelligence-controls) button{width:100%!important}
  body.portal-page #form48ReportCard .smart-attendance-counts span{font-size:10px}
 }
+
+/* Native date inputs can keep a large intrinsic width even on tablets.
+   Keep Smart Attendance date and refresh in separate tracks on every screen. */
+@media screen{
+ body.portal-page #form48ReportCard #smartAttendanceOverview .smart-attendance-date-control{grid-template-columns:minmax(0,1fr)!important}
+ body.portal-page #form48ReportCard #smartAttendanceOverview #smartAttendanceRefresh{width:100%!important}
+}
+@media screen and (max-width:940px){
+ body.portal-page #form48ReportCard .form48-intelligence-controls{grid-template-columns:minmax(0,1fr)!important}
+ body.portal-page #form48ReportCard .form48-intelligence-controls button{width:100%!important}
+}
