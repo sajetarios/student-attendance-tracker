@@ -39,6 +39,7 @@ async function exportFixture({personal=true,month='2026-01',pending=false,confli
     if(sql.includes('COUNT(DISTINCT e.school_date)')) return result([{id:'A',count:2}]);
     if(sql.includes('FROM school_calendar_exceptions')) return result([{date:closed,type:'CLOSED'},{date:h,type:'CLASS_SUSPENSION',suspensionTime:'10:00'}]);
     if(sql.includes('FROM generate_series') && sql.includes('class_period_days')) return result(schedule);
+    if(sql.includes("SELECT 'ADVISER' AS kind"))return result([{kind:'ADVISER',name:'TEST ADVISER'},{kind:'HEAD',name:'TEST HEAD'}]);
     if(sql.includes('FROM school_settings')) return result([{setting_key:'school_name',setting_value:'TEST SCHOOL'}]);
     if(sql.includes('SELECT start_date FROM school_years')) return result([{start_date:'2025-06-01'}]);
     if(sql.includes('FROM student_enrollments e JOIN school_years sy')) return result(learners.map(x=>({sex:x.sex,student_id:x.id,enrollmentDate:'2025-06-01'})));
@@ -114,6 +115,8 @@ test('actual official XLSX follows reference geometry, preserves daily marks, gr
   assert.equal(value(sheet.getCell('AG64')),1);
   assert.equal(sheet.getCell('AO13').value,2);
   assert.equal(sheet.getColumn('AO').hidden,true);
+  assert.equal(sheet.getCell('AE140').value,'TEST ADVISER');
+  assert.equal(sheet.getCell('AE145').value,'TEST HEAD');
   assert.equal(sheet.getCell('AJ117').value,days.length);
   assert.equal(sheet.getCell(115,7+days.length).value,null);
   assert.equal(workbook.worksheets.length,1);
