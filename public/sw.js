@@ -153,7 +153,7 @@ const SHELL = [
   "/form-system.css?v=1",
   "/password-visibility.css",
   "/password-visibility.js",
-  "/portal-login.js?v=15",
+  "/portal-login.js?v=16",
   "/login-routing.js",
   "/principal-dashboard.js?v=14",
   "/principal-dashboard.css?v=14",
