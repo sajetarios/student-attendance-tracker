@@ -132,3 +132,66 @@
   html body.student-portal-body .student-summary-grid {grid-template-columns:repeat(2,minmax(0,1fr));}
   html body.student-portal-body .student-summary-grid > :last-child {grid-column:1/-1;}
 }
+
+/* Unified screen hierarchy, readable neutral colors and intentional action emphasis.
+   School branding, status meaning and official print rules are not replaced. */
+@media screen {
+  :root {--ag-reading:#19304a;--ag-secondary:#52647b;--ag-surface:#fff;--ag-primary:#245f9d;
+    --ag-on-primary:#fff;--ag-focus:#245f9d;--ag-danger:#b4232b;--ag-space:8px;}
+  html:is([data-ui-theme="dark"],[data-theme="dark"]) {
+    --ag-reading:#eef4ff;--ag-secondary:#bfd0e5;--ag-surface:#162337;--ag-primary:#a6cfff;
+    --ag-on-primary:#142c48;--ag-focus:#a6cfff;--ag-danger:#ffb4bc;
+  }
+  body:is(.dark-mode,[data-theme="dark"]) {
+    --ag-reading:#eef4ff;--ag-secondary:#bfd0e5;--ag-surface:#162337;--ag-primary:#a6cfff;
+    --ag-on-primary:#142c48;--ag-focus:#a6cfff;--ag-danger:#ffb4bc;
+  }
+  html body.portal-page :is(.content-wrap,.student-page,.parent-page) :is(
+    .section-toolbar p,.card-heading p,.view-heading p,.field-hint,.form-help,.table-subtext,
+    .empty-cell,.muted-inline,.admin-command-metric small,.admin-command-metric>span:not(.admin-metric-icon),
+    .admin-command-section-heading p,.student-welcome-block>p,.parent-welcome p,.parent-help,
+    #historyDescription,.parent-history-filters label,.parent-child-identity p,.parent-child-settings p
+  ) {color:var(--ag-secondary)!important;font-size:16px!important;line-height:1.5;}
+  html body.portal-page :is(.content-wrap,.student-page,.parent-page) :is(
+    .section-toolbar h3,.card-heading h3,.card-heading h4,.section-card>h3,.student-card h2,.parent-card h2
+  ) {font-size:20px;line-height:1.3;font-weight:700;overflow-wrap:anywhere;}
+  html body.portal-page .view-heading h2 {font-size:26px;line-height:1.25;overflow-wrap:anywhere;}
+  html body.portal-page :is(#departmentHeadOverview,#learnerSummaryCard) :is(
+    .dh-command-metric>span:not(.dh-metric-icon),.dh-command-metric small,.teacher-v3-foot-top span,
+    .teacher-v3-foot-top strong,.teacher-v3-note
+  ) {font-size:16px!important;line-height:1.4;}
+  html body.portal-page #studentsView #studentRosterTable tbody td::before {color:var(--ag-secondary)!important;letter-spacing:.015em;}
+  html body.portal-page :is(.section-card,.surface-card,.student-card,.parent-card) :is(.field-group,.form-field) {gap:6px;}
+  html body.portal-page :is(.form-actions,.modal-actions,.toolbar-actions,.action-row) {gap:8px;}
+  html body.portal-page :is(.form-actions,.modal-actions,.toolbar-actions,.action-row) > :is(.primary-button,.outline-button,.secondary-button) {
+    font-weight:650;font-size:16px;box-shadow:none;
+  }
+  html body.portal-page :is(.form-actions,.modal-actions,.action-row) > .primary-button:not(:disabled) {
+    background:var(--ag-primary);color:var(--ag-on-primary);border-color:var(--ag-primary);
+  }
+  html body.portal-page :is(.form-actions,.modal-actions,.action-row) > :is(.outline-button,.secondary-button):not(:disabled) {
+    background:var(--ag-surface);color:var(--ag-reading);border-color:var(--ag-secondary);
+  }
+  html body:has(>.shell) :is(.section-heading p:last-child,.feedback,.controls label,.staff-filters label,.metric-card small) {
+    color:var(--ag-secondary);font-size:16px;line-height:1.45;
+  }
+  html body :is(button,a,input,select,textarea,summary):focus-visible {outline:2px solid var(--ag-focus);outline-offset:2px;}
+  html body :is(dialog:not(.app-dialog-overlay),.missing-scan-dialog,#staffLeaveDialog) {
+    box-sizing:border-box;max-inline-size:calc(100vw - 24px);max-block-size:calc(100dvh - 24px);
+    overscroll-behavior:contain;
+  }
+  html body :is(dialog:not(.app-dialog-overlay),.missing-scan-dialog,#staffLeaveDialog) :is(
+    .modal-actions,.dialog-actions,.ms-actions,.leave-actions
+  ) {flex-wrap:wrap;gap:8px;min-width:0;}
+  html body :is(dialog:not(.app-dialog-overlay),.missing-scan-dialog,#staffLeaveDialog) :is(
+    p,label,.ms-muted,.ms-message,.field-hint,.form-help
+  ) {font-size:16px;line-height:1.45;overflow-wrap:anywhere;}
+  html body :is(dialog:not(.app-dialog-overlay),.missing-scan-dialog,#staffLeaveDialog) :is(
+    input:not([type=checkbox]):not([type=radio]),select,textarea
+  ) {font-size:16px!important;max-width:100%;min-width:0;box-sizing:border-box;}
+  html body :is(.toast,.toast-message,.inline-feedback,.app-dialog-error) {overflow-wrap:anywhere;line-height:1.45;}
+  @media(max-width:700px) {
+    html body.portal-page .view-heading h2 {font-size:24px;}
+    html body.portal-page :is(.section-toolbar h3,.card-heading h3,.card-heading h4) {font-size:20px;}
+  }
+}
