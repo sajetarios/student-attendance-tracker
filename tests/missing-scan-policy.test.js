@@ -103,6 +103,8 @@ test('all signed-in portals contain form controls and missing scan fields cannot
 });
 
 test('missing scan shortcuts are contextual, with one department review and admin settings entry',()=>{
+ const fs=require('node:fs'),path=require('node:path');
+ const read=name=>fs.readFileSync(path.join(__dirname,'../public',name),'utf8');
  const ui=read('missing-scan-ui.js'),html=read('portal.html'),css=read('missing-scan-ui.css');
  assert.doesNotMatch(ui,/nav\('missingScanMyNav'|nav\('missingScanAdminNav'/);
  assert.match(ui,/if\(isHead\)nav\('missingScanHeadNav','Missing Scan Reviews','operations','inbox'\)/);
