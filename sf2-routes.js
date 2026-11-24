@@ -265,9 +265,14 @@ function registerSf2Routes(app, pool, { authenticateSchoolClient, requireSchoolU
     // school weekday as a required class. Keep observed attendance even when
     // a historical schedule is unavailable; never infer whole-day absence.
     const subjectSchedule = new Map();
+    const uncertainSchedule = new Set(calendar.rows.filter(row=>['OPEN','SPECIAL_CLASS','SHORTENED_DAY'].includes(row.type)).map(row=>row.date));
+    const suspensionByDate = new Map(calendar.rows.filter(row=>row.suspensionTime).map(row=>[row.date,row.suspensionTime]));
     if (access.mode === 'PERSONAL') {
       const schedule = await pool.query(
         `SELECT DISTINCT d.day::date::text AS date,p.period_id AS "periodId",
+                 to_char(p.start_time,'HH24:MI') AS "startTime",
+                 EXISTS (SELECT 1 FROM class_period_days pd
+                   WHERE pd.school_id=p.school_id AND pd.period_id=p.period_id) AS "hasWeekdays",
                  EXISTS (SELECT 1 FROM class_period_days pd
                    WHERE pd.school_id=p.school_id AND pd.period_id=p.period_id
                      AND pd.weekday=EXTRACT(DOW FROM d.day)::int) AS scheduled
@@ -281,14 +286,15 @@ function registerSf2Routes(app, pool, { authenticateSchoolClient, requireSchoolU
               OR EXISTS (SELECT 1 FROM teacher_period_substitutions ts
                    WHERE ts.school_id=p.school_id AND ts.period_id=p.period_id
                      AND ts.substitute_teacher_user_id=$5 AND ts.status='ACTIVE'
-                     AND d.day::date BETWEEN ts.start_date AND ts.end_date))
-            AND EXISTS (SELECT 1 FROM class_period_days pd
-                   WHERE pd.school_id=p.school_id AND pd.period_id=p.period_id)`,
+                     AND d.day::date BETWEEN ts.start_date AND ts.end_date))`,
         [req.auth.schoolId,gradeLevel,section,dateFrom,req.auth.userId]
       );
       for (const row of schedule.rows) {
         if (!subjectSchedule.has(row.date)) subjectSchedule.set(row.date,new Set());
-        if (row.scheduled) subjectSchedule.get(row.date).add(String(row.periodId));
+        if (!row.hasWeekdays) uncertainSchedule.add(row.date);
+        const suspendedAt=suspensionByDate.get(row.date);
+        if (suspendedAt && !row.startTime) uncertainSchedule.add(row.date);
+        if (row.scheduled && (!suspendedAt || !row.startTime || row.startTime<suspendedAt)) subjectSchedule.get(row.date).add(String(row.periodId));
       }
     }
     const reportDates = new Set(datesFor(month));
@@ -348,13 +354,13 @@ function registerSf2Routes(app, pool, { authenticateSchoolClient, requireSchoolU
       // Negative marks only describe the subject copy, and only when every
       // known scheduled period has an explicit negative mark. Mixed or
       // incomplete evidence remains NR, never a presumed absence.
-      if (periods?.size && [...periods].every(period=>marks.some(row=>
+      if (!uncertainSchedule.has(date) && periods?.size && [...periods].every(period=>marks.some(row=>
         String(row.periodId)===period && ['ABSENT','EXCUSED'].includes(row.status)))) {
         const relevant = marks.filter(row=>periods.has(String(row.periodId)));
         if (relevant.every(row=>row.status==='EXCUSED')) return 'EXCUSED';
         if (relevant.every(row=>row.status==='ABSENT')) return 'SUBJECT_ABSENT';
       }
-      if (periods && !periods.size && !marks.length) return 'NO_CLASS';
+      if (!uncertainSchedule.has(date) && periods && !periods.size && !marks.length) return 'NO_CLASS';
       return 'NO_RECORD';
     };
 
@@ -603,15 +609,6 @@ function registerSf2Routes(app, pool, { authenticateSchoolClient, requireSchoolU
             cell.alignment = { ...cell.alignment, horizontal: 'center', vertical: 'middle' };
           } else if (status === 'PRESENT') {
             dailyPresent[dayIndex]++;
-            if (personalCopy) {
-              cell.value = 'P';
-              cell.font = { ...cell.font, size: 9 };
-              cell.alignment = { ...cell.alignment, horizontal: 'center', vertical: 'middle' };
-            }
-          } else if (personalCopy && status === 'NO_RECORD') {
-            cell.value = 'NR';
-            cell.font = { ...cell.font, size: 8 };
-            cell.alignment = { ...cell.alignment, horizontal: 'center', vertical: 'middle', shrinkToFit: true };
           }
         }
 
