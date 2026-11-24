@@ -1,6 +1,7 @@
 'use strict';
 
 const ExcelJS = require('exceljs');
+const { createReferenceWorkbook } = require('./sf2-reference-workbook');
 const path = require('path');
 const fs = require('fs/promises');
 const crypto = require('node:crypto');
@@ -501,18 +502,15 @@ function registerSf2Routes(app, pool, { authenticateSchoolClient, requireSchoolU
 
     const boys = data.students.filter(student => String(student.sex).toUpperCase() === 'MALE');
     const girls = data.students.filter(student => String(student.sex).toUpperCase() === 'FEMALE');
-
-    if (boys.length > 21 || girls.length > 25) {
-      const error = new Error(`The official SF2 template supports 21 male learners and 25 female learners. Current section: ${boys.length} male, ${girls.length} female.`);
+    if (boys.length > 50 || girls.length > 50) {
+      const error = new Error('The reference SF2 layout supports 50 male and 50 female learner rows per section. Please review the roster before exporting.');
       error.status = 409;
       throw error;
     }
-
     const workbook = new ExcelJS.Workbook();
     await workbook.xlsx.readFile(TEMPLATE);
-
-    const worksheet = workbook.worksheets[0];
-    if (!worksheet) {
+    const source = workbook.worksheets[0];
+    if (!source) {
       const error = new Error('The official SF2 workbook does not contain a worksheet.');
       error.status = 500;
       throw error;
@@ -531,179 +529,11 @@ function registerSf2Routes(app, pool, { authenticateSchoolClient, requireSchoolU
       return typeof value === 'string' ? value : (value?.value || value?.name || '');
     };
 
-    // Official template header fields: write only to merged-cell anchors.
-    worksheet.getCell('C6').value = setting('school_id') || String(req.auth.schoolId);
-    worksheet.getCell('K6').value = setting('school_year') || `${year}-${year + 1}`;
-    worksheet.getCell('X6').value = MONTHS[monthNumber - 1];
-    worksheet.getCell('C8').value = personalCopy
-      ? `UNOFFICIAL SUBJECT COPY — ${setting('school_name') || 'SCHOOL NAME'}`
-      : (setting('school_name') || 'SCHOOL NAME');
-    if (personalCopy) {
-      worksheet.getCell('C8').alignment = { ...worksheet.getCell('C8').alignment, shrinkToFit: true, vertical: 'middle' };
-      worksheet.name = 'SF2 Subject Copy';
-    }
-    worksheet.getCell('X8').value = gradeLevel;
-    worksheet.getCell('AC8').value = section;
-
-    // Keep the official instructions unchanged. The personal copy uses a
-    // different legend because a blank cell must not imply presence.
-    if (personalCopy) {
-      const instruction = worksheet.getCell('D10');
-      instruction.value = 'Dates / weekdays | P Present • L Late • X Subject absence • E Excused • NR Not recorded • — No class • ! Review';
-      instruction.alignment = { ...instruction.alignment, horizontal:'center', vertical:'middle', wrapText:true, shrinkToFit:true };
-      instruction.font = { ...instruction.font, size:8 };
-    }
-    // Row 10 is a merged instruction cell and must remain untouched for official reports.
-    // Dates go in row 11; weekday abbreviations go in row 12.
-    for (let dayIndex = 0; dayIndex < 25; dayIndex++) {
-      const column = 4 + dayIndex;
-      worksheet.getCell(11, column).value = null;
-      worksheet.getCell(12, column).value = null;
-    }
-
-    data.dates.forEach((date, index) => {
-      const day = new Date(`${date}T00:00:00Z`);
-      const column = 4 + index;
-      worksheet.getCell(11, column).value = day;
-      worksheet.getCell(11, column).numFmt = 'd';
-      worksheet.getCell(12, column).value = ['', 'M', 'T', 'W', 'TH', 'F', ''][day.getUTCDay()];
-    });
-
-    const fillGroup = (students, firstRow, capacity, totalRow) => {
-      const dailyPresent = Array(data.dates.length).fill(0);
-
-      for (let index = 0; index < capacity; index++) {
-        const row = firstRow + index;
-        const student = students[index];
-
-        worksheet.getCell(row, 1).value = student ? index + 1 : null;
-        worksheet.getCell(row, 2).value = student ? student.name : null;
-
-        for (let dayIndex = 0; dayIndex < 25; dayIndex++) {
-          const column = 4 + dayIndex;
-          const cell = worksheet.getCell(row, column);
-          cell.value = null;
-          // Clone the border to avoid mutating ExcelJS shared style objects.
-          // The official template's half-day guides are retained for populated
-          // official rows, but are not meaningful in personal subject copies
-          // or in empty rows/columns of either export.
-          if (personalCopy || !student || dayIndex >= data.dates.length) {
-            const { diagonal, ...edges } = cell.border || {};
-            cell.border = edges;
-          }
-          if (personalCopy) {
-            cell.alignment = { ...cell.alignment, horizontal:'center', vertical:'middle', textRotation:0, shrinkToFit:true };
-          }
-          if (!student || dayIndex >= data.dates.length) continue;
-
-          const status = personalCopy ? (student.subjectDays?.[dayIndex] || student.days[dayIndex]) : student.days[dayIndex];
-          if (personalCopy) {
-            const symbols = { PRESENT:'P', LATE:'L', SUBJECT_ABSENT:'X', EXCUSED:'E', NO_RECORD:'NR', NO_CLASS:'—', CONFLICT:'!' };
-            cell.value = symbols[status] || null;
-            if (status==='PRESENT' || status==='LATE') dailyPresent[dayIndex]++;
-            cell.font = { ...cell.font, size: status==='NO_RECORD' ? 8 : 9 };
-            continue;
-          }
-          if (status === 'ABSENT') {
-            cell.value = 'X';
-            cell.alignment = { ...cell.alignment, horizontal: 'center', vertical: 'middle' };
-          } else if (status === 'PRESENT') {
-            dailyPresent[dayIndex]++;
-          }
-        }
-
-        const absenceCell = worksheet.getCell(row, 29);
-        const tardyCell = worksheet.getCell(row, 30);
-        absenceCell.value = student && !personalCopy ? student.days.filter(status => status === 'ABSENT').length : null;
-        tardyCell.value = student && !personalCopy ? (Number(student.tardyCount) || 0) : null;
-        for (const cell of [absenceCell, tardyCell]) {
-          cell.alignment = { ...cell.alignment, horizontal: 'center', vertical: 'middle' };
-        }
-      }
-
-      for (let index=0; index<25; index++) {
-        const cell=worksheet.getCell(totalRow,4+index);
-        const recorded = students.some(student=>['PRESENT','LATE','SUBJECT_ABSENT','EXCUSED'].includes(student.subjectDays?.[index] || student.days[index]));
-        cell.value = index>=data.dates.length || (personalCopy && !recorded) ? null : dailyPresent[index];
-        if (personalCopy) cell.alignment = { ...cell.alignment, horizontal:'center', vertical:'middle', textRotation:0, shrinkToFit:true };
-      }
-
-      return dailyPresent;
-    };
-
-    const maleDaily = fillGroup(boys, 14, 21, 35);
-    const femaleDaily = fillGroup(girls, 36, 25, 61);
-
-    for (let index=0; index<25; index++) {
-      const cell=worksheet.getCell(62,4+index);
-      const recorded = data.students.some(student=>['PRESENT','LATE','SUBJECT_ABSENT','EXCUSED'].includes(student.subjectDays?.[index] || student.days[index]));
-      if (index>=data.dates.length || (personalCopy && !recorded)) cell.value = null;
-      else worksheet.getCell(62, 4 + index).value = maleDaily[index] + femaleDaily[index];
-      if (personalCopy) cell.alignment = { ...cell.alignment, horizontal:'center', vertical:'middle', textRotation:0, shrinkToFit:true };
-    }
-
-    // The official SF2 template's summary panel occupies columns AH (M),
-    // AI (F), AJ (TOTAL); row headings run from 66 through 83.
-    // Write the numeric merged-cell anchors without altering template styles.
     const summary = personalCopy ? null : await getMonthlySf2Summary(req, month, gradeLevel, section, data);
-    const m = summary?.male || {}, f = summary?.female || {};
-    const total = field => Number(m[field] || 0) + Number(f[field] || 0);
-    const rate = (numerator, denominator) => denominator ? numerator / denominator : null;
-    const average = (presentDays) => summary?.days ? presentDays / summary.days : null;
-    const metrics = [
-      [66, m.early, f.early, total('early'), '0'],
-      [68, m.late, f.late, total('late'), '0'],
-      [70, m.registered, f.registered, total('registered'), '0'],
-      [72, rate(m.registered,m.early), rate(f.registered,f.early), rate(total('registered'),total('early')), '0.00%'],
-      [74, average(m.presentDays), average(f.presentDays), average(total('presentDays')), '0.00'],
-      [75, rate(m.presentDays,m.registered * (summary?.days || 0)), rate(f.presentDays,f.registered * (summary?.days || 0)),
-        rate(total('presentDays'), total('registered') * (summary?.days || 0)), '0.00%'],
-      [77, m.consecutive, f.consecutive, total('consecutive'), '0'],
-      [79, m.dropout, f.dropout, total('dropout'), '0'],
-      [81, m.transferOut, f.transferOut, total('transferOut'), '0'],
-      [83, m.transferIn, f.transferIn, total('transferIn'), '0']
-    ];
-    for (const [row, male, female, combined, format] of metrics) {
-      for (const [col, value] of [[34,male],[35,female],[36,combined]]) {
-        const cell = worksheet.getCell(row,col);
-        const target = cell.isMerged ? cell.master : cell;
-        // Never represent subject-specific missing scans as official SF2 monthly attendance.
-        // Text percentages avoid ##### and 1 instead of 100% on narrow merged cells in iPad Excel.
-        target.value = personalCopy ? null :
-          (format === '0.00%' ? (value == null ? 'N/A' : `${(Number(value) * 100).toFixed(1)}%`) : value);
-        target.numFmt = personalCopy ? 'General' : (format === '0.00%' ? '@' : format);
-        target.alignment = { ...target.alignment, horizontal:'center', vertical:'middle', shrinkToFit: true };
-        if (format === '0.00%') target.font = { ...target.font, size: 9 };
-      }
-    }
-    worksheet.getCell('AB65').value = MONTHS[monthNumber - 1];
-    worksheet.getCell('AB65').alignment = { ...worksheet.getCell('AB65').alignment, horizontal: 'center', vertical: 'middle', shrinkToFit: true };
-    worksheet.getCell('AB65').font = { ...worksheet.getCell('AB65').font, size: 10 };
-    worksheet.getCell('AE65').value = personalCopy ? null : summary.days;
-    worksheet.getCell('AE65').alignment = { ...worksheet.getCell('AE65').alignment, horizontal: 'center', vertical: 'middle' };
-    // Learner names are left-aligned for readability. Number and date columns
-    // retain the DepEd template's existing alignment.
-    for (const row of [...Array.from({length:21}, (_,i) => i+14), ...Array.from({length:25}, (_,i) => i+36)]) {
-      const cell = worksheet.getCell(row,2);
-      cell.alignment = { ...cell.alignment, horizontal:'left', vertical:'middle', indent:1 };
-    }
-
-    if (personalCopy) {
-      const notes = workbook.addWorksheet('READ ME - Unofficial');
-      notes.getColumn('A').width = 110;
-      notes.getCell('A1').value = 'UNOFFICIAL SUBJECT TEACHER ATTENDANCE COPY';
-      notes.getCell('A1').font = { bold: true, size: 16 };
-      notes.getCell('A3').value = 'This workbook uses the same DepEd SF2 worksheet template for familiarity but is NOT an official School Form 2.';
-      notes.getCell('A4').value = 'P = recorded subject presence (accepted QR or manual). L = all positive evidence is late; both count as presence.';
-      notes.getCell('A5').value = 'NR = no conclusive subject record, not school absence. — = no scheduled class; blank = future date or unused cell; ! = conflicting evidence.';
-      notes.getCell('A6').value = 'X/E = explicitly recorded subject absence/excused for every known scheduled period; not official daily absence. Official absence/tardy totals and school-wide summaries are blank.';
-      notes.getCell('A7').value = 'Only the designated Class Adviser/School Admin may produce the official SF2 after resolving pending attendance.';
-      notes.getCell('A9').value = `Report: ${month} | Grade: ${gradeLevel} | Section: ${section}`;
-      for (const row of [3,4,5,6,7,9]) { notes.getCell('A'+row).alignment = { wrapText: true }; notes.getRow(row).height=32; }
-      notes.getRow(3).height = 30;
-      notes.getRow(6).height = 30;
-    }
-    return Buffer.from(await workbook.xlsx.writeBuffer());
+    const output = createReferenceWorkbook({source, data, summary, monthName:MONTHS[monthNumber-1],
+      schoolName:setting('school_name') || 'SCHOOL NAME', schoolId:setting('school_id') || String(req.auth.schoolId),
+      schoolYear:setting('school_year') || `${year}-${year+1}`, gradeLevel, section, personalCopy});
+    return Buffer.from(await output.xlsx.writeBuffer());
   }
 
   async function buildPersonalCopyWorkbook(req, month, gradeLevel, section, data) {
