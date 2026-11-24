@@ -2495,6 +2495,7 @@ app.post('/api/gate/teacher-event-preview', authenticateSchoolClient, requireSch
     return res.json({status:'READY',eventType:decision.eventType,
       label:half+' '+(decision.eventType==='TIME_IN'?'Time-In':'Time-Out'),
       localTime,schoolDate,recordingTarget:'PHYSICAL_GATE',
+      canConfirmMissingReturnExit:history.rows.length===2&&decision.eventType==='TIME_IN',
       note:'Gate movement only. Official DTR slots and approved OB are evaluated separately.'});
   }catch(err){
     console.error('Gate event preview failed:',err.message);
@@ -2514,6 +2515,9 @@ app.post('/api/gate/teacher-auto-event', authenticateSchoolClient, requireSchool
   if(!allowed.allowed)return res.status(400).json({error:'Gate photo verification or recording request invalid.',reason:allowed.reason});
   // The prediction is advisory; the transaction still chooses the event.
   const expectedGateEventType=req.body?.expectedGateEventType;
+  const confirmedMissingReturnExit=req.body?.confirmedMissingReturnExit===true;
+  if(req.body?.confirmedMissingReturnExit!==undefined&&typeof req.body.confirmedMissingReturnExit!=='boolean')
+    return res.status(400).json({error:'Invalid physical exit confirmation.'});
   if(expectedGateEventType!==undefined && !['TIME_IN','TIME_OUT'].includes(expectedGateEventType))
     return res.status(400).json({error:'Invalid expected gate movement.'});
   const clientEventKey=String(req.body?.clientEventKey||'').trim();
@@ -2601,6 +2605,12 @@ app.post('/api/gate/teacher-auto-event', authenticateSchoolClient, requireSchool
       await client.query('ROLLBACK');
       return res.status(409).json({error:'Gate movement changed since verification. Scan the badge again to review the updated prediction.',status:'PREVIEW_CHANGED'});
     }
+    // The guard may explicitly attest an observed exit despite a missing return.
+    // Never infer this from time or overwrite the earlier physical gate records.
+    if(confirmedMissingReturnExit&&(history.rows.length!==2||decision.eventType!=='TIME_IN'||expectedGateEventType!=='TIME_IN')){
+      await client.query('ROLLBACK');return res.status(409).json({error:'Exit confirmation no longer matches the gate history. Rescan the badge.',status:'PREVIEW_CHANGED'});
+    }
+    const recordedEventType=confirmedMissingReturnExit?'TIME_OUT':decision.eventType;
     // A double scan must never be mistaken for an actual return or departure.
     // Deliberate movements within this conservative interval require review.
     const last=history.rows[history.rows.length-1];
@@ -2612,19 +2622,19 @@ app.post('/api/gate/teacher-auto-event', authenticateSchoolClient, requireSchool
     const eventId=require('node:crypto').randomUUID();
     const saved=await client.query(`INSERT INTO staff_attendance_events
       (event_id,school_id,staff_user_id,event_kind,gate_direction,school_date,
-       occurred_at,source,verification_status,verification_method,actor_user_id,client_event_key)
+       occurred_at,source,verification_status,verification_method,actor_user_id,client_event_key,notes)
       VALUES($1,$2,$3,'GATE_MOVEMENT',$4,$5::date,$6,
-        'GATEKEEPER','VERIFIED','GUARD_PHOTO',$7,$8)
+        'GATEKEEPER','VERIFIED','GUARD_PHOTO',$7,$8,$9)
       RETURNING event_id AS "eventId",gate_direction AS "gateDirection",occurred_at AS "occurredAt"`,
-      [eventId,req.auth.schoolId,teacherId,decision.eventType==='TIME_IN'?'IN':'OUT',
-       schoolDate,occurredAt,req.auth.userId,clientEventKey]);
-    const savedEvent={eventId:saved.rows[0].eventId,eventType:decision.eventType,
+      [eventId,req.auth.schoolId,teacherId,recordedEventType==='TIME_IN'?'IN':'OUT',
+       schoolDate,occurredAt,req.auth.userId,clientEventKey,confirmedMissingReturnExit?'GUARD_CONFIRMED_EXIT_MISSING_RETURN':null]);
+    const savedEvent={eventId:saved.rows[0].eventId,eventType:recordedEventType,
       occurredAt:saved.rows[0].occurredAt};
     await client.query(`INSERT INTO audit_logs(school_id,actor_type,actor_user_id,action,entity_type,entity_id,details)
       VALUES($1,'SCHOOL',$2,'GATE_KEEPER_RECORD_TEACHER_ATTENDANCE','staff_attendance_event',$3,$4::jsonb)`,
       [req.auth.schoolId,req.auth.userId,eventId,
-       JSON.stringify({teacherUserId:teacherId,eventType:decision.eventType,schoolDate,
-         automatic:true,photoVerified:true,physicalGateOnly:true})]);
+       JSON.stringify({teacherUserId:teacherId,eventType:recordedEventType,schoolDate,
+         automatic:!confirmedMissingReturnExit,confirmedMissingReturnExit,photoVerified:true,physicalGateOnly:true})]);
     // An unambiguous, photo-verified server-clock gate scan may also supply one
     // official DTR slot. This is an OPTIONAL audited projection, never an
     // inferred lunch punch, OB approval, absence, or overwritten slot.

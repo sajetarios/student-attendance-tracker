@@ -1,4 +1,4 @@
-const CACHE = "attendigo-v365-parent-notification-production";
+const CACHE = "attendigo-v366-form48-missing-return-exit";
 
 // Only public, non-personal offline shells and their executable dependencies.
 // An update must not discard the working cache before these are all ready.
@@ -94,7 +94,7 @@ const SHELL = [
   "/teacher-scanner-schedule.js?v=1",
   "/teacher-roster-popover.js?v=2",
   "/portal.css?v=0.9.119",
-  "/portal.js?v=240",
+  "/portal.js?v=241",
   "/attendigo-help-topics.js?v=3",
   "/attendigo-help-guide.js?v=4",
   "/attendigo-help.css?v=3",
@@ -121,7 +121,7 @@ const SHELL = [
   "/missing-scan-ui.css?v=3",
   "/form48-intelligence.js?v=2",
   "/form48-bulk-ui.js?v=3",
-  "/form48-report.css?v=16",
+  "/form48-report.css?v=17",
   "/smart-attendance-overview.css?v=4",
   "/role-controls-responsive.css?v=2",
   "/smart-attendance-overview.js?v=4",

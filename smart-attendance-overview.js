@@ -39,7 +39,7 @@ function buildSmartOverview({date,staff=[],schedules=[],defaults=null,gate=[],dt
    scheduleNotSet.add(id);
   }else if(!schedule.workdays.includes(weekday))result.review=['NOT_SCHEDULED_WORKDAY'];
   else if(obRows.some(x=>x.crossDay))result.review=['OB_INTERVAL_AMBIGUOUS'];
-  else result=reconcileGateDay({movements:gateRows.map(x=>({eventType:x.eventType,time:x.time})),
+  else result=reconcileGateDay({movements:gateRows.map(x=>({eventType:x.eventType,time:x.time,confirmedMissingReturnExit:x.confirmedMissingReturnExit})),
    existingSlots:verified,hours:weekday===6?schedule.saturdayHours:schedule.regularHours,
    approvedOb:obRows.map(x=>({start:x.start,end:x.end}))});
   const reasons=result.review||[];

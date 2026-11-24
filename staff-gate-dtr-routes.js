@@ -20,13 +20,13 @@ function registerStaffGateDtrRoutes(app,pool,{authenticateSchoolClient,requireSc
     pool.query("SELECT 1 FROM school_users WHERE school_id=$1 AND user_id=$2 AND active=TRUE",[schoolId,staffUserId]),
     require('./form48-employee-schedules').getEmployeeForm48Schedule(pool,schoolId,staffUserId),
     require('./form48-bulk-routes').getSchoolForm48Defaults(pool,schoolId),
-    pool.query(`SELECT "eventType",time FROM (
+    pool.query(`SELECT "eventType",time,"confirmedMissingReturnExit" FROM (
       SELECT CASE WHEN gate_direction='IN' THEN 'TIME_IN' ELSE 'TIME_OUT' END AS "eventType",
-       to_char(occurred_at AT TIME ZONE 'Asia/Manila','HH24:MI') AS time,occurred_at
+       to_char(occurred_at AT TIME ZONE 'Asia/Manila','HH24:MI') AS time,occurred_at,COALESCE(notes='GUARD_CONFIRMED_EXIT_MISSING_RETURN',FALSE) AS "confirmedMissingReturnExit"
       FROM staff_attendance_events WHERE school_id=$1 AND staff_user_id=$2 AND school_date=$3::date
        AND event_kind='GATE_MOVEMENT' AND verification_status='VERIFIED'
       UNION ALL SELECT event_type AS "eventType",
-       to_char(occurred_at AT TIME ZONE 'Asia/Manila','HH24:MI') AS time,occurred_at
+       to_char(occurred_at AT TIME ZONE 'Asia/Manila','HH24:MI') AS time,occurred_at,FALSE AS "confirmedMissingReturnExit"
       FROM teacher_gate_events WHERE school_id=$1 AND teacher_user_id=$2 AND school_date=$3::date
      ) gate ORDER BY occurred_at`,[schoolId,staffUserId,date]),
     pool.query(`SELECT dtr_slot AS slot,to_char(occurred_at AT TIME ZONE 'Asia/Manila','HH24:MI') AS time
@@ -78,15 +78,15 @@ function registerStaffGateDtrRoutes(app,pool,{authenticateSchoolClient,requireSc
        regular_hours AS "regularHours",saturday_hours AS "saturdayHours"
        FROM staff_form48_employee_schedules WHERE school_id=$1`,[schoolId]),
      require('./form48-bulk-routes').getSchoolForm48Defaults(pool,schoolId),
-     pool.query(`SELECT "staffUserId","eventType",time FROM (
+     pool.query(`SELECT "staffUserId","eventType",time,"confirmedMissingReturnExit" FROM (
       SELECT staff_user_id AS "staffUserId",
        CASE WHEN gate_direction='IN' THEN 'TIME_IN' ELSE 'TIME_OUT' END AS "eventType",
-       to_char(occurred_at AT TIME ZONE 'Asia/Manila','HH24:MI') AS time,occurred_at
+       to_char(occurred_at AT TIME ZONE 'Asia/Manila','HH24:MI') AS time,occurred_at,COALESCE(notes='GUARD_CONFIRMED_EXIT_MISSING_RETURN',FALSE) AS "confirmedMissingReturnExit"
        FROM staff_attendance_events WHERE school_id=$1 AND school_date=$2::date
         AND event_kind='GATE_MOVEMENT' AND verification_status='VERIFIED'
       UNION ALL
       SELECT teacher_user_id AS "staffUserId",event_type AS "eventType",
-       to_char(occurred_at AT TIME ZONE 'Asia/Manila','HH24:MI') AS time,occurred_at
+       to_char(occurred_at AT TIME ZONE 'Asia/Manila','HH24:MI') AS time,occurred_at,FALSE AS "confirmedMissingReturnExit"
        FROM teacher_gate_events t WHERE t.school_id=$1 AND t.school_date=$2::date
         AND t.photo_verified=TRUE
         AND NOT EXISTS(SELECT 1 FROM staff_attendance_events e WHERE
