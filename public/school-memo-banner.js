@@ -141,8 +141,9 @@
   const message=memo.dtrHours?
    'Archive this temporary DTR schedule memorandum? The prescribed-hour exception will stop for today and future dates, while earlier applicable DTR days and the audit history remain preserved.':
    'Archive this memorandum for all recipients? Existing audit history will remain.';
-  if(!window.confirm(message))return;
+  if(button.disabled)return;
   button.disabled=true;
+  if(!await window.AppDialog.confirm(message,{title:'Archive memorandum',confirmText:'Archive',variant:'danger'})){button.disabled=false;return;}
   try{
    await request('/api/school-memos/'+encodeURIComponent(memo.memoId)+'/archive',{method:'POST'});
    setStatus('Memorandum archived.');await load();
