@@ -1031,7 +1031,8 @@
    if(event.key==='Escape'&&document.body.classList.contains('principal-presentation'))
     setPresentation(false);
   });
-  $('refreshDashboard').addEventListener('click',()=>void load());
+  $('refreshDashboard').addEventListener('click',()=>{document.dispatchEvent(new Event('attendigo:requests-changed'));void load();if(activeSection==='notifications')void loadNotifications();if(activeSection==='personal')void loadPersonal();});
+  document.addEventListener('attendigo:notifications-updated',()=>{if(activeSection==='notifications')void loadNotifications();});
   for(const id of ['reportDate','departmentFilter','periodFilter'])$(id).addEventListener('change',()=>void load());
   for(const id of ['staffSearch','staffStatus'])$(id).addEventListener(id==='staffSearch'?'input':'change',renderStaff);
   $('downloadStaff').addEventListener('click',downloadCsv);

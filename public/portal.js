@@ -1218,7 +1218,7 @@ window.attendigoStaffIdentity = new Promise(resolve => { resolveStaffIdentity = 
     const statNotes = [...document.querySelectorAll('.stat-card small')];
 
     $('statStudents').textContent = data.students?.active ?? 0;
-    if ($('adminOverviewStudents') && user?.role === 'SCHOOL_ADMIN') $('adminOverviewStudents').textContent = data.students?.active ?? '—';
+    if ($('adminOverviewStudents') && user?.role === 'SCHOOL_ADMIN') $('adminOverviewStudents').textContent = data.students?.active ?? (Array.isArray(students)?students.filter(s=>s.active!==false).length:'—');
     $('statClasses').textContent = data.today?.class_checkins ?? 0;
     if (isTeacher) {
       $('statArrivals').textContent = learner.confirmedPresentToday ?? 0;
@@ -5111,16 +5111,23 @@ let teacherActionMenuListenersInstalled = false;
 
   async function refresh() {
     const button = $('refreshButton');
+    if(button.disabled)return;
+    const tasks=[];
+    document.dispatchEvent(new CustomEvent('attendigo:dashboard-refresh',{detail:{tasks}}));
+    document.dispatchEvent(new Event('attendigo:requests-changed'));
     button.disabled = true;
     button.textContent = 'Refreshing…';
     try {
-      await loadSchoolData();
-      showToast('Dashboard and school records refreshed.');
+      await Promise.all([loadSchoolData(),...tasks]);
+      if(user.role==='SCHOOL_ADMIN')await refreshOfflineReviewBadge(true);
+      if(!$('myGateAttendanceView')?.hidden&&['SCHOOL_ADMIN','DEPARTMENT_HEAD','TEACHER'].includes(user.role))await loadMyGateAttendance();
+      if(!$('classAttendanceView')?.hidden&&user.role==='TEACHER')await loadTeacherClassAttendance();
+      showToast(user.role==='GATE_KEEPER'?'Gate scanner ready.':'Dashboard and school records refreshed.');
     } catch (error) {
       showToast(error.message, true);
     } finally {
       button.disabled = false;
-      button.textContent = '↻ Refresh';
+      button.textContent = 'Refresh';
     }
   }
 
@@ -5889,7 +5896,7 @@ let teacherActionMenuListenersInstalled = false;
     try{await api(`/api/platform/schools/${encodeURIComponent(button.dataset.platformSchool)}/status`,{method:'PATCH',body:JSON.stringify({active})});await loadPlatformData();showToast(active?'School activated.':'School deactivated.');}
     catch(error){showToast(error.message,true);button.disabled=false;}
   });
-  $('platformRefreshButton')?.addEventListener('click',()=>loadPlatformData().catch(error=>showToast(error.message,true)));
+  $('platformRefreshButton')?.addEventListener('click',async()=>{const button=$('platformRefreshButton');if(button.disabled)return;button.disabled=true;document.dispatchEvent(new Event('attendigo:requests-changed'));try{await loadPlatformData();showToast('Platform overview refreshed.');}catch(error){showToast(error.message,true);}finally{button.disabled=false;}});
 
   // Turn navigation buttons into native links for open-in-new-tab and keyboard support.
   function linkifyStaffNavigation() {

@@ -80,8 +80,10 @@
       ? current.programCode + ' — ' + current.programName : 'Not assigned for the active school year';
   }
   async function refresh() {
+    if($('studentRefresh').disabled)return;
     $('studentRefresh').disabled = true;
-    try { await loadProfile(); if (!currentUser?.mustChangePassword) await loadAttendance(); $('studentPortalFeedback').textContent = 'Information refreshed.'; }
+    document.dispatchEvent(new Event('attendigo:requests-changed'));
+    try { await Promise.all([loadProfile(),!currentUser?.mustChangePassword?loadAttendance():Promise.resolve()]); $('studentPortalFeedback').textContent = 'Information refreshed.'; }
     catch (error) { $('studentPortalFeedback').textContent = error.message; }
     finally { $('studentRefresh').disabled = false; }
   }

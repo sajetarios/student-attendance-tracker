@@ -43,7 +43,7 @@
     'panel-expand':'<rect x="3" y="4" width="18" height="16" rx="3"/><path d="M9 4v16m4-11 3 3-3 3"/>'
   };
   function html(name) { return '<svg class="ui-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">'+(paths[name]||paths.calendar)+'</svg>'; }
-  const controls={refreshButton:'refresh',logoutButton:'logout',platformRefreshButton:'refresh',studentRefresh:'refresh',studentLogout:'logout',showScheduleForm:'plus',scheduleAdjustmentShortcut:'swap',scheduleSettingsShortcut:'settings',saveScheduleButton:'check',backButton:'swap',saveScheduleAdjustment:'check'};
+  const controls={refreshDashboard:'refresh',refreshButton:'refresh',logoutButton:'logout',platformRefreshButton:'refresh',studentRefresh:'refresh',studentLogout:'logout',showScheduleForm:'plus',scheduleAdjustmentShortcut:'swap',scheduleSettingsShortcut:'settings',saveScheduleButton:'check',backButton:'swap',saveScheduleAdjustment:'check'};
   const nav={dashboardNav:'grid',studentsNav:'graduation',studentAccountsNav:'id-card',adminStudentAccountsNav:'id-card',teachersNav:'users',parentsNav:'users',requestsApprovalsNav:'clipboard-check',guardianApprovalsNav:'shield',classAttendanceNav:'clipboard-check',sf2Nav:'file-chart',plannerNav:'calendar',schedulesNav:'calendar',academicAdminNav:'book',cloudSyncNav:'swap',smsNav:'mail',schoolBrandingNav:'school'};
   const views={dashboard:'grid',students:'graduation',studentAccounts:'id-card',teachers:'users',parents:'users',
     classAttendance:'clipboard-check',sf2:'file-chart',schedules:'calendar',planner:'calendar',cloudSync:'swap',
@@ -82,13 +82,20 @@
     }
     document.querySelectorAll('[data-ui-icon]').forEach(el=>{if(!el.querySelector('.ui-icon'))el.innerHTML=html(el.dataset.uiIcon);});
     for(const [id,name] of Object.entries(controls)){
-      const el=document.getElementById(id);if(!el||el.querySelector('.ui-icon'))continue;
+      const el=document.getElementById(id);if(!el)continue;
+      if(name==='refresh'){
+        const glyphs=[...el.querySelectorAll('svg,.ui-icon')];
+        for(const node of [...el.childNodes])if(node.nodeType===3&&/^[\s↻⟳⟲🔄]+/.test(node.textContent)){const label=node.textContent.replace(/^[\s↻⟳⟲🔄]+/u,'');if(label!==node.textContent)node.textContent=label;}
+        for(const node of [...el.children])if(node.tagName==='SPAN'&&/^[\s↻⟳⟲🔄]+$/u.test(node.textContent))node.remove();
+        if(glyphs.length>1)glyphs.slice(1).forEach(icon=>icon.remove());
+        if(el.querySelector('.ui-icon,svg'))continue;
+      }else if(el.querySelector('.ui-icon'))continue;
       const first=el.firstChild;
       if(first?.nodeType===3)first.textContent=first.textContent.replace(/^[＋+⇄⚙↻←✓]\s*/, '');
       el.insertAdjacentHTML('afterbegin',html(name));
     }
   }
   window.DashboardIcons={html,render};
-  function init(){render();new MutationObserver(render).observe(document.body,{childList:true,subtree:true});}
+  function init(){const style=document.createElement('style');style.textContent='#refreshButton::before,#refreshButton::after,#platformRefreshButton::before,#platformRefreshButton::after,#studentRefresh::before,#studentRefresh::after,#refreshDashboard::before,#refreshDashboard::after{content:none!important;display:none!important}';document.head.append(style);render();new MutationObserver(render).observe(document.body,{childList:true,subtree:true});}
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init,{once:true});else init();
 })();

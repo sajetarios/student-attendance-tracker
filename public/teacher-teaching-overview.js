@@ -77,13 +77,10 @@
     async function refresh(){
       const current=++requestNo;
       show('teacherTodayState','Checking');
-      let token;
-      try{token=sessionStorage.getItem('schoolAttendance.accessToken');}
-      catch{return;}
-      if(!token)return;
+
       const queuePromise=localQueue();
       try{
-        const response=await fetch(API,{headers:{Authorization:'Bearer '+token},cache:'no-store'});
+        const response=await fetch(API,{credentials:'same-origin',cache:'no-store'});
         if(!response.ok)throw Error('Overview temporarily unavailable');
         const data=await response.json();
         if(current!==requestNo||!card.isConnected)return;
@@ -135,6 +132,7 @@
         sf2.hidden=true;
       }
     }
+    document.addEventListener('attendigo:dashboard-refresh',event=>{if(!$('dashboardView')?.hidden)event.detail.tasks.push(refresh());});
     refresh();
     const retryIfVisible=()=>{
       if(!document.hidden&&!$('dashboardView')?.hidden)refresh();
