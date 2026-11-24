@@ -87,7 +87,7 @@
    const flags=reviews.length?'<ul class="form48-intelligence-flags">'+reviews.map(reason=>
     '<li>'+esc(reasons[reason]||'Unrecognized review reason. Ask the School Administrator to verify the source.')+'</li>'
    ).join('')+'</ul>':
-    '<p class="form48-intelligence-empty">No rule-based exceptions were found in the available gate evidence. Missing official punches still require verification.</p>';
+    '<p class="form48-intelligence-empty">No unresolved gate exceptions in the available evidence.'+(options?.documentedReturn&&!verified.PM_IN?' PM Time-In is documented, not an official punch.':'')+'</p>';
    const count=Number(data.gateEventCount)||0,obCount=Number(data.approvedObCount)||0;
    const allowed=(options?.status==='ELIGIBLE'&&Array.isArray(options.candidates))
     ?options.candidates.filter(c=>slotNames[c.slot]&&/^[0-9a-f-]{36}$/i.test(c.eventId||'')):[];
@@ -109,7 +109,7 @@
     '<div class="form48-intelligence-slots">'+slotMarkup+'</div>'+
     evidence+(options?.resolvedDirection?'<p>Historical gate direction reviewed; original scan preserved and official departure verified.</p>':'')+
     (allowed.some(c=>c.requiresDirectionConfirmation)?'<p>The last scan was recorded as entry. Confirm independent evidence of departure before applying the original time; the clock alone does not establish direction.</p>':'')+
-    '<h5>Evidence requiring attention</h5>'+flags+
+    '<h5>'+(reviews.length?'Evidence requiring attention':'Review status')+'</h5>'+flags+
     (count===0?'<p class="form48-intelligence-empty">No gate evidence was found for this date. This is not proof of absence.</p>':'')+
     approval+
     '<p class="form48-intelligence-disclaimer">Read-only evidence preview. Suggestions alone are not official Form 48 punches or proof of completed OB. No record was changed by this preview.</p>';

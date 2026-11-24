@@ -1,4 +1,4 @@
-const CACHE = "attendigo-v372-mobile-layout-foundation";
+const CACHE = "attendigo-v373-smart-attendance-review-sync";
 
 // Only public, non-personal offline shells and their executable dependencies.
 // An update must not discard the working cache before these are all ready.
@@ -119,12 +119,12 @@ const SHELL = [
   "/form48-report.js?v=20",
   "/missing-scan-ui.js?v=7",
   "/missing-scan-ui.css?v=3",
-  "/form48-intelligence.js?v=3",
+  "/form48-intelligence.js?v=4",
   "/form48-bulk-ui.js?v=3",
-  "/form48-report.css?v=17",
-  "/smart-attendance-overview.css?v=4",
+  "/form48-report.css?v=18",
+  "/smart-attendance-overview.css?v=5",
   "/role-controls-responsive.css?v=2",
-  "/smart-attendance-overview.js?v=4",
+  "/smart-attendance-overview.js?v=5",
   "/my-gate-insights.css?v=4",
   "/staff-lunch-ui.js?v=7",
   "/staff-precise-location.js?v=1",

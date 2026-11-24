@@ -23,10 +23,10 @@ test('Simplified Form 48 preserves print and DTR source and invalidates old cach
  assert.match(js,/function printDtrFromIsolatedPage\(output,status\)/);
  assert.match(js,/@page\{size:A4 portrait;margin:5mm\}/);
  assert.match(js,/api\('\/api\/staff-attendance\/admin\/form48\/analysis\?/);
- assert.match(html,/form48-report\.css\?v=17/);
+ assert.match(html,/form48-report\.css\?v=18/);
  assert.match(html,/form48-report\.js\?v=20/);
  assertCacheRevisionAtLeast(sw,316);
- assert.match(sw,/form48-report\.css\?v=17/);
+ assert.match(sw,/form48-report\.css\?v=18/);
  assert.match(sw,/form48-report\.js\?v=20/);
 });
 

@@ -609,3 +609,16 @@
  body.portal-page #form48ReportCard #form48FilterForm {grid-template-columns:repeat(2,minmax(0,1fr))!important}
  body.portal-page #form48ReportCard #form48FilterForm button {min-width:0!important;max-width:100%!important;white-space:normal!important}
 }
+
+@media screen{
+ body.portal-page #form48ReportCard .form48-intelligence-body{padding:12px}
+ body.portal-page #form48ReportCard .form48-intelligence-slots{gap:7px;grid-template-columns:repeat(4,minmax(0,1fr))}
+ body.portal-page #form48ReportCard .form48-intelligence-slot{padding:9px;gap:3px;min-width:0;overflow-wrap:anywhere}
+ body.portal-page #form48ReportCard #form48GateReviewResult{min-width:0;max-width:100%;overflow-wrap:anywhere}
+ body.portal-page #form48ReportCard :is(.form48-gate-intelligence,.form48-advanced-wrapper,.form48-daily-insights)>summary{display:grid!important;grid-template-columns:minmax(0,1fr) auto;gap:3px 10px;align-items:center!important;min-height:44px;box-sizing:border-box}
+ body.portal-page #form48ReportCard :is(.form48-gate-intelligence,.form48-advanced-wrapper,.form48-daily-insights)>summary small{grid-column:1/-1;grid-row:2}
+ body.portal-page #form48ReportCard .form48-gate-intelligence>summary::after{grid-column:2;grid-row:1}
+}
+@media screen and (max-width:800px){
+ body.portal-page #form48ReportCard .form48-intelligence-slots{grid-template-columns:repeat(2,minmax(0,1fr))}
+}

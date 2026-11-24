@@ -22,6 +22,7 @@
   const hoursDetails=$('smartAttendanceHours'),hoursLabel=$('smartAttendanceHoursSummary');
   const hoursFeedback=$('smartHoursFeedback'),save=$('smartHoursSave');
   const preset=$('smartHoursPreset'),insights=$('form48DailyInsights');
+  const workdaysControl=$('smartHoursWorkdays'),workdaysLabel=$('smartHoursWorkdaysLabel');
   const fields=['smartHoursAmIn','smartHoursAmOut','smartHoursPmIn','smartHoursPmOut'].map($);
   const presets={'6-3':['06:00','11:00','12:00','15:00'],
    '7-4':['07:00','12:00','13:00','16:00'],
@@ -46,7 +47,7 @@
    el.className='smart-attendance-person';
    name.textContent=item.name;
    description.textContent=item.message;
-   count.textContent=String(item.gateCount)+' gate scan(s) · '+String(item.dtrCount)+'/4 official DTR times';
+   count.textContent=String(item.gateCount)+' gate scans · '+String(item.dtrCount)+'/4 official times'+(item.documentedCount?' · '+item.documentedCount+' documented':'');
    main.append(name,description);side.append(count);
    if(item.status==='review'||item.status==='pending'){
     const open=document.createElement('button');
@@ -95,12 +96,9 @@
    other.hidden=!notes.length;
    notes.forEach(x=>otherItems.append(row(x)));
    if(!data.schoolHoursConfigured){
-    say('School work hours need to be set once. Verified scans remain saved; open School working hours below.');
-    hoursLabel.textContent='Setup needed';
-    if(insights)insights.open=true;
-    if(hoursDetails)hoursDetails.open=true;
+    say('Checked '+data.date+'. School default schedule is incomplete; staff-specific schedules still apply.');
    }else{
-    say('Verified attendance checked for '+data.date+'. Review only the items listed above.');
+    say('Checked '+data.date+'. Review only the outstanding items.');
    }
   }
   async function load(){
@@ -130,11 +128,20 @@
    return values.every(Number.isInteger)&&values[0]<values[1]&&
     values[1]<=values[2]&&values[2]<values[3];
   }
+  const savedDays=()=>Array.isArray(defaults?.workdays)?defaults.workdays:[];
+  const selectedDays=()=>savedDays().length?savedDays():workdaysControl?.value==='weekdays'?[1,2,3,4,5]:[];
+  function scheduleLabel(){
+   if(!savedDays().length)return completeHours()?'Hours saved · choose workdays':'Choose workdays & hours';
+   if(!completeHours())return 'Regular hours needed';
+   if(savedDays().includes(6)){const h=defaults?.saturdayHours||{},v=['AM_IN','AM_OUT','PM_IN','PM_OUT'].map(k=>mins(h[k]));if(!v.every(Number.isInteger)||!(v[0]<v[1]&&v[1]<=v[2]&&v[2]<v[3]))return 'Saturday hours needed';}
+   return customSchedule?'Custom days · hours set':'Set for Monday–Friday';
+  }
   function updateSave(){
    const locked=busy||!defaults;
    fields.forEach(field=>{field.disabled=locked;});
    if(preset)preset.disabled=locked;
-   save.disabled=locked||!completeHours();
+   if(workdaysControl)workdaysControl.disabled=locked;
+   save.disabled=locked||!completeHours()||!selectedDays().length;
   }
   async function loadDefaults(){
    defaults=null;updateSave();
@@ -152,9 +159,9 @@
      preset.value=Object.entries(presets).find(([,times])=>times.every((t,i)=>fields[i].value===t))?.[0]||
        (completeHours()?'custom':'');
     }
-    hoursLabel.textContent=customSchedule
-     ?(completeHours()?'Custom days · hours set':'Custom days · hours needed')
-     :completeHours()?'Set for Monday–Friday':'Setup needed';
+    if(workdaysLabel)workdaysLabel.hidden=workdays.length>0;
+    if(workdaysControl)workdaysControl.value='';
+    hoursLabel.textContent=scheduleLabel();
     hoursFeedback.textContent=customSchedule
      ?(completeHours()
        ?'These regular-day hours are saved. Your custom working days and Saturday hours are already configured.'
@@ -162,6 +169,8 @@
      :completeHours()
       ?'These hours apply by default to staff without a separate saved schedule.'
       :'Enter the four official Monday–Friday times, then save once for the school.';
+    if(!workdays.length)hoursFeedback.textContent='Regular hours may already be saved, but no school workdays are configured. Select the approved workdays before saving.';
+    else if(hoursLabel.textContent==='Saturday hours needed')hoursFeedback.textContent='Regular hours are saved. Configure the approved Saturday hours using the detailed work schedule settings.';
     updateSave();
    }catch(err){
     defaults=null;save.disabled=true;
@@ -169,18 +178,20 @@
    }
   }
   save.addEventListener('click',async()=>{
-   if(busy||!defaults||!completeHours())return;
-   if(!window.confirm('Save these approved regular-day working hours? Your configured working days, Saturday hours, staff-specific schedules, and recorded DTR punches will remain unchanged.'))return;
+   if(busy||!defaults||!completeHours()||!selectedDays().length)return;
+   if(!window.confirm(savedDays().length?'Save these approved regular-day working hours? Your configured working days, Saturday hours, staff-specific schedules, and recorded DTR punches will remain unchanged.':'Set Monday–Friday as the approved school workdays and save these hours? Existing staff-specific schedules and DTR punches will remain unchanged.'))return;
    busy=true;updateSave();hoursFeedback.textContent='Saving school working hours…';
    try{
-    const current=defaults,submittedHours=readHours();
+    const current=defaults,submittedHours=readHours(),submittedDays=selectedDays();
     const result=await api('/api/staff-attendance/admin/form48/defaults',{
      method:'PUT',headers:{'Content-Type':'application/json'},
      body:JSON.stringify({...current,revision:current.revision,
-      regularHours:submittedHours})
+      regularHours:submittedHours,workdays:submittedDays})
     });
-    defaults={...current,regularHours:submittedHours,revision:result.revision};
-    hoursLabel.textContent=customSchedule?'Custom days · hours set':'Set for Monday–Friday';
+    defaults={...current,regularHours:submittedHours,workdays:submittedDays,revision:result.revision};
+    customSchedule=submittedDays.length!==5||![1,2,3,4,5].every(day=>submittedDays.includes(day));
+    if(workdaysLabel)workdaysLabel.hidden=true;
+    hoursLabel.textContent=scheduleLabel();
     hoursFeedback.textContent='School working hours saved. Existing working days, Saturday hours, and attendance punches were preserved.';
     await load();
    }catch(err){
@@ -205,6 +216,10 @@
    field.addEventListener('input',changed);field.addEventListener('change',changed);
   });
   document.addEventListener('attendigo:dashboard-refresh',event=>{if(!$('dashboardView')?.hidden)event.detail.tasks.push(load());});
+  workdaysControl?.addEventListener('change',updateSave);
+  document.addEventListener('attendigo:dtr-verified',load);
+  document.addEventListener('attendigo:requests-changed',()=>{if(insights?.open)void load();});
+  insights?.addEventListener('toggle',()=>{if(insights.open)void load();});
   refresh.addEventListener('click',load);
   date.addEventListener('change',load);
   loadDefaults();load();

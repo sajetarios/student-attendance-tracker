@@ -69,7 +69,7 @@ function registerStaffGateDtrRoutes(app,pool,{authenticateSchoolClient,requireSc
     return res.status(400).json({error:'Choose a valid school date, not in the future.'});
    const schoolId=req.auth.schoolId;
    try{
-    const [staff,schedules,defaults,gate,dtr,ob,calendar]=await Promise.all([
+    const [staff,schedules,defaults,gate,dtr,ob,calendar,documented]=await Promise.all([
      pool.query(`SELECT user_id AS "userId",display_name AS "displayName",role
       FROM school_users WHERE school_id=$1 AND active=TRUE
        AND role IN ('TEACHER','DEPARTMENT_HEAD','SCHOOL_ADMIN','PRINCIPAL')
@@ -78,15 +78,23 @@ function registerStaffGateDtrRoutes(app,pool,{authenticateSchoolClient,requireSc
        regular_hours AS "regularHours",saturday_hours AS "saturdayHours"
        FROM staff_form48_employee_schedules WHERE school_id=$1`,[schoolId]),
      require('./form48-bulk-routes').getSchoolForm48Defaults(pool,schoolId),
-     pool.query(`SELECT "staffUserId","eventType",time,"confirmedMissingReturnExit" FROM (
+     pool.query(`SELECT "staffUserId","eventType",time,"confirmedMissingReturnExit","reviewedActualExit" FROM (
       SELECT staff_user_id AS "staffUserId",
        CASE WHEN gate_direction='IN' THEN 'TIME_IN' ELSE 'TIME_OUT' END AS "eventType",
        to_char(occurred_at AT TIME ZONE 'Asia/Manila','HH24:MI') AS time,occurred_at,COALESCE(notes='GUARD_CONFIRMED_EXIT_MISSING_RETURN',FALSE) AS "confirmedMissingReturnExit"
-       FROM staff_attendance_events WHERE school_id=$1 AND school_date=$2::date
+       ,EXISTS(SELECT 1 FROM staff_attendance_audit a
+        JOIN staff_attendance_events punch ON punch.school_id=a.school_id AND punch.event_id::text=a.target_id::text
+        WHERE a.school_id=g.school_id AND a.action='ADMIN_GATE_TO_DTR_VERIFIED'
+         AND a.details->>'sourceGateEventId'=g.event_id::text AND a.details->>'confirmedActualDirection'='TIME_OUT'
+         AND a.details->>'originalDirection'='TIME_IN' AND a.details->>'slot'='PM_OUT'
+         AND punch.staff_user_id=g.staff_user_id AND punch.school_date=g.school_date
+         AND punch.event_kind='DTR_SLOT' AND punch.dtr_slot='PM_OUT' AND punch.verification_status='VERIFIED'
+         AND punch.occurred_at=g.occurred_at) AS "reviewedActualExit"
+       FROM staff_attendance_events g WHERE school_id=$1 AND school_date=$2::date
         AND event_kind='GATE_MOVEMENT' AND verification_status='VERIFIED'
       UNION ALL
       SELECT teacher_user_id AS "staffUserId",event_type AS "eventType",
-       to_char(occurred_at AT TIME ZONE 'Asia/Manila','HH24:MI') AS time,occurred_at,FALSE AS "confirmedMissingReturnExit"
+       to_char(occurred_at AT TIME ZONE 'Asia/Manila','HH24:MI') AS time,occurred_at,FALSE AS "confirmedMissingReturnExit",FALSE AS "reviewedActualExit"
        FROM teacher_gate_events t WHERE t.school_id=$1 AND t.school_date=$2::date
         AND t.photo_verified=TRUE
         AND NOT EXISTS(SELECT 1 FROM staff_attendance_events e WHERE
@@ -107,11 +115,15 @@ function registerStaffGateDtrRoutes(app,pool,{authenticateSchoolClient,requireSc
        AND ends_at>($2::date::timestamp AT TIME ZONE 'Asia/Manila')`,[schoolId,date]),
      pool.query(`SELECT exception_type FROM school_calendar_exceptions
       WHERE school_id=$1 AND calendar_date=$2::date
-       AND exception_type IN ('CLOSED','SHORTENED_DAY')`,[schoolId,date])
+       AND exception_type IN ('CLOSED','SHORTENED_DAY')`,[schoolId,date]),
+     pool.query(`SELECT staff_user_id AS "staffUserId",slot,to_char(verified_time,'HH24:MI') AS time
+      FROM staff_missing_scan_requests WHERE school_id=$1 AND school_date=$2::date
+      AND status='DOCUMENTED' AND head_reviewed_at IS NOT NULL AND head_user_id IS NOT NULL
+      AND verified_time IS NOT NULL AND evidence_bytes IS NOT NULL AND evidence_reference IS NOT NULL`,[schoolId,date])
     ]);
     const overview=require('./smart-attendance-overview').buildSmartOverview({
      date,staff:staff.rows,schedules:schedules.rows,defaults,
-     gate:gate.rows,dtr:dtr.rows,ob:ob.rows,calendarExceptions:calendar.rows
+     gate:gate.rows,dtr:dtr.rows,ob:ob.rows,calendarExceptions:calendar.rows,documentedExceptions:documented.rows
     });
     return res.json(overview);
    }catch(err){

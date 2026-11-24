@@ -12,8 +12,8 @@
   <link rel="stylesheet" href="/staff-lunch.css?v=7">
   <link rel="stylesheet" href="/staff-ob.css?v=1">
   <link rel="stylesheet" href="/department-workspace.css?v=1">
-  <link rel="stylesheet" href="/form48-report.css?v=17">
-  <link rel="stylesheet" href="/smart-attendance-overview.css?v=4">
+  <link rel="stylesheet" href="/form48-report.css?v=18">
+  <link rel="stylesheet" href="/smart-attendance-overview.css?v=5">
   <link rel="stylesheet" href="/my-gate-insights.css?v=4">
   <link rel="stylesheet" href="/portal.css?v=0.9.121"><link rel="stylesheet" href="/attendigo-brand-polish.css?v=2"><link rel="stylesheet" href="/parent-admin.css?v=8">
   <link rel="stylesheet" href="/schedule-mobile-layout.css?v=1">
@@ -1904,12 +1904,12 @@ body.dark-mode .content-wrap > .school-heading.is-compact,body[data-theme="dark"
           <section id="form48ReportsView" class="view-panel" hidden>
             <div class="surface-card section-card" id="form48ReportCard">
               <div class="section-toolbar form48-heading"><div><h3>Form 48 DTR</h3><p>Choose an employee and month, review attendance, then preview and print.</p></div><button id="form48OpenHours" class="outline-button" type="button">School hours</button></div>
-              <details id="form48DailyInsights" class="form48-daily-insights"><summary>Daily attendance checks &amp; school hours <small>Advanced tools</small></summary>
+              <details id="form48DailyInsights" class="form48-daily-insights"><summary>Daily attendance &amp; school hours <small>Exceptions and settings</small></summary>
               <section id="smartAttendanceOverview" class="smart-attendance-overview" aria-label="Smart attendance daily overview">
                 <div class="smart-attendance-head">
                   <div>
                     <h4>Smart Attendance</h4>
-                    <p>See verified scans and only the attendance items that need checking. No daily configuration needed.</p>
+                    <p>Review outstanding exceptions for the selected date.</p>
                   </div>
                   <div class="smart-attendance-date-control">
                     <label for="smartAttendanceDate">School date
@@ -1921,7 +1921,7 @@ body.dark-mode .content-wrap > .school-heading.is-compact,body[data-theme="dark"
                 <div id="smartAttendanceCounts" class="smart-attendance-counts" aria-live="polite">
                   <div><span>Verified gate scans</span><strong id="smartAttendanceScans">—</strong></div>
                   <div><span>Needs checking</span><strong id="smartAttendanceReviewCount">—</strong></div>
-                  <div><span>Missing official times to review</span><strong id="smartAttendancePendingCount">—</strong></div>
+                  <div><span>Staff with missing times</span><strong id="smartAttendancePendingCount">—</strong></div>
                 </div>
                 <p id="smartAttendanceStatus" role="status" aria-live="polite">Loading today's verified attendance…</p>
                 <div id="smartAttendanceItems" class="smart-attendance-items" aria-live="polite"></div>
@@ -1929,11 +1929,12 @@ body.dark-mode .content-wrap > .school-heading.is-compact,body[data-theme="dark"
                   <summary>Other recorded activity</summary>
                   <div id="smartAttendanceOtherItems" class="smart-attendance-items"></div>
                 </details>
-                <p class="smart-attendance-note">Only staff with recorded evidence appear here. No scan does not automatically mean absent. Clear verified scans can create audited DTR times; OB and uncertain movements still require review.</p>
+                <p class="smart-attendance-note">Only recorded activity is shown. Missing scans alone do not establish absence.</p>
                 <details id="smartAttendanceHours" class="smart-attendance-hours">
                   <summary>School working hours <small id="smartAttendanceHoursSummary">Checking school setup…</small></summary>
                   <div class="smart-attendance-hours-body">
                     <p>Set the approved hours for regular working days. Attendigo will use them for staff without an individual work schedule.</p>
+                    <label class="smart-hours-preset" id="smartHoursWorkdaysLabel" hidden>Approved working days<select id="smartHoursWorkdays"><option value="">Choose approved workdays</option><option value="weekdays">Monday–Friday</option></select><small>For custom days, use the detailed work schedule settings.</small></label>
                     <label class="smart-hours-preset" for="smartHoursPreset">Choose the school's approved working hours
                       <select id="smartHoursPreset">
                         <option value="">Select an approved schedule</option>
@@ -2013,7 +2014,7 @@ body.dark-mode .content-wrap > .school-heading.is-compact,body[data-theme="dark"
               <details id="form48GateIntelligence" class="form48-gate-intelligence">
                 <summary>Detailed scan review (optional) <small>Inspect one employee’s gate scans, OB exceptions, and possible AM/PM matches</small></summary>
                 <div class="form48-intelligence-body">
-                  <p>Compare verified gate movements with prescribed hours. Evidence preview does not change the DTR; an authorized administrator can explicitly verify and apply eligible original server-timestamped scans below.</p>
+                  <p>Review original scans against prescribed hours. Only explicit authorized verification changes the official DTR.</p>
                   <div class="form48-intelligence-controls">
                     <label for="form48GateReviewDate">School date
                       <input id="form48GateReviewDate" type="date" disabled>
@@ -2523,8 +2524,8 @@ body.dark-mode .content-wrap > .school-heading.is-compact,body[data-theme="dark"
   <script src="/teacher-dashboard-v3.js?v=1" defer></script>
   <script src="/teacher-teaching-overview.js?v=4" defer></script>
   <script src="/form48-report.js?v=20" defer></script>
-  <script src="/form48-intelligence.js?v=3" defer></script>
-  <script src="/smart-attendance-overview.js?v=4" defer></script>
+  <script src="/form48-intelligence.js?v=4" defer></script>
+  <script src="/smart-attendance-overview.js?v=5" defer></script>
   <script src="/form48-bulk-ui.js?v=3" defer></script>
   <script src="/teacher-roster-popover.js?v=2" defer></script>
   <script src="/sardo-monitor.js?v=2" defer></script><script src="/parent-dashboard.js?v=4" defer></script>
