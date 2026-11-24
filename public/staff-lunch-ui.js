@@ -183,11 +183,23 @@
       action.addEventListener('click',()=>issue().catch(()=>{}));
       async function issue(){
         if(busy||!assigned)return;
-        setBusy(true);clearQr();setStatus('Generating a secure, rotating department QR…');
+        setBusy(true);clearQr();setStatus('Verifying your location before generating the QR…');
+        let position=null,gpsError='';
         try{
+          if(!window.attendigoPreciseLocation)throw Error('Location service unavailable. Refresh Attendigo.');
+          position=await window.attendigoPreciseLocation.collectPreciseLocation({onProgress:quality=>{
+            setStatus('Checking department GPS: about '+quality.accuracyMeters+' m accuracy…');
+          }});
+        }catch(error){
+          gpsError=error?.code===1?'Location permission denied. Enable precise location in your phone and browser settings.':
+            'Could not capture fresh GPS. Enable location services and retry near your department.';
+        }
+        try{
+          // Report missing GPS too, allowing the server to revoke this presenter's old QR.
           const result=await request('/api/staff-attendance/lunch/challenges',{
-            method:'POST',body:JSON.stringify({slot:slot.value})
+            method:'POST',body:JSON.stringify({slot:slot.value,location:position})
           });
+          if(result.locationVerified!==true)throw Error('Presenter location was not verified. Refresh Attendigo and try again.');
           if(typeof result.qrImage!=='string'||!result.qrImage.startsWith('data:image/png;base64,'))
             throw Error('QR image unavailable. Please retry.');
           output.src=result.qrImage;
@@ -197,9 +209,9 @@
           // Monotonic time does not shift when someone changes the device wall clock.
           expiryMonotonicDeadline=performance.now()+Math.max(0,Math.min(60000,Number(result.remainingMs)));
           rotationMonotonicDeadline=performance.now()+30000;
-          setStatus(slotLabel(slot.value)+' QR ready. Staff scan with their own signed-in phone.');
+          setStatus('Location verified — '+slotLabel(slot.value)+' QR ready. Staff scan with their own signed-in phone.');
           if(expiry)expiry.textContent='Changes every 30 seconds. Previous QR remains valid briefly for slow connections.';
-        }catch(error){clearQr();setStatus(error.message,true);}finally{setBusy(false);}
+        }catch(error){clearQr();setStatus(error.message+(gpsError?' '+gpsError:'')+' QR stopped. Use the Gatekeeper fallback if needed.',true);}finally{setBusy(false);}
       }
       // Rotations happen only in the visible presenter view. The backend
       // overlaps at most a short 60-second validity window for slow networks.

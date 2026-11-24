@@ -1,12 +1,12 @@
 'use strict';
 const test=require('node:test'),assert=require('node:assert/strict'),fs=require('node:fs');
 const {registerStaffLunchRoutes}=require('../staff-lunch-routes');
-function fixture(role='TEACHER',assigned=true){
+function fixture(role='TEACHER',assigned=true,configured=true){
  const endpoints=new Map(),queries=[],auth=(req,res,next)=>next(),roles=(...allowed)=>(req,res,next)=>allowed.includes(req.auth.role)?next():res.status(403).json({error:'Forbidden'});
- const pool={async connect(){return {async query(sql,params){queries.push({sql,params});if(sql.includes('FROM staff_lunch_presenter_assignments'))return {rowCount:assigned?1:0,rows:assigned?[{}]:[]};if(sql.includes('SELECT issued_at FROM staff_attendance_challenges'))return {rowCount:0,rows:[]};return {rowCount:1,rows:[]};},release(){}};}};
+ const pool={async connect(){return {async query(sql,params){queries.push({sql,params});if(sql.includes('FROM staff_lunch_presenter_assignments'))return {rowCount:assigned?1:0,rows:assigned?[{}]:[]};if(sql.includes('SELECT d.department_id,s.setting_value AS point'))return {rowCount:1,rows:[{department_id:'department-a',point:configured?{latitude:9,longitude:125,radiusMeters:120}:null}]};if(sql.includes('SELECT issued_at FROM staff_attendance_challenges'))return {rowCount:0,rows:[]};return {rowCount:1,rows:[]};},release(){}};}};
  registerStaffLunchRoutes({post(path,...handlers){endpoints.set(path,handlers)},get(path,...handlers){endpoints.set(path,handlers)},put(path,...handlers){endpoints.set(path,handlers)},delete(path,...handlers){endpoints.set(path,handlers)}},pool,{authenticateSchoolClient:auth,requireSchoolRoles:roles});
  const response={code:200,headers:{},set(k,v){this.headers[k]=v;return this;},status(n){this.code=n;return this;},json(body){this.body=body;return this;}};
- const req={body:{slot:'AM_OUT'},auth:{type:'SCHOOL_USER',role,schoolId:'school-a',userId:'teacher-a'}};
+ const req={body:{slot:'AM_OUT',location:{latitude:9,longitude:125,accuracyMeters:12,capturedAt:Date.now()}},auth:{type:'SCHOOL_USER',role,schoolId:'school-a',userId:'teacher-a'}};
  return {handlers:endpoints.get('/api/staff-attendance/lunch/challenges'),req,response,queries};
 }
 async function execute(f){let next;for(const handler of f.handlers){if(f.response.body)break;let called=false;await handler(f.req,f.response,()=>{called=true});if(!called)break;}return f.response;}
@@ -25,6 +25,7 @@ test('authorized issuance stores only hash and commits audit before returning to
  assert.equal(res.code,201);
  assert.equal(res.headers['Cache-Control'],'no-store, private');
  assert.equal(res.body.slot,'AM_OUT');
+ assert.equal(res.body.locationVerified,true);
  const challenge=f.queries.find(q=>q.sql.includes('INSERT INTO staff_attendance_challenges'));
  assert.ok(challenge);
  assert.equal(challenge.params[1],'school-a');
@@ -147,4 +148,25 @@ test('missing department location produces a reviewable scan, never a verified D
  assert.equal(insert.params[5],'PENDING_VERIFICATION');
  assert.equal(insert.params[6],null);
  assert.ok(f.queries.some(q=>q.sql.includes('INSERT INTO staff_attendance_audit')));
+});
+
+test('presenter QR issuance fails closed and revokes own outstanding codes for missing, stale or remote GPS',async()=>{
+ for(const [location,code] of [[null,'LOCATION_NOT_AVAILABLE'],
+  [{latitude:10,longitude:126,accuracyMeters:10,capturedAt:Date.now()},'OUTSIDE_DEPARTMENT_AREA'],
+  [{latitude:9,longitude:125,accuracyMeters:10,capturedAt:Date.now()-45000},'LOCATION_SAMPLE_STALE'],
+  [{latitude:9.001,longitude:125,accuracyMeters:25,capturedAt:Date.now()},'DEPARTMENT_BOUNDARY_UNCERTAIN']]){
+  const f=fixture();f.req.body.location=location;
+  const res=await execute(f);assert.equal(res.code,403);assert.equal(res.body.code,code);
+  assert.ok(!f.queries.some(q=>q.sql.includes('INSERT INTO staff_attendance_challenges')));
+  const revoke=f.queries.find(q=>q.sql.includes('UPDATE staff_attendance_challenges SET revoked_at'));
+  assert.deepEqual(revoke.params.slice(2),['AM_OUT','teacher-a']);
+  assert.equal(f.queries.at(-1).sql,'COMMIT');
+ }
+});
+test('unapproved department location blocks presenter issuance even for an administrator',async()=>{
+ for(const role of ['TEACHER','SCHOOL_ADMIN']){
+  const f=fixture(role,true,false),res=await execute(f);
+  assert.equal(res.code,403);assert.equal(res.body.code,'DEPARTMENT_LOCATION_NOT_CONFIGURED');
+  assert.ok(!f.queries.some(q=>q.sql.includes('INSERT INTO staff_attendance_challenges')));
+ }
 });

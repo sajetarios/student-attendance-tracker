@@ -26,7 +26,9 @@ test('rotating a challenge preserves a short overlap and presenter revocation re
  const issue=routes.slice(routes.indexOf("app.post('/api/staff-attendance/lunch/challenges'"),routes.indexOf("app.post('/api/staff-attendance/lunch/redeem'"));
  assert.match(issue,/MIN_ROTATION_MS/);
  assert.match(issue,/presenter_user_id=\$4 ORDER BY issued_at DESC LIMIT 1/);
- assert.doesNotMatch(issue,/UPDATE staff_attendance_challenges SET revoked_at/);
+ const successful=issue.slice(issue.indexOf('// At most one new QR every 20 seconds'));
+ assert.doesNotMatch(successful,/UPDATE staff_attendance_challenges SET revoked_at/);
+ assert.match(issue,/if\(!presence\.verified\)\{[\s\S]*?UPDATE staff_attendance_challenges SET revoked_at/);
 });
 test('revocation targets one assigned presenter and preserves audit',()=>{
  const revoke=routes.slice(routes.indexOf("app.delete('/api/staff-attendance/lunch/presenter'"),routes.indexOf("app.post('/api/staff-attendance/lunch/challenges'"));

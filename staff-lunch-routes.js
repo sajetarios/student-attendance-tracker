@@ -150,6 +150,44 @@ function registerStaffLunchRoutes(app,pool,{authenticateSchoolClient,requireScho
     );
     if(!permission.rowCount){await client.query('ROLLBACK');return res.status(403).json({error:'Not assigned to present the lunch QR.'});}
    }
+   // Resolve the presenter's current department and approved point on the server.
+   // An administrator is not exempt from the same GPS requirement.
+   const department=await client.query(`SELECT d.department_id,s.setting_value AS point
+     FROM school_users u
+     JOIN school_departments d ON d.school_id=u.school_id AND d.department_id=u.department_id
+     LEFT JOIN school_settings s ON s.school_id=d.school_id
+       AND s.setting_key='staff_lunch_geo_'||d.department_id::text
+     WHERE u.school_id=$1 AND u.user_id=$2 AND u.active=TRUE
+       AND d.active=TRUE AND d.department_code<>'UNASSIGNED'`,
+     [req.auth.schoolId,req.auth.userId]);
+   const location=department.rows[0],now=Date.now();
+   const evidence=assessLocationEvidence(req.body?.location,now);
+   let presence=classifyDepartmentPresence(location?.point,req.body?.location,now);
+   if(presence.verified&&now-evidence.point.capturedAt>30000)
+    presence={verified:false,reason:'LOCATION_SAMPLE_STALE'};
+   if(!presence.verified){
+    // Only invalidate this presenter's own outstanding codes for this slot.
+    // Commit the revocation even though QR issuance itself is refused.
+    const revoked=await client.query(`UPDATE staff_attendance_challenges SET revoked_at=NOW()
+     WHERE school_id=$1 AND school_date=$2::date AND dtr_slot=$3
+       AND presenter_user_id=$4 AND revoked_at IS NULL
+       AND expires_at>NOW()-INTERVAL '90 seconds'`,
+     [req.auth.schoolId,manilaDate(),slot,req.auth.userId]);
+    if(revoked.rowCount)await client.query(`INSERT INTO staff_attendance_audit
+     (school_id,actor_user_id,action,target_type,target_id,details)
+     VALUES($1,$2,'LUNCH_PRESENTER_LOCATION_BLOCKED','SCHOOL_USER',$2,$3::jsonb)`,
+     [req.auth.schoolId,req.auth.userId,JSON.stringify({slot,reason:presence.reason,revoked:revoked.rowCount})]);
+    await client.query('COMMIT');
+    const messages={
+     DEPARTMENT_LOCATION_NOT_CONFIGURED:'Your department has no approved attendance location. Ask the School Admin.',
+     OUTSIDE_DEPARTMENT_AREA:'You are outside the approved department attendance area.',
+     DEPARTMENT_BOUNDARY_UNCERTAIN:'Your GPS accuracy overlaps the department boundary. Move closer to the approved point and retry.',
+     LOCATION_NOT_AVAILABLE:'Location is unavailable. Enable precise location and try again.',
+     LOCATION_SAMPLE_STALE:'Your GPS reading is too old. Request a fresh location and retry.'
+    };
+    return res.status(403).json({error:messages[presence.reason]||'GPS evidence is not precise or consistent enough. Move closer to the department and retry.',
+      code:presence.reason,locationVerified:false});
+   }
    // At most one new QR every 20 seconds per presenter. Overlapping challenges
    // let a slow browser submit the previously displayed QR without trusting
    // a device-supplied clock. Tokens remain valid for only 60 seconds.
@@ -181,12 +219,13 @@ function registerStaffLunchRoutes(app,pool,{authenticateSchoolClient,requireScho
    await client.query(
     `INSERT INTO staff_attendance_audit(school_id,actor_user_id,action,target_type,target_id,details)
      VALUES($1,$2,'LUNCH_CHALLENGE_ISSUED','LUNCH_CHALLENGE',$3,$4::jsonb)`,
-    [req.auth.schoolId,req.auth.userId,id,JSON.stringify({slot,date})]
+    [req.auth.schoolId,req.auth.userId,id,JSON.stringify({slot,date,presenterLocationVerified:true,
+      departmentId:location.department_id,accuracyMeters:presence.accuracyMeters})]
    );
    await client.query('COMMIT');
    // Remaining TTL is computed on the server; presenter device clocks are not trusted.
    const remainingMs=Math.max(0,challenge.expiresAt.getTime()-Date.now());
-   return res.status(201).json({challengeId:id,token:challenge.token,qrImage,slot,schoolDate:date,expiresAt:challenge.expiresAt,remainingMs});
+   return res.status(201).json({challengeId:id,token:challenge.token,qrImage,slot,schoolDate:date,expiresAt:challenge.expiresAt,remainingMs,locationVerified:true});
   } catch(error) {
    await client.query('ROLLBACK').catch(()=>{});
    console.error('Staff lunch challenge issue failed:',error.message);
