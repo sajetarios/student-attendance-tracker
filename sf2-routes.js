@@ -764,7 +764,7 @@ function registerSf2Routes(app, pool, { authenticateSchoolClient, requireSchoolU
       );
       if (!student.rowCount) return res.status(404).json({ error: 'Learner not found.' });
       const access = await getSectionAccess(req, student.rows[0].gradeLevel, student.rows[0].section);
-      if (!access.allowed || !access.canConfirmAbsence) return res.status(403).json({ error: 'Only the School Administrator or assigned Class Adviser may confirm a daily SF2 absence.' });
+      if (!access.allowed || !access.canConfirmAbsence) return res.status(403).json({ error: 'Only the assigned Class Adviser may confirm a daily SF2 absence.' });
       const hasPresent = await pool.query(
         `SELECT 1 FROM attendance_events WHERE school_id=$1 AND student_id=$2 AND school_date=$3
            AND attendance_scope IN ('CLASS','ADVISORY') AND event_type='TIME_IN'
@@ -783,7 +783,8 @@ function registerSf2Routes(app, pool, { authenticateSchoolClient, requireSchoolU
        return res.status(409).json({error:'This was a non-class date or a full-day learner suspension. A normal SF2 absence cannot be confirmed for this date.'});
       if(calendar.rows[0]?.exception_type==='CLASS_SUSPENSION'&&String(note||'').trim().length<12)
        return res.status(409).json({error:'A mid-day suspension requires a documented Class Adviser review of classes held before the cutoff (at least 12 characters).'});
-      const savedNote = String(note || 'Class Adviser/Admin confirmed that all scheduled subject attendance was reviewed.').slice(0, 500);
+      const savedNote=String(note||'').trim().slice(0,500);
+      if(savedNote.length<12)return res.status(400).json({error:'Document the evidence confirming full-day absence (at least 12 characters). A single subject absence or missing scan is insufficient.'});
       await pool.query(
         `INSERT INTO sf2_daily_overrides(school_id,student_id,school_date,status,absence_type,note,recorded_by_user_id)
          VALUES($1,$2,$3,'ABSENT',$4,$5,$6)
@@ -809,7 +810,7 @@ function registerSf2Routes(app, pool, { authenticateSchoolClient, requireSchoolU
       );
       if (!student.rowCount) return res.status(404).json({ error: 'Learner not found.' });
       const access = await getSectionAccess(req, student.rows[0].gradeLevel, student.rows[0].section);
-      if (!access.allowed || !access.canConfirmAbsence) return res.status(403).json({ error: 'Only the School Administrator or assigned Class Adviser may remove an absence confirmation.' });
+      if (!access.allowed || !access.canConfirmAbsence) return res.status(403).json({ error: 'Only the assigned Class Adviser may remove an absence confirmation.' });
       await pool.query('DELETE FROM sf2_daily_overrides WHERE school_id=$1 AND student_id=$2 AND school_date=$3', [req.auth.schoolId, studentId, date]);
       return res.json({ ok: true });
     } catch (err) {
