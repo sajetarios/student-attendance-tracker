@@ -3,7 +3,44 @@
   const root = document.getElementById('parentsView'); if (!root) return; const $ = id => root.querySelector('#' + id); const esc = v => String(v ?? '').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 
   async function api(url, options={}) { const headers = new Headers(options.headers||{});  if(options.body) headers.set('Content-Type','application/json'); const r=await fetch(url,{...options,headers,cache:'no-store'}); const d=await r.json().catch(()=>({})); if(!r.ok) throw new Error(d.error||`Request failed (${r.status})`); return d; }
-  async function init(){ const me=await api('/api/auth/me'); if(me.user.role!=='SCHOOL_ADMIN') return; /* Parent Management is admin-only; do not redirect other staff roles back to this same portal. */ await load(); }
+  async function init(){ const me=await api('/api/auth/me'); if(me.user.role!=='SCHOOL_ADMIN') return; /* Parent Management is admin-only; do not redirect other staff roles back to this same portal. */ await Promise.all([load(),loadSubjectNotificationSetting()]); }
+
+  async function loadSubjectNotificationSetting() {
+    const feedback=$('parentSubjectNoticeFeedback'), save=$('parentSubjectNoticeSave');
+    if(!feedback || !save) return;
+    try{
+      const setting=await api('/api/parent/subject-notifications/settings');
+      $('parentSubjectNoticeEnable').checked=setting.enabled===true;
+      feedback.textContent=setting.enabled?'Subject alerts are enabled.':'Subject alerts are disabled for this school.';
+      save.disabled=false;
+    }catch(error){
+      save.disabled=true;
+      feedback.textContent='Cannot load subject notification settings: '+error.message;
+    }
+  }
+  const subjectSave=$('parentSubjectNoticeSave');
+  if(subjectSave)subjectSave.addEventListener('click',async()=>{
+    const checkbox=$('parentSubjectNoticeEnable'),feedback=$('parentSubjectNoticeFeedback');
+    const enabled=checkbox.checked;
+    if(enabled && !await AppDialog.confirm('Enable in-app subject attendance alerts to all approved parents in this school when teachers finalize class registers? Confirm pilot parent links are correct first.',{
+      title:'Enable subject notifications',confirmText:'Enable alerts'
+    })){
+      await loadSubjectNotificationSetting();
+      return;
+    }
+    subjectSave.disabled=true;
+    feedback.textContent='Saving notification settings…';
+    try{
+      const result=await api('/api/parent/subject-notifications/settings',{
+        method:'PUT',body:JSON.stringify({enabled})
+      });
+      checkbox.checked=result.enabled===true;
+      feedback.textContent=result.enabled?'Subject alerts enabled. Only future finalizations will notify parents.':'Subject alerts disabled.';
+    }catch(error){
+      feedback.textContent='Could not save: '+error.message;
+      await loadSubjectNotificationSetting();
+    }finally{subjectSave.disabled=false;}
+  });
   let currentTab='all', lastParents=[], lastRegistrations=[];
   const count = n => Number(n||0).toLocaleString('en-PH');
   function decorate(){
