@@ -183,7 +183,7 @@ function createReferenceWorkbook({source,data,summary,month,monthName,schoolName
   merge('AE117:AF118','Month:',header);
   merge('AG117:AG118',monthName,header);
   merge('AH117:AI118','No. of Days of Classes:',header);
-  const dayCell=merge('AJ117:AJ118',personalCopy?null:summary.days,header);
+  merge('AJ117:AJ118',personalCopy?null:summary.days,header);
   merge('AK117:AM117','Summary for the Month',header);
   ['AK','AL','AM'].forEach((c,i)=>put(c+'118',['M','F','TOTAL'][i],header));
   const metrics=[[119,'* Enrolment as of (1st Friday of the SY)','early'],[121,'Late Enrollment during the month (beyond cut-off)','late'],[123,'Registered Learner as of end of the month','registered'],[125,'Percentage of Enrolment as of end of the month','enrollmentRate'],[127,'Average Daily Attendance','average'],[128,'Percentage of Attendance for the month','attendanceRate'],[130,'Number of students with 5 consecutive days of absences:','consecutive'],[132,'NLS','dropout'],[134,'Transferred out','transferOut'],[136,'Transferred in','transferIn']];
@@ -200,6 +200,33 @@ function createReferenceWorkbook({source,data,summary,month,monthName,schoolName
       if(key==='enrollmentRate')formula(cell,'IFERROR('+col+'123/'+col+'119,"N/A")',divide(values.registered,values.early),'0%');
       else if(key==='average')formula(cell,'IFERROR(AG'+[63,114,115][i]+'/$AJ$117,"N/A")',divide(values.presentDays,summary.days),'0.00');
       else if(key==='attendanceRate')formula(cell,'IFERROR('+col+'127/'+col+'123,"N/A")',divide(values.presentDays,values.registered*summary.days),'0%');
+      else if(key==='registered'&&i<2)formula(cell,'COUNTA($B
+      else {cell.value=values[key];cell.numFmt='0';}
+    });
+  }
+  put('AE139',personalCopy?'Unofficial — subject attendance only.':'I certify that this is a true and correct report.',{size:11,wrap:false});
+  merge('AE140:AM141',personalCopy?null:(adviserName||null),{align:'center'});
+  merge('AE142:AM142',personalCopy?'Not for official submission':'(Signature of Adviser over Printed Name)',{align:'center'});
+  put('AE144',personalCopy?null:'Attested by:');
+  merge('AE145:AM145',personalCopy?null:(schoolHeadName||null),{align:'center'});
+  merge('AE146:AM146',personalCopy?null:'(Signature of School Head over Printed Name)',{align:'center'});
+  return wb;
+}
+module.exports={createReferenceWorkbook,referenceDateSlots,LAYOUT};
++[13,64][i]+':$B
+      else {cell.value=values[key];cell.numFmt='0';}
+    });
+  }
+  put('AE139',personalCopy?'Unofficial — subject attendance only.':'I certify that this is a true and correct report.',{size:11,wrap:false});
+  merge('AE140:AM141',personalCopy?null:(adviserName||null),{align:'center'});
+  merge('AE142:AM142',personalCopy?'Not for official submission':'(Signature of Adviser over Printed Name)',{align:'center'});
+  put('AE144',personalCopy?null:'Attested by:');
+  merge('AE145:AM145',personalCopy?null:(schoolHeadName||null),{align:'center'});
+  merge('AE146:AM146',personalCopy?null:'(Signature of School Head over Printed Name)',{align:'center'});
+  return wb;
+}
+module.exports={createReferenceWorkbook,referenceDateSlots,LAYOUT};
++[62,113][i]+')',values.registered,'0');
       else if(i===2)formula(cell,'SUM(AK'+r+':AL'+r+')',values[key],'0');
       else {cell.value=values[key];cell.numFmt='0';}
     });
