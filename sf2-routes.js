@@ -637,7 +637,8 @@ function registerSf2Routes(app, pool, { authenticateSchoolClient, requireSchoolU
     for (let index=0; index<25; index++) {
       const cell=worksheet.getCell(62,4+index);
       const recorded = data.students.some(student=>['PRESENT','LATE','SUBJECT_ABSENT','EXCUSED'].includes(student.subjectDays?.[index] || student.days[index]));
-      cell.value = index>=data.dates.length || (personalCopy && !recorded) ? null : maleDaily[index]+femaleDaily[index];
+      if (index>=data.dates.length || (personalCopy && !recorded)) cell.value = null;
+      else worksheet.getCell(62, 4 + index).value = maleDaily[index] + femaleDaily[index];
       if (personalCopy) cell.alignment = { ...cell.alignment, horizontal:'center', vertical:'middle', textRotation:0, shrinkToFit:true };
     }
 
