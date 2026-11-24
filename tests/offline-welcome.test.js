@@ -191,3 +191,26 @@ test('offline tools use the branded light palette independently of OS dark mode'
   const sheet=fs.readFileSync(path.join(root,'public','offline-sheet.html'),'utf8');
   assert.match(sheet,/html\[data-offline-sheet="true"\]\[data-theme="light"\]\{--asc-surface:#ffffff/);
 });
+
+test('offline appearance defaults to light and changes only through an explicit choice',()=>{
+ const names=['offline-sheet.html','gate-offline.html','student-qr-offline.html'];
+ let stored=null;
+ for(const name of names){
+   const html=fs.readFileSync(path.join(root,'public',name),'utf8');
+   assert.match(html,/id="offlineThemeToggle"/);
+   assert.match(html,/html\[data-theme="dark"\] body\.offline-workspace/);
+   const source=html.match(/<script id="offlineAppearanceScript">([\s\S]*?)<\/script>/)[1];
+   const rootEl={dataset:{theme:'light'}},meta={},button={textContent:'',setAttribute(k,v){this[k]=v;},addEventListener(k,fn){this[k]=fn;}};
+   const listeners={};
+   const document={documentElement:rootEl,querySelector:()=>meta,getElementById:()=>button,addEventListener(k,fn){listeners[k]=fn;}};
+   const window={addEventListener(){}};
+   vm.runInNewContext(source,{document,window,localStorage:{getItem:()=>stored,setItem:(k,v)=>{stored=v;}}});
+   listeners.DOMContentLoaded();
+   assert.equal(rootEl.dataset.theme,stored==='dark'?'dark':'light');
+   const before=rootEl.dataset.theme;
+   button.click();
+   assert.equal(rootEl.dataset.theme,before==='dark'?'light':'dark');
+   assert.equal(stored,rootEl.dataset.theme);
+   assert.equal(button['aria-pressed'],String(stored==='dark'));
+ }
+});

@@ -1,4 +1,4 @@
-const CACHE = "attendigo-v357-light-offline-tools";
+const CACHE = "attendigo-v358-offline-appearance-choice";
 
 const SHELL = [
   "/typography.css?v=1",
