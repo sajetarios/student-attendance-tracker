@@ -97,6 +97,8 @@ test('migration keeps API-only subscriptions and explicit school opt-in',()=>{
  const portal=fs.readFileSync('public/parent-portal.html','utf8');
  const sw=fs.readFileSync('public/sw.js','utf8');
  assert.match(migration,/ENABLE ROW LEVEL SECURITY/);
+ assert.equal((migration.match(/DO \$\$ BEGIN/g)||[]).length,2);
+ assert.doesNotMatch(migration,/DO \$ BEGIN/);
  assert.match(migration,/parent_push_deliveries/);
  assert.match(migration,/queue_parent_subject_push/);
  assert.match(migration,/parent_subject_notifications/);
