@@ -195,3 +195,46 @@
     html body.portal-page :is(.section-toolbar h3,.card-heading h3,.card-heading h4) {font-size:20px;}
   }
 }
+
+/* Sidebar typography: a modest reading-size increase, including nested menus.
+   Keep the desktop icon-only rail and permission-controlled visibility intact. */
+@media screen {
+  html body.portal-page .portal-layout #sidebar.sidebar {
+    --ag-nav-main:17px;--ag-nav-child:16px;
+  }
+  html body.portal-page .portal-layout #sidebar.sidebar .side-nav :is(.nav-item,.nav-group-toggle),
+  html body.portal-page .portal-layout #sidebar.sidebar .side-nav :is(.nav-item,.nav-group-toggle) .nav-label {
+    font-size:var(--ag-nav-main)!important;line-height:1.35!important;
+  }
+  html body.portal-page .portal-layout #sidebar.sidebar .side-nav .nav-submenu .nav-item,
+  html body.portal-page .portal-layout #sidebar.sidebar .side-nav .nav-submenu .nav-item .nav-label {
+    font-size:var(--ag-nav-child)!important;
+  }
+  html body.portal-page .portal-layout #sidebar.sidebar .side-nav .nav-label {
+    min-width:0;white-space:normal!important;overflow-wrap:break-word!important;
+  }
+  html body.portal-page .portal-layout #sidebar.sidebar .sidebar-section-label,
+  html body.portal-page .portal-layout #sidebar.sidebar .attendigo-help-dock-title {
+    font-size:14px!important;letter-spacing:.04em!important;line-height:1.35!important;
+  }
+  html body.portal-page .portal-layout #sidebar.sidebar .attendigo-help-launcher .attendigo-help-label {
+    font-size:16px!important;line-height:1.35!important;white-space:normal!important;
+    min-width:0;overflow-wrap:break-word!important;
+  }
+  @media(min-width:861px) {
+    html body.portal-page .portal-layout:not(.sidebar-collapsed) {
+      grid-template-columns:252px minmax(0,1fr)!important;
+    }
+    html body.portal-page .portal-layout:not(.sidebar-collapsed) > #sidebar.sidebar {
+      width:252px!important;min-width:252px!important;
+    }
+    html body.portal-page .portal-layout:not(.sidebar-collapsed) #sidebar.sidebar .side-nav :is(.nav-item,.nav-group-toggle) {
+      min-height:44px!important;height:auto!important;
+    }
+  }
+  @media(max-width:860px) {
+    html body.portal-page .portal-layout #sidebar.sidebar.open .side-nav :is(.nav-item,.nav-group-toggle) {
+      min-height:44px!important;height:auto!important;
+    }
+  }
+}
