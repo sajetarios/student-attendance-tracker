@@ -33,7 +33,9 @@ for(const b of benchmarks) test('SF2 reconciled benchmark '+b.month+' actual XLS
     if(sql.includes('FROM school_calendar_exceptions'))return result([]);
     if(sql.includes('FROM school_settings'))return result([{setting_key:'school_name',setting_value:'TEST SCHOOL'}]);
     if(sql.includes('SELECT start_date FROM school_years'))return result([{start_date:'2026-06-01'}]);
-    // A synthetic current roster, NOT a claim about historical enrollment.
+    // October reference correction confirmed by the user: beginning enrollment was
+    // incorrectly entered as 40; the correct total is 28 (3 male, 25 female).
+    // This synthetic fixture models that corrected baseline, not a production data edit.
     if(sql.includes('FROM student_enrollments e JOIN school_years sy'))return result(roster.map(x=>({sex:x.sex,student_id:x.id,enrollmentDate:'2026-06-01'})));
     if(sql.includes('FROM student_movements m'))return result([]);
     throw Error('Unexpected SQL: '+sql);
@@ -76,7 +78,10 @@ for(const b of benchmarks) test('SF2 reconciled benchmark '+b.month+' actual XLS
   const total=b.present[0]+b.present[1];
   for(const [i,n,denom] of [[34,b.present[0],3],[35,b.present[1],25],[36,total,28]]){
     const cell=(r)=>{const c=sheet.getCell(r,i);return (c.isMerged?c.master:c).value;};
+    assert.equal(cell(66),denom); // Beginning enrollment: corrected reference
+    assert.equal(cell(68),0); // No late enrollment in this fixture
     assert.equal(cell(70),denom);
+    assert.equal(cell(72),'100.0%'); // Corrected enrollment percentage
     assert.ok(Math.abs(Number(cell(74))-n/b.days)<1e-10);
     assert.equal(cell(75),(100*n/(denom*b.days)).toFixed(1)+'%');
     assert.equal(cell(77),0);
