@@ -5,7 +5,7 @@ const { manilaDate } = require('./staff-lunch-routes');
 
 const UUID = /^[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}$/i;
 const SLOTS = ['AM_IN', 'AM_OUT', 'PM_IN', 'PM_OUT'];
-const ROLES = ['TEACHER', 'DEPARTMENT_HEAD', 'SCHOOL_ADMIN'];
+const ROLES = ['TEACHER', 'DEPARTMENT_HEAD', 'SCHOOL_ADMIN', 'PRINCIPAL'];
 const FINAL = ['DOCUMENTED', 'DTR_CORRECTED', 'HEAD_REJECTED', 'ADMIN_REJECTED'];
 const timeOk = value => typeof value === 'string' && /^([01]\d|2[0-3]):[0-5]\d$/.test(value);
 const dateOk = value => {
@@ -17,9 +17,10 @@ const recentDate = (date,today=manilaDate()) =>
  dateOk(date) && date<=today && (Date.parse(today+'T00:00:00Z')-Date.parse(date+'T00:00:00Z')) <= 90*86400000;
 const canHeadReview=(actor,request)=> actor.role==='DEPARTMENT_HEAD' &&
  String(actor.departmentId||'')===String(request.department_id) &&
- String(actor.userId)!==String(request.staff_user_id);
+ String(actor.userId)!==String(request.staff_user_id) && request.requester_role!=='DEPARTMENT_HEAD';
+const canReview=(actor,request)=>canHeadReview(actor,request) || (actor.role==='PRINCIPAL' && request.requester_role==='DEPARTMENT_HEAD' && String(actor.userId)!==String(request.staff_user_id));
 const canView=(actor,request)=> actor.role==='SCHOOL_ADMIN' ||
- String(actor.userId)===String(request.staff_user_id) || canHeadReview(actor,request);
+ String(actor.userId)===String(request.staff_user_id) || canReview(actor,request);
 const evidenceFormat=(mime,bytes)=>{
  if(!Buffer.isBuffer(bytes) || bytes.length<32 || bytes.length>3*1024*1024)return false;
  if(mime==='application/pdf')return bytes.subarray(0,5).toString('ascii')==='%PDF-';
@@ -39,7 +40,7 @@ function chronological(slots,proposedSlot,proposedTime){
 function registerMissingScanRoutes(app,pool,{authenticateSchoolClient,requireSchoolRoles}){
  const auth=[authenticateSchoolClient,requireSchoolRoles(...ROLES)];
  const admin=[authenticateSchoolClient,requireSchoolRoles('SCHOOL_ADMIN')];
- const head=[authenticateSchoolClient,requireSchoolRoles('DEPARTMENT_HEAD')];
+ const head=[authenticateSchoolClient,requireSchoolRoles('DEPARTMENT_HEAD','PRINCIPAL')];
  const audit=(c,req,action,id,details)=>c.query(
   'INSERT INTO staff_attendance_audit (school_id,actor_user_id,action,target_type,target_id,details) VALUES($1,$2,$3,$4,$5,$6::jsonb)',
   [req.auth.schoolId,req.auth.userId,action,'MISSING_SCAN_REQUEST',id,JSON.stringify(details)]);
@@ -62,7 +63,7 @@ function registerMissingScanRoutes(app,pool,{authenticateSchoolClient,requireSch
   'JOIN school_departments d ON d.school_id=r.school_id AND d.department_id=r.department_id';
  async function getRow(c,req,id,lock=false){
   if(!UUID.test(id))return null;
-  const q=await c.query('SELECT r.* FROM staff_missing_scan_requests r WHERE r.school_id=$1 AND r.request_id=$2'+(lock?' FOR UPDATE':''),
+  const q=await c.query('SELECT r.*,u.role AS requester_role FROM staff_missing_scan_requests r JOIN school_users u ON u.school_id=r.school_id AND u.user_id=r.staff_user_id WHERE r.school_id=$1 AND r.request_id=$2'+(lock?' FOR UPDATE OF r':''),
    [req.auth.schoolId,id]);
   return q.rows[0]||null;
  }
@@ -104,7 +105,9 @@ function registerMissingScanRoutes(app,pool,{authenticateSchoolClient,requireSch
   if(view==='mine'){params.push(req.auth.userId);where+=' AND r.staff_user_id=$2';}
   else if(req.auth.role==='DEPARTMENT_HEAD'){
    params.push(req.auth.departmentId||null,req.auth.userId);
-   where+=' AND r.department_id=$2 AND r.staff_user_id<>$3';
+   where+=" AND r.department_id=$2 AND r.staff_user_id<>$3 AND u.role<>'DEPARTMENT_HEAD'";
+  }else if(req.auth.role==='PRINCIPAL'){
+   params.push(req.auth.userId);where+=" AND u.role='DEPARTMENT_HEAD' AND r.staff_user_id<>$2";
   }
   try{
    const q=await pool.query(select+' '+where+' ORDER BY r.created_at DESC LIMIT 200',params);
@@ -112,6 +115,7 @@ function registerMissingScanRoutes(app,pool,{authenticateSchoolClient,requireSch
   }catch(e){return error(res,e);}
  });
  app.post('/api/missing-scans/requests',...auth,async(req,res)=>{
+  if(req.auth.role==='PRINCIPAL')return res.status(403).json({error:'Principal personal corrections require a separate authorized reviewer.'});
   const date=String(req.body?.date||''),slot=String(req.body?.slot||''),
    claimedTime=String(req.body?.claimedTime||''),explanation=String(req.body?.explanation||'').trim();
   if(!recentDate(date)||!SLOTS.includes(slot)||!timeOk(claimedTime)||explanation.length<10||explanation.length>1000)
@@ -163,7 +167,7 @@ function registerMissingScanRoutes(app,pool,{authenticateSchoolClient,requireSch
     await c.query('BEGIN');
     const row=await getRow(c,req,req.params.id,true);
     if(!row){await c.query('ROLLBACK');return res.status(404).json({error:'Request not found.'});}
-    if(!canHeadReview(req.auth,row)||!['PENDING_HEAD','NEEDS_EVIDENCE'].includes(row.status)){
+    if(!canReview(req.auth,row)||!['PENDING_HEAD','NEEDS_EVIDENCE','HEAD_VERIFIED'].includes(row.status)){
      await c.query('ROLLBACK');return res.status(403).json({error:'Not authorized to upload evidence for this pending department request.'});
     }
     await c.query('UPDATE staff_missing_scan_requests SET evidence_bytes=$3,evidence_type=$4,evidence_uploaded_by=$5,evidence_uploaded_at=NOW(),updated_at=NOW() WHERE school_id=$1 AND request_id=$2',
@@ -199,48 +203,26 @@ function registerMissingScanRoutes(app,pool,{authenticateSchoolClient,requireSch
    await c.query('BEGIN');
    const row=await getRow(c,req,req.params.id,true);
    if(!row){await c.query('ROLLBACK');return res.status(404).json({error:'Request not found.'});}
-   if(!canHeadReview(req.auth,row)||!['PENDING_HEAD','NEEDS_EVIDENCE'].includes(row.status)){
+   if(!canReview(req.auth,row)||!['PENDING_HEAD','NEEDS_EVIDENCE','HEAD_VERIFIED'].includes(row.status)){
     await c.query('ROLLBACK');return res.status(403).json({error:'You cannot review this request or its status has already changed.'});
    }
    if(decision==='VERIFY' && (!row.evidence_bytes || row.evidence_uploaded_by!==req.auth.userId)){
     await c.query('ROLLBACK');return res.status(409).json({error:'Upload your department logbook evidence before verification.'});
    }
-   if(decision==='VERIFY' && row.school_date?.toISOString?.().slice(0,10)===manilaDate() && minutes(verifiedTime)>minutes(new Intl.DateTimeFormat('en-GB',{timeZone:'Asia/Manila',hour:'2-digit',minute:'2-digit',hourCycle:'h23'}).format(new Date()))){
+   if(decision==='VERIFY' && (typeof row.school_date==='string'?row.school_date:row.school_date.toISOString().slice(0,10))===manilaDate() && minutes(verifiedTime)>minutes(new Intl.DateTimeFormat('en-GB',{timeZone:'Asia/Manila',hour:'2-digit',minute:'2-digit',hourCycle:'h23'}).format(new Date()))){
     await c.query('ROLLBACK');return res.status(409).json({error:'The verified departure/arrival time cannot be in the future.'});
    }
    if(decision==='VERIFY' && await verifiedSlot(c,req.auth.schoolId,row.staff_user_id,
      typeof row.school_date==='string'?row.school_date:row.school_date.toISOString().slice(0,10),row.slot)){
     await c.query('ROLLBACK');return res.status(409).json({error:'An official DTR time is already recorded. A second correction is not allowed.'});
    }
-   const status=decision==='VERIFY'?'HEAD_VERIFIED':decision==='REJECT'?'HEAD_REJECTED':'NEEDS_EVIDENCE';
-   await c.query('UPDATE staff_missing_scan_requests SET status=$3,head_user_id=$4,head_note=$5,'+
-    'head_reviewed_at=NOW(),verified_time=$6::time,evidence_reference=$7,updated_at=NOW() '+
-    'WHERE school_id=$1 AND request_id=$2',
-    [req.auth.schoolId,row.request_id,status,req.auth.userId,comment,decision==='VERIFY'?verifiedTime:null,decision==='VERIFY'?reference:null]);
-   await audit(c,req,'MISSING_SCAN_HEAD_'+decision,row.request_id,{comment,reference:decision==='VERIFY'?reference:null,verifiedTime:decision==='VERIFY'?verifiedTime:null});
-   await c.query('COMMIT');return res.json({status});
-  }catch(e){await c.query('ROLLBACK').catch(()=>{});return error(res,e);}finally{c.release();}
- });
- app.post('/api/missing-scans/requests/:id/admin-decision',...admin,async(req,res)=>{
-  const decision=String(req.body?.decision||'');
-  const note=String(req.body?.comment||'').trim();
-  if(!['APPROVE','REJECT'].includes(decision)||note.length<10||note.length>1000)
-   return res.status(400).json({error:'Choose approve or reject and explain the decision (10–1000 characters).'});
-  const c=await pool.connect();
-  try{
-   await c.query('BEGIN');
-   const row=await getRow(c,req,req.params.id,true);
-   if(!row){await c.query('ROLLBACK');return res.status(404).json({error:'Request not found.'});}
-   if(row.status!=='HEAD_VERIFIED'||String(row.staff_user_id)===String(req.auth.userId)){
-    await c.query('ROLLBACK');return res.status(409).json({error:'Department Head verification is required; staff cannot finalize their own correction.'});
-   }
    const schoolDate=typeof row.school_date==='string'?row.school_date:row.school_date.toISOString().slice(0,10);
    await c.query('SELECT pg_advisory_xact_lock(hashtext($1),hashtext($2))',
     [String(req.auth.schoolId),String(row.staff_user_id)+':'+schoolDate+':'+row.slot]);
    const mode=await policy(c,req.auth.schoolId);
-   let status='ADMIN_REJECTED',eventId=null;
-   if(decision==='APPROVE'){
-    if(!row.head_user_id||!row.evidence_bytes||!row.verified_time||!row.evidence_reference){
+   let status=decision==='REJECT'?'HEAD_REJECTED':'NEEDS_EVIDENCE',eventId=null;
+   if(decision==='VERIFY'){
+    if(!row.evidence_bytes||!verifiedTime||!reference){
      await c.query('ROLLBACK');return res.status(409).json({error:'Missing Department Head evidence or logbook verification.'});
     }
     if(await verifiedSlot(c,req.auth.schoolId,row.staff_user_id,schoolDate,row.slot)){
@@ -262,7 +244,7 @@ function registerMissingScanRoutes(app,pool,{authenticateSchoolClient,requireSch
       await c.query('ROLLBACK');return res.status(409).json({error:'Approved leave, OB or a calendar exception requires separate reconciliation. Use documented-exception policy; no official time was created.'});
      }
      const other=Object.fromEntries(dtr.rows.map(x=>[x.slot,x.time]));
-     const verified=String(row.verified_time).slice(0,5);
+     const verified=verifiedTime;
      if(!chronological(other,row.slot,verified)){
       await c.query('ROLLBACK');return res.status(409).json({error:'Logbook time conflicts with another verified AM/PM slot. Review the evidence; no time was created.'});
      }
@@ -274,18 +256,20 @@ function registerMissingScanRoutes(app,pool,{authenticateSchoolClient,requireSch
       [eventId,req.auth.schoolId,row.staff_user_id,row.slot,schoolDate,verified,req.auth.userId,randomUUID(),'DEPARTMENT_LOGBOOK_MISSING_SCAN_REQUEST:'+row.request_id]);
      if(!inserted.rowCount){await c.query('ROLLBACK');return res.status(409).json({error:'Another verified DTR entry exists. No duplicate correction was created.'});}
      await audit(c,req,'MISSING_SCAN_OFFICIAL_DTR_CORRECTED',row.request_id,
-      {eventId,slot:row.slot,date:schoolDate,verifiedTime:verified,evidenceReference:row.evidence_reference,headUserId:row.head_user_id});
+      {eventId,slot:row.slot,date:schoolDate,verifiedTime:verified,evidenceReference:reference,reviewerUserId:req.auth.userId,reviewerRole:req.auth.role});
      status='DTR_CORRECTED';
     }
    }
-   await c.query('UPDATE staff_missing_scan_requests SET status=$3,admin_user_id=$4,admin_note=$5,admin_reviewed_at=NOW(),correction_event_id=$6,updated_at=NOW() WHERE school_id=$1 AND request_id=$2',
-    [req.auth.schoolId,row.request_id,status,req.auth.userId,note,eventId]);
-   await audit(c,req,'MISSING_SCAN_ADMIN_'+(decision==='REJECT'?'REJECTED':status),row.request_id,
-    {note,mode,eventId,headUserId:row.head_user_id});
-   await c.query('COMMIT');return res.json({status,mode,correctionEventId:eventId,
-    notice:status==='DOCUMENTED'?'Evidence approved. Official DTR time remains blank under school policy.':
-     status==='DTR_CORRECTED'?'Authorized correction added to Form 48; original scan history is unchanged.':'Request rejected; no attendance data changed.'});
+   await c.query('UPDATE staff_missing_scan_requests SET status=$3,head_user_id=$4,head_note=$5,'+
+    'head_reviewed_at=NOW(),verified_time=$6::time,evidence_reference=$7,correction_event_id=$8,updated_at=NOW() '+
+    'WHERE school_id=$1 AND request_id=$2',
+    [req.auth.schoolId,row.request_id,status,req.auth.userId,comment,decision==='VERIFY'?verifiedTime:null,decision==='VERIFY'?reference:null,eventId]);
+   await audit(c,req,'MISSING_SCAN_HEAD_'+decision,row.request_id,{comment,reference:decision==='VERIFY'?reference:null,verifiedTime:decision==='VERIFY'?verifiedTime:null,mode,status,eventId,reviewerRole:req.auth.role});
+   await c.query('COMMIT');return res.json({status,mode,correctionEventId:eventId});
   }catch(e){await c.query('ROLLBACK').catch(()=>{});return error(res,e);}finally{c.release();}
  });
+ // Retain a clear denial for stale clients; School Admin retains configuration and read-only history.
+ app.post('/api/missing-scans/requests/:id/admin-decision',...admin,(_req,res)=>
+  res.status(403).json({error:'Missing scan decisions are now finalized by the authorized department reviewer. School Admin has audit and policy access only.'}));
 }
-module.exports={registerMissingScanRoutes,timeOk,dateOk,recentDate,canHeadReview,canView,evidenceFormat,chronological};
+module.exports={registerMissingScanRoutes,timeOk,dateOk,recentDate,canHeadReview,canReview,canView,evidenceFormat,chronological};

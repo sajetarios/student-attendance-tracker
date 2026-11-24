@@ -15,7 +15,7 @@ catch (_) { document.documentElement.dataset.theme = 'light'; }
 <script src="/principal-dashboard.js?v=16" defer></script>
 <link rel="stylesheet" href="/school-memo-banner.css?v=3">
   <link rel="stylesheet" href="/attendigo-form-overlap-guard.css?v=2">
-<link rel="stylesheet" href="/universal-notifications.css?v=4"><script src="/universal-notifications.js?v=8" defer></script></head>
+<link rel="stylesheet" href="/universal-notifications.css?v=4"><script src="/universal-notifications.js?v=8" defer></script><link rel="stylesheet" href="/missing-scan-ui.css?v=3"><script src="/missing-scan-ui.js?v=4" defer></script></head>
 <body>
 <a class="skip" href="#main">Skip to school overview</a>
 <div class="shell">
@@ -69,6 +69,7 @@ catch (_) { document.documentElement.dataset.theme = 'light'; }
     <div class="principal-main-tabs" role="group" aria-label="School leadership sections">
      <button type="button" class="tab is-active" data-section="overview" aria-pressed="true">Overview</button>
      <button type="button" class="tab" data-section="priorities" aria-pressed="false">Approvals</button>
+     <button type="button" class="tab" id="principalMissingScanReview">Head scan requests</button>
      <button type="button" class="tab" data-section="staff" aria-pressed="false">Personnel</button>
      <button type="button" class="tab" data-section="students" aria-pressed="false">Learners</button>
      <button type="button" class="tab" data-section="calendar" aria-pressed="false">School Operations</button>

@@ -1,7 +1,7 @@
 'use strict';
 const test=require('node:test');
 const assert=require('node:assert/strict');
-const {timeOk,dateOk,recentDate,canHeadReview,canView,evidenceFormat,chronological}=
+const {timeOk,dateOk,recentDate,canHeadReview,canReview,canView,evidenceFormat,chronological}=
  require('../missing-scan-routes');
 
 test('validated Philippine time and calendar date; future and stale corrections are blocked',()=>{
@@ -24,6 +24,11 @@ test('department review never crosses department or allows self approval',()=>{
  assert.equal(canView({role:'TEACHER',userId:'teacher-a'},request),true);
  assert.equal(canView({role:'TEACHER',userId:'teacher-b'},request),false);
  assert.equal(canView({role:'SCHOOL_ADMIN',userId:'admin-a'},request),true);
+ const ownHead={department_id:'dept-a',staff_user_id:'head-a',requester_role:'DEPARTMENT_HEAD'};
+ assert.equal(canReview({role:'PRINCIPAL',userId:'principal-a'},ownHead),true);
+ assert.equal(canReview({role:'PRINCIPAL',userId:'principal-a'},request),false);
+ assert.equal(canReview({role:'DEPARTMENT_HEAD',departmentId:'dept-a',userId:'head-b'},ownHead),false);
+ assert.equal(canReview({role:'SCHOOL_ADMIN',userId:'admin-a'},request),false);
 });
 
 test('evidence rejects wrong content, empty files and magic header mismatch',()=>{
@@ -65,7 +70,7 @@ test('missing scan UI only offers unrecorded slots and keeps role review boundar
  assert.match(css,/data-ui-theme="dark"/,'modal must honor portal dark mode');
  assert.match(mobile,/Portal-wide action and input containment/);
  for(const name of ['missing-scan-ui.js','missing-scan-ui.css'])
-  assert.ok(portal.includes(name+'?v=3'),name+' must be refreshed');
+  assert.ok(portal.includes(name+(name.endsWith('.js')?'?v=4':'?v=3')),name+' must be refreshed');
  assert.ok(portal.includes('mobile-overflow-repair.css?v=2'));
  assert.ok(Number(sw.match(/attendigo-v(\d+)-/)?.[1])>=331,'PWA cache must include the new UI assets');
 });
