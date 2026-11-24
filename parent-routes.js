@@ -221,7 +221,7 @@ function registerParentRoutes(app, pool, auth) {
       const result = await pool.query(
         `SELECT s.student_id AS "studentId",s.full_name AS "fullName",COALESCE(en.grade_level,s.grade_level) AS "gradeLevel",COALESCE(en.section,s.section) AS section,
                 l.relationship, l.status,
-                COUNT(e.event_id) FILTER (WHERE e.sync_status='ACCEPTED' AND e.school_date=(NOW() AT TIME ZONE 'Asia/Manila')::date AND e.event_type='TIME_IN')::int AS "todayTimeIns"
+                COUNT(e.event_id) FILTER (WHERE e.sync_status='ACCEPTED' AND e.school_date=(NOW() AT TIME ZONE 'Asia/Manila')::date AND e.attendance_scope='SCHOOL' AND e.event_type='TIME_IN')::int AS "todayTimeIns"
          FROM parent_student_links l JOIN students s ON s.school_id=l.school_id AND s.student_id=l.student_id
          LEFT JOIN LATERAL (SELECT x.grade_level,x.section FROM student_enrollments x JOIN school_years sy ON sy.school_id=x.school_id AND sy.school_year_id=x.school_year_id WHERE x.school_id=s.school_id AND x.student_id=s.student_id AND sy.status='ACTIVE' AND x.enrollment_status='ENROLLED' ORDER BY x.created_at DESC LIMIT 1) en ON TRUE
          LEFT JOIN attendance_events e ON e.school_id=s.school_id AND e.student_id=s.student_id
