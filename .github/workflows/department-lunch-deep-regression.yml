@@ -62,7 +62,20 @@ jobs:
           (async()=>{const db=new Client({connectionString:process.env.DATABASE_URL});await db.connect();try{await db.query("DO $$ BEGIN IF NOT EXISTS(SELECT 1 FROM pg_roles WHERE rolname='anon') THEN CREATE ROLE anon; END IF; IF NOT EXISTS(SELECT 1 FROM pg_roles WHERE rolname='authenticated') THEN CREATE ROLE authenticated; END IF; END $$;");}finally{await db.end();}})().catch(e=>{console.error(e);process.exitCode=1});
           NODE
       - run: npm run db:migrate
+      - name: Full application regression with disposable PostgreSQL (including DB-only cases)
+        run: npm test
       - name: Department delegation and existing Gatekeeper regression
         run: node tests/department-lunch-delegation-postgres.cjs
       - name: Concurrent synthetic campus and department load (10, 50, 100 departments)
         run: node tests/department-lunch-scale-postgres.cjs
+  responsive-browser:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: npm install --no-save --package-lock=false --ignore-scripts playwright@1.56.1
+      - run: npx playwright install --with-deps chromium
+      - run: node scripts/check-responsive-layout.cjs
