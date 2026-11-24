@@ -113,7 +113,7 @@ async function renderMasterWorkbook({calculated,data,month,personalCopy=false,sc
     copy('AF'+total);copy('AG'+total);
   }
   for(let slot=0;slot<25;slot++)copy(col(7+slot)+'115');
-  copy('AF115');copy('AG115');cache('AG117','LEFT(AA6,3)',String(read('AA6')||'').slice(0,3));
+  copy('AF115');copy('AG115');cache('AG117','LEFT(AA6,3)',String(read('AA6')||'').slice(0,3),'integer');
   // Calculate school days from the exported date headers instead of the
   // old editable AQ9 field. Blank holidays and unused slots never count.
   if(personalCopy){
