@@ -12,7 +12,7 @@ test('missing scan alerts use transactional, tenant and department scoped routin
 });
 test('bell routes directly to the correct missing scan dialog and refreshes after mutations',()=>{
  const js=fs.readFileSync('public/universal-notifications.js','utf8'),ui=fs.readFileSync('public/missing-scan-ui.js','utf8');
- assert.match(js,/await module\.open\(null,item\.requestId\)/);
+ assert.match(js,/module\.open\(null,item\.requestId\)/);
  assert.match(js,/await navigate\(item\)/);
  assert.match(ui,/api\(id\?'\/requests\/'\+encodeURIComponent\(id\)/);
  assert.match(ui,/tab=result\.view/);

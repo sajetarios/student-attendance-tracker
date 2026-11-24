@@ -107,7 +107,7 @@
     const expected=user.role==='STUDENT'?'/student-portal.html':user.role==='PARENT'?'/parent-portal.html':user.role==='PRINCIPAL'?'/principal.html':'/portal.html';
     return target.pathname===expected?target:null;
   }
-  async function navigate(item) {
+  function navigate(item) {
     const dest=destination(item);if(!dest)return false;
     const click=id=>{const el=document.getElementById(id);if(!el||el.hidden)return false;el.click();return true;};
     const go=view=>{const nav=document.querySelector('.nav-item[data-view="'+view+'"]');if(nav&&!nav.hidden){nav.click();return true;}return false;};
@@ -119,9 +119,8 @@
     if(dest==='photo'){const shortcut=document.getElementById('adminPhotoRequestsShortcut');if(shortcut){shortcut.click();return true;}return false;}
     if(dest==='missingScan'){
       if(!/^[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}$/i.test(String(item.requestId||'')))return false;
-      const module=window.AttendigoMissingScans||await window.AttendigoMissingScansReady;
-      if(!module?.open)return false;
-      return await module.open(null,item.requestId);
+      return Promise.resolve(window.AttendigoMissingScans||window.AttendigoMissingScansReady)
+        .then(module=>module?.open?module.open(null,item.requestId):false);
     }
     if(dest==='memo'){if(!window.AttendigoSchoolMemos?.open)return false;window.AttendigoSchoolMemos?.open?.(item.requestId);return true;}
     const view=dest.searchParams.get('view')||dest.hash.slice(1);
@@ -166,7 +165,7 @@
       goto.addEventListener('click', async () => {
         if(goto.disabled)return;goto.disabled=true;
         try{if(await navigate(item)){detail.hidden=true;return;}
-          throw Error('This request or module is unavailable for your current account.');
+          throw Error('This module is unavailable for your current account.');
         }catch(e){let warning=card.querySelector('.universal-route-warning');if(!warning){warning=text('p','universal-route-warning','');warning.setAttribute('role','status');actions.before(warning);}warning.textContent=e.message||'Unable to open the request.';}
         finally{goto.disabled=false;}
       });
