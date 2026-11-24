@@ -495,3 +495,28 @@
   background:#513c20;border-color:#8e703a;color:#ffe2a6;
  }
 }
+
+/* Explicit tracks avoid WebKit flex intrinsic-size collisions in the publisher toolbar. */
+#attendigoSchoolMemoPanel.attendigo-memo-management .attendigo-memo-toolbar{
+ display:grid;grid-template-columns:minmax(0,1fr);align-items:start;gap:10px;min-width:0;
+}
+#attendigoSchoolMemoPanel .attendigo-memo-manager-actions{
+ display:grid!important;grid-template-columns:minmax(0,1fr);gap:8px;
+ width:100%;max-width:100%;min-width:0;align-items:stretch;
+}
+#attendigoSchoolMemoPanel .attendigo-memo-manager-actions > button{
+ position:static;box-sizing:border-box;display:block;flex:none;
+ width:100%!important;min-width:0!important;max-width:100%!important;
+ margin:0!important;min-height:44px;height:auto;white-space:normal;
+ overflow-wrap:anywhere;line-height:1.4;transform:none;
+}
+@media(min-width:550px){
+ #attendigoSchoolMemoPanel .attendigo-memo-manager-actions{
+  grid-template-columns:minmax(0,1fr) minmax(0,1fr);
+ }
+}
+@media(min-width:850px){
+ #attendigoSchoolMemoPanel.attendigo-memo-management .attendigo-memo-toolbar{
+  grid-template-columns:minmax(0,1fr) minmax(0,1fr);align-items:center;
+ }
+}
