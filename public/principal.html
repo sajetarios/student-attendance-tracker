@@ -13,6 +13,7 @@ catch (_) { document.documentElement.dataset.theme = 'light'; }
 </script>
 <link rel="stylesheet" href="/principal-dashboard.css?v=14">
 <script src="/principal-dashboard.js?v=16" defer></script>
+<script src="/principal-trusted-campus.js?v=1" defer></script>
 <link rel="stylesheet" href="/school-memo-banner.css?v=3">
   <link rel="stylesheet" href="/attendigo-form-overlap-guard.css?v=2">
 <link rel="stylesheet" href="/universal-notifications.css?v=4"><script src="/universal-notifications.js?v=10" defer></script><link rel="stylesheet" href="/missing-scan-ui.css?v=4"><script src="/missing-scan-ui.js?v=8" defer></script><link rel="stylesheet" href="/typography.css?v=1">
@@ -408,6 +409,7 @@ catch (_) { document.documentElement.dataset.theme = 'light'; }
    <div class="surface"><h3>Class timetable &amp; classroom conflicts</h3><p>The existing school scheduling module controls these records. Principal-specific timetable access is not yet authorized in this view; no assignments or conflicts are invented.</p></div>
   </section>
   <section id="securityPanel" class="panel" hidden>
+   <details class="surface" id="trustedCampusSettings"><summary><strong>Trusted campus boundaries</strong> · occasional onboarding only</summary><p>Register independently verified institutional boundaries, not individual department locations. Use the smallest suitable radius based on school site records. GPS is not proof of institutional authority.</p><form id="trustedCampusForm" class="principal-sdo-form"><label>Campus name<input name="name" minlength="2" maxlength="100" required></label><div class="principal-form-pair"><label>Latitude<input type="number" name="latitude" min="-90" max="90" step="any" required></label><label>Longitude<input type="number" name="longitude" min="-180" max="180" step="any" required></label></div><label>Boundary radius (meters)<input type="number" name="radiusMeters" min="100" max="5000" step="1" required></label><label>Verified site record / evidence reference<textarea name="evidenceReference" minlength="10" maxlength="500" required></textarea></label><label><input type="checkbox" name="attested" required> I independently checked the campus boundary against authorized institutional records.</label><button type="submit" class="refresh-button">Register trusted campus</button></form><p id="trustedCampusStatus" role="status" aria-live="polite"></p><div id="trustedCampusList" class="principal-data-list"></div></details>
    <div class="section-heading"><div><p class="eyebrow">GATEKEEPER OVERSIGHT</p><h2>Gate &amp; Security</h2><p>School-scoped verified physical movements and Gatekeeper accounts. A gate scan does not by itself certify a DTR entry.</p></div></div>
    <div class="metric-grid">
     <div class="metric-card"><span class="metric-label">Gatekeeper accounts</span><strong id="principalKeeperTotal">—</strong><small id="principalKeeperActive">Active accounts pending</small></div>

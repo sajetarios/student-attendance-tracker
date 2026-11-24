@@ -94,7 +94,8 @@ const REQUIRED_MIGRATIONS = [
   '086_parent_department_optional.sql',
   '087_parent_web_push.sql',
   '088_missing_scan_notifications.sql',
-  '089_retire_department_location_approval.sql'
+  '089_retire_department_location_approval.sql',
+  '090_staff_lunch_trusted_campuses.sql'
 ];
 
 function checksum(content) {

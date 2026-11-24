@@ -123,6 +123,19 @@ async function main(){
   assert.equal((await post('/api/staff-attendance/lunch/location/propose',proposed,head.token)).status,409,'Unanchored first location must fail closed');
   // Synthetic fixture represents an already independently approved pre-upgrade point.
   await pool.query('INSERT INTO school_settings(school_id,setting_key,setting_value) VALUES($1,$2,$3::jsonb)',[a.school,'staff_lunch_geo_'+a.dep,JSON.stringify({latitude:9,longitude:125,radiusMeters:120})]);
+  const principal=await makeUser(a,'PRINCIPAL','lunch-principal-');
+  const campusPath='/api/staff-attendance/lunch/campuses';
+  const campusBody={name:'Main Campus',latitude:9,longitude:125,radiusMeters:600,evidenceReference:'Verified synthetic campus plan 001',attested:true};
+  assert.equal((await post(campusPath,campusBody,head.token)).status,403,'Head cannot self-authorize a campus');
+  assert.equal((await post(campusPath,campusBody,admin.token)).status,403,'Admin has no routine campus approval operation');
+  const campus=await post(campusPath,campusBody,principal.token);
+  assert.equal(campus.status,201,JSON.stringify(campus.body));
+  const remoteCampus=await post(campusPath,{...campusBody,name:'Extension Campus',latitude:10,longitude:126},principal.token);
+  assert.equal(remoteCampus.status,201);
+  assert.equal((await post('/api/staff-attendance/lunch/location/propose',{...proposed,campusId:remoteCampus.body.campusId},head.token)).status,422,'Wrong campus geofence rejected');
+  const secondPoint={...proposed,departmentId:dep2,campusId:campus.body.campusId};
+  assert.equal((await post('/api/staff-attendance/lunch/location/propose',secondPoint,sameSchoolHead.token)).status,201,'New department may use trusted campus without admin review');
+  assert.equal((await post('/api/staff-attendance/lunch/location/propose',{...secondPoint,campusId:remoteCampus.body.campusId},sameSchoolHead.token)).status,409,'Department cannot change campus');
   const submission=await post('/api/staff-attendance/lunch/location/propose',proposed,head.token);
   assert.equal(submission.status,201);
   assert.equal(submission.body.status,'ACTIVE');
@@ -260,6 +273,9 @@ async function main(){
   const transferGrant=await pool.query('SELECT revoked_at FROM staff_lunch_presenter_assignments WHERE school_id=$1 AND presenter_user_id=$2',[a.school,transfer.id]);
   assert.ok(transferGrant.rows[0].revoked_at,'Transfer permanently revokes old presenter grant');
   assert.equal((await post('/api/staff-attendance/lunch/challenges',{slot:'PM_IN',location:presenterPosition()},transfer.token)).status,403);
+  assert.equal((await post(campusPath+'/retire',{campusId:campus.body.campusId,reason:'Synthetic campus closure for regression'},head.token)).status,403);
+  assert.equal((await post(campusPath+'/retire',{campusId:campus.body.campusId,reason:'Synthetic campus closure for regression'},principal.token)).status,200);
+  assert.equal((await post('/api/staff-attendance/lunch/location/propose',secondPoint,sameSchoolHead.token)).status,403,'Retired campus cannot authorize new location');
   const gatePath='/api/staff-attendance/gatekeeper/dtr';
   const gateBody={teacherQrToken,slot:'PM_OUT',photoVerified:true};
   assert.equal((await post(gatePath,gateBody,teacher.token)).status,403,

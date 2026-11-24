@@ -123,9 +123,11 @@
   title.textContent=user.departmentName||'My assigned department';
   async function refresh(){
    try{
-    const info=await request('/api/staff-attendance/lunch/location');
+    const [info,registry]=await Promise.all([request('/api/staff-attendance/lunch/location'),request('/api/staff-attendance/lunch/campuses')]);
+    const campus=$('staffLunchHeadCampus');
+    if(campus){campus.replaceChildren(new Option('Existing trusted department area (if configured)',''));for(const c of registry.campuses||[])campus.add(new Option(c.name,c.campusId));if(info.campusId){if(![...campus.options].some(o=>o.value===info.campusId))campus.add(new Option('Previously assigned campus (unavailable)',info.campusId));campus.value=info.campusId;campus.disabled=true;}}
     title.textContent=info.departmentName||title.textContent;
-    const current=info.configured?'Attendance location is active.':'No trusted attendance location yet. Use Gatekeeper scanning until an independently established location is available.';
+    const current=info.configured?'Attendance location is active.':'No active department location. Select an authorized campus, or use Gatekeeper scanning.';
     const radius=$('staffLunchHeadRadius');if(radius&&info.radiusMeters)radius.value=String(info.radiusMeters);
     status.textContent=current+(info.proposalStatus==='PENDING'?' Capture fresh GPS to replace the former pending proposal.':'');
    }catch(error){status.textContent='Unable to load department location: '+error.message;}
@@ -152,7 +154,7 @@
      method:'POST',
      body:JSON.stringify({departmentId,latitude:position.latitude,
       longitude:position.longitude,accuracyMeters:position.accuracyMeters,
-      samples:position.samples,radiusMeters:Number($('staffLunchHeadRadius')?.value||120)})
+      samples:position.samples,campusId:$('staffLunchHeadCampus')?.value||undefined,radiusMeters:Number($('staffLunchHeadRadius')?.value||120)})
     });
     status.textContent=result.message||'Department attendance location is active.';
    }catch(error){

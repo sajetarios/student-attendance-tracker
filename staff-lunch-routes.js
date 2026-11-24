@@ -2,6 +2,7 @@
 const { createLunchChallenge, validateLunchSlot, hashLunchChallenge, isLunchChallengeRedeemable } = require('./staff-lunch-challenge');
 const { randomUUID, timingSafeEqual } = require('node:crypto');
 const QRCode=require('qrcode');
+const {validCampus,containsDepartment,campusById,trustedDepartmentPoint}=require('./staff-lunch-campus');
 const {validateDepartmentPoint,classifyDepartmentPresence,assessLocationEvidence,distanceMeters}=require('./staff-lunch-location');
 const UUID=/^[0-9a-f]{8}(-[0-9a-f]{4}){3}-[0-9a-f]{12}$/i;
 const LATE_DELIVERY_GRACE_MS=90_000;
@@ -192,7 +193,8 @@ function registerStaffLunchRoutes(app,pool,{authenticateSchoolClient,requireScho
    const location=department.rows[0],now=Date.now();
    if(location?.config?.enabled===false){await client.query('ROLLBACK');return res.status(403).json({error:'Lunch QR is disabled for your department. Use supervised Gatekeeper scanning.'});}
    const evidence=assessLocationEvidence(req.body?.location,now);
-   let presence=classifyDepartmentPresence(location?.point,req.body?.location,now);
+   const trustedPoint=await trustedDepartmentPoint(client,req.auth.schoolId,location?.point);
+   let presence=classifyDepartmentPresence(trustedPoint,req.body?.location,now);
    if(presence.verified&&now-evidence.point.capturedAt>30000)
     presence={verified:false,reason:'LOCATION_SAMPLE_STALE'};
    if(!presence.verified){
@@ -292,6 +294,50 @@ function registerStaffLunchRoutes(app,pool,{authenticateSchoolClient,requireScho
  // Use existing school_settings (JSONB) and append-only staff audit records.
  // Existing approved locations remain active until a fresh, validated replacement.
  const proposalKey=departmentId=>'staff_lunch_geo_proposal_'+departmentId;
+ // Rare institutional onboarding, not a per-department approval queue.
+ app.get('/api/staff-attendance/lunch/campuses',authenticateSchoolClient,requireSchoolRoles('PRINCIPAL','DEPARTMENT_HEAD','SCHOOL_ADMIN'),async(req,res)=>{
+  res.set('Cache-Control','private, no-store');
+  try{
+   const management=req.auth.role==='PRINCIPAL';
+   const r=await pool.query(`SELECT campus_id AS "campusId",name,radius_meters AS "radiusMeters",active
+    ${management?',latitude,longitude,evidence_reference AS "evidenceReference",authorized_at AS "authorizedAt"':''}
+    FROM staff_lunch_campuses WHERE school_id=$1 AND ($2::boolean OR active=TRUE) ORDER BY active DESC,name`,[req.auth.schoolId,management]);
+   return res.json({campuses:r.rows});
+  }catch(e){return res.status(503).json({error:'Trusted campus registry unavailable.'});}
+ });
+ app.post('/api/staff-attendance/lunch/campuses',authenticateSchoolClient,requireSchoolRoles('PRINCIPAL'),async(req,res)=>{
+  res.set('Cache-Control','private, no-store');
+  const input=req.body||{},name=String(input.name||'').trim(),reference=String(input.evidenceReference||'').trim();
+  if(!validCampus(input)||name.length<2||name.length>100||reference.length<10||reference.length>500||input.attested!==true)
+   return res.status(400).json({error:'Enter independently verified campus coordinates, a 100–5000 m radius, an evidence reference and explicit institutional attestation.'});
+  const client=await pool.connect();
+  try{
+   await client.query('BEGIN');
+   const r=await client.query(`INSERT INTO staff_lunch_campuses(school_id,name,latitude,longitude,radius_meters,evidence_reference,authorized_by)
+    VALUES($1,$2,$3,$4,$5,$6,$7) RETURNING campus_id AS "campusId"`,[req.auth.schoolId,name,input.latitude,input.longitude,input.radiusMeters,reference,req.auth.userId]);
+   const campusId=r.rows[0].campusId;
+   await client.query(`INSERT INTO staff_attendance_audit(school_id,actor_user_id,action,target_type,target_id,details)
+    VALUES($1,$2,'LUNCH_CAMPUS_AUTHORIZED','SCHOOL_CAMPUS',$3,$4::jsonb)`,[req.auth.schoolId,req.auth.userId,campusId,JSON.stringify({name,latitude:input.latitude,longitude:input.longitude,radiusMeters:input.radiusMeters,evidenceReference:reference})]);
+   await client.query('COMMIT');return res.status(201).json({campusId,name});
+  }catch(e){await client.query('ROLLBACK').catch(()=>{});return res.status(e.code==='23505'?409:503).json({error:'Unable to register campus; no authorization was confirmed.'});}
+  finally{client.release();}
+ });
+ // Campus records cannot be edited or reactivated. Retirement fails closed on every subsequent issue/redeem.
+ app.post('/api/staff-attendance/lunch/campuses/retire',authenticateSchoolClient,requireSchoolRoles('PRINCIPAL'),async(req,res)=>{
+  res.set('Cache-Control','private, no-store');
+  const campusId=String(req.body?.campusId||''),reason=String(req.body?.reason||'').trim();
+  if(!UUID.test(campusId)||reason.length<10||reason.length>500)return res.status(400).json({error:'Campus and documented retirement reason required.'});
+  const client=await pool.connect();
+  try{
+   await client.query('BEGIN');
+   const r=await client.query('UPDATE staff_lunch_campuses SET active=FALSE,retired_at=NOW() WHERE school_id=$1 AND campus_id=$2 AND active=TRUE RETURNING campus_id',[req.auth.schoolId,campusId]);
+   if(!r.rowCount){await client.query('ROLLBACK');return res.status(404).json({error:'Active campus not found.'});}
+   await client.query(`INSERT INTO staff_attendance_audit(school_id,actor_user_id,action,target_type,target_id,details)
+    VALUES($1,$2,'LUNCH_CAMPUS_RETIRED','SCHOOL_CAMPUS',$3,$4::jsonb)`,[req.auth.schoolId,req.auth.userId,campusId,JSON.stringify({reason})]);
+   await client.query('COMMIT');return res.json({campusId,active:false});
+  }catch(e){await client.query('ROLLBACK').catch(()=>{});return res.status(503).json({error:'Campus retirement could not be confirmed.'});}
+  finally{client.release();}
+ });
  app.get('/api/staff-attendance/lunch/location',authenticateSchoolClient,
   requireSchoolRoles('SCHOOL_ADMIN','DEPARTMENT_HEAD'),async(req,res)=>{
   res.set('Cache-Control','private, no-store');
@@ -309,8 +355,10 @@ function registerStaffLunchRoutes(app,pool,{authenticateSchoolClient,requireScho
     [req.auth.schoolId,departmentId,locationKey(departmentId),proposalKey(departmentId)]);
    if(!result.rowCount)return res.status(404).json({error:'Department not found or inactive.'});
    const row=result.rows[0],proposal=row.proposal;
+   const campus=row.approved?.campusId?await campusById(pool,req.auth.schoolId,row.approved.campusId):null;
    return res.json({departmentId,departmentName:row.departmentName,
-    configured:!!row.approved,radiusMeters:row.approved?.radiusMeters||null,
+    campusId:row.approved?.campusId||null,campusName:campus?.name||null,
+    configured:!!row.approved&&(!row.approved.campusId||containsDepartment(campus,row.approved)),radiusMeters:row.approved?.radiusMeters||null,
     approvedAt:row.approvedAt||null,
     proposalStatus:proposal?.status||'NONE',
     proposedAt:proposal?.proposedAt||null,
@@ -355,14 +403,28 @@ function registerStaffLunchRoutes(app,pool,{authenticateSchoolClient,requireScho
     return res.status(403).json({error:'A valid active department assignment is required.'});}
    const prior=await client.query('SELECT setting_value AS point FROM school_settings WHERE school_id=$1 AND setting_key=$2 FOR UPDATE',[req.auth.schoolId,locationKey(departmentId)]);
    const previous=prior.rows[0]?.point||null;
-   // Preserve the original trusted location as a fixed anchor. Repeated small changes must not move it.
-   // Do not allow self-authorization of an entirely new location without an independently established boundary.
-   const anchor=previous?.anchor||(previous?{latitude:previous.latitude,longitude:previous.longitude,radiusMeters:previous.radiusMeters}:null);
-   if(!anchor){await client.query('ROLLBACK');return res.status(409).json({code:'TRUSTED_LOCATION_REQUIRED',error:'No independently established department location exists. Use supervised Gatekeeper scanning until a trusted location is established.'});}
-   if(distanceMeters(anchor,point)+point.radiusMeters>anchor.radiusMeters){
-    await client.query('ROLLBACK');return res.status(422).json({error:'The replacement area would extend beyond the existing authorized location. Use the existing location or request a separately authorized relocation.'});
+   // A head can enroll within an independently authorized campus, but cannot switch a bound department
+   // to another campus or self-authorize a site. Legacy trusted points remain protected.
+   const requestedCampus=String(req.body?.campusId||''),boundCampus=String(previous?.campusId||'');
+   if(boundCampus&&requestedCampus&&requestedCampus!==boundCampus){await client.query('ROLLBACK');return res.status(409).json({error:'Cross-campus relocation requires independent authorization. Use Gatekeeper scanning.'});}
+   const selectedCampus=boundCampus||requestedCampus;
+   let activePoint;
+   if(selectedCampus){
+    const campus=await campusById(client,req.auth.schoolId,selectedCampus,true);
+    if(!campus){await client.query('ROLLBACK');return res.status(403).json({error:'Selected campus is not authorized for this school.'});}
+    if(!containsDepartment(campus,point,Math.max(req.body.accuracyMeters,assessLocationEvidence(req.body).accuracyMeters||0))||
+       (previous&&!boundCampus&&!containsDepartment(campus,previous))){
+     await client.query('ROLLBACK');return res.status(422).json({error:'The full department geofence and GPS uncertainty must fit inside its trusted campus.'});
+    }
+    activePoint={...point,campusId:selectedCampus};
+   }else{
+    const anchor=previous?.anchor||(previous?{latitude:previous.latitude,longitude:previous.longitude,radiusMeters:previous.radiusMeters}:null);
+    if(!anchor){await client.query('ROLLBACK');return res.status(409).json({code:'TRUSTED_LOCATION_REQUIRED',error:'Choose an independently established campus or use supervised Gatekeeper scanning.'});}
+    if(distanceMeters(anchor,point)+point.radiusMeters>anchor.radiusMeters){
+     await client.query('ROLLBACK');return res.status(422).json({error:'The replacement area would extend beyond the existing authorized location.'});
+    }
+    activePoint={...point,anchor};
    }
-   const activePoint={...point,anchor};
    await client.query(`INSERT INTO school_settings(school_id,setting_key,setting_value,updated_at)
     VALUES($1,$2,$3::jsonb,NOW()) ON CONFLICT(school_id,setting_key)
     DO UPDATE SET setting_value=EXCLUDED.setting_value,updated_at=NOW()`,[req.auth.schoolId,locationKey(departmentId),JSON.stringify(activePoint)]);
@@ -550,7 +612,10 @@ function registerStaffLunchRoutes(app,pool,{authenticateSchoolClient,requireScho
    const pointRow=await client.query(`SELECT setting_value AS point FROM school_settings
     WHERE school_id=$1 AND setting_key=$2`,
     [req.auth.schoolId,locationKey(row.department_id)]);
-   const presence=classifyDepartmentPresence(pointRow.rows[0]?.point,req.body?.location,now);
+   const storedPoint=pointRow.rows[0]?.point;
+   const trustedPoint=await trustedDepartmentPoint(client,req.auth.schoolId,storedPoint);
+   if(storedPoint?.campusId&&!trustedPoint){await client.query('ROLLBACK');return res.status(410).json({error:'The authorized campus is unavailable. Use supervised Gatekeeper scanning.'});}
+   const presence=classifyDepartmentPresence(trustedPoint,req.body?.location,now);
    const reasons=[];
    if(now>=expires)reasons.push('LATE_DELIVERY');
    if(!presence.verified)reasons.push(presence.reason);
