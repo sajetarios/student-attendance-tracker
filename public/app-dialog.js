@@ -41,16 +41,19 @@
       const cancelValue = isConfirm ? false : null;
       let finished = false;
 
-      const overlay = document.createElement('div');
+      const nativeOverlay = document.createElement('dialog');
+      const useTopLayer = typeof nativeOverlay.showModal === 'function';
+      const overlay = useTopLayer ? nativeOverlay : document.createElement('div');
       overlay.className = 'app-dialog-overlay';
       overlay.dataset.dialogId = String(id);
 
       const panel = document.createElement('section');
       panel.className = 'app-dialog-card';
-      panel.setAttribute('role', 'dialog');
-      panel.setAttribute('aria-modal', 'true');
-      panel.setAttribute('aria-labelledby', 'app-dialog-title-' + id);
-      panel.setAttribute('aria-describedby', 'app-dialog-message-' + id);
+      const accessibleDialog = useTopLayer ? overlay : panel;
+      accessibleDialog.setAttribute('role', 'dialog');
+      accessibleDialog.setAttribute('aria-modal', 'true');
+      accessibleDialog.setAttribute('aria-labelledby', 'app-dialog-title-' + id);
+      accessibleDialog.setAttribute('aria-describedby', 'app-dialog-message-' + id);
       panel.setAttribute('tabindex', '-1');
 
       const header = document.createElement('div');
@@ -81,7 +84,7 @@
       closeButton.setAttribute('aria-label', 'Close dialog');
       closeButton.title = 'Close';
       closeButton.textContent = '×';
-      closeButton.addEventListener('click', () => finish(cancelValue));
+      closeButton.addEventListener('click', () => requestDismiss());
       header.append(closeButton);
 
       const message = document.createElement('p');
@@ -189,7 +192,7 @@
       cancelButton.type = 'button';
       cancelButton.className = 'app-dialog-button app-dialog-button-secondary';
       cancelButton.textContent = config.cancelText || 'Cancel';
-      cancelButton.addEventListener('click', () => finish(cancelValue));
+      cancelButton.addEventListener('click', () => requestDismiss());
 
       const submitButton = document.createElement('button');
       submitButton.type = isPrompt || isForm || isAlert ? 'submit' : 'button';
@@ -204,7 +207,39 @@
 
       if (!isAlert) footer.append(cancelButton);
       footer.append(submitButton);
-      form.append(footer);
+      const discardNotice = document.createElement('div');
+      discardNotice.className = 'app-dialog-discard';
+      discardNotice.hidden = true;
+      discardNotice.setAttribute('role','status');
+      const discardCopy = document.createElement('p');
+      discardCopy.textContent = 'You have unsaved changes. Discard them or continue editing?';
+      const keep = document.createElement('button');
+      keep.type = 'button';
+      keep.className = 'app-dialog-button app-dialog-button-secondary';
+      keep.textContent = 'Keep editing';
+      const discard = document.createElement('button');
+      discard.type = 'button';
+      discard.className = 'app-dialog-button app-dialog-button-primary is-danger';
+      discard.textContent = 'Discard changes';
+      keep.addEventListener('click', () => { discardNotice.hidden = true; (field || fieldControls[0]?.field || cancelButton).focus(); });
+      discard.addEventListener('click', () => finish(cancelValue));
+      discardNotice.append(discardCopy, keep, discard);
+      form.append(discardNotice, footer);
+      const initialValues = [field, ...fieldControls.map(item => item.field)].filter(Boolean).map(control => [control, control.value]);
+      for (const [control] of initialValues) control.addEventListener('input', () => {
+        control.removeAttribute('aria-invalid');
+        if (control === field && errorText) errorText.textContent = '';
+        const item = fieldControls.find(entry => entry.field === control);
+        if (item) item.error.textContent = '';
+      });
+      function requestDismiss() {
+        if (initialValues.some(([control, value]) => control.value !== value)) {
+          discardNotice.hidden = false;
+          keep.focus();
+          return;
+        }
+        finish(cancelValue);
+      }
 
       form.addEventListener('submit', event => {
         event.preventDefault();
@@ -267,6 +302,10 @@
       panel.append(header, message, form);
       overlay.append(panel);
       document.body.append(overlay);
+      if (useTopLayer) {
+        overlay.addEventListener('cancel', event => { event.preventDefault(); requestDismiss(); });
+        overlay.showModal();
+      }
       document.body.style.overflow = 'hidden';
       document.body.classList.add('app-dialog-open');
 
@@ -274,6 +313,7 @@
         if (finished) return;
         finished = true;
         document.removeEventListener('keydown', onDocumentKeydown, true);
+        if (useTopLayer && overlay.open) overlay.close();
         overlay.remove();
         document.body.style.overflow = previousOverflow;
         if (!document.querySelector('.app-dialog-overlay')) document.body.classList.remove('app-dialog-open');
@@ -287,12 +327,12 @@
         if (event.key === 'Escape') {
           event.preventDefault();
           event.stopPropagation();
-          finish(cancelValue);
+          requestDismiss();
           return;
         }
         if (event.key !== 'Tab') return;
         const focusable = [...panel.querySelectorAll('button:not(:disabled), input:not(:disabled), select:not(:disabled), textarea:not(:disabled), [tabindex]:not([tabindex="-1"])')]
-          .filter(element => !element.hidden);
+          .filter(element => !element.hidden && !element.closest('[hidden]'));
         if (!focusable.length) {
           event.preventDefault();
           panel.focus();
@@ -310,7 +350,7 @@
       }
 
       overlay.addEventListener('pointerdown', event => {
-        if (event.target === overlay) finish(cancelValue);
+        if (event.target === overlay && !isPrompt && !isForm) requestDismiss();
       });
       document.addEventListener('keydown', onDocumentKeydown, true);
 
@@ -321,7 +361,7 @@
         } else if (fieldControls.length) {
           fieldControls[0].field.focus();
         } else {
-          submitButton.focus();
+          (isConfirm ? cancelButton : submitButton).focus();
         }
       });
     });
