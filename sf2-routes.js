@@ -138,7 +138,7 @@ function registerSf2Routes(app, pool, { authenticateSchoolClient, requireSchoolU
     let present;
     if (access.mode === 'PERSONAL') {
       present = await pool.query(
-        `SELECT DISTINCT e.student_id AS id,e.school_date::text AS date
+        `SELECT DISTINCT e.student_id AS id,e.school_date::text AS date,e.late AS late
          FROM attendance_events e
          JOIN students s ON s.school_id=e.school_id AND s.student_id=e.student_id
          LEFT JOIN LATERAL (SELECT en.grade_level,en.section FROM student_enrollments en JOIN school_years sy ON sy.school_id=en.school_id AND sy.school_year_id=en.school_year_id WHERE en.school_id=s.school_id AND en.student_id=s.student_id AND sy.status='ACTIVE' AND en.enrollment_status='ENROLLED' ORDER BY en.created_at DESC LIMIT 1) active_enrollment ON TRUE
@@ -261,7 +261,48 @@ function registerSf2Routes(app, pool, { authenticateSchoolClient, requireSchoolU
       (row.type==='CLASS_SUSPENSION'&&!row.suspensionTime)).map(row=>row.date));
     const partialSuspensionDates=new Set(calendar.rows.filter(row=>
       row.type==='CLASS_SUSPENSION'&&row.suspensionTime).map(row=>row.date));
-    const dates = datesFor(month).filter(date=>!noClassDates.has(date));
+    // Subject copies use the teacher's effective recurring timetable, not every
+    // school weekday as a required class. Keep observed attendance even when
+    // a historical schedule is unavailable; never infer whole-day absence.
+    const subjectSchedule = new Map();
+    const uncertainSchedule = new Set(calendar.rows.filter(row=>['OPEN','SPECIAL_CLASS','SHORTENED_DAY'].includes(row.type)).map(row=>row.date));
+    const suspensionByDate = new Map(calendar.rows.filter(row=>row.suspensionTime).map(row=>[row.date,row.suspensionTime]));
+    if (access.mode === 'PERSONAL') {
+      const schedule = await pool.query(
+        `SELECT DISTINCT d.day::date::text AS date,p.period_id AS "periodId",
+                 to_char(p.start_time,'HH24:MI') AS "startTime",
+                 EXISTS (SELECT 1 FROM class_period_days pd
+                   WHERE pd.school_id=p.school_id AND pd.period_id=p.period_id) AS "hasWeekdays",
+                 EXISTS (SELECT 1 FROM class_period_days pd
+                   WHERE pd.school_id=p.school_id AND pd.period_id=p.period_id
+                     AND pd.weekday=EXTRACT(DOW FROM d.day)::int) AS scheduled
+           FROM generate_series($4::date,($4::date + INTERVAL '1 month - 1 day')::date,INTERVAL '1 day') d(day)
+           JOIN class_periods p ON p.school_id=$1 AND p.grade_level=$2 AND p.section=$3
+             AND (p.active=TRUE OR p.effective_to IS NOT NULL)
+             AND (p.effective_from IS NULL OR d.day::date>=p.effective_from)
+             AND (p.effective_to IS NULL OR d.day::date<=p.effective_to)
+          WHERE (EXISTS (SELECT 1 FROM teacher_period_assignments a
+                   WHERE a.school_id=p.school_id AND a.period_id=p.period_id AND a.teacher_user_id=$5)
+              OR EXISTS (SELECT 1 FROM teacher_period_substitutions ts
+                   WHERE ts.school_id=p.school_id AND ts.period_id=p.period_id
+                     AND ts.substitute_teacher_user_id=$5 AND ts.status='ACTIVE'
+                     AND d.day::date BETWEEN ts.start_date AND ts.end_date))`,
+        [req.auth.schoolId,gradeLevel,section,dateFrom,req.auth.userId]
+      );
+      for (const row of schedule.rows) {
+        if (!subjectSchedule.has(row.date)) subjectSchedule.set(row.date,new Set());
+        if (!row.hasWeekdays) uncertainSchedule.add(row.date);
+        const suspendedAt=suspensionByDate.get(row.date);
+        if (suspendedAt && !row.startTime) uncertainSchedule.add(row.date);
+        if (row.scheduled && (!suspendedAt || !row.startTime || row.startTime<suspendedAt)) subjectSchedule.get(row.date).add(String(row.periodId));
+      }
+    }
+    const reportDates = new Set(datesFor(month));
+    if (access.mode === 'PERSONAL') {
+      for (const [date, periods] of subjectSchedule) if (periods.size) reportDates.add(date);
+      for (const row of [...present.rows,...manual.rows]) reportDates.add(String(row.date).slice(0,10));
+    }
+    const dates = [...reportDates].filter(date=>!noClassDates.has(date)).sort();
     const presentSet = new Set(present.rows.map(row => `${row.id}|${String(row.date).slice(0, 10)}`));
     const manualPresentSet = new Set(manual.rows.filter(row => ['PRESENT','LATE'].includes(row.status))
       .map(row => `${row.id}|${String(row.date).slice(0, 10)}`));
@@ -287,9 +328,46 @@ function registerSf2Routes(app, pool, { authenticateSchoolClient, requireSchoolU
       ...manualConflictSet
     ]);
 
+    const today = new Date(Date.now()+8*60*60*1000).toISOString().slice(0,10);
+    const manualByDay = new Map();
+    const qrByDay = new Map();
+    if (access.mode === 'PERSONAL') {
+      for (const [records, index] of [[manual.rows,manualByDay],[present.rows,qrByDay]]) {
+        for (const record of records) {
+          const key = `${record.id}|${String(record.date).slice(0,10)}`;
+          if (!index.has(key)) index.set(key,[]);
+          index.get(key).push(record);
+        }
+      }
+    }
+    const subjectStatus = (student,date) => {
+      if (date>today) return 'FUTURE';
+      const key = `${student.id}|${date}`;
+      if (conflictSet.has(key)) return 'CONFLICT';
+      const qr = qrByDay.get(key)||[];
+      const marks = manualByDay.get(key)||[];
+      const positive = marks.filter(row=>['PRESENT','LATE'].includes(row.status));
+      if (qr.length || positive.length) {
+        return qr.every(row=>row.late===true) && positive.every(row=>row.status==='LATE') ? 'LATE' : 'PRESENT';
+      }
+      const periods = subjectSchedule.get(date);
+      // Negative marks only describe the subject copy, and only when every
+      // known scheduled period has an explicit negative mark. Mixed or
+      // incomplete evidence remains NR, never a presumed absence.
+      if (!uncertainSchedule.has(date) && periods?.size && [...periods].every(period=>marks.some(row=>
+        String(row.periodId)===period && ['ABSENT','EXCUSED'].includes(row.status)))) {
+        const relevant = marks.filter(row=>periods.has(String(row.periodId)));
+        if (relevant.every(row=>row.status==='EXCUSED')) return 'EXCUSED';
+        if (relevant.every(row=>row.status==='ABSENT')) return 'SUBJECT_ABSENT';
+      }
+      if (!uncertainSchedule.has(date) && periods && !periods.size && !marks.length) return 'NO_CLASS';
+      return 'NO_RECORD';
+    };
+
     const rows = students.rows.map(student => ({
       ...student,
       tardyCount: tardyMap.get(student.id) || 0,
+      ...(access.mode === 'PERSONAL' ? { subjectDays: dates.map(date=>subjectStatus(student,date)) } : {}),
       sources: dates.map(date => [...(sourceByDay.get(`${student.id}|${date}`) || [])].sort()),
       days: dates.map(date => {
         const key = `${student.id}|${date}`;
@@ -467,7 +545,15 @@ function registerSf2Routes(app, pool, { authenticateSchoolClient, requireSchoolU
     worksheet.getCell('X8').value = gradeLevel;
     worksheet.getCell('AC8').value = section;
 
-    // Row 10 is a merged instruction cell and must remain untouched.
+    // Keep the official instructions unchanged. The personal copy uses a
+    // different legend because a blank cell must not imply presence.
+    if (personalCopy) {
+      const instruction = worksheet.getCell('D10');
+      instruction.value = 'Dates / weekdays | P Present • L Late • X Subject absence • E Excused • NR Not recorded • — No class • ! Review';
+      instruction.alignment = { ...instruction.alignment, horizontal:'center', vertical:'middle', wrapText:true, shrinkToFit:true };
+      instruction.font = { ...instruction.font, size:8 };
+    }
+    // Row 10 is a merged instruction cell and must remain untouched for official reports.
     // Dates go in row 11; weekday abbreviations go in row 12.
     for (let dayIndex = 0; dayIndex < 25; dayIndex++) {
       const column = 4 + dayIndex;
@@ -497,24 +583,32 @@ function registerSf2Routes(app, pool, { authenticateSchoolClient, requireSchoolU
           const column = 4 + dayIndex;
           const cell = worksheet.getCell(row, column);
           cell.value = null;
-
+          // Clone the border to avoid mutating ExcelJS shared style objects.
+          // The official template's half-day guides are retained for populated
+          // official rows, but are not meaningful in personal subject copies
+          // or in empty rows/columns of either export.
+          if (personalCopy || !student || dayIndex >= data.dates.length) {
+            const { diagonal, ...edges } = cell.border || {};
+            cell.border = edges;
+          }
+          if (personalCopy) {
+            cell.alignment = { ...cell.alignment, horizontal:'center', vertical:'middle', textRotation:0, shrinkToFit:true };
+          }
           if (!student || dayIndex >= data.dates.length) continue;
 
-          const status = student.days[dayIndex];
+          const status = personalCopy ? (student.subjectDays?.[dayIndex] || student.days[dayIndex]) : student.days[dayIndex];
+          if (personalCopy) {
+            const symbols = { PRESENT:'P', LATE:'L', SUBJECT_ABSENT:'X', EXCUSED:'E', NO_RECORD:'NR', NO_CLASS:'—', CONFLICT:'!' };
+            cell.value = symbols[status] || null;
+            if (status==='PRESENT' || status==='LATE') dailyPresent[dayIndex]++;
+            cell.font = { ...cell.font, size: status==='NO_RECORD' ? 8 : 9 };
+            continue;
+          }
           if (status === 'ABSENT') {
             cell.value = 'X';
             cell.alignment = { ...cell.alignment, horizontal: 'center', vertical: 'middle' };
           } else if (status === 'PRESENT') {
             dailyPresent[dayIndex]++;
-            if (personalCopy) {
-              cell.value = 'P';
-              cell.font = { ...cell.font, size: 9 };
-              cell.alignment = { ...cell.alignment, horizontal: 'center', vertical: 'middle' };
-            }
-          } else if (personalCopy && status === 'NO_RECORD') {
-            cell.value = 'NR';
-            cell.font = { ...cell.font, size: 8 };
-            cell.alignment = { ...cell.alignment, horizontal: 'center', vertical: 'middle', shrinkToFit: true };
           }
         }
 
@@ -527,9 +621,12 @@ function registerSf2Routes(app, pool, { authenticateSchoolClient, requireSchoolU
         }
       }
 
-      data.dates.forEach((date, index) => {
-        worksheet.getCell(totalRow, 4 + index).value = dailyPresent[index];
-      });
+      for (let index=0; index<25; index++) {
+        const cell=worksheet.getCell(totalRow,4+index);
+        const recorded = students.some(student=>['PRESENT','LATE','SUBJECT_ABSENT','EXCUSED'].includes(student.subjectDays?.[index] || student.days[index]));
+        cell.value = index>=data.dates.length || (personalCopy && !recorded) ? null : dailyPresent[index];
+        if (personalCopy) cell.alignment = { ...cell.alignment, horizontal:'center', vertical:'middle', textRotation:0, shrinkToFit:true };
+      }
 
       return dailyPresent;
     };
@@ -537,9 +634,13 @@ function registerSf2Routes(app, pool, { authenticateSchoolClient, requireSchoolU
     const maleDaily = fillGroup(boys, 14, 21, 35);
     const femaleDaily = fillGroup(girls, 36, 25, 61);
 
-    data.dates.forEach((date, index) => {
-      worksheet.getCell(62, 4 + index).value = maleDaily[index] + femaleDaily[index];
-    });
+    for (let index=0; index<25; index++) {
+      const cell=worksheet.getCell(62,4+index);
+      const recorded = data.students.some(student=>['PRESENT','LATE','SUBJECT_ABSENT','EXCUSED'].includes(student.subjectDays?.[index] || student.days[index]));
+      if (index>=data.dates.length || (personalCopy && !recorded)) cell.value = null;
+      else worksheet.getCell(62, 4 + index).value = maleDaily[index] + femaleDaily[index];
+      if (personalCopy) cell.alignment = { ...cell.alignment, horizontal:'center', vertical:'middle', textRotation:0, shrinkToFit:true };
+    }
 
     // The official SF2 template's summary panel occupies columns AH (M),
     // AI (F), AJ (TOTAL); row headings run from 66 through 83.
@@ -578,7 +679,7 @@ function registerSf2Routes(app, pool, { authenticateSchoolClient, requireSchoolU
     worksheet.getCell('AB65').value = MONTHS[monthNumber - 1];
     worksheet.getCell('AB65').alignment = { ...worksheet.getCell('AB65').alignment, horizontal: 'center', vertical: 'middle', shrinkToFit: true };
     worksheet.getCell('AB65').font = { ...worksheet.getCell('AB65').font, size: 10 };
-    worksheet.getCell('AE65').value = personalCopy ? data.dates.length : summary.days;
+    worksheet.getCell('AE65').value = personalCopy ? null : summary.days;
     worksheet.getCell('AE65').alignment = { ...worksheet.getCell('AE65').alignment, horizontal: 'center', vertical: 'middle' };
     // Learner names are left-aligned for readability. Number and date columns
     // retain the DepEd template's existing alignment.
@@ -593,12 +694,12 @@ function registerSf2Routes(app, pool, { authenticateSchoolClient, requireSchoolU
       notes.getCell('A1').value = 'UNOFFICIAL SUBJECT TEACHER ATTENDANCE COPY';
       notes.getCell('A1').font = { bold: true, size: 16 };
       notes.getCell('A3').value = 'This workbook uses the same DepEd SF2 worksheet template for familiarity but is NOT an official School Form 2.';
-      notes.getCell('A4').value = 'P = at least one accepted subject/class time-in recorded by this teacher for this learner and date.';
-      notes.getCell('A5').value = 'NR = NO RECORD from this teacher; it does NOT mean the learner was absent from school.';
-      notes.getCell('A6').value = 'Absences, tardiness, and official school-wide monthly summary figures are deliberately left blank.';
+      notes.getCell('A4').value = 'P = recorded subject presence (accepted QR or manual). L = all positive evidence is late; both count as presence.';
+      notes.getCell('A5').value = 'NR = no conclusive subject record, not school absence. — = no scheduled class; blank = future date or unused cell; ! = conflicting evidence.';
+      notes.getCell('A6').value = 'X/E = explicitly recorded subject absence/excused for every known scheduled period; not official daily absence. Official absence/tardy totals and school-wide summaries are blank.';
       notes.getCell('A7').value = 'Only the designated Class Adviser/School Admin may produce the official SF2 after resolving pending attendance.';
       notes.getCell('A9').value = `Report: ${month} | Grade: ${gradeLevel} | Section: ${section}`;
-      for (const row of [3,4,5,6,7,9]) notes.getCell('A'+row).alignment = { wrapText: true };
+      for (const row of [3,4,5,6,7,9]) { notes.getCell('A'+row).alignment = { wrapText: true }; notes.getRow(row).height=32; }
       notes.getRow(3).height = 30;
       notes.getRow(6).height = 30;
     }
