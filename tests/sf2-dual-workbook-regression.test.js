@@ -18,7 +18,7 @@ function weekdays(month) {
   return Array.from({length:new Date(Date.UTC(year,m,0)).getUTCDate()},(_,i)=>new Date(Date.UTC(year,m-1,i+1)))
     .filter(d=>![0,6].includes(d.getUTCDay())).map(d=>d.toISOString().slice(0,10));
 }
-async function exportFixture({personal=true,month='2026-01',pending=false,conflict=false,multiSubject=false,subject='',preview=false,subjectOptions=false}={}) {
+async function exportFixture({personal=true,month='2026-01',pending=false,conflict=false,multiSubject=false,subject='',preview=false,subjectOptions=false,productionLike=false}={}) {
   const dates=weekdays(month), closed=dates[0], days=dates.slice(1);
   const [a,b,c,d,e,f,g,h,i]=days;
   const qr=personal ? [{id:'A',date:a,late:false,periodId:'p1'},{id:'B',date:a,late:false,periodId:'p1'},{id:'A',date:g,late:false,periodId:'p1'}]
@@ -30,6 +30,11 @@ async function exportFixture({personal=true,month='2026-01',pending=false,confli
     {id:'A',date:e,status:'EXCUSED',periodId:'p1'},
     {id:'A',date:g,status:'ABSENT',periodId:'p1'}
   ] : [{id:'B',date:a,status:'PRESENT',periodId:'p1'}];
+  const reportLearners=productionLike?Array.from({length:28},(_,i)=>({id:'L'+i,name:'LEARNER '+String(i).padStart(2,'0'),sex:i<3?'MALE':'FEMALE'})):learners;
+  if(productionLike){
+    qr.splice(0);
+    manual.splice(0,...reportLearners.map((learner,i)=>({id:learner.id,date:'2026-11-23',status:i>=26?'ABSENT':'PRESENT',periodId:'p1'})));
+  }
   const schedule=dates.map(date=>({date,periodId:'p1',subjectName:'Advance English',scheduled:date!==c,hasWeekdays:date!==i,startTime:date===h?'11:00':'08:00'}));
   if(multiSubject){
     for(const date of dates){
@@ -48,8 +53,8 @@ async function exportFixture({personal=true,month='2026-01',pending=false,confli
   const pool={query:async (sql)=>{
     if(sql.includes('ALTER TABLE students')) return result([]);
     if(sql.includes('SELECT 1') && sql.includes('UNION ALL') && sql.includes('teacher_period_assignments')) return result([{}]);
-    if(sql.includes('SELECT s.student_id AS id,s.full_name')) return result(learners);
-    if(sql.includes('SELECT DISTINCT m.student_id') && sql.includes('JOIN attendance_events')) return result(personal||conflict?[{id:'A',date:g,periodId:'p1'},...(multiSubject?[{id:'A',date:d,periodId:'p3'}]:[])]:[]);
+    if(sql.includes('SELECT s.student_id AS id,s.full_name')) return result(reportLearners);
+    if(sql.includes('SELECT DISTINCT m.student_id') && sql.includes('JOIN attendance_events')) return result(!productionLike&&(personal||conflict)?[{id:'A',date:g,periodId:'p1'},...(multiSubject?[{id:'A',date:d,periodId:'p3'}]:[])]:[]);
     if(sql.includes('FROM manual_attendance_marks m')) return result(manual);
     if(sql.includes('SELECT DISTINCT e.student_id AS id') && sql.includes('FROM attendance_events')) return result(qr);
     if(sql.includes('FROM sf2_daily_overrides o')) return result(overrides);
@@ -61,7 +66,7 @@ async function exportFixture({personal=true,month='2026-01',pending=false,confli
     if(sql.includes('SELECT school_name,school_code FROM schools')) return result([{school_name:'TEST SCHOOL',school_code:'123456'}]);
     if(sql.includes('FROM school_settings')) return result([{setting_key:'school_name',setting_value:'TEST SCHOOL'}]);
     if(sql.includes('SELECT start_date FROM school_years')) return result([{start_date:'2025-06-01'}]);
-    if(sql.includes('FROM student_enrollments e JOIN school_years sy')) return result(learners.map(x=>({sex:x.sex,student_id:x.id,enrollmentDate:'2025-06-01'})));
+    if(sql.includes('FROM student_enrollments e JOIN school_years sy')) return result(reportLearners.map(x=>({sex:x.sex,student_id:x.id,enrollmentDate:'2025-06-01'})));
     if(sql.includes('FROM student_movements m')) return result([]);
     throw Error('Unexpected fixture SQL: '+sql);
   }};
@@ -118,8 +123,28 @@ test('actual subject XLSX removes diagonal borders, distinguishes daily evidence
   assert.match(sheet.getCell('AG13').formula,/COUNTIF\(AU13:BS13,"P"\)/);
   assert.equal(sheet.getColumn('AU').hidden,true);
   assert.equal(sheet.getColumn('BS').hidden,true);
-  assert.equal(sheet.getCell('AJ117').value,null);
-  assert.equal(sheet.getCell('AK119').value,null);
+  assert.equal(sheet.getCell('AJ117').value,days.length-3);
+  assert.equal(value(sheet.getCell('AG117')),'JAN');
+  assert.equal(sheet.getCell('AG117').formula,'LEFT(AA6,3)');
+  assert.equal(sheet.getCell('AK117').value,'Subject monthly summary');
+  assert.equal(value(sheet.getCell('AK119')),1);
+  assert.equal(value(sheet.getCell('AL119')),1);
+  assert.equal(value(sheet.getCell('AM119')),2);
+  assert.equal(value(sheet.getCell('AM121')),3);
+  assert.equal(value(sheet.getCell('AM123')),1);
+  assert.equal(value(sheet.getCell('AM125')),0.6);
+  assert.equal(sheet.getCell('AM125').numFmt,'0.00%');
+  assert.equal(value(sheet.getCell('AM127')),1);
+  assert.equal(value(sheet.getCell('AM128')),1);
+  assert.equal(value(sheet.getCell('AM132')),1);
+  assert.equal(value(sheet.getCell('AM134')),5);
+  assert.equal(value(sheet.getCell('AM136')),4);
+  assert.equal(value(sheet.getCell('AM130')),2*(days.length-2)-6);
+  assert.equal(sheet.getCell('AM128').numFmt,'General');
+  assert.match(sheet.getCell('AM125').formula,/IFERROR/);
+  assert.match(sheet.getCell('AM136').formula,/COUNTIF\(AU115:BS115/);
+  assert.equal(sheet.getCell('AE132').value,'Conflicts to review');
+  assert.equal(sheet.getCell('T128').value,null);
   assert.ok(sheet.getCell('G115').alignment.textRotation===0 || !sheet.getCell('G115').alignment.textRotation);
   blankSlots(sheet,days);
   assert.equal(workbook.worksheets.length,1);
@@ -132,6 +157,9 @@ test('actual subject XLSX removes diagonal borders, distinguishes daily evidence
 test('future subject dates have no attendance symbols or totals',async()=>{
   const {res,sheet}=await exportFixture({month:'2099-01'});
   assert.equal(res.code,200,JSON.stringify(res.body));
+  assert.equal(sheet.getCell('AJ117').value,0);
+  for(const row of [121,123,127,128,130,132,134,136])assert.equal(value(sheet.getCell('AM'+row)),0);
+  assert.ok([null,undefined,''].includes(value(sheet.getCell('AM125'))));
   for(let col=7;col<=31;col++) {
     assert.equal(sheet.getCell(13,col).value,null);
     assert.equal(sheet.getCell(64,col).value,null);
@@ -215,4 +243,28 @@ test('three assigned subjects: explicit selection, isolated evidence, and correc
   const conflicted=await exportFixture({multiSubject:true,subject:'subject:journalism 8',preview:true});
   assert.equal(conflicted.res.body.students[0].subjectDays[3],'CONFLICT');
   assert.equal(conflicted.res.body.summary.absent,0);
+});
+
+test('November subject report: 28 learners, 26 present, two X marks, weighted 92.86% and one recorded date',async()=>{
+  const {res,sheet,days}=await exportFixture({month:'2026-11',productionLike:true});
+  assert.equal(res.code,200,JSON.stringify(res.body));
+  assert.equal(value(sheet.getCell('AG117')),'NOV');
+  const values=row=>['AK','AL','AM'].map(c=>value(sheet.getCell(c+row)));
+  assert.deepEqual(values(119),[3,25,28]);
+  assert.deepEqual(values(121),[3,23,26]);
+  assert.deepEqual(values(123),[0,2,2]);
+  assert.deepEqual(values(125),[1,23/25,26/28]);
+  assert.deepEqual(values(128),[0,0,0]);
+  assert.deepEqual(values(134),[3,25,28]);
+  assert.deepEqual(values(136),[1,1,1]);
+  assert.equal(value(sheet.getCell('AM125')).toFixed(4),'0.9286');
+  assert.equal(value(sheet.getCell('AF115')),2);
+  assert.equal(value(sheet.getCell('AG115')),26);
+  const d=days.indexOf('2026-11-23');
+  assert.ok(d>=0);
+  assert.equal(dayCell(sheet,days,87,d).value,'X');
+  assert.equal(dayCell(sheet,days,88,d).value,'X');
+  assert.ok(value(sheet.getCell('AM130'))>0,'Unrecorded days stay separate from absences');
+  assert.equal(sheet.model.merges.length,257);
+  assertNoManualCalculationPanel(sheet);
 });
