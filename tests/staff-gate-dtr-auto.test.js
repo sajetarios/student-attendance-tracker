@@ -98,3 +98,17 @@ for(const [name,settings,reason] of [
   assert.equal(client.calls.some(x=>x.sql.startsWith('INSERT INTO')),false);
  });
 }
+
+test('explicitly confirmed last exit can fill PM_OUT without manufacturing PM_IN',()=>{
+ const movements=[ev('one','TIME_IN','07:43'),ev('two','TIME_OUT','12:05'),
+  {...ev(gateEventId,'TIME_OUT','17:42'),confirmedMissingReturnExit:true}];
+ const existingSlots={AM_IN:'07:43',AM_OUT:'12:05'};
+ assert.deepEqual(chooseSafeAutoSlot({movements,existingSlots,hours,gateEventId}),
+  {status:'MATCHED',slot:'PM_OUT'});
+ const unconfirmed=movements.map(({confirmedMissingReturnExit,...e})=>e);
+ assert.equal(chooseSafeAutoSlot({movements:unconfirmed,existingSlots,hours,gateEventId}).status,'REVIEW_REQUIRED');
+ assert.equal(chooseSafeAutoSlot({movements,existingSlots:{},hours,gateEventId}).status,'REVIEW_REQUIRED');
+ assert.equal(chooseSafeAutoSlot({movements,existingSlots:{...existingSlots,PM_OUT:'16:00'},hours,gateEventId}).status,'REVIEW_REQUIRED');
+ const midday=[...movements.slice(0,2),{...movements[2],time:'12:20'}];
+ assert.equal(chooseSafeAutoSlot({movements:midday,existingSlots,hours,gateEventId}).status,'REVIEW_REQUIRED');
+});

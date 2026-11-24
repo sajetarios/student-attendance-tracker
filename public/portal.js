@@ -2236,6 +2236,7 @@ function coverageStatusLabel(status) {
     $('studentPhotoVerified').checked = false;
     noticeContinue.hidden = isGateVerification;
     noticeRecord.hidden = !isGateVerification;
+    noticeRecord.textContent = 'Verify & Record';
     noticeClear.hidden = !isGateVerification;
     noticeRecord.disabled = !photo;
     noticeConfirmation.hidden = !isGateVerification || !photo;
@@ -2282,6 +2283,7 @@ function coverageStatusLabel(status) {
     });
     if (isTeacherPerson) {
       person.expectedGateEventType = null;
+      person.confirmedMissingReturnExit = false;
       scannedTeacher = person;
     }
     if (isGateVerification && isTeacherPerson && person.qrToken) {
@@ -2303,6 +2305,20 @@ function coverageStatusLabel(status) {
                 ? ' (Philippine time). Leave overlaps today: physical movement only; DTR requires authorized review.'
                 : ' (Philippine time). A clear, verified scan can fill the matching DTR time; OB and uncertain scans require review.')
             : 'Gate movement requires review: ' + (preview.reason || preview.status);
+        }
+        if (preview.status === 'READY' && preview.canConfirmMissingReturnExit && previewElement) {
+          const option = document.createElement('label');
+          option.style.cssText = 'display:flex;align-items:flex-start;gap:8px;line-height:1.4;margin:8px 0;';
+          const checkbox = document.createElement('input');
+          checkbox.type = 'checkbox';
+          checkbox.style.cssText = 'flex:none;width:20px;height:20px;margin:0;';
+          option.append(checkbox,document.createTextNode('I confirm the employee is leaving school now (return scan was missed).'));
+          checkbox.addEventListener('change',()=>{
+            if(scannedTeacher!==person)return;
+            person.confirmedMissingReturnExit=checkbox.checked;
+            noticeRecord.textContent=checkbox.checked?'Verify & Record Exit':'Verify & Record';
+          });
+          previewElement.after(option);
         }
         if (previewElement) previewElement.dataset.previewBlocked = String(preview.status !== 'READY');
         if (preview.status === 'READY') noticeRecord.disabled = !photo;
@@ -2338,6 +2354,7 @@ function coverageStatusLabel(status) {
         method: 'POST',
         body: JSON.stringify({ teacherQrToken: scan.qrToken, photoVerified: true,
           clientEventKey:scan.autoEventId,
+          ...(scan.confirmedMissingReturnExit ? {confirmedMissingReturnExit:true} : {}),
           ...(scan.expectedGateEventType ? { expectedGateEventType:scan.expectedGateEventType } : {}) })
       });
       const name = scannedTeacher.fullName;

@@ -9,8 +9,13 @@ function reconcileGateDay({movements=[],existingSlots={},hours={},approvedOb=[]}
  if(h.some(x=>x===null)||!(h[0]<h[1]&&h[1]<=h[2]&&h[2]<h[3]))
   return {suggestions,review:['SCHEDULE_UNAVAILABLE'],safeToApply:false};
  const sorted=[...movements].sort((a,b)=>String(a.time).localeCompare(String(b.time)));
+ const confirmedExitGap=sorted.length===3&&sorted[0].eventType==='TIME_IN'&&
+  sorted[1].eventType==='TIME_OUT'&&sorted[2].eventType==='TIME_OUT'&&
+  sorted[2].confirmedMissingReturnExit===true&&Boolean(existingSlots.AM_IN&&existingSlots.AM_OUT)&&
+  mins(sorted[2].time)>=h[2]&&Math.abs(mins(sorted[2].time)-h[3])<=120&&
+  Math.abs(mins(sorted[2].time)-h[1])-Math.abs(mins(sorted[2].time)-h[3])>15;
  const valid=sorted.every((e,i)=>mins(e.time)!==null&&
-   (e.eventType===(i%2===0?'TIME_IN':'TIME_OUT'))&&
+   (e.eventType===(i%2===0?'TIME_IN':'TIME_OUT')||(confirmedExitGap&&i===2))&&
    (i===0||mins(e.time)>mins(sorted[i-1].time)));
  if(!valid)return {suggestions,review:['GATE_HISTORY_AMBIGUOUS'],safeToApply:false};
  const intervals=approvedOb.map(o=>({start:mins(o.start),end:mins(o.end)}));
