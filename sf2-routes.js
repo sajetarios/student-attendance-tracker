@@ -235,7 +235,7 @@ function registerSf2Routes(app, pool, { authenticateSchoolClient, requireSchoolU
       );
 
       tardy = await pool.query(
-        `SELECT e.student_id AS id,COUNT(DISTINCT e.school_date)::int AS count
+        `SELECT e.student_id AS id,COUNT(DISTINCT e.school_date)::int AS count, ARRAY_AGG(DISTINCT e.school_date::text) AS "lateDates"
          FROM attendance_events e
          JOIN students s ON s.school_id=e.school_id AND s.student_id=e.student_id
          LEFT JOIN LATERAL (SELECT en.grade_level,en.section FROM student_enrollments en JOIN school_years sy ON sy.school_id=en.school_id AND sy.school_year_id=en.school_year_id WHERE en.school_id=s.school_id AND en.student_id=s.student_id AND sy.status='ACTIVE' AND en.enrollment_status='ENROLLED' ORDER BY en.created_at DESC LIMIT 1) active_enrollment ON TRUE
@@ -324,6 +324,7 @@ function registerSf2Routes(app, pool, { authenticateSchoolClient, requireSchoolU
     }
     const absentMap = new Map(absent.rows.map(row => [`${row.id}|${String(row.date).slice(0, 10)}`, row.absenceType]));
     const tardyMap = new Map(tardy.rows.map(row => [row.id, Number(row.count) || 0]));
+    const tardyDates = new Map(tardy.rows.map(row=>[row.id,new Set(Array.isArray(row.lateDates)?row.lateDates:[])]));
 
     const conflictSet = new Set([
       ...[...presentSet].filter(key => absentMap.has(key)),
@@ -369,6 +370,7 @@ function registerSf2Routes(app, pool, { authenticateSchoolClient, requireSchoolU
     const rows = students.rows.map(student => ({
       ...student,
       tardyCount: tardyMap.get(student.id) || 0,
+      ...(access.mode === 'OFFICIAL' ? { lateDays: dates.map(date=>tardyDates.get(student.id)?.has(date)===true && presentSet.has(`${student.id}|${date}`) && !conflictSet.has(`${student.id}|${date}`)) } : {}),
       ...(access.mode === 'PERSONAL' ? { subjectDays: dates.map(date=>subjectStatus(student,date)) } : {}),
       sources: dates.map(date => [...(sourceByDay.get(`${student.id}|${date}`) || [])].sort()),
       days: dates.map(date => {
