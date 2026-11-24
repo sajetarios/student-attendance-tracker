@@ -85,7 +85,8 @@ const REQUIRED_MIGRATIONS = [
   '077_principal_leadership_role.sql',
   '078_principal_sdo_handoff.sql',
   '079_school_memoranda.sql',
-  '080_missing_scan_department_logbook_review.sql'
+  '080_missing_scan_department_logbook_review.sql',
+  '081_parent_subject_attendance_notifications.sql'
 ];
 
 function checksum(content) {
