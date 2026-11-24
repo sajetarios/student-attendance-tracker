@@ -17,7 +17,7 @@ function vapid(){
  const ecdh=crypto.createECDH('prime256v1');ecdh.generateKeys();
  return {
   PARENT_PUSH_VAPID_PUBLIC_KEY:ecdh.getPublicKey().toString('base64url'),
-  PARENT_PUSH_VAPID_PRIVATE_KEY:ecdh.getPrivateKey().toString('base64url'),
+  PARENT_PUSH_VAPID_PRIVATE_KEY:Buffer.concat([Buffer.alloc(Math.max(0,32-ecdh.getPrivateKey().length)),ecdh.getPrivateKey()]).toString('base64url'),
   PARENT_PUSH_VAPID_SUBJECT:'https://attendigo-staging.onrender.com'
  };
 }
