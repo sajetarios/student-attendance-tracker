@@ -76,6 +76,7 @@ const loginUrl = 'https://attendigo.tech/portal-login.html';
 const statusText = document.getElementById('startup-heading');
 const hintText = document.getElementById('startup-hint');
 const statusPanel = document.querySelector('.status-panel');
+let offlineCacheReady = Promise.resolve(null);
 const continueLink = document.getElementById('continue-link');
 const retryButton = document.getElementById('retry-button');
 const previewMode = new URLSearchParams(window.location.search).get('preview') === '1';
@@ -186,7 +187,13 @@ async function checkReadiness() {
         // Only delay an already-ready server; never mask an unavailable one.
         // pagehide cleans up this timer if the visitor leaves or taps Continue.
         const remaining = Math.max(0, minimumWelcomeMs - (Date.now() - welcomeStartedAt));
-        nextCheck = setTimeout(() => {
+        nextCheck = setTimeout(async () => {
+          // Give the offline welcome worker a brief chance to finish caching
+          // before navigating to the official login origin.
+          await Promise.race([
+            offlineCacheReady,
+            new Promise(resolve => setTimeout(resolve, 1200))
+          ]);
           if (leaving) return;
           if (navigator.onLine === false) {
             stopped = false;
@@ -221,8 +228,9 @@ async function checkReadiness() {
   nextCheck = setTimeout(checkReadiness, 5000);
 }
 if ('serviceWorker' in navigator) {
-  navigator.serviceWorker.register('/sw.js', { updateViaCache: 'none' })
-    .catch(() => { /* Normal online navigation still works without offline support. */ });
+  offlineCacheReady = navigator.serviceWorker.register('/sw.js', { updateViaCache: 'none' })
+    .then(() => navigator.serviceWorker.ready)
+    .catch(() => null); // Without service workers the normal online flow still works.
 }
 if (navigator.onLine === false) {
   showOffline(true);
