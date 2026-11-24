@@ -23,6 +23,54 @@ async function setup(page,name,body,attrs='',classes='portal-page'){
  await page.setContent('<!doctype html><html '+attrs+'><head><meta name="viewport" content="width=device-width,initial-scale=1"></head><body class="'+classes+'"><main class="content-wrap" style="width:100%;max-width:100%;margin:0;box-sizing:border-box;padding:12px">'+body+'</main></body></html>');
  for(const css of styles(name)) await page.addStyleTag({content:css});
 }
+async function checkPrincipalHeaderGeometry(engine,engineName){
+ const browser=await engine.launch({headless:true});
+ try{
+  const source=read('principal.html');
+  const start=source.indexOf('<section class="controls" aria-label="Leadership report filters">');
+  const navStart=source.indexOf('<nav class="principal-navigation"',start);
+  const end=source.indexOf('</nav>',navStart);
+  assert.ok(start>=0&&navStart>start&&end>navStart,'actual principal report controls and navigation');
+  const markup=source.slice(start,end+6);
+  for(const theme of ['light','dark']){
+   for(const width of [320,390,768,820,1024,1194,1366,1440]){
+    const touch=width<=1366;
+    const page=await browser.newPage({viewport:{width,height:900},hasTouch:touch,isMobile:touch});
+    try{
+     await page.setContent('<!doctype html><html data-theme="'+theme+'"><head><meta name="viewport" content="width=device-width,initial-scale=1"></head><body><div class="shell"><main id="main">'+markup+'</main></div></body></html>');
+     await page.evaluate(sheets=>{for(const css of sheets){const node=document.createElement('style');node.textContent=css;document.head.append(node);}},styles('principal.html').map(css=>css.replace(/@import\s+[^;]+;/g,'')));
+     await page.evaluate(()=>{
+      document.querySelector('#reportDate').value='2026-11-24';
+      const dept=document.querySelector('#departmentFilter');dept.add(new Option('Special Program in Journalism and a very long department name','long'));dept.value='long';
+      document.querySelector('#principalMore').value='notifications';
+      document.querySelector('#principalMyWorkspace').value='personal';
+     });
+     const result=await page.evaluate(()=>{
+      const rect=e=>{const r=e.getBoundingClientRect();return {x:r.x,y:r.y,width:r.width,height:r.height};};
+      const fields=[...document.querySelectorAll('.controls input,.controls select,.principal-menu-label select')].map(e=>({id:e.id,control:rect(e),label:rect(e.closest('label'))}));
+      const get=sel=>rect(document.querySelector(sel));
+      const tabs=[...document.querySelectorAll('.principal-main-tabs button')].map(rect);
+      return {fields,tabs,refresh:get('#refreshDashboard'),filters:get('.controls'),navigation:get('.principal-navigation'),secondary:get('.principal-navigation-secondary'),mainTabs:get('.principal-main-tabs'),overflow:document.documentElement.scrollWidth>innerWidth+1};
+     });
+     const detail=engineName+' '+theme+' '+width+'px '+JSON.stringify(result);
+     const inside=(a,b)=>a.x>=b.x-1&&a.x+a.width<=b.x+b.width+1&&a.y>=b.y-1&&a.y+a.height<=b.y+b.height+1;
+     for(const x of result.fields){assert.ok(x.control.height>=43&&x.control.width>0,detail);assert.ok(inside(x.control,x.label),x.id+' outside label '+detail);}
+     const controls=result.fields.slice(0,3).map(x=>x.control).concat(result.refresh);
+     const menus=result.fields.slice(3).map(x=>x.control);
+     for(const a of controls)assert.ok(inside(a,result.filters),detail);
+     for(const a of menus)assert.ok(inside(a,result.secondary),detail);
+     for(const a of result.tabs)assert.ok(inside(a,result.mainTabs)&&a.height>=43,detail);
+     for(const list of [controls,menus,result.tabs]){
+      for(let i=0;i<list.length;i++)for(let j=i+1;j<list.length;j++)assert.ok(!overlap(list[i],list[j]),detail);
+     }
+     assert.ok(!overlap(result.mainTabs,result.secondary),detail);
+     assert.ok(!result.overflow,detail);
+    }finally{await page.close();}
+   }
+  }
+  console.log(engineName+' actual principal report filter and navigation: 16 geometry checks passed');
+ }finally{await browser.close();}
+}
 async function checkMemoLauncher(engine,engineName){
  const browser=await engine.launch({headless:true});
  try{
@@ -124,6 +172,8 @@ async function checkMemoGeometry(engine,engineName){
  }finally{await browser.close();}
 }
 (async()=>{
+ await checkPrincipalHeaderGeometry(chromium,'Chromium');
+ await checkPrincipalHeaderGeometry(webkit,'WebKit');
  await checkMemoLauncher(chromium,'Chromium');
  await checkMemoLauncher(webkit,'WebKit');
  await checkMemoGeometry(chromium,'Chromium');
