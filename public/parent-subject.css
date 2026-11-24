@@ -1,0 +1,24 @@
+/* Parent attendance: gate movement and subject-class evidence remain visually separate. */
+#subjectAttendance{scroll-margin-top:20px}
+.parent-subject-head{display:flex;justify-content:space-between;align-items:flex-start;gap:16px;flex-wrap:wrap}
+.parent-subject-head h2{margin-bottom:6px}
+.parent-subject-subtitle{font-size:14px;color:var(--muted,#66778c);line-height:1.5;margin:0}
+.parent-subject-controls{display:grid;grid-template-columns:minmax(0,2fr) minmax(150px,1fr) auto;align-items:end;gap:12px;margin:18px 0}
+.parent-subject-controls label{display:grid;gap:6px;font-weight:650;font-size:13px;min-width:0}
+.parent-subject-controls select,.parent-subject-controls input{width:100%;min-width:0;max-width:100%;box-sizing:border-box;padding:11px 12px;min-height:44px;border-radius:10px;border:1px solid var(--line,#d6e2ef);background:var(--card,#fff);color:var(--ink,#24394f);font:inherit}
+.parent-subject-controls button{min-height:44px;max-width:100%;white-space:normal}
+.parent-subject-gate{padding:12px 14px;border:1px solid var(--line,#d7e5ee);border-radius:12px;background:var(--surface-muted,#f3f8fc);color:var(--ink,#283c50);margin-bottom:15px;display:flex;flex-wrap:wrap;gap:8px 22px;align-items:center;font-size:13px;line-height:1.5}
+.parent-subject-gate strong{font-weight:750}
+.parent-subject-items{display:grid;gap:10px}
+.parent-subject-item{padding:14px 16px;border:1px solid var(--line,#d7e5ef);border-radius:12px;display:grid;grid-template-columns:minmax(0,1fr) auto;gap:10px;align-items:start;min-width:0;background:var(--card,#fff)}
+.parent-subject-item h3{margin:0 0 4px;font-size:15px;line-height:1.4;overflow-wrap:anywhere}
+.parent-subject-item p{margin:3px 0;font-size:12px;line-height:1.5;color:var(--muted,#63768d);overflow-wrap:anywhere}
+.parent-subject-status{display:inline-flex;align-items:center;justify-content:center;padding:5px 9px;border-radius:999px;font-size:12px;font-weight:750;border:1px solid transparent;white-space:nowrap}
+.parent-subject-status[data-state=PRESENT]{background:#e5f6ec;color:#136b3c}
+.parent-subject-status[data-state=LATE]{background:#fff1d6;color:#86550b}
+.parent-subject-status[data-state=ABSENT]{background:#fde5e7;color:#992b35}
+.parent-subject-status[data-state=EXCUSED]{background:#e8effe;color:#294c91}
+.parent-subject-status[data-state=REVIEW]{background:#ffedd5;color:#8a450f}
+.parent-subject-status[data-state=PENDING],.parent-subject-status[data-state=UPCOMING],.parent-subject-status[data-state=IN_PROGRESS],.parent-subject-status[data-state=CANCELLED]{background:var(--surface-muted,#edf2f7);color:var(--ink,#42556b);border-color:var(--line,#dde6f0)}
+.parent-subject-feedback{min-height:1.2em;font-size:13px;color:var(--muted,#63768d)}
+@media(max-width:720px){.parent-subject-controls{grid-template-columns:minmax(0,1fr)}.parent-subject-item{grid-template-columns:minmax(0,1fr)}.parent-subject-status{justify-self:start}}
