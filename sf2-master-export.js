@@ -44,19 +44,18 @@ async function renderMasterWorkbook({calculated,data,month,personalCopy=false,sc
     set('AE142','Subject teacher reference only');
     set('A117','SUBJECT REPORT GUIDE:');
     set('A118','1. Only the selected subject is included. Future dates are excluded.');
-    set('A119','2. Present includes late arrivals; excused absences are listed separately.');
-    set('A120','3. Summary counts are learner-days unless labeled otherwise.');
+    set('A119','2. Present includes late arrivals. Absent counts X; excused absences remain E.');
+    set('A120','3. Present and Absent are totals of recorded learner-days in the month.');
     for(const a of ['A121','B121','G121','Q121','G122','A123','B123','G123','G124','A125','B125','G125','Q125','G126','A128','A130','A132','A133','B133'])set(a,null);
-    set('A128','Attendance % = present ÷ (present + absent + excused). Unrecorded and conflicting days are excluded. No recorded attendance means no percentage.');
-    set('A130','Scheduled days: verified subject days elapsed, excluding full-day closures and uncertain schedules. Recorded dates: dates with at least one conclusive learner record.');
-    set('A132','Roster counts reflect the current report roster, not official monthly enrollment.');
+    set('A128','Attendance % = Present / (Present + Absent + Excused). No recorded attendance = blank percentage.');
+    set('A130','Unrecorded, conflicting, future and no-class dates are excluded from the percentage.');
+    set('A132','Enrolled learners are the learners included in the selected subject report roster.');
     set('T121','2. RECORDING NOTES');
     for(let row=122;row<=146;row++)if(row!==142)set('T'+row,null);
     set('T122','Gray: incomplete evidence');
     set('T123','! : resolve conflict');
     set('T124','E : excused absence');
     set('T125','— : no scheduled class');
-    set('T126','Future dates excluded');
   }else{
     // This locally prepared worksheet supports completing the actual LIS form;
     // it is not represented as an authorized DepEd/LIS-issued electronic form.
@@ -117,44 +116,36 @@ async function renderMasterWorkbook({calculated,data,month,personalCopy=false,sc
   // Calculate school days from the exported date headers instead of the
   // old editable AQ9 field. Blank holidays and unused slots never count.
   if(personalCopy){
+    // Keep the existing summary geometry: only four indicators, in the
+    // original rows and columns. No added sheet, rows, columns or merges.
     set('AH117','Scheduled days:');
     set('AJ117',data.subjectScheduledDays??0);
-    set('AK117','Subject monthly summary');
-    const labels={119:'Learners in report roster',121:'Present (includes late)',123:'Absent (unexcused)',125:'Attendance % (recorded only)',127:'Late (included in present)',128:'Excused absences',130:'Unrecorded / incomplete',132:'Conflicts to review',134:'Recorded learner-days',136:'Recorded subject dates'};
+    set('AK117','Subject Attendance Summary');
+    const labels={119:'Enrolled learners',121:'Present',123:'Absent',125:'Attendance percentage'};
     for(const [row,label] of Object.entries(labels))set('AE'+row,label);
-    const dayStatus=(learner,d)=>learner.subjectDays?.[d]||learner.days[d];
-    const confirmed=['PRESENT','LATE','SUBJECT_ABSENT','EXCUSED'];
-    const stats=learners=>{
-      const all=learners.flatMap(learner=>data.dates.map((_,d)=>dayStatus(learner,d)));
-      const count=(...codes)=>all.filter(x=>codes.includes(x)).length;
-      const present=count('PRESENT','LATE'),absent=count('SUBJECT_ABSENT'),excused=count('EXCUSED');
-      const recorded=present+absent+excused;
-      return {119:learners.length,121:present,123:absent,125:recorded?present/recorded:'',127:count('LATE'),128:excused,130:count('NO_RECORD'),132:count('CONFLICT'),134:recorded,136:data.dates.filter((_,d)=>learners.some(learner=>confirmed.includes(dayStatus(learner,d)))).length};
-    };
-    const groupStats=groups.map(stats);
-    const totalStats=stats(groups.flat());
-    const countCode=(range,code)=>'COUNTIF('+range+',"'+code+'")';
-    for(let g=0;g<2;g++){
-      const c=g?'AL':'AK',start=g?64:13,end=start+49,subtotal=g?114:63,range='AU'+start+':BS'+end;
-      const x=groupStats[g];
-      const formulas={119:'COUNTA(B'+start+':B'+end+')',121:'SUM(AG'+start+':AG'+end+')',123:'SUM(AF'+start+':AF'+end+')',125:'IFERROR('+c+'121/'+c+'134,"")',127:countCode(range,'L'),128:countCode(range,'E'),130:countCode(range,'NR'),132:countCode(range,'!'),134:c+'121+'+c+'123+'+c+'128'};
-      // A recorded subject date is a unique date with >=1 conclusive learner-day.
-      // Hidden subtotal evidence makes this formula short and auditable.
-      for(let slot=0;slot<25;slot++){
-        const d=slots[slot],hc=col(47+slot);
-        const dateRange=hc+start+':'+hc+end;
-        const count=d<0?0:groups[g].filter(learner=>confirmed.includes(dayStatus(learner,d))).length;
-        addHelper(subtotal,hc+subtotal,{formula:['P','L','X','E'].map(code=>countCode(dateRange,code)).join('+'),result:count});
-      }
-      formulas[136]='COUNTIF(AU'+subtotal+':BS'+subtotal+',">0")';
-      for(const row of Object.keys(labels))cache(c+row,formulas[row],x[row],Number(row)===125?'percent':'integer');
+    // Clear all unused official-statistics labels and values, retaining their
+    // existing cells, borders, spacing and original merged ranges.
+    for(const row of [127,128,130,132,134,136]){
+      set('AE'+row,null);
+      for(const c of ['AK','AL','AM'])set(c+row,null);
     }
-    for(let slot=0;slot<25;slot++){
-      const d=slots[slot],hc=col(47+slot);
-      addHelper(115,hc+'115',{formula:hc+'63+'+hc+'114',result:d<0?0:groups.flat().filter(learner=>confirmed.includes(dayStatus(learner,d))).length});
+    const stats=learners=>{
+      const all=learners.flatMap(learner=>data.dates.map((_,d)=>learner.subjectDays?.[d]||learner.days[d]));
+      const present=all.filter(x=>x==='PRESENT'||x==='LATE').length;
+      const absent=all.filter(x=>x==='SUBJECT_ABSENT').length;
+      const excused=all.filter(x=>x==='EXCUSED').length;
+      const recorded=present+absent+excused;
+      return {119:learners.length,121:present,123:absent,125:recorded?present/recorded:''};
+    };
+    const groupStats=groups.map(stats),totalStats=stats(groups.flat());
+    const excusedCount=(start,end)=>'COUNTIF(AU'+start+':BS'+end+',"E")';
+    for(let g=0;g<2;g++){
+      const c=g?'AL':'AK',start=g?64:13,end=start+49;
+      const formulas={119:'COUNTA(B'+start+':B'+end+')',121:'SUM(AG'+start+':AG'+end+')',123:'SUM(AF'+start+':AF'+end+')',125:'IFERROR('+c+'121/('+c+'121+'+c+'123+'+excusedCount(start,end)+'),"")'};
+      for(const row of Object.keys(labels))cache(c+row,formulas[row],groupStats[g][row],Number(row)===125?'percent':'integer');
     }
     for(const row of Object.keys(labels)){
-      const formula=row==='125'?'IFERROR(AM121/AM134,"")':row==='136'?'COUNTIF(AU115:BS115,">0")':'AK'+row+'+AL'+row;
+      const formula=row==='125'?'IFERROR(AM121/(AM121+AM123+'+excusedCount(13,62)+'+'+excusedCount(64,113)+'),"")':'AK'+row+'+AL'+row;
       cache('AM'+row,formula,totalStats[row],row==='125'?'percent':'integer');
     }
   }else{
