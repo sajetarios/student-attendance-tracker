@@ -89,7 +89,8 @@ test('staff lunch sign-in resumes same challenge without QR rescan or token in q
  assert.match(login,/lunchContinuation && isLunchStaff\(data\.user\.role\)/);
  assert.match(login,/location\.replace\(lunchContinuation\)/);
  assert.match(page,/id="lunchRetry"/);
- assert.match(loginPage,/portal-login\.js\?v=15/);
+ assert.match(loginPage,/portal-login\.js\?v=16/);
+ assert.match(sw,/portal-login\.js\?v=16/);
  assert.match(sw,/staff-lunch-checkin\.js\?v=5/);
  assert.doesNotMatch(scan,/localStorage|sessionStorage|location\.search|console\.log/);
 });
@@ -164,23 +165,53 @@ test('GPS sampling is bounded and routes uncertainty to review without changing 
 
 test('location permission popup guides staff without bypassing approval',()=>{
  const css=read('public/staff-lunch.css');
- assert.match(departmentLocationUi,/navigator\.permissions\.query\(\{name:'geolocation'\}\)/);
+ assert.doesNotMatch(departmentLocationUi,/navigator\.permissions\.query/);
  assert.match(departmentLocationUi,/staffLocationPermissionDialog/);
  assert.match(departmentLocationUi,/dialog\.showModal\(\)/);
  assert.match(departmentLocationUi,/staffLocationPermissionDevice/);
  assert.match(departmentLocationUi,/Chrome \/ Edge \(computer\)/);
  assert.match(departmentLocationUi,/Android \(Chrome\)/);
  assert.match(departmentLocationUi,/iPhone \/ iPad \(Safari\)/);
- assert.match(departmentLocationUi,/if\(state==='granted'\)\{void submitLocation\(\);return;\}/);
+ assert.match(departmentLocationUi,/button\.addEventListener\('click',\(\)=>\{[\s\S]*?void submitLocation\(\);/);
+ assert.match(departmentLocationUi,/dialog\.close\(\);startCapture\(\);/);
+ assert.match(departmentLocationUi,/isEmbeddedBrowser/);
+ assert.match(departmentLocationUi,/Precise Location/);
+ assert.match(departmentLocationUi,/navigator\.onLine===false/);
+ assert.match(sw,/'\/staff-department-location\.js','\/staff-lunch-ui\.js'\]\.includes\(url\.pathname\)/);
  assert.match(departmentLocationUi,/if\(error\?\.code===1\)openGuide\('denied'\)/);
- assert.match(departmentLocationUi,/Your browser has already blocked location/);
+ assert.match(departmentLocationUi,/Location access was denied or blocked/);
  assert.match(departmentLocationUi,/startCapture\(\)/);
  assert.match(departmentLocationUi,/\/api\/staff-attendance\/lunch\/location\/propose/);
- assert.match(departmentLocationUi,/position\.samples\?\.length<2/);
+ assert.match(departmentLocationUi,/!Array\.isArray\(position\.samples\)\|\|position\.samples\.length<2/);
  assert.match(css,/\.staff-location-permission-dialog::backdrop/);
  assert.match(css,/\.staff-location-permission-actions/);
  assert.match(portal,/staff-lunch\.css\?v=7/);
  assert.match(portal,/staff-department-location\.js\?v=3/);
  assert.match(sw,/staff-lunch\.css\?v=7/);
  assert.match(sw,/staff-department-location\.js\?v=3/);
+});
+
+test('department location review uses in-app confirmation and persisted server status',()=>{
+ assert.doesNotMatch(departmentLocationUi,/window\.prompt\(/);
+ assert.match(departmentLocationUi,/await window\.AppDialog\.prompt\(/);
+ assert.match(departmentLocationUi,/Confirm approval/);
+ assert.match(departmentLocationUi,/Review cancelled\. No decision was submitted/);
+ assert.match(departmentLocationUi,/result\.status!==expected/);
+ assert.match(departmentLocationUi,/saved\?\.proposalStatus===expected&&\(!isApproval\|\|saved\.configured\)/);
+ assert.match(departmentLocationUi,/Approval confirmed/);
+ assert.match(departmentLocationUi,/Review not confirmed/);
+ assert.match(departmentLocationUi,/showFeedback\(outcome\)/);
+ assert.match(departmentLocationUi,/Refresh location status/);
+ assert.match(departmentLocationUi,/result\.approvedAt/);
+ assert.match(departmentLocationUi,/if\(!departmentId\|\|busy\)return/);
+});
+
+test('presenter obtains fresh GPS for each QR issue and automatic rotation',()=>{
+ assert.match(ui,/collectPreciseLocation/);
+ assert.match(ui,/JSON\.stringify\(\{slot:slot\.value,location:position\}\)/);
+ assert.match(ui,/result\.locationVerified!==true/);
+ assert.match(ui,/Location verified/);
+ assert.match(routes,/classifyDepartmentPresence\(location\?\.point,req\.body\?\.location,now\)/);
+ assert.match(routes,/now-evidence\.point\.capturedAt>30000/);
+ assert.match(routes,/LUNCH_PRESENTER_LOCATION_BLOCKED/);
 });
