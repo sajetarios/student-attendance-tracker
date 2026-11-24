@@ -1,5 +1,5 @@
 'use strict';
-const {assertCacheRevisionAtLeast}=require('./support/asset-contract');
+const {assertCachedAsset,assertCacheRevisionAtLeast}=require('./support/asset-contract');
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
@@ -116,6 +116,6 @@ test('unverified/unauthorized questions never become guessed generative guidance
   assert.ok(aiRoutes.includes("status(422)"));
   assert.ok(aiRoutes.includes('Do not add any steps or UI names not stated'));
   assertCacheRevisionAtLeast(sw,311);
-  assert.ok(sw.includes('"/attendigo-help-topics.js?v=3"'));
-  assert.ok(sw.includes('"/attendigo-help-guide.js?v=4"'));
+  assertCachedAsset(html,sw,'attendigo-help-topics.js',{minimumVersion:4});
+  assertCachedAsset(html,sw,'attendigo-help-guide.js',{minimumVersion:4});
 });
