@@ -1777,6 +1777,7 @@ function coverageStatusLabel(status) {
       ((departmentHead || (teacher && designations.includes('CLASS_ADVISER'))) && hasSelectableLearners);
     const rosterTable = $('studentRosterTable');
     rosterTable?.classList.toggle('teacher-roster-compact', teacher);
+    rosterTable?.classList.toggle('roster-mobile-compact', !teacher);
     // Table-layout:fixed reads the header widths, not the body cells. Reserve only one
     // checkbox-sized column when a role is allowed to select learners in bulk.
     rosterTable?.classList.toggle('teacher-roster-with-selection', teacher && showSelectionColumn);
@@ -1864,10 +1865,21 @@ function coverageStatusLabel(status) {
           const classInfo = `<div class="teacher-roster-class"><strong>${esc(student.gradeLevel)}</strong><span class="teacher-roster-section${sectionUnassigned ? ' is-unassigned' : ''}">${esc(sectionName || 'Unassigned')}</span><span class="teacher-roster-program" data-label="Special program">${student.specialProgramCode ? programCell : ''}</span></div>`;
           return `<tr class="teacher-roster-student" data-student-enrollment="${esc(student.enrollmentId || '')}" data-student-name="${esc(student.fullName)}">${showSelectionColumn ? `<td data-label="Select">${selection}</td>` : ''}<td data-label="Full name">${identity}</td><td data-label="Class">${classInfo}</td><td data-label="Status"><span class="teacher-roster-status ${statusClass}">${statusLabel}</span></td><td data-label="Actions"><div class="teacher-roster-quick-actions">${qrAction}${editable ? `<button type="button" class="outline-button learner-direct-edit" data-edit-student="${esc(student.studentId)}" aria-label="Edit ${esc(student.fullName)}">Edit</button>` : ""}${actions}</div></td></tr>`;
         }
+        // Keep the full desktop table and its role boundaries. Phones show a
+        // compact learner identity with an accessible, on-demand detail section.
+        const mobileRosterDetails = !teacher ? `<div class="roster-mobile-summary">
+          <span class="roster-mobile-class">${esc(student.gradeLevel || '—')} · ${esc(student.section || 'Unassigned')}</span>
+          <span class="roster-mobile-status">${esc(statusLabel)}</span>
+          <details class="roster-mobile-details"><summary>Details</summary><dl>
+          <dt>Student ID</dt><dd>${esc(student.studentId)}</dd>
+          <dt>Sex</dt><dd>${esc(student.sex || 'Not set')}</dd>
+          <dt>Special program</dt><dd>${programCell}</dd>
+          ${admin ? `<dt>Parent / guardian</dt><dd>${esc(student.parentName || 'Not provided')}<br>${esc(student.parentMobile || 'No mobile number')}</dd>` : ''}
+          </dl></details></div>` : '';
         if (departmentHead) {
-          return `<tr data-student-enrollment="${esc(student.enrollmentId || '')}" data-student-name="${esc(student.fullName)}">${showSelectionColumn ? `<td data-label="Select">${selection}</td>` : ''}<td data-label="Student ID">${esc(student.studentId)}</td><td data-label="Full name">${studentRosterName(student, ordinal)}</td><td data-label="Sex">${esc(student.sex || 'Not set')}</td><td data-label="Grade">${esc(student.gradeLevel)}</td><td data-label="Section">${esc(student.section)}</td><td data-label="Special program">${programCell}</td><td data-label="Status">${statusLabel}</td><td data-label="Actions"><span class="muted-inline">View only</span></td></tr>`;
+          return `<tr data-student-enrollment="${esc(student.enrollmentId || '')}" data-student-name="${esc(student.fullName)}">${showSelectionColumn ? `<td data-label="Select">${selection}</td>` : ''}<td data-label="Student ID">${esc(student.studentId)}</td><td data-label="Full name">${studentRosterName(student, ordinal)}${mobileRosterDetails}</td><td data-label="Sex">${esc(student.sex || 'Not set')}</td><td data-label="Grade">${esc(student.gradeLevel)}</td><td data-label="Section">${esc(student.section)}</td><td data-label="Special program">${programCell}</td><td data-label="Status">${statusLabel}</td><td data-label="Actions"><span class="muted-inline">View only</span></td></tr>`;
         }
-        return `<tr data-student-enrollment="${esc(student.enrollmentId || '')}" data-student-name="${esc(student.fullName)}">${showSelectionColumn ? `<td data-label="Select">${selection}</td>` : ''}<td data-label="Photo">${avatar}</td><td data-label="Student ID">${esc(student.studentId)}</td><td data-label="Full name">${studentRosterName(student, ordinal)}</td><td data-label="Sex">${esc(student.sex || 'Not set')}</td><td data-label="Grade">${esc(student.gradeLevel)}</td><td data-label="Section">${esc(student.section)}</td><td data-label="Special program">${programCell}</td><td data-label="Status">${statusLabel}</td><td data-label="Actions">${actions}</td>${(admin || teacher) ? `<td data-label="Parent / guardian"><strong>${esc(student.parentName || "Not provided")}</strong><small class="table-subtext">${esc(student.parentMobile || "No mobile number")}</small></td>` : ''}</tr>`;
+        return `<tr data-student-enrollment="${esc(student.enrollmentId || '')}" data-student-name="${esc(student.fullName)}">${showSelectionColumn ? `<td data-label="Select">${selection}</td>` : ''}<td data-label="Photo">${avatar}</td><td data-label="Student ID">${esc(student.studentId)}</td><td data-label="Full name">${studentRosterName(student, ordinal)}${mobileRosterDetails}</td><td data-label="Sex">${esc(student.sex || 'Not set')}</td><td data-label="Grade">${esc(student.gradeLevel)}</td><td data-label="Section">${esc(student.section)}</td><td data-label="Special program">${programCell}</td><td data-label="Status">${statusLabel}</td><td data-label="Actions">${actions}</td>${(admin || teacher) ? `<td data-label="Parent / guardian"><strong>${esc(student.parentName || "Not provided")}</strong><small class="table-subtext">${esc(student.parentMobile || "No mobile number")}</small></td>` : ''}</tr>`;
       }));
       let previousSex = null;
       host.innerHTML = rows.map((row, index) => {
