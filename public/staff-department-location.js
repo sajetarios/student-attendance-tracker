@@ -175,7 +175,16 @@
    review=$('staffLunchLocationReview'),approve=$('staffLunchApprovePoint'),
    reject=$('staffLunchRejectPoint'),map=$('staffLunchCandidateMap');
   if(!select||!status||!approve||!reject||!review)return;
-  let seq=0;
+  let seq=0,busy=false;
+  const feedback=document.createElement('p');
+  feedback.className='staff-lunch-status';
+  feedback.setAttribute('role','status');feedback.setAttribute('aria-live','polite');
+  feedback.hidden=true;status.after(feedback);
+  function showFeedback(message){feedback.textContent=message;feedback.hidden=!message;}
+  const refreshButton=document.createElement('button');
+  refreshButton.type='button';refreshButton.className='outline-button';
+  refreshButton.textContent='Refresh location status';
+  approve.parentElement.append(refreshButton);
   function pendingButtons(enabled){approve.disabled=!enabled;reject.disabled=!enabled;}
   async function refresh(){
    const id=select.value,requestSeq=++seq;
@@ -187,11 +196,12 @@
     const result=await request('/api/staff-attendance/lunch/location?'+
      new URLSearchParams({departmentId:id}).toString());
     if(seq!==requestSeq||select.value!==id)return;
-    const approved=result.configured?'Approved location active ('+result.radiusMeters+' m radius).':
+    const approved=result.configured?'APPROVED — active location ('+result.radiusMeters+' m radius).'+
+     (result.approvedAt?' Activated: '+new Date(result.approvedAt).toLocaleString('en-PH',{timeZone:'Asia/Manila'})+'.':''):
      'No approved location. Teacher scans will need review until approval.';
     if(result.proposalStatus==='PENDING'&&result.candidate){
      const point=result.candidate;
-     status.textContent=approved+' A Department Head has submitted a new location for your approval.';
+     status.textContent=approved+' PENDING APPROVAL — a Department Head has submitted a location for review.';
      review.hidden=false;
      review.textContent='Submitted point: '+Number(point.latitude).toFixed(5)+', '+
       Number(point.longitude).toFixed(5)+' · Accuracy reported: '+Math.round(point.accuracyMeters)+' m.';
@@ -202,11 +212,12 @@
      pendingButtons(true);
     }else{
      status.textContent=approved+(
-      result.proposalStatus==='APPROVED'?' Latest submission approved.':
-      result.proposalStatus==='REJECTED'?' Latest proposal rejected.':
+      result.proposalStatus==='APPROVED'?' Latest submission: APPROVED.':
+      result.proposalStatus==='REJECTED'?' Latest proposal: REJECTED.':
       ' Awaiting a Department Head submission.');
     }
-   }catch(error){if(seq===requestSeq)status.textContent='Unable to load location: '+error.message;}
+    return result;
+   }catch(error){if(seq===requestSeq)status.textContent='Unable to load location: '+error.message;return null;}
   }
   try{
    const data=await request('/api/departments');
@@ -216,23 +227,48 @@
    if(departments.length===1)select.value=departments[0].departmentId;
    await refresh();
   }catch(error){status.textContent='Department list unavailable: '+error.message;return;}
-  select.addEventListener('change',()=>{void refresh();});
+  select.addEventListener('change',()=>{showFeedback('');void refresh();});
+  refreshButton.addEventListener('click',()=>{if(!busy)void refresh();});
   async function decide(decision){
    const departmentId=select.value;
-   if(!departmentId)return;
-   const note=window.prompt('Provide an independent review reason (at least 10 characters) for '+decision.toLowerCase()+' of '+select.selectedOptions[0].text+':');
-   if(note===null)return;
-   if(note.trim().length<10||note.trim().length>500){
-    status.textContent='Provide an approval reason between 10 and 500 characters.';return;
-   }
-   pendingButtons(false);select.disabled=true;
+   if(!departmentId||busy)return;
+   const isApproval=decision==='APPROVE';
+   const departmentName=select.selectedOptions[0].text;
+   busy=true;pendingButtons(false);select.disabled=true;refreshButton.disabled=true;
+   showFeedback('');
+   let outcome='';
    try{
+    if(!window.AppDialog?.prompt)throw Error('The confirmation dialog did not load. Refresh Attendigo and try again.');
+    const note=await window.AppDialog.prompt(
+     isApproval?'Confirm the submitted point for '+departmentName+'. Once approved, it becomes the active location for QR verification.':
+      'Reject the proposed point for '+departmentName+'. Any existing approved location remains active.','',{
+      title:isApproval?'Approve department location':'Reject department location',
+      label:'Review reason',inputType:'textarea',required:true,maxLength:500,
+      helpText:'Enter 10–500 characters for the approval audit history.',
+      confirmText:isApproval?'Confirm approval':'Confirm rejection',
+      variant:isApproval?'default':'danger',
+      validate:value=>value.trim().length>=10&&value.trim().length<=500?true:'Enter a reason between 10 and 500 characters.'
+     });
+    if(note===null){outcome='Review cancelled. No decision was submitted.';return;}
+    showFeedback(isApproval?'Saving approval…':'Saving rejection…');
     const result=await request('/api/staff-attendance/lunch/location/decision',{
      method:'POST',body:JSON.stringify({departmentId,decision,note:note.trim()})
     });
-    status.textContent=result.message;
-   }catch(error){status.textContent='Review failed: '+error.message;}
-   finally{select.disabled=false;await refresh();}
+    const expected=isApproval?'APPROVED':'REJECTED';
+    if(result.status!==expected)throw Error('The server did not confirm the requested decision. Check location status before retrying.');
+    const saved=await refresh();
+    if(saved?.proposalStatus===expected&&(!isApproval||saved.configured)){
+     outcome=isApproval?'Approval confirmed — '+departmentName+' location is active.':'Rejection confirmed — '+departmentName+' proposal was rejected.';
+    }else{
+     outcome='Server saved the '+expected.toLowerCase()+' decision, but the latest location status could not be confirmed. Refresh location status to check.';
+    }
+   }catch(error){
+    outcome='Review not confirmed: '+error.message+' Check the current status before retrying.';
+   }finally{
+    await refresh();
+    showFeedback(outcome);
+    busy=false;select.disabled=false;refreshButton.disabled=false;
+   }
   }
   approve.addEventListener('click',()=>{void decide('APPROVE');});
   reject.addEventListener('click',()=>{void decide('REJECT');});
