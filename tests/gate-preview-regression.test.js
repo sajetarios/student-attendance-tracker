@@ -99,6 +99,7 @@ async function automatic(opts={}){
  })};
  const body={teacherQrToken:badge,photoVerified:o.verified,clientEventKey:key};
  if(o.expected!==undefined)body.expectedGateEventType=o.expected;
+ if(o.confirmed!==undefined)body.confirmedMissingReturnExit=o.confirmed;
  const output=await invoke(buildHandler(automaticSource,pool),body);
  return {...output,calls};
 }
@@ -147,4 +148,18 @@ test('server rejects client-side selection of a gate event',async()=>{
  assert.match(source,/validateAutomaticGateRecording/);
  assert.match(source,/expectedGateEventType!==decision.eventType/);
  assert.match(source,/pg_advisory_xact_lock/);
+});
+
+test('observed final exit after missed return requires explicit guard confirmation and matching history',async()=>{
+ const p=await preview({history:['TIME_IN','TIME_OUT'],localTime:'17:00',when:'2026-11-23T17:00:00+08:00'});
+ assert.equal(p.result.canConfirmMissingReturnExit,true);
+ const recorded=await automatic({history:['TIME_IN','TIME_OUT'],expected:'TIME_IN',confirmed:true});
+ assert.equal(recorded.status,201);
+ assert.equal(recorded.result.event.eventType,'TIME_OUT');
+ const write=recorded.calls.find(x=>x.sql.includes('INSERT INTO staff_attendance_events'));
+ assert.equal(write.params[8],'GUARD_CONFIRMED_EXIT_MISSING_RETURN');
+ const audit=recorded.calls.find(x=>x.sql.includes('INSERT INTO audit_logs'));
+ assert.equal(JSON.parse(audit.params[3]).confirmedMissingReturnExit,true);
+ assert.equal((await automatic({history:['TIME_IN'],expected:'TIME_OUT',confirmed:true})).status,409);
+ assert.equal((await automatic({history:['TIME_IN','TIME_OUT'],expected:'TIME_IN',confirmed:true,verified:false})).status,400);
 });
