@@ -1,17 +1,16 @@
 <!doctype html>
-<html lang="en"><head>
+<html lang="en" data-theme="light"><head><meta name="color-scheme" content="light"><style>html{color-scheme:only light}</style>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="referrer" content="no-referrer">
 <title>Class QR Check-in · Attendigo</title>
 <link rel="stylesheet" href="/portal.css">
 <link rel="stylesheet" href="/attendigo-brand.css?v=2">
 
-<link rel="stylesheet" href="/attendigo-dark-unified.css?v=1">
 <link rel="preload" href="/fonts/InterVariable.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="/typography.css?v=1">
 <link rel="icon" type="image/png" href="/assets/attendigo-favicon.png?v=2">
 <style>
-:root{color-scheme:light dark}
+:root{color-scheme:only light}
 body.portal-page{min-height:100dvh;box-sizing:border-box;margin:0;padding:clamp(18px,4vw,32px) 14px 36px}
 .qr-brand{display:flex;align-items:center;justify-content:center;margin:0 auto 22px;gap:11px;max-width:max-content;border-radius:16px;padding:11px 17px;background:#101f45;color:#fff;box-shadow:0 5px 18px #101f4520}
 .qr-brand img{width:42px;height:42px;object-fit:contain;flex-shrink:0}
@@ -39,7 +38,7 @@ p{line-height:1.48}
 .qr-divider{display:flex;align-items:center;gap:12px;color:var(--text-secondary,#66768c);font-size:.78rem;margin:0}
 .qr-divider:before,.qr-divider:after{content:"";height:1px;flex:1;background:var(--border,#d8e0e9)}
 [hidden]{display:none!important}
-@media(prefers-color-scheme:dark){#message{background:#1b3352;color:#d6e7ff}#message[data-state="error"]{background:#4c2228;color:#ffe1df}#message[data-state="success"]{background:#193d2b;color:#c5f6d8}}
+
 @media(max-width:540px){body.portal-page{padding:18px 12px 28px}.qr-brand{margin-bottom:16px}main{padding:22px 18px;border-radius:16px}}
 </style>
 </head>

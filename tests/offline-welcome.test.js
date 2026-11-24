@@ -179,3 +179,15 @@ test('student scanner displays real queue counters, not hard-coded zeroes',()=>{
   assert.match(js,/reviewCount.textContent=String\(review\)/);
   assert.match(js,/You are offline\. Reconnect to sync saved scans/);
 });
+
+test('offline tools use the branded light palette independently of OS dark mode',()=>{
+  for(const name of ['offline-sheet.html','gate-offline.html','student-qr-offline.html','offline-welcome.html','staff-lunch-checkin.html','class-qr-checkin.html']){
+    const html=fs.readFileSync(path.join(root,'public',name),'utf8');
+    assert.match(html,/<html lang="en" data-theme="light"/,name);
+    assert.match(html,/color-scheme:only light/,name);
+    assert.doesNotMatch(html,/@media\s*\(\s*prefers-color-scheme\s*:\s*dark/,name);
+    assert.doesNotMatch(html,/color-scheme\s*:\s*light\s+dark/,name);
+  }
+  const sheet=fs.readFileSync(path.join(root,'public','offline-sheet.html'),'utf8');
+  assert.match(sheet,/html\[data-offline-sheet="true"\]\[data-theme="light"\]\{--asc-surface:#ffffff/);
+});

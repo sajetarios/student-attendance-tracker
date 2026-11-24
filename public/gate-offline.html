@@ -1,11 +1,11 @@
 <!doctype html>
-<html lang="en">
-<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<meta name="theme-color" content="#102c48"><title>Offline Gatekeeper · Attendigo</title>
+<html lang="en" data-theme="light">
+<head><meta name="color-scheme" content="light"><style>html{color-scheme:only light}</style><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#f3f7fc"><title>Offline Gatekeeper · Attendigo</title>
 <link rel="manifest" href="/manifest.webmanifest">
 <link rel="icon" href="/assets/attendigo-favicon.png?v=2">
 <style>
-:root{font:16px system-ui,-apple-system,sans-serif;color-scheme:light dark}
+:root{font:16px system-ui,-apple-system,sans-serif;color-scheme:only light}
 *{box-sizing:border-box}body{margin:0;background:#edf2fa;color:#19314b}
 header{background:#102c48;color:#fff;padding:15px max(18px,calc((100vw - 900px)/2));display:flex;align-items:center;justify-content:space-between;gap:12px}
 header strong{font-size:20px}header a{color:#fff;font-size:13px}header{flex-wrap:wrap}header nav{display:flex;flex-wrap:wrap;gap:12px;align-items:center}header nav a{display:inline-flex;align-items:center;min-height:44px}
@@ -33,7 +33,7 @@ button.danger{background:#a12d39;color:white}
 #queue li{padding:6px 0;border-bottom:1px solid #e0e8f1}
 [hidden]{display:none!important}
 .note{color:#8c3b14;font-weight:600}
-@media(prefers-color-scheme:dark){body{background:#101b2b;color:#edf3ff}section{background:#1a2b40;border-color:#38516e}input{background:#112239;color:white;border-color:#66819d}small{color:#b7c9da}button.secondary{background:#304a68;color:white}.testMode{background:#233d59;color:#f0f6ff;border-color:#607e9e}.status{color:#2c3141}.note{color:#ffc98b}#queue li{border-color:#35506e}}
+
 </style>
 <style>
 body.offline-workspace{--ow-bg:#f3f7fc;--ow-card:#fff;--ow-text:#102e4c;--ow-muted:#526a83;--ow-line:#dce6f1;--ow-soft:#eaf2ff;--ow-primary:#174f91;--ow-on-primary:#fff;background:radial-gradient(ellipse at top left,#e1edfc 0,transparent 38%),var(--ow-bg);color:var(--ow-text);font:16px/1.5 system-ui,-apple-system,sans-serif;margin:0;padding:0;min-height:100vh}
@@ -72,7 +72,7 @@ body.offline-workspace{--ow-bg:#f3f7fc;--ow-card:#fff;--ow-text:#102e4c;--ow-mut
 .offline-workspace #studentQrReader video,.offline-workspace #reader video{max-width:100%}
 .offline-workspace [hidden]{display:none!important}
 @media(max-width:420px){.offline-workspace .ow-nav a{flex-basis:100%}.offline-workspace .actions button,.offline-workspace .row button{flex-basis:100%}.offline-workspace #queue li{flex-wrap:wrap}.offline-workspace .row select{width:100%;flex-basis:100%}}
-@media(prefers-color-scheme:dark){body.offline-workspace{--ow-bg:#101c2c;--ow-card:#1a2b40;--ow-text:#edf4ff;--ow-muted:#b8cce0;--ow-line:#3b526b;--ow-soft:#233c58;--ow-primary:#91c5ff;--ow-on-primary:#102e4c;background:var(--ow-bg)}.offline-workspace .ow-brand{background:#fff;border-radius:8px;padding:7px}.offline-workspace .note{color:#ffd09b}}
+
 </style></head>
 <body class="offline-workspace">
 <main><img class="ow-brand" src="/assets/attendigo-official-lockup.svg?v=5" alt="Attendigo" width="1769" height="496"><div class="ow-intro"><h1>Gatekeeper scanner</h1><p>Capture badge observations when the internet is unavailable.</p></div><nav class="ow-nav" aria-label="Attendance navigation"><a href="/offline-welcome.html">← Back to Offline Tools</a><a href="/portal.html">Gatekeeper portal (online)</a></nav>

@@ -1,4 +1,4 @@
-const CACHE = "attendigo-v356-offline-workspace-validation";
+const CACHE = "attendigo-v357-light-offline-tools";
 
 const SHELL = [
   "/typography.css?v=1",

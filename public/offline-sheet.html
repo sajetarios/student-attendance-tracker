@@ -1,7 +1,21 @@
 <!doctype html>
-<html lang="en" data-offline-sheet="true"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#153658"><title>Offline Attendance · Attendigo</title>
+<html lang="en" data-theme="light" data-offline-sheet="true"><head><meta name="color-scheme" content="light"><style>html{color-scheme:only light}</style><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#f3f7fc"><title>Offline Attendance · Attendigo</title>
 <link rel="stylesheet" href="/attendance-sync-center.css?v=4"><style>
-:root{font:16px system-ui;color-scheme:light dark}body{margin:0;background:#edf3f9;color:#152b43}main{max-width:760px;margin:auto;padding:20px}header{background:#153658;color:white;padding:18px 22px}h1{font-size:1.3rem;margin:0}small{color:#62758a}header small{color:#d6e5f5}section{background:white;padding:20px;border-radius:16px;margin:16px 0;box-shadow:0 3px 16px #15365812}label{display:block;font-weight:650;margin:12px 0 5px}input,select,button{font:inherit;padding:11px;border:1px solid #a6b5c6;border-radius:10px;max-width:100%;box-sizing:border-box}input,select{width:100%}button{cursor:pointer;background:#164c81;color:white;border:0}button.secondary{background:#e6edf5;color:#153658}button:disabled{opacity:.5}.row{display:flex;align-items:center;gap:8px;justify-content:space-between;border-bottom:1px solid #e4ebf3;padding:12px 0}.row select{width:150px}.hint{background:#eaf2ff;padding:12px;border-radius:10px}.error{color:#a11936}.success{color:#13704a}.actions{display:flex;flex-wrap:wrap;gap:10px;margin-top:14px}[hidden]{display:none!important}@media(prefers-color-scheme:dark){body{background:#101a28;color:#eaf2ff}section{background:#1a2b40}small{color:#b6c9da}.hint{background:#243e59}.row{border-color:#334a63}input,select{background:#142235;color:#fff;border-color:#58718b}button.secondary{background:#354b65;color:white}}
+:root{font:16px system-ui;color-scheme:only light}body{margin:0;background:#edf3f9;color:#152b43}main{max-width:760px;margin:auto;padding:20px}header{background:#153658;color:white;padding:18px 22px}h1{font-size:1.3rem;margin:0}small{color:#62758a}header small{color:#d6e5f5}section{background:white;padding:20px;border-radius:16px;margin:16px 0;box-shadow:0 3px 16px #15365812}label{display:block;font-weight:650;margin:12px 0 5px}input,select,button{font:inherit;padding:11px;border:1px solid #a6b5c6;border-radius:10px;max-width:100%;box-sizing:border-box}input,select{width:100%}button{cursor:pointer;background:#164c81;color:white;border:0}button.secondary{background:#e6edf5;color:#153658}button:disabled{opacity:.5}.row{display:flex;align-items:center;gap:8px;justify-content:space-between;border-bottom:1px solid #e4ebf3;padding:12px 0}.row select{width:150px}.hint{background:#eaf2ff;padding:12px;border-radius:10px}.error{color:#a11936}.success{color:#13704a}.actions{display:flex;flex-wrap:wrap;gap:10px;margin-top:14px}[hidden]{display:none!important}
+html[data-offline-sheet="true"][data-theme="light"]{--asc-surface:#ffffff;
+  --asc-elevated:#f7faff;
+  --asc-ink:#172c46;
+  --asc-subtle:#556982;
+  --asc-line:#dae4ef;
+  --asc-accent:#1263be;
+  --asc-accent-ink:#ffffff;
+  --asc-success:#16714f;
+  --asc-success-bg:#e3f7eb;
+  --asc-warn:#985510;
+  --asc-warn-bg:#fff4dc;
+  --asc-danger:#af2848;
+  --asc-danger-bg:#ffebf0;
+  --asc-shadow:0 24px 88px rgba(13,33,63,.3);}
 </style><link rel="stylesheet" href="/attendigo-brand.css?v=2"><link rel="stylesheet" href="/attendigo-brand-refresh.css?v=1"><link rel="icon" type="image/png" href="/assets/attendigo-favicon.png?v=2"><link rel="apple-touch-icon" href="/assets/attendigo-apple-touch-icon.png?v=2">  <link rel="preload" href="/fonts/InterVariable.woff2" as="font" type="font/woff2" crossorigin>
   <link rel="stylesheet" href="/typography.css?v=1">
 
@@ -42,7 +56,7 @@ body.offline-workspace{--ow-bg:#f3f7fc;--ow-card:#fff;--ow-text:#102e4c;--ow-mut
 .offline-workspace #studentQrReader video,.offline-workspace #reader video{max-width:100%}
 .offline-workspace [hidden]{display:none!important}
 @media(max-width:420px){.offline-workspace .ow-nav a{flex-basis:100%}.offline-workspace .actions button,.offline-workspace .row button{flex-basis:100%}.offline-workspace #queue li{flex-wrap:wrap}.offline-workspace .row select{width:100%;flex-basis:100%}}
-@media(prefers-color-scheme:dark){body.offline-workspace{--ow-bg:#101c2c;--ow-card:#1a2b40;--ow-text:#edf4ff;--ow-muted:#b8cce0;--ow-line:#3b526b;--ow-soft:#233c58;--ow-primary:#91c5ff;--ow-on-primary:#102e4c;background:var(--ow-bg)}.offline-workspace .ow-brand{background:#fff;border-radius:8px;padding:7px}.offline-workspace .note{color:#ffd09b}}
+
 </style></head><body class="offline-workspace"><main><img class="ow-brand" src="/assets/attendigo-official-lockup.svg?v=5" alt="Attendigo" width="1769" height="496"><div class="ow-intro"><h1>Teacher attendance</h1><p>Open prepared classes and save attendance securely on this device.</p></div><nav class="ow-nav" aria-label="Attendance navigation"><a href="/offline-welcome.html">← Back to Offline Tools</a><a href="/portal.html">Teacher dashboard (online)</a></nav><p class="ow-banner">Offline records stay on this device until confirmed by the school server.</p><p id="message" class="ow-status" role="status" aria-live="polite"></p>
 <section id="unlock"><h2>Open saved class</h2><p id="emptySaved" class="hint">No offline class is prepared on this browser yet. Prepare one above while connected.</p><label for="unlockClass">Class</label><select id="unlockClass"></select><label for="unlockPass">Device passphrase</label><input id="unlockPass" type="password" autocomplete="off"><div class="actions"><button id="open">Unlock saved class</button></div></section>
 <section id="setup"><h2>Prepare a class (online)</h2><p id="setupHint" class="hint">First-time setup requires an online teacher sign-in in this same browser. Once a class is prepared, you can open it offline with your device passphrase.</p><p>While online and signed in as a teacher, prepare a class roster and choose a device passphrase (at least 12 characters). The class list and marks are encrypted on this device.</p><label for="prepareClass">Assigned class</label><select id="prepareClass"></select><label for="preparePass">Device passphrase</label><input id="preparePass" type="password" autocomplete="new-password" minlength="12"><div class="actions"><button id="prepare">Prepare offline class</button></div></section>
