@@ -959,11 +959,12 @@
   const notice=audience==='ALL_USERS'
    ?'all active school accounts including registered students and parents'
    :'school personnel accounts only';
-  if(!window.confirm('Publish this memorandum to '+notice+
+  const publishMessage='Publish this memorandum to '+notice+
     (effectiveDate?' from '+effectiveDate+(endDate?' through '+endDate:''):'')+
     '? In-app notifications will be created. '+
     (applyDtr?'The entered prescribed DTR hours will apply during this period; actual punches, leave, OB, and class suspension remain unchanged.':
-     'Announcement only: no DTR or timetable rules will change.')))return;
+     'Announcement only: no DTR or timetable rules will change.');
+  if(!(window.AppDialog ? await window.AppDialog.confirm(publishMessage,{title:'Publish memorandum',confirmText:'Publish'}) : window.confirm(publishMessage)))return;
   button.disabled=true;feedback.textContent='Publishing memorandum and creating school notifications…';
   try{
    const response=await fetch('/api/school-memos',{method:'POST',credentials:'same-origin',cache:'no-store',
