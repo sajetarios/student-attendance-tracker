@@ -825,7 +825,7 @@
  }
  async function submitPrincipalLeave(){
   const form=$('principalLeaveForm'),status=$('principalLeaveFormStatus');
-  if(!form.reportValidity())return;
+  if(button.disabled||!form.reportValidity())return;
   const data=new FormData(form),button=form.querySelector('[type="submit"]');
   button.disabled=true;status.textContent='Submitting leave application…';
   try{
@@ -964,8 +964,9 @@
     '? In-app notifications will be created. '+
     (applyDtr?'The entered prescribed DTR hours will apply during this period; actual punches, leave, OB, and class suspension remain unchanged.':
      'Announcement only: no DTR or timetable rules will change.');
-  if(!(window.AppDialog ? await window.AppDialog.confirm(publishMessage,{title:'Publish memorandum',confirmText:'Publish'}) : window.confirm(publishMessage)))return;
-  button.disabled=true;feedback.textContent='Publishing memorandum and creating school notifications…';
+  button.disabled=true;
+  if(!(window.AppDialog ? await window.AppDialog.confirm(publishMessage,{title:'Publish memorandum',confirmText:'Publish'}) : window.confirm(publishMessage))){button.disabled=false;return;}
+  feedback.textContent='Publishing memorandum and creating school notifications…';
   try{
    const response=await fetch('/api/school-memos',{method:'POST',credentials:'same-origin',cache:'no-store',
     headers:{'Content-Type':file.type,'x-filename':file.name,
