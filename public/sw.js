@@ -1,4 +1,4 @@
-const CACHE = "attendigo-v392-sf2-subject-preparation";
+const CACHE = "attendigo-v393-sf2-subject-preparation";
 
 // Only public, non-personal offline shells and their executable dependencies.
 // An update must not discard the working cache before these are all ready.
@@ -99,7 +99,7 @@ const SHELL = [
   "/teacher-roster-popover.js?v=2",
   "/portal.css?v=0.9.119",
   "/portal.js?v=243",
-  "/attendigo-help-topics.js?v=3",
+  "/attendigo-help-topics.js?v=4",
   "/attendigo-help-guide.js?v=4",
   "/attendigo-help.css?v=4",
   "/staff-leave-ui.js?v=12",
