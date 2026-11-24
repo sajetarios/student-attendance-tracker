@@ -135,10 +135,12 @@
     if(request!==childrenRequest)return;
     linkedChildren=Array.isArray(data.children)?data.children:[];
     const before=selectedId;
-    selectedId=linkedChildren.some(c=>String(c.studentId)===before)?before:String(linkedChildren[0]?.studentId??'');
+    const target=!before&&location.hash.startsWith('#subjectAttendance?')?new URLSearchParams(location.hash.slice('#subjectAttendance?'.length)).get('child'):before;
+    selectedId=linkedChildren.some(c=>String(c.studentId)===target)?target:String(linkedChildren[0]?.studentId??'');
     const select=$('parentChildSelect');
     select.replaceChildren(...(linkedChildren.length?linkedChildren.map(c=>new Option(c.fullName+' · '+c.gradeLevel+' '+c.section,String(c.studentId))):[new Option('No approved linked children','')]));
     select.value=selectedId;select.disabled=!linkedChildren.length;
+    select.dispatchEvent(new CustomEvent('attendigo:parent-child-loaded'));
     $('parentChildCount').textContent=String(linkedChildren.length);
     $('parentTodayTimeIns').textContent=String(linkedChildren.reduce((sum,c)=>sum+(Number(c.todayTimeIns)||0),0));
     $('parentChildrenArrived').textContent=String(linkedChildren.filter(c=>Number(c.todayTimeIns)>0).length);

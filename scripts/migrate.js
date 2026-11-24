@@ -89,7 +89,10 @@ const REQUIRED_MIGRATIONS = [
   '081_school_memo_effective_period_and_dtr.sql',
   '082_link_suspension_calendar_and_date_changes.sql',
   '083_department_declined_leave_workflow.sql',
-  '084_department_location_notifications.sql'
+  '084_department_location_notifications.sql',
+  '085_parent_subject_attendance_notifications.sql',
+  '086_parent_department_optional.sql',
+  '087_parent_web_push.sql'
 ];
 
 function checksum(content) {

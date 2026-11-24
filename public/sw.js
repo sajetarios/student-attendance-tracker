@@ -1,4 +1,4 @@
-const CACHE = "attendigo-v364-parent-portal-refinement";
+const CACHE = "attendigo-v365-parent-notification-production";
 
 // Only public, non-personal offline shells and their executable dependencies.
 // An update must not discard the working cache before these are all ready.
@@ -67,7 +67,11 @@ const SHELL = [
   "/vendor/html5-qrcode.min.js",
   "/session-guard.js?v=6",
   "/student-qr-scanner.js?v=5",
-  "/parent-portal.js?v=5",
+  "/parent-portal.js?v=6",
+  "/parent-subject.js?v=1",
+  "/parent-subject.css?v=1",
+  "/parent-push.js?v=3",
+  "/parent-push.css?v=3",
   "/parent-portal-refinement.css?v=1",
   "/dashboard-appearance.js?v=3",
   "/timetable-grid.js?v=8",
@@ -132,7 +136,7 @@ const SHELL = [
   "/sardo-monitor.js?v=2",
   "/sardo-monitor.css?v=1",
   "/schedule-form-layout.css?v=15",
-  "/parent-dashboard.js?v=3",
+  "/parent-dashboard.js?v=4",
   "/offline-attendance.js?v=5",
   "/offline-sheet.html",
   "/gate-offline.html",
@@ -189,7 +193,7 @@ const SHELL = [
   "/assets/attendigo-official-emblem.svg?v=5",
   "/assets/attendigo-official-lockup.svg?v=5",
   "/attendigo-brand-polish.css?v=2",
-  "/parent-admin.css?v=7",
+  "/parent-admin.css?v=8",
   "/schedule-mobile-layout.css?v=1",
   "/weekly-list-mobile.css?v=1",
   "/platform-plans-ui.js?v=8",
@@ -228,6 +232,45 @@ self.addEventListener("activate", event => {
       )
     ).then(() => self.clients.claim())
   );
+});
+
+self.addEventListener('push', event => {
+  let payload={};
+  try {payload=event.data?.json()||{}} catch {payload={}}
+  const title=typeof payload.title==='string'?payload.title.slice(0,75):'Attendigo';
+  const body=typeof payload.body==='string'?payload.body.slice(0,170):
+    'An attendance update is available. Open Attendigo to view it securely.';
+  let url='/parent-portal.html';
+  if(typeof payload.url==='string'&&
+     /^\/parent-portal\.html(?:#[a-zA-Z0-9?&=%._:-]{0,220})?$/.test(payload.url)) url=payload.url;
+  const tag=typeof payload.tag==='string'&&/^attendigo-[a-z0-9-]{1,70}$/.test(payload.tag)?
+    payload.tag:'attendigo-subject-update';
+  event.waitUntil(self.registration.showNotification(title,{
+    body,tag,icon:'/assets/attendigo-icon-192.png?v=3',
+    badge:'/assets/attendigo-icon-192.png?v=3',
+    data:{url},renotify:false
+  }));
+});
+
+self.addEventListener('notificationclick',event=>{
+  event.notification.close();
+  event.waitUntil((async()=>{
+    const path=event.notification?.data?.url||'/parent-portal.html';
+    const target=new URL(path,self.location.origin);
+    if(target.origin!==self.location.origin||target.pathname!=='/parent-portal.html')return;
+    const windows=await self.clients.matchAll({type:'window',includeUncontrolled:true});
+    for(const client of windows){
+      try{
+        const current=new URL(client.url);
+        if(current.origin===self.location.origin&&current.pathname==='/parent-portal.html'){
+          if(client.navigate)await client.navigate(target.href);
+          if(client.focus)await client.focus();
+          return;
+        }
+      }catch{}
+    }
+    if(self.clients.openWindow)await self.clients.openWindow(target.href);
+  })());
 });
 
 self.addEventListener("fetch", event => {
@@ -317,7 +360,7 @@ self.addEventListener("fetch", event => {
   // Keep scheduling and shared notification UI fresh without breaking offline operation.
   // Notifications change often; always prefer online JS/CSS to avoid old large-text layouts.
   // Unlike cache-first general assets, these role-critical resources prefer the deployed version.
-  if (['/universal-notifications.js','/universal-notifications.css','/portal.js','/school-memo-banner.js','/school-memo-banner.css','/school-memos-redirect.js','/school-memos.js','/school-memos.css','/principal-dashboard.js','/principal-dashboard.css','/leave-approval-inbox.js','/leave-approval-inbox.css','/staff-leave-ui.js','/staff-leave-ui.css','/leave-status-indicator.css','/special-program-batch-ui.js','/learner-roster-view.js','/learner-roster-view.css','/student-name-format.js','/teacher-learner-roster.css','/portal.css','/guardian-ui.js','/manual-folio.js','/manual-folio.css','/schedule-form-layout.css','/schedule-workspace-ui.js','/teacher-assignment-modal.css','/smart-attendance-overview.css','/role-controls-responsive.css','/class-qr-monitor.js','/class-qr-monitor-embedded.css','/class-qr-dashboard-link.js','/attendigo-form-overlap-guard.css','/staff-department-location.js','/staff-lunch-ui.js'].includes(url.pathname)) {
+  if (['/universal-notifications.js','/universal-notifications.css','/portal.js','/parent-push.js','/parent-push.css','/parent-subject.js','/parent-subject.css','/parent-portal.js','/parent-dashboard.js','/parent-admin.js','/parent-admin.css','/school-memo-banner.js','/school-memo-banner.css','/school-memos-redirect.js','/school-memos.js','/school-memos.css','/principal-dashboard.js','/principal-dashboard.css','/leave-approval-inbox.js','/leave-approval-inbox.css','/staff-leave-ui.js','/staff-leave-ui.css','/leave-status-indicator.css','/special-program-batch-ui.js','/learner-roster-view.js','/learner-roster-view.css','/student-name-format.js','/teacher-learner-roster.css','/portal.css','/guardian-ui.js','/manual-folio.js','/manual-folio.css','/schedule-form-layout.css','/schedule-workspace-ui.js','/teacher-assignment-modal.css','/smart-attendance-overview.css','/role-controls-responsive.css','/class-qr-monitor.js','/class-qr-monitor-embedded.css','/class-qr-dashboard-link.js','/attendigo-form-overlap-guard.css','/staff-department-location.js','/staff-lunch-ui.js'].includes(url.pathname)) {
     event.respondWith((async () => {
       try {
         const fresh = await fetch(request, { cache: 'no-store' });

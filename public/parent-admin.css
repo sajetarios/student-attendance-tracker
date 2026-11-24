@@ -300,3 +300,15 @@ html[data-ui-theme="dark"] .parent-return-button,html[data-theme="dark"] .parent
   background:#234e85;border-color:#6895c7;color:#fff
 }
 html[data-ui-theme="dark"] .parent-return-context,html[data-theme="dark"] .parent-return-context,body.dark-mode .parent-return-context{color:#c2d1e7}
+
+/* School-admin subject notification controls in native dashboard */
+.parent-native .parent-subject-settings{display:grid;grid-template-columns:minmax(0,1.5fr) minmax(235px,1fr);gap:16px;align-items:start;margin:14px 0 22px;padding:clamp(16px,2vw,22px);border:1px solid #dbe7f2;border-radius:16px;background:var(--card,#fff);max-width:100%;box-sizing:border-box;}
+.parent-native .parent-subject-settings h2{font-size:18px;line-height:1.3;font-weight:800;margin:0 0 8px;color:var(--ink,#182e49)}
+.parent-native .parent-subject-settings p{margin:0 0 9px;color:var(--muted,#56687a);font-size:14px;line-height:1.5}
+.parent-native .parent-subject-settings .parent-subject-settings-note{font-size:13px}
+.parent-native .parent-subject-settings-actions{display:grid;gap:12px;min-width:0}
+.parent-native .parent-subject-settings-actions label{display:flex;align-items:center;gap:10px;color:var(--ink,#192e46);font-size:14px;font-weight:700;line-height:1.4}
+.parent-native .parent-subject-settings-actions input{flex:0 0 auto;width:21px;height:21px;accent-color:#6746dc}
+.parent-native .parent-subject-settings-actions button{min-height:44px;max-width:100%;white-space:normal;overflow-wrap:anywhere}
+.parent-native .parent-subject-settings-actions .form-feedback{font-size:13px;margin:0;overflow-wrap:anywhere}
+@media(max-width:760px){.parent-native .parent-subject-settings{grid-template-columns:minmax(0,1fr);gap:14px}}

@@ -22,18 +22,62 @@
 <link rel="stylesheet" href="/school-memo-banner.css?v=3">
   <link rel="stylesheet" href="/attendigo-form-overlap-guard.css?v=2">
 <link rel="stylesheet" href="/parent-portal-refinement.css?v=1">
+<link rel="stylesheet" href="/parent-subject.css?v=1">
+<link rel="stylesheet" href="/parent-push.css?v=3">
 </head><body class="portal-page parent-portal-body"><header class="parent-site-header"><div class="attendigo-brand"><img class="attendigo-logo" src="/assets/attendigo-official-lockup.svg?v=5" alt="Attendigo" width="1769" height="496"></div><span>Parent Portal</span></header>
 <main class="parent-page">
 <header class="parent-head"><div class="parent-welcome"><div class="eyebrow muted" id="schoolLabel">PARENT PORTAL</div><h1 id="welcome">Welcome</h1><p>Keep track of your children’s school attendance.</p></div><div class="action-row"><button type="button" class="outline-button" id="refreshButton">Refresh</button><button type="button" class="outline-button" id="logoutButton">Sign out</button></div></header>
 <section class="parent-card parent-profile" aria-label="My profile"><h2>My profile</h2><div id="parentProfilePhoto"></div></section>
 <section class="parent-card" id="parentOverview"><h2>Today’s overview</h2><div class="parent-summary-grid"><div class="student-profile-item"><span>Linked children</span><strong id="parentChildCount">—</strong></div><div class="student-profile-item"><span>Accepted time-ins</span><strong id="parentTodayTimeIns">—</strong></div><div class="student-profile-item"><span>Children with time-ins</span><strong id="parentChildrenArrived">—</strong></div></div><p class="parent-help">Time-ins include gate and class events, not a complete attendance register.</p></section>
+<section class="parent-card parent-phone-push" id="pushNotifications" aria-labelledby="pushTitle">
+  <div class="parent-phone-push-head"><div>
+  <h2 id="pushTitle">Phone notifications</h2>
+  <p id="pushSummary">Receive a private alert on your phone after a teacher finalizes a subject attendance record. In-app notifications will continue to work.</p></div>
+  <span class="parent-phone-push-badge" id="pushStateBadge" aria-label="Phone notification status">Checking setup</span><button type="button" class="outline-button parent-push-settings-toggle" id="pushSettingsToggle" aria-expanded="false" aria-controls="pushSettings" hidden>Notification settings</button></div>
+  <div id="pushSettings">
+  <ol id="pushSetupSteps" class="parent-push-steps" aria-label="Phone notification setup steps">
+    <li data-push-step="1">Open Attendigo as an app</li>
+    <li data-push-step="2">Allow phone notifications</li>
+    <li data-push-step="3">Send a test notification</li>
+  </ol>
+  <div class="parent-push-install-guide" id="pushIosGuide" hidden>
+    <p><strong>iPhone setup — one time only</strong></p>
+    <ol>
+      <li>Open this page in <strong>Safari</strong>.</li>
+      <li>Tap the <strong>Share</strong> icon (square with an upward arrow).</li>
+      <li>Choose <strong>Add to Home Screen</strong>. Keep <strong>Open as Web App</strong> enabled if shown.</li>
+      <li>Open <strong>Attendigo</strong> using its new Home Screen icon, then tap <strong>Activate phone alerts</strong>.</li>
+    </ol>
+  </div>
+  <p class="parent-phone-push-help" id="pushInstructions" hidden></p>
+  <p class="parent-phone-push-status" id="pushStatus" aria-live="polite" role="status">Checking phone notification support…</p>
+  <div class="parent-phone-push-actions">
+  <button type="button" class="outline-button" id="pushCopyLink" hidden>Copy link for Safari</button>
+  <button type="button" class="primary-button" id="pushEnable">Activate phone alerts</button>
+  <button type="button" class="outline-button" id="pushTest" hidden>Send another test</button>
+  <button type="button" class="outline-button" id="pushDisable" hidden>Turn off on this device</button></div>
+  <small>Phone alerts require internet, device permission, and an installed Home Screen web app on iPhone. Attendance details remain protected in your Parent Portal.</small>
+  </div>
+</section>
 <section class="parent-card" aria-labelledby="parentChildrenHeading"><h2 id="parentChildrenHeading">My children</h2><label class="parent-select-label" for="parentChildSelect">Select child</label><select id="parentChildSelect" disabled><option value="">Loading linked children…</option></select><div id="children" class="parent-selected-child" aria-live="polite"></div></section>
+<section class="parent-card" id="subjectAttendance">
+ <div class="parent-subject-head"><div><h2>Subject attendance today</h2>
+ <p class="parent-subject-subtitle">See whether your child attended each scheduled subject. Gate entry alone does not confirm classroom attendance.</p></div></div>
+ <div class="parent-subject-controls">
+ <p class="parent-subject-subtitle">Showing the child selected above.</p>
+ <label for="subjectDate">School date<input id="subjectDate" type="date" aria-label="Select subject attendance date"></label>
+ <button type="button" class="outline-button" id="subjectRefresh">Refresh subjects</button></div>
+ <div id="subjectGate" class="parent-subject-gate" aria-label="School gate records"></div>
+ <div id="subjectItems" class="parent-subject-items" role="list" aria-label="Scheduled subject attendance"></div>
+ <p class="parent-subject-feedback" id="subjectFeedback" role="status" aria-live="polite"></p></section>
 <section class="parent-card" id="parentAttendanceCard" hidden><div class="parent-history-head"><h2 id="historyTitle">Attendance history</h2><p id="historyDescription">Verified class and school gate events for the selected child.</p></div>
 <div class="parent-history-filters"><label for="parentAttendanceDate"><span>Attendance date</span><select id="parentAttendanceDate"><option value="LATEST">Latest recorded day</option><option value="ALL">All recent dates</option></select></label><label for="parentAttendanceScopeFilter"><span>Attendance area</span><select id="parentAttendanceScopeFilter"><option value="ALL">All attendance</option><option value="CLASS">Subject classes</option><option value="SCHOOL">School gate</option></select></label><label for="parentAttendanceSubject"><span>Subject</span><select id="parentAttendanceSubject"><option value="ALL">All subjects</option></select></label><label for="parentAttendanceSearch"><span>Search records</span><input type="search" id="parentAttendanceSearch" placeholder="Subject, date, or event" autocomplete="off"></label></div>
 <div class="parent-history-stats" id="parentAttendanceDayStats" hidden aria-label="Filtered attendance summary"><div><strong id="parentHistoryClassCount">—</strong><span>Subject groups</span></div><div><strong id="parentHistoryLateCount">—</strong><span>Late events</span></div><div><strong id="parentHistoryGateCount">—</strong><span>Gate events</span></div></div>
 <p class="parent-history-note">Shows up to 200 latest accepted events for this child. Missing records do not establish absence.</p>
 <div id="attendanceRows" aria-label="Attendance history"></div><nav id="parentAttendancePages" class="parent-history-pages" hidden aria-label="Attendance dates"><button type="button" class="outline-button" id="parentHistoryPrevious">Previous</button><span id="parentHistoryPageLabel"></span><button type="button" class="outline-button" id="parentHistoryNext">Next</button></nav><p id="parentAttendanceVisibleCount" class="parent-history-note" role="status" aria-live="polite"></p></section>
 <p class="parent-note">Only school-approved child relationships are visible. Attendance is read-only.</p><p id="feedback" class="form-feedback" role="status"></p></main><script src="/photo-editor.js?v=9" defer></script>
-  <script src="/parent-portal.js?v=5" defer></script>  <script src="/universal-notifications.js?v=8" defer></script>
+  <script src="/parent-portal.js?v=6" defer></script>  <script src="/universal-notifications.js?v=8" defer></script>
+<script src="/parent-subject.js?v=1" defer></script>
+<script src="/parent-push.js?v=3" defer></script>
 <script defer src="/school-memo-banner.js?v=4"></script>
 </body></html>
