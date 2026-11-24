@@ -179,8 +179,8 @@
   }
   save.addEventListener('click',async()=>{
    if(busy||!defaults||!completeHours()||!selectedDays().length)return;
-   if(!window.confirm(savedDays().length?'Save these approved regular-day working hours? Your configured working days, Saturday hours, staff-specific schedules, and recorded DTR punches will remain unchanged.':'Set Monday–Friday as the approved school workdays and save these hours? Existing staff-specific schedules and DTR punches will remain unchanged.'))return;
-   busy=true;updateSave();hoursFeedback.textContent='Saving school working hours…';
+   busy=true;updateSave();
+   if(!await window.AppDialog.confirm(savedDays().length?'Save these approved regular-day working hours? Your configured working days, Saturday hours, staff-specific schedules, and recorded DTR punches will remain unchanged.':'Set Monday–Friday as the approved school workdays and save these hours? Existing staff-specific schedules and DTR punches will remain unchanged.',{title:'Save school working hours',confirmText:'Save hours'})){busy=false;updateSave();return;}hoursFeedback.textContent='Saving school working hours…';
    try{
     const current=defaults,submittedHours=readHours(),submittedDays=selectedDays();
     const result=await api('/api/staff-attendance/admin/form48/defaults',{

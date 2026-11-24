@@ -120,20 +120,20 @@
        let img=reviewList.querySelector('.admin-photo-preview');
        if(!img){img=document.createElement('img');img.className='admin-photo-preview';img.alt='Submitted profile photo for review';button.closest('article').append(img);}
        img.src=previewUrl;
-     }catch(e){alert(e.message);}finally{button.disabled=false;}
+     }catch(e){await window.AppDialog.alert(e.message,{title:'Unable to preview photo'});}finally{button.disabled=false;}
      return;
    }
    const decision=button.dataset.photoDecision;
    if(!['APPROVED','REJECTED'].includes(decision))return;
-   if(!window.confirm((decision==='APPROVED'?'Approve':'Reject')+' this profile photo request?'))return;
-   const actions=button.closest('article').querySelectorAll('button');actions.forEach(b=>b.disabled=true);
+   const actions=button.closest('article').querySelectorAll('button');if([...actions].some(b=>b.disabled))return;actions.forEach(b=>b.disabled=true);
+   if(!await window.AppDialog.confirm((decision==='APPROVED'?'Approve':'Reject')+' this profile photo request?',{title:'Review profile photo',confirmText:decision==='APPROVED'?'Approve':'Reject',variant:decision==='REJECTED'?'danger':undefined})){actions.forEach(b=>b.disabled=false);return;}
    try{
      await photoApi('/api/photos/requests/'+encodeURIComponent(id)+'/review',{
        method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({decision})
      });
      photoRequests=photoRequests.filter(r=>r.requestId!==id);photoPending=photoRequests.length;
      render();showPhotoList();document.dispatchEvent(new CustomEvent('attendigo:requests-changed'));
-   }catch(e){alert(e.message);actions.forEach(b=>b.disabled=false);}
+   }catch(e){await window.AppDialog.alert(e.message,{title:'Unable to save photo review'});actions.forEach(b=>b.disabled=false);}
  });
  $('adminGuardianRequestsShortcut')?.addEventListener('click',()=>{
    close();

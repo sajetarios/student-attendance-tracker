@@ -39,7 +39,7 @@ test('Notification delete actions appear in all three portals and retain approva
  assert.match(js,/aria-label', 'Delete notification: '/);
  assert.match(js,/method: 'DELETE'/);
  assert.match(js,/await api\('\/delete-read', \{ method: 'POST' \}\)/);
- assert.match(js,/window\.confirm/);
+ assert.match(js,/window\.AppDialog\.confirm/);
  assert.match(css,/\.universal-notice-row/);
  assert.match(routes,/app\.delete\(base \+ '\/:id', authentication, own/);
  assert.match(routes,/app\.post\(base \+ '\/delete-read', authentication, own/);
