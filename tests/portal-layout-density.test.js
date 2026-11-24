@@ -7,7 +7,8 @@ const read=name=>fs.readFileSync(path.join(__dirname,'..','public',name),'utf8')
 test('layout styles load after page CSS on all key portals',()=>{
  for(const name of ['portal.html','principal.html','student-portal.html','parent-portal.html','portal-login.html','gate-offline.html','offline-sheet.html','student-qr-offline.html']){
   const html=read(name);
-  assert.match(html,/<link rel="stylesheet" href="\/attendigo-layout-density\.css\?v=1">\s*<\/head>/);
+  assert.ok(html.split("</head>")[0].includes('href="/attendigo-layout-density.css?v=1"'));
+  assert.ok(html.split("</head>")[0].includes('src="/app-dialog.js?v=1"'));
  }
  const sw=read('sw.js');
  assert.ok(Number(sw.match(/attendigo-v(\d+)-/)?.[1])>=376);
