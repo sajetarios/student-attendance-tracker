@@ -47,8 +47,7 @@ async function renderMasterWorkbook({calculated,data,summary,month,personalCopy=
     set('A117','SUBJECT REPORT GUIDE:');
     set('A118','1. Only the selected subject is included. Not for official submission.');
     set('A119','2. Present includes late arrivals; X and E are confirmed absences.');
-    set('A120','3. No. of Days of Classes counts dates with complete subject records for this roster.');
-    set('A128','Incomplete, conflicting, future and no-class dates are excluded from monthly attendance calculations.');
+    set('A120','3. Class days follow the elapsed timetable and calendar; averages use fully recorded class days.');
     set('A130','Enrollment and movement figures come from the section records. Consecutive absences refer to this subject.');
     set('A132','No recorded complete class day: attendance averages and percentages are N/A.');
 
@@ -115,20 +114,29 @@ async function renderMasterWorkbook({calculated,data,summary,month,personalCopy=
   if(personalCopy){
     const complete=summary?.completeSubjectDates||[];
     const days=complete.filter(Boolean).length;
+    const classDates=data.subjectClassDates||complete;
+    const classDays=classDates.filter(Boolean).length;
+    // Preserve the original guidelines merge and clear the provisional note
+    // when all elapsed class days are complete and the timetable is known.
+    const incomplete=days<classDays;
+    const uncertain=data.subjectScheduleUncertain===true;
+    set('A128',incomplete||uncertain?`Provisional: ${days} of ${classDays} class days fully recorded.${uncertain?' Schedule needs review.':''}`:null);
     // The 25 hidden evidence slots in row 115 identify complete roster-days.
+    // Row 114 separately identifies elapsed class dates.
     // They do not alter the visible attendance ledger, including partial days.
     for(let slot=0;slot<25;slot++){
       const d=slots[slot],hc=col(47+slot);
+      addHelper(114,hc+'114',d>=0&&classDates[d]?1:0);
       addHelper(115,hc+'115',d>=0&&complete[d]?1:0);
     }
-    cache('AJ117','SUM(AU115:BS115)',days);
+    cache('AJ117','SUM(AU114:BS114)',classDays);
     for(const r of [119,121,123,125,127,128,130,132,134,136]){
       for(const [i,c] of ['AK','AL','AM'].entries()){
         const v=read(c+r);
         if(r===127){
           const row=[63,114,115][i];
           const result=typeof v==='object'?v.result:v;
-          cache(c+r,'IFERROR(SUMPRODUCT(G'+row+':AE'+row+',AU115:BS115)/$AJ$117,"N/A")',result,'decimal');
+          cache(c+r,'IFERROR(SUMPRODUCT(G'+row+':AE'+row+',AU115:BS115)/SUM(AU115:BS115),"N/A")',result,'decimal');
         }else if(r===125||r===128){
           if(v&&typeof v==='object'&&v.formula)cache(c+r,v.formula,v.result,'percent');
           else set(c+r,v,null,'percent');
