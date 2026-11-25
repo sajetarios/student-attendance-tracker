@@ -1076,12 +1076,21 @@ body.dark-mode .content-wrap > .school-heading.is-compact,body[data-theme="dark"
             </div>
 
             <div id="schoolIdentitySignatoryHome"></div>
+            <section class="surface-card section-card" id="schoolHeadSignatoryCard">
+              <div class="section-toolbar"><div><h3>School Head / Authorized Signatory</h3><p>Configure once for printed DTR and applicable Locator Slips. Printed names do not grant approval authority.</p></div></div>
+              <div class="form48-person-fields">
+                <label>School Head Name<input type="text" id="form48ApprovedBy" maxlength="120" autocomplete="off" placeholder="Full name with credentials"></label>
+                <label>Position / Designation<input type="text" id="form48ApprovedPosition" maxlength="120" autocomplete="off" placeholder="e.g., Principal II"></label>
+              </div>
+              <div class="form48-schedule-actions"><button id="schoolHeadSaveSignatory" type="button" class="primary-button" disabled>Save school head</button><span id="schoolHeadSignatoryStatus" role="status" aria-live="polite">Loading…</span></div>
+            </section>
             <div class="surface-card section-card document-branding-card" id="documentBrandingCard">
-              <div class="section-toolbar"><div><h3>Official document identity</h3><p>Configure once for Form 6. Reuses your school logo above. All fields and logos are optional; use only authorized agency artwork.</p></div></div>
+              <div class="section-toolbar"><div><h3>Official document identity</h3><p>Configure once for Form 6 and Locator Slip. Reuses your school logo above. All fields and logos are optional; use only authorized agency artwork.</p></div></div>
               <form id="documentBrandingForm" method="post"><fieldset id="documentBrandingFields" disabled>
                   <div class="doc-brand-grid">
                     <label>Region<input name="region" maxlength="120" placeholder="e.g. Region XI"></label>
                     <label>Schools division<input name="division" maxlength="160" placeholder="Official division name"></label>
+                    <label>Locator Slip layout<select name="locatorSlipLayout"><option value="ANNEX_E">DepEd Revised Annex E</option><option value="MATI">Mati Division (reference layout)</option></select><small>Choose the form prescribed by your division. Confirm the reproduced Mati layout before official use.</small></label>
                     <label>School address<input name="address" maxlength="240" autocomplete="off"></label>
                     <label>Official school ID<input name="officialSchoolId" maxlength="40" autocomplete="off"></label>
                     <label>Logo layout<select name="layout"><option value="AUTO">Automatic — available logo</option><option value="AGENCY">Agency logo only</option><option value="SCHOOL">School logo only</option><option value="DUAL">Both logos (where authorized)</option><option value="TEXT">Text only</option></select></label>
@@ -1977,14 +1986,14 @@ body.dark-mode .content-wrap > .school-heading.is-compact,body[data-theme="dark"
               </section>
               </details>
               <div id="form48SignatoryHome"></div>
-              <div id="form48SignatoryShortcut" class="form48-draft-notice" hidden><a class="outline-button" href="/portal.html?view=schoolBranding#form48SchoolSignatories">Manage school signatories in School Identity</a></div>
+              <div id="form48SignatoryShortcut" class="form48-draft-notice" hidden><a class="outline-button" href="/portal.html?view=schoolBranding#form48SchoolSignatories">Manage school head in School Identity</a></div>
               <details id="form48SchoolSignatories" class="form48-advanced-wrapper form48-school-signatories">
-                <summary class="form48-advanced-summary">School Head / Authorized Signatory <small>School-wide settings</small></summary>
+                <summary class="form48-advanced-summary">DTR verifier <small>School-wide settings</small></summary>
                 <div class="form48-settings-panel form48-school-signatory-content">
-                  <p class="form48-draft-notice">Configure the school head and DTR verifier once for this school. Their names and positions appear on Form 48 reports. Printed names are not electronic signatures or system approval permissions.</p>
+                  <p class="form48-draft-notice">Configure the officer who verifies prescribed office hours. The printed Approved by name comes from School Identity.</p>
                 <div class="form48-signatory-heading">
                   <h4>Report certification</h4>
-                  <p>Printed details for the two authorized signatories</p>
+                  <p>Printed details for the verifying officer</p>
                 </div>
                 <div class="form48-signatory-fields">
                   <div class="form48-signer">
@@ -1994,16 +2003,10 @@ body.dark-mode .content-wrap > .school-heading.is-compact,body[data-theme="dark"
                       <label>Position / Designation<input type="text" id="form48VerifiedPosition" maxlength="120" autocomplete="off" placeholder="e.g., Administrative Officer"></label>
                     </div>
                   </div>
-                  <div class="form48-signer">
-                    <h5>School Head / Authorized Signatory (Approved by)</h5>
-                    <div class="form48-person-fields">
-                      <label>School Head Name<input type="text" id="form48ApprovedBy" maxlength="120" autocomplete="off" placeholder="Full name"></label>
-                      <label>Position / Designation<input type="text" id="form48ApprovedPosition" maxlength="120" autocomplete="off" placeholder="e.g., School Principal"></label>
-                    </div>
-                  </div>
+
                 </div>
                   <div class="form48-schedule-actions">
-                    <button id="form48SaveSignatories" type="button" class="primary-button" disabled>Save signatories for all staff</button>
+                    <button id="form48SaveSignatories" type="button" class="primary-button" disabled>Save DTR verifier</button>
                     <span id="form48SchoolSignatoriesStatus" role="status" aria-live="polite">Loading school-wide signatories…</span>
                   </div>
                 </div>
@@ -2546,7 +2549,7 @@ body.dark-mode .content-wrap > .school-heading.is-compact,body[data-theme="dark"
   <script src="/form48-report.js?v=20" defer></script>
   <script src="/form48-intelligence.js?v=4" defer></script>
   <script src="/smart-attendance-overview.js?v=5" defer></script>
-  <script src="/form48-bulk-ui.js?v=3" defer></script>
+  <script src="/form48-bulk-ui.js?v=4" defer></script>
   <script src="/teacher-roster-popover.js?v=2" defer></script>
   <script src="/sardo-monitor.js?v=2" defer></script><script src="/parent-dashboard.js?v=4" defer></script>
   <script src="/platform-plans-ui.js?v=8" defer></script>
@@ -2578,7 +2581,7 @@ body.dark-mode .content-wrap > .school-heading.is-compact,body[data-theme="dark"
   <script src="/attendigo-help-topics.js?v=4" defer></script>
   <script src="/attendigo-help-guide.js?v=4" defer></script>
 <script defer src="/school-memo-banner.js?v=9"></script>
-<script defer src="/document-branding.js?v=1"></script>
+<script defer src="/document-branding.js?v=2"></script>
 <dialog id="attendigoInstallDialog" class="attendigo-install-dialog" aria-labelledby="attendigoInstallTitle"><div class="install-dialog-top"><button type="button" data-install-close class="install-close" aria-label="Close installation guide" autofocus>✕ Close</button></div><div class="install-card"><div class="install-brand-head"><img class="install-brand-logo" src="/assets/attendigo-official-lockup.svg?v=5" alt="Attendigo" width="1769" height="496"><h2 class="install-dialog-title" id="attendigoInstallTitle">Install Attendigo</h2><div class="install-robot-hero"><svg class="install-robot" viewBox="0 0 64 64" aria-hidden="true" focusable="false"><path d="M32 10V5" stroke="#b5def8" stroke-width="3" stroke-linecap="round"/><circle cx="32" cy="5" r="3" fill="#f6b641"/><rect x="9" y="12" width="46" height="33" rx="13" fill="#e2f3ff" stroke="#b5def8" stroke-width="2"/><rect x="15" y="18" width="34" height="20" rx="8" fill="#15334b"/><circle cx="24" cy="26" r="3" fill="#5df2ff"/><circle cx="40" cy="26" r="3" fill="#5df2ff"/><path d="M28 32q4 4 8 0" fill="none" stroke="#5df2ff" stroke-width="2" stroke-linecap="round"/><rect x="21" y="46" width="22" height="14" rx="5" fill="#e2f3ff"/><path d="M25 51l7 2 7-2v5l-7 2-7-2z" fill="#1b88cb"/><path class="install-robot-arm" d="M45 50l9-7 4-8" fill="none" stroke="#b5def8" stroke-width="5" stroke-linecap="round"/><path d="M19 50l-8 4" stroke="#b5def8" stroke-width="5" stroke-linecap="round"/></svg></div></div><p class="intro">Open the school app directly from your phone. No app store needed. / Buksan ang app mula sa Home Screen.</p>
 <button type="button" id="installAction" hidden>Install Attendigo now</button>
 <section id="installDone" hidden><h2>You're using Attendigo as an app</h2><p>Open Attendigo from your Home Screen. / Buksan ang Attendigo sa Home Screen.</p></section>
