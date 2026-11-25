@@ -29,7 +29,7 @@
       get('installAction').disabled=busy;
       get('installDone').hidden=!active;
       for(const key of ['ios','android','other','embedded']){
-        get('guide-'+key).hidden=active||ready||mode!==key;
+        get('guide-'+key).hidden=active||mode!==key;
       }
       get('installCopy').hidden=false;
     }

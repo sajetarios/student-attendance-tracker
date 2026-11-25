@@ -19,7 +19,7 @@ test('public installation entry points reuse the existing manifest and avoid aut
  const read=p=>fs.readFileSync('public/'+p,'utf8');
  for(const p of ['portal-login.html','parent-portal.html','portal.html','student-portal.html','principal.html']) {
    assert.match(read(p),/href="\/install\.html"/);
-   assert.match(read(p),/attendigo-install\.js\?v=3/);
+   assert.match(read(p),/attendigo-install\.js\?v=4/);
  }
  assert.match(read('install.html'),/manifest\.webmanifest/);
  assert.match(read('install.html'),/Activate phone alerts/);
@@ -71,8 +71,31 @@ test('all main portals declare manifest and capture install event early with ani
  for(const p of ['portal-login.html','parent-portal.html','portal.html','student-portal.html','principal.html','install.html']){
  const s=fs.readFileSync('public/'+p,'utf8');
  assert.match(s,/rel="manifest"/);
- assert.match(s,/<head[^>]*><script src="\/attendigo-install\.js\?v=3"><\/script>/);
+ assert.match(s,/<head[^>]*><script src="\/attendigo-install\.js\?v=4"><\/script>/);
  assert.match(s,/class="install-robot"/);
  }
  assert.equal(installed({navigator:{},matchMedia:q=>({matches:q==='(display-mode: fullscreen)'})}),false);
+});
+
+test('illustrated device guides and walkthrough are local and optional',()=>{
+ const page=fs.readFileSync('public/install.html','utf8');
+ assert.equal((page.match(/data-walk-step/g)||[]).length,8);
+ assert.match(page,/Add to Home Screen/);
+ assert.match(page,/Watch walkthrough/);
+ assert.match(page,/attendigo-install-walkthrough\.js\?v=1/);
+ assert.match(fs.readFileSync('public/sw.js','utf8'),/attendigo-install-walkthrough\.js\?v=1/);
+});
+test('walkthrough plays only on click, advances, pauses and supports manual navigation',()=>{
+ const {mount}=require('../public/attendigo-install-walkthrough.js');
+ const node=()=>({hidden:true,disabled:false,textContent:'',events:{},addEventListener(n,f){this.events[n]=f}});
+ const steps=Array.from({length:4},node),controls=node(),play=node(),prev=node(),next=node(),count=node();
+ const elements={'.walk-controls':controls,'[data-walk-play]':play,'[data-walk-prev]':prev,'[data-walk-next]':next,'[data-walk-count]':count};
+ let tick=null;const doc=node();const win={document:doc,addEventListener(){},setInterval(f){tick=f;return 1},clearInterval(){tick=null}};
+ const guide={dataset:{},querySelectorAll:()=>steps,querySelector:q=>elements[q],closest:()=>null};
+ mount(win,guide);
+ assert.equal(tick,null);assert.equal(controls.hidden,false);assert.equal(count.textContent,'1 / 4');
+ next.events.click();assert.equal(count.textContent,'2 / 4');
+ play.events.click();assert.equal(count.textContent,'1 / 4');tick();assert.equal(count.textContent,'2 / 4');
+ play.events.click();assert.equal(tick,null);prev.events.click();assert.equal(count.textContent,'1 / 4');
+ play.events.click();tick();tick();tick();assert.equal(count.textContent,'4 / 4');tick();assert.equal(tick,null);
 });
