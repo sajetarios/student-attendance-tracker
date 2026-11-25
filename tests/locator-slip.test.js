@@ -57,8 +57,12 @@ test('both portals prepare the PDF through the shared inline error handler',()=>
  const principal=fs.readFileSync('public/principal-dashboard.js','utf8');
  assert.match(ui,/if\(!response\.ok\)throw await responseError\(response\)/);
  assert.match(ui,/LOCATOR_TEMPLATE_REQUIRED/);
- assert.match(ui,/URL\.createObjectURL\(file\)/);
+ assert.doesNotMatch(ui,/URL\.createObjectURL|\bblob:/);
+ assert.match(ui,/link\.href=url/);
+ assert.match(ui,/save\.href=url\+'\?download=1'/);
+ assert.match(ui,/response\.arrayBuffer\(\)/);
+ assert.match(fs.readFileSync('staff-ob-routes.js','utf8'),/req\.query\?\.download==='1'\?'attachment':'inline'/);
  assert.match(staff,/AttendigoLocatorSlip\.attach/);
  assert.match(principal,/AttendigoLocatorSlip\.attach/);
- for(const page of ['public/portal.html','public/principal.html','public/sw.js']) assert.match(fs.readFileSync(page,'utf8'),/\/locator-slip-ui\.js\?v=1/);
+ for(const page of ['public/portal.html','public/principal.html','public/sw.js']) assert.match(fs.readFileSync(page,'utf8'),/\/locator-slip-ui\.js\?v=2/);
 });
