@@ -35,7 +35,6 @@ function printableBranding(row,detectLogo){
 function registerDocumentBranding(app,pool,{authenticateSchoolClient,requireSchoolRoles,canCustomizeBranding,detectLogo}){
  const staff=requireSchoolRoles('SCHOOL_ADMIN','DEPARTMENT_HEAD','TEACHER','PRINCIPAL');
  const admin=requireSchoolRoles('SCHOOL_ADMIN');
- require('./locator-template-pilot').registerLocatorPilot(app,{authenticateSchoolClient,requireSchoolRoles,canCustomizeBranding});
  const select='SELECT school_name,document_branding,logo_data,document_agency_logo FROM schools WHERE school_id=$1 AND active=TRUE';
  app.get('/api/school/document-branding',authenticateSchoolClient,staff,async(req,res)=>{
   res.set('Cache-Control','private, no-store');
