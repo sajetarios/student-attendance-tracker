@@ -19,6 +19,7 @@ const department='bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb';
 const teacher='11111111-1111-4111-8111-111111111111';
 const head='22222222-2222-4222-8222-222222222222';
 const admin='33333333-3333-4333-8333-333333333333';
+const principal='55555555-5555-4555-8555-555555555555';
 const keeper='44444444-4444-4444-8444-444444444444';
 const badge='dddddddd-dddd-4ddd-8ddd-dddddddddddd';
 const eventKey='eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee';
@@ -35,6 +36,7 @@ function fixture(){
  const actors={
   [teacher]:{role:'TEACHER',department_id:department,display_name:'Simulated Teacher'},
   [head]:{role:'DEPARTMENT_HEAD',department_id:department,display_name:'Simulated Department Head'},
+  [principal]:{role:'PRINCIPAL',department_id:null,display_name:'Simulated Principal'},
   [admin]:{role:'SCHOOL_ADMIN',department_id:null,display_name:'Simulated School Administrator'},
   [keeper]:{role:'GATE_KEEPER',department_id:null,display_name:'Simulated Gatekeeper'}
  };
@@ -198,15 +200,15 @@ test('seven-step fictional leave, gate and DTR workflow uses real route function
   approverName:'Fictional Authorized Official',approverPosition:'Fictional Approving Officer',
   approvedOn:'2026-11-23',certifiedWorkingDays:2};
  const noPaper=await run('POST','/api/staff-leave/requests/:id/external-decision',{
-  params:{id:requestId},body:approval,userId:admin});
+  params:{id:requestId},body:approval,userId:principal});
  assert.equal(noPaper.status,409);assert.equal(state.request.status,'PENDING_EXTERNAL');
  state.signedApproval=true;state.credit=1;
  const insufficient=await run('POST','/api/staff-leave/requests/:id/external-decision',{
-  params:{id:requestId},body:approval,userId:admin});
+  params:{id:requestId},body:approval,userId:principal});
  assert.equal(insufficient.status,409);assert.equal(state.appliedLeaves.length,0);
  state.credit=5;
  const final=await run('POST','/api/staff-leave/requests/:id/external-decision',{
-  params:{id:requestId},body:approval,userId:admin});
+  params:{id:requestId},body:approval,userId:principal});
  assert.equal(final.status,200);assert.equal(state.request.status,'APPROVED');
  assert.equal(state.appliedLeaves.length,1);
  assert.equal(state.appliedLeaves[0].approval_reference,approval.approvalReference);
@@ -314,7 +316,7 @@ test('unverified HR scheme may not be guessed from TEACHER role at approval',asy
  const {id,filed}=await forwardedSick(sim);
  assert.equal(filed.body.creditAccount,'NONE');
  const decision=await sim.run('POST','/api/staff-leave/requests/:id/external-decision',
-  {params:{id},body:documentedApproval(2),userId:admin});
+  {params:{id},body:documentedApproval(2),userId:principal});
  assert.equal(decision.status,409);
  assert.equal(sim.state.credit,5);
  assert.equal(sim.state.appliedLeaves.length,0);
@@ -325,14 +327,14 @@ test('seven consecutive sick days require medical clearance or notarized affidav
  const {id}=await forwardedSick(sim,{
   ...requestBody,startDate:'2026-11-16',endDate:'2026-11-22'});
  const missingMedical=await sim.run('POST','/api/staff-leave/requests/:id/external-decision',
-  {params:{id},body:documentedApproval(7),userId:admin});
+  {params:{id},body:documentedApproval(7),userId:principal});
  assert.equal(missingMedical.status,409);
  assert.match(missingMedical.body.error,/medical certificate/);
  assert.equal(sim.state.credit,10);
  assert.equal(sim.state.appliedLeaves.length,0);
  sim.state.medicalEvidence=true;
  const approved=await sim.run('POST','/api/staff-leave/requests/:id/external-decision',
-  {params:{id},body:documentedApproval(7),userId:admin});
+  {params:{id},body:documentedApproval(7),userId:principal});
  assert.equal(approved.status,200);
  assert.equal(approved.body.creditAccount,'VSC');
  assert.equal(sim.state.credit,3);
@@ -342,9 +344,31 @@ test('HR-certified regular leave employees charge SL, never automatically consum
  const {id,filed}=await forwardedSick(sim);
  assert.equal(filed.body.creditAccount,'SL');
  const approved=await sim.run('POST','/api/staff-leave/requests/:id/external-decision',
-  {params:{id},body:documentedApproval(2),userId:admin});
+  {params:{id},body:documentedApproval(2),userId:principal});
  assert.equal(approved.status,200);
  assert.equal(approved.body.creditAccount,'SL');
  assert.equal(sim.state.appliedLeaves[0].credit_account,'SL');
  assert.equal(sim.state.credit,3);
+});
+
+test('recommended staff leave can go straight to the principal for a final decision', async()=>{
+ const sim=fixture();
+ const filed=await sim.run('POST','/api/staff-leave/requests',{body:requestBody});
+ const params={id:filed.body.requestId};
+ const decide=userId=>sim.run('POST','/api/staff-leave/requests/:id/external-decision',{
+  params,userId,body:{...documentedApproval(1),decision:'REJECT'}
+ });
+ assert.equal((await decide(principal)).status,403);
+ const recommended=await sim.run('POST','/api/staff-leave/requests/:id/recommend',{
+  params,userId:head,body:{decision:'FORWARD',note:'Recommended'}
+ });
+ assert.equal(recommended.status,200);
+ assert.equal((await decide(admin)).status,403);
+ sim.state.signedApproval=true;
+ const saved=await sim.run('POST','/api/staff-leave/requests/:id/external-decision',{
+  params,userId:principal,body:documentedApproval(2)
+ });
+ assert.equal(saved.body.status,'APPROVED');
+ assert.equal((await decide(principal)).status,403);
+ assert.equal(sim.state.appliedLeaves.length,1);
 });

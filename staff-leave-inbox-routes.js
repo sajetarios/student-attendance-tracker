@@ -1,7 +1,7 @@
 'use strict';
 const {FILTERS,canUseInbox,scopeFor,actionExpression,publicInboxRecord}=require('./staff-leave-inbox');
 function registerStaffLeaveInboxRoutes(app,pool,{authenticateSchoolClient,requireSchoolRoles}){
- const auth=[authenticateSchoolClient,requireSchoolRoles('SCHOOL_ADMIN','DEPARTMENT_HEAD')];
+ const auth=[authenticateSchoolClient,requireSchoolRoles('SCHOOL_ADMIN','DEPARTMENT_HEAD','PRINCIPAL')];
  app.get('/api/staff-leave/inbox',...auth,async(req,res)=>{
   res.set('Cache-Control','no-store, private');
   if(!canUseInbox(req.auth.role))

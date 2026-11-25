@@ -30,7 +30,7 @@ test('Department Head gets a separate reviewer queue while preserving personal O
  assert.match(ob,/setScope\('department'\)/);
  assert.match(leave,/id='staffLeaveReviewNav'/);
  assert.match(leave,/r\.status==='PENDING_HEAD'/);
- assert.match(leave,/r\.staffRole==='SCHOOL_ADMIN'/);
+ assert.match(leave,/r\.staffRole==='PRINCIPAL'/);
 });
 test('School Admin keeps management queues separate from physical attendance',()=>{
  assert.match(workspace,/move\('requestsApprovalsNav', 'operations'\)/);
@@ -84,7 +84,7 @@ test('Presenter entry is hidden for unassigned teachers and visible for either a
 test('No new attendance routes; assets match the current cache and mobile sidebar stays scrollable',()=>{
  const css=read('attendigo-sidebar-adaptive.css');
  assertCachedAsset(html,sw,'portal.js',{minimumVersion:236});
- for(const asset of ['/simplified-workspace.js?v=5','/staff-leave-ui.js?v=12',
+ for(const asset of ['/simplified-workspace.js?v=5','/staff-leave-ui.js?v=13',
   '/staff-ob-ui.js?v=9','/attendigo-presenter-nav.js?v=1']){
   assert.ok(html.includes(asset),asset+' HTML');
   assert.ok(sw.includes('"'+asset+'"'),asset+' shell');

@@ -23,7 +23,7 @@ const {Pool}=require('pg');
   await q("INSERT INTO school_users(school_id,user_id,role,display_name,teacher_position,active,department_id) VALUES('00000000-0000-4000-8000-000000000001','00000000-0000-4000-8000-000000000004','SCHOOL_ADMIN','Fictional Administrator','Principal',true,'00000000-0000-4000-8000-000000000002')");
   await q("INSERT INTO staff_leave_requests(school_id,staff_user_id,department_id,leave_type,credit_account,start_date,end_date,reason) VALUES('00000000-0000-4000-8000-000000000001','00000000-0000-4000-8000-000000000003','00000000-0000-4000-8000-000000000002','SICK','VSC','2026-11-23','2026-11-24','Documented sickness')");
   // Principal applicant may have no teaching department, but cannot approve their own request.
-  await q("INSERT INTO school_users(school_id,user_id,role,display_name,teacher_position,active,department_id) VALUES('00000000-0000-4000-8000-000000000001','00000000-0000-4000-8000-000000000005','SCHOOL_ADMIN','Fictional Principal','Principal',true,NULL)");
+  await q("INSERT INTO school_users(school_id,user_id,role,display_name,teacher_position,active,department_id) VALUES('00000000-0000-4000-8000-000000000001','00000000-0000-4000-8000-000000000005','PRINCIPAL','Fictional Principal','Principal',true,NULL)");
   await q("INSERT INTO school_users(school_id,user_id,role,display_name,teacher_position,active,department_id) VALUES('00000000-0000-4000-8000-000000000001','00000000-0000-4000-8000-000000000006','DEPARTMENT_HEAD','Fictional Head','Master Teacher',true,'00000000-0000-4000-8000-000000000002')");
   await q("INSERT INTO staff_leave_requests(school_id,staff_user_id,department_id,leave_type,credit_account,start_date,end_date,reason,status) VALUES('00000000-0000-4000-8000-000000000001','00000000-0000-4000-8000-000000000005',NULL,'VACATION','NONE','2026-11-25','2026-11-26','Authorized leave application','PENDING_EXTERNAL')");
   const principalCount=await q("SELECT COUNT(*)::int AS count FROM staff_leave_requests WHERE department_id IS NULL AND status='PENDING_EXTERNAL'");
@@ -51,8 +51,8 @@ const {Pool}=require('pg');
   const headInbox=await inbox('DEPARTMENT_HEAD','00000000-0000-4000-8000-000000000006',
    '00000000-0000-4000-8000-000000000002','ACTION','Fictional');
   assert.equal(headInbox.code,200,JSON.stringify(headInbox.reply));
-  assert.equal(headInbox.reply.counts.action,2);
-  assert.equal(headInbox.reply.requests.length,2);
+  assert.equal(headInbox.reply.counts.action,1);
+  assert.equal(headInbox.reply.requests.length,1);
   assert.equal(headInbox.reply.requests[0].leaveType,null,'reviewer view excludes medical leave subtype');
   assert.equal(headInbox.reply.requests.some(x=>x.own),false);
   console.log('Principal without department, school-scoped inbox, role actions and SQL search: PASS');

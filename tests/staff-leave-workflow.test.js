@@ -36,7 +36,15 @@ test('administrators cannot self-approve; department heads only recommend in the
  assert.equal(allowReviewer('SCHOOL_ADMIN',a,null,{...head,status:'PENDING_ADMIN'},'ADMIN'),true);
  assert.equal(allowReviewer('SCHOOL_ADMIN',b,null,{...head,status:'PENDING_ADMIN'},'ADMIN'),false);
  assert.equal(allowReviewer('SCHOOL_ADMIN',b,null,{...head,status:'PENDING_EXTERNAL'},'EXTERNAL'),false);
- assert.equal(allowReviewer('DEPARTMENT_HEAD',a,dept,{...head,status:'PENDING_EXTERNAL',requester_role:'SCHOOL_ADMIN'},'EXTERNAL'),true);
+ assert.equal(allowReviewer('DEPARTMENT_HEAD',a,dept,{...head,status:'PENDING_EXTERNAL',requester_role:'SCHOOL_ADMIN'},'EXTERNAL'),false);
+ for(const status of ['PENDING_ADMIN','PENDING_EXTERNAL']){
+  const pending={...head,status};
+  assert.equal(allowReviewer('PRINCIPAL',a,null,pending,'EXTERNAL'),true);
+  assert.equal(allowReviewer('PRINCIPAL',b,null,pending,'EXTERNAL'),false);
+  assert.equal(allowReviewer('SCHOOL_ADMIN',a,null,pending,'EXTERNAL'),false);
+  assert.equal(allowReviewer('PRINCIPAL',a,null,{...pending,requester_role:'PRINCIPAL'},'EXTERNAL'),false);
+ }
+ assert.equal(allowReviewer('PRINCIPAL',a,null,head,'EXTERNAL'),false);
  assert.equal(canView('TEACHER',a,dept,head),false);
 });
 test('credit and external approval require documentary evidence; raw gate scans remain independent',()=>{

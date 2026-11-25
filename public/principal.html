@@ -14,7 +14,9 @@ catch (_) { document.documentElement.dataset.theme = 'light'; }
 </script>
 <link rel="stylesheet" href="/principal-dashboard.css?v=15">
 <script src="/locator-slip-ui.js?v=5" defer></script>
-<script src="/principal-dashboard.js?v=21" defer></script>
+<link rel="stylesheet" href="/leave-approval-inbox.css?v=3">
+<script src="/leave-approval-inbox.js?v=3" defer></script>
+<script src="/principal-dashboard.js?v=22" defer></script>
 <script src="/staff-precise-location.js?v=1" defer></script>
 <script src="/principal-trusted-campus.js?v=4" defer></script>
 <link rel="stylesheet" href="/campus-location-ui.css?v=1">
@@ -326,6 +328,9 @@ catch (_) { document.documentElement.dataset.theme = 'light'; }
   </section>
 
   <section id="prioritiesPanel" class="panel" data-panel="priorities" hidden>
+   <section class="surface" id="leaveApprovals" aria-label="Leave approvals">
+    <p id="principalLeaveReviewStatus" role="status"></p><div id="principalLeaveInbox"></div>
+   </section>
    <section class="surface" aria-labelledby="principalObApprovalsTitle">
     <div class="card-heading"><div><p class="eyebrow">ACTION REQUIRED · OFFICIAL BUSINESS</p>
      <h2 id="principalObApprovalsTitle">Official Business approvals</h2>

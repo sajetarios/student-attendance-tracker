@@ -119,6 +119,7 @@
     const dest=destination(item);if(!dest)return false;
     const click=id=>{const el=document.getElementById(id);if(!el||el.hidden)return false;el.click();return true;};
     const go=view=>{const nav=document.querySelector('.nav-item[data-view="'+view+'"]');if(nav&&!nav.hidden){nav.click();return true;}return false;};
+    if(dest?.hash==='#leaveApprovals'&&user.role==='PRINCIPAL'){const tab=document.querySelector('[data-section="priorities"]');if(!tab)return false;tab.click();document.getElementById('leaveApprovals')?.scrollIntoView({block:'start'});return true;}
     if(dest==='staffObPrincipal'){const tab=document.querySelector('[data-section="priorities"]');if(!tab)return false;tab.click();document.getElementById(['PENDING','PENDING_ADMIN'].includes(item.status)?'principalObPending':'principalObHistory')?.click();document.getElementById('principalObApprovalList')?.scrollIntoView({block:'start'});return true;}
     if(dest==='staffObOwn')return go(user.role==='SCHOOL_ADMIN'?'myGateAttendance':'officialBusiness');
     if(dest==='lunchReviewHead'){if(!go('lunchQrAdmin'))return false;document.getElementById('staffLunchPendingList')?.scrollIntoView({block:'center'});document.getElementById('staffLunchPendingRefresh')?.click();return true;}

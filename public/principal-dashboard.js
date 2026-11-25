@@ -45,7 +45,7 @@
   if(name==='staff'&&latest)$('staffSearch').focus({preventScroll:true});
   if(name==='personal'){void loadPersonal();void loadSdoRequests();}
   if(name==='notifications')void loadNotifications();
-  if(name==='priorities'&&currentRole==='PRINCIPAL')void loadObApprovals();
+  if(name==='priorities'&&currentRole==='PRINCIPAL'){void loadObApprovals();void loadLeaveApprovals();}
   if(name==='calendar'&&currentRole==='PRINCIPAL')void loadMemoAdmin();
   if(['personal','calendar','security'].includes(name))void loadWorkspace();
  }
@@ -241,6 +241,29 @@
   $('principalObPending').setAttribute('aria-pressed',String(scope==='pending'));
   $('principalObHistory').setAttribute('aria-pressed',String(scope==='history'));
   void loadObApprovals();
+ }
+ async function loadLeaveApprovals(){
+  const message=$('principalLeaveReviewStatus');
+  const body=$('principalLeaveInbox');
+  async function request(path,options){
+   const res=await fetch('/api/staff-leave'+path,{credentials:'same-origin',cache:'no-store',...options});
+   const data=await res.json();
+   if(!res.ok)throw Error(data.error||'Unable to complete leave request.');
+   return data;
+  }
+  const context={user:{role:currentRole},body,message,
+   call:(path,method='GET',data)=>request(path,{method,headers:{'Content-Type':'application/json'},body:JSON.stringify(data)}),
+   upload:(path,file,kind)=>request(path,{method:'POST',headers:{'Content-Type':file.type,'x-document-kind':kind,'x-filename':encodeURIComponent(file.name)},body:file}),
+   async action(label,save){
+    if(body.inert)return;
+    body.inert=true;message.textContent=label+'…';
+    try{await save();message.textContent='Leave decision recorded.';await loadLeaveApprovals();}
+    catch(error){message.textContent=errorText(error);}
+    finally{body.inert=false;}
+   }
+  };
+  try{await window.AttendigoLeaveInbox.render(context);}
+  catch(error){message.textContent=errorText(error);}
  }
  async function loadObApprovals(){
   if(currentRole!=='PRINCIPAL'||obDecisionBusy)return;
@@ -1134,7 +1157,7 @@
    if(event.key==='Escape'&&document.body.classList.contains('principal-presentation'))
     setPresentation(false);
   });
-  $('refreshDashboard').addEventListener('click',()=>{document.dispatchEvent(new Event('attendigo:requests-changed'));void load();if(activeSection==='notifications')void loadNotifications();if(activeSection==='personal')void loadPersonal();if(activeSection==='priorities')void loadObApprovals();});
+  $('refreshDashboard').addEventListener('click',()=>{document.dispatchEvent(new Event('attendigo:requests-changed'));void load();if(activeSection==='notifications')void loadNotifications();if(activeSection==='personal')void loadPersonal();if(activeSection==='priorities'){void loadObApprovals();void loadLeaveApprovals();}});
   document.addEventListener('attendigo:notifications-updated',()=>{if(activeSection==='notifications')void loadNotifications();});
   for(const id of ['reportDate','departmentFilter','periodFilter'])$(id).addEventListener('change',()=>void load());
   for(const id of ['staffSearch','staffStatus'])$(id).addEventListener(id==='staffSearch'?'input':'change',renderStaff);
@@ -1151,6 +1174,8 @@
   });
   const me=await getSession();if(!me)return;
   currentRole=me.role;
+  const openLeaveLink=()=>{if(location.hash==='#leaveApprovals')switchSection('priorities');};
+  window.addEventListener('hashchange',openLeaveLink);openLeaveLink();
   $('principalMemoPublishPanel').hidden=currentRole!=='PRINCIPAL';
   if(currentRole==='PRINCIPAL')void loadMemoAdmin();
   $('principalLeaveForm').hidden=currentRole!=='PRINCIPAL';

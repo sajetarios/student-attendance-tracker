@@ -199,9 +199,9 @@
   function reviewable(r){
    if(r.staffUserId===user.userId)return false;
    if(user.role==='SCHOOL_ADMIN')
-    return r.status==='PENDING_ADMIN'||r.status==='PENDING_EXTERNAL';
+    return r.status==='PENDING_ADMIN'||(r.status==='PENDING_EXTERNAL'&&r.staffRole==='PRINCIPAL');
    return user.role==='DEPARTMENT_HEAD'&&
-    (r.status==='PENDING_HEAD'||(r.status==='PENDING_EXTERNAL'&&r.staffRole==='SCHOOL_ADMIN'));
+    r.status==='PENDING_HEAD';
   }
   function newRequest(){
    const details=document.createElement('details');details.className='leave-card leave-start-application';details.innerHTML=
@@ -532,7 +532,7 @@
      buttons.append(buttonFor('Recommend disapproval',()=>review('admin-review','REJECT')));
     }
     if(r.status==='PENDING_EXTERNAL'&&r.staffUserId!==user.userId&&
-       (user.role==='SCHOOL_ADMIN'||(user.role==='DEPARTMENT_HEAD'&&r.staffRole==='SCHOOL_ADMIN'))){
+       (user.role==='SCHOOL_ADMIN'&&r.staffRole==='PRINCIPAL')){
      const details=document.createElement('details');details.className='leave-approval';
      details.innerHTML='<summary>Record official division decision</summary>'+
       '<p class="leave-help">This records a decision already signed by the authorized official. It does not grant system users new signing authority.</p>'+
