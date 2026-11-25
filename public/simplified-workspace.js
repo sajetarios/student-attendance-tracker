@@ -28,7 +28,7 @@
 
     if (role === 'SCHOOL_ADMIN') {
       move('studentsNav', 'users', true);
-      move('requestsApprovalsNav', 'operations');
+      move('requestsApprovalsNav', 'users');
       move(nav.querySelector('[data-staff-section="permissions"]'), 'settings');
       move(nav.querySelector('[data-staff-section="departments"]'), 'settings');
       move('offlineScanReviewsNav', 'attendanceManagement');
@@ -41,7 +41,6 @@
       label('users', 'People');
       label('academics', 'Academics');
       label('attendanceManagement', 'Attendance Management');
-      label('operations', 'Requests & Approvals');
       label('settings', 'School Settings');
       label('reports', 'Reports');
       const order = [$('dashboardNav'), $('staffNavWrapper'), group('academics'),
