@@ -1075,6 +1075,7 @@ body.dark-mode .content-wrap > .school-heading.is-compact,body[data-theme="dark"
               <p class="scope-note">Only School Administrators can change school identity. Logo files are stored outside the public web folder and are available only to signed-in school staff.</p>
             </div>
 
+            <div id="schoolIdentitySignatoryHome"></div>
             <div class="surface-card section-card document-branding-card" id="documentBrandingCard">
               <div class="section-toolbar"><div><h3>Official document identity</h3><p>Configure once for Form 6. Reuses your school logo above. All fields and logos are optional; use only authorized agency artwork.</p></div></div>
               <form id="documentBrandingForm" method="post"><fieldset id="documentBrandingFields" disabled>
@@ -1975,10 +1976,12 @@ body.dark-mode .content-wrap > .school-heading.is-compact,body[data-theme="dark"
                 </details>
               </section>
               </details>
+              <div id="form48SignatoryHome"></div>
+              <div id="form48SignatoryShortcut" class="form48-draft-notice" hidden><a class="outline-button" href="/portal.html?view=schoolBranding#form48SchoolSignatories">Manage school signatories in School Identity</a></div>
               <details id="form48SchoolSignatories" class="form48-advanced-wrapper form48-school-signatories">
-                <summary class="form48-advanced-summary">Report signatories <small>School-wide settings</small></summary>
+                <summary class="form48-advanced-summary">School Head / Authorized Signatory <small>School-wide settings</small></summary>
                 <div class="form48-settings-panel form48-school-signatory-content">
-                  <p class="form48-draft-notice">Configure the two authorized signatories once for this school. Their names and positions will appear on every staff Form 48 report. Printed names are not electronic signatures.</p>
+                  <p class="form48-draft-notice">Configure the school head and DTR verifier once for this school. Their names and positions appear on Form 48 reports. Printed names are not electronic signatures or system approval permissions.</p>
                 <div class="form48-signatory-heading">
                   <h4>Report certification</h4>
                   <p>Printed details for the two authorized signatories</p>
@@ -1992,9 +1995,9 @@ body.dark-mode .content-wrap > .school-heading.is-compact,body[data-theme="dark"
                     </div>
                   </div>
                   <div class="form48-signer">
-                    <h5>Approved by</h5>
+                    <h5>School Head / Authorized Signatory (Approved by)</h5>
                     <div class="form48-person-fields">
-                      <label>Name<input type="text" id="form48ApprovedBy" maxlength="120" autocomplete="off" placeholder="Full name"></label>
+                      <label>School Head Name<input type="text" id="form48ApprovedBy" maxlength="120" autocomplete="off" placeholder="Full name"></label>
                       <label>Position / Designation<input type="text" id="form48ApprovedPosition" maxlength="120" autocomplete="off" placeholder="e.g., School Principal"></label>
                     </div>
                   </div>
@@ -2526,7 +2529,7 @@ body.dark-mode .content-wrap > .school-heading.is-compact,body[data-theme="dark"
   <script src="/student-name-format.js?v=2" defer></script>
   <script src="/teacher-scanner-schedule.js?v=1" defer></script>
   <script src="/gate-offline-review.js?v=1" defer></script>
-  <script src="/portal.js?v=244" defer></script>
+  <script src="/portal.js?v=245" defer></script>
   <script src="/schedule-list-filters.js?v=1" defer></script>
   <script src="/staff-lunch-ui.js?v=10" defer></script>
   <script src="/staff-precise-location.js?v=1" defer></script>
