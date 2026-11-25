@@ -1,4 +1,4 @@
-const CACHE = "attendigo-v436-principal-executive-2";
+const CACHE = "attendigo-v437-principal-report-recovery";
 
 // Only public, non-personal offline shells and their executable dependencies.
 // An update must not discard the working cache before these are all ready.
@@ -187,10 +187,10 @@ const SHELL = [
   "/password-visibility.js",
   "/portal-login.js?v=17",
   "/login-routing.js",
-  "/principal-dashboard.js?v=24",
+  "/principal-dashboard.js?v=25",
   "/principal-trusted-campus.js?v=4",
   "/campus-location-ui.css?v=1",
-  "/principal-dashboard.css?v=18",
+  "/principal-dashboard.css?v=19",
   "/school-memos.js?v=1",
   "/school-memos.css?v=1",
   "/school-memo-banner.js?v=9",

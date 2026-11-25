@@ -12,11 +12,11 @@
 try { const preference = localStorage.getItem('attendigo.principal.theme'); document.documentElement.dataset.theme = ['dark','light','system'].includes(preference) ? preference : 'light'; }
 catch (_) { document.documentElement.dataset.theme = 'light'; }
 </script>
-<link rel="stylesheet" href="/principal-dashboard.css?v=18">
+<link rel="stylesheet" href="/principal-dashboard.css?v=19">
 <script src="/locator-slip-ui.js?v=5" defer></script>
 <link rel="stylesheet" href="/leave-approval-inbox.css?v=3">
 <script src="/leave-approval-inbox.js?v=3" defer></script>
-<script src="/principal-dashboard.js?v=24" defer></script>
+<script src="/principal-dashboard.js?v=25" defer></script>
 <script src="/staff-precise-location.js?v=1" defer></script>
 <script src="/principal-trusted-campus.js?v=4" defer></script>
 <link rel="stylesheet" href="/campus-location-ui.css?v=1">
@@ -66,14 +66,14 @@ catch (_) { document.documentElement.dataset.theme = 'light'; }
     <div class="principal-navigation-secondary" id="principalSecondaryMenus">
      <label class="principal-menu-label" for="principalMyWorkspace"><span>My Workspace</span>
       <select id="principalMyWorkspace" aria-label="My personal workspace">
-       <option value="">Open my workspace…</option>
+       <option value="" selected>Open my workspace…</option>
        <option value="badge">My QR badge</option>
        <option value="personal">My attendance, leave &amp; OB</option>
       </select>
      </label>
      <label class="principal-menu-label" for="principalMore"><span>More</span>
       <select id="principalMore" aria-label="Additional principal features">
-       <option value="">More features…</option>
+       <option value="" selected>More features…</option>
        <option value="security">Gatekeeper &amp; security</option>
        <option value="departments">Departments</option>
        <option value="notifications">Notifications</option>
@@ -107,7 +107,7 @@ catch (_) { document.documentElement.dataset.theme = 'light'; }
   <section class="controls" aria-label="Leadership report filters">
    <label>Report date <input id="reportDate" type="date"></label>
    <label>Department <select id="departmentFilter"><option value="">All departments</option></select></label>
-   <label>Trend period <select id="periodFilter"><option value="7">Last 7 calendar days</option><option value="14">Last 14 calendar days</option><option value="30">Last 30 calendar days</option></select></label>
+   <label>Trend period <select id="periodFilter" autocomplete="off"><option value="7" selected>Last 7 calendar days</option><option value="14">Last 14 calendar days</option><option value="30">Last 30 calendar days</option></select></label>
    <button id="refreshDashboard" type="button" class="refresh-button"><svg class="principal-action-icon" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M20 7v5h-5 M4 17v-5h5 M5 9a8 8 0 0 1 13-4l2 3 M4 16l2 3a8 8 0 0 0 13-4"/></svg><span>Refresh</span></button>
   </section>
   <p id="feedback" class="feedback" role="status" aria-live="polite">Loading verified school records…</p>

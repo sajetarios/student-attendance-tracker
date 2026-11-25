@@ -1099,3 +1099,8 @@ button.priority-department-row:focus-visible,.priority-reset:focus-visible{
  #main .metric-card small{font-size:14px}
  #main .metric-label{font-size:16px}
 }
+
+/* A failed report is an explicit unavailable state, never a blank graph. */
+#main .principal-unavailable{grid-column:1/-1;align-self:center;justify-self:stretch;padding:14px;color:var(--muted);font-size:15px;line-height:1.5;margin:0}
+#main .trend-chart:has(.principal-unavailable){min-height:80px;align-items:center}
+#main #feedback[data-state="error"]{padding:12px 14px;border:1px solid currentColor;border-radius:10px;font-size:15px;overflow-wrap:anywhere}

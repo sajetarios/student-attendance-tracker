@@ -121,7 +121,7 @@ test('Teacher Recognition redesign keeps evidence source contracts and responsiv
  assert.match(js,/count\.dataset\.state=award\.entries\.length\?'active':'empty'/);
  assert.match(routes,/watchNominees/);
  assert.match(routes,/earlyArrivals/);
- assert.match(html,/principal-dashboard\.css\?v=18/);
+ assert.match(html,/principal-dashboard\.css\?v=19/);
  const principalJsVersion=html.match(/principal-dashboard\.js\?v=(\d+)/);
  assert.ok(principalJsVersion && Number(principalJsVersion[1])>=13,'principal JS revision must not regress');
 });
@@ -137,7 +137,7 @@ test('Principal executive workspace puts decisions before recognition and retain
   assert.equal((html.match(new RegExp('id="'+id+'"','g'))||[]).length,1);
  assert.ok(css.includes('min-width:1180px'));
  assert.ok(css.includes('max-width:650px'));
- assert.ok(sw.includes('principal-dashboard.css?v=18'));
+ assert.ok(sw.includes('principal-dashboard.css?v=19'));
 });
 
 test('Principal executive icons are locally rendered, accessible and cache-versioned',()=>{
@@ -148,8 +148,8 @@ test('Principal executive icons are locally rendered, accessible and cache-versi
  assert.ok(js.includes("principalIcon('briefing-item-icon',item.icon)"));
  assert.ok(js.includes("principalIcon('mark',"));
  assert.ok(css.includes('.principal-action-icon'));
- assert.ok(sw.includes('principal-dashboard.css?v=18'));
- assert.ok(sw.includes('principal-dashboard.js?v=24'));
+ assert.ok(sw.includes('principal-dashboard.css?v=19'));
+ assert.ok(sw.includes('principal-dashboard.js?v=25'));
 });
 
 test('Principal Executive 2 makes mobile navigation collapsible with visible release identification',()=>{
@@ -159,4 +159,24 @@ test('Principal Executive 2 makes mobile navigation collapsible with visible rel
  assert.ok(js.includes('function setPrincipalMenu(open)'));
  assert.ok(js.includes("if(mobileNav.matches)setPrincipalMenu(false)"));
  assert.ok(css.includes('.principal-navigation[data-expanded="false"]'));
+});
+
+test('Principal report restores valid defaults when native mobile controls have empty or invalid values',()=>{
+ const js=read('public/principal-dashboard.js');
+ const start=js.indexOf(' function normalizePrincipalFilters('),end=js.indexOf(' function currentReportFilters()',start);
+ assert.ok(start>=0&&end>start);
+ const normalize=require('node:vm').runInNewContext(js.slice(start,end)+';normalizePrincipalFilters');
+ const day='2026-11-26',id='12345678-1234-1234-1234-123456789abc';
+ for(const invalid of ['', '0', 'undefined', '90']){
+  const x=normalize('',invalid,'invalid',day);
+  assert.equal(x.date,day);assert.equal(x.days,'7');assert.equal(x.department,'');
+  assert.ok(scopeParams({}, {date:x.date,days:x.days},day));
+ }
+ const good=normalize('2026-11-20','14',id,day);
+ assert.equal(good.date,'2026-11-20');assert.equal(good.days,'14');assert.equal(good.department,id);
+ assert.equal(normalize('2026-02-30','30','',day).date,day);
+ assert.equal(normalize('2026-11-27','30','',day).date,day);
+ assert.ok(js.includes('const filters=currentReportFilters()'));
+ assert.ok(js.includes('Records unavailable. Refresh to retry.'));
+ assert.ok(read('public/principal.html').includes('<option value="7" selected>'));
 });

@@ -658,6 +658,23 @@
   const scope=data.departmentId?($('departmentFilter').selectedOptions?.[0]?.textContent||'Selected department'):'All departments';
   status('Live report · '+scope+' · '+data.schoolDate+' · verified source records only','success');
  }
+ function normalizePrincipalFilters(date,days,department,schoolToday){
+  const datePattern=/^\d{4}-\d{2}-\d{2}$/;
+  const parsed=Date.parse(date+'T00:00:00Z');
+  const delta=(Date.parse(schoolToday+'T00:00:00Z')-parsed)/86400000;
+  const validDate=datePattern.test(date)&&Number.isFinite(parsed)&&new Date(parsed).toISOString().slice(0,10)===date&&delta>=0&&delta<=365;
+  const validDepartment=/^[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}$/i.test(department);
+  return {date:validDate?date:schoolToday,days:['7','14','30'].includes(days)?days:'7',department:validDepartment?department:''};
+ }
+ function currentReportFilters(){
+  const date=$('reportDate'),period=$('periodFilter'),department=$('departmentFilter');
+  const currentDay=toDay(new Date());
+  const scope=normalizePrincipalFilters(date.value,period.value,department.value,currentDay);
+  date.min=new Date(Date.parse(currentDay+'T00:00:00Z')-MAX_AGE_DAYS*86400000).toISOString().slice(0,10);
+  date.max=currentDay;
+  date.value=scope.date;period.value=scope.days;department.value=scope.department;
+  return scope;
+ }
  async function load(){
   if(abort)abort.abort();abort=new AbortController();const current=++sequence;
   classImpact=null;
@@ -665,8 +682,9 @@
   $('refreshDashboard').disabled=true;
   status('Checking live school records. DTR summaries are read-only…');
   try{
-   const query=new URLSearchParams({date:$('reportDate').value,days:$('periodFilter').value});
-   if($('departmentFilter').value)query.set('departmentId',$('departmentFilter').value);
+   const filters=currentReportFilters();
+   const query=new URLSearchParams({date:filters.date,days:filters.days});
+   if(filters.department)query.set('departmentId',filters.department);
    const response=await fetch('/api/principal/overview?'+query.toString(),
     {credentials:'same-origin',cache:'no-store',signal:abort.signal});
    if(response.status===401){window.location.replace('/portal-login.html');return;}
@@ -703,6 +721,15 @@
    $('principalWatchNomineeList').replaceChildren(make('p','source-note','Watch nomination records are unavailable; no candidate can be verified.'));
    $('principalWatchCount').textContent='Unavailable';
    for(const id of ['withVerifiedPunch','pendingDtrSlots','activeStudentRecords','acceptedClassCheckins','heroPending'])$(id).textContent='—';
+   $('schoolCode').textContent='School report unavailable';
+   $('generatedAt').textContent='Refresh to retry';
+   renderClassImpact(null,'Class coverage unavailable until the school report loads.');
+   $('briefingSummary').textContent='School records could not be loaded. Refresh to retry.';
+   $('briefingScope').textContent='Unavailable';
+   for(const id of ['trendChart','attentionList','departmentPreview','briefingActions']){
+    const host=$(id);
+    if(host)host.replaceChildren(make('p','principal-unavailable','Records unavailable. Refresh to retry.'));
+   }
    status('Unable to verify school records: '+errorText(error)+'. Retry; no estimated figures are displayed.','error');
   }finally{if(current===sequence)$('refreshDashboard').disabled=false;}
  }
@@ -1155,6 +1182,11 @@
   $('personalDate').addEventListener('change',()=>void loadPersonal());
   document.addEventListener('visibilitychange',()=>{if(document.hidden)hideBadge();});
   $('reportDate').value=today;$('reportDate').max=today;$('reportDate').min=minDate;
+  $('periodFilter').value='7';
+  $('departmentFilter').value='';
+  $('principalMyWorkspace').value='';
+  $('principalMore').value='';
+  currentReportFilters();
   document.querySelectorAll('[data-jump]').forEach(b=>b.addEventListener('click',()=>switchSection(b.dataset.jump)));
   for(const b of buttons)b.addEventListener('click',()=>switchSection(b.dataset.section));
   for(const id of ['principalMyWorkspace','principalMore']){
