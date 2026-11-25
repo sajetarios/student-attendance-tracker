@@ -270,7 +270,7 @@ test('November subject report: original ten summary rows, 28 learners, two X mar
   await master.xlsx.readFile(require('../sf2-master-export').MASTER);
   const original=master.worksheets[0];
   for(const address of ['AE117','AH117','AK117','AK118','AL118','AM118',...[119,121,123,125,127,128,130,132,134,136].map(r=>'AE'+r)]){
-    assert.equal(sheet.getCell(address).value,original.getCell(address).value,'Original summary label '+address);
+    assert.deepEqual(sheet.getCell(address).value,original.getCell(address).value,'Original summary label and rich-text formatting '+address);
   }
   assert.deepEqual([...sheet.model.merges].sort(),[...original.model.merges].sort());
   for(let c=1;c<=40;c++)assert.equal(sheet.getColumn(c).width,original.getColumn(c).width,'Original printable width '+c);
