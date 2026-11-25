@@ -105,3 +105,68 @@
   body.portal-page .ax-page-links>a {flex:1 1 145px;}
   body.portal-page :is(.dh-command-metric,.admin-command-metric) :is(small,span:not(.ax-icon)) {overflow-wrap:anywhere;}
 }
+
+/* Actual staff attendance view: native iOS date controls must never overlap.
+   Scoped to existing records UI; no role, event, approval or print changes. */
+@media screen {
+ html body.portal-page #myGateAttendanceView .my-gate-attendance .my-gate-filters {
+   box-sizing:border-box!important;width:100%!important;min-width:0!important;max-width:100%!important;
+ }
+ html body.portal-page #myGateAttendanceView .my-gate-attendance .my-gate-filters > label {
+   box-sizing:border-box!important;display:grid!important;grid-template-columns:minmax(0,1fr)!important;
+   width:100%!important;min-width:0!important;max-width:100%!important;gap:5px!important;
+   font-size:16px!important;line-height:1.35!important;
+ }
+ html body.portal-page #myGateAttendanceView .my-gate-attendance .my-gate-filters > label > input[type="date"] {
+   display:block!important;box-sizing:border-box!important;width:100%!important;min-width:0!important;
+   max-width:100%!important;inline-size:100%!important;min-inline-size:0!important;max-inline-size:100%!important;
+   margin:0!important;padding:8px 10px!important;min-height:44px!important;height:auto!important;
+   font-size:16px!important;line-height:1.3!important;text-align:start!important;
+ }
+ html body.portal-page #myGateAttendanceView .my-gate-filters input[type="date"]::-webkit-date-and-time-value {
+   margin:0;min-width:0;min-inline-size:0;text-align:start;
+ }
+}
+@media screen and (max-width:900px) {
+ html body.portal-page #myGateAttendanceView .my-gate-attendance {
+   box-sizing:border-box!important;padding:12px!important;min-width:0!important;max-width:100%!important;
+ }
+ html body.portal-page #myGateAttendanceView .my-gate-attendance > .section-toolbar {
+   display:grid!important;grid-template-columns:minmax(0,1fr)!important;align-items:start!important;
+   gap:8px!important;padding:0!important;margin:0 0 10px!important;
+ }
+ html body.portal-page #myGateAttendanceView .my-gate-attendance > .section-toolbar > div {
+   width:100%!important;min-width:0!important;max-width:100%!important;
+ }
+ html body.portal-page #myGateAttendanceView #myGateHeading {
+   font-size:20px!important;line-height:1.3!important;margin:0 0 4px!important;
+ }
+ html body.portal-page #myGateAttendanceView #myGateIntro {
+   font-size:16px!important;line-height:1.4!important;margin:0!important;
+ }
+ html body.portal-page #myGateAttendanceView .my-gate-attendance > .section-toolbar > #myGateRefresh {
+   justify-self:end!important;width:auto!important;max-width:100%!important;min-height:44px!important;
+   margin:0!important;padding:8px 12px!important;font-size:16px!important;line-height:1.3!important;
+ }
+ html body.portal-page #myGateAttendanceView .my-gate-attendance .my-gate-history-heading {
+   margin:8px 0 6px!important;
+ }
+ html body.portal-page #myGateAttendanceView .my-gate-attendance .my-gate-history-heading h3 {
+   font-size:18px!important;line-height:1.3!important;margin:0 0 4px!important;
+ }
+ html body.portal-page #myGateAttendanceView .my-gate-attendance .my-gate-history-heading p,
+ html body.portal-page #myGateAttendanceView #myGateFeedback {
+   font-size:16px!important;line-height:1.4!important;overflow-wrap:anywhere;
+ }
+ html body.portal-page #myGateAttendanceView .my-gate-attendance .my-gate-filters {
+   display:grid!important;grid-template-columns:minmax(0,1fr)!important;gap:8px!important;
+   align-items:start!important;margin:8px 0!important;
+ }
+ html body.portal-page #myGateAttendanceView .my-gate-attendance #myGateApply {
+   box-sizing:border-box!important;width:100%!important;min-width:0!important;max-width:100%!important;
+   min-height:44px!important;font-size:16px!important;margin:0!important;padding:8px 12px!important;
+ }
+ html body.portal-page #myGateAttendanceView .my-gate-attendance .ms-attendance-entry {
+   margin:6px 0 8px!important;
+ }
+}

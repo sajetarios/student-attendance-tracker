@@ -20,3 +20,5 @@ jobs:
       - run: npx playwright install --with-deps chromium webkit
       - run: node scripts/check-responsive-layout.cjs
       - run: node scripts/check-shared-experience.cjs
+
+      - run: node scripts/check-actual-staff-attendance.cjs
