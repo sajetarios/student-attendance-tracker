@@ -97,3 +97,17 @@ test('offline save queues marks before close, restores without replay, then conf
  assert.equal(second.remote.get(date+':learner1').status,'PRESENT');
  assert.equal(b('rows').children[0].children[1].disabled,false);assert.equal(second.enqueues.length,0);
 });
+
+test('previously saved offline-only draft is recovered on opening without re-entering marks',async()=>{
+ const password='a secure offline password', wc=require('node:crypto').webcrypto, enc=new TextEncoder();
+ const salt=wc.getRandomValues(new Uint8Array(16)),iv=wc.getRandomValues(new Uint8Array(12));
+ const base=await wc.subtle.importKey('raw',enc.encode(password),'PBKDF2',false,['deriveKey']);
+ const key=await wc.subtle.deriveKey({name:'PBKDF2',salt,iterations:310000,hash:'SHA-256'},base,{name:'AES-GCM',length:256},false,['encrypt']);
+ const payload={schoolId:'school-a',userId:'teacher-a',periodId:'class1',students:[{studentId:'learner1',fullName:'Example Learner'}],marks:{'2026-11-25':{learner1:{status:'LATE'}}},synced:{}};
+ const ct=await wc.subtle.encrypt({name:'AES-GCM',iv},key,enc.encode(JSON.stringify(payload)));
+ const x=launch({online:false,saved:[{id:'school-a:teacher-a:class1',label:'English',salt:Buffer.from(salt).toString('base64'),iv:Buffer.from(iv).toString('base64'),ciphertext:Buffer.from(ct).toString('base64')}]});
+ const get=id=>x.document.getElementById(id);await settle();get('unlockClass').value='school-a:teacher-a:class1';get('unlockPass').value=password;get('open').click();
+ await waitFor(()=>x.outbox.size===1&&!get('open').disabled);
+ assert.equal([...x.outbox.values()][0].payload.marks[0].status,'LATE');
+ assert.equal([...x.outbox.values()][0].payload.date,'2026-11-25');
+});
