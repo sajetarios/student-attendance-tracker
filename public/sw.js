@@ -1,4 +1,4 @@
-const CACHE = "attendigo-v418-offline-queue-cookie-sync";
+const CACHE = "attendigo-v419-admin-leave-role-cleanup";
 
 // Only public, non-personal offline shells and their executable dependencies.
 // An update must not discard the working cache before these are all ready.
@@ -32,7 +32,7 @@ const SHELL = [
   "/attendigo-workspace-density-theme.css?v=1",
   "/attendigo-unified-workspace.css?v=1",
   "/attendigo-unified-navigation.js?v=1",
-  "/simplified-workspace.js?v=5",
+  "/simplified-workspace.js?v=6",
   "/simplified-workspace.css?v=1",
   "/teacher-timetable-identities.css?v=2",
   "/schedule-relationships.js?v=2",

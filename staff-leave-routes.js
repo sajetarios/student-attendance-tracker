@@ -216,7 +216,7 @@ function registerStaffLeaveRoutes(app,pool,{authenticateSchoolClient,requireScho
     await c.query('ROLLBACK');return res.status(403).json({error:'This request cannot be reviewed at your level or by its applicant.'});
    }
    // Department Heads may stop an application from progressing internally but cannot issue a final official leave disapproval.
-   // A positive recommendation proceeds to school review, while an internal decline closes this workflow.
+   // A positive recommendation proceeds to the Principal, while an internal decline closes this workflow.
    const status=step==='HEAD'?(decision==='REJECT'?'DECLINED_HEAD':'PENDING_ADMIN'):'PENDING_EXTERNAL';
    const col=step==='HEAD'?'head_user_id=$4,head_decided_at=NOW(),head_note=$5':
     'admin_user_id=$4,admin_reviewed_at=NOW(),admin_note=$5';

@@ -34,7 +34,7 @@ function allowReviewer(role,actorId,actorDepartment,request,action){
  if(actorId===request.staff_user_id)return false;
  if(action==='HEAD')return role==='DEPARTMENT_HEAD'&&request.status==='PENDING_HEAD'
   &&actorDepartment===request.department_id;
- if(action==='ADMIN')return role==='SCHOOL_ADMIN'&&request.status==='PENDING_ADMIN';
+ if(action==='ADMIN')return false; // Staff leave moves directly from department recommendation to Principal.
  if(action==='EXTERNAL'){
   if(request.requester_role==='PRINCIPAL')return role==='SCHOOL_ADMIN'&&request.status==='PENDING_EXTERNAL';
   return role==='PRINCIPAL'&&['PENDING_ADMIN','PENDING_EXTERNAL'].includes(request.status);

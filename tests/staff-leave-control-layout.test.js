@@ -40,7 +40,8 @@ test('cache versions match, preventing iPad from retaining overlapping old contr
 });
 
 test('leave requests remain attendance-focused while credit records are restricted',()=>{
- assert.match(ui,/const leaveHeading='Leave Requests'/);
+ assert.match(ui,/const leaveHeading=isHrAdmin\?'Leave Records':'Leave Requests'/);
+ assert.match(ui,/const reviewerNav=user\.role==='DEPARTMENT_HEAD'\?/);
  assert.match(ui,/New Leave Request/);
  assert.match(ui,/Official leave-record verification/);
  assert.match(ui,/if\(!mayReviewCredits\|\|!target\)return/);
