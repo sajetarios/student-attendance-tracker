@@ -30,7 +30,7 @@
   '<label>'+esc(label)+'<select name="'+name+'">'+values.map(([val,txt])=>'<option value="'+esc(val)+'">'+esc(txt)+'</option>').join('')+'</select></label>';
  const docTypes=[['VACATION','Vacation leave'],['SICK','Sick leave'],['VSC','Vacation service credit availment'],['MATERNITY','Maternity leave'],
   ['PATERNITY','Paternity leave'],['SPECIAL_PRIVILEGE','Special privilege leave'],['WELLNESS','Wellness leave'],['OTHER','Other leave']];
- const accounts=[['NONE','To be verified by School Admin'],['VSC','Vacation Service Credits (VSC)'],['VL','Vacation Leave (VL)'],['SL','Sick Leave (SL)']];
+ const accounts=[['NONE','No credit account selected'],['VSC','Vacation Service Credits (VSC)'],['VL','Vacation Leave (VL)'],['SL','Sick Leave (SL)']];
  function init(user){
   if(!['TEACHER','DEPARTMENT_HEAD','SCHOOL_ADMIN'].includes(user?.role))return;
   const button=document.createElement('button');button.id='staffLeaveNav';button.type='button';
@@ -317,31 +317,32 @@
      const entry=accounts.find(([id])=>id===code);
      if(!entry)continue;
      const option=document.createElement('option');
-     option.value=entry[0];option.textContent=entry[1];accountControl.append(option);
+     option.value=entry[0];option.textContent=code==='NONE'&&!verifiedTeaching&&!verifiedRegular&&!['MATERNITY','PATERNITY','SPECIAL_PRIVILEGE','WELLNESS'].includes(leaveType)?'Not yet verified':entry[1];accountControl.append(option);
     }
     accountControl.value=lockedAccount||(
      allowed.includes(previous)?previous:
      verifiedTeaching?'VSC':verifiedRegular?(leaveType==='VACATION'?'VL':'NONE'):'NONE');
     accountControl.disabled=Boolean(lockedAccount)||allowed.length===1;
     if(leaveType==='SPECIAL_PRIVILEGE'||leaveType==='WELLNESS'){
-     creditInfo.textContent='This leave category is separate from VSC, VL and SL. No credit deduction from those accounts is proposed. The School Admin must verify the separate entitlement.';
+     creditInfo.textContent='This leave category is separate from VSC, VL and SL. No credit deduction from those accounts is proposed. Eligibility remains subject to official verification.';
     }else if(leaveType==='VSC'&&!verifiedTeaching){
-     creditInfo.textContent='Vacation Service Credits requested. The School Admin must verify your teaching-personnel entitlement before approval. Submitting does not certify credits.';
+     creditInfo.textContent='Vacation Service Credits requested. Entitlement remains subject to official verification.';
     }else if(!verifiedTeaching&&!verifiedRegular){
-     creditInfo.textContent='Your leave-credit scheme has not been verified. You can submit your application now. The School Admin will verify your entitlement against official records before the Principal records final approval. Ask your School Admin if verification is needed.';
+     creditInfo.textContent='';
     }else{
      creditInfo.textContent='Verified '+(verifiedTeaching?'teaching-personnel service credits':'regular VL/SL leave scheme')+
       '. The proposed account is not a final charge. Only authorized verification and documented approval can adjust your certified balance.';
     }
+    creditInfo.hidden=!creditInfo.textContent;
     if(leaveType==='SICK'){
      sickInfo.hidden=false;
      const today=manilaDate();
      const basis=start.value>today?'Advance-filed':end.value&&end.value<today?
-      'Post-absence filing — School Admin verifies return date':'During ongoing absence';
+      'Post-absence filing — return date subject to verification':'During ongoing absence';
      sickInfo.textContent=basis+' sick leave. Notify your supervisor of unexpected illness and submit CSC Form No. 6 as applicable. '+
       (verifiedTeaching?'Verified VSC is proposed for illness.':
        verifiedRegular?'Verified Sick Leave is proposed for illness.':
-       'The School Admin must verify the applicable leave scheme before final approval.')+
+       'The applicable leave scheme remains subject to official verification.')+
       ' An authorized officer checks medical evidence and dates; filing alone does not change the DTR. For advance-filed illness or illness over five consecutive days, supporting medical evidence or an appropriate affidavit is required under the existing approval checks.';
     }else sickInfo.hidden=true;
     const nonCommutable=['SPECIAL_PRIVILEGE','WELLNESS'].includes(leaveType);
