@@ -312,7 +312,7 @@
     }else if(leaveType==='VSC'&&!verifiedTeaching){
      creditInfo.textContent='Vacation Service Credits requested. The School Admin must verify your teaching-personnel entitlement before approval. Submitting does not certify credits.';
     }else if(!verifiedTeaching&&!verifiedRegular){
-     creditInfo.textContent='Your leave-credit scheme has not been verified. You can submit your application now. The School Admin will verify your entitlement using official records before the Principal records final approval.';
+     creditInfo.textContent='Your leave-credit scheme has not been verified. You can submit your application now. The School Admin will verify your entitlement against official records before the Principal records final approval. Ask your School Admin if verification is needed.';
     }else{
      creditInfo.textContent='Verified '+(verifiedTeaching?'teaching-personnel service credits':'regular VL/SL leave scheme')+
       '. The proposed account is not a final charge. Only authorized verification and documented approval can adjust your certified balance.';
@@ -607,7 +607,7 @@
    const guidance=document.createElement('div');guidance.className='leave-role-guidance';
    guidance.innerHTML=isHrAdmin
     ? '<strong>Leave-credit records</strong><p>Encode an employee\'s existing credits only from official personnel records. Entries stay pending until another authorized officer verifies the supporting certification. Your own balances are displayed separately below.</p>'
-    : '<strong>My certified credit balances · read-only</strong><p>These balances come from verified HR records. You cannot edit them. An earned-credit claim is only a proposal until official certification.</p>';
+    : '<strong>My certified credit balances · read-only</strong><p>These balances come from verified official personnel records. You cannot edit them. An earned-credit claim is only a proposal until official certification.</p>';
    body.append(guidance);
    const own=await call('/credits');
    const balance=document.createElement('div');balance.className='leave-balances';
