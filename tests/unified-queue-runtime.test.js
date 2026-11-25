@@ -112,6 +112,7 @@ function harness() {
     URLSearchParams, navigator, window, document,
     fetch: async (url,options={}) => {
       requests.push({url,options});
+      if(url==='/api/auth/me')return response(200,{user:{schoolId:'school-A',userId:'teacher-1',role:'TEACHER'}});
       return responder(url,options);
     },
     CustomEvent:class CustomEvent{constructor(_type,init){this.detail=init.detail;}},
@@ -148,6 +149,7 @@ test('three types remain encrypted on device, then sync in order with confirmed 
     assert.equal(row.event,undefined);
     assert.equal(JSON.stringify(row).includes('learner-1'),false);
   }
+  h.session.delete('schoolAttendance.accessToken');
   h.navigator.onLine=true;
   h.respond(async url => {
     if(url==='/api/sync/events')return response(200,{results:[{status:'ACCEPTED',eventId:'scan-1'}]});
@@ -162,8 +164,9 @@ test('three types remain encrypted on device, then sync in order with confirmed 
   assert.equal(synced.confirmations['scan-1'].status,'ACCEPTED');
   assert.equal(synced.confirmations['mark-1'].status,'ACCEPTED');
   assert.equal(synced.confirmations['sign-1'].status,'ACCEPTED');
+  for(const req of h.requests.filter(r=>r.url!=='/api/auth/me')){assert.equal(req.options.credentials,'same-origin');assert.equal(req.options.headers['X-Attendigo-Queue-Owner'],'school-A:teacher-1');assert.equal(req.options.headers.Authorization,undefined);}
   assert.deepEqual(h.requests.map(r=>r.url),[
-    '/api/sync/events','/api/manual-attendance/sync',
+    '/api/auth/me','/api/sync/events','/api/manual-attendance/sync',
     '/api/manual-attendance?periodId=class-1&date=2026-11-16',
     '/api/manual-attendance/finalization'
   ]);
@@ -179,7 +182,7 @@ test('409 conflicts stay encrypted and block later sign-offs instead of losing o
   assert.equal(rows.find(x=>x.id==='mark-1').status,'REVIEW');
   assert.equal(rows.find(x=>x.id==='sign-1').status,'PENDING');
   await h.queue.sync();
-  assert.equal(h.requests.length,1,'No later operation may bypass the review barrier');
+  assert.equal(h.requests.filter(r=>r.url!=='/api/auth/me').length,1,'No later operation may bypass the review barrier');
 });
 test('queue is scoped by current user and retains legacy scanner records during storage upgrade',async()=>{
   const h=harness();
@@ -224,5 +227,5 @@ test('Sync Center retry keeps server checks and never blindly deletes a reviewed
   assert.equal((await h.queue.inspect('mark-review')).status,'REVIEW');
   await h.queue.retryReviewed('mark-review');
   assert.equal((await h.queue.inspect('mark-review')).status,'REVIEW');
-  assert.equal(h.requests.length,2,'Every retry remains subject to server validation');
+  assert.equal(h.requests.filter(r=>r.url!=='/api/auth/me').length,2,'Every retry remains subject to server validation');
 });

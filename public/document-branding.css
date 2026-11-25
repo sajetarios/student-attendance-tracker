@@ -25,3 +25,33 @@
 .locator-mapping-image{user-select:none;-webkit-user-select:none;-webkit-user-drag:none;cursor:default!important}.locator-mapping-image.is-selecting{touch-action:none;cursor:crosshair!important}.locator-selection-dot,.locator-selection-rectangle{position:absolute;pointer-events:none;box-sizing:border-box}.locator-selection-dot{width:12px;height:12px;border:2px solid white;border-radius:50%;background:#0876c6;transform:translate(-50%,-50%)}.locator-selection-rectangle{border:2px dashed #0876c6;background:#0876c625}
 
 .locator-library [role=status].is-error{color:var(--danger,#b42318);font-weight:600;overflow-wrap:anywhere}.locator-library a.outline-button{display:inline-flex;align-items:center;text-decoration:none;margin:8px 0}
+
+/* Scoped, responsive document review workspace; inherits portal theme tokens. */
+.locator-review-workspace{margin:16px 0 0;padding-top:16px;border-top:1px solid var(--line,#dce5ec);container-type:inline-size}
+.locator-review-workspace>summary{font-size:18px;font-weight:750;margin-bottom:12px}
+.locator-review-toolbar{display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:10px;align-items:end;min-width:0}
+.locator-review-select{display:grid;gap:5px;min-width:0}
+.locator-review-select select,.locator-review-manual-actions select{width:100%;min-width:0;max-width:100%;height:auto;min-height:44px;font-size:16px}
+.locator-review-workspace :is(button,a.outline-button){min-height:44px;max-width:100%;height:auto;white-space:normal;overflow-wrap:anywhere;line-height:1.35}
+.locator-review-workspace p,.locator-review-workspace label{font-size:16px;line-height:1.45;margin:6px 0}
+.locator-review-reminder{padding:10px 12px;border-left:3px solid var(--brand,#2563eb);background:var(--bg,#f5f8fb);border-radius:6px}
+.locator-review-grid{display:grid;grid-template-columns:minmax(0,1.35fr) minmax(280px,1fr);grid-template-areas:"preview pattern" "preview mapping" "preview sample" "preview publish";gap:12px;align-items:start;margin-top:14px;min-width:0}
+.locator-review-preview{grid-area:preview;min-width:0;border:1px solid var(--line,#dce5ec);border-radius:12px;background:var(--card,#fff);padding:12px}
+.locator-review-preview h4,.locator-review-step h4{margin:0;font-size:17px;line-height:1.35;color:inherit}
+.locator-preview-stage{min-width:0;background:var(--bg,#f5f8fb);border:1px solid var(--line,#dce5ec);border-radius:8px;padding:8px;display:grid;justify-items:center}
+.locator-preview-stage .locator-mapping-image{background:#fff;max-width:100%;height:auto;display:block}
+.locator-preview-empty{min-height:180px;display:grid;align-content:center;justify-items:center;text-align:center;padding:18px;color:var(--muted,#64748b)}
+.locator-review-step{min-width:0;border:1px solid var(--line,#dce5ec);border-radius:12px;padding:12px;background:var(--card,#fff);display:grid;gap:8px;align-content:start}
+.locator-pattern-step{grid-area:pattern}.locator-mapping-step{grid-area:mapping}.locator-sample-step{grid-area:sample}.locator-publish-step{grid-area:publish}
+.locator-step-heading{display:flex;align-items:center;gap:9px}
+.locator-step-number{display:grid;place-items:center;width:28px;height:28px;flex:none;border-radius:50%;background:var(--bg,#f5f8fb);border:1px solid var(--line,#dce5ec);font-weight:750;color:inherit}
+.locator-step-help{color:var(--muted,#64748b)}
+.locator-review-step progress{width:100%;height:10px;accent-color:var(--brand,#2563eb)}
+.locator-review-step .locator-library-confirm{margin:2px 0;gap:9px}
+.locator-review-step .locator-library-confirm input{width:18px;height:18px;min-width:18px;min-height:18px;margin-top:3px}
+.locator-review-step :is(button,a.outline-button){width:100%;justify-content:center;text-align:center}
+.locator-review-step [role=status]:empty{display:none}
+.locator-review-step details{margin:0}
+.locator-review-manual-actions{display:grid;gap:8px;min-width:0}
+@container(max-width:760px){.locator-review-grid{grid-template-columns:minmax(0,1fr);grid-template-areas:"pattern" "preview" "mapping" "sample" "publish"}.locator-review-toolbar{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}.locator-review-select{grid-column:1/-1;grid-row:1}.locator-review-toolbar button{width:100%}}
+@media(max-width:700px){.locator-review-grid{grid-template-columns:minmax(0,1fr);grid-template-areas:"pattern" "preview" "mapping" "sample" "publish"}.locator-review-toolbar{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}.locator-review-select{grid-column:1/-1;grid-row:1}.locator-preview-stage{padding:4px}.locator-review-step{padding:10px}}

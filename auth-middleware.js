@@ -44,6 +44,7 @@ function createAuthMiddleware(pool) {
   }
 
   async function authenticateSchoolClient(req, res, next) {
+    const expectedOwner=req.headers['x-attendigo-queue-owner'];
     const cookie=String(req.headers.cookie||'').split(';').map(x=>x.trim()).find(x=>x.startsWith('__Host-attendigo-student='));
     const token = staffBrowserToken(req) || (cookie ? cookie.slice('__Host-attendigo-student='.length) : '') || bearerToken(req);
     if (!token) return res.status(401).json({ error: 'Authentication required.' });
@@ -72,6 +73,7 @@ function createAuthMiddleware(pool) {
       if (session.rowCount) {
         if(staffBrowserMismatch(req,token))return res.status(401).json({error:'Another account is active in this browser. Sign in again.'});
         const row = session.rows[0];
+        if(expectedOwner!==undefined && expectedOwner!==String(row.school_id)+':'+String(row.user_id))return res.status(401).json({error:'Sign in as the owner of these device records.'});
         await pool.query('UPDATE user_sessions SET last_seen_at=NOW() WHERE session_id=$1', [row.session_id]);
         req.auth = {
           type: 'SCHOOL_USER',
@@ -95,6 +97,7 @@ function createAuthMiddleware(pool) {
         return next();
       }
 
+      if(expectedOwner!==undefined)return res.status(401).json({error:'A matching staff session is required to synchronize device records.'});
       const studentSession = await pool.query(
         `SELECT ss.session_id, ss.school_id, sa.student_account_id, sa.student_id,
                 sa.username, sa.must_change_password, st.full_name, st.grade_level, st.section,
