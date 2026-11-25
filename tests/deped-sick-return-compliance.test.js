@@ -19,7 +19,7 @@ test('Section 53: sick leave may be filed immediately upon return, not only befo
  assert.equal(parseRequest({leaveType:'SICK',creditAccount:'NONE',
   startDate:'2026-11-19',endDate:'2026-11-20',reason:'Fictional illness'}).leaveType,'SICK');
 });
-test('HR must certify teaching VSC versus regular SL; roles cannot infer an entitlement',()=>{
+test('School Admin must verify teaching VSC versus regular SL; roles cannot infer an entitlement',()=>{
  assert.deepEqual([...SCHEMES],['TEACHING_VSC','REGULAR_VL_SL']);
  assert.equal(sickAccountForScheme('TEACHING_VSC'),'VSC');
  assert.equal(sickAccountForScheme('REGULAR_VL_SL'),'SL');
@@ -31,7 +31,7 @@ test('HR must certify teaching VSC versus regular SL; roles cannot infer an enti
  assert.match(routes,/if\(staffId===req\.auth\.userId\)/);
  assert.match(routes,/sickAccountForScheme\(verifiedScheme\)/);
  assert.match(routes,/sickAccountForScheme\(verifiedScheme\.rows\[0\]\?\.leaveScheme\)/);
- assert.match(routes,/HR must verify whether this employee uses teaching-personnel VSC/);
+ assert.match(routes,/The School Admin must verify whether this employee uses teaching-personnel VSC/);
 });
 test('long or advance-filed sickness requires documentary evidence before official approval',()=>{
  assert.equal(requiredSickEvidence('SICK','POST_RETURN','2026-11-19','2026-11-20'),false);
@@ -43,7 +43,7 @@ test('long or advance-filed sickness requires documentary evidence before offici
  assert.match(routes,/document_kind IN \('MEDICAL','AFFIDAVIT'\)/);
  assert.match(routes,/document_kind='APPROVAL'/);
  assert.match(routes,/if\(!chargeAccount\)/);
- assert.match(routes,/Insufficient HR-certified/);
+ assert.match(routes,/Insufficient officially verified/);
 });
 test('Unapproved post-return sickness remains a pending Form48 review, not a paid or excused leave',()=>{
  const r=summarizeForm48({month:'2026-11',today:'2026-11-23',settings,
