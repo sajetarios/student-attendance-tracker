@@ -151,8 +151,8 @@ test('explicit offline tools hub remains available on disconnected devices', asy
   const hub={branded:true};
   assert.equal(await requestServiceWorker('https://attendigo.tech/offline-welcome.html',{hit:{'/offline-welcome.html':hub}}),hub);
 });
-test('all three offline tools and the sign-in page link directly to the shared hub', () => {
-  for(const name of ['offline-sheet.html','gate-offline.html','student-qr-offline.html','portal-login.html']) {
+test('all three offline tools link directly to the shared hub', () => {
+  for(const name of ['offline-sheet.html','gate-offline.html','student-qr-offline.html']) {
     assert.match(fs.readFileSync(path.join(root,'public',name),'utf8'),/href="\/offline-welcome\.html"/);
   }
 });
@@ -267,4 +267,31 @@ test('offline appearance defaults to light and changes only through an explicit 
    assert.equal(stored,rootEl.dataset.theme);
    assert.equal(button['aria-pressed'],String(stored==='dark'));
  }
+});
+
+test('online login hides the offline shortcut and redirects controlled pages only on disconnection', () => {
+  const html = fs.readFileSync(path.join(root, 'public/portal-login.html'), 'utf8');
+  assert.doesNotMatch(html, /href="\/offline-welcome\.html"/);
+  const source = [...html.matchAll(/<script>([\s\S]*?)<\/script>/g)]
+    .map(match => match[1]).find(s => s.includes('function openOfflineWhenReady'));
+  assert.ok(source, 'Missing automatic offline entry');
+  for (const [online, controlled, event, expected] of [
+    [true, true, null, []],
+    [false, true, null, ['/offline-welcome.html']],
+    [false, false, null, []],
+    [true, true, 'offline', ['/offline-welcome.html']],
+    [true, true, 'pageshow', ['/offline-welcome.html']],
+    [true, false, 'offline', []],
+    [false, true, 'online', ['/offline-welcome.html']]
+  ]) {
+    const events = {}, calls = [];
+    const navigator = {onLine:online,serviceWorker:{controller:controlled ? {} : null}};
+    vm.runInNewContext(source, {
+      navigator, window:{addEventListener(name, fn){events[name]=fn;}},
+      location:{replace(url){calls.push(url);}}
+    });
+    if (event && event !== 'online') { navigator.onLine=false; events[event](); }
+    if (event === 'online') { navigator.onLine=true; events.pageshow(); }
+    assert.deepEqual(calls, expected);
+  }
 });
