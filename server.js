@@ -210,6 +210,7 @@ registerCloudSyncRoutes(app, pool, { authenticateSchoolClient, requireSchoolAdmi
 registerAccountRoutes(app, pool, { authenticateSchoolClient });
 registerSchoolRoutes(app, pool, { authenticateSchoolClient, requireSchoolRoles });
 registerPlatformRoutes(app, pool, { authenticatePlatform, requirePlatformAdmin });
+require('./locator-template-library-routes').registerLocatorLibraryRoutes(app,pool,{authenticateSchoolClient,requireSchoolRoles,authenticatePlatform,requirePlatformAdmin,canCustomizeBranding:requireSchoolFeature(pool,'custom_branding')});
 registerPlatformBootstrapRoutes(app, pool);
 registerSchoolAdminRecoveryRoutes(app, pool, { authenticatePlatform, requirePlatformAdmin });
 registerFlexibleScheduleRoutes(app, pool, { authenticateSchoolClient, requireSchoolRoles });
