@@ -41,11 +41,17 @@ function buildLocatorSlip(template,data){verify(template);const start=new Date(d
  commands.push('0 G 1.2 w 222.5 525.8 m 225.3 522.8 l 230.1 529.9 l S','Q');
  const stream=commands.join('\n')+'\n';
  // Exact verified Annex E page: append only an overlay and a standard print font.
- // The source PDF bytes and all original content streams remain untouched.
+ // Original content streams and offsets remain intact. The obsolete linearization hint is disabled in the output copy.
  const objects=[[115,'<< /Contents [117 0 R 118 0 R 119 0 R 120 0 R 121 0 R 122 0 R 123 0 R 124 0 R 157 0 R] /CropBox [0 0 595.44 841.68] /MediaBox [0 0 595.44 841.68] /Parent 111 0 R /Resources << /ExtGState << /GS0 140 0 R >> /Font << /C2_0 145 0 R /TT0 147 0 R /TT1 149 0 R /TT2 151 0 R /TT3 153 0 R /TT4 155 0 R /OBF 158 0 R >> /ProcSet [/PDF /Text /ImageC] /XObject << /Im0 138 0 R >> >> /Rotate 0 /StructParents 0 /Tabs /S /Type /Page >>'],[157,'<< /Length '+Buffer.byteLength(stream)+' >>\nstream\n'+stream+'endstream'],[158,'<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>']];
  let tail='\n';const offsets=[];for(const [id,body] of objects){offsets.push([id,template.length+Buffer.byteLength(tail)]);tail+=id+' 0 obj\n'+body+'\nendobj\n';}
  const xref=template.length+Buffer.byteLength(tail);tail+='xref\n';for(const [id,offset] of offsets)tail+=id+' 1\n'+String(offset).padStart(10,'0')+' 00000 n \n';
  tail+='trailer\n<< /Size 159 /Root 114 0 R /Info 112 0 R /Prev 116 /ID [<BC8664CF562EAE4FA854D272CD274893><AC92A78F368A9146A17A3C957C7C9C20>] >>\nstartxref\n'+xref+'\n%%EOF\n';
- return Buffer.concat([template,Buffer.from(tail,'ascii')]);
+ // Appending a revision invalidates the original fast-web-view file-length hint.
+ // Disable it in the generated copy without changing any object offsets or stored master.
+ const prefix=Buffer.from(template);
+ const hint=prefix.indexOf('/Linearized');
+ if(hint<0||hint>128)throw Error('Unexpected official PDF header.');
+ prefix.write('/ObOrigHint',hint,'ascii');
+ return Buffer.concat([prefix,Buffer.from(tail,'ascii')]);
 }
 module.exports={getTemplate,installTemplate,buildLocatorSlip,TEMPLATE_SHA};
