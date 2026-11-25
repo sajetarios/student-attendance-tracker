@@ -130,3 +130,16 @@ test('every portal uses a branded in-place guide with no return link that naviga
  const login=fs.readFileSync('public/portal-login.html','utf8');
  assert.ok(login.indexOf('data-attendigo-install-container')<login.indexOf('id="loginForm"'));
 });
+
+test('installer follows approved login brand and avoids the former green primary controls',()=>{
+ const css=fs.readFileSync('public/attendigo-install.css','utf8');
+ assert.match(css,/linear-gradient\(130deg,#08183c,#174089\)/);
+ assert.match(css,/linear-gradient\(115deg,#3921bc,#6231e6/);
+ assert.doesNotMatch(css,/#08705d|#075b4e|#147664/i);
+ for(const p of ['install.html','portal-login.html','portal.html','parent-portal.html','student-portal.html','principal.html']){
+  const s=fs.readFileSync('public/'+p,'utf8');
+  assert.match(s,/install-brand-logo[^>]+attendigo-official-lockup/);
+  assert.match(s,/attendigo-install\.css\?v=6/);
+ }
+ assert.match(fs.readFileSync('public/sw.js','utf8'),/attendigo-install\.css\?v=6/);
+});
