@@ -7,7 +7,7 @@ const source=fs.readFileSync(path.join(__dirname,'../public/offline-sheet.js'),'
 function launch({online=true,periods=[],reject=false,students=[],saved=[]}={}){
  const u={role:'TEACHER',schoolId:'school-a',userId:'teacher-a'};
  const nodes=new Map(),listeners={},requests=[];
- const make=()=>({children:[],disabled:false,hidden:true,value:'',append(x){this.children.push(x)},replaceChildren(){this.children=[]},addEventListener(name,fn){this[name]=fn}});
+ const make=()=>({children:[],dataset:{},open:false,disabled:false,hidden:true,value:'',append(x){this.children.push(x)},replaceChildren(){this.children=[]},addEventListener(name,fn){this[name]=fn}});
  const document={getElementById(id){if(!nodes.has(id))nodes.set(id,make());return nodes.get(id)},createElement:make};
  const guard={authorize:async()=>({role:u.role,schoolId:u.schoolId,accountId:u.userId}),requireRole:()=>({schoolId:u.schoolId,accountId:u.userId}),matches:(r,s,i)=>r===u.role&&s===u.schoolId&&i===u.userId,record(){},clear(){},watch(){},current:()=>({schoolId:u.schoolId,accountId:u.userId})};
  const records=new Map(saved.map(row=>[row.id,row]));
@@ -53,4 +53,19 @@ test('bulk preparation saves all assigned classes without replacing existing enc
  assert.match(get('message').textContent,/1 newly prepared/);
  assert.equal(get('unlockClass').children.length,2);
  x.context.navigator.onLine=false;x.listeners.offline();assert.equal(get('prepareAll').disabled,true);
+});
+
+test('offline mode hides download setup and shows only saved class controls',async()=>{
+ const x=launch({online:false,saved:[{id:'school-a:teacher-a:one',label:'English 8'}]});await settle();
+ const get=id=>x.document.getElementById(id);
+ assert.equal(get('setup').hidden,true);assert.equal(get('unlockFields').hidden,false);
+ assert.equal(get('savedClassCount').textContent,'1 class ready offline');
+ assert.match(get('connectionHint').textContent,/^Offline/);
+ assert.equal(get('open').disabled,false);
+});
+test('first-time online setup opens downloads without empty password fields',async()=>{
+ const x=launch({periods:[{periodId:'mine',assignedTeacherUserId:'teacher-a'}]});await settle();
+ const get=id=>x.document.getElementById(id);
+ assert.equal(get('setup').hidden,false);assert.equal(get('downloadSettings').open,true);assert.equal(get('unlockFields').hidden,true);
+ assert.equal(get('prepareAll').disabled,false);
 });
