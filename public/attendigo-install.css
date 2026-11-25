@@ -1,0 +1,32 @@
+.attendigo-install-link[hidden],.install-page [hidden]{display:none!important}
+.install-page{margin:0;background:#f5f7fb;color:#1c2d45;font:16px/1.6 system-ui,sans-serif;min-height:100vh;box-sizing:border-box;padding:24px 16px}
+.install-page *{box-sizing:border-box}
+.install-card{max-width:480px;margin:auto;background:white;border:1px solid #dce3ec;border-radius:20px;padding:clamp(20px,5vw,32px);box-shadow:0 12px 36px #1c2d4510}
+.install-logo{width:64px;height:64px;display:block;margin:0 auto 12px}
+.install-card h1{font-size:26px;line-height:1.2;margin:0 0 8px;text-align:center}
+.install-card h2{font-size:19px;margin:18px 0 6px}
+.install-card p{margin:8px 0;overflow-wrap:anywhere}
+.install-card .intro{text-align:center;color:#46566b}
+.install-card ol{padding-left:24px;margin:8px 0 16px}
+.install-card li{margin-bottom:8px}
+.install-card button,.install-card .continue{display:block;width:100%;min-height:46px;border:1px solid #264769;border-radius:10px;padding:10px 12px;background:#1c2d45;color:white;font:inherit;font-weight:650;text-align:center;text-decoration:none;cursor:pointer;margin:12px 0}
+.install-card .continue{background:white;color:#1c2d45}
+.install-card button:focus-visible,.install-card a:focus-visible{outline:3px solid #2876c8;outline-offset:3px}
+.install-card input{width:100%;font:inherit;padding:10px;border:1px solid #a5b4c7;border-radius:8px;color:#1c2d45;background:#fff}
+.install-card .tip{background:#eef4fa;border-radius:10px;padding:12px;margin:16px 0}
+.install-card small{font-size:14px;color:#46566b}
+
+/* Compact in-flow installation affordance: no overlay, no layout movement. */
+.attendigo-install-strip{min-width:0;max-width:100%;margin:0 0 12px;box-sizing:border-box}
+.attendigo-install-strip[hidden]{display:none!important}
+.attendigo-install-link.attendigo-install-cta{display:flex;align-items:center;justify-content:center;gap:10px;flex-wrap:wrap;min-height:48px;max-width:100%;width:100%;padding:10px 14px;box-sizing:border-box;border:1px solid #147664;border-radius:12px;background:#08705d;color:#fff!important;text-decoration:none;font:inherit;font-weight:700;font-size:16px;line-height:1.35;text-align:center;white-space:normal;overflow-wrap:anywhere}
+.attendigo-install-cta svg,.install-action-icon{width:22px;height:22px;flex:0 0 22px}
+.attendigo-install-cta:hover{background:#075b4e}
+.attendigo-install-cta:focus-visible{outline:3px solid #2989dc;outline-offset:3px}
+.attendigo-install-cta .install-cta-copy{min-width:0;display:flex;flex-direction:column;align-items:center}
+.attendigo-install-cta small{font-size:13px;font-weight:500;color:#fff;line-height:1.35}
+.install-page #installAction{background:#08705d;border-color:#147664}
+.install-page #installAction:hover{background:#075b4e}
+@keyframes attendigo-install-highlight{0%,100%{box-shadow:0 0 0 0 #159b8155}50%{box-shadow:0 0 0 4px #159b8126}}
+@media(prefers-reduced-motion:no-preference){.attendigo-install-cta,.install-page #installAction:not([hidden]){animation:attendigo-install-highlight 1.45s ease-in-out 3}}
+@media(prefers-reduced-motion:reduce){.attendigo-install-cta,.install-page #installAction{animation:none!important}}

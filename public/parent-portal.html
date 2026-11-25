@@ -27,8 +27,10 @@
 <link rel="stylesheet" href="/attendigo-layout-density.css?v=1">
 <link rel="stylesheet" href="/app-dialog.css?v=2">
 <script src="/app-dialog.js?v=1" defer></script>
+<link rel="stylesheet" href="/attendigo-install.css?v=2"><script src="/attendigo-install.js?v=2" defer></script>
 </head><body class="portal-page parent-portal-body"><header class="parent-site-header"><div class="attendigo-brand"><img class="attendigo-logo" src="/assets/attendigo-official-lockup.svg?v=5" alt="Attendigo" width="1769" height="496"></div><span>Parent Portal</span></header>
 <main class="parent-page">
+<div class="attendigo-install-strip" data-attendigo-install-container><a class="attendigo-install-link attendigo-install-cta" data-attendigo-install href="/install.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M12 3v12m-5-5 5 5 5-5M4 16v3a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-3"/></svg><span class="install-cta-copy"><span>Install Attendigo</span><small>Open directly from your Home Screen</small></span></a></div>
 <header class="parent-head"><div class="parent-welcome"><div class="eyebrow muted" id="schoolLabel">PARENT PORTAL</div><h1 id="welcome">Welcome</h1><p>Keep track of your children’s school attendance.</p></div><div class="action-row"><button type="button" class="outline-button" id="refreshButton">Refresh</button><button type="button" class="outline-button" id="logoutButton">Sign out</button></div></header>
 <section class="parent-card parent-profile" aria-label="My profile"><h2>My profile</h2><div id="parentProfilePhoto"></div></section>
 <section class="parent-card" id="parentOverview"><h2>Today’s overview</h2><div class="parent-summary-grid"><div class="student-profile-item"><span>Linked children</span><strong id="parentChildCount">—</strong></div><div class="student-profile-item"><span>Accepted time-ins</span><strong id="parentTodayTimeIns">—</strong></div><div class="student-profile-item"><span>Children with time-ins</span><strong id="parentChildrenArrived">—</strong></div></div><p class="parent-help">Time-ins include gate and class events, not a complete attendance register.</p></section>
@@ -38,6 +40,7 @@
   <p id="pushSummary">Receive a private alert on your phone after a teacher finalizes a subject attendance record. In-app notifications will continue to work.</p></div>
   <span class="parent-phone-push-badge" id="pushStateBadge" aria-label="Phone notification status">Checking setup</span><button type="button" class="outline-button parent-push-settings-toggle" id="pushSettingsToggle" aria-expanded="false" aria-controls="pushSettings" hidden>Notification settings</button></div>
   <div id="pushSettings">
+  
   <ol id="pushSetupSteps" class="parent-push-steps" aria-label="Phone notification setup steps">
     <li data-push-step="1">Open Attendigo as an app</li>
     <li data-push-step="2">Allow phone notifications</li>
