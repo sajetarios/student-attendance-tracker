@@ -6,7 +6,8 @@ const date=new Intl.DateTimeFormat('en-PH',{timeZone:'Asia/Manila',year:'numeric
 const time=new Intl.DateTimeFormat('en-PH',{timeZone:'Asia/Manila',hour:'numeric',minute:'2-digit'});
 const clean=v=>String(v??'').trim().replace(/\s+/gu,' ');
 function documentIdentity(branding,defaults){
- return {layout:branding?.locatorSlipLayout==='MATI'?'MATI':'ANNEX_E',
+ return {layout:branding?.centralLocatorTemplateId?'CENTRAL':branding?.locatorSlipLayout==='MATI'?'MATI':'ANNEX_E',
+  ...(branding?.centralLocatorTemplateId?{templateId:branding.centralLocatorTemplateId}:{}),
   region:clean(branding?.region),division:clean(branding?.division),
   schoolHeadName:clean(defaults?.approvedBy),schoolHeadPosition:clean(defaults?.approvedPosition)};
 }

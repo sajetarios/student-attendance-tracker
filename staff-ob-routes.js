@@ -67,13 +67,25 @@ function registerStaffObRoutes(app,pool,{authenticateSchoolClient,requireSchoolR
      AND (o.status IN ('PENDING_ADMIN','APPROVED') OR (o.status='PENDING_HEAD' AND u.role='DEPARTMENT_HEAD'))`,
      [req.auth.schoolId,req.params.id,req.auth.userId,req.auth.role]);
     if(!result.rowCount)return res.status(404).json({error:'Locator Slip is unavailable for this request or approval stage.'});
-    const {getTemplate,buildLocatorSlip}=require('./locator-slip');
-    let template;
-    try{template=await getTemplate(pool);}catch(e){console.error('Locator Slip template:',e.message);return res.status(503).json({code:e.code==='LOCATOR_TEMPLATE_REQUIRED'?'LOCATOR_TEMPLATE_REQUIRED':'LOCATOR_TEMPLATE_UNAVAILABLE',error:e.code==='LOCATOR_TEMPLATE_REQUIRED'?e.message:'The Locator Slip master could not be verified. Contact support.'});}
     const data=result.rows[0];
     const {documentIdentity,matiFields}=require('./mati-locator-slip');
     // Existing approvals without a saved identity keep the original Annex E.
     const identity=data.status==='APPROVED'?(data.approvedIdentity||{layout:'ANNEX_E'}):documentIdentity(data.documentBranding,data);
+    if(identity.layout==='CENTRAL'){
+     try{
+      const {loadCentralTemplate,centralValues}=require('./central-locator-templates');
+      const selected=await loadCentralTemplate(pool,identity.templateId,identity);
+      const preview=req.query?.preview==='1';
+      const output=await require('./locator-slip-preview').renderCentralLocator(selected.pdf_bytes,selected.mapping,!preview,centralValues(data,identity));
+      res.set('Content-Type',preview?'image/png':'application/pdf');
+      if(!preview)res.set('Content-Disposition',(req.query?.download==='1'?'attachment':'inline')+'; filename="Locator-Slip-'+req.params.id+'.pdf"');
+      res.set('X-Content-Type-Options','nosniff');
+      return res.send(output);
+     }catch(e){console.error('Central Locator generation:',e.message);return res.status(e.code==='PREVIEW_BUSY'?429:422).json({error:e.code==='PREVIEW_BUSY'?e.message:'The verified division form could not be filled. Check your school identity and request details.'});}
+    }
+    const {getTemplate,buildLocatorSlip}=require('./locator-slip');
+    let template;
+    try{template=await getTemplate(pool);}catch(e){console.error('Locator Slip template:',e.message);return res.status(503).json({code:e.code==='LOCATOR_TEMPLATE_REQUIRED'?'LOCATOR_TEMPLATE_REQUIRED':'LOCATOR_TEMPLATE_UNAVAILABLE',error:e.code==='LOCATOR_TEMPLATE_REQUIRED'?e.message:'The Locator Slip master could not be verified. Contact support.'});}
     if(identity.layout==='MATI'){
      let fields;try{fields=matiFields(data,identity);}catch(e){return res.status(422).json({error:e.message});}
      try{
