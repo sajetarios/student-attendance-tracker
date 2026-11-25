@@ -76,7 +76,7 @@
   form.append(createInput('Name of authorized official','text','approverName',true,{maxLength:120}));
   form.append(createInput('Official position','text','approverPosition',true,{maxLength:120}));
   form.append(createInput('Date of official decision','date','approvedOn'));
-  const working=createInput('HR-certified working days (for approved leave)','number','certifiedWorkingDays',true,{step:'0.001',min:'0.001'});
+  const working=createInput('Verified working days (for approved leave)','number','certifiedWorkingDays',true,{step:'0.001',min:'0.001'});
   form.append(working);
   const proof=createInput('Signed official decision (PDF, JPG, PNG; 4 MB max)','file','file',false,{accept:'.pdf,.jpg,.jpeg,.png,application/pdf,image/jpeg,image/png'});
   form.append(proof);
@@ -139,7 +139,7 @@
   actions.append(makeButton('CSC Form No. 6','leave-btn',()=>{
    window.open('/leave-form6.html?requestId='+encodeURIComponent(record.requestId),'_blank');
   }));
-  if(ctx.openRequests)actions.append(makeButton(record.own?'My request details':'Open Leave Requests','leave-btn',ctx.openRequests));
+  if(ctx.openRequests&&(ctx.user.role!=='SCHOOL_ADMIN'||record.own))actions.append(makeButton(record.own?'My request details':'Open Leave Requests','leave-btn',ctx.openRequests));
   article.append(actions);
   if(record.own && !['APPROVED','REJECTED','DECLINED_HEAD','CANCELLED'].includes(record.status)){
    article.append(make('p','leave-help','Your request is awaiting the next authorized review. You cannot approve your own leave.'));
@@ -164,19 +164,22 @@
  async function render(ctx){
   if(!ctx?.body||!['DEPARTMENT_HEAD','SCHOOL_ADMIN','PRINCIPAL'].includes(ctx.user?.role))return;
   const parent=ctx.body;
+  const isAdmin=ctx.user.role==='SCHOOL_ADMIN';
+  const requestVersion=(ctx.renderVersion||0)+1;ctx.renderVersion=requestVersion;
+  if(isAdmin&&!ctx.adminRecordsOpened){filter='ALL';query='';offset=0;ctx.adminRecordsOpened=true;}
   parent.replaceChildren();
   const heading=make('div','leave-inbox-heading');
   heading.append(make('h3',null,ctx.user.role==='SCHOOL_ADMIN'?'School leave records':'Leave Approval Inbox'));
   heading.append(makeButton('Refresh','leave-btn',()=>{void render(ctx).catch(e=>notify(ctx.message,e.message,true));}));
   parent.append(heading);
   parent.append(make('p','leave-help',
-   ctx.user.role==='SCHOOL_ADMIN'?'Monitor staff leave. The Principal makes staff leave decisions; Admin may only record a documented SDO decision for the Principal and maintain authorized records.':'Review recommendations, track outstanding official decisions and monitor completed requests. Final decisions require documentary verification by an authorized officer.'));
+   isAdmin?'Staff decisions are handled by the Principal. SDO coordination remains separate.':'Review recommendations, track outstanding official decisions and monitor completed requests. Final decisions require documentary verification by an authorized officer.'));
   const summary=make('div','leave-inbox-filters');
   summary.setAttribute('role','group');
   summary.setAttribute('aria-label','Filter leave approval requests');
   const status=make('div','leave-inbox-count-note','Loading application statuses…');
-  if(ctx.user.role==='SCHOOL_ADMIN'&&filter==='ACTION'&&offset===0&&!query&&!ctx.adminRecordsOpened){filter='ALL';ctx.adminRecordsOpened=true;}
-  const filters=ctx.user.role==='PRINCIPAL'?FILTERS.filter(([value])=>['ACTION','APPROVED','DISAPPROVED','ALL'].includes(value)):FILTERS;
+  if(isAdmin)summary.classList.add('leave-admin-summary');
+  const filters=isAdmin?[['PENDING','Pending','pending'],['APPROVED','Approved','approved'],['CLOSED_DECLINED','Declined','closedDeclined']]:ctx.user.role==='PRINCIPAL'?FILTERS.filter(([value])=>['ACTION','APPROVED','DISAPPROVED','ALL'].includes(value)):FILTERS;
   filters.forEach(([value,label,key])=>{
    const b=make('button',filter===value?'leave-inbox-filter is-current':'leave-inbox-filter');
    b.type='button';b.dataset.filter=value;b.setAttribute('aria-pressed',String(filter===value));
@@ -187,12 +190,26 @@
    });
    b.dataset.count=key;summary.append(b);
   });
+  if(isAdmin){
+   const active=make('div','leave-admin-today');
+   active.append(make('span',null,'On leave today'),make('strong','leave-inbox-filter-count','—'));
+   active.dataset.count='onLeaveToday';summary.append(active);
+  }
   parent.append(summary);
   const search=make('form','leave-inbox-search');
   const input=make('input');input.type='search';input.name='query';input.value=query;
   input.placeholder='Search employee or request ID';input.setAttribute('aria-label','Search leave requests');
   const submit=make('button','leave-btn','Search');submit.type='submit';
-  search.append(input,submit);
+  if(isAdmin){
+   search.classList.add('leave-admin-search');
+   const select=make('select');select.setAttribute('aria-label','Filter school leave records');
+   for(const [value,label] of [['ALL','All records'],['PENDING','Pending'],['APPROVED','Approved'],['CLOSED_DECLINED','Declined / disapproved'],['ACTION','SDO decisions to record'],['CANCELLED','Cancelled']]){
+    const option=make('option',null,label);option.value=value;select.append(option);
+   }
+   select.value=filter;
+   select.addEventListener('change',()=>{filter=select.value;offset=0;void render(ctx).catch(e=>notify(ctx.message,e.message,true));});
+   search.append(input,select,submit);
+  }else search.append(input,submit);
   search.addEventListener('submit',event=>{
    event.preventDefault();query=input.value.trim().slice(0,100);offset=0;
    void render(ctx).catch(e=>notify(ctx.message,e.message,true));
@@ -204,12 +221,12 @@
   try{
    const data=await ctx.call('/inbox?filter='+encodeURIComponent(filter)+
     '&q='+encodeURIComponent(query)+'&limit=25&offset='+offset);
+   if(ctx.renderVersion!==requestVersion||!parent.isConnected)return;
    const counts=data.counts||{};
-   summary.querySelectorAll('[data-filter]').forEach(btn=>{
+   summary.querySelectorAll('[data-count]').forEach(btn=>{
     btn.querySelector('strong').textContent=safeText(counts[btn.dataset.count]||0);
    });
-   status.textContent=safeText(counts.action||0)+' request(s) need your attention · '+
-    safeText(counts.pending||0)+' pending in your authorized scope.';
+   status.textContent=isAdmin?safeText(counts.total||0)+' school leave application(s) · '+safeText(counts.action||0)+' documented SDO decision(s) to record':safeText(counts.action||0)+' request(s) need your attention · '+safeText(counts.pending||0)+' pending in your authorized scope.';
    list.replaceChildren();
    const records=data.requests||[];
    if(!records.length)list.append(make('p','leave-empty',
@@ -224,7 +241,8 @@
     offset=data.nextOffset;void render(ctx).catch(e=>notify(ctx.message,e.message,true));
    }));
   }catch(e){
-   status.textContent='Could not load the approval inbox.';
+   if(ctx.renderVersion!==requestVersion||!parent.isConnected)return;
+   status.textContent='Could not load leave records.';
    list.replaceChildren(make('p','leave-empty',e.message));
    throw e;
   }
