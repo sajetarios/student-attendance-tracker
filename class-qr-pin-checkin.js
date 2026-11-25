@@ -5,10 +5,10 @@ const {validAttendancePin,hashAttendancePin,verifyAttendancePin}=require('./atte
 const UUID=/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const QR_TOKEN=/^[a-f0-9]{64}$/i;
 const MAX_PER_NETWORK_AND_SESSION=120;
-// Rotate every 30s; keep four previous buckets for a bounded 120–150s window.
+// Rotate every 60s; keep two previous buckets for a bounded 120–180s window.
 // Closed/suspended sessions, PIN limits, and enrollment checks remain independent.
-const QR_ROTATION_MS=30000;
-const QR_ACCEPTED_BUCKETS=5;
+const QR_ROTATION_MS=60000;
+const QR_ACCEPTED_BUCKETS=3;
 const genericError='Unable to confirm attendance. Check your Student ID and private PIN.';
 
 function validQrInput(body){

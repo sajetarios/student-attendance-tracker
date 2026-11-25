@@ -168,11 +168,11 @@ function registerClassQrRoutes(app,pool,{authenticateSchoolClient,requireSchoolR
       WHERE session_id=$1 AND school_id=$2 AND closed_at IS NOT NULL
         AND closes_at>NOW() RETURNING session_id,closes_at`,
       [found.session_id,req.auth.schoolId,crypto.randomBytes(32).toString('hex')]);
-    if(reopened.rowCount)return res.json({sessionId:found.session_id,closesAt:reopened.rows[0].closes_at,onTimeGraceMinutes:10,rotationSeconds:30,reopened:true});
+    if(reopened.rowCount)return res.json({sessionId:found.session_id,closesAt:reopened.rows[0].closes_at,onTimeGraceMinutes:10,rotationSeconds:QR_ROTATION_MS/1000,reopened:true});
     const latest=await pool.query('SELECT closed_at FROM class_qr_sessions WHERE session_id=$1 AND school_id=$2',[found.session_id,req.auth.schoolId]);
     if(latest.rows[0]?.closed_at)return res.status(410).json({error:'The session could not be reopened within its scheduled window.'});
    }
-   res.json({sessionId:found.session_id,closesAt:current.rows[0].closes_at,onTimeGraceMinutes:10,rotationSeconds:30});
+   res.json({sessionId:found.session_id,closesAt:current.rows[0].closes_at,onTimeGraceMinutes:10,rotationSeconds:QR_ROTATION_MS/1000});
   }catch(e){console.error('QR session:',e.message);res.status(500).json({error:'Unable to start QR attendance.'});}
  });
  app.get('/api/class-qr/sessions/:id/qr',authenticateSchoolClient,teacher,async(req,res)=>{
@@ -190,7 +190,7 @@ function registerClassQrRoutes(app,pool,{authenticateSchoolClient,requireSchoolR
    url.searchParams.set('sessionId',String(s.session_id));url.searchParams.set('token',token);
    const qrImage=await QRCode.toDataURL(url.toString(),{margin:2,width:320});
    res.set('Cache-Control','no-store, private');
-   res.json({sessionId:s.session_id,token,qrImage,serverTime:new Date(generatedAt).toISOString(),validUntil:new Date((b+1)*QR_ROTATION_MS).toISOString(),acceptUntil:new Date(Math.min((b+QR_ACCEPTED_BUCKETS)*QR_ROTATION_MS,new Date(s.closes_at).getTime())).toISOString(),closesAt:s.closes_at});
+   res.json({sessionId:s.session_id,token,qrImage,rotationSeconds:QR_ROTATION_MS/1000,serverTime:new Date(generatedAt).toISOString(),validUntil:new Date((b+1)*QR_ROTATION_MS).toISOString(),acceptUntil:new Date(Math.min((b+QR_ACCEPTED_BUCKETS)*QR_ROTATION_MS,new Date(s.closes_at).getTime())).toISOString(),closesAt:s.closes_at});
   }catch(e){console.error('QR read:',e.message);res.sendStatus(500);}
  });
  app.get('/api/class-qr/check-in/status',authenticateSchoolClient,async(req,res)=>{

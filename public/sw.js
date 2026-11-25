@@ -1,4 +1,4 @@
-const CACHE = "attendigo-v394-class-qr-refresh";
+const CACHE = "attendigo-v395-class-qr-60s";
 
 // Only public, non-personal offline shells and their executable dependencies.
 // An update must not discard the working cache before these are all ready.
