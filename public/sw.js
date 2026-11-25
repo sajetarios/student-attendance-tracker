@@ -1,4 +1,4 @@
-const CACHE = "attendigo-v408-locator-mobile";
+const CACHE = "attendigo-v409-locator-inline-preview";
 
 // Only public, non-personal offline shells and their executable dependencies.
 // An update must not discard the working cache before these are all ready.
@@ -138,7 +138,7 @@ const SHELL = [
   "/staff-precise-location.js?v=1",
   "/staff-department-location.js?v=8",
   "/staff-ob-ui.js?v=9",
-  "/locator-slip-ui.js?v=2",
+  "/locator-slip-ui.js?v=3",
   "/staff-ob.css?v=1",
   "/staff-lunch.css?v=7",
   "/staff-lunch-checkin.js?v=5",
