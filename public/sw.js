@@ -1,4 +1,4 @@
-const CACHE = "attendigo-v407-locator-master";
+const CACHE = "attendigo-v408-locator-mobile";
 
 // Only public, non-personal offline shells and their executable dependencies.
 // An update must not discard the working cache before these are all ready.
@@ -138,7 +138,7 @@ const SHELL = [
   "/staff-precise-location.js?v=1",
   "/staff-department-location.js?v=8",
   "/staff-ob-ui.js?v=9",
-  "/locator-slip-ui.js?v=1",
+  "/locator-slip-ui.js?v=2",
   "/staff-ob.css?v=1",
   "/staff-lunch.css?v=7",
   "/staff-lunch-checkin.js?v=5",
@@ -371,7 +371,7 @@ self.addEventListener("fetch", event => {
   // Keep scheduling and shared notification UI fresh without breaking offline operation.
   // Notifications change often; always prefer online JS/CSS to avoid old large-text layouts.
   // Unlike cache-first general assets, these role-critical resources prefer the deployed version.
-  if (['/universal-notifications.js','/universal-notifications.css','/portal.js','/attendigo-help.css','/missing-scan-ui.js','/missing-scan-ui.css','/parent-push.js','/parent-push.css','/parent-subject.js','/parent-subject.css','/parent-portal.js','/parent-dashboard.js','/parent-admin.js','/parent-admin.css','/school-memo-banner.js','/school-memo-banner.css','/school-memos-redirect.js','/school-memos.js','/school-memos.css','/principal-dashboard.js','/principal-trusted-campus.js','/principal-dashboard.css','/leave-approval-inbox.js','/leave-approval-inbox.css','/staff-leave-ui.js','/staff-leave-ui.css','/leave-status-indicator.css','/special-program-batch-ui.js','/learner-roster-view.js','/learner-roster-view.css','/student-name-format.js','/teacher-learner-roster.css','/portal.css','/guardian-ui.js','/manual-folio.js','/manual-folio.css','/schedule-form-layout.css','/schedule-workspace-ui.js','/teacher-assignment-modal.css','/smart-attendance-overview.css','/role-controls-responsive.css','/typography.css','/attendigo-layout-density.css','/app-dialog.css','/app-dialog.js','/form48-intelligence.js','/staff-ob-ui.js','/form48-bulk-ui.js','/admin-request-notifications.js','/gate-offline-review.js','/gate-offline.js','/planner.js','/platform-plans-ui.js','/class-qr-teacher.js','/shs-school-ui.js','/flicker-diagnostics.js','/mobile-overflow-repair.css','/user-management-readability.css','/form48-report.css','/class-qr-monitor.js','/class-qr-monitor-embedded.css','/class-qr-dashboard-link.js','/attendigo-form-overlap-guard.css','/campus-location-ui.css','/staff-department-location.js','/staff-lunch-ui.js'].includes(url.pathname)) {
+  if (['/universal-notifications.js','/universal-notifications.css','/portal.js','/attendigo-help.css','/missing-scan-ui.js','/missing-scan-ui.css','/parent-push.js','/parent-push.css','/parent-subject.js','/parent-subject.css','/parent-portal.js','/parent-dashboard.js','/parent-admin.js','/parent-admin.css','/school-memo-banner.js','/school-memo-banner.css','/school-memos-redirect.js','/school-memos.js','/school-memos.css','/principal-dashboard.js','/principal-trusted-campus.js','/principal-dashboard.css','/leave-approval-inbox.js','/leave-approval-inbox.css','/staff-leave-ui.js','/staff-leave-ui.css','/leave-status-indicator.css','/special-program-batch-ui.js','/learner-roster-view.js','/learner-roster-view.css','/student-name-format.js','/teacher-learner-roster.css','/portal.css','/guardian-ui.js','/manual-folio.js','/manual-folio.css','/schedule-form-layout.css','/schedule-workspace-ui.js','/teacher-assignment-modal.css','/smart-attendance-overview.css','/role-controls-responsive.css','/typography.css','/attendigo-layout-density.css','/app-dialog.css','/app-dialog.js','/form48-intelligence.js','/staff-ob-ui.js','/locator-slip-ui.js','/form48-bulk-ui.js','/admin-request-notifications.js','/gate-offline-review.js','/gate-offline.js','/planner.js','/platform-plans-ui.js','/class-qr-teacher.js','/shs-school-ui.js','/flicker-diagnostics.js','/mobile-overflow-repair.css','/user-management-readability.css','/form48-report.css','/class-qr-monitor.js','/class-qr-monitor-embedded.css','/class-qr-dashboard-link.js','/attendigo-form-overlap-guard.css','/campus-location-ui.css','/staff-department-location.js','/staff-lunch-ui.js'].includes(url.pathname)) {
     event.respondWith((async () => {
       try {
         const fresh = await fetch(request, { cache: 'no-store' });

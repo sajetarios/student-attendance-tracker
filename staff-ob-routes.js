@@ -64,9 +64,9 @@ function registerStaffObRoutes(app,pool,{authenticateSchoolClient,requireSchoolR
     let template;
     try{template=await getTemplate(pool);}catch(e){console.error('Locator Slip template:',e.message);return res.status(503).json({code:e.code==='LOCATOR_TEMPLATE_REQUIRED'?'LOCATOR_TEMPLATE_REQUIRED':'LOCATOR_TEMPLATE_UNAVAILABLE',error:e.code==='LOCATOR_TEMPLATE_REQUIRED'?e.message:'The Locator Slip master could not be verified. Contact support.'});}
     let pdf;
-    try{pdf=buildLocatorSlip(template,result.rows[0]);}catch(e){return res.status(422).json({error:e.message});}
+    try{pdf=buildLocatorSlip(template,result.rows[0]);}catch(e){console.error('Locator Slip generation:',e.message);return res.status(422).json({error:e.message});}
     res.set('Content-Type','application/pdf');
-    res.set('Content-Disposition','inline; filename="Locator-Slip-'+req.params.id+'.pdf"');
+    res.set('Content-Disposition',(req.query?.download==='1'?'attachment':'inline')+'; filename="Locator-Slip-'+req.params.id+'.pdf"');
     res.set('X-Content-Type-Options','nosniff');
     return res.send(pdf);
    }catch(e){return respondError(res,e);}

@@ -12,9 +12,9 @@
   const status=make('p','source-note');status.setAttribute('role','status');status.setAttribute('aria-live','polite');status.style.overflowWrap='anywhere';
   const panel=make('div','locator-slip-feedback');panel.hidden=true;panel.style.cssText='flex-basis:100%;min-width:0;max-width:100%';
   panel.append(status);
-  let currentUrl=null,working=false;
+  let working=false;
   function feedback(message){panel.hidden=false;status.textContent=message;}
-  function clearExtra(){while(panel.children.length>1)panel.lastElementChild.remove();if(currentUrl){URL.revokeObjectURL(currentUrl);currentUrl=null;}}
+  function clearExtra(){while(panel.children.length>1)panel.lastElementChild.remove();}
   async function generate(){
    if(working)return;
    working=true;button.disabled=true;clearExtra();feedback('Preparing your official Locator Slip…');
@@ -22,10 +22,13 @@
     const response=await fetch(api+'/'+encodeURIComponent(id)+'/locator-slip',{credentials:'same-origin',cache:'no-store',headers:{Accept:'application/pdf'}});
     if(!response.ok)throw await responseError(response);
     if(!String(response.headers.get('content-type')).toLowerCase().startsWith('application/pdf'))throw Error('The server did not return a PDF. Please sign in again and retry.');
-    const file=await response.blob();currentUrl=URL.createObjectURL(file);
-    const link=make('a',options.buttonClass||'outline-button','Open or save PDF');link.href=currentUrl;link.target='_blank';link.rel='noopener noreferrer';link.download='Locator-Slip-'+id+'.pdf';
-    feedback('Your PDF is ready. Open or save it, then print and obtain the required signatures.');
-    panel.append(link);
+    const bytes=new Uint8Array(await response.arrayBuffer());
+    if(bytes.length<1000||String.fromCharCode(...bytes.slice(0,5))!=='%PDF-')throw Error('The server did not return a complete PDF. Please retry.');
+    const url=api+'/'+encodeURIComponent(id)+'/locator-slip';
+    const link=make('a',options.buttonClass||'outline-button','Open PDF');link.href=url;link.target='_blank';link.rel='noopener';
+    const save=make('a',options.buttonClass||'outline-button','Download PDF');save.href=url+'?download=1';
+    feedback('Your PDF is ready. Open it in the browser or download it to Files, then print and obtain the required signatures.');
+    panel.append(link,save);
    }catch(error){
     feedback(error.message);
     if(error.code==='LOCATOR_TEMPLATE_REQUIRED'){
