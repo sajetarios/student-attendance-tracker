@@ -268,6 +268,25 @@ async function main(){
      WHERE school_id=$1 AND period_id=ANY($2::uuid[]) ORDER BY start_time`,[a,periodIds]);
    assert.deepEqual(regular.rows,[{start:'07:00',finish:'07:55'},{start:'07:55',finish:'08:50'},{start:'09:05',finish:'10:00'}]);
   });
+  await test('attachment-free general notices preserve attendance and reject unrelated dismissal time',async()=>{
+   const headers={'x-memo-title':'Fictional attachment-free general notice','x-memo-category':'GENERAL','x-memo-audience':'ALL_USERS'};
+   assert.equal((await call(p,'POST','/api/school-memos',{...headers,'x-memo-dismissal-time':'15:00'})).code,400);
+   const published=await call(p,'POST','/api/school-memos',headers);
+   assert.equal(published.code,201,JSON.stringify(published.body));
+   const row=(await pool.query('SELECT filename,content_type,content,sha256,dtr_hours,class_period_minutes FROM school_memoranda WHERE school_id=$1 AND memo_id=$2',[a,published.body.memoId])).rows[0];
+   assert.ok(Object.values(row).every(v=>v===null));
+   assert.equal((await call(teacher,'GET','/api/school-memos/'+published.body.memoId+'/file')).code,404);
+  });
+  await test('early dismissal uses existing learner-only calendar cutoff with conflict protection',async()=>{
+   const date=new Date(Date.now()+10*86400000).toISOString().slice(0,10);
+   const headers={'x-memo-title':'Fictional early dismissal','x-memo-summary':'Authorized fictional activity','x-memo-category':'CLASS_SUSPENSION','x-memo-audience':'ALL_USERS','x-memo-effective-date':date,'x-memo-end-date':date,'x-memo-dismissal-time':'15:00'};
+   assert.equal((await call(teacher,'POST','/api/school-memos',headers)).code,403);
+   const published=await call(p,'POST','/api/school-memos',headers);
+   assert.equal(published.code,201,JSON.stringify(published.body));
+   const row=(await pool.query(`SELECT e.exception_type,to_char(e.suspension_time,'HH24:MI') AS cutoff,m.dtr_hours FROM school_calendar_exceptions e JOIN school_memoranda m ON m.school_id=e.school_id AND m.memo_id=e.memo_id WHERE e.school_id=$1 AND e.memo_id=$2`,[a,published.body.memoId])).rows[0];
+   assert.deepEqual(row,{exception_type:'CLASS_SUSPENSION',cutoff:'15:00',dtr_hours:null});
+   assert.equal((await call(p,'POST','/api/school-memos',headers)).code,409);
+  });
   console.log('MEMORANDA E2E PASS: '+assertions+' grouped assertions; fictional accounts; real HTTP, sessions, SQL, files and notifications; isolated DB.');
  }finally{
   if(srv)await new Promise(resolve=>srv.close(resolve));

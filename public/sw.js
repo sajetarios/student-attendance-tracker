@@ -1,4 +1,4 @@
-const CACHE = "attendigo-v396-teaching-periods";
+const CACHE = "attendigo-v397-contextual-memos";
 
 // Only public, non-personal offline shells and their executable dependencies.
 // An update must not discard the working cache before these are all ready.
@@ -182,7 +182,7 @@ const SHELL = [
   "/password-visibility.js",
   "/portal-login.js?v=17",
   "/login-routing.js",
-  "/principal-dashboard.js?v=17",
+  "/principal-dashboard.js?v=18",
   "/principal-trusted-campus.js?v=4",
   "/campus-location-ui.css?v=1",
   "/principal-dashboard.css?v=15",

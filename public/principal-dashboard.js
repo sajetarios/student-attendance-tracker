@@ -903,31 +903,31 @@
  }
  function syncPrincipalMemoOptions(){
   const form=$('principalMemoForm');if(!form)return;
-  const category=form.elements.namedItem('category').value,
-   audience=form.elements.namedItem('audience').value,
-   from=form.elements.namedItem('effectiveDate'),
-   to=form.elements.namedItem('endDate'),
-   apply=$('principalMemoApplyDtr'),
-   required=['SCHEDULE_NOTICE','CLASS_SUSPENSION'].includes(category);
-  const short=$('principalShortenedClass');
-  $('principalShortenedToggle').hidden=category!=='SCHEDULE_NOTICE';
-  if(category!=='SCHEDULE_NOTICE')short.checked=false;
-  const teaching=short.checked;
+  const kind=form.elements.namedItem('category').value;
+  const teaching=kind==='SHORTENED_PERIODS',dismissal=kind==='EARLY_DISMISSAL',dtr=kind==='TEMPORARY_DTR';
+  const dated=['SCHEDULE_NOTICE','CLASS_SUSPENSION','SHORTENED_PERIODS','EARLY_DISMISSAL','TEMPORARY_DTR'].includes(kind);
+  const from=form.elements.namedItem('effectiveDate'),to=form.elements.namedItem('endDate');
+  const apply=$('principalMemoApplyDtr'),short=$('principalShortenedClass');
+  short.checked=teaching;apply.checked=dtr;
+  $('principalMemoDateFields').hidden=!dated;
   $('principalShortenedFields').hidden=!teaching;
-  for(const name of ['originalMinutes','adjustedMinutes'])form.elements.namedItem(name).required=teaching;
-  form.elements.namedItem('document').required=!teaching;
-  const audienceControl=form.elements.namedItem('audience');
-  if(category==='CLASS_SUSPENSION'||teaching)audienceControl.value='ALL_USERS';
-  audienceControl.querySelector('option[value="SCHOOL_STAFF"]').disabled=category==='CLASS_SUSPENSION'||teaching;
-  from.required=required;to.required=required;
+  $('principalDismissalFields').hidden=!dismissal;
+  $('principalMemoDtrFields').hidden=!dtr;
+  function syncField(input,enabled,reset=''){
+   input.disabled=!enabled;input.required=enabled;
+   if(!enabled)input.value=reset;
+  }
+  syncField(from,dated);syncField(to,dated);
   to.min=from.value||'';
-  apply.disabled=category!=='SCHEDULE_NOTICE'||teaching;
-  if(apply.disabled)apply.checked=false;
-  const enabled=apply.checked&&!apply.disabled;
-  $('principalMemoDtrFields').hidden=!enabled;
-  $('principalMemoDtrFields').querySelectorAll('input[type="time"]').forEach(input=>{
-   input.required=enabled;
-  });
+  for(const [name,initial] of [['originalMinutes','55'],['adjustedMinutes','45']])
+   syncField(form.elements.namedItem(name),teaching,initial);
+  syncField(form.elements.namedItem('dismissalTime'),dismissal);
+  $('principalMemoDtrFields').querySelectorAll('input[type="time"]').forEach(input=>syncField(input,dtr));
+  form.elements.namedItem('document').required=false;
+  const audienceControl=form.elements.namedItem('audience');
+  const allUsers=kind==='CLASS_SUSPENSION'||teaching||dismissal;
+  if(allUsers)audienceControl.value='ALL_USERS';
+  audienceControl.querySelector('option[value="SCHOOL_STAFF"]').disabled=allUsers;
  }
  async function publishPrincipalMemo(){
   if(currentRole!=='PRINCIPAL')return;
@@ -935,22 +935,25 @@
     button=$('principalMemoPublish');
   if(!form.reportValidity())return;
   const data=new FormData(form),file=data.get('document'),
-    category=String(data.get('category')),audience=String(data.get('audience')),
+    kind=String(data.get('category')),category=['SHORTENED_PERIODS','TEMPORARY_DTR'].includes(kind)?'SCHEDULE_NOTICE':kind==='EARLY_DISMISSAL'?'CLASS_SUSPENSION':kind,audience=String(data.get('audience')),
     effectiveDate=String(data.get('effectiveDate')||''),
     endDate=String(data.get('endDate')||''),
-    teaching=data.get('shortenedClass')==='on',original=Number(data.get('originalMinutes')),adjusted=Number(data.get('adjustedMinutes')),
-    applyDtr=data.get('applyDtr')==='on',
+    teaching=kind==='SHORTENED_PERIODS',dismissal=kind==='EARLY_DISMISSAL',dismissalTime=String(data.get('dismissalTime')||''),original=Number(data.get('originalMinutes')),adjusted=Number(data.get('adjustedMinutes')),
+    applyDtr=kind==='TEMPORARY_DTR',
     dtrHours={
      AM_IN:String(data.get('dtrAmIn')||''),AM_OUT:String(data.get('dtrAmOut')||''),
      PM_IN:String(data.get('dtrPmIn')||''),PM_OUT:String(data.get('dtrPmOut')||'')
     };
   const hasFile=file instanceof File&&file.size>0;
-  if((!hasFile&&!teaching)||(hasFile&&(file.size>4194304||!['application/pdf','image/jpeg','image/png'].includes(file.type)))){
+  if(hasFile&&(file.size>4194304||!['application/pdf','image/jpeg','image/png'].includes(file.type))){
     feedback.textContent='Attach a PDF, JPG or PNG document up to 4 MB.';return;
   }
   if((endDate&&(!effectiveDate||endDate<effectiveDate))||
      (['CLASS_SUSPENSION','SCHEDULE_NOTICE'].includes(category)&&(!effectiveDate||!endDate))){
    feedback.textContent='Choose a valid start and inclusive end date for the temporary memorandum.';return;
+  }
+  if(dismissal&&(!/^([01]\d|2[0-3]):[0-5]\d$/.test(dismissalTime)||!String(data.get('summary')||'').trim())){
+   feedback.textContent='Enter a valid class dismissal time and reason.';return;
   }
   if(applyDtr){
    const validTime=s=>/^([01]\d|2[0-3]):[0-5]\d$/.test(s);
@@ -973,7 +976,7 @@
   let publishMessage='Publish this memorandum to '+notice+
     (effectiveDate?' from '+effectiveDate+(endDate?' through '+endDate:''):'')+
     '? In-app notifications will be created. '+
-    (teaching?'Teaching periods only; personnel DTR hours are unchanged.':applyDtr?'The entered prescribed DTR hours will apply during this period; actual punches, leave, OB, and class suspension remain unchanged.':
+    (dismissal?'Classes are suspended from '+dismissalTime+'; personnel DTR remains unchanged.':teaching?'Teaching periods only; personnel DTR hours are unchanged.':applyDtr?'The entered prescribed DTR hours will apply during this period; actual punches, leave, OB, and class suspension remain unchanged.':
      'Announcement only: no DTR or timetable rules will change.');
   button.disabled=true;
   try{
@@ -982,6 +985,7 @@
       'x-memo-category':category,'x-memo-audience':audience,'x-memo-effective-date':effectiveDate,
       'x-memo-end-date':endDate,'x-memo-apply-dtr':String(applyDtr),
       ...(applyDtr?{'x-memo-dtr-hours':encodeURIComponent(JSON.stringify(dtrHours))}:{}),
+      ...(dismissal?{'x-memo-dismissal-time':dismissalTime}:{}),
       ...(teaching?{'x-memo-shortened-class':'true','x-memo-original-minutes':String(original),'x-memo-adjusted-minutes':String(adjusted)}:{})};
    if(teaching){
     feedback.textContent='Validating shortened timetable…';

@@ -123,18 +123,42 @@ async function checkMemoGeometry(engine,engineName){
     try{
      const source=read('principal.html'),start=source.indexOf('<section id="principalMemoPublishPanel"'),end=source.indexOf('</section>',start);
      assert.ok(start>=0&&end>start,'actual publisher fixture found');
-     const publisher=source.slice(start,end+10).replace('class="surface principal-memo-publish" hidden','class="surface principal-memo-publish attendigo-memo-embedded-publisher"').replace('id="principalMemoDtrFields" hidden','id="principalMemoDtrFields"').replace('id="principalShortenedFields" class="principal-memo-fields" hidden','id="principalShortenedFields" class="principal-memo-fields"');
+     const publisher=source.slice(start,end+10).replace('class="surface principal-memo-publish" hidden','class="surface principal-memo-publish attendigo-memo-embedded-publisher"');
      await page.setContent('<!doctype html><html data-theme="'+theme+'"><head><meta name="viewport" content="width=device-width,initial-scale=1"></head><body><div class="shell"><main style="width:100%;min-width:0"><section id="attendigoSchoolMemoPanel" class="attendigo-memo-workspace attendigo-memo-management"><div class="attendigo-memo-toolbar"><div class="attendigo-memo-counters"><span class="attendigo-memo-counter">Published</span></div><div class="attendigo-memo-manager-actions"><button class="attendigo-memo-create">Hide publication form</button><button class="attendigo-memo-refresh">Refresh</button></div></div><div class="attendigo-memo-composer">'+publisher+'</div></section></main></div></body></html>');
      // WebKit can reject addStyleTag when a stylesheet's remote font import fails.
      // Load the same local CSS in order without waiting on third-party font requests.
      await page.evaluate(sheets=>{for(const css of sheets){const node=document.createElement('style');node.textContent=css;document.head.append(node);}},styles('principal.html').map(css=>css.replace(/@import\s+[^;]+;/g,'')));
      assert.equal(await page.locator('#principalMemoForm').evaluate(e=>getComputedStyle(e).display),'grid');
-     for(const name of ['effectiveDate','endDate'])await page.locator('input[name='+name+']').fill('2026-11-24');
-     for(const name of ['dtrAmIn','dtrAmOut','dtrPmIn','dtrPmOut'])await page.locator('input[name='+name+']').fill('08:00');
+     // Run the production field synchronizer against the actual form, rather than
+     // forcing all mutually exclusive controls to appear simultaneously.
+     const dashboard=read('principal-dashboard.js');
+     const sync=dashboard.slice(dashboard.indexOf(' function syncPrincipalMemoOptions(){'),dashboard.indexOf(' async function publishPrincipalMemo(){'));
+     await page.evaluate(code=>{
+      const form=document.getElementById('principalMemoForm');
+      const apply=new Function('$',code+';return syncPrincipalMemoOptions;')(id=>document.getElementById(id));
+      form.elements.namedItem('category').addEventListener('change',apply);apply();
+     },sync);
+     const timeFields=['dismissalTime','dtrAmIn','dtrAmOut','dtrPmIn','dtrPmOut'];
+     for(const [kind,expected] of Object.entries({
+      GENERAL:[],SCHOOL_ADVISORY:[],SCHEDULE_NOTICE:['effectiveDate','endDate'],
+      CLASS_SUSPENSION:['effectiveDate','endDate'],
+      SHORTENED_PERIODS:['effectiveDate','endDate','originalMinutes','adjustedMinutes'],
+      EARLY_DISMISSAL:['effectiveDate','endDate','dismissalTime'],
+      TEMPORARY_DTR:['effectiveDate','endDate',...timeFields.slice(1)]
+     })){
+      await page.locator('select[name=category]').selectOption(kind);
+      for(const name of ['effectiveDate','endDate','originalMinutes','adjustedMinutes',...timeFields]){
+       const field=page.locator('input[name='+name+']');
+       assert.equal(await field.isVisible(),expected.includes(name),kind+' '+name+' visibility');
+       assert.equal(await field.isEnabled(),expected.includes(name),kind+' '+name+' enabled');
+       if(expected.includes(name)&&['effectiveDate','endDate'].includes(name))await field.fill('2026-11-24');
+       if(expected.includes(name)&&timeFields.includes(name))await field.fill('08:00');
+      }
+      assert.equal(await page.locator('input[name=document]').evaluate(e=>e.required),false);
      const geometry=await page.evaluate(()=>{
       const rect=e=>{const r=e.getBoundingClientRect();return {x:r.x,y:r.y,width:r.width,height:r.height};};
       const form=document.getElementById('principalMemoForm');
-      const fields=[...form.querySelectorAll('input:not([type=checkbox]),select,textarea')].map(e=>({name:e.name,control:rect(e),label:rect(e.closest('label'))}));
+      const fields=[...form.querySelectorAll('input:not([type=checkbox]),select,textarea')].filter(e=>e.getClientRects().length>0).map(e=>({name:e.name,control:rect(e),label:rect(e.closest('label'))}));
       return {fields,form:rect(form),panel:rect(document.getElementById('attendigoSchoolMemoPanel')),touch:matchMedia('(pointer:coarse)').matches};
      });
      for(const f of geometry.fields){
@@ -148,7 +172,10 @@ async function checkMemoGeometry(engine,engineName){
       assert.ok(!overlap(a.control,b.control),a.name+' overlaps '+b.name+' at '+width);
      }
      const dates=geometry.fields.filter(f=>['effectiveDate','endDate'].includes(f.name));
-     if(geometry.touch||width<=800)assert.ok(dates[1].control.y>=dates[0].control.y+dates[0].control.height+8,'native dates must stack');
+     if(dates.length===2&&(geometry.touch||width<=800))assert.ok(dates[1].control.y>=dates[0].control.y+dates[0].control.height+8,'native dates must stack');
+     }
+     await page.locator('select[name=category]').selectOption('GENERAL');
+     for(const name of ['effectiveDate','endDate',...timeFields])assert.equal(await page.locator('input[name='+name+']').inputValue(),'');
      await contained(page,'#principalMemoPublish','#principalMemoForm');
      // Measure all three rectangles in the same browser/layout snapshot.
      // Native input focus can scroll or zoom the mobile WebKit viewport between
