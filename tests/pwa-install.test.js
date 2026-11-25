@@ -123,7 +123,7 @@ test('every portal uses a branded in-place guide with no return link that naviga
  const source=fs.readFileSync('public/'+p,'utf8');
  const modal=source.match(/<dialog id="attendigoInstallDialog"[\s\S]*?<\/dialog>/)[0];
  assert.match(modal,/attendigo-official-lockup/);
- assert.match(modal,/Return to my current task/);assert.doesNotMatch(modal,/href="\/"\s*>/);
+ assert.match(modal,/data-install-close>Close<\/button>/);assert.doesNotMatch(modal,/href="\/"\s*>/);
  assert.equal((modal.match(/data-walk-step/g)||[]).length,(guide.match(/data-walk-step/g)||[]).length);
  assert.match(source,/target="_blank" rel="noopener" aria-haspopup="dialog"/);
  }
