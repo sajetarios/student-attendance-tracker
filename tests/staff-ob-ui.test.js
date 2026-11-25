@@ -20,8 +20,8 @@ test('staff OB portal view initializes only for authorized roles and uses same-o
  assert.match(ui,/staff-ob-coverage/);
  assert.match(ui,/form\.reportValidity\(\)/);
  assert.match(ui,/const toManilaIso=s=>/);
- assert.match(portal,/staff-ob-ui\.js\?v=6/);
- assert.match(sw,/staff-ob-ui\.js\?v=6/);
+ assert.match(portal,/staff-ob-ui\.js\?v=7/);
+ assert.match(sw,/staff-ob-ui\.js\?v=7/);
 });
 test('substitute picker uses department-filtered names instead of manual user IDs',()=>{
  assert.ok(ui.includes("basePath+'/substitutes'"));
@@ -43,4 +43,15 @@ test('OB write routes require role checks and audit all approval and substitute 
  assert.match(routes,/pg_advisory_xact_lock/);
  assert.match(routes,/o.department_id=\$4/);
  assert.match(routes,/status='PENDING_ADMIN'/);
+});
+
+test('Principal approvals use server authority and explicit physical-signature confirmation',()=>{
+ const principal=fs.readFileSync('public/principal-dashboard.js','utf8');
+ const html=fs.readFileSync('public/principal.html','utf8');
+ assert.match(principal,/\/api\/principal\/ob-approvals/);
+ assert.match(principal,/signedAuthorization:approving/);
+ assert.match(html,/id="principalObApprovalList"/);
+ assert.match(html,/id="principalObHistory"/);
+ assert.doesNotMatch(ui,/action\('Approve',\(\)=>decide\('decide'/);
+ assert.match(routes,/requireSchoolRoles\('PRINCIPAL'\)/);
 });
