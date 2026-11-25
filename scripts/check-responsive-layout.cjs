@@ -260,7 +260,58 @@ async function checkMemoRepository(engine,engineName){
   console.log(engineName+' connected memo repository: 16 role/theme/viewport scenarios passed');
  }finally{await browser.close();}
 }
+
+async function checkSchoolIdentity(engine,engineName){
+ const browser=await engine.launch({headless:true});
+ try{
+  const source=read('portal.html'),start=source.indexOf('<section id="schoolBrandingView"'),end=source.indexOf('<section id="teacherLunchQrView"',start);
+  assert.ok(start>=0&&end>start,'complete School Identity markup');
+  const markup=source.slice(start,end).replace('class="view-panel school-identity-workspace" hidden','class="view-panel school-identity-workspace"');
+  for(const theme of ['light','dark'])for(const width of [320,360,375,390,430,768,1024,1280]){
+   const page=await browser.newPage({viewport:{width,height:900},hasTouch:width<800,isMobile:width<800});
+   try{
+    await page.route('https://identity-fixture.invalid/',route=>route.fulfill({contentType:'text/html',body:'<!doctype html><html data-theme="'+theme+'" data-ui-theme="'+theme+'" data-simple-workspace-role="SCHOOL_ADMIN"><head><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"></head><body class="portal-page"><main class="content-wrap" style="width:100%;max-width:100%;min-width:0;margin:0;padding:12px">'+markup+'</main></body></html>'}));
+    await page.goto('https://identity-fixture.invalid/');
+    await page.evaluate(sheets=>{for(const css of sheets){const node=document.createElement('style');node.textContent=css;document.head.append(node);}},styles('portal.html').map(css=>css.replace(/@import\s+[^;]+;/g,'')));
+    await page.evaluate(()=>{
+     document.getElementById('documentBrandingFields').disabled=false;
+     document.getElementById('schoolHeadSaveSignatory').disabled=false;
+     document.getElementById('schoolBrandingName').value='Fictional National Comprehensive High School With a Long Name';
+     document.getElementById('documentPreviewSchool').textContent='Fictional National Comprehensive High School With a Long Name';
+     document.getElementById('documentPreviewAddress').textContent='Fictional long street and barangay address for mobile wrapping';
+     document.getElementById('documentPreviewDivision').textContent='Division Office of a Fictional City With a Long Name';
+     const request=document.getElementById('locatorLibraryRequest');request.hidden=false;request.open=true;
+     window.attendigoStaffIdentity=Promise.resolve({role:'SCHOOL_ADMIN'});
+     const templates=[{templateId:'one',division:'Division Office of a Fictional City With a Long Name',publishedAt:'2026-11-25T00:00:00Z'},{templateId:'two',division:'Another verified template with a long name',publishedAt:'2026-11-24T00:00:00Z'}];
+     window.fetch=async()=>new Response(JSON.stringify({templates,selected:'one'}),{headers:{'Content-Type':'application/json'}});
+    });
+    await page.addScriptTag({content:read('central-locator-ui.js')});
+    await page.getByRole('button',{name:'Change template',exact:true}).waitFor();
+    await page.getByRole('button',{name:'Change template',exact:true}).click();
+    await page.locator('#locator-school-template-select').selectOption('two');
+    const check=async stage=>{
+     const geometry=await page.evaluate(()=>{
+      const root=document.getElementById('schoolBrandingView'),rect=e=>{const r=e.getBoundingClientRect();return {x:r.x,y:r.y,width:r.width,height:r.height};};
+      const controls=[...root.querySelectorAll('input,select,button,a.outline-button')].filter(e=>e.getClientRects().length&&getComputedStyle(e).visibility!=='hidden').map(e=>({name:e.id||e.name||e.textContent.trim(),r:rect(e),parent:rect(e.closest('.surface-card')||root),check:e.type==='checkbox'}));
+      return {controls,root:rect(root),viewport:innerWidth,scrollWidth:document.documentElement.scrollWidth};
+     });
+     const detail=engineName+' '+theme+' '+width+' '+stage;
+     assert.ok(geometry.scrollWidth<=geometry.viewport+1,detail+' page overflow '+JSON.stringify(geometry));
+     for(const a of geometry.controls){assert.ok(a.r.width>0&&a.r.height>=(a.check?19:43),detail+' touch target '+a.name);assert.ok(a.r.x>=a.parent.x-1&&a.r.x+a.r.width<=a.parent.x+a.parent.width+1,detail+' outside card '+a.name);}
+     for(let i=0;i<geometry.controls.length;i++)for(let j=i+1;j<geometry.controls.length;j++)assert.ok(!overlap(geometry.controls[i].r,geometry.controls[j].r),detail+' overlap '+geometry.controls[i].name+' / '+geometry.controls[j].name);
+    };
+    await check('change and request expanded');
+    await page.getByRole('button',{name:'Restore default layout',exact:true}).click();
+    await check('restore confirmation expanded');
+   }finally{await page.close();}
+  }
+  console.log(engineName+' School Identity: 32 light/dark mobile and desktop geometry scenarios passed');
+ }finally{await browser.close();}
+}
+
 (async()=>{
+ await checkSchoolIdentity(chromium,'Chromium');
+ await checkSchoolIdentity(webkit,'WebKit');
  await checkPrincipalHeaderGeometry(chromium,'Chromium');
  await checkPrincipalHeaderGeometry(webkit,'WebKit');
  await checkMemoLauncher(chromium,'Chromium');

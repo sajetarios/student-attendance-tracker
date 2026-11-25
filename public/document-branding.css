@@ -124,3 +124,25 @@
 @media(max-width:1100px){#schoolBrandingView:not([hidden]){grid-template-columns:minmax(0,1fr)}}
 @media(max-width:700px){#schoolBrandingView> :is(.surface-card,.section-card){padding:12px}#schoolBrandingView .school-document-grid,#schoolBrandingView .doc-brand-grid{grid-template-columns:minmax(0,1fr)}#schoolBrandingView .school-identity-logo-row{grid-template-columns:64px minmax(0,1fr);gap:10px;padding:10px}#schoolBrandingView #schoolLogoPreview{width:64px;height:64px}#schoolBrandingView .school-identity-actions>button,#schoolBrandingView .school-identity-save>button{flex:1 1 140px}}
 @media(max-width:380px){#schoolBrandingView .school-identity-logo-row{grid-template-columns:minmax(0,1fr)}}
+
+/* Narrow PWA and browser viewports: do not rely on clipping to hide overflow. */
+#schoolBrandingView{min-width:0;max-width:100%}
+#schoolBrandingView :is(form,fieldset,.school-identity-logo-tools,.school-document-grid,.school-document-settings,.school-document-preview,.doc-brand-grid,.locator-school-change,.locator-school-current,.locator-school-preview){min-width:0;max-width:100%}
+#schoolBrandingView .school-identity-logo-tools input[type=file],#schoolBrandingView .school-document-logo input[type=file],#schoolBrandingView #locatorLibraryFile{display:block;min-width:0;width:100%;max-width:100%;box-sizing:border-box}
+#schoolBrandingView input[type=file]::file-selector-button{max-width:100%;font:inherit;white-space:normal}
+#schoolBrandingView :is(.school-identity-actions,.school-identity-save,.form48-schedule-actions,.locator-school-actions,.doc-brand-actions)>:is(button,a){min-width:0;max-width:100%;white-space:normal;overflow-wrap:anywhere}
+#schoolBrandingView .locator-library-confirm{display:grid;grid-template-columns:22px minmax(0,1fr);align-items:start;gap:9px}
+#schoolBrandingView .locator-library-confirm input{width:20px;height:20px;min-width:20px;min-height:20px;margin:3px 0 0}
+#schoolBrandingView #locatorLibraryRequest summary{overflow-wrap:anywhere}
+#schoolBrandingView .locator-school-state{max-width:100%;overflow-wrap:anywhere}
+@container(max-width:600px){
+ #schoolBrandingView .doc-brand-grid{grid-template-columns:minmax(0,1fr)}
+ #schoolBrandingView .school-identity-logo-row{grid-template-columns:minmax(0,1fr)}
+ #schoolBrandingView :is(.school-identity-actions,.school-identity-save,.form48-schedule-actions,.locator-school-actions,.doc-brand-actions){display:grid;grid-template-columns:minmax(0,1fr)}
+ #schoolBrandingView :is(.school-identity-actions,.school-identity-save,.form48-schedule-actions,.locator-school-actions,.doc-brand-actions)>:is(button,a){width:100%;justify-content:center;text-align:center}
+}
+@media(max-width:700px){
+ #schoolBrandingView .school-identity-logo-row{grid-template-columns:minmax(0,1fr)}
+ #schoolBrandingView :is(.school-identity-actions,.school-identity-save,.form48-schedule-actions,.locator-school-actions,.doc-brand-actions){display:grid;grid-template-columns:minmax(0,1fr)}
+ #schoolBrandingView :is(.school-identity-actions,.school-identity-save,.form48-schedule-actions,.locator-school-actions,.doc-brand-actions)>:is(button,a){width:100%;justify-content:center;text-align:center}
+}
