@@ -279,6 +279,7 @@
     if (!items.length) root.append(text('p', 'universal-empty', emptyText));
     else items.forEach(item => root.append(makeItem(item)));
   }
+  let notificationPollFailures = 0;
   async function refresh(showError = true) {
     if(document.hidden||navigator.onLine===false)return;
     if(busy){queuedRefresh=true;return;}
@@ -287,6 +288,7 @@
       const params = new URLSearchParams({ limit: modal && !modal.hidden ? '25' : '6',
         filter: currentFilter, q: currentQuery });
       const result = await api('?' + params.toString());
+      notificationPollFailures = 0;
       const count=Number(result.unreadCount)||0;
       const signature=JSON.stringify([count,(result.notifications||[]).map(n=>[n.notificationId,n.updatedAt,n.readAt])]);
       if(initialized&&count>unread){live.textContent=(count-unread)+' new notification'+(count-unread===1?'':'s')+' · Open the bell to view.';live.hidden=false;clearTimeout(liveTimer);liveTimer=setTimeout(()=>{live.hidden=true;},5000);}
@@ -301,6 +303,7 @@
         modal.querySelector('.universal-load-more').hidden = nextOffset == null;
       }
     } catch (error) {
+      notificationPollFailures = Math.min(3, notificationPollFailures + 1);
       if (showError) {
         preview.textContent = error.message;
         if (modalStatus) modalStatus.textContent = error.message;
@@ -389,6 +392,18 @@
   window.addEventListener('focus', () => refresh(false));
   window.addEventListener('online',()=>refresh(false));
   window.addEventListener('pageshow',()=>refresh(false));
-  setInterval(() => { if (!document.hidden && navigator.onLine!==false) refresh(false); }, 10000);
+  // Spread automatic polls across clients; never queue a poll behind an active
+  // request. Manual refresh and request-change events remain immediate.
+  function scheduleNotificationPoll() {
+    const baseDelay = Math.min(60000, 10000 * (2 ** notificationPollFailures));
+    const delay = baseDelay + Math.floor(Math.random() * 2000);
+    setTimeout(async () => {
+      if (!document.hidden && navigator.onLine !== false && !busy) {
+        await refresh(false);
+      }
+      scheduleNotificationPoll();
+    }, delay);
+  }
+  scheduleNotificationPoll();
   refresh(false);
 })();
