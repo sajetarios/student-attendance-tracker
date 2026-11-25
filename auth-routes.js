@@ -423,7 +423,7 @@ function registerAuthRoutes(app, pool) {
     try {
       const tokenHash = hashToken(token);
       const result = await pool.query(
-        `SELECT us.session_id, us.principal_type, us.school_id,
+        `SELECT us.session_id, us.principal_type, us.school_id, us.expires_at,
                 pu.user_id AS platform_user_id, pu.username AS platform_username,
                 pu.display_name AS platform_display_name,
                 su.user_id AS school_user_id, su.username AS school_username,
@@ -477,7 +477,7 @@ function registerAuthRoutes(app, pool) {
           role: 'SUPER_ADMIN'
         }});
       }
-      return res.json({ user: {
+      return res.json({ expiresAt: new Date(row.expires_at).toISOString(), user: {
         userId: row.school_user_id,
         username: row.school_username,
         displayName: row.school_display_name,
