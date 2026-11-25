@@ -1,4 +1,4 @@
-const CACHE = "attendigo-v437-role-dashboard-polish";
+const CACHE = "attendigo-v438-unified-traffic-ui";
 
 // Only public, non-personal offline shells and their executable dependencies.
 // An update must not discard the working cache before these are all ready.
@@ -19,6 +19,15 @@ const OFFLINE_REQUIRED = [
   "/student-qr-offline.js?v=4",
   "/student-qr-offline-page.js?v=5",
   "/student-qr-scanner.js?v=6",
+  "/student-qr-scanner.js?v=5",
+  "/fonts/InterVariable.woff2",
+  "/fonts/InterVariable-Italic.woff2",
+  "/attendigo-brand.css?v=2",
+  "/attendigo-brand-refresh.css?v=1",
+  "/assets/attendigo-symbol-transparent.svg?v=5",
+  "/assets/attendigo-favicon.png?v=2",
+  "/assets/attendigo-apple-touch-icon.png?v=2",
+  "/manifest.webmanifest",
   "/vendor/html5-qrcode.min.js",
   "/assets/attendigo-official-lockup.svg?v=5"
 ];
@@ -212,26 +221,19 @@ const SHELL = [
   "/platform-school-health.js?v=2"
 ];
 
-// A single missing or duplicated optional asset must never prevent installing
-// the branded offline fallback. Cache that document first, then warm the
-// existing attendance/QR shell independently, without changing its routes.
+// Cache the essential public offline tools before activation. Keep download
+// concurrency bounded and do not warm unrelated portal modules on every device.
+// The existing runtime fetch handlers still cache assets on demand.
 self.addEventListener("install", event => {
   event.waitUntil((async () => {
     const cache = await caches.open(CACHE);
-    // Keep the previous active worker if any core offline route or script fails.
     await cache.add("/offline-welcome.html");
-    await Promise.all(OFFLINE_REQUIRED.filter(url => url !== "/offline-welcome.html").map(url => cache.add(url)));
-    const resources = [...new Set(SHELL)].filter(url => !OFFLINE_REQUIRED.includes(url));
-    // AllSettled avoids the all-or-nothing Cache.addAll failure caused by
-    // duplicates and intermittent errors in any nonessential stylesheet/script.
-    await Promise.allSettled(resources.map(async url => {
-      try {
-        await cache.add(url);
-      } catch {
-        // Individual failures are retried by the existing network-first/cache
-        // fetch handlers during subsequent online use.
-      }
-    }));
+    const required = [...new Set(OFFLINE_REQUIRED)].filter(url => url !== "/offline-welcome.html");
+    // Small batches keep a school-wide wave of installations from fanning out
+    // into hundreds of requests per browser. A failed required asset prevents activation.
+    for (let i = 0; i < required.length; i += 4) {
+      await Promise.all(required.slice(i, i + 4).map(url => cache.add(url)));
+    }
     await self.skipWaiting();
   })());
 });
