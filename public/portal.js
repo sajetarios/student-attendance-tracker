@@ -495,6 +495,16 @@ window.attendigoStaffIdentity = new Promise(resolve => { resolveStaffIdentity = 
     if ($('classQrAdminMonitorNav')) $('classQrAdminMonitorNav').hidden = !admin;
     if ($('cloudSyncNav')) $('cloudSyncNav').hidden = !admin;
     if ($('schoolBrandingNav')) $('schoolBrandingNav').hidden = !admin || schoolEntitlements?.features?.custom_branding === false;
+    // Move the existing signatory controls, rather than duplicating settings.
+    // Schools without custom branding keep the original Form 48 settings access.
+    const signatoryBlock = $('schoolHeadSignatoryCard');
+    const useIdentitySignatories = admin && schoolEntitlements?.features?.custom_branding !== false;
+    const signatoryHome = $(useIdentitySignatories ? 'schoolIdentitySignatoryHome' : 'form48SignatoryHome');
+    if (signatoryBlock && signatoryHome) {
+      if (useIdentitySignatories && signatoryBlock.parentElement !== $('schoolBrandingView')) signatoryHome.after(signatoryBlock);
+      if (!useIdentitySignatories && signatoryBlock.previousElementSibling !== signatoryHome) signatoryHome.after(signatoryBlock);
+    }
+    if ($('form48SignatoryShortcut')) $('form48SignatoryShortcut').hidden = !useIdentitySignatories;
     if ($('plannerNav')) $('plannerNav').hidden = !['TEACHER', 'DEPARTMENT_HEAD'].includes(role) || schoolEntitlements?.features?.planner === false;
     if ($('plannerDashboardWidget')) $('plannerDashboardWidget').hidden = !['TEACHER', 'DEPARTMENT_HEAD'].includes(role) || schoolEntitlements?.features?.planner === false;
     if ($('smsNav')) {

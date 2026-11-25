@@ -2,7 +2,7 @@
 (()=>{
  const $=id=>document.getElementById(id),view=$('schoolBrandingView'),form=$('documentBrandingForm');
  if(!view||!form)return;
- const fields=$('documentBrandingFields'),status=$('documentBrandingStatus'),keys=['region','division','address','officialSchoolId','layout'];
+ const fields=$('documentBrandingFields'),status=$('documentBrandingStatus'),keys=['region','division','address','officialSchoolId','layout','locatorSlipLayout'];
  let saved=null,agencyChange,loading=false,busy=false,selection=0,processing=false;
  const token=()=>sessionStorage.getItem('schoolAttendance.accessToken')||'';
  async function request(method='GET',body){
@@ -31,7 +31,7 @@
  function reset(){
   if(!saved)return;
   selection++;processing=false;agencyChange=undefined;$('documentAgencyFile').value='';
-  for(const key of keys)form.elements.namedItem(key).value=saved[key]|| (key==='layout'?'AUTO':'');
+  for(const key of keys)form.elements.namedItem(key).value=saved[key]|| (key==='layout'?'AUTO':key==='locatorSlipLayout'?'ANNEX_E':'');
   preview();
  }
  async function load(){

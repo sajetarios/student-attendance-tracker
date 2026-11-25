@@ -16,7 +16,7 @@
   const feedback=$('form48BatchStatus'),toggle=$('form48BatchToggle');
   const saveDefaults=$('form48SaveSchoolDefaults');
   const saveSignatories=$('form48SaveSignatories'),schoolSigners=$('form48SchoolSignatories');
-  const signatoryStatus=$('form48SchoolSignatoriesStatus');
+  const signatoryStatus=$('form48SchoolSignatoriesStatus'),saveHead=$('schoolHeadSaveSignatory'),headStatus=$('schoolHeadSignatoryStatus');
   const signatoryKeys=['verifiedBy','verifiedPosition','approvedBy','approvedPosition'];
   const signatoryFields={
    verifiedBy:$('form48VerifiedBy'),verifiedPosition:$('form48VerifiedPosition'),
@@ -121,11 +121,13 @@
     defaults=result.defaults;saveDefaults.disabled=false;
     for(const key of signatoryKeys)signatoryFields[key].value=defaults[key]||'';
     if(saveSignatories)saveSignatories.disabled=false;
-    saySignatories(signatoryKeys.every(key=>String(defaults[key]||'').trim())?
-     'Both signatories are configured for every staff DTR.':
-     'Enter and save both signatories once for the school.');
+    if(saveHead)saveHead.disabled=false;
+    if(headStatus)headStatus.textContent=defaults.approvedBy&&defaults.approvedPosition?'School head configured.':'Enter the school head name and designation.';
+    saySignatories(defaults.verifiedBy&&defaults.verifiedPosition?'DTR verifier configured.':'Enter the DTR verifier name and designation.');
    }catch(err){
     if(saveSignatories)saveSignatories.disabled=true;
+    if(saveHead)saveHead.disabled=true;
+    if(headStatus)headStatus.textContent=err.message;
     saySignatories('Unable to load school signatories: '+err.message,true);
     say('School defaults unavailable: '+err.message,true);
    }
@@ -135,25 +137,28 @@
    if(Object.values(signatoryFields).includes(event.target))
     saySignatories('Unsaved changes. Save to apply to all staff and months.');
   });
-  saveSignatories?.addEventListener('click',async()=>{
+  async function savePair(kind){
    if(busy||!defaults)return;
+   const isHead=kind==='head',keys=isHead?['approvedBy','approvedPosition']:['verifiedBy','verifiedPosition'];
+   const control=isHead?saveHead:saveSignatories;
+   const sayPair=(message,error=false)=>{if(isHead&&headStatus){headStatus.textContent=message;headStatus.classList.toggle('is-error',error);}else saySignatories(message,error);};
    const payload={revision:defaults.revision};
-   for(const key of signatoryKeys)payload[key]=signatoryFields[key].value.trim();
-   if(signatoryKeys.some(key=>!payload[key]||payload[key].length>120)){
-    saySignatories('Provide the names and positions of both signatories.',true);return;
-   }
-   busy=true;saveSignatories.disabled=true;
+   for(const key of keys)payload[key]=signatoryFields[key].value.trim();
+   if(keys.some(key=>!payload[key]||payload[key].length>120)){sayPair('Enter the name and designation.',true);return;}
+   busy=true;control.disabled=true;
    try{
-    const result=await api('/api/staff-attendance/admin/form48/signatories',{
+    const result=await api('/api/staff-attendance/admin/form48/signatories/'+kind,{
      method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)
     });
     defaults={...defaults,...payload,revision:result.revision};
-    saySignatories('Saved for all employees. Generate a new DTR preview to see updated names.');
+    sayPair(isHead?'School head saved.':'DTR verifier saved.');
     document.dispatchEvent(new CustomEvent('attendigo:form48-signatories-saved'));
-   }catch(err){
-    saySignatories('Nothing saved: '+err.message+'. Reload the page if school settings changed elsewhere.',true);
-   }finally{busy=false;saveSignatories.disabled=false;}
-  });
+   }catch(err){sayPair('Nothing saved: '+err.message+'. Reload if settings changed elsewhere.',true);}
+   finally{busy=false;control.disabled=false;}
+  }
+  $('schoolHeadSignatoryCard')?.addEventListener('input',()=>{if(headStatus)headStatus.textContent='Unsaved school head changes.';});
+  saveSignatories?.addEventListener('click',()=>void savePair('verifier'));
+  saveHead?.addEventListener('click',()=>void savePair('head'));
   const hoursFor=group=>Object.fromEntries([...document.querySelectorAll('[data-form48-hour="'+group+'"]')]
    .map(input=>[input.dataset.slot,input.value]));
   saveDefaults.addEventListener('click',async()=>{

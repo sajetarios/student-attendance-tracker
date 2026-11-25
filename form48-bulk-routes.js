@@ -69,19 +69,18 @@ function mergeSchoolForm48Defaults(saved,defaults,employeeSchedule=null){
  const monthComplete=Boolean(saved?.configured&&scheduled(saved));
  const chosen=monthComplete?saved:inherited;
  const effective=saved||{revision:0,dayReviews:{}};
- // Once all four school signatory fields are configured, they supersede every
- // legacy employee/month name. Until then, retain existing report behavior.
- const hasSchoolDefaults=Boolean(defaults&&['verifiedBy','verifiedPosition','approvedBy','approvedPosition']
-  .every(key=>String(defaults[key]||'').trim()));
+ // Each completed school signatory pair independently supersedes legacy names.
+ const hasVerifier=Boolean(defaults&&['verifiedBy','verifiedPosition'].every(key=>String(defaults[key]||'').trim()));
+ const hasHead=Boolean(defaults&&['approvedBy','approvedPosition'].every(key=>String(defaults[key]||'').trim()));
  return {...effective,
   configured:Boolean(monthComplete||scheduled(inherited)),
   workdays:chosen?.workdays||effective.workdays||[],
   regularHours:chosen?.regularHours||effective.regularHours||{},
   saturdayHours:chosen?.saturdayHours||effective.saturdayHours||{},
-  verifiedBy:hasSchoolDefaults?defaults.verifiedBy:(effective.verifiedBy||defaults?.verifiedBy||''),
-  verifiedPosition:hasSchoolDefaults?defaults.verifiedPosition:(effective.verifiedPosition||defaults?.verifiedPosition||''),
-  approvedBy:hasSchoolDefaults?defaults.approvedBy:(effective.approvedBy||defaults?.approvedBy||''),
-  approvedPosition:hasSchoolDefaults?defaults.approvedPosition:(effective.approvedPosition||defaults?.approvedPosition||'')};
+  verifiedBy:hasVerifier?defaults.verifiedBy:(effective.verifiedBy||defaults?.verifiedBy||''),
+  verifiedPosition:hasVerifier?defaults.verifiedPosition:(effective.verifiedPosition||defaults?.verifiedPosition||''),
+  approvedBy:hasHead?defaults.approvedBy:(effective.approvedBy||defaults?.approvedBy||''),
+  approvedPosition:hasHead?defaults.approvedPosition:(effective.approvedPosition||defaults?.approvedPosition||'')};
 }
 function monthBounds(month){
  const [year,mm]=month.split('-').map(Number);
@@ -173,6 +172,35 @@ function registerForm48BulkRoutes(app,pool,{authenticateSchoolClient,requireScho
    console.error('Form 48 school signatories save:',err.message);
    return res.status(503).json({error:'Unable to save school signatories.'});
   }finally{client.release();}
+ });
+ // Independently save either existing signatory pair, with the same revision guard.
+ app.put('/api/staff-attendance/admin/form48/signatories/:kind',...admin,async(req,res)=>{
+  noStore(res);
+  const kind=req.params.kind,head=kind==='head';
+  if(!head&&kind!=='verifier')return res.status(400).json({error:'Invalid signatory type.'});
+  const nameKey=head?'approvedBy':'verifiedBy',positionKey=head?'approvedPosition':'verifiedPosition';
+  const input=req.body||{},name=input[nameKey],position=input[positionKey];
+  if(!Number.isInteger(input.revision)||input.revision<0||
+   [name,position].some(v=>typeof v!=='string'||!v.trim()||v.trim().length>120||/[\x00-\x1f\x7f]/.test(v)))
+   return res.status(400).json({error:'Enter a name, designation and current revision.'});
+  // SQL identifiers are selected only from these fixed server-side literals.
+  const nc=head?'approved_by_name':'verified_by_name',pc=head?'approved_by_position':'verified_by_position';
+  const client=await pool.connect();
+  try{
+   await client.query('BEGIN');
+   const saved=await client.query(
+    'INSERT INTO staff_form48_school_defaults (school_id,'+nc+','+pc+',updated_by_user_id) '+
+    'SELECT $1,$2,$3,$4 WHERE $5=0 OR EXISTS (SELECT 1 FROM staff_form48_school_defaults WHERE school_id=$1) '+
+    'ON CONFLICT(school_id) DO UPDATE SET '+nc+'=EXCLUDED.'+nc+','+pc+'=EXCLUDED.'+pc+
+    ',updated_by_user_id=EXCLUDED.updated_by_user_id,updated_at=NOW(),revision=staff_form48_school_defaults.revision+1 '+
+    'WHERE staff_form48_school_defaults.revision=$5 RETURNING revision',
+    [req.auth.schoolId,name.trim(),position.trim(),req.auth.userId,input.revision]);
+   if(!saved.rowCount){await client.query('ROLLBACK');return res.status(409).json({error:'School signatories changed. Reload and retry.'});}
+   await client.query("INSERT INTO staff_attendance_audit(school_id,actor_user_id,action,target_type,target_id,details) VALUES($1,$2,'FORM48_SCHOOL_SIGNATORIES_UPDATED','SCHOOL',$1,$3::jsonb)",
+    [req.auth.schoolId,req.auth.userId,JSON.stringify({kind,[nameKey]:name.trim(),[positionKey]:position.trim(),revision:saved.rows[0].revision})]);
+   await client.query('COMMIT');return res.json({saved:true,revision:saved.rows[0].revision});
+  }catch(err){await client.query('ROLLBACK').catch(()=>{});console.error('School signatory pair:',err.message);return res.status(503).json({error:'Unable to save signatory.'});}
+  finally{client.release();}
  });
  app.get('/api/staff-attendance/admin/form48/leaves',...admin,async(req,res)=>{
   noStore(res);
