@@ -94,6 +94,8 @@
   }
   function destination(item){
     if(isSchoolMemo(item))return 'memo';
+    if(item.requestType==='STAFF_OB'&&user.role==='PRINCIPAL')return 'staffObPrincipal';
+    if(item.requestType==='STAFF_OB'&&['TEACHER','DEPARTMENT_HEAD','SCHOOL_ADMIN'].includes(user.role))return 'staffObOwn';
     if(item.requestType==='MISSING_SCAN'&&['TEACHER','DEPARTMENT_HEAD','SCHOOL_ADMIN','PRINCIPAL'].includes(user.role))return 'missingScan';
     if(item.requestType==='LUNCH_QR_REVIEW'){
       if(item.category==='APPROVAL'&&user.role==='DEPARTMENT_HEAD')return 'lunchReviewHead';
@@ -117,6 +119,8 @@
     const dest=destination(item);if(!dest)return false;
     const click=id=>{const el=document.getElementById(id);if(!el||el.hidden)return false;el.click();return true;};
     const go=view=>{const nav=document.querySelector('.nav-item[data-view="'+view+'"]');if(nav&&!nav.hidden){nav.click();return true;}return false;};
+    if(dest==='staffObPrincipal'){const tab=document.querySelector('[data-section="priorities"]');if(!tab)return false;tab.click();document.getElementById(item.status==='PENDING'?'principalObPending':'principalObHistory')?.click();document.getElementById('principalObApprovalList')?.scrollIntoView({block:'start'});return true;}
+    if(dest==='staffObOwn')return go('officialBusiness');
     if(dest==='lunchReviewHead'){if(!go('lunchQrAdmin'))return false;document.getElementById('staffLunchPendingList')?.scrollIntoView({block:'center'});document.getElementById('staffLunchPendingRefresh')?.click();return true;}
     if(dest==='lunchReviewPrincipal'){const tab=document.querySelector('[data-section="priorities"]'),panel=document.getElementById('principalLunchReview');if(!tab||!panel)return false;tab.click();panel.open=true;panel.scrollIntoView({block:'center'});return true;}
     if(dest==='lunchReviewOwn')return go('myGateAttendance');
