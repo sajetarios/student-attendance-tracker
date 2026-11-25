@@ -266,6 +266,11 @@
     if(request.headDecidedAt)item.append(make('p','source-note','Department recommendation recorded '+obApprovalDate(request.headDecidedAt)));
     if(request.decidedAt)item.append(make('p','source-note','Decision recorded '+obApprovalDate(request.decidedAt)));
     if(request.decisionNote)item.append(make('p','source-note','Recorded note: '+request.decisionNote));
+    if(obApprovalScope==='pending'||request.status==='APPROVED'){
+     const slip=make('a','quiet-button','View Locator Slip');
+     slip.href='/api/staff-attendance/official-business/'+encodeURIComponent(request.requestId)+'/locator-slip';
+     slip.target='_blank';slip.rel='noopener noreferrer';item.append(slip);
+    }
     if(obApprovalScope==='pending'){
      const actions=make('div','principal-workspace-actions');actions.style.cssText='display:flex;flex-wrap:wrap;gap:8px';
      const approve=make('button','quiet-button','Confirm signed authorization');
