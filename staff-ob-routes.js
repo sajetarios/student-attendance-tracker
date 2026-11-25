@@ -76,6 +76,10 @@ function registerStaffObRoutes(app,pool,{authenticateSchoolClient,requireSchoolR
       return res.status(503).json({error:e.code==='PREVIEW_BUSY'?e.message:'The in-app preview is temporarily unavailable. The PDF can still be downloaded.'});
      }
     }
+    // Export a fresh, conventional print PDF from the same verified official page.
+    // Never send the incremental source PDF to mobile viewers.
+    try{pdf=await require('./locator-slip-preview').renderLocatorPrintPdf(pdf);}
+    catch(e){console.error('Locator Slip print PDF:',e.message);return res.status(503).json({error:e.code==='PREVIEW_BUSY'?e.message:'The printable Locator Slip could not be prepared. Please retry.'});}
     res.set('Content-Type','application/pdf');
     res.set('Content-Disposition',(req.query?.download==='1'?'attachment':'inline')+'; filename="Locator-Slip-'+req.params.id+'.pdf"');
     res.set('X-Content-Type-Options','nosniff');

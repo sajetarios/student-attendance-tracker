@@ -25,9 +25,9 @@
     const bytes=new Uint8Array(await response.arrayBuffer());
     if(bytes.length<1000||String.fromCharCode(...bytes.slice(0,5))!=='%PDF-')throw Error('The server did not return a complete PDF. Please retry.');
     const url=api+'/'+encodeURIComponent(id)+'/locator-slip';
-    const link=make('a',options.buttonClass||'outline-button','Open PDF in browser');link.href=url;link.target='_blank';link.rel='noopener';
+    const link=make('a',options.buttonClass||'outline-button','Open printable PDF');link.href=url;link.target='_blank';link.rel='noopener';
     const save=make('a',options.buttonClass||'outline-button','Download PDF');save.href=url+'?download=1';
-    feedback('Your PDF is ready. Preparing the preview inside Attendigo…');
+    feedback('Your print-ready PDF is ready. Preparing the preview inside Attendigo…');
     const preview=make('img');preview.alt='Accomplished official Locator Slip';preview.style.cssText='display:block;width:100%;height:auto;max-width:750px;margin:12px auto;background:white;border:1px solid #cbd5e1';
     preview.hidden=true;preview.style.display='none';
     panel.append(preview,link,save);
