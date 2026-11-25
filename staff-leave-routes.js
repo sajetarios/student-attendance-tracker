@@ -127,11 +127,11 @@ function registerStaffLeaveRoutes(app,pool,{authenticateSchoolClient,requireScho
   }catch(e){sqlErr(res,e);}
  });
  app.post('/api/staff-leave/staff/:id/credit-scheme',...auth,async(req,res)=>{
-  if(req.auth.role!=='SCHOOL_ADMIN')return res.status(403).json({error:'Authorized School HR access required.'});
+  if(req.auth.role!=='SCHOOL_ADMIN')return res.status(403).json({error:'School Admin access required.'});
   const staffId=String(req.params.id||''),leaveScheme=String(req.body?.leaveScheme||''),
    hrReference=String(req.body?.hrReference||'').trim();
   if(!UUID.test(staffId)||!SCHEMES.includes(leaveScheme)||hrReference.length<3||hrReference.length>200)
-   return res.status(400).json({error:'Select an HR-verified scheme and enter the official personnel document reference.'});
+   return res.status(400).json({error:'Select the verified leave scheme and enter the official personnel document reference.'});
   if(staffId===req.auth.userId)
    return res.status(403).json({error:'An employee cannot certify their own leave entitlement. Ask another authorized officer.'});
   const client=await pool.connect();
@@ -173,7 +173,7 @@ function registerStaffLeaveRoutes(app,pool,{authenticateSchoolClient,requireScho
    // entitlement. Do not allow a teaching-VSC account to file as regular SPL.
    if(input.leaveType==='SPECIAL_PRIVILEGE'&&verifiedScheme==='TEACHING_VSC'){
     await c.query('ROLLBACK');
-    return res.status(409).json({error:'Special Privilege Leave is generally excluded for personnel under the teaching leave system. Ask HR to verify the applicable leave category instead.'});
+    return res.status(409).json({error:'Special Privilege Leave is generally excluded for personnel under the teaching leave system. Ask the School Admin to verify the applicable leave category instead.'});
    }
    // Client choices are proposals, never authorization to charge a different
    // employee leave-credit account. Enforce certified scheme server-side.
@@ -183,7 +183,7 @@ function registerStaffLeaveRoutes(app,pool,{authenticateSchoolClient,requireScho
       !['MATERNITY','PATERNITY'].includes(input.leaveType)&&
       !permitted.includes(input.creditAccount)){
     await c.query('ROLLBACK');
-    return res.status(409).json({error:'The selected credit account is not authorized by the HR-certified leave scheme. Refresh your application or ask HR to verify your entitlement.'});
+    return res.status(409).json({error:'The selected credit account is not authorized by the officially verified leave scheme. Refresh your application or ask the School Admin to verify your entitlement.'});
    }
    const creditAccount=input.leaveType==='SICK'
     ?(sickAccountForScheme(verifiedScheme)||'NONE'):input.creditAccount;
@@ -197,7 +197,7 @@ function registerStaffLeaveRoutes(app,pool,{authenticateSchoolClient,requireScho
    await c.query('COMMIT');
    res.status(201).json({requestId:id,status,creditAccount,filingBasis,
     notice:filingBasis==='POST_RETURN'
-     ?'Sick leave filed after the specified absence dates. HR must verify actual return-to-duty date, prompt filing, supervisor notice and applicable credit records. DTR remains pending until official approval.'
+     ?'Sick leave filed after the specified absence dates. The School Admin must verify actual return-to-duty date, prompt filing, supervisor notice and applicable credit records. DTR remains pending until official approval.'
      :'Leave submitted for review. The DTR is unchanged until official approval is verified.'});
   }catch(e){await c.query('ROLLBACK').catch(()=>{});sqlErr(res,e);}
   finally{c.release();}
@@ -276,19 +276,19 @@ function registerStaffLeaveRoutes(app,pool,{authenticateSchoolClient,requireScho
    let chargeAccount=row.credit_account;
    if(row.leave_type==='SPECIAL_PRIVILEGE'){
     // Independent external-decision safeguard, including legacy pending requests:
-    // require HR-certified regular leave entitlement; never charge VL/SL/VSC.
+    // require officially verified regular leave entitlement; never charge VL/SL/VSC.
     const schemeForSpl=await c.query('SELECT leave_scheme FROM staff_leave_credit_schemes WHERE school_id=$1 AND staff_user_id=$2',
      [req.auth.schoolId,row.staff_user_id]);
     if(schemeForSpl.rows[0]?.leave_scheme!=='REGULAR_VL_SL'||row.commutation!=='NOT_REQUESTED'||days>3){
      await c.query('ROLLBACK');
-     return res.status(409).json({error:'SPL approval requires HR-certified regular leave eligibility, no commutation, and no more than three certified working days. HR must also verify the annual SPL allowance.'});
+     return res.status(409).json({error:'SPL approval requires officially verified regular leave eligibility, no commutation, and no more than three certified working days. The School Admin must also verify the annual SPL allowance.'});
     }
     chargeAccount='NONE';
    }
    if(row.leave_type==='WELLNESS'){
     if(row.commutation!=='NOT_REQUESTED'||row.credit_account!=='NONE'){
      await c.query('ROLLBACK');
-     return res.status(409).json({error:'Wellness Leave is non-commutable and must not deduct VL, SL or VSC credits. Reconcile this application with HR.'});
+     return res.status(409).json({error:'Wellness Leave is non-commutable and must not deduct VL, SL or VSC credits. Reconcile this application with the School Admin.'});
     }
     chargeAccount='NONE';
    }
@@ -297,12 +297,12 @@ function registerStaffLeaveRoutes(app,pool,{authenticateSchoolClient,requireScho
      [req.auth.schoolId,row.staff_user_id]);
     chargeAccount=sickAccountForScheme(verifiedScheme.rows[0]?.leaveScheme);
     if(!chargeAccount){await c.query('ROLLBACK');
-     return res.status(409).json({error:'HR must verify whether this employee uses teaching-personnel VSC or regular VL/SL before recording official sick-leave approval.'});}
+     return res.status(409).json({error:'The School Admin must verify whether this employee uses teaching-personnel VSC or regular VL/SL before recording official sick-leave approval.'});}
     if(requiredSickEvidence(row.leave_type,row.filing_basis,row.start_date,row.end_date)){
      const supporting=await c.query("SELECT 1 FROM staff_leave_documents WHERE school_id=$1 AND request_id=$2 AND document_kind IN ('MEDICAL','AFFIDAVIT') LIMIT 1",
       [req.auth.schoolId,row.request_id]);
      if(!supporting.rowCount){await c.query('ROLLBACK');
-      return res.status(409).json({error:'Advance-filed sick leave or illness exceeding five consecutive days requires a medical certificate, or an appropriate sworn affidavit where medical consultation was not obtained. HR must check the document.'});}
+      return res.status(409).json({error:'Advance-filed sick leave or illness exceeding five consecutive days requires a medical certificate, or an appropriate sworn affidavit where medical consultation was not obtained. The authorized school personnel must check the document.'});}
     }
    }
    const attachment=await c.query("SELECT 1 FROM staff_leave_documents WHERE school_id=$1 AND request_id=$2 AND document_kind='APPROVAL' LIMIT 1",[req.auth.schoolId,row.request_id]);
@@ -314,7 +314,7 @@ function registerStaffLeaveRoutes(app,pool,{authenticateSchoolClient,requireScho
    if(chargeAccount!=='NONE'){
     const balance=await c.query('SELECT COALESCE(SUM(signed_days),0)::numeric AS days FROM staff_leave_credit_entries WHERE school_id=$1 AND staff_user_id=$2 AND credit_account=$3 AND status=\'VERIFIED\'',
      [req.auth.schoolId,row.staff_user_id,chargeAccount]);
-    if(Number(balance.rows[0].days)+1e-8<days){await c.query('ROLLBACK');return res.status(409).json({error:'Insufficient HR-certified '+chargeAccount+' balance. Verify entitlement and officially earned credits before approving.'});}
+    if(Number(balance.rows[0].days)+1e-8<days){await c.query('ROLLBACK');return res.status(409).json({error:'Insufficient officially verified '+chargeAccount+' balance. Verify entitlement and officially earned credits before approving.'});}
     await c.query('INSERT INTO staff_leave_credit_entries(school_id,staff_user_id,credit_account,entry_kind,signed_days,request_id,status,entered_by_user_id,verified_by_user_id,verified_at,approval_reference) VALUES($1,$2,$3,\'USED\',$4,$5,\'VERIFIED\',$6,$6,now(),$7)',
      [req.auth.schoolId,row.staff_user_id,chargeAccount,-days,row.request_id,req.auth.userId,reference]);
    }
@@ -329,20 +329,20 @@ function registerStaffLeaveRoutes(app,pool,{authenticateSchoolClient,requireScho
    await c.query('COMMIT');
    res.json({status:'APPROVED',creditAccount:chargeAccount,
     notice:chargeAccount==='VSC'&&row.leave_type==='SICK'
-     ?'Documented sick leave approved; HR-certified VSC charged and VSCA Form 48 remarks recorded. Gate/DTR punches remain unchanged.'
+     ?'Documented sick leave approved; officially verified VSC charged and VSCA Form 48 remarks recorded. Gate/DTR punches remain unchanged.'
      :'Documented leave approved and Form 48 annotation recorded. Original gate/DTR punches are unchanged.'});
   }catch(e){await c.query('ROLLBACK').catch(()=>{});sqlErr(res,e);}
   finally{c.release();}
  });
  app.get('/api/staff-leave/staff-roster',...auth,async(req,res)=>{
-  if(req.auth.role!=='SCHOOL_ADMIN')return res.status(403).json({error:'Only school HR administrators may import staff credit balances.'});
+  if(req.auth.role!=='SCHOOL_ADMIN')return res.status(403).json({error:'Only School Admin may record staff opening credit balances.'});
   try{
    const q=await pool.query("SELECT u.user_id AS \"userId\",u.display_name AS \"displayName\",u.teacher_position AS \"position\",u.role,COALESCE(sc.leave_scheme,'UNVERIFIED') AS \"leaveScheme\",sc.hr_reference AS \"hrReference\" FROM school_users u LEFT JOIN staff_leave_credit_schemes sc ON sc.school_id=u.school_id AND sc.staff_user_id=u.user_id WHERE u.school_id=$1 AND u.active=TRUE AND u.role IN ('SCHOOL_ADMIN','DEPARTMENT_HEAD','TEACHER','GATE_KEEPER') ORDER BY u.display_name LIMIT 1000",[req.auth.schoolId]);
    res.json({staff:q.rows});
   }catch(e){sqlErr(res,e);}
  });
  app.post('/api/staff-leave/credits/opening',...auth,async(req,res)=>{
-  if(req.auth.role!=='SCHOOL_ADMIN')return res.status(403).json({error:'School HR authorization required.'});
+  if(req.auth.role!=='SCHOOL_ADMIN')return res.status(403).json({error:'School Admin authorization required.'});
   const staffId=String(req.body?.staffUserId||''),account=String(req.body?.creditAccount||'').toUpperCase(),
    days=positiveDays(req.body?.openingDays),note=String(req.body?.notes||'').trim();
   if(!UUID.test(staffId)||!['VSC','VL','SL','CTO'].includes(account)||!days||note.length>500)
@@ -365,7 +365,7 @@ function registerStaffLeaveRoutes(app,pool,{authenticateSchoolClient,requireScho
  });
  app.get('/api/staff-leave/credits/pending',...auth,async(req,res)=>{
   if(!['SCHOOL_ADMIN','DEPARTMENT_HEAD'].includes(req.auth.role))
-   return res.status(403).json({error:'School HR verification access required.'});
+   return res.status(403).json({error:'Authorized school verification access required.'});
   try{
    // A department head can only review an administrator's credit claim,
    // consistent with /credits/:id/verify. No reviewer may see their own
@@ -422,7 +422,7 @@ function registerStaffLeaveRoutes(app,pool,{authenticateSchoolClient,requireScho
     await c.query('ROLLBACK');return res.status(403).json({error:'A separate authorized verifier is required; only proposed claims can be certified.'});
    }
    const sourceDoc=await c.query("SELECT 1 FROM staff_leave_documents WHERE school_id=$1 AND credit_entry_id=$2 AND document_kind IN ('SPECIAL_ORDER','CERTIFICATION') LIMIT 1",[req.auth.schoolId,e.credit_entry_id]);
-   if(!sourceDoc.rowCount){await c.query('ROLLBACK');return res.status(409).json({error:'Attach the signed Special Order or official HR credit certification before granting credits.'});}
+   if(!sourceDoc.rowCount){await c.query('ROLLBACK');return res.status(409).json({error:'Attach the signed Special Order or official leave-credit certification before granting credits.'});}
    const existing=await c.query('SELECT 1 FROM staff_leave_credit_entries WHERE school_id=$1 AND staff_user_id=$2 AND credit_account=$3 AND activity_kind=$4 AND approval_reference=$5 AND status=\'VERIFIED\' AND entry_kind=\'EARNED\' LIMIT 1',
     [req.auth.schoolId,e.staff_user_id,e.credit_account,e.activity_kind,reference]);
    if(existing.rowCount){await c.query('ROLLBACK');return res.status(409).json({error:'This official reference is already credited for this employee/activity.'});}

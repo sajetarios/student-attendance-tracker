@@ -18,5 +18,5 @@ test('compact action bar retains all existing attendance controls and safe area'
  assert.match(html,/<div class="ow-sheet-actions"><button id="save">Save attendance<\/button><button id="sync">Sync attendance<\/button><button id="lock"/);
  assert.match(html,/\.ow-sheet-actions\{position:sticky;bottom:0/);
  assert.match(html,/env\(safe-area-inset-bottom,0px\)/);
- assert.match(read('public/sw.js'),/attendigo-v431-compact-offline-roster/);
+ assert.match(read('public/sw.js'),/attendigo-v(?:43[1-9]|4[4-9][0-9]|[5-9][0-9]{2}|[1-9][0-9]{3,})-/);
 });

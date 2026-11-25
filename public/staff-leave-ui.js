@@ -30,7 +30,7 @@
   '<label>'+esc(label)+'<select name="'+name+'">'+values.map(([val,txt])=>'<option value="'+esc(val)+'">'+esc(txt)+'</option>').join('')+'</select></label>';
  const docTypes=[['VACATION','Vacation leave'],['SICK','Sick leave'],['VSC','Vacation service credit availment'],['MATERNITY','Maternity leave'],
   ['PATERNITY','Paternity leave'],['SPECIAL_PRIVILEGE','Special privilege leave'],['WELLNESS','Wellness leave'],['OTHER','Other leave']];
- const accounts=[['NONE','HR will determine the applicable credit'],['VSC','Vacation Service Credits (VSC)'],['VL','Vacation Leave (VL)'],['SL','Sick Leave (SL)']];
+ const accounts=[['NONE','To be verified by School Admin'],['VSC','Vacation Service Credits (VSC)'],['VL','Vacation Leave (VL)'],['SL','Sick Leave (SL)']];
  function init(user){
   if(!['TEACHER','DEPARTMENT_HEAD','SCHOOL_ADMIN'].includes(user?.role))return;
   const button=document.createElement('button');button.id='staffLeaveNav';button.type='button';
@@ -61,15 +61,16 @@
   const isHrAdmin=user.role==='SCHOOL_ADMIN';
   const mayReviewCredits=isHrAdmin||user.role==='DEPARTMENT_HEAD';
   const leaveHeading=isHrAdmin?'Leave Records':'Leave Requests';
-  const leaveIntro='Prepare leave applications, track verified decisions and keep attendance records accurate. Official approval remains with authorized DepEd personnel.';
+  const leaveIntro=isHrAdmin?'Monitor staff leave status and verified decisions.':'Prepare leave applications, track verified decisions and keep attendance records accurate. Official approval remains with authorized DepEd personnel.';
   const dialog=document.createElement('dialog');dialog.id='staffLeaveDialog';
-  dialog.setAttribute('aria-label','Leave Requests');
+  dialog.setAttribute('aria-label',leaveHeading);
   dialog.innerHTML='<div class="leave-shell"><div class="leave-header"><div><h2>'+esc(leaveHeading)+'</h2>'+
    '<p>'+esc(leaveIntro)+'</p></div>'+
    '<button class="leave-close" id="leaveClose" type="button" aria-label="Close Leave Requests">✕</button></div>'+
    '<div class="leave-tabs" role="tablist" aria-label="Leave Requests sections">'+
-   '<button type="button" class="is-active" data-leave-tab="requests">'+'My applications'+'</button>'+
-   '<button type="button" data-leave-tab="inbox" '+(!mayReviewCredits?'hidden':'')+'>'+(isHrAdmin?'School leave records':'Leave approvals')+'</button>'+
+   (isHrAdmin
+    ? '<button type="button" class="is-active" data-leave-tab="inbox">School Records</button><button type="button" data-leave-tab="requests">My Leave</button>'
+    : '<button type="button" class="is-active" data-leave-tab="requests">My applications</button><button type="button" data-leave-tab="inbox" '+(!mayReviewCredits?'hidden':'')+'>Leave approvals</button>')+
    '</div>'+
    '<div class="leave-body" id="leaveBody"></div><div class="leave-message" id="leaveMessage" role="status" aria-live="polite"></div></div>';
   document.body.append(dialog);
@@ -101,8 +102,8 @@
     guidance.textContent='This leave is not active today. Normal attendance processing continues until it begins.';
     profileLeave.classList.add('leave-upcoming');
    }else if(status==='ON_LEAVE_REVIEW'){
-    title.textContent='Leave status on record — HR review';
-    guidance.textContent='Confirm the supporting official approval with your school HR office.';
+    title.textContent='Leave status on record — verification needed';
+    guidance.textContent='Confirm the supporting official approval with your School Admin.';
     profileLeave.classList.add('leave-review');
    }else return;
    dateLine.textContent=friendlyDate(leave.startDate)+' – '+friendlyDate(leave.endDate)+' (inclusive)';
@@ -133,7 +134,7 @@
   const reviewer=user.role==='SCHOOL_ADMIN'||user.role==='DEPARTMENT_HEAD';
   dialog.querySelector('[data-leave-tab="inbox"]').hidden=!reviewer;
   window.AttendigoLeaveInbox?.attachNav(reviewerNav,user,call);
-  let tab='requests',busy=false,reviewOnly=false,officialRecordsOpen=false;
+  let tab=isHrAdmin?'inbox':'requests',busy=false,reviewOnly=false,officialRecordsOpen=false,gateVerificationOpen=false,loadSequence=0;
   const say=(value,error=false)=>{message.textContent=value;message.classList.toggle('is-error',error);};
   const buttonFor=(label,cb)=>{
    const b=document.createElement('button');b.type='button';b.className='leave-btn';
@@ -148,16 +149,25 @@
    catch(e){say(e.message,true);}finally{busy=false;}
   };
   async function load(){
-   if(tab==='requests'){await renderRequests();return;}
+   const sequence=++loadSequence;
+   if(tab==='requests'){await renderRequests(sequence);return;}
    if(tab!=='inbox'||!mayReviewCredits)return;
    if(!window.AttendigoLeaveInbox)throw Error('Leave Approval Inbox is unavailable. Refresh Attendigo.');
-   await window.AttendigoLeaveInbox.render({body,user,call,upload,action,message,
-    openRequests:()=>{reviewOnly=false;selectTab('requests');}});
+   const inboxBody=document.createElement('section');
+   inboxBody.className='leave-inbox-workspace';
+   body.replaceChildren(inboxBody);
+   const inboxContext={body:inboxBody,user,call,upload,action,message,
+    openRequests:()=>{reviewOnly=false;selectTab('requests');}};
+   if(isHrAdmin)body.append(gateVerification());
+   // Render into a dedicated container so filtering never removes verification sections.
+   const inboxLoad=window.AttendigoLeaveInbox.render(inboxContext);
+   void inboxLoad.catch(()=>{});
+   if(sequence!==loadSequence)return;
    // Keep supporting credit records restricted to the existing approval workspace.
    const records=document.createElement('details');
    records.className='leave-card leave-official-records';
    records.innerHTML='<summary>Official leave-record verification</summary>'+
-    '<p class="leave-help">Restricted documentation only. Use verified DepEd source records; this does not grant HR certification or approval authority.</p>'+
+    '<p class="leave-help">Restricted documentation only. Use verified DepEd source records; this does not grant leave approval authority.</p>'+
     '<div class="leave-records-content"></div>';
    records.open=officialRecordsOpen;
    body.append(records);
@@ -173,13 +183,17 @@
     if(records.open)void fill();
    });
    if(officialRecordsOpen)await fill();
+   await inboxLoad;
   }
   const selectTab=next=>{
    if(next!=='requests'&&next!=='inbox')return;
    if(next==='inbox'&&!mayReviewCredits)return;
    if(next==='requests'&&tab==='inbox')reviewOnly=false;
    tab=next;
-   dialog.querySelectorAll('[data-leave-tab]').forEach(b=>b.classList.toggle('is-active',b.dataset.leaveTab===next));
+   dialog.querySelectorAll('[data-leave-tab]').forEach(b=>{
+    const active=b.dataset.leaveTab===next;
+    b.classList.toggle('is-active',active);b.setAttribute('aria-selected',String(active));
+   });
    say('');
    load().catch(e=>say(e.message,true));
   };
@@ -187,8 +201,8 @@
   $('leaveClose').addEventListener('click',()=>dialog.close());
   function openLeave(reviewQueue=false){
    reviewOnly=reviewQueue;
-   if(!dialog.open)dialog.showModal();
    selectTab(reviewQueue?'inbox':'requests');
+   if(!dialog.open)dialog.showModal();
   }
   button.addEventListener('click',()=>openLeave(isHrAdmin));
   reviewerNav?.addEventListener('click',()=>openLeave(true));
@@ -210,7 +224,7 @@
     '<a class="leave-btn" href="/leave-form6.html?template=1" target="_blank" rel="noopener">View blank CSC Form No. 6</a></div>'+
     '<form id="leaveNewForm" class="leave-form">'+
     '<fieldset><legend>Leave type and dates</legend>'+
-    select('leaveType','Type of leave',docTypes)+select('creditAccount','Applicable leave account (official verification required)',accounts)+
+    select('leaveType','Type of leave',docTypes)+select('creditAccount','Applicable leave credit',accounts)+
     '<p class="leave-credit-guidance" role="status" aria-live="polite"></p>'+ 
     '<p class="leave-sick-guidance" role="status" aria-live="polite"></p>'+ 
     '<p class="leave-type-guidance" role="status" aria-live="polite"></p>'+
@@ -221,14 +235,16 @@
     '<span class="leave-birthday-message"></span>'+
     '<button type="button" class="leave-btn leave-birthday-switch" hidden>Choose Special Privilege Leave</button></div>'+
     '<label>Details / location (optional)<textarea name="details" rows="2" maxlength="1500"></textarea></label>'+
-    select('commutation','Commutation of leave (CSC Form No. 6)',[['NOT_REQUESTED','Not requested'],['REQUESTED','Requested — subject to HR review']])+
-    '<p class="leave-commutation-help" role="status" aria-live="polite">Commutation concerns possible monetary conversion of leave benefits under applicable rules. It is not an ordinary salary payment and Attendigo does not process payment. Leave as Not requested unless HR advises otherwise.</p>'+
+    '<details class="leave-form6-options"><summary>Additional Form 6 options</summary>'+
+    select('commutation','Commutation of leave (CSC Form No. 6)',[['NOT_REQUESTED','Not requested'],['REQUESTED','Requested — subject to verification']])+
+    '<p class="leave-commutation-help" role="status" aria-live="polite">Keep Not requested unless commutation is permitted for your leave type. Attendigo does not process payments.</p>'+
+    '</details>'+
     '</fieldset><fieldset><legend>Supporting documents (optional at filing)</legend>'+
     fileInput('supportingDocument','Attach a PDF, JPG or PNG (up to 4 MB)')+
     select('supportingKind','Supporting-document type (when a file is attached)',[
      ['','No document attached'],['APPLICATION','Application / general evidence'],['MEDICAL','Medical certificate / clearance'],
      ['AFFIDAVIT','Notarized affidavit if no medical consultation']])+
-    '<p class="leave-attachment-help" role="status" aria-live="polite">No file attached. You can submit now, subject to any supporting documents HR may require.</p>'+
+    '<p class="leave-attachment-help" role="status" aria-live="polite">No file attached. You can submit now, subject to any supporting documents the School Admin may request.</p>'+
     '</fieldset><button type="submit" class="leave-primary">Submit for review</button></form>';
    const leaveTypeControl=details.querySelector('[name=leaveType]');
    const accountControl=details.querySelector('[name=creditAccount]');
@@ -253,8 +269,8 @@
     if(!attached)attachmentKind.value='';
     else if(!attachmentKind.value)attachmentKind.value='APPLICATION';
     attachmentInfo.textContent=attached
-     ?'Select the actual type of supporting evidence. HR may request additional documents before approving.'
-     :'No file attached. You can submit now, subject to any supporting documents HR may require.';
+     ?'Select the actual type of supporting evidence. The School Admin may request additional supporting documents before Principal approval.'
+     :'No file attached. You can submit now, subject to any supporting documents the School Admin may request.';
    }
    attachment.addEventListener('change',updateAttachmentChoice);
    updateAttachmentChoice();
@@ -272,14 +288,14 @@
     birthdayAction.hidden=true;
     if(!birthdayRelated)return;
     if(certifiedScheme==='TEACHING_VSC'){
-     birthdayMessage.textContent='Birthday-related Special Privilege Leave generally excludes employees under the teaching leave system. Contact HR to confirm a different permitted leave category; your birthday alone does not create an entitlement.';
+     birthdayMessage.textContent='Birthday-related Special Privilege Leave generally excludes employees under the teaching leave system. Contact your School Admin to confirm a different permitted leave category; your birthday alone does not create an entitlement.';
     }else if(certifiedScheme==='REGULAR_VL_SL'){
      birthdayMessage.textContent=leaveTypeControl.value==='SPECIAL_PRIVILEGE'
-      ?'Birthday-related Special Privilege Leave has been selected. HR must verify eligibility and remaining annual SPL days (maximum three in a calendar year).'
-      :'Birthday-related occasions may qualify for Special Privilege Leave for eligible non-teaching personnel. HR must verify eligibility and remaining SPL days.';
+      ?'Birthday-related Special Privilege Leave has been selected. The School Admin must verify eligibility and remaining annual SPL days (maximum three in a calendar year).'
+      :'Birthday-related occasions may qualify for Special Privilege Leave for eligible non-teaching personnel. The School Admin must verify eligibility and remaining SPL days.';
      birthdayAction.hidden=leaveTypeControl.value==='SPECIAL_PRIVILEGE';
     }else{
-     birthdayMessage.textContent='Birthday-related Special Privilege Leave may apply to eligible non-teaching staff. Your HR leave scheme is not yet verified; ask HR to confirm before choosing this category.';
+     birthdayMessage.textContent='Birthday-related Special Privilege Leave may apply to eligible non-teaching staff. Your leave scheme is not yet verified; ask your School Admin to confirm before choosing this category.';
     }
    };
    const refreshCreditChoice=()=>{
@@ -308,24 +324,24 @@
      verifiedTeaching?'VSC':verifiedRegular?(leaveType==='VACATION'?'VL':'NONE'):'NONE');
     accountControl.disabled=Boolean(lockedAccount)||allowed.length===1;
     if(leaveType==='SPECIAL_PRIVILEGE'||leaveType==='WELLNESS'){
-     creditInfo.textContent='This leave category is separate from VSC, VL and SL. No credit deduction from those accounts is proposed. HR must confirm the separate entitlement.';
+     creditInfo.textContent='This leave category is separate from VSC, VL and SL. No credit deduction from those accounts is proposed. The School Admin must verify the separate entitlement.';
     }else if(leaveType==='VSC'&&!verifiedTeaching){
-     creditInfo.textContent='Vacation Service Credits requested. HR must verify your teaching-personnel entitlement before approval. Submitting does not certify credits.';
+     creditInfo.textContent='Vacation Service Credits requested. The School Admin must verify your teaching-personnel entitlement before approval. Submitting does not certify credits.';
     }else if(!verifiedTeaching&&!verifiedRegular){
-     creditInfo.textContent='Your leave-credit scheme has not been certified by HR. Your application may be filed for review; no credit account will be assumed. HR must verify the entitlement before final approval.';
+     creditInfo.textContent='Your leave-credit scheme has not been verified. You can submit your application now. The School Admin will verify your entitlement against official records before the Principal records final approval. Ask your School Admin if verification is needed.';
     }else{
-     creditInfo.textContent='HR-certified '+(verifiedTeaching?'teaching-personnel service credits':'regular VL/SL leave scheme')+
+     creditInfo.textContent='Verified '+(verifiedTeaching?'teaching-personnel service credits':'regular VL/SL leave scheme')+
       '. The proposed account is not a final charge. Only authorized verification and documented approval can adjust your certified balance.';
     }
     if(leaveType==='SICK'){
      sickInfo.hidden=false;
      const today=manilaDate();
      const basis=start.value>today?'Advance-filed':end.value&&end.value<today?
-      'Post-absence filing — HR verifies return date':'During ongoing absence';
+      'Post-absence filing — School Admin verifies return date':'During ongoing absence';
      sickInfo.textContent=basis+' sick leave. Notify your supervisor of unexpected illness and submit CSC Form No. 6 as applicable. '+
-      (verifiedTeaching?'HR-certified VSC is proposed for illness.':
-       verifiedRegular?'HR-certified Sick Leave is proposed for illness.':
-       'HR must verify the applicable leave scheme before final approval.')+
+      (verifiedTeaching?'Verified VSC is proposed for illness.':
+       verifiedRegular?'Verified Sick Leave is proposed for illness.':
+       'The School Admin must verify the applicable leave scheme before final approval.')+
       ' An authorized officer checks medical evidence and dates; filing alone does not change the DTR. For advance-filed illness or illness over five consecutive days, supporting medical evidence or an appropriate affidavit is required under the existing approval checks.';
     }else sickInfo.hidden=true;
     const nonCommutable=['SPECIAL_PRIVILEGE','WELLNESS'].includes(leaveType);
@@ -335,16 +351,16 @@
      ?(leaveType==='SPECIAL_PRIVILEGE'
        ?'Special Privilege Leave is non-commutable. Not requested is automatically selected; no cash payment is generated.'
        :'Wellness Leave is non-commutable under CSC MC No. 01, s. 2026. Not requested is automatically selected.')
-     :'Select Requested only if HR confirms that monetary commutation is permitted for this particular leave. This is not regular salary and does not initiate a payment.';
+     :'Request only if permitted for your leave type. Attendigo records your choice on Form 6; it does not process payments.';
     typeInfo.hidden=!['SPECIAL_PRIVILEGE','WELLNESS'].includes(leaveType);
     typeInfo.textContent=leaveType==='SPECIAL_PRIVILEGE'
-     ?'Special Privilege Leave is generally for eligible non-teaching personnel, up to three days per year. Teachers under the teaching leave scheme are excluded. HR must confirm the remaining annual allowance before approval.'
+     ?'Special Privilege Leave is generally for eligible non-teaching personnel, up to three days per year. Teachers under the teaching leave scheme are excluded. The School Admin must verify the remaining annual allowance before approval.'
      :leaveType==='WELLNESS'
-       ?'2026 Wellness Leave is a separate, non-cumulative, non-commutable leave benefit. HR must verify eligibility, the annual entitlement and supporting requirements.'
+       ?'2026 Wellness Leave is a separate, non-cumulative, non-commutable leave benefit. The School Admin must verify eligibility, the annual entitlement and supporting requirements.'
        :'';
     // The server also independently enforces certified teaching-personnel restrictions.
     leaveTypeControl.setCustomValidity(leaveType==='SPECIAL_PRIVILEGE'&&verifiedTeaching
-     ?'Special Privilege Leave generally excludes teachers under the teaching leave scheme. Ask HR to confirm the correct leave type.':'');
+     ?'Special Privilege Leave generally excludes teachers under the teaching leave scheme. Ask your School Admin to confirm the correct leave type.':'');
     updateBirthdayHint();
    };
    birthdayAction.addEventListener('click',()=>{
@@ -412,19 +428,17 @@
     action('Uploading document',()=>upload('/requests/'+row.requestId+'/documents',file,kind));
    });item.append(wrap);
   }
-  async function renderRequests(){
-   if(reviewOnly)body.replaceChildren();
-   else body.replaceChildren(newRequest());
-   if(user.role==='SCHOOL_ADMIN'&&!reviewOnly){
-    const panel=document.createElement('section');
-    panel.className='leave-card';
-    panel.innerHTML='<div class="leave-overlap-header">'+
+  function gateVerification(){
+    const panel=document.createElement('details');
+    panel.className='leave-card leave-gate-verification';
+    panel.open=gateVerificationOpen;
+    panel.innerHTML='<summary>Attendance &amp; Leave Verification</summary><div class="leave-overlap-header">'+
       '<div class="leave-overlap-intro"><strong>Gate visits during approved leave</strong>'+
       '<p class="leave-help">Review physical movements that overlap approved leave. A scan does not cancel leave or automatically fill the DTR.</p></div>'+
       '<div class="leave-overlap-controls">'+
       '<label>School date <input type="date" class="leave-overlap-date" required></label>'+
       '<button class="leave-btn leave-check-overlaps" type="button">Check date</button></div></div>'+
-      '<div class="leave-overlap-list" role="status" aria-live="polite">Loading…</div>';
+      '<div class="leave-overlap-list" role="status" aria-live="polite">Open this section or check a date to review verified gate movements.</div>';
     const fields=new Intl.DateTimeFormat('en-US',{timeZone:'Asia/Manila',year:'numeric',month:'2-digit',day:'2-digit'})
      .formatToParts(new Date());
     const val=key=>fields.find(p=>p.type===key)?.value||'';
@@ -445,21 +459,30 @@
        const title=document.createElement('strong');title.textContent=item.staffName||'Staff';
        const detail=document.createElement('span');
        detail.textContent=item.movementCount+' gate movement(s) · first '+item.firstMovement+
-        ', last '+item.lastMovement+' · HR/DTR review required';
+        ', last '+item.lastMovement+' · Attendance record review required';
        line.append(title,detail);list.append(line);
       });
      }catch(e){list.textContent='Could not check leave overlaps: '+e.message;}
     }
     panel.querySelector('.leave-check-overlaps').addEventListener('click',()=>{void checkOverlaps();});
-    body.append(panel);
-    void checkOverlaps();
-   }
+    let loaded=false;
+    panel.addEventListener('toggle',()=>{
+     gateVerificationOpen=panel.open;
+     if(panel.open&&!loaded){loaded=true;void checkOverlaps();}
+    });
+    if(panel.open){loaded=true;void checkOverlaps();}
+    return panel;
+  }
+  async function renderRequests(sequence){
+   if(reviewOnly)body.replaceChildren();
+   else body.replaceChildren(newRequest());
    const header=document.createElement('div');header.className='leave-section-title';header.innerHTML=
     '<h3>'+(reviewOnly?'Pending leave approvals':'My applications')+'</h3><button class="leave-btn" type="button">Refresh</button>';
    header.querySelector('button').addEventListener('click',()=>load().catch(e=>say(e.message,true)));
    body.append(header);
    const list=document.createElement('div');list.className='leave-list';body.append(list);
    const response=await call('/requests');
+   if(sequence!==loadSequence||tab!=='requests')return;
    const ownRequests=(response.requests||[]).filter(r=>r.staffUserId===user.userId);
    if(!reviewOnly){
     const counts={
@@ -491,7 +514,7 @@
        esc(r.filingBasis==='POST_RETURN'?'Filed after absence; verify return date':
         r.filingBasis==='ADVANCE'?'Submitted in advance':r.filingBasis==='DURING_ABSENCE'?
         'Submitted during absence':'Submission date not classified')+
-       ' · Credit account is finalized only after HR certification.</p>':'')+
+       ' · Credit account is finalized only after official verification.</p>':'')+
      (r.externalReference?'<p>Approval reference: '+esc(r.externalReference)+'</p>':'')+
      '<div class="leave-actions"></div>';
     const buttons=card.querySelector('.leave-actions');
@@ -503,7 +526,7 @@
      if(r.leaveType==='SICK'){
       const sickDoc=document.createElement('details');sickDoc.className='leave-card';
       sickDoc.innerHTML='<summary>Attach medical evidence or notarized affidavit</summary>'+
-       '<p class="leave-help">For advance-filed sick leave or illness exceeding five consecutive days, submit a medical certificate/clearance, or an appropriate notarized affidavit where medical consultation was not obtained. Only authorized HR staff can inspect these sensitive documents.</p>'+
+       '<p class="leave-help">For advance-filed sick leave or illness exceeding five consecutive days, submit a medical certificate/clearance, or an appropriate notarized affidavit where medical consultation was not obtained. Only authorized school personnel can inspect these sensitive documents.</p>'+
        '<form class="leave-inline-form">'+
        select('documentKind','Evidence type',[
          ['MEDICAL','Medical certificate / clearance'],['AFFIDAVIT','Notarized affidavit']])+
@@ -538,7 +561,7 @@
       textInput('approverName','Name of authorized approving official')+
       textInput('approverPosition','Official approving position')+
       textInput('approvedOn','Decision date',true,'date')+
-      textInput('certifiedWorkingDays','HR-certified working days (approval only)',false,'number')+
+      textInput('certifiedWorkingDays','Verified working days (approval only)',false,'number')+
       '<label>Notes<textarea name="note" maxlength="1000"></textarea></label>'+
       fileInput('file','Attach signed approval (PDF/JPG/PNG)')+
       '<button class="leave-primary" type="submit">Verify and record decision</button></form>';
@@ -560,7 +583,7 @@
   function creditForm(){
    const details=document.createElement('details');details.className='leave-card';details.innerHTML=
     '<summary>Submit earned-credit claim (not a balance adjustment)</summary>'+
-    '<p class="leave-help">Teachers may propose an eligible service-credit claim with supporting evidence, not assign or change their certified balance. HR verifies all approved days against an official Special Order or certification.</p>'+
+    '<p class="leave-help">Teachers may propose an eligible service-credit claim with supporting evidence, not assign or change their certified balance. The School Admin verifies approved days against an official Special Order or certification.</p>'+
     '<form class="leave-form">'+select('creditAccount','Credit account',[['VSC','Vacation Service Credits'],['VL','Vacation Leave'],['SL','Sick Leave'],['CTO','Compensatory Time Off']])+
     select('activityKind','Activity',[['SEMINAR','Training / seminar'],['BRIGADA_ESKWELA','Brigada Eskwela'],['TEACHING_OVERLOAD','Eligible overload'],['OTHER','Other authorized service']])+
     textInput('activityDate','Date of service',true,'date')+textInput('hours','Qualifying hours',false,'number')+
@@ -586,7 +609,7 @@
     const form=document.createElement('form');form.className='leave-inline-form';
     form.innerHTML=textInput('approvalReference','Special Order / signed certification number')+
      textInput('approvedDays','Officially approved credit days',true,'number')+
-     fileInput('file',e.entryKind==='OPENING'?'Official HR credit certification':'Official signed Special Order / certification')+
+     fileInput('file',e.entryKind==='OPENING'?'Official leave-credit certification':'Official signed Special Order / certification')+
      '<button class="leave-primary" type="submit">Verify credit</button>';
     form.querySelector('[name=approvedDays]').value=e.days;
     form.addEventListener('submit',event=>{
@@ -606,8 +629,8 @@
    body.replaceChildren();
    const guidance=document.createElement('div');guidance.className='leave-role-guidance';
    guidance.innerHTML=isHrAdmin
-    ? '<strong>HR credit administration</strong><p>Encode an employee\'s existing credits only from official HR records. Entries stay pending until another authorized officer verifies the supporting certification. Your own balances are displayed separately below.</p>'
-    : '<strong>My certified credit balances · read-only</strong><p>These balances come from verified HR records. You cannot edit them. An earned-credit claim is only a proposal until official certification.</p>';
+    ? '<strong>Leave-credit records</strong><p>Encode an employee\'s existing credits only from official personnel records. Entries stay pending until another authorized officer verifies the supporting certification. Your own balances are displayed separately below.</p>'
+    : '<strong>My certified credit balances · read-only</strong><p>These balances come from verified official personnel records. You cannot edit them. An earned-credit claim is only a proposal until official certification.</p>';
    body.append(guidance);
    const own=await call('/credits');
    const balance=document.createElement('div');balance.className='leave-balances';
@@ -619,7 +642,7 @@
      const verified=certified.has(key);
      el.innerHTML='<small>'+esc(label)+'</small><strong class="'+(verified?'':'leave-balance-unrecorded')+'">'+
       esc(verified?(credits.get(key)||0).toFixed(3):'Not recorded')+'</strong><span>'+
-      (verified?'HR-certified available days':'No HR-certified balance on file')+'</span>';balance.append(el);
+      (verified?'Verified available days':'No Verified balance on file')+'</span>';balance.append(el);
     });
    body.append(balance);
    const h=document.createElement('h3');h.textContent='My credit history';body.append(h);
@@ -628,8 +651,8 @@
    if(!own.entries?.length){list.innerHTML='<p class="leave-empty">No certified or proposed credit transactions yet.</p>';}
    if(user.role==='SCHOOL_ADMIN'){
     const importPanel=document.createElement('details');importPanel.className='leave-card';
-    importPanel.innerHTML='<summary>Record staff HR opening balance (requires verification)</summary>'+
-     '<p class="leave-help">Record existing credits from an official HR certificate. This creates a pending entry; attach the certificate and verify separately before any balance is available.</p>'+
+    importPanel.innerHTML='<summary>Record staff opening balance (requires verification)</summary>'+
+     '<p class="leave-help">Record existing credits from an official leave-credit certificate. This creates a pending entry; attach the certificate and verify separately before any balance is available.</p>'+
      '<form class="leave-form"><label>Employee<select name="staffUserId" required><option value="">Select employee</option></select></label>'+
      select('creditAccount','Credit account',[['VSC','Vacation Service Credits'],['VL','Vacation Leave'],['SL','Sick Leave'],['CTO','Compensatory Time Off']])+
      textInput('openingDays','Existing certified balance (days)',true,'number')+
@@ -650,16 +673,16 @@
     // does not guess eligibility from TEACHER, HEAD, or ADMIN application roles.
     const schemePanel=document.createElement('details');
     schemePanel.className='leave-card';
-    schemePanel.innerHTML='<summary>HR verification · employee leave scheme</summary>'+
+    schemePanel.innerHTML='<summary>Verify employee leave scheme</summary>'+
      '<p class="leave-help">DepEd DO 013, s. 2024: teaching personnel covered by the VSC scheme use VSC for illness, while employees reassigned to non-teaching functions may use regular VL/SL. Verify appointment/reassignment records. This classification never creates or converts credit days.</p>'+
      '<form class="leave-form"><label>Employee<select name="staffUserId" required>'+
      '<option value="">Select employee</option></select></label>'+
-     select('leaveScheme','HR-certified entitlement',[
+     select('leaveScheme','Verified entitlement',[
       ['TEACHING_VSC','Teaching personnel — VSC for illness'],
       ['REGULAR_VL_SL','Regular/non-teaching leave — SL for illness']])+
      textInput('hrReference','Official appointment/reassignment document reference',true)+
      '<button type="submit" class="leave-primary">Certify leave scheme</button></form>'+
-     '<p class="leave-help leave-scheme-record" aria-live="polite">Select an employee to inspect the current HR classification.</p>';
+     '<p class="leave-help leave-scheme-record" aria-live="polite">Select an employee to inspect the current leave classification.</p>';
     const schemeSelect=schemePanel.querySelector('select[name=staffUserId]');
     (roster.staff||[]).forEach(s=>{
      const option=document.createElement('option');option.value=s.userId;
@@ -670,14 +693,14 @@
     schemeSelect.addEventListener('change',()=>{
      const staff=roster.staff?.find(s=>s.userId===schemeSelect.value);
      schemeHint.textContent=staff?(staff.leaveScheme==='UNVERIFIED'
-       ?'No HR leave scheme certified yet.'
-       :'HR-certified: '+staff.leaveScheme.replaceAll('_',' ')+' · Ref. '+staff.hrReference)
-      :'Select an employee to inspect the current HR classification.';
+       ?'Leave scheme not yet verified.'
+       :'Verified: '+staff.leaveScheme.replaceAll('_',' ')+' · Ref. '+staff.hrReference)
+      :'Select an employee to inspect the current leave classification.';
     });
     schemePanel.querySelector('form').addEventListener('submit',event=>{
      event.preventDefault();const d=new FormData(event.target),staffId=String(d.get('staffUserId'));
      if(staffId===user.userId){say('You cannot certify your own leave scheme. Another authorized officer is required.',true);return;}
-     action('Verifying HR leave scheme',()=>call('/staff/'+encodeURIComponent(staffId)+'/credit-scheme','POST',{
+     action('Verifying leave scheme',()=>call('/staff/'+encodeURIComponent(staffId)+'/credit-scheme','POST',{
       leaveScheme:String(d.get('leaveScheme')),hrReference:String(d.get('hrReference')||'')
      }));
     });
@@ -687,10 +710,10 @@
     const directory=document.createElement('section');
     directory.className='leave-card leave-hr-directory';
     directory.innerHTML='<h3>Staff certified credit directory</h3>'+
-     '<p class="leave-help">Select an employee to inspect verified balances. An unrecorded balance is not proof of zero entitlement. Only authorized HR records may establish credits.</p>'+
+     '<p class="leave-help">Select an employee to inspect verified balances. An unrecorded balance is not proof of zero entitlement. Only official personnel records may establish credits.</p>'+
      '<div class="leave-form"><label>Employee<select name="creditDirectoryStaff"><option value="">Select employee</option></select></label>'+
      '<button type="button" class="leave-btn" data-credit-directory-check>View certified record</button></div>'+
-     '<div class="leave-hr-directory-result" role="status" aria-live="polite">Select an employee to view their HR-certified credits.</div>';
+     '<div class="leave-hr-directory-result" role="status" aria-live="polite">Select an employee to view their verified credits.</div>';
     const directorySelect=directory.querySelector('select[name=creditDirectoryStaff]');
     (roster.staff||[]).forEach(s=>{
      const opt=document.createElement('option');opt.value=s.userId;
@@ -700,7 +723,7 @@
     directory.querySelector('[data-credit-directory-check]').addEventListener('click',async e=>{
      const staffId=directorySelect.value,output=directory.querySelector('.leave-hr-directory-result');
      if(!staffId){output.textContent='Select an employee first.';return;}
-     const control=e.currentTarget;control.disabled=true;output.textContent='Checking HR-certified records…';
+     const control=e.currentTarget;control.disabled=true;output.textContent='Checking verified records…';
      try{
       const record=await call('/credits?staffUserId='+encodeURIComponent(staffId));
       const confirmed=new Map((record.balances||[]).filter(x=>x.isCertified===true)
