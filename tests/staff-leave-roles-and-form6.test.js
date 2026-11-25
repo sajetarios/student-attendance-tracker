@@ -123,6 +123,7 @@ test('Form 6 uses the staff cookie, Manila filing date and recorded decision',as
 });
 
 test('commutation stays optional on the attendance form without HR instructions',()=>{
+ const ui=read('public/staff-leave-ui.js');
  assert.match(ui,/class="leave-form6-options"><summary>Additional Form 6 options/);
  assert.match(ui,/\['NOT_REQUESTED','Not requested'\]/);
  assert.match(ui,/Attendigo does not process payments/);
