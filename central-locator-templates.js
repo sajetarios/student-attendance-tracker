@@ -72,6 +72,16 @@ function registerCentralLocatorRoutes(app,pool,{authenticateSchoolClient,require
    return res.json({templates:t.rows,selected:b.centralLocatorTemplateId||null});
   }catch(e){console.error('Central Locator list:',e.message);return res.status(503).json({error:'Template library unavailable.'});}
  });
+ app.get('/api/school/locator-templates/:id/preview',...school,async(req,res)=>{
+  if(!UUID.test(req.params.id))return res.status(400).json({error:'Invalid template.'});
+  try{
+   const q=await pool.query('SELECT document_branding FROM schools WHERE school_id=$1 AND active=TRUE',[req.auth.schoolId]);
+   if(!q.rowCount)return res.status(404).json({error:'School not found.'});
+   let template;
+   try{template=await loadCentralTemplate(pool,req.params.id,q.rows[0].document_branding||{});}catch(e){return res.status(404).json({error:'This verified template is not available for your school division.'});}
+   return res.type('image/png').send(await require('./locator-slip-preview').renderCentralLocator(template.pdf_bytes,null));
+  }catch(e){console.error('Central Locator school preview:',e.message);return res.status(e.code==='PREVIEW_BUSY'?429:503).json({error:e.code==='PREVIEW_BUSY'?e.message:'Blank template preview unavailable. Please retry.'});}
+ });
  app.post('/api/school/locator-templates/activate',...school,async(req,res)=>{
   const id=req.body?.templateId;
   if(id!==null&&!UUID.test(id||''))return res.status(400).json({error:'Select a verified template.'});

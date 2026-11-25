@@ -1,4 +1,4 @@
-const CACHE = "attendigo-v428-recognition-leave-sync";
+const CACHE = "attendigo-v429-school-template-card";
 
 // Only public, non-personal offline shells and their executable dependencies.
 // An update must not discard the working cache before these are all ready.

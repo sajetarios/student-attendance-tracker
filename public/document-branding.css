@@ -55,3 +55,24 @@
 .locator-review-manual-actions{display:grid;gap:8px;min-width:0}
 @container(max-width:760px){.locator-review-grid{grid-template-columns:minmax(0,1fr);grid-template-areas:"pattern" "preview" "mapping" "sample" "publish"}.locator-review-toolbar{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}.locator-review-select{grid-column:1/-1;grid-row:1}.locator-review-toolbar button{width:100%}}
 @media(max-width:700px){.locator-review-grid{grid-template-columns:minmax(0,1fr);grid-template-areas:"pattern" "preview" "mapping" "sample" "publish"}.locator-review-toolbar{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}.locator-review-select{grid-column:1/-1;grid-row:1}.locator-preview-stage{padding:4px}.locator-review-step{padding:10px}}
+
+/* School-admin template selection: scoped to the official document identity card. */
+.locator-school-card{min-width:0;border:1px solid var(--line,#dce5ec);border-radius:12px;padding:16px;display:grid;gap:12px;background:var(--card,#fff)}
+.locator-school-current{min-width:0;display:grid;gap:5px}
+.locator-school-heading{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap}
+.locator-school-heading h4{margin:0;font-size:18px;line-height:1.4}
+.locator-school-current strong{font-size:18px;line-height:1.45;overflow-wrap:anywhere}
+.locator-school-card p{margin:0;line-height:1.45;overflow-wrap:anywhere}
+.locator-school-current p{color:var(--muted,#64748b)}
+.locator-school-state{font-size:16px;font-weight:650;border:1px solid var(--line,#dce5ec);border-radius:6px;padding:4px 9px}
+.locator-school-state[data-state=active]{color:var(--success,#16834b);border-color:currentColor}
+.locator-school-state[data-state=warning]{color:var(--warning,#a16207);border-color:currentColor}
+.locator-school-actions{display:flex;gap:8px;flex-wrap:wrap;align-items:center;min-width:0}
+.locator-school-card button{min-height:44px;height:auto;max-width:100%;white-space:normal;overflow-wrap:anywhere;font-size:16px;line-height:1.4}
+.locator-school-change{display:grid;gap:10px;min-width:0;padding:12px;border:1px solid var(--line,#dce5ec);border-radius:8px}
+.locator-school-change select{width:100%;min-width:0;max-width:100%;min-height:44px;font-size:16px}
+.locator-school-preview{display:grid;gap:10px;justify-items:start;min-width:0;padding:12px;border:1px solid var(--line,#dce5ec);border-radius:8px}
+.locator-school-preview h5{margin:0;font-size:17px}
+.locator-school-preview img{display:block;width:min(100%,700px);height:auto;max-width:100%;background:#fff;border:1px solid var(--line,#dce5ec)}
+.locator-school-card [role=status]:empty{display:none}
+@media(max-width:700px){.locator-school-card{padding:12px}.locator-school-actions>button{flex:1 1 150px}.locator-school-change,.locator-school-preview{padding:10px}}

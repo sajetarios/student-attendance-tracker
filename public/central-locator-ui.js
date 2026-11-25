@@ -8,21 +8,67 @@
  identity.then(user=>{
   if(user?.role==='SCHOOL_ADMIN'){
    const host=$('locatorLibraryRequest');if(!host)return;
-   const panel=el('section'),title=el('h4','Verified division templates'),status=el('p'),list=el('select'),active=btn('Use selected template',()=>save(list.value||null)),restore=btn('Use existing DepEd or Mati layout',()=>save(null));
-   list.setAttribute('aria-label','Verified division template');status.setAttribute('role','status');
-   panel.className='locator-library';const actions=el('div');actions.className='doc-brand-actions';actions.append(list,active,restore);panel.append(title,el('p','Select a centrally verified form for your division. No field configuration is required.'),actions,status);
+   const panel=el('section'),title=el('h4','Locator Slip template'),status=el('p'),list=el('select');
+   const activeTitle=el('strong'),activeDetail=el('p'),activeDate=el('p'),activeState=el('span'),activeCard=el('div'),cardHeading=el('div');
+   const actions=el('div'),changeArea=el('div'),changeActions=el('div'),selectionLabel=el('label','Available verified templates');
+   const previewArea=el('section'),previewTitle=el('h5','Blank template preview'),previewImage=el('img'),previewStatus=el('p');
+   const restoreArea=el('div'),restoreText=el('p','Restore the built-in layout selected in Official document identity? This does not change already approved requests.');
+   let busy=false,data=null,previewUrl=null,previewSeq=0,previewing=false;
+   panel.className='locator-library locator-school-card';status.setAttribute('role','status');status.setAttribute('aria-live','polite');
+   activeState.className='locator-school-state';activeCard.className='locator-school-current';cardHeading.className='locator-school-heading';cardHeading.append(title,activeState);
+   activeCard.append(cardHeading,activeTitle,activeDetail,activeDate);
+   const closePreview=()=>{previewSeq++;previewing=false;previewArea.hidden=true;previewImage.hidden=true;previewImage.removeAttribute('src');if(previewUrl){URL.revokeObjectURL(previewUrl);previewUrl=null;}};
+   const preview=btn('Preview active form',()=>showPreview(data?.selected));
+   const change=btn('Change template',()=>{changeArea.hidden=!changeArea.hidden;change.setAttribute('aria-expanded',String(!changeArea.hidden));restoreArea.hidden=true;if(!changeArea.hidden)list.focus();});
+   const restore=btn('Restore default layout',()=>{restoreArea.hidden=!restoreArea.hidden;changeArea.hidden=true;change.setAttribute('aria-expanded','false');});
+   const active=btn('Use selected template',()=>{if(list.value&&list.value!==data?.selected)void save(list.value);});
+   const candidatePreview=btn('Preview selected form',()=>showPreview(list.value));
+   const cancel=btn('Cancel',()=>{changeArea.hidden=true;change.setAttribute('aria-expanded','false');closePreview();list.value=data?.selected||'';refreshControls();});
+   const restoreConfirm=btn('Restore layout',()=>save(null)),restoreCancel=btn('Cancel',()=>restoreArea.hidden=true);
+   const previewClose=btn('Close preview',closePreview),retry=btn('Retry',()=>load());
+   active.className=restoreConfirm.className='primary-button';retry.hidden=true;actions.className='locator-school-actions';changeActions.className='locator-school-actions';
+   list.id='locator-school-template-select';list.setAttribute('aria-label','Verified division template');selectionLabel.htmlFor=list.id;
+   change.setAttribute('aria-expanded','false');changeArea.className='locator-school-change';changeArea.hidden=true;changeActions.append(candidatePreview,active,cancel);changeArea.append(selectionLabel,list,changeActions);
+   restoreArea.className='locator-school-change';restoreArea.hidden=true;const restoreActions=el('div');restoreActions.className='locator-school-actions';restoreActions.append(restoreConfirm,restoreCancel);restoreArea.append(restoreText,restoreActions);
+   previewArea.className='locator-school-preview';previewArea.hidden=true;previewImage.alt='Blank verified division Locator Slip';previewImage.hidden=true;previewStatus.setAttribute('role','status');previewArea.append(previewTitle,previewStatus,previewImage,previewClose);
+   actions.append(preview,change,restore);panel.append(activeCard,actions,changeArea,restoreArea,previewArea,status,retry);
    host.before(panel);panel.hidden=true;
-   let busy=false;
-   async function load(){if(busy)return;busy=true;try{
-    const data=await(await api('/api/school/locator-templates')).json();panel.hidden=false;list.replaceChildren(new Option('Select a verified template',''));
-    for(const t of data.templates)list.add(new Option(t.division+' — '+new Date(t.publishedAt).toLocaleString(),t.templateId));
-    list.value=data.selected||'';active.disabled=!list.value;
-    restore.disabled=!data.selected;list.hidden=!data.templates.length;active.hidden=!data.templates.length;restore.hidden=!data.selected;actions.hidden=!data.templates.length&&!data.selected;
-    status.textContent=data.selected&&!list.value?'Your active template no longer matches your division. Select a matching template or restore the existing layout.':data.selected?'A verified division template is active.':data.templates.length?'Choose a form or keep your existing layout.':'No verified division forms are available yet.';
-   }catch(e){panel.hidden=true;}finally{busy=false;}}
-   list.addEventListener('change',()=>active.disabled=!list.value);
-   async function save(templateId){if(busy)return;busy=true;active.disabled=true;restore.disabled=true;try{await api('/api/school/locator-templates/activate',{templateId});}catch(e){status.textContent=e.message;busy=false;active.disabled=!list.value;restore.disabled=false;return;}busy=false;await load();}
-   const view=$('schoolBrandingView');if(view){new MutationObserver(()=>{if(!view.hidden)void load();}).observe(view,{attributes:true,attributeFilter:['hidden']});if(!view.hidden)void load();}
+   function refreshControls(){
+    const chosen=data?.templates?.find(t=>t.templateId===data.selected);
+    const selected=data?.templates?.find(t=>t.templateId===list.value);
+    preview.hidden=!chosen;change.hidden=!data?.templates?.some(t=>t.templateId!==data.selected);restore.hidden=!data?.selected;
+    actions.hidden=preview.hidden&&change.hidden&&restore.hidden;
+    preview.disabled=change.disabled=restore.disabled=restoreConfirm.disabled=busy;list.disabled=busy;
+    active.disabled=busy||!selected||selected.templateId===data?.selected;
+    candidatePreview.disabled=busy||!selected;
+    change.textContent=data?.selected?'Change template':'Choose a verified template';
+    if(change.hidden){changeArea.hidden=true;change.setAttribute('aria-expanded','false');}
+   }
+   function present(){
+    const current=data.templates.find(t=>t.templateId===data.selected);
+    activeState.textContent=current?'Active':data.selected?'Needs review':'Built-in layout';activeState.dataset.state=current?'active':data.selected?'warning':'default';
+    activeTitle.textContent=current?current.division:data.selected?'Selected template unavailable':'Default Locator Slip';
+    activeDetail.textContent=current?'Centrally verified division template':data.selected?'The saved template no longer matches your division. Choose a matching form or restore the built-in layout.':'Using the DepEd or Mati layout selected in Official document identity.';
+    activeDate.textContent=current?'Published: '+new Date(current.publishedAt).toLocaleDateString('en-PH',{year:'numeric',month:'long',day:'numeric'}):'';activeDate.hidden=!current;
+    list.replaceChildren(new Option('Select a verified template',''));for(const t of data.templates)list.add(new Option(t.division+' — '+new Date(t.publishedAt).toLocaleString('en-PH'),t.templateId));
+    list.value=data.selected||'';status.textContent=!data.templates.length&&!data.selected?'No verified division forms are available yet. You can request one below.':'';
+    refreshControls();
+   }
+   async function load(){
+    if(busy)return;busy=true;panel.hidden=false;retry.hidden=true;refreshControls();
+    try{data=await(await api('/api/school/locator-templates')).json();closePreview();changeArea.hidden=true;change.setAttribute('aria-expanded','false');restoreArea.hidden=true;present();}
+    catch(e){data=null;closePreview();changeArea.hidden=true;restoreArea.hidden=true;activeState.textContent='Unavailable';activeState.dataset.state='warning';activeTitle.textContent='Template library unavailable';activeDetail.textContent='Your existing template has not been changed.';activeDate.hidden=true;status.textContent=e.message;retry.hidden=false;}
+    finally{busy=false;refreshControls();}
+   }
+   list.addEventListener('change',()=>{closePreview();refreshControls();});
+   async function showPreview(templateId){
+    if(busy||!data?.templates.some(t=>t.templateId===templateId))return;closePreview();const seq=previewSeq;previewing=true;previewArea.hidden=false;previewStatus.textContent='Loading blank template…';
+    try{const blob=await(await api('/api/school/locator-templates/'+encodeURIComponent(templateId)+'/preview')).blob();if(seq!==previewSeq)return;if(!blob.type.startsWith('image/png')||!blob.size)throw Error('The preview is unavailable.');previewUrl=URL.createObjectURL(blob);previewImage.src=previewUrl;await previewImage.decode();if(seq!==previewSeq)return;previewImage.hidden=false;previewStatus.textContent='Blank official layout. Check the printed region and division before activation.';}
+    catch(e){if(seq===previewSeq){previewStatus.textContent=e.message;previewImage.hidden=true;}}
+    finally{if(seq===previewSeq)previewing=false;}
+   }
+   async function save(templateId){if(busy)return;busy=true;closePreview();status.textContent='Saving template…';refreshControls();try{await api('/api/school/locator-templates/activate',{templateId});busy=false;await load();if(data)status.textContent=templateId?'Verified template activated.':'Built-in layout restored.';}catch(e){status.textContent=e.message;}finally{busy=false;refreshControls();}}
+   const view=$('schoolBrandingView');if(view){new MutationObserver(()=>{if(!view.hidden)void load();else closePreview();}).observe(view,{attributes:true,attributeFilter:['hidden']});if(!view.hidden)void load();}
   }else if(user?.role==='SUPER_ADMIN'){
    const host=$('platformLocatorRequests');if(!host)return;
    const section=el('details'),heading=el('summary','Review and publish a division template'),select=el('select'),status=el('p'),field=el('select'),sheet=el('div'),image=el('img'),marks=el('div'),sampleLink=el('a'),check=el('input'),label=el('label');
