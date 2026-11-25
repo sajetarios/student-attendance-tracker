@@ -99,7 +99,7 @@ test('OB, timetables and other restricted actions use current UI labels',()=>{
   assert.equal(guide.match('Official Business request','TEACHER')?.id,'official-business');
   assert.match(guide.answer('Official Business request','TEACHER').steps.join(' '),/Start \(Philippine time\)/);
   assert.ok(ob.includes('Submit My Official Business request'));
-  assert.ok(ob.includes('Department Heads recommend; School Admin makes the final decision'));
+  assert.ok(ob.includes('Department Heads recommend teacher requests; the Principal authorizes official business'));
   assert.equal(guide.match('school timetable settings','TEACHER'),null);
   assert.equal(guide.match('school timetable settings','SCHOOL_ADMIN')?.id,'school-settings');
   assert.match(guide.answer('school timetable settings','SCHOOL_ADMIN').steps.join(' '),/Class Schedules/);
