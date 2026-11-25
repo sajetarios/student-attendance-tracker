@@ -1,6 +1,7 @@
 'use strict';
 const {createHash}=require('node:crypto');
 const {validateMapping}=require('./central-locator-renderer');
+const catalog=require('./public/locator-field-library');
 const UUID=/^[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}$/i;
 const hash=b=>createHash('sha256').update(b).digest('hex');
 const mappingKey=m=>JSON.stringify(Object.fromEntries(Object.keys(m).sort().map(k=>[k,m[k]])));
@@ -19,7 +20,9 @@ function centralValues(data,identity){
  const day=new Intl.DateTimeFormat('en-PH',{timeZone:'Asia/Manila',year:'numeric',month:'short',day:'numeric'});
  const time=new Intl.DateTimeFormat('en-PH',{timeZone:'Asia/Manila',hour:'numeric',minute:'2-digit'});
  if(![start,end,filed].every(d=>Number.isFinite(+d))||end<=start||day.format(start)!==day.format(end))throw Error('Locator Slips require valid same-day official travel dates.');
- return {name:data.staffName,position:data.position,station:data.schoolName,purpose:data.purpose,destination:data.destination,event:day.format(start)+' | '+time.format(start)+' – '+time.format(end),business:'✓',filed:day.format(filed),region:identity.region,division:identity.division,head:identity.schoolHeadName,headPosition:identity.schoolHeadPosition};
+ const long=new Intl.DateTimeFormat('en-PH',{timeZone:'Asia/Manila',year:'numeric',month:'long',day:'numeric'});
+ const numeric=new Intl.DateTimeFormat('en-GB',{timeZone:'Asia/Manila',year:'numeric',month:'2-digit',day:'2-digit'});
+ return {name:data.staffName,position:data.position,station:data.schoolName,schoolName:data.schoolName,purpose:data.purpose,destination:data.destination,event:day.format(start)+' | '+time.format(start)+' – '+time.format(end),travelDate:day.format(start),travelDateLong:long.format(start),travelDateNumeric:numeric.format(start),departTime:time.format(start),returnTime:time.format(end),timeRange:time.format(start)+' – '+time.format(end),startDateTime:day.format(start)+', '+time.format(start),endDateTime:day.format(end)+', '+time.format(end),business:'✓',officialTime:'',filed:day.format(filed),filedLong:long.format(filed),region:identity.region,division:identity.division,head:identity.schoolHeadName,headPosition:identity.schoolHeadPosition};
 }
 function registerCentralLocatorRoutes(app,pool,{authenticateSchoolClient,requireSchoolRoles,authenticatePlatform,requirePlatformAdmin,canCustomizeBranding}){
  const platform=[authenticatePlatform,requirePlatformAdmin,privateResponse],school=[authenticateSchoolClient,requireSchoolRoles('SCHOOL_ADMIN'),canCustomizeBranding,privateResponse];
@@ -38,7 +41,7 @@ function registerCentralLocatorRoutes(app,pool,{authenticateSchoolClient,require
     res.set('X-Locator-Sample-Proof',proof(row,m));
     return res.type('application/pdf').attachment('Locator-Slip-SAMPLE.pdf').send(pdf);
    }
-   if(req.body?.verified!==true||req.body?.divisionConfirmed!==true||(m.business&&req.body?.businessConfirmed!==true)||req.body?.proof!==proof(row,m))return res.status(422).json({error:'Generate and inspect the sample PDF for this exact mapping before publishing.'});
+   if(req.body?.verified!==true||req.body?.divisionConfirmed!==true||((catalog.has(m,'business')||catalog.has(m,'officialTime'))&&req.body?.businessConfirmed!==true)||req.body?.proof!==proof(row,m))return res.status(422).json({error:'Generate and inspect the sample PDF for this exact mapping before publishing.'});
    // Revalidate the printable sample, then store immutable bytes and mapping.
    await renderPdf(row.pdf_bytes,m,true);
    const result=await pool.query(`WITH published AS (
@@ -52,7 +55,7 @@ function registerCentralLocatorRoutes(app,pool,{authenticateSchoolClient,require
    if(!result.rowCount)return res.status(409).json({error:'This request is no longer available or has already been published.'});
    return res.status(201).json(result.rows[0]);
    }catch(e){console.error('Central Locator:',e.message);
-   if(e.code==='LOCATOR_FIELD_INVALID')return res.status(422).json({error:e.message,field:e.field,optional:!require('./central-locator-renderer').fields.find(f=>f[0]===e.field)?.[3]});
+   if(e.code==='LOCATOR_FIELD_INVALID')return res.status(422).json({error:e.message,field:e.field,optional:catalog.canRemove(m,e.field)});
    return res.status(e.code==='PREVIEW_BUSY'?429:422).json({error:e.code==='PREVIEW_BUSY'?e.message:'Could not prepare the form. Check the page and field placement, then retry.'});}
  };
  app.get(base+'/blank-preview',...platform,(req,res)=>render(req,res,'blank'));
