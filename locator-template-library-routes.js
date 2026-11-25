@@ -14,9 +14,11 @@ function registerLocatorLibraryRoutes(app,pool,{authenticateSchoolClient,require
  const cols='request_id AS "requestId",region,division,status,submitted_at AS "submittedAt",reviewed_at AS "reviewedAt"';
  const fail=(res,e)=>{console.error('Locator library:',e.message);return res.status(503).json({error:'Template requests are temporarily unavailable.'});};
  app.get('/api/school/locator-template-request',...school,async(req,res)=>{
+  res.set('Cache-Control','private, no-store');
   try{const q=await pool.query('SELECT '+cols+' FROM school_locator_template_requests WHERE school_id=$1',[req.auth.schoolId]);return res.json({request:q.rows[0]||null});}catch(e){return fail(res,e);}
  });
  app.post('/api/school/locator-template-request',...school,async(req,res)=>{
+  res.set('Cache-Control','private, no-store');
   if(req.body?.blankConfirmed!==true)return res.status(400).json({error:'Confirm that the PDF is blank and contains no personal details or signatures.'});
   let bytes;try{bytes=parseBlankPdf(req.body?.pdf);}catch(e){return res.status(400).json({error:e.message});}
   try{
@@ -38,13 +40,16 @@ function registerLocatorLibraryRoutes(app,pool,{authenticateSchoolClient,require
   }catch(e){return fail(res,e);}
  });
  app.get('/api/platform/locator-template-requests',...platform,async(req,res)=>{
+  res.set('Cache-Control','private, no-store');
   try{const q=await pool.query('SELECT r.request_id AS "requestId",r.region,r.division,r.status,r.submitted_at AS "submittedAt",r.reviewed_at AS "reviewedAt",s.school_name AS "schoolName" FROM school_locator_template_requests r JOIN schools s ON s.school_id=r.school_id ORDER BY (r.status=\'PENDING\') DESC,r.submitted_at DESC LIMIT 100');return res.json({requests:q.rows});}catch(e){return fail(res,e);}
  });
  app.get('/api/platform/locator-template-requests/:id/pdf',...platform,async(req,res)=>{
+  res.set('Cache-Control','private, no-store');
   if(!UUID.test(req.params.id))return res.status(400).json({error:'Invalid request.'});
   try{const q=await pool.query('SELECT pdf_bytes FROM school_locator_template_requests WHERE request_id=$1',[req.params.id]);if(!q.rowCount)return res.status(404).json({error:'Request not found.'});res.set('X-Content-Type-Options','nosniff');return res.type('application/pdf').attachment('Blank-Locator-Slip.pdf').send(q.rows[0].pdf_bytes);}catch(e){return fail(res,e);}
  });
  app.post('/api/platform/locator-template-requests/:id/review',...platform,async(req,res)=>{
+  res.set('Cache-Control','private, no-store');
   if(!UUID.test(req.params.id))return res.status(400).json({error:'Invalid request.'});
   try{const q=await pool.query("UPDATE school_locator_template_requests SET status='REVIEWED',reviewed_at=NOW(),reviewed_by=$2 WHERE request_id=$1 AND status='PENDING' RETURNING request_id",[req.params.id,req.auth.userId]);if(!q.rowCount)return res.status(409).json({error:'Request is no longer pending.'});return res.json({reviewed:true});}catch(e){return fail(res,e);}
  });

@@ -41,11 +41,15 @@ function registerCentralLocatorRoutes(app,pool,{authenticateSchoolClient,require
    if(req.body?.verified!==true||req.body?.proof!==proof(row,m))return res.status(422).json({error:'Generate and inspect the sample PDF for this exact mapping before publishing.'});
    // Revalidate the printable sample, then store immutable bytes and mapping.
    await renderPdf(row.pdf_bytes,m,true);
-   const result=await pool.query(`INSERT INTO locator_template_versions(source_request_id,region,division,pdf_bytes,pdf_sha256,mapping,published_by)
+   const result=await pool.query(`WITH published AS (
+    INSERT INTO locator_template_versions(source_request_id,region,division,pdf_bytes,pdf_sha256,mapping,published_by)
     SELECT request_id,region,division,pdf_bytes,$2,$3::jsonb,$4 FROM school_locator_template_requests WHERE request_id=$1
-    ON CONFLICT(source_request_id) DO NOTHING RETURNING template_id AS "templateId"`,[row.request_id,hash(row.pdf_bytes),mappingKey(m),req.auth.userId]);
+    ON CONFLICT(source_request_id) DO NOTHING RETURNING template_id,source_request_id
+   ), reviewed AS (
+    UPDATE school_locator_template_requests r SET status='REVIEWED',reviewed_at=NOW(),reviewed_by=$4
+    FROM published p WHERE r.request_id=p.source_request_id AND r.status='PENDING' RETURNING r.request_id
+   ) SELECT template_id AS "templateId" FROM published`,[row.request_id,hash(row.pdf_bytes),mappingKey(m),req.auth.userId]);
    if(!result.rowCount)return res.status(409).json({error:'This request is no longer available or has already been published.'});
-   await pool.query("UPDATE school_locator_template_requests SET status='REVIEWED',reviewed_at=NOW(),reviewed_by=$2 WHERE request_id=$1 AND status='PENDING'",[row.request_id,req.auth.userId]);
    return res.status(201).json(result.rows[0]);
   }catch(e){console.error('Central Locator:',e.message);return res.status(e.code==='PREVIEW_BUSY'?429:422).json({error:e.code==='PREVIEW_BUSY'?e.message:'Could not prepare the form. Check the page and field placement, then retry.'});}
  };
