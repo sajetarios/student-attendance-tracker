@@ -1063,3 +1063,44 @@ button.priority-department-row:focus-visible,.priority-reset:focus-visible{
 #main #refreshDashboard>span{font-size:inherit;margin:0}
 #main .recognition-empty-icon .principal-action-icon{inline-size:24px;block-size:24px}
 @media(max-width:650px){#main .principal-quick-links button:has(.principal-action-icon){gap:6px}#main .principal-quick-links .principal-action-icon{inline-size:18px;block-size:18px}}
+
+/* Executive 2: mobile-first compact navigation, distinct visual hierarchy. */
+#main .principal-nav-heading{display:flex;align-items:center;justify-content:space-between;gap:12px}
+#main .principal-nav-heading>div{display:grid;gap:2px;min-width:0}
+#main .principal-nav-toggle{display:none;align-items:center;justify-content:center;gap:7px;flex:none}
+#main .principal-content > .hero{background:linear-gradient(118deg,#122840 0%,#174e71 56%,#0d756c 100%);box-shadow:0 12px 28px #12334d26}
+#main .metric-card{border-block-start:4px solid var(--border)}
+#main .metric-blue{border-block-start-color:#367dca}
+#main .metric-amber{border-block-start-color:#ca8a29}
+#main .metric-violet{border-block-start-color:#8966c5}
+#main .metric-teal{border-block-start-color:#159184}
+#main .principal-briefing{border-inline-start:4px solid #168a89}
+#main .principal-content > .hero .eyebrow{letter-spacing:1.15px}
+@media screen and (min-width:1024px) and (max-width:1179px){
+ #main{grid-template-columns:minmax(185px,210px) minmax(0,1fr);gap:16px}
+ #main > .principal-navigation{position:sticky;top:16px;grid-column:1;max-height:calc(100vh - 32px);overflow:auto}
+ #main > .principal-content{grid-column:2}
+ #main .principal-main-tabs,#main .principal-navigation-secondary{display:grid;grid-template-columns:minmax(0,1fr)}
+}
+@media screen and (max-width:1023px){
+ #main .principal-nav-toggle{display:inline-flex;min-height:44px;font-size:15px}
+ #main .principal-navigation[data-expanded="false"] :is(.principal-main-tabs,.principal-navigation-secondary){display:none}
+ #main .principal-navigation[data-expanded="false"] .principal-nav-heading{border:0;padding:0}
+ #main .principal-navigation[data-expanded="false"] .principal-navigation-top{gap:0}
+ #main .principal-navigation[data-expanded="true"] .principal-nav-heading{padding:0 0 10px}
+ #main .principal-nav-heading strong{font-size:17px}
+ #main .principal-nav-heading span{font-size:14px}
+}
+@media screen and (max-width:650px){
+ #main .principal-content > .hero{padding:17px;gap:13px}
+ #main .hero-copy>p{font-size:15px}
+ #main .metric-card{gap:8px;padding:12px}
+ #main .metric-icon{inline-size:38px;block-size:38px}
+ #main .metric-card small{font-size:14px}
+ #main .metric-label{font-size:16px}
+}
+
+/* A failed report is an explicit unavailable state, never a blank graph. */
+#main .principal-unavailable{grid-column:1/-1;align-self:center;justify-self:stretch;padding:14px;color:var(--muted);font-size:15px;line-height:1.5;margin:0}
+#main .trend-chart:has(.principal-unavailable){min-height:80px;align-items:center}
+#main #feedback[data-state="error"]{padding:12px 14px;border:1px solid currentColor;border-radius:10px;font-size:15px;overflow-wrap:anywhere}
