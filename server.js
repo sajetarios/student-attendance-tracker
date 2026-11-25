@@ -209,6 +209,7 @@ registerPlannerRoutes(app, pool, { authenticateSchoolClient, requireSchoolRoles 
 registerCloudSyncRoutes(app, pool, { authenticateSchoolClient, requireSchoolAdmin });
 registerAccountRoutes(app, pool, { authenticateSchoolClient });
 registerSchoolRoutes(app, pool, { authenticateSchoolClient, requireSchoolRoles });
+require('./locator-template-pilot').registerLocatorPilot(app,{authenticateSchoolClient,requireSchoolRoles,canCustomizeBranding:requireSchoolFeature(pool,'custom_branding')});
 registerPlatformRoutes(app, pool, { authenticatePlatform, requirePlatformAdmin });
 registerPlatformBootstrapRoutes(app, pool);
 registerSchoolAdminRecoveryRoutes(app, pool, { authenticatePlatform, requirePlatformAdmin });
