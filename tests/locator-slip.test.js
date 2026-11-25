@@ -21,11 +21,15 @@ test('OB PDF endpoint is role and tenant scoped and private',()=>{
  assert.match(source,/no-store, private/);
  assert.match(source,/res\.send\(pdf\)/);
 });
-test('actual Annex E PDF remains byte-for-byte intact before appended overlay',{skip:!fs.existsSync(master)},()=>{
+test('actual Annex E content is preserved and stale linearization is disabled',{skip:!fs.existsSync(master)},()=>{
  const original=fs.readFileSync(master);
  assert.equal(createHash('sha256').update(original).digest('hex'),TEMPLATE_SHA);
  const filled=buildLocatorSlip(original,data);
- assert.deepEqual(filled.subarray(0,original.length),original);
+ const expected=Buffer.from(original);
+ const hint=expected.indexOf('/Linearized');assert.ok(hint>=0&&hint<128);
+ expected.write('/ObOrigHint',hint,'ascii');
+ assert.deepEqual(filled.subarray(0,original.length),expected);
+ assert.equal(createHash('sha256').update(original).digest('hex'),TEMPLATE_SHA);
  assert.ok(filled.length>original.length);
  const overlay=filled.subarray(original.length).toString('ascii');
  assert.ok(overlay.includes(Buffer.from(data.staffName).toString('hex')));
