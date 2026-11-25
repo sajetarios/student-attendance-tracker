@@ -1,4 +1,4 @@
-const CACHE = "attendigo-v419-admin-leave-role-cleanup";
+const CACHE = "attendigo-v421-simple-offline-teacher-integrated";
 
 // Only public, non-personal offline shells and their executable dependencies.
 // An update must not discard the working cache before these are all ready.
@@ -11,7 +11,7 @@ const OFFLINE_REQUIRED = [
   "/typography.css?v=1",
   "/offline-account-guard.js?v=1",
   "/offline-attendance.js?v=5",
-  "/offline-sheet.js?v=6",
+  "/offline-sheet.js?v=8",
   "/attendance-sync-center.js?v=3",
   "/attendance-sync-center.css?v=4",
   "/gate-offline.js?v=3",
@@ -153,7 +153,7 @@ const SHELL = [
   "/gate-offline-review.html",
   "/gate-offline-review.css?v=1",
   "/gate-offline-review.js?v=1",
-  "/offline-sheet.js?v=6",
+  "/offline-sheet.js?v=8",
   "/manual-folio.css?v=11",
   "/class-attendance-mobile.css?v=1",
   "/recent-class-attendance.css?v=2",
