@@ -51,10 +51,17 @@ function registerStaffObRoutes(app,pool,{authenticateSchoolClient,requireSchoolR
    try{
     const result=await pool.query(`SELECT o.request_id AS "requestId",o.staff_user_id AS "staffUserId",
      u.display_name AS "staffName",u.teacher_position AS position,s.school_name AS "schoolName",
-     o.purpose,o.destination,o.starts_at AS "startsAt",o.ends_at AS "endsAt"
+     o.purpose,o.destination,o.starts_at AS "startsAt",o.ends_at AS "endsAt",o.submitted_at AS "submittedAt",
+     o.status,s.document_branding AS "documentBranding",d.approved_by_name AS "approvedBy",d.approved_by_position AS "approvedPosition",
+     history.identity AS "approvedIdentity"
      FROM staff_official_business_requests o
      JOIN school_users u ON u.school_id=o.school_id AND u.user_id=o.staff_user_id
      JOIN schools s ON s.school_id=o.school_id
+     LEFT JOIN staff_form48_school_defaults d ON d.school_id=o.school_id
+     LEFT JOIN LATERAL (SELECT details->'locatorIdentity' AS identity FROM staff_attendance_audit a
+      WHERE a.school_id=o.school_id AND a.target_id=o.request_id AND a.target_type='STAFF_OFFICIAL_BUSINESS'
+       AND a.action='STAFF_OB_APPROVED' AND a.details ? 'locatorIdentity'
+      ORDER BY a.created_at DESC LIMIT 1) history ON TRUE
      WHERE o.school_id=$1 AND o.request_id=$2 AND u.role IN ('TEACHER','DEPARTMENT_HEAD','SCHOOL_ADMIN')
      AND (o.staff_user_id=$3 OR $4='PRINCIPAL')
      AND (o.status IN ('PENDING_ADMIN','APPROVED') OR (o.status='PENDING_HEAD' AND u.role='DEPARTMENT_HEAD'))`,
@@ -63,8 +70,22 @@ function registerStaffObRoutes(app,pool,{authenticateSchoolClient,requireSchoolR
     const {getTemplate,buildLocatorSlip}=require('./locator-slip');
     let template;
     try{template=await getTemplate(pool);}catch(e){console.error('Locator Slip template:',e.message);return res.status(503).json({code:e.code==='LOCATOR_TEMPLATE_REQUIRED'?'LOCATOR_TEMPLATE_REQUIRED':'LOCATOR_TEMPLATE_UNAVAILABLE',error:e.code==='LOCATOR_TEMPLATE_REQUIRED'?e.message:'The Locator Slip master could not be verified. Contact support.'});}
+    const data=result.rows[0];
+    const {documentIdentity,matiFields}=require('./mati-locator-slip');
+    // Existing approvals without a saved identity keep the original Annex E.
+    const identity=data.status==='APPROVED'?(data.approvedIdentity||{layout:'ANNEX_E'}):documentIdentity(data.documentBranding,data);
+    if(identity.layout==='MATI'){
+     let fields;try{fields=matiFields(data,identity);}catch(e){return res.status(422).json({error:e.message});}
+     try{
+      const preview=req.query?.preview==='1';
+      const output=await require('./locator-slip-preview').renderMatiLocator(template,fields,!preview);
+      res.set('Content-Type',preview?'image/png':'application/pdf');
+      if(!preview)res.set('Content-Disposition',(req.query?.download==='1'?'attachment':'inline')+'; filename="Locator-Slip-'+req.params.id+'.pdf"');
+      return res.send(output);
+     }catch(e){console.error('Mati Locator Slip:',e.message);return res.status(503).json({error:e.code==='PREVIEW_BUSY'?e.message:'The Mati Locator Slip could not be prepared. Verify the document fields and retry.'});}
+    }
     let pdf;
-    try{pdf=buildLocatorSlip(template,result.rows[0]);}catch(e){console.error('Locator Slip generation:',e.message);return res.status(422).json({error:e.message});}
+    try{pdf=buildLocatorSlip(template,data);}catch(e){console.error('Locator Slip generation:',e.message);return res.status(422).json({error:e.message});}
     if(req.query?.preview==='1'){
      try{
       const {renderLocatorPreview}=require('./locator-slip-preview');
@@ -293,7 +314,10 @@ function registerStaffObRoutes(app,pool,{authenticateSchoolClient,requireSchoolR
         AND u.role IN ('TEACHER','DEPARTMENT_HEAD','SCHOOL_ADMIN')
         AND (staff_official_business_requests.status='PENDING_ADMIN'
          OR (staff_official_business_requests.status='PENDING_HEAD' AND u.role='DEPARTMENT_HEAD')))
-       RETURNING request_id,status,staff_user_id,starts_at,ends_at`,
+       RETURNING request_id,status,staff_user_id,starts_at,ends_at,
+        (SELECT document_branding FROM schools WHERE school_id=$1) AS "documentBranding",
+        (SELECT approved_by_name FROM staff_form48_school_defaults WHERE school_id=$1) AS "approvedBy",
+        (SELECT approved_by_position FROM staff_form48_school_defaults WHERE school_id=$1) AS "approvedPosition"`,
       [req.auth.schoolId,req.params.id,req.auth.userId,
        decision==='APPROVE'?'APPROVED':'REJECTED',note||null]);
     if(!result.rowCount){await client.query('ROLLBACK');return res.status(409).json({error:'Request not awaiting Principal authorization, already decided, or self-approval prohibited.'});}
@@ -326,7 +350,7 @@ function registerStaffObRoutes(app,pool,{authenticateSchoolClient,requireSchoolR
       await audit(client,req,'STAFF_OB_AFFECTED_CLASSES_FLAGGED',req.params.id,
         {affectedClasses:affected.rowCount});
     }
-    await audit(client,req,decision==='APPROVE'?'STAFF_OB_APPROVED':'STAFF_OB_PRINCIPAL_REJECTED',req.params.id,{note,authority:'PRINCIPAL',signedAuthorization:decision==='APPROVE'});
+    await audit(client,req,decision==='APPROVE'?'STAFF_OB_APPROVED':'STAFF_OB_PRINCIPAL_REJECTED',req.params.id,{note,authority:'PRINCIPAL',signedAuthorization:decision==='APPROVE',...(decision==='APPROVE'?{locatorIdentity:require('./mati-locator-slip').documentIdentity(result.rows[0].documentBranding,result.rows[0])}:{})});
 
     await client.query('COMMIT');
     return res.json({requestId:req.params.id,status:result.rows[0].status});
