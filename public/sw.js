@@ -1,4 +1,4 @@
-const CACHE = "attendigo-v421-document-template-assistant";
+const CACHE = "attendigo-v422-locator-pointer-selection";
 
 // Only public, non-personal offline shells and their executable dependencies.
 // An update must not discard the working cache before these are all ready.
@@ -102,7 +102,7 @@ const SHELL = [
   "/teacher-scanner-schedule.js?v=1",
   "/teacher-roster-popover.js?v=2",
   "/portal.css?v=0.9.119",
-  "/portal.js?v=245",
+  "/portal.js?v=246",
   "/attendigo-help-topics.js?v=4",
   "/attendigo-help-guide.js?v=4",
   "/attendigo-help.css?v=4",

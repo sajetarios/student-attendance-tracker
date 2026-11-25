@@ -47,5 +47,8 @@
   }
   return candidates.length===1?candidates[0]:null;
  }
- if(typeof module==='object'&&module.exports)module.exports={suggest};else root.AttendigoLocatorSuggest={suggest};
+ function point(bounds,x,y){return [Math.max(0,Math.min(1,(x-bounds.left)/bounds.width)),Math.max(0,Math.min(1,(y-bounds.top)/bounds.height))];}
+ function rectangle(a,b){return [Math.min(a[0],b[0]),Math.min(a[1],b[1]),Math.abs(a[0]-b[0]),Math.abs(a[1]-b[1])];}
+ const api={suggest,point,rectangle};
+ if(typeof module==='object'&&module.exports)module.exports=api;else root.AttendigoLocatorSuggest=api;
 })(typeof globalThis==='object'?globalThis:this);
