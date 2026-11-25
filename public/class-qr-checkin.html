@@ -110,7 +110,7 @@ form.addEventListener('submit',async event=>{
   if(d.alreadyRecorded){
    clearPending();form.hidden=true;show('Attendance has already been recorded for this class.','success');return;
   }
-  if(r.status===410){form.hidden=true;show('This QR code expired or the session ended. Scan the latest teacher QR.','error');return;}
+  if(r.status===410){form.hidden=true;show(d.error||'This QR code expired or the session ended. Scan the latest teacher QR.','error');return;}
   show(r.status===403?'Unable to confirm attendance. Check your Student ID and PIN.':(d.error||'Attendance not recorded. Please try again.'),'error');
  }catch{show('Network unavailable. Attendance was NOT recorded. Ask your teacher for assistance.','error');}
  finally{confirm.disabled=false;}
@@ -165,7 +165,7 @@ legacyButton.addEventListener('click',async()=>{
   const d=await r.json().catch(()=>({}));
   if(r.ok||d.alreadyRecorded){legacyButton.textContent='Already checked in';clearPending();show(r.ok?'Attendance confirmed: '+d.status+'.':'Attendance already recorded for this class.','success');return;}
   if(r.status===401)return signedOut();
-  if(r.status===410){show('This QR code expired or the session ended. Scan the latest teacher QR.','error');return;}
+  if(r.status===410){show(d.error||'This QR code expired or the session ended. Scan the latest teacher QR.','error');return;}
   show(d.error||'Attendance not recorded. Please retry.','error');legacyButton.disabled=false;
  }catch{show('Network unavailable. Attendance was NOT confirmed. Retry to check the server result.','error');legacyButton.disabled=false;}
 });

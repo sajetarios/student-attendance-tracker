@@ -1,8 +1,38 @@
-(()=>{'use strict';const $=id=>document.getElementById(id);let session=null,timer=null;
-async function api(url,options={}){const r=await fetch(url,{...options,headers:{'Content-Type':'application/json'},cache:'no-store'});const data=await r.json().catch(()=>({}));if(r.status===401){location.replace('/portal-login.html');throw Error('Session expired.');}if(!r.ok)throw Error(data.error||'Request failed');return data;}
-async function refresh(){if(!session)return;try{const data=await api('/api/class-qr/sessions/'+session+'/qr');$('qr').src=data.qrImage;$('qr').hidden=false;$('qrWrap').hidden=false;$('qrEmpty').hidden=true;$('expiry').textContent='Code refreshes automatically every 30 seconds. After scanning, finish check-in promptly. This code is accepted until '+new Date(data.acceptUntil||data.validUntil).toLocaleTimeString('en-PH',{timeZone:'Asia/Manila'})+'. Session closes '+new Date(data.closesAt).toLocaleTimeString('en-PH',{timeZone:'Asia/Manila'});}catch(e){$('notice').textContent=e.message;$('qr').hidden=true;$('qrWrap').hidden=true;$('qrEmpty').hidden=false;clearInterval(timer);timer=null;}}
-$('start').onclick=async()=>{try{const periodId=$('period').value;if(!periodId)throw Error('Choose a class.');let data;try{data=await api('/api/class-qr/sessions',{method:'POST',body:JSON.stringify({periodId})});}catch(error){if(!/already closed/i.test(error.message)||!await window.AppDialog.confirm('This QR session was closed. Reopen it for the remaining scheduled class time? Existing attendance will be preserved.',{title:'Reopen class QR session',confirmText:'Reopen'}))throw error;data=await api('/api/class-qr/sessions',{method:'POST',body:JSON.stringify({periodId,reopen:true})});}session=data.sessionId;$('notice').textContent=data.reopened?'Session reopened. Previous attendance is preserved.':'Session started.';$('close').disabled=false;await refresh();clearInterval(timer);timer=setInterval(refresh,5000);}catch(e){$('notice').textContent=e.message;}};
-$('close').onclick=async()=>{if(!session)return;try{await api('/api/class-qr/sessions/'+session+'/close',{method:'POST'});clearInterval(timer);timer=null;$('qr').hidden=true;$('qrWrap').hidden=true;$('qrEmpty').hidden=false;$('close').disabled=true;$('expiry').textContent='';$('notice').textContent='Session closed.';}catch(e){$('notice').textContent=e.message;}};
+(()=>{'use strict';const $=id=>document.getElementById(id);let session=null,timer=null,request=null,epoch=0,expiresAt=0,recovering=false,nextPoll=0;
+async function api(url,options={}){const r=await fetch(url,{...options,headers:{'Content-Type':'application/json'},cache:'no-store'});const data=await r.json().catch(()=>({}));if(r.status===401){location.replace('/portal-login.html');throw Object.assign(Error('Session expired.'),{status:401});}if(!r.ok)throw Object.assign(Error(data.error||'Request failed'),{status:r.status});return data;}
+function hideQr(){ $('qr').hidden=true;$('qrWrap').hidden=true;$('qrEmpty').hidden=false;$('expiry').textContent=''; }
+function resetRefresh(){epoch++;request?.abort();request=null;clearInterval(timer);timer=null;expiresAt=0;nextPoll=0;recovering=false;hideQr();}
+async function refresh(force=false){
+ if(!session)return;
+ if(force){expiresAt=0;hideQr();}
+ if(expiresAt&&performance.now()>=expiresAt){hideQr();nextPoll=0;}
+ if(request||(!force&&performance.now()<nextPoll))return;
+ nextPoll=performance.now()+5000;
+ const current=session,version=epoch,controller=new AbortController(),sentAt=performance.now();
+ request=controller;
+ const timeout=setTimeout(()=>controller.abort(),10000);
+ try{
+  const data=await api('/api/class-qr/sessions/'+current+'/qr',{signal:controller.signal});
+  if(version!==epoch||current!==session)return;
+  const valid=Date.parse(data.validUntil),server=Date.parse(data.serverTime);
+  const remaining=Number.isFinite(server)?valid-server:valid-Date.now();
+  expiresAt=sentAt+Math.max(0,remaining);
+  if(!data.qrImage||!Number.isFinite(expiresAt)||performance.now()>=expiresAt){hideQr();recovering=true;$('notice').textContent='Refreshing classroom QR. Please wait for the current code.';return;}
+  $('qr').src=data.qrImage;$('qr').hidden=false;$('qrWrap').hidden=false;$('qrEmpty').hidden=true;
+  $('expiry').textContent='Code refreshes automatically every 30 seconds. After scanning, finish check-in promptly. This code is accepted until '+new Date(data.acceptUntil||data.validUntil).toLocaleTimeString('en-PH',{timeZone:'Asia/Manila'})+'. Session closes '+new Date(data.closesAt).toLocaleTimeString('en-PH',{timeZone:'Asia/Manila'})+'.';
+  if(recovering){$('notice').textContent='QR refreshed. Students may scan now.';recovering=false;}
+ }catch(e){
+  if(version!==epoch||current!==session)return;
+  hideQr();
+  if([401,403,404,410].includes(e.status)){resetRefresh();session=null;$('close').disabled=true;$('notice').textContent=e.message;}
+  else{recovering=true;$('notice').textContent='QR refresh interrupted. Automatically retrying; scan only when the QR returns.';}
+ }finally{clearTimeout(timeout);if(request===controller)request=null;}
+}
+$('start').onclick=async()=>{if($('start').disabled)return;$('start').disabled=true;try{const periodId=$('period').value;if(!periodId)throw Error('Choose a class.');let data;try{data=await api('/api/class-qr/sessions',{method:'POST',body:JSON.stringify({periodId})});}catch(error){if(!/already closed/i.test(error.message)||!await window.AppDialog.confirm('This QR session was closed. Reopen it for the remaining scheduled class time? Existing attendance will be preserved.',{title:'Reopen class QR session',confirmText:'Reopen'}))throw error;data=await api('/api/class-qr/sessions',{method:'POST',body:JSON.stringify({periodId,reopen:true})});}resetRefresh();session=data.sessionId;$('notice').textContent=data.reopened?'Session reopened. Previous attendance is preserved.':'Session started.';$('close').disabled=false;timer=setInterval(()=>{void refresh();},1000);await refresh();}catch(e){$('notice').textContent=e.message;}finally{$('start').disabled=false;}};
+$('close').onclick=async()=>{if(!session)return;const current=session;resetRefresh();$('close').disabled=true;try{await api('/api/class-qr/sessions/'+current+'/close',{method:'POST'});session=null;$('notice').textContent='Session closed.';}catch(e){$('notice').textContent=e.message;if(session===current){$('close').disabled=false;timer=setInterval(()=>{void refresh();},1000);void refresh();}}};
+document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible')void refresh(true);else hideQr();});
+window.addEventListener('focus',()=>{void refresh(true);});
+window.addEventListener('online',()=>{void refresh(true);});
 const panel=$('qrPanel'),expand=$('expandQr');
 function setExpanded(on){panel.classList.toggle('qr-expanded',on);expand.setAttribute('aria-pressed',String(on));expand.textContent=on?'⤢ Exit enlarged view':'⛶ Enlarge QR';document.body.style.overflow=on?'hidden':'';}
 expand.addEventListener('click',()=>setExpanded(!panel.classList.contains('qr-expanded')));

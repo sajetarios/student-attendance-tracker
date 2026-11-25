@@ -1,4 +1,4 @@
-const CACHE = "attendigo-v393-sf2-subject-preparation";
+const CACHE = "attendigo-v394-class-qr-refresh";
 
 // Only public, non-personal offline shells and their executable dependencies.
 // An update must not discard the working cache before these are all ready.
@@ -17,7 +17,7 @@ const OFFLINE_REQUIRED = [
   "/gate-offline.js?v=3",
   "/student-qr-offline.js?v=4",
   "/student-qr-offline-page.js?v=5",
-  "/student-qr-scanner.js?v=5",
+  "/student-qr-scanner.js?v=6",
   "/vendor/html5-qrcode.min.js",
   "/assets/attendigo-official-lockup.svg?v=5"
 ];
@@ -70,7 +70,7 @@ const SHELL = [
   "/student-qr-offline-page.js?v=5",
   "/vendor/html5-qrcode.min.js",
   "/session-guard.js?v=6",
-  "/student-qr-scanner.js?v=5",
+  "/student-qr-scanner.js?v=6",
   "/parent-portal.js?v=6",
   "/parent-subject.js?v=1",
   "/parent-subject.css?v=1",

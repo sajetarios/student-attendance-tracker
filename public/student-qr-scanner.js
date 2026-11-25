@@ -71,7 +71,7 @@
     return;
    }
    if(r.status===401){message('Your student session has expired. Sign in again before scanning.');return;}
-   if(r.status===410){message('QR expired or the class session ended. Scan the current teacher QR.');return;}
+   if(r.status===410){message(data.error||'QR expired or the class session ended. Scan the current teacher QR.');return;}
    message(data.error||'Attendance not confirmed. Please retry.');confirm.disabled=false;
   }catch{try{if(!window.StudentQrOffline?.ready())throw Error('Offline capture not prepared');await window.StudentQrOffline.enqueue(qr);selection=null;message('Saved on this device — pending verification. Reconnect to sync automatically.');void window.StudentQrOffline.sync();}catch{message('Unable to save offline scan. Ask your teacher to record attendance.');confirm.disabled=false;}}
   finally{submitting=false;$('studentQrRescan').disabled=false;$('studentQrStop').disabled=false;}
