@@ -25,7 +25,11 @@ test('login assistance remains compact, accessible, and scoped to correct accoun
   assert.match(css, /\.login-assistance-grid\{display:grid;grid-template-columns:repeat\(2,minmax\(0,1fr\)\)/);
   assert.match(css, /\.login-assistance-item\[hidden\]\{display:none!important\}/);
   assert.match(css, /@media\(max-width:600px\)/);
-  assert.match(html, /<span>Recover or unlock access<\/span>\s*<svg/);
+  assert.match(html, /<span>Recover school admin access<\/span>\s*<svg/);
+  assert.doesNotMatch(html, /class="login-assistance-label"/);
+  assert.match(html, /\.login-assistance-grid\{grid-template-columns:minmax\(0,1fr\)!important;gap:0!important\}/);
+  assert.match(html, /\.login-assistance-action\{[^}]*min-height:44px[^}]*font-size:16px/);
+  assert.match(html, /attendigo-install-cta/);
   assert.match(html, /<span>Create parent account<\/span>\s*<svg/);
   assert.match(css, /\.login-assistance-action>span\{min-width:0/);
   assert.match(css, /\.login-security-note\{display:flex;align-items:center/);
