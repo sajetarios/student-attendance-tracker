@@ -1,4 +1,4 @@
-const CACHE = "attendigo-v417-central-locator-library";
+const CACHE = "attendigo-v420-central-locator-library";
 
 // Only public, non-personal offline shells and their executable dependencies.
 // An update must not discard the working cache before these are all ready.
