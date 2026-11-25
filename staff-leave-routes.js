@@ -281,7 +281,7 @@ function registerStaffLeaveRoutes(app,pool,{authenticateSchoolClient,requireScho
      [req.auth.schoolId,row.staff_user_id]);
     if(schemeForSpl.rows[0]?.leave_scheme!=='REGULAR_VL_SL'||row.commutation!=='NOT_REQUESTED'||days>3){
      await c.query('ROLLBACK');
-     return res.status(409).json({error:'SPL approval requires officially verified regular leave eligibility, no commutation, and no more than three certified working days. HR must also verify the annual SPL allowance.'});
+     return res.status(409).json({error:'SPL approval requires officially verified regular leave eligibility, no commutation, and no more than three certified working days. The School Admin must also verify the annual SPL allowance.'});
     }
     chargeAccount='NONE';
    }
