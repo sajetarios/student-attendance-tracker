@@ -76,7 +76,7 @@
   form.append(createInput('Name of authorized official','text','approverName',true,{maxLength:120}));
   form.append(createInput('Official position','text','approverPosition',true,{maxLength:120}));
   form.append(createInput('Date of official decision','date','approvedOn'));
-  const working=createInput('HR-certified working days (for approved leave)','number','certifiedWorkingDays',true,{step:'0.001',min:'0.001'});
+  const working=createInput('Verified working days (for approved leave)','number','certifiedWorkingDays',true,{step:'0.001',min:'0.001'});
   form.append(working);
   const proof=createInput('Signed official decision (PDF, JPG, PNG; 4 MB max)','file','file',false,{accept:'.pdf,.jpg,.jpeg,.png,application/pdf,image/jpeg,image/png'});
   form.append(proof);
