@@ -127,7 +127,7 @@
       action('Reject',()=>decide('recommend','REJECT'));
      }
      if(personalAdmin&&(ob.status==='PENDING_ADMIN'||(ob.status==='PENDING_HEAD'&&ob.staffRole==='DEPARTMENT_HEAD'))){
-      actions.append(document.createTextNode('Principal authorization required · recordkeeping only'));
+      actions.append(document.createTextNode('Awaiting Principal authorization'));
      }
      if(ob.staffUserId===user.userId&&(ob.status==='PENDING_ADMIN'||ob.status==='APPROVED'||(ob.status==='PENDING_HEAD'&&ob.staffRole==='DEPARTMENT_HEAD'))){
       const link=document.createElement('a');link.className='outline-button';link.textContent='Print / download Locator Slip';
