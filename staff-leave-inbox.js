@@ -1,6 +1,6 @@
 'use strict';
 const {allowReviewer}=require('./staff-leave-policy');
-const FILTERS=Object.freeze(['ACTION','ALL','PENDING','RECOMMENDATION','SCHOOL_REVIEW','EXTERNAL','APPROVED','DISAPPROVED','DECLINED','CANCELLED']);
+const FILTERS=Object.freeze(['ACTION','ALL','PENDING','RECOMMENDATION','SCHOOL_REVIEW','EXTERNAL','APPROVED','DISAPPROVED','DECLINED','CANCELLED','CLOSED_DECLINED']);
 const STATUS_LABELS=Object.freeze({
  PENDING_HEAD:'For Department Recommendation',
  PENDING_ADMIN:'Awaiting Principal decision',
