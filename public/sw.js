@@ -1,4 +1,4 @@
-const CACHE = "attendigo-v397-contextual-memos-explicit-memo-ack";
+const CACHE = "attendigo-v398-universal-install";
 
 // Only public, non-personal offline shells and their executable dependencies.
 // An update must not discard the working cache before these are all ready.
@@ -23,6 +23,9 @@ const OFFLINE_REQUIRED = [
 ];
 
 const SHELL = [
+  "/install.html",
+  "/attendigo-install.js?v=1",
+  "/attendigo-install.css?v=1",
   "/typography.css?v=1",
   "/attendigo-form-overlap-guard.css?v=2",
   "/attendigo-workspace-density-theme.css?v=1",

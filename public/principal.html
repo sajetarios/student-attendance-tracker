@@ -22,6 +22,7 @@ catch (_) { document.documentElement.dataset.theme = 'light'; }
 <link rel="stylesheet" href="/attendigo-layout-density.css?v=1">
 <link rel="stylesheet" href="/app-dialog.css?v=2">
 <script src="/app-dialog.js?v=1" defer></script>
+<link rel="stylesheet" href="/attendigo-install.css?v=1"><script src="/attendigo-install.js?v=1" defer></script>
 </head>
 <body>
 <a class="skip" href="#main">Skip to school overview</a>
@@ -41,6 +42,7 @@ catch (_) { document.documentElement.dataset.theme = 'light'; }
    </label>
    <span id="roleBadge" class="role-badge">Principal workspace</span>
    <button type="button" id="presentationToggle" class="quiet-button" aria-pressed="false" title="Enter larger-text presentation mode">Presentation mode</button>
+   <a class="quiet-button attendigo-install-link" data-attendigo-install href="/install.html">Install Attendigo</a>
    <button type="button" id="signOut" class="quiet-button">Sign out</button>
   </div>
  </header>
