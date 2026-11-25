@@ -13,7 +13,7 @@ try { const preference = localStorage.getItem('attendigo.principal.theme'); docu
 catch (_) { document.documentElement.dataset.theme = 'light'; }
 </script>
 <link rel="stylesheet" href="/principal-dashboard.css?v=15">
-<script src="/principal-dashboard.js?v=18" defer></script>
+<script src="/principal-dashboard.js?v=19" defer></script>
 <script src="/staff-precise-location.js?v=1" defer></script>
 <script src="/principal-trusted-campus.js?v=4" defer></script>
 <link rel="stylesheet" href="/campus-location-ui.css?v=1">
@@ -325,6 +325,23 @@ catch (_) { document.documentElement.dataset.theme = 'light'; }
   </section>
 
   <section id="prioritiesPanel" class="panel" data-panel="priorities" hidden>
+   <section class="surface" aria-labelledby="principalObApprovalsTitle">
+    <div class="card-heading"><div><p class="eyebrow">ACTION REQUIRED · OFFICIAL BUSINESS</p>
+     <h2 id="principalObApprovalsTitle">Official Business approvals</h2>
+     <p>Department Head requests reach you directly. Teacher requests require their Department Head's recommendation first.</p></div></div>
+    <p class="source-note">Confirm authorization only after personally signing the required paper travel document. Attendigo does not create an electronic signature or store a scanned copy here.</p>
+    <div class="principal-workspace-actions" style="display:flex;flex-wrap:wrap;gap:8px">
+     <button type="button" class="quiet-button" id="principalObPending" aria-pressed="true">Pending requests</button>
+     <button type="button" class="quiet-button" id="principalObHistory" aria-pressed="false">View all decisions</button>
+     <button type="button" class="quiet-button" id="principalObRefresh">Refresh</button>
+    </div>
+    <p id="principalObApprovalStatus" role="status" aria-live="polite" class="source-note"></p>
+    <div id="principalObApprovalList" class="principal-data-list"></div>
+    <div class="principal-workspace-actions" style="display:flex;flex-wrap:wrap;gap:8px">
+     <button type="button" class="quiet-button" id="principalObPrevious" disabled>Previous</button>
+     <button type="button" class="quiet-button" id="principalObNext" disabled>Next</button>
+    </div>
+   </section>
    <details class="surface" id="principalLunchReview"><summary><strong>Department Head lunch QR exceptions</strong></summary><p>Review only Department Head pending lunch QR scans. Verify independent evidence before recording an official DTR punch. This is separate from forgotten-scan requests.</p><button type="button" class="quiet-button" id="principalLunchRefresh">Refresh pending lunch scans</button><p id="principalLunchStatus" role="status" aria-live="polite"></p><div id="principalLunchList" class="principal-data-list"></div></details>
    <section class="surface principal-class-impact" aria-labelledby="principalClassImpactTitle">
     <div class="card-heading"><div><p class="eyebrow">EXCEPTIONS ONLY · NEXT 7 DAYS</p><h2 id="principalClassImpactTitle">Classes with no recorded coverage</h2>
@@ -335,9 +352,9 @@ catch (_) { document.documentElement.dataset.theme = 'light'; }
     <p class="source-note">This is a read-only oversight alert, not a leave approval, attendance finding or instruction to bypass the Department Head. Department Heads should document substitutes or adjustments in their existing schedule tools. An offline arrangement that has not been recorded cannot be verified here.</p>
    </section>
    <details id="principalWorkflowDetails" class="surface principal-workflow-overview">
-    <summary>Administrative leave &amp; OB stages (reference only — not class-coverage alerts)</summary>
+    <summary>Administrative leave &amp; OB stages (reference only)</summary>
     <div class="principal-action-summary"><h3>Workflow status</h3>
-      <p>Routine filing and review are managed through established department and school workflows. These counts do not indicate an uncovered class and do not trigger Principal escalation.</p>
+      <p>These counts include multiple review stages and are separate from the actionable OB approvals above. They do not indicate an uncovered class.</p>
       <p id="actionInboxSummary" aria-live="polite">Loading workflow totals…</p>
       <div id="actionInboxDepartmentSummary" class="priority-department-summary" aria-live="polite">Loading department source details…</div></div>
     <div class="section-heading"><div><p class="eyebrow">READ-ONLY STAGE COUNTS</p><h2>Leave, OB and other workflow stages</h2></div></div>
