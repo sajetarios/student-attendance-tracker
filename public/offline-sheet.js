@@ -39,7 +39,7 @@ function render(){
   row.append(name,select);$('rows').append(row);
  }
  const count=Object.keys(data.marks?.[date]||{}).length;
- $('status').textContent=dirty?'Unsaved changes — tap Save attendance':pending?count+' marked · saved for sync. Reconnect to confirm before editing this date again.':marksFor(date).length?count+' marked · saved locally, awaiting queue handoff':count?count+' marked · no unsent changes for this date':'No attendance marked for this date.';
+ $('status').textContent=dirty?'Unsaved changes — tap Save attendance':pending?(data.outbox[date].queued?count+' marked · waiting for school confirmation.':count+' marked · saved locally; queue handoff incomplete. Tap Sync attendance.'):marksFor(date).length?count+' marked · saved locally, awaiting queue handoff':count?count+' marked · no unsent changes for this date':'No attendance marked for this date.';
 }
 async function persist(){checkClass();const original=unlocked,payload=data;const encrypted=await encrypt(payload,passphrase,original.salt);if(unlocked!==original||data!==payload||!guard.matches('TEACHER',payload.schoolId,payload.userId))throw Error('Offline account changed.');const next={...original,...encrypted,updatedAt:Date.now()};await put(next);checkClass();if(data!==payload)throw Error('Class changed.');unlocked=next;}
 async function handoff(){
@@ -101,7 +101,7 @@ async function syncNow(){
  await window.AttendigoOffline.sync();
  await reconcile();
  const remaining=Object.keys(data.outbox||{}).length;
- message(remaining?'Attendance saved. Some records still need school confirmation.':'Attendance confirmed by the school server.');
+ message(remaining?'Attendance saved. Some records still need school confirmation.':Object.values(data.synced||{}).some(m=>Object.keys(m).length)?'Attendance confirmed by the school server.':'No unsent attendance.');
 }
 async function prepare(allClasses=false){
  if(preparing||loading)return;
@@ -173,7 +173,7 @@ async function loadClasses(){
   finally{loading=false;$('reloadClasses').disabled=false;}
 }
 $('reloadClasses').addEventListener('click',loadClasses);
-window.addEventListener('online',()=>{void loadClasses();if(unlocked&&!writing&&!dirty)void withSheetWork(syncNow).catch(e=>message(e.message,true));});
+window.addEventListener('online',()=>{if(guard.current('TEACHER'))updateConnection();void loadClasses();if(unlocked&&!writing&&!dirty)void withSheetWork(syncNow).catch(e=>message(e.message,true));});
 function updateConnection(){const online=navigator.onLine!==false;$('connectionHint').dataset.state=online?'online':'offline';$('connectionHint').textContent=online?'Online · Download or sync classes.':'Offline · Open a downloaded class to take attendance.';$('setup').hidden=!online;}
 window.addEventListener('offline',()=>{if(guard.current('TEACHER'))updateConnection();$('prepare').disabled=true;$('prepareAll').disabled=true;$('prepareClass').disabled=true;});
 void loadClasses();
