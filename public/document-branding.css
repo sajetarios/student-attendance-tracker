@@ -17,3 +17,15 @@
 /* Document controls take precedence over the shared compact dashboard rules. */
 #documentBrandingForm .doc-brand-grid :is(input,select){box-sizing:border-box!important;min-height:46px!important;height:auto!important;max-height:none!important;font-size:16px!important}
 #documentBrandingForm .doc-brand-actions :is(button,a){box-sizing:border-box!important;min-height:46px!important;height:auto!important;max-height:none!important;white-space:normal!important}
+
+.locator-pilot{min-width:0;margin-top:16px}.locator-pilot [hidden]{display:none!important}
+.locator-pilot h4{font-size:18px;margin:12px 0 8px}.locator-pilot p{font-size:16px;overflow-wrap:anywhere}
+.locator-pilot-upload{display:grid;gap:8px;max-width:100%;font-size:16px}.locator-pilot-upload input{max-width:100%;font-size:16px}
+.locator-pilot-sheet{position:relative;max-width:720px;margin:12px auto;cursor:crosshair;touch-action:manipulation;line-height:0;background:white}
+.locator-pilot-sheet img,.locator-pilot-sample{display:block;width:100%;height:auto;max-width:720px;margin:0 auto}
+#locatorPilotMarks{position:absolute;inset:0;pointer-events:none}.locator-pilot-mark{position:absolute;border:2px solid #2663a5;background:#2663a51c;box-sizing:border-box}
+.locator-pilot-mark.current{border-color:#148052;background:#14805235}.locator-pilot-point{position:absolute;width:12px;height:12px;transform:translate(-50%,-50%);border-radius:50%;background:#1565c0;box-shadow:0 0 0 2px #fff}
+.locator-pilot-confirm{display:flex;gap:10px;align-items:flex-start;font-size:16px;margin-top:12px}.locator-pilot-confirm input{flex:none;margin-top:4px}
+.locator-pilot .doc-brand-actions{margin-top:12px;flex-wrap:wrap}.locator-pilot .doc-brand-actions>*{min-width:0;white-space:normal}
+.locator-pilot .is-error{color:var(--danger,#b91c1c)}
+@media(max-width:640px){.locator-pilot .section-toolbar{flex-wrap:wrap}.locator-pilot .doc-brand-actions>*{flex:1 1 130px}}
