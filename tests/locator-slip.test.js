@@ -2,7 +2,9 @@
 const test=require('node:test');
 const assert=require('node:assert/strict');
 const fs=require('node:fs');
-const {buildLocatorSlip,TEMPLATE_SHA}=require('../locator-slip');
+const {buildLocatorSlip,TEMPLATE_SHA,installTemplate,getTemplate}=require('../locator-slip');
+const path=require('node:path');
+const master=process.env.ATTENDIGO_LOCATOR_TEMPLATE_PATH||path.join(__dirname,'../templates/Revised-Annex-E.pdf');
 const {createHash}=require('node:crypto');
 const data={staffName:'Maria Dela Cruz',position:'Teacher III',schoolName:'Sample National High School',purpose:'Submission of school reports',destination:'Schools Division Office',startsAt:'2026-11-26T08:00:00+08:00',endsAt:'2026-11-26T12:00:00+08:00'};
 test('rejects altered or unverified source PDF',()=>{
@@ -19,8 +21,8 @@ test('OB PDF endpoint is role and tenant scoped and private',()=>{
  assert.match(source,/no-store, private/);
  assert.match(source,/res\.send\(pdf\)/);
 });
-test('actual Annex E PDF remains byte-for-byte intact before appended overlay',{skip:!process.env.ATTENDIGO_LOCATOR_TEMPLATE_PATH},()=>{
- const original=fs.readFileSync(process.env.ATTENDIGO_LOCATOR_TEMPLATE_PATH);
+test('actual Annex E PDF remains byte-for-byte intact before appended overlay',{skip:!fs.existsSync(master)},()=>{
+ const original=fs.readFileSync(master);
  assert.equal(createHash('sha256').update(original).digest('hex'),TEMPLATE_SHA);
  const filled=buildLocatorSlip(original,data);
  assert.deepEqual(filled.subarray(0,original.length),original);
@@ -31,4 +33,32 @@ test('actual Annex E PDF remains byte-for-byte intact before appended overlay',{
  assert.throws(()=>buildLocatorSlip(original,{...data,endsAt:'2026-11-27T12:00:00+08:00'}),/Travel Authority/);
  assert.throws(()=>buildLocatorSlip(original,{...data,position:''}),/position\/designation/);
  assert.throws(()=>buildLocatorSlip(original,{...data,purpose:'word '.repeat(1000)}),/too long/);
+});
+
+test('rejects an arbitrary upload before any database write',async()=>{
+ let queries=0;
+ await assert.rejects(installTemplate({query:async()=>{queries++;}},Buffer.from('not the official file')),/integrity/);
+ assert.equal(queries,0);
+});
+test('master installer is fixed-digest, single-row and does not call the upstream site',()=>{
+ const source=fs.readFileSync('locator-slip.js','utf8');
+ const migration=fs.readFileSync('migrations/096_shared_locator_slip_template.sql','utf8');
+ const routes=fs.readFileSync('staff-ob-routes.js','utf8');
+ assert.doesNotMatch(source,/\bfetch\s*\(/);
+ assert.match(source,/ON CONFLICT\(template_id\) DO NOTHING/);
+ assert.match(migration,/CHECK\(template_id='DEPED_REVISED_ANNEX_E'\)/);
+ assert.match(migration,/octet_length\(pdf_bytes\)=109793/);
+ assert.match(routes,/express\.raw\(\{type:'application\/pdf',limit:'120kb'\}\)/);
+ assert.match(routes,/LOCATOR_TEMPLATE_REQUIRED/);
+});
+test('both portals prepare the PDF through the shared inline error handler',()=>{
+ const ui=fs.readFileSync('public/locator-slip-ui.js','utf8');
+ const staff=fs.readFileSync('public/staff-ob-ui.js','utf8');
+ const principal=fs.readFileSync('public/principal-dashboard.js','utf8');
+ assert.match(ui,/if\(!response\.ok\)throw await responseError\(response\)/);
+ assert.match(ui,/LOCATOR_TEMPLATE_REQUIRED/);
+ assert.match(ui,/URL\.createObjectURL\(file\)/);
+ assert.match(staff,/AttendigoLocatorSlip\.attach/);
+ assert.match(principal,/AttendigoLocatorSlip\.attach/);
+ for(const page of ['public/portal.html','public/principal.html','public/sw.js']) assert.match(fs.readFileSync(page,'utf8'),/\/locator-slip-ui\.js\?v=1/);
 });
