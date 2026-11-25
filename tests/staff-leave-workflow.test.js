@@ -33,7 +33,7 @@ test('administrators cannot self-approve; department heads only recommend in the
  assert.equal(allowReviewer('DEPARTMENT_HEAD',a,dept,head,'HEAD'),true);
  assert.equal(allowReviewer('DEPARTMENT_HEAD',a,'other',head,'HEAD'),false);
  assert.equal(allowReviewer('DEPARTMENT_HEAD',b,dept,head,'HEAD'),false);
- assert.equal(allowReviewer('SCHOOL_ADMIN',a,null,{...head,status:'PENDING_ADMIN'},'ADMIN'),true);
+ assert.equal(allowReviewer('SCHOOL_ADMIN',a,null,{...head,status:'PENDING_ADMIN'},'ADMIN'),false);
  assert.equal(allowReviewer('SCHOOL_ADMIN',b,null,{...head,status:'PENDING_ADMIN'},'ADMIN'),false);
  assert.equal(allowReviewer('SCHOOL_ADMIN',b,null,{...head,status:'PENDING_EXTERNAL'},'EXTERNAL'),false);
  assert.equal(allowReviewer('DEPARTMENT_HEAD',a,dept,{...head,status:'PENDING_EXTERNAL',requester_role:'SCHOOL_ADMIN'},'EXTERNAL'),false);
