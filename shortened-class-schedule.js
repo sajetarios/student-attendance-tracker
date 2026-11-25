@@ -54,7 +54,8 @@ async function planSchoolShortening(client,schoolId,from,to,original,adjusted,no
     (a.adjustment_id IS NOT NULL) AS adjusted,
     (EXISTS(SELECT 1 FROM attendance_events e WHERE e.school_id=p.school_id AND e.period_id=p.period_id AND e.school_date=$2::date AND e.sync_status='ACCEPTED')
       OR EXISTS(SELECT 1 FROM manual_attendance_marks m WHERE m.school_id=p.school_id AND m.period_id=p.period_id AND m.school_date=$2::date)
-      OR EXISTS(SELECT 1 FROM class_qr_sessions q WHERE q.school_id=p.school_id AND q.period_id=p.period_id AND q.school_date=$2::date)) AS recorded
+      OR EXISTS(SELECT 1 FROM class_qr_sessions q WHERE q.school_id=p.school_id AND q.period_id=p.period_id AND q.school_date=$2::date)
+      OR EXISTS(SELECT 1 FROM class_attendance_finalizations f WHERE f.school_id=p.school_id AND f.period_id=p.period_id AND f.school_date=$2::date AND f.finalized=TRUE)) AS recorded
     FROM class_periods p
     LEFT JOIN LATERAL (SELECT teacher_user_id FROM teacher_period_assignments t WHERE t.school_id=p.school_id AND t.period_id=p.period_id ORDER BY assignment_id LIMIT 1) regular ON TRUE
     LEFT JOIN LATERAL (SELECT substitute_teacher_user_id FROM teacher_period_substitutions t WHERE t.school_id=p.school_id AND t.period_id=p.period_id AND t.original_teacher_user_id=regular.teacher_user_id AND t.status='ACTIVE' AND $2::date BETWEEN t.start_date AND t.end_date ORDER BY created_at DESC LIMIT 1) cover ON TRUE

@@ -239,6 +239,35 @@ async function main(){
    assert.match(viewerHtml,/id="memoList"/);
    assert.ok(viewerJs.includes("'/acknowledge'")&&viewerJs.includes("'/api/school-memos/"));
   });
+  await test('principal-only teaching directive previews and saves dated periods without a document or DTR changes',async()=>{
+   const future=new Date(Date.now()+3*86400000),date=future.toISOString().slice(0,10),weekday=new Date(date+'T00:00:00Z').getUTCDay();
+   const periodIds=[];
+   for(const [start,end] of [['07:00','07:55'],['07:55','08:50'],['09:05','10:00']]){
+    const inserted=await pool.query(`INSERT INTO class_periods(school_id,department_id,period_name,grade_level,section,subject_name,start_time,end_time)
+      VALUES($1,$2,'Test period','Grade 9','Test-A','Fictional subject',$3::time,$4::time) RETURNING period_id`,[a,departments.get(a),start,end]);
+    const id=inserted.rows[0].period_id;periodIds.push(id);
+    await pool.query('INSERT INTO class_period_days(school_id,period_id,weekday) VALUES($1,$2,$3) ON CONFLICT DO NOTHING',[a,id,weekday]);
+   }
+   const headers={'x-memo-title':'Fictional shortened teaching directive','x-memo-category':'SCHEDULE_NOTICE',
+    'x-memo-audience':'ALL_USERS','x-memo-effective-date':date,'x-memo-end-date':date,
+    'x-memo-shortened-class':'true','x-memo-original-minutes':'55','x-memo-adjusted-minutes':'45'};
+   assert.equal((await call(teacher,'POST','/api/school-memos',headers)).code,403);
+   const preview=await call(p,'POST','/api/school-memos',{...headers,'x-memo-preview':'true'});
+   assert.equal(preview.code,200,JSON.stringify(preview.body));assert.equal(preview.body.changedPeriods,3);
+   assert.equal((await pool.query('SELECT 1 FROM schedule_day_adjustments WHERE school_id=$1',[a])).rowCount,0);
+   const published=await call(p,'POST','/api/school-memos',headers);
+   assert.equal(published.code,201,JSON.stringify(published.body));assert.equal(published.body.changedPeriods,3);
+   const applied=await pool.query(`SELECT to_char(start_time,'HH24:MI') AS start,to_char(end_time,'HH24:MI') AS finish FROM schedule_day_adjustments
+      WHERE school_id=$1 AND memo_id=$2 AND school_date=$3::date ORDER BY start_time`,[a,published.body.memoId,date]);
+   assert.deepEqual(applied.rows,[{start:'07:00',finish:'07:45'},{start:'07:45',finish:'08:30'},{start:'08:45',finish:'09:30'}]);
+   const dbMemo=(await pool.query('SELECT dtr_hours,filename,class_period_minutes FROM school_memoranda WHERE school_id=$1 AND memo_id=$2',[a,published.body.memoId])).rows[0];
+   assert.equal(dbMemo.dtr_hours,null);assert.equal(dbMemo.filename,null);assert.deepEqual(dbMemo.class_period_minutes,{original:55,adjusted:45});
+   assert.equal((await call(teacher,'GET','/api/school-memos/'+published.body.memoId+'/file')).code,404);
+   assert.equal((await call(p,'POST','/api/school-memos',headers)).code,409);
+   const regular=await pool.query(`SELECT to_char(start_time,'HH24:MI') AS start,to_char(end_time,'HH24:MI') AS finish FROM class_periods
+     WHERE school_id=$1 AND period_id=ANY($2::uuid[]) ORDER BY start_time`,[a,periodIds]);
+   assert.deepEqual(regular.rows,[{start:'07:00',finish:'07:55'},{start:'07:55',finish:'08:50'},{start:'09:05',finish:'10:00'}]);
+  });
   console.log('MEMORANDA E2E PASS: '+assertions+' grouped assertions; fictional accounts; real HTTP, sessions, SQL, files and notifications; isolated DB.');
  }finally{
   if(srv)await new Promise(resolve=>srv.close(resolve));

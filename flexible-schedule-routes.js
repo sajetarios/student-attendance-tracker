@@ -316,7 +316,12 @@ function registerFlexibleScheduleRoutes(app,pool,auth) {
     const localClock=new Intl.DateTimeFormat('en-GB',{timeZone:'Asia/Manila',hour:'2-digit',minute:'2-digit',hourCycle:'h23'}).format(new Date());
     const safeEndChange=canChangeActiveEnd(current,proposed,type,date,now(),localClock);
     const session=await c.query('SELECT session_id FROM class_qr_sessions WHERE school_id=$1 AND period_id=$2 AND school_date=$3::date FOR UPDATE',[req.auth.schoolId,b.periodId,date]);
-    if((attendance.rowCount||session.rowCount)&&!safeEndChange){
+    const manual=await c.query('SELECT 1 FROM manual_attendance_marks WHERE school_id=$1 AND period_id=$2 AND school_date=$3::date LIMIT 1',[req.auth.schoolId,b.periodId,date]);
+    const finalized=await c.query('SELECT 1 FROM class_attendance_finalizations WHERE school_id=$1 AND period_id=$2 AND school_date=$3::date AND finalized=TRUE',[req.auth.schoolId,b.periodId,date]);
+    if(finalized.rowCount||(date===now()&&current.endTime<=localClock)){
+     await c.query('ROLLBACK');return res.status(409).json({error:'Completed or finalized class schedules cannot be changed.'});
+    }
+    if((attendance.rowCount||session.rowCount||manual.rowCount)&&!safeEndChange){
      await c.query('ROLLBACK');return res.status(409).json({error:'Accepted attendance or a QR session exists on '+date+'. Only a safe end-time adjustment to an ongoing class is allowed.'});
     }
     if(type!=='CANCEL'){
@@ -385,7 +390,10 @@ function registerFlexibleScheduleRoutes(app,pool,auth) {
     'SELECT 1 FROM attendance_events WHERE school_id=$1 AND period_id=$2 AND school_date=$3::date',
     "AND sync_status='ACCEPTED' LIMIT 1"
    ].join(' '),[req.auth.schoolId,x.period_id,x.date]);
-   if(attendance.rowCount){await c.query('ROLLBACK');return res.status(409).json({error:'Class attendance already exists for that date.'});}
+   const protectedRecords=await c.query(`SELECT 1 FROM class_qr_sessions WHERE school_id=$1 AND period_id=$2 AND school_date=$3::date
+      UNION ALL SELECT 1 FROM manual_attendance_marks WHERE school_id=$1 AND period_id=$2 AND school_date=$3::date
+      UNION ALL SELECT 1 FROM class_attendance_finalizations WHERE school_id=$1 AND period_id=$2 AND school_date=$3::date AND finalized=TRUE LIMIT 1`,[req.auth.schoolId,x.period_id,x.date]);
+   if(attendance.rowCount||protectedRecords.rowCount){await c.query('ROLLBACK');return res.status(409).json({error:'Class attendance, finalization or a QR session already exists for that date.'});}
    await c.query('DELETE FROM schedule_day_adjustments WHERE school_id=$1 AND adjustment_id=$2',[req.auth.schoolId,req.params.id]);
    await c.query([
     'INSERT INTO audit_logs(school_id,actor_type,actor_user_id,action,entity_type,entity_id,details)',
