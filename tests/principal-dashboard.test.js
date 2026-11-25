@@ -121,7 +121,9 @@ test('Teacher Recognition redesign keeps evidence source contracts and responsiv
  assert.match(js,/count\.dataset\.state=award\.entries\.length\?'active':'empty'/);
  assert.match(routes,/watchNominees/);
  assert.match(routes,/earlyArrivals/);
- assert.match(html,/principal-dashboard\.css\?v=15/);
+ const cssVersion=html.match(/principal-dashboard\.css\?v=(\d+)/);
+ assert.ok(cssVersion&&Number(cssVersion[1])>=15,'principal CSS revision must not regress');
+ assert.ok(read('public/sw.js').includes('/principal-dashboard.css?v='+cssVersion[1]),'offline cache must use the same CSS revision');
  const principalJsVersion=html.match(/principal-dashboard\.js\?v=(\d+)/);
  assert.ok(principalJsVersion && Number(principalJsVersion[1])>=13,'principal JS revision must not regress');
 });
