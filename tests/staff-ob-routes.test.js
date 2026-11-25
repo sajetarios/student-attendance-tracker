@@ -43,7 +43,8 @@ test('only staff roles may access OB routes and all reads are school scoped',asy
  assert.deepEqual(head.queries[0].params,['s1','dept1']);
  const admin=fixture('SCHOOL_ADMIN');
  await admin.call('GET','/api/staff-attendance/official-business');
- assert.deepEqual(admin.queries[0].params,['s1']);
+ assert.deepEqual(admin.queries[0].params,['s1','u1']);
+ assert.match(admin.queries[0].sql,/o.staff_user_id=\$2/);
  const student=fixture('STUDENT');
  assert.equal((await student.call('GET','/api/staff-attendance/official-business')).code,403);
 });
