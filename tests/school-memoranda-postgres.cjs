@@ -225,6 +225,27 @@ async function main(){
    const ack=await pool.query('SELECT COUNT(*)::int AS count FROM school_memo_acknowledgments WHERE school_id=$1 AND memo_id=$2',[a,memo]);
    assert.equal(ack.rows[0].count,3);
   });
+  await test('repository pagination, search and archived access remain school and audience scoped',async()=>{
+   const history=await call(p,'GET','/api/school-memos?repository=1&status=archived&limit=1');
+   assert.equal(history.code,200);assert.equal(history.body.memoranda[0].memoId,memo);assert.ok(history.body.memoranda[0].archivedAt);
+   assert.equal((await call(p,'GET','/api/school-memos/'+memo+'/file')).code,200);
+   assert.equal((await call(p,'POST','/api/school-memos/'+memo+'/acknowledge')).code,404);
+   for(const user of [teacher,parent,student,admin]){
+    assert.equal((await call(user,'GET','/api/school-memos?repository=1&status=archived')).code,403);
+    const list=await call(user,'GET','/api/school-memos?repository=1');
+    assert.ok(!list.body.memoranda.some(m=>m.memoId===memo));
+   }
+   for(const user of [parent,student,foreignPrincipal]){
+    const result=await call(user,'GET','/api/school-memos?repository=1&id='+staff.body.memoId);
+    assert.equal(result.body.memoranda.length,0);
+   }
+   const search=await call(p,'GET','/api/school-memos?repository=1&q=STAFF-ONLY');
+   assert.deepEqual(search.body.memoranda.map(x=>x.memoId),[staff.body.memoId]);
+   const page1=await call(p,'GET','/api/school-memos?repository=1&limit=1&sort=oldest');
+   assert.equal(page1.body.hasMore,true);assert.equal(page1.body.memoranda[0].memoId,memo);
+   const page2=await call(p,'GET','/api/school-memos?repository=1&limit=1&offset=1&sort=oldest');
+   assert.equal(page2.body.memoranda[0].memoId,staff.body.memoId);
+  });
   await test('memo workflow has zero impact on calendars, staff DTR or learner attendance',async()=>{
    const after=await pool.query(`SELECT
     (SELECT count(*) FROM school_calendar_exceptions WHERE school_id=$1)::int AS calendars,

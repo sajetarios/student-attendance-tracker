@@ -198,6 +198,68 @@ async function checkMemoGeometry(engine,engineName){
   }
  }finally{await browser.close();}
 }
+
+async function checkMemoRepository(engine,engineName){
+ const browser=await engine.launch({headless:true});
+ try{
+  for(const [name,role] of [['principal.html','PRINCIPAL'],['portal.html','TEACHER'],['student-portal.html','STUDENT'],['parent-portal.html','PARENT']]){
+   for(const theme of ['light','dark'])for(const width of [320,1280]){
+    const page=await browser.newPage({viewport:{width,height:844},hasTouch:width<400,isMobile:width<400});
+    try{
+     await page.setContent('<!doctype html><html data-theme="'+theme+'" data-ui-theme="'+theme+'"><head><meta name="viewport" content="width=device-width,initial-scale=1"></head><body><main style="width:100%;min-width:0">'+(role==='PRINCIPAL'?'<section id="principalMemoPublishPanel"><form><input name="title"></form></section>':'')+'</main></body></html>');
+     await page.evaluate(sheets=>{for(const css of sheets){const node=document.createElement('style');node.textContent=css;document.head.append(node);}},styles(name).map(css=>css.replace(/@import\s+[^;]+;/g,'')));
+     await page.evaluate(role=>{
+      const rows=Array.from({length:18},(_,i)=>({memoId:'11111111-1111-4111-8111-'+String(i).padStart(12,'0'),title:'Notice '+i,category:'GENERAL',summary:'Fictional school memo',audience:'ALL_USERS',publishedAt:'2026-11-25T03:00:00Z',publisher:'School principal',acknowledgedAt:null}));
+      window.memoFixture=rows;
+      window.fetch=async path=>{
+       const url=new URL(path,'https://fixture.invalid');
+       if(url.pathname==='/api/auth/me')return new Response(JSON.stringify({user:{role}}),{headers:{'Content-Type':'application/json'}});
+       const p=url.searchParams,limit=Number(p.get('limit')||50),offset=Number(p.get('offset')||0),q=p.get('q')||'';
+       let matching=window.memoFixture.filter(r=>(!p.get('id')||p.get('id')===r.memoId)&&(!q||r.title.includes(q)));
+       if(p.get('status')==='archived')matching=matching.filter(r=>r.archivedAt);
+       return new Response(JSON.stringify({memoranda:matching.slice(offset,offset+limit),hasMore:matching.length>offset+limit}),{headers:{'Content-Type':'application/json'}});
+      };
+     },role);
+     await page.addScriptTag({content:read('school-memo-banner.js')});
+     await page.waitForFunction(role=>document.querySelector('.attendigo-memo-launcher-action')?.textContent===(role==='PRINCIPAL'?'Manage memoranda':'Read memoranda'),role);
+     await page.locator('.attendigo-memo-launcher').click();
+     const panel=page.locator('#attendigoSchoolMemoPanel');
+     await page.locator('.attendigo-memo-record').waitFor();
+     assert.equal(await panel.evaluate(e=>e.open),true);
+     assert.equal(await page.locator('.attendigo-memo-record').count(),1);
+     assert.equal(await page.locator('.attendigo-memo-search-input').first().isVisible(),false);
+     assert.equal(await page.locator('.attendigo-memo-create').count(),role==='PRINCIPAL'?1:0);
+     assert.equal(await page.getByRole('button',{name:'Read receipts',exact:true}).count(),role==='PRINCIPAL'?1:0);
+     const bounds=await panel.boundingBox();assert.ok(bounds.x>=-1&&bounds.x+bounds.width<=width+1,engineName+' dialog overflow '+width);
+     await page.getByRole('button',{name:/View All Memoranda/}).click();
+     await page.waitForFunction(()=>document.querySelectorAll('.attendigo-memo-repository-row').length===15);
+     assert.equal(await page.locator('select option[value=archived]').count(),role==='PRINCIPAL'?1:0);
+     await page.getByRole('button',{name:'Next',exact:true}).click();
+     await page.waitForFunction(()=>document.querySelectorAll('.attendigo-memo-repository-row').length===3);
+     await page.locator('input[type=search]').fill('Notice 17');
+     await page.waitForFunction(()=>document.querySelectorAll('.attendigo-memo-repository-row').length===1);
+     await page.locator('.attendigo-memo-repository-row').click();
+     assert.equal(await page.locator('#attendigoMemoTitle').textContent(),'Memorandum details');
+     assert.equal(await page.locator('.attendigo-memo-record h3').textContent(),'Notice 17');
+     await page.getByRole('button',{name:/Back/}).click();
+     assert.equal(await page.locator('input[type=search]').inputValue(),'Notice 17');
+     await page.getByRole('button',{name:/Back/}).click();
+     await page.locator('.attendigo-memo-record').waitFor();
+     assert.equal(await page.locator('.attendigo-memo-record').count(),1);
+     if(role==='PRINCIPAL'){
+      await page.getByRole('button',{name:/Create memorandum/}).click();
+      assert.equal(await page.locator('#principalMemoPublishPanel').isVisible(),true);
+      assert.equal(await page.locator('.attendigo-memo-record').count(),0);
+      await page.getByRole('button',{name:/Back/}).click();
+     }
+     await page.getByRole('button',{name:'Close School Memoranda'}).click();
+     assert.equal(await panel.isVisible(),false);
+    }finally{await page.close();}
+   }
+  }
+  console.log(engineName+' connected memo repository: 16 role/theme/viewport scenarios passed');
+ }finally{await browser.close();}
+}
 (async()=>{
  await checkPrincipalHeaderGeometry(chromium,'Chromium');
  await checkPrincipalHeaderGeometry(webkit,'WebKit');
@@ -205,6 +267,8 @@ async function checkMemoGeometry(engine,engineName){
  await checkMemoLauncher(webkit,'WebKit');
  await checkMemoGeometry(chromium,'Chromium');
  await checkMemoGeometry(webkit,'WebKit');
+ await checkMemoRepository(chromium,'Chromium');
+ await checkMemoRepository(webkit,'WebKit');
  const browser=await chromium.launch({headless:true});
  try{
   const page=await browser.newPage();
