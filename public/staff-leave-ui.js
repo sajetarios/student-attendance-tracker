@@ -30,7 +30,7 @@
   '<label>'+esc(label)+'<select name="'+name+'">'+values.map(([val,txt])=>'<option value="'+esc(val)+'">'+esc(txt)+'</option>').join('')+'</select></label>';
  const docTypes=[['VACATION','Vacation leave'],['SICK','Sick leave'],['VSC','Vacation service credit availment'],['MATERNITY','Maternity leave'],
   ['PATERNITY','Paternity leave'],['SPECIAL_PRIVILEGE','Special privilege leave'],['WELLNESS','Wellness leave'],['OTHER','Other leave']];
- const accounts=[['NONE','To be verified by School Admin'],['VSC','Vacation Service Credits (VSC)'],['VL','Vacation Leave (VL)'],['SL','Sick Leave (SL)']];
+ const accounts=[['NONE','Pending verification'],['VSC','Vacation Service Credits (VSC)'],['VL','Vacation Leave (VL)'],['SL','Sick Leave (SL)']];
  function init(user){
   if(!['TEACHER','DEPARTMENT_HEAD','SCHOOL_ADMIN'].includes(user?.role))return;
   const button=document.createElement('button');button.id='staffLeaveNav';button.type='button';
@@ -218,6 +218,7 @@
     r.status==='PENDING_HEAD';
   }
   function newRequest(){
+   const verifier=isHrAdmin?'Principal':'School Admin';
    const details=document.createElement('details');details.className='leave-card leave-start-application';details.innerHTML=
     '<summary>＋ New Leave Request</summary>'+
     '<div class="leave-form-intro"><span>Complete this application first. After saving, use the <strong>Print prefilled CSC Form No. 6</strong> action on your request.</span>'+
@@ -244,7 +245,7 @@
     select('supportingKind','Supporting-document type (when a file is attached)',[
      ['','No document attached'],['APPLICATION','Application / general evidence'],['MEDICAL','Medical certificate / clearance'],
      ['AFFIDAVIT','Notarized affidavit if no medical consultation']])+
-    '<p class="leave-attachment-help" role="status" aria-live="polite">No file attached. You can submit now, subject to any supporting documents the School Admin may request.</p>'+
+    '<p class="leave-attachment-help" role="status" aria-live="polite">No file attached. You can submit now; supporting records may be requested.</p>'+
     '</fieldset><button type="submit" class="leave-primary">Submit for review</button></form>';
    const leaveTypeControl=details.querySelector('[name=leaveType]');
    const accountControl=details.querySelector('[name=creditAccount]');
@@ -269,8 +270,8 @@
     if(!attached)attachmentKind.value='';
     else if(!attachmentKind.value)attachmentKind.value='APPLICATION';
     attachmentInfo.textContent=attached
-     ?'Select the actual type of supporting evidence. The School Admin may request additional supporting documents before Principal approval.'
-     :'No file attached. You can submit now, subject to any supporting documents the School Admin may request.';
+     ?'Select the correct type of supporting evidence. Additional records may be requested.'
+     :'No file attached. You can submit now; supporting records may be requested.';
    }
    attachment.addEventListener('change',updateAttachmentChoice);
    updateAttachmentChoice();
@@ -288,14 +289,14 @@
     birthdayAction.hidden=true;
     if(!birthdayRelated)return;
     if(certifiedScheme==='TEACHING_VSC'){
-     birthdayMessage.textContent='Birthday-related Special Privilege Leave generally excludes employees under the teaching leave system. Contact your School Admin to confirm a different permitted leave category; your birthday alone does not create an entitlement.';
+     birthdayMessage.textContent='Birthday-related Special Privilege Leave generally excludes teaching personnel. Ask the '+verifier+' to confirm the correct leave category.';
     }else if(certifiedScheme==='REGULAR_VL_SL'){
      birthdayMessage.textContent=leaveTypeControl.value==='SPECIAL_PRIVILEGE'
-      ?'Birthday-related Special Privilege Leave has been selected. The School Admin must verify eligibility and remaining annual SPL days (maximum three in a calendar year).'
-      :'Birthday-related occasions may qualify for Special Privilege Leave for eligible non-teaching personnel. The School Admin must verify eligibility and remaining SPL days.';
+      ?'Birthday-related Special Privilege Leave selected. The '+verifier+' checks eligibility and remaining annual days (maximum three).'
+      :'Eligible non-teaching personnel may qualify. The '+verifier+' checks eligibility and remaining SPL days.';
      birthdayAction.hidden=leaveTypeControl.value==='SPECIAL_PRIVILEGE';
     }else{
-     birthdayMessage.textContent='Birthday-related Special Privilege Leave may apply to eligible non-teaching staff. Your leave scheme is not yet verified; ask your School Admin to confirm before choosing this category.';
+     birthdayMessage.textContent='Birthday-related Special Privilege Leave may apply to eligible non-teaching staff. Ask the '+verifier+' to verify your leave scheme.';
     }
    };
    const refreshCreditChoice=()=>{
@@ -317,18 +318,18 @@
      const entry=accounts.find(([id])=>id===code);
      if(!entry)continue;
      const option=document.createElement('option');
-     option.value=entry[0];option.textContent=entry[1];accountControl.append(option);
+     option.value=entry[0];option.textContent=code==='NONE'?(lockedAccount==='NONE'&&['MATERNITY','PATERNITY','SPECIAL_PRIVILEGE','WELLNESS'].includes(leaveType)?'No VSC / VL / SL deduction proposed':verifiedTeaching||verifiedRegular?'No credit account proposed':'Pending verification by '+verifier):entry[1];accountControl.append(option);
     }
     accountControl.value=lockedAccount||(
      allowed.includes(previous)?previous:
      verifiedTeaching?'VSC':verifiedRegular?(leaveType==='VACATION'?'VL':'NONE'):'NONE');
     accountControl.disabled=Boolean(lockedAccount)||allowed.length===1;
     if(leaveType==='SPECIAL_PRIVILEGE'||leaveType==='WELLNESS'){
-     creditInfo.textContent='This leave category is separate from VSC, VL and SL. No credit deduction from those accounts is proposed. The School Admin must verify the separate entitlement.';
+     creditInfo.textContent='No VSC, VL or SL deduction is proposed. The '+verifier+' checks eligibility.';
     }else if(leaveType==='VSC'&&!verifiedTeaching){
-     creditInfo.textContent='Vacation Service Credits requested. The School Admin must verify your teaching-personnel entitlement before approval. Submitting does not certify credits.';
+     creditInfo.textContent='VSC requested. The '+verifier+' checks your teaching-personnel entitlement.';
     }else if(!verifiedTeaching&&!verifiedRegular){
-     creditInfo.textContent='Your leave-credit scheme has not been verified. You can submit your application now. The School Admin will verify your entitlement against official records before the Principal records final approval. Ask your School Admin if verification is needed.';
+     creditInfo.textContent=isHrAdmin?'Submit your request. The Principal will verify your leave entitlement against official records; you cannot verify your own entitlement.':'Submit your request. The School Admin will verify your leave entitlement against official records.';
     }else{
      creditInfo.textContent='Verified '+(verifiedTeaching?'teaching-personnel service credits':'regular VL/SL leave scheme')+
       '. The proposed account is not a final charge. Only authorized verification and documented approval can adjust your certified balance.';
@@ -337,11 +338,11 @@
      sickInfo.hidden=false;
      const today=manilaDate();
      const basis=start.value>today?'Advance-filed':end.value&&end.value<today?
-      'Post-absence filing — School Admin verifies return date':'During ongoing absence';
+      'Post-absence filing — '+verifier+' verifies return date':'During ongoing absence';
      sickInfo.textContent=basis+' sick leave. Notify your supervisor of unexpected illness and submit CSC Form No. 6 as applicable. '+
       (verifiedTeaching?'Verified VSC is proposed for illness.':
        verifiedRegular?'Verified Sick Leave is proposed for illness.':
-       'The School Admin must verify the applicable leave scheme before final approval.')+
+       'The '+verifier+' must verify the applicable leave scheme before final approval.')+
       ' An authorized officer checks medical evidence and dates; filing alone does not change the DTR. For advance-filed illness or illness over five consecutive days, supporting medical evidence or an appropriate affidavit is required under the existing approval checks.';
     }else sickInfo.hidden=true;
     const nonCommutable=['SPECIAL_PRIVILEGE','WELLNESS'].includes(leaveType);
@@ -354,13 +355,13 @@
      :'Request only if permitted for your leave type. Attendigo records your choice on Form 6; it does not process payments.';
     typeInfo.hidden=!['SPECIAL_PRIVILEGE','WELLNESS'].includes(leaveType);
     typeInfo.textContent=leaveType==='SPECIAL_PRIVILEGE'
-     ?'Special Privilege Leave is generally for eligible non-teaching personnel, up to three days per year. Teachers under the teaching leave scheme are excluded. The School Admin must verify the remaining annual allowance before approval.'
+     ?'Special Privilege Leave is generally for eligible non-teaching personnel, up to three days per year. Teachers under the teaching leave scheme are excluded. The '+verifier+' checks the remaining annual allowance.'
      :leaveType==='WELLNESS'
-       ?'2026 Wellness Leave is a separate, non-cumulative, non-commutable leave benefit. The School Admin must verify eligibility, the annual entitlement and supporting requirements.'
+       ?'2026 Wellness Leave is a separate, non-cumulative, non-commutable benefit. The '+verifier+' checks eligibility and supporting records.'
        :'';
     // The server also independently enforces certified teaching-personnel restrictions.
     leaveTypeControl.setCustomValidity(leaveType==='SPECIAL_PRIVILEGE'&&verifiedTeaching
-     ?'Special Privilege Leave generally excludes teachers under the teaching leave scheme. Ask your School Admin to confirm the correct leave type.':'');
+     ?'Special Privilege Leave generally excludes teachers under the teaching leave scheme. Ask the '+verifier+' to confirm the correct leave type.':'');
     updateBirthdayHint();
    };
    birthdayAction.addEventListener('click',()=>{
@@ -699,7 +700,7 @@
     });
     schemePanel.querySelector('form').addEventListener('submit',event=>{
      event.preventDefault();const d=new FormData(event.target),staffId=String(d.get('staffUserId'));
-     if(staffId===user.userId){say('You cannot certify your own leave scheme. Another authorized officer is required.',true);return;}
+     if(staffId===user.userId){say('You cannot verify your own leave scheme. The Principal can verify it from your submitted leave request.',true);return;}
      action('Verifying leave scheme',()=>call('/staff/'+encodeURIComponent(staffId)+'/credit-scheme','POST',{
       leaveScheme:String(d.get('leaveScheme')),hrReference:String(d.get('hrReference')||'')
      }));
