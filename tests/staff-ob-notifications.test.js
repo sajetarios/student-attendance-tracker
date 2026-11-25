@@ -38,8 +38,8 @@ test('OB notifications open the correct module and refresh after decisions',()=>
  assert.match(sql,/\/portal\.html#officialBusiness/);
  assert.match(bell,/document\.querySelector\('\.nav-item\[data-view="'\+view\+'"\]'\)/);
  assert.match(ui,/document\.dispatchEvent\(new Event\('attendigo:requests-changed'\)\)/);
- assert.match(portal,/staff-ob-ui\.js\?v=8/);
- assert.match(sw,/staff-ob-ui\.js\?v=8/);
+ assert.match(portal,/staff-ob-ui\.js\?v=9/);
+ assert.match(sw,/staff-ob-ui\.js\?v=9/);
 });
 
 test('new migration replaces historical Admin routing with Principal authorization',()=>{
