@@ -20,7 +20,7 @@ function encode(v){
   }
   return {type:'inlineStr',body:'<is><t xml:space="preserve">'+xml(v)+'</t></is>'};
 }
-async function renderMasterWorkbook({calculated,data,month,personalCopy=false,schoolName,schoolId,schoolYear,gradeLevel,section,adviserName,schoolHeadName,templatePath=MASTER}){
+async function renderMasterWorkbook({calculated,data,summary,month,personalCopy=false,schoolName,schoolId,schoolYear,gradeLevel,section,adviserName,schoolHeadName,templatePath=MASTER}){
   const zip=await JSZip.loadAsync(await fs.readFile(templatePath));
   const file='xl/worksheets/sheet1.xml';
   let sheet=await zip.file(file).async('string');
@@ -42,20 +42,16 @@ async function renderMasterWorkbook({calculated,data,month,personalCopy=false,sc
     set('T118','White blank: Present; Gray: no record (not absent); X: Absent; Upper half shaded: Late; E: Excused; —: No class; !: Review.');
     for(const a of ['AE139','AE140','AE142','AE144','AE145','AE146'])set(a,null);
     set('AE142','Subject teacher reference only');
+    // Preserve the original summary table and its printed labels. Only the
+    // subject-copy guidance distinguishes the supporting attendance basis.
     set('A117','SUBJECT REPORT GUIDE:');
-    set('A118','1. Only the selected subject is included. Future dates are excluded.');
-    set('A119','2. Present includes late arrivals. Absent counts X; excused absences remain E.');
-    set('A120','3. Present and Absent are totals of recorded learner-days in the month.');
-    for(const a of ['A121','B121','G121','Q121','G122','A123','B123','G123','G124','A125','B125','G125','Q125','G126','A128','A130','A132','A133','B133'])set(a,null);
-    set('A128','Attendance % = Present / (Present + Absent + Excused). No recorded attendance = blank percentage.');
-    set('A130','Unrecorded, conflicting, future and no-class dates are excluded from the percentage.');
-    set('A132','Enrolled learners are the learners included in the selected subject report roster.');
-    set('T121','2. RECORDING NOTES');
-    for(let row=122;row<=146;row++)if(row!==142)set('T'+row,null);
-    set('T122','Gray: incomplete evidence');
-    set('T123','! : resolve conflict');
-    set('T124','E : excused absence');
-    set('T125','— : no scheduled class');
+    set('A118','1. Only the selected subject is included. Not for official submission.');
+    set('A119','2. Present includes late arrivals; X and E are confirmed absences.');
+    set('A120','3. No. of Days of Classes counts dates with complete subject records for this roster.');
+    set('A128','Incomplete, conflicting, future and no-class dates are excluded from monthly attendance calculations.');
+    set('A130','Enrollment and movement figures come from the section records. Consecutive absences refer to this subject.');
+    set('A132','No recorded complete class day: attendance averages and percentages are N/A.');
+
   }else{
     // This locally prepared worksheet supports completing the actual LIS form;
     // it is not represented as an authorized DepEd/LIS-issued electronic form.
@@ -112,41 +108,32 @@ async function renderMasterWorkbook({calculated,data,month,personalCopy=false,sc
     copy('AF'+total);copy('AG'+total);
   }
   for(let slot=0;slot<25;slot++)copy(col(7+slot)+'115');
-  copy('AF115');copy('AG115');cache('AG117','LEFT(AA6,3)',String(read('AA6')||'').slice(0,3),'integer');
-  // Calculate school days from the exported date headers instead of the
-  // old editable AQ9 field. Blank holidays and unused slots never count.
+  copy('AF115');copy('AG115');
+  // Keep the original full month name. Shrink text to fit only where needed;
+  // the original column widths, row heights, merges and printed area remain.
+  cache('AG117','AA6',read('AA6'),'month');
   if(personalCopy){
-    // Keep the existing summary geometry: only four indicators, in the
-    // original rows and columns. No added sheet, rows, columns or merges.
-    set('AH117','Scheduled days:');
-    set('AJ117',data.subjectScheduledDays??0);
-    set('AK117','Subject Attendance Summary');
-    const labels={119:'Enrolled learners',121:'Present',123:'Absent',125:'Attendance percentage'};
-    for(const [row,label] of Object.entries(labels))set('AE'+row,label);
-    // Clear all unused official-statistics labels and values, retaining their
-    // existing cells, borders, spacing and original merged ranges.
-    for(const row of [127,128,130,132,134,136]){
-      set('AE'+row,null);
-      for(const c of ['AK','AL','AM'])set(c+row,null);
+    const complete=summary?.completeSubjectDates||[];
+    const days=complete.filter(Boolean).length;
+    // The 25 hidden evidence slots in row 115 identify complete roster-days.
+    // They do not alter the visible attendance ledger, including partial days.
+    for(let slot=0;slot<25;slot++){
+      const d=slots[slot],hc=col(47+slot);
+      addHelper(115,hc+'115',d>=0&&complete[d]?1:0);
     }
-    const stats=learners=>{
-      const all=learners.flatMap(learner=>data.dates.map((_,d)=>learner.subjectDays?.[d]||learner.days[d]));
-      const present=all.filter(x=>x==='PRESENT'||x==='LATE').length;
-      const absent=all.filter(x=>x==='SUBJECT_ABSENT').length;
-      const excused=all.filter(x=>x==='EXCUSED').length;
-      const recorded=present+absent+excused;
-      return {119:learners.length,121:present,123:absent,125:recorded?present/recorded:''};
-    };
-    const groupStats=groups.map(stats),totalStats=stats(groups.flat());
-    const excusedCount=(start,end)=>'COUNTIF(AU'+start+':BS'+end+',"E")';
-    for(let g=0;g<2;g++){
-      const c=g?'AL':'AK',start=g?64:13,end=start+49;
-      const formulas={119:'COUNTA(B'+start+':B'+end+')',121:'SUM(AG'+start+':AG'+end+')',123:'SUM(AF'+start+':AF'+end+')',125:'IFERROR('+c+'121/('+c+'121+'+c+'123+'+excusedCount(start,end)+'),"")'};
-      for(const row of Object.keys(labels))cache(c+row,formulas[row],groupStats[g][row],Number(row)===125?'percent':'integer');
-    }
-    for(const row of Object.keys(labels)){
-      const formula=row==='125'?'IFERROR(AM121/(AM121+AM123+'+excusedCount(13,62)+'+'+excusedCount(64,113)+'),"")':'AK'+row+'+AL'+row;
-      cache('AM'+row,formula,totalStats[row],row==='125'?'percent':'integer');
+    cache('AJ117','SUM(AU115:BS115)',days);
+    for(const r of [119,121,123,125,127,128,130,132,134,136]){
+      for(const [i,c] of ['AK','AL','AM'].entries()){
+        const v=read(c+r);
+        if(r===127){
+          const row=[63,114,115][i];
+          const result=typeof v==='object'?v.result:v;
+          cache(c+r,'IFERROR(SUMPRODUCT(G'+row+':AE'+row+',AU115:BS115)/$AJ$117,"N/A")',result,'decimal');
+        }else if(r===125||r===128){
+          if(v&&typeof v==='object'&&v.formula)cache(c+r,v.formula,v.result,'percent');
+          else set(c+r,v,null,'percent');
+        }else copy(c+r);
+      }
     }
   }else{
     cache('AJ117','COUNT(G10:AE10)',data.dates.length);
@@ -181,7 +168,11 @@ async function renderMasterWorkbook({calculated,data,month,personalCopy=false,sc
     if(numberStyles.has(key))return numberStyles.get(key).id;
     const base=originals[id];
     if(!base)throw Error('Missing SF2 summary style '+id);
-    let xf=base.replace(/\bnumFmtId="\d+"/,'numFmtId="'+(format==='percent'?10:0)+'"');
+    let xf=base.replace(/\bnumFmtId="\d+"/,'numFmtId="'+(format==='percent'?9:format==='decimal'?2:0)+'"');
+    if(format==='month'||format==='percent'||format==='decimal'){
+      // Shrink displayed text inside existing narrow cells; never resize the sheet.
+      if(/<alignment\b/.test(xf))xf=xf.replace(/<alignment\b([^>]*?)(\/?>)/,(_,attrs,end)=>'<alignment'+attrs.replace(/\s+wrapText="[^"]*"/g,'').replace(/\s+shrinkToFit="[^"]*"/g,'')+' wrapText="0" shrinkToFit="1"'+end);
+    }
     if(/\bapplyNumberFormat="/.test(xf))xf=xf.replace(/\bapplyNumberFormat="[^"]*"/,'applyNumberFormat="1"');
     else xf=xf.replace(/<xf\b/,'<xf applyNumberFormat="1"');
     const next=originals.length+lateStyles.size+numberStyles.size;

@@ -195,7 +195,7 @@ function createReferenceWorkbook({source,data,summary,month,monthName,schoolName
     merge('AE'+r+':AJ'+end,label,{box:true,italic:true,size:12});
     ['AK','AL','AM'].forEach((col,i)=>{
       const cell=end===r?put(col+r,null,{...header,fill:[125,127,128].includes(r)}):merge(col+r+':'+col+end,null,{...header,fill:[125,127,128].includes(r)});
-      if(personalCopy)return;
+      if(!summary)return;
       const values=[m,f,combined][i];
       if(key==='enrollmentRate')formula(cell,'IFERROR('+col+'123/'+col+'119,"N/A")',divide(values.registered,values.early),'0%');
       else if(key==='average')formula(cell,'IFERROR(AG'+[63,114,115][i]+'/$AJ$117,"N/A")',divide(values.presentDays,summary.days),'0.00');
