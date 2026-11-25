@@ -1,4 +1,4 @@
-const CACHE = "attendigo-v411-compact-locator-actions";
+const CACHE = "attendigo-v412-lunch-teacher-picker";
 
 // Only public, non-personal offline shells and their executable dependencies.
 // An update must not discard the working cache before these are all ready.
@@ -134,13 +134,13 @@ const SHELL = [
   "/role-controls-responsive.css?v=2",
   "/smart-attendance-overview.js?v=5",
   "/my-gate-insights.css?v=4",
-  "/staff-lunch-ui.js?v=9",
+  "/staff-lunch-ui.js?v=10",
   "/staff-precise-location.js?v=1",
   "/staff-department-location.js?v=8",
   "/staff-ob-ui.js?v=9",
   "/locator-slip-ui.js?v=5",
   "/staff-ob.css?v=1",
-  "/staff-lunch.css?v=7",
+  "/staff-lunch.css?v=8",
   "/staff-lunch-checkin.js?v=5",
   "/sardo-monitor.js?v=2",
   "/sardo-monitor.css?v=1",

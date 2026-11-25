@@ -123,3 +123,13 @@
  .staff-location-permission-actions{flex-direction:column-reverse}
  .staff-location-permission-actions button{width:100%}
 }
+
+/* Touch-friendly multi-selection; avoids native iOS multiple-select picker. */
+#staffLunchAdminCard .staff-lunch-teacher-picker{flex:1 1 100%;width:100%;min-width:0;max-width:100%;box-sizing:border-box;margin:0;padding:0;border:0}
+#staffLunchAdminCard .staff-lunch-teacher-picker legend{font-weight:600;font-size:1rem;padding:0}
+#staffLunchAdminCard .staff-lunch-picker-hint,#staffLunchAdminCard .staff-lunch-picker-count{font-size:.875rem;margin:.25rem 0;color:inherit}
+#staffLunchTeacher{display:grid;gap:4px;max-height:260px;overflow-y:auto;overscroll-behavior:contain;box-sizing:border-box;border:1px solid var(--border-color,#d2dbe6);border-radius:10px;padding:6px;min-width:0;width:100%}
+#staffLunchAdminCard .staff-lunch-controls #staffLunchTeacher .staff-lunch-teacher-option{display:flex;flex-direction:row;align-items:center;gap:12px;min-width:0;min-height:44px;box-sizing:border-box;padding:8px;border-radius:6px;font-size:1rem;line-height:1.4;cursor:pointer;flex:none}
+#staffLunchTeacher .staff-lunch-teacher-option input[type=checkbox]{appearance:auto;-webkit-appearance:auto;flex:0 0 20px;width:20px;height:20px;min-height:0;margin:0;padding:0;accent-color:var(--primary-color,#2467ad)}
+#staffLunchTeacher .staff-lunch-teacher-option span{min-width:0;overflow-wrap:anywhere}
+#staffLunchTeacher .staff-lunch-teacher-option:focus-within{outline:2px solid var(--primary-color,#2467ad);outline-offset:-2px}

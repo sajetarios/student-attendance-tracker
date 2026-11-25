@@ -44,7 +44,12 @@ test('verified staff DTR remains unique across all presenter QRs',()=>{
 });
 test('admin screen filters presenters by department and supports multiple selection',()=>{
  assert.match(html,/id="staffLunchDepartment"/);
- assert.match(html,/id="staffLunchTeacher" multiple/);
- assert.match(client,/selectedOptions/);
+ assert.match(html,/id="staffLunchTeacher" class="staff-lunch-teacher-options"/);
+ assert.match(html,/id="staffLunchTeacherCount"[^>]*aria-live="polite"/);
+ assert.match(client,/checkbox\.type='checkbox'/);
+ assert.match(client,/const ids=selectedTeacherIds\(\)/);
+ assert.match(client,/input\.checked=false/);
+ assert.match(client,/teacherSelect\?\.addEventListener\('change',updateSelectionCount\)/);
+ assert.doesNotMatch(client,/selectedOptions|Ctrl\/Command/);
  assert.match(client,/presenterUserId:presenter.presenterUserId/);
 });

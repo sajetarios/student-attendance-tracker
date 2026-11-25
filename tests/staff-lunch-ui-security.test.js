@@ -47,8 +47,8 @@ test('Department Head and teacher interfaces remain isolated to existing role-sp
  assert.match(ui,/performance\.now\(\)/);
  assert.doesNotMatch(ui,/Date\.now\(\)>expiry/);
  assert.match(ui,/!document\.hidden/);
- assert.match(portal,/staff-lunch-ui\.js\?v=9/);
- assert.match(portal,/staff-lunch\.css\?v=7/);
+ assert.match(portal,/staff-lunch-ui\.js\?v=10/);
+ assert.match(portal,/staff-lunch\.css\?v=8/);
 });
 test('My lunch QR is unhidden by the role-aware portal view switch',()=>{
  const portalJs=read('public/portal.js');
@@ -69,8 +69,8 @@ test('QR scan does not log in or record until authenticated staff confirms expli
  assert.match(server,/res\.set\('Referrer-Policy','no-referrer'\)/);
 });
 test('service worker preloads safe assets but excludes sensitive scan document from offline cache',()=>{
- assert.match(sw,/staff-lunch-ui\.js\?v=9/);
- assert.match(sw,/staff-lunch\.css\?v=7/);
+ assert.match(sw,/staff-lunch-ui\.js\?v=10/);
+ assert.match(sw,/staff-lunch\.css\?v=8/);
  assert.match(sw,/staff-lunch-checkin\.js\?v=5/);
  assert.match(sw,/staff-lunch-checkin\.html/);
  const shell=sw.split('const SHELL = [')[1].split('];')[0];
@@ -180,9 +180,9 @@ test('location permission popup guides staff without bypassing approval',()=>{
  assert.match(departmentLocationUi,/!Array\.isArray\(position\.samples\)\|\|position\.samples\.length<2/);
  assert.match(css,/\.staff-location-permission-dialog::backdrop/);
  assert.match(css,/\.staff-location-permission-actions/);
- assert.match(portal,/staff-lunch\.css\?v=7/);
+ assert.match(portal,/staff-lunch\.css\?v=8/);
  require('./support/asset-contract').assertCachedAsset(portal,sw,'staff-department-location.js',{minimumVersion:3});
- assert.match(sw,/staff-lunch\.css\?v=7/);
+ assert.match(sw,/staff-lunch\.css\?v=8/);
  require('./support/asset-contract').assertCachedAsset(portal,sw,'staff-department-location.js',{minimumVersion:3});
 });
 

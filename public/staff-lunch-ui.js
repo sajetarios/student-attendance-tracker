@@ -27,6 +27,12 @@
     const output=admin?null:$('staffLunchQrImage');
     const expiry=admin?null:$('staffLunchQrExpiry');
     const teacherSelect=admin?$('staffLunchTeacher'):null;
+    const teacherCount=admin?$('staffLunchTeacherCount'):null;
+    const selectedTeacherIds=()=>teacherSelect ? [...teacherSelect.querySelectorAll('input[type="checkbox"]:checked')].map(input=>input.value) : [];
+    function updateSelectionCount(){
+      if(teacherCount){const n=selectedTeacherIds().length;teacherCount.textContent=n+' teacher'+(n===1?'':'s')+' selected';}
+    }
+    teacherSelect?.addEventListener('change',updateSelectionCount);
     const departmentSelect=admin?$('staffLunchDepartment'):null;
     const activeList=admin?$('staffLunchAssignedList'):null;
     const enabledSwitch=$('staffLunchEnabled'),saveEnabled=$('staffLunchSaveEnabled');
@@ -49,7 +55,7 @@
       slot.disabled=value;
       action.disabled=value || (!admin&&!assigned);
       if(revoked)revoked.disabled=value||!assigned;
-      if(teacherSelect)teacherSelect.disabled=value;
+      if(teacherSelect)teacherSelect.querySelectorAll('input[type="checkbox"]').forEach(input=>{input.disabled=value;});
       if(departmentSelect)departmentSelect.disabled=value;
       if(activeList)activeList.querySelectorAll('button').forEach(button=>{button.disabled=value;});
     }
@@ -130,9 +136,18 @@
         function updateTeacherOptions(){
           const filter=departmentSelect.value;
           teacherSelect.replaceChildren();
-          eligibleTeachers.filter(t=>!filter||t.departmentId===filter).forEach(t=>{
-            teacherSelect.add(new Option(t.displayName+' · '+(t.departmentName||'No department'),t.userId));
+          const shown=eligibleTeachers.filter(t=>t.userId!=null&&(!filter||String(t.departmentId)===String(filter)));
+          if(!shown.length)teacherSelect.textContent='No eligible teachers in your department.';
+          shown.forEach(t=>{
+            const row=document.createElement('label');
+            row.className='staff-lunch-teacher-option';
+            const checkbox=document.createElement('input');
+            checkbox.type='checkbox';checkbox.value=String(t.userId);checkbox.disabled=busy;
+            const caption=document.createElement('span');
+            caption.textContent=t.displayName;
+            row.append(checkbox,caption);teacherSelect.append(row);
           });
+          updateSelectionCount();
         }
         const pendingList=$('staffLunchPendingList'),pendingRefresh=$('staffLunchPendingRefresh');
         departmentSelect.addEventListener('change',()=>{
@@ -182,8 +197,9 @@
         updateTeacherOptions();
       }catch(error){setStatus('Unable to load teachers: '+error.message,true);action.disabled=true;return;}
       action.addEventListener('click',async()=>{
-        const ids=[...teacherSelect.selectedOptions].map(option=>option.value);
-        if(!ids.length){setStatus('Select at least one teacher. Use Ctrl/Command or Shift for multiple.',true);return;}
+        if(busy)return;
+        const ids=selectedTeacherIds();
+        if(!ids.length){setStatus('Select at least one teacher.',true);return;}
         setBusy(true);
         try{
           let added=0;
@@ -194,7 +210,8 @@
             if(!result.unchanged)added++;
           }
           setStatus(added+' new presenter(s) authorized. Existing presenter QR codes remain active.');
-          [...teacherSelect.options].forEach(o=>{o.selected=false;});
+          teacherSelect.querySelectorAll('input[type="checkbox"]').forEach(input=>{input.checked=false;});
+          updateSelectionCount();
         }catch(error){setStatus('Some changes may have been saved. '+error.message,true);}
         finally{setBusy(false);await refresh();}
       });
