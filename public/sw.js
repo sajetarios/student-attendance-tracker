@@ -1,4 +1,4 @@
-const CACHE = "attendigo-v423-locator-sample-feedback";
+const CACHE = "attendigo-v424-locator-ob-checkbox";
 
 // Only public, non-personal offline shells and their executable dependencies.
 // An update must not discard the working cache before these are all ready.

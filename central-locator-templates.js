@@ -38,7 +38,7 @@ function registerCentralLocatorRoutes(app,pool,{authenticateSchoolClient,require
     res.set('X-Locator-Sample-Proof',proof(row,m));
     return res.type('application/pdf').attachment('Locator-Slip-SAMPLE.pdf').send(pdf);
    }
-   if(req.body?.verified!==true||req.body?.divisionConfirmed!==true||req.body?.proof!==proof(row,m))return res.status(422).json({error:'Generate and inspect the sample PDF for this exact mapping before publishing.'});
+   if(req.body?.verified!==true||req.body?.divisionConfirmed!==true||(m.business&&req.body?.businessConfirmed!==true)||req.body?.proof!==proof(row,m))return res.status(422).json({error:'Generate and inspect the sample PDF for this exact mapping before publishing.'});
    // Revalidate the printable sample, then store immutable bytes and mapping.
    await renderPdf(row.pdf_bytes,m,true);
    const result=await pool.query(`WITH published AS (

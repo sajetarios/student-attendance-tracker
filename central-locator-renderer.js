@@ -30,7 +30,7 @@ function validateMapping(mapping){
   const r=mapping[key];
   if(!Array.isArray(r)||r.length!==4||!r.every(Number.isFinite))throw Error('Select a valid blank space.');
   const [x,y,w,h]=r;
-  if(x<0||y<0||w<.012||h<.009||x+w>1.000001||y+h>1.000001)throw Error('Select a larger space inside the page.');
+  if(x<0||y<0||w<(key==='business'?.005:.012)||h<(key==='business'?.004:.009)||x+w>1.000001||y+h>1.000001)throw Error('Select a larger space inside the page.');
   for(const b of Object.values(valid)){
    if(x<b[0]+b[2]&&x+w>b[0]&&y<b[1]+b[3]&&y+h>b[1])throw Error('Two selected spaces overlap. Adjust their placement.');
   }
@@ -56,6 +56,14 @@ function overlay(ctx,width,height,mapping,values=null){
   let dark=0;
   for(let i=0;i<rgba.length;i+=4)if(rgba[i+3]>100&&Math.min(rgba[i],rgba[i+1],rgba[i+2])<190)dark++;
   if(dark/(bw*bh)>.018)throw fieldError(key,label,'the selected space contains printed content. Select an empty area.');
+  if(key==='business'){
+   // This renderer is used exclusively by the OB request workflow.
+   // Draw a compact centered tick in the blank interior, not over the label.
+   if(value!=='✓')throw fieldError(key,label,'invalid Official Business mark.');
+   if(w>width*.10||h>height*.035)throw fieldError(key,label,'select only the empty Official Business checkbox, not its label.');
+   const size=Math.min(w,h)*.68,cx=x+w/2,cy=y+h/2;
+   ctx.save();ctx.strokeStyle='#111111';ctx.lineWidth=Math.max(1,size*.13);ctx.lineCap='round';ctx.lineJoin='round';ctx.beginPath();ctx.moveTo(cx-size*.40,cy);ctx.lineTo(cx-size*.12,cy+size*.30);ctx.lineTo(cx+size*.44,cy-size*.32);ctx.stroke();ctx.restore();continue;
+  }
   let lines=null,fs;
   for(fs=width/595*12;fs>=width/595*8;fs-=width/595*.5){
    ctx.font=fs+'px Arial, sans-serif';
