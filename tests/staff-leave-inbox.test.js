@@ -61,6 +61,10 @@ test('no medical information or applicant reasons leak into reviewer inbox recor
  const principal=publicInboxRecord({...request,status:'PENDING_EXTERNAL',requester_role:'SCHOOL_ADMIN',department_id:null},head);
  assert.equal(principal.actions.recordOfficialDecision,false);
  assert.equal(publicInboxRecord({...request,status:'APPROVED'},admin).actions.recordOfficialDecision,false);
+ assert.equal(publicInboxRecord({...request,status:'PENDING_ADMIN'},admin).actions.schoolReview,false);
+ assert.equal(publicInboxRecord({...request,status:'PENDING_ADMIN'},admin).actions.recordOfficialDecision,false);
+ assert.equal(publicInboxRecord({...request,status:'PENDING_ADMIN'}, {...admin,role:'PRINCIPAL'}).actions.recordOfficialDecision,true);
+ assert.equal(publicInboxRecord({...request,status:'PENDING_EXTERNAL',requester_role:'PRINCIPAL'},admin).actions.recordOfficialDecision,true);
 });
 test('notifications are transactional and never disclose illness details',async()=>{
  const calls=[];

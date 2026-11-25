@@ -184,7 +184,7 @@ test('seven-step fictional leave, gate and DTR workflow uses real route function
  const printJS=fs.readFileSync(require.resolve('../public/leave-form6.js'),'utf8');
  assert.match(printHtml,/@page\{size:A4 portrait/);
  assert.match(printJS,/\$\('print'\)\.addEventListener\('click',\(\)=>window\.print\(\)\)/);
- // 2. Unauthorized reviewer rejected, authorized Department Head then Admin forward.
+ // 2. Unauthorized reviewer rejected, authorized Department Head forwards directly to Principal.
  const noSelf=await run('POST','/api/staff-leave/requests/:id/recommend',{
   params:{id:requestId},body:{decision:'FORWARD'},userId:teacher});
  assert.equal(noSelf.status,403);
@@ -193,7 +193,7 @@ test('seven-step fictional leave, gate and DTR workflow uses real route function
  assert.equal(headResult.status,200);assert.equal(state.request.status,'PENDING_ADMIN');
  const adminResult=await run('POST','/api/staff-leave/requests/:id/admin-review',{
   params:{id:requestId},body:{decision:'FORWARD',note:'Forward documented request'},userId:admin});
- assert.equal(adminResult.status,200);assert.equal(state.request.status,'PENDING_EXTERNAL');
+ assert.equal(adminResult.status,403);assert.equal(state.request.status,'PENDING_ADMIN');
  assert.equal(state.credit,5);
  // 3. Authenticated officer transcribes a decision already signed elsewhere.
  const approval={decision:'APPROVE',approvalReference:'SIM-DO-NOT-FILE-2026',
@@ -201,7 +201,7 @@ test('seven-step fictional leave, gate and DTR workflow uses real route function
   approvedOn:'2026-11-23',certifiedWorkingDays:2};
  const noPaper=await run('POST','/api/staff-leave/requests/:id/external-decision',{
   params:{id:requestId},body:approval,userId:principal});
- assert.equal(noPaper.status,409);assert.equal(state.request.status,'PENDING_EXTERNAL');
+ assert.equal(noPaper.status,409);assert.equal(state.request.status,'PENDING_ADMIN');
  state.signedApproval=true;state.credit=1;
  const insufficient=await run('POST','/api/staff-leave/requests/:id/external-decision',{
   params:{id:requestId},body:approval,userId:principal});
@@ -274,7 +274,7 @@ test('seven-step fictional leave, gate and DTR workflow uses real route function
  assert.equal(state.credit,3);
  assert.equal(state.audits.filter(a=>a.action==='LEAVE_EXTERNAL_APPROVED').length,1);
  assert.ok(state.notifications.length>0);
- assert.ok(state.commits>=4);
+ assert.ok(state.commits>=3);
 });
 
 
@@ -288,7 +288,7 @@ async function forwardedSick(sim,body=requestBody){
  assert.equal(headReview.status,200);
  const schoolReview=await sim.run('POST','/api/staff-leave/requests/:id/admin-review',
   {params:{id},body:{decision:'FORWARD',note:'Forward to authorized official'},userId:admin});
- assert.equal(schoolReview.status,200);
+ assert.equal(schoolReview.status,403);
  return {id,filed};
 }
 const documentedApproval=(days)=>({
@@ -320,7 +320,7 @@ test('unverified HR scheme may not be guessed from TEACHER role at approval',asy
  assert.equal(decision.status,409);
  assert.equal(sim.state.credit,5);
  assert.equal(sim.state.appliedLeaves.length,0);
- assert.equal(sim.state.request.status,'PENDING_EXTERNAL');
+ assert.equal(sim.state.request.status,'PENDING_ADMIN');
 });
 test('seven consecutive sick days require medical clearance or notarized affidavit before posting leave',async()=>{
  const sim=fixture();sim.state.credit=10;sim.state.signedApproval=true;

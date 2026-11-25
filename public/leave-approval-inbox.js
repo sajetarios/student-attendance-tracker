@@ -5,7 +5,7 @@
  const FILTERS=[
   ['ACTION','Needs my review','action'],['PENDING','Pending','pending'],
   ['RECOMMENDATION','For recommendation','recommendation'],
-  ['SCHOOL_REVIEW','School review','schoolReview'],
+  ['SCHOOL_REVIEW','Awaiting Principal','schoolReview'],
   ['EXTERNAL','Awaiting official approval','external'],
   ['APPROVED','Approved','approved'],
   ['DISAPPROVED','Officially disapproved','disapproved'],
@@ -57,7 +57,7 @@
    makeButton(kind==='HEAD'?'Decline at department':'Recommend disapproval','leave-btn',()=>submit('REJECT'))
   );
   form.append(choices);
-  form.append(make('p','leave-help',kind==='HEAD'?'A department decline closes internal routing and does not become an official DepEd disapproval. A positive recommendation goes to school review.':'A school recommendation is not a final approval or disapproval. The authorized official must issue the final decision.'));
+  form.append(make('p','leave-help',kind==='HEAD'?'A department decline closes internal routing and does not become an official DepEd disapproval. A positive recommendation goes directly to the Principal.':'A school recommendation is not a final approval or disapproval. The authorized official must issue the final decision.'));
   return form;
  }
  function officialForm(request,ctx){
@@ -126,7 +126,6 @@
   const timeline=[
    ['Application filed',Boolean(record.submittedAt)],
    ['Department recommendation',Boolean(record.headReviewedAt)],
-   ['School review',Boolean(record.schoolReviewedAt)],
    ['Official decision',Boolean(record.officialDecisionAt)]
   ];
   timeline.forEach(([label,done],i)=>{
@@ -167,15 +166,16 @@
   const parent=ctx.body;
   parent.replaceChildren();
   const heading=make('div','leave-inbox-heading');
-  heading.append(make('h3',null,'Leave Approval Inbox'));
+  heading.append(make('h3',null,ctx.user.role==='SCHOOL_ADMIN'?'School leave records':'Leave Approval Inbox'));
   heading.append(makeButton('Refresh','leave-btn',()=>{void render(ctx).catch(e=>notify(ctx.message,e.message,true));}));
   parent.append(heading);
   parent.append(make('p','leave-help',
-   'Review recommendations, track outstanding official decisions and monitor completed requests. Final decisions require documentary verification by an authorized officer.'));
+   ctx.user.role==='SCHOOL_ADMIN'?'Monitor staff leave. The Principal makes staff leave decisions; Admin may only record a documented SDO decision for the Principal and maintain authorized records.':'Review recommendations, track outstanding official decisions and monitor completed requests. Final decisions require documentary verification by an authorized officer.'));
   const summary=make('div','leave-inbox-filters');
   summary.setAttribute('role','group');
   summary.setAttribute('aria-label','Filter leave approval requests');
   const status=make('div','leave-inbox-count-note','Loading application statuses…');
+  if(ctx.user.role==='SCHOOL_ADMIN'&&filter==='ACTION'&&offset===0&&!query&&!ctx.adminRecordsOpened){filter='ALL';ctx.adminRecordsOpened=true;}
   const filters=ctx.user.role==='PRINCIPAL'?FILTERS.filter(([value])=>['ACTION','APPROVED','DISAPPROVED','ALL'].includes(value)):FILTERS;
   filters.forEach(([value,label,key])=>{
    const b=make('button',filter===value?'leave-inbox-filter is-current':'leave-inbox-filter');

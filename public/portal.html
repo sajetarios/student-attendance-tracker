@@ -679,7 +679,7 @@ body.dark-mode .content-wrap > .school-heading.is-compact,body[data-theme="dark"
             <a class="nav-item staff-nav-child" data-staff-section="accounts" href="/portal.html?view=teachers&amp;section=accounts"><span class="nav-icon">♧</span><span class="nav-label">Teachers &amp; Staff</span></a>
             <a class="nav-item staff-nav-child" id="adminStudentAccountsNav" data-view="studentAccounts" hidden title="Manage student portal accounts" href="/portal.html?view=studentAccounts"><span class="nav-icon">▣</span><span class="nav-label">Student Accounts</span></a>
 <a class="nav-item staff-nav-child" id="parentsNav" data-view="parents" hidden title="Manage parent accounts and student links" href="/portal.html?view=parents"><span class="nav-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="9" cy="7" r="3.5"/><circle cx="18" cy="9" r="2.5"/><path d="M2 21v-2a7 7 0 0 1 14 0v2M16 16a5 5 0 0 1 6 5"/></svg></span><span class="nav-label">Parents & Guardians</span></a>
-            <a class="nav-item staff-nav-child" id="requestsApprovalsNav" hidden title="Review student, guardian and photo requests" href="/portal.html?view=dashboard&amp;panel=requests"><span class="nav-icon">✓</span><span class="nav-label">Requests &amp; Approvals</span><span class="request-side-count" id="adminRequestsNavBadge" hidden>0</span></a>
+            <a class="nav-item staff-nav-child" id="requestsApprovalsNav" hidden title="Review student, guardian and photo requests" href="/portal.html?view=dashboard&amp;panel=requests"><span class="nav-icon">✓</span><span class="nav-label">Administrative Requests</span><span class="request-side-count" id="adminRequestsNavBadge" hidden>0</span></a>
             <a class="nav-item staff-nav-child" data-staff-section="permissions" href="/portal.html?view=teachers&amp;section=permissions"><span class="nav-icon">◇</span><span class="nav-label">Account Access</span></a>
             <a class="nav-item staff-nav-child" data-staff-section="departments" href="/portal.html?view=teachers&amp;section=departments"><span class="nav-icon">▦</span><span class="nav-label">Departments</span></a>
           </div>
@@ -842,8 +842,8 @@ body.dark-mode .content-wrap > .school-heading.is-compact,body[data-theme="dark"
               </div>
               <div id="plannerDashboardPreview" class="planner-dashboard-preview" aria-live="polite">Open Planner to see your upcoming schedule.</div>
             </section>
-            <section id="adminApprovalSidebarPanel" class="surface-card section-card admin-approval-workspace" aria-label="Requests and Approvals" hidden>
-              <div class="admin-approval-workspace-heading"><div><span class="admin-dashboard-kicker">SCHOOL ADMINISTRATION</span><h3>Requests &amp; Approvals</h3><p>Review pending school requests by category. Actions retain the existing permission and audit checks.</p><a href="/admin-sdo-coordination.html" class="outline-button" style="display:inline-flex;margin-top:8px;min-height:40px;align-items:center;text-decoration:none">SDO request coordination ↗</a></div><button type="button" class="outline-button" id="adminApprovalSidebarClose">Close</button></div>
+            <section id="adminApprovalSidebarPanel" class="surface-card section-card admin-approval-workspace" aria-label="Administrative requests" hidden>
+              <div class="admin-approval-workspace-heading"><div><span class="admin-dashboard-kicker">SCHOOL ADMINISTRATION</span><h3>Administrative Requests</h3><p>Review account, guardian and photo requests. Actions retain the existing permission and audit checks.</p><a href="/admin-sdo-coordination.html" class="outline-button" style="display:inline-flex;margin-top:8px;min-height:40px;align-items:center;text-decoration:none">SDO request coordination ↗</a></div><button type="button" class="outline-button" id="adminApprovalSidebarClose">Close</button></div>
             </section>
             <section id="adminDashboardCard" class="surface-card section-card admin-dashboard-card admin-command-center" hidden>
               <div class="admin-command-hero">
@@ -2573,7 +2573,7 @@ body.dark-mode .content-wrap > .school-heading.is-compact,body[data-theme="dark"
   <script src="/smart-mobile-header.js?v=4" defer></script>
 <script src="/attendigo-sidebar-adaptive.js?v=9" defer></script>
   <script src="/attendigo-unified-navigation.js?v=1" defer></script>
-  <script src="/simplified-workspace.js?v=5" defer></script>
+  <script src="/simplified-workspace.js?v=6" defer></script>
 <script defer src="/school-header-responsive.js?v=2"></script>
 <link rel="stylesheet" href="/staff-leave-ui.css?v=8">
 <link rel="stylesheet" href="/leave-approval-inbox.css?v=3">

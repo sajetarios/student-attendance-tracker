@@ -17,7 +17,7 @@ test('school admin has a unified account menu while student records remain separ
   const menu = html.slice(start,end);
   for (const id of ['staffNavToggle','staffNavChildren','adminStudentAccountsNav','parentsNav','requestsApprovalsNav'])
     assert.ok(menu.includes('id="'+id+'"'),id);
-  for (const name of ['User Management','All User Accounts','Teachers &amp; Staff','Student Accounts','Parents & Guardians','Requests &amp; Approvals'])
+  for (const name of ['User Management','All User Accounts','Teachers &amp; Staff','Student Accounts','Parents & Guardians','Administrative Requests'])
     assert.ok(menu.includes(name),name);
   assert.ok(html.includes('id="studentsNav"'));
   assert.ok(html.includes('id="studentWorkspaceTabs"'), 'student account access belongs inside Students');

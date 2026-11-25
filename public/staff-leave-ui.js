@@ -34,18 +34,18 @@
  function init(user){
   if(!['TEACHER','DEPARTMENT_HEAD','SCHOOL_ADMIN'].includes(user?.role))return;
   const button=document.createElement('button');button.id='staffLeaveNav';button.type='button';
-  button.className='nav-item';button.title='Prepare leave requests and print CSC Form No. 6';
-  button.innerHTML='<span class="nav-icon" aria-hidden="true">▣</span><span class="nav-label">Leave Requests</span>';
+  button.className='nav-item';button.title=user.role==='SCHOOL_ADMIN'?'View leave records, personal applications and documented SDO decisions':'Prepare leave requests and print CSC Form No. 6';
+  button.innerHTML='<span class="nav-icon" aria-hidden="true">▣</span><span class="nav-label">'+(user.role==='SCHOOL_ADMIN'?'Leave Records':'Leave Requests')+'</span>';
   // A personal leave request is distinct from an authorized review queue.
   // This only moves the existing UI; staff-leave routes still enforce every
   // approval decision and school/department boundary on the server.
-  const targetKey=user.role==='SCHOOL_ADMIN'?'operations':'personalAttendance';
+  const targetKey=user.role==='SCHOOL_ADMIN'?'attendanceManagement':'personalAttendance';
   const target=document.querySelector('[data-submenu="'+targetKey+'"]');
   if(target){
    target.append(button);
    target.closest('.nav-group')?.removeAttribute('hidden');
   }
-  const reviewerNav=user.role!=='TEACHER'?document.createElement('button'):null;
+  const reviewerNav=user.role==='DEPARTMENT_HEAD'?document.createElement('button'):null;
   if(reviewerNav){
    reviewerNav.type='button';
    reviewerNav.id='staffLeaveReviewNav';
@@ -60,7 +60,7 @@
   }
   const isHrAdmin=user.role==='SCHOOL_ADMIN';
   const mayReviewCredits=isHrAdmin||user.role==='DEPARTMENT_HEAD';
-  const leaveHeading='Leave Requests';
+  const leaveHeading=isHrAdmin?'Leave Records':'Leave Requests';
   const leaveIntro='Prepare leave applications, track verified decisions and keep attendance records accurate. Official approval remains with authorized DepEd personnel.';
   const dialog=document.createElement('dialog');dialog.id='staffLeaveDialog';
   dialog.setAttribute('aria-label','Leave Requests');
@@ -68,8 +68,8 @@
    '<p>'+esc(leaveIntro)+'</p></div>'+
    '<button class="leave-close" id="leaveClose" type="button" aria-label="Close Leave Requests">✕</button></div>'+
    '<div class="leave-tabs" role="tablist" aria-label="Leave Requests sections">'+
-   '<button type="button" class="is-active" data-leave-tab="requests">'+(isHrAdmin?'Leave applications':'My applications')+'</button>'+
-   '<button type="button" data-leave-tab="inbox" '+(!mayReviewCredits?'hidden':'')+'>Leave approvals</button>'+
+   '<button type="button" class="is-active" data-leave-tab="requests">'+'My applications'+'</button>'+
+   '<button type="button" data-leave-tab="inbox" '+(!mayReviewCredits?'hidden':'')+'>'+(isHrAdmin?'School leave records':'Leave approvals')+'</button>'+
    '</div>'+
    '<div class="leave-body" id="leaveBody"></div><div class="leave-message" id="leaveMessage" role="status" aria-live="polite"></div></div>';
   document.body.append(dialog);
@@ -190,7 +190,7 @@
    if(!dialog.open)dialog.showModal();
    selectTab(reviewQueue?'inbox':'requests');
   }
-  button.addEventListener('click',()=>openLeave(false));
+  button.addEventListener('click',()=>openLeave(isHrAdmin));
   reviewerNav?.addEventListener('click',()=>openLeave(true));
   document.addEventListener('attendigo:open-leave-inbox',()=>openLeave(true));
   const handleLeaveLink=()=>{if(location.hash==='#leaveManagement')openLeave(reviewer);};
@@ -199,7 +199,7 @@
   function reviewable(r){
    if(r.staffUserId===user.userId)return false;
    if(user.role==='SCHOOL_ADMIN')
-    return r.status==='PENDING_ADMIN'||(r.status==='PENDING_EXTERNAL'&&r.staffRole==='PRINCIPAL');
+    return r.status==='PENDING_EXTERNAL'&&r.staffRole==='PRINCIPAL';
    return user.role==='DEPARTMENT_HEAD'&&
     r.status==='PENDING_HEAD';
   }
@@ -526,10 +526,6 @@
     if(user.role==='DEPARTMENT_HEAD'&&r.status==='PENDING_HEAD'&&r.staffUserId!==user.userId){
      buttons.append(buttonFor('Recommend',()=>review('recommend','FORWARD')));
      buttons.append(buttonFor('Decline at department',()=>review('recommend','REJECT')));
-    }
-    if(user.role==='SCHOOL_ADMIN'&&r.status==='PENDING_ADMIN'&&r.staffUserId!==user.userId){
-     buttons.append(buttonFor('Forward for official approval',()=>review('admin-review','FORWARD')));
-     buttons.append(buttonFor('Recommend disapproval',()=>review('admin-review','REJECT')));
     }
     if(r.status==='PENDING_EXTERNAL'&&r.staffUserId!==user.userId&&
        (user.role==='SCHOOL_ADMIN'&&r.staffRole==='PRINCIPAL')){

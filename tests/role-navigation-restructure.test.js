@@ -18,7 +18,7 @@ test('Teacher: one expanded My Classes group with Planner; OB and leave in My At
  assert.match(portal,/relocate\('teacherLunchQrNav', 'assignedDuties'\)/);
  assert.match(workspace,/label\('people', 'My Classes'\)/);
  assert.match(workspace,/label\('personalAttendance', 'My Attendance'\)/);
- assert.match(leave,/user\.role==='SCHOOL_ADMIN'\?'operations':'personalAttendance'/);
+ assert.match(leave,/user\.role==='SCHOOL_ADMIN'\?'attendanceManagement':'personalAttendance'/);
  assert.doesNotMatch(workspace,/collapseOtherGroups/);
 });
 test('Department Head gets a separate reviewer queue while preserving personal OB and leave',()=>{
@@ -33,7 +33,7 @@ test('Department Head gets a separate reviewer queue while preserving personal O
  assert.match(leave,/r\.staffRole==='PRINCIPAL'/);
 });
 test('School Admin keeps management queues separate from physical attendance',()=>{
- assert.match(workspace,/move\('requestsApprovalsNav', 'operations'\)/);
+ assert.match(workspace,/move\('requestsApprovalsNav', 'users'\)/);
  assert.match(workspace,/move\('myGateAttendanceNav', 'attendanceManagement'\)/);
  assert.match(workspace,/move\('lunchQrAdminNav', 'attendanceManagement'\)/);
  assert.match(workspace,/\$\('officialBusinessNav'\)\.hidden = true/);
@@ -84,7 +84,7 @@ test('Presenter entry is hidden for unassigned teachers and visible for either a
 test('No new attendance routes; assets match the current cache and mobile sidebar stays scrollable',()=>{
  const css=read('attendigo-sidebar-adaptive.css');
  assertCachedAsset(html,sw,'portal.js',{minimumVersion:236});
- for(const asset of ['/simplified-workspace.js?v=5','/staff-leave-ui.js?v=13',
+ for(const asset of ['/simplified-workspace.js?v=6','/staff-leave-ui.js?v=13',
   '/staff-ob-ui.js?v=9','/attendigo-presenter-nav.js?v=1']){
   assert.ok(html.includes(asset),asset+' HTML');
   assert.ok(sw.includes('"'+asset+'"'),asset+' shell');
