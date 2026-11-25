@@ -207,3 +207,7 @@
 #staffLeaveDialog .leave-records-content{min-width:0;overflow-wrap:anywhere;padding-top:12px;}
 #staffLeaveDialog .leave-records-content .leave-balances{grid-template-columns:repeat(2,minmax(0,1fr));}
 @media(max-width:540px){#staffLeaveDialog .leave-request-overview{gap:6px;}#staffLeaveDialog .leave-request-stat{padding:10px 8px;}#staffLeaveDialog .leave-request-stat span{font-size:.7rem;}#staffLeaveDialog .leave-request-stat strong{font-size:1.35rem;}#staffLeaveDialog .leave-records-content .leave-balances{grid-template-columns:minmax(0,1fr);}}
+
+#staffLeaveDialog .leave-gate-verification{margin-top:14px}
+#staffLeaveDialog .leave-gate-verification summary{font-weight:650;cursor:pointer;padding:4px 0;overflow-wrap:anywhere}
+#staffLeaveDialog .leave-gate-verification[open] summary{margin-bottom:12px}

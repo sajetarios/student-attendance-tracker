@@ -37,11 +37,17 @@ function registerStaffLeaveInboxRoutes(app,pool,{authenticateSchoolClient,requir
     if(field[x.status])counts[field[x.status]]+=count;
     if(x.status.startsWith('PENDING_'))counts.pending+=count;
    });
+   counts.closedDeclined=counts.declined+counts.disapproved;
+   if(req.auth.role==='SCHOOL_ADMIN'){
+    const today=await pool.query("SELECT COUNT(DISTINCT staff_user_id)::int AS count FROM staff_form48_approved_leaves WHERE school_id=$1 AND revoked_at IS NULL AND (now() AT TIME ZONE 'Asia/Manila')::date BETWEEN start_date AND end_date",[req.auth.schoolId]);
+    counts.onLeaveToday=Number(today.rows[0]?.count)||0;
+   }
    if(countsOnly)return res.json({counts});
    const args=[...scope.args];
    let where=scope.where;
    if(filter==='ACTION')where+=' AND ('+actionExpression(req.auth,args)+')';
    else if(filter==='PENDING')where+=" AND r.status IN ('PENDING_HEAD','PENDING_ADMIN','PENDING_EXTERNAL')";
+   else if(filter==='CLOSED_DECLINED')where+=" AND r.status IN ('DECLINED_HEAD','REJECTED')";
    else {
     const mapped={RECOMMENDATION:'PENDING_HEAD',SCHOOL_REVIEW:'PENDING_ADMIN',
      EXTERNAL:'PENDING_EXTERNAL',APPROVED:'APPROVED',DISAPPROVED:'REJECTED',DECLINED:'DECLINED_HEAD',CANCELLED:'CANCELLED'};

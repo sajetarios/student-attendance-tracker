@@ -45,3 +45,13 @@
 #leaveApprovals .leave-inbox-field input,#leaveApprovals .leave-inbox-field select,#leaveApprovals .leave-inbox-field textarea{box-sizing:border-box;width:100%;min-width:0}
 #leaveApprovals .leave-inbox-form-actions,#leaveApprovals .leave-actions{display:flex;flex-wrap:wrap;gap:.5rem}
 #leaveApprovals .leave-inbox-field{display:grid;gap:.35rem;min-width:0}
+
+/* Admin records: compact four-card overview and a responsive filter row. */
+#staffLeaveDialog .leave-admin-summary{grid-template-columns:repeat(4,minmax(0,1fr));margin:10px 0}
+#staffLeaveDialog .leave-admin-summary .leave-inbox-filter,#staffLeaveDialog .leave-admin-today{font-size:1rem;min-width:0;overflow-wrap:anywhere;min-height:74px}
+#staffLeaveDialog .leave-admin-today{display:flex;flex-direction:column;justify-content:space-between;gap:7px;border:1px solid #d8e3ec;border-radius:10px;padding:11px 12px;color:inherit;background:transparent;font-weight:600}
+#staffLeaveDialog .leave-admin-today strong{font-size:20px;font-variant-numeric:tabular-nums}
+#staffLeaveDialog .leave-admin-search{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,220px) auto;align-items:stretch}
+#staffLeaveDialog .leave-admin-search select,#staffLeaveDialog .leave-admin-search input{width:100%;min-width:0;box-sizing:border-box}
+@media(max-width:710px){#staffLeaveDialog .leave-admin-summary{grid-template-columns:repeat(2,minmax(0,1fr))}#staffLeaveDialog .leave-admin-search{grid-template-columns:minmax(0,1fr) auto}#staffLeaveDialog .leave-admin-search input{grid-column:1/-1}}
+@media(max-width:340px){#staffLeaveDialog .leave-admin-search{grid-template-columns:minmax(0,1fr)}}

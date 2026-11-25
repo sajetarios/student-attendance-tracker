@@ -61,15 +61,16 @@
   const isHrAdmin=user.role==='SCHOOL_ADMIN';
   const mayReviewCredits=isHrAdmin||user.role==='DEPARTMENT_HEAD';
   const leaveHeading=isHrAdmin?'Leave Records':'Leave Requests';
-  const leaveIntro='Prepare leave applications, track verified decisions and keep attendance records accurate. Official approval remains with authorized DepEd personnel.';
+  const leaveIntro=isHrAdmin?'Monitor staff leave status and verified decisions.':'Prepare leave applications, track verified decisions and keep attendance records accurate. Official approval remains with authorized DepEd personnel.';
   const dialog=document.createElement('dialog');dialog.id='staffLeaveDialog';
-  dialog.setAttribute('aria-label','Leave Requests');
+  dialog.setAttribute('aria-label',leaveHeading);
   dialog.innerHTML='<div class="leave-shell"><div class="leave-header"><div><h2>'+esc(leaveHeading)+'</h2>'+
    '<p>'+esc(leaveIntro)+'</p></div>'+
    '<button class="leave-close" id="leaveClose" type="button" aria-label="Close Leave Requests">✕</button></div>'+
    '<div class="leave-tabs" role="tablist" aria-label="Leave Requests sections">'+
-   '<button type="button" class="is-active" data-leave-tab="requests">'+'My applications'+'</button>'+
-   '<button type="button" data-leave-tab="inbox" '+(!mayReviewCredits?'hidden':'')+'>'+(isHrAdmin?'School leave records':'Leave approvals')+'</button>'+
+   (isHrAdmin
+    ? '<button type="button" class="is-active" data-leave-tab="inbox">School Records</button><button type="button" data-leave-tab="requests">My Leave</button>'
+    : '<button type="button" class="is-active" data-leave-tab="requests">My applications</button><button type="button" data-leave-tab="inbox" '+(!mayReviewCredits?'hidden':'')+'>Leave approvals</button>')+
    '</div>'+
    '<div class="leave-body" id="leaveBody"></div><div class="leave-message" id="leaveMessage" role="status" aria-live="polite"></div></div>';
   document.body.append(dialog);
@@ -133,7 +134,7 @@
   const reviewer=user.role==='SCHOOL_ADMIN'||user.role==='DEPARTMENT_HEAD';
   dialog.querySelector('[data-leave-tab="inbox"]').hidden=!reviewer;
   window.AttendigoLeaveInbox?.attachNav(reviewerNav,user,call);
-  let tab='requests',busy=false,reviewOnly=false,officialRecordsOpen=false;
+  let tab=isHrAdmin?'inbox':'requests',busy=false,reviewOnly=false,officialRecordsOpen=false,gateVerificationOpen=false,loadSequence=0;
   const say=(value,error=false)=>{message.textContent=value;message.classList.toggle('is-error',error);};
   const buttonFor=(label,cb)=>{
    const b=document.createElement('button');b.type='button';b.className='leave-btn';
@@ -148,11 +149,20 @@
    catch(e){say(e.message,true);}finally{busy=false;}
   };
   async function load(){
-   if(tab==='requests'){await renderRequests();return;}
+   const sequence=++loadSequence;
+   if(tab==='requests'){await renderRequests(sequence);return;}
    if(tab!=='inbox'||!mayReviewCredits)return;
    if(!window.AttendigoLeaveInbox)throw Error('Leave Approval Inbox is unavailable. Refresh Attendigo.');
-   await window.AttendigoLeaveInbox.render({body,user,call,upload,action,message,
-    openRequests:()=>{reviewOnly=false;selectTab('requests');}});
+   const inboxBody=document.createElement('section');
+   inboxBody.className='leave-inbox-workspace';
+   body.replaceChildren(inboxBody);
+   const inboxContext={body:inboxBody,user,call,upload,action,message,
+    openRequests:()=>{reviewOnly=false;selectTab('requests');}};
+   if(isHrAdmin)body.append(gateVerification());
+   // Render into a dedicated container so filtering never removes verification sections.
+   const inboxLoad=window.AttendigoLeaveInbox.render(inboxContext);
+   void inboxLoad.catch(()=>{});
+   if(sequence!==loadSequence)return;
    // Keep supporting credit records restricted to the existing approval workspace.
    const records=document.createElement('details');
    records.className='leave-card leave-official-records';
@@ -173,13 +183,17 @@
     if(records.open)void fill();
    });
    if(officialRecordsOpen)await fill();
+   await inboxLoad;
   }
   const selectTab=next=>{
    if(next!=='requests'&&next!=='inbox')return;
    if(next==='inbox'&&!mayReviewCredits)return;
    if(next==='requests'&&tab==='inbox')reviewOnly=false;
    tab=next;
-   dialog.querySelectorAll('[data-leave-tab]').forEach(b=>b.classList.toggle('is-active',b.dataset.leaveTab===next));
+   dialog.querySelectorAll('[data-leave-tab]').forEach(b=>{
+    const active=b.dataset.leaveTab===next;
+    b.classList.toggle('is-active',active);b.setAttribute('aria-selected',String(active));
+   });
    say('');
    load().catch(e=>say(e.message,true));
   };
@@ -187,8 +201,8 @@
   $('leaveClose').addEventListener('click',()=>dialog.close());
   function openLeave(reviewQueue=false){
    reviewOnly=reviewQueue;
-   if(!dialog.open)dialog.showModal();
    selectTab(reviewQueue?'inbox':'requests');
+   if(!dialog.open)dialog.showModal();
   }
   button.addEventListener('click',()=>openLeave(isHrAdmin));
   reviewerNav?.addEventListener('click',()=>openLeave(true));
@@ -412,19 +426,17 @@
     action('Uploading document',()=>upload('/requests/'+row.requestId+'/documents',file,kind));
    });item.append(wrap);
   }
-  async function renderRequests(){
-   if(reviewOnly)body.replaceChildren();
-   else body.replaceChildren(newRequest());
-   if(user.role==='SCHOOL_ADMIN'&&!reviewOnly){
-    const panel=document.createElement('section');
-    panel.className='leave-card';
-    panel.innerHTML='<div class="leave-overlap-header">'+
+  function gateVerification(){
+    const panel=document.createElement('details');
+    panel.className='leave-card leave-gate-verification';
+    panel.open=gateVerificationOpen;
+    panel.innerHTML='<summary>Attendance &amp; Leave Verification</summary><div class="leave-overlap-header">'+
       '<div class="leave-overlap-intro"><strong>Gate visits during approved leave</strong>'+
       '<p class="leave-help">Review physical movements that overlap approved leave. A scan does not cancel leave or automatically fill the DTR.</p></div>'+
       '<div class="leave-overlap-controls">'+
       '<label>School date <input type="date" class="leave-overlap-date" required></label>'+
       '<button class="leave-btn leave-check-overlaps" type="button">Check date</button></div></div>'+
-      '<div class="leave-overlap-list" role="status" aria-live="polite">Loading…</div>';
+      '<div class="leave-overlap-list" role="status" aria-live="polite">Open this section or check a date to review verified gate movements.</div>';
     const fields=new Intl.DateTimeFormat('en-US',{timeZone:'Asia/Manila',year:'numeric',month:'2-digit',day:'2-digit'})
      .formatToParts(new Date());
     const val=key=>fields.find(p=>p.type===key)?.value||'';
@@ -451,15 +463,24 @@
      }catch(e){list.textContent='Could not check leave overlaps: '+e.message;}
     }
     panel.querySelector('.leave-check-overlaps').addEventListener('click',()=>{void checkOverlaps();});
-    body.append(panel);
-    void checkOverlaps();
-   }
+    let loaded=false;
+    panel.addEventListener('toggle',()=>{
+     gateVerificationOpen=panel.open;
+     if(panel.open&&!loaded){loaded=true;void checkOverlaps();}
+    });
+    if(panel.open){loaded=true;void checkOverlaps();}
+    return panel;
+  }
+  async function renderRequests(sequence){
+   if(reviewOnly)body.replaceChildren();
+   else body.replaceChildren(newRequest());
    const header=document.createElement('div');header.className='leave-section-title';header.innerHTML=
     '<h3>'+(reviewOnly?'Pending leave approvals':'My applications')+'</h3><button class="leave-btn" type="button">Refresh</button>';
    header.querySelector('button').addEventListener('click',()=>load().catch(e=>say(e.message,true)));
    body.append(header);
    const list=document.createElement('div');list.className='leave-list';body.append(list);
    const response=await call('/requests');
+   if(sequence!==loadSequence||tab!=='requests')return;
    const ownRequests=(response.requests||[]).filter(r=>r.staffUserId===user.userId);
    if(!reviewOnly){
     const counts={
