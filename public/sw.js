@@ -1,4 +1,4 @@
-const CACHE = "attendigo-v419-admin-leave-role-cleanup";
+const CACHE = "attendigo-v420-admin-leave-records";
 
 // Only public, non-personal offline shells and their executable dependencies.
 // An update must not discard the working cache before these are all ready.
