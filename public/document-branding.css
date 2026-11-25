@@ -76,3 +76,51 @@
 .locator-school-preview img{display:block;width:min(100%,700px);height:auto;max-width:100%;background:#fff;border:1px solid var(--line,#dce5ec)}
 .locator-school-card [role=status]:empty{display:none}
 @media(max-width:700px){.locator-school-card{padding:12px}.locator-school-actions>button{flex:1 1 150px}.locator-school-change,.locator-school-preview{padding:10px}}
+
+/* School identity: preserve original form IDs and independent save operations. */
+#schoolBrandingView:not([hidden]){display:grid;grid-template-columns:minmax(0,1.35fr) minmax(0,1fr);gap:14px;align-items:start;container-type:inline-size}
+#schoolBrandingView> :is(.surface-card,.section-card){min-width:0;margin:0;padding:18px;border:1px solid var(--line,#dce5ec);border-radius:12px}
+#schoolBrandingView>#schoolIdentitySignatoryHome{display:none}
+#schoolBrandingView>.document-branding-card,#schoolBrandingView>.school-template-section{grid-column:1/-1}
+#schoolBrandingView .section-toolbar{margin:0 0 14px;align-items:flex-start;flex-wrap:wrap}
+#schoolBrandingView .section-toolbar h3{font-size:19px;line-height:1.4;margin:0 0 4px}
+#schoolBrandingView :is(p,small,.field-hint){font-size:16px;line-height:1.5;overflow-wrap:anywhere}
+#schoolBrandingView .section-toolbar p,#schoolBrandingView .field-hint{color:var(--muted,#64748b)}
+#schoolBrandingView #schoolBrandingForm{display:grid;grid-template-columns:minmax(0,1fr);gap:12px;min-width:0}
+#schoolBrandingView #schoolBrandingForm .field-group{margin:0;min-width:0;gap:5px}
+#schoolBrandingView #schoolBrandingForm .field-group label,#schoolBrandingView .school-identity-logo-tools label,#schoolBrandingView .school-document-logo label,#schoolBrandingView .form48-person-fields label{font-size:16px;font-weight:650;line-height:1.4}
+#schoolBrandingView :is(input:not([type=checkbox]),select){width:100%;min-width:0;max-width:100%;min-height:44px;font-size:16px;box-sizing:border-box}
+#schoolBrandingView #schoolBrandColor{height:44px;padding:5px;cursor:pointer}
+#schoolBrandingView .school-identity-logo-row{display:grid;grid-template-columns:88px minmax(0,1fr);gap:14px;align-items:start;grid-column:1/-1;padding:12px;background:var(--bg,#f5f8fb);border:1px solid var(--line,#dce5ec);border-radius:10px}
+#schoolBrandingView #schoolLogoPreview{width:88px;height:88px;min-width:0;max-width:100%;display:grid;place-items:center;overflow:hidden;border:1px solid var(--line,#dce5ec);border-radius:12px;background:#fff;color:#1e293b;font-size:32px}
+#schoolBrandingView #schoolLogoPreview img{width:100%;height:100%;object-fit:contain}
+#schoolBrandingView .school-identity-logo-tools,#schoolBrandingView .school-document-logo{display:grid;gap:8px;min-width:0}
+#schoolBrandingView input[type=file]{height:auto;white-space:normal;overflow:hidden;padding:6px;font-size:16px}
+#schoolBrandingView .school-identity-actions,#schoolBrandingView .school-identity-save,#schoolBrandingView .form48-schedule-actions{display:flex;align-items:center;gap:8px;flex-wrap:wrap;min-width:0}
+#schoolBrandingView .school-identity-save{grid-column:1/-1;padding-top:12px;border-top:1px solid var(--line,#dce5ec);margin:0}
+#schoolBrandingView :is(button,a.outline-button){font-size:16px;min-height:44px;max-width:100%;white-space:normal;height:auto;line-height:1.4;overflow-wrap:anywhere}
+#schoolBrandingView .school-identity-note{margin:10px 0 0;padding:10px;color:var(--muted,#64748b);background:var(--bg,#f5f8fb)}
+#schoolBrandingView .form48-person-fields{display:grid;grid-template-columns:minmax(0,1fr);gap:12px}
+#schoolBrandingView .form48-person-fields label{display:grid;gap:6px;min-width:0}
+#schoolBrandingView .form48-schedule-actions{margin-top:14px}
+#schoolBrandingView .school-document-grid{display:grid;grid-template-columns:minmax(0,1.45fr) minmax(0,1fr);gap:16px;align-items:start;margin-bottom:14px}
+#schoolBrandingView .school-document-settings,#schoolBrandingView .school-document-preview{min-width:0;display:grid;gap:12px}
+#schoolBrandingView .school-document-grid h4{font-size:17px;margin:0;line-height:1.4}
+#schoolBrandingView .school-document-logo{padding:12px;border:1px solid var(--line,#dce5ec);border-radius:9px}
+#schoolBrandingView .school-document-logo label{display:grid;gap:6px;min-width:0}
+#schoolBrandingView .school-document-logo .doc-brand-actions{margin:0}
+#schoolBrandingView .school-document-preview{background:var(--bg,#f5f8fb);border:1px solid var(--line,#dce5ec);border-radius:10px;padding:12px}
+#schoolBrandingView .school-document-preview p{margin:0}
+#schoolBrandingView .doc-brand-preview{padding:16px 8px;min-height:140px;grid-template-columns:minmax(0,44px) minmax(0,1fr) minmax(0,44px);gap:6px}
+#schoolBrandingView .doc-brand-preview div{font-size:14px;line-height:1.4}
+#schoolBrandingView .doc-brand-preview strong{font-size:16px}
+#schoolBrandingView .doc-brand-preview img{height:44px}
+#schoolBrandingView .school-document-form-link{display:inline-flex;align-items:center;justify-content:center;text-decoration:none}
+#schoolBrandingView :is(#schoolBrandingFeedback,#documentBrandingStatus):empty{display:none}
+#schoolBrandingView :is(#schoolBrandingFeedback,#documentBrandingStatus){margin:8px 0 0;font-size:16px;line-height:1.45}
+#schoolBrandingView .school-template-section .locator-school-card{margin-top:0}
+#schoolBrandingView .school-template-section #locatorLibraryRequest{padding:12px;border:1px solid var(--line,#dce5ec);border-radius:8px;margin-top:10px}
+@container(max-width:850px){#schoolBrandingView .school-document-grid{grid-template-columns:minmax(0,1fr)}}
+@media(max-width:1100px){#schoolBrandingView:not([hidden]){grid-template-columns:minmax(0,1fr)}}
+@media(max-width:700px){#schoolBrandingView> :is(.surface-card,.section-card){padding:12px}#schoolBrandingView .school-document-grid,#schoolBrandingView .doc-brand-grid{grid-template-columns:minmax(0,1fr)}#schoolBrandingView .school-identity-logo-row{grid-template-columns:64px minmax(0,1fr);gap:10px;padding:10px}#schoolBrandingView #schoolLogoPreview{width:64px;height:64px}#schoolBrandingView .school-identity-actions>button,#schoolBrandingView .school-identity-save>button{flex:1 1 140px}}
+@media(max-width:380px){#schoolBrandingView .school-identity-logo-row{grid-template-columns:minmax(0,1fr)}}

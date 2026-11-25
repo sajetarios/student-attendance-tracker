@@ -1,4 +1,4 @@
-const CACHE = "attendigo-v430-locator-release-offline-sync";
+const CACHE = "attendigo-v431-school-identity-workspace";
 
 // Only public, non-personal offline shells and their executable dependencies.
 // An update must not discard the working cache before these are all ready.

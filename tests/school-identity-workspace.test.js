@@ -1,0 +1,6 @@
+'use strict';
+const test=require('node:test'),assert=require('node:assert/strict'),fs=require('node:fs');
+const html=fs.readFileSync('public/portal.html','utf8'),css=fs.readFileSync('public/document-branding.css','utf8');
+const block=html.slice(html.indexOf('id="schoolBrandingView"'),html.indexOf('id="teacherLunchQrView"'));
+test('school identity retains independent save, logo, signatory and template actions',()=>{for(const id of ['schoolBrandingForm','schoolBrandingName','schoolBrandColor','schoolLogoPreview','schoolLogoFile','uploadSchoolLogo','removeSchoolLogo','schoolBrandingFeedback','schoolIdentitySignatoryHome','schoolHeadSignatoryCard','schoolHeadSaveSignatory','documentBrandingForm','documentBrandingFields','documentAgencyFile','documentAgencyRemove','documentBrandReset','documentBrandingStatus','locatorLibraryRequest','locatorLibraryForm'])assert.equal((block.match(new RegExp('id="'+id+'"','g'))||[]).length,1,id);assert.match(block,/school-template-section/);assert.match(block,/school-document-preview/);});
+test('school identity layout uses scoped responsive grids and accessible control sizes',()=>{assert.match(css,/#schoolBrandingView:not\(\[hidden\]\)/);assert.match(css,/#schoolBrandingView .school-document-grid/);assert.match(css,/@media\(max-width:700px\).*school-document-grid/);assert.match(css,/min-height:44px;font-size:16px/);});
