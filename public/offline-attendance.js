@@ -5,7 +5,7 @@
   'use strict';
   const DB = 'attendigo-device-attendance-v1';
   const STORE = 'events', KEYS = 'keys';
-  const userKey = 'schoolAttendance.user', tokenKey = 'schoolAttendance.accessToken';
+  const userKey = 'schoolAttendance.user';
   const TYPES = new Set(['QR_SCAN', 'MANUAL_MARKS', 'REGISTER_SIGNOFF']);
   const encoder = new TextEncoder(), decoder = new TextDecoder();
   const owner = () => {
@@ -91,7 +91,13 @@
     }, key, new Uint8Array(record.encrypted.ciphertext));
     return JSON.parse(decoder.decode(plaintext));
   }
-  let lastConfirmedAt = null;
+  let lastConfirmedAt = null, syncMessage = '';
+  async function verifiedOwner(id){
+    const response=await fetch('/api/auth/me',{credentials:'same-origin',cache:'no-store'});
+    if(!response.ok)throw Error('Sign in to the same school account to synchronize.');
+    const u=(await response.json()).user;
+    if(!u||u.mustChangePassword||String(u.schoolId)+':'+String(u.userId)!==id||u.role==='STUDENT'||u.role==='PARENT')throw Error('The active school account does not own these device records.');
+  }
   async function snapshot() {
     const pending = await rows();
     const counts = { QR_SCAN: 0, MANUAL_MARKS: 0, REGISTER_SIGNOFF: 0 };
@@ -105,6 +111,7 @@
       waiting: pending.filter(row => row.status === 'PENDING').length,
       byType: counts,
       lastConfirmedAt,
+      syncMessage,
       syncing,
       online: navigator.onLine
     };
@@ -131,7 +138,7 @@
           MANUAL_MARKS: pending.filter(row => row.type === 'MANUAL_MARKS').length,
           REGISTER_SIGNOFF: pending.filter(row => row.type === 'REGISTER_SIGNOFF').length
         },
-        lastConfirmedAt, syncing, online: navigator.onLine
+        lastConfirmedAt, syncMessage, syncing, online: navigator.onLine
       }
     }));
   }
@@ -174,12 +181,16 @@
   }
   let syncing = false;
   async function sync() {
-    const id = owner(), token = sessionStorage.getItem(tokenKey);
+    const id = owner();
     const confirmations = {};
-    if (syncing || !navigator.onLine || !id || !token) return { confirmations };
+    if (syncing || !navigator.onLine || !id) return { confirmations };
+    const ownerHeaders={'X-Attendigo-Queue-Owner':id};
     syncing = true;
-    await emit();
+    syncMessage='Checking school server…';
     try {
+      await emit();
+      if(!(await rows()).length){syncMessage='No queued operations for this account.';return {confirmations};}
+      await verifiedOwner(id);
       const records = (await rows())
         .sort((a, b) => (a.createdAt || 0) - (b.createdAt || 0)).slice(0, 50);
       for (const record of records) {
@@ -187,13 +198,14 @@
         // or QR scan remains unresolved on this device.
         if (record.status === 'REVIEW') break;
         if (record.status !== 'PENDING') continue;
-        if (record.owner !== owner() || token !== sessionStorage.getItem(tokenKey)) break;
+        if (record.owner !== owner() || owner() !== id) break;
         let payload;
         try { payload = await decrypt(record); }
         catch (error) {
           await put({ ...record, status: 'REVIEW', reason: String(error.message).slice(0, 250) });
           break; // A damaged earlier event blocks later sign-offs until reviewed.
         }
+        if(owner()!==id)break;
         const type = record.type || 'QR_SCAN';
         const endpoint = type === 'QR_SCAN' ? '/api/sync/events'
           : type === 'MANUAL_MARKS' ? '/api/manual-attendance/sync'
@@ -202,11 +214,11 @@
           : type === 'REGISTER_SIGNOFF' ? { ...payload, operationId: record.id } : payload;
         try {
           const response = await fetch(endpoint, {
-            method: 'POST', cache: 'no-store',
-            headers: { Authorization: 'Bearer ' + token, 'Content-Type': 'application/json' },
+            method: 'POST', credentials:'same-origin', cache: 'no-store',
+            headers: { ...ownerHeaders, 'Content-Type': 'application/json' },
             body: JSON.stringify(body)
           });
-          if (response.status === 401 || response.status === 403) break;
+          if (response.status === 401 || response.status === 403 || response.status===428){syncMessage='School session or permissions need verification. Queued records retained.';break;}
           const data = await response.json().catch(() => ({}));
           const item = type === 'QR_SCAN' ? data.results?.[0] : null;
           let acknowledged = response.ok && (
@@ -218,7 +230,7 @@
             // Ack only when the authoritative register confirms all statuses AND notes.
             const query = new URLSearchParams({periodId: payload.periodId, date: payload.date});
             const verified = await fetch('/api/manual-attendance?' + query, {
-              cache: 'no-store', headers: { Authorization: 'Bearer ' + token }
+              credentials:'same-origin', cache: 'no-store', headers: ownerHeaders
             });
             if (verified.status === 401 || verified.status === 403) break;
             if (!verified.ok) break;
@@ -227,9 +239,11 @@
             acknowledged = payload.marks.every(m => marks.get(m.studentId)?.status === m.status &&
               (marks.get(m.studentId)?.note || '') === (m.note || ''));
           }
+          if (owner()!==id)break;
           if (acknowledged) {
             await remove(record.id);
             lastConfirmedAt = new Date().toISOString();
+            syncMessage='School server confirmed attendance.';
             confirmations[record.id] = { status: type === 'QR_SCAN' ? item.status : 'ACCEPTED',
               result: type === 'QR_SCAN' ? data : data };
           } else if (response.ok && type === 'QR_SCAN' && item?.status === 'REJECTED') {
@@ -243,10 +257,12 @@
           } else {
             break; // Incomplete or unverifiable acknowledgment: never discard.
           }
-        } catch { break; } // Network failure: preserve the queued payload.
+        } catch { syncMessage='School server unavailable. Queued records retained.';break; } // Network failure: preserve the queued payload.
       }
-    } finally { syncing = false; await emit(); }
-    return { confirmations };
+      if(syncMessage==='Checking school server…')syncMessage='Records awaiting school confirmation or review remain on this device.';
+    } catch(error){syncMessage=error.message||'School server unavailable. Queued records retained.';}
+    finally { syncing = false; await emit(); }
+    return { confirmations, message:syncMessage };
   }
   async function record(event, _api) {
     if (!event || !event.eventId) throw Error('Invalid attendance event.');
@@ -352,6 +368,7 @@
     }
     emit();
     window.addEventListener('online', sync);
+    document.addEventListener('attendigo:portal-ready', sync);
     document.addEventListener('visibilitychange', () => { if (!document.hidden) sync(); });
     setInterval(sync, 30000);
     sync();
