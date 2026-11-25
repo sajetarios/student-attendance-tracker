@@ -182,7 +182,7 @@ function registerClassQrRoutes(app,pool,{authenticateSchoolClient,requireSchoolR
    if(String(s.teacher_user_id)!==String(req.auth.userId))return res.sendStatus(403);
    if(await classCalendarSuspended(pool,s.school_id,s.school_date))return res.status(410).json({error:'Classes are suspended. Classroom QR attendance is closed.'});
    if(s.closed_at||Date.now()<new Date(s.starts_at).getTime()||Date.now()>=new Date(s.closes_at).getTime())return res.status(410).json({error:'QR attendance closed.'});
-   const b=bucket();
+   const generatedAt=Date.now(),b=Math.floor(generatedAt/QR_ROTATION_MS);
    const token=sign(s.secret,s.session_id,b);
    // QR links must share the canonical student-login origin for persistent cookies.
    const origin=classQrOrigin(process.env.PUBLIC_BASE_URL,process.env.NODE_ENV);
@@ -190,7 +190,7 @@ function registerClassQrRoutes(app,pool,{authenticateSchoolClient,requireSchoolR
    url.searchParams.set('sessionId',String(s.session_id));url.searchParams.set('token',token);
    const qrImage=await QRCode.toDataURL(url.toString(),{margin:2,width:320});
    res.set('Cache-Control','no-store, private');
-   res.json({sessionId:s.session_id,token,qrImage,validUntil:new Date((b+1)*QR_ROTATION_MS).toISOString(),acceptUntil:new Date(Math.min((b+QR_ACCEPTED_BUCKETS)*QR_ROTATION_MS,new Date(s.closes_at).getTime())).toISOString(),closesAt:s.closes_at});
+   res.json({sessionId:s.session_id,token,qrImage,serverTime:new Date(generatedAt).toISOString(),validUntil:new Date((b+1)*QR_ROTATION_MS).toISOString(),acceptUntil:new Date(Math.min((b+QR_ACCEPTED_BUCKETS)*QR_ROTATION_MS,new Date(s.closes_at).getTime())).toISOString(),closesAt:s.closes_at});
   }catch(e){console.error('QR read:',e.message);res.sendStatus(500);}
  });
  app.get('/api/class-qr/check-in/status',authenticateSchoolClient,async(req,res)=>{
