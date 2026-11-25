@@ -51,7 +51,9 @@ function registerCentralLocatorRoutes(app,pool,{authenticateSchoolClient,require
    ) SELECT template_id AS "templateId" FROM published`,[row.request_id,hash(row.pdf_bytes),mappingKey(m),req.auth.userId]);
    if(!result.rowCount)return res.status(409).json({error:'This request is no longer available or has already been published.'});
    return res.status(201).json(result.rows[0]);
-  }catch(e){console.error('Central Locator:',e.message);return res.status(e.code==='PREVIEW_BUSY'?429:422).json({error:e.code==='PREVIEW_BUSY'?e.message:'Could not prepare the form. Check the page and field placement, then retry.'});}
+   }catch(e){console.error('Central Locator:',e.message);
+   if(e.code==='LOCATOR_FIELD_INVALID')return res.status(422).json({error:e.message,field:e.field,optional:!require('./central-locator-renderer').fields.find(f=>f[0]===e.field)?.[3]});
+   return res.status(e.code==='PREVIEW_BUSY'?429:422).json({error:e.code==='PREVIEW_BUSY'?e.message:'Could not prepare the form. Check the page and field placement, then retry.'});}
  };
  app.get(base+'/blank-preview',...platform,(req,res)=>render(req,res,'blank'));
  app.post(base+'/sample',...platform,(req,res)=>render(req,res,'sample'));

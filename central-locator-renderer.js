@@ -39,22 +39,23 @@ function validateMapping(mapping){
  for(const [key,label,,required] of fields)if(required&&!valid[key])throw Error('Select the space for '+label+'.');
  return valid;
 }
+function fieldError(key,label,reason){const e=Error(label+': '+reason);e.code='LOCATOR_FIELD_INVALID';e.field=key;return e;}
 function overlay(ctx,width,height,mapping,values=null){
  for(const [key,label,sample] of fields){
   const value=values?String(values[key]??'').trim():sample;
   if(!mapping[key])continue;
-  if(!value)throw Error('Complete '+label+' before printing.');
+  if(!value)throw fieldError(key,label,'complete this field before printing.');
   const [x,y,w,h]=mapping[key].map((v,i)=>v*(i%2===0?width:height));
   const pad=Math.min(w,h)*.08;
   // Conservative occupied-space check, using interior pixels to avoid cell borders.
   // This detects many printed labels but is not OCR or a compliance check.
   const inset=Math.max(1,Math.floor(Math.min(w,h)*.12));
   const bx=Math.ceil(x+inset),by=Math.ceil(y+inset),bw=Math.floor(w-2*inset),bh=Math.floor(h-2*inset);
-  if(bw<1||bh<1)throw Error(label+': select a larger blank space.');
+  if(bw<1||bh<1)throw fieldError(key,label,'select a larger blank space.');
   const rgba=ctx.getImageData(bx,by,bw,bh).data;
   let dark=0;
   for(let i=0;i<rgba.length;i+=4)if(rgba[i+3]>100&&Math.min(rgba[i],rgba[i+1],rgba[i+2])<190)dark++;
-  if(dark/(bw*bh)>.018)throw Error(label+': the selected space appears to contain existing content. Select an empty area.');
+  if(dark/(bw*bh)>.018)throw fieldError(key,label,'the selected space contains printed content. Select an empty area.');
   let lines=null,fs;
   for(fs=width/595*12;fs>=width/595*8;fs-=width/595*.5){
    ctx.font=fs+'px Arial, sans-serif';
@@ -66,7 +67,7 @@ function overlay(ctx,width,height,mapping,values=null){
    if(row)rows.push(row);
    if(rows.length*fs*1.2<=h-2*pad&&rows.every(s=>ctx.measureText(s).width<=w-2*pad)){lines=rows;break;}
   }
-  if(!lines)throw Error(label+': the sample text does not fit. Select a larger space.');
+  if(!lines)throw fieldError(key,label,'the text does not fit. Select a larger space.');
   ctx.fillStyle='#111111';ctx.textAlign='left';ctx.textBaseline='middle';
   lines.forEach((s,i)=>ctx.fillText(s,x+pad,y+(h-lines.length*fs*1.2)/2+fs*(i*1.2+.6)));
  }
@@ -77,4 +78,4 @@ function overlay(ctx,width,height,mapping,values=null){
  ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText('SAMPLE – NOT FOR OFFICIAL USE',0,0);ctx.restore();
 }
 
-module.exports={fields,validateMapping,overlay};
+module.exports={fields,validateMapping,overlay,fieldError};
