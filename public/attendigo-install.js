@@ -11,18 +11,20 @@
     return /Android/i.test(ua)?'android':'other';
   }
   function installed(win){
-    return win.navigator.standalone===true||['standalone','fullscreen','minimal-ui','window-controls-overlay'].some(mode=>win.matchMedia?.('(display-mode: '+mode+')')?.matches);
+    return win.navigator.standalone===true||['standalone','minimal-ui','window-controls-overlay'].some(mode=>win.matchMedia?.('(display-mode: '+mode+')')?.matches);
   }
   function init(win){
     const doc=win.document,nav=win.navigator;
-    let deferred=null,completed=false,busy=false;
+    let deferred=null,completed=false,busy=false,mounted=false;
     const mode=platform(nav);
     const get=id=>doc.getElementById(id);
     function render(){
+      if(!mounted)return;
       const active=completed||installed(win);
+      const ready=!!deferred&&!active&&mode!=='embedded'&&mode!=='ios';
+      doc.querySelectorAll('[data-install-caption]').forEach(el=>{el.textContent=ready?'Tap to install on your device':mode==='ios'?'Add to your Home Screen':mode==='embedded'?'Open in your phone browser':'Install or see simple setup steps';});
       doc.querySelectorAll('[data-attendigo-install],[data-attendigo-install-container]').forEach(el=>{el.hidden=active;});
       if(!get('installAction'))return;
-      const ready=!!deferred&&!active&&mode!=='embedded';
       get('installAction').hidden=!ready;
       get('installAction').disabled=busy;
       get('installDone').hidden=!active;
@@ -31,26 +33,30 @@
       }
       get('installCopy').hidden=false;
     }
-    function status(message){const el=get('installStatus');if(el)el.textContent=message;}
+    function status(message){const el=get('installStatus');if(el)el.textContent=message;doc.querySelectorAll('[data-install-status]').forEach(node=>{node.textContent=message;node.hidden=!message;});}
     async function showInstallPrompt(){
-      if(!deferred||busy||completed||installed(win))return;
+      if(!deferred||busy||completed||installed(win)||mode==='ios'||mode==='embedded')return;
       const event=deferred;deferred=null;busy=true;render();
       try{
         await event.prompt();
         const choice=await event.userChoice;
         status(choice?.outcome==='accepted'?'Installation accepted. Open Attendigo from your Home Screen or apps list when it is ready.':'Installation dismissed. You can still use the instructions below.');
-      }catch(_){status('The installation prompt is unavailable. Follow the browser instructions below.');}
+      }catch(_){status('Installation is unavailable right now. Tap Install Attendigo again for setup instructions.');}
       finally{busy=false;render();}
     }
     win.addEventListener('beforeinstallprompt',event=>{
+      if(mode==='ios'||mode==='embedded'||completed||installed(win))return;
       event.preventDefault();deferred=event;render();
     });
     win.addEventListener('appinstalled',()=>{completed=true;deferred=null;status('Attendigo was installed.');render();});
     win.addEventListener('pageshow',render);
     win.matchMedia?.('(display-mode: standalone)')?.addEventListener?.('change',render);
     function mount(){
+      mounted=true;
       doc.querySelectorAll('[data-attendigo-install]').forEach(link=>link.addEventListener('click',event=>{
-        if(deferred&&!busy&&!completed&&!installed(win)&&mode!=='embedded'&&!event.ctrlKey&&!event.metaKey&&!event.shiftKey&&!event.altKey){event.preventDefault();void showInstallPrompt();}
+        if(event.ctrlKey||event.metaKey||event.shiftKey||event.altKey)return;
+        if(busy||completed||installed(win)){event.preventDefault();return;}
+        if(deferred&&mode!=='embedded'&&mode!=='ios'){event.preventDefault();void showInstallPrompt();}
       }));
       get('installAction')?.addEventListener('click',()=>void showInstallPrompt());
       const input=get('installUrl');
@@ -60,8 +66,8 @@
         catch(_){input.focus();input.select();status('Select and copy the link, then open Safari or Chrome.');}
       });
       render();
-      if(get('installAction')&&win.isSecureContext&&'serviceWorker' in nav){
-        nav.serviceWorker.register('/sw.js',{updateViaCache:'none'}).catch(()=>status('Automatic installation may be unavailable. You can still continue in your browser.'));
+      if(win.isSecureContext&&nav.onLine!==false&&'serviceWorker' in nav){
+        nav.serviceWorker.register('/sw.js',{updateViaCache:'none'}).catch(()=>{});
       }
     }
     if(doc.readyState==='loading')doc.addEventListener('DOMContentLoaded',mount,{once:true});else mount();

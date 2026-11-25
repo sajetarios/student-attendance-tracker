@@ -19,7 +19,7 @@ test('public installation entry points reuse the existing manifest and avoid aut
  const read=p=>fs.readFileSync('public/'+p,'utf8');
  for(const p of ['portal-login.html','parent-portal.html','portal.html','student-portal.html','principal.html']) {
    assert.match(read(p),/href="\/install\.html"/);
-   assert.match(read(p),/attendigo-install\.js\?v=2/);
+   assert.match(read(p),/attendigo-install\.js\?v=4/);
  }
  assert.match(read('install.html'),/manifest\.webmanifest/);
  assert.match(read('install.html'),/Activate phone alerts/);
@@ -42,4 +42,64 @@ test('app installation uses the browser install event, not the native text promp
  assert.match(source,/beforeinstallprompt/);
  assert.match(source,/event\.prompt\(\)/);
  assert.doesNotMatch(source,/(?:\bwindow\s*\.\s*|(?<![\w.]))(?:alert|prompt|confirm)\s*\(/);
+});
+
+test('native installation calls the captured browser event directly during the click, without navigation',async()=>{
+ const {init}=require('../public/attendigo-install.js');
+ const events={},docEvents={},linkEvents={};let called=0,prevented=0;
+ const link={hidden:false,addEventListener:(name,cb)=>{linkEvents[name]=cb;}};
+ const doc={readyState:'loading',getElementById:()=>null,querySelectorAll:q=>q==='[data-attendigo-install]'||q.includes('[data-attendigo-install-container]')?[link]:[],addEventListener:(name,cb)=>{docEvents[name]=cb;}};
+ const win={document:doc,navigator:{userAgent:'Android Chrome'},matchMedia:()=>({matches:false}),addEventListener:(name,cb)=>{events[name]=cb;}};
+ init(win);
+ events.beforeinstallprompt({preventDefault(){prevented++},prompt(){called++;return Promise.resolve()},userChoice:Promise.resolve({outcome:'accepted'})});
+ docEvents.DOMContentLoaded();
+ linkEvents.click({preventDefault(){prevented++}});
+ assert.equal(called,1);assert.equal(prevented,2);
+ await new Promise(resolve=>setImmediate(resolve));
+ events.appinstalled();
+ assert.equal(link.hidden,true);
+});
+test('iPhone falls back to guide without suppressing browser behavior',()=>{
+ const {init}=require('../public/attendigo-install.js');
+ const events={},linkEvents={};let prevented=0;
+ const link={addEventListener:(name,cb)=>{linkEvents[name]=cb;}};
+ const win={document:{readyState:'complete',getElementById:()=>null,querySelectorAll:q=>q==='[data-attendigo-install]'||q.includes('[data-attendigo-install-container]')?[link]:[]},navigator:{userAgent:'iPhone Safari'},matchMedia:()=>({matches:false}),addEventListener:(n,cb)=>{events[n]=cb;}};
+ init(win);events.beforeinstallprompt({preventDefault(){prevented++}});
+ linkEvents.click({preventDefault(){prevented++}});assert.equal(prevented,0);
+});
+test('all main portals declare manifest and capture install event early with animated mascot',()=>{
+ for(const p of ['portal-login.html','parent-portal.html','portal.html','student-portal.html','principal.html','install.html']){
+ const s=fs.readFileSync('public/'+p,'utf8');
+ assert.match(s,/rel="manifest"/);
+ assert.match(s,/<head[^>]*><script src="\/attendigo-install\.js\?v=4"><\/script>/);
+ assert.match(s,/class="install-robot"/);
+ }
+ assert.equal(installed({navigator:{},matchMedia:q=>({matches:q==='(display-mode: fullscreen)'})}),false);
+});
+
+test('illustrated device guides and walkthrough are local and optional',()=>{
+ const page=fs.readFileSync('public/install.html','utf8');
+ assert.equal((page.match(/data-walk-step/g)||[]).length,8);
+ assert.match(page,/Add to Home Screen/);
+ assert.match(page,/Watch walkthrough/);
+ assert.match(page,/attendigo-install-walkthrough\.js\?v=1/);
+ assert.match(fs.readFileSync('public/sw.js','utf8'),/attendigo-install-walkthrough\.js\?v=1/);
+});
+test('walkthrough plays only on click, advances, pauses and supports manual navigation',()=>{
+ const {mount}=require('../public/attendigo-install-walkthrough.js');
+ const node=()=>({hidden:true,disabled:false,textContent:'',events:{},addEventListener(n,f){this.events[n]=f}});
+ const steps=Array.from({length:4},node),controls=node(),play=node(),prev=node(),next=node(),count=node();
+ const elements={'.walk-controls':controls,'[data-walk-play]':play,'[data-walk-prev]':prev,'[data-walk-next]':next,'[data-walk-count]':count};
+ let tick=null;const doc=node();doc.hidden=false;const win={document:doc,addEventListener(){},setInterval(f){tick=f;return 1},clearInterval(){tick=null}};
+ const guide={dataset:{},querySelectorAll:()=>steps,querySelector:q=>elements[q],closest:()=>null};
+ mount(win,guide);
+ assert.equal(tick,null);assert.equal(controls.hidden,false);assert.equal(count.textContent,'1 / 4');
+ next.events.click();assert.equal(count.textContent,'2 / 4');
+ play.events.click();assert.equal(count.textContent,'1 / 4');tick();assert.equal(count.textContent,'2 / 4');
+ play.events.click();assert.equal(tick,null);prev.events.click();assert.equal(count.textContent,'1 / 4');
+ play.events.click();tick();tick();tick();assert.equal(count.textContent,'4 / 4');tick();assert.equal(tick,null);
+ // Backgrounding the page must halt playback without advancing.
+ play.events.click();doc.hidden=true;doc.events.visibilitychange();assert.equal(tick,null);assert.equal(count.textContent,'1 / 4');
+ doc.hidden=false;play.events.click();tick();assert.equal(count.textContent,'2 / 4');
+ doc.hidden=true;tick();assert.equal(tick,null);assert.equal(count.textContent,'2 / 4');
 });
