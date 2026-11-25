@@ -130,10 +130,13 @@ test('commutation stays optional on the attendance form without HR instructions'
  assert.doesNotMatch(ui,/subject to HR review|if HR confirms|HR will determine/);
 });
 
-test('unverified leave credit uses neutral status without redundant instructions or self-verification prompts',()=>{
+test('leave filing omits the credit selector and uses only explicit or verified credit mapping',()=>{
  const ui=read('public/staff-leave-ui.js');
- assert.match(ui,/'Not yet verified':entry\[1\]/);
- assert.match(ui,/creditInfo\.hidden=!creditInfo\.textContent/);
- assert.doesNotMatch(ui,/To be verified by School Admin|Ask your School Admin if verification is needed/);
- assert.match(ui,/const allowed=lockedAccount\?\[lockedAccount\]/);
+ const filing=ui.slice(ui.indexOf('function newRequest()'),ui.indexOf('function creditForm()'));
+ assert.doesNotMatch(filing,/Applicable leave credit|accountControl|leave-credit-guidance|Ask your School Admin if verification is needed/);
+ const mapping=filing.match(/payload\.creditAccount=([^;]+);/)[1];
+ const vm=require('node:vm');
+ for(const [leaveType,certifiedScheme,expected] of [['VSC','UNVERIFIED','VSC'],['SICK','TEACHING_VSC','VSC'],['SICK','REGULAR_VL_SL','SL'],['SICK','UNVERIFIED','NONE'],['VACATION','REGULAR_VL_SL','VL'],['VACATION','UNVERIFIED','NONE'],['VACATION','TEACHING_VSC','NONE'],['WELLNESS','REGULAR_VL_SL','NONE'],['MATERNITY','REGULAR_VL_SL','NONE'],['SPECIAL_PRIVILEGE','REGULAR_VL_SL','NONE']]){
+  assert.equal(vm.runInNewContext(mapping,{payload:{leaveType},certifiedScheme}),expected);
+ }
 });
