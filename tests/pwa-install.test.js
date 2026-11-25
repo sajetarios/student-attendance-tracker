@@ -90,7 +90,7 @@ test('walkthrough plays only on click, advances, pauses and supports manual navi
  const node=()=>({hidden:true,disabled:false,textContent:'',events:{},addEventListener(n,f){this.events[n]=f}});
  const steps=Array.from({length:4},node),controls=node(),play=node(),prev=node(),next=node(),count=node();
  const elements={'.walk-controls':controls,'[data-walk-play]':play,'[data-walk-prev]':prev,'[data-walk-next]':next,'[data-walk-count]':count};
- let tick=null;const doc=node();const win={document:doc,addEventListener(){},setInterval(f){tick=f;return 1},clearInterval(){tick=null}};
+ let tick=null;const doc=node();doc.hidden=false;const win={document:doc,addEventListener(){},setInterval(f){tick=f;return 1},clearInterval(){tick=null}};
  const guide={dataset:{},querySelectorAll:()=>steps,querySelector:q=>elements[q],closest:()=>null};
  mount(win,guide);
  assert.equal(tick,null);assert.equal(controls.hidden,false);assert.equal(count.textContent,'1 / 4');
@@ -98,4 +98,8 @@ test('walkthrough plays only on click, advances, pauses and supports manual navi
  play.events.click();assert.equal(count.textContent,'1 / 4');tick();assert.equal(count.textContent,'2 / 4');
  play.events.click();assert.equal(tick,null);prev.events.click();assert.equal(count.textContent,'1 / 4');
  play.events.click();tick();tick();tick();assert.equal(count.textContent,'4 / 4');tick();assert.equal(tick,null);
+ // Backgrounding the page must halt playback without advancing.
+ play.events.click();doc.hidden=true;doc.events.visibilitychange();assert.equal(tick,null);assert.equal(count.textContent,'1 / 4');
+ doc.hidden=false;play.events.click();tick();assert.equal(count.textContent,'2 / 4');
+ doc.hidden=true;tick();assert.equal(tick,null);assert.equal(count.textContent,'2 / 4');
 });
