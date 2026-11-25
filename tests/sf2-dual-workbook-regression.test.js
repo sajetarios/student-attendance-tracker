@@ -18,7 +18,7 @@ function weekdays(month) {
   return Array.from({length:new Date(Date.UTC(year,m,0)).getUTCDate()},(_,i)=>new Date(Date.UTC(year,m-1,i+1)))
     .filter(d=>![0,6].includes(d.getUTCDay())).map(d=>d.toISOString().slice(0,10));
 }
-async function exportFixture({personal=true,month='2026-01',pending=false,conflict=false,multiSubject=false,subject='',preview=false,subjectOptions=false,productionLike=false}={}) {
+async function exportFixture({personal=true,month='2026-01',pending=false,conflict=false,multiSubject=false,subject='',preview=false,subjectOptions=false,productionLike=false,singleCompleteDay=false}={}) {
   const dates=weekdays(month), closed=dates[0], days=dates.slice(1);
   const [a,b,c,d,e,f,g,h,i]=days;
   const qr=personal ? [{id:'A',date:a,late:false,periodId:'p1'},{id:'B',date:a,late:false,periodId:'p1'},{id:'A',date:g,late:false,periodId:'p1'}]
@@ -35,7 +35,7 @@ async function exportFixture({personal=true,month='2026-01',pending=false,confli
     qr.splice(0);
     manual.splice(0,manual.length,...reportLearners.map((learner,i)=>({id:learner.id,date:'2026-11-23',status:i>=26?'ABSENT':'PRESENT',periodId:'p1'})));
   }
-  const schedule=dates.map(date=>({date,periodId:'p1',subjectName:'Advance English',scheduled:date!==c,hasWeekdays:date!==i,startTime:date===h?'11:00':'08:00'}));
+  const schedule=dates.map(date=>({date,periodId:'p1',subjectName:'Advance English',scheduled:singleCompleteDay?date==='2026-11-23':date!==c,hasWeekdays:singleCompleteDay||date!==i,startTime:date===h?'11:00':'08:00'}));
   if(multiSubject){
     for(const date of dates){
       schedule.push({date,periodId:'p2',subjectName:'English 8',scheduled:true,hasWeekdays:true,startTime:'09:00'});
@@ -123,7 +123,10 @@ test('actual subject XLSX removes diagonal borders, distinguishes daily evidence
   assert.match(sheet.getCell('AG13').formula,/COUNTIF\(AU13:BS13,"P"\)/);
   assert.equal(sheet.getColumn('AU').hidden,true);
   assert.equal(sheet.getColumn('BS').hidden,true);
-  assert.equal(value(sheet.getCell('AJ117')),1);
+  assert.equal(value(sheet.getCell('AJ117')),days.length-3);
+  assert.equal(sheet.getCell('AJ117').formula,'SUM(AU114:BS114)');
+  assert.match(String(sheet.getCell('A128').value),new RegExp('Provisional: 1 of '+(days.length-3)+' class days fully recorded'));
+  assert.match(String(sheet.getCell('A128').value),/Schedule needs review/);
   assert.equal(value(sheet.getCell('AG117')),'JANUARY');
   assert.equal(sheet.getCell('AG117').formula,'AA6');
   assert.equal(sheet.getCell('AG117').alignment.shrinkToFit,true);
@@ -136,8 +139,8 @@ test('actual subject XLSX removes diagonal borders, distinguishes daily evidence
   assert.equal(value(sheet.getCell('AM127')),2);
   assert.equal(value(sheet.getCell('AM128')),1);
   assert.equal(sheet.getCell('AM128').numFmt,'0%');
-  assert.match(sheet.getCell('AM127').formula,/SUMPRODUCT/);
-  assert.match(String(sheet.getCell('A120').value),/complete subject records/);
+  assert.match(sheet.getCell('AM127').formula,/SUMPRODUCT.*\/SUM\(AU115:BS115\)/);
+  assert.match(String(sheet.getCell('A120').value),/averages use fully recorded class days/);
   for(const row of [130,132,134,136])assert.equal(value(sheet.getCell('AM'+row)),0);
   assert.ok(sheet.getCell('G115').alignment.textRotation===0 || !sheet.getCell('G115').alignment.textRotation);
   blankSlots(sheet,days);
@@ -152,6 +155,7 @@ test('future subject dates have no attendance symbols or totals',async()=>{
   const {res,sheet}=await exportFixture({month:'2099-01'});
   assert.equal(res.code,200,JSON.stringify(res.body));
   assert.equal(value(sheet.getCell('AJ117')),0);
+  assert.equal(sheet.getCell('A128').value,null);
   assert.equal(value(sheet.getCell('AM127')),'N/A');
   assert.equal(value(sheet.getCell('AM128')),'N/A');
   for(let col=7;col<=31;col++) {
@@ -243,7 +247,10 @@ test('November subject report: original ten summary rows, 28 learners, two X mar
   const {res,sheet,days}=await exportFixture({month:'2026-11',productionLike:true});
   assert.equal(res.code,200,JSON.stringify(res.body));
   assert.equal(value(sheet.getCell('AG117')),'NOVEMBER');
-  assert.equal(value(sheet.getCell('AJ117')),1);
+  const today=new Date(Date.now()+8*60*60*1000).toISOString().slice(0,10);
+  const elapsed=days.filter((date,i)=>date<=today&&![2,7,8].includes(i)).length;
+  assert.equal(value(sheet.getCell('AJ117')),elapsed);
+  assert.match(String(sheet.getCell('A128').value),new RegExp('Provisional: 1 of '+elapsed+' class days fully recorded'));
   const values=row=>['AK','AL','AM'].map(c=>value(sheet.getCell(c+row)));
   assert.deepEqual(values(119),[3,25,28]);
   assert.deepEqual(values(121),[0,0,0]);
@@ -278,4 +285,14 @@ test('November subject report: original ten summary rows, 28 learners, two X mar
   assert.equal(sheet.pageSetup.orientation,original.pageSetup.orientation);
   assert.equal(sheet.pageSetup.printArea,original.pageSetup.printArea);
   assert.equal(sheet.pageSetup.scale,original.pageSetup.scale);
+});
+
+test('subject report removes provisional note once every elapsed class day is fully recorded',async()=>{
+  const {res,sheet}=await exportFixture({month:'2026-11',productionLike:true,singleCompleteDay:true});
+  assert.equal(res.code,200,JSON.stringify(res.body));
+  assert.equal(value(sheet.getCell('AJ117')),1);
+  assert.equal(sheet.getCell('A128').value,null);
+  assert.equal(value(sheet.getCell('AM127')),26);
+  assert.equal(value(sheet.getCell('AM128')),26/28);
+  assert.equal(sheet.model.merges.length,257);
 });

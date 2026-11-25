@@ -415,9 +415,17 @@ function registerSf2Routes(app, pool, { authenticateSchoolClient, requireSchoolU
       })
     }));
 
+    // Count elapsed timetable days independently of recording completeness.
+    // Conclusive evidence also establishes that a subject met on a special
+    // or historically uncertain day; no attendance is inferred from a schedule.
+    const subjectClassDates=access.mode==='PERSONAL'?dates.map((date,i)=>date<=today&&(
+      (!uncertainSchedule.has(date)&&subjectSchedule.get(date)?.size>0)||
+      rows.some(learner=>['PRESENT','LATE','SUBJECT_ABSENT','EXCUSED'].includes(learner.subjectDays[i]))
+    )):null;
+    const subjectScheduleUncertain=access.mode==='PERSONAL'&&dates.some((date,i)=>date<=today&&uncertainSchedule.has(date)&&!subjectClassDates[i]);
     return {
       dates,
-      ...(access.mode==='PERSONAL'?{subject:selectedSubject,subjectChoices,subjectScheduledDays:dates.filter(date=>date<=today&&!uncertainSchedule.has(date)&&subjectSchedule.get(date)?.size>0).length}:{}),
+      ...(access.mode==='PERSONAL'?{subject:selectedSubject,subjectChoices,subjectScheduledDays:dates.filter(date=>date<=today&&!uncertainSchedule.has(date)&&subjectSchedule.get(date)?.size>0).length,subjectClassDates,subjectScheduleUncertain}:{}),
       calendarSuspensions:{fullDays:[...noClassDates],partialDays:[...partialSuspensionDates]},
       students: rows,
       summary: {
