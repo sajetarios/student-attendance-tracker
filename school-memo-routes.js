@@ -221,9 +221,15 @@ function registerSchoolMemoRoutes(app,pool,{authenticateSchoolClient,requireScho
    const result=await pool.query(`
     INSERT INTO school_memo_acknowledgments(school_id,memo_id,viewer_kind,viewer_id)
     VALUES($1,$2,$3,$4)
-    ON CONFLICT(school_id,memo_id,viewer_kind,viewer_id) DO NOTHING`,
+    ON CONFLICT(school_id,memo_id,viewer_kind,viewer_id) DO NOTHING
+    RETURNING acknowledged_at AS "acknowledgedAt"`,
     [v.schoolId,m.memoId,v.kind,v.id]);
-   return res.json({acknowledged:true,alreadyAcknowledged:!result.rowCount,
+   const receipt=result.rowCount?result.rows[0]:(await pool.query(`
+    SELECT acknowledged_at AS "acknowledgedAt" FROM school_memo_acknowledgments
+    WHERE school_id=$1 AND memo_id=$2 AND viewer_kind=$3 AND viewer_id=$4`,
+    [v.schoolId,m.memoId,v.kind,v.id])).rows[0];
+   if(!receipt?.acknowledgedAt)throw Error('Acknowledgment receipt unavailable');
+   return res.json({acknowledged:true,alreadyAcknowledged:!result.rowCount,acknowledgedAt:receipt.acknowledgedAt,
     notice:'Your explicit acknowledgment has been recorded. It does not imply approval of the memo.'});
   }catch(e){return fail(res,e);}
  });

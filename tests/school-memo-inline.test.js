@@ -121,3 +121,30 @@ test('shared memo shortcut is role-aware and uses the existing acknowledgment fe
   }
  }
 });
+
+test('explicit memo acknowledgment uses only persisted server receipts and updates all matching local records',async()=>{
+ const source=read('school-memo-banner.js');
+ assert.match(source,/if\(memo\.acknowledgedAt\)actions\.append\(acknowledgmentStatus\(memo\.acknowledgedAt\)\)/);
+ assert.match(source,/const ack=make\('button','attendigo-memo-ack','Acknowledge memorandum'\)/);
+ assert.match(source,/ack\.addEventListener\('click',\(\)=>void markRead\(memo,ack\)\)/);
+ const excerpt=source.slice(source.indexOf(' function acknowledgmentStatus('),source.indexOf(' function cardState('));
+ const stamp='2026-11-25T03:00:00.000Z';
+ for(const mode of ['success','error','missing','repeat']){
+  const memo={memoId:'test',acknowledgedAt:mode==='repeat'?stamp:null};
+  const state={memos:[{...memo},{memoId:'other',acknowledgedAt:null}]};
+  let calls=0,replaced=0,counters=0;
+  const button={disabled:false,textContent:'Acknowledge memorandum',closest:()=>null};
+  const record={querySelector:()=>({replaceWith:()=>replaced++})};
+  const make=(tag,cls,value)=>({tag,cls,value,setAttribute(){}});
+  const request=async(url,opts)=>{calls++;assert.equal(opts.method,'POST');assert.match(url,/\/acknowledge$/);
+   if(mode==='error')throw Error('offline');return mode==='missing'?{acknowledged:true}:{acknowledged:true,acknowledgedAt:stamp};};
+  const run=new Function('memo','button','state','make','request','find','cardState','banner','updateCounters','setStatus',excerpt+'\nreturn markRead(memo,button);');
+  await run(memo,button,state,make,request,()=>record,()=>{},()=>{},()=>counters++,()=>{});
+  assert.equal(calls,mode==='repeat'?0:1);
+  assert.equal(replaced,mode==='success'?1:0);
+  assert.equal(counters,mode==='success'?1:0);
+  assert.equal(state.memos[0].acknowledgedAt,['success','repeat'].includes(mode)?stamp:null);
+  assert.equal(state.memos[1].acknowledgedAt,null);
+  if(['error','missing'].includes(mode)){assert.equal(button.disabled,false);assert.equal(button.textContent,'Acknowledge memorandum');}
+ }
+});

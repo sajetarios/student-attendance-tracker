@@ -139,16 +139,28 @@
    return true;
   }
  }
+ function acknowledgmentStatus(at){
+  const date=new Date(at);
+  const stamp=Number.isFinite(date.getTime())?new Intl.DateTimeFormat('en-PH',
+   {timeZone:'Asia/Manila',dateStyle:'medium',timeStyle:'short'}).format(date):'';
+  const status=make('span','attendigo-memo-is-read','Acknowledged'+(stamp?' · '+stamp:''));
+  status.setAttribute('role','status');return status;
+ }
  async function markRead(memo,button){
-  button.disabled=true;button.textContent='Recording…';
+  if(button.disabled||memo.acknowledgedAt)return;
+  button.disabled=true;button.textContent='Recording acknowledgment…';
   try{
-   await request('/api/school-memos/'+encodeURIComponent(memo.memoId)+'/acknowledge',{method:'POST'});
-   memo.acknowledgedAt=new Date().toISOString();
-   button.textContent='Acknowledged';button.classList.add('attendigo-memo-is-read');
-   cardState(button.closest('.attendigo-memo-record'),true);
+   const receipt=await request('/api/school-memos/'+encodeURIComponent(memo.memoId)+'/acknowledge',{method:'POST'});
+   if(receipt.acknowledged!==true||!receipt.acknowledgedAt||!Number.isFinite(Date.parse(receipt.acknowledgedAt)))
+    throw Error('Could not verify your acknowledgment. Refresh the list and try again if needed.');
+   memo.acknowledgedAt=receipt.acknowledgedAt;
+   for(const item of state.memos)if(item.memoId===memo.memoId)item.acknowledgedAt=receipt.acknowledgedAt;
+   const record=find(memo.memoId)||button.closest('.attendigo-memo-record');
+   record?.querySelector('.attendigo-memo-ack')?.replaceWith(acknowledgmentStatus(receipt.acknowledgedAt));
+   cardState(record,true);
    banner();updateCounters();
    setStatus('Your acknowledgment was recorded. It does not mean you approve this memorandum.');
-  }catch(e){button.disabled=false;button.textContent='Mark as read';setStatus(e.message);}
+  }catch(e){button.disabled=false;button.textContent='Acknowledge memorandum';setStatus(e.message);}
  }
  function cardState(card,read){
   card?.classList.toggle('attendigo-memo-unread',!read);
@@ -216,10 +228,12 @@
    view.disabled=false;
   });
   if(memo.filename)actions.append(view);
-  const ack=make('button','attendigo-memo-ack',memo.acknowledgedAt?'Acknowledged':'Mark as read');
-  ack.type='button';ack.disabled=Boolean(memo.acknowledgedAt);
-  ack.addEventListener('click',()=>void markRead(memo,ack));
-  actions.append(ack);
+  if(memo.acknowledgedAt)actions.append(acknowledgmentStatus(memo.acknowledgedAt));
+  else{
+   const ack=make('button','attendigo-memo-ack','Acknowledge memorandum');
+   ack.type='button';ack.addEventListener('click',()=>void markRead(memo,ack));
+   actions.append(ack);
+  }
   if(state.role==='PRINCIPAL'){
    const show=make('button','attendigo-memo-secondary','Read receipts');show.type='button';
    const report=make('p','attendigo-memo-receipts');
@@ -270,8 +284,11 @@
  function updateCounters(){
   const all=panel?.querySelector('[data-memo-count="published"]');
   const unread=panel?.querySelector('[data-memo-count="unread"]');
+  const acknowledged=panel?.querySelector('[data-memo-count="acknowledged"]');
+  const pending=currentList().length;
   if(all)all.textContent=String(state.memos.length);
-  if(unread)unread.textContent=String(currentList().length);
+  if(acknowledged)acknowledged.textContent=String(state.memos.length-pending);
+  if(unread)unread.textContent=String(pending);
  }
  function render(){
   const list=panel.querySelector('.attendigo-memo-list');
@@ -300,7 +317,7 @@
    const result=await request('/api/school-memos?limit=50');
    state.memos=Array.isArray(result.memoranda)?result.memoranda:[];
    render();
-   setStatus(manager?'Published notices are listed below. Acknowledgments are separate from approvals.':state.memos.length?'Read official memos below. Acknowledgment is always a separate action.':'No memoranda are currently published to your audience.');
+   setStatus(manager?'Published notices are listed below. Acknowledgments are separate from approvals.':state.memos.length?'Read official memos below, then select Acknowledge memorandum to confirm receipt. Opening a notice does not acknowledge it.':'No memoranda are currently published to your audience.');
   }catch(e){setStatus(e.message);}
   finally{state.loading=false;}
  }
@@ -329,7 +346,7 @@
   dismiss.addEventListener('click',close);
   heading.append(copy,dismiss);
   const counters=make('div','attendigo-memo-counters');
-  for(const [type,label] of [['published','Published'],['unread','Awaiting acknowledgment']]){
+  for(const [type,label] of [['published','Published'],['acknowledged','Acknowledged'],['unread','Pending acknowledgment']]){
    const pill=make('span','attendigo-memo-counter');
    const number=make('strong',null,'0');number.dataset.memoCount=type;
    pill.append(number,make('span',null,label));counters.append(pill);
@@ -342,7 +359,7 @@
   status.setAttribute('role','status');status.setAttribute('aria-live','polite');
   const list=make('div','attendigo-memo-list');
   const footer=make('p','attendigo-memo-footnote',
-   'Marking a memo as read is not an approval. A memorandum does not by itself alter DTR, leave, attendance or class schedules.');
+   'Acknowledgment confirms receipt only, not approval. Any authorized schedule directive takes effect independently of acknowledgment.');
   panel.append(heading,toolbar,status,list,footer);
   // Inline adjacent to the school notice, inside each user's existing dashboard.
   host.insertBefore(panel,host.firstChild);

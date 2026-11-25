@@ -185,10 +185,12 @@ async function main(){
     const r=await call(user,'POST','/api/school-memos/'+memo+'/acknowledge');
     assert.equal(r.code,200,JSON.stringify(r.body));
     assert.equal(r.body.alreadyAcknowledged,false);
+    assert.ok(Number.isFinite(Date.parse(r.body.acknowledgedAt)),'server returns persisted acknowledgment time');
     assert.equal((await call(user,'GET','/api/school-memos')).body.memoranda[0].acknowledgedAt!==null,true);
     const second=await call(user,'POST','/api/school-memos/'+memo+'/acknowledge');
     assert.equal(second.code,200);
     assert.equal(second.body.alreadyAcknowledged,true);
+    assert.equal(second.body.acknowledgedAt,r.body.acknowledgedAt,'repeat preserves the original receipt timestamp');
    }
    assert.equal((await call(foreignTeacher,'POST','/api/school-memos/'+memo+'/acknowledge')).code,404);
   });

@@ -15,12 +15,14 @@
   if(button.disabled)return;
   button.disabled=true;button.textContent='Recording acknowledgment…';
   try{
-   await api('/api/school-memos/'+encodeURIComponent(memo.memoId)+'/acknowledge',{method:'POST'});
-   button.textContent='Acknowledged';button.classList.add('is-acknowledged');
+   const receipt=await api('/api/school-memos/'+encodeURIComponent(memo.memoId)+'/acknowledge',{method:'POST'});
+   if(receipt.acknowledged!==true||!receipt.acknowledgedAt||!Number.isFinite(Date.parse(receipt.acknowledgedAt)))throw Error('Could not verify your acknowledgment. Refresh the list.');
+   memo.acknowledgedAt=receipt.acknowledgedAt;
+   button.textContent='Acknowledged · '+formatDate(memo.acknowledgedAt);button.classList.add('is-acknowledged');
    const card=button.closest('.memo-card');
    card?.classList.remove('memo-unread');
    $('memoSummary').textContent='Acknowledgment recorded. This confirms only that you marked the memo as read.';
-  }catch(e){button.disabled=false;button.textContent='Mark as read';$('memoSummary').textContent=e.message;}
+  }catch(e){button.disabled=false;button.textContent='Acknowledge memorandum';$('memoSummary').textContent=e.message;}
  }
  async function showReceipts(memo,button){
   button.disabled=true;
@@ -60,7 +62,7 @@
   attachment.href='/api/school-memos/'+encodeURIComponent(memo.memoId)+'/file';
   attachment.target='_blank';attachment.rel='noopener noreferrer';
   if(memo.filename)actions.append(attachment);
-  const ack=el('button',memo.acknowledgedAt?'memo-acknowledged':'memo-read',memo.acknowledgedAt?'Acknowledged':'Mark as read');
+  const ack=el('button',memo.acknowledgedAt?'memo-acknowledged':'memo-read',memo.acknowledgedAt?'Acknowledged · '+formatDate(memo.acknowledgedAt):'Acknowledge memorandum');
   ack.type='button';ack.disabled=Boolean(memo.acknowledgedAt);
   ack.addEventListener('click',()=>void acknowledge(memo,ack));actions.append(ack);
   if(principal){
