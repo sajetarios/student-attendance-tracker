@@ -68,6 +68,16 @@ async function checkPrincipalHeaderGeometry(engine,engineName){
      }
      assert.ok(!overlap(result.mainTabs,result.secondary),detail);
      assert.ok(!result.overflow,detail);
+     if(width<=1023){
+      await page.evaluate(()=>{const nav=document.querySelector('.principal-navigation');nav.dataset.expanded='false';document.querySelector('#principalNavToggle').setAttribute('aria-expanded','false');});
+      assert.equal(await page.locator('.principal-main-tabs').isVisible(),false,detail);
+      assert.equal(await page.locator('.principal-navigation-secondary').isVisible(),false,detail);
+      assert.ok((await box(page,'#principalNavToggle')).height>=43,detail);
+      assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth+1),false,detail);
+      await page.evaluate(()=>{document.querySelector('.principal-navigation').dataset.expanded='true';});
+      assert.equal(await page.locator('.principal-main-tabs').isVisible(),true,detail);
+     }
+
     }finally{await page.close();}
    }
   }

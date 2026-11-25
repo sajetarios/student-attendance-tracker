@@ -24,6 +24,20 @@
  const buttons=[...document.querySelectorAll('[data-section]')];
  const sectionMap={overview:'overviewPanel',departments:'departmentsPanel',
   staff:'staffPanel',priorities:'prioritiesPanel',definitions:'definitionsPanel',badge:'badgePanel',personal:'personalPanel',students:'studentsPanel',calendar:'calendarPanel',security:'securityPanel',reports:'reportsPanel',notifications:'notificationsPanel',assistant:'assistantPanel'};
+ const navigation=document.querySelector('.principal-navigation');
+ const navToggle=$('principalNavToggle');
+ const mobileNav=window.matchMedia('(max-width: 1023px)');
+ const navLabels={overview:'Overview',priorities:'Approvals',staff:'Personnel',students:'Learners',calendar:'School Operations',reports:'Reports',departments:'Departments',security:'Gate & Security',badge:'My QR Badge',personal:'My Workspace',notifications:'Notifications',assistant:'Help & Guidance',definitions:'Metric Definitions'};
+ function setPrincipalMenu(open){
+  if(!navigation||!navToggle)return;
+  if(!open&&navigation.contains(document.activeElement)&&document.activeElement!==navToggle)navToggle.focus({preventScroll:true});
+  navigation.dataset.expanded=String(open);
+  navToggle.setAttribute('aria-expanded',String(open));
+ }
+ function syncPrincipalMenu(){setPrincipalMenu(!mobileNav.matches);}
+ if(navToggle){navToggle.addEventListener('click',()=>setPrincipalMenu(navToggle.getAttribute('aria-expanded')!=='true'));syncPrincipalMenu();}
+ if(mobileNav.addEventListener)mobileNav.addEventListener('change',syncPrincipalMenu);
+ else if(mobileNav.addListener)mobileNav.addListener(syncPrincipalMenu);
  function status(message,state='info'){
   const el=$('feedback');
   el.textContent=message;el.dataset.state=state;
@@ -31,6 +45,8 @@
  function switchSection(name){
   if(!sectionMap[name])return;
   activeSection=name;
+  if($('principalActiveSection'))$('principalActiveSection').textContent=navLabels[name]||'School leadership';
+  if(mobileNav.matches)setPrincipalMenu(false);
   for(const button of buttons){
    const selected=button.dataset.section===name;
    button.classList.toggle('is-active',selected);

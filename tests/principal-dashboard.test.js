@@ -121,7 +121,7 @@ test('Teacher Recognition redesign keeps evidence source contracts and responsiv
  assert.match(js,/count\.dataset\.state=award\.entries\.length\?'active':'empty'/);
  assert.match(routes,/watchNominees/);
  assert.match(routes,/earlyArrivals/);
- assert.match(html,/principal-dashboard\.css\?v=17/);
+ assert.match(html,/principal-dashboard\.css\?v=18/);
  const principalJsVersion=html.match(/principal-dashboard\.js\?v=(\d+)/);
  assert.ok(principalJsVersion && Number(principalJsVersion[1])>=13,'principal JS revision must not regress');
 });
@@ -137,7 +137,7 @@ test('Principal executive workspace puts decisions before recognition and retain
   assert.equal((html.match(new RegExp('id="'+id+'"','g'))||[]).length,1);
  assert.ok(css.includes('min-width:1180px'));
  assert.ok(css.includes('max-width:650px'));
- assert.ok(sw.includes('principal-dashboard.css?v=17'));
+ assert.ok(sw.includes('principal-dashboard.css?v=18'));
 });
 
 test('Principal executive icons are locally rendered, accessible and cache-versioned',()=>{
@@ -148,6 +148,15 @@ test('Principal executive icons are locally rendered, accessible and cache-versi
  assert.ok(js.includes("principalIcon('briefing-item-icon',item.icon)"));
  assert.ok(js.includes("principalIcon('mark',"));
  assert.ok(css.includes('.principal-action-icon'));
- assert.ok(sw.includes('principal-dashboard.css?v=17'));
- assert.ok(sw.includes('principal-dashboard.js?v=23'));
+ assert.ok(sw.includes('principal-dashboard.css?v=18'));
+ assert.ok(sw.includes('principal-dashboard.js?v=24'));
+});
+
+test('Principal Executive 2 makes mobile navigation collapsible with visible release identification',()=>{
+ const html=read('public/principal.html'),js=read('public/principal-dashboard.js'),css=read('public/principal-dashboard.css');
+ assert.ok(html.includes('Executive 2'));
+ assert.ok(html.includes('aria-controls="principalMainTabs principalSecondaryMenus"'));
+ assert.ok(js.includes('function setPrincipalMenu(open)'));
+ assert.ok(js.includes("if(mobileNav.matches)setPrincipalMenu(false)"));
+ assert.ok(css.includes('.principal-navigation[data-expanded="false"]'));
 });
