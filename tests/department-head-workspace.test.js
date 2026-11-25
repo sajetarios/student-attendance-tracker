@@ -172,7 +172,8 @@ test('Department Head navigation stays separated and other roles keep their rout
   const portal = fs.readFileSync(path.join(__dirname, '../public/portal.js'), 'utf8');
   const server = fs.readFileSync(path.join(__dirname, '../server.js'), 'utf8');
   assert.match(portal, /relocate\('myGateAttendanceNav', 'personalAttendance'\)/);
-  assert.match(portal, /relocate\('officialBusinessNav', 'operations'\)/);
+  assert.match(portal, /relocate\('officialBusinessNav', 'personalAttendance'\)/);
+  assert.match(portal, /officialBusinessNav'\)\.hidden = !\(teacher \|\| departmentHead\)/);
   assert.match(portal, /'Requests & Approvals'/);
   assert.match(portal, /'My Attendance'/);
   assert.match(server, /const ownDepartment = req\.auth\.role === 'DEPARTMENT_HEAD'/);
