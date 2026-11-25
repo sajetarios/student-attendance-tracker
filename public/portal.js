@@ -500,8 +500,9 @@ window.attendigoStaffIdentity = new Promise(resolve => { resolveStaffIdentity = 
     const signatoryBlock = $('form48SchoolSignatories');
     const useIdentitySignatories = admin && schoolEntitlements?.features?.custom_branding !== false;
     const signatoryHome = $(useIdentitySignatories ? 'schoolIdentitySignatoryHome' : 'form48SignatoryHome');
-    if (signatoryBlock && signatoryHome && signatoryBlock.parentElement !== signatoryHome) {
-      signatoryHome.append(signatoryBlock);
+    if (signatoryBlock && signatoryHome) {
+      if (useIdentitySignatories && signatoryBlock.parentElement !== signatoryHome) signatoryHome.append(signatoryBlock);
+      if (!useIdentitySignatories && signatoryBlock.previousElementSibling !== signatoryHome) signatoryHome.after(signatoryBlock);
     }
     if ($('form48SignatoryShortcut')) $('form48SignatoryShortcut').hidden = !useIdentitySignatories;
     if ($('plannerNav')) $('plannerNav').hidden = !['TEACHER', 'DEPARTMENT_HEAD'].includes(role) || schoolEntitlements?.features?.planner === false;
