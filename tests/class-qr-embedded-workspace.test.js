@@ -39,7 +39,7 @@ test('history and dashboard shortcuts use the existing role-guarded view control
 test('the simplified School Admin menu groups monitoring and existing attendance tools in Attendance Management',()=>{
  for(const link of ['offlineScanReviewsNav','myGateAttendanceNav','lunchQrAdminNav'])
   assert.ok(sidebar.includes("move('"+link+"', 'attendanceManagement')"),link+' is lost');
- assert.ok(sidebar.includes("move('officialBusinessNav', 'operations')"),'OB requests must stay in the approval category');
+ assert.ok(sidebar.includes("$('officialBusinessNav').hidden = true"),'Admin must not have an OB approval module');
  assert.match(sidebar,/label\('attendanceManagement', 'Attendance Management'\)/);
  assert.match(sidebar,/group\('attendanceManagement'\), group\('operations'\)/);
  assert.doesNotMatch(sidebar,/\.cloneNode\(/);

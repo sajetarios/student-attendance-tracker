@@ -36,7 +36,7 @@ test('School Admin keeps management queues separate from physical attendance',()
  assert.match(workspace,/move\('requestsApprovalsNav', 'operations'\)/);
  assert.match(workspace,/move\('myGateAttendanceNav', 'attendanceManagement'\)/);
  assert.match(workspace,/move\('lunchQrAdminNav', 'attendanceManagement'\)/);
- assert.match(workspace,/move\('officialBusinessNav', 'operations'\)/);
+ assert.match(workspace,/\$\('officialBusinessNav'\)\.hidden = true/);
  assert.match(workspace,/label\('settings', 'School Settings'\)/);
  assert.match(leave,/const visibleRequests=reviewOnly\?/);
  assert.match(leave,/reviewerNav\?\.addEventListener\('click',\(\)=>openLeave\(true\)\)/);
@@ -84,8 +84,8 @@ test('Presenter entry is hidden for unassigned teachers and visible for either a
 test('No new attendance routes; assets match the current cache and mobile sidebar stays scrollable',()=>{
  const css=read('attendigo-sidebar-adaptive.css');
  assertCachedAsset(html,sw,'portal.js',{minimumVersion:236});
- for(const asset of ['/simplified-workspace.js?v=4','/staff-leave-ui.js?v=12',
-  '/staff-ob-ui.js?v=6','/attendigo-presenter-nav.js?v=1']){
+ for(const asset of ['/simplified-workspace.js?v=5','/staff-leave-ui.js?v=12',
+  '/staff-ob-ui.js?v=8','/attendigo-presenter-nav.js?v=1']){
   assert.ok(html.includes(asset),asset+' HTML');
   assert.ok(sw.includes('"'+asset+'"'),asset+' shell');
  }

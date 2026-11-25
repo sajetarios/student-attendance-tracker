@@ -13,18 +13,19 @@ test('Official Business has a dedicated navigable portal view',()=>{
  assert.match(portal,/id="officialBusinessView"/);
  assert.match(js,/officialBusinessView/);
  assert.match(js,/official-business:open/);
- assert.match(js,/officialBusinessNav'\)\.hidden = !\(teacher \|\| admin \|\| departmentHead\)/);
+ assert.match(js,/officialBusinessNav'\)\.hidden = !\(teacher \|\| departmentHead\)/);
 });
-test('all three staff roles have Official Business access',()=>{
- assert.match(js,/if \(role === 'SCHOOL_ADMIN'\) return \[[^\n]*'officialBusiness'/);
+test('Admin has personal OB only; teachers and heads retain the dedicated module',()=>{
+ assert.doesNotMatch(js,/if \(role === 'SCHOOL_ADMIN'\) return \[[^\n]*'officialBusiness'/);
+ assert.match(ob,/personalAdmin\?'myGateAttendanceView':'officialBusinessView'/);
  assert.match(js,/if \(role === 'DEPARTMENT_HEAD'\) return \[[^\n]*'officialBusiness'/);
  assert.match(js,/const views = \[[^\n]*'officialBusiness'/);
  assert.match(ob,/\['TEACHER','DEPARTMENT_HEAD','SCHOOL_ADMIN'\]/);
 });
 test('OB endpoints registered and cached without changing student access',()=>{
  assert.match(server,/registerStaffObRoutes\(app, pool, \{ authenticateSchoolClient, requireSchoolRoles \}\)/);
- assert.match(portal,/staff-ob-ui\.js\?v=6/);
- assert.match(sw,/staff-ob-ui\.js\?v=6/);
+ assert.match(portal,/staff-ob-ui\.js\?v=8/);
+ assert.match(sw,/staff-ob-ui\.js\?v=8/);
  assert.match(portal,/staff-ob\.css\?v=1/);
  assert.match(sw,/staff-ob\.css\?v=1/);
  assert.match(js,/if \(role === 'GATE_KEEPER'\) return \['students'\]/);

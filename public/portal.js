@@ -194,7 +194,7 @@ window.attendigoStaffIdentity = new Promise(resolve => { resolveStaffIdentity = 
 
   function allowedViewsForUser() {
     const role = user?.role;
-    if (role === 'SCHOOL_ADMIN') return ['dashboard', 'students', 'studentAccounts', 'parents', 'teachers', 'schedules', 'myGateAttendance', 'form48Reports', 'classQrMonitor', 'offlineScanReviews', 'officialBusiness', 'cloudSync', 'schoolBranding'];
+    if (role === 'SCHOOL_ADMIN') return ['dashboard', 'students', 'studentAccounts', 'parents', 'teachers', 'schedules', 'myGateAttendance', 'form48Reports', 'classQrMonitor', 'offlineScanReviews', 'cloudSync', 'schoolBranding'];
     if (role === 'DEPARTMENT_HEAD') return ['dashboard', 'planner', 'students', 'teachers', 'schedules', 'sf2', 'officialBusiness', 'myGateAttendance', 'lunchQrAdmin'];
     if (role === 'TEACHER') {
       const views = ['dashboard', 'planner', 'myGateAttendance', 'teacherLunchQr', 'officialBusiness'];
@@ -328,7 +328,7 @@ window.attendigoStaffIdentity = new Promise(resolve => { resolveStaffIdentity = 
         schedules: ['Department schedule management', 'View every department’s timetable and create or assign class schedules only within your own department.'],
         sf2: ['SF2 monitoring', 'Preview official section reports. Department Heads cannot edit, submit, or collect SF2 reports.'],
         myGateAttendance: ['My Attendance / DTR & QR Badge', 'Review your own verified attendance and show your personal QR badge to the Gatekeeper.'],
-        officialBusiness: ['Official Business · Department', 'Review department OB requests and approved class coverage. Your own OB request is a separate personal action; final approval remains with the School Admin.']
+        officialBusiness: ['Official Business · Department', 'Review department OB requests and approved class coverage. Your own OB request is a separate personal action; final authorization belongs to the Principal.']
       };
     } else if (gateKeeper) {
       titles = { students: ['Learner and teacher gate attendance', 'Scan a learner QR card or teacher badge, verify the registered photograph, then record school-gate time-in or time-out.'] };
@@ -343,7 +343,7 @@ window.attendigoStaffIdentity = new Promise(resolve => { resolveStaffIdentity = 
         sf2: [classAdviser && subjectTeacher ? 'My SF2 reports' : classAdviser ? 'Official section SF2' : 'Personal SF2 copy', classAdviser ? 'Generate the official consolidated section SF2 only for sections assigned to you as Class Adviser.' : 'Generate a personal attendance copy from your own subject-period records.'],
         teacherLunchQr: ['My lunch QR', 'Generate your assigned rotating lunch QR; staff attendance is recorded only after individual confirmation.'],
         myGateAttendance: ['My Attendance', 'Review verified Form 48 punches and photo-verified gate scans together.'],
-        officialBusiness: ['Official Business', 'Submit an OB request and follow Department Head recommendation and School Admin approval.'],
+        officialBusiness: ['Official Business', 'Submit an OB request and follow Department Head recommendation and Principal authorization.'],
         classAttendance: ['Class attendance', classAdviser && subjectTeacher ? 'Review your advisory section and the other sections covered by your assigned subject schedules.' : classAdviser ? 'Review attendance for your assigned advisory section.' : 'Review attendance in the sections covered by your assigned subject schedules.']
       };
     } else {
@@ -361,7 +361,6 @@ window.attendigoStaffIdentity = new Promise(resolve => { resolveStaffIdentity = 
         form48Reports: ['Form 48 DTR reports', 'Preview and print the verified monthly Daily Time Record for a selected staff member.'],
         offlineScanReviews: ['Offline Scan Reviews', 'Review Gatekeeper observations captured while the scanner was offline.'],
         classQrMonitor: ['Class Attendance Monitoring', 'Monitor scheduled classes, verified student QR check-ins and audited emergency session closure.'],
-        officialBusiness: ['Official Business', 'Review final OB approvals and monitor requests across the school.'],
         myGateAttendance: ['My Attendance', 'View your own Gatekeeper-verified physical movements and four-slot Form 48 DTR. Administrative login does not record attendance.']
       };
     }
@@ -373,7 +372,10 @@ window.attendigoStaffIdentity = new Promise(resolve => { resolveStaffIdentity = 
     if (view === 'planner') $('plannerView')?.dispatchEvent(new Event('planner:open'));
     if (view === 'officialBusiness') $('officialBusinessView')?.dispatchEvent(new Event('official-business:open'));
     if (view === 'dashboard' && ['TEACHER','DEPARTMENT_HEAD'].includes(role)) $('plannerView')?.dispatchEvent(new Event('planner:dashboard'));
-    if (view === 'myGateAttendance' && ['TEACHER', 'DEPARTMENT_HEAD', 'SCHOOL_ADMIN'].includes(role)) loadMyGateAttendance();
+    if (view === 'myGateAttendance' && ['TEACHER', 'DEPARTMENT_HEAD', 'SCHOOL_ADMIN'].includes(role)) {
+      loadMyGateAttendance();
+      if (role === 'SCHOOL_ADMIN') $('myGateAttendanceView')?.dispatchEvent(new Event('official-business:open'));
+    }
     if (view === 'offlineScanReviews' && role === 'SCHOOL_ADMIN') document.dispatchEvent(new Event('attendigo:offline-reviews-open'));
     if (view === 'classQrMonitor' && role === 'SCHOOL_ADMIN') document.dispatchEvent(new Event('attendigo:class-qr-monitor-open'));
     if (view === 'classAttendance' && role === 'TEACHER') {
@@ -552,7 +554,7 @@ window.attendigoStaffIdentity = new Promise(resolve => { resolveStaffIdentity = 
     }
     if ($('lunchQrAdminNav')) $('lunchQrAdminNav').hidden = !departmentHead;
     if ($('form48ReportsNav')) $('form48ReportsNav').hidden = !admin;
-    if ($('officialBusinessNav')) $('officialBusinessNav').hidden = !(teacher || admin || departmentHead);
+    if ($('officialBusinessNav')) $('officialBusinessNav').hidden = !(teacher || departmentHead);
     // The presenter page only appears in Assigned Duties after the current
     // staff session is verified as an active assigned lunch QR presenter.
     if ($('teacherLunchQrNav')) $('teacherLunchQrNav').hidden =
@@ -753,7 +755,6 @@ window.attendigoStaffIdentity = new Promise(resolve => { resolveStaffIdentity = 
       const academicMenu = document.querySelector('.nav-submenu[data-submenu="academics"]');
       if (academicMenu && $('academicAdminNav') && academicMenu.firstElementChild !== $('academicAdminNav')) academicMenu.prepend($('academicAdminNav'));
       relocate('myGateAttendanceNav', 'attendanceManagement');
-      relocate('officialBusinessNav', 'operations');
       // Lunch QR management is no longer an Admin module.
       relocate('form48ReportsNav', 'reports');
       relocate('cloudSyncNav', 'operations');

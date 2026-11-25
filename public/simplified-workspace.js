@@ -34,7 +34,7 @@
       move('offlineScanReviewsNav', 'attendanceManagement');
       move('myGateAttendanceNav', 'attendanceManagement');
       move('lunchQrAdminNav', 'attendanceManagement');
-      move('officialBusinessNav', 'operations');
+      if ($('officialBusinessNav')) $('officialBusinessNav').hidden = true;
       move('cloudSyncNav', 'settings');
       move('smsNav', 'settings');
       move('schoolSmsAccessNotice', 'settings');

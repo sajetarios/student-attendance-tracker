@@ -1,4 +1,4 @@
-const CACHE = "attendigo-v404-branded-install";
+const CACHE = "attendigo-v406-principal-ob-admin-scope";
 
 // Only public, non-personal offline shells and their executable dependencies.
 // An update must not discard the working cache before these are all ready.
@@ -32,7 +32,7 @@ const SHELL = [
   "/attendigo-workspace-density-theme.css?v=1",
   "/attendigo-unified-workspace.css?v=1",
   "/attendigo-unified-navigation.js?v=1",
-  "/simplified-workspace.js?v=4",
+  "/simplified-workspace.js?v=5",
   "/simplified-workspace.css?v=1",
   "/teacher-timetable-identities.css?v=2",
   "/schedule-relationships.js?v=2",
@@ -102,7 +102,7 @@ const SHELL = [
   "/teacher-scanner-schedule.js?v=1",
   "/teacher-roster-popover.js?v=2",
   "/portal.css?v=0.9.119",
-  "/portal.js?v=243",
+  "/portal.js?v=244",
   "/attendigo-help-topics.js?v=4",
   "/attendigo-help-guide.js?v=4",
   "/attendigo-help.css?v=4",
@@ -137,7 +137,7 @@ const SHELL = [
   "/staff-lunch-ui.js?v=9",
   "/staff-precise-location.js?v=1",
   "/staff-department-location.js?v=8",
-  "/staff-ob-ui.js?v=6",
+  "/staff-ob-ui.js?v=8",
   "/staff-ob.css?v=1",
   "/staff-lunch.css?v=7",
   "/staff-lunch-checkin.js?v=5",
@@ -166,7 +166,7 @@ const SHELL = [
   "/admin-request-notifications.js?v=7",
   "/admin-request-notifications.css?v=2",
   "/admin-approval-navigation.css?v=1",
-  "/universal-notifications.js?v=11",
+  "/universal-notifications.js?v=12",
   "/universal-notifications.css?v=4",
   "/guardian-ui.js?v=7",
   "/guardian-ui.css?v=4",
@@ -186,7 +186,7 @@ const SHELL = [
   "/password-visibility.js",
   "/portal-login.js?v=17",
   "/login-routing.js",
-  "/principal-dashboard.js?v=18",
+  "/principal-dashboard.js?v=20",
   "/principal-trusted-campus.js?v=4",
   "/campus-location-ui.css?v=1",
   "/principal-dashboard.css?v=15",

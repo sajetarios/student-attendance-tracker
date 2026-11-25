@@ -179,12 +179,12 @@
       "mag ob"
     ],
     "steps": [
-      "Open Official Business under My Attendance (School Admin: Operations). Department Heads may see Department OB Requests.",
+      "Open Official Business under My Attendance. School Admins file their own OB from the My Attendance page. Department Heads may see Department OB Requests.",
       "Expand Submit My Official Business request and enter Purpose, Destination, Start (Philippine time) and End (Philippine time).",
-      "Choose Submit OB request. A Department Head recommends and School Admin makes the final decision; submission is not approval.",
+      "Choose Submit OB request. A Department Head recommends teacher requests; Department Heads file directly with the Principal. Print the Locator Slip when available and obtain the Principal’s handwritten signature before digital authorization.",
       "Continue the approved gate verification procedure. Returns outside the approved window require review."
     ],
-    "note": "Approved OB may affect DTR remarks and staff coverage; the guide cannot approve OB or create punches."
+    "note": "Approved OB may affect DTR remarks and staff coverage. Submit the certified physical slip to Service Records; Attendigo does not archive scanned slips. The guide cannot approve OB or create punches."
   },
   {
     "id": "leave",

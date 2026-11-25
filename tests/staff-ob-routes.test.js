@@ -43,7 +43,8 @@ test('only staff roles may access OB routes and all reads are school scoped',asy
  assert.deepEqual(head.queries[0].params,['s1','dept1']);
  const admin=fixture('SCHOOL_ADMIN');
  await admin.call('GET','/api/staff-attendance/official-business');
- assert.deepEqual(admin.queries[0].params,['s1']);
+ assert.deepEqual(admin.queries[0].params,['s1','u1']);
+ assert.match(admin.queries[0].sql,/o.staff_user_id=\$2/);
  const student=fixture('STUDENT');
  assert.equal((await student.call('GET','/api/staff-attendance/official-business')).code,403);
 });
@@ -60,7 +61,7 @@ test('submission requires valid dates, purpose, destination and a department',as
   purpose:'Official seminar',destination:'District Office',startsAt:'2026-12-02T08:00:00+08:00',
   endsAt:'2026-12-02T17:00:00+08:00'})).code,403);
 });
-test('department head recommendation and school admin final approval are distinct',async()=>{
+test('department head recommendation and Principal final authorization are distinct',async()=>{
  const path='/api/staff-attendance/official-business/:id/recommend';
  const head=fixture('DEPARTMENT_HEAD','dept1');
  assert.equal((await head.call('POST',path,{decision:'RECOMMEND'},{id:'a6831ee2-24db-42b2-9d27-39d130eb11f1'})).code,200);
@@ -71,17 +72,21 @@ test('department head recommendation and school admin final approval are distinc
  assert.ok(head.queries.some(x=>x.params?.includes('STAFF_OB_RECOMMENDED')));
  assert.equal((await fixture('TEACHER').call('POST',path,{decision:'RECOMMEND'},{id:'a6831ee2-24db-42b2-9d27-39d130eb11f1'})).code,403);
  const admin=fixture('SCHOOL_ADMIN');
+ const principal=fixture('PRINCIPAL',null);
  const final='/api/staff-attendance/official-business/:id/decide';
- assert.equal((await admin.call('POST',final,{decision:'APPROVE'},{id:'a6831ee2-24db-42b2-9d27-39d130eb11f1'})).code,200);
- assert.match(admin.queries.find(x=>x.sql.includes('UPDATE staff_official_business_requests')).sql,/status='PENDING_ADMIN'/);
- assert.ok(admin.queries.some(x=>x.params?.includes('STAFF_OB_APPROVED')));
+ const id='a6831ee2-24db-42b2-9d27-39d130eb11f1';
+ assert.equal((await admin.call('POST',final,{decision:'APPROVE',signedAuthorization:true},{id})).code,403);
+ assert.equal((await principal.call('POST',final,{decision:'APPROVE'},{id})).code,400);
+ assert.equal((await principal.call('POST',final,{decision:'APPROVE',signedAuthorization:true},{id})).code,200);
+ assert.match(principal.queries.find(x=>x.sql.includes('UPDATE staff_official_business_requests')).sql,/status='PENDING_ADMIN'/);
+ assert.ok(principal.queries.some(x=>x.params?.includes('STAFF_OB_APPROVED')));
  assert.equal((await head.call('POST',final,{decision:'APPROVE'},{id:'a6831ee2-24db-42b2-9d27-39d130eb11f1'})).code,403);
 });
 test('approval flags only active weekday classes whose actual class times overlap OB',async()=>{
- const admin=fixture('SCHOOL_ADMIN');
+ const admin=fixture('PRINCIPAL',null);
  const id='a6831ee2-24db-42b2-9d27-39d130eb11f1';
  assert.equal((await admin.call('POST','/api/staff-attendance/official-business/:id/decide',
-  {decision:'APPROVE'},{id})).code,200);
+  {decision:'APPROVE',signedAuthorization:true},{id})).code,200);
  const query=admin.queries.find(x=>x.sql.includes('INSERT INTO staff_ob_class_coverage'));
  assert.ok(query,'approval writes affected-class coverage in same transaction');
  assert.match(query.sql,/teacher_period_assignments ta/);
@@ -93,7 +98,7 @@ test('approval flags only active weekday classes whose actual class times overla
  assert.match(query.sql,/ON CONFLICT\(school_id,request_id,period_id,class_date\) DO NOTHING/);
  assert.deepEqual(query.params,['s1',id]);
  assert.ok(admin.queries.some(x=>x.params?.includes('STAFF_OB_AFFECTED_CLASSES_FLAGGED')));
- const rejected=fixture('SCHOOL_ADMIN');
+ const rejected=fixture('PRINCIPAL',null);
  await rejected.call('POST','/api/staff-attendance/official-business/:id/decide',
   {decision:'REJECT'},{id});
  assert.ok(!rejected.queries.some(x=>x.sql.includes('INSERT INTO staff_ob_class_coverage')),
@@ -154,4 +159,28 @@ test('substitute choices are restricted to approved uncovered classes and active
  assert.match(sql.sql,/o.status='APPROVED'/);
  assert.deepEqual(sql.params,['s1',id,coverageId,'dept1','u1']);
  assert.equal((await fixture('TEACHER').call('GET',url,{}, {id,coverageId})).code,403);
+});
+
+
+test('Principal queue is school scoped and excludes own and external Principal requests',async()=>{
+ const principal=fixture('PRINCIPAL',null);
+ const path='/api/principal/ob-approvals';
+ assert.equal((await principal.call('GET',path)).code,200);
+ const query=principal.queries[0];
+ assert.deepEqual(query.params,['s1','u1',0]);
+ assert.match(query.sql,/o.school_id=\$1 AND o.staff_user_id<>\$2/);
+ assert.match(query.sql,/u.role IN \('TEACHER','DEPARTMENT_HEAD','SCHOOL_ADMIN'\)/);
+ for(const role of ['TEACHER','DEPARTMENT_HEAD','SCHOOL_ADMIN','STUDENT'])
+  assert.equal((await fixture(role).call('GET',path)).code,403);
+});
+test('Department Head requests enter Principal authorization directly; teachers still require recommendation',async()=>{
+ const request={purpose:'Official meeting',destination:'District office',startsAt:new Date(Date.now()+86400000).toISOString(),endsAt:new Date(Date.now()+90000000).toISOString()};
+ for(const [role,status] of [['DEPARTMENT_HEAD','PENDING_ADMIN'],['TEACHER','PENDING_HEAD']]){
+  const f=fixture(role);
+  const response=await f.call('POST','/api/staff-attendance/official-business',request);
+  assert.equal(response.code,201);
+  assert.equal(response.body.status,status);
+  const q=f.queries.find(x=>x.sql.includes('INSERT INTO staff_official_business_requests'));
+  assert.equal(q.params[8],status);
+ }
 });

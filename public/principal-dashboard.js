@@ -45,6 +45,7 @@
   if(name==='staff'&&latest)$('staffSearch').focus({preventScroll:true});
   if(name==='personal'){void loadPersonal();void loadSdoRequests();}
   if(name==='notifications')void loadNotifications();
+  if(name==='priorities'&&currentRole==='PRINCIPAL')void loadObApprovals();
   if(name==='calendar'&&currentRole==='PRINCIPAL')void loadMemoAdmin();
   if(['personal','calendar','security'].includes(name))void loadWorkspace();
  }
@@ -102,7 +103,7 @@
   $('principalReportClassQr').textContent=fmt(m.acceptedClassCheckins);
   $('principalReportWorkflows').textContent=fmt(data.approvals?.totalPending);
   $('principalReportingScope').textContent='School date '+data.schoolDate+' · Last '+data.trendDays+' days in the DTR trend chart';
-  $('principalSchoolAlerts').textContent=fmt(m.pendingDtrSlots)+' DTR slots pending verification; instructional coverage exceptions are checked separately. Routine leave and OB stages are informational, not Principal escalation alerts.';
+  $('principalSchoolAlerts').textContent=fmt(m.pendingDtrSlots)+' DTR slots pending verification; instructional coverage exceptions are checked separately. Use Approvals to review actionable OB requests; other workflow counts are informational.';
   $('studentSummaryActive').textContent=fmt(data.enrollment?.activeStudentRecords);
   $('studentSummaryCheckins').textContent=fmt(m.acceptedClassCheckins);
   $('actionInboxSummary').textContent=fmt(data.approvals?.totalPending)+' pending leave/OB requests across review stages · '+fmt(m.pendingDtrSlots)+' pending DTR slots · '+fmt(data.locationSetup?.pending)+' QR locations pending review.';
@@ -230,6 +231,77 @@
   if(!rows.length){const tr=document.createElement('tr'),td=document.createElement('td');td.colSpan=5;
    td.textContent='No staff match the current filters. This is not evidence of absence.';tr.append(td);body.append(tr);}
  }
+ let obApprovalScope='pending',obApprovalOffset=0,obApprovalSequence=0,obDecisionBusy=false;
+ const obApprovalDate=value=>{
+  const d=new Date(value);
+  return Number.isNaN(d.getTime())?'Date unavailable':new Intl.DateTimeFormat('en-PH',{timeZone:'Asia/Manila',dateStyle:'medium',timeStyle:'short'}).format(d);
+ };
+ function selectObApprovalScope(scope){
+  obApprovalScope=scope;obApprovalOffset=0;
+  $('principalObPending').setAttribute('aria-pressed',String(scope==='pending'));
+  $('principalObHistory').setAttribute('aria-pressed',String(scope==='history'));
+  void loadObApprovals();
+ }
+ async function loadObApprovals(){
+  if(currentRole!=='PRINCIPAL'||obDecisionBusy)return;
+  const seq=++obApprovalSequence,host=$('principalObApprovalList'),label=$('principalObApprovalStatus');
+  label.textContent='Checking official business requests…';
+  $('principalObPrevious').disabled=true;$('principalObNext').disabled=true;
+  host.replaceChildren();
+  try{
+   const response=await fetch('/api/principal/ob-approvals?'+new URLSearchParams({scope:obApprovalScope,offset:String(obApprovalOffset)}),{credentials:'same-origin',cache:'no-store'});
+   const data=await response.json().catch(()=>({}));
+   if(seq!==obApprovalSequence)return;
+   if(!response.ok)throw Error(data.error||'Official Business approvals unavailable.');
+   const requests=data.requests||[];
+   if(!requests.length&&obApprovalOffset>0){obApprovalOffset=Math.max(0,obApprovalOffset-20);return void loadObApprovals();}
+   label.textContent=requests.length?'Showing '+(obApprovalOffset+1)+'–'+(obApprovalOffset+requests.length)+' requests.':obApprovalScope==='history'?'No recorded decisions.':'No OB requests awaiting your authorization.';
+   $('principalObPrevious').disabled=obApprovalOffset===0;$('principalObNext').disabled=!data.hasMore;
+   for(const request of requests){
+    const item=make('article','surface');
+    const title=make('h3',null,request.staffName||'Staff member');
+    const role=String(request.staffRole||'').replaceAll('_',' ');
+    const state=obApprovalScope==='pending'?'Awaiting Principal authorization':String(request.status||'').replaceAll('_',' ');
+    item.append(title,make('p','source-note',role+' · '+state),make('p',null,'Purpose: '+(request.purpose||'Not supplied')),make('p',null,'Destination: '+(request.destination||'Not supplied')),make('p',null,obApprovalDate(request.startsAt)+' – '+obApprovalDate(request.endsAt)));
+    if(request.headDecidedAt)item.append(make('p','source-note','Department recommendation recorded '+obApprovalDate(request.headDecidedAt)));
+    if(request.decidedAt)item.append(make('p','source-note','Decision recorded '+obApprovalDate(request.decidedAt)));
+    if(request.decisionNote)item.append(make('p','source-note','Recorded note: '+request.decisionNote));
+    if(obApprovalScope==='pending'||request.status==='APPROVED'){
+     const slip=make('a','quiet-button','View Locator Slip');
+     slip.href='/api/staff-attendance/official-business/'+encodeURIComponent(request.requestId)+'/locator-slip';
+     slip.target='_blank';slip.rel='noopener noreferrer';item.append(slip);
+    }
+    if(obApprovalScope==='pending'){
+     const actions=make('div','principal-workspace-actions');actions.style.cssText='display:flex;flex-wrap:wrap;gap:8px';
+     const approve=make('button','quiet-button','Confirm signed authorization');
+     const reject=make('button','quiet-button','Disapprove');
+     for(const button of [approve,reject])button.type='button';
+     approve.addEventListener('click',()=>void decideObApproval(request,'APPROVE'));
+     reject.addEventListener('click',()=>void decideObApproval(request,'REJECT'));
+     actions.append(approve,reject);item.append(actions);
+    }
+    host.append(item);
+   }
+  }catch(error){if(seq===obApprovalSequence){host.replaceChildren();label.textContent=errorText(error);}}
+ }
+ async function decideObApproval(request,decision){
+  if(obDecisionBusy||!window.AppDialog)return;
+  obDecisionBusy=true;
+  const label=$('principalObApprovalStatus'),controls=[...$('principalObApprovalList').querySelectorAll('button'),$('principalObPending'),$('principalObHistory'),$('principalObRefresh'),$('principalObPrevious'),$('principalObNext')];
+  controls.forEach(b=>b.disabled=true);
+  let saved=false;
+  try{
+   const approving=decision==='APPROVE';
+   const note=await window.AppDialog.prompt(approving?'Confirm that you personally signed the required physical travel authorization for '+request.staffName+'. Do not confirm if it has not been signed.':'Disapprove this official business request for '+request.staffName+'?','',{title:approving?'Confirm handwritten signature':'Disapprove official business',label:approving?'Optional note':'Reason for disapproval',inputType:'textarea',maxLength:1000,validate:value=>value.length<=1000&&(approving||value.trim().length>0)||'Enter a valid note (maximum 1000 characters).',confirmText:approving?'I have signed — authorize':'Disapprove',variant:approving?undefined:'danger'});
+   if(note===null)return;
+   const response=await fetch('/api/staff-attendance/official-business/'+encodeURIComponent(request.requestId)+'/decide',{method:'POST',credentials:'same-origin',cache:'no-store',headers:{'Content-Type':'application/json'},body:JSON.stringify({decision,note,signedAuthorization:approving})});
+   const data=await response.json().catch(()=>({}));
+   if(!response.ok)throw Error(data.error||'Decision could not be saved.');
+   saved=true;document.dispatchEvent(new Event('attendigo:requests-changed'));
+  }catch(error){label.textContent=errorText(error);}
+  finally{obDecisionBusy=false;controls.forEach(b=>b.disabled=false);$('principalObPrevious').disabled=obApprovalOffset===0;if(!saved)$('principalObNext').disabled=true;}
+  if(saved){await loadObApprovals();void load();}
+ }
  function renderPriorities(data){
   const root=$('priorityBreakdown');root.replaceChildren();
   const leave=data.approvals?.leave||{},ob=data.approvals?.ob||{},m=data.metrics||{},loc=data.locationSetup||{};
@@ -240,7 +312,7 @@
    ['Leave: School review',leave.PENDING_ADMIN||0,'Waiting for authorized school-level review','LEAVE','PENDING_ADMIN'],
    ['Leave: Official decision',leave.PENDING_EXTERNAL||0,'Requires documented decision by the authorized official','LEAVE','PENDING_EXTERNAL'],
    ['OB: Department review',ob.PENDING_HEAD||0,'Waiting for Department Head recommendation','OB','PENDING_HEAD'],
-   ['OB: School review',ob.PENDING_ADMIN||0,'Waiting for School Admin decision','OB','PENDING_ADMIN'],
+   ['OB: School review',ob.PENDING_ADMIN||0,'Awaiting school authorization or external SDO coordination','OB','PENDING_ADMIN'],
    ['DTR: Unverified slots',m.pendingDtrSlots||0,'Selected school date · not certified',null,null],
    ['Location proposals',loc.pending||0,'Department points awaiting School Admin approval',null,null]
   ];
@@ -540,7 +612,7 @@
   classImpact=null;
   renderClassImpact(null);
   $('refreshDashboard').disabled=true;
-  status('Checking live school records. DTR and approval data are read-only…');
+  status('Checking live school records. DTR summaries are read-only…');
   try{
    const query=new URLSearchParams({date:$('reportDate').value,days:$('periodFilter').value});
    if($('departmentFilter').value)query.set('departmentId',$('departmentFilter').value);
@@ -1042,6 +1114,12 @@
    details.scrollIntoView({behavior:'smooth',block:'nearest'});
   });
   $('openPriorities').addEventListener('click',()=>switchSection('priorities'));
+  $('principalObPending').addEventListener('click',()=>selectObApprovalScope('pending'));
+  $('principalObHistory').addEventListener('click',()=>selectObApprovalScope('history'));
+  $('principalObRefresh').addEventListener('click',()=>void loadObApprovals());
+  $('principalObPrevious').addEventListener('click',()=>{obApprovalOffset=Math.max(0,obApprovalOffset-20);void loadObApprovals();});
+  $('principalObNext').addEventListener('click',()=>{obApprovalOffset+=20;void loadObApprovals();});
+  document.addEventListener('visibilitychange',()=>{if(!document.hidden&&activeSection==='priorities')void loadObApprovals();});
   const presentation=$('presentationToggle');
   function setPresentation(enabled){
    document.body.classList.toggle('principal-presentation',enabled);
@@ -1057,7 +1135,7 @@
    if(event.key==='Escape'&&document.body.classList.contains('principal-presentation'))
     setPresentation(false);
   });
-  $('refreshDashboard').addEventListener('click',()=>{document.dispatchEvent(new Event('attendigo:requests-changed'));void load();if(activeSection==='notifications')void loadNotifications();if(activeSection==='personal')void loadPersonal();});
+  $('refreshDashboard').addEventListener('click',()=>{document.dispatchEvent(new Event('attendigo:requests-changed'));void load();if(activeSection==='notifications')void loadNotifications();if(activeSection==='personal')void loadPersonal();if(activeSection==='priorities')void loadObApprovals();});
   document.addEventListener('attendigo:notifications-updated',()=>{if(activeSection==='notifications')void loadNotifications();});
   for(const id of ['reportDate','departmentFilter','periodFilter'])$(id).addEventListener('change',()=>void load());
   for(const id of ['staffSearch','staffStatus'])$(id).addEventListener(id==='staffSearch'?'input':'change',renderStaff);
