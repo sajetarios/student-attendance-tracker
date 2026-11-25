@@ -91,6 +91,8 @@ async function checkMemoLauncher(engine,engineName){
       window.memoOpened=false;
       render(state,strip,make,document,()=>{window.memoOpened=true},()=>{});
      },{fragment,role});
+     assert.equal(await page.locator('#principalShortenedToggle').isVisible(),false,'hidden teaching toggle stays hidden');
+     await page.locator('#principalShortenedToggle').evaluate(e=>{e.hidden=false;});
      const geometry=await page.evaluate(()=>{
       const rect=sel=>{const r=document.querySelector(sel).getBoundingClientRect();return {x:r.x,y:r.y,width:r.width,height:r.height};};
       return {card:rect('.attendigo-memo-launcher'),icon:rect('.attendigo-memo-icon'),copy:rect('.attendigo-memo-copy'),arrow:rect('.attendigo-memo-launcher-arrow'),parent:rect('main'),count:document.querySelectorAll('aside button').length,display:getComputedStyle(document.querySelector('.attendigo-memo-launcher')).display};
@@ -135,8 +137,16 @@ async function checkMemoGeometry(engine,engineName){
       const rect=e=>{const r=e.getBoundingClientRect();return {x:r.x,y:r.y,width:r.width,height:r.height};};
       const form=document.getElementById('principalMemoForm');
       const fields=[...form.querySelectorAll('input:not([type=checkbox]),select,textarea')].map(e=>({name:e.name,control:rect(e),label:rect(e.closest('label'))}));
-      return {fields,form:rect(form),panel:rect(document.getElementById('attendigoSchoolMemoPanel')),touch:matchMedia('(pointer:coarse)').matches};
+      const toggles=[...form.querySelectorAll('input[type=checkbox]')].map(e=>({name:e.name,control:rect(e),label:rect(e.closest('label')),copy:rect(e.closest('label').querySelector('.principal-memo-toggle-copy'))}));
+      return {fields,toggles,form:rect(form),panel:rect(document.getElementById('attendigoSchoolMemoPanel')),touch:matchMedia('(pointer:coarse)').matches};
      });
+     for(const f of geometry.toggles){
+      const a=f.control,b=f.label,c=f.copy;
+      assert.ok(a.width>=18&&a.width<=24&&a.height>=18&&a.height<=24,f.name+' compact checkbox');
+      assert.ok(b.height>=44&&b.width>0,f.name+' label touch target');
+      assert.ok(a.x>=b.x&&a.x-b.x<=20&&c.x>=a.x+a.width+6,f.name+' left-aligned with adjacent text');
+      assert.ok(c.y<b.y+b.height&&c.x+c.width<=b.x+b.width+1,f.name+' text inside label');
+     }
      for(const f of geometry.fields){
       const a=f.control,b=f.label;
       assert.ok(a.width>0&&a.height>=43,f.name+' visible touch target');

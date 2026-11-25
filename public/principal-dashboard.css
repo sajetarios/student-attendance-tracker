@@ -975,3 +975,27 @@ button.priority-department-row:focus-visible,.priority-reset:focus-visible{
  #main .principal-main-tabs{display:grid;grid-template-columns:repeat(2,minmax(0,1fr))}
  #main .principal-main-tabs > .tab{width:100%;text-align:center}
 }
+
+/* A checkbox is not a full-width form control. Keep the entire label tappable. */
+#principalMemoForm .principal-memo-dtr-toggle{
+ display:flex;flex-direction:row;align-items:flex-start;justify-content:flex-start;gap:12px;
+ min-height:44px;width:100%;box-sizing:border-box;padding:12px 14px;
+ border:1px solid var(--border);border-radius:12px;background:var(--surface);
+ color:var(--ink);font-size:16px;line-height:1.4;cursor:pointer;
+}
+#principalMemoForm .principal-memo-dtr-toggle[hidden],
+#principalMemoForm #principalShortenedFields[hidden]{display:none!important}
+#principalMemoForm .principal-memo-dtr-toggle input[type=checkbox]{
+ appearance:auto;-webkit-appearance:auto;display:block;box-sizing:border-box;
+ flex:0 0 20px;width:20px!important;inline-size:20px!important;min-width:20px;max-width:20px;
+ height:20px!important;block-size:20px!important;min-height:20px!important;max-height:20px;
+ padding:0!important;margin:2px 0 0;align-self:flex-start;accent-color:var(--primary);
+}
+#principalMemoForm .principal-memo-toggle-copy{display:grid;gap:3px;flex:1;min-width:0;text-align:left;overflow-wrap:anywhere}
+#principalMemoForm .principal-memo-toggle-copy strong{font-size:16px;font-weight:700}
+#principalMemoForm .principal-memo-toggle-copy small{font-size:14px;font-weight:400;color:var(--muted);line-height:1.4}
+#principalMemoForm .principal-memo-dtr-toggle:focus-within{outline:2px solid var(--primary);outline-offset:2px}
+#principalMemoForm .principal-memo-dtr-toggle:has(input:disabled){cursor:default;opacity:.65}
+#principalMemoForm #principalShortenedFields:not([hidden]){padding:14px;border:1px solid var(--border);border-radius:12px;background:var(--surface)}
+#principalMemoForm #principalShortenedFields>.source-note{grid-column:1/-1;margin:0}
+@media(max-width:800px),(pointer:coarse){#principalMemoForm #principalShortenedFields{grid-template-columns:minmax(0,1fr)}}
