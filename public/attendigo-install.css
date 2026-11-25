@@ -30,3 +30,18 @@
 @keyframes attendigo-install-highlight{0%,100%{box-shadow:0 0 0 0 #159b8155}50%{box-shadow:0 0 0 4px #159b8126}}
 @media(prefers-reduced-motion:no-preference){.attendigo-install-cta,.install-page #installAction:not([hidden]){animation:attendigo-install-highlight 1.45s ease-in-out 3}}
 @media(prefers-reduced-motion:reduce){.attendigo-install-cta,.install-page #installAction{animation:none!important}}
+
+/* Robot installer: in-flow, compact and readable from 320px upward. */
+.attendigo-install-strip{margin:12px 0;max-width:100%}
+.attendigo-install-link.attendigo-install-cta{display:grid;grid-template-columns:clamp(38px,9vw,54px) minmax(0,1fr) 22px;gap:10px;align-items:center;text-align:left;min-height:64px;padding:10px 12px}
+.attendigo-install-cta .install-cta-copy{align-items:flex-start;text-align:left}
+.attendigo-install-cta .install-robot,.install-robot-hero .install-robot{display:block;width:100%;height:auto;max-width:64px;aspect-ratio:1;overflow:visible;flex:none}
+.install-robot-hero{display:grid;place-items:center;margin:0 auto 12px;width:90px;height:90px;border-radius:25px;background:#08705d}
+.install-inline-status{margin:8px 0 0;font-size:14px;line-height:1.4;overflow-wrap:anywhere}
+.install-inline-status[hidden]{display:none!important}
+.install-step-icon{display:inline-grid;place-items:center;width:26px;height:26px;border-radius:7px;background:#e1f3ee;color:#075b4e;font-weight:750}
+@keyframes attendigo-robot-float{0%,100%{transform:translateY(0)}50%{transform:translateY(-3px)}}
+@keyframes attendigo-robot-wave{0%,100%{transform:rotate(0)}50%{transform:rotate(-13deg)}}
+@media(prefers-reduced-motion:no-preference){.install-robot{animation:attendigo-robot-float 1.5s ease-in-out 3}.install-robot-arm{transform-origin:45px 50px;animation:attendigo-robot-wave .75s ease-in-out 6}}
+@media(prefers-reduced-motion:reduce){.install-robot,.install-robot-arm{animation:none!important}}
+@media(max-width:360px){.attendigo-install-link.attendigo-install-cta{gap:7px;padding:10px 8px;grid-template-columns:36px minmax(0,1fr) 20px}.attendigo-install-cta small{font-size:13px}}

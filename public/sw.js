@@ -1,4 +1,4 @@
-const CACHE = "attendigo-v399-highlighted-install";
+const CACHE = "attendigo-v400-native-install-robot";
 
 // Only public, non-personal offline shells and their executable dependencies.
 // An update must not discard the working cache before these are all ready.
@@ -24,8 +24,8 @@ const OFFLINE_REQUIRED = [
 
 const SHELL = [
   "/install.html",
-  "/attendigo-install.js?v=2",
-  "/attendigo-install.css?v=2",
+  "/attendigo-install.js?v=3",
+  "/attendigo-install.css?v=3",
   "/typography.css?v=1",
   "/attendigo-form-overlap-guard.css?v=2",
   "/attendigo-workspace-density-theme.css?v=1",
