@@ -651,7 +651,7 @@ body.dark-mode .content-wrap > .school-heading.is-compact,body[data-theme="dark"
 <link rel="stylesheet" href="/attendigo-layout-density.css?v=1">
 <link rel="stylesheet" href="/document-branding.css?v=8">
 <link rel="stylesheet" href="/attendigo-install.css?v=6">
-<link rel="stylesheet" href="/attendigo-experience.css?v=3">
+<link rel="stylesheet" href="/attendigo-experience.css?v=4">
 </head>
 <body class="portal-page">
   <div class="portal-layout">
@@ -660,9 +660,9 @@ body.dark-mode .content-wrap > .school-heading.is-compact,body[data-theme="dark"
       <div class="attendigo-brand"><img class="attendigo-logo" src="/assets/attendigo-official-emblem.svg?v=5" alt="Attendigo — Every learner counts." width="48" height="48"><span class="sidebar-product-wordmark" aria-hidden="true">Attendigo</span></div>
       <div class="sidebar-brand">
         <div class="brand-mark" id="sidebarSchoolMark" aria-hidden="true">A</div>
-        <div><strong id="sidebarSchoolName">Attendigo</strong><span>Management Portal</span></div>
+        <div><strong id="sidebarSchoolName">Attendigo</strong><span id="axStaffWorkspaceName">Management Portal</span></div>
       </div>
-      <div class="sidebar-section-label">WORKSPACE</div>
+      <div class="sidebar-section-label" id="axStaffNavigationLabel">WORKSPACE</div>
       <nav class="side-nav" aria-label="Main navigation">
         <a class="nav-item active" id="dashboardNav" data-view="dashboard" title="Dashboard" href="/portal.html?view=dashboard"><span class="nav-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="5" rx="1"/><rect x="14" y="12" width="7" height="9" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/></svg></span><span class="nav-label">Dashboard</span></a>
         <div class="nav-group" id="studentRecordsNavGroup">
@@ -814,6 +814,7 @@ body.dark-mode .content-wrap > .school-heading.is-compact,body[data-theme="dark"
     <p class="form-feedback" id="parentSubjectNoticeFeedback" role="status" aria-live="polite">Checking notification setting…</p>
   </div>
 </section><nav class="parent-tabs" aria-label="Parent account categories"><button type="button" class="parent-tab selected" data-tab="all">All Parents <span id="tabAll"></span></button><button type="button" class="parent-tab" data-tab="pending">Pending <span id="tabPending"></span></button><button type="button" class="parent-tab" data-tab="verified">Verified <span id="tabVerified"></span></button><button type="button" class="parent-tab" data-tab="inactive">Inactive <span id="tabInactive"></span></button></nav><div class="parent-toolbar"><label class="parent-search-label"><span aria-hidden="true">⌕</span><input id="parentSearch" type="search" placeholder="Search parent, username, mobile, or student…" aria-label="Search parents"></label><select id="parentStatusFilter" aria-label="Filter parent accounts"><option value="all">All statuses</option><option value="verified">Verified</option><option value="inactive">Inactive</option></select></div><div class="parent-grid"><section class="parent-card parent-create-card" id="createPanel" hidden><div class="parent-create-title"><h2>Create parent account</h2><button class="outline-button small-btn" type="button" id="closeCreate">✕ Close</button></div><p>Create an active parent account and approve its initial child relationship.</p><form id="createForm" class="parent-form" method="post"><div class="field-group"><label>Username *</label><input id="username" required maxlength="80"></div><div class="field-group"><label>Parent name *</label><input id="displayName" required maxlength="160"></div><div class="field-group"><label>Mobile *</label><input id="mobile" required maxlength="32"></div><div class="field-group"><label>Child student ID *</label><input id="studentId" required maxlength="100"></div><div class="field-group"><label>Relationship *</label><select id="relationship" required><option value="">Choose</option><option>Mother</option><option>Father</option><option>Guardian</option><option>Other authorized caregiver</option></select></div><div class="field-group"><label for="password">Initial password *</label><div class="password-input-wrap"><input id="password" type="password" required minlength="12" maxlength="256" autocomplete="new-password"><button class="password-visibility" type="button" data-password-toggle="password" aria-label="Show password" aria-pressed="false" title="Show password">👁</button></div></div><button class="primary-button" type="submit" id="createButton">Create parent account</button></form><p id="createFeedback" class="form-feedback" role="status"></p></section><section class="parent-card parent-pending-card" id="pendingPanel"><h2>Pending self-registrations</h2><p>Verify the parent and student relationship with school records before approval.</p><div class="table-scroll"><table><thead><tr><th>Parent</th><th>Child</th><th>Submitted</th><th>Decision</th></tr></thead><tbody id="pendingRows"><tr><td colspan="4" class="empty-cell">Loading…</td></tr></tbody></table></div></section></div><section class="parent-card parent-records-card" id="accountsPanel"><h2>Parent accounts</h2><p>Only approved parent-child relationships grant access to a child's attendance.</p><div class="table-scroll"><table><thead><tr><th>Parent</th><th>Mobile</th><th>Children / relationship</th><th>Account</th><th>Actions</th></tr></thead><tbody id="parentRows"><tr><td colspan="5" class="empty-cell">Loading…</td></tr></tbody></table></div></section><p class="parent-note">Security: parent accounts cannot access the school-wide roster, administrator dashboard, teacher tools, or attendance submission endpoints. Revoking a relationship does not delete attendance history.</p><p id="pageFeedback" class="form-feedback" role="status"></p></div></section><div id="dashboardView" class="view-panel">
+            <header class="ax-workspace-intro" id="axStaffDashboardIntro" aria-label="Role workspace"><span class="ax-workspace-kicker" id="axStaffDashboardKicker">ATTENDIGO</span><h2 id="axStaffDashboardTitle">Your workspace</h2><p id="axStaffDashboardDescription">Your authorized school tools and daily priorities.</p></header>
             <section id="dashboardScanCta" class="dashboard-scan-cta" aria-label="Quick access to student QR scanner">
               <div class="dashboard-scan-cta-copy">
                 <span class="dashboard-scan-kicker">QUICK ATTENDANCE</span>
@@ -2575,6 +2576,7 @@ body.dark-mode .content-wrap > .school-heading.is-compact,body[data-theme="dark"
   <script src="/smart-mobile-header.js?v=4" defer></script>
 <script src="/attendigo-sidebar-adaptive.js?v=9" defer></script>
   <script src="/attendigo-unified-navigation.js?v=1" defer></script>
+<script src="/attendigo-role-workspaces.js?v=1" defer></script>
   <script src="/simplified-workspace.js?v=6" defer></script>
 <script defer src="/school-header-responsive.js?v=2"></script>
 <link rel="stylesheet" href="/staff-leave-ui.css?v=8">

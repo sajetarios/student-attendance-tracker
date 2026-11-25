@@ -4,7 +4,7 @@ const assert=require('node:assert/strict');
 const fs=require('node:fs');
 const path=require('node:path');
 const read=name=>fs.readFileSync(path.join(__dirname,'..','public',name),'utf8');
-const asset='/attendigo-experience.css?v=3';
+const asset='/attendigo-experience.css?v=4';
 test('shared experience is loaded once by all role and offline entry points and precached',()=>{
  for(const page of ["portal.html","principal.html","student-portal.html","parent-portal.html","portal-login.html","gate-offline.html","offline-sheet.html","student-qr-offline.html"]){
   const html=read(page).split('</head>')[0];

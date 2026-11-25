@@ -1,11 +1,12 @@
-const CACHE = "attendigo-v439-staff-attendance-reflow";
+const CACHE = "attendigo-v440-role-workspaces";
 
 // Only public, non-personal offline shells and their executable dependencies.
 // An update must not discard the working cache before these are all ready.
 const OFFLINE_TOOL_PAGES = ["/offline-sheet.html", "/gate-offline.html", "/student-qr-offline.html", "/offline-welcome.html"];
 const OFFLINE_REQUIRED = [
   ...OFFLINE_TOOL_PAGES,
-  "/attendigo-experience.css?v=3",
+  "/attendigo-experience.css?v=4",
+  "/attendigo-role-workspaces.js?v=1",
   "/attendigo-layout-density.css?v=1",
   "/app-dialog.css?v=2",
   "/app-dialog.js?v=1",

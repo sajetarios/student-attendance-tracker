@@ -22,3 +22,5 @@ jobs:
       - run: node scripts/check-shared-experience.cjs
 
       - run: node scripts/check-actual-staff-attendance.cjs
+
+      - run: node scripts/check-role-workspaces.cjs
