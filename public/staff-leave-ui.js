@@ -30,7 +30,6 @@
   '<label>'+esc(label)+'<select name="'+name+'">'+values.map(([val,txt])=>'<option value="'+esc(val)+'">'+esc(txt)+'</option>').join('')+'</select></label>';
  const docTypes=[['VACATION','Vacation leave'],['SICK','Sick leave'],['VSC','Vacation service credit availment'],['MATERNITY','Maternity leave'],
   ['PATERNITY','Paternity leave'],['SPECIAL_PRIVILEGE','Special privilege leave'],['WELLNESS','Wellness leave'],['OTHER','Other leave']];
- const accounts=[['NONE','No credit account selected'],['VSC','Vacation Service Credits (VSC)'],['VL','Vacation Leave (VL)'],['SL','Sick Leave (SL)']];
  function init(user){
   if(!['TEACHER','DEPARTMENT_HEAD','SCHOOL_ADMIN'].includes(user?.role))return;
   const button=document.createElement('button');button.id='staffLeaveNav';button.type='button';
@@ -224,8 +223,7 @@
     '<a class="leave-btn" href="/leave-form6.html?template=1" target="_blank" rel="noopener">View blank CSC Form No. 6</a></div>'+
     '<form id="leaveNewForm" class="leave-form">'+
     '<fieldset><legend>Leave type and dates</legend>'+
-    select('leaveType','Type of leave',docTypes)+select('creditAccount','Applicable leave credit',accounts)+
-    '<p class="leave-credit-guidance" role="status" aria-live="polite"></p>'+ 
+    select('leaveType','Type of leave',docTypes)+
     '<p class="leave-sick-guidance" role="status" aria-live="polite"></p>'+ 
     '<p class="leave-type-guidance" role="status" aria-live="polite"></p>'+
     textInput('startDate','Start date',true,'date')+textInput('endDate','End date',true,'date')+
@@ -247,8 +245,6 @@
     '<p class="leave-attachment-help" role="status" aria-live="polite">No file attached. You can submit now, subject to any supporting documents the School Admin may request.</p>'+
     '</fieldset><button type="submit" class="leave-primary">Submit for review</button></form>';
    const leaveTypeControl=details.querySelector('[name=leaveType]');
-   const accountControl=details.querySelector('[name=creditAccount]');
-   const creditInfo=details.querySelector('.leave-credit-guidance');
    const sickInfo=details.querySelector('.leave-sick-guidance');
    const typeInfo=details.querySelector('.leave-type-guidance');
    const reasonControl=details.querySelector('[name=reason]');
@@ -302,38 +298,6 @@
     const leaveType=leaveTypeControl.value;
     const verifiedTeaching=certifiedScheme==='TEACHING_VSC';
     const verifiedRegular=certifiedScheme==='REGULAR_VL_SL';
-    const lockedAccount=leaveType==='SICK'?
-     (verifiedTeaching?'VSC':verifiedRegular?'SL':'NONE'):
-     leaveType==='VSC'?'VSC':
-     ['MATERNITY','PATERNITY','SPECIAL_PRIVILEGE','WELLNESS'].includes(leaveType)?'NONE':null;
-    // Do not infer certified teaching leave entitlement from the user's dashboard role.
-    // A school role may also be assigned to non-teaching personnel.
-    const allowed=lockedAccount?[lockedAccount]:
-     verifiedTeaching?['NONE','VSC']:
-     verifiedRegular?['NONE','VL','SL']:['NONE'];
-    const previous=accountControl.value;
-    accountControl.replaceChildren();
-    for(const code of allowed){
-     const entry=accounts.find(([id])=>id===code);
-     if(!entry)continue;
-     const option=document.createElement('option');
-     option.value=entry[0];option.textContent=code==='NONE'&&!verifiedTeaching&&!verifiedRegular&&!['MATERNITY','PATERNITY','SPECIAL_PRIVILEGE','WELLNESS'].includes(leaveType)?'Not yet verified':entry[1];accountControl.append(option);
-    }
-    accountControl.value=lockedAccount||(
-     allowed.includes(previous)?previous:
-     verifiedTeaching?'VSC':verifiedRegular?(leaveType==='VACATION'?'VL':'NONE'):'NONE');
-    accountControl.disabled=Boolean(lockedAccount)||allowed.length===1;
-    if(leaveType==='SPECIAL_PRIVILEGE'||leaveType==='WELLNESS'){
-     creditInfo.textContent='This leave category is separate from VSC, VL and SL. No credit deduction from those accounts is proposed. Eligibility remains subject to official verification.';
-    }else if(leaveType==='VSC'&&!verifiedTeaching){
-     creditInfo.textContent='Vacation Service Credits requested. Entitlement remains subject to official verification.';
-    }else if(!verifiedTeaching&&!verifiedRegular){
-     creditInfo.textContent='';
-    }else{
-     creditInfo.textContent='Verified '+(verifiedTeaching?'teaching-personnel service credits':'regular VL/SL leave scheme')+
-      '. The proposed account is not a final charge. Only authorized verification and documented approval can adjust your certified balance.';
-    }
-    creditInfo.hidden=!creditInfo.textContent;
     if(leaveType==='SICK'){
      sickInfo.hidden=false;
      const today=manilaDate();
@@ -402,8 +366,10 @@
       attachmentKind.focus();return;
      }
     }
-    const payload=Object.fromEntries(['leaveType','creditAccount','startDate','endDate','reason','details','commutation'].map(k=>[k,String(d.get(k)||'')]));
-    payload.creditAccount=accountControl.value;
+    const payload=Object.fromEntries(['leaveType','startDate','endDate','reason','details','commutation'].map(k=>[k,String(d.get(k)||'')]));
+    // The application no longer exposes credit selection. Preserve explicit VSC
+    // requests and existing verified sick-leave mapping; do not invent an entitlement.
+    payload.creditAccount=payload.leaveType==='VSC'?'VSC':payload.leaveType==='SICK'?(certifiedScheme==='TEACHING_VSC'?'VSC':certifiedScheme==='REGULAR_VL_SL'?'SL':'NONE'):payload.leaveType==='VACATION'&&certifiedScheme==='REGULAR_VL_SL'?'VL':'NONE';
     // Disabled controls are excluded from FormData, so preserve the chosen
     // Not requested value for non-commutable leave.
     payload.commutation=commutationControl.value;
