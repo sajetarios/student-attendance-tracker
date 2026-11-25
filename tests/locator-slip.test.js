@@ -154,3 +154,46 @@ test('print renderer round-trips a colored page without a master fixture',async(
  const blue=ctx.getImageData(35,130,1,1).data;
  assert.ok(blue[2]>200&&blue[0]<60&&blue[1]<60,'bottom-left blue must survive PDF export');
 });
+
+test('Locator Slip UI has one export action, collapses, and retains direct-download fallback',async()=>{
+ const vm=require('node:vm');
+ const ui=fs.readFileSync('public/locator-slip-ui.js','utf8');
+ class Element{
+  constructor(tag){this.tagName=tag;this.children=[];this.style={};this.hidden=false;this.events={};this.attributes={};}
+  setAttribute(k,v){this.attributes[k]=v;}
+  addEventListener(k,v){this.events[k]=v;}
+  append(...nodes){for(const node of nodes){node.parentElement=this;this.children.push(node);}}
+  get lastElementChild(){return this.children.at(-1);}
+  remove(){const p=this.parentElement;p.children.splice(p.children.indexOf(this),1);this.parentElement=null;}
+ }
+ const root=new Element('div'),window={};
+ let shares=0;
+ const navigator={canShare:()=>true,share:async()=>{shares++;throw Error('Share unavailable');}};
+ const bytes=Buffer.concat([Buffer.from('%PDF-1.4\n'),Buffer.alloc(1500)]);
+ vm.runInNewContext(ui,{window,navigator,File:class{},document:{createElement:tag=>new Element(tag)},fetch:async()=>({ok:true,headers:{get:()=> 'application/pdf'},arrayBuffer:async()=>Uint8Array.from(bytes).buffer}),encodeURIComponent,Uint8Array});
+ window.AttendigoLocatorSlip.attach(root,'test-id');
+ const [toggle,panel]=root.children;
+ assert.equal(toggle.textContent,'View Locator Slip');
+ toggle.events.click();await new Promise(setImmediate);
+ assert.equal(toggle.textContent,'Hide Locator Slip');
+ assert.equal(toggle.attributes['aria-expanded'],'true');
+ const links=panel.children.filter(node=>node.tagName==='a');
+ assert.equal(links.length,1);
+ const [save]=links;
+ assert.equal(save.textContent,'Save / Print PDF');
+ assert.match(save.href,/\?download=1$/);
+ assert.equal(panel.children[1],save);
+ let prevented=false;
+ await save.events.click({preventDefault(){prevented=true;}});
+ assert.equal(prevented,true);assert.equal(shares,1);
+ prevented=false;
+ await save.events.click({preventDefault(){prevented=true;}});
+ assert.equal(prevented,false);assert.equal(shares,1);
+ const preview=panel.children[2];
+ toggle.events.click();
+ assert.equal(panel.hidden,true);
+ assert.equal(panel.children.length,1);
+ assert.equal(toggle.textContent,'View Locator Slip');
+ preview.onload();
+ assert.equal(panel.hidden,true);
+});
