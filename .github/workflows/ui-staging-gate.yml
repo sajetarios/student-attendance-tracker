@@ -1,0 +1,20 @@
+name: Attendigo shared UI live staging gate
+on:
+  push:
+    branches: [staging/school-day-dry-run-20261120]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  staging-ui-smoke:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: npm install --no-save --package-lock=false --ignore-scripts playwright@1.56.1
+      - run: npx playwright install --with-deps chromium webkit
+      - name: Verify exact candidate on staging, public login, mobile geometry and session boundary
+        run: node scripts/check-live-ui-staging.cjs
