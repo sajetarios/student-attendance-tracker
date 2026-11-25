@@ -17,7 +17,7 @@ Status: **design / implementation pending**. This branch is intentionally isolat
 ## Baseline source observations (fix/render-login-landing)
 - `class-qr-routes.js` protects POST `/api/class-qr/check-in` with `authenticateSchoolClient`, then checks `req.auth.type==='STUDENT'`.
 - `public/class-qr-checkin.html` calls `/api/auth/me` and directs students to sign in.
-- QR HMAC rotates every 30 seconds; current check-in accepts the current or previous bucket.
+- QR HMAC rotates every 60 seconds; check-in accepts the current or two previous buckets (120–180 seconds from display), subject to the session closing time.
 - `saveAttendance` inserts into both `class_qr_checkins` and `attendance_events` within a transaction.
 - Existing `tests/class-qr.test.js` covers time helpers and HMAC generation, not passwordless authentication.
 

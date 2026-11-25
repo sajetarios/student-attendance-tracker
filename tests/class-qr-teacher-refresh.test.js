@@ -22,7 +22,7 @@ async function harness(){
    if(delay)await delay;
    if(closed)return reply({error:'QR attendance closed.'},410);
    if(fail)throw Error('Network disconnected');
-   return reply({qrImage:'data:qr-'+qrRequests,serverTime:new Date(0).toISOString(),validUntil:new Date(30000).toISOString(),acceptUntil:new Date(150000).toISOString(),closesAt:new Date(3600000).toISOString()});
+   return reply({qrImage:'data:qr-'+qrRequests,serverTime:new Date(0).toISOString(),rotationSeconds:60,validUntil:new Date(60000).toISOString(),acceptUntil:new Date(180000).toISOString(),closesAt:new Date(3600000).toISOString()});
   }
   throw Error('Unexpected URL '+url);
  };
@@ -31,7 +31,7 @@ async function harness(){
  return {el,events,windowEvents,start:()=>el('start').onclick(),close:()=>el('close').onclick(),tick:async(ms)=>{now+=ms;interval?.();await settle();},fail:v=>{fail=v;},closed:v=>{closed=v;},count:()=>qrRequests,active:()=>!!interval,delay:v=>{delay=v;}};
 }
 test('transient QR refresh failure hides old code and retries automatically',async()=>{
- const h=await harness();await h.start();assert.equal(h.el('qr').hidden,false);
+ const h=await harness();await h.start();assert.equal(h.el('qr').hidden,false);assert.match(h.el('expiry').textContent,/every 60 seconds/);
  h.fail(true);await h.tick(5000);assert.equal(h.el('qr').hidden,true);assert.equal(h.active(),true);
  h.fail(false);await h.tick(5000);assert.equal(h.el('qr').hidden,false);assert.match(h.el('notice').textContent,/refreshed/);
 });
@@ -39,7 +39,7 @@ test('teacher returning to page refreshes immediately, even within normal poll w
  const h=await harness();await h.start();const count=h.count();h.events.visibilitychange();await settle();assert.equal(h.count(),count+1);assert.equal(h.el('qr').hidden,false);
 });
 test('expired displayed image is hidden during a delayed refresh',async()=>{
- const h=await harness();await h.start();let release;h.delay(new Promise(resolve=>{release=resolve;}));await h.tick(5000);await h.tick(25000);assert.equal(h.el('qr').hidden,true);release();await settle();
+ const h=await harness();await h.start();let release;h.delay(new Promise(resolve=>{release=resolve;}));await h.tick(5000);await h.tick(55000);assert.equal(h.el('qr').hidden,true);release();await settle();
 });
 test('closed session does not retry or display obsolete QR',async()=>{
  const h=await harness();await h.start();h.closed(true);await h.tick(5000);assert.equal(h.el('qr').hidden,true);assert.equal(h.active(),false);assert.equal(h.el('close').disabled,true);

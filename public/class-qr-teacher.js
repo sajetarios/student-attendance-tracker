@@ -19,7 +19,7 @@ async function refresh(force=false){
   expiresAt=sentAt+Math.max(0,remaining);
   if(!data.qrImage||!Number.isFinite(expiresAt)||performance.now()>=expiresAt){hideQr();recovering=true;$('notice').textContent='Refreshing classroom QR. Please wait for the current code.';return;}
   $('qr').src=data.qrImage;$('qr').hidden=false;$('qrWrap').hidden=false;$('qrEmpty').hidden=true;
-  $('expiry').textContent='Code refreshes automatically every 30 seconds. After scanning, finish check-in promptly. This code is accepted until '+new Date(data.acceptUntil||data.validUntil).toLocaleTimeString('en-PH',{timeZone:'Asia/Manila'})+'. Session closes '+new Date(data.closesAt).toLocaleTimeString('en-PH',{timeZone:'Asia/Manila'})+'.';
+  $('expiry').textContent='Code refreshes automatically every '+(data.rotationSeconds||60)+' seconds. After scanning, finish check-in promptly. This code is accepted until '+new Date(data.acceptUntil||data.validUntil).toLocaleTimeString('en-PH',{timeZone:'Asia/Manila'})+'. Session closes '+new Date(data.closesAt).toLocaleTimeString('en-PH',{timeZone:'Asia/Manila'})+'.';
   if(recovering){$('notice').textContent='QR refreshed. Students may scan now.';recovering=false;}
  }catch(e){
   if(version!==epoch||current!==session)return;

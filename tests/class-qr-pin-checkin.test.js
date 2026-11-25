@@ -2,13 +2,13 @@
 const test=require('node:test');
 const assert=require('node:assert/strict');
 const crypto=require('node:crypto');
-const {registerQrPinCheckin,validQrInput,currentQrTokenMatches}=require('../class-qr-pin-checkin');
+const {registerQrPinCheckin,validQrInput,currentQrTokenMatches,QR_ROTATION_MS,QR_ACCEPTED_BUCKETS}=require('../class-qr-pin-checkin');
 const {hashAttendancePin}=require('../attendance-pin-security');
 
 const sessionId='11111111-1111-4111-8111-111111111111';
 const schoolId='22222222-2222-4222-8222-222222222222';
 const secret='test-only-qr-signing-secret';
-const freshToken=()=>crypto.createHmac('sha256',secret).update(sessionId+':'+Math.floor(Date.now()/30000)).digest('hex');
+const freshToken=()=>crypto.createHmac('sha256',secret).update(sessionId+':'+Math.floor(Date.now()/QR_ROTATION_MS)).digest('hex');
 const session=()=>({session_id:sessionId,school_id:schoolId,secret,starts_at:new Date(Date.now()-60000).toISOString(),
  closes_at:new Date(Date.now()+60000).toISOString(),closed_at:null,grade_level:'8',section:'SPJ'});
 const request=(overrides={})=>({ip:'127.0.0.1',body:{sessionId,token:freshToken(),studentId:'STU-001',pin:'012345'},...overrides});
@@ -53,11 +53,13 @@ test('QR input accepts a valid ID and PIN, not arbitrary credentials',()=>{
  assert.equal(validQrInput({...request().body,studentId:''}),false);
 });
 test('rotating HMAC accepts delayed check-ins within a bounded window for the intended session',()=>{
- const start=30000*1000;
+ assert.equal(QR_ROTATION_MS,60000);
+ assert.equal(QR_ACCEPTED_BUCKETS,3);
+ const start=QR_ROTATION_MS*1000;
  const token=crypto.createHmac('sha256',secret).update(sessionId+':1000').digest('hex');
- for(const delay of [0,29999,30000,90000,120000,149999])
+ for(const delay of [0,29999,59999,60000,90000,119999,120000,149999,179999])
   assert.equal(currentQrTokenMatches(secret,sessionId,token,start+delay),true);
- for(const delay of [-1,150000,180000])
+ for(const delay of [-1,180000,240000])
   assert.equal(currentQrTokenMatches(secret,sessionId,token,start+delay),false);
  assert.equal(currentQrTokenMatches(secret,'other-id',token,start),false);
  assert.equal(currentQrTokenMatches('rotated-secret',sessionId,token,start),false);
@@ -111,7 +113,7 @@ test('closed and expired QR or network rate limit rejects without attendance wri
   const closed=harness({sessionOverride:{closed_at:new Date().toISOString()}});
   assert.equal((await invoke(closed,request())).statusCode,410);
   const expired=harness();
-  const oldToken=crypto.createHmac('sha256',secret).update(sessionId+':'+(Math.floor(Date.now()/30000)-5)).digest('hex');
+  const oldToken=crypto.createHmac('sha256',secret).update(sessionId+':'+(Math.floor(Date.now()/QR_ROTATION_MS)-QR_ACCEPTED_BUCKETS)).digest('hex');
   assert.equal((await invoke(expired,request({body:{...request().body,token:oldToken}}))).statusCode,410);
   assert.equal(expired.state.saved.length,0);
   const throttled=harness({rate:121});
