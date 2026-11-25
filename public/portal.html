@@ -649,7 +649,7 @@ body.dark-mode .content-wrap > .school-heading.is-compact,body[data-theme="dark"
   <link rel="stylesheet" href="/attendigo-form-overlap-guard.css?v=2">
   <link rel="stylesheet" href="/teacher-teaching-overview.css?v=3">
 <link rel="stylesheet" href="/attendigo-layout-density.css?v=1">
-<link rel="stylesheet" href="/document-branding.css?v=1">
+<link rel="stylesheet" href="/document-branding.css?v=2">
 <link rel="stylesheet" href="/attendigo-install.css?v=6">
 </head>
 <body class="portal-page">
@@ -1084,7 +1084,29 @@ body.dark-mode .content-wrap > .school-heading.is-compact,body[data-theme="dark"
               </div>
               <div class="form48-schedule-actions"><button id="schoolHeadSaveSignatory" type="button" class="primary-button" disabled>Save school head</button><span id="schoolHeadSignatoryStatus" role="status" aria-live="polite">Loading…</span></div>
             </section>
-            <div class="surface-card section-card document-branding-card" id="documentBrandingCard">
+            <section class="surface-card section-card locator-pilot" id="locatorTemplatePilot">
+ <div class="section-toolbar"><div><h3>Custom Locator Slip — trial</h3><p>Try your division’s blank PDF in three guided steps. No live forms will change.</p></div><button type="button" class="outline-button" id="locatorPilotOpen" aria-expanded="false" aria-controls="locatorPilotPanel">Try guided setup</button></div>
+ <div id="locatorPilotPanel" hidden>
+  <section id="locatorPilotStep1">
+   <h4>1. Choose your blank Locator Slip</h4><p>Use an empty, single-page portrait PDF prescribed by your division (up to 2 MB). Do not upload a signed or accomplished form containing personal information.</p>
+   <label class="locator-pilot-upload">Choose PDF<input type="file" id="locatorPilotFile" accept=".pdf,application/pdf"></label>
+  </section>
+  <section id="locatorPilotStep2" hidden>
+   <h4>2. Show us where the details go</h4><p id="locatorPilotProgress"></p><h4 id="locatorPilotPrompt"></h4><p id="locatorPilotHint"></p>
+   <div class="locator-pilot-sheet" id="locatorPilotSheet"><img id="locatorPilotPage" alt="Blank Locator Slip: select two corners of each empty space"><div id="locatorPilotMarks" aria-hidden="true"></div></div>
+   <div class="doc-brand-actions"><button type="button" class="outline-button" id="locatorPilotBack">Previous field</button><button type="button" class="outline-button" id="locatorPilotSkip" hidden>Not on my form</button><button type="button" class="primary-button" id="locatorPilotNext" disabled>Next field</button></div>
+  </section>
+  <section id="locatorPilotStep3" hidden>
+   <h4>3. Review your sample</h4><p>Compare the sample with your division’s original form. Check every name, date, checkbox and signature space. Sample information is fictional.</p>
+   <img class="locator-pilot-sample" id="locatorPilotSample" alt="Watermarked sample Locator Slip">
+   <div class="doc-brand-actions"><button type="button" class="outline-button" id="locatorPilotEdit">Adjust spaces</button><button type="button" class="outline-button" id="locatorPilotStartOver">Start over</button><button type="button" class="primary-button" id="locatorPilotDownload" disabled>Prepare sample PDF</button></div>
+   <div class="doc-brand-actions" id="locatorPilotSaveFile"></div>
+   <label class="locator-pilot-confirm"><input type="checkbox" id="locatorPilotVerified"> I have checked the sample against our blank form.</label><p id="locatorPilotOutcome" role="status"></p>
+  </section>
+  <p id="locatorPilotStatus" role="status" aria-live="polite"></p>
+ </div>
+</section>
+<div class="surface-card section-card document-branding-card" id="documentBrandingCard">
               <div class="section-toolbar"><div><h3>Official document identity</h3><p>Configure once for Form 6 and Locator Slip. Reuses your school logo above. All fields and logos are optional; use only authorized agency artwork.</p></div></div>
               <form id="documentBrandingForm" method="post"><fieldset id="documentBrandingFields" disabled>
                   <div class="doc-brand-grid">
@@ -2582,6 +2604,7 @@ body.dark-mode .content-wrap > .school-heading.is-compact,body[data-theme="dark"
   <script src="/attendigo-help-guide.js?v=4" defer></script>
 <script defer src="/school-memo-banner.js?v=9"></script>
 <script defer src="/document-branding.js?v=2"></script>
+<script defer src="/locator-template-pilot.js?v=1"></script>
 <dialog id="attendigoInstallDialog" class="attendigo-install-dialog" aria-labelledby="attendigoInstallTitle"><div class="install-dialog-top"><button type="button" data-install-close class="install-close" aria-label="Close installation guide" autofocus>✕ Close</button></div><div class="install-card"><div class="install-brand-head"><img class="install-brand-logo" src="/assets/attendigo-official-lockup.svg?v=5" alt="Attendigo" width="1769" height="496"><h2 class="install-dialog-title" id="attendigoInstallTitle">Install Attendigo</h2><div class="install-robot-hero"><svg class="install-robot" viewBox="0 0 64 64" aria-hidden="true" focusable="false"><path d="M32 10V5" stroke="#b5def8" stroke-width="3" stroke-linecap="round"/><circle cx="32" cy="5" r="3" fill="#f6b641"/><rect x="9" y="12" width="46" height="33" rx="13" fill="#e2f3ff" stroke="#b5def8" stroke-width="2"/><rect x="15" y="18" width="34" height="20" rx="8" fill="#15334b"/><circle cx="24" cy="26" r="3" fill="#5df2ff"/><circle cx="40" cy="26" r="3" fill="#5df2ff"/><path d="M28 32q4 4 8 0" fill="none" stroke="#5df2ff" stroke-width="2" stroke-linecap="round"/><rect x="21" y="46" width="22" height="14" rx="5" fill="#e2f3ff"/><path d="M25 51l7 2 7-2v5l-7 2-7-2z" fill="#1b88cb"/><path class="install-robot-arm" d="M45 50l9-7 4-8" fill="none" stroke="#b5def8" stroke-width="5" stroke-linecap="round"/><path d="M19 50l-8 4" stroke="#b5def8" stroke-width="5" stroke-linecap="round"/></svg></div></div><p class="intro">Open the school app directly from your phone. No app store needed. / Buksan ang app mula sa Home Screen.</p>
 <button type="button" id="installAction" hidden>Install Attendigo now</button>
 <section id="installDone" hidden><h2>You're using Attendigo as an app</h2><p>Open Attendigo from your Home Screen. / Buksan ang Attendigo sa Home Screen.</p></section>
