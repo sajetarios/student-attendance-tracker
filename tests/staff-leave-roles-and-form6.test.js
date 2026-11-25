@@ -57,7 +57,7 @@ test('certified balance state is explicit, never a fabricated 0.000',async()=>{
  assert.match(h.queries.at(-1).sql,/COUNT\(\*\) FILTER\(WHERE status='VERIFIED'\)>0 AS "isCertified"/);
  const ui=read('public/staff-leave-ui.js');
  assert.match(ui,/verified\?\(credits\.get\(key\)\|\|0\)\.toFixed\(3\):'Not recorded'/);
- assert.match(ui,/No HR-certified balance on file/);
+ assert.match(ui,/No Verified balance on file/);
 });
 test('only School Admin receives staff balance directory and opening import',()=>{
  const ui=read('public/staff-leave-ui.js'),routes=read('staff-leave-routes.js');
@@ -65,7 +65,7 @@ test('only School Admin receives staff balance directory and opening import',()=
  assert.match(ui,/Staff certified credit directory/);
  assert.match(ui,/guidance\.innerHTML=isHrAdmin/);
  assert.match(ui,/if\(!mayReviewCredits\|\|!target\)return/);
- assert.match(routes,/School HR authorization required/);
+ assert.match(routes,/School Admin authorization required/);
  assert.match(routes,/wanted!==req\.auth\.userId&&req\.auth\.role!=='SCHOOL_ADMIN'/);
  assert.match(routes,/req\.auth\.userId===e\.staff_user_id/);
  assert.match(routes,/document_kind IN \('SPECIAL_ORDER','CERTIFICATION'\)/);
@@ -74,7 +74,7 @@ test('teacher can claim proposed credits only; real certification needs differen
  const routes=read('staff-leave-routes.js');
  assert.match(routes,/\\'PROPOSED\\'/);
  assert.match(routes,/A separate authorized verifier is required/);
- assert.match(routes,/Attach the signed Special Order or official HR credit certification/);
+ assert.match(routes,/Attach the signed Special Order or official leave-credit certification/);
  assert.match(routes,/LEAVE_CREDIT_CERTIFIED/);
 });
 test('CSC Form 6 blank worksheet is available before filing, but request details still require authorization',()=>{
