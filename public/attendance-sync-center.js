@@ -4,7 +4,6 @@
 (() => {
   'use strict';
   const $ = id => document.getElementById(id);
-  const tokenKey = 'schoolAttendance.accessToken';
   const userKey = 'schoolAttendance.user';
   const typeNames = { QR_SCAN: 'QR scan', MANUAL_MARKS: 'Manual correction', REGISTER_SIGNOFF: 'Register sign-off' };
   const statusNames = { PENDING: 'Waiting to sync', REVIEW: 'Needs review' };
@@ -19,11 +18,11 @@
     }).format(new Date(value));
   };
   const api = async (path, options = {}) => {
-    const bearer = sessionStorage.getItem(tokenKey);
-    if (!bearer) throw Error('Sign in to check the school server.');
+    const u=role();
+    if(!u.schoolId||!u.userId)throw Error('Sign in to check the school server.');
     const response = await fetch(path, {
-      ...options, cache: 'no-store', headers: {
-        'Authorization': 'Bearer ' + bearer,
+      ...options, credentials:'same-origin', cache: 'no-store', headers: {
+        'X-Attendigo-Queue-Owner':String(u.schoolId)+':'+String(u.userId),
         ...(options.body ? { 'Content-Type': 'application/json' } : {})
       }
     });
@@ -122,10 +121,10 @@
       await refresh(false);
       try {
         if (!connected()) throw Error('This device is offline. Its queued attendance has been preserved.');
-        await getQueue().sync();
-        statusMessage = 'Synchronization attempt completed. Pending or conflicting records remain on this device.';
+        const result=await getQueue().sync();
+        statusMessage = result?.message || 'Synchronization attempt completed. Pending or conflicting records remain on this device.';
       } catch (error) { statusMessage = error.message; }
-      finally { event.currentTarget.disabled = false; await refresh(true); }
+      finally { await refresh(true); }
     });
     dialog.querySelector('#ascRefresh').addEventListener('click', () => refresh(true));
     document.body.append(dialog);
@@ -221,8 +220,8 @@
     $('ascLastConfirmed').textContent = summary.lastConfirmedAt
       ? 'Most recent school-server acceptance on this device: ' + time(summary.lastConfirmedAt)
       : 'No school-server acceptance confirmed during this page visit.';
-    $('ascSyncNow').disabled = !connected() || !sessionStorage.getItem(tokenKey) || Boolean(summary.syncing);
-    $('ascFeedback').textContent = statusMessage;
+    $('ascSyncNow').disabled = !connected() || !role().schoolId || !role().userId || !summary.waiting || Boolean(summary.syncing);
+    $('ascFeedback').textContent = statusMessage || summary.syncMessage || '';
     const list = $('ascQueueList');
     list.replaceChildren();
     let records = [];
