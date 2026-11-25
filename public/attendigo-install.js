@@ -20,7 +20,7 @@
     const get=id=>doc.getElementById(id);
     function render(){
       const active=completed||installed(win);
-      doc.querySelectorAll('[data-attendigo-install]').forEach(el=>{el.hidden=active;});
+      doc.querySelectorAll('[data-attendigo-install],[data-attendigo-install-container]').forEach(el=>{el.hidden=active;});
       if(!get('installAction'))return;
       const ready=!!deferred&&!active&&mode!=='embedded';
       get('installAction').hidden=!ready;
@@ -29,10 +29,10 @@
       for(const key of ['ios','android','other','embedded']){
         get('guide-'+key).hidden=active||mode!==key;
       }
-      get('installCopy').hidden=active||mode!=='embedded';
+      get('installCopy').hidden=false;
     }
     function status(message){const el=get('installStatus');if(el)el.textContent=message;}
-    async function prompt(){
+    async function showInstallPrompt(){
       if(!deferred||busy||completed||installed(win))return;
       const event=deferred;deferred=null;busy=true;render();
       try{
@@ -50,9 +50,9 @@
     win.matchMedia?.('(display-mode: standalone)')?.addEventListener?.('change',render);
     function mount(){
       doc.querySelectorAll('[data-attendigo-install]').forEach(link=>link.addEventListener('click',event=>{
-        if(deferred&&!busy&&!completed&&!installed(win)&&mode!=='embedded'){event.preventDefault();void prompt();}
+        if(deferred&&!busy&&!completed&&!installed(win)&&mode!=='embedded'&&!event.ctrlKey&&!event.metaKey&&!event.shiftKey&&!event.altKey){event.preventDefault();void showInstallPrompt();}
       }));
-      get('installAction')?.addEventListener('click',()=>void prompt());
+      get('installAction')?.addEventListener('click',()=>void showInstallPrompt());
       const input=get('installUrl');
       if(input)input.value=win.location.origin+'/install.html';
       get('installCopy')?.addEventListener('click',async()=>{

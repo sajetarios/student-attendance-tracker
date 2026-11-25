@@ -62,7 +62,7 @@
 <link rel="stylesheet" href="/attendigo-layout-density.css?v=1">
 <link rel="stylesheet" href="/app-dialog.css?v=2">
 <script src="/app-dialog.js?v=1" defer></script>
-<link rel="stylesheet" href="/attendigo-install.css?v=1"><script src="/attendigo-install.js?v=1" defer></script>
+<link rel="stylesheet" href="/attendigo-install.css?v=2"><script src="/attendigo-install.js?v=2" defer></script>
 </head>
 <body class="portal-page student-portal-body">
   <header class="student-site-header">
@@ -76,11 +76,12 @@
     </div>
   </header>
   <main class="student-page">
+    <div class="attendigo-install-strip" data-attendigo-install-container><a class="attendigo-install-link attendigo-install-cta" data-attendigo-install href="/install.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M12 3v12m-5-5 5 5 5-5M4 16v3a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-3"/></svg><span class="install-cta-copy"><span>Install Attendigo</span><small>Open directly from your Home Screen</small></span></a></div>
     <header class="student-header">
       <div class="student-welcome-block"><div class="eyebrow muted" id="studentSchoolLabel">STUDENT PORTAL</div><h1 id="studentWelcome">Welcome</h1><p>Your school profile and attendance, all in one place.</p></div>
       <div class="student-actions">
         <button class="outline-button" id="studentRefresh" type="button"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6v5h-5M4 18v-5h5"/><path d="M5.7 9A7 7 0 0 1 18.5 7l1.5 4M4 13l1.5 4A7 7 0 0 0 18.4 15"/></svg>Refresh</button>
-        <a class="outline-button attendigo-install-link" data-attendigo-install href="/install.html">Install Attendigo</a>
+        
         <button class="outline-button" id="studentLogout" type="button"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h4"/><path d="M16 17l5-5-5-5M21 12H9"/></svg>Sign out</button>
       </div>
     </header>

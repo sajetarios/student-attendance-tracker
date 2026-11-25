@@ -19,10 +19,27 @@ test('public installation entry points reuse the existing manifest and avoid aut
  const read=p=>fs.readFileSync('public/'+p,'utf8');
  for(const p of ['portal-login.html','parent-portal.html','portal.html','student-portal.html','principal.html']) {
    assert.match(read(p),/href="\/install\.html"/);
-   assert.match(read(p),/attendigo-install\.js\?v=1/);
+   assert.match(read(p),/attendigo-install\.js\?v=2/);
  }
  assert.match(read('install.html'),/manifest\.webmanifest/);
  assert.match(read('install.html'),/Activate phone alerts/);
  assert.doesNotMatch(read('attendigo-install.js'),/requestPermission|localStorage|sessionStorage|\/api\//);
  assert.equal(JSON.parse(read('manifest.webmanifest')).start_url,'/portal-login.html');
+});
+
+test('highlight is in flow, finite, and respects reduced motion',()=>{
+ const css=fs.readFileSync('public/attendigo-install.css','utf8');
+ assert.match(css,/prefers-reduced-motion:reduce/);
+ assert.match(css,/animation:attendigo-install-highlight 1\.45s ease-in-out 3/);
+ for(const p of ['portal-login.html','parent-portal.html','portal.html','student-portal.html','principal.html']){
+   const source=fs.readFileSync('public/'+p,'utf8');
+   assert.equal((source.match(/data-attendigo-install-container/g)||[]).length,1);
+   assert.match(source,/attendigo-install-cta/);
+ }
+});
+test('app installation uses the browser install event, not the native text prompt',()=>{
+ const source=fs.readFileSync('public/attendigo-install.js','utf8');
+ assert.match(source,/beforeinstallprompt/);
+ assert.match(source,/event\.prompt\(\)/);
+ assert.doesNotMatch(source,/(?:\bwindow\s*\.\s*|(?<![\w.]))(?:alert|prompt|confirm)\s*\(/);
 });
