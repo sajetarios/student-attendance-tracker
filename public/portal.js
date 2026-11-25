@@ -231,7 +231,7 @@ window.attendigoStaffIdentity = new Promise(resolve => { resolveStaffIdentity = 
     // Preserve deep links and back/forward navigation without generating history loops.
     if (user && !restoringHistory && location.pathname === '/portal.html') {
       const permitted = user.role === 'SUPER_ADMIN'
-        ? ['platform','platformSchools','platformOnboard','platformPlans','platformSecurity']
+        ? ['platform','platformSchools','platformOnboard','platformDocuments','platformPlans','platformSecurity']
         : allowedViewsForUser();
       if (permitted.includes(view) && new URLSearchParams(location.search).get('view') !== view) {
         const current = new URL(location.href);
@@ -251,6 +251,7 @@ window.attendigoStaffIdentity = new Promise(resolve => { resolveStaffIdentity = 
         platform: ['overview', 'Platform overview', 'Platform administration and performance'],
         platformSchools: ['schoolDirectory', 'Schools', 'Manage registered schools and their status'],
         platformOnboard: ['schools', 'Onboard school', 'Create a school and its administrator'],
+        platformDocuments: ['documents', 'Document Templates', 'Review and publish verified division forms'],
         platformPlans: ['plans', 'Plans & feature access', 'Subscription plans, quotas and audit history'],
         platformSecurity: ['security', 'Account security', 'School Admin recovery center']
       };
@@ -5627,6 +5628,7 @@ let teacherActionMenuListenersInstalled = false;
         ['platform', 'layout-dashboard', 'Platform overview'],
         ['platformSchools', 'school', 'Schools'],
         ['platformOnboard', 'school-plus', 'Onboard school'],
+        ['platformDocuments', 'file-text', 'Document Templates'],
         ['platformPlans', 'credit-card', 'Plans & feature access'],
         ['platformSecurity', 'shield-check', 'Account security']
       ];
