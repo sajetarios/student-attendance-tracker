@@ -13,12 +13,13 @@
  const api='/api/staff-attendance/official-business';
  async function init(user){
   if(!['TEACHER','DEPARTMENT_HEAD','SCHOOL_ADMIN'].includes(user?.role))return;
-  const dash=$('officialBusinessView');if(!dash)return;
+  const personalAdmin=user.role==='SCHOOL_ADMIN';
+  const dash=$(personalAdmin?'myGateAttendanceView':'officialBusinessView');if(!dash)return;
   const root=document.createElement('section');
   root.className='staff-lunch-panel staff-ob-panel';
   root.setAttribute('aria-label','Official Business requests');
-  root.innerHTML=`<div class="section-toolbar"><div><h3>Official Business requests</h3>
-    <p>Department Heads recommend; School Admin makes the final decision. Approved requests flag affected classes for coverage.</p></div>
+  root.innerHTML=`<div class="section-toolbar"><div><h3>${personalAdmin?'My Official Business requests':'Official Business requests'}</h3>
+    <p>Department Heads recommend teacher requests; the Principal authorizes official business after signing the physical Locator Slip. Approved requests retain existing DTR and class coverage rules.</p></div>
     <button type="button" class="outline-button" id="obRefresh">Refresh</button></div>
     <div id="obScopeTabs" class="coverage-tabs" role="tablist" aria-label="Official Business request scope" hidden>
       <button type="button" class="coverage-tab" id="obMineTab" role="tab" aria-selected="false" aria-controls="obList">My OB Requests</button>
@@ -40,7 +41,7 @@
   const say=(s,error=false)=>{status.textContent=s;status.classList.toggle('is-error',error);};
   let busy=false;
   let refreshSequence=0;
-  let selectedScope=user.role==='DEPARTMENT_HEAD'?'department':null;
+  let selectedScope=user.role==='DEPARTMENT_HEAD'?'department':personalAdmin?'mine':null;
   const scopeTabs=$('obScopeTabs');
   if(scopeTabs)scopeTabs.hidden=user.role!=='DEPARTMENT_HEAD';
   const setScope=scope=>{
@@ -78,7 +79,7 @@
    const sequence=++refreshSequence;
    say('Loading Official Business requests…');
    try{
-    const scopeQuery=user.role==='DEPARTMENT_HEAD'?'?scope='+encodeURIComponent(selectedScope):'';
+    const scopeQuery=selectedScope?'?scope='+encodeURIComponent(selectedScope):'';
     const result=await call(api+scopeQuery);
     if(sequence!==refreshSequence)return;
     list.replaceChildren();
@@ -125,7 +126,7 @@
       action('Recommend',()=>decide('recommend','RECOMMEND'));
       action('Reject',()=>decide('recommend','REJECT'));
      }
-     if(user.role==='SCHOOL_ADMIN'&&(ob.status==='PENDING_ADMIN'||(ob.status==='PENDING_HEAD'&&ob.staffRole==='DEPARTMENT_HEAD'))){
+     if(personalAdmin&&(ob.status==='PENDING_ADMIN'||(ob.status==='PENDING_HEAD'&&ob.staffRole==='DEPARTMENT_HEAD'))){
       actions.append(document.createTextNode('Principal authorization required · recordkeeping only'));
      }
      if(ob.staffUserId===user.userId&&(ob.status==='PENDING_ADMIN'||ob.status==='APPROVED'||(ob.status==='PENDING_HEAD'&&ob.staffRole==='DEPARTMENT_HEAD'))){
