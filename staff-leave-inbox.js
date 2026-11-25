@@ -10,12 +10,13 @@ const STATUS_LABELS=Object.freeze({
  DECLINED_HEAD:'Declined by Department Head',
  CANCELLED:'Cancelled'
 });
-function canUseInbox(role){return role==='SCHOOL_ADMIN'||role==='DEPARTMENT_HEAD';}
+function canUseInbox(role){return ['PRINCIPAL','SCHOOL_ADMIN','DEPARTMENT_HEAD'].includes(role);}
 function scopeFor(auth){
  const args=[auth.schoolId];
+ if(auth.role==='PRINCIPAL')return {where:"r.school_id=$1 AND u.role<>'PRINCIPAL' AND r.status IN ('PENDING_ADMIN','PENDING_EXTERNAL','APPROVED','REJECTED')",args};
  if(auth.role==='DEPARTMENT_HEAD'){
   args.push(auth.departmentId||null);
-  return {where:"r.school_id=$1 AND (r.department_id=$2 OR (u.role='SCHOOL_ADMIN' AND r.status='PENDING_EXTERNAL'))",args};
+  return {where:"r.school_id=$1 AND r.department_id=$2",args};
  }
  if(auth.role==='SCHOOL_ADMIN')return {where:'r.school_id=$1',args};
  throw Error('Leave approval inbox is only available to authorized reviewers.');
@@ -23,13 +24,13 @@ function scopeFor(auth){
 function actionExpression(auth,args){
  args.push(auth.userId);
  const actorIndex=args.length;
- if(auth.role==='SCHOOL_ADMIN')
+ if(auth.role==='PRINCIPAL')
   return "r.staff_user_id<>$"+actorIndex+" AND r.status IN ('PENDING_ADMIN','PENDING_EXTERNAL')";
+ if(auth.role==='SCHOOL_ADMIN')return "r.staff_user_id<>$"+actorIndex+" AND (r.status='PENDING_ADMIN' OR (u.role='PRINCIPAL' AND r.status='PENDING_EXTERNAL'))";
  args.push(auth.departmentId||null);
  const deptIndex=args.length;
  return "r.staff_user_id<>$"+actorIndex+
-  " AND ((r.status='PENDING_HEAD' AND r.department_id=$"+deptIndex+
-  ") OR (r.status='PENDING_EXTERNAL' AND u.role='SCHOOL_ADMIN'))";
+  " AND r.status='PENDING_HEAD' AND r.department_id=$"+deptIndex;
 }
 function publicInboxRecord(r,auth){
  const own=String(r.staff_user_id)===String(auth.userId);
@@ -46,7 +47,7 @@ function publicInboxRecord(r,auth){
   staffRole:r.requester_role,
   startDate:r.start_date,
   endDate:r.end_date,
-  leaveType:own||auth.role==='SCHOOL_ADMIN'?r.leave_type:null,
+  leaveType:own||['SCHOOL_ADMIN','PRINCIPAL'].includes(auth.role)?r.leave_type:null,
   creditAccount:own||auth.role==='SCHOOL_ADMIN'?r.credit_account:null,
   status:r.status,
   statusLabel:STATUS_LABELS[r.status]||'Under review',
@@ -60,7 +61,7 @@ function publicInboxRecord(r,auth){
 }
 const statusMessage=status=>({
  PENDING_HEAD:'Submitted for department recommendation.',
- PENDING_ADMIN:'Forwarded for school review.',
+ PENDING_ADMIN:'Forwarded to the principal for a leave decision.',
  PENDING_EXTERNAL:'Awaiting the authorized official decision; not yet approved.',
  APPROVED:'Official approval was verified and entered into the leave record.',
  REJECTED:'An official disapproval was recorded.',
@@ -90,15 +91,11 @@ async function notifyLeaveTransition(client,{schoolId,requestId,staffUserId,depa
  let filter;
  if(status==='PENDING_HEAD'){
   filter="u.role='DEPARTMENT_HEAD' AND u.department_id=$9";
- }else if(status==='PENDING_ADMIN'){
-  filter="u.role='SCHOOL_ADMIN'";
- }else if(requesterRole==='SCHOOL_ADMIN'){
-  // An administrator cannot verify their own external decision.
-  // Department Heads may record the documentary decision (not sign it).
-  filter="u.role='DEPARTMENT_HEAD'";
  }else{
-  filter="u.role='SCHOOL_ADMIN'";
+  filter=requesterRole==='PRINCIPAL'?"u.role='SCHOOL_ADMIN'":"u.role='PRINCIPAL'";
  }
+ const reviewerUrl=status!=='PENDING_HEAD'&&requesterRole!=='PRINCIPAL'
+  ?'/principal.html#leaveApprovals':'/portal.html#leaveManagement';
  const reviewTitle=status==='PENDING_HEAD'?'Leave recommendation requested':
   status==='PENDING_ADMIN'?'Leave school review requested':
   'Official leave decision requires documentation';
@@ -106,8 +103,8 @@ async function notifyLeaveTransition(client,{schoolId,requestId,staffUserId,depa
   "SELECT attendigo_notify($1,'SCHOOL_USER',u.user_id,$2,'APPROVAL',$3,$4,'Leave',$5,$6,$7,TRUE) "+
   "FROM school_users u WHERE u.school_id=$1 AND u.active=TRUE AND u.user_id<>$8 AND "+filter,
   status==='PENDING_HEAD'
-   ?[schoolId,baseKey+':reviewer',reviewTitle,'A school leave application needs review in your authorized scope.',requestId,status,url,staffUserId,departmentId]
-   :[schoolId,baseKey+':reviewer',reviewTitle,'A school leave application needs review in your authorized scope.',requestId,status,url,staffUserId]
+   ?[schoolId,baseKey+':reviewer',reviewTitle,'A school leave application needs review in your authorized scope.',requestId,status,reviewerUrl,staffUserId,departmentId]
+   :[schoolId,baseKey+':reviewer',reviewTitle,'A school leave application needs review in your authorized scope.',requestId,status,reviewerUrl,staffUserId]
  );
 }
 module.exports={FILTERS,STATUS_LABELS,canUseInbox,scopeFor,actionExpression,publicInboxRecord,notifyLeaveTransition};

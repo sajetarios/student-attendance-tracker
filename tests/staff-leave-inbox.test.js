@@ -37,14 +37,14 @@ test('scoping enforces school and department and excludes unauthorized own appro
  const headScope=scopeFor(head);
  assert.deepEqual(headScope.args,[schoolId,departmentId]);
  assert.match(headScope.where,/r.department_id=\$2/);
- assert.match(headScope.where,/u.role='SCHOOL_ADMIN'/);
+ assert.doesNotMatch(headScope.where,/u.role='SCHOOL_ADMIN'/);
  const args=[...headScope.args];
  const action=actionExpression(head,args);
  assert.match(action,/r.staff_user_id<>\$3/);
  assert.match(action,/r.department_id=\$4/);
  assert.deepEqual(args,[schoolId,departmentId,actorId,departmentId]);
  const adminArgs=[schoolId];
- assert.match(actionExpression(admin,adminArgs),/r.status IN \('PENDING_ADMIN','PENDING_EXTERNAL'\)/);
+ assert.match(actionExpression({...admin,role:'PRINCIPAL'},adminArgs),/r.status IN \('PENDING_ADMIN','PENDING_EXTERNAL'\)/);
  assert.equal(adminArgs[1],actorId);
 });
 test('no medical information or applicant reasons leak into reviewer inbox records',()=>{
@@ -59,7 +59,7 @@ test('no medical information or applicant reasons leak into reviewer inbox recor
  const self=publicInboxRecord({...request,staff_user_id:actorId},head);
  assert.equal(self.actions.recommend,false);
  const principal=publicInboxRecord({...request,status:'PENDING_EXTERNAL',requester_role:'SCHOOL_ADMIN',department_id:null},head);
- assert.equal(principal.actions.recordOfficialDecision,true);
+ assert.equal(principal.actions.recordOfficialDecision,false);
  assert.equal(publicInboxRecord({...request,status:'APPROVED'},admin).actions.recordOfficialDecision,false);
 });
 test('notifications are transactional and never disclose illness details',async()=>{
@@ -77,10 +77,11 @@ test('notifications are transactional and never disclose illness details',async(
  assert.equal(JSON.stringify(calls).includes('medical'),false);
  calls.length=0;
  await notifyLeaveTransition(tx,{...opts,status:'PENDING_ADMIN'});
- assert.match(calls[1].sql,/u.role='SCHOOL_ADMIN'/);
+ assert.match(calls[1].sql,/u.role='PRINCIPAL'/);
+ assert.equal(calls[1].args[6],'/principal.html#leaveApprovals');
  calls.length=0;
  await notifyLeaveTransition(tx,{...opts,requesterRole:'SCHOOL_ADMIN',status:'PENDING_EXTERNAL'});
- assert.match(calls[1].sql,/u.role='DEPARTMENT_HEAD'/);
+ assert.match(calls[1].sql,/u.role='PRINCIPAL'/);
  calls.length=0;
  await notifyLeaveTransition(tx,{...opts,status:'APPROVED'});
  assert.equal(calls.length,1);
@@ -94,7 +95,7 @@ test('new approval inbox does not mutate Gatekeeper, OB, original DTR or Form48 
  const policy=fs.readFileSync('staff-leave-inbox.js','utf8');
  const server=fs.readFileSync('server.js','utf8');
  assert.match(server,/registerStaffLeaveInboxRoutes\(app, pool/);
- assert.match(api,/requireSchoolRoles\('SCHOOL_ADMIN','DEPARTMENT_HEAD'\)/);
+ assert.match(api,/requireSchoolRoles\('SCHOOL_ADMIN','DEPARTMENT_HEAD','PRINCIPAL'\)/);
  assert.match(api,/countsOnly/);
  assert.match(api,/actionExpression/);
  assert.match(api,/LIMIT \$'/);

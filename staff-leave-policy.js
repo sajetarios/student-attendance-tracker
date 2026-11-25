@@ -23,6 +23,7 @@ function parseRequest(body){
 function positiveDays(n){const x=Number(n);return Number.isFinite(x)&&x>0&&x<=366&&Math.abs(x*1000-Math.round(x*1000))<1e-7?x:null;}
 function canView(role,actorId,actorDepartment,request){
  return actorId===request.staff_user_id||role==='SCHOOL_ADMIN'||
+  (role==='PRINCIPAL'&&request.requester_role!=='PRINCIPAL'&&['PENDING_ADMIN','PENDING_EXTERNAL','APPROVED','REJECTED'].includes(request.status))||
   (role==='DEPARTMENT_HEAD'&&actorDepartment&&actorDepartment===request.department_id);
 }
 function nextStatus(role,hasActiveHead){
@@ -34,8 +35,10 @@ function allowReviewer(role,actorId,actorDepartment,request,action){
  if(action==='HEAD')return role==='DEPARTMENT_HEAD'&&request.status==='PENDING_HEAD'
   &&actorDepartment===request.department_id;
  if(action==='ADMIN')return role==='SCHOOL_ADMIN'&&request.status==='PENDING_ADMIN';
- if(action==='EXTERNAL')return request.status==='PENDING_EXTERNAL'
-  &&(role==='SCHOOL_ADMIN'||(role==='DEPARTMENT_HEAD'&&request.requester_role==='SCHOOL_ADMIN'));
+ if(action==='EXTERNAL'){
+  if(request.requester_role==='PRINCIPAL')return role==='SCHOOL_ADMIN'&&request.status==='PENDING_EXTERNAL';
+  return role==='PRINCIPAL'&&['PENDING_ADMIN','PENDING_EXTERNAL'].includes(request.status);
+ }
  return false;
 }
 module.exports={TYPES,ACCOUNTS,NON_COMMUTABLE,dateOk,dateSpan,parseRequest,positiveDays,canView,nextStatus,allowReviewer};

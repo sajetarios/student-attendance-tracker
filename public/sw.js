@@ -1,4 +1,4 @@
-const CACHE = "attendigo-v412-lunch-teacher-picker";
+const CACHE = "attendigo-v413-principal-leave";
 
 // Only public, non-personal offline shells and their executable dependencies.
 // An update must not discard the working cache before these are all ready.
@@ -106,9 +106,9 @@ const SHELL = [
   "/attendigo-help-topics.js?v=4",
   "/attendigo-help-guide.js?v=4",
   "/attendigo-help.css?v=4",
-  "/staff-leave-ui.js?v=12",
-  "/leave-approval-inbox.js?v=2",
-  "/leave-approval-inbox.css?v=2",
+  "/staff-leave-ui.js?v=13",
+  "/leave-approval-inbox.js?v=3",
+  "/leave-approval-inbox.css?v=3",
   "/attendigo-presenter-nav.js?v=1",
   "/staff-leave-ui.css?v=8",
   "/leave-status-indicator.css?v=1",
@@ -187,7 +187,7 @@ const SHELL = [
   "/password-visibility.js",
   "/portal-login.js?v=17",
   "/login-routing.js",
-  "/principal-dashboard.js?v=21",
+  "/principal-dashboard.js?v=22",
   "/principal-trusted-campus.js?v=4",
   "/campus-location-ui.css?v=1",
   "/principal-dashboard.css?v=15",

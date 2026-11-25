@@ -140,7 +140,7 @@
   actions.append(makeButton('CSC Form No. 6','leave-btn',()=>{
    window.open('/leave-form6.html?requestId='+encodeURIComponent(record.requestId),'_blank');
   }));
-  actions.append(makeButton(record.own?'My request details':'Open Leave Requests','leave-btn',ctx.openRequests));
+  if(ctx.openRequests)actions.append(makeButton(record.own?'My request details':'Open Leave Requests','leave-btn',ctx.openRequests));
   article.append(actions);
   if(record.own && !['APPROVED','REJECTED','DECLINED_HEAD','CANCELLED'].includes(record.status)){
    article.append(make('p','leave-help','Your request is awaiting the next authorized review. You cannot approve your own leave.'));
@@ -151,7 +151,7 @@
   if(record.actions?.recommend||record.actions?.schoolReview||record.actions?.recordOfficialDecision){
    const details=make('details','leave-approval leave-inbox-action');
    const summary=make('summary',null,record.actions.recommend?'Review department recommendation':
-    record.actions.schoolReview?'Review school forwarding':'Verify official decision');
+    record.actions.schoolReview?'Review school forwarding':ctx.user.role==='PRINCIPAL'?'Approve or disapprove leave':'Verify official decision');
    details.append(summary);
    if(record.actions.recommend)details.append(reviewForm(record,'HEAD',ctx));
    else if(record.actions.schoolReview)details.append(reviewForm(record,'ADMIN',ctx));
@@ -163,7 +163,7 @@
   return article;
  }
  async function render(ctx){
-  if(!ctx?.body||!['DEPARTMENT_HEAD','SCHOOL_ADMIN'].includes(ctx.user?.role))return;
+  if(!ctx?.body||!['DEPARTMENT_HEAD','SCHOOL_ADMIN','PRINCIPAL'].includes(ctx.user?.role))return;
   const parent=ctx.body;
   parent.replaceChildren();
   const heading=make('div','leave-inbox-heading');
@@ -176,7 +176,8 @@
   summary.setAttribute('role','group');
   summary.setAttribute('aria-label','Filter leave approval requests');
   const status=make('div','leave-inbox-count-note','Loading application statuses…');
-  FILTERS.forEach(([value,label,key])=>{
+  const filters=ctx.user.role==='PRINCIPAL'?FILTERS.filter(([value])=>['ACTION','APPROVED','DISAPPROVED','ALL'].includes(value)):FILTERS;
+  filters.forEach(([value,label,key])=>{
    const b=make('button',filter===value?'leave-inbox-filter is-current':'leave-inbox-filter');
    b.type='button';b.dataset.filter=value;b.setAttribute('aria-pressed',String(filter===value));
    b.append(make('span',null,label),make('strong','leave-inbox-filter-count','—'));
