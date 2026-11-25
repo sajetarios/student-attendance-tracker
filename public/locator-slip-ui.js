@@ -7,13 +7,16 @@
   const error=Error(data.error||'Could not prepare the Locator Slip. Please retry.');error.code=data.code;return error;
  }
  function attach(container,id,options={}){
-  const button=make('button',options.buttonClass||'outline-button',options.label||'Print / download Locator Slip');
+  const viewLabel=options.label||'View Locator Slip';
+  const button=make('button',options.buttonClass||'outline-button',viewLabel);
+  button.setAttribute('aria-expanded','false');
   button.type='button';
   const status=make('p','source-note');status.setAttribute('role','status');status.setAttribute('aria-live','polite');status.style.overflowWrap='anywhere';
   const panel=make('div','locator-slip-feedback');panel.hidden=true;panel.style.cssText='flex-basis:100%;min-width:0;max-width:100%';
   panel.append(status);
   let working=false;
-  function feedback(message){panel.hidden=false;status.textContent=message;}
+  function feedback(message){panel.hidden=false;button.textContent='Hide Locator Slip';button.setAttribute('aria-expanded','true');status.textContent=message;}
+  function closePreview(){panel.hidden=true;button.textContent=viewLabel;button.setAttribute('aria-expanded','false');clearExtra();status.textContent='';}
   function clearExtra(){while(panel.children.length>1)panel.lastElementChild.remove();}
   async function generate(){
    if(working)return;
@@ -25,22 +28,30 @@
     const bytes=new Uint8Array(await response.arrayBuffer());
     if(bytes.length<1000||String.fromCharCode(...bytes.slice(0,5))!=='%PDF-')throw Error('The server did not return a complete PDF. Please retry.');
     const url=api+'/'+encodeURIComponent(id)+'/locator-slip';
-    const link=make('a',options.buttonClass||'outline-button','Open printable PDF');link.href=url;link.target='_blank';link.rel='noopener';
-    const save=make('a',options.buttonClass||'outline-button','Download PDF');save.href=url+'?download=1';
-    feedback('Your print-ready PDF is ready. Preparing the preview inside Attendigo…');
+    // One visible output action. Native sharing on supported devices; the
+    // same verified HTTP attachment is the fallback (no browser/blob URLs).
+    const save=make('a',options.buttonClass||'outline-button','Save / Print PDF');save.href=url+'?download=1';
+    let shareFile=null;
+    try{
+     if(typeof navigator.share==='function'&&typeof navigator.canShare==='function'&&typeof File==='function'){
+      const file=new File([bytes],'Locator-Slip.pdf',{type:'application/pdf'});
+      if(navigator.canShare({files:[file]}))shareFile=file;
+     }
+    }catch(_){}
+    save.addEventListener('click',async(event)=>{
+     if(!shareFile)return; // Standard attachment download.
+     event.preventDefault();
+     const file=shareFile;
+     try{await navigator.share({files:[file]});}
+     catch(e){if(e.name!=='AbortError'){shareFile=null;if(!panel.hidden)feedback('Tap Save / Print PDF again to download the file directly.');}}
+    });
+    feedback('Preparing your Locator Slip preview…');
     const preview=make('img');preview.alt='Accomplished official Locator Slip';preview.style.cssText='display:block;width:100%;height:auto;max-width:750px;margin:12px auto;background:white;border:1px solid #cbd5e1';
     preview.hidden=true;preview.style.display='none';
-    panel.append(preview,link,save);
-    if(typeof navigator.share==='function'&&typeof File==='function'){
-     const file=new File([bytes],'Locator-Slip.pdf',{type:'application/pdf'});
-     if(typeof navigator.canShare==='function'&&navigator.canShare({files:[file]})){
-      const share=make('button',options.buttonClass||'outline-button','Share / Save to Files');share.type='button';
-      share.addEventListener('click',async()=>{try{await navigator.share({files:[file]});}catch(e){if(e.name!=='AbortError')feedback('Sharing failed. Use Download PDF instead.');}});
-      panel.append(share);
-     }
-    }
-    preview.onload=()=>{preview.hidden=false;preview.style.display='block';feedback('Your official Locator Slip is ready. Preview below, then save or print the PDF.');};
-    preview.onerror=()=>{preview.hidden=true;preview.style.display='none';feedback('The PDF is ready, but the in-app preview could not load. Use Share / Save to Files or Download PDF.');};
+    // Keep the only export action above the page on narrow screens.
+    panel.append(save,preview);
+    preview.onload=()=>{if(panel.hidden||preview.parentElement!==panel)return;preview.hidden=false;preview.style.display='block';status.textContent='Ready to save or print.';};
+    preview.onerror=()=>{if(panel.hidden||preview.parentElement!==panel)return;preview.hidden=true;preview.style.display='none';status.textContent='Preview unavailable. You can still save or print the PDF.';};
     preview.src=url+'?preview=1';
    }catch(error){
     feedback(error.message);
@@ -62,7 +73,7 @@
     }
    }finally{working=false;button.disabled=false;}
   }
-  button.addEventListener('click',()=>void generate());container.append(button,panel);
+  button.addEventListener('click',()=>{if(working)return;if(!panel.hidden)closePreview();else void generate();});container.append(button,panel);
  }
  window.AttendigoLocatorSlip={attach};
 })();
