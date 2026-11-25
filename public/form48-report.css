@@ -622,3 +622,9 @@
 @media screen and (max-width:800px){
  body.portal-page #form48ReportCard .form48-intelligence-slots{grid-template-columns:repeat(2,minmax(0,1fr))}
 }
+
+/* The verifier is the sole editable signatory in the DTR module. */
+#form48SchoolSignatories .form48-signatory-fields{grid-template-columns:minmax(0,1fr)}
+#schoolHeadSignatoryCard .form48-schedule-actions{margin-top:14px;flex-wrap:wrap}
+#schoolHeadSignatoryCard input{width:100%;min-width:0;box-sizing:border-box}
+@media print{#schoolHeadSignatoryCard,#form48SignatoryShortcut{display:none!important}}
