@@ -59,4 +59,29 @@ async function renderMatiLocator(master,fields,print=false){
   return print?canvasPrintPdf(canvas,W,H):canvas.toBuffer('image/png');
  }finally{rendering=false;if(canvas){canvas.width=1;canvas.height=1;}}
 }
-module.exports={renderLocatorPreview,renderLocatorPrintPdf,renderMatiLocator};
+async function renderCustomLocatorPilot(pdf,mapping,print=false){
+ if(rendering){const e=Error('Another Locator Slip is being prepared. Please retry.');e.code='PREVIEW_BUSY';throw e;}
+ rendering=true;let task,canvas;
+ try{
+  const {createCanvas}=require('@napi-rs/canvas');
+  const pdfjs=await import('pdfjs-dist/legacy/build/pdf.mjs');
+  const root=path.resolve(path.dirname(require.resolve('pdfjs-dist/legacy/build/pdf.mjs')),'../..');
+  task=pdfjs.getDocument({data:new Uint8Array(pdf),standardFontDataUrl:path.join(root,'standard_fonts')+path.sep,cMapUrl:path.join(root,'cmaps')+path.sep,cMapPacked:true,wasmUrl:path.join(root,'wasm')+path.sep,isEvalSupported:false,enableXfa:false,stopAtErrors:true,maxImageSize:9000000,verbosity:0});
+  const doc=await task.promise;
+  if(doc.numPages!==1)throw Error('Only one page is supported in this pilot.');
+  const page=await doc.getPage(1),original=page.getViewport({scale:1});
+  if(original.width<350||original.height<500||original.width>650||original.height>880||original.width>=original.height)throw Error('Use a single-page portrait PDF close to A4 or Letter size.');
+  if((await page.getAnnotations()).length)throw Error('Use a flattened blank PDF without interactive fields or annotations.');
+  const viewport=page.getViewport({scale:print?300/72:1.65});
+  const width=Math.ceil(viewport.width),height=Math.ceil(viewport.height);
+  if(width*height>10000000)throw Error('Use a smaller portrait PDF.');
+  canvas=createCanvas(width,height);
+  const ctx=canvas.getContext('2d');
+  await page.render({canvas,canvasContext:ctx,viewport,annotationMode:0,background:'rgb(255,255,255)'}).promise;
+  if(mapping)require('./locator-template-pilot').overlay(ctx,width,height,mapping);
+  return print?canvasPrintPdf(canvas,original.width,original.height):canvas.toBuffer('image/png');
+ }finally{
+  try{if(task)await task.destroy();}finally{rendering=false;if(canvas){canvas.width=1;canvas.height=1;}}
+ }
+}
+module.exports={renderLocatorPreview,renderLocatorPrintPdf,renderMatiLocator,renderCustomLocatorPilot};
