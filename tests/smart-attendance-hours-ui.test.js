@@ -124,7 +124,7 @@ test('default Monday-Friday schedules still work normally',async()=>{
 test('portal and service worker load matching repaired attendance script',()=>{
  require('./support/asset-contract').assertCachedAsset(portal,sw,'smart-attendance-overview.js',{minimumVersion:3});
  require('./support/asset-contract').assertCachedAsset(portal,sw,'smart-attendance-overview.js',{minimumVersion:3});
- assert.match(portal,/staff-lunch-ui\.js\?v=9/);
+ require('./support/asset-contract').assertCachedAsset(portal,sw,'staff-lunch-ui.js',{minimumVersion:10});
 });
 
 test('saved hours without approved days cannot falsely appear configured or be saved silently',async()=>{

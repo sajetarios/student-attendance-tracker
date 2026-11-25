@@ -1,5 +1,6 @@
 'use strict';
 const {randomUUID}=require('node:crypto');
+const express=require('express');
 const uuid=/^[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}$/i;
 const roles=['TEACHER','DEPARTMENT_HEAD','SCHOOL_ADMIN'];
 function registerStaffObRoutes(app,pool,{authenticateSchoolClient,requireSchoolRoles}){
@@ -30,6 +31,18 @@ function registerStaffObRoutes(app,pool,{authenticateSchoolClient,requireSchoolR
  });
  // PENDING_ADMIN is the legacy persisted school-authorization stage. The
  // actor for internal OB is the Principal; principal-owned SDO requests stay separate.
+ // Install only the exact approved public master; no arbitrary files or employee data.
+ app.post('/api/staff-attendance/official-business/locator-template',authenticateSchoolClient,
+  requireSchoolRoles('TEACHER','DEPARTMENT_HEAD','SCHOOL_ADMIN','PRINCIPAL'),
+  express.raw({type:'application/pdf',limit:'120kb'}),async(req,res)=>{
+   res.set('Cache-Control','no-store, private');
+   if(!Buffer.isBuffer(req.body))return res.status(415).json({error:'Select the original official PDF.'});
+   const {installTemplate,TEMPLATE_SHA}=require('./locator-slip');
+   if(require('node:crypto').createHash('sha256').update(req.body).digest('hex')!==TEMPLATE_SHA)
+    return res.status(422).json({error:'This is not the exact original DepEd Revised Annex E PDF. Select the unmodified official form.'});
+   try{await installTemplate(pool,req.body);return res.json({installed:true});}
+   catch(e){return respondError(res,e);}
+  });
  // The official form is available only after recommendation (or direct Head filing).
  app.get('/api/staff-attendance/official-business/:id/locator-slip',authenticateSchoolClient,
   requireSchoolRoles('TEACHER','DEPARTMENT_HEAD','SCHOOL_ADMIN','PRINCIPAL'),async(req,res)=>{
@@ -49,11 +62,26 @@ function registerStaffObRoutes(app,pool,{authenticateSchoolClient,requireSchoolR
     if(!result.rowCount)return res.status(404).json({error:'Locator Slip is unavailable for this request or approval stage.'});
     const {getTemplate,buildLocatorSlip}=require('./locator-slip');
     let template;
-    try{template=await getTemplate();}catch(e){console.error('Locator Slip template:',e.message);return res.status(503).json({error:'Official Locator Slip template temporarily unavailable. Please retry or use the official blank form.'});}
+    try{template=await getTemplate(pool);}catch(e){console.error('Locator Slip template:',e.message);return res.status(503).json({code:e.code==='LOCATOR_TEMPLATE_REQUIRED'?'LOCATOR_TEMPLATE_REQUIRED':'LOCATOR_TEMPLATE_UNAVAILABLE',error:e.code==='LOCATOR_TEMPLATE_REQUIRED'?e.message:'The Locator Slip master could not be verified. Contact support.'});}
     let pdf;
-    try{pdf=buildLocatorSlip(template,result.rows[0]);}catch(e){return res.status(422).json({error:e.message});}
+    try{pdf=buildLocatorSlip(template,result.rows[0]);}catch(e){console.error('Locator Slip generation:',e.message);return res.status(422).json({error:e.message});}
+    if(req.query?.preview==='1'){
+     try{
+      const {renderLocatorPreview}=require('./locator-slip-preview');
+      const png=await renderLocatorPreview(pdf);
+      res.set('Content-Type','image/png');
+      return res.send(png);
+     }catch(e){
+      console.error('Locator Slip preview:',e.message);
+      return res.status(503).json({error:e.code==='PREVIEW_BUSY'?e.message:'The in-app preview is temporarily unavailable. The PDF can still be downloaded.'});
+     }
+    }
+    // Export a fresh, conventional print PDF from the same verified official page.
+    // Never send the incremental source PDF to mobile viewers.
+    try{pdf=await require('./locator-slip-preview').renderLocatorPrintPdf(pdf);}
+    catch(e){console.error('Locator Slip print PDF:',e.message);return res.status(503).json({error:e.code==='PREVIEW_BUSY'?e.message:'The printable Locator Slip could not be prepared. Please retry.'});}
     res.set('Content-Type','application/pdf');
-    res.set('Content-Disposition','inline; filename="Locator-Slip-'+req.params.id+'.pdf"');
+    res.set('Content-Disposition',(req.query?.download==='1'?'attachment':'inline')+'; filename="Locator-Slip-'+req.params.id+'.pdf"');
     res.set('X-Content-Type-Options','nosniff');
     return res.send(pdf);
    }catch(e){return respondError(res,e);}
