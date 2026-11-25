@@ -16,7 +16,7 @@ function requestServiceWorker(url, { offline = true, mode = 'navigate', hit = {}
     addEventListener(name, fn) { if (name === 'fetch') handler = fn; }
   };
   const cache = {
-    match: async input => hit[typeof input === 'string' ? input : input.url] || null,
+    match: async input => { const response = hit[typeof input === 'string' ? input : input.url]; if (response) response.ok = true; return response || null; },
     open: async () => ({ put: async () => {} })
   };
   const context = {
@@ -25,7 +25,7 @@ function requestServiceWorker(url, { offline = true, mode = 'navigate', hit = {}
       if (offline) throw new Error('Disconnected');
       return { ok: true, live: true, clone() { return this; } };
     },
-    Response: { error: () => ({ failed: true }), redirect: () => ({ redirected: true }) }
+    Response
   };
   vm.runInNewContext(script, context);
   const request = { url, mode, method, headers: { has: () => false } };
@@ -157,7 +157,11 @@ test('all three offline tools link directly to the shared hub', () => {
   }
 });
 test('protected dashboards without an approved offline fallback remain fail closed', async () => {
-  await assert.rejects(requestServiceWorker('https://attendigo.tech/principal.html',{hit:{'/principal.html':{private:true}}}),/Disconnected/);
+  const response = await requestServiceWorker('https://attendigo.tech/principal.html',{hit:{'/principal.html':{private:true},'/offline-welcome.html':{branded:true}}});
+  assert.ok(response instanceof Response);
+  const html = await response.text();
+  assert.match(html,/Connection unavailable/);
+  assert.doesNotMatch(html,/private|gate-offline|offline-sheet|student-qr-offline/);
 });
 
 

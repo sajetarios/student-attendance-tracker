@@ -1,4 +1,4 @@
-const CACHE = "attendigo-v414-school-identity-signatories";
+const CACHE = "attendigo-v415-ios-offline-navigation";
 
 // Only public, non-personal offline shells and their executable dependencies.
 // An update must not discard the working cache before these are all ready.
@@ -284,6 +284,27 @@ self.addEventListener('notificationclick',event=>{
   })());
 });
 
+// Cache Storage can be missing or inaccessible on iOS. Never resolve a
+// navigation with Response.error() solely because the offline shell is absent.
+async function offlineCachedPage(path) {
+  try { return await caches.match(path); } catch { return undefined; }
+}
+
+async function offlineNavigationFallback(preferred, allowWelcome = true) {
+  if (preferred) {
+    const prepared = await offlineCachedPage(preferred);
+    if (prepared && prepared.ok) return prepared;
+  }
+  const welcome = allowWelcome ? await offlineCachedPage("/offline-welcome.html") : undefined;
+  if (welcome && welcome.ok) return welcome;
+  // No role tools or account data are exposed in this emergency document.
+  // It has no external dependencies and does not claim that offline is ready.
+  return new Response(`<!doctype html><html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Attendigo | Connection unavailable</title><style>html{color-scheme:light}body{font:16px system-ui,sans-serif;background:#f5f8fc;color:#153451;min-height:90vh;display:grid;place-items:center;margin:0;padding:24px;box-sizing:border-box}main{max-width:420px;background:#fff;padding:28px;border:1px solid #dce7f1;border-radius:20px}h1{font-size:28px}p{line-height:1.6}a{display:inline-block;background:#174b78;color:white;text-decoration:none;padding:14px 20px;border-radius:10px}</style><main><strong>Attendigo</strong><h1>Connection unavailable</h1><p>Your offline tools are not available in this browser right now. Reconnect and open Attendigo to prepare your authorized attendance tool.</p><a href="/portal-login.html">Try again</a></main></html>`, {
+    status: 200,
+    headers: {"Content-Type":"text/html; charset=utf-8","Cache-Control":"no-store"}
+  });
+}
+
 self.addEventListener("fetch", event => {
   const request = event.request;
 
@@ -316,10 +337,8 @@ self.addEventListener("fetch", event => {
   // replace a prepared attendance screen with a browser error or login page.
   if (request.mode === "navigate" && OFFLINE_TOOL_PAGES.includes(url.pathname)) {
     event.respondWith((async () => {
-      const cache = await caches.open(CACHE);
       const canonical = url.pathname;
-      const fallback = async () => (await caches.match(canonical)) ||
-        (await caches.match("/offline-welcome.html")) || Response.error();
+      const fallback = () => offlineNavigationFallback(canonical);
       const controller = typeof AbortController === "function" ? new AbortController() : null;
       const timer = controller && typeof setTimeout === "function" ? setTimeout(() => controller.abort(), 4500) : null;
       try {
@@ -328,7 +347,7 @@ self.addEventListener("fetch", event => {
         // Avoid caching unexpected HTML or redirected login responses as a tool.
         if (fresh.url && new URL(fresh.url).pathname !== canonical) return await fallback();
         if (fresh.headers && !(fresh.headers.get("content-type") || "").includes("text/html")) return await fallback();
-        await cache.put(canonical, fresh.clone()).catch(() => {});
+        try { const cache = await caches.open(CACHE); await cache.put(canonical, fresh.clone()); } catch {}
         return fresh;
       } catch {
         return await fallback();
@@ -343,8 +362,7 @@ self.addEventListener("fetch", event => {
   if (["/portal.html", "/class-qr-monitor.html", "/principal.html", "/school-memos.html", "/admin-sdo-coordination.html", "/student-portal.html", "/parent-portal.html",
        "/force-password-change.html", "/attendance-pin.html", "/class-qr-checkin.html", "/staff-lunch-checkin.html", "/leave-form6.html"].includes(url.pathname)) {
     event.respondWith(fetch(request, { cache: "no-store" }).catch(async error=>{
-      if(url.pathname==='/student-portal.html')return (await caches.match('/student-qr-offline.html'))||Response.error();
-      if(request.mode==='navigate' && url.pathname==='/portal.html')return (await caches.match('/offline-welcome.html'))||Response.error();
+      if(request.mode==='navigate')return offlineNavigationFallback(url.pathname==='/student-portal.html'?'/student-qr-offline.html':undefined, ['/student-portal.html','/portal.html'].includes(url.pathname));
       throw error;
     }));
     return;
@@ -406,8 +424,7 @@ self.addEventListener("fetch", event => {
       try {
         const response = await fetch(request);
         if (response.ok && !url.search) {
-          const cache = await caches.open(CACHE);
-          await cache.put(request, response.clone()).catch(() => {});
+          try { const cache = await caches.open(CACHE); await cache.put(request, response.clone()); } catch {}
         }
         return response;
       } catch {
@@ -416,16 +433,11 @@ self.addEventListener("fetch", event => {
         // origin cannot intercept an offline request to attendigo.tech.
         // Keep QR attendance and role-specific offline pages unchanged.
         if (["/", "/index.html", "/portal-login.html", "/offline-welcome.html"].includes(url.pathname)) {
-          const offlineWelcome = await caches.match("/offline-welcome.html");
-          if (offlineWelcome) return offlineWelcome;
+          return offlineNavigationFallback();
         }
-        const cached = await caches.match(request);
-        if (cached) return cached;
-        if (url.pathname === "/" || url.pathname === "/index.html") {
-          const loginPage = await caches.match("/portal-login.html");
-          if (loginPage) return loginPage;
-        }
-        return Response.error();
+        const cached = await offlineCachedPage(request);
+        if (cached && cached.ok) return cached;
+        return offlineNavigationFallback();
       }
     })());
     return;
