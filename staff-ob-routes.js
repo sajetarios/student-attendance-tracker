@@ -169,6 +169,28 @@ function registerStaffObRoutes(app,pool,{authenticateSchoolClient,requireSchoolR
    }catch(e){await client.query('ROLLBACK').catch(()=>{});return respondError(res,e);}
    finally{client.release();}
   });
+ // Reuse the existing tenant-scoped notification table and event deduplication.
+ async function notifyPrincipal(client,schoolId,requestId){
+  await client.query(`SELECT attendigo_notify($1,'SCHOOL_USER',u.user_id,
+   'staff-ob:'||$2::text||':principal-review','APPROVAL','Official Business awaiting authorization',
+   'An official business request is ready for your review and physical-signature confirmation.',
+   'STAFF_OB',$2::uuid,'PENDING','/principal.html#priorities')
+   FROM school_users u
+   WHERE u.school_id=$1 AND u.role='PRINCIPAL' AND u.active=TRUE`,[schoolId,requestId]);
+ }
+ async function notifyRequester(client,schoolId,requestId,status){
+  await client.query(`SELECT attendigo_notify($1,'SCHOOL_USER',o.staff_user_id,
+   'staff-ob:'||$2::text||':'||$3::text,'REQUEST',
+   CASE WHEN $3='APPROVED' THEN 'Official Business authorized'
+    WHEN $3='REJECTED' THEN 'Official Business disapproved'
+    ELSE 'Official Business recommended' END,
+   CASE WHEN $3='APPROVED' THEN 'The Principal confirmed signed authorization.'
+    WHEN $3='REJECTED' THEN 'Your request was disapproved. Review the decision in Official Business.'
+    ELSE 'Your Department Head recommended your request. Secure the required physical signature.' END,
+   'STAFF_OB',$2::uuid,$3::text,'/portal.html?view=officialBusiness')
+   FROM staff_official_business_requests o
+   WHERE o.school_id=$1 AND o.request_id=$2::uuid`,[schoolId,requestId,status]);
+ }
  app.post('/api/staff-attendance/official-business',...auth,async(req,res)=>{
   res.set('Cache-Control','no-store, private');
   const purpose=String(req.body?.purpose||'').trim(),destination=String(req.body?.destination||'').trim();
@@ -187,6 +209,7 @@ function registerStaffObRoutes(app,pool,{authenticateSchoolClient,requireSchoolR
     VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9)`,
     [id,req.auth.schoolId,req.auth.userId,req.auth.departmentId,purpose,destination,start,end,status]);
    await audit(client,req,'STAFF_OB_SUBMITTED',id,{departmentId:req.auth.departmentId,startsAt:start.toISOString(),endsAt:end.toISOString()});
+   if(status==='PENDING_ADMIN')await notifyPrincipal(client,req.auth.schoolId,id);
    await client.query('COMMIT');
    return res.status(201).json({requestId:id,status});
   }catch(e){await client.query('ROLLBACK').catch(()=>{});return respondError(res,e);}
@@ -212,6 +235,8 @@ function registerStaffObRoutes(app,pool,{authenticateSchoolClient,requireSchoolR
        recommendation==='RECOMMEND'?'PENDING_ADMIN':'REJECTED',note||null]);
     if(!result.rowCount){await client.query('ROLLBACK');return res.status(409).json({error:'Request unavailable, already reviewed, outside your department, or self-review prohibited.'});}
     await audit(client,req,recommendation==='RECOMMEND'?'STAFF_OB_RECOMMENDED':'STAFF_OB_HEAD_REJECTED',req.params.id,{note});
+    if(recommendation==='RECOMMEND')await notifyPrincipal(client,req.auth.schoolId,req.params.id);
+    await notifyRequester(client,req.auth.schoolId,req.params.id,recommendation==='RECOMMEND'?'PENDING_ADMIN':'REJECTED');
     await client.query('COMMIT');
     return res.json({requestId:req.params.id,status:result.rows[0].status});
    }catch(e){await client.query('ROLLBACK').catch(()=>{});return respondError(res,e);}
@@ -269,6 +294,11 @@ function registerStaffObRoutes(app,pool,{authenticateSchoolClient,requireSchoolR
         {affectedClasses:affected.rowCount});
     }
     await audit(client,req,decision==='APPROVE'?'STAFF_OB_APPROVED':'STAFF_OB_PRINCIPAL_REJECTED',req.params.id,{note,authority:'PRINCIPAL',signedAuthorization:decision==='APPROVE'});
+    await notifyRequester(client,req.auth.schoolId,req.params.id,decision==='APPROVE'?'APPROVED':'REJECTED');
+    await client.query(`UPDATE user_notifications SET status=$3,read_at=COALESCE(read_at,NOW()),updated_at=NOW(),
+     title='Official Business review completed',body='This request has been decided. See approval history.'
+     WHERE school_id=$1 AND recipient_kind='SCHOOL_USER' AND event_key='staff-ob:'||$2::text||':principal-review'`,
+     [req.auth.schoolId,req.params.id,decision==='APPROVE'?'APPROVED':'REJECTED']);
     await client.query('COMMIT');
     return res.json({requestId:req.params.id,status:result.rows[0].status});
    }catch(e){await client.query('ROLLBACK').catch(()=>{});return respondError(res,e);}
