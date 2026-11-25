@@ -1051,3 +1051,15 @@ button.priority-department-row:focus-visible,.priority-reset:focus-visible{
  #main .metric-grid,#main .principal-quick-links{grid-template-columns:minmax(0,1fr)}
 }
 @media (prefers-reduced-motion:reduce){#main .panel{animation:none}}
+
+/* Consistent local SVG icon system across navigation, metrics and dynamic cards. */
+.principal-action-icon{display:inline-block;flex:none;vertical-align:middle;inline-size:20px;block-size:20px;pointer-events:none}
+#main .metric-icon{inline-size:42px;block-size:42px;border-radius:12px;flex:none}
+#main .metric-icon .principal-action-icon{inline-size:24px;block-size:24px}
+#main .briefing-item-icon .principal-action-icon,#main .attention-item .mark .principal-action-icon{inline-size:18px;block-size:18px}
+#main .principal-quick-links button:has(.principal-action-icon),#main .principal-workspace-actions button:has(.principal-action-icon),#main #refreshDashboard:has(.principal-action-icon),.top-actions #signOut:has(.principal-action-icon){display:inline-flex;align-items:center;justify-content:center;gap:8px}
+#main .principal-quick-links button .principal-action-icon{color:var(--primary)}
+#main .principal-quick-links button>span{min-width:0;overflow-wrap:anywhere}
+#main #refreshDashboard>span{font-size:inherit;margin:0}
+#main .recognition-empty-icon .principal-action-icon{inline-size:24px;block-size:24px}
+@media(max-width:650px){#main .principal-quick-links button:has(.principal-action-icon){gap:6px}#main .principal-quick-links .principal-action-icon{inline-size:18px;block-size:18px}}

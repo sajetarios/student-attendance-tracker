@@ -139,9 +139,22 @@
   }
   if(!rows.length)host.textContent='No trend data is available for this period.';
  }
+
+ // Locally rendered SVG icons; no external font or icon service required.
+ const principalIconPaths=Object.freeze({"staff":"M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2 M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8 M16 4a4 4 0 0 1 0 7 M22 21v-2a4 4 0 0 0-3-3.87","clock":"M12 22a10 10 0 1 0 0-20 10 10 0 0 0 0 20 M12 6v6l4 2","learners":"M2 10l10-5 10 5-10 5-10-5Z M6 12v6l6 3 6-3v-6 M22 10v6","check":"M22 12a10 10 0 1 1-5.8-9.1 M8 12l3 3L22 4","qr":"M3 3h7v7H3z M14 3h7v7h-7z M3 14h7v7H3z M14 14h3v3h-3z M21 14v3 M14 21h3 M21 21h.01 M19 19h2v2","inbox":"M4 4h16v16H4z M4 14h4l2 3h4l2-3h4 M8 8h8","calendar":"M3 5h18v16H3z M7 3v4 M17 3v4 M3 10h18 M8 15h3 M14 15h2","workflow":"M8 4H4v17h16V4h-4 M8 2h8v5H8z M8 12h8 M8 16h6","pin":"M20 10c0 5-8 11-8 11S4 15 4 10a8 8 0 1 1 16 0Z M12 13a3 3 0 1 0 0-6 3 3 0 0 0 0 6","alert":"M10.3 3.5 2 18a2 2 0 0 0 1.7 3h16.6a2 2 0 0 0 1.7-3L13.7 3.5a2 2 0 0 0-3.4 0Z M12 9v4 M12 17h.01","sun":"M12 8a4 4 0 1 0 0 8 4 4 0 0 0 0-8 M12 2v2 M12 20v2 M2 12h2 M20 12h2 M5 5l1.5 1.5 M17.5 17.5 19 19 M5 19l1.5-1.5 M17.5 6.5 19 5","award":"M12 15a6 6 0 1 0 0-12 6 6 0 0 0 0 12 M8 14l-2 8 6-3 6 3-2-8","empty":"M4 4h16v16H4z M8 12h8","refresh":"M20 7v5h-5 M4 17v-5h5 M5 9a8 8 0 0 1 13-4l2 3 M4 16l2 3a8 8 0 0 0 13-4","exit":"M10 17l5-5-5-5 M15 12H3 M14 4h6v16h-6"});
+ function principalIcon(className,key){
+  const holder=make('span',className);
+  holder.setAttribute('aria-hidden','true');
+  const ns='http://www.w3.org/2000/svg';
+  const svg=document.createElementNS(ns,'svg');
+  for(const [name,value] of Object.entries({viewBox:'0 0 24 24',width:'20',height:'20',fill:'none',stroke:'currentColor','stroke-width':'1.8','stroke-linecap':'round','stroke-linejoin':'round',focusable:'false','aria-hidden':'true'}))svg.setAttribute(name,value);
+  svg.setAttribute('class','principal-action-icon');
+  const path=document.createElementNS(ns,'path');path.setAttribute('d',principalIconPaths[key]||principalIconPaths.alert);
+  svg.append(path);holder.append(svg);return holder;
+ }
  function addAttention(host,title,details,count,target,icon){
   const item=make('div','attention-item');
-  const mark=make('span','mark',icon);
+  const mark=principalIcon('mark',({'!':'alert','⌖':'pin','▤':'calendar','◷':'clock'})[icon]||'alert');
   const label=make('span');
   label.append(make('strong',null,title),make('small',null,details));
   item.append(mark,label,make('b',null,fmt(count)));
@@ -500,7 +513,7 @@
   const impacted=Boolean(classImpact&&(classImpact.limited||numeric(classImpact.unresolvedCount)>0));
   const items=[
    {
-    icon:'▤',name:'Class coverage exceptions',value:impactCount+' periods',
+    icon:'calendar',name:'Class coverage exceptions',value:impactCount+' periods',
     text:!classImpact?'Checking seven-day approved leave and OB coverage.':
      impacted?'Department has not yet recorded substitute coverage for the flagged classes.':
       'No unresolved class coverage is recorded. Resolved departmental actions stay off the Principal alert list.',
@@ -508,19 +521,19 @@
     click:()=>switchSection('priorities')
    },
    {
-    icon:'◷',name:'Attendance evidence',value:fmt(pendingDtr)+' pending',
+    icon:'clock',name:'Attendance evidence',value:fmt(pendingDtr)+' pending',
     text:pendingDtr? 'Review the original evidence before accepting DTR slots.':
       'No unverified DTR slots are recorded for this date. This does not establish full attendance.',
     action:'Inspect DTR',kind:pendingDtr?'attention':'stable',
     click:()=>{$('staffStatus').value=pendingDtr?'pending':'all';switchSection('staff');renderStaff();}
    },
    {
-    icon:'▤',name:'Administrative workflow reference',value:fmt(openRequests)+' in review',
+    icon:'workflow',name:'Administrative workflow reference',value:fmt(openRequests)+' in review',
     text:'Department-managed leave and OB review counts are not instructional coverage alerts.',
     action:'View stage counts',kind:'neutral',click:()=>{$('principalWorkflowDetails').open=true;switchSection('priorities');}
    },
    {
-    icon:'⌖',name:'Department QR readiness',value:fmt(approvedDepartments)+' / '+fmt(totalDepartments),
+    icon:'pin',name:'Department QR readiness',value:fmt(approvedDepartments)+' / '+fmt(totalDepartments),
     text:totalDepartments===0?'No active department locations are available for comparison.':
      unapprovedDepartments?
       fmt(unapprovedDepartments)+' department location(s) lack an approved QR check-in point.':
@@ -529,7 +542,7 @@
     click:()=>switchSection('departments')
    },
    {
-    icon:'✓',name:'Learner scan activity',value:fmt(m.acceptedClassCheckins)+' learners',
+    icon:'check',name:'Learner scan activity',value:fmt(m.acceptedClassCheckins)+' learners',
     text:'Unique learners with an accepted classroom QR Time-In on the selected school date. This is not the official SF2 attendance count.',
     action:'Understand measure',kind:'neutral',click:()=>switchSection('definitions')
    }
@@ -538,7 +551,7 @@
    const button=make('button','briefing-item briefing-'+item.kind);
    button.type='button';
    const heading=make('span','briefing-item-head');
-   heading.append(make('span','briefing-item-icon',item.icon),
+   heading.append(principalIcon('briefing-item-icon',item.icon),
     make('strong',null,item.name));
    const count=make('span','briefing-item-value',item.value);
    const description=make('span','briefing-item-description',item.text);
@@ -551,7 +564,7 @@
  }
  function recognitionEmpty(icon,title,description){
   const element=make('div','recognition-empty');
-  const symbol=make('span','recognition-empty-icon',icon);
+  const symbol=principalIcon('recognition-empty-icon',({'–':'empty','☀':'sun','✦':'award'})[icon]||'empty');
   symbol.setAttribute('aria-hidden','true');
   const body=make('div');
   body.append(make('strong',null,title),make('p',null,description));

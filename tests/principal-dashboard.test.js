@@ -121,7 +121,7 @@ test('Teacher Recognition redesign keeps evidence source contracts and responsiv
  assert.match(js,/count\.dataset\.state=award\.entries\.length\?'active':'empty'/);
  assert.match(routes,/watchNominees/);
  assert.match(routes,/earlyArrivals/);
- assert.match(html,/principal-dashboard\.css\?v=16/);
+ assert.match(html,/principal-dashboard\.css\?v=17/);
  const principalJsVersion=html.match(/principal-dashboard\.js\?v=(\d+)/);
  assert.ok(principalJsVersion && Number(principalJsVersion[1])>=13,'principal JS revision must not regress');
 });
@@ -137,5 +137,17 @@ test('Principal executive workspace puts decisions before recognition and retain
   assert.equal((html.match(new RegExp('id="'+id+'"','g'))||[]).length,1);
  assert.ok(css.includes('min-width:1180px'));
  assert.ok(css.includes('max-width:650px'));
- assert.ok(sw.includes('principal-dashboard.css?v=16'));
+ assert.ok(sw.includes('principal-dashboard.css?v=17'));
+});
+
+test('Principal executive icons are locally rendered, accessible and cache-versioned',()=>{
+ const html=read('public/principal.html'),js=read('public/principal-dashboard.js'),css=read('public/principal-dashboard.css'),sw=read('public/sw.js');
+ assert.equal((html.match(/class="metric-icon" aria-hidden="true"><svg/g)||[]).length,4);
+ assert.ok(html.includes('class="principal-nav-icon"'));
+ assert.ok(js.includes("document.createElementNS(ns,'svg')"));
+ assert.ok(js.includes("principalIcon('briefing-item-icon',item.icon)"));
+ assert.ok(js.includes("principalIcon('mark',"));
+ assert.ok(css.includes('.principal-action-icon'));
+ assert.ok(sw.includes('principal-dashboard.css?v=17'));
+ assert.ok(sw.includes('principal-dashboard.js?v=23'));
 });
