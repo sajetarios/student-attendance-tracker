@@ -38,11 +38,11 @@
    line.textContent='☐ '+kind;list.append(line);
   });
   put('salary','_________________');
-  put('workingDays','To be certified by HR');
+  put('workingDays','To be verified against official records');
   put('dates','_________________');
   put('commutation','☐ Requested / ☐ Not Requested');
   put('officialName','Authorized approving official and signature required');
-  put('status','Blank CSC Form No. 6 worksheet — no application submitted. Complete and verify through your school HR office.');
+  put('status','Blank CSC Form No. 6 worksheet — no application submitted. Complete and verify through your School Admin.');
   await branding();
   enablePrint();
   return;
@@ -63,13 +63,13 @@
    ?new Intl.DateTimeFormat('en-CA',{timeZone:'Asia/Manila',year:'numeric',month:'2-digit',day:'2-digit'}).format(filed):'');
   put('filingNote',r.leaveType==='SICK'
    ?r.filingBasis==='POST_RETURN'
-     ?'Filed after listed sick-leave dates. Under CSC Sec. 53, HR must verify immediate filing upon actual return and notice to the supervisor.'
+     ?'Filed after listed sick-leave dates. Under CSC Sec. 53, the School Admin must verify immediate filing upon actual return and notice to the supervisor.'
      :r.filingBasis==='ADVANCE'
        ?'Sick leave filed in advance; medical evidence and approval required.'
        :'Sick leave filed during the listed absence.'
    :'');
   put('salary','_________________');
-  put('workingDays',r.certifiedWorkingDays!=null?r.certifiedWorkingDays+' day(s) — HR verified':data.estimatedSchoolWorkingDays+' day(s) — calendar estimate; HR verification required');
+  put('workingDays',r.certifiedWorkingDays!=null?r.certifiedWorkingDays+' day(s) — officially verified':data.estimatedSchoolWorkingDays+' day(s) — calendar estimate; official verification required');
   put('dates',date(r.startDate)+' to '+date(r.endDate));
   const types=[
    ['VACATION','Vacation leave'],['MANDATORY','Mandatory/Forced leave'],['SICK','Sick leave'],
