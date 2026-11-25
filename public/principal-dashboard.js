@@ -1002,7 +1002,7 @@
    feedback.textContent='Published successfully. '+fmt(result.notifiedAccounts)+
     ' in-app inbox records created. Recipients must open and explicitly acknowledge the memo.';
    form.reset();syncPrincipalMemoOptions();
-   void loadMemoAdmin();void window.AttendigoSchoolMemos?.refresh?.();
+   void loadMemoAdmin();void window.AttendigoSchoolMemos?.refresh?.({published:true});
   }catch(e){feedback.textContent='Not published: '+errorText(e);}
   finally{button.disabled=false;}
  }

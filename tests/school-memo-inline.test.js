@@ -8,8 +8,8 @@ test('all four active dashboard families embed the same memo UI assets',()=>{
  const pages=['principal.html','portal.html','student-portal.html','parent-portal.html'];
  for(const p of pages){
   const s=read(p);
-  assert.match(s,/\/school-memo-banner\.js\?v=8/,'shared memo JS in '+p);
-  assert.match(s,/\/school-memo-banner\.css\?v=8/,'shared memo styling in '+p);
+  assert.match(s,/\/school-memo-banner\.js\?v=9/,'shared memo JS in '+p);
+  assert.match(s,/\/school-memo-banner\.css\?v=9/,'shared memo styling in '+p);
   assert.doesNotMatch(s,/href="\/school-memos\.html/,'no standalone memo link in '+p);
  }
 });
@@ -49,7 +49,7 @@ test('old memoranda URLs redirect to role-specific dashboards',()=>{
 });
 test('PWA caches new memo UI and always fetches authenticated portal pages online',()=>{
  const s=read('sw.js');
- for(const file of ['/school-memo-banner.js?v=8','/school-memo-banner.css?v=8',
+ for(const file of ['/school-memo-banner.js?v=9','/school-memo-banner.css?v=9',
     '/school-memos-redirect.js?v=1'])assert.ok(s.includes(file),file);
  assert.match(s,/"\/portal\.html", "\/class-qr-monitor\.html", "\/principal\.html", "\/school-memos\.html"/);
  assert.match(s,/fetch\(request, \{ cache: "no-store" \}\)/);
@@ -148,3 +148,5 @@ test('explicit memo acknowledgment uses only persisted server receipts and updat
   if(['error','missing'].includes(mode)){assert.equal(button.disabled,false);assert.equal(button.textContent,'Acknowledge memorandum');}
  }
 });
+
+test('shared memorandum workspace has one repository entry, server pagination and connected views',()=>{const s=read('school-memo-banner.js');assert.match(s,/make\('dialog','attendigo-memo-workspace'\)/);assert.match(s,/View All Memoranda/);assert.match(s,/card\(state\.memos\[0\]\)/);assert.match(s,/repository:'1',limit:'15'/);assert.match(s,/if\(!memo\.archivedAt\)actions\.append\(remove\)/);assert.match(s,/view='detail'/);});
