@@ -216,3 +216,5 @@
 #staffLeaveDialog .leave-form6-options summary{cursor:pointer;font-weight:650;overflow-wrap:anywhere}
 #staffLeaveDialog .leave-form6-options[open] summary{margin-bottom:10px}
 #staffLeaveDialog .leave-form6-options .leave-commutation-help{margin-top:8px;overflow-wrap:anywhere}
+
+#staffLeaveDialog .leave-credit-guidance[hidden]{display:none!important}
