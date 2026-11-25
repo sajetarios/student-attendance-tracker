@@ -449,7 +449,7 @@ function registerSf2Routes(app, pool, { authenticateSchoolClient, requireSchoolU
     return false;
   }
 
-  async function getMonthlySf2Summary(req, month, gradeLevel, section, data) {
+  async function getMonthlySf2Summary(req, month, gradeLevel, section, data, personalCopy=false) {
     const [year, monthNumber] = month.split('-').map(Number);
     const firstDay = month + '-01';
     const nextMonth = new Date(Date.UTC(year, monthNumber, 1)).toISOString().slice(0, 10);
@@ -477,6 +477,20 @@ function registerSf2Routes(app, pool, { authenticateSchoolClient, requireSchoolU
       'GROUP BY s.sex,m.movement_type',
       [req.auth.schoolId, firstDay, nextMonth, gradeLevel, section]
     );
+    // The subject worksheet is a supporting record, not a school-wide
+    // daily report. Its standard ADA denominator includes only dates for
+    // which every learner in the report has conclusive subject evidence.
+    const conclusive=new Set(['PRESENT','LATE','SUBJECT_ABSENT','EXCUSED']);
+    const completeSubjectDates=personalCopy?data.dates.map((_,i)=>data.students.length>0&&data.students.every(learner=>conclusive.has(learner.subjectDays?.[i]))):null;
+    const subjectFiveConsecutive=learner=>{
+      let count=0;
+      for(const status of learner.subjectDays||[]){
+        if(status==='NO_CLASS')continue;
+        count=['SUBJECT_ABSENT','EXCUSED'].includes(status)?count+1:0;
+        if(count>=5)return true;
+      }
+      return false;
+    };
     const bySex = sex => {
       const learners = data.students.filter(student => String(student.sex || '').toUpperCase() === sex);
       const early = enrollments.rows.filter(row =>
@@ -488,20 +502,20 @@ function registerSf2Routes(app, pool, { authenticateSchoolClient, requireSchoolU
         return date > cutoff && date >= firstDay && date < nextMonth;
       }).length;
       const presentDays = learners.reduce((count, learner) =>
-        count + learner.days.filter(day => day === 'PRESENT').length, 0);
+        count + (personalCopy?learner.subjectDays.filter((day,i)=>completeSubjectDates[i]&&['PRESENT','LATE'].includes(day)):learner.days.filter(day => day === 'PRESENT')).length, 0);
       const registered = learners.length;
       const countMoves = type => movements.rows
         .filter(item => String(item.sex || '').toUpperCase() === sex && item.type === type)
         .reduce((count, item) => count + Number(item.count || 0), 0);
       return {
         early, late, registered, presentDays,
-        consecutive: learners.filter(learner => fiveConsecutiveAbsences(learner.days)).length,
+        consecutive: learners.filter(learner => personalCopy?subjectFiveConsecutive(learner):fiveConsecutiveAbsences(learner.days)).length,
         dropout: countMoves('DROPOUT'),
         transferOut: countMoves('TRANSFER_OUT'),
         transferIn: countMoves('TRANSFER_IN')
       };
     };
-    return {male:bySex('MALE'),female:bySex('FEMALE'),days:data.dates.length};
+    return {male:bySex('MALE'),female:bySex('FEMALE'),days:personalCopy?completeSubjectDates.filter(Boolean).length:data.dates.length,...(personalCopy?{completeSubjectDates}: {})};
   }
 
   async function buildOfficialWorkbook(req, month, gradeLevel, section, data, personalCopy = false) {
@@ -575,7 +589,7 @@ function registerSf2Routes(app, pool, { authenticateSchoolClient, requireSchoolU
     // Do not print internal UUIDs or fake school placeholders.
     const academicYearStart = monthNumber >= 6 ? year : year-1;
     const schoolYear = setting('school_year') || `${academicYearStart}-${academicYearStart+1}`;
-    const summary = personalCopy ? null : await getMonthlySf2Summary(req, month, gradeLevel, section, data);
+    const summary = await getMonthlySf2Summary(req, month, gradeLevel, section, data, personalCopy);
     // Printed names are role-scoped, never copied from the reference school.
     // If there is no unique active signer, leave the name blank for verification.
     // This does not sign or attest the workbook on anyone's behalf.
@@ -597,7 +611,7 @@ function registerSf2Routes(app, pool, { authenticateSchoolClient, requireSchoolU
     const adviserName=signer('ADVISER'), schoolHeadName=signer('HEAD');
     const output = createReferenceWorkbook({source, data, summary, month, monthName:MONTHS[monthNumber-1],
       schoolName,schoolId,schoolYear,gradeLevel,section,personalCopy,adviserName,schoolHeadName});
-    return renderMasterWorkbook({calculated:output,data,month,personalCopy,schoolName,schoolId,schoolYear,gradeLevel,section,adviserName,schoolHeadName});
+    return renderMasterWorkbook({calculated:output,data,summary,month,personalCopy,schoolName,schoolId,schoolYear,gradeLevel,section,adviserName,schoolHeadName});
   }
 
   async function buildPersonalCopyWorkbook(req, month, gradeLevel, section, data) {
