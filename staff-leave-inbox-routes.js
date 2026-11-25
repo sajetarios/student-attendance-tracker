@@ -62,9 +62,10 @@ function registerStaffLeaveInboxRoutes(app,pool,{authenticateSchoolClient,requir
    args.push(limit+1,offset);
    const rows=await pool.query(
     'SELECT r.*,u.role AS requester_role,u.display_name AS staff_name,'+
-    'd.department_name FROM staff_leave_requests r '+
+    'd.department_name,sc.leave_scheme FROM staff_leave_requests r '+
     'JOIN school_users u ON u.school_id=r.school_id AND u.user_id=r.staff_user_id '+
     'LEFT JOIN school_departments d ON d.school_id=r.school_id AND d.department_id=r.department_id '+
+    'LEFT JOIN staff_leave_credit_schemes sc ON sc.school_id=r.school_id AND sc.staff_user_id=r.staff_user_id '+
     'WHERE '+where+' ORDER BY r.submitted_at DESC,r.request_id DESC LIMIT $'+(args.length-1)+
     ' OFFSET $'+args.length,args);
    res.json({counts,filter,requests:rows.rows.slice(0,limit).map(r=>publicInboxRecord(r,req.auth)),
