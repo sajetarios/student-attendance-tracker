@@ -4,7 +4,8 @@ const UUID=/^[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}$/i;
 function parseBlankPdf(value){
  if(typeof value!=='string'||value.length>Math.ceil(MAX/3)*4||!/^[A-Za-z0-9+/]+={0,2}$/.test(value))throw Error('Choose a blank PDF up to 2 MB.');
  const bytes=Buffer.from(value,'base64');
- if(!bytes.length||bytes.length>MAX||bytes.toString('base64')!==value||bytes.subarray(0,5).toString()!=='%PDF-')throw Error('Choose a valid PDF.');
+ if(bytes.length>MAX)throw Error('Choose a blank PDF up to 2 MB.');
+ if(!bytes.length||bytes.toString('base64')!==value||bytes.subarray(0,5).toString()!=='%PDF-')throw Error('Choose a valid PDF.');
  return bytes;
 }
 function registerLocatorLibraryRoutes(app,pool,{authenticateSchoolClient,requireSchoolRoles,authenticatePlatform,requirePlatformAdmin,canCustomizeBranding}){
