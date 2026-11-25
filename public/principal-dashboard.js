@@ -878,7 +878,7 @@
        (memo.audience==='ALL_USERS'?'All school users':'School personnel only')));
     const windowText=memo.effectiveDate?(memo.effectiveDate+(memo.endDate?' through '+memo.endDate:' · end not specified')):'No defined effective period';
     item.append(make('span',null,windowText+
-     (memo.dtrHours?' · Temporary prescribed DTR hours':' · Announcement only')));
+     (memo.dtrHours?' · Temporary prescribed DTR hours':memo.classPeriodMinutes?' · Shortened teaching periods':' · Announcement only')));
     const actions=make('div','principal-memo-links');
     const link=make('button','text-link','View memorandum in dashboard');
     link.type='button';
@@ -909,12 +909,19 @@
    to=form.elements.namedItem('endDate'),
    apply=$('principalMemoApplyDtr'),
    required=['SCHEDULE_NOTICE','CLASS_SUSPENSION'].includes(category);
+  const short=$('principalShortenedClass');
+  $('principalShortenedToggle').hidden=category!=='SCHEDULE_NOTICE';
+  if(category!=='SCHEDULE_NOTICE')short.checked=false;
+  const teaching=short.checked;
+  $('principalShortenedFields').hidden=!teaching;
+  for(const name of ['originalMinutes','adjustedMinutes'])form.elements.namedItem(name).required=teaching;
+  form.elements.namedItem('document').required=!teaching;
   const audienceControl=form.elements.namedItem('audience');
-  if(category==='CLASS_SUSPENSION')audienceControl.value='ALL_USERS';
-  audienceControl.querySelector('option[value="SCHOOL_STAFF"]').disabled=category==='CLASS_SUSPENSION';
+  if(category==='CLASS_SUSPENSION'||teaching)audienceControl.value='ALL_USERS';
+  audienceControl.querySelector('option[value="SCHOOL_STAFF"]').disabled=category==='CLASS_SUSPENSION'||teaching;
   from.required=required;to.required=required;
   to.min=from.value||'';
-  apply.disabled=category!=='SCHEDULE_NOTICE';
+  apply.disabled=category!=='SCHEDULE_NOTICE'||teaching;
   if(apply.disabled)apply.checked=false;
   const enabled=apply.checked&&!apply.disabled;
   $('principalMemoDtrFields').hidden=!enabled;
@@ -931,13 +938,14 @@
     category=String(data.get('category')),audience=String(data.get('audience')),
     effectiveDate=String(data.get('effectiveDate')||''),
     endDate=String(data.get('endDate')||''),
+    teaching=data.get('shortenedClass')==='on',original=Number(data.get('originalMinutes')),adjusted=Number(data.get('adjustedMinutes')),
     applyDtr=data.get('applyDtr')==='on',
     dtrHours={
      AM_IN:String(data.get('dtrAmIn')||''),AM_OUT:String(data.get('dtrAmOut')||''),
      PM_IN:String(data.get('dtrPmIn')||''),PM_OUT:String(data.get('dtrPmOut')||'')
     };
-  if(!(file instanceof File)||!file.size||file.size>4194304||
-    !['application/pdf','image/jpeg','image/png'].includes(file.type)){
+  const hasFile=file instanceof File&&file.size>0;
+  if((!hasFile&&!teaching)||(hasFile&&(file.size>4194304||!['application/pdf','image/jpeg','image/png'].includes(file.type)))){
     feedback.textContent='Attach a PDF, JPG or PNG document up to 4 MB.';return;
   }
   if((endDate&&(!effectiveDate||endDate<effectiveDate))||
@@ -956,24 +964,35 @@
     feedback.textContent='DTR adjustment requires a temporary schedule notice, 31 days maximum, and four chronological prescribed times.';return;
    }
   }
+  if(teaching&&(!Number.isInteger(original)||!Number.isInteger(adjusted)||adjusted<10||original>180||adjusted>=original)){
+   feedback.textContent='Enter a valid shorter class duration.';return;
+  }
   const notice=audience==='ALL_USERS'
    ?'all active school accounts including registered students and parents'
    :'school personnel accounts only';
-  const publishMessage='Publish this memorandum to '+notice+
+  let publishMessage='Publish this memorandum to '+notice+
     (effectiveDate?' from '+effectiveDate+(endDate?' through '+endDate:''):'')+
     '? In-app notifications will be created. '+
-    (applyDtr?'The entered prescribed DTR hours will apply during this period; actual punches, leave, OB, and class suspension remain unchanged.':
+    (teaching?'Teaching periods only; personnel DTR hours are unchanged.':applyDtr?'The entered prescribed DTR hours will apply during this period; actual punches, leave, OB, and class suspension remain unchanged.':
      'Announcement only: no DTR or timetable rules will change.');
   button.disabled=true;
-  if(!(window.AppDialog ? await window.AppDialog.confirm(publishMessage,{title:'Publish memorandum',confirmText:'Publish'}) : window.confirm(publishMessage))){button.disabled=false;return;}
-  feedback.textContent='Publishing memorandum and creating school notifications…';
   try{
-   const response=await fetch('/api/school-memos',{method:'POST',credentials:'same-origin',cache:'no-store',
-    headers:{'Content-Type':file.type,'x-filename':file.name,
+   const headers={...(hasFile?{'Content-Type':file.type,'x-filename':file.name}:{}),
       'x-memo-title':encodeURIComponent(String(data.get('title'))),'x-memo-summary':encodeURIComponent(String(data.get('summary')||'')),
       'x-memo-category':category,'x-memo-audience':audience,'x-memo-effective-date':effectiveDate,
       'x-memo-end-date':endDate,'x-memo-apply-dtr':String(applyDtr),
-      ...(applyDtr?{'x-memo-dtr-hours':encodeURIComponent(JSON.stringify(dtrHours))}:{})},body:file});
+      ...(applyDtr?{'x-memo-dtr-hours':encodeURIComponent(JSON.stringify(dtrHours))}:{}),
+      ...(teaching?{'x-memo-shortened-class':'true','x-memo-original-minutes':String(original),'x-memo-adjusted-minutes':String(adjusted)}:{})};
+   if(teaching){
+    feedback.textContent='Validating shortened timetable…';
+    const check=await fetch('/api/school-memos',{method:'POST',credentials:'same-origin',cache:'no-store',headers:{...headers,'x-memo-preview':'true'}});
+    const plan=await check.json();
+    if(!check.ok)throw Error(plan.error||'Unable to preview timetable.');
+    publishMessage+=' '+plan.changedPeriods+' class/period changes across '+plan.dates.length+' date(s). Examples: '+plan.sample.map(p=>p.date+' '+p.gradeLevel+' '+p.section+' '+p.startTime+'–'+p.endTime).join('; ')+'.';
+   }
+   if(!(window.AppDialog ? await window.AppDialog.confirm(publishMessage,{title:'Publish memorandum',confirmText:'Publish'}) : window.confirm(publishMessage)))return;
+   feedback.textContent='Publishing memorandum and creating school notifications…';
+   const response=await fetch('/api/school-memos',{method:'POST',credentials:'same-origin',cache:'no-store',headers,body:hasFile?file:undefined});
    const result=await response.json().catch(()=>({}));
    if(!response.ok)throw Error(result.error||'Could not publish memorandum.');
    feedback.textContent='Published successfully. '+fmt(result.notifiedAccounts)+
@@ -992,6 +1011,7 @@
   }
   $('principalMemoForm').elements.namedItem('effectiveDate').addEventListener('input',syncPrincipalMemoOptions);
   $('principalMemoApplyDtr').addEventListener('change',syncPrincipalMemoOptions);
+  $('principalShortenedClass').addEventListener('change',syncPrincipalMemoOptions);
   syncPrincipalMemoOptions();
   $('principalMemoRefresh').addEventListener('click',()=>void loadMemoAdmin());
   $('principalExportSummary').addEventListener('click',exportLeadershipSummary);
