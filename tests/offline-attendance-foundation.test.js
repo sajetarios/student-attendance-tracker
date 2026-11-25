@@ -73,7 +73,8 @@ test('standalone offline sheet encrypts student data and checks account before u
   assert.match(js, /AES-GCM/);
   assert.match(js, /u\.schoolId!==data\.schoolId\|\|u\.userId!==data\.userId/);
   assert.match(js, /type:'MANUAL_MARKS'/);
-  assert.match(js, /Server verification failed/);
+  assert.match(js, /byId\[m\.studentId\]\?\.status===m\.status/);
+  assert.match(js, /data\.revisions\[date\]\[m\.studentId\]=Number\(byId\[m\.studentId\]\?\.revision/);
   const sw = read('public/sw.js');
   assert.match(sw, /offline-sheet\.html/);
   const script = read('public/offline-sheet.html').match(/src="(\/offline-sheet\.js\?v=[^"]+)"/)?.[1];
