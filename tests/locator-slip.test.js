@@ -62,13 +62,17 @@ test('both portals prepare the PDF through the shared inline error handler',()=>
  assert.match(ui,/if\(!response\.ok\)throw await responseError\(response\)/);
  assert.match(ui,/LOCATOR_TEMPLATE_REQUIRED/);
  assert.doesNotMatch(ui,/URL\.createObjectURL|\bblob:/);
- assert.match(ui,/link\.href=url/);
+ assert.doesNotMatch(ui,/Open printable PDF|Open PDF in browser|Share \/ Save to Files/);
+ assert.match(ui,/Save \/ Print PDF/);
+ assert.match(ui,/Hide Locator Slip/);
+ assert.match(ui,/panel\.append\(save,preview\)/);
+ assert.match(ui,/if\(!panel\.hidden\)closePreview\(\)/);
  assert.match(ui,/save\.href=url\+'\?download=1'/);
  assert.match(ui,/response\.arrayBuffer\(\)/);
  assert.match(fs.readFileSync('staff-ob-routes.js','utf8'),/req\.query\?\.download==='1'\?'attachment':'inline'/);
  assert.match(staff,/AttendigoLocatorSlip\.attach/);
  assert.match(principal,/AttendigoLocatorSlip\.attach/);
- for(const page of ['public/portal.html','public/principal.html','public/sw.js']) assert.match(fs.readFileSync(page,'utf8'),/\/locator-slip-ui\.js\?v=4/);
+ for(const page of ['public/portal.html','public/principal.html','public/sw.js']) assert.match(fs.readFileSync(page,'utf8'),/\/locator-slip-ui\.js\?v=5/);
 });
 
 test('in-app preview and iOS sharing are independent of native PDF navigation',()=>{
