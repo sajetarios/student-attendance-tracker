@@ -15,7 +15,7 @@
   }
   function init(win){
     const doc=win.document,nav=win.navigator;
-    let deferred=null,completed=false,busy=false,mounted=false;
+    let deferred=null,completed=false,busy=false,mounted=false,lastTrigger=null;
     const mode=platform(nav);
     const get=id=>doc.getElementById(id);
     function render(){
@@ -40,7 +40,7 @@
       try{
         await event.prompt();
         const choice=await event.userChoice;
-        status(choice?.outcome==='accepted'?'Installation accepted. Open Attendigo from your Home Screen or apps list when it is ready.':'Installation dismissed. You can still use the instructions below.');
+        status(choice?.outcome==='accepted'?'Installation accepted. Open Attendigo from your Home Screen or apps list when it is ready.':'Installation dismissed. Open the installation guide for help.');
       }catch(_){status('Installation is unavailable right now. Tap Install Attendigo again for setup instructions.');}
       finally{busy=false;render();}
     }
@@ -53,10 +53,20 @@
     win.matchMedia?.('(display-mode: standalone)')?.addEventListener?.('change',render);
     function mount(){
       mounted=true;
+      const dialog=get('attendigoInstallDialog');
+      if(dialog){
+        dialog.querySelectorAll('[data-install-close]').forEach(button=>button.addEventListener('click',()=>dialog.close()));
+        dialog.addEventListener('close',()=>{lastTrigger?.focus?.({preventScroll:true});lastTrigger=null;});
+      }
       doc.querySelectorAll('[data-attendigo-install]').forEach(link=>link.addEventListener('click',event=>{
         if(event.ctrlKey||event.metaKey||event.shiftKey||event.altKey)return;
         if(busy||completed||installed(win)){event.preventDefault();return;}
-        if(deferred&&mode!=='embedded'&&mode!=='ios'){event.preventDefault();void showInstallPrompt();}
+        if(deferred&&mode!=='embedded'&&mode!=='ios'){event.preventDefault();void showInstallPrompt();return;}
+        if(dialog&&typeof dialog.showModal==='function'){
+          event.preventDefault();
+          if(!dialog.open){lastTrigger=link;dialog.showModal();}
+          render();
+        }
       }));
       get('installAction')?.addEventListener('click',()=>void showInstallPrompt());
       const input=get('installUrl');

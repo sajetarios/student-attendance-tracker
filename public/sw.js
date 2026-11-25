@@ -1,4 +1,4 @@
-const CACHE = "attendigo-v402-memo-repository";
+const CACHE = "attendigo-v404-branded-install";
 
 // Only public, non-personal offline shells and their executable dependencies.
 // An update must not discard the working cache before these are all ready.
@@ -24,9 +24,9 @@ const OFFLINE_REQUIRED = [
 
 const SHELL = [
   "/install.html",
-  "/attendigo-install.js?v=4",
-  "/attendigo-install-walkthrough.js?v=1",
-  "/attendigo-install.css?v=4",
+  "/attendigo-install.js?v=5",
+  "/attendigo-install-walkthrough.js?v=2",
+  "/attendigo-install.css?v=6",
   "/typography.css?v=1",
   "/attendigo-form-overlap-guard.css?v=2",
   "/attendigo-workspace-density-theme.css?v=1",

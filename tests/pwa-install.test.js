@@ -19,7 +19,7 @@ test('public installation entry points reuse the existing manifest and avoid aut
  const read=p=>fs.readFileSync('public/'+p,'utf8');
  for(const p of ['portal-login.html','parent-portal.html','portal.html','student-portal.html','principal.html']) {
    assert.match(read(p),/href="\/install\.html"/);
-   assert.match(read(p),/attendigo-install\.js\?v=4/);
+   assert.match(read(p),/attendigo-install\.js\?v=5/);
  }
  assert.match(read('install.html'),/manifest\.webmanifest/);
  assert.match(read('install.html'),/Activate phone alerts/);
@@ -71,7 +71,7 @@ test('all main portals declare manifest and capture install event early with ani
  for(const p of ['portal-login.html','parent-portal.html','portal.html','student-portal.html','principal.html','install.html']){
  const s=fs.readFileSync('public/'+p,'utf8');
  assert.match(s,/rel="manifest"/);
- assert.match(s,/<head[^>]*><script src="\/attendigo-install\.js\?v=4"><\/script>/);
+ assert.match(s,/<head[^>]*><script src="\/attendigo-install\.js\?v=5"><\/script>/);
  assert.match(s,/class="install-robot"/);
  }
  assert.equal(installed({navigator:{},matchMedia:q=>({matches:q==='(display-mode: fullscreen)'})}),false);
@@ -82,8 +82,8 @@ test('illustrated device guides and walkthrough are local and optional',()=>{
  assert.equal((page.match(/data-walk-step/g)||[]).length,8);
  assert.match(page,/Add to Home Screen/);
  assert.match(page,/Watch walkthrough/);
- assert.match(page,/attendigo-install-walkthrough\.js\?v=1/);
- assert.match(fs.readFileSync('public/sw.js','utf8'),/attendigo-install-walkthrough\.js\?v=1/);
+ assert.match(page,/attendigo-install-walkthrough\.js\?v=2/);
+ assert.match(fs.readFileSync('public/sw.js','utf8'),/attendigo-install-walkthrough\.js\?v=2/);
 });
 test('walkthrough plays only on click, advances, pauses and supports manual navigation',()=>{
  const {mount}=require('../public/attendigo-install-walkthrough.js');
@@ -102,4 +102,44 @@ test('walkthrough plays only on click, advances, pauses and supports manual navi
  play.events.click();doc.hidden=true;doc.events.visibilitychange();assert.equal(tick,null);assert.equal(count.textContent,'1 / 4');
  doc.hidden=false;play.events.click();tick();assert.equal(count.textContent,'2 / 4');
  doc.hidden=true;tick();assert.equal(tick,null);assert.equal(count.textContent,'2 / 4');
+});
+
+test('portal fallback opens and closes the installation dialog without navigation',()=>{
+ const {init}=require('../public/attendigo-install.js');
+ const events={},linkEvents={},dialogEvents={},buttonEvents={};
+ let prevented=0,focused=0,opened=0,closed=0;
+ const link={addEventListener:(name,cb)=>{linkEvents[name]=cb},focus:()=>{focused++}};
+ const closeButton={addEventListener:(name,cb)=>{buttonEvents[name]=cb}};
+ const dialog={open:false,querySelectorAll:()=>[closeButton],addEventListener:(n,cb)=>{dialogEvents[n]=cb},showModal(){this.open=true;opened++},close(){this.open=false;closed++;dialogEvents.close()}};
+ const win={document:{readyState:'complete',getElementById:id=>id==='attendigoInstallDialog'?dialog:null,querySelectorAll:q=>q==='[data-attendigo-install]'||q.includes('[data-attendigo-install-container]')?[link]:[]},navigator:{userAgent:'iPhone Safari'},matchMedia:()=>({matches:false}),addEventListener:(n,cb)=>{events[n]=cb}};
+ init(win);
+ linkEvents.click({preventDefault(){prevented++}});assert.equal(prevented,1);assert.equal(opened,1);
+ buttonEvents.click();assert.equal(closed,1);assert.equal(focused,1);
+ linkEvents.click({preventDefault(){prevented++}});assert.equal(opened,2);
+});
+test('every portal uses a branded in-place guide with no return link that navigates',()=>{
+ const guide=fs.readFileSync('public/install.html','utf8').match(/<main class="install-card">([\s\S]*?)<\/main>/)[1];
+ for(const p of ['portal-login.html','parent-portal.html','portal.html','student-portal.html','principal.html']){
+ const source=fs.readFileSync('public/'+p,'utf8');
+ const modal=source.match(/<dialog id="attendigoInstallDialog"[\s\S]*?<\/dialog>/)[0];
+ assert.match(modal,/attendigo-official-lockup/);
+ assert.match(modal,/data-install-close>Close<\/button>/);assert.doesNotMatch(modal,/href="\/"\s*>/);
+ assert.equal((modal.match(/data-walk-step/g)||[]).length,(guide.match(/data-walk-step/g)||[]).length);
+ assert.match(source,/target="_blank" rel="noopener" aria-haspopup="dialog"/);
+ }
+ const login=fs.readFileSync('public/portal-login.html','utf8');
+ assert.ok(login.indexOf('data-attendigo-install-container')<login.indexOf('id="loginForm"'));
+});
+
+test('installer follows approved login brand and avoids the former green primary controls',()=>{
+ const css=fs.readFileSync('public/attendigo-install.css','utf8');
+ assert.match(css,/linear-gradient\(130deg,#08183c,#174089\)/);
+ assert.match(css,/linear-gradient\(115deg,#3921bc,#6231e6/);
+ assert.doesNotMatch(css,/#08705d|#075b4e|#147664/i);
+ for(const p of ['install.html','portal-login.html','portal.html','parent-portal.html','student-portal.html','principal.html']){
+  const s=fs.readFileSync('public/'+p,'utf8');
+  assert.match(s,/install-brand-logo[^>]+attendigo-official-lockup/);
+  assert.match(s,/attendigo-install\.css\?v=6/);
+ }
+ assert.match(fs.readFileSync('public/sw.js','utf8'),/attendigo-install\.css\?v=6/);
 });
