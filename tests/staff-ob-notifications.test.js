@@ -38,6 +38,15 @@ test('OB notifications open the correct module and refresh after decisions',()=>
  assert.match(sql,/\/portal\.html#officialBusiness/);
  assert.match(bell,/document\.querySelector\('\.nav-item\[data-view="'\+view\+'"\]'\)/);
  assert.match(ui,/document\.dispatchEvent\(new Event\('attendigo:requests-changed'\)\)/);
- assert.match(portal,/staff-ob-ui\.js\?v=6/);
- assert.match(sw,/staff-ob-ui\.js\?v=6/);
+ assert.match(portal,/staff-ob-ui\.js\?v=8/);
+ assert.match(sw,/staff-ob-ui\.js\?v=8/);
+});
+
+test('new migration replaces historical Admin routing with Principal authorization',()=>{
+ const current=fs.readFileSync('migrations/095_principal_ob_notifications.sql','utf8');
+ assert.match(migration,/095_principal_ob_notifications.sql/);
+ assert.match(current,/role='PRINCIPAL' AND active=TRUE/);
+ assert.doesNotMatch(current,/role='SCHOOL_ADMIN' AND active=TRUE/);
+ assert.match(current,/:pending-principal/);
+ assert.match(current,/status='ROUTED'/);
 });
