@@ -91,8 +91,6 @@ async function checkMemoLauncher(engine,engineName){
       window.memoOpened=false;
       render(state,strip,make,document,()=>{window.memoOpened=true},()=>{});
      },{fragment,role});
-     assert.equal(await page.locator('#principalShortenedToggle').isVisible(),false,'hidden teaching toggle stays hidden');
-     await page.locator('#principalShortenedToggle').evaluate(e=>{e.hidden=false;});
      const geometry=await page.evaluate(()=>{
       const rect=sel=>{const r=document.querySelector(sel).getBoundingClientRect();return {x:r.x,y:r.y,width:r.width,height:r.height};};
       return {card:rect('.attendigo-memo-launcher'),icon:rect('.attendigo-memo-icon'),copy:rect('.attendigo-memo-copy'),arrow:rect('.attendigo-memo-launcher-arrow'),parent:rect('main'),count:document.querySelectorAll('aside button').length,display:getComputedStyle(document.querySelector('.attendigo-memo-launcher')).display};
@@ -133,6 +131,8 @@ async function checkMemoGeometry(engine,engineName){
      assert.equal(await page.locator('#principalMemoForm').evaluate(e=>getComputedStyle(e).display),'grid');
      for(const name of ['effectiveDate','endDate'])await page.locator('input[name='+name+']').fill('2026-11-24');
      for(const name of ['dtrAmIn','dtrAmOut','dtrPmIn','dtrPmOut'])await page.locator('input[name='+name+']').fill('08:00');
+     assert.equal(await page.locator('#principalShortenedToggle').isVisible(),false,'hidden teaching toggle stays hidden');
+     await page.locator('#principalShortenedToggle').evaluate(e=>{e.hidden=false;});
      const geometry=await page.evaluate(()=>{
       const rect=e=>{const r=e.getBoundingClientRect();return {x:r.x,y:r.y,width:r.width,height:r.height};};
       const form=document.getElementById('principalMemoForm');
