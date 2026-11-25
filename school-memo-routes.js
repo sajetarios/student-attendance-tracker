@@ -63,31 +63,53 @@ function registerSchoolMemoRoutes(app,pool,{authenticateSchoolClient,requireScho
     'm.memo_id AS "memoId",m.school_id AS "schoolId",m.audience,m.title,m.archived_at FROM school_memoranda m WHERE m.school_id=$1 AND m.memo_id=$2',
     [a.schoolId,id]);
   const memo=result.rows[0];
-  if(!memo||memo.archived_at){res.status(404).json({error:'This memorandum is not available.'});return null;}
+  if(!memo||(memo.archived_at&&!(includeContent&&a.role==='PRINCIPAL'))){res.status(404).json({error:'This memorandum is not available.'});return null;}
   if(!canReadMemo(a,memo.audience)){res.status(403).json({error:'This memorandum is for school personnel only.'});return null;}
   return memo;
  }
  app.get('/api/school-memos',...read,async(req,res)=>{
   privateResponse(res);
   const viewer=req.memoViewer,limit=Math.min(50,Math.max(1,Number.parseInt(req.query?.limit,10)||20));
+  const repository=req.query?.repository==='1';
+  const status=repository?String(req.query.status||'all'):'published';
+  const allowed=['all','active','upcoming','past','archived','published'];
+  const isPrincipal=viewer.role==='PRINCIPAL';
+  if(!allowed.includes(status))return res.status(400).json({error:'Invalid memorandum filter.'});
+  if(status==='archived'&&!isPrincipal)return res.status(403).json({error:'Archived records are restricted to the principal.'});
+  const includeArchived=repository&&isPrincipal&&['all','archived'].includes(status);
+  const offset=repository?Math.min(1000000,Math.max(0,Number.parseInt(req.query.offset,10)||0)):0;
+  const query=repository?String(req.query.q||'').trim().slice(0,160):'';
+  const memoId=repository?String(req.query.id||''):'';
+  if(memoId&&!UUID.test(memoId))return res.status(400).json({error:'Invalid memorandum ID.'});
+  const oldest=repository&&req.query.sort==='oldest';
   try{
    const result=await pool.query(`
     SELECT m.memo_id AS "memoId",m.title,m.summary,m.category,m.audience,
      to_char(m.effective_date,'YYYY-MM-DD') AS "effectiveDate",
      to_char(m.end_date,'YYYY-MM-DD') AS "endDate",
      m.dtr_hours AS "dtrHours",m.class_period_minutes AS "classPeriodMinutes",m.filename,
-     m.published_at AS "publishedAt",u.display_name AS "publisher",
+     m.published_at AS "publishedAt",m.archived_at AS "archivedAt",u.display_name AS "publisher",
      a.acknowledged_at AS "acknowledgedAt"
     FROM school_memoranda m
     JOIN school_users u ON u.school_id=m.school_id AND u.user_id=m.published_by
     LEFT JOIN school_memo_acknowledgments a ON a.school_id=m.school_id AND a.memo_id=m.memo_id
      AND a.viewer_kind=$2 AND a.viewer_id=$3
-    WHERE m.school_id=$1 AND m.archived_at IS NULL
+    WHERE m.school_id=$1 AND (m.archived_at IS NULL OR $6::boolean)
      AND (m.audience='ALL_USERS' OR ($4::boolean AND m.audience='SCHOOL_STAFF'))
-    ORDER BY m.published_at DESC,m.memo_id DESC LIMIT $5`,
+     AND ($7='' OR strpos(lower(concat_ws(' ',m.title,m.summary,replace(m.category,'_',' '),m.audience,m.published_at::date::text,m.effective_date::text,m.end_date::text)),lower($7))>0)
+     AND ($8='all' OR ($8='published' AND m.archived_at IS NULL)
+       OR ($8='archived' AND m.archived_at IS NOT NULL)
+       OR (m.archived_at IS NULL AND CASE $8
+         WHEN 'active' THEN m.effective_date<=(NOW() AT TIME ZONE 'Asia/Manila')::date AND (m.end_date IS NULL OR m.end_date>=(NOW() AT TIME ZONE 'Asia/Manila')::date)
+         WHEN 'upcoming' THEN m.effective_date>(NOW() AT TIME ZONE 'Asia/Manila')::date
+         WHEN 'past' THEN m.effective_date IS NULL OR m.end_date<(NOW() AT TIME ZONE 'Asia/Manila')::date
+         ELSE FALSE END))
+     AND ($9::uuid IS NULL OR m.memo_id=$9::uuid)
+    ORDER BY m.published_at ${oldest?'ASC':'DESC'},m.memo_id ${oldest?'ASC':'DESC'} LIMIT $5 OFFSET $10`,
     [viewer.schoolId,viewer.kind,viewer.id,
-      viewer.kind==='SCHOOL_USER'&&viewer.role!=='PARENT',limit]);
-   return res.json({memoranda:result.rows,unacknowledgedInPage:result.rows.filter(x=>!x.acknowledgedAt).length,
+      viewer.kind==='SCHOOL_USER'&&viewer.role!=='PARENT',repository?limit+1:limit,includeArchived,query,status,memoId||null,offset]);
+   const rows=result.rows.slice(0,limit);
+   return res.json({memoranda:rows,hasMore:repository&&result.rows.length>limit,unacknowledgedInPage:rows.filter(x=>!x.acknowledgedAt).length,
     notice:'Acknowledgment is explicit. Delivery and login alone do not establish that a memorandum was read.'});
   }catch(e){return fail(res,e);}
  });

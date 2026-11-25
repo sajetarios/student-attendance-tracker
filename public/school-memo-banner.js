@@ -19,6 +19,8 @@
  };
  const state={open:false,loading:false,role:'',memoId:'',memos:[],ready:false};
  const previews=new Map();
+ let view='home',repositoryRows=[],selectedMemo=null,offset=0,hasMore=false,repoSequence=0,repoTimer;
+ let repositoryTools,repositoryNav,back,allButton,statusFilter,sortFilter;
  function clearPreviews(){
   for(const url of previews.values())URL.revokeObjectURL(url);
   previews.clear();
@@ -87,7 +89,9 @@
  }
  function close(){
   if(!panel)return;
-  state.open=false;panel.hidden=true;
+  state.open=false;panel.hidden=true;repoSequence++;clearTimeout(repoTimer);
+  if(panel.open&&typeof panel.close==='function')panel.close();
+  view='home';state.memoId='';selectedMemo=null;
   clearPreviews();
   panel.querySelector('.attendigo-memo-list')?.replaceChildren();
   banner();
@@ -183,7 +187,7 @@
   if(!await window.AppDialog.confirm(message,{title:'Archive memorandum',confirmText:'Archive',variant:'danger'})){button.disabled=false;return;}
   try{
    await request('/api/school-memos/'+encodeURIComponent(memo.memoId)+'/archive',{method:'POST'});
-   setStatus('Memorandum archived.');await load();
+   selectedMemo=null;state.memoId='';view='repository';await load();setStatus('Memorandum archived.');
   }catch(e){button.disabled=false;setStatus(e.message);}
  }
  function card(memo){
@@ -200,11 +204,12 @@
   if(memo.summary)record.append(make('p','attendigo-memo-summary',memo.summary));
   const details=make('div','attendigo-memo-record-meta');
   details.append(make('span',null,memo.audience==='ALL_USERS'?'All school users':'School personnel'));
+  if(memo.archivedAt)details.append(make('span',null,'Archived · '+fmt(memo.archivedAt)));
   if(memo.effectiveDate){
    const parts=Object.fromEntries(new Intl.DateTimeFormat('en-CA', {timeZone:'Asia/Manila',year:'numeric',month:'2-digit',day:'2-digit'}).formatToParts(new Date()).map(p=>[p.type,p.value]));
    const today=parts.year+'-'+parts.month+'-'+parts.day;
    const period=memo.endDate?memo.effectiveDate+' to '+memo.endDate:memo.effectiveDate+' (no end date recorded)';
-   const stateText=today<memo.effectiveDate?'Upcoming':memo.endDate&&today>memo.endDate?'Ended':'Active';
+   const stateText=memo.archivedAt?'Archived':today<memo.effectiveDate?'Upcoming':memo.endDate&&today>memo.endDate?'Ended':'Active';
    details.append(make('span',null,'Effective '+period+' · '+stateText));
   }
   if(memo.dtrHours){
@@ -228,7 +233,8 @@
    view.disabled=false;
   });
   if(memo.filename)actions.append(view);
-  if(memo.acknowledgedAt)actions.append(acknowledgmentStatus(memo.acknowledgedAt));
+  if(memo.archivedAt){if(memo.acknowledgedAt)actions.append(acknowledgmentStatus(memo.acknowledgedAt));}
+  else if(memo.acknowledgedAt)actions.append(acknowledgmentStatus(memo.acknowledgedAt));
   else{
    const ack=make('button','attendigo-memo-ack','Acknowledge memorandum');
    ack.type='button';ack.addEventListener('click',()=>void markRead(memo,ack));
@@ -240,7 +246,7 @@
    show.addEventListener('click',()=>void receipts(memo,show,report));
    actions.append(show);
    const remove=make('button','attendigo-memo-secondary','Archive');remove.type='button';
-   remove.addEventListener('click',()=>void archive(memo,remove));actions.append(remove);
+   remove.addEventListener('click',()=>void archive(memo,remove));if(!memo.archivedAt)actions.append(remove);
    record.append(actions,report);
   }else record.append(actions);
   return record;
@@ -263,23 +269,12 @@
   publisher.classList.add('attendigo-memo-embedded-publisher');
   manager.append(publisher);
   toolbar.after(manager);
-  create.addEventListener('click',()=>{
-   manager.hidden=!manager.hidden;
-   create.setAttribute('aria-expanded',String(!manager.hidden));
-   create.textContent=manager.hidden?'+ Create memorandum':'Hide publication form';
-   if(!manager.hidden)publisher.querySelector('input[name="title"]')?.focus();
-   else create.focus();
-  });
+  create.addEventListener('click',()=>{view='create';render();publisher.querySelector('input[name="title"]')?.focus();});
   actions.append(create,toolbar.querySelector('.attendigo-memo-refresh'));
   toolbar.append(actions);
-  const filter=make('label','attendigo-memo-search','Search published memoranda');
-  managerSearch=make('input','attendigo-memo-search-input');
-  managerSearch.type='search';managerSearch.placeholder='Search title, summary or category';
-  managerSearch.addEventListener('input',()=>render());
-  filter.append(managerSearch);
-  panel.querySelector('.attendigo-memo-list').before(filter);
+  ensureArchiveFilter();
   const label=panel.querySelector('[data-memo-count="unread"]')?.nextElementSibling;
-  if(label)label.textContent='Your unacknowledged';
+  if(label)label.textContent='Recent unacknowledged';
  }
  function updateCounters(){
   const all=panel?.querySelector('[data-memo-count="published"]');
@@ -290,25 +285,81 @@
   if(acknowledged)acknowledged.textContent=String(state.memos.length-pending);
   if(unread)unread.textContent=String(pending);
  }
+ function statusOf(memo){
+  if(memo.archivedAt)return 'Archived';
+  if(!memo.effectiveDate)return 'Published';
+  const parts=Object.fromEntries(new Intl.DateTimeFormat('en-CA',{timeZone:'Asia/Manila',year:'numeric',month:'2-digit',day:'2-digit'}).formatToParts(new Date()).map(p=>[p.type,p.value]));
+  const today=parts.year+'-'+parts.month+'-'+parts.day;
+  return today<memo.effectiveDate?'Upcoming':memo.endDate&&today>memo.endDate?'Past':'Active';
+ }
+ function ensureArchiveFilter(){
+  if(state.role==='PRINCIPAL'&&!statusFilter?.querySelector('option[value="archived"]')){
+   const option=make('option',null,'Archived');option.value='archived';statusFilter?.append(option);
+  }
+ }
+ function repositoryRow(memo){
+  const button=make('button','attendigo-memo-repository-row');
+  button.type='button';
+  const copy=make('span','attendigo-memo-row-copy');
+  copy.append(make('strong',null,memo.title),make('small',null,fmt(memo.publishedAt)+' · '+String(memo.category||'GENERAL').replaceAll('_',' ')));
+  const meta=make('span','attendigo-memo-row-meta');
+  meta.append(make('span',null,statusOf(memo)),make('small',null,memo.archivedAt?'Archived':memo.acknowledgedAt?'Acknowledged':'Unread'));
+  button.append(copy,meta,make('span','attendigo-memo-row-arrow','›'));
+  button.addEventListener('click',()=>{selectedMemo=memo;state.memoId=memo.memoId;view='detail';render();panel.querySelector('#attendigoMemoTitle')?.focus();});
+  return button;
+ }
  function render(){
   const list=panel.querySelector('.attendigo-memo-list');
-  clearPreviews();list.replaceChildren();
-  updateCounters();
-  const query=String(managerSearch?.value||'').trim().toLowerCase();
-  const visible=state.memos.filter(memo=>!query||[memo.title,memo.summary,memo.category,memo.audience]
-   .some(value=>String(value||'').replaceAll('_',' ').toLowerCase().includes(query)));
-  if(!visible.length){
-   const empty=make('div','attendigo-memo-empty');
-   const icon=make('span','attendigo-memo-empty-icon','▤');icon.setAttribute('aria-hidden','true');
-   empty.append(icon,make('strong',null,query?'No matching memoranda':'No memoranda published yet'),
-    make('p',null,query?'Try a different search.':manager?'Use Create memorandum to publish your first official notice.':
-     'Official school announcements and attached documents will appear here when shared with your account.'));
-   list.append(empty);
+  clearPreviews();list.replaceChildren();updateCounters();
+  const home=view==='home',repo=view==='repository',detail=view==='detail',creating=view==='create';
+  panel.querySelector('#attendigoMemoTitle').textContent=home?(state.role==='PRINCIPAL'?'Manage Memoranda':'School Memoranda'):repo?'View All Memoranda':detail?'Memorandum details':'Create memorandum';
+  back.hidden=home;allButton.hidden=!home;repositoryTools.hidden=!repo;repositoryNav.hidden=!repo;
+  const create=panel.querySelector('.attendigo-memo-create');if(create){create.hidden=!home;create.setAttribute('aria-expanded',String(creating));}
+  if(manager)manager.hidden=!creating;
+  list.hidden=creating;
+  if(creating){banner();return;}
+  if(home){
+   if(state.memos.length){list.append(make('h3','attendigo-memo-section-title','Latest memorandum'),card(state.memos[0]));}
+   else list.append(make('p','attendigo-memo-empty','No memoranda published to your audience yet.'));
+  }else if(detail){
+   if(selectedMemo)list.append(card(selectedMemo));
+   else list.append(make('p','attendigo-memo-empty','This memorandum is unavailable.'));
   }else{
-   for(const item of visible)list.append(card(item));
+   if(repositoryRows.length)for(const item of repositoryRows)list.append(repositoryRow(item));
+   else list.append(make('p','attendigo-memo-empty','No matching memoranda.'));
+   repositoryNav.querySelector('[data-memo-page="previous"]').disabled=offset===0;
+   repositoryNav.querySelector('[data-memo-page="next"]').disabled=!hasMore;
+   repositoryNav.querySelector('span').textContent='Page '+(Math.floor(offset/15)+1);
   }
   banner();
-  if(documentId.test(state.memoId))setActiveMemo(state.memoId);
+ }
+ async function loadRepository(){
+  const seq=++repoSequence;
+  setStatus('Loading memorandum history…');
+  const params=new URLSearchParams({repository:'1',limit:'15',offset:String(offset),q:managerSearch.value.trim(),status:statusFilter.value,sort:sortFilter.value});
+  try{
+   const data=await request('/api/school-memos?'+params);
+   if(seq!==repoSequence||view!=='repository'||!state.open)return;
+   repositoryRows=Array.isArray(data.memoranda)?data.memoranda:[];hasMore=Boolean(data.hasMore);
+   render();setStatus('Search and filter all memoranda available to your account.');
+  }catch(e){if(seq===repoSequence)setStatus(e.message);}
+ }
+ async function loadDetail(id){
+  const seq=++repoSequence;
+  try{
+   const data=await request('/api/school-memos?repository=1&id='+encodeURIComponent(id)+'&limit=1');
+   if(seq!==repoSequence||view!=='detail'||!state.open)return;
+   selectedMemo=data.memoranda?.[0]||null;render();
+  }catch(e){if(seq===repoSequence)setStatus(e.message);}
+ }
+ function openRepository(reset=false){
+  if(reset){offset=0;managerSearch.value='';statusFilter.value='all';sortFilter.value='newest';repositoryRows=[];hasMore=false;}
+  state.memoId='';selectedMemo=null;view='repository';render();void loadRepository();
+ }
+ function goBack(){
+  repoSequence++;clearTimeout(repoTimer);
+  if(view==='detail'){openRepository();return;}
+  state.memoId='';selectedMemo=null;view='home';render();setStatus('');
  }
  async function load(){
   if(state.loading)return;
@@ -317,7 +368,9 @@
    const result=await request('/api/school-memos?limit=50');
    state.memos=Array.isArray(result.memoranda)?result.memoranda:[];
    render();
-   setStatus(manager?'Published notices are listed below. Acknowledgments are separate from approvals.':state.memos.length?'Read official memos below, then select Acknowledge memorandum to confirm receipt. Opening a notice does not acknowledge it.':'No memoranda are currently published to your audience.');
+   if(view==='repository')await loadRepository();
+   else if(view==='detail'&&state.memoId)await loadDetail(state.memoId);
+   else setStatus('Acknowledgment confirms receipt, not approval.');
   }catch(e){setStatus(e.message);}
   finally{state.loading=false;}
  }
@@ -332,9 +385,10 @@
   }
   strip=make('aside','attendigo-memo-banner');strip.dataset.schoolMemoBanner='true';
   strip.setAttribute('aria-label','School memoranda');
-  panel=make('section','attendigo-memo-workspace');
+  panel=make('dialog','attendigo-memo-workspace');
   panel.id='attendigoSchoolMemoPanel';panel.hidden=true;
   panel.setAttribute('aria-labelledby','attendigoMemoTitle');
+  panel.addEventListener('cancel',e=>{e.preventDefault();if(view!=='home')goBack();else close();});
   const heading=make('div','attendigo-memo-workspace-head');
   const copy=make('div','attendigo-memo-workspace-intro');
   copy.append(make('span','attendigo-memo-eyebrow','ATTENDIGO · SCHOOL COMMUNICATIONS'));
@@ -346,7 +400,7 @@
   dismiss.addEventListener('click',close);
   heading.append(copy,dismiss);
   const counters=make('div','attendigo-memo-counters');
-  for(const [type,label] of [['published','Published'],['acknowledged','Acknowledged'],['unread','Pending acknowledgment']]){
+  for(const [type,label] of [['published','Recent notices'],['acknowledged','Recent acknowledged'],['unread','Recent unacknowledged']]){
    const pill=make('span','attendigo-memo-counter');
    const number=make('strong',null,'0');number.dataset.memoCount=type;
    pill.append(number,make('span',null,label));counters.append(pill);
@@ -360,7 +414,23 @@
   const list=make('div','attendigo-memo-list');
   const footer=make('p','attendigo-memo-footnote',
    'Acknowledgment confirms receipt only, not approval. Any authorized schedule directive takes effect independently of acknowledgment.');
-  panel.append(heading,toolbar,status,list,footer);
+  back=make('button','attendigo-memo-refresh attendigo-memo-back','‹ Back');back.type='button';back.hidden=true;back.addEventListener('click',goBack);
+  repositoryTools=make('div','attendigo-memo-repository-tools');repositoryTools.hidden=true;
+  const filter=make('label','attendigo-memo-search','Search memoranda');
+  managerSearch=make('input','attendigo-memo-search-input');managerSearch.type='search';managerSearch.placeholder='Search title, content, category or date';
+  managerSearch.addEventListener('input',()=>{offset=0;repoSequence++;clearTimeout(repoTimer);repoTimer=setTimeout(loadRepository,250);});
+  filter.append(managerSearch);
+  const select=(label,values)=>{const wrap=make('label','attendigo-memo-search',label);const control=make('select','attendigo-memo-search-input');for(const [value,name] of values){const option=make('option',null,name);option.value=value;control.append(option);}control.addEventListener('change',()=>{offset=0;void loadRepository();});wrap.append(control);return [wrap,control];};
+  const [filterWrap,filterControl]=select('Status',[['all','All memoranda'],['active','Active'],['upcoming','Upcoming'],['past','Past / undated']]);statusFilter=filterControl;
+  const [sortWrap,sortControl]=select('Sort by',[['newest','Newest first'],['oldest','Oldest first']]);sortFilter=sortControl;
+  repositoryTools.append(filter,filterWrap,sortWrap);
+  repositoryNav=make('div','attendigo-memo-repository-nav');repositoryNav.hidden=true;
+  for(const [kind,label,delta] of [['previous','Previous',-15],['next','Next',15]]){
+   const button=make('button','attendigo-memo-refresh',label);button.type='button';button.dataset.memoPage=kind;button.addEventListener('click',()=>{offset=Math.max(0,offset+delta);void loadRepository();});repositoryNav.append(button);
+   if(kind==='previous')repositoryNav.append(make('span',null,'Page 1'));
+  }
+  allButton=make('button','attendigo-memo-view-all');allButton.type='button';allButton.append(make('strong',null,'View All Memoranda'),make('small',null,'Search publication history and available records'),make('span','attendigo-memo-row-arrow','›'));allButton.addEventListener('click',()=>openRepository(true));
+  panel.append(heading,back,toolbar,status,repositoryTools,list,repositoryNav,allButton,footer);
   // Inline adjacent to the school notice, inside each user's existing dashboard.
   host.insertBefore(panel,host.firstChild);
   host.insertBefore(strip,panel);
@@ -369,11 +439,11 @@
  async function open(id){
   if(!build()&&!panel)return false;
   opener=document.activeElement;
-  if(documentId.test(String(id||''))){state.memoId=String(id);if(managerSearch)managerSearch.value='';}
-  else state.memoId='';
+  if(documentId.test(String(id||''))){state.memoId=String(id);selectedMemo=null;view='detail';}
+  else {state.memoId='';selectedMemo=null;view='home';}
   state.open=true;panel.hidden=false;banner();
-  await load();
-  panel.scrollIntoView({block:'start',behavior:'smooth'});
+  if(typeof panel.showModal==='function'&&!panel.open)panel.showModal();
+  render();await load();
   if(!state.memoId)panel.querySelector('#attendigoMemoTitle')?.focus({preventScroll:true});
   return true;
  }
@@ -382,7 +452,7 @@
   fetch('/api/auth/me',{credentials:'same-origin',cache:'no-store'})
    .then(r=>r.ok?r.json():null).then(d=>{
     state.role=d?.user?.mustChangePassword?'':(d?.user?.role||'');
-    syncManager();
+    syncManager();ensureArchiveFilter();
     if(state.open)render();else banner();
    }).catch(()=>{});
  }
@@ -405,7 +475,7 @@
   // Listen to clicks in the same dashboard, including legacy links.
   document.addEventListener('click',intercept);
   document.addEventListener('keydown',e=>{
-   if(e.key==='Escape'&&state.open)close();
+   if(e.key==='Escape'&&state.open&&typeof panel.showModal!=='function'){if(view!=='home')goBack();else close();}
   });
   document.addEventListener('visibilitychange',()=>{
    if(!document.hidden)void refresh();
@@ -415,9 +485,9 @@
   if(documentId.test(String(id||'')))void open(id);
   else void refresh();
  }
- async function refresh(){
+ async function refresh(options={}){
   if(!build())return;
-  if(state.open){await load();return;}
+  if(state.open){if(options.published){view='home';state.memoId='';selectedMemo=null;}await load();return;}
   try{
    const payload=await request('/api/school-memos?limit=50');
    state.memos=Array.isArray(payload.memoranda)?payload.memoranda:[];
