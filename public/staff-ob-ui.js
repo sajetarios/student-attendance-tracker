@@ -87,7 +87,7 @@
     say(requests.length+' request(s) in '+(selectedScope==='mine'?'your personal OB history':selectedScope==='department'?'your department queue':'your authorized view')+'.');
     requests.forEach(ob=>{
      const item=document.createElement('article');item.className='staff-ob-item';
-     const statusLabel=String(ob.status||'').replaceAll('_',' ');
+     const statusLabel=ob.status==='PENDING_ADMIN'||(ob.status==='PENDING_HEAD'&&ob.staffRole==='DEPARTMENT_HEAD')?'Awaiting Principal authorization':ob.status==='PENDING_HEAD'?'Awaiting Department Head recommendation':String(ob.status||'').replaceAll('_',' ');
      item.innerHTML=`<div class="section-toolbar"><div>
        <strong>${esc(ob.staffName||'Staff')} · ${esc(statusLabel)}</strong>
        <p>${esc(ob.purpose)} · ${esc(ob.destination)}</p>
@@ -121,13 +121,12 @@
       finally{busy=false;controls.forEach(button=>button.disabled=false);}
       if(saved)await refresh();
      }
-     if(user.role==='DEPARTMENT_HEAD'&&ob.status==='PENDING_HEAD'&&ob.staffUserId!==user.userId){
+     if(user.role==='DEPARTMENT_HEAD'&&ob.status==='PENDING_HEAD'&&ob.staffUserId!==user.userId&&['TEACHER','SCHOOL_ADMIN'].includes(ob.staffRole)){
       action('Recommend',()=>decide('recommend','RECOMMEND'));
       action('Reject',()=>decide('recommend','REJECT'));
      }
-     if(user.role==='SCHOOL_ADMIN'&&ob.status==='PENDING_ADMIN'&&ob.staffUserId!==user.userId){
-      action('Approve',()=>decide('decide','APPROVE'));
-      action('Reject',()=>decide('decide','REJECT'));
+     if(user.role==='SCHOOL_ADMIN'&&(ob.status==='PENDING_ADMIN'||(ob.status==='PENDING_HEAD'&&ob.staffRole==='DEPARTMENT_HEAD'))){
+      actions.append(document.createTextNode('Principal authorization required · recordkeeping only'));
      }
      if(ob.status==='APPROVED'){
       action('Affected classes',async()=>{
