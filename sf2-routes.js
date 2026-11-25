@@ -587,12 +587,12 @@ function registerSf2Routes(app, pool, { authenticateSchoolClient, requireSchoolU
     };
 
     const registeredSchool = await pool.query(
-      'SELECT school_name,school_code FROM schools WHERE school_id=$1 LIMIT 1',
+      'SELECT school_name,school_code,document_branding FROM schools WHERE school_id=$1 LIMIT 1',
       [req.auth.schoolId]
     );
     const registered = registeredSchool.rows[0] || {};
     const schoolName = String(registered.school_name || setting('school_name') || '').trim();
-    const schoolId = [setting('deped_school_id'),setting('school_id'),String(registered.school_code||'').trim()]
+    const schoolId = [String(registered.document_branding?.officialSchoolId ?? '').trim(),setting('deped_school_id'),setting('school_id'),String(registered.school_code||'').trim()]
       .find(value=>/^\d{6}$/.test(value)) || '';
     // Do not print internal UUIDs or fake school placeholders.
     const academicYearStart = monthNumber >= 6 ? year : year-1;

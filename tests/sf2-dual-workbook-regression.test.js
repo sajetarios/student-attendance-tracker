@@ -18,7 +18,7 @@ function weekdays(month) {
   return Array.from({length:new Date(Date.UTC(year,m,0)).getUTCDate()},(_,i)=>new Date(Date.UTC(year,m-1,i+1)))
     .filter(d=>![0,6].includes(d.getUTCDay())).map(d=>d.toISOString().slice(0,10));
 }
-async function exportFixture({personal=true,month='2026-01',pending=false,conflict=false,multiSubject=false,subject='',preview=false,subjectOptions=false,productionLike=false,singleCompleteDay=false}={}) {
+async function exportFixture({personal=true,month='2026-01',pending=false,conflict=false,multiSubject=false,subject='',preview=false,subjectOptions=false,productionLike=false,singleCompleteDay=false,officialSchoolId='',schoolCode='123456',legacySchoolId=''}={}) {
   const dates=weekdays(month), closed=dates[0], days=dates.slice(1);
   const [a,b,c,d,e,f,g,h,i]=days;
   const qr=personal ? [{id:'A',date:a,late:false,periodId:'p1'},{id:'B',date:a,late:false,periodId:'p1'},{id:'A',date:g,late:false,periodId:'p1'}]
@@ -63,8 +63,8 @@ async function exportFixture({personal=true,month='2026-01',pending=false,confli
     if(sql.includes('FROM generate_series') && sql.includes('class_period_days')) return result(schedule);
     if(sql.includes('SELECT DISTINCT p.period_id AS "periodId"')) return result(schedule.filter(x=>x.date===dates[0]));
     if(sql.includes("SELECT 'ADVISER' AS kind"))return result([{kind:'ADVISER',name:'TEST ADVISER'},{kind:'HEAD',name:'TEST HEAD'}]);
-    if(sql.includes('SELECT school_name,school_code FROM schools')) return result([{school_name:'TEST SCHOOL',school_code:'123456'}]);
-    if(sql.includes('FROM school_settings')) return result([{setting_key:'school_name',setting_value:'TEST SCHOOL'}]);
+    if(sql.includes('SELECT school_name,school_code,document_branding FROM schools')) return result([{school_name:'TEST SCHOOL',school_code:schoolCode,document_branding:{officialSchoolId}}]);
+    if(sql.includes('FROM school_settings')) return result([{setting_key:'school_name',setting_value:'TEST SCHOOL'},{setting_key:'deped_school_id',setting_value:legacySchoolId}]);
     if(sql.includes('SELECT start_date FROM school_years')) return result([{start_date:'2025-06-01'}]);
     if(sql.includes('FROM student_enrollments e JOIN school_years sy')) return result(reportLearners.map(x=>({sex:x.sex,student_id:x.id,enrollmentDate:'2025-06-01'})));
     if(sql.includes('FROM student_movements m')) return result([]);
@@ -295,4 +295,23 @@ test('subject report removes provisional note once every elapsed class day is fu
   assert.equal(value(sheet.getCell('AM127')),26);
   assert.equal(value(sheet.getCell('AM128')),26/28);
   assert.equal(sheet.model.merges.length,257);
+});
+
+
+test('School Identity official ID takes precedence in both exported SF2 workbook modes',async()=>{
+ for(const personal of [true,false]){
+  const {res,sheet}=await exportFixture({personal,officialSchoolId:' 012345 ',schoolCode:'654321',legacySchoolId:'222222'});
+  assert.equal(res.code,200,JSON.stringify(res.body));
+  assert.equal(sheet.getCell('G6').value,'012345');
+  assert.ok(sheet.model.merges.includes('G6:J6'));
+  assertNoManualCalculationPanel(sheet);
+ }
+});
+test('SF2 falls back to legacy official ID when identity is blank or invalid; never prints login aliases or UUIDs',async()=>{
+ const legacy=await exportFixture({officialSchoolId:'',schoolCode:'SCHOOL-LOGIN',legacySchoolId:'987654'});
+ assert.equal(legacy.res.code,200,JSON.stringify(legacy.res.body));
+ assert.equal(legacy.sheet.getCell('G6').value,'987654');
+ const invalid=await exportFixture({officialSchoolId:'not-an-id',schoolCode:'SCHOOL-LOGIN'});
+ assert.equal(invalid.res.code,200,JSON.stringify(invalid.res.body));
+ assert.equal(invalid.sheet.getCell('G6').value,null);
 });
