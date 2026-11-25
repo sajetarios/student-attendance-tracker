@@ -10,6 +10,12 @@
   const encoder = new TextEncoder(), decoder = new TextDecoder();
   const owner = () => {
     try {
+      // The standalone offline sheet can be reopened without the portal's
+      // tab identity. Use ONLY its bounded verified teacher account stamp.
+      if(document.documentElement?.dataset?.offlineSheet==='true'){
+        const a=window.AttendigoOfflineAccount?.current('TEACHER');
+        return a?String(a.schoolId)+':'+String(a.accountId):null;
+      }
       const u = JSON.parse(sessionStorage.getItem(userKey) || '{}');
       return u.schoolId && u.userId ? String(u.schoolId) + ':' + String(u.userId) : null;
     } catch { return null; }
@@ -174,6 +180,7 @@
     }
     const encrypted = await encrypt(id, payload);
     const createdAt = Math.max(Date.now(), ...current.map(r => Number(r.createdAt) || 0), 0) + 1;
+    if(owner()!==id)throw Error('Account changed before saving attendance.');
     await put({ id: operationId, owner: id, type, encrypted, status: 'PENDING',
       attempts: 0, createdAt });
     await emit();
