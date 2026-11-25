@@ -25,10 +25,23 @@
     const bytes=new Uint8Array(await response.arrayBuffer());
     if(bytes.length<1000||String.fromCharCode(...bytes.slice(0,5))!=='%PDF-')throw Error('The server did not return a complete PDF. Please retry.');
     const url=api+'/'+encodeURIComponent(id)+'/locator-slip';
-    const link=make('a',options.buttonClass||'outline-button','Open PDF');link.href=url;link.target='_blank';link.rel='noopener';
+    const link=make('a',options.buttonClass||'outline-button','Open PDF in browser');link.href=url;link.target='_blank';link.rel='noopener';
     const save=make('a',options.buttonClass||'outline-button','Download PDF');save.href=url+'?download=1';
-    feedback('Your PDF is ready. Open it in the browser or download it to Files, then print and obtain the required signatures.');
-    panel.append(link,save);
+    feedback('Your PDF is ready. Preparing the preview inside Attendigo…');
+    const preview=make('img');preview.alt='Accomplished official Locator Slip';preview.style.cssText='display:block;width:100%;height:auto;max-width:750px;margin:12px auto;background:white;border:1px solid #cbd5e1';
+    preview.hidden=true;preview.style.display='none';
+    panel.append(preview,link,save);
+    if(typeof navigator.share==='function'&&typeof File==='function'){
+     const file=new File([bytes],'Locator-Slip.pdf',{type:'application/pdf'});
+     if(typeof navigator.canShare==='function'&&navigator.canShare({files:[file]})){
+      const share=make('button',options.buttonClass||'outline-button','Share / Save to Files');share.type='button';
+      share.addEventListener('click',async()=>{try{await navigator.share({files:[file]});}catch(e){if(e.name!=='AbortError')feedback('Sharing failed. Use Download PDF instead.');}});
+      panel.append(share);
+     }
+    }
+    preview.onload=()=>{preview.hidden=false;preview.style.display='block';feedback('Your official Locator Slip is ready. Preview below, then save or print the PDF.');};
+    preview.onerror=()=>{preview.hidden=true;preview.style.display='none';feedback('The PDF is ready, but the in-app preview could not load. Use Share / Save to Files or Download PDF.');};
+    preview.src=url+'?preview=1';
    }catch(error){
     feedback(error.message);
     if(error.code==='LOCATOR_TEMPLATE_REQUIRED'){

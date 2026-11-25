@@ -65,6 +65,17 @@ function registerStaffObRoutes(app,pool,{authenticateSchoolClient,requireSchoolR
     try{template=await getTemplate(pool);}catch(e){console.error('Locator Slip template:',e.message);return res.status(503).json({code:e.code==='LOCATOR_TEMPLATE_REQUIRED'?'LOCATOR_TEMPLATE_REQUIRED':'LOCATOR_TEMPLATE_UNAVAILABLE',error:e.code==='LOCATOR_TEMPLATE_REQUIRED'?e.message:'The Locator Slip master could not be verified. Contact support.'});}
     let pdf;
     try{pdf=buildLocatorSlip(template,result.rows[0]);}catch(e){console.error('Locator Slip generation:',e.message);return res.status(422).json({error:e.message});}
+    if(req.query?.preview==='1'){
+     try{
+      const {renderLocatorPreview}=require('./locator-slip-preview');
+      const png=await renderLocatorPreview(pdf);
+      res.set('Content-Type','image/png');
+      return res.send(png);
+     }catch(e){
+      console.error('Locator Slip preview:',e.message);
+      return res.status(503).json({error:e.code==='PREVIEW_BUSY'?e.message:'The in-app preview is temporarily unavailable. The PDF can still be downloaded.'});
+     }
+    }
     res.set('Content-Type','application/pdf');
     res.set('Content-Disposition',(req.query?.download==='1'?'attachment':'inline')+'; filename="Locator-Slip-'+req.params.id+'.pdf"');
     res.set('X-Content-Type-Options','nosniff');

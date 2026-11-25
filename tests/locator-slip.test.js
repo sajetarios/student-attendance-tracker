@@ -68,5 +68,34 @@ test('both portals prepare the PDF through the shared inline error handler',()=>
  assert.match(fs.readFileSync('staff-ob-routes.js','utf8'),/req\.query\?\.download==='1'\?'attachment':'inline'/);
  assert.match(staff,/AttendigoLocatorSlip\.attach/);
  assert.match(principal,/AttendigoLocatorSlip\.attach/);
- for(const page of ['public/portal.html','public/principal.html','public/sw.js']) assert.match(fs.readFileSync(page,'utf8'),/\/locator-slip-ui\.js\?v=2/);
+ for(const page of ['public/portal.html','public/principal.html','public/sw.js']) assert.match(fs.readFileSync(page,'utf8'),/\/locator-slip-ui\.js\?v=3/);
+});
+
+test('in-app preview and iOS sharing are independent of native PDF navigation',()=>{
+ const ui=fs.readFileSync('public/locator-slip-ui.js','utf8');
+ const routes=fs.readFileSync('staff-ob-routes.js','utf8');
+ assert.match(ui,/preview\.src=url\+'\?preview=1'/);
+ assert.match(ui,/navigator\.share\(\{files:\[file\]\}\)/);
+ assert.match(ui,/preview\.onerror=/);
+ assert.match(routes,/req\.query\?\.preview==='1'/);
+ assert.match(routes,/renderLocatorPreview\(pdf\)/);
+ assert.match(routes,/res\.set\('Content-Type','image\/png'\)/);
+});
+test('PDF.js can render a real one-page PDF to a PNG in Node',async()=>{
+ const {renderLocatorPreview}=require('../locator-slip-preview');
+ // Exercise the actual renderer without relying on an external PDF download.
+ const bodies=['<< /Type /Catalog /Pages 2 0 R >>','<< /Type /Pages /Kids [3 0 R] /Count 1 >>','<< /Type /Page /Parent 2 0 R /MediaBox [0 0 200 300] /Resources << >> /Contents 4 0 R >>','<< /Length 25 >>\nstream\n0 0 1 rg 10 10 50 50 re f\nendstream'];
+ let pdf='%PDF-1.4\n';const offsets=[0];for(let i=0;i<bodies.length;i++){offsets.push(Buffer.byteLength(pdf));pdf+=(i+1)+' 0 obj\n'+bodies[i]+'\nendobj\n';}
+ const xref=Buffer.byteLength(pdf);pdf+='xref\n0 5\n0000000000 65535 f \n';for(const offset of offsets.slice(1))pdf+=String(offset).padStart(10,'0')+' 00000 n \n';
+ pdf+='trailer\n<< /Size 5 /Root 1 0 R >>\nstartxref\n'+xref+'\n%%EOF\n';
+ const png=await renderLocatorPreview(Buffer.from(pdf,'ascii'));
+ assert.equal(png.subarray(0,8).toString('hex'),'89504e470d0a1a0a');
+ assert.equal(png.readUInt32BE(16),330);
+ assert.equal(png.readUInt32BE(20),495);
+});
+test('render the actual generated Locator Slip when the official master is available',{skip:!fs.existsSync(master)},async()=>{
+ const {renderLocatorPreview}=require('../locator-slip-preview');
+ const png=await renderLocatorPreview(buildLocatorSlip(fs.readFileSync(master),data));
+ assert.equal(png.subarray(0,8).toString('hex'),'89504e470d0a1a0a');
+ assert.ok(png.length>10000);
 });
