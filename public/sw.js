@@ -1,4 +1,4 @@
-const CACHE = "attendigo-v413-principal-leave";
+const CACHE = "attendigo-v414-school-identity-signatories";
 
 // Only public, non-personal offline shells and their executable dependencies.
 // An update must not discard the working cache before these are all ready.
@@ -102,7 +102,7 @@ const SHELL = [
   "/teacher-scanner-schedule.js?v=1",
   "/teacher-roster-popover.js?v=2",
   "/portal.css?v=0.9.119",
-  "/portal.js?v=244",
+  "/portal.js?v=245",
   "/attendigo-help-topics.js?v=4",
   "/attendigo-help-guide.js?v=4",
   "/attendigo-help.css?v=4",
