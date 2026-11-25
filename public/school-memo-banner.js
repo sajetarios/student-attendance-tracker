@@ -209,7 +209,7 @@
    const parts=Object.fromEntries(new Intl.DateTimeFormat('en-CA', {timeZone:'Asia/Manila',year:'numeric',month:'2-digit',day:'2-digit'}).formatToParts(new Date()).map(p=>[p.type,p.value]));
    const today=parts.year+'-'+parts.month+'-'+parts.day;
    const period=memo.endDate?memo.effectiveDate+' to '+memo.endDate:memo.effectiveDate+' (no end date recorded)';
-   const stateText=today<memo.effectiveDate?'Upcoming':memo.endDate&&today>memo.endDate?'Ended':'Active';
+   const stateText=memo.archivedAt?'Archived':today<memo.effectiveDate?'Upcoming':memo.endDate&&today>memo.endDate?'Ended':'Active';
    details.append(make('span',null,'Effective '+period+' · '+stateText));
   }
   if(memo.dtrHours){
@@ -274,7 +274,7 @@
   toolbar.append(actions);
   ensureArchiveFilter();
   const label=panel.querySelector('[data-memo-count="unread"]')?.nextElementSibling;
-  if(label)label.textContent='Your unacknowledged';
+  if(label)label.textContent='Recent unacknowledged';
  }
  function updateCounters(){
   const all=panel?.querySelector('[data-memo-count="published"]');
@@ -400,7 +400,7 @@
   dismiss.addEventListener('click',close);
   heading.append(copy,dismiss);
   const counters=make('div','attendigo-memo-counters');
-  for(const [type,label] of [['published','Published'],['acknowledged','Acknowledged'],['unread','Pending acknowledgment']]){
+  for(const [type,label] of [['published','Recent notices'],['acknowledged','Recent acknowledged'],['unread','Recent unacknowledged']]){
    const pill=make('span','attendigo-memo-counter');
    const number=make('strong',null,'0');number.dataset.memoCount=type;
    pill.append(number,make('span',null,label));counters.append(pill);
