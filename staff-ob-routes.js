@@ -30,6 +30,34 @@ function registerStaffObRoutes(app,pool,{authenticateSchoolClient,requireSchoolR
  });
  // PENDING_ADMIN is the legacy persisted school-authorization stage. The
  // actor for internal OB is the Principal; principal-owned SDO requests stay separate.
+ // The official form is available only after recommendation (or direct Head filing).
+ app.get('/api/staff-attendance/official-business/:id/locator-slip',authenticateSchoolClient,
+  requireSchoolRoles('TEACHER','DEPARTMENT_HEAD','SCHOOL_ADMIN','PRINCIPAL'),async(req,res)=>{
+   res.set('Cache-Control','no-store, private');
+   if(!uuid.test(req.params.id))return res.status(400).json({error:'Invalid official business request.'});
+   try{
+    const result=await pool.query(`SELECT o.request_id AS "requestId",o.staff_user_id AS "staffUserId",
+     u.display_name AS "staffName",u.teacher_position AS position,s.school_name AS "schoolName",
+     o.purpose,o.destination,o.starts_at AS "startsAt",o.ends_at AS "endsAt"
+     FROM staff_official_business_requests o
+     JOIN school_users u ON u.school_id=o.school_id AND u.user_id=o.staff_user_id
+     JOIN schools s ON s.school_id=o.school_id
+     WHERE o.school_id=$1 AND o.request_id=$2 AND u.role IN ('TEACHER','DEPARTMENT_HEAD','SCHOOL_ADMIN')
+     AND (o.staff_user_id=$3 OR $4='PRINCIPAL')
+     AND (o.status IN ('PENDING_ADMIN','APPROVED') OR (o.status='PENDING_HEAD' AND u.role='DEPARTMENT_HEAD'))`,
+     [req.auth.schoolId,req.params.id,req.auth.userId,req.auth.role]);
+    if(!result.rowCount)return res.status(404).json({error:'Locator Slip is unavailable for this request or approval stage.'});
+    const {getTemplate,buildLocatorSlip}=require('./locator-slip');
+    let template;
+    try{template=await getTemplate();}catch(e){console.error('Locator Slip template:',e.message);return res.status(503).json({error:'Official Locator Slip template temporarily unavailable. Please retry or use the official blank form.'});}
+    let pdf;
+    try{pdf=buildLocatorSlip(template,result.rows[0]);}catch(e){return res.status(422).json({error:e.message});}
+    res.set('Content-Type','application/pdf');
+    res.set('Content-Disposition','inline; filename="Locator-Slip-'+req.params.id+'.pdf"');
+    res.set('X-Content-Type-Options','nosniff');
+    return res.send(pdf);
+   }catch(e){return respondError(res,e);}
+  });
  app.get('/api/principal/ob-approvals',authenticateSchoolClient,requireSchoolRoles('PRINCIPAL'),async(req,res)=>{
   res.set('Cache-Control','no-store, private');
   const history=req.query?.scope==='history';
