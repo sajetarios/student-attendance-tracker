@@ -98,3 +98,17 @@ test('UI shows dated changes and exact weekdays rather than one repeated timeles
  assert.match(runner,/'024_flexible_class_schedule_adjustments\.sql'/);
  assert.doesNotMatch(migration,/DROP TABLE|TRUNCATE|DELETE FROM students|DELETE FROM attendance_events/i);
 });
+
+test('ongoing class end changes preserve attendance identity and reject historical or completed changes',()=>{
+ const {canChangeActiveEnd}=require('../flexible-schedule-routes');
+ const date='2026-11-25',current={startTime:'09:00',endTime:'09:55',teacherUserId:'t',subjectId:'s',subjectName:'English',classroom:'101'};
+ const allowed=(patch,clock='09:20',day=date,type='RESCHEDULE')=>canChangeActiveEnd(current,{...current,...patch},type,day,date,clock);
+ assert.equal(allowed({endTime:'10:10'}),true);
+ assert.equal(allowed({endTime:'09:45'}),true);
+ assert.equal(allowed({endTime:'09:10'}),false);
+ assert.equal(allowed({endTime:'10:10'},'09:56'),false);
+ assert.equal(allowed({endTime:'10:10'},'09:20','2026-11-24'),false);
+ for(const patch of [{startTime:'09:05'},{teacherUserId:'other'},{subjectId:'other'},{classroom:'102'},{cancelled:true}])
+  assert.equal(allowed({endTime:'10:10',...patch}),false);
+ assert.equal(allowed({endTime:'10:10'},'09:20',date,'CANCEL'),false);
+});
