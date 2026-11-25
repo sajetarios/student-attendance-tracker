@@ -3,7 +3,7 @@ const {allowReviewer}=require('./staff-leave-policy');
 const FILTERS=Object.freeze(['ACTION','ALL','PENDING','RECOMMENDATION','SCHOOL_REVIEW','EXTERNAL','APPROVED','DISAPPROVED','DECLINED','CANCELLED']);
 const STATUS_LABELS=Object.freeze({
  PENDING_HEAD:'For Department Recommendation',
- PENDING_ADMIN:'For School Review',
+ PENDING_ADMIN:'Awaiting Principal decision',
  PENDING_EXTERNAL:'Awaiting Official Approval',
  APPROVED:'Approved',
  REJECTED:'Disapproved',
@@ -26,7 +26,7 @@ function actionExpression(auth,args){
  const actorIndex=args.length;
  if(auth.role==='PRINCIPAL')
   return "r.staff_user_id<>$"+actorIndex+" AND r.status IN ('PENDING_ADMIN','PENDING_EXTERNAL')";
- if(auth.role==='SCHOOL_ADMIN')return "r.staff_user_id<>$"+actorIndex+" AND (r.status='PENDING_ADMIN' OR (u.role='PRINCIPAL' AND r.status='PENDING_EXTERNAL'))";
+ if(auth.role==='SCHOOL_ADMIN')return "r.staff_user_id<>$"+actorIndex+" AND u.role='PRINCIPAL' AND r.status='PENDING_EXTERNAL'";
  args.push(auth.departmentId||null);
  const deptIndex=args.length;
  return "r.staff_user_id<>$"+actorIndex+
@@ -65,7 +65,7 @@ const statusMessage=status=>({
  PENDING_EXTERNAL:'Awaiting the authorized official decision; not yet approved.',
  APPROVED:'Official approval was verified and entered into the leave record.',
  REJECTED:'An official disapproval was recorded.',
- DECLINED_HEAD:'Your request was not endorsed by the Department Head and will not proceed to School Admin review. This is not an official leave disapproval.',
+ DECLINED_HEAD:'Your request was not endorsed by the Department Head and will not proceed to the Principal. This is not an official leave disapproval.',
  CANCELLED:'The application was cancelled.'
 }[status]||'Your leave application was updated.');
 /**
@@ -78,7 +78,7 @@ async function notifyLeaveTransition(client,{schoolId,requestId,staffUserId,depa
  const baseKey='leave:'+requestId+':'+status;
  const url=requesterRole==='PRINCIPAL'?'/principal.html':'/portal.html#leaveManagement';
  const title=status==='PENDING_HEAD'?'Leave request submitted':
-  status==='PENDING_ADMIN'?'Leave request awaiting school review':
+  status==='PENDING_ADMIN'?'Leave request awaiting Principal decision':
   status==='PENDING_EXTERNAL'?'Leave request awaiting official decision':
   status==='APPROVED'?'Leave request approved':
   status==='REJECTED'?'Leave request disapproved':
@@ -97,7 +97,7 @@ async function notifyLeaveTransition(client,{schoolId,requestId,staffUserId,depa
  const reviewerUrl=status!=='PENDING_HEAD'&&requesterRole!=='PRINCIPAL'
   ?'/principal.html#leaveApprovals':'/portal.html#leaveManagement';
  const reviewTitle=status==='PENDING_HEAD'?'Leave recommendation requested':
-  status==='PENDING_ADMIN'?'Leave school review requested':
+  status==='PENDING_ADMIN'?'Principal leave decision requested':
   'Official leave decision requires documentation';
  await client.query(
   "SELECT attendigo_notify($1,'SCHOOL_USER',u.user_id,$2,'APPROVAL',$3,$4,'Leave',$5,$6,$7,TRUE) "+
