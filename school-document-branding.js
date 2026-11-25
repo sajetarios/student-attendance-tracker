@@ -12,6 +12,7 @@ function parseSettings(body){
  }
  if(!layouts.includes(body.layout))throw Error('Select a valid logo layout.');
  settings.layout=body.layout;
+ if(body.locatorSlipLayout!==undefined){if(!['ANNEX_E','MATI'].includes(body.locatorSlipLayout))throw Error('Select a valid Locator Slip layout.');settings.locatorSlipLayout=body.locatorSlipLayout;}
  return settings;
 }
 function imageData(buffer,detectLogo){
@@ -29,7 +30,7 @@ function printableBranding(row,detectLogo){
  const s=row.document_branding||{};
  return {schoolName:row.school_name||'',region:s.region||'',division:s.division||'',address:s.address||'',
   officialSchoolId:s.officialSchoolId||'',layout:layouts.includes(s.layout)?s.layout:'AUTO',
-  schoolLogo:imageData(row.logo_data,detectLogo),agencyLogo:imageData(row.document_agency_logo,detectLogo)};
+  locatorSlipLayout:s.locatorSlipLayout==='MATI'?'MATI':'ANNEX_E',schoolLogo:imageData(row.logo_data,detectLogo),agencyLogo:imageData(row.document_agency_logo,detectLogo)};
 }
 function registerDocumentBranding(app,pool,{authenticateSchoolClient,requireSchoolRoles,canCustomizeBranding,detectLogo}){
  const staff=requireSchoolRoles('SCHOOL_ADMIN','DEPARTMENT_HEAD','TEACHER','PRINCIPAL');
@@ -49,7 +50,7 @@ function registerDocumentBranding(app,pool,{authenticateSchoolClient,requireScho
   try{settings=parseSettings(req.body);logo=parseLogo(req.body.agencyLogo,detectLogo);}
   catch(e){return res.status(400).json({error:e.message});}
   try{
-   const sql='WITH changed AS (UPDATE schools SET document_branding=$2::jsonb, document_agency_logo=CASE WHEN $3::boolean THEN $4::bytea ELSE document_agency_logo END,updated_at=NOW() WHERE school_id=$1 AND active=TRUE RETURNING school_id,school_name,document_branding,logo_data,document_agency_logo), audited AS ('+
+   const sql='WITH changed AS (UPDATE schools SET document_branding=document_branding||$2::jsonb, document_agency_logo=CASE WHEN $3::boolean THEN $4::bytea ELSE document_agency_logo END,updated_at=NOW() WHERE school_id=$1 AND active=TRUE RETURNING school_id,school_name,document_branding,logo_data,document_agency_logo), audited AS ('+
    "INSERT INTO audit_logs(school_id,actor_type,actor_user_id,action,entity_type,entity_id,details) SELECT school_id,'SCHOOL',$5,'SCHOOL_UPDATE_DOCUMENT_BRANDING','school',school_id::text,$6::jsonb FROM changed RETURNING 1) SELECT changed.* FROM changed CROSS JOIN (SELECT count(*) FROM audited) a";
    const q=await pool.query(sql,[req.auth.schoolId,JSON.stringify(settings),logo!==undefined,logo??null,req.auth.userId,
     JSON.stringify({...settings,agencyLogoChanged:logo!==undefined})]);
