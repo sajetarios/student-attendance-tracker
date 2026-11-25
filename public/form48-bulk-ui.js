@@ -156,6 +156,7 @@
    }catch(err){sayPair('Nothing saved: '+err.message+'. Reload if settings changed elsewhere.',true);}
    finally{busy=false;control.disabled=false;}
   }
+  $('schoolHeadSignatoryCard')?.addEventListener('input',()=>{if(headStatus)headStatus.textContent='Unsaved school head changes.';});
   saveSignatories?.addEventListener('click',()=>void savePair('verifier'));
   saveHead?.addEventListener('click',()=>void savePair('head'));
   const hoursFor=group=>Object.fromEntries([...document.querySelectorAll('[data-form48-hour="'+group+'"]')]
