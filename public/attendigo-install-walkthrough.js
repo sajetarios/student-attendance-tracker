@@ -21,11 +21,12 @@
    function start(){
      if(playing){stop();return;}
      index=0;playing=true;render();
-     timer=win.setInterval(()=>{if(guide.closest('[hidden]')||win.document.hidden||index>=steps.length-1){stop();return;}index++;render();},4000);
+     timer=win.setInterval(()=>{if(guide.closest('[hidden]')||guide.closest('dialog:not([open])')||win.document.hidden||index>=steps.length-1){stop();return;}index++;render();},4000);
    }
    play.addEventListener('click',start);prev.addEventListener('click',()=>move(-1));next.addEventListener('click',()=>move(1));
    win.document.addEventListener('visibilitychange',()=>{if(win.document.hidden)stop();});
    win.addEventListener('pagehide',stop);
+   guide.closest('dialog')?.addEventListener('close',stop);
    controls.hidden=false;render();
  }
  function init(win){win.document.querySelectorAll('[data-install-walkthrough]').forEach(guide=>mount(win,guide));}

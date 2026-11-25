@@ -74,3 +74,29 @@
 @keyframes install-demo-highlight{0%,100%{box-shadow:0 0 0 0 #08705d00}50%{box-shadow:0 0 0 4px #08705d33}}
 @media(prefers-reduced-motion:no-preference){.install-walkthrough[data-playing="true"] li:not([hidden]) .scene-highlight{animation:install-demo-highlight 1s ease-in-out 3}}
 @media(prefers-reduced-motion:reduce){.scene-highlight{animation:none!important}}
+
+/* Match the Attendigo brand and keep the current portal mounted behind a native modal. */
+.attendigo-install-link.attendigo-install-cta{background:linear-gradient(115deg,#3922bc,#6234d8 56%,#2564c7);border-color:#4936c5;box-shadow:0 3px 10px #3922bc22}
+.attendigo-install-link.attendigo-install-cta:hover{background:linear-gradient(115deg,#3020a5,#5430ba 56%,#2056b0)}
+.install-page #installAction,.attendigo-install-dialog #installAction{background:linear-gradient(115deg,#3922bc,#6234d8 56%,#2564c7);border-color:#4936c5;color:#fff}
+.install-brand-head{display:grid;justify-items:center;gap:8px}
+.install-brand-logo{display:block;width:min(208px,100%);height:auto;object-fit:contain}
+.install-brand-head .install-robot-hero{width:72px;height:72px;margin:0 auto;background:#253b70}
+.install-brand-head .install-robot{max-width:52px}
+.install-card .install-dialog-title{font-size:24px;text-align:center;line-height:1.25;margin:0}
+.install-share{border:1px solid #dce3ec;border-radius:12px;padding:12px;margin:16px 0}
+.install-share summary{cursor:pointer;font-weight:650;overflow-wrap:anywhere}
+.install-share label{display:block;margin:12px 0 4px}
+.attendigo-install-dialog{box-sizing:border-box;position:fixed;inset:0;margin:auto;width:min(500px,calc(100% - 24px));max-width:100%;max-height:calc(100% - 24px);max-height:calc(100dvh - 24px);overflow:auto;overscroll-behavior:contain;padding:0;border:1px solid #dce3ec;border-radius:18px;background:#fff;color:#1c2d45;font:16px/1.5 system-ui,sans-serif;box-shadow:0 18px 60px #17243d40}
+.attendigo-install-dialog:not([open]),.attendigo-install-dialog [hidden]{display:none!important}
+.attendigo-install-dialog::backdrop{background:#15233a9c}
+.attendigo-install-dialog *{box-sizing:border-box}
+.attendigo-install-dialog .install-card{max-width:none;margin:0;border:0;box-shadow:none;border-radius:0;padding:12px clamp(14px,4vw,24px) 20px;color:#1c2d45;background:#fff;text-align:left}
+.install-dialog-top{position:sticky;top:0;z-index:1;background:#fff;display:flex;justify-content:flex-end;border-bottom:1px solid #e4e9f2;padding:8px 12px}
+.attendigo-install-dialog .install-close{min-height:44px;padding:8px 14px;border:1px solid #c9d4e4;border-radius:9px;background:#fff;color:#23385b;font:inherit;font-weight:650;cursor:pointer}
+.attendigo-install-dialog .install-card .continue{color:#1c2d45;background:#fff}
+.attendigo-install-dialog .guide-note{font-size:14px;color:#46566b}
+.attendigo-install-dialog .intro{text-align:center;color:#46566b}
+.attendigo-install-dialog button:focus-visible,.attendigo-install-dialog summary:focus-visible{outline:3px solid #2564c7;outline-offset:2px}
+@media(prefers-reduced-motion:no-preference){.attendigo-install-dialog #installAction:not([hidden]){animation:attendigo-install-highlight 1.45s ease-in-out 3}}
+@media(prefers-reduced-motion:reduce){.attendigo-install-dialog #installAction{animation:none!important}}
