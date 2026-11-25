@@ -127,7 +127,7 @@ function registerStaffLeaveRoutes(app,pool,{authenticateSchoolClient,requireScho
   }catch(e){sqlErr(res,e);}
  });
  app.post('/api/staff-leave/staff/:id/credit-scheme',...auth,async(req,res)=>{
-  if(req.auth.role!=='SCHOOL_ADMIN')return res.status(403).json({error:'School Admin access required.'});
+  if(!['SCHOOL_ADMIN','PRINCIPAL'].includes(req.auth.role))return res.status(403).json({error:'Authorized school verifier access required.'});
   const staffId=String(req.params.id||''),leaveScheme=String(req.body?.leaveScheme||''),
    hrReference=String(req.body?.hrReference||'').trim();
   if(!UUID.test(staffId)||!SCHEMES.includes(leaveScheme)||hrReference.length<3||hrReference.length>200)
@@ -138,9 +138,9 @@ function registerStaffLeaveRoutes(app,pool,{authenticateSchoolClient,requireScho
   try{
    await client.query('BEGIN');
    const target=await client.query(
-    "SELECT 1 FROM school_users WHERE school_id=$1 AND user_id=$2 AND active=TRUE AND role IN ('TEACHER','DEPARTMENT_HEAD','SCHOOL_ADMIN','GATE_KEEPER') FOR SHARE",
-    [req.auth.schoolId,staffId]);
-   if(!target.rowCount){await client.query('ROLLBACK');return res.status(404).json({error:'Active staff member not found in this school.'});}
+    "SELECT 1 FROM school_users u WHERE u.school_id=$1 AND u.user_id=$2 AND u.active=TRUE AND u.role IN ('TEACHER','DEPARTMENT_HEAD','SCHOOL_ADMIN','GATE_KEEPER') AND ($3::text='SCHOOL_ADMIN' OR (u.role='SCHOOL_ADMIN' AND EXISTS (SELECT 1 FROM staff_leave_requests r WHERE r.school_id=u.school_id AND r.staff_user_id=u.user_id AND r.status IN ('PENDING_ADMIN','PENDING_EXTERNAL')))) FOR SHARE OF u",
+    [req.auth.schoolId,staffId,req.auth.role]);
+   if(!target.rowCount){await client.query('ROLLBACK');return res.status(404).json({error:'No eligible staff member in this school for this verification.'});}
    await client.query('INSERT INTO staff_leave_credit_schemes(school_id,staff_user_id,leave_scheme,hr_reference,certified_by_user_id,certified_at) VALUES($1,$2,$3,$4,$5,now()) ON CONFLICT(school_id,staff_user_id) DO UPDATE SET leave_scheme=EXCLUDED.leave_scheme,hr_reference=EXCLUDED.hr_reference,certified_by_user_id=EXCLUDED.certified_by_user_id,certified_at=now()',
     [req.auth.schoolId,staffId,leaveScheme,hrReference,req.auth.userId]);
    await audit(client,req,'LEAVE_CREDIT_SCHEME_CERTIFIED',staffId,{staffUserId:staffId,leaveScheme,hrReference});
@@ -297,7 +297,7 @@ function registerStaffLeaveRoutes(app,pool,{authenticateSchoolClient,requireScho
      [req.auth.schoolId,row.staff_user_id]);
     chargeAccount=sickAccountForScheme(verifiedScheme.rows[0]?.leaveScheme);
     if(!chargeAccount){await c.query('ROLLBACK');
-     return res.status(409).json({error:'The School Admin must verify whether this employee uses teaching-personnel VSC or regular VL/SL before recording official sick-leave approval.'});}
+     return res.status(409).json({error:row.requester_role==='SCHOOL_ADMIN'?'Verify the School Admin’s leave scheme in this request before recording sick-leave approval.':'The School Admin must verify whether this employee uses teaching-personnel VSC or regular VL/SL before recording official sick-leave approval.'});}
     if(requiredSickEvidence(row.leave_type,row.filing_basis,row.start_date,row.end_date)){
      const supporting=await c.query("SELECT 1 FROM staff_leave_documents WHERE school_id=$1 AND request_id=$2 AND document_kind IN ('MEDICAL','AFFIDAVIT') LIMIT 1",
       [req.auth.schoolId,row.request_id]);
