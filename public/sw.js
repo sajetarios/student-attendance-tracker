@@ -1,4 +1,4 @@
-const CACHE = "attendigo-v422-admin-leave-records";
+const CACHE = "attendigo-v421-simple-offline-teacher-integrated";
 
 // Only public, non-personal offline shells and their executable dependencies.
 // An update must not discard the working cache before these are all ready.
