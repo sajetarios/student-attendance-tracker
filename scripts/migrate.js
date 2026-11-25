@@ -103,7 +103,8 @@ const REQUIRED_MIGRATIONS = [
   '095_principal_ob_notifications.sql',
   '096_shared_locator_slip_template.sql',
   '097_locator_template_requests.sql',
-  '098_central_locator_template_versions.sql'
+  '098_central_locator_template_versions.sql',
+  '099_locator_recognition_hints.sql'
 ];
 
 function checksum(content) {

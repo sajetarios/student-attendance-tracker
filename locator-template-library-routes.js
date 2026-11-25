@@ -34,7 +34,8 @@ function registerLocatorLibraryRoutes(app,pool,{authenticateSchoolClient,require
     return res.status(e.code==='PREVIEW_BUSY'?429:422).json({error:e.code==='PREVIEW_BUSY'?e.message:'Choose a readable, unprotected, single-page blank PDF.'});
    }
    if(pdf.length>5*1024*1024)return res.status(422).json({error:'Choose a simpler blank PDF with fewer large images.'});
-   const r=await pool.query('INSERT INTO school_locator_template_requests(school_id,region,division,pdf_bytes) VALUES($1,$2,$3,$4) ON CONFLICT(school_id) DO UPDATE SET request_id=gen_random_uuid(),region=EXCLUDED.region,division=EXCLUDED.division,pdf_bytes=EXCLUDED.pdf_bytes,status=\'PENDING\',submitted_at=NOW(),reviewed_at=NULL,reviewed_by=NULL WHERE school_locator_template_requests.status=\'REVIEWED\' RETURNING '+cols,[req.auth.schoolId,region,division,pdf]);
+   const hints=await require('./locator-slip-preview').extractLocatorLabels(bytes);
+   const r=await pool.query('INSERT INTO school_locator_template_requests(school_id,region,division,pdf_bytes,recognition_hints) VALUES($1,$2,$3,$4,$5::jsonb) ON CONFLICT(school_id) DO UPDATE SET request_id=gen_random_uuid(),region=EXCLUDED.region,division=EXCLUDED.division,pdf_bytes=EXCLUDED.pdf_bytes,recognition_hints=EXCLUDED.recognition_hints,status=\'PENDING\',submitted_at=NOW(),reviewed_at=NULL,reviewed_by=NULL WHERE school_locator_template_requests.status=\'REVIEWED\' RETURNING '+cols,[req.auth.schoolId,region,division,pdf,JSON.stringify(hints)]);
    if(!r.rowCount)return res.status(409).json({error:'Your existing request is still awaiting review.'});
    return res.status(201).json({request:r.rows[0]});
   }catch(e){return fail(res,e);}

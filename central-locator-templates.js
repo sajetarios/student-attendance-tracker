@@ -30,12 +30,13 @@ function registerCentralLocatorRoutes(app,pool,{authenticateSchoolClient,require
  const render=async(req,res,action)=>{
   if(!UUID.test(req.params.id))return res.status(400).json({error:'Invalid template request.'});
   let m;
-  if(action!=='blank'){try{m=validateMapping(req.body?.mapping);}catch(e){return res.status(422).json({error:e.message});}}
+  if(action!=='blank'&&action!=='recognize'){try{m=validateMapping(req.body?.mapping);}catch(e){return res.status(422).json({error:e.message});}}
   try{
-   const q=await pool.query('SELECT request_id,region,division,pdf_bytes FROM school_locator_template_requests WHERE request_id=$1',[req.params.id]);
+   const q=await pool.query('SELECT request_id,region,division,pdf_bytes,recognition_hints FROM school_locator_template_requests WHERE request_id=$1',[req.params.id]);
    const row=q.rows[0];if(!row)return res.status(404).json({error:'Request not found.'});
    const renderPdf=require('./locator-slip-preview').renderCentralLocator;
    if(action==='blank')return res.type('image/png').send(await renderPdf(row.pdf_bytes,null));
+   if(action==='recognize')return res.json(await renderPdf(row.pdf_bytes,null,false,null,{hints:row.recognition_hints||[]}));
    if(action==='sample'){
     const pdf=await renderPdf(row.pdf_bytes,m,true);
     res.set('X-Locator-Sample-Proof',proof(row,m));
@@ -59,6 +60,7 @@ function registerCentralLocatorRoutes(app,pool,{authenticateSchoolClient,require
    return res.status(e.code==='PREVIEW_BUSY'?429:422).json({error:e.code==='PREVIEW_BUSY'?e.message:'Could not prepare the form. Check the page and field placement, then retry.'});}
  };
  app.get(base+'/blank-preview',...platform,(req,res)=>render(req,res,'blank'));
+ app.get(base+'/recognize',...platform,(req,res)=>render(req,res,'recognize'));
  app.post(base+'/sample',...platform,(req,res)=>render(req,res,'sample'));
  app.post(base+'/publish',...platform,(req,res)=>render(req,res,'publish'));
  app.get('/api/school/locator-templates',...school,async(req,res)=>{

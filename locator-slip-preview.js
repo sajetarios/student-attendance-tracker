@@ -59,7 +59,7 @@ async function renderMatiLocator(master,fields,print=false){
   return print?canvasPrintPdf(canvas,W,H):canvas.toBuffer('image/png');
  }finally{rendering=false;if(canvas){canvas.width=1;canvas.height=1;}}
 }
-async function renderCentralLocator(pdf,mapping,print=false,values=null){
+async function renderCentralLocator(pdf,mapping,print=false,values=null,recognition=null){
  if(rendering){const e=Error('Another Locator Slip is being prepared. Please retry.');e.code='PREVIEW_BUSY';throw e;}
  rendering=true;let task,canvas;
  try{
@@ -78,6 +78,7 @@ async function renderCentralLocator(pdf,mapping,print=false,values=null){
   canvas=createCanvas(width,height);
   const ctx=canvas.getContext('2d');
   await page.render({canvas,canvasContext:ctx,viewport,annotationMode:0,background:'rgb(255,255,255)'}).promise;
+  if(recognition){const raster=ctx.getImageData(0,0,width,height);let hints=recognition.hints||[],source='pdf-text';if(!hints.length){const ocr=await require('./locator-local-ocr').recognizePng(canvas.toBuffer('image/png'),width,height);hints=ocr.hints;source=ocr.source;}return {...require('./locator-recognition').suggest(raster,hints),source,recognized:hints.length};}
   if(mapping)require('./central-locator-renderer').overlay(ctx,width,height,mapping,values);
   return print?canvasPrintPdf(canvas,original.width,original.height):canvas.toBuffer('image/png');
  }finally{
@@ -85,4 +86,19 @@ async function renderCentralLocator(pdf,mapping,print=false,values=null){
  }
 }
 
-module.exports={renderLocatorPreview,renderLocatorPrintPdf,renderMatiLocator,renderCentralLocator};
+async function extractLocatorLabels(pdf){
+ let task;
+ try{
+  const pdfjs=await import('pdfjs-dist/legacy/build/pdf.mjs');
+  task=pdfjs.getDocument({data:new Uint8Array(pdf),isEvalSupported:false,enableXfa:false,stopAtErrors:true,verbosity:0});
+  const doc=await task.promise;if(doc.numPages!==1)return [];
+  const page=await doc.getPage(1),v=page.getViewport({scale:1}),content=await page.getTextContent(),items=[];
+  for(const item of content.items.slice(0,1000)){
+   if(!item.str||!item.transform||Math.abs(item.transform[1])>.1||Math.abs(item.transform[2])>.1)continue;
+   const [x,baseline]=v.convertToViewportPoint(item.transform[4],item.transform[5]);
+   const height=Math.abs(item.height)||Math.abs(item.transform[3]);items.push({text:item.str,rect:[x/v.width,(baseline-height)/v.height,item.width/v.width,height/v.height]});
+  }
+  return require('./locator-recognition').labelHints(items);
+ }catch{return [];}finally{if(task)await task.destroy().catch(()=>{});}
+}
+module.exports={renderLocatorPreview,renderLocatorPrintPdf,renderMatiLocator,renderCentralLocator,extractLocatorLabels};

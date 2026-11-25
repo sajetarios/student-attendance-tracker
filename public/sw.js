@@ -1,4 +1,4 @@
-const CACHE = "attendigo-v426-flexible-locator-fields";
+const CACHE = "attendigo-v427-form-label-recognition";
 
 // Only public, non-personal offline shells and their executable dependencies.
 // An update must not discard the working cache before these are all ready.
