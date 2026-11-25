@@ -129,3 +129,11 @@ test('commutation stays optional on the attendance form without HR instructions'
  assert.match(ui,/Attendigo does not process payments/);
  assert.doesNotMatch(ui,/subject to HR review|if HR confirms|HR will determine/);
 });
+
+test('unverified leave credit uses neutral status without redundant instructions or self-verification prompts',()=>{
+ const ui=read('public/staff-leave-ui.js');
+ assert.match(ui,/'Not yet verified':entry\[1\]/);
+ assert.match(ui,/creditInfo\.hidden=!creditInfo\.textContent/);
+ assert.doesNotMatch(ui,/To be verified by School Admin|Ask your School Admin if verification is needed/);
+ assert.match(ui,/const allowed=lockedAccount\?\[lockedAccount\]/);
+});
