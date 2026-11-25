@@ -128,6 +128,11 @@
      if(user.role==='SCHOOL_ADMIN'&&(ob.status==='PENDING_ADMIN'||(ob.status==='PENDING_HEAD'&&ob.staffRole==='DEPARTMENT_HEAD'))){
       actions.append(document.createTextNode('Principal authorization required · recordkeeping only'));
      }
+     if(ob.staffUserId===user.userId&&(ob.status==='PENDING_ADMIN'||ob.status==='APPROVED'||(ob.status==='PENDING_HEAD'&&ob.staffRole==='DEPARTMENT_HEAD'))){
+      const link=document.createElement('a');link.className='outline-button';link.textContent='Print / download Locator Slip';
+      link.href=api+'/'+encodeURIComponent(ob.requestId)+'/locator-slip';link.target='_blank';link.rel='noopener noreferrer';actions.append(link);
+      actions.append(document.createTextNode('Attach supporting documents and secure handwritten signatures.'));
+     }
      if(ob.status==='APPROVED'){
       action('Affected classes',async()=>{
        const target=item.querySelector('.staff-ob-coverage');
