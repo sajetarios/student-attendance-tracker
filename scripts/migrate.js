@@ -99,7 +99,8 @@ const REQUIRED_MIGRATIONS = [
   '091_lunch_qr_review_notifications.sql',
   '092_school_document_branding.sql',
   '093_shortened_teaching_directive.sql',
-  '094_optional_school_memo_attachments.sql'
+  '094_optional_school_memo_attachments.sql',
+  '095_principal_ob_notifications.sql'
 ];
 
 function checksum(content) {
