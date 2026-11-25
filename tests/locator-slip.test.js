@@ -133,3 +133,20 @@ test('actual official print PDF opens as a single nonblank page',{skip:!fs.exist
  try{const doc=await task.promise;assert.equal(doc.numPages,1);const page=await doc.getPage(1);assert.ok(Math.abs(page.view[2]-595.44)<0.01);assert.ok(Math.abs(page.view[3]-841.68)<0.01);}
  finally{await task.destroy();}
 });
+
+test('print renderer round-trips a colored page without a master fixture',async()=>{
+ const {buildPrintPdf}=require('../locator-slip-print-pdf');
+ const {renderLocatorPrintPdf,renderLocatorPreview}=require('../locator-slip-preview');
+ const {createCanvas,loadImage}=require('@napi-rs/canvas');
+ const rgb=Buffer.from([255,0,0,0,255,0,0,0,255,255,255,255]);
+ const input=buildPrintPdf({rgb,width:2,height:2,pageWidth:100,pageHeight:100});
+ const output=await renderLocatorPrintPdf(input);
+ assert.match(output.toString('latin1'),/\/Width 417 \/Height 417/);
+ const image=await loadImage(await renderLocatorPreview(output));
+ const canvas=createCanvas(image.width,image.height),ctx=canvas.getContext('2d');
+ ctx.drawImage(image,0,0);
+ const red=ctx.getImageData(35,35,1,1).data;
+ assert.ok(red[0]>200&&red[1]<60&&red[2]<60,'top-left red must survive PDF export');
+ const blue=ctx.getImageData(35,130,1,1).data;
+ assert.ok(blue[2]>200&&blue[0]<60&&blue[1]<60,'bottom-left blue must survive PDF export');
+});
