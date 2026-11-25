@@ -290,12 +290,12 @@ async function offlineCachedPage(path) {
   try { return await caches.match(path); } catch { return undefined; }
 }
 
-async function offlineNavigationFallback(preferred) {
+async function offlineNavigationFallback(preferred, allowWelcome = true) {
   if (preferred) {
     const prepared = await offlineCachedPage(preferred);
     if (prepared && prepared.ok) return prepared;
   }
-  const welcome = await offlineCachedPage("/offline-welcome.html");
+  const welcome = allowWelcome ? await offlineCachedPage("/offline-welcome.html") : undefined;
   if (welcome && welcome.ok) return welcome;
   // No role tools or account data are exposed in this emergency document.
   // It has no external dependencies and does not claim that offline is ready.
@@ -362,7 +362,7 @@ self.addEventListener("fetch", event => {
   if (["/portal.html", "/class-qr-monitor.html", "/principal.html", "/school-memos.html", "/admin-sdo-coordination.html", "/student-portal.html", "/parent-portal.html",
        "/force-password-change.html", "/attendance-pin.html", "/class-qr-checkin.html", "/staff-lunch-checkin.html", "/leave-form6.html"].includes(url.pathname)) {
     event.respondWith(fetch(request, { cache: "no-store" }).catch(async error=>{
-      if(request.mode==='navigate')return offlineNavigationFallback(url.pathname==='/student-portal.html'?'/student-qr-offline.html':undefined);
+      if(request.mode==='navigate')return offlineNavigationFallback(url.pathname==='/student-portal.html'?'/student-qr-offline.html':undefined, ['/student-portal.html','/portal.html'].includes(url.pathname));
       throw error;
     }));
     return;
