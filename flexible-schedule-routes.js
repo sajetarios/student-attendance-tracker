@@ -26,6 +26,13 @@ function effective(base,change) {
   subjectName:change?.subject_name??base.subject_name,
   type:change?.adjustment_type||null,cancelled:change?.adjustment_type==='CANCEL'};
 }
+function canChangeActiveEnd(current,proposed,type,date,today,clock) {
+ return type==='RESCHEDULE'&&date===today&&!current.cancelled&&!proposed.cancelled&&
+  current.startTime===proposed.startTime&&current.teacherUserId===proposed.teacherUserId&&
+  current.subjectId===proposed.subjectId&&current.subjectName===proposed.subjectName&&
+  current.classroom===proposed.classroom&&current.startTime<=clock&&clock<current.endTime&&
+  clock<proposed.endTime&&current.endTime!==proposed.endTime;
+}
 function conflict(candidate,others) {
  for(const other of others) {
   if(other.cancelled||String(other.periodId)===String(candidate.periodId)||
@@ -298,9 +305,6 @@ function registerFlexibleScheduleRoutes(app,pool,auth) {
      'SELECT 1 FROM attendance_events WHERE school_id=$1 AND period_id=$2 AND school_date=$3::date',
      "AND sync_status='ACCEPTED' LIMIT 1"
     ].join(' '),[req.auth.schoolId,b.periodId,date]);
-    if(attendance.rowCount){
-     await c.query('ROLLBACK');return res.status(409).json({error:'Accepted class attendance exists on '+date+'. That date is locked.'});
-    }
     const previous=await c.query(
       'SELECT teacher_user_id FROM schedule_day_adjustments WHERE school_id=$1 AND period_id=$2 AND school_date=$3::date',
       [req.auth.schoolId,b.periodId,date]);
@@ -309,6 +313,12 @@ function registerFlexibleScheduleRoutes(app,pool,auth) {
      adjustment_type:type,teacher_user_id:teacherId,subject_id:subjectId,
      subject_name:subject?.subject_name||null,start_time:start,end_time:end,classroom:room
     });
+    const localClock=new Intl.DateTimeFormat('en-GB',{timeZone:'Asia/Manila',hour:'2-digit',minute:'2-digit',hourCycle:'h23'}).format(new Date());
+    const safeEndChange=canChangeActiveEnd(current,proposed,type,date,now(),localClock);
+    const session=await c.query('SELECT session_id FROM class_qr_sessions WHERE school_id=$1 AND period_id=$2 AND school_date=$3::date FOR UPDATE',[req.auth.schoolId,b.periodId,date]);
+    if((attendance.rowCount||session.rowCount)&&!safeEndChange){
+     await c.query('ROLLBACK');return res.status(409).json({error:'Accepted attendance or a QR session exists on '+date+'. Only a safe end-time adjustment to an ongoing class is allowed.'});
+    }
     if(type!=='CANCEL'){
      const hit=conflict(proposed,schedules);
      if(hit){
@@ -334,6 +344,13 @@ function registerFlexibleScheduleRoutes(app,pool,auth) {
      'classroom=EXCLUDED.classroom,reason_type=EXCLUDED.reason_type,notes=EXCLUDED.notes,memo_id=EXCLUDED.memo_id,updated_at=NOW()',
      'RETURNING adjustment_id'
     ].join(' '),[req.auth.schoolId,b.periodId,date,type,teacherId,subjectId,start,end,room,reason,notes||null,req.auth.userId,memoId]);
+    if(type==='RESCHEDULE'){
+     await c.query(`UPDATE class_qr_sessions SET ends_at=($3::date+$4::time) AT TIME ZONE 'Asia/Manila',
+       closes_at=(($3::date+$4::time) AT TIME ZONE 'Asia/Manila')-INTERVAL '5 minutes'
+       WHERE school_id=$1 AND period_id=$2 AND school_date=$3::date
+       AND starts_at=(($3::date+$5::time) AT TIME ZONE 'Asia/Manila')`,
+       [req.auth.schoolId,b.periodId,date,end,start]);
+    }
     savedIds.push(saved.rows[0].adjustment_id);
     await c.query([
      'INSERT INTO audit_logs(school_id,actor_type,actor_user_id,action,entity_type,entity_id,details)',
@@ -382,4 +399,4 @@ function registerFlexibleScheduleRoutes(app,pool,auth) {
   }finally{if(c)c.release();}
  });
 }
-module.exports={registerFlexibleScheduleRoutes,effective,conflict,eachDate};
+module.exports={registerFlexibleScheduleRoutes,effective,conflict,eachDate,canChangeActiveEnd};
