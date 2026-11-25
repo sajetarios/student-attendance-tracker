@@ -12,7 +12,13 @@ test('location proposal and decision notifications are transaction-bound and sch
 });
 test('notification refresh is active without page reload and explicit location routing is role scoped',()=>{
  const src=read('public/universal-notifications.js');
- assert.match(src,/setInterval\([\s\S]*?, 10000\)/);
+ assert.match(src,/function scheduleNotificationPoll\(\)/);
+ assert.match(src,/Math\.min\(60000, 10000 \* \(2 \*\* notificationPollFailures\)\)/);
+ assert.match(src,/Math\.floor\(Math\.random\(\) \* 2000\)/);
+ assert.match(src,/setTimeout\(async \(\) => \{[\s\S]*?await refresh\(false\);[\s\S]*?scheduleNotificationPoll\(\);[\s\S]*?\}, delay\)/);
+ assert.match(src,/!document\.hidden && navigator\.onLine !== false && !busy/);
+ assert.match(src,/notificationPollFailures = Math\.min\(3, notificationPollFailures \+ 1\)/);
+ assert.match(src,/notificationPollFailures = 0/);
  assert.match(src,/addEventListener\('online'/);
  assert.match(src,/requestType==='DEPARTMENT_LOCATION'&&user.role==='SCHOOL_ADMIN'/);
  assert.match(src,/go\('lunchQrAdmin'\)/);
