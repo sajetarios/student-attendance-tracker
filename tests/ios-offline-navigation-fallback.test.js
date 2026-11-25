@@ -40,3 +40,8 @@ test('online root remains online even if cache storage is unavailable',async()=>
 test('API requests remain outside service worker interception',async()=>{
   const go=worker();assert.equal(await go('/api/auth/me'),undefined);
 });
+
+test('unapproved offline dashboards receive only a neutral document, even when the public hub is cached',async()=>{
+  const go=worker({cache:{'/offline-welcome.html':new Response('cached welcome'),'/principal.html':new Response('private data')}});
+  const html=await(await go('/principal.html')).text();assert.match(html,/Connection unavailable/);assert.doesNotMatch(html,/cached welcome|private data/);
+});
