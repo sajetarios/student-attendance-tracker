@@ -14,7 +14,9 @@
  const say=(s,error=false)=>{status.textContent=s;status.classList.toggle('is-error',error);};
  const show=(step)=>{for(let n=1;n<=3;n++)$('locatorPilotStep'+n).hidden=n!==step;};
  function revoke(){if(sampleUrl){URL.revokeObjectURL(sampleUrl);sampleUrl=null;}};
+ function clearDownload(){const previous=$('locatorPilotSaveFile');if(previous.dataset.objectUrl)URL.revokeObjectURL(previous.dataset.objectUrl);delete previous.dataset.objectUrl;previous.replaceChildren();}
  function reset(){
+  clearDownload();
   revision++;pdf=null;mapping={};index=0;first=null;revoke();image.removeAttribute('src');$('locatorPilotSample').removeAttribute('src');
   $('locatorPilotFile').value='';$('locatorPilotFile').disabled=false;$('locatorPilotVerified').checked=false;$('locatorPilotOutcome').textContent='';
   $('locatorPilotDownload').disabled=true;marks.replaceChildren();show(1);say('');
@@ -62,7 +64,7 @@
  }
  async function sample(){
   if(busy)return;
-  busy=true;const run=revision;$('locatorPilotNext').disabled=true;say('Checking spaces and preparing sample…');
+  clearDownload();busy=true;const run=revision;$('locatorPilotNext').disabled=true;say('Checking spaces and preparing sample…');
   try{
    const blob=await request('sample');if(run!==revision)return;
    revoke();sampleUrl=URL.createObjectURL(blob);$('locatorPilotSample').src=sampleUrl;show(3);
@@ -79,7 +81,7 @@
   if(index===fields.length-1){void sample();return;}
   index++;field();
  }
- $('locatorPilotOpen').addEventListener('click',()=>{panel.hidden=!panel.hidden;$('locatorPilotOpen').textContent=panel.hidden?'Try guided setup':'Close guided setup';$('locatorPilotOpen').setAttribute('aria-expanded',String(!panel.hidden));if(panel.hidden&&!busy)reset();});
+ $('locatorPilotOpen').addEventListener('click',()=>{if(busy){say('The current preview is being prepared.');return;}panel.hidden=!panel.hidden;$('locatorPilotOpen').textContent=panel.hidden?'Try guided setup':'Close guided setup';$('locatorPilotOpen').setAttribute('aria-expanded',String(!panel.hidden));if(panel.hidden&&!busy)reset();});
  $('locatorPilotFile').addEventListener('change',async e=>{
   const file=e.target.files?.[0];if(!file||busy)return;
   if(file.size>2*1024*1024||!file.name.toLowerCase().endsWith('.pdf')){say('Choose a blank PDF up to 2 MB.',true);return;}
@@ -98,7 +100,7 @@
  $('locatorPilotBack').addEventListener('click',()=>{if(busy)return;if(!index){reset();return;}index--;field();});
  $('locatorPilotNext').addEventListener('click',()=>advance());
  $('locatorPilotSkip').addEventListener('click',()=>advance(true));
- $('locatorPilotEdit').addEventListener('click',()=>{if(busy)return;revoke();show(2);field();});
+ $('locatorPilotEdit').addEventListener('click',()=>{if(busy)return;clearDownload();revoke();show(2);field();});
  $('locatorPilotStartOver').addEventListener('click',()=>{if(!busy)reset();});
  $('locatorPilotDownload').addEventListener('click',async()=>{
   if(busy)return;busy=true;$('locatorPilotDownload').disabled=true;say('Preparing the print-ready sample…');
