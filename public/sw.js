@@ -1,4 +1,4 @@
-const CACHE = "attendigo-v433-mobile-identity-leave-release";
+const CACHE = "attendigo-v434-principal-executive-workspace";
 
 // Only public, non-personal offline shells and their executable dependencies.
 // An update must not discard the working cache before these are all ready.
@@ -190,7 +190,7 @@ const SHELL = [
   "/principal-dashboard.js?v=22",
   "/principal-trusted-campus.js?v=4",
   "/campus-location-ui.css?v=1",
-  "/principal-dashboard.css?v=15",
+  "/principal-dashboard.css?v=16",
   "/school-memos.js?v=1",
   "/school-memos.css?v=1",
   "/school-memo-banner.js?v=9",
