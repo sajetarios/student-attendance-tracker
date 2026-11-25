@@ -10,8 +10,8 @@ function registerStaffObRoutes(app,pool,{authenticateSchoolClient,requireSchoolR
    VALUES($1,$2,$3,'STAFF_OFFICIAL_BUSINESS',$4,$5::jsonb)`,
   [req.auth.schoolId,req.auth.userId,action,id,JSON.stringify(details)]);
  const ownScope=req=>String(req.query?.scope||'').toLowerCase()==='mine';
- const scoped=(req)=>ownScope(req)?' AND o.staff_user_id=$2':req.auth.role==='SCHOOL_ADMIN'?'':req.auth.role==='DEPARTMENT_HEAD'?(req.query?.scope==='department'?' AND o.department_id=$2 AND o.staff_user_id<>$3':' AND o.department_id=$2'):' AND o.staff_user_id=$2';
- const params=(req)=>ownScope(req)?[req.auth.schoolId,req.auth.userId]:req.auth.role==='SCHOOL_ADMIN'?[req.auth.schoolId]:req.auth.role==='DEPARTMENT_HEAD'&&req.query?.scope==='department'?[req.auth.schoolId,req.auth.departmentId,req.auth.userId]:[req.auth.schoolId,req.auth.role==='DEPARTMENT_HEAD'?req.auth.departmentId:req.auth.userId];
+ const scoped=(req)=>ownScope(req)?' AND o.staff_user_id=$2':req.auth.role==='DEPARTMENT_HEAD'?(req.query?.scope==='department'?' AND o.department_id=$2 AND o.staff_user_id<>$3':' AND o.department_id=$2'):' AND o.staff_user_id=$2';
+ const params=(req)=>ownScope(req)?[req.auth.schoolId,req.auth.userId]:req.auth.role==='DEPARTMENT_HEAD'&&req.query?.scope==='department'?[req.auth.schoolId,req.auth.departmentId,req.auth.userId]:[req.auth.schoolId,req.auth.role==='DEPARTMENT_HEAD'?req.auth.departmentId:req.auth.userId];
  app.get('/api/staff-attendance/official-business',...auth,async(req,res)=>{
   res.set('Cache-Control','no-store, private');
   if(req.auth.role==='DEPARTMENT_HEAD'&&!req.auth.departmentId&&!ownScope(req))return res.status(403).json({error:'Department assignment required.'});
@@ -97,7 +97,7 @@ function registerStaffObRoutes(app,pool,{authenticateSchoolClient,requireSchoolR
     JOIN class_periods p ON p.school_id=c.school_id AND p.period_id=c.period_id
     LEFT JOIN school_users su ON su.school_id=c.school_id AND su.user_id=c.substitute_user_id
     WHERE c.school_id=$1 AND c.request_id=$2
-      AND ($3='SCHOOL_ADMIN' OR ($3='DEPARTMENT_HEAD' AND o.department_id=$4)
+      AND (($3='SCHOOL_ADMIN' AND o.staff_user_id=$5) OR ($3='DEPARTMENT_HEAD' AND o.department_id=$4)
         OR ($3='TEACHER' AND o.staff_user_id=$5))
     ORDER BY c.class_date,p.start_time LIMIT 300`,
     [req.auth.schoolId,req.params.id,req.auth.role,req.auth.departmentId||null,req.auth.userId]);
@@ -215,7 +215,7 @@ function registerStaffObRoutes(app,pool,{authenticateSchoolClient,requireSchoolR
    CASE WHEN $3='APPROVED' THEN 'The Principal confirmed signed authorization.'
     WHEN $3='REJECTED' THEN 'Your request was disapproved. Review the decision in Official Business.'
     ELSE 'Your Department Head recommended your request. Secure the required physical signature.' END,
-   'STAFF_OB',$2::uuid,$3::text,'/portal.html?view=officialBusiness')
+   'STAFF_OB',$2::uuid,$3::text,CASE WHEN EXISTS(SELECT 1 FROM school_users u WHERE u.school_id=o.school_id AND u.user_id=o.staff_user_id AND u.role='SCHOOL_ADMIN') THEN '/portal.html?view=myGateAttendance' ELSE '/portal.html?view=officialBusiness' END)
    FROM staff_official_business_requests o
    WHERE o.school_id=$1 AND o.request_id=$2::uuid`,[schoolId,requestId,status]);
  }
