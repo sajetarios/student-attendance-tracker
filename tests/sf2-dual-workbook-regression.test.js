@@ -123,24 +123,22 @@ test('actual subject XLSX removes diagonal borders, distinguishes daily evidence
   assert.match(sheet.getCell('AG13').formula,/COUNTIF\(AU13:BS13,"P"\)/);
   assert.equal(sheet.getColumn('AU').hidden,true);
   assert.equal(sheet.getColumn('BS').hidden,true);
-  assert.equal(sheet.getCell('AJ117').value,days.length-3);
-  assert.equal(value(sheet.getCell('AG117')),'JAN');
-  assert.equal(sheet.getCell('AG117').formula,'LEFT(AA6,3)');
-  assert.equal(sheet.getCell('AK117').value,'Subject Attendance Summary');
+  assert.equal(value(sheet.getCell('AJ117')),1);
+  assert.equal(value(sheet.getCell('AG117')),'JANUARY');
+  assert.equal(sheet.getCell('AG117').formula,'AA6');
+  assert.equal(sheet.getCell('AG117').alignment.shrinkToFit,true);
   assert.equal(value(sheet.getCell('AK119')),1);
   assert.equal(value(sheet.getCell('AL119')),1);
   assert.equal(value(sheet.getCell('AM119')),2);
-  assert.equal(value(sheet.getCell('AM121')),3);
-  assert.equal(value(sheet.getCell('AM123')),1);
-  assert.equal(value(sheet.getCell('AM125')),0.6);
-  assert.equal(sheet.getCell('AM125').numFmt,'0.00%');
-  assert.deepEqual([119,121,123,125].map(r=>sheet.getCell('AE'+r).value),['Enrolled learners','Present','Absent','Attendance percentage']);
-  for(const row of [127,128,130,132,134,136])for(const col of ['AE','AK','AL','AM']){
-    assert.equal(sheet.getCell(col+row).value,null,col+row+' must not contain an additional indicator or formula');
-  }
-  assert.match(sheet.getCell('AM125').formula,/IFERROR\(AM121\/\(AM121\+AM123\+COUNTIF\(AU13:BS62,"E"\)\+COUNTIF\(AU64:BS113,"E"\)\)/);
-  assert.match(String(sheet.getCell('A128').value),/Present \+ Absent \+ Excused/);
-  assert.equal(sheet.getCell('T128').value,null);
+  assert.equal(value(sheet.getCell('AM121')),0);
+  assert.equal(value(sheet.getCell('AM123')),2);
+  assert.equal(value(sheet.getCell('AM125')),1);
+  assert.equal(value(sheet.getCell('AM127')),2);
+  assert.equal(value(sheet.getCell('AM128')),1);
+  assert.equal(sheet.getCell('AM128').numFmt,'0%');
+  assert.match(sheet.getCell('AM127').formula,/SUMPRODUCT/);
+  assert.match(String(sheet.getCell('A120').value),/complete subject records/);
+  for(const row of [130,132,134,136])assert.equal(value(sheet.getCell('AM'+row)),0);
   assert.ok(sheet.getCell('G115').alignment.textRotation===0 || !sheet.getCell('G115').alignment.textRotation);
   blankSlots(sheet,days);
   assert.equal(workbook.worksheets.length,1);
@@ -153,10 +151,9 @@ test('actual subject XLSX removes diagonal borders, distinguishes daily evidence
 test('future subject dates have no attendance symbols or totals',async()=>{
   const {res,sheet}=await exportFixture({month:'2099-01'});
   assert.equal(res.code,200,JSON.stringify(res.body));
-  assert.equal(sheet.getCell('AJ117').value,0);
-  for(const row of [121,123])assert.equal(value(sheet.getCell('AM'+row)),0);
-  for(const row of [127,128,130,132,134,136])assert.equal(sheet.getCell('AM'+row).value,null);
-  assert.ok([null,undefined,''].includes(value(sheet.getCell('AM125'))));
+  assert.equal(value(sheet.getCell('AJ117')),0);
+  assert.equal(value(sheet.getCell('AM127')),'N/A');
+  assert.equal(value(sheet.getCell('AM128')),'N/A');
   for(let col=7;col<=31;col++) {
     assert.equal(sheet.getCell(13,col).value,null);
     assert.equal(sheet.getCell(64,col).value,null);
@@ -242,29 +239,39 @@ test('three assigned subjects: explicit selection, isolated evidence, and correc
   assert.equal(conflicted.res.body.summary.absent,0);
 });
 
-test('November subject report: four indicators, 28 learners, 26 present, two X marks and weighted 92.86%',async()=>{
+test('November subject report: original ten summary rows, 28 learners, two X marks and recorded attendance 92.86%',async()=>{
   const {res,sheet,days}=await exportFixture({month:'2026-11',productionLike:true});
   assert.equal(res.code,200,JSON.stringify(res.body));
-  assert.equal(value(sheet.getCell('AG117')),'NOV');
+  assert.equal(value(sheet.getCell('AG117')),'NOVEMBER');
+  assert.equal(value(sheet.getCell('AJ117')),1);
   const values=row=>['AK','AL','AM'].map(c=>value(sheet.getCell(c+row)));
   assert.deepEqual(values(119),[3,25,28]);
-  assert.deepEqual(values(121),[3,23,26]);
-  assert.deepEqual(values(123),[0,2,2]);
-  assert.deepEqual(values(125),[1,23/25,26/28]);
-  for(const row of [127,128,130,132,134,136])assert.deepEqual(values(row),[null,null,null]);
-  assert.equal(value(sheet.getCell('AM125')).toFixed(4),'0.9286');
+  assert.deepEqual(values(121),[0,0,0]);
+  assert.deepEqual(values(123),[3,25,28]);
+  assert.deepEqual(values(125),[1,1,1]);
+  assert.deepEqual(values(127),[3,23,26]);
+  assert.deepEqual(values(128),[1,23/25,26/28]);
+  for(const row of [130,132,134,136])assert.deepEqual(values(row),[0,0,0]);
+  assert.equal(value(sheet.getCell('AM128')).toFixed(4),'0.9286');
+  for(const c of ['AK','AL','AM']){
+    assert.equal(sheet.getCell(c+'128').numFmt,'0%');
+    assert.equal(sheet.getCell(c+'128').alignment.shrinkToFit,true);
+  }
   assert.equal(value(sheet.getCell('AF115')),2);
   assert.equal(value(sheet.getCell('AG115')),26);
   const d=days.indexOf('2026-11-23');
   assert.ok(d>=0);
   assert.equal(dayCell(sheet,days,87,d).value,'X');
   assert.equal(dayCell(sheet,days,88,d).value,'X');
-  assert.equal(value(sheet.getCell('AM123')),2,'Unrecorded days must not be included as absences');
+  assert.equal(value(sheet.getCell('AM123')),28,'Roster count remains unchanged by missing marks');
   assert.equal(sheet.model.merges.length,257);
   assertNoManualCalculationPanel(sheet);
   const master=new ExcelJS.Workbook();
   await master.xlsx.readFile(require('../sf2-master-export').MASTER);
   const original=master.worksheets[0];
+  for(const address of ['AE117','AH117','AK117','AK118','AL118','AM118',...[119,121,123,125,127,128,130,132,134,136].map(r=>'AE'+r)]){
+    assert.equal(sheet.getCell(address).value,original.getCell(address).value,'Original summary label '+address);
+  }
   assert.deepEqual([...sheet.model.merges].sort(),[...original.model.merges].sort());
   for(let c=1;c<=40;c++)assert.equal(sheet.getColumn(c).width,original.getColumn(c).width,'Original printable width '+c);
   for(let row=117;row<=146;row++)assert.equal(sheet.getRow(row).height,original.getRow(row).height,'Original summary row height '+row);
