@@ -36,7 +36,7 @@ for(const b of benchmarks) test('SF2 reconciled benchmark '+b.month+' actual XLS
     if(sql.includes('COUNT(DISTINCT e.school_date)'))return result([]);
     if(sql.includes('FROM school_calendar_exceptions'))return result([]);
     if(sql.includes("SELECT 'ADVISER' AS kind"))return result([{kind:'ADVISER',name:'TEST ADVISER'},{kind:'HEAD',name:'TEST HEAD'}]);
-    if(sql.includes('SELECT school_name,school_code FROM schools')) return result([{school_name:'TEST SCHOOL',school_code:'123456'}]);
+    if(sql.includes('SELECT school_name,school_code,document_branding FROM schools')) return result([{school_name:'TEST SCHOOL',school_code:'123456'}]);
     if(sql.includes('FROM school_settings'))return result([{setting_key:'school_name',setting_value:'TEST SCHOOL'}]);
     if(sql.includes('SELECT start_date FROM school_years'))return result([{start_date:'2026-06-01'}]);
     // October reference correction confirmed by the user: beginning enrollment was
