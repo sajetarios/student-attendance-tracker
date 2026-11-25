@@ -1,5 +1,6 @@
 'use strict';
 const express=require('express');
+const {validDurations,planSchoolShortening,saveSchoolShortening}=require('./shortened-class-schedule');
 const {validHours}=require('./form48-calculations');
 const {manilaDate}=require('./staff-lunch-routes');
 const {createHash}=require('node:crypto');
@@ -74,7 +75,7 @@ function registerSchoolMemoRoutes(app,pool,{authenticateSchoolClient,requireScho
     SELECT m.memo_id AS "memoId",m.title,m.summary,m.category,m.audience,
      to_char(m.effective_date,'YYYY-MM-DD') AS "effectiveDate",
      to_char(m.end_date,'YYYY-MM-DD') AS "endDate",
-     m.dtr_hours AS "dtrHours",m.filename,
+     m.dtr_hours AS "dtrHours",m.class_period_minutes AS "classPeriodMinutes",m.filename,
      m.published_at AS "publishedAt",u.display_name AS "publisher",
      a.acknowledged_at AS "acknowledgedAt"
     FROM school_memoranda m
@@ -101,6 +102,14 @@ function registerSchoolMemoRoutes(app,pool,{authenticateSchoolClient,requireScho
     dtrHours=dtrRequested?readTemporaryHours(req.headers['x-memo-dtr-hours']):null,
     type=String(req.headers['content-type']||'').split(';')[0].trim().toLowerCase(),
     filename=cleaned(decoded(req.headers['x-filename']||'memo.pdf'),160).replace(/[^a-zA-Z0-9 ._()\-]/g,'_');
+  const teachingRequested=req.headers['x-memo-shortened-class']==='true';
+  const original=Number(req.headers['x-memo-original-minutes']),adjusted=Number(req.headers['x-memo-adjusted-minutes']);
+  const preview=teachingRequested&&req.headers['x-memo-preview']==='true';
+  const noFile=teachingRequested&&!req.headers['x-filename']&&(!req.body||!Buffer.isBuffer(req.body)||!req.body.length)&&(!type||type==='application/octet-stream');
+  if((teachingRequested&&(!validDurations(original,adjusted)||category!=='SCHEDULE_NOTICE'||audience!=='ALL_USERS'||dtrRequested||
+     !date||!endDate||!validDate(date)||!validDate(endDate)||date<manilaDate()||durationDays(date,endDate)>30))||
+     (!teachingRequested&&(req.headers['x-memo-original-minutes']||req.headers['x-memo-adjusted-minutes'])))
+   return res.status(400).json({error:'Shortened teaching periods require all school users, valid dates and durations, and no personnel DTR adjustment.'});
   if(title.length<5||title.length>180||summary.length>1200||
    !CATEGORIES.has(category)||!AUDIENCES.has(audience)||
    (date&&!validDate(date))||(endDate&&(!validDate(endDate)||!date||endDate<date))||
@@ -109,12 +118,17 @@ function registerSchoolMemoRoutes(app,pool,{authenticateSchoolClient,requireScho
    (dtrRequested&&(!dtrHours||category!=='SCHEDULE_NOTICE'||
        !date||!endDate||date<manilaDate()||durationDays(date,endDate)>30))||
    (!dtrRequested&&req.headers['x-memo-dtr-hours'])||
-   !filename||!validMemoDocument(req.body,type))
+   (!noFile&&!preview&&(!filename||!validMemoDocument(req.body,type))))
    return res.status(400).json({error:'Provide a valid signed memorandum, effective start/end dates for temporary notices, and four chronological DTR hours when adjustment is enabled (start today or later; maximum 31 days; staff DTR only).'});
   const client=await pool.connect();
   try{
    await client.query('BEGIN');
-   const sha=createHash('sha256').update(req.body).digest('hex');
+   const planned=teachingRequested?await planSchoolShortening(client,req.auth.schoolId,date,endDate,original,adjusted):[];
+   if(preview){
+    await client.query('ROLLBACK');
+    return res.json({changedPeriods:planned.length,dates:[...new Set(planned.map(p=>p.date))],sample:planned.slice(0,6).map(({date,gradeLevel,section,startTime,endTime})=>({date,gradeLevel,section,startTime,endTime}))});
+   }
+   const sha=noFile?null:createHash('sha256').update(req.body).digest('hex');
    if(dtrHours){
     // Serialize concurrent Principal publications for this school. No two live
     // prescribed-hour exceptions may compete for the same day.
@@ -130,12 +144,13 @@ function registerSchoolMemoRoutes(app,pool,{authenticateSchoolClient,requireScho
     }
    }
    const q=await client.query(`
-    INSERT INTO school_memoranda(school_id,published_by,title,summary,category,audience,effective_date,end_date,dtr_hours,filename,content_type,content,sha256)
-    VALUES($1,$2,$3,$4,$5,$6,$7::date,$8::date,$9::jsonb,$10,$11,$12,$13)
+    INSERT INTO school_memoranda(school_id,published_by,title,summary,category,audience,effective_date,end_date,dtr_hours,filename,content_type,content,sha256,class_period_minutes)
+    VALUES($1,$2,$3,$4,$5,$6,$7::date,$8::date,$9::jsonb,$10,$11,$12,$13,$14::jsonb)
     RETURNING memo_id AS "memoId",published_at AS "publishedAt"`,
     [req.auth.schoolId,req.auth.userId,title,summary,category,audience,date||null,endDate||null,
-     dtrHours?JSON.stringify(dtrHours):null,filename,type,req.body,sha]);
+     dtrHours?JSON.stringify(dtrHours):null,noFile?null:filename,noFile?null:type,noFile?null:req.body,sha,teachingRequested?JSON.stringify({original,adjusted}):null]);
    const id=q.rows[0].memoId;
+   if(teachingRequested)await saveSchoolShortening(client,req.auth.schoolId,req.auth.userId,id,planned);
    // Send durable in-app notifications to active school accounts and, for the
    // ALL_USERS audience, active registered student accounts in this school.
    // No unverified browser push delivery is claimed.
@@ -168,17 +183,18 @@ function registerSchoolMemoRoutes(app,pool,{authenticateSchoolClient,requireScho
     INSERT INTO school_memo_audit(school_id,memo_id,actor_user_id,action,detail)
     VALUES($1,$2,$3,'PUBLISHED',$4::jsonb)`,
     [req.auth.schoolId,id,req.auth.userId,JSON.stringify({category,audience,effectiveDate:date||null,endDate:endDate||null,
-      dtrHours,notified:staff.rowCount+learners.rowCount,sha256:sha})]);
+      dtrHours,classPeriodMinutes:teachingRequested?{original,adjusted}:null,changedPeriods:planned.length,notified:staff.rowCount+learners.rowCount,sha256:sha})]);
    await client.query('COMMIT');
    return res.status(201).json({memoId:id,publishedAt:q.rows[0].publishedAt,
     notifiedAccounts:staff.rowCount+learners.rowCount,
-    notice:dtrHours?'Published with date-bounded prescribed DTR hours for school personnel. Actual punches, class timetables, and manual reviews remain unchanged.':'Published as an announcement; no DTR or timetable changes. Delivery does not prove that recipients read the memo.'});
-  }catch(e){await client.query('ROLLBACK').catch(()=>{});return fail(res,e);}finally{client.release();}
+    changedPeriods:planned.length,notice:teachingRequested?'Published shortened teaching periods; personnel DTR hours remain unchanged.':dtrHours?'Published with date-bounded prescribed DTR hours for school personnel. Actual punches, class timetables, and manual reviews remain unchanged.':'Published as an announcement; no DTR or timetable changes. Delivery does not prove that recipients read the memo.'});
+  }catch(e){await client.query('ROLLBACK').catch(()=>{});if(e.scheduleConflict)return res.status(409).json({error:e.message});return fail(res,e);}finally{client.release();}
  });
  app.get('/api/school-memos/:id/file',...read,async(req,res)=>{
   privateResponse(res);
   try{
    const m=await findMemo(req,res,req.params.id,true);if(!m)return;
+   if(!m.content)return res.status(404).json({error:'No attachment was provided.'});
    res.set('X-Content-Type-Options','nosniff');
    res.set('Content-Type',m.content_type);
    res.set('Content-Disposition','inline; filename="'+String(m.filename).replace(/[^a-zA-Z0-9 ._()\-]/g,'_')+'"');

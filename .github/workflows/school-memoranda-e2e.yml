@@ -12,6 +12,16 @@ on:
       - 'public/principal-dashboard.js'
       - 'tests/school-memoranda*'
       - '.github/workflows/school-memoranda-e2e.yml'
+  pull_request:
+    branches: [fix/render-login-landing]
+    paths:
+      - 'school-memo-routes.js'
+      - 'shortened-class-schedule.js'
+      - 'flexible-schedule-routes.js'
+      - 'migrations/093_shortened_teaching_directive.sql'
+      - 'public/principal*'
+      - 'tests/school-memoranda*'
+      - '.github/workflows/school-memoranda-e2e.yml'
   workflow_dispatch:
 permissions:
   contents: read

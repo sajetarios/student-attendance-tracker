@@ -53,13 +53,13 @@
   const info=el('div','memo-details');
   info.append(el('span',null,memo.audience==='ALL_USERS'?'All school users':'School personnel'));
   if(memo.effectiveDate)info.append(el('span',null,'Effective: '+memo.effectiveDate));
-  info.append(el('span',null,'Attachment: '+(memo.filename||'Document')));
+  info.append(el('span',null,memo.filename?'Attachment: '+memo.filename:'No attachment'));
   card.append(info);
   const actions=el('div','memo-actions');
   const attachment=el('a','memo-view','Open attached memorandum');
   attachment.href='/api/school-memos/'+encodeURIComponent(memo.memoId)+'/file';
   attachment.target='_blank';attachment.rel='noopener noreferrer';
-  actions.append(attachment);
+  if(memo.filename)actions.append(attachment);
   const ack=el('button',memo.acknowledgedAt?'memo-acknowledged':'memo-read',memo.acknowledgedAt?'Acknowledged':'Mark as read');
   ack.type='button';ack.disabled=Boolean(memo.acknowledgedAt);
   ack.addEventListener('click',()=>void acknowledge(memo,ack));actions.append(ack);

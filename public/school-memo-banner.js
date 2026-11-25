@@ -200,8 +200,9 @@
    details.append(make('span',null,'Temporary personnel DTR hours: '+
     h.AM_IN+'–'+h.AM_OUT+' / '+h.PM_IN+'–'+h.PM_OUT+
     ' (prescribed hours only; recorded punches unchanged)'));
-  }else details.append(make('span',null,'Announcement only · No DTR changes'));
-  details.append(make('span',null,'Attachment: '+(memo.filename||'Document')));
+  }else if(memo.classPeriodMinutes)details.append(make('span',null,'Teaching periods: '+memo.classPeriodMinutes.original+' → '+memo.classPeriodMinutes.adjusted+' minutes · No DTR changes'));
+  else details.append(make('span',null,'Announcement only · No DTR changes'));
+  details.append(make('span',null,memo.filename?'Attachment: '+memo.filename:'No attachment'));
   record.append(details);
   const actions=make('div','attendigo-memo-actions');
   const view=make('button','attendigo-memo-preview-toggle','View attachment');
@@ -214,7 +215,7 @@
    view.setAttribute('aria-expanded',String(shown));record.setAttribute('aria-expanded',String(shown));
    view.disabled=false;
   });
-  actions.append(view);
+  if(memo.filename)actions.append(view);
   const ack=make('button','attendigo-memo-ack',memo.acknowledgedAt?'Acknowledged':'Mark as read');
   ack.type='button';ack.disabled=Boolean(memo.acknowledgedAt);
   ack.addEventListener('click',()=>void markRead(memo,ack));
