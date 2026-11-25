@@ -915,15 +915,15 @@ button.priority-department-row:focus-visible,.priority-reset:focus-visible{
 /* Principal report filters and navigation: explicit shrinkable tracks for
    native iOS controls, independent of their intrinsic date/select widths. */
 @media screen{
- #main > .controls{
+ #main .principal-content > .controls{
   display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.25fr) minmax(0,1fr) max-content;
   gap:12px;align-items:end;min-width:0;max-width:100%;box-sizing:border-box;
  }
- #main > .controls > label{
+ #main .principal-content > .controls > label{
   display:grid;grid-template-columns:minmax(0,1fr);align-content:start;
   min-width:0!important;max-width:100%;gap:6px;box-sizing:border-box;
  }
- #main > .controls > label > :is(input,select),
+ #main .principal-content > .controls > label > :is(input,select),
  #main .principal-navigation .principal-menu-label > select,
  #main .staff-filters > label > :is(input,select){
   display:block;box-sizing:border-box!important;
@@ -937,7 +937,7 @@ button.priority-department-row:focus-visible,.priority-reset:focus-visible{
  #main :is(.controls,.staff-filters) input[type=date]::-webkit-date-and-time-value{
   text-align:left;min-width:0;margin:0;min-height:1.35em;
  }
- #main > .controls > #refreshDashboard{
+ #main .principal-content > .controls > #refreshDashboard{
   min-width:0;max-width:100%;width:auto;min-height:44px;height:auto;
   margin:0;white-space:normal;overflow-wrap:anywhere;justify-self:stretch;
  }
@@ -965,13 +965,101 @@ button.priority-department-row:focus-visible,.priority-reset:focus-visible{
  #main .staff-filters > label{display:grid;grid-template-columns:minmax(0,1fr);min-width:0}
 }
 @media screen and (max-width:1100px){
- #main > .controls{grid-template-columns:repeat(2,minmax(0,1fr))}
+ #main .principal-content > .controls{grid-template-columns:repeat(2,minmax(0,1fr))}
 }
 @media screen and (pointer:coarse) and (max-width:1400px){
- #main > .controls{grid-template-columns:repeat(2,minmax(0,1fr))}
+ #main .principal-content > .controls{grid-template-columns:repeat(2,minmax(0,1fr))}
 }
 @media screen and (max-width:560px){
- #main > .controls,#main .principal-navigation-secondary{grid-template-columns:minmax(0,1fr)}
+ #main .principal-content > .controls,#main .principal-navigation-secondary{grid-template-columns:minmax(0,1fr)}
  #main .principal-main-tabs{display:grid;grid-template-columns:repeat(2,minmax(0,1fr))}
  #main .principal-main-tabs > .tab{width:100%;text-align:center}
 }
+
+/* Principal executive workspace: presentation only; existing role actions and evidence stay intact. */
+@media screen {
+ #main {display:grid;grid-template-columns:minmax(0,1fr);align-items:start;gap:16px;width:min(1560px,100%);padding-top:16px}
+ #main > :not(.principal-navigation):not(.principal-content){grid-column:1/-1;min-width:0}
+ #main > .principal-navigation{margin:0;padding:12px;align-self:start}
+ .principal-content{min-width:0;max-width:100%;display:block}
+ .principal-nav-heading{display:grid;gap:2px;padding:6px 8px 10px;color:var(--ink);border-bottom:1px solid var(--border)}
+ .principal-nav-heading strong{font-size:16px;font-weight:800}
+ .principal-nav-heading span{font-size:13px;color:var(--muted)}
+ #main .principal-main-tabs > .tab{display:flex;align-items:center;gap:9px;justify-content:flex-start;text-align:left;font-size:15px;padding:10px;line-height:1.25}
+ .principal-nav-icon{flex:none}
+ #main .principal-main-tabs > .tab span{min-width:0;overflow-wrap:anywhere}
+ #main .principal-main-tabs > .tab.is-active{font-weight:800;box-shadow:inset 3px 0 currentColor}
+ #main .principal-navigation-secondary{padding-top:10px;border-top:1px solid var(--border)}
+ #main .principal-content > .hero{padding:clamp(18px,2.5vw,30px);border-radius:18px;gap:16px;margin:0 0 12px}
+ #main .hero h1{font-size:clamp(24px,2.5vw,34px);line-height:1.18;margin:6px 0 9px;overflow-wrap:anywhere}
+ #main .hero-copy>p{margin-bottom:12px}
+ #main .hero-right{padding:15px;border-radius:13px}
+ #main .hero-right strong{font-size:clamp(30px,3vw,42px)}
+ #main .hero-meta{font-size:13px}
+ #main .principal-content:has(> #overviewPanel[hidden]) > .hero{display:none}
+ #main .principal-content > .controls{margin:12px 0 6px;padding:12px}
+ #main .section-heading{margin:12px 0}
+ #main .section-heading h2{font-size:clamp(21px,2vw,27px)}
+ #main .metric-card{border-radius:14px;padding:15px;gap:7px;background:var(--surface);color:var(--ink)}
+ #main .metric-label{font-size:15px;min-height:0;color:var(--ink)}
+ #main .metric-card small,#main .metric-action{font-size:13px;line-height:1.4}
+ #main .metric-grid{gap:12px;margin-bottom:14px}
+ #main .principal-briefing{margin-bottom:14px}
+ #main .principal-class-overview{margin-bottom:14px}
+ #main .principal-quick-links{margin-bottom:14px}
+ #main .principal-recognition{margin-top:16px}
+ #main .card-heading{flex-wrap:wrap}
+ #main .card-heading > div{min-width:0;flex:1 1 220px}
+ #main .card-heading h3{font-size:19px}
+ #main .card-heading p:last-child,#main .section-heading p:last-child{font-size:15px}
+ #main .source-note{font-size:13px}
+ #main .surface{min-width:0;max-width:100%;overflow-wrap:break-word}
+ #main .principal-content .footer{flex-wrap:wrap;gap:8px}
+}
+@media screen and (min-width:1180px){
+ #main{grid-template-columns:minmax(205px,230px) minmax(0,1fr);gap:20px}
+ #main > .principal-navigation{position:sticky;top:16px;grid-column:1;max-height:calc(100vh - 32px);overflow:auto}
+ #main > .principal-content{grid-column:2}
+ #main .principal-main-tabs{display:grid;grid-template-columns:minmax(0,1fr);width:100%;gap:4px}
+ #main .principal-navigation-secondary{grid-template-columns:minmax(0,1fr)}
+ #main .principal-main-tabs > .tab{width:100%}
+ #main .principal-content > .controls{grid-template-columns:repeat(2,minmax(0,1fr))}
+ #main .metric-grid{grid-template-columns:repeat(4,minmax(0,1fr))}
+}
+@media screen and (max-width:1179px){
+ #main .principal-main-tabs{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,170px),1fr))}
+ #main .principal-main-tabs > .tab{width:100%}
+}
+@media screen and (max-width:650px){
+ #main{gap:10px;padding:12px 12px 28px}
+ #main .principal-main-tabs{grid-template-columns:repeat(2,minmax(0,1fr))}
+ #main .principal-main-tabs > .tab{font-size:14px;padding:8px;gap:6px;min-height:46px}
+ #main .principal-nav-icon{width:18px;height:18px}
+ #main .principal-navigation-secondary{grid-template-columns:minmax(0,1fr)}
+ #main .principal-content > .hero{grid-template-columns:minmax(0,1fr)}
+ #main .hero-meta span+span:before{content:none}
+ #main .metric-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+ #main .metric-card{padding:12px}
+ #main .metric-card strong{font-size:30px}
+ #main .main-grid{grid-template-columns:minmax(0,1fr)}
+ #main .surface{padding:15px}
+ #main .principal-recognition{padding:0}
+ #main .principal-quick-links{display:grid;grid-template-columns:repeat(2,minmax(0,1fr))}
+ #main .principal-quick-links button{min-width:0;white-space:normal}
+}
+@media screen and (max-width:350px){
+ #main .metric-grid,#main .principal-quick-links{grid-template-columns:minmax(0,1fr)}
+}
+@media (prefers-reduced-motion:reduce){#main .panel{animation:none}}
+
+/* Consistent local SVG icon system across navigation, metrics and dynamic cards. */
+.principal-action-icon{display:inline-block;flex:none;vertical-align:middle;inline-size:20px;block-size:20px;pointer-events:none}
+#main .metric-icon{inline-size:42px;block-size:42px;border-radius:12px;flex:none}
+#main .metric-icon .principal-action-icon{inline-size:24px;block-size:24px}
+#main .briefing-item-icon .principal-action-icon,#main .attention-item .mark .principal-action-icon{inline-size:18px;block-size:18px}
+#main .principal-quick-links button:has(.principal-action-icon),#main .principal-workspace-actions button:has(.principal-action-icon),#main #refreshDashboard:has(.principal-action-icon),.top-actions #signOut:has(.principal-action-icon){display:inline-flex;align-items:center;justify-content:center;gap:8px}
+#main .principal-quick-links button .principal-action-icon{color:var(--primary)}
+#main .principal-quick-links button>span{min-width:0;overflow-wrap:anywhere}
+#main #refreshDashboard>span{font-size:inherit;margin:0}
+#main .recognition-empty-icon .principal-action-icon{inline-size:24px;block-size:24px}
+@media(max-width:650px){#main .principal-quick-links button:has(.principal-action-icon){gap:6px}#main .principal-quick-links .principal-action-icon{inline-size:18px;block-size:18px}}
