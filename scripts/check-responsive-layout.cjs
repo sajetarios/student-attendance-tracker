@@ -28,10 +28,13 @@ async function checkPrincipalHeaderGeometry(engine,engineName){
  try{
   const source=read('principal.html');
   const start=source.indexOf('<section class="controls" aria-label="Leadership report filters">');
-  const navStart=source.indexOf('<nav class="principal-navigation"',start);
+  const controlsEnd=source.indexOf('</section>',start);
+  const navStart=source.indexOf('<nav class="principal-navigation"');
   const end=source.indexOf('</nav>',navStart);
-  assert.ok(start>=0&&navStart>start&&end>navStart,'actual principal report controls and navigation');
-  const markup=source.slice(start,end+6);
+  assert.ok(start>=0&&controlsEnd>start&&navStart>=0&&end>navStart,'actual principal report controls and navigation');
+  const contentOpen=source.indexOf('<div class="principal-content">');
+  assert.ok(navStart<end&&end<contentOpen&&contentOpen<start,'actual executive sidebar and content structure');
+  const markup=source.slice(navStart,end+6)+'<div class="principal-content">'+source.slice(start,controlsEnd+10)+'</div>';
   for(const theme of ['light','dark']){
    for(const width of [320,390,768,820,1024,1194,1366,1440]){
     const touch=width<=1366;
@@ -47,7 +50,7 @@ async function checkPrincipalHeaderGeometry(engine,engineName){
      });
      const result=await page.evaluate(()=>{
       const rect=e=>{const r=e.getBoundingClientRect();return {x:r.x,y:r.y,width:r.width,height:r.height};};
-      const fields=[...document.querySelectorAll('.controls input,.controls select,.principal-menu-label select')].map(e=>({id:e.id,control:rect(e),label:rect(e.closest('label'))}));
+      const fields=[...document.querySelectorAll('.controls input,.controls select'),...document.querySelectorAll('.principal-menu-label select')].map(e=>({id:e.id,control:rect(e),label:rect(e.closest('label'))}));
       const get=sel=>rect(document.querySelector(sel));
       const tabs=[...document.querySelectorAll('.principal-main-tabs button')].map(rect);
       return {fields,tabs,refresh:get('#refreshDashboard'),filters:get('.controls'),navigation:get('.principal-navigation'),secondary:get('.principal-navigation-secondary'),mainTabs:get('.principal-main-tabs'),overflow:document.documentElement.scrollWidth>innerWidth+1};
