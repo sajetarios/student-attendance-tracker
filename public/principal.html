@@ -12,7 +12,7 @@ try { const preference = localStorage.getItem('attendigo.principal.theme'); docu
 catch (_) { document.documentElement.dataset.theme = 'light'; }
 </script>
 <link rel="stylesheet" href="/principal-dashboard.css?v=15">
-<script src="/principal-dashboard.js?v=17" defer></script>
+<script src="/principal-dashboard.js?v=18" defer></script>
 <script src="/staff-precise-location.js?v=1" defer></script>
 <script src="/principal-trusted-campus.js?v=4" defer></script>
 <link rel="stylesheet" href="/campus-location-ui.css?v=1">
@@ -358,7 +358,7 @@ catch (_) { document.documentElement.dataset.theme = 'light'; }
    <section id="principalMemoPublishPanel" class="surface principal-memo-publish" hidden>
     <div class="card-heading"><div><p class="eyebrow">SCHOOL COMMUNICATIONS</p>
      <h3>Publish School Memorandum</h3>
-     <p>Upload a signed official memorandum for all school users or for school personnel only.</p></div>
+     <p>Publish a school directive or announcement. Attach a supporting document if available.</p></div>
      <button class="quiet-button principal-memo-link" type="button" data-school-memo-open>View memoranda in dashboard</button>
     </div>
     <form id="principalMemoForm" class="principal-memo-form">
@@ -367,11 +367,14 @@ catch (_) { document.documentElement.dataset.theme = 'light'; }
      <label>Short announcement
       <textarea name="summary" rows="3" maxlength="1200" placeholder="Brief description visible in notifications. Avoid private personal data."></textarea></label>
      <div class="principal-memo-fields">
-      <label>Notice category
+      <label>Directive type
        <select name="category" required>
         <option value="GENERAL">General memorandum</option>
         <option value="SCHOOL_ADVISORY">School advisory</option>
-        <option value="SCHEDULE_NOTICE">Temporary schedule notice</option>
+        <option value="SCHEDULE_NOTICE">Schedule announcement (notification only)</option>
+        <option value="SHORTENED_PERIODS">Shortened teaching periods</option>
+        <option value="EARLY_DISMISSAL">Shortened schedule / early dismissal</option>
+        <option value="TEMPORARY_DTR">Temporary personnel working hours</option>
         <option value="CLASS_SUSPENSION">Class suspension notice</option>
        </select></label>
       <label>Who can view and acknowledge?
@@ -380,28 +383,32 @@ catch (_) { document.documentElement.dataset.theme = 'light'; }
         <option value="SCHOOL_STAFF">School personnel only</option>
        </select><small id="principalMemoAudienceHelp" class="source-note">All school users includes registered students and parents.</small></label>
      </div>
-     <div class="principal-memo-fields principal-memo-date-fields">
+     <div id="principalMemoDateFields" class="principal-memo-fields principal-memo-date-fields" hidden>
       <label>Effective start date (required for temporary notices)
        <input type="date" name="effectiveDate"></label>
       <label>Effective end date (inclusive; required for temporary notices)
        <input type="date" name="endDate" min=""></label>
      </div>
-     <label id="principalShortenedToggle" hidden><input type="checkbox" name="shortenedClass" id="principalShortenedClass"> Shorten teaching periods only (personnel DTR unchanged)</label>
+     <label id="principalShortenedToggle" hidden><input type="checkbox" name="shortenedClass" id="principalShortenedClass"> Shorten teaching periods only</label>
+     <div id="principalDismissalFields" class="principal-memo-fields" hidden>
+      <label>Adjusted class dismissal time<input type="time" name="dismissalTime" disabled></label>
+      <p class="source-note">Class attendance only. Personnel working hours and DTR remain unchanged.</p>
+     </div>
      <div id="principalShortenedFields" class="principal-memo-fields" hidden>
       <label>Regular class duration (minutes)<input name="originalMinutes" type="number" min="11" max="180" value="55"></label>
       <label>Adjusted class duration (minutes)<input name="adjustedMinutes" type="number" min="10" max="179" value="45"></label>
       <p class="source-note">Upcoming matching periods only. Break durations are preserved; conflicting schedules must be resolved first. Preview before publication.</p>
      </div>
      <div class="principal-memo-fields principal-memo-attachment">
-      <label>Supporting memorandum (PDF, JPG or PNG; up to 4 MB; optional for teaching-only shortening)
-       <input type="file" name="document" accept=".pdf,.jpg,.jpeg,.png,application/pdf,image/jpeg,image/png" required></label>
+      <label>Supporting memorandum (optional; PDF, JPG or PNG; up to 4 MB)
+       <input type="file" name="document" accept=".pdf,.jpg,.jpeg,.png,application/pdf,image/jpeg,image/png"></label>
      </div>
-     <label class="principal-memo-dtr-toggle">
+     <label class="principal-memo-dtr-toggle" hidden>
       <input type="checkbox" name="applyDtr" id="principalMemoApplyDtr">
       Apply a temporary prescribed DTR schedule to school personnel for these dates
      </label>
      <div id="principalMemoDtrFields" hidden>
-      <p class="source-note">Available for a Temporary schedule notice sent to either audience. Only personnel DTR calculations are affected. Enter all four official prescribed time slots; the maximum period is 31 inclusive days. This adjusts Form 48 tardiness/undertime calculations, not the recorded actual punches.</p>
+      <p class="source-note">Only available for the temporary personnel working hours directive. Only personnel DTR calculations are affected. Enter all four official prescribed time slots; the maximum period is 31 inclusive days. This adjusts Form 48 tardiness/undertime calculations, not the recorded actual punches.</p>
       <div class="principal-memo-fields">
        <label>AM time-in <input name="dtrAmIn" type="time"></label>
        <label>AM time-out <input name="dtrAmOut" type="time"></label>
@@ -409,7 +416,7 @@ catch (_) { document.documentElement.dataset.theme = 'light'; }
        <label>PM time-out <input name="dtrPmOut" type="time"></label>
       </div>
      </div>
-     <p class="source-note">Announcement-only memoranda never change DTR. A temporary DTR adjustment applies to the specified dates only; class suspension, teacher duty status, timetables, OB, leave, and actual attendance records remain separate.</p>
+     <p class="source-note">Only the selected directive’s applicable fields are shown. General announcements do not change attendance. Existing actual punches, OB, leave and audit history are preserved.</p>
      <button type="submit" id="principalMemoPublish" class="refresh-button">Publish and notify school users</button>
      <p id="principalMemoPublishStatus" class="source-note" role="status" aria-live="polite"></p>
     </form>

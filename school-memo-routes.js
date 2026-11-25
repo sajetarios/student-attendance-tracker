@@ -105,7 +105,10 @@ function registerSchoolMemoRoutes(app,pool,{authenticateSchoolClient,requireScho
   const teachingRequested=req.headers['x-memo-shortened-class']==='true';
   const original=Number(req.headers['x-memo-original-minutes']),adjusted=Number(req.headers['x-memo-adjusted-minutes']);
   const preview=teachingRequested&&req.headers['x-memo-preview']==='true';
-  const noFile=teachingRequested&&!req.headers['x-filename']&&(!req.body||!Buffer.isBuffer(req.body)||!req.body.length)&&(!type||type==='application/octet-stream');
+  const noFile=!req.headers['x-filename']&&(!req.body||!Buffer.isBuffer(req.body)||!req.body.length)&&(!type||type==='application/octet-stream')&&Number(req.headers['content-length']||0)===0&&!req.headers['transfer-encoding'];
+  const dismissal=String(req.headers['x-memo-dismissal-time']||'').trim();
+  if(dismissal&&(!/^([01]\d|2[0-3]):[0-5]\d$/.test(dismissal)||category!=='CLASS_SUSPENSION'||audience!=='ALL_USERS'||!summary||dtrRequested||teachingRequested||!validDate(date)||!validDate(endDate)||date<manilaDate()||endDate<date||durationDays(date,endDate)>30))
+   return res.status(400).json({error:'Early dismissal requires all school users, a reason, a valid time and up to 31 upcoming days. Personnel DTR must remain unchanged.'});
   if((teachingRequested&&(!validDurations(original,adjusted)||category!=='SCHEDULE_NOTICE'||audience!=='ALL_USERS'||dtrRequested||
      !date||!endDate||!validDate(date)||!validDate(endDate)||date<manilaDate()||durationDays(date,endDate)>30))||
      (!teachingRequested&&(req.headers['x-memo-original-minutes']||req.headers['x-memo-adjusted-minutes'])))
@@ -119,7 +122,7 @@ function registerSchoolMemoRoutes(app,pool,{authenticateSchoolClient,requireScho
        !date||!endDate||date<manilaDate()||durationDays(date,endDate)>30))||
    (!dtrRequested&&req.headers['x-memo-dtr-hours'])||
    (!noFile&&!preview&&(!filename||!validMemoDocument(req.body,type))))
-   return res.status(400).json({error:'Provide a valid signed memorandum, effective start/end dates for temporary notices, and four chronological DTR hours when adjustment is enabled (start today or later; maximum 31 days; staff DTR only).'});
+   return res.status(400).json({error:'Provide valid directive details and effective dates where required. Attachments are optional; attached files must be valid PDF, JPG or PNG. DTR changes require four chronological prescribed times and up to 31 upcoming days.'});
   const client=await pool.connect();
   try{
    await client.query('BEGIN');
@@ -151,6 +154,15 @@ function registerSchoolMemoRoutes(app,pool,{authenticateSchoolClient,requireScho
      dtrHours?JSON.stringify(dtrHours):null,noFile?null:filename,noFile?null:type,noFile?null:req.body,sha,teachingRequested?JSON.stringify({original,adjusted}):null]);
    const id=q.rows[0].memoId;
    if(teachingRequested)await saveSchoolShortening(client,req.auth.schoolId,req.auth.userId,id,planned);
+   if(dismissal){
+    // Reuse the existing learner-only calendar cutoff; SHORTENED_DAY can affect DTR.
+    const existing=await client.query(`SELECT 1 FROM schedule_day_adjustments WHERE school_id=$1 AND school_date BETWEEN $2::date AND $3::date LIMIT 1`,[req.auth.schoolId,date,endDate]);
+    if(existing.rowCount){await client.query('ROLLBACK');return res.status(409).json({error:'Resolve existing date-specific class adjustments before publishing early dismissal.'});}
+    const saved=await client.query(`INSERT INTO school_calendar_exceptions(school_id,calendar_date,title,exception_type,notes,created_by_user_id,suspension_time,memo_id)
+     SELECT $1,d::date,$4,'CLASS_SUSPENSION',$5,$6,$7::time,$8 FROM generate_series($2::date,$3::date,interval '1 day') d
+     ON CONFLICT(school_id,calendar_date) DO NOTHING RETURNING exception_id`,[req.auth.schoolId,date,endDate,title,summary.slice(0,500),req.auth.userId,dismissal,id]);
+    if(saved.rowCount!==durationDays(date,endDate)+1){await client.query('ROLLBACK');return res.status(409).json({error:'A school calendar exception already covers one or more dates. Resolve it before publishing early dismissal.'});}
+   }
    // Send durable in-app notifications to active school accounts and, for the
    // ALL_USERS audience, active registered student accounts in this school.
    // No unverified browser push delivery is claimed.
@@ -183,11 +195,11 @@ function registerSchoolMemoRoutes(app,pool,{authenticateSchoolClient,requireScho
     INSERT INTO school_memo_audit(school_id,memo_id,actor_user_id,action,detail)
     VALUES($1,$2,$3,'PUBLISHED',$4::jsonb)`,
     [req.auth.schoolId,id,req.auth.userId,JSON.stringify({category,audience,effectiveDate:date||null,endDate:endDate||null,
-      dtrHours,classPeriodMinutes:teachingRequested?{original,adjusted}:null,changedPeriods:planned.length,notified:staff.rowCount+learners.rowCount,sha256:sha})]);
+      dtrHours,dismissalTime:dismissal||null,classPeriodMinutes:teachingRequested?{original,adjusted}:null,changedPeriods:planned.length,notified:staff.rowCount+learners.rowCount,sha256:sha})]);
    await client.query('COMMIT');
    return res.status(201).json({memoId:id,publishedAt:q.rows[0].publishedAt,
     notifiedAccounts:staff.rowCount+learners.rowCount,
-    changedPeriods:planned.length,notice:teachingRequested?'Published shortened teaching periods; personnel DTR hours remain unchanged.':dtrHours?'Published with date-bounded prescribed DTR hours for school personnel. Actual punches, class timetables, and manual reviews remain unchanged.':'Published as an announcement; no DTR or timetable changes. Delivery does not prove that recipients read the memo.'});
+    changedPeriods:planned.length,notice:dismissal?'Published a learner-only early dismissal; personnel DTR remains unchanged.':teachingRequested?'Published shortened teaching periods; personnel DTR hours remain unchanged.':dtrHours?'Published with date-bounded prescribed DTR hours for school personnel. Actual punches, class timetables, and manual reviews remain unchanged.':'Published as an announcement; no DTR or timetable changes. Delivery does not prove that recipients read the memo.'});
   }catch(e){await client.query('ROLLBACK').catch(()=>{});if(e.scheduleConflict)return res.status(409).json({error:e.message});return fail(res,e);}finally{client.release();}
  });
  app.get('/api/school-memos/:id/file',...read,async(req,res)=>{
