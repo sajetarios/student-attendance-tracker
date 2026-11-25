@@ -68,7 +68,7 @@ test('both portals prepare the PDF through the shared inline error handler',()=>
  assert.match(fs.readFileSync('staff-ob-routes.js','utf8'),/req\.query\?\.download==='1'\?'attachment':'inline'/);
  assert.match(staff,/AttendigoLocatorSlip\.attach/);
  assert.match(principal,/AttendigoLocatorSlip\.attach/);
- for(const page of ['public/portal.html','public/principal.html','public/sw.js']) assert.match(fs.readFileSync(page,'utf8'),/\/locator-slip-ui\.js\?v=3/);
+ for(const page of ['public/portal.html','public/principal.html','public/sw.js']) assert.match(fs.readFileSync(page,'utf8'),/\/locator-slip-ui\.js\?v=4/);
 });
 
 test('in-app preview and iOS sharing are independent of native PDF navigation',()=>{
@@ -98,4 +98,38 @@ test('render the actual generated Locator Slip when the official master is avail
  const png=await renderLocatorPreview(buildLocatorSlip(fs.readFileSync(master),data));
  assert.equal(png.subarray(0,8).toString('hex'),'89504e470d0a1a0a');
  assert.ok(png.length>10000);
+});
+
+test('print PDF has one fresh xref, lossless RGB and correct page size',()=>{
+ const {buildPrintPdf}=require('../locator-slip-print-pdf');
+ const {inflateSync}=require('node:zlib');
+ const rgb=Buffer.from([255,255,255,10,20,30,40,50,60,255,0,0]);
+ const pdf=buildPrintPdf({rgb,width:2,height:2,pageWidth:595.44,pageHeight:841.68});
+ const text=pdf.toString('latin1');
+ assert.match(text,/^%PDF-1\.4/);
+ assert.match(text,/\/MediaBox \[0 0 595\.4400 841\.6800\]/);
+ assert.doesNotMatch(text,/\/Prev |\/Linearized/);
+ const xref=Number(text.match(/startxref\n(\d+)/)[1]);
+ assert.equal(text.slice(xref,xref+4),'xref');
+ const entries=text.slice(xref).split('\n').slice(3,8);
+ entries.forEach((line,i)=>assert.ok(text.startsWith((i+1)+' 0 obj',Number(line.slice(0,10)))));
+ const imageStart=text.indexOf('stream\n',text.indexOf('4 0 obj'))+7;
+ const length=Number(text.slice(text.indexOf('4 0 obj'),imageStart).match(/\/Length (\d+)/)[1]);
+ assert.deepEqual(inflateSync(pdf.subarray(imageStart,imageStart+length)),rgb);
+});
+test('download and native share receive freshly rendered print PDF, not incremental master overlay',()=>{
+ const routes=fs.readFileSync('staff-ob-routes.js','utf8');
+ assert.match(routes,/pdf=await require\('\.\/locator-slip-preview'\)\.renderLocatorPrintPdf\(pdf\)/);
+});
+test('actual official print PDF opens as a single nonblank page',{skip:!fs.existsSync(master)},async()=>{
+ const {renderLocatorPrintPdf,renderLocatorPreview}=require('../locator-slip-preview');
+ const source=buildLocatorSlip(fs.readFileSync(master),data);
+ const printed=await renderLocatorPrintPdf(source);
+ assert.ok(printed.length>10000);
+ const preview=await renderLocatorPreview(printed);
+ assert.ok(preview.length>10000);
+ const pdfjs=await import('pdfjs-dist/legacy/build/pdf.mjs');
+ const task=pdfjs.getDocument({data:new Uint8Array(printed),verbosity:0});
+ try{const doc=await task.promise;assert.equal(doc.numPages,1);const page=await doc.getPage(1);assert.ok(Math.abs(page.view[2]-595.44)<0.01);assert.ok(Math.abs(page.view[3]-841.68)<0.01);}
+ finally{await task.destroy();}
 });
