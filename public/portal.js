@@ -497,11 +497,11 @@ window.attendigoStaffIdentity = new Promise(resolve => { resolveStaffIdentity = 
     if ($('schoolBrandingNav')) $('schoolBrandingNav').hidden = !admin || schoolEntitlements?.features?.custom_branding === false;
     // Move the existing signatory controls, rather than duplicating settings.
     // Schools without custom branding keep the original Form 48 settings access.
-    const signatoryBlock = $('form48SchoolSignatories');
+    const signatoryBlock = $('schoolHeadSignatoryCard');
     const useIdentitySignatories = admin && schoolEntitlements?.features?.custom_branding !== false;
     const signatoryHome = $(useIdentitySignatories ? 'schoolIdentitySignatoryHome' : 'form48SignatoryHome');
     if (signatoryBlock && signatoryHome) {
-      if (useIdentitySignatories && signatoryBlock.parentElement !== signatoryHome) signatoryHome.append(signatoryBlock);
+      if (useIdentitySignatories && signatoryBlock.parentElement !== $('schoolBrandingView')) signatoryHome.after(signatoryBlock);
       if (!useIdentitySignatories && signatoryBlock.previousElementSibling !== signatoryHome) signatoryHome.after(signatoryBlock);
     }
     if ($('form48SignatoryShortcut')) $('form48SignatoryShortcut').hidden = !useIdentitySignatories;
