@@ -1,4 +1,4 @@
-const CACHE = "attendigo-v415-ios-offline-navigation";
+const CACHE = "attendigo-v416-pwa-offline-resume";
 
 // Only public, non-personal offline shells and their executable dependencies.
 // An update must not discard the working cache before these are all ready.
