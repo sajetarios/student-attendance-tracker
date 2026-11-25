@@ -1,11 +1,11 @@
-const CACHE = "attendigo-v436-shared-experience";
+const CACHE = "attendigo-v437-role-dashboard-polish";
 
 // Only public, non-personal offline shells and their executable dependencies.
 // An update must not discard the working cache before these are all ready.
 const OFFLINE_TOOL_PAGES = ["/offline-sheet.html", "/gate-offline.html", "/student-qr-offline.html", "/offline-welcome.html"];
 const OFFLINE_REQUIRED = [
   ...OFFLINE_TOOL_PAGES,
-  "/attendigo-experience.css?v=1",
+  "/attendigo-experience.css?v=2",
   "/attendigo-layout-density.css?v=1",
   "/app-dialog.css?v=2",
   "/app-dialog.js?v=1",
@@ -188,7 +188,7 @@ const SHELL = [
   "/password-visibility.js",
   "/portal-login.js?v=17",
   "/login-routing.js",
-  "/principal-dashboard.js?v=23",
+  "/principal-dashboard.js?v=24",
   "/principal-trusted-campus.js?v=4",
   "/campus-location-ui.css?v=1",
   "/principal-dashboard.css?v=17",

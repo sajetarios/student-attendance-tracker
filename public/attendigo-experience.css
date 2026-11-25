@@ -78,3 +78,30 @@
 @media screen and (prefers-reduced-motion:reduce) {
   :is(body.portal-page,body:has(>main#main)) :is(.primary-button,.outline-button,.secondary-button,.quiet-button),#main .progress>span {transition:none!important;}
 }
+
+/* Role dashboard refinement: existing targets and data only. */
+@media screen {
+  :root { --ax-link:#245f9d; --ax-link-bg:#f3f7fc; --ax-border:#d5e0ed; }
+  html:is([data-ui-theme="dark"],[data-theme="dark"]),body:is(.dark-mode,[data-theme="dark"]) {
+    --ax-link:#b5d6ff;--ax-link-bg:#24354b;--ax-border:#51677f;
+  }
+  .ax-icon {flex:none;inline-size:20px;block-size:20px;vertical-align:middle;}
+  body.portal-page :is(.admin-metric-icon,.dh-metric-icon,.dh-attention-icon) .ax-icon {display:block;margin:auto;}
+  body.portal-page .ax-page-links {display:flex;flex-wrap:wrap;gap:8px;margin:0 0 14px;min-width:0;}
+  body.portal-page .ax-page-links>a {display:inline-flex;align-items:center;gap:8px;min-height:44px;max-width:100%;padding:8px 12px;border:1px solid var(--ax-border);border-radius:var(--ax-control-radius);background:var(--ax-link-bg);color:var(--ax-link);font-size:1rem;font-weight:650;text-decoration:none;white-space:normal;overflow-wrap:anywhere;box-sizing:border-box;}
+  body.portal-page .ax-page-links>a:hover {text-decoration:underline;}
+  body.portal-page :is(#parentOverview,#parentChildrenHeading,#subjectAttendance,#studentProfileCard,#studentQrEntryTitle) {scroll-margin-block-start:90px;}
+  body.portal-page :is(.admin-command-metrics,.dh-command-metrics,.learner-summary-grid) > * {min-inline-size:0;}
+  body.portal-page :is(.admin-command-row,.dh-shortcut,.teacher-v3-schedule,.dashboard-open-scanner) {min-block-size:44px;white-space:normal;}
+  #main .trend-chart {gap:7px;padding:8px 5px 8px;scroll-padding:5px;overscroll-behavior-inline:contain;}
+  #main .trend-day {flex:1 0 44px;min-inline-size:44px;min-block-size:44px;border-radius:var(--ax-control-radius);}
+  #main .trend-count,#main .trend-date {font-size:.875rem;line-height:1.3;font-variant-numeric:tabular-nums;}
+  #main .trend-day[aria-pressed="true"] {outline:2px solid var(--ax-focus);outline-offset:-2px;}
+  #main .trend-day:focus-visible {outline:3px solid var(--ax-focus);outline-offset:-3px;}
+  html[data-theme="dark"] #main .trend-day:is(:hover,.is-selected),html[data-theme="dark"] #main .trend-day[aria-pressed="true"] {background:#263c52;border-color:#627d99;}
+  html[data-theme="dark"] #main :is(.trend-count,.trend-date) {color:#d4e4f4;}
+}
+@media screen and (max-width:700px) {
+  body.portal-page .ax-page-links>a {flex:1 1 145px;}
+  body.portal-page :is(.dh-command-metric,.admin-command-metric) :is(small,span:not(.ax-icon)) {overflow-wrap:anywhere;}
+}

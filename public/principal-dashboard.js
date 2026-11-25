@@ -120,9 +120,12 @@
   for(const day of rows){
    const btn=make('button','trend-day');
    btn.type='button';
-   btn.classList.toggle('is-selected',day.date===$('reportDate').value);
+   const selected=day.date===$('reportDate').value;
+   btn.classList.toggle('is-selected',selected);
+   btn.setAttribute('aria-pressed',String(selected));
    btn.setAttribute('aria-label',day.date+': '+countLabel(day.verified,'verified DTR slots')+
      ', '+countLabel(day.pending,'pending DTR slots')+'. Select this report date.');
+   btn.title=day.date+' · '+countLabel(day.verified,'verified DTR slots')+' · '+countLabel(day.pending,'pending DTR slots');
    const count=make('span','trend-count',numeric(day.verified)||numeric(day.pending)?numeric(day.verified)+numeric(day.pending):'0');
    const bars=make('span','trend-bars');
    const verified=make('i','verified'),pending=make('i','pending');
