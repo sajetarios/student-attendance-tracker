@@ -1,4 +1,4 @@
-const CACHE = "attendigo-v406-principal-ob-admin-scope";
+const CACHE = "attendigo-v407-locator-master";
 
 // Only public, non-personal offline shells and their executable dependencies.
 // An update must not discard the working cache before these are all ready.
@@ -137,7 +137,8 @@ const SHELL = [
   "/staff-lunch-ui.js?v=9",
   "/staff-precise-location.js?v=1",
   "/staff-department-location.js?v=8",
-  "/staff-ob-ui.js?v=8",
+  "/staff-ob-ui.js?v=9",
+  "/locator-slip-ui.js?v=1",
   "/staff-ob.css?v=1",
   "/staff-lunch.css?v=7",
   "/staff-lunch-checkin.js?v=5",
@@ -186,7 +187,7 @@ const SHELL = [
   "/password-visibility.js",
   "/portal-login.js?v=17",
   "/login-routing.js",
-  "/principal-dashboard.js?v=20",
+  "/principal-dashboard.js?v=21",
   "/principal-trusted-campus.js?v=4",
   "/campus-location-ui.css?v=1",
   "/principal-dashboard.css?v=15",

@@ -85,7 +85,7 @@ test('No new attendance routes; assets match the current cache and mobile sideba
  const css=read('attendigo-sidebar-adaptive.css');
  assertCachedAsset(html,sw,'portal.js',{minimumVersion:236});
  for(const asset of ['/simplified-workspace.js?v=5','/staff-leave-ui.js?v=12',
-  '/staff-ob-ui.js?v=8','/attendigo-presenter-nav.js?v=1']){
+  '/staff-ob-ui.js?v=9','/attendigo-presenter-nav.js?v=1']){
   assert.ok(html.includes(asset),asset+' HTML');
   assert.ok(sw.includes('"'+asset+'"'),asset+' shell');
  }
