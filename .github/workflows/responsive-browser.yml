@@ -19,3 +19,4 @@ jobs:
       - run: npm install --no-save --package-lock=false --ignore-scripts playwright@1.56.1
       - run: npx playwright install --with-deps chromium webkit
       - run: node scripts/check-responsive-layout.cjs
+      - run: node scripts/check-shared-experience.cjs

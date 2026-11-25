@@ -1,0 +1,80 @@
+/* Attendigo shared experience foundation. Screen only; no role, data, print or scanner changes. */
+@media screen {
+  :root {
+    --ax-gap: clamp(8px, 1vw, 16px);
+    --ax-card-radius: 14px;
+    --ax-control-radius: 10px;
+    --ax-title: clamp(1.375rem, 1.15rem + .8vw, 1.75rem);
+    --ax-copy: 1rem;
+    --ax-focus: #245f9d;
+    --ax-motion: 150ms;
+    --ax-ease: cubic-bezier(.2,.7,.3,1);
+    --ax-muted: #52647b;
+  }
+  html:is([data-ui-theme="dark"],[data-theme="dark"]), body:is(.dark-mode,[data-theme="dark"]) {
+    --ax-focus: #a6cfff;
+    --ax-muted: #bfd0e5;
+  }
+  @media (prefers-color-scheme: dark) {
+    html[data-theme="system"] { --ax-focus:#a6cfff; --ax-muted:#bfd0e5; }
+  }
+  :is(body.portal-page,body:has(>main#main)) :is(.content-wrap,.student-page,.parent-page,.principal-content,.view-panel) {
+    min-inline-size:0;
+  }
+  :is(body.portal-page,body:has(>main#main)) :is(.view-heading,.section-toolbar,.card-heading,.student-header,.parent-head,.principal-workspace-actions,.parent-history-filters,.student-history-filters) {
+    row-gap:var(--ax-gap); min-inline-size:0;
+  }
+  :is(body.portal-page,body:has(>main#main)) :is(.view-heading,.section-toolbar,.card-heading,.student-header,.parent-head,.principal-workspace-actions,.parent-history-filters,.student-history-filters)>* {
+    min-inline-size:0; max-inline-size:100%;
+  }
+  body.portal-page .view-heading h2,
+  body.portal-page :is(.student-welcome-block,.parent-welcome) h1,
+  #main .principal-content .hero h1 {
+    font-size:var(--ax-title); line-height:1.25; letter-spacing:-.025em; overflow-wrap:anywhere;
+  }
+  body.portal-page :is(.student-card,.parent-card,.dashboard-columns>.surface-card),
+  #main :is(.metric-card,.main-grid>.surface) {
+    border-radius:var(--ax-card-radius); min-inline-size:0;
+  }
+  body.portal-page :is(.student-main-grid,.child-grid,.parent-summary-grid,.student-summary-grid,.dashboard-columns),
+  #main :is(.metric-grid,.main-grid,.priority-grid) {
+    column-gap:var(--ax-gap); row-gap:var(--ax-gap);
+  }
+  body.portal-page :is(.student-main-grid,.child-grid,.parent-summary-grid,.student-summary-grid,.dashboard-columns)>*,
+  #main :is(.metric-grid,.main-grid,.priority-grid)>* {
+    min-inline-size:0;
+  }
+  body.portal-page :is(.student-profile-item,.student-summary-item,.parent-summary-grid .student-profile-item) :is(strong,span):not([aria-hidden="true"]),
+  #main :is(.metric-label,.metric-card small,.section-heading p) {
+    overflow-wrap:anywhere; line-height:1.4;
+  }
+  #main :is(.metric-label,.metric-card small,.section-heading p) {font-size:var(--ax-copy);}
+  body.portal-page :is(.parent-welcome,.student-welcome-block) p {color:var(--ax-muted);}
+  :is(body.portal-page,body.offline-workspace,body.login-page,body:has(>main#main)) :is(button,input,select,textarea,a,summary):focus-visible {
+    outline:2px solid var(--ax-focus); outline-offset:3px;
+  }
+  /* Only known, enabled action controls; no status color, visibility or action changes. */
+  :is(body.portal-page,body:has(>main#main)) :is(.primary-button,.outline-button,.secondary-button,.quiet-button):not(:disabled) {
+    transition:background-color var(--ax-motion) var(--ax-ease),border-color var(--ax-motion) var(--ax-ease),box-shadow var(--ax-motion) var(--ax-ease);
+  }
+  :is(body.portal-page,body:has(>main#main)) :is(.primary-button,.outline-button,.secondary-button,.quiet-button):not(:disabled):active {box-shadow:inset 0 0 0 1px currentColor;}
+  #main .progress>span {transition:width 240ms var(--ax-ease);}
+  body.portal-page :is(.stat-card,.student-summary-item,.parent-stat) strong,
+  #main .metric-card strong {font-variant-numeric:tabular-nums;}
+  :is(body.portal-page,body:has(>main#main)) :is(.table-scroll,.table-wrap) {max-inline-size:100%; overscroll-behavior-inline:contain;}
+}
+@media screen and (max-width:700px) {
+  body.portal-page :is(.student-header,.parent-head,.student-history-filters,.parent-history-filters),
+  #main :is(.principal-workspace-actions,.staff-filters) {flex-wrap:wrap;}
+  body.portal-page :is(.student-history-filters,.parent-history-filters) :is(input,select),
+  #main :is(.staff-filters,.controls) :is(input,select) {min-inline-size:0;max-inline-size:100%;font-size:1rem;}
+  body.portal-page :is(.student-card,.parent-card) :is(.student-actions,.action-row,.parent-phone-push-actions)>button,
+  #main :is(.principal-workspace-actions,.principal-quick-links)>button {
+    min-block-size:44px; height:auto; min-inline-size:0; max-inline-size:100%; white-space:normal; overflow-wrap:anywhere;
+  }
+  body.portal-page :is(.student-page,.parent-page) {padding-inline:max(12px,env(safe-area-inset-left)) max(12px,env(safe-area-inset-right));}
+  #main .principal-main-tabs>.tab {font-size:1rem;min-block-size:44px;white-space:normal;overflow-wrap:anywhere;}
+}
+@media screen and (prefers-reduced-motion:reduce) {
+  :is(body.portal-page,body:has(>main#main)) :is(.primary-button,.outline-button,.secondary-button,.quiet-button),#main .progress>span {transition:none!important;}
+}
