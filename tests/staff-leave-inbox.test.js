@@ -125,3 +125,22 @@ test('PWA, notification deep links and role-specific inbox assets are wired',()=
  assert.match(fs.readFileSync('public/leave-approval-inbox.js','utf8'),/Awaiting official approval/);
  assert.match(fs.readFileSync('public/staff-leave-ui.js','utf8'),/openLeave\(reviewQueue=false\)/);
 });
+
+test('School Admin opens school records first and keeps verification outside the filter-rendered inbox',()=>{
+ const ui=fs.readFileSync('public/staff-leave-ui.js','utf8');
+ const inbox=fs.readFileSync('public/leave-approval-inbox.js','utf8');
+ const routes=fs.readFileSync('staff-leave-inbox-routes.js','utf8');
+ assert.match(ui,/class="is-active" data-leave-tab="inbox">School Records/);
+ assert.match(ui,/button.addEventListener\('click',\(\)=>openLeave\(isHrAdmin\)\)/);
+ assert.match(ui,/body:inboxBody,user/);
+ assert.match(ui,/if\(isHrAdmin\)body.append\(gateVerification\(\)\)/);
+ assert.match(ui,/function gateVerification\(\)\{[\s\S]*?document.createElement\('details'\)/);
+ assert.match(ui,/if\(sequence!==loadSequence\|\|tab!=='requests'\)return/);
+ assert.match(inbox,/if\(isAdmin&&!ctx.adminRecordsOpened\)\{filter='ALL'/);
+ assert.match(inbox,/onLeaveToday/);
+ assert.equal(FILTERS.includes('CLOSED_DECLINED'),true);
+ assert.match(routes,/COUNT\(DISTINCT staff_user_id\)/);
+ assert.match(routes,/revoked_at IS NULL/);
+ assert.match(routes,/Asia\/Manila/);
+ assert.match(routes,/r.status IN \('DECLINED_HEAD','REJECTED'\)/);
+});
