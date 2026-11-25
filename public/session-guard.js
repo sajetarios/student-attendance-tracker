@@ -65,6 +65,12 @@
       if (sequence !== checkSequence) return;
       validated = false;
       hide();
+      // Do not unlock a protected dashboard offline. Its public recovery page
+      // exposes only the verified account's separately protected offline tools.
+      if(navigator.onLine===false && navigator.serviceWorker?.controller){
+        window.location.replace('/offline-welcome.html');
+        return;
+      }
       // Never expose stale protected content when the session cannot be verified.
       let overlay = document.getElementById('sessionGuardError');
       if (!overlay) {
@@ -75,7 +81,7 @@
         overlay.innerHTML = '<strong>Unable to verify your session</strong><p>Connect to the internet and reload this page to continue securely.</p><button type="button" style="padding:10px 20px;cursor:pointer">Retry</button>';
         document.body.appendChild(overlay);
         overlay.querySelector('button').addEventListener('click', () => verify({ block: true }));
-        if(studentPage){const link=document.createElement('a');link.href='/student-qr-offline.html';link.textContent='Open offline class QR scanner';link.style.marginTop='18px';overlay.appendChild(link);}
+        const link=document.createElement('a');link.href='/offline-welcome.html';link.textContent='Open Attendigo offline tools';link.style.marginTop='18px';overlay.appendChild(link);
       }
       document.documentElement.style.visibility = '';
       for (const child of document.body.children) if (child !== overlay) child.style.visibility = 'hidden';
@@ -99,6 +105,7 @@
     if (event.persisted) { validated = false; hide(); }
     verify({ block: event.persisted || !validated });
   });
+  window.addEventListener('online', () => { if (!validated) verify({ block: true }); });
   document.addEventListener('visibilitychange', () => {
     if (!document.hidden) verify({ block: false });
   });
