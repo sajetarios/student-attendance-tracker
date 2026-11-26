@@ -51,3 +51,35 @@ test('PWA serves the same versioned attendance code as the portal',()=>{
  assert.equal(portalVersion[1],workerVersion[1]);
  assert.ok(Number(portalVersion[1])>=19);
 });
+
+test('interactive register renders every learner beyond the former 20-row page',()=>{
+ const section=html.split('id="mfSheet"')[1].split('id="mfRight"')[0];
+ assert.doesNotMatch(section,/mfPrev|mfNext|mfPageNum|Select page/);
+ assert.match(section,/id="mfSelectAll"[^>]*> Select all learners/);
+ const source=js.slice(js.indexOf(' function renderRows(){'),js.indexOf(' function renderDetails(){'));
+ const learners=Array.from({length:45},(_,i)=>({studentId:'id'+i,fullName:'Learner '+i}));
+ const controls={mfSelectAll:{},mfSelectedCount:{},mfRows:{}};
+ const state={rosterView:'alphabetical',selected:new Set(['id44']),marks:{}};
+ const esc=v=>String(v??'');
+ const roster=()=>learners;
+ const selected=id=>state.selected.has(id);
+ const effectiveMark=()=>null;
+ const window={AttendigoRoster:{numberLearners:list=>list.map((learner,i)=>({learner,number:i+1}))}};
+ const render=new Function('window','roster','state','el','selected','esc','effectiveMark','names',source+';return renderRows;')(window,roster,state,id=>controls[id],selected,esc,effectiveMark,{});
+ render();
+ assert.equal((controls.mfRows.innerHTML.match(/data-select=/g)||[]).length,45);
+ assert.match(controls.mfRows.innerHTML,/data-select="id44" checked/);
+ assert.equal(controls.mfSelectAll.checked,false);
+ assert.equal(controls.mfSelectAll.indeterminate,true);
+ state.selected=new Set(learners.map(s=>s.studentId));render();
+ assert.equal(controls.mfSelectAll.checked,true);
+ assert.equal(controls.mfSelectAll.indeterminate,false);
+ const selectHandler=js.match(/if\(event\.target\.id==='mfSelectAll'\)\{([^\n]+)\}/)[1];
+ const selectAll=new Function('event','roster','state','renderRows',selectHandler);
+ selectAll({target:{checked:false}},roster,state,render);
+ assert.equal(state.selected.size,0);
+ selectAll({target:{checked:true}},roster,state,render);
+ assert.equal(state.selected.size,45);
+ assert.match(js,/mfHistoryPrev/);
+ assert.match(js,/data-conflict-page/);
+});
