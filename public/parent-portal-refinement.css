@@ -75,3 +75,44 @@ html[data-ui-theme=dark] .parent-history-status{background:#1c4638;color:#a2eac4
 html[data-ui-theme=dark] .parent-history-status.is-late{background:#523c20;color:#ffd58d}
 @media(max-width:420px){.parent-portal-body .parent-history-filters{grid-template-columns:minmax(0,1fr)}.parent-portal-body .parent-history-stats>div{padding:9px 7px}.parent-portal-body .parent-history-group summary{padding:10px 8px;gap:6px}}
 
+
+/* Parent workspace: attendance first, compact account controls, adaptive ink. */
+@media screen {
+ html body.portal-page.parent-portal-body .parent-site-header {background:var(--ap-nav,#4f2dcc)!important;color:var(--ap-nav-ink,#fff)!important;padding:10px clamp(12px,3vw,32px)!important;gap:8px!important;flex-wrap:nowrap!important;}
+ html body.portal-page.parent-portal-body .parent-site-header .attendigo-brand {width:clamp(120px,35vw,176px)!important;min-width:0!important;flex:0 1 auto!important;}
+ html body.portal-page.parent-portal-body .parent-site-header .attendigo-logo {max-height:42px!important;width:100%!important;object-fit:contain!important;}
+ html body.portal-page.parent-portal-body .parent-site-header>span {font-size:16px!important;line-height:1.25!important;text-align:right;}
+ html body.portal-page.parent-portal-body .parent-page {padding:clamp(12px,2vw,24px)!important;display:block!important;}
+ html body.portal-page.parent-portal-body .parent-page .parent-head {display:grid!important;grid-template-columns:minmax(0,1fr) auto;align-items:center!important;gap:10px!important;padding:16px!important;margin:0 0 12px!important;border-radius:18px!important;background:var(--ap-primary,#352575)!important;color:var(--ap-primary-ink,#fff)!important;min-width:0!important;}
+ html body.portal-page.parent-portal-body .parent-head .parent-welcome {grid-column:1/-1;grid-row:1;min-width:0;}
+ html body.portal-page.parent-portal-body .parent-head .parent-welcome :is(h1,p,#schoolLabel) {color:var(--ap-primary-ink,#fff)!important;opacity:1!important;}
+ html body.portal-page.parent-portal-body .parent-head #schoolLabel {font-size:14px!important;letter-spacing:0!important;line-height:1.4!important;font-weight:650!important;text-transform:none!important;}
+ html body.portal-page.parent-portal-body .parent-head #welcome {font-size:clamp(22px,3.5vw,30px)!important;line-height:1.2!important;margin:6px 0!important;}
+ html body.portal-page.parent-portal-body .parent-head .parent-welcome p {font-size:16px!important;line-height:1.45!important;margin:4px 0!important;}
+ html body.portal-page.parent-portal-body .parent-head>.universal-notifications {grid-column:2;grid-row:2;justify-self:end;align-self:center;margin:0!important;}
+ html body.portal-page.parent-portal-body .parent-head .action-row {grid-column:1;grid-row:2;display:flex!important;flex-wrap:wrap!important;gap:6px!important;width:auto!important;min-width:0;justify-content:flex-start!important;}
+ html body.portal-page.parent-portal-body .parent-head .action-row :is(button,summary) {min-height:44px!important;font-size:14px!important;line-height:1.25!important;}
+ html body.portal-page.parent-portal-body .parent-head .action-row #dashboardThemeToggle {width:44px!important;min-width:44px!important;}
+ html body.portal-page.parent-portal-body .parent-head .action-row .ui-appearance-menu {flex:0 1 auto!important;max-width:100%;position:relative;}
+ html body.portal-page.parent-portal-body .parent-page .ax-page-links {display:grid!important;grid-template-columns:repeat(3,minmax(0,1fr))!important;gap:6px!important;background:var(--ui-panel,#fff)!important;border:1px solid var(--ui-line,#dce5ef)!important;padding:6px!important;margin:0 0 12px!important;border-radius:14px!important;}
+ html body.portal-page.parent-portal-body .parent-page .ax-page-links>a {display:flex!important;align-items:center!important;justify-content:center!important;gap:7px!important;min-width:0!important;min-height:50px!important;padding:8px 5px!important;text-align:center!important;white-space:normal!important;font-size:15px!important;line-height:1.3!important;color:var(--ui-text,#182947)!important;background:var(--ui-panel-soft,#f3f6fb)!important;border:0!important;border-radius:10px!important;}
+ html body.portal-page.parent-portal-body .parent-page .ax-page-links>a:hover {background:var(--ap-tint,#eee9ff)!important;color:#101827!important;}
+ html body.portal-page.parent-portal-body .parent-page .ax-page-links svg {flex:0 0 20px!important;width:20px!important;height:20px!important;}
+ html body.portal-page.parent-portal-body .parent-page .parent-card {padding:16px!important;margin-bottom:12px!important;min-width:0!important;}
+ html body.portal-page.parent-portal-body .parent-page .parent-summary-grid {grid-template-columns:repeat(3,minmax(0,1fr))!important;gap:7px!important;}
+ html body.portal-page.parent-portal-body .parent-page .parent-summary-grid .student-profile-item {padding:10px 8px!important;min-width:0!important;}
+ html body.portal-page.parent-portal-body .parent-page .parent-summary-grid span {font-size:14px!important;line-height:1.35!important;}
+ html body.portal-page.parent-portal-body .parent-page .parent-summary-grid strong {font-size:clamp(22px,5vw,30px)!important;}
+ html body.portal-page.parent-portal-body .parent-page :is(.parent-help,.parent-subject-subtitle,.parent-select-label,.parent-child-identity p,.parent-history-note,.parent-note) {font-size:15px!important;line-height:1.5!important;}
+ html body.portal-page.parent-portal-body .parent-page .parent-profile-details summary {display:list-item!important;font-size:16px!important;font-weight:700!important;min-height:44px;cursor:pointer;line-height:44px;color:var(--ui-text,#182947);}
+ html body.portal-page.parent-portal-body .parent-page .parent-profile-details[open] summary {margin-bottom:12px;}
+ html body.portal-page.parent-portal-body .parent-page .parent-subject-item h3 {font-size:17px!important;}
+ html body.portal-page.parent-portal-body .parent-page .parent-subject-item p {font-size:15px!important;line-height:1.4!important;}
+ html body.portal-page.parent-portal-body .parent-page .parent-subject-status {font-size:14px!important;}
+}
+@media screen and (max-width:600px) {
+ html body.portal-page.parent-portal-body .parent-head .action-row :is(#refreshButton,#logoutButton) {padding:8px!important;font-size:14px!important;}
+ html body.portal-page.parent-portal-body .parent-page .ax-page-links>a {flex-direction:column!important;gap:4px!important;font-size:14px!important;}
+ html body.portal-page.parent-portal-body .parent-page .parent-summary-grid {grid-template-columns:repeat(2,minmax(0,1fr))!important;}
+ html body.portal-page.parent-portal-body .parent-page .parent-summary-grid .student-profile-item:last-child {grid-column:1/-1;}
+}
