@@ -32,3 +32,43 @@ test('missing, empty, new, deleted, nonregular and nonproduction changes fail cl
   assert.equal(classifyGit({EVENT:'push',REF:'refs/heads/staging/school-day-dry-run-20261120'}),false);
   assert.equal(classifyGit({EVENT:'pull_request',BASE_REF:'fix/render-login-landing'}),false);
 });
+
+test('real git diffs select the narrow lane only on verified PR and production merge ranges',()=>{
+  const fs=require('node:fs'),os=require('node:os'),path=require('node:path');
+  const {execFileSync}=require('node:child_process');
+  const cwd=fs.mkdtempSync(path.join(os.tmpdir(),'attendigo-release-scope-'));
+  const script=require.resolve('../scripts/classify-release-scope.cjs');
+  const git=(...args)=>execFileSync('git',args,{cwd,encoding:'utf8',stdio:['ignore','pipe','pipe']}).trim();
+  const write=(name,body)=>fs.writeFileSync(path.join(cwd,name),body);
+  const current=()=>git('rev-parse','HEAD');
+  const classifyRange=(event,base,head)=> {
+    const output=path.join(cwd,'scope-output');
+    write('scope-output','');
+    execFileSync(process.execPath,[script],{cwd,env:{...process.env,EVENT:event,BASE_REF:'fix/render-login-landing',REF:'refs/heads/fix/render-login-landing',BASE:base,HEAD:head,GITHUB_OUTPUT:output},stdio:['ignore','pipe','pipe']});
+    return fs.readFileSync(output,'utf8').trim();
+  };
+  try {
+    git('init','-b','production');
+    git('config','user.email','ci@example.invalid');
+    git('config','user.name','CI fixture');
+    fs.mkdirSync(path.join(cwd,'public'));
+    write('public/presentation.css','body{color:black}');
+    write('public/example.html','<link rel="stylesheet" href="/presentation.css?v=1">');
+    write('public/sw.js','const CACHE = "attendigo-v1-example";\n"/presentation.css?v=1",');
+    git('add','public');git('commit','-m','baseline');const base=current();
+    git('checkout','-b','candidate');
+    write('public/presentation.css','body{color:navy}');
+    write('public/example.html','<link rel="stylesheet" href="/presentation.css?v=2">');
+    write('public/sw.js','const CACHE = "attendigo-v2-example";\n"/presentation.css?v=2",');
+    git('add','public');git('commit','-m','visual update');
+    assert.equal(classifyRange('pull_request',base,current()),'ui_only=true');
+    assert.equal(classifyRange('push',base,current()),'ui_only=false','direct push retains full coverage');
+    git('checkout','production');git('merge','--no-ff','candidate','-m','merge candidate');
+    const merged=current();
+    assert.equal(classifyRange('push',base,merged),'ui_only=true');
+    assert.equal(classifyRange('push','0'.repeat(40),merged),'ui_only=false');
+    write('public/example.html','<button hidden>Approve</button>');
+    git('add','public');git('commit','-m','semantic change');
+    assert.equal(classifyRange('pull_request',base,current()),'ui_only=false');
+  }finally{fs.rmSync(cwd,{recursive:true,force:true});}
+});
