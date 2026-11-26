@@ -20,8 +20,8 @@ test('staff OB portal view initializes only for authorized roles and uses same-o
  assert.match(ui,/staff-ob-coverage/);
  assert.match(ui,/form\.reportValidity\(\)/);
  assert.match(ui,/const toManilaIso=s=>/);
- assert.match(portal,/staff-ob-ui\.js\?v=10/);
- assert.match(sw,/staff-ob-ui\.js\?v=10/);
+ assert.match(portal,/staff-ob-ui\.js\?v=11/);
+ assert.match(sw,/staff-ob-ui\.js\?v=11/);
 });
 test('substitute picker uses department-filtered names instead of manual user IDs',()=>{
  assert.ok(ui.includes("basePath+'/substitutes'"));
@@ -54,4 +54,15 @@ test('Principal approvals use server authority and explicit physical-signature c
  assert.match(html,/id="principalObHistory"/);
  assert.doesNotMatch(ui,/action\('Approve',\(\)=>decide\('decide'/);
  assert.match(routes,/requireSchoolRoles\('PRINCIPAL'\)/);
+});
+
+
+test('OB time input requires AM or PM and preserves canonical 24-hour values',()=>{
+ const vm=require('node:vm');const source=ui.match(/ const displayClock=.*\n const parseClock=.*\n/)[0];
+ const {displayClock,parseClock}=vm.runInNewContext(source+';({displayClock,parseClock})');
+ for(const [input,stored] of [['12:00 AM','00:00'],['12:00 PM','12:00'],['5:45 PM','17:45'],['8:05 AM','08:05']]){
+  assert.equal(parseClock(input),stored);assert.equal(displayClock(stored),input);
+ }
+ for(const invalid of ['17:45','0:00 AM','13:00 PM','5:60 PM','5:00'])assert.equal(parseClock(invalid),null);
+ assert.match(ui,/Actual completion time \(AM\/PM\)/);assert.match(ui,/parseClock\(form.time\)/);
 });

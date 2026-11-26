@@ -2,7 +2,9 @@
 (() => {
  const $=id=>document.getElementById(id);
  const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
- const date=s=>s?new Date(s).toLocaleString('en-PH',{timeZone:'Asia/Manila',dateStyle:'medium',timeStyle:'short'}):'—';
+ const date=s=>s?new Date(s).toLocaleString('en-PH',{timeZone:'Asia/Manila',dateStyle:'medium',timeStyle:'short',hour12:true}):'—';
+ const displayClock=value=>{const m=/^([01]\d|2[0-3]):([0-5]\d)(?::[0-5]\d)?$/.exec(String(value??''));if(!m)return '—';const h=Number(m[1]);return (h%12||12)+':'+m[2]+(h>=12?' PM':' AM');};
+ const parseClock=value=>{const m=/^(0?[1-9]|1[0-2]):([0-5]\d)\s*(AM|PM)$/i.exec(String(value??'').trim());if(!m)return null;return String(Number(m[1])%12+(m[3].toUpperCase()==='PM'?12:0)).padStart(2,'0')+':'+m[2];};
  const call=async(path,method='GET',body)=>{
   const response=await fetch(path,{method,credentials:'same-origin',cache:'no-store',
    headers:body?{'Content-Type':'application/json'}:{},body:body?JSON.stringify(body):undefined});
@@ -29,8 +31,10 @@
       <form id="obForm" class="staff-ob-form">
        <label>Purpose<textarea name="purpose" maxlength="1000" required minlength="3" rows="2"></textarea></label>
        <label>Destination<input name="destination" maxlength="300" required minlength="2"></label>
-       <label>Start (Philippine time)<input name="startsAt" type="datetime-local" required></label>
-       <label>End (Philippine time)<input name="endsAt" type="datetime-local" required></label>
+       <label>Start date (Philippine time)<input name="startsAt" type="date" required></label>
+       <label>Start time (AM/PM)<input name="startClock" type="text" placeholder="e.g. 8:00 AM" maxlength="9" required></label>
+       <label>End date (Philippine time)<input name="endsAt" type="date" required></label>
+       <label>End time (AM/PM)<input name="endClock" type="text" placeholder="e.g. 5:00 PM" maxlength="9" required></label>
        <button class="primary-button" type="submit">Submit OB request</button>
       </form>
     </details>
@@ -148,12 +152,12 @@
          const parts=Object.fromEntries(new Intl.DateTimeFormat('en-CA',{timeZone:'Asia/Manila',year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit',hourCycle:'h23'}).formatToParts(new Date(Math.min(Date.now(),Date.parse(ob.endsAt)))).map(p=>[p.type,p.value]));
          const form=await window.AppDialog.form('Report the actual end of your official transaction. You do not need to record a historical gate logout.',[
           {name:'date',label:'Actual completion date',inputType:'date',defaultValue:parts.year+'-'+parts.month+'-'+parts.day,required:true},
-          {name:'time',label:'Actual completion time (24-hour HH:MM)',defaultValue:parts.hour+':'+parts.minute,required:true,placeholder:'17:45',maxLength:5,validate:v=>/^([01]\d|2[0-3]):[0-5]\d$/.test(v)||'Enter time as HH:MM.'},
+          {name:'time',label:'Actual completion time (AM/PM)',defaultValue:displayClock(parts.hour+':'+parts.minute),required:true,placeholder:'5:45 PM',maxLength:9,validate:v=>!!parseClock(v)||'Enter a time with AM or PM, e.g. 5:45 PM.'},
           {name:'reason',label:'Reason if completion differs from approved end',inputType:'textarea',maxLength:1000},
           {name:'reference',label:'Certified locator slip / certificate reference',required:true,maxLength:300,helpText:'Keep the original evidence for the Department Head and Principal.'}
          ],{title:'Complete Official Business',confirmText:'Submit for verification'});
          if(!form)return;
-         const completedAt=form.date+'T'+form.time+':00+08:00';
+         const completedAt=form.date+'T'+parseClock(form.time)+':00+08:00';
          await call(api+'/'+encodeURIComponent(ob.requestId)+'/complete','POST',{completedAt,reason:form.reason,reference:form.reference});
          saved=true;say('Completion submitted for verification. No gate or DTR record was changed.');document.dispatchEvent(new Event('attendigo:requests-changed'));
         }catch(e){say(e.message,true);}finally{busy=false;}
@@ -175,7 +179,7 @@
         data.coverage.forEach(coverage=>{
          const line=document.createElement('div');line.className='staff-ob-coverage-row';
          line.innerHTML=`<span>${esc(coverage.classDate)} · ${esc(coverage.gradeLevel)} ${esc(coverage.section)} ·
-           ${esc(coverage.periodName||'Class')} (${esc(coverage.startTime)}–${esc(coverage.endTime)}) ·
+           ${esc(coverage.periodName||'Class')} (${esc(displayClock(coverage.startTime))}–${esc(displayClock(coverage.endTime))}) ·
            ${esc(coverage.status)} ${esc(coverage.substituteName||'')}</span>`;
          if(user.role==='DEPARTMENT_HEAD'&&coverage.status==='NEEDS_COVERAGE'){
           const button=document.createElement('button');button.type='button';button.className='outline-button';
@@ -229,9 +233,11 @@
    if(!form.reportValidity())return;
    const values=new FormData(form);
    const toManilaIso=s=>{const value=new Date(s+':00+08:00');if(!Number.isFinite(value.getTime()))throw Error('Invalid date');return value.toISOString();};
+   const startClock=parseClock(values.get('startClock')),endClock=parseClock(values.get('endClock'));
+   if(!startClock||!endClock){say('Enter start and end times with AM or PM, e.g. 8:00 AM or 5:00 PM.',true);return;}
    let body;
    try{body={purpose:String(values.get('purpose')).trim(),destination:String(values.get('destination')).trim(),
-    startsAt:toManilaIso(String(values.get('startsAt'))),endsAt:toManilaIso(String(values.get('endsAt')))};}
+    startsAt:toManilaIso(String(values.get('startsAt'))+'T'+startClock),endsAt:toManilaIso(String(values.get('endsAt'))+'T'+endClock)};}
    catch{say('Enter valid Philippine dates and times.',true);return;}
    busy=true;say('Submitting OB request…');
    try{await call(api,'POST',body);document.dispatchEvent(new Event('attendigo:requests-changed'));form.reset();$('obNew').open=false;busy=false;if(user.role==='DEPARTMENT_HEAD'){selectedScope='mine';for(const [id,active] of [['obMineTab',true],['obDepartmentTab',false]]){$(id)?.classList.toggle('is-active',active);$(id)?.setAttribute('aria-selected',String(active));}}await refresh();}

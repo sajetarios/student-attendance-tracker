@@ -11,10 +11,11 @@
     let n=0; for(const char of String(value||'')) n=(n*31+char.charCodeAt(0))|0;
     return Math.abs(n)%palettes.length;
   }
-  function clock(value) {return String(value||'—').slice(0,5);}
+  function rawClock(value) {return String(value||'—').slice(0,5);}
+  function clock(value) {const m=/^([01]\d|2[0-3]):([0-5]\d)$/.exec(rawClock(value));if(!m)return '—';const h=Number(m[1]);return (h%12||12)+':'+m[2]+(h>=12?' PM':' AM');}
   // Regular slots are display anchors only; the effective time remains authoritative.
-  function slotKey(entry) {return clock(entry.regularStartTime||entry.startTime)+'|'+clock(entry.regularEndTime||entry.endTime);}
-  function timeChanged(entry) {return !!entry.adjustment && !entry.cancelled && !!entry.regularStartTime && !!entry.regularEndTime && slotKey(entry)!==clock(entry.startTime)+'|'+clock(entry.endTime);}
+  function slotKey(entry) {return rawClock(entry.regularStartTime||entry.startTime)+'|'+rawClock(entry.regularEndTime||entry.endTime);}
+  function timeChanged(entry) {return !!entry.adjustment && !entry.cancelled && !!entry.regularStartTime && !!entry.regularEndTime && slotKey(entry)!==rawClock(entry.startTime)+'|'+rawClock(entry.endTime);}
   function adjustmentStatus(entry,today) {return entry.date<today?'Past':entry.date===today?'Active':'Upcoming';}
   function label(entry) {return entry.subjectName||entry.periodName||'Class';}
   function asLongDate(value) {
@@ -176,7 +177,7 @@
     const heading=days.map(day=>'<th scope="col"'+(isToday(day)?' class="tt-today" aria-current="date"':'')+'><span>'+escape(daysOfWeek[day].slice(0,3))+'</span><small>'+escape((weekdayDates[day]||'').slice(5))+(isToday(day)?' · Today':'')+'</small></th>').join('');
     const rows=keys.map(key=>{
       const [start,end]=key.split('|');
-      return '<tr><th scope="row" class="tt-time"><strong>'+escape(start)+'</strong><span>'+escape(end)+'</span></th>'+days.map(day=>{
+      return '<tr><th scope="row" class="tt-time"><strong>'+escape(clock(start))+'</strong><span>'+escape(clock(end))+'</span></th>'+days.map(day=>{
         const matches=indexed.get(day+'|'+key)||[];
         return '<td class="tt-class-cell'+(isToday(day)?' tt-today-cell':'')+'">'+(matches.length?matches.map(e=>{
           const kind=e.cancelled?'cancelled':e.adjustment?'adjusted':
