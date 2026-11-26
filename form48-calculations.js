@@ -1,6 +1,7 @@
 'use strict';
 // Draft monthly Form 48 calculation from verified staff punches.
 // Missing punches are evidence gaps, never automatic approved absences.
+const {obCoverageForDate,calculateObBoundaryGaps}=require('./attendance-reconciliation');
 const SLOTS=['AM_IN','AM_OUT','PM_IN','PM_OUT'];
 const isTime=value=>typeof value==='string'&&/^([01]\d|2[0-3]):[0-5]\d$/.test(value);
 const minuteOf=value=>isTime(value)?Number(value.slice(0,2))*60+Number(value.slice(3,5)):null;
@@ -49,11 +50,13 @@ function summarizeForm48({records=[],month,today,settings=null,calendar=[],offic
   const scheduled=configured&&(exception==='OPEN'||workdays.includes(weekday))&&exception!=='CLOSED';
   const past=isoDate(today)&&date<today;
   const present=verifiedCount>0;
-  const approvedOB=(officialBusiness||[]).some(b=>date>=b.from&&date<=b.to);
+  const obCoverage=obCoverageForDate(date,officialBusiness||[]);
+  const approvedOB=obCoverage.approved;
   const leaveDay=leave?.from&&leave?.to&&date>=leave.from&&date<=leave.to;
   const documentedLeave=(approvedLeaves||[]).some(p=>p.from&&p.to&&date>=p.from&&date<=p.to);
   const sickFilingPending=(pendingSickLeaves||[]).some(p=>p.from&&p.to&&date>=p.from&&date<=p.to);
   const review=reviews[date]||'PENDING';
+  const authorizationConflict=approvedOB&&documentedLeave;
   let status='NOT_SCHEDULED',lateMinutes=0,earlyMinutes=0,needsReview=false;
   if(scheduled&&date<=today)summary.scheduledDays++;
   // An approved-leave day with a verified DTR punch is an unresolved conflict,
@@ -61,6 +64,7 @@ function summarizeForm48({records=[],month,today,settings=null,calendar=[],offic
   if(present&&scheduled&&!documentedLeave){summary.daysPresent++;}
   if(scheduled&&present&&past&&verifiedCount<4){summary.partialRecordDays++;needsReview=true;}
   if(!scheduled){status=present?'UNSCHEDULED_PUNCH':'NOT_SCHEDULED';}
+  else if(authorizationConflict){status='OB_LEAVE_CONFLICT';needsReview=true;}
   else if(documentedLeave&&!present&&date>today){
    // Future approved leave is scheduled, not yet a completed excused day.
    status='UPCOMING_APPROVED_LEAVE';
@@ -116,10 +120,21 @@ function summarizeForm48({records=[],month,today,settings=null,calendar=[],offic
    }
   }else if(scheduled&&present&&past&&(approvedOB||leaveDay||documentedLeave||exception==='SHORTENED_DAY')){
    summary.incompleteTimingDays++;needsReview=true;
+   // OB dates remain draft/review-only; compute only evidenced, uncovered session boundaries.
+   if(approvedOB&&!leaveDay&&!documentedLeave&&exception!=='SHORTENED_DAY'){
+    const timing=calculateObBoundaryGaps(slots,hours,obCoverage);
+    if(timing){
+     lateMinutes=timing.lateMinutes;earlyMinutes=timing.undertimeMinutes;
+     if(summary.tardyMinutes!==null)summary.tardyMinutes+=lateMinutes;
+     if(summary.undertimeMinutes!==null)summary.undertimeMinutes+=earlyMinutes;
+     if(lateMinutes)summary.tardyDays++;
+     if(earlyMinutes)summary.undertimeDays++;
+    }
+   }
   }
   if(needsReview){summary.unresolvedDays++;summary.hasUnreviewed=true;}
   assessments.push({date,day,weekday,status,scheduled,past,verifiedCount,
-   lateMinutes,undertimeMinutes:earlyMinutes,needsReview,timeAnomaly:Boolean(anomalous),approvedOB:Boolean(approvedOB),
+   lateMinutes,undertimeMinutes:earlyMinutes,needsReview,timeAnomaly:Boolean(anomalous),approvedOB:Boolean(approvedOB),authorizationConflict:Boolean(authorizationConflict),
    leaveDay:Boolean(leaveDay||documentedLeave),approvedLeave:Boolean(documentedLeave),
    sickLeavePending:Boolean(sickFilingPending),calendarException:exception||null,review,
    temporaryMemoId:adjustment?.memoId||null,temporaryHours:adjustment?.hours||null});
