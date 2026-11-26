@@ -1,4 +1,4 @@
-const CACHE = "attendigo-v458-adaptive-help-dock";
+const CACHE = "attendigo-v459-login-only-installer";
 
 // Only public, non-personal offline shells and their executable dependencies.
 // An update must not discard the working cache before these are all ready.
