@@ -14,7 +14,7 @@ window.attendigoStaffIdentity.then(user => {
  const el=id=>document.getElementById(id);
  const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
  const dateToday=()=>new Intl.DateTimeFormat('en-CA',{timeZone:'Asia/Manila',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date());
- const state={periods:[],students:[],period:null,date:dateToday(),marks:{},synced:{},notes:'',page:0,tab:'sheet',rosterView:'grouped',selected:new Set(),busy:false,finalized:false,noteItems:[],editingNoteId:null,historyPage:0,historyTotal:0,historyRows:[],notesLoadedFor:null,qrMarks:{}};
+ const state={periods:[],students:[],period:null,date:dateToday(),marks:{},synced:{},notes:'',tab:'sheet',rosterView:'grouped',selected:new Set(),busy:false,finalized:false,noteItems:[],editingNoteId:null,historyPage:0,historyTotal:0,historyRows:[],notesLoadedFor:null,qrMarks:{}};
  try { if(localStorage.getItem('attendigo.attendance.roster.view')==='alphabetical')state.rosterView='alphabetical'; } catch {}
  const statuses=['PRESENT','LATE','ABSENT','EXCUSED'],symbols={PRESENT:'✓',LATE:'◷',ABSENT:'✕',EXCUSED:'!'},names={PRESENT:'Present',LATE:'Late',ABSENT:'Absent',EXCUSED:'Excused'};
  async function api(path,options={}) {
@@ -32,8 +32,6 @@ window.attendigoStaffIdentity.then(user => {
  // Accepted QR presence fills unmarked cells only, preserving manual corrections.
  const effectiveMark=id=>state.marks[id]?.status||state.qrMarks[id]?.status||null;
  const counts=()=>{const out={TOTAL:roster().length,PRESENT:0,LATE:0,ABSENT:0,EXCUSED:0,UNMARKED:0};roster().forEach(s=>{const st=effectiveMark(s.studentId);if(out[st]!==undefined)out[st]++;else out.UNMARKED++});return out};
- // Balance the last folio page rather than leaving two rows above a large blank area.
- const pageSize=()=>20;
  const selected=(id)=>state.selected.has(id);
  function notice(message,error=false){
    el('mfFeedback').textContent=message;
@@ -51,23 +49,18 @@ window.attendigoStaffIdentity.then(user => {
    if(el('mfSexSummary'))el('mfSexSummary').textContent='Male '+sex.MALE+' · Female '+sex.FEMALE+(sex.UNSPECIFIED?' · Not set '+sex.UNSPECIFIED:'')+' · Total '+sex.TOTAL;
  }
  function renderRows(){
-   const all=roster();const size=pageSize();const start=state.page*size;
-   const shown=window.AttendigoRoster.numberLearners(all,state.rosterView==='grouped').slice(start,start+size);
-   const totalPages=Math.max(1,Math.ceil(all.length/size));if(state.page>=totalPages){state.page=totalPages-1;return renderRows()}
-   el('mfPageNum').textContent='Page '+(state.page+1)+' of '+totalPages;
-   el('mfPageNum').setAttribute('aria-live','polite');
-   el('mfPrev').disabled=state.page===0;el('mfNext').disabled=state.page>=totalPages-1;
-   el('mfSelectPage').checked=shown.length>0&&shown.every(({learner})=>selected(learner.studentId));
-   el('mfSelectPage').indeterminate=shown.some(({learner})=>selected(learner.studentId))&&!el('mfSelectPage').checked;
+   const shown=window.AttendigoRoster.numberLearners(roster(),state.rosterView==='grouped');
+   el('mfSelectAll').checked=shown.length>0&&shown.every(({learner})=>selected(learner.studentId));
+   el('mfSelectAll').indeterminate=shown.some(({learner})=>selected(learner.studentId))&&!el('mfSelectAll').checked;
+   el('mfSelectAll').disabled=shown.length===0;
    if(el('mfSelectedCount'))el('mfSelectedCount').textContent=state.selected.size+' selected in this class';
    let previousSex=null;
-   el('mfRows').innerHTML=shown.length?shown.map((entry,i)=>{
+   el('mfRows').innerHTML=shown.length?shown.map(entry=>{
      const s=entry.learner;
      const mark=state.marks[s.studentId]||{};
      const group=entry.sex;
      const heading=state.rosterView==='grouped'&&group!==previousSex
-       ? '<tr class="manual-sex-group"><th colspan="5" scope="rowgroup">'+esc(window.AttendigoRoster.sexLabels[group])+
-         (start>0&&i===0?' · continued':'')+'</th></tr>' : '';
+       ? '<tr class="manual-sex-group"><th colspan="5" scope="rowgroup">'+esc(window.AttendigoRoster.sexLabels[group])+'</th></tr>' : '';
      previousSex=group;
      const status=effectiveMark(s.studentId)||'';const cardStatus=status==='ABSENT'?'ABSENT':'PRESENT';
      const extras=status==='LATE'||status==='EXCUSED';
@@ -248,7 +241,7 @@ window.attendigoStaffIdentity.then(user => {
  if(el('mfSync'))el('mfSync').disabled=Boolean(state.finalized);
 }
  function changeClass(){
-   state.period=state.periods.find(p=>p.periodId===el('mfPeriod').value)||null;state.page=0;state.selected.clear();state.editingNoteId=null;draftLoad();state.synced={};state.qrMarks={};state.finalized=false;state.noteItems=[];state.historyPage=0;state.historyLoadedFor=null;render();
+   state.period=state.periods.find(p=>p.periodId===el('mfPeriod').value)||null;state.selected.clear();state.editingNoteId=null;draftLoad();state.synced={};state.qrMarks={};state.finalized=false;state.noteItems=[];state.historyPage=0;state.historyLoadedFor=null;render();
    setSyncPill('local','Saved on device','Check this class draft against the school server before finalizing.');
    if(state.period){loadRemote();loadNotes();}
  }
@@ -276,27 +269,6 @@ window.attendigoStaffIdentity.then(user => {
    }catch(e){notice('Local attendance sheet is available. Server: '+e.message,true);return false}
  }
  function setMark(id,status){if(state.finalized)return notice('Reopen the finalized register to edit marks.',true);const prev=state.marks[id]||{};state.marks[id]=prev.status===status?{...prev,status:null}:{...prev,status};draftSave();render();}
- let flipBusy=false;
- function pageFlip(direction){
-   const pages=Math.max(1,Math.ceil(roster().length/pageSize()));
-   const next=state.page+direction;
-   if(flipBusy||next<0||next>=pages)return;
-   const book=el('mfBook'),source=el('mfSheet');
-   flipBusy=true;
-   const leaf=document.createElement('div');
-   leaf.className='manual-turn-leaf '+(direction>0?'forward':'backward');
-   leaf.setAttribute('aria-hidden','true');
-   const snapshot=source.cloneNode(true);
-   snapshot.removeAttribute('id');
-   snapshot.querySelectorAll('[id]').forEach(node=>node.removeAttribute('id'));
-   snapshot.querySelectorAll('button,input').forEach(node=>{node.disabled=true;node.tabIndex=-1});
-   leaf.appendChild(snapshot);book.appendChild(leaf);
-   el('mfPrev').disabled=true;el('mfNext').disabled=true;
-   // The turning leaf remains visible while the underlying register advances.
-   const duration=window.matchMedia('(prefers-reduced-motion: reduce)').matches?10:330;
-   setTimeout(()=>{state.page=next;renderRows();},Math.round(duration*.50));
-   setTimeout(()=>{leaf.remove();flipBusy=false;renderRows();},duration+35);
- }
  async function sync(){
    if(state.finalized){notice('Reopen this finalized register before changing marks.',true);return false;}
    if(!state.period){notice('Choose a class first.',true);return false;}
@@ -401,12 +373,11 @@ window.attendigoStaffIdentity.then(user => {
  host.addEventListener('change',event=>{
    if(event.target.id==='mfPeriod')changeClass();
    if(event.target.id==='mfDate'){state.date=event.target.value;initialize()}
-   if(event.target.id==='mfSelectPage'){roster().slice(state.page*pageSize(),state.page*pageSize()+pageSize()).forEach(s=>event.target.checked?state.selected.add(s.studentId):state.selected.delete(s.studentId));renderRows()}
+   if(event.target.id==='mfSelectAll'){roster().forEach(s=>event.target.checked?state.selected.add(s.studentId):state.selected.delete(s.studentId));renderRows()}
    if(event.target.id==='mfRosterView'){
-     if(flipBusy){event.target.value=state.rosterView;return;}
      state.rosterView=event.target.value==='alphabetical'?'alphabetical':'grouped';
      try{localStorage.setItem('attendigo.attendance.roster.view',state.rosterView)}catch{}
-     state.page=0;renderRows();notice('Roster view changed. Existing attendance marks are preserved.');
+     renderRows();notice('Roster view changed. Existing attendance marks are preserved.');
    }
    if(event.target.dataset.select){event.target.checked?state.selected.add(event.target.dataset.select):state.selected.delete(event.target.dataset.select);renderRows()}
  });
@@ -465,8 +436,6 @@ window.attendigoStaffIdentity.then(user => {
  document.querySelectorAll('[data-mf-history]').forEach(button=>button.addEventListener('click',()=>selectHistorySource(button.dataset.mfHistory)));
  el('mfHistoryPrev').addEventListener('click',()=>historyFlip(-1));
  el('mfHistoryNext').addEventListener('click',()=>historyFlip(1));
- el('mfPrev').addEventListener('click',()=>pageFlip(-1));
- el('mfNext').addEventListener('click',()=>pageFlip(1));
  el('mfSync').addEventListener('click',sync);
  el('mfFinalize')?.addEventListener('click',async()=>{
    if(!state.period)return notice('Select a class first.',true);

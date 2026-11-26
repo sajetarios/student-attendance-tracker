@@ -1,4 +1,4 @@
-const CACHE = "attendigo-v463-teacher-compact-dashboard";
+const CACHE = "attendigo-v464-continuous-class-register";
 
 // Only public, non-personal offline shells and their executable dependencies.
 // An update must not discard the working cache before these are all ready.
@@ -168,12 +168,12 @@ const SHELL = [
   "/gate-offline-review.css?v=1",
   "/gate-offline-review.js?v=1",
   "/offline-sheet.js?v=8",
-  "/manual-folio.css?v=11",
+  "/manual-folio.css?v=12",
   "/class-attendance-mobile.css?v=1",
   "/recent-class-attendance.css?v=2",
   "/attendance-sync-center.css?v=4",
   "/attendance-sync-center.js?v=3",
-  "/manual-folio.js?v=19",
+  "/manual-folio.js?v=20",
   "/student-portal-accounts.css?v=6",
   "/student-workspace-tabs.css?v=1",
   "/student-portal-accounts.js?v=11",
