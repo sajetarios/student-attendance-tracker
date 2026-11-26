@@ -149,5 +149,5 @@ test('Principal executive icons are locally rendered, accessible and cache-versi
  assert.ok(js.includes("principalIcon('mark',"));
  assert.ok(css.includes('.principal-action-icon'));
  assert.ok(sw.includes('principal-dashboard.css?v=17'));
- assert.ok(sw.includes('principal-dashboard.js?v=24'));
+ assert.ok(sw.includes('principal-dashboard.js?v=25'));
 });

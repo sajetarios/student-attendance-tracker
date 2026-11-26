@@ -14,8 +14,8 @@ const portal = read('public/portal.js');
 
 test('All four staff role layouts load without replacing existing navigation controllers', () => {
   assert.match(html, /href="\/simplified-workspace\.css\?v=1"/);
-  assert.match(html, /src="\/simplified-workspace\.js\?v=6" defer/);
-  assert.match(sw, /"\/simplified-workspace\.js\?v=6"/);
+  assert.match(html, /src="\/simplified-workspace\.js\?v=7" defer/);
+  assert.match(sw, /"\/simplified-workspace\.js\?v=7"/);
   assert.match(sw, /"\/simplified-workspace\.css\?v=1"/);
   for (const role of ['SCHOOL_ADMIN', 'DEPARTMENT_HEAD', 'TEACHER', 'SUPER_ADMIN']) {
     assert.match(script, new RegExp(role));
@@ -109,7 +109,7 @@ test('Compact menus survive feature-entitlement refresh without repeating DOM mo
   assert.match(script, /monitorRoleNavigation\(role\)/);
   assert.match(script, /record\.target\.matches\?\.\('\.side-nav,\.nav-submenu'\)/);
   assert.match(script, /record\.attributeName === 'hidden'/);
-  assert.match(script, /ordered\.some\(\(el, index\) => el !== current\[index\]\)/);
+  assert.match(script, /next\.some\(\(node, index\) => node !== existing\[index\]\)\) next\.forEach\(node => container\.append\(node\)\)/);
   assert.match(script, /move\('schoolSmsAccessNotice', 'settings'\)/);
   assert.match(css, /details\.simple-workspace-details:not\(\[open\]\) > \.simple-workspace-details-body/);
 });

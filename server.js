@@ -209,6 +209,7 @@ registerPlannerRoutes(app, pool, { authenticateSchoolClient, requireSchoolRoles 
 registerCloudSyncRoutes(app, pool, { authenticateSchoolClient, requireSchoolAdmin });
 registerAccountRoutes(app, pool, { authenticateSchoolClient });
 registerSchoolRoutes(app, pool, { authenticateSchoolClient, requireSchoolRoles });
+require('./school-weather-routes').registerSchoolWeatherRoutes(app,pool,{authenticateSchoolClient,requireSchoolRoles});
 registerPlatformRoutes(app, pool, { authenticatePlatform, requirePlatformAdmin });
 require('./locator-template-library-routes').registerLocatorLibraryRoutes(app,pool,{authenticateSchoolClient,requireSchoolRoles,authenticatePlatform,requirePlatformAdmin,canCustomizeBranding:requireSchoolFeature(pool,'custom_branding')});
 require('./central-locator-templates').registerCentralLocatorRoutes(app,pool,{authenticateSchoolClient,requireSchoolRoles,authenticatePlatform,requirePlatformAdmin,canCustomizeBranding:requireSchoolFeature(pool,'custom_branding')});

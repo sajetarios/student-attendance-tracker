@@ -639,8 +639,8 @@ body.dark-mode .content-wrap > .school-heading.is-compact,body[data-theme="dark"
   <link rel="stylesheet" href="/class-qr-monitor-embedded.css?v=1">
 <link rel="stylesheet" href="/sf1-import-mobile.css?v=1">
   <link rel="stylesheet" href="/simplified-workspace.css?v=1">
-  <link rel="stylesheet" href="/teacher-timetable-identities.css?v=2">
-  <link rel="stylesheet" href="/attendigo-help.css?v=4">
+  <link rel="stylesheet" href="/teacher-timetable-identities.css?v=3">
+  <link rel="stylesheet" href="/attendigo-help.css?v=5">
 <link rel="stylesheet" href="/gate-offline-review.css?v=1">
 <link rel="stylesheet" href="/school-memo-banner.css?v=9">
   <link rel="stylesheet" href="/class-attendance-mobile.css?v=1">
@@ -652,7 +652,9 @@ body.dark-mode .content-wrap > .school-heading.is-compact,body[data-theme="dark"
 <link rel="stylesheet" href="/document-branding.css?v=8">
 <link rel="stylesheet" href="/attendigo-install.css?v=6">
 <link rel="stylesheet" href="/attendigo-experience.css?v=4">
-<link rel="stylesheet" href="/attendigo-signature.css?v=2">
+<link rel="stylesheet" href="/attendigo-signature.css?v=13">
+<script src="/attendigo-adaptive-palette.js?v=3" defer></script>
+<script src="/school-weather-widget.js?v=4" defer></script>
 </head>
 <body class="portal-page">
   <div class="portal-layout">
@@ -788,7 +790,7 @@ body.dark-mode .content-wrap > .school-heading.is-compact,body[data-theme="dark"
           </div>
         </div>
       </header>
-      <div class="attendigo-install-strip" data-attendigo-install-container><a class="attendigo-install-link attendigo-install-cta" data-attendigo-install href="/install.html" target="_blank" rel="noopener" aria-haspopup="dialog"><svg class="install-robot" viewBox="0 0 64 64" aria-hidden="true" focusable="false"><path d="M32 10V5" stroke="#b5def8" stroke-width="3" stroke-linecap="round"/><circle cx="32" cy="5" r="3" fill="#f6b641"/><rect x="9" y="12" width="46" height="33" rx="13" fill="#e2f3ff" stroke="#b5def8" stroke-width="2"/><rect x="15" y="18" width="34" height="20" rx="8" fill="#15334b"/><circle cx="24" cy="26" r="3" fill="#5df2ff"/><circle cx="40" cy="26" r="3" fill="#5df2ff"/><path d="M28 32q4 4 8 0" fill="none" stroke="#5df2ff" stroke-width="2" stroke-linecap="round"/><rect x="21" y="46" width="22" height="14" rx="5" fill="#e2f3ff"/><path d="M25 51l7 2 7-2v5l-7 2-7-2z" fill="#1b88cb"/><path class="install-robot-arm" d="M45 50l9-7 4-8" fill="none" stroke="#b5def8" stroke-width="5" stroke-linecap="round"/><path d="M19 50l-8 4" stroke="#b5def8" stroke-width="5" stroke-linecap="round"/></svg><span class="install-cta-copy"><span>Install Attendigo</span><small data-install-caption>Open directly from your Home Screen</small></span><svg class="install-download" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M12 3v12m-5-5 5 5 5-5M4 16v3a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-3"/></svg></a><p class="install-inline-status" data-install-status role="status" hidden></p></div>
+      
 
       <div class="content-wrap">
         <section class="school-heading">
@@ -1811,7 +1813,7 @@ body.dark-mode .content-wrap > .school-heading.is-compact,body[data-theme="dark"
                     </div>
                   </div>
                 </div>
-                <p class="field-hint">This board shows the actual week, including temporary changes and cancelled classes. Filter by grade and section. Swipe sideways in Weekly view, or scroll down in List view.</p><div id="weeklyTimetableBoard" class="weekly-timetable-board"></div>
+                <p class="field-hint">View your classes for the selected week. Swipe across days or switch to List view. Tap a class for details.</p><div id="weeklyTimetableBoard" class="weekly-timetable-board"></div>
               </section>
               <section id="datedSchedulePanel" class="dated-schedule-panel" aria-labelledby="datedScheduleTitle">
                 <div class="section-toolbar dated-schedule-heading">
@@ -2421,7 +2423,7 @@ body.dark-mode .content-wrap > .school-heading.is-compact,body[data-theme="dark"
               </div>
               <p id="specialProgramBulkFeedback" class="inline-feedback" role="status" aria-live="polite">No learners selected.</p>
             </section>
-            <div class="table-scroll"><table><thead><tr><th>Select</th><th>Student ID</th><th>Learner</th><th>Grade</th><th>Section</th><th>Status</th><th>Special program</th><th>Individual action</th></tr></thead><tbody id="academicEnrollmentRows"><tr><td colspan="8" class="empty-cell">Select a school year.</td></tr></tbody></table></div>
+            <div class="table-scroll ax-enrollment-table"><table><thead><tr><th>Select</th><th>Student ID</th><th>Learner</th><th>Grade</th><th>Section</th><th>Status</th><th>Special program</th><th>Individual action</th></tr></thead><tbody id="academicEnrollmentRows"><tr><td colspan="8" class="empty-cell">Select a school year.</td></tr></tbody></table></div>
           </article>
           <p class="scope-note">These controls are available to School Administrators. Existing attendance records, parent accounts, QR tokens, and student master records are not rewritten by creating school years or enrollments.</p>
         </section>
@@ -2532,7 +2534,7 @@ body.dark-mode .content-wrap > .school-heading.is-compact,body[data-theme="dark"
   <script src="/password-visibility.js" defer></script>
   <script src="/vendor/html5-qrcode.min.js" defer></script>
   <script src="/schedule-relationships.js?v=2" defer></script>
-  <script src="/timetable-grid.js?v=8" defer></script>
+  <script src="/timetable-grid.js?v=9" defer></script>
   <script src="/schedule-workspace-ui.js?v=9" defer></script>
   <script src="/photo-editor.js?v=11" defer></script>
   <script src="/offline-attendance.js?v=5" defer></script>
@@ -2541,7 +2543,7 @@ body.dark-mode .content-wrap > .school-heading.is-compact,body[data-theme="dark"
   <script src="/student-name-format.js?v=2" defer></script>
   <script src="/teacher-scanner-schedule.js?v=1" defer></script>
   <script src="/gate-offline-review.js?v=1" defer></script>
-  <script src="/portal.js?v=246" defer></script>
+  <script src="/portal.js?v=247" defer></script>
   <script src="/schedule-list-filters.js?v=1" defer></script>
   <script src="/staff-lunch-ui.js?v=10" defer></script>
   <script src="/staff-precise-location.js?v=1" defer></script>
@@ -2570,15 +2572,15 @@ body.dark-mode .content-wrap > .school-heading.is-compact,body[data-theme="dark"
   <script src="/guardian-ui.js?v=7" defer></script>
   <script src="/admin-request-notifications.js?v=7" defer></script>
   <script src="/universal-notifications.js?v=12" defer></script>
-  <script src="/academic-admin.js?v=7" defer></script>
+  <script src="/academic-admin.js?v=8" defer></script>
   <script src="/shs-school-ui.js?v=2" defer></script>
-  <script src="/special-program-ui.js?v=6" defer></script>
+  <script src="/special-program-ui.js?v=7" defer></script>
   <script src="/special-program-batch-ui.js?v=3" defer></script>
   <script src="/smart-mobile-header.js?v=4" defer></script>
 <script src="/attendigo-sidebar-adaptive.js?v=9" defer></script>
   <script src="/attendigo-unified-navigation.js?v=1" defer></script>
-<script src="/attendigo-role-workspaces.js?v=2" defer></script>
-  <script src="/simplified-workspace.js?v=6" defer></script>
+<script src="/attendigo-role-workspaces.js?v=5" defer></script>
+  <script src="/simplified-workspace.js?v=7" defer></script>
 <script defer src="/school-header-responsive.js?v=2"></script>
 <link rel="stylesheet" href="/staff-leave-ui.css?v=8">
 <link rel="stylesheet" href="/leave-approval-inbox.css?v=3">
@@ -2596,16 +2598,5 @@ body.dark-mode .content-wrap > .school-heading.is-compact,body[data-theme="dark"
 <script defer src="/locator-table-suggest.js?v=2"></script>
 <script defer src="/locator-field-library.js?v=1"></script>
 <script defer src="/central-locator-ui.js?v=9"></script>
-<dialog id="attendigoInstallDialog" class="attendigo-install-dialog" aria-labelledby="attendigoInstallTitle"><div class="install-dialog-top"><button type="button" data-install-close class="install-close" aria-label="Close installation guide" autofocus>✕ Close</button></div><div class="install-card"><div class="install-brand-head"><img class="install-brand-logo" src="/assets/attendigo-official-lockup.svg?v=5" alt="Attendigo" width="1769" height="496"><h2 class="install-dialog-title" id="attendigoInstallTitle">Install Attendigo</h2><div class="install-robot-hero"><svg class="install-robot" viewBox="0 0 64 64" aria-hidden="true" focusable="false"><path d="M32 10V5" stroke="#b5def8" stroke-width="3" stroke-linecap="round"/><circle cx="32" cy="5" r="3" fill="#f6b641"/><rect x="9" y="12" width="46" height="33" rx="13" fill="#e2f3ff" stroke="#b5def8" stroke-width="2"/><rect x="15" y="18" width="34" height="20" rx="8" fill="#15334b"/><circle cx="24" cy="26" r="3" fill="#5df2ff"/><circle cx="40" cy="26" r="3" fill="#5df2ff"/><path d="M28 32q4 4 8 0" fill="none" stroke="#5df2ff" stroke-width="2" stroke-linecap="round"/><rect x="21" y="46" width="22" height="14" rx="5" fill="#e2f3ff"/><path d="M25 51l7 2 7-2v5l-7 2-7-2z" fill="#1b88cb"/><path class="install-robot-arm" d="M45 50l9-7 4-8" fill="none" stroke="#b5def8" stroke-width="5" stroke-linecap="round"/><path d="M19 50l-8 4" stroke="#b5def8" stroke-width="5" stroke-linecap="round"/></svg></div></div><p class="intro">Open the school app directly from your phone. No app store needed. / Buksan ang app mula sa Home Screen.</p>
-<button type="button" id="installAction" hidden>Install Attendigo now</button>
-<section id="installDone" hidden><h2>You're using Attendigo as an app</h2><p>Open Attendigo from your Home Screen. / Buksan ang Attendigo sa Home Screen.</p></section>
-<section id="guide-ios" hidden><h2>iPhone or iPad</h2><p class="guide-note">Follow these illustrated steps. / Sundin ang mga larawan.</p><div class="install-walkthrough" data-install-walkthrough aria-label="iPhone or iPad illustrated installation guide"><div class="walk-controls" hidden><button type="button" data-walk-play>▶ Watch walkthrough / Panoorin</button><div class="walk-navigation"><button type="button" data-walk-prev aria-label="Previous step">‹ Back</button><span data-walk-count aria-live="polite">1 / 4</span><button type="button" data-walk-next aria-label="Next step">Next ›</button></div></div><ol class="walk-steps"><li data-walk-step><div class="walk-heading"><span class="walk-number">1</span><strong>Open Safari</strong></div><div class="install-scene" aria-hidden="true"><div class="scene-bar"><span>Safari</span><span>•••</span></div><div class="scene-content"><div class="scene-address">attendigo.tech</div><div class="scene-app"><img src="/assets/attendigo-icon-192.png?v=3" width="36" height="36" alt=""><strong>Attendigo</strong></div><div class="scene-line"></div></div></div><p>Buksan ang Safari at pumunta sa attendigo.tech.</p></li><li data-walk-step><div class="walk-heading"><span class="walk-number">2</span><strong>Tap Share</strong></div><div class="install-scene" aria-hidden="true"><div class="scene-bar"><span>Safari</span><span>•••</span></div><div class="scene-content"><div class="scene-app"><img src="/assets/attendigo-icon-192.png?v=3" width="36" height="36" alt=""><strong>Attendigo</strong></div><div class="scene-toolbar"><span class="scene-highlight"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 15V3m-4 4 4-4 4 4M7 10H5v11h14V10h-2"/></svg> Share</span></div></div></div><p>Pindutin ang Share (kahon na may pataas na arrow).</p></li><li data-walk-step><div class="walk-heading"><span class="walk-number">3</span><strong>Add to Home Screen</strong></div><div class="install-scene" aria-hidden="true"><div class="scene-bar"><span>Share</span><span>•••</span></div><div class="scene-content"><div class="scene-menu">Copy link</div><span class="scene-highlight">＋ Add to Home Screen</span><div class="scene-menu">More actions…</div></div></div><p>Piliin ang Add to Home Screen. I-on ang Open as Web App kung nakikita ito.</p></li><li data-walk-step><div class="walk-heading"><span class="walk-number">4</span><strong>Tap Add, then open Attendigo</strong></div><div class="install-scene" aria-hidden="true"><div class="scene-bar"><span>Add to Home Screen</span><span>•••</span></div><div class="scene-content"><div class="scene-app"><img src="/assets/attendigo-icon-192.png?v=3" width="36" height="36" alt=""><strong>Attendigo</strong></div><span class="scene-highlight">Add</span><div class="scene-home"><img src="/assets/attendigo-icon-192.png?v=3" width="36" height="36" alt=""><b>Attendigo</b></div></div></div><p>Pindutin ang Add, pagkatapos ay buksan ang Attendigo icon sa Home Screen.</p></li></ol><small>Illustration only — browser menus may look slightly different. / Halimbawa lamang ang mga larawan.</small></div></section>
-<section id="guide-android" hidden><h2>Android phone or tablet</h2><p class="guide-note">Follow these illustrated steps. / Sundin ang mga larawan.</p><div class="install-walkthrough" data-install-walkthrough aria-label="Android phone or tablet illustrated installation guide"><div class="walk-controls" hidden><button type="button" data-walk-play>▶ Watch walkthrough / Panoorin</button><div class="walk-navigation"><button type="button" data-walk-prev aria-label="Previous step">‹ Back</button><span data-walk-count aria-live="polite">1 / 4</span><button type="button" data-walk-next aria-label="Next step">Next ›</button></div></div><ol class="walk-steps"><li data-walk-step><div class="walk-heading"><span class="walk-number">1</span><strong>Open Chrome</strong></div><div class="install-scene" aria-hidden="true"><div class="scene-bar"><span>Chrome</span><span>•••</span></div><div class="scene-content"><div class="scene-address">attendigo.tech</div><div class="scene-app"><img src="/assets/attendigo-icon-192.png?v=3" width="36" height="36" alt=""><strong>Attendigo</strong></div><div class="scene-line"></div></div></div><p>Buksan ang Chrome at pumunta sa attendigo.tech.</p></li><li data-walk-step><div class="walk-heading"><span class="walk-number">2</span><strong>Tap Install Attendigo</strong></div><div class="install-scene" aria-hidden="true"><div class="scene-bar"><span>Chrome</span><span>•••</span></div><div class="scene-content"><div class="scene-app"><img src="/assets/attendigo-icon-192.png?v=3" width="36" height="36" alt=""><strong>Attendigo</strong></div><span class="scene-highlight">↓ Install Attendigo</span><div class="scene-toolbar">or Chrome menu ⋮</div></div></div><p>Pindutin ang Install Attendigo. Kung wala, buksan ang menu na may tatlong tuldok.</p></li><li data-walk-step><div class="walk-heading"><span class="walk-number">3</span><strong>Confirm installation</strong></div><div class="install-scene" aria-hidden="true"><div class="scene-bar"><span>Install app</span><span>•••</span></div><div class="scene-content"><div class="scene-app"><img src="/assets/attendigo-icon-192.png?v=3" width="36" height="36" alt=""><strong>Attendigo</strong></div><div class="scene-toolbar">Cancel <span class="scene-highlight">Install</span></div></div></div><p>Piliin ang Install app (o Add to Home screen) at kumpirmahin ang Install.</p></li><li data-walk-step><div class="walk-heading"><span class="walk-number">4</span><strong>Open the new app</strong></div><div class="install-scene" aria-hidden="true"><div class="scene-bar"><span>Home Screen</span><span>•••</span></div><div class="scene-content"><div class="scene-home"><img src="/assets/attendigo-icon-192.png?v=3" width="36" height="36" alt=""><b>Attendigo</b></div></div></div><p>Buksan ang Attendigo icon sa Home Screen o apps list.</p></li></ol><small>Illustration only — browser menus may look slightly different. / Halimbawa lamang ang mga larawan.</small></div></section>
-<section id="guide-other" hidden><h2>Install from your browser</h2><p>Use the Install Attendigo button if available, or look for Install app in your browser's menu or address bar. / Hanapin ang Install app sa browser.</p></section>
-<section id="guide-embedded" hidden><h2>Open in your phone's browser</h2><div class="install-scene" aria-hidden="true"><div class="scene-bar"><span>Messenger / Facebook</span><span>•••</span></div><div class="scene-content"><div class="scene-menu">⋯ Menu</div><span class="scene-highlight">Open in browser</span></div></div><p>Tap the menu and choose Open in browser, or copy the link below. / Buksan sa Safari o Chrome.</p></section>
-<details class="install-share"><summary>Share installation link / Ibahagi</summary><label for="installUrl">Installation link</label><input id="installUrl" readonly type="url"><button type="button" id="installCopy">Copy installation link / Kopyahin</button></details>
-<p id="installStatus" role="status" aria-live="polite"></p>
-<p class="tip"><strong>Parents / Magulang:</strong> After opening the installed app, sign in and tap Activate phone alerts in the Parent Portal. Notifications need your permission and a supported device.</p>
-<button type="button" class="continue" data-install-close>Close</button><small>Installation is optional. You can always use Attendigo in your browser.</small>
-</div></dialog><script src="/attendigo-install-walkthrough.js?v=2" defer></script></body>
+</body>
 </html>

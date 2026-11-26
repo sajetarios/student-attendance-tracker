@@ -45,6 +45,50 @@
    for(const id of ['dashboardView','studentsView','studentScannerPanel'])if($(id))observer.observe($(id),{attributes:true,attributeFilter:['hidden']});
   }
  }
+ function addAdvisory(role){
+  if(!['SCHOOL_ADMIN','DEPARTMENT_HEAD','TEACHER'].includes(role))return;
+  const dashboard=$('dashboardView');if(!dashboard||$('axWeatherAdvisory'))return;
+  const card=document.createElement('section');card.id='axWeatherAdvisory';card.className='ax-weather-advisory';card.setAttribute('data-school-weather','');card.setAttribute('aria-label','School weather and heat index');
+  dashboard.append(card);window.AttendigoSchoolWeather?.mount(card);
+ }
+ function addTeachingProgress(){
+  const summary=$('learnerSummaryCard'),total=$('learnerTotal'),present=$('learnerPresent');
+  if(!summary||!total||!present||$('axTeachingProgress'))return;
+  const widget=document.createElement('div');widget.id='axTeachingProgress';widget.className='ax-teaching-progress';
+  widget.innerHTML='<div class="ax-progress-ring" aria-hidden="true"><strong>—</strong></div><div><h3>Confirmed check-ins today</h3><p class="ax-progress-copy" role="status">Awaiting attendance summary.</p><small>Share of assigned learners with confirmed attendance. Not an official daily attendance rate.</small></div>';
+  summary.append(widget);
+  function update(){
+   const parse=node=>{const value=node.textContent.trim().replace(/,/g,'');return /^\d+$/.test(value)?Number(value):NaN;};
+   const a=parse(present),b=parse(total),valid=Number.isFinite(a)&&Number.isFinite(b)&&b>0&&a<=b;
+   const percent=valid?Math.round(a/b*100):0;
+   const ring=widget.querySelector('.ax-progress-ring');ring.style.setProperty('--ax-progress',percent+'%');
+   ring.querySelector('strong').textContent=valid?percent+'%':'—';
+   widget.querySelector('.ax-progress-copy').textContent=valid?a.toLocaleString()+' of '+b.toLocaleString()+' assigned learners confirmed.':'Awaiting attendance summary.';
+  }
+  update();const observer=new MutationObserver(update);for(const node of [total,present])observer.observe(node,{childList:true,characterData:true,subtree:true});
+ }
+ function arrangeTeachingDay(){
+  const dashboard=$('dashboardView'),summary=$('learnerSummaryCard'),intro=$('axStaffDashboardIntro');
+  if(!dashboard||!summary||!intro||dashboard.dataset.axTeachingDay)return;
+  dashboard.dataset.axTeachingDay='true';
+  const date=document.createElement('span');date.className='ax-teaching-date';
+  date.textContent=new Intl.DateTimeFormat('en-PH',{timeZone:'Asia/Manila',weekday:'long',month:'long',day:'numeric'}).format(new Date());
+  intro.append(date);
+  // Reuse the original live metric nodes, original scanner controls and existing
+  // timetable action. No cloned attendance records or fabricated trend values.
+  const labels=['Assigned learners','Confirmed today','Pending confirmation','Learner-days this month'];
+  const paths=['M3 21v-2a6 6 0 0 1 12 0v2 M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8 M18 4a4 4 0 0 1 0 7 M18 15a5 5 0 0 1 4 5','M3 12l5 5L21 4','M12 7v5l3 2 M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18','M3 5h18v16H3z M7 3v4 M17 3v4 M3 10h18'];
+  summary.querySelectorAll('.learner-metric').forEach((card,i)=>{
+   if(!labels[i])return;
+   const label=card.querySelector('span:not(.teacher-v3-metric-icon)');if(label)label.textContent=labels[i];
+   if(!card.querySelector('.teacher-v3-metric-icon')){
+    const icon=document.createElement('span');icon.className='teacher-v3-metric-icon';icon.innerHTML='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="'+paths[i]+'"/></svg>';card.prepend(icon);
+   }
+  });
+  // Keep one actionable welcome section: the old hero retains its timetable
+  // button; the new header is a compact date/title line, not a second banner.
+  const heading=$('axStaffDashboardDescription');if(heading)heading.textContent='Your classes, attendance and school updates.';
+ }
  function init(user){
   const role=user?.role,config=roles[role],layout=document.querySelector('.portal-layout');
   if(!config||!layout||layout.getAttribute('data-attendigo-role')!==role)return;
@@ -58,6 +102,8 @@
   const card=$(config.first),intro=$('axStaffDashboardIntro');
   if(card&&intro&&card.parentElement===intro.parentElement&&intro.nextElementSibling!==card)intro.after(card);
   makeDock(layout,role);
+  addAdvisory(role);
+  if(role==='TEACHER'){addTeachingProgress();arrangeTeachingDay();}
   if(role==='GATE_KEEPER'){
    const scanner=$('studentScannerCard');
    if(scanner)scanner.setAttribute('data-ax-gate-workspace','true');

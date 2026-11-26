@@ -79,3 +79,479 @@
  .ax-workspace-intro {width:100%;max-width:100%;box-sizing:border-box;min-width:0;overflow-wrap:anywhere;}
  .ax-workspace-intro > * {min-width:0;max-width:100%;overflow-wrap:anywhere;}
 }
+
+/* V5.1: prioritize actual work, not introductory banners. */
+@media screen {
+ html body.portal-page .portal-layout[data-attendigo-role] .content-wrap>.school-heading {padding:10px 14px!important;margin-block:0 8px!important;gap:10px!important;}
+ html body.portal-page .portal-layout[data-attendigo-role] .school-heading .school-title-block h1 {font-size:clamp(16px,2vw,20px)!important;line-height:1.3!important;}
+ html body.portal-page .portal-layout[data-attendigo-role] .school-heading .school-emblem {width:40px!important;height:40px!important;min-width:40px!important;flex:0 0 40px!important;}
+ html body.portal-page .portal-layout[data-attendigo-role] .school-heading .heading-actions {gap:6px!important;}
+ html body.portal-page .portal-layout[data-attendigo-role] .attendigo-install-strip {margin-block:4px 8px!important;}
+ html body.portal-page .portal-layout[data-attendigo-role] .attendigo-install-strip .attendigo-install-cta {min-height:44px!important;padding:7px 12px!important;}
+ html body.portal-page .portal-layout[data-attendigo-role] .attendigo-install-strip .install-robot {width:30px!important;height:30px!important;}
+ html body.portal-page .portal-layout[data-attendigo-role] .ax-workspace-intro {min-height:0;padding:14px 18px;margin-bottom:8px;}
+ html body.portal-page .portal-layout[data-attendigo-role] .ax-workspace-intro h2 {font-size:clamp(22px,2.4vw,28px);margin:3px 0;}
+ html body.portal-page .portal-layout[data-attendigo-role] .ax-workspace-intro p {font-size:16px;}
+ body.portal-page #dashboardView:not([hidden]) :is(#adminDashboardCard,#departmentHeadOverview):not([hidden]) {display:flex;flex-direction:column;gap:12px;}
+ body.portal-page #dashboardView :is(.admin-command-metrics,.dh-command-metrics) {order:-2;margin-block:0!important;}
+ body.portal-page #dashboardView :is(.admin-command-hero,.dh-command-intro) {padding:8px!important;min-height:0!important;gap:10px!important;margin:0!important;}
+ body.portal-page #dashboardView :is(.admin-command-hero,.dh-command-intro) h3 {font-size:19px!important;margin:3px 0!important;}
+ body.portal-page #dashboardView :is(.admin-command-hero,.dh-command-intro) p {font-size:16px!important;margin:3px 0!important;}
+ html body.portal-page .portal-layout[data-attendigo-role="TEACHER"] #dashboardView:not([hidden]) {display:flex;flex-direction:column;}
+ html body.portal-page .portal-layout[data-attendigo-role="TEACHER"] #dashboardView>#axStaffDashboardIntro {order:-5!important;}
+ html body.portal-page .portal-layout[data-attendigo-role="TEACHER"] #dashboardView>#learnerSummaryCard {order:-4!important;}
+ html body.portal-page .portal-layout[data-attendigo-role="TEACHER"] #dashboardView>.teacher-v3-hero {order:-3!important;min-height:0!important;padding:12px 16px!important;border-radius:14px;}
+ html body.portal-page .portal-layout[data-attendigo-role="TEACHER"] #dashboardView>.teacher-v3-hero h2 {font-size:20px!important;}
+ html body.portal-page .portal-layout[data-attendigo-role="TEACHER"] #dashboardView>.teacher-v3-hero p {font-size:16px!important;}
+ html body.portal-page .portal-layout[data-attendigo-role="TEACHER"] #dashboardView>.teacher-v3-hero .teacher-v3-hero-actions {min-width:0;}
+ html body.portal-page .portal-layout[data-attendigo-role="TEACHER"] #dashboardView:has(#axTeachingProgress) .teacher-v3-foot {display:none;}
+ .ax-teaching-progress {display:grid;grid-template-columns:92px minmax(0,1fr);gap:14px;align-items:center;padding:14px;background:var(--ag-surface,#fff);border:1px solid var(--ax-border);border-radius:14px;margin-top:12px;}
+ .ax-progress-ring {--ax-progress:0%;width:88px;aspect-ratio:1;display:grid;place-items:center;border-radius:50%;background:conic-gradient(#168375 var(--ax-progress),var(--ax-border,#d7e0ea) 0);}
+ .ax-progress-ring strong {width:68px;aspect-ratio:1;border-radius:50%;display:grid;place-items:center;background:var(--ag-surface,#fff);color:var(--ag-reading,#19304a);font-size:20px;font-variant-numeric:tabular-nums;}
+ .ax-teaching-progress h3,.ax-weather-advisory h3 {font-size:18px;line-height:1.3;margin:0 0 5px;color:var(--ag-reading,#19304a);}
+ .ax-teaching-progress p,.ax-weather-advisory p {font-size:16px;line-height:1.4;margin:0 0 5px;color:var(--ag-secondary,#52647b);}
+ .ax-teaching-progress small {font-size:14px;line-height:1.35;color:var(--ag-secondary,#52647b);}
+ .ax-weather-advisory {order:8;display:grid;grid-template-columns:56px minmax(0,1fr);gap:12px;align-items:start;padding:16px;border:1px solid var(--ax-border);border-radius:16px;background:var(--ag-surface,#fff);margin-block:10px;color:var(--ag-reading,#19304a);min-width:0;box-sizing:border-box;}
+ .ax-weather-symbol {display:grid;place-items:center;background:#e2effb;color:#245f9d;border-radius:14px;width:54px;height:54px;}
+ .ax-weather-symbol svg {width:36px;height:36px;}
+ .ax-weather-kicker {font-size:12px;letter-spacing:.06em;font-weight:750;color:var(--ag-secondary,#52647b);}
+ .ax-weather-links {display:flex;flex-wrap:wrap;gap:8px;margin-top:8px;}
+ .ax-weather-links a {display:inline-flex;min-height:44px;align-items:center;padding:7px 12px;border:1px solid var(--ax-border);border-radius:9px;color:var(--ag-primary,#245f9d);font-size:16px;font-weight:650;text-decoration:underline;box-sizing:border-box;}
+ html body.portal-page .portal-layout[data-attendigo-role] #sidebar.sidebar .nav-item.active {border-radius:12px 5px 5px 12px!important;box-shadow:inset 4px 0 var(--side-selected-ink)!important;}
+}
+@media screen and (max-width:860px) {
+ html body.portal-page .portal-layout[data-attendigo-role] .topbar {display:flex!important;flex-wrap:wrap!important;gap:5px 8px!important;align-items:center!important;padding:7px 10px!important;height:auto!important;min-height:0!important;}
+ html body.portal-page .portal-layout[data-attendigo-role] .topbar .topbar-right {order:1;min-width:0;max-width:calc(100% - 48px);margin-inline-start:auto;gap:4px!important;}
+ html body.portal-page .portal-layout[data-attendigo-role] .topbar .breadcrumbs {order:2;flex:1 0 100%!important;max-width:100%!important;min-width:0!important;white-space:normal!important;overflow:visible!important;padding:4px 2px 2px!important;border-top:1px solid var(--ax-border);}
+ html body.portal-page .portal-layout[data-attendigo-role] .topbar #breadcrumbCurrent {white-space:normal!important;overflow:visible!important;text-overflow:clip!important;max-width:100%!important;overflow-wrap:anywhere;font-size:16px!important;line-height:1.3;}
+ html body.portal-page #schoolWorkspace #studentsView #studentRosterPanel,html body.portal-page #schoolWorkspace #studentsView #studentRosterPanel>.table-scroll {box-sizing:border-box;max-width:100%!important;min-width:0!important;width:100%!important;}
+ html body.portal-page #schoolWorkspace .ax-enrollment-table {width:100%!important;max-width:100%!important;min-width:0!important;overflow-x:auto!important;box-sizing:border-box;}
+ html body.portal-page #schoolWorkspace .ax-enrollment-table table {display:block!important;width:100%!important;min-width:0!important;max-width:100%!important;}
+ html body.portal-page #schoolWorkspace .ax-enrollment-table thead {position:absolute!important;width:1px!important;height:1px!important;min-width:0!important;overflow:hidden!important;clip-path:inset(50%);}
+ html body.portal-page #schoolWorkspace .ax-enrollment-table tbody {display:block!important;width:100%!important;min-width:0!important;}
+ html body.portal-page #schoolWorkspace .ax-enrollment-table tbody tr:has([data-ax-field="name"]) {display:grid!important;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:5px 10px;border:1px solid var(--ax-border);border-radius:12px;margin:0 0 8px;padding:10px!important;min-width:0!important;width:100%!important;box-sizing:border-box;}
+ html body.portal-page #schoolWorkspace .ax-enrollment-table tbody tr:has([data-ax-field="name"]) td {display:block!important;width:auto!important;min-width:0!important;max-width:100%!important;padding:2px 0!important;white-space:normal!important;overflow-wrap:anywhere;border:0!important;font-size:15px;box-sizing:border-box;}
+ html body.portal-page #schoolWorkspace .ax-enrollment-table td[data-ax-field="name"] {grid-column:1/-1;font-size:17px!important;font-weight:750;}
+ html body.portal-page #schoolWorkspace .ax-enrollment-table td[data-ax-field="id"] {grid-column:1/-1;}
+ html body.portal-page #schoolWorkspace .ax-enrollment-table td[data-ax-field="select"] {grid-column:1/-1;min-height:24px!important;}
+ html body.portal-page #schoolWorkspace .ax-enrollment-table td[data-ax-field="action"] {grid-column:1/-1;display:grid!important;grid-template-columns:minmax(0,1fr);gap:6px;}
+ html body.portal-page #schoolWorkspace .ax-enrollment-table td[data-ax-field="action"] :is(select,button) {width:100%!important;min-width:0!important;max-width:100%!important;min-height:44px!important;margin:0!important;white-space:normal!important;box-sizing:border-box;font-size:16px!important;}
+ html body.portal-page #schoolWorkspace .ax-enrollment-table td[data-ax-field]::before {display:block!important;position:static!important;width:auto!important;font-weight:650;font-size:12px;line-height:1.3;color:var(--ag-secondary,#52647b);margin:0 0 2px;}
+ html body.portal-page #schoolWorkspace .ax-enrollment-table td[data-ax-field="id"]::before {content:"Student ID";}
+ html body.portal-page #schoolWorkspace .ax-enrollment-table td[data-ax-field="grade"]::before {content:"Grade";}
+ html body.portal-page #schoolWorkspace .ax-enrollment-table td[data-ax-field="section"]::before {content:"Section";}
+ html body.portal-page #schoolWorkspace .ax-enrollment-table td[data-ax-field="status"]::before {content:"Status";}
+ html body.portal-page #schoolWorkspace .ax-enrollment-table td[data-ax-field="program"]::before {content:"Special program";}
+ html body.portal-page #schoolWorkspace .ax-enrollment-table td[data-ax-field="name"]::before,html body.portal-page #schoolWorkspace .ax-enrollment-table td[data-ax-field="select"]::before,html body.portal-page #schoolWorkspace .ax-enrollment-table td[data-ax-field="action"]::before {content:none!important;}
+}
+@media screen and (max-width:380px) {
+ .ax-teaching-progress {grid-template-columns:minmax(0,1fr);}
+ .ax-weather-advisory {grid-template-columns:minmax(0,1fr);}
+}
+
+@media screen {
+ .ax-live-weather {display:block;min-width:0;max-width:100%;}
+ .ax-live-weather [hidden]{display:none!important;}
+ .ax-weather-heading {display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;}
+ .ax-weather-refresh{min-height:44px;}
+ .ax-weather-campus{display:grid;gap:6px;margin:8px 0;min-width:0;}
+ .ax-weather-campus select{width:100%;max-width:100%;min-width:0;min-height:44px;}
+ .ax-weather-readings{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin:10px 0;}
+ .ax-weather-main,.ax-weather-heat{display:flex;flex-direction:column;gap:5px;min-width:0;padding:14px;border-radius:12px;background:var(--ag-surface,#fff);border:1px solid var(--ax-border);color:var(--ag-reading,#19304a);}
+ .ax-weather-main strong,.ax-weather-heat strong{font-size:clamp(25px,4vw,38px);line-height:1.1;font-variant-numeric:tabular-nums;}
+ .ax-weather-main svg{color:#347db6;}
+ .ax-weather-heat[data-band="Danger"],.ax-weather-heat[data-band="Extreme danger"]{background:#8b2c26;color:#fff;border-color:#8b2c26;}
+ .ax-weather-heat[data-band="Extreme caution"],.ax-weather-heat[data-band="Caution"]{background:#fff1d8;color:#67410c;border-color:#cba86e;}
+ .ax-weather-extra,.ax-weather-hourly,.ax-weather-observed{grid-column:1/-1;}
+ .ax-weather-hourly{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,100px),1fr));gap:6px;}
+ .ax-weather-hourly>div{display:grid;gap:4px;padding:9px;border:1px solid var(--ax-border);border-radius:10px;font-size:14px;overflow-wrap:anywhere;}
+ .ax-live-weather .ax-weather-disclaimer,.ax-live-weather small,.ax-live-weather .ax-weather-observed{font-size:14px;line-height:1.4;}
+ .ax-live-weather a{color:inherit;text-decoration:underline;}
+}
+@media screen and (max-width:350px){.ax-weather-readings{grid-template-columns:minmax(0,1fr);}}
+
+/* V5.2 Curve: continuous school-colored canvas and a sculpted active cutout.
+   The main surface and selected tab use the same theme color. */
+@media screen {
+ html body.portal-page .portal-layout[data-attendigo-role] #sidebar.sidebar {
+   --ax-cutout:var(--bg,#f4f7fb);--ax-cutout-ink:var(--ag-reading,#19304a);
+   background-image:none!important;border:0!important;box-shadow:none!important;
+ }
+ html body.portal-page .portal-layout[data-attendigo-role]:not(.sidebar-collapsed) #sidebar.sidebar .side-nav {padding-inline-end:0!important;overflow:visible!important;}
+ html body.portal-page .portal-layout[data-attendigo-role]:not(.sidebar-collapsed) #sidebar.sidebar .sidebar-brand {background:transparent!important;border:0!important;border-bottom:1px solid var(--side-border)!important;border-radius:0!important;padding:8px 2px 12px!important;}
+ html body.portal-page .portal-layout[data-attendigo-role]:not(.sidebar-collapsed) #sidebar.sidebar .nav-submenu {border-inline-start:0!important;margin-block:0 4px!important;}
+ html body.portal-page .portal-layout[data-attendigo-role]:not(.sidebar-collapsed) #sidebar.sidebar :is(.nav-item,.nav-group-toggle) {font-size:16px!important;min-height:44px!important;padding-block:8px!important;}
+ html body.portal-page .portal-layout[data-attendigo-role] #sidebar.sidebar :is(.nav-item,.nav-group-toggle) .nav-icon {background:transparent!important;padding:0!important;}
+ html body.portal-page .portal-layout[data-attendigo-role]:not(.sidebar-collapsed) #sidebar.sidebar .nav-item.active:not([hidden]) {
+   position:relative!important;isolation:isolate;background:var(--ax-cutout)!important;color:var(--ax-cutout-ink)!important;
+   border-radius:24px 0 0 24px!important;box-shadow:none!important;z-index:1;
+ }
+ html body.portal-page .portal-layout[data-attendigo-role]:not(.sidebar-collapsed) #sidebar.sidebar .nav-item.active:not([hidden])::before,
+ html body.portal-page .portal-layout[data-attendigo-role]:not(.sidebar-collapsed) #sidebar.sidebar .nav-item.active:not([hidden])::after {
+   content:"";position:absolute;right:0;width:16px;height:16px;pointer-events:none;background:transparent;
+ }
+ html body.portal-page .portal-layout[data-attendigo-role]:not(.sidebar-collapsed) #sidebar.sidebar .nav-item.active:not([hidden])::before {top:-16px;border-bottom-right-radius:16px;box-shadow:5px 5px 0 5px var(--ax-cutout);}
+ html body.portal-page .portal-layout[data-attendigo-role]:not(.sidebar-collapsed) #sidebar.sidebar .nav-item.active:not([hidden])::after {bottom:-16px;border-top-right-radius:16px;box-shadow:5px -5px 0 5px var(--ax-cutout);}
+ html body.portal-page .portal-layout[data-attendigo-role]:not(.sidebar-collapsed) #sidebar.sidebar .nav-item.active:focus-visible {outline:2px solid var(--ax-cutout-ink)!important;outline-offset:-4px!important;}
+ html body.portal-page .portal-layout[data-attendigo-role] .topbar {border:0!important;border-radius:0 0 16px 16px!important;box-shadow:none!important;background:var(--ag-surface,#fff)!important;}
+ #main > .principal-navigation {--ax-principal-nav:#175266;--ax-principal-ink:#fff;background:var(--ax-principal-nav)!important;border:0!important;box-shadow:none!important;color:var(--ax-principal-ink);}
+ #main .principal-nav-heading {background:transparent!important;color:var(--ax-principal-ink)!important;border:0!important;}
+ #main .principal-nav-heading :is(strong,span),#main .principal-menu-label>span {color:var(--ax-principal-ink)!important;}
+ #main .principal-main-tabs>.tab {background:transparent!important;color:var(--ax-principal-ink)!important;border:0!important;box-shadow:none!important;}
+ #main .principal-main-tabs>.tab.is-active {background:var(--bg,#f5f8fb)!important;color:var(--ink,#1e293b)!important;border-radius:22px 6px 6px 22px!important;outline:none!important;}
+ #main .principal-main-tabs>.tab:focus-visible {outline:2px solid currentColor!important;outline-offset:-3px!important;}
+ /* Weather: show usable data first and retain visible provider attribution. */
+ .ax-live-weather {padding:12px!important;border-radius:14px!important;margin-block:8px!important;}
+ .ax-live-weather .ax-weather-heading {flex-wrap:nowrap;gap:8px;}
+ .ax-live-weather .ax-weather-heading>div {min-width:0;}
+ .ax-live-weather .ax-weather-heading h3 {font-size:18px;margin:2px 0!important;}
+ .ax-live-weather .ax-weather-refresh {display:grid!important;place-items:center;flex:0 0 44px;width:44px!important;height:44px!important;min-width:44px!important;padding:0!important;border-radius:50%!important;border:1px solid var(--ax-border,#dce5ee)!important;color:var(--ag-reading,var(--ink,#19304a))!important;background:var(--ag-surface,var(--surface,#fff))!important;}
+ .ax-live-weather .ax-weather-status {font-size:14px;line-height:1.35;margin:4px 0 8px;}
+ .ax-live-weather .ax-weather-readings {gap:7px;margin:6px 0;}
+ .ax-live-weather :is(.ax-weather-main,.ax-weather-heat) {padding:10px;gap:3px;border-radius:12px;}
+ .ax-live-weather .ax-weather-main svg {width:30px;height:30px;}
+ .ax-live-weather .ax-weather-main strong,.ax-live-weather .ax-weather-heat strong {font-size:clamp(24px,3vw,34px);}
+ .ax-live-weather .ax-weather-heat>span,.ax-live-weather .ax-weather-condition {font-size:14px;line-height:1.3;}
+ .ax-live-weather .ax-weather-heat[data-band="Below caution threshold"] {background:#e7f3e9;color:#205b35;border-color:#b9d9c1;}
+ .ax-live-weather .ax-weather-heat[data-band="Extreme caution"] {background:#ffecd5;color:#783f0b;border-color:#d9a76e;}
+ .ax-live-weather .ax-weather-heat[data-band="Extreme danger"] {background:#641e25;border-color:#641e25;color:#fff;}
+ .ax-live-weather .ax-weather-extra {display:flex;flex-wrap:wrap;gap:6px;font-size:14px;}
+ .ax-live-weather .ax-weather-extra>span {border:1px solid var(--ax-border,#dce5ee);padding:5px 8px;border-radius:20px;}
+ .ax-weather-hour-heading {grid-column:1/-1;display:flex;flex-wrap:wrap;justify-content:space-between;gap:4px;align-items:center;font-size:14px;margin-top:3px;}
+ .ax-weather-hour-heading>span {font-size:12px;color:var(--ag-secondary,var(--muted,#52647b));}
+ .ax-live-weather .ax-weather-hourly {display:grid;grid-auto-flow:column;grid-auto-columns:minmax(92px,1fr);grid-template-columns:none;overflow-x:auto;overscroll-behavior-x:contain;scroll-snap-type:x proximity;max-width:100%;min-width:0;padding-bottom:5px;gap:6px;}
+ .ax-live-weather .ax-weather-hourly>div {scroll-snap-align:start;padding:8px;gap:3px;font-size:13px;line-height:1.3;white-space:nowrap;}
+ .ax-live-weather .ax-weather-hourly>div>strong {font-size:20px;line-height:1.25;}
+ .ax-live-weather .ax-weather-brief {grid-column:1/-1;font-size:13px;line-height:1.35;margin:0;}
+ .ax-live-weather .ax-weather-footer {display:grid;grid-template-columns:minmax(0,1fr) 44px;gap:4px 8px;align-items:center;border-top:1px solid var(--ax-border,#dce5ee);margin-top:6px;padding-top:4px;}
+ .ax-live-weather .ax-weather-info {display:grid!important;place-items:center;width:44px!important;height:44px!important;min-width:44px!important;padding:0!important;border-radius:50%!important;border:1px solid var(--ax-border,#dce5ee)!important;color:var(--ag-reading,var(--ink,#19304a))!important;background:var(--ag-surface,var(--surface,#fff))!important;}
+ .ax-live-weather .ax-weather-info-panel {grid-column:1/-1;min-width:0;overflow-wrap:anywhere;}
+ .ax-live-weather .ax-weather-info-panel p {font-size:14px;line-height:1.4;margin:6px 0;}
+ .ax-live-weather .ax-weather-info:focus-visible {outline:2px solid currentColor;outline-offset:2px;}
+ .ax-live-weather .ax-weather-credit {display:block;font-size:12px!important;line-height:1.35;overflow-wrap:anywhere;}
+}
+@media screen and (min-width:861px) {
+ html body.portal-page .portal-layout[data-attendigo-role]:not(.sidebar-collapsed) {grid-template-columns:252px minmax(0,1fr)!important;background:var(--sidebar,#20456c)!important;}
+ html body.portal-page .portal-layout[data-attendigo-role] #sidebar.sidebar {margin:0!important;border-radius:0!important;max-height:100dvh!important;}
+ html body.portal-page .portal-layout[data-attendigo-role]:not(.sidebar-collapsed) #sidebar.sidebar {width:252px!important;min-width:252px!important;padding-inline:14px 0!important;}
+ html body.portal-page .portal-layout[data-attendigo-role]:not(.sidebar-collapsed) #sidebar.sidebar>:not(.side-nav) {max-width:calc(100% - 14px)!important;}
+ html body.portal-page .portal-layout[data-attendigo-role]:not(.sidebar-collapsed) #sidebar.sidebar .nav-submenu {padding-inline-end:0!important;}
+ html body.portal-page .portal-layout[data-attendigo-role]:not(.sidebar-collapsed)>.main-area {border-radius:26px 0 0 26px;background:var(--bg,#f4f7fb)!important;}
+}
+@media screen and (max-width:860px) {
+ html body.portal-page .portal-layout[data-attendigo-role] #sidebar.sidebar {border-radius:0 26px 26px 0!important;}
+ .ax-live-weather .ax-weather-hourly {grid-auto-columns:100px;}
+}
+@media screen and (max-width:350px) {.ax-live-weather .ax-weather-readings{grid-template-columns:repeat(2,minmax(0,1fr));}.ax-live-weather :is(.ax-weather-main,.ax-weather-heat){padding:8px;}}
+
+/* V5.3: clean cutout and a data-first teaching workspace. */
+@media screen {
+ html body.portal-page .portal-layout[data-attendigo-role] #sidebar.sidebar .nav-item.active:not([hidden]) :is(.nav-icon,.nav-label) {color:var(--ax-cutout-ink)!important;opacity:1!important;}
+ html body.portal-page .portal-layout[data-attendigo-role] #sidebar.sidebar .nav-item.active:not([hidden]) .nav-icon svg {color:var(--ax-cutout-ink)!important;stroke:currentColor!important;}
+ html body.portal-page .portal-layout[data-attendigo-role] #sidebar.sidebar :is(.sidebar-section-label,.simple-nav-search-caption,.sidebar-brand span) {color:var(--side-ink)!important;opacity:.88!important;}
+ html body.portal-page .portal-layout[data-attendigo-role] #sidebar.sidebar #simpleNavSearch::placeholder {color:var(--side-ink)!important;opacity:.8!important;}
+ html body.portal-page .portal-layout[data-attendigo-role]:not(.sidebar-collapsed) #sidebar.sidebar .nav-item.active:not([hidden])::before,
+ html body.portal-page .portal-layout[data-attendigo-role]:not(.sidebar-collapsed) #sidebar.sidebar .nav-item.active:not([hidden])::after {
+   inset-inline-start:auto!important;left:auto!important;right:0!important;width:16px!important;height:16px!important;box-shadow:none!important;transform:none!important;border:0!important;border-radius:0!important;
+ }
+ html body.portal-page .portal-layout[data-attendigo-role]:not(.sidebar-collapsed) #sidebar.sidebar .nav-item.active:not([hidden])::before {top:-16px!important;bottom:auto!important;background:radial-gradient(circle at 0 0,transparent 15.5px,var(--ax-cutout) 16px)!important;}
+ html body.portal-page .portal-layout[data-attendigo-role]:not(.sidebar-collapsed) #sidebar.sidebar .nav-item.active:not([hidden])::after {top:auto!important;bottom:-16px!important;background:radial-gradient(circle at 0 100%,transparent 15.5px,var(--ax-cutout) 16px)!important;}
+ html body.portal-page .portal-layout[data-attendigo-role="TEACHER"] #dashboardView[data-ax-teaching-day]:not([hidden]) {
+   display:grid!important;grid-template-columns:minmax(0,1fr);gap:14px!important;align-items:start;
+ }
+ html body.portal-page .portal-layout[data-attendigo-role="TEACHER"] #dashboardView[data-ax-teaching-day]>:not([hidden]) {min-width:0;max-width:100%;margin-block:0!important;}
+ html body.portal-page .portal-layout[data-attendigo-role="TEACHER"] #dashboardView[data-ax-teaching-day]>#axStaffDashboardIntro {
+   order:-10!important;display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:4px 10px;
+   background:transparent!important;color:var(--ag-reading,var(--ink,#19304a))!important;border:0!important;padding:2px 0!important;min-height:0!important;
+ }
+ #dashboardView[data-ax-teaching-day] #axStaffDashboardIntro::after {content:none!important;}
+ #dashboardView[data-ax-teaching-day] #axStaffDashboardIntro .ax-workspace-kicker {grid-column:1/-1;color:var(--ag-secondary,var(--ui-muted,#52647b))!important;}
+ #dashboardView[data-ax-teaching-day] #axStaffDashboardTitle {grid-column:1;font-size:clamp(23px,3vw,32px)!important;color:var(--ag-reading,var(--ui-text,#19304a))!important;margin:0!important;}
+ #dashboardView[data-ax-teaching-day] #axStaffDashboardDescription {grid-column:1/-1;color:var(--ag-secondary,var(--ui-muted,#52647b))!important;}
+ .ax-teaching-date {grid-column:2;grid-row:2;font-size:14px;font-weight:650;color:var(--ag-secondary,var(--ui-muted,#52647b));text-align:end;}
+ html body.portal-page .portal-layout[data-attendigo-role="TEACHER"] #dashboardView[data-ax-teaching-day]>#learnerSummaryCard {order:-9!important;grid-column:1/-1;border:0!important;box-shadow:none!important;background:transparent!important;padding:0!important;}
+ html body.portal-page .portal-layout[data-attendigo-role="TEACHER"] #dashboardView[data-ax-teaching-day] #learnerSummaryCard .card-heading {margin-bottom:8px!important;}
+ #dashboardView[data-ax-teaching-day] #learnerSummaryCard .card-heading h3 {font-size:18px!important;}
+ html body.portal-page .portal-layout[data-attendigo-role="TEACHER"] #dashboardView[data-ax-teaching-day] #learnerSummaryCard .learner-summary-grid {display:grid!important;grid-template-columns:repeat(4,minmax(0,1fr))!important;gap:10px!important;}
+ html body.portal-page .portal-layout[data-attendigo-role="TEACHER"] #dashboardView[data-ax-teaching-day] #learnerSummaryCard .learner-metric {
+   position:relative;isolation:isolate;display:flex!important;flex-direction:column;align-items:flex-start;justify-content:space-between;gap:8px;
+   min-height:122px!important;min-width:0!important;padding:12px!important;border-radius:14px!important;border:0!important;overflow:hidden;color:#fff!important;
+   box-shadow:0 5px 12px #132f4514!important;
+ }
+ #dashboardView[data-ax-teaching-day] #learnerSummaryCard .learner-metric::after {content:"";position:absolute;inset:0;z-index:-1;pointer-events:none;background:radial-gradient(circle at 100% 100%,#ffffff16 0 26%,transparent 27% 33%,#ffffff0d 34% 45%,transparent 46%);}
+ html body.portal-page .portal-layout[data-attendigo-role="TEACHER"] #dashboardView[data-ax-teaching-day] #learnerSummaryCard .learner-metric:nth-child(1) {background:linear-gradient(145deg,#5142bb,#3b278d)!important;}
+ html body.portal-page .portal-layout[data-attendigo-role="TEACHER"] #dashboardView[data-ax-teaching-day] #learnerSummaryCard .learner-metric:nth-child(2) {background:linear-gradient(145deg,#087f6e,#066355)!important;}
+ html body.portal-page .portal-layout[data-attendigo-role="TEACHER"] #dashboardView[data-ax-teaching-day] #learnerSummaryCard .learner-metric:nth-child(3) {background:linear-gradient(145deg,#ad631c,#845016)!important;}
+ html body.portal-page .portal-layout[data-attendigo-role="TEACHER"] #dashboardView[data-ax-teaching-day] #learnerSummaryCard .learner-metric:nth-child(4) {background:linear-gradient(145deg,#2276ad,#185486)!important;}
+ html body.portal-page .portal-layout[data-attendigo-role="TEACHER"] #dashboardView[data-ax-teaching-day] #learnerSummaryCard .learner-metric>.teacher-v3-metric-icon {position:static!important;width:30px!important;height:30px!important;background:#ffffff24!important;color:white!important;border-radius:9px!important;display:grid!important;place-items:center;flex:none;}
+ #dashboardView[data-ax-teaching-day] #learnerSummaryCard .teacher-v3-metric-icon svg {width:21px;height:21px;}
+ html body.portal-page .portal-layout[data-attendigo-role="TEACHER"] #dashboardView[data-ax-teaching-day] #learnerSummaryCard .learner-metric>span:not(.teacher-v3-metric-icon) {color:#fff!important;max-width:100%!important;font-size:14px!important;line-height:1.3!important;font-weight:650;}
+ html body.portal-page .portal-layout[data-attendigo-role="TEACHER"] #dashboardView[data-ax-teaching-day] #learnerSummaryCard .learner-metric>strong {color:#fff!important;font-size:clamp(26px,3vw,36px)!important;line-height:1.05!important;margin:0!important;}
+ #dashboardView[data-ax-teaching-day] #learnerSummaryNote {font-size:14px!important;line-height:1.4!important;margin:8px 0!important;}
+ #dashboardView[data-ax-teaching-day] .ax-teaching-progress {background:var(--ag-surface,var(--ui-panel,#fff));margin:8px 0 0;}
+ html body.portal-page .portal-layout[data-attendigo-role="TEACHER"] #dashboardView[data-ax-teaching-day]>.teacher-v3-hero {order:-8!important;min-height:0!important;padding:12px!important;background:var(--ag-surface,var(--ui-panel,#fff))!important;border:1px solid var(--ax-border)!important;color:var(--ag-reading,var(--ui-text,#19304a))!important;box-shadow:none!important;}
+ #dashboardView[data-ax-teaching-day]>.teacher-v3-hero::after {content:none!important;}
+ #dashboardView[data-ax-teaching-day]>.teacher-v3-hero :is(h2,p,.teacher-v3-eyebrow,.teacher-v3-note,.teacher-v3-hero-pills span) {color:var(--ag-reading,var(--ui-text,#19304a))!important;}
+ #dashboardView[data-ax-teaching-day]>.teacher-v3-hero .teacher-v3-schedule {background:#315fae!important;color:#fff!important;}
+ html body.portal-page .portal-layout[data-attendigo-role="TEACHER"] #dashboardView[data-ax-teaching-day]>#dashboardScanCta:not([hidden]) {order:-7!important;min-height:0!important;}
+ html body.portal-page .portal-layout[data-attendigo-role="TEACHER"] #dashboardView[data-ax-teaching-day]>#axWeatherAdvisory {order:-6!important;}
+ html body.portal-page .portal-layout[data-attendigo-role="TEACHER"] #dashboardView[data-ax-teaching-day]>.dashboard-columns {order:-5!important;grid-column:1/-1;}
+}
+@media screen and (min-width:1150px) {
+ html body.portal-page .portal-layout[data-attendigo-role="TEACHER"] #dashboardView[data-ax-teaching-day]:not([hidden]) {grid-template-columns:minmax(0,1.2fr) minmax(0,1fr);}
+ #dashboardView[data-ax-teaching-day]>#axStaffDashboardIntro,#dashboardView[data-ax-teaching-day]>#dashboardScanCta {grid-column:1/-1;}
+ #dashboardView[data-ax-teaching-day]>.teacher-v3-hero {grid-column:1;}
+ #dashboardView[data-ax-teaching-day]>#axWeatherAdvisory {grid-column:2;grid-row:3;}
+ #dashboardView[data-ax-teaching-day]>:not(#axStaffDashboardIntro):not(#learnerSummaryCard):not(.teacher-v3-hero):not(#axWeatherAdvisory):not(#dashboardScanCta):not(.dashboard-columns) {grid-column:1/-1;}
+}
+@media screen and (max-width:860px) {
+ html body.portal-page .portal-layout[data-attendigo-role]:not(.sidebar-collapsed) #sidebar.sidebar .nav-item.active:not([hidden]) {border-radius:24px!important;}
+ html body.portal-page .portal-layout[data-attendigo-role]:not(.sidebar-collapsed) #sidebar.sidebar .nav-item.active:not([hidden])::before,
+ html body.portal-page .portal-layout[data-attendigo-role]:not(.sidebar-collapsed) #sidebar.sidebar .nav-item.active:not([hidden])::after {content:none!important;display:none!important;}
+ html body.portal-page .portal-layout[data-attendigo-role="TEACHER"] #dashboardView[data-ax-teaching-day] #learnerSummaryCard .learner-summary-grid {grid-template-columns:repeat(2,minmax(0,1fr))!important;}
+ #dashboardView[data-ax-teaching-day] #axStaffDashboardIntro {grid-template-columns:minmax(0,1fr)!important;}
+ .ax-teaching-date {grid-row:auto;grid-column:1;text-align:start;}
+}
+
+/* V5.4 Electric Violet: dynamic decorative color tokens; official status
+   indicators and heat classifications deliberately remain independent. */
+@media screen {
+ :root {--ap-nav:#4f2dcc;--ap-nav-ink:#fff;--ap-primary:#352575;--ap-primary-ink:#fff;--ap-card-1:#b3a4ed;--ap-ink-1:#101827;--ap-card-2:#83cbb5;--ap-ink-2:#101827;--ap-card-3:#91bde8;--ap-ink-3:#101827;--ap-card-4:#c0d99a;--ap-ink-4:#101827;--ap-tint:#f5f3ff;--ap-dark-tint:#211b35;}
+ html body.portal-page .portal-layout[data-attendigo-role] #sidebar.sidebar {
+   --side-ink:var(--ap-nav-ink)!important;--side-muted:var(--ap-nav-ink)!important;
+   --side-border:color-mix(in srgb,var(--ap-nav-ink) 26%,transparent)!important;
+   --side-hover:color-mix(in srgb,var(--ap-nav-ink) 12%,transparent)!important;
+   --side-focus:var(--ap-nav-ink)!important;--side-selected-ink:var(--ap-nav-ink)!important;
+   background:var(--ap-nav)!important;
+ }
+ html body.portal-page .portal-layout[data-attendigo-role]:not(.sidebar-collapsed) {background:var(--ap-nav)!important;}
+ html body.portal-page .portal-layout[data-attendigo-role] #sidebar.sidebar .nav-item.active:not([hidden]) {--ax-cutout-ink:var(--ag-reading,var(--ink,#19304a));}
+ html body.portal-page .portal-layout[data-attendigo-role] #sidebar.sidebar .sidebar-brand span {opacity:1!important;}
+ #main > .principal-navigation {--ax-principal-nav:var(--ap-nav);--ax-principal-ink:var(--ap-nav-ink);}
+ html body.portal-page .portal-layout[data-attendigo-role] .ax-workspace-intro:not(#dashboardView[data-ax-teaching-day] .ax-workspace-intro) {background:var(--ap-primary)!important;color:var(--ap-primary-ink)!important;}
+ body.portal-page :is(.student-header,.parent-head) {background:var(--ap-primary)!important;color:var(--ap-primary-ink)!important;}
+ body.portal-page :is(.student-header,.parent-head) :is(h1,p,.eyebrow) {color:var(--ap-primary-ink)!important;}
+ .ax-signature-dock:not([hidden]) {background:var(--ap-nav);color:var(--ap-nav-ink);}
+ .ax-signature-dock button:not([aria-current="page"]) {color:var(--ap-nav-ink);}
+ .ax-progress-ring {background:conic-gradient(var(--ap-card-2) var(--ax-progress),var(--ax-border,#d7e0ea) 0);}
+ #dashboardView[data-ax-teaching-day]>.teacher-v3-hero .teacher-v3-schedule {background:var(--ap-primary)!important;color:var(--ap-primary-ink)!important;}
+ html body.portal-page .portal-layout[data-attendigo-role="TEACHER"] #dashboardView[data-ax-teaching-day] #learnerSummaryCard .learner-metric:nth-child(1),
+ html body.portal-page .portal-layout[data-attendigo-role] #dashboardView :is(.admin-command-metric,.dh-command-metric):nth-child(4n+1),
+ #main #overviewPanel .metric-grid>.metric-card:nth-child(4n+1),
+ body.portal-page .student-summary-grid>.student-summary-item:nth-child(4n+1),
+ body.portal-page .parent-summary-grid>.student-profile-item:nth-child(4n+1) {
+  --ap-tile-ink:var(--ap-ink-1);background:linear-gradient(145deg,var(--ap-card-1),var(--ap-card-1))!important;color:var(--ap-tile-ink)!important;border-color:transparent!important;
+ }
+html body.portal-page .portal-layout[data-attendigo-role="TEACHER"] #dashboardView[data-ax-teaching-day] #learnerSummaryCard .learner-metric:nth-child(2),
+ html body.portal-page .portal-layout[data-attendigo-role] #dashboardView :is(.admin-command-metric,.dh-command-metric):nth-child(4n+2),
+ #main #overviewPanel .metric-grid>.metric-card:nth-child(4n+2),
+ body.portal-page .student-summary-grid>.student-summary-item:nth-child(4n+2),
+ body.portal-page .parent-summary-grid>.student-profile-item:nth-child(4n+2) {
+  --ap-tile-ink:var(--ap-ink-2);background:linear-gradient(145deg,var(--ap-card-2),var(--ap-card-2))!important;color:var(--ap-tile-ink)!important;border-color:transparent!important;
+ }
+html body.portal-page .portal-layout[data-attendigo-role="TEACHER"] #dashboardView[data-ax-teaching-day] #learnerSummaryCard .learner-metric:nth-child(3),
+ html body.portal-page .portal-layout[data-attendigo-role] #dashboardView :is(.admin-command-metric,.dh-command-metric):nth-child(4n+3),
+ #main #overviewPanel .metric-grid>.metric-card:nth-child(4n+3),
+ body.portal-page .student-summary-grid>.student-summary-item:nth-child(4n+3),
+ body.portal-page .parent-summary-grid>.student-profile-item:nth-child(4n+3) {
+  --ap-tile-ink:var(--ap-ink-3);background:linear-gradient(145deg,var(--ap-card-3),var(--ap-card-3))!important;color:var(--ap-tile-ink)!important;border-color:transparent!important;
+ }
+html body.portal-page .portal-layout[data-attendigo-role="TEACHER"] #dashboardView[data-ax-teaching-day] #learnerSummaryCard .learner-metric:nth-child(4),
+ html body.portal-page .portal-layout[data-attendigo-role] #dashboardView :is(.admin-command-metric,.dh-command-metric):nth-child(4n+4),
+ #main #overviewPanel .metric-grid>.metric-card:nth-child(4n+4),
+ body.portal-page .student-summary-grid>.student-summary-item:nth-child(4n+4),
+ body.portal-page .parent-summary-grid>.student-profile-item:nth-child(4n+4) {
+  --ap-tile-ink:var(--ap-ink-4);background:linear-gradient(145deg,var(--ap-card-4),var(--ap-card-4))!important;color:var(--ap-tile-ink)!important;border-color:transparent!important;
+ }
+ html body.portal-page .portal-layout[data-attendigo-role="TEACHER"] #dashboardView[data-ax-teaching-day] #learnerSummaryCard .learner-metric :is(strong,span,.teacher-v3-metric-icon),
+ html body.portal-page .portal-layout[data-attendigo-role] #dashboardView :is(.admin-command-metric,.dh-command-metric) :is(strong,span,small),
+ #main #overviewPanel .metric-grid>.metric-card :is(strong,span,small),
+ body.portal-page :is(.student-summary-grid>.student-summary-item,.parent-summary-grid>.student-profile-item) :is(strong,span) {color:var(--ap-tile-ink,currentColor)!important;}
+ html body.portal-page .portal-layout[data-attendigo-role="TEACHER"] #dashboardView[data-ax-teaching-day] #learnerSummaryCard .learner-metric>.teacher-v3-metric-icon {color:var(--ap-tile-ink)!important;background:color-mix(in srgb,var(--ap-tile-ink) 12%,transparent)!important;}
+ #main #overviewPanel .metric-grid>.metric-card .metric-icon {background:color-mix(in srgb,var(--ap-tile-ink) 12%,transparent)!important;}
+}
+
+@media screen {
+ /* Override legacy link/icon coloring together, including expanded nav. */
+ html body.portal-page .portal-layout[data-attendigo-role] #sidebar#sidebar.sidebar .side-nav .nav-item.active:not([hidden]),
+ html body.portal-page .portal-layout[data-attendigo-role] #sidebar#sidebar.sidebar .side-nav .nav-item.active:not([hidden]) :is(.nav-icon,.nav-label,svg) {
+   color:var(--ax-cutout-ink)!important;
+ }
+ html body.portal-page .portal-layout[data-attendigo-role] #sidebar#sidebar.sidebar .side-nav .nav-item.active:not([hidden]) .nav-icon svg {stroke:currentColor!important;}
+ html body.portal-page .portal-layout[data-attendigo-role] #sidebar#sidebar.sidebar .side-nav .nav-item.active:not([hidden]) .nav-icon svg [fill]:not([fill="none"]) {fill:currentColor!important;}
+ html body.portal-page .portal-layout[data-attendigo-role] .ax-workspace-intro:not(#dashboardView[data-ax-teaching-day] .ax-workspace-intro) :is(h2,p,.ax-workspace-kicker) {color:var(--ap-primary-ink)!important;}
+}
+
+/* Contrast-adaptive monochrome glyphs, not official artwork or status symbols. */
+@media screen {
+ [data-ap-icon] {color:var(--ap-icon-ink)!important;}
+ [data-ap-icon-backed] {background-color:var(--ap-icon-backing)!important;border-radius:5px;}
+ [data-ap-icon] svg,svg[data-ap-icon] {color:var(--ap-icon-ink)!important;opacity:1!important;}
+ [data-ap-icon] svg[stroke]:not([stroke="none"]),svg[data-ap-icon][stroke]:not([stroke="none"]),
+ [data-ap-icon] svg [stroke]:not([stroke="none"]),svg[data-ap-icon] [stroke]:not([stroke="none"]) {stroke:currentColor!important;}
+ [data-ap-icon] svg[fill]:not([fill="none"]),svg[data-ap-icon][fill]:not([fill="none"]),
+ [data-ap-icon] svg [fill]:not([fill="none"]),svg[data-ap-icon] [fill]:not([fill="none"]) {fill:currentColor!important;}
+}
+
+/* V5.5 Navigation: an adaptive school-color rail with a sculpted active tab.
+   Keep the original menu elements, authorization, keyboard and drawer behavior. */
+@media screen {
+ html body.portal-page .portal-layout[data-attendigo-role] #sidebar#sidebar.sidebar {
+  --ax-rail-line:color-mix(in srgb,var(--ap-nav-ink) 24%,transparent);
+  --ax-rail-hover:color-mix(in srgb,var(--ap-nav-ink) 12%,transparent);
+  background:var(--ap-nav)!important;color:var(--ap-nav-ink)!important;
+ }
+ html body.portal-page .portal-layout[data-attendigo-role]:not(.sidebar-collapsed) #sidebar#sidebar.sidebar .side-nav {gap:5px!important;padding-block:4px 16px!important;}
+ html body.portal-page .portal-layout[data-attendigo-role]:not(.sidebar-collapsed) #sidebar#sidebar.sidebar .side-nav>.nav-group {margin:3px 0 0!important;padding:7px 0 0!important;border-top:1px solid var(--ax-rail-line)!important;}
+ html body.portal-page .portal-layout[data-attendigo-role]:not(.sidebar-collapsed) #sidebar#sidebar.sidebar .nav-group-toggle {font-size:16px!important;font-weight:750!important;letter-spacing:0!important;min-height:44px!important;border-radius:12px!important;padding-inline:9px!important;gap:9px!important;color:var(--ap-nav-ink)!important;}
+ html body.portal-page .portal-layout[data-attendigo-role]:not(.sidebar-collapsed) #sidebar#sidebar.sidebar .nav-submenu {border-inline-start:1px solid var(--ax-rail-line)!important;margin:2px 0 4px 18px!important;padding-inline:7px 0!important;gap:2px!important;}
+ html body.portal-page .portal-layout[data-attendigo-role] #sidebar#sidebar.sidebar .nav-item:not(.active):not([hidden]) {color:var(--ap-nav-ink)!important;border-radius:10px!important;}
+ html body.portal-page .portal-layout[data-attendigo-role]:not(.sidebar-collapsed) #sidebar#sidebar.sidebar .nav-item:not([hidden]) {font-size:16px!important;min-height:44px!important;gap:9px!important;line-height:1.3!important;}
+ html body.portal-page .portal-layout[data-attendigo-role] #sidebar#sidebar.sidebar .nav-label {min-width:0;overflow-wrap:anywhere;}
+ html body.portal-page .portal-layout[data-attendigo-role] #sidebar#sidebar.sidebar :is(.nav-item,.nav-group-toggle):not(.active):hover {background:var(--ax-rail-hover)!important;}
+ html body.portal-page .portal-layout[data-attendigo-role] #sidebar#sidebar.sidebar .side-nav .nav-item.active:not([hidden]) {background:var(--ax-cutout,var(--ag-surface,#fff))!important;color:var(--ax-cutout-ink)!important;font-weight:750!important;}
+ html body.portal-page .portal-layout[data-attendigo-role] #sidebar#sidebar.sidebar .side-nav .nav-item.active:not([hidden]) .nav-icon svg {color:inherit!important;stroke:currentColor!important;}
+ html body.portal-page .portal-layout[data-attendigo-role] #sidebar#sidebar.sidebar .side-nav :is(.nav-item,.nav-icon,.nav-label) {transition-property:background-color,box-shadow!important;}
+ html body.portal-page .portal-layout[data-attendigo-role] #sidebar#sidebar.sidebar .side-nav :is(.nav-item,.nav-group-toggle):focus-visible {outline:2px solid currentColor!important;outline-offset:-3px!important;}
+ #main .principal-navigation {border-radius:20px!important;}
+ #main .principal-main-tabs>.tab {min-height:44px;gap:8px;font-weight:650;}
+ #main .principal-main-tabs>.tab.is-active {border-radius:22px 6px 6px 22px!important;}
+ #main .principal-navigation-secondary {border-top:1px solid color-mix(in srgb,var(--ap-nav-ink) 24%,transparent);padding-top:8px;}
+ body.portal-page :is(.student-page,.parent-page) .ax-page-links {background:var(--ap-nav)!important;border-color:transparent!important;}
+ body.portal-page :is(.student-page,.parent-page) .ax-page-links>a {color:var(--ap-nav-ink)!important;background:transparent!important;min-height:44px;}
+ body.portal-page :is(.student-page,.parent-page) .ax-page-links>a:focus-visible {outline:2px solid currentColor;outline-offset:-3px;}
+}
+@media screen and (max-width:860px) {
+ html body.portal-page .portal-layout[data-attendigo-role]:not(.sidebar-collapsed) #sidebar#sidebar.sidebar .side-nav {padding-inline-end:8px!important;}
+ html body.portal-page .portal-layout[data-attendigo-role]:not(.sidebar-collapsed) #sidebar#sidebar.sidebar .nav-item.active:not([hidden]) {border-radius:18px 6px 6px 18px!important;}
+}
+@media screen and (prefers-reduced-motion:reduce) {
+ html body.portal-page .portal-layout[data-attendigo-role] #sidebar#sidebar.sidebar .side-nav :is(.nav-item,.nav-icon,.nav-label) {transition:none!important;}
+}
+
+/* V5.5.1: distinct branded navigation, overriding older role-specific styles. */
+@media screen {
+ html body.portal-page .portal-layout[data-attendigo-role] #sidebar#sidebar.sidebar {
+  --ax-rail-line:color-mix(in srgb,var(--ap-nav-ink) 22%,transparent);
+ }
+ html body.portal-page .portal-layout[data-attendigo-role]:not(.sidebar-collapsed) #sidebar#sidebar.sidebar .sidebar-brand {
+  padding:12px 10px!important;border:1px solid var(--ax-rail-line)!important;border-radius:14px!important;
+  background:color-mix(in srgb,var(--ap-nav-ink) 8%,transparent)!important;margin-block:6px 12px!important;
+ }
+ html body.portal-page .portal-layout[data-attendigo-role]:not(.sidebar-collapsed) #sidebar#sidebar.sidebar .sidebar-section-label {
+  padding-inline:10px!important;letter-spacing:.07em!important;font-size:12px!important;font-weight:750!important;
+ }
+ html body.portal-page .portal-layout[data-attendigo-role]:not(.sidebar-collapsed) #sidebar#sidebar.sidebar .side-nav>.nav-group {
+  border-top:0!important;padding-block:3px!important;margin-block:2px!important;
+ }
+ html body.portal-page .portal-layout[data-attendigo-role]:not(.sidebar-collapsed) #sidebar#sidebar.sidebar .nav-group-toggle {
+  background:color-mix(in srgb,var(--ap-nav-ink) 8%,transparent)!important;border:1px solid var(--ax-rail-line)!important;
+  border-radius:12px!important;font-weight:700!important;
+ }
+ html body.portal-page .portal-layout[data-attendigo-role]:not(.sidebar-collapsed) #sidebar#sidebar.sidebar .nav-submenu {
+  border-inline-start:2px solid var(--ax-rail-line)!important;margin-inline-start:17px!important;padding-inline-start:7px!important;
+ }
+ html body.portal-page .portal-layout[data-attendigo-role] #sidebar#sidebar.sidebar .side-nav .nav-item.active:not([hidden]) {
+  --ax-cutout:#fff;--ax-cutout-ink:#101827;
+  background:#fff!important;color:#101827!important;border-radius:22px 0 0 22px!important;
+  box-shadow:inset 4px 0 var(--ap-card-2)!important;
+ }
+ html body.portal-page .portal-layout[data-attendigo-role] #sidebar#sidebar.sidebar .side-nav .nav-item.active:not([hidden]) :is(.nav-label,.nav-icon,svg) {color:#101827!important;}
+ html body.portal-page .portal-layout[data-attendigo-role] #sidebar#sidebar.sidebar .side-nav .nav-item.active:not([hidden]) .nav-icon svg {stroke:currentColor!important;}
+}
+@media screen and (max-width:860px) {
+ html body.portal-page .portal-layout[data-attendigo-role] #sidebar#sidebar.sidebar .side-nav .nav-item.active:not([hidden]) {border-radius:20px 8px 8px 20px!important;}
+}
+
+/* V5.7 reference-inspired seamless navigation. The active tab and canvas
+   share a surface; reverse corner cutouts connect the tab to the canvas. */
+@media screen {
+ html body.portal-page .portal-layout[data-attendigo-role] {
+  --ax-connected-canvas:var(--bg,#f4f7fb);
+ }
+ html body.portal-page .portal-layout[data-attendigo-role]:not(.sidebar-collapsed) #sidebar#sidebar.sidebar .sidebar-brand {
+  background:transparent!important;border:0!important;box-shadow:none!important;border-radius:0!important;padding:10px 8px!important;
+ }
+ html body.portal-page .portal-layout[data-attendigo-role]:not(.sidebar-collapsed) #sidebar#sidebar.sidebar .side-nav>.nav-group {
+  border:0!important;margin-block:2px!important;padding-block:2px!important;
+ }
+ html body.portal-page .portal-layout[data-attendigo-role]:not(.sidebar-collapsed) #sidebar#sidebar.sidebar .side-nav .nav-group-toggle {
+  border:0!important;background:transparent!important;box-shadow:none!important;font-weight:650!important;
+ }
+ html body.portal-page .portal-layout[data-attendigo-role]:not(.sidebar-collapsed) #sidebar#sidebar.sidebar .side-nav .nav-submenu {
+  border:0!important;margin-inline-start:12px!important;padding-inline-start:8px!important;
+ }
+ html body.portal-page .portal-layout[data-attendigo-role]:not(.sidebar-collapsed) #sidebar#sidebar.sidebar .side-nav .nav-item.active:not([hidden]) {
+  --ax-cutout:var(--ax-connected-canvas);--ax-cutout-ink:var(--ag-reading,var(--ink,#19304a));
+  background:var(--ax-connected-canvas)!important;color:var(--ax-cutout-ink)!important;
+  border:0!important;box-shadow:none!important;position:relative!important;isolation:isolate;z-index:1;
+ }
+ html body.portal-page .portal-layout[data-attendigo-role]:not(.sidebar-collapsed) #sidebar#sidebar.sidebar .side-nav .nav-item.active:not([hidden]) :is(.nav-icon,.nav-label,svg) {color:var(--ax-cutout-ink)!important;}
+}
+@media screen and (min-width:861px) {
+ html body.portal-page .portal-layout[data-attendigo-role]:not(.sidebar-collapsed) {grid-template-columns:252px minmax(0,1fr)!important;column-gap:0!important;background:var(--ap-nav)!important;}
+ html body.portal-page .portal-layout[data-attendigo-role]:not(.sidebar-collapsed)>.main-area {
+  background:var(--ax-connected-canvas)!important;border-radius:26px 0 0 26px!important;margin-inline-start:0!important;min-width:0;
+ }
+ html body.portal-page .portal-layout[data-attendigo-role]:not(.sidebar-collapsed) #sidebar#sidebar.sidebar {
+  padding-inline:14px 0!important;border-radius:0!important;background:var(--ap-nav)!important;
+ }
+ html body.portal-page .portal-layout[data-attendigo-role]:not(.sidebar-collapsed) #sidebar#sidebar.sidebar .side-nav {
+  padding-inline-end:0!important;overflow:visible!important;gap:4px!important;
+ }
+ html body.portal-page .portal-layout[data-attendigo-role]:not(.sidebar-collapsed) #sidebar#sidebar.sidebar .side-nav :is(.nav-group,.nav-submenu) {
+  padding-inline-end:0!important;margin-inline-end:0!important;overflow:visible!important;
+ }
+ html body.portal-page .portal-layout[data-attendigo-role]:not(.sidebar-collapsed) #sidebar#sidebar.sidebar .side-nav .nav-item.active:not([hidden]) {
+  border-radius:24px 0 0 24px!important;margin-inline-end:0!important;width:100%!important;max-width:none!important;
+ }
+ html body.portal-page .portal-layout[data-attendigo-role]:not(.sidebar-collapsed) #sidebar#sidebar.sidebar .side-nav .nav-item.active:not([hidden])::before,
+ html body.portal-page .portal-layout[data-attendigo-role]:not(.sidebar-collapsed) #sidebar#sidebar.sidebar .side-nav .nav-item.active:not([hidden])::after {
+  content:""!important;display:block!important;position:absolute!important;pointer-events:none!important;
+  width:18px!important;height:18px!important;inset-inline-start:auto!important;right:0!important;left:auto!important;
+  box-shadow:none!important;border:0!important;border-radius:0!important;transform:none!important;z-index:1;
+ }
+ html body.portal-page .portal-layout[data-attendigo-role]:not(.sidebar-collapsed) #sidebar#sidebar.sidebar .side-nav .nav-item.active:not([hidden])::before {
+  top:-18px!important;bottom:auto!important;background:radial-gradient(circle at 0 0,transparent 17.5px,var(--ax-connected-canvas) 18px)!important;
+ }
+ html body.portal-page .portal-layout[data-attendigo-role]:not(.sidebar-collapsed) #sidebar#sidebar.sidebar .side-nav .nav-item.active:not([hidden])::after {
+  bottom:-18px!important;top:auto!important;background:radial-gradient(circle at 0 100%,transparent 17.5px,var(--ax-connected-canvas) 18px)!important;
+ }
+}
+@media screen and (max-width:860px) {
+ html body.portal-page .portal-layout[data-attendigo-role] #sidebar#sidebar.sidebar .side-nav .nav-item.active:not([hidden]) {border-radius:22px!important;}
+}
+
+/* V5.7.1: the reference cutout must also be visible in the mobile drawer. */
+@media screen and (max-width:860px) {
+ html body.portal-page .portal-layout[data-attendigo-role] #sidebar#sidebar.sidebar.open {
+   padding-inline-end:0!important;
+ }
+ html body.portal-page .portal-layout[data-attendigo-role] #sidebar#sidebar.sidebar.open .side-nav {
+   padding-inline-end:0!important;overflow:visible!important;
+ }
+ html body.portal-page .portal-layout[data-attendigo-role] #sidebar#sidebar.sidebar.open .side-nav :is(.nav-group,.nav-submenu) {
+   overflow:visible!important;padding-inline-end:0!important;margin-inline-end:0!important;
+ }
+ html body.portal-page .portal-layout[data-attendigo-role] #sidebar#sidebar.sidebar.open .side-nav .nav-item.active:not([hidden]) {
+   --ax-cutout:var(--ax-connected-canvas);--ax-cutout-ink:var(--ag-reading,var(--ink,#19304a));
+   background:var(--ax-connected-canvas)!important;color:var(--ax-cutout-ink)!important;
+   border-radius:24px 0 0 24px!important;box-shadow:none!important;position:relative!important;isolation:isolate;z-index:1;
+ }
+ html body.portal-page .portal-layout[data-attendigo-role] #sidebar#sidebar.sidebar.open .side-nav .nav-item.active:not([hidden]) :is(.nav-label,.nav-icon,svg) {color:var(--ax-cutout-ink)!important;}
+ html body.portal-page .portal-layout[data-attendigo-role] #sidebar#sidebar.sidebar.open .side-nav .nav-item.active:not([hidden])::before,
+ html body.portal-page .portal-layout[data-attendigo-role] #sidebar#sidebar.sidebar.open .side-nav .nav-item.active:not([hidden])::after {
+   content:""!important;display:block!important;position:absolute!important;pointer-events:none!important;width:16px!important;height:16px!important;right:0!important;left:auto!important;inset-inline-start:auto!important;border:0!important;box-shadow:none!important;border-radius:0!important;transform:none!important;
+ }
+ html body.portal-page .portal-layout[data-attendigo-role] #sidebar#sidebar.sidebar.open .side-nav .nav-item.active:not([hidden])::before {
+   top:-16px!important;bottom:auto!important;background:radial-gradient(circle at 0 0,transparent 15.5px,var(--ax-connected-canvas) 16px)!important;
+ }
+ html body.portal-page .portal-layout[data-attendigo-role] #sidebar#sidebar.sidebar.open .side-nav .nav-item.active:not([hidden])::after {
+   bottom:-16px!important;top:auto!important;background:radial-gradient(circle at 0 100%,transparent 15.5px,var(--ax-connected-canvas) 16px)!important;
+ }
+}
+
+/* Keep the connected active-tab surface opaque throughout navigation changes. */
+@media screen {
+ html body.portal-page .portal-layout[data-attendigo-role] #sidebar#sidebar.sidebar .side-nav .nav-item.active:not([hidden]) {transition:none!important;}
+}

@@ -24,3 +24,7 @@ jobs:
       - run: node scripts/check-actual-staff-attendance.cjs
 
       - run: node scripts/check-role-workspaces.cjs
+
+      - run: node scripts/check-v51-enrollment.cjs
+
+      - run: node scripts/check-teaching-v53.cjs

@@ -43,11 +43,8 @@
       label('attendanceManagement', 'Attendance Management');
       label('settings', 'School Settings');
       label('reports', 'Reports');
-      const order = [$('dashboardNav'), $('staffNavWrapper'), group('academics'),
-        group('attendanceManagement'), group('operations'), group('reports'), group('settings')];
-      const ordered = order.filter(el => el && el.parentElement === nav);
-      const current = [...nav.children].filter(el => ordered.includes(el));
-      if (ordered.some((el, index) => el !== current[index])) ordered.forEach(el => nav.append(el));
+      // Keep the role-priority order owned by the navigation renderer.
+      // This enhancement must not restore the previous order after portal-ready.
     } else if (role === 'DEPARTMENT_HEAD') {
       move('myGateAttendanceNav', 'personalAttendance');
       move('officialBusinessNav', 'personalAttendance');
@@ -66,6 +63,33 @@
       label('reports', 'Reports');
     }
 
+    // Reconcile the final order after both the entitlement renderer and this
+    // legacy grouping pass have run. Compare complete order to avoid observer loops.
+    const orderChildren = (container, items) => {
+      if (!container) return;
+      const existing = Array.from(container.children);
+      const preferred = items.filter(node => node && node.parentElement === container);
+      const next = [...preferred, ...existing.filter(node => !preferred.includes(node))];
+      if (next.some((node, index) => node !== existing[index])) next.forEach(node => container.append(node));
+    };
+    const priority = role === 'SCHOOL_ADMIN'
+      ? [$('dashboardNav'), group('attendanceManagement'), group('academics'), group('people'), group('users'), $('guardianApprovalsNav'), group('operations'), group('reports'), group('settings')]
+      : role === 'DEPARTMENT_HEAD'
+      ? [$('dashboardNav'), group('people'), group('operations'), group('personalAttendance'), group('reports'), group('academics'), group('settings')]
+      : [$('dashboardNav'), group('people'), group('personalAttendance'), group('assignedDuties'), group('reports'), group('academics'), group('operations'), group('settings')];
+    orderChildren(nav, priority);
+    if (role === 'TEACHER') {
+      label('people', 'Teaching & Classes');
+      orderChildren(menu('people'), ['schedulesNav','classAttendanceNav','studentsNav','plannerNav','studentAccountsNav'].map($));
+    } else if (role === 'DEPARTMENT_HEAD') {
+      label('people', 'Department Management');
+      orderChildren(menu('people'), ['schedulesNav','teachersNav','studentsNav','plannerNav'].map($));
+    } else if (role === 'SCHOOL_ADMIN') {
+      label('users', 'People & Accounts');
+      orderChildren(menu('academics'), ['academicAdminNav','schedulesNav','plannerNav','sf2Nav'].map($));
+      orderChildren(menu('users'), [$('studentsNav'),nav.querySelector('[data-staff-section="directory"]'),nav.querySelector('[data-staff-section="accounts"]'),$('adminStudentAccountsNav'),$('parentsNav'),$('requestsApprovalsNav')]);
+    }
+    nav.dataset.axMenuOrganization = 'v56';
     // Hide only genuinely empty structural containers. Existing role-based
     // hidden flags remain authoritative; never unhide a forbidden link or group.
     nav.querySelectorAll('.nav-group').forEach(wrapper => {
