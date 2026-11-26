@@ -283,8 +283,7 @@ html[data-ui-theme=dark] .manual-conflict-evidence span{background:#263b57;color
 .manual-flip-present{color:#075c32;background:linear-gradient(135deg,#d6fbe5,#8ce8b7);border-color:#65cc91}
 .manual-flip-absent{transform:rotateY(180deg);color:#9c1430;background:linear-gradient(135deg,#ffe2e6,#ffa9b2);border-color:#f38b9c}
 .manual-flip-card[data-unmarked="true"] .manual-flip-face{background:linear-gradient(135deg,#f4f7fc,#e6edf8);border:1px dashed #9db0cb;color:#637997;box-shadow:none}
-.manual-flip-card[data-unmarked="true"] .manual-flip-face small{font-size:0}
-.manual-flip-card[data-unmarked="true"] .manual-flip-face small::after{content:'Tap to mark';font-size:var(--type-secondary)}
+
 .manual-flip-card:focus-visible,.manual-extra-status:focus-visible{outline:3px solid #1e72e8;outline-offset:3px}
 .manual-other-status{white-space:nowrap}
 .manual-extra-status{min-width:33px;min-height:37px;border:1px solid #d8e2f0;border-radius:9px;background:#eff3fa;color:#5a6e8e;margin:0 2px;font-weight:850;cursor:pointer}
@@ -468,4 +467,48 @@ body[data-theme="dark"] .manual-folio .manual-note-btn[data-has-note="true"]{
     top:0;
     z-index:2;
   }
+}
+
+/* Status flip control: explicit neutral label, bounded text and stable touch target.
+   Higher specificity keeps shared typography and phone overrides from crowding the faces. */
+#classAttendanceView #mfSheet .manual-flip-card {
+  width:108px;max-width:100%;height:46px;min-height:44px;box-sizing:border-box;
+  vertical-align:middle;touch-action:manipulation;
+}
+#classAttendanceView #mfSheet .manual-flip-face {
+  box-sizing:border-box;flex-direction:row!important;gap:5px!important;
+  padding:4px 5px;overflow:hidden;white-space:nowrap;
+}
+#classAttendanceView #mfSheet .manual-flip-face b {
+  flex:0 0 auto;font-size:16px!important;line-height:1!important;color:inherit!important;
+}
+#classAttendanceView #mfSheet .manual-flip-face small,
+#classAttendanceView #mfSheet .manual-flip-placeholder,
+#classAttendanceView #mfSheet .manual-flip-change {
+  min-width:0;font-size:clamp(12px,.85rem,14px)!important;
+  font-weight:750;line-height:1.2!important;color:inherit!important;
+  white-space:nowrap;margin:0;padding:0;
+}
+#classAttendanceView #mfSheet .manual-flip-placeholder,
+#classAttendanceView #mfSheet .manual-flip-change {display:none}
+#classAttendanceView #mfSheet .manual-flip-card:is([data-unmarked="true"],[data-extra="true"]) .manual-flip-face {
+  background:#eff3f9;border:1px dashed #9aacc3;color:#475d79;box-shadow:none;
+}
+#classAttendanceView #mfSheet .manual-flip-card:is([data-unmarked="true"],[data-extra="true"]) .manual-flip-face :is(b,small) {display:none}
+#classAttendanceView #mfSheet .manual-flip-card[data-unmarked="true"] .manual-flip-placeholder,
+#classAttendanceView #mfSheet .manual-flip-card[data-extra="true"] .manual-flip-change {display:block}
+#classAttendanceView #mfSheet .manual-flip-present {
+  background:#d5f5e3;border-color:#71c997;color:#14673c;
+}
+#classAttendanceView #mfSheet .manual-flip-absent {
+  background:#ffe0e4;border-color:#ec97a3;color:#a51d36;
+}
+:is(html[data-ui-theme="dark"],body.dark-mode,body[data-theme="dark"]) #classAttendanceView #mfSheet .manual-flip-card:is([data-unmarked="true"],[data-extra="true"]) .manual-flip-face {
+  background:#293b58;border-color:#7186a7;color:#e2ebfa;
+}
+@media screen and (min-width:768px) {
+  #classAttendanceView #mfSheet .manual-table th:nth-child(3) {min-width:120px}
+}
+@media screen and (max-width:767px) {
+  #classAttendanceView #mfSheet .manual-flip-card {width:100%!important}
 }
