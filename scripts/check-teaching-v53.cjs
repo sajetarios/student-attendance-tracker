@@ -14,7 +14,9 @@ const styles=[...html.split('</head>')[0].matchAll(/<link\b[^>]*href="\/([^"?]+\
  await page.addScriptTag({content:read('attendigo-adaptive-palette.js')});
  await page.addScriptTag({content:read('attendigo-role-workspaces.js')});
  await page.waitForSelector('#dashboardView[data-ax-teaching-day]');
- await page.waitForFunction(()=>document.querySelector('#dashboardNav .nav-icon')?.hasAttribute('data-ap-icon'));
+ // The palette paints on animation frames and existing navigation CSS transitions color.
+ // Wait for the real computed colors to converge, rather than sampling mid-transition.
+ await page.waitForFunction(()=>{const nav=document.getElementById('dashboardNav'),icon=nav?.querySelector('.nav-icon');return icon?.hasAttribute('data-ap-icon')&&getComputedStyle(nav).color===getComputedStyle(icon).color;});
  const result=await page.evaluate(()=>{const cards=[...document.querySelectorAll('#learnerSummaryCard .learner-metric')],nav=document.getElementById('dashboardNav'),icon=nav.querySelector('.nav-icon');return {colors:cards.map(c=>getComputedStyle(c).backgroundImage),ink:getComputedStyle(nav).color,icon:getComputedStyle(icon).color,pseudo:getComputedStyle(nav,'::before').content,overflow:cards.some(c=>c.scrollWidth>c.clientWidth+1),order:getComputedStyle(document.getElementById('learnerSummaryCard')).order,progress:document.querySelector('.ax-progress-ring strong').textContent};});
  assert.equal(new Set(result.colors).size,4,JSON.stringify(result));assert.ok(result.colors.every(c=>c.includes('gradient')));assert.equal(result.ink,result.icon);if(width<=860)assert.equal(result.pseudo,'none');assert.equal(result.order,'-9');assert.equal(result.progress,'50%');assert.equal(result.overflow,false,JSON.stringify(result));
  const changed=await page.evaluate(()=>{const card=document.querySelector('.learner-metric'),before=getComputedStyle(card).backgroundImage;window.AttendigoPalette.apply('#a32a70');return {before,after:getComputedStyle(card).backgroundImage,sidebar:getComputedStyle(document.getElementById('sidebar')).backgroundColor};});assert.notEqual(changed.before,changed.after);assert.equal(changed.sidebar,'rgb(163, 42, 112)');
