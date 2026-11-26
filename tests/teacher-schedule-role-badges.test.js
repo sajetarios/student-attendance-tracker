@@ -115,12 +115,13 @@ test('Weekly/list/popover UI preserve actual assignment labels in every display'
   assert.match(css, /background: #fff0d0/);
   assert.match(css, /\.tt-compact-relation/);
   assert.match(css, /html\[data-ui-theme="dark"\]/);
-  assert.match(html,/href="\/teacher-timetable-identities\.css\?v=2"/);
-  assert.match(html,/src="\/schedule-relationships\.js\?v=2" defer/);
-  assert.match(html,/src="\/timetable-grid\.js\?v=8" defer/);
+  // Check the actual version used by the portal against the exact offline cache URL.
+  assertCachedAsset(html,sw,'teacher-timetable-identities.css',{minimumVersion:3});
+  assertCachedAsset(html,sw,'schedule-relationships.js',{minimumVersion:2});
+  assertCachedAsset(html,sw,'timetable-grid.js',{minimumVersion:9});
   assertCachedAsset(html,sw,'portal.js',{minimumVersion:235});
-  for (const asset of ['/teacher-timetable-identities.css?v=2','/schedule-relationships.js?v=2','/timetable-grid.js?v=8'])
-    assert.ok(sw.includes('"'+asset+'"'),'Missing precache for '+asset);
+  assert.match(html,/<script src="\/schedule-relationships\.js\?v=\d+" defer/);
+  assert.match(html,/<script src="\/timetable-grid\.js\?v=\d+" defer/);
 });
 
 test('Existing server-side schedule permissions and export calculations are untouched',()=>{
