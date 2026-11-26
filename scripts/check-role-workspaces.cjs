@@ -8,8 +8,17 @@ function styles(source){return [...source.split('</head>')[0].matchAll(/<link\b[
 function slice(source,start,end){const i=source.indexOf(start),j=source.indexOf(end,i);assert.ok(i>=0&&j>i,start);return source.slice(i,j+end.length);}
 const nav=slice(staff,'<aside class="sidebar"','</aside>');
 const intro=slice(staff,'<header class="ax-workspace-intro"','</header>');
-const scanner=slice(staff,'<section id="studentScannerCard"','</section>');
-const dashboards=['adminDashboardCard','departmentHeadOverview'].map(id=>slice(staff,'<section id="'+id+'"','</section>'));
+const scanner=fullSection(staff,'studentScannerCard');
+function fullSection(source,id){
+ const i=source.indexOf('<section id="'+id+'"');assert.ok(i>=0,id);
+ let depth=0;
+ for(const match of source.slice(i).matchAll(/<\/?section\b[^>]*>/gi)){
+  depth+=match[0].startsWith('</')?-1:1;
+  if(depth===0)return source.slice(i,i+match.index+match[0].length);
+ }
+ throw Error('Unbalanced section '+id);
+}
+const dashboards=['adminDashboardCard','departmentHeadOverview'].map(id=>fullSection(staff,id));
 const roles={SCHOOL_ADMIN:'School operations',DEPARTMENT_HEAD:'Department priorities',TEACHER:'My teaching day',GATE_KEEPER:'Gate verification'};
 (async()=>{for(const engine of [chromium,webkit]){
  const browser=await engine.launch({headless:true});
@@ -17,14 +26,17 @@ const roles={SCHOOL_ADMIN:'School operations',DEPARTMENT_HEAD:'Department priori
   for(const role of Object.keys(roles))for(const width of [320,390,768,1440]){
    const page=await browser.newPage({viewport:{width,height:900},hasTouch:width<800,isMobile:width<800});
    try{
-    await page.setContent('<!doctype html><html><head><meta name="viewport" content="width=device-width,initial-scale=1"></head><body class="portal-page"><div class="portal-layout" data-attendigo-role="'+role+'">'+nav+'<main class="content-wrap"><div id="dashboardView">'+intro+'<div id="auxiliary">Auxiliary</div>'+dashboards.join('')+'</div>'+scanner+'</main></div></body></html>');
+    await page.setContent('<!doctype html><html><head><meta name="viewport" content="width=device-width,initial-scale=1"></head><body class="portal-page"><div class="portal-layout" data-attendigo-role="'+role+'">'+nav+'<main class="main-area content-wrap"><div id="dashboardView">'+intro+'<div id="auxiliary">Auxiliary</div>'+dashboards.join('')+'</div>'+scanner+'</main></div></body></html>');
     for(const css of styles(staff))await page.addStyleTag({content:css});
-    await page.evaluate(role=>{document.querySelector('#sidebar').classList.add('open');window.attendigoStaffIdentity=Promise.resolve({role});},role);
+    await page.evaluate(role=>{document.querySelector('#sidebar').classList.add('open');document.querySelector('.portal-layout').removeAttribute('data-attendigo-role');window.attendigoStaffIdentity=Promise.resolve({role});},role);
     const hiddenBefore=await page.locator('#sidebar [hidden]').count();
     await page.addScriptTag({content:js});
+    await page.evaluate(role=>{document.querySelector('.portal-layout').setAttribute('data-attendigo-role',role);document.dispatchEvent(new Event('attendigo:portal-ready'));},role);
     await page.waitForFunction(title=>document.getElementById('axStaffDashboardTitle').textContent===title,roles[role]);
     assert.equal(await page.locator('#sidebar [hidden]').count(),hiddenBefore,'role visibility must be unchanged');
     assert.equal(await page.locator('#sidebar #academicAdminNav').getAttribute('hidden'),'');
+    assert.equal(await page.locator('#axSignatureDock [data-target="academicAdminNav"]').count(),0,'hidden enrollment must not appear in dock');
+    assert.equal(await page.locator('#axSignatureDock [data-target="sidebarToggle"]').count(),1);
     const id=role==='SCHOOL_ADMIN'?'adminDashboardCard':role==='DEPARTMENT_HEAD'?'departmentHeadOverview':null;
     if(id)assert.equal(await page.locator('#axStaffDashboardIntro + *').getAttribute('id'),id);
     if(role==='GATE_KEEPER')assert.equal(await page.locator('#studentScannerCard').getAttribute('data-ax-gate-workspace'),'true');
