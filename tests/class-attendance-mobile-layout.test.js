@@ -14,7 +14,7 @@ const worker = read('sw.js');
 
 test('class attendance mobile CSS is loaded after legacy styles', () => {
   assert.ok(html.includes('/class-attendance-mobile.css?v=1'));
-  assert.ok(html.indexOf('/class-attendance-mobile.css?v=1') > html.indexOf('/manual-folio.css?v=12'));
+  assert.ok(html.indexOf('/class-attendance-mobile.css?v=1') > html.indexOf('/manual-folio.css?v=13'));
   assert.match(css, /@media screen and \(max-width:767px\)/);
   assert.match(css, /#classAttendanceView \.manual-book #mfSheet \.manual-table\s*\{[^}]*min-width:0!important/);
   assert.match(css, /#classAttendanceView #mfSheet \.manual-table tbody tr\.manual-attendance-row/);
@@ -51,4 +51,19 @@ test('continuous desktop register retains sticky column headers',()=>{
  assert.match(folio,/#mfSheet \.manual-table-wrap\s*\{[^}]*max-height:min\(65vh, 720px\)/);
  assert.match(folio,/#mfSheet \.manual-table thead th\s*\{[^}]*position:sticky/);
  assertCachedAsset(html,worker,'manual-folio.css',{minimumVersion:12});
+});
+
+test('attendance flip labels fit without a redundant P or A prefix',()=>{
+ const folio=read('manual-folio.css');
+ assert.match(register,/manual-flip-placeholder">Tap to mark/);
+ assert.match(register,/manual-flip-change">Change/);
+ assert.match(register,/data-extra="\$\{extras\}"/);
+ assert.match(register,/b\.dataset\.extra='false'/);
+ assert.doesNotMatch(register,/<b>[PA]<\/b><small>/);
+ assert.doesNotMatch(folio,/small::after\{content:'Tap to mark'/);
+ assert.match(folio,/data-unmarked="true"\],\[data-extra="true"\]\) \.manual-flip-face :is\(b,small\) \{display:none\}/);
+ assert.match(folio,/\.manual-flip-face \{\s*box-sizing:border-box;flex-direction:row!important/);
+ assert.match(folio,/\.manual-flip-card \{\s*width:108px;max-width:100%;height:46px;min-height:44px/);
+ assertCachedAsset(html,worker,'manual-folio.css',{minimumVersion:13});
+ assertCachedAsset(html,worker,'manual-folio.js',{minimumVersion:21});
 });
