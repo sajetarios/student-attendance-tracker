@@ -1,4 +1,4 @@
-const CACHE = "attendigo-v447-curve-navigation-weather";
+const CACHE = "attendigo-v448-teaching-workspace";
 
 // Only public, non-personal offline shells and their executable dependencies.
 // An update must not discard the working cache before these are all ready.
@@ -6,8 +6,8 @@ const OFFLINE_TOOL_PAGES = ["/offline-sheet.html", "/gate-offline.html", "/stude
 const OFFLINE_REQUIRED = [
   ...OFFLINE_TOOL_PAGES,
   "/attendigo-experience.css?v=4",
-  "/attendigo-role-workspaces.js?v=4",
-  "/attendigo-signature.css?v=5",
+  "/attendigo-role-workspaces.js?v=5",
+  "/attendigo-signature.css?v=6",
   "/school-weather-widget.js?v=4",
   "/attendigo-layout-density.css?v=1",
   "/app-dialog.css?v=2",

@@ -241,3 +241,72 @@
  .ax-live-weather .ax-weather-hourly {grid-auto-columns:100px;}
 }
 @media screen and (max-width:350px) {.ax-live-weather .ax-weather-readings{grid-template-columns:repeat(2,minmax(0,1fr));}.ax-live-weather :is(.ax-weather-main,.ax-weather-heat){padding:8px;}}
+
+/* V5.3: clean cutout and a data-first teaching workspace. */
+@media screen {
+ html body.portal-page .portal-layout[data-attendigo-role] #sidebar.sidebar .nav-item.active:not([hidden]) :is(.nav-icon,.nav-label) {color:var(--ax-cutout-ink)!important;opacity:1!important;}
+ html body.portal-page .portal-layout[data-attendigo-role] #sidebar.sidebar .nav-item.active:not([hidden]) .nav-icon svg {color:var(--ax-cutout-ink)!important;stroke:currentColor!important;}
+ html body.portal-page .portal-layout[data-attendigo-role] #sidebar.sidebar :is(.sidebar-section-label,.simple-nav-search-caption,.sidebar-brand span) {color:var(--side-ink)!important;opacity:.88!important;}
+ html body.portal-page .portal-layout[data-attendigo-role] #sidebar.sidebar #simpleNavSearch::placeholder {color:var(--side-ink)!important;opacity:.8!important;}
+ html body.portal-page .portal-layout[data-attendigo-role]:not(.sidebar-collapsed) #sidebar.sidebar .nav-item.active:not([hidden])::before,
+ html body.portal-page .portal-layout[data-attendigo-role]:not(.sidebar-collapsed) #sidebar.sidebar .nav-item.active:not([hidden])::after {
+   inset-inline-start:auto!important;left:auto!important;right:0!important;width:16px!important;height:16px!important;box-shadow:none!important;transform:none!important;border:0!important;border-radius:0!important;
+ }
+ html body.portal-page .portal-layout[data-attendigo-role]:not(.sidebar-collapsed) #sidebar.sidebar .nav-item.active:not([hidden])::before {top:-16px!important;bottom:auto!important;background:radial-gradient(circle at 0 0,transparent 15.5px,var(--ax-cutout) 16px)!important;}
+ html body.portal-page .portal-layout[data-attendigo-role]:not(.sidebar-collapsed) #sidebar.sidebar .nav-item.active:not([hidden])::after {top:auto!important;bottom:-16px!important;background:radial-gradient(circle at 0 100%,transparent 15.5px,var(--ax-cutout) 16px)!important;}
+ html body.portal-page .portal-layout[data-attendigo-role="TEACHER"] #dashboardView[data-ax-teaching-day]:not([hidden]) {
+   display:grid!important;grid-template-columns:minmax(0,1fr);gap:14px!important;align-items:start;
+ }
+ html body.portal-page .portal-layout[data-attendigo-role="TEACHER"] #dashboardView[data-ax-teaching-day]>:not([hidden]) {min-width:0;max-width:100%;margin-block:0!important;}
+ html body.portal-page .portal-layout[data-attendigo-role="TEACHER"] #dashboardView[data-ax-teaching-day]>#axStaffDashboardIntro {
+   order:-10!important;display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:4px 10px;
+   background:transparent!important;color:var(--ag-reading,var(--ink,#19304a))!important;border:0!important;padding:2px 0!important;min-height:0!important;
+ }
+ #dashboardView[data-ax-teaching-day] #axStaffDashboardIntro::after {content:none!important;}
+ #dashboardView[data-ax-teaching-day] #axStaffDashboardIntro .ax-workspace-kicker {grid-column:1/-1;color:var(--ag-secondary,var(--ui-muted,#52647b))!important;}
+ #dashboardView[data-ax-teaching-day] #axStaffDashboardTitle {grid-column:1;font-size:clamp(23px,3vw,32px)!important;color:var(--ag-reading,var(--ui-text,#19304a))!important;margin:0!important;}
+ #dashboardView[data-ax-teaching-day] #axStaffDashboardDescription {grid-column:1/-1;color:var(--ag-secondary,var(--ui-muted,#52647b))!important;}
+ .ax-teaching-date {grid-column:2;grid-row:2;font-size:14px;font-weight:650;color:var(--ag-secondary,var(--ui-muted,#52647b));text-align:end;}
+ html body.portal-page .portal-layout[data-attendigo-role="TEACHER"] #dashboardView[data-ax-teaching-day]>#learnerSummaryCard {order:-9!important;grid-column:1/-1;border:0!important;box-shadow:none!important;background:transparent!important;padding:0!important;}
+ html body.portal-page .portal-layout[data-attendigo-role="TEACHER"] #dashboardView[data-ax-teaching-day] #learnerSummaryCard .card-heading {margin-bottom:8px!important;}
+ #dashboardView[data-ax-teaching-day] #learnerSummaryCard .card-heading h3 {font-size:18px!important;}
+ html body.portal-page .portal-layout[data-attendigo-role="TEACHER"] #dashboardView[data-ax-teaching-day] #learnerSummaryCard .learner-summary-grid {display:grid!important;grid-template-columns:repeat(4,minmax(0,1fr))!important;gap:10px!important;}
+ html body.portal-page .portal-layout[data-attendigo-role="TEACHER"] #dashboardView[data-ax-teaching-day] #learnerSummaryCard .learner-metric {
+   position:relative;isolation:isolate;display:flex!important;flex-direction:column;align-items:flex-start;justify-content:space-between;gap:8px;
+   min-height:122px!important;min-width:0!important;padding:12px!important;border-radius:14px!important;border:0!important;overflow:hidden;color:#fff!important;
+   box-shadow:0 5px 12px #132f4514!important;
+ }
+ #dashboardView[data-ax-teaching-day] #learnerSummaryCard .learner-metric::after {content:"";position:absolute;inset:0;z-index:-1;pointer-events:none;background:radial-gradient(circle at 100% 100%,#ffffff16 0 26%,transparent 27% 33%,#ffffff0d 34% 45%,transparent 46%);}
+ html body.portal-page .portal-layout[data-attendigo-role="TEACHER"] #dashboardView[data-ax-teaching-day] #learnerSummaryCard .learner-metric:nth-child(1) {background:linear-gradient(145deg,#5142bb,#3b278d)!important;}
+ html body.portal-page .portal-layout[data-attendigo-role="TEACHER"] #dashboardView[data-ax-teaching-day] #learnerSummaryCard .learner-metric:nth-child(2) {background:linear-gradient(145deg,#087f6e,#066355)!important;}
+ html body.portal-page .portal-layout[data-attendigo-role="TEACHER"] #dashboardView[data-ax-teaching-day] #learnerSummaryCard .learner-metric:nth-child(3) {background:linear-gradient(145deg,#ad631c,#845016)!important;}
+ html body.portal-page .portal-layout[data-attendigo-role="TEACHER"] #dashboardView[data-ax-teaching-day] #learnerSummaryCard .learner-metric:nth-child(4) {background:linear-gradient(145deg,#2276ad,#185486)!important;}
+ html body.portal-page .portal-layout[data-attendigo-role="TEACHER"] #dashboardView[data-ax-teaching-day] #learnerSummaryCard .learner-metric>.teacher-v3-metric-icon {position:static!important;width:30px!important;height:30px!important;background:#ffffff24!important;color:white!important;border-radius:9px!important;display:grid!important;place-items:center;flex:none;}
+ #dashboardView[data-ax-teaching-day] #learnerSummaryCard .teacher-v3-metric-icon svg {width:21px;height:21px;}
+ html body.portal-page .portal-layout[data-attendigo-role="TEACHER"] #dashboardView[data-ax-teaching-day] #learnerSummaryCard .learner-metric>span:not(.teacher-v3-metric-icon) {color:#fff!important;max-width:100%!important;font-size:14px!important;line-height:1.3!important;font-weight:650;}
+ html body.portal-page .portal-layout[data-attendigo-role="TEACHER"] #dashboardView[data-ax-teaching-day] #learnerSummaryCard .learner-metric>strong {color:#fff!important;font-size:clamp(26px,3vw,36px)!important;line-height:1.05!important;margin:0!important;}
+ #dashboardView[data-ax-teaching-day] #learnerSummaryNote {font-size:14px!important;line-height:1.4!important;margin:8px 0!important;}
+ #dashboardView[data-ax-teaching-day] .ax-teaching-progress {background:var(--ag-surface,var(--ui-panel,#fff));margin:8px 0 0;}
+ html body.portal-page .portal-layout[data-attendigo-role="TEACHER"] #dashboardView[data-ax-teaching-day]>.teacher-v3-hero {order:-8!important;min-height:0!important;padding:12px!important;background:var(--ag-surface,var(--ui-panel,#fff))!important;border:1px solid var(--ax-border)!important;color:var(--ag-reading,var(--ui-text,#19304a))!important;box-shadow:none!important;}
+ #dashboardView[data-ax-teaching-day]>.teacher-v3-hero::after {content:none!important;}
+ #dashboardView[data-ax-teaching-day]>.teacher-v3-hero :is(h2,p,.teacher-v3-eyebrow,.teacher-v3-note,.teacher-v3-hero-pills span) {color:var(--ag-reading,var(--ui-text,#19304a))!important;}
+ #dashboardView[data-ax-teaching-day]>.teacher-v3-hero .teacher-v3-schedule {background:#315fae!important;color:#fff!important;}
+ html body.portal-page .portal-layout[data-attendigo-role="TEACHER"] #dashboardView[data-ax-teaching-day]>#dashboardScanCta:not([hidden]) {order:-7!important;min-height:0!important;}
+ html body.portal-page .portal-layout[data-attendigo-role="TEACHER"] #dashboardView[data-ax-teaching-day]>#axWeatherAdvisory {order:-6!important;}
+ html body.portal-page .portal-layout[data-attendigo-role="TEACHER"] #dashboardView[data-ax-teaching-day]>.dashboard-columns {order:-5!important;grid-column:1/-1;}
+}
+@media screen and (min-width:1150px) {
+ html body.portal-page .portal-layout[data-attendigo-role="TEACHER"] #dashboardView[data-ax-teaching-day]:not([hidden]) {grid-template-columns:minmax(0,1.2fr) minmax(0,1fr);}
+ #dashboardView[data-ax-teaching-day]>#axStaffDashboardIntro,#dashboardView[data-ax-teaching-day]>#dashboardScanCta {grid-column:1/-1;}
+ #dashboardView[data-ax-teaching-day]>.teacher-v3-hero {grid-column:1;}
+ #dashboardView[data-ax-teaching-day]>#axWeatherAdvisory {grid-column:2;grid-row:3;}
+ #dashboardView[data-ax-teaching-day]>:not(#axStaffDashboardIntro):not(#learnerSummaryCard):not(.teacher-v3-hero):not(#axWeatherAdvisory):not(#dashboardScanCta):not(.dashboard-columns) {grid-column:1/-1;}
+}
+@media screen and (max-width:860px) {
+ html body.portal-page .portal-layout[data-attendigo-role]:not(.sidebar-collapsed) #sidebar.sidebar .nav-item.active:not([hidden]) {border-radius:24px!important;}
+ html body.portal-page .portal-layout[data-attendigo-role]:not(.sidebar-collapsed) #sidebar.sidebar .nav-item.active:not([hidden])::before,
+ html body.portal-page .portal-layout[data-attendigo-role]:not(.sidebar-collapsed) #sidebar.sidebar .nav-item.active:not([hidden])::after {content:none!important;display:none!important;}
+ html body.portal-page .portal-layout[data-attendigo-role="TEACHER"] #dashboardView[data-ax-teaching-day] #learnerSummaryCard .learner-summary-grid {grid-template-columns:repeat(2,minmax(0,1fr))!important;}
+ #dashboardView[data-ax-teaching-day] #axStaffDashboardIntro {grid-template-columns:minmax(0,1fr)!important;}
+ .ax-teaching-date {grid-row:auto;grid-column:1;text-align:start;}
+}
