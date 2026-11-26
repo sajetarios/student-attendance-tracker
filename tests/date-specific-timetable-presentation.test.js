@@ -24,9 +24,9 @@ test('weekly rendering shares regular rows while showing actual adjusted times a
  const normal={...common,dayIndex:4,date:'2026-11-26'};
  window.TimetableGrid.render({host,days:[3,4],weekdayDates:{3:'2026-11-25',4:'2026-11-26'},today:'2026-11-26',entries:[change,normal]});
  assert.equal((host.innerHTML.match(/<th scope="row"/g)||[]).length,1);
- assert.match(host.innerHTML,/Past change/);assert.match(host.innerHTML,/15:15–15:50/);
+ assert.match(host.innerHTML,/Past change/);assert.match(host.innerHTML,/3:15 PM–3:50 PM/);
  assert.match(host.innerHTML,/aria-current="date"/);assert.match(host.innerHTML,/Today/);
- assert.match(host.innerHTML,/15:15 to 16:10/);
+ assert.match(host.innerHTML,/3:15 PM to 4:10 PM/);
  for(const [today,status] of [['2026-11-25','Active'],['2026-11-24','Upcoming']]){
   window.TimetableGrid.render({host,days:[3,4],weekdayDates:{3:'2026-11-25',4:'2026-11-26'},today,entries:[change,normal]});
   assert.ok(host.innerHTML.includes(status+' change'));
