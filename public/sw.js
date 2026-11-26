@@ -1,4 +1,4 @@
-const CACHE = "attendigo-v461-readable-timetable";
+const CACHE = "attendigo-v462-parent-workspace";
 
 // Only public, non-personal offline shells and their executable dependencies.
 // An update must not discard the working cache before these are all ready.
@@ -94,7 +94,7 @@ const SHELL = [
   "/parent-subject.css?v=1",
   "/parent-push.js?v=3",
   "/parent-push.css?v=3",
-  "/parent-portal-refinement.css?v=1",
+  "/parent-portal-refinement.css?v=2",
   "/dashboard-appearance.js?v=3",
   "/timetable-grid.js?v=9",
   "/schedule-workspace-ui.js?v=9",
