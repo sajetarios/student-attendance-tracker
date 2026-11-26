@@ -148,3 +148,24 @@
  .ax-teaching-progress {grid-template-columns:minmax(0,1fr);}
  .ax-weather-advisory {grid-template-columns:minmax(0,1fr);}
 }
+
+@media screen {
+ .ax-live-weather {display:block;min-width:0;max-width:100%;}
+ .ax-live-weather [hidden]{display:none!important;}
+ .ax-weather-heading {display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;}
+ .ax-weather-refresh{min-height:44px;}
+ .ax-weather-campus{display:grid;gap:6px;margin:8px 0;min-width:0;}
+ .ax-weather-campus select{width:100%;max-width:100%;min-width:0;min-height:44px;}
+ .ax-weather-readings{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin:10px 0;}
+ .ax-weather-main,.ax-weather-heat{display:flex;flex-direction:column;gap:5px;min-width:0;padding:14px;border-radius:12px;background:var(--ag-surface,#fff);border:1px solid var(--ax-border);color:var(--ag-reading,#19304a);}
+ .ax-weather-main strong,.ax-weather-heat strong{font-size:clamp(25px,4vw,38px);line-height:1.1;font-variant-numeric:tabular-nums;}
+ .ax-weather-main svg{color:#347db6;}
+ .ax-weather-heat[data-band="Danger"],.ax-weather-heat[data-band="Extreme danger"]{background:#8b2c26;color:#fff;border-color:#8b2c26;}
+ .ax-weather-heat[data-band="Extreme caution"],.ax-weather-heat[data-band="Caution"]{background:#fff1d8;color:#67410c;border-color:#cba86e;}
+ .ax-weather-extra,.ax-weather-hourly,.ax-weather-observed{grid-column:1/-1;}
+ .ax-weather-hourly{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,100px),1fr));gap:6px;}
+ .ax-weather-hourly>div{display:grid;gap:4px;padding:9px;border:1px solid var(--ax-border);border-radius:10px;font-size:14px;overflow-wrap:anywhere;}
+ .ax-live-weather .ax-weather-disclaimer,.ax-live-weather small,.ax-live-weather .ax-weather-observed{font-size:14px;line-height:1.4;}
+ .ax-live-weather a{color:inherit;text-decoration:underline;}
+}
+@media screen and (max-width:350px){.ax-weather-readings{grid-template-columns:minmax(0,1fr);}}

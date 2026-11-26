@@ -28,7 +28,8 @@ catch (_) { document.documentElement.dataset.theme = 'light'; }
 <script src="/app-dialog.js?v=1" defer></script>
 <link rel="stylesheet" href="/attendigo-install.css?v=6">
 <link rel="stylesheet" href="/attendigo-experience.css?v=4">
-<link rel="stylesheet" href="/attendigo-signature.css?v=3">
+<link rel="stylesheet" href="/attendigo-signature.css?v=4">
+<script src="/school-weather-widget.js?v=1" defer></script>
 </head>
 <body>
 <a class="skip" href="#main">Skip to school overview</a>
@@ -200,7 +201,7 @@ catch (_) { document.documentElement.dataset.theme = 'light'; }
    <div class="surface"><h3>Reporting caution</h3><p>Official SF2 totals, absences and SARDO designations require separate validated records. QR activity alone does not prove school attendance.</p></div>
   </section>
   <section id="overviewPanel" class="panel" data-panel="overview">
- <aside class="ax-weather-advisory" aria-label="Official weather and heat safety resources"><div class="ax-weather-symbol" aria-hidden="true"><svg viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="2"><circle cx="30" cy="15" r="9"/><path d="M30 2v3M30 25v3M17 15h3M40 15h5M21 6l3 3M38 6l-3 3M11 40a8 8 0 0 1 0-16 11 11 0 0 1 21 2 7 7 0 0 1 0 14z"/></svg></div><div><span class="ax-weather-kicker">SCHOOL SAFETY</span><h3>Weather &amp; heat advisories</h3><p>Review official forecasts and LGU or DepEd advisories before issuing school memoranda. Live campus readings are not connected.</p><div class="ax-weather-links"><a href="https://pagasa.dost.gov.ph/weather/heat-index" target="_blank" rel="noopener noreferrer">Heat index</a><a href="https://www.pagasa.dost.gov.ph/" target="_blank" rel="noopener noreferrer">Forecasts &amp; warnings</a></div></div></aside>
+ <aside class="ax-weather-advisory" data-school-weather aria-label="School weather and heat index"></aside>
  
    <div class="section-heading"><div><p class="eyebrow">AT A GLANCE</p><h2>School overview</h2><p>Verified records for the selected date.</p></div></div>
    <div class="metric-grid">

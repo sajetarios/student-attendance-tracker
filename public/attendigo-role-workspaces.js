@@ -48,9 +48,8 @@
  function addAdvisory(role){
   if(!['SCHOOL_ADMIN','DEPARTMENT_HEAD','TEACHER'].includes(role))return;
   const dashboard=$('dashboardView');if(!dashboard||$('axWeatherAdvisory'))return;
-  const card=document.createElement('section');card.id='axWeatherAdvisory';card.className='ax-weather-advisory';card.setAttribute('aria-label','Official weather and heat safety resources');
-  card.innerHTML='<div class="ax-weather-symbol" aria-hidden="true"><svg viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="2"><circle cx="30" cy="15" r="9"/><path d="M30 2v3M30 25v3M17 15h3M40 15h5M21 6l3 3M38 6l-3 3M11 40a8 8 0 0 1 0-16 11 11 0 0 1 21 2 7 7 0 0 1 0 14z"/></svg></div><div><span class="ax-weather-kicker">SCHOOL SAFETY</span><h3>Weather &amp; heat advisories</h3><p>Check official PAGASA forecasts and heat-index readings before planning outdoor activities. Live campus readings are not connected.</p><div class="ax-weather-links"><a href="https://pagasa.dost.gov.ph/weather/heat-index" target="_blank" rel="noopener noreferrer">Heat index</a><a href="https://www.pagasa.dost.gov.ph/" target="_blank" rel="noopener noreferrer">Forecasts &amp; warnings</a></div></div>';
-  dashboard.append(card);
+  const card=document.createElement('section');card.id='axWeatherAdvisory';card.className='ax-weather-advisory';card.setAttribute('data-school-weather','');card.setAttribute('aria-label','School weather and heat index');
+  dashboard.append(card);window.AttendigoSchoolWeather?.mount(card);
  }
  function addTeachingProgress(){
   const summary=$('learnerSummaryCard'),total=$('learnerTotal'),present=$('learnerPresent');
