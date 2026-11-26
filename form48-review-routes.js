@@ -155,10 +155,11 @@ function registerForm48ReviewRoutes(app,pool,{authenticateSchoolClient,requireSc
      " exception_type AS type FROM school_calendar_exceptions"+
      " WHERE school_id=$1 AND calendar_date >= $2::date AND calendar_date < $3::date",
      [req.auth.schoolId,from,to]),
-    pool.query("SELECT to_char((starts_at AT TIME ZONE 'Asia/Manila')::date,'YYYY-MM-DD') AS "+
+    pool.query("SELECT starts_at AS \"startsAt\",ends_at AS \"endsAt\",completion_status AS \"completionStatus\",completion_at AS \"completionAt\", "+
+     "to_char((starts_at AT TIME ZONE 'Asia/Manila')::date,'YYYY-MM-DD') AS "+
      ' "from", to_char(((CASE WHEN completion_status=\'VERIFIED\' THEN GREATEST(ends_at,completion_at) ELSE ends_at END) AT TIME ZONE \'Asia/Manila\')::date,\'YYYY-MM-DD\') AS "to"'+
      " FROM staff_official_business_requests WHERE school_id=$1 AND staff_user_id=$2"+
-     " AND status='APPROVED' AND (CASE WHEN completion_status='VERIFIED' THEN GREATEST(ends_at,completion_at) ELSE ends_at END)>=($3::date::timestamp AT TIME ZONE 'Asia/Manila')"+
+     " AND status='APPROVED' AND (CASE WHEN completion_status='VERIFIED' THEN GREATEST(ends_at,completion_at) ELSE ends_at END)>($3::date::timestamp AT TIME ZONE 'Asia/Manila')"+
      " AND starts_at<($4::date::timestamp AT TIME ZONE 'Asia/Manila')",
      [req.auth.schoolId,params.staffUserId,from,to]),
     pool.query("SELECT teacher_status, to_char(leave_start_date,'YYYY-MM-DD') AS leave_start_date,"+
