@@ -17,3 +17,25 @@ test('cache honors Expires, sends conditional request, collapses concurrency and
 });
 test('provider throttling stops unrelated location calls',async()=>{let calls=0;const get=createWeatherCache({now:()=>now,fetchImpl:async()=>{calls++;return {status:429,headers:hdr({'retry-after':'600'})};}});assert.equal((await get(7,125)).status,'unavailable');assert.equal((await get(8,125)).status,'unavailable');assert.equal(calls,1);});
 test('weather routes constrain campus to authenticated school and allowed roles',async()=>{let handlers,roles;const auth=()=>{};const pool={query:async(sql,args)=>{assert.match(sql,/school_id=\$1/);assert.deepEqual(args,['school-a']);return {rows:[]};}};registerSchoolWeatherRoutes({get:(path,...h)=>{assert.equal(path,'/api/school/weather');handlers=h;}},pool,{authenticateSchoolClient:auth,requireSchoolRoles:(...r)=>{roles=r;return ()=>{};}});assert.equal(handlers[0],auth);assert.deepEqual(roles,['SCHOOL_ADMIN','DEPARTMENT_HEAD','TEACHER','PRINCIPAL']);let result;await handlers[2]({auth:{schoolId:'school-a'},query:{}},{setHeader:()=>{},json:d=>{result=d;}});assert.equal(result.status,'no_campus');});
+
+test('compact weather info keeps attribution visible and safety details opt-in',()=>{
+ const fs=require('node:fs'),path=require('node:path'),vm=require('node:vm');
+ const read=n=>fs.readFileSync(path.join(__dirname,'..','public',n),'utf8');
+ const widget=read('school-weather-widget.js'),css=read('attendigo-signature.css');
+ const handlers={},attrs={};const node={addEventListener(){},querySelector(){return node;},options:[]};
+ const info={addEventListener:(event,fn)=>{handlers[event]=fn;},setAttribute:(key,value)=>{attrs[key]=value;},focus(){handlers.focused=true;}};
+ const panel={hidden:true};
+ const root={classList:{add(){}},querySelector:s=>s==='.ax-weather-info'?info:s==='.ax-weather-info-panel'?panel:node,addEventListener:(event,fn)=>{handlers[event]=fn;}};
+ const document={querySelectorAll:()=>[],addEventListener(){},getElementById:()=>null};
+ const window={addEventListener(){}};
+ vm.runInNewContext(widget,{document,window,IntersectionObserver:class{observe(){}},setInterval(){}});
+ window.AttendigoSchoolWeather.mount(root);
+ assert.match(root.innerHTML,/class="ax-weather-info"[^>]*aria-expanded="false"/);
+ assert.match(root.innerHTML,/class="ax-weather-info-panel" hidden/);
+ assert.match(root.innerHTML,/MET Norway/);assert.match(root.innerHTML,/CC BY 4\.0/);assert.match(root.innerHTML,/Adapted by Attendigo/);
+ assert.match(root.innerHTML,/official class suspension notice/);assert.match(root.innerHTML,/PAGASA advisories/);
+ assert.doesNotMatch(root.innerHTML,/Forecast details &amp; safety information/);
+ handlers.click();assert.equal(panel.hidden,false);assert.equal(attrs['aria-expanded'],'true');
+ handlers.keydown({key:'Escape'});assert.equal(panel.hidden,true);assert.equal(attrs['aria-expanded'],'false');assert.equal(handlers.focused,true);
+ assert.match(css,/\.ax-weather-footer \{display:grid;grid-template-columns:minmax\(0,1fr\) 44px/);
+});
