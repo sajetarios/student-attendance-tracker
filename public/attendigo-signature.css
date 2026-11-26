@@ -299,9 +299,12 @@
 }
 @media screen and (min-width:1150px) {
  html body.portal-page .portal-layout[data-attendigo-role="TEACHER"] #dashboardView[data-ax-teaching-day]:not([hidden]) {grid-template-columns:minmax(0,1.2fr) minmax(0,1fr);}
- #dashboardView[data-ax-teaching-day]>#axStaffDashboardIntro,#dashboardView[data-ax-teaching-day]>#dashboardScanCta {grid-column:1/-1;}
- #dashboardView[data-ax-teaching-day]>.teacher-v3-hero {grid-column:1;}
- #dashboardView[data-ax-teaching-day]>#axWeatherAdvisory {grid-column:2;grid-row:3;}
+ #dashboardView[data-ax-teaching-day]>#axStaffDashboardIntro,#dashboardView[data-ax-teaching-day]>#axWeatherAdvisory {grid-column:1/-1;}
+ #dashboardView[data-ax-teaching-day]>.teacher-v3-hero {grid-column:1;align-self:stretch;}
+ #dashboardView[data-ax-teaching-day]>#dashboardScanCta {grid-column:2;align-self:stretch;flex-direction:column;align-items:stretch!important;justify-content:center;gap:10px;}
+ #dashboardView[data-ax-teaching-day]>#dashboardScanCta .dashboard-quick-buttons {justify-content:flex-start;flex-wrap:wrap;min-width:0;}
+ #dashboardView[data-ax-teaching-day]>#dashboardScanCta .dashboard-scan-cta-copy {min-width:0;max-width:100%;}
+ #dashboardView[data-ax-teaching-day]>#axWeatherAdvisory {grid-row:auto;}
  #dashboardView[data-ax-teaching-day]>:not(#axStaffDashboardIntro):not(#learnerSummaryCard):not(.teacher-v3-hero):not(#axWeatherAdvisory):not(#dashboardScanCta):not(.dashboard-columns) {grid-column:1/-1;}
 }
 @media screen and (max-width:860px) {
@@ -554,4 +557,27 @@ html body.portal-page .portal-layout[data-attendigo-role="TEACHER"] #dashboardVi
 /* Keep the connected active-tab surface opaque throughout navigation changes. */
 @media screen {
  html body.portal-page .portal-layout[data-attendigo-role] #sidebar#sidebar.sidebar .side-nav .nav-item.active:not([hidden]) {transition:none!important;}
+}
+
+/* Teacher compact dashboard: independent full-width content bands prevent
+   weather or a long attendance list from reserving unused sibling space. */
+@media screen {
+ html body.portal-page .portal-layout[data-attendigo-role="TEACHER"] #dashboardView[data-ax-teaching-day]>.dashboard-columns {
+   display:grid!important;grid-template-columns:minmax(0,1fr)!important;align-items:start;gap:12px!important;
+ }
+ html body.portal-page .portal-layout[data-attendigo-role="TEACHER"] #dashboardView[data-ax-teaching-day]>.dashboard-columns>.surface-card {
+   min-width:0;max-width:100%;min-height:0!important;margin:0!important;
+ }
+ html body.portal-page .portal-layout[data-attendigo-role="TEACHER"] #dashboardView[data-ax-teaching-day] #recentActivityCard .table-scroll {
+   max-height:clamp(240px,36vh,360px);overflow:auto;
+ }
+ html body.portal-page .portal-layout[data-attendigo-role="TEACHER"] #dashboardView[data-ax-teaching-day] #quickActionsCard.teacher-overview-only .teacher-today-actions {
+   grid-template-columns:repeat(auto-fit,minmax(min(100%,260px),1fr))!important;gap:10px;
+ }
+ html body.portal-page .portal-layout[data-attendigo-role="TEACHER"] #dashboardView[data-ax-teaching-day] #quickActionsCard.teacher-overview-only .teacher-today-item:not([hidden]) {
+   grid-column:auto!important;min-width:0;
+ }
+ html body.portal-page .portal-layout[data-attendigo-role="TEACHER"] #dashboardView[data-ax-teaching-day] #axWeatherAdvisory .ax-weather-hourly {
+   grid-auto-columns:minmax(100px,1fr);min-width:0;
+ }
 }
