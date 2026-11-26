@@ -795,6 +795,30 @@ window.attendigoStaffIdentity = new Promise(resolve => { resolveStaffIdentity = 
       const personalLabel = $('personalAttendanceNavGroup')?.querySelector('.nav-group-toggle .nav-label');
       if (personalLabel) personalLabel.textContent = 'My Attendance';
     }
+    // V5.5: prioritize daily tasks, then requests, reports and configuration.
+    // Move only existing direct children: no entitlement, route or hidden-state changes.
+    const orderNavigation = (container, ids) => {
+      if (!container) return;
+      const existing = Array.from(container.children);
+      const preferred = ids.map(id => document.getElementById(id)).filter(node => node && node.parentElement === container);
+      const next = [...preferred, ...existing.filter(node => !preferred.includes(node))];
+      if (next.some((node, index) => node !== existing[index])) next.forEach(node => container.appendChild(node));
+    };
+    const academicGroup = document.querySelector('[data-nav-group="academics"]')?.closest('.nav-group');
+    if (academicGroup && !academicGroup.id) academicGroup.id = 'academicNavigationGroup';
+    const navigation = document.querySelector('#sidebar .side-nav');
+    if (teacher) {
+      orderNavigation(navigation, ['dashboardNav','studentRecordsNavGroup','personalAttendanceNavGroup','assignedDutiesNavGroup','reportsNavGroup','academicNavigationGroup','operationsNavGroup','settingsNavGroup']);
+      orderNavigation($('peopleNavChildren'), ['schedulesNav','classAttendanceNav','studentsNav','plannerNav','studentAccountsNav']);
+      orderNavigation($('personalAttendanceNavChildren'), ['myGateAttendanceNav','officialBusinessNav']);
+    } else if (departmentHead) {
+      orderNavigation(navigation, ['dashboardNav','studentRecordsNavGroup','operationsNavGroup','personalAttendanceNavGroup','reportsNavGroup','academicNavigationGroup','settingsNavGroup']);
+      orderNavigation($('peopleNavChildren'), ['schedulesNav','teachersNav','studentsNav','plannerNav']);
+    } else if (admin) {
+      orderNavigation(navigation, ['dashboardNav','attendanceManagementNavGroup','academicNavigationGroup','studentRecordsNavGroup','staffNavWrapper','guardianApprovalsNav','operationsNavGroup','reportsNavGroup','settingsNavGroup']);
+      orderNavigation($('academicNavChildren'), ['academicAdminNav','schedulesNav','plannerNav','sf2Nav']);
+    }
+    if (navigation) navigation.dataset.axMenuOrganization = 'v55';
     // Visibility is recalculated AFTER relocation, including planner-only teachers.
     for (const group of ['people','academics','personalAttendance','assignedDuties','operations','reports','settings']) {
       const toggle = document.querySelector('[data-nav-group="' + group + '"]');
