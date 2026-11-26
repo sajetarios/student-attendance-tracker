@@ -1,4 +1,4 @@
-const CACHE = "attendigo-v464-continuous-class-register";
+const CACHE = "attendigo-v465-teacher-roster-density";
 
 // Only public, non-personal offline shells and their executable dependencies.
 // An update must not discard the working cache before these are all ready.
@@ -107,7 +107,7 @@ const SHELL = [
   "/portal.css?v=0.9.121",
   "/student-roster-toolbar.css?v=2",
   "/learner-roster-view.css?v=1",
-  "/teacher-learner-roster.css?v=7",
+  "/teacher-learner-roster.css?v=8",
   "/learner-roster-view.js?v=1",
   "/student-name-format.js?v=2",
   "/class-qr-dashboard-link.js?v=14",
