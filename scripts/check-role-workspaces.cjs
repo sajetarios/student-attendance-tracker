@@ -53,6 +53,17 @@ const roles={SCHOOL_ADMIN:'School operations',DEPARTMENT_HEAD:'Department priori
     const id=role==='SCHOOL_ADMIN'?'adminDashboardCard':role==='DEPARTMENT_HEAD'?'departmentHeadOverview':null;
     if(id)assert.equal(await page.locator('#axStaffDashboardIntro + *').getAttribute('id'),id);
     if(role==='GATE_KEEPER')assert.equal(await page.locator('#studentScannerCard').getAttribute('data-ax-gate-workspace'),'true');
+    if(role!=='GATE_KEEPER'){
+     // Run the real legacy workspace script after the original role renderer,
+     // just as production does. Verify the final menu, not an intermediate state.
+     await page.addScriptTag({content:read('simplified-workspace.js')});
+     await page.evaluate(()=>document.dispatchEvent(new Event('attendigo:portal-ready')));
+     await page.waitForFunction(()=>document.querySelector('#sidebar .side-nav')?.dataset.axMenuOrganization==='v56');
+     const finalOrder=await page.locator('#sidebar .side-nav > *').evaluateAll(nodes=>nodes.slice(0,3).map(n=>n.id));
+     assert.deepEqual(finalOrder,role==='SCHOOL_ADMIN'?['dashboardNav','attendanceManagementNavGroup','academicNavigationGroup']:role==='DEPARTMENT_HEAD'?['dashboardNav','studentRecordsNavGroup','operationsNavGroup']:['dashboardNav','studentRecordsNavGroup','personalAttendanceNavGroup']);
+     assert.equal(await page.locator('#sidebar #academicAdminNav').getAttribute('hidden'),'');
+     assert.equal(await page.locator('#simpleNavSearch').count(),1);
+    }
     const result=await page.locator('#axStaffDashboardIntro').evaluate(e=>({height:e.getBoundingClientRect().height,width:e.getBoundingClientRect().width,scroll:e.scrollWidth,client:e.clientWidth}));
     assert.ok(result.height>0&&result.width>0&&result.scroll<=result.client+1,'workspace intro overflow '+role+' '+width+' '+JSON.stringify(result));
    }finally{await page.close();}
