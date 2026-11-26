@@ -90,6 +90,15 @@ const roles={SCHOOL_ADMIN:'School operations',DEPARTMENT_HEAD:'Department priori
      await page.setContent('<!doctype html><html><head><meta name="viewport" content="width=device-width,initial-scale=1"></head><body class="portal-page"><main id="main" style="width:100%;box-sizing:border-box">'+markup+'</main></body></html>');
      // Use the same network-independent stylesheet injection as the existing WebKit suite.
     await page.evaluate(sheets=>{for(const css of sheets){const node=document.createElement('style');node.textContent=css;document.head.append(node);}},styles(source).map(css=>css.replace(/@import\s+[^;]+;/g,'')));
+     if(name==='parent-portal.html'){
+      // Exercise the real page scope and navigation rather than the bare header.
+      await page.evaluate(nav=>{document.body.classList.add('parent-portal-body');const main=document.querySelector('main');main.classList.add('parent-page');main.insertAdjacentHTML('beforeend',nav);document.getElementById('schoolLabel').textContent='Mati National Comprehensive High School';document.getElementById('welcome').textContent='Welcome, Parent';document.documentElement.style.setProperty('--ap-primary','#25744c');document.documentElement.style.setProperty('--ap-primary-ink','#ffffff');},slice(source,'<nav class="ax-page-links"','</nav>'));
+      const state=await page.evaluate(()=>{const h=document.querySelector('.parent-head'),p=h.querySelector('.parent-welcome p'),nav=document.querySelector('.ax-page-links');return {ink:getComputedStyle(p).color,bg:getComputedStyle(h).backgroundColor,navWidth:nav.clientWidth,navScroll:nav.scrollWidth};});
+      assert.equal(state.ink,'rgb(255, 255, 255)');assert.equal(state.bg,'rgb(37, 116, 76)');assert.ok(state.navScroll<=state.navWidth+1,JSON.stringify(state));
+      assert.ok(source.indexOf('id="parentOverview"')<source.indexOf('id="parentChildSelect"'));
+      assert.ok(source.indexOf('id="subjectAttendance"')<source.indexOf('id="pushNotifications"'));
+      assert.ok(source.indexOf('id="pushNotifications"')<source.indexOf('id="parentProfilePhoto"'));
+     }
      const b=await page.locator(selector).evaluate(e=>({scroll:e.scrollWidth,client:e.clientWidth,width:e.getBoundingClientRect().width}));
      assert.ok(b.width>0&&b.scroll<=b.client+1,name+' header overflow '+width);
     }finally{await page.close();}
