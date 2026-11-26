@@ -64,6 +64,12 @@ const roles={SCHOOL_ADMIN:'School operations',DEPARTMENT_HEAD:'Department priori
      assert.equal(await page.locator('#sidebar #academicAdminNav').getAttribute('hidden'),'');
      assert.equal(await page.locator('#simpleNavSearch').count(),1);
     }
+    // Verify the help dock shares the school-colored sidebar on light and dark branding.
+    await page.evaluate(()=>{const dock=document.createElement('div');dock.className='attendigo-help-dock';dock.innerHTML='<span class="attendigo-help-dock-title">Help &amp; Support</span><button class="attendigo-help-launcher">Ask Attendigo</button>';document.querySelector('#sidebar').append(dock);});
+    for(const [bg,ink] of [['#064324','#ffffff'],['#c8f29b','#101827']]){
+     const help=await page.evaluate(([bg,ink])=>{document.documentElement.style.setProperty('--ap-nav',bg);document.documentElement.style.setProperty('--ap-nav-ink',ink);const dock=document.querySelector('.attendigo-help-dock'),button=dock.querySelector('button');return {dock:getComputedStyle(dock).backgroundColor,button:getComputedStyle(button).backgroundColor,image:getComputedStyle(button).backgroundImage,ink:getComputedStyle(button).color};},[bg,ink]);
+     assert.equal(help.dock,'rgba(0, 0, 0, 0)');assert.equal(help.button,'rgba(0, 0, 0, 0)');assert.equal(help.image,'none');assert.equal(help.ink,ink==='#ffffff'?'rgb(255, 255, 255)':'rgb(16, 24, 39)');
+    }
     const result=await page.locator('#axStaffDashboardIntro').evaluate(e=>({height:e.getBoundingClientRect().height,width:e.getBoundingClientRect().width,scroll:e.scrollWidth,client:e.clientWidth}));
     assert.ok(result.height>0&&result.width>0&&result.scroll<=result.client+1,'workspace intro overflow '+role+' '+width+' '+JSON.stringify(result));
    }finally{await page.close();}
