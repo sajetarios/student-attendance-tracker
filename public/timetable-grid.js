@@ -203,7 +203,7 @@
       }).join('')+'</tr>';
     }).join('');
     host.classList.add('tt-grid-host');
-    host.innerHTML='<div class="tt-grid-scroll"><table class="tt-grid" aria-label="Weekly class timetable"><thead><tr><th scope="col" class="tt-time-heading">Time</th>'+heading+
+    host.innerHTML='<div class="tt-grid-scroll" role="region" aria-label="Weekly timetable, scroll horizontally" tabindex="0"><table class="tt-grid" style="--tt-day-count:'+days.length+'" aria-label="Weekly class timetable"><thead><tr><th scope="col" class="tt-time-heading">Time</th>'+heading+
       '</tr></thead><tbody>'+rows+'</tbody></table></div>'+
       '<div class="tt-grid-legend">'+(entries.some(e=>e.teacherScheduleView) ?
       '<span><i class="tt-legend-both"></i>My advisory class (also teaches)</span><span><i class="tt-legend-teaching"></i>My subject class</span><span><i class="tt-legend-advisory"></i>Advisory section only</span>' :
