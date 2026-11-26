@@ -532,3 +532,46 @@ body.dark-mode #studentsView.teacher-directory-mode .teacher-roster-section.is-u
 }
 /* On phones, learner cards retain the existing top-right selection placement;
    do not impose desktop table-column widths on responsive cards. */
+
+/* Tablet/desktop learner roster: modestly smaller data text, without changing
+   application typography, mobile cards, touch targets or enrollment behavior. */
+@media screen and (min-width:701px) {
+  html body.portal-page #studentsView.teacher-directory-mode #studentRosterTable.teacher-roster-compact {
+    --type-body:.9375rem;
+    --type-name:.9375rem;
+    --type-table:.9375rem;
+    --type-control:.875rem;
+  }
+  html body.portal-page #studentsView.teacher-directory-mode #studentRosterTable.teacher-roster-compact thead th {
+    font-size:.8125rem!important;
+    letter-spacing:.015em;
+    white-space:normal;
+    line-height:1.3;
+  }
+  html body.portal-page #studentsView.teacher-directory-mode #studentRosterTable.teacher-roster-compact.teacher-roster-with-selection thead th:first-child,
+  html body.portal-page #studentsView.teacher-directory-mode #studentRosterTable.teacher-roster-compact.teacher-roster-with-selection tbody td[data-label="Select"] {
+    width:56px;min-width:56px;max-width:56px;
+    padding-inline:4px;
+  }
+  html body.portal-page #studentsView.teacher-directory-mode #studentRosterTable.teacher-roster-compact.teacher-roster-with-selection thead th:first-child {
+    font-size:.75rem!important;
+    letter-spacing:0;
+    white-space:nowrap;
+  }
+  html body.portal-page #studentsView.teacher-directory-mode #studentRosterTable.teacher-roster-compact .teacher-roster-identity-copy :is(.learner-roster-surname,.learner-roster-given,.learner-roster-original) {
+    font-size:.9375rem!important;
+    line-height:1.35;
+  }
+  html body.portal-page #studentsView.teacher-directory-mode #studentRosterTable.teacher-roster-compact .teacher-roster-identity-copy small {
+    font-size:.875rem!important;
+    line-height:1.3;
+  }
+  html body.portal-page #studentsView.teacher-directory-mode #studentRosterTable.teacher-roster-compact .teacher-roster-class :is(strong,.teacher-roster-section,.special-program-chip) {
+    font-size:.9375rem!important;
+    line-height:1.3;
+  }
+  html body.portal-page #studentsView.teacher-directory-mode #studentRosterTable.teacher-roster-compact .teacher-roster-quick-actions > :is(button,.student-actions-dropdown),
+  html body.portal-page #studentsView.teacher-directory-mode #studentRosterTable.teacher-roster-compact .teacher-roster-quick-actions .student-actions-dropdown > summary {
+    font-size:.875rem!important;
+  }
+}
