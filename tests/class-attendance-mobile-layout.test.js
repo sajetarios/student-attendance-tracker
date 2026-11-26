@@ -14,7 +14,7 @@ const worker = read('sw.js');
 
 test('class attendance mobile CSS is loaded after legacy styles', () => {
   assert.ok(html.includes('/class-attendance-mobile.css?v=1'));
-  assert.ok(html.indexOf('/class-attendance-mobile.css?v=1') > html.indexOf('/manual-folio.css?v=11'));
+  assert.ok(html.indexOf('/class-attendance-mobile.css?v=1') > html.indexOf('/manual-folio.css?v=12'));
   assert.match(css, /@media screen and \(max-width:767px\)/);
   assert.match(css, /#classAttendanceView \.manual-book #mfSheet \.manual-table\s*\{[^}]*min-width:0!important/);
   assert.match(css, /#classAttendanceView #mfSheet \.manual-table tbody tr\.manual-attendance-row/);
@@ -44,4 +44,11 @@ test('offline shell caches versioned class attendance assets', () => {
   assertCacheRevisionAtLeast(worker, 328);
   assert.ok(worker.includes('/class-attendance-mobile.css?v=1'));
   assertCachedAsset(html,worker,'class-qr-dashboard-link.js',{minimumVersion:13});
+});
+
+test('continuous desktop register retains sticky column headers',()=>{
+ const folio=read('manual-folio.css');
+ assert.match(folio,/#mfSheet \.manual-table-wrap\s*\{[^}]*max-height:min\(65vh, 720px\)/);
+ assert.match(folio,/#mfSheet \.manual-table thead th\s*\{[^}]*position:sticky/);
+ assertCachedAsset(html,worker,'manual-folio.css',{minimumVersion:12});
 });

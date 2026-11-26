@@ -454,3 +454,18 @@ body[data-theme="dark"] .manual-folio .manual-note-btn[data-has-note="true"]{
   #classAttendanceView .manual-page, #classAttendanceView #mfSheet { min-width:0; }
   #classAttendanceView .manual-table td:nth-child(2) { overflow-wrap:anywhere; line-height:1.45; }
 }
+
+/* One continuous class register: table headers stay visible in desktop/tablet scrolling.
+   Phones retain the existing natural page scrolling and card layout. */
+@media screen and (min-width:768px) {
+  #classAttendanceView #mfSheet .manual-table-wrap {
+    max-height:min(65vh, 720px);
+    overflow:auto!important;
+    scrollbar-width:thin;
+  }
+  #classAttendanceView #mfSheet .manual-table thead th {
+    position:sticky;
+    top:0;
+    z-index:2;
+  }
+}
