@@ -30,7 +30,7 @@ test('compact weather info keeps attribution visible and safety details opt-in',
  const window={addEventListener(){}};
  vm.runInNewContext(widget,{document,window,IntersectionObserver:class{observe(){}},setInterval(){}});
  window.AttendigoSchoolWeather.mount(root);
- assert.match(root.innerHTML,/class="ax-weather-info"[^>]*aria-expanded="false"/);
+ assert.match(root.innerHTML,/class="outline-button ax-weather-info"[^>]*aria-expanded="false"/);
  assert.match(root.innerHTML,/class="ax-weather-info-panel" hidden/);
  assert.match(root.innerHTML,/MET Norway/);assert.match(root.innerHTML,/CC BY 4\.0/);assert.match(root.innerHTML,/Adapted by Attendigo/);
  assert.match(root.innerHTML,/official class suspension notice/);assert.match(root.innerHTML,/PAGASA advisories/);
