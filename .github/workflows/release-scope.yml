@@ -1,0 +1,32 @@
+name: Attendigo conservative release scope
+on:
+  workflow_call:
+    outputs:
+      ui_only:
+        description: Verified stylesheet-only change (otherwise full regression)
+        value: ${{ jobs.classify.outputs.ui_only }}
+permissions:
+  contents: read
+jobs:
+  classify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      ui_only: ${{ steps.scope.outputs.ui_only }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Classify exact release diff (fail closed)
+        id: scope
+        env:
+          EVENT: ${{ github.event_name }}
+          BASE_REF: ${{ github.base_ref }}
+          REF: ${{ github.ref }}
+          BASE: ${{ github.event.pull_request.base.sha || github.event.before }}
+          HEAD: ${{ github.sha }}
+        run: node scripts/classify-release-scope.cjs

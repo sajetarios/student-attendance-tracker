@@ -26,7 +26,11 @@ on:
 permissions:
   contents: read
 jobs:
+  release-scope:
+    uses: ./.github/workflows/release-scope.yml
   memorandum-e2e:
+    needs: release-scope
+    if: needs.release-scope.outputs.ui_only != 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 15
     services:
