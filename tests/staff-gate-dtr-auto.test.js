@@ -112,3 +112,15 @@ test('explicitly confirmed last exit can fill PM_OUT without manufacturing PM_IN
  const midday=[...movements.slice(0,2),{...movements[2],time:'12:20'}];
  assert.equal(chooseSafeAutoSlot({movements:midday,existingSlots,hours,gateEventId}).status,'REVIEW_REQUIRED');
 });
+
+
+test('next-day gate timestamp cannot be recorded as prior-day DTR',async()=>{
+ const client=fakeClient();
+ const result=await autoRecordVerifiedGateDtr(client,{schoolId,staffUserId,gateEventId,schoolDate:day,
+ occurredAt:'2026-11-21T07:45:00+08:00',actorUserId:staffUserId});
+ assert.deepEqual(result,{status:'REVIEW_REQUIRED',reason:'GATE_DATE_MISMATCH'});
+ assert.equal(client.calls.length,0);
+});
+test('next morning starts fresh and supplies only its own AM_IN',()=>{
+ assert.deepEqual(chooseSafeAutoSlot({movements:[ev(gateEventId,'TIME_IN','07:45')],existingSlots:{},hours,gateEventId}),{status:'MATCHED',slot:'AM_IN'});
+});

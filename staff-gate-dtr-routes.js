@@ -268,12 +268,12 @@ function registerStaffGateDtrRoutes(app,pool,{authenticateSchoolClient,requireSc
          occurred_at AS "occurredAt"
        FROM staff_attendance_events WHERE school_id=$1 AND staff_user_id=$2
          AND event_kind='GATE_MOVEMENT' AND verification_status='VERIFIED'
-         AND school_date BETWEEN $3::date AND $4::date
+         AND school_date BETWEEN $3::date AND ($4::date + 1)
        UNION ALL
        SELECT to_char(school_date,'YYYY-MM-DD') AS "schoolDate",
          event_type AS "eventType",occurred_at AS "occurredAt"
-       FROM teacher_gate_events WHERE school_id=$1 AND teacher_user_id=$2
-         AND school_date BETWEEN $3::date AND $4::date
+       FROM teacher_gate_events WHERE school_id=$1 AND teacher_user_id=$2 AND photo_verified=TRUE
+         AND school_date BETWEEN $3::date AND ($4::date + 1)
      ) gate_history ORDER BY "occurredAt" ASC`,[req.auth.schoolId,req.auth.userId,from,to])
    ]);
    const {buildObDtrRemarks}=require('./ob-dtr-remarks');
@@ -374,13 +374,13 @@ function registerStaffGateDtrRoutes(app,pool,{authenticateSchoolClient,requireSc
         FROM staff_attendance_events
         WHERE school_id=$1 AND staff_user_id=$2
           AND event_kind='GATE_MOVEMENT' AND verification_status='VERIFIED'
-          AND school_date >= $3::date AND school_date < $4::date
+          AND school_date >= $3::date AND school_date <= $4::date
         UNION ALL
         SELECT to_char(school_date,'YYYY-MM-DD') AS "schoolDate",
           event_type AS "eventType",occurred_at AS "occurredAt",event_id
         FROM teacher_gate_events
-        WHERE school_id=$1 AND teacher_user_id=$2
-          AND school_date >= $3::date AND school_date < $4::date
+        WHERE school_id=$1 AND teacher_user_id=$2 AND photo_verified=TRUE
+          AND school_date >= $3::date AND school_date <= $4::date
       ) actual_gate ORDER BY "occurredAt" ASC,event_id ASC`,
        [req.auth.schoolId,staffUserId,from,to]),
       pool.query("SELECT to_char(school_date,'YYYY-MM-DD') AS date,slot,status,evidence_reference AS reference,"+

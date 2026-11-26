@@ -42,3 +42,20 @@ test('sub-hour delayed return states minutes only',()=>{
  }]);
  assert.equal(result[0].exceptionRemark,'Gate re-entry 17:25 (25m after OB end).');
 });
+
+
+test('next morning entry is evidence for separate attendance, never prior PM_OUT',()=>{
+ const request={requestId:'overnight',startsAt:'2026-11-25T16:26:00+08:00',endsAt:'2026-11-25T17:26:00+08:00'};
+ const gate=[{schoolDate:'2026-11-25',eventType:'TIME_OUT',occurredAt:'2026-11-25T16:26:00+08:00'},
+ {schoolDate:'2026-11-26',eventType:'TIME_IN',occurredAt:'2026-11-26T07:45:00+08:00'}];
+ const now=Date.parse('2026-11-26T08:00:00+08:00');
+ const prior=buildObDtrRemarks('2026-11-25',[request],gate,now)[0];
+ assert.equal(prior.exception,'OB_NO_SAME_DAY_RETURN_REVIEW');
+ assert.match(prior.exceptionRemark,/separate gate entry/);
+ assert.equal(prior.actualGateReturn,undefined);assert.equal(prior.slot,undefined);
+ assert.equal(prior.nextDayGateEntry,gate[1].occurredAt);
+ assert.deepEqual(buildObDtrRemarks('2026-11-26',[request],gate,now),[]);
+ assert.equal(buildObDtrRemarks('2026-11-25',[request],gate.slice(0,1),now)[0].exception,'OB_NO_SAME_DAY_RETURN_REVIEW');
+ assert.equal(buildObDtrRemarks('2026-11-25',[request],gate.slice(0,1),Date.parse('2026-11-25T17:00:00+08:00'))[0].exception,undefined);
+ assert.equal(buildObDtrRemarks('2026-11-25',[request],gate.slice(1),now)[0].exception,undefined);
+});

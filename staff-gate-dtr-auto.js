@@ -33,6 +33,14 @@ async function autoRecordVerifiedGateDtr(client,{schoolId,staffUserId,gateEventI
   const date=new Date(schoolDate+'T12:00:00Z');
   if(!Number.isFinite(date.getTime())||date.toISOString().slice(0,10)!==schoolDate)
     return {status:'REVIEW_REQUIRED',reason:'INVALID_DATE'};
+  // Defense in depth: a source timestamp must belong to this Manila school
+  // date. A next-day arrival can never fill an earlier day's PM_OUT.
+  const instant=new Date(occurredAt);
+  const parts=Number.isFinite(instant.getTime())?Object.fromEntries(new Intl.DateTimeFormat('en-CA',{
+    timeZone:'Asia/Manila',year:'numeric',month:'2-digit',day:'2-digit'
+  }).formatToParts(instant).map(p=>[p.type,p.value])):null;
+  if(!parts||`${parts.year}-${parts.month}-${parts.day}`!==schoolDate)
+    return {status:'REVIEW_REQUIRED',reason:'GATE_DATE_MISMATCH'};
   const weekday=date.getUTCDay();
 
   // Never silently reinterpret an already reviewed absence/excusal.
