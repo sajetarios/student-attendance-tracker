@@ -316,7 +316,7 @@
 /* V5.4 Electric Violet: dynamic decorative color tokens; official status
    indicators and heat classifications deliberately remain independent. */
 @media screen {
- :root {--ap-nav:#4f2dcc;--ap-nav-ink:#fff;--ap-primary:#4f2dcc;--ap-primary-ink:#fff;--ap-card-1:#6c4dff;--ap-ink-1:#fff;--ap-card-2:#2ccb8f;--ap-ink-2:#101827;--ap-card-3:#4da3ff;--ap-ink-3:#101827;--ap-card-4:#8bcf3f;--ap-ink-4:#101827;--ap-tint:#f5f3ff;--ap-dark-tint:#211b35;}
+ :root {--ap-nav:#4f2dcc;--ap-nav-ink:#fff;--ap-primary:#352575;--ap-primary-ink:#fff;--ap-card-1:#b3a4ed;--ap-ink-1:#101827;--ap-card-2:#83cbb5;--ap-ink-2:#101827;--ap-card-3:#91bde8;--ap-ink-3:#101827;--ap-card-4:#c0d99a;--ap-ink-4:#101827;--ap-tint:#f5f3ff;--ap-dark-tint:#211b35;}
  html body.portal-page .portal-layout[data-attendigo-role] #sidebar.sidebar {
    --side-ink:var(--ap-nav-ink)!important;--side-muted:var(--ap-nav-ink)!important;
    --side-border:color-mix(in srgb,var(--ap-nav-ink) 26%,transparent)!important;
