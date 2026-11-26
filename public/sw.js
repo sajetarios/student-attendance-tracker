@@ -1,4 +1,4 @@
-const CACHE = "attendigo-v463-teacher-compact-dashboard";
+const CACHE = "attendigo-v464-teacher-card-height";
 
 // Only public, non-personal offline shells and their executable dependencies.
 // An update must not discard the working cache before these are all ready.
@@ -7,7 +7,7 @@ const OFFLINE_REQUIRED = [
   ...OFFLINE_TOOL_PAGES,
   "/attendigo-experience.css?v=4",
   "/attendigo-role-workspaces.js?v=5",
-  "/attendigo-signature.css?v=14",
+  "/attendigo-signature.css?v=15",
   "/school-weather-widget.js?v=4",
   "/attendigo-layout-density.css?v=1",
   "/app-dialog.css?v=2",
