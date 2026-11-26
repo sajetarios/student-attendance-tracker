@@ -2622,6 +2622,7 @@ function coverageStatusLabel(status) {
     if(!Array.isArray(period.weekdays)||!period.weekdays.map(Number).includes(new Date(date+'T00:00:00Z').getUTCDay()))return null;
     const a=scheduleDateOverride(period.periodId,date);
     return a?{...period,dayDate:date,adjustment:a,cancelled:a.type==='CANCEL',
+      regularStartTime:period.startTime,regularEndTime:period.endTime,
       startTime:a.startTime||period.startTime,endTime:a.endTime||period.endTime,
       subjectName:a.subjectName||period.subjectName,
       assignedTeacherName:a.teacherName||period.assignedTeacherName,
@@ -2731,10 +2732,11 @@ function coverageStatusLabel(status) {
           const teacherChoices = eligibleFor(period);
           const canEditThisPeriod = canManagePeriod(period);
           const adjustment = period.adjustment;
+          const dateStatus = period.dayDate < dataSchoolDate() ? 'Past' : period.dayDate === dataSchoolDate() ? 'Active' : 'Upcoming';
           const dayAdjustmentBadge = adjustment ?
             '<span class="weekly-adjustment-badge">' + esc(period.cancelled ? 'Cancelled' :
             adjustment.type === 'SUBSTITUTE' ? 'Teacher cover' :
-            adjustment.type === 'REPLACE' ? 'Subject replacement' : 'Time / room change') + '</span>' +
+            adjustment.type === 'REPLACE' ? 'Subject replacement' : dateStatus + ' temporary adjustment') + '</span>' +
             '<span class="weekly-adjustment-detail">' + esc(adjustment.reason?.replaceAll('_',' ') || '') +
             (adjustment.notes ? ' · ' + adjustment.notes : '') + '</span>' : '';
           const editAdjustment = canEditThisPeriod && period.dayDate >= dataSchoolDate() ?
@@ -2768,7 +2770,7 @@ function coverageStatusLabel(status) {
           const date = weekDates.find(value => new Date(value+'T00:00:00Z').getUTCDay() === day);
           const status = period.cancelled ? 'Cancelled' : period.adjustment
             ? (period.adjustment.type === 'SUBSTITUTE' ? 'Teacher cover' :
-               period.adjustment.type === 'REPLACE' ? 'Subject replacement' : 'Time / room change')
+               period.adjustment.type === 'REPLACE' ? 'Subject replacement' : (date < dataSchoolDate() ? 'Past' : date === dataSchoolDate() ? 'Active' : 'Upcoming') + ' temporary adjustment')
             : 'Regular';
           const manage = canManagePeriod(period);
           const compactRelationship = user.role === 'TEACHER'
@@ -2780,7 +2782,8 @@ function coverageStatusLabel(status) {
             (date >= dataSchoolDate() ? '<button type="button" class="outline-button compact-button" data-open-adjustment="'+esc(period.periodId)+'" data-adjustment-date="'+esc(date)+'">Change date</button>' : '')+
             '<button type="button" class="outline-button compact-button danger-button" data-delete-period="'+esc(period.periodId)+'">Delete</button></div>' : 'View only';
           return '<tr><td>'+esc(names[day]+' '+(date||''))+'</td>'+
-            '<td>'+esc((period.startTime||'—')+'–'+(period.endTime||'—'))+'</td>'+
+            '<td>'+esc((period.startTime||'—')+'–'+(period.endTime||'—'))+
+            (period.adjustment && !period.cancelled && (period.startTime!==period.regularStartTime || period.endTime!==period.regularEndTime) ? '<small class="schedule-day-caption">Regular: '+esc(period.regularStartTime+'–'+period.regularEndTime)+'</small>' : '')+'</td>'+
             '<td>'+esc(period.subjectName||period.periodName||'Class')+'</td>'+
             '<td>'+esc(String(period.gradeLevel||'—')+' · '+String(period.section||'All sections'))+
             (compactRelationship?'<small class="schedule-day-caption tt-list-compact-role">'+esc(compactRelationship)+'</small>':'')+

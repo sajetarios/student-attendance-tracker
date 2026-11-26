@@ -1,4 +1,4 @@
-const CACHE = "attendigo-v468-principal-compact-header";
+const CACHE = "attendigo-v469-date-specific-timetable";
 
 // Only public, non-personal offline shells and their executable dependencies.
 // An update must not discard the working cache before these are all ready.
@@ -48,7 +48,7 @@ const SHELL = [
   "/attendigo-unified-navigation.js?v=1",
   "/simplified-workspace.js?v=7",
   "/simplified-workspace.css?v=1",
-  "/teacher-timetable-identities.css?v=3",
+  "/teacher-timetable-identities.css?v=4",
   "/schedule-relationships.js?v=2",
   "/fonts/InterVariable.woff2",
   "/fonts/InterVariable-Italic.woff2",
@@ -96,7 +96,7 @@ const SHELL = [
   "/parent-push.css?v=3",
   "/parent-portal-refinement.css?v=2",
   "/dashboard-appearance.js?v=3",
-  "/timetable-grid.js?v=9",
+  "/timetable-grid.js?v=10",
   "/schedule-workspace-ui.js?v=9",
   "/teacher-assignment-modal.css?v=1",
   "/portal-login.html",
@@ -116,7 +116,7 @@ const SHELL = [
   "/teacher-scanner-schedule.js?v=1",
   "/teacher-roster-popover.js?v=2",
   "/portal.css?v=0.9.119",
-  "/portal.js?v=247",
+  "/portal.js?v=248",
   "/attendigo-help-topics.js?v=4",
   "/attendigo-help-guide.js?v=4",
   "/attendigo-help.css?v=5",

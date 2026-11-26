@@ -194,3 +194,11 @@
  html body.portal-page #schedulesView #weeklyTimetableBoard .tt-grid-legend span {font-size:14px!important;line-height:1.45!important;}
  html body.portal-page #schedulesView #weeklyTimetableBoard .tt-grid-hint {flex-basis:100%;margin-inline-start:0!important;}
 }
+
+/* Regular slot anchors and date-specific adjustment captions. */
+@media screen {
+  #weeklyTimetableBoard .tt-grid th.tt-today {box-shadow:inset 0 -3px 0 currentColor; font-weight:800;}
+  #weeklyTimetableBoard .tt-grid td.tt-today-cell {box-shadow:inset 2px 0 0 var(--ui-line,#d8e1ee),inset -2px 0 0 var(--ui-line,#d8e1ee);}
+  #weeklyTimetableBoard .tt-subject :is(.tt-adjustment-caption,.tt-adjustment-time) {display:block;max-width:100%;font-size:14px;line-height:1.35;font-weight:700;white-space:normal;overflow-wrap:anywhere;color:inherit;}
+  #weeklyTimetableBoard .tt-adjustment-time {font-variant-numeric:tabular-nums;}
+}
