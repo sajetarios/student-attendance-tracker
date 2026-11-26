@@ -1,4 +1,4 @@
-const CACHE = "attendigo-v457-mobile-connected-navigation";
+const CACHE = "attendigo-v458-adaptive-help-dock";
 
 // Only public, non-personal offline shells and their executable dependencies.
 // An update must not discard the working cache before these are all ready.
@@ -119,7 +119,7 @@ const SHELL = [
   "/portal.js?v=247",
   "/attendigo-help-topics.js?v=4",
   "/attendigo-help-guide.js?v=4",
-  "/attendigo-help.css?v=4",
+  "/attendigo-help.css?v=5",
   "/staff-leave-ui.js?v=13",
   "/leave-approval-inbox.js?v=3",
   "/leave-approval-inbox.css?v=3",
