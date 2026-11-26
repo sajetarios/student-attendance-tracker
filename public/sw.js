@@ -10,7 +10,6 @@ const OFFLINE_REQUIRED = [
   "/attendigo-signature.css?v=15",
   "/school-weather-widget.js?v=4",
   "/attendigo-layout-density.css?v=1",
-  "/attendigo-metric-icons.css?v=1",
   "/app-dialog.css?v=2",
   "/app-dialog.js?v=1",
   "/typography.css?v=1",
