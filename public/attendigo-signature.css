@@ -379,3 +379,14 @@ html body.portal-page .portal-layout[data-attendigo-role="TEACHER"] #dashboardVi
  html body.portal-page .portal-layout[data-attendigo-role] #sidebar#sidebar.sidebar .side-nav .nav-item.active:not([hidden]) .nav-icon svg [fill]:not([fill="none"]) {fill:currentColor!important;}
  html body.portal-page .portal-layout[data-attendigo-role] .ax-workspace-intro:not(#dashboardView[data-ax-teaching-day] .ax-workspace-intro) :is(h2,p,.ax-workspace-kicker) {color:var(--ap-primary-ink)!important;}
 }
+
+/* Contrast-adaptive monochrome glyphs, not official artwork or status symbols. */
+@media screen {
+ [data-ap-icon] {color:var(--ap-icon-ink)!important;}
+ [data-ap-icon-backed] {background-color:var(--ap-icon-backing)!important;border-radius:5px;}
+ [data-ap-icon] svg,svg[data-ap-icon] {color:var(--ap-icon-ink)!important;opacity:1!important;}
+ [data-ap-icon] svg[stroke]:not([stroke="none"]),svg[data-ap-icon][stroke]:not([stroke="none"]),
+ [data-ap-icon] svg [stroke]:not([stroke="none"]),svg[data-ap-icon] [stroke]:not([stroke="none"]) {stroke:currentColor!important;}
+ [data-ap-icon] svg[fill]:not([fill="none"]),svg[data-ap-icon][fill]:not([fill="none"]),
+ [data-ap-icon] svg [fill]:not([fill="none"]),svg[data-ap-icon] [fill]:not([fill="none"]) {fill:currentColor!important;}
+}

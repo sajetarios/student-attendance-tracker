@@ -1,4 +1,4 @@
-const CACHE = "attendigo-v450-adaptive-contrast";
+const CACHE = "attendigo-v451-deep-icon-contrast";
 
 // Only public, non-personal offline shells and their executable dependencies.
 // An update must not discard the working cache before these are all ready.
@@ -7,8 +7,7 @@ const OFFLINE_REQUIRED = [
   ...OFFLINE_TOOL_PAGES,
   "/attendigo-experience.css?v=4",
   "/attendigo-role-workspaces.js?v=5",
-  "/attendigo-signature.css?v=8",
-  "/attendigo-adaptive-palette.js?v=1",
+  "/attendigo-signature.css?v=9",
   "/school-weather-widget.js?v=4",
   "/attendigo-layout-density.css?v=1",
   "/app-dialog.css?v=2",
@@ -37,6 +36,7 @@ const OFFLINE_REQUIRED = [
 ];
 
 const SHELL = [
+  "/attendigo-adaptive-palette.js?v=2",
   "/install.html",
   "/attendigo-install.js?v=5",
   "/attendigo-install-walkthrough.js?v=2",
