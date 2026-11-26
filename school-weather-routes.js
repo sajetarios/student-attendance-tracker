@@ -102,7 +102,7 @@ function registerSchoolWeatherRoutes(app,pool,{authenticateSchoolClient,requireS
    if(!entry||entry.expiry<=Date.now()){
     const r=await pool.query('SELECT campus_id AS id,name,latitude,longitude FROM staff_lunch_campuses WHERE school_id=$1 AND active=TRUE ORDER BY name,campus_id LIMIT 100',[school]);
     entry={expiry:Date.now()+300000,rows:r.rows.filter(c=>c.latitude!==null&&c.longitude!==null&&Number.isFinite(Number(c.latitude))&&Number.isFinite(Number(c.longitude))&&Math.abs(Number(c.latitude))<=90&&Math.abs(Number(c.longitude))<=180)};
-    if(campusCache.size>=MAX)campusCache.delete(campusCache.keys().next().value);campusCache.set(school,entry);
+    if(entry.rows.length){if(campusCache.size>=MAX)campusCache.delete(campusCache.keys().next().value);campusCache.set(school,entry);}else{campusCache.delete(school);}
    }
    const campuses=entry.rows.map(({id,name})=>({id,name}));
    if(!campuses.length)return res.json({status:'no_campus',campuses});

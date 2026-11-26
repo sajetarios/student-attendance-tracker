@@ -1,4 +1,4 @@
-const CACHE = "attendigo-v445-met-norway-weather";
+const CACHE = "attendigo-v446-weather-campus-setup";
 
 // Only public, non-personal offline shells and their executable dependencies.
 // An update must not discard the working cache before these are all ready.
@@ -8,7 +8,7 @@ const OFFLINE_REQUIRED = [
   "/attendigo-experience.css?v=4",
   "/attendigo-role-workspaces.js?v=4",
   "/attendigo-signature.css?v=4",
-  "/school-weather-widget.js?v=2",
+  "/school-weather-widget.js?v=3",
   "/attendigo-layout-density.css?v=1",
   "/app-dialog.css?v=2",
   "/app-dialog.js?v=1",
