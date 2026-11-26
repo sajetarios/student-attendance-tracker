@@ -18,7 +18,8 @@ test('installation is detected only from current display mode, not stored consen
 test('public installation entry points reuse the existing manifest and avoid auth or push mutations',()=>{
  const read=p=>fs.readFileSync('public/'+p,'utf8');
  for(const p of ['portal-login.html','parent-portal.html','portal.html','student-portal.html','principal.html']) {
-   assert.match(read(p),/href="\/install\.html"/);
+   if(p==='portal-login.html')assert.match(read(p),/href="\/install\.html"/);
+   else assert.doesNotMatch(read(p),/data-attendigo-install-container|id="attendigoInstallDialog"/);
    assert.match(read(p),/attendigo-install\.js\?v=5/);
  }
  assert.match(read('install.html'),/manifest\.webmanifest/);
@@ -33,8 +34,8 @@ test('highlight is in flow, finite, and respects reduced motion',()=>{
  assert.match(css,/animation:attendigo-install-highlight 1\.45s ease-in-out 3/);
  for(const p of ['portal-login.html','parent-portal.html','portal.html','student-portal.html','principal.html']){
    const source=fs.readFileSync('public/'+p,'utf8');
-   assert.equal((source.match(/data-attendigo-install-container/g)||[]).length,1);
-   assert.match(source,/attendigo-install-cta/);
+   assert.equal((source.match(/data-attendigo-install-container/g)||[]).length,p==='portal-login.html'?1:0);
+   if(p==='portal-login.html')assert.match(source,/attendigo-install-cta/);
  }
 });
 test('app installation uses the browser install event, not the native text prompt',()=>{
@@ -67,12 +68,12 @@ test('iPhone falls back to guide without suppressing browser behavior',()=>{
  init(win);events.beforeinstallprompt({preventDefault(){prevented++}});
  linkEvents.click({preventDefault(){prevented++}});assert.equal(prevented,0);
 });
-test('all main portals declare manifest and capture install event early with animated mascot',()=>{
+test('all main portals retain manifest and PWA registration; public installer retains mascot',()=>{
  for(const p of ['portal-login.html','parent-portal.html','portal.html','student-portal.html','principal.html','install.html']){
  const s=fs.readFileSync('public/'+p,'utf8');
  assert.match(s,/rel="manifest"/);
  assert.match(s,/<head[^>]*><script src="\/attendigo-install\.js\?v=5"><\/script>/);
- assert.match(s,/class="install-robot"/);
+ if(p==='portal-login.html'||p==='install.html')assert.match(s,/class="install-robot"/);
  }
  assert.equal(installed({navigator:{},matchMedia:q=>({matches:q==='(display-mode: fullscreen)'})}),false);
 });
@@ -117,10 +118,11 @@ test('portal fallback opens and closes the installation dialog without navigatio
  buttonEvents.click();assert.equal(closed,1);assert.equal(focused,1);
  linkEvents.click({preventDefault(){prevented++}});assert.equal(opened,2);
 });
-test('every portal uses a branded in-place guide with no return link that navigates',()=>{
+test('only login uses a branded in-place guide with no return link that navigates',()=>{
  const guide=fs.readFileSync('public/install.html','utf8').match(/<main class="install-card">([\s\S]*?)<\/main>/)[1];
  for(const p of ['portal-login.html','parent-portal.html','portal.html','student-portal.html','principal.html']){
  const source=fs.readFileSync('public/'+p,'utf8');
+ if(p!=='portal-login.html'){assert.doesNotMatch(source,/id="attendigoInstallDialog"|data-attendigo-install-container/);continue;}
  const modal=source.match(/<dialog id="attendigoInstallDialog"[\s\S]*?<\/dialog>/)[0];
  assert.match(modal,/attendigo-official-lockup/);
  assert.match(modal,/data-install-close>Close<\/button>/);assert.doesNotMatch(modal,/href="\/"\s*>/);
@@ -138,7 +140,7 @@ test('installer follows approved login brand and avoids the former green primary
  assert.doesNotMatch(css,/#08705d|#075b4e|#147664/i);
  for(const p of ['install.html','portal-login.html','portal.html','parent-portal.html','student-portal.html','principal.html']){
   const s=fs.readFileSync('public/'+p,'utf8');
-  assert.match(s,/install-brand-logo[^>]+attendigo-official-lockup/);
+  if(p==='install.html'||p==='portal-login.html')assert.match(s,/install-brand-logo[^>]+attendigo-official-lockup/);
   assert.match(s,/attendigo-install\.css\?v=6/);
  }
  assert.match(fs.readFileSync('public/sw.js','utf8'),/attendigo-install\.css\?v=6/);
