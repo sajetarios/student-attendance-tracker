@@ -15,7 +15,8 @@ const nav=slice(staff,'<aside class="sidebar"','</aside>');
 const intro=slice(staff,'<header class="ax-workspace-intro"','</header>');
 const scanner=fullSection(staff,'studentScannerCard');
 function fullSection(source,id){
- const i=source.indexOf('<section id="'+id+'"');assert.ok(i>=0,id);
+ const tag=[...source.matchAll(/<section\b[^>]*>/gi)].find(m=>m[0].includes('id="'+id+'"'));assert.ok(tag,id);
+ const i=tag.index;
  let depth=0;
  for(const match of source.slice(i).matchAll(/<\/?section\b[^>]*>/gi)){
   depth+=match[0].startsWith('</')?-1:1;
@@ -71,6 +72,39 @@ const roles={SCHOOL_ADMIN:'School operations',DEPARTMENT_HEAD:'Department priori
      assert.equal(help.dock,'rgba(0, 0, 0, 0)');assert.equal(help.button,'rgba(0, 0, 0, 0)');assert.equal(help.image,'none');assert.equal(help.ink,ink==='#ffffff'?'rgb(255, 255, 255)':'rgb(16, 24, 39)');
     }
     if(role==='TEACHER'){
+     // Render the real CTA and teaching hero with all production styles, not just the navigation.
+     await page.evaluate(({scan,summary,quick})=>{
+      const dashboard=document.querySelector('#dashboardView');
+      dashboard.insertAdjacentHTML('beforeend',scan+summary+quick);
+      dashboard.querySelector('#auxiliary').hidden=true;
+      for(const id of ['adminDashboardCard','departmentHeadOverview'])dashboard.querySelector('#'+id).hidden=true;
+      dashboard.dataset.axTeachingDay='true';
+      document.documentElement.classList.add('attendigo-teacher-v2');
+      document.querySelector('#dashboardAddStudent').hidden=false;
+      const qr=document.createElement('button');qr.type='button';qr.id='classQrTeacherShortcut';
+      qr.className='is-dashboard-inline';qr.textContent='Class QR Attendance';
+      document.querySelector('#dashboardScanCta .dashboard-quick-buttons').append(qr);
+     },{scan:fullSection(staff,'dashboardScanCta'),summary:fullSection(staff,'learnerSummaryCard'),quick:'<section id="quickActionsCard"><button data-go="schedules">My Timetable</button></section>'});
+     await page.addScriptTag({content:read('teacher-dashboard-v3.js')});
+     await page.waitForSelector('.teacher-v3-hero');
+     const cards=await page.evaluate(()=>{
+      const scan=document.querySelector('#dashboardScanCta'),hero=document.querySelector('.teacher-v3-hero');
+      const copy=scan.querySelector('.dashboard-scan-cta-copy'),buttons=scan.querySelector('.dashboard-quick-buttons');
+      const rect=n=>n.getBoundingClientRect(),s=getComputedStyle(scan);
+      const content=rect(copy),actions=rect(buttons),outer=rect(scan);
+      const heroOuter=rect(hero),heroChildren=[...hero.children].map(rect);
+      return {direction:s.flexDirection,basis:getComputedStyle(copy).flexBasis,grow:getComputedStyle(copy).flexGrow,
+       gap:actions.top-content.bottom,scanSlack:outer.bottom-Math.max(content.bottom,actions.bottom)+Math.min(content.top,actions.top)-outer.top,
+       heroSlack:heroOuter.bottom-Math.max(...heroChildren.map(b=>b.bottom))+Math.min(...heroChildren.map(b=>b.top))-heroOuter.top,
+       scanAlign:s.alignSelf,heroAlign:getComputedStyle(hero).alignSelf};
+     });
+     assert.equal(cards.basis,'auto',JSON.stringify(cards));
+     assert.equal(cards.grow,'0',JSON.stringify(cards));
+     assert.equal(cards.scanAlign,'start',JSON.stringify(cards));
+     assert.equal(cards.heroAlign,'start',JSON.stringify(cards));
+     if(cards.direction==='column')assert.ok(cards.gap>=-1&&cards.gap<=25,JSON.stringify(cards));
+     assert.ok(cards.scanSlack<=60&&cards.heroSlack<=60,JSON.stringify(cards));
+     await page.evaluate(()=>{for(const selector of ['#dashboardScanCta','.teacher-v3-hero','#learnerSummaryCard','#quickActionsCard'])document.querySelector(selector)?.remove();});
      await page.evaluate(()=>{const section=document.createElement('section');section.id='schedulesView';section.innerHTML='<div id="weeklyTimetableBoard" class="weekly-timetable-board"></div>';document.querySelector('.main-area').append(section);});
      await page.addScriptTag({content:read('timetable-grid.js')});
      await page.evaluate(()=>{const days=[1,2,3,4,5];window.TimetableGrid.render({host:document.querySelector('#weeklyTimetableBoard'),days,weekdayDates:{1:'2026-11-23',2:'2026-11-24',3:'2026-11-25',4:'2026-11-26',5:'2026-11-27'},entries:days.map(dayIndex=>({dayIndex,date:'2026-11-26',startTime:'16:15',endTime:'17:15',subjectName:'English Language and Communication',gradeLevel:'Grade 7',section:'B',teacherScheduleView:true,isMySubjectClass:true,isMyAdvisorySection:true}))});});
