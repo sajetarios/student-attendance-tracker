@@ -1,4 +1,4 @@
-const CACHE = "attendigo-v442-signature-containment";
+const CACHE = "attendigo-v443-dashboard-content";
 
 // Only public, non-personal offline shells and their executable dependencies.
 // An update must not discard the working cache before these are all ready.
@@ -6,8 +6,8 @@ const OFFLINE_TOOL_PAGES = ["/offline-sheet.html", "/gate-offline.html", "/stude
 const OFFLINE_REQUIRED = [
   ...OFFLINE_TOOL_PAGES,
   "/attendigo-experience.css?v=4",
-  "/attendigo-role-workspaces.js?v=2",
-  "/attendigo-signature.css?v=2",
+  "/attendigo-role-workspaces.js?v=3",
+  "/attendigo-signature.css?v=3",
   "/attendigo-layout-density.css?v=1",
   "/app-dialog.css?v=2",
   "/app-dialog.js?v=1",
@@ -184,10 +184,10 @@ const SHELL = [
   "/guardian-ui.js?v=7",
   "/guardian-ui.css?v=4",
   "/academic-admin.css?v=1",
-  "/academic-admin.js?v=7",
+  "/academic-admin.js?v=8",
   "/shs-school-ui.js?v=2",
   "/shs-school-ui.css?v=2",
-  "/special-program-ui.js?v=6",
+  "/special-program-ui.js?v=7",
   "/special-program-batch-ui.js?v=3",
   "/special-program-ui.css?v=5",
   "/app-dialog.css?v=2",

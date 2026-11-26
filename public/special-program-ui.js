@@ -60,7 +60,7 @@ window.attendigoStaffIdentity.then(user => {
       const first=row.querySelector('td');if(!first)return;
       const item=enrollments.get(first.textContent.trim());
       if(!item)continue;
-      const cell=document.createElement('td');
+      const cell=document.createElement('td');cell.dataset.axField='select';
       const input=document.createElement('input');
       input.type='checkbox';input.dataset.specialEnroll=item.enrollmentId;
       input.setAttribute('aria-label','Select '+item.fullName+' for special program assignment');

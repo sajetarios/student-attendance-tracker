@@ -79,3 +79,72 @@
  .ax-workspace-intro {width:100%;max-width:100%;box-sizing:border-box;min-width:0;overflow-wrap:anywhere;}
  .ax-workspace-intro > * {min-width:0;max-width:100%;overflow-wrap:anywhere;}
 }
+
+/* V5.1: prioritize actual work, not introductory banners. */
+@media screen {
+ html body.portal-page .portal-layout[data-attendigo-role] .content-wrap>.school-heading {padding:10px 14px!important;margin-block:0 8px!important;gap:10px!important;}
+ html body.portal-page .portal-layout[data-attendigo-role] .school-heading .school-title-block h1 {font-size:clamp(16px,2vw,20px)!important;line-height:1.3!important;}
+ html body.portal-page .portal-layout[data-attendigo-role] .school-heading .school-emblem {width:40px!important;height:40px!important;min-width:40px!important;flex:0 0 40px!important;}
+ html body.portal-page .portal-layout[data-attendigo-role] .school-heading .heading-actions {gap:6px!important;}
+ html body.portal-page .portal-layout[data-attendigo-role] .attendigo-install-strip {margin-block:4px 8px!important;}
+ html body.portal-page .portal-layout[data-attendigo-role] .attendigo-install-strip .attendigo-install-cta {min-height:44px!important;padding:7px 12px!important;}
+ html body.portal-page .portal-layout[data-attendigo-role] .attendigo-install-strip .install-robot {width:30px!important;height:30px!important;}
+ html body.portal-page .portal-layout[data-attendigo-role] .ax-workspace-intro {min-height:0;padding:14px 18px;margin-bottom:8px;}
+ html body.portal-page .portal-layout[data-attendigo-role] .ax-workspace-intro h2 {font-size:clamp(22px,2.4vw,28px);margin:3px 0;}
+ html body.portal-page .portal-layout[data-attendigo-role] .ax-workspace-intro p {font-size:16px;}
+ body.portal-page #dashboardView:not([hidden]) :is(#adminDashboardCard,#departmentHeadOverview):not([hidden]) {display:flex;flex-direction:column;gap:12px;}
+ body.portal-page #dashboardView :is(.admin-command-metrics,.dh-command-metrics) {order:-2;margin-block:0!important;}
+ body.portal-page #dashboardView :is(.admin-command-hero,.dh-command-intro) {padding:8px!important;min-height:0!important;gap:10px!important;margin:0!important;}
+ body.portal-page #dashboardView :is(.admin-command-hero,.dh-command-intro) h3 {font-size:19px!important;margin:3px 0!important;}
+ body.portal-page #dashboardView :is(.admin-command-hero,.dh-command-intro) p {font-size:16px!important;margin:3px 0!important;}
+ html body.portal-page .portal-layout[data-attendigo-role="TEACHER"] #dashboardView:not([hidden]) {display:flex;flex-direction:column;}
+ html body.portal-page .portal-layout[data-attendigo-role="TEACHER"] #dashboardView>#axStaffDashboardIntro {order:-5!important;}
+ html body.portal-page .portal-layout[data-attendigo-role="TEACHER"] #dashboardView>#learnerSummaryCard {order:-4!important;}
+ html body.portal-page .portal-layout[data-attendigo-role="TEACHER"] #dashboardView>.teacher-v3-hero {order:-3!important;min-height:0!important;padding:12px 16px!important;border-radius:14px;}
+ html body.portal-page .portal-layout[data-attendigo-role="TEACHER"] #dashboardView>.teacher-v3-hero h2 {font-size:20px!important;}
+ html body.portal-page .portal-layout[data-attendigo-role="TEACHER"] #dashboardView>.teacher-v3-hero p {font-size:16px!important;}
+ html body.portal-page .portal-layout[data-attendigo-role="TEACHER"] #dashboardView>.teacher-v3-hero .teacher-v3-hero-actions {min-width:0;}
+ html body.portal-page .portal-layout[data-attendigo-role="TEACHER"] #dashboardView:has(#axTeachingProgress) .teacher-v3-foot {display:none;}
+ .ax-teaching-progress {display:grid;grid-template-columns:92px minmax(0,1fr);gap:14px;align-items:center;padding:14px;background:var(--ag-surface,#fff);border:1px solid var(--ax-border);border-radius:14px;margin-top:12px;}
+ .ax-progress-ring {--ax-progress:0%;width:88px;aspect-ratio:1;display:grid;place-items:center;border-radius:50%;background:conic-gradient(#168375 var(--ax-progress),var(--ax-border,#d7e0ea) 0);}
+ .ax-progress-ring strong {width:68px;aspect-ratio:1;border-radius:50%;display:grid;place-items:center;background:var(--ag-surface,#fff);color:var(--ag-reading,#19304a);font-size:20px;font-variant-numeric:tabular-nums;}
+ .ax-teaching-progress h3,.ax-weather-advisory h3 {font-size:18px;line-height:1.3;margin:0 0 5px;color:var(--ag-reading,#19304a);}
+ .ax-teaching-progress p,.ax-weather-advisory p {font-size:16px;line-height:1.4;margin:0 0 5px;color:var(--ag-secondary,#52647b);}
+ .ax-teaching-progress small {font-size:14px;line-height:1.35;color:var(--ag-secondary,#52647b);}
+ .ax-weather-advisory {order:8;display:grid;grid-template-columns:56px minmax(0,1fr);gap:12px;align-items:start;padding:16px;border:1px solid var(--ax-border);border-radius:16px;background:var(--ag-surface,#fff);margin-block:10px;color:var(--ag-reading,#19304a);min-width:0;box-sizing:border-box;}
+ .ax-weather-symbol {display:grid;place-items:center;background:#e2effb;color:#245f9d;border-radius:14px;width:54px;height:54px;}
+ .ax-weather-symbol svg {width:36px;height:36px;}
+ .ax-weather-kicker {font-size:12px;letter-spacing:.06em;font-weight:750;color:var(--ag-secondary,#52647b);}
+ .ax-weather-links {display:flex;flex-wrap:wrap;gap:8px;margin-top:8px;}
+ .ax-weather-links a {display:inline-flex;min-height:44px;align-items:center;padding:7px 12px;border:1px solid var(--ax-border);border-radius:9px;color:var(--ag-primary,#245f9d);font-size:16px;font-weight:650;text-decoration:underline;box-sizing:border-box;}
+ html body.portal-page .portal-layout[data-attendigo-role] #sidebar.sidebar .nav-item.active {border-radius:12px 5px 5px 12px!important;box-shadow:inset 4px 0 var(--side-selected-ink)!important;}
+}
+@media screen and (max-width:860px) {
+ html body.portal-page .portal-layout[data-attendigo-role] .topbar {display:flex!important;flex-wrap:wrap!important;gap:5px 8px!important;align-items:center!important;padding:7px 10px!important;height:auto!important;min-height:0!important;}
+ html body.portal-page .portal-layout[data-attendigo-role] .topbar .topbar-right {order:1;min-width:0;max-width:calc(100% - 48px);margin-inline-start:auto;gap:4px!important;}
+ html body.portal-page .portal-layout[data-attendigo-role] .topbar .breadcrumbs {order:2;flex:1 0 100%!important;max-width:100%!important;min-width:0!important;white-space:normal!important;overflow:visible!important;padding:4px 2px 2px!important;border-top:1px solid var(--ax-border);}
+ html body.portal-page .portal-layout[data-attendigo-role] .topbar #breadcrumbCurrent {white-space:normal!important;overflow:visible!important;text-overflow:clip!important;max-width:100%!important;overflow-wrap:anywhere;font-size:16px!important;line-height:1.3;}
+ html body.portal-page #schoolWorkspace #studentsView #studentRosterPanel,html body.portal-page #schoolWorkspace #studentsView #studentRosterPanel>.table-scroll {box-sizing:border-box;max-width:100%!important;min-width:0!important;width:100%!important;}
+ html body.portal-page #schoolWorkspace .ax-enrollment-table {width:100%!important;max-width:100%!important;min-width:0!important;overflow-x:auto!important;box-sizing:border-box;}
+ html body.portal-page #schoolWorkspace .ax-enrollment-table table {display:block!important;width:100%!important;min-width:0!important;max-width:100%!important;}
+ html body.portal-page #schoolWorkspace .ax-enrollment-table thead {position:absolute!important;width:1px!important;height:1px!important;min-width:0!important;overflow:hidden!important;clip-path:inset(50%);}
+ html body.portal-page #schoolWorkspace .ax-enrollment-table tbody {display:block!important;width:100%!important;min-width:0!important;}
+ html body.portal-page #schoolWorkspace .ax-enrollment-table tbody tr:has([data-ax-field="name"]) {display:grid!important;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:5px 10px;border:1px solid var(--ax-border);border-radius:12px;margin:0 0 8px;padding:10px!important;min-width:0!important;width:100%!important;box-sizing:border-box;}
+ html body.portal-page #schoolWorkspace .ax-enrollment-table tbody tr:has([data-ax-field="name"]) td {display:block!important;width:auto!important;min-width:0!important;max-width:100%!important;padding:2px 0!important;white-space:normal!important;overflow-wrap:anywhere;border:0!important;font-size:15px;box-sizing:border-box;}
+ html body.portal-page #schoolWorkspace .ax-enrollment-table td[data-ax-field="name"] {grid-column:1/-1;font-size:17px!important;font-weight:750;}
+ html body.portal-page #schoolWorkspace .ax-enrollment-table td[data-ax-field="id"] {grid-column:1/-1;}
+ html body.portal-page #schoolWorkspace .ax-enrollment-table td[data-ax-field="select"] {grid-column:1/-1;min-height:24px!important;}
+ html body.portal-page #schoolWorkspace .ax-enrollment-table td[data-ax-field="action"] {grid-column:1/-1;display:grid!important;grid-template-columns:minmax(0,1fr);gap:6px;}
+ html body.portal-page #schoolWorkspace .ax-enrollment-table td[data-ax-field="action"] :is(select,button) {width:100%!important;min-width:0!important;max-width:100%!important;min-height:44px!important;margin:0!important;white-space:normal!important;box-sizing:border-box;font-size:16px!important;}
+ html body.portal-page #schoolWorkspace .ax-enrollment-table td[data-ax-field]::before {display:block!important;position:static!important;width:auto!important;font-weight:650;font-size:12px;line-height:1.3;color:var(--ag-secondary,#52647b);margin:0 0 2px;}
+ html body.portal-page #schoolWorkspace .ax-enrollment-table td[data-ax-field="id"]::before {content:"Student ID";}
+ html body.portal-page #schoolWorkspace .ax-enrollment-table td[data-ax-field="grade"]::before {content:"Grade";}
+ html body.portal-page #schoolWorkspace .ax-enrollment-table td[data-ax-field="section"]::before {content:"Section";}
+ html body.portal-page #schoolWorkspace .ax-enrollment-table td[data-ax-field="status"]::before {content:"Status";}
+ html body.portal-page #schoolWorkspace .ax-enrollment-table td[data-ax-field="program"]::before {content:"Special program";}
+ html body.portal-page #schoolWorkspace .ax-enrollment-table td[data-ax-field="name"]::before,html body.portal-page #schoolWorkspace .ax-enrollment-table td[data-ax-field="select"]::before,html body.portal-page #schoolWorkspace .ax-enrollment-table td[data-ax-field="action"]::before {content:none!important;}
+}
+@media screen and (max-width:380px) {
+ .ax-teaching-progress {grid-template-columns:minmax(0,1fr);}
+ .ax-weather-advisory {grid-template-columns:minmax(0,1fr);}
+}
