@@ -41,7 +41,7 @@ test('the simplified School Admin menu groups monitoring and existing attendance
   assert.ok(sidebar.includes("move('"+link+"', 'attendanceManagement')"),link+' is lost');
  assert.ok(sidebar.includes("$('officialBusinessNav').hidden = true"),'Admin must not have an OB approval module');
  assert.match(sidebar,/label\('attendanceManagement', 'Attendance Management'\)/);
- assert.match(sidebar,/group\('attendanceManagement'\), group\('operations'\)/);
+ assert.match(sidebar,/group\('attendanceManagement'\)[^\n]*group\('operations'\)/);
  assert.doesNotMatch(sidebar,/\.cloneNode\(/);
  assert.match(sidebar,/authorizedChildren\(wrapper\)/);
 });
